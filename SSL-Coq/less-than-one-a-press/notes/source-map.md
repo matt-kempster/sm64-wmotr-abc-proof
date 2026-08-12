@@ -120,9 +120,86 @@ and storage audits, actual-target global-reference resolution, external
   `ClightEndToEndRefinement.v` prove the strong-definition, generic
   initialization, concrete-footprint, environment/continuation/state, pointer,
   scalar-operation, and lockstep composition layers.  They do not establish
-  retail semantics.  Repaired-program success, the concrete global/public and
-  name-based memory instances, whole-expression/internal-step simulation, and
-  reachable `EF_external` frames remain open.
+  retail semantics.  `USViewportRepairedProgramCertificate.v` checks that the
+  repaired whole-AST US program builds, and `SelectedClightTarget.v` selects it
+  together with the official cleaned JP link.  This replaces the impossible
+  common-`linkorder` `TargetLinkedProgram` selection gate.  The checked
+  `OriginalUnitsHeaderNormalizationStructuralObligation` now records exactly
+  what source-owned cleaning proves: definition ownership, verbatim strong
+  definitions, identifier/composite coverage, normalized-header use, and a
+  successful official whole link.  It makes no standalone-unit execution
+  claim.  `WholeLinkedSourceToSelectedTargetRefinementObligation` starts from
+  that whole link and is the task-anchored lockstep boundary to the selected
+  target; its initialized null-argument `thread5_game_loop` starts must each
+  take a first Clight step.  Official-JP initialized memory now exists, its
+  exact task body resolves, the first step executes, and identity lockstep
+  closes this JP boundary.  The OS handoff remains open; US initialization and
+  viewport-repair lockstep remain open.
+  `GlobalInterfaceStructural.v` proves
+  generic cleaned-selector exactness under explicit hypotheses; its concrete
+  US/JP global/public-map instances and the name-based memory relations remain
+  open.  `JPSelectedTargetAudit.v` closes the narrower audit for projections
+  fixed to `VersionJP` and `jp_official_cleaned_slice`: exact selected-program
+  identity, the selected syntax audit, and symbol existence for the five
+  `jp_retail_state_global_identifiers`.  Its capstone packages that audit with
+  the JP source identity and reduces `SelectedTargetClightRefinementObligation`
+  to the generic `TargetClightRefinementObligation`; the concrete observer,
+  chronology, entry prefixes, and selected-to-retail semantics remain open.
+  The repaired-US audit is independently closed by the focused definition-name,
+  definition-list syntax, repair-preimage, `Evar`, and `Init_addrof` transport
+  modules, the two split five-core-symbol receipt modules, and
+  `USSelectedTargetAudit.v`.  Under exact `VersionUS` and repaired-program
+  hypotheses, the capstone packages no direct `Sbuiltin`, supported external
+  constructors, repaired-program `Evar`/`Init_addrof` name resolution, and
+  `find_symbol` existence for the five core identifiers.  It does not prove
+  initialization, memory shape/content/block correspondence, source-to-selected
+  viewport-repair execution lockstep, runtime handoff, routing/prefix/chronology,
+  or selected-to-retail semantics.
+  Concretely, `NormalizedDefinitionNameTransport.v` and
+  `DefinitionListSyntaxTransport.v` provide generic list/name transport;
+  `USViewportRepairDefinitionPreimage.v`,
+  `USViewportRepairedDefinitionPreimage.v`,
+  `USViewportRepairDefinitionListSyntax.v`, and
+  `USViewportRepairSyntaxPreservation.v` connect that transport to the repair;
+  the `NormalizedRepairedSymbolTransport.v`,
+  `SourceUnitRepairedSymbol.v`, `USRepairedSymbolTransport.v`,
+  `RepairedEvarResolutionTransport.v`, and
+  `RepairedInitAddrofResolutionTransport.v` layer carries names and symbols;
+  the `USRepaired*Audit.v` modules specialize the four syntax checks; and the
+  `USSelectedCore*NthReceipt.v`, `USSelectedCore*Receipt.v`, and
+  `USSelectedTargetAudit.v` modules close the five-symbol and capstone checks.
+  `JPSourceSymbolTransport.v` separately proves one-definition
+  transport from an explicit JP source-unit receipt to existence of the same
+  official-link symbol.  Twelve focused receipts use that transport, except
+  that the platform receipt instead uses aggregate public-name coverage and
+  cleaned-link transport.  `JPArea1EntrySymbolResolution.v` aggregates them
+  into all twelve official-JP ordinary-entry bindings at slots `0`/`1`, slot
+  validity, core-storage separation, and pointer-cell/core-storage separation.
+  It supplies no live memory contents, allocation/layout sizes, initializer
+  values, or execution.
+
+`proofs/RetailExternalFrameReachability.v` replaces the old whole-pool
+declaration-wide external-frame target with a reachable, callsite-sensitive
+frame-or-writer interface.  The generic reduction is proved.  The candidate
+set has now been checked through six local receipts, two per-version
+aggregations, and `DialogDepthFiniteInventory.v`: the selected unresolved
+direct callees of the seven dialog/depth bodies are exactly the expected ten
+names for US and JP.  Path-sensitive reachable call sequences, argument
+provenance, transitive reachability, and concrete effect classifications remain
+open.  Legitimate object allocation must enter writer/lifecycle refinement
+rather than be hidden by a pool frame.
+
+`proofs/ClightProjectionChronology.v` defines data-bearing frame chunks under
+one fixed observer and proves that an exact connected chronology yields the
+whole-run projection certificate.  Observed gameplay/administrative frames
+contain a nonempty `Smallstep.plus`; silent no-poll chunks may stutter.  The
+interface requires previous/current `buttonDown` and computed `buttonPressed`
+loads at its pinned controller/pointer bindings and exact poll/consumer bodies;
+concrete work must instantiate the observer and classify each frame.  Supplied
+nonempty `thread5_game_loop` task-entry prefixes yield clean-entry nonvacuity.
+These bridges are conditional.  The observer, concrete controller refinement,
+projection functions, chronologies, both task-entry prefixes, whole-expression/
+internal-step simulation, and selected-to-retail relation remain open.
 
 `proofs/OrdinaryArea1EntryMemory.v` maps the ordinary Area-1 entry through
 `ssl_script`, `level_script`, `level_update`, `mario`, `object_list_processor`,
@@ -133,6 +210,21 @@ synchronization.  The actual entry `Smallstep.star`, castle routing, behavior
 lookup, external-call frames, controller predecessor, object-access bounds,
 and full pool/list ownership remain open.
 
+`proofs/Area1EntryZeroAPrefix.v` proves the conditional bridge from a supplied
+entry postcondition and no-A input sample to the live controller predicate and
+reflexive zero-A suffix.  With separately supplied castle and `warp_level`
+symbol/body resolution and execution prefixes, all symbol bindings, and the
+final postcondition, it composes the traces at the real return state.  It does
+not construct those premises.  `proofs/JPWarpLevelEntryResolution.v`
+  separately resolves the exact symbol/body for the official cleaned JP
+  program, and the JP-specialized corollary in `Area1EntryZeroAPrefix.v`
+  consumes that resolution.  The focused `USWarpLevel*Receipt.v` chain and
+  `USWarpLevelEntryResolution.v` resolve the exact `_warp_level` internal body
+  in the selected viewport-repaired US program.  `JPArea1EntrySymbolResolution.v`
+  separately supplies the twelve official-JP structural bindings and limited
+  block-separation facts.  Live memory, routing, execution, both live prefixes,
+  the postcondition, and the remaining US entry bindings remain open.
+
 `proofs/JPGeneratedWriterCensus.v` concatenates definitions only for a
 receiver-neutral syntactic census while preserving the 38-unit boundaries.
 It counts assignment-bearing functions, not stores: 33 for `pos[1]`, 215 for
@@ -140,6 +232,42 @@ raw-data slot 7, 180 for raw-data slot 10, and 15 whose LHS mentions
 `throwMatrix`.  It also isolates eight direct `quicksandDepth` writers and six
 direct automatic-dialog constructors.  Receiver identity, aliasing, calls,
 actions, flags, reanchoring, and lifecycle still require semantic refinement.
+
+`proofs/JPCoordinateLvalueReceiverPartition.v` rechecks the four coordinate
+shapes per unit against generated Clight receiver annotations.  It verifies
+that `pos[1]` belongs to the allowed set `MarioState`, `GraphNodeObject`, or
+`PlayerCameraState`, raw slots
+7/10 into `Object`, and `throwMatrix` into `GraphNodeObject`.  The receipt is
+static typing, not live pointer identity, alias freedom, or reachability.
+
+`proofs/ClightInitialMemoryFacts.v`, the twelve
+`proofs/JPInitializerReceipt*.v` files, and
+`proofs/JPOfficialInitialMemory.v` prove that the official cleaned JP link has
+an initialized CompCert memory.  `proofs/JPThread5EntryResolution.v` resolves
+the exact task body, and `proofs/JPSelectedRuntimeTaskStart.v` constructs its
+null-argument first step and the JP identity source-to-selected witness.
+`proofs/JPWarpLevelEntryResolution.v` separately resolves the exact
+`warp_level` symbol/body in the same official JP environment.  The split
+`proofs/USWarpLevel*Receipt.v` modules and
+`proofs/USWarpLevelEntryResolution.v` close the corresponding exact lookup in
+the selected viewport-repaired US program.  The OS handoff, castle routing,
+`warp_level` execution, live Area-1 memory and postcondition,
+selected-to-retail transport, repaired-US task/refinement witnesses, and the
+remaining US entry bindings remain open.  The
+twelve official-JP entry symbols, slots `0`/`1`, and limited global-block
+separation are now closed structurally by the focused symbol receipts and
+`JPArea1EntrySymbolResolution.v`.  The game-init receipt additionally resolves
+  the exact `_gPlayer1Controller` source definition into the official link;
+  `proofs/JPSelectedTargetAudit.v` uses it with four existing receipts to close
+  the selected-JP syntax/five-core-symbol audit and reduce the full selected-JP
+  boundary to the generic target refinement obligation, without claiming memory
+  contents, observer/chronology, entry prefixes, or selected-to-retail execution.
+  The parallel repaired-US chain culminates in
+  `proofs/USSelectedTargetAudit.v` and closes only the actual repaired-program
+  syntax/name and five-core-`find_symbol` audit.  Repaired-US initialization,
+  source/refinement execution lockstep, memory block correspondence, the OS
+  handoff and routing/prefix/chronology, and selected-to-retail transport remain
+  open.
 
 `proofs/JPZeroAReachability.v` defines a zero-edge relation over `Clight.step2`
 and the live controller `buttonPressed` cell.  Program, controller address, and
@@ -618,10 +746,23 @@ objects, watched slot offset 37088, twelve in-slot payload-witness ranges, and
 exactly one retained cleaned `_gObjectPool` declaration as a
 writable/nonvolatile 145920-byte
 global, the block-relative watched pointer, and the conditional 131-push/
-84-pop non-selection and depth-47 facts.  Completeness of the payload access
-list against the generated AST, resolving the declaration to the
-actual official-link initial/current-memory block, extracting the chronology
-and epoch from small steps, and executing first-apply loads remain open.
+84-pop non-selection and depth-47 facts.  The supporting nine-module chain is
+`proofs/LinkedGlobalInitialMemory.v`,
+`proofs/JPObjectPoolCleanedUnitDefmapReceipt.v`,
+`proofs/JPObjectPoolLinkorderShape.v`,
+`proofs/JPObjectPoolOfficialLinkorderReceipt.v`,
+`proofs/CheckedLinkedDefinitionShape.v`,
+`proofs/JPObjectPoolOfficialShapeReceipt.v`,
+`proofs/JPObjectPoolOfficialDefmapReceipt.v`,
+`proofs/JPObjectPoolCleanedUnitReceipt.v`, and
+`proofs/JPLinkedObjectPoolInitialMemory.v`.  It transports the exact generated
+variable through the successful official cleaned link, resolves its exact
+definition-map and global-environment entry, and proves static initial-memory
+`Cur Writable` permission for `[37088,37696)`.  Completeness of the payload
+access list against the generated AST, byte/payload contents, current-memory
+preservation, runtime pointer/epoch binding, extracting the allocation
+chronology from small steps, first-apply execution, and retail refinement remain
+open.
 
 `proofs/InstallerCoverage.v` proves contradictions for five source-bounded
 abstract installer-attempt records and

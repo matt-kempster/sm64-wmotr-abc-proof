@@ -36,8 +36,18 @@
   official target.  Its `__540` viewport wrapper is therefore 8 bytes against
   16-byte source wrapper/storage.  A fresh-tag local layout repair is
   constructed.  A recursive whole-AST/state rewrite is now defined, with basic
-  identifier, initializer, and type algebra proved; repaired-program success
-  and execution simulation are not.
+  identifier, initializer, and type algebra proved; the repaired whole-AST
+  program is checked to build.  The exact target selector pairs that repaired
+  US program with the official cleaned JP link.  Execution simulation is not
+  proved, and the impossible original-unit common-`linkorder` requirement is
+  not used as target evidence.  Original-unit ownership/header normalization
+  is now a checked structural whole-link certificate, without standalone-unit
+  execution claims.  The open semantic bridge is whole-linked-source-to-
+  selected lockstep anchored at matching runtime-task starts.  The start
+  predicate fixes initialized
+  `thread5_game_loop`, a null argument, `Kstop`, and an actual first Clight
+  step.  The JP runtime start and reflexive source-to-selected witness are now
+  constructed; the repaired-US start and viewport-repair lockstep remain open.
 - `ClightLinkExecution.v` proves generic consequences of a real successful
   CompCert link: an input `Internal` body resolves to that exact body; source
   symbols map to target blocks by name; a linked external definition hides no
@@ -59,7 +69,63 @@
 - The writable retail footprint is explicitly the Mario-state block, object
   pool, Mario-object pointer, controller array, and player-controller pointer.
   Recognized builtins/runtime helpers preserve it by leaving memory unchanged;
-  reachable abstract `EF_external` frames remain open.
+  reachable abstract `EF_external` effects remain open.  The checked
+  replacement interface classifies each reachable call as a callsite-sensitive
+  protected-cell frame or an explicit writer/lifecycle effect.  The exact
+  ten-name selected unresolved direct-callee set of the seven dialog/depth
+  bodies is checked for US and JP.  Path-sensitive reachable call sequences,
+  transitive reachability, argument provenance, and concrete external effects remain open; the legacy
+  declaration-wide whole-pool frame is overstrong for legitimate allocators.
+- A generic checked selector theorem proves exact cleaned-definition selection
+  under explicit uniqueness/coverage hypotheses; concrete US/JP global-map,
+  public-name, and name-based injection instances remain open.  Separately, a
+  split certificate constructs initialized memory for the official cleaned JP
+  link; repaired-US initialization remains open.
+- For projections fixed to `VersionJP` and `jp_official_cleaned_slice`,
+  `JPSelectedTargetAudit.v` proves exact selected-program identity, the
+  selected syntax audit, and symbol existence for the five
+  `jp_retail_state_global_identifiers`.  The newly added fifth-symbol receipt
+  transports the exact `_gPlayer1Controller` source definition into the
+  official link.  `jp_selected_target_refinement_from_target_clight` packages
+  those facts with the selected JP source identity, reducing
+  `SelectedTargetClightRefinementObligation` to the generic
+  `TargetClightRefinementObligation`.  It does not inhabit the concrete
+  observer, chronology, entry prefixes, selected-to-retail semantics, full
+  global/public-map agreement, or memory contents.
+- For projections fixed to `VersionUS` and
+  `us_viewport_repaired_program`, `USSelectedTargetAudit.v` now closes
+  `SelectedTargetAuditTransportObligation`.  The actual successful repaired
+  program is checked for no direct `Sbuiltin`, supported external constructors,
+  internal-body `Evar` name resolution, and initializer `Init_addrof` name
+  resolution; split receipts establish `find_symbol` existence for the five core
+  US identifiers.  These are static syntax/name facts only.  Repaired-US
+  initialization, memory shape/content/block correspondence,
+  source-to-selected viewport-repair execution lockstep, runtime handoff,
+  routing/prefix/chronology, and selected-to-retail semantics remain open.
+- Data-bearing Clight frame chronologies under one fixed observer now compose
+  into the whole-run projection certificate.  The interface pins
+  `gControllers[0]`, the player-one and Mario controller pointers, and exact
+  poll/consumer bodies; it authenticates the boundary input and each gameplay
+  or poll-only administrative successor frame.  Supplied `thread5_game_loop`
+  task-entry prefixes compose into clean-entry nonvacuity.  No concrete
+  observer, chronology, projection, or lower/upper task-entry prefix is
+  claimed.
+- The conditional ordinary Area-1 bridge now composes supplied castle and
+  `warp_level` executions only after explicit symbol resolution to the expected
+  internal body, then derives the no-A return boundary from a supplied entry
+  postcondition.  `JPWarpLevelEntryResolution.v` separately proves the exact
+  resolution for the official cleaned JP program, and
+  `jp_official_cleaned_ordinary_area1_prefix_fixes_zero_a_boundary` discharges
+  that premise in the JP-specialized bridge.  Twelve focused receipts and
+  `JPArea1EntrySymbolResolution.v` separately construct the official-JP
+  `Area1EntryAddresses` witness at slots `0`/`1`, all twelve entry bindings,
+  valid-slot arithmetic, pairwise-distinct core storage blocks, and pointer-cell
+  separation from core storage.  `USWarpLevelEntryResolution.v`, backed by
+  focused source/normalization/viewport-repair receipts, separately proves the
+  exact `_warp_level` symbol/internal-body lookup in the selected repaired US
+  program.  These results do not prove live memory contents,
+  allocation/layout sizes, initializer values, the route, live execution, the
+  postcondition, or the remaining US entry bindings.
 - The normalized global-`External` definitions are partitioned exactly as US
   `133 EF_external`, `75 EF_builtin`, `19 EF_runtime`, and JP
   `132`, `75`, `19`.  The generated manifests reproduce the same partition.
@@ -165,10 +231,15 @@
   proves non-selection by the destination allocator, survival at depth 47, and
   payload preservation for writes confined to selected slots.  It also checks
   exactly one retained cleaned JP `_gObjectPool` declaration as a writable,
-  nonvolatile 145,920-byte global and fixes the watched pointer offset.  It
-  does not resolve the concrete official-link memory block, extract that
-  chronology or pointer epoch, or execute the true first apply in linked
-  Clight semantics.
+  nonvolatile 145,920-byte global and fixes the watched pointer offset.  The
+  focused `JPObjectPool*` chain resolves the exact generated variable in the
+  official cleaned definition map and global environment; together with
+  `JPOfficialInitialMemory.v`, `JPLinkedObjectPoolInitialMemory.v` proves
+  `Cur Writable` permission for slot 61's complete initial-memory interval
+  `[37088,37696)`.  This proves neither initial byte/payload contents nor their
+  preservation in current memory, the runtime-loaded pointer or allocation
+  epoch, the allocation/free-list chronology, true-first-apply execution, or
+  retail refinement.
 - `InstallerCoverage.v` proves contradictions for five source-bounded abstract
   installer-attempt record shapes: stock
   State-first selection, fixed stock-top co-location, fixed non-top owners,
@@ -329,6 +400,47 @@
   writer functions and six direct automatic-dialog constructor functions.
   These counts do not establish Mario receiver identity, alias safety, call
   reachability, or dynamic store counts.
+- `JPCoordinateLvalueReceiverPartition.v` checks those same four lvalue shapes
+  against the generated receiver annotations in every JP unit: `pos[1]`
+  belongs to the allowed set `MarioState`, `GraphNodeObject`, or
+  `PlayerCameraState`; raw slots 7/10 require `Object`; and `throwMatrix`
+  requires `GraphNodeObject`.  This bounds same-field type ambiguity; it does
+  not count the three `pos[1]` classes separately or close live
+  pointer/alias/reachability obligations.
+- `JPOfficialInitialMemory.v` constructs a CompCert initial memory for the
+  official cleaned JP link from split initializer-alignment receipts and exact
+  relocation-symbol coverage.  `JPThread5EntryResolution.v` then resolves the
+  exact generated task body, and `JPSelectedRuntimeTaskStart.v` proves that its
+  null-argument `Kstop` call state takes the genuine first `Clight.step2` and
+  supplies the JP identity source-to-selected refinement.  These facts do not
+  prove the OS runtime handoff or any gameplay prefix.
+- `JPWarpLevelEntryResolution.v` resolves the exact generated `warp_level`
+  symbol/body in the official cleaned JP global environment.  It does not prove
+  castle routing, execution of that body, or the entry postcondition.
+- The split `USWarpLevelSourceReceipt.v` through
+  `USWarpLevelRepairReceipt.v` chain and `USWarpLevelEntryResolution.v` resolve
+  the exact generated `_warp_level` symbol/internal body in the selected
+  viewport-repaired US global environment.  They do not prove routing,
+  reachability, execution, the entry postcondition, or the complete US binding
+  bundle.
+- `USViewportRepairDefinitionPreimage.v`,
+  `USViewportRepairDefinitionListSyntax.v`, and the focused repaired-program
+  syntax/name transports feed `USRepairedSyntaxAudit.v`.
+  `USSelectedCoreGameInitReceipt.v` and
+  `USSelectedCoreObjectListReceipt.v` supply the five symbol-existence facts,
+  and `USSelectedTargetAudit.v` packages those two halves into the conditional
+  repaired-US selected-target audit.  None of these modules establishes a
+  memory block relation or execution refinement.
+- `JPArea1EntrySymbolResolution.v` aggregates twelve focused official-JP symbol
+  receipts into `jp_official_area1_entry_symbol_bindings_exist` and
+  `jp_official_area1_entry_symbol_structure_closed`.  The constructed address
+  bundle fixes Mario/entry-warp slots `0`/`1`, binds all twelve required global
+  symbols, proves both slots valid, separates the three core storage blocks,
+  and separates every pointer cell from core storage.  The platform receipt is
+  transported through aggregate public-name coverage and the cleaned official
+  link.  These are structural global-environment facts, not live memory
+  contents, allocation/layout sizes, initializer values, routing,
+  reachability, `warp_level` execution, a postcondition, or a prefix.
 - `JPActionProvenanceCensus.v` finds exactly eight generated JP bodies that
   directly assign a field named `action`.  None also embeds `ACT_LONG_JUMP`,
   and the sole direct ordinary long-jump constructor remains the

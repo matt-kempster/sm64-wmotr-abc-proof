@@ -2,7 +2,8 @@ From Coq Require Import List ZArith.
 From LessThanOneAPress.Proofs Require Import
   GameTypes InputSemantics CleanEntry ObjectProvenance StarCollection
   CollisionRegions AreaTransitions HiddenStar LowerEntrance UpperEntrance
-  ClightFacts ClightRefinement ArchivedProofIntegration RouteEvidence
+  ClightFacts ClightRefinement SelectedClightTarget ClightProjectionChronology
+  ArchivedProofIntegration RouteEvidence
   TranscriptRouteModel
   FirstTargetRefinement JPSlotLifetime JPFirstApply FirstCrossingWriterCoverage
   OrdinaryMotion GoombaRaising PyramidTopPU InkFallback RetailFatalLatch
@@ -365,6 +366,7 @@ Theorem conditional_evidence_bearing_clight_run_impossibility :
     forall run initial,
       RunUsesProjection projection run ->
       project_state projection (run_start run) = Some initial ->
+      RunEndsAtSelectedFrameBoundary projection run ->
       CleanPyramidEntry initial ->
       fewer_than_one_a_press (project_inputs projection run) ->
       exists final,
@@ -375,8 +377,8 @@ Theorem conditional_evidence_bearing_clight_run_impossibility :
             (state_save_flags initial) (state_save_flags final) act6_index.
 Proof.
   intros projection Hwhole Hclassify Hclose run initial
-    Huses Hstart Hclean Hnoa.
-  destruct (Hwhole run initial Huses Hstart) as [certificate _].
+    Huses Hstart Hend Hclean Hnoa.
+  destruct (Hwhole run initial Huses Hstart Hend) as [certificate _].
   destruct (Hclassify run initial certificate Hclean)
     as [trace [Hroute Hclassifier]].
   pose proof (Hclose run initial certificate trace
@@ -443,12 +445,13 @@ Qed.
 
 Theorem conditional_target_clight_run_impossibility :
   forall projection,
-  TargetClightRefinementObligation projection ->
+  ObservedSelectedTargetClightRefinementObligation projection ->
   LowerEntranceReachabilityObligation projection ->
   UpperEntranceReachabilityObligation projection ->
   forall run initial,
     RunUsesProjection projection run ->
     project_state projection (run_start run) = Some initial ->
+    RunEndsAtSelectedFrameBoundary projection run ->
     CleanPyramidEntry initial ->
     fewer_than_one_a_press (project_inputs projection run) ->
     exists final,
@@ -458,9 +461,21 @@ Theorem conditional_target_clight_run_impossibility :
       ~ newly_collected
           (state_save_flags initial) (state_save_flags final) act6_index.
 Proof.
-  intros projection [Hrefine _] Hlower Hupper run initial
-    Huses Hstart Hclean Hnoa.
-  destruct (Hrefine run initial Huses Hstart) as [certificate _].
+  intros projection Hobserved Hlower Hupper run initial
+    Huses Hstart Hend Hclean Hnoa.
+  destruct Hobserved as
+    [Hselected_program [Hsource [Haudit
+      [observer [Hobserved_chronology Hentries]]]]].
+  pose proof
+    (observed_selected_target_refinement_supplies_selected_refinement
+      projection
+      (conj Hselected_program
+        (conj Hsource
+            (conj Haudit
+            (ex_intro _ observer
+              (conj Hobserved_chronology Hentries)))))) as Hselected.
+  destruct Hselected as [_ [_ [_ [Hrefine _]]]].
+  destruct (Hrefine run initial Huses Hstart Hend) as [certificate _].
   exists (refined_final_state projection run initial certificate).
   split.
   - exact (refined_final_matches projection run initial certificate).

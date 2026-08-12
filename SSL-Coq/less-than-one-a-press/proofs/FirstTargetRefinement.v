@@ -1715,7 +1715,7 @@ Record ClightRouteTraceProjection
     (certificate : ClightFrameRefinementCertificate projection run initial)
     (trace : RouteTrace) : Prop := {
   clight_route_inputs_exact :
-    route_inputs trace = project_inputs projection run;
+    route_inputs trace = tl (project_inputs projection run);
   clight_route_execution_alignment :
     RouteTraceExecutionAlignment initial trace
       (project_events projection run)
@@ -1776,7 +1776,8 @@ Proof.
   constructor.
   - exact Hclean.
   - rewrite (clight_route_inputs_exact _ _ _ _ _ Hroute).
-    exact (refined_input_history projection run initial certificate).
+    exact (refined_successor_input_history
+      projection run initial certificate).
   - exists (refined_final_state projection run initial certificate).
     exists (project_events projection run).
     exact (clight_route_execution_alignment _ _ _ _ _ Hroute).
@@ -2030,7 +2031,7 @@ Proof.
   {
     rewrite (clight_route_inputs_exact
       projection run initial certificate trace Hroute).
-    exact Hnoa.
+    now apply fewer_than_one_a_press_tail.
   }
   assert (Hno_trace_press : ~ trace_contains_a_press trace).
   {

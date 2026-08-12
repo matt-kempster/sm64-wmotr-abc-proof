@@ -33,8 +33,8 @@ From LessThanOneAPress.Proofs Require Import
 Import ListNotations.
 
 (* A finite Clight step fragment.  A future concrete target theorem must also
-   connect its endpoints to Clight initial_state/final_state; this record alone
-   does not do so. *)
+   connect its endpoints to the selected runtime task-entry/final boundary;
+   this record alone does not do so. *)
 Record ImportedClightRun := {
   run_program : Clight.program;
   run_start : Clight.state;
@@ -105,8 +105,13 @@ Definition target_main_ident (version : GameVersion) : ident :=
   | VersionJP => jp_game_init._main
   end.
 
-(* Interface certificate only: no iterated link construction is supplied in
-   this project. *)
+(* Legacy audit interface only.  It cannot be used as the program-selection
+   premise for an observation projection: the original generated units bind
+   several common composite tags to different definitions, while CompCert's
+   [linkorder] requires one target composite environment to contain every
+   source binding exactly.  [SelectedClightTarget] instead pins projections
+   to the repaired US program or the official cleaned JP program and keeps
+   source-to-target semantic refinement as a separate obligation. *)
 Record TargetLinkedProgram
     (version : GameVersion) (linked : Clight.program) : Prop := {
   target_links_every_translation_unit :
@@ -121,8 +126,6 @@ Record TargetLinkedProgram
 Record ClightObservationProjection := {
   projection_version : GameVersion;
   projection_program : Clight.program;
-  projection_links_current_units :
-    TargetLinkedProgram projection_version projection_program;
   project_state : Clight.state -> option GameState;
   project_inputs : ImportedClightRun -> list FrameInput;
   project_events : ImportedClightRun -> list FrameEvent;
@@ -134,6 +137,35 @@ Definition RunUsesProjection
     (projection : ClightObservationProjection)
     (run : ImportedClightRun) : Prop :=
   run_program run = projection_program projection.
+
+(** The next call of the selected retail [read_controller_inputs] body is an
+    independently checkable scheduler-frame boundary.  Unlike projector-domain
+    membership, this predicate cannot be made true or false by choosing
+    [project_state]. *)
+Definition SelectedFrameBoundaryState
+    (version : GameVersion) (state : Clight.state) : Prop :=
+  match version with
+  | VersionUS =>
+      exists continuation memory,
+        state = Callstate (Ctypes.Internal us_game_init.f_read_controller_inputs)
+          [] continuation memory
+  | VersionJP =>
+      exists continuation memory,
+        state = Callstate (Ctypes.Internal jp_game_init.f_read_controller_inputs)
+          [] continuation memory
+  end.
+
+Definition RunEndsAtSelectedFrameBoundary
+    (projection : ClightObservationProjection)
+    (run : ImportedClightRun) : Prop :=
+  SelectedFrameBoundaryState (projection_version projection) (run_final run).
+
+(** The clean-entry abstract state is already post-controller-poll.  Its live
+    edge is therefore input element zero, before the successor-frame inputs
+    paired with abstract events. *)
+Definition run_start_boundary_input (initial : GameState) : FrameInput :=
+  {| frame_previous_down := state_first_frame_previous_down_seed initial;
+     frame_current_down := state_entry_button_down initial |}.
 
 Record ClightFrameRefinementCertificate
     (projection : ClightObservationProjection)
@@ -148,7 +180,10 @@ Record ClightFrameRefinementCertificate
     project_state projection (run_final run) = Some refined_final_state;
   refined_input_count :
     length (project_inputs projection run) =
-    length (project_events projection run);
+    S (length (project_events projection run));
+  refined_boundary_input_exact :
+    hd_error (project_inputs projection run) =
+      Some (run_start_boundary_input initial);
   refined_input_history :
     coherent_input_history (state_first_frame_previous_down_seed initial)
       (project_inputs projection run);
@@ -168,11 +203,39 @@ Record ClightFrameRefinementCertificate
       refined_final_state
 }.
 
+Lemma refined_successor_input_history :
+  forall projection run initial
+    (certificate : ClightFrameRefinementCertificate projection run initial),
+    coherent_input_history (state_entry_button_down initial)
+      (tl (project_inputs projection run)).
+Proof.
+  intros projection run initial certificate.
+  pose proof (refined_boundary_input_exact
+    projection run initial certificate) as Hboundary.
+  pose proof (refined_input_history
+    projection run initial certificate) as Hhistory.
+  destruct (project_inputs projection run) as [| input rest] eqn:Hinputs.
+  - discriminate.
+  - cbn in Hboundary. injection Hboundary as Hinput. subst input.
+    cbn in Hhistory. exact (proj2 Hhistory).
+Qed.
+
+Lemma fewer_than_one_a_press_tail :
+  forall inputs,
+    fewer_than_one_a_press inputs ->
+    fewer_than_one_a_press (tl inputs).
+Proof.
+  intros [| input rest] Hno_a; cbn in *.
+  - constructor.
+  - now inversion Hno_a.
+Qed.
+
 Definition WholeProgramClightRefinementObligation
     (projection : ClightObservationProjection) : Prop :=
   forall run initial,
     RunUsesProjection projection run ->
     project_state projection (run_start run) = Some initial ->
+    RunEndsAtSelectedFrameBoundary projection run ->
     exists certificate :
       ClightFrameRefinementCertificate projection run initial, True.
 
@@ -205,6 +268,11 @@ Definition CleanEntryProjectionNonvacuityObligation
       state_version initial = projection_version projection /\
       state_entrance initial = entrance.
 
+(** Generic projection/refinement interface.  It is intentionally independent
+    of program construction so this foundational module does not depend on the
+    later cleaned-link and US-repair modules.  The advertised capstone is
+    [SelectedTargetClightRefinementObligation] in [SelectedClightTarget], which
+    conjoins this interface with exact selected-program provenance. *)
 Definition TargetClightRefinementObligation
     (projection : ClightObservationProjection) : Prop :=
   WholeProgramClightRefinementObligation projection /\

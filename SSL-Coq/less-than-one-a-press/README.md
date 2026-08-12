@@ -54,9 +54,34 @@ its `__540` viewport wrapper is 8 bytes while the source viewport
   wrapper/storage is 16 bytes.  Local fresh-tag layout construction is proved,
   and `USWholeASTTagRepair.v` now defines the recursive rewrite across Clight
   expressions, statements, functions, globals, continuations, and states while
-  proving basic identifier/initializer/type algebra.  The repaired-program
-  success certificate and semantic simulation are still open.  A
-  composite-table-only repair is insufficient.
+  proving basic identifier/initializer/type algebra.
+  `USViewportRepairedProgramCertificate.v` checks that the resulting whole-AST
+  program builds.  `SelectedClightTarget.v` therefore selects that exact US
+  program and the official cleaned JP link as the two projection targets.  The
+  original-unit `TargetLinkedProgram` gate is no longer used: incompatible
+  composite bindings make its common-`linkorder` demand impossible.  The
+  source boundary now has two deliberately different parts.
+  `OriginalUnitsHeaderNormalizationStructuralObligation` is already inhabited
+  by the checked source-owned cleaning/link certificate; it makes only the
+  structural ownership, verbatim-definition, identifier/composite-coverage,
+  normalized-header, and successful-link claims.  Execution starts from that
+  whole official cleaned link, never from a standalone translation unit whose
+  cross-unit declarations have arbitrary `EF_external` behavior.
+  `WholeLinkedSourceToSelectedTargetRefinementObligation` requires a standard
+  `ClightLockstepComponents` witness anchored at matching initialized
+  `thread5_game_loop` starts.  `SelectedRuntimeTaskStart` pins the null pointer
+  argument, `Kstop`, and an actual first Clight step.  JP now has that concrete
+  start and an identity source-to-selected lockstep because both sides are the
+  official cleaned JP link.  For US this remains the semantic viewport-repair
+  obligation; selected-to-retail execution is separate.  The independent
+  `USSelectedTargetAudit.v` capstone is now checked for projections fixed to
+  `VersionUS` and that exact repaired program.  It packages a fresh actual-target
+  syntax audit (no direct `Sbuiltin`, supported external constructors, and name
+  resolution for internal-body `Evar` and initializer `Init_addrof` occurrences)
+  with `find_symbol` existence for the five US core identifiers.  Symbol existence
+  is not memory shape, contents, or block correspondence, and the audit proves no
+  source-to-selected execution lockstep.  A composite-table-only repair is
+  insufficient.
 
 `ClightLinkExecution.v` specializes exact-definition provenance through the
 cleaned units to both actual official targets.  It proves that every nonlocal
@@ -78,10 +103,68 @@ theorems lift external `Callstate` steps and direct `Sbuiltin` steps after
   pointer load/store/dereference compatibility, scalar-operation injection, and
   lockstep-to-end-to-end composition.  They identify the concrete
   Mario/object/controller footprint and prove full-memory preservation for
-  recognized builtins/runtime helpers.  Retail use still requires the concrete
-  public-name and name-based initial/current `Mem.inject` instances, the US
-  whole-expression/internal-step simulation, and writable `EF_external`
-Mario/object/controller frame premises.
+  recognized builtins/runtime helpers.  A generic selector theorem now proves
+  exact cleaned-definition selection under explicit uniqueness/coverage
+  checks, but its concrete US/JP global-map and public-name instances remain
+  open.  A separate JP theorem transports one explicit source-definition
+  receipt to existence of the identically named official-link symbol.  Twelve
+  focused receipts and `JPArea1EntrySymbolResolution.v` now aggregate that
+  method into the official-JP `JPArea1EntrySymbolBindings` record for all
+  twelve required symbols, with Mario/entry-warp slots `0`/`1`, valid-slot
+  arithmetic, pairwise-distinct core storage blocks, and every pointer cell
+  separate from core storage.  This is
+  structural symbol/block evidence, not live memory contents, allocation or
+  layout sizes, initializer values, routing, reachability, or execution.  The
+  unresolved-external interface is now callsite-sensitive: each
+  reachable effect must frame only its protected cells or enter explicit
+  writer/lifecycle refinement.  Nine local/aggregate receipt modules now prove
+  the exact US and JP ten-name selected unresolved direct-callee sets for the
+  seven dialog/depth bodies.  This closes the finite direct-call inventory, not
+  path-sensitive reachable call sequences, transitive reachability, argument
+  provenance, or concrete external effects.  The old declaration-wide frame over the complete object
+  pool is overstrong because legitimate omitted helpers allocate and write
+  object slots.
+
+  The repaired-program audit is intentionally separate from those execution and
+  memory layers.  `USViewportRepairDefinitionPreimage.v`,
+  `USViewportRepairDefinitionListSyntax.v`, and the focused repaired-program
+  syntax/name-transport receipts feed `USRepairedSyntaxAudit.v`; the split
+  game-init/object-list receipts establish only existence of the five core
+  symbols; and `USSelectedTargetAudit.v` closes
+  `SelectedTargetAuditTransportObligation` under exact US version/program
+  hypotheses.  Repaired-US initialization, source/refinement and viewport-repair
+  execution lockstep, runtime handoff, routing/prefix/chronology, and
+  selected-to-retail semantics remain open.
+
+`ClightProjectionChronology.v` adds data-bearing frame chunks under one fixed
+observation interface and proves that an exact connected chronology yields the
+old whole-run refinement certificate.  Every observed gameplay or
+administrative frame executes a nonempty `Smallstep.plus`; silent no-poll
+chunks may stutter and emit no input or event.  Every observed input must match
+concrete memory loads of previous/current `buttonDown` and computed
+`buttonPressed` through the pinned controller and player-one pointer.  Gameplay
+frames additionally bind Mario's controller at the exact consumer boundary;
+the administrative branch instead carries an independently refined event and
+does not claim Mario consumed the sample.  Supplied
+nonempty prefixes from the concrete `thread5_game_loop` task boundary likewise
+yield clean-entry nonvacuity.  These are composition bridges.  No concrete
+observer, projection, chronology, or lower/upper task-entry prefix has been
+constructed.
+
+The ordinary Area-1 boundary now has a checked conditional prefix bridge: a
+supplied entry postcondition plus no-A sample establishes the live controller
+predicate and reflexive zero-A suffix, and supplied castle/`warp_level`
+prefixes compose at the real return state after explicit `warp_level` symbol
+and internal-body resolution.  `JPWarpLevelEntryResolution.v` now supplies that
+exact symbol/body resolution for the official cleaned JP program, while the
+split US receipt chain culminating in `USWarpLevelEntryResolution.v` supplies
+the exact `_warp_level` symbol/internal-body resolution for the selected
+viewport-repaired US program.  The official-JP corollary in
+`Area1EntryZeroAPrefix.v` discharges that lookup
+premise.  `JPArea1EntrySymbolResolution.v` separately supplies the complete
+twelve-symbol official-JP structural binding and its limited separation facts.
+Castle routing, live `warp_level` execution, memory contents, the entry
+postcondition, and the remaining US entry-symbol bindings remain open.
 
 The strongest current counterexample candidate is the JP timer-131 stale-top
 route.  Exact CompCert binary32 arithmetic rejects the old home-pose Graphics
@@ -138,8 +221,12 @@ writer forms stays below `960`.
 `JPGeneratedWriterCensus.v` preserves all 38 unit boundaries and counts the
 functions containing direct assignments to the selected coordinate forms:
 33 for `pos[1]`, 215 for raw-data slot 7, 180 for raw-data slot 10, and 15
-whose assignment LHS mentions `throwMatrix`.  These are receiver-neutral
-function counts, not proof that every store targets Mario.  The same census
+whose assignment LHS mentions `throwMatrix`.  The checked companion
+`JPCoordinateLvalueReceiverPartition.v` refines those shapes across all 38
+units: `pos[1]` has receiver type `MarioState`, `GraphNodeObject`, or
+`PlayerCameraState`; raw slots 7/10 have `Object`; and `throwMatrix` has
+`GraphNodeObject`.  These are static type annotations and function counts, not
+proof that every live store targets Mario.  The same census
 confirms eight direct `quicksandDepth` writers and six direct automatic-dialog
 constructor functions.  `JPQuicksandDepth.v` proves nonnegative depth for a
 source-shaped relation that excludes the late long-jump landing writer.  The
@@ -147,6 +234,21 @@ newer audit shows why that exclusion is essential: the updater can sample
 ordinary floor before `perform_ground_step`, then the landing formula can
 sample quicksand after the step.  The exact source-shaped binary32 results are
 `-0.5f` at timer 4 and `-4.0f` at timer 5.
+
+The official cleaned JP program now also has a constructive initialized-memory
+witness.  Twelve per-unit alignment receipts are aggregated structurally,
+  exact source provenance transfers them to the official link, and every
+  `Init_addrof` relocation resolves before CompCert's `Genv.init_mem_exists` is
+  applied.  `JPThread5EntryResolution.v` and
+  `JPSelectedRuntimeTaskStart.v` resolve the exact generated task body, execute
+  its null-argument `function_entry2` step, and close the JP
+  source-to-selected identity lockstep.  The OS runtime handoff and live Area-1
+  prefix remain open.  `JPWarpLevelEntryResolution.v` additionally resolves
+  the exact `warp_level` symbol/body in the official cleaned JP environment;
+  it proves neither castle routing nor execution of that body.  The split
+  `USWarpLevel*Receipt.v` chain and `USWarpLevelEntryResolution.v` establish the
+  corresponding exact lookup in the selected viewport-repaired US program,
+  with the same routing/execution limitation.
 `LongJumpProvenanceBoundary.v` checks all nine US/JP landing-descriptor frame
 counts, the complete ordinary long-jump source chain, and the writable
 six-frame long-jump payload.  Its source transition kernel proves that first
@@ -197,13 +299,18 @@ the stale-top trace against the official cleaned JP linked layout:
 the twelve listed platform-payload witness ranges stay within that slot;
 extracting the complete generated access set remains open.  The cleaned census
 also proves there is exactly one retained JP `_gObjectPool` definition and
-checks it as a writable, nonvolatile 145,920-byte global.  The watched pointer
-is exactly the chosen pool block plus `37088`.  Given the observed
+checks it as a writable, nonvolatile 145,920-byte global.  The focused
+object-pool chain now transports the exact generated variable through the
+official cleaned link, resolves its concrete `find_symbol`/`find_var_info`
+block, and proves `Cur Writable` permission in the constructive initial memory
+for the whole slot-61 interval `[37088,37696)`.  The watched pointer is the
+resolved block plus `37088`.  Given the observed
 duplicate-free 131-push/84-pop LIFO chronology, none of the destination
 allocations selects the top and it remains at depth 47; allocator writes
-confined to selected slots preserve its payload.  This does not extract those
-pushes/pops, resolve the actual official-link symbol/current-memory block,
-establish the pointer epoch, or execute the true first apply in linked Clight.
+confined to selected slots preserve its payload.  The initial-memory theorem
+does not establish byte or payload contents, preserve them into current memory,
+bind a runtime-loaded pointer or allocation epoch, extract those pushes/pops,
+execute the true first apply, or refine the result to retail semantics.
 See
 [`docs/notes/destination-chronology-certificate.md`](docs/notes/destination-chronology-certificate.md).
 
@@ -1402,6 +1509,7 @@ Theorem conditional_evidence_bearing_clight_run_impossibility :
     forall run initial,
       RunUsesProjection projection run ->
       project_state projection (run_start run) = Some initial ->
+      RunEndsAtSelectedFrameBoundary projection run ->
       CleanPyramidEntry initial ->
       fewer_than_one_a_press (project_inputs projection run) ->
       exists final,
@@ -1419,11 +1527,31 @@ theorem is fully proved as an implication; none of those three premises is
 currently discharged for the retail programs.
 
 `conditional_target_clight_run_impossibility` additionally consumes
-`TargetClightRefinementObligation`, a matching run/program and projected clean
-start, and returns a projected final state with neither target newly collected.
-That obligation is the conjunction of whole-run certificate construction and
-nonvacuous clean-entry projection coverage.  Neither conjunct, either Layer B
-premise, nor a concrete US/JP projection is proved.  Therefore neither
+`ObservedSelectedTargetClightRefinementObligation`, a matching run/program and
+projected clean start, and returns a projected final state with neither target
+newly collected.  That selected-target obligation pins the repaired US or
+official cleaned JP program and separately requires the checked original-unit
+structural link certificate, an anchored whole-linked-source-to-selected
+lockstep, selected-program syntax/symbol audits, controller-authenticated
+whole-run chronology, and clean-entry projection coverage.  Runs are scoped to
+the next exact `read_controller_inputs` call boundary, independently of the
+projection domain.  For projections fixed to the official cleaned JP target,
+`JPSelectedTargetAudit.v` now discharges exact program identity, the syntax
+audit, and symbol existence for all five `jp_retail_state_global_identifiers`.
+Its `jp_selected_target_refinement_from_target_clight` capstone reduces the
+official-JP `SelectedTargetClightRefinementObligation` to the still-open generic
+`TargetClightRefinementObligation`; it does not construct the observer,
+chronology, entry prefixes, or selected-to-retail semantics.  For projections
+fixed to `VersionUS` and `us_viewport_repaired_program`,
+`USSelectedTargetAudit.v` now closes the separate
+`SelectedTargetAuditTransportObligation`: the actual repaired program has no
+direct `Sbuiltin`, uses only the supported external constructors, resolves
+internal-body `Evar` and initializer `Init_addrof` names, and has a
+`find_symbol` witness for each of the five core identifiers.  This supplies no
+initialization or memory shape/content/block correspondence, source-to-selected
+viewport-repair execution lockstep, runtime handoff, route, prefix, chronology,
+or selected-to-retail semantics.  None of the open semantic witnesses, either
+Layer B premise, or a concrete US/JP projection is proved.  Therefore neither
 conditional theorem is the ultimate target theorem.
 
 ## Source and Clight scope
@@ -1523,18 +1651,35 @@ clightgen -normalize -nostdinc -fstruct-passing \
   handwritten ghost data.  Their concrete memory interpretation and
   preservation must be supplied by the missing refinement; none is an oracle
   conclusion about ROM reachability.
-- No concrete `TargetLinkedProgram`, `ClightObservationProjection`, or
-  `ClightFrameRefinementCertificate` is provided.  The link record asks for
-  `linkorder` witnesses above all 38 units; it does not construct an iterated
-  CompCert link.  `ImportedClightRun` is a finite `Smallstep.star` fragment and
-  is not yet required to begin at `initial_state` or end at `final_state`.
+- Exact selected programs are now provided: the checked whole-AST repaired US
+  program and official cleaned JP link.  The former `TargetLinkedProgram`
+  requirement over all original units is retained only as a legacy audit
+  interface and is not a valid selection gate for their incompatible
+  composite bindings.  Original-unit cleaning/header normalization is now a
+  checked structural certificate, while execution starts from the whole
+  official cleaned source and requires lockstep anchored at matching
+  `SelectedRuntimeTaskStart` states.  The JP identity lockstep witness is now
+  provided, and the official-JP program/syntax/five-core-symbol selected-target
+  audit is checked, reducing the JP selected-target boundary to the generic
+  target refinement obligation.  The repaired-US selected-target audit is also
+  checked conditionally on `VersionUS` and the exact repaired program, but the
+  repaired-US initialization and source-to-selected execution lockstep, a
+  concrete `ClightObservationProjection`, and a
+  `ClightFrameRefinementCertificate` remain open.  `ImportedClightRun` is a
+  finite `Smallstep.star` fragment and is not by itself tied to the selected
+  runtime-task boundary or a final state.
 - `WholeProgramClightRefinementObligation` and
   `CleanEntryProjectionNonvacuityObligation` are both open.  The latter asks
   for actual projected clean US/JP lower/upper starts; it deliberately does
   not assert the false surjectivity claim that every handwritten
   `CleanPyramidEntry` is source-reachable.  Until a concrete
   projection and certificate are proved, projected inputs, events, collision
-  observations, and abstract states are uninterpreted functions.
+  observations, and abstract states are uninterpreted functions.  The checked
+  chronology bridge only shows how one fixed observer, concrete authenticated
+  gameplay/administrative frames plus silent no-poll chunks, and actual
+  nonempty task-entry prefixes would discharge these obligations.  The
+  interface pins the real controller/pointer cells and exact poll/consumer
+  bodies; constructing the observer and classifying the live runs remain open.
 - All three Layer B reachability propositions are open.  They are phrased over
   projected Float32 collision observations rather than an informal floor
   number, but completeness of that observation stream is itself part of the
@@ -1585,7 +1730,8 @@ clightgen -normalize -nostdinc -fstruct-passing \
   number, or a bare Y bound.
 - `ArchivedProofIntegrationKernel` is a proved package of current-source facts
   and narrow route lemmas, but it proves neither
-  `TargetClightRefinementObligation` nor any Layer B premise.  Building or
+  the advertised `ObservedSelectedTargetClightRefinementObligation` nor any Layer B
+  premise.  Building or
   auditing the six archives does not transfer their old capstones into the
   current theorem.
 - The JP `gMarioPlatform` analysis currently classifies null, live,
@@ -1648,8 +1794,17 @@ clightgen -normalize -nostdinc -fstruct-passing \
   types (principally incomplete extern arrays versus complete definitions).
   Source-owned cleaned US and JP unit lists now have kernel-checked structural
   inhabitants proving that unmodified `link_list` returns the corresponding
-  official cleaned target.  This is not a completed linked retail execution or
-  a `TargetLinkedProgram` refinement.
+  official cleaned target.  Target selection uses the official cleaned JP link
+  and the separately checked repaired US program; it does not claim that the
+  impossible common-`linkorder` relation over original units holds.  The JP
+  source-to-selected identity instance is now checked at a concrete task start;
+  its selected-target program/syntax/five-core-symbol audit is also checked.
+  This reduces the official-JP selected-target boundary to the generic target
+  refinement obligation without proving observer/chronology/prefix or retail
+  semantics.  The repaired-US actual-program syntax/five-core-symbol-existence
+  audit is now checked; repaired-US initialization/source-to-selected execution
+  lockstep, memory shape/content/block correspondence, and both selected-to-retail
+  refinements remain open.
   Exact unresolved function-constructor and variable atoms, and the required
   original-to-cleaned refinement, are documented in
   `docs/notes/linked-clight-construction.md`.
@@ -1665,18 +1820,25 @@ clightgen -normalize -nostdinc -fstruct-passing \
   externals have one of the three supported constructors, and exhaustive body
   recursion proves no direct `Sbuiltin` in either target.  This establishes
   reference and constructor coverage.  Generic relocation-aware initialization
-  and relocation-load transport are now proved, but the concrete name-based
-  US/JP initialization instance remains open.
+  and relocation-load transport are now proved.  The concrete name-based
+  source-to-official initial-memory injection remains open for both versions;
+  separately, the official cleaned JP target now has a constructive
+  `Genv.init_mem` witness.
 - CompCert external-call execution is transported across `symbols_inject` and
   `Mem.inject`, with injected results/memories, growing and separated
   injections, and `loc_unmapped`/`loc_out_of_reach` preservation.  This does not
   supply a frame for writable Mario, object-pool, or controller cells when the
   call is an abstract `EF_external`.  The concrete footprint is now formalized,
   and recognized `EF_builtin`/`EF_runtime` calls preserve it because they leave
-  all memory unchanged.  Retail use still needs the global-interface/public-name
-  proof, concrete initial and current memory injections, the US
-  expression/internal-step simulation, and a frame for every reachable
-  `EF_external` effect.  See `docs/notes/retail-clight-refinement.md`.
+  all memory unchanged.  The replacement unresolved-external boundary permits
+  a callsite-sensitive protected-cell frame or an explicit writer/lifecycle
+  effect.  Its generic reduction and the exact ten-name US/JP dialog/depth
+  selected unresolved direct-callee inventory are proved.  Path-sensitive
+  reachable call sequences, argument provenance, transitive reachability, and concrete classifications
+  are open.  Retail use also still needs the concrete global-
+  interface/public-name proof, initial/current memory injections, and the
+  expression/internal-step simulations.  See
+  `docs/notes/retail-clight-refinement.md`.
 - `Print Assumptions` reports the assumptions of named results, and
   `pipeline/assumptions.sh` rejects dependencies declared in this project's
   own logical namespace.  It deliberately permits CompCert's standard

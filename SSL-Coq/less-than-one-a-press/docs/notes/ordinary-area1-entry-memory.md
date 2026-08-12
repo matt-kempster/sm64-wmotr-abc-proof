@@ -85,6 +85,17 @@ controller, and object-pool storage.  Two further theorems separate the
 cells from all three storage blocks.  These are linked-global facts, not
 assumptions about C layout.
 
+For the official cleaned JP global environment, those record premises now have
+a concrete structural inhabitant.  Twelve focused source receipts plus
+`JPArea1EntrySymbolResolution.v` construct `Area1EntryAddresses` with Mario and
+entry-warp slots `0` and `1`, bind all twelve required symbols, prove the slots
+valid, separate Mario-state/controller/object-pool storage pairwise, and
+separate every pointer cell from those three storage blocks.  The platform
+receipt reaches the official symbol through aggregate public-name coverage and
+cleaned-link transport.  This construction does not prove the blocks' live
+contents, allocation/layout sizes, initializer values, the Area-1 route,
+reachability, or execution.
+
 ## Controller history and “no A press”
 
 `init_mario` resets `framesSinceA` to 255.  That byte is not the definition of
@@ -183,6 +194,10 @@ is involved.
 
 The theorem `ordinary_area1_entry_checked_boundary_holds` packages only those
 checked facts.  It is not a retail reachability theorem.
+
+Separately, `jp_official_area1_entry_symbol_structure_closed` now packages the
+official-JP twelve-symbol address bundle and the limited structural separation
+facts above.  It does not inhabit the live-memory postcondition.
 
 ## Remaining obligations
 

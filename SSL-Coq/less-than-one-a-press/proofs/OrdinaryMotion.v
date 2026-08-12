@@ -54,7 +54,7 @@ Lemma clight_frame_has_projected_no_a_sample :
           event before after),
     fewer_than_one_a_press (project_inputs projection run) ->
     exists input,
-      nth_error (project_inputs projection run) index = Some input /\
+      nth_error (project_inputs projection run) (S index) = Some input /\
       frame_has_no_a_press input.
 Proof.
   intros projection run initial certificate index event before after
@@ -69,20 +69,20 @@ Proof.
     discriminate.
   }
   assert (Hindex_inputs :
-    (index < length (project_inputs projection run))%nat).
+    (S index < length (project_inputs projection run))%nat).
   {
     rewrite (refined_input_count projection run initial certificate).
-    exact Hindex_events.
+    lia.
   }
   apply nth_error_Some in Hindex_inputs.
-  destruct (nth_error (project_inputs projection run) index)
+  destruct (nth_error (project_inputs projection run) (S index))
     as [input |] eqn:Hinput.
   - exists input. split; [reflexivity |].
     unfold fewer_than_one_a_press in Hno_a.
     rewrite Forall_forall in Hno_a.
     apply Hno_a.
     exact
-      (nth_error_In (project_inputs projection run) index Hinput).
+      (nth_error_In (project_inputs projection run) (S index) Hinput).
   - exfalso. apply Hindex_inputs. reflexivity.
 Qed.
 
@@ -230,7 +230,7 @@ Definition OrdinaryMotionSourceExecutionLinkageObligation
       (frame_before_clight _ _ _ _ _ _ _ _ evidence)
       (frame_after_clight _ _ _ _ _ _ _ _ evidence) ->
     exists input,
-      nth_error (project_inputs projection run) index = Some input /\
+      nth_error (project_inputs projection run) (S index) = Some input /\
       resolved_ordinary_step input before after.
 
 Definition OrdinaryMotionCollisionLinkageObligation

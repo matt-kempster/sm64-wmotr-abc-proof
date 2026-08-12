@@ -39,6 +39,84 @@ check: proofs
 	  LessThanOneAPress.Proofs.NormalizedClightPrograms \
 	  jp_normalized_make_program_success_checked
 	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.USViewportRepairedProgramCertificate \
+	  us_viewport_repaired_program_success_flag_checked
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.SelectedClightTarget \
+	  selected_clight_target_builds_checked
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.SelectedClightTarget \
+	  original_units_header_normalization_structural_checked
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.SelectedClightTarget \
+	  jp_selected_target_syntax_audit_checked
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.JPOfficialInitialMemory \
+	  jp_official_cleaned_initial_memory_exists
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.JPThread5EntryResolution \
+	  jp_thread5_game_loop_resolves_exact_body
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.JPWarpLevelEntryResolution \
+	  jp_warp_level_resolves_exact_body
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.JPSelectedRuntimeTaskStart \
+	  jp_selected_runtime_task_start_exists
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.JPSelectedRuntimeTaskStart \
+	  jp_selected_target_source_refinement_checked
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.GlobalInterfaceStructural \
+	  generic_checked_cleaned_definition_exactness_capstone
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.RetailExternalFrameReachability \
+	  legacy_external_call_frame_implies_reachable_frame
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.DialogDepthFiniteInventory \
+	  dialog_depth_finite_inventory_obligation_closed
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.ClightProjectionChronology \
+	  observed_selected_target_refinement_supplies_selected_refinement
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.JPCoordinateLvalueReceiverPartition \
+	  jp_coordinate_lvalue_receiver_partition_checked
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.JPSourceSymbolTransport \
+	  jp_source_definition_has_official_symbol
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.JPArea1SymbolPlatformReceipt \
+	  jp_official_area1_platform_pointer_symbol_exists
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.JPArea1EntrySymbolResolution \
+	  jp_official_area1_entry_symbol_structure_closed
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.JPSelectedTargetAudit \
+	  jp_selected_target_core_symbols_checked
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.JPSelectedTargetAudit \
+	  jp_selected_target_audit_transport_checked
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.JPSelectedTargetAudit \
+	  jp_selected_target_refinement_from_target_clight
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.USWarpLevelEntryResolution \
+	  us_warp_level_resolves_exact_body
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.USRepairedSyntaxAudit \
+	  us_selected_target_syntax_audit_checked
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.USSelectedTargetAudit \
+	  us_selected_target_core_symbols_checked
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.USSelectedTargetAudit \
+	  us_selected_target_audit_transport_checked
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.Area1EntryZeroAPrefix \
+	  jp_ordinary_area1_prefix_fixes_zero_a_boundary
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.Area1EntryZeroAPrefix \
+	  jp_official_cleaned_ordinary_area1_prefix_fixes_zero_a_boundary
+	bash pipeline/assumptions.sh \
 	  LessThanOneAPress.Proofs.NormalizedClightPrograms \
 	  us_residual_function_signature_mismatch_count_checked
 	bash pipeline/assumptions.sh \
@@ -1385,6 +1463,9 @@ check: proofs
 	bash pipeline/assumptions.sh \
 	  LessThanOneAPress.Proofs.JPDestinationChronologyCertificate \
 	  jp_authenticated_top_pointer_is_pool_block_plus_37088
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.JPLinkedObjectPoolInitialMemory \
+	  jp_linked_object_pool_initial_memory_obligation_closed
 	bash pipeline/assumptions.sh \
 	  LessThanOneAPress.Proofs.InstallerCoverage \
 	  installer_coverage_checked_boundary_holds

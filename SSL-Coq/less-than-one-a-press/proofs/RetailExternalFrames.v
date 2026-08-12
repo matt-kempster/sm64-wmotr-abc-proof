@@ -271,9 +271,21 @@ Definition us_retail_state_writable_footprint : Values.block -> Z -> Prop :=
   named_global_bytes us_official_cleaned_slice
     us_retail_state_global_identifiers.
 
+(** Use this parameterized footprint for the repaired selected US target.
+    The legacy concrete name above is retained only for audits over
+    [us_official_cleaned_slice]; its block allocation has not been transported
+    to the repaired program. *)
+Definition us_retail_state_writable_footprint_for
+    (program : Clight.program) : Values.block -> Z -> Prop :=
+  named_global_bytes program us_retail_state_global_identifiers.
+
 Definition jp_retail_state_writable_footprint : Values.block -> Z -> Prop :=
   named_global_bytes jp_official_cleaned_slice
     jp_retail_state_global_identifiers.
+
+Definition jp_retail_state_writable_footprint_for
+    (program : Clight.program) : Values.block -> Z -> Prop :=
+  named_global_bytes program jp_retail_state_global_identifiers.
 
 (** Recognized CompCert builtins/runtime helpers preserve the entire memory, so
     in particular they preserve every byte of MarioState, the object pool,
@@ -297,6 +309,24 @@ Proof.
   intros. eapply recognized_runtime_has_every_writable_frame; eauto.
 Qed.
 
+Corollary recognized_builtin_preserves_us_retail_state_for :
+  forall program name signature builtin,
+    lookup_builtin_function name signature = Some builtin ->
+    ExternalCallFrame (us_retail_state_writable_footprint_for program)
+      (EF_builtin name signature).
+Proof.
+  intros. eapply recognized_builtin_has_every_writable_frame; eauto.
+Qed.
+
+Corollary recognized_runtime_preserves_us_retail_state_for :
+  forall program name signature builtin,
+    lookup_builtin_function name signature = Some builtin ->
+    ExternalCallFrame (us_retail_state_writable_footprint_for program)
+      (EF_runtime name signature).
+Proof.
+  intros. eapply recognized_runtime_has_every_writable_frame; eauto.
+Qed.
+
 Corollary recognized_builtin_preserves_jp_retail_state :
   forall name signature builtin,
     lookup_builtin_function name signature = Some builtin ->
@@ -315,10 +345,14 @@ Proof.
   intros. eapply recognized_runtime_has_every_writable_frame; eauto.
 Qed.
 
-(** CompCert intentionally leaves [EF_external] effects abstract.  These
-    concrete propositions are therefore the remaining per-external contracts;
-    they are not inhabited here and cannot be derived from a declaration
-    prototype alone. *)
+(** CompCert intentionally leaves [EF_external] effects abstract.  The two
+    declaration-wide propositions below are retained as legacy audit
+    interfaces, not as the current proof target.  They quantify over every
+    argument/memory for every unresolved declaration and protect the complete
+    object pool; legitimate external allocation therefore need not satisfy
+    them.  [RetailExternalFrameReachability] supplies the sound replacement:
+    reachable callsite-sensitive protected-cell frames, with real writes
+    carried by an explicit writer/lifecycle refinement. *)
 Definition USRetailStateExternalFramesObligation : Prop :=
   TrueUnresolvedExternalFrames us_official_cleaned_slice
     us_retail_state_writable_footprint.

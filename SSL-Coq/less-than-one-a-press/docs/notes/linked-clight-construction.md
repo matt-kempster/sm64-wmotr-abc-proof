@@ -235,17 +235,68 @@ These are memory-injection transport results, not arbitrary writable-game-state
 frames.  `RetailExternalFrames.v` now identifies the concrete Mario-state,
 object-pool, Mario-object-pointer, controller-array, and player-controller
 blocks.  Recognized builtins/runtime helpers preserve all of them by leaving
-memory unchanged; abstract `EF_external` calls still need per-call frames.
+memory unchanged.  The declaration-wide whole-pool external frame is now a
+legacy sufficient condition, not the intended target: legitimate helpers can
+allocate and write object slots.  `RetailExternalFrameReachability.v` instead
+requires each reachable call to preserve callsite-selected cells or enter an
+explicit writer/lifecycle refinement.  Its generic bridge is checked; the
+exact selected unresolved direct-callee set for the seven dialog/depth bodies
+is now checked as the expected ten names for both US and JP.  Path-sensitive
+reachable call sequences, transitive reachability, argument provenance, and
+concrete effect cases remain open.
 `ClightEndToEndRefinement.v` relates local/temp environments, continuations, and
 all Clight state constructors and proves pointer, dereference, scalar-operation,
 lockstep, and initial-to-final composition lemmas.  It does not yet instantiate
 the whole-expression or internal-step simulation for US or JP.
 
+The whole-AST repaired US program is now checked to build, and target selection
+uses it together with the official cleaned JP link.  This avoids the impossible
+common-`linkorder` gate over incompatible original-unit composites without
+claiming a semantic repair.  Original-unit cleaning/header normalization is a
+checked structural certificate only; standalone units are not executed with
+their arbitrary cross-unit `EF_external` declarations.  The open semantic
+boundary starts from the whole official cleaned link and requires selected-
+target lockstep anchored at matching null-argument `thread5_game_loop` task
+starts with an actual first step.  The official JP initialized memory, exact
+  task-body resolution, first step, and identity source-to-selected lockstep are
+  now inhabited.  Its OS handoff and later gameplay prefix remain open; US
+  initialization and viewport-repair lockstep are also open.  A generic
+  selector-exactness theorem is also checked under explicit hypotheses; concrete
+  US/JP global/public-map agreement remains open.  Separately, data-bearing
+frame chronologies under one fixed observer now compose into the whole-run
+projection certificate.  The interface pins the controller/pointer bindings
+and selected poll/consumer bodies, authenticates the boundary input, and
+separates gameplay from poll-only administrative frames.  The concrete
+  observer, chronology, projection, and task-entry prefixes are not supplied.
+  The actual successful repaired US program now has a separate conditional
+  selected-target audit.  The focused syntax/name transport proves no direct
+  `Sbuiltin`, supported external constructors, and resolution of internal-body
+  `Evar` and initializer `Init_addrof` names; the two split core-symbol receipts
+  prove `find_symbol` existence for five identifiers.  `USSelectedTargetAudit.v`
+  packages these facts as `SelectedTargetAuditTransportObligation` when the
+  projection is fixed to `VersionUS` and `us_viewport_repaired_program`.  This
+  does not prove initialization, memory shape/content/block correspondence, or
+  source-to-selected execution lockstep.
+`JPWarpLevelEntryResolution.v` resolves the exact `warp_level` symbol/body in
+the official cleaned JP environment.  The split `USWarpLevel*Receipt.v` chain
+and `USWarpLevelEntryResolution.v` transport and resolve the exact `_warp_level`
+internal body in the selected viewport-repaired US environment.  Neither
+lookup supplies routing, reachability, execution, or an entry postcondition.
+Twelve focused JP symbol receipts and `JPArea1EntrySymbolResolution.v`
+separately construct the complete official-JP `Area1EntryAddresses` bundle at
+slots `0`/`1`.  The aggregate proves all twelve entry-symbol bindings, valid
+slots, pairwise distinction of the three core storage blocks, and separation
+of every pointer cell from core storage.  The `gMarioPlatform` receipt uses
+aggregate public-name coverage and cleaned-link transport.  No live contents,
+allocation/layout sizes, initializer values, routing, reachability,
+`warp_level` execution, postcondition, or prefix follows from this structural
+bundle.
+
 Although the structural official links exist, retail semantics still requires
 at least these refinement facts:
 
-- repaired-program success and a simulation for the defined whole-AST rewrite
-  of the incompatible US `__538` viewport tag;
+- whole-linked-source-to-selected-target lockstep anchored at matching
+  runtime-task starts, including the repaired-US execution relation;
 - a complete normalized/original-to-official global-interface proof: pointwise
   declaration/composite/global-reference correspondence and public-name
   equivalence sufficient to instantiate the proved `symbols_inject` theorem;
@@ -259,8 +310,16 @@ at least these refinement facts:
   already available);
 - pointer/type compatibility for cleaned incomplete-array uses beyond the
   checked declaration/storage boundary;
-- concrete writable-memory frame premises for every reachable `EF_external`
-  effect on the already-defined Mario/object/controller footprint;
+- castle routing and live `warp_level` execution (the exact JP and repaired-US
+  symbol/body resolutions and the official-JP twelve-symbol structural bundle
+  are checked, while the remaining US entry bindings are open);
+- callsite-sensitive protected-cell frames or writer/lifecycle refinements for
+  every reachable `EF_external`; the finite dialog/depth direct-callee
+  inventory is checked, while path-sensitive reachable call sequences,
+  argument provenance, transitive reachability, and concrete effects remain;
+- a fixed concrete observer instantiating the pinned bindings, concrete
+  gameplay/admin classification, data-bearing projection chronologies, and
+  `thread5_game_loop` task-entry prefixes to the lower and upper clean entries;
 - related initial/final whole-program executions and the projection from the
   cleaned official execution to retail state.
 

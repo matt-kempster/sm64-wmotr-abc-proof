@@ -2,7 +2,8 @@ From Coq Require Import List ZArith.
 From compcert Require Import AST Clight Coqlib Ctypes Errors Maps Smallstep.
 From LessThanOneAPress.Proofs Require Import
   NormalizedClightPrograms CleanedClightPrograms
-  CompositeLayoutRefinement CompositeOfficialLinkBridge.
+  CompositeLayoutRefinement CompositeOfficialLinkBridge
+  SuccessfulMakeProgramResolution.
 
 Import ListNotations.
 
@@ -178,16 +179,11 @@ Definition us_viewport_repaired_program_result : res Clight.program :=
     (prog_main us_official_cleaned_slice).
 
 Definition us_viewport_repaired_program : Clight.program :=
-  match us_viewport_repaired_program_result with
-  | OK program => program
-  | Error _ => us_official_cleaned_slice
-  end.
+  select_successful_program us_viewport_repaired_program_result
+    us_official_cleaned_slice.
 
 Definition us_viewport_repaired_program_builds : bool :=
-  match us_viewport_repaired_program_result with
-  | OK _ => true
-  | Error _ => false
-  end.
+  program_result_succeeds us_viewport_repaired_program_result.
 
 (** Basic algebraic facts establish that this really is an alpha-renaming:
     term/global identifiers, initializer bytes, calling conventions, and the

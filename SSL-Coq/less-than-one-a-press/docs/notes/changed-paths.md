@@ -96,6 +96,9 @@ Status notation: `A` means added, `M` means modified, and `Rnnn` means renamed w
 - `A` — `SSL-Coq/less-than-one-a-press/proofs/CleanEntry.v`
 - `A` — `SSL-Coq/less-than-one-a-press/proofs/ClightFacts.v`
 - `A` — `SSL-Coq/less-than-one-a-press/proofs/ClightRefinement.v`
+- `A` — `SSL-Coq/less-than-one-a-press/proofs/JPSelectedRuntimeTaskStart.v`
+- `A` — `SSL-Coq/less-than-one-a-press/proofs/JPThread5EntryResolution.v`
+- `A` — `SSL-Coq/less-than-one-a-press/proofs/JPWarpLevelEntryResolution.v`
 - `A` — `SSL-Coq/less-than-one-a-press/proofs/CollisionMeshFacts.v`
 - `A` — `SSL-Coq/less-than-one-a-press/proofs/CollisionRegions.v`
 - `A` — `SSL-Coq/less-than-one-a-press/proofs/FirstTargetRefinement.v`
@@ -944,3 +947,159 @@ boundary and local store/load dataflow. The following paths changed:
 - `SSL-Coq/less-than-one-a-press/notes/source-map.md`
 - `SSL-Coq/less-than-one-a-press/proofs/JPLinkedPlatformGlobal.v` (new)
 - `SSL-Coq/less-than-one-a-press/proofs/LinkedPlatformLineageSyntax.v` (new)
+
+## Seven-step linked gap-closure continuation
+
+The projection target now selects the checked whole-AST repaired US program or
+the official cleaned JP link instead of demanding an impossible common
+`linkorder` upper bound for incompatible original-unit composites.  Generic
+selector exactness, data-bearing chronology composition, and the reachable
+callsite-sensitive external frame-or-writer interface are checked.  Transport
+of one JP source definition and the conditional entry-postcondition/no-A/prefix
+bridge are also checked.  The exact ten-name selected unresolved direct-callee
+set of the seven dialog/depth bodies is checked for US and JP.  Original-unit
+header normalization is now a checked structural whole-link certificate, and
+selected-source semantics is a whole-linked-source-to-selected lockstep at a
+concrete runtime-task boundary.  JP now has an initialized null-argument task
+start and reflexive instance.  Its exact selected-program identity, syntax
+audit, and five `jp_retail_state_global_identifiers` symbol obligations are now
+checked by `JPSelectedTargetAudit.v`.  Its capstone reduces the official-JP
+selected-target refinement boundary to the generic target Clight refinement
+obligation; concrete observer/chronology, entry prefixes, and selected-to-retail
+semantics remain open.  The repaired-US selected-target audit is now also
+checked by the split syntax/name/symbol receipt chain and
+`USSelectedTargetAudit.v`, conditionally on `VersionUS` and the exact successful
+repaired program.  It proves no direct `Sbuiltin`, supported external
+constructors, `Evar`/`Init_addrof` name resolution, and `find_symbol` existence
+for five core identifiers only.  Repaired-US initialization, memory
+shape/content/block correspondence, and source-to-selected viewport-repair
+execution lockstep remain open.  Chronology now requires one fixed
+observer, authenticated gameplay or administrative controller-poll chunks,
+exact selected frame boundaries, and task-entry prefixes.  The repaired-US
+lockstep, the concrete observer and gameplay/administrative frame
+classification, castle routing and live execution, live Area-1 memory and
+postcondition, full US/JP global/public
+maps, path-sensitive reachable call sequences,
+transitive reachability, argument provenance, external effects, projection
+chronologies, and task-entry prefixes remain open.  Exact official-JP
+`warp_level` symbol/body resolution is checked separately; the split US
+source/normalization/viewport-repair receipts now also establish that exact
+lookup in the selected viewport-repaired US program.  Neither result supplies
+routing, reachability, body execution, the entry postcondition, or the complete
+  US entry binding bundle.  Twelve focused
+JP receipts plus `JPArea1EntrySymbolResolution.v` also construct all twelve
+official-JP Area-1 symbol bindings at slots `0`/`1`, slot validity, core-storage
+separation, and pointer-cell/core-storage separation.  This structural result
+does not supply live memory contents, allocation/layout sizes, initializer
+values, routing, reachability, or execution.  A resource-bounded nine-module
+object-pool chain now transports the exact generated `v_gObjectPool` through
+the successful official cleaned JP link, resolves its exact definition-map and
+global-environment entry, and proves static initial-memory `Cur Writable`
+permission for `[37088,37696)`.  Byte/payload contents, preservation into
+current memory, the runtime pointer and epoch, allocation/free-list chronology,
+execution, and retail refinement remain open.  The following
+paths changed:
+
+- `SSL-Coq/README.md`
+- `SSL-Coq/less-than-one-a-press/Makefile`
+- `SSL-Coq/less-than-one-a-press/README.md`
+- `SSL-Coq/less-than-one-a-press/_CoqProject`
+- `SSL-Coq/less-than-one-a-press/docs/checklist-completed.md`
+- `SSL-Coq/less-than-one-a-press/docs/checklist.md`
+- `SSL-Coq/less-than-one-a-press/docs/claim.md`
+- `SSL-Coq/less-than-one-a-press/docs/goal.md`
+- `SSL-Coq/less-than-one-a-press/docs/notes/changed-paths.md`
+- `SSL-Coq/less-than-one-a-press/docs/notes/destination-chronology-certificate.md`
+- `SSL-Coq/less-than-one-a-press/docs/notes/jp-generated-writer-census.md`
+- `SSL-Coq/less-than-one-a-press/docs/notes/linked-clight-construction.md`
+- `SSL-Coq/less-than-one-a-press/docs/notes/ordinary-area1-entry-memory.md`
+- `SSL-Coq/less-than-one-a-press/docs/notes/retail-clight-refinement.md`
+- `SSL-Coq/less-than-one-a-press/human-readable-proof.md`
+- `SSL-Coq/less-than-one-a-press/notes/source-map.md`
+- `SSL-Coq/less-than-one-a-press/proofs/Area1EntryZeroAPrefix.v` (new)
+- `SSL-Coq/less-than-one-a-press/proofs/ClightProjectionChronology.v` (new)
+- `SSL-Coq/less-than-one-a-press/proofs/CheckedLinkedDefinitionShape.v` (new)
+- `SSL-Coq/less-than-one-a-press/proofs/ClightInitialMemoryFacts.v` (new)
+- `SSL-Coq/less-than-one-a-press/proofs/ClightInitializerInventoryFacts.v` (new)
+- `SSL-Coq/less-than-one-a-press/proofs/ClightInitialMemoryExistence.v` (new)
+- `SSL-Coq/less-than-one-a-press/proofs/ClightRefinement.v`
+- `SSL-Coq/less-than-one-a-press/proofs/DialogDepthFiniteInventory.v` (new)
+- `SSL-Coq/less-than-one-a-press/proofs/DialogDepthJPCutsceneCalleeReceipt.v` (new)
+- `SSL-Coq/less-than-one-a-press/proofs/DialogDepthJPFiniteInventory.v` (new)
+- `SSL-Coq/less-than-one-a-press/proofs/DialogDepthJPMarioCalleeReceipt.v` (new)
+- `SSL-Coq/less-than-one-a-press/proofs/DialogDepthJPStepCalleeReceipt.v` (new)
+- `SSL-Coq/less-than-one-a-press/proofs/DialogDepthUSCutsceneCalleeReceipt.v` (new)
+- `SSL-Coq/less-than-one-a-press/proofs/DialogDepthUSFiniteInventory.v` (new)
+- `SSL-Coq/less-than-one-a-press/proofs/DialogDepthUSMarioCalleeReceipt.v` (new)
+- `SSL-Coq/less-than-one-a-press/proofs/DialogDepthUSStepCalleeReceipt.v` (new)
+- `SSL-Coq/less-than-one-a-press/proofs/DefinitionListSyntaxTransport.v` (new)
+- `SSL-Coq/less-than-one-a-press/proofs/GlobalInterfaceStructural.v` (new)
+- `SSL-Coq/less-than-one-a-press/proofs/JPArea1EntrySymbolResolution.v` (new)
+- `SSL-Coq/less-than-one-a-press/proofs/JPArea1SymbolBehaviorDataReceipt.v` (new)
+- `SSL-Coq/less-than-one-a-press/proofs/JPArea1SymbolDelayedWarpReceipt.v` (new)
+- `SSL-Coq/less-than-one-a-press/proofs/JPArea1SymbolFreeObjectListReceipt.v` (new)
+- `SSL-Coq/less-than-one-a-press/proofs/JPArea1SymbolGameInitReceipt.v` (new)
+- `SSL-Coq/less-than-one-a-press/proofs/JPArea1SymbolMarioObjectReceipt.v` (new)
+- `SSL-Coq/less-than-one-a-press/proofs/JPArea1SymbolMarioStateReceipt.v` (new)
+- `SSL-Coq/less-than-one-a-press/proofs/JPArea1SymbolMarioStatesReceipt.v` (new)
+- `SSL-Coq/less-than-one-a-press/proofs/JPArea1SymbolObjectListArrayReceipt.v` (new)
+- `SSL-Coq/less-than-one-a-press/proofs/JPArea1SymbolObjectListsReceipt.v` (new)
+- `SSL-Coq/less-than-one-a-press/proofs/JPArea1SymbolObjectPoolReceipt.v` (new)
+- `SSL-Coq/less-than-one-a-press/proofs/JPArea1SymbolPlatformReceipt.v` (new)
+- `SSL-Coq/less-than-one-a-press/proofs/JPArea1SymbolWarpDestReceipt.v` (new)
+- `SSL-Coq/less-than-one-a-press/proofs/JPCoordinateLvalueReceiverPartition.v` (new)
+- `SSL-Coq/less-than-one-a-press/proofs/JPLinkedObjectPoolInitialMemory.v` (new)
+- `SSL-Coq/less-than-one-a-press/proofs/JPObjectPoolCleanedUnitDefmapReceipt.v` (new)
+- `SSL-Coq/less-than-one-a-press/proofs/JPObjectPoolCleanedUnitReceipt.v` (new)
+- `SSL-Coq/less-than-one-a-press/proofs/JPObjectPoolLinkorderShape.v` (new)
+- `SSL-Coq/less-than-one-a-press/proofs/JPObjectPoolOfficialDefmapReceipt.v` (new)
+- `SSL-Coq/less-than-one-a-press/proofs/JPObjectPoolOfficialLinkorderReceipt.v` (new)
+- `SSL-Coq/less-than-one-a-press/proofs/JPObjectPoolOfficialShapeReceipt.v` (new)
+- `SSL-Coq/less-than-one-a-press/proofs/JPInitializerReceipt01.v` through
+  `JPInitializerReceipt12.v` (new)
+- `SSL-Coq/less-than-one-a-press/proofs/JPInitializerAggregate.v` (new)
+- `SSL-Coq/less-than-one-a-press/proofs/JPOfficialInitializerAlignment.v` (new)
+- `SSL-Coq/less-than-one-a-press/proofs/JPOfficialAddrofResolution.v` (new)
+- `SSL-Coq/less-than-one-a-press/proofs/JPOfficialInitializationConditions.v` (new)
+- `SSL-Coq/less-than-one-a-press/proofs/JPOfficialInitialMemory.v` (new)
+- `SSL-Coq/less-than-one-a-press/proofs/JPSelectedRuntimeTaskStart.v` (new)
+- `SSL-Coq/less-than-one-a-press/proofs/JPSelectedTargetAudit.v` (new)
+- `SSL-Coq/less-than-one-a-press/proofs/JPSourceSymbolTransport.v` (new)
+- `SSL-Coq/less-than-one-a-press/proofs/JPThread5EntryResolution.v` (new)
+- `SSL-Coq/less-than-one-a-press/proofs/JPWarpLevelEntryResolution.v` (new)
+- `SSL-Coq/less-than-one-a-press/proofs/LinkedGlobalInitialMemory.v` (new)
+- `SSL-Coq/less-than-one-a-press/proofs/MainTheorem.v`
+- `SSL-Coq/less-than-one-a-press/proofs/NormalizedDefinitionNameTransport.v` (new)
+- `SSL-Coq/less-than-one-a-press/proofs/NormalizedRepairedSymbolTransport.v` (new)
+- `SSL-Coq/less-than-one-a-press/proofs/OrdinaryMotion.v`
+- `SSL-Coq/less-than-one-a-press/proofs/RepairedEvarResolutionTransport.v` (new)
+- `SSL-Coq/less-than-one-a-press/proofs/RepairedInitAddrofResolutionTransport.v` (new)
+- `SSL-Coq/less-than-one-a-press/proofs/RetailExternalFrameReachability.v` (new)
+- `SSL-Coq/less-than-one-a-press/proofs/RetailExternalFrames.v`
+- `SSL-Coq/less-than-one-a-press/proofs/SelectedClightTarget.v` (new)
+- `SSL-Coq/less-than-one-a-press/proofs/SourceUnitRepairedSymbol.v` (new)
+- `SSL-Coq/less-than-one-a-press/proofs/SuccessfulMakeProgramResolution.v` (new)
+- `SSL-Coq/less-than-one-a-press/proofs/USRepairedBasicSyntaxAudit.v` (new)
+- `SSL-Coq/less-than-one-a-press/proofs/USRepairedEvarAudit.v` (new)
+- `SSL-Coq/less-than-one-a-press/proofs/USRepairedInitAddrofAudit.v` (new)
+- `SSL-Coq/less-than-one-a-press/proofs/USRepairedSymbolTransport.v` (new)
+- `SSL-Coq/less-than-one-a-press/proofs/USRepairedSyntaxAudit.v` (new)
+- `SSL-Coq/less-than-one-a-press/proofs/USSelectedCoreGameInitNthReceipt.v` (new)
+- `SSL-Coq/less-than-one-a-press/proofs/USSelectedCoreGameInitReceipt.v` (new)
+- `SSL-Coq/less-than-one-a-press/proofs/USSelectedCoreObjectListNthReceipt.v` (new)
+- `SSL-Coq/less-than-one-a-press/proofs/USSelectedCoreObjectListReceipt.v` (new)
+- `SSL-Coq/less-than-one-a-press/proofs/USSelectedTargetAudit.v` (new)
+- `SSL-Coq/less-than-one-a-press/proofs/USViewportRepairDefinitionListSyntax.v` (new)
+- `SSL-Coq/less-than-one-a-press/proofs/USViewportRepairDefinitionPreimage.v` (new)
+- `SSL-Coq/less-than-one-a-press/proofs/USViewportRepairSyntaxPreservation.v` (new)
+- `SSL-Coq/less-than-one-a-press/proofs/USViewportRepairedDefinitionPreimage.v` (new)
+- `SSL-Coq/less-than-one-a-press/proofs/USViewportRepairedProgramCertificate.v` (new)
+- `SSL-Coq/less-than-one-a-press/proofs/USViewportRepairedNamesNorepet.v` (new)
+- `SSL-Coq/less-than-one-a-press/proofs/USViewportRepairedProgramSelection.v` (new)
+- `SSL-Coq/less-than-one-a-press/proofs/USWarpLevelSourceReceipt.v` (new)
+- `SSL-Coq/less-than-one-a-press/proofs/USWarpLevelSourceUnionReceipt.v` (new)
+- `SSL-Coq/less-than-one-a-press/proofs/USWarpLevelNormalizedReceipt.v` (new)
+- `SSL-Coq/less-than-one-a-press/proofs/USWarpLevelViewportReceipt.v` (new)
+- `SSL-Coq/less-than-one-a-press/proofs/USWarpLevelRepairIdentity.v` (new)
+- `SSL-Coq/less-than-one-a-press/proofs/USWarpLevelRepairReceipt.v` (new)
+- `SSL-Coq/less-than-one-a-press/proofs/USWarpLevelEntryResolution.v` (new)

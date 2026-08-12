@@ -47,8 +47,28 @@ actual US official target inherits the latter `__538`; its `__540` viewport
 wrapper is therefore 8 bytes while the source viewport wrapper/storage is 16
 bytes.  A fresh-tag local layout repair is constructed, and a recursive
 whole-AST/state rewrite now covers the affected Clight type positions.  The
-repaired-program success certificate and execution simulation remain open.
-Replacing only the composite table is not a sound refinement.
+repaired whole-AST US program is checked to build and is selected together
+with the official cleaned JP link.  This avoids the impossible original-unit
+common-`linkorder` gate.  The original units now feed only a checked structural
+header-normalization/link certificate; standalone-unit execution is not used,
+because unresolved cross-unit calls there have arbitrary `EF_external`
+semantics.  The remaining source semantics starts from the whole official
+cleaned link and requires lockstep to the selected target, anchored at matching
+null-argument `thread5_game_loop` task starts.  The start predicate requires
+initialized memory and an actual first Clight step.  JP now has that concrete
+task-start witness and, because its selected source and target are the same
+  official cleaned link, an identity source-to-selected lockstep witness.  The
+  official-JP selected-target program identity, syntax audit, and all five core
+  state-global symbol obligations are also checked.  `USSelectedTargetAudit.v`
+  separately closes `SelectedTargetAuditTransportObligation` for projections
+  fixed to `VersionUS` and the successfully built repaired program: its fresh
+  audit checks no direct `Sbuiltin`, supported external constructors, resolution
+  of every internal-body `Evar` name and initializer `Init_addrof` name, plus
+  `find_symbol` existence for the five core identifiers.  Those five checks do
+  not establish memory shape, contents, or block correspondence.  The repaired-US
+  initialization/start, source-to-selected viewport-repair execution lockstep,
+  OS handoff, routing/prefix/chronology, and selected-to-retail semantics remain
+  open.  Replacing only the composite table is not a sound refinement.
 
 `ClightLinkExecution.v` now specializes definition provenance to both actual
 official targets.  Every nonlocal internal-body `Evar` and every initializer
@@ -71,9 +91,33 @@ lockstep-to-final execution composition.  It also defines the concrete
 Mario/object/controller footprint and proves recognized builtins/runtime
 helpers preserve it.  Retail instantiation still needs the complete
 global/public relation, concrete name-based initial/current memory injections,
-the US whole-expression/internal-step simulation, and frames for reachable
-abstract `EF_external` calls.  No arbitrary writable frame follows from
+the whole-expression/internal-step simulations, and concrete classification of
+reachable abstract `EF_external` calls.  The new interface permits a
+callsite-sensitive protected-cell frame or explicit writer/lifecycle
+refinement.  The exact ten-name selected unresolved direct-callee set for the
+seven dialog/depth bodies is now checked for US and JP; path-sensitive reachable
+call sequences, transitive reachability, argument provenance, and concrete
+external effects remain open.
+A generic selector-exactness theorem and strengthened data-bearing chronology
+composition are checked.  The latter pins `gControllers[0]`, the player-one
+and Mario controller pointers, and the exact selected poll/consumer bodies; it
+authenticates a boundary input and supports gameplay and poll-only
+administrative frames.  The concrete observer, chronologies, US/JP maps, and
+two task-entry prefixes are not inhabited.  No arbitrary writable frame follows from
 CompCert's generic external-call theorem.
+
+The conditional ordinary Area-1 prefix bridge now also requires the selected
+program to resolve `warp_level` to the expected internal body before composing
+the supplied route and entry executions.  `JPWarpLevelEntryResolution.v`
+closes that exact resolution premise for the official cleaned JP program, and
+the split `USWarpLevel*Receipt.v` chain plus `USWarpLevelEntryResolution.v`
+closes it for the selected viewport-repaired US program.
+Twelve focused receipts plus `JPArea1EntrySymbolResolution.v` now construct the
+official-JP `Area1EntryAddresses` witness at slots `0`/`1`, all twelve entry
+bindings, valid-slot arithmetic, and limited global-block separation.  This
+does not establish live memory contents, allocation/layout sizes, initializer
+values, castle routing, reachability, live execution, the entry postcondition,
+or the remaining US entry-symbol bindings.
 
 `old-proofs/` contains archived proof attempts.  They are retained for
 historical context, reusable lemmas, and future reference; they are not part of
@@ -95,8 +139,27 @@ the `>=960` Graphics/Object Y gap required by the conditional timer-131
 stale-top route.  No such installer was found.  Rocq proves that a phase
 already refined to State-only preserves the old Object/Graphics gap, computes
 a 38-unit generated-AST writer census, and proves nonnegative depth for a
-source-shaped relation that excludes the late long-jump writer.  The census is
-receiver-neutral and therefore does not itself establish Mario-writer closure.
+source-shaped relation that excludes the late long-jump writer.  A second
+38-unit receipt checks membership in allowed generated Clight receiver-type
+sets for the four coordinate-lvalue shapes, but does not count the three
+`pos[1]` classes separately or establish live pointer identity, reachability,
+or Mario-writer closure.
+For the selected JP link, split per-unit initializer receipts plus checked
+relocation-symbol coverage now construct a real CompCert initial memory.  The
+exact `thread5_game_loop` body resolves, its null-argument `Kstop` call state
+takes the genuine first Clight step, and identity lockstep closes the JP
+source-to-selected boundary.  The selected-JP audit also fixes the projection
+to that exact program, closes its syntax audit plus the five
+`jp_retail_state_global_identifiers` symbol checks, and reduces its full
+selected-target refinement obligation to the still-open generic
+`TargetClightRefinementObligation`.  The exact `warp_level` symbol/body now
+resolves in both the official cleaned JP environment and the selected
+  viewport-repaired US environment.  The repaired-US selected-target syntax and
+  five-core-symbol-existence audit is also checked conditionally on that exact
+  selected program.  The OS handoff, castle routing, `warp_level` execution,
+  later Area-1 prefix, concrete observer/chronology, selected-to-retail semantics,
+  repaired-US initialization/source-to-selected execution refinement, memory
+  shape/content/block correspondence, and remaining US entry bindings stay open.
 An actual `Clight.step2` zero-edge relation reads the live `buttonPressed`
 field, but is parameterized by an arbitrary program, controller address, and
 entry state; it does not itself establish a clean JP entry.  Its composition
@@ -246,9 +309,14 @@ pool-relative byte offset `37088`, and the twelve listed displacement-payload
 witness ranges stay inside that object.  Completeness of that list against the
 generated access set remains open.  The cleaned JP declaration census finds
 exactly one `_gObjectPool` definition and fixes it as a writable, nonvolatile
-145,920-byte global and the watched pointer as its
-eventual symbol block plus `37088`; resolving that declaration to the concrete
-official-link initial/current memory is still open.  Under the observed
+145,920-byte global.  The exact generated variable is now transported through
+the official cleaned link to its `find_symbol`/`find_var_info` block, and the
+constructive JP initial memory has `Cur Writable` permission for the complete
+slot-61 interval `[37088,37696)`.  The watched pointer is therefore expressed
+against that resolved block at offset `37088`.  This is a static initial-memory
+permission result: initial bytes and payload contents, preservation into the
+relevant current memory, the runtime-loaded pointer and allocation epoch, and
+retail refinement remain open.  Under the observed
 duplicate-free 131-push/84-pop LIFO history, the watched slot cannot be one of
 the destination allocations and
 survives at depth 47.  The project also proves contradictions for five bounded

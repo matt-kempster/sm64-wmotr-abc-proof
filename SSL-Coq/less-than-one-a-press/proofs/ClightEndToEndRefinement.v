@@ -420,6 +420,27 @@ Record ClightLockstepComponents
         lockstep_match_states source_after target_after
 }.
 
+(** Reflexive lockstep is useful when target selection keeps an already-linked
+    program unchanged.  Keeping the witness here avoids rebuilding the same
+    four standard simulation fields in each concrete target module. *)
+Definition clight_identity_lockstep_components
+    (program : Clight.program) :
+    ClightLockstepComponents program program.
+Proof.
+  refine
+    {| lockstep_match_states := eq;
+       lockstep_public_symbols := _;
+       lockstep_initial_states := _;
+       lockstep_final_states := _;
+       lockstep_internal_and_external_steps := _ |}.
+  - intros id. reflexivity.
+  - intros state Hinitial. exists state. now split.
+  - intros source_state target_state result Hequal Hfinal.
+    now subst target_state.
+  - intros source_state trace source_after target_state Hstep Hequal.
+    subst target_state. exists source_after. now split.
+Defined.
+
 Theorem clight_lockstep_components_forward_simulation :
   forall source target (components : ClightLockstepComponents source target),
     Smallstep.forward_simulation

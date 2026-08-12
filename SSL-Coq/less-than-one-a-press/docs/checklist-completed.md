@@ -354,8 +354,58 @@ Completed work is grouped by subject. Each item retains its original scope warni
   Mario/object/controller writable footprints and prove recognized
   builtin/runtime calls preserve them.
 
+- [x] Linked gap-closure step 1 — Check that the concrete whole-AST US
+  viewport repair builds successfully, and select exact executable targets:
+  that repaired US program and the official cleaned JP link.  Replace the
+  impossible original-unit `TargetLinkedProgram` projection gate with this
+  selected-target gate while retaining a separate
+  `SelectedTargetSourceRefinementObligation`.  This proves construction and
+  provenance only, not source-to-selected lockstep or retail semantics.
+
+- [x] Linked gap-closure step 1 — Replace the invalid closed semantics for
+  standalone translation units with two honest boundaries.  The inhabited
+  `OriginalUnitsHeaderNormalizationStructuralObligation` records source-owned
+  cleaning, verbatim strong definitions, identifier/composite coverage,
+  normalized-header use, and successful whole linking without interpreting
+  cross-unit `EF_external` declarations.  The open
+  `WholeLinkedSourceToSelectedTargetRefinementObligation` requires standard
+  `ClightLockstepComponents` from that whole link to the selected target,
+  anchored at matching initialized null-argument `thread5_game_loop` starts,
+  `Kstop`, and an actual first Clight step.  The JP task start and reflexive
+  source-to-selected instance are now constructed; repaired-US task
+  start/lockstep and all selected-to-retail execution remain open.
+
+- [x] Linked gap-closure step 1 — Prove a generic structural selector
+  capstone: under the checked uniqueness/selection hypotheses, every
+  definition emitted by `clean_translation_units` is exactly the normalized
+  map entry at its identifier.  Concrete US/JP instantiation, complete
+  global-definition-map agreement, public-name agreement, and initial-memory
+  refinement remain open.
+
+- [x] Linked gap-closure step 1 — Transport one explicit definition receipt
+  from any source unit through source-union coverage and a successful cleaned
+  link to existence of the identically named linked symbol, then specialize
+  the result to the official cleaned JP program.  This is generic one-name
+  symbol transport; by itself it does not construct the twelve ordinary-entry
+  symbol bindings or prove global/public-map agreement.  The focused JP
+  aggregate below now constructs the former separately.
+
 - [x] Linked gap-closure step 2 — Extract ordinary Area-1 node `0x0A`, spin-airborne action, layout,
   symbol, distinct-slot, and synchronized-postcondition facts.
+
+- [x] Linked gap-closure steps 2/3 — Prove that a supplied ordinary Area-1
+  memory postcondition plus a no-A input sample yields the live controller
+  no-A predicate and a reflexive zero-A suffix.  Given caller-supplied castle
+  routing, explicit `warp_level` symbol and internal-body resolution,
+  `warp_level` execution, all entry symbol bindings, and the final postcondition,
+  compose the two prefixes and pin the controller block at the real return
+  state.  The generic theorem constructs none of those premises.  Exact
+  symbol/body resolution is separately checked for the official cleaned JP
+  program; focused split receipts now establish the corresponding exact lookup
+  in the selected viewport-repaired US program.  The twelve-symbol JP
+  structural binding is also separately checked below.  Live routing/execution,
+  memory contents, the postcondition, and the remaining US bindings remain
+  open.
 
 - [x] Linked gap-closure step 3 — Define a parameterized zero-edge relation over actual `Clight.step2`
   states using the live controller `buttonPressed` A bit, without requiring
@@ -384,8 +434,129 @@ Completed work is grouped by subject. Each item retains its original scope warni
 - [x] Linked gap-closure step 6 — Prove current-`Mem.inject` transport of mapped pointer writes and the
   resulting memories.
 
+- [x] Linked gap-closure step 6 — Define the reachable, callsite-sensitive
+  unresolved-external boundary: protected cells may depend on the external,
+  actual arguments, and pre-memory, and every reachable effect is either
+  framed there or carried by an explicit writer/lifecycle refinement.  Prove
+  that the legacy declaration-wide frame implies this reachable form and that
+  pointwise reachable frames supply the inventory.  This interface theorem
+  alone supplies no direct-callee computation, transitive call-graph closure,
+  or concrete external frame.  The
+  old whole-object-pool declaration-wide frame is an overstrong proof target
+  because legitimate omitted helpers can allocate and write object slots.
+
+- [x] Linked gap-closure step 6 — Compute and kernel-check the exact selected
+  unresolved direct-callee set of the seven dialog/depth bodies for both US and
+  JP.  Translation-unit-local receipts, per-version aggregate inventories, and
+  `dialog_depth_finite_inventory_obligation_closed` prove that each set is the
+  expected ten names and has length ten.  This is direct-call syntax only;
+  path-sensitive reachable call sequences, transitive reachability, argument
+  provenance, and every concrete
+  external frame-or-writer effect remain open.
+
 - [x] Linked gap-closure step 7 — Compose an assumed entry bound and per-step gap refinement into a
   global `<960` theorem over the parameterized zero-edge relation.
+
+- [x] Linked gap-closure step 7 — Define data-bearing Clight chronologies
+  under one fixed observation interface and an exact, projection-independent
+  `read_controller_inputs` run boundary.  Authenticate the post-poll clean-entry
+  input separately, then require exactly one completed poll per observed
+  successor frame.  Gameplay frames follow the exact selected
+  `update_mario_button_inputs` body through its matching return and bind
+  `MarioState.controller` to `gControllers[0]`; paused/change-area
+  administrative frames use a separate poll-only branch with an independently
+  refined event.  Both branches preserve the sampled controller values to the
+  endpoint, bind `gPlayer1Controller` to `gControllers[0]`, carry a real
+  nonempty Clight execution and local `CertifiedStep`, and keep input/event
+  cardinality exact.  Prove that a
+  supplied chronology yields `ClightFrameRefinementCertificate` and that
+  supplied task-entry prefixes yield clean-entry nonvacuity.  No concrete
+  observer, projection, chronology, or lower/upper prefix is constructed.
+
+- [x] Linked gap-closure step 5 — Refine the four JP coordinate-lvalue census
+  shapes by generated Clight receiver annotation across all 38 units.
+  `jp_coordinate_lvalue_receiver_partition_checked` proves that `pos[1]`
+  receivers belong to the allowed set `MarioState`, `GraphNodeObject`, or
+  `PlayerCameraState`; raw slots 7/10 require `Object`; and `throwMatrix`
+  requires `GraphNodeObject`, while retaining the exact 33/215/180/15 function
+  totals.  This is static typed-AST coverage; live block identity, pointer
+  provenance, reachability, bounds, non-aliasing, external frames, and dynamic
+  store coverage remain open.
+
+- [x] Linked gap-closure steps 1/2 — Construct initialized memory for the
+  official cleaned JP link.  Twelve resource-bounded unit receipts prove every
+  retained initializer is naturally aligned; structural source provenance
+  transfers alignment to the official link; and the checked `Init_addrof`
+  inventory resolves every relocation symbol.  CompCert's constructive
+  initializer theorem then yields
+  `jp_official_cleaned_initial_memory_exists`.
+
+- [x] Linked gap-closure steps 1/2 — Resolve the exact generated
+  `thread5_game_loop` body in the official cleaned JP global environment,
+  construct its initialized null-argument `Kstop` call state, prove the genuine
+  `function_entry2` first step, and use identity lockstep to inhabit the JP
+  source-to-selected refinement.  The OS runtime handoff, castle/Area-1 prefix,
+  selected-to-retail relation, and corresponding repaired-US witnesses remain
+  open.
+
+- [x] Linked gap-closure steps 2/3 — Resolve the exact generated `warp_level`
+  symbol/body in the official cleaned JP global environment.  This closes only
+  the JP resolution premise, and the compiled
+  `jp_official_cleaned_ordinary_area1_prefix_fixes_zero_a_boundary` corollary
+  instantiates the conditional bridge without a caller-supplied lookup.  Castle
+  routing, execution of the body, the entry postcondition, live memory, and
+  the remaining US entry bindings remain open.  The corresponding exact US
+  `_warp_level` symbol/internal-body lookup is separately checked by
+  `USWarpLevelEntryResolution.v` after the split source/normalization/repair
+  receipt chain.
+
+- [x] Linked gap-closure steps 2/3 — Construct an `Area1EntryAddresses` witness
+  for the official cleaned JP global environment with Mario/entry-warp slots
+  `0`/`1` and a `JPArea1EntrySymbolBindings` record for all twelve required
+  symbols.  Twelve focused source
+  receipts plus `JPArea1EntrySymbolResolution.v` prove
+  `jp_official_area1_entry_symbol_structure_closed`: both slots are valid, the
+  Mario-state/controller/object-pool storage blocks are pairwise distinct, and
+  every pointer cell is separate from those three core storage blocks.  The
+  platform receipt uses aggregate public-name coverage and cleaned-link
+  transport.  This proves no live memory contents, allocation/layout sizes,
+  initializer values, routing, reachability, `warp_level` execution, entry
+  postcondition, or execution prefix.
+
+- [x] Linked gap-closure step 1 — Close the selected-target audit transport for
+  projections fixed to `VersionJP` and `jp_official_cleaned_slice`.
+  `JPArea1SymbolGameInitReceipt.v` now also transports the exact
+  `_gPlayer1Controller` definition to an official-link symbol.  In
+  `JPSelectedTargetAudit.v`, `jp_selected_target_core_symbols_checked` proves
+  symbol existence for all
+  five `jp_retail_state_global_identifiers`, and
+  `jp_selected_target_audit_transport_checked` packages that result with the
+  exact selected-program identity and complete selected-program syntax audit.
+  `jp_selected_target_refinement_from_target_clight` then reduces the official
+  JP `SelectedTargetClightRefinementObligation` to the generic
+  `TargetClightRefinementObligation`.  It does not prove the remaining
+  projection/observer/chronology, entry-prefix, selected-to-retail, OS handoff,
+  Area-1 route, or live-memory obligations.  The corresponding repaired-US audit
+  is closed separately below, without any of those semantic consequences.
+
+- [x] Linked gap-closure step 1 â€” Close the selected-target audit transport for
+  projections fixed to `VersionUS` and `us_viewport_repaired_program`.
+  `USSelectedTargetAudit.v` proves `us_selected_target_audit_transport_checked`
+  from those exact version/program hypotheses.  Its syntax half audits the
+  actual successful repaired program for no direct `Sbuiltin`, supported
+  external constructors, internal-body `Evar` name resolution, and initializer
+  `Init_addrof` name resolution.  Split game-init/object-list receipts prove only
+  `find_symbol` existence for the five core identifiers.  This does not prove
+  repaired-US initialization, memory shape/content/block correspondence,
+  source-to-selected viewport-repair execution lockstep, runtime handoff,
+  routing/prefix/chronology, or selected-to-retail semantics.
+
+- [x] Linked gap-closure steps 2/3 — Resolve the exact generated US
+  `_warp_level` symbol/internal body in the selected viewport-repaired program.
+  The split source, source-union, normalized, viewport, repair-identity, and
+  repair receipts feed `USWarpLevelEntryResolution.v`.  This proves exact
+  global-environment lookup only: routing, reachability, execution, the entry
+  postcondition, live memory, and the remaining US entry bindings stay open.
 
 ## Ink, quicksand, and clean-entry reductions
 
@@ -620,6 +791,15 @@ Completed work is grouped by subject. Each item retains its original scope warni
   global after the weak
   incomplete-array declaration is removed, and fix the watched CompCert
   pointer as the selected pool block plus offset `37088`.
+
+- [x] Transport the exact generated JP `v_gObjectPool` through the successful
+  official cleaned link, recover its exact definition-map and
+  `find_symbol`/`find_var_info` entry, combine it with the constructive JP
+  initial memory, and prove `Cur Writable` permission for slot 61's complete
+  half-open interval `[37088,37696)`.  This is static initial-memory permission;
+  bytes and payload contents, current-memory preservation, the runtime-loaded
+  pointer and allocation epoch, allocation/free-list chronology, linked
+  execution, and retail refinement remain open.
 
 - [x] Under the observed exact 131-push, 84-pop `NoDup` LIFO chronology,
   prove that no destination allocation selects the watched slot, that it

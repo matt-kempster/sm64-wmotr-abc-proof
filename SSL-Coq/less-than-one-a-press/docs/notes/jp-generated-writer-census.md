@@ -59,11 +59,14 @@ vectors preserve every unit boundary.  The nested recognizer requires the
 generated lvalue shape `receiver.rawData.asF32[index]`, so these are not merely
 same-name `asF32` arrays.
 
-This remains receiver-neutral.  In particular, `pos[1]` may be Mario State,
-Mario Graphics, or another structure's `pos`; raw-data slots may belong to any
-object; and a `throwMatrix` lvalue may belong to any graph object.  None of
-these census theorems is a Mario-writer theorem until live pointer typing,
-receiver provenance, non-aliasing, and external-call frame conditions are
+`JPCoordinateLvalueReceiverPartition.v` now bounds the source-type ambiguity
+for these exact shapes across all 38 units: every `pos[1]` receiver belongs to
+the allowed set `MarioState`, `GraphNodeObject`, or `PlayerCameraState`;
+raw-data slots 7/10 require receiver `Object`; and `throwMatrix` requires
+receiver `GraphNodeObject`.  It does not count the three `pos[1]` classes
+separately.  These remain generated type annotations and function-site totals.
+They are not a Mario-writer theorem until live block identity, pointer
+provenance, reachability, non-aliasing, and external-call frame conditions are
 proved.
 
 ## Exact JP quicksand-depth census

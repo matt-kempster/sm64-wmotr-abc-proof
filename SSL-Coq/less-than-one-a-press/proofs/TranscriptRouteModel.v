@@ -824,7 +824,7 @@ Record FirstTargetCutClassificationObligation
     (initial : GameState) (trace : RouteTrace) : Prop := {
   first_target_cut_clean_entry : CleanPyramidEntry initial;
   first_target_cut_input_history :
-    coherent_input_history (state_first_frame_previous_down_seed initial)
+    coherent_input_history (state_entry_button_down initial)
       (route_inputs trace);
   first_target_cut_realized : RealizedRouteTrace initial trace;
   classify_upper_first_target :
