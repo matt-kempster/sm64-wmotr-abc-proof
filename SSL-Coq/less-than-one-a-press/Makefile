@@ -135,6 +135,9 @@ check: proofs
 	  LessThanOneAPress.Proofs.Area1EntryZeroAPrefix \
 	  jp_official_cleaned_ordinary_area1_prefix_fixes_zero_a_boundary
 	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.Area1EntryZeroAPrefix \
+	  us_viewport_repaired_ordinary_area1_prefix_fixes_zero_a_boundary
+	bash pipeline/assumptions.sh \
 	  LessThanOneAPress.Proofs.NormalizedClightPrograms \
 	  us_residual_function_signature_mismatch_count_checked
 	bash pipeline/assumptions.sh \

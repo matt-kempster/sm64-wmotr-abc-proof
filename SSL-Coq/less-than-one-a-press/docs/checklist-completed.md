@@ -579,6 +579,14 @@ Completed work is grouped by subject. Each item retains its original scope warni
   repaired program or construct `USArea1EntrySymbolBindings`; live contents,
   layout, routing, reachability, and execution remain open.
 
+- [x] Linked gap-closure step 3 — Add the selected viewport-repaired US
+  ordinary-entry zero-A boundary bridge.  A supplied US entry postcondition
+  now yields the exact controller no-A-edge memory predicate and a reflexive
+  `ZeroAEdgeClightReachable` suffix; supplied route and `warp_level` execution
+  traces compose to that boundary.  This does not construct the address
+  bindings, either trace, controller history, live postcondition, or any
+  selected-to-retail refinement.
+
 ## Ink, quicksand, and clean-entry reductions
 
 - [x] Prove that arbitrary prefixes already refined to State-only preserve

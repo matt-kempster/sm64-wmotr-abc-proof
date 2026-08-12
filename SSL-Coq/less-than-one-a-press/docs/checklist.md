@@ -70,9 +70,10 @@ These obligations currently block the clean-retail result.
 
 - [ ] Linked gap-closure step 3 — Connect its entry state and controller
   address to the ordinary-entry execution in the selected and semantically
-  refined program.  The currently parameterized zero-edge and entry bridges
-  remain conditional on the concrete program, address, and nonempty task-entry
-  prefix.  Exact `warp_level` symbol/body resolution is now checked for both the
+  refined program.  Both selected-program zero-edge boundary bridges are now
+  checked, but remain conditional on the concrete address bindings, nonempty
+  route and entry prefixes, controller history, and entry postcondition.
+  Exact `warp_level` symbol/body resolution is checked for both the
   official cleaned JP program and the selected viewport-repaired US program.
   The JP twelve-symbol entry-address bundle and its limited structural
   separation are checked; eight remaining selected-US source membership
