@@ -148,6 +148,7 @@ proofs/JPWarpLevelEntryResolution.v
 proofs/PlatformPointerProvenance.v
 proofs/Area1WarpTopCloneCensus.v
 proofs/Area1QueryScheduleClosure.v
+proofs/Area1SurfaceOwnerSyntax.v
 proofs/ClightGlobalMemoryRefinement.v
 proofs/GlobalInterfaceStructural.v
 proofs/ConcreteDefinitionSelection.v
@@ -176,6 +177,10 @@ proofs/USWarpLevelRepairReceipt.v
 proofs/USViewportRepairedNamesNorepet.v
 proofs/USViewportRepairedProgramSelection.v
 proofs/USWarpLevelEntryResolution.v
+proofs/PlatformUpdateSourceReceipt.v
+proofs/USPlatformUpdateRepairReceipt.v
+proofs/JPPlatformUpdateCleanedReceipt.v
+proofs/SelectedPlatformUpdateBodyResolution.v
 proofs/NormalizedDefinitionNameTransport.v
 proofs/DefinitionListSyntaxTransport.v
 proofs/USViewportRepairSyntaxPreservation.v
@@ -213,6 +218,7 @@ proofs/JPArea1SymbolObjectPoolReceipt.v
 proofs/JPArea1SymbolPlatformReceipt.v
 proofs/JPArea1SymbolWarpDestReceipt.v
 proofs/OrdinaryArea1EntryMemory.v
+proofs/DefaultArea1StartBoundary.v
 proofs/JPArea1EntrySymbolResolution.v
 proofs/JPSelectedTargetAudit.v
 proofs/Area1EntryDepthClosure.v
@@ -243,6 +249,7 @@ proofs/StockProjectionExhaustiveness.v
 proofs/Area1PrecollisionWriterClosure.v
 proofs/Area1InstallerTemporalClosure.v
 proofs/StateFirstPlatformChronology.v
+proofs/DefaultArea1StartChronology.v
 proofs/LinkedPlatformLineageSyntax.v
 proofs/JPLinkedPlatformGlobal.v
 proofs/FirstCrossingWriterCoverage.v

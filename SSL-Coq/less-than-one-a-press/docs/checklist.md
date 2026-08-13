@@ -21,8 +21,11 @@ These obligations currently block the clean-retail result.
   Completed substeps are preserved under
   [Linked-program and gap-closure foundations](checklist-completed.md#linked-program-and-gap-closure-foundations).
   The repaired-US selected-target audit is one newly completed substep; the
-  parent remains open because the execution, memory, routing, chronology, and
-  retail-semantic obligations below are not discharged.
+  parent remains open because post-boundary execution, memory, chronology, and
+  retail-semantic obligations below are not discharged.  The core gameplay
+  proof now starts at the explicit `DefaultArea1StartBoundary` in **SSL Area 1
+  (the exterior)**.  Reaching that boundary from the OS or castle is a separate
+  low-priority investigation.
 
 - [ ] Linked gap-closure step 1 — Complete
   `WholeLinkedSourceToSelectedTargetRefinementObligation` bilaterally: retain
@@ -40,46 +43,52 @@ These obligations currently block the clean-retail result.
   name-based initial/current-state `Mem.inject`, and the initial/final
   whole-program execution refinement.  Neither program construction nor the
   static audits supply repaired-US initialization, memory shape/content/block
-  correspondence, source-to-selected viewport-repair execution lockstep,
-  runtime handoff, routing/prefix/chronology, or either selected-to-retail
-  semantics.
+  correspondence, source-to-selected viewport-repair execution lockstep, or
+  either selected-to-retail semantics.  The checked `thread5_game_loop` start
+  remains program/source-refinement evidence; it is no longer the gameplay
+  reachability root for the scoped theorem.
 
-- [ ] Linked gap-closure step 2 — Execute the live prefix into Area 1.  This
-  requires four concrete subchecks:
-
-  - connect the real OS/runtime handoff to the checked null-argument
-    `thread5_game_loop` task state (JP initial memory, exact body resolution,
-    and the first Clight step are now closed);
-  - execute castle routing and behavior lookup;
-  - recover the controller history at the clean entry; and
-  - prove callsite-sensitive external effects and pool/list ownership.
+- [ ] Linked gap-closure step 2 — Bind linked gameplay to the declared default
+  start in SSL Area 1 (the exterior).
+  `DefaultArea1StartBoundary` fixes the selected US/JP
+  program, node-`0x0A` spin-airborne coordinates `(653,1038,6566)`, the
+  symbol-bound ordinary-entry memory postcondition, coherent previous/current
+  controller masks with no A edge, and an explicitly null `gMarioPlatform`.
+  This is a scope assumption, not a theorem that the castle route reaches the
+  boundary.  In particular JP normally retains the predecessor platform
+  pointer, so JP nullness is stated explicitly rather than inferred from the
+  cold-start initializer.  The remaining core subchecks are to connect this
+  boundary memory to the selected-program observer and prove post-boundary
+  callsite-sensitive external effects, allocation sizes, and pool/list
+  ownership.  Do not spend core-proof compute on the OS handoff, castle route,
+  or `warp_level` prefix.
 
   The official cleaned JP environment has a constructed `Area1EntryAddresses`
   witness with Mario/entry-warp slots `0`/`1` and a complete twelve-symbol
   binding record.  Its valid-slot arithmetic, pairwise separation of
   Mario-state/controller/object-pool storage, and separation of every pointer
   cell from those core storage blocks are checked.  This is structural
-  global-environment evidence only: live memory contents, allocation/layout
-  sizes, initializer values, routing, reachability, `warp_level` execution,
-  the entry postcondition, both prefixes, and the selected-US aggregate binding
-  remain open.  Eight focused selected-US source membership receipts are now
-  checked, removing generated-list lookup from the remaining US blockers.
+  global-environment evidence only: it does not construct a boundary witness
+  or prove its reachability.  Allocation/layout interpretation, pool/list
+  ownership, the selected-US aggregate binding, and the boundary-to-observer
+  projection remain open.  Eight focused selected-US source membership
+  receipts are checked, removing generated-list lookup from the remaining US
+  blockers.
 
-  The generic entry bridges only reduce a supplied entry postcondition or
-  prefix; they do not construct this execution.
-
-- [ ] Linked gap-closure step 3 — Connect its entry state and controller
-  address to the ordinary-entry execution in the selected and semantically
-  refined program.  Both selected-program zero-edge boundary bridges are now
-  checked, but remain conditional on the concrete address bindings, nonempty
-  route and entry prefixes, controller history, and entry postcondition.
+- [ ] Linked gap-closure step 3 — Connect the declared boundary memory and
+  controller address to the fixed observer in the selected and semantically
+  refined program.  Both selected-program zero-edge boundary bridges are
+  checked; in the scoped proof their route/entry-prefix premises are replaced
+  by `DefaultArea1StartBoundary` and its coherent controller-history theorem.
   Exact `warp_level` symbol/body resolution is checked for both the
-  official cleaned JP program and the selected viewport-repaired US program.
+  official cleaned JP program and the selected viewport-repaired US program,
+  but is retained only as source/program evidence for the separate upstream
+  reachability investigation.
   The JP twelve-symbol entry-address bundle and its limited structural
   separation are checked; eight remaining selected-US source membership
   receipts are also checked.  Their repaired-program transport and aggregate
-  binding, routing, reachability, execution, live contents, allocation sizes,
-  and the postcondition remain open.
+  binding, the concrete boundary projection, allocation interpretation, and
+  post-boundary execution remain open.
 
 - [ ] Linked gap-closure step 4 — Close the reachable gameplay invariants:
 
@@ -118,13 +127,14 @@ These obligations currently block the clean-retail result.
 - [ ] Linked gap-closure step 7 — Construct the concrete data-bearing frame
   chronology for every projected run ending at the next exact selected
   `read_controller_inputs` boundary.  Each returned chronology must itself
-  authenticate its start from the selected task boundary.  Prove its projected
+  authenticate its start from `DefaultArea1StartBoundary`.  Prove its projected
   input/event/collision lists exact through one fixed controller-memory observer
-  and supply both actual lower/upper task-entry-to-clean-entry prefixes.  The
+  for both lower and upper continuations.  The
   checked interface authenticates the boundary input plus every gameplay or
   administrative poll, follows gameplay input through the exact Mario button
   consumer, and composes those witnesses into the whole-run certificate; it
-  does not itself construct the observer, projection, chronology, or prefixes.
+  does not itself construct the observer, projection, or chronology.  No
+  task-entry-to-SSL Area 1 prefix is part of the scoped core obligation.
 
 - [ ] Prove `SelectedTargetSourceRefinementObligation` for the exact checked
   targets and then connect the selected Clight semantics to retail execution.
@@ -136,7 +146,7 @@ These obligations currently block the clean-retail result.
   selected-target program/syntax/five-core-symbol audit are complete.  The JP
   capstone reduces its selected-target refinement boundary to the still-open
   generic target refinement obligation; it does not inhabit the concrete
-  observer, chronology, entry prefixes, or selected-to-retail semantics.
+  observer, chronology, boundary projection, or selected-to-retail semantics.
   The repaired-US selected-target audit is also checked conditionally on the
   exact US version/program; it proves fresh syntax/name-resolution facts and
   five core-symbol existence witnesses only.  Repaired-US initialization,
@@ -152,8 +162,11 @@ These obligations currently block the clean-retail result.
   endpoint, classify gameplay versus administrative polls, and prove the
   projected boundary/event/collision facts.
 
-- [ ] Prove both `WholeProgramClightRefinementObligation` and
-  `CleanEntryProjectionNonvacuityObligation` for that projection.
+- [ ] Prove the post-`DefaultArea1StartBoundary` form of
+  `WholeProgramClightRefinementObligation`, and replace or instantiate
+  `CleanEntryProjectionNonvacuityObligation` so it requires a run from the
+  declared boundary rather than an OS/task/castle prefix.  This remains a
+  conditional theorem: do not claim the boundary itself is reachable.
 
 - [ ] Derive constructor origin, collision, spawn, trigger, lifecycle, and
   preservation premises from Clight instead of assuming them in steps.
@@ -171,9 +184,25 @@ These obligations currently block the clean-retail result.
   the identified stock exception, and its pointer is null at the upper-warp
   sample inside the finite stock model.  A temporal extension now proves this
   remains true across arbitrary active-frame movement and exact frozen carries,
-  and classifies any projected non-null survivor into five explicit lineage
-  escapes.  Linked writer/non-alias/external-frame, terrain-dispatch, live-owner,
-  and lifecycle projection remain open.
+  and originally classified any projected non-null survivor into five explicit
+  lineage escapes.  The declared null `DefaultArea1StartBoundary` plus the
+  same-run memory decoder and finite chronology theorem in
+  `DefaultArea1StartChronology.v` show that a supplied preapply projection whose
+  seed equals that decoder cannot end in retained JP inbound lineage, reducing
+  that abstract residual interface to four.  Its active-run record requires a real
+  nonempty `Smallstep.plus`, while its preapply wrapper separately requires the
+  abstract seed to decode from that run-start memory; deriving the rest of that
+  preapply projection from the run is still open.  Exact bilateral source
+  receipts now also pin the
+  final query's `gMarioObject.rawData.asF32[6..8]` loads to the three
+  `find_floor` arguments and pin the dynamic loader to an ordered
+  `gCurrentObject -> Surface.object` prefix followed later by
+  `add_surface(surface, 1)` with the same syntactic surface-temporary identifier
+  (with static loaders using flag `0`).  The checkbox remains open: preserving that
+  Object sample to the collision phase and deriving linked writer/non-alias/
+  external-frame, surface-temporary-value, terrain-dispatch, chronology-to-run, live-owner, and
+  slot/epoch lifecycle facts from the post-boundary execution are not yet
+  proved.
 
 - [ ] Prove which JP raw-platform cases are reachable and bound every reachable
   spawning displacement.  Execute the imported matrix/surface helpers over live
@@ -227,8 +256,8 @@ These obligations currently block the clean-retail result.
   every clean coordinate writer to the strict binary32 gap bound.  Also
   instantiate the temporal scheduler and pointer-lineage projections;
   prove the terrain-dispatch and collision XYZ frames plus the real
-  platform-phase refinement; and eliminate or realize each of the five
-  remaining lineage cases. The official direct named writer/caller/address
+  platform-phase refinement; and eliminate or realize each of the four
+  remaining null-seed lineage cases. The official direct named writer/caller/address
   syntax closure, local JP store/load steps, and exact four-step
   `Surface.object -> temporary -> gMarioPlatform` fragment are complete; the
   linked reachability and preservation work in this item is not. See
@@ -299,8 +328,8 @@ These obligations currently block the clean-retail result.
   mutable landing descriptors, indirect callback/interaction retargeting,
   and unresolved external effects.  No concrete forged writer is known.
 
-- [ ] Execute ordinary clean entry to establish exact Mario raw/Graphics
-  memory equality, prove whole-program writer and action provenance with
+- [ ] Starting from `DefaultArea1StartBoundary` and its exact Mario
+  raw/Graphics memory equality, prove whole-program writer and action provenance with
   non-aliasing, refine the safe-depth relation to all live binary32 writes,
   and prove stock Area-1 automatic-dialog/reanchoring closure.  Until then
   the `>=960` installer is reduced, not eliminated.
@@ -315,8 +344,8 @@ These obligations currently block the clean-retail result.
   quicksand-jump store/clamp non-interleaving, and exclude forged timer
   `4/5`, mutable-descriptor, aliased, out-of-bounds, and external stores.
 
-- [ ] Execute the ordinary-entry postcondition in linked Clight, close
-  external frames and non-aliasing, prove complete live writer/action
+- [ ] Project the declared ordinary-entry postcondition into linked Clight,
+  close post-boundary external frames and non-aliasing, prove complete live writer/action
   provenance and binary32 sign preservation, and refine each cutscene
   reanchor plus its following sink.
 
@@ -397,6 +426,18 @@ These obligations materially strengthen the proof but are not the shortest route
 
 These are plausible supporting or alternative avenues. None currently has the
 concrete clean-retail predecessor needed to outrank the linked installer proof.
+
+### Castle-to-SSL Area 1 exploration
+
+- [ ] Separately construct or search for a clean zero-A prefix from the retail
+  OS/`thread5_game_loop` and castle painting path to the declared default SSL
+  Area 1 boundary (the exterior), at node `0x0A`.  This optional investigation
+  includes castle
+  routing/glitch discovery, `warp_level` execution, behavior lookup, entry
+  allocation, controller predecessor recovery, and—especially for JP—proof
+  that the retained predecessor `gMarioPlatform` is null on arrival.  It may
+  strengthen the theorem later, but it is not on the core linked-program or
+  installer-lineage compute path.
 
 ### Turning-Part-2 animation hypothesis
 

@@ -238,6 +238,61 @@ Proof.
     reflexivity.
 Qed.
 
+(** No chronology event manufactures the distinguished JP-inbound lineage
+    constructor.  A completed query replaces the lineage with a final-query
+    result (or null), a US clear replaces it with null, and a skipped query
+    only preserves the constructor it was given.  Consequently an explicitly
+    null default Area-1 seed eliminates the retained-inbound residual for an
+    arbitrary finite event chronology, without assuming anything about the
+    query owners selected later. *)
+Definition platform_lineage_is_not_jp_inbound
+    (lineage : PlatformPointerLineage) : Prop :=
+  forall node owner skipped,
+    lineage <> PlatformLineageJPInbound node owner skipped.
+
+Lemma platform_chronology_step_preserves_not_jp_inbound :
+  forall lineage event,
+    platform_lineage_is_not_jp_inbound lineage ->
+    platform_lineage_is_not_jp_inbound
+      (platform_chronology_step lineage event).
+Proof.
+  intros lineage [position [owner |] | |] Hlineage;
+    unfold platform_lineage_is_not_jp_inbound in *;
+    intros node inbound_owner skipped; cbn.
+  - discriminate.
+  - discriminate.
+  - discriminate.
+  - destruct lineage; cbn; try discriminate.
+    intro Hequal.
+    inversion Hequal; subst.
+    eapply Hlineage.
+    reflexivity.
+Qed.
+
+Lemma run_platform_chronology_preserves_not_jp_inbound :
+  forall events lineage,
+    platform_lineage_is_not_jp_inbound lineage ->
+    platform_lineage_is_not_jp_inbound
+      (run_platform_chronology lineage events).
+Proof.
+  induction events as [| event rest IH]; intros lineage Hlineage; cbn.
+  - exact Hlineage.
+  - apply IH.
+    now apply platform_chronology_step_preserves_not_jp_inbound.
+Qed.
+
+Theorem null_seed_chronology_cannot_produce_jp_inbound :
+  forall events node owner skipped,
+    run_platform_chronology PlatformLineageNull events <>
+      PlatformLineageJPInbound node owner skipped.
+Proof.
+  intros events.
+  apply run_platform_chronology_preserves_not_jp_inbound.
+  unfold platform_lineage_is_not_jp_inbound.
+  intros node owner skipped.
+  discriminate.
+Qed.
+
 (** A canonical modeled owner selected by a completed query cannot have used
     the same sample that is currently touching the fixed upper warp. *)
 Lemma canonical_stock_query_at_upper_warp_requires_different_sample :

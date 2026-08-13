@@ -610,12 +610,137 @@ Proof.
   repeat split; reflexivity.
 Qed.
 
+(** Match one of the three straight-line loads used to build the final
+    platform query:
+
+      object_temp := gMarioObject;
+      coordinate_temp := object_temp->rawData.asF32[raw_index].
+
+    Unlike a field-name occurrence check, this couples the global pointer,
+    receiver temporary, raw-data selector, array slot, and destination
+    temporary in one generated fragment. *)
+Definition is_global_raw_object_coordinate_load_s
+    (mario_object_global raw_data as_f32 coordinate_temp : ident)
+    (raw_index : Z) (body : statement) : bool :=
+  match body with
+  | Ssequence
+      (Sset object_temp (Evar found_global _))
+      (Sset found_coordinate_temp
+        (Ederef
+          (Ebinop Oadd
+            (Efield
+              (Efield
+                (Ederef (Etempvar source_object_temp _) _)
+                found_raw_data _)
+              found_as_f32 _)
+            offset _) _)) =>
+      Pos.eqb found_global mario_object_global &&
+      Pos.eqb source_object_temp object_temp &&
+      Pos.eqb found_raw_data raw_data &&
+      Pos.eqb found_as_f32 as_f32 &&
+      Pos.eqb found_coordinate_temp coordinate_temp &&
+      match expression_const_int_z offset with
+      | Some found_index => Z.eqb found_index raw_index
+      | None => false
+      end
+  | _ => false
+  end.
+
+Definition is_find_floor_from_coordinate_temps_s
+    (find_floor x_temp y_temp z_temp : ident) (body : statement) : bool :=
+  match body with
+  | Scall _ (Evar found_find_floor _)
+      [Etempvar found_x_temp _;
+       Etempvar found_y_temp _;
+       Etempvar found_z_temp _;
+       _] =>
+      Pos.eqb found_find_floor find_floor &&
+      Pos.eqb found_x_temp x_temp &&
+      Pos.eqb found_y_temp y_temp &&
+      Pos.eqb found_z_temp z_temp
+  | _ => false
+  end.
+
+(** Match the exact straight-line query prefix emitted by [clightgen].  The
+    three coordinate loads are contiguous and the very next effectful
+    statement is [find_floor(marioX, marioY, marioZ, ...)].  This establishes
+    query-time source dataflow only; it does not frame the raw Object cells to
+    the following frame's collision sample. *)
+Definition is_final_query_from_raw_mario_object_prefix_s
+    (mario_object_global raw_data as_f32 find_floor
+      x_temp y_temp z_temp : ident) (body : statement) : bool :=
+  match body with
+  | Ssequence x_load
+      (Ssequence y_load
+        (Ssequence z_load
+          (Ssequence
+            (Ssequence query _)
+            _))) =>
+      is_global_raw_object_coordinate_load_s
+        mario_object_global raw_data as_f32 x_temp 6 x_load &&
+      is_global_raw_object_coordinate_load_s
+        mario_object_global raw_data as_f32 y_temp 7 y_load &&
+      is_global_raw_object_coordinate_load_s
+        mario_object_global raw_data as_f32 z_temp 8 z_load &&
+      is_find_floor_from_coordinate_temps_s
+        find_floor x_temp y_temp z_temp query
+  | _ => false
+  end.
+
+Fixpoint contains_final_query_from_raw_mario_object_prefix_s
+    (mario_object_global raw_data as_f32 find_floor
+      x_temp y_temp z_temp : ident) (body : statement) : bool :=
+  is_final_query_from_raw_mario_object_prefix_s
+    mario_object_global raw_data as_f32 find_floor
+    x_temp y_temp z_temp body ||
+  match body with
+  | Ssequence first second | Sloop first second =>
+      contains_final_query_from_raw_mario_object_prefix_s
+        mario_object_global raw_data as_f32 find_floor
+        x_temp y_temp z_temp first ||
+      contains_final_query_from_raw_mario_object_prefix_s
+        mario_object_global raw_data as_f32 find_floor
+        x_temp y_temp z_temp second
+  | Sifthenelse _ yes no =>
+      contains_final_query_from_raw_mario_object_prefix_s
+        mario_object_global raw_data as_f32 find_floor
+        x_temp y_temp z_temp yes ||
+      contains_final_query_from_raw_mario_object_prefix_s
+        mario_object_global raw_data as_f32 find_floor
+        x_temp y_temp z_temp no
+  | Sswitch _ cases =>
+      contains_final_query_from_raw_mario_object_prefix_ls
+        mario_object_global raw_data as_f32 find_floor
+        x_temp y_temp z_temp cases
+  | Slabel _ nested =>
+      contains_final_query_from_raw_mario_object_prefix_s
+        mario_object_global raw_data as_f32 find_floor
+        x_temp y_temp z_temp nested
+  | _ => false
+  end
+with contains_final_query_from_raw_mario_object_prefix_ls
+    (mario_object_global raw_data as_f32 find_floor
+      x_temp y_temp z_temp : ident) (cases : labeled_statements) : bool :=
+  match cases with
+  | LSnil => false
+  | LScons _ body rest =>
+      contains_final_query_from_raw_mario_object_prefix_s
+        mario_object_global raw_data as_f32 find_floor
+        x_temp y_temp z_temp body ||
+      contains_final_query_from_raw_mario_object_prefix_ls
+        mario_object_global raw_data as_f32 find_floor
+        x_temp y_temp z_temp rest
+  end.
+
 (** [update_mario_platform] has one early return, guarded by a null Mario
     object.  Past that guard it calls [find_floor] once and contains exactly
     three assignments to [gMarioPlatform]: the away-from-floor case, the
-    object-owned-floor case, and its null alternative.  Lifting this source
-    receipt to “every non-null live call overwrites the global” requires the
-    ordinary Clight control-flow and memory-safety proof named at the end. *)
+    object-owned-floor case, and its null alternative.  The final two
+    conjuncts additionally pin the query arguments to the immediately loaded
+    raw Mario Object coordinates.  Lifting these source receipts to live
+    execution and preserving that Object sample to the next collision still
+    require the Clight control-flow, non-alias, and memory-frame proof named at
+    the end. *)
 Definition area1_final_query_overwrite_source_claim : Prop :=
   direct_callees_s
     (fn_body A1QUSPlatform.f_update_mario_platform) =
@@ -638,6 +763,16 @@ Definition area1_final_query_overwrite_source_claim : Prop :=
   statement_mentions_ident_s A1QUSPlatform._object
     (fn_body A1QUSPlatform.f_update_mario_platform) = true /\
   statement_mentions_ident_s A1QJPPlatform._object
+    (fn_body A1QJPPlatform.f_update_mario_platform) = true /\
+  contains_final_query_from_raw_mario_object_prefix_s
+    A1QUSPlatform._gMarioObject A1QUSPlatform._rawData
+    A1QUSPlatform._asF32 A1QUSPlatform._find_floor
+    A1QUSPlatform._marioX A1QUSPlatform._marioY A1QUSPlatform._marioZ
+    (fn_body A1QUSPlatform.f_update_mario_platform) = true /\
+  contains_final_query_from_raw_mario_object_prefix_s
+    A1QJPPlatform._gMarioObject A1QJPPlatform._rawData
+    A1QJPPlatform._asF32 A1QJPPlatform._find_floor
+    A1QJPPlatform._marioX A1QJPPlatform._marioY A1QJPPlatform._marioZ
     (fn_body A1QJPPlatform.f_update_mario_platform) = true.
 
 Theorem area1_final_query_overwrite_source_checked :

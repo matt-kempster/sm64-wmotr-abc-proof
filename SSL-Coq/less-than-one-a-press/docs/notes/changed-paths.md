@@ -931,23 +931,42 @@ make the remaining installer escapes explicit.  The following paths changed:
 The direct platform-pointer census is lifted to the official cleaned US/JP
 links, and the local JP `Surface.object` store plus apply-load fragments are
 checked in the generated AST; their individual data-bearing statements have
-Clight-step proofs under explicit premises. The five clean-retail lineage cases
-remain open; the new proofs close only the direct named internal syntax
-boundary and local store/load dataflow. The following paths changed:
+Clight-step proofs under explicit premises.  Once a supplied pre-apply
+projection uses the seed decoded from the explicit null SSL Area 1 run-start
+memory, the chronology excludes retained JP inbound lineage and leaves a
+four-case abstract interface; deriving its events from the run remains open.  Exact bilateral
+receipts also tie raw Mario Object coordinates to the final `find_floor` query
+and tie `gCurrentObject` to a `Surface.object` store followed later by a dynamic
+insertion using the same syntactic surface-temporary identifier, with
+static/dynamic flags distinguished.  These source receipts do not prove
+surface-temporary value preservation,
+live linked ownership, Object preservation, alias/external frames, or lifecycle
+projection. The following paths changed:
 
 - `SSL-Coq/README.md`
 - `SSL-Coq/less-than-one-a-press/Makefile`
 - `SSL-Coq/less-than-one-a-press/README.md`
 - `SSL-Coq/less-than-one-a-press/_CoqProject`
 - `SSL-Coq/less-than-one-a-press/docs/checklist.md`
+- `SSL-Coq/less-than-one-a-press/docs/checklist-completed.md`
 - `SSL-Coq/less-than-one-a-press/docs/claim.md`
 - `SSL-Coq/less-than-one-a-press/docs/goal.md`
 - `SSL-Coq/less-than-one-a-press/docs/notes/changed-paths.md`
 - `SSL-Coq/less-than-one-a-press/docs/notes/linked-platform-lineage.md` (new)
+- `SSL-Coq/less-than-one-a-press/docs/notes/route-search-state-first.md`
 - `SSL-Coq/less-than-one-a-press/human-readable-proof.md`
 - `SSL-Coq/less-than-one-a-press/notes/source-map.md`
 - `SSL-Coq/less-than-one-a-press/proofs/JPLinkedPlatformGlobal.v` (new)
 - `SSL-Coq/less-than-one-a-press/proofs/LinkedPlatformLineageSyntax.v` (new)
+- `SSL-Coq/less-than-one-a-press/proofs/Area1QueryScheduleClosure.v`
+- `SSL-Coq/less-than-one-a-press/proofs/Area1SurfaceOwnerSyntax.v` (new)
+- `SSL-Coq/less-than-one-a-press/proofs/DefaultArea1StartBoundary.v` (new)
+- `SSL-Coq/less-than-one-a-press/proofs/DefaultArea1StartChronology.v` (new)
+- `SSL-Coq/less-than-one-a-press/proofs/PlatformUpdateSourceReceipt.v` (new)
+- `SSL-Coq/less-than-one-a-press/proofs/USPlatformUpdateRepairReceipt.v` (new)
+- `SSL-Coq/less-than-one-a-press/proofs/JPPlatformUpdateCleanedReceipt.v` (new)
+- `SSL-Coq/less-than-one-a-press/proofs/SelectedPlatformUpdateBodyResolution.v` (new)
+- `SSL-Coq/less-than-one-a-press/proofs/StateFirstPlatformChronology.v`
 
 ## Seven-step linked gap-closure continuation
 

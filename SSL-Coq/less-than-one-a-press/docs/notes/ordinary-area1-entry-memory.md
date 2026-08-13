@@ -1,18 +1,19 @@
-# Ordinary SSL Area-1 entry memory
+# Ordinary SSL Area 1 entry memory
 
-This note isolates the ordinary stock entry into Shifting Sand Land Area 1.
-It is deliberately narrower than a claim about all clean reachability.  The
-purpose is to identify the exact memory state from which the Graphics/Object
-gap audit should begin, and to state honestly what still has to be executed in
-linked Clight.
+This note isolates the default spawn in **SSL Area 1 (the exterior)**.
+
+The core linked gameplay proof begins at `DefaultArea1StartBoundary`, after
+the node-`0x0A` spin-airborne spawn has established its stated memory.  This is
+an assumed run-start boundary, not a theorem that the OS, castle, painting, or
+level-loading execution reaches it.
 
 The generated files and kernel-checked receipts use the project's pinned
 decomp revision `9921382a68bb0c865e5e45eb594d9c64db59b1af`, with
 `VERSION_US` and `VERSION_JP` translated separately.
 
-## The ordinary entry route
+## SSL Area 1 (the exterior)
 
-The stock Area-1 `WARP_NODE_0A` object is generated from this LevelScript
+The stock exterior `WARP_NODE_0A` object is generated from this LevelScript
 payload:
 
 | Property | Value |
@@ -70,6 +71,11 @@ The concrete postcondition in `proofs/OrdinaryArea1EntryMemory.v` records:
 - the entry warp's `bhvSpinAirborneWarp` behavior pointer;
 - no current or delayed warp request after initialization; and
 - the live controller `buttonDown` and `buttonPressed` sample.
+
+`DefaultArea1StartBoundary` fixes that postcondition at the exact default
+coordinates `(653,1038,6566)`, selects the US/JP linked program and symbol
+binding, carries coherent previous/current controller masks with no A edge,
+and additionally requires the global `gMarioPlatform` load to be null.
 
 Every block in this postcondition is tied to a named symbol in the linked
 global environment.  The Mario and entry-warp objects are also required to be
@@ -138,6 +144,12 @@ This distinction is essential for the stale-platform investigation.  A proof
 that silently promotes the cold-start initializer to a JP level-entry fact
 would incorrectly delete the spawning-displacement candidate.
 
+The declared SSL Area 1 (the exterior) boundary therefore states nullness
+explicitly for JP as well as US.  For JP this is a scope assumption, not
+something derived from ordinary spawn code.  It excludes a platform pointer
+inherited from the omitted castle prefix while leaving every post-boundary
+installer under study.
+
 ## Object-pool status
 
 The generated globals are exactly:
@@ -195,33 +207,39 @@ is involved.
 The theorem `ordinary_area1_entry_checked_boundary_holds` packages only those
 checked facts.  It is not a retail reachability theorem.
 
+`proofs/DefaultArea1StartBoundary.v` packages the selected program, exact
+exterior spawn memory, coherent no-A controller history, and explicit global-
+platform nullness.  It intentionally has no constructor theorem claiming that
+the selected retail program reaches this boundary.
+
 Separately, `jp_official_area1_entry_symbol_structure_closed` now packages the
 official-JP twelve-symbol address bundle and the limited structural separation
 facts above.  It does not inhabit the live-memory postcondition.
 
 ## Remaining obligations
 
-The decisive work still open is:
+The decisive in-scope work still open is:
 
-1. execute the actual linked US and JP `warp_level` / `init_mario_after_warp` /
-   `init_mario` sequence from a valid ordinary predecessor;
-2. connect castle painting selection and the level script to the change-level,
-   SSL, Area-1, node-`0x0A` request in
-   `CastlePaintingToSSLArea1RoutingObligation`;
-3. connect the live warp behavior pointer through `virtual_to_segmented` to
-   behavior-table index 11;
-4. prove the floor/water, graph, camera, save, audio, allocator, and other
-   still-external calls preserve the memory locations used by the
-   postcondition, as isolated by
-   `OrdinaryArea1EntryExternalFrameObligation`;
-5. prove the complete object-pool/list ownership and alias invariant, beyond
-   the current pointer-closure definition, and discharge the explicit
-   per-access in-bounds obligation;
-6. prove that the controller sample comes from the coherent no-A poll history;
-7. for JP, derive the actual predecessor `gMarioPlatform` value and its
-   slot/epoch provenance instead of assuming null; and
-8. compose this entry theorem with per-frame writer coverage.  Entry
-   synchronization alone does not show that the gap remains below 960.
+1. connect the boundary fields to the concrete selected-program observation
+   projection without treating boundary existence as a theorem;
+2. prove the floor/water, graph, camera, save, audio, allocator, and other
+   post-boundary external calls preserve or explicitly classify the protected
+   memory locations;
+3. prove complete object-pool/list ownership and alias invariants, beyond the
+   current pointer-closure definition, and discharge the explicit per-access
+   in-bounds obligation;
+4. preserve the coherent controller sample through the first reported frame;
+5. prove the linked writer, terrain-dispatch, live-owner, and lifecycle
+   projections needed by installer lineage; and
+6. compose the boundary with per-frame writer coverage.  Entry synchronization
+   alone does not show that the gap remains below 960.
+
+Separately and at low priority, one may execute the actual linked US/JP
+`thread5_game_loop`/castle/`warp_level`/`init_mario_after_warp` route, prove
+behavior lookup and entry allocation, recover its controller predecessor, and
+show that JP's retained predecessor `gMarioPlatform` is null.  That work would
+establish reachability of the declared boundary or reveal a castle glitch, but
+it is not required by the currently scoped theorem.
 
 The current result therefore narrows the retail gap-installer problem but does
 not prove that clean retail JP can or cannot install the required payload.

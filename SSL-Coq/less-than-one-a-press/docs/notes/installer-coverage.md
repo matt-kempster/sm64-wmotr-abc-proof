@@ -8,7 +8,7 @@ linked-Clight projection.
 | Installer family | Checked result | What remains |
 |---|---|---|
 | Ink non-null graphical retry | The timer-131 State sample is rejected, the mid-face Graphics sample is accepted, and the conditional JP fixture records the same top pointer at timers 493, 498, and 513, with the top inactive/free at 513 and no A input. | Derive the required three-view gap and both floor-query results from a clean linked retail execution. |
-| State-first selection | Impossible for `StockStateFirstInstallerAttempt`; the newer temporal model also permits active-frame movement and arbitrary exact frozen carries while preserving the upper-warp/null invariant.  Independently, an injected nonlocal State-first boundary succeeds in JP and continues through the stale-slot first apply to the upper trigger; this validates the outcome, not its installer. | Instantiate the temporal and pointer-lineage projections from linked memory, or realize one of the five remaining lineage escapes. |
+| State-first selection | Impossible for `StockStateFirstInstallerAttempt`; the newer temporal model also permits active-frame movement and arbitrary exact frozen carries while preserving the upper-warp/null invariant.  Independently, an injected nonlocal State-first boundary succeeds in JP and continues through the stale-slot first apply to the upper trigger; this validates the outcome, not its installer. | Instantiate the temporal and pointer-lineage projections from linked memory, or realize one of the four remaining completed-query lineage escapes.  Retained JP inbound lineage drops from the abstract interface only when a supplied pre-apply projection uses the seed decoded from the explicit null SSL Area 1 start; deriving that projection from the linked run remains open. |
 | Physical co-location or cloning | A fixed upper-warp sample cannot simultaneously be a stock pyramid-top floor candidate.  The generated warp native body has no direct position writer, and a separate top timer `0..150` binary32 mirror remains in its small X/Y envelope with fixed Z. | The live Clight-to-mirror and memory-frame proof is open.  Aliased or external relocation, changed identity/epoch, and a collision-preserving clone also remain open. |
 | Post-commit transport | Impossible if the eventual stock final-query sample remains in the fixed upper-warp interaction region. | A writer that moves the final query away from the cached warp sample and onto a dynamic owner remains open. |
 | Another dynamic owner | Every one of the fourteen non-top owners in the finite stock Area-1 inventory is horizontally disjoint from the fixed upper warp. | Prove live-list/inventory projection; separately analyze relocated, cloned, or non-stock owners. |
@@ -38,8 +38,9 @@ The temporal proof makes those lineage cases explicit while retaining the
 relevant samples and owner observations.  A projected
 non-null pre-collision upper-warp apply must come from a different
 query/current sample, canonical identity outside modeled geometry,
-noncanonical slot or allocation epoch, an unclassified owner, or a retained
-JP inbound pointer transported away from its inbound node.  The bilateral
+noncanonical slot or allocation epoch, an unclassified owner, or—outside the
+declared null-start scope—a retained JP inbound pointer transported away from
+its inbound node.  The bilateral
 pre-collision writer census additionally identifies an abstract State-only
 platform phase.  Assuming separate linked terrain and collision frames and a
 refinement of the real platform branch to that phase, a synchronized

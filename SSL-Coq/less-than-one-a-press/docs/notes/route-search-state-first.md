@@ -186,7 +186,7 @@ the informal statement that the rest of Area 2 is traversable.
 1. **Nonlocal State-first plus JP stale slot.**  Its injected engine outcome
    and complete retained-slot continuation are observed.  It needs a clean
    pre-collision 3D State writer and a non-null pre-apply owner that realizes
-   one of the five temporal lineage escapes.
+   one of the four post-boundary temporal lineage escapes.
 2. **Ink Graphics retry plus JP stale slot.**  Its destination continuation is
    observed.  It needs a reachable timer-131 Object/Graphics separation and
    live top-owned retry.

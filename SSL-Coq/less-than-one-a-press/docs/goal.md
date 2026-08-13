@@ -14,6 +14,13 @@ still require a concrete C-memory projection.  The current endpoint-only
 certificate accepts arbitrary motion and synthetic immediate collection from
 clean abstract entries, so it cannot establish first-cut exhaustiveness.
 
+The linked-program gameplay scope begins at **SSL Area 1 (the exterior)**.  The
+formal `DefaultArea1StartBoundary` fixes node
+`0x0A`, coordinates `(653,1038,6566)`, ordinary-entry memory, a coherent no-A
+controller history, and a null global `gMarioPlatform` for US and JP.  It is a
+declared initial condition, not a castle-to-SSL Area 1 reachability theorem.
+The omitted prefix and possible castle glitches are a separate task.
+
 The current project now generates 38 translation units for each target
 version (76 Clight modules), including all seven Mario action units and
 movement code,
@@ -66,14 +73,14 @@ The narrower selected-JP audit is now checked for exact program identity,
 selected-program syntax, and all five `jp_retail_state_global_identifiers`.
 Its capstone reduces the official-JP selected-target refinement obligation to
 the still-open generic target refinement obligation; concrete
-observer/chronology, entry-prefix, and selected-to-retail semantics are not
+observer/chronology, boundary-to-entry prefixes, and selected-to-retail semantics are not
 supplied.  The corresponding repaired-US audit is now also checked,
 conditionally on `VersionUS` and the exact successful repaired program:
 `USSelectedTargetAudit.v` packages no-direct-`Sbuiltin`, supported-external,
 `Evar`-name, and `Init_addrof`-name syntax results with `find_symbol`
 existence for the five core identifiers.  It does not establish repaired-US
 initialization, memory shape/content/block correspondence,
-source-to-selected viewport-repair execution lockstep, runtime handoff,
+source-to-selected viewport-repair execution lockstep, boundary-start
 routing/prefix/chronology, or selected-to-retail semantics.  A generic
 selector-exactness theorem, data-bearing chronology composition, and a
 reachable callsite-sensitive frame-or-writer interface are proved, but their
@@ -84,7 +91,8 @@ open.  The chronology interface fixes one observer, pins the exact controller,
 player-one pointer, Mario controller pointer, poll body, and Mario consumer,
 authenticates the boundary input, and distinguishes gameplay from poll-only
 administrative frames.  The concrete observer, projection chronologies, and
-two task-entry prefixes remain uninhabited.
+two SSL Area 1-to-clean-entry prefixes remain uninhabited.  The task-
+entry bridge is retained only for the separate upstream reachability problem.
 
 The newest Ink tranche proves exact US/JP layouts and a conditional
 post-entry `Mem.load` projection, corrects the live controller-pressed and
@@ -206,9 +214,9 @@ Twelve focused receipts plus
 `Area1EntryAddresses` at slots `0`/`1`, all twelve entry symbol bindings,
 valid-slot arithmetic, and limited core-storage/pointer-cell separation.  The
 repaired-US selected-target syntax/name audit is separately checked on the
-actual repaired program, but the OS handoff, repaired-US source/refinement
-execution lockstep, live memory contents and sizes, initializer values, block
-correspondence, and all live routing/prefix/chronology remain open.
+actual repaired program.  The OS handoff is outside the scoped gameplay proof;
+repaired-US source/refinement execution lockstep, boundary projection, block
+correspondence, and post-boundary routing/prefix/chronology remain open.
 `JPQuicksandDepth.v` couples `act_crouch_slide`'s `INPUT_A_PRESSED` test to the
 exact long-jump constructor and proves nonnegative depth for a source-shaped
 relation that excludes the late long-jump writer.
@@ -218,18 +226,20 @@ transition kernel that first reaching either long-jump action needs an A edge
 or a forged-state install.  Linked clean-step classification and exclusion of
 the seven forgery causes remain open.
 
-`OrdinaryArea1EntryMemory.v` checks the stock Area-1 node `0x0A`
-spin-airborne entry, symbol/layout and distinct-slot facts, and consequences of
-a synchronized post-entry memory predicate.  A conditional bridge composes
+`OrdinaryArea1EntryMemory.v` checks the stock node `0x0A` entry in SSL Area 1
+(the exterior), plus symbol/layout and distinct-slot facts and consequences of
+a synchronized post-entry memory predicate.
+`DefaultArea1StartBoundary` assumes this exact memory, coherent no-A history,
+and a null platform global.  A separate conditional upstream bridge composes
 supplied castle and `warp_level` prefixes and the no-A return boundary, but now
 also requires the selected program to resolve `warp_level` to its expected
 internal body.  `JPWarpLevelEntryResolution.v` closes that resolution premise
 for the official cleaned JP program, while `USWarpLevelEntryResolution.v`
 closes the exact lookup for the selected viewport-repaired US program.  Actual
-entry execution, castle routing, behavior lookup, controller predecessor,
-external frames, live memory
-contents and allocation/layout sizes, initializer values, postcondition,
-pool/list graph, and remaining US entry bindings remain obligations.  The twelve
+entry execution, castle routing, behavior lookup, and controller predecessor
+remain optional upstream reachability obligations.  Boundary projection,
+post-boundary external frames, allocation/layout interpretation, pool/list
+graph, and remaining US entry bindings remain core obligations.  The twelve
 official-JP bindings and their limited block-separation facts are now closed
 structurally, but do not inhabit any of those execution premises.
 `JPZeroAReachability.v` defines a
@@ -492,11 +502,14 @@ direct named internal writer as an explanation. It does not prove aliases or
 external calls harmless, execute the floor-query branch, classify the live
 owner, specialize the semantic lemmas to the concrete official global
 environment and symbol blocks, bind a slot/epoch, or
-frame the platform cell until a later apply.
-Accordingly all five linked lineage cases remain open; retained JP inbound
-lineage is conditionally supported, rather than excluded, when that cell is
-assumed preserved. The generated-source fragments are not yet proved to be the
-bodies resolved by that official global environment.
+frame the platform cell until a later apply.  Given a supplied pre-apply
+projection whose seed is required to decode from the declared null exterior
+run-start memory, the chronology excludes retained JP inbound lineage and
+leaves a four-case abstract interface.  Deriving the projection's events from
+the linked run remains open.  Post-boundary JP store/load still supports a
+conditional stale pointer once a live query installs one.  The generated-source
+fragments are not yet proved to be the bodies resolved by that official global
+environment.
 
 The generated stock upper-warp callback has no direct position writer, and a
 finite binary32

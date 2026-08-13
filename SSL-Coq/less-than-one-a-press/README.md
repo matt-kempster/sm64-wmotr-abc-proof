@@ -23,6 +23,22 @@ first-crossing interface.  The
 historical payload-free `FirstTargetCutClassificationObligation` is also
 unproved.
 
+### Linked gameplay start boundary
+
+Core gameplay starts at **SSL Area 1 (the exterior)**, at node `0x0A` and
+spawn `(653,1038,6566)`, from the assumed
+`DefaultArea1StartBoundary`, with exact ordinary-entry memory, coherent no-A
+controller history, and `gMarioPlatform = NULL` in both versions.  This does
+not prove that an OS/castle prefix reaches the boundary; the optional
+castle-to-SSL Area 1 route and possible castle glitches are tracked separately.
+
+Once a supplied pre-apply projection uses the null seed decoded from this
+run-start memory, the chronology cannot finish in the retained-JP-inbound case;
+the abstract residual interface then has four cases.  Deriving that projection
+from the linked run, plus writer/non-alias/external-frame, terrain-dispatch,
+live-owner, and lifecycle projections, remains open, so the installer-lineage
+item is not complete.
+
 The project generates 38 Clight translation units for each target version.
 CompCert 3.15's unmodified `link_list` is proved to fail on both original
 complete lists: the first right-associated AST-program failure is the
@@ -133,7 +149,7 @@ theorems lift external `Callstate` steps and direct `Sbuiltin` steps after
   symbols; and `USSelectedTargetAudit.v` closes
   `SelectedTargetAuditTransportObligation` under exact US version/program
   hypotheses.  Repaired-US initialization, source/refinement and viewport-repair
-  execution lockstep, runtime handoff, routing/prefix/chronology, and
+  execution lockstep, boundary-start chronology, and
   selected-to-retail semantics remain open.
 
 `ClightProjectionChronology.v` adds data-bearing frame chunks under one fixed
@@ -147,9 +163,10 @@ frames additionally bind Mario's controller at the exact consumer boundary;
 the administrative branch instead carries an independently refined event and
 does not claim Mario consumed the sample.  Supplied
 nonempty prefixes from the concrete `thread5_game_loop` task boundary likewise
-yield clean-entry nonvacuity.  These are composition bridges.  No concrete
-observer, projection, chronology, or lower/upper task-entry prefix has been
-constructed.
+yield clean-entry nonvacuity.  That older composition bridge remains useful to
+the separate upstream route.  In the scoped proof, no concrete observer,
+projection, chronology, or lower/upper prefix from
+`DefaultArea1StartBoundary` has been constructed.
 
 The ordinary Area-1 boundary now has a checked conditional prefix bridge: a
 supplied entry postcondition plus no-A sample establishes the live controller
@@ -163,8 +180,10 @@ viewport-repaired US program.  The official-JP corollary in
 `Area1EntryZeroAPrefix.v` discharges that lookup
 premise.  `JPArea1EntrySymbolResolution.v` separately supplies the complete
 twelve-symbol official-JP structural binding and its limited separation facts.
-Castle routing, live `warp_level` execution, memory contents, the entry
-postcondition, and the remaining US entry-symbol bindings remain open.
+Castle routing and live `warp_level` execution remain open only for the
+separate upstream reachability investigation.  The core proof assumes the
+entry memory/postcondition through `DefaultArea1StartBoundary`; its concrete
+observer projection and the remaining US entry-symbol bindings remain open.
 
 The strongest current counterexample candidate is the JP timer-131 stale-top
 route.  Exact CompCert binary32 arithmetic rejects the old home-pose Graphics
@@ -242,8 +261,8 @@ witness.  Twelve per-unit alignment receipts are aggregated structurally,
   applied.  `JPThread5EntryResolution.v` and
   `JPSelectedRuntimeTaskStart.v` resolve the exact generated task body, execute
   its null-argument `function_entry2` step, and close the JP
-  source-to-selected identity lockstep.  The OS runtime handoff and live Area-1
-  prefix remain open.  `JPWarpLevelEntryResolution.v` additionally resolves
+  source-to-selected identity lockstep.  The OS runtime handoff remains outside
+  the scoped gameplay proof.  `JPWarpLevelEntryResolution.v` additionally resolves
   the exact `warp_level` symbol/body in the official cleaned JP environment;
   it proves neither castle routing nor execution of that body.  The split
   `USWarpLevel*Receipt.v` chain and `USWarpLevelEntryResolution.v` establish the
@@ -373,15 +392,19 @@ constructed official cleaned US and JP `prog_defs`. Every visible direct
 `gMarioPlatform` assignment and address-taking site is accounted for, and any
 retained internal direct updater caller must be named `update_objects`. On JP,
 the exact dataflow fragments in the generated updater/apply source bodies are
-checked. CompCert small steps execute the individual `Surface.object`
+checked. Exact selected-target body resolution pins the bilateral raw-Object
+query receipt to the actual selected `update_mario_platform` bodies. CompCert
+small steps execute the individual `Surface.object`
 temporary, `gMarioPlatform` store, and apply-load statements under explicit
-premises in an abstract global environment. Concrete
-official-globalenv/symbol/block resolution remains open. This rules out an
+premises in an abstract global environment. This rules out an
 overlooked direct named internal writer; it does not rule out an aliased store
 or external effect. The floor-query branch, live owner and
-slot/epoch identity, source-fragment-to-official-body connection, intervening
-cell frame, and query/current-sample relation remain open. Consequently none
-of the five clean-retail lineage cases has yet been eliminated. See
+slot/epoch identity, intervening
+cell frame, and query/current-sample relation remain open.  For any supplied
+pre-apply projection whose seed is the null value decoded from the SSL Area 1
+run-start memory, the chronology excludes retained JP inbound lineage and
+leaves a four-case abstract residual interface.  Constructing the projection's
+events from the linked run remains open. See
 [`docs/notes/linked-platform-lineage.md`](docs/notes/linked-platform-lineage.md).
 
 `PlatformPointerProvenance.v` computes the complete US/JP direct
@@ -1541,7 +1564,7 @@ audit, and symbol existence for all five `jp_retail_state_global_identifiers`.
 Its `jp_selected_target_refinement_from_target_clight` capstone reduces the
 official-JP `SelectedTargetClightRefinementObligation` to the still-open generic
 `TargetClightRefinementObligation`; it does not construct the observer,
-chronology, entry prefixes, or selected-to-retail semantics.  For projections
+chronology, boundary-to-entry prefixes, or selected-to-retail semantics.  For projections
 fixed to `VersionUS` and `us_viewport_repaired_program`,
 `USSelectedTargetAudit.v` now closes the separate
 `SelectedTargetAuditTransportObligation`: the actual repaired program has no
@@ -1549,7 +1572,7 @@ direct `Sbuiltin`, uses only the supported external constructors, resolves
 internal-body `Evar` and initializer `Init_addrof` names, and has a
 `find_symbol` witness for each of the five core identifiers.  This supplies no
 initialization or memory shape/content/block correspondence, source-to-selected
-viewport-repair execution lockstep, runtime handoff, route, prefix, chronology,
+viewport-repair execution lockstep, boundary-start route/prefix/chronology,
 or selected-to-retail semantics.  None of the open semantic witnesses, either
 Layer B premise, or a concrete US/JP projection is proved.  Therefore neither
 conditional theorem is the ultimate target theorem.
@@ -1677,7 +1700,9 @@ clightgen -normalize -nostdinc -fstruct-passing \
   observations, and abstract states are uninterpreted functions.  The checked
   chronology bridge only shows how one fixed observer, concrete authenticated
   gameplay/administrative frames plus silent no-poll chunks, and actual
-  nonempty task-entry prefixes would discharge these obligations.  The
+  nonempty prefixes would discharge these obligations.  Scoped prefixes start
+  at `DefaultArea1StartBoundary`; task-entry prefixes belong to the optional
+  upstream reachability extension.  The
   interface pins the real controller/pointer cells and exact poll/consumer
   bodies; constructing the observer and classifying the live runs remain open.
 - All three Layer B reachability propositions are open.  They are phrased over

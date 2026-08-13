@@ -4,6 +4,10 @@ The repository's pre-existing proof root is named `SSL-Coq` with this exact
 casing.  The reorganization keeps that path rather than creating a parallel
 `ssl-coq` tree.
 
+The current linked-gameplay scope begins at **SSL Area 1 (the exterior)**.
+It assumes `DefaultArea1StartBoundary` at that exterior spawn and tracks the
+optional castle-to-SSL Area 1 route separately.
+
 `less-than-one-a-press/` is the current proof project.  It targets the US and
 Japanese versions of Super Mario 64 at decomp revision
 `9921382a68bb0c865e5e45eb594d9c64db59b1af` and uses CompCert Clight generated
@@ -67,7 +71,7 @@ task-start witness and, because its selected source and target are the same
   `find_symbol` existence for the five core identifiers.  Those five checks do
   not establish memory shape, contents, or block correspondence.  The repaired-US
   initialization/start, source-to-selected viewport-repair execution lockstep,
-  OS handoff, routing/prefix/chronology, and selected-to-retail semantics remain
+  boundary-start routing/prefix/chronology, and selected-to-retail semantics remain
   open.  Replacing only the composite table is not a sound refinement.
 
 `ClightLinkExecution.v` now specializes definition provenance to both actual
@@ -103,10 +107,13 @@ composition are checked.  The latter pins `gControllers[0]`, the player-one
 and Mario controller pointers, and the exact selected poll/consumer bodies; it
 authenticates a boundary input and supports gameplay and poll-only
 administrative frames.  The concrete observer, chronologies, US/JP maps, and
-two task-entry prefixes are not inhabited.  No arbitrary writable frame follows from
+two prefixes from `DefaultArea1StartBoundary` are not inhabited.  Task-entry
+prefixes are relevant only to the separate upstream extension.  No arbitrary writable frame follows from
 CompCert's generic external-call theorem.
 
-The conditional ordinary Area-1 prefix bridge now also requires the selected
+The scoped gameplay proof assumes the exact ordinary exterior memory through
+`DefaultArea1StartBoundary`.  The conditional ordinary Area-1 prefix bridge
+remains as an upstream extension and requires the selected
 program to resolve `warp_level` to the expected internal body before composing
 the supplied route and entry executions.  `JPWarpLevelEntryResolution.v`
 closes that exact resolution premise for the official cleaned JP program, and
@@ -116,8 +123,9 @@ Twelve focused receipts plus `JPArea1EntrySymbolResolution.v` now construct the
 official-JP `Area1EntryAddresses` witness at slots `0`/`1`, all twelve entry
 bindings, valid-slot arithmetic, and limited global-block separation.  This
 does not establish live memory contents, allocation/layout sizes, initializer
-values, castle routing, reachability, live execution, the entry postcondition,
-or the remaining US entry-symbol bindings.
+values, boundary projection, post-boundary routing, or the remaining US entry-
+symbol bindings.  Castle routing and live entry execution remain separate
+upstream reachability work.
 
 `old-proofs/` contains archived proof attempts.  They are retained for
 historical context, reusable lemmas, and future reference; they are not part of
@@ -156,8 +164,9 @@ selected-target refinement obligation to the still-open generic
 resolves in both the official cleaned JP environment and the selected
   viewport-repaired US environment.  The repaired-US selected-target syntax and
   five-core-symbol-existence audit is also checked conditionally on that exact
-  selected program.  The OS handoff, castle routing, `warp_level` execution,
-  later Area-1 prefix, concrete observer/chronology, selected-to-retail semantics,
+  selected program.  The OS handoff, castle routing, and `warp_level` execution
+  are outside the scoped gameplay prefix.  Boundary projection, later Area-1
+  routing, concrete observer/chronology, selected-to-retail semantics,
   repaired-US initialization/source-to-selected execution refinement, memory
   shape/content/block correspondence, and remaining US entry bindings stay open.
 An actual `Clight.step2` zero-edge relation reads the live `buttonPressed`
@@ -369,16 +378,20 @@ The next linked-Clight layer proves that, in the official cleaned US/JP
 definition lists, the US clear name is the only additional recognized direct
 platform-global writer, no retained internal body directly takes the cell's
 address, and any retained internal direct updater caller must be named
-`update_objects`. The JP proof separately checks exact dataflow fragments in
-the generated updater/apply source bodies and executes the individual
+`update_objects`. Exact selected-target body resolution now pins the bilateral
+raw-Object query receipt to the actual selected `update_mario_platform` bodies.
+The JP proof separately checks exact dataflow fragments in the generated
+updater/apply source bodies and executes the individual
 `Surface.object` temporary, `gMarioPlatform` store, and later apply-load
 statements
 under explicit expression/store/load premises and an abstract global
-environment. Concrete official-globalenv/symbol/block resolution, the source-fragment-to-official-body
-connection, fragment reachability, live floor ownership, alias/external
+environment. Concrete fragment reachability, live floor ownership, alias/external
 frames, slot/epoch identity, and preservation until a later apply are still
-unproved. None of the five clean-retail lineage cases is therefore closed by
-this layer.
+unproved.  The explicit null SSL Area 1 start removes the retained-JP-inbound
+case from the abstract residual interface once a supplied pre-apply projection
+uses the seed decoded from that run-start memory.  Deriving the projection's
+events, collision sample, owner, and endpoint from the linked run remains open,
+as do the other four lineage cases.
 
 ## Build
 

@@ -5,6 +5,9 @@ All rows are translated twice, once with `VERSION_US` and once with
 `9921382a68bb0c865e5e45eb594d9c64db59b1af`.  There are 38 translation
 units per version and therefore 76 generated Clight modules.
 
+The scoped gameplay start is **SSL Area 1 (the exterior)**.  Source and proof
+identifiers use `Area1` consistently.
+
 Each row is a whole translation unit: every function/global retained by the
 preprocessor is translated, not only the functions named below.  The
 "Inspected boundary" column identifies why the unit is imported and which
@@ -44,10 +47,10 @@ base-insensitive and direct-callee/literal checks are path-insensitive.
 | `data/behavior_data.c` | `*_behavior_data.v` | star, hidden-controller and hidden-trigger behavior bindings; pyramid-top loop/collision-loader initializer references; Goomba init/update and Spindel init/loop/collision-loader callback subsequences |
 | `src/game/area.c` | `*_area.v` | direct `unload_area`/`load_area` call order in `change_area`; lifecycle execution is pending |
 | `src/game/level_update.c` | `*_level_update.v` | direct `change_area` occurrence in `check_instant_warp`, game-over reload call, airborne entry-action constant/call source shape, guarded direct-assignment first-writer shape for `sDelayedWarpOp`, normal-update/delayed-object-warp ordering, absence of a direct latch assignment in `initiate_delayed_warp`, and the area-entry `init_mario`/initial-cap call shapes needed to exclude retained Wing Cap |
-| `src/game/platform_displacement.c` | `*_platform_displacement.v` | `gMarioPlatform`/validation-field identifier occurrences, State position writes, object-position reads for final selection, X/Z-but-not-Y velocity slot reads, direct displacement/floor calls, and global assignment shape; the official-cleaned-slice direct writer/address/caller upper bounds are checked, while JP separately has exact updater/apply source receipts and local `Surface.object`-store/apply-load Clight steps; live `find_floor` selection, alias/external frames, slot/epoch provenance, and preservation between fragments remain pending |
+| `src/game/platform_displacement.c` | `*_platform_displacement.v` | `gMarioPlatform`/validation-field identifier occurrences, State position writes, and an exact bilateral query-time chain from `gMarioObject.rawData.asF32[6..8]` through X/Y/Z temporaries to `find_floor`; the official-cleaned-slice direct writer/address/caller bounds are checked, while JP separately has local `Surface.object`-store/apply-load Clight steps; live query-to-collision preservation, alias/external frames, slot/epoch provenance, and preservation between fragments remain pending |
 | `src/engine/math_util.c` | `*_math_util.v` | full `mtxf_rotate_zxy_and_translate` body and `gSineTable` initializer; the linked memory execution that constructs the platform matrix remains pending |
 | `src/engine/surface_collision.c` | `*_surface_collision.v` | `find_floor` binary32-to-signed-16 cast shape and 78-unit floor buffer, plus the floor/surface query implementation used by Mario stepping and platform recomputation; ordinary-motion receipts check the wall list's strict `y > upperY` rejection; Ink receipts check the X/Y/Z result-pointer writes, absence of a wall-list Y-field mutation, and absence of direct Graphics references; the concrete CompCert cast result and matching authenticated US/JP retail instruction fragment are checked, while linked execution, pointer disjointness, caller closure, and actual surface-selection refinements remain pending |
-| `src/engine/surface_load.c` | `*_surface_load.v` | surface allocation/insertion, object-vertex transformation, object-surface loading, normal construction, and collision-model loading; exact ordinary-motion receipts check `read_surface_data`'s `upperY = maxY + 5`; Goomba/Spindel receipts check full-float distance/collision-distance reads, transform/load calls, float-matrix helpers, and explicit binary32-to-s16 vertex narrowing; live object/surface memory execution, compiled out-of-range cast behavior, and list ownership/order remain pending |
+| `src/engine/surface_load.c` | `*_surface_load.v` | surface allocation/insertion, object-vertex transformation, object-surface loading, normal construction, and collision-model loading; an exact bilateral receipt orders `gCurrentObject -> Surface.object`, followed later by `add_surface(surface, 1)` with the same syntactic surface-temporary identifier, and checks that static loaders instead use flag `0`; temporary-value preservation, live call execution, canonical owner identity, list integrity/order, and slot epoch remain pending |
 | `src/game/macro_special_objects.c` | `*_macro_special_objects.v` | spawn call and respawn-field assignment occurrences; persistence semantics are pending |
 | `levels/ssl/script.c` | `*_ssl_script.v` | raw initializer tuples for lower/upper airborne entry objects, the area-2 static star, hidden controller, and instant-warp declarations; exact packed records for the Area-1 `0x0A`, `0x1E`, `0x1F`, and `0x20` warp objects, all five local warp-node routes, and the stock pyramid top, with checked coordinate/behavior-byte arithmetic |
 | `levels/ssl/areas/1/macro.inc.c` via `inputs/ssl_area1_macro.c` | `*_ssl_area1_macro.v` | exact Area-1 wing-cap/exclamation, breakable-box, message-panel, cannon, and shell-box records used by the fragment and finite stock-owner audits; generic top-yaw/dirt-triangle/cartoon-triangle schedule lineage is no longer a Layer-B obligation, while linked-memory projection remains pending |
@@ -133,8 +136,8 @@ and storage audits, actual-target global-reference resolution, external
   target; its initialized null-argument `thread5_game_loop` starts must each
   take a first Clight step.  Official-JP initialized memory now exists, its
   exact task body resolves, the first step executes, and identity lockstep
-  closes this JP boundary.  The OS handoff remains open; US initialization and
-  viewport-repair lockstep remain open.
+  closes this JP boundary.  The OS handoff is outside the scoped gameplay run;
+  US initialization and viewport-repair lockstep remain open.
   `GlobalInterfaceStructural.v` proves
   generic cleaned-selector exactness under explicit hypotheses; its concrete
   US/JP global/public-map instances and the name-based memory relations remain
@@ -144,7 +147,7 @@ and storage audits, actual-target global-reference resolution, external
   `jp_retail_state_global_identifiers`.  Its capstone packages that audit with
   the JP source identity and reduces `SelectedTargetClightRefinementObligation`
   to the generic `TargetClightRefinementObligation`; the concrete observer,
-  chronology, entry prefixes, and selected-to-retail semantics remain open.
+  chronology, boundary-to-entry prefixes, and selected-to-retail semantics remain open.
   The repaired-US audit is independently closed by the focused definition-name,
   definition-list syntax, repair-preimage, `Evar`, and `Init_addrof` transport
   modules, the two split five-core-symbol receipt modules, and
@@ -153,7 +156,7 @@ and storage audits, actual-target global-reference resolution, external
   constructors, repaired-program `Evar`/`Init_addrof` name resolution, and
   `find_symbol` existence for the five core identifiers.  It does not prove
   initialization, memory shape/content/block correspondence, source-to-selected
-  viewport-repair execution lockstep, runtime handoff, routing/prefix/chronology,
+  viewport-repair execution lockstep, boundary-start routing/prefix/chronology,
   or selected-to-retail semantics.
   Concretely, `NormalizedDefinitionNameTransport.v` and
   `DefinitionListSyntaxTransport.v` provide generic list/name transport;
@@ -197,18 +200,26 @@ interface requires previous/current `buttonDown` and computed `buttonPressed`
 loads at its pinned controller/pointer bindings and exact poll/consumer bodies;
 concrete work must instantiate the observer and classify each frame.  Supplied
 nonempty `thread5_game_loop` task-entry prefixes yield clean-entry nonvacuity.
-These bridges are conditional.  The observer, concrete controller refinement,
-projection functions, chronologies, both task-entry prefixes, whole-expression/
-internal-step simulation, and selected-to-retail relation remain open.
+That generic bridge remains source/refinement evidence.  The scoped gameplay
+root is instead `DefaultArea1StartBoundary` in SSL Area 1 (the exterior).  The
+observer, concrete controller refinement, projection
+functions, post-boundary chronologies/prefixes, whole-expression/internal-step
+simulation, and selected-to-retail relation remain open.
 
-`proofs/OrdinaryArea1EntryMemory.v` maps the ordinary Area-1 entry through
+`proofs/OrdinaryArea1EntryMemory.v` maps SSL Area 1 (the exterior) through
 `ssl_script`, `level_script`, `level_update`, `mario`, `object_list_processor`,
 and `platform_displacement`.  Generated receipts identify node `0x0A`,
 `bhvSpinAirborneWarp`, spawn type `0x16`, and action `0x1924`; layout/symbol
 facts and an explicit postcondition imply exact State/raw Object/Graphics
-synchronization.  The actual entry `Smallstep.star`, castle routing, behavior
-lookup, external-call frames, controller predecessor, object-access bounds,
-and full pool/list ownership remain open.
+synchronization.  `proofs/DefaultArea1StartBoundary.v` packages that exact
+memory, coherent no-A input history, and null `gMarioPlatform` as an assumed
+  selected-program start.  `proofs/DefaultArea1StartChronology.v` then requires
+  a nonempty active selected-program run and decodes the platform seed from that
+  same start memory.  A supplied pre-apply projection whose seed is required to
+  equal that decoder cannot finish as retained-JP-inbound lineage.  Deriving the
+  projection's events, collision sample, owner, and endpoint from the run remains
+  open, as do external frames, object-access bounds, boundary projection, and
+  full pool/list ownership.  Castle routing is separate optional upstream work.
 
 `proofs/Area1EntryZeroAPrefix.v` proves the conditional bridge from a supplied
 entry postcondition and no-A input sample to the live controller predicate and
@@ -222,8 +233,10 @@ not construct those premises.  `proofs/JPWarpLevelEntryResolution.v`
   `USWarpLevelEntryResolution.v` resolve the exact `_warp_level` internal body
   in the selected viewport-repaired US program.  `JPArea1EntrySymbolResolution.v`
   separately supplies the twelve official-JP structural bindings and limited
-  block-separation facts.  Live memory, routing, execution, both live prefixes,
-  the postcondition, and the remaining US entry bindings remain open.
+  block-separation facts.  Live routing/execution and the entry postcondition
+  remain open for the separate castle-prefix investigation; the core proof
+  assumes `DefaultArea1StartBoundary`.  Its observer projection, post-boundary
+  prefixes, and remaining US entry bindings remain open.
 
 `proofs/JPGeneratedWriterCensus.v` concatenates definitions only for a
 receiver-neutral syntactic census while preserving the 38-unit boundaries.
@@ -251,7 +264,8 @@ null-argument first step and the JP identity source-to-selected witness.
 `proofs/USWarpLevel*Receipt.v` modules and
 `proofs/USWarpLevelEntryResolution.v` close the corresponding exact lookup in
 the selected viewport-repaired US program.  The OS handoff, castle routing,
-`warp_level` execution, live Area-1 memory and postcondition,
+and `warp_level` execution are optional upstream reachability work, not the
+core gameplay prefix.  Projection of `DefaultArea1StartBoundary`,
 selected-to-retail transport, repaired-US task/refinement witnesses, and the
 remaining US entry bindings remain open.  The
 twelve official-JP entry symbols, slots `0`/`1`, and limited global-block
@@ -265,9 +279,8 @@ separation are now closed structurally by the focused symbol receipts and
   The parallel repaired-US chain culminates in
   `proofs/USSelectedTargetAudit.v` and closes only the actual repaired-program
   syntax/name and five-core-`find_symbol` audit.  Repaired-US initialization,
-  source/refinement execution lockstep, memory block correspondence, the OS
-  handoff and routing/prefix/chronology, and selected-to-retail transport remain
-  open.
+  source/refinement execution lockstep, memory block correspondence,
+  boundary-start chronology, and selected-to-retail transport remain open.
 
 `proofs/JPZeroAReachability.v` defines a zero-edge relation over `Clight.step2`
 and the live controller `buttonPressed` cell.  Program, controller address, and
@@ -827,8 +840,11 @@ equality remain open.
 the constructed official cleaned US and JP definition lists. It closes the
 visible direct named-writer and address-taking syntax upper bounds and bounds
 every retained internal direct updater caller to the name `update_objects`.
-Its five-field closure record is a sufficient conditional interface only: no
-field is inhabited from clean linked execution.
+  Its original five-field closure record remains a sufficient conditional
+  interface only.  When a supplied pre-apply projection uses the scoped
+  null-start seed, the chronology removes retained JP-inbound lineage and exposes
+  a four-field interface.  The run-to-projection bridge and all four live fields
+  remain uninhabited from clean linked execution.
 
 `proofs/JPLinkedPlatformGlobal.v` extracts the exact generated JP
 `Surface.object -> temporary -> gMarioPlatform` statement and the apply
@@ -839,8 +855,8 @@ globalenv/symbol/block resolution,
 `Surface.object` evaluation, and
 intervening cell preservation are premises; declaration storage details,
 `find_floor` branch reachability, owner classification, pointer block/offset,
-allocation epoch, and the source-fragment-to-official-body connection remain
-open; complete sequence/skip trace composition is also pending.
+allocation epoch, and whole-fragment execution remain open; complete
+sequence/skip trace composition is also pending.
 
 `proofs/Area1QueryScheduleClosure.v` computes intraprocedural generated
 call/guard receipts and proves a separate finite schedule model from
@@ -848,8 +864,28 @@ cached-platform application through interaction, State-to-Object copy, unload,
 and the final platform query.  An upper-warp action-selection frame has a
 later query in that model.  The retry-null branch can select
 `ACT_DISAPPEARED` after requesting death but is not a successful warp under
-the separate fatal-latch boundary.  Linked branch execution, alias/external
-frames, and provenance of any post-copy sample discrepancy remain open.
+the separate fatal-latch boundary.  Its exact US/JP AST receipt additionally
+ties `gMarioObject.rawData.asF32[6..8]` to the three temporaries passed to
+`find_floor`.  Linked branch execution, preservation of that Object sample to
+collision, alias/external frames, and provenance of any post-copy discrepancy
+remain open.
+
+The focused `proofs/PlatformUpdateSourceReceipt.v`,
+`proofs/USPlatformUpdateRepairReceipt.v`,
+`proofs/JPPlatformUpdateCleanedReceipt.v`, and
+`proofs/SelectedPlatformUpdateBodyResolution.v` chain transports that exact
+body through the selected US repair and JP official-cleaned link.  It pins the
+query AST receipt to both selected `update_mario_platform` bodies, but proves
+no call reachability or query-to-collision memory frame.
+
+`proofs/Area1SurfaceOwnerSyntax.v` checks the exact bilateral loader order from
+`gCurrentObject` to `Surface.object`, followed later by an
+`add_surface(surface, 1)` call with the same syntactic surface-temporary
+identifier.  Each dynamic loader has exactly one direct `add_surface` call and
+all such calls use flag `1`; each static loader likewise has exactly one direct
+call and uses flag `0`.  This does not prove that the temporary is unreassigned
+before the call, call-site reachability, live owner identity, surface-list
+integrity, object-pool slot/epoch provenance, or alias/external-frame closure.
 
 `proofs/Area1WarpTopCloneCensus.v` enumerates the static top/warp references
 and all 21 direct `Object.collisionData` writer bodies, proves every direct

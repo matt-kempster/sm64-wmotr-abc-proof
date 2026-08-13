@@ -19,6 +19,13 @@ Those inhabitants establish syntactic structural linking only.  They do not
 show that executions of the cleaned programs simulate the original generated
 units or the target ROM.
 
+## Gameplay-list start convention
+
+Core gameplay begins at **SSL Area 1 (the exterior)**.  Its default node is
+`0x0A` at `(653,1038,6566)`.  Runs are assumed to start at
+`DefaultArea1StartBoundary`; an OS/`thread5_game_loop`/castle prefix is not part
+of the core linked-program construction.
+
 `proofs/LinkedClightPrograms.v` proves all of the following without admissions:
 
 - the selected US and JP unit lists each contain 38 programs;
@@ -259,15 +266,17 @@ boundary starts from the whole official cleaned link and requires selected-
 target lockstep anchored at matching null-argument `thread5_game_loop` task
 starts with an actual first step.  The official JP initialized memory, exact
   task-body resolution, first step, and identity source-to-selected lockstep are
-  now inhabited.  Its OS handoff and later gameplay prefix remain open; US
-  initialization and viewport-repair lockstep are also open.  A generic
+  now inhabited.  These task-start facts remain program/source-refinement
+  evidence rather than the scoped gameplay root; US initialization and
+  viewport-repair lockstep are also open.  A generic
   selector-exactness theorem is also checked under explicit hypotheses; concrete
   US/JP global/public-map agreement remains open.  Separately, data-bearing
 frame chronologies under one fixed observer now compose into the whole-run
 projection certificate.  The interface pins the controller/pointer bindings
 and selected poll/consumer bodies, authenticates the boundary input, and
 separates gameplay from poll-only administrative frames.  The concrete
-  observer, chronology, projection, and task-entry prefixes are not supplied.
+  observer, chronology, projection, and SSL Area 1-to-clean-entry prefixes are
+  not supplied.
   The actual successful repaired US program now has a separate conditional
   selected-target audit.  The focused syntax/name transport proves no direct
   `Sbuiltin`, supported external constructors, and resolution of internal-body
@@ -310,16 +319,18 @@ at least these refinement facts:
   already available);
 - pointer/type compatibility for cleaned incomplete-array uses beyond the
   checked declaration/storage boundary;
-- castle routing and live `warp_level` execution (the exact JP and repaired-US
-  symbol/body resolutions and the official-JP twelve-symbol structural bundle
-  are checked, while the remaining US entry bindings are open);
+- the concrete `DefaultArea1StartBoundary` observation, allocation/layout
+  interpretation, and post-boundary routing from SSL Area 1 (the exterior)
+  toward the lower and upper clean entries; exact
+  `warp_level` symbol/body receipts remain useful only to the separate
+  castle-prefix investigation;
 - callsite-sensitive protected-cell frames or writer/lifecycle refinements for
   every reachable `EF_external`; the finite dialog/depth direct-callee
   inventory is checked, while path-sensitive reachable call sequences,
   argument provenance, transitive reachability, and concrete effects remain;
 - a fixed concrete observer instantiating the pinned bindings, concrete
   gameplay/admin classification, data-bearing projection chronologies, and
-  `thread5_game_loop` task-entry prefixes to the lower and upper clean entries;
+  SSL Area 1 prefixes to the lower and upper clean entries;
 - related initial/final whole-program executions and the projection from the
   cleaned official execution to retail state.
 

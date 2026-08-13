@@ -57,18 +57,27 @@ old same-position model because movement between active frames and arbitrarily
 many exact frozen carries are allowed.
 
 `StateFirstPlatformChronology.v` supplies the complementary positive
-classification. If a projected true pre-collision upper-warp apply nevertheless
-loads a non-null pointer, its last effective lineage is one of:
+classification.  The general-entry split has five cases.  The scoped start is
+**SSL Area 1 (the exterior)**, and `DefaultArea1StartBoundary` explicitly seeds
+`gMarioPlatform` with null.  `DefaultArea1StartChronology.v` decodes this seed
+from the same active Clight run-start memory and requires a nonempty run.  A
+supplied pre-apply projection whose seed equals that decoder cannot finish as
+retained JP inbound lineage, so its abstract residual interface has four cases.
+Deriving the projection's events, collision sample, owner, and endpoint from
+the run remains open.  If a projected true pre-
+collision upper-warp apply nevertheless loads a non-null pointer, its last
+effective lineage is one of:
 
 1. a canonical stock final query at a different source/current sample;
 2. a canonical identity outside the modeled stock geometry;
 3. a recognized behavior kind with a noncanonical slot or ghost epoch;
-4. an unclassified dynamic owner; or
-5. a retained JP inbound pointer transported away from its checked inbound
-   position.
+4. an unclassified dynamic owner.
 
-US clear followed by any number of skipped queries remains null. JP skipped
-queries preserve an inbound pointer but do not manufacture one.
+`default_area1_active_preapply_has_no_jp_inbound_final_lineage` covers any
+finite modeled query, clear, and skip sequence in a supplied pre-apply record
+whose seed is tied to the active run-start memory.  Deriving that record from
+the run remains open.  It also does not prove that a castle route reaches the
+declared null boundary.
 
 ## What this says about the conditional State-first candidate
 
@@ -82,7 +91,6 @@ predecessor. A real installer must now exhibit at least one concrete escape:
   relocation, cloning, slot reuse, or corrupt identity;
 - an Object-coordinate write after the final query;
 - a supposedly skipped frame which nevertheless moves the collision Object;
-- retained entry outside the checked inbound nodes; or
 - an unclassified scheduler/terrain-dispatch transition.
 
 This is not yet a proof that none of those escapes is reachable.
@@ -91,14 +99,15 @@ This is not yet a proof that none of those escapes is reachable.
 
 The next proof must instantiate `UpperWarpPrecollisionApplyProjection`, the
 strengthened temporal projection, and all three pre-collision refinement
-obligations from real linked small steps. In particular it must:
+obligations from real linked small steps beginning at the declared SSL Area 1
+(the exterior) boundary. In particular it must:
 
 1. resolve and frame the `gMarioPlatform`, MarioState, Mario Object, and
    Graphics memory regions;
 2. execute `update_mario_platform` far enough to connect a non-null store to
    the returned live `Surface.object` pointer;
-3. project every clean entry and linked boundary-step endpoint to a concrete
-   temporal snapshot rather than allowing an always-`None` projector;
+3. project the declared start and every linked boundary-step endpoint to a
+   concrete temporal snapshot rather than allowing an always-`None` projector;
 4. project that surface pointer to its pool slot, allocation epoch, behavior,
    collision data, transformed surface, and query position;
 5. prove every skipped path performs no effective platform store and no Object
@@ -109,7 +118,8 @@ obligations from real linked small steps. In particular it must:
    helper/action-table, fresh-child, alias, and external-call frames for the
    terrain-object prefix.
 
-If these facts hold, the platform-based State-first installer is eliminated.
+If these facts hold, the platform-based State-first installer is eliminated
+within the declared start scope.
 If one fails, the failing step supplies a concrete installer class to trace
 rather than an opaque residual predicate.
 

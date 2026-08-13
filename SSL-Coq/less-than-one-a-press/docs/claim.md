@@ -1,5 +1,10 @@
 # Claim boundary
 
+The scoped linked gameplay claim begins at **SSL Area 1 (the exterior)** and
+assumes `DefaultArea1StartBoundary` at that spawn, including coherent no-A
+controller memory and an explicitly null `gMarioPlatform` in both versions.
+It does not claim that castle execution reaches the boundary.
+
 ## Proved
 
 - Reproducible US/JP Clight AST source-shape facts listed in
@@ -90,7 +95,7 @@
   those facts with the selected JP source identity, reducing
   `SelectedTargetClightRefinementObligation` to the generic
   `TargetClightRefinementObligation`.  It does not inhabit the concrete
-  observer, chronology, entry prefixes, selected-to-retail semantics, full
+  observer, chronology, boundary-to-entry prefixes, selected-to-retail semantics, full
   global/public-map agreement, or memory contents.
 - For projections fixed to `VersionUS` and
   `us_viewport_repaired_program`, `USSelectedTargetAudit.v` now closes
@@ -100,17 +105,22 @@
   resolution; split receipts establish `find_symbol` existence for the five core
   US identifiers.  These are static syntax/name facts only.  Repaired-US
   initialization, memory shape/content/block correspondence,
-  source-to-selected viewport-repair execution lockstep, runtime handoff,
+  source-to-selected viewport-repair execution lockstep, boundary-start
   routing/prefix/chronology, and selected-to-retail semantics remain open.
 - Data-bearing Clight frame chronologies under one fixed observer now compose
   into the whole-run projection certificate.  The interface pins
   `gControllers[0]`, the player-one and Mario controller pointers, and exact
   poll/consumer bodies; it authenticates the boundary input and each gameplay
   or poll-only administrative successor frame.  Supplied `thread5_game_loop`
-  task-entry prefixes compose into clean-entry nonvacuity.  No concrete
-  observer, chronology, projection, or lower/upper task-entry prefix is
-  claimed.
-- The conditional ordinary Area-1 bridge now composes supplied castle and
+  task-entry prefixes still compose into clean-entry nonvacuity for an optional
+  upstream extension.  The scoped proof instead starts from
+  `DefaultArea1StartBoundary`; no concrete observer, chronology, projection,
+  or lower/upper prefix from that boundary is claimed.
+- `DefaultArea1StartBoundary` defines the start in SSL Area 1 (the exterior)
+  with exact entry memory,
+  coherent no-A history, and null `gMarioPlatform` in both versions.  It is an
+  assumption, not a reachability witness.  The conditional ordinary Area-1
+  bridge separately composes supplied castle and
   `warp_level` executions only after explicit symbol resolution to the expected
   internal body, then derives the no-A return boundary from a supplied entry
   postcondition.  `JPWarpLevelEntryResolution.v` separately proves the exact
@@ -413,10 +423,11 @@
   exact generated task body, and `JPSelectedRuntimeTaskStart.v` proves that its
   null-argument `Kstop` call state takes the genuine first `Clight.step2` and
   supplies the JP identity source-to-selected refinement.  These facts do not
-  prove the OS runtime handoff or any gameplay prefix.
+  prove the OS runtime handoff, which is outside the scoped gameplay prefix.
 - `JPWarpLevelEntryResolution.v` resolves the exact generated `warp_level`
   symbol/body in the official cleaned JP global environment.  It does not prove
-  castle routing, execution of that body, or the entry postcondition.
+  castle routing, execution of that body, or the entry postcondition; those are
+  optional upstream reachability obligations.
 - The split `USWarpLevelSourceReceipt.v` through
   `USWarpLevelRepairReceipt.v` chain and `USWarpLevelEntryResolution.v` resolve
   the exact generated `_warp_level` symbol/internal body in the selected
@@ -648,12 +659,15 @@
   statement/memory refinements remain open.
 - Reachability classification and displacement bounds for every null, live,
   inactive, or reused JP platform-slot case.
-- None of the five linked lineage closures is proved from a clean execution:
-  equality of the query and current samples, modeled geometry for every live
-  canonical owner, canonical slot/epoch identity, exhaustive owner
-  classification, and absence of retained JP inbound transport. The new
-  official-link syntax and local JP store/load results are inputs to those
-  obligations, not substitutes for them.
+- Four linked lineage closures are still not proved from scoped execution:
+  equality of query/current samples, modeled geometry for every live canonical
+  owner, canonical slot/epoch identity, and exhaustive owner classification.
+  `DefaultArea1StartChronology.v` proves that any supplied pre-apply projection
+  whose seed is the value decoded from the null-seeded active run cannot finish
+  as retained JP inbound transport.  It does not derive that projection's event
+  chronology from the run.  The official-link syntax and local JP store/load
+  results are inputs to the four remaining obligations, not substitutes for
+  them.
 - A clean retail installer for the JP stale-platform payload.  Ink's non-null
   graphical retry is one candidate installer, with the timed top constrained
   to spinning timer 131 on the collision frame, timer 150 on frame 19, and

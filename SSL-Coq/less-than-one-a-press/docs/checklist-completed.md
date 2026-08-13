@@ -539,7 +539,7 @@ Completed work is grouped by subject. Each item retains its original scope warni
   Area-1 route, or live-memory obligations.  The corresponding repaired-US audit
   is closed separately below, without any of those semantic consequences.
 
-- [x] Linked gap-closure step 1 â€” Close the selected-target audit transport for
+- [x] Linked gap-closure step 1 — Close the selected-target audit transport for
   projections fixed to `VersionUS` and `us_viewport_repaired_program`.
   `USSelectedTargetAudit.v` proves `us_selected_target_audit_transport_checked`
   from those exact version/program hypotheses.  Its syntax half audits the
@@ -905,6 +905,35 @@ Completed work is grouped by subject. Each item retains its original scope warni
   and symbol blocks, framing the
   cell until the later apply, and executing the guard/displacement tail remain
   open.
+
+- [x] Close three scoped installer-lineage supports without treating them as
+  the installer proof itself.  First, `DefaultArea1StartBoundary.v` pins the
+  selected US/JP program, SSL level, engine area index `1`, current
+  `gAreaData[1]` pointer, node-`0x0A` entry memory, coherent no-A history, and
+  null `gMarioPlatform`; `DefaultArea1StartChronology.v` requires a nonempty
+  active run and, for any supplied preapply projection whose abstract seed is
+  required to decode from that same start memory, excludes retained JP-inbound
+  lineage.  It does not derive the preapply events from the run.  Second,
+  `Area1QueryScheduleClosure.v` checks the exact bilateral
+  AST chain from `gMarioObject.rawData.asF32[6..8]` through the three query
+  temporaries to `find_floor`.  Third, `Area1SurfaceOwnerSyntax.v` checks the
+  ordered bilateral dynamic prefix from `gCurrentObject` to `Surface.object`,
+  followed later by the unique direct `add_surface(surface, 1)` call with the
+  same syntactic surface-temporary identifier, and static-loader flag `0`.  It
+  does not prove the temporary is unreassigned before that call.  The parent installer item
+  remains open: live linked execution must still eliminate or realize (1) a
+  different final-query/current-collision sample, (2) a canonical owner outside
+  modeled geometry, (3) a recognized owner with a noncanonical slot or ghost
+  epoch, and (4) an unclassified dynamic owner.  These receipts do not prove
+  Object preservation, surface-temporary preservation, chronology-to-run projection, live list/owner
+  integrity, lifecycle provenance, or alias/external frames.
+
+  The split `PlatformUpdateSourceReceipt.v`,
+  `USPlatformUpdateRepairReceipt.v`, `JPPlatformUpdateCleanedReceipt.v`, and
+  `SelectedPlatformUpdateBodyResolution.v` chain additionally resolves that
+  exact generated `update_mario_platform` body in both selected programs.  It
+  removes source/body-selection ambiguity without asserting call reachability
+  or preservation from the query to the later collision.
 
 - [x] Strengthen the authentic JP ROM receipt for the true first apply: decode
   word 18 of `apply_mario_platform_displacement` as a MIPS `jal`, reconstruct

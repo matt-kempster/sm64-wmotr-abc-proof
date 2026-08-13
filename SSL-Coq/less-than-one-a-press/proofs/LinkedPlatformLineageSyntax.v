@@ -244,6 +244,90 @@ Proof.
       canonical_ref projection Hclosures).
 Qed.
 
+(** Once a supplied pre-apply projection uses the null platform seed decoded
+    from the scoped default Area 1 boundary, retained JP inbound lineage is no
+    longer an independent closure premise.  Deriving that projection's events
+    from a linked run is separate.  The four remaining fields say only what a
+    completed live query must project to: the current sample, a classified
+    owner, canonical identity, and modeled stock geometry. *)
+Record FourNullSeedLinkedLineageClosures
+    (canonical_ref : Area1SurfaceOwnerKind -> ObjectRef)
+    (projection : UpperWarpPrecollisionApplyProjection) : Prop := {
+  null_seed_query_sample_is_current :
+    forall source owner skipped,
+      projected_final_lineage projection =
+        PlatformLineageFinalQuery source owner skipped ->
+      source = projected_collision_position projection;
+  null_seed_owner_is_classified :
+    forall source owner skipped,
+      projected_final_lineage projection =
+        PlatformLineageFinalQuery source owner skipped ->
+      exists kind, observed_owner_kind owner = Some kind;
+  null_seed_owner_identity_is_canonical :
+    forall source owner skipped kind,
+      projected_final_lineage projection =
+        PlatformLineageFinalQuery source owner skipped ->
+      observed_owner_kind owner = Some kind ->
+      observed_owner_ref owner = canonical_ref kind;
+  null_seed_owner_geometry_is_modeled :
+    forall source owner skipped kind,
+      projected_final_lineage projection =
+        PlatformLineageFinalQuery source owner skipped ->
+      observed_owner_kind owner = Some kind ->
+      stock_area1_dynamic_floor_candidate kind
+        (observed_owner_query_position owner)
+        (observed_owner_floor_y owner)
+}.
+
+(** Stronger compact interface: callers may package the preceding four
+    fields into this one completed-query fact.  The seed equality is concrete
+    chronology input, not the desired no-installer conclusion. *)
+Theorem null_seed_completed_query_closure_rules_out_installer :
+  forall canonical_ref projection,
+    projected_jp_inbound_seed projection = None ->
+    (forall source owner skipped,
+      projected_final_lineage projection =
+        PlatformLineageFinalQuery source owner skipped ->
+      source = projected_collision_position projection /\
+      CanonicalModeledCandidateObservation canonical_ref owner) ->
+    False.
+Proof.
+  intros canonical_ref projection Hnull Hquery.
+  eapply stock_closed_projection_rules_out_state_first_platform_apply.
+  - exact Hquery.
+  - intros node owner skipped Hinbound.
+    unfold projected_final_lineage in Hinbound.
+    rewrite Hnull in Hinbound.
+    destruct (projected_platform_version projection);
+      eapply null_seed_chronology_cannot_produce_jp_inbound;
+      exact Hinbound.
+Qed.
+
+Theorem four_null_seed_linked_lineage_closures_rule_out_installer :
+  forall canonical_ref projection,
+    projected_jp_inbound_seed projection = None ->
+    FourNullSeedLinkedLineageClosures canonical_ref projection ->
+    False.
+Proof.
+  intros canonical_ref projection Hnull Hclosures.
+  eapply null_seed_completed_query_closure_rules_out_installer;
+    [exact Hnull |].
+  intros source owner skipped Hlineage.
+  split.
+  - exact (null_seed_query_sample_is_current
+      canonical_ref projection Hclosures source owner skipped Hlineage).
+  - destruct (null_seed_owner_is_classified
+      canonical_ref projection Hclosures source owner skipped Hlineage)
+      as [kind Hkind].
+    exists kind. split; [exact Hkind |]. split.
+    + exact (null_seed_owner_identity_is_canonical
+        canonical_ref projection Hclosures source owner skipped kind
+        Hlineage Hkind).
+    + exact (null_seed_owner_geometry_is_modeled
+        canonical_ref projection Hclosures source owner skipped kind
+        Hlineage Hkind).
+Qed.
+
 (** Admission-free checked boundary.  The preceding conjuncts are concrete
     official-link results.  The final implication is not an assertion that a
     clean run inhabits [FiveLinkedLineageClosures]; it only checks that those

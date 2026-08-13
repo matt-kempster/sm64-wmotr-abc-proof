@@ -5,6 +5,14 @@ programs and a semantics-preserving US/JP retail model. It does not claim that
 the gameplay theorem, or even the complete cleaned-to-retail simulation, is
 finished.
 
+## Scoped gameplay start
+
+The scoped gameplay start is **SSL Area 1 (the exterior)**.  The formal
+`DefaultArea1StartBoundary` fixes the default exterior node-`0x0A` memory.  It
+is an assumed initial state, not a proof of the OS/castle prefix.  Task-start
+and `warp_level` receipts remain source/refinement evidence and inputs to a
+separate upstream investigation.
+
 ## What is now formalized
 
 `USWholeASTTagRepair.v` defines a recursive US viewport-tag rewrite over every
@@ -38,14 +46,15 @@ null pointer argument, `Kstop`, and a real first Clight step, avoiding the
 missing-`_main` and false-relation vacuity. Official-JP initialized memory is
 now constructed; its exact task body resolves, the null-argument call state
 takes a real first step, and identity lockstep closes the JP
-source-to-selected boundary. The OS handoff and gameplay prefix remain open;
-repaired-US initialization and viewport-repair lockstep are open.
+source-to-selected boundary.  These task-start facts do not anchor the scoped
+gameplay run; repaired-US initialization and viewport-repair lockstep remain
+open.
 `JPSelectedTargetAudit.v` now performs the fresh selected-program syntax audit
 and checks the five core state-global symbols for projections fixed to the
 official cleaned JP program. Its capstone packages those facts with the JP
 source identity and reduces `SelectedTargetClightRefinementObligation` to the
 still-open generic `TargetClightRefinementObligation`. This reduction does not
-construct the observer, chronology, entry prefixes, or selected-to-retail
+construct the observer, chronology, boundary-to-entry prefixes, or selected-to-retail
 semantics. `USSelectedTargetAudit.v` independently closes
 `SelectedTargetAuditTransportObligation` for projections fixed to `VersionUS`
 and `us_viewport_repaired_program`. Its fresh audit runs against the actual
@@ -54,7 +63,7 @@ constructors, resolution of internal-body `Evar` names and initializer
 `Init_addrof` names, plus `find_symbol` existence for the five core identifiers.
 Those symbol witnesses say nothing about memory shape, contents, or block
 correspondence. The repaired-US initialization and source-to-selected
-viewport-repair execution lockstep, runtime handoff, routing/prefix/chronology,
+viewport-repair execution lockstep, boundary-start chronology,
 and selected-to-retail semantics remain open.
 
 `ClightGlobalMemoryRefinement.v` proves concrete US and JP membership agreement
@@ -158,9 +167,11 @@ Checked composition proves that an exact connected chronology yields
 `SelectedRuntimeTaskStart` to both entrances yield clean-entry nonvacuity; and
 those facts compose with the selected-target source/audit refinement. No
 observer, concrete gameplay/admin classification, chronology, projection,
-or lower/upper task-entry prefix has yet been constructed.
+or lower/upper prefix from the declared SSL Area 1 (the exterior) boundary has yet
+been constructed.  The older task-entry composition theorem remains available
+but is not a core scope requirement.
 
-`Area1EntryZeroAPrefix.v` gives a conditional step-2/step-3 bridge. A supplied
+`Area1EntryZeroAPrefix.v` gives a conditional upstream bridge. A supplied
 ordinary Area-1 memory postcondition and no-A input sample yield the live
 controller predicate and a reflexive zero-A suffix. If a caller additionally
 supplies castle routing to `warp_level`, resolution of the `warp_level` symbol
@@ -175,7 +186,8 @@ twelve official-JP structural bindings are separately constructed by
 receipts culminating in `USWarpLevelEntryResolution.v` close the exact lookup
 for the selected viewport-repaired US program. Live memory, both live prefixes,
 routing, body execution, the entry postcondition, and the remaining US entry
-bindings remain open.
+bindings remain open only for the separate castle-to-boundary investigation;
+the core run assumes the boundary.
 
 ## Still required for end-to-end retail refinement
 
@@ -201,9 +213,9 @@ bindings remain open.
    observer, instantiate its pinned controller/pointer/function bindings,
    prove gameplay versus administrative frame classification, and construct
    an exact chronology for every selected-boundary run in scope.
-6. Execute nonempty `thread5_game_loop` task-entry prefixes to both clean
-   entrances. The generic entry bridge is conditional on those prefixes and
-   does not prove them.
+6. Project `DefaultArea1StartBoundary` into the concrete observer and execute
+   nonempty post-boundary prefixes from SSL Area 1 (the exterior) to both clean
+   pyramid entrances.  Do not include OS/castle construction in this core item.
 7. Retain the checked JP source-to-selected identity component, instantiate the
    repaired-US source-to-selected component, and prove the separate
    selected-to-retail/compiled-behavior transport from final Clight memories to

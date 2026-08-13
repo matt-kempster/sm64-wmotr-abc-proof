@@ -138,6 +138,18 @@ check: proofs
 	  LessThanOneAPress.Proofs.Area1EntryZeroAPrefix \
 	  us_viewport_repaired_ordinary_area1_prefix_fixes_zero_a_boundary
 	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.DefaultArea1StartBoundary \
+	  default_area1_start_fixes_clean_zero_a_baseline
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.DefaultArea1StartChronology \
+	  default_area1_active_run_decodes_null_chronology_seed
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.DefaultArea1StartChronology \
+	  default_area1_active_preapply_has_no_jp_inbound_final_lineage
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.DefaultArea1StartChronology \
+	  default_area1_start_refinement_is_nonvacuous
+	bash pipeline/assumptions.sh \
 	  LessThanOneAPress.Proofs.NormalizedClightPrograms \
 	  us_residual_function_signature_mismatch_count_checked
 	bash pipeline/assumptions.sh \
@@ -1530,8 +1542,14 @@ check: proofs
 	  LessThanOneAPress.Proofs.StateFirstPlatformChronology \
 	  stock_closed_projection_rules_out_state_first_platform_apply
 	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.StateFirstPlatformChronology \
+	  null_seed_chronology_cannot_produce_jp_inbound
+	bash pipeline/assumptions.sh \
 	  LessThanOneAPress.Proofs.LinkedPlatformLineageSyntax \
 	  linked_platform_lineage_syntax_checked_boundary_holds
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.LinkedPlatformLineageSyntax \
+	  four_null_seed_linked_lineage_closures_rule_out_installer
 	bash pipeline/assumptions.sh \
 	  LessThanOneAPress.Proofs.JPLinkedPlatformGlobal \
 	  jp_generated_platform_ast_boundary_checked
@@ -1543,7 +1561,16 @@ check: proofs
 	  jp_successful_platform_store_is_true_apply_loaded_owner_under_frame
 	bash pipeline/assumptions.sh \
 	  LessThanOneAPress.Proofs.Area1QueryScheduleClosure \
+	  area1_final_query_overwrite_source_checked
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.SelectedPlatformUpdateBodyResolution \
+	  selected_platform_update_body_query_receipt_checked
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.Area1QueryScheduleClosure \
 	  area1_query_schedule_checked_boundary_holds
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.Area1SurfaceOwnerSyntax \
+	  area1_surface_owner_source_boundary_checked
 	bash pipeline/assumptions.sh \
 	  LessThanOneAPress.Proofs.Area1WarpTopCloneCensus \
 	  ordinary_object_copy_does_not_copy_identity_or_collision
