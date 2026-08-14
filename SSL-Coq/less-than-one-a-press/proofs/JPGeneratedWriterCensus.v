@@ -408,6 +408,32 @@ Proof.
   now apply in_app_or in Hwriter.
 Qed.
 
+(** The four receiver-generic bodies are not one undifferentiated escape.
+    Their source roles are respectively: behavior-offset update, allocation
+    sentinel initialization, same-object raw-to-Graphics reanchor, and
+    two-object anchor copy.  Runtime receiver identity and reachability remain
+    deliberately outside this syntactic partition. *)
+Definition jp_behavior_offset_gfx_y_residual : list ident :=
+  [JGC_BScript._obj_update_gfx_pos_and_angle].
+Definition jp_allocator_gfx_y_residual : list ident :=
+  [JGC_Spawn._allocate_object].
+Definition jp_same_object_reanchor_gfx_y_residual : list ident :=
+  [JGC_Helpers._obj_set_gfx_pos_from_pos].
+Definition jp_cross_object_anchor_gfx_y_residual : list ident :=
+  [JGC_Helpers._obj_set_gfx_pos_at_obj_pos].
+
+Theorem jp_receiver_generic_gfx_y_four_role_split_checked :
+  jp_receiver_generic_gfx_y_direct_writers =
+    jp_behavior_offset_gfx_y_residual ++
+    jp_allocator_gfx_y_residual ++
+    jp_same_object_reanchor_gfx_y_residual ++
+    jp_cross_object_anchor_gfx_y_residual /\
+  length jp_behavior_offset_gfx_y_residual = 1%nat /\
+  length jp_allocator_gfx_y_residual = 1%nat /\
+  length jp_same_object_reanchor_gfx_y_residual = 1%nat /\
+  length jp_cross_object_anchor_gfx_y_residual = 1%nat.
+Proof. vm_compute. repeat split; reflexivity. Qed.
+
 (** The raw-object inventories use the stricter nested selector, so the
     counted lvalue has the generated shape [receiver.rawData.asF32[index]],
     not merely some unrelated field array named [asF32].  Indices 7 and 10

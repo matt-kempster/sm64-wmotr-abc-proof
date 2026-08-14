@@ -435,6 +435,12 @@ still receiver-neutral: live Mario receiver identity and its call paths remain
 separate obligations, while the seven-path side still includes negative
 quicksand and therefore is not labeled safe.
 
+The receiver-generic remainder is further proved to be four distinct
+single-role bodies: behavior-offset update, allocation sentinel initialization,
+same-object raw-to-Graphics reanchor, and cross-object anchor copy.  This does
+not prove their runtime effects on Mario, but separates the remaining
+flag/offset, lifecycle, receiver-identity, and actor-reachability obligations.
+
 `proofs/RetailFatalLatch.v` is a handwritten finite scheduler model.  It
 imports generated US/JP syntax and packed-data receipts from `ClightFacts.v`,
 proves fatal-latch preservation over its explicit event alphabet, and includes

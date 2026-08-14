@@ -439,8 +439,11 @@ continue after two misses.  A stricter generated-code census also reduces the
 possible direct Graphics-Y assignment bodies from `33` receiver-neutral
 `pos[1]` sites to exactly `11` real `gfx.pos[1]` writers.  Those now split
 exactly into seven Mario initialization/action paths and four helpers with a
-generic Object receiver; the latter four are the focused receiver-identity and
-call-path residuals.
+generic Object receiver.  The four are now separated by role: the dangerous
+behavior-offset tail, allocation-time sentinel initialization, a same-object
+raw-to-Graphics reanchor, and a cross-object anchor copy.  Their remaining
+proof obligations are therefore flag/offset provenance, Mario-slot lifecycle,
+same-receiver identity, and non-stock anchor reachability respectively.
 
 **What closes it.** Produce the large three-view gap from clean execution;
 prove the first null lookup, live top-owned retry, exact return/snap/copy order,
