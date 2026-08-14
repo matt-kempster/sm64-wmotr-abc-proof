@@ -440,6 +440,10 @@ single-role bodies: behavior-offset update, allocation sentinel initialization,
 same-object raw-to-Graphics reanchor, and cross-object anchor copy.  This does
 not prove their runtime effects on Mario, but separates the remaining
 flag/offset, lifecycle, receiver-identity, and actor-reachability obligations.
+The `obj_set_gfx_pos_from_pos` body is now closed locally: an exact adjacent
+load/store receipt proves that its raw-Y load and Graphics-Y destination use
+the same formal receiver.  It therefore reanchors the gap and cannot create
+Ink's required separation, regardless of whether the call is reachable.
 
 `proofs/RetailFatalLatch.v` is a handwritten finite scheduler model.  It
 imports generated US/JP syntax and packed-data receipts from `ClightFacts.v`,

@@ -146,6 +146,82 @@ Definition expression_is_nested_array_slot
   | _ => false
   end.
 
+(** Recover the receiver of the two exact Y expressions used by
+    [obj_set_gfx_pos_from_pos]. *)
+Definition raw_y_receiver_temp (e : expr) : option ident :=
+  match e with
+  | Ederef
+      (Ebinop Oadd
+        (Efield
+          (Efield (Ederef (Etempvar receiver _) _) raw_data _) as_f32 _)
+        offset _) _ =>
+      if andb
+         (andb (Pos.eqb raw_data JGC_Mario._rawData)
+           (Pos.eqb as_f32 JGC_Mario._asF32))
+         (match expression_const_int_z offset with
+         | Some index => Z.eqb index 7
+         | None => false
+         end)
+      then Some receiver else None
+  | _ => None
+  end.
+
+Definition gfx_y_receiver_temp (e : expr) : option ident :=
+  match e with
+  | Ederef
+      (Ebinop Oadd
+        (Efield
+          (Efield
+            (Efield (Ederef (Etempvar receiver _) _) header _) gfx _) pos _)
+        offset _) _ =>
+      if andb
+         (andb (andb (Pos.eqb header JGC_Mario._header)
+           (Pos.eqb gfx JGC_Mario._gfx)) (Pos.eqb pos JGC_Mario._pos))
+         (match expression_const_int_z offset with
+         | Some index => Z.eqb index 1
+         | None => false
+         end)
+      then Some receiver else None
+  | _ => None
+  end.
+
+Definition is_same_receiver_raw_y_to_gfx_y_pair
+    (first second : statement) : bool :=
+  match first, second with
+  | Sset loaded rhs, Sassign lhs (Etempvar stored _) =>
+      match raw_y_receiver_temp rhs, gfx_y_receiver_temp lhs with
+      | Some raw_receiver, Some gfx_receiver =>
+          Pos.eqb loaded stored && Pos.eqb raw_receiver gfx_receiver
+      | _, _ => false
+      end
+  | _, _ => false
+  end.
+
+Fixpoint contains_same_receiver_raw_y_to_gfx_y_s (s : statement) : bool :=
+  match s with
+  | Ssequence first second =>
+      is_same_receiver_raw_y_to_gfx_y_pair first second ||
+      contains_same_receiver_raw_y_to_gfx_y_s first ||
+      contains_same_receiver_raw_y_to_gfx_y_s second
+  | Sloop first second =>
+      contains_same_receiver_raw_y_to_gfx_y_s first ||
+      contains_same_receiver_raw_y_to_gfx_y_s second
+  | Sifthenelse _ first second =>
+      contains_same_receiver_raw_y_to_gfx_y_s first ||
+      contains_same_receiver_raw_y_to_gfx_y_s second
+  | Sswitch _ cases => contains_same_receiver_raw_y_to_gfx_y_ls cases
+  | Slabel _ body => contains_same_receiver_raw_y_to_gfx_y_s body
+  | _ => false
+  end
+with contains_same_receiver_raw_y_to_gfx_y_ls
+    (cases : labeled_statements) : bool :=
+  match cases with
+  | LSnil => false
+  | LScons _ body rest =>
+      contains_same_receiver_raw_y_to_gfx_y_s body ||
+      contains_same_receiver_raw_y_to_gfx_y_ls rest
+  end.
+
 Fixpoint assigns_nested_array_slot_s
     (outer_field array_field : ident) (index : Z) (s : statement) : bool :=
   match s with
@@ -433,6 +509,23 @@ Theorem jp_receiver_generic_gfx_y_four_role_split_checked :
   length jp_same_object_reanchor_gfx_y_residual = 1%nat /\
   length jp_cross_object_anchor_gfx_y_residual = 1%nat.
 Proof. vm_compute. repeat split; reflexivity. Qed.
+
+(** This closes one of the four bodies as a gap *producer*: its Y store reads
+    raw Y from the identical formal receiver, so executing it on Mario
+    reanchors Graphics Y rather than separating the two views.  Call
+    reachability is irrelevant to that local effect. *)
+Theorem jp_obj_set_gfx_pos_from_pos_same_receiver_y_checked :
+  map fst (fn_params JGC_Helpers.f_obj_set_gfx_pos_from_pos) =
+    [JGC_Helpers._obj] /\
+  contains_same_receiver_raw_y_to_gfx_y_s
+    (fn_body JGC_Helpers.f_obj_set_gfx_pos_from_pos) = true /\
+  forall raw_y : Z, raw_y - raw_y = 0.
+Proof.
+  vm_compute.
+  split; [reflexivity |].
+  split; [reflexivity |].
+  exact Z.sub_diag.
+Qed.
 
 (** The raw-object inventories use the stricter nested selector, so the
     counted lvalue has the generated shape [receiver.rawData.asF32[index]],
