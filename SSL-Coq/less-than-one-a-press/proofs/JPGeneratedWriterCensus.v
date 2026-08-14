@@ -44,6 +44,7 @@ Module JGC_Render := jp_rendering_graph_node.
 Module JGC_Spawn := jp_spawn_object.
 Module JGC_Objects := jp_object_list_processor.
 Module JGC_Helpers := jp_object_helpers.
+Module JGC_Debug := jp_debug.
 Module JGC_Macro := jp_macro_special_objects.
 Module JGC_BScript := jp_behavior_script.
 Module JGC_BData := jp_behavior_data.
@@ -578,6 +579,28 @@ Theorem jp_obj_update_gfx_pos_and_angle_identity_reachability_checked :
     (fn_body JGC_BScript.f_cur_obj_update) = true /\
   initializer_addrof_subsequenceb [JGC_BData._bhv_mario_update]
     (gvar_init JGC_BData.v_bhvMario) = true.
+Proof. vm_compute. repeat split; reflexivity. Qed.
+
+(** None of the three callbacks named by the stock Mario behavior directly
+    assigns either the raw-data word containing [oFlags] or the float slot
+    containing [oGraphYOffset].  Thus the dangerous tail state cannot be
+    manufactured by a direct store in Mario's own callbacks.  Indirect
+    callees, aliases, external stores, interpreter commands, and slot lifetime
+    remain outside this direct-lvalue result. *)
+Theorem jp_mario_direct_callbacks_do_not_write_tail_flag_or_offset_checked :
+  assigns_nested_array_slot_s JGC_Mario._rawData JGC_Mario._asS32 1
+    (fn_body JGC_Objects.f_bhv_mario_update) = false /\
+  assigns_nested_array_slot_s JGC_Mario._rawData JGC_Mario._asF32 21
+    (fn_body JGC_Objects.f_bhv_mario_update) = false /\
+  assigns_nested_array_slot_s JGC_Mario._rawData JGC_Mario._asS32 1
+    (fn_body JGC_Debug.f_try_print_debug_mario_level_info) = false /\
+  assigns_nested_array_slot_s JGC_Mario._rawData JGC_Mario._asF32 21
+    (fn_body JGC_Debug.f_try_print_debug_mario_level_info) = false /\
+  assigns_nested_array_slot_s JGC_Mario._rawData JGC_Mario._asS32 1
+    (fn_body JGC_Debug.f_try_do_mario_debug_object_spawn) = false /\
+  assigns_nested_array_slot_s JGC_Mario._rawData JGC_Mario._asF32 21
+    (fn_body JGC_Debug.f_try_do_mario_debug_object_spawn) = false /\
+  Z.land 256 1 = 0.
 Proof. vm_compute. repeat split; reflexivity. Qed.
 
 (** The raw-object inventories use the stricter nested selector, so the

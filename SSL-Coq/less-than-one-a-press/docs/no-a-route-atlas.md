@@ -450,7 +450,12 @@ Ink gap even if that receiver is Mario.  The dangerous behavior-tail body is
 also pinned: `cur_obj_update` passes exactly `gCurrentObject` to it under flag
 bit zero, and Mario's stock behavior names its update callback.  It is
 therefore a genuine source-reachable candidate, narrowed to proving live
-current-object identity plus flag-bit and graphical-offset provenance.
+current-object identity plus flag-bit and graphical-offset provenance.  The
+three direct callbacks named by Mario's behavior are now checked not to write
+either the flag word or graphical Y-offset slot, and Mario's initializer adds
+bit eight rather than bit zero.  Any dangerous values must therefore come from
+an indirect/interpreter writer, alias or external store, or object-slot
+lifetime failure rather than Mario's direct callback bodies.
 
 **What closes it.** Produce the large three-view gap from clean execution;
 prove the first null lookup, live top-owned retry, exact return/snap/copy order,

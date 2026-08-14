@@ -450,6 +450,11 @@ writer's sole receiver under object-flag bit zero.  The stock Mario behavior
 also names its update callback.  This establishes source-level identity and a
 candidate path, but not interpreter execution, live `gCurrentObject =
 gMarioObject`, or the flag/offset invariant.
+The direct callback follow-up checks `bhv_mario_update`, the Mario debug-print
+callback, and the debug-spawn callback: none directly assigns the raw `oFlags`
+word or `oGraphYOffset` float slot.  The initializer payload's bit zero is also
+clear.  The remaining provenance is consequently indirect/interpreter,
+alias/external, or lifecycle based rather than a direct store in those bodies.
 
 `proofs/RetailFatalLatch.v` is a handwritten finite scheduler model.  It
 imports generated US/JP syntax and packed-data receipts from `ClightFacts.v`,
