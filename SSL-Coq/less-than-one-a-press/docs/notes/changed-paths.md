@@ -1226,3 +1226,5 @@ The following paths changed:
 - `SSL-Coq/less-than-one-a-press/proofs/Area1Rank1OrdinaryBridgeNoGo.v` (new)
 - `SSL-Coq/less-than-one-a-press/proofs/Area1PostCopyAliasCallbackClosure.v`
   (new)
+- `SSL-Coq/less-than-one-a-press/proofs/InkFirstNullRetryNecessity.v` (new)
+- `SSL-Coq/less-than-one-a-press/proofs/JPGeneratedWriterCensus.v`

@@ -324,6 +324,46 @@ Theorem jp_generated_pos_y_direct_assignment_counts :
     (jp_generated_array_slot_assignment_partition JGC_Mario._pos 1) = 33%nat.
 Proof. vm_compute. split; reflexivity. Qed.
 
+(** Unlike the receiver-neutral [pos[1]] inventory above, this selector
+    requires the generated lvalue suffix [gfx.pos[1]].  It therefore removes
+    MarioState, raw-object, and unrelated position arrays from the direct
+    stored-Graphics-Y census.  The receiver itself remains intentionally
+    unclassified: proving which of these eleven bodies can receive the live
+    Mario object is still a pointer/alias and call-path obligation. *)
+Theorem jp_generated_gfx_pos_y_direct_assignment_partition :
+  jp_generated_nested_array_slot_assignment_partition
+    JGC_Mario._gfx JGC_Mario._pos 1 =
+  [[];
+   [JGC_Mario._sink_mario_in_quicksand;
+    JGC_Mario._init_mario];
+   [JGC_Air._act_riding_shell_air];
+   [];
+   [JGC_Cut._end_peach_cutscene_run_to_castle];
+   [JGC_Move._tilt_body_ground_shell];
+   []; [];
+   [JGC_Submerged._update_water_pitch;
+    JGC_Submerged._surface_swim_bob];
+   []; []; []; []; [];
+   [JGC_BScript._obj_update_gfx_pos_and_angle];
+   []; []; [];
+   [JGC_Spawn._allocate_object];
+   [JGC_Helpers._obj_set_gfx_pos_from_pos;
+    JGC_Helpers._obj_set_gfx_pos_at_obj_pos];
+   []; []; []; []; []; []; []; []; []; []; []; []; []; []; []; []; []; []].
+Proof. vm_compute. reflexivity. Qed.
+
+Theorem jp_generated_gfx_pos_y_direct_assignment_counts :
+  assignment_partition_counts
+    (jp_generated_nested_array_slot_assignment_partition
+       JGC_Mario._gfx JGC_Mario._pos 1) =
+  map Z.to_nat
+    [0; 2; 1; 0; 1; 1; 0; 0; 2; 0; 0; 0; 0; 0; 1; 0; 0; 0; 1;
+     2; 0; 0; 0; 0; 0; 0; 0; 0; 0; 0; 0; 0; 0; 0; 0; 0; 0; 0] /\
+  assignment_partition_total
+    (jp_generated_nested_array_slot_assignment_partition
+       JGC_Mario._gfx JGC_Mario._pos 1) = 11%nat.
+Proof. vm_compute. split; reflexivity. Qed.
+
 (** The raw-object inventories use the stricter nested selector, so the
     counted lvalue has the generated shape [receiver.rawData.asF32[index]],
     not merely some unrelated field array named [asF32].  Indices 7 and 10

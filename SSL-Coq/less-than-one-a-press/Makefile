@@ -771,6 +771,9 @@ check: proofs
 	  LessThanOneAPress.Proofs.RetailFatalLatch \
 	  retail_fatal_latch_checked_boundary
 	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.InkFirstNullRetryNecessity \
+	  ink_first_null_retry_necessity_checked_boundary
+	bash pipeline/assumptions.sh \
 	  LessThanOneAPress.Proofs.MainTheorem \
 	  current_verified_evidence_and_collection_reduction
 	bash pipeline/assumptions.sh \
@@ -1223,6 +1226,9 @@ check: proofs
 	bash pipeline/assumptions.sh \
 	  LessThanOneAPress.Proofs.JPGeneratedWriterCensus \
 	  jp_generated_pos_y_direct_assignment_partition
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.JPGeneratedWriterCensus \
+	  jp_generated_gfx_pos_y_direct_assignment_counts
 	bash pipeline/assumptions.sh \
 	  LessThanOneAPress.Proofs.JPGeneratedWriterCensus \
 	  jp_generated_rawdata_asf32_7_direct_assignment_counts

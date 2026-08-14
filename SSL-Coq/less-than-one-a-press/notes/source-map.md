@@ -426,6 +426,12 @@ They also recognize the guarded retry-null death request, the
 `sDelayedWarpOp` first-writer latch, and geometry-before-interaction order in
 US and JP.
 
+The stricter `gfx.pos[1]` recognizer now isolates the exact generated lvalue
+used by direct Graphics-Y assignments.  Its checked JP partition contains
+eleven assignment-bearing bodies rather than the broader 33-body `pos[1]`
+inventory.  This is still receiver-neutral: live Mario receiver identity and
+the call paths into those bodies remain separate obligations.
+
 `proofs/RetailFatalLatch.v` is a handwritten finite scheduler model.  It
 imports generated US/JP syntax and packed-data receipts from `ClightFacts.v`,
 proves fatal-latch preservation over its explicit event alphabet, and includes
@@ -433,6 +439,12 @@ an over-permissive-clear counterexample.  It is not generated Clight and does
 not construct a linked small-step execution or memory projection.  The missing
 refinement must connect concrete `level_update.c`, Mario behavior dispatch,
 clear/reset scheduling, and the `sDelayedWarpOp` memory cell to this model.
+
+`proofs/InkFirstNullRetryNecessity.v` joins the computed static first-NULL
+receipt to that fatal-latch model.  Under explicit live projection premises, a
+route whose State query is NULL cannot survive a second NULL and later accept
+the upper warp; the only viable abstract outcome is a non-NULL Graphics retry.
+It does not prove live collision-list traversal or the trace projection.
 
 `proofs/GoombaRaising.v` is a separate handwritten bounded transition and
 binary32-arithmetic model.  It distinguishes a selected no-fresh-walk-jump

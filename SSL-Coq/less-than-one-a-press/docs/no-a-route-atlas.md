@@ -433,14 +433,21 @@ a Graphics/Object Y gap of `1010` (at least `960` in the route envelope).
 Injecting those three views, together with an injected pillar counter `4` that
 forces the top's spin/explosion lifecycle, reaches the conditional JP lifecycle
 and Act-6 receipt.  A retry that is also null is fatal under the abstract
-latch, so a successful route needs the non-null top retry.
+latch, and the new first-NULL capstone proves that any route projected into
+that scheduler model must therefore succeed on the Graphics retry rather than
+continue after two misses.  A stricter generated-code census also reduces the
+possible direct Graphics-Y assignment bodies from `33` receiver-neutral
+`pos[1]` sites to exactly `11` real `gfx.pos[1]` writers; identifying which can
+receive Mario remains open.
 
 **What closes it.** Produce the large three-view gap from clean execution;
 prove the first null lookup, live top-owned retry, exact return/snap/copy order,
 post-copy preservation, clean pillar-counter progression and explosion,
-unload/final-query selection, fatal-latch behavior, and the remaining Act-3
-suffix.  Act 6 separately needs the existing trigger/spawn and pickup/save-bit
-receipts joined in one linked suffix.
+unload/final-query selection, and the remaining Act-3 suffix.  The double-NULL
+case now needs only a live trace-to-latch projection, not new fatal-latch
+arithmetic; writer work should focus on receiver identity and call paths for
+the eleven direct Graphics-Y bodies.  Act 6 separately needs the existing
+trigger/spawn and pickup/save-bit receipts joined in one linked suffix.
 
 ### Negative quicksand depth plus stalled automatic dialog
 

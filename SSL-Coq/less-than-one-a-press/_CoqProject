@@ -308,5 +308,6 @@ proofs/NegativeDepthTimer131Bridge.v
 proofs/JPZeroAReachability.v
 proofs/Area1EntryZeroAPrefix.v
 proofs/RetailFatalLatch.v
+proofs/InkFirstNullRetryNecessity.v
 proofs/TurningAnimation.v
 proofs/MainTheorem.v
