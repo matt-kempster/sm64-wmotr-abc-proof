@@ -48,12 +48,15 @@ enum {
     O_INTERACT_TYPE = 0x130,
     O_ACTION = 0x14c,
     O_TIMER = 0x154,
+    O_HOME_X = 0x164,
+    O_HOME_Z = 0x16c,
     O_BHV_PARAMS = 0x188,
 };
 
 enum {
     M_INPUT = 0x02,
     M_ACTION = 0x0c,
+    M_ACTION_TIMER = 0x1a,
     M_POS_X = 0x3c,
     M_POS_Y = 0x40,
     M_POS_Z = 0x44,
@@ -79,12 +82,14 @@ enum {
     ACT_RIDING_SHELL_JUMP = 0x0281089a,
     ACT_RIDING_SHELL_FALL = 0x0081089b,
     ACT_WALKING = 0x04000440,
+    ACT_DIVE = 0x0188088a,
     ACT_DIVE_SLIDE = 0x00880456,
     ACT_STOMACH_SLIDE = 0x008c0453,
     ACT_CRAZY_BOX_BOUNCE = 0x000008ae,
     ACT_TWIRLING = 0x108008a4,
     ACT_TORNADO_TWIRLING = 0x10020372,
     INTERACT_KOOPA_SHELL = 0x00080000,
+    INTERACT_TORNADO = 0x01000000,
     ACTIVE_PARTICLE_FIRE = 0x00000800,
 };
 
@@ -99,6 +104,10 @@ static uint32_t gUpperWarp;
 static uint32_t gShellBox;
 static uint32_t gShell;
 static uint32_t gJumpingBox;
+static uint32_t gWestJumpingBox;
+static uint32_t gEastNorthTweester;
+static uint32_t gSoutheastTweester;
+static uint32_t gWestTweester;
 static int gLastPillars = -1;
 static int gLastTopAction = -1;
 static int gLastTopTimer = -1;
@@ -115,6 +124,19 @@ static int gBPressedFrames;
 static int gTravelStage;
 static int gUsedTornado;
 static int gTornadoCaptures;
+static int gMode9Stage;
+static int gMode9WestRimStage;
+static int gMode9DetectorDiveInputs;
+static int gMode9RolloutInputs;
+static int gMode9SurvivalBInputs;
+static int gMode9WestBoxContact;
+static int gMode9WestDetectorReached;
+static int gMode9NorthwestDetectorReached;
+static int gMode9SourceTweesterCaptured;
+static int gMode9EastNorthTweesterCaptured;
+static int gMode9WestTweesterCaptured;
+static int gMode10NorthAvoidanceReached;
+static float gMode9WestmostX = INFINITY;
 static uint32_t gLastMovementB;
 static uint32_t gLastAction = UINT32_MAX;
 static float gMaxStateY = -INFINITY;
@@ -183,6 +205,25 @@ static void find_area1_objects(void) {
             && closef(rfloat(object + O_POS_Z), 6480.0f, 1.0f)
             && R32(object + O_INTERACT_TYPE) != 0) {
             gJumpingBox = object;
+        }
+        if (closef(rfloat(object + O_POS_X), -5200.0f, 300.0f)
+            && closef(rfloat(object + O_POS_Z), 1700.0f, 300.0f)
+            && R32(object + O_INTERACT_TYPE) != 0) {
+            gWestJumpingBox = object;
+        }
+        if (R32(object + O_INTERACT_TYPE) == INTERACT_TORNADO) {
+            if (closef(rfloat(object + O_HOME_X), 1017.0f, 1.0f)
+                && closef(rfloat(object + O_HOME_Z), 3832.0f, 1.0f)) {
+                gEastNorthTweester = object;
+            }
+            if (closef(rfloat(object + O_HOME_X), 3066.0f, 1.0f)
+                && closef(rfloat(object + O_HOME_Z), 400.0f, 1.0f)) {
+                gSoutheastTweester = object;
+            }
+            if (closef(rfloat(object + O_HOME_X), -3600.0f, 1.0f)
+                && closef(rfloat(object + O_HOME_Z), 2940.0f, 1.0f)) {
+                gWestTweester = object;
+            }
         }
     }
 }
@@ -428,6 +469,16 @@ EXPORT void CALL RomClosed(void) {
             "maxStateYX=%.9g,maxStateYZ=%.9g,maxMarioGraphYOffset=%.9g,"
             "fireFrames=%d,sawFirePrevObj=%d,sawFireParticle=%d,"
             "usedTornado=%d,tornadoCaptures=%d,"
+            "mode9Stage=%d,mode9WestRimStage=%d,"
+            "mode9DetectorDiveInputs=%d,"
+            "mode9RolloutInputs=%d,mode9SurvivalBInputs=%d,"
+            "mode9WestBoxContact=%d,mode9WestDetectorReached=%d,"
+            "mode9NorthwestDetectorReached=%d,"
+            "mode9SourceTweesterCaptured=%d,"
+            "mode9EastNorthTweesterCaptured=%d,"
+            "mode9WestTweesterCaptured=%d,"
+            "mode10NorthAvoidanceReached=%d,"
+            "mode9WestmostX=%.9g,"
             "pillars=%d,topAction=%d,topTimer=%d,sawShell=%d,rodeShell=%d,"
             "bPressedFrames=%d,"
             "warpDisappeared=%d,warpUsedObj=%d,platformTop=%d,"
@@ -441,6 +492,16 @@ EXPORT void CALL RomClosed(void) {
             gMaxStateYX, gMaxStateYZ, gMaxMarioGraphYOffset,
             gFireFrames, gSawFirePrevObj, gSawFireParticle,
             gUsedTornado, gTornadoCaptures,
+            gMode9Stage, gMode9WestRimStage,
+            gMode9DetectorDiveInputs,
+            gMode9RolloutInputs, gMode9SurvivalBInputs,
+            gMode9WestBoxContact, gMode9WestDetectorReached,
+            gMode9NorthwestDetectorReached,
+            gMode9SourceTweesterCaptured,
+            gMode9EastNorthTweesterCaptured,
+            gMode9WestTweesterCaptured,
+            gMode10NorthAvoidanceReached,
+            gMode9WestmostX,
             gLastPillars, gLastTopAction, gLastTopTimer,
             gSawShell, gRodeShell, gBPressedFrames,
             gWarpDisappeared, gWarpUsedObj, gPlatformTop,
@@ -540,6 +601,322 @@ EXPORT void CALL GetKeys(int control, BUTTONS *keys) {
     }
     if (SEARCH_MODE == 2) goto log_frame;
 
+    /* A controller-only witness for the two eastern pillar detectors.  The
+       first Tweester lift reaches the northeast detector.  Staying west of
+       the southeast Tweester's home point then draws it south before the
+       second collision, shortening the next lift enough to reach the
+       southeast detector.  After that checkpoint the recorded bounded
+       schedule heads back toward the Tweester and terminates in quicksand. */
+    if (SEARCH_MODE == 7 && gUsedTornado) {
+        float target_x;
+        float target_z;
+
+        if (pillars == 0) {
+            target_x = 1789.0f;
+            target_z = 764.0f;
+        } else if (pillars == 1 && gTornadoCaptures == 1) {
+            /* Stay west of the home point and draw the chasing Tweester
+               south before collision, shortening the following lift. */
+            target_x = 1789.0f;
+            target_z = -800.0f;
+        } else if (pillars == 1) {
+            target_x = 1789.0f;
+            target_z = -2579.0f;
+        } else {
+            target_x = 3066.0f;
+            target_z = 400.0f;
+        }
+
+        steer_world(keys, target_x, target_z, 127.0f);
+        goto log_frame;
+    }
+
+    /* Experimental continuations from the same two-pillar checkpoint through
+       a stock east-to-west Tweester relay.  Mode 9 directly reuses mode 6's
+       west-Tweester target after the northeast release.  Mode 10 changes only
+       that leg: it first stays north of the central pyramid until x < -2000,
+       avoiding the wall reflection measured in mode 9. */
+    if ((SEARCH_MODE == 9 || SEARCH_MODE == 10) && gUsedTornado) {
+        uint32_t action = R32(A_MARIO_STATES + M_ACTION);
+        uint32_t timer = R32(A_GLOBAL_TIMER);
+        uint32_t held_object = R32(A_MARIO_STATES + M_HELD_OBJ);
+        uint32_t used_object = R32(A_MARIO_STATES + M_USED_OBJ);
+        float mario_x = rfloat(A_MARIO_STATES + M_POS_X);
+        float mario_z = rfloat(A_MARIO_STATES + M_POS_Z);
+        float target_x;
+        float target_z;
+        float distance;
+
+        if (pillars == 2 && mario_x < gMode9WestmostX) {
+            gMode9WestmostX = mario_x;
+        }
+        if (pillars >= 2 && action == ACT_TORNADO_TWIRLING
+            && used_object == gSoutheastTweester
+            && !gMode9SourceTweesterCaptured) {
+            gMode9SourceTweesterCaptured = 1;
+            gMode9Stage = 3;
+            fprintf(stderr,
+                    "MODE9_STAGE,timer=%u,stage=3,label=source-tweester,"
+                    "state=(%.9g,%.9g,%.9g),usedObj=%08x\n",
+                    timer, mario_x, rfloat(A_MARIO_STATES + M_POS_Y),
+                    mario_z, used_object);
+        }
+        if (pillars >= 2 && action == ACT_TORNADO_TWIRLING
+            && used_object == gWestTweester
+            && !gMode9WestTweesterCaptured) {
+            gMode9WestTweesterCaptured = 1;
+            gMode9Stage = 5;
+            fprintf(stderr,
+                    "MODE9_STAGE,timer=%u,stage=5,label=west-tweester,"
+                    "state=(%.9g,%.9g,%.9g),usedObj=%08x\n",
+                    timer, mario_x, rfloat(A_MARIO_STATES + M_POS_Y),
+                    mario_z, used_object);
+        }
+        if (pillars >= 2 && action == ACT_TORNADO_TWIRLING
+            && used_object == gEastNorthTweester
+            && !gMode9EastNorthTweesterCaptured) {
+            gMode9EastNorthTweesterCaptured = 1;
+            gMode9Stage = 4;
+            fprintf(stderr,
+                    "MODE9_STAGE,timer=%u,stage=4,"
+                    "label=east-north-tweester,"
+                    "state=(%.9g,%.9g,%.9g),usedObj=%08x\n",
+                    timer, mario_x, rfloat(A_MARIO_STATES + M_POS_Y),
+                    mario_z, used_object);
+        }
+        if (gWestJumpingBox != 0
+            && (held_object == gWestJumpingBox
+                || (action == ACT_CRAZY_BOX_BOUNCE
+                    && used_object == gWestJumpingBox))
+            && !gMode9WestBoxContact) {
+            gMode9WestBoxContact = 1;
+            gMode9Stage = 7;
+            fprintf(stderr,
+                    "MODE9_STAGE,timer=%u,stage=7,label=west-box,"
+                    "state=(%.9g,%.9g,%.9g),usedObj=%08x\n",
+                    timer, mario_x, rfloat(A_MARIO_STATES + M_POS_Y),
+                    mario_z, used_object);
+        }
+        if (pillars >= 3 && !gMode9WestDetectorReached) {
+            gMode9WestDetectorReached = 1;
+            gMode9Stage = 6;
+            fprintf(stderr,
+                    "MODE9_STAGE,timer=%u,stage=6,"
+                    "label=southwest-detector,state=(%.9g,%.9g,%.9g)\n",
+                    timer, mario_x,
+                    rfloat(A_MARIO_STATES + M_POS_Y), mario_z);
+        }
+        if (pillars >= 4) {
+            if (!gMode9NorthwestDetectorReached) {
+                gMode9NorthwestDetectorReached = 1;
+                gMode9Stage = 8;
+                fprintf(stderr,
+                        "MODE9_STAGE,timer=%u,stage=8,"
+                        "label=northwest-detector,"
+                        "state=(%.9g,%.9g,%.9g),topAction=%d,topTimer=%d\n",
+                        timer, mario_x,
+                        rfloat(A_MARIO_STATES + M_POS_Y), mario_z,
+                        top_action, top_timer);
+            }
+            /* Pillar four is the decisive endpoint for this bounded mode:
+               leave the controller neutral and retain TOP lifecycle samples. */
+            goto log_frame;
+        }
+        if (pillars >= 3 && top_action != 0) {
+            /* A defensive endpoint: stock activation should require all four
+               detectors.  Preserve any contrary observation without input. */
+            fprintf(stderr,
+                    "MODE9_STAGE,timer=%u,stage=7,"
+                    "label=early-top-action,pillars=%d,topAction=%d\n",
+                    timer, pillars, top_action);
+            goto log_frame;
+        }
+        if (pillars == 0) {
+            target_x = 1789.0f;
+            target_z = 764.0f;
+        } else if (pillars == 1 && gTornadoCaptures == 1) {
+            target_x = 1789.0f;
+            target_z = -800.0f;
+        } else if (pillars == 1) {
+            target_x = 1789.0f;
+            target_z = -2579.0f;
+        } else if (pillars == 2 && gMode9Stage == 0 && timer < 1250) {
+            /* The second Tweester reaches home and completes its 60-frame
+               hide before this bound.  Waiting on the detector is dry and
+               prevents the reset delay from being paid in quicksand. */
+            goto log_frame;
+        } else if (pillars == 2 && !gMode9SourceTweesterCaptured) {
+            /* This ordinary-quicksand point lies inside the southeast
+               Tweester's 1500-unit idle activation radius. */
+            target_x = 1950.0f;
+            target_z = -450.0f;
+        } else if (pillars == 2 && !gMode9EastNorthTweesterCaptured) {
+            target_x = 1017.0f;
+            target_z = 3832.0f;
+        } else if (pillars == 2 && !gMode9WestTweesterCaptured
+                   && SEARCH_MODE == 10 && mario_x >= -2000.0f) {
+            target_x = -2200.0f;
+            target_z = 3500.0f;
+        } else if (pillars == 2 && !gMode9WestTweesterCaptured) {
+            if (SEARCH_MODE == 10 && !gMode10NorthAvoidanceReached) {
+                gMode10NorthAvoidanceReached = 1;
+                fprintf(stderr,
+                        "MODE9_STAGE,timer=%u,stage=4,"
+                        "label=mode10-north-avoidance,"
+                        "state=(%.9g,%.9g,%.9g)\n",
+                        timer, mario_x,
+                        rfloat(A_MARIO_STATES + M_POS_Y), mario_z);
+            }
+            /* Exact mode-6 relay target.  A repeat capture of the source
+               Tweester does not change this target. */
+            target_x = -3600.0f;
+            target_z = 2940.0f;
+        } else if (pillars == 2 && gMode9WestTweesterCaptured) {
+            target_x = -5883.0f;
+            target_z = -2579.0f;
+        } else if (pillars == 2 && gWestJumpingBox != 0
+                   && R16(gWestJumpingBox + O_ACTIVE_FLAGS) != 0) {
+            target_x = rfloat(gWestJumpingBox + O_POS_X);
+            target_z = rfloat(gWestJumpingBox + O_POS_Z);
+        } else if (pillars == 2) {
+            target_x = -5200.0f;
+            target_z = 1700.0f;
+        } else if (pillars == 3 && gMode9WestBoxContact) {
+            target_x = -5883.0f;
+            target_z = 764.0f;
+        } else if (pillars == 3 && gMode9WestRimStage == 0) {
+            target_x = -5900.0f;
+            target_z = 300.0f;
+            if (mario_z > 200.0f) {
+                gMode9WestRimStage = 1;
+                fprintf(stderr,
+                        "MODE9_STAGE,timer=%u,stage=6,westRimStage=1,"
+                        "state=(%.9g,%.9g,%.9g)\n",
+                        timer, mario_x,
+                        rfloat(A_MARIO_STATES + M_POS_Y), mario_z);
+            }
+        } else if (pillars == 3 && gMode9WestRimStage == 1) {
+            target_x = -5600.0f;
+            target_z = 1200.0f;
+            if (mario_z > 1100.0f) {
+                gMode9WestRimStage = 2;
+                fprintf(stderr,
+                        "MODE9_STAGE,timer=%u,stage=6,westRimStage=2,"
+                        "state=(%.9g,%.9g,%.9g)\n",
+                        timer, mario_x,
+                        rfloat(A_MARIO_STATES + M_POS_Y), mario_z);
+            }
+        } else if (pillars == 3 && gMode9WestRimStage == 2) {
+            /* Approach from northeast of the box.  The resulting southwest
+               heading is retained by CRAZY_BOX_BOUNCE and points at the
+               northwest detector. */
+            target_x = -4500.0f;
+            target_z = 2500.0f;
+            if (hypotf(target_x - mario_x, target_z - mario_z) < 160.0f) {
+                gMode9WestRimStage = 3;
+                fprintf(stderr,
+                        "MODE9_STAGE,timer=%u,stage=6,westRimStage=3,"
+                        "state=(%.9g,%.9g,%.9g)\n",
+                        timer, mario_x,
+                        rfloat(A_MARIO_STATES + M_POS_Y), mario_z);
+            }
+        } else if (pillars == 3 && gWestJumpingBox != 0
+                   && R16(gWestJumpingBox + O_ACTIVE_FLAGS) != 0) {
+            target_x = rfloat(gWestJumpingBox + O_POS_X);
+            target_z = rfloat(gWestJumpingBox + O_POS_Z);
+        } else if (pillars == 3) {
+            target_x = -5200.0f;
+            target_z = 1700.0f;
+        } else {
+            target_x = -2048.0f;
+            target_z = -1024.0f;
+        }
+
+        distance = hypotf(target_x - mario_x, target_z - mario_z);
+        steer_world(keys, target_x, target_z, 127.0f);
+
+        if (pillars == 2 && !gMode9SourceTweesterCaptured
+            && gMode9Stage == 0 && timer >= 1250
+            && action == ACT_WALKING
+            && rfloat(A_MARIO_STATES + M_FORWARD_VEL) >= 29.0f
+            && timer - gLastMovementB >= 20) {
+            keys->B_BUTTON = 1;
+            gMode9Stage = 1;
+            gMode9DetectorDiveInputs++;
+            gBPressedFrames++;
+            gLastMovementB = timer;
+            fprintf(stderr,
+                    "B_INPUT,timer=%u,label=mode9-detector-dive,"
+                    "distance=%.9g,state=(%.9g,%.9g,%.9g),action=%08x\n",
+                    timer, distance, mario_x,
+                    rfloat(A_MARIO_STATES + M_POS_Y), mario_z, action);
+        } else if (pillars == 2 && !gMode9SourceTweesterCaptured
+                   && gMode9Stage == 1
+                   && (action == ACT_DIVE_SLIDE
+                       || (action == ACT_STOMACH_SLIDE
+                           && R16(A_MARIO_STATES + M_ACTION_TIMER) >= 5))
+                   && timer - gLastMovementB >= 20) {
+            keys->B_BUTTON = 1;
+            gMode9Stage = 2;
+            gMode9RolloutInputs++;
+            gBPressedFrames++;
+            gLastMovementB = timer;
+            fprintf(stderr,
+                    "B_INPUT,timer=%u,label=mode9-activation-rollout,"
+                    "distance=%.9g,state=(%.9g,%.9g,%.9g),action=%08x\n",
+                    timer, distance, mario_x,
+                    rfloat(A_MARIO_STATES + M_POS_Y), mario_z, action);
+        } else if (pillars == 2 && !gMode9SourceTweesterCaptured
+                   && gMode9Stage >= 2 && timer - gLastMovementB >= 20
+                   && ((action == ACT_WALKING
+                        && rfloat(A_MARIO_STATES + M_FORWARD_VEL) >= 29.0f)
+                       || action == ACT_DIVE_SLIDE
+                       || action == ACT_STOMACH_SLIDE)) {
+            keys->B_BUTTON = 1;
+            gMode9SurvivalBInputs++;
+            gBPressedFrames++;
+            gLastMovementB = timer;
+            fprintf(stderr,
+                    "B_INPUT,timer=%u,label=mode9-activation-survival,"
+                    "distance=%.9g,state=(%.9g,%.9g,%.9g),action=%08x\n",
+                    timer, distance, mario_x,
+                    rfloat(A_MARIO_STATES + M_POS_Y), mario_z, action);
+        } else if (pillars == 3
+                   && !gMode9WestBoxContact && gWestJumpingBox != 0
+                   && R16(gWestJumpingBox + O_ACTIVE_FLAGS) != 0
+                   && held_object == 0 && action != ACT_CRAZY_BOX_BOUNCE
+                   && action != ACT_TORNADO_TWIRLING
+                   && action != ACT_TWIRLING && distance < 135.0f
+                   && timer - gLastMovementB >= 20) {
+            keys->B_BUTTON = 1;
+            gBPressedFrames++;
+            gLastMovementB = timer;
+            fprintf(stderr,
+                    "B_INPUT,timer=%u,label=mode9-west-jumping-box,"
+                    "distance=%.9g,state=(%.9g,%.9g,%.9g),action=%08x,"
+                    "box=%08x\n",
+                    timer, distance, mario_x,
+                    rfloat(A_MARIO_STATES + M_POS_Y), mario_z, action,
+                    gWestJumpingBox);
+        } else if (pillars == 3 && !gMode9WestBoxContact
+                   && timer - gLastMovementB >= 20
+                   && ((action == ACT_WALKING
+                        && rfloat(A_MARIO_STATES + M_FORWARD_VEL) >= 29.0f)
+                       || action == ACT_DIVE_SLIDE
+                       || action == ACT_STOMACH_SLIDE)) {
+            keys->B_BUTTON = 1;
+            gMode9SurvivalBInputs++;
+            gBPressedFrames++;
+            gLastMovementB = timer;
+            fprintf(stderr,
+                    "B_INPUT,timer=%u,label=mode9-west-rim-movement,"
+                    "distance=%.9g,state=(%.9g,%.9g,%.9g),action=%08x\n",
+                    timer, distance, mario_x,
+                    rfloat(A_MARIO_STATES + M_POS_Y), mario_z, action);
+        }
+        goto log_frame;
+    }
+
     /* First obtain the stock Area-1 shell using only ordinary movement and
        B attacks.  Its action is the largest dry stock Graphics-Y writer. */
     if (!gRodeShell) {
@@ -554,7 +931,8 @@ EXPORT void CALL GetKeys(int control, BUTTONS *keys) {
         } else if (R32(A_MARIO_STATES + M_HELD_OBJ) != 0
                    || R32(A_MARIO_STATES + M_ACTION)
                         == ACT_CRAZY_BOX_BOUNCE) {
-            if (SEARCH_MODE >= 3 && SEARCH_MODE <= 6) {
+            if ((SEARCH_MODE >= 3 && SEARCH_MODE <= 7)
+                || SEARCH_MODE == 9 || SEARCH_MODE == 10) {
                 target_x = -5125.0f;
                 target_z = -3138.0f;
             } else {
@@ -579,7 +957,8 @@ EXPORT void CALL GetKeys(int control, BUTTONS *keys) {
         } else if (SEARCH_MODE == 4 && gUsedTornado) {
             target_x = -2048.0f;
             target_z = -1024.0f;
-        } else if (SEARCH_MODE >= 3 && SEARCH_MODE <= 6) {
+        } else if ((SEARCH_MODE >= 3 && SEARCH_MODE <= 7)
+                   || SEARCH_MODE == 9 || SEARCH_MODE == 10) {
             target_x = -5125.0f;
             target_z = -3138.0f;
         } else if (gTravelStage == 0) {
@@ -655,7 +1034,7 @@ EXPORT void CALL GetKeys(int control, BUTTONS *keys) {
     }
 
     /* Visit all four real touch detectors.  The order starts with the two
-       western detectors and leaves the nearest eastern detector last. */
+       eastern detectors and then crosses to the western pair. */
     switch (pillars) {
         case 0: steer_world(keys, 1789.0f, 764.0f, 127.0f); break;
         case 1: steer_world(keys, 1789.0f, -2579.0f, 127.0f); break;

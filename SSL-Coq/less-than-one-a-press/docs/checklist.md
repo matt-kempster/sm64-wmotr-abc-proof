@@ -5,6 +5,10 @@ chronology. Every checkbox below is an outstanding obligation. Checked work is
 preserved in the [completed-task archive](checklist-completed.md), where each
 entry remains no stronger than its stated caveats.
 
+For a plain-language, family-by-family explanation of every active and retired
+route idea, including its current evidence, close-out condition, and overall
+counterexample-search rank, see the [no-A route atlas](no-a-route-atlas.md).
+
 Priority means:
 
 - **High:** on the direct path to proving or refuting a clean installer and the ultimate theorem.
@@ -198,11 +202,192 @@ These obligations currently block the clean-retail result.
   `find_floor` arguments and pin the dynamic loader to an ordered
   `gCurrentObject -> Surface.object` prefix followed later by
   `add_surface(surface, 1)` with the same syntactic surface-temporary identifier
-  (with static loaders using flag `0`).  The checkbox remains open: preserving that
-  Object sample to the collision phase and deriving linked writer/non-alias/
-  external-frame, surface-temporary-value, terrain-dispatch, chronology-to-run, live-owner, and
-  slot/epoch lifecycle facts from the post-boundary execution are not yet
-  proved.
+  (with static loaders using flag `0`).  The direct-source-union follow-up now
+  proves that this local temporary has no intervening explicit assignment; it
+  does not frame the pointed-to cell through whole-struct/builtin mutation,
+  aliases, or externals.  The checkbox remains open: preserving that Object
+  sample to the collision phase and deriving linked writer/non-alias/external-
+  frame, pointed-surface-cell, terrain-dispatch, chronology-to-run, live-owner,
+  and slot/epoch lifecycle facts from the post-boundary execution are not yet
+  proved.  The search space is no longer represented by the four completed-query
+  lineage fields alone.  `Area1GapApproachCoverage.v` now proves that a supplied
+  trace ending in a gap exposes a first State-endpoint, Object-endpoint, or
+  joint divergence together with a synchronized-prefix certificate; expands a
+  different query/current sample into pre-geometry State,
+  Graphics retry, cached-floor snap, post-copy discrepancy, interaction-writer,
+  moving-skipped-frame, or unclassified-projection cases; and makes terrain,
+  platform-refinement, and collision-stage failures data-bearing alternatives.
+  It also classifies each supplied split-to-split survival step as changing
+  neither endpoint, State only, Object only, or both, and packages a sustained
+  suffix only from explicit trace-local split-preservation evidence.
+  The same module separately classifies a supplied accepted upper-warp
+  collision-cache observation as faithful current-frame/live-owner overlap or
+  a missed-clear, wrong-receiver/list, stale/wrong-owner, alias, external,
+  corruption, or unclassified escape; deriving that observation from linked
+  retail collision-list execution remains open.
+  An authentic original-JP controller-only run now gives a zero-A prefix,
+  after an externally enabled level-select entry, through the two eastern
+  pyramid-top detectors: the counter changes `0 -> 1` at timer `800` and
+  `1 -> 2` at timer `1109`, with every recorded A counter zero.  Ordinary-
+  entry equivalence remains unproved.  It reaches neither western detector,
+  leaves the top unstarted, and
+  samples no positive State/Object/Graphics gap, so it does not close this
+  item.  Two later one-run, 8,000-frame zero-A relay schedules reproduced that
+  checkpoint and pointer-identified southeast/northeast Tweester relays, then
+  reflected from the central pyramid and died before the west Tweester or
+  western detectors; neither started the top or sampled a positive gap.  They
+  reject only those bounded schedules.  `Area1PostCopyObjectWriterClosure.v`
+  closes two scoped sample-mismatch
+  subbranches: the bilateral direct-designated raw-Mario-Object XYZ census is
+  exactly `init_mario`, `butterfly_calculate_angle`, and
+  `check_instant_warp`; and, under preserved collision X/Z, exact cached
+  Y=`768`, a completed copy, and the finite stock-query relation, the
+  cached-floor-only final query is null.  `Area1ButterflyStaticOriginClosure.v`
+  further proves that stock Area-1 macro, regular level-script, and selected
+  special-preset families do not select the remaining butterfly callback.
+  These results do not cover `gCurrentObject`/other aliases, indirect or
+  forged callbacks, external stores, retarget/lifecycle effects, abnormal
+  control, complete live butterfly provenance, or a displaced live floor
+  sample; nor do they couple the two-pillar prefix to top capture.
+  `Area1InteractionShortCircuitClosure.v` now pins the bilateral warp-handler
+  table slot and the successful nonfading return/break path.  Under explicit
+  live-dispatch, receiver, alias/external-frame, and completed-copy premises,
+  later handlers cannot run and only cached-floor Y may change the sample.
+  `Area1CachedFloorSelectionClosure.v` then generalizes the old exact-Y=`768`
+  result: every same-sample floor admitted from upper-warp contact is at most
+  Y=`896`, which cannot select any finite modeled stock owner at preserved
+  warp X/Z.  Live binary32 `find_floor` refinement and owner/list projection
+  remain open.
+  `Area1CachedFloorSplitWitness.v` now constructs the concrete source-shaped
+  cached-floor schedule rather than assuming the samples equal: collision is
+  `(-2048,818,-1024)`, the completed-copy final query is
+  `(-2048,768,-1024)`, and the difference is exactly `(0,-50,0)`.  The actual
+  Y=`818` query's generated US and JP cell-`(6,7)` inventories both contain
+  face `(498,500,501)`; its source-shaped decision is `WouldHit` and its
+  horizontal height is `768`.  No A-input premise occurs in the construction,
+  but exact zero-A reachability, live traversal/selection, dispatch, receiver,
+  alias/external, owner, and lifecycle linkage remain open.  The accepted
+  branch preserves X/Z, moves downward, needs more than `459` upward units to
+  capture the top, and has a null finite-stock query.  Therefore the immediate
+  close-out is to link a *useful* split or eliminate the remaining escapes;
+  routing the remaining pillars is downstream and should not be prioritized
+  until such an installer survives.
+  `Area1SchedulerSurfaceLifecycleSplit.v` now proves two stronger conditional
+  reductions around that target.  Its generated-source-union census checks the
+  recognized direct explicit transition-callback assignment/call syntax,
+  including exactly four direct `level_set_transition` occurrences, and direct
+  explicit `Surface.object` field assignments.  The only recognized direct
+  non-null owner write copies `gCurrentObject`, and the same surface temporary
+  reaches dynamic insertion without reassignment.  In the finite
+  scheduler/owner model, every accepted warp frame with a non-null stock query
+  contains the final query and requires a query sample distinct from the
+  collision sample.  Adding an arbitrary separately supplied lifecycle-fate
+  witness does not change that conclusion; it does not prove coupling or trace
+  order.  A separate inactive, freed, unreused payload survivor shows that no-
+  reuse alone does not close stale-payload use.  These are recognized direct-
+  syntax and finite-model results, not whole-struct/builtin mutation coverage,
+  alias/external framing, indirect callback resolution, live list/owner
+  refinement, or linked execution.
+  `Area1Rank1OrdinaryBridgeNoGo.v` packages five explicit premises: same-frame
+  scheduler, upper-warp contact, cached-floor selection, accepted
+  dispatch/sample/alias/external/final-receiver projection, and stock
+  surface-owner/list/final-query refinement.  With all five, the contradiction
+  is independent of an arbitrary separately supplied lifecycle fate because
+  that argument is unused.  No coupled chronology is proved.  This conditional
+  ordinary bridge no-go is not a retail closure and does not establish that the
+  known Y-only/downward/null witness is the only retail split.  The open work
+  is to derive those fields from the linked run or carry the first concrete
+  failure as the useful split/installer; the western pillars remain downstream.
+  `Area1PostCopyAliasCallbackClosure.v` closes the direct one-hop designated-
+  Mario subcase: the bilateral corpus has nine direct raw-XYZ formal-receiver
+  helpers, no one-hop designated-Mario call into them, and the audited
+  particle/debug child-copy chains use the fresh child as destination and the
+  current/Mario object as source.  Its memory frame proves that a distinct
+  valid object slot cannot change Mario's raw load.  Current-node identity,
+  allocator freshness, transitive wrappers, indirect/external calls, and
+  lifecycle/retarget aliasing remain open.
+  `Area1MovingSkippedQueryClosure.v` separately finds no concrete moving
+  skipped-query witness in the audited generated normal/basic/object-warp
+  shapes: coordinate-moving warp paths precede a full same-frame query, while
+  the delayed-warp source installs a null callback for the two query-free
+  frames, whose checked bodies have no direct Mario-view/platform syntax.
+  Callback-target, external/non-alias, play-mode, and null-object lifecycle
+  linkage remain open.
+  Finally, `DefaultArea1Rank1ResidualCapstone.v` reduces a supplied default-
+  start active preapply to completed-query lineage and expands a supplied
+  sample difference into seven named approaches.  The current wrapper still
+  does not derive chronology events, samples, or owner identity from its
+  `ImportedClightRun`.  `DefaultArea1Rank1BoundaryUnderdetermination.v`
+  constructively demonstrates that weakness by admitting a fabricated
+  top-query record for any nonvacuous active JP run.  This is a boundary
+  diagnostic, not a retail counterexample; a linked run-to-preapply
+  construction is now the decisive missing proof interface.
+  `PlatformExternalGapSemantics.v` reduces a defined first divergent store to
+  one endpoint and forces any harmful unresolved external into its explicit
+  writer/lifecycle branch.  `Area1SurfaceEpochLifecycle.v` separately classifies
+  apply-time payload fate as live same epoch, inactive/freed same epoch, fresh
+  same-slot epoch, or invalid/aliased, and supplies an abstract epoch-4-to-5
+  reuse countermodel where State moves while Object remains local.  This is not
+  a clean-retail witness.  The leading source-and-trace-supported product is a
+  different final-query/current-collision sample with the authenticated JP
+  inactive-old-top fate; the observed top remains unreused through the true
+  first destination apply.  Fresh same-slot reuse remains a speculative
+  abstract fallback, and the independent witnesses do not prove a coupled
+  execution.  `Area1PolePushSchedule.v` and `Area1PolePushLinkage.v`
+  conditionally reject the concrete stock exterior-palm late-writer idea:
+  static Area-1 data ties that palm to `bhvTree`, whose X/Z-only push is in
+  POLELIKE before the PLAYER update; a completed, correctly targeted
+  State-to-Object copy resynchronizes it.  A survivor must instead expose a
+  post-player writer, a skipped/misdirected copy, or another listed escape.
+  `Area1PostCopyTailClassification.v` now states that next boundary without
+  claiming a linked construction.  Its broad theorem classifies a supplied
+  copy-to-precollision tail as synchronization-preserving or as a classified
+  residual: a projected-coordinate change, copy failure, endpoint retarget, lifecycle
+  change, alias/external effect, or scheduler/unclassified effect.  Such a
+  residual is not necessarily data-bearing.  Under a faithful successful copy
+  and an actual final State/Object value split, its stronger theorem skips
+  every edge that preserves both projected values and extracts a State-only,
+  Object-only, or joint value-changing edge.  Linked execution must still
+  supply the tail snapshots and their origins, so the parent item remains
+  open.  Its `SuppliedFrameTail` is only a caller-authored chain of snapshots
+  and origin labels; it proves neither generated-source adjacency nor retail
+  execution semantics.  `Area1PostPlayerTailSource.v` narrows that supplied tail against the
+  bilateral generated source: the exact numeric suffix after PLAYER is
+  `[5; 4; 2; 6; 8; 12; -1]`, but this begins only after the PLAYER traversal
+  finishes and is not the whole post-copy tail.  Within `bhv_mario_update`, the
+  State-to-Object copy precedes `spawn_particle`; `bhvMario` then names
+  `try_do_mario_debug_object_spawn`, whose body calls `spawn_object_relative`;
+  and traversal can advance to a later PLAYER node if one exists.  These are
+  explicit intra-PLAYER residuals, not proof that a guard enables a spawn or
+  that another node exists.  The two `sParticleTypes` initializer lists are
+  also checked to equal 18 paired behavior identifiers whose definitions all
+  begin with `8 << 16` (list 8); the local AST forwards the selected table
+  `behavior` through `spawn_particle` argument 3 to
+  `spawn_object_at_origin` argument 4.  This identifies a concrete source
+  candidate family, but proves no loop/index execution, enabled flag,
+  allocation, visitation, callback execution, coordinate change, or clean
+  reachability.  Object
+  updating is later followed by unload and
+  the final platform query.  A direct-lvalue census finds no State-position or
+  raw-Object XYZ assignment in the fixed scheduler/traversal, unload, or
+  final-query bodies, but does not census dispatched callbacks and stops at the
+  query rather than the next pre-collision boundary: `update_objects` calls
+  `try_print_debug_mario_object_info` afterward.  The module
+  also identifies a concrete non-root callback
+  lead rather than assuming static-root completeness: an Area-1
+  `bhvBreakableBox` reaches `obj_explode_and_spawn_coins`, then
+  `spawn_triangle_break_particles`, whose requested
+  `bhvBreakBoxTriangle` behavior is in list 12 and therefore later than PLAYER
+  in the array.  These receipts do not prove successful allocation, same-frame
+  visitation, or callback execution.  Closing the intra-PLAYER particle/debug
+  paths and possible later PLAYER nodes, transitive spawn and behavior-
+  interpreter dispatch, receiver/non-alias and external-call frames,
+  unload/pool-reuse lifecycle, abnormal returns, the post-query debug callback,
+  and next-frame warp/instant-warp effects remains part of this open item.
+  Linked behavior-list execution and copy identity, coupling, exact payload
+  bytes, geometry, and binary32 apply execution remain open.  The complete
+  approach inventory and proof/disproof priorities are recorded in
+  [`notes/local-object-nonlocal-state-gap-matrix.md`](notes/local-object-nonlocal-state-gap-matrix.md).
 
 - [ ] Prove which JP raw-platform cases are reachable and bound every reachable
   spawning displacement.  Execute the imported matrix/surface helpers over live

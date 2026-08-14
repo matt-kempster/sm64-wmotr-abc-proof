@@ -384,8 +384,125 @@ the terrain frame, the real platform branch, and the collision frame; under
 those premises a synchronized State/Object split requires an effective
 State-only platform apply, while that apply cannot create Ink's
 Object/Graphics gap.  These are admission-free source/abstract results, not a
-linked clean-run projection.  See
+linked clean-run projection.  `Area1GapApproachCoverage.v` now fills the
+previously missing conditional mechanism census: it exposes the first
+State/Object divergence with a synchronized-prefix certificate, expands a
+different query/current sample into seven schedule/projection routes while
+retaining the source/projection sample equalities, and makes
+terrain/platform/collision refinement failures explicit.  It separately
+classifies every supplied split-to-split survival edge as changing neither
+endpoint, State only, Object only, or both; its sustained-suffix theorem
+requires explicit trace-local evidence that every post-creator edge preserves
+the split.  The four completed-query lineage fields are therefore no longer
+presented as globally exhaustive.  See
 [`docs/notes/installer-temporal-closure.md`](docs/notes/installer-temporal-closure.md).
+
+The highest-ranked concrete route has now been narrowed further without being
+declared solved.  A hash-gated original-JP controller run, starting after an
+externally enabled level-select entry, reaches the two eastern pyramid-top
+detectors with no A input: the counter changes `0 -> 1` at timer `800` and
+`1 -> 2` at timer `1109`.  Equivalence to ordinary castle entry is unproved.
+It does not reach the western
+detectors, start the top, capture a platform, use the warp, or create a sampled
+positive coordinate-view gap.  On the proof side,
+`Area1PostCopyObjectWriterClosure.v` computes the complete bilateral
+direct-designated Mario raw-Object XYZ writer census and reduces the ordinary
+post-copy case to the butterfly callback after initialization/instant-warp
+phase exclusions.  `Area1ButterflyStaticOriginClosure.v` excludes that
+callback from the stock Area-1 macro, regular level-script, and selected
+special-preset families.  The former module also proves that an explicit
+cached-floor snap to Y=`768` with preserved collision X/Z cannot turn the
+completed-copy finite-stock platform query non-null, including at the exact
+upper-warp centre.  Alias receivers, indirect/forged callbacks, externals,
+retarget/lifecycle effects, displaced live floor samples, and the other
+sample-divergence branches remain open.
+
+Two later one-run, 8,000-frame zero-A relay schedules reproduced the same
+two-pillar checkpoint and pointer-identified southeast/northeast Tweester
+relays.  Both reflected from the central pyramid and died before the west
+Tweester or either western detector; neither started the top or sampled a
+positive gap.  They reject only those bounded controller schedules.
+
+Three additional rank-1 reductions are now checked.  The bilateral accepted
+nonfading-warp source path returns a nonzero `ACT_DISAPPEARED` result and
+short-circuits later interaction handlers; under explicit live dispatch,
+receiver, alias/external-frame, and copy/query premises, only cached-floor Y
+can change the sample.  `Area1CachedFloorSelectionClosure.v` proves every
+same-sample accepted cached floor is at most Y=`896`, which cannot select any
+finite modeled stock Area-1 owner at preserved upper-warp X/Z.
+`Area1MovingSkippedQueryClosure.v` finds no moving query skip in the audited
+normal/basic/object-warp source shapes: moving warp paths precede a full
+same-frame query, while delayed-warp source installs a null callback for the
+two query-free frames, whose checked bodies have no direct Mario-view/platform
+syntax.  These remain conditional on linked execution and memory framing.
+
+`Area1CachedFloorSplitWitness.v` now proves that this schedule case can really
+split the samples inside the source-shaped finite model.  Collision reads
+`(-2048,818,-1024)`; `ACT_DISAPPEARED` snaps to cached floor Y=`768`; the
+completed copy and final query read `(-2048,768,-1024)`, for exact delta
+`(0,-50,0)`.  The generated US and JP cell-`(6,7)` inventories at the actual
+Y=`818` query both contain face `(498,500,501)`; its finite floor decision is
+`WouldHit` and its horizontal height is `768`.  No A-input premise is needed
+to construct the schedule.  That does not prove clean reachability or linked
+surface traversal/selection, dispatch, receiver, alias/external, owner, copy,
+or lifecycle facts.  The general branch preserves X/Z, this witness moves
+downward, top capture needs more than `459` upward units, and the conditional
+finite-stock final query is null.  It is therefore a real but non-useful split,
+not the missing top installer.
+
+`Area1SchedulerSurfaceLifecycleSplit.v` tightens the surrounding scheduler,
+owner, and lifetime boundary.  Across the generated US/JP source unions, it
+checks the recognized direct explicit transition-callback assignment/call
+syntax, including exactly four direct `level_set_transition` occurrences, and
+the direct explicit `Surface.object` field assignments.  The only recognized
+direct non-null owner write copies `gCurrentObject`, and the same local surface
+temporary reaches dynamic list insertion without being reassigned.  In the
+finite scheduler/owner model, any accepted warp frame whose final stock query
+installs a non-null owner contains that final query and must query a position
+distinct from the collision position.  That conclusion is logically
+independent of an arbitrary separately supplied lifecycle-fate witness; it
+does not couple or order the two.  A separate inactive, freed, unreused payload
+survivor shows that excluding slot reuse alone still leaves a downstream stale-
+payload mechanism.  The census does not cover whole-struct or builtin surface
+mutation, alias/external stores, indirect-callback resolution, live list/owner
+proof, or linked Clight execution.
+
+`Area1Rank1OrdinaryBridgeNoGo.v` packages the resulting conditional ordinary
+no-go.  Its five explicit bridge fields require the modeled same-frame
+scheduler, upper-warp collision contact, cached-floor selection refinement,
+the accepted runtime dispatch/sample/alias/external/final-receiver projection,
+and the stock surface-owner/list/final-query refinement.  Under all five, no
+separately supplied cached-payload fate changes the contradiction: the ordinary
+selected-floor theorem already makes that query null.  The fate argument is
+unused; no coupled lifecycle chronology is proved.  This does **not** prove
+those bridges for retail execution or close rank 1.  It says that a useful
+installer must violate at least one named bridge premise, while the only
+constructed ordinary split remains Y-only, downward, and null.
+
+`Area1PostCopyAliasCallbackClosure.v` narrows the post-copy alias/callback
+escape.  Its bilateral generated-source census finds exactly nine direct
+raw-XYZ formal-receiver helpers and no one-hop call that passes the designated
+Mario object to one of them.  It also checks the two relevant child-copy
+chains: particle/debug allocation results are the copy destination and the
+current/Mario object is the source.  A CompCert memory lemma then proves that
+a write through a distinct valid object slot preserves Mario's raw coordinate;
+a changed load therefore requires the same slot.  This does not yet prove
+current-node identity, allocator freshness, transitive wrapper closure, or
+indirect/external/lifecycle non-aliasing.
+
+`DefaultArea1Rank1ResidualCapstone.v` eliminates retained inbound lineage from
+the declared null seed and expands a supplied completed-query sample mismatch
+to seven named approaches.  `DefaultArea1Rank1BoundaryUnderdetermination.v`
+then proves why this is not a complete negative result: the current active-
+preapply wrapper ties the projection to its run only through version and the
+initial null seed, so it accepts a fabricated top-query projection unrelated
+to later run steps.  The diagnostic is not a retail counterexample.  It makes
+a linked run-to-preapply chronology/sample/owner construction the decisive
+missing interface for any sound closure of the highest-ranked route.
+Accordingly, the immediate research priority is a linked *useful* split or a
+closure of the remaining alias, callback, scheduler, surface-owner, and
+lifecycle escapes.  Routing the remaining pyramid pillars is downstream of
+that result rather than the current blocker.
 
 The linked-lineage follow-up now carries the direct syntax census into the
 constructed official cleaned US and JP `prog_defs`. Every visible direct
@@ -406,6 +523,74 @@ run-start memory, the chronology excludes retained JP inbound lineage and
 leaves a four-case abstract residual interface.  Constructing the projection's
 events from the linked run remains open. See
 [`docs/notes/linked-platform-lineage.md`](docs/notes/linked-platform-lineage.md).
+
+The query-owner and apply-time payload are now modeled separately in
+`Area1SurfaceEpochLifecycle.v`.  Clearing a dynamic-surface list does not clear
+the cached raw pointer, and its payload must be live same epoch,
+inactive/freed same epoch, fresh same-slot epoch, or invalid/aliased.  A closed
+abstract epoch-4-to-5 reuse witness moves State while leaving Object local;
+it does not prove a retail free-list trace or query geometry.  The most useful
+counterexample lead is the active-frame query/current mismatch followed by the
+authenticated JP inactive-old-top fate: collision first caches the local warp,
+the later State/Graphics selection and raw-Object copy move the final query to
+the top, and JP retains the top address until destination apply.  The observed
+top remains inactive and unreused at free-list depth 47, so fresh same-slot
+reuse is an abstract fallback rather than the leading retail fate.  The two
+independent different-sample/reuse witnesses do not establish compatibility in
+one execution.  `Area1PolePushSchedule.v` and `Area1PolePushLinkage.v` also
+conditionally remove one tempting normal source: static Area-1 data ties the
+exterior palm to `bhvTree`; its X/Z-only push runs in POLELIKE before Mario's
+PLAYER update, and a completed, correctly targeted State-to-Object copy
+resynchronizes it.  Linked behavior-list execution and copy identity remain
+open.  A late-writer route therefore needs a genuinely post-player writer or
+a skipped/misdirected copy.  `Area1PostCopyTailClassification.v` makes that
+remaining abstract boundary explicit.  For a supplied copy observation and
+frame tail, it classifies synchronization preservation versus projected-
+coordinate changes, copy failure, endpoint retarget, lifecycle change, alias/external
+effects, and scheduler/unclassified residuals.  This broad classified-residual
+result is not itself a data-bearing claim: some residual tags preserve both
+projected coordinate values.  The stronger theorem assumes a faithful copy and
+a final State/Object value split, skips those value-preserving edges, and
+extracts an actual State-only, Object-only, or joint value-changing edge.  The
+tail and origin labels are still supplied abstractly rather than projected
+from linked retail execution.  In particular, `SuppliedFrameTail` only chains
+caller-authored snapshots and origin labels; it proves neither adjacency of
+generated statements nor retail execution semantics.
+`Area1PostPlayerTailSource.v` now adds the
+concrete bilateral source boundary around that classifier.  It pins the exact
+post-PLAYER list suffix to `[5; 4; 2; 6; 8; 12; -1]`.  That suffix is not the
+whole post-copy tail: inside `bhv_mario_update`, the copy precedes a
+`spawn_particle` loop; the `bhvMario` script then names
+`try_do_mario_debug_object_spawn`, whose body calls `spawn_object_relative`;
+and traversal may continue to later PLAYER nodes.  The generated receipts do
+not say that either guarded spawn runs or that another PLAYER node exists.
+The bilateral `sParticleTypes` initializer identifiers are now coupled exactly
+to 18 paired behavior definitions, each with leading word `8 << 16` (list 8),
+and the local AST couples the selected table `behavior` field to
+`spawn_particle` argument 3 and its formal to `spawn_object_at_origin`
+argument 4.  This is a concrete post-copy source candidate family, but proves
+no loop/index execution, enabled particle flag, allocation, visitation,
+callback execution, coordinate write, or clean reachability.
+After this intra-PLAYER residual, the updater orders unload and the final
+platform query.  The fixed scheduler, traversal, unload, and final-query
+bodies have no recognized direct State-position or raw-Object XYZ store, but
+that negative census deliberately excludes behavior callbacks and reaches
+only through the final query, not the full next-pre-collision boundary:
+`update_objects` calls `try_print_debug_mario_object_info` afterward.  The module
+also exposes why the static root inventory is not callback-complete: an SSL
+Area-1 `bhvBreakableBox` root can reach
+`obj_explode_and_spawn_coins`, then `spawn_triangle_break_particles`, which requests list-12
+`bhvBreakBoxTriangle`, after PLAYER in the update order.  These are generated
+syntax/data receipts, not proof that the child is allocated and visited in the
+same frame.  Intra-PLAYER particle/debug spawning and later PLAYER nodes,
+transitive spawn/interpreter closure, receiver and alias identity, external
+calls, unload/pool-reuse effects, abnormal callback control flow, and
+the post-query debug callback plus warp/instant-warp processing at the next
+pre-collision frame remain explicit residuals.  Alias and
+external alternatives are reduced separately by
+`PlatformExternalGapSemantics.v` and `PlatformAliasExternalClosure.v`.  See
+[`docs/notes/local-object-nonlocal-state-gap-matrix.md`](docs/notes/local-object-nonlocal-state-gap-matrix.md)
+for the complete mechanism-by-mechanism proof and counterexample priorities.
 
 `PlatformPointerProvenance.v` computes the complete US/JP direct
 `gMarioPlatform` syntax census: JP has only `update_mario_platform`; US also
@@ -894,10 +1079,13 @@ at timer 515 sees all three Mario views at spawn and the stale pointer at depth
 47; caller return `0x8029cfc8` sees only State displaced.  Refining that call in
 linked Clight remains open.
 
-For a software-engineering-oriented explanation of the game state, the two
-route gates, the exact proved reductions, and the contribution of each archived
+For a family-by-family, globally ranked account of every active and retired
+route idea, see the readable
+[`docs/no-a-route-atlas.md`](docs/no-a-route-atlas.md).  For a
+software-engineering-oriented explanation of the game state, the two route
+gates, the exact proved reductions, and the contribution of each archived
 project, see [`human-readable-proof.md`](human-readable-proof.md).  The precise
-answer about routes outside the transcript is in
+formal boundary for routes outside the transcript is in
 [`docs/notes/route-exhaustiveness.md`](docs/notes/route-exhaustiveness.md), and the focused
 PU/top source audit is
 [`docs/notes/pyramid-top-pu.md`](docs/notes/pyramid-top-pu.md).  The narrower checked
@@ -1618,10 +1806,10 @@ the breakable-box, exclamation-box-outline, cannon-lid, and wooden-signpost
 meshes in both versions.  The larger area arrays are not yet parsed into a
 surface graph.
 
-The three status-facing documents remain at `docs/checklist.md`,
-`docs/claim.md`, and `docs/goal.md`.  Detailed investigation records and
-technique-specific material live under `docs/notes/`; this keeps current
-claims separate from supporting research notes.
+The status-facing documents are `docs/checklist.md`, `docs/claim.md`,
+`docs/goal.md`, and the reader-oriented `docs/no-a-route-atlas.md`.  Detailed
+investigation records and technique-specific material live under `docs/notes/`;
+this keeps current claims separate from supporting research notes.
 
 ## Build and regeneration
 

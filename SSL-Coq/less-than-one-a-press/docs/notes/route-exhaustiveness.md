@@ -1,5 +1,10 @@
 # Route exhaustiveness and alternative access
 
+For the plain-language, family-by-family ranking of the approaches supported
+by this and the other investigation notes, see the
+[no-A two-star route atlas](../no-a-route-atlas.md).  This note remains the
+technical account of the route cuts and proof boundaries behind that ranking.
+
 ## Verdict
 
 The two transcript routes have **not** been proved exhaustive for the retail

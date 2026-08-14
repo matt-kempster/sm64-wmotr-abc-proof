@@ -1127,3 +1127,102 @@ paths changed:
 - `SSL-Coq/less-than-one-a-press/proofs/USWarpLevelRepairIdentity.v` (new)
 - `SSL-Coq/less-than-one-a-press/proofs/USWarpLevelRepairReceipt.v` (new)
 - `SSL-Coq/less-than-one-a-press/proofs/USWarpLevelEntryResolution.v` (new)
+- `SSL-Coq/less-than-one-a-press/docs/notes/local-object-nonlocal-state-gap-matrix.md` (new)
+- `SSL-Coq/less-than-one-a-press/docs/notes/platform-alias-external-closure.md` (new)
+- `SSL-Coq/less-than-one-a-press/docs/no-a-route-atlas.md` (new; readable,
+  family-ranked inventory of active and retired zero-A two-star approaches)
+- `SSL-Coq/less-than-one-a-press/proofs/Area1GapApproachCoverage.v` (new)
+- `SSL-Coq/less-than-one-a-press/proofs/Area1PostCopyTailClassification.v`
+  (new; caller-authored snapshot/origin classification, not source adjacency
+  or retail execution semantics)
+- `SSL-Coq/less-than-one-a-press/proofs/Area1PostPlayerTailSource.v` (new;
+  exact post-PLAYER suffix, explicit intra-PLAYER post-copy residuals,
+  exact 18-entry particle-table-to-list-8 coupling and local argument flow,
+  fixed-body-through-final-query writer census, post-query debug residual, and
+  list-12 spawn lead)
+- `SSL-Coq/less-than-one-a-press/proofs/Area1PostCopyObjectWriterClosure.v`
+  (new; bilateral direct-designated raw-Mario-Object XYZ census and explicit
+  cached-Y=`768`/exact-centre finite-stock null-query subcase)
+- `SSL-Coq/less-than-one-a-press/proofs/Area1ButterflyStaticOriginClosure.v`
+  (new; stock Area-1 macro, regular-script, and selected-special-preset
+  exclusion for the remaining direct-designated butterfly callback)
+- `SSL-Coq/less-than-one-a-press/proofs/Area1InteractionShortCircuitClosure.v`
+  (new; accepted nonfading warp return/break source receipt and conditional
+  cached-floor-only schedule reduction)
+- `SSL-Coq/less-than-one-a-press/proofs/Area1CachedFloorSelectionClosure.v`
+  (new; generalized same-sample cached-floor finite-model null-query theorem)
+- `SSL-Coq/less-than-one-a-press/proofs/Area1MovingSkippedQueryClosure.v`
+  (new; audited-source reduction of moving/query-skipped scheduler shapes)
+- `SSL-Coq/less-than-one-a-press/proofs/DefaultArea1Rank1ResidualCapstone.v`
+  (new; default-start residual and seven-approach expansion)
+- `SSL-Coq/less-than-one-a-press/proofs/DefaultArea1Rank1BoundaryUnderdetermination.v`
+  (new; constructive diagnostic that the current run/preapply coupling is too
+  weak for a sound rank-1 impossibility theorem)
+- `SSL-Coq/less-than-one-a-press/instrumentation/jp-clean-gap-search/README.md`,
+  `jp_clean_gap_search_probe.c`, `run.sh`, and `expected-results.txt` (updated;
+  authentic original-JP controller-only zero-A two-eastern-pillar checkpoint
+  plus two bounded failed western-relay schedules, not a complete top or
+  mismatch route)
+- `SSL-Coq/less-than-one-a-press/proofs/Area1PolePushSchedule.v` (new)
+- `SSL-Coq/less-than-one-a-press/proofs/Area1PolePushLinkage.v` (new)
+- `SSL-Coq/less-than-one-a-press/proofs/Area1SurfaceEpochLifecycle.v` (new)
+- `SSL-Coq/less-than-one-a-press/proofs/PlatformAliasExternalClosure.v` (new)
+- `SSL-Coq/less-than-one-a-press/proofs/PlatformExternalGapSemantics.v` (new)
+
+## Cached-floor collision/query split tranche
+
+The rank-1 cached-floor schedule now has a compiled concrete finite witness:
+collision `(-2048,818,-1024)` and final query `(-2048,768,-1024)`, with exact
+delta `(0,-50,0)`.  Both generated US/JP cell-`(6,7)` inventories contain the
+audited floor face `(498,500,501)` at the actual collision query; the finite
+decision is `WouldHit` and its height is `768`.  The branch preserves X/Z,
+moves downward while top capture needs more than `459` upward units, and has a
+null conditional stock query.  This is a source-shaped split without an
+A-input premise, not clean reachability or linked traversal/runtime refinement.
+The following paths changed:
+
+- `SSL-Coq/less-than-one-a-press/Makefile`
+- `SSL-Coq/less-than-one-a-press/README.md`
+- `SSL-Coq/less-than-one-a-press/_CoqProject`
+- `SSL-Coq/less-than-one-a-press/docs/checklist-completed.md`
+- `SSL-Coq/less-than-one-a-press/docs/checklist.md`
+- `SSL-Coq/less-than-one-a-press/docs/no-a-route-atlas.md`
+- `SSL-Coq/less-than-one-a-press/docs/notes/changed-paths.md`
+- `SSL-Coq/less-than-one-a-press/docs/notes/local-object-nonlocal-state-gap-matrix.md`
+- `SSL-Coq/less-than-one-a-press/human-readable-proof.md`
+- `SSL-Coq/less-than-one-a-press/notes/source-map.md`
+- `SSL-Coq/less-than-one-a-press/proofs/Area1CachedFloorSplitWitness.v` (new)
+
+## Scheduler/surface/lifecycle split and ordinary-bridge tranche
+
+The rank-1 follow-up now checks the generated US/JP source unions for the
+recognized direct explicit transition-callback assignment/call syntax and
+direct explicit `Surface.object` field assignments.  It counts exactly four
+direct callback-installer call occurrences, proves the dynamic loader's local
+surface temporary is not explicitly reassigned before insertion, and keeps
+whole-struct/builtin mutation, aliases, externals, and indirect callback
+resolution outside the census.  A schedule-coupled finite theorem says that a
+modeled accepted upper-warp collision followed by any non-null stock query uses
+a distinct final-query sample.  The result is logically independent of an
+arbitrary separately supplied lifecycle-fate witness; it does not prove a
+coupled chronology.  A separate inactive, freed, unreused payload remains a
+downstream survivor.  The five-field ordinary bridge capstone turns the
+cached-floor top install into a contradiction under its explicit premises, but
+does not construct those premises from linked retail execution or close rank 1.
+The following paths changed:
+
+- `SSL-Coq/less-than-one-a-press/Makefile`
+- `SSL-Coq/less-than-one-a-press/README.md`
+- `SSL-Coq/less-than-one-a-press/_CoqProject`
+- `SSL-Coq/less-than-one-a-press/docs/checklist-completed.md`
+- `SSL-Coq/less-than-one-a-press/docs/checklist.md`
+- `SSL-Coq/less-than-one-a-press/docs/no-a-route-atlas.md`
+- `SSL-Coq/less-than-one-a-press/docs/notes/changed-paths.md`
+- `SSL-Coq/less-than-one-a-press/docs/notes/local-object-nonlocal-state-gap-matrix.md`
+- `SSL-Coq/less-than-one-a-press/human-readable-proof.md`
+- `SSL-Coq/less-than-one-a-press/notes/source-map.md`
+- `SSL-Coq/less-than-one-a-press/proofs/Area1SchedulerSurfaceLifecycleSplit.v`
+  (new)
+- `SSL-Coq/less-than-one-a-press/proofs/Area1Rank1OrdinaryBridgeNoGo.v` (new)
+- `SSL-Coq/less-than-one-a-press/proofs/Area1PostCopyAliasCallbackClosure.v`
+  (new)

@@ -1533,6 +1533,18 @@ check: proofs
 	  LessThanOneAPress.Proofs.Area1PrecollisionWriterClosure \
 	  area1_precollision_writer_source_boundary_checked
 	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.Area1PolePushSchedule \
+	  area1_pole_push_list_order_source_checked
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.Area1PolePushSchedule \
+	  preplayer_pole_push_cannot_survive_completed_player_copy
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.Area1PolePushLinkage \
+	  area1_static_data_excludes_cylinder_push_families
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.Area1PolePushLinkage \
+	  area1_stock_pole_tree_push_is_preplayer_and_copy_resynchronized
+	bash pipeline/assumptions.sh \
 	  LessThanOneAPress.Proofs.Area1InstallerTemporalClosure \
 	  area1_installer_temporal_checked_boundary_holds
 	bash pipeline/assumptions.sh \
@@ -1545,11 +1557,101 @@ check: proofs
 	  LessThanOneAPress.Proofs.StateFirstPlatformChronology \
 	  null_seed_chronology_cannot_produce_jp_inbound
 	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.Area1GapApproachCoverage \
+	  area1_gap_approach_coverage_checked_boundary_holds
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.Area1GapApproachCoverage \
+	  trace_ending_in_gap_has_state_object_or_joint_first_creator
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.Area1GapApproachCoverage \
+	  gap_preserving_trace_has_first_creator_and_classified_suffix
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.Area1GapApproachCoverage \
+	  precollision_split_expands_to_data_bearing_stage_approach
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.Area1GapApproachCoverage \
+	  area1_warp_interaction_cache_coverage_checked_boundary_holds
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.Area1PostCopyTailClassification \
+	  area1_postcopy_tail_classification_checked_boundary_holds
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.Area1PostCopyTailClassification \
+	  successful_copy_final_split_requires_value_changing_tail_edge
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.Area1PostPlayerTailSource \
+	  area1_post_player_tail_source_audit_boundary_holds
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.Area1PostPlayerTailSource \
+	  area1_breakable_triangle_spawn_path_source_checked
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.Area1PostPlayerTailSource \
+	  mario_post_copy_intra_player_residual_source_checked
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.Area1PostPlayerTailSource \
+	  mario_particle_behaviors_are_list8_source_checked
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.Area1PostCopyObjectWriterClosure \
+	  area1_postcopy_direct_designated_object_writer_checked_boundary_holds
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.Area1PostCopyObjectWriterClosure \
+	  explicit_cached_y_768_only_stock_query_is_null
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.Area1PostCopyObjectWriterClosure \
+	  exact_center_cached_floor_only_stock_query_is_null
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.Area1PostCopyAliasCallbackClosure \
+	  area1_postcopy_alias_callback_source_boundary_holds
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.Area1PostCopyAliasCallbackClosure \
+	  valid_changed_mario_raw_load_requires_same_slot
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.Area1InteractionShortCircuitClosure \
+	  area1_interaction_short_circuit_source_boundary_holds
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.Area1InteractionShortCircuitClosure \
+	  accepted_nonfading_warp_only_cached_floor_y_can_change_sample
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.Area1InteractionShortCircuitClosure \
+	  accepted_nonfading_warp_cached_y_768_stock_query_is_null
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.Area1CachedFloorSelectionClosure \
+	  area1_cached_floor_selection_finite_model_boundary_holds
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.Area1CachedFloorSelectionClosure \
+	  warp_horizontal_low_y_stock_query_is_null
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.Area1CachedFloorSelectionClosure \
+	  accepted_nonfading_warp_cached_floor_selection_stock_query_is_null
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.Area1CachedFloorSplitWitness \
+	  area1_cached_floor_split_witness_boundary_holds
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.Area1CachedFloorSplitWitness \
+	  accepted_nonfading_warp_difference_is_y_only
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.Area1CachedFloorSplitWitness \
+	  cached_floor_split_stock_platform_query_is_null
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.Area1ButterflyStaticOriginClosure \
+	  butterfly_area1_selector_exclusion_checked
+	bash pipeline/assumptions.sh \
 	  LessThanOneAPress.Proofs.LinkedPlatformLineageSyntax \
 	  linked_platform_lineage_syntax_checked_boundary_holds
 	bash pipeline/assumptions.sh \
 	  LessThanOneAPress.Proofs.LinkedPlatformLineageSyntax \
 	  four_null_seed_linked_lineage_closures_rule_out_installer
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.PlatformAliasExternalClosure \
+	  official_platform_alias_origins_reduce_to_semantic_escapes
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.PlatformExternalGapSemantics \
+	  reachable_unresolved_external_changed_load_is_refined
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.PlatformExternalGapSemantics \
+	  defined_store_creating_object_state_gap_targets_one_endpoint
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.PlatformExternalGapSemantics \
+	  reachable_unresolved_external_created_object_state_gap_is_refined
 	bash pipeline/assumptions.sh \
 	  LessThanOneAPress.Proofs.JPLinkedPlatformGlobal \
 	  jp_generated_platform_ast_boundary_checked
@@ -1569,8 +1671,56 @@ check: proofs
 	  LessThanOneAPress.Proofs.Area1QueryScheduleClosure \
 	  area1_query_schedule_checked_boundary_holds
 	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.Area1MovingSkippedQueryClosure \
+	  area1_moving_skipped_query_checked_boundary_holds
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.Area1MovingSkippedQueryClosure \
+	  linked_boundary_reduces_moving_skip_to_preservation
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.Area1SchedulerSurfaceLifecycleSplit \
+	  area1_scheduler_surface_lifecycle_split_checked_boundary_holds
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.Area1SchedulerSurfaceLifecycleSplit \
+	  area1_callback_surface_direct_source_union_boundary_holds
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.Area1SchedulerSurfaceLifecycleSplit \
+	  modeled_stock_install_split_is_independent_of_supplied_lifecycle_fate
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.Area1Rank1OrdinaryBridgeNoGo \
+	  area1_rank1_ordinary_bridge_no_go_boundary_holds
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.Area1Rank1OrdinaryBridgeNoGo \
+	  ordinary_top_install_no_go_is_independent_of_supplied_lifecycle_fate
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.DefaultArea1Rank1ResidualCapstone \
+	  default_area1_rank1_residual_checked_boundary_holds
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.DefaultArea1Rank1ResidualCapstone \
+	  default_area1_active_preapply_requires_completed_query_residual
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.DefaultArea1Rank1ResidualCapstone \
+	  default_area1_completed_query_difference_expands_to_seven_approaches
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.DefaultArea1Rank1BoundaryUnderdetermination \
+	  rank1_boundary_fabricated_preapply_inhabits_canonical_residual
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.DefaultArea1Rank1BoundaryUnderdetermination \
+	  default_area1_active_jp_boundary_accepts_fabricated_rank1_installer
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.DefaultArea1Rank1BoundaryUnderdetermination \
+	  jp_default_boundary_alone_cannot_exclude_rank1_top_installer
+	bash pipeline/assumptions.sh \
 	  LessThanOneAPress.Proofs.Area1SurfaceOwnerSyntax \
 	  area1_surface_owner_source_boundary_checked
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.Area1SurfaceEpochLifecycle \
+	  area1_surface_epoch_lifecycle_boundary_checked
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.Area1SurfaceEpochLifecycle \
+	  inactive_same_epoch_nonzero_payload_opens_state_object_split
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.Area1SurfaceEpochLifecycle \
+	  independent_different_sample_and_fresh_reuse_witnesses_checked
 	bash pipeline/assumptions.sh \
 	  LessThanOneAPress.Proofs.Area1WarpTopCloneCensus \
 	  ordinary_object_copy_does_not_copy_identity_or_collision

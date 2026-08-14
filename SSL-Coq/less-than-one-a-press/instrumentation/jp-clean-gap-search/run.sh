@@ -52,7 +52,7 @@ printf 'run\n' |
         --cheats 6 --sshotdir "$out_dir/shots" --testshots "$test_frames" \
         "$rom" >"$raw_log" 2>&1
 
-grep -E '^(SEARCH|ACTION|MAX_GAP|MIN_GAP|GAP45|GAP960|FIRE_LINK|TOP|FRAME|NONFINITE|B_INPUT|RESULT)' \
+grep -E '^(SEARCH|ACTION|MAX_GAP|MIN_GAP|GAP45|GAP960|FIRE_LINK|TOP|FRAME|NONFINITE|B_INPUT|MODE9_STAGE|RESULT)' \
     "$raw_log" >"$trace"
 grep '^RESULT' "$trace"
 if [ "$allow_setup_a" = 0 ]; then
