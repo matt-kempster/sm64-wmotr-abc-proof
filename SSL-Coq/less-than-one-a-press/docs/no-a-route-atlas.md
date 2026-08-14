@@ -437,8 +437,10 @@ latch, and the new first-NULL capstone proves that any route projected into
 that scheduler model must therefore succeed on the Graphics retry rather than
 continue after two misses.  A stricter generated-code census also reduces the
 possible direct Graphics-Y assignment bodies from `33` receiver-neutral
-`pos[1]` sites to exactly `11` real `gfx.pos[1]` writers; identifying which can
-receive Mario remains open.
+`pos[1]` sites to exactly `11` real `gfx.pos[1]` writers.  Those now split
+exactly into seven Mario initialization/action paths and four helpers with a
+generic Object receiver; the latter four are the focused receiver-identity and
+call-path residuals.
 
 **What closes it.** Produce the large three-view gap from clean execution;
 prove the first null lookup, live top-owned retry, exact return/snap/copy order,

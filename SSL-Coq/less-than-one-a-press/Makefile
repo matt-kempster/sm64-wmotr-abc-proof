@@ -1231,6 +1231,9 @@ check: proofs
 	  jp_generated_gfx_pos_y_direct_assignment_counts
 	bash pipeline/assumptions.sh \
 	  LessThanOneAPress.Proofs.JPGeneratedWriterCensus \
+	  jp_generated_gfx_y_writer_residual_split_checked
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.JPGeneratedWriterCensus \
 	  jp_generated_rawdata_asf32_7_direct_assignment_counts
 	bash pipeline/assumptions.sh \
 	  LessThanOneAPress.Proofs.JPGeneratedWriterCensus \

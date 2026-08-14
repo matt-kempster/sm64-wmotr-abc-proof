@@ -364,6 +364,50 @@ Theorem jp_generated_gfx_pos_y_direct_assignment_counts :
        JGC_Mario._gfx JGC_Mario._pos 1) = 11%nat.
 Proof. vm_compute. split; reflexivity. Qed.
 
+(** Split the finite eleven-body inventory at the proof boundary that matters
+    for Ink.  The first seven are Mario initialization/action paths and still
+    include the unresolved negative-quicksand case.  The final four accept a
+    generic Object receiver, so they retain the pointer-identity/call-path
+    obligation.  This is a classification, not a reachability claim. *)
+Definition jp_mario_path_gfx_y_direct_writers : list ident :=
+  [JGC_Mario._sink_mario_in_quicksand;
+   JGC_Mario._init_mario;
+   JGC_Air._act_riding_shell_air;
+   JGC_Cut._end_peach_cutscene_run_to_castle;
+   JGC_Move._tilt_body_ground_shell;
+   JGC_Submerged._update_water_pitch;
+   JGC_Submerged._surface_swim_bob].
+
+Definition jp_receiver_generic_gfx_y_direct_writers : list ident :=
+  [JGC_BScript._obj_update_gfx_pos_and_angle;
+   JGC_Spawn._allocate_object;
+   JGC_Helpers._obj_set_gfx_pos_from_pos;
+   JGC_Helpers._obj_set_gfx_pos_at_obj_pos].
+
+Definition jp_generated_gfx_pos_y_direct_assignment_sites : list ident :=
+  concat
+    (jp_generated_nested_array_slot_assignment_partition
+       JGC_Mario._gfx JGC_Mario._pos 1).
+
+Theorem jp_generated_gfx_y_writer_residual_split_checked :
+  jp_generated_gfx_pos_y_direct_assignment_sites =
+    jp_mario_path_gfx_y_direct_writers ++
+    jp_receiver_generic_gfx_y_direct_writers /\
+  length jp_mario_path_gfx_y_direct_writers = 7%nat /\
+  length jp_receiver_generic_gfx_y_direct_writers = 4%nat.
+Proof. vm_compute. repeat split; reflexivity. Qed.
+
+Theorem every_direct_gfx_y_writer_is_mario_path_or_receiver_generic :
+  forall writer,
+    In writer jp_generated_gfx_pos_y_direct_assignment_sites ->
+    In writer jp_mario_path_gfx_y_direct_writers \/
+    In writer jp_receiver_generic_gfx_y_direct_writers.
+Proof.
+  intros writer Hwriter.
+  rewrite (proj1 jp_generated_gfx_y_writer_residual_split_checked) in Hwriter.
+  now apply in_app_or in Hwriter.
+Qed.
+
 (** The raw-object inventories use the stricter nested selector, so the
     counted lvalue has the generated shape [receiver.rawData.asF32[index]],
     not merely some unrelated field array named [asF32].  Indices 7 and 10

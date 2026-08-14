@@ -429,8 +429,11 @@ US and JP.
 The stricter `gfx.pos[1]` recognizer now isolates the exact generated lvalue
 used by direct Graphics-Y assignments.  Its checked JP partition contains
 eleven assignment-bearing bodies rather than the broader 33-body `pos[1]`
-inventory.  This is still receiver-neutral: live Mario receiver identity and
-the call paths into those bodies remain separate obligations.
+inventory.  A checked decomposition separates seven Mario initialization or
+action paths from four receiver-generic helpers.  The four-helper remainder is
+still receiver-neutral: live Mario receiver identity and its call paths remain
+separate obligations, while the seven-path side still includes negative
+quicksand and therefore is not labeled safe.
 
 `proofs/RetailFatalLatch.v` is a handwritten finite scheduler model.  It
 imports generated US/JP syntax and packed-data receipts from `ClightFacts.v`,
