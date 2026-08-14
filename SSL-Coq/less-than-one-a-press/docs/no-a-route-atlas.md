@@ -446,7 +446,11 @@ proof obligations are therefore flag/offset provenance, Mario-slot lifecycle,
 same-receiver identity, and non-stock anchor reachability respectively.  The
 same-object helper is now source-checked more strongly: its Graphics-Y store
 reads raw Y from the identical receiver, so it erases rather than creates an
-Ink gap even if that receiver is Mario.
+Ink gap even if that receiver is Mario.  The dangerous behavior-tail body is
+also pinned: `cur_obj_update` passes exactly `gCurrentObject` to it under flag
+bit zero, and Mario's stock behavior names its update callback.  It is
+therefore a genuine source-reachable candidate, narrowed to proving live
+current-object identity plus flag-bit and graphical-offset provenance.
 
 **What closes it.** Produce the large three-view gap from clean execution;
 prove the first null lookup, live top-owned retry, exact return/snap/copy order,

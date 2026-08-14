@@ -46,6 +46,7 @@ Module JGC_Objects := jp_object_list_processor.
 Module JGC_Helpers := jp_object_helpers.
 Module JGC_Macro := jp_macro_special_objects.
 Module JGC_BScript := jp_behavior_script.
+Module JGC_BData := jp_behavior_data.
 Module JGC_ObjBehaviors := jp_obj_behaviors.
 Module JGC_BehaviorActions := jp_behavior_actions.
 Module JGC_LevelUpdate := jp_level_update.
@@ -220,6 +221,39 @@ with contains_same_receiver_raw_y_to_gfx_y_ls
   | LScons _ body rest =>
       contains_same_receiver_raw_y_to_gfx_y_s body ||
       contains_same_receiver_raw_y_to_gfx_y_ls rest
+  end.
+
+Definition is_global_to_unary_call_pair
+    (global callee : ident) (first second : statement) : bool :=
+  match first, second with
+  | Sset loaded (Evar found_global _),
+    Scall _ (Evar found_callee _) [Etempvar passed _] =>
+      andb (Pos.eqb found_global global)
+        (andb (Pos.eqb found_callee callee) (Pos.eqb loaded passed))
+  | _, _ => false
+  end.
+
+Fixpoint contains_global_to_unary_call_s
+    (global callee : ident) (s : statement) : bool :=
+  match s with
+  | Ssequence first second =>
+      is_global_to_unary_call_pair global callee first second ||
+      contains_global_to_unary_call_s global callee first ||
+      contains_global_to_unary_call_s global callee second
+  | Sloop first second | Sifthenelse _ first second =>
+      contains_global_to_unary_call_s global callee first ||
+      contains_global_to_unary_call_s global callee second
+  | Sswitch _ cases => contains_global_to_unary_call_ls global callee cases
+  | Slabel _ body => contains_global_to_unary_call_s global callee body
+  | _ => false
+  end
+with contains_global_to_unary_call_ls
+    (global callee : ident) (cases : labeled_statements) : bool :=
+  match cases with
+  | LSnil => false
+  | LScons _ body rest =>
+      contains_global_to_unary_call_s global callee body ||
+      contains_global_to_unary_call_ls global callee rest
   end.
 
 Fixpoint assigns_nested_array_slot_s
@@ -526,6 +560,25 @@ Proof.
   split; [reflexivity |].
   exact Z.sub_diag.
 Qed.
+
+(** Identity and static reachability boundary for the dangerous behavior-tail
+    writer.  [cur_obj_update] loads [gCurrentObject] and passes that exact
+    pointer as the sole argument, under object-flag bit zero.  [bhvMario]
+    names the Mario callback in its script, so this is a real stock source
+    candidate.  Interpreter execution and proof that the live current object
+    is Mario remain outside this syntax theorem. *)
+Theorem jp_obj_update_gfx_pos_and_angle_identity_reachability_checked :
+  map fst (fn_params JGC_BScript.f_obj_update_gfx_pos_and_angle) =
+    [JGC_BScript._obj] /\
+  contains_global_to_unary_call_s
+    JGC_BScript._gCurrentObject JGC_BScript._obj_update_gfx_pos_and_angle
+    (fn_body JGC_BScript.f_cur_obj_update) = true /\
+  contains_temp_bit_guarded_call_s
+    JGC_BScript._objFlags 0 JGC_BScript._obj_update_gfx_pos_and_angle
+    (fn_body JGC_BScript.f_cur_obj_update) = true /\
+  initializer_addrof_subsequenceb [JGC_BData._bhv_mario_update]
+    (gvar_init JGC_BData.v_bhvMario) = true.
+Proof. vm_compute. repeat split; reflexivity. Qed.
 
 (** The raw-object inventories use the stricter nested selector, so the
     counted lvalue has the generated shape [receiver.rawData.asF32[index]],

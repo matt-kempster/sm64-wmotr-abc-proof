@@ -1240,6 +1240,9 @@ check: proofs
 	  jp_obj_set_gfx_pos_from_pos_same_receiver_y_checked
 	bash pipeline/assumptions.sh \
 	  LessThanOneAPress.Proofs.JPGeneratedWriterCensus \
+	  jp_obj_update_gfx_pos_and_angle_identity_reachability_checked
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.JPGeneratedWriterCensus \
 	  jp_generated_rawdata_asf32_7_direct_assignment_counts
 	bash pipeline/assumptions.sh \
 	  LessThanOneAPress.Proofs.JPGeneratedWriterCensus \

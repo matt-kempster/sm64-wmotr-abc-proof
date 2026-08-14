@@ -444,6 +444,12 @@ The `obj_set_gfx_pos_from_pos` body is now closed locally: an exact adjacent
 load/store receipt proves that its raw-Y load and Graphics-Y destination use
 the same formal receiver.  It therefore reanchors the gap and cannot create
 Ink's required separation, regardless of whether the call is reachable.
+For `obj_update_gfx_pos_and_angle`, an exact call-dataflow receipt proves that
+`cur_obj_update` loads `gCurrentObject` and passes that same temporary as the
+writer's sole receiver under object-flag bit zero.  The stock Mario behavior
+also names its update callback.  This establishes source-level identity and a
+candidate path, but not interpreter execution, live `gCurrentObject =
+gMarioObject`, or the flag/offset invariant.
 
 `proofs/RetailFatalLatch.v` is a handwritten finite scheduler model.  It
 imports generated US/JP syntax and packed-data receipts from `ClightFacts.v`,
