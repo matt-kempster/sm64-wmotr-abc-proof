@@ -11,6 +11,16 @@ the [open checklist](checklist.md): the checklist says what proof obligation is
 next, while this atlas says what the gameplay idea is, what has already been
 learned about it, and why it is or is not worth more search time.
 
+### Authoring rule
+
+Keep this atlas non-technical and centered on what has actually been proved or
+disproved.  Every approach must have exactly three labeled sections—**In plain
+language**, **What is already known**, and **What closes it**—and each section
+must be one paragraph only.  Prefer ordinary gameplay language over theorem,
+source-code, or memory-model terminology; include technical names only when
+they are needed to identify evidence, and move exhaustive detail to the linked
+checklist, proof narrative, or technical notes.
+
 The two targets are:
 
 - **Act 3, “Inside the Ancient Pyramid”** — source star index `2`;
@@ -174,123 +184,34 @@ becomes inactive, yet JP keeps the old address.  On the first pyramid update,
 the game reads the still-resident top bytes and applies their three-dimensional
 platform displacement to MarioState while the raw Mario Object remains local.
 
-**What is already known.** This is the strongest conditional emulator chain in
-the project.  A timer-131 injected JP fixture authenticates top capture, early
-freeing, an inactive and unreused watched slot at free-list depth `47`, the
-true first destination apply, a route-sized State-only displacement, all five
-Act-6 triggers, and a separate zero-A Act-6 collection/save-bit change.  The
-fixture also injects the pyramid-top pillar counter as `4` to force the needed
-spin/explosion lifecycle.  The fixed same-sample stock geometry does *not*
-capture the top; both the clean two-sample installation and clean activation of
-that top lifecycle remain missing.
-
-An authentic original-JP, controller-only run now supplies a zero-A prefix
-through the two eastern touch detectors after an externally enabled level-
-select entry: the pillar counter changes
-`0 -> 1` at timer `800` and `1 -> 2` at timer `1109`, while the pressed,
-held, and controller A counters all remain zero.  This disproves the tempting
-claim that zero-A play inherently prevents pillar activation.  It does not
-reach either western detector, start or explode the top, capture it as Mario's
-platform, use the warp, or sample a positive State/Object/Graphics gap.
-Equivalence of that post-entry state to ordinary castle entry remains open.
-Two subsequent one-run, 8,000-frame zero-A relay schedules reproduced the two
-eastern detectors and pointer-identified southeast/northeast Tweester relays,
-but both reflected from the central pyramid and died before reaching the west
-Tweester or either western detector.  Neither run started the top or sampled a
-positive gap.  These are bounded schedule rejections, not an impossibility
-result.
-
-Two narrower mismatch proposals are now closed.  The bilateral generated
-corpus's direct *designated-Mario-Object* raw-XYZ writers are exactly
-`init_mario`, `butterfly_calculate_angle`, and `check_instant_warp`; after the
-normal phase exclusions, only the butterfly callback remains in that direct
-class.  The stock Area-1 macro, regular level-script, and selected special
-preset families do not select `bhvButterfly`.
-
-The cached-floor case is now sharper than a null-query exclusion.
-`Area1CachedFloorSplitWitness.v` constructs a checked source-shaped schedule
-using collision sample `(-2048,818,-1024)`, accepts the
-ordinary disappeared-action floor snap, copies State to Object, and makes the
-final query at `(-2048,768,-1024)`: an exact difference of `(0,-50,0)`.  At
-the actual Y=`818` query, the separately computed US and JP cell-`(6,7)`
-inventories both contain face `(498,500,501)`; the source-shaped floor
-decision says that face would hit, and its horizontal height computes to
-`768`.  The construction has no controller-input or A-press premise.
-
-This is a genuine finite schedule split, not a linked clean-play witness.
-Nothing yet proves zero-A reachability of the exact collision sample, live
-surface-list construction/traversal, selection of that candidate, or the
-dispatch, receiver, alias/external, copy, owner, and lifecycle refinements.
-Moreover the whole accepted cached-floor branch preserves X/Z.  A useful top
-capture from an upper-warp collision needs more than `459` units of upward
-separation, whereas this split moves `50` units downward, and its conditional
-finite-stock final query is `None`.  Thus it proves sample inequality is real
-while ruling out this concrete split as a direct top-installer candidate.
-
-The scheduler/surface/lifecycle follow-up closes several nearby *direct-source*
-questions without turning that witness into a route.  Over the generated US
-and JP source unions, `Area1SchedulerSurfaceLifecycleSplit.v` checks the
-recognized direct explicit callback-assignment/call syntax, including exactly
-four direct `level_set_transition` occurrences, and the direct explicit
-`Surface.object` field assignments.  The only recognized direct non-null owner
-write copies the currently updating object, and the same local surface
-temporary reaches the dynamic-list insertion without another assignment.  In
-its finite scheduler and stock-owner model, an accepted upper-warp frame that
-installs any non-null owner necessarily performs the final query and queries
-somewhere different from the collision sample.  This is stronger than merely
-saying a different sample is one possible escape: within the modeled non-null
-stock case, it is required.  Whole-struct/builtin surface mutation, aliases,
-externals, and indirect callback resolution are outside the syntax census.
-
-The formal lifecycle statement is deliberately weaker than a chronology.  The
-split conclusion is unchanged when an arbitrary, separately supplied
-lifecycle-fate witness is added; the proof does not inspect that witness.  It
-does **not** couple the fate to the installation, order the two in one trace, or
-eliminate a lifecycle escape.  Separately, the module retains a concrete
-inactive, freed, unreused payload survivor, so ruling out slot reuse alone does
-not rule out JP reading useful old bytes once a pointer has somehow been
-installed.
-
-`Area1Rank1OrdinaryBridgeNoGo.v` makes the ordinary conditional boundary easy
-to audit.  It requires five explicit bridges: the modeled same-frame
-scheduler; real upper-warp contact; the selected cached-floor refinement; the
-accepted callback/sample/alias/external/final-receiver runtime projection; and
-the stock surface-owner/list/final-query refinement.  If all five hold, no
-separately supplied lifecycle-fate argument changes the contradiction because
-the ordinary cached-floor query is already null.  The argument is unused, so
-this proves logical independence rather than coupled trace ordering.  This is
-not a linked-retail closure and does not say the downward cached-floor witness
-is the only possible retail split.  A surviving installer must violate at
-least one of those named bridge premises.
-
-Two broader schedule shapes are now reduced as well.  In the audited
-generated scheduler source, coordinate-changing area and instant-warp paths
-run before the same frame's full object update and final platform query; the
-delayed-warp source installs a null callback for the two frames that omit that
-update, whose checked bodies contain no direct Mario-view or platform-pointer
-syntax.  No moving skipped
-query was found in those shapes.  The successful nonfading warp handler is
-also source-checked at interaction-table index `4`: it returns the nonzero
-result of setting `ACT_DISAPPEARED`, so the interaction loop breaks before
-later handlers.  Under the explicit live-dispatch, receiver, alias/external-
-frame, and final-copy premises, only the cached-floor Y snap can then alter
-the selection sample.  Any same-sample floor accepted from an upper-warp
-contact is at most Y=`896`; preserving warp X/Z at that height cannot select
-the top or any other owner in the finite stock-owner model.  These close the
-modeled source/finite-model subcases, not their unproved linked projections.
-
-The default-start capstone now makes the remaining boundary precise.  The
-declared null seed rules out retained JP inbound lineage, so any supplied
-active pre-apply must be a completed-query residual; a supplied schedule
-bridge expands a different sample into the seven named pregeometry-State,
-Graphics-retry, cached-floor, post-copy, interaction, moving-skip, or
-unclassified approaches.  Crucially, the active-run wrapper does not yet
-derive those events, samples, or owner from the run: it checks only version
-and the run-start null seed.  A constructive Coq diagnostic shows that this
-weak interface admits a fabricated top-owned query for any nonvacuous JP run.
-That is not a retail counterexample; it proves that rank 1 cannot soundly be
-disproved through the current wrapper until a linked run-to-preapply
-construction is added.
+**What is already known.** This remains the strongest lead because an injected
+JP run demonstrates the entire useful effect once the setup is granted: it
+captures the spinning top, frees it without reusing its slot, applies the old
+three-dimensional movement data after the area change, reaches all five Act-6
+triggers, and separately collects the Act-6 star with no A press; however, that
+test also forces the pillar counter to four, so it does not supply the missing
+clean setup or a complete Act-3 route.  Controller-only play after a level-
+select entry has activated the two eastern pillars with zero A presses, while
+two longer attempts failed at the central pyramid before reaching the western
+pillars; these runs show that pillar activation is possible but say nothing
+useful about the required position split.  The project has now proved that a
+collision/query split can genuinely occur in the ordinary warp sequence:
+Mario can touch the warp at `(-2048,818,-1024)` and later query at
+`(-2048,768,-1024)`, exactly 50 units lower, with matching US and JP floor
+evidence and no A-input assumption in the construction.  It has also disproved
+that particular split as the top installer: the change is vertical and
+downward, while the top requires more than 459 units of upward separation, so
+the modeled final query finds no platform.  Nearby ordinary explanations have
+been narrowed as well: the audited scheduler contains no concrete moving
+query-skip, an accepted warp stops later interaction handlers, the recognized
+surface owner comes from the object being updated, no direct one-step call
+passes Mario into the audited raw-position writers, and the checked
+particle/debug copies write into child objects rather than Mario.  These
+results do not yet rule out a useful split produced through an indirect
+callback, an alias, an external write, a mistaken current-object identity, an
+unmodeled live surface owner, or object-slot lifetime/reuse behavior; nor does
+the current proof wrapper connect all of its modeled events to one real game
+execution, so rank 1 is neither proved nor disproved.
 
 **What closes it.** First derive a *useful* collision/query split from the
 declared clean linked run—or eliminate the remaining alias, callback,
