@@ -1523,15 +1523,27 @@ These observations establish a **conditional State-first engine
 continuation** that does not need Ink's Graphics retry or its `>=960`
 Graphics/Object Y gap.
 
-The full vertical displacement also now has an exact payload-level
-construction.  A platform centered at `(-1862,34041,-902)` with zero X/Z
-velocity and a one-frame pitch change from `0` to `180` degrees mirrors the
-local point `(-1862,768,-902)` to exactly `(-1862,67314,-902)`.  The operation
-uses exact zero, one, and minus-one entries from both generated sine tables,
-so CompCert binary32 evaluation produces the required `66546`-unit rise with
-no X/Z drift.  This proves that platform displacement can make the desired
-State value if handed those bytes; it does not produce the remote-pivot
-object or the non-null cached pointer in clean play.
+The complete displacement now has an exact payload-level construction from a
+synchronized upper-warp sample.  Platform displacement first adds the
+platform's X/Z velocity, so velocity `(186,122)` changes State
+`(-2048,768,-1024)` to `(-1862,768,-902)`.  A platform centered at
+`(-1862,34041,-902)` then changes pitch from `0` to `180` degrees and mirrors
+that point to exactly `(-1862,67314,-902)`.  The operation uses exact zero,
+one, and minus-one entries from both generated sine tables.  This also exposes
+a correction to the earlier rotation-only witness: its starting point was not
+inside the upper-warp radius and therefore already assumed a horizontal
+State/Object split.
+
+The payload is possible, but its stock installation is not.  In the audited
+Area-1 scheduler and surface-owner model, every upper-warp pre-apply boundary
+has a null cached platform, so the payload cannot be read.  The canonical
+surface callbacks also do not directly write the required pitch velocity;
+fresh slots contain zero, the checked fragment values are `3840` or `6400`,
+and the stock top never reaches pivot Y `34041`.  A whole-ROM result still
+needs the live execution bridge: any successful classified installation must
+use an alias/external platform write, a surface-owner projection failure, a
+post-query Object writer, a moving query skip, unchecked retained entry, or an
+unclassified scheduler shape.
 
 By contrast, quiet NaN, either infinity, `+2^31`, and the first binary32 value
 below `-2^31` fail the word conversion.  The US and JP startup receipts set the
@@ -2862,9 +2874,12 @@ The most useful entry points are:
   `proofs/Area1NonlocalEndpointBoundary.v`: failed-conversion classification,
   checked trapping prefix, exact three-axis finite alias, and the
   conditional State-first timer-131 capability with its named retail bridges;
-- `proofs/Area1NonlocalPlatformMirror.v`: the concrete 180-degree platform
-  payload and generated sine-table receipt that produce the exact
-  `768 -> 67314` State-first displacement in binary32;
+- `proofs/Area1NonlocalPlatformMirror.v`: the concrete X/Z-velocity plus
+  180-degree platform payload and generated sine-table receipt that map the
+  synchronized upper-warp centre to the exact State-first alias in binary32;
+- `proofs/Area1NonlocalPlatformInstallationClosure.v`: the stock scheduler
+  no-go for applying that payload at the upper warp, canonical payload-source
+  exclusions, and the six-case residual classification for a linked escape;
 - `proofs/Area1StateFirstWallExclusion.v` and
   `proofs/Area1StateFirstRetailTrace.v`: exact high-Y wall rejection in a
   source-shaped list model plus transparent one-frame and downstream-lifecycle

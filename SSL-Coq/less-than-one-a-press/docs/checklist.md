@@ -186,7 +186,16 @@ These obligations currently block the clean-retail result.
   provenance relation.  Ordinary and action-phase PU movement are scheduled
   too late and are copied to raw Object; pre-collision platform displacement is
   the identified stock exception, and its pointer is null at the upper-warp
-  sample inside the finite stock model.  A temporal extension now proves this
+  sample inside the finite stock model.  The exact platform capability is now
+  complete rather than merely vertical: X/Z velocity `(186,122)` followed by
+  the proved pitch half-turn maps synchronized State
+  `(-2048,768,-1024)` directly to `(-1862,67314,-902)`.  The earlier
+  rotation-only input `(-1862,768,-902)` is proved outside the warp radius and
+  already assumed a horizontal split.  `Area1NonlocalPlatformInstallationClosure.v`
+  rules out applying the complete payload in every audited stock trace and
+  proves that a successful classified trace exposes one of the six named
+  projection escapes; it does not yet derive that classification from every
+  linked retail frame.  A temporal extension now proves the null result
   remains true across arbitrary active-frame movement and exact frozen carries,
   and originally classified any projected non-null survivor into five explicit
   lineage escapes.  The declared null `DefaultArea1StartBoundary` plus the

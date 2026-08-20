@@ -1839,6 +1839,18 @@ check: proofs
 	  LessThanOneAPress.Proofs.Area1NonlocalPlatformMirror \
 	  rank3_half_turn_displacement_is_exact_timer131_state
 	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.Area1NonlocalPlatformMirror \
+	  rank3_full_split_displacement_is_exact_timer131_state
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.Area1NonlocalPlatformInstallationClosure \
+	  area1_nonlocal_platform_installation_checked_boundary_holds
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.Area1NonlocalPlatformInstallationClosure \
+	  no_stock_rank3_exact_payload_installation
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.Area1NonlocalPlatformInstallationClosure \
+	  rank3_exact_installation_requires_projection_escape
+	bash pipeline/assumptions.sh \
 	  LessThanOneAPress.Proofs.MainTheorem \
 	  turning_part2_animation_metadata_boundary_excludes_ink_split
 

@@ -119,7 +119,7 @@ The detailed sections are organized as:
 |---:|---|---|---|
 | 1 | JP stale-platform lineage | Different collision/query samples, then read the inactive unreused top payload | High relative to this project |
 | 2 | Ink installation | Timer-131 non-null Graphics retry | Medium |
-| 3 | State-first installation | Finite signed-16 nonlocal-State alias | Medium |
+| 3 | State-first installation | Finite signed-16 nonlocal-State alias | Low-medium |
 | 4 | JP stale-platform lineage | Move the warp/top or create a collision-preserving clone | Low-medium |
 | 5 | State-first installation | Post-copy State-only writer in a later callback or descendant | Low-medium |
 | 5A | State-first installation | Pre-collision cached-platform displacement creates the split | Low-medium as an effect; low as a stock origin |
@@ -503,15 +503,15 @@ and [platform alias/external closure](notes/platform-alias-external-closure.md).
 
 ### Finite signed-16 nonlocal-State alias
 
-**Overall rank: 3. Family priority: 1. Likelihood: medium.**
+**Overall rank: 3. Family priority: 1. Likelihood: low-medium.**
 
 **In plain language.** Put MarioState one 65,536-unit period away while raw
 Object stays at the warp.  The terrain code narrows the large coordinate to a
 signed 16-bit value, wrapping it back to the timer-131 top.
 
-**What is already known.** The exact vector `(-1862,67314,-902) -> (-1862,1778,-902)` is checked, and an injected JP run selects the top, captures it, applies the stale payload, and reaches the upper trigger; NaN, infinity, and out-of-signed-32 conversions do not provide a usable continuation.  The previously unexplained `66546`-unit vertical split now has an exact engine-level producer: one platform update can rotate local State `(-1862,768,-902)` by 180° around the remote pivot `(-1862,34041,-902)`, yielding precisely `(-1862,67314,-902)` with unchanged X/Z, and both versions' real sine tables contain the exact values used by that mirror.  This proves the required displacement is possible for a concrete payload, not that stock play can create or retain that payload; the injected probe also still sets the top pillar counter to `4` separately.
+**What is already known.** The coordinate wrapping works, and an injected JP run uses it to select and capture the top before reaching the upper trigger.  A single platform update can also create the entire required split from Mario's synchronized warp-centre position: its normal sideways movement aligns X/Z, and a half-turn around a very remote pivot supplies the huge rise.  However, that exact payload cannot be installed through any scheduler and surface-owner history covered by the stock model, because Mario's cached platform must be empty at the upper warp; normal surface objects, fresh slots, and the checked debris payloads also lack the required turn and remote pivot.  The injected run still supplies the split and starts the top artificially, so it is capability evidence rather than a clean route.
 
-**What closes it.** Find a clean way to give the cached platform object the proved pivot and half-turn fields while its pointer survives to this pre-collision update, then link the actual platform math, casts, wall/floor/list owner, cached warp collision, floor snap, synchronizing copy, and final top capture; otherwise prove that no reachable live platform payload can have those fields or produce an equivalent 65,536-period displacement.  A successful route must also derive the pillar-counter, spin, explosion, and deactivation chronology rather than inherit it from the injected harness.
+**What closes it.** A counterexample now has to exhibit a concrete escape from the stock no-go—such as an unexpected write to the cached-platform pointer, a wrongly identified floor owner, movement after the final floor check, movement during a skipped check, an unchecked retained entry, or a scheduler path outside the audit—and then carry the exact payload through live execution.  An impossibility proof instead has to connect every real retail frame to the audited stock cases and rule out those escapes, after which this route is closed before the platform math runs; either outcome must still derive the top's activation and later lifecycle without the injected setup.
 
 ### Post-copy State-only writer in a callback or spawned descendant
 

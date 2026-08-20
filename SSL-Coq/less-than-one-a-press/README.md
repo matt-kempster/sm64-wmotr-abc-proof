@@ -232,13 +232,19 @@ by `RetailInvalidTrapContinuationExclusionSchema`; finite signed-16 aliases
 remain a real primitive.
 
 `Area1NonlocalPlatformMirror.v` now supplies an exact engine-level payload for
-that primitive.  With zero X/Z velocity, a platform at
-`(-1862,34041,-902)` whose pitch changes from `0` to `180` degrees mirrors
-local State `(-1862,768,-902)` to exactly `(-1862,67314,-902)`.  The proof uses
-the generated US/JP sine-table entries and CompCert binary32 operations, so
-the full `66546`-unit split is no longer merely postulated.  Clean play still
-has to create those payload fields and retain a non-null platform pointer;
-the theorem does not claim that such an object is reachable.
+that primitive from the actual synchronized upper-warp centre.  A platform at
+`(-1862,34041,-902)` first adds X/Z velocity `(186,122)` to State
+`(-2048,768,-1024)`, then changes pitch from `0` to `180` degrees, producing
+exactly `(-1862,67314,-902)`.  This corrects the earlier rotation-only receipt,
+whose starting X/Z were already separated from the collision Object.
+`Area1NonlocalPlatformInstallationClosure.v` then proves that the complete
+payload cannot be applied at an upper-warp collision in the audited stock
+scheduler/owner model: the cached platform is null before the payload can be
+read.  A classified successful installation must therefore expose a named
+alias/external, owner, post-query-writer, moving-skip, unchecked-entry, or
+unclassified-scheduler escape.  Linking and eliminating those escape classes
+for every retail execution remains open, so this is a stock-model disproof,
+not an unconditional whole-ROM impossibility theorem.
 
 The current clean-JP installer audit found no retail source for that gap.
 `CleanJPGraphicsGap.v` defines a clean JP Area-1 audit boundary, proves that

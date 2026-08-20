@@ -916,13 +916,24 @@ Completed work is grouped by subject. Each item retains its original scope warni
 
 - [x] Construct the exact rank-3 platform payload at the binary32 boundary.
   `Area1NonlocalPlatformMirror.v` uses the generated US/JP sine-table entries
-  to show that a pitch half-turn about `(-1862,34041,-902)` maps local State
-  `(-1862,768,-902)` to exactly `(-1862,67314,-902)`, the already checked
-  signed-16 timer-131 alias.  It also fixes the raw face-angle and
-  angular-velocity words which give previous pitch `0` and current pitch
-  `-32768`.  This proves the required `66546`-unit split is an engine-capable
-  platform effect; clean pointer/payload installation and linked execution
-  remain open.
+  to show that X/Z velocity `(186,122)` followed by a pitch half-turn about
+  `(-1862,34041,-902)` maps synchronized upper-warp-centre State
+  `(-2048,768,-1024)` to exactly `(-1862,67314,-902)`, the already checked
+  signed-16 timer-131 alias.  It fixes the raw face-angle and angular-velocity
+  words which give previous pitch `0` and current pitch `-32768`.  The old
+  rotation-only starting point is now explicitly proved outside the upper-warp
+  radius, so it is no longer mistaken for the collision Object.
+
+- [x] Rule out the exact rank-3 payload in the audited stock installation
+  model.  `Area1NonlocalPlatformInstallationClosure.v` proves that every stock
+  scheduler trace reaching an upper-warp collision has a null cached platform,
+  so the exact payload cannot run.  It also checks that canonical surface
+  callbacks have no direct required pitch-velocity store, fresh allocation is
+  zero, checked fragment pitches differ, and the modeled top and fragments do
+  not have pivot Y `34041`.  Any successful trace classified by the current
+  model must contain one of six explicit projection escapes.  Deriving that
+  classification from all linked retail executions remains open, so this is a
+  stock-model disproof rather than an unconditional whole-ROM theorem.
 
 - [x] Check both stock upper-warp behavior scripts and native callbacks:
   the warp has no direct X/Y/Z access, write, or native callee.  Check the

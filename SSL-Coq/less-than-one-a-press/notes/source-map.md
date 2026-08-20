@@ -86,9 +86,13 @@ The Rocq boundary is split deliberately:
 - `proofs/Area1NonlocalEndpointBoundary.v` relates that finite alias to the
   accepted timer-131 midpoint and packages a conditional State-first numeric
   capability;
-- `proofs/Area1NonlocalPlatformMirror.v` constructs an exact binary32
-  platform half-turn payload which maps local Y `768` to nonlocal Y `67314`
-  around pivot Y `34041`, with generated US/JP sine-table receipts;
+- `proofs/Area1NonlocalPlatformMirror.v` constructs an exact binary32 payload
+  whose X/Z velocity and pitch half-turn map the synchronized upper-warp centre
+  to the full nonlocal State vector, with generated US/JP sine-table receipts;
+- `proofs/Area1NonlocalPlatformInstallationClosure.v` proves the exact payload
+  unavailable in the finite stock scheduler/owner model, checks the canonical
+  pitch/pivot exclusions, and classifies every modeled successful installation
+  into one of six explicit projection escapes;
 - `proofs/Area1StateFirstWallExclusion.v` checks the bilateral wall-guard
   source shape and proves the two high-Y wall samples cannot reach X/Z push
   code in a source-shaped list traversal; and

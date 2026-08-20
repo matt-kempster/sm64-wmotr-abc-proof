@@ -1341,3 +1341,27 @@ open.  The following paths changed:
 - `SSL-Coq/less-than-one-a-press/docs/notes/area1-nonlocal-endpoints.md`
 - `SSL-Coq/less-than-one-a-press/docs/notes/negative-quicksand-unreanchored-dialog.md`
 - `SSL-Coq/less-than-one-a-press/notes/source-map.md`
+
+## Rank-3 synchronized payload and stock-installation closure tranche
+
+The rank-3 platform witness now starts from the actual synchronized upper-warp
+centre: X/Z velocity `(186,122)` plus the exact half-turn produces the complete
+nonlocal State vector in one call.  The earlier rotation-only input is proved
+outside the warp radius.  The new installation module rules the complete
+payload out for every trace in the audited stock scheduler/owner model and
+requires any classified success to expose one of six named projection escapes;
+whole-retail linkage and elimination of those escapes remain open.  The
+following paths changed:
+
+- `SSL-Coq/less-than-one-a-press/proofs/Area1NonlocalPlatformMirror.v`
+- `SSL-Coq/less-than-one-a-press/proofs/Area1NonlocalPlatformInstallationClosure.v` (new)
+- `SSL-Coq/less-than-one-a-press/_CoqProject`
+- `SSL-Coq/less-than-one-a-press/Makefile`
+- `SSL-Coq/less-than-one-a-press/README.md`
+- `SSL-Coq/less-than-one-a-press/human-readable-proof.md`
+- `SSL-Coq/less-than-one-a-press/docs/no-a-route-atlas.md`
+- `SSL-Coq/less-than-one-a-press/docs/checklist.md`
+- `SSL-Coq/less-than-one-a-press/docs/checklist-completed.md`
+- `SSL-Coq/less-than-one-a-press/docs/notes/area1-nonlocal-endpoints.md`
+- `SSL-Coq/less-than-one-a-press/docs/notes/changed-paths.md`
+- `SSL-Coq/less-than-one-a-press/notes/source-map.md`

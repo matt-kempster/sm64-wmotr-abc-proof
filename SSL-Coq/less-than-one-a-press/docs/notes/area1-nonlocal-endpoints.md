@@ -232,19 +232,35 @@ and upper-trigger counter `0 -> 1` at timers 594/595 with zero A counts.
 
 The candidate is not presently easier to install than the local timer-131
 sample, but the exact displacement is no longer arithmetically mysterious.
-`Area1NonlocalPlatformMirror.v` constructs a zero-X/Z-velocity payload whose
-pitch changes from `0` to `180` degrees around pivot
-`(-1862,34041,-902)`.  In the same binary32 matrix model used for platform
-displacement, this maps local State `(-1862,768,-902)` to exactly
-`(-1862,67314,-902)`: a Y change of `66546` with unchanged X/Z.  The proof
+`Area1NonlocalPlatformMirror.v` now constructs the complete payload from the
+actual synchronized upper-warp centre.  `apply_platform_displacement` first
+adds X/Z velocity, so `(186,122)` maps `(-2048,768,-1024)` to
+`(-1862,768,-902)`; a pitch change from `0` to `180` degrees around pivot
+`(-1862,34041,-902)` then yields exactly `(-1862,67314,-902)`.  The proof
 checks the exact sine-table entries in both versions and the raw signed-angle
-truncations.  What remains is not the math but clean installation of that
-remote pivot/half-turn payload and a non-null platform pointer.
+truncations.  It also corrects the earlier interpretation: the rotation-only
+input `(-1862,768,-902)` is outside the upper-warp radius, so that receipt by
+itself already assumed a horizontal State/Object split.
+
+`Area1NonlocalPlatformInstallationClosure.v` proves the negative result at the
+current stock boundary.  Every finite trace constructed from the audited seed,
+completed final query, preserving frozen carry, US clear, and checked JP
+inbound cases has a null platform when the raw Object touches the upper warp.
+The exact payload therefore cannot run in that model.  The source/finite
+receipts also find no direct required pitch-velocity writer in the canonical
+surface callbacks, distinguish the checked fragment values from `-32768`, and
+exclude pivot Y `34041` from the complete stock-top timer model and checked
+fragments.  A classified successful installation must contain an alias or
+external pointer write, owner/surface projection failure, post-query Object
+writer, moving skipped query, unchecked retained entry, or unclassified
+scheduler shape.  Those live projection escapes remain the boundary between
+this stock-model disproof and an unconditional retail impossibility result.
 
 The following remain open and prevent a clean counterexample claim:
 
-1. a clean zero-A platform object/pointer whose live payload realizes the
-   checked remote-pivot half-turn (or another exact pre-collision writer);
+1. realize one of the six explicit stock-projection escapes with a clean zero-A
+   platform object/pointer and the checked remote-pivot payload, or eliminate
+   every escape in linked execution;
 2. linked wall execution refining the now-closed source-shaped no-push
    theorem;
 3. linked dynamic-list insertion, ownership, traversal, and exact
