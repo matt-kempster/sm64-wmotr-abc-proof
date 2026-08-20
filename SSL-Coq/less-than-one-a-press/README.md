@@ -947,6 +947,20 @@ clear/reset barriers, and exclusion of unmodeled memory writes.  The
 both-`NULL` `find_floor` outcomes and their reachability also remain unproved.
 Subject to that refinement, the surviving Ink schedule specifically requires
 a non-null graphical retry.
+The new `InkTimer131ProducerClosure.v` result narrows the producer side without
+assuming that refinement.  Across both generated behavior-data corpora, all
+40 command words targeting `oGraphYOffset` are fixed `SET_FLOAT` values at
+most `+240`; no stock value can meet the generic `+632` timer-131 requirement.
+Mario's own behavior has no offset command, allocation clears the raw words,
+and its normal flag command enables bit 8 rather than the tail's bit 0.  The
+other unbounded direct writer is now coupled exactly to the Chuckya/King
+Bob-omb anchor family, whose parents are absent from the audited stock SSL
+Area-1 selectors and direct C references.  Conversely, a deliberately
+non-stock `+1160` offset at warp-center X/Z produces an accepted timer-131
+face observation.  Thus the normal stock-script/anchor producer stories are
+closed at the source/finite-geometry boundary, while linked Mario-slot
+identity, forged or indirect commands, dynamic spawn provenance, alias/OOB or
+external writes, and slot lifetime remain capable of reopening them.
 The abstract case split now also captures that a successful retry performs
 only the first of the two `ACT_DISAPPEARED` ticks.  A second floor-supported
 Mario update is required before the upper object warp can be requested.  If

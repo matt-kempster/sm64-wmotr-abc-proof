@@ -428,6 +428,21 @@ These obligations currently block the clean-retail result.
   post-commit transport, another dynamic owner, and a skipped-query frozen
   carry must each be proved unreachable or carried into the same trace.
 
+- [ ] Finish the live producer decision for Ink's timer-131 retry.  The new
+  `InkTimer131ProducerClosure.v` source/geometry boundary rules out both normal
+  large-writer stories: every one of the 40 US/JP behavior commands targeting
+  `oGraphYOffset` is `SET_FLOAT` with value at most `+240`, versus the generic
+  `+632` minimum, and the only full cross-object Graphics copy is the
+  Chuckya/King-Bob-omb anchor chain whose parents are absent from the audited
+  stock Area-1 selectors and direct C references.  It also checks allocation
+  zeroing, Mario's no-offset/bit-8-only behavior, traversal assignment of
+  `gCurrentObject` before `cur_obj_update`, and a non-stock `+1160`
+  warp-center retry witness.  What remains is semantic rather than geometric:
+  preserve the live Mario slot/epoch and `gCurrentObject = gMarioObject`, link
+  behavior-table execution and the Area-1 spawn graph, and exclude or realize
+  forged/indirect commands, alias/OOB/external stores, and lifecycle reuse.
+  The negative-quicksand/dialog producer remains a separate open branch.
+
 - [ ] Prove the linked stock-provenance projection is exhaustive.  Analyze
   relocated warp/top or collision-preserving clones, post-commit movement
   away from the warp sample, non-stock owners, and skipped queries outside

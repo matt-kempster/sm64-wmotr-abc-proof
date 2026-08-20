@@ -456,6 +456,26 @@ word or `oGraphYOffset` float slot.  The initializer payload's bit zero is also
 clear.  The remaining provenance is consequently indirect/interpreter,
 alias/external, or lifecycle based rather than a direct store in those bodies.
 
+`proofs/InkTimer131ProducerClosure.v` closes the two normal large-writer
+source branches.  An opcode-neutral scan of every US/JP `behavior_data`
+initializer finds exactly 40 commands whose target field is
+`oGraphYOffset`; every one is `bhv_cmd_set_float`, and the largest payload is
+`+240`.  The route's generic timer-131 top retry needs at least `+632`, so no
+stock behavior payload can install it even if the behavior tail executes on
+Mario.  The module separately checks that fresh allocation clears the raw
+words, Mario's script contains no offset command and ORs bit 8 rather than bit
+0, and the object traversal assigns `gCurrentObject` from its visited node
+before `cur_obj_update`.  For the cross-object alternative, its exact call
+chain is `bhvChuckya`/`bhvKingBobomb` -> anchor child -> common anchor ->
+`obj_set_gfx_pos_at_obj_pos(gMarioObject,gCurrentObject)`; neither parent is
+selected by the audited stock Area-1 regular, macro, or special sources, and
+no generated C body directly mentions either parent.  Finally, a non-stock
+`+1160` offset at warp-center X/Z is checked to return an accepted timer-131
+face observation.  This proves that geometry is not the blocker and leaves a
+precise live-memory boundary: current/Mario slot identity, interpreter/table
+integrity, dynamic spawn closure, aliases, OOB/external writes, and slot
+lifetime.
+
 `proofs/RetailFatalLatch.v` is a handwritten finite scheduler model.  It
 imports generated US/JP syntax and packed-data receipts from `ClightFacts.v`,
 proves fatal-latch preservation over its explicit event alphabet, and includes

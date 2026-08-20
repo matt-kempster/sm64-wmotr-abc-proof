@@ -853,6 +853,20 @@ Completed work is grouped by subject. Each item retains its original scope warni
   acceptance, retained top-pointer observations, depth-47 first-apply
   observation, and zero-A counts into one explicitly conditional boundary.
 
+- [x] Close the two normal stock large-Graphics producer branches at the
+  generated-source/finite-geometry boundary.  `InkTimer131ProducerClosure.v`
+  decodes every US/JP `behavior_data` word targeting `oGraphYOffset`: all 40
+  are `SET_FLOAT`, with maximum `+240`, and none can meet the generic `+632`
+  retry requirement.  Mario's own script has no offset command, its flag
+  command enables bit 8 rather than bit 0, and allocation clears the raw-data
+  words.  The only direct full cross-object Graphics copy is coupled to the
+  Chuckya/King-Bob-omb anchor children; their parents are absent from the
+  audited Area-1 regular, macro, and special selectors and from direct C
+  references.  A checked non-stock `+1160` offset still succeeds at
+  warp-center X/Z, so this is not a global memory-corruption disproof: linked
+  slot identity, behavior dispatch, spawn closure, alias/OOB/external frames,
+  and lifecycle preservation remain open.
+
 - [x] Check both stock upper-warp behavior scripts and native callbacks:
   the warp has no direct X/Y/Z access, write, or native callee.  Check the
   stock pyramid-top behavior and finite binary32 timer `0..150` mirror:

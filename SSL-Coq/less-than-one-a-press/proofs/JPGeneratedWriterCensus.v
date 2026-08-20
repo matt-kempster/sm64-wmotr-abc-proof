@@ -605,8 +605,10 @@ Proof. vm_compute. repeat split; reflexivity. Qed.
 
 (** The raw-object inventories use the stricter nested selector, so the
     counted lvalue has the generated shape [receiver.rawData.asF32[index]],
-    not merely some unrelated field array named [asF32].  Indices 7 and 10
-    are the decomp's [oPosY] and [oGraphYOffset] macro slots respectively. *)
+    not merely some unrelated field array named [asF32].  Index 7 is
+    [oPosY].  Index 10 is retained as an older generic raw-slot census; it is
+    not [oGraphYOffset], whose actual raw-data index is 21 and is checked by
+    [InkTimer131ProducerClosure]. *)
 Theorem jp_generated_rawdata_asf32_7_direct_assignment_counts :
   assignment_partition_counts
     (jp_generated_nested_array_slot_assignment_partition

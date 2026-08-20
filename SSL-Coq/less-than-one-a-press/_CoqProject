@@ -309,5 +309,6 @@ proofs/JPZeroAReachability.v
 proofs/Area1EntryZeroAPrefix.v
 proofs/RetailFatalLatch.v
 proofs/InkFirstNullRetryNecessity.v
+proofs/InkTimer131ProducerClosure.v
 proofs/TurningAnimation.v
 proofs/MainTheorem.v

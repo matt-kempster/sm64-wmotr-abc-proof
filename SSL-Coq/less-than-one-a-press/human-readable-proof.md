@@ -77,6 +77,20 @@ engineering but does not know *Super Mario 64*.
 > the sole ordinary constructor of `ACT_LONG_JUMP` is the
 > `INPUT_A_PRESSED` branch of `act_crouch_slide`.
 >
+> The timer-131 producer audit now rules out the other two obvious ways to
+> make the rendered Mario position arbitrarily high in normal stock Area 1.
+> Across both versions, all 40 behavior commands targeting the graphical Y
+> offset are fixed `SET_FLOAT` commands no larger than `+240`, while even the
+> lowest timer-131 top retry needs `+632`.  Mario's own behavior has no offset
+> command, starts from zeroed raw words, and enables bit 8 rather than the
+> dangerous bit 0.  The only full cross-object rendered-position copy is the
+> Chuckya/King Bob-omb anchor chain, and neither parent is selected or directly
+> spawned by the audited Area-1 sources.  A deliberately non-stock `+1160`
+> offset is nevertheless accepted at warp-center X/Z, showing that the
+> geometry is possible and that the remaining question is live provenance:
+> object identity and lifetime, faithful behavior dispatch, dynamic spawn
+> closure, and absence of forged, aliased, out-of-bounds, or external writes.
+>
 > The official cleaned JP link now has a real initialized-memory witness.
 > Resource-bounded unit receipts prove initializer alignment, and the checked
 > relocation inventory proves every `Init_addrof` target resolves.  The exact
@@ -679,10 +693,12 @@ engineering but does not know *Super Mario 64*.
 > subsequence and named bodies; indirect-call/break execution remains open.  The generic
 > behavior-interpreter Graphics synchronizer is flag-bit-0 gated, while
 > `bhvMario` ORs bit 8 (`0x100`) and does not itself introduce bit 0.  Retail
-> allocation clears the raw words, but the project has not linked that fact
+> allocation clears the raw words.  The complete behavior-data scan now adds
+> that Mario has no offset command and every stock script offset is at most
+> `+240`, too small for timer 131, but the project has not linked those facts
 > through slot reuse and every live mutation.  An over-permissive state with
-> bit 0 and a positive `oGraphYOffset` can overwrite Graphics and is therefore
-> a formal-model counterexample to closure, not evidence of a retail route. The
+> bit 0 and a non-stock `+1160` `oGraphYOffset` is an exact accepted-face
+> counterexample to closure, not evidence of a retail route. The
 > retail-resident debug callback also contains a guarded spawn path.  Proving
 > live flag initialization/mutations, the debug guard false, and complete
 > writer/action/spawn closure remains open.
@@ -2755,6 +2771,10 @@ The most useful entry points are:
   lookup discharged;
 - `proofs/JPGeneratedWriterCensus.v`: receiver-neutral 38-unit coordinate,
   depth, action, dialog, and lifecycle writer census;
+- `proofs/InkTimer131ProducerClosure.v`: bilateral all-behavior graphical-
+  offset bound, Mario flag/offset source receipts, exact Chuckya/King-Bob-omb
+  anchor provenance exclusion, and the non-stock `+1160` accepted retry
+  witness;
 - `proofs/JPCoordinateLvalueReceiverPartition.v`: 38-unit allowed receiver-tag
   check for the four coordinate-lvalue census shapes;
 - `proofs/JPOfficialInitialMemory.v`: constructive initial-memory existence for

@@ -523,7 +523,7 @@ next-frame fallback:
 | `perform_ground_step` inside `act_riding_shell_ground` | The same X/Z/floor-selection distinction applies; `GROUND_STEP_HIT_WALL` stops shell riding and selects knockback | Control still reaches `tilt_body_ground_shell`, so this source path executes one `+45`, not `45 + wall bonus` |
 | End of Mario's behavior | `copy_mario_state_to_object` copies final State XYZ to raw Object XYZ | Any absolute wall/floor lift is copied to Object too; only the shell visual offset remains as a gap |
 | A frame with successful cached upper-warp contact | Warp interaction runs before action dispatch and selects `ACT_DISAPPEARED` in the inspected source schedule | The shell action is not dispatched, so a wall inside that shell action cannot create a new same-frame `+42`/`+45`; only a gap retained from the preceding frame could be consumed |
-| Generic behavior tail | If Mario's live `oFlags` unexpectedly contains bit 0, `obj_update_gfx_pos_and_angle` can overwrite Graphics Y with `oPosY + oGraphYOffset` | This is a distinct potential Graphics-only writer, not a wall effect.  Stock initialization/slot-reuse/flag-mutation closure is still open |
+| Generic behavior tail | If Mario's live `oFlags` unexpectedly contains bit 0, `obj_update_gfx_pos_and_angle` can overwrite Graphics Y with `oPosY + oGraphYOffset` | All stock behavior-data offsets are now checked at `<=240`, so timer 131 requires a non-stock value, alias/lifetime failure, or another writer |
 
 The Rocq theorems
 `abstract_state_only_writer_has_zero_graphics_y_delta` and
@@ -633,12 +633,16 @@ obligation rather than silently omitted behavior.
 The generic behavior-interpreter tail is another important model boundary.
 If the Mario object had bit 0 set, `obj_update_gfx_pos_and_angle` would replace
 Graphics with raw Object position plus `oGraphYOffset`.  Retail allocation
-clears the raw-data words, `bhvMario` only ORs bit 8, and the source census
-found no Mario callback that sets bit 0 or a nonzero graph Y offset.  The
-project does not yet link those facts through allocation, slot reuse, and all
-live mutations.  Therefore an over-permissive formal state with bit 0 and an
-arbitrary positive `oGraphYOffset` is a model counterexample to writer closure,
-not evidence of a retail route.
+clears the raw-data words, `bhvMario` only ORs bit 8 and has no offset command,
+and the source census found no Mario callback that sets either field.  The
+complete behavior-data decoder now proves more: all 40 commands targeting the
+offset field are fixed values no larger than `+240`, below the generic `+632`
+timer-131 threshold.  It also checks an exact non-stock counterstate: bit 0
+plus `oGraphYOffset = 1160` puts Graphics at a timer-131 accepted point over
+the warp-center Object.  The project does not yet link the benign stock facts
+through allocation, slot reuse, interpreter execution, and all live mutations;
+the counterstate therefore identifies the remaining alias/corruption/lifetime
+escape rather than a retail route.
 
 `mario_entry_coordinate_sync_source_shape_{us,jp}` checks ordered initializer
 and raw-slot syntax anchors.  It is deliberately not advertised as a memory

@@ -591,6 +591,7 @@ retry-null fatal-warp boundary, and documentation status corrections changed:
 - `SSL-Coq/less-than-one-a-press/docs/goal.md`
 - `SSL-Coq/less-than-one-a-press/docs/notes/changed-paths.md`
 - `SSL-Coq/less-than-one-a-press/docs/notes/ink-fallback.md`
+- `SSL-Coq/less-than-one-a-press/docs/notes/local-object-nonlocal-state-gap-matrix.md`
 - `SSL-Coq/less-than-one-a-press/docs/notes/ordinary-motion.md`
 - `SSL-Coq/less-than-one-a-press/docs/notes/pyramid-top-pu.md`
 - `SSL-Coq/less-than-one-a-press/docs/notes/route-exhaustiveness.md`
@@ -1227,4 +1228,34 @@ The following paths changed:
 - `SSL-Coq/less-than-one-a-press/proofs/Area1PostCopyAliasCallbackClosure.v`
   (new)
 - `SSL-Coq/less-than-one-a-press/proofs/InkFirstNullRetryNecessity.v` (new)
+- `SSL-Coq/less-than-one-a-press/proofs/JPGeneratedWriterCensus.v`
+
+## Timer-131 Graphics-producer closure tranche
+
+The rank-2 Ink investigation now separates geometric capability from normal
+stock provenance.  A bilateral opcode-neutral behavior-data scan finds exactly
+40 commands targeting `oGraphYOffset`; all are fixed `SET_FLOAT` values at
+most `+240`, below the generic `+632` top-retry threshold.  Mario's own script
+has no such command, fresh allocation clears the raw words, and its normal
+flag command enables bit 8 rather than bit 0.  The only full cross-object
+Graphics copy is coupled to the Chuckya/King-Bob-omb anchor family, whose
+parents are absent from the audited Area-1 selectors and direct generated-C
+references.  An exact non-stock `+1160` warp-center witness still succeeds,
+leaving live slot/receiver identity, interpreter/spawn provenance,
+alias/OOB/external effects, and lifecycle as the decisive residuals.  The
+following paths changed:
+
+- `SSL-Coq/less-than-one-a-press/Makefile`
+- `SSL-Coq/less-than-one-a-press/README.md`
+- `SSL-Coq/less-than-one-a-press/_CoqProject`
+- `SSL-Coq/less-than-one-a-press/docs/checklist-completed.md`
+- `SSL-Coq/less-than-one-a-press/docs/checklist.md`
+- `SSL-Coq/less-than-one-a-press/docs/no-a-route-atlas.md`
+- `SSL-Coq/less-than-one-a-press/docs/notes/changed-paths.md`
+- `SSL-Coq/less-than-one-a-press/docs/notes/clean-jp-graphics-gap-source-audit.md`
+- `SSL-Coq/less-than-one-a-press/docs/notes/ink-fallback.md`
+- `SSL-Coq/less-than-one-a-press/docs/notes/local-object-nonlocal-state-gap-matrix.md`
+- `SSL-Coq/less-than-one-a-press/human-readable-proof.md`
+- `SSL-Coq/less-than-one-a-press/notes/source-map.md`
+- `SSL-Coq/less-than-one-a-press/proofs/InkTimer131ProducerClosure.v` (new)
 - `SSL-Coq/less-than-one-a-press/proofs/JPGeneratedWriterCensus.v`

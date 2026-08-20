@@ -1,6 +1,6 @@
 # No-A two-star route atlas
 
-> Status snapshot: 2026-08-13.  Rankings are intentionally revisable as linked
+> Status snapshot: 2026-08-20.  Rankings are intentionally revisable as linked
 > execution evidence or new counterexamples arrive.
 
 ## Purpose and scope
@@ -118,7 +118,7 @@ The detailed sections are organized as:
 | Overall | Family | Approach | Current counterexample promise |
 |---:|---|---|---|
 | 1 | JP stale-platform lineage | Different collision/query samples, then read the inactive unreused top payload | High relative to this project |
-| 2 | Ink installation | Timer-131 non-null Graphics retry | Medium-high |
+| 2 | Ink installation | Timer-131 non-null Graphics retry | Medium |
 | 3 | State-first installation | Finite signed-16 nonlocal-State alias | Medium |
 | 4 | JP stale-platform lineage | Move the warp/top or create a collision-preserving clone | Low-medium |
 | 5 | State-first installation | Post-copy State-only writer in a later callback or descendant | Low-medium |
@@ -419,52 +419,16 @@ Technical background: [Ink fallback](notes/ink-fallback.md),
 
 ### Timer-131 non-null Graphics retry
 
-**Overall rank: 2. Family priority: 1. Likelihood: medium-high.**
+**Overall rank: 2. Family priority: 1. Likelihood: medium.**
 
 **In plain language.** Leave Mario's collision Object at the upper warp, make
 MarioState's first floor lookup miss, but leave the rendered Mario position on
 the raised spinning top.  The game retries the floor lookup at the rendered
 position and remembers the top.
 
-**What is already known.** Source order supports the three-view sequence.  The
-correct timer-131 midpoint is an exact interior point on the live modeled top;
-the older home-position point is rejected.  At the warp center the route needs
-a Graphics/Object Y gap of `1010` (at least `960` in the route envelope).
-Injecting those three views, together with an injected pillar counter `4` that
-forces the top's spin/explosion lifecycle, reaches the conditional JP lifecycle
-and Act-6 receipt.  A retry that is also null is fatal under the abstract
-latch, and the new first-NULL capstone proves that any route projected into
-that scheduler model must therefore succeed on the Graphics retry rather than
-continue after two misses.  A stricter generated-code census also reduces the
-possible direct Graphics-Y assignment bodies from `33` receiver-neutral
-`pos[1]` sites to exactly `11` real `gfx.pos[1]` writers.  Those now split
-exactly into seven Mario initialization/action paths and four helpers with a
-generic Object receiver.  The four are now separated by role: the dangerous
-behavior-offset tail, allocation-time sentinel initialization, a same-object
-raw-to-Graphics reanchor, and a cross-object anchor copy.  Their remaining
-proof obligations are therefore flag/offset provenance, Mario-slot lifecycle,
-same-receiver identity, and non-stock anchor reachability respectively.  The
-same-object helper is now source-checked more strongly: its Graphics-Y store
-reads raw Y from the identical receiver, so it erases rather than creates an
-Ink gap even if that receiver is Mario.  The dangerous behavior-tail body is
-also pinned: `cur_obj_update` passes exactly `gCurrentObject` to it under flag
-bit zero, and Mario's stock behavior names its update callback.  It is
-therefore a genuine source-reachable candidate, narrowed to proving live
-current-object identity plus flag-bit and graphical-offset provenance.  The
-three direct callbacks named by Mario's behavior are now checked not to write
-either the flag word or graphical Y-offset slot, and Mario's initializer adds
-bit eight rather than bit zero.  Any dangerous values must therefore come from
-an indirect/interpreter writer, alias or external store, or object-slot
-lifetime failure rather than Mario's direct callback bodies.
+**What is already known.** The timer-131 geometry works: the corrected midpoint is on the modeled spinning top, while the old home-position sample is not, and the midpoint needs at least a `960`-unit rendered-versus-collision height gap (`1010` at warp center).  An injected three-view setup plus an injected fully activated top reaches the conditional JP displacement and Act-6 evidence, whereas a second failed floor lookup is fatal in the audited scheduler model.  The direct writer search is now much tighter: only eleven bodies write rendered Y, the same-object helper merely resynchronizes the views, and the two plausible large writers have been reduced sharply.  All forty stock behavior commands aimed at the graphical Y offset are ordinary fixed offsets no larger than `+240`; Mario's own behavior has no such command, starts from cleared fields, and enables bit 8 rather than the dangerous bit 0.  The only full cross-object rendered-position copy belongs to the Chuckya/King Bob-omb anchor family, and neither parent is selected or directly spawned by the audited SSL Area-1 sources.  Conversely, a deliberately non-stock `+1160` offset at warp-center X/Z does make the timer-131 retry succeed.  We have therefore disproved the two normal stock producer stories at the source/finite-geometry boundary, but not the broader possibility through a forged command, pointer alias, external write, slot-lifetime failure, or an unproved live-source projection.
 
-**What closes it.** Produce the large three-view gap from clean execution;
-prove the first null lookup, live top-owned retry, exact return/snap/copy order,
-post-copy preservation, clean pillar-counter progression and explosion,
-unload/final-query selection, and the remaining Act-3 suffix.  The double-NULL
-case now needs only a live trace-to-latch projection, not new fatal-latch
-arithmetic; writer work should focus on receiver identity and call paths for
-the eleven direct Graphics-Y bodies.  Act 6 separately needs the existing
-trigger/spawn and pickup/save-bit receipts joined in one linked suffix.
+**What closes it.** First decide whether clean play can still create the large three-view gap through the remaining negative-quicksand/dialog path, a forged or indirect behavior command, Mario-slot aliasing or reuse, a non-stock spawned anchor, or an external/out-of-bounds write; a live memory proof that preserves Mario's slot, current-object identity, cleared flag, and bounded offset would disprove those escapes, while one concrete execution would establish the installer.  Only after a producer survives should the proof execute the first failed lookup, live top-owned retry, copy and final-query order, top activation/explosion, destination displacement, and the separate Act-3 and Act-6 suffixes.
 
 ### Negative quicksand depth plus stalled automatic dialog
 
@@ -495,14 +459,9 @@ for the producer and reanchoring split.
 position to graphics with an added `oGraphYOffset`, and make that offset huge.
 This could create the entire Ink gap at once.
 
-**What is already known.** Object allocation clears the relevant fields.
-Mario's normal behavior sets a different flag bit, and no clean direct writer
-of the dangerous flag/offset pair has been found.  An over-permissive memory
-model can realize it, so it remains an alias or lifecycle hole rather than a
-normal gameplay lead.
+**What is already known.** Object allocation clears all raw-data words, Mario's normal behavior has no graphical-offset command and enables bit 8 rather than the dangerous bit 0, and none of its three direct callbacks writes either field.  More strongly, all forty stock behavior commands targeting the graphical offset are fixed values at most `+240`, far below the generic `+632` timer-131 minimum.  A deliberately non-stock `+1160` value does make a warp-center retry succeed, so this is disproved as a normal stock-script route but remains a precise alias, corruption, or slot-lifetime escape.
 
-**What closes it.** Prove the live Mario slot, initialization, behavior-tail
-execution, and every direct/indirect/alias/external mutation of both fields.
+**What closes it.** Prove through live execution that the traversed Mario node is still `gMarioObject`, its allocation epoch and cleared raw fields persist, behavior dispatch uses the checked table and script, and no indirect, alias, external, or out-of-bounds store changes bit 0 or the offset; alternatively, exhibit one such store as the counterexample producer.
 
 ### Non-stock Graphics anchor or spawned anchor actor
 
@@ -512,14 +471,9 @@ execution, and every direct/indirect/alias/external mutation of both fields.
 anchors, can force Mario's rendered position to the actor's position.  A far
 away actor could manufacture a huge graphical gap.
 
-**What is already known.** The writer family is real, but those actors are not
-stock SSL Area-1 roots.  Loading an actor model is not the same as spawning
-that actor.  Post-copy particle/debug spawn paths and transitive descendants
-are now explicit residuals, but no such anchor has been reached.
+**What is already known.** The writer family is real and copies a child anchor's full rendered position into Mario, but the complete direct call chain belongs only to Chuckya and King Bob-omb anchor behaviors.  The audited SSL Area-1 regular list, macro list, and selected special presets contain neither parent; the generated C corpus has no direct parent reference, and the only static Chuckya reference is its global macro-preset table.  Loading the model is not spawning the actor.  This rules out the normal stock-root story, while forged behavior pointers, corrupted preset selection, and unclosed transitive or debug-spawn paths remain.
 
-**What closes it.** Complete the transitive behavior/spawn graph, same-frame
-list traversal, interpreter calls, allocation success, and receiver identity;
-then either produce a clean anchor actor or prove every descendant harmless.
+**What closes it.** Link the static selector result to the live behavior/spawn graph, preset indices, same-frame traversal, allocation, and receiver identity, including debug and indirect spawns; then either produce a clean Chuckya/King Bob-omb anchor descendant or prove that no live Area-1 object can acquire either parent or child behavior.
 
 ### Shell visual offset plus wall/floor scheduling
 

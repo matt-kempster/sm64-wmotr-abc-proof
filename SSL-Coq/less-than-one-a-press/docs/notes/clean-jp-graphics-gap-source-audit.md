@@ -76,8 +76,8 @@ whole-program theorem.
 | Water pitch | Adds `60 * sin(pitch)^2`, hence at most about `60` | Source-backed expression; exact binary32/live-state refinement remains open |
 | Surface-swim bob | Adds `sBobHeight * sin(sBobTimer)`, with the audited s16 state giving a positive contribution below `148` | Existing abstract composition uses the conservative bound `208`; not a linked retail bound |
 | Quicksand sink | `GraphicsY := GraphicsY - quicksandDepth` | Cannot raise Graphics when depth is nonnegative; negative-depth closure is discussed below |
-| Generic behavior tail | If Mario flag bit zero is set, `GraphicsY := ObjectY + oGraphYOffset` | Potentially unbounded in an over-permissive memory model; no stock source writer of that Mario flag/offset was found |
-| Chuckya/King-Bob-omb anchor | `obj_set_gfx_pos_at_obj_pos(gMarioObject, anchor)` | Potentially unbounded, but neither actor/anchor behavior is spawned in stock SSL Area 1 |
+| Generic behavior tail | If Mario flag bit zero is set, `GraphicsY := ObjectY + oGraphYOffset` | All 40 stock field-21 behavior commands are fixed offsets at most `+240`, and Mario has none; a non-stock `+1160` offset succeeds geometrically but still needs corruption/alias/lifetime provenance |
+| Chuckya/King-Bob-omb anchor | `obj_set_gfx_pos_at_obj_pos(gMarioObject, anchor)` | Exact call/behavior chain is checked, but neither parent is selected or directly spawned by the audited stock SSL Area-1 sources |
 | Platform/PU displacement | Writes MarioState XYZ only | Preserves the prior Graphics/Object gap exactly |
 | OOB graphical fallback | Copies Graphics XYZ to State; the behavior tail then copies State to Object | Consumes/closes a prior gap unless a later interaction changes State |
 | Instant warp | Writes State and raw Object by the same displacement, not Graphics | No Area-1 instance; SSL Area-2/3 instant displacement is zero |
@@ -104,6 +104,18 @@ no source assignment of bit 0 or a graph-Y offset through `gMarioObject` or
 `m->marioObj`.  Turning that source observation into an invariant still
 requires proving allocation/slot identity, behavior-script interpretation,
 and absence of aliased writes.
+
+`InkTimer131ProducerClosure.v` replaces the earlier “no writer found” wording
+with a complete initializer result.  Its opcode-neutral scan finds exactly 40
+US/JP behavior-data words targeting raw float field 21; all 40 dispatch to
+`bhv_cmd_set_float`, and their signed payloads range from `-288` through a
+maximum of `+240`.  No ADD/random/SUM command targets that field, and
+`bhvMario` contains no field-21 command at all.  Since a timer-131 top retry
+from upper-warp contact needs at least `+632`, no stock behavior payload can
+install it.  Conversely, the same finite face evaluator accepts Graphics
+`(-2048,1928,-1024)`, exactly `+1160` above the raw warp-center Object.  The
+tail is therefore geometrically capable only after a non-stock field value or
+equivalent memory escape.
 
 ## Fire-particle `prevObj`: rejected false positive
 
@@ -147,6 +159,16 @@ passes `gMarioObject` as the first argument to
 SSL global script loads a Chuckya model, but model loading is not object
 spawning.  Neither the Area-1 level object list nor its macro-object list
 spawns Chuckya or King Bob-omb.
+
+That claim is now machine-checked across the generated source union.  The
+cross-object helper has exactly one direct caller, the common anchor, and that
+common anchor has exactly the Chuckya and King-Bob-omb anchor callbacks as
+direct callers.  Their child behaviors occur only in the two parent behavior
+arrays.  Neither parent appears in the Area-1 regular list, decoded macro
+stream, or selected special presets; no generated C body directly mentions a
+parent, and Chuckya's only initializer owner is the global macro-preset table.
+This closes normal static provenance, not corrupted preset indices, forged
+behavior pointers, indirect/external stores, or live object-pool semantics.
 
 ## OOB fallback and the interaction-stage vertical writer
 
@@ -311,10 +333,11 @@ obligations remain narrow and decisive:
    macro spawner, all child-spawn/behavior-change paths, and retail debug
    configuration cannot create a Chuckya/King-Bob-omb anchor or another
    writer targeting Mario Graphics.
-5. **Mario behavior-field invariant.** Prove that allocation, initialization,
-   slot reuse, and every linked writer keep
-   `OBJ_FLAG_UPDATE_GFX_POS_AND_ANGLE` clear for Mario and keep the generic
-   behavior tail from supplying an arbitrary `oGraphYOffset`.
+5. **Mario behavior-field invariant.** Lift the checked allocation zeroing,
+   no-offset Mario script, bit-8-only flag command, and `+240` all-stock bound
+   through the live Mario slot and every interpreter step.  Exclude or realize
+   forged commands, slot reuse, aliases, OOB/external stores, and every other
+   mutation that could supply the checked non-stock `+1160` witness.
 6. **First-NULL interaction refinement.** Execute the actual collision cache,
    OOB retry, interaction dispatch, stock hitbox initialization, and
    State-to-Object copy, establishing the nonnegative-down-offset bounce bound.
