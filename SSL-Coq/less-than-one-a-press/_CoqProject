@@ -313,6 +313,7 @@ proofs/InkTimer131ProducerClosure.v
 proofs/InkTimer131MarioTailClosure.v
 proofs/InkTimer131IndirectAliasClosure.v
 proofs/InkTimer131CorruptionClosure.v
+proofs/InkTimer131LiveIdentityClosure.v
 proofs/Area1NonlocalPlatformMirror.v
 proofs/Area1NonlocalPlatformInstallationClosure.v
 proofs/TurningAnimation.v

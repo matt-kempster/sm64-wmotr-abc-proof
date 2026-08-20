@@ -338,10 +338,13 @@ obligations remain narrow and decisive:
    configuration cannot create a Chuckya/King-Bob-omb anchor or another
    writer targeting Mario Graphics.
 5. **Mario behavior-field invariant.** Lift the checked allocation zeroing,
-   no-offset Mario script, bit-8-only flag command, and `+240` all-stock bound
-   through the live Mario slot and every interpreter step.  Exclude or realize
-   forged commands, slot reuse, aliases, OOB/external stores, and every other
-   mutation that could supply the checked non-stock `+1160` witness.
+    no-offset Mario script, bit-8-only flag command, and `+240` all-stock bound
+    through the live Mario slot and every interpreter step.  The exact SSL
+    `&bhvMario` command/forwarding chain and arbitrary finite clean-store
+    preservation are now checked; refine every live write into that relation,
+    or return the first forged command, same-slot identity failure, alias,
+    OOB/external store, or other mutation that supplies the non-stock `+1160`
+    witness.
 6. **First-NULL interaction refinement.** Execute the actual collision cache,
    OOB retry, interaction dispatch, stock hitbox initialization, and
    State-to-Object copy, establishing the nonnegative-down-offset bounce bound.

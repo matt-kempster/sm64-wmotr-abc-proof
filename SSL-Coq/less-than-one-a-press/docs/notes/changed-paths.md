@@ -1342,6 +1342,30 @@ open.  The following paths changed:
 - `SSL-Coq/less-than-one-a-press/docs/notes/negative-quicksand-unreanchored-dialog.md`
 - `SSL-Coq/less-than-one-a-press/notes/source-map.md`
 
+## Timer-131 live-identity and finite-store closure tranche
+
+The rank-2 Ink source chain now begins at the exact bilateral SSL
+`INIT_MARIO(..., &bhvMario)` command and follows its stable behavior value
+through the Mario SpawnInfo, area loader, constructor, and object field.  A new
+CompCert-memory induction lifts the former one-store frame across arbitrary
+finite traces of framed writes, bounded distinct-slot writes, safe Mario flag
+writes, and zero graphical-offset writes.  Therefore a corruption-style
+producer must contain a concrete event outside that relation; refinement of
+all live stores, list/slot identity, and writable command/dispatch bytes is
+still open.  The following paths changed:
+
+- `SSL-Coq/less-than-one-a-press/proofs/InkTimer131LiveIdentityClosure.v` (new)
+- `SSL-Coq/less-than-one-a-press/_CoqProject`
+- `SSL-Coq/less-than-one-a-press/Makefile`
+- `SSL-Coq/less-than-one-a-press/README.md`
+- `SSL-Coq/less-than-one-a-press/human-readable-proof.md`
+- `SSL-Coq/less-than-one-a-press/docs/no-a-route-atlas.md`
+- `SSL-Coq/less-than-one-a-press/docs/checklist.md`
+- `SSL-Coq/less-than-one-a-press/docs/checklist-completed.md`
+- `SSL-Coq/less-than-one-a-press/docs/notes/clean-jp-graphics-gap-source-audit.md`
+- `SSL-Coq/less-than-one-a-press/docs/notes/changed-paths.md`
+- `SSL-Coq/less-than-one-a-press/notes/source-map.md`
+
 ## Rank-3 synchronized payload and stock-installation closure tranche
 
 The rank-3 platform witness now starts from the actual synchronized upper-warp

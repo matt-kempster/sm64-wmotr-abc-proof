@@ -479,6 +479,15 @@ These obligations currently block the clean-retail result.
   What remains is live list/slot/table/spawn-record preservation plus forged,
   interior, OOB, or untyped outside writes, or one concrete coupled
   negative-seed/transport witness.
+  `InkTimer131LiveIdentityClosure.v` now closes the spawn-record source gap more
+  tightly: the exact SSL `INIT_MARIO` command contains `&bhvMario`, and the
+  command, area-load, and constructor receipts forward one stable value into
+  Mario's object.  It also lifts the byte proof from one store to an arbitrary
+  finite trace: framed stores, properly bounded distinct-slot stores, safe
+  Mario flag writes, and zero graphical-offset writes preserve the safe cells,
+  so ordinary list-12 eviction/reuse cannot accumulate a producer.  The open
+  step is now to refine every live linked write to that trace or exhibit the
+  first same-slot, alias/OOB/external, table-byte, or identity violation.
 
 - [ ] Prove the linked stock-provenance projection is exhaustive.  Analyze
   relocated warp/top or collision-preserving clones, post-commit movement

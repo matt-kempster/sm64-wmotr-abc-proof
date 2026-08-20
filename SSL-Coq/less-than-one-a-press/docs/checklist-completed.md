@@ -914,6 +914,18 @@ Completed work is grouped by subject. Each item retains its original scope warni
   externals, and a separately transported negative-dialog construction remain
   explicit rather than being claimed closed.
 
+- [x] Couple SSL's Mario command to `bhvMario` and lift the dangerous-cell
+  frame across arbitrary finite clean traces.  `InkTimer131LiveIdentityClosure.v`
+  checks the exact bilateral `INIT_MARIO(..., &bhvMario)` command and the
+  command-to-spawn-record, area-load, and constructor forwarding chain.  Its
+  CompCert-memory induction proves that any finite sequence of framed stores,
+  bounded stores to distinct object slots, bit-0-clear Mario flag stores, and
+  zero graphical-offset stores cannot enable the dangerous tail.  In
+  particular, list-12 eviction/reuse remains harmless under the explicit live
+  list/slot projection.  This is an event-classification theorem: proving that
+  every linked retail store belongs to the relation, and excluding table-byte,
+  same-slot, forged/interior, OOB, and external violations, remains open.
+
 - [x] Construct the exact rank-3 platform payload at the binary32 boundary.
   `Area1NonlocalPlatformMirror.v` uses the generated US/JP sine-table entries
   to show that X/Z velocity `(186,122)` followed by a pitch half-turn about

@@ -506,6 +506,17 @@ dialog amplification without a separate X/Z transport.  It deliberately does
 not frame corrupt live bytes, forged/interior pointers, OOB stores, or untyped
 external effects.
 
+`proofs/InkTimer131LiveIdentityClosure.v` pins the source chain one step
+earlier.  The exact three-word SSL `INIT_MARIO` command carries `&bhvMario`;
+the normalized command handler writes its command-derived value to the Mario
+SpawnInfo, `load_mario_area` forwards that same record, and the constructor
+uses one stable decoded behavior value for creation and the object field.  Its
+memory theorem then closes arbitrary finite compositions of framed stores,
+in-bounds distinct-slot stores, safe flag stores, and zero-offset stores.  This
+turns a successful corruption-style producer into a demand for one concrete
+unclassified event, but does not yet refine every linked retail store to the
+clean relation or exclude mutation of writable command/dispatch memory.
+
 `proofs/InkTimer131ProducerClosure.v` closes the two normal large-writer
 source branches.  An opcode-neutral scan of every US/JP `behavior_data`
 initializer finds exactly 40 commands whose target field is

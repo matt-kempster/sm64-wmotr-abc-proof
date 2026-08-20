@@ -1014,6 +1014,17 @@ remaining Ink cases are therefore genuinely live-memory cases: corrupted
 list/slot/table/spawn-record identity, forged or interior pointers,
 overlapping OOB stores, untyped external effects, or a negative seed composed
 with a separate raw-X/Z transport.
+`InkTimer131LiveIdentityClosure.v` closes the missing source link at the front
+of that chain: the exact bilateral SSL `INIT_MARIO` command carries
+`&bhvMario`, and the generated command, area-load, and constructor bodies
+forward that one value into Mario's object.  It also proves an arbitrary-length
+CompCert-memory result rather than another one-step frame: any finite sequence
+of unrelated framed stores, bounded distinct-object-slot stores, safe stock
+flag writes, and zero graphical-offset writes preserves the two safe Mario
+cells and cannot enable the graphical tail.  A clean retail disproof must now
+show that every executed store refines to those cases; any counterexample must
+exhibit the first same-slot overlap, identity/table mutation, forged/interior
+pointer, OOB access, or untyped external effect that does not.
 The abstract case split now also captures that a successful retry performs
 only the first of the two `ACT_DISAPPEARED` ticks.  A second floor-supported
 Mario update is required before the upper object warp can be requested.  If

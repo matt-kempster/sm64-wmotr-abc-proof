@@ -1833,6 +1833,15 @@ check: proofs
 	  LessThanOneAPress.Proofs.InkTimer131CorruptionClosure \
 	  granted_negative_untransported_dialog_never_reaches_timer131_warp
 	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.InkTimer131LiveIdentityClosure \
+	  ink_timer131_live_identity_checked_boundary_holds
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.InkTimer131LiveIdentityClosure \
+	  ink_mario_spawn_record_forwards_ssl_bhv_mario_source
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.InkTimer131LiveIdentityClosure \
+	  clean_finite_trace_cannot_install_timer131_tail_cells
+	bash pipeline/assumptions.sh \
 	  LessThanOneAPress.Proofs.Area1NonlocalPlatformMirror \
 	  area1_nonlocal_platform_mirror_checked_boundary_holds
 	bash pipeline/assumptions.sh \

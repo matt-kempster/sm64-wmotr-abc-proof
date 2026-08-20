@@ -97,6 +97,12 @@ engineering but does not know *Super Mario 64*.
 > unchanged.  The normal spawn/list source chain also identifies where
 > `gCurrentObject = gMarioObject` must come from; proving that equality in live
 > memory across the slot lifetime remains the decisive bridge.
+> The next refinement checks the exact SSL `INIT_MARIO(..., &bhvMario)` command
+> and follows that value through the spawn record and constructor.  It also
+> proves safety across any finite sequence of ordinary framed or distinct-slot
+> writes, rather than only one write.  Consequently a corruption-style Ink
+> installer needs one identifiable live event outside that relation; the proof
+> does not yet show that every retail step belongs to it.
 >
 > The official cleaned JP link now has a real initialized-memory witness.
 > Resource-bounded unit receipts prove initializer alignment, and the checked
@@ -2814,6 +2820,9 @@ The most useful entry points are:
 - `proofs/InkTimer131CorruptionClosure.v`: exact named-use/no-writer censuses
   for both mutable dispatch tables, stable Mario constructor behavior
   forwarding, and the clean-seed plus untransported-dialog no-go results;
+- `proofs/InkTimer131LiveIdentityClosure.v`: exact SSL `&bhvMario` command and
+  spawn-record forwarding receipts, plus arbitrary finite clean-store safety
+  and a distinct-slot/list-12 eviction trace embedding;
 - `proofs/JPCoordinateLvalueReceiverPartition.v`: 38-unit allowed receiver-tag
   check for the four coordinate-lvalue census shapes;
 - `proofs/JPOfficialInitialMemory.v`: constructive initial-memory existence for
