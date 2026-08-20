@@ -469,6 +469,25 @@ command cannot enable the tail guard.  This does not yet supply the linked
 list/slot induction or frame indirect, external, alias, OOB, forged-script,
 and reuse effects.
 
+`proofs/InkTimer131IndirectAliasClosure.v` continues that boundary through the
+two stock indirect calls.  It checks all landing callback arguments and the
+complete interaction-handler initializer, expands the bilateral direct-call
+closures through those targets, and still finds no literal flag/offset writer.
+No unresolved direct callee in the resulting closure receives an `Object *`;
+the generated corpus also has no unresolved direct or builtin `MarioState *`
+handoff and no builtin `Object *` handoff.  The memory layer proves that a
+defined changed load must overlap the exact four-byte Mario cell, and that any
+in-bounds store to a distinct 608-byte pool slot preserves both cells.  Finally,
+the exact source couples list 12's first object through the allocation fallback
+to `unload_object`, while the full `bhvMario` initializer begins in list 0.
+The resolved graph's direct `Object.behavior` writer intersection is exactly
+`[create_object]`, while a whole-corpus address census for that field is empty;
+the ordinary mutation helpers and area-load writer therefore do not provide a
+hidden callback path.
+Turning that into retail impossibility still requires live list-partition,
+pointer/slot-epoch, and table integrity; forged/global/interior pointers, OOB
+stores, and untyped outside effects remain explicit escapes.
+
 `proofs/InkTimer131ProducerClosure.v` closes the two normal large-writer
 source branches.  An opcode-neutral scan of every US/JP `behavior_data`
 initializer finds exactly 40 commands whose target field is

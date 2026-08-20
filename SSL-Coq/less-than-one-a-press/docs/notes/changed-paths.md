@@ -1291,3 +1291,31 @@ following paths changed:
 - `SSL-Coq/less-than-one-a-press/notes/source-map.md`
 - `SSL-Coq/less-than-one-a-press/proofs/InkTimer131ProducerClosure.v` (new)
 - `SSL-Coq/less-than-one-a-press/proofs/JPGeneratedWriterCensus.v`
+
+## Timer-131 indirect, alias, and eviction closure tranche
+
+The rank-2 Ink audit now resolves both stock indirect callback families and
+recomputes the enlarged bilateral closure without finding a dangerous Mario
+tail-field writer.  It excludes ordinary typed handoff of Mario's object or
+state to unresolved code, reduces any changed dangerous cell to an exact
+same-slot byte overlap, and proves that in-bounds writes to another object
+slot preserve both cells.  The pool-exhaustion fallback is coupled from the
+first object in list 12 to `unload_object`, while `bhvMario` declares list 0;
+therefore ordinary eviction/reuse is framed once the live list partition and
+Mario slot epoch are supplied.  The resolved graph's only behavior-field
+writer is ordinary `create_object` initialization, with no direct field-address
+site in the generated corpus.  Live list/table corruption, a corrupted
+constructor argument, forged/global or interior pointers, OOB or untyped
+outside writes, and the separate
+negative-depth/dialog mechanism remain open.  The following paths changed:
+
+- `SSL-Coq/less-than-one-a-press/Makefile`
+- `SSL-Coq/less-than-one-a-press/README.md`
+- `SSL-Coq/less-than-one-a-press/_CoqProject`
+- `SSL-Coq/less-than-one-a-press/docs/checklist-completed.md`
+- `SSL-Coq/less-than-one-a-press/docs/checklist.md`
+- `SSL-Coq/less-than-one-a-press/docs/no-a-route-atlas.md`
+- `SSL-Coq/less-than-one-a-press/docs/notes/changed-paths.md`
+- `SSL-Coq/less-than-one-a-press/human-readable-proof.md`
+- `SSL-Coq/less-than-one-a-press/notes/source-map.md`
+- `SSL-Coq/less-than-one-a-press/proofs/InkTimer131IndirectAliasClosure.v` (new)

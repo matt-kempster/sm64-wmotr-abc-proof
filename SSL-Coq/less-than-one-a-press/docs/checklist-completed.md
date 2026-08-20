@@ -880,6 +880,26 @@ Completed work is grouped by subject. Each item retains its original scope warni
   live list/slot identity, and lifetime preservation remain outside this
   source closure.
 
+- [x] Resolve the stock indirect-callback, typed-external-handoff, byte-alias,
+  and ordinary pool-eviction subbranches for the timer-131 Mario-tail producer.
+  `InkTimer131IndirectAliasClosure.v` checks that the only two indirect sites
+  are the landing callback and interaction-handler table, adds every stock
+  target to the direct closure, and still finds no flag or graphical-offset
+  writer.  It finds no unresolved direct `Object *` handoff in that closure,
+  no unresolved direct or builtin `MarioState *` handoff in the generated
+  corpus, and no builtin `Object *` handoff.  CompCert memory lemmas reduce any
+  changed dangerous cell to an overlapping store in Mario's pool slot, and
+  prove that any in-bounds store in another 608-byte slot preserves it.  The
+  exact eviction source obtains list 12's first object and forwards that same
+  temporary to `unload_object`, while `bhvMario` begins in list 0; consequently
+  eviction/reuse is harmless under the explicit live disjoint-list/slot
+  projection.  The resolved graph's exact direct `Object.behavior` writer
+  intersection is `[create_object]`, and the whole generated corpus has no
+  direct address-of for that field.  Live table contents, list integrity,
+  Mario's slot epoch, corrupted constructor arguments, global/interior-pointer
+  or OOB writes, untyped outside access, and negative-depth/dialog execution
+  remain open rather than silently assumed.
+
 - [x] Check both stock upper-warp behavior scripts and native callbacks:
   the warp has no direct X/Y/Z access, write, or native callee.  Check the
   stock pyramid-top behavior and finite binary32 timer `0..150` mirror:

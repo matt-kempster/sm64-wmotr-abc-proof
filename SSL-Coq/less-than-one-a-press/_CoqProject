@@ -311,5 +311,6 @@ proofs/RetailFatalLatch.v
 proofs/InkFirstNullRetryNecessity.v
 proofs/InkTimer131ProducerClosure.v
 proofs/InkTimer131MarioTailClosure.v
+proofs/InkTimer131IndirectAliasClosure.v
 proofs/TurningAnimation.v
 proofs/MainTheorem.v

@@ -1803,6 +1803,21 @@ check: proofs
 	  LessThanOneAPress.Proofs.InkTimer131MarioTailClosure \
 	  zero_graph_offset_cannot_install_timer131_top_retry
 	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.InkTimer131IndirectAliasClosure \
+	  ink_timer131_indirect_alias_checked_boundary_holds
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.InkTimer131IndirectAliasClosure \
+	  ink_external_struct_pointer_handoff_checked
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.InkTimer131IndirectAliasClosure \
+	  ink_pool_eviction_source_checked
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.InkTimer131IndirectAliasClosure \
+	  ink_behavior_pointer_writer_source_checked
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.InkTimer131IndirectAliasClosure \
+	  live_unimportant_slot_reuse_preserves_timer131_cell
+	bash pipeline/assumptions.sh \
 	  LessThanOneAPress.Proofs.MainTheorem \
 	  turning_part2_animation_metadata_boundary_excludes_ink_split
 

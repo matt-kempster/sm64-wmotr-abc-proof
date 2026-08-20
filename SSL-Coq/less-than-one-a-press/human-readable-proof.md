@@ -2785,6 +2785,10 @@ The most useful entry points are:
 - `proofs/InkTimer131MarioTailClosure.v`: bilateral direct flag/offset writer
   inventories, closed Mario-callback direct-call graph, spawn/current-object
   source identity receipts, exact `OR_INT` path, and bit-0 preservation;
+- `proofs/InkTimer131IndirectAliasClosure.v`: stock landing/interaction
+  indirect-target closure, typed outside-call handoff exclusion, exact
+  dangerous-cell overlap boundary, sole reachable behavior writer, and
+  list-12 eviction versus list-0 Mario slot-reuse frame;
 - `proofs/JPCoordinateLvalueReceiverPartition.v`: 38-unit allowed receiver-tag
   check for the four coordinate-lvalue census shapes;
 - `proofs/JPOfficialInitialMemory.v`: constructive initial-memory existence for

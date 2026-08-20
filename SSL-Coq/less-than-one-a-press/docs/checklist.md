@@ -443,10 +443,23 @@ These obligations currently block the clean-retail result.
   graph from all three Mario callbacks, and finds no writer even through an
   alternate literal union view.  It also checks the spawn-to-`gMarioObject`
   and traversal-to-`gCurrentObject` source chain and proves that OR-ing
-  `0x100` preserves bit 0.  What remains is semantic rather than geometric:
-  preserve that identity and the live Mario slot/epoch, link indirect and
-  external execution, and exclude or realize forged commands, aliases,
-  out-of-bounds stores, and lifecycle reuse.
+  `0x100` preserves bit 0.  `InkTimer131IndirectAliasClosure.v` now resolves
+  both stock indirect-call families, recomputes the enlarged closed callback
+  graph, and finds no flag/offset writer.  No unresolved direct call in that
+  graph receives an `Object *`, and no unresolved direct call or builtin in
+  the generated corpus receives a `MarioState *`; any successful CompCert
+  store changing the dangerous cells must overlap bytes `[140,144)` or
+  `[220,224)` in Mario's object slot.  Pool exhaustion is also narrowed:
+  `find_unimportant_object` returns list 12 and its result is forwarded
+  unchanged to `unload_object`, while `bhvMario` declares list 0; under a live
+  disjoint list/slot projection, eviction and reuse of that other slot preserve
+  both cells.  The only direct `Object.behavior` writer in the resolved graph
+  is `create_object`, and no generated body takes that field's address, so a
+  later stock mutation helper is not a surviving forged-behavior source.  What
+  remains is semantic rather than geometric: prove the live
+  list partition, Mario pointer/slot epoch, and dispatch-table integrity, and
+  exclude or realize a corrupted constructor argument, global/interior
+  pointer, alias, OOB, or untyped external store.
   The negative-quicksand/dialog producer remains a separate open branch.
 
 - [ ] Prove the linked stock-provenance projection is exhaustive.  Analyze

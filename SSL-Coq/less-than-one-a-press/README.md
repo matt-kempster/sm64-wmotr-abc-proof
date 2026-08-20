@@ -971,6 +971,22 @@ literal raw-data union view.  The checked spawn/list source chain narrows
 while the exact interpreter receipt plus bit arithmetic proves that Mario's
 stock `OR 0x100` command cannot enable bit 0.  Indirect/external execution,
 aliases, out-of-bounds writes, forged behavior, and slot reuse remain open.
+`InkTimer131IndirectAliasClosure.v` resolves the two stock indirect families
+(landing callbacks and the interaction table), expands the closure through
+every stock target, and again finds no dangerous writer.  It additionally
+finds no direct unresolved `Object *` handoff in that closure, no direct or
+builtin unresolved `MarioState *` handoff in the generated corpus, and no
+builtin `Object *` handoff.  Its CompCert memory boundary proves that a changed
+flag/offset cell requires an overlapping store in Mario's pool slot; an
+in-bounds store in any distinct 608-byte slot preserves both cells.  The pool
+fallback is source-coupled from list 12's first object to `unload_object`,
+whereas `bhvMario` declares list 0, so ordinary eviction/reuse is harmless
+under the explicit live list-partition and distinct-slot projection.  The only
+direct behavior-field writer in the resolved graph is `create_object`, and no
+generated body takes that field's address.  The remaining Ink-tail escapes are
+now live table/list corruption, Mario slot or epoch failure, a corrupted
+constructor argument, global/interior-pointer or OOB access, and untyped
+outside effects—not an unidentified stock callback or mutation helper.
 The abstract case split now also captures that a successful retry performs
 only the first of the two `ACT_DISAPPEARED` ticks.  A second floor-supported
 Mario update is required before the upper object warp can be requested.  If
