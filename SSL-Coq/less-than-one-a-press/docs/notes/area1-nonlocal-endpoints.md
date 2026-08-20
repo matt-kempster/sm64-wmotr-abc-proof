@@ -231,14 +231,20 @@ platform at the authentic first Area-2 apply, the exact before/after words,
 and upper-trigger counter `0 -> 1` at timers 594/595 with zero A counts.
 
 The candidate is not presently easier to install than the local timer-131
-sample.  It needs a Y change of `66546` from the warp centre, whereas the local
-midpoint needs `1010`.  It matters only if another glitch naturally contributes
-a whole 65536-unit Y period.
+sample, but the exact displacement is no longer arithmetically mysterious.
+`Area1NonlocalPlatformMirror.v` constructs a zero-X/Z-velocity payload whose
+pitch changes from `0` to `180` degrees around pivot
+`(-1862,34041,-902)`.  In the same binary32 matrix model used for platform
+displacement, this maps local State `(-1862,768,-902)` to exactly
+`(-1862,67314,-902)`: a Y change of `66546` with unchanged X/Z.  The proof
+checks the exact sine-table entries in both versions and the raw signed-angle
+truncations.  What remains is not the math but clean installation of that
+remote pivot/half-turn payload and a non-null platform pointer.
 
 The following remain open and prevent a clean counterexample claim:
 
-1. a clean zero-A pre-collision writer producing the exact local-Object /
-   nonlocal-State split;
+1. a clean zero-A platform object/pointer whose live payload realizes the
+   checked remote-pivot half-turn (or another exact pre-collision writer);
 2. linked wall execution refining the now-closed source-shaped no-push
    theorem;
 3. linked dynamic-list insertion, ownership, traversal, and exact

@@ -1319,3 +1319,25 @@ negative-depth/dialog mechanism remain open.  The following paths changed:
 - `SSL-Coq/less-than-one-a-press/human-readable-proof.md`
 - `SSL-Coq/less-than-one-a-press/notes/source-map.md`
 - `SSL-Coq/less-than-one-a-press/proofs/InkTimer131IndirectAliasClosure.v` (new)
+
+## Timer-131 corruption and rank-3 mirror tranche
+
+The remaining named-source table/constructor mutations are closed, the
+negative-dialog path is reduced to a nonstandard seed plus independent X/Z
+transport, and rank 3 gains an exact binary32 platform payload for its full
+`66546`-unit State split.  This is not a clean installer: live-memory
+corruption classes and clean platform-pointer/payload installation remain
+open.  The following paths changed:
+
+- `SSL-Coq/less-than-one-a-press/proofs/InkTimer131CorruptionClosure.v` (new)
+- `SSL-Coq/less-than-one-a-press/proofs/Area1NonlocalPlatformMirror.v` (new)
+- `SSL-Coq/less-than-one-a-press/_CoqProject`
+- `SSL-Coq/less-than-one-a-press/Makefile`
+- `SSL-Coq/less-than-one-a-press/README.md`
+- `SSL-Coq/less-than-one-a-press/human-readable-proof.md`
+- `SSL-Coq/less-than-one-a-press/docs/no-a-route-atlas.md`
+- `SSL-Coq/less-than-one-a-press/docs/checklist.md`
+- `SSL-Coq/less-than-one-a-press/docs/checklist-completed.md`
+- `SSL-Coq/less-than-one-a-press/docs/notes/area1-nonlocal-endpoints.md`
+- `SSL-Coq/less-than-one-a-press/docs/notes/negative-quicksand-unreanchored-dialog.md`
+- `SSL-Coq/less-than-one-a-press/notes/source-map.md`

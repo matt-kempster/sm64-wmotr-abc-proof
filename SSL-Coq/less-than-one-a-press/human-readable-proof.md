@@ -1523,6 +1523,16 @@ These observations establish a **conditional State-first engine
 continuation** that does not need Ink's Graphics retry or its `>=960`
 Graphics/Object Y gap.
 
+The full vertical displacement also now has an exact payload-level
+construction.  A platform centered at `(-1862,34041,-902)` with zero X/Z
+velocity and a one-frame pitch change from `0` to `180` degrees mirrors the
+local point `(-1862,768,-902)` to exactly `(-1862,67314,-902)`.  The operation
+uses exact zero, one, and minus-one entries from both generated sine tables,
+so CompCert binary32 evaluation produces the required `66546`-unit rise with
+no X/Z drift.  This proves that platform displacement can make the desired
+State value if handed those bytes; it does not produce the remote-pivot
+object or the non-null cached pointer in clean play.
+
 By contrast, quiet NaN, either infinity, `+2^31`, and the first binary32 value
 below `-2^31` fail the word conversion.  The US and JP startup receipts set the
 Invalid-enable bit; the stock floating-point exception path stops the faulting
@@ -2789,6 +2799,9 @@ The most useful entry points are:
   indirect-target closure, typed outside-call handoff exclusion, exact
   dangerous-cell overlap boundary, sole reachable behavior writer, and
   list-12 eviction versus list-0 Mario slot-reuse frame;
+- `proofs/InkTimer131CorruptionClosure.v`: exact named-use/no-writer censuses
+  for both mutable dispatch tables, stable Mario constructor behavior
+  forwarding, and the clean-seed plus untransported-dialog no-go results;
 - `proofs/JPCoordinateLvalueReceiverPartition.v`: 38-unit allowed receiver-tag
   check for the four coordinate-lvalue census shapes;
 - `proofs/JPOfficialInitialMemory.v`: constructive initial-memory existence for
@@ -2849,6 +2862,9 @@ The most useful entry points are:
   `proofs/Area1NonlocalEndpointBoundary.v`: failed-conversion classification,
   checked trapping prefix, exact three-axis finite alias, and the
   conditional State-first timer-131 capability with its named retail bridges;
+- `proofs/Area1NonlocalPlatformMirror.v`: the concrete 180-degree platform
+  payload and generated sine-table receipt that produce the exact
+  `768 -> 67314` State-first displacement in binary32;
 - `proofs/Area1StateFirstWallExclusion.v` and
   `proofs/Area1StateFirstRetailTrace.v`: exact high-Y wall rejection in a
   source-shaped list model plus transparent one-frame and downstream-lifecycle

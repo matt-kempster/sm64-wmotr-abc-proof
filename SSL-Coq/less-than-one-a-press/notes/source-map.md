@@ -86,6 +86,9 @@ The Rocq boundary is split deliberately:
 - `proofs/Area1NonlocalEndpointBoundary.v` relates that finite alias to the
   accepted timer-131 midpoint and packages a conditional State-first numeric
   capability;
+- `proofs/Area1NonlocalPlatformMirror.v` constructs an exact binary32
+  platform half-turn payload which maps local Y `768` to nonlocal Y `67314`
+  around pivot Y `34041`, with generated US/JP sine-table receipts;
 - `proofs/Area1StateFirstWallExclusion.v` checks the bilateral wall-guard
   source shape and proves the two high-Y wall samples cannot reach X/Z push
   code in a source-shaped list traversal; and
@@ -487,6 +490,17 @@ hidden callback path.
 Turning that into retail impossibility still requires live list-partition,
 pointer/slot-epoch, and table integrity; forged/global/interior pointers, OOB
 stores, and untyped outside effects remain explicit escapes.
+
+`proofs/InkTimer131CorruptionClosure.v` checks the next source boundary.  The
+command and interaction tables have only their expected dispatcher mention,
+no direct named assignment, and no explicit address-taking site in either
+whole generated corpus.  The Mario area-spawn path forwards one stable
+decoded behavior value to both construction and the object's behavior field.
+Its negative-dialog capstones rule out a negative seed in the checked clean
+zero-A/no-forgery kernels and rule out reaching the fixed warp by vertical
+dialog amplification without a separate X/Z transport.  It deliberately does
+not frame corrupt live bytes, forged/interior pointers, OOB stores, or untyped
+external effects.
 
 `proofs/InkTimer131ProducerClosure.v` closes the two normal large-writer
 source branches.  An opcode-neutral scan of every US/JP `behavior_data`

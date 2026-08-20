@@ -312,5 +312,7 @@ proofs/InkFirstNullRetryNecessity.v
 proofs/InkTimer131ProducerClosure.v
 proofs/InkTimer131MarioTailClosure.v
 proofs/InkTimer131IndirectAliasClosure.v
+proofs/InkTimer131CorruptionClosure.v
+proofs/Area1NonlocalPlatformMirror.v
 proofs/TurningAnimation.v
 proofs/MainTheorem.v

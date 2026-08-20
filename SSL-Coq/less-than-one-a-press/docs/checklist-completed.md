@@ -900,6 +900,30 @@ Completed work is grouped by subject. Each item retains its original scope warni
   or OOB writes, untyped outside access, and negative-depth/dialog execution
   remain open rather than silently assumed.
 
+- [x] Close ordinary named dispatch-table and constructor mutation for the
+  timer-131 producer.  `InkTimer131CorruptionClosure.v` computes that
+  `BehaviorCmdTable` and `sInteractionHandlers` are mentioned only by their
+  expected stock dispatchers and have no direct assignment or explicit
+  address-taking site in either generated corpus.  The same module couples
+  the single stable decoded `SpawnInfo.behaviorScript` value to both
+  `create_object` and the new object's behavior field.  Its route capstones
+  also prove that the checked clean zero-A/no-forgery kernels cannot produce a
+  negative dialog seed, and that an arbitrarily amplified but untransported
+  dialog remains outside the fixed warp in X/Z.  Live table/list/slot bytes,
+  corrupt spawn records, forged/interior pointers, OOB stores, untyped
+  externals, and a separately transported negative-dialog construction remain
+  explicit rather than being claimed closed.
+
+- [x] Construct the exact rank-3 platform payload at the binary32 boundary.
+  `Area1NonlocalPlatformMirror.v` uses the generated US/JP sine-table entries
+  to show that a pitch half-turn about `(-1862,34041,-902)` maps local State
+  `(-1862,768,-902)` to exactly `(-1862,67314,-902)`, the already checked
+  signed-16 timer-131 alias.  It also fixes the raw face-angle and
+  angular-velocity words which give previous pitch `0` and current pitch
+  `-32768`.  This proves the required `66546`-unit split is an engine-capable
+  platform effect; clean pointer/payload installation and linked execution
+  remain open.
+
 - [x] Check both stock upper-warp behavior scripts and native callbacks:
   the warp has no direct X/Y/Z access, write, or native callee.  Check the
   stock pyramid-top behavior and finite binary32 timer `0..150` mirror:

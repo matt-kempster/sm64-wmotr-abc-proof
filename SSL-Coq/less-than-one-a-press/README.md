@@ -231,6 +231,15 @@ Applying the failed-cast exclusion to every retail execution still depends on
 by `RetailInvalidTrapContinuationExclusionSchema`; finite signed-16 aliases
 remain a real primitive.
 
+`Area1NonlocalPlatformMirror.v` now supplies an exact engine-level payload for
+that primitive.  With zero X/Z velocity, a platform at
+`(-1862,34041,-902)` whose pitch changes from `0` to `180` degrees mirrors
+local State `(-1862,768,-902)` to exactly `(-1862,67314,-902)`.  The proof uses
+the generated US/JP sine-table entries and CompCert binary32 operations, so
+the full `66546`-unit split is no longer merely postulated.  Clean play still
+has to create those payload fields and retain a non-null platform pointer;
+the theorem does not claim that such an object is reachable.
+
 The current clean-JP installer audit found no retail source for that gap.
 `CleanJPGraphicsGap.v` defines a clean JP Area-1 audit boundary, proves that
 its synchronized Object/Graphics projection starts with zero separation, that
@@ -987,6 +996,18 @@ generated body takes that field's address.  The remaining Ink-tail escapes are
 now live table/list corruption, Mario slot or epoch failure, a corrupted
 constructor argument, global/interior-pointer or OOB access, and untyped
 outside effects—not an unidentified stock callback or mutation helper.
+`InkTimer131CorruptionClosure.v` further checks that each mutable dispatch
+table is mentioned only by its expected dispatcher and has no direct named
+assignment or explicit address-taking site anywhere in the generated US/JP
+corpus.  It also couples the Mario spawn path's one stable
+`segmented_to_virtual(behaviorScript)` value to both `create_object` and the
+new object's behavior field.  Finally, a clean zero-A/no-forgery source trace
+cannot supply a negative quicksand seed, while granting one and any finite
+untransported dialog stall still leaves raw X/Z outside the upper warp.  The
+remaining Ink cases are therefore genuinely live-memory cases: corrupted
+list/slot/table/spawn-record identity, forged or interior pointers,
+overlapping OOB stores, untyped external effects, or a negative seed composed
+with a separate raw-X/Z transport.
 The abstract case split now also captures that a successful retry performs
 only the first of the two `ACT_DISAPPEARED` ticks.  A second floor-supported
 Mario update is required before the upper object warp can be requested.  If

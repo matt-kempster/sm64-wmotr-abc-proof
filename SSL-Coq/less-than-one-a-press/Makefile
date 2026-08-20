@@ -1818,6 +1818,27 @@ check: proofs
 	  LessThanOneAPress.Proofs.InkTimer131IndirectAliasClosure \
 	  live_unimportant_slot_reuse_preserves_timer131_cell
 	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.InkTimer131CorruptionClosure \
+	  ink_timer131_corruption_checked_boundary_holds
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.InkTimer131CorruptionClosure \
+	  ink_dispatch_tables_have_only_stock_named_source_uses
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.InkTimer131CorruptionClosure \
+	  ink_mario_constructor_forwards_one_stable_behavior_value
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.InkTimer131CorruptionClosure \
+	  clean_zero_a_no_forgery_trace_has_no_negative_dialog_seed
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.InkTimer131CorruptionClosure \
+	  granted_negative_untransported_dialog_never_reaches_timer131_warp
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.Area1NonlocalPlatformMirror \
+	  area1_nonlocal_platform_mirror_checked_boundary_holds
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.Area1NonlocalPlatformMirror \
+	  rank3_half_turn_displacement_is_exact_timer131_state
+	bash pipeline/assumptions.sh \
 	  LessThanOneAPress.Proofs.MainTheorem \
 	  turning_part2_animation_metadata_boundary_excludes_ink_split
 

@@ -371,6 +371,13 @@ The new proof modules establish separate, deliberately scoped facts:
   source shape, and checks the exact `1.6f` post-dialog sanitizer arithmetic.
   It does not prove the linked branch/helper execution and names the remaining
   linked transport alternatives.
+- `InkTimer131CorruptionClosure.v` packages the route consequence: under the
+  checked clean action/depth kernels, zero A edges and no forged action imply
+  a nonnegative depth, so there is no negative dialog seed; even granting a
+  negative seed and any finite number of untransported stalls still cannot
+  overlap the fixed upper warp.  Thus a surviving construction needs both a
+  kernel/forgery escape and a separate raw-X/Z transport (or warp/collision
+  substitution), not merely more dialog frames.
 - `DialogDepthMemoryFrame.v` proves with CompCert memory semantics that framed
   stores to the action/control prefix or distinct object-pool block preserve
   the exact depth word, and checks seven dialog-spine bodies are direct

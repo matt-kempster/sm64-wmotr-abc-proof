@@ -426,9 +426,9 @@ MarioState's first floor lookup miss, but leave the rendered Mario position on
 the raised spinning top.  The game retries the floor lookup at the rendered
 position and remembers the top.
 
-**What is already known.** The corrected timer-131 point works, but it needs at least a `960`-unit gap between Mario's displayed and collision heights (`1010` at warp center); an injected fully activated top continues into the conditional JP displacement and Act-6 evidence, while a second failed floor lookup is fatal.  Across both versions, normal object creation, Mario's script, both update paths, and every ordinary direct or indirect callback cannot make that gap: creation clears the dangerous values, Mario enables a harmless flag and has no offset command, every stock offset is at most `+240`, and the only large cross-object copy belongs to actors absent from the audited Area-1 setup.  The new closure also finds no ordinary outside call receiving Mario's state or object pointer and no later behavior mutation.  Any defined change must overlap the exact four bytes in Mario's own pool slot, while unloading or rebuilding another slot preserves them; normal pool eviction chooses list 12, whereas Mario belongs to list 0.  A deliberately non-stock `+1160` offset still succeeds, so the geometry is possible, but only broken live list or slot identity, a corrupted creation argument or dispatch table, an aliased or out-of-bounds write, untyped outside access, and the separate negative-quicksand/dialog mechanism remain.
+**What is already known.** The corrected timer-131 point works, but it needs at least a `960`-unit gap between Mario's displayed and collision heights (`1010` at warp center); an injected fully activated top continues into the conditional JP displacement and Act-6 evidence, while a second failed floor lookup is fatal.  Across both versions, normal creation, Mario's script, both update paths, and every ordinary direct or indirect callback cannot make that gap: creation clears the dangerous values, Mario enables a harmless flag and has no offset command, every stock offset is at most `+240`, and the only large cross-object copy belongs to actors absent from the audited Area-1 setup.  The two generated dispatch tables have no normal named writer and are read only by their expected dispatchers, while Mario's constructor forwards one unchanged behavior value from the level spawn record into both creation and the object; therefore ordinary table or constructor code cannot invent the gap.  Any defined change must instead overlap the exact four bytes in Mario's own pool slot, while unloading or rebuilding another slot preserves them; normal pool eviction chooses list 12, whereas Mario belongs to list 0.  A deliberately non-stock `+1160` offset still succeeds, so the geometry is possible, but only broken live list or slot identity, corrupted live table or spawn-record memory, a forged/interior pointer, an aliased or out-of-bounds write, untyped outside access, and the separately constrained negative-quicksand/dialog mechanism remain.
 
-**What closes it.** Prove through live execution that Mario remains the list-0 object in the same pool slot, the list partition and checked behavior/dispatch tables remain intact, and no global, forged pointer, alias, out-of-bounds access, or unmodeled outside effect overlaps the two four-byte cells; this would disprove the remaining corruption-style versions, while one concrete violating store or identity change would establish a new producer.  The separate negative-quicksand/dialog mechanism must also be proved or ruled out.  Only if a clean gap producer survives should work proceed to the live first failed lookup, top-owned retry, clean top activation/explosion, JP displacement, and separate Act-3 and Act-6 continuations.
+**What closes it.** Prove through live execution that Mario remains the list-0 object in the same pool slot, the list partition and checked behavior/dispatch tables retain their initialized bytes, the spawn record supplies `bhvMario`, and no forged/interior pointer, alias, out-of-bounds access, or unmodeled outside effect overlaps the two four-byte cells; this would disprove the remaining corruption-style versions, while one concrete violating store or identity change would establish a new producer.  The separate negative-quicksand/dialog mechanism now needs both a nonstandard negative seed and an X/Z transport to the warp.  Only if one of those producers survives should work proceed to the live first failed lookup, top-owned retry, clean top activation/explosion, JP displacement, and separate Act-3 and Act-6 continuations.
 
 ### Negative quicksand depth plus stalled automatic dialog
 
@@ -438,18 +438,9 @@ position and remembers the top.
 state that repeatedly subtracts that negative value from Graphics Y without
 reanchoring it.  Hundreds of iterations can build the large Ink gap.
 
-**What is already known.** Exact binary32 models reach more than the required
-gap after a finite number of calls.  The only normal negative-depth source
-found so far comes from long-jump landing timers and therefore inherits an A
-edge.  Ordinary sign/NPC dialogs reanchor, no direct Area-1 macro/script door
-root supplies the desired automatic dialog, and the known fresh-star timing
-does not align with the needed vertical overlap.
+**What is already known.** Exact binary32 models reach more than the required gap after a finite number of calls, but a clean zero-A trace following the checked action and depth rules cannot produce the negative starting value at all: the sole normal producer is the late long-jump landing and inherits an A edge, while a non-long-jump producer requires corrupted landing data.  Even granting a negative value and arbitrarily many non-reanchoring dialog stalls, the checked dialog model leaves raw X/Z near `(5760,4900)`, far from the fixed upper warp, and the first ordinary shallow-quicksand update resets either known negative value to positive `1.6`.  Ordinary sign/NPC dialogs reanchor, no direct Area-1 macro/script door root supplies the desired automatic dialog, and the known fresh-star timing does not align with the needed vertical overlap.
 
-**What closes it.** Find a no-A negative-depth producer or prove none exists;
-find a reachable non-reanchoring dialog; execute the repeated sink and its
-X/Z transport; then prove no intermediate reset or reanchor destroys the gap.
-See the [negative-quicksand/dialog audit](notes/negative-quicksand-unreanchored-dialog.md)
-for the producer and reanchoring split.
+**What closes it.** A counterexample must now exhibit both escapes in one clean run: a negative seed outside the checked zero-A/no-forgery rules (for example a concrete descriptor, action, alias, or outside-memory corruption) and a raw-Object X/Z transport from the quicksand/dialog boundary to the upper warp before the ordinary reset or reanchor; otherwise link the checked source rules to retail execution and this branch is disproved.  See the [negative-quicksand/dialog audit](notes/negative-quicksand-unreanchored-dialog.md) for the producer and reanchoring split.
 
 ### Mario behavior flag plus a large graphical Y offset
 
@@ -518,23 +509,9 @@ and [platform alias/external closure](notes/platform-alias-external-closure.md).
 Object stays at the warp.  The terrain code narrows the large coordinate to a
 signed 16-bit value, wrapping it back to the timer-131 top.
 
-**What is already known.** The exact vector
-`(-1862,67314,-902) -> (-1862,1778,-902)` is checked, and an injected JP run
-selects the top, captures it, applies the stale payload, and reaches the upper
-trigger.  NaN, infinity, and out-of-signed-32 conversions do not provide a
-usable continuation under the modeled retail exception behavior.  The price
-is a still-unexplained `66546`-unit State/Object split.  This probe shares the
-timer-131 harness's separate write of the top pillar counter to `4`, so it also
-does not derive the required spin/explosion lifecycle from clean play.
+**What is already known.** The exact vector `(-1862,67314,-902) -> (-1862,1778,-902)` is checked, and an injected JP run selects the top, captures it, applies the stale payload, and reaches the upper trigger; NaN, infinity, and out-of-signed-32 conversions do not provide a usable continuation.  The previously unexplained `66546`-unit vertical split now has an exact engine-level producer: one platform update can rotate local State `(-1862,768,-902)` by 180° around the remote pivot `(-1862,34041,-902)`, yielding precisely `(-1862,67314,-902)` with unchanged X/Z, and both versions' real sine tables contain the exact values used by that mirror.  This proves the required displacement is possible for a concrete payload, not that stock play can create or retain that payload; the injected probe also still sets the top pillar counter to `4` separately.
 
-**What closes it.** Find and execute a clean three-dimensional State-only
-writer, prove the live casts/wall/floor/list owner, preserve the split through
-the cached warp collision and first geometry query, then faithfully execute
-the floor snap, synchronizing State-to-Object copy, and top-capturing final
-query before connecting the destination trace.  Otherwise prove all reachable
-State writers stay in the local cast domain.  A successful route must also
-derive the pillar-counter, spin, explosion, and deactivation chronology rather
-than inherit it from the injected harness.
+**What closes it.** Find a clean way to give the cached platform object the proved pivot and half-turn fields while its pointer survives to this pre-collision update, then link the actual platform math, casts, wall/floor/list owner, cached warp collision, floor snap, synchronizing copy, and final top capture; otherwise prove that no reachable live platform payload can have those fields or produce an equivalent 65,536-period displacement.  A successful route must also derive the pillar-counter, spin, explosion, and deactivation chronology rather than inherit it from the injected harness.
 
 ### Post-copy State-only writer in a callback or spawned descendant
 

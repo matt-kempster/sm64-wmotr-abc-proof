@@ -460,7 +460,16 @@ These obligations currently block the clean-retail result.
   list partition, Mario pointer/slot epoch, and dispatch-table integrity, and
   exclude or realize a corrupted constructor argument, global/interior
   pointer, alias, OOB, or untyped external store.
-  The negative-quicksand/dialog producer remains a separate open branch.
+  `InkTimer131CorruptionClosure.v` now removes ordinary named table and
+  constructor mutation: the two tables are used only by their expected
+  dispatchers and have no direct named writer/address site, while the spawn
+  path forwards one stable decoded behavior pointer into creation and the
+  object.  It also proves that the negative-quicksand/dialog branch needs two
+  independent escapes: a seed outside the checked clean zero-A/no-forgery
+  rules and a raw-X/Z transport from the dialog boundary to the upper warp.
+  What remains is live list/slot/table/spawn-record preservation plus forged,
+  interior, OOB, or untyped outside writes, or one concrete coupled
+  negative-seed/transport witness.
 
 - [ ] Prove the linked stock-provenance projection is exhaustive.  Analyze
   relocated warp/top or collision-preserving clones, post-commit movement
