@@ -1791,6 +1791,18 @@ check: proofs
 	  LessThanOneAPress.Proofs.InkTimer131ProducerClosure \
 	  nonstock_1160_offset_builds_accepted_timer131_retry
 	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.InkTimer131MarioTailClosure \
+	  ink_timer131_mario_tail_checked_boundary_holds
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.InkTimer131MarioTailClosure \
+	  ink_mario_callback_direct_closure_has_no_tail_writer
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.InkTimer131MarioTailClosure \
+	  ink_mario_current_object_source_identity_checked
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.InkTimer131MarioTailClosure \
+	  zero_graph_offset_cannot_install_timer131_top_retry
+	bash pipeline/assumptions.sh \
 	  LessThanOneAPress.Proofs.MainTheorem \
 	  turning_part2_animation_metadata_boundary_excludes_ink_split
 

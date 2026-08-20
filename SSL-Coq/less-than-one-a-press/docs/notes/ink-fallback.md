@@ -634,15 +634,17 @@ The generic behavior-interpreter tail is another important model boundary.
 If the Mario object had bit 0 set, `obj_update_gfx_pos_and_angle` would replace
 Graphics with raw Object position plus `oGraphYOffset`.  Retail allocation
 clears the raw-data words, `bhvMario` only ORs bit 8 and has no offset command,
-and the source census found no Mario callback that sets either field.  The
+and the corrected bilateral census finds no flag/offset writer anywhere in
+the recursively closed ordinary direct-call graph of Mario's three callbacks,
+including literal writes through alternate raw-data union views.  The
 complete behavior-data decoder now proves more: all 40 commands targeting the
 offset field are fixed values no larger than `+240`, below the generic `+632`
 timer-131 threshold.  It also checks an exact non-stock counterstate: bit 0
 plus `oGraphYOffset = 1160` puts Graphics at a timer-131 accepted point over
 the warp-center Object.  The project does not yet link the benign stock facts
 through allocation, slot reuse, interpreter execution, and all live mutations;
-the counterstate therefore identifies the remaining alias/corruption/lifetime
-escape rather than a retail route.
+the counterstate therefore identifies the remaining indirect, external,
+alias, corruption, and lifetime escape classes rather than a retail route.
 
 `mario_entry_coordinate_sync_source_shape_{us,jp}` checks ordered initializer
 and raw-slot syntax anchors.  It is deliberately not advertised as a memory

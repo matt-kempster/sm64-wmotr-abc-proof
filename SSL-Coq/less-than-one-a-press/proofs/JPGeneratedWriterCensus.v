@@ -588,15 +588,15 @@ Proof. vm_compute. repeat split; reflexivity. Qed.
     callees, aliases, external stores, interpreter commands, and slot lifetime
     remain outside this direct-lvalue result. *)
 Theorem jp_mario_direct_callbacks_do_not_write_tail_flag_or_offset_checked :
-  assigns_nested_array_slot_s JGC_Mario._rawData JGC_Mario._asS32 1
+  assigns_nested_array_slot_s JGC_Mario._rawData JGC_Mario._asU32 1
     (fn_body JGC_Objects.f_bhv_mario_update) = false /\
   assigns_nested_array_slot_s JGC_Mario._rawData JGC_Mario._asF32 21
     (fn_body JGC_Objects.f_bhv_mario_update) = false /\
-  assigns_nested_array_slot_s JGC_Mario._rawData JGC_Mario._asS32 1
+  assigns_nested_array_slot_s JGC_Mario._rawData JGC_Mario._asU32 1
     (fn_body JGC_Debug.f_try_print_debug_mario_level_info) = false /\
   assigns_nested_array_slot_s JGC_Mario._rawData JGC_Mario._asF32 21
     (fn_body JGC_Debug.f_try_print_debug_mario_level_info) = false /\
-  assigns_nested_array_slot_s JGC_Mario._rawData JGC_Mario._asS32 1
+  assigns_nested_array_slot_s JGC_Mario._rawData JGC_Mario._asU32 1
     (fn_body JGC_Debug.f_try_do_mario_debug_object_spawn) = false /\
   assigns_nested_array_slot_s JGC_Mario._rawData JGC_Mario._asF32 21
     (fn_body JGC_Debug.f_try_do_mario_debug_object_spawn) = false /\

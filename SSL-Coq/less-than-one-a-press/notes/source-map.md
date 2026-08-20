@@ -456,6 +456,19 @@ word or `oGraphYOffset` float slot.  The initializer payload's bit zero is also
 clear.  The remaining provenance is consequently indirect/interpreter,
 alias/external, or lifecycle based rather than a direct store in those bodies.
 
+`proofs/InkTimer131MarioTailClosure.v` replaces that three-body spot check
+with a bilateral whole-source boundary.  It corrects the flag lvalue from the
+signed view to the generated guard's `asU32[1]`, inventories the 30 direct
+flag and 28 direct `asF32[21]` writers, and recursively closes the ordinary
+direct-call graph rooted at all three `bhvMario` callbacks.  The intersection
+is empty, including a second scan that ignores which literal raw-data union
+view names slots 1 and 21.  Separate receipts tie Mario creation to the
+`gMarioObject` install, list traversal to `gCurrentObject`, and opcode 17 to
+the dynamic `OR_INT` store; `or_256_preserves_flag_bit_zero` proves the stock
+command cannot enable the tail guard.  This does not yet supply the linked
+list/slot induction or frame indirect, external, alias, OOB, forged-script,
+and reuse effects.
+
 `proofs/InkTimer131ProducerClosure.v` closes the two normal large-writer
 source branches.  An opcode-neutral scan of every US/JP `behavior_data`
 initializer finds exactly 40 commands whose target field is

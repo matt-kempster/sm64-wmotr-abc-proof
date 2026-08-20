@@ -310,5 +310,6 @@ proofs/Area1EntryZeroAPrefix.v
 proofs/RetailFatalLatch.v
 proofs/InkFirstNullRetryNecessity.v
 proofs/InkTimer131ProducerClosure.v
+proofs/InkTimer131MarioTailClosure.v
 proofs/TurningAnimation.v
 proofs/MainTheorem.v

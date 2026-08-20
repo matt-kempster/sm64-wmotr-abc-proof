@@ -90,6 +90,13 @@ engineering but does not know *Super Mario 64*.
 > geometry is possible and that the remaining question is live provenance:
 > object identity and lifetime, faithful behavior dispatch, dynamic spawn
 > closure, and absence of forged, aliased, out-of-bounds, or external writes.
+> The follow-up now checks the full ordinary direct-call graph, not merely
+> Mario's three callback bodies.  In both versions that graph reaches none of
+> the direct flag or offset writers, including writes spelled through another
+> raw-data union view, and Mario's `OR 0x100` command provably leaves bit 0
+> unchanged.  The normal spawn/list source chain also identifies where
+> `gCurrentObject = gMarioObject` must come from; proving that equality in live
+> memory across the slot lifetime remains the decisive bridge.
 >
 > The official cleaned JP link now has a real initialized-memory witness.
 > Resource-bounded unit receipts prove initializer alignment, and the checked
@@ -2775,6 +2782,9 @@ The most useful entry points are:
   offset bound, Mario flag/offset source receipts, exact Chuckya/King-Bob-omb
   anchor provenance exclusion, and the non-stock `+1160` accepted retry
   witness;
+- `proofs/InkTimer131MarioTailClosure.v`: bilateral direct flag/offset writer
+  inventories, closed Mario-callback direct-call graph, spawn/current-object
+  source identity receipts, exact `OR_INT` path, and bit-0 preservation;
 - `proofs/JPCoordinateLvalueReceiverPartition.v`: 38-unit allowed receiver-tag
   check for the four coordinate-lvalue census shapes;
 - `proofs/JPOfficialInitialMemory.v`: constructive initial-memory existence for

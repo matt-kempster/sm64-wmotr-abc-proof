@@ -867,6 +867,19 @@ Completed work is grouped by subject. Each item retains its original scope warni
   slot identity, behavior dispatch, spawn closure, alias/OOB/external frames,
   and lifecycle preservation remain open.
 
+- [x] Close the ordinary direct-call Mario-tail subbranch bilaterally.
+  `InkTimer131MarioTailClosure.v` corrects the flag-slot receipt from
+  `asS32[1]` to the generated consumer's `asU32[1]`, inventories exactly 30
+  canonical flag writers and 28 graphical-offset writers, and proves that
+  the recursively closed direct-call graph from Mario's three behavior
+  callbacks reaches none of them.  A union-view-neutral check reaches the
+  same result for any literal raw-data view of slots 1 and 21.  The module
+  also checks the spawn/current-object source chain and the `OR_INT` handler,
+  and proves that Mario's `OR 0x100` command preserves bit 0.  Indirect and
+  external calls, aliases, out-of-bounds stores, forged behavior pointers,
+  live list/slot identity, and lifetime preservation remain outside this
+  source closure.
+
 - [x] Check both stock upper-warp behavior scripts and native callbacks:
   the warp has no direct X/Y/Z access, write, or native callee.  Check the
   stock pyramid-top behavior and finite binary32 timer `0..150` mirror:

@@ -99,11 +99,15 @@ The generic behavior-tail risk is similarly precise.  `allocate_object()`
 zeroes the raw-data fields containing `oFlags` and `oGraphYOffset` on slot
 allocation.  `bhvMario` sets `OBJ_FLAG_0100` (bit 8), whereas
 `obj_update_gfx_pos_and_angle()` is guarded by
-`OBJ_FLAG_UPDATE_GFX_POS_AND_ANGLE` (bit 0).  Exact direct-write search found
-no source assignment of bit 0 or a graph-Y offset through `gMarioObject` or
-`m->marioObj`.  Turning that source observation into an invariant still
-requires proving allocation/slot identity, behavior-script interpretation,
-and absence of aliased writes.
+`OBJ_FLAG_UPDATE_GFX_POS_AND_ANGLE` (bit 0).  The corrected bilateral census
+uses the unsigned slot view read by that guard, enumerates all 30 canonical
+flag writers and 28 offset writers, then recursively follows every ordinary
+direct callee from Mario's three callbacks; none reaches either word, even
+through another literal raw-data union view.  The exact `OR_INT` handler and
+bit theorem show that Mario's `OR 0x100` command preserves bit 0.  Turning
+that source result into a retail invariant still requires live list/slot
+identity, indirect/external call framing, and exclusion of aliases, OOB
+stores, forged behavior, and reuse.
 
 `InkTimer131ProducerClosure.v` replaces the earlier “no writer found” wording
 with a complete initializer result.  Its opcode-neutral scan finds exactly 40

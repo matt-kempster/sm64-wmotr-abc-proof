@@ -961,6 +961,16 @@ face observation.  Thus the normal stock-script/anchor producer stories are
 closed at the source/finite-geometry boundary, while linked Mario-slot
 identity, forged or indirect commands, dynamic spawn provenance, alias/OOB or
 external writes, and slot lifetime remain capable of reopening them.
+`InkTimer131MarioTailClosure.v` further closes the ordinary direct-call tail
+subcase.  It corrects the flag-slot audit to the unsigned view used by the
+consumer, inventories the 30 direct flag and 28 direct offset writers in both
+generated corpora, recursively closes the direct-call graph rooted at Mario's
+three callbacks, and proves that the graph reaches no writer through any
+literal raw-data union view.  The checked spawn/list source chain narrows
+`gCurrentObject = gMarioObject` to a live execution and lifetime obligation,
+while the exact interpreter receipt plus bit arithmetic proves that Mario's
+stock `OR 0x100` command cannot enable bit 0.  Indirect/external execution,
+aliases, out-of-bounds writes, forged behavior, and slot reuse remain open.
 The abstract case split now also captures that a successful retry performs
 only the first of the two `ACT_DISAPPEARED` ticks.  A second floor-supported
 Mario update is required before the upper object warp can be requested.  If

@@ -437,10 +437,16 @@ These obligations currently block the clean-retail result.
   stock Area-1 selectors and direct C references.  It also checks allocation
   zeroing, Mario's no-offset/bit-8-only behavior, traversal assignment of
   `gCurrentObject` before `cur_obj_update`, and a non-stock `+1160`
-  warp-center retry witness.  What remains is semantic rather than geometric:
-  preserve the live Mario slot/epoch and `gCurrentObject = gMarioObject`, link
-  behavior-table execution and the Area-1 spawn graph, and exclude or realize
-  forged/indirect commands, alias/OOB/external stores, and lifecycle reuse.
+  warp-center retry witness.  `InkTimer131MarioTailClosure.v` now corrects the
+  flag check to the unsigned union view, enumerates all 30 direct flag and 28
+  direct offset writers bilaterally, follows the closed ordinary direct-call
+  graph from all three Mario callbacks, and finds no writer even through an
+  alternate literal union view.  It also checks the spawn-to-`gMarioObject`
+  and traversal-to-`gCurrentObject` source chain and proves that OR-ing
+  `0x100` preserves bit 0.  What remains is semantic rather than geometric:
+  preserve that identity and the live Mario slot/epoch, link indirect and
+  external execution, and exclude or realize forged commands, aliases,
+  out-of-bounds stores, and lifecycle reuse.
   The negative-quicksand/dialog producer remains a separate open branch.
 
 - [ ] Prove the linked stock-provenance projection is exhaustive.  Analyze

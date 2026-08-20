@@ -1230,6 +1230,38 @@ The following paths changed:
 - `SSL-Coq/less-than-one-a-press/proofs/InkFirstNullRetryNecessity.v` (new)
 - `SSL-Coq/less-than-one-a-press/proofs/JPGeneratedWriterCensus.v`
 
+## Timer-131 Mario-tail direct-call closure tranche
+
+The rank-2 follow-up corrects the prior flag-slot spot check from the signed
+union view to the unsigned view actually read by the behavior-tail guard.  A
+new bilateral whole-corpus proof inventories 30 direct canonical flag writers
+and 28 direct graphical-offset writers, recursively closes every ordinary
+direct call reachable from Mario's three behavior callbacks, and finds no
+writer in that graph.  A second union-view-neutral census rules out literal
+writes to the same two raw-data words through alternate views.  Source
+receipts also narrow current-object identity to the Mario spawn/list traversal
+chain and check the exact dynamic `OR_INT` handler; bit arithmetic proves that
+Mario's stock `OR 0x100` command cannot enable bit 0.  The result closes the
+normal direct-call tail producer, while linked list/slot identity, indirect or
+external calls, aliases, OOB stores, forged behavior, and reuse remain open.
+The following paths changed:
+
+- `SSL-Coq/less-than-one-a-press/Makefile`
+- `SSL-Coq/less-than-one-a-press/README.md`
+- `SSL-Coq/less-than-one-a-press/_CoqProject`
+- `SSL-Coq/less-than-one-a-press/docs/checklist-completed.md`
+- `SSL-Coq/less-than-one-a-press/docs/checklist.md`
+- `SSL-Coq/less-than-one-a-press/docs/no-a-route-atlas.md`
+- `SSL-Coq/less-than-one-a-press/docs/notes/changed-paths.md`
+- `SSL-Coq/less-than-one-a-press/docs/notes/clean-jp-graphics-gap-source-audit.md`
+- `SSL-Coq/less-than-one-a-press/docs/notes/ink-fallback.md`
+- `SSL-Coq/less-than-one-a-press/docs/notes/local-object-nonlocal-state-gap-matrix.md`
+- `SSL-Coq/less-than-one-a-press/human-readable-proof.md`
+- `SSL-Coq/less-than-one-a-press/notes/source-map.md`
+- `SSL-Coq/less-than-one-a-press/proofs/InkTimer131MarioTailClosure.v` (new)
+- `SSL-Coq/less-than-one-a-press/proofs/InkTimer131ProducerClosure.v`
+- `SSL-Coq/less-than-one-a-press/proofs/JPGeneratedWriterCensus.v`
+
 ## Timer-131 Graphics-producer closure tranche
 
 The rank-2 Ink investigation now separates geometric capability from normal

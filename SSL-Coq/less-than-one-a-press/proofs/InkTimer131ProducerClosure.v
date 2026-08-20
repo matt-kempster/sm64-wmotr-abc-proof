@@ -303,15 +303,15 @@ Definition mario_tail_flag_offset_source_claim : Prop :=
   bhv_mario_flag_and_callbacks_source_shape_us_claim /\
   bhv_mario_flag_and_callbacks_source_shape_jp_claim /\
   Z.land 256 1 = 0 /\
-  assigns_nested_array_slot_s JGC_Mario._rawData JGC_Mario._asS32 1
+  assigns_nested_array_slot_s JGC_Mario._rawData JGC_Mario._asU32 1
     (fn_body JGC_Objects.f_bhv_mario_update) = false /\
   assigns_nested_array_slot_s JGC_Mario._rawData JGC_Mario._asF32 21
     (fn_body JGC_Objects.f_bhv_mario_update) = false /\
-  assigns_nested_array_slot_s JGC_Mario._rawData JGC_Mario._asS32 1
+  assigns_nested_array_slot_s JGC_Mario._rawData JGC_Mario._asU32 1
     (fn_body JGC_Debug.f_try_print_debug_mario_level_info) = false /\
   assigns_nested_array_slot_s JGC_Mario._rawData JGC_Mario._asF32 21
     (fn_body JGC_Debug.f_try_print_debug_mario_level_info) = false /\
-  assigns_nested_array_slot_s JGC_Mario._rawData JGC_Mario._asS32 1
+  assigns_nested_array_slot_s JGC_Mario._rawData JGC_Mario._asU32 1
     (fn_body JGC_Debug.f_try_do_mario_debug_object_spawn) = false /\
   assigns_nested_array_slot_s JGC_Mario._rawData JGC_Mario._asF32 21
     (fn_body JGC_Debug.f_try_do_mario_debug_object_spawn) = false.
