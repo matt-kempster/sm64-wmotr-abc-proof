@@ -8,6 +8,11 @@ entry remains no stronger than its stated caveats.
 For a plain-language, family-by-family explanation of every active and retired
 route idea, including its current evidence, close-out condition, and overall
 counterexample-search rank, see the [no-A route atlas](no-a-route-atlas.md).
+Apply the [CompCert execution-scope boundary](compcert-execution-scope.md)
+before adding a corruption obligation: defined aliases and known-function
+retargets stay on this board, reachable unresolved externals first need exact
+effects, and out-of-bounds/ACE/post-UB/DMA cases are deferred until a retail
+machine model exists rather than treated as unfinished Clight proofs.
 
 Priority means:
 
@@ -467,8 +472,9 @@ These obligations currently block the clean-retail result.
   later stock mutation helper is not a surviving forged-behavior source.  What
   remains is semantic rather than geometric: prove the live
   list partition, Mario pointer/slot epoch, and dispatch-table integrity, and
-  exclude or realize a corrupted constructor argument, global/interior
-  pointer, alias, OOB, or untyped external store.
+  exclude or realize a corrupted constructor argument, a valid global/interior
+  pointer, or a defined alias; give any reachable external an exact effect.
+  Out-of-bounds and raw machine continuations are outside this Clight item.
   `InkTimer131CorruptionClosure.v` now removes ordinary named table and
   constructor mutation: the two tables are used only by their expected
   dispatchers and have no direct named writer/address site, while the spawn
@@ -476,9 +482,10 @@ These obligations currently block the clean-retail result.
   object.  It also proves that the negative-quicksand/dialog branch needs two
   independent escapes: a seed outside the checked clean zero-A/no-forgery
   rules and a raw-X/Z transport from the dialog boundary to the upper warp.
-  What remains is live list/slot/table/spawn-record preservation plus forged,
-  interior, OOB, or untyped outside writes, or one concrete coupled
-  negative-seed/transport witness.
+  What remains is live list/slot/table/spawn-record preservation plus valid
+  forged/interior pointers, defined overlapping writes, concretely specified
+  externals, or one coupled negative-seed/transport witness.  Invalid/OOB
+  variants are deferred to the machine-semantics extension.
   `InkTimer131LiveIdentityClosure.v` now closes the spawn-record source gap more
   tightly: the exact SSL `INIT_MARIO` command contains `&bhvMario`, and the
   command, area-load, and constructor receipts forward one stable value into
@@ -487,7 +494,8 @@ These obligations currently block the clean-retail result.
   Mario flag writes, and zero graphical-offset writes preserve the safe cells,
   so ordinary list-12 eviction/reuse cannot accumulate a producer.  The open
   step is now to refine every live linked write to that trace or exhibit the
-  first same-slot, alias/OOB/external, table-byte, or identity violation.
+  first same-slot, defined-alias, specified-external, table-byte, or identity
+  violation.  An OOB violation would not be a Clight execution witness.
 
 - [ ] Prove the linked stock-provenance projection is exhaustive.  Analyze
   relocated warp/top or collision-preserving clones, post-commit movement
@@ -570,9 +578,10 @@ These obligations currently block the clean-retail result.
   [Ink, quicksand, and clean-entry reductions](checklist-completed.md#ink-quicksand-and-clean-entry-reductions).
 
 - [ ] Refine every clean linked US/JP retail step to those source kernels and
-  exclude action/timer or input forgery through pointer aliasing, OOB stores,
-  mutable landing descriptors, indirect callback/interaction retargeting,
-  and unresolved external effects.  No concrete forged writer is known.
+  exclude action/timer or input forgery through defined pointer aliases,
+  mutable landing descriptors, indirect callback/interaction retargeting, and
+  reachable externals with specified effects.  No concrete valid forged writer
+  is known; OOB stores are outside this Clight close-out.
 
 - [ ] Starting from `DefaultArea1StartBoundary` and its exact Mario
   raw/Graphics memory equality, prove whole-program writer and action provenance with
@@ -588,7 +597,8 @@ These obligations currently block the clean-retail result.
   control execution, derive the remaining binary32 relation and finite/
   no-overflow premises from every reachable linked writer, prove
   quicksand-jump store/clamp non-interleaving, and exclude forged timer
-  `4/5`, mutable-descriptor, aliased, out-of-bounds, and external stores.
+  `4/5`, mutable-descriptor and defined aliased stores, plus specified external
+  effects.  Out-of-bounds producers require a later machine-level model.
 
 - [ ] Project the declared ordinary-entry postcondition into linked Clight,
   close post-boundary external frames and non-aliasing, prove complete live writer/action
@@ -694,7 +704,8 @@ concrete clean-retail predecessor needed to outrank the linked installer proof.
 
 - [ ] Refine the Turning-Part-2 metadata model to actual linked Clight steps
   and classify any same-frame coordinate change through the real
-  ground-step/platform/OOB writer path.
+  ground-step/platform or other defined writer path; defer a genuinely
+  out-of-bounds machine overwrite until the retail execution model exists.
 
 ### Goomba raising and PU transport
 

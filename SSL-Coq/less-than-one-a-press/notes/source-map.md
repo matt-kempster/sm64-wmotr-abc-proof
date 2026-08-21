@@ -15,6 +15,9 @@ source shapes are currently queried.  Identifier/constant/assignment/call
 checks do not by themselves prove dataflow, control dependence, loop execution,
 or a whole-program semantic effect.  The array-slot recognizer is
 base-insensitive and direct-callee/literal checks are path-insensitive.
+The separate [CompCert execution-scope boundary](../docs/compcert-execution-scope.md)
+defines which corruption mechanisms can occur in the current Clight run; it is
+not a source-census result.
 
 | Source | Generated stems | Inspected boundary |
 | --- | --- | --- |
@@ -675,6 +678,20 @@ The detailed source and fixture audit is
 Ink's Graphics retry as one possible Area-1 payload installer and separately
 classifies the retained JP pointer's destination fate.  No installer is proved
 retail reachable, and the successful fixture writes after the true first apply.
+
+## CompCert execution-model boundary
+
+`proofs/CompCertRouteScope.v` uses CompCert's actual `Mem.load`, `Mem.store`,
+`Mem.valid_access`, `Clight.step2`, and `Genv.find_funct_ptr` relations.  It
+proves that every successful load/store supplies readable/writable access and
+that every Clight transition into a call state names a registered function.
+Its checked mechanism and ranks 1–3 tables classify defined in-bounds aliases,
+logical slot mistakes, stale pool data, scheduler/owner/lifecycle effects, and
+known-function retargets as current Clight work; reachable unresolved
+externals as requiring an exact effect; invalid access/function targets as
+stuck; and ACE, raw post-UB execution, DMA, interrupts, and self-modifying code
+as requiring a machine model.  This is a semantic scope theorem, not proof
+that the retail MIPS ROM cannot continue after source undefined behavior.
 
 ## Archive-derived integration boundary
 

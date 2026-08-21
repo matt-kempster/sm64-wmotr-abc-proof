@@ -1,5 +1,13 @@
 # SSL Area 1 nonlocal, failed-cast, and out-of-bounds endpoints
 
+In this note, a coordinate outside ordinary level bounds is not automatically
+an out-of-bounds *memory access*.  Nonlocal finite coordinates and defined
+signed-16 casts remain analyzable in Clight.  An invalid memory dereference,
+OOB store, ACE, or post-undefined-behavior machine continuation has no witness
+in the current Clight model and requires separate MIPS/hardware semantics; no
+retail verdict follows from that exclusion.  See
+[the project execution-scope boundary](../compcert-execution-scope.md).
+
 ## Verdict
 
 The old description mixed two materially different cases.
@@ -194,17 +202,19 @@ Clight proof must still connect valid live list traversal and memory loads to
 that theorem.
 
 The source schedule also narrows the clean installer search.  Normal Mario
-actions, interaction movement, wall/OOB fallback, action-phase PU movement,
+actions, interaction movement, wall/level-bounds fallback, action-phase PU movement,
 and the final State-to-Object copy occur after object collision; a remote
 endpoint produced there becomes the next frame's remote full-float Object and
 cannot touch the local warp.  Between the preceding Object synchronization and collision, the
 only identified stock three-dimensional State-only writer is
 `apply_mario_platform_displacement`.  Under the existing finite stock
 pre-apply provenance, however, the cached platform is null at the upper-warp
-Object sample.  A clean installer must therefore escape that provenance via a
-retained/skipped/non-stock/relocated owner or use an aliased, out-of-bounds, or
-otherwise unclassified writer.  Whole-program writer/non-alias closure remains
-open, so this is a reduction rather than an impossibility proof.
+Object sample.  A clean Clight installer must therefore escape that provenance
+via a retained/skipped/non-stock/relocated owner, a defined valid alias, a
+specified external effect, or another classified internal writer.
+Whole-program writer/non-alias closure remains open, so this is a reduction
+rather than an impossibility proof.  An OOB installer is deferred to a machine
+model rather than counted as a successful Clight writer.
 
 ## What the new capability does and does not prove
 

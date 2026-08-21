@@ -21,6 +21,8 @@ source-code, or memory-model terminology; include technical names only when
 they are needed to identify evidence, and move exhaustive detail to the linked
 checklist, proof narrative, or technical notes.
 
+Every verdict must also respect the [CompCert execution-scope boundary](compcert-execution-scope.md): defined in-bounds aliases, known-function retargets, ordinary scheduler/collision/lifecycle behavior, and explicitly modeled calls remain legitimate proof targets; unresolved external effects first need a concrete specification; successful out-of-bounds accesses, invalid-pointer calls, arbitrary code execution, post-undefined-behavior MIPS continuations, DMA, and interrupts are outside the current Clight runs and must be labeled **outside the current execution model**, never “disproved in the retail game.”
+
 The two targets are:
 
 - **Act 3, “Inside the Ancient Pyramid”** — source star index `2`;
@@ -107,6 +109,9 @@ The detailed sections are organized as:
 - **Ink is the leading concrete installer design:** its timer-131 Graphics
   retry works when the required three-view gap and top lifecycle are injected,
   but no clean execution creates that gap.
+- **Out-of-bounds corruption and ACE are deferred, not disproved:** they have
+  no witness in the present Clight execution model and need a retail MIPS or
+  hardware semantics before this project can decide them.
 - **Act 6 has the strongest downstream evidence:** trigger/spawn and
   pickup/save-bit replays both exist conditionally, but still need joining.
 - **Act 3 is the main downstream gap:** the upper and lower itineraries are
@@ -156,7 +161,7 @@ The detailed sections are organized as:
 | 29 | Eyerok | Attack and reboard a rising hand | Very low |
 | 30 | Eyerok | Sleeping-hand Pedro speed bootstrap | Very low |
 | 31 | Eyerok | Seams, moving boundaries, or partial updates | Very low |
-| 32 | Memory and control escapes | Alias, external write, false cache, hitbox mutation, DMA, or forged state | Very low as a known gameplay route; proof-critical |
+| 32 | Memory and control escapes | Defined alias/external/cache/hitbox escapes; machine-only corruption deferred | Very low as a known gameplay route; proof-critical |
 | 33 | Upstream scope extension | Castle-to-SSL glitch or retained inbound pointer | Very low and intentionally deferred |
 
 ## Family 1 — JP stale-platform and spawning-displacement routes
@@ -184,54 +189,9 @@ becomes inactive, yet JP keeps the old address.  On the first pyramid update,
 the game reads the still-resident top bytes and applies their three-dimensional
 platform displacement to MarioState while the raw Mario Object remains local.
 
-**What is already known.** This remains the strongest lead because an injected
-JP run demonstrates the entire useful effect once the setup is granted: it
-captures the spinning top, frees it without reusing its slot, applies the old
-three-dimensional movement data after the area change, reaches all five Act-6
-triggers, and separately collects the Act-6 star with no A press; however, that
-test also forces the pillar counter to four, so it does not supply the missing
-clean setup or a complete Act-3 route.  Controller-only play after a level-
-select entry has activated the two eastern pillars with zero A presses, while
-two longer attempts failed at the central pyramid before reaching the western
-pillars; these runs show that pillar activation is possible but say nothing
-useful about the required position split.  The project has now proved that a
-collision/query split can genuinely occur in the ordinary warp sequence:
-Mario can touch the warp at `(-2048,818,-1024)` and later query at
-`(-2048,768,-1024)`, exactly 50 units lower, with matching US and JP floor
-evidence and no A-input assumption in the construction.  It has also disproved
-that particular split as the top installer: the change is vertical and
-downward, while the top requires more than 459 units of upward separation, so
-the modeled final query finds no platform.  Nearby ordinary explanations have
-been narrowed as well: the audited scheduler contains no concrete moving
-query-skip, an accepted warp stops later interaction handlers, the recognized
-surface owner comes from the object being updated, no direct one-step call
-passes Mario into the audited raw-position writers, and the checked
-particle/debug copies write into child objects rather than Mario.  These
-results do not yet rule out a useful split produced through an indirect
-callback, an alias, an external write, a mistaken current-object identity, an
-unmodeled live surface owner, or object-slot lifetime/reuse behavior; nor does
-the current proof wrapper connect all of its modeled events to one real game
-execution, so rank 1 is neither proved nor disproved.
+**What is already known.** This remains the strongest lead because an injected JP run demonstrates the useful chain once its setup is granted: the run remembers the spinning top, frees it without reusing its slot, applies the old movement data after entering the pyramid, reaches all five Act-6 triggers, and separately collects the Act-6 star without A; however, it also forces all four pillars and supplies no clean Act-3 route.  Controller-only play after an externally enabled level-select entry has activated the two eastern pillars with zero A presses, but that says nothing about the necessary position split.  The project has proved one genuine ordinary collision/query split—Mario touches the warp at height `818` and the later floor check occurs at `768`, 50 units lower—but has also disproved that split as useful here because the top needs an upward separation of more than 459 units.  It has found no ordinary moving skipped check, later interaction after an accepted warp, direct Mario-position helper, or child-copy mistake that creates the useful split.  A useful split through an indirect callback, valid alias, specified external effect, mistaken current-object identity, missed live floor owner, or object-slot lifetime error is still open, and the modeled events are not yet connected into one real execution; rank 1 is therefore neither proved nor disproved.
 
-**What closes it.** First derive a *useful* collision/query split from the
-declared clean linked run—or eliminate the remaining alias, callback,
-scheduler, surface-owner, and lifecycle escapes—and execute the live floor
-lookup.  The five-field ordinary no-go now names the required bridge groups:
-selection/collision sampling; alias/external framing and final receiver;
-callback dispatch; same-frame scheduling; and live surface owner/list/query
-refinement.  The no-go remains contradictory with any separately supplied
-lifecycle fate, but a linked proof must still establish the real chronology;
-the inactive-unreused payload survives even when reuse is excluded.  Linking the
-new Y=`818` to Y=`768` witness would validate a real
-downward split, but cannot by itself capture the top; it is not a reason to
-route the remaining pillars.  Only after a useful upward or horizontal split,
-alternative owner, relocation, or clone survives should the project prioritize
-the remaining detectors and stock spin/explosion lifecycle.  Preserve the
-exact object-pool block, epoch, and payload bytes through
-unload and transition; refine the first Area-2 apply; join the Act-6
-trigger/spawn and pickup/save-bit receipts into one linked suffix; and
-separately add an Act-3 continuation if claiming access to both targets.  The
-two-pillar prefix and the conditional timer-131 lifecycle are independent
+**What closes it.** First derive a useful upward or horizontal collision/query split from one clean execution, or eliminate every remaining valid alias, callback, scheduler, live-floor-owner, and object-lifetime escape; this requires proving that the collision and floor-check samples, callback result, same-frame update order, final receiver, and returned surface all belong to the same live Mario frame.  The known 50-unit downward split cannot capture the top, and excluding slot reuse does not erase the inactive top's old movement data.  Out-of-bounds installation, ACE, and raw DMA are outside this Clight close-out and need a retail machine model rather than more source-level route search.  Only after a useful split, alternative owner, relocation, or clone survives should work return to the remaining pillars; a complete route must then preserve the exact slot and movement bytes across the area transition, execute the first pyramid displacement, join the Act-6 trigger and collection evidence, and separately supply an Act-3 continuation.
 witnesses; they do not establish this coupling.
 
 ### Move the warp/top, or create a collision-preserving clone
@@ -395,15 +355,7 @@ displacement moves the upper-entry sample away from Act 3, and the nearby
 elevator is not yet in a helpful state.  The inactive old-top payload is both
 better authenticated and currently more promising.
 
-**What closes it.** Construct a clean seed at the exact free-list depth and a
-binary32 continuation to a target, or finish the finite first-update platform
-census and rule out every Spindel placement.
-
-**Version verdict.** The US spawn clear blocks the retained-inbound-pointer
-subbranches at that boundary.  It does not exclude a later US recapture,
-relocated owner, clone, or independently corrupted pointer.  The final proof
-still needs to execute and frame the clear in linked US memory; source syntax
-alone is not the memory theorem.
+**What closes it.** Construct a clean seed at the exact free-list depth and a binary32 continuation to a target, or finish the finite first-update platform census and rule out every Spindel placement.  In US, the spawn clear blocks retained-inbound-pointer versions at that boundary but does not exclude a later recapture, relocated owner, clone, or independently changed pointer; the final proof must still execute and frame that clear in linked US memory.
 
 ## Family 2 — Ink's Graphics-retry installation attempts
 
@@ -426,9 +378,9 @@ MarioState's first floor lookup miss, but leave the rendered Mario position on
 the raised spinning top.  The game retries the floor lookup at the rendered
 position and remembers the top.
 
-**What is already known.** The corrected timer-131 point works, but it needs at least a `960`-unit gap between Mario's displayed and collision heights (`1010` at warp center); an injected fully activated top continues into the conditional JP displacement and Act-6 evidence, while a second failed floor lookup is fatal.  Normal creation, Mario's script, both update paths, and every ordinary direct or indirect callback cannot make that gap: creation clears the relevant values, Mario enables a harmless flag and has no offset command, every stock offset is at most `+240`, and the only large cross-object copy belongs to actors absent from the audited Area-1 setup.  The exact SSL Mario command names `bhvMario`, and the checked command, area-load, and constructor path forwards that same behavior into Mario's object.  Normal pool eviction chooses list 12 while Mario belongs to list 0, and a new arbitrary-length trace proof shows that any number of properly bounded writes to other object slots, harmless Mario-flag writes, zero-offset writes, and unrelated writes still cannot enable the dangerous graphical update.  A deliberately non-stock `+1160` offset does succeed, so the geometry remains possible, but a corruption-style route now needs a first genuinely bad live event: Mario changing slot or list identity, command or dispatch bytes changing, a same-slot overlapping write outside the safe cases, a forged/interior pointer, an out-of-bounds or untyped outside write, or the separately constrained negative-quicksand/dialog mechanism.
+**What is already known.** The corrected timer-131 point works, but it needs at least a `960`-unit gap between Mario's displayed and collision heights (`1010` at warp center); an injected fully activated top continues into the conditional JP displacement and Act-6 evidence, while a second failed floor lookup is fatal.  Normal creation, Mario's script, both update paths, and every ordinary direct or indirect callback cannot make that gap: creation clears the relevant values, Mario enables a harmless flag and has no offset command, every stock offset is at most `+240`, and the only large cross-object copy belongs to actors absent from the audited Area-1 setup.  The exact SSL Mario command names `bhvMario`, and the checked command, area-load, and constructor path forwards that same behavior into Mario's object.  Normal pool eviction chooses list 12 while Mario belongs to list 0, and a new arbitrary-length trace proof shows that any number of properly bounded writes to other object slots, harmless Mario-flag writes, zero-offset writes, and unrelated writes still cannot enable the dangerous graphical update.  A deliberately non-stock `+1160` offset does succeed, so the geometry remains possible, but an in-scope corruption route now needs a first valid bad event such as Mario changing slot/list identity, mutable command or dispatch bytes changing, a bounded same-slot overlap, or a valid retarget to another known behavior; a reachable unresolved external needs its concrete effect specified.  Successful out-of-bounds overwrites, invalid-pointer dereferences, ACE, and DMA are not remaining Clight cases: they are outside the current execution model and receive no retail verdict here.  The separate negative-quicksand/dialog mechanism remains a defined but constrained alternative.
 
-**What closes it.** Connect the live game execution to the new clean-trace proof: show that Mario starts with the two relevant values safe, remains the list-0 object in the same pool slot, and that every actual write is either one of the proved-safe cases or preserves those bytes; also show that the already checked Mario-command and dispatch-table bytes are not altered.  This would disprove the remaining corruption-style versions, while the first concrete write or identity change that does not fit the trace would identify a new producer.  The separate negative-quicksand/dialog mechanism still needs both a nonstandard negative seed and an X/Z transport to the warp.  Only if one of those producers survives should work proceed to the live first failed lookup, top-owned retry, clean top activation/explosion, JP displacement, and separate Act-3 and Act-6 continuations.
+**What closes it.** Connect the live game execution to the clean-trace proof: show that Mario starts with the two relevant values safe, remains the list-0 object in the same pool slot, that the checked command and dispatch bytes persist, and that every reachable defined write is one of the safe cases or preserves both cells; separately give each reachable unresolved external an exact effect or protected-cell frame.  This would disprove every remaining in-scope corruption-style version, while the first valid write or identity change outside the trace relation would identify a new producer.  The negative-quicksand/dialog mechanism still needs both a nonstandard negative seed and an X/Z transport to the warp.  Out-of-bounds, ACE, and DMA versions can close only after extending the project with retail MIPS/hardware semantics, so they should not consume ordinary Clight route-search effort.  Only if an in-scope producer survives should work proceed to the live failed lookup, top-owned retry, clean top activation/explosion, JP displacement, and separate Act-3 and Act-6 continuations.
 
 ### Negative quicksand depth plus stalled automatic dialog
 
@@ -440,7 +392,7 @@ reanchoring it.  Hundreds of iterations can build the large Ink gap.
 
 **What is already known.** Exact binary32 models reach more than the required gap after a finite number of calls, but a clean zero-A trace following the checked action and depth rules cannot produce the negative starting value at all: the sole normal producer is the late long-jump landing and inherits an A edge, while a non-long-jump producer requires corrupted landing data.  Even granting a negative value and arbitrarily many non-reanchoring dialog stalls, the checked dialog model leaves raw X/Z near `(5760,4900)`, far from the fixed upper warp, and the first ordinary shallow-quicksand update resets either known negative value to positive `1.6`.  Ordinary sign/NPC dialogs reanchor, no direct Area-1 macro/script door root supplies the desired automatic dialog, and the known fresh-star timing does not align with the needed vertical overlap.
 
-**What closes it.** A counterexample must now exhibit both escapes in one clean run: a negative seed outside the checked zero-A/no-forgery rules (for example a concrete descriptor, action, alias, or outside-memory corruption) and a raw-Object X/Z transport from the quicksand/dialog boundary to the upper warp before the ordinary reset or reanchor; otherwise link the checked source rules to retail execution and this branch is disproved.  See the [negative-quicksand/dialog audit](notes/negative-quicksand-unreanchored-dialog.md) for the producer and reanchoring split.
+**What closes it.** A counterexample must now exhibit both escapes in one clean run: a negative seed outside the checked zero-A/no-forgery rules (for example a concrete descriptor, action, or defined alias) and a raw-Object X/Z transport from the quicksand/dialog boundary to the upper warp before the ordinary reset or reanchor; otherwise link the checked source rules to retail execution and this branch is disproved within the current model.  An out-of-bounds seed is a separate machine-semantics extension, not an unfinished Clight producer.  See the [negative-quicksand/dialog audit](notes/negative-quicksand-unreanchored-dialog.md) for the producer and reanchoring split.
 
 ### Mario behavior flag plus a large graphical Y offset
 
@@ -452,7 +404,7 @@ This could create the entire Ink gap at once.
 
 **What is already known.** Object allocation clears the relevant words, Mario has no graphical-offset command, and its normal flag command enables bit 8 without changing dangerous bit 0.  The audit now follows the complete ordinary direct-call graph from all three Mario callbacks in both versions and finds no direct write to either word through any literal union view; it also narrows the current-object identity to the normal Mario spawn and list-traversal chain.  All forty stock graphical-offset commands elsewhere are fixed values at most `+240`, far below the generic `+632` timer-131 minimum.  A deliberately non-stock `+1160` value does make a warp-center retry succeed, so the normal stock-script/direct-helper route is disproved at this source boundary but aliasing, indirect or external code, forged behavior, and slot-lifetime failure remain possible escape classes.
 
-**What closes it.** Prove through live execution that the traversed Mario node is still `gMarioObject`, its allocation epoch and cleared raw fields persist, behavior dispatch uses the checked table and script, and no indirect, alias, external, or out-of-bounds store changes bit 0 or the offset; alternatively, exhibit one such store as the counterexample producer.
+**What closes it.** Prove through live execution that the traversed Mario node is still `gMarioObject`, its allocation epoch and cleared raw fields persist, behavior dispatch uses the checked table and script, and no indirect or defined aliased store changes bit 0 or the offset; give every reachable external an exact effect or frame, or exhibit the first valid counterexample store.  An out-of-bounds overwrite is outside this Clight close-out and would need a separate retail machine model.
 
 ### Non-stock Graphics anchor or spawned anchor actor
 
@@ -481,14 +433,7 @@ toward the stock radius-`89` boundary, but no total live-wall bound is proved.
 Ground and air shell paths reset quicksand depth.  These effects have not
 supplied the missing large gap.
 
-**What closes it.** Linked live-range writer coverage can turn this into a
-clean impossibility result.  A counterexample would need an unusual schedule,
-alias, or another mechanism that first creates most of the gap.
-
-**Related retired ideas.** Ordinary platform or PU motion by itself preserves
-an already existing Object/Graphics gap; it does not create Ink's gap from a
-synchronized start.  Turning-animation metadata also preserves the position
-views.  Only a real animation-buffer/DMA alias would reopen that branch.
+**What closes it.** Linked live-range writer coverage can turn this into a clean impossibility result; a counterexample would need an unusual schedule, valid alias, or another mechanism that first creates most of the gap.  Ordinary platform or PU motion alone preserves an existing gap rather than creating one from a synchronized start, and turning-animation metadata also preserves the three positions.  A valid overlapping buffer remains an in-scope alias question, while actual asynchronous DMA is outside the current Clight execution and needs explicit machine or external semantics.
 
 ## Family 3 — Local-Object/nonlocal-State (“State-first”) installers
 
@@ -511,7 +456,7 @@ signed 16-bit value, wrapping it back to the timer-131 top.
 
 **What is already known.** The coordinate wrapping works, and an injected JP run uses it to select and capture the top before reaching the upper trigger.  A single platform update can also create the entire required split from Mario's synchronized warp-centre position: its normal sideways movement aligns X/Z, and a half-turn around a very remote pivot supplies the huge rise.  However, that exact payload cannot be installed through any scheduler and surface-owner history covered by the stock model, because Mario's cached platform must be empty at the upper warp; normal surface objects, fresh slots, and the checked debris payloads also lack the required turn and remote pivot.  The injected run still supplies the split and starts the top artificially, so it is capability evidence rather than a clean route.
 
-**What closes it.** A counterexample now has to exhibit a concrete escape from the stock no-go—such as an unexpected write to the cached-platform pointer, a wrongly identified floor owner, movement after the final floor check, movement during a skipped check, an unchecked retained entry, or a scheduler path outside the audit—and then carry the exact payload through live execution.  An impossibility proof instead has to connect every real retail frame to the audited stock cases and rule out those escapes, after which this route is closed before the platform math runs; either outcome must still derive the top's activation and later lifecycle without the injected setup.
+**What closes it.** A counterexample now has to exhibit a concrete defined escape from the stock no-go—such as an in-bounds write to the cached-platform pointer, a wrongly identified floor owner, movement after the final floor check, movement during a skipped check, an unchecked retained entry, or a scheduler path outside the audit—and then carry the exact payload through live execution; a reachable external must first receive an exact effect.  An impossibility proof instead has to connect every real Clight frame to the audited stock cases and rule out those in-scope escapes, after which this route is closed within the current model before the platform math runs.  An out-of-bounds pointer fabrication or post-undefined-behavior MIPS continuation is outside that verdict and would need a machine-level extension.  Either defined outcome must still derive the top's activation and later lifecycle without the injected setup.
 
 ### Post-copy State-only writer in a callback or spawned descendant
 
@@ -1021,35 +966,21 @@ for a final retail exclusion.
 
 ## Family 8 — Generic memory, collision, scheduler, and upstream escapes
 
-These are necessary for proof exhaustiveness but currently poor gameplay
-leads.  A concrete witness in any one of them would immediately move it much
-higher in the ranking.
+The defined cases are necessary for proof exhaustiveness but currently poor
+gameplay leads; a concrete valid witness would immediately move one much
+higher.  Machine-only cases are recorded separately so their absence from
+Clight is not mistaken for a retail result.
 
-### Alias, external write, false collision cache, hitbox mutation, DMA, or forged state
+### Defined memory/control escapes and deferred machine-only corruption
 
 **Overall rank: 32. Family priority: 1. Likelihood: very low as a known clean
 route; high proof importance.**
 
-**In plain language.** Make one of the supposedly distinct pointers name the
-wrong memory, have an external routine change protected state, retain a stale
-warp collision, alter a hitbox, overlap an animation/DMA buffer with gameplay
-state, or forge an action/timer/owner.
+**In plain language.** Make a valid pointer name the wrong live field or object, have a reachable outside routine change protected state, retain a stale warp collision, alter a hitbox, or forge an action, timer, or owner through an otherwise valid game write.  Out-of-bounds overwrites, arbitrary code execution, and raw DMA are tracked here only as deferred retail possibilities because the current source execution cannot perform them.
 
-**What is already known.** A defined one-store State/Object divergence must
-target one endpoint block; ordinary address and initializer origins reduce to
-explicit semantic escapes.  Selected audited builtin/runtime cases have
-framed effects, while unresolved `EF_external` callsites still need argument
-provenance and either a protected-cell frame or a concrete writer/lifecycle
-refinement.  Direct platform writers are censused; collision-cache and hitbox
-observations have data-bearing abstract escape classifiers.  No clean
-corruptor is known.  Capacity guards can drop collisions but do not create a
-false one.  Animation metadata itself preserves Mario's coordinates.
+**What is already known.** A defined one-store State/Object divergence must target one endpoint block, so a different CompCert allocation cannot wrap into it; direct platform writers are censused, collision-cache and hitbox observations have explicit escape classifiers, capacity guards can drop collisions but do not invent one, and animation metadata preserves Mario's coordinates.  Valid same-block aliases, wrong logical object slots, stale pool bytes, and retargeting to another known function remain possible in Clight.  Reachable unresolved outside calls are parameterized and still need argument provenance plus a protected-cell frame or concrete effect.  By contrast, a successful invalid load/store, invalid function target, ACE continuation, post-undefined-behavior MIPS behavior, DMA, interrupt, or self-modifying-code effect has no witness in the current Clight run; that absence is a model limitation, not a retail disproof.  No clean in-scope corruptor is known.
 
-**What closes it.** Prove live pointer/block/offset provenance for every
-reachable store, per-callsite frames or exact effects for every external,
-same-frame collision clear/traversal/owner return, hitbox/down-offset writers,
-FPCSR/trap behavior, and object-pool epochs.  A failure must identify the exact
-store, call, cache entry, or corrupted field.
+**What closes it.** For the in-scope part, prove live pointer/block/offset provenance for every reachable store, give every reachable external a per-callsite frame or exact effect, and link same-frame collision clearing, traversal, owner return, hitbox writers, and object-pool epochs; a failure must identify the exact valid store, call, cache entry, or field.  For the deferred part, first add a retail MIPS/hardware execution model with the RAM layout, devices, interrupts, selected-binary connection, and explicit post-undefined-behavior rule.  Until then, report out-of-bounds, ACE, and DMA variants as outside the current model rather than open Clight obligations or disproved routes.
 
 ### Castle-to-SSL glitch or retained inbound pointer
 
@@ -1089,8 +1020,8 @@ is not repeatedly rediscovered.
 | JP platform R2 | Stock yaw-only top motion supplies the needed vertical PU change | Refuted in the checked arithmetic model. | A different payload field or replacement object. | Very low as stated. |
 | PU/casts R1 | NaN, infinity, or failed large cast becomes a usable terrain coordinate | Modeled retail invalid conversion traps before a continuing query. | A proved different FPCSR mode or resumable handler. | Very low. |
 | Goomba R1 | Original post-collision Goomba H/F/R schedule reaches the target height | It permits `31` useful hits where `83` are required. | A genuinely different pre-collision schedule or writer. | Closed for that schedule. |
-| Animation/HOLP R1 | [Turning action `0xBD`](notes/turning-animation-upwarp.md) creates a 189-unit rise | The relevant normalization is `189/189 = 1`; metadata preserves position. | A real memory alias/DMA writer, not the animation arithmetic. | Closed as arithmetic. |
-| Animation/HOLP R2 | Turning/HOLP moves Mario through the rendered hand matrix | The matrix can update `heldObjLastPosition`, but turning drops held objects first; HOLP affects a later drop/throw, not Mario's gameplay position. | A proved held-object survival path or actual animation-buffer/DMA alias. | Very low. |
+| Animation/HOLP R1 | [Turning action `0xBD`](notes/turning-animation-upwarp.md) creates a 189-unit rise | The relevant normalization is `189/189 = 1`; metadata preserves position. | A defined overlapping-buffer writer; raw DMA is outside the current execution model. | Closed as arithmetic. |
+| Animation/HOLP R2 | Turning/HOLP moves Mario through the rendered hand matrix | The matrix can update `heldObjLastPosition`, but turning drops held objects first; HOLP affects a later drop/throw, not Mario's gameplay position. | A proved held-object survival path, defined buffer overlap, or later machine-level DMA model. | Very low. |
 | Ink R1 | Shell `+42/+45` graphics offsets accumulate forever | Normal frames reanchor them. | A proved skipped reanchor or alias schedule. | Very low alone. |
 | Ink R2 | Fire-particle `prevObj` moves Mario | It moves the flame object, not Mario. | Only a receiver-alias proof failure. | Closed under normal receivers. |
 | Ink R3 | A direct stock Area-1 door supplies the automatic-dialog route | No direct Area-1 macro/script door root exists. | A transitive spawn/interpreter/debug route to a suitable dialog actor. | Very low as a direct root. |

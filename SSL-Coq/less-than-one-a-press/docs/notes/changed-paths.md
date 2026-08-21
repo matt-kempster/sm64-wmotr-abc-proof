@@ -1366,6 +1366,39 @@ still open.  The following paths changed:
 - `SSL-Coq/less-than-one-a-press/docs/notes/changed-paths.md`
 - `SSL-Coq/less-than-one-a-press/notes/source-map.md`
 
+## CompCert execution-scope boundary tranche
+
+The project now has an explicit checked boundary between defined Clight route
+mechanisms, parameterized external effects, operations that have no successful
+Clight successor, and mechanisms that require retail MIPS/hardware semantics.
+The documentation applies that distinction to ranks 1–3: valid aliases,
+ordinary lifecycle/slot behavior, and known-function retargeting remain active;
+unresolved externals need exact effects; invalid/OOB accesses, ACE,
+post-undefined-behavior continuation, DMA, interrupts, and self-modifying code
+are deferred rather than declared impossible on retail hardware.  The
+following paths changed:
+
+- `SSL-Coq/less-than-one-a-press/proofs/CompCertRouteScope.v` (new)
+- `SSL-Coq/less-than-one-a-press/proofs/MainTheorem.v`
+- `SSL-Coq/less-than-one-a-press/_CoqProject`
+- `SSL-Coq/less-than-one-a-press/Makefile`
+- `SSL-Coq/less-than-one-a-press/docs/compcert-execution-scope.md` (new)
+- `SSL-Coq/less-than-one-a-press/README.md`
+- `SSL-Coq/less-than-one-a-press/human-readable-proof.md`
+- `SSL-Coq/less-than-one-a-press/docs/goal.md`
+- `SSL-Coq/less-than-one-a-press/docs/claim.md`
+- `SSL-Coq/less-than-one-a-press/docs/no-a-route-atlas.md`
+- `SSL-Coq/less-than-one-a-press/docs/checklist.md`
+- `SSL-Coq/less-than-one-a-press/docs/checklist-completed.md`
+- `SSL-Coq/less-than-one-a-press/docs/notes/platform-alias-external-closure.md`
+- `SSL-Coq/less-than-one-a-press/docs/notes/clean-jp-graphics-gap-source-audit.md`
+- `SSL-Coq/less-than-one-a-press/docs/notes/negative-quicksand-unreanchored-dialog.md`
+- `SSL-Coq/less-than-one-a-press/docs/notes/area1-nonlocal-endpoints.md`
+- `SSL-Coq/less-than-one-a-press/docs/notes/local-object-nonlocal-state-gap-matrix.md`
+- `SSL-Coq/less-than-one-a-press/docs/notes/route-exhaustiveness.md`
+- `SSL-Coq/less-than-one-a-press/docs/notes/changed-paths.md`
+- `SSL-Coq/less-than-one-a-press/notes/source-map.md`
+
 ## Rank-3 synchronized payload and stock-installation closure tranche
 
 The rank-3 platform witness now starts from the actual synchronized upper-warp

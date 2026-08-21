@@ -1852,6 +1852,17 @@ conditional theorem is the ultimate target theorem.
   `_FINALROM`, `TARGET_N64`, `NON_MATCHING`, `AVOID_UB`, and `_LANGUAGE_C`.
 - Generator: CompCert `clightgen` 3.15.
 
+The current route witnesses are defined Clight `step2` runs.  Successful
+out-of-bounds loads/stores, invalid-pointer calls, arbitrary code execution,
+post-undefined-behavior MIPS continuations, DMA, and interrupts cannot appear
+in such a run.  This is not a retail impossibility result: upstream CompCert
+does not target the N64's MIPS CPU, and real machine code may continue after a
+source operation becomes undefined.  Defined in-bounds aliases, wrong logical
+object slots, stale pool bytes, and retargeting to another registered function
+remain in scope; reachable unresolved externals need a concrete effect or
+frame.  See the checked boundary and route triage in
+[`docs/compcert-execution-scope.md`](docs/compcert-execution-scope.md).
+
 Thirty-eight translation units are generated for each version, for 76 Clight
 modules total: `game_init.c`, `mario.c`, the seven
 `mario_actions_{airborne,automatic,cutscene,moving,object,stationary,submerged}.c`
@@ -1885,7 +1896,9 @@ meshes in both versions.  The larger area arrays are not yet parsed into a
 surface graph.
 
 The status-facing documents are `docs/checklist.md`, `docs/claim.md`,
-`docs/goal.md`, and the reader-oriented `docs/no-a-route-atlas.md`.  Detailed
+`docs/goal.md`, the execution-model boundary
+`docs/compcert-execution-scope.md`, and the reader-oriented
+`docs/no-a-route-atlas.md`.  Detailed
 investigation records and technique-specific material live under `docs/notes/`;
 this keeps current claims separate from supporting research notes.
 
@@ -1926,6 +1939,18 @@ clightgen -normalize -nostdinc -fstruct-passing \
 ```
 
 ## Known limitations and semantic cautions
+
+- `CompCertRouteScope.v` proves the current semantic boundary: every successful
+  CompCert load/store requires valid access and every Clight call target is a
+  registered function.  The checked route table keeps defined aliases,
+  scheduler/owner/lifecycle effects, and known-function retargets active;
+  unresolved external calls require a specification; and invalid access, ACE,
+  raw post-undefined-behavior execution, DMA, interrupts, and self-modifying
+  code are deferred until a retail machine model exists.  Their absence from a
+  Clight run must never be reported as proof that the retail ROM cannot perform
+  them.  CompCert's supported target architectures do not include N64 MIPS, so
+  the selected-Clight-to-retail bridge remains independent of compiler
+  correctness.
 
 - `CertifiedExecution` is a contract-style event abstraction.  Collection
   constructors assume the desired origin, collision, save-bit, spawn, and

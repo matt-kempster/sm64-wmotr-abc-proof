@@ -1300,3 +1300,31 @@ Completed work is grouped by subject. Each item retains its original scope warni
   homing-amp ledge clip followed by the Grindel/elevator-misalignment route.
   This checks the itinerary vocabulary,
   not its Clight execution.
+
+## CompCert execution-scope boundary
+
+- [x] Separate defined Clight corruption from machine-only corruption.
+  `CompCertRouteScope.v` proves from CompCert's actual memory semantics that a
+  successful load/store requires readable/writable access and proves that each
+  Clight transition into a call state targets a function registered in the
+  global environment.  Its checked route table keeps in-bounds aliases, wrong
+  logical slots, stale pool data, scheduler/owner/lifecycle behavior, and
+  retargets to known functions in scope; unresolved externals require a
+  concrete effect; invalid accesses and function targets have no Clight
+  successor.
+
+- [x] Record that Clight exclusion is not a retail disproof.  The official
+  CompCert documentation confirms that its source semantics stops at undefined
+  behavior while generated machine code can continue, and that supported
+  target architectures do not include N64 MIPS.  Therefore OOB, ACE,
+  post-undefined-behavior MIPS, DMA, interrupt, and self-modifying-code routes
+  are classified as outside the current execution model.  They are deferred
+  until a retail machine/hardware semantics exists, not declared impossible in
+  SM64.
+
+- [x] Apply the boundary to the route atlas.  Ranks 1–3 now distinguish
+  defined aliases/identity/scheduler/owner/lifecycle work from reachable
+  external-effect refinement and from deferred OOB/ACE/DMA variants.  The
+  generic memory family uses the same three-way close-out language, preventing
+  future checklists from treating an unmodelled retail exploit as a completed
+  Clight impossibility proof.

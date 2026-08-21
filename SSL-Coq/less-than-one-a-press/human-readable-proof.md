@@ -46,6 +46,19 @@ engineering but does not know *Super Mario 64*.
 > expression/internal-step simulation, and writable `EF_external` frames remain
 > open.  No retail conclusion below is derived merely from these components.
 
+> **Execution-model boundary:** all current run witnesses use defined CompCert
+> Clight steps.  A successful invalid load/store, invalid function target,
+> arbitrary code execution, or continuation after source undefined behavior
+> cannot appear in that relation; raw DMA and interrupts are absent unless
+> modeled explicitly.  This is not proof that the N64 ROM cannot perform such
+> behavior.  CompCert does not target N64 MIPS, and its own documentation says
+> generated machine code may continue after a source operation becomes
+> undefined.  Defined in-bounds aliases, wrong logical object slots, stale pool
+> bytes, ordinary scheduler/owner/lifecycle effects, and retargets to other
+> registered functions remain in scope; unresolved externals need exact
+> effects.  The checked distinction and route consequences are in
+> [`docs/compcert-execution-scope.md`](docs/compcert-execution-scope.md).
+
 > **Newest clean-JP gap-installer result:** no clean retail installer for the
 > timer-131 `>=960` Graphics/Object Y gap has been found.  The new checked
 > reduction is stronger than a movement-speed bound.  At the collision phase,
@@ -87,9 +100,11 @@ engineering but does not know *Super Mario 64*.
 > Chuckya/King Bob-omb anchor chain, and neither parent is selected or directly
 > spawned by the audited Area-1 sources.  A deliberately non-stock `+1160`
 > offset is nevertheless accepted at warp-center X/Z, showing that the
-> geometry is possible and that the remaining question is live provenance:
-> object identity and lifetime, faithful behavior dispatch, dynamic spawn
-> closure, and absence of forged, aliased, out-of-bounds, or external writes.
+> geometry is possible and that the remaining in-scope question is live
+> provenance: object identity and lifetime, faithful behavior dispatch,
+> dynamic spawn closure, defined aliasing, and concrete external effects.
+> Out-of-bounds/ACE/DMA variants are outside the Clight run and therefore
+> deferred without a retail verdict.
 > The follow-up now checks the full ordinary direct-call graph, not merely
 > Mario's three callback bodies.  In both versions that graph reaches none of
 > the direct flag or offset writers, including writes spelled through another
@@ -118,9 +133,10 @@ engineering but does not know *Super Mario 64*.
 > landing descriptors, both action dispatches, the airborne landing edge, and
 > the descriptor-driven landing callback.  Its finite first-occurrence kernel
 > proves that a stock entry trace cannot acquire either long-jump action
-> without an A-edge event or a forged-state install.  Descriptor corruption,
-> callback/interaction retargeting, MarioState aliasing, out-of-bounds stores,
-> external mutation, and unclassified writers remain explicit escape classes.
+> without an A-edge event or a forged-state install.  Defined descriptor
+> corruption, callback/interaction retargeting, MarioState aliasing, specified
+> external mutation, and unclassified valid writers remain explicit escape
+> classes; out-of-bounds variants require a separate machine model.
 > Refining every clean linked retail step into this kernel is still open, so
 > this is not yet the whole-program action-provenance theorem.
 >
@@ -2726,6 +2742,10 @@ The most useful entry points are:
 - `proofs/StarCollection.v` and `proofs/HiddenStar.v`: collection reduction;
 - `proofs/ClightFacts.v`: checked generated-AST source facts;
 - `proofs/ClightRefinement.v`: the explicit missing semantic bridge;
+- `proofs/CompCertRouteScope.v`: successful-access and registered-call-target
+  semantic lemmas plus the checked ranks 1–3 scope/disposition table separating
+  defined Clight work, external-effect refinement, and deferred machine-only
+  OOB/ACE/DMA routes;
 - `proofs/SelectedClightTarget.v`: exact repaired-US/cleaned-JP target
   selection, checked original-unit structural normalization, whole-linked
   task-anchored source-refinement interface, concrete runtime-task-start

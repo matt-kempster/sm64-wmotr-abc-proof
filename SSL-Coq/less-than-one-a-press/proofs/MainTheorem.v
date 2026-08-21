@@ -7,7 +7,7 @@ From LessThanOneAPress.Proofs Require Import
   TranscriptRouteModel
   FirstTargetRefinement JPSlotLifetime JPFirstApply FirstCrossingWriterCoverage
   OrdinaryMotion GoombaRaising PyramidTopPU InkFallback RetailFatalLatch
-  InkPayloadInstaller TurningAnimation.
+  InkPayloadInstaller TurningAnimation CompCertRouteScope.
 
 Import ListNotations.
 Local Open Scope Z_scope.
@@ -28,6 +28,14 @@ Proof.
   - exact turning_animation_source_kernel_checked.
   - exact turning_part2_metadata_cannot_create_ink_split.
 Qed.
+
+(** The project's route claims are interpreted through this boundary.  It
+    rules invalid memory accesses and unregistered call targets out of a
+    successful Clight run, while deliberately making no retail-machine claim
+    about execution after source undefined behavior. *)
+Theorem current_project_compcert_execution_scope_boundary :
+  compcert_execution_scope_boundary_holds.
+Proof. exact compcert_execution_scope_boundary_checked. Qed.
 
 Definition CollectionProvenanceReductionClaim : Prop :=
   forall initial events final,

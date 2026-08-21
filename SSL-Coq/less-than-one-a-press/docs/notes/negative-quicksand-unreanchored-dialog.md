@@ -7,6 +7,13 @@ landing state is unreachable from either legal clean boundary inside the
 finite source-shaped no-edge/no-forgery kernel.  It is not a proved clean
 zero-A route and it has not produced a target-star counterexample:
 
+Execution-scope note: a forged state created by a valid in-bounds alias,
+known-function retarget, slot/lifecycle error, or specified external effect is
+still a current Clight proof obligation.  An invalid/OOB write, ACE, or
+post-undefined-behavior machine continuation has no successful Clight step and
+is deferred until a MIPS/hardware model exists; it is not disproved on retail
+hardware.  See [the project execution-scope boundary](../compcert-execution-scope.md).
+
 1. the checked source transition kernel cannot first acquire either
    long-jump action without an A edge or a forged-state event;
 2. in the finite fresh-star lifecycle model, collision eligibility follows an
@@ -21,7 +28,7 @@ The three reachability possibilities now have different statuses:
 | Possibility | Current result |
 |---|---|
 | A long-jump/landing prehistory with no A edge | Excluded in the finite source-shaped kernel.  The only recognized ordinary long-jump constructor is guarded by `INPUT_A_PRESSED`, and landing is produced only from long jump.  Linked Clight-step classification remains open. |
-| A forged action, timer, descriptor, callback, or input | No concrete clean SSL writer has been found.  Whole-linked alias/OOB/external/indirect-call exclusion remains unproved. |
+| A forged action, timer, descriptor, callback, or input | No concrete clean SSL writer has been found.  Defined-alias and indirect-call closure remain unproved, and every reachable unresolved external needs an exact effect.  OOB/ACE producers are outside the current model. |
 | Starting the modeled clean interval in the injected state | Excluded at the stated boundaries: the abstract pyramid contract fixes action `0x1932`; a separate concrete memory postcondition assumes/fixes timer zero and depth `+0.0f`.  The ordinary Area-1 entry memory postcondition separately fixes action `0x1924`, timer zero, and depth `+0.0f`. |
 
 Retail exploitation work first needs linked-step classification, then either a
@@ -35,9 +42,9 @@ Signed-16 collision aliasing can select remote surfaces and platform
 displacement can change positions, but neither mechanism is an ordinary
 constructor of Mario's action/timer or a writer of the landing descriptor.
 A PU would become relevant to *creating* the payload only if it also enabled a
-concrete aliased or out-of-bounds memory write into one of those control
-cells; no such writer is currently known, and the compiled-memory exclusion
-is still open.
+concrete valid aliased write into one of those control cells; no such in-model
+writer is currently known.  An OOB producer is a separate machine-semantics
+branch rather than an open successful Clight store.
 
 The bounded forgery audit makes that residual more precise.  All nine landing
 descriptors and `sInteractionHandlers` are writable globals, but the bilateral
@@ -48,9 +55,10 @@ preincrement cancel returns before timer 4/5 can reach the body, so the frame
 count must also be corrupted.  The landing function-pointer call remains
 under `m->input & INPUT_A_PRESSED`; the other indirect MarioState call is the
 writable interaction table.  In CompCert memory, a changed action load
-requires a same-block byte-overlapping store.  Actual N64 flat-address OOB
-behavior, pointer provenance, writable-global integrity, indexed held-object
-render state, and unresolved external effects are still open.
+requires a same-block byte-overlapping store.  Pointer provenance,
+writable-global integrity, indexed held-object render state, and exact effects
+for unresolved externals are still open in Clight.  Actual N64 flat-address
+OOB behavior is deferred to a machine model.
 
 A fresh star with compatible vertical placement, an older pre-positioned
 tangible star, a forged long-jump state, live dialog platform transport, warp
@@ -102,8 +110,8 @@ one of:
 
 - a reachable long-jump/long-jump-landing prehistory that does not contain an
   A edge;
-- a forged action, timer, descriptor, or callback through an aliased or
-  out-of-bounds write; or
+- a forged action, timer, descriptor, or callback through a defined alias or
+  specified external write; or
 - a proof that the modeled interval can legally start in this state despite
   the clean-entry contract.
 
@@ -112,10 +120,11 @@ theorem over a finite source transition kernel: starting with the stock entry
 action, a trace with no A-edge event and no forged install cannot reach
 `ACT_LONG_JUMP` or `ACT_LONG_JUMP_LAND`.  It classifies forgery escapes as
 descriptor corruption, interaction/callback retargeting, MarioState aliasing,
-out-of-bounds stores, external mutation, or an unclassified internal writer.
-The linked whole-program step classification and exclusion of those causes
-remain open.  The source census finds no explicit address-taking of the
-sensitive scalar fields, but that alone does not close those escapes.
+external mutation, or an unclassified internal writer.  The linked
+whole-program step classification and exact external effects remain open.  An
+OOB store is retained only as a deferred retail-machine possibility.  The
+source census finds no explicit address-taking of the sensitive scalar fields,
+but that alone does not close the defined escapes.
 
 ## The unreanchored action
 
@@ -403,9 +412,10 @@ installs the gap, reaches either target region, or collects either target star.
    stock no-exit star at the required collision pass.
 4. Execute the collision-to-star-dance-to-milestone-dialog path without an
    intervening depth reset and with a non-null floor on every sink frame.
-5. Close whole-program pointer, alias, out-of-bounds, and external-call frames
-   for Mario state, object/Graphics position, and the mutable landing
-   descriptor.
+5. Close whole-program valid-pointer/alias frames and specify every reachable
+   external-call effect for Mario state, object/Graphics position, and the
+   mutable landing descriptor.  Analyze OOB/ACE only after adding a retail
+   machine model.
 6. Find or exclude the required raw-X/Z transport during the dialog (including
    active platform displacement), warp relocation/substitution, collision
    aliasing, and other post-copy writers before carrying the three-view state

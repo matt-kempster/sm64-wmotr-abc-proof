@@ -10,6 +10,14 @@ narrow:
 > `Mario.graphicsY - Mario.objectY` gap needed by the timer-131 upper-warp
 > retry?
 
+Here, "clean execution" is split by execution model.  Defined in-bounds
+aliases, slot reuse, known callback retargeting, and explicitly specified
+external effects remain live Clight questions.  Invalid/OOB stores, ACE,
+post-undefined-behavior continuation, and DMA have no witness in the current
+Clight semantics and require a separate MIPS/hardware model; this audit does
+not disprove them on retail hardware.  See
+[the project execution-scope boundary](../compcert-execution-scope.md).
+
 The current timer-131 midpoint construction needs a gap of at least `960`.
 No source-backed clean Area-1 writer found in this audit can create that gap.
 The ordinary positive writers are the riding-shell offsets (`+42` and `+45`)
@@ -79,7 +87,7 @@ whole-program theorem.
 | Generic behavior tail | If Mario flag bit zero is set, `GraphicsY := ObjectY + oGraphYOffset` | All 40 stock field-21 behavior commands are fixed offsets at most `+240`, and Mario has none; a non-stock `+1160` offset succeeds geometrically but still needs corruption/alias/lifetime provenance |
 | Chuckya/King-Bob-omb anchor | `obj_set_gfx_pos_at_obj_pos(gMarioObject, anchor)` | Exact call/behavior chain is checked, but neither parent is selected or directly spawned by the audited stock SSL Area-1 sources |
 | Platform/PU displacement | Writes MarioState XYZ only | Preserves the prior Graphics/Object gap exactly |
-| OOB graphical fallback | Copies Graphics XYZ to State; the behavior tail then copies State to Object | Consumes/closes a prior gap unless a later interaction changes State |
+| Level-bounds graphical fallback (the game's “OOB” path, not memory OOB) | Copies Graphics XYZ to State; the behavior tail then copies State to Object | Consumes/closes a prior gap unless a later interaction changes State |
 | Instant warp | Writes State and raw Object by the same displacement, not Graphics | No Area-1 instance; SSL Area-2/3 instant displacement is zero |
 | Normal renderer/animation | Reads Graphics to build matrices; animation root translation changes the matrix, not Mario's stored Graphics position | Not a stored Graphics writer |
 
@@ -105,9 +113,10 @@ flag writers and 28 offset writers, then recursively follows every ordinary
 direct callee from Mario's three callbacks; none reaches either word, even
 through another literal raw-data union view.  The exact `OR_INT` handler and
 bit theorem show that Mario's `OR 0x100` command preserves bit 0.  Turning
-that source result into a retail invariant still requires live list/slot
-identity, indirect/external call framing, and exclusion of aliases, OOB
-stores, forged behavior, and reuse.
+that source result into a Clight invariant still requires live list/slot
+identity, defined-alias and reuse closure, and exact effects for
+indirect/external calls.  OOB stores are a separate machine-model question,
+not a residual successful Clight writer.
 
 `InkTimer131ProducerClosure.v` replaces the earlier “no writer found” wording
 with a complete initializer result.  Its opcode-neutral scan finds exactly 40
@@ -174,7 +183,7 @@ parent, and Chuckya's only initializer owner is the global macro-preset table.
 This closes normal static provenance, not corrupted preset indices, forged
 behavior pointers, indirect/external stores, or live object-pool semantics.
 
-## OOB fallback and the interaction-stage vertical writer
+## Level-bounds fallback and the interaction-stage vertical writer
 
 `update_mario_geometry_inputs()` in `src/game/mario.c:1314-1367` performs the
 first floor query from MarioState.  If it misses, it copies Graphics to State
@@ -342,11 +351,12 @@ obligations remain narrow and decisive:
     through the live Mario slot and every interpreter step.  The exact SSL
     `&bhvMario` command/forwarding chain and arbitrary finite clean-store
     preservation are now checked; refine every live write into that relation,
-    or return the first forged command, same-slot identity failure, alias,
-    OOB/external store, or other mutation that supplies the non-stock `+1160`
-    witness.
+    or return the first defined forged command, same-slot identity failure,
+    alias, specified external store, or other in-model mutation that supplies
+    the non-stock `+1160` witness.  An OOB producer belongs to the deferred
+    machine-model branch.
 6. **First-NULL interaction refinement.** Execute the actual collision cache,
-   OOB retry, interaction dispatch, stock hitbox initialization, and
+   level-bounds retry (not a memory-OOB access), interaction dispatch, stock hitbox initialization, and
    State-to-Object copy, establishing the nonnegative-down-offset bounce bound.
 7. **Render ownership.** Prove that callbacks receive the expected object and
    that `prevObj`/helper destinations do not alias Mario; culling may preserve

@@ -11,6 +11,15 @@ This note separates mechanisms that were previously grouped under the phrase
 claims that the relevant callstates are reachable from the default SSL Area 1
 start.
 
+Execution-scope note: this audit now separates defined CompCert memory from
+retail machine corruption.  Valid same-block aliases, valid interior pointers,
+known-function retargeting, and explicitly specified external effects remain
+proof obligations.  An invalid or out-of-bounds dereference/store has no
+successful Clight transition, while post-undefined-behavior machine execution,
+ACE, DMA, and interrupts require a separate MIPS/hardware model.  Their absence
+from a Clight run is therefore not a retail impossibility result; see
+[the project execution-scope boundary](../compcert-execution-scope.md).
+
 ## Mechanism inventory and verdicts
 
 | Mechanism | Current result | Counterexample value |
@@ -21,8 +30,8 @@ start.
 | A store through an unrelated, valid CompCert allocation aliases Object or State | `defined_store_creating_object_state_gap_targets_one_endpoint` proves that a single successful store which changes synchronized Object/State loads into unequal loads must target the Object block or the State block. A third block cannot wrap into either endpoint in CompCert's defined memory model. | Eliminated for a defined single store. A real counterexample must identify an endpoint block, an external effect, or leave the defined-memory model. |
 | A recognized `EF_builtin` or `EF_runtime` mutates one endpoint | Existing `RetailExternalFrames` theorems prove recognized builtins and runtime helpers leave all memory unchanged. The official programs also contain no direct `Sbuiltin` statements. | Eliminated for the checked recognized constructors. |
 | A reachable unresolved `EF_external` creates the split | `reachable_unresolved_external_created_object_state_gap_is_refined` proves that a callsite-sensitive inventory cannot classify such a call as framed. The exact call must enter its explicit writer/lifecycle branch. The more general changed-load theorem gives the same result for any protected cell. These theorems start at the reached external `Callstate`, so they apply whether that callstate arose from a direct or indirect callsite. | Potentially meaningful. The selected cleaned slices intentionally leave external semantics abstract; a stock implementation-specific refinement must either frame the two endpoints or expose the exact writer. |
-| A pre-existing forged alias names an endpoint or `gMarioPlatform` | The new official alias-origin theorem reduces any complete origin classification, after the two ordinary origins are excluded, to four semantic escapes: pre-existing, external-produced, integer-fabricated, or out-of-bounds. | A genuine proof obligation. It is not yet derived from clean initial memory and pointer provenance. |
-| Integer-to-pointer fabrication or undefined/out-of-bounds arithmetic forges an alias | Explicitly retained as semantic escape classes. In CompCert, a successful defined store cannot cross allocation blocks merely by offset wrap; a candidate would need a fabricated endpoint block or behavior outside the defined Clight memory execution. | Weak as a normal clean-retail counterexample, but it must be excluded by the linked defined-behavior/pointer-provenance argument rather than by syntax alone. |
+| A pre-existing valid alias names an endpoint or `gMarioPlatform` | The official alias-origin theorem retains pre-existing, external-produced, and integer-produced pointers after the ordinary origins are excluded.  A valid pointer into a real CompCert block remains possible until clean initial memory and pointer provenance are linked. | A genuine in-model proof obligation. |
+| Invalid or out-of-bounds arithmetic is proposed to forge an alias | A successful CompCert store cannot cross allocation blocks by offset wrap, and invalid dereference/store has no Clight successor.  What retail MIPS code does after source undefined behavior is not represented. | Deferred to a machine-semantics extension, not something this Clight proof must exclude and not a retail disproof. |
 | Several individually legitimate stores create and then sustain the split | The single-store theorem localizes the **first** divergent store to one endpoint, but no trace-level first-divergence projection has yet been derived from the live linked run. | Still live. It is now a finite per-step classification problem rather than a free-standing "alias" mystery. |
 
 ## Formal additions

@@ -5,6 +5,13 @@ by this and the other investigation notes, see the
 [no-A two-star route atlas](../no-a-route-atlas.md).  This note remains the
 technical account of the route cuts and proof boundaries behind that ranking.
 
+This exhaustiveness analysis ranges over defined Clight executions and the
+external effects that are explicitly specified.  Invalid/OOB memory accesses,
+ACE, post-undefined-behavior assembly continuation, DMA, interrupts, and
+self-modifying code require a retail MIPS/hardware model.  They are outside
+this classifier rather than disproved; see
+[the project execution-scope boundary](../compcert-execution-scope.md).
+
 ## Verdict
 
 The two transcript routes have **not** been proved exhaustive for the retail
@@ -56,8 +63,9 @@ The work did settle seven narrower questions:
    instead forces a selected-floor or captured-platform change.
    Splitting ordinary physics into local-cast and nonlocal/failed-cast endpoint
    domains yields six movement/domain cases plus a separate seventh
-   support-selection case.  Coordinate alias/out-of-bounds is therefore an
-   endpoint domain, not an independent position store.
+   support-selection case.  A coordinate outside the local level domain is
+   therefore an endpoint domain, not an independent position store; this does
+   not refer to an OOB memory access.
 6. The timed top surface is no longer hypothetical value-level geometry.
    `Timer131Surface.v` computes the exact raised/rotated timer-131 mesh, rejects
    the old home point `(-2048,1791,-1024)`, and accepts strict-interior midpoint
@@ -226,9 +234,9 @@ platform to change.
 Ordinary physics is then partitioned into a local coordinate-cast endpoint and
 a nonlocal or failed-cast endpoint.  The corrected no-A boundary therefore has
 six movement/domain exclusions and a separate seventh support-selection
-exclusion.  General coordinate alias/out-of-bounds is a property of the
-ordinary-physics endpoint, not an independent store that writes Mario's
-position.
+exclusion.  General nonlocal/parallel-universe coordinates are a property of
+the ordinary-physics endpoint, not an independent store that writes Mario's
+position.  Invalid memory access is outside the current execution model.
 
 The module also proves useful bounded eliminations.  Certified ordinary
 administrative events preserve Mario's entire kinematics.  A changed
@@ -290,7 +298,7 @@ The linked-retail no-A exclusions still unproved are:
 - object impulses and moving geometry;
 - collision clips or tunneling;
 - ordinary-physics endpoints outside the proved local cast domain, including
-  general parallel-universe/out-of-bounds and failed-conversion cases;
+  general parallel-universe coordinates and failed-conversion cases;
 - normal area-reload or entry displacement outside the conditional theorem's
   route-context premises; and
 - same-position floor/platform support selection.

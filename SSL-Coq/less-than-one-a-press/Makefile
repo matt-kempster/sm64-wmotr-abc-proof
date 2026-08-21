@@ -1862,6 +1862,18 @@ check: proofs
 	bash pipeline/assumptions.sh \
 	  LessThanOneAPress.Proofs.MainTheorem \
 	  turning_part2_animation_metadata_boundary_excludes_ink_split
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.CompCertRouteScope \
+	  compcert_internal_step_boundary_checked
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.CompCertRouteScope \
+	  atlas_scope_table_checked
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.CompCertRouteScope \
+	  compcert_execution_scope_boundary_checked
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.MainTheorem \
+	  current_project_compcert_execution_scope_boundary
 
 clean:
 	-$(MAKE) -f $(COQMAKEFILE) clean

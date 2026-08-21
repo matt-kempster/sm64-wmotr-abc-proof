@@ -21,6 +21,17 @@ controller history, and a null global `gMarioPlatform` for US and JP.  It is a
 declared initial condition, not a castle-to-SSL Area 1 reachability theorem.
 The omitted prefix and possible castle glitches are a separate task.
 
+The current proof decides only defined CompCert Clight executions.  It can
+analyze in-bounds aliases, wrong logical object slots, stale pool data,
+scheduler/collision/lifecycle effects, and retargeting to another registered
+function; reachable unresolved externals first need concrete effects.  It
+cannot prove or disprove a retail route whose essential step is a successful
+out-of-bounds access, invalid function target, ACE, post-undefined-behavior
+MIPS continuation, DMA, interrupt, or self-modifying code, because those steps
+do not occur in the current Clight relation.  Those cases are deferred until a
+retail machine model exists, as detailed in
+[CompCert execution scope](compcert-execution-scope.md).
+
 The current project now generates 38 translation units for each target
 version (76 Clight modules), including all seven Mario action units and
 movement code,

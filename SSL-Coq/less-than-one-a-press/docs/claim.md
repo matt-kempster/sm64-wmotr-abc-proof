@@ -5,6 +5,20 @@ assumes `DefaultArea1StartBoundary` at that spawn, including coherent no-A
 controller memory and an explicitly null `gMarioPlatform` in both versions.
 It does not claim that castle execution reaches the boundary.
 
+## Execution-model boundary
+
+The active run relation is CompCert Clight `step2`, so every successful memory
+access must be valid in CompCert's block-and-offset memory and every call target
+must resolve to a registered Clight function.  A successful out-of-bounds
+overwrite, invalid-pointer call, ACE continuation, raw post-undefined-behavior
+MIPS execution, DMA, interrupt, or self-modifying-code effect has no witness in
+this claim.  Its exclusion is **not** a retail-game disproof: the project would
+need a MIPS/hardware semantics to decide such a route.  Defined in-bounds
+aliases, wrong logical object slots, stale/reused pool bytes, ordinary
+scheduler/collision/lifecycle behavior, and retargets to other known functions
+remain inside the claim; reachable unresolved externals require an exact effect
+or frame.  See [CompCert execution scope](compcert-execution-scope.md).
+
 ## Proved
 
 - Reproducible US/JP Clight AST source-shape facts listed in
