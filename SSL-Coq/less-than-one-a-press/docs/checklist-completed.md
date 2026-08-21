@@ -954,6 +954,25 @@ Completed work is grouped by subject. Each item retains its original scope warni
   that every pre-Mario constructor uses a checked behavior, or classify that
   first step; those remain the live obligations.
 
+- [x] Define the real Timer-131 clear/load/spawn execution certificate.
+  `InkTimer131RealEntryPrefix.v` corrects the phase chronology and joins the
+  official task start, `clear_objects`, `load_mario_area`,
+  `spawn_objects_from_info`, `init_mario`, and final entry state with actual
+  CompCert small-step segments.  Every step must carry a safe-store or exact
+  protected-cell effect, so any inhabitant is one continuous classified run;
+  combined with the final entry/behavior/list loads it supplies the full live
+  Timer-131 invariant.  The module compiles and its focused assumption audits
+  pass.  It deliberately does not construct the inhabitant: reached unresolved
+  startup calls and the final live observations remain open.
+
+- [x] Execute the phase checkpoints in authentic original-JP machine code.
+  The read-only mode-2 probe records `clear_objects`, `load_mario_area`,
+  `spawn_objects_from_info`, and `init_mario` in order.  Its following snapshot
+  identifies Mario as slot 67, matches the MarioState pointer, observes safe
+  flag/offset words, and checks a one-node player-list ring.  This is
+  level-select MIPS evidence, not a CompCert trace or proof of ordinary
+  castle-entry equivalence.
+
 - [x] Construct the exact rank-3 platform payload at the binary32 boundary.
   `Area1NonlocalPlatformMirror.v` uses the generated US/JP sine-table entries
   to show that X/Z velocity `(186,122)` followed by a pitch half-turn about
@@ -1295,6 +1314,18 @@ Completed work is grouped by subject. Each item retains its original scope warni
   surrounding-floor, and chamber-wall triangle inventory, plus the complete
   elevator vertex/bounds receipts.  Separate the moving-relative candidate
   from the conservative absolute-sweep adapter.
+
+- [x] Execute the finite binary32 upper-elevator action schedules.
+  `UpperElevatorQuarterStepClosure.v` checks exactly 32 held-A jump-kick and 40
+  B-rollout quarter-step queries and all corresponding binary32 transitions;
+  their maxima are `134` and `224.5`, below the strict `231` wall cutoff.  It
+  also enumerates the six literal quarter-step return values and checks that
+  every direct `init_mario` cap-field assignment is non-Wing with a zero timer.
+  The old Wing endpoint argument is corrected: the retained-Wing schedule has
+  a zero-based query 44 at exactly `234`, above the cutoff, although endpoints
+  peak at `228`.  The module and focused assumption audits pass; live descent,
+  surface selection, action/collision projection, and cap persistence remain
+  open.
 
 - [x] Authenticate the US/JP lower ring triangles `1414..1421`, aperture
   walls `1534..1541`, selected vertex/side/Y receipts, and mesh maximum Y;

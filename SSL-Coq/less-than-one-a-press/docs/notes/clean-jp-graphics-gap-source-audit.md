@@ -123,9 +123,19 @@ every valid object slot of the official JP initial memory, rather than merely
 recognizing the allocator's clearing loop.  It also computes `bhvMario` as the
 only generated behavior selecting list 0 and checks the load/spawn/list source
 chain.  The trace invariant now allows legitimate list-link rewrites and uses
-a callsite-sensitive external frame-or-writer interface.  These results still
-need a concrete Clight execution of the clear/load/spawn prefix and its final
-behavior/list loads; source order is not treated as that execution proof.
+  a callsite-sensitive external frame-or-writer interface.
+  `InkTimer131RealEntryPrefix.v` now corrects the cross-phase chronology and
+  defines one continuous official-JP small-step certificate through clearing,
+  Area-1 loading, Mario spawning, and initialization; every step must carry an
+  exact watched-cell effect, and the final entry/behavior/list loads imply the
+  full live invariant.  This is a stricter execution interface, not a completed
+  run: reached unresolved startup calls still need exact effects, and the final
+  live loads have not yet been derived.
+  A hash-gated original-JP mode-2 run now independently observes all four
+  function entries in order and the resulting slot-67 Mario/list/tail state.
+  Because that receipt is read-only level-select MIPS evidence rather than a
+  CompCert small-step trace, instruction-level classification, outside-call
+  effects, and ordinary-entry equivalence remain the bridge obligations.
 
 `InkTimer131ProducerClosure.v` replaces the earlier “no writer found” wording
 with a complete initializer result.  Its opcode-neutral scan finds exactly 40

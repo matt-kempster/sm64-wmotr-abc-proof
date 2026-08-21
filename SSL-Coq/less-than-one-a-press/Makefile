@@ -597,6 +597,18 @@ check: proofs
 	  LessThanOneAPress.Proofs.Area2ElevatorCut \
 	  upper_elevator_no_a_target_access_is_closed_under_relative_obligations
 	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.UpperElevatorQuarterStepClosure \
+	  upper_elevator_quarter_step_checked_boundary_holds
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.UpperElevatorQuarterStepClosure \
+	  nonwing_candidate_qsteps_remain_below_wall_cutoff
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.UpperElevatorQuarterStepClosure \
+	  every_nonwing_candidate_qstep_is_at_or_below_wall_cutoff
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.UpperElevatorQuarterStepClosure \
+	  retained_wing_cap_has_a_234_unit_transient_query
+	bash pipeline/assumptions.sh \
 	  LessThanOneAPress.Proofs.Area2LowerTargetCut \
 	  area2_lower_target_cut_checked_boundary
 	bash pipeline/assumptions.sh \
@@ -1868,6 +1880,12 @@ check: proofs
 	bash pipeline/assumptions.sh \
 	  LessThanOneAPress.Proofs.InkTimer131EntryExecutionClosure \
 	  dangerous_timer131_trace_exposes_first_invariant_failure
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.InkTimer131RealEntryPrefix \
+	  ink_timer131_real_entry_prefix_checked_boundary_holds
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.InkTimer131RealEntryPrefix \
+	  completed_real_prefix_supplies_live_timer131_invariant
 	bash pipeline/assumptions.sh \
 	  LessThanOneAPress.Proofs.Area1NonlocalPlatformMirror \
 	  area1_nonlocal_platform_mirror_checked_boundary_holds

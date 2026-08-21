@@ -537,8 +537,20 @@ zero in every valid slot of the official JP initial memory, computes
 `bhvMario` as the only generated list-0 behavior, checks the clear/load/spawn
 source chain, reduces direct list membership to one head-link load, and
 extracts the first invariant-breaking step from any dangerous actual trace.
-The selected run still needs the real clear/load/spawn execution, final
-behavior/list loads, and `InkTimer131ReachableStepCoverage`.
+`proofs/InkTimer131RealEntryPrefix.v` now gives that missing run a precise
+cross-phase shape.  It joins the official task start to exact internal
+`clear_objects`, `load_mario_area`, `spawn_objects_from_info`, and `init_mario`
+call states, and then to the final entry state, using actual `Clight.step2`
+segments whose every step carries an `InkTimer131CellEffect`.  A completed
+certificate plus the final entry, behavior, list-0, and protected-load facts
+derives the full live invariant.  No inhabitant is constructed: reached
+unresolved startup calls need exact effects, and the final loads must still be
+obtained from the same execution.
+The read-only JP mode-2 instrumentation now supplies a separate authentic MIPS
+receipt for the four checkpoints and resulting slot-67 Mario identity, safe
+tail words, and one-node player-list ring.  It is level-select evidence and
+does not refine the instructions between checkpoints or outside calls into
+the CompCert certificate.
 
 `proofs/InkTimer131ProducerClosure.v` closes the two normal large-writer
 source branches.  An opcode-neutral scan of every US/JP `behavior_data`
@@ -821,15 +833,18 @@ additional support-selection predicate remain open.
 `proofs/OrdinaryMotion.v` isolates the first motion class.  Its admission-free
 generic theorem composes caller-supplied finite-cell preservation and
 target-exclusion obligations; it does not prove those obligations for retail.
-Its upper arithmetic proves non-Wing 4-unit-gravity held-A jump kick and conservatively
-supplied rollout stay below the integer-translation wall-rejection threshold
-formed from the raw rim, the source-backed `+5` surface pad, and the lower
-query offset.  The companion Wing-Cap arithmetic countermodel proves
-`220 < 228 < 231`, explaining why `MarioState.flags` and `capTimer` must be
-part of the clean-entry projection without claiming a wall-clearance witness.
-The module names source execution, cap state, intermediate-query, and
-collision-observation linkage obligations rather than presenting raw
-initializer and AST receipts as a retail execution theorem.
+Its upper arithmetic proves non-Wing held-A jump kick and supplied rollout stay
+below the integer-translation wall-rejection threshold formed from the raw rim,
+the source-backed `+5` surface pad, and the lower query offset.
+`proofs/UpperElevatorQuarterStepClosure.v` refines that endpoint model: its
+scaled recurrence is checked against every binary32 transition, giving 32
+held-A queries with maximum `134` and 40 B-rollout queries with maximum
+`224.5`, both below `231`.  It computes the generated quarter-step return codes
+as `0,1,2,3,4,6` and checks all direct `init_mario` assignments to the
+flags/timer as non-Wing/zero.  A retained Wing Cap has a transient query at
+`234` even though its endpoint maximum is `228`, so cap-state linkage is not
+optional.  Neither module constructs the live descent, elevator selection,
+surface results, action transitions, or collision observations.
 
 `proofs/InkFallback.v` supplies a separate writer invariant relevant to the
 same class.  State-only ordinary, platform, and PU-sized writes preserve the

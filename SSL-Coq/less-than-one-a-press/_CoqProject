@@ -275,6 +275,7 @@ proofs/FirstCrossingWriterCoverage.v
 proofs/ModelGapAudit.v
 proofs/OrdinaryMotion.v
 proofs/Area2ElevatorCut.v
+proofs/UpperElevatorQuarterStepClosure.v
 proofs/Area2LowerTargetCut.v
 proofs/Area2DownstreamGeometry.v
 proofs/Area2DownstreamReceipts.v
@@ -316,6 +317,7 @@ proofs/InkTimer131CorruptionClosure.v
 proofs/InkTimer131LiveIdentityClosure.v
 proofs/InkTimer131ClightTraceBridge.v
 proofs/InkTimer131EntryExecutionClosure.v
+proofs/InkTimer131RealEntryPrefix.v
 proofs/Area1NonlocalPlatformMirror.v
 proofs/Area1NonlocalPlatformInstallationClosure.v
 proofs/TurningAnimation.v

@@ -52,9 +52,21 @@ printf 'run\n' |
         --cheats 6 --sshotdir "$out_dir/shots" --testshots "$test_frames" \
         "$rom" >"$raw_log" 2>&1
 
-grep -E '^(SEARCH|ACTION|MAX_GAP|MIN_GAP|GAP45|GAP960|FIRE_LINK|TOP|FRAME|NONFINITE|B_INPUT|MODE9_STAGE|RESULT)' \
+grep -E '^(SEARCH|PREFIX_BREAKPOINT_ARM|PREFIX_STAGE|ENTRY_IDENTITY|ACTION|MAX_GAP|MIN_GAP|GAP45|GAP960|FIRE_LINK|TOP|FRAME|NONFINITE|B_INPUT|MODE9_STAGE|RESULT)' \
     "$raw_log" >"$trace"
 grep '^RESULT' "$trace"
+if ! grep -q '^PREFIX_STAGE,stage=clear_objects,sequence=1,' "$trace" \
+    || ! grep -q '^PREFIX_STAGE,stage=load_mario_area,sequence=2,' "$trace" \
+    || ! grep -q '^PREFIX_STAGE,stage=spawn_objects_from_info,sequence=3,' "$trace" \
+    || ! grep -q '^PREFIX_STAGE,stage=init_mario,sequence=4,' "$trace"; then
+    printf '%s\n' "clear/load/spawn/init execution receipt failed" >&2
+    exit 3
+fi
+if ! grep -q '^ENTRY_IDENTITY,.*slot=[0-9][0-9]*,.*stateMatches=1,tailSafe=1,listRing=1,prefixStage=4$' \
+    "$trace"; then
+    printf '%s\n' "Area-1 entry identity receipt failed" >&2
+    exit 3
+fi
 if [ "$allow_setup_a" = 0 ]; then
     if ! grep -q '^RESULT,.*aPressedFrames=0,aDownFrames=0,controllerAFrames=0$' \
         "$trace"; then

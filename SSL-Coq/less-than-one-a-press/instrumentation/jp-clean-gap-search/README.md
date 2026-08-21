@@ -99,6 +99,37 @@ These results came from the commands above.  Every row had
 | 9 | 1848 | 1626 | 0 | -180.850021 | 5 | no |
 | 10 | 1848 | 1626 | 0 | -181.100021 | 5 | no |
 
+### Mode 2 entry-prefix receipt
+
+The neutral mode-2 run now uses read-only execute breakpoints at addresses
+obtained from a matching JP build: `clear_objects` at `8029ca60`,
+`load_mario_area` at `8027aa0c`, `spawn_objects_from_info` at `8029c830`, and
+`init_mario` at `802548bc`.  On the hash-authenticated original-JP ROM, the
+last Area-1 entry sequence was observed in exactly that order at timers
+`347`–`348`.  Immediately afterward, the read-only entry snapshot reported
+Mario as pool slot 67, the MarioState pointer equal to that slot, behavior
+pointer `800eb1c0`, `oFlags=00000100`, zero graphical Y offset, and a
+one-object player-list ring:
+
+```text
+PREFIX_STAGE,stage=clear_objects,sequence=1,pc=8029ca60,returnPC=8037ee68,a0=8038bd88,a1=0000000a,timer=347,area=1,marioObject=00000000,stateMarioObject=00000000
+PREFIX_STAGE,stage=load_mario_area,sequence=2,pc=8027aa0c,returnPC=8024b9a8,a0=00000000,a1=00000008,timer=347,area=1,marioObject=00000000,stateMarioObject=00000000
+PREFIX_STAGE,stage=spawn_objects_from_info,sequence=3,pc=8029c830,returnPC=8027aa70,a0=00000000,a1=8033a140,timer=347,area=1,marioObject=00000000,stateMarioObject=00000000
+PREFIX_STAGE,stage=init_mario,sequence=4,pc=802548bc,returnPC=8024b9b0,a0=80346052,a1=8033a146,timer=347,area=1,marioObject=80346038,stateMarioObject=00000000
+ENTRY_IDENTITY,timer=348,marioObject=80346038,slot=67,stateMarioObject=80346038,activeFlags=0101,behavior=800eb1c0,oFlags=00000100,oGraphYOffsetBits=00000000,next=8033b870,prev=8033b870,sentinelNext=80346038,sentinelPrev=80346038,stateMatches=1,tailSafe=1,listRing=1,prefixStage=4
+```
+
+The complete filtered trace has SHA-256
+`6D681DB5AA3A9F21F3D176BFCFC3507BD5C8CD840D980B1D01F7DA89666E5F20`.
+The probe calls debugger read and execute-breakpoint APIs only; `run.sh`
+rejects a probe containing the game-memory write API names used by this
+instrumentation suite.  This is an authentic MIPS execution receipt, not a
+CompCert small-step certificate: it does not yet classify instructions between
+breakpoints, prove effects of outside calls, or prove that level-select entry
+equals ordinary castle entry.  It therefore supplies the previously missing
+empirical phase and identity observations without inhabiting
+`JPInkTimer131RealEntryPrefix`.
+
 ### Mode 7 two-pillar checkpoint
 
 The exact command above was run against the hash-authenticated original-JP

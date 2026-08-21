@@ -1469,3 +1469,36 @@ following paths changed:
 - `SSL-Coq/less-than-one-a-press/docs/notes/area1-nonlocal-endpoints.md`
 - `SSL-Coq/less-than-one-a-press/docs/notes/changed-paths.md`
 - `SSL-Coq/less-than-one-a-press/notes/source-map.md`
+
+## Timer-131 real-prefix and upper-elevator quarter-step tranche
+
+The Ink boundary now represents the actual cross-phase JP clear/load/spawn/init
+chronology as one classified CompCert execution certificate and derives the
+full live Timer-131 invariant from a completed certificate plus final entry
+loads; unresolved startup effects and construction of that inhabitant remain
+open.  A hash-gated, read-only original-JP run now hits the four real
+machine-code checkpoints in order and observes the resulting safe slot-67
+Mario/list identity; translating that level-select MIPS receipt into the
+CompCert certificate remains open.  The upper-elevator analysis now checks
+every held-A jump-kick and B-rollout binary32 quarter-step, closes their
+ordinary vertical envelopes, and
+finds a retained-Wing transient at `234` that the old `228` endpoint bound
+missed.  The following paths changed:
+
+- `SSL-Coq/less-than-one-a-press/proofs/InkTimer131RealEntryPrefix.v` (new)
+- `SSL-Coq/less-than-one-a-press/proofs/UpperElevatorQuarterStepClosure.v` (new)
+- `SSL-Coq/less-than-one-a-press/_CoqProject`
+- `SSL-Coq/less-than-one-a-press/Makefile`
+- `SSL-Coq/less-than-one-a-press/README.md`
+- `SSL-Coq/less-than-one-a-press/human-readable-proof.md`
+- `SSL-Coq/less-than-one-a-press/docs/no-a-route-atlas.md`
+- `SSL-Coq/less-than-one-a-press/docs/checklist.md`
+- `SSL-Coq/less-than-one-a-press/docs/checklist-completed.md`
+- `SSL-Coq/less-than-one-a-press/docs/notes/ordinary-area1-entry-memory.md`
+- `SSL-Coq/less-than-one-a-press/docs/notes/area2-elevator-cut.md`
+- `SSL-Coq/less-than-one-a-press/docs/notes/clean-jp-graphics-gap-source-audit.md`
+- `SSL-Coq/less-than-one-a-press/instrumentation/jp-clean-gap-search/README.md`
+- `SSL-Coq/less-than-one-a-press/instrumentation/jp-clean-gap-search/jp_clean_gap_search_probe.c`
+- `SSL-Coq/less-than-one-a-press/instrumentation/jp-clean-gap-search/run.sh`
+- `SSL-Coq/less-than-one-a-press/docs/notes/changed-paths.md`
+- `SSL-Coq/less-than-one-a-press/notes/source-map.md`

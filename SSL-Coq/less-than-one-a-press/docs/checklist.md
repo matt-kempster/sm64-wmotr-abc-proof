@@ -514,9 +514,23 @@ These obligations currently block the clean-retail result.
   post-spawn `list0.next = Mario` load is sufficient for the bounded membership
   predicate.  The trace bridge was corrected so legitimate list-link rewrites
   need only preserve Mario's membership, and unresolved externals now use a
-  callsite-sensitive frame-or-writer interface.  What remains is to execute
-  the actual clear/load/spawn prefix, obtain the final behavior/link loads, and
-  inhabit the internal-step and external-call coverage over that run.
+  callsite-sensitive frame-or-writer interface.  A hash-gated, read-only
+  original-JP run now executes the actual clear/load/spawn/init checkpoints in
+  order and observes slot 67, matching State/Mario pointers, safe tail cells,
+  and the one-node player-list ring.  What remains is to translate that
+  level-select MIPS receipt into the CompCert execution certificate, derive the
+  final behavior/link loads there, and cover every internal step and outside
+  call in the run.
+  `InkTimer131RealEntryPrefix.v` now defines that missing execution object at
+  the correct cross-subsystem chronology: one continuous official-JP small-step
+  run must pass through the real `clear_objects`, `load_mario_area`,
+  `spawn_objects_from_info`, and `init_mario` call states, with every step
+  classified by its exact watched-cell effect.  Given the final entry, behavior,
+  list, and protected-load observations, the theorem derives the complete live
+  Timer-131 invariant.  The CompCert certificate is not yet inhabited: reached
+  OS/audio/graphics calls need exact effects and the final live loads still
+  need to be derived from execution.  Construct that inhabitant or report the
+  first step that cannot satisfy the classifier.
 
 - [ ] Prove the linked stock-provenance projection is exhaustive.  Analyze
   relocated warp/top or collision-preserving clones, post-commit movement
@@ -681,8 +695,14 @@ These obligations materially strengthen the proof but are not the shortest route
   controller-memory alignment, cap initialization/preservation, reachable
   action closure, the upper no-spin entry descent and intended-floor landing,
   every intermediate floor/wall/ceiling query, and collision observation
-  alignment.  The current jump-kick/rollout arithmetic and normalized Z
-  soft-bonk subcase do not discharge this item.  For the Ink branch, replace
+  alignment.  `UpperElevatorQuarterStepClosure.v` now checks all 32 held-A
+  jump-kick and 40 B-rollout binary32 quarter-steps, whose maxima are `134` and
+  `224.5` below the strict `231` cutoff, and enumerates the six literal
+  quarter-step return codes.  A retained Wing Cap instead has a real transient
+  query at `234` despite its `228` endpoint, so the live entry cap reset and
+  preservation are decisive.  These finite calculations and the normalized Z
+  soft-bonk subcase do not yet execute the descent, live elevator, wall/floor
+  selection, action transitions, or collision phases.  For the Ink branch, replace
   the predicate-sensitive `Area1InkWriterCoverageObligation` schema with a
   concrete linked-run writer-coverage relation deriving the route-specific dry
   Graphics-minus-Object bound of at most `45` or the conservative modeled

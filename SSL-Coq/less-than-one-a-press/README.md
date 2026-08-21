@@ -810,17 +810,17 @@ abstract `MotionPhysicsFrame` accepts an arbitrary endpoint, so its label
 alone cannot exclude a crossing.  The generated US/JP ASTs also expose a
 concrete reason that "no A edge" must not be read as "no ascent": when A was
 already held, punching can select `ACT_JUMP_KICK` after B without a new A
-edge.  Exact generated elevator-mesh receipts and closed arithmetic put
-non-Wing 4-unit-gravity jump kick at most `128` units and a conservatively
-supplied rollout on that branch at most `220` units relative to the descending
-elevator, below the strict `231`-unit integer-translation wall-rejection
-threshold after the dynamic surface's five-unit upper-Y pad.  These bounds
-still need Clight action/collision execution, live-surface selection,
-intermediate-query, and reachable-action closure.  A retained Wing Cap changes
-the rollout result from `220` to `228`: it refutes reuse of the non-Wing
-4-unit-gravity bound but remains below the corrected vertical threshold.  The
-retail `init_mario` cap reset must nevertheless be connected to the clean-entry
-projection rather than silently assumed.  The lower route remains open beyond
+  edge.  `UpperElevatorQuarterStepClosure.v` now replaces the frame-end
+  estimates with every binary32 collision sample: 32 held-A jump-kick queries
+  peak at `134`, and 40 B-rollout queries peak at `224.5`, both below the strict
+  `231` wall-rejection cutoff after the dynamic surface's five-unit upper-Y
+  pad.  It also checks each arithmetic transition and enumerates the six
+  literal quarter-step results.  A retained Wing Cap exposes the important
+  exception: query 44 is exactly `234`, above the cutoff, even though the frame
+  endpoints peak at `228`.  The generated initializer writes only non-Wing
+  flag values and a zero cap timer, but the descent, live elevator/surface
+  selection, action/collision execution, and preservation of that cap state
+  remain open.  The lower route remains open beyond
 the existing normalized soft-bonk subcase.  See
 [`docs/notes/ordinary-motion.md`](docs/notes/ordinary-motion.md).
 
@@ -1042,9 +1042,24 @@ zero in every valid slot of the official JP initial memory, checks the
 allocator/load/spawn source chain, and finds `bhvMario` as the sole generated
 list-0 behavior.  It also turns a direct post-spawn list-head load into the
 live membership predicate and extracts the first invariant-breaking step from
-any dangerous actual trace.  The remaining proof is to execute the actual
-clear/load/spawn prefix and classify every reached step, not another
-value-level Graphics calculation.
+  any dangerous actual trace.  `InkTimer131RealEntryPrefix.v` now makes that
+  execution request precise and corrects the chronology: clearing occurs in
+  the level script, while Area-1 loading, Mario spawning, and `init_mario`
+  occur later in the level-update path.  Its certificate joins those exact
+  internal call states with one continuous sequence of real CompCert steps and
+  attaches a watched-cell effect to every step; official initial zeros plus
+  the final behavior/list loads then imply the full live invariant.  The
+  certificate is not yet inhabited, because each reached unresolved
+  OS/audio/graphics call still needs an exact effect and the final live
+  observations must be derived from the same run.
+  A read-only, hash-gated original-JP mode-2 run now supplies the matching
+  machine-code receipt: it enters `clear_objects`, `load_mario_area`,
+  `spawn_objects_from_info`, and `init_mario` in order, then observes Mario in
+  slot 67 with matching State pointer, safe tail values, and a one-node
+  player-list ring.  This executes the retail prefix empirically, but it is a
+  level-select MIPS trace rather than the still-missing CompCert certificate;
+  intervening steps, outside-call effects, and ordinary-entry equivalence
+  remain open.
 The abstract case split now also captures that a successful retry performs
 only the first of the two `ACT_DISAPPEARED` ticks.  A second floor-supported
 Mario update is required before the upper object warp can be requested.  If

@@ -348,6 +348,21 @@ engineering but does not know *Super Mario 64*.
 > unimplemented input adapter: it validates the downstream lifecycle and effect,
 > but it does not show that normal program inputs can reach the injected state.
 >
+> The clean-entry side now has an execution-shaped interface rather than a list
+> of disconnected source facts.  `InkTimer131RealEntryPrefix.v` follows the
+> actual phase split—level-script clearing first, then later Area-1 load, Mario
+> spawn, and initialization—and requires one continuous CompCert run with every
+> step's effect on the two watched words classified.  Supplying the final Mario
+> behavior and player-list observations would derive the full safe invariant.
+> The interface is not yet inhabited because the reached unresolved startup
+> calls still need exact memory effects; it therefore narrows the missing proof
+> without pretending the retail prefix has already been executed.
+> A read-only original-JP run now does execute the four machine-code checkpoints
+> in order and observes the expected safe slot-67 Mario/list state afterward.
+> It starts through level select and does not record every instruction, so it
+> validates the runtime chronology and endpoint without yet inhabiting the
+> CompCert certificate or proving ordinary-entry equivalence.
+>
 > The exact timer-131 collision calculation matters.  The old home-pose sample
 > `(-2048,1791,-1024)` is rejected by the raised and rotated top.  A corrected
 > low-side sample `(-1641,1456,-783)` is accepted, but Mario loses top support
@@ -1332,24 +1347,23 @@ finite, source/mesh-backed safe envelope and prove that every writer class
 preserves it until the first target-side crossing.
 
 The new `OrdinaryMotion.v` module proves that explicit generic preservation
-and target-exclusion obligations compose, and closes two upper-elevator
-arithmetic kernels:
+and target-exclusion obligations compose.  The follow-up
+`UpperElevatorQuarterStepClosure.v` executes the finite upper-elevator
+arithmetic at collision-query granularity:
 
-- jump kick starts with vertical velocity `20`, uses the non-Wing fallback
-  gravity of `4`, and
-  has at most `60` units of absolute ascent;
-- while granting the full `10`-unit elevator descent benefit on every frame,
-  jump kick rises at most `128` units relative to the elevator;
-- a conservatively supplied rollout starts at `30` and rises at most `220`
-  units relative to the elevator; and
+- held-A jump kick executes exactly 32 binary32 quarter-step queries and peaks
+  at `134` units relative to the descending elevator;
+- B rollout executes exactly 40 queries and peaks at `224.5` units;
+- every scaled transition is checked against the generated binary32 addition,
+  and the quarter-step body returns only literal codes `0,1,2,3,4,6`; and
 - the generated elevator mesh has side vertices through local Y `256`, the
   dynamic-surface loader adds an upper-Y pad of `5`, and the lower wall query
   samples Mario at Y offset `30`, so an integer-translated wall is rejected
   vertically only when relative center Y is strictly greater than
   `256 + 5 - 30 = 231`.
 
-Thus both modeled ascent chains remain below the wall-clearance threshold:
-`128 < 231` and `220 < 231`, on the non-Wing 4-unit-gravity branch.  Their
+Thus both modeled ascent chains remain below the wall-clearance threshold at
+every query: `134 < 231` and `224.5 < 231`, on the non-Wing branch.  Their
 generated US/JP action bodies call
 `perform_air_step` with literal step argument zero, so these actions do not
 request the ledge-grab check.  Exact US/JP mesh receipts also recover the
@@ -1361,13 +1375,14 @@ containment theorem.
 
 Cap state is a necessary engineering precondition, not decorative state.
 With a retained Wing Cap and held A, flutter gravity slows Mario's fall after
-the rollout turns downward while the elevator continues descending.  The
-formal arithmetic countermodel then reaches `228` relative units.  It refutes
-reuse of the non-Wing `220` bound but remains below `231`, so it does not
-establish vertical or horizontal clearance, a collision miss, or a clean
-retail bypass.  Retail area-entry initialization resets special-cap state, but
-the abstract `GameState` currently omits flags and cap timer, so the source
-initialization effect must still be connected to the clean-entry projection.
+the rollout turns downward while the elevator continues descending.  The old
+endpoint-only arithmetic reported `228`, but the exact replay finds a transient
+query of `234` at zero-based sample 44, above the `231` cutoff.  This is not a
+clean bypass—the horizontal wall response and live cap state are still
+unproved—but it means endpoint arithmetic cannot eliminate the Wing branch.
+Generated `init_mario` assigns only flags `0` or `1 | 16` and resets the cap
+timer; that initialization and its preservation must still be connected to
+the live entry and elevator execution.
 
 This is not yet an unconditional elevator-containment proof.  It still needs
 linked Clight execution of the action and gravity paths, live transformed-wall
@@ -2853,6 +2868,14 @@ The most useful entry points are:
   allocator/load/spawn and sole-list-0-behavior receipts, a direct list-head
   membership constructor, and first-failing-step extraction for dangerous
   actual traces;
+- `proofs/InkTimer131RealEntryPrefix.v`: a phase-correct continuous
+  clear/load/spawn/init CompCert execution certificate with per-step
+  watched-cell classification, plus the theorem deriving the live invariant
+  from a completed prefix and its final entry/behavior/list observations;
+- `proofs/UpperElevatorQuarterStepClosure.v`: exact 32/40-query non-Wing
+  binary32 schedules, six-result source split, safe initializer cap writes,
+  and the retained-Wing transient `234` query that invalidates endpoint-only
+  closure;
 - `proofs/JPCoordinateLvalueReceiverPartition.v`: 38-unit allowed receiver-tag
   check for the four coordinate-lvalue census shapes;
 - `proofs/JPOfficialInitialMemory.v`: constructive initial-memory existence for

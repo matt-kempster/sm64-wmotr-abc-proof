@@ -107,20 +107,25 @@ would put rim states on the source side and destroy the separation.
 
 ## No-A result
 
-The fully checked subkernel contains:
+The fully checked subkernel now contains:
 
 - exact US/JP dynamic and static triangle receipts;
 - exact clean-entry cell membership;
 - existing US/JP source-shape receipts for the entry action, held-A jump kick,
   and B-driven rollout candidates;
-- relative ascent bounds of 128 for jump kick and 220 for the modeled rollout;
-- the Wing-Cap arithmetic countermodel value 228; and
-- all three values below the current integer-translation wall rejection
-  threshold of 231 where applicable.
+- exact binary32 replays of all 32 held-A jump-kick and 40 B-rollout
+  quarter-step queries, with maxima `134` and `224.5`;
+- a generated-source return split limited to codes `0,1,2,3,4,6`;
+- direct initializer checks accepting only non-Wing flag assignments and a
+  zero cap timer; and
+- a corrected retained-Wing result: zero-based query 44 is `234`, above the
+  strict `231` wall cutoff even though the frame endpoints peak at `228`.
 
-Those arithmetic facts eliminate the modeled vertical-clearance versions of
-those candidate actions.  They do not execute the four real quarter steps or
-prove that the live inner wall is selected.
+The ordinary arithmetic facts eliminate the modeled vertical-clearance
+versions at every query, not merely at frame endpoints.  They do not prove the
+live inner wall is selected or that the action reaches those query states.  The
+Wing result is a surviving branch until live entry proves the normal cap reset
+and its preservation.
 
 The strongest route theorem is an adapter-based conditional reduction enriched
 with moving-relative endpoint witnesses:

@@ -29,10 +29,22 @@ enum {
     A_MARIO_OBJECT = 0x8035fde8,
 };
 
+/* Original-JP text addresses from a matching build whose SHA-1 is the retail
+ * 8a20a5c8... hash.  These are execute breakpoints only: the probe never
+ * patches code or game data. */
+enum {
+    A_INIT_MARIO = 0x802548bc,
+    A_LOAD_MARIO_AREA = 0x8027aa0c,
+    A_SPAWN_OBJECTS_FROM_INFO = 0x8029c830,
+    A_CLEAR_OBJECTS = 0x8029ca60,
+};
+
 enum {
     OBJECT_SIZE = 0x260,
     OBJECT_COUNT = 240,
     O_PREV_OBJ = 0x06c,
+    HEADER_NEXT = 0x060,
+    HEADER_PREV = 0x064,
     GFX_POS_X = 0x020,
     GFX_POS_Y = 0x024,
     GFX_POS_Z = 0x028,
@@ -51,6 +63,7 @@ enum {
     O_HOME_X = 0x164,
     O_HOME_Z = 0x16c,
     O_BHV_PARAMS = 0x188,
+    O_BEHAVIOR = 0x20c,
 };
 
 enum {
@@ -68,6 +81,7 @@ enum {
     M_FLOOR_HEIGHT = 0x70,
     M_HELD_OBJ = 0x7c,
     M_USED_OBJ = 0x80,
+    M_MARIO_OBJ = 0x88,
     M_AREA = 0x90,
     M_QUICKSAND_DEPTH = 0xc0,
     AREA_CAMERA = 0x24,
@@ -98,6 +112,11 @@ typedef unsigned short (*read16_fn)(unsigned int);
 
 static read32_fn R32;
 static read16_fn R16;
+static ptr_DebugSetCallbacks DSetCallbacks;
+static ptr_DebugSetRunState DSetRunState;
+static ptr_DebugStep DStep;
+static ptr_DebugGetCPUDataPtr DGetCPUDataPtr;
+static ptr_DebugBreakpointCommand DBreakpointCommand;
 static uint64_t gPoll;
 static uint32_t gTop;
 static uint32_t gUpperWarp;
@@ -150,6 +169,9 @@ static int gControllerAFrames;
 static int gFireFrames;
 static int gSawFirePrevObj;
 static int gSawFireParticle;
+static int gEntryIdentityLogged;
+static int gPrefixTraceArmed;
+static int gPrefixStage;
 static float gMaxMarioGraphYOffset = -INFINITY;
 static float gMaxGfxMinusObjectY = -INFINITY;
 static float gMinGfxMinusObjectY = INFINITY;
@@ -165,6 +187,132 @@ static float rfloat(uint32_t address) {
     union { float f; uint32_t u; } bits;
     bits.u = R32(address);
     return bits.f;
+}
+
+static int pool_index(uint32_t object) {
+    uint32_t offset;
+
+    if (object < A_OBJECT_POOL) return -1;
+    offset = object - A_OBJECT_POOL;
+    if (offset % OBJECT_SIZE != 0 || offset / OBJECT_SIZE >= OBJECT_COUNT) {
+        return -1;
+    }
+    return (int) (offset / OBJECT_SIZE);
+}
+
+static int add_exec_breakpoint(uint32_t address) {
+    m64p_breakpoint breakpoint;
+
+    breakpoint.address = address;
+    breakpoint.endaddr = address;
+    breakpoint.flags = M64P_BKP_FLAG_ENABLED | M64P_BKP_FLAG_EXEC;
+    return DBreakpointCommand(M64P_BKP_CMD_ADD_STRUCT, 0, &breakpoint) >= 0;
+}
+
+static void resume_from_breakpoint(void) {
+    DSetRunState(M64P_DBG_RUNSTATE_RUNNING);
+    DStep();
+}
+
+static void debugger_init_callback(void) {}
+static void debugger_vi_callback(void) {}
+
+static void debugger_update_callback(unsigned int pc) {
+    uint64_t *registers =
+        (uint64_t *) DGetCPUDataPtr(M64P_CPU_REG_REG);
+    uint32_t argument0 = registers == NULL ? 0 : (uint32_t) registers[4];
+    uint32_t argument1 = registers == NULL ? 0 : (uint32_t) registers[5];
+    uint32_t return_pc = registers == NULL ? 0 : (uint32_t) registers[31];
+    uint32_t mario_object = R32(A_MARIO_OBJECT);
+    const char *stage = "unexpected";
+
+    if (pc == A_CLEAR_OBJECTS) {
+        stage = "clear_objects";
+        gPrefixStage = 1;
+    } else if (pc == A_LOAD_MARIO_AREA) {
+        stage = "load_mario_area";
+        if (gPrefixStage == 1) gPrefixStage = 2;
+    } else if (pc == A_SPAWN_OBJECTS_FROM_INFO) {
+        stage = "spawn_objects_from_info";
+        if (gPrefixStage >= 2) gPrefixStage = 3;
+    } else if (pc == A_INIT_MARIO) {
+        stage = "init_mario";
+        if (gPrefixStage >= 3) gPrefixStage = 4;
+    }
+
+    fprintf(stderr,
+            "PREFIX_STAGE,stage=%s,sequence=%d,pc=%08x,returnPC=%08x,"
+            "a0=%08x,a1=%08x,timer=%u,area=%u,marioObject=%08x,"
+            "stateMarioObject=%08x\n",
+            stage, gPrefixStage, pc, return_pc, argument0, argument1,
+            R32(A_GLOBAL_TIMER), R16(A_CURR_AREA), mario_object,
+            R32(A_MARIO_STATES + M_MARIO_OBJ));
+    resume_from_breakpoint();
+}
+
+static void arm_prefix_trace(void) {
+    m64p_error callback_result;
+    int armed;
+
+    callback_result = DSetCallbacks(debugger_init_callback,
+                                    debugger_update_callback,
+                                    debugger_vi_callback);
+    if (callback_result != M64ERR_SUCCESS) {
+        fprintf(stderr,
+                "PREFIX_BREAKPOINT_ERROR,kind=callback-arm,result=%d\n",
+                callback_result);
+        return;
+    }
+    armed = add_exec_breakpoint(A_CLEAR_OBJECTS)
+        && add_exec_breakpoint(A_LOAD_MARIO_AREA)
+        && add_exec_breakpoint(A_SPAWN_OBJECTS_FROM_INFO)
+        && add_exec_breakpoint(A_INIT_MARIO);
+    if (!armed) {
+        fprintf(stderr, "PREFIX_BREAKPOINT_ERROR,kind=breakpoint-arm\n");
+        return;
+    }
+    gPrefixTraceArmed = 1;
+    fprintf(stderr,
+            "PREFIX_BREAKPOINT_ARM,clear=%08x,load=%08x,spawn=%08x,"
+            "init=%08x\n",
+            A_CLEAR_OBJECTS, A_LOAD_MARIO_AREA,
+            A_SPAWN_OBJECTS_FROM_INFO, A_INIT_MARIO);
+}
+
+static void observe_entry_identity(uint32_t mario_object) {
+    uint32_t next;
+    uint32_t prev;
+    int slot;
+    int state_matches;
+    int tail_safe;
+    int list_ring;
+
+    if (gEntryIdentityLogged) return;
+    next = R32(mario_object + HEADER_NEXT);
+    prev = R32(mario_object + HEADER_PREV);
+    slot = pool_index(mario_object);
+    state_matches = R32(A_MARIO_STATES + M_MARIO_OBJ) == mario_object;
+    tail_safe = (R32(mario_object + O_FLAGS) & 1) == 0
+        && R32(mario_object + O_GRAPH_Y_OFFSET) == 0;
+    list_ring = next == prev && next != 0
+        && R32(next + HEADER_NEXT) == mario_object
+        && R32(next + HEADER_PREV) == mario_object;
+    fprintf(stderr,
+            "ENTRY_IDENTITY,timer=%u,marioObject=%08x,slot=%d,"
+            "stateMarioObject=%08x,activeFlags=%04x,behavior=%08x,"
+            "oFlags=%08x,oGraphYOffsetBits=%08x,next=%08x,prev=%08x,"
+            "sentinelNext=%08x,sentinelPrev=%08x,stateMatches=%d,"
+            "tailSafe=%d,listRing=%d,prefixStage=%d\n",
+            R32(A_GLOBAL_TIMER), mario_object, slot,
+            R32(A_MARIO_STATES + M_MARIO_OBJ),
+            R16(mario_object + O_ACTIVE_FLAGS),
+            R32(mario_object + O_BEHAVIOR),
+            R32(mario_object + O_FLAGS),
+            R32(mario_object + O_GRAPH_Y_OFFSET), next, prev,
+            next == 0 ? 0 : R32(next + HEADER_NEXT),
+            next == 0 ? 0 : R32(next + HEADER_PREV),
+            state_matches, tail_safe, list_ring, gPrefixStage);
+    gEntryIdentityLogged = 1;
 }
 
 static uint32_t pool_pointer(unsigned index) {
@@ -423,7 +571,17 @@ EXPORT m64p_error CALL PluginStartup(
     (void) debug_callback;
     R32 = (read32_fn) dlsym(core, "DebugMemRead32");
     R16 = (read16_fn) dlsym(core, "DebugMemRead16");
-    return R32 && R16 ? M64ERR_SUCCESS : M64ERR_INCOMPATIBLE;
+    DSetCallbacks = (ptr_DebugSetCallbacks) dlsym(core, "DebugSetCallbacks");
+    DSetRunState = (ptr_DebugSetRunState) dlsym(core, "DebugSetRunState");
+    DStep = (ptr_DebugStep) dlsym(core, "DebugStep");
+    DGetCPUDataPtr =
+        (ptr_DebugGetCPUDataPtr) dlsym(core, "DebugGetCPUDataPtr");
+    DBreakpointCommand =
+        (ptr_DebugBreakpointCommand) dlsym(core,
+                                           "DebugBreakpointCommand");
+    return R32 && R16 && DSetCallbacks && DSetRunState && DStep
+        && DGetCPUDataPtr && DBreakpointCommand
+        ? M64ERR_SUCCESS : M64ERR_INCOMPATIBLE;
 }
 
 EXPORT m64p_error CALL PluginShutdown(void) { return M64ERR_SUCCESS; }
@@ -546,6 +704,7 @@ EXPORT void CALL GetKeys(int control, BUTTONS *keys) {
 
     memset(keys, 0, sizeof(*keys));
     if (control != 0) return;
+    if (!gPrefixTraceArmed) arm_prefix_trace();
     gPoll++;
 
     /* Retail level-select navigation.  Gameplay itself is controller-only. */
@@ -559,6 +718,7 @@ EXPORT void CALL GetKeys(int control, BUTTONS *keys) {
     mario_object = R32(A_MARIO_OBJECT);
     if (area != 1 || mario_object == 0) return;
     gArea1Frames++;
+    observe_entry_identity(mario_object);
     if (gTop == 0 || gUpperWarp == 0) find_area1_objects();
     else if (gShell == 0) find_area1_objects();
     observe_gap();
