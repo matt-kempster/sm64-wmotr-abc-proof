@@ -520,6 +520,19 @@ turns a successful corruption-style producer into a demand for one concrete
 unclassified event, but does not yet refine every linked retail store to the
 clean relation or exclude mutation of writable command/dispatch memory.
 
+`proofs/InkTimer131ClightTraceBridge.v` replaces the old prose-only live
+residual with an execution-indexed boundary.  Exact CompCert loads establish
+the two safe tail cells; a bounded inductive path through list-head/object
+`next` fields represents Mario's list-0 membership; the global/State Mario
+pointers, active word, behavior pointer, and a caller-selected list of
+command/behavior/dispatch loads form the remaining invariant.  A reachable
+Clight `star` preserves that invariant and excludes the dangerous tail when
+every reachable step is classified as a safe store or exact byte frame.
+Recognized builtins/runtime calls instantiate the frame automatically, while
+each true unresolved external remains indexed by
+`TrueUnresolvedExternalFrames`.  The selected run still needs the concrete
+entry-tail/behavior/list receipts and `InkTimer131ReachableStepCoverage`.
+
 `proofs/InkTimer131ProducerClosure.v` closes the two normal large-writer
 source branches.  An opcode-neutral scan of every US/JP `behavior_data`
 initializer finds exactly 40 commands whose target field is

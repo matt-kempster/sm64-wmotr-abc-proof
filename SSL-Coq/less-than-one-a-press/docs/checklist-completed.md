@@ -926,6 +926,19 @@ Completed work is grouped by subject. Each item retains its original scope warni
   every linked retail store belongs to the relation, and excluding table-byte,
   same-slot, forged/interior, OOB, and external violations, remains open.
 
+- [x] Connect the timer-131 clean-store induction to a real CompCert trace.
+  `InkTimer131ClightTraceBridge.v` defines exact entry loads for the two tail
+  cells, a bounded live-memory path from the list-0 sentinel to Mario's fixed
+  active pool slot, fixed Mario/behavior pointers, and an arbitrary list of
+  command/behavior/dispatch loads.  It proves that a reachable Clight `star`
+  preserves this full invariant when every reached step is a checked safe
+  store or supplies the required byte frame, and therefore cannot install the
+  dangerous flag/offset pair.  Recognized builtins and runtime functions close
+  automatically; true unresolved externals feed the theorem only through the
+  existing program-indexed exact-frame interface.  Construction of the three
+  missing entry receipts and the reachable-step classifier for the selected
+  run remains open and is not claimed by this bridge.
+
 - [x] Construct the exact rank-3 platform payload at the binary32 boundary.
   `Area1NonlocalPlatformMirror.v` uses the generated US/JP sine-table entries
   to show that X/Z velocity `(186,122)` followed by a pitch half-turn about

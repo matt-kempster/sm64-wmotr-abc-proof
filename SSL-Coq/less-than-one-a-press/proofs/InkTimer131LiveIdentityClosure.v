@@ -15,9 +15,11 @@
     The second result is deliberately an event-classification theorem, not a
     claim that every retail Clight step has already been classified.  A final
     retail disproof must still prove that the actual linked execution enters
-    this trace relation.  A forged/interior pointer, overlapping out-of-bounds
-    store, untyped external write, same-slot lifecycle failure, or mutation of
-    the level-script/dispatch bytes is therefore still an explicit escape. *)
+    this trace relation.  A valid same-block alias, unframed external write,
+    same-slot lifecycle failure, or mutation of the level-script/dispatch
+    bytes is therefore still an in-model escape.  Invalid and out-of-bounds
+    executions are outside the current Clight semantics rather than survivors
+    of this trace theorem. *)
 
 From Coq Require Import Bool Lia List ZArith.
 From compcert Require Import AST Clight Ctypes Floats Integers Memory Values.
@@ -445,5 +447,5 @@ Record InkTimer131PostLiveIdentityResidual : Type := {
   ink_live_identity_all_retail_stores_refine_to_clean_trace : Prop;
   ink_live_identity_level_command_bytes_are_preserved : Prop;
   ink_live_identity_behavior_and_dispatch_bytes_are_preserved : Prop;
-  ink_live_identity_no_forged_interior_oob_or_external_store : Prop
+  ink_live_identity_valid_alias_and_external_stores_are_framed : Prop
 }.

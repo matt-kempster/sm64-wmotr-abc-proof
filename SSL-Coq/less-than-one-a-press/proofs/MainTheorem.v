@@ -7,7 +7,8 @@ From LessThanOneAPress.Proofs Require Import
   TranscriptRouteModel
   FirstTargetRefinement JPSlotLifetime JPFirstApply FirstCrossingWriterCoverage
   OrdinaryMotion GoombaRaising PyramidTopPU InkFallback RetailFatalLatch
-  InkPayloadInstaller TurningAnimation CompCertRouteScope.
+  InkPayloadInstaller InkTimer131ClightTraceBridge TurningAnimation
+  CompCertRouteScope.
 
 Import ListNotations.
 Local Open Scope Z_scope.
@@ -36,6 +37,13 @@ Qed.
 Theorem current_project_compcert_execution_scope_boundary :
   compcert_execution_scope_boundary_holds.
 Proof. exact compcert_execution_scope_boundary_checked. Qed.
+
+(** The rank-2 live-memory reduction is part of the capstone interface: a
+    selected execution satisfying the concrete entry and reachable-step
+    predicates cannot install the dangerous Mario graphical-tail cells. *)
+Theorem current_timer131_clight_trace_bridge_boundary :
+  InkTimer131ClightTraceBridgeCheckedBoundary.
+Proof. exact ink_timer131_clight_trace_bridge_checked_boundary_holds. Qed.
 
 Definition CollectionProvenanceReductionClaim : Prop :=
   forall initial events final,

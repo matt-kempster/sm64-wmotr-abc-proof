@@ -1022,9 +1022,19 @@ CompCert-memory result rather than another one-step frame: any finite sequence
 of unrelated framed stores, bounded distinct-object-slot stores, safe stock
 flag writes, and zero graphical-offset writes preserves the two safe Mario
 cells and cannot enable the graphical tail.  A clean retail disproof must now
-show that every executed store refines to those cases; any counterexample must
-exhibit the first same-slot overlap, identity/table mutation, forged/interior
-pointer, OOB access, or untyped external effect that does not.
+show that every executed store refines to those cases; any in-model
+counterexample must exhibit the first same-slot overlap, identity/table
+mutation, valid alias, or specified external effect that does not.  Invalid
+and out-of-bounds executions are outside the present Clight run.
+`InkTimer131ClightTraceBridge.v` supplies the next semantic layer.  It models
+Mario's list-0 membership as a bounded path through the actual list/object
+`next` fields, fixes both Mario pointers, active state, behavior pointer, and
+selected command/dispatch loads, and proves that this invariant survives an
+actual reachable CompCert `star` whose steps satisfy the checked store or
+protected-byte cases.  Known builtins/runtime calls satisfy the frame without
+an alias assumption; each unresolved external needs its program-indexed exact
+frame.  The remaining proof is now the live entry receipts and the per-step
+coverage theorem, not another value-level Graphics calculation.
 The abstract case split now also captures that a successful retry performs
 only the first of the two `ACT_DISAPPEARED` ticks.  A second floor-supported
 Mario update is required before the upper object warp can be requested.  If

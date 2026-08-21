@@ -1842,6 +1842,18 @@ check: proofs
 	  LessThanOneAPress.Proofs.InkTimer131LiveIdentityClosure \
 	  clean_finite_trace_cannot_install_timer131_tail_cells
 	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.InkTimer131ClightTraceBridge \
+	  ink_timer131_clight_trace_bridge_checked_boundary_holds
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.InkTimer131ClightTraceBridge \
+	  linked_clight_trace_cannot_install_timer131_tail_cells
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.InkTimer131ClightTraceBridge \
+	  reachable_unresolved_external_is_timer131_linked_memory_step
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.InkTimer131ClightTraceBridge \
+	  linked_clight_trace_preserves_mario_list_zero_and_slot_identity
+	bash pipeline/assumptions.sh \
 	  LessThanOneAPress.Proofs.Area1NonlocalPlatformMirror \
 	  area1_nonlocal_platform_mirror_checked_boundary_holds
 	bash pipeline/assumptions.sh \
@@ -1874,6 +1886,9 @@ check: proofs
 	bash pipeline/assumptions.sh \
 	  LessThanOneAPress.Proofs.MainTheorem \
 	  current_project_compcert_execution_scope_boundary
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.MainTheorem \
+	  current_timer131_clight_trace_bridge_boundary
 
 clean:
 	-$(MAKE) -f $(COQMAKEFILE) clean

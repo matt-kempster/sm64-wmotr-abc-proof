@@ -1366,6 +1366,28 @@ still open.  The following paths changed:
 - `SSL-Coq/less-than-one-a-press/docs/notes/changed-paths.md`
 - `SSL-Coq/less-than-one-a-press/notes/source-map.md`
 
+## Timer-131 live Clight-trace bridge tranche
+
+The clean-store cell proof now connects to a reachable CompCert small-step
+trace through exact entry loads, a concrete bounded list-0 pointer path,
+fixed-slot/behavior identity, preserved command/dispatch loads, and explicit
+frames for all external effects.  It does not yet construct the selected
+run's entry receipts or reachable-step classifier.  The following paths
+changed:
+
+- `SSL-Coq/less-than-one-a-press/proofs/InkTimer131ClightTraceBridge.v` (new)
+- `SSL-Coq/less-than-one-a-press/proofs/InkTimer131LiveIdentityClosure.v`
+- `SSL-Coq/less-than-one-a-press/proofs/MainTheorem.v`
+- `SSL-Coq/less-than-one-a-press/_CoqProject`
+- `SSL-Coq/less-than-one-a-press/Makefile`
+- `SSL-Coq/less-than-one-a-press/README.md`
+- `SSL-Coq/less-than-one-a-press/human-readable-proof.md`
+- `SSL-Coq/less-than-one-a-press/docs/no-a-route-atlas.md`
+- `SSL-Coq/less-than-one-a-press/docs/checklist.md`
+- `SSL-Coq/less-than-one-a-press/docs/checklist-completed.md`
+- `SSL-Coq/less-than-one-a-press/docs/notes/changed-paths.md`
+- `SSL-Coq/less-than-one-a-press/notes/source-map.md`
+
 ## CompCert execution-scope boundary tranche
 
 The project now has an explicit checked boundary between defined Clight route

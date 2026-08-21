@@ -496,6 +496,16 @@ These obligations currently block the clean-retail result.
   step is now to refine every live linked write to that trace or exhibit the
   first same-slot, defined-alias, specified-external, table-byte, or identity
   violation.  An OOB violation would not be a Clight execution witness.
+  `InkTimer131ClightTraceBridge.v` now connects that induction to an actual
+  reachable CompCert `star`: it represents list-0 membership as a bounded path
+  of live `next` pointers, fixes both Mario pointers, the active word, behavior
+  pointer, and caller-supplied command/dispatch loads, and preserves all of
+  them across classified execution steps.  Recognized builtins/runtime calls
+  are automatically memory-silent; each true unresolved external must supply
+  the exact protected-byte frame.  The remaining work is concrete: derive the
+  two cleared tail loads, `bhvMario` field, and list-0 path from entry execution,
+  then prove `InkTimer131ReachableStepCoverage` for every reachable internal
+  store and unresolved call, or return the first step that violates it.
 
 - [ ] Prove the linked stock-provenance projection is exhaustive.  Analyze
   relocated warp/top or collision-preserving clones, post-commit movement

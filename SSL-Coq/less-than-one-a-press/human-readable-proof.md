@@ -2843,6 +2843,10 @@ The most useful entry points are:
 - `proofs/InkTimer131LiveIdentityClosure.v`: exact SSL `&bhvMario` command and
   spawn-record forwarding receipts, plus arbitrary finite clean-store safety
   and a distinct-slot/list-12 eviction trace embedding;
+- `proofs/InkTimer131ClightTraceBridge.v`: concrete entry tail loads, bounded
+  list-0 pointer-path and same-slot identity, command/dispatch load snapshots,
+  exact external-call frames, and preservation/no-danger results across an
+  actual reachable CompCert small-step trace;
 - `proofs/JPCoordinateLvalueReceiverPartition.v`: 38-unit allowed receiver-tag
   check for the four coordinate-lvalue census shapes;
 - `proofs/JPOfficialInitialMemory.v`: constructive initial-memory existence for
