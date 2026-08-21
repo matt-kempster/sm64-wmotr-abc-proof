@@ -1388,6 +1388,31 @@ changed:
 - `SSL-Coq/less-than-one-a-press/docs/notes/changed-paths.md`
 - `SSL-Coq/less-than-one-a-press/notes/source-map.md`
 
+## Timer-131 official-entry and flexible-trace tranche
+
+The official JP initial memory now supplies zero in both watched words of
+every valid object slot; generated-source receipts establish the
+allocator/load/spawn chain and `bhvMario` as the sole list-0 behavior.  The
+trace bridge now permits legitimate list-link mutation under membership
+preservation and classifies reached unresolved calls by an exact
+callsite-sensitive frame or linked writer effect.  Actual execution of the
+clear/load/spawn prefix and complete reached-step coverage remain open.  The
+following paths changed:
+
+- `SSL-Coq/less-than-one-a-press/proofs/InkTimer131EntryExecutionClosure.v` (new)
+- `SSL-Coq/less-than-one-a-press/proofs/InkTimer131ClightTraceBridge.v`
+- `SSL-Coq/less-than-one-a-press/proofs/MainTheorem.v`
+- `SSL-Coq/less-than-one-a-press/_CoqProject`
+- `SSL-Coq/less-than-one-a-press/Makefile`
+- `SSL-Coq/less-than-one-a-press/README.md`
+- `SSL-Coq/less-than-one-a-press/human-readable-proof.md`
+- `SSL-Coq/less-than-one-a-press/docs/no-a-route-atlas.md`
+- `SSL-Coq/less-than-one-a-press/docs/checklist.md`
+- `SSL-Coq/less-than-one-a-press/docs/checklist-completed.md`
+- `SSL-Coq/less-than-one-a-press/docs/notes/clean-jp-graphics-gap-source-audit.md`
+- `SSL-Coq/less-than-one-a-press/docs/notes/changed-paths.md`
+- `SSL-Coq/less-than-one-a-press/notes/source-map.md`
+
 ## CompCert execution-scope boundary tranche
 
 The project now has an explicit checked boundary between defined Clight route

@@ -7,7 +7,8 @@ From LessThanOneAPress.Proofs Require Import
   TranscriptRouteModel
   FirstTargetRefinement JPSlotLifetime JPFirstApply FirstCrossingWriterCoverage
   OrdinaryMotion GoombaRaising PyramidTopPU InkFallback RetailFatalLatch
-  InkPayloadInstaller InkTimer131ClightTraceBridge TurningAnimation
+  InkPayloadInstaller InkTimer131ClightTraceBridge
+  InkTimer131EntryExecutionClosure TurningAnimation
   CompCertRouteScope.
 
 Import ListNotations.
@@ -44,6 +45,14 @@ Proof. exact compcert_execution_scope_boundary_checked. Qed.
 Theorem current_timer131_clight_trace_bridge_boundary :
   InkTimer131ClightTraceBridgeCheckedBoundary.
 Proof. exact ink_timer131_clight_trace_bridge_checked_boundary_holds. Qed.
+
+(** The official JP initializer and generated entry chain now discharge the
+    finite source/initial-memory part of the live-entry obligation.  The
+    actual allocator/spawn [star] and its reachable-step classifier remain
+    explicit rather than being assumed by this checked boundary. *)
+Theorem current_timer131_entry_execution_boundary :
+  InkTimer131EntryExecutionCheckedBoundary.
+Proof. exact ink_timer131_entry_execution_checked_boundary_holds. Qed.
 
 Definition CollectionProvenanceReductionClaim : Prop :=
   forall initial events final,

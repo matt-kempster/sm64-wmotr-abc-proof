@@ -506,6 +506,17 @@ These obligations currently block the clean-retail result.
   two cleared tail loads, `bhvMario` field, and list-0 path from entry execution,
   then prove `InkTimer131ReachableStepCoverage` for every reachable internal
   store and unresolved call, or return the first step that violates it.
+  `InkTimer131EntryExecutionClosure.v` now proves the first entry component in
+  official JP initial memory: both watched words are zero in every valid pool
+  slot.  It also checks that `bhvMario` is the sole generated list-0 behavior,
+  that area loading precedes the Mario spawn, and that the allocator/list and
+  behavior-forwarding source chain has the expected shape.  A direct
+  post-spawn `list0.next = Mario` load is sufficient for the bounded membership
+  predicate.  The trace bridge was corrected so legitimate list-link rewrites
+  need only preserve Mario's membership, and unresolved externals now use a
+  callsite-sensitive frame-or-writer interface.  What remains is to execute
+  the actual clear/load/spawn prefix, obtain the final behavior/link loads, and
+  inhabit the internal-step and external-call coverage over that run.
 
 - [ ] Prove the linked stock-provenance projection is exhaustive.  Analyze
   relocated warp/top or collision-preserving clones, post-commit movement

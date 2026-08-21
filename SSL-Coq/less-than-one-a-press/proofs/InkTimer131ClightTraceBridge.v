@@ -33,7 +33,7 @@ From LessThanOneAPress.Proofs Require Import
   ClightLinkExecution DefaultArea1StartChronology EntryMemory
   InkTimer131IndirectAliasClosure InkTimer131LiveIdentityClosure
   OrdinaryArea1EntryMemory
-  RetailExternalFrames.
+  RetailExternalFrameReachability RetailExternalFrames.
 
 Import ListNotations.
 Local Open Scope Z_scope.
@@ -219,12 +219,57 @@ Definition ink_timer131_identity_byte
       object_slot_offset slot + object_next_offset <= byte_offset <
         object_slot_offset slot + object_next_offset + size_chunk Mptr).
 
+(** The five fixed identity loads are distinct from the mutable list links.
+    Allocation, deletion, and list insertion legitimately rewrite [next]
+    fields, so an execution classifier must prove preservation of Mario's
+    list-0 membership rather than freeze every list link byte. *)
+Definition ink_timer131_fixed_identity_byte
+    (addresses : Area1EntryAddresses) (target_block : block)
+    (byte_offset : Z) : Prop :=
+  (target_block = area1_mario_object_pointer_cell_block addresses /\
+    0 <= byte_offset < size_chunk Mptr) \/
+  (target_block = area1_state_storage_block addresses /\
+    mario_state_object_pointer_offset <= byte_offset <
+      mario_state_object_pointer_offset + size_chunk Mptr) \/
+  (target_block = area1_object_lists_pointer_cell_block addresses /\
+    0 <= byte_offset < size_chunk Mptr) \/
+  (target_block = area1_object_pool_block addresses /\
+    mario_object_base addresses + object_active_flags_offset <= byte_offset <
+      mario_object_base addresses + object_active_flags_offset +
+        size_chunk Mint16signed) \/
+  (target_block = area1_object_pool_block addresses /\
+    mario_object_base addresses + object_behavior_offset <= byte_offset <
+      mario_object_base addresses + object_behavior_offset + size_chunk Mptr).
+
 Definition ink_timer131_identity_and_static_byte
     (addresses : Area1EntryAddresses)
     (loads : list InkTimer131ProtectedLoad) : block -> Z -> Prop :=
   fun target_block byte_offset =>
     ink_timer131_identity_byte addresses target_block byte_offset \/
     ink_timer131_load_spec_byte loads target_block byte_offset.
+
+Definition ink_timer131_fixed_identity_and_static_byte
+    (addresses : Area1EntryAddresses)
+    (loads : list InkTimer131ProtectedLoad) : block -> Z -> Prop :=
+  fun target_block byte_offset =>
+    ink_timer131_fixed_identity_byte addresses target_block byte_offset \/
+    ink_timer131_load_spec_byte loads target_block byte_offset.
+
+Lemma ink_timer131_fixed_identity_byte_is_identity_byte :
+  forall addresses target_block byte_offset,
+    ink_timer131_fixed_identity_byte addresses target_block byte_offset ->
+    ink_timer131_identity_byte addresses target_block byte_offset.
+Proof.
+  intros addresses target_block byte_offset Hfixed.
+  unfold ink_timer131_fixed_identity_byte in Hfixed.
+  unfold ink_timer131_identity_byte.
+  destruct Hfixed as [H | [H | [H | [H | H]]]].
+  - exact (or_introl H).
+  - exact (or_intror (or_introl H)).
+  - exact (or_intror (or_intror (or_introl H))).
+  - exact (or_intror (or_intror (or_intror (or_introl H)))).
+  - exact (or_intror (or_intror (or_intror (or_intror (or_introl H))))).
+Qed.
 
 Definition ink_timer131_full_external_byte
     (addresses : Area1EntryAddresses)
@@ -355,6 +400,27 @@ Proof.
   split; [reflexivity | exact Hrange].
 Qed.
 
+Lemma ink_timer131_protected_loads_preserved_by_fixed_frame :
+  forall before after addresses loads,
+    Mem.unchanged_on
+      (ink_timer131_fixed_identity_and_static_byte addresses loads)
+      before after ->
+    InkTimer131ProtectedLoadsHold before loads ->
+    InkTimer131ProtectedLoadsHold after loads.
+Proof.
+  intros before after addresses loads Hunchanged Hloads.
+  unfold InkTimer131ProtectedLoadsHold in Hloads |- *.
+  rewrite Forall_forall in Hloads |- *.
+  intros load Hin.
+  specialize (Hloads load Hin).
+  unfold ink_timer131_protected_load_holds in *.
+  eapply Mem.load_unchanged_on; eauto.
+  intros byte_offset Hrange.
+  right. unfold ink_timer131_load_spec_byte.
+  exists load. split; [exact Hin |].
+  split; [reflexivity | exact Hrange].
+Qed.
+
 Lemma ink_timer131_identity_preserved :
   forall before after addresses behavior_block loads,
     Mem.unchanged_on
@@ -398,6 +464,53 @@ Proof.
   - eapply ink_timer131_list_zero_membership_preserved; eauto.
 Qed.
 
+Lemma ink_timer131_identity_preserved_by_fixed_frame_and_membership :
+  forall before after addresses behavior_block loads,
+    Mem.unchanged_on
+      (ink_timer131_fixed_identity_and_static_byte addresses loads)
+      before after ->
+    (InkTimer131MarioInListZero before addresses ->
+      InkTimer131MarioInListZero after addresses) ->
+    InkTimer131MarioSlotIdentity before addresses behavior_block ->
+    InkTimer131MarioSlotIdentity after addresses behavior_block.
+Proof.
+  intros before after addresses behavior_block loads Hunchanged Hmembership
+    Hidentity.
+  destruct Hidentity as
+    [Hmario_global Hstate_object Hlists_global Hactive Hbehavior Hlist].
+  constructor.
+  - unfold load_at in *.
+    eapply Mem.load_unchanged_on; eauto.
+    intros byte_offset Hrange. left.
+    unfold ink_timer131_fixed_identity_byte.
+    left. split; [reflexivity |]. cbn [size_chunk] in Hrange. lia.
+  - unfold load_at in *.
+    eapply Mem.load_unchanged_on; eauto.
+    intros byte_offset Hrange. left.
+    unfold ink_timer131_fixed_identity_byte.
+    right; left. split; [reflexivity |].
+    cbn [size_chunk] in Hrange. lia.
+  - unfold load_at in *.
+    eapply Mem.load_unchanged_on; eauto.
+    intros byte_offset Hrange. left.
+    unfold ink_timer131_fixed_identity_byte.
+    right; right; left. split; [reflexivity |].
+    cbn [size_chunk] in Hrange. lia.
+  - unfold load_at in *.
+    eapply Mem.load_unchanged_on; eauto.
+    intros byte_offset Hrange. left.
+    unfold ink_timer131_fixed_identity_byte.
+    right; right; right; left. split; [reflexivity |].
+    cbn [size_chunk] in Hrange |- *. lia.
+  - unfold load_at in *.
+    eapply Mem.load_unchanged_on; eauto.
+    intros byte_offset Hrange. left.
+    unfold ink_timer131_fixed_identity_byte.
+    right; right; right; right. split; [reflexivity |].
+    cbn [size_chunk] in Hrange |- *. lia.
+  - exact (Hmembership Hlist).
+Qed.
+
 (** * One linked memory step and its invariant *)
 
 Inductive InkTimer131CellEffect
@@ -414,9 +527,13 @@ Record InkTimer131LinkedMemoryStep
     (loads : list InkTimer131ProtectedLoad)
     (before after : mem) (addresses : Area1EntryAddresses) : Prop := {
   ink_linked_step_cell_effect : InkTimer131CellEffect before after addresses;
-  ink_linked_step_identity_and_static_frame :
+  ink_linked_step_fixed_identity_and_static_frame :
     Mem.unchanged_on
-      (ink_timer131_identity_and_static_byte addresses loads) before after
+      (ink_timer131_fixed_identity_and_static_byte addresses loads)
+      before after;
+  ink_linked_step_preserves_mario_list_zero :
+    InkTimer131MarioInListZero before addresses ->
+    InkTimer131MarioInListZero after addresses
 }.
 
 Record InkTimer131LiveInvariant
@@ -438,14 +555,15 @@ Theorem ink_timer131_linked_memory_step_preserves_invariant :
     InkTimer131LiveInvariant after addresses behavior_block loads.
 Proof.
   intros before after addresses behavior_block loads Hstep Hinvariant.
-  destruct Hstep as [Hcell Hframe].
+  destruct Hstep as [Hcell Hframe Hmembership].
   destruct Hinvariant as [Hsafe Hidentity Hloads].
   constructor.
   - destruct Hcell as [Hstore | Hcell_frame].
     + eapply ink_clean_store_step_preserves_timer131_cell_safety; eauto.
     + eapply ink_timer131_protected_cell_frame_preserves_safety; eauto.
-  - eapply ink_timer131_identity_preserved; eauto.
-  - eapply ink_timer131_protected_loads_preserved; eauto.
+  - eapply ink_timer131_identity_preserved_by_fixed_frame_and_membership;
+      eauto.
+  - eapply ink_timer131_protected_loads_preserved_by_fixed_frame; eauto.
 Qed.
 
 (** A full byte frame is stronger than the linked-step relation: it frames
@@ -463,6 +581,15 @@ Proof.
     eapply Mem.unchanged_on_implies; eauto.
     intros block offset Hprotected. left. exact Hprotected.
   - eapply Mem.unchanged_on_implies; eauto.
+    intros block offset Hprotected. right.
+    unfold ink_timer131_identity_and_static_byte.
+    unfold ink_timer131_fixed_identity_and_static_byte in Hprotected.
+    destruct Hprotected as [Hfixed | Hload].
+    + left. eapply ink_timer131_fixed_identity_byte_is_identity_byte; eauto.
+    + right. exact Hload.
+  - intros Hmembership.
+    eapply ink_timer131_list_zero_membership_preserved; eauto.
+    eapply Mem.unchanged_on_implies; eauto.
     intros block offset Hprotected. right. exact Hprotected.
 Qed.
 
@@ -510,10 +637,10 @@ Proof.
   eapply recognized_runtime_has_every_writable_frame; eauto.
 Qed.
 
-(** A reachable unresolved call is not silently assumed harmless.  This
-    theorem consumes the program-wide [TrueUnresolvedExternalFrames]
-    obligation and the actual call-state step, then produces precisely the
-    linked memory-step classification used by the trace theorem. *)
+(** The declaration-wide theorem is retained only as a compatibility result.
+    It is stronger than needed and can be false for a legitimate external
+    object writer.  The callsite-sensitive interface below is the proof target
+    for reachable unresolved calls. *)
 Theorem reachable_unresolved_external_is_timer131_linked_memory_step :
   forall (program : Clight.program) initial reach_trace name signature
       argument_types result_type
@@ -540,6 +667,62 @@ Proof.
     addresses loads Hnorepet Hframes Hinitial Hreachable Hstep.
   apply ink_timer131_full_unchanged_on_is_linked_memory_step.
   eapply clight_reachable_true_external_step_obeys_inventory_frame; eauto.
+Qed.
+
+Definition ink_timer131_external_protected_policy
+    (addresses : Area1EntryAddresses)
+    (loads : list InkTimer131ProtectedLoad) : ExternalProtectedCellPolicy :=
+  fun _ _ _ => ink_timer131_full_external_byte addresses loads.
+
+(** A reachable external which legitimately writes memory must expose that
+    exact effect as the same linked-step relation used for internal stores.
+    It is not accepted merely because the protected pointer is absent from
+    the C prototype. *)
+Definition ink_timer131_external_writer_refinement
+    (addresses : Area1EntryAddresses)
+    (loads : list InkTimer131ProtectedLoad) : ExternalWriterRefinement :=
+  fun _ _ before _ _ after =>
+    InkTimer131LinkedMemoryStep loads before after addresses.
+
+Record InkTimer131CallsiteExternalCoverage
+    (program : Clight.program) (origin : ClightExecutionOrigin)
+    (addresses : Area1EntryAddresses)
+    (loads : list InkTimer131ProtectedLoad) : Prop := {
+  ink_timer131_callsite_external_inventory :
+    CallsiteSensitiveUnresolvedExternalInventory program origin
+      (ink_timer131_external_protected_policy addresses loads)
+      (ink_timer131_external_writer_refinement addresses loads)
+}.
+
+Theorem reachable_unresolved_external_under_callsite_coverage_is_linked :
+  forall program origin addresses loads initial reach_trace name signature
+      argument_types result_type calling_convention arguments continuation
+      before step_trace result after,
+    InkTimer131CallsiteExternalCoverage program origin addresses loads ->
+    origin initial ->
+    @Smallstep.star _ _ Clight.step2 (Clight.globalenv program)
+      initial reach_trace
+      (Clight.Callstate
+        (External (EF_external name signature) argument_types result_type
+          calling_convention) arguments continuation before) ->
+    Clight.step2 (Clight.globalenv program)
+      (Clight.Callstate
+        (External (EF_external name signature) argument_types result_type
+          calling_convention) arguments continuation before)
+      step_trace (Clight.Returnstate result continuation after) ->
+    InkTimer131LinkedMemoryStep loads before after addresses.
+Proof.
+  intros program origin addresses loads initial reach_trace name signature
+    argument_types result_type calling_convention arguments continuation
+    before step_trace result after Hcoverage Horigin Hreachable Hstep.
+  destruct Hcoverage as [Hinventory].
+  destruct (reachable_unresolved_external_effect_is_framed_or_refined
+    _ _ _ _ Hinventory initial reach_trace name signature argument_types
+    result_type calling_convention arguments continuation before step_trace
+    result after Horigin Hreachable Hstep) as [Hframe | Hwriter].
+  - apply ink_timer131_full_unchanged_on_is_linked_memory_step.
+    exact Hframe.
+  - exact Hwriter.
 Qed.
 
 (** * Entry and actual Clight-star bridge *)

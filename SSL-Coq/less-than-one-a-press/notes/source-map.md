@@ -529,9 +529,16 @@ command/behavior/dispatch loads form the remaining invariant.  A reachable
 Clight `star` preserves that invariant and excludes the dangerous tail when
 every reachable step is classified as a safe store or exact byte frame.
 Recognized builtins/runtime calls instantiate the frame automatically, while
-each true unresolved external remains indexed by
-`TrueUnresolvedExternalFrames`.  The selected run still needs the concrete
-entry-tail/behavior/list receipts and `InkTimer131ReachableStepCoverage`.
+normal list insertion/removal is now allowed under a semantic preservation of
+Mario's list-0 membership.  A reached unresolved external must either frame
+the exact protected bytes at that callsite or supply an explicit linked writer
+effect.  `proofs/InkTimer131EntryExecutionClosure.v` proves both watched words
+zero in every valid slot of the official JP initial memory, computes
+`bhvMario` as the only generated list-0 behavior, checks the clear/load/spawn
+source chain, reduces direct list membership to one head-link load, and
+extracts the first invariant-breaking step from any dangerous actual trace.
+The selected run still needs the real clear/load/spawn execution, final
+behavior/list loads, and `InkTimer131ReachableStepCoverage`.
 
 `proofs/InkTimer131ProducerClosure.v` closes the two normal large-writer
 source branches.  An opcode-neutral scan of every US/JP `behavior_data`

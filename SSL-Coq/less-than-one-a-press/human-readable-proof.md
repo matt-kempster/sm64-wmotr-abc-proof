@@ -2845,8 +2845,14 @@ The most useful entry points are:
   and a distinct-slot/list-12 eviction trace embedding;
 - `proofs/InkTimer131ClightTraceBridge.v`: concrete entry tail loads, bounded
   list-0 pointer-path and same-slot identity, command/dispatch load snapshots,
-  exact external-call frames, and preservation/no-danger results across an
-  actual reachable CompCert small-step trace;
+  membership-preserving mutable-list steps, callsite-sensitive external
+  frame-or-writer effects, and preservation/no-danger results across an actual
+  reachable CompCert small-step trace;
+- `proofs/InkTimer131EntryExecutionClosure.v`: exact official-JP initial zeros
+  for both watched words in every valid pool slot, the bilateral
+  allocator/load/spawn and sole-list-0-behavior receipts, a direct list-head
+  membership constructor, and first-failing-step extraction for dangerous
+  actual traces;
 - `proofs/JPCoordinateLvalueReceiverPartition.v`: 38-unit allowed receiver-tag
   check for the four coordinate-lvalue census shapes;
 - `proofs/JPOfficialInitialMemory.v`: constructive initial-memory existence for

@@ -1032,9 +1032,19 @@ Mario's list-0 membership as a bounded path through the actual list/object
 selected command/dispatch loads, and proves that this invariant survives an
 actual reachable CompCert `star` whose steps satisfy the checked store or
 protected-byte cases.  Known builtins/runtime calls satisfy the frame without
-an alias assumption; each unresolved external needs its program-indexed exact
-frame.  The remaining proof is now the live entry receipts and the per-step
-coverage theorem, not another value-level Graphics calculation.
+an alias assumption.  The bridge now distinguishes five fixed identity loads
+from mutable object-list links: ordinary insertion/removal may rewrite links
+as long as Mario remains reachable from list 0.  Each unresolved external is
+handled at its reached callsite, where it must either preserve the exact
+protected cells or expose an explicitly refined writer effect.
+`InkTimer131EntryExecutionClosure.v` then proves that both watched words are
+zero in every valid slot of the official JP initial memory, checks the
+allocator/load/spawn source chain, and finds `bhvMario` as the sole generated
+list-0 behavior.  It also turns a direct post-spawn list-head load into the
+live membership predicate and extracts the first invariant-breaking step from
+any dangerous actual trace.  The remaining proof is to execute the actual
+clear/load/spawn prefix and classify every reached step, not another
+value-level Graphics calculation.
 The abstract case split now also captures that a successful retry performs
 only the first of the two `ACT_DISAPPEARED` ticks.  A second floor-supported
 Mario update is required before the upper object warp can be requested.  If

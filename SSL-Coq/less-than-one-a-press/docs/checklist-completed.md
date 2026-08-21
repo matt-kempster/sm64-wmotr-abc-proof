@@ -934,10 +934,25 @@ Completed work is grouped by subject. Each item retains its original scope warni
   preserves this full invariant when every reached step is a checked safe
   store or supplies the required byte frame, and therefore cannot install the
   dangerous flag/offset pair.  Recognized builtins and runtime functions close
-  automatically; true unresolved externals feed the theorem only through the
-  existing program-indexed exact-frame interface.  Construction of the three
-  missing entry receipts and the reachable-step classifier for the selected
-  run remains open and is not claimed by this bridge.
+  automatically; each reached unresolved external must supply a
+  callsite-sensitive protected-cell frame or an explicit checked writer
+  effect.  Legitimate list rewrites need preserve Mario's membership rather
+  than every link byte.  Construction of the selected run's entry execution
+  and reachable-step classifier remains open and is not claimed by this
+  bridge.
+
+- [x] Prove the official initial-cell and generated list-0 entry receipts.
+  `InkTimer131EntryExecutionClosure.v` proves from the concrete official JP
+  `Genv.init_mem` that both Timer-131-sensitive words are zero in every valid
+  object slot.  A bilateral behavior-data census finds `bhvMario` as the only
+  generated script selecting list 0; separate receipts check list clearing,
+  area-before-Mario loading, all-80-word allocator clearing, constructor
+  behavior forwarding, and list insertion.  The module also reduces the
+  concrete list-membership endpoint to a single post-spawn head link and
+  proves that any dangerous actual Clight trace has a first invariant-breaking
+  step.  These facts do not execute `warp_level` or the spawn prefix, prove
+  that every pre-Mario constructor uses a checked behavior, or classify that
+  first step; those remain the live obligations.
 
 - [x] Construct the exact rank-3 platform payload at the binary32 boundary.
   `Area1NonlocalPlatformMirror.v` uses the generated US/JP sine-table entries

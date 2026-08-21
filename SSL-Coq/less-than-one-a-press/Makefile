@@ -1854,6 +1854,21 @@ check: proofs
 	  LessThanOneAPress.Proofs.InkTimer131ClightTraceBridge \
 	  linked_clight_trace_preserves_mario_list_zero_and_slot_identity
 	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.InkTimer131ClightTraceBridge \
+	  reachable_unresolved_external_under_callsite_coverage_is_linked
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.InkTimer131EntryExecutionClosure \
+	  ink_timer131_entry_execution_checked_boundary_holds
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.InkTimer131EntryExecutionClosure \
+	  jp_official_initial_pool_slot_has_cleared_timer131_cells
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.InkTimer131EntryExecutionClosure \
+	  ink_bhv_mario_is_the_only_generated_list_zero_behavior
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.InkTimer131EntryExecutionClosure \
+	  dangerous_timer131_trace_exposes_first_invariant_failure
+	bash pipeline/assumptions.sh \
 	  LessThanOneAPress.Proofs.Area1NonlocalPlatformMirror \
 	  area1_nonlocal_platform_mirror_checked_boundary_holds
 	bash pipeline/assumptions.sh \

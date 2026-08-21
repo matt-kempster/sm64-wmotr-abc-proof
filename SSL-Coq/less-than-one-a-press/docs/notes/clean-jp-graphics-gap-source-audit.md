@@ -118,6 +118,15 @@ identity, defined-alias and reuse closure, and exact effects for
 indirect/external calls.  OOB stores are a separate machine-model question,
 not a residual successful Clight writer.
 
+`InkTimer131EntryExecutionClosure.v` now proves the two watched words zero in
+every valid object slot of the official JP initial memory, rather than merely
+recognizing the allocator's clearing loop.  It also computes `bhvMario` as the
+only generated behavior selecting list 0 and checks the load/spawn/list source
+chain.  The trace invariant now allows legitimate list-link rewrites and uses
+a callsite-sensitive external frame-or-writer interface.  These results still
+need a concrete Clight execution of the clear/load/spawn prefix and its final
+behavior/list loads; source order is not treated as that execution proof.
+
 `InkTimer131ProducerClosure.v` replaces the earlier “no writer found” wording
 with a complete initializer result.  Its opcode-neutral scan finds exactly 40
 US/JP behavior-data words targeting raw float field 21; all 40 dispatch to
