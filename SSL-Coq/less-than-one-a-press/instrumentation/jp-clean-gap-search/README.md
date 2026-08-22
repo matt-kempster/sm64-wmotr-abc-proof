@@ -154,12 +154,14 @@ rejects a probe containing the game-memory write API names used by this
 instrumentation suite.  `run.sh` also rejects a trace unless these five exact
 callsite lines and the exact slot-67 endpoint occur in order.  This is an
 authentic MIPS execution receipt, not a CompCert small-step certificate: it
-does not yet classify instructions between breakpoints or prove effects of
-outside calls.  It therefore supplies the empirical phase and identity
-observations without inhabiting `JPInkTimer131RealEntryPrefix`.  The new write
-receipt classifies every retail instruction that actually changes a watched
-range—including code reached by indirect dispatch or an outside machine-code
-routine—but it still is not an IDO-MIPS-to-Clight simulation theorem.
+does not classify every memory-silent instruction between breakpoints or give
+Clight semantics to outside calls.  The write receipt does classify every
+retail instruction that actually changes a watched range—including code reached
+by indirect dispatch or an outside machine-code routine—and the project accepts
+its replayed checkpoint, identity, and safe-tail result as
+`JPInkTimer131AcceptedEntryTheorem`.  It still is not an IDO-MIPS-to-Clight
+simulation theorem; the uninhabited native `JPInkTimer131RealEntryPrefix` is an
+optional stronger certificate, not the chosen entry boundary.
 
 ### Mode 7 two-pillar checkpoint
 

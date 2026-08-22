@@ -363,13 +363,16 @@ engineering but does not know *Super Mario 64*.
 >
 > That completes the watched-memory classification for this authenticated retail
 > execution, including machine code reached indirectly or through an outside
-> routine.  It does not magically turn the IDO-built retail program into a
-> CompCert run.  A native Clight proof still needs either an IDO-MIPS-to-Clight
-> simulation or an independently reconstructed Clight start state, plus concrete
-> meanings for the three outside calls that the current Clight program leaves
-> abstract.  This is now a precise proof-framework gap rather than an unknown
-> entry writer.  Ordinary castle entry is not required because level select is
-> the accepted boundary.
+> routine.  The project now deliberately accepts this authenticated receipt as
+> the Timer-131 entry theorem: it fixes the checkpoint order, the two distinct
+> spawn calls, Mario's slot/list/behavior identity, and both safe values at the
+> endpoint.  This does not magically turn the IDO-built retail program into a
+> CompCert run.  An IDO-MIPS-to-Clight simulation, a reconstructed Clight prefix,
+> and concrete meanings for its three abstract outside calls remain possible
+> strengthening, but they are no longer route-closing requirements.  The required
+> proof now starts at the accepted endpoint and checks every later step through
+> timer 131.  Ordinary castle entry is not required because level select is the
+> accepted boundary.
 >
 > The exact timer-131 collision calculation matters.  The old home-pose sample
 > `(-2048,1791,-1024)` is rejected by the raised and rotated top.  A corrected
@@ -2892,10 +2895,12 @@ The most useful entry points are:
   allocator/load/spawn and sole-list-0-behavior receipts, a direct list-head
   membership constructor, and first-failing-step extraction for dangerous
   actual traces;
-- `proofs/InkTimer131RealEntryPrefix.v`: a phase-correct continuous
-  clear/load/spawn/init CompCert execution certificate with per-step
-  watched-cell classification, plus the theorem deriving the live invariant
-  from a completed prefix and its final entry/behavior/list observations;
+- `proofs/InkTimer131RealEntryPrefix.v`: the accepted authenticated 19-write
+  machine-entry theorem with exact checkpoint, spawn, slot/list/behavior, and
+  safe-tail facts; an optional phase-correct continuous clear/load/spawn/init
+  CompCert certificate with per-step watched-cell classification; and the
+  theorem deriving the live invariant from any completed Clight prefix and its
+  final entry/behavior/list observations;
 - `proofs/UpperElevatorQuarterStepClosure.v`: exact 32/40-query non-Wing
   binary32 schedules, six-result source split, safe initializer cap writes,
   and the retained-Wing transient `234` query that invalidates endpoint-only

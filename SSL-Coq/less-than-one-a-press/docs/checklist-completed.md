@@ -993,8 +993,21 @@ Completed work is grouped by subject. Each item retains its original scope warni
   `jp_timer131_authenticated_machine_writes_decode` replays those stores from
   arbitrary prior watched values to the exact endpoint and proves all protected
   overlaps safe.  This is a complete watched-memory classification for the
-  authenticated MIPS run, not the still-missing IDO-MIPS-to-Clight simulation or
-  concrete `EF_external` semantics.
+  authenticated MIPS run; it remains distinct from an IDO-MIPS-to-Clight
+  simulation or concrete Clight `EF_external` semantics.
+
+- [x] Adopt the authenticated Timer-131 receipt as the entry theorem.
+  `jp_timer131_authenticated_receipt_is_accepted_entry` packages the exact
+  checkpoint order, distinct Area-object and Mario spawn callsites, slot-67
+  arithmetic, both Mario pointers, active `bhvMario` object, one-node player
+  list, `oFlags=0x100`, and zero graphical offset into
+  `JPInkTimer131AcceptedEntryTheorem`; it also proves that the accepted safe tail
+  cannot already be the dangerous retry tail.  `MainTheorem.v` exports this as
+  `current_timer131_accepted_machine_entry_boundary`.  By project policy this
+  closes the level-select entry obligation without claiming that IDO MIPS is a
+  CompCert execution; a native Clight prefix is optional strengthening, and the
+  required route proof now begins with post-entry preservation through timer
+  131.
 
 - [x] Construct the exact rank-3 platform payload at the binary32 boundary.
   `Area1NonlocalPlatformMirror.v` uses the generated US/JP sine-table entries

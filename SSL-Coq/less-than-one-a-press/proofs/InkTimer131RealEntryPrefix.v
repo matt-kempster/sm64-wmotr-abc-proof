@@ -20,13 +20,14 @@
     was already safe before Mario's allocation is needed.
 
     The machine constants below transcribe the SHA-256-pinned read-only receipt
-    exactly and mechanically check its arithmetic.  They do not silently turn
-    the IDO-produced retail binary into a CompCert execution.  Completing the
-    bridge still means constructing the continuous [Clight.step2] certificate
-    and deriving the endpoint loads from it.  Every reached unresolved
-    OS/audio/graphics external must have a protected frame or checked writer
-    effect.  Invalid pointers, OOB execution, ACE, and asynchronous DMA are
-    outside CompCert Clight. *)
+    exactly and mechanically check its arithmetic.  Project policy now accepts
+    that authenticated 19-write receipt as the Timer-131 entry theorem.  This
+    does not silently turn the IDO-produced retail binary into a CompCert
+    execution: the [Clight.step2] certificate below remains an optional stronger
+    bridge.  The required next obligation begins at the accepted machine
+    endpoint and classifies every later step through timer 131.  Invalid
+    pointers, OOB execution, ACE, and asynchronous DMA remain outside CompCert
+    Clight. *)
 
 From Coq Require Import List String ZArith.
 From compcert Require Import AST Clight Ctypes Events Floats Globalenvs
@@ -627,6 +628,106 @@ Theorem jp_timer131_replayed_endpoint_matches_authenticated_snapshot :
     jp_machine_endpoint_sentinel_previous jp_timer131_machine_endpoint.
 Proof. vm_compute. repeat split; reflexivity. Qed.
 
+(** * The accepted machine-level entry theorem *)
+
+Definition jp_timer131_machine_tail_safe
+    (state : JPInkTimer131WatchedState) : Prop :=
+  Z.testbit (jp_watched_slot_flags state) 0 = false /\
+  jp_watched_slot_graph_y_offset_bits state = 0.
+
+Definition jp_timer131_machine_tail_dangerous
+    (state : JPInkTimer131WatchedState) : Prop :=
+  Z.testbit (jp_watched_slot_flags state) 0 = true /\
+  jp_watched_slot_graph_y_offset_bits state <> 0.
+
+(** This record is deliberately independent of CompCert blocks.  It is the
+    exact retail-machine boundary which the project has chosen to accept:
+    one checkpoint sequence, both distinct spawn callsites, the slot-67
+    identity/list facts, and the two safe tail values. *)
+Record JPInkTimer131AcceptedEntryState
+    (state : JPInkTimer131WatchedState) : Prop := {
+  jp_accepted_entry_checkpoint_order :
+    map jp_machine_checkpoint_stage jp_timer131_machine_checkpoints =
+      [JPTimer131ClearObjects; JPTimer131LoadMarioArea;
+       JPTimer131SpawnAreaObjects; JPTimer131SpawnMario;
+       JPTimer131InitMario];
+  jp_accepted_entry_area_spawn_return :
+    jp_machine_checkpoint_return_pc jp_timer131_area_spawn_checkpoint =
+      2150082916;
+  jp_accepted_entry_mario_spawn_return :
+    jp_machine_checkpoint_return_pc jp_timer131_mario_spawn_checkpoint =
+      2150083184;
+  jp_accepted_entry_slot_exact :
+    jp_machine_endpoint_slot jp_timer131_machine_endpoint = 67;
+  jp_accepted_entry_slot_address :
+    jp_machine_endpoint_mario_object jp_timer131_machine_endpoint =
+      jp_machine_endpoint_object_pool jp_timer131_machine_endpoint +
+        object_size * jp_machine_endpoint_slot jp_timer131_machine_endpoint;
+  jp_accepted_entry_global_mario :
+    jp_watched_global_mario_object state = 2150916152;
+  jp_accepted_entry_state_mario :
+    jp_watched_state_mario_object state = 2150916152;
+  jp_accepted_entry_active :
+    jp_watched_slot_active_flags state = 257;
+  jp_accepted_entry_behavior :
+    jp_watched_slot_behavior state = 2148446656;
+  jp_accepted_entry_slot_next :
+    jp_watched_slot_next state = 2150873200;
+  jp_accepted_entry_slot_previous :
+    jp_watched_slot_previous state = 2150873200;
+  jp_accepted_entry_list_next :
+    jp_watched_list_next state = 2150916152;
+  jp_accepted_entry_list_previous :
+    jp_watched_list_previous state = 2150916152;
+  jp_accepted_entry_flag_word :
+    jp_watched_slot_flags state = 256;
+  jp_accepted_entry_graphical_offset :
+    jp_watched_slot_graph_y_offset_bits state = 0;
+  jp_accepted_entry_safe_tail :
+    jp_timer131_machine_tail_safe state
+}.
+
+Definition JPInkTimer131AcceptedEntryTheorem : Prop :=
+  JPInkTimer131AuthenticatedMachineWriteReceipt /\
+  forall initial,
+    JPInkTimer131AcceptedEntryState
+      (jp_timer131_replay_machine_writes initial).
+
+Theorem jp_timer131_authenticated_receipt_is_accepted_entry :
+  JPInkTimer131AcceptedEntryTheorem.
+Proof.
+  split; [exact jp_timer131_authenticated_machine_writes_decode |].
+  intro initial.
+  rewrite (proj2 (proj2 jp_timer131_authenticated_machine_writes_decode)
+    initial).
+  constructor; vm_compute; repeat split; reflexivity.
+Qed.
+
+Lemma jp_timer131_machine_safe_tail_is_not_dangerous :
+  forall state,
+    jp_timer131_machine_tail_safe state ->
+    ~ jp_timer131_machine_tail_dangerous state.
+Proof.
+  intros state [Hsafe_flag Hsafe_offset]
+    [Hdanger_flag Hdanger_offset].
+  rewrite Hsafe_flag in Hdanger_flag. discriminate.
+Qed.
+
+Corollary jp_timer131_accepted_entry_has_safe_tail :
+  forall initial,
+    jp_timer131_machine_tail_safe
+      (jp_timer131_replay_machine_writes initial) /\
+    ~ jp_timer131_machine_tail_dangerous
+        (jp_timer131_replay_machine_writes initial).
+Proof.
+  intro initial.
+  pose proof (proj2 jp_timer131_authenticated_receipt_is_accepted_entry
+    initial) as Hentry.
+  pose proof (jp_accepted_entry_safe_tail _ Hentry) as Hsafe.
+  split; [exact Hsafe |].
+  exact (jp_timer131_machine_safe_tail_is_not_dangerous _ Hsafe).
+Qed.
+
 (** This theorem checks the translation-relevant facts in the recorded bytes:
     five ordered calls (including both spawns), exact slot arithmetic, matching
     Mario pointers, a safe flag word, zero graphical offset, and the one-node
@@ -1205,7 +1306,7 @@ Qed.
 
 Definition InkTimer131RealEntryPrefixCheckedBoundary : Prop :=
   ink_timer131_real_prefix_source_claim /\
-  JPInkTimer131AuthenticatedMachineWriteReceipt /\
+  JPInkTimer131AcceptedEntryTheorem /\
   jp_timer131_entry_direct_writer_claim /\
   jp_timer131_entry_external_inventory_claim /\
   jp_timer131_entry_external_callsite_claim /\
@@ -1237,7 +1338,7 @@ Theorem ink_timer131_real_entry_prefix_checked_boundary_holds :
   InkTimer131RealEntryPrefixCheckedBoundary.
 Proof.
   split; [exact ink_timer131_real_prefix_source_checked |].
-  split; [exact jp_timer131_authenticated_machine_writes_decode |].
+  split; [exact jp_timer131_authenticated_receipt_is_accepted_entry |].
   split; [exact jp_timer131_entry_direct_writer_checked |].
   split; [exact jp_timer131_entry_external_inventory_checked |].
   split; [exact jp_timer131_entry_external_callsites_checked |].

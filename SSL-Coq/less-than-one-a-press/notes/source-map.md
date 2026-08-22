@@ -554,9 +554,10 @@ outside boundary is three exact caller/callee sites: `unload_object`'s sound-
 source stop, `load_mario_area`'s continuous-bank sound stop, and
 `read_surface_data`'s `sqrtf`.  A broader 150-function family which also permits
 a first object update remains writer-free and expands to five names at eight
-  sites.  No Clight inhabitant is constructed: an IDO-MIPS-to-Clight relation or
-  an independently reconstructed Clight start state and concrete semantics for
-  reached `EF_external` declarations are still required.
+sites.  No Clight inhabitant is constructed: an IDO-MIPS-to-Clight relation or
+an independently reconstructed Clight start state and concrete semantics for
+reached `EF_external` declarations would be required for that optional stronger
+certificate.
 The read-only JP mode-2 instrumentation now supplies a separate authentic MIPS
 write receipt, not just five call entries.  Physical watchpoints cover ten
 identity/tail ranges and record exactly 19 stores: allocator zeros, slot/list/
@@ -564,8 +565,12 @@ behavior/pointer installation, and the first behavior's exact safe `0x100`
 write.  The runner compares the complete 25-line receipt, and Coq replays it
 from arbitrary watched prestate to the recorded slot-67 endpoint while proving
 every protected overlap safe.  This frames the actual MIPS effects of
-intervening indirect and outside code, but does not refine IDO instructions to
-the CompCert certificate; ordinary castle entry is outside this accepted
+intervening indirect and outside code.  The project now packages its checkpoint,
+spawn, identity, list, and safe-tail facts as
+`JPInkTimer131AcceptedEntryTheorem` and uses that as the Timer-131 entry
+boundary.  It does not refine IDO instructions to the optional CompCert
+certificate; required work instead begins at this endpoint and classifies later
+steps through timer 131.  Ordinary castle entry is outside the accepted
 level-select boundary.
 
 `proofs/InkTimer131ProducerClosure.v` closes the two normal large-writer

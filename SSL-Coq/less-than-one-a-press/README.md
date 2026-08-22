@@ -1071,13 +1071,17 @@ bit 0 set.  The runner compares all 19 lines against a committed receipt, while
 Coq replays them from arbitrary prior watched values to the exact endpoint and
 checks every protected overlap as safe.  This closes endpoint derivation and
 watched-effect classification for that authenticated retail execution,
-including whatever machine code ran inside indirect or outside calls.  It does
-not inhabit the CompCert certificate: the retail binary was produced by IDO,
-the project has no IDO-MIPS-to-Clight state simulation, and the selected Clight
-program still declares the three narrow outside functions as abstract
-`EF_external` calls whose writable-memory effects do not follow from their C
-prototypes.  Ordinary castle entry is not required because level select is the
-accepted start.
+including whatever machine code ran inside indirect or outside calls.
+`jp_timer131_authenticated_receipt_is_accepted_entry` now packages the receipt,
+checkpoint order, distinct spawn callsites, complete slot/list/behavior identity,
+and safe tail as `JPInkTimer131AcceptedEntryTheorem`; `MainTheorem.v` exports that
+result as the project's accepted Timer-131 entry boundary.  The receipt is still
+not an IDO-MIPS-to-Clight simulation.  Constructing the optional native CompCert
+prefix would require such a relation (or a reconstructed Clight start state) and
+concrete meanings for the three abstract pre-entry `EF_external` calls, but none
+of that is now required to accept this entry.  Required route work begins at the
+recorded safe endpoint and classifies later execution through timer 131.
+Ordinary castle entry is not required because level select is the accepted start.
 The abstract case split now also captures that a successful retry performs
 only the first of the two `ACT_DISAPPEARED` ticks.  A second floor-supported
 Mario update is required before the upper object warp can be requested.  If

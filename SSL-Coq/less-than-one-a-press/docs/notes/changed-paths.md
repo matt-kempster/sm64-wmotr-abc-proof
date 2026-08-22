@@ -1588,3 +1588,32 @@ the three narrow `EF_external` declarations.  The following paths changed:
 - `SSL-Coq/less-than-one-a-press/docs/notes/clean-jp-graphics-gap-source-audit.md`
 - `SSL-Coq/less-than-one-a-press/docs/notes/changed-paths.md`
 - `SSL-Coq/less-than-one-a-press/notes/source-map.md`
+
+## Timer-131 accepted machine-entry theorem tranche
+
+The project now adopts the authenticated 19-write original-JP receipt as the
+accepted Timer-131 level-select entry theorem.  The new
+`JPInkTimer131AcceptedEntryState` record fixes the checkpoint order, the
+distinct Area-object and Mario spawn callsites, slot-67 arithmetic, both Mario
+pointers, active `bhvMario` identity, the one-node player list, `oFlags=0x100`,
+and zero graphical offset.  Coq derives that record from the exact replay for
+every old watched prestate and proves its safe tail is not already dangerous;
+`MainTheorem.v` exports the result on the capstone interface.  This policy does
+not claim that the IDO-built MIPS run is a CompCert execution: the native Clight
+prefix remains optional strengthening.  Required Rank-2 work now starts at the
+accepted endpoint and classifies post-entry steps through timer 131.  The
+following paths changed:
+
+- `SSL-Coq/less-than-one-a-press/proofs/InkTimer131RealEntryPrefix.v`
+- `SSL-Coq/less-than-one-a-press/proofs/MainTheorem.v`
+- `SSL-Coq/less-than-one-a-press/Makefile`
+- `SSL-Coq/less-than-one-a-press/instrumentation/jp-clean-gap-search/README.md`
+- `SSL-Coq/less-than-one-a-press/README.md`
+- `SSL-Coq/less-than-one-a-press/human-readable-proof.md`
+- `SSL-Coq/less-than-one-a-press/docs/no-a-route-atlas.md`
+- `SSL-Coq/less-than-one-a-press/docs/checklist.md`
+- `SSL-Coq/less-than-one-a-press/docs/checklist-completed.md`
+- `SSL-Coq/less-than-one-a-press/docs/notes/ordinary-area1-entry-memory.md`
+- `SSL-Coq/less-than-one-a-press/docs/notes/clean-jp-graphics-gap-source-audit.md`
+- `SSL-Coq/less-than-one-a-press/docs/notes/changed-paths.md`
+- `SSL-Coq/less-than-one-a-press/notes/source-map.md`

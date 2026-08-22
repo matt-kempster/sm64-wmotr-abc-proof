@@ -8,7 +8,7 @@ From LessThanOneAPress.Proofs Require Import
   FirstTargetRefinement JPSlotLifetime JPFirstApply FirstCrossingWriterCoverage
   OrdinaryMotion GoombaRaising PyramidTopPU InkFallback RetailFatalLatch
   InkPayloadInstaller InkTimer131ClightTraceBridge
-  InkTimer131EntryExecutionClosure TurningAnimation
+  InkTimer131EntryExecutionClosure InkTimer131RealEntryPrefix TurningAnimation
   CompCertRouteScope.
 
 Import ListNotations.
@@ -53,6 +53,16 @@ Proof. exact ink_timer131_clight_trace_bridge_checked_boundary_holds. Qed.
 Theorem current_timer131_entry_execution_boundary :
   InkTimer131EntryExecutionCheckedBoundary.
 Proof. exact ink_timer131_entry_execution_checked_boundary_holds. Qed.
+
+(** At the user-selected level-select boundary, the authenticated 19-write JP
+    machine receipt is the accepted entry theorem.  It supplies slot 67,
+    Mario/list/behavior identity, and safe tail values without requiring an
+    IDO-MIPS-to-Clight simulation.  The optional Clight-prefix certificate is
+    retained separately; the route's required work now starts with post-entry
+    preservation through timer 131. *)
+Theorem current_timer131_accepted_machine_entry_boundary :
+  JPInkTimer131AcceptedEntryTheorem.
+Proof. exact jp_timer131_authenticated_receipt_is_accepted_entry. Qed.
 
 Definition CollectionProvenanceReductionClaim : Prop :=
   forall initial events final,

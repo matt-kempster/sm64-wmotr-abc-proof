@@ -502,10 +502,11 @@ These obligations currently block the clean-retail result.
   pointer, and caller-supplied command/dispatch loads, and preserves all of
   them across classified execution steps.  Recognized builtins/runtime calls
   are automatically memory-silent; each true unresolved external must supply
-  the exact protected-byte frame.  The remaining work is concrete: derive the
-  two cleared tail loads, `bhvMario` field, and list-0 path from entry execution,
-  then prove `InkTimer131ReachableStepCoverage` for every reachable internal
-  store and unresolved call, or return the first step that violates it.
+  the exact protected-byte frame.  The entry values are now supplied by the
+  accepted authenticated machine receipt; the remaining work is concrete:
+  prove `InkTimer131ReachableStepCoverage` for every reachable post-entry
+  internal store, indirect dispatch, and unresolved call through timer 131, or
+  return the first step that violates it.
   `InkTimer131EntryExecutionClosure.v` now proves the first entry component in
   official JP initial memory: both watched words are zero in every valid pool
   slot.  It also checks that `bhvMario` is the sole generated list-0 behavior,
@@ -541,15 +542,16 @@ These obligations currently block the clean-retail result.
   load's continuous-bank stop, and surface loading's `sqrtf`.  A broader
   150-function family which also permits the first object update remains writer-
   free and expands the boundary to five names at eight sites.  Recognized
-  builtins/runtimes are already memory-silent; branch reachability and exact
-  effects remain necessary for any actually reached unresolved site.  The
-  CompCert certificate is still not inhabited: construct an IDO-MIPS-to-Clight
-  state/step relation (or independently execute the reconstructed Clight start
-  state), supply concrete effects for the reached `EF_external` declarations,
-  and connect the now-derived machine endpoint to exact CompCert loads.  The
-  watched MIPS effects already cover indirect and outside machine code in the
-  authenticated run, but are not a Clight proof.  Ordinary castle entry is not
-  part of this route boundary.
+  builtins/runtimes are already memory-silent.  The project now accepts the
+  authenticated receipt as `JPInkTimer131AcceptedEntryTheorem`, so the missing
+  IDO-MIPS-to-Clight prefix, reconstructed Clight start, and concrete effects for
+  the three pre-entry `EF_external` declarations are optional strengthening, not
+  tasks needed to close this route.  The watched MIPS effects cover indirect and
+  outside machine code in that entry run without being described as a Clight
+  proof.  Starting at its safe endpoint, classify branch reachability and exact
+  effects for every later unresolved site while preserving Mario's slot/list/
+  behavior identity, safe flag word, and zero graphical offset through timer
+  131.  Ordinary castle entry is not part of this route boundary.
 
 - [ ] Prove the linked stock-provenance projection is exhaustive.  Analyze
   relocated warp/top or collision-preserving clones, post-commit movement

@@ -1921,6 +1921,12 @@ check: proofs
 	  jp_timer131_authenticated_machine_writes_decode
 	bash pipeline/assumptions.sh \
 	  LessThanOneAPress.Proofs.InkTimer131RealEntryPrefix \
+	  jp_timer131_authenticated_receipt_is_accepted_entry
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.InkTimer131RealEntryPrefix \
+	  jp_timer131_accepted_entry_has_safe_tail
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.InkTimer131RealEntryPrefix \
 	  clight_star_under_timer131_cell_coverage_is_classified
 	bash pipeline/assumptions.sh \
 	  LessThanOneAPress.Proofs.InkTimer131RealEntryPrefix \
@@ -1964,6 +1970,9 @@ check: proofs
 	bash pipeline/assumptions.sh \
 	  LessThanOneAPress.Proofs.MainTheorem \
 	  current_timer131_clight_trace_bridge_boundary
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.MainTheorem \
+	  current_timer131_accepted_machine_entry_boundary
 
 clean:
 	-$(MAKE) -f $(COQMAKEFILE) clean

@@ -136,11 +136,17 @@ derives the exact pointer, active, behavior, list, flag, and zero-offset endpoin
 from arbitrary old watched values and checks every protected overlap safe.  The
 85-function pre-update family still has three conservative outside declarations
 and the 150-function first-update family has five names at eight callsites, but
-their actual retail machine code is framed by the watch receipt.  What remains
-is specifically a native Clight construction: the IDO retail trace has no
-proved state/step simulation to Clight, and CompCert does not infer writable-
-memory frames for the three `EF_external` prototypes.  Ordinary castle
-equivalence is not required because level select is the accepted start boundary.
+their actual retail machine code is framed by the watch receipt.  Entry is now
+closed by project policy:
+`jp_timer131_authenticated_receipt_is_accepted_entry` promotes the receipt's
+checkpoint, spawn, identity, list, and safe-tail facts to the accepted
+Timer-131 entry theorem.  The IDO retail trace still has no proved state/step
+simulation to Clight, and CompCert still does not infer writable-memory frames
+for the three pre-entry `EF_external` prototypes, but a native Clight prefix is
+optional strengthening rather than a route obligation.  Required work starts
+at the safe endpoint and classifies later execution through timer 131.  Ordinary
+castle equivalence is not required because level select is the accepted start
+boundary.
 
 `InkTimer131ProducerClosure.v` replaces the earlier “no writer found” wording
 with a complete initializer result.  Its opcode-neutral scan finds exactly 40
