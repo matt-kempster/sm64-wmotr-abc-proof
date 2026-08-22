@@ -158,17 +158,22 @@ placed at both callee entries.  The exact receipt is:
 
 ```text
 PREFIX_BREAKPOINT_ARM,clear=8029ca60,load=8027aa0c,spawn=8029c830,init=802548bc,allocate=802c9120,allocatorFallback=802c9174,unload=802c9088,stopSource=803206f8,stopContinuous=80320890,writeWatchCount=10
-PREFIX_CALL_REACH,epoch=8,timer=348,allocateObject=73,allocatorFallback=0,unloadObject=0,stopSoundsFromSource=0,stopSoundsContinuous=1
+PREFIX_CALL_REACH,epoch=8,timer=348,allocateObject=73,allocatorFallback=0,unloadObject=0,stopSoundsFromSource=0,sourceEntrySP=00000000,stopSoundsContinuous=1,continuousEntrySP=80207128
 ```
 
 `expected-prefix-call-reach-receipt.txt` has SHA-256
-`C1EEFAA40B1836BE3AB349A9BEC6878D169A0F6628C402BAADE0A211D35B2903`.
+`CFB33E9CBE6AE0493897222BEEB1FBA8880A3E8BEC995DF6716AC7B07D48BDC1`.
 The runner rejects any address or counter change.  Coq independently decodes
 the exact branch and three JAL words and proves that the statically listed
 `unload_object -> stop_sounds_from_source` edge is not reached during this
 entry.  It therefore needs no protected-memory effect specification.  The
-continuous-bank sound call is reached once; this receipt does not instrument
-or eliminate `sqrtf`.
+continuous-bank sound call is reached once, and the receipt fixes its first
+entry stack pointer at `0x80207128`; this receipt does not eliminate `sqrtf`.
+The separate
+[`../jp-mips-external-frames/`](../jp-mips-external-frames/) certificate
+authenticates the complete retail bodies: `sqrtf` has no store, and every path
+through the continuous sound call and its transitive callees writes outside
+the entire object pool, including the recorded stack envelope.
 
 The complete filtered trace has SHA-256
 `8341AA389D255ABA50BA534A1E95F1A80215E479903C8CC11E8E5450FCE4CE7E`

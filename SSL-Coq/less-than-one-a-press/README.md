@@ -1069,7 +1069,18 @@ exhaustion-only unload callsite, `unload_object`, or
 are checked in Coq.  Consequently the conservative
 `unload_object -> stop_sounds_from_source` edge is proved unreachable in this
 entry and needs no effect specification.  The continuous-bank call is reached;
-`sqrtf` is not eliminated by this receipt.
+`sqrtf` is not eliminated by this receipt.  A separate direct retail-MIPS
+certificate now closes the effects rather than translating them through
+Clight: it authenticates 332 instructions across the three roots and their
+sound helpers, scans exactly 42 stores and eight direct calls, proves all
+relative branches stay inside their routines, and excludes indirect/linking
+escapes.  `sqrtf` has no store, the sound tree writes only its bounded stack,
+audio banks, a fixed music mask, and sequence-player-zero state, and the live
+continuous-bank entry SP `0x80207128` puts its deepest save below the entire
+object pool.  Thus every formerly abstract pre-entry call is either unreached
+or has a machine-level whole-object-pool frame; no IDO-to-Clight bridge is
+needed for those effects.  See
+[`instrumentation/jp-mips-external-frames/`](instrumentation/jp-mips-external-frames/).
 
 A read-only, hash-gated original-JP mode-2 run now supplies an exact continuous
 machine write receipt in addition to the call checkpoints.  Physical

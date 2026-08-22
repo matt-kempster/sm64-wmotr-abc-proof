@@ -91,6 +91,17 @@ the callsite must first receive a precise effect or frame specification. The
 official [external-call semantics](https://compcert.org/doc/html/compcert.common.Events.html)
 make this parameterization explicit.
 
+For the Timer-131 entry, the project now uses a deliberately smaller retail-
+machine extension instead of leaving three such effects abstract.
+`InkTimer131RetailMipsCode.v` authenticates and scans the complete JP bodies of
+`sqrtf`, both sound roots, and every transitive sound helper;
+`InkTimer131RetailMipsFrames.v` proves their ordinary store footprints miss the
+entire object pool when the call stack does.  The live receipt supplies that
+stack fact for the reached continuous-bank call.  This closes those three
+specific effects without an IDO-to-Clight bridge, but it is not a general MIPS
+or hardware semantics: forged control flow, invalid accesses, ACE, DMA,
+interrupt writers, and self-modifying code remain outside its premise.
+
 ## Route triage
 
 | Route or escape | Current status | Consequence for research |
@@ -103,7 +114,7 @@ make this parameterization explicit.
 | Rank 2 out-of-bounds overwrite, fabricated invalid-pointer dereference, ACE, or DMA installer | Outside the current Clight run | The current proof can neither construct nor refute the retail exploit. |
 | Rank 3 ordinary platform displacement and a defined platform-pointer/payload install | Defined Clight mechanisms | Keep proving the stock installation and scheduler/owner boundary. |
 | Rank 3 out-of-bounds platform-pointer fabrication or post-UB machine continuation | Outside the current Clight run | Defer without treating the stock Clight no-go as a retail disproof. |
-| Any reachable unresolved external writer | Parameterized Clight boundary | Specify the exact call effect or protected-cell frame before route work. |
+| Any reachable unresolved external writer | Parameterized Clight boundary | Specify the exact call effect or protected-cell frame before route work; the three Timer-131 pre-entry routines now have a targeted retail-MIPS frame. |
 | False collision cache, hitbox mutation, wrong object slot, Goomba, Eyerok, PU, or ordinary collision glitch | Usually defined Clight mechanisms | Do not discard them merely because they sound like corruption or a glitch. |
 | Animation metadata update | Defined and already narrowed | Continue to use the source proof. |
 | Actual animation-buffer DMA overlap, interrupt write, or raw hardware transfer | Machine/external-model extension | Defer unless a concrete witness justifies adding the missing semantics. |

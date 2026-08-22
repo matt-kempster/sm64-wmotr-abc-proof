@@ -1438,3 +1438,17 @@ Completed work is grouped by subject. Each item retains its original scope warni
   generic memory family uses the same three-way close-out language, preventing
   future checklists from treating an unmodelled retail exploit as a completed
   Clight impossibility proof.
+
+- [x] Prove the three Timer-131 pre-entry outside-call footprints directly in
+  retail JP MIPS.  The hash-gated certificate authenticates eight complete
+  ranges containing 332 instructions, scans exactly 42 stores and eight direct
+  calls, keeps every relative branch inside its routine, and excludes plain,
+  indirect, and branch-and-link escapes.  `sqrtf` is store-free; both sound
+  roots and every transitive helper write only to bounded stack slots, sound
+  banks, one fixed music mask, or sequence-player-zero state.  The live
+  continuous-bank entry SP is `0x80207128`, so its deepest 128-byte stack
+  envelope misses the entire object pool.  The source-sound root remains
+  independently unreachable in the accepted prefix.  This closes the three
+  pre-entry effects without an IDO-to-Clight bridge, while forged control flow,
+  ACE, DMA, interrupts, and post-invalid-access execution remain outside this
+  targeted machine fragment.

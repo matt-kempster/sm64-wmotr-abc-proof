@@ -1920,6 +1920,24 @@ check: proofs
 	  LessThanOneAPress.Proofs.InkTimer131RealEntryPrefix \
 	  jp_timer131_entry_external_reachability_reduction_checked
 	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.InkTimer131RetailMipsCode \
+	  jp_retail_external_code_manifest_checked
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.InkTimer131RetailMipsCode \
+	  jp_retail_sqrtf_is_store_and_call_free
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.InkTimer131RetailMipsFrames \
+	  jp_retail_external_store_classification_checked
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.InkTimer131RetailMipsFrames \
+	  jp_retail_external_store_effect_misses_object_pool
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.InkTimer131RetailMipsFrames \
+	  jp_timer131_live_continuous_trace_preserves_protected_cells
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.InkTimer131RetailMipsFrames \
+	  ink_timer131_retail_mips_external_frame_checked_boundary_holds
+	bash pipeline/assumptions.sh \
 	  LessThanOneAPress.Proofs.InkTimer131RealEntryPrefix \
 	  jp_timer131_level_select_direct_writer_checked
 	bash pipeline/assumptions.sh \
@@ -1994,6 +2012,9 @@ check: proofs
 	bash pipeline/assumptions.sh \
 	  LessThanOneAPress.Proofs.MainTheorem \
 	  current_timer131_accepted_machine_entry_callsite_boundary
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.MainTheorem \
+	  current_timer131_retail_mips_external_frame_boundary
 
 clean:
 	-$(MAKE) -f $(COQMAKEFILE) clean

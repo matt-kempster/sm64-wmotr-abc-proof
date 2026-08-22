@@ -559,11 +559,18 @@ entries, zero allocator-fallback, unload, and source-sound hits, and one
 continuous-bank hit before the endpoint.  Its checked original-JP instruction
 words prove the static `unload_object -> stop_sounds_from_source` edge is not
 executed and therefore needs no effect specification; `sqrtf` remains not
-excluded by this receipt.  No Clight inhabitant is constructed: an IDO-MIPS-to-
-Clight relation or
-an independently reconstructed Clight start state and concrete semantics for
-reached `EF_external` declarations would be required for that optional stronger
-certificate.
+excluded by this receipt.  `proofs/InkTimer131RetailMipsCode.v` and
+`proofs/InkTimer131RetailMipsFrames.v` then close those effects directly at the
+retail boundary.  Their hash-gated eight-range manifest covers 332 instructions,
+42 stores, eight direct calls, all relative branches, and both fade helpers;
+it excludes indirect/linking escapes, proves `sqrtf` store-free, and reduces
+every sound store to a bounded stack, sound-bank data, one music mask, or
+sequence-player-zero data.  The live continuous-bank entry SP `0x80207128`
+makes even its deepest stack save disjoint from the whole object pool.  No
+Clight inhabitant is constructed: an IDO-MIPS-to-Clight relation or an
+independently reconstructed Clight start state remains optional strengthening,
+while ACE, DMA, forged control flow, and post-invalid-access execution remain
+outside this targeted machine fragment.
 The read-only JP mode-2 instrumentation now supplies a separate authentic MIPS
 write receipt, not just five call entries.  Physical watchpoints cover ten
 identity/tail ranges and record exactly 19 stores: allocator zeros, slot/list/

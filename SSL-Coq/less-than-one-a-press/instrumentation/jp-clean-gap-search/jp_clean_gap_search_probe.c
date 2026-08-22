@@ -206,6 +206,8 @@ static unsigned gPrefixAllocatorFallbackHits;
 static unsigned gPrefixUnloadObjectHits;
 static unsigned gPrefixStopSoundsFromSourceHits;
 static unsigned gPrefixStopSoundsContinuousHits;
+static uint32_t gPrefixStopSoundsFromSourceEntrySP;
+static uint32_t gPrefixStopSoundsContinuousEntrySP;
 static float gMaxMarioGraphYOffset = -INFINITY;
 static float gMaxGfxMinusObjectY = -INFINITY;
 static float gMinGfxMinusObjectY = INFINITY;
@@ -330,8 +332,14 @@ static void debugger_update_callback(unsigned int pc) {
             } else if (pc == A_UNLOAD_OBJECT) gPrefixUnloadObjectHits++;
             else if (pc == A_STOP_SOUNDS_FROM_SOURCE) {
                 gPrefixStopSoundsFromSourceHits++;
+                if (gPrefixStopSoundsFromSourceEntrySP == 0 && registers != NULL) {
+                    gPrefixStopSoundsFromSourceEntrySP = (uint32_t) registers[29];
+                }
             } else {
                 gPrefixStopSoundsContinuousHits++;
+                if (gPrefixStopSoundsContinuousEntrySP == 0 && registers != NULL) {
+                    gPrefixStopSoundsContinuousEntrySP = (uint32_t) registers[29];
+                }
             }
         }
         resume_from_breakpoint();
@@ -355,6 +363,8 @@ static void debugger_update_callback(unsigned int pc) {
         gPrefixUnloadObjectHits = 0;
         gPrefixStopSoundsFromSourceHits = 0;
         gPrefixStopSoundsContinuousHits = 0;
+        gPrefixStopSoundsFromSourceEntrySP = 0;
+        gPrefixStopSoundsContinuousEntrySP = 0;
     } else if (pc == A_LOAD_MARIO_AREA) {
         stage = "load_mario_area";
         if (gPrefixStage == 1) gPrefixStage = 2;
@@ -446,11 +456,14 @@ static void observe_entry_identity(uint32_t mario_object) {
     fprintf(stderr,
             "PREFIX_CALL_REACH,epoch=%u,timer=%u,allocateObject=%u,"
             "allocatorFallback=%u,unloadObject=%u,"
-            "stopSoundsFromSource=%u,stopSoundsContinuous=%u\n",
+            "stopSoundsFromSource=%u,sourceEntrySP=%08x,"
+            "stopSoundsContinuous=%u,continuousEntrySP=%08x\n",
             gPrefixEpoch, R32(A_GLOBAL_TIMER),
             gPrefixAllocateObjectHits, gPrefixAllocatorFallbackHits,
             gPrefixUnloadObjectHits, gPrefixStopSoundsFromSourceHits,
-            gPrefixStopSoundsContinuousHits);
+            gPrefixStopSoundsFromSourceEntrySP,
+            gPrefixStopSoundsContinuousHits,
+            gPrefixStopSoundsContinuousEntrySP);
     fprintf(stderr,
             "ENTRY_IDENTITY,timer=%u,marioObject=%08x,slot=%d,"
             "stateMarioObject=%08x,activeFlags=%04x,behavior=%08x,"

@@ -365,7 +365,19 @@ engineering but does not know *Super Mario 64*.
 > sound call, but no allocation-failure cleanup, object unload, or source-sound
 > call.  Coq checks the machine branch and call targets, so the source-sound
 > candidate is genuinely absent from this entry and needs no effect assumption;
-> the surface square-root candidate was not eliminated by this test.
+> the surface square-root candidate was not eliminated by this test.  The
+> reached sound call's first entry stack pointer is also recorded as
+> `0x80207128`.
+>
+> A separate all-path check now reads the actual JP instructions for all three
+> outside routines and every sound helper they can call.  Across 332
+> authenticated instructions it finds exactly 42 stores and eight direct
+> calls, no indirect or linking escape, and no branch leaving its routine.
+> `sqrtf` cannot write memory.  Every sound store goes only to sound data,
+> fixed music data, or a bounded call stack; the recorded live stack is far
+> below Mario's object pool.  This proves that none of the three pre-entry
+> outside-call candidates can change Mario's slot or either dangerous word,
+> without pretending the IDO binary is a CompCert program.
 >
 > That completes the watched-memory classification for this authenticated retail
 > execution, including machine code reached indirectly or through an outside
@@ -373,11 +385,11 @@ engineering but does not know *Super Mario 64*.
 > the Timer-131 entry theorem: it fixes the checkpoint order, the two distinct
 > spawn calls, Mario's slot/list/behavior identity, and both safe values at the
 > endpoint.  This does not magically turn the IDO-built retail program into a
-> CompCert run.  An IDO-MIPS-to-Clight simulation, a reconstructed Clight prefix,
-> and concrete meanings for its reached or not-yet-excluded abstract outside
-> calls remain possible strengthening, but they are no longer route-closing
-> requirements.  The required
-> proof now starts at the accepted endpoint and checks every later step through
+> CompCert run.  An IDO-MIPS-to-Clight simulation and a reconstructed Clight
+> prefix remain possible strengthenings, but they are no longer route-closing
+> requirements; the outside-call effects are already closed directly at the
+> retail-MIPS boundary.  The required proof now starts at the accepted endpoint
+> and checks every later step through
 > timer 131.  Ordinary castle entry is not required because level select is the
 > accepted boundary.
 >

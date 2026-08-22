@@ -546,15 +546,18 @@ These obligations currently block the clean-retail result.
   removes one conservative edge: 73 allocator entries occur, but the allocator
   fallback, `unload_object`, and `stop_sounds_from_source` have zero hits, so
   that source-sound site needs no effect specification.  The continuous-bank
-  sound call is reached once; `sqrtf` is not excluded by this receipt.  The
-  project now accepts the authenticated receipt as
+  sound call is reached once at stack pointer `0x80207128`; `sqrtf` is not
+  excluded by this receipt.  A separate all-path retail-MIPS certificate now
+  authenticates all 332 instructions in those roots and their sound helpers,
+  finds exactly 42 stores and eight direct calls, excludes indirect/linking
+  escapes, proves `sqrtf` store-free, and proves every possible sound-tree
+  store misses the entire object pool (including the live stack envelope).
+  Thus all three pre-entry outside-call effects are closed without a Clight
+  interpretation.  The project now accepts the authenticated receipt as
   `JPInkTimer131AcceptedEntryTheorem`, so the missing
-  IDO-MIPS-to-Clight prefix, reconstructed Clight start, and concrete effects for
-  the reached or not-yet-excluded pre-entry `EF_external` declarations are
-  optional strengthening, not tasks needed to close this route.  The watched
-  MIPS effects cover indirect and
-  outside machine code in that entry run without being described as a Clight
-  proof.  Starting at its safe endpoint, classify branch reachability and exact
+  IDO-MIPS-to-Clight prefix and reconstructed Clight start are optional
+  strengthening, not tasks needed to close this route.  Starting at its safe
+  endpoint, classify branch reachability and exact
   effects for every later unresolved site while preserving Mario's slot/list/
   behavior identity, safe flag word, and zero graphical offset through timer
   131.  Ordinary castle entry is not part of this route boundary.

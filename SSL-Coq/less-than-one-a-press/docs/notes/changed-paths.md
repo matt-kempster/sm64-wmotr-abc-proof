@@ -1649,3 +1649,39 @@ boundary is exported by `MainTheorem.v`.  The following paths changed:
 - `SSL-Coq/less-than-one-a-press/docs/notes/clean-jp-graphics-gap-source-audit.md`
 - `SSL-Coq/less-than-one-a-press/docs/notes/changed-paths.md`
 - `SSL-Coq/less-than-one-a-press/notes/source-map.md`
+
+## Timer-131 direct retail-MIPS external-frame tranche
+
+The three pre-entry abstract effects now have a targeted machine-level
+close-out.  A SHA-256-gated verifier authenticates eight complete original-JP
+ranges (332 instructions), compares all 42 stores and eight direct calls, and
+rejects indirect or linking calls.  Coq scans the exact word lists, proves all
+relative branches remain within their routine, classifies every store in the
+two sound call trees, proves `sqrtf` store-free, and proves every classified
+sound store misses the complete object pool.  The entry probe now records the
+reached continuous-bank call's SP as `0x80207128`, discharging the bounded
+128-byte stack premise for the accepted run.  This is an ordinary-execution
+retail-MIPS frame rather than an IDO-to-Clight bridge or a full hardware/ACE
+model.  The following paths changed:
+
+- `SSL-Coq/less-than-one-a-press/proofs/InkTimer131RetailMipsCode.v` (new)
+- `SSL-Coq/less-than-one-a-press/proofs/InkTimer131RetailMipsFrames.v` (new)
+- `SSL-Coq/less-than-one-a-press/proofs/InkTimer131RealEntryPrefix.v`
+- `SSL-Coq/less-than-one-a-press/proofs/MainTheorem.v`
+- `SSL-Coq/less-than-one-a-press/_CoqProject`
+- `SSL-Coq/less-than-one-a-press/Makefile`
+- `SSL-Coq/less-than-one-a-press/instrumentation/jp-mips-external-frames/README.md` (new)
+- `SSL-Coq/less-than-one-a-press/instrumentation/jp-mips-external-frames/verify.sh` (new)
+- `SSL-Coq/less-than-one-a-press/instrumentation/jp-mips-external-frames/expected-range-hashes.csv` (new)
+- `SSL-Coq/less-than-one-a-press/instrumentation/jp-mips-external-frames/expected-store-call-manifest.csv` (new)
+- `SSL-Coq/less-than-one-a-press/instrumentation/jp-clean-gap-search/jp_clean_gap_search_probe.c`
+- `SSL-Coq/less-than-one-a-press/instrumentation/jp-clean-gap-search/expected-prefix-call-reach-receipt.txt`
+- `SSL-Coq/less-than-one-a-press/instrumentation/jp-clean-gap-search/README.md`
+- `SSL-Coq/less-than-one-a-press/README.md`
+- `SSL-Coq/less-than-one-a-press/human-readable-proof.md`
+- `SSL-Coq/less-than-one-a-press/docs/no-a-route-atlas.md`
+- `SSL-Coq/less-than-one-a-press/docs/checklist.md`
+- `SSL-Coq/less-than-one-a-press/docs/checklist-completed.md`
+- `SSL-Coq/less-than-one-a-press/docs/compcert-execution-scope.md`
+- `SSL-Coq/less-than-one-a-press/docs/notes/changed-paths.md`
+- `SSL-Coq/less-than-one-a-press/notes/source-map.md`

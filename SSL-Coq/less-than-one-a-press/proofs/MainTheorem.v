@@ -8,7 +8,8 @@ From LessThanOneAPress.Proofs Require Import
   FirstTargetRefinement JPSlotLifetime JPFirstApply FirstCrossingWriterCoverage
   OrdinaryMotion GoombaRaising PyramidTopPU InkFallback RetailFatalLatch
   InkPayloadInstaller InkTimer131ClightTraceBridge
-  InkTimer131EntryExecutionClosure InkTimer131RealEntryPrefix TurningAnimation
+  InkTimer131EntryExecutionClosure InkTimer131RetailMipsFrames
+  InkTimer131RealEntryPrefix TurningAnimation
   CompCertRouteScope.
 
 Import ListNotations.
@@ -71,6 +72,22 @@ Proof. exact jp_timer131_authenticated_receipt_is_accepted_entry. Qed.
 Theorem current_timer131_accepted_machine_entry_callsite_boundary :
   JPInkTimer131AcceptedEntryWithCallsiteBoundary.
 Proof. exact jp_timer131_authenticated_entry_and_callsite_boundary. Qed.
+
+(** The formerly abstract pre-entry calls now have a separate retail-MIPS
+    frame.  The authenticated live continuous-bank SP is exactly the SP used
+    by that frame theorem; [sqrtf] is store-free, and the source-sound call is
+    independently proved unreached (although its machine footprint is also
+    covered).  This is a direct IDO-code result, not an IDO-to-Clight bridge. *)
+Theorem current_timer131_retail_mips_external_frame_boundary :
+  InkTimer131RetailMipsExternalFrameCheckedBoundary /\
+  jp_machine_stop_sounds_continuous_entry_sp
+    jp_timer131_machine_call_reachability =
+      jp_timer131_continuous_entry_sp.
+Proof.
+  split.
+  - exact ink_timer131_retail_mips_external_frame_checked_boundary_holds.
+  - reflexivity.
+Qed.
 
 Definition CollectionProvenanceReductionClaim : Prop :=
   forall initial events final,

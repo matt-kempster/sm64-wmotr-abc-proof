@@ -318,7 +318,9 @@ Record JPInkTimer131MachineCallReachability : Type := {
   jp_machine_allocator_fallback_hits : Z;
   jp_machine_unload_object_hits : Z;
   jp_machine_stop_sounds_from_source_hits : Z;
-  jp_machine_stop_sounds_continuous_hits : Z
+  jp_machine_stop_sounds_from_source_entry_sp : Z;
+  jp_machine_stop_sounds_continuous_hits : Z;
+  jp_machine_stop_sounds_continuous_entry_sp : Z
 }.
 
 (** Exact breakpoint PCs from the receipt's arm line.  The three JAL words and
@@ -353,10 +355,12 @@ Definition jp_timer131_machine_call_reachability :
      jp_machine_allocator_fallback_hits := 0;
      jp_machine_unload_object_hits := 0;
      jp_machine_stop_sounds_from_source_hits := 0;
-     jp_machine_stop_sounds_continuous_hits := 1 |}.
+     jp_machine_stop_sounds_from_source_entry_sp := 0;
+     jp_machine_stop_sounds_continuous_hits := 1;
+     jp_machine_stop_sounds_continuous_entry_sp := 2149609768 |}.
 
 Definition jp_timer131_prefix_call_reach_trace_sha256 : string :=
-  "C1EEFAA40B1836BE3AB349A9BEC6878D169A0F6628C402BAADE0A211D35B2903".
+  "CFB33E9CBE6AE0493897222BEEB1FBA8880A3E8BEC995DF6716AC7B07D48BDC1".
 
 Definition JPInkTimer131AuthenticatedCallReachabilityReceipt : Prop :=
   jp_machine_call_epoch jp_timer131_machine_call_reachability = 8 /\
@@ -366,8 +370,12 @@ Definition JPInkTimer131AuthenticatedCallReachabilityReceipt : Prop :=
   jp_machine_unload_object_hits jp_timer131_machine_call_reachability = 0 /\
   jp_machine_stop_sounds_from_source_hits
     jp_timer131_machine_call_reachability = 0 /\
+  jp_machine_stop_sounds_from_source_entry_sp
+    jp_timer131_machine_call_reachability = 0 /\
   jp_machine_stop_sounds_continuous_hits
-    jp_timer131_machine_call_reachability = 1.
+    jp_timer131_machine_call_reachability = 1 /\
+  jp_machine_stop_sounds_continuous_entry_sp
+    jp_timer131_machine_call_reachability = 2149609768.
 
 Theorem jp_timer131_authenticated_call_reachability_decodes :
   JPInkTimer131AuthenticatedCallReachabilityReceipt.
