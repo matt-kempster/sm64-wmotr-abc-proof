@@ -6,7 +6,9 @@
     castle-entry obligation.  [load_mario_area] follows later, and the retail
     receipt contains two distinct [spawn_objects_from_info] entries: the first
     is nested under [load_area] for Area-1 objects, while the second creates
-    Mario.  [init_mario] then connects the new Object to MarioState.
+    Mario.  [init_mario] then connects the new Object to MarioState, and the
+    first object/behavior update executes [bhvMario]'s safe [OR_INT] before the
+    recorded endpoint.
 
     [InkTimer131CellClassifiedReach] is a small-step execution certificate:
     every constructor contains one actual [Clight.step2] and classifies that
@@ -87,9 +89,8 @@ Proof.
   vm_compute. repeat split; reflexivity.
 Qed.
 
-(** The accepted entry prefix itself has three roots.  This first closure does
-    not add an object update which the checkpoint receipt has not established
-    before the endpoint. *)
+(** The accepted pre-update entry family itself has three roots.  The separate
+    broader closure below includes the now-observed first object update. *)
 Definition jp_timer131_entry_direct_roots : list ident :=
   [IT131P_Objects._clear_objects;
    IT131P_Area._load_mario_area;
@@ -116,10 +117,8 @@ Proof.
   vm_compute. repeat split; reflexivity.
 Qed.
 
-(** This second closure deliberately adds one conservative first
-    [update_objects] root.  It covers the internal direct callees which can
-    surround the observed endpoint even if a later refinement places the
-    controller-poll observation after that update.  Indirect behavior-table
+(** This second closure adds the first [update_objects] root which the exact
+    flag-write receipt proves occurs before the observed endpoint.  Indirect behavior-table
     dispatch and unresolved externals are not inferred from either result;
     they retain their separate checked interfaces. *)
 Definition jp_timer131_level_select_direct_roots : list ident :=
@@ -414,6 +413,220 @@ Definition jp_timer131_retail_rom_sha256 : string :=
 Definition jp_timer131_filtered_trace_sha256 : string :=
   "6D681DB5AA3A9F21F3D176BFCFC3507BD5C8CD840D980B1D01F7DA89666E5F20".
 
+(** The later write-watch receipt is deliberately separate from the original
+    five-checkpoint hash above.  Mupen's debugger uses physical addresses for
+    memory watchpoints; the probe converts the ten authenticated virtual
+    ranges before arming them.  Every store below is therefore an observed
+    retail instruction, not a source-level writer guess. *)
+Definition jp_timer131_prefix_write_trace_sha256 : string :=
+  "BDDEF78B337F090B21A904760F8871E95F2F8D861DD80756709C0F6ECA5BF295".
+
+Inductive JPInkTimer131MachineWritePhase : Type :=
+| JPTimer131WriteClear
+| JPTimer131WriteMarioSpawn
+| JPTimer131WriteInitMario
+| JPTimer131WriteFirstObjectUpdate
+| JPTimer131WriteFirstMarioBehavior.
+
+Record JPInkTimer131MachineWrite : Type := {
+  jp_machine_write_phase : JPInkTimer131MachineWritePhase;
+  jp_machine_write_pc : Z;
+  jp_machine_write_instruction : Z;
+  jp_machine_write_target : Z;
+  jp_machine_write_width : Z;
+  jp_machine_write_value : Z
+}.
+
+Definition jp_timer131_machine_write
+    (phase : JPInkTimer131MachineWritePhase) (pc instruction target width value : Z)
+    : JPInkTimer131MachineWrite :=
+  {| jp_machine_write_phase := phase;
+     jp_machine_write_pc := pc;
+     jp_machine_write_instruction := instruction;
+     jp_machine_write_target := target;
+     jp_machine_write_width := width;
+     jp_machine_write_value := value |}.
+
+(** The complete epoch-8 write receipt from the accepted timer-347 clear to
+    the timer-348 endpoint.  The watched ranges are both Mario pointers,
+    slot-67's two list links, active word, behavior pointer and protected tail,
+    plus both list-0 sentinel links.  The two half-word stores at [+0x76] are
+    retained because Mupen reports word-aligned watchpoint overlap; their exact
+    targets make their disjointness from [+0x74] explicit. *)
+Definition jp_timer131_machine_writes : list JPInkTimer131MachineWrite :=
+  [jp_timer131_machine_write JPTimer131WriteClear
+     2150222460 2887843304 2151022056 4 0;
+   jp_timer131_machine_write JPTimer131WriteClear
+     2150403864 2905210976 2150916248 4 2150916760;
+   jp_timer131_machine_write JPTimer131WriteClear
+     2150403992 2904031328 2150873296 4 2150873200;
+   jp_timer131_machine_write JPTimer131WriteClear
+     2150404048 2913665124 2150873300 4 2150873200;
+   jp_timer131_machine_write JPTimer131WriteClear
+     2150222616 2753610124 2150916268 2 0;
+   jp_timer131_machine_write JPTimer131WriteMarioSpawn
+     2150403584 2909405284 2150916252 4 2150873200;
+   jp_timer131_machine_write JPTimer131WriteMarioSpawn
+     2150403596 2913730656 2150916248 4 2150873200;
+   jp_timer131_machine_write JPTimer131WriteMarioSpawn
+     2150403612 2936930400 2150873296 4 2150916152;
+   jp_timer131_machine_write JPTimer131WriteMarioSpawn
+     2150403628 2904096868 2150873300 4 2150916152;
+   jp_timer131_machine_write JPTimer131WriteMarioSpawn
+     2150404524 2770862196 2150916268 2 257;
+   jp_timer131_machine_write JPTimer131WriteMarioSpawn
+     2150404556 2778726518 2150916270 2 0;
+   jp_timer131_machine_write JPTimer131WriteMarioSpawn
+     2150404580 2938110088 2150916292 4 0;
+   jp_timer131_machine_write JPTimer131WriteMarioSpawn
+     2150404580 2938110088 2150916372 4 0;
+   jp_timer131_machine_write JPTimer131WriteMarioSpawn
+     2150405304 2907243020 2150916676 4 2148446656;
+   jp_timer131_machine_write JPTimer131WriteMarioSpawn
+     2150222096 2918056460 2150916676 4 2148446656;
+   jp_timer131_machine_write JPTimer131WriteMarioSpawn
+     2150222164 2888826344 2151022056 4 2150916152;
+   jp_timer131_machine_write JPTimer131WriteInitMario
+     2149927448 2911568008 2150866568 4 2150916152;
+   jp_timer131_machine_write JPTimer131WriteFirstObjectUpdate
+     2150402244 2801795190 2150916270 2 0;
+   jp_timer131_machine_write JPTimer131WriteFirstMarioBehavior
+     2151173588 2903179400 2150916292 4 256].
+
+Record JPInkTimer131WatchedState : Type := {
+  jp_watched_global_mario_object : Z;
+  jp_watched_state_mario_object : Z;
+  jp_watched_slot_next : Z;
+  jp_watched_slot_previous : Z;
+  jp_watched_slot_active_flags : Z;
+  jp_watched_slot_flags : Z;
+  jp_watched_slot_graph_y_offset_bits : Z;
+  jp_watched_slot_behavior : Z;
+  jp_watched_list_next : Z;
+  jp_watched_list_previous : Z
+}.
+
+Definition jp_timer131_apply_machine_write
+    (state : JPInkTimer131WatchedState)
+    (write : JPInkTimer131MachineWrite) : JPInkTimer131WatchedState :=
+  let target := jp_machine_write_target write in
+  let value := jp_machine_write_value write in
+  {| jp_watched_global_mario_object :=
+       if Z.eqb target 2151022056 then value
+       else jp_watched_global_mario_object state;
+     jp_watched_state_mario_object :=
+       if Z.eqb target 2150866568 then value
+       else jp_watched_state_mario_object state;
+     jp_watched_slot_next :=
+       if Z.eqb target 2150916248 then value else jp_watched_slot_next state;
+     jp_watched_slot_previous :=
+       if Z.eqb target 2150916252 then value
+       else jp_watched_slot_previous state;
+     jp_watched_slot_active_flags :=
+       if Z.eqb target 2150916268 then value
+       else jp_watched_slot_active_flags state;
+     jp_watched_slot_flags :=
+       if Z.eqb target 2150916292 then value else jp_watched_slot_flags state;
+     jp_watched_slot_graph_y_offset_bits :=
+       if Z.eqb target 2150916372 then value
+       else jp_watched_slot_graph_y_offset_bits state;
+     jp_watched_slot_behavior :=
+       if Z.eqb target 2150916676 then value
+       else jp_watched_slot_behavior state;
+     jp_watched_list_next :=
+       if Z.eqb target 2150873296 then value else jp_watched_list_next state;
+     jp_watched_list_previous :=
+       if Z.eqb target 2150873300 then value
+       else jp_watched_list_previous state |}.
+
+Definition jp_timer131_replay_machine_writes
+    (initial : JPInkTimer131WatchedState) : JPInkTimer131WatchedState :=
+  fold_left jp_timer131_apply_machine_write jp_timer131_machine_writes initial.
+
+Definition jp_timer131_expected_watched_endpoint : JPInkTimer131WatchedState :=
+  {| jp_watched_global_mario_object := 2150916152;
+     jp_watched_state_mario_object := 2150916152;
+     jp_watched_slot_next := 2150873200;
+     jp_watched_slot_previous := 2150873200;
+     jp_watched_slot_active_flags := 257;
+     jp_watched_slot_flags := 256;
+     jp_watched_slot_graph_y_offset_bits := 0;
+     jp_watched_slot_behavior := 2148446656;
+     jp_watched_list_next := 2150916152;
+     jp_watched_list_previous := 2150916152 |}.
+
+Definition jp_timer131_machine_intervals_overlap
+    (left left_width right right_width : Z) : bool :=
+  Z.ltb left (right + right_width) && Z.ltb right (left + left_width).
+
+(** A store is harmless for Timer-131 if it is disjoint from both protected
+    words, writes a full flag word whose low bit is clear, or writes exact
+    binary32 zero to the graphical-offset word. *)
+Definition jp_timer131_machine_write_safe
+    (write : JPInkTimer131MachineWrite) : bool :=
+  let target := jp_machine_write_target write in
+  let width := jp_machine_write_width write in
+  let value := jp_machine_write_value write in
+  if jp_timer131_machine_intervals_overlap target width 2150916292 4
+  then (Z.eqb target 2150916292 && Z.eqb width 4)
+         && negb (Z.testbit value 0)
+  else if jp_timer131_machine_intervals_overlap target width 2150916372 4
+       then (Z.eqb target 2150916372 && Z.eqb width 4)
+              && Z.eqb value 0
+       else true.
+
+Definition JPInkTimer131AuthenticatedMachineWriteReceipt : Prop :=
+  List.length jp_timer131_machine_writes = 19%nat /\
+  forallb jp_timer131_machine_write_safe jp_timer131_machine_writes = true /\
+  forall initial,
+    jp_timer131_replay_machine_writes initial =
+      jp_timer131_expected_watched_endpoint.
+
+Theorem jp_timer131_authenticated_machine_writes_decode :
+  JPInkTimer131AuthenticatedMachineWriteReceipt.
+Proof.
+  split; [reflexivity |].
+  split; [vm_compute; reflexivity |].
+  intros [global_mario state_mario slot_next slot_previous active_flags
+    flags graph_offset behavior list_next list_previous].
+  vm_compute. reflexivity.
+Qed.
+
+Corollary every_authenticated_machine_write_is_timer131_safe :
+  forall write,
+    In write jp_timer131_machine_writes ->
+    jp_timer131_machine_write_safe write = true.
+Proof.
+  intros write Hin.
+  pose proof (proj1 (proj2
+    jp_timer131_authenticated_machine_writes_decode)) as Hall.
+  rewrite forallb_forall in Hall.
+  exact (Hall write Hin).
+Qed.
+
+Theorem jp_timer131_replayed_endpoint_matches_authenticated_snapshot :
+  jp_watched_global_mario_object jp_timer131_expected_watched_endpoint =
+    jp_machine_endpoint_mario_object jp_timer131_machine_endpoint /\
+  jp_watched_state_mario_object jp_timer131_expected_watched_endpoint =
+    jp_machine_endpoint_state_mario_object jp_timer131_machine_endpoint /\
+  jp_watched_slot_active_flags jp_timer131_expected_watched_endpoint =
+    jp_machine_endpoint_active_flags jp_timer131_machine_endpoint /\
+  jp_watched_slot_behavior jp_timer131_expected_watched_endpoint =
+    jp_machine_endpoint_behavior jp_timer131_machine_endpoint /\
+  jp_watched_slot_flags jp_timer131_expected_watched_endpoint =
+    jp_machine_endpoint_flags jp_timer131_machine_endpoint /\
+  jp_watched_slot_graph_y_offset_bits jp_timer131_expected_watched_endpoint =
+    jp_machine_endpoint_graph_y_offset_bits jp_timer131_machine_endpoint /\
+  jp_watched_slot_next jp_timer131_expected_watched_endpoint =
+    jp_machine_endpoint_next jp_timer131_machine_endpoint /\
+  jp_watched_slot_previous jp_timer131_expected_watched_endpoint =
+    jp_machine_endpoint_previous jp_timer131_machine_endpoint /\
+  jp_watched_list_next jp_timer131_expected_watched_endpoint =
+    jp_machine_endpoint_sentinel_next jp_timer131_machine_endpoint /\
+  jp_watched_list_previous jp_timer131_expected_watched_endpoint =
+    jp_machine_endpoint_sentinel_previous jp_timer131_machine_endpoint.
+Proof. vm_compute. repeat split; reflexivity. Qed.
+
 (** This theorem checks the translation-relevant facts in the recorded bytes:
     five ordered calls (including both spawns), exact slot arithmetic, matching
     Mario pointers, a safe flag word, zero graphical offset, and the one-node
@@ -676,7 +889,8 @@ Record JPInkTimer131LevelSelectExecutionSkeleton
 
 (** The five certificate segments deliberately cross subsystem boundaries.
     The accepted start is the selected Area-1 [clear_objects] call itself.
-    Both observed spawn calls are represented, and the intermediate states are
+    Both observed spawn calls are represented; the final init-to-end segment
+    includes the first object/behavior update.  All intermediate states are
     shared, so the segments cannot be assembled from different runs. *)
 Record JPInkTimer131RealEntryPrefix
     (addresses : Area1EntryAddresses) : Type := {
@@ -991,6 +1205,7 @@ Qed.
 
 Definition InkTimer131RealEntryPrefixCheckedBoundary : Prop :=
   ink_timer131_real_prefix_source_claim /\
+  JPInkTimer131AuthenticatedMachineWriteReceipt /\
   jp_timer131_entry_direct_writer_claim /\
   jp_timer131_entry_external_inventory_claim /\
   jp_timer131_entry_external_callsite_claim /\
@@ -1022,6 +1237,7 @@ Theorem ink_timer131_real_entry_prefix_checked_boundary_holds :
   InkTimer131RealEntryPrefixCheckedBoundary.
 Proof.
   split; [exact ink_timer131_real_prefix_source_checked |].
+  split; [exact jp_timer131_authenticated_machine_writes_decode |].
   split; [exact jp_timer131_entry_direct_writer_checked |].
   split; [exact jp_timer131_entry_external_inventory_checked |].
   split; [exact jp_timer131_entry_external_callsites_checked |].

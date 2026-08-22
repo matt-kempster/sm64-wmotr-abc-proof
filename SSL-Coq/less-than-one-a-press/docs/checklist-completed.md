@@ -982,6 +982,20 @@ Completed work is grouped by subject. Each item retains its original scope warni
   that sequence.  This is level-select MIPS evidence rather than a CompCert
   trace; ordinary castle entry is not required by the accepted route boundary.
 
+- [x] Classify every watched write in that same authenticated entry execution.
+  The probe converts ten virtual endpoint ranges to physical write watchpoints
+  and records exactly 19 stores in the final timer-347 epoch.  The receipt shows
+  clear resetting pointer/list/free metadata; Mario's allocator making the first
+  zero flag and graphical-offset writes; spawn/init installing slot 67,
+  `bhvMario`, both Mario pointers and the one-node list; and the first indirect
+  behavior pass writing exactly `0x100`.  The runner compares every instruction,
+  address, source value, phase, and endpoint against a committed 25-line receipt.
+  `jp_timer131_authenticated_machine_writes_decode` replays those stores from
+  arbitrary prior watched values to the exact endpoint and proves all protected
+  overlaps safe.  This is a complete watched-memory classification for the
+  authenticated MIPS run, not the still-missing IDO-MIPS-to-Clight simulation or
+  concrete `EF_external` semantics.
+
 - [x] Construct the exact rank-3 platform payload at the binary32 boundary.
   `Area1NonlocalPlatformMirror.v` uses the generated US/JP sine-table entries
   to show that X/Z velocity `(186,122)` followed by a pitch half-turn about

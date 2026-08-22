@@ -515,10 +515,12 @@ These obligations currently block the clean-retail result.
   predicate.  The trace bridge was corrected so legitimate list-link rewrites
   need only preserve Mario's membership, and unresolved externals now use a
   callsite-sensitive frame-or-writer interface.  A hash-gated, read-only
-  original-JP run now executes the actual level-select clear/load/two-spawn/init
-  checkpoints in order and observes slot 67, matching State/Mario pointers,
-  `bhvMario`, safe tail cells, and the one-node player-list ring.  The harness
-  now rejects anything weaker than that exact ordered receipt.
+  original-JP run now executes the actual level-select clear/load/two-spawn/init/
+  first-update prefix and observes slot 67, matching State/Mario pointers,
+  `bhvMario`, safe tail cells, and the one-node player-list ring.  Physical
+  watchpoints produce an exact 19-store receipt for all endpoint identity and
+  protected ranges; the harness rejects any missing, extra, reordered, or
+  changed watched store.
   `InkTimer131RealEntryPrefix.v` now starts at the accepted level-select
   `clear_objects` boundary, represents the separate Area-object and Mario
   `spawn_objects_from_info` calls, and transcribes the hashed machine receipt
@@ -527,7 +529,11 @@ These obligations currently block the clean-retail result.
   program initialization: exact CompCert loads for slot 67, the `bhvMario`
   symbol and pointer, both Mario pointers, active state, all four one-node ring
   links, `oFlags=0x100`, and zero graphical offset directly derive the complete
-  live invariant.  A new star-to-certificate theorem shows that one actual
+  live invariant.  The machine receipt corrects the phase boundary: allocation
+  first zeros both protected words and the first indirect `bhvMario` pass later
+  writes `oFlags=0x100`.  Coq replays all 19 stores from arbitrary prior watched
+  values to the exact endpoint and proves every protected overlap safe.  A new
+  star-to-certificate theorem shows that one actual
   small-step run plus reachable-step coverage constructs the per-step
   certificate.  The exact clear/load/init direct family closes at 85 functions,
   intersects neither literal tail-writer inventory, and leaves exactly three
@@ -537,12 +543,13 @@ These obligations currently block the clean-retail result.
   free and expands the boundary to five names at eight sites.  Recognized
   builtins/runtimes are already memory-silent; branch reachability and exact
   effects remain necessary for any actually reached unresolved site.  The
-  certificate is still not inhabited:
-  derive those
-  endpoint loads from the same execution, refine the authenticated retail
-  checkpoints to its CompCert states, and classify indirect dispatch, valid
-  aliases, and every actually reached OS/audio/graphics call; report the first
-  step that fails.  Ordinary castle entry is not part of this route boundary.
+  CompCert certificate is still not inhabited: construct an IDO-MIPS-to-Clight
+  state/step relation (or independently execute the reconstructed Clight start
+  state), supply concrete effects for the reached `EF_external` declarations,
+  and connect the now-derived machine endpoint to exact CompCert loads.  The
+  watched MIPS effects already cover indirect and outside machine code in the
+  authenticated run, but are not a Clight proof.  Ordinary castle entry is not
+  part of this route boundary.
 
 - [ ] Prove the linked stock-provenance projection is exhaustive.  Analyze
   relocated warp/top or collision-preserving clones, post-commit movement

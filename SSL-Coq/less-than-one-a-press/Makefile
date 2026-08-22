@@ -1918,6 +1918,9 @@ check: proofs
 	  jp_timer131_authenticated_machine_receipt_decodes
 	bash pipeline/assumptions.sh \
 	  LessThanOneAPress.Proofs.InkTimer131RealEntryPrefix \
+	  jp_timer131_authenticated_machine_writes_decode
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.InkTimer131RealEntryPrefix \
 	  clight_star_under_timer131_cell_coverage_is_classified
 	bash pipeline/assumptions.sh \
 	  LessThanOneAPress.Proofs.InkTimer131RealEntryPrefix \

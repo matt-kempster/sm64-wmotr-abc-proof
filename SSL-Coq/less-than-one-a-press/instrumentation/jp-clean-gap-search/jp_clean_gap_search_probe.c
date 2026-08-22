@@ -29,6 +29,25 @@ enum {
     A_MARIO_OBJECT = 0x8035fde8,
 };
 
+/* Slot 67 and list-0 addresses from the authenticated endpoint.  Write
+ * breakpoints only observe stores made by the retail CPU; they do not alter
+ * RAM.  The watched set is exactly the identity/tail data used by the entry
+ * theorem. */
+enum {
+    A_SLOT67 = 0x80346038,
+    A_SLOT67_NEXT = 0x80346098,
+    A_SLOT67_PREV = 0x8034609c,
+    A_SLOT67_ACTIVE_FLAGS = 0x803460ac,
+    A_SLOT67_FLAGS = 0x803460c4,
+    A_SLOT67_GRAPH_Y_OFFSET = 0x80346114,
+    A_SLOT67_BEHAVIOR = 0x80346244,
+    /* The list-0 sentinel object is 0x8033b870; its embedded ObjectNode links
+     * use the same +0x60/+0x64 layout as a pool Object. */
+    A_LIST0_SENTINEL_NEXT = 0x8033b8d0,
+    A_LIST0_SENTINEL_PREV = 0x8033b8d4,
+    A_STATE_MARIO_OBJECT = 0x80339e88,
+};
+
 /* Original-JP text addresses from a matching build whose SHA-1 is the retail
  * 8a20a5c8... hash.  These are execute breakpoints only: the probe never
  * patches code or game data. */
@@ -117,6 +136,9 @@ static ptr_DebugSetRunState DSetRunState;
 static ptr_DebugStep DStep;
 static ptr_DebugGetCPUDataPtr DGetCPUDataPtr;
 static ptr_DebugBreakpointCommand DBreakpointCommand;
+static ptr_DebugDecodeOp DDecodeOp;
+static ptr_DebugBreakpointTriggeredBy DBreakpointTriggeredBy;
+static ptr_DebugVirtualToPhysical DVirtualToPhysical;
 static uint64_t gPoll;
 static uint32_t gTop;
 static uint32_t gUpperWarp;
@@ -172,6 +194,8 @@ static int gSawFireParticle;
 static int gEntryIdentityLogged;
 static int gPrefixTraceArmed;
 static int gPrefixStage;
+static unsigned gPrefixEpoch;
+static unsigned gPrefixCellWriteCount;
 static float gMaxMarioGraphYOffset = -INFINITY;
 static float gMaxGfxMinusObjectY = -INFINITY;
 static float gMinGfxMinusObjectY = INFINITY;
@@ -209,6 +233,66 @@ static int add_exec_breakpoint(uint32_t address) {
     return DBreakpointCommand(M64P_BKP_CMD_ADD_STRUCT, 0, &breakpoint) >= 0;
 }
 
+static int add_write_breakpoint(uint32_t address, uint32_t size) {
+    m64p_breakpoint breakpoint;
+
+    breakpoint.address = DVirtualToPhysical(address);
+    breakpoint.endaddr = breakpoint.address + size - 1;
+    breakpoint.flags = M64P_BKP_FLAG_ENABLED | M64P_BKP_FLAG_WRITE;
+    return DBreakpointCommand(M64P_BKP_CMD_ADD_STRUCT, 0, &breakpoint) >= 0;
+}
+
+static const char *watched_prefix_cell(uint32_t address) {
+    switch (address) {
+        case A_MARIO_OBJECT: return "gMarioObject";
+        case A_STATE_MARIO_OBJECT: return "MarioState.object";
+        case A_SLOT67_NEXT: return "slot67.next";
+        case A_SLOT67_PREV: return "slot67.prev";
+        case A_SLOT67_ACTIVE_FLAGS: return "slot67.activeFlags";
+        case A_SLOT67_FLAGS: return "slot67.oFlags";
+        case A_SLOT67_GRAPH_Y_OFFSET: return "slot67.oGraphYOffset";
+        case A_SLOT67_BEHAVIOR: return "slot67.behavior";
+        case A_LIST0_SENTINEL_NEXT: return "list0.next";
+        case A_LIST0_SENTINEL_PREV: return "list0.prev";
+        default: return NULL;
+    }
+}
+
+static void log_prefix_cell_write(uint32_t pc, uint64_t *registers) {
+    uint32_t trigger_flags = 0;
+    uint32_t accessed = 0;
+    uint32_t instruction = R32(pc);
+    uint32_t opcode = instruction >> 26;
+    uint32_t base_register = (instruction >> 21) & 31;
+    uint32_t source_register = (instruction >> 16) & 31;
+    int32_t displacement = (int16_t) instruction;
+    uint32_t effective_address = registers == NULL ? 0
+        : (uint32_t) registers[base_register] + displacement;
+    uint32_t source_value = registers == NULL ? 0
+        : (uint32_t) registers[source_register];
+    const char *cell;
+    char mnemonic[32] = "unknown";
+    char arguments[96] = "unknown";
+
+    DBreakpointTriggeredBy(&trigger_flags, &accessed);
+    if ((trigger_flags & M64P_BKP_FLAG_WRITE) == 0) return;
+    cell = watched_prefix_cell(accessed | 0x80000000u);
+    if (cell == NULL || gPrefixStage == 0 || gEntryIdentityLogged) return;
+    if (DDecodeOp != NULL) {
+        DDecodeOp(instruction, mnemonic, arguments, (int) pc);
+    }
+    gPrefixCellWriteCount++;
+    fprintf(stderr,
+            "PREFIX_CELL_WRITE,epoch=%u,ordinal=%u,stage=%d,timer=%u,"
+            "pc=%08x,instruction=%08x,op=%02x,mnemonic=%s,args=%s,"
+            "target=%08x,accessedPhysical=%08x,cell=%s,gprSource=%08x,"
+            "flagNow=%08x,graphOffsetNow=%08x\n",
+            gPrefixEpoch, gPrefixCellWriteCount, gPrefixStage,
+            R32(A_GLOBAL_TIMER), pc, instruction, opcode, mnemonic, arguments,
+            effective_address, accessed, cell, source_value,
+            R32(A_SLOT67_FLAGS), R32(A_SLOT67_GRAPH_Y_OFFSET));
+}
+
 static void resume_from_breakpoint(void) {
     DSetRunState(M64P_DBG_RUNSTATE_RUNNING);
     DStep();
@@ -226,9 +310,18 @@ static void debugger_update_callback(unsigned int pc) {
     uint32_t mario_object = R32(A_MARIO_OBJECT);
     const char *stage = "unexpected";
 
+    if (pc != A_CLEAR_OBJECTS && pc != A_LOAD_MARIO_AREA
+        && pc != A_SPAWN_OBJECTS_FROM_INFO && pc != A_INIT_MARIO) {
+        log_prefix_cell_write(pc, registers);
+        resume_from_breakpoint();
+        return;
+    }
+
     if (pc == A_CLEAR_OBJECTS) {
         stage = "clear_objects";
         gPrefixStage = 1;
+        gPrefixEpoch++;
+        gPrefixCellWriteCount = 0;
     } else if (pc == A_LOAD_MARIO_AREA) {
         stage = "load_mario_area";
         if (gPrefixStage == 1) gPrefixStage = 2;
@@ -266,7 +359,17 @@ static void arm_prefix_trace(void) {
     armed = add_exec_breakpoint(A_CLEAR_OBJECTS)
         && add_exec_breakpoint(A_LOAD_MARIO_AREA)
         && add_exec_breakpoint(A_SPAWN_OBJECTS_FROM_INFO)
-        && add_exec_breakpoint(A_INIT_MARIO);
+        && add_exec_breakpoint(A_INIT_MARIO)
+        && add_write_breakpoint(A_MARIO_OBJECT, 4)
+        && add_write_breakpoint(A_STATE_MARIO_OBJECT, 4)
+        && add_write_breakpoint(A_SLOT67_NEXT, 4)
+        && add_write_breakpoint(A_SLOT67_PREV, 4)
+        && add_write_breakpoint(A_SLOT67_ACTIVE_FLAGS, 2)
+        && add_write_breakpoint(A_SLOT67_FLAGS, 4)
+        && add_write_breakpoint(A_SLOT67_GRAPH_Y_OFFSET, 4)
+        && add_write_breakpoint(A_SLOT67_BEHAVIOR, 4)
+        && add_write_breakpoint(A_LIST0_SENTINEL_NEXT, 4)
+        && add_write_breakpoint(A_LIST0_SENTINEL_PREV, 4);
     if (!armed) {
         fprintf(stderr, "PREFIX_BREAKPOINT_ERROR,kind=breakpoint-arm\n");
         return;
@@ -274,7 +377,7 @@ static void arm_prefix_trace(void) {
     gPrefixTraceArmed = 1;
     fprintf(stderr,
             "PREFIX_BREAKPOINT_ARM,clear=%08x,load=%08x,spawn=%08x,"
-            "init=%08x\n",
+            "init=%08x,writeWatchCount=10\n",
             A_CLEAR_OBJECTS, A_LOAD_MARIO_AREA,
             A_SPAWN_OBJECTS_FROM_INFO, A_INIT_MARIO);
 }
@@ -579,8 +682,14 @@ EXPORT m64p_error CALL PluginStartup(
     DBreakpointCommand =
         (ptr_DebugBreakpointCommand) dlsym(core,
                                            "DebugBreakpointCommand");
+    DDecodeOp = (ptr_DebugDecodeOp) dlsym(core, "DebugDecodeOp");
+    DBreakpointTriggeredBy = (ptr_DebugBreakpointTriggeredBy)
+        dlsym(core, "DebugBreakpointTriggeredBy");
+    DVirtualToPhysical = (ptr_DebugVirtualToPhysical)
+        dlsym(core, "DebugVirtualToPhysical");
     return R32 && R16 && DSetCallbacks && DSetRunState && DStep
-        && DGetCPUDataPtr && DBreakpointCommand
+        && DGetCPUDataPtr && DBreakpointCommand && DDecodeOp
+        && DBreakpointTriggeredBy && DVirtualToPhysical
         ? M64ERR_SUCCESS : M64ERR_INCOMPATIBLE;
 }
 

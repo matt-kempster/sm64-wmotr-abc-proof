@@ -348,28 +348,28 @@ engineering but does not know *Super Mario 64*.
 > unimplemented input adapter: it validates the downstream lifecycle and effect,
 > but it does not show that normal program inputs can reach the injected state.
 >
-> The clean-entry side now has an execution-shaped interface rather than a list
-> of disconnected source facts.  `InkTimer131RealEntryPrefix.v` now begins at
-> the accepted level-select clear, then follows Area-1 loading, the separate
-> Area-object and Mario spawn calls, and Mario initialization.  It requires one
-> continuous CompCert run with every step's effect on the two watched words
-> classified.  The endpoint is no longer a generic ordinary-entry assumption:
-> exact slot-67, `bhvMario`, pointer, active, list-ring, safe-flag, and zero-
-> offset reads directly establish the full safe invariant.  The narrower
-> 85-function clear/load/init family contains no literal writer of either watched
-> word and has just three conservative outside sites: object unload's sound stop,
-> Mario-area load's sound-bank stop, and square root during surface loading.  A
-> broader 150-function family which also permits a first object update remains
-> writer-free but expands to five names at eight sites.  The interface is not yet
-> inhabited because branch reachability, indirect dispatch, valid aliases, and
-> every outside call actually reached still need exact effects, while the
-> endpoint reads must come from that same run.
-> A read-only original-JP run executes all five machine-code entries in order
-> and observes the matching slot-67 state; the proof now hardcodes and checks
-> that receipt's order and slot arithmetic.  The trace does not record every
-> instruction and the retail IDO binary is not automatically a CompCert run, so
-> the remaining refinement is explicit.  Ordinary castle entry is not required
-> because level select is the accepted boundary.
+> The clean-entry side now follows one real original-JP run from the accepted
+> level-select clear through Area-1 loading, the separate Area-object and Mario
+> spawns, Mario initialization, and Mario's first behavior update.  Read-only
+> watchpoints cover both Mario pointers, slot 67's behavior/active/list fields,
+> both player-list links, and the two dangerous words.  Exactly 19 stores occur:
+> clear resets old pointer/list metadata; Mario's allocation makes the first
+> zero writes to both dangerous words; spawn and initialization install slot 67,
+> `bhvMario`, both Mario pointers, and the one-object player list; then the first
+> behavior pass writes the safe flag `0x100`.  No instruction writes a dangerous
+> flag or nonzero graphical offset.  The runner rejects any changed or reordered
+> store, and Coq replays the receipt from arbitrary old watched values to derive
+> the entire recorded endpoint while checking every protected write safe.
+>
+> That completes the watched-memory classification for this authenticated retail
+> execution, including machine code reached indirectly or through an outside
+> routine.  It does not magically turn the IDO-built retail program into a
+> CompCert run.  A native Clight proof still needs either an IDO-MIPS-to-Clight
+> simulation or an independently reconstructed Clight start state, plus concrete
+> meanings for the three outside calls that the current Clight program leaves
+> abstract.  This is now a precise proof-framework gap rather than an unknown
+> entry writer.  Ordinary castle entry is not required because level select is
+> the accepted boundary.
 >
 > The exact timer-131 collision calculation matters.  The old home-pose sample
 > `(-2048,1791,-1024)` is rejected by the raised and rotated top.  A corrected

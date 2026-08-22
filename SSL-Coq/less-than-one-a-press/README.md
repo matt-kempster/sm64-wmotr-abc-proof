@@ -1047,37 +1047,37 @@ zero in every valid slot of the official JP initial memory, checks the
 allocator/load/spawn source chain, and finds `bhvMario` as the sole generated
 list-0 behavior.  It also turns a direct post-spawn list-head load into the
 live membership predicate and extracts the first invariant-breaking step from
-  any dangerous actual trace.  `InkTimer131RealEntryPrefix.v` now makes that
-  execution request precise at the accepted level-select boundary: it begins
-  at `clear_objects`, distinguishes the Area-object and Mario calls to
-  `spawn_objects_from_info`, and continues through `init_mario`.  Its
-  certificate joins those exact internal call states with one continuous
-  sequence of real CompCert steps and attaches a watched-cell effect to every
-  step.  Exact final loads for slot 67, the `bhvMario` symbol and pointer, both
-  Mario pointers, active state, all four one-node ring links, `oFlags=0x100`,
-  and zero graphical offset directly imply the full live invariant; no
-  ordinary-entry or pre-allocation slot-safety premise is used.  A reverse
-  theorem builds the certificate from an actual star plus reachable-step
-  coverage.  The accepted clear/load/init family closes after 85 direct
-  functions and intersects neither complete literal tail-writer inventory; its
-  unresolved boundary is exactly three conservative sites: `unload_object` to
-  `stop_sounds_from_source`, `load_mario_area` to
-  `stop_sounds_in_continuous_banks`, and `read_surface_data` to `sqrtf`.  A
-  broader 150-function family which also permits a first `update_objects` still
-  has no literal watched-cell writer and expands that boundary to five names at
-  eight caller/callee sites.  The certificate is not yet inhabited because the
-  same run must still derive those endpoint loads, determine which conservative
-  sites are branch-reachable, and classify indirect dispatch, valid aliases,
-  and the exact effect of each reached outside call; CompCert cannot infer such
-  a frame from an `EF_external` prototype.
-  A read-only, hash-gated original-JP mode-2 run supplies the matching
-  machine-code receipt: it enters `clear_objects`, `load_mario_area`, both
-  `spawn_objects_from_info` callsites, and `init_mario` in order, then observes
-  Mario in slot 67 with matching State pointer, safe tail values, and a one-node
-  player-list ring.  The runner now requires that exact ordered sequence, and
-  Coq checks its translated stage and slot arithmetic.  It remains a retail
-  MIPS trace rather than the still-missing CompCert certificate; ordinary
-  castle entry is not required because level select is the accepted start.
+any dangerous actual trace.  `InkTimer131RealEntryPrefix.v` makes the requested
+execution shape precise at the accepted level-select boundary: it begins at
+`clear_objects`, distinguishes the Area-object and Mario calls to
+`spawn_objects_from_info`, continues through `init_mario`, and includes the
+first object/behavior update needed to obtain `oFlags=0x100`.  Its certificate
+joins those internal call states with one continuous sequence of real CompCert
+steps and attaches a watched-cell effect to every step.  Exact final loads for
+slot 67, the `bhvMario` symbol and pointer, both Mario pointers, active state,
+all four one-node ring links, `oFlags=0x100`, and zero graphical offset imply the
+full live invariant; no ordinary-entry or pre-allocation slot-safety premise is
+used.  The pre-update 85-function family has three conservative outside sites;
+the 150-function first-update family has five names at eight sites.
+
+A read-only, hash-gated original-JP mode-2 run now supplies an exact continuous
+machine write receipt in addition to the call checkpoints.  Physical
+watchpoints cover every endpoint identity and protected range.  The accepted
+epoch has exactly 19 stores: Mario's allocator performs the first safe zero
+writes, the constructor/spawn/init path installs slot 67, `bhvMario`, both Mario
+pointers and the one-node list, and the first indirect behavior pass writes
+exactly `0x100`; no instruction writes a nonzero graphical offset or a flag with
+bit 0 set.  The runner compares all 19 lines against a committed receipt, while
+Coq replays them from arbitrary prior watched values to the exact endpoint and
+checks every protected overlap as safe.  This closes endpoint derivation and
+watched-effect classification for that authenticated retail execution,
+including whatever machine code ran inside indirect or outside calls.  It does
+not inhabit the CompCert certificate: the retail binary was produced by IDO,
+the project has no IDO-MIPS-to-Clight state simulation, and the selected Clight
+program still declares the three narrow outside functions as abstract
+`EF_external` calls whose writable-memory effects do not follow from their C
+prototypes.  Ordinary castle entry is not required because level select is the
+accepted start.
 The abstract case split now also captures that a successful retry performs
 only the first of the two `ACT_DISAPPEARED` ticks.  A second floor-supported
 Mario update is required before the upper object warp can be requested.  If

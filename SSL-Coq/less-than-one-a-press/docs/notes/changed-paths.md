@@ -1556,3 +1556,35 @@ changed:
 - `SSL-Coq/less-than-one-a-press/docs/notes/clean-jp-graphics-gap-source-audit.md`
 - `SSL-Coq/less-than-one-a-press/docs/notes/changed-paths.md`
 - `SSL-Coq/less-than-one-a-press/notes/source-map.md`
+
+## Timer-131 continuous watched-write receipt tranche
+
+The authenticated level-select run now uses correctly physicalized read-only
+write watchpoints for every endpoint identity and protected range.  Its final
+timer-347 epoch has exactly 19 stores: clear resets pointer/list/free metadata,
+Mario's allocator first zeros both protected words, spawn/init install slot 67,
+`bhvMario`, both Mario pointers and the one-node list, and the first indirect
+behavior pass writes the safe flag `0x100`.  The runner compares a committed
+25-line receipt and rejects any changed, missing, extra, or reordered watched
+store.  `InkTimer131RealEntryPrefix.v` replays those stores from arbitrary prior
+watched values, derives the authenticated endpoint, proves every protected
+overlap safe, and includes this fact in the checked boundary.  This closes the
+watched-memory effect classification for the authentic retail run; it does not
+supply the still-absent IDO-MIPS-to-Clight simulation or concrete semantics for
+the three narrow `EF_external` declarations.  The following paths changed:
+
+- `SSL-Coq/less-than-one-a-press/proofs/InkTimer131RealEntryPrefix.v`
+- `SSL-Coq/less-than-one-a-press/Makefile`
+- `SSL-Coq/less-than-one-a-press/instrumentation/jp-clean-gap-search/jp_clean_gap_search_probe.c`
+- `SSL-Coq/less-than-one-a-press/instrumentation/jp-clean-gap-search/run.sh`
+- `SSL-Coq/less-than-one-a-press/instrumentation/jp-clean-gap-search/expected-prefix-write-receipt.txt` (new)
+- `SSL-Coq/less-than-one-a-press/instrumentation/jp-clean-gap-search/README.md`
+- `SSL-Coq/less-than-one-a-press/README.md`
+- `SSL-Coq/less-than-one-a-press/human-readable-proof.md`
+- `SSL-Coq/less-than-one-a-press/docs/no-a-route-atlas.md`
+- `SSL-Coq/less-than-one-a-press/docs/checklist.md`
+- `SSL-Coq/less-than-one-a-press/docs/checklist-completed.md`
+- `SSL-Coq/less-than-one-a-press/docs/notes/ordinary-area1-entry-memory.md`
+- `SSL-Coq/less-than-one-a-press/docs/notes/clean-jp-graphics-gap-source-audit.md`
+- `SSL-Coq/less-than-one-a-press/docs/notes/changed-paths.md`
+- `SSL-Coq/less-than-one-a-press/notes/source-map.md`

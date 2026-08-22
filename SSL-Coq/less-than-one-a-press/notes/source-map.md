@@ -537,12 +537,13 @@ zero in every valid slot of the official JP initial memory, computes
 `bhvMario` as the only generated list-0 behavior, checks the clear/load/spawn
 source chain, reduces direct list membership to one head-link load, and
 extracts the first invariant-breaking step from any dangerous actual trace.
-`proofs/InkTimer131RealEntryPrefix.v` now gives that missing run a precise
-cross-phase shape at the accepted level-select boundary.  It starts at the
-selected `clear_objects` call, distinguishes the nested Area-object and direct
-Mario `spawn_objects_from_info` calls after `load_mario_area`, and continues
-through `init_mario` to the final entry state using actual `Clight.step2`
-segments whose every step carries an `InkTimer131CellEffect`.  The exact
+`proofs/InkTimer131RealEntryPrefix.v` gives that missing run a precise cross-
+phase shape at the accepted level-select boundary.  It starts at the selected
+`clear_objects` call, distinguishes the nested Area-object and direct Mario
+`spawn_objects_from_info` calls after `load_mario_area`, and continues through
+`init_mario` and the first object/behavior update to the final entry state using
+actual `Clight.step2` segments whose every step carries an
+`InkTimer131CellEffect`.  The exact
 slot-67, `bhvMario`, pointer, active, one-node ring, `oFlags=0x100`, zero-offset,
 and protected-load endpoint derives the full live invariant without an
 ordinary-entry premise.  The module also translates the recorded machine
@@ -553,15 +554,19 @@ outside boundary is three exact caller/callee sites: `unload_object`'s sound-
 source stop, `load_mario_area`'s continuous-bank sound stop, and
 `read_surface_data`'s `sqrtf`.  A broader 150-function family which also permits
 a first object update remains writer-free and expands to five names at eight
-sites.  No inhabitant is constructed: branch reachability, indirect dispatch,
-alias refinement, the effect of each actually reached external site, and the
-final loads must still be obtained from the same execution.
+  sites.  No Clight inhabitant is constructed: an IDO-MIPS-to-Clight relation or
+  an independently reconstructed Clight start state and concrete semantics for
+  reached `EF_external` declarations are still required.
 The read-only JP mode-2 instrumentation now supplies a separate authentic MIPS
-receipt for the five call entries and resulting slot-67 Mario identity, safe
-tail words, and one-node player-list ring.  The runner requires both distinct
-spawn callsites and the exact endpoint.  It does not refine the instructions
-between checkpoints or outside calls into the CompCert certificate; ordinary
-castle entry is outside this accepted level-select boundary.
+write receipt, not just five call entries.  Physical watchpoints cover ten
+identity/tail ranges and record exactly 19 stores: allocator zeros, slot/list/
+behavior/pointer installation, and the first behavior's exact safe `0x100`
+write.  The runner compares the complete 25-line receipt, and Coq replays it
+from arbitrary watched prestate to the recorded slot-67 endpoint while proving
+every protected overlap safe.  This frames the actual MIPS effects of
+intervening indirect and outside code, but does not refine IDO instructions to
+the CompCert certificate; ordinary castle entry is outside this accepted
+level-select boundary.
 
 `proofs/InkTimer131ProducerClosure.v` closes the two normal large-writer
 source branches.  An opcode-neutral scan of every US/JP `behavior_data`

@@ -207,32 +207,35 @@ is involved.
 The theorem `ordinary_area1_entry_checked_boundary_holds` packages only those
 checked facts.  It is not a retail reachability theorem.
 
-`proofs/InkTimer131RealEntryPrefix.v` now supplies the next execution-shaped
-boundary for the JP Ink investigation.  Because level select is accepted here,
-it starts at the final Area-1 `clear_objects` call rather than at program startup
-or ordinary castle entry.  It then requires `load_mario_area`, the distinct
-Area-object and Mario spawn calls, `init_mario`, and the final state to occur in
-one continuous CompCert small-step run whose every step is a checked safe store
-or exact protected-cell frame/writer effect.  Exact slot-67, `bhvMario`, pointer,
-active, list-ring, `oFlags=0x100`, zero-offset, and protected-load reads directly
-imply the full Timer-131 live invariant.  The exact 85-function clear/load/init
-family contains no literal watched-cell writer and has only three conservative
-outside sites; the broader 150-function family which also permits a first object
-update remains writer-free and expands to five names at eight sites.  The record
-has no constructed inhabitant yet; branch reachability, indirect dispatch,
-aliases, exact effects for each reached outside site, and derivation of the
-endpoint reads remain open.
+`proofs/InkTimer131RealEntryPrefix.v` supplies the next execution-shaped boundary
+for the JP Ink investigation.  Because level select is accepted here, it starts
+at the final Area-1 `clear_objects` call rather than at program startup or
+ordinary castle entry.  It requires `load_mario_area`, the distinct Area-object
+and Mario spawn calls, `init_mario`, the first object/behavior update, and the
+final state to occur in one continuous CompCert small-step run whose every step
+is a checked safe store or exact protected-cell frame/writer effect.  The first
+update is essential: allocation zeros `oFlags`, and `bhvMario` later writes
+`0x100`.  Exact slot-67, behavior, pointer, active, list-ring, safe-flag, zero-
+offset, and protected-load reads directly imply the full Timer-131 live
+invariant.  The 85-function pre-update family has three conservative outside
+sites; the 150-function first-update family has five names at eight sites.  The
+record has no constructed inhabitant because the project still lacks the
+retail-IDO-to-Clight state simulation and concrete semantics for reached
+`EF_external` declarations.
 
-A separate authentic machine-code receipt now covers the missing phase
-sequence.  A hash-gated, read-only original-JP mode-2 run hits
-`clear_objects`, `load_mario_area`, both `spawn_objects_from_info` callsites,
-and `init_mario` in order, then observes slot 67 with matching Mario pointers,
-safe tail values, and a one-node list-0 ring.  The runner now verifies every
-exact checkpoint and endpoint line, and Coq checks the translated ordering and
-slot arithmetic.  This confirms the runtime phase and endpoint after
-level-select entry, but it does not inhabit the CompCert record or classify
-instructions between breakpoints.  Ordinary castle equivalence is not required
-by this route boundary.
+The authentic machine-code side is now continuous at the watched-memory level.
+The hash-gated read-only mode-2 run arms physical write watchpoints for the ten
+identity/tail ranges and records exactly 19 stores from the timer-347 clear to
+the timer-348 endpoint.  Clear resets the pointers/list/free metadata; Mario's
+allocation supplies the first zero flag and zero graphical-offset writes; the
+spawn and initializer install slot 67, `bhvMario`, both Mario pointers and the
+one-node list; and the first behavior pass writes exactly `0x100`.  The runner
+rejects any changed, missing, extra, or reordered watched store.  A compiled Coq
+replay theorem starts from arbitrary prior watched values, derives the complete
+recorded endpoint, and proves every store overlapping the two protected words
+safe.  This classifies the actual retail effects of all intervening code on
+those ranges, but it remains a debugger receipt rather than a CompCert
+small-step derivation.  Ordinary castle equivalence is not required.
 
 `proofs/DefaultArea1StartBoundary.v` packages the selected program, exact
 exterior spawn memory, coherent no-A controller history, and explicit global-
@@ -249,11 +252,12 @@ The decisive in-scope work still open is:
 
 1. connect the boundary fields to the concrete selected-program observation
    projection without treating boundary existence as a theorem;
-2. translate the authenticated MIPS phase receipt into the real-prefix
-   certificate by proving the exact effects of
-   every reached floor/water, graph, camera, save, audio, allocator, and other
-   external call, then derive the final slot-67 behavior/list/safe-tail loads
-   from that run;
+2. construct an IDO-retail-to-Clight state/step simulation (or execute an
+   independently reconstructed Clight start state) and give the three narrow
+   `EF_external` declarations concrete semantics; the MIPS receipt already
+   derives the slot-67 behavior/list/safe-tail endpoint and frames every watched
+   range for the authenticated retail run, but cannot itself inhabit a
+   `Clight.step2` star;
 3. prove complete object-pool/list ownership and alias invariants, beyond the
    current pointer-closure definition, and discharge the explicit per-access
    in-bounds obligation;

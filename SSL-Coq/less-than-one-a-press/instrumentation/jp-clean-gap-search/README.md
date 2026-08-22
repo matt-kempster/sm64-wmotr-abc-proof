@@ -123,6 +123,30 @@ PREFIX_STAGE,stage=init_mario,sequence=4,pc=802548bc,returnPC=8024b9b0,a0=803460
 ENTRY_IDENTITY,timer=348,marioObject=80346038,slot=67,stateMarioObject=80346038,activeFlags=0101,behavior=800eb1c0,oFlags=00000100,oGraphYOffsetBits=00000000,next=8033b870,prev=8033b870,sentinelNext=80346038,sentinelPrev=80346038,stateMatches=1,tailSafe=1,listRing=1,prefixStage=4
 ```
 
+The probe now also converts ten virtual ranges to physical addresses and arms
+read-only CPU write watchpoints for both Mario pointers, slot 67's list links,
+active word, behavior pointer and protected tail, and the two embedded list-0
+sentinel links.  The exact accepted epoch contains 19 stores:
+
+| Phase | Exact watched effect |
+| --- | --- |
+| `clear_objects` | Clear `gMarioObject`, link slot 67 into the free list, reset both list-0 links to the sentinel, and clear slot 67's active half-word. |
+| Mario spawn/allocation | Link slot 67 as the only player object, write active value `0x0101`, clear all raw words including `oFlags` and `oGraphYOffset`, install `bhvMario` twice along the constructor/spawn path, and set `gMarioObject` to slot 67. |
+| `init_mario` | Set `MarioState.object` to the same slot. |
+| First object/behavior update | Make one disjoint half-word write at `Object+0x76`, then execute the behavior-table `OR_INT` store that writes exactly `0x100` to `oFlags`. |
+
+`expected-prefix-write-receipt.txt` fixes every store PC, instruction word,
+effective address, width, source value, phase, and endpoint line; its SHA-256 is
+`BDDEF78B337F090B21A904760F8871E95F2F8D861DD80756709C0F6ECA5BF295`.
+The runner rejects any missing, additional, reordered, or changed watched
+store.  `InkTimer131RealEntryPrefix.v` replays the 19 stores from arbitrary old
+watched values and proves by computation that they produce the recorded two
+Mario pointers, slot/list identity, behavior, active word, `oFlags=0x100`, and
+zero graphical offset; it also proves every store overlapping either protected
+word is a checked safe full-word write.  This corrects two earlier informal
+shortcuts: `clear_objects` does not clear every raw word, and the endpoint lies
+after Mario's first behavior pass because allocation itself leaves `oFlags=0`.
+
 The complete filtered trace has SHA-256
 `6D681DB5AA3A9F21F3D176BFCFC3507BD5C8CD840D980B1D01F7DA89666E5F20`.
 The probe calls debugger read and execute-breakpoint APIs only; `run.sh`
@@ -132,7 +156,10 @@ callsite lines and the exact slot-67 endpoint occur in order.  This is an
 authentic MIPS execution receipt, not a CompCert small-step certificate: it
 does not yet classify instructions between breakpoints or prove effects of
 outside calls.  It therefore supplies the empirical phase and identity
-observations without inhabiting `JPInkTimer131RealEntryPrefix`.
+observations without inhabiting `JPInkTimer131RealEntryPrefix`.  The new write
+receipt classifies every retail instruction that actually changes a watched
+range—including code reached by indirect dispatch or an outside machine-code
+routine—but it still is not an IDO-MIPS-to-Clight simulation theorem.
 
 ### Mode 7 two-pillar checkpoint
 

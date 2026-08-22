@@ -124,25 +124,23 @@ recognizing the allocator's clearing loop.  It also computes `bhvMario` as the
 only generated behavior selecting list 0 and checks the load/spawn/list source
 chain.  The trace invariant now allows legitimate list-link rewrites and uses
 a callsite-sensitive external frame-or-writer interface.
-`InkTimer131RealEntryPrefix.v` now begins at the accepted level-select clear and
-represents both observed spawn calls before initialization.  It transcribes the
-hash-pinned machine checkpoint values and verifies the slot arithmetic; exact
-CompCert endpoint loads for slot 67, `bhvMario`, both Mario pointers, the four
-one-node ring links, `oFlags=0x100`, and the zero offset directly establish the
-live invariant.  It also proves that the exact 85-function clear/load/init
-family is closed, contains no literal flag or graphical-offset writer, and has
-only three conservative outside sites: `unload_object` to
-`stop_sounds_from_source`, `load_mario_area` to
-`stop_sounds_in_continuous_banks`, and `read_surface_data` to `sqrtf`.  The
-broader 150-function family which also permits a first object update is likewise
-writer-free and expands to five names at eight callsites.  The remaining
-semantic work is now the one continuous Clight run, endpoint-load derivation,
-branch reachability, indirect dispatch and alias refinement, and exact effects
-for each outside site actually reached.  The
-hash-gated original-JP mode-2 trace independently observes the matching five
-function entries and endpoint, but it is still MIPS evidence rather than a
-CompCert small-step trace.  Ordinary castle equivalence is not required because
-level select is the accepted start boundary.
+`InkTimer131RealEntryPrefix.v` begins at the accepted level-select clear and
+represents both observed spawn calls, initialization, and the first update
+required for `oFlags=0x100`.  The hash-gated original-JP mode-2 probe now uses
+physical write watchpoints for ten identity/tail ranges and fixes an exact
+19-store receipt.  The receipt shows slot 67's allocator zeroing both protected
+words, spawn/init installing `bhvMario`, both Mario pointers and the one-node
+list, and the indirect behavior command writing only `0x100`; no other retail
+instruction changes a watched range before the endpoint.  A compiled Coq replay
+derives the exact pointer, active, behavior, list, flag, and zero-offset endpoint
+from arbitrary old watched values and checks every protected overlap safe.  The
+85-function pre-update family still has three conservative outside declarations
+and the 150-function first-update family has five names at eight callsites, but
+their actual retail machine code is framed by the watch receipt.  What remains
+is specifically a native Clight construction: the IDO retail trace has no
+proved state/step simulation to Clight, and CompCert does not infer writable-
+memory frames for the three `EF_external` prototypes.  Ordinary castle
+equivalence is not required because level select is the accepted start boundary.
 
 `InkTimer131ProducerClosure.v` replaces the earlier “no writer found” wording
 with a complete initializer result.  Its opcode-neutral scan finds exactly 40
