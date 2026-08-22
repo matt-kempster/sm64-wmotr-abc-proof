@@ -554,7 +554,13 @@ outside boundary is three exact caller/callee sites: `unload_object`'s sound-
 source stop, `load_mario_area`'s continuous-bank sound stop, and
 `read_surface_data`'s `sqrtf`.  A broader 150-function family which also permits
 a first object update remains writer-free and expands to five names at eight
-sites.  No Clight inhabitant is constructed: an IDO-MIPS-to-Clight relation or
+sites.  The authenticated dynamic refinement records 73 successful allocator
+entries, zero allocator-fallback, unload, and source-sound hits, and one
+continuous-bank hit before the endpoint.  Its checked original-JP instruction
+words prove the static `unload_object -> stop_sounds_from_source` edge is not
+executed and therefore needs no effect specification; `sqrtf` remains not
+excluded by this receipt.  No Clight inhabitant is constructed: an IDO-MIPS-to-
+Clight relation or
 an independently reconstructed Clight start state and concrete semantics for
 reached `EF_external` declarations would be required for that optional stronger
 certificate.

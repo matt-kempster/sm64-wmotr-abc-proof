@@ -1906,6 +1906,21 @@ check: proofs
 	  jp_timer131_entry_external_callsites_checked
 	bash pipeline/assumptions.sh \
 	  LessThanOneAPress.Proofs.InkTimer131RealEntryPrefix \
+	  jp_timer131_authenticated_call_reachability_decodes
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.InkTimer131RealEntryPrefix \
+	  jp_timer131_callsite_machine_code_checked
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.InkTimer131RealEntryPrefix \
+	  jp_timer131_stop_sounds_from_source_callsite_not_reached
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.InkTimer131RealEntryPrefix \
+	  jp_timer131_unreached_source_sound_needs_no_effect_specification
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.InkTimer131RealEntryPrefix \
+	  jp_timer131_entry_external_reachability_reduction_checked
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.InkTimer131RealEntryPrefix \
 	  jp_timer131_level_select_direct_writer_checked
 	bash pipeline/assumptions.sh \
 	  LessThanOneAPress.Proofs.InkTimer131RealEntryPrefix \
@@ -1922,6 +1937,9 @@ check: proofs
 	bash pipeline/assumptions.sh \
 	  LessThanOneAPress.Proofs.InkTimer131RealEntryPrefix \
 	  jp_timer131_authenticated_receipt_is_accepted_entry
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.InkTimer131RealEntryPrefix \
+	  jp_timer131_authenticated_entry_and_callsite_boundary
 	bash pipeline/assumptions.sh \
 	  LessThanOneAPress.Proofs.InkTimer131RealEntryPrefix \
 	  jp_timer131_accepted_entry_has_safe_tail
@@ -1973,6 +1991,9 @@ check: proofs
 	bash pipeline/assumptions.sh \
 	  LessThanOneAPress.Proofs.MainTheorem \
 	  current_timer131_accepted_machine_entry_boundary
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.MainTheorem \
+	  current_timer131_accepted_machine_entry_callsite_boundary
 
 clean:
 	-$(MAKE) -f $(COQMAKEFILE) clean

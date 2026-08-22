@@ -147,8 +147,32 @@ word is a checked safe full-word write.  This corrects two earlier informal
 shortcuts: `clear_objects` does not clear every raw word, and the endpoint lies
 after Mario's first behavior pass because allocation itself leaves `oFlags=0`.
 
+The same neutral run now carries a separate, address-bound control-flow
+receipt.  The authenticated ROM disassembles as follows: each allocation
+attempt's result is tested by `bnez` at `802c9144`, whose taken target `802c91a4`
+skips the exhaustion path; that path would call `unload_object` at `802c9174`;
+`unload_object` would call `stop_sounds_from_source` at `802c90b0`; and
+`load_mario_area` unconditionally calls
+`stop_sounds_in_continuous_banks` at `8027aa14`.  Execute breakpoints are also
+placed at both callee entries.  The exact receipt is:
+
+```text
+PREFIX_BREAKPOINT_ARM,clear=8029ca60,load=8027aa0c,spawn=8029c830,init=802548bc,allocate=802c9120,allocatorFallback=802c9174,unload=802c9088,stopSource=803206f8,stopContinuous=80320890,writeWatchCount=10
+PREFIX_CALL_REACH,epoch=8,timer=348,allocateObject=73,allocatorFallback=0,unloadObject=0,stopSoundsFromSource=0,stopSoundsContinuous=1
+```
+
+`expected-prefix-call-reach-receipt.txt` has SHA-256
+`C1EEFAA40B1836BE3AB349A9BEC6878D169A0F6628C402BAADE0A211D35B2903`.
+The runner rejects any address or counter change.  Coq independently decodes
+the exact branch and three JAL words and proves that the statically listed
+`unload_object -> stop_sounds_from_source` edge is not reached during this
+entry.  It therefore needs no protected-memory effect specification.  The
+continuous-bank sound call is reached once; this receipt does not instrument
+or eliminate `sqrtf`.
+
 The complete filtered trace has SHA-256
-`6D681DB5AA3A9F21F3D176BFCFC3507BD5C8CD840D980B1D01F7DA89666E5F20`.
+`8341AA389D255ABA50BA534A1E95F1A80215E479903C8CC11E8E5450FCE4CE7E`
+for the documented 900-frame neutral run.
 The probe calls debugger read and execute-breakpoint APIs only; `run.sh`
 rejects a probe containing the game-memory write API names used by this
 instrumentation suite.  `run.sh` also rejects a trace unless these five exact

@@ -35,6 +35,7 @@ plugin="$out_dir/jp-clean-gap-search.so"
 raw_log="$out_dir/jp-clean-gap-search.raw.log"
 trace="$out_dir/jp-clean-gap-search.trace.txt"
 prefix_write_receipt="$out_dir/prefix-write-receipt.txt"
+prefix_call_reach_receipt="$out_dir/prefix-call-reach-receipt.txt"
 
 gcc -shared -fPIC -std=c99 -Wall -Wextra -Werror -O2 \
     -DALLOW_SETUP_A="$allow_setup_a" \
@@ -53,13 +54,20 @@ printf 'run\n' |
         --cheats 6 --sshotdir "$out_dir/shots" --testshots "$test_frames" \
         "$rom" >"$raw_log" 2>&1
 
-grep -E '^(SEARCH|PREFIX_BREAKPOINT_ARM|PREFIX_STAGE|PREFIX_CELL_WRITE|ENTRY_IDENTITY|ACTION|MAX_GAP|MIN_GAP|GAP45|GAP960|FIRE_LINK|TOP|FRAME|NONFINITE|B_INPUT|MODE9_STAGE|RESULT)' \
+grep -E '^(SEARCH|PREFIX_BREAKPOINT_ARM|PREFIX_STAGE|PREFIX_CELL_WRITE|PREFIX_CALL_REACH|ENTRY_IDENTITY|ACTION|MAX_GAP|MIN_GAP|GAP45|GAP960|FIRE_LINK|TOP|FRAME|NONFINITE|B_INPUT|MODE9_STAGE|RESULT)' \
     "$raw_log" >"$trace"
 grep -E '^(PREFIX_STAGE,.*timer=347,|PREFIX_CELL_WRITE,epoch=8,|ENTRY_IDENTITY,)' \
     "$trace" >"$prefix_write_receipt"
 if ! diff -u "$script_dir/expected-prefix-write-receipt.txt" \
     "$prefix_write_receipt"; then
     printf '%s\n' "exact protected-cell write receipt failed" >&2
+    exit 3
+fi
+grep -E '^(PREFIX_BREAKPOINT_ARM,|PREFIX_CALL_REACH,)' "$trace" \
+    >"$prefix_call_reach_receipt"
+if ! diff -u "$script_dir/expected-prefix-call-reach-receipt.txt" \
+    "$prefix_call_reach_receipt"; then
+    printf '%s\n' "exact pre-entry call reachability receipt failed" >&2
     exit 3
 fi
 grep '^RESULT' "$trace"

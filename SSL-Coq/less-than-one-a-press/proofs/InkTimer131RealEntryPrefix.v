@@ -291,6 +291,165 @@ Proof.
   vm_compute. split; reflexivity.
 Qed.
 
+(** * Authenticated pre-entry callsite reachability
+
+    The static closure above is deliberately conservative: a callee appears
+    there whenever its call expression occurs in a reachable function body.
+    That does not mean the callsite executes on this particular entry.  The
+    hash-gated debugger run therefore arms execute breakpoints at the allocator,
+    its exhaustion-only [unload_object] call instruction, [unload_object]
+    itself, and the two sound callees.  Counters are reset by each
+    [clear_objects], so this record is exactly epoch 8 from the accepted clear
+    through the timer-348 endpoint.
+
+    The 73 successful allocator entries and zero hits at its fallback
+    instruction prove that pool exhaustion never selects [unload_object].
+    Independent zero counts at [unload_object] and
+    [stop_sounds_from_source] also exclude any other dynamic route to that
+    callee in the observed prefix.  Conversely, the continuous-bank sound
+    routine has one hit, so it may not be erased by control-flow analysis.
+    This receipt does not instrument [sqrtf], which remains not excluded by
+    this result. *)
+
+Record JPInkTimer131MachineCallReachability : Type := {
+  jp_machine_call_epoch : Z;
+  jp_machine_call_timer : Z;
+  jp_machine_allocate_object_hits : Z;
+  jp_machine_allocator_fallback_hits : Z;
+  jp_machine_unload_object_hits : Z;
+  jp_machine_stop_sounds_from_source_hits : Z;
+  jp_machine_stop_sounds_continuous_hits : Z
+}.
+
+(** Exact breakpoint PCs from the receipt's arm line.  The three JAL words and
+    the allocator's positive [bnez] word were independently read from the same
+    SHA-256-pinned ROM. *)
+Definition jp_timer131_call_reachability_breakpoint_pcs : list Z :=
+  [2150222432; 2150083084; 2150221872; 2149927100;
+   2150404384; 2150404468; 2150404232; 2150762232; 2150762640].
+
+Definition jp_mips_jump_target (pc instruction : Z) : Z :=
+  Z.lor (Z.land (pc + 4) 4026531840)
+    (Z.shiftl (Z.land instruction 67108863) 2).
+
+Definition jp_mips_positive_branch_target (pc instruction : Z) : Z :=
+  pc + 4 + 4 * Z.land instruction 65535.
+
+Definition jp_timer131_callsite_machine_code_claim : Prop :=
+  jp_mips_positive_branch_target 2150404420 364904471 = 2150404516 /\
+  jp_mips_jump_target 2150404468 202056738 = 2150404232 /\
+  jp_mips_jump_target 2150404272 202146238 = 2150762232 /\
+  jp_mips_jump_target 2150083092 202146340 = 2150762640.
+
+Theorem jp_timer131_callsite_machine_code_checked :
+  jp_timer131_callsite_machine_code_claim.
+Proof. vm_compute. repeat split; reflexivity. Qed.
+
+Definition jp_timer131_machine_call_reachability :
+    JPInkTimer131MachineCallReachability :=
+  {| jp_machine_call_epoch := 8;
+     jp_machine_call_timer := 348;
+     jp_machine_allocate_object_hits := 73;
+     jp_machine_allocator_fallback_hits := 0;
+     jp_machine_unload_object_hits := 0;
+     jp_machine_stop_sounds_from_source_hits := 0;
+     jp_machine_stop_sounds_continuous_hits := 1 |}.
+
+Definition jp_timer131_prefix_call_reach_trace_sha256 : string :=
+  "C1EEFAA40B1836BE3AB349A9BEC6878D169A0F6628C402BAADE0A211D35B2903".
+
+Definition JPInkTimer131AuthenticatedCallReachabilityReceipt : Prop :=
+  jp_machine_call_epoch jp_timer131_machine_call_reachability = 8 /\
+  jp_machine_call_timer jp_timer131_machine_call_reachability = 348 /\
+  jp_machine_allocate_object_hits jp_timer131_machine_call_reachability = 73 /\
+  jp_machine_allocator_fallback_hits jp_timer131_machine_call_reachability = 0 /\
+  jp_machine_unload_object_hits jp_timer131_machine_call_reachability = 0 /\
+  jp_machine_stop_sounds_from_source_hits
+    jp_timer131_machine_call_reachability = 0 /\
+  jp_machine_stop_sounds_continuous_hits
+    jp_timer131_machine_call_reachability = 1.
+
+Theorem jp_timer131_authenticated_call_reachability_decodes :
+  JPInkTimer131AuthenticatedCallReachabilityReceipt.
+Proof. vm_compute. repeat split; reflexivity. Qed.
+
+Definition jp_timer131_machine_callsite_reached (hits : Z) : Prop :=
+  hits <> 0.
+
+Corollary jp_timer131_allocator_exhaustion_callsite_not_reached :
+  ~ jp_timer131_machine_callsite_reached
+      (jp_machine_allocator_fallback_hits
+        jp_timer131_machine_call_reachability).
+Proof. unfold jp_timer131_machine_callsite_reached; vm_compute; tauto. Qed.
+
+Corollary jp_timer131_unload_object_not_reached :
+  ~ jp_timer131_machine_callsite_reached
+      (jp_machine_unload_object_hits
+        jp_timer131_machine_call_reachability).
+Proof. unfold jp_timer131_machine_callsite_reached; vm_compute; tauto. Qed.
+
+Corollary jp_timer131_stop_sounds_from_source_callsite_not_reached :
+  ~ jp_timer131_machine_callsite_reached
+      (jp_machine_stop_sounds_from_source_hits
+        jp_timer131_machine_call_reachability).
+Proof. unfold jp_timer131_machine_callsite_reached; vm_compute; tauto. Qed.
+
+Corollary jp_timer131_stop_sounds_continuous_callsite_is_reached :
+  jp_timer131_machine_callsite_reached
+    (jp_machine_stop_sounds_continuous_hits
+      jp_timer131_machine_call_reachability).
+Proof. unfold jp_timer131_machine_callsite_reached; vm_compute; discriminate. Qed.
+
+(** An effect specification is only an obligation after the corresponding
+    callsite is reached.  This generic formulation makes the zero-hit result
+    useful without asserting any semantics for the unresolved declaration. *)
+Definition JPInkTimer131CallsiteEffectObligation
+    (hits : Z) (effect_specification : Prop) : Prop :=
+  jp_timer131_machine_callsite_reached hits -> effect_specification.
+
+Theorem jp_timer131_unreached_source_sound_needs_no_effect_specification :
+  forall effect_specification,
+    JPInkTimer131CallsiteEffectObligation
+      (jp_machine_stop_sounds_from_source_hits
+        jp_timer131_machine_call_reachability)
+      effect_specification.
+Proof.
+  intros effect_specification Hreached.
+  exfalso. apply Hreached. reflexivity.
+Qed.
+
+Inductive JPInkTimer131ExternalReachabilityDisposition : Type :=
+| JPTimer131ProvedUnreached
+| JPTimer131ProvedReached
+| JPTimer131NotExcludedByThisReceipt.
+
+Definition jp_timer131_entry_external_reachability_dispositions :
+    list (ident * JPInkTimer131ExternalReachabilityDisposition) :=
+  [(IT131P_Spawn._stop_sounds_from_source, JPTimer131ProvedUnreached);
+   (IT131P_Area._stop_sounds_in_continuous_banks, JPTimer131ProvedReached);
+   (IT131P_Mario._sqrtf, JPTimer131NotExcludedByThisReceipt)].
+
+Definition jp_timer131_entry_external_reachability_reduction_claim : Prop :=
+  jp_timer131_entry_external_reachability_dispositions =
+    [(IT131P_Spawn._stop_sounds_from_source, JPTimer131ProvedUnreached);
+     (IT131P_Area._stop_sounds_in_continuous_banks, JPTimer131ProvedReached);
+     (IT131P_Mario._sqrtf, JPTimer131NotExcludedByThisReceipt)] /\
+  ~ jp_timer131_machine_callsite_reached
+      (jp_machine_stop_sounds_from_source_hits
+        jp_timer131_machine_call_reachability) /\
+  jp_timer131_machine_callsite_reached
+      (jp_machine_stop_sounds_continuous_hits
+        jp_timer131_machine_call_reachability).
+
+Theorem jp_timer131_entry_external_reachability_reduction_checked :
+  jp_timer131_entry_external_reachability_reduction_claim.
+Proof.
+  split; [reflexivity |].
+  split.
+  - exact jp_timer131_stop_sounds_from_source_callsite_not_reached.
+  - exact jp_timer131_stop_sounds_continuous_callsite_is_reached.
+Qed.
+
 (** * Exact transcription of the authenticated retail receipt *)
 
 Inductive JPInkTimer131MachineStage : Type :=
@@ -412,7 +571,7 @@ Definition jp_timer131_retail_rom_sha256 : string :=
   "9cf7a80db321b07a8d461fe536c02c87b7412433953891cdec9191bfad2db317".
 
 Definition jp_timer131_filtered_trace_sha256 : string :=
-  "6D681DB5AA3A9F21F3D176BFCFC3507BD5C8CD840D980B1D01F7DA89666E5F20".
+  "8341AA389D255ABA50BA534A1E95F1A80215E479903C8CC11E8E5450FCE4CE7E".
 
 (** The later write-watch receipt is deliberately separate from the original
     five-checkpoint hash above.  Mupen's debugger uses physical addresses for
@@ -701,6 +860,27 @@ Proof.
   rewrite (proj2 (proj2 jp_timer131_authenticated_machine_writes_decode)
     initial).
   constructor; vm_compute; repeat split; reflexivity.
+Qed.
+
+(** The strengthened accepted boundary keeps the safe endpoint and the
+    independently authenticated callsite receipt together.  In particular,
+    the static [unload_object -> stop_sounds_from_source] edge is now removed
+    from the dynamic entry obligations, while the observed continuous-bank
+    call still requires either the already accepted watched-memory receipt or
+    a concrete effect specification in an optional Clight reconstruction. *)
+Definition JPInkTimer131AcceptedEntryWithCallsiteBoundary : Prop :=
+  JPInkTimer131AcceptedEntryTheorem /\
+  jp_timer131_callsite_machine_code_claim /\
+  JPInkTimer131AuthenticatedCallReachabilityReceipt /\
+  jp_timer131_entry_external_reachability_reduction_claim.
+
+Theorem jp_timer131_authenticated_entry_and_callsite_boundary :
+  JPInkTimer131AcceptedEntryWithCallsiteBoundary.
+Proof.
+  split; [exact jp_timer131_authenticated_receipt_is_accepted_entry |].
+  split; [exact jp_timer131_callsite_machine_code_checked |].
+  split; [exact jp_timer131_authenticated_call_reachability_decodes |].
+  exact jp_timer131_entry_external_reachability_reduction_checked.
 Qed.
 
 Lemma jp_timer131_machine_safe_tail_is_not_dangerous :
@@ -1307,6 +1487,9 @@ Qed.
 Definition InkTimer131RealEntryPrefixCheckedBoundary : Prop :=
   ink_timer131_real_prefix_source_claim /\
   JPInkTimer131AcceptedEntryTheorem /\
+  jp_timer131_callsite_machine_code_claim /\
+  JPInkTimer131AuthenticatedCallReachabilityReceipt /\
+  jp_timer131_entry_external_reachability_reduction_claim /\
   jp_timer131_entry_direct_writer_claim /\
   jp_timer131_entry_external_inventory_claim /\
   jp_timer131_entry_external_callsite_claim /\
@@ -1339,6 +1522,9 @@ Theorem ink_timer131_real_entry_prefix_checked_boundary_holds :
 Proof.
   split; [exact ink_timer131_real_prefix_source_checked |].
   split; [exact jp_timer131_authenticated_receipt_is_accepted_entry |].
+  split; [exact jp_timer131_callsite_machine_code_checked |].
+  split; [exact jp_timer131_authenticated_call_reachability_decodes |].
+  split; [exact jp_timer131_entry_external_reachability_reduction_checked |].
   split; [exact jp_timer131_entry_direct_writer_checked |].
   split; [exact jp_timer131_entry_external_inventory_checked |].
   split; [exact jp_timer131_entry_external_callsites_checked |].

@@ -969,9 +969,9 @@ Completed work is grouped by subject. Each item retains its original scope warni
   unload's source-sound stop, Mario-area load's continuous-bank stop, and
   surface loading's `sqrtf`.  The broader 150-function family which also
   permits a first object update is likewise writer-free and expands to five
-  names at eight sites.  The module compiles; branch reachability, indirect
-  dispatch, exact effects for reached outside calls, endpoint derivation, and
-  construction of the inhabitant remain open.
+  names at eight sites.  The module compiles; the later authenticated receipt
+  resolves one branch while a native Clight inhabitant, indirect dispatch, and
+  exact effects for reached outside calls remain optional strengthening.
 
 - [x] Execute the phase checkpoints in authentic original-JP machine code.
   The read-only mode-2 probe records `clear_objects`, `load_mario_area`,
@@ -995,6 +995,17 @@ Completed work is grouped by subject. Each item retains its original scope warni
   overlaps safe.  This is a complete watched-memory classification for the
   authenticated MIPS run; it remains distinct from an IDO-MIPS-to-Clight
   simulation or concrete Clight `EF_external` semantics.
+
+- [x] Exclude the unreachable pre-entry source-sound callsite.
+  A second hash-gated receipt binds execute counters to the exact original-JP
+  allocator, its exhaustion-only unload call instruction, `unload_object`,
+  `stop_sounds_from_source`, and `stop_sounds_in_continuous_banks` addresses.
+  From the accepted clear through the endpoint it records 73 allocator hits,
+  zero fallback/unload/source-sound hits, and one continuous-bank hit.  Coq
+  decodes the relevant `bnez` and three `jal` targets, proves
+  `stop_sounds_from_source` is not reached, and proves that any effect
+  obligation for that callsite is vacuous.  `sqrtf` remains not excluded by
+  this receipt.
 
 - [x] Adopt the authenticated Timer-131 receipt as the entry theorem.
   `jp_timer131_authenticated_receipt_is_accepted_entry` packages the exact

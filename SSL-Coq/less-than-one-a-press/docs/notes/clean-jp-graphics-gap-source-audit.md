@@ -136,14 +136,20 @@ derives the exact pointer, active, behavior, list, flag, and zero-offset endpoin
 from arbitrary old watched values and checks every protected overlap safe.  The
 85-function pre-update family still has three conservative outside declarations
 and the 150-function first-update family has five names at eight callsites, but
-their actual retail machine code is framed by the watch receipt.  Entry is now
-closed by project policy:
+an address-bound execute receipt now proves that one static edge is absent from
+the accepted run: it sees 73 successful allocator entries and zero allocator-
+fallback, `unload_object`, or `stop_sounds_from_source` hits, while the normal
+continuous-bank sound routine runs once.  The original-JP branch and call
+targets are checked in Coq, so the source-sound site needs no effect
+specification; `sqrtf` is not eliminated by this receipt.  Actual retail writes
+inside all reached routines remain framed by the watched-memory receipt.  Entry
+is now closed by project policy:
 `jp_timer131_authenticated_receipt_is_accepted_entry` promotes the receipt's
 checkpoint, spawn, identity, list, and safe-tail facts to the accepted
 Timer-131 entry theorem.  The IDO retail trace still has no proved state/step
 simulation to Clight, and CompCert still does not infer writable-memory frames
-for the three pre-entry `EF_external` prototypes, but a native Clight prefix is
-optional strengthening rather than a route obligation.  Required work starts
+for reached or not-yet-excluded pre-entry `EF_external` prototypes, but a native
+Clight prefix is optional strengthening rather than a route obligation.  Required work starts
 at the safe endpoint and classifies later execution through timer 131.  Ordinary
 castle equivalence is not required because level select is the accepted start
 boundary.

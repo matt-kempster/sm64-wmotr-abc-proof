@@ -64,6 +64,14 @@ Theorem current_timer131_accepted_machine_entry_boundary :
   JPInkTimer131AcceptedEntryTheorem.
 Proof. exact jp_timer131_authenticated_receipt_is_accepted_entry. Qed.
 
+(** The callsite-strengthened form additionally proves that the allocator's
+    exhaustion edge, [unload_object], and its source-sound call do not execute
+    in the accepted prefix.  The continuous-bank sound call does execute;
+    [sqrtf] is not eliminated by this receipt. *)
+Theorem current_timer131_accepted_machine_entry_callsite_boundary :
+  JPInkTimer131AcceptedEntryWithCallsiteBoundary.
+Proof. exact jp_timer131_authenticated_entry_and_callsite_boundary. Qed.
+
 Definition CollectionProvenanceReductionClaim : Prop :=
   forall initial events final,
     CleanPyramidEntry initial ->

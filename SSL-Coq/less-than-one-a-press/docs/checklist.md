@@ -542,11 +542,17 @@ These obligations currently block the clean-retail result.
   load's continuous-bank stop, and surface loading's `sqrtf`.  A broader
   150-function family which also permits the first object update remains writer-
   free and expands the boundary to five names at eight sites.  Recognized
-  builtins/runtimes are already memory-silent.  The project now accepts the
-  authenticated receipt as `JPInkTimer131AcceptedEntryTheorem`, so the missing
+  builtins/runtimes are already memory-silent.  An exact dynamic receipt now
+  removes one conservative edge: 73 allocator entries occur, but the allocator
+  fallback, `unload_object`, and `stop_sounds_from_source` have zero hits, so
+  that source-sound site needs no effect specification.  The continuous-bank
+  sound call is reached once; `sqrtf` is not excluded by this receipt.  The
+  project now accepts the authenticated receipt as
+  `JPInkTimer131AcceptedEntryTheorem`, so the missing
   IDO-MIPS-to-Clight prefix, reconstructed Clight start, and concrete effects for
-  the three pre-entry `EF_external` declarations are optional strengthening, not
-  tasks needed to close this route.  The watched MIPS effects cover indirect and
+  the reached or not-yet-excluded pre-entry `EF_external` declarations are
+  optional strengthening, not tasks needed to close this route.  The watched
+  MIPS effects cover indirect and
   outside machine code in that entry run without being described as a Clight
   proof.  Starting at its safe endpoint, classify branch reachability and exact
   effects for every later unresolved site while preserving Mario's slot/list/

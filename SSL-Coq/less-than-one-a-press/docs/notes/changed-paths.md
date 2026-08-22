@@ -1617,3 +1617,35 @@ following paths changed:
 - `SSL-Coq/less-than-one-a-press/docs/notes/clean-jp-graphics-gap-source-audit.md`
 - `SSL-Coq/less-than-one-a-press/docs/notes/changed-paths.md`
 - `SSL-Coq/less-than-one-a-press/notes/source-map.md`
+
+## Timer-131 pre-entry callsite non-reachability tranche
+
+The conservative 85-function closure still contains three unresolved outside
+call expressions, but the accepted original-JP entry now has an exact dynamic
+refinement.  A hash-gated execute-breakpoint receipt binds counters to the
+allocator, its exhaustion-only unload callsite, `unload_object`, both sound
+routines, and the existing phase PCs.  Across epoch 8 it observes 73 allocator
+entries, zero allocator-fallback/unload/source-sound hits, and one continuous-
+bank sound hit.  The runner requires the exact address/count receipt.  Coq
+checks the original-JP `bnez` and three `jal` targets, proves
+`unload_object -> stop_sounds_from_source` is not reached, and proves that the
+unreached callsite needs no effect specification.  It deliberately records
+`sqrtf` as not excluded by this receipt.  The strengthened accepted-entry
+boundary is exported by `MainTheorem.v`.  The following paths changed:
+
+- `SSL-Coq/less-than-one-a-press/proofs/InkTimer131RealEntryPrefix.v`
+- `SSL-Coq/less-than-one-a-press/proofs/MainTheorem.v`
+- `SSL-Coq/less-than-one-a-press/Makefile`
+- `SSL-Coq/less-than-one-a-press/instrumentation/jp-clean-gap-search/jp_clean_gap_search_probe.c`
+- `SSL-Coq/less-than-one-a-press/instrumentation/jp-clean-gap-search/run.sh`
+- `SSL-Coq/less-than-one-a-press/instrumentation/jp-clean-gap-search/expected-prefix-call-reach-receipt.txt` (new)
+- `SSL-Coq/less-than-one-a-press/instrumentation/jp-clean-gap-search/README.md`
+- `SSL-Coq/less-than-one-a-press/README.md`
+- `SSL-Coq/less-than-one-a-press/human-readable-proof.md`
+- `SSL-Coq/less-than-one-a-press/docs/no-a-route-atlas.md`
+- `SSL-Coq/less-than-one-a-press/docs/checklist.md`
+- `SSL-Coq/less-than-one-a-press/docs/checklist-completed.md`
+- `SSL-Coq/less-than-one-a-press/docs/notes/ordinary-area1-entry-memory.md`
+- `SSL-Coq/less-than-one-a-press/docs/notes/clean-jp-graphics-gap-source-audit.md`
+- `SSL-Coq/less-than-one-a-press/docs/notes/changed-paths.md`
+- `SSL-Coq/less-than-one-a-press/notes/source-map.md`

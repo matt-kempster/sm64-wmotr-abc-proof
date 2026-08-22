@@ -1060,6 +1060,17 @@ full live invariant; no ordinary-entry or pre-allocation slot-safety premise is
 used.  The pre-update 85-function family has three conservative outside sites;
 the 150-function first-update family has five names at eight sites.
 
+An additional hash-checked execute-breakpoint receipt now separates static
+call-graph membership from actual entry execution.  Between the accepted clear
+and endpoint it observes 73 `allocate_object` entries and one
+`stop_sounds_in_continuous_banks` entry, but zero hits at the allocator's
+exhaustion-only unload callsite, `unload_object`, or
+`stop_sounds_from_source`.  The exact original-JP branch/JAL words and targets
+are checked in Coq.  Consequently the conservative
+`unload_object -> stop_sounds_from_source` edge is proved unreachable in this
+entry and needs no effect specification.  The continuous-bank call is reached;
+`sqrtf` is not eliminated by this receipt.
+
 A read-only, hash-gated original-JP mode-2 run now supplies an exact continuous
 machine write receipt in addition to the call checkpoints.  Physical
 watchpoints cover every endpoint identity and protected range.  The accepted
@@ -1078,8 +1089,10 @@ and safe tail as `JPInkTimer131AcceptedEntryTheorem`; `MainTheorem.v` exports th
 result as the project's accepted Timer-131 entry boundary.  The receipt is still
 not an IDO-MIPS-to-Clight simulation.  Constructing the optional native CompCert
 prefix would require such a relation (or a reconstructed Clight start state) and
-concrete meanings for the three abstract pre-entry `EF_external` calls, but none
-of that is now required to accept this entry.  Required route work begins at the
+concrete meanings for the reached or not-yet-excluded pre-entry
+`EF_external` calls; the source-sound call has now been removed from that
+optional obligation by dynamic non-reachability.  None of that is required to
+accept this entry.  Required route work begins at the
 recorded safe endpoint and classifies later execution through timer 131.
 Ordinary castle entry is not required because level select is the accepted start.
 The abstract case split now also captures that a successful retry performs

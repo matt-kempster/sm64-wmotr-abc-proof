@@ -360,6 +360,12 @@ engineering but does not know *Super Mario 64*.
 > flag or nonzero graphical offset.  The runner rejects any changed or reordered
 > store, and Coq replays the receipt from arbitrary old watched values to derive
 > the entire recorded endpoint while checking every protected write safe.
+> A second exact receipt asks which conservative outside-call candidates really
+> run.  It observes 73 successful allocations and one ordinary area-loading
+> sound call, but no allocation-failure cleanup, object unload, or source-sound
+> call.  Coq checks the machine branch and call targets, so the source-sound
+> candidate is genuinely absent from this entry and needs no effect assumption;
+> the surface square-root candidate was not eliminated by this test.
 >
 > That completes the watched-memory classification for this authenticated retail
 > execution, including machine code reached indirectly or through an outside
@@ -368,8 +374,9 @@ engineering but does not know *Super Mario 64*.
 > spawn calls, Mario's slot/list/behavior identity, and both safe values at the
 > endpoint.  This does not magically turn the IDO-built retail program into a
 > CompCert run.  An IDO-MIPS-to-Clight simulation, a reconstructed Clight prefix,
-> and concrete meanings for its three abstract outside calls remain possible
-> strengthening, but they are no longer route-closing requirements.  The required
+> and concrete meanings for its reached or not-yet-excluded abstract outside
+> calls remain possible strengthening, but they are no longer route-closing
+> requirements.  The required
 > proof now starts at the accepted endpoint and checks every later step through
 > timer 131.  Ordinary castle entry is not required because level select is the
 > accepted boundary.

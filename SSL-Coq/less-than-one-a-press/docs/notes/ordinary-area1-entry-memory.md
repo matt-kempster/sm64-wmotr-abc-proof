@@ -265,9 +265,13 @@ The decisive in-scope work still open is:
    alone does not show that the gap remains below 960.
 
 An IDO-retail-to-Clight state/step simulation, an independently reconstructed
-Clight entry run, and concrete effects for its three pre-entry `EF_external`
-declarations remain useful optional strengthening, but project policy no longer
-requires them to close this Timer-131 entry boundary.
+Clight entry run, and concrete effects for its reached or not-yet-excluded
+pre-entry `EF_external` declarations remain useful optional strengthening, but
+project policy no longer requires them to close this Timer-131 entry boundary.
+The accepted dynamic receipt has already removed
+`unload_object -> stop_sounds_from_source` from that optional list: neither the
+allocator fallback, the unload routine, nor the sound call executes.  The
+continuous-bank call is reached, and `sqrtf` is not excluded by that receipt.
 
 Separately and at low priority, one may execute the actual linked US/JP
 `thread5_game_loop`/castle/`warp_level`/`init_mario_after_warp` route, prove
