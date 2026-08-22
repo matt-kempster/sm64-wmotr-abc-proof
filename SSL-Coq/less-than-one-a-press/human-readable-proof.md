@@ -1374,22 +1374,38 @@ Wing-Cap arithmetic below, as the closed theorem
 containment theorem.
 
 Cap state is a necessary engineering precondition, not decorative state.
-With a retained Wing Cap and held A, flutter gravity slows Mario's fall after
-the rollout turns downward while the elevator continues descending.  The old
-endpoint-only arithmetic reported `228`, but the exact replay finds a transient
-query of `234` at zero-based sample 44, above the `231` cutoff.  This is not a
-clean bypass—the horizontal wall response and live cap state are still
-unproved—but it means endpoint arithmetic cannot eliminate the Wing branch.
-Generated `init_mario` assigns only flags `0` or `1 | 16` and resets the cap
-timer; that initialization and its preservation must still be connected to
-the live entry and elevator execution.
+The stock upper entrance is Area-1 warp node `0x1E`, whose LevelScript route
+targets Area 2 node `0x14`.  Because this is a same-level area change rather
+than an instant warp, `warp_area` unloads and reloads the area and then runs
+`init_mario_after_warp`; that function runs `init_mario` and the initial-action
+helper.  `init_mario` overwrites Mario's flags with either `0` or `1 | 16` and
+zeros the cap timer, so both outcomes erase Wing.  The final initial-cap helper
+offers special caps only for course offsets `0`, `1`, and `2`; SSL is course
+8, whose offset from the cap courses is `8 - 20 = -12`, so it cannot restore
+Wing.  Thus a Wing Cap carried into the Area-1 entrance cannot survive the
+stock defined transition.  The formal receipt still needs the usual linked
+execution bridge showing that this decoded route and these calls use the same
+live Mario receiver; a forged route/course, different receiver, or post-reset
+writer is a distinct escape, not cap preservation.
+
+For diagnosis, a hypothetical Wing installed after that reset would make held
+A flutter gravity slow Mario's fall after rollout turns downward.  Exact replay
+finds only two samples above the `231` wall cutoff: zero-based samples 44 and
+45 are `234` and `232`; samples 46 and 47 are already `230` and `228`.  Each
+quarter-step first resolves upper and lower walls, then queries floor, ceiling,
+and water.  The rollout remains in rollout on no collision, changes to the
+landing action on a floor, loses forward speed but stays in rollout on a normal
+wall, and delegates a lava wall to the lava-boost handler.  The two-sample
+window therefore helps only if live X/Z, transformed elevator ownership,
+surface-list selection, and the wall response all line up; it is not itself a
+bypass.
 
 This is not yet an unconditional elevator-containment proof.  It still needs
 linked Clight execution of the action and gravity paths, live transformed-wall
 ownership and list selection, bounds for every intermediate collision query,
-normal collision rather than a clip/tunnel, cap initialization and
-preservation, and closure of the reachable upper-entry action states.  The
-lower route is less complete: Z can leave the second pole through
+normal collision rather than a clip/tunnel, the stock route/reset-to-live-
+receiver connection, and closure of the reachable upper-entry action states.
+The lower route is less complete: Z can leave the second pole through
 `ACT_SOFT_BONK`, so A is not literally the only pole exit.  The existing
 normalized pole arithmetic blocks that restricted Z-exit model, but does not
 cover every lower-entry ordinary trajectory.

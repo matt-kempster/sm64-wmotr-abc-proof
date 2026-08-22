@@ -116,16 +116,40 @@ The fully checked subkernel now contains:
 - exact binary32 replays of all 32 held-A jump-kick and 40 B-rollout
   quarter-step queries, with maxima `134` and `224.5`;
 - a generated-source return split limited to codes `0,1,2,3,4,6`;
-- direct initializer checks accepting only non-Wing flag assignments and a
-  zero cap timer; and
-- a corrected retained-Wing result: zero-based query 44 is `234`, above the
-  strict `231` wall cutoff even though the frame endpoints peak at `228`.
+- a checked Area-1-node-`0x1E` to Area-2-node-`0x14` call chain through
+  `warp_area`, `init_mario_after_warp`, `init_mario`, and the initial-cap
+  helper, proving that the stock transition resets Wing and that SSL course 8
+  cannot immediately restore it; and
+- an exact hypothetical-Wing result: only zero-based queries 44 and 45 are
+  above the strict `231` wall cutoff, at `234` and `232`; queries 46 and 47
+  are back to `230` and `228`.
 
 The ordinary arithmetic facts eliminate the modeled vertical-clearance
-versions at every query, not merely at frame endpoints.  They do not prove the
-live inner wall is selected or that the action reaches those query states.  The
-Wing result is a surviving branch until live entry proves the normal cap reset
-and its preservation.
+versions at every query, not merely at frame endpoints.  The stock transition
+also eliminates preservation of a Wing Cap carried from Area 1, subject to the
+still-needed live-execution link showing that the decoded route and ordinary
+call chain operate on the same Mario state.  A hypothetical post-reset Wing
+grant would create only a two-query opportunity; it still needs the intended
+live inner-wall owner/list choice, floor and ceiling results, horizontal
+position, and rollout action result, so it is not a bypass witness.
+
+## Hypothetical post-reset Wing decision chain
+
+This branch cannot arise by preserving Wing through the stock transition, but
+it is useful for classifying any distinct writer that might grant Wing after
+the reset:
+
+| Phase | Checked fact | Live fact still required |
+|---|---|---|
+| Entry descent | Area-2 node `0x14` places Mario at `(0,5500,256)` in the no-spin airborne entry; each air quarter-step resolves the upper wall, lower wall, floor, ceiling, and water in that order. | Execute every descent query, preserve the shaft X/Z line, and exclude an earlier fixed or target-side floor. |
+| Elevator landing | The candidate elevator base and its exact triangles are inventoried. | Show the selected floor is the transformed base owned by the intended active elevator object in its current allocation epoch, then derive the actual landing action/state. |
+| Rollout frames | Forward and backward rollout initialize vertical speed `30`, update horizontal air motion, call `perform_air_step(m, 0)`, and apply gravity after the four quarter-steps.  Step argument zero disables the ledge-grab and ceiling-hang result branches. | Derive the landed pose, facing, X/Z velocity, elevator phase, held-A input, and absence of another action/velocity writer. |
+| Two-query Wing window | On the twelfth modeled rollout frame, quarter-steps 1 and 2 are at relative Y `234` and `232`; quarter-steps 3 and 4 are `230` and `228`. | At one of the first two samples, select the intended transformed inner wall in the correct partition while retaining a floor/ceiling result compatible with continuing motion. |
+| Action result | `AIR_STEP_NONE` leaves rollout unchanged; `AIR_STEP_LANDED` selects `ACT_FREEFALL_LAND_STOP`; `AIR_STEP_HIT_WALL` zeros forward speed without selecting a new action; `AIR_STEP_HIT_LAVA_WALL` calls the lava-wall handler. | Execute the selected result and its same-frame state writes, then show the resulting position crosses the moving-relative cut rather than merely missing one wall query. |
+
+Accordingly, Wing would help only by creating two possible lower-wall misses.
+It supplies neither horizontal travel nor elevator ownership, and the stock
+transition supplies no Wing state in the first place.
 
 The strongest route theorem is an adapter-based conditional reduction enriched
 with moving-relative endpoint witnesses:

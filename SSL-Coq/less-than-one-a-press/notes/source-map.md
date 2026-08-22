@@ -841,10 +841,17 @@ scaled recurrence is checked against every binary32 transition, giving 32
 held-A queries with maximum `134` and 40 B-rollout queries with maximum
 `224.5`, both below `231`.  It computes the generated quarter-step return codes
 as `0,1,2,3,4,6` and checks all direct `init_mario` assignments to the
-flags/timer as non-Wing/zero.  A retained Wing Cap has a transient query at
-`234` even though its endpoint maximum is `228`, so cap-state linkage is not
-optional.  Neither module constructs the live descent, elevator selection,
-surface results, action transitions, or collision observations.
+flags/timer as non-Wing/zero.  `proofs/UpperElevatorWingCapTransitionClosure.v`
+then checks the packed Area-1 node-`0x1E` route to Area 2 node `0x14`, the
+same-area warp/reinitialization call order, and the initial-cap helper's exact
+case labels.  SSL course 8 has cap-course index `-12`, so the reset Wing bit
+cannot be restored: ordinary preservation through this transition is excluded
+at the defined-source boundary.  A hypothetical post-reset Wing grant has
+exactly two above-cutoff samples, `234` and `232`, followed by `230` and `228`;
+the module also checks wall-wall-floor-ceiling-water query order and rollout
+call order.  No module yet constructs the linked live route/receiver bridge,
+descent, elevator selection, surface results, action transitions, or collision
+observations.
 
 `proofs/InkFallback.v` supplies a separate writer invariant relevant to the
 same class.  State-only ordinary, platform, and PU-sized writes preserve the

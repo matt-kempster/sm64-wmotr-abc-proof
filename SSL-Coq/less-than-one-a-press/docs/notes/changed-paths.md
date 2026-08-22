@@ -1502,3 +1502,25 @@ missed.  The following paths changed:
 - `SSL-Coq/less-than-one-a-press/instrumentation/jp-clean-gap-search/run.sh`
 - `SSL-Coq/less-than-one-a-press/docs/notes/changed-paths.md`
 - `SSL-Coq/less-than-one-a-press/notes/source-map.md`
+
+## Stock Wing-Cap area-transition closure
+
+The stock upper entrance is now checked from its packed route words through
+the same-area warp/reinitialization call chain and SSL's initial-cap switch.
+Normal Area-1-to-Area-2 Wing preservation is excluded at the defined-source
+boundary.  The hypothetical post-reset Wing trace has exactly two samples
+above the elevator-wall cutoff, so it remains only a diagnostic for a distinct
+writer or forged transition.  The following paths changed:
+
+- `SSL-Coq/less-than-one-a-press/proofs/UpperElevatorWingCapTransitionClosure.v` (new)
+- `SSL-Coq/less-than-one-a-press/_CoqProject`
+- `SSL-Coq/less-than-one-a-press/Makefile`
+- `SSL-Coq/less-than-one-a-press/README.md`
+- `SSL-Coq/less-than-one-a-press/human-readable-proof.md`
+- `SSL-Coq/less-than-one-a-press/docs/no-a-route-atlas.md`
+- `SSL-Coq/less-than-one-a-press/docs/checklist.md`
+- `SSL-Coq/less-than-one-a-press/docs/checklist-completed.md`
+- `SSL-Coq/less-than-one-a-press/docs/notes/area2-elevator-cut.md`
+- `SSL-Coq/less-than-one-a-press/docs/notes/ordinary-motion.md`
+- `SSL-Coq/less-than-one-a-press/docs/notes/changed-paths.md`
+- `SSL-Coq/less-than-one-a-press/notes/source-map.md`

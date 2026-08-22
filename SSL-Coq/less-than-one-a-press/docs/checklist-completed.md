@@ -1322,9 +1322,13 @@ Completed work is grouped by subject. Each item retains its original scope warni
   also enumerates the six literal quarter-step return values and checks that
   every direct `init_mario` cap-field assignment is non-Wing with a zero timer.
   The old Wing endpoint argument is corrected: the retained-Wing schedule has
-  a zero-based query 44 at exactly `234`, above the cutoff, although endpoints
-  peak at `228`.  The module and focused assumption audits pass; live descent,
-  surface selection, action/collision projection, and cap persistence remain
+  zero-based queries 44 and 45 at `234` and `232`, the only two samples above
+  the cutoff, before samples `230` and `228`.  The companion
+  `UpperElevatorWingCapTransitionClosure.v` checks the stock node-`0x1E` to
+  node-`0x14` area-change call chain, the non-Wing initializer values, and
+  SSL's failure to select any initial special-cap case.  Thus normal Wing
+  preservation is closed at the defined-source boundary; live route/receiver
+  linking, descent, surface selection, and action/collision projection remain
   open.
 
 - [x] Authenticate the US/JP lower ring triangles `1414..1421`, aperture

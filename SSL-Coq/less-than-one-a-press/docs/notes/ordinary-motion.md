@@ -179,25 +179,28 @@ queries, show the fall remains on the shaft line absent an already classified
 nonordinary writer, select the intended live elevator floor, and only then
 enter the post-landing ascent envelope.
 
-Mario's cap state is not harmless bookkeeping.  If a Wing Cap is retained
-while A stays held, `apply_gravity` switches to the two-unit flutter branch
-after vertical velocity becomes negative.  Mario then falls more slowly than
-the elevator descends.  The corresponding closed rollout arithmetic has
-positive relative increments
+Mario's cap state is not harmless bookkeeping.  If a Wing Cap is
+hypothetically installed after entry while A stays held, `apply_gravity`
+switches to the two-unit flutter branch after vertical velocity becomes
+negative.  Mario then falls more slowly than the elevator descends.  The
+corresponding closed rollout arithmetic has positive relative increments
 
 ```text
 40, 36, 32, 28, 24, 20, 16, 12, 8, 6, 4, 2
 ```
 
-and reaches `228`.  This is greater than the non-Wing bound `220` but less
-than the corrected integer-translation wall threshold `231`.  It is an
-arithmetic countermodel to reusing the non-Wing gravity bound when
-`MarioState.flags` and `capTimer` are omitted; it is not a vertical-clearance
-or collision-complete bypass trace.  Retail `init_mario` resets the
-special-cap state and `set_mario_initial_cap_powerup` does not grant a cap in
-SSL, but the current abstract `GameState` does not carry those fields.
-`OrdinaryMotionCapFlagsEntryProjectionObligation` therefore keeps the
-initialization-to-clean-entry memory fact explicit.
+and reaches the frame endpoint `228`.  Quarter-step execution is sharper:
+only samples 44 and 45 exceed the `231` threshold, at `234` and `232`, and the
+next two are `230` and `228`.  This is a diagnostic countermodel to omitting
+`MarioState.flags` and `capTimer`, not a collision-complete bypass trace.
+`UpperElevatorWingCapTransitionClosure.v` checks that the stock Area-1-to-2
+route invokes Mario reinitialization, which writes only non-Wing flags and a
+zero timer, and that SSL course 8 selects none of the initial special-cap
+cases.  Thus carrying Wing through the stock transition is impossible in the
+defined source execution.  `OrdinaryMotionCapFlagsEntryProjectionObligation`
+still asks the linked proof to connect that route and those writes to the same
+live Mario receiver; a post-reset grant, forged route/course, or different
+receiver would be a separately named escape rather than preservation.
 
 ## Lower entrance and the second pole
 

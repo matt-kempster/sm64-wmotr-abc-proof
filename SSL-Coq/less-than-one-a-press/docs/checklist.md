@@ -692,17 +692,21 @@ These obligations materially strengthen the proof but are not the shortest route
 
 - [ ] Instantiate the ordinary safe envelope for each clean US/JP entrance
   from linked Clight action execution and live collision surfaces.  Prove
-  controller-memory alignment, cap initialization/preservation, reachable
-  action closure, the upper no-spin entry descent and intended-floor landing,
-  every intermediate floor/wall/ceiling query, and collision observation
-  alignment.  `UpperElevatorQuarterStepClosure.v` now checks all 32 held-A
+  controller-memory alignment, the stock cap-reset-to-live-receiver link,
+  reachable action closure, the upper no-spin entry descent and intended-floor
+  landing, every intermediate floor/wall/ceiling query, and collision
+  observation alignment.  `UpperElevatorQuarterStepClosure.v` now checks all 32 held-A
   jump-kick and 40 B-rollout binary32 quarter-steps, whose maxima are `134` and
   `224.5` below the strict `231` cutoff, and enumerates the six literal
-  quarter-step return codes.  A retained Wing Cap instead has a real transient
-  query at `234` despite its `228` endpoint, so the live entry cap reset and
-  preservation are decisive.  These finite calculations and the normalized Z
-  soft-bonk subcase do not yet execute the descent, live elevator, wall/floor
-  selection, action transitions, or collision phases.  For the Ink branch, replace
+  quarter-step return codes.  `UpperElevatorWingCapTransitionClosure.v` now
+  proves that the stock Area-1-to-2 source path reinitializes Mario and that
+  SSL cannot immediately restore Wing; a hypothetical post-reset Wing state
+  has only two above-cutoff queries, `234` and `232`, before falling below at
+  `230`.  Still link the decoded route and reset writes to the same live Mario
+  receiver, and classify any post-reset cap writer.  These finite calculations
+  and the normalized Z soft-bonk subcase do not yet execute the descent, live
+  elevator, wall/floor selection, action transitions, or collision phases.
+  For the Ink branch, replace
   the predicate-sensitive `Area1InkWriterCoverageObligation` schema with a
   concrete linked-run writer-coverage relation deriving the route-specific dry
   Graphics-minus-Object bound of at most `45` or the conservative modeled

@@ -609,6 +609,15 @@ check: proofs
 	  LessThanOneAPress.Proofs.UpperElevatorQuarterStepClosure \
 	  retained_wing_cap_has_a_234_unit_transient_query
 	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.UpperElevatorWingCapTransitionClosure \
+	  upper_entry_transition_source_checked
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.UpperElevatorWingCapTransitionClosure \
+	  hypothetical_wing_above_cutoff_window_is_exact
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.UpperElevatorWingCapTransitionClosure \
+	  upper_elevator_wing_cap_transition_checked_boundary_holds
+	bash pipeline/assumptions.sh \
 	  LessThanOneAPress.Proofs.Area2LowerTargetCut \
 	  area2_lower_target_cut_checked_boundary
 	bash pipeline/assumptions.sh \

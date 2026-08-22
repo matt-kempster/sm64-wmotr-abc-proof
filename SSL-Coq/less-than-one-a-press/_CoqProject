@@ -276,6 +276,7 @@ proofs/ModelGapAudit.v
 proofs/OrdinaryMotion.v
 proofs/Area2ElevatorCut.v
 proofs/UpperElevatorQuarterStepClosure.v
+proofs/UpperElevatorWingCapTransitionClosure.v
 proofs/Area2LowerTargetCut.v
 proofs/Area2DownstreamGeometry.v
 proofs/Area2DownstreamReceipts.v

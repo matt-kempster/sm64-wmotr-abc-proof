@@ -815,11 +815,16 @@ already held, punching can select `ACT_JUMP_KICK` after B without a new A
   peak at `134`, and 40 B-rollout queries peak at `224.5`, both below the strict
   `231` wall-rejection cutoff after the dynamic surface's five-unit upper-Y
   pad.  It also checks each arithmetic transition and enumerates the six
-  literal quarter-step results.  A retained Wing Cap exposes the important
-  exception: query 44 is exactly `234`, above the cutoff, even though the frame
-  endpoints peak at `228`.  The generated initializer writes only non-Wing
-  flag values and a zero cap timer, but the descent, live elevator/surface
-  selection, action/collision execution, and preservation of that cap state
+  literal quarter-step results.  `UpperElevatorWingCapTransitionClosure.v`
+  now checks the stock Area-1 node-`0x1E` to Area-2 node-`0x14` call chain:
+  the same-level area warp reinitializes Mario, writes only non-Wing flags and
+  a zero cap timer, and SSL course 8 selects none of the three initial
+  special-cap cases.  Carrying Wing through that stock transition is therefore
+  impossible in the defined source execution, pending the ordinary linked-run
+  receiver/route connection.  A hypothetical Wing installed after reset has
+  only two above-cutoff queries, `234` and `232`, before returning to `230` and
+  `228`; that is a wall-selection opportunity, not a crossing witness.  The
+  descent, live elevator/surface selection, and action/collision execution
   remain open.  The lower route remains open beyond
 the existing normalized soft-bonk subcase.  See
 [`docs/notes/ordinary-motion.md`](docs/notes/ordinary-motion.md).
