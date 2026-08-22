@@ -515,22 +515,32 @@ These obligations currently block the clean-retail result.
   predicate.  The trace bridge was corrected so legitimate list-link rewrites
   need only preserve Mario's membership, and unresolved externals now use a
   callsite-sensitive frame-or-writer interface.  A hash-gated, read-only
-  original-JP run now executes the actual clear/load/spawn/init checkpoints in
-  order and observes slot 67, matching State/Mario pointers, safe tail cells,
-  and the one-node player-list ring.  What remains is to translate that
-  level-select MIPS receipt into the CompCert execution certificate, derive the
-  final behavior/link loads there, and cover every internal step and outside
-  call in the run.
-  `InkTimer131RealEntryPrefix.v` now defines that missing execution object at
-  the correct cross-subsystem chronology: one continuous official-JP small-step
-  run must pass through the real `clear_objects`, `load_mario_area`,
-  `spawn_objects_from_info`, and `init_mario` call states, with every step
-  classified by its exact watched-cell effect.  Given the final entry, behavior,
-  list, and protected-load observations, the theorem derives the complete live
-  Timer-131 invariant.  The CompCert certificate is not yet inhabited: reached
-  OS/audio/graphics calls need exact effects and the final live loads still
-  need to be derived from execution.  Construct that inhabitant or report the
-  first step that cannot satisfy the classifier.
+  original-JP run now executes the actual level-select clear/load/two-spawn/init
+  checkpoints in order and observes slot 67, matching State/Mario pointers,
+  `bhvMario`, safe tail cells, and the one-node player-list ring.  The harness
+  now rejects anything weaker than that exact ordered receipt.
+  `InkTimer131RealEntryPrefix.v` now starts at the accepted level-select
+  `clear_objects` boundary, represents the separate Area-object and Mario
+  `spawn_objects_from_info` calls, and transcribes the hashed machine receipt
+  into checked call-stage and endpoint arithmetic.  Its endpoint record no
+  longer assumes an ordinary entry or preserves a not-yet-live slot from
+  program initialization: exact CompCert loads for slot 67, the `bhvMario`
+  symbol and pointer, both Mario pointers, active state, all four one-node ring
+  links, `oFlags=0x100`, and zero graphical offset directly derive the complete
+  live invariant.  A new star-to-certificate theorem shows that one actual
+  small-step run plus reachable-step coverage constructs the per-step
+  certificate, and a conservative 150-function clear/load/init/first-update
+  direct-call closure is closed and intersects neither complete literal tail-
+  writer inventory.  Its unresolved direct-callee inventory is now exactly
+  `stop_sounds_in_continuous_banks`, `stop_sounds_from_source`, `print_text`,
+  `print_text_fmt_int`, and `sqrtf`; recognized builtins/runtimes are already
+  memory-silent, so reached instances of these five names are the finite direct-
+  external frame/effect obligations.  The certificate is still not inhabited:
+  derive those
+  endpoint loads from the same execution, refine the authenticated retail
+  checkpoints to its CompCert states, and classify indirect dispatch, valid
+  aliases, and every actually reached OS/audio/graphics call; report the first
+  step that fails.  Ordinary castle entry is not part of this route boundary.
 
 - [ ] Prove the linked stock-provenance projection is exhaustive.  Analyze
   relocated warp/top or collision-preserving clones, post-commit movement

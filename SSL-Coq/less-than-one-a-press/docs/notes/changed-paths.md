@@ -1524,3 +1524,34 @@ writer or forged transition.  The following paths changed:
 - `SSL-Coq/less-than-one-a-press/docs/notes/ordinary-motion.md`
 - `SSL-Coq/less-than-one-a-press/docs/notes/changed-paths.md`
 - `SSL-Coq/less-than-one-a-press/notes/source-map.md`
+
+## Timer-131 authenticated level-select bridge tranche
+
+The Timer-131 entry certificate now begins at the accepted level-select
+`clear_objects` boundary, represents both observed spawn calls, and hardcodes
+the authenticated machine checkpoints and endpoint arithmetic.  Exact CompCert
+loads for slot 67, `bhvMario`, both Mario pointers, active state, the complete
+one-node list ring, `oFlags=0x100`, and zero graphical offset directly establish
+the live invariant without an ordinary-entry or pre-allocation slot-safety
+premise.  A new reverse theorem converts an actual Clight star plus per-step
+coverage into the classifier, and a closed conservative 150-function direct-
+call family contains no literal watched-cell writer.  Its unresolved direct
+boundary is exactly five names at eight caller/callee sites.  The runner now
+requires the two distinct spawn callsites and exact endpoint in order.  Indirect
+dispatch, aliases, reached outside-call effects, endpoint derivation, and the
+retail-to-Clight execution refinement remain open.  The following paths
+changed:
+
+- `SSL-Coq/less-than-one-a-press/proofs/InkTimer131RealEntryPrefix.v`
+- `SSL-Coq/less-than-one-a-press/Makefile`
+- `SSL-Coq/less-than-one-a-press/instrumentation/jp-clean-gap-search/run.sh`
+- `SSL-Coq/less-than-one-a-press/instrumentation/jp-clean-gap-search/README.md`
+- `SSL-Coq/less-than-one-a-press/README.md`
+- `SSL-Coq/less-than-one-a-press/human-readable-proof.md`
+- `SSL-Coq/less-than-one-a-press/docs/no-a-route-atlas.md`
+- `SSL-Coq/less-than-one-a-press/docs/checklist.md`
+- `SSL-Coq/less-than-one-a-press/docs/checklist-completed.md`
+- `SSL-Coq/less-than-one-a-press/docs/notes/ordinary-area1-entry-memory.md`
+- `SSL-Coq/less-than-one-a-press/docs/notes/clean-jp-graphics-gap-source-audit.md`
+- `SSL-Coq/less-than-one-a-press/docs/notes/changed-paths.md`
+- `SSL-Coq/less-than-one-a-press/notes/source-map.md`

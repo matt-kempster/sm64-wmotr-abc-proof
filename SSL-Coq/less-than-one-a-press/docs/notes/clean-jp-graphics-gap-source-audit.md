@@ -123,19 +123,24 @@ every valid object slot of the official JP initial memory, rather than merely
 recognizing the allocator's clearing loop.  It also computes `bhvMario` as the
 only generated behavior selecting list 0 and checks the load/spawn/list source
 chain.  The trace invariant now allows legitimate list-link rewrites and uses
-  a callsite-sensitive external frame-or-writer interface.
-  `InkTimer131RealEntryPrefix.v` now corrects the cross-phase chronology and
-  defines one continuous official-JP small-step certificate through clearing,
-  Area-1 loading, Mario spawning, and initialization; every step must carry an
-  exact watched-cell effect, and the final entry/behavior/list loads imply the
-  full live invariant.  This is a stricter execution interface, not a completed
-  run: reached unresolved startup calls still need exact effects, and the final
-  live loads have not yet been derived.
-  A hash-gated original-JP mode-2 run now independently observes all four
-  function entries in order and the resulting slot-67 Mario/list/tail state.
-  Because that receipt is read-only level-select MIPS evidence rather than a
-  CompCert small-step trace, instruction-level classification, outside-call
-  effects, and ordinary-entry equivalence remain the bridge obligations.
+a callsite-sensitive external frame-or-writer interface.
+`InkTimer131RealEntryPrefix.v` now begins at the accepted level-select clear and
+represents both observed spawn calls before initialization.  It transcribes the
+hash-pinned machine checkpoint values and verifies the slot arithmetic; exact
+CompCert endpoint loads for slot 67, `bhvMario`, both Mario pointers, the four
+one-node ring links, `oFlags=0x100`, and the zero offset directly establish the
+live invariant.  It also proves that the conservative 150-function direct-call
+family around clear/load/init/first-update is closed and contains no literal
+flag or graphical-offset writer.  Its unresolved direct boundary is exactly
+five names at eight callsites: four `sqrtf` calls, one source-sound stop, two
+debug-text calls, and one continuous-bank sound stop.  The remaining semantic
+work is now the one continuous Clight run, the endpoint-load derivation,
+indirect dispatch and alias refinement, and exact effects for each actually
+reached one of those eight outside sites.  The
+hash-gated original-JP mode-2 trace independently observes the matching five
+function entries and endpoint, but it is still MIPS evidence rather than a
+CompCert small-step trace.  Ordinary castle equivalence is not required because
+level select is the accepted start boundary.
 
 `InkTimer131ProducerClosure.v` replaces the earlier “no writer found” wording
 with a complete initializer result.  Its opcode-neutral scan finds exactly 40

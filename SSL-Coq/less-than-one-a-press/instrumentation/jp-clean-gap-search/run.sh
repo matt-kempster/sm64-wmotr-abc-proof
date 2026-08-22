@@ -55,16 +55,17 @@ printf 'run\n' |
 grep -E '^(SEARCH|PREFIX_BREAKPOINT_ARM|PREFIX_STAGE|ENTRY_IDENTITY|ACTION|MAX_GAP|MIN_GAP|GAP45|GAP960|FIRE_LINK|TOP|FRAME|NONFINITE|B_INPUT|MODE9_STAGE|RESULT)' \
     "$raw_log" >"$trace"
 grep '^RESULT' "$trace"
-if ! grep -q '^PREFIX_STAGE,stage=clear_objects,sequence=1,' "$trace" \
-    || ! grep -q '^PREFIX_STAGE,stage=load_mario_area,sequence=2,' "$trace" \
-    || ! grep -q '^PREFIX_STAGE,stage=spawn_objects_from_info,sequence=3,' "$trace" \
-    || ! grep -q '^PREFIX_STAGE,stage=init_mario,sequence=4,' "$trace"; then
-    printf '%s\n' "clear/load/spawn/init execution receipt failed" >&2
-    exit 3
-fi
-if ! grep -q '^ENTRY_IDENTITY,.*slot=[0-9][0-9]*,.*stateMatches=1,tailSafe=1,listRing=1,prefixStage=4$' \
-    "$trace"; then
-    printf '%s\n' "Area-1 entry identity receipt failed" >&2
+if ! awk '
+    BEGIN { stage = 0 }
+    stage == 0 && $0 == "PREFIX_STAGE,stage=clear_objects,sequence=1,pc=8029ca60,returnPC=8037ee68,a0=8038bd88,a1=0000000a,timer=347,area=1,marioObject=00000000,stateMarioObject=00000000" { stage = 1; next }
+    stage == 1 && $0 == "PREFIX_STAGE,stage=load_mario_area,sequence=2,pc=8027aa0c,returnPC=8024b9a8,a0=00000000,a1=00000008,timer=347,area=1,marioObject=00000000,stateMarioObject=00000000" { stage = 2; next }
+    stage == 2 && $0 == "PREFIX_STAGE,stage=spawn_objects_from_info,sequence=3,pc=8029c830,returnPC=8027a964,a0=00000000,a1=80182238,timer=347,area=1,marioObject=00000000,stateMarioObject=00000000" { stage = 3; next }
+    stage == 3 && $0 == "PREFIX_STAGE,stage=spawn_objects_from_info,sequence=3,pc=8029c830,returnPC=8027aa70,a0=00000000,a1=8033a140,timer=347,area=1,marioObject=00000000,stateMarioObject=00000000" { stage = 4; next }
+    stage == 4 && $0 == "PREFIX_STAGE,stage=init_mario,sequence=4,pc=802548bc,returnPC=8024b9b0,a0=80346052,a1=8033a146,timer=347,area=1,marioObject=80346038,stateMarioObject=00000000" { stage = 5; next }
+    stage == 5 && $0 == "ENTRY_IDENTITY,timer=348,marioObject=80346038,slot=67,stateMarioObject=80346038,activeFlags=0101,behavior=800eb1c0,oFlags=00000100,oGraphYOffsetBits=00000000,next=8033b870,prev=8033b870,sentinelNext=80346038,sentinelPrev=80346038,stateMatches=1,tailSafe=1,listRing=1,prefixStage=4" { stage = 6; next }
+    END { exit stage == 6 ? 0 : 1 }
+' "$trace"; then
+    printf '%s\n' "exact level-select clear/load/area-spawn/Mario-spawn/init/identity receipt failed" >&2
     exit 3
 fi
 if [ "$allow_setup_a" = 0 ]; then

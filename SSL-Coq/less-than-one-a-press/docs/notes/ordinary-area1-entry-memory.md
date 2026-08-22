@@ -208,24 +208,29 @@ The theorem `ordinary_area1_entry_checked_boundary_holds` packages only those
 checked facts.  It is not a retail reachability theorem.
 
 `proofs/InkTimer131RealEntryPrefix.v` now supplies the next execution-shaped
-boundary for the JP Ink investigation.  It corrects the phase order—level-
-script object clearing precedes the later level-update Area-1 load, Mario spawn,
-and `init_mario` call—and requires all five checkpoints to occur in one
-continuous CompCert small-step run.  Every step must be classified as a checked
-safe store or an exact protected-cell frame/writer effect.  If the same run
-also supplies the ordinary entry postcondition, Mario behavior load, list-0
-membership, and selected protected loads, the full Timer-131 live invariant
-follows.  The record has no constructed inhabitant yet; this note therefore
-does not claim retail reachability.
+boundary for the JP Ink investigation.  Because level select is accepted here,
+it starts at the final Area-1 `clear_objects` call rather than at program startup
+or ordinary castle entry.  It then requires `load_mario_area`, the distinct
+Area-object and Mario spawn calls, `init_mario`, and the final state to occur in
+one continuous CompCert small-step run whose every step is a checked safe store
+or exact protected-cell frame/writer effect.  Exact slot-67, `bhvMario`, pointer,
+active, list-ring, `oFlags=0x100`, zero-offset, and protected-load reads directly
+imply the full Timer-131 live invariant.  The closed conservative 150-function
+direct-call family contains no literal watched-cell writer and has exactly five
+unresolved names at eight caller/callee sites.  The record has no constructed
+inhabitant yet; indirect dispatch, aliases, exact effects for each reached one
+of those sites, and derivation of the endpoint reads remain open.
 
 A separate authentic machine-code receipt now covers the missing phase
 sequence.  A hash-gated, read-only original-JP mode-2 run hits
-`clear_objects`, `load_mario_area`, `spawn_objects_from_info`, and
-`init_mario` in order, then observes slot 67 with matching Mario pointers,
-safe tail values, and a one-node list-0 ring.  This confirms the runtime phase
-and endpoint after level-select entry, but it does not inhabit the CompCert
-record, classify instructions between breakpoints, or prove ordinary
-castle-entry equivalence.
+`clear_objects`, `load_mario_area`, both `spawn_objects_from_info` callsites,
+and `init_mario` in order, then observes slot 67 with matching Mario pointers,
+safe tail values, and a one-node list-0 ring.  The runner now verifies every
+exact checkpoint and endpoint line, and Coq checks the translated ordering and
+slot arithmetic.  This confirms the runtime phase and endpoint after
+level-select entry, but it does not inhabit the CompCert record or classify
+instructions between breakpoints.  Ordinary castle equivalence is not required
+by this route boundary.
 
 `proofs/DefaultArea1StartBoundary.v` packages the selected program, exact
 exterior spawn memory, coherent no-A controller history, and explicit global-
@@ -245,7 +250,8 @@ The decisive in-scope work still open is:
 2. translate the authenticated MIPS phase receipt into the real-prefix
    certificate by proving the exact effects of
    every reached floor/water, graph, camera, save, audio, allocator, and other
-   external call, then derive the final behavior/list loads from that run;
+   external call, then derive the final slot-67 behavior/list/safe-tail loads
+   from that run;
 3. prove complete object-pool/list ownership and alias invariants, beyond the
    current pointer-closure definition, and discharge the explicit per-access
    in-bounds obligation;

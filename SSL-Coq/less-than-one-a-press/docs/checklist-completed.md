@@ -955,23 +955,30 @@ Completed work is grouped by subject. Each item retains its original scope warni
   first step; those remain the live obligations.
 
 - [x] Define the real Timer-131 clear/load/spawn execution certificate.
-  `InkTimer131RealEntryPrefix.v` corrects the phase chronology and joins the
-  official task start, `clear_objects`, `load_mario_area`,
-  `spawn_objects_from_info`, `init_mario`, and final entry state with actual
-  CompCert small-step segments.  Every step must carry a safe-store or exact
-  protected-cell effect, so any inhabitant is one continuous classified run;
-  combined with the final entry/behavior/list loads it supplies the full live
-  Timer-131 invariant.  The module compiles and its focused assumption audits
-  pass.  It deliberately does not construct the inhabitant: reached unresolved
-  startup calls and the final live observations remain open.
+  `InkTimer131RealEntryPrefix.v` starts at the accepted level-select
+  `clear_objects` call and joins `load_mario_area`, the distinct Area-object and
+  Mario `spawn_objects_from_info` calls, `init_mario`, and the final entry state
+  with actual CompCert small-step segments.  Every step must carry a safe-store
+  or exact protected-cell effect, so any inhabitant is one continuous
+  classified run.  Exact slot-67, `bhvMario`, pointer, list-ring, `oFlags=0x100`,
+  and zero-offset loads now directly supply the full live invariant, without an
+  ordinary-entry premise or a false pre-allocation slot-preservation premise.
+  A reverse bridge constructs the classifier from an actual star plus per-step
+  coverage, and the conservative 150-function direct-call family has no literal
+  watched-cell writer.  Its unresolved direct-call inventory is exactly the two
+  sound-stop routines, `print_text`, `print_text_fmt_int`, and `sqrtf`.  The
+  module compiles; indirect dispatch, exact effects for reached instances of
+  those five calls, endpoint derivation, and construction of the inhabitant
+  remain open.
 
 - [x] Execute the phase checkpoints in authentic original-JP machine code.
   The read-only mode-2 probe records `clear_objects`, `load_mario_area`,
-  `spawn_objects_from_info`, and `init_mario` in order.  Its following snapshot
-  identifies Mario as slot 67, matches the MarioState pointer, observes safe
-  flag/offset words, and checks a one-node player-list ring.  This is
-  level-select MIPS evidence, not a CompCert trace or proof of ordinary
-  castle-entry equivalence.
+  the Area-object and Mario calls to `spawn_objects_from_info`, and `init_mario`
+  in order.  Its following snapshot identifies Mario as slot 67, matches the
+  MarioState pointer, observes safe flag/offset words, and checks a one-node
+  player-list ring.  The runner now requires every exact line and callsite in
+  that sequence.  This is level-select MIPS evidence rather than a CompCert
+  trace; ordinary castle entry is not required by the accepted route boundary.
 
 - [x] Construct the exact rank-3 platform payload at the binary32 boundary.
   `Area1NonlocalPlatformMirror.v` uses the generated US/JP sine-table entries

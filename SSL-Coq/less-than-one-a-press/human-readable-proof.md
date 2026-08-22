@@ -349,19 +349,26 @@ engineering but does not know *Super Mario 64*.
 > but it does not show that normal program inputs can reach the injected state.
 >
 > The clean-entry side now has an execution-shaped interface rather than a list
-> of disconnected source facts.  `InkTimer131RealEntryPrefix.v` follows the
-> actual phase split—level-script clearing first, then later Area-1 load, Mario
-> spawn, and initialization—and requires one continuous CompCert run with every
-> step's effect on the two watched words classified.  Supplying the final Mario
-> behavior and player-list observations would derive the full safe invariant.
-> The interface is not yet inhabited because the reached unresolved startup
-> calls still need exact memory effects; it therefore narrows the missing proof
-> without pretending the retail prefix has already been executed.
-> A read-only original-JP run now does execute the four machine-code checkpoints
-> in order and observes the expected safe slot-67 Mario/list state afterward.
-> It starts through level select and does not record every instruction, so it
-> validates the runtime chronology and endpoint without yet inhabiting the
-> CompCert certificate or proving ordinary-entry equivalence.
+> of disconnected source facts.  `InkTimer131RealEntryPrefix.v` now begins at
+> the accepted level-select clear, then follows Area-1 loading, the separate
+> Area-object and Mario spawn calls, and Mario initialization.  It requires one
+> continuous CompCert run with every step's effect on the two watched words
+> classified.  The endpoint is no longer a generic ordinary-entry assumption:
+> exact slot-67, `bhvMario`, pointer, active, list-ring, safe-flag, and zero-
+> offset reads directly establish the full safe invariant.  A conservative
+> 150-function direct-call family around the prefix and first update contains no
+> literal writer of either watched word.  That family has exactly five unresolved
+> direct routines at eight callsites: square root four times, two sound-stop
+> routines, and two debug-text calls.  The interface is not yet inhabited
+> because indirect dispatch, valid aliases, and reached instances of those
+> eight sites still need exact effects and the endpoint reads must come from
+> that same run.
+> A read-only original-JP run executes all five machine-code entries in order
+> and observes the matching slot-67 state; the proof now hardcodes and checks
+> that receipt's order and slot arithmetic.  The trace does not record every
+> instruction and the retail IDO binary is not automatically a CompCert run, so
+> the remaining refinement is explicit.  Ordinary castle entry is not required
+> because level select is the accepted boundary.
 >
 > The exact timer-131 collision calculation matters.  The old home-pose sample
 > `(-2048,1791,-1024)` is rejected by the raised and rotated top.  A corrected

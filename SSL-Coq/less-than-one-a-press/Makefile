@@ -1896,6 +1896,27 @@ check: proofs
 	  LessThanOneAPress.Proofs.InkTimer131RealEntryPrefix \
 	  completed_real_prefix_supplies_live_timer131_invariant
 	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.InkTimer131RealEntryPrefix \
+	  jp_timer131_level_select_direct_writer_checked
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.InkTimer131RealEntryPrefix \
+	  jp_timer131_level_select_external_inventory_checked
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.InkTimer131RealEntryPrefix \
+	  jp_timer131_level_select_external_callsites_checked
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.InkTimer131RealEntryPrefix \
+	  jp_timer131_authenticated_machine_receipt_decodes
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.InkTimer131RealEntryPrefix \
+	  clight_star_under_timer131_cell_coverage_is_classified
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.InkTimer131RealEntryPrefix \
+	  level_select_execution_skeleton_builds_classified_prefix
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.InkTimer131RealEntryPrefix \
+	  completed_level_select_bridge_and_post_entry_coverage_exclude_tail
+	bash pipeline/assumptions.sh \
 	  LessThanOneAPress.Proofs.Area1NonlocalPlatformMirror \
 	  area1_nonlocal_platform_mirror_checked_boundary_holds
 	bash pipeline/assumptions.sh \

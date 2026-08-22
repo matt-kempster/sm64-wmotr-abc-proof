@@ -538,19 +538,29 @@ zero in every valid slot of the official JP initial memory, computes
 source chain, reduces direct list membership to one head-link load, and
 extracts the first invariant-breaking step from any dangerous actual trace.
 `proofs/InkTimer131RealEntryPrefix.v` now gives that missing run a precise
-cross-phase shape.  It joins the official task start to exact internal
-`clear_objects`, `load_mario_area`, `spawn_objects_from_info`, and `init_mario`
-call states, and then to the final entry state, using actual `Clight.step2`
-segments whose every step carries an `InkTimer131CellEffect`.  A completed
-certificate plus the final entry, behavior, list-0, and protected-load facts
-derives the full live invariant.  No inhabitant is constructed: reached
-unresolved startup calls need exact effects, and the final loads must still be
-obtained from the same execution.
+cross-phase shape at the accepted level-select boundary.  It starts at the
+selected `clear_objects` call, distinguishes the nested Area-object and direct
+Mario `spawn_objects_from_info` calls after `load_mario_area`, and continues
+through `init_mario` to the final entry state using actual `Clight.step2`
+segments whose every step carries an `InkTimer131CellEffect`.  The exact
+slot-67, `bhvMario`, pointer, active, one-node ring, `oFlags=0x100`, zero-offset,
+and protected-load endpoint derives the full live invariant without an
+ordinary-entry premise.  The module also translates the recorded machine
+constants, proves the slot arithmetic, supplies the missing star-to-classified-
+reach direction, and checks that a closed conservative 150-function direct-call
+family intersects neither literal watched-cell writer inventory.  That family
+has exactly five unresolved direct names at eight exact caller/callee sites:
+four `sqrtf` sites, `unload_object`'s sound-source stop, two debug-array text
+sites, and `load_mario_area`'s continuous-bank sound stop.  No inhabitant is
+constructed: indirect dispatch, alias refinement, the effect of each actually
+reached external site, and the final loads must still be obtained from the same
+execution.
 The read-only JP mode-2 instrumentation now supplies a separate authentic MIPS
-receipt for the four checkpoints and resulting slot-67 Mario identity, safe
-tail words, and one-node player-list ring.  It is level-select evidence and
-does not refine the instructions between checkpoints or outside calls into
-the CompCert certificate.
+receipt for the five call entries and resulting slot-67 Mario identity, safe
+tail words, and one-node player-list ring.  The runner requires both distinct
+spawn callsites and the exact endpoint.  It does not refine the instructions
+between checkpoints or outside calls into the CompCert certificate; ordinary
+castle entry is outside this accepted level-select boundary.
 
 `proofs/InkTimer131ProducerClosure.v` closes the two normal large-writer
 source branches.  An opcode-neutral scan of every US/JP `behavior_data`

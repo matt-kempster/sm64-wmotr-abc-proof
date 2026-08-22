@@ -1048,23 +1048,33 @@ allocator/load/spawn source chain, and finds `bhvMario` as the sole generated
 list-0 behavior.  It also turns a direct post-spawn list-head load into the
 live membership predicate and extracts the first invariant-breaking step from
   any dangerous actual trace.  `InkTimer131RealEntryPrefix.v` now makes that
-  execution request precise and corrects the chronology: clearing occurs in
-  the level script, while Area-1 loading, Mario spawning, and `init_mario`
-  occur later in the level-update path.  Its certificate joins those exact
-  internal call states with one continuous sequence of real CompCert steps and
-  attaches a watched-cell effect to every step; official initial zeros plus
-  the final behavior/list loads then imply the full live invariant.  The
-  certificate is not yet inhabited, because each reached unresolved
-  OS/audio/graphics call still needs an exact effect and the final live
-  observations must be derived from the same run.
-  A read-only, hash-gated original-JP mode-2 run now supplies the matching
-  machine-code receipt: it enters `clear_objects`, `load_mario_area`,
-  `spawn_objects_from_info`, and `init_mario` in order, then observes Mario in
-  slot 67 with matching State pointer, safe tail values, and a one-node
-  player-list ring.  This executes the retail prefix empirically, but it is a
-  level-select MIPS trace rather than the still-missing CompCert certificate;
-  intervening steps, outside-call effects, and ordinary-entry equivalence
-  remain open.
+  execution request precise at the accepted level-select boundary: it begins
+  at `clear_objects`, distinguishes the Area-object and Mario calls to
+  `spawn_objects_from_info`, and continues through `init_mario`.  Its
+  certificate joins those exact internal call states with one continuous
+  sequence of real CompCert steps and attaches a watched-cell effect to every
+  step.  Exact final loads for slot 67, the `bhvMario` symbol and pointer, both
+  Mario pointers, active state, all four one-node ring links, `oFlags=0x100`,
+  and zero graphical offset directly imply the full live invariant; no
+  ordinary-entry or pre-allocation slot-safety premise is used.  A reverse
+  theorem builds the certificate from an actual star plus reachable-step
+  coverage, and the closed conservative 150-function direct-call family around
+  clear/load/init/first-update intersects neither complete literal tail-writer
+  inventory.  Its outside-call boundary is now finite and exact: five unresolved
+  names at eight caller/callee sites—four `sqrtf` sites, one sound-source stop,
+  two debug-text sites, and one continuous-bank sound stop.  The certificate is
+  not yet inhabited because the same run must still derive those endpoint loads
+  and classify indirect dispatch, valid aliases, and the exact effect of each
+  reached instance among those eight sites; CompCert cannot infer such a frame
+  from an `EF_external` prototype.
+  A read-only, hash-gated original-JP mode-2 run supplies the matching
+  machine-code receipt: it enters `clear_objects`, `load_mario_area`, both
+  `spawn_objects_from_info` callsites, and `init_mario` in order, then observes
+  Mario in slot 67 with matching State pointer, safe tail values, and a one-node
+  player-list ring.  The runner now requires that exact ordered sequence, and
+  Coq checks its translated stage and slot arithmetic.  It remains a retail
+  MIPS trace rather than the still-missing CompCert certificate; ordinary
+  castle entry is not required because level select is the accepted start.
 The abstract case split now also captures that a successful retry performs
 only the first of the two `ACT_DISAPPEARED` ticks.  A second floor-supported
 Mario update is required before the upper object warp can be requested.  If
