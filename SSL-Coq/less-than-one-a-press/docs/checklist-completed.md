@@ -1452,3 +1452,17 @@ Completed work is grouped by subject. Each item retains its original scope warni
   pre-entry effects without an IDO-to-Clight bridge, while forged control flow,
   ACE, DMA, interrupts, and post-invalid-access execution remain outside this
   targeted machine fragment.
+
+- [x] Classify the accepted JP endpoint through the selected spinning timer
+  131 execution.  Read-only CPU watchpoints cover both Mario pointers, his
+  slot/list/active/behavior/tail cells, `bhvMario`, and the dispatch table.
+  The conditional lifecycle fixture writes only the distinct slot-61 top
+  counter, then authentic gameplay reaches action 1 timer 131 after 144
+  updates.  Every one of the 144 watched writes is the exact harmless
+  `clear_object_collision` halfword at Mario-slot offset `0x76`; identity,
+  hashes, `oFlags=0x100`, and zero graphical offset persist.  Exact counters
+  cover all three Mario callbacks, allocation/unload/sound calls, both HUD
+  print callees, and the two unreached debug-print callsites.  Coq checks the
+  receipt, write hash, fixture disjointness, authentic print JAL targets, and
+  safe-tail replay.  This completes the selected conditional timeline, not
+  the universal all-controller-history or debugger-semantics refinement.

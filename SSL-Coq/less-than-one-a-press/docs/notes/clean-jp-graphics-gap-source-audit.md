@@ -406,6 +406,17 @@ The project already names the main projections as
 `CleanJPUnsynchronizedSinkDepthRefinementObligation`.  The source audit above
 explains exactly what must be proved to instantiate them without an oracle.
 
+The Timer-131-specific machine receipts now close two concrete endpoint-forward
+instances of that writer question.  A neutral interval has 131 safe updates;
+the conditional spinning interval isolates one slot-61 pillar-counter fixture
+and then has 144 authentic updates through action 1 timer 131.  Every watched
+event in both intervals is the harmless Mario-slot `+0x76` halfword, while the
+slot/list/behavior/tail values and behavior-command/dispatch hashes persist.
+The harder interval also exercises allocation, unload, source-sound, and HUD
+print paths without a protected write.  These receipts find no producer, but
+do not instantiate universal writer coverage for other controller histories
+or formally derive watchpoint completeness from N64 machine semantics.
+
 ## Bottom line
 
 The source audit found no clean retail JP gameplay writer that installs the

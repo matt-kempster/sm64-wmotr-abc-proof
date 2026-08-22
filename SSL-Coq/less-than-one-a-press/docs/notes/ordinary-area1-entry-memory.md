@@ -249,12 +249,15 @@ facts above.  It does not inhabit the live-memory postcondition.
 
 The decisive in-scope work still open is:
 
-1. start the chosen post-entry execution model from the accepted endpoint and
-   preserve its exact slot-67 behavior/list identity, safe flag word, and zero
-   graphical offset through timer 131;
-2. classify every reachable later internal store, indirect dispatch, and
-   unresolved outside call as a protected frame or checked safe writer, with
-   the first failed classification returned as a concrete producer;
+1. lift the completed selected receipts to universal post-entry coverage: the
+   neutral 131-update run and the conditional 144-update spinning-timer-131
+   run both preserve exact slot-67 identity and safe tail values, but they do
+   not quantify over every controller/lifecycle history;
+2. replace the spinning receipt's single disjoint slot-61 pillar-counter
+   fixture with the accepted clean pillar path, and connect the complete CPU
+   watchpoint receipt to machine-step semantics (or prove the corresponding
+   CompCert `InkTimer131ReachableStepCoverage`); the first failed
+   classification must be returned as a concrete producer;
 3. prove complete object-pool/list ownership and alias invariants, beyond the
    current pointer-closure definition, and discharge the explicit per-access
    in-bounds obligation;

@@ -586,6 +586,22 @@ certificate; required work instead begins at this endpoint and classifies later
 steps through timer 131.  Ordinary castle entry is outside the accepted
 level-select boundary.
 
+`proofs/InkTimer131PostEntryMachineTrace.v` checks two authenticated
+endpoint-forward receipts.  The neutral receipt has 131 action-0 updates; the
+route-specific lifecycle receipt has one explicitly disjoint slot-61 pillar-
+counter fixture followed by 144 authentic updates to spinning action 1 timer
+131.  Both preserve the exact slot-67 watched state.  In the spinning receipt,
+all 144 protected-range events are the same `clear_object_collision` halfword
+at offset `0x76`, disjoint from `activeFlags` at `0x74`; the command and
+dispatch hashes remain fixed; all three Mario callbacks execute 144 times;
+and the exact allocator/unload/sound/print counters are checked.  The two JP
+debug-print JAL words are decoded and their specific callsites have zero hits,
+although ordinary HUD rendering reaches the same print callees.  Coq checks
+the write hash, fixture address and slot disjointness, identity replay, and
+safe-tail conclusion.  This closes those selected machine timelines, while a
+clean replacement for the fixture, universal controller/lifecycle coverage,
+and a formal debugger-watchpoint-to-machine-step connection remain explicit.
+
 `proofs/InkTimer131ProducerClosure.v` closes the two normal large-writer
 source branches.  An opcode-neutral scan of every US/JP `behavior_data`
 initializer finds exactly 40 commands whose target field is

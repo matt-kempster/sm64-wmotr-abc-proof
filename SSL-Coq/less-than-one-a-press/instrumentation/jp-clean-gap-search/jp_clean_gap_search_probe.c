@@ -46,6 +46,10 @@ enum {
     A_LIST0_SENTINEL_NEXT = 0x8033b8d0,
     A_LIST0_SENTINEL_PREV = 0x8033b8d4,
     A_STATE_MARIO_OBJECT = 0x80339e88,
+    A_BHV_MARIO = 0x800eb1c0,
+    BHV_MARIO_WORDS = 14,
+    A_BEHAVIOR_CMD_TABLE = 0x8038b9b0,
+    BEHAVIOR_CMD_TABLE_WORDS = 56,
 };
 
 /* Original-JP text addresses from a matching build whose SHA-1 is the retail
@@ -208,6 +212,31 @@ static unsigned gPrefixStopSoundsFromSourceHits;
 static unsigned gPrefixStopSoundsContinuousHits;
 static uint32_t gPrefixStopSoundsFromSourceEntrySP;
 static uint32_t gPrefixStopSoundsContinuousEntrySP;
+static int gPostTraceActive;
+static int gPostTraceComplete;
+static int gPostTraceSequential = 1;
+static unsigned gPostTraceSamples;
+static unsigned gPostTraceWatchedWrites;
+static unsigned gPostTraceInvariantFailures;
+static unsigned gPostMarioLevelInfoCalls;
+static unsigned gPostMarioUpdateCalls;
+static unsigned gPostMarioDebugSpawnCalls;
+static unsigned gPostAllocateObjectCalls;
+static unsigned gPostAllocatorFallbackCalls;
+static unsigned gPostUnloadObjectCalls;
+static unsigned gPostStopSoundsFromSourceCalls;
+static unsigned gPostStopSoundsContinuousCalls;
+static unsigned gPostSafeWatchedWrites;
+static unsigned gPostUnsafeWatchedWrites;
+static uint32_t gPostWatchWriteHash = 2166136261u;
+static uint32_t gPostStartGlobalTimer;
+static int gPostStartTopTimer;
+static int gPostLastTopTimer;
+static uint32_t gPostMarioLevelInfo;
+static uint32_t gPostMarioUpdate;
+static uint32_t gPostMarioDebugSpawn;
+static uint32_t gPostBhvMarioHash;
+static uint32_t gPostBehaviorCmdTableHash;
 static float gMaxMarioGraphYOffset = -INFINITY;
 static float gMaxGfxMinusObjectY = -INFINITY;
 static float gMinGfxMinusObjectY = INFINITY;
@@ -223,6 +252,11 @@ static float rfloat(uint32_t address) {
     union { float f; uint32_t u; } bits;
     bits.u = R32(address);
     return bits.f;
+}
+
+static void post_hash_word(uint32_t word) {
+    gPostWatchWriteHash ^= word;
+    gPostWatchWriteHash *= 16777619u;
 }
 
 static int pool_index(uint32_t object) {
@@ -255,6 +289,14 @@ static int add_write_breakpoint(uint32_t address, uint32_t size) {
 }
 
 static const char *watched_prefix_cell(uint32_t address) {
+    if (address >= A_BHV_MARIO
+        && address < A_BHV_MARIO + BHV_MARIO_WORDS * 4) {
+        return "bhvMario.commandBytes";
+    }
+    if (address >= A_BEHAVIOR_CMD_TABLE
+        && address < A_BEHAVIOR_CMD_TABLE + BEHAVIOR_CMD_TABLE_WORDS * 4) {
+        return "BehaviorCmdTable.dispatchBytes";
+    }
     switch (address) {
         case A_MARIO_OBJECT: return "gMarioObject";
         case A_STATE_MARIO_OBJECT: return "MarioState.object";
@@ -289,9 +331,36 @@ static void log_prefix_cell_write(uint32_t pc, uint64_t *registers) {
     DBreakpointTriggeredBy(&trigger_flags, &accessed);
     if ((trigger_flags & M64P_BKP_FLAG_WRITE) == 0) return;
     cell = watched_prefix_cell(accessed | 0x80000000u);
-    if (cell == NULL || gPrefixStage == 0 || gEntryIdentityLogged) return;
+    if (cell == NULL || gPrefixStage == 0) return;
     if (DDecodeOp != NULL) {
         DDecodeOp(instruction, mnemonic, arguments, (int) pc);
+    }
+    if (gEntryIdentityLogged) {
+        const char *classification = "unsafe-unclassified";
+        int safe = 0;
+        if (!gPostTraceActive || gPostTraceComplete) return;
+        if (effective_address == A_SLOT67_ACTIVE_FLAGS + 2 && opcode == 0x29) {
+            classification = "disjoint-slot67-padding-halfword";
+            safe = 1;
+        }
+        gPostTraceWatchedWrites++;
+        if (safe) gPostSafeWatchedWrites++;
+        else gPostUnsafeWatchedWrites++;
+        post_hash_word(R32(A_GLOBAL_TIMER));
+        post_hash_word(pc);
+        post_hash_word(instruction);
+        post_hash_word(effective_address);
+        post_hash_word(opcode);
+        post_hash_word(source_value);
+        fprintf(stderr,
+                "POST_ENTRY_WATCH_WRITE,ordinal=%u,globalTimer=%u,"
+                "pc=%08x,instruction=%08x,op=%02x,mnemonic=%s,args=%s,"
+                "target=%08x,accessedPhysical=%08x,cell=%s,"
+                "gprSource=%08x,classification=%s,safe=%d\n",
+                gPostTraceWatchedWrites, R32(A_GLOBAL_TIMER), pc,
+                instruction, opcode, mnemonic, arguments, effective_address,
+                accessed, cell, source_value, classification, safe);
+        return;
     }
     gPrefixCellWriteCount++;
     fprintf(stderr,
@@ -303,6 +372,13 @@ static void log_prefix_cell_write(uint32_t pc, uint64_t *registers) {
             R32(A_GLOBAL_TIMER), pc, instruction, opcode, mnemonic, arguments,
             effective_address, accessed, cell, source_value,
             R32(A_SLOT67_FLAGS), R32(A_SLOT67_GRAPH_Y_OFFSET));
+}
+
+static void observe_post_callback(uint32_t pc) {
+    if (!gPostTraceActive || gPostTraceComplete) return;
+    if (pc == gPostMarioLevelInfo) gPostMarioLevelInfoCalls++;
+    else if (pc == gPostMarioUpdate) gPostMarioUpdateCalls++;
+    else if (pc == gPostMarioDebugSpawn) gPostMarioDebugSpawnCalls++;
 }
 
 static void resume_from_breakpoint(void) {
@@ -335,11 +411,22 @@ static void debugger_update_callback(unsigned int pc) {
                 if (gPrefixStopSoundsFromSourceEntrySP == 0 && registers != NULL) {
                     gPrefixStopSoundsFromSourceEntrySP = (uint32_t) registers[29];
                 }
-            } else {
+            } else if (pc == A_STOP_SOUNDS_IN_CONTINUOUS_BANKS) {
                 gPrefixStopSoundsContinuousHits++;
                 if (gPrefixStopSoundsContinuousEntrySP == 0 && registers != NULL) {
                     gPrefixStopSoundsContinuousEntrySP = (uint32_t) registers[29];
                 }
+            }
+        }
+        if (gPostTraceActive && !gPostTraceComplete) {
+            if (pc == A_ALLOCATE_OBJECT) gPostAllocateObjectCalls++;
+            else if (pc == A_ALLOCATE_OBJECT_UNLOAD_CALL) {
+                gPostAllocatorFallbackCalls++;
+            } else if (pc == A_UNLOAD_OBJECT) gPostUnloadObjectCalls++;
+            else if (pc == A_STOP_SOUNDS_FROM_SOURCE) {
+                gPostStopSoundsFromSourceCalls++;
+            } else if (pc == A_STOP_SOUNDS_IN_CONTINUOUS_BANKS) {
+                gPostStopSoundsContinuousCalls++;
             }
         }
         resume_from_breakpoint();
@@ -349,6 +436,7 @@ static void debugger_update_callback(unsigned int pc) {
     if (pc != A_CLEAR_OBJECTS && pc != A_LOAD_MARIO_AREA
         && pc != A_SPAWN_OBJECTS_FROM_INFO && pc != A_INIT_MARIO) {
         log_prefix_cell_write(pc, registers);
+        observe_post_callback(pc);
         resume_from_breakpoint();
         return;
     }
@@ -384,6 +472,132 @@ static void debugger_update_callback(unsigned int pc) {
             R32(A_GLOBAL_TIMER), R16(A_CURR_AREA), mario_object,
             R32(A_MARIO_STATES + M_MARIO_OBJ));
     resume_from_breakpoint();
+}
+
+static uint32_t bhv_mario_word_hash(void);
+static uint32_t behavior_cmd_table_word_hash(void);
+
+static int post_identity_holds(void) {
+    return R32(A_MARIO_OBJECT) == A_SLOT67
+        && R32(A_STATE_MARIO_OBJECT) == A_SLOT67
+        && R16(A_SLOT67_ACTIVE_FLAGS) == 0x0101
+        && R32(A_SLOT67_BEHAVIOR) == A_BHV_MARIO
+        && R32(A_SLOT67_NEXT) == 0x8033b870
+        && R32(A_SLOT67_PREV) == 0x8033b870
+        && R32(A_LIST0_SENTINEL_NEXT) == A_SLOT67
+        && R32(A_LIST0_SENTINEL_PREV) == A_SLOT67
+        && (R32(A_SLOT67_FLAGS) & 1) == 0
+        && R32(A_SLOT67_GRAPH_Y_OFFSET) == 0
+        && bhv_mario_word_hash() == gPostBhvMarioHash
+        && behavior_cmd_table_word_hash() == gPostBehaviorCmdTableHash;
+}
+
+static uint32_t word_hash(uint32_t address, unsigned word_count) {
+    uint32_t hash = 2166136261u;
+    unsigned index;
+
+    for (index = 0; index < word_count; index++) {
+        uint32_t word = R32(address + index * 4);
+        hash ^= word;
+        hash *= 16777619u;
+    }
+    return hash;
+}
+
+static uint32_t bhv_mario_word_hash(void) {
+    return word_hash(A_BHV_MARIO, BHV_MARIO_WORDS);
+}
+
+static uint32_t behavior_cmd_table_word_hash(void) {
+    return word_hash(A_BEHAVIOR_CMD_TABLE, BEHAVIOR_CMD_TABLE_WORDS);
+}
+
+static void start_post_entry_trace(int top_timer) {
+    int armed;
+
+    gPostMarioLevelInfo = R32(A_BHV_MARIO + 8 * 4);
+    gPostMarioUpdate = R32(A_BHV_MARIO + 10 * 4);
+    gPostMarioDebugSpawn = R32(A_BHV_MARIO + 12 * 4);
+    gPostBhvMarioHash = bhv_mario_word_hash();
+    gPostBehaviorCmdTableHash = behavior_cmd_table_word_hash();
+    armed = add_write_breakpoint(A_BHV_MARIO, BHV_MARIO_WORDS * 4)
+        && add_write_breakpoint(A_BEHAVIOR_CMD_TABLE,
+                                BEHAVIOR_CMD_TABLE_WORDS * 4)
+        && add_exec_breakpoint(gPostMarioLevelInfo)
+        && add_exec_breakpoint(gPostMarioUpdate)
+        && add_exec_breakpoint(gPostMarioDebugSpawn);
+    if (!armed) {
+        fprintf(stderr, "POST_ENTRY_TRACE_ERROR,kind=breakpoint-arm\n");
+        return;
+    }
+    gPostTraceActive = 1;
+    gPostStartGlobalTimer = R32(A_GLOBAL_TIMER);
+    gPostStartTopTimer = top_timer;
+    gPostLastTopTimer = top_timer - 1;
+    fprintf(stderr,
+            "POST_ENTRY_TRACE_START,globalTimer=%u,topAction=%d,topTimer=%d,"
+            "marioObject=%08x,slot=67,behavior=%08x,oFlags=%08x,"
+            "oGraphYOffsetBits=%08x,bhvMarioHash=%08x,"
+            "behaviorCmdTable=%08x,behaviorCmdTableHash=%08x,"
+            "levelInfoCallback=%08x,marioUpdateCallback=%08x,"
+            "debugSpawnCallback=%08x,watchRanges=12,invariant=%d\n",
+            gPostStartGlobalTimer, (int32_t) R32(gTop + O_ACTION), top_timer,
+            R32(A_MARIO_OBJECT), R32(A_SLOT67_BEHAVIOR),
+            R32(A_SLOT67_FLAGS), R32(A_SLOT67_GRAPH_Y_OFFSET),
+            gPostBhvMarioHash, A_BEHAVIOR_CMD_TABLE,
+            gPostBehaviorCmdTableHash, gPostMarioLevelInfo,
+            gPostMarioUpdate, gPostMarioDebugSpawn, post_identity_holds());
+}
+
+static void observe_post_entry_trace(int top_timer) {
+    if (!gPostTraceActive) {
+        if (gEntryIdentityLogged && top_timer == 1) {
+            start_post_entry_trace(top_timer);
+        } else {
+            return;
+        }
+    }
+    if (gPostTraceComplete) return;
+    gPostTraceSamples++;
+    if (top_timer != gPostLastTopTimer + 1) gPostTraceSequential = 0;
+    gPostLastTopTimer = top_timer;
+    if (!post_identity_holds()) gPostTraceInvariantFailures++;
+    if (top_timer == 132) {
+        fprintf(stderr,
+                "POST_ENTRY_TRACE_END,startGlobalTimer=%u,endGlobalTimer=%u,"
+                "startTopTimer=%d,endTopTimer=%d,samples=%u,sequential=%d,"
+                "watchedWrites=%u,invariantFailures=%u,"
+                "safeWatchedWrites=%u,unsafeWatchedWrites=%u,"
+                "watchWriteHash=%08x,"
+                "marioObject=%08x,stateMarioObject=%08x,activeFlags=%04x,"
+                "behavior=%08x,oFlags=%08x,oGraphYOffsetBits=%08x,"
+                "next=%08x,prev=%08x,sentinelNext=%08x,sentinelPrev=%08x,"
+                "bhvMarioHash=%08x,behaviorCmdTableHash=%08x,"
+                "levelInfoCalls=%u,marioUpdateCalls=%u,"
+                "debugSpawnCalls=%u,allocateObjectCalls=%u,"
+                "allocatorFallbackCalls=%u,unloadObjectCalls=%u,"
+                "stopSoundsFromSourceCalls=%u,"
+                "stopSoundsContinuousCalls=%u,sqrtfFrame=all-path-store-free,"
+                "invariant=%d\n",
+                gPostStartGlobalTimer, R32(A_GLOBAL_TIMER),
+                gPostStartTopTimer, top_timer, gPostTraceSamples,
+                gPostTraceSequential, gPostTraceWatchedWrites,
+                gPostTraceInvariantFailures, gPostSafeWatchedWrites,
+                gPostUnsafeWatchedWrites, gPostWatchWriteHash,
+                R32(A_MARIO_OBJECT),
+                R32(A_STATE_MARIO_OBJECT), R16(A_SLOT67_ACTIVE_FLAGS),
+                R32(A_SLOT67_BEHAVIOR), R32(A_SLOT67_FLAGS),
+                R32(A_SLOT67_GRAPH_Y_OFFSET), R32(A_SLOT67_NEXT),
+                R32(A_SLOT67_PREV), R32(A_LIST0_SENTINEL_NEXT),
+                R32(A_LIST0_SENTINEL_PREV), bhv_mario_word_hash(),
+                behavior_cmd_table_word_hash(),
+                gPostMarioLevelInfoCalls, gPostMarioUpdateCalls,
+                gPostMarioDebugSpawnCalls, gPostAllocateObjectCalls,
+                gPostAllocatorFallbackCalls, gPostUnloadObjectCalls,
+                gPostStopSoundsFromSourceCalls,
+                gPostStopSoundsContinuousCalls, post_identity_holds());
+        gPostTraceComplete = 1;
+    }
 }
 
 static void arm_prefix_trace(void) {
@@ -914,6 +1128,7 @@ EXPORT void CALL GetKeys(int control, BUTTONS *keys) {
     pillars = (int32_t) R32(gTop + O_PYRAMID_PILLARS_TOUCHED);
     top_action = (int32_t) R32(gTop + O_ACTION);
     top_timer = (int32_t) R32(gTop + O_TIMER);
+    observe_post_entry_trace(top_timer);
 
     if (R32(A_MARIO_STATES + M_ACTION) == ACT_RIDING_SHELL_GROUND
         || R32(A_MARIO_STATES + M_ACTION) == ACT_RIDING_SHELL_JUMP

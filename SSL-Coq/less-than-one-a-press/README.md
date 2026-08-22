@@ -1106,6 +1106,21 @@ optional obligation by dynamic non-reachability.  None of that is required to
 accept this entry.  Required route work begins at the
 recorded safe endpoint and classifies later execution through timer 131.
 Ordinary castle entry is not required because level select is the accepted start.
+`InkTimer131PostEntryMachineTrace.v` now performs that classification for two
+exact authenticated timelines.  A neutral receipt covers 131 ordinary
+updates.  A route-specific lifecycle receipt logs one disjoint write to the
+top's slot-61 pillar counter, then follows 144 authentic updates to the real
+spinning action timer 131.  Every watched-range event is the exact harmless
+slot-67 `+0x76` collision-reset halfword; Mario's pointers, list ring, behavior,
+safe tail, `bhvMario`, and dispatch table persist.  The harder interval also
+records 93 allocations, 71 unloads, 71 source-sound calls, 864 `print_text`
+calls, and 432 formatted-print calls without a protected write; both
+debug-specific print callsites are proved by their JP JAL words and have zero
+hits.  Coq checks both write streams, hashes, endpoint replay, fixture
+disjointness, and the safe-tail conclusion.  This closes the selected
+conditional spinning timeline, but not clean pillar activation, all controller
+histories, or a formal proof that debugger watchpoints are complete machine
+semantics; those are the remaining universalization obligations.
 The abstract case split now also captures that a successful retry performs
 only the first of the two `ACT_DISAPPEARED` ticks.  A second floor-supported
 Mario update is required before the upper object warp can be requested.  If

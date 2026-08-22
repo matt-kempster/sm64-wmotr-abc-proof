@@ -9,7 +9,7 @@ From LessThanOneAPress.Proofs Require Import
   OrdinaryMotion GoombaRaising PyramidTopPU InkFallback RetailFatalLatch
   InkPayloadInstaller InkTimer131ClightTraceBridge
   InkTimer131EntryExecutionClosure InkTimer131RetailMipsFrames
-  InkTimer131RealEntryPrefix TurningAnimation
+  InkTimer131RealEntryPrefix InkTimer131PostEntryMachineTrace TurningAnimation
   CompCertRouteScope.
 
 Import ListNotations.
@@ -88,6 +88,25 @@ Proof.
   - exact ink_timer131_retail_mips_external_frame_checked_boundary_holds.
   - reflexivity.
 Qed.
+
+(** From the user-accepted safe machine endpoint, the authenticated ordinary
+    Area-1 execution performs 131 complete updates without changing Mario's
+    slot, list identity, behavior, or either protected tail value.  Every
+    watched write is the checked collision-reset halfword immediately after
+    [activeFlags].  This theorem deliberately records one concrete action-0
+    timeline; the spinning-action/all-controller-history extension remains
+    explicit in [JPInkTimer131PostEntryUniversalizationResidual]. *)
+Theorem current_timer131_accepted_post_entry_machine_boundary :
+  JPInkTimer131AcceptedPostEntryBoundary.
+Proof. exact jp_timer131_accepted_post_entry_boundary_holds. Qed.
+
+(** A route-specific strengthening reaches the pyramid top's real spinning
+    action timer 131 after one separately checked, disjoint fixture write to
+    the top's pillar counter.  It closes the selected machine timeline, not
+    clean four-pillar reachability or universal controller histories. *)
+Theorem current_timer131_accepted_spinning_post_entry_machine_boundary :
+  JPInkTimer131AcceptedSpinningPostEntryBoundary.
+Proof. exact jp_timer131_accepted_spinning_post_entry_boundary_holds. Qed.
 
 Definition CollectionProvenanceReductionClaim : Prop :=
   forall initial events final,

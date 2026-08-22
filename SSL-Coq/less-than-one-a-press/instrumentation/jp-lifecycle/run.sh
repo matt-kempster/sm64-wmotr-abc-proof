@@ -91,6 +91,7 @@ mkdir -p "$out_dir/config" "$out_dir/data" "$out_dir/shots"
 plugin="$out_dir/jp-lifecycle.so"
 raw_log="$out_dir/jp-lifecycle.raw.log"
 trace="$out_dir/jp-lifecycle.trace.txt"
+spinning_receipt="$out_dir/spinning-post-entry-timer131-receipt.txt"
 
 gcc -shared -fPIC -std=c99 -Wall -Wextra -Werror -O2 \
     -DROUTE_STICK_X="$route_x" \
@@ -122,7 +123,7 @@ printf 'bp add 0x802c83f0 0 8\nrun\n' |
 # diagnostic can therefore prefix a plugin record on rare runs (for example,
 # `CorINSTALL,...`).  Extract from the first record tag rather than requiring
 # the tag to begin the physical line.
-grep -oE '(PROBE|ARM|INSTALL|TRACE_A1|TRACE_A2|EXPLOSION_FREE|BREAKPOINT[^,]*|FIRST_APPLY[^,]*|AREA2_OBJECTS|FIRST_AREA2_POLL|RESULT),.*' \
+grep -aoE '(PROBE|ARM|INSTALL|TRACE_A1|TRACE_A2|EXPLOSION_FREE|BREAKPOINT[^,]*|FIRST_APPLY[^,]*|AREA2_OBJECTS|FIRST_AREA2_POLL|SPINNING_POST_TRACE_START|SPINNING_POST_WATCH_WRITE|SPINNING_FIXTURE_WRITE|SPINNING_POST_TRACE_END|RESULT),.*' \
     "$raw_log" >"$trace"
 
 grep '^INSTALL' "$trace"
@@ -138,6 +139,25 @@ if [ "$route_x" = -127 ] && [ "$route_y" = -96 ] \
     && [ "$state_z" = -1024 ] \
     && [ "$graphics_x" = -1862 ] && [ "$graphics_y" = 1778 ] \
     && [ "$graphics_z" = -902 ]; then
+    grep -E '^(SPINNING_POST_TRACE_START|SPINNING_FIXTURE_WRITE|SPINNING_POST_TRACE_END),' \
+        "$trace" >"$spinning_receipt"
+    if ! diff -u "$script_dir/expected-spinning-post-entry-timer131-receipt.txt" \
+        "$spinning_receipt"; then
+        printf '%s\n' "spinning post-entry timer-131 endpoint receipt failed" >&2
+        exit 3
+    fi
+    if ! grep '^SPINNING_POST_WATCH_WRITE,' "$trace" | awk '
+        BEGIN { ordinal = 1 }
+        {
+            expected = sprintf("SPINNING_POST_WATCH_WRITE,ordinal=%d,globalTimer=%d,pc=802c88c4,instruction=a7000076,op=29,mnemonic=sh,args=$zero,118($t8),target=803460ae,accessedPhysical=003460ac,cell=slot67.activeFlags,gprSource=00000000,classification=disjoint-slot67-padding-halfword,safe=1", ordinal, ordinal + 347)
+            if ($0 != expected) exit 1
+            ordinal++
+        }
+        END { exit ordinal == 145 ? 0 : 1 }
+    '; then
+        printf '%s\n' "spinning post-entry per-write classification failed" >&2
+        exit 3
+    fi
     grep -q '^BREAKPOINT_HIT,kind=true-first-apply-entry,pc=802c83f0,returnPC=8029cfc8,area=2,platform=803451f8,slot=61$' "$trace"
     grep -q '^BREAKPOINT_HIT,kind=true-first-apply-return,pc=8029cfc8,area=2,platform=803451f8,slot=61$' "$trace"
     grep -q '^TRACE_A1,timer=493,.*platform=803451f8,timeStopState=00000000,marioAction=00001300,actionArg=00040001,usedObj=80345918,.*floorOwner=803451f8,.*marioBits=(c4e8c000,44defe16,c4618000),objectBits=(c4e8c000,44defe16,c4618000),graphicsBits=(c4e8c000,44defe16,c4618000),.*freeDepth=-1' "$trace"

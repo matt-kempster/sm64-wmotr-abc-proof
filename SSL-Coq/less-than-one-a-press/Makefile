@@ -1971,6 +1971,21 @@ check: proofs
 	  LessThanOneAPress.Proofs.InkTimer131RealEntryPrefix \
 	  completed_level_select_bridge_and_post_entry_coverage_exclude_tail
 	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.InkTimer131PostEntryMachineTrace \
+	  jp_timer131_post_entry_receipt_checked
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.InkTimer131PostEntryMachineTrace \
+	  jp_timer131_accepted_post_entry_boundary_holds
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.InkTimer131PostEntryMachineTrace \
+	  jp_timer131_spinning_post_entry_receipt_checked
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.InkTimer131PostEntryMachineTrace \
+	  jp_timer131_spinning_debug_print_callsites_checked
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.InkTimer131PostEntryMachineTrace \
+	  jp_timer131_accepted_spinning_post_entry_boundary_holds
+	bash pipeline/assumptions.sh \
 	  LessThanOneAPress.Proofs.Area1NonlocalPlatformMirror \
 	  area1_nonlocal_platform_mirror_checked_boundary_holds
 	bash pipeline/assumptions.sh \
@@ -2015,6 +2030,12 @@ check: proofs
 	bash pipeline/assumptions.sh \
 	  LessThanOneAPress.Proofs.MainTheorem \
 	  current_timer131_retail_mips_external_frame_boundary
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.MainTheorem \
+	  current_timer131_accepted_post_entry_machine_boundary
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.MainTheorem \
+	  current_timer131_accepted_spinning_post_entry_machine_boundary
 
 clean:
 	-$(MAKE) -f $(COQMAKEFILE) clean

@@ -36,6 +36,7 @@ raw_log="$out_dir/jp-clean-gap-search.raw.log"
 trace="$out_dir/jp-clean-gap-search.trace.txt"
 prefix_write_receipt="$out_dir/prefix-write-receipt.txt"
 prefix_call_reach_receipt="$out_dir/prefix-call-reach-receipt.txt"
+post_entry_receipt="$out_dir/post-entry-timer131-receipt.txt"
 
 gcc -shared -fPIC -std=c99 -Wall -Wextra -Werror -O2 \
     -DALLOW_SETUP_A="$allow_setup_a" \
@@ -54,7 +55,7 @@ printf 'run\n' |
         --cheats 6 --sshotdir "$out_dir/shots" --testshots "$test_frames" \
         "$rom" >"$raw_log" 2>&1
 
-grep -E '^(SEARCH|PREFIX_BREAKPOINT_ARM|PREFIX_STAGE|PREFIX_CELL_WRITE|PREFIX_CALL_REACH|ENTRY_IDENTITY|ACTION|MAX_GAP|MIN_GAP|GAP45|GAP960|FIRE_LINK|TOP|FRAME|NONFINITE|B_INPUT|MODE9_STAGE|RESULT)' \
+grep -aE '^(SEARCH|PREFIX_BREAKPOINT_ARM|PREFIX_STAGE|PREFIX_CELL_WRITE|PREFIX_CALL_REACH|ENTRY_IDENTITY|POST_ENTRY_TRACE_START|POST_ENTRY_WATCH_WRITE|POST_ENTRY_TRACE_END|ACTION|MAX_GAP|MIN_GAP|GAP45|GAP960|FIRE_LINK|TOP|FRAME|NONFINITE|B_INPUT|MODE9_STAGE|RESULT)' \
     "$raw_log" >"$trace"
 grep -E '^(PREFIX_STAGE,.*timer=347,|PREFIX_CELL_WRITE,epoch=8,|ENTRY_IDENTITY,)' \
     "$trace" >"$prefix_write_receipt"
@@ -88,6 +89,28 @@ if [ "$allow_setup_a" = 0 ]; then
     if ! grep -q '^RESULT,.*aPressedFrames=0,aDownFrames=0,controllerAFrames=0$' \
         "$trace"; then
         printf '%s\n' "zero-A run observed an A input or A-derived input bit" >&2
+        exit 3
+    fi
+fi
+if [ "$allow_setup_a" = 0 ] && [ "$search_mode" = 2 ] \
+    && [ "$test_frames" -ge 600 ]; then
+    grep -aE '^POST_ENTRY_TRACE_(START|END),' "$raw_log" \
+        >"$post_entry_receipt"
+    if ! diff -u "$script_dir/expected-post-entry-timer131-receipt.txt" \
+        "$post_entry_receipt"; then
+        printf '%s\n' "post-entry timer-131 endpoint receipt failed" >&2
+        exit 3
+    fi
+    if ! awk '
+        BEGIN { ordinal = 1 }
+        /^POST_ENTRY_WATCH_WRITE,/ {
+            expected = sprintf("POST_ENTRY_WATCH_WRITE,ordinal=%d,globalTimer=%d,pc=802c88c4,instruction=a7000076,op=29,mnemonic=sh,args=$zero,118($t8),target=803460ae,accessedPhysical=003460ac,cell=slot67.activeFlags,gprSource=00000000,classification=disjoint-slot67-padding-halfword,safe=1", ordinal, ordinal + 347)
+            if ($0 != expected) exit 1
+            ordinal++
+        }
+        END { exit ordinal == 132 ? 0 : 1 }
+    ' "$raw_log"; then
+        printf '%s\n' "post-entry per-write classification failed" >&2
         exit 3
     fi
 fi

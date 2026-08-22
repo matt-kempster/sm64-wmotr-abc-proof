@@ -192,6 +192,11 @@ its replayed checkpoint, identity, and safe-tail result as
 simulation theorem; the uninhabited native `JPInkTimer131RealEntryPrefix` is an
 optional stronger certificate, not the chosen entry boundary.
 
+The neutral post-entry receipt above exercises the unactivated top's action 0.
+The separate [JP lifecycle receipt](../jp-lifecycle/README.md) starts at the
+same accepted endpoint, isolates one disjoint pillar-counter fixture, and
+checks the real spinning action through timer 131.
+
 ### Mode 7 two-pillar checkpoint
 
 The exact command above was run against the hash-authenticated original-JP

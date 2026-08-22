@@ -557,10 +557,23 @@ These obligations currently block the clean-retail result.
   `JPInkTimer131AcceptedEntryTheorem`, so the missing
   IDO-MIPS-to-Clight prefix and reconstructed Clight start are optional
   strengthening, not tasks needed to close this route.  Starting at its safe
-  endpoint, classify branch reachability and exact
-  effects for every later unresolved site while preserving Mario's slot/list/
-  behavior identity, safe flag word, and zero graphical offset through timer
-  131.  Ordinary castle entry is not part of this route boundary.
+  endpoint, `InkTimer131PostEntryMachineTrace.v` and two exact JP receipts now
+  classify the selected later timelines.  The neutral receipt covers 131
+  ordinary updates.  The route-specific receipt separates one slot-61 pillar-
+  counter fixture, then reaches the real spinning action timer 131 after 144
+  authentic updates: all 144 watched writes are the harmless slot-67 `+0x76`
+  collision reset, all three Mario callbacks execute 144 times, Mario's slot,
+  list, behavior, command/dispatch hashes, `oFlags=0x100`, and zero offset
+  persist, and no unsafe watched write occurs.  This harder interval includes
+  93 allocations, 71 unloads, 71 source-sound calls, 864 `print_text` calls,
+  and 432 formatted-print calls; the authenticated sound frame and watched
+  receipt cover their protected effects, while both debug-specific print
+  callsites have zero hits.  What remains is universal rather than a missing
+  event in this run: replace the disjoint fixture with the clean pillar path,
+  and prove every controller/lifecycle history refines to the same protected
+  frame (or prove `InkTimer131ReachableStepCoverage`), plus connect debugger
+  watchpoint completeness to machine steps.  Ordinary castle entry is not part
+  of this route boundary.
 
 - [ ] Prove the linked stock-provenance projection is exhaustive.  Analyze
   relocated warp/top or collision-preserving clones, post-commit movement

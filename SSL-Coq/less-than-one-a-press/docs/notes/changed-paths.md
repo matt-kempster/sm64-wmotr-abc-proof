@@ -487,12 +487,52 @@ The later Area-1 State/Object phase-split audit changed:
 - `SSL-Coq/less-than-one-a-press/generated/us_ssl_area1_macro.v`
 - `SSL-Coq/less-than-one-a-press/human-readable-proof.md`
 - `SSL-Coq/less-than-one-a-press/notes/source-map.md`
+
 - `SSL-Coq/less-than-one-a-press/inputs/ssl_area1_macro.c`
 - `SSL-Coq/less-than-one-a-press/notes/source-map.md`
 - `SSL-Coq/less-than-one-a-press/pipeline/check-generated.sh`
 - `SSL-Coq/less-than-one-a-press/pipeline/generate-clight.sh`
 - `SSL-Coq/less-than-one-a-press/proofs/Area1PhaseSplit.v`
 - `SSL-Coq/less-than-one-a-press/proofs/Area1SurfaceWitness.v`
+
+## Timer-131 post-entry and spinning-timeline tranche
+
+Two authenticated machine receipts now begin at the accepted slot-67 endpoint.
+The neutral receipt checks 131 ordinary updates.  The route-specific lifecycle
+receipt logs one disjoint fixture write to the top's slot-61 pillar counter and
+then checks 144 authentic updates through spinning action 1 timer 131.  Every
+watched-range event is the exact harmless Mario-slot `+0x76` halfword; the two
+Mario pointers, one-node player list, active/behavior/tail values, `bhvMario`,
+and dispatch table remain fixed.  The spinning receipt also classifies exact
+callback, allocation, unload, sound, and print counts; it distinguishes the
+two globally busy HUD print callees from the two unreached debug-specific
+callsites.  Coq checks both event streams and hashes, fixture disjointness,
+authentic debug-print JAL targets, replay identity, and safe tail.  This closes
+the selected conditional timeline, while clean fixture replacement,
+all-controller-history coverage, and debugger-to-machine-step completeness
+remain open.  The following paths changed:
+
+- `SSL-Coq/less-than-one-a-press/proofs/InkTimer131PostEntryMachineTrace.v` (new)
+- `SSL-Coq/less-than-one-a-press/proofs/MainTheorem.v`
+- `SSL-Coq/less-than-one-a-press/_CoqProject`
+- `SSL-Coq/less-than-one-a-press/Makefile`
+- `SSL-Coq/less-than-one-a-press/instrumentation/jp-clean-gap-search/jp_clean_gap_search_probe.c`
+- `SSL-Coq/less-than-one-a-press/instrumentation/jp-clean-gap-search/run.sh`
+- `SSL-Coq/less-than-one-a-press/instrumentation/jp-clean-gap-search/expected-post-entry-timer131-receipt.txt` (new)
+- `SSL-Coq/less-than-one-a-press/instrumentation/jp-clean-gap-search/README.md`
+- `SSL-Coq/less-than-one-a-press/instrumentation/jp-lifecycle/jp_lifecycle_probe.c`
+- `SSL-Coq/less-than-one-a-press/instrumentation/jp-lifecycle/run.sh`
+- `SSL-Coq/less-than-one-a-press/instrumentation/jp-lifecycle/expected-spinning-post-entry-timer131-receipt.txt` (new)
+- `SSL-Coq/less-than-one-a-press/instrumentation/jp-lifecycle/README.md` (new)
+- `SSL-Coq/less-than-one-a-press/README.md`
+- `SSL-Coq/less-than-one-a-press/human-readable-proof.md`
+- `SSL-Coq/less-than-one-a-press/docs/no-a-route-atlas.md`
+- `SSL-Coq/less-than-one-a-press/docs/checklist.md`
+- `SSL-Coq/less-than-one-a-press/docs/checklist-completed.md`
+- `SSL-Coq/less-than-one-a-press/docs/notes/ordinary-area1-entry-memory.md`
+- `SSL-Coq/less-than-one-a-press/docs/notes/clean-jp-graphics-gap-source-audit.md`
+- `SSL-Coq/less-than-one-a-press/docs/notes/changed-paths.md`
+- `SSL-Coq/less-than-one-a-press/notes/source-map.md`
 
 ## Area-1 stock-platform exhaustiveness follow-up
 

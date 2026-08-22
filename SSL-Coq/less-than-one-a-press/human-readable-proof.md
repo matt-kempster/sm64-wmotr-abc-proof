@@ -393,6 +393,28 @@ engineering but does not know *Super Mario 64*.
 > timer 131.  Ordinary castle entry is not required because level select is the
 > accepted boundary.
 >
+> Starting at that accepted endpoint, two new exact receipts now check the
+> later interval.  The neutral one follows 131 ordinary updates.  The
+> route-specific one makes one clearly separated write to the pyramid top's
+> own pillar counter in slot 61, then follows 144 real game updates until the
+> top reaches spinning action 1, timer 131.  Mario remains slot 67 throughout:
+> both Mario pointers, the player-list ring, normal behavior, safe `0x100`
+> flag, zero graphical offset, behavior commands, and dispatch table all stay
+> unchanged.  Every watched write is the same collision-reset halfword at
+> offset `0x76`, immediately after and disjoint from `activeFlags` at `0x74`.
+> The spinning interval includes 93 allocation calls, 71 unloads, 71
+> source-sound calls, and more than a thousand HUD print calls without any
+> protected write; the source-sound body also has the independent all-path
+> machine frame.  The two debug-specific print callsites never execute.
+>
+> So the selected conditional spinning timeline has been closed and contains
+> no corruption producer.  That is narrower than a universal impossibility
+> proof: the single pillar-counter fixture still needs replacement by the
+> known clean pillar path, other controller/lifecycle histories need a common
+> protected-step theorem, and the debugger watchpoint mechanism is not yet a
+> formal semantics of the whole N64.  A differing overlapping write or
+> identity change in that universalization would be the first real producer.
+>
 > The exact timer-131 collision calculation matters.  The old home-pose sample
 > `(-2048,1791,-1024)` is rejected by the raised and rotated top.  A corrected
 > low-side sample `(-1641,1456,-783)` is accepted, but Mario loses top support
@@ -2920,6 +2942,10 @@ The most useful entry points are:
   CompCert certificate with per-step watched-cell classification; and the
   theorem deriving the live invariant from any completed Clight prefix and its
   final entry/behavior/list observations;
+- `proofs/InkTimer131PostEntryMachineTrace.v`: exact neutral and conditional
+  spinning post-entry receipts, safe watched-write replay, disjoint slot-61
+  pillar fixture, callback/lifecycle/outside-call counters, authentic
+  debug-print JAL targets, and selected timer-131 safe-tail boundaries;
 - `proofs/UpperElevatorQuarterStepClosure.v`: exact 32/40-query non-Wing
   binary32 schedules, six-result source split, safe initializer cap writes,
   and the retained-Wing transient `234` query that invalidates endpoint-only

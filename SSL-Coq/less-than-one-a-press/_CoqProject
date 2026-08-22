@@ -321,6 +321,7 @@ proofs/InkTimer131EntryExecutionClosure.v
 proofs/InkTimer131RetailMipsCode.v
 proofs/InkTimer131RetailMipsFrames.v
 proofs/InkTimer131RealEntryPrefix.v
+proofs/InkTimer131PostEntryMachineTrace.v
 proofs/Area1NonlocalPlatformMirror.v
 proofs/Area1NonlocalPlatformInstallationClosure.v
 proofs/TurningAnimation.v
