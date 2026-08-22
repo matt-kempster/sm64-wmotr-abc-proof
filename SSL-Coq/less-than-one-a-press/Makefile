@@ -1897,6 +1897,15 @@ check: proofs
 	  completed_real_prefix_supplies_live_timer131_invariant
 	bash pipeline/assumptions.sh \
 	  LessThanOneAPress.Proofs.InkTimer131RealEntryPrefix \
+	  jp_timer131_entry_direct_writer_checked
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.InkTimer131RealEntryPrefix \
+	  jp_timer131_entry_external_inventory_checked
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.InkTimer131RealEntryPrefix \
+	  jp_timer131_entry_external_callsites_checked
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.InkTimer131RealEntryPrefix \
 	  jp_timer131_level_select_direct_writer_checked
 	bash pipeline/assumptions.sh \
 	  LessThanOneAPress.Proofs.InkTimer131RealEntryPrefix \

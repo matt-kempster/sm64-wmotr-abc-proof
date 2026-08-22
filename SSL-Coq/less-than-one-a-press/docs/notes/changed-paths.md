@@ -1534,9 +1534,10 @@ loads for slot 67, `bhvMario`, both Mario pointers, active state, the complete
 one-node list ring, `oFlags=0x100`, and zero graphical offset directly establish
 the live invariant without an ordinary-entry or pre-allocation slot-safety
 premise.  A new reverse theorem converts an actual Clight star plus per-step
-coverage into the classifier, and a closed conservative 150-function direct-
-call family contains no literal watched-cell writer.  Its unresolved direct
-boundary is exactly five names at eight caller/callee sites.  The runner now
+coverage into the classifier.  The exact 85-function clear/load/init family
+contains no literal watched-cell writer and has three conservative outside
+sites; a broader 150-function family which also permits a first object update
+remains writer-free and expands to five names at eight caller/callee sites.  The runner now
 requires the two distinct spawn callsites and exact endpoint in order.  Indirect
 dispatch, aliases, reached outside-call effects, endpoint derivation, and the
 retail-to-Clight execution refinement remain open.  The following paths

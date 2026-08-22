@@ -1058,15 +1058,18 @@ live membership predicate and extracts the first invariant-breaking step from
   and zero graphical offset directly imply the full live invariant; no
   ordinary-entry or pre-allocation slot-safety premise is used.  A reverse
   theorem builds the certificate from an actual star plus reachable-step
-  coverage, and the closed conservative 150-function direct-call family around
-  clear/load/init/first-update intersects neither complete literal tail-writer
-  inventory.  Its outside-call boundary is now finite and exact: five unresolved
-  names at eight caller/callee sites—four `sqrtf` sites, one sound-source stop,
-  two debug-text sites, and one continuous-bank sound stop.  The certificate is
-  not yet inhabited because the same run must still derive those endpoint loads
-  and classify indirect dispatch, valid aliases, and the exact effect of each
-  reached instance among those eight sites; CompCert cannot infer such a frame
-  from an `EF_external` prototype.
+  coverage.  The accepted clear/load/init family closes after 85 direct
+  functions and intersects neither complete literal tail-writer inventory; its
+  unresolved boundary is exactly three conservative sites: `unload_object` to
+  `stop_sounds_from_source`, `load_mario_area` to
+  `stop_sounds_in_continuous_banks`, and `read_surface_data` to `sqrtf`.  A
+  broader 150-function family which also permits a first `update_objects` still
+  has no literal watched-cell writer and expands that boundary to five names at
+  eight caller/callee sites.  The certificate is not yet inhabited because the
+  same run must still derive those endpoint loads, determine which conservative
+  sites are branch-reachable, and classify indirect dispatch, valid aliases,
+  and the exact effect of each reached outside call; CompCert cannot infer such
+  a frame from an `EF_external` prototype.
   A read-only, hash-gated original-JP mode-2 run supplies the matching
   machine-code receipt: it enters `clear_objects`, `load_mario_area`, both
   `spawn_objects_from_info` callsites, and `init_mario` in order, then observes

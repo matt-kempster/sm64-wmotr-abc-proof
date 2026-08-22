@@ -964,12 +964,14 @@ Completed work is grouped by subject. Each item retains its original scope warni
   and zero-offset loads now directly supply the full live invariant, without an
   ordinary-entry premise or a false pre-allocation slot-preservation premise.
   A reverse bridge constructs the classifier from an actual star plus per-step
-  coverage, and the conservative 150-function direct-call family has no literal
-  watched-cell writer.  Its unresolved direct-call inventory is exactly the two
-  sound-stop routines, `print_text`, `print_text_fmt_int`, and `sqrtf`.  The
-  module compiles; indirect dispatch, exact effects for reached instances of
-  those five calls, endpoint derivation, and construction of the inhabitant
-  remain open.
+  coverage.  The exact 85-function clear/load/init family has no literal
+  watched-cell writer and leaves three conservative outside sites: object
+  unload's source-sound stop, Mario-area load's continuous-bank stop, and
+  surface loading's `sqrtf`.  The broader 150-function family which also
+  permits a first object update is likewise writer-free and expands to five
+  names at eight sites.  The module compiles; branch reachability, indirect
+  dispatch, exact effects for reached outside calls, endpoint derivation, and
+  construction of the inhabitant remain open.
 
 - [x] Execute the phase checkpoints in authentic original-JP machine code.
   The read-only mode-2 probe records `clear_objects`, `load_mario_area`,

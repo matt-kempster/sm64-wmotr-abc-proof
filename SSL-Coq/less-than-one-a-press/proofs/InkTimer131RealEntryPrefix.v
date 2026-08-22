@@ -87,12 +87,41 @@ Proof.
   vm_compute. repeat split; reflexivity.
 Qed.
 
-(** This direct-call closure deliberately includes one conservative first
-    [update_objects] root in addition to clear/load/init.  It therefore covers
-    the internal direct callees which can surround the observed endpoint even
-    if the controller-poll observation falls after the first object update.
-    Indirect behavior-table dispatch and unresolved externals are not inferred
-    from this result; they retain their separate checked interfaces. *)
+(** The accepted entry prefix itself has three roots.  This first closure does
+    not add an object update which the checkpoint receipt has not established
+    before the endpoint. *)
+Definition jp_timer131_entry_direct_roots : list ident :=
+  [IT131P_Objects._clear_objects;
+   IT131P_Area._load_mario_area;
+   IT131P_Mario._init_mario].
+
+Definition jp_timer131_entry_direct_closure : list ident :=
+  ink_direct_call_closure 20 ink_jp_definitions
+    jp_timer131_entry_direct_roots [].
+
+Definition jp_timer131_entry_direct_writer_claim : Prop :=
+  List.length jp_timer131_entry_direct_closure = 85%nat /\
+  ink_call_closure_closedb ink_jp_definitions
+    jp_timer131_entry_direct_closure = true /\
+  ink_writer_intersection jp_timer131_entry_direct_closure
+    ink_jp_flag_writers = [] /\
+  ink_writer_intersection jp_timer131_entry_direct_closure
+    ink_jp_offset_writers = [].
+
+Theorem jp_timer131_entry_direct_writer_checked :
+  jp_timer131_entry_direct_writer_claim.
+Proof.
+  unfold jp_timer131_entry_direct_writer_claim,
+    jp_timer131_entry_direct_closure, jp_timer131_entry_direct_roots.
+  vm_compute. repeat split; reflexivity.
+Qed.
+
+(** This second closure deliberately adds one conservative first
+    [update_objects] root.  It covers the internal direct callees which can
+    surround the observed endpoint even if a later refinement places the
+    controller-poll observation after that update.  Indirect behavior-table
+    dispatch and unresolved externals are not inferred from either result;
+    they retain their separate checked interfaces. *)
 Definition jp_timer131_level_select_direct_roots : list ident :=
   [IT131P_Objects._clear_objects;
    IT131P_Area._load_mario_area;
@@ -119,6 +148,33 @@ Proof.
     jp_timer131_level_select_direct_closure,
     jp_timer131_level_select_direct_roots.
   vm_compute. repeat split; reflexivity.
+Qed.
+
+(** The unresolved direct callees of the narrower accepted entry family. *)
+Definition jp_timer131_entry_unresolved_direct_callees : list ident :=
+  filter
+    (fun id => negb (identifier_occurs id
+      (internal_function_identifiers ink_jp_definitions)))
+    jp_timer131_entry_direct_closure.
+
+Definition jp_timer131_expected_entry_unresolved_direct_callees : list ident :=
+  [IT131P_Area._stop_sounds_in_continuous_banks;
+   IT131P_Mario._sqrtf;
+   IT131P_Spawn._stop_sounds_from_source].
+
+Definition jp_timer131_entry_external_inventory_claim : Prop :=
+  jp_timer131_entry_unresolved_direct_callees =
+    jp_timer131_expected_entry_unresolved_direct_callees /\
+  List.length jp_timer131_expected_entry_unresolved_direct_callees = 3%nat.
+
+Theorem jp_timer131_entry_external_inventory_checked :
+  jp_timer131_entry_external_inventory_claim.
+Proof.
+  unfold jp_timer131_entry_external_inventory_claim,
+    jp_timer131_entry_unresolved_direct_callees,
+    jp_timer131_expected_entry_unresolved_direct_callees,
+    jp_timer131_entry_direct_closure, jp_timer131_entry_direct_roots.
+  vm_compute. split; reflexivity.
 Qed.
 
 (** The only direct callees in that finite closure which have no internal body
@@ -188,6 +244,35 @@ Definition jp_timer131_expected_unresolved_direct_callsites :
    (IT131P_Area._load_mario_area,
       IT131P_Area._stop_sounds_in_continuous_banks);
    (IT131P_Surface._read_surface_data, IT131P_Mario._sqrtf)].
+
+Definition jp_timer131_entry_unresolved_direct_callsites :
+    list (ident * ident) :=
+  jp_timer131_unresolved_direct_callsites ink_jp_definitions
+    jp_timer131_entry_direct_closure
+    jp_timer131_entry_unresolved_direct_callees.
+
+Definition jp_timer131_expected_entry_unresolved_direct_callsites :
+    list (ident * ident) :=
+  [(IT131P_Spawn._unload_object, IT131P_Spawn._stop_sounds_from_source);
+   (IT131P_Area._load_mario_area,
+      IT131P_Area._stop_sounds_in_continuous_banks);
+   (IT131P_Surface._read_surface_data, IT131P_Mario._sqrtf)].
+
+Definition jp_timer131_entry_external_callsite_claim : Prop :=
+  jp_timer131_entry_unresolved_direct_callsites =
+    jp_timer131_expected_entry_unresolved_direct_callsites /\
+  List.length jp_timer131_expected_entry_unresolved_direct_callsites = 3%nat.
+
+Theorem jp_timer131_entry_external_callsites_checked :
+  jp_timer131_entry_external_callsite_claim.
+Proof.
+  unfold jp_timer131_entry_external_callsite_claim,
+    jp_timer131_entry_unresolved_direct_callsites,
+    jp_timer131_expected_entry_unresolved_direct_callsites,
+    jp_timer131_entry_unresolved_direct_callees,
+    jp_timer131_entry_direct_closure, jp_timer131_entry_direct_roots.
+  vm_compute. split; reflexivity.
+Qed.
 
 Definition jp_timer131_level_select_external_callsite_claim : Prop :=
   jp_timer131_level_select_unresolved_direct_callsites =
@@ -906,6 +991,9 @@ Qed.
 
 Definition InkTimer131RealEntryPrefixCheckedBoundary : Prop :=
   ink_timer131_real_prefix_source_claim /\
+  jp_timer131_entry_direct_writer_claim /\
+  jp_timer131_entry_external_inventory_claim /\
+  jp_timer131_entry_external_callsite_claim /\
   jp_timer131_level_select_direct_writer_claim /\
   jp_timer131_level_select_external_inventory_claim /\
   jp_timer131_level_select_external_callsite_claim /\
@@ -934,6 +1022,9 @@ Theorem ink_timer131_real_entry_prefix_checked_boundary_holds :
   InkTimer131RealEntryPrefixCheckedBoundary.
 Proof.
   split; [exact ink_timer131_real_prefix_source_checked |].
+  split; [exact jp_timer131_entry_direct_writer_checked |].
+  split; [exact jp_timer131_entry_external_inventory_checked |].
+  split; [exact jp_timer131_entry_external_callsites_checked |].
   split; [exact jp_timer131_level_select_direct_writer_checked |].
   split; [exact jp_timer131_level_select_external_inventory_checked |].
   split; [exact jp_timer131_level_select_external_callsites_checked |].

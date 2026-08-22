@@ -215,11 +215,13 @@ Area-object and Mario spawn calls, `init_mario`, and the final state to occur in
 one continuous CompCert small-step run whose every step is a checked safe store
 or exact protected-cell frame/writer effect.  Exact slot-67, `bhvMario`, pointer,
 active, list-ring, `oFlags=0x100`, zero-offset, and protected-load reads directly
-imply the full Timer-131 live invariant.  The closed conservative 150-function
-direct-call family contains no literal watched-cell writer and has exactly five
-unresolved names at eight caller/callee sites.  The record has no constructed
-inhabitant yet; indirect dispatch, aliases, exact effects for each reached one
-of those sites, and derivation of the endpoint reads remain open.
+imply the full Timer-131 live invariant.  The exact 85-function clear/load/init
+family contains no literal watched-cell writer and has only three conservative
+outside sites; the broader 150-function family which also permits a first object
+update remains writer-free and expands to five names at eight sites.  The record
+has no constructed inhabitant yet; branch reachability, indirect dispatch,
+aliases, exact effects for each reached outside site, and derivation of the
+endpoint reads remain open.
 
 A separate authentic machine-code receipt now covers the missing phase
 sequence.  A hash-gated, read-only original-JP mode-2 run hits

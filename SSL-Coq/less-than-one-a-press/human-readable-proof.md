@@ -355,14 +355,15 @@ engineering but does not know *Super Mario 64*.
 > continuous CompCert run with every step's effect on the two watched words
 > classified.  The endpoint is no longer a generic ordinary-entry assumption:
 > exact slot-67, `bhvMario`, pointer, active, list-ring, safe-flag, and zero-
-> offset reads directly establish the full safe invariant.  A conservative
-> 150-function direct-call family around the prefix and first update contains no
-> literal writer of either watched word.  That family has exactly five unresolved
-> direct routines at eight callsites: square root four times, two sound-stop
-> routines, and two debug-text calls.  The interface is not yet inhabited
-> because indirect dispatch, valid aliases, and reached instances of those
-> eight sites still need exact effects and the endpoint reads must come from
-> that same run.
+> offset reads directly establish the full safe invariant.  The narrower
+> 85-function clear/load/init family contains no literal writer of either watched
+> word and has just three conservative outside sites: object unload's sound stop,
+> Mario-area load's sound-bank stop, and square root during surface loading.  A
+> broader 150-function family which also permits a first object update remains
+> writer-free but expands to five names at eight sites.  The interface is not yet
+> inhabited because branch reachability, indirect dispatch, valid aliases, and
+> every outside call actually reached still need exact effects, while the
+> endpoint reads must come from that same run.
 > A read-only original-JP run executes all five machine-code entries in order
 > and observes the matching slot-67 state; the proof now hardcodes and checks
 > that receipt's order and slot arithmetic.  The trace does not record every

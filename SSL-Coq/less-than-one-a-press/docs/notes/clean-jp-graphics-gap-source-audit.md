@@ -129,14 +129,16 @@ represents both observed spawn calls before initialization.  It transcribes the
 hash-pinned machine checkpoint values and verifies the slot arithmetic; exact
 CompCert endpoint loads for slot 67, `bhvMario`, both Mario pointers, the four
 one-node ring links, `oFlags=0x100`, and the zero offset directly establish the
-live invariant.  It also proves that the conservative 150-function direct-call
-family around clear/load/init/first-update is closed and contains no literal
-flag or graphical-offset writer.  Its unresolved direct boundary is exactly
-five names at eight callsites: four `sqrtf` calls, one source-sound stop, two
-debug-text calls, and one continuous-bank sound stop.  The remaining semantic
-work is now the one continuous Clight run, the endpoint-load derivation,
-indirect dispatch and alias refinement, and exact effects for each actually
-reached one of those eight outside sites.  The
+live invariant.  It also proves that the exact 85-function clear/load/init
+family is closed, contains no literal flag or graphical-offset writer, and has
+only three conservative outside sites: `unload_object` to
+`stop_sounds_from_source`, `load_mario_area` to
+`stop_sounds_in_continuous_banks`, and `read_surface_data` to `sqrtf`.  The
+broader 150-function family which also permits a first object update is likewise
+writer-free and expands to five names at eight callsites.  The remaining
+semantic work is now the one continuous Clight run, endpoint-load derivation,
+branch reachability, indirect dispatch and alias refinement, and exact effects
+for each outside site actually reached.  The
 hash-gated original-JP mode-2 trace independently observes the matching five
 function entries and endpoint, but it is still MIPS evidence rather than a
 CompCert small-step trace.  Ordinary castle equivalence is not required because

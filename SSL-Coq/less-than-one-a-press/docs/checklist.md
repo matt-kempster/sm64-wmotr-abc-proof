@@ -529,13 +529,15 @@ These obligations currently block the clean-retail result.
   links, `oFlags=0x100`, and zero graphical offset directly derive the complete
   live invariant.  A new star-to-certificate theorem shows that one actual
   small-step run plus reachable-step coverage constructs the per-step
-  certificate, and a conservative 150-function clear/load/init/first-update
-  direct-call closure is closed and intersects neither complete literal tail-
-  writer inventory.  Its unresolved direct-callee inventory is now exactly
-  `stop_sounds_in_continuous_banks`, `stop_sounds_from_source`, `print_text`,
-  `print_text_fmt_int`, and `sqrtf`; recognized builtins/runtimes are already
-  memory-silent, so reached instances of these five names are the finite direct-
-  external frame/effect obligations.  The certificate is still not inhabited:
+  certificate.  The exact clear/load/init direct family closes at 85 functions,
+  intersects neither literal tail-writer inventory, and leaves exactly three
+  conservative outside sites: object unload's source-sound stop, Mario-area
+  load's continuous-bank stop, and surface loading's `sqrtf`.  A broader
+  150-function family which also permits the first object update remains writer-
+  free and expands the boundary to five names at eight sites.  Recognized
+  builtins/runtimes are already memory-silent; branch reachability and exact
+  effects remain necessary for any actually reached unresolved site.  The
+  certificate is still not inhabited:
   derive those
   endpoint loads from the same execution, refine the authenticated retail
   checkpoints to its CompCert states, and classify indirect dispatch, valid
