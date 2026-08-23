@@ -1,6 +1,6 @@
 # No-A two-star route atlas
 
-> Status snapshot: 2026-08-21.  Rankings are intentionally revisable as linked
+> Status snapshot: 2026-08-22.  Rankings are intentionally revisable as linked
 > execution evidence or new counterexamples arrive.
 
 ## Purpose and scope
@@ -108,7 +108,11 @@ The detailed sections are organized as:
   escape mechanisms, not routing the remaining pyramid pillars.**
 - **Ink is the leading concrete installer design:** its timer-131 Graphics
   retry works when the required three-view gap and top lifecycle are injected,
-  but no clean execution creates that gap.
+  but no known clean execution creates that gap, and the authenticated
+  normal-tail timeline through timer 131 found no corruption producer.
+- **The signed-16 State alias remains rank 3 for proof value, not because a
+  stock installation looks likely:** its exact payload works, but every
+  installation in the audited stock scheduler and surface-owner model fails.
 - **Out-of-bounds corruption and ACE are deferred, not disproved:** they have
   no witness in the present Clight execution model and need a retail MIPS or
   hardware semantics before this project can decide them.
@@ -122,9 +126,9 @@ The detailed sections are organized as:
 
 | Overall | Family | Approach | Current counterexample promise |
 |---:|---|---|---|
-| 1 | JP stale-platform lineage | Different collision/query samples, then read the inactive unreused top payload | High relative to this project |
-| 2 | Ink installation | Timer-131 non-null Graphics retry | Medium |
-| 3 | State-first installation | Finite signed-16 nonlocal-State alias | Low-medium |
+| 1 | JP stale-platform lineage | Different collision/query samples, then read the inactive unreused top payload | High relative to this project; no clean useful split yet |
+| 2 | Ink installation | Timer-131 non-null Graphics retry | Low-medium for a clean producer; strong injected mechanism |
+| 3 | State-first installation | Finite signed-16 nonlocal-State alias | Low under the audited stock installer; low-medium only through a defined escape |
 | 4 | JP stale-platform lineage | Move the warp/top or create a collision-preserving clone | Low-medium |
 | 5 | State-first installation | Post-copy State-only writer in a later callback or descendant | Low-medium |
 | 5A | State-first installation | Pre-collision cached-platform displacement creates the split | Low-medium as an effect; low as a stock origin |
@@ -164,6 +168,11 @@ The detailed sections are organized as:
 | 32 | Memory and control escapes | Defined alias/external/cache/hitbox escapes; machine-only corruption deferred | Very low as a known gameplay route; proof-critical |
 | 33 | Upstream scope extension | Castle-to-SSL glitch or retained inbound pointer | Very low and intentionally deferred |
 
+The numerical order is unchanged by the 2026-08-22 audit.  Ranks 2 and 3 stay
+near the top because their mechanisms are exact and a surviving escape would
+immediately affect the main proof; their qualified promise labels now make
+clear that neither currently has a likely clean stock producer.
+
 ## Family 1 — JP stale-platform and spawning-displacement routes
 
 This family exploits the original-JP behavior that can retain a raw
@@ -192,7 +201,6 @@ platform displacement to MarioState while the raw Mario Object remains local.
 **What is already known.** This remains the strongest lead because an injected JP run demonstrates the useful chain once its setup is granted: the run remembers the spinning top, frees it without reusing its slot, applies the old movement data after entering the pyramid, reaches all five Act-6 triggers, and separately collects the Act-6 star without A; however, it also forces all four pillars and supplies no clean Act-3 route.  Controller-only play after an externally enabled level-select entry has activated the two eastern pillars with zero A presses, but that says nothing about the necessary position split.  The project has proved one genuine ordinary collision/query split—Mario touches the warp at height `818` and the later floor check occurs at `768`, 50 units lower—but has also disproved that split as useful here because the top needs an upward separation of more than 459 units.  It has found no ordinary moving skipped check, later interaction after an accepted warp, direct Mario-position helper, or child-copy mistake that creates the useful split.  A useful split through an indirect callback, valid alias, specified external effect, mistaken current-object identity, missed live floor owner, or object-slot lifetime error is still open, and the modeled events are not yet connected into one real execution; rank 1 is therefore neither proved nor disproved.
 
 **What closes it.** First derive a useful upward or horizontal collision/query split from one clean execution, or eliminate every remaining valid alias, callback, scheduler, live-floor-owner, and object-lifetime escape; this requires proving that the collision and floor-check samples, callback result, same-frame update order, final receiver, and returned surface all belong to the same live Mario frame.  The known 50-unit downward split cannot capture the top, and excluding slot reuse does not erase the inactive top's old movement data.  Out-of-bounds installation, ACE, and raw DMA are outside this Clight close-out and need a retail machine model rather than more source-level route search.  Only after a useful split, alternative owner, relocation, or clone survives should work return to the remaining pillars; a complete route must then preserve the exact slot and movement bytes across the area transition, execute the first pyramid displacement, join the Act-6 trigger and collection evidence, and separately supply an Act-3 continuation.
-witnesses; they do not establish this coupling.
 
 ### Move the warp/top, or create a collision-preserving clone
 
@@ -371,7 +379,8 @@ Technical background: [Ink fallback](notes/ink-fallback.md),
 
 ### Timer-131 non-null Graphics retry
 
-**Overall rank: 2. Family priority: 1. Likelihood: medium.**
+**Overall rank: 2. Family priority: 1. Likelihood: low-medium for a clean
+producer; strong as an injected mechanism.**
 
 **In plain language.** Leave Mario's collision Object at the upper warp, make
 MarioState's first floor lookup miss, but leave the rendered Mario position on
@@ -448,7 +457,8 @@ and [platform alias/external closure](notes/platform-alias-external-closure.md).
 
 ### Finite signed-16 nonlocal-State alias
 
-**Overall rank: 3. Family priority: 1. Likelihood: low-medium.**
+**Overall rank: 3. Family priority: 1. Likelihood: low under the audited stock
+installer; low-medium only if a defined escape survives.**
 
 **In plain language.** Put MarioState one 65,536-unit period away while raw
 Object stays at the warp.  The terrain code narrows the large coordinate to a
@@ -764,6 +774,9 @@ necessary contact envelope.
 
 ## Family 6 — Goomba raising and PU transport
 
+Technical background: [Goomba raising](notes/goomba-raising.md) and
+[nonlocal endpoints](notes/area1-nonlocal-endpoints.md).
+
 ### Goomba H/F/R raising, PU capture, and Spindel handoff
 
 **Overall rank: 16. Family priority: 1. Likelihood: very low as a full route.**
@@ -787,9 +800,6 @@ coordinate.
 Goomba receiver and lifecycle, preserve it through PU transport, instantiate
 every handoff, and then give a target continuation.  Otherwise prove the
 remaining writer/timing classes cannot beat the hit budget.
-
-Technical background: [Goomba raising](notes/goomba-raising.md) and
-[nonlocal endpoints](notes/area1-nonlocal-endpoints.md).
 
 ## Family 7 — Eyerok and Area-3 manipulation
 
