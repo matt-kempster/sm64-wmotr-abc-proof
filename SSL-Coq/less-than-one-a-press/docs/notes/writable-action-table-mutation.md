@@ -2,20 +2,20 @@
 
 ## Verdict
 
-The tables exist and are writable memory, but the checked US and JP source has
-no defined first producer for a table mutation.  The strengthened audit does
-not rely on the older direct-assignment check: it examines every occurrence
-and accepts only four complete terminal reads per version—two fields from the handler
-table and one word from each knockback table.  No occurrence is a store
-address, return value, call target, call argument, builtin argument, public
-export, or initializer relocation in the owning unit.  CompCert's abstract
-external-call rules then give a stronger result than a callee-by-callee
-footprint: once the three valid private blocks are omitted from a self-memory
-injection, every outside call preserves all their bytes, cannot return a
-pointer to them, and preserves that private injection after the call.  The
-remaining formal bridge is to instantiate and carry this private-block
-invariant through the selected linked start; it is no longer an unexplained
-alias or outside-call candidate.
+The tables exist and are writable memory, but neither the complete decompiled
+game nor the checked US/JP CompCert corpus contains a defined first producer
+for a mutation.  The pinned 431-file source tree names all three tables in
+only `src/game/interaction.c`.  The formal audit then checks every one of the
+38 modeled translation units per version: each table has its expected private
+definition, no global initializer stores any table address, no public-symbol
+list exports one, and the only function-body occurrences are four complete
+terminal reads per version—two handler fields and one word from each knockback
+table.  No occurrence stores, returns, or hands off a table address.  The
+linked programs contain three real valid table blocks, and CompCert's abstract
+external-call rules preserve their bytes once those private blocks are omitted
+from a self-memory injection.  The remaining formal bridge is therefore to
+construct and carry that injection through the selected live execution, not
+to keep an unspecified “alias elsewhere” or outside-call writer open.
 
 The audited storage is finite and exact:
 
@@ -57,6 +57,34 @@ call determinism identifies its result and memory with the original call;
 the extended private injection therefore remains available after the call.
 This argument covers every CompCert abstract external at once and does not
 depend on guessing which sound, math, or debug routine happens to be reached.
+
+## Whole-game aliases and cross-level lifetime
+
+“Stored alias” here means any persistent pointer derived from one of the three
+table addresses: a global initializer, exported name, saved local value,
+returned value, call or builtin argument, or another nonterminal expression
+that could later feed a write.  The full decompiled source audit at commit
+`36fbf8d693a9fc2bdec0c77402f8e96d07d2f461` finds the three names in exactly
+one of 431 files, `src/game/interaction.c`; there is no header declaration or
+second translation-unit naming site.  The stronger generated-AST receipt
+checks the modeled 38-unit US and JP corpora rather than relying on text: it
+rejects every initializer and export alias, and its occurrence classifier
+accepts only the four final reads.  The handler reads yield a stock handler
+function pointer, not a pointer back into the table, while the knockback reads
+yield ordinary action integers.  Thus no persistent in-bounds source alias is
+present before SSL or created elsewhere in the modeled game.
+
+The lifetime answer is conditional but useful: if some separate mechanism did
+mutate a table after engine startup, the edit would carry into SSL Area 1 and
+Area 2.  These are engine globals, not level-pool objects.  The decompiled boot
+path calls `load_engine_code_segment()` once from `main.c`, whereas
+`clear_objects`, `clear_areas`, `load_area`, `unload_area`, `change_area`, and
+`level_trigger_warp` do not reload or name the tables; the US/JP Clight receipt
+checks those transition bodies directly.  Consequently cross-level carryover
+would make a genuine producer valuable for either the upper-elevator or lower-
+pole route, but carryover does not create the first write.  DMA, arbitrary code
+execution, out-of-bounds flat-address writes, or execution after C undefined
+behavior remain separate retail-machine extensions.
 
 ## What a hypothetical write could do
 
@@ -118,24 +146,30 @@ post-hit route are not established.
 
 ## What remains
 
-No more controller, alias, or per-callee footprint search is warranted without
-a failed invariant step.  The remaining proof-engineering task is precise:
-identify the three linked table blocks at the accepted start, construct the
-private self-injection from their private/no-relocation initialization, prove
-the ordinary linked global/volatile blocks are valid, and carry it through the
-real Clight states.  The four table reads per version are the only special
+No more free-form controller, stored-alias, or per-callee footprint search is
+warranted without a failed invariant step.  The three table symbols now resolve
+to real blocks in both official linked source programs, and successful program
+initialization makes those blocks valid.  The remaining proof-engineering task
+is narrower: construct the private self-injection at that initialized start and
+carry it through the real Clight states.  The accepted SSL snapshot by itself
+cannot establish this fact because it intentionally says little about unrelated
+memory elsewhere; the whole-game history proved here supplies the missing
+no-stored-alias premise.  The four table reads per version are the only special
 internal cases; ordinary stores must use self-injected addresses, and abstract
-calls use the proved generic preservation theorem.  If the induction
-succeeds, table mutation is fully disproved for successful in-bounds CompCert
-execution.  If it fails, the first failing state supplies the exact preexisting
-alias or non-injected value that the earlier search lacked.  Invalid or
-out-of-bounds stores, ACE, DMA, and continuations after undefined behavior
-remain separate retail-machine questions, not unfinished Clight producers.
+calls use the generic preservation theorem.  If the induction succeeds, table
+mutation is fully disproved for successful in-bounds CompCert execution.  If it
+fails, the first failing state supplies the exact preexisting alias or
+non-injected value that the earlier search lacked.  Invalid or out-of-bounds
+stores, ACE, DMA, and continuations after undefined behavior remain separate
+retail-machine questions, not unfinished Clight producers.
 
 Formal receipts are in
 [`WritableActionTableClosure.v`](../../proofs/WritableActionTableClosure.v),
 with the occurrence-sensitive and abstract-external closure in
 [`WritableActionTableAliasExternalClosure.v`](../../proofs/WritableActionTableAliasExternalClosure.v),
+the whole-game initializer/export, linked-block, transition-lifetime, and
+first-failure receipts in
+[`WritableActionTableWholeGameAliases.v`](../../proofs/WritableActionTableWholeGameAliases.v),
 with the previously compiled whole-corpus handler census in
 [`InkTimer131CorruptionClosure.v`](../../proofs/InkTimer131CorruptionClosure.v)
 and initialized action-flow census in

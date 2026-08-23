@@ -489,9 +489,12 @@ These obligations currently block the clean-retail result.
   action.  `WritableActionTableAliasExternalClosure.v` now checks every actual
   occurrence as one of four terminal reads per version and proves that neither
   a self-injected store nor a CompCert abstract outside call can be the first
-  private-block producer.  The table branch is reduced to constructing and
-  carrying that private injection from the accepted linked start; only its
-  first failed step could reopen a concrete alias.  The negative-quicksand/
+  private-block producer.  `WritableActionTableWholeGameAliases.v` adds the
+  missing whole-game history: every modeled initializer/export is clean, the
+  linked blocks exist and are initially valid, and ordinary level transitions
+  do not name them.  The table branch is reduced to constructing and carrying
+  that private injection through the accepted live run; only its first failed
+  step could reopen a concrete alias.  The negative-quicksand/
   dialog branch therefore still needs a different negative seed if that bridge
   succeeds, and only then raw-X/Z transport to the upper warp.  What remains is live
   list/slot/table/spawn-record preservation plus
@@ -770,17 +773,20 @@ These obligations materially strengthen the proof but are not the shortest route
 ### Negative-quicksand/star installer branch
 
 - [ ] Instantiate `ActionTablePrivateExternalReady` at the accepted linked
-  start: resolve the three table blocks, prove they are valid and omitted from
-  a self-memory injection, discharge the ordinary global/volatile-block
-  validity premise, and carry that injection through every live Clight state.
-  `WritableActionTableAliasExternalClosure.v` already proves that the
-  only four table occurrences per version are terminal reads, that no owning-
-  unit initializer or public export creates an address escape, and that every
-  CompCert abstract external preserves the omitted blocks and cannot return
-  their pointers.  This last start-to-trace bridge either completes the
-  in-bounds action-table disproof or exposes the exact first non-injected
-  alias; do not resume free-form table-writer or per-callee searches before
-  such a failure.
+  start and carry it through every live Clight state.
+  `WritableActionTableWholeGameAliases.v` now resolves the three table blocks
+  in both official linked source programs, derives their validity from
+  successful initialization, checks every global initializer and public export
+  in all 38 US/JP units, retains the four-terminal-read body census, and checks
+  that ordinary area/level transitions do not name the tables.  The pinned
+  431-file decompiled-source audit likewise finds the names only in
+  `interaction.c`; a hypothetical post-boot mutation would survive a level
+  change, but no in-model stored alias supplies its first write.  What remains
+  is constructing the private self-memory injection from those initialization
+  facts and inducting it through the actual live execution.  That last bridge
+  either completes the in-bounds action-table disproof or exposes the exact
+  first non-injected alias; do not resume free-form writer or per-callee
+  searches before such a failure.
 
 - [ ] Prove or refute a fresh 100-coin star with compatible *relative*
   Mario/star transport at the first eligible collision, a different spawn

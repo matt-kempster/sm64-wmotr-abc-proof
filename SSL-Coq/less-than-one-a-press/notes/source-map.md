@@ -402,9 +402,22 @@ Its generic memory-injection theorems prove that a self-injected store address
 cannot target an omitted table block and that every CompCert abstract outside
 call preserves such a block, cannot return its pointer, and preserves the
 private injection and symbol interface after the call under the ordinary
-global/volatile validity fact.  Constructing and carrying that injection from
-the accepted linked start is the remaining semantic bridge; a failure would
-identify the first concrete alias rather than leave a free-form outside effect.
+global/volatile validity fact.
+
+`proofs/WritableActionTableWholeGameAliases.v` closes the stored-alias scope
+that an SSL-only start record cannot express.  Its sharded receipts inspect all
+38 modeled translation units in each version and prove that no global
+initializer retains a table address and no unit exports one; combined with the
+occurrence census, this excludes persistent stores, returns, call handoffs, and
+nonterminal address values anywhere in the modeled game.  The exact three
+interaction-unit definitions resolve to valid blocks in both official linked
+source programs.  The clear/load/unload/change/warp bodies do not name those
+blocks, so a hypothetical post-boot mutation would survive an ordinary level
+transition into SSL, but the audit supplies no first producer.  Constructing
+and carrying the resulting private self-injection through the accepted live
+execution is the remaining semantic bridge; a failure must identify the first
+concrete non-injected alias rather than leave “somewhere else in the game” as a
+free-form escape.
 
 `proofs/NoExitStarDialogBridge.v` checks the no-exit-star hitbox/behavior,
 object-list order, star-dance/dialog call footprints, and milestone table.  Its

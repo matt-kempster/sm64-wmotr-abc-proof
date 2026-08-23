@@ -306,6 +306,7 @@ proofs/ZeroAQuicksandEntryBoundary.v
 proofs/NegativeDepthInteractionClosure.v
 proofs/WritableActionTableClosure.v
 proofs/WritableActionTableAliasExternalClosure.v
+proofs/WritableActionTableWholeGameAliases.v
 proofs/NegativeDepthForgeryBoundary.v
 proofs/NoExitStarDialogBridge.v
 proofs/DialogDepthMemoryFrame.v

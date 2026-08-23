@@ -12,6 +12,7 @@ From LessThanOneAPress.Proofs Require Import
   InkTimer131RealEntryPrefix InkTimer131PostEntryMachineTrace TurningAnimation
   NegativeDepthInteractionClosure WritableActionTableClosure
   WritableActionTableAliasExternalClosure
+  WritableActionTableWholeGameAliases
   CompCertRouteScope.
 
 Import ListNotations.
@@ -76,6 +77,17 @@ Qed.
 Theorem current_writable_action_table_alias_external_boundary :
   WritableActionTableDefinedProducerClosure.
 Proof. exact writable_action_table_defined_producer_closure_holds. Qed.
+
+(** The whole-game stored-alias census closes the part that the accepted SSL
+    boundary cannot state by itself: across every modeled US/JP translation
+    unit, no initializer or export retains a pointer to any of the three
+    tables, all body occurrences are terminal reads, and ordinary area/level
+    transitions do not name them.  The semantic frame exposes the first step
+    that would violate the private-table relation; retail OOB/DMA/ACE behavior
+    remains outside this CompCert boundary. *)
+Theorem current_writable_action_table_whole_game_alias_boundary :
+  WritableActionTableWholeGameAliasBoundary.
+Proof. exact writable_action_table_whole_game_alias_boundary_holds. Qed.
 
 Theorem current_negative_depth_route_checked_boundary :
   InkTimer131CorruptionCheckedBoundary.

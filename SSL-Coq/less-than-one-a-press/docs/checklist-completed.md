@@ -948,10 +948,26 @@ Completed work is grouped by subject. Each item retains its original scope warni
   that any abstract external call with private blocks omitted preserves all
   table bytes, cannot return their pointers, and preserves a self-injection
   plus its symbol interface after the call when the ordinary global/volatile
-  blocks are valid.  The remaining linked task is to construct that private
-  injection and validity fact at the accepted start and carry them through
-  live states; failure would expose the first concrete alias.  OOB, ACE, DMA,
-  and post-undefined-behavior continuations remain outside this result.
+  blocks are valid.  The next whole-game tranche establishes the linked table
+  blocks and their initialization validity; the remaining task is to construct
+  the private injection there and carry it through live states.  Failure would
+  expose the first concrete alias.  OOB, ACE, DMA, and post-undefined-behavior
+  continuations remain outside this result.
+
+- [x] Extend the writable-table alias census to the whole modeled game and
+  establish its cross-level lifetime.  `WritableActionTableWholeGameAliases.v`
+  shards and checks every one of the 38 US/JP translation units, proving that
+  no global initializer retains any of the three table addresses and no unit
+  exports them; the existing occurrence receipt then leaves only four terminal
+  reads per version.  It transports the three exact interaction-unit
+  definitions into both official linked source programs, proves their blocks
+  valid after successful initialization, and checks that the ordinary clear,
+  load, unload, area-change, and warp bodies never name the tables.  A full
+  431-file audit of the pinned decompilation independently finds the names only
+  in `interaction.c`.  Therefore an already-achieved post-boot mutation would
+  persist into SSL, but no stored in-bounds source alias supplies the first
+  write; constructing and carrying the private self-injection through the live
+  run remains the exact final semantic bridge.
 
 - [x] Couple SSL's Mario command to `bhvMario` and lift the dangerous-cell
   frame across arbitrary finite clean traces.  `InkTimer131LiveIdentityClosure.v`
