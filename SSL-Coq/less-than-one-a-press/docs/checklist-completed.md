@@ -923,6 +923,18 @@ Completed work is grouped by subject. Each item retains its original scope warni
   three writable tables, call/pointer provenance, aliases, and reached outside
   effects remains open.
 
+- [x] Audit writable action-table mutation and its route payoff.
+  `WritableActionTableClosure.v` combines the bilateral handler and knockback
+  source censuses, proves the three tables contain exactly 320 writable bytes,
+  and excludes an ordinary named controller mutation producer: controller
+  state only selects bounded reads.  It separately proves that one selected
+  four-byte knockback cell can encode any action word, including long jump,
+  connects that value to the checked action-setter consumer, and identifies
+  the signature-compatible coin and pole handler cells.  Thus the ordinary
+  controller-edit idea is closed, while a concrete valid alias into the table
+  block or a reached outside-call write remains the exact in-model residual;
+  OOB/ACE variants remain outside the Clight model.
+
 - [x] Couple SSL's Mario command to `bhvMario` and lift the dangerous-cell
   frame across arbitrary finite clean traces.  `InkTimer131LiveIdentityClosure.v`
   checks the exact bilateral `INIT_MARIO(..., &bhvMario)` command and the

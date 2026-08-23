@@ -304,6 +304,7 @@ proofs/Area1LongJumpQuicksandNextFrameTrace.v
 proofs/LongJumpProvenanceBoundary.v
 proofs/ZeroAQuicksandEntryBoundary.v
 proofs/NegativeDepthInteractionClosure.v
+proofs/WritableActionTableClosure.v
 proofs/NegativeDepthForgeryBoundary.v
 proofs/NoExitStarDialogBridge.v
 proofs/DialogDepthMemoryFrame.v

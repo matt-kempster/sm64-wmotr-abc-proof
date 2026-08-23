@@ -10,7 +10,8 @@ From LessThanOneAPress.Proofs Require Import
   InkPayloadInstaller InkTimer131CorruptionClosure InkTimer131ClightTraceBridge
   InkTimer131EntryExecutionClosure InkTimer131RetailMipsFrames
   InkTimer131RealEntryPrefix InkTimer131PostEntryMachineTrace TurningAnimation
-  NegativeDepthInteractionClosure CompCertRouteScope.
+  NegativeDepthInteractionClosure WritableActionTableClosure
+  CompCertRouteScope.
 
 Import ListNotations.
 Local Open Scope Z_scope.
@@ -48,6 +49,21 @@ Theorem current_negative_depth_initialized_interaction_boundary :
   NegativeDepthInitializedInteractionSourceBoundary.
 Proof.
   exact negative_depth_initialized_interaction_source_boundary_holds.
+Qed.
+
+(** The three writable interaction/action tables have no ordinary named
+    controller producer.  The older whole-corpus Ink receipt supplies the
+    exact handler-table mention/address census; the new boundary adds exact
+    storage size, bounded consumers, one-word arbitrary-action capacity, and
+    compatible coin/pole handler payloads.  A live defined alias into the
+    private table block or a reached outside effect remains explicit. *)
+Theorem current_writable_action_table_mutation_boundary :
+  WritableActionTableCheckedBoundary /\
+  ink_dispatch_table_named_source_claim.
+Proof.
+  split.
+  - exact writable_action_table_checked_boundary_holds.
+  - exact ink_dispatch_tables_have_only_stock_named_source_uses.
 Qed.
 
 Theorem current_negative_depth_route_checked_boundary :

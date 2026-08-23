@@ -1755,3 +1755,33 @@ because the prerequisite seed is still absent.  The following paths changed:
 - `SSL-Coq/less-than-one-a-press/docs/notes/local-object-nonlocal-state-gap-matrix.md`
 - `SSL-Coq/less-than-one-a-press/docs/notes/changed-paths.md`
 - `SSL-Coq/less-than-one-a-press/notes/source-map.md`
+
+## Writable action-table mutation tranche
+
+The handler and knockback tables are now separated into producer and payload
+questions.  A bilateral generated-Clight certificate checks their exact 320
+writable bytes, bounded stock readers, initialized payloads, and absence of an
+ordinary named controller mutation producer.  A hypothetical selected
+four-byte knockback edit can encode any action word, including long jump, and
+the checked consumer passes that word to an action setter; compatible coin and
+pole handler-pointer substitutions are also certified.  This does not invent a
+writer: a clean linked counterexample must still identify either a concrete
+valid in-bounds alias into the private table block or a reached outside call
+whose exact footprint overlaps it.  The route note records both the upper
+elevator/coin and lower bottom-warp/pole implications, including that a pole
+mutation present too early can prevent the normal climb.  The following paths
+changed:
+
+- `SSL-Coq/less-than-one-a-press/proofs/WritableActionTableClosure.v` (new)
+- `SSL-Coq/less-than-one-a-press/proofs/MainTheorem.v`
+- `SSL-Coq/less-than-one-a-press/_CoqProject`
+- `SSL-Coq/less-than-one-a-press/Makefile`
+- `SSL-Coq/less-than-one-a-press/README.md`
+- `SSL-Coq/less-than-one-a-press/human-readable-proof.md`
+- `SSL-Coq/less-than-one-a-press/docs/no-a-route-atlas.md`
+- `SSL-Coq/less-than-one-a-press/docs/checklist.md`
+- `SSL-Coq/less-than-one-a-press/docs/checklist-completed.md`
+- `SSL-Coq/less-than-one-a-press/docs/notes/writable-action-table-mutation.md` (new)
+- `SSL-Coq/less-than-one-a-press/docs/notes/negative-quicksand-unreanchored-dialog.md`
+- `SSL-Coq/less-than-one-a-press/docs/notes/changed-paths.md`
+- `SSL-Coq/less-than-one-a-press/notes/source-map.md`

@@ -483,11 +483,16 @@ These obligations currently block the clean-retail result.
   interaction handlers in both versions, their 23 direct action literals,
   four local selectors, both dynamic helpers, and all 18 knockback-table
   entries; none installs either long-jump action, and the knockback tables have
-  no named generated writer.  The negative-quicksand/dialog branch therefore
-  still needs two independent escapes: first a changed writable table,
-  retargeted call, defined pointer/alias, specified external effect, or other
-  seed outside the clean rules, and only then raw-X/Z transport to the upper
-  warp.  What remains is live list/slot/table/spawn-record preservation plus
+  no named generated writer.  `WritableActionTableClosure.v` now proves that
+  the three tables occupy 320 writable bytes but have no ordinary named
+  controller mutation producer; a one-word knockback change could encode any
+  action, so the remaining table branch must identify an exact valid alias or
+  reached outside-call write rather than search for a controller table-edit
+  command.  The negative-quicksand/dialog branch therefore still needs two
+  independent escapes: first that exact table producer, a retargeted call,
+  another defined pointer/alias or specified external effect, and only then
+  raw-X/Z transport to the upper warp.  What remains is live
+  list/slot/table/spawn-record preservation plus
   valid forged/interior pointers, defined overlapping writes, concretely
   specified externals, or one coupled negative-seed/transport witness.
   Invalid/OOB variants are deferred to the machine-semantics extension.

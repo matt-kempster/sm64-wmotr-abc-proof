@@ -2929,6 +2929,12 @@ The most useful entry points are:
   local selectors, both dynamic action helpers, and all 18 knockback-table
   entries; every stock outcome is non-long-jump, while writable-table and
   pointer/external preservation remain explicit;
+- `proofs/WritableActionTableClosure.v`: packages the ordinary-controller
+  no-writer boundary for the 320-byte handler/knockback storage, proves that a
+  hypothetical selected four-byte knockback cell can carry any action word
+  including long jump, connects that cell to the checked action consumer, and
+  identifies signature-compatible coin/pole handler-pointer payloads; a valid
+  alias or reached outside-table write remains the exact in-model residual;
 - `proofs/InkTimer131LiveIdentityClosure.v`: exact SSL `&bhvMario` command and
   spawn-record forwarding receipts, plus arbitrary finite clean-store safety
   and a distinct-slot/list-12 eviction trace embedding;

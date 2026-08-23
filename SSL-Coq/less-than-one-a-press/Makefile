@@ -1446,6 +1446,12 @@ check: proofs
 	  LessThanOneAPress.Proofs.NegativeDepthInteractionClosure \
 	  negative_depth_initialized_interaction_source_boundary_holds
 	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.WritableActionTableClosure \
+	  writable_action_table_checked_boundary_holds
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.MainTheorem \
+	  current_writable_action_table_mutation_boundary
+	bash pipeline/assumptions.sh \
 	  LessThanOneAPress.Proofs.NegativeDepthForgeryBoundary \
 	  all_landing_descriptors_have_no_direct_generated_assignment
 	bash pipeline/assumptions.sh \

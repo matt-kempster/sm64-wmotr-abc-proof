@@ -693,6 +693,19 @@ contents.  Because the handler and knockback tables are writable, linked table
 preservation, call/pointer provenance, aliases, and outside-call effects remain
 the precise escape boundary rather than being silently assumed.
 
+`WritableActionTableClosure.v` now separates that residual from the tables'
+conditional payoff.  The handler table and both 3-by-3 knockback tables occupy
+exactly 320 writable bytes, but the bilateral ordinary source has no named
+controller mutation producer: controller state only chooses entries to read.
+One hypothetical four-byte knockback edit can nevertheless encode any action
+word, including `ACT_LONG_JUMP`, and the checked Snufit/damage consumer feeds
+that selection to an action setter.  The coin and pole handler cells can also
+hold signature-compatible stock handlers; the pole pointer is word 45, byte
+offset 180.  Therefore table mutation is not harmless, but its clean in-model
+producer is now reduced to one exact valid alias into the private table block
+or a reached outside effect.  The [writable-table note](docs/notes/writable-action-table-mutation.md)
+also records the conditional upper-coin and lower-pole consumers.
+
 Stock SSL Area 1 has an exact static-mesh candidate beginning at
 `(5760,0,4856)`.  The four real quarters have now been executed in
 authenticated US and JP retail runs from injected pre-timer-3/pre-timer-4
