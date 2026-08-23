@@ -931,9 +931,27 @@ Completed work is grouped by subject. Each item retains its original scope warni
   four-byte knockback cell can encode any action word, including long jump,
   connects that value to the checked action-setter consumer, and identifies
   the signature-compatible coin and pole handler cells.  Thus the ordinary
-  controller-edit idea is closed, while a concrete valid alias into the table
-  block or a reached outside-call write remains the exact in-model residual;
-  OOB/ACE variants remain outside the Clight model.
+  controller-edit idea is closed; at this tranche, a concrete valid alias into
+  the table block or a reached outside-call write was the exact in-model
+  residual later refined by the next item.  OOB/ACE variants remain outside
+  the Clight model.
+
+- [x] Eliminate the free-form valid-alias and abstract-outside-call table
+  producers.  `WritableActionTableAliasExternalClosure.v` fixes the older
+  direct-assignment census's array-lvalue blind spot with an
+  occurrence-sensitive checker.  Combined with the compiled whole-corpus
+  mention receipts, it finds exactly the two terminal handler-field reads and
+  one terminal read from each knockback table in both US and JP, with no table
+  occurrence in a store, return, call/builtin handoff, public export, or
+  owning-unit initializer relocation.  Its CompCert memory-injection theorems
+  prove that a self-injected address cannot target an omitted table block and
+  that any abstract external call with private blocks omitted preserves all
+  table bytes, cannot return their pointers, and preserves a self-injection
+  plus its symbol interface after the call when the ordinary global/volatile
+  blocks are valid.  The remaining linked task is to construct that private
+  injection and validity fact at the accepted start and carry them through
+  live states; failure would expose the first concrete alias.  OOB, ACE, DMA,
+  and post-undefined-behavior continuations remain outside this result.
 
 - [x] Couple SSL's Mario command to `bhvMario` and lift the dangerous-cell
   frame across arbitrary finite clean traces.  `InkTimer131LiveIdentityClosure.v`

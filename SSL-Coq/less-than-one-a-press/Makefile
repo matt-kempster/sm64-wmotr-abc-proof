@@ -1449,8 +1449,14 @@ check: proofs
 	  LessThanOneAPress.Proofs.WritableActionTableClosure \
 	  writable_action_table_checked_boundary_holds
 	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.WritableActionTableAliasExternalClosure \
+	  writable_action_table_defined_producer_closure_holds
+	bash pipeline/assumptions.sh \
 	  LessThanOneAPress.Proofs.MainTheorem \
 	  current_writable_action_table_mutation_boundary
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.MainTheorem \
+	  current_writable_action_table_alias_external_boundary
 	bash pipeline/assumptions.sh \
 	  LessThanOneAPress.Proofs.NegativeDepthForgeryBoundary \
 	  all_landing_descriptors_have_no_direct_generated_assignment

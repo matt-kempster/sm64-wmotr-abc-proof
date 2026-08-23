@@ -3,12 +3,19 @@
 ## Verdict
 
 The tables exist and are writable memory, but the checked US and JP source has
-no ordinary named controller-driven mutation producer.  Controller state can
-only influence which initialized entry gets read.  No named table assignment,
-separate explicit address-taking site, or controller-controlled table payload
-was found.  This closes the ordinary “press buttons to invoke a table editor”
-idea; a complete linked in-bounds disproof still has to exclude a valid alias
-or a reached outside routine whose exact effect includes the table.
+no defined first producer for a table mutation.  The strengthened audit does
+not rely on the older direct-assignment check: it examines every occurrence
+and accepts only four complete terminal reads per version—two fields from the handler
+table and one word from each knockback table.  No occurrence is a store
+address, return value, call target, call argument, builtin argument, public
+export, or initializer relocation in the owning unit.  CompCert's abstract
+external-call rules then give a stronger result than a callee-by-callee
+footprint: once the three valid private blocks are omitted from a self-memory
+injection, every outside call preserves all their bytes, cannot return a
+pointer to them, and preserves that private injection after the call.  The
+remaining formal bridge is to instantiate and carry this private-block
+invariant through the selected linked start; it is no longer an unexplained
+alias or outside-call candidate.
 
 The audited storage is finite and exact:
 
@@ -24,9 +31,32 @@ that the game exposes a controller command for editing it.  The source census
 finds `sInteractionHandlers` only in `mario_process_interactions` and the two
 knockback tables only in `determine_knockback_action`.  The former loads the
 mask and handler; the latter chooses terrain and strength indices from
-`0`, `1`, or `2` and loads one action.  The generated corpora contain no named
-assignment to any of the three tables, and the handler table has no explicit
-address-taking site outside its stock value reads.
+`0`, `1`, or `2` and loads one action.  This matters because the former
+assignment checker recognized only a whole-global left side and could have
+missed `table[i] = value`; the new occurrence-sensitive checker explicitly
+rejects that array-element shape and still accepts the entire US and JP
+corpus.
+
+## Why an outside call cannot be the first writer
+
+CompCert pointers contain an allocation-block identity, not merely a flat
+numeric address.  The three tables are private to `interaction.c`, are absent
+from that unit's public-symbol list, and are not named by an initializer
+relocation.  A proof can therefore use a self-injection that maps all ordinary
+live values to themselves while deliberately leaving the three table blocks
+unmapped.  A store address related to itself by that injection cannot be a
+pointer into an omitted table block.
+
+CompCert requires every abstract external call to respect memory injections.
+Applied to the private self-injection, this rule says that the call leaves
+every byte of each omitted block unchanged.  It also cannot return a table
+pointer: extending the injection may map newly allocated blocks, but
+`inject_separated` forbids it from newly mapping an already-valid omitted
+block.  Since an injected copy of the same call has the same trace, external
+call determinism identifies its result and memory with the original call;
+the extended private injection therefore remains available after the call.
+This argument covers every CompCert abstract external at once and does not
+depend on guessing which sound, math, or debug routine happens to be reached.
 
 ## What a hypothetical write could do
 
@@ -88,21 +118,24 @@ post-hit route are not established.
 
 ## What remains
 
-No more controller search for a normal table-write command is warranted.  A
-clean in-model counterexample must identify one of these exact producers:
-
-1. a valid, in-bounds pointer alias that evaluates to the private handler or
-   knockback-table block and performs an overlapping store; or
-2. a reached outside call with an exact effect that writes that block.
-
-If both are excluded along the clean linked execution, table mutation is
-disproved for the current CompCert model and the negative-quicksand seed loses
-this escape.  Invalid or out-of-bounds stores, ACE, DMA, and continuations after
-undefined behavior remain separate retail-machine questions, not unfinished
-Clight table producers.
+No more controller, alias, or per-callee footprint search is warranted without
+a failed invariant step.  The remaining proof-engineering task is precise:
+identify the three linked table blocks at the accepted start, construct the
+private self-injection from their private/no-relocation initialization, prove
+the ordinary linked global/volatile blocks are valid, and carry it through the
+real Clight states.  The four table reads per version are the only special
+internal cases; ordinary stores must use self-injected addresses, and abstract
+calls use the proved generic preservation theorem.  If the induction
+succeeds, table mutation is fully disproved for successful in-bounds CompCert
+execution.  If it fails, the first failing state supplies the exact preexisting
+alias or non-injected value that the earlier search lacked.  Invalid or
+out-of-bounds stores, ACE, DMA, and continuations after undefined behavior
+remain separate retail-machine questions, not unfinished Clight producers.
 
 Formal receipts are in
 [`WritableActionTableClosure.v`](../../proofs/WritableActionTableClosure.v),
+with the occurrence-sensitive and abstract-external closure in
+[`WritableActionTableAliasExternalClosure.v`](../../proofs/WritableActionTableAliasExternalClosure.v),
 with the previously compiled whole-corpus handler census in
 [`InkTimer131CorruptionClosure.v`](../../proofs/InkTimer131CorruptionClosure.v)
 and initialized action-flow census in

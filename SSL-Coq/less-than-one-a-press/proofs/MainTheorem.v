@@ -11,6 +11,7 @@ From LessThanOneAPress.Proofs Require Import
   InkTimer131EntryExecutionClosure InkTimer131RetailMipsFrames
   InkTimer131RealEntryPrefix InkTimer131PostEntryMachineTrace TurningAnimation
   NegativeDepthInteractionClosure WritableActionTableClosure
+  WritableActionTableAliasExternalClosure
   CompCertRouteScope.
 
 Import ListNotations.
@@ -55,8 +56,8 @@ Qed.
     controller producer.  The older whole-corpus Ink receipt supplies the
     exact handler-table mention/address census; the new boundary adds exact
     storage size, bounded consumers, one-word arbitrary-action capacity, and
-    compatible coin/pole handler payloads.  A live defined alias into the
-    private table block or a reached outside effect remains explicit. *)
+    compatible coin/pole handler payloads.  The occurrence-sensitive alias and
+    abstract-external closure is packaged separately below. *)
 Theorem current_writable_action_table_mutation_boundary :
   WritableActionTableCheckedBoundary /\
   ink_dispatch_table_named_source_claim.
@@ -65,6 +66,16 @@ Proof.
   - exact writable_action_table_checked_boundary_holds.
   - exact ink_dispatch_tables_have_only_stock_named_source_uses.
 Qed.
+
+(** The former free-form alias/outside-call residual is now reduced to one
+    exact live invariant.  Every table occurrence per version is a terminal
+    read, and an omitted valid private block is neither a self-injected store
+    target nor writable/returnable by a CompCert abstract external call.  The
+    selected trace must still construct and carry that private self-injection;
+    this theorem does not claim an OOB or post-undefined-behavior result. *)
+Theorem current_writable_action_table_alias_external_boundary :
+  WritableActionTableDefinedProducerClosure.
+Proof. exact writable_action_table_defined_producer_closure_holds. Qed.
 
 Theorem current_negative_depth_route_checked_boundary :
   InkTimer131CorruptionCheckedBoundary.

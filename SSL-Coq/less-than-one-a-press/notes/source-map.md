@@ -31,7 +31,7 @@ not a source-census result.
 | `src/game/mario_actions_stationary.c` | `*_mario_actions_stationary.v` | stationary action handlers imported for Layer B action/writer coverage; no complete execution refinement yet |
 | `src/game/mario_actions_submerged.c` | `*_mario_actions_submerged.v` | submerged dispatcher coverage; generated-AST receipts check the water full-step helper calls, all three direct whirlpool position slots, and the common water-level clamp.  The Ink writer audit conservatively allows water pitch at most `60` plus a persisted s16-only bob below `148` to compose across the floor-hit branch, represented by the modeled integer bound `208`.  This closes the missing translation-unit hole, not SSL reachability or callgraph completeness |
 | `src/game/mario_step.c` | `*_mario_step.v` | ground and air quarter-step loops, `find_floor` calls, gravity source shape, `stop_and_set_height_to_floor` State-Y assignment from cached `floorHeight`, and the riding-shell quicksand-depth zero assignment receipt |
-| `src/game/interaction.c` | `*_interaction.v` | `interact_star_or_key` field/constant occurrences and direct save call; `interact_coin` spawn call/index constant; `interact_warp` action constant in the PU phase pipeline; `push_mario_out_of_object` wall-call/State-position/no-Graphics receipts; bilateral exact initializer, use-site, no-named-writer, bounded-index, and action-flow receipts for `sInteractionHandlers` and both 3-by-3 knockback tables; a valid alias or reached outside-call table write remains open; extraction dataflow and exact wall-call arguments are pending |
+| `src/game/interaction.c` | `*_interaction.v` | `interact_star_or_key` field/constant occurrences and direct save call; `interact_coin` spawn call/index constant; `interact_warp` action constant in the PU phase pipeline; `push_mario_out_of_object` wall-call/State-position/no-Graphics receipts; bilateral exact initializer, bounded-index, and action-flow receipts for `sInteractionHandlers` and both 3-by-3 knockback tables; an occurrence-sensitive whole-corpus refinement admits only four terminal reads per version and rejects stores, address handoffs, public export, and owning-unit relocations; CompCert's private self-injection frames every abstract outside call and excludes a returned table pointer, with live start-to-trace invariant construction still pending; extraction dataflow and exact wall-call arguments are pending |
 | `src/game/save_file.c` | `*_save_file.v` | direct call from `save_file_collect_star_or_key` to `save_file_set_star_flags`; `save_file_reload` backup-copy/file source shape; the bit-update and copy memory effects are not yet proved |
 | `src/game/object_collision.c` | `*_object_collision.v` | `detect_object_hitbox_overlap` collision-list field occurrence/assignment and full object-position slot reads; Goomba receipts reach the generic list/hitbox bodies, find literal 5 in the caller, and find no direct FAR guard in those bodies.  Coupling 5 to the pushable-list call remains a pinned-source audit fact; tangibility, capacity, list membership, execution, and the handwritten collision projection are pending |
 | `src/game/object_list_processor.c` | `*_object_list_processor.v` | full direct-callee order from dynamic-surface rebuild through final platform query, State-to-object copy slots, platform-clear call split, and unload-body identifier/call occurrences; loop/state effects are pending |
@@ -389,8 +389,22 @@ one hypothetical four-byte knockback edit can contain any action word,
 including long jump,
 connects the selected word to an action-setter consumer, and checks compatible
 coin/pole handler-pointer payloads.  A concrete valid in-bounds alias or a
-reached outside call whose footprint overlaps the private table block remains
-the exact linked-source residual; OOB/ACE/DMA behavior is outside this result.
+reached outside call whose footprint overlaps the private table block was the
+exact linked-source residual; OOB/ACE/DMA behavior is outside this result.
+
+`proofs/WritableActionTableAliasExternalClosure.v` replaces that residual with
+an occurrence-sensitive source and CompCert-semantics result.  Reusing the
+compiled whole-corpus mention census, it checks the only table-name bodies and
+finds exactly two terminal handler reads plus one terminal read from each
+knockback table; none is a store, return, or call handoff.  It also checks the
+three names are private and absent from owning-unit initializer relocations.
+Its generic memory-injection theorems prove that a self-injected store address
+cannot target an omitted table block and that every CompCert abstract outside
+call preserves such a block, cannot return its pointer, and preserves the
+private injection and symbol interface after the call under the ordinary
+global/volatile validity fact.  Constructing and carrying that injection from
+the accepted linked start is the remaining semantic bridge; a failure would
+identify the first concrete alias rather than leave a free-form outside effect.
 
 `proofs/NoExitStarDialogBridge.v` checks the no-exit-star hitbox/behavior,
 object-list order, star-dance/dialog call footprints, and milestone table.  Its

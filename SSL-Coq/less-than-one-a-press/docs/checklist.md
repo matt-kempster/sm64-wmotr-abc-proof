@@ -486,12 +486,14 @@ These obligations currently block the clean-retail result.
   no named generated writer.  `WritableActionTableClosure.v` now proves that
   the three tables occupy 320 writable bytes but have no ordinary named
   controller mutation producer; a one-word knockback change could encode any
-  action, so the remaining table branch must identify an exact valid alias or
-  reached outside-call write rather than search for a controller table-edit
-  command.  The negative-quicksand/dialog branch therefore still needs two
-  independent escapes: first that exact table producer, a retargeted call,
-  another defined pointer/alias or specified external effect, and only then
-  raw-X/Z transport to the upper warp.  What remains is live
+  action.  `WritableActionTableAliasExternalClosure.v` now checks every actual
+  occurrence as one of four terminal reads per version and proves that neither
+  a self-injected store nor a CompCert abstract outside call can be the first
+  private-block producer.  The table branch is reduced to constructing and
+  carrying that private injection from the accepted linked start; only its
+  first failed step could reopen a concrete alias.  The negative-quicksand/
+  dialog branch therefore still needs a different negative seed if that bridge
+  succeeds, and only then raw-X/Z transport to the upper warp.  What remains is live
   list/slot/table/spawn-record preservation plus
   valid forged/interior pointers, defined overlapping writes, concretely
   specified externals, or one coupled negative-seed/transport witness.
@@ -766,6 +768,19 @@ These obligations materially strengthen the proof but are not the shortest route
   relation bound of at most `208` for every reachable writer.
 
 ### Negative-quicksand/star installer branch
+
+- [ ] Instantiate `ActionTablePrivateExternalReady` at the accepted linked
+  start: resolve the three table blocks, prove they are valid and omitted from
+  a self-memory injection, discharge the ordinary global/volatile-block
+  validity premise, and carry that injection through every live Clight state.
+  `WritableActionTableAliasExternalClosure.v` already proves that the
+  only four table occurrences per version are terminal reads, that no owning-
+  unit initializer or public export creates an address escape, and that every
+  CompCert abstract external preserves the omitted blocks and cannot return
+  their pointers.  This last start-to-trace bridge either completes the
+  in-bounds action-table disproof or exposes the exact first non-injected
+  alias; do not resume free-form table-writer or per-callee searches before
+  such a failure.
 
 - [ ] Prove or refute a fresh 100-coin star with compatible *relative*
   Mario/star transport at the first eligible collision, a different spawn
