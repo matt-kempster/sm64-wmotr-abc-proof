@@ -1455,6 +1455,15 @@ check: proofs
 	  LessThanOneAPress.Proofs.WritableActionTableWholeGameAliases \
 	  writable_action_table_whole_game_alias_boundary_holds
 	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.WritableActionTablePrivateInitialization \
+	  writable_action_table_private_initialization_closure_holds
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.WritableActionTablePrivateLive \
+	  writable_action_table_private_live_closure_holds
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.WritableActionTablePrivateLive \
+	  writable_action_table_selected_live_bridge_closure_holds
+	bash pipeline/assumptions.sh \
 	  LessThanOneAPress.Proofs.MainTheorem \
 	  current_writable_action_table_mutation_boundary
 	bash pipeline/assumptions.sh \
@@ -1463,6 +1472,12 @@ check: proofs
 	bash pipeline/assumptions.sh \
 	  LessThanOneAPress.Proofs.MainTheorem \
 	  current_writable_action_table_whole_game_alias_boundary
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.MainTheorem \
+	  current_writable_action_table_private_initialization_boundary
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.MainTheorem \
+	  current_writable_action_table_private_live_boundary
 	bash pipeline/assumptions.sh \
 	  LessThanOneAPress.Proofs.NegativeDepthForgeryBoundary \
 	  all_landing_descriptors_have_no_direct_generated_assignment

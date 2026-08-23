@@ -307,6 +307,8 @@ proofs/NegativeDepthInteractionClosure.v
 proofs/WritableActionTableClosure.v
 proofs/WritableActionTableAliasExternalClosure.v
 proofs/WritableActionTableWholeGameAliases.v
+proofs/WritableActionTablePrivateInitialization.v
+proofs/WritableActionTablePrivateLive.v
 proofs/NegativeDepthForgeryBoundary.v
 proofs/NoExitStarDialogBridge.v
 proofs/DialogDepthMemoryFrame.v

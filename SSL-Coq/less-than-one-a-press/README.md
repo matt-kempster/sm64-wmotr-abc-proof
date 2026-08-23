@@ -702,9 +702,19 @@ word, including `ACT_LONG_JUMP`, and the checked Snufit/damage consumer feeds
 that selection to an action setter.  The coin and pole handler cells can also
 hold signature-compatible stock handlers; the pole pointer is word 45, byte
 offset 180.  Therefore table mutation is not harmless, but its clean in-model
-producer is now reduced to one exact valid alias into the private table block
-or a reached outside effect.  The [writable-table note](docs/notes/writable-action-table-mutation.md)
-also records the conditional upper-coin and lower-pole consumers.
+producer was reduced to one exact valid alias into the private table block or
+a reached outside effect.  `WritableActionTableAliasExternalClosure.v` and
+`WritableActionTableWholeGameAliases.v` then check all modeled initializer and
+export sites, the four terminal reads, the real linked blocks, and the generic
+outside-call frame.  `WritableActionTablePrivateInitialization.v` now builds
+the filtered identity injection from successful selected-program
+initialization, and `WritableActionTablePrivateLive.v` carries it through
+stores, byte copies, allocation/free effects, outside calls, and finite actual
+Clight runs while framing every table byte.  Only the reached-step
+`ActionTablePrivateClightStepCoverage` classifier remains; its first failure
+would identify the exact valid alias/effect.  The
+[writable-table note](docs/notes/writable-action-table-mutation.md) also records
+the conditional upper-coin and lower-pole consumers.
 
 Stock SSL Area 1 has an exact static-mesh candidate beginning at
 `(5760,0,4856)`.  The four real quarters have now been executed in

@@ -2933,8 +2933,17 @@ The most useful entry points are:
   no-writer boundary for the 320-byte handler/knockback storage, proves that a
   hypothetical selected four-byte knockback cell can carry any action word
   including long jump, connects that cell to the checked action consumer, and
-  identifies signature-compatible coin/pole handler-pointer payloads; a valid
-  alias or reached outside-table write remains the exact in-model residual;
+  identifies signature-compatible coin/pole handler-pointer payloads;
+- `proofs/WritableActionTableAliasExternalClosure.v` and
+  `proofs/WritableActionTableWholeGameAliases.v`: prove the four-terminal-read
+  use shape, generic CompCert outside-call frame, complete modeled initializer
+  and export census, linked table-block validity, and cross-level lifetime;
+- `proofs/WritableActionTablePrivateInitialization.v` and
+  `proofs/WritableActionTablePrivateLive.v`: construct the filtered private
+  injection from successful selected-program initialization and carry its
+  byte frame through stores, copies, allocation/free effects, outside calls,
+  and finite actual Clight runs; reached-step classification is the remaining
+  in-model obligation;
 - `proofs/InkTimer131LiveIdentityClosure.v`: exact SSL `&bhvMario` command and
   spawn-record forwarding receipts, plus arbitrary finite clean-store safety
   and a distinct-slot/list-12 eviction trace embedding;

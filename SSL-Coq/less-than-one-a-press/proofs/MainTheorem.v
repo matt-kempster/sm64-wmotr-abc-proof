@@ -13,6 +13,8 @@ From LessThanOneAPress.Proofs Require Import
   NegativeDepthInteractionClosure WritableActionTableClosure
   WritableActionTableAliasExternalClosure
   WritableActionTableWholeGameAliases
+  WritableActionTablePrivateInitialization
+  WritableActionTablePrivateLive
   CompCertRouteScope.
 
 Import ListNotations.
@@ -68,12 +70,12 @@ Proof.
   - exact ink_dispatch_tables_have_only_stock_named_source_uses.
 Qed.
 
-(** The former free-form alias/outside-call residual is now reduced to one
-    exact live invariant.  Every table occurrence per version is a terminal
-    read, and an omitted valid private block is neither a self-injected store
-    target nor writable/returnable by a CompCert abstract external call.  The
-    selected trace must still construct and carry that private self-injection;
-    this theorem does not claim an OOB or post-undefined-behavior result. *)
+(** The former free-form alias/outside-call residual is reduced to one exact
+    live invariant.  Every table occurrence per version is a terminal read,
+    and an omitted valid private block is neither a self-injected store target
+    nor writable/returnable by a CompCert abstract external call.  The
+    construction and finite-execution carrier are packaged below; this theorem
+    does not claim an OOB or post-undefined-behavior result. *)
 Theorem current_writable_action_table_alias_external_boundary :
   WritableActionTableDefinedProducerClosure.
 Proof. exact writable_action_table_defined_producer_closure_holds. Qed.
@@ -88,6 +90,28 @@ Proof. exact writable_action_table_defined_producer_closure_holds. Qed.
 Theorem current_writable_action_table_whole_game_alias_boundary :
   WritableActionTableWholeGameAliasBoundary.
 Proof. exact writable_action_table_whole_game_alias_boundary_holds. Qed.
+
+(** The private injection is no longer merely an obligation.  It is
+    constructed from the selected linked program's successful initial memory,
+    omits exactly the three resolved table blocks, and is carried through
+    certified stores, byte copies, allocation/free effects, abstract external
+    calls, and finite actual [Clight.step2] executions.  The remaining
+    selected-run input is the pointwise step-coverage proof; a failed point is
+    returned as the exact unclassified effect. *)
+Theorem current_writable_action_table_private_initialization_boundary :
+  WritableActionTablePrivateInitializationClosure.
+Proof.
+  exact writable_action_table_private_initialization_closure_holds.
+Qed.
+
+Theorem current_writable_action_table_private_live_boundary :
+  WritableActionTablePrivateLiveClosure /\
+  WritableActionTableSelectedLiveBridgeClosure.
+Proof.
+  split.
+  - exact writable_action_table_private_live_closure_holds.
+  - exact writable_action_table_selected_live_bridge_closure_holds.
+Qed.
 
 Theorem current_negative_depth_route_checked_boundary :
   InkTimer131CorruptionCheckedBoundary.

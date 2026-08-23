@@ -338,8 +338,11 @@ The new bounded forgery proof nevertheless closes useful source cases: no
 landing descriptor or interaction-table entry has a direct generated writer,
 descriptor address-taking is wrapper-local, timer forgery alone cannot bypass
 a stock four-frame landing, and a changed action load requires an overlapping
-same-block CompCert store.  The remaining uncertainty is specifically live
-flat-memory/OOB, pointer, writable-global, input, and external-effect closure.
+same-block CompCert store.  The later whole-game action-table proof constructs
+the private injection at successful initialization and carries it through
+classified finite Clight runs; its remaining uncertainty is the reached-step
+classifier, while landing descriptors still need their own live pointer and
+input closure.  Flat-memory/OOB behavior remains outside this source result.
 
 The newest turning-animation tranche eliminates one proposed bypass at a
 narrower boundary.  `TurningAnimation.v` proves that the repeated value 189 is

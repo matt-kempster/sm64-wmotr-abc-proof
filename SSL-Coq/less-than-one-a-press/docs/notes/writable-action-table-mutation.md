@@ -11,11 +11,14 @@ definition, no global initializer stores any table address, no public-symbol
 list exports one, and the only function-body occurrences are four complete
 terminal reads per version—two handler fields and one word from each knockback
 table.  No occurrence stores, returns, or hands off a table address.  The
-linked programs contain three real valid table blocks, and CompCert's abstract
-external-call rules preserve their bytes once those private blocks are omitted
-from a self-memory injection.  The remaining formal bridge is therefore to
-construct and carry that injection through the selected live execution, not
-to keep an unspecified “alias elsewhere” or outside-call writer open.
+linked programs contain three real valid table blocks.  The formal proof now
+constructs a filtered identity injection at every successful selected-program
+initialization: every ordinary named global maps to itself, while precisely the
+three table blocks are omitted.  It carries that same growing relation through
+stores, byte copies, allocation, freeing, abstract outside calls, and finite
+actual Clight executions, preserving every table byte.  The remaining bridge
+is only to classify each reached Clight step into one of those proved effects;
+it is no longer an unspecified initial alias or per-callee writer.
 
 The audited storage is finite and exact:
 
@@ -57,6 +60,27 @@ call determinism identifies its result and memory with the original call;
 the extended private injection therefore remains available after the call.
 This argument covers every CompCert abstract external at once and does not
 depend on guessing which sound, math, or debug routine happens to be reached.
+
+The initialization construction is not an assumption about a convenient
+snapshot.  It is derived from the selected linked program's successful
+`Genv.init_mem`: the whole-game initializer census proves that no initialized
+word contains a table address, the export census proves that no omitted table
+is public, and the linked-symbol proof resolves all three omitted blocks and
+proves them valid.  CompCert's initialized-byte argument is replayed with this
+filtered identity injection, so all non-table initialized bytes inject into
+themselves while the table blocks remain private.
+
+For live execution, each successful memory-changing primitive has an explicit
+carrier.  A normal store must supply a self-injected address and value; a byte
+copy must supply a self-injected destination and bytes; a fresh allocation
+grows the injection with its new block; a free must name an already mapped
+non-table block; and an outside call must receive self-injected arguments.  The
+outside-call theorem returns the actual monotone extension of the incoming
+injection rather than an unrelated existential witness.  These carriers
+compose over an actual finite `Clight.step2` run, starting from the exact
+initialized memory, and yield both the final private relation and a byte frame
+from start to finish.  A one-step dichotomy identifies the first actual step
+that cannot be put in one of these classes.
 
 ## Whole-game aliases and cross-level lifetime
 
@@ -147,21 +171,20 @@ post-hit route are not established.
 ## What remains
 
 No more free-form controller, stored-alias, or per-callee footprint search is
-warranted without a failed invariant step.  The three table symbols now resolve
-to real blocks in both official linked source programs, and successful program
-initialization makes those blocks valid.  The remaining proof-engineering task
-is narrower: construct the private self-injection at that initialized start and
-carry it through the real Clight states.  The accepted SSL snapshot by itself
-cannot establish this fact because it intentionally says little about unrelated
-memory elsewhere; the whole-game history proved here supplies the missing
-no-stored-alias premise.  The four table reads per version are the only special
-internal cases; ordinary stores must use self-injected addresses, and abstract
-calls use the generic preservation theorem.  If the induction succeeds, table
-mutation is fully disproved for successful in-bounds CompCert execution.  If it
-fails, the first failing state supplies the exact preexisting alias or
-non-injected value that the earlier search lacked.  Invalid or out-of-bounds
-stores, ACE, DMA, and continuations after undefined behavior remain separate
-retail-machine questions, not unfinished Clight producers.
+warranted without a failed invariant step.  Construction at initialization and
+the finite-run induction are complete.  The remaining proof-engineering task
+is to instantiate `ActionTablePrivateClightStepCoverage` for the reached states
+of the selected execution.  In ordinary words, each actual next step must be
+identified as memory-preserving, a store or copy whose address and payload are
+still private-safe, an allocation or free of a mapped non-table block, or an
+outside call whose arguments remain private-safe.  The four terminal table
+reads per version are the only special expression cases because their
+temporary results are stock handler pointers or integer actions, not table
+addresses.  A complete classifier disproves table mutation for every
+successful in-bounds execution it covers; a failure names the exact
+before/after Clight states and concrete non-injected value or effect.  Invalid
+or out-of-bounds stores, ACE, DMA, and continuations after undefined behavior
+remain separate retail-machine questions, not unfinished Clight producers.
 
 Formal receipts are in
 [`WritableActionTableClosure.v`](../../proofs/WritableActionTableClosure.v),
@@ -170,6 +193,10 @@ with the occurrence-sensitive and abstract-external closure in
 the whole-game initializer/export, linked-block, transition-lifetime, and
 first-failure receipts in
 [`WritableActionTableWholeGameAliases.v`](../../proofs/WritableActionTableWholeGameAliases.v),
+the filtered initialization construction in
+[`WritableActionTablePrivateInitialization.v`](../../proofs/WritableActionTablePrivateInitialization.v),
+and the primitive, outside-call, and actual-Clight-run carrier in
+[`WritableActionTablePrivateLive.v`](../../proofs/WritableActionTablePrivateLive.v),
 with the previously compiled whole-corpus handler census in
 [`InkTimer131CorruptionClosure.v`](../../proofs/InkTimer131CorruptionClosure.v)
 and initialized action-flow census in

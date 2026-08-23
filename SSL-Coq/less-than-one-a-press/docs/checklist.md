@@ -492,9 +492,10 @@ These obligations currently block the clean-retail result.
   private-block producer.  `WritableActionTableWholeGameAliases.v` adds the
   missing whole-game history: every modeled initializer/export is clean, the
   linked blocks exist and are initially valid, and ordinary level transitions
-  do not name them.  The table branch is reduced to constructing and carrying
-  that private injection through the accepted live run; only its first failed
-  step could reopen a concrete alias.  The negative-quicksand/
+  do not name them.  The private injection is now constructed at selected
+  initialization and its finite-run carrier is proved; the table branch is
+  reduced to classifying the reached live steps, and only the first failed
+  classification could reopen a concrete alias.  The negative-quicksand/
   dialog branch therefore still needs a different negative seed if that bridge
   succeeds, and only then raw-X/Z transport to the upper warp.  What remains is live
   list/slot/table/spawn-record preservation plus
@@ -772,21 +773,17 @@ These obligations materially strengthen the proof but are not the shortest route
 
 ### Negative-quicksand/star installer branch
 
-- [ ] Instantiate `ActionTablePrivateExternalReady` at the accepted linked
-  start and carry it through every live Clight state.
-  `WritableActionTableWholeGameAliases.v` now resolves the three table blocks
-  in both official linked source programs, derives their validity from
-  successful initialization, checks every global initializer and public export
-  in all 38 US/JP units, retains the four-terminal-read body census, and checks
-  that ordinary area/level transitions do not name the tables.  The pinned
-  431-file decompiled-source audit likewise finds the names only in
-  `interaction.c`; a hypothetical post-boot mutation would survive a level
-  change, but no in-model stored alias supplies its first write.  What remains
-  is constructing the private self-memory injection from those initialization
-  facts and inducting it through the actual live execution.  That last bridge
-  either completes the in-bounds action-table disproof or exposes the exact
-  first non-injected alias; do not resume free-form writer or per-callee
-  searches before such a failure.
+- [ ] Discharge `ActionTablePrivateClightStepCoverage` for the reached states
+  of the selected linked execution.  The private injection itself is now
+  constructed from successful US/JP initialization and the finite actual-
+  Clight-run carrier is proved in `WritableActionTablePrivateInitialization.v`
+  and `WritableActionTablePrivateLive.v`.  Each reached step must now be
+  classified as unchanged, a self-injected store or byte copy, an allocation
+  or free of a mapped non-table block, or an outside call with self-injected
+  arguments.  The first failure is the exact concrete alias/effect to test;
+  complete coverage closes successful in-bounds table mutation.  The four
+  terminal reads need their stock non-table result facts.  Do not resume
+  free-form writer or per-callee searches before such a failure.
 
 - [ ] Prove or refute a fresh 100-coin star with compatible *relative*
   Mario/star transport at the first eligible collision, a different spawn

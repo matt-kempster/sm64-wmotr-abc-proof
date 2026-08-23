@@ -415,6 +415,61 @@ Proof.
   exact (Hinvalid (Hprotected_valid protected_block Hin)).
 Qed.
 
+(** The compositional form keeps the incoming witness explicit and returns
+    the very extension manufactured by CompCert's external-call simulation.
+    This extra [inject_incr] fact is what permits consecutive live steps to
+    share one growing injection instead of choosing unrelated witnesses. *)
+Theorem abstract_external_call_carries_explicit_private_injection :
+  forall ge arguments before trace result after external protected_blocks
+      injection,
+    symbols_inject injection ge ge ->
+    Mem.inject injection before before ->
+    Val.inject_list injection arguments arguments ->
+    (forall protected_block,
+      In protected_block protected_blocks ->
+      injection protected_block = None) ->
+    ActionTableGlobalBlocksValid ge before ->
+    (forall protected_block,
+      In protected_block protected_blocks ->
+      Mem.valid_block before protected_block) ->
+    external_call external ge arguments before trace result after ->
+    exists injection',
+      symbols_inject injection' ge ge /\
+      Val.inject injection' result result /\
+      Mem.inject injection' after after /\
+      inject_incr injection injection' /\
+      (forall protected_block,
+        In protected_block protected_blocks ->
+        injection' protected_block = None).
+Proof.
+  intros ge arguments before trace result after external protected_blocks
+    injection Hsymbols Hmemory Harguments Homitted Hglobal_valid
+    Hprotected_valid Hcall.
+  destruct (external_call_executes_under_memory_injection
+    external ge ge arguments before trace result after injection before
+    arguments Hsymbols Hcall Hmemory Harguments)
+    as (injection' & target_result & target_after & Htarget_call & Hresult &
+      Hafter & Hunmapped & Hout_of_reach & Hincr & Hseparated).
+  destruct (external_call_deterministic
+    external ge arguments before trace result after
+    target_result target_after Hcall Htarget_call)
+    as [Hresult_equal Hafter_equal].
+  subst target_result. subst target_after.
+  exists injection'.
+  split.
+  { eapply symbols_inject_preserved_by_separated_extension; eauto. }
+  split; [exact Hresult |].
+  split; [exact Hafter |].
+  split; [exact Hincr |].
+  intros protected_block Hin.
+  destruct (injection' protected_block) as [[target_block delta] |]
+    eqn:Hmapped; [| reflexivity].
+  exfalso.
+  destruct (Hseparated protected_block target_block delta
+    (Homitted protected_block Hin) Hmapped) as [Hinvalid _].
+  exact (Hinvalid (Hprotected_valid protected_block Hin)).
+Qed.
+
 (** This is the exact current-model disposition.  The source half establishes
     that no table pointer is installed or handed off by any generated body or
     initializer.  The semantic half says that, once represented by the

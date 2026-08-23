@@ -949,10 +949,9 @@ Completed work is grouped by subject. Each item retains its original scope warni
   table bytes, cannot return their pointers, and preserves a self-injection
   plus its symbol interface after the call when the ordinary global/volatile
   blocks are valid.  The next whole-game tranche establishes the linked table
-  blocks and their initialization validity; the remaining task is to construct
-  the private injection there and carry it through live states.  Failure would
-  expose the first concrete alias.  OOB, ACE, DMA, and post-undefined-behavior
-  continuations remain outside this result.
+  blocks and their initialization validity; the next tranche constructs the
+  private injection there and supplies its live-state carrier.  OOB, ACE, DMA,
+  and post-undefined-behavior continuations remain outside this result.
 
 - [x] Extend the writable-table alias census to the whole modeled game and
   establish its cross-level lifetime.  `WritableActionTableWholeGameAliases.v`
@@ -966,8 +965,24 @@ Completed work is grouped by subject. Each item retains its original scope warni
   431-file audit of the pinned decompilation independently finds the names only
   in `interaction.c`.  Therefore an already-achieved post-boot mutation would
   persist into SSL, but no stored in-bounds source alias supplies the first
-  write; constructing and carrying the private self-injection through the live
-  run remains the exact final semantic bridge.
+  write; the next tranche constructs and carries the private self-injection,
+  leaving only the reached-step classifier as the exact semantic bridge.
+
+- [x] Construct the writable-table private injection at selected-program
+  initialization and prove its compositional live carrier.
+  `WritableActionTablePrivateInitialization.v` derives a filtered identity
+  injection from successful `Genv.init_mem`: all non-table named globals map to
+  themselves, all three resolved valid table blocks are omitted, public symbols
+  remain compatible, and the initialized memory injects into itself because no
+  initializer contains a table address.  `WritableActionTablePrivateLive.v`
+  carries this invariant through self-injected stores and byte copies,
+  allocation, freeing, and CompCert abstract calls; the external theorem now
+  returns the actual monotone extension of the incoming injection.  It composes
+  the byte frames over finite actual `Clight.step2` executions beginning at the
+  exact initialized memory and exposes the first unclassified step.  The open
+  residue is the concrete `ActionTablePrivateClightStepCoverage` proof for
+  reached states, especially the four stock terminal reads; OOB, ACE, DMA, and
+  post-undefined-behavior continuations remain outside this result.
 
 - [x] Couple SSL's Mario command to `bhvMario` and lift the dangerous-cell
   frame across arbitrary finite clean traces.  `InkTimer131LiveIdentityClosure.v`

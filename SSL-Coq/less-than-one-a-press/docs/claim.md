@@ -721,8 +721,12 @@ or frame.  See [CompCert execution scope](compcert-execution-scope.md).
   the nine writable landing descriptors and writable interaction table have
   no direct generated assignment, localizes normal descriptor address-taking,
   shows a timer forge alone cannot bypass a four-frame descriptor, and proves
-  an action-cell change needs a same-block overlapping CompCert store.
-  Compiled flat-memory/OOB and external-frame closure remain open.  An
+  an action-cell change needs a same-block overlapping CompCert store.  The
+  later whole-game action-table proof constructs its private injection at
+  successful initialization and carries it through classified finite Clight
+  runs; reached-step classification remains, rather than an unspecified table
+  alias or outside-call footprint.  Compiled flat-memory/OOB behavior remains
+  open.  An
   already-negative depth would be a genuine escape.  The older
   `-2.650000095f` witness reaches the required range in 363 or 381 sinks,
   depending on its base.  More strongly, the updater can sample ordinary
