@@ -7,10 +7,10 @@ From LessThanOneAPress.Proofs Require Import
   TranscriptRouteModel
   FirstTargetRefinement JPSlotLifetime JPFirstApply FirstCrossingWriterCoverage
   OrdinaryMotion GoombaRaising PyramidTopPU InkFallback RetailFatalLatch
-  InkPayloadInstaller InkTimer131ClightTraceBridge
+  InkPayloadInstaller InkTimer131CorruptionClosure InkTimer131ClightTraceBridge
   InkTimer131EntryExecutionClosure InkTimer131RetailMipsFrames
   InkTimer131RealEntryPrefix InkTimer131PostEntryMachineTrace TurningAnimation
-  CompCertRouteScope.
+  NegativeDepthInteractionClosure CompCertRouteScope.
 
 Import ListNotations.
 Local Open Scope Z_scope.
@@ -39,6 +39,20 @@ Qed.
 Theorem current_project_compcert_execution_scope_boundary :
   compcert_execution_scope_boundary_holds.
 Proof. exact compcert_execution_scope_boundary_checked. Qed.
+
+(** The initialized interaction handler and knockback tables cannot install
+    either long-jump action.  This is the source boundary needed by the
+    negative-depth reduction; linked preservation of those writable tables,
+    pointers, and outside-call frames remains explicit. *)
+Theorem current_negative_depth_initialized_interaction_boundary :
+  NegativeDepthInitializedInteractionSourceBoundary.
+Proof.
+  exact negative_depth_initialized_interaction_source_boundary_holds.
+Qed.
+
+Theorem current_negative_depth_route_checked_boundary :
+  InkTimer131CorruptionCheckedBoundary.
+Proof. exact ink_timer131_corruption_checked_boundary_holds. Qed.
 
 (** The rank-2 live-memory reduction is part of the capstone interface: a
     selected execution satisfying the concrete entry and reachable-step

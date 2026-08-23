@@ -31,8 +31,9 @@ From LessThanOneAPress.Generated Require Import
 From LessThanOneAPress.Proofs Require Import
   ASTFacts Area1WarpTopCloneCensus AutomaticDialogReanchoring
   InkTimer131IndirectAliasClosure InkTimer131MarioTailClosure
-  JPQuicksandDepth LongJumpProvenanceBoundary NegativeDepthTimer131Bridge
-  PyramidTopPU ZeroAQuicksandEntryBoundary.
+  JPQuicksandDepth LongJumpProvenanceBoundary
+  NegativeDepthInteractionClosure NegativeDepthTimer131Bridge PyramidTopPU
+  ZeroAQuicksandEntryBoundary.
 
 Import ListNotations.
 Local Open Scope Z_scope.
@@ -282,6 +283,7 @@ Qed.
 Definition InkTimer131CorruptionCheckedBoundary : Prop :=
   ink_dispatch_table_named_source_claim /\
   ink_mario_constructor_behavior_forwarding_claim /\
+  NegativeDepthInitializedInteractionSourceBoundary /\
   (forall entry action_events final_action final_depth,
     source_action_trace
       (expected_clean_entry_action entry) action_events final_action ->
@@ -303,6 +305,7 @@ Proof.
   unfold InkTimer131CorruptionCheckedBoundary.
   split; [exact ink_dispatch_tables_have_only_stock_named_source_uses |].
   split; [exact ink_mario_constructor_forwards_one_stable_behavior_value |].
+  split; [exact negative_depth_initialized_interaction_source_boundary_holds |].
   split.
   - intros. intro Hnegative.
     eapply clean_zero_a_no_forgery_trace_has_no_negative_dialog_seed; eauto.

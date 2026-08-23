@@ -2922,7 +2922,13 @@ The most useful entry points are:
   list-12 eviction versus list-0 Mario slot-reuse frame;
 - `proofs/InkTimer131CorruptionClosure.v`: exact named-use/no-writer censuses
   for both mutable dispatch tables, stable Mario constructor behavior
-  forwarding, and the clean-seed plus untransported-dialog no-go results;
+  forwarding, the imported initialized-interaction closure, and the clean-seed
+  plus untransported-dialog no-go results;
+- `proofs/NegativeDepthInteractionClosure.v`: bilateral closure of all 29
+  initialized interaction handlers, their 23 direct action literals, four
+  local selectors, both dynamic action helpers, and all 18 knockback-table
+  entries; every stock outcome is non-long-jump, while writable-table and
+  pointer/external preservation remain explicit;
 - `proofs/InkTimer131LiveIdentityClosure.v`: exact SSL `&bhvMario` command and
   spawn-record forwarding receipts, plus arbitrary finite clean-store safety
   and a distinct-slot/list-12 eviction trace embedding;

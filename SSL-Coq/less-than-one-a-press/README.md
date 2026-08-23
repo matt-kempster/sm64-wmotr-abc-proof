@@ -682,6 +682,17 @@ requires a same-block store whose byte range overlaps it.  Compiled N64 flat
 layout, live pointer provenance, writable-global integrity, indexed render
 state, and external frames remain open.
 
+`NegativeDepthInteractionClosure.v` closes the initialized interaction-table
+branch of that audit.  It follows all 29 distinct handlers in both versions,
+extracts all 23 direct action literals, bounds the four local action selectors,
+and follows Snufit's 3-by-3 knockback selector and Bully's five-outcome helper.
+All 18 initialized knockback-table entries and every other resulting action
+are non-long-jump values, and neither knockback table has a named generated
+writer.  This instantiates `InteractionActionClosureObligation` for stock table
+contents.  Because the handler and knockback tables are writable, linked table
+preservation, call/pointer provenance, aliases, and outside-call effects remain
+the precise escape boundary rather than being silently assumed.
+
 Stock SSL Area 1 has an exact static-mesh candidate beginning at
 `(5760,0,4856)`.  The four real quarters have now been executed in
 authenticated US and JP retail runs from injected pre-timer-3/pre-timer-4
@@ -1012,13 +1023,16 @@ table is mentioned only by its expected dispatcher and has no direct named
 assignment or explicit address-taking site anywhere in the generated US/JP
 corpus.  It also couples the Mario spawn path's one stable
 `segmented_to_virtual(behaviorScript)` value to both `create_object` and the
-new object's behavior field.  Finally, a clean zero-A/no-forgery source trace
-cannot supply a negative quicksand seed, while granting one and any finite
-untransported dialog stall still leaves raw X/Z outside the upper warp.  The
-remaining Ink cases are therefore genuinely live-memory cases: corrupted
-list/slot/table/spawn-record identity, forged or interior pointers,
-overlapping OOB stores, untyped external effects, or a negative seed composed
-with a separate raw-X/Z transport.
+new object's behavior field.  It now also imports the initialized interaction
+closure, so stock handler dispatch, local action selection, and both dynamic
+knockback helpers cannot supply the long-jump state needed for a negative
+seed.  Finally, a clean zero-A/no-forgery source trace cannot supply a negative
+quicksand seed, while granting one and any finite untransported dialog stall
+still leaves raw X/Z outside the upper warp.  The remaining Ink cases are
+therefore genuinely live-memory cases: corrupted list/slot/table/spawn-record
+identity, forged or interior pointers, defined overlapping aliases, untyped
+external effects, machine-only OOB behavior, or a negative seed composed with
+a separate raw-X/Z transport.
 `InkTimer131LiveIdentityClosure.v` closes the missing source link at the front
 of that chain: the exact bilateral SSL `INIT_MARIO` command carries
 `&bhvMario`, and the generated command, area-load, and constructor bodies

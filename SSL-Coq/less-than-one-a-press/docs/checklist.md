@@ -479,13 +479,18 @@ These obligations currently block the clean-retail result.
   constructor mutation: the two tables are used only by their expected
   dispatchers and have no direct named writer/address site, while the spawn
   path forwards one stable decoded behavior pointer into creation and the
-  object.  It also proves that the negative-quicksand/dialog branch needs two
-  independent escapes: a seed outside the checked clean zero-A/no-forgery
-  rules and a raw-X/Z transport from the dialog boundary to the upper warp.
-  What remains is live list/slot/table/spawn-record preservation plus valid
-  forged/interior pointers, defined overlapping writes, concretely specified
-  externals, or one coupled negative-seed/transport witness.  Invalid/OOB
-  variants are deferred to the machine-semantics extension.
+  object.  `NegativeDepthInteractionClosure.v` now checks all 29 initialized
+  interaction handlers in both versions, their 23 direct action literals,
+  four local selectors, both dynamic helpers, and all 18 knockback-table
+  entries; none installs either long-jump action, and the knockback tables have
+  no named generated writer.  The negative-quicksand/dialog branch therefore
+  still needs two independent escapes: first a changed writable table,
+  retargeted call, defined pointer/alias, specified external effect, or other
+  seed outside the clean rules, and only then raw-X/Z transport to the upper
+  warp.  What remains is live list/slot/table/spawn-record preservation plus
+  valid forged/interior pointers, defined overlapping writes, concretely
+  specified externals, or one coupled negative-seed/transport witness.
+  Invalid/OOB variants are deferred to the machine-semantics extension.
   `InkTimer131LiveIdentityClosure.v` now closes the spawn-record source gap more
   tightly: the exact SSL `INIT_MARIO` command contains `&bhvMario`, and the
   command, area-load, and constructor receipts forward one stable value into

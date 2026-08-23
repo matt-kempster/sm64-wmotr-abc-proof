@@ -28,7 +28,7 @@ The three reachability possibilities now have different statuses:
 | Possibility | Current result |
 |---|---|
 | A long-jump/landing prehistory with no A edge | Excluded in the finite source-shaped kernel.  The only recognized ordinary long-jump constructor is guarded by `INPUT_A_PRESSED`, and landing is produced only from long jump.  Linked Clight-step classification remains open. |
-| A forged action, timer, descriptor, callback, or input | No concrete clean SSL writer has been found.  Defined-alias and indirect-call closure remain unproved, and every reachable unresolved external needs an exact effect.  OOB/ACE producers are outside the current model. |
+| A forged action, timer, descriptor, callback, or input | No concrete clean SSL writer has been found.  The initialized stock interaction callback is now closed: all 29 distinct handlers in both versions select only checked non-target actions, including both dynamic knockback helpers.  Writable-table preservation, defined aliases, pointer/call retargeting, and exact effects for reached unresolved externals remain unproved.  OOB/ACE producers are outside the current model. |
 | Starting the modeled clean interval in the injected state | Excluded at the stated boundaries: the abstract pyramid contract fixes action `0x1932`; a separate concrete memory postcondition assumes/fixes timer zero and depth `+0.0f`.  The ordinary Area-1 entry memory postcondition separately fixes action `0x1924`, timer zero, and depth `+0.0f`. |
 
 Retail exploitation work first needs linked-step classification, then either a
@@ -46,19 +46,7 @@ concrete valid aliased write into one of those control cells; no such in-model
 writer is currently known.  An OOB producer is a separate machine-semantics
 branch rather than an open successful Clight store.
 
-The bounded forgery audit makes that residual more precise.  All nine landing
-descriptors and `sInteractionHandlers` are writable globals, but the bilateral
-generated programs contain no direct assignment to them.  Each descriptor
-address appears only in the corresponding landing wrapper.  Corrupting only
-the action timer is not enough for an ordinary four-frame landing: the
-preincrement cancel returns before timer 4/5 can reach the body, so the frame
-count must also be corrupted.  The landing function-pointer call remains
-under `m->input & INPUT_A_PRESSED`; the other indirect MarioState call is the
-writable interaction table.  In CompCert memory, a changed action load
-requires a same-block byte-overlapping store.  Pointer provenance,
-writable-global integrity, indexed held-object render state, and exact effects
-for unresolved externals are still open in Clight.  Actual N64 flat-address
-OOB behavior is deferred to a machine model.
+The bounded forgery audit makes that residual more precise.  All nine landing descriptors, `sInteractionHandlers`, and the two knockback-action tables are writable globals, but the bilateral generated programs contain no direct assignment to them.  Each landing-descriptor address appears only in its matching wrapper, and each knockback table is mentioned only by `determine_knockback_action`.  Corrupting only the action timer is not enough for a four-frame landing because the preincrement cancel returns before timer 4 or 5 reaches the body.  The landing function-pointer call remains below `m->input & INPUT_A_PRESSED`.  For the other indirect MarioState call, the new interaction closure checks every one of the 29 distinct initialized handlers in US and JP: their 23 direct action literals are non-target, their four local selectors receive only non-target literals, Snufit's bounded 3-by-3 helper reads only 18 checked non-target table entries, and Bully's helper has only five non-target literal outcomes.  This discharges the abstract interaction-action closure for initialized tables; a survivor must first change a handler or knockback table, retarget a call, forge a valid pointer or argument, or invoke an unframed outside effect.  In CompCert memory, changing the action still requires a same-block byte-overlapping store.  Linked pointer provenance, writable-global preservation, and exact effects for reached unresolved externals remain open; N64 flat-address OOB behavior is deferred to a machine model.
 
 A fresh star with compatible vertical placement, an older pre-positioned
 tangible star, a forged long-jump state, live dialog platform transport, warp
@@ -351,13 +339,21 @@ The new proof modules establish separate, deliberately scoped facts:
   clean contract, concrete entry-memory postconditions, descriptor timing,
   bilateral 38-unit target-value/constructor census, and the finite
   no-edge/no-forgery source-kernel exclusion.  It does not connect those
-  boundaries by linked execution, prove retail memory safety, or eliminate the
-  seven forged-state causes.
+  boundaries by linked execution or prove retail memory safety; the initialized
+  interaction cause is closed separately below, while the other forgery causes
+  remain live-memory obligations.
 - `NegativeDepthForgeryBoundary.v` checks the writable descriptors and
   interaction table, localizes their ordinary address/writer sites, proves
   timer-only forgery insufficient for a non-long landing, classifies the two
   indirect MarioState call sites, and proves the CompCert action-cell overlap
   requirement.  It does not prove compiled flat-memory/OOB safety.
+- `NegativeDepthInteractionClosure.v` follows all 29 distinct initialized
+  interaction handlers in both versions, extracts and checks their 23 direct
+  action literals, bounds four local selectors, checks both dynamic knockback
+  helpers and all 18 table entries, proves that the two knockback tables have
+  no named source writer, and instantiates the stock interaction-action
+  closure.  It does not prove that the three writable tables persist in every
+  linked execution or frame aliases and outside calls.
 - `Area1LongJumpQuicksandCrossing.v` records the static mesh boundary and its
   exact geometric subfacts.  `Area1LongJumpQuicksandRetailTrace.v` records the
   corrected four-quarter retail observation and refutes the old exact-Z
@@ -380,12 +376,13 @@ The new proof modules establish separate, deliberately scoped facts:
   source shape, and checks the exact `1.6f` post-dialog sanitizer arithmetic.
   It does not prove the linked branch/helper execution and names the remaining
   linked transport alternatives.
-- `InkTimer131CorruptionClosure.v` packages the route consequence: under the
-  checked clean action/depth kernels, zero A edges and no forged action imply
-  a nonnegative depth, so there is no negative dialog seed; even granting a
-  negative seed and any finite number of untransported stalls still cannot
-  overlap the fixed upper warp.  Thus a surviving construction needs both a
-  kernel/forgery escape and a separate raw-X/Z transport (or warp/collision
+- `InkTimer131CorruptionClosure.v` now includes the initialized-interaction
+  boundary and packages the route consequence: under the checked clean
+  action/depth kernels, zero A edges and no forged action imply a nonnegative
+  depth, so there is no negative dialog seed; even granting a negative seed
+  and any finite number of untransported stalls still cannot overlap the fixed
+  upper warp.  Thus a surviving construction needs both a table/alias/external
+  or other kernel escape and a separate raw-X/Z transport (or warp/collision
   substitution), not merely more dialog frames.
 - `DialogDepthMemoryFrame.v` proves with CompCert memory semantics that framed
   stores to the action/control prefix or distinct object-pool block preserve
@@ -399,9 +396,12 @@ installs the gap, reaches either target region, or collects either target star.
 ## Decisive remaining obligations
 
 1. Refine the checked source action/depth kernels to every clean linked US/JP
-   step and eliminate the seven forged-state cause classes.  This is now the
-   prerequisite question; without such a forge, the negative payload is
-   unreachable in the modeled zero-A execution.  This includes executing the
+   step and eliminate the remaining forged-state causes.  The initialized
+   interaction-handler branch is closed, so its survivors are specifically a
+   changed handler/knockback table, retargeted call, forged valid pointer or
+   argument, or unframed outside effect.  Without one of these or a separate
+   descriptor/action/timer forge, the negative payload is unreachable and no
+   X/Z search is needed.  This also includes executing the
    `Controller.buttonPressed`-to-`INPUT_A_PRESSED` update and excluding a later
    forged input-bit writer.
 2. Refine both authenticated four-quarter retail frames to linked Clight

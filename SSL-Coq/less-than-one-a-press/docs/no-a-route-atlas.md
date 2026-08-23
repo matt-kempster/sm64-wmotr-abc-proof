@@ -138,7 +138,7 @@ The detailed sections are organized as:
 | 9 | Downstream collection | Lower Act-3 Amp/Grindel/elevator itinerary | Low-medium |
 | 10 | Direct Area-2 gates | Held-A jump-kick or B rollout from the upper elevator shaft | Low |
 | 11 | Direct Area-2 gates | Lower-aperture impulse, clip, or support switch | Low-medium |
-| 12 | Ink installation | Negative quicksand depth plus stalled automatic dialog | Low |
+| 12 | Ink installation | Negative quicksand depth plus stalled automatic dialog | Very low unless a defined table/alias/external escape survives |
 | 13 | State-first installation | Raw-Object-only return or impulse writer | Low-medium |
 | 13A | State-first installation | Terrain-dispatch or collision-prefix writer outside the platform phase | Low-medium as a proof branch |
 | 13B | State-first installation | Interaction-stage writer or cached-floor snap composite | Low |
@@ -393,15 +393,16 @@ position and remembers the top.
 
 ### Negative quicksand depth plus stalled automatic dialog
 
-**Overall rank: 12. Family priority: 2. Likelihood: low.**
+**Overall rank: 12. Family priority: 2. Likelihood: very low unless a defined
+table, alias, or outside-call escape survives.**
 
 **In plain language.** Make `quicksandDepth` negative, then stall in a dialog
 state that repeatedly subtracts that negative value from Graphics Y without
 reanchoring it.  Hundreds of iterations can build the large Ink gap.
 
-**What is already known.** Exact binary32 models reach more than the required gap after a finite number of calls, but a clean zero-A trace following the checked action and depth rules cannot produce the negative starting value at all: the sole normal producer is the late long-jump landing and inherits an A edge, while a non-long-jump producer requires corrupted landing data.  Even granting a negative value and arbitrarily many non-reanchoring dialog stalls, the checked dialog model leaves raw X/Z near `(5760,4900)`, far from the fixed upper warp, and the first ordinary shallow-quicksand update resets either known negative value to positive `1.6`.  Ordinary sign/NPC dialogs reanchor, no direct Area-1 macro/script door root supplies the desired automatic dialog, and the known fresh-star timing does not align with the needed vertical overlap.
+**What is already known.** Exact binary32 models reach more than the required gap after finitely many calls, but the checked clean zero-A action/depth rules cannot produce the negative seed: the sole stock negative writer is the late long-jump landing and its ordinary constructor inherits an A edge, while an ordinary non-long-jump landing cannot run late enough.  The remaining stock interaction callback has now also been closed at the source boundary: all 29 distinct handlers in both versions use 23 checked non-target literals, bounded local choices, or one of 18 checked knockback-table entries, so the initialized handler and knockback tables cannot install either long-jump action; those writable tables have no named source writer.  No concrete clean descriptor, action, timer, callback, or defined-alias seed is known.  A linked proof must still preserve the writable tables and Mario pointers and frame reachable outside calls.  Even granting a negative value and arbitrarily many non-reanchoring stalls, the checked dialog model leaves raw X/Z near `(5760,4900)`, far from the upper warp, and the first ordinary shallow-quicksand update resets either known negative value to positive `1.6`; ordinary sign/NPC dialogs reanchor, no direct Area-1 macro/script door root supplies the desired automatic dialog, and the known fresh-star timing misses the required vertical overlap.
 
-**What closes it.** A counterexample must now exhibit both escapes in one clean run: a negative seed outside the checked zero-A/no-forgery rules (for example a concrete descriptor, action, or defined alias) and a raw-Object X/Z transport from the quicksand/dialog boundary to the upper warp before the ordinary reset or reanchor; otherwise link the checked source rules to retail execution and this branch is disproved within the current model.  An out-of-bounds seed is a separate machine-semantics extension, not an unfinished Clight producer.  See the [negative-quicksand/dialog audit](notes/negative-quicksand-unreanchored-dialog.md) for the producer and reanchoring split.
+**What closes it.** Seed work comes first: either exhibit one successful clean in-bounds run whose first negative value comes from an exact changed landing/interaction/knockback table, retargeted known callback, valid MarioState alias, or specified outside-call effect, or connect the clean entry and every reachable action/depth step to the checked writer rules while proving those tables and pointers persist and each reached outside call frames the protected cells; the latter would disprove the seed and end this route without any X/Z search.  Only if a seed survives must the same run also transport raw Object X/Z from the quicksand/dialog boundary to the upper warp before reset or reanchor.  Out-of-bounds writes, ACE, and post-undefined-behavior continuation are separate machine-semantics extensions, not unfinished Clight producers.  See the [negative-quicksand/dialog audit](notes/negative-quicksand-unreanchored-dialog.md) for the producer and reanchoring split.
 
 ### Mario behavior flag plus a large graphical Y offset
 

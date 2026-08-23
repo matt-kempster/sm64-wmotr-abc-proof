@@ -1725,3 +1725,33 @@ model.  The following paths changed:
 - `SSL-Coq/less-than-one-a-press/docs/compcert-execution-scope.md`
 - `SSL-Coq/less-than-one-a-press/docs/notes/changed-paths.md`
 - `SSL-Coq/less-than-one-a-press/notes/source-map.md`
+
+## Negative-depth initialized-interaction closure tranche
+
+The negative-quicksand seed audit now closes the stock interaction callback
+branch.  A bilateral generated-Clight certificate follows all 29 distinct
+handlers, extracts their exact 23 direct action literals, bounds four local
+action selectors, follows Snufit's 3-by-3 knockback lookup and Bully's
+five-outcome helper, and proves that every initialized result differs from
+both long-jump actions.  The two writable knockback tables contain exactly 18
+checked entries, are mentioned only by the selector, and have no named source
+writer.  The route capstone now imports this result.  Linked preservation of
+the handler and knockback tables, call/pointer provenance, defined aliases, and
+reached outside-call effects remains explicit; OOB/ACE behavior remains outside
+the CompCert execution.  Raw-X/Z transport was intentionally not pursued
+because the prerequisite seed is still absent.  The following paths changed:
+
+- `SSL-Coq/less-than-one-a-press/proofs/NegativeDepthInteractionClosure.v` (new)
+- `SSL-Coq/less-than-one-a-press/proofs/InkTimer131CorruptionClosure.v`
+- `SSL-Coq/less-than-one-a-press/proofs/MainTheorem.v`
+- `SSL-Coq/less-than-one-a-press/_CoqProject`
+- `SSL-Coq/less-than-one-a-press/Makefile`
+- `SSL-Coq/less-than-one-a-press/README.md`
+- `SSL-Coq/less-than-one-a-press/human-readable-proof.md`
+- `SSL-Coq/less-than-one-a-press/docs/no-a-route-atlas.md`
+- `SSL-Coq/less-than-one-a-press/docs/checklist.md`
+- `SSL-Coq/less-than-one-a-press/docs/checklist-completed.md`
+- `SSL-Coq/less-than-one-a-press/docs/notes/negative-quicksand-unreanchored-dialog.md`
+- `SSL-Coq/less-than-one-a-press/docs/notes/local-object-nonlocal-state-gap-matrix.md`
+- `SSL-Coq/less-than-one-a-press/docs/notes/changed-paths.md`
+- `SSL-Coq/less-than-one-a-press/notes/source-map.md`

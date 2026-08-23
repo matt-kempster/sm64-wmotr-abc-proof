@@ -1437,6 +1437,15 @@ check: proofs
 	  LessThanOneAPress.Proofs.ZeroAQuicksandEntryBoundary \
 	  zero_a_ordinary_source_kernels_exclude_prepared_negative_state
 	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.NegativeDepthInteractionClosure \
+	  stock_interaction_handler_initializers_are_exact
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.NegativeDepthInteractionClosure \
+	  initialized_stock_interactions_discharge_action_closure
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.NegativeDepthInteractionClosure \
+	  negative_depth_initialized_interaction_source_boundary_holds
+	bash pipeline/assumptions.sh \
 	  LessThanOneAPress.Proofs.NegativeDepthForgeryBoundary \
 	  all_landing_descriptors_have_no_direct_generated_assignment
 	bash pipeline/assumptions.sh \
@@ -2018,6 +2027,12 @@ check: proofs
 	bash pipeline/assumptions.sh \
 	  LessThanOneAPress.Proofs.MainTheorem \
 	  current_project_compcert_execution_scope_boundary
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.MainTheorem \
+	  current_negative_depth_initialized_interaction_boundary
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.MainTheorem \
+	  current_negative_depth_route_checked_boundary
 	bash pipeline/assumptions.sh \
 	  LessThanOneAPress.Proofs.MainTheorem \
 	  current_timer131_clight_trace_bridge_boundary

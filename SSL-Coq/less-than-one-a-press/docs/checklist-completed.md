@@ -914,6 +914,15 @@ Completed work is grouped by subject. Each item retains its original scope warni
   externals, and a separately transported negative-dialog construction remain
   explicit rather than being claimed closed.
 
+- [x] Close initialized stock interaction dispatch as a negative-depth seed.
+  `NegativeDepthInteractionClosure.v` checks all 29 distinct handlers in US
+  and JP, extracts 23 direct action literals, bounds four local selectors,
+  follows the Snufit and Bully dynamic helpers, and checks all 18 knockback
+  table entries.  Every resulting action is non-long-jump, and the two
+  knockback tables have no named generated writer.  Linked preservation of the
+  three writable tables, call/pointer provenance, aliases, and reached outside
+  effects remains open.
+
 - [x] Couple SSL's Mario command to `bhvMario` and lift the dangerous-cell
   frame across arbitrary finite clean traces.  `InkTimer131LiveIdentityClosure.v`
   checks the exact bilateral `INIT_MARIO(..., &bhvMario)` command and the

@@ -369,6 +369,16 @@ same-block byte-overlapping store.  Compiled flat-layout OOB behavior, live
 pointer/global integrity, indexed render state, and external frames remain
 open.
 
+`proofs/NegativeDepthInteractionClosure.v` discharges the initialized stock
+interaction-action branch.  Bilaterally it checks all 29 distinct handlers,
+extracts the exact 23 direct action literals, bounds four local selectors,
+follows Snufit's 3-by-3 knockback lookup and Bully's literal-result helper, and
+proves every resulting action differs from both long-jump targets.  The 18
+knockback entries are checked against the generated initializers, and their two
+writable tables have no named generated writer.  Its linked residual keeps
+table mutation, call retargeting, pointer/argument forgery, and unframed outside
+effects explicit.
+
 `proofs/NoExitStarDialogBridge.v` checks the no-exit-star hitbox/behavior,
 object-list order, star-dance/dialog call footprints, and milestone table.  Its
 finite model proves the fresh-star no-hitbox gap frame, the exact binary32
@@ -503,11 +513,13 @@ command and interaction tables have only their expected dispatcher mention,
 no direct named assignment, and no explicit address-taking site in either
 whole generated corpus.  The Mario area-spawn path forwards one stable
 decoded behavior value to both construction and the object's behavior field.
-Its negative-dialog capstones rule out a negative seed in the checked clean
-zero-A/no-forgery kernels and rule out reaching the fixed warp by vertical
-dialog amplification without a separate X/Z transport.  It deliberately does
-not frame corrupt live bytes, forged/interior pointers, OOB stores, or untyped
-external effects.
+It incorporates the initialized interaction closure; stock handler dispatch,
+local action selectors, and both dynamic knockback helpers therefore cannot
+install the long-jump prehistory.  Its negative-dialog capstones rule out a
+negative seed in the checked clean zero-A/no-forgery kernels and rule out
+reaching the fixed warp by vertical dialog amplification without a separate
+X/Z transport.  It deliberately does not frame changed writable tables,
+forged/interior pointers, OOB stores, or untyped outside effects.
 
 `proofs/InkTimer131LiveIdentityClosure.v` pins the source chain one step
 earlier.  The exact three-word SSL `INIT_MARIO` command carries `&bhvMario`;
