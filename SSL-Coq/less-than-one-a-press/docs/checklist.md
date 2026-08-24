@@ -773,17 +773,17 @@ These obligations materially strengthen the proof but are not the shortest route
 
 ### Negative-quicksand/star installer branch
 
-- [ ] Discharge `ActionTablePrivateClightStepCoverage` for the reached states
-  of the selected linked execution.  The private injection itself is now
-  constructed from successful US/JP initialization and the finite actual-
-  Clight-run carrier is proved in `WritableActionTablePrivateInitialization.v`
-  and `WritableActionTablePrivateLive.v`.  Each reached step must now be
-  classified as unchanged, a self-injected store or byte copy, an allocation
-  or free of a mapped non-table block, or an outside call with self-injected
-  arguments.  The first failure is the exact concrete alias/effect to test;
-  complete coverage closes successful in-bounds table mutation.  The four
-  terminal reads need their stock non-table result facts.  Do not resume
-  free-form writer or per-callee searches before such a failure.
+- [x] Discharge `ActionTablePrivateClightStepCoverage` for the reached states
+  of the selected linked execution.  The 38 sharded whole-source syntax
+  receipts cover every linked internal body, the four legitimate terminal
+  reads are proved to return stock non-table values, function entry preserves
+  the private injection, and the exhaustive `Clight.step2` dispatcher covers
+  assignments, copies, calls, returns, allocation, freeing, continuations, and
+  outside effects.  `WritableActionTableReachedExecution.v` composes these
+  facts from the accepted initialized task start through every finite
+  successful selected US/JP run, preserving every table byte.  This closes
+  in-bounds writable-table mutation in the current CompCert model; OOB, ACE,
+  DMA, and post-undefined-behavior execution remain outside it.
 
 - [ ] Prove or refute a fresh 100-coin star with compatible *relative*
   Mario/star transport at the first eligible collision, a different spawn

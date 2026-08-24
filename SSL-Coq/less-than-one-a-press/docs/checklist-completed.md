@@ -965,8 +965,9 @@ Completed work is grouped by subject. Each item retains its original scope warni
   431-file audit of the pinned decompilation independently finds the names only
   in `interaction.c`.  Therefore an already-achieved post-boot mutation would
   persist into SSL, but no stored in-bounds source alias supplies the first
-  write; the next tranche constructs and carries the private self-injection,
-  leaving only the reached-step classifier as the exact semantic bridge.
+  write; at that stage the remaining tranches were to construct and carry the
+  private self-injection and classify reached steps, both now discharged
+  below.
 
 - [x] Construct the writable-table private injection at selected-program
   initialization and prove its compositional live carrier.
@@ -979,10 +980,25 @@ Completed work is grouped by subject. Each item retains its original scope warni
   allocation, freeing, and CompCert abstract calls; the external theorem now
   returns the actual monotone extension of the incoming injection.  It composes
   the byte frames over finite actual `Clight.step2` executions beginning at the
-  exact initialized memory and exposes the first unclassified step.  The open
-  residue is the concrete `ActionTablePrivateClightStepCoverage` proof for
-  reached states, especially the four stock terminal reads; OOB, ACE, DMA, and
-  post-undefined-behavior continuations remain outside this result.
+  exact initialized memory and exposes the first unclassified step.  At this
+  stage the residue was the concrete `ActionTablePrivateClightStepCoverage`
+  proof for reached states; the following completed item records its
+  discharge.  OOB, ACE, DMA, and post-undefined-behavior continuations remain
+  outside this result.
+
+- [x] Close the reached-step classifier and finite-run writable-table
+  preservation theorem.  `WritableActionTableSyntaxBase.v` and 38 cached
+  per-unit receipts prove that every internal body in either selected linked
+  source obeys the private-table grammar.  The expression, terminal-read,
+  control, and function-entry modules prove the individual semantic cases;
+  `WritableActionTableClightStepCoverage.v` exhausts the actual
+  `Clight.step2` constructors; and
+  `WritableActionTableReachedExecution.v` carries the exact initialized
+  injection and byte frame through every finite successful selected US/JP
+  execution.  No such execution can mutate a table byte or acquire a table
+  pointer through a reached outside call.  The proof does not cover invalid or
+  out-of-bounds stores, ACE, DMA, or execution after source undefined
+  behavior.
 
 - [x] Couple SSL's Mario command to `bhvMario` and lift the dangerous-cell
   frame across arbitrary finite clean traces.  `InkTimer131LiveIdentityClosure.v`

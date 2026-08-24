@@ -16,9 +16,11 @@ constructs a filtered identity injection at every successful selected-program
 initialization: every ordinary named global maps to itself, while precisely the
 three table blocks are omitted.  It carries that same growing relation through
 stores, byte copies, allocation, freeing, abstract outside calls, and finite
-actual Clight executions, preserving every table byte.  The remaining bridge
-is only to classify each reached Clight step into one of those proved effects;
-it is no longer an unspecified initial alias or per-callee writer.
+actual Clight executions.  The reached-step theorem now classifies every
+selected `Clight.step2` constructor, including the four legitimate terminal
+reads, and preserves every table byte from the exact initialized task start
+through every finite successful in-bounds US/JP run.  Thus this route has no
+defined producer in the selected CompCert model.
 
 The audited storage is finite and exact:
 
@@ -168,23 +170,17 @@ replay.  The nearby lower Goomba at `(3263,778,3157)` is a possible native
 damage consumer for a knockback-word payload, but reachability and the required
 post-hit route are not established.
 
-## What remains
+## Scope and reopening condition
 
-No more free-form controller, stored-alias, or per-callee footprint search is
-warranted without a failed invariant step.  Construction at initialization and
-the finite-run induction are complete.  The remaining proof-engineering task
-is to instantiate `ActionTablePrivateClightStepCoverage` for the reached states
-of the selected execution.  In ordinary words, each actual next step must be
-identified as memory-preserving, a store or copy whose address and payload are
-still private-safe, an allocation or free of a mapped non-table block, or an
-outside call whose arguments remain private-safe.  The four terminal table
-reads per version are the only special expression cases because their
-temporary results are stock handler pointers or integer actions, not table
-addresses.  A complete classifier disproves table mutation for every
-successful in-bounds execution it covers; a failure names the exact
-before/after Clight states and concrete non-injected value or effect.  Invalid
-or out-of-bounds stores, ACE, DMA, and continuations after undefined behavior
-remain separate retail-machine questions, not unfinished Clight producers.
+The in-model search is closed: the proof classifies each actual next step as
+memory-preserving, a private-safe store or copy, allocation or free of a mapped
+non-table block, a framed outside call, or one of the four stock terminal
+reads.  Reopening it requires a concrete counterexample to the accepted
+initialized task start, selected linked-program provenance, or one of those
+semantic cases—not another free-form controller, stored-alias, or per-callee
+search.  Invalid or out-of-bounds stores, ACE, DMA, and continuations after
+undefined behavior remain separate retail-machine questions, not unfinished
+Clight producers.
 
 Formal receipts are in
 [`WritableActionTableClosure.v`](../../proofs/WritableActionTableClosure.v),
@@ -197,6 +193,16 @@ the filtered initialization construction in
 [`WritableActionTablePrivateInitialization.v`](../../proofs/WritableActionTablePrivateInitialization.v),
 and the primitive, outside-call, and actual-Clight-run carrier in
 [`WritableActionTablePrivateLive.v`](../../proofs/WritableActionTablePrivateLive.v),
+the sharded whole-source syntax receipts beginning with
+[`WritableActionTableSyntaxBase.v`](../../proofs/WritableActionTableSyntaxBase.v),
+the expression and four terminal-read semantics in
+[`WritableActionTableExpressionCoverage.v`](../../proofs/WritableActionTableExpressionCoverage.v)
+and
+[`WritableActionTableTerminalReads.v`](../../proofs/WritableActionTableTerminalReads.v),
+and the exhaustive reached-step and finite-run capstones in
+[`WritableActionTableClightStepCoverage.v`](../../proofs/WritableActionTableClightStepCoverage.v)
+and
+[`WritableActionTableReachedExecution.v`](../../proofs/WritableActionTableReachedExecution.v),
 with the previously compiled whole-corpus handler census in
 [`InkTimer131CorruptionClosure.v`](../../proofs/InkTimer131CorruptionClosure.v)
 and initialized action-flow census in

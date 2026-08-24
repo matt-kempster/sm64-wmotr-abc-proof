@@ -210,6 +210,39 @@ Proof.
     eapply Mem.storebytes_unchanged_on; eauto.
 Qed.
 
+(** A zero-length block copy is a real [Mem.storebytes] effect in Clight, but
+    it has no addressable destination byte.  Requiring its otherwise-unused
+    destination block to be mapped would reject harmless zero-sized C
+    objects, so this case is carried separately. *)
+Theorem watpl_private_storebytes_empty_carries :
+  forall ge protected_blocks before injection target_block target_offset after,
+    ActionTablePrivateMemoryInvariant
+      ge protected_blocks before injection ->
+    Mem.storebytes before target_block target_offset [] = Some after ->
+    ActionTablePrivateMemoryInvariant
+      ge protected_blocks after injection /\
+    ActionTablePrivateMemoryFrame protected_blocks before after.
+Proof.
+  intros ge protected_blocks before injection target_block target_offset after
+    Hinvariant Hstore.
+  destruct Hinvariant as
+    [Hsymbols Hmemory Homitted Hprotected_valid Hglobal_valid].
+  split.
+  - constructor.
+    + exact Hsymbols.
+    + eapply Mem.storebytes_empty_inject; eauto.
+    + exact Homitted.
+    + intros protected_block Hin.
+      eapply Mem.storebytes_valid_block_1; eauto.
+    + destruct Hglobal_valid as [Hglobal_symbols Hglobal_volatile].
+      split; intros.
+      * eapply Mem.storebytes_valid_block_1; eauto.
+      * eapply Mem.storebytes_valid_block_1; eauto.
+  - unfold ActionTablePrivateMemoryFrame.
+    eapply Mem.storebytes_unchanged_on; eauto.
+    cbn. intros. lia.
+Qed.
+
 Lemma watpl_alloc_extension_is_separated :
   forall before after new_block injection injection' low high,
     Mem.alloc before low high = (after, new_block) ->
@@ -464,6 +497,11 @@ Inductive ActionTablePrivatePrimitiveEffect
       Mem.storebytes before target_block target_offset bytes = Some after ->
       ActionTablePrivatePrimitiveEffect ge protected_blocks injection
         before after
+| watpl_effect_storebytes_empty :
+    forall target_block target_offset before after,
+      Mem.storebytes before target_block target_offset [] = Some after ->
+      ActionTablePrivatePrimitiveEffect ge protected_blocks injection
+        before after
 | watpl_effect_alloc :
     forall low high before after new_block,
       Mem.alloc before low high = (after, new_block) ->
@@ -518,6 +556,10 @@ Proof.
     split; [apply inject_incr_refl | exact Hframe].
   - destruct (watpl_private_storebytes_carries _ _ _ _ _ _ _ _
       Hinvariant H H0 H1) as [Hnext Hframe].
+    exists injection. split; [exact Hnext |].
+    split; [apply inject_incr_refl | exact Hframe].
+  - destruct (watpl_private_storebytes_empty_carries _ _ _ _ _ _ _
+      Hinvariant H) as [Hnext Hframe].
     exists injection. split; [exact Hnext |].
     split; [apply inject_incr_refl | exact Hframe].
   - destruct (watpl_private_alloc_carries
@@ -631,11 +673,13 @@ Proof.
   end.
 Qed.
 
-(** A step classifier does not replace execution: it consumes an actual
-    [Clight.step2] derivation.  Its sole job is to expose which primitive
-    memory effect that derivation performed, together with the value-injection
-    facts needed by the carrier above. *)
-Definition ActionTablePrivateClightStepCoverage
+(** This memory-only schema is deliberately not the final reached-step
+    coverage property.  An arbitrary fabricated Clight state can satisfy the
+    memory invariant while already carrying a private-table pointer in a
+    temporary, local, continuation, or call argument.  The reached-state
+    module therefore strengthens this schema with value and control
+    provenance before instantiating it. *)
+Definition ActionTablePrivateMemoryOnlyClightStepCoverage
     (ge : Clight.genv) (protected_blocks : list block) : Prop :=
   forall injection before trace after,
     ActionTablePrivateMemoryInvariant ge protected_blocks
@@ -705,7 +749,7 @@ Theorem watpl_clight_star_carries_private_injection :
   forall (ge : Clight.genv) protected_blocks
       (first : Clight.state) (trace : Events.trace) (last : Clight.state)
       injection,
-    ActionTablePrivateClightStepCoverage ge protected_blocks ->
+    ActionTablePrivateMemoryOnlyClightStepCoverage ge protected_blocks ->
     ActionTablePrivateMemoryInvariant ge protected_blocks
       (watpl_clight_state_memory first) injection ->
     @Smallstep.star _ _ Clight.step2 ge first trace last ->
@@ -752,7 +796,7 @@ Theorem selected_source_private_injection_carries_through_clight_run :
       Some initial_memory ->
     LinkedSourceActionTableBlocks version protected_blocks ->
     watpl_clight_state_memory first = initial_memory ->
-    ActionTablePrivateClightStepCoverage
+    ActionTablePrivateMemoryOnlyClightStepCoverage
       (Clight.globalenv (selected_clight_source version)) protected_blocks ->
     @Smallstep.star _ _ Clight.step2
       (Clight.globalenv (selected_clight_source version))
@@ -933,7 +977,7 @@ Definition WritableActionTableSelectedLiveBridgeClosure : Prop :=
       Some initial_memory ->
     LinkedSourceActionTableBlocks version protected_blocks ->
     watpl_clight_state_memory first = initial_memory ->
-    ActionTablePrivateClightStepCoverage
+    ActionTablePrivateMemoryOnlyClightStepCoverage
       (Clight.globalenv (selected_clight_source version)) protected_blocks ->
     @Smallstep.star _ _ Clight.step2
       (Clight.globalenv (selected_clight_source version))

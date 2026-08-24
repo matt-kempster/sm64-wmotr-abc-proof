@@ -30,7 +30,7 @@
 
 From Coq Require Import List ZArith.
 From compcert Require Import
-  AST Clight Ctypes Events Globalenvs Memory Values.
+  AST Clight Cop Ctypes Events Globalenvs Memory Values.
 From LessThanOneAPress.Generated Require Import us_interaction jp_interaction.
 From LessThanOneAPress.Proofs Require Import
   ASTFacts ClightLinkExecution InkTimer131CorruptionClosure
@@ -63,6 +63,42 @@ Definition wat_expression_list_evar_count
       (wat_evar_count target expression + count)%nat)
     0%nat expressions.
 
+(** A protected table address is allowed to flow only through pointer
+    addition and through a by-reference/by-copy array or record dereference.
+    This is the exact address grammar used by the generated two-dimensional
+    knockback reads and the interaction-record reads.  In particular, a
+    by-value dereference cannot be used as an intermediate address producer. *)
+Definition wat_access_mode_is_pointer_result (value_type : type) : bool :=
+  match access_mode value_type with
+  | By_reference | By_copy => true
+  | _ => false
+  end.
+
+Definition wat_access_mode_is_value_read (value_type : type) : bool :=
+  match access_mode value_type with
+  | By_value _ => true
+  | _ => false
+  end.
+
+Fixpoint wat_is_table_rooted_pointer
+    (target : ident) (expression : expr) : bool :=
+  match expression with
+  | Evar found value_type =>
+      Pos.eqb found target &&
+      wat_access_mode_is_pointer_result value_type
+  | Ebinop Oadd left_expression right_expression _ =>
+      wat_is_table_rooted_pointer target left_expression &&
+      Nat.eqb (wat_evar_count target right_expression) 0 &&
+      match classify_add (typeof left_expression) (typeof right_expression) with
+      | add_case_pi _ _ => true
+      | _ => false
+      end
+  | Ederef address value_type =>
+      wat_is_table_rooted_pointer target address &&
+      wat_access_mode_is_pointer_result value_type
+  | _ => false
+  end.
+
 (** The generated readers have one of these two shapes:
 
     - [Ederef address value_type] for a knockback action word;
@@ -74,9 +110,14 @@ Definition wat_expression_list_evar_count
 Definition wat_is_terminal_table_read
     (target : ident) (expression : expr) : bool :=
   match expression with
-  | Ederef address _ => Nat.eqb (wat_evar_count target address) 1
-  | Efield (Ederef address _) _ _ =>
-      Nat.eqb (wat_evar_count target address) 1
+  | Ederef address value_type =>
+      Nat.eqb (wat_evar_count target address) 1 &&
+      wat_is_table_rooted_pointer target address &&
+      wat_access_mode_is_value_read value_type
+  | Efield record_expression _ value_type =>
+      Nat.eqb (wat_evar_count target record_expression) 1 &&
+      wat_is_table_rooted_pointer target record_expression &&
+      wat_access_mode_is_value_read value_type
   | _ => false
   end.
 

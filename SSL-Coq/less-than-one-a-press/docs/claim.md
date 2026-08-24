@@ -723,10 +723,11 @@ or frame.  See [CompCert execution scope](compcert-execution-scope.md).
   shows a timer forge alone cannot bypass a four-frame descriptor, and proves
   an action-cell change needs a same-block overlapping CompCert store.  The
   later whole-game action-table proof constructs its private injection at
-  successful initialization and carries it through classified finite Clight
-  runs; reached-step classification remains, rather than an unspecified table
-  alias or outside-call footprint.  Compiled flat-memory/OOB behavior remains
-  open.  An
+  successful initialization, classifies every reached selected Clight step,
+  and carries the table-byte frame through every finite successful in-bounds
+  US/JP run.  Thus the table route has no producer in this model rather than an
+  unspecified alias or outside-call footprint.  Compiled flat-memory/OOB
+  behavior remains open.  An
   already-negative depth would be a genuine escape.  The older
   `-2.650000095f` witness reaches the required range in 363 or 381 sinks,
   depending on its base.  More strongly, the updater can sample ordinary

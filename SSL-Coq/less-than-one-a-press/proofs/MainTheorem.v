@@ -15,6 +15,7 @@ From LessThanOneAPress.Proofs Require Import
   WritableActionTableWholeGameAliases
   WritableActionTablePrivateInitialization
   WritableActionTablePrivateLive
+  WritableActionTableReachedExecution
   CompCertRouteScope.
 
 Import ListNotations.
@@ -111,6 +112,18 @@ Proof.
   split.
   - exact writable_action_table_private_live_closure_holds.
   - exact writable_action_table_selected_live_bridge_closure_holds.
+Qed.
+
+(** The formerly open reached-step obligation is now closed.  Every actual
+    constructor of a selected US/JP [Clight.step2] run is covered, including
+    assignments, copies, internal and external calls, allocation/free,
+    continuations, and the four legitimate terminal table reads.  Therefore
+    all three action tables retain their initialized bytes throughout every
+    successful finite in-bounds run from the accepted task start. *)
+Theorem current_writable_action_table_reached_execution_boundary :
+  WritableActionTableReachedExecutionClosure.
+Proof.
+  exact writable_action_table_reached_execution_closure_holds.
 Qed.
 
 Theorem current_negative_depth_route_checked_boundary :

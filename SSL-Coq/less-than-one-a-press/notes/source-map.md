@@ -415,9 +415,32 @@ source programs.  The clear/load/unload/change/warp bodies do not name those
 blocks, so a hypothetical post-boot mutation would survive an ordinary level
 transition into SSL, but the audit supplies no first producer.  Constructing
 and carrying the resulting private self-injection through the accepted live
-execution is the remaining semantic bridge; a failure must identify the first
-concrete non-injected alias rather than leave “somewhere else in the game” as a
-free-form escape.
+execution was the remaining semantic bridge, now discharged by the modules
+below.
+
+`proofs/WritableActionTablePrivateInitialization.v` and
+`proofs/WritableActionTablePrivateLive.v` construct the filtered identity
+injection from successful selected-program initialization and carry it through
+the primitive CompCert memory effects and finite executions.  The table blocks
+are omitted while every ordinary named global remains self-mapped, so stores,
+copies, allocation/free, and abstract outside calls preserve all table bytes
+and cannot return a table pointer when their live values are self-injected.
+
+`proofs/WritableActionTableSyntaxBase.v`, the 38 modules under
+`proofs/WritableActionTableSyntaxReceipts/`, and
+`proofs/WritableActionTableSyntaxCoverage.v` prove that every internal body in
+both official selected linked sources obeys the required syntax grammar.
+`proofs/WritableActionTableExpressionCoverage.v`,
+`proofs/WritableActionTableTerminalReads.v`,
+`proofs/WritableActionTableReachedControl.v`, and
+`proofs/WritableActionTableFunctionEntry.v` establish the expression,
+four-read, control-provenance, and function-entry cases.
+`proofs/WritableActionTableClightStepCoverage.v` exhausts every reached
+`Clight.step2` constructor, and
+`proofs/WritableActionTableReachedExecution.v` composes that classifier from
+the exact initialized task start through every finite successful selected
+US/JP execution.  This closes table mutation for defined in-bounds runs;
+OOB/ACE/DMA and post-undefined-behavior execution remain outside CompCert.
 
 `proofs/NoExitStarDialogBridge.v` checks the no-exit-star hitbox/behavior,
 object-list order, star-dance/dialog call footprints, and milestone table.  Its

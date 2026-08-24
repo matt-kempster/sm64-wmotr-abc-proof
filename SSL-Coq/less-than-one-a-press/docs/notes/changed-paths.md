@@ -1785,3 +1785,39 @@ changed:
 - `SSL-Coq/less-than-one-a-press/docs/notes/negative-quicksand-unreanchored-dialog.md`
 - `SSL-Coq/less-than-one-a-press/docs/notes/changed-paths.md`
 - `SSL-Coq/less-than-one-a-press/notes/source-map.md`
+
+## Writable action-table reached-execution closure tranche
+
+The formerly open reached-step classifier is complete.  Thirty-eight cached
+per-translation-unit receipts cover every selected US/JP internal body; the
+semantic layers prove ordinary expression evaluation, assignments and copies,
+the four stock terminal reads, function entry, control provenance, internal
+and external calls, allocation/free, returns, and all remaining actual
+`Clight.step2` constructors.  The capstone starts from the exact successful
+selected-program initialization and carries one private injection and complete
+table-byte frame through every finite successful in-bounds run.  Writable-table
+mutation is therefore disproved inside this CompCert model; OOB, ACE, DMA, and
+post-undefined-behavior retail execution remain outside it.  The following
+paths changed:
+
+- `SSL-Coq/less-than-one-a-press/proofs/WritableActionTableAliasExternalClosure.v`
+- `SSL-Coq/less-than-one-a-press/proofs/WritableActionTablePrivateLive.v`
+- `SSL-Coq/less-than-one-a-press/proofs/WritableActionTableSyntaxBase.v` (new)
+- `SSL-Coq/less-than-one-a-press/proofs/WritableActionTableSyntaxReceipts/` (38 new receipt modules)
+- `SSL-Coq/less-than-one-a-press/proofs/WritableActionTableSyntaxReceiptAggregate.v` (new)
+- `SSL-Coq/less-than-one-a-press/proofs/WritableActionTableSyntaxCoverage.v` (new)
+- `SSL-Coq/less-than-one-a-press/proofs/WritableActionTableExpressionCoverage.v` (new)
+- `SSL-Coq/less-than-one-a-press/proofs/WritableActionTableTerminalReads.v` (new)
+- `SSL-Coq/less-than-one-a-press/proofs/WritableActionTableReachedControl.v` (new)
+- `SSL-Coq/less-than-one-a-press/proofs/WritableActionTableFunctionEntry.v` (new)
+- `SSL-Coq/less-than-one-a-press/proofs/WritableActionTableClightStepCoverage.v` (new)
+- `SSL-Coq/less-than-one-a-press/proofs/WritableActionTableReachedExecution.v` (new)
+- `SSL-Coq/less-than-one-a-press/proofs/MainTheorem.v`
+- `SSL-Coq/less-than-one-a-press/_CoqProject`
+- `SSL-Coq/less-than-one-a-press/README.md`
+- `SSL-Coq/less-than-one-a-press/docs/no-a-route-atlas.md`
+- `SSL-Coq/less-than-one-a-press/docs/checklist.md`
+- `SSL-Coq/less-than-one-a-press/docs/checklist-completed.md`
+- `SSL-Coq/less-than-one-a-press/docs/notes/writable-action-table-mutation.md`
+- `SSL-Coq/less-than-one-a-press/docs/notes/changed-paths.md`
+- `SSL-Coq/less-than-one-a-press/notes/source-map.md`

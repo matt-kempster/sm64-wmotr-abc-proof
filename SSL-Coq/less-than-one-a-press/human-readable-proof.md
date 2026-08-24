@@ -2942,8 +2942,14 @@ The most useful entry points are:
   `proofs/WritableActionTablePrivateLive.v`: construct the filtered private
   injection from successful selected-program initialization and carry its
   byte frame through stores, copies, allocation/free effects, outside calls,
-  and finite actual Clight runs; reached-step classification is the remaining
-  in-model obligation;
+  and finite actual Clight runs;
+- `proofs/WritableActionTableSyntaxCoverage.v`,
+  `proofs/WritableActionTableClightStepCoverage.v`, and
+  `proofs/WritableActionTableReachedExecution.v`: combine 38 cached whole-source
+  receipts with the four terminal-read semantics, function-entry and control
+  invariants, exhaust every actual `Clight.step2` constructor, and preserve all
+  table bytes through every finite successful selected US/JP run; this closes
+  mutation in the defined in-bounds CompCert model;
 - `proofs/InkTimer131LiveIdentityClosure.v`: exact SSL `&bhvMario` command and
   spawn-record forwarding receipts, plus arbitrary finite clean-store safety
   and a distinct-slot/list-12 eviction trace embedding;
