@@ -1127,6 +1127,19 @@ Completed work is grouped by subject. Each item retains its original scope warni
   classification from all linked retail executions remains open, so this is a
   stock-model disproof rather than an unconditional whole-ROM theorem.
 
+- [x] Close the named direct-call pitch-writer and integer-forged-alias
+  subcases of rank 3.  `Area1Rank3PayloadWriterClosure.v` checks 28 named
+  Object pitch-word writers per US/JP selected program, computes a 93-name
+  fixed direct-call set from all canonical Area-1 surface-owner callbacks, and
+  finds exactly one intersecting writer: `spawn_triangle_break_particles`.
+  Its two stock values are already proved unequal to the required `-32768`.
+  The receipt also reports exactly six unresolved declarations on that set.
+  `PlatformIntegerAliasClosure.v` proves from CompCert `sem_cast` and
+  `Mem.storev` that neither integer constructor can become the `Vptr` required
+  by a successful store.  Indirect/forged dispatch, valid aliases, object
+  lifetime substitution, live owner/scheduler linkage, and exact effects for
+  the six declarations remain open.
+
 - [x] Check both stock upper-warp behavior scripts and native callbacks:
   the warp has no direct X/Y/Z access, write, or native callee.  Check the
   stock pyramid-top behavior and finite binary32 timer `0..150` mirror:

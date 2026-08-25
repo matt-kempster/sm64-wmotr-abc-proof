@@ -96,6 +96,14 @@ The Rocq boundary is split deliberately:
   unavailable in the finite stock scheduler/owner model, checks the canonical
   pitch/pivot exclusions, and classifies every modeled successful installation
   into one of six explicit projection escapes;
+- `proofs/Area1Rank3PayloadWriterClosure.v` computes the bilateral 38-unit
+  pitch-word writer inventory and the fixed 93-identifier direct-call set of
+  the canonical Area-1 owners, proves their sole intersection is the checked
+  debris writer, and lists the six declarations still lacking selected-program
+  bodies;
+- `proofs/PlatformIntegerAliasClosure.v` proves from CompCert's value-cast and
+  variable-addressed-store definitions that integer values cannot fabricate a
+  successful defined store address;
 - `proofs/Area1StateFirstWallExclusion.v` checks the bilateral wall-guard
   source shape and proves the two high-Y wall samples cannot reach X/Z push
   code in a source-shaped list traversal; and

@@ -16,6 +16,7 @@ From LessThanOneAPress.Proofs Require Import
   WritableActionTablePrivateInitialization
   WritableActionTablePrivateLive
   WritableActionTableReachedExecution
+  PlatformIntegerAliasClosure Area1Rank3PayloadWriterClosure
   CompCertRouteScope.
 
 Import ListNotations.
@@ -45,6 +46,22 @@ Qed.
 Theorem current_project_compcert_execution_scope_boundary :
   compcert_execution_scope_boundary_holds.
 Proof. exact compcert_execution_scope_boundary_checked. Qed.
+
+(** Rank 3 can no longer use an ordinary integer-to-pointer cast as a clean
+    platform-cell producer: integer constructors never become CompCert block
+    pointers, and [Mem.storev] accepts only a block pointer.  The bilateral
+    owner-call certificate separately closes the complete syntactically direct
+    call graph of all canonical Area-1 surface owners against every named
+    pitch-word writer.  Indirect/forged dispatch, lifecycle substitution,
+    pre-existing/external aliases, and the six exact unresolved declarations
+    remain explicit rather than being claimed impossible here. *)
+Theorem current_rank3_integer_alias_defined_boundary :
+  PlatformIntegerAliasDefinedClosure.
+Proof. exact platform_integer_alias_defined_closure_holds. Qed.
+
+Theorem current_rank3_payload_writer_boundary :
+  Area1Rank3PayloadWriterCheckedBoundary.
+Proof. exact area1_rank3_payload_writer_checked_boundary_holds. Qed.
 
 (** The initialized interaction handler and knockback tables cannot install
     either long-jump action.  This is the source boundary needed by the

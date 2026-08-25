@@ -95,6 +95,35 @@ predecessor. A real installer must now exhibit at least one concrete escape:
 
 This is not yet a proof that none of those escapes is reachable.
 
+## Rank-3 payload-writer and integer-alias reduction
+
+`Area1Rank3PayloadWriterClosure.v` extends the earlier direct-body check to a
+whole-program direct-call fixed point.  Starting from all 29 native/action
+bodies representing the fifteen stock Area-1 surface-owner families, five
+expansions reach 93 distinct named callees in both US and JP; a sixth expansion
+adds no identifier.  The complete modeled game contains 28 named assignment
+bodies for Object raw-data word 35, the pitch angular velocity read by platform
+displacement.  In each version, the intersection of those 28 writers with the
+93-function owner closure is exactly `spawn_triangle_break_particles`.  Its
+two checked stock branches supply `3840` or `6400`, not the required signed
+half-turn `-32768`.
+
+The same certificate reduces the selected program's unresolved declarations
+on this direct closure to exactly six names: `play_puzzle_jingle`,
+`create_sound_spawner`, `cur_obj_play_sound_2`,
+`set_camera_shake_from_point`, `sqrtf`, and `stop_sounds_from_source`.  This is
+an exact to-do list, not an assumed frame: a call that is reachable in the live
+owner history still needs its true effect, and indirect or forged dispatch and
+object-lifetime substitution remain outside the direct-call result.
+
+`PlatformIntegerAliasClosure.v` separately removes ordinary integer-forged
+aliases from successful defined execution.  CompCert casts keep an integer as
+an integer value, while a successful `Mem.storev` requires a block pointer.
+Thus a C integer-to-pointer cast cannot write `gMarioPlatform` in a successful
+Clight run.  Valid pre-existing pointers and pointers produced by specified
+outside calls remain in-model; an out-of-bounds or post-undefined-behavior
+retail continuation remains a machine-model extension.
+
 ## Exact remaining linked work
 
 The next proof must instantiate `UpperWarpPrecollisionApplyProjection`, the

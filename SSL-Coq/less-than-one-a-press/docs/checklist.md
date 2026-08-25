@@ -199,8 +199,17 @@ These obligations currently block the clean-retail result.
   already assumed a horizontal split.  `Area1NonlocalPlatformInstallationClosure.v`
   rules out applying the complete payload in every audited stock trace and
   proves that a successful classified trace exposes one of the six named
-  projection escapes; it does not yet derive that classification from every
-  linked retail frame.  A temporal extension now proves the null result
+  projection escapes.  `Area1Rank3PayloadWriterClosure.v` checks all 28 named
+  pitch-word writers in each selected program and proves that the closed
+  93-function direct-call set of every canonical Area-1 owner reaches only the
+  debris writer, whose stock values are not the required half-turn;
+  `PlatformIntegerAliasClosure.v` also excludes integer-cast addresses from
+  successful CompCert stores.  The remaining direct-set outside declarations
+  are exactly the two sound wrappers, two audio operations, camera shake, and
+  `sqrtf`; indirect/forged dispatch, valid pre-existing or outside-produced
+  pointers, and lifetime substitution remain open.  The proof does not yet
+  derive the overall classification from every linked retail frame.  A
+  temporal extension now proves the null result
   remains true across arbitrary active-frame movement and exact frozen carries,
   and originally classified any projected non-null survivor into five explicit
   lineage escapes.  The declared null `DefaultArea1StartBoundary` plus the

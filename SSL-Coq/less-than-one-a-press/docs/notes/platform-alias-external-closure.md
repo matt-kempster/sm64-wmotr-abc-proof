@@ -30,7 +30,8 @@ from a Clight run is therefore not a retail impossibility result; see
 | A store through an unrelated, valid CompCert allocation aliases Object or State | `defined_store_creating_object_state_gap_targets_one_endpoint` proves that a single successful store which changes synchronized Object/State loads into unequal loads must target the Object block or the State block. A third block cannot wrap into either endpoint in CompCert's defined memory model. | Eliminated for a defined single store. A real counterexample must identify an endpoint block, an external effect, or leave the defined-memory model. |
 | A recognized `EF_builtin` or `EF_runtime` mutates one endpoint | Existing `RetailExternalFrames` theorems prove recognized builtins and runtime helpers leave all memory unchanged. The official programs also contain no direct `Sbuiltin` statements. | Eliminated for the checked recognized constructors. |
 | A reachable unresolved `EF_external` creates the split | `reachable_unresolved_external_created_object_state_gap_is_refined` proves that a callsite-sensitive inventory cannot classify such a call as framed. The exact call must enter its explicit writer/lifecycle branch. The more general changed-load theorem gives the same result for any protected cell. These theorems start at the reached external `Callstate`, so they apply whether that callstate arose from a direct or indirect callsite. | Potentially meaningful. The selected cleaned slices intentionally leave external semantics abstract; a stock implementation-specific refinement must either frame the two endpoints or expose the exact writer. |
-| A pre-existing valid alias names an endpoint or `gMarioPlatform` | The official alias-origin theorem retains pre-existing, external-produced, and integer-produced pointers after the ordinary origins are excluded.  A valid pointer into a real CompCert block remains possible until clean initial memory and pointer provenance are linked. | A genuine in-model proof obligation. |
+| A pre-existing valid alias names an endpoint or `gMarioPlatform` | The official alias-origin theorem retains pre-existing and external-produced pointers after the ordinary named origins are excluded.  A valid pointer into a real CompCert block remains possible until clean initial memory and pointer provenance are linked. | A genuine in-model proof obligation. |
+| An integer is cast to a pointer and used as the store address | `PlatformIntegerAliasClosure.v` proves that both CompCert integer constructors remain integer constructors under casts and never become `Vptr`; `Mem.storev` succeeds only on `Vptr`.  Therefore no successful defined Clight store can use an integer-fabricated address. | Eliminated in the selected CompCert model.  Retail execution after an invalid machine address is a separate semantics question. |
 | Invalid or out-of-bounds arithmetic is proposed to forge an alias | A successful CompCert store cannot cross allocation blocks by offset wrap, and invalid dereference/store has no Clight successor.  What retail MIPS code does after source undefined behavior is not represented. | Deferred to a machine-semantics extension, not something this Clight proof must exclude and not a retail disproof. |
 | Several individually legitimate stores create and then sustain the split | The single-store theorem localizes the **first** divergent store to one endpoint, but no trace-level first-divergence projection has yet been derived from the live linked run. | Still live. It is now a finite per-step classification problem rather than a free-standing "alias" mystery. |
 
@@ -48,6 +49,14 @@ theorems:
 classifier to both official cleaned retail programs.  Ordinary internal
 address-taking and initializer relocation branches are contradictory, leaving
 exactly the four semantic escape constructors above.
+
+`proofs/PlatformIntegerAliasClosure.v` discharges one of those four semantic
+labels whenever it is interpreted as a C integer cast feeding a successful
+store.  It proves the result from CompCert's actual `sem_cast` and `Mem.storev`
+definitions rather than assuming a non-alias frame.  The remaining defined
+origins are therefore a genuinely valid pre-existing pointer or a pointer
+returned by specified outside code; out-of-bounds fabrication is outside a
+successful Clight execution.
 
 ## Most promising next checks
 

@@ -246,6 +246,20 @@ unclassified-scheduler escape.  Linking and eliminating those escape classes
 for every retail execution remains open, so this is a stock-model disproof,
 not an unconditional whole-ROM impossibility theorem.
 
+`Area1Rank3PayloadWriterClosure.v` now closes the canonical owners' named
+direct-call side much more deeply.  Across the complete selected 38-unit
+programs it finds 28 Object pitch-word writer bodies per version; the
+five-expansion, 93-identifier direct-call closure of all stock Area-1 surface
+owners reaches exactly one of them, `spawn_triangle_break_particles`, whose
+checked values are `3840` or `6400` rather than `-32768`.  A sixth expansion
+adds no identifier, and the bodies missing from this fixed point are reduced
+to six exact declarations rather than a generic outside-call gap.
+`PlatformIntegerAliasClosure.v` also proves directly from CompCert's cast and
+store definitions that an integer cast cannot become the block pointer needed
+by a successful store.  Valid pre-existing or outside-produced pointers,
+indirect/forged dispatch, object lifetime substitution, live owner/scheduler
+projection, and exact effects for the six declarations remain open.
+
 The current clean-JP installer audit found no retail source for that gap.
 `CleanJPGraphicsGap.v` defines a clean JP Area-1 audit boundary, proves that
 its synchronized Object/Graphics projection starts with zero separation, that

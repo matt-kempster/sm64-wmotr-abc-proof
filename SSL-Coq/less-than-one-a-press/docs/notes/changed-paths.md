@@ -1821,3 +1821,31 @@ paths changed:
 - `SSL-Coq/less-than-one-a-press/docs/notes/writable-action-table-mutation.md`
 - `SSL-Coq/less-than-one-a-press/docs/notes/changed-paths.md`
 - `SSL-Coq/less-than-one-a-press/notes/source-map.md`
+
+## Rank-3 defined-installation reduction tranche
+
+The finite signed-16 mechanism remains numerically viable, but two clean
+installation branches are now closed.  CompCert's actual cast/store semantics
+prove that neither integer constructor can become the block pointer required
+by a successful in-bounds store.  Independently, a bilateral whole-program
+census finds 28 named Object pitch-word writer bodies and follows every named
+direct helper from all canonical Area-1 surface owners to a fixed 93-identifier
+set.  Its sole writer is `spawn_triangle_break_particles`, whose two stock
+values differ from the required `-32768`.  The previously generic external gap
+is reduced to six exact declarations.  Indirect or forged dispatch, valid
+pre-existing/outside-produced aliases, object-lifetime substitution, live
+owner/scheduler linkage, and those six exact effects remain open.  The
+following paths changed:
+
+- `SSL-Coq/less-than-one-a-press/proofs/PlatformIntegerAliasClosure.v` (new)
+- `SSL-Coq/less-than-one-a-press/proofs/Area1Rank3PayloadWriterClosure.v` (new)
+- `SSL-Coq/less-than-one-a-press/proofs/MainTheorem.v`
+- `SSL-Coq/less-than-one-a-press/_CoqProject`
+- `SSL-Coq/less-than-one-a-press/README.md`
+- `SSL-Coq/less-than-one-a-press/docs/no-a-route-atlas.md`
+- `SSL-Coq/less-than-one-a-press/docs/checklist.md`
+- `SSL-Coq/less-than-one-a-press/docs/checklist-completed.md`
+- `SSL-Coq/less-than-one-a-press/docs/notes/installer-temporal-closure.md`
+- `SSL-Coq/less-than-one-a-press/docs/notes/platform-alias-external-closure.md`
+- `SSL-Coq/less-than-one-a-press/docs/notes/changed-paths.md`
+- `SSL-Coq/less-than-one-a-press/notes/source-map.md`
