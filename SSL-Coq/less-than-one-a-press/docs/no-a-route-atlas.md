@@ -118,7 +118,10 @@ The detailed sections are organized as:
   each version has only four terminal reads, and the proof now constructs the
   private table relation at successful initialization and preserves it through
   every actual reached Clight step; successful in-bounds selected executions
-  cannot mutate any of the three tables.
+  cannot mutate any of the three tables.  A separate hypothetical theorem now
+  preserves the payoff for a future machine-level discovery: a correctly timed
+  two-word pole/knockback mutation supplies a real long jump that crosses the
+  lower cut in five clear zero-A frames.
 - **Out-of-bounds corruption and ACE are deferred, not disproved:** they have
   no witness in the present Clight execution model and need a retail MIPS or
   hardware semantics before this project can decide them.
@@ -143,7 +146,7 @@ The detailed sections are organized as:
 | 8 | Downstream collection | Upper Act-3 100-coin/star-dance itinerary | Low-medium |
 | 9 | Downstream collection | Lower Act-3 Amp/Grindel/elevator itinerary | Low-medium |
 | 10 | Direct Area-2 gates | Held-A jump-kick or B rollout from the upper elevator shaft | Low; writable-table fallback is eliminated in the selected CompCert model |
-| 11 | Direct Area-2 gates | Lower-aperture impulse, clip, or support switch | Low-medium; writable-table pole fallback is eliminated in the selected CompCert model |
+| 11 | Direct Area-2 gates | Lower-aperture impulse, clip, or support switch | Low in-model; strong conditional payoff if future ACE supplies a timed pole-table edit |
 | 12 | Ink installation | Negative quicksand depth plus stalled automatic dialog | Very low; writable-table seed disproved in successful in-bounds selected runs, with no other defined seed known |
 | 13 | State-first installation | Raw-Object-only return or impulse writer | Low-medium |
 | 13A | State-first installation | Terrain-dispatch or collision-prefix writer outside the platform phase | Low-medium as a proof branch |
@@ -629,15 +632,14 @@ get over or through the elevator-shaft wall.
 
 ### Lower-aperture impulse, clip, or support switch
 
-**Overall rank: 11. Family priority: 2. Likelihood: low-medium.**
+**Overall rank: 11. Family priority: 2. Likelihood: low in the current model,
+but high conditional payoff under a correctly timed retail mutation.**
 
-**In plain language.** Leave the second pole without A and cross the floor-ring
-aperture using a collision clip, object shove, moving support, or a change in
-which floor the game selects even when Mario's coordinates barely change.
+**In plain language.** Leave the second pole without A and cross the floor-ring aperture using a collision clip, object shove, moving support, a change in which floor the game selects, or—if a future machine-level exploit can edit the game's tables—a properly initialized long jump triggered after the ordinary climb.
 
-**What is already known.** The exact pole top, ring, aperture, and target-side supports are imported.  The old normalized soft-bonk trajectory does not clear the route, but that proves only one subcase.  The bottom warp also does not remove the A press by itself because the ordinary continuation still jumps from the second pole.  A hypothetical pole-handler edit or a two-word handler-plus-knockback edit could instead request an automatic airborne action or long jump at contact, making this a conditional lower-route fallback if the upper elevator lacks the needed interaction; however, no named controller writer exists, an edit present too early may prevent the normal climb, and no post-climb timing or trajectory witness is known.  Z soft-bonk, falling below the pole bottom into freefall, wall outcomes, moving owners, nonlocal casts, and same-position support changes remain legitimate ordinary branches.
+**What is already known.** The exact pole top, ring, aperture, and target-side supports are imported, and the old normalized soft-bonk trajectory does not clear them.  The new hypothetical Coq proof checks the stronger two-word US/JP payload: redirect pole-handler word `45` to the compatible Snufit/damage handler and change the selected air/weak forward knockback word `3` to `ACT_LONG_JUMP`; the stock helper raises speed to `16`, the real setter produces horizontal speed `24` and vertical speed `30`, and five no-analog clear frames move the pole-top sample from `(0,4020,1331)` to `(0,4150,1216.25)`, inside the authenticated south target-air cell with zero A edges.  If the mutation is active before the climb, changing only the knockback word leaves the first grab alone but does nothing at the handstand, because the checked pole and top-of-pole bodies never read that table and the automatic actions use a direct switch rather than a top-specific writable table; changing pole-handler word `45` does have a consumer, but it catches the first eligible pole collision and replaces the stock grab.  A ground contact also selects word `0`, not word `3`; even granting a fully initialized long jump from the normalized Y-`3200` base, all 31 clear-flight states miss and the peak is only `3440`, while Y `3702` is the checked threshold whose frame-15 apex `(0,3942,1013)` reaches the target.  Thus an early edit needs a separate high contact, support, or recontact mechanism, whereas preserving the climb needs a timed post-grab handler write, another interaction found only at the top, or a broader ACE code patch that also supplies the required speed.  No such write exists in a successful in-bounds selected CompCert execution, and the live twenty-quarter collision replay and downstream star continuation remain unproved; see the [hypothetical pole-long-jump note](notes/hypothetical-pole-long-jump-mutation.md).
 
-**What closes it.** Instantiate and complete the current conditional Float32 collision-phase theorem with linked execution and an exhaustive pole-action exit split, then classify every impulse, clip, support, and external writer at the first target-side crossing.  The table fallback is closed for successful in-bounds selected CompCert runs; reopening it requires refuting the accepted start/step relation or supplying a separate retail-machine corruption semantics before any substituted pole handler or knockback trajectory is replayed.
+**What closes it.** For ordinary in-model motion, instantiate the current conditional Float32 collision-phase theorem with linked execution and an exhaustive pole-action exit split, then classify every impulse, clip, support, and external writer at the first target-side crossing.  For the hypothetical mutation, add a retail MIPS/hardware semantics and one continuous trace that identifies the two write addresses and values, proves whether the edit occurs after the stock grab or supplies an independently reachable contact at least as high as the checked threshold, resolves the exact direction/terrain/strength table cell, enters the normal long-jump setter, and shows all twenty quarter steps realize the clear kernel before connecting the target endpoint to the star suffix.  A mere static pre-climb pole-row edit, bare dispatch to `act_long_jump`, or CompCert-excluded ACE assertion does not inhabit that bridge.
 
 ### Moving geometry or object impulse
 

@@ -1000,6 +1000,19 @@ Completed work is grouped by subject. Each item retains its original scope warni
   out-of-bounds stores, ACE, DMA, or execution after source undefined
   behavior.
 
+- [x] Formalize the conditional lower-pole payoff of a future retail table
+  mutation.  `Area2HypotheticalPoleLongJump.v` checks the exact bilateral
+  pole-handler and knockback words, follows the compatible damage/setter path
+  to horizontal speed `24` and vertical speed `30`, and computes a five-frame
+  zero-A binary32 clear trajectory from `(0,4020,1331)` into the authenticated
+  lower target-air cell.  The normalized Y-`3200` early shot peaks at `3440`
+  and misses, while Y `3702` is a checked success threshold.  It also proves
+  the known-table timing split: a preinstalled knockback word leaves the stock
+  handler intact but is not read by grab/climb/top code, whereas an early pole-
+  handler replacement catches the first contact; the pole-top dispatcher is a
+  direct switch with no fourth writable table.  Mutation reachability and the
+  live retail collision bridge remain explicitly unproved.
+
 - [x] Couple SSL's Mario command to `bhvMario` and lift the dangerous-cell
   frame across arbitrary finite clean traces.  `InkTimer131LiveIdentityClosure.v`
   checks the exact bilateral `INIT_MARIO(..., &bhvMario)` command and the

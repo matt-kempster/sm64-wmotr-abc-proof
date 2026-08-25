@@ -11,6 +11,7 @@ From LessThanOneAPress.Proofs Require Import
   InkTimer131EntryExecutionClosure InkTimer131RetailMipsFrames
   InkTimer131RealEntryPrefix InkTimer131PostEntryMachineTrace TurningAnimation
   NegativeDepthInteractionClosure WritableActionTableClosure
+  Area2LowerTargetCut Area2HypotheticalPoleLongJump
   WritableActionTableAliasExternalClosure
   WritableActionTableWholeGameAliases
   WritableActionTablePrivateInitialization
@@ -86,6 +87,50 @@ Proof.
   split.
   - exact writable_action_table_checked_boundary_holds.
   - exact ink_dispatch_tables_have_only_stock_named_source_uses.
+Qed.
+
+(** A future machine-level mutation has a now-checked conditional payoff at
+    the lower Area-2 pole.  The exact two-word US/JP payload can redirect the
+    pole row through the compatible Snufit/knockback path and select
+    [ACT_LONG_JUMP].  The no-analog binary32 clear-quarter kernel then reaches
+    the authenticated target-air cell in five zero-A frames from the pole
+    top.  Conversely, granting the same fully initialized action at the
+    normalized base contact peaks at only 3440 and misses the target during
+    the complete 31-frame flight; a 3702 contact is the modeled threshold.
+    This theorem does not inhabit the ACE/write/timing/live-collision bridge. *)
+Theorem current_hypothetical_pole_long_jump_boundary :
+  HypotheticalPoleLongJumpTablePayload /\
+  HypotheticalEarlyGroundPoleLongJumpTablePayload /\
+  HypotheticalPreinstalledKnockbackOnlySourceShape /\
+  TopOfPoleKnownTableIndependenceSourceShape /\
+  (forall handlers,
+    ~ StaticPoleHandlerPreservesGrabAndRedirectsUS handlers) /\
+  (forall handlers,
+    ~ StaticPoleHandlerPreservesGrabAndRedirectsJP handlers) /\
+  HypotheticalPoleLongJumpStockSourceShape /\
+  position_in_lower_ring_target_air
+    (hplj_position hplj_after_five_clear_frames) = true /\
+  forallb
+    (fun state =>
+      negb
+        (position_in_lower_ring_target_air (hplj_position state)))
+    hplj_base_contact_first_31_states = true /\
+  position_in_lower_ring_target_air
+    (hplj_position
+      (hplj_iterate_clear_south 15 hplj_threshold_contact_state)) = true /\
+  fewer_than_one_a_press hplj_five_frame_inputs.
+Proof.
+  split; [exact hypothetical_pole_long_jump_table_payload_is_exact |].
+  split; [exact hypothetical_early_ground_pole_long_jump_payload_is_exact |].
+  split; [exact hypothetical_preinstalled_knockback_only_source_shape_holds |].
+  split; [exact top_of_pole_does_not_read_the_known_writable_tables |].
+  split; [exact (proj1 no_single_static_pole_handler_word_preserves_grab_and_redirects) |].
+  split; [exact (proj2 no_single_static_pole_handler_word_preserves_grab_and_redirects) |].
+  split; [exact hypothetical_pole_long_jump_stock_source_shape_holds |].
+  split; [exact hypothetical_pole_long_jump_enters_lower_target_air_on_frame_five |].
+  split; [exact hypothetical_base_contact_single_long_jump_misses_target_air |].
+  split; [exact (proj2 (proj2 (proj2 hypothetical_3702_contact_enters_target_air_at_the_apex))) |].
+  exact (proj2 hypothetical_pole_long_jump_five_frames_use_zero_a_presses).
 Qed.
 
 (** The former free-form alias/outside-call residual is reduced to one exact

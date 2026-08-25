@@ -1429,3 +1429,15 @@ and shows ordinary pose-copy helpers do not copy behavior or collision
 identity.  Successful allocator execution, runtime behavior arguments,
 replayed spawning, receiver reachability, generic coordinate writes, and exact
 slot/epoch/list ownership remain open.
+
+`proofs/Area2HypotheticalPoleLongJump.v` is the conditional future-machine
+receipt for the lower Area-2 pole.  It checks the exact US/JP two-word
+pole-handler/knockback payload, the stock damage-to-long-jump setter constants,
+and a five-frame binary32 clear trajectory into the authenticated lower target
+air.  Its early-install split records that a knockback-only edit leaves the
+stock grab handler intact but has no grab/climb/handstand consumer, while a
+static pole-handler replacement changes the first contact too; generated
+automatic actions dispatch the top action directly and read none of the three
+writable tables.  The retail write/timing/setter/collision witness remains the
+uninhabited `HypotheticalPoleLongJumpRetailBridge`.  The readable account is
+`docs/notes/hypothetical-pole-long-jump-mutation.md`.

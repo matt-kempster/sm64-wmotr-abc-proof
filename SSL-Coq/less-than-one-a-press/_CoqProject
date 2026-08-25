@@ -306,6 +306,7 @@ proofs/LongJumpProvenanceBoundary.v
 proofs/ZeroAQuicksandEntryBoundary.v
 proofs/NegativeDepthInteractionClosure.v
 proofs/WritableActionTableClosure.v
+proofs/Area2HypotheticalPoleLongJump.v
 proofs/WritableActionTableAliasExternalClosure.v
 proofs/WritableActionTableWholeGameAliases.v
 proofs/WritableActionTablePrivateInitialization.v

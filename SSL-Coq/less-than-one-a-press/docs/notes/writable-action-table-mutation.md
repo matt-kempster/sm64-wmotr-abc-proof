@@ -120,8 +120,10 @@ eligible damage or Snufit-style interaction feed `ACT_LONG_JUMP` into the
 normal action setter.  The formal payload theorem is general: that one cell can
 hold any 32-bit action word.  This is enough for an arbitrary long-jump action
 once a damaging interaction that selects the edited cell is actually reached;
-it is not arbitrary code execution, and it does not establish the required
-collision or trajectory.
+it is not arbitrary code execution.  The separate hypothetical pole proof now
+establishes one exact conditional consumer trajectory, while deliberately
+leaving the table write, timing, live dispatch, and clear-collision bridge
+unproved.
 
 Each interaction-handler record is two four-byte words.  The handler pointer
 for the coin row is word `1`; the pole handler is word `45`, byte offset `180`.
@@ -158,16 +160,32 @@ new no-A route.
 The bottom warp is not a zero-A solution by itself: the ordinary continuation
 still spends its A press jumping from the second pole.  The lower itinerary
 contains poles at `(2867,640,2867)` and `(0,3200,1331)`; the latter is that
-familiar jump-off gate.  A pole-row redirection could in principle replace the
-normal pole handler with an automatic airborne handler, and the two-word
-Snufit-plus-knockback construction could request a long jump.  This makes the
-bottom-warp branch the natural fallback if a mutated action needs an
-interaction unavailable inside the upper elevator, but it does not yet solve
-the route: a mutation present before first contact may prevent ordinary pole
-grabbing, a mutation performed after climbing needs a writer and exact timing,
-and the redirected action still needs a complete collision and trajectory
-replay.  The nearby lower Goomba at `(3263,778,3157)` is a possible native
-damage consumer for a knockback-word payload, but reachability and the required
+familiar jump-off gate.  The new conditional Coq witness changes pole-handler
+word `45` to `interact_snufit_bullet` and the selected air/weak forward
+knockback word `3` to `ACT_LONG_JUMP`.  The damage helper's minimum speed `16`
+then becomes `24` in the real long-jump setter, with vertical speed `30`; from
+the pole-top sample `(0,4020,1331)`, five no-analog clear frames reach the
+authenticated target-air endpoint `(0,4150,1216.25)` with no A edge.
+
+A mutation active before the climb has a split result.  The knockback word may
+be preinstalled without replacing the stock pole handler, but the checked
+grab, climb, transition, and handstand bodies never read that table, so it
+cannot trigger itself at the top.  The automatic pole dispatcher is a direct
+switch, not a fourth writable table.  Replacing the pole-handler word early is
+not top-selective: the interaction table is keyed by `INTERACT_POLE`, not pole
+height or action, so the redirected handler runs on the first eligible contact
+and the stock grab does not occur.  A ground contact selects flattened
+knockback word `0`, not the on-pole word `3`.  Even granting a completely
+initialized long jump from the normalized base Y
+`3200`, the exact clear flight peaks at `3440` and all first 31 states miss the
+ring.  A contact at Y `3702` is the computed threshold: it reaches
+`(0,3942,1013)` at the frame-15 apex.  Thus a static early edit needs an
+independent high contact, intermediate support, or recontact mechanism; a
+top-only stock climb instead needs a post-grab timed edit, a different
+top-only interaction, or an ACE code patch that invokes the setter.  See the
+[dedicated hypothetical proof note](hypothetical-pole-long-jump-mutation.md).
+The nearby lower Goomba at `(3263,778,3157)` remains a possible native damage
+consumer for a knockback-word payload, but reachability and the required
 post-hit route are not established.
 
 ## Scope and reopening condition
@@ -184,6 +202,8 @@ Clight producers.
 
 Formal receipts are in
 [`WritableActionTableClosure.v`](../../proofs/WritableActionTableClosure.v),
+with the conditional lower-pole payoff in
+[`Area2HypotheticalPoleLongJump.v`](../../proofs/Area2HypotheticalPoleLongJump.v),
 with the occurrence-sensitive and abstract-external closure in
 [`WritableActionTableAliasExternalClosure.v`](../../proofs/WritableActionTableAliasExternalClosure.v),
 the whole-game initializer/export, linked-block, transition-lifetime, and

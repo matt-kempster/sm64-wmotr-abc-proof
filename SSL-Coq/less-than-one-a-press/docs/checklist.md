@@ -743,6 +743,14 @@ These obligations currently block the clean-retail result.
 
 - [ ] Prove `UpperJPReachabilityObligation`.
 
+- [ ] If a future retail-machine/ACE model reopens writable-table mutation,
+  inhabit `HypotheticalPoleLongJumpRetailBridge`: place the pole-handler edit
+  after the ordinary grab (or supply a separate top-only consumer), derive the
+  selected knockback cell and initialized speed-24 long jump, and connect all
+  twenty live collision quarters to the checked five-frame clear kernel.  A
+  static knockback-only preinstall preserves the grab but is not read at the
+  handstand; a static pole-handler replacement prevents the stock first grab.
+
 - [ ] Remove the conditional premises and prove the ultimate result.
 
 ## Medium priority

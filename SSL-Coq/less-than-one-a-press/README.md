@@ -733,6 +733,18 @@ post-undefined-behavior execution still require a retail-machine model.  The
 [writable-table note](docs/notes/writable-action-table-mutation.md) also records
 the conditional upper-coin and lower-pole consumers.
 
+`Area2HypotheticalPoleLongJump.v` now preserves the lower-pole payoff for such
+a future retail-machine extension.  A post-climb pole-handler/knockback edit
+produces a checked speed-24 long jump whose fifth no-A clear frame enters the
+authenticated lower target-air cell.  An edit already active before climbing
+cannot get the same result from the known tables: a knockback-only edit leaves
+the grab intact but is never read by the pole-top action, while replacing the
+pole handler catches the first contact and prevents the ordinary grab.  The
+automatic pole actions use a direct switch, not another writable action table.
+The exact mutation timing, live collision quarters, and retail ACE semantics
+remain explicit premises; see the
+[hypothetical pole-long-jump note](docs/notes/hypothetical-pole-long-jump-mutation.md).
+
 Stock SSL Area 1 has an exact static-mesh candidate beginning at
 `(5760,0,4856)`.  The four real quarters have now been executed in
 authenticated US and JP retail runs from injected pre-timer-3/pre-timer-4

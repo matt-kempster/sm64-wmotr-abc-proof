@@ -1849,3 +1849,26 @@ following paths changed:
 - `SSL-Coq/less-than-one-a-press/docs/notes/platform-alias-external-closure.md`
 - `SSL-Coq/less-than-one-a-press/docs/notes/changed-paths.md`
 - `SSL-Coq/less-than-one-a-press/notes/source-map.md`
+
+## Hypothetical lower-pole long-jump mutation tranche
+
+The future-machine branch now has an exact conditional Coq payload and
+binary32 trajectory, plus an explicit early-install/top-selectivity split.
+A knockback-only edit can be present before the climb without replacing the
+stock grab handler, but none of the grab/climb/top code reads it; replacing the
+pole handler early catches the first contact.  No top-specific fourth writable
+table exists in the generated automatic-action path, which dispatches through
+a direct switch.  Retail mutation reachability, timing, and collision
+refinement remain outside the theorem.  The following paths changed:
+
+- `SSL-Coq/less-than-one-a-press/proofs/Area2HypotheticalPoleLongJump.v` (new)
+- `SSL-Coq/less-than-one-a-press/proofs/MainTheorem.v`
+- `SSL-Coq/less-than-one-a-press/_CoqProject`
+- `SSL-Coq/less-than-one-a-press/README.md`
+- `SSL-Coq/less-than-one-a-press/docs/no-a-route-atlas.md`
+- `SSL-Coq/less-than-one-a-press/docs/checklist.md`
+- `SSL-Coq/less-than-one-a-press/docs/checklist-completed.md`
+- `SSL-Coq/less-than-one-a-press/docs/notes/hypothetical-pole-long-jump-mutation.md` (new)
+- `SSL-Coq/less-than-one-a-press/docs/notes/writable-action-table-mutation.md`
+- `SSL-Coq/less-than-one-a-press/docs/notes/changed-paths.md`
+- `SSL-Coq/less-than-one-a-press/notes/source-map.md`
