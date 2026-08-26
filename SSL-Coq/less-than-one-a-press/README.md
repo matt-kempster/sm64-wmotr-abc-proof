@@ -680,9 +680,11 @@ the only long-jump-landing producer is `act_long_jump`; direct action writers
 embed neither target value.  The source transition/depth kernels therefore
 exclude the prepared negative state on no-edge, no-forgery traces.  What is
 not yet proved is that every clean linked retail step belongs to those kernels
-and executes the Controller-to-Mario input refinement, or that alias/OOB/
-external writes, callback retargeting, and mutation of the writable landing
-descriptor are unreachable.  No concrete forged writer is known.
+and executes the Controller-to-Mario input refinement.  The source-created
+alias and writable-action-table branches are now closed below; live parameter
+identity, classified typed stores, and exact unresolved-external effects remain
+the semantic boundary.  No concrete forged writer is known.  OOB behavior is
+outside successful CompCert execution.
 
 `NegativeDepthForgeryBoundary.v` then audits the remaining source-visible
 forge surfaces.  All nine landing descriptors and `sInteractionHandlers` are
@@ -693,8 +695,9 @@ landing needs frame-count corruption as well.  The only indirect MarioState
 calls are the input-bit-2-guarded landing callback and the interaction table.
 Finally, a CompCert byte-frame theorem shows that changing the action cell
 requires a same-block store whose byte range overlaps it.  Compiled N64 flat
-layout, live pointer provenance, writable-global integrity, indexed render
-state, and external frames remain open.
+layout, live pointer identity, indexed render state, and external frames remain
+open; the strengthened whole-corpus alias and writable-table results below
+close the corresponding generated-source producers.
 
 `NegativeDepthInteractionClosure.v` closes the initialized interaction-table
 branch of that audit.  It follows all 29 distinct handlers in both versions,
@@ -703,9 +706,10 @@ and follows Snufit's 3-by-3 knockback selector and Bully's five-outcome helper.
 All 18 initialized knockback-table entries and every other resulting action
 are non-long-jump values, and neither knockback table has a named generated
 writer.  This instantiates `InteractionActionClosureObligation` for stock table
-contents.  Because the handler and knockback tables are writable, linked table
-preservation, call/pointer provenance, aliases, and outside-call effects remain
-the precise escape boundary rather than being silently assumed.
+contents.  Because the handler and knockback tables are writable, this module
+alone leaves their preservation open; the private-injection and reached-step
+proofs below subsequently close that branch for every successful selected
+in-bounds Clight execution.
 
 `WritableActionTableClosure.v` now separates that residual from the tables'
 conditional payoff.  The handler table and both 3-by-3 knockback tables occupy
@@ -732,6 +736,23 @@ the defined in-bounds CompCert model; invalid/OOB writes, ACE, DMA, and
 post-undefined-behavior execution still require a retail-machine model.  The
 [writable-table note](docs/notes/writable-action-table-mutation.md) also records
 the conditional upper-coin and lower-pole consumers.
+
+`NegativeDepthDefinedProducerClosure.v` now packages the resulting
+negative-seed boundary.  It classifies all 18 direct `quicksandDepth` stores
+per version and couples the temporary forms to the positive death and
+sinking-speed additions; only the late landing subtraction can become
+negative, and the no-A/no-forgery provenance theorem excludes its ordinary
+setup.  A new 38-unit type-directed census finds no source-created
+untyped/interior pointer, whole-structure copy, stored or returned pointer, or
+initializer-retained descriptor address beyond the intended
+`gMarioState = &gMarioStates[0]` base alias.  The capstone combines those facts
+with the interaction and writable-table closures and defines the exact bytes
+that every reached genuine `EF_external` must preserve.  A universal live-run
+impossibility theorem still needs the reached-step projection and those exact
+external frames; CompCert intentionally does not derive them from C
+prototypes.  In particular, both generated `mario_misc` units export
+`gMarioStates` and `gMarioState`, so the private-symbol proof used for the
+action tables cannot be reused unchanged for Mario's state cells.
 
 `Area2HypotheticalPoleLongJump.v` now preserves the lower-pole payoff for such
 a future retail-machine extension.  A post-climb pole-handler/knockback edit

@@ -2,17 +2,23 @@
 
 ## Verdict
 
-This is a real conditional Graphics-gap mechanism, but its prerequisite late
-landing state is unreachable from either legal clean boundary inside the
-finite source-shaped no-edge/no-forgery kernel.  It is not a proved clean
-zero-A route and it has not produced a target-star counterexample:
+This is a real conditional Graphics-gap mechanism, but the generated
+defined-producer search has found no clean zero-A source for its negative
+starting depth.  The bilateral audit now classifies all 18 direct depth stores
+in each game version, closes source-created Mario-state and landing-descriptor
+aliases, and retains only the late long-jump landing subtraction as a
+potentially negative ordinary write; its stock provenance requires A.  The
+route is therefore closed at the checked source-producer boundary, but not yet
+as a theorem about every live Clight execution or about retail hardware.
 
-Execution-scope note: a forged state created by a valid in-bounds alias,
-known-function retarget, slot/lifecycle error, or specified external effect is
-still a current Clight proof obligation.  An invalid/OOB write, ACE, or
-post-undefined-behavior machine continuation has no successful Clight step and
-is deferred until a MIPS/hardware model exists; it is not disproved on retail
-hardware.  See [the project execution-scope boundary](../compcert-execution-scope.md).
+Execution-scope note: the two remaining semantic inputs are (1) a projection
+of every reached internal Clight step to one of the checked source cases and
+(2) exact byte frames or implementations for every reached genuine
+`EF_external` call.  CompCert deliberately leaves those external effects
+abstract, so their C prototypes cannot supply the missing frame.  Invalid/OOB
+writes, ACE, DMA, and post-undefined-behavior machine continuations have no
+successful Clight step and remain separate MIPS/hardware work.  See [the
+project execution-scope boundary](../compcert-execution-scope.md).
 
 1. the checked source transition kernel cannot first acquire either
    long-jump action without an A edge or a forged-state event;
@@ -27,8 +33,8 @@ The three reachability possibilities now have different statuses:
 
 | Possibility | Current result |
 |---|---|
-| A long-jump/landing prehistory with no A edge | Excluded in the finite source-shaped kernel.  The only recognized ordinary long-jump constructor is guarded by `INPUT_A_PRESSED`, and landing is produced only from long jump.  Linked Clight-step classification remains open. |
-| A forged action, timer, descriptor, callback, or input | No concrete clean SSL writer has been found.  The initialized stock interaction callback is closed, and the strengthened writable-table audit accepts only four terminal reads per version, with no store/address handoff or initializer alias.  The completed reached-execution theorem constructs the private relation at selected-program initialization and preserves it through every actual step and outside call in every finite successful in-bounds selected Clight run, so writable-table mutation cannot supply this seed in the current model.  Other defined forged scalar/callback writers still need their own linked classification; OOB/ACE producers are outside the model. |
+| A long-jump/landing prehistory with no A edge | Excluded in the finite source-shaped kernel.  The only recognized ordinary long-jump constructor is guarded by `INPUT_A_PRESSED`, and landing is produced only from long jump.  Connecting every reached Clight step to that kernel remains explicit. |
+| A forged action, timer, descriptor, callback, input, or state identity | No concrete clean writer survived the generated-source audit.  There is no untyped/interior derivation, whole-state/descriptor copy, stored or returned pointer of either protected type, or retained descriptor address; the only retained Mario-state initializer alias is the intended base pointer.  The initialized interaction callback and writable action tables are also closed.  A live typed step outside the checked projection or a specified external effect remains the exact in-model escape. |
 | Starting the modeled clean interval in the injected state | Excluded at the stated boundaries: the abstract pyramid contract fixes action `0x1932`; a separate concrete memory postcondition assumes/fixes timer zero and depth `+0.0f`.  The ordinary Area-1 entry memory postcondition separately fixes action `0x1924`, timer zero, and depth `+0.0f`. |
 
 Retail exploitation work first needs linked-step classification, then either a
@@ -52,6 +58,56 @@ A fresh star with compatible vertical placement, an older pre-positioned
 tangible star, a forged long-jump state, live dialog platform transport, warp
 relocation/substitution, collision aliasing, or an unclassified raw-coordinate
 writer remains outside this reduction.
+
+## Defined-producer close-out
+
+`NegativeDepthDefinedProducerClosure.v` connects the existing whole-corpus
+writer census to the exact generated right-hand-side shapes.  The following
+counts and results hold independently for US and JP:
+
+| Routine | Direct depth stores | Checked form and sign result |
+|---|---:|---|
+| `init_mario` | 1 | Reset to zero. |
+| `check_common_airborne_cancels` | 1 | Reset to zero. |
+| `mario_execute_automatic_action` | 1 | Reset to zero. |
+| `act_quicksand_death` | 1 | Add positive `5.0f`. |
+| `common_landing_action` | 1 | Add `(4 - timer) * 3.5f - 0.5f`; non-long landings reach only safe timers 1–3, while the dangerous late timers require long-jump provenance. |
+| `quicksand_jump_land_action` | 2 | Subtract the timer expression and immediately clamp the result to at least `1.1f`. |
+| `mario_execute_submerged_action` | 1 | Reset to zero. |
+| `mario_update_quicksand` | 10 | Reset/minimum, four positive-speed additions, and positive caps at `10`, `25`, and `60`. |
+
+The companion type-directed census checks all 38 selected generated units.  It
+finds no untyped or interior derivation involving `MarioState *` or
+`LandingAction *`, no whole-structure copy, no runtime storage or return of
+either pointer type, exactly one initializer-held Mario-state alias at offset
+zero (`gMarioState = &gMarioStates[0]`), and no initializer-held landing
+descriptor address.  The only two indirect calls receiving `MarioState *` are
+the A-guarded landing callback and the already-closed interaction dispatcher.
+These results close a source-created hidden alias; they do not assume that an
+arbitrary external implementation leaves public writable globals alone.
+
+The remaining external-frame interface is exact rather than declaration-wide.
+It protects Mario's input/flags, action, action state, timer, argument and
+depth bytes, the live `gMarioState` pointer cell, and all 28 bytes of each of
+the nine landing descriptors.  Both generated `mario_misc` units export
+`gMarioStates` and `gMarioState`, so the private-symbol argument that protects
+the action tables cannot simply be reused for these cells.  Recognized CompCert
+builtins and runtime helpers preserve the bytes because their modeled calls
+leave memory unchanged.  A genuine unresolved `EF_external` must instead be
+proved unreachable, supplied with this frame, or refined to an implementation
+whose stores can be checked.  Likewise, the live-step bridge must show that
+each reached typed internal store is one of the safe cases above and still
+targets the intended Mario state.
+
+Consequently a negative endpoint from clean zero now implies one of seven
+precise failures: late landing without clean provenance, changed descriptor,
+changed action/timer/input, retargeted callback, changed Mario-state identity,
+an unclassified typed internal write, or an unframed external effect.  The
+first six have no generated clean producer in the current audit; the last is a
+missing environment specification, not evidence of a gameplay route.  If the
+live projection and reached-external frames are supplied, the negative-seed
+branch is disproved within successful in-bounds CompCert execution and the X/Z
+transport search becomes unnecessary.
 
 The strongest writer is more dangerous than the earlier `-2.65f` example.
 `mario_execute_moving_action` updates quicksand from Mario's floor at the
@@ -333,8 +389,11 @@ The new proof modules establish separate, deliberately scoped facts:
   the finite stalled-dialog accumulation model.
 - `ActionDepthAliasCensus.v` checks a bilateral generated syntax boundary for
   direct writers, address-taking, indirect Mario-state calls, action resets,
-  and the writable long-jump descriptor.  It does not prove semantic
-  non-aliasing.
+  and the writable long-jump descriptor.  Its strengthened whole-corpus result
+  excludes source-created untyped/interior pointers, whole-structure copies,
+  retained or returned pointers, and initializer-held descriptor aliases.  It
+  does not by itself prove the identity of every live function parameter or
+  frame a genuine unresolved external.
 - `ZeroAQuicksandEntryBoundary.v` proves separate consequences of the abstract
   clean contract, concrete entry-memory postconditions, descriptor timing,
   bilateral 38-unit target-value/constructor census, and the finite
@@ -358,6 +417,14 @@ The new proof modules establish separate, deliberately scoped facts:
   selected Clight step is classified, and the finite-run capstone preserves
   every table byte; only mechanisms outside that successful in-bounds model
   can reopen table mutation.
+- `NegativeDepthDefinedProducerClosure.v` gives the combined generated-source
+  close-out.  It records all 18 direct depth-store shapes per version, couples
+  the temporary writes to the positive death and sinking-speed additions,
+  imports the whole-game alias and action-table closures, and proves that a
+  clean-zero depth cannot become negative through the checked binary32/source
+  traces.  It also defines the exact protected-byte policy for the live state,
+  pointer cell, and landing descriptors.  The actual live-step projection and
+  reached `EF_external` frames remain explicit inputs rather than assumptions.
 - `Area1LongJumpQuicksandCrossing.v` records the static mesh boundary and its
   exact geometric subfacts.  `Area1LongJumpQuicksandRetailTrace.v` records the
   corrected four-quarter retail observation and refutes the old exact-Z
@@ -368,7 +435,9 @@ The new proof modules establish separate, deliberately scoped facts:
   the injected fixture remain pending.
 - `LongJumpProvenanceBoundary.v` checks the bilateral long-jump source chain
   and proves no-edge/no-forgery exclusion in its source transition kernel.
-  Whole-program linked step classification and forgery exclusion remain open.
+  The new defined-producer closure eliminates the generated alias/table
+  candidates; whole-program linked step projection and exact unresolved-call
+  effects remain open.
 - `NoExitStarDialogBridge.v` checks the bilateral star lifecycle/source shape
   and proves the fresh-star finite schedule, the exact split between the
   surviving post-timer-4 `-2.65f` case and the positive post-timer-5 case, the
@@ -399,15 +468,13 @@ installs the gap, reaches either target region, or collects either target star.
 
 ## Decisive remaining obligations
 
-1. Refine the checked source action/depth kernels to every clean linked US/JP
-   step and eliminate the remaining forged-state causes.  The initialized
-   interaction-handler branch is closed, so its survivors are specifically a
-   changed handler/knockback table, retargeted call, forged valid pointer or
-   argument, or unframed outside effect.  Without one of these or a separate
-   descriptor/action/timer forge, the negative payload is unreachable and no
-   X/Z search is needed.  This also includes executing the
-   `Controller.buttonPressed`-to-`INPUT_A_PRESSED` update and excluding a later
-   forged input-bit writer.
+1. Refine every reached clean US/JP Clight step to the checked action/depth
+   cases while preserving the intended Mario-state identity.  The generated
+   alias, initialized interaction, and writable-table branches are closed, so
+   the first failure must now be a concrete changed descriptor/control value,
+   retargeted callback, changed live-state identity, or unclassified typed
+   store.  This includes the `Controller.buttonPressed`-to-`INPUT_A_PRESSED`
+   update and excludes a later forged input-bit writer.
 2. Refine both authenticated four-quarter retail frames to linked Clight
    memory, including the exact injected prestate, successor chronology, and
    corrected binary32 endpoints.
@@ -416,10 +483,11 @@ installs the gap, reaches either target region, or collects either target star.
    stock no-exit star at the required collision pass.
 4. Execute the collision-to-star-dance-to-milestone-dialog path without an
    intervening depth reset and with a non-null floor on every sink frame.
-5. Close whole-program valid-pointer/alias frames and specify every reachable
-   external-call effect for Mario state, object/Graphics position, and the
-   mutable landing descriptor.  Analyze OOB/ACE only after adding a retail
-   machine model.
+5. Prove every reached genuine `EF_external` call unreachable or give it the
+   exact protected-byte frame for Mario's input/action/timer/depth, the live
+   state-pointer cell, and all landing descriptors; any legitimate overlapping
+   effect must instead be refined as a checked writer.  Analyze OOB/ACE only
+   after adding a retail machine model.
 6. Find or exclude the required raw-X/Z transport during the dialog (including
    active platform displacement), warp relocation/substitution, collision
    aliasing, and other post-copy writers before carrying the three-view state

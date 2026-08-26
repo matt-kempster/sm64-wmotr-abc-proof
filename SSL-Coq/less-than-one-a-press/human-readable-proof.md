@@ -2927,8 +2927,13 @@ The most useful entry points are:
 - `proofs/NegativeDepthInteractionClosure.v`: bilateral closure of all 29
   initialized interaction handlers, their 23 direct action literals, four
   local selectors, both dynamic action helpers, and all 18 knockback-table
-  entries; every stock outcome is non-long-jump, while writable-table and
-  pointer/external preservation remain explicit;
+  entries; every stock outcome is non-long-jump, with writable-table
+  preservation discharged by the reached-execution suite below;
+- `proofs/NegativeDepthDefinedProducerClosure.v`: bilateral classification of
+  all 18 direct depth stores per version, whole-game exclusion of
+  source-created Mario-state/landing-descriptor pointer escapes, the clean-zero
+  nonnegative writer consequence, and the exact live-state/descriptor byte
+  frame still required from reached genuine external calls;
 - `proofs/WritableActionTableClosure.v`: packages the ordinary-controller
   no-writer boundary for the 320-byte handler/knockback storage, proves that a
   hypothetical selected four-byte knockback cell can carry any action word

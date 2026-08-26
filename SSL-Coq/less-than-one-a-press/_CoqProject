@@ -359,6 +359,7 @@ proofs/WritableActionTableFunctionEntry.v
 proofs/WritableActionTableClightStepCoverage.v
 proofs/WritableActionTableReachedExecution.v
 proofs/NegativeDepthForgeryBoundary.v
+proofs/NegativeDepthDefinedProducerClosure.v
 proofs/NoExitStarDialogBridge.v
 proofs/DialogDepthMemoryFrame.v
 proofs/NegativeDepthTimer131Bridge.v

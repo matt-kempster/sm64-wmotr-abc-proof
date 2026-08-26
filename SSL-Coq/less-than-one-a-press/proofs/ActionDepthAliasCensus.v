@@ -21,11 +21,11 @@ From LessThanOneAPress.Generated Require Import us_mario jp_mario
   us_mario_actions_airborne us_mario_actions_automatic
   us_mario_actions_cutscene us_mario_actions_moving
   us_mario_actions_object us_mario_actions_stationary
-  us_mario_actions_submerged us_mario_step us_interaction
+  us_mario_actions_submerged us_mario_step us_interaction us_mario_misc
   jp_mario_actions_airborne jp_mario_actions_automatic
   jp_mario_actions_cutscene jp_mario_actions_moving
   jp_mario_actions_object jp_mario_actions_stationary
-  jp_mario_actions_submerged jp_mario_step jp_interaction.
+  jp_mario_actions_submerged jp_mario_step jp_interaction jp_mario_misc.
 From LessThanOneAPress.Proofs Require Import
   ASTFacts LinkedClightPrograms NormalizedClightPrograms JPQuicksandDepth.
 
@@ -41,6 +41,7 @@ Module AD_USStationary := us_mario_actions_stationary.
 Module AD_USSubmerged := us_mario_actions_submerged.
 Module AD_USStep := us_mario_step.
 Module AD_USInteraction := us_interaction.
+Module AD_USMisc := us_mario_misc.
 Module AD_JPMario := jp_mario.
 Module AD_JPAir := jp_mario_actions_airborne.
 Module AD_JPAuto := jp_mario_actions_automatic.
@@ -51,6 +52,7 @@ Module AD_JPStationary := jp_mario_actions_stationary.
 Module AD_JPSubmerged := jp_mario_actions_submerged.
 Module AD_JPStep := jp_mario_step.
 Module AD_JPInteraction := jp_interaction.
+Module AD_JPMisc := jp_mario_misc.
 
 Definition us_generated_definitions := unit_global_definitions us_units.
 Definition jp_generated_definitions_for_alias :=
@@ -365,6 +367,224 @@ Fixpoint internal_builtin_struct_pointer_sites
   | _ :: rest => internal_builtin_struct_pointer_sites tag rest
   end.
 
+(** * Whole-program typed-alias and untyped-derivation census *)
+
+Definition expression_has_struct_pointer_type
+    (tag : ident) (expression : expr) : bool :=
+  match typeof expression with
+  | Tpointer (Tstruct found _) _ => Pos.eqb found tag
+  | _ => false
+  end.
+
+Definition type_is_struct_pointer (tag : ident) (value_type : type) : bool :=
+  match value_type with
+  | Tpointer (Tstruct found _) _ => Pos.eqb found tag
+  | _ => false
+  end.
+
+(** Flag casts either from or to the selected structure pointer and arithmetic
+    whose operand is already such a pointer.  Ordinary [array[index]] address
+    formation rooted at a structure array is deliberately not flagged: its
+    operand has array type and remains subject to CompCert's normal bounds and
+    access checks. *)
+Fixpoint expression_has_untyped_struct_pointer_derivation
+    (tag : ident) (expression : expr) : bool :=
+  match expression with
+  | Ecast inner target_type =>
+      expression_has_struct_pointer_type tag inner ||
+      type_is_struct_pointer tag target_type ||
+      expression_has_untyped_struct_pointer_derivation tag inner
+  | Ebinop operator left_expression right_expression _ =>
+      match operator with
+      | Oadd | Osub =>
+          expression_has_struct_pointer_type tag left_expression ||
+          expression_has_struct_pointer_type tag right_expression ||
+          expression_has_untyped_struct_pointer_derivation
+            tag left_expression ||
+          expression_has_untyped_struct_pointer_derivation
+            tag right_expression
+      | _ =>
+          expression_has_untyped_struct_pointer_derivation
+            tag left_expression ||
+          expression_has_untyped_struct_pointer_derivation
+            tag right_expression
+      end
+  | Ederef inner _ | Eaddrof inner _ | Eunop _ inner _
+  | Efield inner _ _ =>
+      expression_has_untyped_struct_pointer_derivation tag inner
+  | _ => false
+  end.
+
+Definition expression_list_has_untyped_struct_pointer_derivation
+    (tag : ident) (expressions : list expr) : bool :=
+  existsb (expression_has_untyped_struct_pointer_derivation tag) expressions.
+
+Fixpoint statement_has_untyped_struct_pointer_derivation_s
+    (tag : ident) (statement : statement) : bool :=
+  match statement with
+  | Sskip | Sbreak | Scontinue | Sreturn None | Sgoto _ => false
+  | Sassign left_expression right_expression =>
+      expression_has_untyped_struct_pointer_derivation tag left_expression ||
+      expression_has_untyped_struct_pointer_derivation tag right_expression
+  | Sset _ right_expression =>
+      expression_has_untyped_struct_pointer_derivation tag right_expression
+  | Scall _ function arguments =>
+      expression_has_untyped_struct_pointer_derivation tag function ||
+      expression_list_has_untyped_struct_pointer_derivation tag arguments
+  | Sbuiltin _ _ _ arguments =>
+      expression_list_has_untyped_struct_pointer_derivation tag arguments
+  | Ssequence first second | Sloop first second =>
+      statement_has_untyped_struct_pointer_derivation_s tag first ||
+      statement_has_untyped_struct_pointer_derivation_s tag second
+  | Sifthenelse condition yes_branch no_branch =>
+      expression_has_untyped_struct_pointer_derivation tag condition ||
+      statement_has_untyped_struct_pointer_derivation_s tag yes_branch ||
+      statement_has_untyped_struct_pointer_derivation_s tag no_branch
+  | Sreturn (Some value) =>
+      expression_has_untyped_struct_pointer_derivation tag value
+  | Sswitch value cases =>
+      expression_has_untyped_struct_pointer_derivation tag value ||
+      statement_has_untyped_struct_pointer_derivation_ls tag cases
+  | Slabel _ body =>
+      statement_has_untyped_struct_pointer_derivation_s tag body
+  end
+with statement_has_untyped_struct_pointer_derivation_ls
+    (tag : ident) (cases : labeled_statements) : bool :=
+  match cases with
+  | LSnil => false
+  | LScons _ body rest =>
+      statement_has_untyped_struct_pointer_derivation_s tag body ||
+      statement_has_untyped_struct_pointer_derivation_ls tag rest
+  end.
+
+Fixpoint internal_untyped_struct_pointer_derivation_sites
+    (tag : ident)
+    (definitions : list (ident * globdef (fundef function) type)) :
+    list ident :=
+  match definitions with
+  | [] => []
+  | (id, Gfun (Internal body)) :: rest =>
+      if statement_has_untyped_struct_pointer_derivation_s
+           tag (fn_body body)
+      then id :: internal_untyped_struct_pointer_derivation_sites tag rest
+      else internal_untyped_struct_pointer_derivation_sites tag rest
+  | _ :: rest => internal_untyped_struct_pointer_derivation_sites tag rest
+  end.
+
+Definition expression_has_struct_type
+    (tag : ident) (expression : expr) : bool :=
+  match typeof expression with
+  | Tstruct found _ => Pos.eqb found tag
+  | _ => false
+  end.
+
+Fixpoint statement_assigns_whole_struct_s
+    (tag : ident) (statement : statement) : bool :=
+  match statement with
+  | Sassign left_expression _ =>
+      expression_has_struct_type tag left_expression
+  | Ssequence first second | Sloop first second =>
+      statement_assigns_whole_struct_s tag first ||
+      statement_assigns_whole_struct_s tag second
+  | Sifthenelse _ yes_branch no_branch =>
+      statement_assigns_whole_struct_s tag yes_branch ||
+      statement_assigns_whole_struct_s tag no_branch
+  | Sswitch _ cases => statement_assigns_whole_struct_ls tag cases
+  | Slabel _ body => statement_assigns_whole_struct_s tag body
+  | _ => false
+  end
+with statement_assigns_whole_struct_ls
+    (tag : ident) (cases : labeled_statements) : bool :=
+  match cases with
+  | LSnil => false
+  | LScons _ body rest =>
+      statement_assigns_whole_struct_s tag body ||
+      statement_assigns_whole_struct_ls tag rest
+  end.
+
+Fixpoint statement_stores_struct_pointer_s
+    (tag : ident) (statement : statement) : bool :=
+  match statement with
+  | Sassign _ right_expression =>
+      expression_has_struct_pointer_type tag right_expression
+  | Ssequence first second | Sloop first second =>
+      statement_stores_struct_pointer_s tag first ||
+      statement_stores_struct_pointer_s tag second
+  | Sifthenelse _ yes_branch no_branch =>
+      statement_stores_struct_pointer_s tag yes_branch ||
+      statement_stores_struct_pointer_s tag no_branch
+  | Sswitch _ cases => statement_stores_struct_pointer_ls tag cases
+  | Slabel _ body => statement_stores_struct_pointer_s tag body
+  | _ => false
+  end
+with statement_stores_struct_pointer_ls
+    (tag : ident) (cases : labeled_statements) : bool :=
+  match cases with
+  | LSnil => false
+  | LScons _ body rest =>
+      statement_stores_struct_pointer_s tag body ||
+      statement_stores_struct_pointer_ls tag rest
+  end.
+
+Fixpoint statement_returns_struct_pointer_s
+    (tag : ident) (statement : statement) : bool :=
+  match statement with
+  | Sreturn (Some value) => expression_has_struct_pointer_type tag value
+  | Ssequence first second | Sloop first second =>
+      statement_returns_struct_pointer_s tag first ||
+      statement_returns_struct_pointer_s tag second
+  | Sifthenelse _ yes_branch no_branch =>
+      statement_returns_struct_pointer_s tag yes_branch ||
+      statement_returns_struct_pointer_s tag no_branch
+  | Sswitch _ cases => statement_returns_struct_pointer_ls tag cases
+  | Slabel _ body => statement_returns_struct_pointer_s tag body
+  | _ => false
+  end
+with statement_returns_struct_pointer_ls
+    (tag : ident) (cases : labeled_statements) : bool :=
+  match cases with
+  | LSnil => false
+  | LScons _ body rest =>
+      statement_returns_struct_pointer_s tag body ||
+      statement_returns_struct_pointer_ls tag rest
+  end.
+
+Fixpoint internal_statement_predicate_sites
+    (predicate : statement -> bool)
+    (definitions : list (ident * globdef (fundef function) type)) :
+    list ident :=
+  match definitions with
+  | [] => []
+  | (id, Gfun (Internal body)) :: rest =>
+      if predicate (fn_body body)
+      then id :: internal_statement_predicate_sites predicate rest
+      else internal_statement_predicate_sites predicate rest
+  | _ :: rest => internal_statement_predicate_sites predicate rest
+  end.
+
+Fixpoint initializer_addrof_offsets
+    (target : ident) (data : list init_data) : list Z :=
+  match data with
+  | [] => []
+  | Init_addrof found offset :: rest =>
+      if Pos.eqb found target
+      then Ptrofs.unsigned offset :: initializer_addrof_offsets target rest
+      else initializer_addrof_offsets target rest
+  | _ :: rest => initializer_addrof_offsets target rest
+  end.
+
+Fixpoint global_definition_initializer_addrof_offsets
+    (target : ident)
+    (definitions : list (ident * globdef (fundef function) type)) : list Z :=
+  match definitions with
+  | [] => []
+  | (_, Gvar variable) :: rest =>
+      initializer_addrof_offsets target (gvar_init variable) ++
+      global_definition_initializer_addrof_offsets target rest
+  | _ :: rest =>
+      global_definition_initializer_addrof_offsets target rest
+  end.
+
 Definition us_depth_direct_writer_sites :=
   internal_field_assignment_sites
     AD_USMario._quicksandDepth us_generated_definitions.
@@ -530,6 +750,94 @@ Theorem us_jp_no_unresolved_direct_or_builtin_mario_state_pointer_handoff :
   internal_builtin_struct_pointer_sites
       AD_JPMario._MarioState jp_generated_definitions_for_alias = [].
 Proof. vm_compute. repeat split; reflexivity. Qed.
+
+(** The selected generated source has no internal syntax which can manufacture
+    an interior or untyped [MarioState *] or [LandingAction *], copy either
+    whole structure, retain either pointer in writable storage, or return one
+    to an unknown caller.  Initializers retain exactly one MarioState alias:
+    the intended [gMarioState = &gMarioStates[0]] base pointer.  No initializer
+    retains any of the nine landing-descriptor addresses.
+
+    This closes the generated *producer* side of the alias search.  It does
+    not by itself prove that a live parameter has the intended identity, nor
+    does it frame an unresolved external which can name public writable
+    globals without receiving a pointer argument. *)
+Definition ActionDepthDefinedAliasSourceClosure : Prop :=
+  internal_untyped_struct_pointer_derivation_sites
+      AD_USMario._MarioState us_generated_definitions = [] /\
+  internal_untyped_struct_pointer_derivation_sites
+      AD_JPMario._MarioState jp_generated_definitions_for_alias = [] /\
+  internal_untyped_struct_pointer_derivation_sites
+      AD_USMove._LandingAction us_generated_definitions = [] /\
+  internal_untyped_struct_pointer_derivation_sites
+      AD_JPMove._LandingAction jp_generated_definitions_for_alias = [] /\
+  internal_statement_predicate_sites
+      (statement_assigns_whole_struct_s AD_USMario._MarioState)
+      us_generated_definitions = [] /\
+  internal_statement_predicate_sites
+      (statement_assigns_whole_struct_s AD_JPMario._MarioState)
+      jp_generated_definitions_for_alias = [] /\
+  internal_statement_predicate_sites
+      (statement_assigns_whole_struct_s AD_USMove._LandingAction)
+      us_generated_definitions = [] /\
+  internal_statement_predicate_sites
+      (statement_assigns_whole_struct_s AD_JPMove._LandingAction)
+      jp_generated_definitions_for_alias = [] /\
+  internal_statement_predicate_sites
+      (statement_stores_struct_pointer_s AD_USMario._MarioState)
+      us_generated_definitions = [] /\
+  internal_statement_predicate_sites
+      (statement_stores_struct_pointer_s AD_JPMario._MarioState)
+      jp_generated_definitions_for_alias = [] /\
+  internal_statement_predicate_sites
+      (statement_stores_struct_pointer_s AD_USMove._LandingAction)
+      us_generated_definitions = [] /\
+  internal_statement_predicate_sites
+      (statement_stores_struct_pointer_s AD_JPMove._LandingAction)
+      jp_generated_definitions_for_alias = [] /\
+  internal_statement_predicate_sites
+      (statement_returns_struct_pointer_s AD_USMario._MarioState)
+      us_generated_definitions = [] /\
+  internal_statement_predicate_sites
+      (statement_returns_struct_pointer_s AD_JPMario._MarioState)
+      jp_generated_definitions_for_alias = [] /\
+  internal_statement_predicate_sites
+      (statement_returns_struct_pointer_s AD_USMove._LandingAction)
+      us_generated_definitions = [] /\
+  internal_statement_predicate_sites
+      (statement_returns_struct_pointer_s AD_JPMove._LandingAction)
+      jp_generated_definitions_for_alias = [] /\
+  global_definition_initializer_addrof_offsets
+      AD_USMisc._gMarioStates us_generated_definitions = [0%Z] /\
+  global_definition_initializer_addrof_offsets
+      AD_JPMisc._gMarioStates jp_generated_definitions_for_alias = [0%Z] /\
+  map
+    (fun descriptor =>
+       global_definition_initializer_addrof_offsets
+         descriptor us_generated_definitions)
+    [AD_USMove._sJumpLandAction; AD_USMove._sFreefallLandAction;
+     AD_USMove._sSideFlipLandAction; AD_USMove._sHoldJumpLandAction;
+     AD_USMove._sHoldFreefallLandAction; AD_USMove._sLongJumpLandAction;
+     AD_USMove._sDoubleJumpLandAction; AD_USMove._sTripleJumpLandAction;
+     AD_USMove._sBackflipLandAction] =
+    [[]; []; []; []; []; []; []; []; []] /\
+  map
+    (fun descriptor =>
+       global_definition_initializer_addrof_offsets
+         descriptor jp_generated_definitions_for_alias)
+    [AD_JPMove._sJumpLandAction; AD_JPMove._sFreefallLandAction;
+     AD_JPMove._sSideFlipLandAction; AD_JPMove._sHoldJumpLandAction;
+     AD_JPMove._sHoldFreefallLandAction; AD_JPMove._sLongJumpLandAction;
+     AD_JPMove._sDoubleJumpLandAction; AD_JPMove._sTripleJumpLandAction;
+     AD_JPMove._sBackflipLandAction] =
+    [[]; []; []; []; []; []; []; []; []].
+
+Theorem action_depth_defined_alias_source_closure_holds :
+  ActionDepthDefinedAliasSourceClosure.
+Proof.
+  unfold ActionDepthDefinedAliasSourceClosure.
+  vm_compute. repeat split; reflexivity.
+Qed.
 
 (** The ordinary central setter writes all four action-control cells and resets
     state/timer to zero.  The action and argument values themselves come from

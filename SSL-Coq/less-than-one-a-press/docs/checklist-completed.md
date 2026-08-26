@@ -919,9 +919,9 @@ Completed work is grouped by subject. Each item retains its original scope warni
   and JP, extracts 23 direct action literals, bounds four local selectors,
   follows the Snufit and Bully dynamic helpers, and checks all 18 knockback
   table entries.  Every resulting action is non-long-jump, and the two
-  knockback tables have no named generated writer.  Linked preservation of the
-  three writable tables, call/pointer provenance, aliases, and reached outside
-  effects remains open.
+  knockback tables have no named generated writer.  This module left linked
+  preservation open; the later private-injection/reached-execution tranche
+  closes all three tables in successful selected in-bounds Clight runs.
 
 - [x] Audit writable action-table mutation and its route payoff.
   `WritableActionTableClosure.v` combines the bilateral handler and knockback
@@ -999,6 +999,23 @@ Completed work is grouped by subject. Each item retains its original scope warni
   pointer through a reached outside call.  The proof does not cover invalid or
   out-of-bounds stores, ACE, DMA, or execution after source undefined
   behavior.
+
+- [x] Close the generated defined-producer search for a negative quicksand
+  seed.  `ActionDepthAliasCensus.v` now checks all 38 selected units for
+  untyped/interior `MarioState *` and `LandingAction *` derivations,
+  whole-structure copies, stored or returned pointers, and initializer-held
+  aliases; it finds only the intended zero-offset `gMarioState` base alias and
+  no retained landing-descriptor address.  The new
+  `NegativeDepthDefinedProducerClosure.v` classifies all 18 direct depth-store
+  sites per version, resolves the five temporary forms to positive additions,
+  and proves that every checked binary32/source writer trace from clean zero
+  stays nonnegative unless the no-A/no-forgery/source classification fails.
+  It packages the initialized-interaction, immutable-action-table, alias, and
+  CompCert-scope results and defines an exact external-call frame over the
+  relevant Mario-state, pointer, and descriptor bytes.  The remaining live
+  obligations are the reached-step projection and exact effects for genuine
+  `EF_external` calls; OOB, ACE, DMA, and post-undefined-behavior execution are
+  outside this result.
 
 - [x] Formalize the conditional lower-pole payoff of a future retail table
   mutation.  `Area2HypotheticalPoleLongJump.v` checks the exact bilateral

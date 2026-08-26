@@ -10,7 +10,8 @@ From LessThanOneAPress.Proofs Require Import
   InkPayloadInstaller InkTimer131CorruptionClosure InkTimer131ClightTraceBridge
   InkTimer131EntryExecutionClosure InkTimer131RetailMipsFrames
   InkTimer131RealEntryPrefix InkTimer131PostEntryMachineTrace TurningAnimation
-  NegativeDepthInteractionClosure WritableActionTableClosure
+  NegativeDepthInteractionClosure NegativeDepthDefinedProducerClosure
+  WritableActionTableClosure
   Area2LowerTargetCut Area2HypotheticalPoleLongJump
   WritableActionTableAliasExternalClosure
   WritableActionTableWholeGameAliases
@@ -191,6 +192,20 @@ Qed.
 Theorem current_negative_depth_route_checked_boundary :
   InkTimer131CorruptionCheckedBoundary.
 Proof. exact ink_timer131_corruption_checked_boundary_holds. Qed.
+
+(** The defined negative-depth producer search is now closed at the generated
+    source boundary.  The only ordinary store shape capable of crossing below
+    zero is the late landing subtraction, whose clean provenance requires an A
+    edge.  The 38-unit bilateral audit finds no source-created interior or
+    untyped pointer, whole-structure copy, retained or returned pointer,
+    and the initialized interaction tables remain private in every successful
+    selected Clight run.  A universal live-execution impossibility theorem
+    still needs the explicit reached-step projection and exact frames for
+    genuine [EF_external] calls; those two semantic inputs are deliberately
+    not assumed here. *)
+Theorem current_negative_depth_defined_producer_boundary :
+  NegativeDepthDefinedProducerCheckedBoundary.
+Proof. exact negative_depth_defined_producer_checked_boundary_holds. Qed.
 
 (** The rank-2 live-memory reduction is part of the capstone interface: a
     selected execution satisfying the concrete entry and reachable-step

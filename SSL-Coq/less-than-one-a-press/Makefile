@@ -1339,6 +1339,9 @@ check: proofs
 	  us_jp_two_indirect_mario_state_calls_have_exact_source_shapes
 	bash pipeline/assumptions.sh \
 	  LessThanOneAPress.Proofs.ActionDepthAliasCensus \
+	  action_depth_defined_alias_source_closure_holds
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.ActionDepthAliasCensus \
 	  us_jp_long_jump_landing_descriptor_source_boundary
 	bash pipeline/assumptions.sh \
 	  LessThanOneAPress.Proofs.Area1LongJumpQuicksandCrossing \
@@ -1499,6 +1502,18 @@ check: proofs
 	bash pipeline/assumptions.sh \
 	  LessThanOneAPress.Proofs.NegativeDepthForgeryBoundary \
 	  changed_action_cell_requires_same_block_and_byte_overlap
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.NegativeDepthDefinedProducerClosure \
+	  negative_depth_direct_store_shape_receipt_holds
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.NegativeDepthDefinedProducerClosure \
+	  negative_binary32_seed_requires_an_unclassified_depth_step
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.NegativeDepthDefinedProducerClosure \
+	  negative_source_seed_requires_a_forgery_or_unclassified_writer
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.NegativeDepthDefinedProducerClosure \
+	  negative_depth_defined_producer_checked_boundary_holds
 	bash pipeline/assumptions.sh \
 	  LessThanOneAPress.Proofs.NoExitStarDialogBridge \
 	  no_exit_star_bridge_source_shape_checked
@@ -2066,6 +2081,9 @@ check: proofs
 	bash pipeline/assumptions.sh \
 	  LessThanOneAPress.Proofs.MainTheorem \
 	  current_negative_depth_route_checked_boundary
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.MainTheorem \
+	  current_negative_depth_defined_producer_boundary
 	bash pipeline/assumptions.sh \
 	  LessThanOneAPress.Proofs.MainTheorem \
 	  current_timer131_clight_trace_bridge_boundary
