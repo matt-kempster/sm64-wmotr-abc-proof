@@ -636,6 +636,33 @@ check: proofs
 	  LessThanOneAPress.Proofs.Area2DownstreamReceipts \
 	  conditional_jp_downstream_receipt_checked
 	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.Area2NegativeQuicksandStarHypothesis \
+	  area2_quicksand_group_headers_exact_us
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.Area2NegativeQuicksandStarHypothesis \
+	  act6_star_quicksand_support_fully_valid_us
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.Area2NegativeQuicksandStarHypothesis \
+	  act6_star_quicksand_support_fully_valid_jp
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.Area2NegativeQuicksandStarHypothesis \
+	  any_number_of_act6_graphics_sinks_still_misses_directly
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.Area2NegativeQuicksandStarHypothesis \
+	  act6_four_sinks_miss_but_five_plus_forced_retry_overlap
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.Area2NegativeQuicksandStarHypothesis \
+	  act3_twenty_eight_sinks_miss_but_twenty_nine_plus_retry_overlap
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.Area2NegativeQuicksandStarHypothesis \
+	  area2_negative_depth_hypothesis_source_boundary_checked
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.Area2NegativeQuicksandStarHypothesis \
+	  area2_negative_quicksand_hypothetical_boundary_checked
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.MainTheorem \
+	  current_area2_negative_quicksand_hypothetical_boundary
+	bash pipeline/assumptions.sh \
 	  LessThanOneAPress.Proofs.ClightFacts \
 	  graphical_floor_fallback_source_shape_us
 	bash pipeline/assumptions.sh \
@@ -1947,6 +1974,9 @@ check: proofs
 	  LessThanOneAPress.Proofs.InkTimer131EntryExecutionClosure \
 	  dangerous_timer131_trace_exposes_first_invariant_failure
 	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.Area1PlayerListTailClosure \
+	  area1_player_list_tail_checked_boundary_holds
+	bash pipeline/assumptions.sh \
 	  LessThanOneAPress.Proofs.InkTimer131RealEntryPrefix \
 	  ink_timer131_real_entry_prefix_checked_boundary_holds
 	bash pipeline/assumptions.sh \
@@ -2075,6 +2105,9 @@ check: proofs
 	bash pipeline/assumptions.sh \
 	  LessThanOneAPress.Proofs.MainTheorem \
 	  current_project_compcert_execution_scope_boundary
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.MainTheorem \
+	  current_rank1_player_list_tail_boundary
 	bash pipeline/assumptions.sh \
 	  LessThanOneAPress.Proofs.MainTheorem \
 	  current_negative_depth_initialized_interaction_boundary

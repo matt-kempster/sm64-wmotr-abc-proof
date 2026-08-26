@@ -280,6 +280,7 @@ proofs/UpperElevatorQuarterStepClosure.v
 proofs/UpperElevatorWingCapTransitionClosure.v
 proofs/Area2LowerTargetCut.v
 proofs/Area2DownstreamGeometry.v
+proofs/Area2NegativeQuicksandStarHypothesis.v
 proofs/Area2DownstreamReceipts.v
 proofs/Area2DownstreamContinuations.v
 proofs/GoombaRaising.v
@@ -374,6 +375,7 @@ proofs/InkTimer131CorruptionClosure.v
 proofs/InkTimer131LiveIdentityClosure.v
 proofs/InkTimer131ClightTraceBridge.v
 proofs/InkTimer131EntryExecutionClosure.v
+proofs/Area1PlayerListTailClosure.v
 proofs/InkTimer131RetailMipsCode.v
 proofs/InkTimer131RetailMipsFrames.v
 proofs/InkTimer131RealEntryPrefix.v

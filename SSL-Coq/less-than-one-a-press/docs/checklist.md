@@ -380,16 +380,17 @@ These obligations currently block the clean-retail result.
   finishes and is not the whole post-copy tail.  Within `bhv_mario_update`, the
   State-to-Object copy precedes `spawn_particle`; `bhvMario` then names
   `try_do_mario_debug_object_spawn`, whose body calls `spawn_object_relative`;
-  and traversal can advance to a later PLAYER node if one exists.  These are
-  explicit intra-PLAYER residuals, not proof that a guard enables a spawn or
-  that another node exists.  The two `sParticleTypes` initializer lists are
-  also checked to equal 18 paired behavior identifiers whose definitions all
-  begin with `8 << 16` (list 8); the local AST forwards the selected table
-  `behavior` through `spawn_particle` argument 3 to
-  `spawn_object_at_origin` argument 4.  This identifies a concrete source
-  candidate family, but proves no loop/index execution, enabled flag,
-  allocation, visitation, callback execution, coordinate change, or clean
-  reachability.  Object
+  and traversal can advance to a later PLAYER node if one exists.
+  `Area1PlayerListTailClosure.v` now closes both immediate-child versions of
+  the residual: every non-null particle behavior selects list 8, the debug
+  callback's exact three behavior operands select lists `[6;4;4]`, and the
+  MainTheorem boundary combines this with the existing proof that `bhvMario`
+  is the only generated behavior-data script selecting list 0.
+  Thus neither immediate child family can add a second PLAYER node.  A node
+  that already exists or is created by another callback, pointer forwarding,
+  a valid alias or specified outside effect, or list/slot lifecycle failure
+  remains; the receipts do not prove the live traversal, guards, allocation
+  outcomes, or absence of those other producers.  Object
   updating is later followed by unload and
   the final platform query.  A direct-lvalue census finds no State-position or
   raw-Object XYZ assignment in the fixed scheduler/traversal, unload, or
@@ -402,8 +403,9 @@ These obligations currently block the clean-retail result.
   `spawn_triangle_break_particles`, whose requested
   `bhvBreakBoxTriangle` behavior is in list 12 and therefore later than PLAYER
   in the array.  These receipts do not prove successful allocation, same-frame
-  visitation, or callback execution.  Closing the intra-PLAYER particle/debug
-  paths and possible later PLAYER nodes, transitive spawn and behavior-
+  visitation, or callback execution.  Closing the remaining pre-existing,
+  other-callback, pointer-forwarded, or lifecycle-created PLAYER-node cases,
+  transitive spawn and behavior-
   interpreter dispatch, receiver/non-alias and external-call frames,
   unload/pool-reuse lifecycle, abnormal returns, the post-query debug callback,
   and next-frame warp/instant-warp effects remains part of this open item.

@@ -1,4 +1,5 @@
 From Coq Require Import List ZArith.
+From compcert Require Import AST Clight Ctypes.
 From LessThanOneAPress.Proofs Require Import
   GameTypes InputSemantics CleanEntry ObjectProvenance StarCollection
   CollisionRegions AreaTransitions HiddenStar LowerEntrance UpperEntrance
@@ -8,11 +9,13 @@ From LessThanOneAPress.Proofs Require Import
   FirstTargetRefinement JPSlotLifetime JPFirstApply FirstCrossingWriterCoverage
   OrdinaryMotion GoombaRaising PyramidTopPU InkFallback RetailFatalLatch
   InkPayloadInstaller InkTimer131CorruptionClosure InkTimer131ClightTraceBridge
-  InkTimer131EntryExecutionClosure InkTimer131RetailMipsFrames
+  InkTimer131EntryExecutionClosure Area1PlayerListTailClosure
+  InkTimer131RetailMipsFrames
   InkTimer131RealEntryPrefix InkTimer131PostEntryMachineTrace TurningAnimation
   NegativeDepthInteractionClosure NegativeDepthDefinedProducerClosure
   WritableActionTableClosure
   Area2LowerTargetCut Area2HypotheticalPoleLongJump
+  Area2NegativeQuicksandStarHypothesis
   WritableActionTableAliasExternalClosure
   WritableActionTableWholeGameAliases
   WritableActionTablePrivateInitialization
@@ -48,6 +51,22 @@ Qed.
 Theorem current_project_compcert_execution_scope_boundary :
   compcert_execution_scope_boundary_holds.
 Proof. exact compcert_execution_scope_boundary_checked. Qed.
+
+(** Rank 1's two immediate post-copy child families cannot append a PLAYER
+    node behind Mario: Mario is the sole generated list-0 behavior, while all
+    particle/debug children select later non-PLAYER lists.  A pre-existing
+    node or another callback, pointer-forwarding step, alias/outside effect,
+    or list/slot lifecycle event remains a linked-execution residual. *)
+Theorem current_rank1_player_list_tail_boundary :
+  Area1PlayerListTailCheckedBoundary /\
+  (ink_zero_list_behavior_owner_ids (prog_defs IT131E_USData.prog) =
+      [IT131E_USData._bhvMario] /\
+   ink_zero_list_behavior_owner_ids (prog_defs IT131E_JPData.prog) =
+      [IT131E_JPData._bhvMario]).
+Proof.
+  split; [exact area1_player_list_tail_checked_boundary_holds |].
+  exact ink_bhv_mario_is_the_only_generated_list_zero_behavior.
+Qed.
 
 (** Rank 3 can no longer use an ordinary integer-to-pointer cast as a clean
     platform-cell producer: integer constructors never become CompCert block
@@ -132,6 +151,19 @@ Proof.
   split; [exact hypothetical_base_contact_single_long_jump_misses_target_air |].
   split; [exact (proj2 (proj2 (proj2 hypothetical_3702_contact_enters_target_air_at_the_apex))) |].
   exact (proj2 hypothetical_pole_long_jump_five_frames_use_zero_a_presses).
+Qed.
+
+(** Area 2 has an exact moving-quicksand support under the Act-6 star, but
+    negative depth alone changes only Graphics and therefore cannot change
+    either raw standing collision.  The same checked kernel records the
+    conditional payoff after a forced Graphics retry and raw copy: five
+    retained sinks suffice for Act 6 and 29 for Act 3.  This theorem packages
+    that arithmetic/source boundary and does not inhabit the post-entry seed,
+    floor-query miss, retry, or live collection obligation. *)
+Theorem current_area2_negative_quicksand_hypothetical_boundary :
+  Area2NegativeQuicksandHypotheticalBoundary.
+Proof.
+  exact area2_negative_quicksand_hypothetical_boundary_checked.
 Qed.
 
 (** The former free-form alias/outside-call residual is reduced to one exact

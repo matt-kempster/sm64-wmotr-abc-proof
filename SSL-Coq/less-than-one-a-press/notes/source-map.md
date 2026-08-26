@@ -1233,6 +1233,16 @@ closure, receiver and alias identity, external effects, unload/pool reuse,
 callback control flow, the post-query debug callback, and the next frame's
 warp/instant-warp prefix remain explicit linked-execution residuals.
 
+`proofs/Area1PlayerListTailClosure.v` closes the two immediate-child parts of
+that intra-PLAYER residual.  It ties the particle table's 18 exact behavior
+operands to list 8 and the debug callback's three exact spawn operands to list
+indices `[6;4;4]`; `MainTheorem.v` combines this with the existing
+behavior-data census that makes `bhvMario` the sole list-0 script.  Therefore
+no ordinary Mario post-copy particle or debug child can create a later PLAYER
+node.  A purported later node may still pre-exist or come from another callback, pointer
+forwarding, a valid alias/specified external effect, or a list/slot lifecycle
+violation; linked execution still has to exclude or exhibit those cases.
+
 `proofs/Area1PostCopyObjectWriterClosure.v` closes two narrower branches of
 that post-copy/sample-mismatch search.  Its 38-unit US and JP partitions prove
 that direct receivers designating Mario's raw Object and assigning XYZ occur

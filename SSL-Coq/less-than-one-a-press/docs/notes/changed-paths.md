@@ -1181,6 +1181,10 @@ paths changed:
   exact 18-entry particle-table-to-list-8 coupling and local argument flow,
   fixed-body-through-final-query writer census, post-query debug residual, and
   list-12 spawn lead)
+- `SSL-Coq/less-than-one-a-press/proofs/Area1PlayerListTailClosure.v` (new;
+  bilateral exact list-8 particle and list-6/list-4 debug-child exclusion from
+  later PLAYER traversal; the MainTheorem boundary combines it with the
+  pre-existing sole-generated-list-0 `bhvMario` census)
 - `SSL-Coq/less-than-one-a-press/proofs/Area1PostCopyObjectWriterClosure.v`
   (new; bilateral direct-designated raw-Mario-Object XYZ census and explicit
   cached-Y=`768`/exact-centre finite-stock null-query subcase)

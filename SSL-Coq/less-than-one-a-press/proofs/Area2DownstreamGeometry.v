@@ -104,14 +104,16 @@ Definition select_indexed {A : Type}
   select_indexed_from 0 wanted values.
 
 Definition downstream_support_vertex_indices : list nat :=
-  [226; 228; 236; 238; 266; 267; 269; 778;
+  [226; 227; 228; 236; 237; 238; 266; 267; 269; 778;
    779; 783; 784; 786; 789; 791; 794; 997]%nat.
 
 Definition downstream_support_expected_vertices :
     list (nat * (Z * Z * Z)) :=
   [(226%nat, (-1740, 1229, 2150));
+   (227%nat, (1178, 1229, 2150));
    (228%nat, (-1740, 1229, -588));
    (236%nat, (-2149, 1229, 2560));
+   (237%nat, (1178, 1229, 2560));
    (238%nat, (-2149, 1229, -793));
    (266%nat, (387, 4815, -409));
    (267%nat, (643, 4815, -1125));
@@ -151,6 +153,7 @@ Definition downstream_support_word_offsets : list nat :=
    5221; 5222; 5223;
    5251; 5252; 5253;
    7205; 7206;
+   7499; 7500; 7501; 7502;
    7503; 7504; 7505; 7506;
    7507; 7508; 7509; 7510;
    7593; 7594;
@@ -164,6 +167,8 @@ Definition downstream_support_triangle_word_receipts
      (5221%nat, 786); (5222%nat, 789); (5223%nat, 784);
      (5251%nat, 791); (5252%nat, 794); (5253%nat, 997);
      (7205%nat, 39); (7206%nat, 78);
+     (7499%nat, 227); (7500%nat, 226); (7501%nat, 237);
+     (7502%nat, 320);
      (7503%nat, 228); (7504%nat, 236); (7505%nat, 226);
      (7506%nat, 256);
      (7507%nat, 228); (7508%nat, 238); (7509%nat, 236);
