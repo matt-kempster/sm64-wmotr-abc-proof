@@ -36,6 +36,7 @@ raw_log="$out_dir/jp-clean-gap-search.raw.log"
 trace="$out_dir/jp-clean-gap-search.trace.txt"
 prefix_write_receipt="$out_dir/prefix-write-receipt.txt"
 prefix_call_reach_receipt="$out_dir/prefix-call-reach-receipt.txt"
+surface_pool_receipt="$out_dir/surface-pool-receipt.txt"
 post_entry_receipt="$out_dir/post-entry-timer131-receipt.txt"
 
 gcc -shared -fPIC -std=c99 -Wall -Wextra -Werror -O2 \
@@ -55,7 +56,7 @@ printf 'run\n' |
         --cheats 6 --sshotdir "$out_dir/shots" --testshots "$test_frames" \
         "$rom" >"$raw_log" 2>&1
 
-grep -aE '^(SEARCH|PREFIX_BREAKPOINT_ARM|PREFIX_STAGE|PREFIX_CELL_WRITE|PREFIX_CALL_REACH|ENTRY_IDENTITY|POST_ENTRY_TRACE_START|POST_ENTRY_WATCH_WRITE|POST_ENTRY_TRACE_END|ACTION|MAX_GAP|MIN_GAP|GAP45|GAP960|FIRE_LINK|TOP|FRAME|NONFINITE|B_INPUT|MODE9_STAGE|RESULT)' \
+grep -aE '^(SEARCH|PREFIX_BREAKPOINT_ARM|PREFIX_STAGE|PREFIX_CELL_WRITE|PREFIX_CALL_REACH|ENTRY_IDENTITY|ENTRY_SURFACE_POOLS|POST_ENTRY_TRACE_START|POST_ENTRY_WATCH_WRITE|POST_ENTRY_TRACE_END|ACTION|MAX_GAP|MIN_GAP|GAP45|GAP960|FIRE_LINK|TOP|FRAME|NONFINITE|B_INPUT|MODE9_STAGE|MODE12_STAGE|MODE12_TOX1|MODE12_MAZE_OBJECT|RESULT)' \
     "$raw_log" >"$trace"
 grep -E '^(PREFIX_STAGE,.*timer=347,|PREFIX_CELL_WRITE,epoch=8,|ENTRY_IDENTITY,)' \
     "$trace" >"$prefix_write_receipt"
@@ -69,6 +70,12 @@ grep -E '^(PREFIX_BREAKPOINT_ARM,|PREFIX_CALL_REACH,)' "$trace" \
 if ! diff -u "$script_dir/expected-prefix-call-reach-receipt.txt" \
     "$prefix_call_reach_receipt"; then
     printf '%s\n' "exact pre-entry call reachability receipt failed" >&2
+    exit 3
+fi
+grep '^ENTRY_SURFACE_POOLS,' "$trace" >"$surface_pool_receipt"
+if ! diff -u "$script_dir/expected-surface-pool-receipt.txt" \
+    "$surface_pool_receipt"; then
+    printf '%s\n' "exact surface-pool range receipt failed" >&2
     exit 3
 fi
 grep '^RESULT' "$trace"

@@ -376,8 +376,14 @@ proofs/InkTimer131LiveIdentityClosure.v
 proofs/InkTimer131ClightTraceBridge.v
 proofs/InkTimer131EntryExecutionClosure.v
 proofs/Area1PlayerListTailClosure.v
+proofs/Area1Rank1ResidualClosure.v
+proofs/Area1SurfaceWriteClosure.v
+proofs/Area1Rank1SixResidualAudit.v
 proofs/InkTimer131RetailMipsCode.v
 proofs/InkTimer131RetailMipsFrames.v
+proofs/Area1SurfacePoolRangeSeparation.v
+proofs/Area1Rank1LiveBoundaryReceipt.v
+proofs/Area1Rank1UpperWarpTraceReceipt.v
 proofs/InkTimer131RealEntryPrefix.v
 proofs/InkTimer131PostEntryMachineTrace.v
 proofs/Area1NonlocalPlatformMirror.v

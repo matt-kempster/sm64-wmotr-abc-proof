@@ -10,7 +10,10 @@ From LessThanOneAPress.Proofs Require Import
   OrdinaryMotion GoombaRaising PyramidTopPU InkFallback RetailFatalLatch
   InkPayloadInstaller InkTimer131CorruptionClosure InkTimer131ClightTraceBridge
   InkTimer131EntryExecutionClosure Area1PlayerListTailClosure
-  InkTimer131RetailMipsFrames
+  Area1Rank1ResidualClosure Area1SurfaceWriteClosure
+  Area1Rank1SixResidualAudit
+  InkTimer131RetailMipsFrames Area1SurfacePoolRangeSeparation
+  Area1Rank1LiveBoundaryReceipt Area1Rank1UpperWarpTraceReceipt
   InkTimer131RealEntryPrefix InkTimer131PostEntryMachineTrace TurningAnimation
   NegativeDepthInteractionClosure NegativeDepthDefinedProducerClosure
   WritableActionTableClosure
@@ -67,6 +70,79 @@ Proof.
   split; [exact area1_player_list_tail_checked_boundary_holds |].
   exact ink_bhv_mario_is_the_only_generated_list_zero_behavior.
 Qed.
+
+(** The stronger Rank-1 source boundary also closes the ordinary named-source
+    ingress for a duplicate PLAYER object and audits the live floor-query data
+    structure.  Every non-plain [Surface *] derivation is one of four
+    pointer-preserving identity casts or the defined pool index; the node
+    lineage has only its allocator, clear, and insertion writers.  The result
+    intentionally leaves live [gCurrentObject] identity, already escaped or
+    type-punned aliases, exact outside effects, and object/surface epochs for
+    the continuous-execution proof. *)
+Theorem current_rank1_player_and_floor_owner_source_boundary :
+  Area1Rank1ResidualCheckedBoundary.
+Proof. exact area1_rank1_residual_checked_boundary_holds. Qed.
+
+(** The whole selected US/JP source now has an exhaustive destination-root
+    census for [struct Surface].  Every rooted assignment is in the surface
+    loader except three [originOffset] stores, and generated Clight shows that
+    each of those first binds the separate water pseudo-floor, copies that
+    binding to an unchanged temporary, and stores through the temporary.  The
+    queried static/dynamic floor is therefore not a hidden post-load writer. *)
+Theorem current_rank1_surface_write_source_boundary :
+  Area1SurfaceWriteClosureBoundary.
+Proof. exact area1_surface_write_closure_boundary_holds. Qed.
+
+(** The six named Rank-1 survivors are now separated by outcome.  Ordinary
+    direct and stock indirect callbacks cannot change [gCurrentObject]; the
+    ordinary behavior/list constructor chain cannot append another PLAYER
+    node; and the projected stock upper-warp query has no alternate floor.
+    A stale cached object is genuinely possible.  Public surface-pool pointers
+    into the shared main pool, the remaining outside effects, and the live
+    allocator/query projection stay explicit rather than being framed away. *)
+Theorem current_rank1_six_residual_audit_boundary :
+  Area1Rank1SixResidualAuditBoundary.
+Proof. exact area1_rank1_six_residual_audit_boundary_holds. Qed.
+
+(** Rank 1's shared-main-pool residual is now a byte-range question rather
+    than a free-form type-punning possibility.  The accepted JP receipt fixes
+    both payload ranges and the live allocator heads; the inductive epoch
+    relation preserves them through successful left/right allocations and
+    safe state restoration.  The complete generated-source census fixes every
+    main-pool allocator and epoch-mutator caller, while the machine receipt
+    fixes the direct store/call projection of the five remaining JP roots.
+    Any failed CompCert frame must be a same-block store whose byte interval
+    actually overlaps a protected payload.  The live-list theorem projects a
+    selected node to the finite stock-floor model once real insertion/clear
+    execution and transitive descriptor validity inhabit its trace. *)
+Theorem current_rank1_surface_pool_range_and_floor_projection_boundary :
+  Area1SurfacePoolRangeSeparationBoundary.
+Proof. exact area1_surface_pool_range_separation_boundary_holds. Qed.
+
+(** The first continuous retail-JP frame receipt now instantiates the abstract
+    range/list boundary.  A real graphics allocation starts exactly at the
+    surface payload's exclusive end and is freed back to that boundary; all
+    238 reached pool writes are classified; six owner stores pair with six
+    insertions and survive the complete list scan; and the final query returns
+    the exact stock static floor at the spawn position.  This rules out the
+    six named escapes in that frame, while deliberately leaving universal
+    extension to a target upper-warp frame as the remaining proof step. *)
+Theorem current_rank1_live_boundary_receipt :
+  Area1Rank1LiveBoundaryCheckedBoundary.
+Proof. exact area1_rank1_live_boundary_checked_boundary_holds. Qed.
+
+(** The continuous receipt now extends that first-frame boundary through one
+    real zero-A four-pillar route and the upper-warp action.  All 2,462 frame
+    checks pass; every [find_floor] entry has a checked return; every dynamic
+    return observes its installed live owner; and Mario's final platform
+    selection is ownerless and static in every audited frame.  The pyramid
+    top's explosion creates six inactive-owner triangles for one frame, but
+    none is returned after invalidation and the next clear precedes every
+    query.  This closes the named escapes for this execution, not for every
+    possible controller history or execution outside the selected model. *)
+Theorem current_rank1_upper_warp_trace_receipt :
+  Area1Rank1UpperWarpTraceCheckedBoundary.
+Proof. exact area1_rank1_upper_warp_trace_checked_boundary_holds. Qed.
 
 (** Rank 3 can no longer use an ordinary integer-to-pointer cast as a clean
     platform-cell producer: integer constructors never become CompCert block

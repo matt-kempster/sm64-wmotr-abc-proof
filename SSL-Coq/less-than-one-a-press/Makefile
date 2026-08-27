@@ -1977,6 +1977,39 @@ check: proofs
 	  LessThanOneAPress.Proofs.Area1PlayerListTailClosure \
 	  area1_player_list_tail_checked_boundary_holds
 	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.Area1Rank1ResidualClosure \
+	  area1_rank1_residual_checked_boundary_holds
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.Area1SurfaceWriteClosure \
+	  area1_surface_write_closure_boundary_holds
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.Area1Rank1SixResidualAudit \
+	  area1_rank1_six_residual_audit_boundary_holds
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.Area1SurfacePoolRangeSeparation \
+	  area1_surface_pool_range_separation_boundary_holds
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.Area1Rank1LiveBoundaryReceipt \
+	  jp_rank1_live_boundary_receipt_checked
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.Area1Rank1LiveBoundaryReceipt \
+	  jp_rank1_concrete_frame_escapes_absent
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.Area1Rank1LiveBoundaryReceipt \
+	  area1_rank1_live_boundary_checked_boundary_holds
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.Area1Rank1UpperWarpTraceReceipt \
+	  jp_rank1_upper_warp_trace_receipt_checked
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.Area1Rank1UpperWarpTraceReceipt \
+	  jp_rank1_explosion_lifecycle_is_pending_clear_only
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.Area1Rank1UpperWarpTraceReceipt \
+	  jp_rank1_upper_warp_trace_escapes_absent
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.Area1Rank1UpperWarpTraceReceipt \
+	  area1_rank1_upper_warp_trace_checked_boundary_holds
+	bash pipeline/assumptions.sh \
 	  LessThanOneAPress.Proofs.InkTimer131RealEntryPrefix \
 	  ink_timer131_real_entry_prefix_checked_boundary_holds
 	bash pipeline/assumptions.sh \
@@ -2108,6 +2141,15 @@ check: proofs
 	bash pipeline/assumptions.sh \
 	  LessThanOneAPress.Proofs.MainTheorem \
 	  current_rank1_player_list_tail_boundary
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.MainTheorem \
+	  current_rank1_player_and_floor_owner_source_boundary
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.MainTheorem \
+	  current_rank1_surface_pool_range_and_floor_projection_boundary
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.MainTheorem \
+	  current_rank1_live_boundary_receipt
 	bash pipeline/assumptions.sh \
 	  LessThanOneAPress.Proofs.MainTheorem \
 	  current_negative_depth_initialized_interaction_boundary

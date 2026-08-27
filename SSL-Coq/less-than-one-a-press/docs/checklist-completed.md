@@ -1320,6 +1320,78 @@ Completed work is grouped by subject. Each item retains its original scope warni
   schedule route, live surface/pool epoch, free-list choice, payload bytes,
   geometry, and true binary32 apply.
 
+- [x] Close the ordinary named-source duplicate-PLAYER branch and the hidden
+  ordinary live-floor-writer branch for Rank 1.  In both US and JP,
+  `Area1Rank1ResidualClosure.v` proves that `bhvMario` is the sole generated
+  list-0 behavior, its address occurs in one initializer and no internal body,
+  and `spawn_objects_from_info` has only `load_area` and `load_mario_area` as
+  direct callers.  The same module enumerates every `Surface *` derivation:
+  four function sites contain four identity casts and one allocator pool
+  addition; there are no whole-surface copies and no typed pointer handoffs to
+  unresolved, builtin, or indirect calls.  It also proves that
+  `add_surface_to_cell` is the sole `SurfaceNode.surface` writer and that only
+  node allocation, partition clear, and insertion write `next`, with no whole
+  node copies or hidden typed outside handoffs.  The capstone and assumption
+  audit pass.  Live current-object identity, pre-existing/type-punned aliases,
+  independently reachable outside effects, surface/object epochs, and the
+  continuous collision/query schedule remain open.
+
+- [x] Audit the six remaining Rank-1 owner/PLAYER possibilities and separate
+  closures, real survivors, and linked proof gaps.  The bilateral canonical
+  owner closure has no direct `gCurrentObject` writer and exactly one indirect
+  dispatch helper; its complete stock Tox Box/exclamation-box targets contain
+  no such writer.  The exact behavior and list-link writer/constructor census
+  closes ordinary duplicate-PLAYER ingress; every list-root writer copies the
+  canonical root, `gMarioObject` has only area-spawn and clear writers, and the
+  sound-spawner behavior selects list 12.  The finite stock query is null at
+  both relevant samples.  A freed, inactive, unreused cached object is a
+  genuine bounded and authenticated-JP survivor.  Conversely, the two surface
+  pools come from shared-main-pool interior allocations stored through public
+  globals, so a private-block self-injection cannot frame them; linked byte-
+  range separation and outside effects remain necessary.  JP `sqrtf` is
+  independently store-free.  The new capstone and assumption target are
+  `Area1Rank1SixResidualAuditBoundary` and
+  `area1_rank1_six_residual_audit_boundary_holds`.
+
+- [x] Replace Rank 1's vague shared-main-pool alias gap with an exact live
+  range and failed-frame boundary.  The authenticated JP entry records node
+  payload `[0x80182B20,0x801905E0)`, surface payload
+  `[0x801905F0,0x801AB530)`, the 16-byte intervening header, live left head
+  `0x801AB530`, live right head `0x801C0FF0`, and 88,752 free bytes.  Coq
+  reconstructs the allocation arithmetic, proves fitting later left/right
+  allocations and safe restores preserve the surface epoch, checks the exact
+  eleven `main_pool_alloc` callers plus all pool-head/state and surface-global
+  uses, and proves that the first failed successful-store frame contains an
+  actual same-block byte overlap.  A separate ROM-hash-gated receipt fixes the
+  other five direct JP roots at 163 instructions, 29 stores, and 11 direct
+  calls; every direct store is outside the surface hull.  The protected effect
+  relation frames valid transitive stack/static/object/audio writes and makes
+  a retargeted descriptor an explicit failure.  Finally, a frame/insert/clear
+  list trace proves that every selected classified live node projects into the
+  finite stock floor model.  Connecting each real allocator/store/descriptor/
+  insertion/query step to those relations remains open; this completed item
+  proves the reduction, not the continuous-execution membership.  The checked
+  boundary is `area1_surface_pool_range_separation_boundary_holds`.
+
+- [x] Instantiate Rank 1's allocator, alias, owner, list, outside-call, and
+  final-query relations in one continuous authenticated JP frame.  A read-only
+  timer-348-to-349 watch records the sole `alloc_only_pool_init` allocation and
+  matching `geo_process_root` free: the allocation header begins exactly at
+  the protected surface-pool end, its payload remains disjoint, and four exact
+  allocator-global writes restore the original head without a hidden rewind.
+  Cached and uncached RAM aliases and boundary-overlapping stores are watched.
+  All 238 pool writes and 776 dynamic-partition writes are checked surface
+  construction or list updates, with no static-prefix or pool-pointer writes.
+  Six live `gCurrentObject` owners pair one-for-one with six inserted moving
+  triangles; all object rings and both complete surface partitions remain
+  intact with exact node coverage.  Only the independently store-free `sqrtf`
+  runs among the narrowed outside roots.  The final platform query selects
+  stock static surface index 808 exactly once, with null owner and platform.
+  The exact receipt, 2,200-instruction ROM gate, reproducible runner, and Coq
+  boundary `area1_rank1_live_boundary_checked_boundary_holds` pass.  This
+  closes the named escapes in the baseline frame, not every later upper-warp
+  frame or controller history.
+
 - [x] Close two ordinary subcases of the rank-1 JP collision/query-mismatch
   proposal, and record the strongest clean pillar prefix without calling it a
   completed route.  `Area1PostCopyObjectWriterClosure.v` computes, over both
@@ -1595,3 +1667,17 @@ Completed work is grouped by subject. Each item retains its original scope warni
   receipt, write hash, fixture disjointness, authentic print JAL targets, and
   safe-tail replay.  This completes the selected conditional timeline, not
   the universal all-controller-history or debugger-semantics refinement.
+
+- [x] Extend the Rank-1 live boundary through a real clean four-pillar and
+  upper-warp attempt.  Mode 12 independently reaches all four detectors,
+  explodes the pyramid top, uses the west jumping box and a B-only rollout,
+  enters the upper warp at timers 2807–2808, and loads Area 2 at timer 2830;
+  `aPressedFrames`, `aDownFrames`, and `controllerAFrames` are all zero.  The
+  ROM-hash-gated read-only audit passes 2,462 consecutive frames, pairs all
+  149,578 `find_floor` calls and returns, validates all 426 dynamic returns,
+  and observes an ownerless static final platform in every frame.  The top's
+  explosion creates six genuine inactive-owner triangles for one frame, but
+  none is returned and the next dynamic clear precedes every query.  Coq
+  packages the exact finite result in
+  `Area1Rank1UpperWarpTraceReceipt.v`.  Universal coverage of every different
+  controller history remains open.

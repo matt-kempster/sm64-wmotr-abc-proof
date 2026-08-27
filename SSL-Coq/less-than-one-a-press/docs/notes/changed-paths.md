@@ -534,6 +534,30 @@ remain open.  The following paths changed:
 - `SSL-Coq/less-than-one-a-press/docs/notes/changed-paths.md`
 - `SSL-Coq/less-than-one-a-press/notes/source-map.md`
 
+## Rank-1 six-residual classification tranche
+
+The six remaining floor-owner/PLAYER explanations are no longer recorded as
+one undifferentiated list.  Ordinary direct and stock-indirect current-object
+replacement, ordinary duplicate-PLAYER construction/relinking, and alternate
+finite-stock floor selection are closed.  The inactive/unreused JP cached
+object is confirmed as a real downstream carrier.  Surface storage, however,
+is allocated as two interior ranges of the shared main pool and exposed by
+public pointers, so private-block injection cannot close pre-existing aliases
+or abstract outside effects.  JP `sqrtf` is store-free; live pool-range
+separation, the remaining outside effects, live floor projection, and live
+constructor/list arguments remain.  The following paths changed:
+
+- `SSL-Coq/less-than-one-a-press/proofs/Area1Rank1SixResidualAudit.v` (new)
+- `SSL-Coq/less-than-one-a-press/proofs/MainTheorem.v`
+- `SSL-Coq/less-than-one-a-press/_CoqProject`
+- `SSL-Coq/less-than-one-a-press/Makefile`
+- `SSL-Coq/less-than-one-a-press/docs/no-a-route-atlas.md`
+- `SSL-Coq/less-than-one-a-press/docs/checklist.md`
+- `SSL-Coq/less-than-one-a-press/docs/checklist-completed.md`
+- `SSL-Coq/less-than-one-a-press/docs/notes/rank1-player-floor-owner-residual.md`
+- `SSL-Coq/less-than-one-a-press/docs/notes/changed-paths.md`
+- `SSL-Coq/less-than-one-a-press/notes/source-map.md`
+
 ## Area-1 stock-platform exhaustiveness follow-up
 
 The later finite-owner/pre-apply classification and its documentation changed:
@@ -1874,5 +1898,129 @@ refinement remain outside the theorem.  The following paths changed:
 - `SSL-Coq/less-than-one-a-press/docs/checklist-completed.md`
 - `SSL-Coq/less-than-one-a-press/docs/notes/hypothetical-pole-long-jump-mutation.md` (new)
 - `SSL-Coq/less-than-one-a-press/docs/notes/writable-action-table-mutation.md`
+- `SSL-Coq/less-than-one-a-press/docs/notes/changed-paths.md`
+- `SSL-Coq/less-than-one-a-press/notes/source-map.md`
+
+## Rank-1 PLAYER-ingress and live-floor-owner reduction tranche
+
+The ordinary named-source route to a second PLAYER object is now reduced to
+runtime mutation/forwarding or lifecycle effects: `bhvMario` is the sole
+generated list-0 script, has one initializer occurrence and no internal-body
+mention, and the object-info spawner has only its two area-loading callers.
+The separate floor-owner audit closes hidden ordinary writer forms for both
+the surface owner and query-list nodes, classifies every non-plain pointer
+derivation as an identity cast or defined pool index, and finds no whole-copy,
+builtin, indirect, or unresolved typed-pointer handoff.  Wrong live current
+object, pre-existing/type-punned aliases, independent outside reach, epochs,
+and continuous scheduler execution remain open.  The following paths changed:
+
+- `SSL-Coq/less-than-one-a-press/proofs/Area1Rank1ResidualClosure.v` (new)
+- `SSL-Coq/less-than-one-a-press/proofs/MainTheorem.v`
+- `SSL-Coq/less-than-one-a-press/_CoqProject`
+- `SSL-Coq/less-than-one-a-press/Makefile`
+- `SSL-Coq/less-than-one-a-press/docs/no-a-route-atlas.md`
+- `SSL-Coq/less-than-one-a-press/docs/checklist.md`
+- `SSL-Coq/less-than-one-a-press/docs/checklist-completed.md`
+- `SSL-Coq/less-than-one-a-press/docs/notes/rank1-player-floor-owner-residual.md` (new)
+- `SSL-Coq/less-than-one-a-press/docs/notes/changed-paths.md`
+- `SSL-Coq/less-than-one-a-press/notes/source-map.md`
+
+## Rank-1 live surface-pool range and outside-frame tranche
+
+The shared-main-pool alias residual now has exact live boundaries.  A
+read-only authenticated JP entry records both surface payloads, the intervening
+allocator header, both main-pool heads, and free space; the surface payload
+ends exactly at the live left head.  The new Coq module reconstructs that
+layout, proves a no-rewind allocator epoch invariant, checks every generated
+allocator caller/state writer/pool-global use, and reduces any failed
+successful-store frame to a real same-block byte overlap.  A companion
+ROM-hash-gated receipt authenticates five direct outside roots over 163
+instructions, 29 stores, and 11 direct calls; their stores miss the live
+surface hull.  An explicit transitive protected-region relation turns a
+retargeted object/audio descriptor into the first failed frame, and a
+frame/insert/clear trace projects a selected live node into the finite stock
+floor model.  The continuous execution must still establish every trace and
+descriptor membership.  The following paths changed:
+
+- `SSL-Coq/less-than-one-a-press/proofs/Area1SurfacePoolRangeSeparation.v` (new)
+- `SSL-Coq/less-than-one-a-press/proofs/MainTheorem.v`
+- `SSL-Coq/less-than-one-a-press/_CoqProject`
+- `SSL-Coq/less-than-one-a-press/Makefile`
+- `SSL-Coq/less-than-one-a-press/instrumentation/jp-clean-gap-search/jp_clean_gap_search_probe.c`
+- `SSL-Coq/less-than-one-a-press/instrumentation/jp-clean-gap-search/run.sh`
+- `SSL-Coq/less-than-one-a-press/instrumentation/jp-clean-gap-search/expected-surface-pool-receipt.txt` (new)
+- `SSL-Coq/less-than-one-a-press/instrumentation/jp-clean-gap-search/README.md`
+- `SSL-Coq/less-than-one-a-press/instrumentation/jp-rank1-outside-frames/README.md` (new)
+- `SSL-Coq/less-than-one-a-press/instrumentation/jp-rank1-outside-frames/expected-range-hashes.csv` (new)
+- `SSL-Coq/less-than-one-a-press/instrumentation/jp-rank1-outside-frames/expected-store-call-manifest.csv` (new)
+- `SSL-Coq/less-than-one-a-press/instrumentation/jp-rank1-outside-frames/verify.sh` (new)
+- `SSL-Coq/less-than-one-a-press/docs/no-a-route-atlas.md`
+- `SSL-Coq/less-than-one-a-press/docs/checklist.md`
+- `SSL-Coq/less-than-one-a-press/docs/checklist-completed.md`
+- `SSL-Coq/less-than-one-a-press/docs/notes/rank1-player-floor-owner-residual.md`
+- `SSL-Coq/less-than-one-a-press/docs/notes/changed-paths.md`
+- `SSL-Coq/less-than-one-a-press/notes/source-map.md`
+
+## Rank-1 continuous baseline-frame boundary tranche
+
+The formerly abstract allocator/store/owner/list/query relations now have one
+continuous original-JP execution witness.  A ROM-hash-gated read-only probe
+follows `update_objects` from timer 348 to 349, watches both cached and
+uncached aliases plus boundary overlaps, records the exact adjacent temporary
+allocation and restoring free, classifies every write into the protected
+surface storage, pairs six moving-surface owner stores with six insertions,
+validates all object and surface lists with exact node coverage, and identifies
+the final selected stock floor.  Only store-free `sqrtf` is reached among the
+narrowed outside roots.  A new Coq receipt checks all counts, allocator head
+states, owner/list results, exact floor payload, and stock projection.  This
+closes the six named residuals in the concrete baseline frame while leaving
+extension to a real upper-warp execution or a universal linked invariant open.
+The following paths changed:
+
+- `SSL-Coq/less-than-one-a-press/proofs/Area1Rank1LiveBoundaryReceipt.v` (new)
+- `SSL-Coq/less-than-one-a-press/proofs/MainTheorem.v`
+- `SSL-Coq/less-than-one-a-press/_CoqProject`
+- `SSL-Coq/less-than-one-a-press/Makefile`
+- `SSL-Coq/less-than-one-a-press/instrumentation/jp-clean-gap-search/jp_clean_gap_search_probe.c`
+- `SSL-Coq/less-than-one-a-press/instrumentation/jp-rank1-live-boundary/README.md` (new)
+- `SSL-Coq/less-than-one-a-press/instrumentation/jp-rank1-live-boundary/expected-live-boundary-receipt.txt` (new)
+- `SSL-Coq/less-than-one-a-press/instrumentation/jp-rank1-live-boundary/expected-range-hashes.csv` (new)
+- `SSL-Coq/less-than-one-a-press/instrumentation/jp-rank1-live-boundary/run.sh` (new)
+- `SSL-Coq/less-than-one-a-press/instrumentation/jp-rank1-live-boundary/verify.sh` (new)
+- `SSL-Coq/less-than-one-a-press/docs/no-a-route-atlas.md`
+- `SSL-Coq/less-than-one-a-press/docs/checklist.md`
+- `SSL-Coq/less-than-one-a-press/docs/checklist-completed.md`
+- `SSL-Coq/less-than-one-a-press/docs/notes/rank1-player-floor-owner-residual.md`
+- `SSL-Coq/less-than-one-a-press/docs/notes/changed-paths.md`
+- `SSL-Coq/less-than-one-a-press/notes/source-map.md`
+
+## Rank-1 clean four-pillar upper-warp tranche
+
+The user-supplied 2013 pannenkoek2012 video established that the four exterior
+pillars are reachable without the video's sole A press, although its region
+and input movie are unavailable.  Mode 12 independently reproduces that route
+shape on authenticated original JP: four pillar touches, top explosion, west
+jumping-box ascent, B-only rollout, upper-warp use, and Area-2 load all occur
+with zero A input.  The Rank-1 audit now records every `find_floor` return and
+extends continuously across 2,462 frames.  All 149,578 calls return, all 426
+dynamic results have live installed owners, and every final Mario platform is
+ownerless/static.  The single apparent lifecycle exception is classified as
+six pending-clear top surfaces: no query returns them in the explosion frame,
+and the next clear precedes all queries.  A new Coq receipt packages the exact
+finite route and lifecycle result.  The following paths changed:
+
+- `SSL-Coq/less-than-one-a-press/proofs/Area1Rank1UpperWarpTraceReceipt.v` (new)
+- `SSL-Coq/less-than-one-a-press/proofs/MainTheorem.v`
+- `SSL-Coq/less-than-one-a-press/_CoqProject`
+- `SSL-Coq/less-than-one-a-press/Makefile`
+- `SSL-Coq/less-than-one-a-press/instrumentation/jp-clean-gap-search/jp_clean_gap_search_probe.c`
+- `SSL-Coq/less-than-one-a-press/instrumentation/jp-clean-gap-search/run.sh`
+- `SSL-Coq/less-than-one-a-press/instrumentation/jp-clean-gap-search/README.md`
+- `SSL-Coq/less-than-one-a-press/instrumentation/jp-rank1-live-boundary/README.md`
+- `SSL-Coq/less-than-one-a-press/instrumentation/jp-rank1-live-boundary/expected-live-boundary-receipt.txt`
+- `SSL-Coq/less-than-one-a-press/docs/no-a-route-atlas.md`
+- `SSL-Coq/less-than-one-a-press/docs/checklist.md`
+- `SSL-Coq/less-than-one-a-press/docs/checklist-completed.md`
+- `SSL-Coq/less-than-one-a-press/docs/notes/rank1-player-floor-owner-residual.md`
 - `SSL-Coq/less-than-one-a-press/docs/notes/changed-paths.md`
 - `SSL-Coq/less-than-one-a-press/notes/source-map.md`

@@ -175,8 +175,25 @@ authenticates the complete retail bodies: `sqrtf` has no store, and every path
 through the continuous sound call and its transitive callees writes outside
 the entire object pool, including the recorded stack envelope.
 
+The same accepted endpoint now fixes the two shared-main-pool surface
+subranges rather than treating their addresses as source-level types:
+
+```text
+ENTRY_SURFACE_POOLS,timer=348,nodeBase=80182b20,nodeEnd=801905e0,surfaceBase=801905f0,surfaceEnd=801ab530,nodeBytes=56000,surfaceBytes=110400,separated=1,mainPoolStart=8005c010,mainPoolEnd=801c0ff0,leftHead=801ab530,rightHead=801c0ff0,freeSpace=88752,liveEpoch=1
+```
+
+`expected-surface-pool-receipt.txt` is compared byte-for-byte by the runner.
+It records the complete 7,000-node and 2,300-surface payloads, the 16-byte
+main-pool header between them, and all live allocator heads.  At this endpoint
+the left head equals the surface payload's end, the right head remains at the
+pool's upper sentinel, and 88,752 bytes remain free.  Thus the surface pool is
+the last live left allocation; later fitting left or right allocations start
+above it.  Both payloads are nevertheless interior ranges of one manual main
+pool, so this receipt does not by itself exclude a deliberately retargeted
+same-block store or a later allocator rewind.
+
 The complete filtered trace has SHA-256
-`8341AA389D255ABA50BA534A1E95F1A80215E479903C8CC11E8E5450FCE4CE7E`
+`799919B2289C7412BA06714BDA6B3C271C36D35A7C664FB10C6519F80B541F6D`
 for the documented 900-frame neutral run.
 The probe calls debugger read and execute-breakpoint APIs only; `run.sh`
 rejects a probe containing the game-memory write API names used by this
@@ -311,12 +328,60 @@ positive Graphics/Object split.  Modes 5 and 6 eventually entered a
 disappeared state through a different interaction (`usedObj` was not the
 recorded upper-warp object).
 
+### Mode 12 clean four-pillar and upper-warp route
+
+Mode 12 was developed from visual inspection of the user-supplied
+pannenkoek2012 video, “SM64 - Inside the Ancient Pyramid - 1x A Presses”
+(published September 7, 2013).  The video's game region and exact input movie
+are unknown, so the video is treated as route-shape evidence only.  The probe
+independently constructs a controller schedule on the hash-authenticated
+original-JP ROM.
+
+The route uses the east jumping box for the first detector, the southeast
+Tweester for the second, a B speedkick/dive across the next gap, and a checked
+hard-floor path around the Tox Boxes for the two western detectors.  After the
+top explodes, Mario takes the west jumping box up the pyramid and uses a
+B-only stomach-slide rollout into the upper warp.  The decisive receipt is:
+
+```text
+TOP,timer=848,pillars=1
+TOP,timer=1065,pillars=2
+TOP,timer=2390,pillars=3
+TOP,timer=2548,pillars=4
+TOP,timer=2549,pillars=4,action=1
+B_INPUT,timer=2671,label=mode12-west-jumping-box
+TOP,timer=2700,pillars=4,action=2
+ACTION,timer=2776,action=008c0453,state=(-2566.14209,1273.00024,-585.206848)
+B_INPUT,timer=2781,label=mode12-top-rollout
+ACTION,timer=2782,action=010008a6,state=(-2402.12305,1310,-752.450562)
+ACTION,timer=2807,action=0c000232,state=(-2033.87939,768,-1037.05859)
+ACTION,timer=2808,action=00001300,state=(-2033.87939,768,-1037.05859)
+```
+
+The run continues to the Area-2 load at timer 2830 and ends with
+`mode12Stage=9`, `mode12PillarsComplete=1`, `warpDisappeared=1`,
+`warpUsedObj=1`, and
+`aPressedFrames=aDownFrames=controllerAFrames=0`.  Reproduce it with:
+
+```sh
+bash run.sh /path/to/baserom.jp.z64 4500 0 12
+```
+
+This proves clean reachability of the four pillars and upper warp for the
+selected JP boundary.  It does not reproduce the video's unknown exact
+inputs, and it does not supply the desired collision/query split: sampled
+positive Graphics/Object and State/Object gaps remain zero, and Mario never
+caches the pyramid top.  The companion
+[`../jp-rank1-live-boundary/`](../jp-rank1-live-boundary/) run checks every
+surface/query/owner boundary continuously through the warp.
+
 ## Conclusion
 
-This is a bounded rejection, not a retail impossibility proof.  It rules out
-the exact recorded schedules as installers of the 960-unit payload and shows
-that jumping-box/Tweester height alone keeps State, Object, and Graphics
-synchronized at the sampled boundaries.  The decisive remaining work is the
-linked-Clight writer-coverage proof (including intraframe phases) or a genuine
-clean controller trace that reaches a positive 960-unit split or installs an
-equivalent stale-platform payload by another mechanism.
+This is a bounded rejection, not a retail impossibility proof.  Mode 12 closes
+the former pillar-reachability gap, and the companion return-side audit rules
+out the named in-bounds alias, outside-call, wrong-owner, stale-surface, and
+unexpected-floor explanations on that complete schedule.  A route-wide
+disproof still needs a linked invariant over every materially different
+reachable history; a counterexample must instead produce a different clean
+schedule whose first failed check identifies the useful positive split or
+stale-platform installation.

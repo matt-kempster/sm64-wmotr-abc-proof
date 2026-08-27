@@ -52,8 +52,8 @@ not a source-census result.
 | `src/game/level_update.c` | `*_level_update.v` | direct `change_area` occurrence in `check_instant_warp`, game-over reload call, airborne entry-action constant/call source shape, guarded direct-assignment first-writer shape for `sDelayedWarpOp`, normal-update/delayed-object-warp ordering, absence of a direct latch assignment in `initiate_delayed_warp`, and the area-entry `init_mario`/initial-cap call shapes needed to exclude retained Wing Cap |
 | `src/game/platform_displacement.c` | `*_platform_displacement.v` | `gMarioPlatform`/validation-field identifier occurrences, State position writes, and an exact bilateral query-time chain from `gMarioObject.rawData.asF32[6..8]` through X/Y/Z temporaries to `find_floor`; the official-cleaned-slice direct writer/address/caller bounds are checked, while JP separately has local `Surface.object`-store/apply-load Clight steps; live query-to-collision preservation, alias/external frames, slot/epoch provenance, and preservation between fragments remain pending |
 | `src/engine/math_util.c` | `*_math_util.v` | full `mtxf_rotate_zxy_and_translate` body and `gSineTable` initializer; the linked memory execution that constructs the platform matrix remains pending |
-| `src/engine/surface_collision.c` | `*_surface_collision.v` | `find_floor` binary32-to-signed-16 cast shape and 78-unit floor buffer, plus the floor/surface query implementation used by Mario stepping and platform recomputation; ordinary-motion receipts check the wall list's strict `y > upperY` rejection; Ink receipts check the X/Y/Z result-pointer writes, absence of a wall-list Y-field mutation, and absence of direct Graphics references; the concrete CompCert cast result and matching authenticated US/JP retail instruction fragment are checked, while linked execution, pointer disjointness, caller closure, and actual surface-selection refinements remain pending |
-| `src/engine/surface_load.c` | `*_surface_load.v` | surface allocation/insertion, object-vertex transformation, object-surface loading, normal construction, and collision-model loading; an exact bilateral receipt orders `gCurrentObject -> Surface.object`, followed later by `add_surface(surface, 1)` with the same syntactic surface-temporary identifier, and checks that static loaders instead use flag `0`; the direct-source-union follow-up proves zero intervening assignments to that local temporary, while pointed-cell alias/external framing, live call execution, canonical owner identity, list integrity/order, and slot epoch remain pending |
+| `src/engine/surface_collision.c` | `*_surface_collision.v` | `find_floor` binary32-to-signed-16 cast shape and 78-unit floor buffer, plus the floor/surface query implementation used by Mario stepping and platform recomputation; ordinary-motion receipts check the wall list's strict `y > upperY` rejection; Ink receipts check the X/Y/Z result-pointer writes, absence of a wall-list Y-field mutation, and absence of direct Graphics references; the concrete CompCert cast result and matching authenticated US/JP retail instruction fragment are checked; a classified live-list trace now projects selected nodes into the finite stock query, while linked trace membership and actual selection remain pending |
+| `src/engine/surface_load.c` | `*_surface_load.v` | surface allocation/insertion, object-vertex transformation, object-surface loading, normal construction, and collision-model loading; an exact bilateral receipt orders `gCurrentObject -> Surface.object`, followed later by `add_surface(surface, 1)` with the same syntactic surface-temporary identifier, and checks that static loaders instead use flag `0`; the direct-source-union follow-up proves zero intervening assignments to that local temporary; exact live byte ranges, allocator heads, same-block failed-frame reduction, and direct JP outside-root frames are now checked, while live call execution, transitive descriptor validity, canonical owner identity, list integrity/order, and slot epoch remain pending |
 | `src/game/macro_special_objects.c` | `*_macro_special_objects.v` | spawn call and respawn-field assignment occurrences; persistence semantics are pending |
 | `levels/ssl/script.c` | `*_ssl_script.v` | raw initializer tuples for lower/upper airborne entry objects, the area-2 static star, hidden controller, and instant-warp declarations; exact packed records for the Area-1 `0x0A`, `0x1E`, `0x1F`, and `0x20` warp objects, all five local warp-node routes, and the stock pyramid top, with checked coordinate/behavior-byte arithmetic |
 | `levels/ssl/areas/1/macro.inc.c` via `inputs/ssl_area1_macro.c` | `*_ssl_area1_macro.v` | exact Area-1 wing-cap/exclamation, breakable-box, message-panel, cannon, and shell-box records used by the fragment and finite stock-owner audits; generic top-yaw/dirt-triangle/cartoon-triangle schedule lineage is no longer a Layer-B obligation, while linked-memory projection remains pending |
@@ -1243,6 +1243,42 @@ node.  A purported later node may still pre-exist or come from another callback,
 forwarding, a valid alias/specified external effect, or a list/slot lifecycle
 violation; linked execution still has to exclude or exhibit those cases.
 
+`proofs/Area1Rank1ResidualClosure.v` closes the ordinary named-source portion
+of the later-PLAYER residual and audits the separate live-floor-owner data
+structure.  It proves one `bhvMario` initializer occurrence, no internal-body
+mention, the exact two callers of `spawn_objects_from_info`, and the existing
+sole-list-0 result.  For floor lineage it combines the exact two
+`Surface.object` writers with a whole-union alias-form census: no whole
+`Surface` or `SurfaceNode` copies, no unresolved direct/builtin/indirect typed
+pointer handoffs, four exact `Surface *` derivation sites containing only
+identity casts and the allocator pool addition, and one analogous node-pool
+addition.  `SurfaceNode.surface` is written only by `add_surface_to_cell`, and
+`next` only by allocation, partition clearing, and insertion.  This is not a
+live Clight trace: wrong `gCurrentObject`, previously escaped or type-punned
+aliases, independently reachable outside effects, and stale surface/object
+epochs remain semantic obligations.
+
+`proofs/Area1Rank1SixResidualAudit.v` separates those six semantic obligations
+by outcome.  Across the canonical owners' fixed 93-function direct closure,
+none of the three whole-program `gCurrentObject` writers is reachable and the
+only indirect call is `cur_obj_call_action_function`; the exact Tox Box and
+exclamation-box target arrays contain no current-object writer and have no
+ordinary internal store.  The behavior/list census fixes the four direct
+`Object.behavior` writers, the three `next`/`prev` writers, and the sole
+constructor chain through `create_object`; all four list-root writers copy
+`gObjectListArray`, and the only two `gMarioObject` writers are area spawn and
+clear.  The sound-spawner behavior selects list 12, not PLAYER.  The stock
+upper-warp and low-Y queries are null.  The file also proves the important negative boundary:
+both surface pointers are public, both arise from `main_pool_alloc`, and a
+public pointer cell holding a pool address forces that pointee block to be
+mapped by a CompCert self-injection.  Surface storage therefore needs
+subrange separation against generic main-pool aliases and exact external
+effects; it cannot reuse the private-action-table omission argument.  Of the
+six unresolved names, authenticated JP `sqrtf` is independently store-free.
+Finally, the inactive/unreused cached-object survivor is checked both in the
+bounded model and against the authenticated JP first-apply receipt.  It is a
+real downstream carrier, not the missing initial floor installer.
+
 `proofs/Area1PostCopyObjectWriterClosure.v` closes two narrower branches of
 that post-copy/sample-mismatch search.  Its 38-unit US and JP partitions prove
 that direct receivers designating Mario's raw Object and assigning XYZ occur
@@ -1325,7 +1361,11 @@ checkpoint and
 pointer-identified southeast/northeast Tweester relays, then reflect from the
 central pyramid and die before the west Tweester or western detectors.  Both
 8,000-frame runs leave the top unstarted and observe no positive sampled gap;
-they reject only those bounded schedules.
+they reject only those bounded schedules.  Mode 12 now independently completes
+all four pillars and the upper warp on authenticated JP with zero A, then
+loads Area 2.  The paired `jp-rank1-live-boundary` run audits all 2,462 frames,
+149,578 floor returns, and the top's one-frame pending-clear lifecycle; it
+finds no useful split or cached top on that successful schedule.
 
 `proofs/DefaultArea1Rank1ResidualCapstone.v` uses the declared null seed to
 remove retained JP inbound lineage and expands a supplied completed-query
@@ -1414,6 +1454,50 @@ has no intervening reassignment before that call.  It does not prove call-site
 reachability, preserve the pointed-to `Surface.object` cell through aliases or
 externals, or establish live owner identity, surface-list integrity, and
 object-pool slot/epoch provenance.
+
+`proofs/Area1SurfacePoolRangeSeparation.v` supplies the next semantic layer.
+It reconstructs the two left allocations from generated `SurfaceNode` and
+`Surface` sizes, imports a read-only JP receipt for their four endpoints and
+live main-pool heads, and proves an inductive no-rewind epoch invariant.  An
+exact whole-generated-program census lists all eleven `main_pool_alloc`
+callers, all main-pool state writers, and every mention/address use of the two
+surface-pool globals.  CompCert `Mem.store`/`storebytes` frame lemmas reduce a
+failed protected-byte frame to an actual same-block overlap, rather than mere
+possession of a type-punned pointer.  The companion retail receipt
+authenticates five direct outside roots (163 instructions, 29 stores, 11
+calls); prior certificates cover `sqrtf` and sound stopping.  A live
+frame/insert/clear list trace carries owner provenance into the finite stock
+query.  Real Clight-step membership, safe allocator restore/free behavior,
+transitive camera/object/audio descriptor validity, and the final live query
+selection still require the continuous execution bridge.
+
+`proofs/Area1Rank1LiveBoundaryReceipt.v` supplies the first concrete execution
+of that bridge.  The hash-gated read-only JP audit spans one complete
+`update_objects` frame at timers 348–349 and watches both KSEG0/KSEG1 aliases
+of the node pool, surface pool, spatial partitions, allocator globals, and
+pool-pointer cells.  Its exact receipt records the adjacent graphics-pool
+allocation/free and all four head/free-space stores; 238 safe protected-pool
+writes; 776 safe dynamic-partition writes; six owner stores paired with six
+insertions; intact, complete object/static/dynamic lists; and the final stock
+static surface-808 query.  Only the already-certified store-free `sqrtf` is
+reached among the narrowed outside roots.  The Coq module checks the exact
+counts, allocation separation/head sequence, list/owner verdicts, selected
+surface payload, and stock projection.  This is a concrete baseline-frame
+theorem; an upper-warp trace or universal linked invariant remains necessary.
+
+`proofs/Area1Rank1UpperWarpTraceReceipt.v` supplies the requested finite
+upper-warp extension.  Search mode 12 independently executes four pillar
+touches, top explosion, a west jumping-box ascent, B-only rollout, upper-warp
+use, and the Area-2 load on authenticated original JP with zero A input.  The
+read-only boundary audit covers 2,462 consecutive frames and all 149,578
+`find_floor` entry/return pairs, including 426 dynamic returns whose installed
+owners are checked live and linked at return time.  Mario's final platform is
+ownerless/static in every frame.  The top explosion's six inactive-owner
+surfaces are recorded as pending clear: no query returns them, and the next
+clear precedes all queries.  The Coq module checks the exact route, aggregate,
+lifecycle, and no-useful-split receipt.  This is trace-scoped; a universal
+linked invariant over other controller histories remains necessary for a
+route-wide impossibility claim.
 
 `proofs/Area1SurfaceEpochLifecycle.v` separates the allocation that supplied a
 query surface from the payload resident at the cached raw address when it is

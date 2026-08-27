@@ -259,7 +259,16 @@ These obligations currently block the clean-retail result.
   checkpoint and pointer-identified southeast/northeast Tweester relays, then
   reflected from the central pyramid and died before the west Tweester or
   western detectors; neither started the top or sampled a positive gap.  They
-  reject only those bounded schedules.  `Area1PostCopyObjectWriterClosure.v`
+  reject only those bounded schedules.  Mode 12 now closes the route gap: an
+  independent authenticated JP schedule touches all four detectors, explodes
+  the top, uses a west jumping box and B-only rollout, and enters the upper
+  warp with all A counters zero.  The companion continuous audit checks every
+  frame from timer 348 through 2809, pairs all 149,578 floor-call entries and
+  returns, validates 426 dynamic-floor results, and finds only ownerless
+  static final platforms.  The top's six post-deactivation surfaces are real
+  for one frame but no query returns them, and the next clear precedes every
+  query.  Thus pillar reachability is no longer downstream work; this exact
+  successful schedule has no useful split.  `Area1PostCopyObjectWriterClosure.v`
   closes two scoped sample-mismatch
   subbranches: the bilateral direct-designated raw-Mario-Object XYZ census is
   exactly `init_mario`, `butterfly_calculate_angle`, and
@@ -318,9 +327,11 @@ These obligations currently block the clean-retail result.
   is independent of an arbitrary separately supplied lifecycle fate because
   that argument is unused.  No coupled chronology is proved.  This conditional
   ordinary bridge no-go is not a retail closure and does not establish that the
-  known Y-only/downward/null witness is the only retail split.  The open work
-  is to derive those fields from the linked run or carry the first concrete
-  failure as the useful split/installer; the western pillars remain downstream.
+  known Y-only/downward/null witness is the only retail split.  Mode 12 now
+  proves the western pillars and upper warp reachable with zero A, but its
+  continuous audit supplies no useful split.  The open work is to derive a
+  universal linked invariant or carry the first concrete failure from a
+  materially different history as the useful split/installer.
   `Area1PostCopyAliasCallbackClosure.v` closes the direct one-hop designated-
   Mario subcase: the bilateral corpus has nine direct raw-XYZ formal-receiver
   helpers, no one-hop designated-Mario call into them, and the audited
@@ -390,8 +401,57 @@ These obligations currently block the clean-retail result.
   that already exists or is created by another callback, pointer forwarding,
   a valid alias or specified outside effect, or list/slot lifecycle failure
   remains; the receipts do not prove the live traversal, guards, allocation
-  outcomes, or absence of those other producers.  Object
-  updating is later followed by unload and
+  outcomes, or absence of those other producers.
+  `Area1Rank1ResidualClosure.v` now closes the ordinary named-source part of
+  that remainder: `bhvMario` occurs in exactly one initializer and no internal
+  body, is the only generated list-0 behavior, and the object-info spawning
+  routine has only the two area-loading callers.  It also audits the separate
+  live-floor-owner residual.  The only owner writes are allocator null and
+  `gCurrentObject`; the only floor-list node writers are allocation, clear,
+  and insertion; no whole `Surface`/`SurfaceNode` copy or typed handoff to an
+  unresolved, builtin, or indirect call exists; and the six non-plain
+  pointer operations are identity casts or the two pool-index additions.
+  Thus the remaining cases are semantic: runtime pointer forwarding or
+  mutation, a wrong live current object, a pre-existing/type-punned alias, an
+  outside effect with independent private-block reach, or stale surface/object
+  lifetime.  The later live-boundary receipt now executes and closes those
+  cases in one baseline frame.  `Area1Rank1UpperWarpTraceReceipt.v` now carries
+  the same checks through the complete successful upper-warp attempt; only a
+  universal all-history invariant remains open.
+  `Area1Rank1SixResidualAudit.v` now resolves that list asymmetrically instead
+  of treating all six cases as equally open.  It closes ordinary direct and
+  stock-indirect current-object replacement, ordinary PLAYER construction and
+  relinking, and alternate modeled stock-floor selection at the upper-warp
+  and checked low-Y samples.  It confirms that the inactive/unreused cached
+  JP object is a real later carrier.  It also proves that surface storage is
+  not private: two `main_pool_alloc` calls return shared-pool subranges through
+  public globals, so the private-block external-call proof cannot apply.
+  Authenticated JP `sqrtf` is store-free.
+  `Area1SurfacePoolRangeSeparation.v` now resolves the vague shared-block
+  remainder.  The read-only accepted-entry receipt fixes the two payloads,
+  their intervening header, and `left=surfaceEnd=0x801AB530`,
+  `right=0x801C0FF0`, with 88,752 bytes free.  Coq reconstructs those ranges,
+  proves a live epoch invariant for fitting left/right allocations and safe
+  restores, checks all eleven allocator callers and every pool-head/global
+  writer/use, and reduces a failed store frame to an actual same-block byte
+  overlap.  The five remaining direct JP roots are hash-authenticated over
+  163 instructions, 29 stores, and 11 calls; all direct writes miss the pools.
+  A classified frame/insert/clear list trace also projects any selected live
+  node into the finite stock query.  The new exact timer-348-to-349 JP receipt
+  instantiates every relation in one uninterrupted frame: its sole temporary
+  allocation begins after the protected pool and restores the head exactly;
+  238 protected writes and 776 dynamic-partition writes are safe; cached and
+  uncached aliases plus boundary overlaps are watched; all six moving-floor
+  owners and every object/surface list remain valid; only store-free `sqrtf`
+  is reached; and the real final query selects stock static surface 808 with
+  null owner.  The upper-warp extension now passes for 2,462 consecutive
+  frames, with zero failed writes, returns, lists, owners, outside
+  destinations, or clear ordering checks.  The still-open work is the
+  equivalent linked invariant for all materially different reachable
+  histories.  Its first failure would be a concrete rewind, overlap,
+  retargeted descriptor, returned stale owner, unexpected selected floor, or
+  useful positive split.
+  Object updating is later followed by unload and
   the final platform query.  A direct-lvalue census finds no State-position or
   raw-Object XYZ assignment in the fixed scheduler/traversal, unload, or
   final-query bodies, but does not census dispatched callbacks and stops at the
@@ -404,7 +464,7 @@ These obligations currently block the clean-retail result.
   `bhvBreakBoxTriangle` behavior is in list 12 and therefore later than PLAYER
   in the array.  These receipts do not prove successful allocation, same-frame
   visitation, or callback execution.  Closing the remaining pre-existing,
-  other-callback, pointer-forwarded, or lifecycle-created PLAYER-node cases,
+  runtime pointer-forwarded/mutated or lifecycle-created PLAYER-node cases,
   transitive spawn and behavior-
   interpreter dispatch, receiver/non-alias and external-call frames,
   unload/pool-reuse lifecycle, abnormal returns, the post-query debug callback,

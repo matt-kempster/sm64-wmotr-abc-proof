@@ -1,0 +1,1 @@
+ENTRY_SURFACE_POOLS,timer=348,nodeBase=80182b20,nodeEnd=801905e0,surfaceBase=801905f0,surfaceEnd=801ab530,nodeBytes=56000,surfaceBytes=110400,separated=1,mainPoolStart=8005c010,mainPoolEnd=801c0ff0,leftHead=801ab530,rightHead=801c0ff0,freeSpace=88752,liveEpoch=1

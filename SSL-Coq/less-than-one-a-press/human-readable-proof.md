@@ -334,6 +334,19 @@ engineering but does not know *Super Mario 64*.
 > [`proofs/JPQuicksandDepth.v`](proofs/JPQuicksandDepth.v), and
 > [`docs/notes/clean-jp-graphics-gap-source-audit.md`](docs/notes/clean-jp-graphics-gap-source-audit.md).
 
+> Mode 12 has since closed the pillar-reachability gap.  Using the supplied
+> 2013 video as visual route guidance, an independent authenticated JP input
+> schedule touches all four pillars, explodes the top, rides the west jumping
+> box upward, performs a B-only rollout, and enters the upper warp with zero A
+> input.  A read-only audit follows 2,462 consecutive frames and checks every
+> one of 149,578 floor-call returns.  All 426 moving-floor results have their
+> real live owner, while Mario's final platform remains an ownerless static
+> floor in every frame.  The exploding top briefly leaves six triangles after
+> its owner is removed, but no floor call returns them and the next frame
+> clears them before any query.  Thus the real route reaches Area 2 without
+> producing the desired split or saving the top pointer.  This rejects that
+> complete schedule, not every possible controller history.
+
 > **Newest timer-131 result, in software-engineering terms:** the JP candidate
 > now has a real conditional integration trace across the difficult lifetime
 > boundary.  Think of `gMarioPlatform` as a cached pointer to a pool object.  A

@@ -452,6 +452,20 @@ relays.  Both reflected from the central pyramid and died before the west
 Tweester or either western detector; neither started the top or sampled a
 positive gap.  They reject only those bounded controller schedules.
 
+Mode 12 now supersedes the pillar-reachability limitation.  Guided by the
+user-supplied 2013 pannenkoek2012 video but independently executed on the
+hash-authenticated original-JP ROM, it touches all four detectors, explodes
+the top, takes the west jumping box up the pyramid, uses a B-only rollout, and
+enters the upper warp with all A counters zero.  The continuous Rank-1 audit
+passes every frame from timer 348 through 2809: all 149,578 floor calls have
+checked returns, all 426 dynamic returns have live installed owners, and
+Mario's final platform is ownerless/static in all 2,462 frames.  The top's
+six post-deactivation triangles are a genuine one-frame cleanup interval, but
+no query returns them and the next clear precedes every query.  The route
+therefore reaches Area 2 without producing a useful split or caching the top.
+`Area1Rank1UpperWarpTraceReceipt.v` packages this finite result; universal
+coverage of other controller histories remains open.
+
 Three additional rank-1 reductions are now checked.  The bilateral accepted
 nonfading-warp source path returns a nonzero `ACT_DISAPPEARED` result and
 short-circuits later interaction handlers; under explicit live dispatch,
@@ -528,10 +542,11 @@ initial null seed, so it accepts a fabricated top-query projection unrelated
 to later run steps.  The diagnostic is not a retail counterexample.  It makes
 a linked run-to-preapply chronology/sample/owner construction the decisive
 missing interface for any sound closure of the highest-ranked route.
-Accordingly, the immediate research priority is a linked *useful* split or a
-closure of the remaining alias, callback, scheduler, surface-owner, and
-lifecycle escapes.  Routing the remaining pyramid pillars is downstream of
-that result rather than the current blocker.
+Accordingly, the immediate research priority is a universal linked closure of
+the remaining useful-split, alias, callback, scheduler, surface-owner, and
+lifecycle possibilities across histories that differ materially from the now
+checked clean upper-warp run.  Routing the pyramid pillars is no longer a
+blocker.
 
 The linked-lineage follow-up now carries the direct syntax census into the
 constructed official cleaned US and JP `prog_defs`. Every visible direct

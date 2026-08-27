@@ -1,6 +1,6 @@
 # No-A two-star route atlas
 
-> Status snapshot: 2026-08-23.  Rankings are intentionally revisable as linked
+> Status snapshot: 2026-08-27.  Rankings are intentionally revisable as linked
 > execution evidence or new counterexamples arrive.
 
 ## Purpose and scope
@@ -98,14 +98,17 @@ The detailed sections are organized as:
 ## Bottom line
 
 - **No clean retail counterexample is currently established.**
-- **The leading route is JP-only:** install the spinning-top pointer from a
-  different collision/query sample, retain the inactive unreused top slot, and
-  consume its payload on the first Area-2 apply.
+- **The leading route is JP-only, but its known clean schedule now fails:** a
+  complete zero-A four-pillar and upper-warp run never remembers the spinning
+  top and produces no useful positive split; another schedule would have to
+  break a precisely checked query, owner, alias, outside-call, or lifecycle
+  boundary before the old JP pointer can help.
 - **A real cached-floor collision/query split is now checked:** it is the
   Y-only change `(0,-50,0)`, so it proves that the two samples need not be
   equal but cannot install the top.
-- **The immediate rank-1 priority is linking or eliminating useful split and
-  escape mechanisms, not routing the remaining pyramid pillars.**
+- **The clean pillar/upper-warp routing obligation is complete:** the remaining
+  rank-1 task is universal coverage of materially different in-bounds
+  executions, not finding a way to touch the four pillars.
 - **Ink is the leading concrete installer design:** its timer-131 Graphics
   retry works when the required three-view gap and top lifecycle are injected,
   but no known clean execution creates that gap, and the authenticated
@@ -135,52 +138,56 @@ The detailed sections are organized as:
 
 | Overall | Family | Approach | Current counterexample promise |
 |---:|---|---|---|
-| 1 | JP stale-platform lineage | Different collision/query samples, then read the inactive unreused top payload | High relative to this project; no clean useful split yet |
-| 2 | Ink installation | Timer-131 non-null Graphics retry | Low-medium for a clean producer; strong injected mechanism |
-| 3 | State-first installation | Finite signed-16 nonlocal-State alias | Low; stock direct writers and integer-cast aliases are now excluded |
-| 4 | JP stale-platform lineage | Move the warp/top or create a collision-preserving clone | Low-medium |
-| 5 | State-first installation | Post-copy State-only writer in a later callback or descendant | Low-medium |
-| 5A | State-first installation | Pre-collision cached-platform displacement creates the split | Low-medium as an effect; low as a stock origin |
-| 6 | JP stale-platform lineage | Moving skipped-query interval | Low |
-| 7 | Downstream collection | Join all five Act-6 triggers, spawn, pickup, and save-bit update | High once a gate installer exists |
-| 8 | Downstream collection | Upper Act-3 100-coin/star-dance itinerary | Low-medium |
-| 9 | Downstream collection | Lower Act-3 Amp/Grindel/elevator itinerary | Low-medium |
-| 10 | Direct Area-2 gates | Held-A jump-kick or B rollout from the upper elevator shaft | Low; writable-table fallback is eliminated in the selected CompCert model |
-| 11 | Direct Area-2 gates | Lower-aperture impulse, clip, or support switch | Low in-model; strong conditional payoff if future ACE supplies a timed pole-table edit |
-| 12 | Ink installation | Negative quicksand depth plus stalled automatic dialog | Very low; Area 2 supplies useful quicksand geometry, but entry reset, raw-only collision, and a present target floor defeat direct use |
-| 13 | State-first installation | Raw-Object-only return or impulse writer | Low-medium |
-| 13A | State-first installation | Terrain-dispatch or collision-prefix writer outside the platform phase | Low-medium as a proof branch |
-| 13B | State-first installation | Interaction-stage writer or cached-floor snap composite | Low |
-| 14 | Eyerok | Carry a stale Eyerok-hand address from Area 3 to Area 2 in JP | Low |
-| 15 | Eyerok | Board and ride a raised hand into a lower Area-2 route | Low-medium as a primitive |
-| 16 | Goomba / PU transport | Goomba raising, PU transport, and Spindel handoff | Very low as a full route |
-| 17 | JP stale-platform lineage | Fresh same-slot replacement payload | Low-medium abstractly; low in the authenticated trace |
-| 18A | JP stale-platform lineage | Canonical owner observed outside the modeled geometry | Low-medium |
-| 18B | JP stale-platform lineage | Recognized owner at a noncanonical slot or ghost epoch | Low-medium |
-| 18C | JP stale-platform lineage | Unclassified dynamic owner | Low-medium |
-| 18D | JP stale-platform lineage | Surface-node/temporary mutation before the floor query | Low-medium |
-| 18E | JP stale-platform lineage | Live same-owner payload mutation before apply | Low-medium |
-| 19 | State-first installation | Skipped, wrong-index, or redirected State-to-Object copy | Low |
-| 20 | Direct Area-2 gates | Amp, Grindel, elevator, Tweester, shell, or other object impulse | Low-medium |
-| 20A | Direct Area-2 gates | Reload, nonzero warp destination, or same-position support-selection change | Low-medium as a coverage branch |
-| 21 | Ink installation | Mario behavior flag plus a large graphical Y offset | Low |
-| 22 | Ink installation | Non-stock Graphics anchor or spawned anchor actor | Low |
-| 23 | Eyerok | Second-hand ceiling to the Area-2 Y=1280 tier | Low |
-| 24 | Eyerok | Update-11 wake-sandwich Pedro installer | Low |
-| 25 | Direct Area-2 gates | Direct Float32 pole exit or pole avoidance | Very low on current evidence |
-| 26 | Ink / wall interaction | Shell visual offset plus wall/floor schedule | Very low alone |
-| 27 | Downstream collection | Negative-depth transport to a fresh or older tangible star | Low |
-| 28 | JP stale-platform lineage | Classic Spindel replacement-object spawning displacement | Low |
-| 29 | Eyerok | Attack and reboard a rising hand | Very low |
-| 30 | Eyerok | Sleeping-hand Pedro speed bootstrap | Very low |
-| 31 | Eyerok | Seams, moving boundaries, or partial updates | Very low |
-| 32 | Memory and control escapes | Defined alias/external/cache/hitbox escapes; machine-only corruption deferred | Very low as a known gameplay route; proof-critical |
-| 33 | Upstream scope extension | Castle-to-SSL glitch or retained inbound pointer | Very low and intentionally deferred |
+| 1 | JP stale-platform lineage | Different collision/query samples, then read the inactive unreused top payload | Very low currently; exact high-payoff JP mechanism if another clean history breaks a checked boundary |
+| 2 | Ink installation | Timer-131 non-null Graphics retry | Very low for a clean producer; exact injected retry |
+| 3 | State-first installation | Finite signed-16 nonlocal-State alias | Very low in the audited stock model; exact injected payload |
+| 4 | JP stale-platform lineage | Move the warp/top or create a collision-preserving clone | Low; sufficient in a permissive model, but no clean relocation or clone is known |
+| 5 | State-first installation | Post-copy State-only writer in a later callback or descendant | Low; the timing window is real, but no reached writer is known |
+| 5A | State-first installation | Pre-collision cached-platform displacement creates the split | Low as an effect; very low as a clean stock origin |
+| 6 | JP stale-platform lineage | Moving skipped-query interval | Very low; no moving skip appears in the audited scheduler shapes |
+| 7 | Downstream collection | Join all five Act-6 triggers, spawn, pickup, and save-bit update | High conditional continuation value; it cannot bypass a gate by itself |
+| 8 | Downstream collection | Upper Act-3 100-coin/star-dance itinerary | Low-medium conditional continuation; no cut-starting replay |
+| 9 | Downstream collection | Lower Act-3 Amp/Grindel/elevator itinerary | Low-medium conditional continuation; the intended misalignments remain untested |
+| 10 | Direct Area-2 gates | Held-A jump-kick or B rollout from the upper elevator shaft | Very low for the checked vertical routes; live collision closure remains |
+| 11 | Direct Area-2 gates | Lower-aperture impulse, clip, or support switch | Low in-model; exact payoff only if an ordinary escape or deferred timed mutation exists |
+| 12 | Direct Area-2 gates | Amp, Grindel, elevator, Tweester, shell, or other object impulse | Low-medium search family; the mechanics are real but no crossing is complete |
+| 12A | Direct Area-2 gates | Reload, nonzero warp destination, or same-position support-selection change | Low; useful coverage branch, but no concrete clean witness |
+| 13 | State-first installation | Raw-Object-only return or impulse writer | Low; broad proof branch, but no concrete gameplay writer |
+| 13A | State-first installation | Terrain-dispatch or collision-prefix writer outside the platform phase | Low; proof branch with no reached extra writer |
+| 13B | State-first installation | Interaction-stage writer or cached-floor snap composite | Low; the ordinary branch is conditionally blocked |
+| 14 | Eyerok | Carry a stale Eyerok-hand address from Area 3 to Area 2 in JP | Low; best Eyerok lead, but its essential mismatch is injected |
+| 15 | Eyerok | Board and ride a raised hand into a lower Area-2 route | Low-medium as a primitive; very low as a complete route |
+| 16 | Goomba / PU transport | Goomba raising, PU transport, and Spindel handoff | Very low as a full route; one revised timing class remains |
+| 17 | JP stale-platform lineage | Fresh same-slot replacement payload | Low abstractly; absent in the authenticated best trace |
+| 18 | State-first installation | Skipped, wrong-index, or redirected State-to-Object copy | Low; no normal receiver or return failure has been observed |
+| 19 | Ink installation | Negative quicksand depth plus stalled automatic dialog | Very low; no clean seed, failed lookup, or Graphics-to-collision bridge |
+| 20 | Ink installation | Mario behavior flag plus a large graphical Y offset | Very low; ordinary stock writers are excluded |
+| 21 | Ink installation | Non-stock Graphics anchor or spawned anchor actor | Very low; the required parent actors are absent from stock Area 1 |
+| 22 | Eyerok | Second-hand ceiling to the Area-2 Y=1280 tier | Very low under the checked height and speed bounds |
+| 23 | Eyerok | Update-11 wake-sandwich Pedro installer | Very low; only a one-frame desynchronizer remains plausible |
+| 24 | Direct Area-2 gates | Direct Float32 pole exit or pole avoidance | Very low on current geometry and trajectory evidence |
+| 25 | Ink / wall interaction | Shell visual offset plus wall/floor schedule | Very low; the offset is small and normally reanchored |
+| 26 | Downstream collection | Negative-depth transport to a fresh or older tangible star | Very low; checked placements miss and no suitable older star is known |
+| 26A | JP stale-platform lineage | Canonical owner observed outside the modeled geometry | Very low after the continuous clean trace; universal-history residual only |
+| 26B | JP stale-platform lineage | Recognized owner at a noncanonical slot or ghost epoch | Very low after the continuous clean trace; universal-history residual only |
+| 26C | JP stale-platform lineage | Unclassified dynamic owner | Very low after the continuous clean trace; no missing actor is known |
+| 26D | JP stale-platform lineage | Surface-node/temporary mutation before the floor query | Very low after the continuous clean trace; no returned stale or changed node |
+| 26E | JP stale-platform lineage | Live same-owner payload mutation before apply | Very low after the continuous clean trace; no harmful payload change |
+| 27 | JP stale-platform lineage | Classic Spindel replacement-object spawning displacement | Very low; corrected allocation depth and first payload are unhelpful |
+| 28 | Eyerok | Attack and reboard a rising hand | Very low |
+| 29 | Eyerok | Sleeping-hand Pedro speed bootstrap | Very low |
+| 30 | Eyerok | Seams, moving boundaries, or partial updates | Very low |
+| 31 | Memory and control escapes | Defined alias/external/cache/hitbox escapes; machine-only corruption deferred | Very low as a known gameplay route; proof-critical |
+| 32 | Upstream scope extension | Castle-to-SSL glitch or retained inbound pointer | Very low and intentionally deferred |
 
-The numerical order is unchanged by the 2026-08-23 audit.  Ranks 2 and 3 stay
-near the top because their mechanisms are exact and a surviving escape would
-immediately affect the main proof; their qualified promise labels now make
-clear that neither currently has a likely clean stock producer.
+This review makes three substantive priority changes.  Genuine moving-object
+mechanics and support changes move from ranks `20/20A` to `12/12A` because
+they remain incompletely searched and can bypass the installer families
+entirely.  Negative quicksand falls from rank `12` to `19`, and the five
+abstract floor-owner residuals fall from `18A–18E` to `26A–26E`, because the
+producer audits and continuous clean upper-warp trace found none of their
+needed effects.  Ranks 1–3 remain high for decision value and exact conditional
+mechanisms, not because any now has a likely clean stock producer.
 
 ## Family 1 — JP stale-platform and spawning-displacement routes
 
@@ -193,12 +200,13 @@ the later Area-2 code **using** the bytes found at that address.
 Technical background: [route exhaustiveness](notes/route-exhaustiveness.md),
 [installer temporal closure](notes/installer-temporal-closure.md),
 [JP lifecycle trace](notes/jp-lifecycle-trace.md), and the
-[local-Object/nonlocal-State matrix](notes/local-object-nonlocal-state-gap-matrix.md).
+[local-Object/nonlocal-State matrix](notes/local-object-nonlocal-state-gap-matrix.md),
+plus the [Rank-1 player/floor-owner residual audit](notes/rank1-player-floor-owner-residual.md).
 
 ### Different collision/query samples, then the inactive top payload
 
-**Overall rank: 1. Family priority: 1. Likelihood: high relative to the other
-leads, but not yet a clean counterexample.**
+**Overall rank: 1. Family priority: 1. Likelihood: very low for a clean producer,
+but high conditional payoff.**
 
 **In plain language.** Mario's raw collision Object touches the upper warp,
 but a later floor query looks at a different position and remembers the
@@ -207,13 +215,14 @@ becomes inactive, yet JP keeps the old address.  On the first pyramid update,
 the game reads the still-resident top bytes and applies their three-dimensional
 platform displacement to MarioState while the raw Mario Object remains local.
 
-**What is already known.** This remains the strongest lead because an injected JP run demonstrates the useful chain once its setup is granted: the run remembers the spinning top, frees it without reusing its slot, applies the old movement data after entering the pyramid, reaches all five Act-6 triggers, and separately collects the Act-6 star without A; however, it also forces all four pillars and supplies no clean Act-3 route.  Controller-only play after an externally enabled level-select entry has activated the two eastern pillars with zero A presses, but that says nothing about the necessary position split.  The project has proved one genuine ordinary collision/query split—Mario touches the warp at height `818` and the later floor check occurs at `768`, 50 units lower—but has also disproved that split as useful here because the top needs an upward separation of more than 459 units.  It has found no ordinary moving skipped check, later interaction after an accepted warp, direct Mario-position helper, or child-copy mistake that creates the useful split.  The new PLAYER-list audit also closes the two immediate post-copy child branches: Mario is the only checked normal behavior assigned to the player list, while all 18 particle behaviors and all three possible debug-spawn behaviors enter other lists, so those children cannot become a second player-list object behind Mario.  Another player-list object may still have existed already or come from another callback, pointer forwarding, an alias, outside effect, or list/slot failure; a useful split through those mechanisms, mistaken current-object identity, a missed live floor owner, or another object-lifetime error is still open, and the modeled events are not yet connected into one real execution, so rank 1 is neither proved nor disproved.
+**What is already known.** The conditional stale-top effect still works when its setup is injected, but the supplied 2013 video has now been converted into an independent original-JP route that really touches all four pillars and takes the upper warp with zero A input, and the continuous audit follows that run from Area-1 entry through the warp.  All 2,462 frames pass: every memory-pool change and floor-storage write is harmless, every object and floor list remains intact, all 149,578 floor checks return normally, all 426 moving-floor results have the right live owner, and Mario's final platform is an ordinary ownerless floor in every frame.  The exploding top does briefly leave six triangles behind after its owner is removed, but no floor check returns them and the next frame clears them before checking any floor.  Mario reaches the warp without ever remembering the top or creating a useful upward or horizontal split.  This disproves the named corruption, alias, callback, wrong-owner, and stale-surface explanations for this successful clean route, but not for every possible controller history.
 
-**What closes it.** First derive a useful upward or horizontal collision/query split from one clean execution, or eliminate every remaining valid alias, callback, scheduler, live-floor-owner, and object-lifetime escape; for the narrowed player-list branch, this means proving that no second player object exists before Mario's callback and that no other callback, pointer-forwarding step, alias, outside effect, or list/slot change adds one.  The larger proof still must show that the collision and floor-check samples, callback result, same-frame update order, final receiver, and returned surface all belong to the same live Mario frame.  The known 50-unit downward split cannot capture the top, and excluding slot reuse does not erase the inactive top's old movement data.  Out-of-bounds installation, ACE, and raw DMA are outside this Clight close-out and need a retail machine model rather than more source-level route search.  Only after a useful split, alternative owner, relocation, or clone survives should work return to the remaining pillars; a complete route must then preserve the exact slot and movement bytes across the area transition, execute the first pyramid displacement, join the Act-6 trigger and collection evidence, and separately supply an Act-3 continuation.
+**What closes it.** The real upper-warp attempt is finished, so a complete in-model disproof now needs the same checks for every materially different reachable controller and scheduler history, or one general proof that makes those repetitions unnecessary: no route may overlap the protected floor storage, redirect an outside destination, return a wrong or dead moving-floor owner, keep a usable stale floor past clearing, select an unexpected final platform, or create a useful positive split.  A counterexample instead has to identify the first exact check that a different clean run breaks and then carry the saved top pointer into Area 2.  The confirmed inactive object can still carry such a pointer if another schedule installs it.  Out-of-bounds installation, ACE, raw DMA, and continuation after undefined behavior remain outside the current execution model rather than disproved.
 
 ### Move the warp/top, or create a collision-preserving clone
 
-**Overall rank: 4. Family priority: 2. Likelihood: low-medium.**
+**Overall rank: 4. Family priority: 2. Likelihood: low; no clean relocation or
+clone producer is known.**
 
 **In plain language.** Instead of separating Mario's samples, physically put a
 standable moving-object floor inside the warp.  Mario could then touch the warp
@@ -236,7 +245,7 @@ warp/platform geometry.
 
 ### Moving skipped-query interval
 
-**Overall rank: 6. Family priority: 3. Likelihood: low.**
+**Overall rank: 6. Family priority: 3. Likelihood: very low.**
 
 **In plain language.** Save a useful platform somewhere else, then move Mario
 into the warp during a frame that does not recompute the platform pointer.
@@ -258,19 +267,14 @@ or a concrete alias, external, or lifecycle effect.
 
 ### Fresh same-slot replacement payload
 
-**Overall rank: 17. Family priority: 4. Likelihood: low-medium abstractly, low
-for the authenticated timer-131 trace.**
+**Overall rank: 17. Family priority: 4. Likelihood: low abstractly and very low
+for the authenticated best trace.**
 
 **In plain language.** Save an object's address, free the object, allocate a
 different object in the same slot, then let the stale pointer interpret the new
 object's movement fields as a platform displacement.
 
-**What is already known.** The project has an executable abstract epoch
-`4 -> 5` reuse countermodel and a source-shaped replacement payload capable of
-a large three-dimensional displacement.  It also separates the query owner
-from the apply-time payload owner.  However, the authenticated JP top slot is
-not reused before the observed first apply, so this is not the fate seen in the
-best trace.
+**What is already known.** The project has an executable abstract slot-reuse countermodel and a replacement payload capable of a large three-dimensional displacement, so the engine effect is possible when supplied.  The authenticated timer-131 trace does not reuse the top slot before the first apply, and the continuous clean four-pillar/upper-warp run finds no useful replacement fate either, so this is absent from both of the strongest observations.
 
 **What closes it.** Produce one coupled linked chronology proving the exact
 free-list pushes and pops, same-slot allocation, replacement type, payload
@@ -279,15 +283,14 @@ an independent reuse witness are not enough.
 
 ### Canonical owner observed outside the modeled geometry
 
-**Overall rank: 18A. Family priority: 5. Likelihood: low-medium.**
+**Overall rank: 26A. Family priority: 5. Likelihood: very low after the
+continuous clean trace.**
 
 **In plain language.** The floor really belongs to a familiar stock object,
 but that object's live transform places its collision somewhere the finite
 geometry model did not allow.
 
-**What is already known.** Canonical observations for the fifteen modeled
-Area-1 owner families do not supply a platform at the fixed upper-warp sample.
-That is a strong conditional exclusion, not a live transform/list theorem.
+**What is already known.** Canonical observations for the fifteen modeled Area-1 owner families do not supply a platform at the fixed upper-warp sample, and the continuous clean upper-warp run strengthens that result: all 426 moving-floor returns have the expected live owner, while Mario's final platform is ownerless and static in all 2,462 checked frames.  No familiar owner appears at an unexpected transform in that run, although this is not yet a theorem over every possible controller history.
 
 **What closes it.** Reconstruct each reachable owner's live position, angles,
 scale, collision matrix, and surface insertion at the query frame; otherwise
@@ -295,15 +298,13 @@ return the first owner whose observed transform violates the canonical map.
 
 ### Recognized owner at a noncanonical slot or ghost epoch
 
-**Overall rank: 18B. Family priority: 6. Likelihood: low-medium.**
+**Overall rank: 26B. Family priority: 6. Likelihood: very low after the
+continuous clean trace.**
 
 **In plain language.** The behavior name looks familiar, but the pointer names
 the wrong pool slot, an old lifetime of that slot, or a stale “ghost” copy.
 
-**What is already known.** The lineage classifier keeps this separate from a
-fresh replacement at apply time.  Official JP initial memory provides the
-object-pool block and writable range, but no current theorem reconstructs live
-slot allocation epochs or proves every owner pointer is the slot base.
+**What is already known.** The lineage classifier keeps this separate from a fresh replacement at apply time.  The continuous clean upper-warp run checks every returned moving-floor owner against its aligned live slot, object list, and unchanged behavior and finds no ghost epoch or interior owner, while the accepted entry fixes the object-pool range.  A universal allocation-epoch theorem for every other input history remains open.
 
 **What closes it.** Connect every `Surface.object` address to an aligned live
 pool slot, prove allocation-epoch monotonicity and behavior identity, and frame
@@ -311,16 +312,13 @@ unload/reuse from insertion through query.
 
 ### Unclassified dynamic owner
 
-**Overall rank: 18C. Family priority: 7. Likelihood: low-medium.**
+**Overall rank: 26C. Family priority: 7. Likelihood: very low; no missing actor
+is known.**
 
 **In plain language.** A reachable actor omitted from the stock owner list
 loads a floor at the warp and supplies the platform pointer.
 
-**What is already known.** The finite source-bounded model covers the named
-stock candidates and proves their geometry exclusion.  Generic spawn helpers,
-transitive behavior scripts, clones, corruption, and externally produced
-owners are not a live closed-world theorem.  No concrete missing actor is
-known.
+**What is already known.** The finite source-bounded model covers the named stock candidates and proves their geometry exclusion, and every moving floor actually returned during the continuous clean upper-warp run belongs to a checked live owner; no unclassified actor appears.  Generic spawn helpers, transitive behavior scripts, clones, and outside-produced owners are still not ruled out for every possible execution, but no concrete missing actor is known.
 
 **What closes it.** Complete the Area-1 transitive spawn/behavior/collision-data
 graph and dynamic-list membership proof, or exhibit the exact new owner and
@@ -328,32 +326,28 @@ its clean creation path.
 
 ### Surface-node or temporary mutation before the query
 
-**Overall rank: 18D. Family priority: 8. Likelihood: low-medium.**
+**Overall rank: 26D. Family priority: 8. Likelihood: very low after the
+continuous clean trace.**
 
 **In plain language.** The loader starts with the right object and surface,
 but a reassignment, list corruption, stale node, or alias changes what the
 floor query later sees.
 
-**What is already known.** Bilateral AST receipts tie `gCurrentObject` to the
-`Surface.object` store and then to a dynamic `add_surface(...,1)` call using the
-same syntactic surface receiver; static loaders use flag `0`.  They do not
-prove call reachability, live list integrity, node lifetime, or the eventual
-query result.
+**What is already known.** Source checks tie the currently updating object to each moving-floor owner, and the continuous clean run additionally checks every reached insertion, list, and floor-query return.  The exploding top briefly leaves six triangles after its owner is removed, but no query returns them and the next frame clears them before any new query.  No node is corrupted, substituted, or returned stale in this execution; other controller histories still need the same guarantee.
 
 **What closes it.** Execute allocation, initialization, insertion, list
 traversal, clear/removal, and `find_floor` with receiver/alias/external frames.
 
 ### Live same-owner payload mutation before apply
 
-**Overall rank: 18E. Family priority: 9. Likelihood: low-medium.**
+**Overall rank: 26E. Family priority: 9. Likelihood: very low after the
+continuous clean trace.**
 
 **In plain language.** The pointer remains valid and names the same object, but
 that object's position, angles, velocity, or transform changes between the
 floor query and the later platform apply.
 
-**What is already known.** The payload-fate classification deliberately keeps
-this distinct from slot reuse.  No theorem yet freezes all fields read by the
-apply, even when owner identity and epoch stay fixed.
+**What is already known.** The payload-fate classification deliberately keeps this distinct from slot reuse.  The continuous clean run checks the reached owner identities, protected writes, and query returns and finds no harmful same-owner change or owner-backed final Mario platform.  It remains possible only as a universal-history residual because no theorem yet freezes every displacement field from every possible query through its later apply.
 
 **What closes it.** Prove a per-field last-writer and memory-frame theorem from
 query to apply, or return the exact mutating step and resulting binary32
@@ -361,7 +355,7 @@ displacement.
 
 ### Classic Spindel replacement-object route
 
-**Overall rank: 28. Family priority: 10. Likelihood: low.**
+**Overall rank: 27. Family priority: 10. Likelihood: very low.**
 
 **In plain language.** Reuse the stale Area-1 slot specifically as Spindel,
 then use Spindel's first update as the spawning-displacement payload.
@@ -388,8 +382,8 @@ Technical background: [Ink fallback](notes/ink-fallback.md),
 
 ### Timer-131 non-null Graphics retry
 
-**Overall rank: 2. Family priority: 1. Likelihood: low-medium for a clean
-producer; strong as an injected mechanism.**
+**Overall rank: 2. Family priority: 1. Likelihood: very low for a clean
+producer; exact as an injected mechanism.**
 
 **In plain language.** Leave Mario's collision Object at the upper warp, make
 MarioState's first floor lookup miss, but leave the rendered Mario position on
@@ -398,11 +392,11 @@ position and remembers the top.
 
 **What is already known.** The supplied setup works, but it needs at least a `960`-unit gap between Mario's displayed and collision heights (`1010` at the warp center), and a second missed floor check is fatal; ordinary creation, Mario's normal behavior and callbacks, stock display offsets, and another object's slot do not make that gap, while a deliberately non-stock `+1160` offset confirms the geometry.  The accepted hash-checked JP entry ends with Mario in slot 67, both game pointers selecting him, normal `bhvMario`, one-node player-list membership, flag value `0x100`, and zero graphical offset.  From that exact endpoint, one receipt checks 131 ordinary updates, and a stronger route-specific receipt uses one separately logged write only to the spinning top's slot-61 pillar counter, then follows 144 consecutive authentic updates to the top's real action 1 timer 131.  In the stronger receipt Mario never changes slot, list, behavior, or either protected value; all 144 writes which trigger any of the twelve protected ranges are the same harmless collision-reset halfword immediately after `activeFlags`; all three Mario callbacks and the command and dispatch bytes remain stable; 93 allocations succeed with no allocator fallback; and 71 unloads and 71 source-sound calls cause no watched change.  The real sound-call tree is independently proved to write only sound data or safe stack, `sqrtf` is store-free, the two conservative debug-print callsites are not reached, and the heavily used HUD print callees likewise produce no protected write in this receipt.  Thus the selected spinning-timer timeline contains no corruption producer, but this conditional machine receipt is not yet a universal proof over every controller history or a proof that debugger watchpoints are complete N64 semantics.
 
-**What closes it.** For the particular conditional spinning execution, the endpoint-to-timer-131 classification is complete and found no producer; replacing its single disjoint pillar-counter fixture with the accepted clean four-pillar execution would make the same result a clean-route receipt.  To disprove every successful in-bounds corruption version rather than only this timeline, prove that every controller and lifecycle history from the accepted endpoint refines to the same protected-memory frame (or construct the pending `InkTimer131ReachableStepCoverage` CompCert theorem), and connect the debugger's complete watched-write receipt to machine-step semantics; any first differing overlapping store, changed Mario identity, changed command or dispatch byte, or unframed reached call would be the concrete producer to test.  Ordinary castle entry and an IDO-to-Clight entry bridge remain unnecessary under the chosen boundary.  Negative quicksand plus dialog still needs both an unusual negative seed and an X/Z transport to the warp, while out-of-bounds writes, arbitrary code execution, and DMA require a separate retail-machine model; only a surviving producer warrants continuing to the failed lookup, top-owned retry, JP displacement, and the separate Act-3 and Act-6 continuations.
+**What closes it.** The clean four-pillar run now reaches the top's real timer 131 without changing Mario's protected values, but Mario reaches the upper warp only after the top explodes, so it does not supply the retry geometry; a counterexample must couple the clean pillar activation, the still-spinning top, the upper-warp collision, and the required three-view gap in one run.  A complete in-model disproof instead must show that every controller and lifecycle history preserves Mario's identity, behavior, flag, and graphical offset or identify the first exact store or outside call that does not.  Ordinary castle entry and an IDO-to-Clight entry bridge remain unnecessary under the chosen boundary.  Negative quicksand still needs an unusual seed and a way to turn displayed height into collision height, while out-of-bounds writes, arbitrary code execution, and DMA require a separate retail-machine model; only a surviving producer warrants continuing to the failed lookup, top-owned retry, JP displacement, and the separate Act-3 and Act-6 continuations.
 
 ### Negative quicksand depth plus stalled automatic dialog
 
-**Overall rank: 12. Family priority: 2. Likelihood: very low; Area 2 makes the
+**Overall rank: 19. Family priority: 2. Likelihood: very low; Area 2 makes the
 hypothetical payoff exact but supplies neither a clean seed nor the needed
 Graphics-to-collision bridge.**
 
@@ -414,7 +408,8 @@ Graphics-to-collision bridge.**
 
 ### Mario behavior flag plus a large graphical Y offset
 
-**Overall rank: 21. Family priority: 3. Likelihood: low.**
+**Overall rank: 20. Family priority: 3. Likelihood: very low in the selected
+in-bounds model.**
 
 **In plain language.** Give Mario the generic object flag that copies raw
 position to graphics with an added `oGraphYOffset`, and make that offset huge.
@@ -426,7 +421,7 @@ This could create the entire Ink gap at once.
 
 ### Non-stock Graphics anchor or spawned anchor actor
 
-**Overall rank: 22. Family priority: 4. Likelihood: low.**
+**Overall rank: 21. Family priority: 4. Likelihood: very low for stock Area 1.**
 
 **In plain language.** Some actors, such as Chuckya- or King-Bob-omb-style
 anchors, can force Mario's rendered position to the actor's position.  A far
@@ -438,7 +433,7 @@ away actor could manufacture a huge graphical gap.
 
 ### Shell visual offset plus wall/floor scheduling
 
-**Overall rank: 26. Family priority: 5. Likelihood: very low alone.**
+**Overall rank: 25. Family priority: 5. Likelihood: very low alone.**
 
 **In plain language.** Use the shell's small visual lift and a wall-selected or
 cached floor to try to preserve and enlarge a Graphics gap.
@@ -466,8 +461,9 @@ and [platform alias/external closure](notes/platform-alias-external-closure.md).
 
 ### Finite signed-16 nonlocal-State alias
 
-**Overall rank: 3. Family priority: 1. Likelihood: low; only a narrow defined
-alias, dispatch, lifetime, owner, scheduler, or outside-call escape remains.**
+**Overall rank: 3. Family priority: 1. Likelihood: very low in the audited
+stock model; only a narrow defined alias, dispatch, lifetime, owner, scheduler,
+or outside-call escape remains.**
 
 **In plain language.** Put MarioState one 65,536-unit period away while raw
 Object stays at the warp.  The terrain code narrows the large coordinate to a
@@ -479,7 +475,8 @@ signed 16-bit value, wrapping it back to the timer-131 top.
 
 ### Post-copy State-only writer in a callback or spawned descendant
 
-**Overall rank: 5. Family priority: 2. Likelihood: low-medium.**
+**Overall rank: 5. Family priority: 2. Likelihood: low; no reached writer is
+known.**
 
 **In plain language.** Mario's own update first copies State to Object.  A
 later object then changes only State, leaving Object behind for the next
@@ -504,7 +501,7 @@ counterexample lead; complete framing would rule out the family.
 
 ### Pre-collision cached-platform displacement creates the split
 
-**Overall rank: 5A. Family priority: 3. Likelihood: low-medium as an effect,
+**Overall rank: 5A. Family priority: 3. Likelihood: low as an effect and very
 low as an ordinary stock origin.**
 
 **In plain language.** Begin a frame with a useful moving-platform pointer.
@@ -526,7 +523,8 @@ explicit pointer-provenance escapes.
 
 ### Raw-Object-only return or impulse writer
 
-**Overall rank: 13. Family priority: 4. Likelihood: low-medium.**
+**Overall rank: 13. Family priority: 4. Likelihood: low as a proof
+branch; no concrete gameplay writer is known.**
 
 **In plain language.** Instead of moving State, change only Mario's raw
 collision Object after synchronization.  State remains at the remote sample
@@ -543,7 +541,7 @@ through the collision sample.
 
 ### Terrain-dispatch or collision-prefix writer outside the platform phase
 
-**Overall rank: 13A. Family priority: 5. Likelihood: low-medium as a proof
+**Overall rank: 13A. Family priority: 5. Likelihood: low as a proof
 branch; no concrete gameplay writer is known.**
 
 **In plain language.** A store in terrain handling or the collision prefix
@@ -587,7 +585,7 @@ ordinary same-sample cached-floor snap.
 
 ### Skipped, wrong-index, or redirected State-to-Object copy
 
-**Overall rank: 19. Family priority: 7. Likelihood: low.**
+**Overall rank: 18. Family priority: 7. Likelihood: low.**
 
 **In plain language.** Let ordinary or PU movement create a State difference,
 then skip the expected copy, copy from the wrong MarioState entry, or write a
@@ -619,7 +617,8 @@ Technical background: [upper elevator cut](notes/area2-elevator-cut.md),
 
 ### Held-A jump-kick or B rollout from the upper elevator shaft
 
-**Overall rank: 10. Family priority: 1. Likelihood: low.**
+**Overall rank: 10. Family priority: 1. Likelihood: very low for the checked
+vertical routes.**
 
 **In plain language.** First complete the no-spin descent on the shaft line and
 land on the live elevator.  From that landed state, use a no-new-A action to
@@ -642,7 +641,7 @@ but high conditional payoff under a correctly timed retail mutation.**
 
 ### Moving geometry or object impulse
 
-**Overall rank: 20. Family priority: 3. Likelihood: low-medium.**
+**Overall rank: 12. Family priority: 3. Likelihood: low-medium.**
 
 **In plain language.** Use a homing Amp, Grindel, elevator, Tweester, jumping
 box, shell, or another object to push, carry, shock, or reanchor Mario across a
@@ -661,7 +660,7 @@ not just an abstract `object impulse` label.
 
 ### Reload, nonzero warp destination, or same-position support change
 
-**Overall rank: 20A. Family priority: 4. Likelihood: low-medium as a coverage
+**Overall rank: 12A. Family priority: 4. Likelihood: low as a coverage
 branch; no concrete clean witness is known.**
 
 **In plain language.** Cross a route cut because an area transition reloads a
@@ -681,7 +680,7 @@ produce the exact nonzero/corrupted destination or changed-support witness.
 
 ### Direct Float32 pole exit or pole avoidance
 
-**Overall rank: 25. Family priority: 5. Likelihood: very low on current
+**Overall rank: 24. Family priority: 5. Likelihood: very low on current
 evidence.**
 
 **In plain language.** Find an untested quarter-step, seam, wall response, or
@@ -758,7 +757,7 @@ controller history, then prove target overlap and save-bit change.
 
 ### Negative-depth transport to a fresh or older star
 
-**Overall rank: 27. Family priority: 4. Likelihood: low.**
+**Overall rank: 26. Family priority: 4. Likelihood: very low.**
 
 **In plain language.** Use the negative-depth/dialog machinery not to install
 Ink, but to arrange a fresh 100-coin star or another already tangible star at a
@@ -845,7 +844,7 @@ no Act-6 route; covering both targets also needs Family 5's Act-6 work.
 ### Board and ride a raised hand into the lower route
 
 **Overall rank: 15. Family priority: 2. Likelihood: low-medium as a primitive,
-low as a full route.**
+very low as a full route.**
 
 **In plain language.** Start Mario's air motion before a double-pound launch so
 the first hand step remains within floor-snap tolerance, then ride the hand's
@@ -866,7 +865,8 @@ separate downstream task.
 
 ### Second-hand ceiling to the Area-2 Y=1280 tier
 
-**Overall rank: 23. Family priority: 3. Likelihood: low.**
+**Overall rank: 22. Family priority: 3. Likelihood: very low under the checked
+height and speed bounds.**
 
 **In plain language.** Grant Mario the highest modeled second-hand surface,
 cross the Area-3 warp with an upward action, and land on the pyramid's
@@ -887,7 +887,7 @@ Act 3.  Act 6 remains separate.
 
 ### Update-11 wake-sandwich Pedro installer
 
-**Overall rank: 24. Family priority: 4. Likelihood: low.**
+**Overall rank: 23. Family priority: 4. Likelihood: very low.**
 
 **In plain language.** Enter a floor/ceiling squeeze during the staggered hand
 wake, hoping the cancelled movement keeps an old floor while updating the hand
@@ -908,7 +908,7 @@ prove or refute the floor/hand cache mismatch in the required update order.
 
 ### Attack and reboard a rising hand
 
-**Overall rank: 29. Family priority: 5. Likelihood: very low.**
+**Overall rank: 28. Family priority: 5. Likelihood: very low.**
 
 **In plain language.** Hit an Eyerok eye, make its hand rise, then fall back
 onto or reacquire its moving collision before it returns or disappears.
@@ -924,7 +924,7 @@ succeeds, prove the hand-to-warp and Act-3 continuation.
 
 ### Sleeping-hand Pedro speed bootstrap
 
-**Overall rank: 30. Family priority: 6. Likelihood: very low.**
+**Overall rank: 29. Family priority: 6. Likelihood: very low.**
 
 **In plain language.** Cross the sleeping hand's narrow wall band in one
 quarter-step and enter its floor/ceiling squeeze.
@@ -939,7 +939,7 @@ pose/action, or prove every reachable preload remains below the threshold.
 
 ### Seams, moving boundaries, or partial updates
 
-**Overall rank: 31. Family priority: 7. Likelihood: very low.**
+**Overall rank: 30. Family priority: 7. Likelihood: very low.**
 
 **In plain language.** Slip between moving collision pieces, or find a frame
 in which action state changes but hand movement or collision only partly runs.
@@ -976,7 +976,7 @@ Clight is not mistaken for a retail result.
 
 ### Defined memory/control escapes and deferred machine-only corruption
 
-**Overall rank: 32. Family priority: 1. Likelihood: very low as a known clean
+**Overall rank: 31. Family priority: 1. Likelihood: very low as a known clean
 route; high proof importance.**
 
 **In plain language.** Make a valid pointer name the wrong live field or object, have a reachable outside routine change protected state, retain a stale warp collision, alter a hitbox, or forge an action, timer, or owner through an otherwise valid game write.  Out-of-bounds overwrites, arbitrary code execution, and raw DMA are tracked here only as deferred retail possibilities because the current source execution cannot perform them.
@@ -987,7 +987,7 @@ route; high proof importance.**
 
 ### Castle-to-SSL glitch or retained inbound pointer
 
-**Overall rank: 33. Family priority: 2. Likelihood: very low and intentionally
+**Overall rank: 32. Family priority: 2. Likelihood: very low and intentionally
 deferred.**
 
 **In plain language.** Create a useful glitch in the castle and carry it into
@@ -1034,7 +1034,7 @@ is not repeatedly rediscovered.
 | Lifecycle R1 | Direct Area-2/Area-3 instant warp adds height | Its displacement is zero and coherent kinematics are preserved. | A stale-platform, receiver, or lifecycle effect classified separately. | Closed as ordinary warp displacement. |
 | Lifecycle R2 | Reload or the wrong star directly sets a target bit | Coherent reload preserves save facts; Eyerok/100-coin/other stars have different indices. | Explicit save corruption or target-provenance failure. | Closed under certified provenance. |
 | State-first R1 | Area-1 palm/tree pole push is a late State-only writer | It executes before PLAYER; the later correct copy resynchronizes State/Object. | A later transitive caller or a failed/redirected copy. | Closed for that caller/order. |
-| Object impulse R1 | Tweester or jumping-box search already found an installer | Bounded searches found synchronized elevation but no positive view gap, warp/top capture, or target crossing. | A different live object-impulse chronology; keep it under rank 20. | Very low for tested schedules. |
+| Object impulse R1 | Tweester or jumping-box search already found an installer | Bounded searches found synchronized elevation but no positive view gap, warp/top capture, or target crossing. | A different live object-impulse chronology; keep it under rank 12. | Very low for tested schedules. |
 | Act-3 downstream R1 | The failed direct Grindel steering test refutes the lower itinerary | It did not attempt the transcript's Grindel/elevator misalignments. | A faithful test of the actual itinerary, positive or negative. | The negative inference is invalid. |
 
 ## What would count as a complete counterexample

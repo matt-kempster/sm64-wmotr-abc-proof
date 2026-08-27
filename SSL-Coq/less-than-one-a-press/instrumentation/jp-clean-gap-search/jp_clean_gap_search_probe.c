@@ -19,14 +19,36 @@
 #define SEARCH_MODE 0
 #endif
 
+#ifndef RANK1_BOUNDARY_AUDIT
+#define RANK1_BOUNDARY_AUDIT 0
+#endif
+
+#ifndef RANK1_BOUNDARY_REPEAT_UNTIL
+#define RANK1_BOUNDARY_REPEAT_UNTIL 349
+#endif
+
 /* Authenticated original-JP virtual addresses.  run.sh hash-gates the ROM. */
 enum {
     A_GLOBAL_TIMER = 0x8032c694,
     A_MARIO_PLATFORM = 0x8032fed4,
     A_MARIO_STATES = 0x80339e00,
+    A_MAIN_POOL_FREE_SPACE = 0x8033a110,
+    A_MAIN_POOL_START = 0x8033a114,
+    A_MAIN_POOL_END = 0x8033a118,
+    A_MAIN_POOL_LEFT_HEAD = 0x8033a11c,
+    A_MAIN_POOL_RIGHT_HEAD = 0x8033a120,
     A_CURR_AREA = 0x8033a75a,
     A_OBJECT_POOL = 0x8033c118,
     A_MARIO_OBJECT = 0x8035fde8,
+    A_CURRENT_OBJECT = 0x8035fdf0,
+    A_SURFACE_NODES_ALLOCATED = 0x8035fdfc,
+    A_SURFACES_ALLOCATED = 0x8035fe00,
+    A_NUM_STATIC_SURFACE_NODES = 0x8035fe04,
+    A_NUM_STATIC_SURFACES = 0x8035fe08,
+    A_STATIC_SURFACE_PARTITION = 0x8038be98,
+    A_DYNAMIC_SURFACE_PARTITION = 0x8038d698,
+    A_SURFACE_NODE_POOL_CELL = 0x8038ee98,
+    A_SURFACE_POOL_CELL = 0x8038ee9c,
 };
 
 /* Slot 67 and list-0 addresses from the authenticated endpoint.  Write
@@ -67,6 +89,59 @@ enum {
     A_STOP_SOUNDS_IN_CONTINUOUS_BANKS = 0x80320890,
 };
 
+#if RANK1_BOUNDARY_AUDIT
+enum {
+    A_MAIN_POOL_INIT = 0x80277ac4,
+    A_MAIN_POOL_ALLOC = 0x80277b70,
+    A_MAIN_POOL_FREE = 0x80277c88,
+    A_MAIN_POOL_REALLOC = 0x80277da8,
+    A_MAIN_POOL_PUSH_STATE = 0x80277e38,
+    A_MAIN_POOL_POP_STATE = 0x80277ee8,
+    A_UPDATE_OBJECTS = 0x8029cf08,
+    A_POST_MARIO_PLATFORM = 0x8029d058,
+    A_UPDATE_MARIO_PLATFORM = 0x802c7f20,
+    A_POST_PLATFORM_FIND_FLOOR = 0x802c7f88,
+    A_CLEAR_DYNAMIC_SURFACES = 0x803835a4,
+    A_LOAD_OBJECT_COLLISION_MODEL = 0x803839cc,
+    A_ADD_SURFACE = 0x80382a2c,
+    A_LOAD_OBJECT_SURFACES = 0x80383828,
+    A_SURFACE_LOAD_TEXT_START = 0x80382490,
+    A_SURFACE_LOAD_TEXT_END = 0x80383b70,
+    A_FIND_FLOOR = 0x80381900,
+    /* Common epilogue of the hash-authenticated JP find_floor body.  At this
+     * instruction the original stack frame still holds x/y/z and pfloor at
+     * +0x40/+0x44/+0x48/+0x4c, respectively. */
+    A_FIND_FLOOR_RETURN = 0x80381b90,
+    A_FIND_FLOOR_TEXT_END = 0x80381ba0,
+    A_SQRTF = 0x80322b20,
+    A_SET_CAMERA_SHAKE_FROM_POINT = 0x8027f440,
+    A_CREATE_SOUND_SPAWNER = 0x802c9664,
+    A_CREATE_SOUND_SPAWNER_STORE = 0x802c9694,
+    A_CUR_OBJ_PLAY_SOUND_2 = 0x802c9700,
+    A_PLAY_SOUND = 0x8031dc78,
+    A_PLAY_SOUND_STORE_0 = 0x8031dc98,
+    A_PLAY_SOUND_STORE_1 = 0x8031dc9c,
+    A_PLAY_SOUND_COUNT_STORE = 0x8031dca4,
+    A_PLAY_PUZZLE_JINGLE = 0x80321228,
+    A_PLAY_PUZZLE_JINGLE_STORE = 0x80321248,
+    A_SOUND_REQUEST_BASE = 0x80360128,
+    A_SOUND_REQUEST_END = 0x80360928,
+    A_SOUND_REQUEST_COUNT = 0x80331e34,
+    A_PUZZLE_MUSIC_STATE = 0x8033211c,
+    A_OBJECT_LIST_ARRAY = 0x8033b870,
+    OBJECT_NODE_SIZE = 0x68,
+    OBJECT_LIST_COUNT = 13,
+    SURFACE_NODE_BYTES = 56000,
+    SURFACE_BYTES = 110400,
+    SURFACE_NODE_SIZE = 8,
+    SURFACE_SIZE = 48,
+    SURFACE_CAPACITY = 2300,
+    SURFACE_NODE_CAPACITY = 7000,
+    SURFACE_PARTITION_BYTES = 0x1800,
+    SURFACE_OBJECT = 0x2c,
+};
+#endif
+
 enum {
     OBJECT_SIZE = 0x260,
     OBJECT_COUNT = 240,
@@ -92,12 +167,15 @@ enum {
     O_HOME_Z = 0x16c,
     O_BHV_PARAMS = 0x188,
     O_BEHAVIOR = 0x20c,
+    O_COLLISION_DATA = 0x218,
 };
 
 enum {
     M_INPUT = 0x02,
     M_ACTION = 0x0c,
     M_ACTION_TIMER = 0x1a,
+    M_INTENDED_YAW = 0x24,
+    M_FACE_YAW = 0x2e,
     M_POS_X = 0x3c,
     M_POS_Y = 0x40,
     M_POS_Z = 0x44,
@@ -127,6 +205,7 @@ enum {
     ACT_DIVE = 0x0188088a,
     ACT_DIVE_SLIDE = 0x00880456,
     ACT_STOMACH_SLIDE = 0x008c0453,
+    ACT_STOMACH_SLIDE_STOP = 0x00000386,
     ACT_CRAZY_BOX_BOUNCE = 0x000008ae,
     ACT_TWIRLING = 0x108008a4,
     ACT_TORNADO_TWIRLING = 0x10020372,
@@ -158,6 +237,9 @@ static uint32_t gWestJumpingBox;
 static uint32_t gEastNorthTweester;
 static uint32_t gSoutheastTweester;
 static uint32_t gWestTweester;
+static uint32_t gToxBox1;
+static uint32_t gToxBox2;
+static uint32_t gToxBox3;
 static int gLastPillars = -1;
 static int gLastTopAction = -1;
 static int gLastTopTimer = -1;
@@ -186,6 +268,13 @@ static int gMode9SourceTweesterCaptured;
 static int gMode9EastNorthTweesterCaptured;
 static int gMode9WestTweesterCaptured;
 static int gMode10NorthAvoidanceReached;
+static int gMode11DetourStage;
+static int gMode11TopApproach;
+static int gMode12Stage;
+static int gMode12RolloutInputs;
+static int gMode12DiveInputs;
+static int gMode12ToxInventoryLogged;
+static int gMode12PillarsComplete;
 static float gMode9WestmostX = INFINITY;
 static uint32_t gLastMovementB;
 static uint32_t gLastAction = UINT32_MAX;
@@ -248,6 +337,112 @@ static float gMaxGapStateY;
 static float gMaxGapObjectY;
 static float gMaxGapGraphicsY;
 
+#if RANK1_BOUNDARY_AUDIT
+struct rank1_surface_receipt {
+    uint32_t owner;
+    uint32_t behavior;
+    int16_t list_index;
+    uint8_t owner_seen;
+    uint8_t inserted;
+    uint8_t owner_active_at_store;
+    uint8_t unsafe_query_returns;
+    uint16_t node_references;
+    uint16_t query_returns;
+};
+
+struct rank1_writer_count {
+    uint32_t pc;
+    uint32_t count;
+};
+
+static struct rank1_surface_receipt gRank1SurfaceReceipts[SURFACE_CAPACITY];
+static struct rank1_writer_count gRank1PoolWriterCounts[64];
+static struct rank1_writer_count gRank1PartitionWriterCounts[32];
+static uint8_t gRank1SeenNodes[SURFACE_NODE_CAPACITY];
+static unsigned gRank1PoolWriterKinds;
+static unsigned gRank1PartitionWriterKinds;
+static int gRank1AuditState;
+static int gRank1BreakpointsArmed;
+static uint32_t gRank1StartTimer;
+static uint32_t gRank1EndTimer;
+static uint32_t gRank1NodeBase;
+static uint32_t gRank1SurfaceBase;
+static uint32_t gRank1SurfaceEnd;
+static uint32_t gRank1StaticNodes;
+static uint32_t gRank1StaticSurfaces;
+static uint32_t gRank1StartFreeSpace;
+static uint32_t gRank1StartLeftHead;
+static uint32_t gRank1StartRightHead;
+static uint32_t gRank1MinLeftHead;
+static uint32_t gRank1MinRightHead;
+static uint32_t gRank1PoolWrites;
+static uint32_t gRank1SafePoolWrites;
+static uint32_t gRank1UnsafePoolWrites;
+static uint32_t gRank1NodeWrites;
+static uint32_t gRank1SurfaceWrites;
+static uint32_t gRank1DynamicPartitionWrites;
+static uint32_t gRank1StaticPartitionWrites;
+static uint32_t gRank1AllocatorGlobalWrites;
+static uint32_t gRank1SurfacePointerWrites;
+static uint32_t gRank1AllocatorCalls[6];
+static uint32_t gRank1ClearDynamicCalls;
+static uint32_t gRank1CollisionModelCalls;
+static uint32_t gRank1LoadObjectSurfacesCalls;
+static uint32_t gRank1OwnerStores;
+static uint32_t gRank1AddSurfaceCalls;
+static uint32_t gRank1InactiveCollisionModelCalls;
+static uint32_t gRank1InactiveOwnerStores;
+static uint32_t gRank1OwnerFailures;
+static uint32_t gRank1ListFailures;
+static uint32_t gRank1FindFloorCalls;
+static uint32_t gRank1FindFloorReturns;
+static uint32_t gRank1FindFloorBeforeClear;
+static uint32_t gRank1FindFloorReturnFailures;
+static uint32_t gRank1DynamicFindFloorReturns;
+static uint32_t gRank1PlatformFindFloorCalls;
+static uint32_t gRank1PostPlatformCalls;
+static uint32_t gRank1OutsideCalls[8];
+static uint32_t gRank1OutsideDestinationStores;
+static uint32_t gRank1OutsideDestinationFailures;
+static uint32_t gRank1EventHash = 2166136261u;
+static uint32_t gRank1PlatformQueryXBits;
+static uint32_t gRank1PlatformQueryYBits;
+static uint32_t gRank1PlatformQueryZBits;
+static uint32_t gRank1SelectedFloor;
+static uint32_t gRank1SelectedPlatform;
+static uint32_t gRank1SelectedOwner;
+static int gRank1SelectedStaticMembership;
+static int gRank1SelectedDynamicMembership;
+static int gRank1ObjectListsIntact;
+static int gRank1StaticListsIntact;
+static int gRank1DynamicListsIntact;
+static int gRank1StaticNodeCoverage;
+static int gRank1DynamicNodeCoverage;
+static int gRank1OwnerEndValidity;
+static int gRank1OwnerEndSafety;
+static uint32_t gRank1EndInvalidSurfaces;
+static uint32_t gRank1PendingCleanupSurfaces;
+static uint32_t gRank1SelectedWords[12];
+static uint32_t gRank1FramesChecked;
+static uint32_t gRank1FrameFailures;
+static uint64_t gRank1OutsideCallSums[8];
+static uint32_t gRank1OutsideCallMaxima[8];
+static uint64_t gRank1OutsideDestinationStoreSum;
+static uint32_t gRank1OutsideDestinationStoreMaximum;
+static uint64_t gRank1FindFloorCallSum;
+static uint64_t gRank1FindFloorReturnSum;
+static uint64_t gRank1DynamicFindFloorReturnSum;
+static uint64_t gRank1FindFloorReturnFailureSum;
+static uint64_t gRank1FindFloorBeforeClearSum;
+static uint64_t gRank1EndInvalidSurfaceSum;
+static uint64_t gRank1PendingCleanupSurfaceSum;
+static uint64_t gRank1InactiveOwnerStoreSum;
+static uint64_t gRank1InactiveCollisionModelCallSum;
+static uint32_t gRank1StaticSelectionFrames;
+static uint32_t gRank1DynamicSelectionFrames;
+static uint32_t gRank1OwnedSelectionFrames;
+#endif
+
 static float rfloat(uint32_t address) {
     union { float f; uint32_t u; } bits;
     bits.u = R32(address);
@@ -287,6 +482,1063 @@ static int add_write_breakpoint(uint32_t address, uint32_t size) {
     breakpoint.flags = M64P_BKP_FLAG_ENABLED | M64P_BKP_FLAG_WRITE;
     return DBreakpointCommand(M64P_BKP_CMD_ADD_STRUCT, 0, &breakpoint) >= 0;
 }
+
+#if RANK1_BOUNDARY_AUDIT
+static int add_rank1_write_breakpoints(uint32_t address, uint32_t size) {
+    int cached = add_write_breakpoint(address, size);
+    int uncached = add_write_breakpoint(address ^ 0x20000000u, size);
+    return cached && uncached;
+}
+
+static void rank1_hash_word(uint32_t word) {
+    gRank1EventHash ^= word;
+    gRank1EventHash *= 16777619u;
+}
+
+static int rank1_in_range(uint32_t address, uint32_t width,
+                          uint32_t start, uint32_t end) {
+    return width != 0 && address >= start && address <= end
+        && width <= end - address;
+}
+
+static int rank1_overlaps_range(uint32_t address, uint32_t width,
+                                uint32_t start, uint32_t end) {
+    uint64_t access_end = (uint64_t) address + width;
+    return width != 0 && (uint64_t) address < end && access_end > start;
+}
+
+/* KSEG0 and KSEG1 name the same first 512 MiB of physical memory.  Normalize
+ * either CPU alias before classifying a triggered write so that an uncached
+ * pointer cannot evade the protected-range test. */
+static uint32_t rank1_kseg0_address(uint32_t address) {
+    uint32_t segment = address & 0xe0000000u;
+    if (segment == 0x80000000u || segment == 0xa0000000u) {
+        return 0x80000000u | (address & 0x1fffffffu);
+    }
+    return address;
+}
+
+static unsigned rank1_store_width(uint32_t instruction) {
+    switch (instruction >> 26) {
+        case 0x28: return 1; /* sb */
+        case 0x29: return 2; /* sh */
+        case 0x2a: return 4; /* swl */
+        case 0x2b: return 4; /* sw */
+        case 0x2c: return 8; /* sdl */
+        case 0x2d: return 8; /* sdr */
+        case 0x2e: return 4; /* swr */
+        case 0x38: return 4; /* sc */
+        case 0x39: return 4; /* swc1 */
+        case 0x3a: return 4; /* swc2 */
+        case 0x3c: return 8; /* scd */
+        case 0x3d: return 8; /* sdc1 */
+        case 0x3e: return 8; /* sdc2 */
+        default: return 0;
+    }
+}
+
+static uint32_t rank1_effective_address(uint32_t instruction,
+                                        uint64_t *registers) {
+    unsigned base = (instruction >> 21) & 31;
+    int32_t displacement = (int16_t) instruction;
+    return registers == NULL ? 0
+        : (uint32_t) registers[base] + displacement;
+}
+
+static uint32_t rank1_source_value(uint32_t instruction,
+                                   uint64_t *registers) {
+    unsigned source = (instruction >> 16) & 31;
+    return registers == NULL ? 0 : (uint32_t) registers[source];
+}
+
+static void rank1_count_writer(struct rank1_writer_count *counts,
+                               unsigned *kinds, unsigned capacity,
+                               uint32_t pc) {
+    unsigned i;
+
+    for (i = 0; i < *kinds; i++) {
+        if (counts[i].pc == pc) {
+            counts[i].count++;
+            return;
+        }
+    }
+    if (*kinds < capacity) {
+        counts[*kinds].pc = pc;
+        counts[*kinds].count = 1;
+        (*kinds)++;
+    } else {
+        gRank1UnsafePoolWrites++;
+    }
+}
+
+static int rank1_valid_object_node(uint32_t node, uint32_t sentinel) {
+    return node == sentinel || pool_index(node) >= 0;
+}
+
+/* Validate every object-list ring while locating one object.  The returned
+ * index is unique when the rings are intact, or -1 when the object is absent. */
+static int rank1_object_list_index(uint32_t object, int *rings_intact) {
+    int found = -1;
+    int found_count = 0;
+    unsigned list_index;
+
+    *rings_intact = 1;
+    for (list_index = 0; list_index < OBJECT_LIST_COUNT; list_index++) {
+        uint32_t sentinel = A_OBJECT_LIST_ARRAY
+            + list_index * OBJECT_NODE_SIZE;
+        uint32_t node = R32(sentinel + HEADER_NEXT);
+        uint32_t previous = sentinel;
+        unsigned steps = 0;
+
+        if (!rank1_valid_object_node(node, sentinel)) {
+            *rings_intact = 0;
+            continue;
+        }
+        while (node != sentinel) {
+            uint32_t next;
+            if (pool_index(node) < 0 || steps++ >= OBJECT_COUNT) {
+                *rings_intact = 0;
+                break;
+            }
+            if (R32(node + HEADER_PREV) != previous) {
+                *rings_intact = 0;
+                break;
+            }
+            if (node == object) {
+                found = (int) list_index;
+                found_count++;
+            }
+            next = R32(node + HEADER_NEXT);
+            if (!rank1_valid_object_node(next, sentinel)) {
+                *rings_intact = 0;
+                break;
+            }
+            previous = node;
+            node = next;
+        }
+        if (node == sentinel
+            && (R32(sentinel + HEADER_PREV) != previous
+                || R32(previous + HEADER_NEXT) != sentinel)) {
+            *rings_intact = 0;
+        }
+    }
+    if (found_count > 1) *rings_intact = 0;
+    return found_count == 1 ? found : -1;
+}
+
+static int rank1_surface_index(uint32_t surface) {
+    uint32_t offset;
+    if (surface < gRank1SurfaceBase) return -1;
+    offset = surface - gRank1SurfaceBase;
+    if (offset % SURFACE_SIZE != 0
+        || offset / SURFACE_SIZE >= SURFACE_CAPACITY) return -1;
+    return (int) (offset / SURFACE_SIZE);
+}
+
+static int rank1_node_index(uint32_t node) {
+    uint32_t offset;
+    if (node < gRank1NodeBase) return -1;
+    offset = node - gRank1NodeBase;
+    if (offset % SURFACE_NODE_SIZE != 0
+        || offset / SURFACE_NODE_SIZE >= SURFACE_NODE_CAPACITY) return -1;
+    return (int) (offset / SURFACE_NODE_SIZE);
+}
+
+static int rank1_scan_partition(uint32_t base, int dynamic,
+                                uint32_t final_nodes,
+                                uint32_t final_surfaces,
+                                int *coverage) {
+    unsigned cell;
+    int intact = 1;
+    uint32_t first_node = dynamic ? gRank1StaticNodes : 0;
+    uint32_t last_node = dynamic ? final_nodes : gRank1StaticNodes;
+    uint32_t first_surface = dynamic ? gRank1StaticSurfaces : 0;
+    uint32_t last_surface = dynamic ? final_surfaces : gRank1StaticSurfaces;
+
+    memset(gRank1SeenNodes, 0, sizeof(gRank1SeenNodes));
+    if (dynamic) {
+        unsigned i;
+        for (i = 0; i < SURFACE_CAPACITY; i++) {
+            gRank1SurfaceReceipts[i].node_references = 0;
+        }
+    }
+    for (cell = 0; cell < 16u * 16u; cell++) {
+        unsigned list_index;
+        for (list_index = 0; list_index < 3; list_index++) {
+            uint32_t node = R32(base + (cell * 3u + list_index) * 8u);
+            int have_priority = 0;
+            int previous_priority = 0;
+            unsigned steps = 0;
+
+            while (node != 0) {
+                int node_index = rank1_node_index(node);
+                uint32_t surface;
+                int surface_index;
+                int priority;
+                uint32_t next;
+
+                if (node_index < 0 || (uint32_t) node_index < first_node
+                    || (uint32_t) node_index >= last_node
+                    || steps++ >= SURFACE_NODE_CAPACITY) {
+                    intact = 0;
+                    break;
+                }
+                if (gRank1SeenNodes[node_index] != 0) {
+                    intact = 0;
+                    break;
+                }
+                gRank1SeenNodes[node_index] = 1;
+                surface = R32(node + 4);
+                surface_index = rank1_surface_index(surface);
+                if (surface_index < 0
+                    || (uint32_t) surface_index < first_surface
+                    || (uint32_t) surface_index >= last_surface) {
+                    intact = 0;
+                    break;
+                }
+                priority = (int16_t) R16(surface + 0x0c);
+                if (list_index == 1) priority = -priority;
+                else if (list_index == 2) priority = 0;
+                if (have_priority && priority > previous_priority) intact = 0;
+                previous_priority = priority;
+                have_priority = 1;
+                if (dynamic) {
+                    struct rank1_surface_receipt *receipt =
+                        &gRank1SurfaceReceipts[surface_index];
+                    if (!receipt->owner_seen || !receipt->inserted
+                        || receipt->owner == 0
+                        || R32(surface + SURFACE_OBJECT) != receipt->owner) {
+                        intact = 0;
+                    }
+                    receipt->node_references++;
+                } else if (R32(surface + SURFACE_OBJECT) != 0) {
+                    intact = 0;
+                }
+                next = R32(node);
+                if (next != 0 && rank1_node_index(next) < 0) {
+                    intact = 0;
+                    break;
+                }
+                node = next;
+            }
+        }
+    }
+    *coverage = 1;
+    if (last_node > SURFACE_NODE_CAPACITY || first_node > last_node) {
+        *coverage = 0;
+    } else {
+        uint32_t i;
+        for (i = first_node; i < last_node; i++) {
+            if (gRank1SeenNodes[i] != 1) *coverage = 0;
+        }
+    }
+    return intact;
+}
+
+static float rank1_float_from_bits(uint32_t bits) {
+    union { uint32_t u; float f; } value;
+    value.u = bits;
+    return value.f;
+}
+
+static int rank1_floor_membership(uint32_t partition, uint32_t selected,
+                                  uint32_t x_bits, uint32_t z_bits) {
+    int16_t x = (int16_t) (int32_t)
+        rank1_float_from_bits(x_bits);
+    int16_t z = (int16_t) (int32_t)
+        rank1_float_from_bits(z_bits);
+    int cell_x;
+    int cell_z;
+    uint32_t node;
+    unsigned steps = 0;
+    int matches = 0;
+
+    if (selected == 0 || x <= -8192 || x >= 8192
+        || z <= -8192 || z >= 8192) return 0;
+    cell_x = ((x + 8192) / 1024) & 15;
+    cell_z = ((z + 8192) / 1024) & 15;
+    node = R32(partition + ((cell_z * 16 + cell_x) * 3) * 8);
+    while (node != 0 && steps++ < SURFACE_NODE_CAPACITY) {
+        if (rank1_node_index(node) < 0) return 0;
+        if (R32(node + 4) == selected) matches++;
+        node = R32(node);
+    }
+    return node == 0 ? matches : 0;
+}
+
+static int rank1_selected_floor_membership(uint32_t partition,
+                                           uint32_t selected) {
+    return rank1_floor_membership(partition, selected,
+                                  gRank1PlatformQueryXBits,
+                                  gRank1PlatformQueryZBits);
+}
+
+static int rank1_safe_surface_record_store(uint32_t target,
+                                           unsigned width) {
+    uint32_t offset = target - gRank1SurfaceBase;
+    uint32_t field_offset = offset % SURFACE_SIZE;
+    uint32_t index = offset / SURFACE_SIZE;
+    return index >= gRank1StaticSurfaces && index < SURFACE_CAPACITY
+        && field_offset + width <= SURFACE_SIZE
+        && (width == 1 || width == 2 || width == 4);
+}
+
+static void rank1_note_pool_write(uint32_t pc, uint32_t instruction,
+                                  uint32_t target, uint32_t source,
+                                  unsigned width) {
+    int safe = 0;
+
+    gRank1PoolWrites++;
+    rank1_count_writer(gRank1PoolWriterCounts, &gRank1PoolWriterKinds,
+                       64, pc);
+    if (rank1_in_range(target, width, gRank1NodeBase,
+                       gRank1NodeBase + SURFACE_NODE_BYTES)) {
+        uint32_t offset = target - gRank1NodeBase;
+        int node_index = rank1_node_index(target - offset % 8);
+        gRank1NodeWrites++;
+        safe = pc >= A_SURFACE_LOAD_TEXT_START
+            && pc < A_SURFACE_LOAD_TEXT_END && width == 4
+            && (offset % 8 == 0 || offset % 8 == 4)
+            && node_index >= 0
+            && (uint32_t) node_index >= gRank1StaticNodes;
+        if (safe && offset % 8 == 4) {
+            int surface_index = rank1_surface_index(source);
+            safe = surface_index >= 0
+                && (uint32_t) surface_index >= gRank1StaticSurfaces;
+        } else if (safe && source != 0) {
+            int next_index = rank1_node_index(source);
+            safe = next_index >= 0
+                && (uint32_t) next_index >= gRank1StaticNodes;
+        }
+    } else if (rank1_in_range(target, width, gRank1SurfaceBase,
+                              gRank1SurfaceEnd)) {
+        int surface_index = rank1_surface_index(
+            target - (target - gRank1SurfaceBase) % SURFACE_SIZE);
+        gRank1SurfaceWrites++;
+        safe = pc >= A_SURFACE_LOAD_TEXT_START
+            && pc < A_SURFACE_LOAD_TEXT_END
+            && rank1_safe_surface_record_store(target, width);
+        if (safe && pc == 0x80383904 && width == 4
+            && (target - gRank1SurfaceBase) % SURFACE_SIZE
+                == SURFACE_OBJECT) {
+            int rings_intact;
+            int list_index = rank1_object_list_index(source, &rings_intact);
+            struct rank1_surface_receipt *receipt =
+                &gRank1SurfaceReceipts[surface_index];
+            gRank1OwnerStores++;
+            receipt->owner = source;
+            receipt->behavior = pool_index(source) < 0
+                ? 0 : R32(source + O_BEHAVIOR);
+            receipt->list_index = (int16_t) list_index;
+            receipt->owner_seen = 1;
+            receipt->owner_active_at_store = pool_index(source) >= 0
+                && R16(source + O_ACTIVE_FLAGS) != 0;
+            if (source != R32(A_CURRENT_OBJECT) || pool_index(source) < 0
+                || list_index < 0 || !rings_intact) {
+                safe = 0;
+                gRank1OwnerFailures++;
+            }
+            if (!receipt->owner_active_at_store) {
+                gRank1InactiveOwnerStores++;
+            }
+        }
+    }
+    if (safe) gRank1SafePoolWrites++;
+    else gRank1UnsafePoolWrites++;
+    rank1_hash_word(pc);
+    rank1_hash_word(instruction);
+    rank1_hash_word(target);
+    rank1_hash_word(source);
+    rank1_hash_word(safe);
+}
+
+static void rank1_note_partition_write(uint32_t pc, uint32_t instruction,
+                                       uint32_t target, uint32_t source,
+                                       unsigned width, int dynamic) {
+    int safe = 0;
+    uint32_t base = dynamic ? A_DYNAMIC_SURFACE_PARTITION
+                            : A_STATIC_SURFACE_PARTITION;
+
+    rank1_count_writer(gRank1PartitionWriterCounts,
+                       &gRank1PartitionWriterKinds, 32, pc);
+    if (dynamic) {
+        int next_index = source == 0 ? (int) gRank1StaticNodes
+                                     : rank1_node_index(source);
+        gRank1DynamicPartitionWrites++;
+        safe = pc >= A_SURFACE_LOAD_TEXT_START
+            && pc < A_SURFACE_LOAD_TEXT_END && width == 4
+            && (target - base) % 8 == 0
+            && (source == 0 || (next_index >= 0
+                && (uint32_t) next_index >= gRank1StaticNodes));
+    } else {
+        gRank1StaticPartitionWrites++;
+    }
+    if (!safe) gRank1UnsafePoolWrites++;
+    rank1_hash_word(pc);
+    rank1_hash_word(instruction);
+    rank1_hash_word(target);
+    rank1_hash_word(source);
+    rank1_hash_word(safe);
+}
+
+static void rank1_note_allocator_global_write(uint32_t pc,
+                                              uint32_t instruction,
+                                              uint32_t target,
+                                              uint32_t source,
+                                              unsigned width) {
+    int safe = width == 4;
+    gRank1AllocatorGlobalWrites++;
+    if (target == A_MAIN_POOL_LEFT_HEAD) {
+        safe = safe && source >= gRank1SurfaceEnd
+            && source <= R32(A_MAIN_POOL_RIGHT_HEAD);
+        if (source < gRank1MinLeftHead) gRank1MinLeftHead = source;
+    } else if (target == A_MAIN_POOL_RIGHT_HEAD) {
+        safe = safe && source >= R32(A_MAIN_POOL_LEFT_HEAD)
+            && source <= R32(A_MAIN_POOL_END);
+        if (source < gRank1MinRightHead) gRank1MinRightHead = source;
+    } else if (target != A_MAIN_POOL_FREE_SPACE) {
+        safe = 0;
+    }
+    if (!safe) gRank1UnsafePoolWrites++;
+    fprintf(stderr,
+            "RANK1_ALLOCATOR_WRITE,ordinal=%u,timer=%u,pc=%08x,"
+            "instruction=%08x,target=%08x,value=%08x,safe=%d\n",
+            gRank1AllocatorGlobalWrites, R32(A_GLOBAL_TIMER), pc,
+            instruction, target, source, safe);
+}
+
+static int rank1_handle_write(uint32_t pc, uint64_t *registers,
+                              uint32_t accessed) {
+    uint32_t instruction = R32(pc);
+    unsigned width = rank1_store_width(instruction);
+    uint32_t raw_target = rank1_effective_address(instruction, registers);
+    uint32_t target = rank1_kseg0_address(raw_target);
+    uint32_t source = rank1_source_value(instruction, registers);
+    uint32_t physical = target & 0x1fffffffu;
+    int watched = 0;
+
+    (void) accessed;
+    if (rank1_overlaps_range(target, width, gRank1NodeBase,
+                             gRank1NodeBase + SURFACE_NODE_BYTES)
+        || rank1_overlaps_range(target, width, gRank1SurfaceBase,
+                                gRank1SurfaceEnd)) {
+        watched = 1;
+        if (gRank1AuditState == 2) {
+            rank1_note_pool_write(pc, instruction, target, source, width);
+        }
+    } else if (rank1_overlaps_range(target, width,
+                                    A_DYNAMIC_SURFACE_PARTITION,
+                                    A_DYNAMIC_SURFACE_PARTITION
+                                        + SURFACE_PARTITION_BYTES)) {
+        watched = 1;
+        if (gRank1AuditState == 2) {
+            rank1_note_partition_write(pc, instruction, target, source,
+                                       width, 1);
+        }
+    } else if (rank1_overlaps_range(target, width,
+                                    A_STATIC_SURFACE_PARTITION,
+                                    A_STATIC_SURFACE_PARTITION
+                                        + SURFACE_PARTITION_BYTES)) {
+        watched = 1;
+        if (gRank1AuditState == 2) {
+            rank1_note_partition_write(pc, instruction, target, source,
+                                       width, 0);
+        }
+    } else if (physical >= (A_MAIN_POOL_FREE_SPACE & 0x1fffffffu)
+               && physical <= (A_MAIN_POOL_RIGHT_HEAD & 0x1fffffffu)) {
+        watched = 1;
+        if (gRank1AuditState == 2) {
+            rank1_note_allocator_global_write(pc, instruction, target,
+                                              source, width);
+        }
+    } else if (physical >= (A_SURFACE_NODE_POOL_CELL & 0x1fffffffu)
+               && physical < ((A_SURFACE_POOL_CELL + 4) & 0x1fffffffu)) {
+        watched = 1;
+        if (gRank1AuditState == 2) {
+            gRank1SurfacePointerWrites++;
+            gRank1UnsafePoolWrites++;
+        }
+    }
+    return watched;
+}
+
+static void rank1_start_audit(void) {
+    memset(gRank1SurfaceReceipts, 0, sizeof(gRank1SurfaceReceipts));
+    memset(gRank1PoolWriterCounts, 0, sizeof(gRank1PoolWriterCounts));
+    memset(gRank1PartitionWriterCounts, 0,
+           sizeof(gRank1PartitionWriterCounts));
+    memset(gRank1AllocatorCalls, 0, sizeof(gRank1AllocatorCalls));
+    memset(gRank1OutsideCalls, 0, sizeof(gRank1OutsideCalls));
+    gRank1PoolWriterKinds = 0;
+    gRank1PartitionWriterKinds = 0;
+    gRank1PoolWrites = 0;
+    gRank1SafePoolWrites = 0;
+    gRank1UnsafePoolWrites = 0;
+    gRank1NodeWrites = 0;
+    gRank1SurfaceWrites = 0;
+    gRank1DynamicPartitionWrites = 0;
+    gRank1StaticPartitionWrites = 0;
+    gRank1AllocatorGlobalWrites = 0;
+    gRank1SurfacePointerWrites = 0;
+    gRank1ClearDynamicCalls = 0;
+    gRank1CollisionModelCalls = 0;
+    gRank1LoadObjectSurfacesCalls = 0;
+    gRank1OwnerStores = 0;
+    gRank1AddSurfaceCalls = 0;
+    gRank1InactiveCollisionModelCalls = 0;
+    gRank1InactiveOwnerStores = 0;
+    gRank1OwnerFailures = 0;
+    gRank1ListFailures = 0;
+    gRank1FindFloorCalls = 0;
+    gRank1FindFloorReturns = 0;
+    gRank1FindFloorBeforeClear = 0;
+    gRank1FindFloorReturnFailures = 0;
+    gRank1DynamicFindFloorReturns = 0;
+    gRank1PlatformFindFloorCalls = 0;
+    gRank1PostPlatformCalls = 0;
+    gRank1OutsideDestinationStores = 0;
+    gRank1OutsideDestinationFailures = 0;
+    gRank1EventHash = 2166136261u;
+    gRank1SelectedFloor = 0;
+    gRank1SelectedPlatform = 0;
+    gRank1SelectedOwner = 0;
+    gRank1EndInvalidSurfaces = 0;
+    gRank1PendingCleanupSurfaces = 0;
+    gRank1StartTimer = R32(A_GLOBAL_TIMER);
+    gRank1NodeBase = R32(A_SURFACE_NODE_POOL_CELL);
+    gRank1SurfaceBase = R32(A_SURFACE_POOL_CELL);
+    gRank1SurfaceEnd = gRank1SurfaceBase + SURFACE_BYTES;
+    gRank1StaticNodes = R32(A_NUM_STATIC_SURFACE_NODES);
+    gRank1StaticSurfaces = R32(A_NUM_STATIC_SURFACES);
+    gRank1StartFreeSpace = R32(A_MAIN_POOL_FREE_SPACE);
+    gRank1StartLeftHead = R32(A_MAIN_POOL_LEFT_HEAD);
+    gRank1StartRightHead = R32(A_MAIN_POOL_RIGHT_HEAD);
+    gRank1MinLeftHead = gRank1StartLeftHead;
+    gRank1MinRightHead = gRank1StartRightHead;
+    gRank1AuditState = 2;
+    fprintf(stderr,
+            "RANK1_BOUNDARY_START,timer=%u,nodeBase=%08x,surfaceBase=%08x,"
+            "surfaceEnd=%08x,staticNodes=%u,staticSurfaces=%u,"
+            "mainPoolFree=%u,leftHead=%08x,rightHead=%08x,"
+            "rangeSeparated=%d\n",
+            gRank1StartTimer, gRank1NodeBase, gRank1SurfaceBase,
+            gRank1SurfaceEnd, gRank1StaticNodes, gRank1StaticSurfaces,
+            gRank1StartFreeSpace, gRank1StartLeftHead,
+            gRank1StartRightHead,
+            gRank1NodeBase + SURFACE_NODE_BYTES + 16 == gRank1SurfaceBase
+                && gRank1SurfaceEnd <= gRank1StartLeftHead);
+}
+
+static void rank1_finish_audit(void) {
+    uint32_t final_nodes = R32(A_SURFACE_NODES_ALLOCATED);
+    uint32_t final_surfaces = R32(A_SURFACES_ALLOCATED);
+    unsigned i;
+    int rings_intact;
+    int dummy_list;
+    int invariant;
+
+    gRank1EndTimer = R32(A_GLOBAL_TIMER);
+    gRank1StaticListsIntact = rank1_scan_partition(
+        A_STATIC_SURFACE_PARTITION, 0, final_nodes, final_surfaces,
+        &gRank1StaticNodeCoverage);
+    gRank1DynamicListsIntact = rank1_scan_partition(
+        A_DYNAMIC_SURFACE_PARTITION, 1, final_nodes, final_surfaces,
+        &gRank1DynamicNodeCoverage);
+    dummy_list = rank1_object_list_index(0, &rings_intact);
+    (void) dummy_list;
+    gRank1ObjectListsIntact = rings_intact;
+    gRank1OwnerEndValidity = 1;
+    for (i = gRank1StaticSurfaces;
+         i < final_surfaces && i < SURFACE_CAPACITY; i++) {
+        struct rank1_surface_receipt *receipt = &gRank1SurfaceReceipts[i];
+        if (receipt->owner_seen) {
+            int end_rings;
+            int end_list = rank1_object_list_index(receipt->owner,
+                                                   &end_rings);
+            uint32_t surface = gRank1SurfaceBase + i * SURFACE_SIZE;
+            if (!receipt->inserted || receipt->node_references == 0
+                || pool_index(receipt->owner) < 0 || !end_rings
+                || end_list != receipt->list_index
+                || R16(receipt->owner + O_ACTIVE_FLAGS) == 0
+                || R32(receipt->owner + O_BEHAVIOR) != receipt->behavior
+                || R32(surface + SURFACE_OBJECT) != receipt->owner) {
+                gRank1OwnerEndValidity = 0;
+                gRank1EndInvalidSurfaces++;
+                /* Dynamic partitions are cleared before the first query of
+                 * the next update.  An owner that dies after installation is
+                 * therefore harmless at this boundary exactly when every
+                 * query which actually returned its surface observed a live,
+                 * correctly linked owner at return time. */
+                if (receipt->inserted && receipt->node_references != 0
+                    && receipt->unsafe_query_returns == 0) {
+                    gRank1PendingCleanupSurfaces++;
+                }
+            }
+        }
+    }
+    gRank1OwnerEndSafety =
+        gRank1EndInvalidSurfaces == gRank1PendingCleanupSurfaces;
+    gRank1SelectedStaticMembership = rank1_selected_floor_membership(
+        A_STATIC_SURFACE_PARTITION, gRank1SelectedFloor);
+    gRank1SelectedDynamicMembership = rank1_selected_floor_membership(
+        A_DYNAMIC_SURFACE_PARTITION, gRank1SelectedFloor);
+    if (gRank1SelectedFloor != 0
+        && rank1_surface_index(gRank1SelectedFloor) >= 0) {
+        for (i = 0; i < 12; i++) {
+            gRank1SelectedWords[i] = R32(gRank1SelectedFloor + i * 4);
+        }
+        gRank1SelectedOwner = R32(gRank1SelectedFloor + SURFACE_OBJECT);
+    }
+    for (i = 0; i < gRank1PoolWriterKinds; i++) {
+        fprintf(stderr, "RANK1_POOL_WRITER,pc=%08x,count=%u\n",
+                gRank1PoolWriterCounts[i].pc,
+                gRank1PoolWriterCounts[i].count);
+    }
+    for (i = 0; i < gRank1PartitionWriterKinds; i++) {
+        fprintf(stderr, "RANK1_PARTITION_WRITER,pc=%08x,count=%u\n",
+                gRank1PartitionWriterCounts[i].pc,
+                gRank1PartitionWriterCounts[i].count);
+    }
+    fprintf(stderr,
+            "RANK1_SELECTED_FLOOR,queryBits=(%08x,%08x,%08x),"
+            "surface=%08x,platform=%08x,owner=%08x,staticMembership=%d,"
+            "dynamicMembership=%d,words=%08x:%08x:%08x:%08x:%08x:%08x:"
+            "%08x:%08x:%08x:%08x:%08x:%08x\n",
+            gRank1PlatformQueryXBits, gRank1PlatformQueryYBits,
+            gRank1PlatformQueryZBits, gRank1SelectedFloor,
+            gRank1SelectedPlatform, gRank1SelectedOwner,
+            gRank1SelectedStaticMembership,
+            gRank1SelectedDynamicMembership,
+            gRank1SelectedWords[0], gRank1SelectedWords[1],
+            gRank1SelectedWords[2], gRank1SelectedWords[3],
+            gRank1SelectedWords[4], gRank1SelectedWords[5],
+            gRank1SelectedWords[6], gRank1SelectedWords[7],
+            gRank1SelectedWords[8], gRank1SelectedWords[9],
+            gRank1SelectedWords[10], gRank1SelectedWords[11]);
+    fprintf(stderr,
+            "RANK1_OUTSIDE_CALLS,sqrtf=%u,cameraShake=%u,"
+            "createSoundSpawner=%u,curObjPlaySound2=%u,playSound=%u,"
+            "puzzleJingle=%u,stopSoundsSource=%u,stopSoundsContinuous=%u,"
+            "destinationStores=%u,destinationFailures=%u\n",
+            gRank1OutsideCalls[0], gRank1OutsideCalls[1],
+            gRank1OutsideCalls[2], gRank1OutsideCalls[3],
+            gRank1OutsideCalls[4], gRank1OutsideCalls[5],
+            gRank1OutsideCalls[6], gRank1OutsideCalls[7],
+            gRank1OutsideDestinationStores,
+            gRank1OutsideDestinationFailures);
+    invariant = gRank1EndTimer == gRank1StartTimer + 1
+        && gRank1NodeBase == R32(A_SURFACE_NODE_POOL_CELL)
+        && gRank1SurfaceBase == R32(A_SURFACE_POOL_CELL)
+        && R32(A_MAIN_POOL_LEFT_HEAD) >= gRank1SurfaceEnd
+        && R32(A_MAIN_POOL_LEFT_HEAD) <= R32(A_MAIN_POOL_RIGHT_HEAD)
+        && R32(A_MAIN_POOL_START) <= gRank1NodeBase
+        && gRank1UnsafePoolWrites == 0
+        && gRank1SurfacePointerWrites == 0
+        && gRank1StaticPartitionWrites == 0
+        && gRank1ClearDynamicCalls == 1
+        && gRank1OwnerStores == gRank1AddSurfaceCalls
+        && gRank1OwnerFailures == 0 && gRank1ListFailures == 0
+        && gRank1ObjectListsIntact && gRank1StaticListsIntact
+        && gRank1DynamicListsIntact && gRank1StaticNodeCoverage
+        && gRank1DynamicNodeCoverage && gRank1OwnerEndSafety
+        && gRank1FindFloorReturns == gRank1FindFloorCalls
+        && gRank1FindFloorBeforeClear == 0
+        && gRank1FindFloorReturnFailures == 0
+        && gRank1PlatformFindFloorCalls == 1
+        && gRank1PostPlatformCalls == 1
+        && gRank1SelectedFloor != 0
+        && gRank1SelectedStaticMembership
+            + gRank1SelectedDynamicMembership == 1
+        && gRank1SelectedPlatform == gRank1SelectedOwner
+        && gRank1OutsideDestinationFailures == 0;
+    fprintf(stderr,
+            "RANK1_BOUNDARY_END,startTimer=%u,endTimer=%u,"
+            "poolWrites=%u,safePoolWrites=%u,unsafePoolWrites=%u,"
+            "nodeWrites=%u,surfaceWrites=%u,dynamicPartitionWrites=%u,"
+            "staticPartitionWrites=%u,allocatorGlobalWrites=%u,"
+            "surfacePointerWrites=%u,allocatorCalls=%u:%u:%u:%u:%u:%u,"
+            "startHeads=%08x:%08x,minHeads=%08x:%08x,"
+            "endHeads=%08x:%08x,endFree=%u,"
+            "clearDynamicCalls=%u,collisionModelCalls=%u,"
+            "loadObjectSurfacesCalls=%u,ownerStores=%u,addSurfaceCalls=%u,"
+            "inactiveCollisionModelCalls=%u,inactiveOwnerStores=%u,"
+            "ownerFailures=%u,listFailures=%u,findFloorCalls=%u,"
+            "findFloorReturns=%u,findFloorBeforeClear=%u,"
+            "findFloorReturnFailures=%u,dynamicFindFloorReturns=%u,"
+            "platformFindFloorCalls=%u,postPlatformCalls=%u,"
+            "finalNodes=%u,finalSurfaces=%u,objectListsIntact=%d,"
+            "staticListsIntact=%d,dynamicListsIntact=%d,"
+            "staticNodeCoverage=%d,dynamicNodeCoverage=%d,"
+            "ownerEndValidity=%d,endInvalidSurfaces=%u,"
+            "pendingCleanupSurfaces=%u,ownerEndSafety=%d,"
+            "eventHash=%08x,invariant=%d\n",
+            gRank1StartTimer, gRank1EndTimer, gRank1PoolWrites,
+            gRank1SafePoolWrites, gRank1UnsafePoolWrites,
+            gRank1NodeWrites, gRank1SurfaceWrites,
+            gRank1DynamicPartitionWrites, gRank1StaticPartitionWrites,
+            gRank1AllocatorGlobalWrites, gRank1SurfacePointerWrites,
+            gRank1AllocatorCalls[0], gRank1AllocatorCalls[1],
+            gRank1AllocatorCalls[2], gRank1AllocatorCalls[3],
+            gRank1AllocatorCalls[4], gRank1AllocatorCalls[5],
+            gRank1StartLeftHead, gRank1StartRightHead,
+            gRank1MinLeftHead, gRank1MinRightHead,
+            R32(A_MAIN_POOL_LEFT_HEAD), R32(A_MAIN_POOL_RIGHT_HEAD),
+            R32(A_MAIN_POOL_FREE_SPACE),
+            gRank1ClearDynamicCalls, gRank1CollisionModelCalls,
+            gRank1LoadObjectSurfacesCalls, gRank1OwnerStores,
+            gRank1AddSurfaceCalls, gRank1InactiveCollisionModelCalls,
+            gRank1InactiveOwnerStores, gRank1OwnerFailures,
+            gRank1ListFailures, gRank1FindFloorCalls,
+            gRank1FindFloorReturns, gRank1FindFloorBeforeClear,
+            gRank1FindFloorReturnFailures,
+            gRank1DynamicFindFloorReturns,
+            gRank1PlatformFindFloorCalls, gRank1PostPlatformCalls,
+            final_nodes, final_surfaces, gRank1ObjectListsIntact,
+            gRank1StaticListsIntact, gRank1DynamicListsIntact,
+            gRank1StaticNodeCoverage, gRank1DynamicNodeCoverage,
+            gRank1OwnerEndValidity, gRank1EndInvalidSurfaces,
+            gRank1PendingCleanupSurfaces, gRank1OwnerEndSafety,
+            gRank1EventHash, invariant);
+    gRank1FramesChecked++;
+    if (!invariant) gRank1FrameFailures++;
+    for (i = 0; i < 8; i++) {
+        gRank1OutsideCallSums[i] += gRank1OutsideCalls[i];
+        if (gRank1OutsideCalls[i] > gRank1OutsideCallMaxima[i]) {
+            gRank1OutsideCallMaxima[i] = gRank1OutsideCalls[i];
+        }
+    }
+    gRank1OutsideDestinationStoreSum += gRank1OutsideDestinationStores;
+    if (gRank1OutsideDestinationStores
+        > gRank1OutsideDestinationStoreMaximum) {
+        gRank1OutsideDestinationStoreMaximum =
+            gRank1OutsideDestinationStores;
+    }
+    gRank1FindFloorCallSum += gRank1FindFloorCalls;
+    gRank1FindFloorReturnSum += gRank1FindFloorReturns;
+    gRank1DynamicFindFloorReturnSum += gRank1DynamicFindFloorReturns;
+    gRank1FindFloorReturnFailureSum += gRank1FindFloorReturnFailures;
+    gRank1FindFloorBeforeClearSum += gRank1FindFloorBeforeClear;
+    gRank1EndInvalidSurfaceSum += gRank1EndInvalidSurfaces;
+    gRank1PendingCleanupSurfaceSum += gRank1PendingCleanupSurfaces;
+    gRank1InactiveOwnerStoreSum += gRank1InactiveOwnerStores;
+    gRank1InactiveCollisionModelCallSum +=
+        gRank1InactiveCollisionModelCalls;
+    if (gRank1SelectedStaticMembership) gRank1StaticSelectionFrames++;
+    if (gRank1SelectedDynamicMembership) gRank1DynamicSelectionFrames++;
+    if (gRank1SelectedOwner != 0) gRank1OwnedSelectionFrames++;
+    gRank1AuditState = 3;
+}
+
+static int rank1_allocator_index(uint32_t pc) {
+    switch (pc) {
+        case A_MAIN_POOL_INIT: return 0;
+        case A_MAIN_POOL_ALLOC: return 1;
+        case A_MAIN_POOL_FREE: return 2;
+        case A_MAIN_POOL_REALLOC: return 3;
+        case A_MAIN_POOL_PUSH_STATE: return 4;
+        case A_MAIN_POOL_POP_STATE: return 5;
+        default: return -1;
+    }
+}
+
+static const char *rank1_allocator_name(int index) {
+    static const char *const names[] = {
+        "init", "alloc", "free", "realloc", "push", "pop"
+    };
+    return index >= 0 && index < 6 ? names[index] : "unknown";
+}
+
+static int rank1_outside_index(uint32_t pc) {
+    switch (pc) {
+        case A_SQRTF: return 0;
+        case A_SET_CAMERA_SHAKE_FROM_POINT: return 1;
+        case A_CREATE_SOUND_SPAWNER: return 2;
+        case A_CUR_OBJ_PLAY_SOUND_2: return 3;
+        case A_PLAY_SOUND: return 4;
+        case A_PLAY_PUZZLE_JINGLE: return 5;
+        case A_STOP_SOUNDS_FROM_SOURCE: return 6;
+        case A_STOP_SOUNDS_IN_CONTINUOUS_BANKS: return 7;
+        default: return -1;
+    }
+}
+
+static int rank1_handle_breakpoint(uint32_t pc, uint64_t *registers) {
+    uint32_t trigger_flags = 0;
+    uint32_t accessed = 0;
+    int allocator_index;
+    int outside_index;
+
+    DBreakpointTriggeredBy(&trigger_flags, &accessed);
+    if ((trigger_flags & M64P_BKP_FLAG_WRITE) != 0
+        && rank1_handle_write(pc, registers, accessed)) return 1;
+    if ((trigger_flags & M64P_BKP_FLAG_EXEC) == 0) return 0;
+    if (pc == A_UPDATE_OBJECTS) {
+        if (gRank1AuditState == 1) rank1_start_audit();
+        else if (gRank1AuditState == 2) {
+            rank1_finish_audit();
+            if (R32(A_GLOBAL_TIMER) < RANK1_BOUNDARY_REPEAT_UNTIL) {
+                rank1_start_audit();
+            }
+        }
+        return 1;
+    }
+    if (gRank1AuditState != 2) return 0;
+    allocator_index = rank1_allocator_index(pc);
+    if (allocator_index >= 0) {
+        gRank1AllocatorCalls[allocator_index]++;
+        fprintf(stderr,
+                "RANK1_ALLOCATOR_CALL,kind=%s,ordinal=%u,timer=%u,"
+                "pc=%08x,returnPC=%08x,a0=%08x,a1=%08x,free=%u,"
+                "leftHead=%08x,rightHead=%08x\n",
+                rank1_allocator_name(allocator_index),
+                gRank1AllocatorCalls[allocator_index],
+                R32(A_GLOBAL_TIMER), pc,
+                registers == NULL ? 0 : (uint32_t) registers[31],
+                registers == NULL ? 0 : (uint32_t) registers[4],
+                registers == NULL ? 0 : (uint32_t) registers[5],
+                R32(A_MAIN_POOL_FREE_SPACE),
+                R32(A_MAIN_POOL_LEFT_HEAD),
+                R32(A_MAIN_POOL_RIGHT_HEAD));
+        if (R32(A_MAIN_POOL_LEFT_HEAD) < gRank1SurfaceEnd
+            || R32(A_MAIN_POOL_LEFT_HEAD) > R32(A_MAIN_POOL_RIGHT_HEAD)) {
+            gRank1UnsafePoolWrites++;
+        }
+        return 1;
+    }
+    if (pc == A_CLEAR_DYNAMIC_SURFACES) {
+        gRank1ClearDynamicCalls++;
+        return 1;
+    }
+    if (pc == A_LOAD_OBJECT_COLLISION_MODEL) {
+        uint32_t owner = R32(A_CURRENT_OBJECT);
+        int rings_intact;
+        int list_index = rank1_object_list_index(owner, &rings_intact);
+        gRank1CollisionModelCalls++;
+        if (pool_index(owner) >= 0
+            && R16(owner + O_ACTIVE_FLAGS) == 0) {
+            gRank1InactiveCollisionModelCalls++;
+        }
+        if (pool_index(owner) < 0 || R32(owner + O_COLLISION_DATA) == 0
+            || list_index < 0 || !rings_intact) {
+            gRank1OwnerFailures++;
+        }
+        return 1;
+    }
+    if (pc == A_LOAD_OBJECT_SURFACES) {
+        gRank1LoadObjectSurfacesCalls++;
+        return 1;
+    }
+    if (pc == A_ADD_SURFACE) {
+        uint32_t surface = registers == NULL ? 0
+                                             : (uint32_t) registers[4];
+        uint32_t dynamic = registers == NULL ? 0
+                                             : (uint32_t) registers[5];
+        int surface_index = rank1_surface_index(surface);
+        gRank1AddSurfaceCalls++;
+        if (dynamic != 1 || surface_index < 0
+            || !gRank1SurfaceReceipts[surface_index].owner_seen
+            || R32(surface + SURFACE_OBJECT)
+                != gRank1SurfaceReceipts[surface_index].owner) {
+            gRank1OwnerFailures++;
+        } else {
+            gRank1SurfaceReceipts[surface_index].inserted = 1;
+        }
+        return 1;
+    }
+    if (pc == A_FIND_FLOOR) {
+        uint32_t return_pc = registers == NULL ? 0
+                                               : (uint32_t) registers[31];
+        gRank1FindFloorCalls++;
+        if (gRank1ClearDynamicCalls == 0) {
+            gRank1FindFloorBeforeClear++;
+        }
+        if (return_pc == A_POST_PLATFORM_FIND_FLOOR) {
+            uint32_t mario = R32(A_MARIO_OBJECT);
+            gRank1PlatformFindFloorCalls++;
+            gRank1PlatformQueryXBits = R32(mario + O_POS_X);
+            gRank1PlatformQueryYBits = R32(mario + O_POS_Y);
+            gRank1PlatformQueryZBits = R32(mario + O_POS_Z);
+        }
+        return 1;
+    }
+    if (pc == A_FIND_FLOOR_RETURN) {
+        uint32_t sp = registers == NULL ? 0 : (uint32_t) registers[29];
+        uint32_t x_bits = sp == 0 ? 0 : R32(sp + 0x40);
+        uint32_t y_bits = sp == 0 ? 0 : R32(sp + 0x44);
+        uint32_t z_bits = sp == 0 ? 0 : R32(sp + 0x48);
+        uint32_t pfloor = sp == 0 ? 0 : R32(sp + 0x4c);
+        uint32_t surface = pfloor == 0 ? 0 : R32(pfloor);
+        uint32_t current_surfaces = R32(A_SURFACES_ALLOCATED);
+        int surface_index = rank1_surface_index(surface);
+        int static_matches = surface == 0 ? 0 : rank1_floor_membership(
+            A_STATIC_SURFACE_PARTITION, surface, x_bits, z_bits);
+        int dynamic_matches = surface == 0 ? 0 : rank1_floor_membership(
+            A_DYNAMIC_SURFACE_PARTITION, surface, x_bits, z_bits);
+        uint32_t owner = 0;
+        int owner_list = -1;
+        int rings_intact = 0;
+        int safe = sp != 0 && pfloor != 0;
+
+        gRank1FindFloorReturns++;
+        if (surface != 0) {
+            safe = safe && surface_index >= 0
+                && (uint32_t) surface_index < current_surfaces
+                && (static_matches > 0) + (dynamic_matches > 0) == 1;
+        }
+        if (dynamic_matches > 0 && surface_index >= 0
+            && (unsigned) surface_index < SURFACE_CAPACITY) {
+            struct rank1_surface_receipt *receipt =
+                &gRank1SurfaceReceipts[surface_index];
+            owner = R32(surface + SURFACE_OBJECT);
+            owner_list = rank1_object_list_index(owner, &rings_intact);
+            receipt->query_returns++;
+            gRank1DynamicFindFloorReturns++;
+            if (!receipt->owner_seen || !receipt->inserted
+                || receipt->owner != owner || pool_index(owner) < 0
+                || R16(owner + O_ACTIVE_FLAGS) == 0 || !rings_intact
+                || owner_list != receipt->list_index
+                || R32(owner + O_BEHAVIOR) != receipt->behavior) {
+                receipt->unsafe_query_returns++;
+                safe = 0;
+            }
+        }
+        if (!safe) gRank1FindFloorReturnFailures++;
+        rank1_hash_word(A_FIND_FLOOR_RETURN);
+        rank1_hash_word(x_bits);
+        rank1_hash_word(y_bits);
+        rank1_hash_word(z_bits);
+        rank1_hash_word(surface);
+        rank1_hash_word(owner);
+        rank1_hash_word(safe);
+        if (!safe || (R32(A_GLOBAL_TIMER) == 2700
+                      && dynamic_matches > 0)) {
+            fprintf(stderr,
+                    "RANK1_FIND_FLOOR_RETURN,timer=%u,ordinal=%u,"
+                    "queryBits=(%08x,%08x,%08x),pfloor=%08x,"
+                    "surface=%08x,surfaceIndex=%d,staticMatches=%d,"
+                    "dynamicMatches=%d,owner=%08x,ownerList=%d,"
+                    "ownerActive=%u,safe=%d\n",
+                    R32(A_GLOBAL_TIMER), gRank1FindFloorReturns,
+                    x_bits, y_bits, z_bits, pfloor, surface,
+                    surface_index, static_matches, dynamic_matches,
+                    owner, owner_list,
+                    pool_index(owner) < 0 ? 0
+                        : (unsigned) R16(owner + O_ACTIVE_FLAGS),
+                    safe);
+        }
+        return 1;
+    }
+    if (pc == A_POST_PLATFORM_FIND_FLOOR) {
+        uint32_t sp = registers == NULL ? 0 : (uint32_t) registers[29];
+        gRank1SelectedFloor = sp == 0 ? 0 : R32(sp + 60);
+        return 1;
+    }
+    if (pc == A_POST_MARIO_PLATFORM) {
+        gRank1PostPlatformCalls++;
+        gRank1SelectedPlatform = R32(A_MARIO_PLATFORM);
+        return 1;
+    }
+    if (pc == A_CREATE_SOUND_SPAWNER_STORE
+        || pc == A_PLAY_SOUND_STORE_0 || pc == A_PLAY_SOUND_STORE_1
+        || pc == A_PLAY_SOUND_COUNT_STORE
+        || pc == A_PLAY_PUZZLE_JINGLE_STORE) {
+        uint32_t instruction = R32(pc);
+        uint32_t target = rank1_effective_address(instruction, registers);
+        int safe = 0;
+        gRank1OutsideDestinationStores++;
+        if (pc == A_CREATE_SOUND_SPAWNER_STORE) {
+            safe = pool_index(target - O_MARIO_PARTICLE_FLAGS) >= 0
+                && (target - A_OBJECT_POOL) % OBJECT_SIZE
+                    == O_MARIO_PARTICLE_FLAGS;
+        } else if (pc == A_PLAY_SOUND_STORE_0) {
+            safe = target >= A_SOUND_REQUEST_BASE
+                && target < A_SOUND_REQUEST_END
+                && (target - A_SOUND_REQUEST_BASE) % 8 == 0;
+        } else if (pc == A_PLAY_SOUND_STORE_1) {
+            safe = target >= A_SOUND_REQUEST_BASE + 4
+                && target < A_SOUND_REQUEST_END
+                && (target - (A_SOUND_REQUEST_BASE + 4)) % 8 == 0;
+        } else if (pc == A_PLAY_SOUND_COUNT_STORE) {
+            safe = target == A_SOUND_REQUEST_COUNT;
+        } else {
+            safe = target == A_PUZZLE_MUSIC_STATE;
+        }
+        if (!safe) gRank1OutsideDestinationFailures++;
+        rank1_hash_word(pc);
+        rank1_hash_word(target);
+        rank1_hash_word(safe);
+        return 1;
+    }
+    outside_index = rank1_outside_index(pc);
+    if (outside_index >= 0) {
+        gRank1OutsideCalls[outside_index]++;
+        rank1_hash_word(pc);
+        if (registers != NULL) {
+            rank1_hash_word((uint32_t) registers[4]);
+            rank1_hash_word((uint32_t) registers[5]);
+            rank1_hash_word((uint32_t) registers[29]);
+        }
+        return 1;
+    }
+    return 0;
+}
+
+static void arm_rank1_boundary_audit(void) {
+    static const uint32_t exec_addresses[] = {
+        A_UPDATE_OBJECTS,
+        A_MAIN_POOL_INIT, A_MAIN_POOL_ALLOC, A_MAIN_POOL_FREE,
+        A_MAIN_POOL_REALLOC, A_MAIN_POOL_PUSH_STATE, A_MAIN_POOL_POP_STATE,
+        A_CLEAR_DYNAMIC_SURFACES, A_LOAD_OBJECT_COLLISION_MODEL,
+        A_LOAD_OBJECT_SURFACES, A_ADD_SURFACE, A_FIND_FLOOR,
+        A_FIND_FLOOR_RETURN,
+        A_POST_PLATFORM_FIND_FLOOR, A_POST_MARIO_PLATFORM,
+        A_SQRTF, A_SET_CAMERA_SHAKE_FROM_POINT,
+        A_CREATE_SOUND_SPAWNER, A_CREATE_SOUND_SPAWNER_STORE,
+        A_CUR_OBJ_PLAY_SOUND_2, A_PLAY_SOUND,
+        A_PLAY_SOUND_STORE_0, A_PLAY_SOUND_STORE_1,
+        A_PLAY_SOUND_COUNT_STORE, A_PLAY_PUZZLE_JINGLE,
+        A_PLAY_PUZZLE_JINGLE_STORE,
+    };
+    unsigned i;
+    int armed = 1;
+
+    if (gRank1BreakpointsArmed) return;
+    gRank1NodeBase = R32(A_SURFACE_NODE_POOL_CELL);
+    gRank1SurfaceBase = R32(A_SURFACE_POOL_CELL);
+    gRank1SurfaceEnd = gRank1SurfaceBase + SURFACE_BYTES;
+    for (i = 0; i < sizeof(exec_addresses) / sizeof(exec_addresses[0]); i++) {
+        if (!add_exec_breakpoint(exec_addresses[i])) armed = 0;
+    }
+    if (!add_rank1_write_breakpoints(gRank1NodeBase, SURFACE_NODE_BYTES)
+        || !add_rank1_write_breakpoints(gRank1SurfaceBase, SURFACE_BYTES)
+        || !add_rank1_write_breakpoints(A_STATIC_SURFACE_PARTITION,
+                                        SURFACE_PARTITION_BYTES)
+        || !add_rank1_write_breakpoints(A_DYNAMIC_SURFACE_PARTITION,
+                                        SURFACE_PARTITION_BYTES)
+        || !add_rank1_write_breakpoints(A_MAIN_POOL_FREE_SPACE, 0x14)
+        || !add_rank1_write_breakpoints(A_SURFACE_NODE_POOL_CELL, 8)) {
+        armed = 0;
+    }
+    if (!armed) {
+        fprintf(stderr, "RANK1_BOUNDARY_ERROR,kind=breakpoint-arm\n");
+        return;
+    }
+    gRank1BreakpointsArmed = 1;
+    gRank1AuditState = 1;
+    fprintf(stderr,
+            "RANK1_BOUNDARY_ARM,timer=%u,updateObjects=%08x,findFloor=%08x,"
+            "nodeRange=%08x-%08x,surfaceRange=%08x-%08x,"
+            "staticPartition=%08x-%08x,dynamicPartition=%08x-%08x,"
+            "readOnly=1\n",
+            R32(A_GLOBAL_TIMER), A_UPDATE_OBJECTS, A_FIND_FLOOR,
+            gRank1NodeBase, gRank1NodeBase + SURFACE_NODE_BYTES,
+            gRank1SurfaceBase, gRank1SurfaceEnd,
+            A_STATIC_SURFACE_PARTITION,
+            A_STATIC_SURFACE_PARTITION + SURFACE_PARTITION_BYTES,
+            A_DYNAMIC_SURFACE_PARTITION,
+            A_DYNAMIC_SURFACE_PARTITION + SURFACE_PARTITION_BYTES);
+}
+#endif
 
 static const char *watched_prefix_cell(uint32_t address) {
     if (address >= A_BHV_MARIO
@@ -397,6 +1649,13 @@ static void debugger_update_callback(unsigned int pc) {
     uint32_t return_pc = registers == NULL ? 0 : (uint32_t) registers[31];
     uint32_t mario_object = R32(A_MARIO_OBJECT);
     const char *stage = "unexpected";
+
+#if RANK1_BOUNDARY_AUDIT
+    if (rank1_handle_breakpoint(pc, registers)) {
+        resume_from_breakpoint();
+        return;
+    }
+#endif
 
     if (pc == A_ALLOCATE_OBJECT || pc == A_ALLOCATE_OBJECT_UNLOAD_CALL
         || pc == A_UNLOAD_OBJECT || pc == A_STOP_SOUNDS_FROM_SOURCE
@@ -652,6 +1911,8 @@ static void arm_prefix_trace(void) {
 static void observe_entry_identity(uint32_t mario_object) {
     uint32_t next;
     uint32_t prev;
+    uint32_t node_pool;
+    uint32_t surface_pool;
     int slot;
     int state_matches;
     int tail_safe;
@@ -660,6 +1921,8 @@ static void observe_entry_identity(uint32_t mario_object) {
     if (gEntryIdentityLogged) return;
     next = R32(mario_object + HEADER_NEXT);
     prev = R32(mario_object + HEADER_PREV);
+    node_pool = R32(A_SURFACE_NODE_POOL_CELL);
+    surface_pool = R32(A_SURFACE_POOL_CELL);
     slot = pool_index(mario_object);
     state_matches = R32(A_MARIO_STATES + M_MARIO_OBJ) == mario_object;
     tail_safe = (R32(mario_object + O_FLAGS) & 1) == 0
@@ -693,7 +1956,25 @@ static void observe_entry_identity(uint32_t mario_object) {
             next == 0 ? 0 : R32(next + HEADER_NEXT),
             next == 0 ? 0 : R32(next + HEADER_PREV),
             state_matches, tail_safe, list_ring, gPrefixStage);
+    fprintf(stderr,
+            "ENTRY_SURFACE_POOLS,timer=%u,nodeBase=%08x,nodeEnd=%08x,"
+            "surfaceBase=%08x,surfaceEnd=%08x,nodeBytes=56000,"
+            "surfaceBytes=110400,separated=%d,mainPoolStart=%08x,"
+            "mainPoolEnd=%08x,leftHead=%08x,rightHead=%08x,"
+            "freeSpace=%u,liveEpoch=%d\n",
+            R32(A_GLOBAL_TIMER), node_pool, node_pool + 56000,
+            surface_pool, surface_pool + 110400,
+            node_pool + 56016 == surface_pool,
+            R32(A_MAIN_POOL_START), R32(A_MAIN_POOL_END),
+            R32(A_MAIN_POOL_LEFT_HEAD), R32(A_MAIN_POOL_RIGHT_HEAD),
+            R32(A_MAIN_POOL_FREE_SPACE),
+            surface_pool + 110400 <= R32(A_MAIN_POOL_LEFT_HEAD)
+                && R32(A_MAIN_POOL_LEFT_HEAD)
+                    <= R32(A_MAIN_POOL_RIGHT_HEAD));
     gEntryIdentityLogged = 1;
+#if RANK1_BOUNDARY_AUDIT
+    arm_rank1_boundary_audit();
+#endif
 }
 
 static uint32_t pool_pointer(unsigned index) {
@@ -753,6 +2034,18 @@ static void find_area1_objects(void) {
                 && closef(rfloat(object + O_HOME_Z), 2940.0f, 1.0f)) {
                 gWestTweester = object;
             }
+        }
+        if (closef(rfloat(object + O_HOME_X), -1284.0f, 1.0f)
+            && closef(rfloat(object + O_HOME_Z), -5895.0f, 1.0f)) {
+            gToxBox1 = object;
+        }
+        if (closef(rfloat(object + O_HOME_X), 1283.0f, 1.0f)
+            && closef(rfloat(object + O_HOME_Z), -4865.0f, 1.0f)) {
+            gToxBox2 = object;
+        }
+        if (closef(rfloat(object + O_HOME_X), 4873.0f, 1.0f)
+            && closef(rfloat(object + O_HOME_Z), -3335.0f, 1.0f)) {
+            gToxBox3 = object;
         }
     }
 }
@@ -1004,6 +2297,54 @@ EXPORT int CALL RomOpen(void) {
 }
 
 EXPORT void CALL RomClosed(void) {
+#if RANK1_BOUNDARY_AUDIT && RANK1_BOUNDARY_REPEAT_UNTIL > 349
+    fprintf(stderr,
+            "RANK1_REPEAT_RESULT,firstTimer=348,exclusiveEndTimer=%u,"
+            "framesChecked=%u,frameFailures=%u,invariant=%d\n",
+            (unsigned) RANK1_BOUNDARY_REPEAT_UNTIL,
+            gRank1FramesChecked, gRank1FrameFailures,
+            gRank1FramesChecked
+                == (uint32_t) (RANK1_BOUNDARY_REPEAT_UNTIL - 348)
+                && gRank1FrameFailures == 0);
+    fprintf(stderr,
+            "RANK1_REPEAT_AGGREGATE,"
+            "outsideSums=%llu:%llu:%llu:%llu:%llu:%llu:%llu:%llu,"
+            "outsideMaxima=%u:%u:%u:%u:%u:%u:%u:%u,"
+            "destinationStoreSum=%llu,destinationStoreMaximum=%u,"
+            "findFloorCallSum=%llu,findFloorReturnSum=%llu,"
+            "dynamicFindFloorReturnSum=%llu,"
+            "findFloorReturnFailureSum=%llu,"
+            "findFloorBeforeClearSum=%llu,endInvalidSurfaceSum=%llu,"
+            "pendingCleanupSurfaceSum=%llu,inactiveOwnerStoreSum=%llu,"
+            "inactiveCollisionModelCallSum=%llu,"
+            "staticSelectionFrames=%u,dynamicSelectionFrames=%u,"
+            "ownedSelectionFrames=%u\n",
+            (unsigned long long) gRank1OutsideCallSums[0],
+            (unsigned long long) gRank1OutsideCallSums[1],
+            (unsigned long long) gRank1OutsideCallSums[2],
+            (unsigned long long) gRank1OutsideCallSums[3],
+            (unsigned long long) gRank1OutsideCallSums[4],
+            (unsigned long long) gRank1OutsideCallSums[5],
+            (unsigned long long) gRank1OutsideCallSums[6],
+            (unsigned long long) gRank1OutsideCallSums[7],
+            gRank1OutsideCallMaxima[0], gRank1OutsideCallMaxima[1],
+            gRank1OutsideCallMaxima[2], gRank1OutsideCallMaxima[3],
+            gRank1OutsideCallMaxima[4], gRank1OutsideCallMaxima[5],
+            gRank1OutsideCallMaxima[6], gRank1OutsideCallMaxima[7],
+            (unsigned long long) gRank1OutsideDestinationStoreSum,
+            gRank1OutsideDestinationStoreMaximum,
+            (unsigned long long) gRank1FindFloorCallSum,
+            (unsigned long long) gRank1FindFloorReturnSum,
+            (unsigned long long) gRank1DynamicFindFloorReturnSum,
+            (unsigned long long) gRank1FindFloorReturnFailureSum,
+            (unsigned long long) gRank1FindFloorBeforeClearSum,
+            (unsigned long long) gRank1EndInvalidSurfaceSum,
+            (unsigned long long) gRank1PendingCleanupSurfaceSum,
+            (unsigned long long) gRank1InactiveOwnerStoreSum,
+            (unsigned long long) gRank1InactiveCollisionModelCallSum,
+            gRank1StaticSelectionFrames, gRank1DynamicSelectionFrames,
+            gRank1OwnedSelectionFrames);
+#endif
     fprintf(stderr,
             "RESULT,area1Frames=%d,gapSamples=%d,gap45=%d,gap960=%d,"
             "maxGfxMinusObjectY=%.9g,minGfxMinusObjectY=%.9g,"
@@ -1023,6 +2364,9 @@ EXPORT void CALL RomClosed(void) {
             "mode9EastNorthTweesterCaptured=%d,"
             "mode9WestTweesterCaptured=%d,"
             "mode10NorthAvoidanceReached=%d,"
+            "mode11DetourStage=%d,mode11TopApproach=%d,"
+            "mode12Stage=%d,mode12RolloutInputs=%d,"
+            "mode12DiveInputs=%d,mode12PillarsComplete=%d,"
             "mode9WestmostX=%.9g,"
             "pillars=%d,topAction=%d,topTimer=%d,sawShell=%d,rodeShell=%d,"
             "bPressedFrames=%d,"
@@ -1046,6 +2390,9 @@ EXPORT void CALL RomClosed(void) {
             gMode9EastNorthTweesterCaptured,
             gMode9WestTweesterCaptured,
             gMode10NorthAvoidanceReached,
+            gMode11DetourStage, gMode11TopApproach,
+            gMode12Stage, gMode12RolloutInputs, gMode12DiveInputs,
+            gMode12PillarsComplete,
             gMode9WestmostX,
             gLastPillars, gLastTopAction, gLastTopTimer,
             gSawShell, gRodeShell, gBPressedFrames,
@@ -1149,6 +2496,441 @@ EXPORT void CALL GetKeys(int control, BUTTONS *keys) {
     }
     if (SEARCH_MODE == 2) goto log_frame;
 
+    /* Video-derived reconstruction of pannenkoek2012's 2013 1x-A route.
+       The outside portion uses the east jumping box to enter a fast stomach
+       slide, then converts that slide (or a later speed-kick dive slide) into
+       a B rollout against each pillar's flared base.  Keep this schedule
+       separate from the Tweester relay modes so every observed transition is
+       attributable to ordinary controller input and stock actions. */
+    if (SEARCH_MODE == 12) {
+        uint32_t action = R32(A_MARIO_STATES + M_ACTION);
+        uint32_t timer = R32(A_GLOBAL_TIMER);
+        uint32_t held_object = R32(A_MARIO_STATES + M_HELD_OBJ);
+        float mario_x = rfloat(A_MARIO_STATES + M_POS_X);
+        float mario_z = rfloat(A_MARIO_STATES + M_POS_Z);
+        int16_t face_yaw = (int16_t) R16(A_MARIO_STATES + M_FACE_YAW);
+        int face_south_error =
+            (int16_t) (face_yaw - (int16_t) 0x8000);
+        float target_x = 1789.0f;
+        float target_z = 764.0f;
+        float steer_strength = 127.0f;
+        float distance;
+        float west_box_distance = INFINITY;
+
+        if (face_south_error < 0) face_south_error = -face_south_error;
+        if (pillars == 4) gMode12PillarsComplete = 1;
+        if (gWestJumpingBox != 0) {
+            west_box_distance = hypotf(
+                rfloat(gWestJumpingBox + O_POS_X) - mario_x,
+                rfloat(gWestJumpingBox + O_POS_Z) - mario_z);
+        }
+
+        if (gMode12Stage >= 58 && !gMode12ToxInventoryLogged) {
+            unsigned object_index;
+            for (object_index = 0; object_index < OBJECT_COUNT;
+                 object_index++) {
+                uint32_t candidate = pool_pointer(object_index);
+                if (R16(candidate + O_ACTIVE_FLAGS) == 0
+                    || R32(candidate + O_COLLISION_DATA) == 0
+                    || rfloat(candidate + O_POS_Z) > -3000.0f) continue;
+                fprintf(stderr,
+                        "MODE12_MAZE_OBJECT,index=%u,object=%08x,"
+                        "pos=(%.9g,%.9g,%.9g),home=(%.9g,%.9g),"
+                        "action=%u,objectTimer=%u,behavior=%08x,"
+                        "collision=%08x\n",
+                        object_index, candidate,
+                        rfloat(candidate + O_POS_X),
+                        rfloat(candidate + O_POS_Y),
+                        rfloat(candidate + O_POS_Z),
+                        rfloat(candidate + O_HOME_X),
+                        rfloat(candidate + O_HOME_Z),
+                        R32(candidate + O_ACTION), R32(candidate + O_TIMER),
+                        R32(candidate + O_BEHAVIOR),
+                        R32(candidate + O_COLLISION_DATA));
+            }
+            gMode12ToxInventoryLogged = 1;
+        }
+
+        if (gMode12Stage >= 58 && (timer % 30) == 0 && gToxBox1 != 0) {
+            fprintf(stderr,
+                    "MODE12_TOX1,timer=%u,stage=%d,pos=(%.9g,%.9g,%.9g),"
+                    "action=%u,objectTimer=%u\n",
+                    timer, gMode12Stage,
+                    rfloat(gToxBox1 + O_POS_X), rfloat(gToxBox1 + O_POS_Y),
+                    rfloat(gToxBox1 + O_POS_Z), R32(gToxBox1 + O_ACTION),
+                    R32(gToxBox1 + O_TIMER));
+        }
+
+        if (gMode12PillarsComplete) {
+            int west_box_active = gWestJumpingBox != 0
+                && R16(gWestJumpingBox + O_ACTIVE_FLAGS) != 0;
+
+            if (gMode12Stage < 8) {
+                gMode12Stage = 8;
+                fprintf(stderr,
+                        "MODE12_STAGE,timer=%u,stage=8,"
+                        "label=opened-top-west-box-approach,"
+                        "state=(%.9g,%.9g,%.9g),topAction=%d\n",
+                        timer, mario_x,
+                        rfloat(A_MARIO_STATES + M_POS_Y), mario_z,
+                        top_action);
+            }
+            if (held_object == gWestJumpingBox
+                || action == ACT_CRAZY_BOX_BOUNCE || !west_box_active) {
+                target_x = -2048.0f;
+                target_z = -1024.0f;
+                if (gMode12Stage == 8 || gMode12Stage == 80) {
+                    gMode12Stage = 9;
+                    fprintf(stderr,
+                            "MODE12_STAGE,timer=%u,stage=9,"
+                            "label=west-box-to-upper-warp,"
+                            "state=(%.9g,%.9g,%.9g),action=%08x,"
+                            "heldObj=%08x,boxActive=%d\n",
+                            timer, mario_x,
+                            rfloat(A_MARIO_STATES + M_POS_Y), mario_z,
+                            action, held_object, west_box_active);
+                }
+            } else if (gMode12Stage == 8) {
+                /* Approach the box from northwest so its inherited launch
+                   heading points southeast toward the opened pyramid,
+                   rather than northeast into the western Tweester. */
+                target_x = -5580.0f;
+                target_z = 2030.0f;
+                steer_strength = 60.0f;
+                if (hypotf(target_x - mario_x, target_z - mario_z)
+                    < 80.0f) {
+                    gMode12Stage = 80;
+                    fprintf(stderr,
+                            "MODE12_STAGE,timer=%u,stage=80,"
+                            "label=west-box-southeast-alignment,"
+                            "state=(%.9g,%.9g,%.9g),faceYaw=%d\n",
+                            timer, mario_x,
+                            rfloat(A_MARIO_STATES + M_POS_Y), mario_z,
+                            face_yaw);
+                }
+            } else {
+                target_x = rfloat(gWestJumpingBox + O_POS_X);
+                target_z = rfloat(gWestJumpingBox + O_POS_Z);
+            }
+        } else if (pillars == 0 && gMode12Stage == 0 && held_object == 0
+            && action != ACT_CRAZY_BOX_BOUNCE && gJumpingBox != 0
+            && R16(gJumpingBox + O_ACTIVE_FLAGS) != 0) {
+            target_x = rfloat(gJumpingBox + O_POS_X);
+            target_z = rfloat(gJumpingBox + O_POS_Z);
+            gMode12Stage = 0;
+        } else if (pillars == 0) {
+            target_x = 1789.0f;
+            target_z = 764.0f;
+            if (gMode12Stage < 1) {
+                gMode12Stage = 1;
+                fprintf(stderr,
+                        "MODE12_STAGE,timer=%u,stage=1,"
+                        "label=east-box-to-northeast-pillar,"
+                        "state=(%.9g,%.9g,%.9g),action=%08x,heldObj=%08x\n",
+                        timer, mario_x,
+                        rfloat(A_MARIO_STATES + M_POS_Y), mario_z,
+                        action, held_object);
+            }
+        } else if (pillars == 1) {
+            if (gMode12Stage < 2) {
+                gMode12Stage = 2;
+                fprintf(stderr,
+                        "MODE12_STAGE,timer=%u,stage=2,"
+                        "label=northeast-detector,"
+                        "state=(%.9g,%.9g,%.9g),pillars=%d\n",
+                        timer, mario_x,
+                        rfloat(A_MARIO_STATES + M_POS_Y), mario_z, pillars);
+            }
+            target_x = 1789.0f;
+            target_z = -2579.0f;
+            if (gMode12Stage < 3) {
+                gMode12Stage = 3;
+                fprintf(stderr,
+                        "MODE12_STAGE,timer=%u,stage=3,"
+                        "label=southeast-pillar-approach,"
+                        "state=(%.9g,%.9g,%.9g)\n",
+                        timer, mario_x,
+                        rfloat(A_MARIO_STATES + M_POS_Y), mario_z);
+            }
+        } else if (pillars == 2) {
+            if (gMode12Stage < 4) {
+                gMode12Stage = 4;
+                fprintf(stderr,
+                        "MODE12_STAGE,timer=%u,stage=4,"
+                        "label=southeast-runway-gap,"
+                        "state=(%.9g,%.9g,%.9g)\n",
+                        timer, mario_x,
+                        rfloat(A_MARIO_STATES + M_POS_Y), mario_z);
+            }
+            if (gMode12Stage == 4) {
+                float dx = mario_x - 1789.0f;
+                float dz = mario_z + 2579.0f;
+                float radius = hypotf(dx, dz);
+                float radial_x = radius < 1.0f ? 1.0f : dx / radius;
+                float radial_z = radius < 1.0f ? 0.0f : dz / radius;
+                float correction = (145.0f - radius) / 145.0f;
+                float heading_x = -radial_z + correction * radial_x;
+                float heading_z = radial_x + correction * radial_z;
+
+                /* A tangent-plus-radial controller builds running speed on
+                   a bounded circle instead of chasing a time-indexed point
+                   off the small top.  Launch only at the south-facing arc. */
+                target_x = mario_x + heading_x * 1000.0f;
+                target_z = mario_z + heading_z * 1000.0f;
+                if (rfloat(A_MARIO_STATES + M_POS_Y) > 850.0f
+                    && action == ACT_WALKING
+                    && rfloat(A_MARIO_STATES + M_FORWARD_VEL) >= 29.0f
+                    && face_south_error < 0x1000) {
+                    gMode12Stage = 40;
+                    fprintf(stderr,
+                            "MODE12_STAGE,timer=%u,stage=40,"
+                            "label=southeast-runway-launch,"
+                            "state=(%.9g,%.9g,%.9g),forwardVel=%.9g,"
+                            "faceYaw=%d,intendedYaw=%d,southError=%d\n",
+                            timer, mario_x,
+                            rfloat(A_MARIO_STATES + M_POS_Y), mario_z,
+                            rfloat(A_MARIO_STATES + M_FORWARD_VEL),
+                            face_yaw,
+                            (int16_t) R16(A_MARIO_STATES + M_INTENDED_YAW),
+                            face_south_error);
+                }
+            } else if (gMode12Stage == 40) {
+                target_x = 1900.0f;
+                target_z = -4000.0f;
+                if (mario_z <= -3900.0f) {
+                    gMode12Stage = 5;
+                    fprintf(stderr,
+                            "MODE12_STAGE,timer=%u,stage=5,"
+                            "label=south-safe-seam,"
+                            "state=(%.9g,%.9g,%.9g)\n",
+                            timer, mario_x,
+                            rfloat(A_MARIO_STATES + M_POS_Y), mario_z);
+                }
+            } else if (gMode12Stage == 5) {
+                /* Follow the clearance-checked centers of the stock hard
+                   Tox-box walkways.  The apparent direct west strip is a
+                   steep sliding surface bordered by instant quicksand. */
+                target_x = 1100.0f;
+                target_z = -4000.0f;
+                steer_strength = 40.0f;
+                if (mario_x <= 1150.0f) gMode12Stage = 51;
+            } else if (gMode12Stage == 51) {
+                target_x = 1100.0f;
+                target_z = -4700.0f;
+                steer_strength = 40.0f;
+                if (mario_z <= -4650.0f) gMode12Stage = 52;
+            } else if (gMode12Stage == 52) {
+                target_x = 600.0f;
+                target_z = -4700.0f;
+                steer_strength = 40.0f;
+                if (mario_x <= 650.0f) gMode12Stage = 53;
+            } else if (gMode12Stage == 53) {
+                target_x = 600.0f;
+                target_z = -5200.0f;
+                steer_strength = 40.0f;
+                if (mario_z <= -5150.0f) gMode12Stage = 54;
+            } else if (gMode12Stage == 54) {
+                target_x = -1400.0f;
+                target_z = -5200.0f;
+                steer_strength = 40.0f;
+                if (mario_x <= -1350.0f) gMode12Stage = 55;
+            } else if (gMode12Stage == 55) {
+                target_x = -1400.0f;
+                target_z = -5100.0f;
+                steer_strength = 32.0f;
+                if (mario_z >= -5150.0f) gMode12Stage = 56;
+            } else if (gMode12Stage == 56) {
+                target_x = -1500.0f;
+                target_z = -5100.0f;
+                steer_strength = 32.0f;
+                if (mario_x <= -1450.0f) gMode12Stage = 57;
+            } else if (gMode12Stage == 57) {
+                target_x = -1500.0f;
+                target_z = -5000.0f;
+                steer_strength = 32.0f;
+                if (mario_z >= -5050.0f) gMode12Stage = 58;
+            } else if (gMode12Stage == 58) {
+                target_x = -2300.0f;
+                target_z = -5000.0f;
+                /* Clear Tox Box 1's later crossing window rather than
+                   lingering in its east-west lane. */
+                steer_strength = 90.0f;
+                if (mario_x <= -2250.0f) gMode12Stage = 59;
+            } else if (gMode12Stage == 59) {
+                /* Begin the turn before the geometric center; at full
+                   running speed a center-triggered turn reaches the west
+                   edge before Mario's face yaw catches up. */
+                target_x = -2450.0f;
+                target_z = -5700.0f;
+                steer_strength = 90.0f;
+                if (mario_z <= -5650.0f) gMode12Stage = 60;
+            } else if (gMode12Stage == 60) {
+                target_x = -3500.0f;
+                target_z = -5700.0f;
+                steer_strength = 40.0f;
+                if (mario_x <= -3450.0f) gMode12Stage = 61;
+            } else if (gMode12Stage == 61) {
+                target_x = -3500.0f;
+                target_z = -5000.0f;
+                steer_strength = 40.0f;
+                if (mario_z >= -5050.0f) gMode12Stage = 62;
+            } else if (gMode12Stage == 62) {
+                target_x = -4900.0f;
+                target_z = -5000.0f;
+                steer_strength = 40.0f;
+                if (mario_x <= -4850.0f) gMode12Stage = 63;
+            } else if (gMode12Stage == 63) {
+                target_x = -4900.0f;
+                target_z = -4600.0f;
+                steer_strength = 40.0f;
+                if (mario_z >= -4650.0f) {
+                    gMode12Stage = 6;
+                    fprintf(stderr,
+                            "MODE12_STAGE,timer=%u,stage=6,"
+                            "label=southwest-pillar-approach,"
+                            "state=(%.9g,%.9g,%.9g)\n",
+                            timer, mario_x,
+                            rfloat(A_MARIO_STATES + M_POS_Y), mario_z);
+                }
+            } else {
+                target_x = -5883.0f;
+                target_z = -2579.0f;
+            }
+        } else if (pillars == 3) {
+            target_x = -5883.0f;
+            target_z = 764.0f;
+            if (gMode12Stage < 7) {
+                gMode12Stage = 7;
+                fprintf(stderr,
+                        "MODE12_STAGE,timer=%u,stage=7,"
+                        "label=northwest-pillar-approach,"
+                        "state=(%.9g,%.9g,%.9g)\n",
+                        timer, mario_x,
+                        rfloat(A_MARIO_STATES + M_POS_Y), mario_z);
+            }
+        } else {
+            target_x = -5883.0f;
+            target_z = 764.0f;
+        }
+
+        distance = hypotf(target_x - mario_x, target_z - mario_z);
+        steer_world(keys, target_x, target_z, steer_strength);
+
+        if (gMode12PillarsComplete && gMode12Stage == 80
+            && held_object == 0 && action != ACT_CRAZY_BOX_BOUNCE
+            && gWestJumpingBox != 0
+            && R16(gWestJumpingBox + O_ACTIVE_FLAGS) != 0
+            && west_box_distance < 135.0f
+            && timer - gLastMovementB >= 20) {
+            keys->B_BUTTON = 1;
+            gBPressedFrames++;
+            gLastMovementB = timer;
+            fprintf(stderr,
+                    "B_INPUT,timer=%u,label=mode12-west-jumping-box,"
+                    "distance=%.9g,state=(%.9g,%.9g,%.9g),action=%08x\n",
+                    timer, west_box_distance, mario_x,
+                    rfloat(A_MARIO_STATES + M_POS_Y), mario_z, action);
+        } else if (gMode12PillarsComplete && gMode12Stage >= 9
+                   && action == ACT_STOMACH_SLIDE
+                   && R16(A_MARIO_STATES + M_ACTION_TIMER) == 5
+                   && distance < 1600.0f
+                   && timer - gLastMovementB >= 5) {
+            keys->B_BUTTON = 1;
+            gBPressedFrames++;
+            gMode12RolloutInputs++;
+            gLastMovementB = timer;
+            fprintf(stderr,
+                    "B_INPUT,timer=%u,label=mode12-top-rollout,"
+                    "distance=%.9g,state=(%.9g,%.9g,%.9g),action=%08x\n",
+                    timer, distance, mario_x,
+                    rfloat(A_MARIO_STATES + M_POS_Y), mario_z, action);
+        } else if (gMode12PillarsComplete && gMode12Stage >= 9
+                   && action == ACT_DIVE_SLIDE && distance < 1200.0f
+                   && timer - gLastMovementB >= 5) {
+            keys->B_BUTTON = 1;
+            gBPressedFrames++;
+            gMode12RolloutInputs++;
+            gLastMovementB = timer;
+            fprintf(stderr,
+                    "B_INPUT,timer=%u,label=mode12-top-dive-rollout,"
+                    "distance=%.9g,state=(%.9g,%.9g,%.9g),action=%08x\n",
+                    timer, distance, mario_x,
+                    rfloat(A_MARIO_STATES + M_POS_Y), mario_z, action);
+        } else if (gMode12PillarsComplete && gMode12Stage >= 9
+                   && action == ACT_WALKING
+                   && rfloat(A_MARIO_STATES + M_FORWARD_VEL) >= 29.0f
+                   && distance > 300.0f && distance < 1600.0f
+                   && timer - gLastMovementB >= 20) {
+            keys->B_BUTTON = 1;
+            gBPressedFrames++;
+            gMode12DiveInputs++;
+            gLastMovementB = timer;
+            fprintf(stderr,
+                    "B_INPUT,timer=%u,label=mode12-top-speed-kick,"
+                    "distance=%.9g,state=(%.9g,%.9g,%.9g),action=%08x\n",
+                    timer, distance, mario_x,
+                    rfloat(A_MARIO_STATES + M_POS_Y), mario_z, action);
+        } else if (pillars == 0 && held_object == 0
+            && action != ACT_CRAZY_BOX_BOUNCE && gJumpingBox != 0
+            && R16(gJumpingBox + O_ACTIVE_FLAGS) != 0
+            && distance < 135.0f && timer - gLastMovementB >= 20) {
+            keys->B_BUTTON = 1;
+            gBPressedFrames++;
+            gLastMovementB = timer;
+            fprintf(stderr,
+                    "B_INPUT,timer=%u,label=mode12-east-jumping-box,"
+                    "distance=%.9g,state=(%.9g,%.9g,%.9g),action=%08x\n",
+                    timer, distance, mario_x,
+                    rfloat(A_MARIO_STATES + M_POS_Y), mario_z, action);
+        } else if (pillars <= 2
+                   && (gMode12Stage < 5 || gMode12Stage == 40)
+                   && action == ACT_STOMACH_SLIDE
+                   && R16(A_MARIO_STATES + M_ACTION_TIMER) == 5
+                   && distance < (gMode12Stage == 40 ? 2000.0f : 500.0f)
+                   && timer - gLastMovementB >= 5) {
+            keys->B_BUTTON = 1;
+            gBPressedFrames++;
+            gMode12RolloutInputs++;
+            gLastMovementB = timer;
+            fprintf(stderr,
+                    "B_INPUT,timer=%u,label=mode12-pillar-rollout,"
+                    "distance=%.9g,state=(%.9g,%.9g,%.9g),action=%08x\n",
+                    timer, distance, mario_x,
+                    rfloat(A_MARIO_STATES + M_POS_Y), mario_z, action);
+        } else if (pillars <= 2
+                   && (gMode12Stage < 5 || gMode12Stage == 40)
+                   && action == ACT_DIVE_SLIDE
+                   && distance < (gMode12Stage == 40 ? 1600.0f : 400.0f)
+                   && timer - gLastMovementB >= 5) {
+            keys->B_BUTTON = 1;
+            gBPressedFrames++;
+            gMode12RolloutInputs++;
+            gLastMovementB = timer;
+            fprintf(stderr,
+                    "B_INPUT,timer=%u,label=mode12-dive-rollout,"
+                    "distance=%.9g,state=(%.9g,%.9g,%.9g),action=%08x\n",
+                    timer, distance, mario_x,
+                    rfloat(A_MARIO_STATES + M_POS_Y), mario_z, action);
+        } else if (pillars <= 2
+                   && (gMode12Stage < 5 || gMode12Stage == 40)
+                   && action == ACT_WALKING
+                   && rfloat(A_MARIO_STATES + M_FORWARD_VEL) >= 29.0f
+                   && distance > 300.0f
+                   && distance < (gMode12Stage == 40 ? 2000.0f : 900.0f)
+                   && timer - gLastMovementB >= 20) {
+            keys->B_BUTTON = 1;
+            gBPressedFrames++;
+            gMode12DiveInputs++;
+            gLastMovementB = timer;
+            fprintf(stderr,
+                    "B_INPUT,timer=%u,label=mode12-speed-kick,"
+                    "distance=%.9g,state=(%.9g,%.9g,%.9g),action=%08x\n",
+                    timer, distance, mario_x,
+                    rfloat(A_MARIO_STATES + M_POS_Y), mario_z, action);
+        }
+        goto log_frame;
+    }
+
     /* A controller-only witness for the two eastern pillar detectors.  The
        first Tweester lift reaches the northeast detector.  Staying west of
        the southeast Tweester's home point then draws it south before the
@@ -1183,8 +2965,11 @@ EXPORT void CALL GetKeys(int control, BUTTONS *keys) {
        a stock east-to-west Tweester relay.  Mode 9 directly reuses mode 6's
        west-Tweester target after the northeast release.  Mode 10 changes only
        that leg: it first stays north of the central pyramid until x < -2000,
-       avoiding the wall reflection measured in mode 9. */
-    if ((SEARCH_MODE == 9 || SEARCH_MODE == 10) && gUsedTornado) {
+       avoiding the wall reflection measured in mode 9.  Mode 11 takes a
+       wider, three-leg northern detour, then continues toward the activated
+       top instead of stopping at the fourth detector. */
+    if ((SEARCH_MODE == 9 || SEARCH_MODE == 10 || SEARCH_MODE == 11)
+        && gUsedTornado) {
         uint32_t action = R32(A_MARIO_STATES + M_ACTION);
         uint32_t timer = R32(A_GLOBAL_TIMER);
         uint32_t held_object = R32(A_MARIO_STATES + M_HELD_OBJ);
@@ -1266,8 +3051,22 @@ EXPORT void CALL GetKeys(int control, BUTTONS *keys) {
                         rfloat(A_MARIO_STATES + M_POS_Y), mario_z,
                         top_action, top_timer);
             }
-            /* Pillar four is the decisive endpoint for this bounded mode:
-               leave the controller neutral and retain TOP lifecycle samples. */
+            if (SEARCH_MODE != 11) {
+                /* Pillar four is the decisive endpoint for modes 9 and 10:
+                   leave the controller neutral and retain lifecycle samples. */
+                goto log_frame;
+            }
+            if (!gMode11TopApproach) {
+                gMode11TopApproach = 1;
+                fprintf(stderr,
+                        "MODE9_STAGE,timer=%u,stage=9,"
+                        "label=mode11-top-approach,"
+                        "state=(%.9g,%.9g,%.9g),topAction=%d,topTimer=%d\n",
+                        timer, mario_x,
+                        rfloat(A_MARIO_STATES + M_POS_Y), mario_z,
+                        top_action, top_timer);
+            }
+            steer_world(keys, -2048.0f, -1024.0f, 127.0f);
             goto log_frame;
         }
         if (pillars >= 3 && top_action != 0) {
@@ -1301,6 +3100,36 @@ EXPORT void CALL GetKeys(int control, BUTTONS *keys) {
         } else if (pillars == 2 && !gMode9EastNorthTweesterCaptured) {
             target_x = 1017.0f;
             target_z = 3832.0f;
+        } else if (pillars == 2 && !gMode9WestTweesterCaptured
+                   && SEARCH_MODE == 11 && gMode11DetourStage == 0) {
+            target_x = 1100.0f;
+            target_z = 5900.0f;
+            if (mario_z >= 5600.0f) {
+                gMode11DetourStage = 1;
+                fprintf(stderr,
+                        "MODE9_STAGE,timer=%u,stage=4,"
+                        "label=mode11-north-leg,"
+                        "state=(%.9g,%.9g,%.9g)\n",
+                        timer, mario_x,
+                        rfloat(A_MARIO_STATES + M_POS_Y), mario_z);
+            }
+        } else if (pillars == 2 && !gMode9WestTweesterCaptured
+                   && SEARCH_MODE == 11 && gMode11DetourStage == 1) {
+            target_x = -3800.0f;
+            target_z = 5700.0f;
+            if (mario_x <= -300.0f) {
+                gMode11DetourStage = 2;
+                fprintf(stderr,
+                        "MODE9_STAGE,timer=%u,stage=4,"
+                        "label=mode11-west-leg,"
+                        "state=(%.9g,%.9g,%.9g)\n",
+                        timer, mario_x,
+                        rfloat(A_MARIO_STATES + M_POS_Y), mario_z);
+            }
+        } else if (pillars == 2 && !gMode9WestTweesterCaptured
+                   && SEARCH_MODE == 11 && gMode11DetourStage == 2) {
+            target_x = -3600.0f;
+            target_z = 2940.0f;
         } else if (pillars == 2 && !gMode9WestTweesterCaptured
                    && SEARCH_MODE == 10 && mario_x >= -2000.0f) {
             target_x = -2200.0f;
@@ -1383,7 +3212,21 @@ EXPORT void CALL GetKeys(int control, BUTTONS *keys) {
         distance = hypotf(target_x - mario_x, target_z - mario_z);
         steer_world(keys, target_x, target_z, 127.0f);
 
-        if (pillars == 2 && !gMode9SourceTweesterCaptured
+        if (SEARCH_MODE == 11 && pillars == 2
+            && gMode11DetourStage >= 1
+            && (action == ACT_STOMACH_SLIDE
+                || action == ACT_STOMACH_SLIDE_STOP)
+            && timer - gLastMovementB >= 20) {
+            keys->B_BUTTON = 1;
+            gMode9SurvivalBInputs++;
+            gBPressedFrames++;
+            gLastMovementB = timer;
+            fprintf(stderr,
+                    "B_INPUT,timer=%u,label=mode11-north-rim-rollout,"
+                    "distance=%.9g,state=(%.9g,%.9g,%.9g),action=%08x\n",
+                    timer, distance, mario_x,
+                    rfloat(A_MARIO_STATES + M_POS_Y), mario_z, action);
+        } else if (pillars == 2 && !gMode9SourceTweesterCaptured
             && gMode9Stage == 0 && timer >= 1250
             && action == ACT_WALKING
             && rfloat(A_MARIO_STATES + M_FORWARD_VEL) >= 29.0f
@@ -1480,7 +3323,8 @@ EXPORT void CALL GetKeys(int control, BUTTONS *keys) {
                    || R32(A_MARIO_STATES + M_ACTION)
                         == ACT_CRAZY_BOX_BOUNCE) {
             if ((SEARCH_MODE >= 3 && SEARCH_MODE <= 7)
-                || SEARCH_MODE == 9 || SEARCH_MODE == 10) {
+                || SEARCH_MODE == 9 || SEARCH_MODE == 10
+                || SEARCH_MODE == 11) {
                 target_x = -5125.0f;
                 target_z = -3138.0f;
             } else {
@@ -1506,7 +3350,8 @@ EXPORT void CALL GetKeys(int control, BUTTONS *keys) {
             target_x = -2048.0f;
             target_z = -1024.0f;
         } else if ((SEARCH_MODE >= 3 && SEARCH_MODE <= 7)
-                   || SEARCH_MODE == 9 || SEARCH_MODE == 10) {
+                   || SEARCH_MODE == 9 || SEARCH_MODE == 10
+                   || SEARCH_MODE == 11) {
             target_x = -5125.0f;
             target_z = -3138.0f;
         } else if (gTravelStage == 0) {
