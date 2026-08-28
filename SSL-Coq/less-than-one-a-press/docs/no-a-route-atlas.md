@@ -109,6 +109,11 @@ The detailed sections are organized as:
 - **The clean pillar/upper-warp routing obligation is complete:** the remaining
   rank-1 task is universal coverage of materially different in-bounds
   executions, not finding a way to touch the four pillars.
+- **Moving or cloning the warp/top is absent from that clean route:** every
+  loaded top floor keeps the original owner and normal position, the upper
+  warp stays fixed and floorless, and later reuse of the dead top's slot first
+  clears its collision; only a different-history or machine-level producer
+  remains.
 - **Ink is the leading concrete installer design:** its timer-131 Graphics
   retry works when the required three-view gap and top lifecycle are injected,
   but no known clean execution creates that gap, and the authenticated
@@ -146,7 +151,7 @@ The detailed sections are organized as:
 | 1 | JP stale-platform lineage | Different collision/query samples, then read the inactive unreused top payload | Very low currently; exact high-payoff JP mechanism if another clean history breaks a checked boundary |
 | 2 | Ink installation | Timer-131 non-null Graphics retry | Very low for a clean producer; exact injected retry |
 | 3 | State-first installation | Finite signed-16 nonlocal-State alias | Very low in the audited stock model; exact injected payload |
-| 4 | JP stale-platform lineage | Move the warp/top or create a collision-preserving clone | Low; sufficient in a permissive model, but no clean relocation or clone is known |
+| 4 | JP stale-platform lineage | Move the warp/top or create a collision-preserving clone | Very low on the checked clean route; the warp never moves or gains collision, and every top-slot reuse first loses the top collision |
 | 5 | State-first installation | Post-copy State-only writer in a later callback or descendant | Low; the timing window is real, but no reached writer is known |
 | 5A | State-first installation | Pre-collision cached-platform displacement creates the split | Low as an effect; very low as a clean stock origin |
 | 6 | JP stale-platform lineage | Moving skipped-query interval | Very low; no moving skip appears in the audited scheduler shapes |
@@ -226,27 +231,14 @@ platform displacement to MarioState while the raw Mario Object remains local.
 
 ### Move the warp/top, or create a collision-preserving clone
 
-**Overall rank: 4. Family priority: 2. Likelihood: low; no clean relocation or
-clone producer is known.**
+**Overall rank: 4. Family priority: 2. Likelihood: very low on the checked
+clean route; no clean relocation or clone producer is known.**
 
-**In plain language.** Instead of separating Mario's samples, physically put a
-standable moving-object floor inside the warp.  Mario could then touch the warp
-and save a platform pointer at the same place.  A clone could serve the same
-purpose if it preserved the original collision and movement behavior.
+**In plain language.** Instead of making Mario's different position checks disagree, physically put a standable moving floor inside the upper warp; Mario could then touch the warp and remember that floor at the same place.  A second pyramid top would serve the same purpose only if it kept both the original movement and the original standable collision.
 
-**What is already known.** The fixed stock top and warp are not co-located.
-The other modeled stock surface owners are horizontally disjoint, top motion
-stays in a bounded envelope in the finite source-shaped model, and ordinary
-pose-copy helpers do not copy
-behavior or collision identity, and the top callbacks do not directly clone
-the top.  A deliberately permissive archived clone model shows that the engine
-effect would be sufficient if a real clone existed.
+**What is already known.** The stock top and warp are not together, ordinary copying helpers do not copy an object's identity or collision, and the top's own routines create only detectors and harmless fragments.  The new authenticated zero-A four-pillar run checked every live object from Area-1 entry through the upper warp: there was always only one real top and one upper warp, every one of the top's 2,353 collision loads belonged to that top inside its normal small motion range, and the warp never moved, gained collision, changed identity, or loaded a floor.  The dead top's slot was reused three times, but each reuse cleared the old collision before installing a different object, so no replacement kept a standable copy.  This disproves relocation or cloning on that successful route, while the older permissive model still confirms that either effect would be useful if another clean route actually produced it.  See the [Rank-4 warp/top trace](notes/rank4-warp-top-clone.md).
 
-**What closes it.** Complete the live spawn/behavior graph, all collision-data
-writer receivers, allocator reset and epoch proofs, and the dynamic-surface
-owner map.  The branch closes either with a concrete clean relocation/clone or
-with an exhaustive proof that every reachable owner remains outside the joint
-warp/platform geometry.
+**What closes it.** A full in-model disproof still has to connect the complete stock spawn and collision-writer census to every reachable clean controller history, showing that no ordinary callback, outside effect, alias, or later slot reuse can move the warp or install the top's floor on another object; alternatively, one different clean run can settle the route positively by producing the first extra top, top-collision owner, warp write, or warp collision load and carrying it into the warp.  The checked run supplies the exact test and eliminates the most realistic stock execution, while out-of-bounds writes, ACE, DMA, and execution after undefined behavior remain separate machine-level extensions rather than unfinished clean producers.
 
 ### Moving skipped-query interval
 
@@ -1002,7 +994,7 @@ is not repeatedly rediscovered.
 | Ink R3 | A direct stock Area-1 door supplies the automatic-dialog route | No direct Area-1 macro/script door root exists. | A transitive spawn/interpreter/debug route to a suitable dialog actor. | Very low as a direct root. |
 | Held-object R1 | A carried box remains a useful moving collision platform | Carry scripts disable or lose the needed collision. | A different object with proved collision retention. | Very low for the box. |
 | Held-object R2 | Pickup can beat the warp interaction at node `0x1E` | Handler order gives the warp interaction priority. | Retargeted handler table, stale collision cache, or corruption. | Very low under normal dispatch. |
-| Held-object R3 | Obtain `heldObj == node 0x1E` through enumerated stock pickup or stale-held-slot paths | The counterfactual drop would relocate the live entrance, but audited stock paths do not produce that held pointer. | A concrete new held-pointer or behavior-provenance exploit; ordinary relocation/clone remains active at rank 4. | Very low for enumerated paths. |
+| Held-object R3 | Obtain `heldObj == node 0x1E` through enumerated stock pickup or stale-held-slot paths | The counterfactual drop would relocate the live entrance, but audited stock paths do not produce that held pointer. | A concrete new held-pointer or behavior-provenance exploit; Rank 4 now retains only its different-history universal residual. | Very low for enumerated paths. |
 | Lifecycle R1 | Direct Area-2/Area-3 instant warp adds height | Its displacement is zero and coherent kinematics are preserved. | A stale-platform, receiver, or lifecycle effect classified separately. | Closed as ordinary warp displacement. |
 | Lifecycle R2 | Reload or the wrong star directly sets a target bit | Coherent reload preserves save facts; Eyerok/100-coin/other stars have different indices. | Explicit save corruption or target-provenance failure. | Closed under certified provenance. |
 | State-first R1 | Area-1 palm/tree pole push is a late State-only writer | It executes before PLAYER; the later correct copy resynchronizes State/Object. | A later transitive caller or a failed/redirected copy. | Closed for that caller/order. |

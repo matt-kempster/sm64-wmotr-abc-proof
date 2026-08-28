@@ -1104,7 +1104,10 @@ the finite binary32 top mirror covers timers 0 through 150, stays in X
 `[-2087,-2007]` and Y `[1536,1879)` with fixed Z `-1023`, and agrees with the
 timer-131 surface fixture.  The live Clight-to-mirror and memory-frame
 refinement is open, so this narrows rather than excludes stock self-motion;
-aliased/external relocation, clones, and identity/epoch changes also remain.
+aliased/external relocation, clones, and identity/epoch changes remain as
+universal source obligations.  The later
+`Area1Rank4WarpTopTraceReceipt.v` section records that none occurs on the
+complete clean zero-A upper-warp execution.
 
 ## Stock-projection exhaustiveness tranche
 
@@ -1498,6 +1501,18 @@ clear precedes all queries.  The Coq module checks the exact route, aggregate,
 lifecycle, and no-useful-split receipt.  This is trace-scoped; a universal
 linked invariant over other controller histories remains necessary for a
 route-wide impossibility claim.
+
+`proofs/Area1Rank4WarpTopTraceReceipt.v` specializes that same uninterrupted
+route to relocation and collision-preserving cloning.  The read-only machine
+audit scans every object slot on all 2,462 frames, watches both MIPS aliases of
+the canonical top/warp position and identity cells, and checks the owner and
+pose at every actual moving-collision installation.  Its exact receipt has one
+top, one fixed collision-free upper warp, 2,353 canonical top-mesh loads, no
+clone or resurrection, and no warp write or collision load.  Three later
+reuses of the dead top slot each clear collision before installing a different
+behavior.  The Coq boundary combines these facts with the generated-source
+uniqueness/writer census and the zero-A route receipt.  Universal reachable-
+history coverage and machine-only corruption remain open.
 
 `proofs/Area1SurfaceEpochLifecycle.v` separates the allocation that supplied a
 query surface from the payload resident at the cached raw address when it is

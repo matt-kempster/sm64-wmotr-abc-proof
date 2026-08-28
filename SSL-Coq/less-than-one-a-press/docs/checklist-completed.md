@@ -1681,3 +1681,32 @@ Completed work is grouped by subject. Each item retains its original scope warni
   packages the exact finite result in
   `Area1Rank1UpperWarpTraceReceipt.v`.  Universal coverage of every different
   controller history remains open.
+
+## Rank-4 clean warp/top relocation and clone receipt
+
+- [x] Check the canonical pyramid top and node-`0x1E` upper warp throughout a
+  successful clean route.  The ROM-hash-gated original-JP audit reuses the
+  zero-A four-pillar schedule and scans all 240 object slots on every frame
+  from timer 348 through 2809.  All 2,462 frame censuses pass with maximum one
+  top behavior, one top collision owner, and one upper warp.
+
+- [x] Check transient moving-collision installation and canonical writes.
+  Both MIPS aliases of the top and warp position/identity cells are watched,
+  and each actual `load_object_surfaces` call is inspected.  All 2,353
+  top-mesh loads use canonical slot 61 inside the bounded stock envelope; the
+  warp has zero position, behavior, or collision writes and zero collision
+  loads.
+
+- [x] Classify the dead top slot's later reuse.  Slot 61 is reinitialized at
+  timers 2712, 2743, and 2775.  Each allocation clears `collisionData` before
+  installing a different behavior, all six identity stores are post-retirement,
+  and no replacement loads the top mesh.  The reuse is therefore not a
+  collision-preserving clone on this run.
+
+- [x] Freeze and formalize the result.  The exact machine receipt lives under
+  `instrumentation/jp-rank4-warp-top/`, while
+  `Area1Rank4WarpTopTraceReceipt.v` combines its exact counters with the
+  generated-source top/warp uniqueness and collision-writer census and the
+  continuous zero-A route receipt.  The result is explicitly trace-scoped;
+  universal clean reachability and machine-only OOB/ACE/DMA variants remain
+  outside this completed item.

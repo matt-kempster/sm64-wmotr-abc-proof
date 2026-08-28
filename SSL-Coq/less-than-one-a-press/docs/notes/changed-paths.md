@@ -534,6 +534,41 @@ remain open.  The following paths changed:
 - `SSL-Coq/less-than-one-a-press/docs/notes/changed-paths.md`
 - `SSL-Coq/less-than-one-a-press/notes/source-map.md`
 
+## Rank-4 warp/top relocation and clone tranche
+
+The existing stock-source census is now paired with a continuous original-JP
+execution on the independently reconstructed zero-A four-pillar route.  A
+read-only debugger plugin fixes the canonical top and node-`0x1E` upper warp,
+scans every live object slot on all 2,462 frames, watches both MIPS aliases of
+their position/behavior/collision cells, and checks every actual moving-
+collision load.  The exact receipt has one top, one fixed collision-free warp,
+2,353 canonical top-mesh loads, no clone or resurrection, and no warp write or
+collision load.  It also classifies three later reuses of the dead top slot:
+allocation clears collision before each different behavior is installed.  A
+new Coq module packages the source census, zero-A route, exact machine totals,
+and trace-scoped no-relocation/no-clone verdict.  The following paths changed:
+
+- `SSL-Coq/less-than-one-a-press/proofs/Area1Rank4WarpTopTraceReceipt.v` (new)
+- `SSL-Coq/less-than-one-a-press/proofs/MainTheorem.v`
+- `SSL-Coq/less-than-one-a-press/_CoqProject`
+- `SSL-Coq/less-than-one-a-press/README.md`
+- `SSL-Coq/less-than-one-a-press/instrumentation/jp-clean-gap-search/jp_clean_gap_search_probe.c`
+- `SSL-Coq/less-than-one-a-press/instrumentation/jp-rank4-warp-top/README.md` (new)
+- `SSL-Coq/less-than-one-a-press/instrumentation/jp-rank4-warp-top/expected-warp-top-receipt.txt` (new)
+- `SSL-Coq/less-than-one-a-press/instrumentation/jp-rank4-warp-top/run.sh` (new)
+- `SSL-Coq/less-than-one-a-press/docs/no-a-route-atlas.md`
+- `SSL-Coq/less-than-one-a-press/docs/checklist.md`
+- `SSL-Coq/less-than-one-a-press/docs/checklist-completed.md`
+- `SSL-Coq/less-than-one-a-press/docs/claim.md`
+- `SSL-Coq/less-than-one-a-press/docs/goal.md`
+- `SSL-Coq/less-than-one-a-press/docs/notes/installer-coverage.md`
+- `SSL-Coq/less-than-one-a-press/docs/notes/changed-paths.md`
+- `SSL-Coq/less-than-one-a-press/docs/notes/local-object-nonlocal-state-gap-matrix.md`
+- `SSL-Coq/less-than-one-a-press/docs/notes/rank4-warp-top-clone.md` (new)
+- `SSL-Coq/less-than-one-a-press/docs/notes/stock-projection-exhaustiveness.md`
+- `SSL-Coq/less-than-one-a-press/human-readable-proof.md`
+- `SSL-Coq/less-than-one-a-press/notes/source-map.md`
+
 ## Rank-1 six-residual classification tranche
 
 The six remaining floor-owner/PLAYER explanations are no longer recorded as

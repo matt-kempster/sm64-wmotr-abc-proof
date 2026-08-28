@@ -1103,6 +1103,16 @@ engineering but does not know *Super Mario 64*.
 > runtime behavior arguments, replayed area spawning, aliased writes, or an
 > unexpected receiver of one of those 21 writers.
 >
+> `Area1Rank4WarpTopTraceReceipt.v` now checks those concerns on the complete
+> clean original-JP zero-A four-pillar route.  Across 2,462 frames there is
+> only one top and one upper warp; every one of the top's 2,353 floor loads has
+> the original owner at its normal position; and the warp never moves, changes
+> identity, gains collision, or loads a floor.  The dead top's slot is reused
+> three times, but each reuse clears the old collision before installing a
+> different object.  Thus this successful route contains no relocation or
+> collision-preserving clone.  A universal proof still has to show that every
+> other reachable clean controller history obeys the same checks.
+>
 > Ink therefore remains unresolved.  No clean retail gap installer was found.
 > The corrected timer-131 sample still needs at least `960` units of
 > Graphics-minus-Object Y separation (`1010` at the warp centre).  Eliminating
@@ -2168,8 +2178,11 @@ retry and a new top capture.  The separate JP destination-area pointer/payload
 census above narrows, but does not close, that continuation.
 
 Moving/loading the warp onto the top, moving the top down to the already-loaded
-warp, collision-preserving cloning, and direct post-query writers remain
-separate unresolved constructions.  The full audit and theorem boundary are in
+warp, and collision-preserving cloning are absent from the complete clean
+zero-A upper-warp trace described below; their remaining question is a
+different-history universal proof or a machine-level corruption producer.
+Direct post-query writers remain a separate unresolved construction.  The full
+audit and theorem boundary are in
 [`docs/notes/pyramid-top-pu.md`](docs/notes/pyramid-top-pu.md).
 
 `UpperWarpTopCoincidenceMechanism`,

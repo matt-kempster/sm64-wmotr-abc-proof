@@ -14,6 +14,7 @@ From LessThanOneAPress.Proofs Require Import
   Area1Rank1SixResidualAudit
   InkTimer131RetailMipsFrames Area1SurfacePoolRangeSeparation
   Area1Rank1LiveBoundaryReceipt Area1Rank1UpperWarpTraceReceipt
+  Area1Rank4WarpTopTraceReceipt
   InkTimer131RealEntryPrefix InkTimer131PostEntryMachineTrace TurningAnimation
   NegativeDepthInteractionClosure NegativeDepthDefinedProducerClosure
   WritableActionTableClosure
@@ -143,6 +144,18 @@ Proof. exact area1_rank1_live_boundary_checked_boundary_holds. Qed.
 Theorem current_rank1_upper_warp_trace_receipt :
   Area1Rank1UpperWarpTraceCheckedBoundary.
 Proof. exact area1_rank1_upper_warp_trace_checked_boundary_holds. Qed.
+
+(** Rank 4 now has a route-matched machine receipt in addition to its
+    generated-source census.  Across the same 2,462-frame zero-A upper-warp
+    execution there is one canonical top and one node-1E warp, all 2,353
+    top-mesh loads retain the canonical owner and bounded pose, and the warp
+    receives no position, collision, or identity store.  The retired top slot
+    is reused three times, but each reuse clears collision before installing a
+    different behavior and never reloads the top mesh.  This closes relocation
+    and collision-preserving cloning on this trace, not universally. *)
+Theorem current_rank4_warp_top_trace_receipt :
+  Area1Rank4WarpTopTraceCheckedBoundary.
+Proof. exact area1_rank4_warp_top_trace_checked_boundary_holds. Qed.
 
 (** Rank 3 can no longer use an ordinary integer-to-pointer cast as a clean
     platform-cell producer: integer constructors never become CompCert block

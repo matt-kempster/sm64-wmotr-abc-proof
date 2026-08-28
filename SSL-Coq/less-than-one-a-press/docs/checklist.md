@@ -487,7 +487,13 @@ These obligations currently block the clean-retail result.
   JP delayed-warp pointer retention/recapture, the US spawn-clear Clight effect,
   and whether the remaining warp-to-top, top-to-warp, and
   collision-preserving-clone possibilities project into the bounded relation or
-  are unreachable.  This is currently the highest-priority counterexample
+  are unreachable.  The new Rank-4 receipt closes physical relocation and
+  collision-preserving cloning for the authenticated clean zero-A upper-warp
+  execution: all 2,353 top-mesh loads use the one canonical top, the one upper
+  warp never moves or gains collision, and all three later top-slot reuses
+  clear collision before changing behavior.  Universal in-bounds reachability,
+  defined aliases, and exact outside effects remain.  This is currently the
+  highest-priority counterexample
   tranche because the fixture already validates the destination displacement
   and continuation once a suitable payload is installed; its authentic JP ROM
   receipt now also decodes the observed word-18 `jal` to the exact platform-
@@ -512,6 +518,10 @@ These obligations currently block the clean-retail result.
   candidate; State-first selection, physical co-location or cloning,
   post-commit transport, another dynamic owner, and a skipped-query frozen
   carry must each be proved unreachable or carried into the same trace.
+  Physical co-location/cloning is now absent from one complete clean
+  four-pillar/upper-warp trace and has an exact object/collision write watch;
+  its remaining obligation is universalization, not another replay of the
+  same schedule.
 
 - [ ] Finish the live producer decision for Ink's timer-131 retry.  The new
   `InkTimer131ProducerClosure.v` source/geometry boundary rules out both normal
@@ -665,7 +675,11 @@ These obligations currently block the clean-retail result.
 - [ ] Prove the linked stock-provenance projection is exhaustive.  Analyze
   relocated warp/top or collision-preserving clones, post-commit movement
   away from the warp sample, non-stock owners, and skipped queries outside
-  the stock provenance relation.  Derive Ink's initial three-view gap from
+  the stock provenance relation.  The trace-scoped relocation/clone case is
+  now checked continuously through a real upper warp, including transient
+  collision loads and retired-slot reuse; prove its invariant for every
+  reachable clean history or identify the first different receiver/write.
+  Derive Ink's initial three-view gap from
   clean retail execution or prove it unreachable.
 
 - [ ] Prove the platform-global non-alias/external frame invariant; execute

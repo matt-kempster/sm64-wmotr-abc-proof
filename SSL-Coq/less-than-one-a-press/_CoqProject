@@ -384,6 +384,7 @@ proofs/InkTimer131RetailMipsFrames.v
 proofs/Area1SurfacePoolRangeSeparation.v
 proofs/Area1Rank1LiveBoundaryReceipt.v
 proofs/Area1Rank1UpperWarpTraceReceipt.v
+proofs/Area1Rank4WarpTopTraceReceipt.v
 proofs/InkTimer131RealEntryPrefix.v
 proofs/InkTimer131PostEntryMachineTrace.v
 proofs/Area1NonlocalPlatformMirror.v

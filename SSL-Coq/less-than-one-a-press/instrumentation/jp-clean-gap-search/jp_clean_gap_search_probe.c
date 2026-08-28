@@ -27,6 +27,14 @@
 #define RANK1_BOUNDARY_REPEAT_UNTIL 349
 #endif
 
+#ifndef RANK4_WARP_TOP_AUDIT
+#define RANK4_WARP_TOP_AUDIT 0
+#endif
+
+#if RANK4_WARP_TOP_AUDIT && !RANK1_BOUNDARY_AUDIT
+#error "RANK4_WARP_TOP_AUDIT requires RANK1_BOUNDARY_AUDIT"
+#endif
+
 /* Authenticated original-JP virtual addresses.  run.sh hash-gates the ROM. */
 enum {
     A_GLOBAL_TIMER = 0x8032c694,
@@ -362,7 +370,9 @@ static uint8_t gRank1SeenNodes[SURFACE_NODE_CAPACITY];
 static unsigned gRank1PoolWriterKinds;
 static unsigned gRank1PartitionWriterKinds;
 static int gRank1AuditState;
+#if !RANK4_WARP_TOP_AUDIT
 static int gRank1BreakpointsArmed;
+#endif
 static uint32_t gRank1StartTimer;
 static uint32_t gRank1EndTimer;
 static uint32_t gRank1NodeBase;
@@ -441,6 +451,46 @@ static uint64_t gRank1InactiveCollisionModelCallSum;
 static uint32_t gRank1StaticSelectionFrames;
 static uint32_t gRank1DynamicSelectionFrames;
 static uint32_t gRank1OwnedSelectionFrames;
+#endif
+
+#if RANK4_WARP_TOP_AUDIT
+static int gRank4BreakpointsArmed;
+static int gRank4Initialized;
+static int gRank4TopRetired;
+static uint32_t gRank4CanonicalTop;
+static uint32_t gRank4CanonicalUpperWarp;
+static uint32_t gRank4TopBehavior;
+static uint32_t gRank4WarpBehavior;
+static uint32_t gRank4TopCollisionData;
+static uint32_t gRank4FramesChecked;
+static uint32_t gRank4FrameFailures;
+static uint32_t gRank4TopActiveFrames;
+static uint32_t gRank4TopAbsentFrames;
+static uint32_t gRank4WarpActiveFrames;
+static uint32_t gRank4TopBehaviorMaximum;
+static uint32_t gRank4TopCollisionMaximum;
+static uint32_t gRank4UpperWarpMaximum;
+static uint32_t gRank4TopResurrections;
+static uint32_t gRank4TopPositionWrites;
+static uint32_t gRank4LiveTopPositionWrites;
+static uint32_t gRank4RetiredSlotPositionWrites;
+static uint32_t gRank4TopIdentityWrites;
+static uint32_t gRank4LiveTopIdentityWrites;
+static uint32_t gRank4RetiredSlotIdentityWrites;
+static uint32_t gRank4WarpPositionWrites;
+static uint32_t gRank4WarpCollisionWrites;
+static uint32_t gRank4WarpIdentityWrites;
+static uint32_t gRank4TopCollisionLoadCalls;
+static uint32_t gRank4BadTopCollisionLoadCalls;
+static uint32_t gRank4UpperWarpCollisionLoadCalls;
+static struct rank1_writer_count gRank4TopPositionWriterCounts[16];
+static unsigned gRank4TopPositionWriterKinds;
+static float gRank4TopMinX = INFINITY;
+static float gRank4TopMaxX = -INFINITY;
+static float gRank4TopMinY = INFINITY;
+static float gRank4TopMaxY = -INFINITY;
+static float gRank4TopMinZ = INFINITY;
+static float gRank4TopMaxZ = -INFINITY;
 #endif
 
 static float rfloat(uint32_t address) {
@@ -570,6 +620,267 @@ static void rank1_count_writer(struct rank1_writer_count *counts,
         gRank1UnsafePoolWrites++;
     }
 }
+
+#if RANK4_WARP_TOP_AUDIT
+static int rank4_top_pose_safe(uint32_t object) {
+    float x = rfloat(object + O_POS_X);
+    float y = rfloat(object + O_POS_Y);
+    float z = rfloat(object + O_POS_Z);
+
+    return isfinite(x) && isfinite(y) && isfinite(z)
+        && x >= -2087.0f && x <= -2007.0f
+        && y >= 1536.0f && y < 1879.0f
+        && z == -1023.0f;
+}
+
+static void rank4_update_top_envelope(uint32_t object) {
+    float x = rfloat(object + O_POS_X);
+    float y = rfloat(object + O_POS_Y);
+    float z = rfloat(object + O_POS_Z);
+
+    if (x < gRank4TopMinX) gRank4TopMinX = x;
+    if (x > gRank4TopMaxX) gRank4TopMaxX = x;
+    if (y < gRank4TopMinY) gRank4TopMinY = y;
+    if (y > gRank4TopMaxY) gRank4TopMaxY = y;
+    if (z < gRank4TopMinZ) gRank4TopMinZ = z;
+    if (z > gRank4TopMaxZ) gRank4TopMaxZ = z;
+}
+
+/* Return true exactly when this store overlaps one of the already-discovered
+ * canonical top/upper-warp cells.  The debugger stops before the store.  Top
+ * position stores are permitted here because the collision-call checkpoint
+ * below validates the resulting pose before any triangles can be installed;
+ * every warp position/identity store is a trace failure, while top identity
+ * stores are split between the live identity (a failure) and a retired slot
+ * whose later collision loads remain independently checked. */
+static int rank4_note_write(uint32_t pc, uint32_t target, uint32_t source,
+                            unsigned width) {
+    int watched = 0;
+
+    if (!gRank4Initialized || R16(A_CURR_AREA) != 1
+        || R32(A_GLOBAL_TIMER) < 348
+        || R32(A_GLOBAL_TIMER) >= 2810) return 0;
+    if (rank1_overlaps_range(target, width,
+                             gRank4CanonicalTop + O_POS_X,
+                             gRank4CanonicalTop + O_POS_Z + 4)) {
+        watched = 1;
+        gRank4TopPositionWrites++;
+        rank1_count_writer(gRank4TopPositionWriterCounts,
+                           &gRank4TopPositionWriterKinds, 16, pc);
+        if (gRank4TopRetired) gRank4RetiredSlotPositionWrites++;
+        else gRank4LiveTopPositionWrites++;
+    }
+    if (rank1_overlaps_range(target, width,
+                             gRank4CanonicalTop + O_BEHAVIOR,
+                             gRank4CanonicalTop + O_BEHAVIOR + 4)
+        || rank1_overlaps_range(target, width,
+                                gRank4CanonicalTop + O_COLLISION_DATA,
+                                gRank4CanonicalTop + O_COLLISION_DATA + 4)) {
+        watched = 1;
+        gRank4TopIdentityWrites++;
+        if (gRank4TopRetired) gRank4RetiredSlotIdentityWrites++;
+        else gRank4LiveTopIdentityWrites++;
+        fprintf(stderr,
+                "RANK4_TOP_IDENTITY_WRITE,timer=%u,pc=%08x,target=%08x,"
+                "value=%08x,"
+                "active=%04x,behavior=%08x,collision=%08x,retired=%d\n",
+                R32(A_GLOBAL_TIMER), pc, target, source,
+                R16(gRank4CanonicalTop + O_ACTIVE_FLAGS),
+                R32(gRank4CanonicalTop + O_BEHAVIOR),
+                R32(gRank4CanonicalTop + O_COLLISION_DATA),
+                gRank4TopRetired);
+    }
+    if (rank1_overlaps_range(target, width,
+                             gRank4CanonicalUpperWarp + O_POS_X,
+                             gRank4CanonicalUpperWarp + O_POS_Z + 4)) {
+        watched = 1;
+        gRank4WarpPositionWrites++;
+    }
+    if (rank1_overlaps_range(target, width,
+                             gRank4CanonicalUpperWarp + O_COLLISION_DATA,
+                             gRank4CanonicalUpperWarp
+                                 + O_COLLISION_DATA + 4)) {
+        watched = 1;
+        gRank4WarpCollisionWrites++;
+    }
+    if (rank1_overlaps_range(target, width,
+                             gRank4CanonicalUpperWarp + O_BEHAVIOR,
+                             gRank4CanonicalUpperWarp + O_BEHAVIOR + 4)) {
+        watched = 1;
+        gRank4WarpIdentityWrites++;
+    }
+    return watched;
+}
+
+static void rank4_note_collision_load_call(uint32_t owner) {
+    uint32_t collision_data;
+
+    if (!gRank4Initialized || R16(A_CURR_AREA) != 1
+        || R32(A_GLOBAL_TIMER) < 348
+        || R32(A_GLOBAL_TIMER) >= 2810) return;
+    collision_data = pool_index(owner) < 0
+        ? 0 : R32(owner + O_COLLISION_DATA);
+    if (owner == gRank4CanonicalUpperWarp) {
+        gRank4UpperWarpCollisionLoadCalls++;
+    }
+    if (collision_data == gRank4TopCollisionData) {
+        gRank4TopCollisionLoadCalls++;
+        if (owner != gRank4CanonicalTop
+            || R32(owner + O_BEHAVIOR) != gRank4TopBehavior
+            || !rank4_top_pose_safe(owner)) {
+            gRank4BadTopCollisionLoadCalls++;
+            fprintf(stderr,
+                    "RANK4_FAILURE,kind=top-collision-owner-or-pose,"
+                    "timer=%u,owner=%08x,behavior=%08x,collision=%08x,"
+                    "x=%.9g,y=%.9g,z=%.9g\n",
+                    R32(A_GLOBAL_TIMER), owner,
+                    pool_index(owner) < 0 ? 0
+                        : R32(owner + O_BEHAVIOR), collision_data,
+                    pool_index(owner) < 0 ? 0.0f
+                        : rfloat(owner + O_POS_X),
+                    pool_index(owner) < 0 ? 0.0f
+                        : rfloat(owner + O_POS_Y),
+                    pool_index(owner) < 0 ? 0.0f
+                        : rfloat(owner + O_POS_Z));
+        }
+        if (owner == gRank4CanonicalTop
+            && R16(owner + O_ACTIVE_FLAGS) == 0) {
+            gRank4TopRetired = 1;
+        }
+    }
+}
+
+static void rank4_observe_frame(void) {
+    uint32_t timer = R32(A_GLOBAL_TIMER);
+    uint32_t top_behavior_count = 0;
+    uint32_t top_collision_count = 0;
+    uint32_t upper_warp_count = 0;
+    int frame_safe = 1;
+    unsigned i;
+
+    if (!gRank4Initialized || R16(A_CURR_AREA) != 1
+        || timer < 348 || timer >= 2810) return;
+    for (i = 0; i < OBJECT_COUNT; i++) {
+        uint32_t object = A_OBJECT_POOL + i * OBJECT_SIZE;
+        uint32_t behavior;
+        uint32_t collision_data;
+        if (R16(object + O_ACTIVE_FLAGS) == 0) continue;
+        behavior = R32(object + O_BEHAVIOR);
+        collision_data = R32(object + O_COLLISION_DATA);
+        if (behavior == gRank4TopBehavior) {
+            top_behavior_count++;
+            if (object != gRank4CanonicalTop) frame_safe = 0;
+        }
+        if (collision_data == gRank4TopCollisionData) {
+            top_collision_count++;
+            if (object != gRank4CanonicalTop
+                || behavior != gRank4TopBehavior) frame_safe = 0;
+        }
+        if (behavior == gRank4WarpBehavior
+            && ((R32(object + O_BHV_PARAMS) >> 16) & 0xff) == 0x1e) {
+            upper_warp_count++;
+            if (object != gRank4CanonicalUpperWarp) frame_safe = 0;
+        }
+    }
+    if (top_behavior_count > gRank4TopBehaviorMaximum) {
+        gRank4TopBehaviorMaximum = top_behavior_count;
+    }
+    if (top_collision_count > gRank4TopCollisionMaximum) {
+        gRank4TopCollisionMaximum = top_collision_count;
+    }
+    if (upper_warp_count > gRank4UpperWarpMaximum) {
+        gRank4UpperWarpMaximum = upper_warp_count;
+    }
+    if (top_behavior_count > 1 || top_collision_count > 1
+        || upper_warp_count != 1) frame_safe = 0;
+
+    if (R16(gRank4CanonicalTop + O_ACTIVE_FLAGS) != 0
+        && R32(gRank4CanonicalTop + O_BEHAVIOR) == gRank4TopBehavior) {
+        gRank4TopActiveFrames++;
+        if (gRank4TopRetired) {
+            gRank4TopResurrections++;
+            frame_safe = 0;
+        }
+        if (R32(gRank4CanonicalTop + O_COLLISION_DATA)
+                != gRank4TopCollisionData
+            || !rank4_top_pose_safe(gRank4CanonicalTop)) {
+            frame_safe = 0;
+        }
+        rank4_update_top_envelope(gRank4CanonicalTop);
+    } else {
+        gRank4TopAbsentFrames++;
+        gRank4TopRetired = 1;
+    }
+
+    if (R16(gRank4CanonicalUpperWarp + O_ACTIVE_FLAGS) != 0
+        && R32(gRank4CanonicalUpperWarp + O_BEHAVIOR)
+            == gRank4WarpBehavior
+        && ((R32(gRank4CanonicalUpperWarp + O_BHV_PARAMS) >> 16) & 0xff)
+            == 0x1e) {
+        gRank4WarpActiveFrames++;
+        if (rfloat(gRank4CanonicalUpperWarp + O_POS_X) != -2048.0f
+            || rfloat(gRank4CanonicalUpperWarp + O_POS_Y) != 768.0f
+            || rfloat(gRank4CanonicalUpperWarp + O_POS_Z) != -1024.0f
+            || R32(gRank4CanonicalUpperWarp + O_COLLISION_DATA) != 0) {
+            frame_safe = 0;
+        }
+    } else {
+        frame_safe = 0;
+    }
+    gRank4FramesChecked++;
+    if (!frame_safe) {
+        gRank4FrameFailures++;
+        fprintf(stderr,
+                "RANK4_FAILURE,kind=frame-census,timer=%u,"
+                "topBehaviors=%u,topCollisions=%u,upperWarps=%u,"
+                "topActive=%04x,warpActive=%04x\n",
+                timer, top_behavior_count, top_collision_count,
+                upper_warp_count,
+                R16(gRank4CanonicalTop + O_ACTIVE_FLAGS),
+                R16(gRank4CanonicalUpperWarp + O_ACTIVE_FLAGS));
+    }
+}
+
+static void arm_rank4_warp_top_audit(void) {
+    int armed;
+
+    if (gRank4BreakpointsArmed || gTop == 0 || gUpperWarp == 0) return;
+    gRank4CanonicalTop = gTop;
+    gRank4CanonicalUpperWarp = gUpperWarp;
+    gRank4TopBehavior = R32(gTop + O_BEHAVIOR);
+    gRank4WarpBehavior = R32(gUpperWarp + O_BEHAVIOR);
+    gRank4TopCollisionData = R32(gTop + O_COLLISION_DATA);
+    armed = gRank4TopBehavior != 0 && gRank4WarpBehavior != 0
+        && gRank4TopCollisionData != 0
+        && R32(gUpperWarp + O_COLLISION_DATA) == 0
+        && add_rank1_write_breakpoints(gTop + O_POS_X, 12)
+        && add_rank1_write_breakpoints(gTop + O_BEHAVIOR, 4)
+        && add_rank1_write_breakpoints(gTop + O_COLLISION_DATA, 4)
+        && add_rank1_write_breakpoints(gUpperWarp + O_POS_X, 12)
+        && add_rank1_write_breakpoints(gUpperWarp + O_BEHAVIOR, 4)
+        && add_rank1_write_breakpoints(gUpperWarp + O_COLLISION_DATA, 4)
+        && add_exec_breakpoint(A_LOAD_OBJECT_SURFACES);
+    if (!armed) {
+        fprintf(stderr, "RANK4_WARP_TOP_ERROR,kind=breakpoint-arm\n");
+        return;
+    }
+    gRank4BreakpointsArmed = 1;
+    gRank4Initialized = 1;
+    fprintf(stderr,
+            "RANK4_WARP_TOP_ARM,timer=%u,top=%08x,topSlot=%d,"
+            "topBehavior=%08x,topCollision=%08x,upperWarp=%08x,"
+            "upperWarpSlot=%d,warpBehavior=%08x,warpCollision=%08x,"
+            "warpX=%.9g,warpY=%.9g,warpZ=%.9g,readOnly=1\n",
+            R32(A_GLOBAL_TIMER), gRank4CanonicalTop,
+            pool_index(gRank4CanonicalTop), gRank4TopBehavior,
+            gRank4TopCollisionData, gRank4CanonicalUpperWarp,
+            pool_index(gRank4CanonicalUpperWarp), gRank4WarpBehavior,
+            R32(gRank4CanonicalUpperWarp + O_COLLISION_DATA),
+            rfloat(gRank4CanonicalUpperWarp + O_POS_X),
+            rfloat(gRank4CanonicalUpperWarp + O_POS_Y),
+            rfloat(gRank4CanonicalUpperWarp + O_POS_Z));
+}
+#endif
 
 static int rank1_valid_object_node(uint32_t node, uint32_t sentinel) {
     return node == sentinel || pool_index(node) >= 0;
@@ -918,6 +1229,9 @@ static int rank1_handle_write(uint32_t pc, uint64_t *registers,
     int watched = 0;
 
     (void) accessed;
+#if RANK4_WARP_TOP_AUDIT
+    if (rank4_note_write(pc, target, source, width)) watched = 1;
+#endif
     if (rank1_overlaps_range(target, width, gRank1NodeBase,
                              gRank1NodeBase + SURFACE_NODE_BYTES)
         || rank1_overlaps_range(target, width, gRank1SurfaceBase,
@@ -1282,6 +1596,11 @@ static int rank1_handle_breakpoint(uint32_t pc, uint64_t *registers) {
         }
         return 1;
     }
+#if RANK4_WARP_TOP_AUDIT
+    if (pc == A_LOAD_OBJECT_SURFACES) {
+        rank4_note_collision_load_call(R32(A_CURRENT_OBJECT));
+    }
+#endif
     if (gRank1AuditState != 2) return 0;
     allocator_index = rank1_allocator_index(pc);
     if (allocator_index >= 0) {
@@ -1483,6 +1802,7 @@ static int rank1_handle_breakpoint(uint32_t pc, uint64_t *registers) {
     return 0;
 }
 
+#if !RANK4_WARP_TOP_AUDIT
 static void arm_rank1_boundary_audit(void) {
     static const uint32_t exec_addresses[] = {
         A_UPDATE_OBJECTS,
@@ -1538,6 +1858,7 @@ static void arm_rank1_boundary_audit(void) {
             A_DYNAMIC_SURFACE_PARTITION,
             A_DYNAMIC_SURFACE_PARTITION + SURFACE_PARTITION_BYTES);
 }
+#endif
 #endif
 
 static const char *watched_prefix_cell(uint32_t address) {
@@ -1972,7 +2293,7 @@ static void observe_entry_identity(uint32_t mario_object) {
                 && R32(A_MAIN_POOL_LEFT_HEAD)
                     <= R32(A_MAIN_POOL_RIGHT_HEAD));
     gEntryIdentityLogged = 1;
-#if RANK1_BOUNDARY_AUDIT
+#if RANK1_BOUNDARY_AUDIT && !RANK4_WARP_TOP_AUDIT
     arm_rank1_boundary_audit();
 #endif
 }
@@ -2297,6 +2618,78 @@ EXPORT int CALL RomOpen(void) {
 }
 
 EXPORT void CALL RomClosed(void) {
+#if RANK4_WARP_TOP_AUDIT
+    unsigned rank4_writer_index;
+    int rank4_invariant = gRank4Initialized
+        && gRank4BreakpointsArmed
+        && gRank4FramesChecked == 2462
+        && gRank4FrameFailures == 0
+        && gRank4TopBehaviorMaximum == 1
+        && gRank4TopCollisionMaximum == 1
+        && gRank4UpperWarpMaximum == 1
+        && gRank4TopActiveFrames + gRank4TopAbsentFrames
+            == gRank4FramesChecked
+        && gRank4WarpActiveFrames == gRank4FramesChecked
+        && gRank4TopResurrections == 0
+        && gRank4TopPositionWrites
+            == gRank4LiveTopPositionWrites
+                + gRank4RetiredSlotPositionWrites
+        && gRank4TopIdentityWrites
+            == gRank4LiveTopIdentityWrites
+                + gRank4RetiredSlotIdentityWrites
+        && gRank4LiveTopIdentityWrites == 0
+        && gRank4WarpPositionWrites == 0
+        && gRank4WarpCollisionWrites == 0
+        && gRank4WarpIdentityWrites == 0
+        && gRank4TopCollisionLoadCalls > 0
+        && gRank4BadTopCollisionLoadCalls == 0
+        && gRank4UpperWarpCollisionLoadCalls == 0;
+    for (rank4_writer_index = 0;
+         rank4_writer_index < gRank4TopPositionWriterKinds;
+         rank4_writer_index++) {
+        fprintf(stderr,
+                "RANK4_TOP_POSITION_WRITER,pc=%08x,count=%u\n",
+                gRank4TopPositionWriterCounts[rank4_writer_index].pc,
+                gRank4TopPositionWriterCounts[rank4_writer_index].count);
+    }
+    fprintf(stderr,
+            "RANK4_WARP_TOP_RESULT,firstTimer=348,exclusiveEndTimer=2810,"
+            "framesChecked=%u,frameFailures=%u,top=%08x,topSlot=%d,"
+            "topBehavior=%08x,topCollision=%08x,upperWarp=%08x,"
+            "upperWarpSlot=%d,warpBehavior=%08x,"
+            "topActiveFrames=%u,topAbsentFrames=%u,warpActiveFrames=%u,"
+            "topBehaviorMaximum=%u,topCollisionMaximum=%u,"
+            "upperWarpMaximum=%u,topResurrections=%u,"
+            "topPositionWrites=%u,liveTopPositionWrites=%u,"
+            "retiredSlotPositionWrites=%u,topIdentityWrites=%u,"
+            "liveTopIdentityWrites=%u,retiredSlotIdentityWrites=%u,"
+            "warpPositionWrites=%u,"
+            "warpCollisionWrites=%u,warpIdentityWrites=%u,"
+            "topCollisionLoadCalls=%u,badTopCollisionLoadCalls=%u,"
+            "upperWarpCollisionLoadCalls=%u,"
+            "topX=%.9g:%.9g,topY=%.9g:%.9g,topZ=%.9g:%.9g,"
+            "invariant=%d\n",
+            gRank4FramesChecked, gRank4FrameFailures,
+            gRank4CanonicalTop, pool_index(gRank4CanonicalTop),
+            gRank4TopBehavior, gRank4TopCollisionData,
+            gRank4CanonicalUpperWarp,
+            pool_index(gRank4CanonicalUpperWarp), gRank4WarpBehavior,
+            gRank4TopActiveFrames, gRank4TopAbsentFrames,
+            gRank4WarpActiveFrames, gRank4TopBehaviorMaximum,
+            gRank4TopCollisionMaximum, gRank4UpperWarpMaximum,
+            gRank4TopResurrections, gRank4TopPositionWrites,
+            gRank4LiveTopPositionWrites,
+            gRank4RetiredSlotPositionWrites,
+            gRank4TopIdentityWrites, gRank4LiveTopIdentityWrites,
+            gRank4RetiredSlotIdentityWrites,
+            gRank4WarpPositionWrites, gRank4WarpCollisionWrites,
+            gRank4WarpIdentityWrites, gRank4TopCollisionLoadCalls,
+            gRank4BadTopCollisionLoadCalls,
+            gRank4UpperWarpCollisionLoadCalls,
+            gRank4TopMinX, gRank4TopMaxX,
+            gRank4TopMinY, gRank4TopMaxY,
+            gRank4TopMinZ, gRank4TopMaxZ, rank4_invariant);
+#endif
 #if RANK1_BOUNDARY_AUDIT && RANK1_BOUNDARY_REPEAT_UNTIL > 349
     fprintf(stderr,
             "RANK1_REPEAT_RESULT,firstTimer=348,exclusiveEndTimer=%u,"
@@ -2455,6 +2848,10 @@ EXPORT void CALL GetKeys(int control, BUTTONS *keys) {
     observe_entry_identity(mario_object);
     if (gTop == 0 || gUpperWarp == 0) find_area1_objects();
     else if (gShell == 0) find_area1_objects();
+#if RANK4_WARP_TOP_AUDIT
+    arm_rank4_warp_top_audit();
+    rank4_observe_frame();
+#endif
     observe_gap();
     observe_top();
 

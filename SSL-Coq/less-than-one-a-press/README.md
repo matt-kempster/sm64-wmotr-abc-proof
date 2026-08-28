@@ -653,6 +653,13 @@ this branch is useful for pointer chronology, not a successful Area-2 warp.
 and all 21 direct collision-data writer bodies.  The allocator contains only
 null direct assignments to that field, and ordinary pose-copy helpers do not
 copy behavior or collision identity; successful-return execution is open.
+`Area1Rank4WarpTopTraceReceipt.v` supplies the complementary finite execution
+for the clean original-JP zero-A upper-warp route.  Across 2,462 frames it
+finds exactly one canonical top and upper warp, checks all 2,353 top-mesh loads
+at bounded poses, observes no warp write or collision load, and classifies all
+three later top-slot reuses as collision-clearing replacements rather than
+clones.  That closes relocation/cloning on this schedule; the universal all-
+history source-to-machine induction remains open.
 The linked non-alias/external frames, live branches, post-copy discrepancy cause,
 surface-list slot/epoch projection, runtime spawn provenance, and the clean
 binary32 `<960` writer invariant remain open.  See

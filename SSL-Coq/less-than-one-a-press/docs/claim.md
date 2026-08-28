@@ -276,8 +276,10 @@ or frame.  See [CompCert execution scope](compcert-execution-scope.md).
   checks a stock-top binary32 timer `0..150` mirror: X `[-2087,-2007]`,
   Y `[1536,1879)`, and fixed Z `-1023`, with timer 131 matching the surface
   fixture.  The live Clight-to-mirror and memory-frame connection is open, so
-  this narrows rather than excludes stock self-motion.  Aliases, other
-  behaviors, clones, and object-identity changes also remain open.
+  this alone narrows rather than excludes stock self-motion.  The later
+  Rank-4 continuous receipt excludes aliases, clones, relocation, and identity
+  changes on the complete clean upper-warp schedule; other reachable histories
+  and machine-only corruption remain open.
 - The stock-projection follow-up proves that the previous frozen-carry model
   was not automatically exhaustive: it conflated a candidate platform-query
   sample with the current collision sample.  A checked abstract separation
@@ -800,9 +802,13 @@ or frame.  See [CompCert execution scope](compcert-execution-scope.md).
   at the first Area-2 application, consumes all five triggers, spawns and
   overlaps the Act-6 star, and newly sets its bit with no A edge.  It has no
   Act-3 overlap.
-  No controller-only retail predecessor has been established.  Other
-  open cases include moving/loading the warp onto the top, moving the top to
-  the warp, and collision-preserving cloning.
+  No controller-only retail predecessor has been established.  Moving/loading
+  the warp onto the top, moving the top to the warp, and collision-preserving
+  cloning are now absent from one complete authenticated clean zero-A
+  upper-warp route, including every actual top-mesh load and all later reuse
+  of the dead top slot; their remaining clean-model question is universal
+  reachability across different histories, while machine-only corruption is
+  outside this claim.
 - The Area-2 geometry tranche authenticates exact initializer triangle and
   vertex receipts for the upper elevator candidate and the lower pole-aperture
   candidate.  The lower cut uses ring supports plus conservative binary32

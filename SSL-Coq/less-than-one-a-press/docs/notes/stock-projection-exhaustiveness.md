@@ -158,6 +158,16 @@ the stock level spawn, passing the top
 behavior through generic runtime arguments, corrupting a behavior/collision
 pointer, or using one of the 21 generic writers on an unexpected receiver.
 
+The trace-scoped execution half is now complete for the authenticated clean
+zero-A upper-warp route.  `Area1Rank4WarpTopTraceReceipt.v` scans all 240
+object slots on 2,462 consecutive frames and watches actual collision loads:
+there is one canonical top, one fixed collision-free upper warp, 2,353
+canonical top-mesh loads, no clone or resurrection, and no warp position,
+identity, or collision write.  The top slot is reused three times only after
+retirement, and allocation clears its collision pointer before each new
+behavior.  This closes the listed mechanism on that run, not for every input
+history.
+
 ## Exactly what remains
 
 The clean retail installer is reduced to the following linked-semantic work:
@@ -188,12 +198,15 @@ The clean retail installer is reduced to the following linked-semantic work:
    canonical map are sound and injective.  Include inactive/deallocated
    same-reference and same-slot/different-epoch cases rather than silently
    dropping them.
-5. **Close relocation and clone provenance.**  Prove that clean Area-1 spawn
-   and behavior execution creates only the canonical warp/top instances;
-   every successful allocation executes its null collision-data reset; area
-   unload/reload cannot leave two
-   relevant live instances; and every reachable one of the 21 collision-data
-   writers either installs its own stock mesh or is unreachable in SSL.
+5. **Generalize relocation and clone provenance.**  The complete clean
+   upper-warp receipt now proves the desired identity, allocator-reset, pose,
+   and collision-owner result for one successful controller history.  Lift
+   those exact checks to every reachable in-bounds history: clean Area-1 spawn
+   and behavior execution must create only the canonical warp/top instances,
+   every successful allocation must execute its null collision-data reset,
+   area unload/reload must not leave two relevant live instances, and every
+   reachable one of the 21 collision-data writers must install its own stock
+   mesh or be unreachable in SSL.
 6. **Close the three-view writer invariant.**  Execute ordinary clean entry
    to obtain State/raw/Graphics equality, then refine every reachable
    coordinate writer, action transition, quicksand-depth update, dialog

@@ -528,10 +528,14 @@ environment.
 The generated stock upper-warp callback has no direct position writer, and a
 finite binary32
 certificate confines the stock top's own timer `0..150` motion to its small
-X/Y envelope at fixed Z.  The live Clight-to-mirror and memory-frame proof is
-still missing, so stock self-motion is narrowed rather than eliminated;
-aliased/external relocation and collision-preserving cloning also remain.  Clean
-reachability and linked collision-array retention remain open.  The
+X/Y envelope at fixed Z.  A new authenticated original-JP receipt checks one
+complete clean zero-A four-pillar/upper-warp execution: all 2,353 top-mesh
+loads retain the one canonical owner inside that envelope, the one upper warp
+never moves or gains collision, and all three later top-slot reuses clear
+collision before changing behavior.  This eliminates relocation and cloning
+on that route.  The universal Clight-to-machine memory-frame proof, defined
+alias/external cases in other histories, and linked collision-array retention
+remain open.  The
 conditional run observes capture/unload timing and JP pointer retention through
 the delayed warp, but their Clight refinement remains open.  The complete
 matrix and surface-loader bodies are imported, the concrete CompCert casts and
@@ -559,8 +563,10 @@ capture, same-allocation Goomba transport, intermediate handoffs, and
 continuation to a target collision.  None is assumed by the ultimate theorem.
 The US state model blocks retention after a successful spawn clear, but its
 Clight memory effect remains pending.  Warp-to-top, top-to-warp, and
-collision-preserving clone possibilities also remain.  Source-backed prehistory must
-preserve those cases rather than assume them away.  No stock-reachable Ink
+collision-preserving clone possibilities remain only as different-history
+universal or machine-corruption cases after the clean target trace found none;
+source-backed prehistory must prove the universal boundary rather than assume
+it.  No stock-reachable Ink
 prestate or retail target-bit counterexample has been found, and the ultimate
 theorem remains incomplete.  Accordingly, none of the six archived projects
 discharges the current
