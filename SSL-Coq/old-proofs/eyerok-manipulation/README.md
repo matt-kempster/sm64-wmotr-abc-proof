@@ -63,9 +63,10 @@ formalizes those audited premises; it is not a linked whole-program refinement.
 The cross-area result is version-specific. US clears Mario's saved platform
 pointer while loading Area 2. Original JP omits that call, retains the raw slot
 address, and consumes a nonnull address before the first Area 2 update refreshes
-it. An ordinary coherent JP warp carries `NULL`; an authentic stale cached warp
-floor plus freshly saved hand pointer remains open. In disclosed injected
-comparisons, the authentic JP ROM reused right-hand slot 32 and left-hand slot
+it. An ordinary coherent JP warp carries `NULL`; the stale cached-warp plus
+fresh-hand mismatch is now excluded by the stock pose/writer audit, subject to
+linked whole-program refinement. In disclosed injected comparisons, the
+authentic JP ROM reused right-hand slot 32 and left-hand slot
 73 for zero-motion `bhvStaticObject` payloads. Retail apply entry/return
 breakpoints observed effective delta `(0,0,0)` and unchanged Mario speed. No explosion
 or 0/0.5-A route was staged.  A separate allocation census now identifies a
@@ -86,27 +87,37 @@ are pre-fight at home Z=`-3393`, outside the warp, and the death dialog starts
 at timer 60 after the 40-frame dying hands are gone.  Because Area 3 contains
 no other dialog object, the clean PU installation is disproved in the audited
 stock model; the ten/eleven-coin and reanchor work is now only conditional on a
-new lifecycle or machine-level premise.  The ordinary branch now has its own
+new lifecycle or machine-level premise.  The ordinary branch has its own
 authenticated suffix census: under a deletion-only shift, death-hand ordinals
 53/54 can select only baseline allocations 53 through 83 (or no replacement),
 and Spindel at 64 is the sole entry with effective X/Z or angular motion.
 The compiled binary32 calculation sends the recorded ordinary warp center from
-`(0,346.0804,-1100)` to `(0,338.5134,-1138.419)`, so the only observed nonzero
-replacement moves down and backward instead of supplying a lift.  The central
-warp collision also reduces a Pedro installation to floor bands
-`[-569,-411]` or `[608,766]`; reaching one of those hand poses and proving any
-later use for the small shift remain open.  Platform
-displacement changes position/facing, not stored speed, so this is a positional
-lever arm rather than normal or PU stored-speed accumulation.
+`(0,346.0804,-1100)` to `(0,338.5134,-1138.419)`, so the only reused nonzero
+replacement moves down and backward instead of supplying a lift.  A new
+four-case matching-ROM probe and pinned-source census close the ordinary
+installation in the audited stock model.  Fist-push stays at the low home
+height (and both checked central cases stop before the warp); one-hand
+SHOW_EYE crosses it with an open top at Y=`-1027`; even the lethal
+continuation peaks at Y=`-739`, 170 below the lowest Pedro floor; every
+higher target/double-pound family is horizontally short; and the sibling and
+post-Mario writer cases add no surface.  The 25-frame ground return also
+leaves a never-reused death slot with zero effective X/Z and angular payload
+before the 40-frame deletion.  Since no stock installation survives, later
+usefulness of Spindel's small shift is only a conditional question if a
+linked execution breaks one of these premises.  Platform displacement
+changes position/facing, not stored speed, so this is a positional lever arm
+rather than normal or PU stored-speed accumulation.
 
 See `proofs/PedroSpot.v`, `proofs/EyerokParticleDisplacement.v`,
 `proofs/JPPlatformPersistence.v`, the US Pedro trace in
 `instrumentation/results/pedro_entry_trace.csv`, and the JP evidence manifest
 in `instrumentation/results/jp_platform_manifest.md`.  The active project's
 `JPEyerokStaleHandPU.v`, `JPEyerokStaleHandOrdinary.v`, and the compact
-`instrumentation/results/jp_pu_payload_census.txt` and
-`instrumentation/results/jp_ordinary_payload_census.txt` keep the conditional
-payload results and their remaining live bridges explicit.
+`instrumentation/results/jp_pu_payload_census.txt`,
+`instrumentation/results/jp_ordinary_payload_census.txt`, and
+`instrumentation/results/jp_ordinary_install_probe.txt` keep the conditional
+payload results, retail action measurements, and remaining linked-refinement
+boundary explicit.
 
 ## Current status
 

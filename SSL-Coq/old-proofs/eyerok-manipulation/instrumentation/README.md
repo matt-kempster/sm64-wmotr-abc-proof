@@ -248,6 +248,40 @@ python3 instrumentation/mupen64plus/analyze_jp_ordinary_payload_census.py \
 The committed compact receipt records this classification.  The corresponding
 Coq certificate evaluates Spindel at the ordinary warp center as approximately
 `(0,338.5134,-1138.419)`, down and backward from
-`(0,346.0804,-1100)`.  This does not prove that arbitrary gameplay changes are
-a deletion-only subsequence, that the cached-warp/fresh-hand mismatch is
-reachable, or that an unreused freed slot has a harmless residual payload.
+`(0,346.0804,-1100)`.  The separate stock-installation and no-reuse audits
+below now make this payload conditional on a failed linked-refinement premise.
+
+### Ordinary-scale live-installation probe
+
+`eyerok_jp_ordinary_install_probe.c` runs four cases from the accepted
+original-JP level-select boundary.  The wake fixture changes only the boss
+action and lets the retail wake animation install the ordinary closed mesh.
+The two FIST_PUSH cases then write the exact source transition fields so both
+sides can be checked without claiming scheduler or controller reachability.
+The two one-hand cases write only the boss fight/count/active-side scheduler
+fields; each hand naturally executes `IDLE -> OPEN -> SHOW_EYE` without a hand
+action or motion write.  Mario's repeated target position is also disclosed.
+
+~~~sh
+instrumentation/mupen64plus/run_jp_ordinary_install_probe.sh \
+  /path/to/baserom.jp.z64 build/jp-ordinary-install
+
+python3 instrumentation/mupen64plus/analyze_jp_ordinary_install_probe.py \
+  instrumentation/results/jp_ordinary_install_probe.txt \
+  build/jp-ordinary-install/right_fist_push/raw.log \
+  build/jp-ordinary-install/left_fist_push/raw.log \
+  build/jp-ordinary-install/right_one_hand_show_eye/raw.log \
+  build/jp-ordinary-install/left_one_hand_show_eye/raw.log
+~~~
+
+Both closed fist families remain at Y=`-1534` and are edge-stopped with a
+conservative collision endpoint behind warp Z=`-1222`.  Both open one-hand
+families cross the warp Z interval but remain at Y=`-1534`, putting the open
+top at Y=`-1027`.  The analyzer joins those observations to the exact lethal
+`50/-4` arc, whose relative peak is `288` and whose open top is Y=`-739`, 170
+below the lowest Pedro band.  TARGET_MARIO's later observed closed top is
+Y=`-928` and its conservative Z envelope remains behind the warp.  The
+pinned-source audit supplies the complete stock action/sibling split, the
+post-Mario writer census, and the identity no-reuse payload.  The resulting
+verdict is a stock source-shaped installation exclusion, not a controller TAS
+or a linked whole-program refinement.

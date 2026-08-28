@@ -1,6 +1,6 @@
 # Original-JP platform-pointer probe manifest
 
-Date: 2026-08-27
+Date: 2026-08-28
 
 The probe ran under Mupen64Plus 2.5.9's cached interpreter in the
 Ubuntu-24.04 WSL distribution.  It used the original Japanese ROM identified
@@ -70,21 +70,42 @@ angular velocity except allocation 64, `bhvSpindel`.  Allocations 60 through
 Mario.  The matching CompCert binary32 proof evaluates Spindel at the recorded
 ordinary warp center as approximately `(0,338.5134,-1138.419)` from
 `(0,346.08044,-1100)`, a small downward/backward movement rather than a lift.
-This census does not cover a cell that is never reused, state changes that do
-more than delete baseline allocations, or reachability of the required cached-
-floor/hand-pointer mismatch.
+This census alone does not cover a cell that is never reused, state changes
+that do more than delete baseline allocations, or reachability of the required
+cached-floor/hand-pointer mismatch.  Those first and third questions are now
+handled by the source-shaped death-field and installation audits below.
+
+## Ordinary installation motion receipt
+
+The matching-ROM four-case probe records both hands in conditional FIST_PUSH
+and naturally scheduled one-hand SHOW_EYE continuations.  FIST_PUSH/SWEEP stays
+at pivot Y=`-1534` and is edge-stopped with conservative maximum collision Z
+`-1409.595459` on the right and `-1434` on the left, behind the warp's nearest
+Z=`-1222`.  SHOW_EYE crosses the warp interval and finishes near Z=`-892`, but
+its open top is only Y=`-1027`.  Even granting the exact lethal hit
+continuation, its `50/-4` arc peaks at relative Y=`288`, so the open floor
+reaches only Y=`-739`, still 170 below the lowest required Pedro floor.  The
+compact validated receipt is `jp_ordinary_install_probe.txt`.
+
+The pinned-source join classifies the remaining actions and scheduling.
+TARGET_MARIO and double-pound can rise but their conservative collision
+envelopes end at Z=`-1484` and `-1634`; the two-hand sibling opens at home,
+whereas a moving one-hand SHOW_EYE phase has no live sibling.  After Mario's
+State-to-Object copy, the only named position writers in the entire game are
+platform displacement, Dorrie, the tilting inverted pyramid, and butterflies;
+the first already ran and the other actors are absent from Area 3.  Finally,
+the lethal hand grounds on integration 25, clears forward speed, and retains
+allocation-zeroed angular velocities through its 40-frame deletion, so an
+unreused freed slot is an identity payload too.
 
 ## Scope
 
-This probe confirms that original JP differs from US and that a raw slot
-address, not Eyerok object identity, is the relevant value.  It closes the
-tested ordinary sleeping-hand payload for both hands, and the related census
-closes every reused deletion-only suffix payload as an immediate Act-3 lift;
-neither stages an Eyerok explosion or proves that Mario can authentically
-combine a stale cached warp floor with a freshly saved hand platform.  In
-particular, these are not particle-platform-displacement TASes and establish no
-0-A or 0.5-A route.  The ordinary branch still needs the exact mismatch, an
-unreused-slot classification, and a verdict on the later usefulness of the
-small Spindel shift.  The separate PU-scale clean installation is disproved by
-the checked support, transport, and dialog lifecycle bounds in the active
-proof; corruption and post-undefined-behavior execution remain out of scope.
+These probes confirm that original JP retains a raw slot address rather than
+Eyerok object identity.  Together with the source audit and Coq pose theorem,
+they close both ordinary installation and the unreused-slot payload in the
+audited stock source-shaped model; Spindel's small down/back shift therefore
+has no live downstream usefulness obligation unless that installation boundary
+is broken.  The separate PU-scale clean installation is also disproved.  The
+fixtures are not controller TASes and establish no 0-A or 0.5-A route; linked
+whole-program refinement remains open, while corruption and continuation
+after undefined behavior remain outside the current model.

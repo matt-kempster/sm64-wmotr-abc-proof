@@ -1225,6 +1225,53 @@ def main() -> None:
         fail(f"unexpected canonical JP SHA-1 manifest: {jp_sha1_manifest!r}")
     require(die_animation, "0x28, ANIMINDEX_NUMPARTS(eyerok_seg5_animindex_0500DD4C)", "40-frame die animation")
     die_animation_frames = 0x28
+    die_body = hand_functions["eyerok_hand_act_die"]
+    require(
+        die_body,
+        "if (o->oMoveFlags & OBJ_MOVE_MASK_ON_GROUND) { "
+        "cur_obj_play_sound_2(SOUND_OBJ_POUNDING_LOUD); "
+        "o->oForwardVel = 0.0f; }",
+        "dying hand grounded forward-velocity clear",
+    )
+    if "oAngleVel" in eyerok:
+        fail("Eyerok behavior unexpectedly writes an angular-velocity field")
+    require(
+        spawn_object,
+        "for (i = 0; i < 0x50; i++) obj->rawData.asS32[i] = 0;",
+        "allocation clears all raw object fields",
+    )
+    move_standard_body = c_function_body(helpers, "cur_obj_move_standard")
+    require(
+        move_standard_body,
+        "cur_obj_compute_vel_xz(); cur_obj_apply_drag_xz(dragStrength);",
+        "common movement recomputes X/Z velocity from forward velocity",
+    )
+
+    lethal_velocity = 50
+    lethal_relative_y = 0
+    lethal_peak_y = 0
+    lethal_ground_integrations = 0
+    while True:
+        lethal_ground_integrations += 1
+        lethal_velocity -= 4
+        candidate_y = lethal_relative_y + lethal_velocity
+        if candidate_y < 0:
+            lethal_relative_y = 0
+            lethal_velocity = 0
+            break
+        lethal_relative_y = candidate_y
+        lethal_peak_y = max(lethal_peak_y, lethal_relative_y)
+    if (lethal_peak_y, lethal_ground_integrations) != (288, 25):
+        fail(
+            "unexpected lethal hand arc: "
+            f"peak={lethal_peak_y}, ground={lethal_ground_integrations}"
+        )
+    if die_animation_frames < lethal_ground_integrations:
+        fail("DIE can unload before its velocity reaches the grounded zero state")
+    lethal_open_top_y = -1534 + lethal_peak_y + 507
+    if lethal_open_top_y != -739 or not lethal_open_top_y < -569:
+        fail(f"unexpected lethal open-hand top: {lethal_open_top_y}")
+
     death_dialog_timer = 60
     if not die_animation_frames < death_dialog_timer:
         fail(
@@ -1351,6 +1398,72 @@ def main() -> None:
     local6_objects = re.findall(r"\bOBJECT(?:_WITH_ACTS)?\s*\(", local6.group(1))
     if len(local6_objects) != 1 or "bhvEyerokBoss" not in local6.group(1):
         fail("Area 3 local object script is not exactly the Eyerok boss")
+    if any(
+        behavior in ssl_script or behavior in area3_macros
+        for behavior in ["bhvButterfly", "bhvDorrie", "bhvTiltingInvertedPyramid"]
+    ):
+        fail("an Area-3-excluded post-Mario position writer appears in SSL data")
+
+    # Census the only named raw-Object writers and set_mario_pos callsites in
+    # the complete pinned game source.  Platform displacement executes before
+    # PLAYER; the remaining three owning behaviors do not occur in Area 3.
+    set_pos_lines = git(
+        sm64,
+        "grep",
+        "-n",
+        "-F",
+        "set_mario_pos(",
+        PIN,
+        "--",
+        "src/game",
+    ).decode("utf-8").splitlines()
+    set_pos_paths = sorted(line.split(":", 2)[1] for line in set_pos_lines)
+    if set_pos_paths != sorted(
+        [
+            "src/game/behaviors/dorrie.inc.c",
+            "src/game/behaviors/tilting_inverted_pyramid.inc.c",
+            "src/game/platform_displacement.c",
+            "src/game/platform_displacement.c",
+            "src/game/platform_displacement.h",
+        ]
+    ):
+        fail(f"unexpected set_mario_pos census: {set_pos_paths}")
+
+    raw_object_writer_lines = git(
+        sm64,
+        "grep",
+        "-n",
+        "-E",
+        r"gMarioObject->oPos[XYZ][[:space:]]*[+*/-]?=",
+        PIN,
+        "--",
+        "src/game",
+    ).decode("utf-8").splitlines()
+    raw_object_writer_paths = sorted(
+        line.split(":", 2)[1] for line in raw_object_writer_lines
+    )
+    if raw_object_writer_paths != ["src/game/behaviors/butterfly.inc.c"] * 6:
+        fail(f"unexpected direct Mario-object writer census: {raw_object_writer_paths}")
+
+    mario_update_body = c_function_body(object_lists, "bhv_mario_update")
+    execute_index = compact(mario_update_body).find(
+        compact("particleFlags = execute_mario_action(gCurrentObject);")
+    )
+    copy_index = compact(mario_update_body).find(
+        compact("copy_mario_state_to_object();")
+    )
+    particle_index = compact(mario_update_body).find(
+        compact("while (sParticleTypes[i].particleFlag != 0)")
+    )
+    if not 0 <= execute_index < copy_index < particle_index:
+        fail("Mario State-to-Object copy is not after action and before particles")
+    require(
+        object_lists,
+        "OBJ_LIST_SURFACE, OBJ_LIST_POLELIKE, OBJ_LIST_PLAYER, "
+        "OBJ_LIST_PUSHABLE, OBJ_LIST_GENACTOR, OBJ_LIST_DESTRUCTIVE, "
+        "OBJ_LIST_LEVEL, OBJ_LIST_DEFAULT, OBJ_LIST_UNIMPORTANT",
+        "PLAYER-before-boss/list-tail update order",
+    )
 
     area3_vertices, area3_triangles = parse_collision(area3)
     area3_z_min = min(vertex[2] for vertex in area3_vertices)
@@ -1581,6 +1694,29 @@ def main() -> None:
     )
     if low_warp_open_pivot_band != (-1076, -918):
         fail("unexpected low-ceiling open-hand Pedro band")
+
+    ordinary_forward_closed_top = -1534 + closed_top_offset
+    ordinary_forward_open_top = -1534 + dynamic_top_offset
+    target_mario_pivot_peak = -1534 + 300
+    target_mario_closed_top = target_mario_pivot_peak + closed_top_offset
+    double_pound_coarse_max_z = -3693 + 1600 + coarse_hand_horizontal_offset
+    target_mario_coarse_max_z = -3693 + 1700 + 50 + coarse_hand_horizontal_offset
+    if (
+        ordinary_forward_closed_top,
+        ordinary_forward_open_top,
+        target_mario_closed_top,
+    ) != (-1228, -1027, -928):
+        fail("unexpected ordinary forward/target hand tops")
+    if double_pound_coarse_max_z != -1634 \
+        or target_mario_coarse_max_z != -1484:
+        fail("unexpected target/double-pound warp-separation bound")
+    if not max(
+        ordinary_forward_closed_top,
+        ordinary_forward_open_top,
+        target_mario_closed_top,
+        lethal_open_top_y,
+    ) < low_warp_pedro_floor_band[0]:
+        fail("a horizontally eligible ordinary hand top reaches a Pedro band")
 
     right_sleep_vertices, right_sleep_triangles = parse_collision(
         named_collision_block(hand_collision, "ssl_seg7_collision_07028370")
@@ -1824,6 +1960,13 @@ def main() -> None:
     print("ordinary-low-ceiling-pedro-floor-band: [-569,-411]")
     print("ordinary-low-ceiling-closed-pivot-band: [-875,-717]")
     print("ordinary-low-ceiling-open-pivot-band: [-1076,-918]")
+    print("ordinary-forward-closed-top: -1228")
+    print("ordinary-forward-open-top: -1027")
+    print("ordinary-lethal-open-top: -739 (170 below low Pedro band)")
+    print("ordinary-target-closed-top: -928")
+    print("ordinary-target-coarse-max-Z: -1484 (warp begins -1222)")
+    print("ordinary-double-pound-coarse-max-Z: -1634 (warp begins -1222)")
+    print("ordinary-stock-pose-split: horizontally remote or floor Y <= -739")
     print("closed-hand-origin-underside: local Y=3; top-query rejection margin 303.5")
     print("sleep-pedro-strip: floor -1459, ceiling -1421, gap 38")
     print("sleep-pedro-query-window: [-1537,-1500]")
@@ -1861,6 +2004,9 @@ def main() -> None:
     print("open-hand-upward-local-top: 338 (scaled 507)")
     print("attacked-animation-frames: 25")
     print("die-animation-frames: 40")
+    print("die-ground-integrations: 25; peak relative Y=288; final effective X/Z velocity zero")
+    print("eyerok-angular-velocity-writers: none; allocation initializes all three to zero")
+    print("unreused-death-slot-effective-payload: identity")
     print("open-animation-frames: 30")
     print("wake-animation-frames: 80")
     print("eyerok-explosion-order: mist, 30 rotating triangles, mark hand deleted, coins, end-frame unload")
@@ -1873,6 +2019,8 @@ def main() -> None:
     print("ppd-update-order: clear dynamic surfaces, terrain, apply displacement, nonterrain, unload, refresh platform")
     print("ppd-platform-pointer: prior pointer consumed before end-frame floor refresh")
     print("ppd-dynamic-surfaces: cleared at start of each active frame")
+    print("post-Mario-State/Object-writer-census: set_mario_pos only platform/Dorrie/tilting-pyramid; raw Object writes only butterfly")
+    print("area3-post-Mario-position-writers: none (boss only; macro list empty; excluded writer behaviors absent)")
     print("us-area-load-platform-pointer: cleared (non-JP clear_mario_platform)")
     print("jp-area-load-platform-pointer: not cleared (VERSION_JP omission)")
     print("jp-instant-warp-order: change area before current-frame object update")

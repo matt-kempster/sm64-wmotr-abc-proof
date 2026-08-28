@@ -119,8 +119,9 @@ Two proposed speed-building ideas were checked separately. Eyerok really can
 form Pedro geometry, but neither checked form is a useful authenticated speed
 engine. The hands' own explosion particles cannot produce the required
 same-area slot replacement. Cross-area behavior is version-specific: US closes
-it by clearing the saved platform pointer, while original JP leaves a broader
-stale-slot displacement candidate open.
+it by clearing the saved platform pointer, while original JP retains the raw
+address but now has both its ordinary and PU clean installations closed in the
+audited stock source-shaped model.
 
 ### Sleeping-hand Pedro strip
 
@@ -249,13 +250,15 @@ trigger. The natural JP emulator case confirms this ordinary state: Mario was
 placed on the genuine Area 3 warp floor, its owner and `gMarioPlatform` were
 both null, and Area 2 produced no displacement.
 
-That is not an unconditional impossibility proof. `check_instant_warp` reads a
-cached floor from Mario's preceding update, whereas platform refresh performs
-another floor query. Pedro collision can report a landing while retaining an
-old floor reference. We have not proved or demonstrated an authentic frame in
-which the cached floor is the static warp triangle while the freshly saved
-platform address is an Eyerok hand. That stale-floor/hand-pointer mismatch is
-the first open JP prerequisite.
+`check_instant_warp` reads a cached floor from Mario's preceding update,
+whereas platform refresh performs another floor query, and Pedro collision can
+in principle report a landing while retaining an old floor reference.  The
+new ordinary action probe and source classification nevertheless exclude this
+mismatch for stock Eyerok: every hand pose is either horizontally remote from
+the warp or has its relevant floor at or below Y=`-739`, beneath both required
+Pedro bands, and no later Area-3 writer changes Mario's Object sample.  This is
+a source-shaped exclusion awaiting linked refinement, not an unconditional
+claim about executions after corruption or undefined behavior.
 
 For controlled comparisons, the JP probe injected each genuine hand-slot
 address before taking the real warp. Area 2 reused right slot 32 as allocation
@@ -317,11 +320,18 @@ original-JP binary32 transform at the recorded warp center is
 shift.  At central X/Z the complete static ceiling set is Y=`-409` and Y=`768`,
 so any Pedro installation must put the hand floor in `[-569,-411]` or
 `[608,766]`; these correspond to closed-hand pivot bands `[-875,-717]` and
-`[302,460]`, plus the open-hand low band `[-1076,-918]`.  This proves that the
-ordinary payload is not the hoped-for lift and identifies the exact remaining
-installation poses, but it does not yet exclude a later use for the small
-shift, arbitrary state-changing suppression, or the residual fields of a slot
-that Area 2 never reuses.
+`[302,460]`, plus the open-hand low band `[-1076,-918]`.  A matching-ROM
+four-case probe and complete pinned-source pose split now exclude those
+installation poses in stock execution: fist-push stays at the low home height
+(and both checked central cases stop short of the warp), one-hand SHOW_EYE
+crosses it with its top at only Y=`-1027`, its strongest
+lethal continuation peaks at Y=`-739`, and every rising target/double-pound
+family stays horizontally behind it.  The sibling schedule and full named
+post-Mario position-writer census add no alternative.  The lethal hand also
+grounds 15 frames before deletion, leaving zero effective X/Z and angular
+fields if its slot is never reused.  This closes ordinary installation and
+the no-reuse residual in the audited stock source-shaped model; later use of
+the small Spindel shift is conditional on a failed linked-refinement premise.
 
 The corresponding Rocq certificates are in `PedroSpot.v`,
 `EyerokParticleDisplacement.v`, `JPPlatformPersistence.v`, and
@@ -338,8 +348,8 @@ The active project additionally contains `JPEyerokStaleHand.v`,
 `JPEyerokStaleHandPU.v`, and `JPEyerokStaleHandOrdinary.v`; the first packages
 the corrected sleeping-hand no-op receipt, the second keeps the conditional PU
 allocation alignment and closed installation separate, and the third proves
-the ordinary suffix, unique effective replacement, exact displacement, and
-two Pedro bands.
+the ordinary suffix, unique effective replacement, exact displacement, two
+Pedro bands, lethal arc, stock pose contradiction, and no-reuse identity.
 
 ## Coordinate system and target
 

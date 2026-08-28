@@ -1,6 +1,6 @@
 # No-A two-star route atlas
 
-> Status snapshot: 2026-08-27.  Rankings are intentionally revisable as linked
+> Status snapshot: 2026-08-28.  Rankings are intentionally revisable as linked
 > execution evidence or new counterexamples arrive.
 
 ## Purpose and scope
@@ -133,6 +133,11 @@ The detailed sections are organized as:
 - **Act 3 is the main downstream gap:** the upper and lower itineraries are
   specified and source geometry is checked, but neither has a cut-starting
   linked replay.
+- **The stale Eyerok-hand route is retired in the audited stock model:** the
+  only hand motion that reaches the warp is vertically below both Pedro bands,
+  every rising family remains horizontally behind it, the later-writer and
+  unreused-slot alternatives are harmless, and the only reused nonzero payload
+  moves Mario slightly down and back.
 
 ## At-a-glance ranking
 
@@ -155,7 +160,7 @@ The detailed sections are organized as:
 | 13 | State-first installation | Raw-Object-only return or impulse writer | Low; broad proof branch, but no concrete gameplay writer |
 | 13A | State-first installation | Terrain-dispatch or collision-prefix writer outside the platform phase | Low; proof branch with no reached extra writer |
 | 13B | State-first installation | Interaction-stage writer or cached-floor snap composite | Low; the ordinary branch is conditionally blocked |
-| 14 | Eyerok | Carry a stale Eyerok-hand address from Area 3 to Area 2 in JP | Very low; PU-scale installation is disproved, and the only authenticated nonzero ordinary replacement moves about 8 down and 38 backward |
+| 14 | Eyerok | Carry a stale Eyerok-hand address from Area 3 to Area 2 in JP | Retired in the audited stock model; no hand can install the pointer at the warp, and the sole reused nonzero payload moves about 8 down and 38 backward |
 | 15 | Eyerok | Board and ride a raised hand into a lower Area-2 route | Low-medium as a primitive; very low as a complete route |
 | 16 | Goomba / PU transport | Goomba raising, PU transport, and Spindel handoff | Very low as a full route; one revised timing class remains |
 | 17 | JP stale-platform lineage | Fresh same-slot replacement payload | Low abstractly; absent in the authenticated best trace |
@@ -815,13 +820,13 @@ The detailed historical experiments are in the clearly archived
 
 ### Carry a stale Eyerok-hand address into Area 2 in JP
 
-**Overall rank: 14. Family priority: 1. Likelihood: very low; the PU-scale clean branch is disproved, and the surviving ordinary branch has only a small authenticated payload plus an unproved installation.**
+**Overall rank: 14. Family priority: 1. Likelihood: retired in the audited stock model; reopening it requires a failed source-to-execution premise or machine-level behavior outside that model.**
 
-**In plain language.** On original JP, make Mario remember the static tunnel warp as his floor while separately remembering an Eyerok hand as the moving platform; when the warp unloads the arena, the old hand's place is reused by an Area-2 object and the game applies that replacement object's movement once.  The far-away version tried to magnify a small rotation and is now closed, while the ordinary version asks whether a hand can be put directly under the warp ceiling and whether the resulting small shove can change the later route.
+**In plain language.** On original JP, this idea tried to make Mario remember the static tunnel warp as his floor while separately remembering an Eyerok hand as the moving platform, so that after the warp unloaded the arena the game would apply one Area-2 object's movement through the old hand address.  Both the far-away magnified version and the ordinary version under the warp are now blocked in normal stock play.
 
-**What is already known.** A natural JP warp remembers no hand, and forced sleeping-hand comparisons prove that both ordinary retained addresses become motionless objects and move Mario by `(0,0,0)`; destroying a hand instead makes its stale place conditionally become Area-2 allocation 53 or 54, and an authenticated census now checks the entire deletion-only baseline suffix from 53 through 83.  Every replacement has zero effective X/Z and angular motion except Spindel at allocation 64, because the four moving walls' Y speed is ignored by platform displacement; the exact ordinary Spindel calculation changes the recorded center from `(0,346.0804,-1100)` to about `(0,338.5134,-1138.419)`, down roughly 8 and backward roughly 38 rather than upward.  The collision proof also reduces a Pedro installation at the central warp sample to two exact hand-floor bands, `[-569,-411]` below the low ceiling or `[608,766]` below the high ceiling, corresponding to closed-hand pivot bands `[-875,-717]` or `[302,460]` and an open-hand low pivot band `[-1076,-918]`.  The PU installation remains disproved by the hand-support gap, normal-frame transport bound, and complete Eyerok dialog lifecycle, and its conditional output remains far from the star and every warp.  See the [original-JP stale-hand audit](notes/jp-eyerok-stale-hand.md).
+**What is already known.** A natural JP warp remembers no hand, while forced sleeping-hand comparisons move Mario by `(0,0,0)`; destroying a hand can align its old address with Area-2 allocation 53 or 54, but every checked replacement is motionless except Spindel, whose exact effect is only about 8 down and 38 backward.  Installation at the warp requires a hand floor in `[-569,-411]` or `[608,766]`, yet fist-push remains far too low (and both tested central cases also stop before the warp), while one-hand eye-show crosses the warp with its top only at `-1027`; even granting the hand's largest hit-induced rise reaches only `-739`, still 170 below the lower band, and target and double-pound rises remain horizontally short.  The other hand cannot arrive later in the required state, SSL Area 3 has no later object that moves Mario between the two samples, an unreused dead-hand slot has zero useful motion, and the separate far-away version is already disproved by its support, transport, dialog, and raw-distance checks.  See the [original-JP stale-hand audit](notes/jp-eyerok-stale-hand.md).
 
-**What closes it.** For the ordinary branch, execute or exclude every live way a hand can occupy one of the two proved Pedro bands while Mario still names the static warp—especially forward fist-push or one-hand show-eye motion, an attack continuation from that forward pose, the later-updated sibling, and every post-floor State/Object position writer—then classify the unreused freed-slot fields and prove whether Spindel's small down/back displacement can change any later no-A gate; failure at one named case gives the exact controller trace to test, while success closes the remaining stock in-bounds version.  The PU-scale branch is already closed unless a new defined lifecycle transition violates the checked support, transport, or dialog facts, and out-of-bounds writes, ACE, DMA, or continuation after undefined behavior require the separate retail-machine model; Eyerok still supplies no Act-6 continuation.
+**What closes it.** The route is closed within the audited stock source-shaped model; a full formal verdict now needs the real linked execution to be shown to follow the checked hand-pose, sibling, writer, and lifetime classification.  A concrete failure of that connection—such as a hand pose outside the stock split, an unexpected later Mario-position writer, or nonzero bytes surviving in the freed slot—would reopen one exact case and make the small Spindel displacement worth testing, while out-of-bounds writes, ACE, DMA, and continuation after undefined behavior remain outside the current execution model and require a retail-machine extension; Eyerok still supplies no Act-6 continuation.
 
 ### Board and ride a raised hand into the lower route
 

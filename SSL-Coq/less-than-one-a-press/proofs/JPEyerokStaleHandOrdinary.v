@@ -225,6 +225,135 @@ Proof.
   subst floor_y. unfold jp_ordinary_closed_top_offset in *. lia.
 Qed.
 
+(** * Stock live-installation exclusion
+
+    The authenticated retail action probe separates horizontal and vertical
+    failures.  FIST_PUSH/SWEEP remains on the arena floor and is edge-stopped
+    before even the conservative collision envelope reaches the warp.
+    One-hand SHOW_EYE does cross the warp in X/Z, but its open top is only
+    Y=-1027.  The only accepted-hit consumer is SHOW_EYE.  Even granting its
+    lethal 50/-4 vertical continuation at the farthest forward pose, the open
+    top peaks at Y=-739, still below the low Pedro floor band.  TARGET_MARIO
+    and double-pound can rise, but their conservative collision envelopes end
+    behind the warp.  The following small executable kernel checks the lethal
+    arc and packages that source/receipt classification without claiming that
+    the conditional fixture is a controller trace. *)
+
+Definition jp_ordinary_home_pivot_y : Z := -1534.
+Definition jp_ordinary_warp_near_z : Z := -1222.
+Definition jp_ordinary_coarse_hand_xz_offset : Z := 459.
+Definition jp_ordinary_fist_coarse_max_z : Z := -1409.
+Definition jp_ordinary_target_coarse_max_z : Z := -1484.
+Definition jp_ordinary_double_coarse_max_z : Z := -1634.
+
+Definition jp_ordinary_death_step (state : Z * Z) : Z * Z :=
+  let '(relative_y, velocity_y) := state in
+  let velocity_y' := velocity_y - 4 in
+  let candidate_y := relative_y + velocity_y' in
+  if candidate_y <? 0 then (0, 0) else (candidate_y, velocity_y').
+
+Fixpoint jp_ordinary_death_after (steps : nat) (state : Z * Z) : Z * Z :=
+  match steps with
+  | O => state
+  | S remaining =>
+      jp_ordinary_death_after remaining (jp_ordinary_death_step state)
+  end.
+
+Fixpoint jp_ordinary_death_peak (steps : nat) (state : Z * Z) : Z :=
+  match steps with
+  | O => fst state
+  | S remaining =>
+      let next := jp_ordinary_death_step state in
+      Z.max (fst next) (jp_ordinary_death_peak remaining next)
+  end.
+
+Definition jp_ordinary_lethal_open_top_y : Z :=
+  jp_ordinary_home_pivot_y
+  + jp_ordinary_death_peak 25 (0, 50)
+  + jp_ordinary_open_top_offset.
+
+Theorem jp_ordinary_lethal_arc_is_exact_and_returns_to_ground :
+  jp_ordinary_death_peak 25 (0, 50) = 288 /\
+  jp_ordinary_death_after 25 (0, 50) = (0, 0) /\
+  jp_ordinary_lethal_open_top_y = -739.
+Proof. vm_compute. repeat split; reflexivity. Qed.
+
+Definition jp_ordinary_floor_in_pedro_band (floor_y : Z) : Prop :=
+  (-569 <= floor_y <= -411) \/ (608 <= floor_y <= 766).
+
+Definition jp_ordinary_pose_overlaps_warp (coarse_max_z : Z) : Prop :=
+  jp_ordinary_warp_near_z <= coarse_max_z.
+
+Inductive JPOrdinaryStockPoseClass : Z -> Z -> Prop :=
+| JPOrdinaryStockPoseRemote : forall floor_y coarse_max_z,
+    coarse_max_z < jp_ordinary_warp_near_z ->
+    JPOrdinaryStockPoseClass floor_y coarse_max_z
+| JPOrdinaryStockPoseForwardLow : forall floor_y coarse_max_z,
+    floor_y <= jp_ordinary_lethal_open_top_y ->
+    JPOrdinaryStockPoseClass floor_y coarse_max_z.
+
+(** This is the exact final logical split supplied by the pinned-source audit:
+    each stock pose is horizontally remote, or its highest relevant floor is
+    no higher than the lethal forward SHOW_EYE bound. *)
+Theorem jp_ordinary_stock_pose_cannot_install_pedro_at_warp :
+  forall floor_y coarse_max_z,
+    JPOrdinaryStockPoseClass floor_y coarse_max_z ->
+    ~ (jp_ordinary_pose_overlaps_warp coarse_max_z /\
+       jp_ordinary_floor_in_pedro_band floor_y).
+Proof.
+  intros floor_y coarse_max_z Hclass [Hoverlap Hband].
+  destruct Hclass as
+    [classified_floor classified_max_z Hremote
+    | classified_floor classified_max_z Hlow].
+  - unfold jp_ordinary_pose_overlaps_warp,
+      jp_ordinary_warp_near_z in Hoverlap, Hremote.
+    lia.
+  - unfold jp_ordinary_floor_in_pedro_band in Hband.
+    change (classified_floor <= -739) in Hlow.
+    destruct Hband as [[Hfloor_min Hfloor_max]
+                      | [Hfloor_min Hfloor_max]]; lia.
+Qed.
+
+Theorem jp_ordinary_named_remote_families_miss_warp :
+  jp_ordinary_fist_coarse_max_z < jp_ordinary_warp_near_z /\
+  jp_ordinary_target_coarse_max_z < jp_ordinary_warp_near_z /\
+  jp_ordinary_double_coarse_max_z < jp_ordinary_warp_near_z.
+Proof. vm_compute. repeat split; lia. Qed.
+
+(** A dying hand's 40-frame animation outlasts the 25 integrations needed for
+    its lethal arc to return to the arena floor.  DIE then writes forwardVel
+    zero, the common movement tail recomputes X/Z velocity from that zero, and
+    the Eyerok behavior never changes the three allocation-zeroed angular
+    velocities.  Therefore a genuinely freed but unreused death slot is also
+    an identity payload for the five fields read by platform displacement. *)
+Record JPOrdinaryEffectiveFields : Type := {
+  jp_effective_vel_x : Z;
+  jp_effective_vel_z : Z;
+  jp_effective_angle_pitch : Z;
+  jp_effective_angle_yaw : Z;
+  jp_effective_angle_roll : Z
+}.
+
+Definition jp_ordinary_unreused_death_fields : JPOrdinaryEffectiveFields :=
+  {| jp_effective_vel_x := 0;
+     jp_effective_vel_z := 0;
+     jp_effective_angle_pitch := 0;
+     jp_effective_angle_yaw := 0;
+     jp_effective_angle_roll := 0 |}.
+
+Definition jp_ordinary_effective_fields_are_identity
+    (fields : JPOrdinaryEffectiveFields) : Prop :=
+  jp_effective_vel_x fields = 0 /\
+  jp_effective_vel_z fields = 0 /\
+  jp_effective_angle_pitch fields = 0 /\
+  jp_effective_angle_yaw fields = 0 /\
+  jp_effective_angle_roll fields = 0.
+
+Theorem jp_ordinary_unreused_death_slot_is_identity_payload :
+  jp_ordinary_effective_fields_are_identity
+    jp_ordinary_unreused_death_fields.
+Proof. repeat split; reflexivity. Qed.
+
 Definition JPEyerokOrdinaryPayloadCertificate : Prop :=
   (forall destination omitted,
     (destination = 53%nat \/ destination = 54%nat) ->
@@ -238,7 +367,14 @@ Definition JPEyerokOrdinaryPayloadCertificate : Prop :=
     (ceiling_y = jp_ordinary_low_warp_ceiling_y \/
      ceiling_y = jp_ordinary_high_warp_ceiling_y) ->
     jp_ordinary_pedro_gap floor_y ceiling_y ->
-    (-569 <= floor_y <= -411) \/ (608 <= floor_y <= 766)).
+    (-569 <= floor_y <= -411) \/ (608 <= floor_y <= 766)) /\
+  jp_ordinary_death_peak 25 (0, 50) = 288 /\
+  (forall floor_y coarse_max_z,
+    JPOrdinaryStockPoseClass floor_y coarse_max_z ->
+    ~ (jp_ordinary_pose_overlaps_warp coarse_max_z /\
+       jp_ordinary_floor_in_pedro_band floor_y)) /\
+  jp_ordinary_effective_fields_are_identity
+    jp_ordinary_unreused_death_fields.
 
 Theorem jp_eyerok_ordinary_payload_certificate_holds :
   JPEyerokOrdinaryPayloadCertificate.
@@ -249,7 +385,12 @@ Proof.
     (proj1 jp_ordinary_authenticated_suffix_has_one_nonidentity_payload) _).
   refine (conj
     (proj2 jp_ordinary_spindel_center_displacement_is_exact) _).
-  exact jp_ordinary_warp_pedro_floor_has_one_of_two_exact_bands.
+  refine (conj
+    jp_ordinary_warp_pedro_floor_has_one_of_two_exact_bands _).
+  refine (conj
+    (proj1 jp_ordinary_lethal_arc_is_exact_and_returns_to_ground) _).
+  refine (conj jp_ordinary_stock_pose_cannot_install_pedro_at_warp _).
+  exact jp_ordinary_unreused_death_slot_is_identity_payload.
 Qed.
 
 Print Assumptions jp_eyerok_ordinary_payload_certificate_holds.

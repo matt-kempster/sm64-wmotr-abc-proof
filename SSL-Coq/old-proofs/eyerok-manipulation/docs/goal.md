@@ -1,6 +1,6 @@
 # Goal recovery note
 
-Last updated: 2026-07-19 (US/JP particle-platform version split).
+Last updated: 2026-08-28 (ordinary JP stale-hand installation exclusion).
 
 ## Objective
 
@@ -27,16 +27,18 @@ collision, and star interaction are separate interfaces.
 
 The new exploit layer resolves the same-area Eyerok-fragment form of question 5
 negatively in both versions, and the cross-area form negatively in US because
-US clears `gMarioPlatform`. Original JP retains a raw slot address, so a broader
-cross-area candidate remains open. An ordinary coherent warp carries `NULL`,
-and matching-ROM injected comparisons reused both sleeping-hand addresses for
-zero-motion static objects.  For destroyed hands, an authenticated census plus
-the deletion-only free-list model reduces every reused payload to allocations
-53 through 83; only Spindel has effective motion, and its exact ordinary warp
-effect is about 8 units down and 38 backward.  The PU-scale clean installation
-is disproved in the audited stock model, but no authentic ordinary
-stale-floor/hand-pointer trace has yet reached one of the exact Pedro bands or
-shown that this small displacement changes a later no-A gate. For question 4 it finds real geometry, but the
+US clears `gMarioPlatform`. Original JP retains a raw slot address, but both
+the PU-scale and ordinary clean installations are now disproved in the audited
+stock source-shaped model. An ordinary coherent warp carries `NULL`, injected
+sleeping-hand addresses become zero-motion static objects, fist-push remains
+too low (and the checked central cases stop short of the warp), forward
+SHOW_EYE and its lethal continuation remain below
+both exact Pedro bands, and all rising, sibling, post-Mario-writer, and
+unreused-slot alternatives are harmless. For destroyed hands, the only
+effective reused payload is Spindel, whose exact ordinary effect is about 8
+units down and 38 backward; its downstream usefulness matters only if a linked
+execution first breaks the installation classification. For question 4 the
+project finds real geometry, but the
 two analyzed configurations do
 not establish a useful speed engine: the stationary strip needs preloaded
 speed above 400, while the ordinary local wake entry exists only on the last
@@ -410,13 +412,14 @@ reachability is now closed.
    ordinary speed-48 wall barrier and separately investigate faster or
    collision-glitch traces. For held A, prove the incoming-speed bound or
    analyze faster predecessors and the jump kick's post-wall continuation.
-6. Finish the ordinary original-JP stale-floor/hand-pointer prestate: execute
-   or exclude forward fist-push/one-hand-show-eye poses, their attack/death
-   continuations, the later-updated sibling, and post-floor State/Object
-   writers against the exact low/high Pedro bands; classify an unreused freed
-   slot; and prove whether the one effective replacement, Spindel, can use its
-   exact small down/back displacement to remove a later no-A gate.  The
-   PU-scale clean installation is already closed in the audited stock model.
+6. Connect the ordinary original-JP stale-floor/hand-pointer exclusion to the
+   linked execution, or identify its first failed premise.  The source-shaped
+   stock cases are now complete: fist-push is too low, SHOW_EYE and its lethal
+   continuation remain below both Pedro bands, target/double-pound
+   rises are remote, the sibling and post-Mario writers add no pose, and an
+   unreused death slot has an identity payload.  The small Spindel down/back
+   effect needs downstream study only if that installation boundary is broken;
+   the PU-scale clean installation is separately closed.
 7. Optimize an authentic remaining Area 2 route to the star and count new A
    presses.
    The present work rules out the proposed higher Eyerok shortcut inside the

@@ -1,6 +1,6 @@
 # Working claim and exact scope
 
-Last updated: 2026-07-19 (US/JP particle-platform version split).
+Last updated: 2026-08-28 (ordinary JP stale-hand installation exclusion).
 
 ## Source and toolchain boundary
 
@@ -73,10 +73,19 @@ allocations 53 through 83; only allocation 64, Spindel, has effective X/Z or
 angular motion. The exact binary32 calculation moves the ordinary warp center
 from `(0,346.08044,-1100)` to approximately `(0,338.5134,-1138.419)`: about
 8 units down and 38 backward, not an Act-3 lift. At central warp X/Z, the
-Pedro condition further requires a hand floor in `[-569,-411]` or `[608,766]`.
-Authentic installation in one of those bands, no-reuse residual fields, and
-whether the small Spindel perturbation can alter a later no-A gate remain open;
-no Eyerok explosion or 0/0.5-A route was staged.
+Pedro condition requires a hand floor in `[-569,-411]` or `[608,766]`, but a
+new matching-ROM action probe and pinned-source classification exclude every
+stock installer: fist-push remains at the low home height (and both checked
+central cases stop short horizontally); forward SHOW_EYE and its lethal
+continuation top out at Y=`-1027` and Y=`-739`; target/double-pound
+rises remain behind the warp; no sibling or post-Mario Area-3 writer supplies
+another pose. The lethal hand returns to ground after 25 integrations, so a
+never-reused slot also retains zero effective X/Z and angular fields by its
+40-frame deletion. Thus live ordinary installation and the no-reuse payload
+are disproved in the audited stock source-shaped model, making downstream use
+of the small Spindel shift conditional on first breaking that classification.
+No Eyerok explosion or 0/0.5-A route was staged, and linked whole-program
+refinement remains open.
 
 The Pedro, common fragment, US policy, and JP pointer-policy certificates are
 assumption-free for their explicit handwritten relations. The combined verdict
@@ -678,15 +687,14 @@ API as original gameplay.
   analog/yaw/braking schedules. Other initial positions, action changes,
   seams, tunneling, caps/shells, and other glitch geometry remain separate;
   do not promote the present local no-platform observation to a global theorem.
-- Finish the ordinary original-JP stale-floor/hand-pointer branch.  The
-  authenticated deletion-only replacement suffix has only one effective
-  payload, Spindel, whose exact warp-center effect is about 8 units down and 38
-  backward; now execute or exclude the remaining live hand poses in the exact
-  Pedro floor bands, classify the no-reuse freed-slot fields and post-floor
-  State/Object writers, and decide whether that small perturbation can remove a
-  later no-A gate.  The PU-scale clean installation is already disproved in the
-  audited stock model and should be reopened only by a concrete new lifecycle
-  or movement transition.
+- Connect the completed ordinary original-JP stale-floor/hand-pointer
+  source-shaped exclusion to every linked frame.  The matching-ROM motion
+  receipt, stock pose split, sibling schedule, post-Mario writer census, and
+  no-reuse identity payload now close the ordinary installer in the audited
+  model; Spindel's small down/back effect needs downstream work only if one of
+  those premises fails in linked execution.  The PU-scale clean installation
+  is separately disproved and likewise requires a concrete new lifecycle or
+  movement transition to reopen.
 - Authenticate or refute the conditional Y=1280 route below the Y=1967 query
   threshold, including every quarter-step collision response and the landing;
   then test whether any original-game action/speed history reaches a higher

@@ -66,6 +66,13 @@ closed-hand-warp-pedro-floor-band: [608,766], gaps [160,2]
 ordinary-low-ceiling-pedro-floor-band: [-569,-411]
 ordinary-low-ceiling-closed-pivot-band: [-875,-717]
 ordinary-low-ceiling-open-pivot-band: [-1076,-918]
+ordinary-forward-closed-top: -1228
+ordinary-forward-open-top: -1027
+ordinary-lethal-open-top: -739 (170 below low Pedro band)
+ordinary-target-closed-top: -928
+ordinary-target-coarse-max-Z: -1484 (warp begins -1222)
+ordinary-double-pound-coarse-max-Z: -1634 (warp begins -1222)
+ordinary-stock-pose-split: horizontally remote or floor Y <= -739
 closed-hand-origin-underside: local Y=3; top-query rejection margin 303.5
 sleep-pedro-strip: floor -1459, ceiling -1421, gap 38
 sleep-pedro-query-window: [-1537,-1500]
@@ -103,6 +110,9 @@ closed-hand-upward-local-top: 204 (scaled 306)
 open-hand-upward-local-top: 338 (scaled 507)
 attacked-animation-frames: 25
 die-animation-frames: 40
+die-ground-integrations: 25; peak relative Y=288; final effective X/Z velocity zero
+eyerok-angular-velocity-writers: none; allocation initializes all three to zero
+unreused-death-slot-effective-payload: identity
 open-animation-frames: 30
 wake-animation-frames: 80
 eyerok-explosion-order: mist, 30 rotating triangles, mark hand deleted, coins, end-frame unload
@@ -115,6 +125,8 @@ ppd-stale-platform-window: next active frame only; time stop suppresses apply
 ppd-update-order: clear dynamic surfaces, terrain, apply displacement, nonterrain, unload, refresh platform
 ppd-platform-pointer: prior pointer consumed before end-frame floor refresh
 ppd-dynamic-surfaces: cleared at start of each active frame
+post-Mario-State/Object-writer-census: set_mario_pos only platform/Dorrie/tilting-pyramid; raw Object writes only butterfly
+area3-post-Mario-position-writers: none (boss only; macro list empty; excluded writer behaviors absent)
 us-area-load-platform-pointer: cleared (non-JP clear_mario_platform)
 jp-area-load-platform-pointer: not cleared (VERSION_JP omission)
 jp-instant-warp-order: change area before current-frame object update

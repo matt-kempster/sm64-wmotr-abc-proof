@@ -1,6 +1,6 @@
 # Eyerok manipulation proof checklist
 
-Last updated: 2026-07-19 (US/JP particle-platform version split).
+Last updated: 2026-08-28 (ordinary JP stale-hand installation exclusion).
 
 ## Current verdict
 
@@ -24,12 +24,16 @@ stale-pointer window. US additionally clears `gMarioPlatform` on area load.
 Original JP does not: it retains a raw slot address and can consume a nonnull
 payload before pointer refresh. An ordinary coherent warp carries `NULL`; the
 injected matching-ROM comparisons reused slots 32 and 73 for zero-motion
-`bhvStaticObject` payloads and produced delta `(0,0,0)`. An authentic stale cached warp
-floor plus freshly saved hand pointer, rotating/residual useful payload, and
-0/0.5-A route remain open. The displacement helper preserves stored speed;
-the unresolved magnitude question concerns positional lever arm, not normal
-versus PU stored speed. These are source-audited relation and AST-shape results,
-not a linked whole-program refinement.
+`bhvStaticObject` payloads and produced delta `(0,0,0)`. The clean ordinary
+installer is now closed in the audited stock source-shaped model: fist-push is
+too low (and the checked central cases are also short horizontally), SHOW_EYE
+and its lethal continuation are too low, the
+rising and sibling families are remote, and no later Area-3 writer changes the
+Mario object sample. A dead slot that is never reused also retains identity
+motion fields. Spindel's small down/back payload is therefore only conditional
+on a failed installation premise. The displacement helper preserves stored
+speed. These are source-audited relation and AST-shape results, not a linked
+whole-program refinement or a 0/0.5-A route.
 
 The geometry-relaxed handwritten relation bounds hand origins at 672/1467. Its
 Mario/Area 2 model proves that a hand floor itself cannot warp, that a selected
@@ -452,11 +456,14 @@ discharge it.
 - [x] Run the disclosed injected-address comparisons: right slot 32 and left
   slot 73 become zero-motion `bhvStaticObject` payloads; retail breakpoints
   observe the first apply, zero effect, and refresh to null.
-- [ ] Construct or refute an authentic stale cached warp floor plus freshly
-  saved Eyerok-hand pointer.  The ordinary Pedro residual is now exactly a
-  hand floor in `[-569,-411]` or `[608,766]`; classify forward fist-push,
-  one-hand show-eye, attack continuations, the later-updated sibling, and every
-  post-floor State/Object writer separately.
+- [x] Refute a stale cached warp floor plus freshly saved Eyerok-hand pointer
+  in the audited stock source-shaped model.  The matching-ROM probe shows
+  fist-push remains at the low home height (with both checked central cases
+  also stopping short of the warp), and one-hand SHOW_EYE crosses it only with
+  top Y=`-1027`; the exact lethal continuation reaches only Y=`-739`, while
+  target/double-pound, the sibling, and every post-Mario Area-3 writer fail the
+  joint horizontal/vertical requirement.  Linked whole-program refinement is
+  still a separate boundary.
 - [x] Authenticate the complete baseline Area-2 allocation suffix 53 through
   83 and prove that a deletion-only shift of either death-hand ordinal can
   select only that suffix (or leave the slot unreused).
@@ -467,9 +474,13 @@ discharge it.
   center and all four warp vertices.  The center becomes
   `(0,338.5134,-1138.419)`, down/back from `(0,346.0804,-1100)`, so this is not
   an immediate Act-3 lift.
-- [ ] Classify the no-reuse freed-slot residual and prove whether the small
-  ordinary Spindel or residual horizontal shift can change any later no-A
-  gate; do not equate the immediate-lift no-go with a full route no-go.
+- [x] Classify the no-reuse freed-slot residual: the lethal arc grounds after
+  25 integrations, DIE clears forward speed, the common tail recomputes zero
+  X/Z velocity, and Eyerok never changes the allocation-zeroed angular fields
+  before its 40-frame deletion.  Because the stock installer is now refuted,
+  later usefulness of Spindel's small shift is no longer a live-route
+  obligation; retain it as a conditional test if an installation premise is
+  broken.
 - [x] Source-audit the alternate hand-death free-list depths, authenticate the
   Area-2 allocation census, and identify the exact nonzero Spindel payload at
   allocation 54 after 10 suppressed macros or allocation 53 after 11.
@@ -503,9 +514,10 @@ discharge it.
   does not reanchor it.
 - [x] Close clean PU installation in the audited stock model: same-PU hand
   travel, ordinary-frame load-then-transport, and both Eyerok dialog-retention
-  windows are excluded.  Keep the still-open ordinary predecessor separate;
-  reopen PU suppression/reanchor only after a concrete new lifecycle or
-  machine-level installation premise is found.
+  windows are excluded.  The separate ordinary predecessor is now closed by
+  the remote-or-too-low pose split, sibling/writer census, and no-reuse
+  identity result; reopen either scale only after a concrete failed lifecycle,
+  linked-execution, or machine-level installation premise is found.
 - [x] Add assumption-free Rocq certificates and generated-Clight AST shape
   witnesses for the common, US, and JP exploit verdicts.
 
@@ -555,4 +567,6 @@ discharge it.
   circular high-speed stationary-strip fixture, finite speed-gain bounds, and
   a source-audited same-area Eyerok-fragment blocker; US area-clear proof;
   original-JP retained-address model, byte-identical build, and zero-effect
-  static-object probe, with authentic stale-floor reachability left open.
+  static-object probe; ordinary remote-or-too-low installation exclusion,
+  post-Mario writer frame, and identity no-reuse death payload, with linked
+  whole-program refinement left open.

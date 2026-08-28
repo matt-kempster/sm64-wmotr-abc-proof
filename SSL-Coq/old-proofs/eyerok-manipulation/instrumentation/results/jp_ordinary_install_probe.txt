@@ -1,0 +1,17 @@
+Original-JP ordinary Eyerok Pedro installation probe: validated
+ROM MD5: 85d61f5525af708c9f1e84dce6dc10e9
+ROM CRC1/CRC2: 4eaa3d0e 74757c24
+start boundary: level select
+fixtures: boss wake only; conditional FIST_PUSH source transition; natural one-hand OPEN->SHOW_EYE scheduler
+right_fist_push: action 8 timers 447..481, action 9 timers 482..558, max pivot Z=-1868.595459, coarse max collision Z=-1409.595459 < warp Z=-1222
+left_fist_push: action 8 timers 447..478, action 9 timers 479..559, max pivot Z=-1893.000000, coarse max collision Z=-1434.000000 < warp Z=-1222
+right_one_hand_show_eye: action 3 timers 478..535, max pivot Z=-891.995544, pivot Y=-1534, open top Y=-1027
+left_one_hand_show_eye: action 3 timers 478..535, max pivot Z=-892.764587, pivot Y=-1534, open top Y=-1027
+closed forward top: -1228; open forward top: -1027
+conditional lethal open arc: 25 integrations to ground, peak top Y=-739
+later TARGET_MARIO sample: peak pivot Y=-1234, closed top Y=-928, coarse max collision Z=-1487.732544
+Pedro floors required at the central warp: [-569,-411] or [608,766]
+closest checked vertically eligible forward top: -739, still 170 below the low band
+retail branch verdict: FIST_PUSH/SWEEP is edge-stopped before the warp; one-hand SHOW_EYE crosses X/Z but remains vertically too low
+scope: the action and scheduler fixtures are disclosed conditional probes, not a controller-reachability claim
+scope: the stock-action exhaustion, sibling exclusion, post-Mario writer frame, and no-reuse payload are supplied by the pinned-source audit and Coq certificate
