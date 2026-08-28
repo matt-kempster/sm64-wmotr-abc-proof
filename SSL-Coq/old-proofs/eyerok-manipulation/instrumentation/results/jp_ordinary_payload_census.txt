@@ -1,0 +1,28 @@
+Original-JP ordinary stale-hand payload suffix: validated
+ROM MD5: 85d61f5525af708c9f1e84dce6dc10e9
+ROM CRC1/CRC2: 4eaa3d0e 74757c24
+start boundary: level select
+baseline Area-2 allocations at first apply: 83
+death-order stale destinations: allocation 53 or 54
+suppression-only candidate suffix: baseline allocations 53..83, or no reuse
+effective nonidentity candidates: allocation 64 only (bhvSpindel)
+vertical-only object velocities ignored by platform apply: allocations 60..63
+Spindel effective fields: vel=(0,0,5), face=(256,0,0), angleVel=(256,0,0)
+all other suffix entries: velX=velZ=0 and angleVel=(0,0,0)
+behavior-address groups:
+  53: bhvOneCoin (800e8c2c)
+  54: bhvHiddenStar (800ec1fc)
+  55: bhvStar (800ec13c)
+  56-58: bhvSandSoundLoop (800ebfa4)
+  59: bhvPyramidElevator (800ebe60)
+  60-63: bhvSSLMovingPyramidWall (800ebe30)
+  64: bhvSpindel (800ebe00)
+  65-66: bhvHorizontalGrindel (800ed55c)
+  67: bhvGrindel (800e8e78)
+  68-69: bhvPoleGrabbing (800e8464)
+  70-71: bhvFadingWarp (800e8a7c)
+  72-73: bhvAirborneWarp (800eb264)
+  74-83: bhvPyramidElevatorTrajectoryMarkerBall (800ebe98)
+scope: this is an authenticated baseline suffix and deletion-only over-approximation
+scope: it does not prove a controller-reached suppression set or cached-floor/hand mismatch
+scope: a no-reuse freed-slot payload and state-changing suppression require separate proofs

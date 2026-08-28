@@ -241,8 +241,8 @@ Proof.
   split; reflexivity.
 Qed.
 
-(** The concrete unpadded JP emulator fixture reused the hand address for a
-    [bhvWaterDroplet] whose effective transform was zero.  The unchecked
+(** The concrete unpadded JP emulator fixture reused each hand address for a
+    [bhvStaticObject] whose effective transform was zero.  The unchecked
     function was still invoked once; it simply left Mario unchanged. *)
 Theorem jp_zero_motion_other_object_is_consumed_without_effect :
   forall before heap gates address,

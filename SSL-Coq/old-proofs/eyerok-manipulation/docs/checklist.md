@@ -23,8 +23,8 @@ exclusive eye lock delays a sibling explosion beyond the one-active-update
 stale-pointer window. US additionally clears `gMarioPlatform` on area load.
 Original JP does not: it retains a raw slot address and can consume a nonnull
 payload before pointer refresh. An ordinary coherent warp carries `NULL`; the
-injected matching-ROM comparison reused slot 32 for zero-motion
-`bhvWaterDroplet` and produced delta `(0,0,0)`. An authentic stale cached warp
+injected matching-ROM comparisons reused slots 32 and 73 for zero-motion
+`bhvStaticObject` payloads and produced delta `(0,0,0)`. An authentic stale cached warp
 floor plus freshly saved hand pointer, rotating/residual useful payload, and
 0/0.5-A route remain open. The displacement helper preserves stored speed;
 the unresolved magnitude question concerns positional lever arm, not normal
@@ -449,14 +449,63 @@ discharge it.
   zero-motion payload cases.
 - [x] Run the matching-ROM JP natural case: static warp floor, null owner,
   null saved platform, and zero displacement.
-- [x] Run the disclosed injected-address comparison: slot 32 becomes
-  zero-motion `bhvWaterDroplet`; source/Clight order implies one unchecked
-  application, while the probe observes zero effect and refresh to null.
+- [x] Run the disclosed injected-address comparisons: right slot 32 and left
+  slot 73 become zero-motion `bhvStaticObject` payloads; retail breakpoints
+  observe the first apply, zero effect, and refresh to null.
 - [ ] Construct or refute an authentic stale cached warp floor plus freshly
-  saved Eyerok-hand pointer, keeping Pedro and non-Pedro entries separate.
-- [ ] If that prestate is reachable, stage authentic explosion/allocation slot
-  alignment and determine actual displacement magnitude, normal-coordinate
-  sufficiency, PU-scale positional requirements, and 0/0.5-A reachability.
+  saved Eyerok-hand pointer.  The ordinary Pedro residual is now exactly a
+  hand floor in `[-569,-411]` or `[608,766]`; classify forward fist-push,
+  one-hand show-eye, attack continuations, the later-updated sibling, and every
+  post-floor State/Object writer separately.
+- [x] Authenticate the complete baseline Area-2 allocation suffix 53 through
+  83 and prove that a deletion-only shift of either death-hand ordinal can
+  select only that suffix (or leave the slot unreused).
+- [x] Classify the effective payload fields for all 31 suffix entries: only
+  Spindel at allocation 64 has nonzero X/Z or angular motion, while moving-wall
+  Y velocity is ignored by platform displacement.
+- [x] Evaluate the exact ordinary Spindel transform at the recorded warp
+  center and all four warp vertices.  The center becomes
+  `(0,338.5134,-1138.419)`, down/back from `(0,346.0804,-1100)`, so this is not
+  an immediate Act-3 lift.
+- [ ] Classify the no-reuse freed-slot residual and prove whether the small
+  ordinary Spindel or residual horizontal shift can change any later no-A
+  gate; do not equate the immediate-lift no-go with a full route no-go.
+- [x] Source-audit the alternate hand-death free-list depths, authenticate the
+  Area-2 allocation census, and identify the exact nonzero Spindel payload at
+  allocation 54 after 10 suppressed macros or allocation 53 after 11.
+- [x] Prove a defined signed-16 PU warp alias and evaluate the exact generated
+  JP sine-table/recorded-Spindel Float32 apply: Y becomes `5070.145f`, inside
+  the Act-3 vertical band, while raw Z remains `10487897`.
+- [x] Prove the four-Y-period witness cannot itself install a platform because
+  its raw Y is not within four units of any signed-16 floor.
+- [x] Extract the real Y=`768` downward Area-3 ceiling over the warp and prove
+  the closed-hand pivot band `[302,460]`; a hand standing on the recorded warp
+  floor has top Y=`652.08044` and exact Pedro gap `115.919556`.
+- [x] Join the conditional PU arithmetic gates: at three negative Z periods,
+  the exact floor-snapped Spindel apply yields
+  `(0,5469.4233,-197679.7)` from its authenticated nonzero payload.
+- [x] Prove an ordinary hand at the warp cannot freshly load collision after
+  Mario is already three Z periods away: their raw separation is `196608`,
+  versus the normal collision-load distance `1000`.
+- [x] Exclude stock same-PU hand travel with the exact Area-3 support band,
+  conservative two-hand envelope `[-4413,204]`, and `60919`-unit first-copy
+  no-floor gap; prove that normal-frame load-then-transport instead needs at
+  least `195559` units of Mario-owned Z motion.
+- [x] Close the retained-surface time-stop alternative by lifecycle: JP can
+  keep airborne Mario scheduled, but the intro freezes both pre-fight hands at
+  home Z=`-3393`, outside the warp, and the timer-60 death dialog occurs after
+  both 40-frame dying hands are gone; Area 3 has no other dialog object.
+- [x] Identify fifteen ordinary individual Area-2 coins whose collection and
+  16-bit no-respawn path can source either ten or eleven omissions; exact
+  controller reachability remains open.
+- [x] Prove the rotated output is `197179` raw Z units from the Act-3 star and
+  at least `195032` from every Area-2 warp; the zero-displacement instant warp
+  does not reanchor it.
+- [x] Close clean PU installation in the audited stock model: same-PU hand
+  travel, ordinary-frame load-then-transport, and both Eyerok dialog-retention
+  windows are excluded.  Keep the still-open ordinary predecessor separate;
+  reopen PU suppression/reanchor only after a concrete new lifecycle or
+  machine-level installation premise is found.
 - [x] Add assumption-free Rocq certificates and generated-Clight AST shape
   witnesses for the common, US, and JP exploit verdicts.
 
@@ -506,4 +555,4 @@ discharge it.
   circular high-speed stationary-strip fixture, finite speed-gain bounds, and
   a source-audited same-area Eyerok-fragment blocker; US area-clear proof;
   original-JP retained-address model, byte-identical build, and zero-effect
-  water-droplet probe, with authentic stale-floor reachability left open.
+  static-object probe, with authentic stale-floor reachability left open.

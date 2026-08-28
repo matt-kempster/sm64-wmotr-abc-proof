@@ -184,11 +184,11 @@ and Mupen64Plus 2.5.9's cached interpreter.
 
 Both cases place Mario on the genuine static Area 3 warp floor. The natural
 case has a null floor owner and null `gMarioPlatform`, then reaches Area 2 with
-zero displacement. The injected comparison writes only the genuine hand-slot
-address (slot 32) to `gMarioPlatform` immediately before the warp. Area 2
-reuses that address for `bhvWaterDroplet`, whose X/Z and angular velocities
-are zero. The source/Clight order establishes one unchecked mid-update
-platform-displacement call; the callback observes its zero effective delta,
+zero displacement. The injected comparisons write only one genuine hand-slot
+address (right slot 32 or left slot 73) to `gMarioPlatform` immediately before
+the warp. Area 2 reuses those addresses for `bhvStaticObject`, whose X/Z and
+angular velocities are zero. Retail debugger breakpoints observe the unchecked
+mid-update platform-displacement call and its zero effective delta,
 unchanged `forwardVel`, and the later pointer refresh to null.
 
 The input callback cannot observe inside `update_objects`, so source/Clight—not
@@ -196,3 +196,58 @@ the trace alone—establishes the application before refresh. No Eyerok explosio
 rotating replacement, controller-authentic stale-floor/hand-pointer state, or
 0/0.5-A route was staged. Full setup and scope are recorded in
 `results/jp_platform_manifest.md`.
+
+### PU allocation and payload census
+
+The same authenticated JP probe has an opt-in allocation census and an
+allocation-identity-only macro-suppression fixture.  Three right-address runs
+use `LOG_ALLOCATION_CENSUS=1` and `SKIP_AREA2_MACROS=0`, `10`, or `11`.  The
+baseline has 83 allocations and identifies Spindel at allocation 64.  The two
+fixtures write the no-respawn byte of exactly the requested number of Area-2
+macro records before Area 2 loads; they produce 73/72 allocations and move the
+same Spindel payload to allocation 54/53.  The analyzer checks the ROM identity,
+absence of census errors, allocation count, behavior words, raw binary32
+position/velocity bits, and angular fields:
+
+```sh
+python3 instrumentation/mupen64plus/analyze_jp_pu_payload_census.py \
+  instrumentation/results/jp_pu_payload_census.txt \
+  build/jp-pu-census/skip0/injected_right_hand_slot/raw.log \
+  build/jp-pu-census/skip10/injected_right_hand_slot/raw.log \
+  build/jp-pu-census/skip11/injected_right_hand_slot/raw.log
+```
+
+This proves allocation-count sensitivity and exact Spindel identity.  It does
+not stage a hand death or install a stale hand address at allocation 53/54.
+The source audit now identifies fifteen individual Area-2 yellow coins with a
+normal collect/delete/16-bit-no-respawn path, so legitimate ten/eleven
+suppression has enough stock records; it still does not supply the exact
+zero-A controller trajectory that collects the chosen subset.  The
+source-audited Eyerok explosion count and the separate Coq calculation are
+documented in the active
+`less-than-one-a-press/docs/notes/jp-eyerok-stale-hand.md` audit.
+
+### Ordinary-scale replacement suffix census
+
+The ordinary-scale audit reuses the authenticated baseline allocation log to
+over-approximate every death-order replacement produced by deletion-only
+suppression.  A destroyed first hand is conditionally allocation 54 and the
+last hand is allocation 53, so omitting earlier allocations can select only a
+member of the baseline suffix 53 through 83 (or leave the freed slot unreused).
+The validator checks all 31 payloads against the fields actually consumed by
+`apply_platform_displacement`: X/Z velocity and pitch/yaw/roll angular
+velocity.  Allocation 64, `bhvSpindel`, is the sole nonidentity payload;
+allocations 60--63 have Y velocity, which this function does not add to Mario.
+
+~~~sh
+python3 instrumentation/mupen64plus/analyze_jp_ordinary_payload_census.py \
+  instrumentation/results/jp_ordinary_payload_census.txt \
+  build/jp-ordinary-census/injected_right_hand_slot/raw.log
+~~~
+
+The committed compact receipt records this classification.  The corresponding
+Coq certificate evaluates Spindel at the ordinary warp center as approximately
+`(0,338.5134,-1138.419)`, down and backward from
+`(0,346.0804,-1100)`.  This does not prove that arbitrary gameplay changes are
+a deletion-only subsequence, that the cached-warp/fresh-hand mismatch is
+reachable, or that an unreused freed slot has a harmless residual payload.

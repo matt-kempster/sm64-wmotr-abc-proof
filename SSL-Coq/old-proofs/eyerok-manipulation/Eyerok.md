@@ -257,11 +257,11 @@ which the cached floor is the static warp triangle while the freshly saved
 platform address is an Eyerok hand. That stale-floor/hand-pointer mismatch is
 the first open JP prerequisite.
 
-For a controlled comparison, the JP probe injected only the genuine hand slot
-address before taking the real warp. Area 2 reused slot 32 for
-`bhvWaterDroplet`, whose linear and angular motion fields were zero. Source and
-Clight order imply one unchecked application through that address; the probe
-observed effective delta `(0, 0, 0)`, unchanged stored speed, and the later
+For controlled comparisons, the JP probe injected each genuine hand-slot
+address before taking the real warp. Area 2 reused right slot 32 as allocation
+1 and left slot 73 as allocation 2; both became `bhvStaticObject`, whose linear
+and angular motion fields were zero. Retail breakpoints observed one unchecked
+application through each address, effective delta `(0, 0, 0)`, unchanged stored speed, and the later
 pointer refresh to null. This was not an Eyerok explosion,
 not an authentic stale-floor setup, and not a 0-A or 0.5-A route.
 
@@ -276,12 +276,52 @@ revision, and a separate pinned build authenticates the ROM.
 ### Normal speed versus PU speed
 
 Platform displacement writes Mario's position and facing, not his stored
-velocity or `forwardVel`. Thus it is not a mechanism for accumulating stored
-normal or PU speed. A large *positional* jump could still arise from rotating
-about a very long lever arm, potentially a PU-scale coordinate, but no such JP
-payload or lever arm was reached here. The concrete JP trace moved Mario by
-zero. We therefore have not proved that normal displacement can leave Area 2,
-that PU-scale position is necessary, or that either route is authentic.
+velocity or `forwardVel`, so it is not a mechanism for accumulating stored
+normal or PU speed.  The sleeping-hand JP trace still moves Mario by zero, but
+the separately audited death lifecycle has a conditional positional producer:
+10 or 11 suppressed Area-2 macro allocations align the rotating Spindel with
+the expected first-hand or last-hand stale ordinal.  The active Coq proof now
+joins all four conditional PU gates.  It extracts the real Y=`768` ceiling over
+the upper warp, proves that a closed hand standing on the recorded warp floor
+has top Y=`652.08044` and Pedro gap `115.919556`, uses three negative Z periods
+to preserve the local collision point, and computes Spindel's exact first apply
+as `(0,5469.4233,-197679.7)`.  The older four-Y-period witness still reaches
+Y=`5070.145`, but cannot itself install a platform because its raw Y is far
+outside the four-unit floor test.  The new result is a positional lever arm,
+not speed, and is not yet authentic.  The new source/Coq audit rules out stock
+hand travel to the selected Z universe: even a generous two-hand support band
+is only `[-4413,204]`, followed by a `60919`-unit no-floor gap.  Loading before
+transport in an ordinary frame instead requires at least `195559` units of
+Mario-owned Z motion.  The real unfixed-dialog time-stop window can retain the
+surface while airborne Mario updates, but it freezes the hands, disables
+platform displacement, and Eyerok never exposes it with the needed hand
+surface: the intro freezes both pre-fight hands at home Z=`-3393`, whose
+collision ends at `-2934` rather than reaching the warp, while the death dialog
+starts at timer 60 after both 40-frame dying hands have disappeared.  Area 3
+has no other local dialog object, so the clean PU installation is closed in the
+audited stock model rather than left as an airborne-distance obligation.
+Area 2 does contain fifteen normal individual coins whose no-respawn records
+can in principle suppress ten or eleven allocations, although their exact
+zero-A collection route is open.  Spindel's output remains `197179` raw Z
+units from the star and at least `195032` from an Area-2 warp, so the
+zero-displacement instant warp is not a reanchor.
+
+The ordinary branch is now separated from that failed PU installation.  A new
+authenticated baseline census checks all Area-2 allocations from 53 through
+83, the complete suffix that a deletion-only shift can place at either
+death-hand stale ordinal.  Only allocation 64, Spindel, has an X/Z or angular
+field used by platform displacement; allocations 60 through 63 move vertically,
+but the platform code never adds platform Y velocity to Mario.  The exact
+original-JP binary32 transform at the recorded warp center is
+`(0,346.08044,-1100)` to `(0,338.5134,-1138.419)`, a small downward/backward
+shift.  At central X/Z the complete static ceiling set is Y=`-409` and Y=`768`,
+so any Pedro installation must put the hand floor in `[-569,-411]` or
+`[608,766]`; these correspond to closed-hand pivot bands `[-875,-717]` and
+`[302,460]`, plus the open-hand low band `[-1076,-918]`.  This proves that the
+ordinary payload is not the hoped-for lift and identifies the exact remaining
+installation poses, but it does not yet exclude a later use for the small
+shift, arbitrary state-changing suppression, or the residual fields of a slot
+that Area 2 never reuses.
 
 The corresponding Rocq certificates are in `PedroSpot.v`,
 `EyerokParticleDisplacement.v`, `JPPlatformPersistence.v`, and
@@ -293,6 +333,13 @@ and therefore inherits the standard CompCert/classical assumptions reported by
 theorems, not a linked whole-program Clight refinement. The JP ordinary-null
 theorem assumes floor/platform coherence; it does not prove that every
 authentic prewarp frame is coherent.
+
+The active project additionally contains `JPEyerokStaleHand.v`,
+`JPEyerokStaleHandPU.v`, and `JPEyerokStaleHandOrdinary.v`; the first packages
+the corrected sleeping-hand no-op receipt, the second keeps the conditional PU
+allocation alignment and closed installation separate, and the third proves
+the ordinary suffix, unique effective replacement, exact displacement, and
+two Pedro bands.
 
 ## Coordinate system and target
 

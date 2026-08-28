@@ -391,4 +391,7 @@ proofs/Area1NonlocalPlatformInstallationClosure.v
 proofs/Area1Rank3PayloadWriterClosure.v
 proofs/TurningAnimation.v
 proofs/CompCertRouteScope.v
+proofs/JPEyerokStaleHand.v
+proofs/JPEyerokStaleHandPU.v
+proofs/JPEyerokStaleHandOrdinary.v
 proofs/MainTheorem.v

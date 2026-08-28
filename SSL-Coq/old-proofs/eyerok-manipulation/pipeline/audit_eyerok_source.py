@@ -24,21 +24,27 @@ IDENTICAL_PATHS = [
     "src/game/spawn_object.c",
     "src/game/mario_step.c",
     "src/game/mario_actions_airborne.c",
+    "src/game/mario_actions_cutscene.c",
     "src/game/mario.c",
     "src/game/game_init.c",
     "src/game/platform_displacement.c",
+    "src/game/interaction.c",
+    "src/game/macro_special_objects.c",
+    "src/game/behaviors/coin.inc.c",
     "src/game/behaviors/break_particles.inc.c",
     "src/engine/math_util.c",
     "src/engine/surface_collision.c",
     "src/engine/surface_load.c",
     "include/object_constants.h",
     "include/object_fields.h",
+    "include/macro_presets.inc.c",
     "data/behavior_data.c",
     "actors/eyerok/anims/anim_0500DF50.inc.c",
     "actors/eyerok/anims/anim_0500E99C.inc.c",
     "actors/eyerok/anims/anim_0500F3D8.inc.c",
     "actors/eyerok/anims/anim_050116CC.inc.c",
     "levels/ssl/areas/2/collision.inc.c",
+    "levels/ssl/areas/2/macro.inc.c",
     "levels/ssl/areas/3/collision.inc.c",
     "levels/ssl/areas/3/macro.inc.c",
     "levels/ssl/eyerok_col/collision.inc.c",
@@ -236,9 +242,13 @@ def main() -> None:
     spawn_object = pinned(sm64, "src/game/spawn_object.c")
     mario_step = pinned(sm64, "src/game/mario_step.c")
     mario_airborne = pinned(sm64, "src/game/mario_actions_airborne.c")
+    mario_cutscene = pinned(sm64, "src/game/mario_actions_cutscene.c")
     mario = pinned(sm64, "src/game/mario.c")
     game_init = pinned(sm64, "src/game/game_init.c")
     platform_displacement = pinned(sm64, "src/game/platform_displacement.c")
+    interaction = pinned(sm64, "src/game/interaction.c")
+    macro_special_objects = pinned(sm64, "src/game/macro_special_objects.c")
+    coin = pinned(sm64, "src/game/behaviors/coin.inc.c")
     area_source = pinned(sm64, "src/game/area.c")
     level_update = pinned(sm64, "src/game/level_update.c")
     working_area_source = strip_disabled_tas_hack_blocks(
@@ -255,6 +265,7 @@ def main() -> None:
     surface_load = pinned(sm64, "src/engine/surface_load.c")
     ssl_script = pinned(sm64, "levels/ssl/script.c")
     area2 = pinned(sm64, "levels/ssl/areas/2/collision.inc.c")
+    area2_macros = pinned(sm64, "levels/ssl/areas/2/macro.inc.c")
     area3 = pinned(sm64, "levels/ssl/areas/3/collision.inc.c")
     area3_macros = pinned(sm64, "levels/ssl/areas/3/macro.inc.c")
     hand_collision = pinned(sm64, "levels/ssl/eyerok_col/collision.inc.c")
@@ -262,6 +273,7 @@ def main() -> None:
     attacked_animation = pinned(sm64, "actors/eyerok/anims/anim_0500E99C.inc.c")
     open_animation = pinned(sm64, "actors/eyerok/anims/anim_0500F3D8.inc.c")
     wake_animation = pinned(sm64, "actors/eyerok/anims/anim_050116CC.inc.c")
+    macro_presets = pinned(sm64, "include/macro_presets.inc.c")
 
     actions = re.findall(r"#define\s+EYEROK_HAND_ACT_[A-Z_]+\s+(\d+)", constants)
     if list(map(int, actions)) != list(range(16)):
@@ -698,6 +710,40 @@ def main() -> None:
     require(eyerok, "spawn_object_relative_with_scale(side, -500 * side, 0, 300, 1.5f", "hand home X offsets")
     require(eyerok, "400.0f * o->parentObj->oEyerokBossUnk108 - 180.0f * o->oBhvParams2ndByte", "begin-double target X constants")
     require(eyerok, "o->oPosX = o->oHomeX + (sp4 - o->oHomeX) * o->parentObj->oEyerokBossUnk110;", "begin-double X interpolation")
+    direct_hand_z_writers = re.findall(r"o->oPosZ\s*=\s*([^;]+);", eyerok)
+    if direct_hand_z_writers != [
+        "o->oHomeZ - distToHome * coss(angleToHome)",
+        "o->oHomeZ + (o->parentObj->oEyerokBossUnk10C - o->oHomeZ) * o->parentObj->oEyerokBossUnk110",
+    ]:
+        fail(f"unexpected direct hand Z writers: {direct_hand_z_writers}")
+    require(
+        c_function_body(eyerok, "eyerok_boss_act_fight"),
+        "o->oEyerokBossUnk10C = gMarioObject->oPosZ; "
+        "clamp_f32(&o->oEyerokBossUnk10C, o->oPosZ + 400.0f, o->oPosZ + 1600.0f);",
+        "begin-double target Z is clamped to the ordinary boss band",
+    )
+    require(
+        c_function_body(eyerok, "eyerok_hand_act_target_mario"),
+        "obj_forward_vel_approach(50.0f, 5.0f);",
+        "target-Mario hand speed cap",
+    )
+    require(
+        c_function_body(eyerok, "eyerok_hand_act_fist_push"),
+        "o->oForwardVel = 50.0f;",
+        "fist-push hand speed",
+    )
+    fist_sweep_body = c_function_body(eyerok, "eyerok_hand_act_fist_sweep")
+    require(fist_sweep_body, "o->oForwardVel *= 1.08f;", "fist-sweep growing speed")
+    require(
+        c_function_body(eyerok, "eyerok_hand_act_fist_push"),
+        "o->oMoveAngleYaw = 0x4000;",
+        "positive fist-sweep quarter-turn",
+    )
+    require(
+        c_function_body(eyerok, "eyerok_hand_act_fist_push"),
+        "o->oMoveAngleYaw = -0x4000;",
+        "negative fist-sweep quarter-turn",
+    )
     require(object_lists, "clear_dynamic_surfaces();", "dynamic-surface clear")
     require(object_lists, "update_objects_in_list(&gObjectLists[OBJ_LIST_SURFACE])", "surface-list update")
     require(object_lists, "OBJ_LIST_SURFACE, OBJ_LIST_POLELIKE, OBJ_LIST_PLAYER, OBJ_LIST_PUSHABLE, OBJ_LIST_GENACTOR", "surface-before-boss order")
@@ -705,7 +751,149 @@ def main() -> None:
     require(spawn_object, "obj->activeFlags = ACTIVE_FLAG_ACTIVE | ACTIVE_FLAG_UNK8;", "spawn active flags exclude partial bits")
     require(spawn_object, "obj->collisionData = NULL;", "collision starts null")
     require(spawn_object, "obj->oRoom = -1;", "room starts minus one")
+    require(spawn_object, "obj->oCollisionDistance = 1000.0f;", "default object collision distance")
+    if "oCollisionDistance" in eyerok:
+        fail("Eyerok hand behavior unexpectedly changes collision distance")
+    require(
+        surface_load,
+        "f32 marioDist = gCurrentObject->oDistanceToMario; "
+        "f32 tangibleDist = gCurrentObject->oCollisionDistance;",
+        "dynamic-surface distance operands",
+    )
+    require(
+        surface_load,
+        "marioDist < tangibleDist",
+        "strict dynamic-surface collision-load distance",
+    )
+    require(
+        surface_load,
+        "if (!(gTimeStopState & TIME_STOP_ACTIVE)) { "
+        "gSurfacesAllocated = gNumStaticSurfaces; "
+        "gSurfaceNodesAllocated = gNumStaticSurfaceNodes; "
+        "clear_spatial_partition(&gDynamicSurfacePartition[0][0]); }",
+        "active-frame dynamic-surface clear and time-stop retention",
+    )
+    require(
+        surface_load,
+        "if (!(gTimeStopState & TIME_STOP_ACTIVE) && marioDist < tangibleDist",
+        "time stop forbids a fresh dynamic-surface load",
+    )
+    require(
+        platform_displacement,
+        "if (!(gTimeStopState & TIME_STOP_ACTIVE) && gMarioObject != NULL && platform != NULL)",
+        "time stop forbids Mario platform displacement",
+    )
+    update_objects_body = c_function_body(object_lists, "update_objects")
+    scheduler_order = [
+        update_objects_body.find("clear_dynamic_surfaces();"),
+        update_objects_body.find("update_terrain_objects();"),
+        update_objects_body.find("apply_mario_platform_displacement();"),
+        update_objects_body.find("update_non_terrain_objects();"),
+        update_objects_body.find("update_mario_platform();"),
+    ]
+    if any(index < 0 for index in scheduler_order) or scheduler_order != sorted(scheduler_order):
+        fail(f"unexpected surface/Mario scheduler order: {scheduler_order}")
     require(object_lists, "if (unfrozen) { gCurrentObject->header.gfx.node.flags |= GRAPH_RENDER_HAS_ANIMATION; cur_obj_update(); } else { gCurrentObject->header.gfx.node.flags &= ~GRAPH_RENDER_HAS_ANIMATION; }", "time stop freezes whole object update")
+    require(
+        object_lists,
+        "if (gCurrentObject == gMarioObject && !(gTimeStopState & TIME_STOP_MARIO_AND_DOORS)) { "
+        "unfrozen = TRUE; }",
+        "time stop may leave Mario scheduled",
+    )
+    move_xz_body = c_function_body(helpers, "cur_obj_move_xz")
+    require(
+        move_xz_body,
+        "if (intendedFloorHeight < FLOOR_LOWER_LIMIT_MISC)",
+        "hand movement tests a no-floor endpoint",
+    )
+    require(
+        move_xz_body,
+        "o->oMoveFlags |= OBJ_MOVE_HIT_EDGE; return FALSE;",
+        "hand movement marks and rejects a bad endpoint",
+    )
+    boss_wake_body = c_function_body(eyerok, "eyerok_boss_act_wake_up")
+    require(
+        boss_wake_body,
+        "if (o->oEyerokBossUnk110 == 0.0f && mario_ready_to_speak()) { "
+        "o->oAction = EYEROK_BOSS_ACT_SHOW_INTRO_TEXT; }",
+        "Eyerok intro requires a ready-to-speak predecessor",
+    )
+    ready_body = c_function_body(mario_cutscene, "mario_ready_to_speak")
+    require(
+        ready_body,
+        "gMarioState->action == ACT_WAITING_FOR_DIALOG || actionGroup == ACT_GROUP_STATIONARY "
+        "|| actionGroup == ACT_GROUP_MOVING",
+        "dialog readiness excludes ordinary airborne actions",
+    )
+    dialog_body = c_function_body(helpers, "cur_obj_update_dialog_with_cutscene")
+    require(
+        dialog_body,
+        "gTimeStopState |= TIME_STOP_ENABLED; "
+        "o->activeFlags |= ACTIVE_FLAG_INITIATED_TIME_STOP; "
+        "o->oDialogState++;",
+        "unfixed dialog helper enables time stop before interrupt succeeds",
+    )
+    require(
+        dialog_body,
+        "gTimeStopState &= ~TIME_STOP_ENABLED; "
+        "o->activeFlags &= ~ACTIVE_FLAG_INITIATED_TIME_STOP; "
+        "dialogResponse = o->oDialogResponse; "
+        "o->oDialogState = DIALOG_STATUS_ENABLE_TIME_STOP;",
+        "completed Eyerok dialog clears its time stop",
+    )
+    dialog_calls = re.findall(r"cur_obj_update_dialog_with_cutscene\s*\(", eyerok)
+    if len(dialog_calls) != 2:
+        fail(f"unexpected Eyerok dialog call count: {len(dialog_calls)}")
+    intro_body = c_function_body(eyerok, "eyerok_boss_act_show_intro_text")
+    death_body = c_function_body(eyerok, "eyerok_boss_act_die")
+    require(
+        intro_body,
+        "cur_obj_update_dialog_with_cutscene(MARIO_DIALOG_LOOK_UP, DIALOG_FLAG_NONE, "
+        "CUTSCENE_DIALOG, DIALOG_117)",
+        "intro is the first Eyerok dialog callsite",
+    )
+    require(
+        death_body,
+        "if (o->oTimer == 60) { "
+        "if (cur_obj_update_dialog_with_cutscene(MARIO_DIALOG_LOOK_UP, DIALOG_FLAG_NONE, "
+        "CUTSCENE_DIALOG, DIALOG_118))",
+        "death dialog begins only at boss timer 60",
+    )
+    if len(re.findall(r"o->oAction\s*=\s*EYEROK_BOSS_ACT_SHOW_INTRO_TEXT\s*;", eyerok)) != 1:
+        fail("SHOW_INTRO_TEXT no longer has one writer")
+    if len(re.findall(r"o->oAction\s*=\s*EYEROK_BOSS_ACT_DIE\s*;", eyerok)) != 1:
+        fail("boss DIE no longer has one writer")
+    require(
+        c_function_body(eyerok, "eyerok_boss_act_fight"),
+        "if (o->oEyerokBossNumHands == 0) { o->oAction = EYEROK_BOSS_ACT_DIE; }",
+        "boss death requires zero counted hands",
+    )
+    require(
+        c_function_body(eyerok, "eyerok_hand_check_attacked"),
+        "o->parentObj->oEyerokBossNumHands--; "
+        "o->oAction = EYEROK_HAND_ACT_DIE; o->oVelY = 50.0f;",
+        "a hand leaves the boss count when it enters DIE",
+    )
+    require(
+        c_function_body(eyerok, "eyerok_hand_act_die"),
+        "if (cur_obj_init_anim_and_check_if_end(1)) { "
+        "o->parentObj->oEyerokBossUnk1AC = 0; "
+        "obj_explode_and_spawn_coins(150.0f, 1);",
+        "dying hand deletion is gated by animation 1",
+    )
+    idle_body = c_function_body(eyerok, "eyerok_hand_act_idle")
+    require(
+        idle_body,
+        "if (o->parentObj->oAction == EYEROK_BOSS_ACT_FIGHT)",
+        "all attacking hand transitions require boss FIGHT",
+    )
+    require(
+        idle_body,
+        "} else { o->oPosY = o->oHomeY + o->parentObj->oEyerokBossUnk110; }",
+        "pre-fight idle hands change only Y",
+    )
+    if "oPosZ" in idle_body.split("} else {")[-1]:
+        fail("pre-fight idle branch unexpectedly writes hand Z")
     require(eyerok, "if (o->oTimer == 0) { eyerok_spawn_hand(-1", "boss spawns hands without same-tick wake transition")
     require(eyerok, "if (o->oBhvParams2ndByte < 0) { o->collisionData = segmented_to_virtual(&ssl_seg7_collision_070284B0); } else { o->collisionData = segmented_to_virtual(&ssl_seg7_collision_07028370); }", "first sleep update assigns collision")
     require(surface_collision, "if (y - (height + -78.0f) < 0.0f)", "find-floor 78-unit buffer")
@@ -941,6 +1129,20 @@ def main() -> None:
         "saved platform pointer displacement call",
     )
     platform_body = c_function_body(platform_displacement, "apply_platform_displacement")
+    require(
+        platform_body,
+        "rotation[0] = platform->oAngleVelPitch; "
+        "rotation[1] = platform->oAngleVelYaw; "
+        "rotation[2] = platform->oAngleVelRoll;",
+        "platform angular payload fields",
+    )
+    require(
+        platform_body,
+        "x += platform->oVelX; z += platform->oVelZ;",
+        "platform X/Z linear payload fields",
+    )
+    if re.search(r"y\s*\+=\s*platform->oVelY", platform_body):
+        fail("platform displacement unexpectedly adds platform Y velocity")
     require(platform_body, "gMarioStates[0].faceAngle[1] += rotation[1];", "platform yaw write")
     require(platform_body, "set_mario_pos(x, y, z);", "platform position write")
     if "forwardVel" in platform_body or "gMarioStates[0].vel" in platform_body:
@@ -1022,9 +1224,28 @@ def main() -> None:
     if jp_sha1_manifest != expected_jp_manifest:
         fail(f"unexpected canonical JP SHA-1 manifest: {jp_sha1_manifest!r}")
     require(die_animation, "0x28, ANIMINDEX_NUMPARTS(eyerok_seg5_animindex_0500DD4C)", "40-frame die animation")
+    die_animation_frames = 0x28
+    death_dialog_timer = 60
+    if not die_animation_frames < death_dialog_timer:
+        fail(
+            "dying hands are not guaranteed to finish before the death dialog: "
+            f"{die_animation_frames} !< {death_dialog_timer}"
+        )
     require(attacked_animation, "0x19, ANIMINDEX_NUMPARTS(eyerok_seg5_animindex_0500E798)", "25-frame attacked animation")
 
     require(ssl_script, "OBJECT(/*model*/ MODEL_NONE, /*pos*/ 0, -1534, -3693", "boss spawn")
+    require(
+        ssl_script,
+        "OBJECT_WITH_ACTS(/*model*/ MODEL_STAR, /*pos*/ 500, 5050, -500",
+        "Act-3 star raw position",
+    )
+    for warp_position in [
+        "/*pos*/    0,  300,  6451",
+        "/*pos*/    0, 5500,   256",
+        "/*pos*/ 3070, 1280,  2900",
+        "/*pos*/ 2546, 1150, -2647",
+    ]:
+        require(ssl_script, warp_position, f"Area-2 warp raw position {warp_position}")
     require(ssl_script, "INSTANT_WARP(/*index*/ 3, /*destArea*/ 3, /*displace*/ 0, 0, 0)", "area 2 to 3 instant warp")
     require(ssl_script, "INSTANT_WARP(/*index*/ 2, /*destArea*/ 2, /*displace*/ 0, 0, 0)", "area 3 to 2 instant warp")
     require(area2, "COL_TRI_INIT(SURFACE_INSTANT_WARP_1E, 2), COL_TRI(11, 241, 12), COL_TRI(241, 243, 12),", "area 2 active warp triangles")
@@ -1032,6 +1253,93 @@ def main() -> None:
     require(area3_macros, "const MacroObject ssl_seg7_area_3_macro_objs[] = { MACRO_OBJECT_END(), };", "empty Area 3 macro list")
     if "COL_WATER_BOX" in area3:
         fail("unexpected Area 3 water box")
+
+    coin_record_pattern = re.compile(
+        r"MACRO_OBJECT\s*\(\s*/\*preset\*/\s*(macro_yellow_coin_[12])\s*,"
+        r"\s*/\*yaw\*/\s*0\s*,\s*/\*pos\*/\s*(-?\d+)\s*,\s*(-?\d+)\s*,\s*(-?\d+)\s*\)"
+    )
+    area2_individual_coins = [
+        (kind, int(x), int(y), int(z))
+        for kind, x, y, z in coin_record_pattern.findall(area2_macros)
+    ]
+    expected_area2_individual_coins = [
+        ("macro_yellow_coin_2", 1873, 0, -3495),
+        ("macro_yellow_coin_2", 1200, 0, -3495),
+        ("macro_yellow_coin_1", 736, 2652, -2250),
+        ("macro_yellow_coin_1", 736, 2546, -2250),
+        ("macro_yellow_coin_1", 1368, 3263, -2250),
+        ("macro_yellow_coin_1", 1368, 3135, -2250),
+        ("macro_yellow_coin_1", -260, 2950, -600),
+        ("macro_yellow_coin_1", 260, 1977, -600),
+        ("macro_yellow_coin_1", -1940, 1239, -600),
+        ("macro_yellow_coin_1", -1940, 1239, 2320),
+        ("macro_yellow_coin_1", 260, 3923, -600),
+        ("macro_yellow_coin_2", -2047, 1664, 3076),
+        ("macro_yellow_coin_2", -2047, 1536, 2870),
+        ("macro_yellow_coin_2", -1840, 1357, 3076),
+        ("macro_yellow_coin_2", -1840, 1408, 2870),
+    ]
+    if area2_individual_coins != expected_area2_individual_coins:
+        fail(f"unexpected Area-2 individual-coin inventory: {area2_individual_coins}")
+    if sum(kind == "macro_yellow_coin_1" for kind, *_ in area2_individual_coins) != 9:
+        fail("Area-2 macro_yellow_coin_1 count is not nine")
+    if sum(kind == "macro_yellow_coin_2" for kind, *_ in area2_individual_coins) != 6:
+        fail("Area-2 macro_yellow_coin_2 count is not six")
+    require(
+        macro_presets,
+        "/* macro_yellow_coin_1               */ { bhvYellowCoin, MODEL_YELLOW_COIN, 0 },",
+        "yellow-coin-1 macro preset",
+    )
+    require(
+        macro_presets,
+        "/* macro_yellow_coin_2               */ { bhvOneCoin, MODEL_YELLOW_COIN, 0 },",
+        "yellow-coin-2 macro preset",
+    )
+    coin_behavior_start = behavior_data.find("const BehaviorScript bhvOneCoin[]")
+    coin_behavior_end = behavior_data.find("const BehaviorScript bhvTemporaryYellowCoin[]")
+    if coin_behavior_start < 0 or coin_behavior_end <= coin_behavior_start:
+        fail("cannot isolate individual yellow-coin behaviors")
+    if "OBJ_FLAG_PERSISTENT_RESPAWN" in behavior_data[coin_behavior_start:coin_behavior_end]:
+        fail("individual yellow coin unexpectedly has persistent-respawn flag")
+    require(
+        c_function_body(interaction, "interact_coin"),
+        "o->oInteractStatus = INT_STATUS_INTERACTED;",
+        "coin interaction marks the coin collected",
+    )
+    require(
+        c_function_body(coin, "bhv_coin_sparkles_init"),
+        "if (o->oInteractStatus & INT_STATUS_INTERACTED "
+        "&& !(o->oInteractStatus & INT_STATUS_TOUCHED_BOB_OMB)) { "
+        "spawn_object(o, MODEL_SPARKLES, bhvGoldenCoinSparkles); "
+        "obj_mark_for_deletion(o); return TRUE; }",
+        "collected yellow coin deletion",
+    )
+    unload_body = c_function_body(object_lists, "unload_deactivated_objects_in_list")
+    require(
+        unload_body,
+        "if (!(gCurrentObject->oFlags & OBJ_FLAG_PERSISTENT_RESPAWN)) { "
+        "set_object_respawn_info_bits(gCurrentObject, RESPAWN_INFO_DONT_RESPAWN); }",
+        "ordinary deletion writes the no-respawn value",
+    )
+    require(
+        c_function_body(object_lists, "set_object_respawn_info_bits"),
+        "case RESPAWN_INFO_TYPE_16: info16 = (u16 *) obj->respawnInfo; "
+        "*info16 |= bits << 8; break;",
+        "macro respawn record is a 16-bit writable cell",
+    )
+    spawn_macro_body = c_function_body(macro_special_objects, "spawn_macro_objects")
+    require(
+        spawn_macro_body,
+        "if (((macroObject[MACRO_OBJ_PARAMS] >> 8) & RESPAWN_INFO_DONT_RESPAWN) "
+        "!= RESPAWN_INFO_DONT_RESPAWN)",
+        "no-respawn macro filter",
+    )
+    require(
+        spawn_macro_body,
+        "newObj->respawnInfoType = RESPAWN_INFO_TYPE_16; "
+        "newObj->respawnInfo = macroObjList - 1;",
+        "macro object receives its record pointer",
+    )
 
     local6 = re.search(
         r"static\s+const\s+LevelScript\s+script_func_local_6\[\]\s*=\s*\{(.*?)\};",
@@ -1045,6 +1353,10 @@ def main() -> None:
         fail("Area 3 local object script is not exactly the Eyerok boss")
 
     area3_vertices, area3_triangles = parse_collision(area3)
+    area3_z_min = min(vertex[2] for vertex in area3_vertices)
+    area3_z_max = max(vertex[2] for vertex in area3_vertices)
+    if (area3_z_min, area3_z_max) != (-3954, -255):
+        fail(f"unexpected Area 3 static Z envelope: {(area3_z_min, area3_z_max)}")
     max_static_vertex_y = max(vertex[1] for vertex in area3_vertices)
     if max_static_vertex_y != 896:
         fail(f"unexpected Area 3 maximum vertex Y: {max_static_vertex_y}")
@@ -1058,6 +1370,39 @@ def main() -> None:
             "unexpected Area 3 upward-floor vertex Y: "
             f"{max_upward_floor_vertex_y}"
         )
+
+    warp_ceiling_triangle = (76, 77, 115)
+    warp_ceiling_companion = (76, 115, 119)
+    if warp_ceiling_triangle not in area3_triangles \
+        or warp_ceiling_companion not in area3_triangles:
+        fail("warp Y=768 ceiling triangles changed")
+    warp_ceiling_points = [area3_vertices[index] for index in warp_ceiling_triangle]
+    if warp_ceiling_points != [
+        (192, 768, -2432),
+        (192, 768, -1023),
+        (-191, 768, -1023),
+    ]:
+        fail(f"unexpected warp ceiling vertices: {warp_ceiling_points}")
+    if normal_y(*warp_ceiling_points) != -539647:
+        fail("warp Y=768 triangle is no longer downward-facing")
+    if not point_in_triangle_xz((0, -1100), *warp_ceiling_points):
+        fail("warp Y=768 ceiling no longer contains X/Z (0,-1100)")
+    static_warp_downward_faces = [
+        (triangle, [area3_vertices[index] for index in triangle])
+        for triangle in area3_triangles
+        if normal_y(*(area3_vertices[index] for index in triangle)) < 0
+        and point_in_triangle_xz(
+            (0, -1100), *(area3_vertices[index] for index in triangle)
+        )
+    ]
+    if [triangle for triangle, _ in static_warp_downward_faces] != [
+        (70, 71, 107),
+        warp_ceiling_triangle,
+    ]:
+        fail(f"unexpected downward faces over warp: {static_warp_downward_faces}")
+    if {point[1] for _, points in static_warp_downward_faces for point in points} \
+        != {-409, 768}:
+        fail("unexpected static warp ceiling heights")
 
     upward_area3: list[tuple[tuple[int, int, int], list[tuple[int, int, int]]]] = []
     for triangle in area3_triangles:
@@ -1117,6 +1462,35 @@ def main() -> None:
         fail(f"raised upward static triangles overlap begin-double corridor: {raised_path_overlaps}")
 
     hand_vertices, _ = parse_collision(hand_collision)
+    hand_local_xz_abs_max = max(
+        max(abs(vertex[0]), abs(vertex[2])) for vertex in hand_vertices
+    )
+    if hand_local_xz_abs_max != 153:
+        fail(f"unexpected hand local X/Z absolute bound: {hand_local_xz_abs_max}")
+    coarse_hand_horizontal_offset = 3 * (2 * hand_local_xz_abs_max) // 2
+    if coarse_hand_horizontal_offset != 459:
+        fail(f"unexpected coarse hand horizontal offset: {coarse_hand_horizontal_offset}")
+    intro_hand_pivot_z = -3693 + 300
+    intro_hand_reach_max_z = intro_hand_pivot_z + coarse_hand_horizontal_offset
+    if intro_hand_pivot_z != -3393 or intro_hand_reach_max_z != -2934:
+        fail(
+            "unexpected intro hand Z envelope endpoint: "
+            f"pivot={intro_hand_pivot_z}, max={intro_hand_reach_max_z}"
+        )
+    if not intro_hand_reach_max_z < -1222:
+        fail("intro hand collision can reach the Area-3 warp")
+    stock_hand_support_z = (
+        area3_z_min - coarse_hand_horizontal_offset,
+        area3_z_max + coarse_hand_horizontal_offset,
+    )
+    if stock_hand_support_z != (-4413, 204):
+        fail(f"unexpected stock hand support Z envelope: {stock_hand_support_z}")
+    first_negative_support_z = tuple(value - 65536 for value in stock_hand_support_z)
+    if first_negative_support_z != (-69949, -65332):
+        fail(f"unexpected first negative support copy: {first_negative_support_z}")
+    first_period_open_gap = stock_hand_support_z[0] - first_negative_support_z[1]
+    if first_period_open_gap != 60919:
+        fail(f"unexpected first-period open gap: {first_period_open_gap}")
     max_hand_local_y = max(vertex[1] for vertex in hand_vertices)
     if max_hand_local_y != 338:
         fail(f"unexpected hand collision local Y maximum: {max_hand_local_y}")
@@ -1143,6 +1517,32 @@ def main() -> None:
     if max_closed_local_y != 204:
         fail(f"unexpected closed-hand local Y maximum: {max_closed_local_y}")
     closed_top_offset = max_closed_local_y * 3 // 2
+    closed_warp_pedro_pivot_band = (302, 460)
+    closed_warp_pedro_floor_band = tuple(
+        pivot + closed_top_offset for pivot in closed_warp_pedro_pivot_band
+    )
+    closed_warp_pedro_gap_band = tuple(
+        768 - floor for floor in closed_warp_pedro_floor_band
+    )
+    if closed_warp_pedro_floor_band != (608, 766) \
+        or closed_warp_pedro_gap_band != (160, 2):
+        fail("unexpected closed-hand/warp-ceiling Pedro band")
+
+    # At the central warp sample the collision census found exactly two
+    # static downward faces, at -409 and 768.  A Pedro landing needs a
+    # positive 2..160 gap.  Translate the lower ceiling's floor band back to
+    # the closed/open hand pivots so the ordinary-scale residual is explicit.
+    low_warp_ceiling_y = -409
+    low_warp_pedro_floor_band = (
+        low_warp_ceiling_y - 160,
+        low_warp_ceiling_y - 2,
+    )
+    low_warp_closed_pivot_band = tuple(
+        floor - closed_top_offset for floor in low_warp_pedro_floor_band
+    )
+    if low_warp_pedro_floor_band != (-569, -411) \
+        or low_warp_closed_pivot_band != (-875, -717):
+        fail("unexpected low-ceiling closed-hand Pedro band")
 
     open_vertices, open_triangles = parse_collision(
         named_collision_block(hand_collision, "ssl_seg7_collision_070282F8")
@@ -1160,6 +1560,27 @@ def main() -> None:
         fail("closed-hand top triangles changed")
     if (1, 3, 4) not in open_triangles or (1, 4, 2) not in open_triangles:
         fail("open-hand top triangles changed")
+    closed_origin_downward = [
+        triangle
+        for triangle in closed_mesh_triangles
+        if normal_y(*(closed_mesh_vertices[index] for index in triangle)) < 0
+        and point_in_triangle_xz(
+            (0, 0), *(closed_mesh_vertices[index] for index in triangle)
+        )
+    ]
+    if closed_origin_downward != [(6, 2, 7)]:
+        fail(f"unexpected closed-hand downward origin faces: {closed_origin_downward}")
+    closed_underside_local_y = closed_mesh_vertices[6][1]
+    closed_query_rejection_margin_doubled = \
+        (3 * max_closed_local_y + 2 * 80) - \
+        (3 * closed_underside_local_y + 2 * 78)
+    if closed_underside_local_y != 3 or closed_query_rejection_margin_doubled != 607:
+        fail("closed-hand underside no longer fails the top-floor ceiling query")
+    low_warp_open_pivot_band = tuple(
+        floor - dynamic_top_offset for floor in low_warp_pedro_floor_band
+    )
+    if low_warp_open_pivot_band != (-1076, -918):
+        fail("unexpected low-ceiling open-hand Pedro band")
 
     right_sleep_vertices, right_sleep_triangles = parse_collision(
         named_collision_block(hand_collision, "ssl_seg7_collision_07028370")
@@ -1370,6 +1791,21 @@ def main() -> None:
     print("hand-bounciness: zero")
     print("partial-update-guards: FAR_AWAY|IN_DIFFERENT_ROOM")
     print("hand-native-before-visibility: yes")
+    print("hand-collision-distance: default 1000; no Eyerok writer")
+    print("dynamic-surface-load-distance: strict marioDist < collisionDistance")
+    print("surface-scheduler-order: clear, terrain/hand load, prior-platform apply, Mario, final platform query")
+    print("time-stop-surface-mode: retains old partition; forbids fresh load and platform apply")
+    print("time-stop-player-mode: Mario can update only without MARIO_AND_DOORS or ALL_OBJECTS")
+    print("eyerok-intro-time-stop-predecessor: ready-to-speak stationary/moving state required")
+    print("unfixed-dialog-window: airborne Mario can remain scheduled after time stop activates")
+    print("eyerok-dialog-callsites: exactly intro at DIALOG_117 and death at DIALOG_118")
+    print("intro-dialog-hand-state: both hands pre-fight at home Z=-3393; collision max Z=-2934")
+    print("intro-dialog-warp-overlap: none; Area-3 warp begins at Z=-1222")
+    print("death-dialog-hand-state: zero counted hands; 40-frame hand death finishes before timer 60")
+    print("dialog-retained-warp-hand: impossible in the stock lifecycle")
+    print("hand-direct-Z-writers: retreat-to-home and boss-clamped begin-double only")
+    print("hand-bounded-Z-motion: target/push <= 50; growing sweep is X-only at yaw +/-0x4000")
+    print("hand-no-floor-motion: intended no-floor endpoint rejected with HIT_EDGE")
     print("first-hand-sleep-update-collision: nonnull before visibility")
     print("time-stop-hand-update: whole update frozen unless explicitly unfrozen")
     print("hand-list-before-boss: yes")
@@ -1380,6 +1816,15 @@ def main() -> None:
     print("find-floor-buffer: 78")
     print("pedro-query-order: upper wall, lower wall, floor, ceiling")
     print("pedro-cancel-branch: Y snaps; X/Z and referenced floor remain old")
+    print("warp-static-ceiling: triangle (76,77,115), Y=768, normal-Y -539647")
+    print("warp-static-ceiling-contains: X/Z (0,-1100)")
+    print("warp-downward-face-heights: -409 rejected by query buffer; 768 selected")
+    print("closed-hand-warp-pedro-pivot-band: [302,460]")
+    print("closed-hand-warp-pedro-floor-band: [608,766], gaps [160,2]")
+    print("ordinary-low-ceiling-pedro-floor-band: [-569,-411]")
+    print("ordinary-low-ceiling-closed-pivot-band: [-875,-717]")
+    print("ordinary-low-ceiling-open-pivot-band: [-1076,-918]")
+    print("closed-hand-origin-underside: local Y=3; top-query rejection margin 303.5")
     print("sleep-pedro-strip: floor -1459, ceiling -1421, gap 38")
     print("sleep-pedro-query-window: [-1537,-1500]")
     print("sleep-pedro-outer-wall: Z=-3166 resolves to -3116")
@@ -1444,10 +1889,23 @@ def main() -> None:
         f"VERSION=jp COMPARE=1 byte-identical build ({JP_ROM_SHA1})"
     )
     print("platform-displacement-speed-writes: none")
+    print("platform-effective-linear-payload: X/Z only; platform Y velocity ignored")
+    print("platform-effective-angular-payload: pitch/yaw/roll angle velocities")
     print("raised-static-floor-overlap-with-begin-corridor: none")
     print(f"area3-static-vertex-y-max: {max_static_vertex_y}")
     print(f"area3-upward-floor-vertex-y-max: {max_upward_floor_vertex_y}")
+    print(f"area3-static-z-envelope: [{area3_z_min},{area3_z_max}]")
+    print(f"eyerok-local-xz-absolute-bound: {hand_local_xz_abs_max}")
+    print(f"stock-hand-support-z-envelope: [{stock_hand_support_z[0]},{stock_hand_support_z[1]}]")
+    print(f"first-negative-support-copy: [{first_negative_support_z[0]},{first_negative_support_z[1]}]")
+    print(f"first-period-open-gap: {first_period_open_gap}")
     print(f"hand-dynamic-top-offset-max: {dynamic_top_offset}")
+    print("area2-individual-coin-suppression-inventory: 15 (yellow_coin_1=9, yellow_coin_2=6)")
+    print("area2-individual-coin-respawn-path: collect -> delete -> 16-bit FF00 -> skipped on reload")
+    print("area2-10/11-suppression-status: source-feasible inventory; controller reachability unproved")
+    print("spindel-output-to-act3-star-raw-z-gap: 197179")
+    print("spindel-output-to-nearest-area2-warp-raw-z-gap: 195032")
+    print("instant-warp-reanchor: none; both displacements are (0,0,0)")
     print("area2-active-warp: surface-1E -> area3, displacement (0,0,0)")
     print("area3-active-warp: surface-1D -> area2, displacement (0,0,0)")
     print("runaway-tripwire: DOUBLE_POUND + grounded + gravity=0 must remain unreachable")

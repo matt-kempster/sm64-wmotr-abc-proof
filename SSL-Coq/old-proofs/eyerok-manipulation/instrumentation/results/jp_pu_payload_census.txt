@@ -1,0 +1,17 @@
+Original-JP Area-2 PU payload census: validated
+ROM MD5: 85d61f5525af708c9f1e84dce6dc10e9
+ROM CRC1/CRC2: 4eaa3d0e 74757c24
+
+JP_MACRO_SKIP_INJECTION,count=0,address=none,scope=baseline
+JP_ALLOCATION_PAYLOAD,allocation=64,slot=2,address=8033c5d8,active=257,behavior=800ebe00,behaviorWords=(00090000,11010011,2a000000),pos=(-2458.000000,2111.254395,-1425.000000),posBits=(c519a000,4503f412,c4b22000),vel=(0.000000,0.000000,5.000000),velBits=(00000000,00000000,40a00000),face=(256,0,0),angleVel=(256,0,0)
+JP_MACRO_SKIP_INJECTION,count=10,address=801201b4,scope=allocation-identity-only
+JP_ALLOCATION_PAYLOAD,allocation=54,slot=52,address=80343c98,active=257,behavior=800ebe00,behaviorWords=(00090000,11010011,2a000000),pos=(-2458.000000,2111.254395,-1425.000000),posBits=(c519a000,4503f412,c4b22000),vel=(0.000000,0.000000,5.000000),velBits=(00000000,00000000,40a00000),face=(256,0,0),angleVel=(256,0,0)
+JP_MACRO_SKIP_INJECTION,count=11,address=801201b4,scope=allocation-identity-only
+JP_ALLOCATION_PAYLOAD,allocation=53,slot=48,address=80343318,active=257,behavior=800ebe00,behaviorWords=(00090000,11010011,2a000000),pos=(-2458.000000,2111.254395,-1425.000000),posBits=(c519a000,4503f412,c4b22000),vel=(0.000000,0.000000,5.000000),velBits=(00000000,00000000,40a00000),face=(256,0,0),angleVel=(256,0,0)
+
+baseline: 83 allocations; Spindel is allocation 64
+10 suppressed macro records: 73 allocations; Spindel is allocation 54
+11 suppressed macro records: 72 allocations; Spindel is allocation 53
+Spindel first-apply payload: Z velocity 5; pitch and pitch velocity 256
+scope: the suppression writes are an allocation-identity fixture, not controller reachability
+scope: the fixture does not stage hand death or install a stale pointer

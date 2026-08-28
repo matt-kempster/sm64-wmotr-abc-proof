@@ -64,18 +64,49 @@ The cross-area result is version-specific. US clears Mario's saved platform
 pointer while loading Area 2. Original JP omits that call, retains the raw slot
 address, and consumes a nonnull address before the first Area 2 update refreshes
 it. An ordinary coherent JP warp carries `NULL`; an authentic stale cached warp
-floor plus freshly saved hand pointer remains open. In a disclosed injected
-comparison, the authentic JP ROM reused hand slot 32 for a zero-motion
-`bhvWaterDroplet`. Source/Clight order implies one unchecked application; the
-probe observed effective delta `(0,0,0)` and unchanged Mario speed. No explosion
-or 0/0.5-A route was staged. Platform displacement changes position/facing, not stored speed, so a
-hypothetical large result would depend on positional lever arm rather than
-normal versus PU stored speed.
+floor plus freshly saved hand pointer remains open. In disclosed injected
+comparisons, the authentic JP ROM reused right-hand slot 32 and left-hand slot
+73 for zero-motion `bhvStaticObject` payloads. Retail apply entry/return
+breakpoints observed effective delta `(0,0,0)` and unchanged Mario speed. No explosion
+or 0/0.5-A route was staged.  A separate allocation census now identifies a
+conditional alternate-lifecycle payload: suppressing 10 or 11 macro allocations
+moves the rotating Spindel to the source-audited first-hand/last-hand stale
+ordinals 54/53.  The active Coq calculation now checks all four conditional PU
+gates together: a three-period signed-16 match, the real warp-ceiling/closed-hand
+Pedro geometry, Spindel's authenticated nonzero payload, and its exact lift from
+the floor-snapped input to `(0,5469.4233,-197679.7)`.  It also proves that the
+older four-Y witness fails the platform proximity test and that an ordinary
+hand cannot freshly load after Mario is three Z periods away.  The stronger
+audit now excludes stock same-PU hand travel, proves a `195559` normal-frame
+Mario-transport threshold and a `60919` retained-surface no-floor gap, finds
+fifteen legitimate individual-coin suppression records, and proves that the
+output is still at least `195032` raw Z units from an Area-2 warp.  It also
+closes the apparent dialog-retention escape: the intro occurs while both hands
+are pre-fight at home Z=`-3393`, outside the warp, and the death dialog starts
+at timer 60 after the 40-frame dying hands are gone.  Because Area 3 contains
+no other dialog object, the clean PU installation is disproved in the audited
+stock model; the ten/eleven-coin and reanchor work is now only conditional on a
+new lifecycle or machine-level premise.  The ordinary branch now has its own
+authenticated suffix census: under a deletion-only shift, death-hand ordinals
+53/54 can select only baseline allocations 53 through 83 (or no replacement),
+and Spindel at 64 is the sole entry with effective X/Z or angular motion.
+The compiled binary32 calculation sends the recorded ordinary warp center from
+`(0,346.0804,-1100)` to `(0,338.5134,-1138.419)`, so the only observed nonzero
+replacement moves down and backward instead of supplying a lift.  The central
+warp collision also reduces a Pedro installation to floor bands
+`[-569,-411]` or `[608,766]`; reaching one of those hand poses and proving any
+later use for the small shift remain open.  Platform
+displacement changes position/facing, not stored speed, so this is a positional
+lever arm rather than normal or PU stored-speed accumulation.
 
 See `proofs/PedroSpot.v`, `proofs/EyerokParticleDisplacement.v`,
 `proofs/JPPlatformPersistence.v`, the US Pedro trace in
 `instrumentation/results/pedro_entry_trace.csv`, and the JP evidence manifest
-in `instrumentation/results/jp_platform_manifest.md`.
+in `instrumentation/results/jp_platform_manifest.md`.  The active project's
+`JPEyerokStaleHandPU.v`, `JPEyerokStaleHandOrdinary.v`, and the compact
+`instrumentation/results/jp_pu_payload_census.txt` and
+`instrumentation/results/jp_ordinary_payload_census.txt` keep the conditional
+payload results and their remaining live bridges explicit.
 
 ## Current status
 

@@ -63,12 +63,20 @@ is conditional on the address, runtime gates, and summarized payload delta; it
 is not a Float32 rotation derivation or an authentic-trace theorem.
 
 An ordinary coherent JP warp has a static selected floor and therefore carries
-`NULL`. The matching-ROM natural probe observes exactly that. A separate
-injected comparison writes the real hand-slot address 32; Area 2 reuses it for
-zero-motion `bhvWaterDroplet`, the source-level function is applied once with
-effective delta `(0,0,0)`, and Mario's speed is unchanged. No Eyerok explosion,
-rotating replacement, or 0/0.5-A route was staged. Authentic reachability of a
-stale cached warp floor together with a freshly saved hand pointer remains open.
+`NULL`, exactly as the matching-ROM natural probe observes. Two injected
+sleeping-hand comparisons reuse the real slot addresses for motionless
+`bhvStaticObject` payloads and execute retail platform apply with delta
+`(0,0,0)`. For a destroyed hand, the free-list order instead makes the stale
+destination allocation 53 or 54. An authenticated 83-allocation census and a
+deletion-only over-approximation reduce every reused destination to baseline
+allocations 53 through 83; only allocation 64, Spindel, has effective X/Z or
+angular motion. The exact binary32 calculation moves the ordinary warp center
+from `(0,346.08044,-1100)` to approximately `(0,338.5134,-1138.419)`: about
+8 units down and 38 backward, not an Act-3 lift. At central warp X/Z, the
+Pedro condition further requires a hand floor in `[-569,-411]` or `[608,766]`.
+Authentic installation in one of those bands, no-reuse residual fields, and
+whether the small Spindel perturbation can alter a later no-A gate remain open;
+no Eyerok explosion or 0/0.5-A route was staged.
 
 The Pedro, common fragment, US policy, and JP pointer-policy certificates are
 assumption-free for their explicit handwritten relations. The combined verdict
@@ -670,11 +678,15 @@ API as original gameplay.
   analog/yaw/braking schedules. Other initial positions, action changes,
   seams, tunneling, caps/shells, and other glitch geometry remain separate;
   do not promote the present local no-platform observation to a global theorem.
-- Construct or refute an authentic original-JP frame with a stale cached warp
-  floor and a freshly saved Eyerok-hand address. If reachable, derive actual
-  explosion/allocation slot alignment, residual or replacement-object fields,
-  Float32 rotational displacement, normal-coordinate versus PU-scale positional
-  requirements, and separate never-A/already-held-A predecessors.
+- Finish the ordinary original-JP stale-floor/hand-pointer branch.  The
+  authenticated deletion-only replacement suffix has only one effective
+  payload, Spindel, whose exact warp-center effect is about 8 units down and 38
+  backward; now execute or exclude the remaining live hand poses in the exact
+  Pedro floor bands, classify the no-reuse freed-slot fields and post-floor
+  State/Object writers, and decide whether that small perturbation can remove a
+  later no-A gate.  The PU-scale clean installation is already disproved in the
+  audited stock model and should be reopened only by a concrete new lifecycle
+  or movement transition.
 - Authenticate or refute the conditional Y=1280 route below the Y=1967 query
   threshold, including every quarter-step collision response and the landing;
   then test whether any original-game action/speed history reaches a higher

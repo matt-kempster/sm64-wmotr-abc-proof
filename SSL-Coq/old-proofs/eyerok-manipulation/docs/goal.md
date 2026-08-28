@@ -29,9 +29,14 @@ The new exploit layer resolves the same-area Eyerok-fragment form of question 5
 negatively in both versions, and the cross-area form negatively in US because
 US clears `gMarioPlatform`. Original JP retains a raw slot address, so a broader
 cross-area candidate remains open. An ordinary coherent warp carries `NULL`,
-and the matching-ROM injected comparison reused the address for a zero-motion
-water droplet, but no authentic stale-floor/hand-pointer trace or rotating
-replacement has been reached. For question 4 it finds real geometry, but the
+and matching-ROM injected comparisons reused both sleeping-hand addresses for
+zero-motion static objects.  For destroyed hands, an authenticated census plus
+the deletion-only free-list model reduces every reused payload to allocations
+53 through 83; only Spindel has effective motion, and its exact ordinary warp
+effect is about 8 units down and 38 backward.  The PU-scale clean installation
+is disproved in the audited stock model, but no authentic ordinary
+stale-floor/hand-pointer trace has yet reached one of the exact Pedro bands or
+shown that this small displacement changes a later no-A gate. For question 4 it finds real geometry, but the
 two analyzed configurations do
 not establish a useful speed engine: the stationary strip needs preloaded
 speed above 400, while the ordinary local wake entry exists only on the last
@@ -405,11 +410,13 @@ reachability is now closed.
    ordinary speed-48 wall barrier and separately investigate faster or
    collision-glitch traces. For held A, prove the incoming-speed bound or
    analyze faster predecessors and the jump kick's post-wall continuation.
-6. Construct or refute the authentic original-JP stale-floor/hand-pointer
-   prestate. If reachable, stage the explosion/allocation order, identify the
-   exact residual or Area 2 slot payload, derive the actual Float32 rotational
-   displacement, and distinguish ordinary coordinates from a PU-scale lever
-   arm. Keep never-A and already-held-A predecessors separate.
+6. Finish the ordinary original-JP stale-floor/hand-pointer prestate: execute
+   or exclude forward fist-push/one-hand-show-eye poses, their attack/death
+   continuations, the later-updated sibling, and post-floor State/Object
+   writers against the exact low/high Pedro bands; classify an unreused freed
+   slot; and prove whether the one effective replacement, Spindel, can use its
+   exact small down/back displacement to remove a later no-A gate.  The
+   PU-scale clean installation is already closed in the audited stock model.
 7. Optimize an authentic remaining Area 2 route to the star and count new A
    presses.
    The present work rules out the proposed higher Eyerok shortcut inside the
