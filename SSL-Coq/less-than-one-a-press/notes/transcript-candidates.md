@@ -1,6 +1,32 @@
 # Candidate strategies from the supplied transcript
 
-The transcript is not a formal source.  It was used to choose cases that the
+## Recovered artifact and correction
+
+The full transcript attachment has been recovered and audited.  Its SHA-256
+is `B5418A6B8A40357EBC36F571EEE7A993F59288D906DCDB9FCC478AF543CBE73F`
+and the text file contains 35,422 bytes (34,956 decoded characters).  The hash
+identifies the user-supplied text artifact; it does not authenticate a video, controller
+movie, ROM, or executable.  Most importantly, the transcript says that the
+lower route's sole remaining ordinary A press is **jumping off the upper
+(second) pole**.  The later Grindel is part of a zero-A solution to the final
+trial, not the location of another press.
+
+The transcript's five-trial account is now recorded explicitly:
+
+| Trial | Original obstacle | Transcript's current method |
+|---:|---|---|
+| 1 | Leave the lower pole | Clip onto the thin-pillar mesh, then use the nominally one-way teleporter in reverse; zero A. |
+| 2 | Pass the big steps | Place and collect the 100-coin star so its star dance permits the ledge grab; zero A. |
+| 3 | Leave the upper/second pole | Press A to jump off the pole; this is the one unsolved gate and the route's sole A press. |
+| 4 | Pass the ledge after the next Grindel | Lure a homing Amp from the next floor and use the shock animation to ledge grab; zero A. |
+| 5 | Reach the final star platform | Enter the Grindel's one-unit misalignment, rollout to the still-undescended upper-route elevator's misalignment, trigger its descent, mount its top, and cross to the platform; zero A. |
+
+After those trials, the transcript says either target can be collected without
+another A press: rollout into the Act-3 star, or descend through the five
+Pyramid Puzzle regions and collect the spawned star.  This ordering supersedes
+the earlier ambiguous reading of the edited lower-entrance video.
+
+The transcript is not a formal source.  It is used to choose cases that the
 decomp-driven reachability proof must eventually cover:
 
 - upper-entry elevator containment, including the rollout near miss and the

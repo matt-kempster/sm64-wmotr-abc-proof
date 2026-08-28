@@ -84,6 +84,182 @@ Theorem transcript_act3_stage_orders_checked :
   last lower_transcript_act3_stages ReachAct3Platform = RolloutCollectAct3.
 Proof. repeat split; reflexivity. Qed.
 
+(** A published lower-entrance video shows two edited runs with a common
+    approach.  The recovered full transcript places the on-screen counter's
+    one A press at the upper second-pole dismount, not at an independent
+    Grindel mount.  It also identifies the five original trials and the four
+    already-solved zero-A mechanisms.  The constructors below record only
+    that manually reviewed visual/transcript transcription.  In particular,
+    they are not [FrameInput] samples, a ROM-version claim, a save-memory
+    receipt, or a Clight execution. *)
+Inductive PublishedLowerEntranceVideoStage :=
+| PublishedStartAtLowerEntranceWith95Coins
+| PublishedThinPillarMeshClip
+| PublishedReverseOneWayTeleporter
+| PublishedCollectHundredthCoin
+| PublishedCollectHundredCoinStar
+| PublishedUseHundredCoinStarDanceLedgeGrab
+| PublishedReachSecondPole
+| PublishedJumpOffSecondPole
+| PublishedLureHomingAmpFromNextFloor
+| PublishedUseHomingAmpShockLedgeGrab
+| PublishedTraverseRampToUpperGrindel
+| PublishedEnterUpperGrindelMisalignment
+| PublishedRideHorizontalGrindel
+| PublishedRolloutToUndescendedElevatorMisalignment
+| PublishedTriggerElevatorDescent
+| PublishedMountElevatorTop
+| PublishedReachAct3Platform
+| PublishedConsumeAct6Trigger (trigger : HiddenTrigger)
+| PublishedSpawnAct6Star
+| PublishedCollectAct3Star
+| PublishedCollectAct6Star.
+
+Definition published_lower_video_shared_prefix
+    : list PublishedLowerEntranceVideoStage :=
+  [PublishedStartAtLowerEntranceWith95Coins;
+   PublishedThinPillarMeshClip;
+   PublishedReverseOneWayTeleporter;
+   PublishedCollectHundredthCoin;
+   PublishedCollectHundredCoinStar;
+   PublishedUseHundredCoinStarDanceLedgeGrab;
+   PublishedReachSecondPole;
+   PublishedJumpOffSecondPole].
+
+Definition published_lower_video_act3_post_pole_jump
+    : list PublishedLowerEntranceVideoStage :=
+  [PublishedLureHomingAmpFromNextFloor;
+   PublishedUseHomingAmpShockLedgeGrab;
+   PublishedTraverseRampToUpperGrindel;
+   PublishedEnterUpperGrindelMisalignment;
+   PublishedRideHorizontalGrindel;
+   PublishedRolloutToUndescendedElevatorMisalignment;
+   PublishedTriggerElevatorDescent;
+   PublishedMountElevatorTop;
+   PublishedReachAct3Platform;
+   PublishedCollectAct3Star].
+
+Definition published_lower_video_act6_trigger_order
+    : list HiddenTrigger :=
+  [TriggerUpper; TriggerLowerWest; TriggerLowerEast;
+   TriggerMiddleWest; TriggerMiddleNorth].
+
+Definition published_lower_video_act6_post_pole_jump
+    : list PublishedLowerEntranceVideoStage :=
+  [PublishedLureHomingAmpFromNextFloor;
+   PublishedUseHomingAmpShockLedgeGrab;
+   PublishedTraverseRampToUpperGrindel;
+   PublishedEnterUpperGrindelMisalignment;
+   PublishedRideHorizontalGrindel;
+   PublishedRolloutToUndescendedElevatorMisalignment;
+   PublishedTriggerElevatorDescent;
+   PublishedMountElevatorTop;
+   PublishedConsumeAct6Trigger TriggerUpper;
+   PublishedConsumeAct6Trigger TriggerLowerWest;
+   PublishedConsumeAct6Trigger TriggerLowerEast;
+   PublishedConsumeAct6Trigger TriggerMiddleWest;
+   PublishedConsumeAct6Trigger TriggerMiddleNorth;
+   PublishedSpawnAct6Star;
+   PublishedCollectAct6Star].
+
+Definition published_lower_video_act3_route
+    : list PublishedLowerEntranceVideoStage :=
+  published_lower_video_shared_prefix ++
+  published_lower_video_act3_post_pole_jump.
+
+Definition published_lower_video_act6_route
+    : list PublishedLowerEntranceVideoStage :=
+  published_lower_video_shared_prefix ++
+  published_lower_video_act6_post_pole_jump.
+
+(** This is the count printed by the edited video, not a certified controller
+    edge count.  Keeping it in a separate vocabulary prevents the visual
+    receipt from inhabiting [CutDownstreamSuffix]. *)
+Definition published_marked_a_press_cost
+    (stage : PublishedLowerEntranceVideoStage) : nat :=
+  match stage with
+  | PublishedJumpOffSecondPole => 1%nat
+  | _ => 0%nat
+  end.
+
+Definition published_marked_a_press_total
+    (stages : list PublishedLowerEntranceVideoStage) : nat :=
+  fold_right
+    (fun stage total => (published_marked_a_press_cost stage + total)%nat)
+    0%nat stages.
+
+Theorem published_lower_video_transcription_checked :
+  published_lower_video_act6_trigger_order =
+    conditional_jp_trigger_order /\
+  published_marked_a_press_total published_lower_video_act3_route = 1%nat /\
+  published_marked_a_press_total published_lower_video_act6_route = 1%nat /\
+  published_marked_a_press_total
+    published_lower_video_act3_post_pole_jump = 0%nat /\
+  published_marked_a_press_total
+    published_lower_video_act6_post_pole_jump = 0%nat /\
+  last published_lower_video_act3_route PublishedReachSecondPole =
+    PublishedCollectAct3Star /\
+  last published_lower_video_act6_route PublishedReachSecondPole =
+    PublishedCollectAct6Star.
+Proof. repeat split; reflexivity. Qed.
+
+(** A controller-level companion for the corrected gate.  It records the
+    button history used by the conditional JP fixture: one A edge at the
+    staged top-of-pole state, 33 further polls holding that same press, then
+    release and A up.  A held sample contains no new edge.  Stick, B, and Z
+    values are deliberately outside this button-only receipt. *)
+Definition published_pole_a_press_input : FrameInput :=
+  {| frame_previous_down := Int.zero;
+     frame_current_down := a_button_mask |}.
+
+Definition published_pole_a_held_input : FrameInput :=
+  {| frame_previous_down := a_button_mask;
+     frame_current_down := a_button_mask |}.
+
+Definition published_pole_a_release_input : FrameInput :=
+  {| frame_previous_down := a_button_mask;
+     frame_current_down := Int.zero |}.
+
+Definition published_pole_a_up_input : FrameInput :=
+  {| frame_previous_down := Int.zero;
+     frame_current_down := Int.zero |}.
+
+Definition published_pole_button_prefix : list FrameInput :=
+  published_pole_a_press_input ::
+  repeat published_pole_a_held_input 33 ++
+  [published_pole_a_release_input] ++
+  repeat published_pole_a_up_input 32.
+
+Definition published_pole_after_edge_inputs : list FrameInput :=
+  repeat published_pole_a_held_input 33 ++
+  [published_pole_a_release_input] ++
+  repeat published_pole_a_up_input 32.
+
+Definition frame_a_press_cost (input : FrameInput) : nat :=
+  if a_button_pressed
+       (frame_current_down input) (frame_previous_down input)
+  then 1%nat else 0%nat.
+
+Definition frame_a_press_total (inputs : list FrameInput) : nat :=
+  fold_right
+    (fun input total => (frame_a_press_cost input + total)%nat)
+    0%nat inputs.
+
+Theorem published_pole_button_prefix_checked :
+  coherent_input_history Int.zero published_pole_button_prefix /\
+  frame_a_press_total published_pole_button_prefix = 1%nat /\
+  a_button_down (frame_current_down published_pole_a_held_input) = true /\
+  fewer_than_one_a_press published_pole_after_edge_inputs.
+Proof.
+  split.
+  - vm_compute. repeat split; reflexivity.
+  - split.
+    + vm_compute. reflexivity.
+    + split.
+      * vm_compute. reflexivity.
+      * repeat constructor; vm_compute; reflexivity.
+Qed.
+
 (** A suffix begins at the target side of an already selected cut.  It does
     not assume a clean prefix crossing that cut. *)
 Record CutDownstreamSuffix

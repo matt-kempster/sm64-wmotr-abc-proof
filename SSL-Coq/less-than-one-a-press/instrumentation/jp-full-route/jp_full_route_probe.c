@@ -5,6 +5,13 @@
 #undef GetKeys
 #undef RomClosed
 
+#ifndef JP_FULL_ROUTE_GET_KEYS
+#define JP_FULL_ROUTE_GET_KEYS GetKeys
+#endif
+#ifndef JP_FULL_ROUTE_ROM_CLOSED
+#define JP_FULL_ROUTE_ROM_CLOSED RomClosed
+#endif
+
 #ifndef THIRD_AIM_X
 #define THIRD_AIM_X 260.0f
 #endif
@@ -263,7 +270,7 @@ static void route_press_b(BUTTONS *keys, uint32_t timer,
             rfloat(A_MARIO_STATES + M_POS_Z));
 }
 
-EXPORT void CALL RomClosed(void) {
+EXPORT void CALL JP_FULL_ROUTE_ROM_CLOSED(void) {
     fprintf(stderr,
             "ROUTE_RESULT,maxCounter=%d,counterTransitions=%d,sawFive=%d,"
             "sawAct6Star=%d,sawAct6Interaction=%d,sawStarDance=%d,"
@@ -286,7 +293,7 @@ EXPORT void CALL RomClosed(void) {
     LifecycleRomClosed();
 }
 
-EXPORT void CALL GetKeys(int control, BUTTONS *keys) {
+EXPORT void CALL JP_FULL_ROUTE_GET_KEYS(int control, BUTTONS *keys) {
     int installed_before = gBoundaryInstalled;
     uint16_t area;
     uint32_t timer;

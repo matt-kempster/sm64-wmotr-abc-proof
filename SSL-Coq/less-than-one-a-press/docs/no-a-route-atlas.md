@@ -150,9 +150,9 @@ The detailed sections are organized as:
 | 5 | State-first installation | Post-copy State-only writer in a later callback or descendant | Low; the timing window is real, but no reached writer is known |
 | 5A | State-first installation | Pre-collision cached-platform displacement creates the split | Low as an effect; very low as a clean stock origin |
 | 6 | JP stale-platform lineage | Moving skipped-query interval | Very low; no moving skip appears in the audited scheduler shapes |
-| 7 | Downstream collection | Join all five Act-6 triggers, spawn, pickup, and save-bit update | High conditional continuation value; it cannot bypass a gate by itself |
-| 8 | Downstream collection | Upper Act-3 100-coin/star-dance itinerary | Low-medium conditional continuation; no cut-starting replay |
-| 9 | Downstream collection | Lower Act-3 Amp/Grindel/elevator itinerary | Low-medium conditional continuation; the intended misalignments remain untested |
+| 7 | Downstream collection | Join all five Act-6 triggers, spawn, pickup, and save-bit update | High conditional value; the recovered transcript and published run put the sole press at the second pole, and an exact one-edge controller segment now reaches the downstream Grindel base |
+| 8 | Downstream collection | Lower Act-3 100-coin-star/Grindel itinerary | High conditional value; the recovered five-trial account and published run reach Act 3 after the sole second-pole press, while exact inputs currently stop at the Grindel base |
+| 9 | Downstream collection | Upper Act-3 100-coin/star-dance itinerary | Low-medium conditional continuation; no cut-starting replay |
 | 10 | Direct Area-2 gates | Held-A jump-kick or B rollout from the upper elevator shaft | Very low for the checked vertical routes; live collision closure remains |
 | 11 | Direct Area-2 gates | Lower-aperture impulse, clip, or support switch | Low in-model; exact payoff only if an ordinary escape or deferred timed mutation exists |
 | 12 | Direct Area-2 gates | Amp, Grindel, elevator, Tweester, shell, or other object impulse | Low-medium search family; the mechanics are real but no crossing is complete |
@@ -703,9 +703,15 @@ air quarter-steps, floor/wall/lava-wall outcomes, and the live support mesh.
 ## Family 5 — Downstream collection of the two target stars
 
 An installer or gate crossing is not enough.  These are the remaining routes
-from a supplied Area-2 boundary to the actual target objects and save bits.
+from a supplied Area-2 boundary to the actual target objects and save bits.  A
+published lower-entrance video now shows both targets being collected in
+separate one-A runs: the recovered full transcript places their sole displayed
+press at the upper second-pole jump, so the post-pole downstream play is
+visibly complete while input authentication and a no-A replacement for that
+pole exit remain open.
 
-Technical background: [Area-2 downstream continuations](notes/area2-downstream-continuations.md).
+Technical background: [Area-2 downstream continuations](notes/area2-downstream-continuations.md)
+and [published lower-entrance video](notes/lower-entrance-downstream-video.md).
 
 ### Join the Act-6 trigger, spawn, pickup, and save-bit traces
 
@@ -715,50 +721,29 @@ installer exists; this is not an installer by itself.**
 **In plain language.** Touch all five Pyramid Puzzle trigger regions, make the
 hidden star spawn, then overlap and collect it without a new A press.
 
-**What is already known.** Static support triangles for all five triggers are
-checked.  One conditional JP replay consumes all five and spawns the star; a
-separately tuned replay overlaps the spawned star and changes the SSL save byte
-from `0x00` to `0x20`.  They are intentionally separate receipts, and both
-start from an injected boundary rather than clean retail execution.
+**What is already known.** The five trigger locations are checked, one controlled JP run touches all five and spawns the star, and a separate controlled run collects it and records the correct completion flag; the published lower-entrance video supplies the missing continuous gameplay witness by visibly doing all of those things in one run.  The recovered full transcript identifies the sole displayed A press as the upper/second-pole jump—the third of five trials—and says the later Amp, Grindel, and elevator work uses no additional press; a new JP controller test creates exactly that one press, keeps the same press held without counting it again, and lands beside the real Grindel, but no `.m64` is available, the video's game version is unknown, the earlier route and Grindel mount have not been recreated, and the edited counter is not a raw input record.
 
-**What closes it.** Construct one cut-starting linked suffix containing the
-five ordered triggers, spawn, active-parent lifecycle, star overlap, collection,
-and exact save-bit change, with zero-edge input evidence throughout.
+**What closes it.** Obtain the `.m64` or recreate everything after the pole on a known game version with every input recorded, then show in that one run the Amp, Grindel, elevator, all five trigger regions, star spawn, pickup, and completion flag with no new A press; a complete zero-A route must separately replace the second-pole jump or reach the far side another way.
+
+### Lower Act-3 100-coin-star/Grindel itinerary
+
+**Overall rank: 8. Family priority: 2. Likelihood: high as a conditional continuation; the one displayed pole-jump press remains.**
+
+**In plain language.** Start at the lower pyramid entrance, clip onto the mesh and reverse the teleporter, use the 100-coin star dance at the big steps, make the route's one ordinary jump from the upper second pole, use the homing Amp at the later ledge, then use the Grindel and undescended elevator to cross to the Act-3 platform and collect the star without another A press.
+
+**What is already known.** The published video visibly performs the complete lower-entrance route in a single run, beginning with 95 coins, collecting the 100-coin star, jumping from the upper second pole with its sole displayed A press, continuing through moving-platform play, and collecting Act 3 with no further displayed press; the recovered full transcript fixes the exact five-trial order and confirms that the Amp clip and Grindel/elevator tricks come after the pole and cost no extra press.  A new JP controller test reproduces the pole jump with exactly one press, keeps that same press held without counting another, and lands beside the real Grindel; its tested approach has not yet mounted the Grindel, the `.m64` remains unavailable, and the footage does not reveal exact inputs or collision details.  The checked star geometry also shows that simply standing below the star leaves Mario `75` units too low.
+
+**What closes it.** Obtain the `.m64` or continue the known-version input reconstruction through the homing-Amp ledge grab, the Grindel's one-unit corner, the undescended elevator's matching corner and descent, and the final star pickup with no new A press; then either leave the second pole without A or connect another clean crossing directly to the recreated state beyond it.
 
 ### Upper Act-3 100-coin/star-dance itinerary
 
-**Overall rank: 8. Family priority: 2. Likelihood: low-medium.**
-
-**In plain language.** Spawn the 100-coin star near the Act-3 platform, store
-the upward part of a rollout, reactivate that vertical speed, collect the
-100-coin star with a ground pound, use the star dance for a ledge grab, and
-roll into the Act-3 star.
-
-**What is already known.** This is the transcript's specified upper route, and
-the target/support geometry is checked.  Simply standing on the checked floor
-under the Act-3 star misses its hitbox by `75` vertical units.  There is no
-authenticated cut-starting replay of the itinerary.
-
-**What closes it.** Prove the 100th-coin timing and placement, rollout-speed
-storage/reactivation, ground-pound and star-dance transitions, ledge collision,
-final star overlap, and Act-3 bit update in one linked zero-edge suffix.
-
-### Lower Act-3 Amp/Grindel/elevator itinerary
-
 **Overall rank: 9. Family priority: 3. Likelihood: low-medium.**
 
-**In plain language.** Use a homing Amp shock for a ledge grab, cross the ramp,
-exploit a one-unit upper-Grindel misalignment, exploit a matching undescended
-elevator misalignment, ride the elevator, and roll into Act 3.
+**In plain language.** Spawn the 100-coin star near the Act-3 platform, store the upward part of a rollout, reactivate that vertical speed, collect the 100-coin star with a ground pound, use the star dance for a ledge grab, and roll into the Act-3 star.
 
-**What is already known.** The itinerary is recorded and the static target
-geometry is checked.  A failed direct-steering experiment fell to Y `-101`,
-but it did not test the transcript's two misalignment steps and therefore does
-not refute this route.
+**What is already known.** This is the transcript's specified upper route, and the target/support geometry is checked; simply standing on the checked floor under the Act-3 star misses its hitbox by `75` vertical units.  The new video demonstrates a different lower-entrance continuation and therefore does not authenticate this upper itinerary, which still has no cut-starting replay.
 
-**What closes it.** Replay the exact Amp homing, knockback, ledge, Grindel, and
-elevator phases from the lower cut with binary32 collision ownership and zero-A
-controller history, then prove target overlap and save-bit change.
+**What closes it.** Prove the 100th-coin timing and placement, rollout-speed storage and reactivation, ground-pound and star-dance transitions, ledge collision, final star overlap, and Act-3 bit update in one linked zero-edge suffix.
 
 ### Negative-depth transport to a fresh or older star
 

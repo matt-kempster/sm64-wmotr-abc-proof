@@ -1,0 +1,8 @@
+ROM_MD5=85d61f5525af708c9f1e84dce6dc10e9
+ROM_SHA256=9cf7a80db321b07a8d461fe536c02c87b7412433953891cdec9191bfad2db317
+LOWER_ONE_A_STAGE,timer=516,pole=80350418,mario=80346e78,grindel=8034ff58,grindelPos=(-870,3840,105),action=00100345,pos=(0,4020,1331),faceYaw=9e57
+LOWER_POLE_JUMP,timer=517,relative=1,action=0300088d,pos=(-21.434082,4082,1307.7124),forwardVel=31.6499996
+LOWER_ARC_APEX,timer=532,relative=16,pos=(-356.583649,4532,946.618652)
+LOWER_GRINDEL_BASE,timer=552,relative=36,action=04000471,pos=(-828.599365,3840,429.973511)
+LOWER_ONE_A_COUNTS,injectedAFrames=34,aPressedFrames=1,aDownFrames=34,controllerAFrames=34
+CURRENT_CONTINUATION_RESULT,grindelLanding=0,maxCounter=0,sawFive=0,sawAct6Star=0,act6BitTransition=0

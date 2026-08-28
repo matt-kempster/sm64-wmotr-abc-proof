@@ -13,11 +13,24 @@ receipts:
   the spawned Act 6 star, matches the project's source-shaped hitbox model,
   and changes the SSL save byte from `0x00` to `0x20` without an A edge.
 
-The transcript specifies post-gate Act 3 itineraries for both entrances, but
-there is not yet an authenticated cut-starting replay or linked-Clight
-realization of either itinerary.  There is also no clean-retail proof for
-either conditional JP replay.  Therefore this work does not close either
-Area-2 gate theorem and is not a complete zero-A counterexample.
+A supplied published video now adds a continuous visual gameplay witness for
+both lower-entrance targets.  Each of its two runs uses a common 95-coin and
+100-coin-star setup, displays its sole A press at the upper second-pole jump,
+and then visibly collects either Act 3 or Act 6 with no further displayed
+press.  The horizontal Grindel sequence is downstream of the pole jump, not an
+independent A-triggered mount.  The Act-6 run also visibly joins all five
+puzzle events, spawn, and pickup.  This establishes that the downstream
+gameplay pieces fit together and localizes the remaining gameplay obstacle to
+the pole exit, but it is not an authenticated input receipt: no `.m64` is
+available, the ROM region is unknown, and the on-screen counter is not raw
+controller state.
+
+The video/transcript route still lacks an authenticated cut-starting replay or
+linked-Clight realization, and neither conditional JP replay has a clean-retail
+prefix.  Therefore this work does not close either Area-2 gate theorem and is
+not a complete zero-A counterexample.  See the [published lower-entrance video
+audit](lower-entrance-downstream-video.md) for the artifact hash, timeline,
+scope, and exact next obligations.
 
 The admission-free formal tranche is split by dependency weight:
 
@@ -26,7 +39,9 @@ The admission-free formal tranche is split by dependency weight:
 - `proofs/Area2DownstreamReceipts.v` checks lightweight exact mirrors of the
   two distinct conditional JP observations; and
 - `proofs/Area2DownstreamContinuations.v` defines the versioned, concrete-cut
-  suffix obligations and the linked-Clight refinement boundary.
+  suffix obligations and the linked-Clight refinement boundary, and separately
+  checks the finite transcription of the published video's marked press and
+  post-pole-jump routes plus a one-edge button-history prefix.
 
 ## Exact source targets and support triangles
 
@@ -104,6 +119,69 @@ Clight program point.  The file separately defines
 homing-amp routing and shock/ledge-grab behavior, misalignment cells,
 Grindel/elevator owner identity and pose, quarter steps, and final star
 collision remain source-to-Clight refinement work.
+
+The published lower-entrance video materially strengthens this route's
+gameplay evidence: it visibly performs a 100-coin-star ledge transition, jumps
+from the upper second pole, follows moving-platform play toward Act 3, and
+collects the target in one run.  It does not yet identify each moving object
+or certify that every displayed motion is exactly one of the transcript's Amp,
+Grindel, and elevator stages.  The footage therefore replaces “prose only”
+with a visual route witness, not with an inhabitant of the formal continuation
+obligation.
+
+## Published lower-entrance visual receipt
+
+The hash-identified 216.898-second video contains an Act-3 run followed by an
+Act-6 run.  Both begin at the lower entrance with 95 coins, obtain and collect
+the 100-coin star, and display `A Press #1` only when Mario jumps from the upper
+second pole.  The recovered full transcript (attachment SHA-256
+`B5418A6B8A40357EBC36F571EEE7A993F59288D906DCDB9FCC478AF543CBE73F`)
+supplies this gate identity and the exact five-trial ordering: thin-pillar
+mesh/teleporter, 100-coin-star dance, second-pole jump, homing-Amp ledge grab,
+then Grindel/elevator misalignment.  After that displayed pole jump, the first
+run collects Act 3 and the second run descends through the five puzzle regions,
+visibly spawns Act 6, and collects it.  The full event table and video SHA-256
+are recorded in the [video audit](lower-entrance-downstream-video.md), while
+the transcript audit is in [transcript candidates](../../notes/transcript-candidates.md).
+
+The formal file records this observation in a separate
+`PublishedLowerEntranceVideoStage` vocabulary.  It proves by computation that
+both complete transcriptions contain one marked pole-jump press, both
+post-pole-jump transcriptions contain zero, the Act-6 trigger order matches the
+conditional JP receipt, and the routes end at their respective target
+collections.  The same file also checks a coherent button-only controller
+prefix with one A edge, 33 further held-A samples, release, and A up for 32
+later samples; the entire suffix after the first edge is proved to contain no
+new A press.  This separation is intentional: visual stages and a button
+prefix cannot inhabit
+`CutDownstreamSuffix`, whose inputs, events, state transition, and no-A edge
+property require linked execution evidence.
+
+## Conditional one-A pole controller receipt
+
+The hash-gated `instrumentation/jp-lower-one-a-route` fixture now tests the
+corrected gate on an authentic JP ROM.  It stages the live Mario object at the
+top of the live second pole, supplies exactly one A rising edge, holds that
+same press for 34 controller polls, and releases it; held-A samples do not add
+edges.  Timer 516 records pole `0x80350418`, Mario `0x80346e78`, position
+`(0,4020,1331)`, and `ACT_TOP_OF_POLE`; timer 517 records
+`ACT_TOP_OF_POLE_JUMP`, position approximately `(-21.434,4082,1307.712)`, and
+forward speed `31.65`; and timer 551 records a Y=`3840` landing near the live
+Grindel base at approximately `(-803.728,3840,456.996)`.  Final instrumentation
+counts are `aPressedFrames=1`, `aDownFrames=34`, `controllerAFrames=34`, and
+`injectedAFrames=34`.
+
+This creates concrete controller inputs for the decisive one-A pole-to-base
+segment and confirms at retail-machine level that the press belongs to the
+pole exit.  It also exposes why a one-frame tap was misleading: immediate
+release activates strengthened ascent gravity and lands on the Y=`3942` ring,
+whereas holding the same edge produces the full arc.  The fixture does not
+reconstruct the clean lower-entrance prefix or the full post-pole route, and
+its first exact-corner attempt has not yet selected the Grindel as Mario's
+platform.  That failure rejects only the tested analog schedule.  Exact
+commands, scope, checked-in pole inputs, and output locations are in the
+fixture's
+[`README.md`](../../instrumentation/jp-lower-one-a-route/README.md).
 
 ## Five-trigger conditional JP receipt
 
@@ -225,6 +303,6 @@ Accordingly, the present status is:
 
 | Continuation | Conditional emulator evidence | Linked Clight | Clean retail |
 |---|---|---|---|
-| all five Act 6 trigger regions | yes, JP injected-boundary replay | pending | pending |
-| Act 6 star region and new bit | yes, separate JP injected-boundary replay | pending | pending |
-| Act 3 star region and new bit | transcript itineraries; no cut-starting replay | pending | pending |
+| all five Act 6 trigger regions | JP injected-boundary replay; published one-A run visually joins all five | pending | pending |
+| Act 6 star region and new bit | separate JP injected receipt for region/bit; published one-A run visually joins spawn and pickup | pending | pending |
+| Act 3 star region and new bit | transcript plus published one-A visual collection; no input-authenticated cut replay | pending | pending |
