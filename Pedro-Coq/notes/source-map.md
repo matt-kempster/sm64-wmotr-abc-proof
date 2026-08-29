@@ -20,6 +20,9 @@ is textually rewritten.
 | Dust particle table and dispatch | `src/game/object_list_processor.c:188-217,255-287` | `us_object_list_processor.v`, `jp_object_list_processor.v` |
 | Object-list phase order and dynamic-next traversal | `src/game/object_list_processor.c:172-217,289-307,573-581` | `us_object_list_processor.v`, `jp_object_list_processor.v` |
 | Free-list allocation, eviction fallback, and object creation | `src/game/spawn_object.c:79-99,208-253,313-352` | `us_spawn_object.v`, `jp_spawn_object.v` |
+| Area load, Mario load, and area-change active-particle clear | `src/game/area.c` | `us_area.v`, `jp_area.v` |
+| Macro descriptor spawning | `src/game/macro_special_objects.c` | `us_macro_special_objects.v`, `jp_macro_special_objects.v` |
+| TTC level/area object descriptors | `levels/ttc/script.c` | `us_ttc_level_script.v`, `jp_ttc_level_script.v` |
 | Mist spawner and white-puff scripts | `data/behavior_data.c:2771-2801` | `us_behavior_data.v`, `jp_behavior_data.v` |
 | Behavior interpreter, parent-bit clear, and object timer | `src/engine/behavior_script.c:238-367,805-813,905-952` | `us_behavior_script.v`, `jp_behavior_script.v` |
 | White-puff random translation calls | `src/game/behaviors/white_puff.inc.c:3-25` (included by `behavior_actions.c`) | `us_behavior_actions.v`, `jp_behavior_actions.v` |
@@ -29,6 +32,7 @@ is textually rewritten.
 | Dynamic collision vertex transform | `src/engine/surface_load.c:658-696` | `us_surface_load.v`, `jp_surface_load.v` |
 | Floor/ceiling lateral tests and plane height | `src/engine/surface_collision.c:226-289,401-465` | `us_surface_collision.v`, `jp_surface_collision.v` |
 | Spinner native update | `src/game/behaviors/ttc_spinner.inc.c:9-36` (included by `obj_behaviors_2.c`) | `us_obj_behaviors_2.v`, `jp_obj_behaviors_2.v` |
+| TTC pre-spinner RNG-window consumers | TTC behavior includes in `src/game/obj_behaviors_2.c` and the Thwomp actions included by `src/game/behavior_actions.c` | `us_obj_behaviors_2.v`, `jp_obj_behaviors_2.v`, `us_behavior_actions.v`, `jp_behavior_actions.v` |
 | Spinner behavior-to-collision link | `data/behavior_data.c:5547-5555` | `us_behavior_data.v`, `jp_behavior_data.v` |
 | Fourteen stock spinner placements | `levels/ttc/areas/1/macro.inc.c:42-55` | `us_ttc_area1_macro.v`, `jp_ttc_area1_macro.v` |
 | Spinner collision mesh | `levels/ttc/spinner/collision.inc.c:2-63` | `us_ttc_spinner_collision.v`, `jp_ttc_spinner_collision.v` |

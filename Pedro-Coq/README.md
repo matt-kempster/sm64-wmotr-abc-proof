@@ -39,6 +39,19 @@ allocations, same-frame Mist/WhitePuff1/WhitePuff2 execution, active-bit
 clearing, and four dust-owned PRNG calls on the tap frame. The whole seed is
 `R^4(seed)` only under the separate no-intervening-consumer premise.
 
+`Pedro.Proofs.MainTheorem.checked_dust_frontier_reductions_us_jp` tightens the
+three open retail premises without relabeling them as solved. It adds a real
+CompCert big-step for the exact generated scalar `random_u16` function at the
+initialized zero seed; generated US/JP receipts for the TTC loader chain and
+the exact descriptor inventory `110 + 9 + 1 = 120`; a normal-frame clear-bit
+reduction; and an interference-aware equation in which the dust episode gives
+two exact two-call pairs and the global result is `R^(4+k)(seed)` for a
+certified non-dust count `k`. Generated macro-prefix and Clight-call receipts
+give conditional conservative bounds of 80 calls before spinner 0 and 94
+before spinner 7. Those bounds still require a matching live-state snapshot
+and a proof that the remainder of the observation window has no uncounted RNG
+call.
+
 These theorems are deliberately **not yet the ultimate gameplay claims**. The
 remaining semantic and control obligations are listed in
 [`docs/checklist.md`](docs/checklist.md). In particular, a syntax receipt is not
@@ -47,8 +60,10 @@ source describes a bounded oscillation rather than a platform that stays at one
 mathematically fixed angle. The proved geometry interval is too narrow for the
 first 200-unit post-pause motion, so it is not yet a preservation witness. The
 structural Clight link is also not a complete linked-program execution proof:
-reachable tap state, composite-layout refinement, unresolved callees, competing
-allocations, and other RNG consumers remain explicit obligations.
+the new scalar PRNG execution does not execute the object/behavior chain, and
+reachable tap state, composite-layout refinement, unresolved callees, live
+competing allocations, and the concrete RNG-window snapshot remain explicit
+obligations.
 The exact event order and premise boundary are summarized in
 [`docs/notes/dust-runtime.md`](docs/notes/dust-runtime.md).
 

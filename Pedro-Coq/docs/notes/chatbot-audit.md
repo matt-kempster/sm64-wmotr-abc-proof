@@ -31,5 +31,6 @@
    concrete object schedule.
 
 The current Coq capstone checks items 1-4 at the source-reduction level and
-computes the flat-floor speed witnesses. It leaves item 5 and the Clight
-execution bridge open.
+computes the flat-floor speed witnesses. A genuine Clight big-step now checks
+one zero-seed execution of the generated `random_u16` leaf, but item 5 and the
+linked object/behavior execution bridge remain open.

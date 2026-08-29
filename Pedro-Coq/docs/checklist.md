@@ -54,6 +54,9 @@ audits below.
   - [x] Decode the stock behavior words and execute a source-derived normal-list
         projection with explicit accepted-dust, normal-frame, and allocation
         premises.
+  - [x] Construct a genuine CompCert Clight big-step for the exact generated
+        scalar `random_u16` leaf at the initialized zero seed, returning and
+        storing `57460`.
   - [ ] Lift that projection to Clight big-step execution with a complete
         composite environment, resolved globals, and behavior-command calls.
 - [ ] Prove object-pool and active-particle-flag premises for a reachable tap.
@@ -61,6 +64,11 @@ audits below.
         `free + unimportant >= 3`.
   - [x] Prove the active-bit guard accepts a clear bit, sets it, and the spawned
         mist clears it in the same-frame projection.
+  - [x] Generate the TTC level-script and loader units, count the exact source
+        inventory `110` macro descriptors + `9` area object descriptors +
+        Mario, and reduce the nominal later-competitor allowance to `117`.
+  - [x] Prove the normal-frame reduction keeps a freshly clear dust bit clear
+        across any finite request sequence.
   - [ ] Derive a clear bit, sufficient reserve after competing allocations, and
         list integrity at a reachable US and JP TTC tap.
 - [ ] Prove the exact number and frame timing of seed advances.
@@ -68,8 +76,15 @@ audits below.
         Puff1-Z, Puff2-X, and Puff2-Z as four dust-owned calls on the tap frame.
   - [x] Prove `R^4(seed)` under an explicit no-intervening-RNG-consumer premise
         and that the spinner's next observation opportunity is frame `F + 1`.
+  - [x] Generalize the seed equation to exact `R^(4+k)` composition for any
+        certified finite non-dust call counts before, between, and after the
+        two dust pairs.
+  - [x] Derive the US/JP generated macro prefixes before spinner 0 and spinner
+        7, check their Clight RNG call sites, and prove conditional conservative
+        non-dust bounds of `80` and `94` calls respectively.
   - [ ] Establish those timing facts for linked Clight/retail execution and
-        account for all non-dust RNG consumers between object-list phases.
+        supply a reachable live-state snapshot plus the outside-consumer census
+        needed to instantiate the finite window bounds.
 
 ## TTC spinner witness
 

@@ -15,12 +15,27 @@ on that frame: Puff1 X/Z in DEFAULT, then Puff2 X/Z in UNIMPORTANT.
 
 This is not yet retail execution. The CompCert link theorem covers a
 symbol-level structural slice, while the executable schedule is a separate
-source-derived model. A reachable TTC tap must still establish a clear active
-bit, enough reserve after competing allocations, and the absence or exact
-effect of intervening RNG consumers. In particular, the global seed equals
-four consecutive PRNG steps only under the explicit no-intervening-consumer
-premise. The spinner's first opportunity to observe the post-tap seed is the
-next frame because SURFACE precedes PLAYER, DEFAULT, and UNIMPORTANT.
+source-derived model. A new scalar theorem does execute the exact generated
+`random_u16` Clight body from a writable zero seed cell and proves that it
+returns and stores `57460`; it is not an execution of the linked object chain
+or an arbitrary-seed refinement.
+
+The TTC loader audit now counts a generated source inventory of 110 macro
+descriptors, 9 area object descriptors, and Mario. The resulting 120-slot
+headroom is nominal: act/respawn filtering can omit descriptors, but a loader
+execution and later live-object census are still needed before treating it as
+the pool at a tap. The normal-frame reduction keeps a freshly clear dust bit
+clear across any finite request sequence, while retail refinement and
+time-stop exclusion remain open.
+
+Intervening consumers no longer need to be modeled as absent: for certified
+finite counts before, between, and after the two puff pairs, the exact global
+equation is `R^(4+k)(seed)`. Generated macro and Clight receipts enumerate the
+prefixes before spinner 0 and spinner 7 and give conservative conditional
+bounds of 80 and 94 non-dust calls. A reachable live-state snapshot and a proof
+that no outside consumer was omitted are still required to instantiate those
+bounds. The spinner's first opportunity to observe the post-tap seed remains
+the next frame because SURFACE precedes PLAYER, DEFAULT, and UNIMPORTANT.
 
 The most important factual correction to the motivating chatbot summary is
 the timing: `AIR_STEP_LANDED` does not directly create dust. It selects a
@@ -38,5 +53,5 @@ That interval is not a bounded-oscillation target. The schedule proof shows
 that, after the five stopped timer values, the next frame moves by 200 in either
 direction and exits the interval independently of all RNG observations. The
 next TTC milestones are therefore a wider or multi-interval geometry witness,
-a reproducible reachable US/JP entry trace with pool/flag evidence, and a
-complete linked-Clight execution/refinement for the dust chain.
+a reproducible reachable US/JP entry trace with pool/flag and RNG-window
+evidence, and a complete linked-Clight execution/refinement for the dust chain.

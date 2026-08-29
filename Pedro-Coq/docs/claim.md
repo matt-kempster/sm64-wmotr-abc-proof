@@ -50,6 +50,18 @@ or supply a Clight big-step derivation. The source-derived scheduler is a
 separate executable reduction, and the capstone deliberately keeps that
 distinction visible.
 
+`checked_dust_frontier_reductions_us_jp` adds three narrower results at that
+boundary. First, the exact generated scalar `random_u16` function has a real
+CompCert big-step from a writable zero seed cell to return/store `57460` in
+both supported versions. Second, generated TTC level-script and loader receipts
+count 110 macro descriptors, 9 area object descriptors, and Mario; this is a
+source inventory and nominal 120-slot headroom calculation, not a simultaneous
+live-pool theorem. Third, arbitrary certified interference is represented
+exactly: two dust pairs contribute four calls and a non-dust count `k` gives
+`R^(4+k)(seed)`. The generated prefixes before spinner 0 and spinner 7 have
+conditional conservative non-dust bounds of 80 and 94 calls, respectively.
+The live snapshot and no-unaccounted-call premises of those bounds are retained.
+
 These are reduction theorems, not relabeled versions of the ultimate claims.
 
 ## What is not proved yet
@@ -58,11 +70,13 @@ These are reduction theorems, not relabeled versions of the ultimate claims.
 - Every stock Pedro spot has been enumerated from retail collision data.
 - Each stock spot admits the flat-floor/no-slope-acceleration premise used by
   the arithmetic tap, or has a separately proved slope-aware tap.
-- The dust projection has not been lifted to linked Clight big-step execution.
+- The dust projection has not been lifted to linked object/behavior Clight
+  big-step execution; only the scalar zero-seed PRNG leaf is executed.
 - A reachable tap has not been shown to start with the dust bit clear or to
   retain at least three reserve units after every competing allocation.
-- Non-dust RNG consumers between DEFAULT and UNIMPORTANT have not been bounded,
-  so an unconditional global `R^4(seed)` result is not available.
+- A reachable live-state certificate has not instantiated the DEFAULT/
+  UNIMPORTANT gap or the conditional 80/94-call spinner-window bounds, so an
+  unconditional concrete global seed result is not available.
 - A Mario entry state reaches the proved TTC spinner Pedro geometry.
 - A finite controller/RNG schedule preserves that geometry interval on random
   mode.

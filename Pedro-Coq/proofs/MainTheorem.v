@@ -1,7 +1,8 @@
 From Coq Require Import List ZArith.
 From Pedro.Proofs Require Import
   GameTypes PedroCollision LandingDust RNGAdvance InputSemantics TTCSpinners
-  TTCSpinnerGeometry TTCSpinnerSchedule DustPool DustRuntime.
+  TTCSpinnerGeometry TTCSpinnerSchedule DustPool TTCRuntimePremises DustRuntime
+  DustClightExec TTCRNGWindow.
 
 (** Initial source-and-arithmetic capstone. Every conjunct is tied either to a
     generated Clight AST or to CompCert's executable binary32 operations. This
@@ -34,6 +35,22 @@ Proof.
   apply checked_dust_runtime_projection_us_jp.
   - exact Hreserve.
   - reflexivity.
+Qed.
+
+(** Checked reductions for the three remaining retail-strength dust
+    obligations.  This theorem adds a genuine generated-Clight PRNG leaf
+    execution, an exact fresh TTC source inventory/clear-bit reduction, and
+    an interference-aware finite spinner-window census.  It does not discharge
+    the retained live-snapshot, no-outside-call, linked-object execution, or
+    reachable-tap premises. *)
+Theorem checked_dust_frontier_reductions_us_jp :
+  random_u16_zero_step_clight_claim /\
+  ttc_fresh_runtime_premise_reduction_claim /\
+  ttc_rng_window_reduction_claim.
+Proof.
+  exact (conj checked_random_u16_zero_step_clight
+    (conj checked_ttc_fresh_runtime_premise_reduction_us_jp
+          checked_ttc_rng_window_reduction_us_jp)).
 Qed.
 
 (** TTC source reduction plus the concrete geometry and schedule model.
