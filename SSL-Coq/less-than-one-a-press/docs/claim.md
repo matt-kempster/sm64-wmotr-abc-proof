@@ -297,9 +297,11 @@ or frame.  See [CompCert execution scope](compcert-execution-scope.md).
   top/warp references and all 21 direct collision-data writers are also
   enumerated; the allocator contains only null direct collision-data
   assignments, and ordinary pose copying does not copy behavior/collision
-  identity.  Linked alias/external frames, branch execution, successful
-  allocator execution, post-copy discrepancy provenance, live surface-list ownership,
-  spawn/epoch provenance, and the clean binary32 gap invariant remain open.
+  identity.  For a universal linked proof and materially different histories,
+  alias/external frames, branch execution, successful allocator execution,
+  post-copy discrepancy provenance, live surface-list ownership, spawn/epoch
+  provenance, and the clean binary32 gap invariant remain open.  The later
+  route receipt closes the post-copy interval on its chosen history only.
 - The temporal installer follow-up proves that stock active-frame movement and
   exact frozen carries do not combine into a hidden platform installer.  An
   active frame's final query rebinds the pointer at the moved Object sample; a
@@ -316,6 +318,19 @@ or frame.  See [CompCert execution scope](compcert-execution-scope.md).
   create Ink's Object/Graphics gap.  The linked temporal, platform-phase,
   terrain/collision, owner, alias, and external-frame projections are not yet
   inhabited, so this is not a complete clean-installer exclusion.
+- A route-matched original-JP write-watch receipt now resolves the live Rank-5
+  and Rank-5A questions on the successful zero-A four-pillar history.  Across
+  all 2,462 updates, Mario remains the same live list-0 slot, every State-to-
+  Object copy returns synchronized, and no protected coordinate or identity
+  store occurs in the later tail or next pre-apply prefix.  Every cached-
+  platform write is a checked zero clear, every apply loads null, the helper
+  never runs, and State and Object are equal at every checked collision entry
+  and return.  Graphics does not change during apply; at the three upper-warp
+  apply entries all three coordinate views are equal and time stop is
+  inactive.  This is a finite retail trace
+  theorem, not universal controller-history coverage or an IDO-to-Clight
+  bridge.  See
+  [`notes/rank5-state-split-trace.md`](notes/rank5-state-split-trace.md).
 - `LinkedPlatformLineageSyntax.v` lifts the direct platform-pointer syntax
   census to the constructed official cleaned US and JP `prog_defs`. It proves
   the complete visible direct-writer upper bound, an upper bound naming

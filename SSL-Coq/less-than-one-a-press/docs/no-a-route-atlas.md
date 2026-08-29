@@ -114,6 +114,12 @@ The detailed sections are organized as:
   warp stays fixed and floorless, and later reuse of the dead top's slot first
   clears its collision; only a different-history or machine-level producer
   remains.
+- **The two leading State-first timing windows are absent from that same clean
+  route:** through all 2,462 updates, every Mario copy returns to matching
+  State and Object coordinates with no later coordinate or identity write,
+  while every cached-platform apply loads an empty pointer and makes no
+  displacement, including the three upper-warp frames; only a materially
+  different clean history or an all-history proof remains for ranks 5 and 5A.
 - **Ink is the leading concrete installer design:** its timer-131 Graphics
   retry works when the required three-view gap and top lifecycle are injected,
   but no known clean execution creates that gap, and the authenticated
@@ -152,8 +158,8 @@ The detailed sections are organized as:
 | 2 | Ink installation | Timer-131 non-null Graphics retry | Very low for a clean producer; exact injected retry |
 | 3 | State-first installation | Finite signed-16 nonlocal-State alias | Very low in the audited stock model; exact injected payload |
 | 4 | JP stale-platform lineage | Move the warp/top or create a collision-preserving clone | Very low on the checked clean route; the warp never moves or gains collision, and every top-slot reuse first loses the top collision |
-| 5 | State-first installation | Post-copy State-only writer in a later callback or descendant | Low; the timing window is real, but no reached writer is known |
-| 5A | State-first installation | Pre-collision cached-platform displacement creates the split | Low as an effect; very low as a clean stock origin |
+| 5 | State-first installation | Post-copy State-only writer in a later callback or descendant | Very low on the checked clean run; another history must expose the first late write, wrong receiver, or lifetime failure |
+| 5A | State-first installation | Pre-collision cached-platform displacement creates the split | Very low as a clean origin on the checked run; the effect remains exact if another history installs a valid pointer |
 | 6 | JP stale-platform lineage | Moving skipped-query interval | Very low; no moving skip appears in the audited scheduler shapes |
 | 7 | Downstream collection | Join all five Act-6 triggers, spawn, pickup, and save-bit update | High conditional value; the recovered transcript and published run put the sole press at the second pole, and an exact one-edge controller segment now reaches the downstream Grindel base |
 | 8 | Downstream collection | Lower Act-3 100-coin-star/Grindel itinerary | High conditional value; the recovered five-trial account and published run reach Act 3 after the sole second-pole press, while exact inputs currently stop at the Grindel base |
@@ -472,51 +478,25 @@ signed 16-bit value, wrapping it back to the timer-131 top.
 
 ### Post-copy State-only writer in a callback or spawned descendant
 
-**Overall rank: 5. Family priority: 2. Likelihood: low; no reached writer is
-known.**
+**Overall rank: 5. Family priority: 2. Likelihood: very low on the checked
+clean run; no reached writer is known.**
 
-**In plain language.** Mario's own update first copies State to Object.  A
-later object then changes only State, leaving Object behind for the next
-frame's warp collision.
+**In plain language.** Near the end of Mario's turn in each frame, the game makes his movement position match the position used for object collisions.  This idea asks whether something later moves only one of those positions, leaving them apart when the next frame checks the warp.
 
-**What is already known.** Any supplied faithful-copy tail that ends split
-must contain an actual State-only, Object-only, or joint value-changing edge.
-The exact post-PLAYER list suffix is `[5;4;2;6;8;12;-1]`.  Source receipts expose
-Mario's post-copy `spawn_particle` source path and candidate family, the later
-debug-spawn callback, possible later
-PLAYER nodes, 18 list-8 particle behaviors, and an Area-1 breakable-box path to
-a list-12 triangle.  Fixed traversal, unload, top-level update, and final-query
-bodies have no recognized direct State-position or raw-Object XYZ store.  No
-reachable descendant that writes Mario's coordinates has been found.  The
-exterior palm/tree push runs before PLAYER and a correct Mario copy erases it.
+**What is already known.** On the successful zero-A four-pillar run, a read-only audit followed all 2,462 frames from that copy through the remaining objects and into the next frame.  Mario stayed the same player object, the two positions matched after every copy, and neither position was written before the next platform update.  They also matched at every checked collision entry and return.  Thus no late object or callback creates this route on that run.  See the [Rank-5/5A intra-frame trace](notes/rank5-state-split-trace.md) for the technical receipt.
 
-**What closes it.** Execute the behavior lists and interpreter; close the
-transitive spawn/callback graph, same-frame visitation, copy receiver/index,
-alias/external frames, unload/reuse, post-query debug call, and next-frame
-warp/instant-warp interval.  The first real late writer would be a serious
-counterexample lead; complete framing would rule out the family.
+**What closes it.** A general disproof must show that every other reachable clean input history behaves the same way.  A counterexample must instead identify the first frame where Mario's copy targets the wrong object or one of the two positions changes afterward, then carry that disagreement into collision.  Out-of-bounds corruption and arbitrary code execution remain outside the current execution model.
 
 ### Pre-collision cached-platform displacement creates the split
 
-**Overall rank: 5A. Family priority: 3. Likelihood: low as an effect and very
-low as an ordinary stock origin.**
+**Overall rank: 5A. Family priority: 3. Likelihood: very low as a clean origin
+on the checked run; the conditional effect itself is exact.**
 
-**In plain language.** Begin a frame with a useful moving-platform pointer.
-The platform update changes MarioState before collision while leaving raw
-Object at the local warp sample.
+**In plain language.** The game can remember which platform Mario stood on and move him with it at the start of the next frame.  If it remembered a useful moving platform here, Mario's movement position could shift before the warp checks his collision position.
 
-**What is already known.** This is the only identified stock three-dimensional
-State-only writer in the exact pre-collision window, and the selected US/JP
-bodies contain the expected query/apply source shape.  The finite stock
-pre-apply provenance model says the pointer is null at the upper-warp sample,
-including its modeled active and frozen carries.  That result still consumes a
-supplied projection rather than deriving the live pointer history.  Platform
-apply also cannot create Ink's Object/Graphics gap from synchronized views.
+**What is already known.** An artificially supplied platform can create the useful movement, so the effect itself is real.  On the successful zero-A four-pillar run, however, the remembered platform is empty at the platform step in all 2,462 frames and the moving-platform helper never runs.  None of Mario's three recorded positions changes during that step, and his movement and collision positions match at every checked collision entry and return.  At the three upper-warp platform checks, all three positions match.  See the [Rank-5/5A intra-frame trace](notes/rank5-state-split-trace.md) for the technical receipt.
 
-**What closes it.** Derive the terrain, platform, and collision phases from the
-same nonempty linked run; prove the non-null load, owner, payload, true apply
-branch, endpoint receivers, and later collision sample; or construct one of the
-explicit pointer-provenance escapes.
+**What closes it.** A general disproof must show that every other reachable clean input history also reaches each platform step without a useful remembered platform.  A counterexample must instead produce one clean frame where a real moving platform is remembered and moves Mario far enough before collision.  Fabricated pointers and continuation after out-of-bounds corruption remain outside the current execution model.
 
 ### Raw-Object-only return or impulse writer
 

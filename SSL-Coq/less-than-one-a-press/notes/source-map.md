@@ -1234,7 +1234,8 @@ The module does not prove successful allocation or visitation.  Intra-PLAYER
 particle/debug spawning and later PLAYER nodes, transitive spawn/interpreter
 closure, receiver and alias identity, external effects, unload/pool reuse,
 callback control flow, the post-query debug callback, and the next frame's
-warp/instant-warp prefix remain explicit linked-execution residuals.
+warp/instant-warp prefix remain explicit universal linked-execution residuals.
+The later Rank-5/5A receipt closes those intervals on its chosen route only.
 
 `proofs/Area1PlayerListTailClosure.v` closes the two immediate-child parts of
 that intra-PLAYER residual.  It ties the particle table's 18 exact behavior
@@ -1436,7 +1437,8 @@ the separate fatal-latch boundary.  Its exact US/JP AST receipt additionally
 ties `gMarioObject.rawData.asF32[6..8]` to the three temporaries passed to
 `find_floor`.  Linked branch execution, preservation of that Object sample to
 collision, alias/external frames, and provenance of any post-copy discrepancy
-remain open.
+remain open for the universal proof and materially different histories.  The
+later Rank-5/5A receipt closes that interval on its chosen route only.
 
 The focused `proofs/PlatformUpdateSourceReceipt.v`,
 `proofs/USPlatformUpdateRepairReceipt.v`,
@@ -1513,6 +1515,23 @@ reuses of the dead top slot each clear collision before installing a different
 behavior.  The Coq boundary combines these facts with the generated-source
 uniqueness/writer census and the zero-A route receipt.  Universal reachable-
 history coverage and machine-only corruption remain open.
+
+`proofs/Area1Rank5StateSplitTraceReceipt.v` specializes the same route to the
+intra-frame post-copy and cached-platform windows.  Its ROM-gated write watch
+checks State/raw-Object coordinates and Mario identity at the listed phase
+boundaries, watches their writes in the post-copy, pre-apply, and apply
+windows, watches both platform cells plus identity and behavior/dispatch
+bytes throughout, and checks Graphics changes and writes during apply.  All
+2,462 copies are faithful; the post-copy and pre-apply coordinate writer
+counts are zero; all platform stores are checked null clears; all apply loads
+are null; and the helper is never called.  State and raw Object are equal at
+every checked apply entry/return and collision entry/return, while Graphics is
+unchanged during apply.  The exact upper-warp apply samples at timers 2807--2809 have null
+platform, inactive time stop, and equal State/Object/Graphics bits.  The Coq
+capstone conjoins these trace facts with the existing
+post-copy taxonomy and pre-collision source boundary without asserting a
+machine-to-Clight simulation or universal history theorem.  The readable
+account is `docs/notes/rank5-state-split-trace.md`.
 
 `proofs/Area1SurfaceEpochLifecycle.v` separates the allocation that supplied a
 query surface from the payload resident at the cached raw address when it is

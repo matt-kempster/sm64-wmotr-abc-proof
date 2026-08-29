@@ -14,7 +14,7 @@ From LessThanOneAPress.Proofs Require Import
   Area1Rank1SixResidualAudit
   InkTimer131RetailMipsFrames Area1SurfacePoolRangeSeparation
   Area1Rank1LiveBoundaryReceipt Area1Rank1UpperWarpTraceReceipt
-  Area1Rank4WarpTopTraceReceipt
+  Area1Rank4WarpTopTraceReceipt Area1Rank5StateSplitTraceReceipt
   InkTimer131RealEntryPrefix InkTimer131PostEntryMachineTrace TurningAnimation
   NegativeDepthInteractionClosure NegativeDepthDefinedProducerClosure
   WritableActionTableClosure
@@ -156,6 +156,19 @@ Proof. exact area1_rank1_upper_warp_trace_checked_boundary_holds. Qed.
 Theorem current_rank4_warp_top_trace_receipt :
   Area1Rank4WarpTopTraceCheckedBoundary.
 Proof. exact area1_rank4_warp_top_trace_checked_boundary_holds. Qed.
+
+(** Ranks 5 and 5A now share a route-matched intra-frame receipt.  Across
+    the same 2,462-frame zero-A execution, every Mario copy is faithful, no
+    coordinate or identity store occurs in the post-copy/next-preapply
+    window, every cached-platform selection writes null through a checked
+    retail store, and every apply/collision boundary remains synchronized.
+    The three upper-warp applies at timers 2807--2809 likewise load null with
+    inactive time stop.  This closes both mechanisms on this clean execution,
+    not across every controller history or behavior outside defined retail
+    execution. *)
+Theorem current_rank5_state_split_trace_receipt :
+  Area1Rank5StateSplitTraceCheckedBoundary.
+Proof. exact area1_rank5_state_split_trace_checked_boundary_holds. Qed.
 
 (** Rank 3 can no longer use an ordinary integer-to-pointer cast as a clean
     platform-cell producer: integer constructors never become CompCert block

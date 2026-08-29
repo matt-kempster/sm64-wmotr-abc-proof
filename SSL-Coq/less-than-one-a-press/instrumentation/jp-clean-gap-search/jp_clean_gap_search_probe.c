@@ -31,8 +31,16 @@
 #define RANK4_WARP_TOP_AUDIT 0
 #endif
 
+#ifndef RANK5_STATE_SPLIT_AUDIT
+#define RANK5_STATE_SPLIT_AUDIT 0
+#endif
+
 #if RANK4_WARP_TOP_AUDIT && !RANK1_BOUNDARY_AUDIT
 #error "RANK4_WARP_TOP_AUDIT requires RANK1_BOUNDARY_AUDIT"
+#endif
+
+#if RANK5_STATE_SPLIT_AUDIT && !RANK1_BOUNDARY_AUDIT
+#error "RANK5_STATE_SPLIT_AUDIT requires RANK1_BOUNDARY_AUDIT"
 #endif
 
 /* Authenticated original-JP virtual addresses.  run.sh hash-gates the ROM. */
@@ -46,6 +54,7 @@ enum {
     A_MAIN_POOL_LEFT_HEAD = 0x8033a11c,
     A_MAIN_POOL_RIGHT_HEAD = 0x8033a120,
     A_CURR_AREA = 0x8033a75a,
+    A_TIME_STOP_STATE = 0x8033c110,
     A_OBJECT_POOL = 0x8033c118,
     A_MARIO_OBJECT = 0x8035fde8,
     A_CURRENT_OBJECT = 0x8035fdf0,
@@ -71,6 +80,7 @@ enum {
     A_SLOT67_FLAGS = 0x803460c4,
     A_SLOT67_GRAPH_Y_OFFSET = 0x80346114,
     A_SLOT67_BEHAVIOR = 0x80346244,
+    A_SLOT67_PLATFORM = 0x8034624c,
     /* The list-0 sentinel object is 0x8033b870; its embedded ObjectNode links
      * use the same +0x60/+0x64 layout as a pool Object. */
     A_LIST0_SENTINEL_NEXT = 0x8033b8d0,
@@ -106,7 +116,22 @@ enum {
     A_MAIN_POOL_PUSH_STATE = 0x80277e38,
     A_MAIN_POOL_POP_STATE = 0x80277ee8,
     A_UPDATE_OBJECTS = 0x8029cf08,
+    A_POST_APPLY_MARIO_PLATFORM = 0x8029cfc8,
+    A_DETECT_OBJECT_COLLISIONS = 0x802c8c44,
+    A_POST_DETECT_OBJECT_COLLISIONS = 0x8029cfec,
+    A_POST_NON_TERRAIN_OBJECTS = 0x8029d010,
+    A_POST_UNLOAD_DEACTIVATED_OBJECTS = 0x8029d034,
     A_POST_MARIO_PLATFORM = 0x8029d058,
+    A_APPLY_MARIO_PLATFORM_DISPLACEMENT = 0x802c83f0,
+    A_APPLY_PLATFORM_DISPLACEMENT_CALLSITE = 0x802c8438,
+    A_POST_COPY_MARIO_STATE_TO_OBJECT = 0x8029c30c,
+    A_BHV_MARIO_RETURN = 0x8029c3a4,
+    A_PLATFORM_GLOBAL_CLEAR_AWAY = 0x802c7fec,
+    A_PLATFORM_OBJECT_CLEAR_AWAY = 0x802c7ff8,
+    A_PLATFORM_GLOBAL_OWNER_STORE = 0x802c8028,
+    A_PLATFORM_OBJECT_OWNER_STORE = 0x802c8040,
+    A_PLATFORM_GLOBAL_CLEAR_OWNERLESS = 0x802c8048,
+    A_PLATFORM_OBJECT_CLEAR_OWNERLESS = 0x802c8054,
     A_UPDATE_MARIO_PLATFORM = 0x802c7f20,
     A_POST_PLATFORM_FIND_FLOOR = 0x802c7f88,
     A_CLEAR_DYNAMIC_SURFACES = 0x803835a4,
@@ -370,7 +395,7 @@ static uint8_t gRank1SeenNodes[SURFACE_NODE_CAPACITY];
 static unsigned gRank1PoolWriterKinds;
 static unsigned gRank1PartitionWriterKinds;
 static int gRank1AuditState;
-#if !RANK4_WARP_TOP_AUDIT
+#if !RANK4_WARP_TOP_AUDIT && !RANK5_STATE_SPLIT_AUDIT
 static int gRank1BreakpointsArmed;
 #endif
 static uint32_t gRank1StartTimer;
@@ -493,6 +518,91 @@ static float gRank4TopMinZ = INFINITY;
 static float gRank4TopMaxZ = -INFINITY;
 #endif
 
+#if RANK5_STATE_SPLIT_AUDIT
+enum rank5_phase {
+    RANK5_PHASE_INACTIVE = 0,
+    RANK5_PHASE_PRE_APPLY,
+    RANK5_PHASE_IN_APPLY,
+    RANK5_PHASE_POST_APPLY,
+    RANK5_PHASE_POST_COLLISION,
+    RANK5_PHASE_POST_COPY,
+    RANK5_PHASE_POST_NON_TERRAIN,
+    RANK5_PHASE_POST_UNLOAD,
+    RANK5_PHASE_POST_FINAL_QUERY,
+};
+
+static int gRank5BreakpointsArmed;
+static int gRank5Initialized;
+static int gRank5Complete;
+static enum rank5_phase gRank5Phase;
+static uint32_t gRank5FrameTimer;
+static uint32_t gRank5FramesStarted;
+static uint32_t gRank5FramesFinished;
+static uint32_t gRank5OrderFailures;
+static uint32_t gRank5IdentityFailures;
+static uint32_t gRank5IdentityWrites;
+static unsigned gRank5IdentityWriterKinds;
+static uint32_t gRank5CodeWrites;
+static uint32_t gRank5EntryStateObjectMismatches;
+static uint32_t gRank5ApplyEntryStateObjectMismatches;
+static uint32_t gRank5PostApplyStateObjectMismatches;
+static uint32_t gRank5CollisionStateObjectMismatches;
+static uint32_t gRank5ApplyEntries;
+static uint32_t gRank5ApplyReturns;
+static uint32_t gRank5ApplyHelperCalls;
+static uint32_t gRank5NonnullApplyEntries;
+static uint32_t gRank5InvalidApplyOwners;
+static uint32_t gRank5ApplyStateChanges;
+static uint32_t gRank5ApplyObjectChanges;
+static uint32_t gRank5ApplyGraphicsChanges;
+static uint32_t gRank5ApplyStateWrites;
+static uint32_t gRank5ApplyObjectWrites;
+static uint32_t gRank5ApplyGraphicsWrites;
+static uint32_t gRank5PostApplyStateWrites;
+static uint32_t gRank5PostApplyObjectWrites;
+static uint32_t gRank5PostApplyGraphicsWrites;
+static uint32_t gRank5UpperWarpApplyEntries;
+static uint32_t gRank5UpperWarpNonnullApplyEntries;
+static uint32_t gRank5UpperWarpApplyStateChanges;
+static uint32_t gRank5CollisionEntries;
+static uint32_t gRank5CollisionReturns;
+static uint32_t gRank5PrecollisionObjectChanges;
+static uint32_t gRank5CopyReturns;
+static uint32_t gRank5CopyReceiverFailures;
+static uint32_t gRank5CopyStateObjectMismatches;
+static uint32_t gRank5BhvMarioReturns;
+static uint32_t gRank5PostCopyStateWrites;
+static uint32_t gRank5PostCopyObjectWrites;
+static unsigned gRank5PostCopyStateWriterKinds;
+static unsigned gRank5PostCopyObjectWriterKinds;
+static uint32_t gRank5PreapplyStateWrites;
+static uint32_t gRank5PreapplyObjectWrites;
+static uint32_t gRank5PostCopyTailMismatches;
+static uint32_t gRank5PostNonTerrainChecks;
+static uint32_t gRank5PostUnloadChecks;
+static uint32_t gRank5PostFinalQueryChecks;
+static uint32_t gRank5PlatformWrites;
+static uint32_t gRank5GlobalPlatformWrites;
+static uint32_t gRank5ObjectPlatformWrites;
+static uint32_t gRank5NonnullPlatformWrites;
+static uint32_t gRank5UnexpectedPlatformWrites;
+static uint32_t gRank5WriteDecodeFailures;
+static unsigned gRank5PlatformWriterKinds;
+static uint32_t gRank5ApplyPlatform;
+static int gRank5ApplyObjectAtUpperWarp;
+static uint32_t gRank5FirstApplyStateChangeTimer;
+static uint32_t gRank5FirstApplyStateChangePlatform;
+static uint32_t gRank5ApplyBeforeState[3];
+static uint32_t gRank5ApplyBeforeObject[3];
+static uint32_t gRank5ApplyBeforeGraphics[3];
+static uint32_t gRank5FirstApplyBeforeState[3];
+static uint32_t gRank5FirstApplyAfterState[3];
+static struct rank1_writer_count gRank5PostCopyStateWriters[16];
+static struct rank1_writer_count gRank5PostCopyObjectWriters[16];
+static struct rank1_writer_count gRank5PlatformWriters[16];
+static struct rank1_writer_count gRank5IdentityWriters[16];
+#endif
+
 static float rfloat(uint32_t address) {
     union { float f; uint32_t u; } bits;
     bits.u = R32(address);
@@ -568,25 +678,6 @@ static uint32_t rank1_kseg0_address(uint32_t address) {
     return address;
 }
 
-static unsigned rank1_store_width(uint32_t instruction) {
-    switch (instruction >> 26) {
-        case 0x28: return 1; /* sb */
-        case 0x29: return 2; /* sh */
-        case 0x2a: return 4; /* swl */
-        case 0x2b: return 4; /* sw */
-        case 0x2c: return 8; /* sdl */
-        case 0x2d: return 8; /* sdr */
-        case 0x2e: return 4; /* swr */
-        case 0x38: return 4; /* sc */
-        case 0x39: return 4; /* swc1 */
-        case 0x3a: return 4; /* swc2 */
-        case 0x3c: return 8; /* scd */
-        case 0x3d: return 8; /* sdc1 */
-        case 0x3e: return 8; /* sdc2 */
-        default: return 0;
-    }
-}
-
 static uint32_t rank1_effective_address(uint32_t instruction,
                                         uint64_t *registers) {
     unsigned base = (instruction >> 21) & 31;
@@ -599,6 +690,59 @@ static uint32_t rank1_source_value(uint32_t instruction,
                                    uint64_t *registers) {
     unsigned source = (instruction >> 16) & 31;
     return registers == NULL ? 0 : (uint32_t) registers[source];
+}
+
+/* Decode the exact byte interval touched by one big-endian R4300 store.
+ * Left/right stores do not begin at the same address as an ordinary store:
+ * SWL/SDL extend right from the effective address, while SWR/SDR extend left
+ * from the containing aligned word.  Returning false lets the Rank-5 path
+ * fail closed using the debugger-reported physical access. */
+static int rank1_decode_store_range(uint32_t instruction,
+                                    uint64_t *registers,
+                                    uint32_t *target, unsigned *width) {
+    uint32_t address;
+
+    if (registers == NULL || target == NULL || width == NULL) return 0;
+    address = rank1_effective_address(instruction, registers);
+    *target = address;
+    switch (instruction >> 26) {
+        case 0x28: *width = 1; return 1; /* sb */
+        case 0x29: *width = 2; return 1; /* sh */
+        case 0x2a:                         /* swl */
+            *width = 4 - (address & 3);
+            return 1;
+        case 0x2b: *width = 4; return 1; /* sw */
+        case 0x2c:                         /* sdl */
+            *width = 8 - (address & 7);
+            return 1;
+        case 0x2d:                         /* sdr */
+            *target = address & ~7u;
+            *width = (address & 7) + 1;
+            return 1;
+        case 0x2e:                         /* swr */
+            *target = address & ~3u;
+            *width = (address & 3) + 1;
+            return 1;
+        case 0x38: *width = 4; return 1; /* sc */
+        case 0x39: *width = 4; return 1; /* swc1 */
+        case 0x3a: *width = 4; return 1; /* swc2 */
+        case 0x3c: *width = 8; return 1; /* scd */
+        case 0x3d: *width = 8; return 1; /* sdc1 */
+        case 0x3e: *width = 8; return 1; /* sdc2 */
+        case 0x3f: *width = 8; return 1; /* sd */
+        default: return 0;
+    }
+}
+
+/* Only these GPR stores expose the exact complete u32 written to a watched
+ * platform cell through the existing GPR snapshot.  Coprocessor stores must
+ * not be classified from the same-numbered GPR.  Partial and 64-bit stores
+ * are still range-decoded, but their platform value is failed closed. */
+static int rank1_store_u32_value_known(uint32_t instruction,
+                                       unsigned width) {
+    uint32_t opcode = instruction >> 26;
+    return width == 4
+        && (opcode == 0x2a || opcode == 0x2b || opcode == 0x2e);
 }
 
 static void rank1_count_writer(struct rank1_writer_count *counts,
@@ -937,6 +1081,629 @@ static int rank1_object_list_index(uint32_t object, int *rings_intact) {
     return found_count == 1 ? found : -1;
 }
 
+#if RANK5_STATE_SPLIT_AUDIT
+static void rank5_read_state(uint32_t words[3]) {
+    words[0] = R32(A_MARIO_STATES + M_POS_X);
+    words[1] = R32(A_MARIO_STATES + M_POS_Y);
+    words[2] = R32(A_MARIO_STATES + M_POS_Z);
+}
+
+static void rank5_read_object(uint32_t words[3]) {
+    uint32_t mario = R32(A_MARIO_OBJECT);
+    words[0] = mario == 0 ? 0 : R32(mario + O_POS_X);
+    words[1] = mario == 0 ? 0 : R32(mario + O_POS_Y);
+    words[2] = mario == 0 ? 0 : R32(mario + O_POS_Z);
+}
+
+static void rank5_read_graphics(uint32_t words[3]) {
+    uint32_t mario = R32(A_MARIO_OBJECT);
+    words[0] = mario == 0 ? 0 : R32(mario + GFX_POS_X);
+    words[1] = mario == 0 ? 0 : R32(mario + GFX_POS_Y);
+    words[2] = mario == 0 ? 0 : R32(mario + GFX_POS_Z);
+}
+
+static int rank5_vec_equal(const uint32_t left[3],
+                           const uint32_t right[3]) {
+    return left[0] == right[0] && left[1] == right[1]
+        && left[2] == right[2];
+}
+
+static int rank5_state_object_equal(void) {
+    uint32_t state[3];
+    uint32_t object[3];
+    rank5_read_state(state);
+    rank5_read_object(object);
+    return rank5_vec_equal(state, object);
+}
+
+static int rank5_mario_identity_holds(void) {
+    return R32(A_MARIO_OBJECT) == A_SLOT67
+        && R32(A_STATE_MARIO_OBJECT) == A_SLOT67
+        && R16(A_SLOT67_ACTIVE_FLAGS) != 0
+        && R32(A_SLOT67_BEHAVIOR) == A_BHV_MARIO
+        && R32(A_SLOT67_NEXT) == A_LIST0_SENTINEL_NEXT - HEADER_NEXT
+        && R32(A_SLOT67_PREV) == A_LIST0_SENTINEL_PREV - HEADER_PREV
+        && R32(A_LIST0_SENTINEL_NEXT) == A_SLOT67
+        && R32(A_LIST0_SENTINEL_PREV) == A_SLOT67;
+}
+
+static int rank5_object_at_upper_warp(void) {
+    float x = rfloat(A_SLOT67 + O_POS_X);
+    float y = rfloat(A_SLOT67 + O_POS_Y);
+    float z = rfloat(A_SLOT67 + O_POS_Z);
+    float dx = x + 2048.0f;
+    float dz = z + 1024.0f;
+
+    return isfinite(x) && isfinite(y) && isfinite(z)
+        && dx * dx + dz * dz < 187.0f * 187.0f
+        && y <= 818.0f && y + 160.0f >= 768.0f;
+}
+
+static int rank5_apply_owner_is_live(uint32_t owner) {
+    int rings_intact;
+    int list_index;
+
+    if (pool_index(owner) < 0 || R16(owner + O_ACTIVE_FLAGS) == 0
+        || R32(owner + O_BEHAVIOR) == 0) return 0;
+    list_index = rank1_object_list_index(owner, &rings_intact);
+    return rings_intact && list_index >= 0;
+}
+
+static void rank5_note_tail_check(uint32_t *counter) {
+    (*counter)++;
+    if (!rank5_state_object_equal()) gRank5PostCopyTailMismatches++;
+    if (!rank5_mario_identity_holds()) gRank5IdentityFailures++;
+}
+
+static void rank5_finish_frame(void) {
+    if (gRank5Phase != RANK5_PHASE_POST_FINAL_QUERY) {
+        gRank5OrderFailures++;
+    }
+    if (!rank5_state_object_equal()) gRank5PostCopyTailMismatches++;
+    if (!rank5_mario_identity_holds()) gRank5IdentityFailures++;
+    gRank5FramesFinished++;
+    gRank5Phase = RANK5_PHASE_INACTIVE;
+}
+
+static void rank5_start_frame(uint32_t timer) {
+    gRank5FrameTimer = timer;
+    gRank5FramesStarted++;
+    gRank5Phase = RANK5_PHASE_PRE_APPLY;
+    if (!rank5_state_object_equal()) gRank5EntryStateObjectMismatches++;
+    if (!rank5_mario_identity_holds()) gRank5IdentityFailures++;
+}
+
+static int rank5_watches_range(uint32_t target, uint32_t width) {
+    return rank1_overlaps_range(target, width,
+                                A_MARIO_STATES + M_POS_X,
+                                A_MARIO_STATES + M_POS_X + 12)
+        || rank1_overlaps_range(target, width, A_SLOT67 + O_POS_X,
+                                A_SLOT67 + O_POS_X + 12)
+        || rank1_overlaps_range(target, width, A_SLOT67 + GFX_POS_X,
+                                A_SLOT67 + GFX_POS_X + 12)
+        || rank1_overlaps_range(target, width, A_MARIO_PLATFORM,
+                                A_MARIO_PLATFORM + 4)
+        || rank1_overlaps_range(target, width, A_SLOT67_PLATFORM,
+                                A_SLOT67_PLATFORM + 4)
+        || rank1_overlaps_range(target, width, A_MARIO_OBJECT,
+                                A_MARIO_OBJECT + 4)
+        || rank1_overlaps_range(target, width, A_STATE_MARIO_OBJECT,
+                                A_STATE_MARIO_OBJECT + 4)
+        || rank1_overlaps_range(target, width, A_SLOT67_NEXT,
+                                A_SLOT67_PREV + 4)
+        || rank1_overlaps_range(target, width, A_SLOT67_ACTIVE_FLAGS,
+                                A_SLOT67_ACTIVE_FLAGS + 2)
+        || rank1_overlaps_range(target, width, A_SLOT67_BEHAVIOR,
+                                A_SLOT67_BEHAVIOR + 4)
+        || rank1_overlaps_range(target, width, A_LIST0_SENTINEL_NEXT,
+                                A_LIST0_SENTINEL_PREV + 4)
+        || rank1_overlaps_range(target, width, A_BHV_MARIO,
+                                A_BHV_MARIO + BHV_MARIO_WORDS * 4)
+        || rank1_overlaps_range(target, width, A_BEHAVIOR_CMD_TABLE,
+                                A_BEHAVIOR_CMD_TABLE
+                                    + BEHAVIOR_CMD_TABLE_WORDS * 4);
+}
+
+static int rank5_note_undecoded_write(uint32_t accessed) {
+    uint32_t accessed_word = 0x80000000u
+        | ((accessed & 0x1fffffffu) & ~3u);
+
+    if (!gRank5Initialized || gRank5Complete
+        || gRank5Phase == RANK5_PHASE_INACTIVE
+        || !rank5_watches_range(accessed_word, 4)) return 0;
+    gRank5WriteDecodeFailures++;
+    return 1;
+}
+
+static int rank5_note_write(uint32_t pc, uint32_t target,
+                            uint32_t source, uint32_t width,
+                            int u32_value_known) {
+    int watched = 0;
+    int expected_platform_writer = 0;
+
+    if (!gRank5Initialized || gRank5Complete
+        || gRank5Phase == RANK5_PHASE_INACTIVE) return 0;
+    if (rank1_overlaps_range(target, width,
+                             A_MARIO_STATES + M_POS_X,
+                             A_MARIO_STATES + M_POS_X + 12)) {
+        watched = 1;
+        if (gRank5Phase == RANK5_PHASE_IN_APPLY) {
+            gRank5ApplyStateWrites++;
+        } else if (gRank5Phase == RANK5_PHASE_POST_APPLY) {
+            gRank5PostApplyStateWrites++;
+        } else if (gRank5Phase == RANK5_PHASE_PRE_APPLY) {
+            gRank5PreapplyStateWrites++;
+        } else if (gRank5Phase >= RANK5_PHASE_POST_COPY) {
+            gRank5PostCopyStateWrites++;
+            rank1_count_writer(gRank5PostCopyStateWriters,
+                               &gRank5PostCopyStateWriterKinds, 16, pc);
+        }
+    }
+    if (rank1_overlaps_range(target, width, A_SLOT67 + O_POS_X,
+                             A_SLOT67 + O_POS_X + 12)) {
+        watched = 1;
+        if (gRank5Phase == RANK5_PHASE_IN_APPLY) {
+            gRank5ApplyObjectWrites++;
+        } else if (gRank5Phase == RANK5_PHASE_POST_APPLY) {
+            gRank5PostApplyObjectWrites++;
+        } else if (gRank5Phase == RANK5_PHASE_PRE_APPLY) {
+            gRank5PreapplyObjectWrites++;
+        } else if (gRank5Phase >= RANK5_PHASE_POST_COPY) {
+            gRank5PostCopyObjectWrites++;
+            rank1_count_writer(gRank5PostCopyObjectWriters,
+                               &gRank5PostCopyObjectWriterKinds, 16, pc);
+        }
+    }
+    if (rank1_overlaps_range(target, width, A_SLOT67 + GFX_POS_X,
+                             A_SLOT67 + GFX_POS_X + 12)) {
+        watched = 1;
+        if (gRank5Phase == RANK5_PHASE_IN_APPLY) {
+            gRank5ApplyGraphicsWrites++;
+        } else if (gRank5Phase == RANK5_PHASE_POST_APPLY) {
+            gRank5PostApplyGraphicsWrites++;
+        }
+    }
+    if (rank1_overlaps_range(target, width, A_MARIO_PLATFORM,
+                             A_MARIO_PLATFORM + 4)) {
+        watched = 1;
+        gRank5PlatformWrites++;
+        gRank5GlobalPlatformWrites++;
+        if (!u32_value_known || target != A_MARIO_PLATFORM || width != 4) {
+            gRank5WriteDecodeFailures++;
+        } else if (source != 0) {
+            gRank5NonnullPlatformWrites++;
+        }
+        expected_platform_writer =
+            pc == A_PLATFORM_GLOBAL_CLEAR_AWAY
+            || pc == A_PLATFORM_GLOBAL_OWNER_STORE
+            || pc == A_PLATFORM_GLOBAL_CLEAR_OWNERLESS;
+        if (!expected_platform_writer) gRank5UnexpectedPlatformWrites++;
+        rank1_count_writer(gRank5PlatformWriters,
+                           &gRank5PlatformWriterKinds, 16, pc);
+    }
+    if (rank1_overlaps_range(target, width, A_SLOT67_PLATFORM,
+                             A_SLOT67_PLATFORM + 4)) {
+        watched = 1;
+        gRank5PlatformWrites++;
+        gRank5ObjectPlatformWrites++;
+        if (!u32_value_known || target != A_SLOT67_PLATFORM || width != 4) {
+            gRank5WriteDecodeFailures++;
+        } else if (source != 0) {
+            gRank5NonnullPlatformWrites++;
+        }
+        expected_platform_writer =
+            pc == A_PLATFORM_OBJECT_CLEAR_AWAY
+            || pc == A_PLATFORM_OBJECT_OWNER_STORE
+            || pc == A_PLATFORM_OBJECT_CLEAR_OWNERLESS;
+        if (!expected_platform_writer) gRank5UnexpectedPlatformWrites++;
+        rank1_count_writer(gRank5PlatformWriters,
+                           &gRank5PlatformWriterKinds, 16, pc);
+    }
+    if (rank1_overlaps_range(target, width, A_MARIO_OBJECT,
+                             A_MARIO_OBJECT + 4)
+        || rank1_overlaps_range(target, width, A_STATE_MARIO_OBJECT,
+                                A_STATE_MARIO_OBJECT + 4)
+        || rank1_overlaps_range(target, width, A_SLOT67_NEXT,
+                                A_SLOT67_PREV + 4)
+        || rank1_overlaps_range(target, width, A_SLOT67_ACTIVE_FLAGS,
+                                A_SLOT67_ACTIVE_FLAGS + 2)
+        || rank1_overlaps_range(target, width, A_SLOT67_BEHAVIOR,
+                                A_SLOT67_BEHAVIOR + 4)
+        || rank1_overlaps_range(target, width, A_LIST0_SENTINEL_NEXT,
+                                A_LIST0_SENTINEL_PREV + 4)) {
+        watched = 1;
+        gRank5IdentityWrites++;
+        rank1_count_writer(gRank5IdentityWriters,
+                           &gRank5IdentityWriterKinds, 16, pc);
+    }
+    if (rank1_overlaps_range(target, width, A_BHV_MARIO,
+                             A_BHV_MARIO + BHV_MARIO_WORDS * 4)
+        || rank1_overlaps_range(target, width, A_BEHAVIOR_CMD_TABLE,
+                                A_BEHAVIOR_CMD_TABLE
+                                    + BEHAVIOR_CMD_TABLE_WORDS * 4)) {
+        watched = 1;
+        gRank5CodeWrites++;
+    }
+    return watched;
+}
+
+static int rank5_is_exec_breakpoint(uint32_t pc) {
+    switch (pc) {
+        case A_UPDATE_OBJECTS:
+        case A_APPLY_MARIO_PLATFORM_DISPLACEMENT:
+        case A_APPLY_PLATFORM_DISPLACEMENT_CALLSITE:
+        case A_POST_APPLY_MARIO_PLATFORM:
+        case A_DETECT_OBJECT_COLLISIONS:
+        case A_POST_DETECT_OBJECT_COLLISIONS:
+        case A_POST_COPY_MARIO_STATE_TO_OBJECT:
+        case A_BHV_MARIO_RETURN:
+        case A_POST_NON_TERRAIN_OBJECTS:
+        case A_POST_UNLOAD_DEACTIVATED_OBJECTS:
+        case A_POST_MARIO_PLATFORM:
+            return 1;
+        default:
+            return 0;
+    }
+}
+
+static int rank5_handle_exec(uint32_t pc) {
+    uint32_t timer = R32(A_GLOBAL_TIMER);
+
+    if (!gRank5Initialized || !rank5_is_exec_breakpoint(pc)) return 0;
+    if (pc == A_UPDATE_OBJECTS) {
+        if (gRank5Phase != RANK5_PHASE_INACTIVE) rank5_finish_frame();
+        if (timer >= 2810) {
+            gRank5Complete = 1;
+        } else if (timer >= 348 && R16(A_CURR_AREA) == 1) {
+            rank5_start_frame(timer);
+        }
+        return 1;
+    }
+    if (gRank5Complete || gRank5Phase == RANK5_PHASE_INACTIVE) return 1;
+    if (pc == A_APPLY_MARIO_PLATFORM_DISPLACEMENT) {
+        int rings_intact;
+        int mario_list;
+
+        if (gRank5Phase != RANK5_PHASE_PRE_APPLY) gRank5OrderFailures++;
+        gRank5ApplyEntries++;
+        gRank5ApplyPlatform = R32(A_MARIO_PLATFORM);
+        gRank5ApplyObjectAtUpperWarp = rank5_object_at_upper_warp();
+        rank5_read_state(gRank5ApplyBeforeState);
+        rank5_read_object(gRank5ApplyBeforeObject);
+        rank5_read_graphics(gRank5ApplyBeforeGraphics);
+        if (gRank5ApplyPlatform != 0) {
+            gRank5NonnullApplyEntries++;
+            if (!rank5_apply_owner_is_live(gRank5ApplyPlatform)) {
+                gRank5InvalidApplyOwners++;
+            }
+        }
+        if (gRank5ApplyObjectAtUpperWarp) {
+            gRank5UpperWarpApplyEntries++;
+            if (gRank5ApplyPlatform != 0) {
+                gRank5UpperWarpNonnullApplyEntries++;
+            }
+            fprintf(stderr,
+                    "RANK5_UPPER_WARP_APPLY,timer=%u,platform=%08x,"
+                    "timeStop=%08x,state=%08x:%08x:%08x,"
+                    "object=%08x:%08x:%08x,graphics=%08x:%08x:%08x\n",
+                    timer, gRank5ApplyPlatform, R32(A_TIME_STOP_STATE),
+                    gRank5ApplyBeforeState[0], gRank5ApplyBeforeState[1],
+                    gRank5ApplyBeforeState[2], gRank5ApplyBeforeObject[0],
+                    gRank5ApplyBeforeObject[1], gRank5ApplyBeforeObject[2],
+                    gRank5ApplyBeforeGraphics[0],
+                    gRank5ApplyBeforeGraphics[1],
+                    gRank5ApplyBeforeGraphics[2]);
+        }
+        if (!rank5_state_object_equal()) {
+            gRank5ApplyEntryStateObjectMismatches++;
+        }
+        if (!rank5_mario_identity_holds()) gRank5IdentityFailures++;
+        mario_list = rank1_object_list_index(A_SLOT67, &rings_intact);
+        if (!rings_intact || mario_list != 0) gRank5IdentityFailures++;
+        gRank5Phase = RANK5_PHASE_IN_APPLY;
+        return 1;
+    }
+    if (pc == A_APPLY_PLATFORM_DISPLACEMENT_CALLSITE) {
+        if (gRank5Phase != RANK5_PHASE_IN_APPLY) gRank5OrderFailures++;
+        gRank5ApplyHelperCalls++;
+        return 1;
+    }
+    if (pc == A_POST_APPLY_MARIO_PLATFORM) {
+        uint32_t after_state[3];
+        uint32_t after_object[3];
+        uint32_t after_graphics[3];
+        int state_changed;
+
+        if (gRank5Phase != RANK5_PHASE_IN_APPLY) gRank5OrderFailures++;
+        gRank5ApplyReturns++;
+        rank5_read_state(after_state);
+        rank5_read_object(after_object);
+        rank5_read_graphics(after_graphics);
+        state_changed = !rank5_vec_equal(gRank5ApplyBeforeState,
+                                         after_state);
+        if (state_changed) {
+            gRank5ApplyStateChanges++;
+            if (gRank5ApplyObjectAtUpperWarp) {
+                gRank5UpperWarpApplyStateChanges++;
+            }
+            if (gRank5FirstApplyStateChangeTimer == 0) {
+                unsigned i;
+                gRank5FirstApplyStateChangeTimer = gRank5FrameTimer;
+                gRank5FirstApplyStateChangePlatform = gRank5ApplyPlatform;
+                for (i = 0; i < 3; i++) {
+                    gRank5FirstApplyBeforeState[i] =
+                        gRank5ApplyBeforeState[i];
+                    gRank5FirstApplyAfterState[i] = after_state[i];
+                }
+            }
+        }
+        if (!rank5_vec_equal(gRank5ApplyBeforeObject, after_object)) {
+            gRank5ApplyObjectChanges++;
+        }
+        if (!rank5_vec_equal(gRank5ApplyBeforeGraphics, after_graphics)) {
+            gRank5ApplyGraphicsChanges++;
+        }
+        if (!rank5_state_object_equal()) {
+            gRank5PostApplyStateObjectMismatches++;
+        }
+        gRank5Phase = RANK5_PHASE_POST_APPLY;
+        return 1;
+    }
+    if (pc == A_DETECT_OBJECT_COLLISIONS) {
+        uint32_t object[3];
+
+        if (gRank5Phase != RANK5_PHASE_POST_APPLY) gRank5OrderFailures++;
+        gRank5CollisionEntries++;
+        rank5_read_object(object);
+        if (!rank5_vec_equal(gRank5ApplyBeforeObject, object)) {
+            gRank5PrecollisionObjectChanges++;
+        }
+        if (!rank5_state_object_equal()) {
+            gRank5CollisionStateObjectMismatches++;
+        }
+        return 1;
+    }
+    if (pc == A_POST_DETECT_OBJECT_COLLISIONS) {
+        uint32_t object[3];
+
+        if (gRank5Phase != RANK5_PHASE_POST_APPLY) gRank5OrderFailures++;
+        gRank5CollisionReturns++;
+        rank5_read_object(object);
+        if (!rank5_vec_equal(gRank5ApplyBeforeObject, object)) {
+            gRank5PrecollisionObjectChanges++;
+        }
+        if (!rank5_state_object_equal()) {
+            gRank5CollisionStateObjectMismatches++;
+        }
+        gRank5Phase = RANK5_PHASE_POST_COLLISION;
+        return 1;
+    }
+    if (pc == A_POST_COPY_MARIO_STATE_TO_OBJECT) {
+        if (gRank5Phase != RANK5_PHASE_POST_COLLISION) {
+            gRank5OrderFailures++;
+        }
+        gRank5CopyReturns++;
+        if (R32(A_CURRENT_OBJECT) != A_SLOT67
+            || !rank5_mario_identity_holds()) {
+            gRank5CopyReceiverFailures++;
+        }
+        if (!rank5_state_object_equal()) {
+            gRank5CopyStateObjectMismatches++;
+        }
+        gRank5Phase = RANK5_PHASE_POST_COPY;
+        return 1;
+    }
+    if (pc == A_BHV_MARIO_RETURN) {
+        if (gRank5Phase != RANK5_PHASE_POST_COPY) gRank5OrderFailures++;
+        gRank5BhvMarioReturns++;
+        if (!rank5_state_object_equal()) gRank5PostCopyTailMismatches++;
+        return 1;
+    }
+    if (pc == A_POST_NON_TERRAIN_OBJECTS) {
+        if (gRank5Phase != RANK5_PHASE_POST_COPY) gRank5OrderFailures++;
+        rank5_note_tail_check(&gRank5PostNonTerrainChecks);
+        gRank5Phase = RANK5_PHASE_POST_NON_TERRAIN;
+        return 1;
+    }
+    if (pc == A_POST_UNLOAD_DEACTIVATED_OBJECTS) {
+        if (gRank5Phase != RANK5_PHASE_POST_NON_TERRAIN) {
+            gRank5OrderFailures++;
+        }
+        rank5_note_tail_check(&gRank5PostUnloadChecks);
+        gRank5Phase = RANK5_PHASE_POST_UNLOAD;
+        return 1;
+    }
+    if (pc == A_POST_MARIO_PLATFORM) {
+        if (gRank5Phase != RANK5_PHASE_POST_UNLOAD) gRank5OrderFailures++;
+        rank5_note_tail_check(&gRank5PostFinalQueryChecks);
+        gRank5Phase = RANK5_PHASE_POST_FINAL_QUERY;
+        return 1;
+    }
+    return 1;
+}
+
+static void arm_rank5_state_split_audit(void) {
+    static const uint32_t exec_addresses[] = {
+        A_UPDATE_OBJECTS,
+        A_APPLY_MARIO_PLATFORM_DISPLACEMENT,
+        A_APPLY_PLATFORM_DISPLACEMENT_CALLSITE,
+        A_POST_APPLY_MARIO_PLATFORM,
+        A_DETECT_OBJECT_COLLISIONS,
+        A_POST_DETECT_OBJECT_COLLISIONS,
+        A_POST_COPY_MARIO_STATE_TO_OBJECT,
+        A_BHV_MARIO_RETURN,
+        A_POST_NON_TERRAIN_OBJECTS,
+        A_POST_UNLOAD_DEACTIVATED_OBJECTS,
+        A_POST_MARIO_PLATFORM,
+    };
+    unsigned i;
+    int armed = 1;
+
+    if (gRank5BreakpointsArmed) return;
+    for (i = 0; i < sizeof(exec_addresses) / sizeof(exec_addresses[0]); i++) {
+        if (!add_exec_breakpoint(exec_addresses[i])) armed = 0;
+    }
+    if (!add_rank1_write_breakpoints(A_MARIO_STATES + M_POS_X, 12)
+        || !add_rank1_write_breakpoints(A_SLOT67 + O_POS_X, 12)
+        || !add_rank1_write_breakpoints(A_SLOT67 + GFX_POS_X, 12)
+        || !add_rank1_write_breakpoints(A_MARIO_PLATFORM, 4)
+        || !add_rank1_write_breakpoints(A_SLOT67_PLATFORM, 4)
+        || !add_rank1_write_breakpoints(A_MARIO_OBJECT, 4)
+        || !add_rank1_write_breakpoints(A_STATE_MARIO_OBJECT, 4)
+        || !add_rank1_write_breakpoints(A_SLOT67_NEXT, 8)
+        || !add_rank1_write_breakpoints(A_SLOT67_ACTIVE_FLAGS, 2)
+        || !add_rank1_write_breakpoints(A_SLOT67_BEHAVIOR, 4)
+        || !add_rank1_write_breakpoints(A_LIST0_SENTINEL_NEXT, 8)
+        || !add_rank1_write_breakpoints(A_BHV_MARIO,
+                                        BHV_MARIO_WORDS * 4)
+        || !add_rank1_write_breakpoints(A_BEHAVIOR_CMD_TABLE,
+                                        BEHAVIOR_CMD_TABLE_WORDS * 4)) {
+        armed = 0;
+    }
+    if (!armed) {
+        fprintf(stderr, "RANK5_STATE_SPLIT_ERROR,kind=breakpoint-arm\n");
+        return;
+    }
+    gRank5BreakpointsArmed = 1;
+    gRank5Initialized = 1;
+    fprintf(stderr,
+            "RANK5_STATE_SPLIT_ARM,timer=%u,mario=%08x,slot=%d,"
+            "platform=%08x,timeStop=%08x,apply=%08x,copyReturn=%08x,"
+            "readOnly=1\n",
+            R32(A_GLOBAL_TIMER), R32(A_MARIO_OBJECT),
+            pool_index(R32(A_MARIO_OBJECT)), R32(A_MARIO_PLATFORM),
+            R32(A_TIME_STOP_STATE), A_APPLY_MARIO_PLATFORM_DISPLACEMENT,
+            A_POST_COPY_MARIO_STATE_TO_OBJECT);
+}
+
+static void rank5_print_result(void) {
+    unsigned i;
+    int invariant = gRank5Initialized && gRank5BreakpointsArmed
+        && gRank5Complete
+        && gRank5FramesStarted == 2462
+        && gRank5FramesFinished == gRank5FramesStarted
+        && gRank5OrderFailures == 0
+        && gRank5IdentityFailures == 0
+        && gRank5IdentityWrites == 0
+        && gRank5CodeWrites == 0
+        && gRank5EntryStateObjectMismatches == 0
+        && gRank5ApplyEntryStateObjectMismatches == 0
+        && gRank5PostApplyStateObjectMismatches == 0
+        && gRank5CollisionStateObjectMismatches == 0
+        && gRank5ApplyEntries == gRank5FramesStarted
+        && gRank5ApplyReturns == gRank5FramesStarted
+        && gRank5CollisionEntries == gRank5FramesStarted
+        && gRank5CollisionReturns == gRank5FramesStarted
+        && gRank5CopyReturns == gRank5FramesStarted
+        && gRank5BhvMarioReturns == gRank5FramesStarted
+        && gRank5PostNonTerrainChecks == gRank5FramesStarted
+        && gRank5PostUnloadChecks == gRank5FramesStarted
+        && gRank5PostFinalQueryChecks == gRank5FramesStarted
+        && gRank5ApplyHelperCalls == 0
+        && gRank5NonnullApplyEntries == 0
+        && gRank5InvalidApplyOwners == 0
+        && gRank5ApplyStateChanges == 0
+        && gRank5ApplyObjectChanges == 0
+        && gRank5ApplyGraphicsChanges == 0
+        && gRank5ApplyStateWrites == 0
+        && gRank5ApplyObjectWrites == 0
+        && gRank5ApplyGraphicsWrites == 0
+        && gRank5PostApplyStateWrites == 0
+        && gRank5PostApplyObjectWrites == 0
+        && gRank5PostApplyGraphicsWrites == 0
+        && gRank5UpperWarpApplyEntries > 0
+        && gRank5UpperWarpNonnullApplyEntries == 0
+        && gRank5UpperWarpApplyStateChanges == 0
+        && gRank5PrecollisionObjectChanges == 0
+        && gRank5CopyReceiverFailures == 0
+        && gRank5CopyStateObjectMismatches == 0
+        && gRank5PreapplyStateWrites == 0
+        && gRank5PreapplyObjectWrites == 0
+        && gRank5PostCopyStateWrites == 0
+        && gRank5PostCopyObjectWrites == 0
+        && gRank5PostCopyTailMismatches == 0
+        && gRank5GlobalPlatformWrites == gRank5FramesStarted
+        && gRank5ObjectPlatformWrites == gRank5FramesStarted
+        && gRank5NonnullPlatformWrites == 0
+        && gRank5UnexpectedPlatformWrites == 0
+        && gRank5WriteDecodeFailures == 0;
+
+    for (i = 0; i < gRank5PlatformWriterKinds; i++) {
+        fprintf(stderr, "RANK5_PLATFORM_WRITER,pc=%08x,count=%u\n",
+                gRank5PlatformWriters[i].pc,
+                gRank5PlatformWriters[i].count);
+    }
+    for (i = 0; i < gRank5PostCopyStateWriterKinds; i++) {
+        fprintf(stderr,
+                "RANK5_POSTCOPY_STATE_WRITER,pc=%08x,count=%u\n",
+                gRank5PostCopyStateWriters[i].pc,
+                gRank5PostCopyStateWriters[i].count);
+    }
+    for (i = 0; i < gRank5PostCopyObjectWriterKinds; i++) {
+        fprintf(stderr,
+                "RANK5_POSTCOPY_OBJECT_WRITER,pc=%08x,count=%u\n",
+                gRank5PostCopyObjectWriters[i].pc,
+                gRank5PostCopyObjectWriters[i].count);
+    }
+    for (i = 0; i < gRank5IdentityWriterKinds; i++) {
+        fprintf(stderr, "RANK5_IDENTITY_WRITER,pc=%08x,count=%u\n",
+                gRank5IdentityWriters[i].pc,
+                gRank5IdentityWriters[i].count);
+    }
+    fprintf(stderr,
+            "RANK5_STATE_SPLIT_RESULT,firstTimer=348,"
+            "exclusiveEndTimer=2810,framesStarted=%u,framesFinished=%u,"
+            "orderFailures=%u,identityFailures=%u,identityWrites=%u,"
+            "codeWrites=%u,entryMismatches=%u,applyEntryMismatches=%u,"
+            "postApplyMismatches=%u,collisionMismatches=%u,"
+            "applyEntries=%u,applyReturns=%u,helperCalls=%u,"
+            "nonnullApplyEntries=%u,invalidApplyOwners=%u,"
+            "applyChanges=%u:%u:%u,applyWrites=%u:%u:%u,"
+            "postApplyWrites=%u:%u:%u,"
+            "upperWarpApplyEntries=%u,upperWarpNonnull=%u,"
+            "upperWarpStateChanges=%u,collisionEntries=%u,"
+            "collisionReturns=%u,precollisionObjectChanges=%u,"
+            "copyReturns=%u,copyReceiverFailures=%u,"
+            "copyMismatches=%u,bhvMarioReturns=%u,"
+            "preapplyWrites=%u:%u,postcopyWrites=%u:%u,"
+            "postcopyTailMismatches=%u,tailChecks=%u:%u:%u,"
+            "platformWrites=%u:%u,nonnullPlatformWrites=%u,"
+            "unexpectedPlatformWrites=%u,writeDecodeFailures=%u,"
+            "firstApplyChange=%u:%08x,"
+            "invariant=%d\n",
+            gRank5FramesStarted, gRank5FramesFinished,
+            gRank5OrderFailures, gRank5IdentityFailures,
+            gRank5IdentityWrites, gRank5CodeWrites,
+            gRank5EntryStateObjectMismatches,
+            gRank5ApplyEntryStateObjectMismatches,
+            gRank5PostApplyStateObjectMismatches,
+            gRank5CollisionStateObjectMismatches,
+            gRank5ApplyEntries, gRank5ApplyReturns,
+            gRank5ApplyHelperCalls, gRank5NonnullApplyEntries,
+            gRank5InvalidApplyOwners, gRank5ApplyStateChanges,
+            gRank5ApplyObjectChanges, gRank5ApplyGraphicsChanges,
+            gRank5ApplyStateWrites, gRank5ApplyObjectWrites,
+            gRank5ApplyGraphicsWrites, gRank5PostApplyStateWrites,
+            gRank5PostApplyObjectWrites, gRank5PostApplyGraphicsWrites,
+            gRank5UpperWarpApplyEntries,
+            gRank5UpperWarpNonnullApplyEntries,
+            gRank5UpperWarpApplyStateChanges, gRank5CollisionEntries,
+            gRank5CollisionReturns, gRank5PrecollisionObjectChanges,
+            gRank5CopyReturns, gRank5CopyReceiverFailures,
+            gRank5CopyStateObjectMismatches, gRank5BhvMarioReturns,
+            gRank5PreapplyStateWrites, gRank5PreapplyObjectWrites,
+            gRank5PostCopyStateWrites, gRank5PostCopyObjectWrites,
+            gRank5PostCopyTailMismatches, gRank5PostNonTerrainChecks,
+            gRank5PostUnloadChecks, gRank5PostFinalQueryChecks,
+            gRank5GlobalPlatformWrites, gRank5ObjectPlatformWrites,
+            gRank5NonnullPlatformWrites,
+            gRank5UnexpectedPlatformWrites,
+            gRank5WriteDecodeFailures,
+            gRank5FirstApplyStateChangeTimer,
+            gRank5FirstApplyStateChangePlatform, invariant);
+}
+#endif
+
 static int rank1_surface_index(uint32_t surface) {
     uint32_t offset;
     if (surface < gRank1SurfaceBase) return -1;
@@ -1221,14 +1988,38 @@ static void rank1_note_allocator_global_write(uint32_t pc,
 static int rank1_handle_write(uint32_t pc, uint64_t *registers,
                               uint32_t accessed) {
     uint32_t instruction = R32(pc);
-    unsigned width = rank1_store_width(instruction);
-    uint32_t raw_target = rank1_effective_address(instruction, registers);
+    unsigned width = 0;
+    uint32_t raw_target = 0;
+    int decoded = rank1_decode_store_range(instruction, registers,
+                                           &raw_target, &width);
     uint32_t target = rank1_kseg0_address(raw_target);
     uint32_t source = rank1_source_value(instruction, registers);
     uint32_t physical = target & 0x1fffffffu;
     int watched = 0;
 
+#if RANK5_STATE_SPLIT_AUDIT
+    if (!decoded) {
+        if (rank5_note_undecoded_write(accessed)) watched = 1;
+    } else {
+        uint32_t accessed_word = 0x80000000u
+            | ((accessed & 0x1fffffffu) & ~3u);
+        if (gRank5Initialized && !gRank5Complete
+            && gRank5Phase != RANK5_PHASE_INACTIVE
+            && rank5_watches_range(target, width)
+            && !rank1_overlaps_range(target, width, accessed_word,
+                                     accessed_word + 4)) {
+            gRank5WriteDecodeFailures++;
+        }
+        if (rank5_note_write(pc, target, source, width,
+                             rank1_store_u32_value_known(instruction,
+                                                         width))) {
+            watched = 1;
+        }
+    }
+#else
     (void) accessed;
+    (void) decoded;
+#endif
 #if RANK4_WARP_TOP_AUDIT
     if (rank4_note_write(pc, target, source, width)) watched = 1;
 #endif
@@ -1581,11 +2372,17 @@ static int rank1_handle_breakpoint(uint32_t pc, uint64_t *registers) {
     uint32_t accessed = 0;
     int allocator_index;
     int outside_index;
+#if RANK5_STATE_SPLIT_AUDIT
+    int rank5_handled = 0;
+#endif
 
     DBreakpointTriggeredBy(&trigger_flags, &accessed);
     if ((trigger_flags & M64P_BKP_FLAG_WRITE) != 0
         && rank1_handle_write(pc, registers, accessed)) return 1;
     if ((trigger_flags & M64P_BKP_FLAG_EXEC) == 0) return 0;
+#if RANK5_STATE_SPLIT_AUDIT
+    rank5_handled = rank5_handle_exec(pc);
+#endif
     if (pc == A_UPDATE_OBJECTS) {
         if (gRank1AuditState == 1) rank1_start_audit();
         else if (gRank1AuditState == 2) {
@@ -1601,7 +2398,13 @@ static int rank1_handle_breakpoint(uint32_t pc, uint64_t *registers) {
         rank4_note_collision_load_call(R32(A_CURRENT_OBJECT));
     }
 #endif
-    if (gRank1AuditState != 2) return 0;
+    if (gRank1AuditState != 2) {
+#if RANK5_STATE_SPLIT_AUDIT
+        return rank5_handled;
+#else
+        return 0;
+#endif
+    }
     allocator_index = rank1_allocator_index(pc);
     if (allocator_index >= 0) {
         gRank1AllocatorCalls[allocator_index]++;
@@ -1799,10 +2602,14 @@ static int rank1_handle_breakpoint(uint32_t pc, uint64_t *registers) {
         }
         return 1;
     }
+#if RANK5_STATE_SPLIT_AUDIT
+    return rank5_handled;
+#else
     return 0;
+#endif
 }
 
-#if !RANK4_WARP_TOP_AUDIT
+#if !RANK4_WARP_TOP_AUDIT && !RANK5_STATE_SPLIT_AUDIT
 static void arm_rank1_boundary_audit(void) {
     static const uint32_t exec_addresses[] = {
         A_UPDATE_OBJECTS,
@@ -2293,7 +3100,8 @@ static void observe_entry_identity(uint32_t mario_object) {
                 && R32(A_MAIN_POOL_LEFT_HEAD)
                     <= R32(A_MAIN_POOL_RIGHT_HEAD));
     gEntryIdentityLogged = 1;
-#if RANK1_BOUNDARY_AUDIT && !RANK4_WARP_TOP_AUDIT
+#if RANK1_BOUNDARY_AUDIT && !RANK4_WARP_TOP_AUDIT \
+    && !RANK5_STATE_SPLIT_AUDIT
     arm_rank1_boundary_audit();
 #endif
 }
@@ -2618,6 +3426,9 @@ EXPORT int CALL RomOpen(void) {
 }
 
 EXPORT void CALL RomClosed(void) {
+#if RANK5_STATE_SPLIT_AUDIT
+    rank5_print_result();
+#endif
 #if RANK4_WARP_TOP_AUDIT
     unsigned rank4_writer_index;
     int rank4_invariant = gRank4Initialized
@@ -2851,6 +3662,9 @@ EXPORT void CALL GetKeys(int control, BUTTONS *keys) {
 #if RANK4_WARP_TOP_AUDIT
     arm_rank4_warp_top_audit();
     rank4_observe_frame();
+#endif
+#if RANK5_STATE_SPLIT_AUDIT
+    arm_rank5_state_split_audit();
 #endif
     observe_gap();
     observe_top();

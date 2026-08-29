@@ -1710,3 +1710,35 @@ Completed work is grouped by subject. Each item retains its original scope warni
   continuous zero-A route receipt.  The result is explicitly trace-scoped;
   universal clean reachability and machine-only OOB/ACE/DMA variants remain
   outside this completed item.
+
+## Rank-5/5A clean intra-frame State-split receipt
+
+- [x] Audit every cached-platform apply, collision boundary, Mario copy, and
+  post-copy tail on the successful zero-A four-pillar route.  The read-only
+  original-JP trace reaches each phase exactly 2,462 times from timer 348
+  through 2809, with no phase-order, Mario slot/list/behavior identity, copy
+  receiver, return, or State/Object equality failure.
+
+- [x] Close the post-copy writer window on that route.  From every successful
+  `copy_mario_state_to_object` return through the remaining Mario callback,
+  later PLAYER work, later lists, unloading, final query, between-frame code,
+  and the next pre-apply prefix, there are zero protected State or raw-Object
+  coordinate writes and zero identity or behavior/dispatch writes.
+
+- [x] Close the pre-collision cached-platform origin on that route.  All 2,462
+  global and matching Object platform writes are checked null clears, every
+  apply loads null, and the displacement helper is never called.  State,
+  Object, and Graphics do not change or receive a write during apply; no
+  protected coordinate receives a write from apply return through collision-
+  detection return; and State and Object are equal at each checked collision
+  entry and return.  The fail-closed decoder reports zero ambiguous watched
+  stores.  Timers 2807--2809 at the upper warp have inactive time stop, null
+  platform, and three bitwise-equal coordinate views at apply entry.
+
+- [x] Authenticate, freeze, and formalize the receipt.  The new verifier adds
+  228 retail instructions for Mario's copy/callback and platform apply to the
+  existing 2,200-instruction gate; the exact runner output is frozen under
+  `instrumentation/jp-rank5-state-split/`; and
+  `Area1Rank5StateSplitTraceReceipt.v` packages separate Rank-5 and Rank-5A
+  trace verdicts with the reusable source classifications.  Universal
+  all-history coverage and machine-only OOB/ACE/DMA behavior remain open.

@@ -194,10 +194,12 @@ cached-floor snap, and an unclassified post-copy discrepancy as conditional
 cases.
 Static top/warp references and all 21 direct collision-data writers are now
 enumerated, but their live receivers and runtime behavior arguments are not.
-The remaining decisive proof is linked branch/memory execution: global and
-Mario-coordinate non-alias/external frames, post-copy discrepancy provenance, live
-surface-list slot/epoch provenance, spawn/relocation/clone closure, and the
-clean binary32 `<960` gap invariant.
+The remaining decisive universal proof is linked branch/memory execution:
+global and Mario-coordinate non-alias/external frames, post-copy discrepancy
+provenance on materially different histories, live surface-list slot/epoch
+provenance, spawn/relocation/clone closure, and the clean binary32 `<960` gap
+invariant.  The later route receipt closes the post-copy interval on its
+chosen history only.
 
 The newest clean-JP installer reduction narrows that missing boundary.
 `CleanJPGraphicsGap.v` defines a clean JP Area-1 audit boundary, proves that a
@@ -505,6 +507,21 @@ apply is the only synchronized State/Object split source and cannot create the
 Graphics/Object gap.  Linked instantiation of those scheduler, platform,
 terrain/collision, pointer, and owner projections is still open, so the
 broader installer alternatives are not collectively eliminated.
+
+The successful zero-A four-pillar history now has the missing intra-frame
+observation.  A hash-gated original-JP run checks 2,462 complete updates: each
+Mario copy returns to the same live list-0 slot with State and Object bitwise
+equal; no later coordinate, identity, behavior, or dispatch store occurs
+through the next pre-apply prefix; every platform selection writes null; and
+State and Object are equal at every checked apply entry/return and collision
+entry/return.  Graphics is unchanged during apply.  The platform helper is
+never called, and all three views are equal at the upper-warp apply entries at
+timers 2807--2809.  Consequently, the
+post-copy Rank-5 writer and pre-collision Rank-5A platform origin are closed on
+that clean history.  The remaining goal is an invariant for every materially
+different reachable in-bounds history or a first concrete failing history,
+not further sampling of this already checked run.  See
+[`notes/rank5-state-split-trace.md`](notes/rank5-state-split-trace.md).
 
 The direct platform-pointer census is now lifted to the constructed official
 cleaned US/JP linked definition lists. Direct named-writer upper bounds and

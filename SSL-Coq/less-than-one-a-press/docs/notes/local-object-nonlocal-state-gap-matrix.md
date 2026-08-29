@@ -94,6 +94,21 @@ writer witnesses still have to inhabit them.
 
 ## Matrix A: creating or carrying the coordinate split
 
+Trace-scoped update for the three Rank-5 rows below: the authenticated
+timer-348-through-2809 zero-A four-pillar run now executes all 2,462 Mario
+copies, post-copy tails, next-frame prefixes, platform applies, and collision
+boundaries under protected-memory write watches.  It records no late State or
+raw-Object write, receiver/identity/lifecycle failure, non-null platform load,
+helper call, or State/raw-Object mismatch at a checked apply or collision
+entry/return.  Graphics is unchanged during apply; at the upper-warp apply
+entries at timers 2807--2809 all three views are equal and the platform is
+null.  Thus the post-copy writer,
+pre-collision platform, and whole-frame synchronization rows are closed for
+that history.  Their table entries retain the all-history linked premises,
+which are now universalization obligations or tests for a materially different
+clean execution rather than missing observations on the checked route.  See
+[`rank5-state-split-trace.md`](rank5-state-split-trace.md).
+
 | Priority and mechanism | Existing conditional result | Exact missing linked premise | Counterexample promise | Normal-proof direction | Important interactions |
 | --- | --- | --- | --- | --- | --- |
 | **P0 - First divergence changes State, Object, or both** | `synchronized_to_split_has_one_of_three_creation_shapes`, `synchronized_trace_ending_split_exposes_first_divergence`, and `trace_ending_in_gap_has_state_object_or_joint_first_creator` in `Area1GapApproachCoverage.v` give an exhaustive value-level split for any supplied trace.  The witness includes a prefix certificate that every state through the pre-divergence endpoint is synchronized.  `all_three_gap_creation_shapes_are_abstractly_inhabited` prevents any case from being dismissed by logic alone. | Instantiate the trace step with linked Clight small steps and refine each first-divergence step to an internal endpoint writer, retarget/lifecycle transition, alias, or external writer. | **High as a proof decomposition, neutral as a gameplay lead.** | Prove a linked first-divergence theorem whose constructors contain the real statement/callsite, block, offset, before/after values, and receiver identity. | State-only and Object-only cases are the main normal-code candidates.  A joint change usually means sequential stores, a paired helper, retarget, or external multi-effect and may still leave unequal final values. |

@@ -1,0 +1,9 @@
+RANK5_STATE_SPLIT_ARM,timer=348,mario=80346038,slot=67,platform=00000000,timeStop=00000000,apply=802c83f0,copyReturn=8029c30c,readOnly=1
+RANK5_UPPER_WARP_APPLY,timer=2807,platform=00000000,timeStop=00000000,state=c4fe3c24:44400000:c481a1e0,object=c4fe3c24:44400000:c481a1e0,graphics=c4fe3c24:44400000:c481a1e0
+RANK5_UPPER_WARP_APPLY,timer=2808,platform=00000000,timeStop=00000000,state=c4fe3c24:44400000:c481a1e0,object=c4fe3c24:44400000:c481a1e0,graphics=c4fe3c24:44400000:c481a1e0
+RANK5_UPPER_WARP_APPLY,timer=2809,platform=00000000,timeStop=00000000,state=c4fe3c24:44400000:c481a1e0,object=c4fe3c24:44400000:c481a1e0,graphics=c4fe3c24:44400000:c481a1e0
+RANK5_PLATFORM_WRITER,pc=802c8048,count=2130
+RANK5_PLATFORM_WRITER,pc=802c8054,count=2130
+RANK5_PLATFORM_WRITER,pc=802c7fec,count=332
+RANK5_PLATFORM_WRITER,pc=802c7ff8,count=332
+RANK5_STATE_SPLIT_RESULT,firstTimer=348,exclusiveEndTimer=2810,framesStarted=2462,framesFinished=2462,orderFailures=0,identityFailures=0,identityWrites=0,codeWrites=0,entryMismatches=0,applyEntryMismatches=0,postApplyMismatches=0,collisionMismatches=0,applyEntries=2462,applyReturns=2462,helperCalls=0,nonnullApplyEntries=0,invalidApplyOwners=0,applyChanges=0:0:0,applyWrites=0:0:0,postApplyWrites=0:0:0,upperWarpApplyEntries=3,upperWarpNonnull=0,upperWarpStateChanges=0,collisionEntries=2462,collisionReturns=2462,precollisionObjectChanges=0,copyReturns=2462,copyReceiverFailures=0,copyMismatches=0,bhvMarioReturns=2462,preapplyWrites=0:0,postcopyWrites=0:0,postcopyTailMismatches=0,tailChecks=2462:2462:2462,platformWrites=2462:2462,nonnullPlatformWrites=0,unexpectedPlatformWrites=0,writeDecodeFailures=0,firstApplyChange=0:00000000,invariant=1

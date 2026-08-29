@@ -468,7 +468,9 @@ These obligations currently block the clean-retail result.
   transitive spawn and behavior-
   interpreter dispatch, receiver/non-alias and external-call frames,
   unload/pool-reuse lifecycle, abnormal returns, the post-query debug callback,
-  and next-frame warp/instant-warp effects remains part of this open item.
+  and next-frame warp/instant-warp effects remains part of the universal linked-
+  execution item.  The later Rank-5/5A receipt closes these intervals on the
+  chosen zero-A four-pillar route, not on every reachable history.
   Linked behavior-list execution and copy identity, coupling, exact payload
   bytes, geometry, and binary32 apply execution remain open.  The complete
   approach inventory and proof/disproof priorities are recorded in
@@ -684,17 +686,26 @@ These obligations currently block the clean-retail result.
 
 - [ ] Prove the platform-global non-alias/external frame invariant; execute
   the upper-warp action-selection frame through the non-null final query;
-  explain or eliminate post-copy Mario-coordinate discrepancies; project live dynamic
+  project live dynamic
   surface nodes to slot/epoch/behavior/collision provenance; and refine
   every clean coordinate writer to the strict binary32 gap bound.  Also
   instantiate the temporal scheduler and pointer-lineage projections;
   prove the terrain-dispatch and collision XYZ frames plus the real
-  platform-phase refinement; and eliminate or realize each of the four
-  remaining null-seed lineage cases. The official direct named writer/caller/address
+  platform-phase refinement for every materially different reachable history;
+  and eliminate or realize each of the four remaining null-seed lineage cases.
+  The successful zero-A four-pillar history is no longer an open instance:
+  its 2,462-frame write watch finds no post-copy coordinate/identity event,
+  every cached-platform apply loads null, and every collision checkpoint is
+  State/raw-Object synchronized at entry and return.  Graphics is unchanged
+  during apply, and all three views are equal at the three upper-warp apply
+  entries.  A remaining Rank-5/5A counterexample must therefore identify
+  the first different-history write, receiver/lifetime failure, or non-null
+  owner/payload. The official direct named writer/caller/address
   syntax closure, local JP store/load steps, and exact four-step
   `Surface.object -> temporary -> gMarioPlatform` fragment are complete; the
   linked reachability and preservation work in this item is not. See
-  [`notes/linked-platform-lineage.md`](notes/linked-platform-lineage.md).
+  [`notes/linked-platform-lineage.md`](notes/linked-platform-lineage.md) and
+  [`notes/rank5-state-split-trace.md`](notes/rank5-state-split-trace.md).
 
 ### Live collision and nonlocal samples
 

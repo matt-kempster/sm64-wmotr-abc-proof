@@ -630,7 +630,9 @@ same frame.  Intra-PLAYER particle/debug spawning and later PLAYER nodes,
 transitive spawn/interpreter closure, receiver and alias identity, external
 calls, unload/pool-reuse effects, abnormal callback control flow, and
 the post-query debug callback plus warp/instant-warp processing at the next
-pre-collision frame remain explicit residuals.  Alias and
+pre-collision frame remain explicit residuals for the universal linked-
+execution proof.  The later Rank-5/5A receipt closes those intervals on its
+chosen route only.  Alias and
 external alternatives are reduced separately by
 `PlatformExternalGapSemantics.v` and `PlatformAliasExternalClosure.v`.  See
 [`docs/notes/local-object-nonlocal-state-gap-matrix.md`](docs/notes/local-object-nonlocal-state-gap-matrix.md)
@@ -660,9 +662,25 @@ at bounded poses, observes no warp write or collision load, and classifies all
 three later top-slot reuses as collision-clearing replacements rather than
 clones.  That closes relocation/cloning on this schedule; the universal all-
 history source-to-machine induction remains open.
-The linked non-alias/external frames, live branches, post-copy discrepancy cause,
-surface-list slot/epoch projection, runtime spawn provenance, and the clean
-binary32 `<960` writer invariant remain open.  See
+
+`Area1Rank5StateSplitTraceReceipt.v` now observes the adjacent post-copy and
+pre-collision windows on that same uninterrupted route.  Every one of the
+2,462 Mario callbacks completes its State-to-Object copy with the normal live
+slot-67 receiver; no State/raw-Object coordinate or identity store occurs in
+the later callback/list/unload/query/between-frame tail; and State and raw
+Object are bitwise equal at every checked next-frame apply entry/return and
+collision entry/return.  Graphics is unchanged during each apply.  All cached-
+platform writes are checked null clears, all 2,462 apply entries load null,
+and the displacement helper is never reached.  At the upper-warp apply entries
+at timers 2807--2809, State, raw Object, and Graphics are all bitwise equal.
+This closes Ranks 5 and 5A on the checked clean
+history while leaving universal coverage of materially different histories
+open.  See
+[`docs/notes/rank5-state-split-trace.md`](docs/notes/rank5-state-split-trace.md).
+For the universal proof and materially different histories, the linked non-
+alias/external frames, live branches, post-copy discrepancy cause, surface-
+list slot/epoch projection, runtime spawn provenance, and the clean binary32
+`<960` writer invariant remain open.  See
 [`docs/notes/stock-projection-exhaustiveness.md`](docs/notes/stock-projection-exhaustiveness.md).
 
 `JPZeroAReachability.v` defines a zero-edge relation over real `Clight.step2`

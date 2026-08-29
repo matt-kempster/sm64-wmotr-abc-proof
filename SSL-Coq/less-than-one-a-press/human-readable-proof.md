@@ -974,7 +974,8 @@ engineering but does not know *Super Mario 64*.
 > sample fits the post-wall State sample, Graphics retry, cached-floor Y snap,
 > or an unclassified post-copy discrepancy.  Linked execution must still
 > prove that these are the live branches and identify or eliminate that
-> discrepancy.
+> discrepancy on materially different histories; the later Rank-5/5A receipt
+> closes it on the chosen zero-A route only.
 > The newest bilateral AST receipt pins the three source values more tightly:
 > `gMarioObject.rawData.asF32[6..8]` are loaded into the X/Y/Z temporaries used
 > by the immediately following `find_floor` call.  A split resolution proof
@@ -1010,7 +1011,8 @@ engineering but does not know *Super Mario 64*.
 > It also stops at the final query rather than covering the complete next-pre-
 > collision boundary: `update_objects` subsequently calls
 > `try_print_debug_mario_object_info`.  That post-query callback remains an
-> explicit residual.
+> explicit residual for the universal linked-execution proof; the later
+> Rank-5/5A receipt closes it on the chosen zero-A route only.
 >
 > The same file records a concrete reason for that boundary.  A stock SSL
 > Area-1 `bhvBreakableBox` root can reach `obj_explode_and_spawn_coins` and
@@ -1113,12 +1115,27 @@ engineering but does not know *Super Mario 64*.
 > collision-preserving clone.  A universal proof still has to show that every
 > other reachable clean controller history obeys the same checks.
 >
+> `Area1Rank5StateSplitTraceReceipt.v` looks inside every frame of that same
+> route, where ordinary video or controller-poll samples could miss a brief
+> mismatch.  In all 2,462 updates, Mario is still the normal slot-67 player,
+> his State-to-Object copy returns correctly, and nothing changes either
+> coordinate view afterward or before the next platform apply.  The remembered
+> platform is empty at every apply, so the moving-platform helper never runs;
+> none of the three coordinate views changes during apply, and State and
+> Object are equal at every checked collision entry and return.  At the three
+> upper-warp apply entries, State, Object, and Graphics are all equal.
+> Therefore neither a late callback
+> writer (Rank 5) nor cached-platform displacement (Rank 5A) occurs in this
+> successful clean history.  Another input history could still differ, so the
+> result is not a universal impossibility theorem.
+>
 > Ink therefore remains unresolved.  No clean retail gap installer was found.
 > The corrected timer-131 sample still needs at least `960` units of
 > Graphics-minus-Object Y separation (`1010` at the warp centre).  Eliminating
 > it now requires: executing the action-selection frame in linked memory; proving Mario's
-> object remains non-null and the final query really runs; eliminating or
-> explaining or eliminating post-copy discrepancies; projecting live surface-list owners to exact
+> object remains non-null and the final query really runs; explaining or
+> eliminating post-copy discrepancies on materially different histories;
+> projecting live surface-list owners to exact
 > slots and allocation epochs; closing relocation/clone provenance; and
 > proving every clean binary32 coordinate writer preserves a gap below `960`.
 > The detailed case table is
@@ -2182,7 +2199,9 @@ warp, and collision-preserving cloning are absent from the complete clean
 zero-A upper-warp trace described below; their remaining question is a
 different-history universal proof or a machine-level corruption producer.
 Direct post-query writers remain a separate unresolved construction.  The full
-audit and theorem boundary are in
+audit rules them out on the chosen zero-A route, so the remaining construction
+is for a materially different history or the universal proof.  The theorem
+boundary is in
 [`docs/notes/pyramid-top-pu.md`](docs/notes/pyramid-top-pu.md).
 
 `UpperWarpTopCoincidenceMechanism`,
