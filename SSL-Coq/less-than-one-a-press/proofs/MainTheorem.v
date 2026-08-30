@@ -26,7 +26,7 @@ From LessThanOneAPress.Proofs Require Import
   WritableActionTablePrivateLive
   WritableActionTableReachedExecution
   PlatformIntegerAliasClosure Area1Rank3PayloadWriterClosure
-  EyerokRank15ControllerRide EyerokRank15VSC
+  EyerokRank15ControllerRide EyerokRank15VSC EyerokRank29Preload
   CompCertRouteScope.
 
 Import ListNotations.
@@ -195,6 +195,20 @@ Proof. exact eyerok_rank15_controller_ride_boundary_holds. Qed.
 Theorem current_rank15_vsc_vertical_boundary :
   EyerokRank15VSCBoundary.
 Proof. exact eyerok_rank15_vsc_boundary_holds. Qed.
+
+(** Rank 29 no longer has an unidentified direct stock speed source.  The
+    selected US/JP initializers authenticate the complete Area-2/Area-3
+    roster, and the sleeping-hand branch loads collision while skipping its
+    unique attack check.  Starting from the deliberately generous stock cap
+    of 110, ordinary air control would require 1,934 uninterrupted updates to
+    cross speed 400; the conservative vertical-envelope receipt excludes even
+    400 such updates and bounds one settled episode at speed 170.  A complete
+    route must therefore expose a repeatable landing/off-floor or moving-floor
+    boundary which preserves speed between episodes, or fail one of the
+    checked roster/action/alias/outside-call classifications. *)
+Theorem current_rank29_stock_preload_boundary :
+  EyerokRank29PreloadBoundary.
+Proof. exact eyerok_rank29_preload_boundary_holds. Qed.
 
 (** Rank 3 can no longer use an ordinary integer-to-pointer cast as a clean
     platform-cell producer: integer constructors never become CompCert block

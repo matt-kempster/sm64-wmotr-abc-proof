@@ -204,7 +204,7 @@ The detailed sections are organized as:
 | 26E | JP stale-platform lineage | [Live same-owner payload mutation before apply](#route-rank-26e) | Very low after the continuous clean trace; no harmful payload change |
 | 27 | JP stale-platform lineage | [Classic Spindel replacement-object spawning displacement](#route-rank-27) | Very low; corrected allocation depth and first payload are unhelpful |
 | 28 | Eyerok | [Attack and reboard a rising hand](#route-rank-28) | Very low |
-| 29 | Eyerok | [Sleeping-hand Pedro speed bootstrap](#route-rank-29) | Very low |
+| 29 | Eyerok | [Sleeping-hand Pedro speed bootstrap](#route-rank-29) | Very low; direct stock sources and ordinary air episodes stay far below the threshold, leaving one reset-evading-cycle residual |
 | 30 | Eyerok | [Seams, moving boundaries, or partial updates](#route-rank-30) | Very low |
 | 31 | Memory and control escapes | [Defined alias/external/cache/hitbox escapes; machine-only corruption deferred](#route-rank-31) | Very low as a known gameplay route; proof-critical |
 | 32 | Upstream scope extension | [Castle-to-SSL glitch or retained inbound pointer](#route-rank-32) | Very low and intentionally deferred |
@@ -1021,16 +1021,11 @@ succeeds, prove the hand-to-warp and Act-3 continuation.
 
 **Overall rank: 29. Family priority: 6. Likelihood: very low.**
 
-**In plain language.** Cross the sleeping hand's narrow wall band in one
-quarter-step and enter its floor/ceiling squeeze.
+**In plain language.** Build enough speed without pressing A to cross the sleeping hand's narrow outer wall in one movement step and land in the small space between its floor and ceiling.
 
-**What is already known.** Ordinary exterior entry needs a quarter-step over
-`100`, or directional speed over `400`.  An injected speed of `424` works and
-preserves the old floor/X/Z state, but no no-A source of that speed is known.
-As a standalone speed bootstrap, the proposal is circular.
+**What is already known.** The crossing needs a quarter-step over `100`, which means directional speed over `400`; an injected speed of `424` proves the landing works but does not supply that speed cleanly.  The new [Rank-29 preload audit](notes/rank29-sleeping-hand-preload.md) checks both game versions and shows that normal entry clears old speed, the Area 2/Area 3 warp only preserves existing speed, neither area's complete stock object list contains a cannon, shell, Hoot, Tweester, Heave-Ho, Chuckya, Fly Guy, or jumping box, Spindel only moves collision, and a sleeping hand skips the attack check that could bounce Mario.  Walking and sliding supply at most the generous `110` starting bound, while ordinary air control gains at most `0.15` per frame and would need `1,934` uninterrupted frames; even a very generous gravity and height calculation rules out 400 such frames and bounds one ordinary episode at speed `170`, or a `42.5`-unit quarter-step.  Thus every direct stock preload family checked so far is too small, and the old standalone bootstrap is no longer merely an unexplored source list.
 
-**What closes it.** Find an independent no-A speed source and authenticate its
-pose/action, or prove every reachable preload remains below the threshold.
+**What closes it.** Prove that every live transition involving the Area-2 elevator, Grindels, moving walls, Spindel, a landing, or an off-floor action either carries Mario normally or passes through the usual speed cap or damping, which would prevent several bounded air episodes from being joined together; alternatively, exhibit one controller-authentic repeatable transition that preserves the accumulated speed, creates fresh falling room, survives the instant warp, and reaches the already proven sleeping-hand landing.  A forged action, corrupted roster, out-of-bounds write, or unspecified outside effect is a separate model extension rather than an unfinished ordinary speed source.
 
 [Back to the at-a-glance ranking](#at-a-glance-ranking)
 
