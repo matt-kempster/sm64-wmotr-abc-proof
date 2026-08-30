@@ -27,7 +27,7 @@ From LessThanOneAPress.Proofs Require Import
   WritableActionTableReachedExecution
   PlatformIntegerAliasClosure Area1Rank3PayloadWriterClosure
   EyerokRank15ControllerRide EyerokRank15VSC EyerokRank29Preload
-  EyerokRank29CycleClosure
+  EyerokRank29CycleClosure Area2Rank12ObjectImpulse
   CompCertRouteScope.
 
 Import ListNotations.
@@ -225,6 +225,21 @@ Proof. exact eyerok_rank29_preload_boundary_holds. Qed.
 Theorem current_rank29_stock_cycle_closure :
   EyerokRank29CycleClosure.
 Proof. exact eyerok_rank29_cycle_closure_holds. Qed.
+
+(** Rank 12's strongest named Area-2 impulse actor is now reduced to a
+    collision/support residual.  The selected roster has exactly two homing
+    Amps and one circling Amp, but none of the cannon, shell, Tweester,
+    Heave-Ho, Chuckya, Fly Guy, or jumping-box preset families.  Even granting
+    that the nearest homing Amp is perfectly lured to the second-pole top, its
+    shock handler contains no push and the shocked action zeroes horizontal
+    velocity before the air step; the stock pole grab had already erased
+    inherited speed.  Consequently Amp shock supplies no direct horizontal
+    dismount.  A useful composite must now name a wall response, support
+    change, platform carry, pre-existing crossing, or a failed source/model
+    premise. *)
+Theorem current_rank12_object_impulse_boundary :
+  Area2Rank12ObjectImpulseBoundary.
+Proof. exact area2_rank12_object_impulse_boundary_holds. Qed.
 
 (** Rank 3 can no longer use an ordinary integer-to-pointer cast as a clean
     platform-cell producer: integer constructors never become CompCert block

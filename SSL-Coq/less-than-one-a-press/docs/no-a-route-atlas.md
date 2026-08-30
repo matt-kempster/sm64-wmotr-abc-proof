@@ -179,7 +179,7 @@ The detailed sections are organized as:
 | 9 | Downstream collection | [Upper Act-3 100-coin/star-dance itinerary](#route-rank-9) | Low-medium conditional continuation; no cut-starting replay |
 | 10 | Direct Area-2 gates | [Held-A jump-kick or B rollout from the upper elevator shaft](#route-rank-10) | Very low for the checked vertical routes; live collision closure remains |
 | 11 | Direct Area-2 gates | [Lower-aperture impulse, clip, or support switch](#route-rank-11) | Low in-model; exact payoff only if an ordinary escape or deferred timed mutation exists |
-| 12 | Direct Area-2 gates | [Amp, Grindel, elevator, Tweester, shell, or other object impulse](#route-rank-12) | Low-medium search family; the mechanics are real but no crossing is complete |
+| 12 | Direct Area-2 gates | [Homing Amp or a moving collision owner](#route-rank-12) | Low after the roster/payoff audit; even a perfectly installed Amp brakes horizontal motion, leaving only named collision/support composites |
 | 12A | Direct Area-2 gates | [Reload, nonzero warp destination, or same-position support-selection change](#route-rank-12a) | Low; useful coverage branch, but no concrete clean witness |
 | 13 | State-first installation | [Raw-Object-only return or impulse writer](#route-rank-13) | Low; broad proof branch, but no concrete gameplay writer |
 | 13A | State-first installation | [Terrain-dispatch or collision-prefix writer outside the platform phase](#route-rank-13a) | Low; proof branch with no reached extra writer |
@@ -210,9 +210,11 @@ The detailed sections are organized as:
 | 32 | Upstream scope extension | [Castle-to-SSL glitch or retained inbound pointer](#route-rank-32) | Very low and intentionally deferred |
 
 This review makes three substantive priority changes.  Genuine moving-object
-mechanics and support changes move from ranks `20/20A` to `12/12A` because
-they remain incompletely searched and can bypass the installer families
-entirely.  Negative quicksand falls from rank `12` to `19`, and the five
+mechanics and support changes moved from ranks `20/20A` to `12/12A` because
+they could bypass the installer families entirely; the later Rank-12 roster
+and Amp-payoff audit has now reduced that branch to named collision/support
+composites without yet changing its search order.  Negative quicksand falls
+from rank `12` to `19`, and the five
 abstract floor-owner residuals fall from `18A–18E` to `26A–26E`, because the
 producer audits and continuous clean upper-warp trace found none of their
 needed effects.  Ranks 1–3 remain high for decision value and exact conditional
@@ -729,22 +731,14 @@ but high conditional payoff under a correctly timed retail mutation.**
 
 ### Moving geometry or object impulse
 
-**Overall rank: 12. Family priority: 3. Likelihood: low-medium.**
+**Overall rank: 12. Family priority: 3. Likelihood: low after the actor-roster
+and Amp-payoff audit; collision/support composites remain open.**
 
-**In plain language.** Use a homing Amp, Grindel, elevator, Tweester, jumping
-box, shell, or another object to push, carry, shock, or reanchor Mario across a
-gate.
+**In plain language.** Use an actor that really exists in Area 2 to push, carry, shock, or reanchor Mario across a gate; the most plausible direct attempt is to lure a homing Amp to the second pole and have it knock Mario off without pressing A, while the remaining versions use a Grindel, moving wall, Spindel, or elevator as a changing support.
 
-**What is already known.** These effects are genuine game mechanics, and the
-lower transcript route deliberately uses Amp/Grindel/elevator interactions.
-Bounded Tweester and jumping-box experiments raised Mario but did not create a
-useful gap or target crossing.  No complete transitive moving-owner route is
-proved.
+**What is already known.** The exact US/JP roster contains two homing Amps and one circling Amp, but no cannon, shell source, Tweester, Heave-Ho, Chuckya, Fly Guy, or jumping box; the scripted moving owners are the known Grindels, Spindel, four walls, and elevator.  The nearest Amp has enough theoretical chase-plus-give-up travel to reach the pole, so the new proof grants perfect installation instead of dismissing it, but its shock handler has no push and the shocked action zeros Mario's forward and horizontal velocity before the air step, after pole acquisition already zeroed inherited speed.  With the pole's zero vertical seed and the shocked branch's lack of its own gravity update, this can plausibly stall Mario over the aperture, but it still cannot directly cover the 101 units from the pole centre to the checked ring; a separately proved wall response, support change, platform carry, or pre-existing crossing would have to supply the actual crossing.  See the [Rank-12 object-impulse audit](notes/rank12-area2-object-impulse.md).
 
-**What closes it.** Build the live spawn and callback closure, exact collision
-owner, action result, binary32 movement, and controller chronology for each
-reachable object family.  A counterexample needs a concrete object sequence,
-not just an abstract `object impulse` label.
+**What closes it.** Execute the strongest remaining composite from a real controller prefix—preferably an Amp installed at a named pole-top frame—and classify the ensuing wall, floor, ledge, and moving-support selections; either one exact collision/support response reaches the ring or all such responses fall back into the shaft.  Then prove the transformed collision corridors of every scripted moving owner stay outside the lower separator, or identify the first owner and frame that enters it, and require any Goomba proposal to construct its transport from the low tier.  A counterexample now needs a concrete collision or support sequence rather than a direct Amp push or an actor absent from Area 2.
 
 [Back to the at-a-glance ranking](#at-a-glance-ranking)
 
