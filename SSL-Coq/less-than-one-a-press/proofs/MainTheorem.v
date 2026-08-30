@@ -26,7 +26,7 @@ From LessThanOneAPress.Proofs Require Import
   WritableActionTablePrivateLive
   WritableActionTableReachedExecution
   PlatformIntegerAliasClosure Area1Rank3PayloadWriterClosure
-  EyerokRank15ControllerRide
+  EyerokRank15ControllerRide EyerokRank15VSC
   CompCertRouteScope.
 
 Import ListNotations.
@@ -176,13 +176,25 @@ Proof. exact area1_rank5_state_split_trace_checked_boundary_holds. Qed.
     edge makes the US retail loop execute idle -> punching -> jump-kick with
     no Mario-state write at release, then Mario catches and rides all six
     positive double-pound steps to Y=-943.  The generated US/JP ASTs retain
-    the same action chain.  The boss/contact prefix remains staged, and the
-    resulting hand is still 303 units below the first tunnel query (243 even
-    after granting another 60-unit action envelope), so this is a stronger
-    primitive rather than a complete no-A route. *)
+    same action chain.  The boss/contact prefix remains staged, so this is a
+    stronger primitive rather than a complete no-A route. *)
 Theorem current_rank15_controller_ride_boundary :
   EyerokRank15ControllerRideBoundary.
 Proof. exact eyerok_rank15_controller_ride_boundary_holds. Qed.
+
+(** Vertical-speed conservation does not turn the checked local hand ride into
+    a tunnel entry with any stock seed considered here.  This source/data
+    boundary couples jump-kick to its direct 20-unit velocity replacement,
+    checks the 30-unit bounce and 160+78 lookup constants in both generated
+    versions, and audits all 176 Area-3 static triangles.  Even granting ideal
+    conservation and the full ledge-floor lookup allowance, every integral
+    seed through 31 misses the Y=-562 tunnel floor; 32 is merely the first
+    purely vertical arithmetic threshold.  The theorem does not prove a live
+    wall/XZ trajectory, the staged boss/contact prefix, or the absence of a
+    dynamic second support. *)
+Theorem current_rank15_vsc_vertical_boundary :
+  EyerokRank15VSCBoundary.
+Proof. exact eyerok_rank15_vsc_boundary_holds. Qed.
 
 (** Rank 3 can no longer use an ordinary integer-to-pointer cast as a clean
     platform-cell producer: integer constructors never become CompCert block

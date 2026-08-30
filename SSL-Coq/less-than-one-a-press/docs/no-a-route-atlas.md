@@ -1,6 +1,6 @@
 # No-A two-star route atlas
 
-> Status snapshot: 2026-08-28.  Rankings are intentionally revisable as linked
+> Status snapshot: 2026-08-29.  Rankings are intentionally revisable as linked
 > execution evidence or new counterexamples arrive.
 
 ## Purpose and scope
@@ -149,6 +149,11 @@ The detailed sections are organized as:
   every rising family remains horizontally behind it, the later-writer and
   unreused-slot alternatives are harmless, and the only reused nonzero payload
   moves Mario slightly down and back.
+- **Rank 15's local hand ride is real, but ordinary VSC does not finish it:**
+  even perfect conservation of every checked seed through `31`, plus the full
+  ledge/floor lookup allowance, remains below the tunnel; `32` is only the
+  first purely vertical arithmetic threshold, and the static mesh has no
+  intermediate upward floor on which to bank the ascent.
 
 ## At-a-glance ranking
 
@@ -172,7 +177,7 @@ The detailed sections are organized as:
 | 13A | State-first installation | Terrain-dispatch or collision-prefix writer outside the platform phase | Low; proof branch with no reached extra writer |
 | 13B | State-first installation | Interaction-stage writer or cached-floor snap composite | Low; the ordinary branch is conditionally blocked |
 | 14 | Eyerok | Carry a stale Eyerok-hand address from Area 3 to Area 2 in JP | Retired in the audited stock model; no hand can install the pointer at the warp, and the sole reused nonzero payload moves about 8 down and 38 backward |
-| 15 | Eyerok | Board and ride a raised hand into a lower Area-2 route | Medium as a proved local primitive; very low as a complete route |
+| 15 | Eyerok | Board and ride a raised hand into a lower Area-2 route | Medium as a proved local primitive; VSC through seed 31 and static height-banking are excluded, so a complete route remains very low |
 | 16 | Goomba / PU transport | Goomba raising, PU transport, and Spindel handoff | Very low as a full route; one revised timing class remains |
 | 17 | JP stale-platform lineage | Fresh same-slot replacement payload | Low abstractly; absent in the authenticated best trace |
 | 18 | State-first installation | Skipped, wrong-index, or redirected State-to-Object copy | Low; no normal receiver or return failure has been observed |
@@ -791,9 +796,9 @@ The detailed historical experiments are in the clearly archived
 
 **In plain language.** Hold A before boarding, stand idle on the real Eyerok hand, and press B once just before its double-pound rise; the game turns that ordinary B press into a jump-kick without a new A press, allowing Mario to catch and ride the hand upward, although the hand still stops far below the tunnel.
 
-**What is already known.** A hash-checked North-American retail run now starts from game-confirmed floor and platform ownership on the real hand and, on the release poll, writes nothing to Mario while supplying only one B edge with A already held; the game performs idle to punching to jump-kick in one frame with no new A edge, catches the ordinary 49-unit first gap, and rides every `+85,+70,+55,+40,+25,+10` step to Y `-943`, while the generated US and JP source contains the same action-loop chain.  This removes the earlier injected action predecessor, but the boss schedule and initial hand boarding are still staged, and the final hand top remains `303` below the lowest tunnel query or `243` short even after generously granting another `+60` action envelope; the separate long-jump reboard remains `288`/`228` short and needs an earlier fresh A.  See the [controller-authentic raised-hand ride](notes/rank15-eyerok-controller-ride.md).
+**What is already known.** A hash-checked North-American retail run now starts from game-confirmed floor and platform ownership on the real hand and, on the release poll, writes nothing to Mario while supplying only one B edge with A already held; the game performs idle to punching to jump-kick in one frame with no new A edge, catches the ordinary 49-unit first gap, and rides every `+85,+70,+55,+40,+25,+10` step to Y `-943`, while the generated US and JP source contains the same action-loop chain.  The old `243` figure was only a paper subtraction and cannot be stacked onto a conserved speed because jump-kick directly replaces vertical speed with `20`; a new proof gives VSC every favorable vertical assumption and shows that seed `26` misses the tunnel floor by `45`, the full ordinary bounce seed `30` misses by `15`, every integral seed through `31` fails, and `32` is merely the first seed to reach the vertical arithmetic threshold before wall and horizontal requirements.  All `176` static Area-3 triangles are also checked, with no upward face spanning the open band between the arena and tunnel, so only a stronger clean seed, dynamic support, or different departure can restore the height idea; the boss schedule and first hand boarding remain staged.  See the [controller-authentic ride and VSC audit](notes/rank15-eyerok-controller-ride.md).
 
-**What closes it.** Reach the fight and the confirmed idle-on-hand boundary from ordinary controller play, then find an additional lift or support that erases at least the remaining `243`-unit generous deficit, execute the hand-to-warp departure, and continue to the Act-3 star; proving that every clean boss/hand schedule stays within the checked height envelope would instead rule this route out, while Act 6 remains a separate downstream task.
+**What closes it.** Reach the fight and the confirmed idle-on-hand boundary from ordinary controller play, then exhibit a clean conserved seed of at least about `32`, a dynamic intermediate support, or another departure that passes the exact wall, X/Z, action, and collision checks before executing the hand-to-warp and Act-3 continuation; an impossibility result instead must prove that every clean boss/hand schedule supplies no seed above the checked bound and no suitable dynamic support.  Reaching `32` in arithmetic alone is not sufficient, and Act 6 remains a separate downstream task.
 
 ### Second-hand ceiling to the Area-2 Y=1280 tier
 

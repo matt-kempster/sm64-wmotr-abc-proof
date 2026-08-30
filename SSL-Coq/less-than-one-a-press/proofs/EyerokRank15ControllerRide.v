@@ -140,6 +140,10 @@ Definition rank15_observed_positive_hand_steps : list Z :=
   [85; 70; 55; 40; 25; 10].
 Definition rank15_observed_highest_hand_top : Z := -943.
 Definition rank15_tunnel_floor_query_min_y : Z := -640.
+(** A historical counterfactual bookkeeping grant, not an executable stacking
+    claim.  [EyerokRank15VSC] proves that jump-kick replaces stored vertical
+    speed with 20 and therefore cannot add this 60-unit ascent to a conserved
+    seed. *)
 Definition rank15_granted_second_action_rise : Z := 60.
 
 Record EyerokRank15USControllerTraceReceipt : Prop := {
