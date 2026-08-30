@@ -21,6 +21,12 @@ source-code, or memory-model terminology; include technical names only when
 they are needed to identify evidence, and move exhaustive detail to the linked
 checklist, proof narrative, or technical notes.
 
+Keep the navigation bidirectional whenever an approach is added, removed, or
+reranked: its **Approach** cell in the at-a-glance table must link to a stable
+explicit `route-rank-*` anchor immediately above the approach heading, and the
+description must end with a **Back to the at-a-glance ranking** link.  Update
+the table link, section anchor, and return link together when a rank changes.
+
 Every verdict must also respect the [CompCert execution-scope boundary](compcert-execution-scope.md): defined in-bounds aliases, known-function retargets, ordinary scheduler/collision/lifecycle behavior, and explicitly modeled calls remain legitimate proof targets; unresolved external effects first need a concrete specification; successful out-of-bounds accesses, invalid-pointer calls, arbitrary code execution, post-undefined-behavior MIPS continuations, DMA, and interrupts are outside the current Clight runs and must be labeled **outside the current execution model**, never “disproved in the retail game.”
 
 The two targets are:
@@ -155,51 +161,53 @@ The detailed sections are organized as:
   first purely vertical arithmetic threshold, and the static mesh has no
   intermediate upward floor on which to bank the ascent.
 
+<a id="at-a-glance-ranking"></a>
+
 ## At-a-glance ranking
 
 | Overall | Family | Approach | Current counterexample promise |
 |---:|---|---|---|
-| 1 | JP stale-platform lineage | Different collision/query samples, then read the inactive unreused top payload | Very low currently; exact high-payoff JP mechanism if another clean history breaks a checked boundary |
-| 2 | Ink installation | Timer-131 non-null Graphics retry | Very low for a clean producer; exact injected retry |
-| 3 | State-first installation | Finite signed-16 nonlocal-State alias | Very low in the audited stock model; exact injected payload |
-| 4 | JP stale-platform lineage | Move the warp/top or create a collision-preserving clone | Very low on the checked clean route; the warp never moves or gains collision, and every top-slot reuse first loses the top collision |
-| 5 | State-first installation | Post-copy State-only writer in a later callback or descendant | Very low on the checked clean run; another history must expose the first late write, wrong receiver, or lifetime failure |
-| 5A | State-first installation | Pre-collision cached-platform displacement creates the split | Very low as a clean origin on the checked run; the effect remains exact if another history installs a valid pointer |
-| 6 | JP stale-platform lineage | Moving skipped-query interval | Very low; no moving skip appears in the audited scheduler shapes |
-| 7 | Downstream collection | Join all five Act-6 triggers, spawn, pickup, and save-bit update | High conditional value; the recovered transcript and published run put the sole press at the second pole, and an exact one-edge controller segment now reaches the downstream Grindel base |
-| 8 | Downstream collection | Lower Act-3 100-coin-star/Grindel itinerary | High conditional value; the recovered five-trial account and published run reach Act 3 after the sole second-pole press, while exact inputs currently stop at the Grindel base |
-| 9 | Downstream collection | Upper Act-3 100-coin/star-dance itinerary | Low-medium conditional continuation; no cut-starting replay |
-| 10 | Direct Area-2 gates | Held-A jump-kick or B rollout from the upper elevator shaft | Very low for the checked vertical routes; live collision closure remains |
-| 11 | Direct Area-2 gates | Lower-aperture impulse, clip, or support switch | Low in-model; exact payoff only if an ordinary escape or deferred timed mutation exists |
-| 12 | Direct Area-2 gates | Amp, Grindel, elevator, Tweester, shell, or other object impulse | Low-medium search family; the mechanics are real but no crossing is complete |
-| 12A | Direct Area-2 gates | Reload, nonzero warp destination, or same-position support-selection change | Low; useful coverage branch, but no concrete clean witness |
-| 13 | State-first installation | Raw-Object-only return or impulse writer | Low; broad proof branch, but no concrete gameplay writer |
-| 13A | State-first installation | Terrain-dispatch or collision-prefix writer outside the platform phase | Low; proof branch with no reached extra writer |
-| 13B | State-first installation | Interaction-stage writer or cached-floor snap composite | Low; the ordinary branch is conditionally blocked |
-| 14 | Eyerok | Carry a stale Eyerok-hand address from Area 3 to Area 2 in JP | Retired in the audited stock model; no hand can install the pointer at the warp, and the sole reused nonzero payload moves about 8 down and 38 backward |
-| 15 | Eyerok | Board and ride a raised hand into a lower Area-2 route | Medium as a proved local primitive; VSC through seed 31 and static height-banking are excluded, so a complete route remains very low |
-| 16 | Goomba / PU transport | Goomba raising, PU transport, and Spindel handoff | Very low as a full route; one revised timing class remains |
-| 17 | JP stale-platform lineage | Fresh same-slot replacement payload | Low abstractly; absent in the authenticated best trace |
-| 18 | State-first installation | Skipped, wrong-index, or redirected State-to-Object copy | Low; no normal receiver or return failure has been observed |
-| 19 | Ink installation | Negative quicksand depth plus stalled automatic dialog | Very low; no clean seed, failed lookup, or Graphics-to-collision bridge |
-| 20 | Ink installation | Mario behavior flag plus a large graphical Y offset | Very low; ordinary stock writers are excluded |
-| 21 | Ink installation | Non-stock Graphics anchor or spawned anchor actor | Very low; the required parent actors are absent from stock Area 1 |
-| 22 | Eyerok | Second-hand ceiling to the Area-2 Y=1280 tier | Very low under the checked height and speed bounds |
-| 23 | Eyerok | Update-11 wake-sandwich Pedro installer | Very low; only a one-frame desynchronizer remains plausible |
-| 24 | Direct Area-2 gates | Direct Float32 pole exit or pole avoidance | Very low on current geometry and trajectory evidence |
-| 25 | Ink / wall interaction | Shell visual offset plus wall/floor schedule | Very low; the offset is small and normally reanchored |
-| 26 | Downstream collection | Negative-depth transport to a fresh or older tangible star | Very low; checked placements miss and no suitable older star is known |
-| 26A | JP stale-platform lineage | Canonical owner observed outside the modeled geometry | Very low after the continuous clean trace; universal-history residual only |
-| 26B | JP stale-platform lineage | Recognized owner at a noncanonical slot or ghost epoch | Very low after the continuous clean trace; universal-history residual only |
-| 26C | JP stale-platform lineage | Unclassified dynamic owner | Very low after the continuous clean trace; no missing actor is known |
-| 26D | JP stale-platform lineage | Surface-node/temporary mutation before the floor query | Very low after the continuous clean trace; no returned stale or changed node |
-| 26E | JP stale-platform lineage | Live same-owner payload mutation before apply | Very low after the continuous clean trace; no harmful payload change |
-| 27 | JP stale-platform lineage | Classic Spindel replacement-object spawning displacement | Very low; corrected allocation depth and first payload are unhelpful |
-| 28 | Eyerok | Attack and reboard a rising hand | Very low |
-| 29 | Eyerok | Sleeping-hand Pedro speed bootstrap | Very low |
-| 30 | Eyerok | Seams, moving boundaries, or partial updates | Very low |
-| 31 | Memory and control escapes | Defined alias/external/cache/hitbox escapes; machine-only corruption deferred | Very low as a known gameplay route; proof-critical |
-| 32 | Upstream scope extension | Castle-to-SSL glitch or retained inbound pointer | Very low and intentionally deferred |
+| 1 | JP stale-platform lineage | [Different collision/query samples, then read the inactive unreused top payload](#route-rank-1) | Very low currently; exact high-payoff JP mechanism if another clean history breaks a checked boundary |
+| 2 | Ink installation | [Timer-131 non-null Graphics retry](#route-rank-2) | Very low for a clean producer; exact injected retry |
+| 3 | State-first installation | [Finite signed-16 nonlocal-State alias](#route-rank-3) | Very low in the audited stock model; exact injected payload |
+| 4 | JP stale-platform lineage | [Move the warp/top or create a collision-preserving clone](#route-rank-4) | Very low on the checked clean route; the warp never moves or gains collision, and every top-slot reuse first loses the top collision |
+| 5 | State-first installation | [Post-copy State-only writer in a later callback or descendant](#route-rank-5) | Very low on the checked clean run; another history must expose the first late write, wrong receiver, or lifetime failure |
+| 5A | State-first installation | [Pre-collision cached-platform displacement creates the split](#route-rank-5a) | Very low as a clean origin on the checked run; the effect remains exact if another history installs a valid pointer |
+| 6 | JP stale-platform lineage | [Moving skipped-query interval](#route-rank-6) | Very low; no moving skip appears in the audited scheduler shapes |
+| 7 | Downstream collection | [Join all five Act-6 triggers, spawn, pickup, and save-bit update](#route-rank-7) | High conditional value; the recovered transcript and published run put the sole press at the second pole, and an exact one-edge controller segment now reaches the downstream Grindel base |
+| 8 | Downstream collection | [Lower Act-3 100-coin-star/Grindel itinerary](#route-rank-8) | High conditional value; the recovered five-trial account and published run reach Act 3 after the sole second-pole press, while exact inputs currently stop at the Grindel base |
+| 9 | Downstream collection | [Upper Act-3 100-coin/star-dance itinerary](#route-rank-9) | Low-medium conditional continuation; no cut-starting replay |
+| 10 | Direct Area-2 gates | [Held-A jump-kick or B rollout from the upper elevator shaft](#route-rank-10) | Very low for the checked vertical routes; live collision closure remains |
+| 11 | Direct Area-2 gates | [Lower-aperture impulse, clip, or support switch](#route-rank-11) | Low in-model; exact payoff only if an ordinary escape or deferred timed mutation exists |
+| 12 | Direct Area-2 gates | [Amp, Grindel, elevator, Tweester, shell, or other object impulse](#route-rank-12) | Low-medium search family; the mechanics are real but no crossing is complete |
+| 12A | Direct Area-2 gates | [Reload, nonzero warp destination, or same-position support-selection change](#route-rank-12a) | Low; useful coverage branch, but no concrete clean witness |
+| 13 | State-first installation | [Raw-Object-only return or impulse writer](#route-rank-13) | Low; broad proof branch, but no concrete gameplay writer |
+| 13A | State-first installation | [Terrain-dispatch or collision-prefix writer outside the platform phase](#route-rank-13a) | Low; proof branch with no reached extra writer |
+| 13B | State-first installation | [Interaction-stage writer or cached-floor snap composite](#route-rank-13b) | Low; the ordinary branch is conditionally blocked |
+| 14 | Eyerok | [Carry a stale Eyerok-hand address from Area 3 to Area 2 in JP](#route-rank-14) | Retired in the audited stock model; no hand can install the pointer at the warp, and the sole reused nonzero payload moves about 8 down and 38 backward |
+| 15 | Eyerok | [Board and ride a raised hand into a lower Area-2 route](#route-rank-15) | Medium as a proved local primitive; VSC through seed 31 and static height-banking are excluded, so a complete route remains very low |
+| 16 | Goomba / PU transport | [Goomba raising, PU transport, and Spindel handoff](#route-rank-16) | Very low as a full route; one revised timing class remains |
+| 17 | JP stale-platform lineage | [Fresh same-slot replacement payload](#route-rank-17) | Low abstractly; absent in the authenticated best trace |
+| 18 | State-first installation | [Skipped, wrong-index, or redirected State-to-Object copy](#route-rank-18) | Low; no normal receiver or return failure has been observed |
+| 19 | Ink installation | [Negative quicksand depth plus stalled automatic dialog](#route-rank-19) | Very low; no clean seed, failed lookup, or Graphics-to-collision bridge |
+| 20 | Ink installation | [Mario behavior flag plus a large graphical Y offset](#route-rank-20) | Very low; ordinary stock writers are excluded |
+| 21 | Ink installation | [Non-stock Graphics anchor or spawned anchor actor](#route-rank-21) | Very low; the required parent actors are absent from stock Area 1 |
+| 22 | Eyerok | [Second-hand ceiling to the Area-2 Y=1280 tier](#route-rank-22) | Very low under the checked height and speed bounds |
+| 23 | Eyerok | [Update-11 wake-sandwich Pedro installer](#route-rank-23) | Very low; only a one-frame desynchronizer remains plausible |
+| 24 | Direct Area-2 gates | [Direct Float32 pole exit or pole avoidance](#route-rank-24) | Very low on current geometry and trajectory evidence |
+| 25 | Ink / wall interaction | [Shell visual offset plus wall/floor schedule](#route-rank-25) | Very low; the offset is small and normally reanchored |
+| 26 | Downstream collection | [Negative-depth transport to a fresh or older tangible star](#route-rank-26) | Very low; checked placements miss and no suitable older star is known |
+| 26A | JP stale-platform lineage | [Canonical owner observed outside the modeled geometry](#route-rank-26a) | Very low after the continuous clean trace; universal-history residual only |
+| 26B | JP stale-platform lineage | [Recognized owner at a noncanonical slot or ghost epoch](#route-rank-26b) | Very low after the continuous clean trace; universal-history residual only |
+| 26C | JP stale-platform lineage | [Unclassified dynamic owner](#route-rank-26c) | Very low after the continuous clean trace; no missing actor is known |
+| 26D | JP stale-platform lineage | [Surface-node/temporary mutation before the floor query](#route-rank-26d) | Very low after the continuous clean trace; no returned stale or changed node |
+| 26E | JP stale-platform lineage | [Live same-owner payload mutation before apply](#route-rank-26e) | Very low after the continuous clean trace; no harmful payload change |
+| 27 | JP stale-platform lineage | [Classic Spindel replacement-object spawning displacement](#route-rank-27) | Very low; corrected allocation depth and first payload are unhelpful |
+| 28 | Eyerok | [Attack and reboard a rising hand](#route-rank-28) | Very low |
+| 29 | Eyerok | [Sleeping-hand Pedro speed bootstrap](#route-rank-29) | Very low |
+| 30 | Eyerok | [Seams, moving boundaries, or partial updates](#route-rank-30) | Very low |
+| 31 | Memory and control escapes | [Defined alias/external/cache/hitbox escapes; machine-only corruption deferred](#route-rank-31) | Very low as a known gameplay route; proof-critical |
+| 32 | Upstream scope extension | [Castle-to-SSL glitch or retained inbound pointer](#route-rank-32) | Very low and intentionally deferred |
 
 This review makes three substantive priority changes.  Genuine moving-object
 mechanics and support changes move from ranks `20/20A` to `12/12A` because
@@ -224,6 +232,8 @@ Technical background: [route exhaustiveness](notes/route-exhaustiveness.md),
 [local-Object/nonlocal-State matrix](notes/local-object-nonlocal-state-gap-matrix.md),
 plus the [Rank-1 player/floor-owner residual audit](notes/rank1-player-floor-owner-residual.md).
 
+<a id="route-rank-1"></a>
+
 ### Different collision/query samples, then the inactive top payload
 
 **Overall rank: 1. Family priority: 1. Likelihood: very low for a clean producer,
@@ -240,6 +250,10 @@ platform displacement to MarioState while the raw Mario Object remains local.
 
 **What closes it.** The real upper-warp attempt is finished, so a complete in-model disproof now needs the same checks for every materially different reachable controller and scheduler history, or one general proof that makes those repetitions unnecessary: no route may overlap the protected floor storage, redirect an outside destination, return a wrong or dead moving-floor owner, keep a usable stale floor past clearing, select an unexpected final platform, or create a useful positive split.  A counterexample instead has to identify the first exact check that a different clean run breaks and then carry the saved top pointer into Area 2.  The confirmed inactive object can still carry such a pointer if another schedule installs it.  Out-of-bounds installation, ACE, raw DMA, and continuation after undefined behavior remain outside the current execution model rather than disproved.
 
+[Back to the at-a-glance ranking](#at-a-glance-ranking)
+
+<a id="route-rank-4"></a>
+
 ### Move the warp/top, or create a collision-preserving clone
 
 **Overall rank: 4. Family priority: 2. Likelihood: very low on the checked
@@ -250,6 +264,10 @@ clean route; no clean relocation or clone producer is known.**
 **What is already known.** The stock top and warp are not together, ordinary copying helpers do not copy an object's identity or collision, and the top's own routines create only detectors and harmless fragments.  The new authenticated zero-A four-pillar run checked every live object from Area-1 entry through the upper warp: there was always only one real top and one upper warp, every one of the top's 2,353 collision loads belonged to that top inside its normal small motion range, and the warp never moved, gained collision, changed identity, or loaded a floor.  The dead top's slot was reused three times, but each reuse cleared the old collision before installing a different object, so no replacement kept a standable copy.  This disproves relocation or cloning on that successful route, while the older permissive model still confirms that either effect would be useful if another clean route actually produced it.  See the [Rank-4 warp/top trace](notes/rank4-warp-top-clone.md).
 
 **What closes it.** A full in-model disproof still has to connect the complete stock spawn and collision-writer census to every reachable clean controller history, showing that no ordinary callback, outside effect, alias, or later slot reuse can move the warp or install the top's floor on another object; alternatively, one different clean run can settle the route positively by producing the first extra top, top-collision owner, warp write, or warp collision load and carrying it into the warp.  The checked run supplies the exact test and eliminates the most realistic stock execution, while out-of-bounds writes, ACE, DMA, and execution after undefined behavior remain separate machine-level extensions rather than unfinished clean producers.
+
+[Back to the at-a-glance ranking](#at-a-glance-ranking)
+
+<a id="route-rank-6"></a>
 
 ### Moving skipped-query interval
 
@@ -273,6 +291,10 @@ frames, play-mode reachability, and null-`gMarioObject` lifecycle to the actual
 run.  A survivor must then exhibit a scheduler shape outside the audited cases
 or a concrete alias, external, or lifecycle effect.
 
+[Back to the at-a-glance ranking](#at-a-glance-ranking)
+
+<a id="route-rank-17"></a>
+
 ### Fresh same-slot replacement payload
 
 **Overall rank: 17. Family priority: 4. Likelihood: low abstractly and very low
@@ -289,6 +311,10 @@ free-list pushes and pops, same-slot allocation, replacement type, payload
 bytes, query selection, and apply timing.  An independent schedule witness and
 an independent reuse witness are not enough.
 
+[Back to the at-a-glance ranking](#at-a-glance-ranking)
+
+<a id="route-rank-26a"></a>
+
 ### Canonical owner observed outside the modeled geometry
 
 **Overall rank: 26A. Family priority: 5. Likelihood: very low after the
@@ -304,6 +330,10 @@ geometry model did not allow.
 scale, collision matrix, and surface insertion at the query frame; otherwise
 return the first owner whose observed transform violates the canonical map.
 
+[Back to the at-a-glance ranking](#at-a-glance-ranking)
+
+<a id="route-rank-26b"></a>
+
 ### Recognized owner at a noncanonical slot or ghost epoch
 
 **Overall rank: 26B. Family priority: 6. Likelihood: very low after the
@@ -317,6 +347,10 @@ the wrong pool slot, an old lifetime of that slot, or a stale “ghost” copy.
 **What closes it.** Connect every `Surface.object` address to an aligned live
 pool slot, prove allocation-epoch monotonicity and behavior identity, and frame
 unload/reuse from insertion through query.
+
+[Back to the at-a-glance ranking](#at-a-glance-ranking)
+
+<a id="route-rank-26c"></a>
 
 ### Unclassified dynamic owner
 
@@ -332,6 +366,10 @@ loads a floor at the warp and supplies the platform pointer.
 graph and dynamic-list membership proof, or exhibit the exact new owner and
 its clean creation path.
 
+[Back to the at-a-glance ranking](#at-a-glance-ranking)
+
+<a id="route-rank-26d"></a>
+
 ### Surface-node or temporary mutation before the query
 
 **Overall rank: 26D. Family priority: 8. Likelihood: very low after the
@@ -345,6 +383,10 @@ floor query later sees.
 
 **What closes it.** Execute allocation, initialization, insertion, list
 traversal, clear/removal, and `find_floor` with receiver/alias/external frames.
+
+[Back to the at-a-glance ranking](#at-a-glance-ranking)
+
+<a id="route-rank-26e"></a>
 
 ### Live same-owner payload mutation before apply
 
@@ -361,6 +403,10 @@ floor query and the later platform apply.
 query to apply, or return the exact mutating step and resulting binary32
 displacement.
 
+[Back to the at-a-glance ranking](#at-a-glance-ranking)
+
+<a id="route-rank-27"></a>
+
 ### Classic Spindel replacement-object route
 
 **Overall rank: 27. Family priority: 10. Likelihood: very low.**
@@ -376,6 +422,8 @@ better authenticated and currently more promising.
 
 **What closes it.** Construct a clean seed at the exact free-list depth and a binary32 continuation to a target, or finish the finite first-update platform census and rule out every Spindel placement.  In US, the spawn clear blocks retained-inbound-pointer versions at that boundary but does not exclude a later recapture, relocated owner, clone, or independently changed pointer; the final proof must still execute and frame that clear in linked US memory.
 
+[Back to the at-a-glance ranking](#at-a-glance-ranking)
+
 ## Family 2 — Ink's Graphics-retry installation attempts
 
 Ink's core observation is that SM64 can consult three different views of
@@ -387,6 +435,8 @@ needed by Family 1.
 Technical background: [Ink fallback](notes/ink-fallback.md),
 [timer-131 surface](notes/timer131-surface.md), and the
 [clean-JP Graphics-gap source audit](notes/clean-jp-graphics-gap-source-audit.md).
+
+<a id="route-rank-2"></a>
 
 ### Timer-131 non-null Graphics retry
 
@@ -402,6 +452,10 @@ position and remembers the top.
 
 **What closes it.** The clean four-pillar run now reaches the top's real timer 131 without changing Mario's protected values, but Mario reaches the upper warp only after the top explodes, so it does not supply the retry geometry; a counterexample must couple the clean pillar activation, the still-spinning top, the upper-warp collision, and the required three-view gap in one run.  A complete in-model disproof instead must show that every controller and lifecycle history preserves Mario's identity, behavior, flag, and graphical offset or identify the first exact store or outside call that does not.  Ordinary castle entry and an IDO-to-Clight entry bridge remain unnecessary under the chosen boundary.  Negative quicksand still needs an unusual seed and a way to turn displayed height into collision height, while out-of-bounds writes, arbitrary code execution, and DMA require a separate retail-machine model; only a surviving producer warrants continuing to the failed lookup, top-owned retry, JP displacement, and the separate Act-3 and Act-6 continuations.
 
+[Back to the at-a-glance ranking](#at-a-glance-ranking)
+
+<a id="route-rank-19"></a>
+
 ### Negative quicksand depth plus stalled automatic dialog
 
 **Overall rank: 19. Family priority: 2. Likelihood: very low; Area 2 makes the
@@ -413,6 +467,10 @@ Graphics-to-collision bridge.**
 **What is already known.** A negative depth could create enough displayed-height gap, but the clean zero-A source has no known way to create the starting value: every direct depth change has been audited, and the only dangerous one is a late long-jump landing that normally requires A; stock interactions, writable tables, and the checked whole-game aliases do not bypass that requirement.  Ordinary Area-2 entry also resets depth to zero.  Area 2 nevertheless contains 260 quicksand triangles, with an exact moving-quicksand floor leaving the Act-6 star just 11 raw collision units above standing Mario; the Act-3 standing gap is 75 units and its floor is not quicksand.  The new conditional proof shows that retaining the known hypothetical `-2.65` value for five sinks supplies enough displayed height for Act 6, and 29 supplies enough for Act 3, but only if a later retry copies that height into Mario's real collision position; without that copy, every finite number of sinks leaves both star checks unchanged.  Both ordinary target samples already have static floors, so the required failed lookup is unexplained, and the original Area-1 dialog candidate remains far from the upper warp.
 
 **What closes it.** In the current in-bounds CompCert model, follow one accepted live execution from its clean zero-depth start, match every reached depth and action change to the harmless audited cases, and give every reached outside call an exact promise that it preserves the relevant values; this either disproves the remaining clean seed or identifies the first real producer.  If a future retail-machine mutation supplies the seed, it must occur after or replace Area 2's zero reset, retain the value for five Act-6 or 29 Act-3 sinks, explain why the first floor lookup misses despite the checked floor, make the displayed-position retry succeed, copy the result into Mario's collision position, and preserve it until the next star check.  Out-of-bounds writes, ACE, DMA, and execution after undefined behavior require that separate retail-machine model.  See the [Area-2 hypothetical](notes/area2-negative-quicksand-star-hypothesis.md), [conditional Coq proof](../proofs/Area2NegativeQuicksandStarHypothesis.v), [writable-table audit](notes/writable-action-table-mutation.md), [defined-producer proof](../proofs/NegativeDepthDefinedProducerClosure.v), and [negative-quicksand/dialog audit](notes/negative-quicksand-unreanchored-dialog.md).
+
+[Back to the at-a-glance ranking](#at-a-glance-ranking)
+
+<a id="route-rank-20"></a>
 
 ### Mario behavior flag plus a large graphical Y offset
 
@@ -427,6 +485,10 @@ This could create the entire Ink gap at once.
 
 **What closes it.** Prove through live execution that the traversed Mario node is still `gMarioObject`, its allocation epoch and cleared raw fields persist, behavior dispatch uses the checked table and script, and no indirect or defined aliased store changes bit 0 or the offset; give every reachable external an exact effect or frame, or exhibit the first valid counterexample store.  An out-of-bounds overwrite is outside this Clight close-out and would need a separate retail machine model.
 
+[Back to the at-a-glance ranking](#at-a-glance-ranking)
+
+<a id="route-rank-21"></a>
+
 ### Non-stock Graphics anchor or spawned anchor actor
 
 **Overall rank: 21. Family priority: 4. Likelihood: very low for stock Area 1.**
@@ -438,6 +500,10 @@ away actor could manufacture a huge graphical gap.
 **What is already known.** The writer family is real and copies a child anchor's full rendered position into Mario, but the complete direct call chain belongs only to Chuckya and King Bob-omb anchor behaviors.  The audited SSL Area-1 regular list, macro list, and selected special presets contain neither parent; the generated C corpus has no direct parent reference, and the only static Chuckya reference is its global macro-preset table.  Loading the model is not spawning the actor.  This rules out the normal stock-root story, while forged behavior pointers, corrupted preset selection, and unclosed transitive or debug-spawn paths remain.
 
 **What closes it.** Link the static selector result to the live behavior/spawn graph, preset indices, same-frame traversal, allocation, and receiver identity, including debug and indirect spawns; then either produce a clean Chuckya/King Bob-omb anchor descendant or prove that no live Area-1 object can acquire either parent or child behavior.
+
+[Back to the at-a-glance ranking](#at-a-glance-ranking)
+
+<a id="route-rank-25"></a>
 
 ### Shell visual offset plus wall/floor scheduling
 
@@ -456,6 +522,8 @@ supplied the missing large gap.
 
 **What closes it.** Linked live-range writer coverage can turn this into a clean impossibility result; a counterexample would need an unusual schedule, valid alias, or another mechanism that first creates most of the gap.  Ordinary platform or PU motion alone preserves an existing gap rather than creating one from a synchronized start, and turning-animation metadata also preserves the three positions.  A valid overlapping buffer remains an in-scope alias question, while actual asynchronous DMA is outside the current Clight execution and needs explicit machine or external semantics.
 
+[Back to the at-a-glance ranking](#at-a-glance-ranking)
+
 ## Family 3 — Local-Object/nonlocal-State (“State-first”) installers
 
 These approaches leave raw Mario Object at the Area-1 warp while moving or
@@ -466,6 +534,8 @@ copy/query code installs the pointer.
 Technical background: [nonlocal endpoints](notes/area1-nonlocal-endpoints.md),
 [post-copy mechanism matrix](notes/local-object-nonlocal-state-gap-matrix.md),
 and [platform alias/external closure](notes/platform-alias-external-closure.md).
+
+<a id="route-rank-3"></a>
 
 ### Finite signed-16 nonlocal-State alias
 
@@ -481,6 +551,10 @@ signed 16-bit value, wrapping it back to the timer-131 top.
 
 **What closes it.** A counterexample must now show one concrete defined escape that the new direct-call and integer-cast checks do not cover: a valid existing or outside-produced alias that writes the remembered-platform cell, an indirect or forged callback, object-slot replacement, a wrongly identified floor owner, movement after the final floor check or during a skipped check, an unchecked retained entry, or a scheduler path outside the audit, and it must carry the exact payload through one live execution; if any of the six named unresolved calls is actually reached, its exact memory effect must be supplied first.  An impossibility proof must connect each real Clight frame to the audited cases and eliminate those remaining choices, after which the route closes before its already-proved platform math runs.  Out-of-bounds pointer fabrication and MIPS continuation after undefined behavior remain outside that verdict and need a machine-level extension, and either defined outcome must still derive the top's activation and later lifecycle without the injected setup.
 
+[Back to the at-a-glance ranking](#at-a-glance-ranking)
+
+<a id="route-rank-5"></a>
+
 ### Post-copy State-only writer in a callback or spawned descendant
 
 **Overall rank: 5. Family priority: 2. Likelihood: very low on the checked
@@ -492,6 +566,10 @@ clean run; no reached writer is known.**
 
 **What closes it.** A general disproof must show that every other reachable clean input history behaves the same way.  A counterexample must instead identify the first frame where Mario's copy targets the wrong object or one of the two positions changes afterward, then carry that disagreement into collision.  Out-of-bounds corruption and arbitrary code execution remain outside the current execution model.
 
+[Back to the at-a-glance ranking](#at-a-glance-ranking)
+
+<a id="route-rank-5a"></a>
+
 ### Pre-collision cached-platform displacement creates the split
 
 **Overall rank: 5A. Family priority: 3. Likelihood: very low as a clean origin
@@ -502,6 +580,10 @@ on the checked run; the conditional effect itself is exact.**
 **What is already known.** An artificially supplied platform can create the useful movement, so the effect itself is real.  On the successful zero-A four-pillar run, however, the remembered platform is empty at the platform step in all 2,462 frames and the moving-platform helper never runs.  None of Mario's three recorded positions changes during that step, and his movement and collision positions match at every checked collision entry and return.  At the three upper-warp platform checks, all three positions match.  See the [Rank-5/5A intra-frame trace](notes/rank5-state-split-trace.md) for the technical receipt.
 
 **What closes it.** A general disproof must show that every other reachable clean input history also reaches each platform step without a useful remembered platform.  A counterexample must instead produce one clean frame where a real moving platform is remembered and moves Mario far enough before collision.  Fabricated pointers and continuation after out-of-bounds corruption remain outside the current execution model.
+
+[Back to the at-a-glance ranking](#at-a-glance-ranking)
+
+<a id="route-rank-13"></a>
 
 ### Raw-Object-only return or impulse writer
 
@@ -521,6 +603,10 @@ the right endpoint at the right time.
 receiver, component, and timing data, or frame every reachable Object writer
 through the collision sample.
 
+[Back to the at-a-glance ranking](#at-a-glance-ranking)
+
+<a id="route-rank-13a"></a>
+
 ### Terrain-dispatch or collision-prefix writer outside the platform phase
 
 **Overall rank: 13A. Family priority: 5. Likelihood: low as a proof
@@ -539,6 +625,10 @@ extra stock writer has been identified.
 **What closes it.** Instantiate each stage with actual linked steps and
 protected loads, prove every direct and indirect receiver, and either frame all
 stores or return the first concrete State/Object-changing step.
+
+[Back to the at-a-glance ranking](#at-a-glance-ranking)
+
+<a id="route-rank-13b"></a>
 
 ### Interaction-stage writer or cached-floor snap composite
 
@@ -565,6 +655,10 @@ live floor/owner projection from one linked frame.  A survivor must violate one
 of those premises rather than merely invoke a later normal handler or an
 ordinary same-sample cached-floor snap.
 
+[Back to the at-a-glance ranking](#at-a-glance-ranking)
+
+<a id="route-rank-18"></a>
+
 ### Skipped, wrong-index, or redirected State-to-Object copy
 
 **Overall rank: 18. Family priority: 7. Likelihood: low.**
@@ -586,6 +680,8 @@ current gameplay seed despite its high value for exhaustiveness.
 with index `0`, stable live endpoints, exact three-coordinate stores, and no
 intervening retarget; classify deaths, warps, abnormal returns, and externals.
 
+[Back to the at-a-glance ranking](#at-a-glance-ranking)
+
 ## Family 4 — Direct Area-2 gate crossings
 
 These ideas try to cross the upper or lower pyramid barrier without first
@@ -596,6 +692,8 @@ area reload, nonlocal cast, and same-position support change separate.
 Technical background: [upper elevator cut](notes/area2-elevator-cut.md),
 [lower target cut](notes/area2-lower-target-cut.md), and
 [route exhaustiveness](notes/route-exhaustiveness.md).
+
+<a id="route-rank-10"></a>
 
 ### Held-A jump-kick or B rollout from the upper elevator shaft
 
@@ -610,6 +708,10 @@ get over or through the elevator-shaft wall.
 
 **What closes it.** Connect the checked stock warp, reinitialization, and non-Wing values to the same live Mario receiver, then execute the initial descent and every floor query through the intended live-elevator landing and connect every checked quarter-step to its live wall, floor, ceiling, action transition, and collision result.  That would eliminate the ordinary held-A and B-rollout vertical versions and leave horizontal clips or another named writer class to test.  A Wing version can reopen only by identifying a nonstock course or warp, a different live receiver, or another in-scope writer that grants Wing after reinitialization; merely arriving at the Area-1 entrance with Wing no longer suffices.  The table-triggered version is closed for successful in-bounds selected CompCert runs and can reopen only by refuting the accepted start/step relation or adding a separate retail-machine corruption model.  Either a live ordinary trajectory crosses the cut or this finite action/collision split becomes exhaustive.
 
+[Back to the at-a-glance ranking](#at-a-glance-ranking)
+
+<a id="route-rank-11"></a>
+
 ### Lower-aperture impulse, clip, or support switch
 
 **Overall rank: 11. Family priority: 2. Likelihood: low in the current model,
@@ -620,6 +722,10 @@ but high conditional payoff under a correctly timed retail mutation.**
 **What is already known.** The exact pole top, ring, aperture, and target-side supports are imported, and the old normalized soft-bonk trajectory does not clear them.  The new hypothetical Coq proof checks the stronger two-word US/JP payload: redirect pole-handler word `45` to the compatible Snufit/damage handler and change the selected air/weak forward knockback word `3` to `ACT_LONG_JUMP`; the stock helper raises speed to `16`, the real setter produces horizontal speed `24` and vertical speed `30`, and five no-analog clear frames move the pole-top sample from `(0,4020,1331)` to `(0,4150,1216.25)`, inside the authenticated south target-air cell with zero A edges.  If the mutation is active before the climb, changing only the knockback word leaves the first grab alone but does nothing at the handstand, because the checked pole and top-of-pole bodies never read that table and the automatic actions use a direct switch rather than a top-specific writable table; changing pole-handler word `45` does have a consumer, but it catches the first eligible pole collision and replaces the stock grab.  A ground contact also selects word `0`, not word `3`; even granting a fully initialized long jump from the normalized Y-`3200` base, all 31 clear-flight states miss and the peak is only `3440`, while Y `3702` is the checked threshold whose frame-15 apex `(0,3942,1013)` reaches the target.  Thus an early edit needs a separate high contact, support, or recontact mechanism, whereas preserving the climb needs a timed post-grab handler write, another interaction found only at the top, or a broader ACE code patch that also supplies the required speed.  No such write exists in a successful in-bounds selected CompCert execution, and the live twenty-quarter collision replay and downstream star continuation remain unproved; see the [hypothetical pole-long-jump note](notes/hypothetical-pole-long-jump-mutation.md).
 
 **What closes it.** For ordinary in-model motion, instantiate the current conditional Float32 collision-phase theorem with linked execution and an exhaustive pole-action exit split, then classify every impulse, clip, support, and external writer at the first target-side crossing.  For the hypothetical mutation, add a retail MIPS/hardware semantics and one continuous trace that identifies the two write addresses and values, proves whether the edit occurs after the stock grab or supplies an independently reachable contact at least as high as the checked threshold, resolves the exact direction/terrain/strength table cell, enters the normal long-jump setter, and shows all twenty quarter steps realize the clear kernel before connecting the target endpoint to the star suffix.  A mere static pre-climb pole-row edit, bare dispatch to `act_long_jump`, or CompCert-excluded ACE assertion does not inhabit that bridge.
+
+[Back to the at-a-glance ranking](#at-a-glance-ranking)
+
+<a id="route-rank-12"></a>
 
 ### Moving geometry or object impulse
 
@@ -639,6 +745,10 @@ proved.
 owner, action result, binary32 movement, and controller chronology for each
 reachable object family.  A counterexample needs a concrete object sequence,
 not just an abstract `object impulse` label.
+
+[Back to the at-a-glance ranking](#at-a-glance-ranking)
+
+<a id="route-rank-12a"></a>
 
 ### Reload, nonzero warp destination, or same-position support change
 
@@ -660,6 +770,10 @@ execution outside those coherent premises remains open.
 area-load memory effect, and selected support from the linked program; or
 produce the exact nonzero/corrupted destination or changed-support witness.
 
+[Back to the at-a-glance ranking](#at-a-glance-ranking)
+
+<a id="route-rank-24"></a>
+
 ### Direct Float32 pole exit or pole avoidance
 
 **Overall rank: 24. Family priority: 5. Likelihood: very low on current
@@ -677,6 +791,8 @@ yet reached the target side.
 **What closes it.** Enumerate every pole action/health/version branch, all four
 air quarter-steps, floor/wall/lava-wall outcomes, and the live support mesh.
 
+[Back to the at-a-glance ranking](#at-a-glance-ranking)
+
 ## Family 5 — Downstream collection of the two target stars
 
 An installer or gate crossing is not enough.  These are the remaining routes
@@ -690,6 +806,8 @@ pole exit remain open.
 Technical background: [Area-2 downstream continuations](notes/area2-downstream-continuations.md)
 and [published lower-entrance video](notes/lower-entrance-downstream-video.md).
 
+<a id="route-rank-7"></a>
+
 ### Join the Act-6 trigger, spawn, pickup, and save-bit traces
 
 **Overall rank: 7. Family priority: 1. Likelihood: high once a valid gate
@@ -702,6 +820,10 @@ hidden star spawn, then overlap and collect it without a new A press.
 
 **What closes it.** Obtain the `.m64` or recreate everything after the pole on a known game version with every input recorded, then show in that one run the Amp, Grindel, elevator, all five trigger regions, star spawn, pickup, and completion flag with no new A press; a complete zero-A route must separately replace the second-pole jump or reach the far side another way.
 
+[Back to the at-a-glance ranking](#at-a-glance-ranking)
+
+<a id="route-rank-8"></a>
+
 ### Lower Act-3 100-coin-star/Grindel itinerary
 
 **Overall rank: 8. Family priority: 2. Likelihood: high as a conditional continuation; the one displayed pole-jump press remains.**
@@ -712,6 +834,10 @@ hidden star spawn, then overlap and collect it without a new A press.
 
 **What closes it.** Obtain the `.m64` or continue the known-version input reconstruction through the homing-Amp ledge grab, the Grindel's one-unit corner, the undescended elevator's matching corner and descent, and the final star pickup with no new A press; then either leave the second pole without A or connect another clean crossing directly to the recreated state beyond it.
 
+[Back to the at-a-glance ranking](#at-a-glance-ranking)
+
+<a id="route-rank-9"></a>
+
 ### Upper Act-3 100-coin/star-dance itinerary
 
 **Overall rank: 9. Family priority: 3. Likelihood: low-medium.**
@@ -721,6 +847,10 @@ hidden star spawn, then overlap and collect it without a new A press.
 **What is already known.** This is the transcript's specified upper route, and the target/support geometry is checked; simply standing on the checked floor under the Act-3 star misses its hitbox by `75` vertical units.  The new video demonstrates a different lower-entrance continuation and therefore does not authenticate this upper itinerary, which still has no cut-starting replay.
 
 **What closes it.** Prove the 100th-coin timing and placement, rollout-speed storage and reactivation, ground-pound and star-dance transitions, ledge collision, final star overlap, and Act-3 bit update in one linked zero-edge suffix.
+
+[Back to the at-a-glance ranking](#at-a-glance-ranking)
+
+<a id="route-rank-26"></a>
 
 ### Negative-depth transport to a fresh or older star
 
@@ -739,10 +869,14 @@ provenance prevents substituting the wrong star for Act 3 or Act 6.
 overlap schedule, or prove every eligible fresh/older star remains outside the
 necessary contact envelope.
 
+[Back to the at-a-glance ranking](#at-a-glance-ranking)
+
 ## Family 6 — Goomba raising and PU transport
 
 Technical background: [Goomba raising](notes/goomba-raising.md) and
 [nonlocal endpoints](notes/area1-nonlocal-endpoints.md).
+
+<a id="route-rank-16"></a>
 
 ### Goomba H/F/R raising, PU capture, and Spindel handoff
 
@@ -768,6 +902,8 @@ Goomba receiver and lifecycle, preserve it through PU transport, instantiate
 every handoff, and then give a target continuation.  Otherwise prove the
 remaining writer/timing classes cannot beat the hit budget.
 
+[Back to the at-a-glance ranking](#at-a-glance-ranking)
+
 ## Family 7 — Eyerok and Area-3 manipulation
 
 Eyerok is mainly a proposed gateway to Act 3 through Area 3 and back into Area
@@ -780,6 +916,8 @@ linked retail executions.  See [archived proof evidence](notes/archived-proof-ev
 The detailed historical experiments are in the clearly archived
 [Eyerok notebook](../../old-proofs/eyerok-manipulation/Eyerok.md).
 
+<a id="route-rank-14"></a>
+
 ### Carry a stale Eyerok-hand address into Area 2 in JP
 
 **Overall rank: 14. Family priority: 1. Likelihood: retired in the audited stock model; reopening it requires a failed source-to-execution premise or machine-level behavior outside that model.**
@@ -790,6 +928,10 @@ The detailed historical experiments are in the clearly archived
 
 **What closes it.** The route is closed within the audited stock source-shaped model; a full formal verdict now needs the real linked execution to be shown to follow the checked hand-pose, sibling, writer, and lifetime classification.  A concrete failure of that connection—such as a hand pose outside the stock split, an unexpected later Mario-position writer, or nonzero bytes surviving in the freed slot—would reopen one exact case and make the small Spindel displacement worth testing, while out-of-bounds writes, ACE, DMA, and continuation after undefined behavior remain outside the current execution model and require a retail-machine extension; Eyerok still supplies no Act-6 continuation.
 
+[Back to the at-a-glance ranking](#at-a-glance-ranking)
+
+<a id="route-rank-15"></a>
+
 ### Board and ride a raised hand into the lower route
 
 **Overall rank: 15. Family priority: 2. Likelihood: medium as a proved local primitive, very low as a full route.**
@@ -799,6 +941,10 @@ The detailed historical experiments are in the clearly archived
 **What is already known.** A hash-checked North-American retail run now starts from game-confirmed floor and platform ownership on the real hand and, on the release poll, writes nothing to Mario while supplying only one B edge with A already held; the game performs idle to punching to jump-kick in one frame with no new A edge, catches the ordinary 49-unit first gap, and rides every `+85,+70,+55,+40,+25,+10` step to Y `-943`, while the generated US and JP source contains the same action-loop chain.  The old `243` figure was only a paper subtraction and cannot be stacked onto a conserved speed because jump-kick directly replaces vertical speed with `20`; a new proof gives VSC every favorable vertical assumption and shows that seed `26` misses the tunnel floor by `45`, the full ordinary bounce seed `30` misses by `15`, every integral seed through `31` fails, and `32` is merely the first seed to reach the vertical arithmetic threshold before wall and horizontal requirements.  All `176` static Area-3 triangles are also checked, with no upward face spanning the open band between the arena and tunnel, so only a stronger clean seed, dynamic support, or different departure can restore the height idea; the boss schedule and first hand boarding remain staged.  See the [controller-authentic ride and VSC audit](notes/rank15-eyerok-controller-ride.md).
 
 **What closes it.** Reach the fight and the confirmed idle-on-hand boundary from ordinary controller play, then exhibit a clean conserved seed of at least about `32`, a dynamic intermediate support, or another departure that passes the exact wall, X/Z, action, and collision checks before executing the hand-to-warp and Act-3 continuation; an impossibility result instead must prove that every clean boss/hand schedule supplies no seed above the checked bound and no suitable dynamic support.  Reaching `32` in arithmetic alone is not sufficient, and Act 6 remains a separate downstream task.
+
+[Back to the at-a-glance ranking](#at-a-glance-ranking)
+
+<a id="route-rank-22"></a>
 
 ### Second-hand ceiling to the Area-2 Y=1280 tier
 
@@ -822,6 +968,10 @@ seam/quantum-tunneling path, or PU-cast entry; or prove all reachable departures
 remain inside the existing speed and wall bounds.  Then connect the landing to
 Act 3.  Act 6 remains separate.
 
+[Back to the at-a-glance ranking](#at-a-glance-ranking)
+
+<a id="route-rank-23"></a>
+
 ### Update-11 wake-sandwich Pedro installer
 
 **Overall rank: 23. Family priority: 4. Likelihood: very low.**
@@ -843,6 +993,10 @@ required mismatch.
 **What closes it.** Authenticate the exact predecessor and input history, then
 prove or refute the floor/hand cache mismatch in the required update order.
 
+[Back to the at-a-glance ranking](#at-a-glance-ranking)
+
+<a id="route-rank-28"></a>
+
 ### Attack and reboard a rising hand
 
 **Overall rank: 28. Family priority: 5. Likelihood: very low.**
@@ -859,6 +1013,10 @@ home; tested lethal rises never select the platform before deletion.
 earlier A edge; generalize the lethal pose/steering search; and, if reboarding
 succeeds, prove the hand-to-warp and Act-3 continuation.
 
+[Back to the at-a-glance ranking](#at-a-glance-ranking)
+
+<a id="route-rank-29"></a>
+
 ### Sleeping-hand Pedro speed bootstrap
 
 **Overall rank: 29. Family priority: 6. Likelihood: very low.**
@@ -873,6 +1031,10 @@ As a standalone speed bootstrap, the proposal is circular.
 
 **What closes it.** Find an independent no-A speed source and authenticate its
 pose/action, or prove every reachable preload remains below the threshold.
+
+[Back to the at-a-glance ranking](#at-a-glance-ranking)
+
+<a id="route-rank-30"></a>
 
 ### Seams, moving boundaries, or partial updates
 
@@ -889,6 +1051,8 @@ partial-update guard.  Other seams and transformed phases are not exhaustive.
 **What closes it.** Enumerate every transformed hand mesh and phase, moving
 boundary, wall response, partial-update flag writer, and external effect in
 linked execution.
+
+[Back to the at-a-glance ranking](#at-a-glance-ranking)
 
 ### Eyerok approaches retired at the current formal boundary
 
@@ -911,6 +1075,8 @@ gameplay leads; a concrete valid witness would immediately move one much
 higher.  Machine-only cases are recorded separately so their absence from
 Clight is not mistaken for a retail result.
 
+<a id="route-rank-31"></a>
+
 ### Defined memory/control escapes and deferred machine-only corruption
 
 **Overall rank: 31. Family priority: 1. Likelihood: very low as a known clean
@@ -921,6 +1087,10 @@ route; high proof importance.**
 **What is already known.** A defined one-store State/Object divergence must target one endpoint block, so a different CompCert allocation cannot wrap into it; direct platform writers are censused, collision-cache and hitbox observations have explicit escape classifiers, capacity guards can drop collisions but do not invent one, and animation metadata preserves Mario's coordinates.  For the writable action tables, all 38 modeled units per version contain no initializer or export alias, every body occurrence is a final read, the three expected linked blocks are valid at initialization, and ordinary level transitions do not name them; the completed reached-execution theorem constructs a relation that leaves those blocks private and carries it through every actual Clight step and outside call in every finite successful selected run without changing a table byte or returning a table pointer.  Valid same-block aliases to other state, wrong logical object slots, stale pool bytes, known-function retargets, and outside-call effects on public or passed state remain possible in Clight.  By contrast, a successful invalid load/store, invalid function target, ACE continuation, post-undefined-behavior MIPS behavior, DMA, interrupt, or self-modifying-code effect has no witness in the current Clight run; that absence is a model limitation, not a retail disproof.  No clean in-scope corruptor is known.
 
 **What closes it.** The writable-table part is closed in the selected successful in-bounds Clight model; the remaining in-scope work is to prove live pointer/block/offset provenance for the other protected stores and link same-frame collision clearing, traversal, owner return, hitbox writers, and object-pool epochs, with any failure identifying the exact valid store, call, cache entry, or field.  For the deferred part, first add a retail MIPS/hardware execution model with the RAM layout, devices, interrupts, selected-binary connection, and explicit post-undefined-behavior rule.  Until then, report out-of-bounds, ACE, and DMA variants as outside the current model rather than open Clight obligations or disproved routes.
+
+[Back to the at-a-glance ranking](#at-a-glance-ranking)
+
+<a id="route-rank-32"></a>
 
 ### Castle-to-SSL glitch or retained inbound pointer
 
@@ -942,6 +1112,8 @@ authenticate the castle route and input history, carry every relevant memory
 cell through the transition, and show the resulting state satisfies—or breaks—the
 Area-1 boundary.  It should not block the scoped theorem unless a concrete lead
 appears.
+
+[Back to the at-a-glance ranking](#at-a-glance-ranking)
 
 ## Retired and corrected ideas
 
