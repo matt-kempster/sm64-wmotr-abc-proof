@@ -4,7 +4,7 @@
 
 No independent stock no-A speed source has been found.  More importantly, the direct-source search is now finite and checked: normal entry clears Mario's speed, the Area 2/Area 3 instant warp merely carries forward whatever speed already exists, the complete Area-2 and Area-3 object roster contains none of the usual large-speed actors, and a sleeping Eyerok hand cannot bounce Mario.  Under a deliberately generous ordinary-episode model, Mario reaches at most speed `170`, giving a `42.5`-unit air quarter-step; the Pedro entry needs directional speed over `400`, giving a quarter-step over `100`.
 
-This does not yet close Rank 29 for every clean controller history.  It reduces the route to one concrete residual: a repeatable moving-platform, landing, or `OFF_FLOOR` transition would have to preserve accumulated air speed across separate airborne episodes without passing through an ordinary speed cap or damping step.  Finding that cycle would be a genuine new speed source.  Proving that every live episode boundary carries Mario with its floor owner or performs the normal cap/damping operation would close the remaining in-model route.
+The repeatable-episode residual is now closed in the finite stock-owner model.  All five Area-2 moving-collision behaviors reload their mesh every loop; platform carry does not read or write Mario's forward speed; and the greatest possible stock one-frame Y change is `78`, below the strict `100`-unit gap required to set `OFF_FLOOR`.  The one genuine speed-preserving landing is the first flat butt-slide-air bounce, but it changes `actionState` from `0` to `1`, so it cannot repeat; re-arming it through ground butt-slide executes the checked speed-`100` normalization.  The collision-data census also proves that neither Area 2's static mesh nor any of those five moving meshes contains a burning surface that could substitute a repeatable lava bounce.  Rank 29 is therefore no longer open on an ordinary stock cycle.  A successful counterexample must now break a named premise—wrong or stale floor ownership, a missing collision reload, a forged action/state, altered object or surface data, an unmodeled outside effect, or execution beyond defined in-bounds CompCert behavior.
 
 ## Why speed 424 was not a source
 
@@ -22,6 +22,11 @@ The archived US retail fixture remains useful, but it starts by injecting a long
 | Sleeping hand | The action-zero branch calls the sleep handler and skips the unique `obj_check_attacks` call, while collision loading still occurs afterward | The hand supplies the Pedro floor geometry but not its ordinary attack/bounce interaction while asleep |
 | Spindel | Its checked behavior is a moving collision owner, not an attack or twirl-bounce interaction | Riding it may move Mario's position, but it does not install the required forward speed |
 | Long jump | The existing provenance kernel puts both stock long-jump constructors behind an A edge unless an action transition is forged | The injected long-jump fixture is not a clean no-A predecessor |
+| Platform collision ownership | Grindel, horizontal Grindel, Spindel, moving-wall, and elevator behavior scripts all reload collision after their update | An intact live owner supplies a fresh floor and normal platform carry every frame |
+| Platform Y motion | Conservative one-frame caps are elevator `20`, wall `6`, Spindel `23`, vertical Grindel `72`, and horizontal Grindel `78` | Even pretending Mario misses one carry, no stock floor can create the strict greater-than-`100` `OFF_FLOOR` gap |
+| Normal landing or ground-step departure | Landing acceleration or slope deceleration executes before the ground step; steep-floor push replaces speed with magnitude `16` | An ordinary landing cannot preserve an arbitrarily accumulated preload into a fresh episode |
+| Butt-slide-air landing | Its first eligible flat bounce preserves horizontal speed but consumes state `0`; the second landing exits, while re-entry through ground slide reaches the speed-`100` normalization | This is one preserving bounce, not a repeatable preserving cycle |
+| Area-2 burning surfaces | The parsed static and moving collision streams contain no surface type `1` | There is no local lava bounce to replace the single-use butt-slide bounce |
 
 The roster result is deliberately about the selected level initializers.  A claim involving a forged behavior, a corrupted spawn table, an out-of-bounds write, or another post-undefined-behavior machine continuation is outside the successful in-bounds CompCert execution model rather than an unfinished stock source.
 
@@ -33,21 +38,20 @@ At positive speed above the ordinary drag threshold, each regular air update fir
 
 That many uninterrupted airborne updates do not fit in the selected areas.  The checked static meshes fit inside the deliberately widened vertical envelope `[-5000,7000]`.  Grant an initial vertical speed of `100`, gravity of only `1` per frame, and terminal velocity `-75`; these are all more favorable than the ordinary actions of interest.  The first 400 vertical updates have total displacement at most `-14600`, which is greater in magnitude than the envelope's entire `12000`-unit height.  Thus even a 400-frame ordinary episode cannot keep both endpoints in the envelope.  Granting all 400 horizontal gains anyway yields only speed `170`, or `42.5` units per quarter-step.
 
-This is an episode bound, not permission to concatenate episodes for free.  A normal landing, walking frame, slide normalization, or reinitialization brings the next episode back under the checked starting cap.  A counterexample must therefore identify a boundary that avoids all of those events.
+This is an episode bound, not permission to concatenate episodes for free.  A normal landing, walking frame, slide normalization, or reinitialization brings the next episode back under the checked starting cap.  The new cycle theorem enumerates the only two superficially preserving stock cases: a platform-caused `OFF_FLOOR` transition and the first butt-slide-air bounce.  The former cannot satisfy the strict gap, and the latter cannot repeat without a capped reset.
 
-## Exact remaining counterexample
+## Exact remaining counterexample boundary
 
-A clean Rank-29 counterexample now needs one continuous controller-authentic trace with all of the following:
+A clean Rank-29 counterexample can no longer consist only of repeating an intact stock transition.  It must first provide one exact failure of the finite boundary:
 
-1. Mario begins an airborne episode at or below the checked stock cap.
-2. A live moving floor, disappearing support, landing cancellation, or `OFF_FLOOR` transition ends the episode without damping or replacing the accumulated forward speed.
-3. The transition creates enough new vertical room for another episode while retaining that speed.
-4. The cycle repeats until directional speed exceeds `400`.
-5. The Area-2-to-Area-3 instant warp preserves the resulting pose, action, and speed.
-6. The first Area-3 quarter-step crosses the hand's wall band and reaches the already authenticated Pedro branch.
+1. Mario's selected floor has a stale, wrong, or mutated owner, so ordinary platform carry does not apply.
+2. A moving owner fails to run its checked behavior/collision reload, or a different moving surface enters the Area-2 list.
+3. An action/state transition reaches a preserving landing that is neither the checked single-use butt-slide bounce nor a normal damped landing.
+4. A valid alias or specified outside effect changes the action, state, surface, owner, or motion table while preserving defined execution.
+5. A machine-level extension—such as an out-of-bounds write or post-undefined-behavior continuation—invalidates the CompCert source boundary.
 
-The decisive negative proof is correspondingly narrow: classify the live ownership and collision-loading behavior of the Area-2 elevator, Grindels, moving walls, and Spindel, then show that each possible transition either carries Mario with the same floor, lands normally, or passes through a checked speed reset/cap.  Area 3 adds the boss-hand lifecycle, but the sleeping state itself is already excluded as an interaction source.  Any first boundary that fails this classification is not merely a proof hole; it is the exact cycle to test in retail execution.
+After exhibiting one of those failures, the counterexample still has to repeat the preserving transition until directional speed exceeds `400`, survive the Area-2-to-Area-3 instant warp, and reach the already authenticated sleeping-hand Pedro landing.  Conversely, a live-trace proof that owner identity, collision reload, stock action state, and collision data remain valid discharges this premise and imports the finite closure directly.  Any first failing frame is not merely a proof hole; it names the exact owner, action, surface, alias, or outside effect to test in retail execution.
 
 ## Formal artifact
 
-[`EyerokRank29Preload.v`](../../proofs/EyerokRank29Preload.v) contains the bilateral generated-source receipts, exact roster and macro-preset census, sleeping-branch control-flow check, selected static-mesh envelope computation, air-growth threshold, conservative vertical sum, ordinary-episode theorem, and the public escape reduction exposed by `MainTheorem.v`.
+[`EyerokRank29Preload.v`](../../proofs/EyerokRank29Preload.v) contains the bilateral generated-source receipts, exact roster and macro-preset census, sleeping-branch control-flow check, selected static-mesh envelope computation, air-growth threshold, conservative vertical sum, and ordinary-episode theorem.  [`EyerokRank29CycleClosure.v`](../../proofs/EyerokRank29CycleClosure.v) adds the bilateral landing and platform source receipts, exact collision-surface parser, five-platform delta model, vertical-Grindel `72`-unit maximum-drop computation, single-use butt-slide bounce theorem, and the public proof that no repeatable preserving boundary exists in the stock-owner model.  Both are exposed by `MainTheorem.v`.

@@ -27,6 +27,7 @@ From LessThanOneAPress.Proofs Require Import
   WritableActionTableReachedExecution
   PlatformIntegerAliasClosure Area1Rank3PayloadWriterClosure
   EyerokRank15ControllerRide EyerokRank15VSC EyerokRank29Preload
+  EyerokRank29CycleClosure
   CompCertRouteScope.
 
 Import ListNotations.
@@ -209,6 +210,21 @@ Proof. exact eyerok_rank15_vsc_boundary_holds. Qed.
 Theorem current_rank29_stock_preload_boundary :
   EyerokRank29PreloadBoundary.
 Proof. exact eyerok_rank29_preload_boundary_holds. Qed.
+
+(** Rank 29's last ordinary stock residual is also closed in the finite
+    source-shaped owner model.  All five collision-owning Area-2 platforms
+    reload their mesh, platform carry does not touch Mario's forward speed,
+    and even a deliberately uncarried stock floor can move at most 78 units
+    in one frame, below the strict 100-unit [OFF_FLOOR] test.  The one real
+    speed-preserving flat butt-slide-air landing consumes action state zero;
+    a second landing cannot repeat it, and re-arming through ground slide
+    executes the checked speed-100 normalization.  Area 2 contains no burning
+    collision surface for a lava-bounce replacement.  A counterexample must
+    now break owner/collision/action/source validity or leave defined stock
+    execution rather than merely repeat a normal episode boundary. *)
+Theorem current_rank29_stock_cycle_closure :
+  EyerokRank29CycleClosure.
+Proof. exact eyerok_rank29_cycle_closure_holds. Qed.
 
 (** Rank 3 can no longer use an ordinary integer-to-pointer cast as a clean
     platform-cell producer: integer constructors never become CompCert block

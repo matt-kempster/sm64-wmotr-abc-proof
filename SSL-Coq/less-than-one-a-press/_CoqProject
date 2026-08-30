@@ -399,4 +399,5 @@ proofs/JPEyerokStaleHandOrdinary.v
 proofs/EyerokRank15ControllerRide.v
 proofs/EyerokRank15VSC.v
 proofs/EyerokRank29Preload.v
+proofs/EyerokRank29CycleClosure.v
 proofs/MainTheorem.v
