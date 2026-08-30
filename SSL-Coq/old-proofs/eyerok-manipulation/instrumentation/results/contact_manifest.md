@@ -53,6 +53,13 @@ Mode-specific writes are:
   **not** a controller-authentic punch entry. Retail code must observe
   `INPUT_A_DOWN` without `INPUT_A_PRESSED`, enter `ACT_JUMP_KICK`, and write
   velocity `20`; B remains released.
+- `held_a_b_edge`: A is continuously down from Area 3 entry and preload uses
+  `ACT_IDLE`. At timer 2 the probe first requires Mario to remain idle at the
+  authenticated hand-top floor/platform boundary, then supplies one new B
+  edge. It makes no Mario-state write on that release poll. Retail code must
+  execute `ACT_IDLE -> ACT_PUNCHING -> ACT_JUMP_KICK` in its same-frame action
+  loop, with `A_DOWN` and `B_PRESSED` but no `A_PRESSED`, and must supply the
+  jump-kick velocity itself.
 
 ## Derived trace columns
 
@@ -88,8 +95,15 @@ an exact reconstruction of the in-handler query height.
 - The held-A predecessor makes retail code enter `ACT_JUMP_KICK` with input
   `A_DOWN` and no `A_PRESSED` edge. It catches the `+85` hand and remains on
   all positive steps `85,70,55,40,25,10`, reaching top Y `-943`.
+- The held-A+B mode removes the injected action predecessor: from
+  authenticated `ACT_IDLE` contact and with no Mario-state write at release,
+  one B edge makes retail code enter `ACT_PUNCHING` and then
+  `ACT_JUMP_KICK` in the same frame. The observed input is `0x20a0`
+  (`A_DOWN + B_PRESSED`, no `A_PRESSED`), and Mario again catches and rides
+  all six positive steps to Y `-943`.
 
-The traces prove local contact and action timing. They do not prove that
-normal controller play can reach the injected predecessor actions, speed,
-position, or exact boss schedule, nor that Mario can dismount onto the Area 3
-warp at a useful height.
+The traces prove local contact and action timing. The fourth mode also proves
+the local action predecessor from authenticated idle contact using controller
+input alone. They do not prove that normal controller play can reach the
+staged boss schedule and initial hand contact, nor that Mario can dismount
+onto the Area 3 warp at a useful height.

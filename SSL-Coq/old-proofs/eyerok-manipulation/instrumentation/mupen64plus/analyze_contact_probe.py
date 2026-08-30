@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Validate the three US-ROM Eyerok/Mario contact microtraces."""
+"""Validate the four US-ROM Eyerok/Mario contact microtraces."""
 
 from __future__ import annotations
 
@@ -12,7 +12,7 @@ import sys
 
 EXPECTED_MD5 = "20B854B239203BAF6C961B850A4A51A2"
 EXPECTED_CRC = "635A2BFF 8B022326"
-MODES = ("stationary", "b_only", "held_a")
+MODES = ("stationary", "b_only", "held_a", "held_a_b_edge")
 TRACE_COLUMNS = (
     "poll", "timer", "area", "bossAction", "bossTimer", "activeHand",
     "mAction", "mActionTimer", "mX", "mY", "mZ", "mVelY", "mFloor",
@@ -227,22 +227,66 @@ def validate_held_a(rows: list[dict[str, str]], hand: str) -> list[str]:
     ]
 
 
+def validate_held_a_b_edge(
+    text: str, rows: list[dict[str, str]], hand: str
+) -> list[str]:
+    marker = "CONTACT held-A+B controller-only predecessor accepted"
+    if marker not in text or "noMarioWritesAtRelease=1" not in text:
+        fail("held_a_b_edge: authenticated write-free release marker absent")
+    jump_kick = one(
+        rows,
+        lambda r: i(r, "mAction", 16) == 0x018008AC and near(f(r, "mY"), -1208.0)
+        and near(f(r, "mVelY"), 16.0),
+        "held_a_b_edge: retail IDLE -> PUNCHING -> ACT_JUMP_KICK result absent",
+    )
+    bits = i(jump_kick, "mInput", 16)
+    if not bits & 0x0080 or not bits & 0x2000 or bits & 0x0002:
+        fail("held_a_b_edge: expected A_DOWN+B_PRESSED with no A_PRESSED")
+    launch = one(
+        rows, lambda r: near(f(r, "velY"), 85.0),
+        "held_a_b_edge: +85 launch absent",
+    )
+    for velocity in (85.0, 70.0, 55.0, 40.0, 25.0, 10.0):
+        row = one(
+            rows, lambda r, v=velocity: near(f(r, "velY"), v),
+            f"held_a_b_edge: missing +{velocity:g}",
+        )
+        if row["mPlatform"].lower() != hand:
+            fail(f"held_a_b_edge: lost hand during +{velocity:g}")
+        if not near(f(row, "mFloorHeight"), f(row, "posY") + 306.0):
+            fail(f"held_a_b_edge: selected floor is not closed hand top during +{velocity:g}")
+        if row["insideClosedTopXZ"] != "true" or row["within78"] != "true":
+            fail(f"held_a_b_edge: +{velocity:g} catch was not ordinary eligible geometry")
+    peak = max(f(row, "mY") for row in rows if row["mPlatform"].lower() == hand)
+    if not near(peak, -943.0):
+        fail(f"held_a_b_edge: expected full-episode top -943, got {peak}")
+    return [
+        "accepted boundary: authenticated ACT_IDLE on the real hand; no Mario-state write at release",
+        f"retail chain: IDLE -> PUNCHING -> ACT_JUMP_KICK, MarioY={jump_kick['mY']} velY={jump_kick['mVelY']} input=0x{bits:04x}",
+        "input evidence: A_DOWN and B_PRESSED are set; A_PRESSED is clear",
+        f"+85 catch: gap={launch['verticalGap']} within78={launch['within78']} insideTopXZ={launch['insideClosedTopXZ']} class={launch['contactClass']}",
+        f"retention: attached for +85,+70,+55,+40,+25,+10; maximum MarioY={peak:.0f}",
+    ]
+
+
 def main() -> int:
-    if len(sys.argv) != 5:
-        print(f"usage: {sys.argv[0]} OUTPUT_DIR STATIONARY_LOG B_ONLY_LOG HELD_A_LOG", file=sys.stderr)
+    if len(sys.argv) != 6:
+        print(f"usage: {sys.argv[0]} OUTPUT_DIR STATIONARY_LOG B_ONLY_LOG HELD_A_LOG HELD_A_B_EDGE_LOG", file=sys.stderr)
         return 2
     output = pathlib.Path(sys.argv[1])
     output.mkdir(parents=True, exist_ok=True)
     summaries: dict[str, list[str]] = {}
     for mode, argument in zip(MODES, sys.argv[2:]):
-        _, hand, rows = parse(pathlib.Path(argument), mode)
+        text, hand, rows = parse(pathlib.Path(argument), mode)
         augment(rows, hand)
         if mode == "stationary":
             summaries[mode] = validate_stationary(rows, hand)
         elif mode == "b_only":
             summaries[mode] = validate_b_only(rows, hand)
-        else:
+        elif mode == "held_a":
             summaries[mode] = validate_held_a(rows, hand)
+        else:
+            summaries[mode] = validate_held_a_b_edge(text, rows, hand)
 
         witness = [row for row in rows if 0 <= i(row, "actionTimer") <= 13]
         with (output / f"contact_{mode}_trace.csv").open("w", newline="", encoding="utf-8") as handle:

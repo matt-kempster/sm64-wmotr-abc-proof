@@ -396,4 +396,5 @@ proofs/CompCertRouteScope.v
 proofs/JPEyerokStaleHand.v
 proofs/JPEyerokStaleHandPU.v
 proofs/JPEyerokStaleHandOrdinary.v
+proofs/EyerokRank15ControllerRide.v
 proofs/MainTheorem.v

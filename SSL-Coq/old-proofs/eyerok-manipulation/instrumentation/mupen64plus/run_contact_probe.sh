@@ -25,8 +25,8 @@ if [[ "$actual_md5" != "$expected_md5" || "$actual_sha256" != "$expected_sha256"
 fi
 
 mkdir -p "$output_dir"
-modes=(stationary b_only held_a)
-for index in 0 1 2; do
+modes=(stationary b_only held_a held_a_b_edge)
+for index in 0 1 2 3; do
     mode="${modes[$index]}"
     mode_dir="$output_dir/$mode"
     mkdir -p "$mode_dir/shots"
@@ -54,4 +54,5 @@ python3 "$script_dir/analyze_contact_probe.py" \
     "$output_dir/results" \
     "$output_dir/stationary/raw.log" \
     "$output_dir/b_only/raw.log" \
-    "$output_dir/held_a/raw.log"
+    "$output_dir/held_a/raw.log" \
+    "$output_dir/held_a_b_edge/raw.log"

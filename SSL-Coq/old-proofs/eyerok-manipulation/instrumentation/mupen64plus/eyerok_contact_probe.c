@@ -12,16 +12,18 @@
 #define CONTACT_MODE 0
 #endif
 
-#if CONTACT_MODE < 0 || CONTACT_MODE > 2
-#error CONTACT_MODE must be 0 (stationary), 1 (B-only), or 2 (held-A)
+#if CONTACT_MODE < 0 || CONTACT_MODE > 3
+#error CONTACT_MODE must be 0 (stationary), 1 (B-only), 2 (held-A), or 3 (held-A+B edge)
 #endif
 
 #if CONTACT_MODE == 0
 #define CONTACT_MODE_NAME "stationary"
 #elif CONTACT_MODE == 1
 #define CONTACT_MODE_NAME "b_only"
-#else
+#elif CONTACT_MODE == 2
 #define CONTACT_MODE_NAME "held_a"
+#else
+#define CONTACT_MODE_NAME "held_a_b_edge"
 #endif
 
 /* Authentic US ROM / matching build symbols (36fbf8d6 source checkout). */
@@ -306,9 +308,9 @@ EXPORT void CALL GetKeys(int control, BUTTONS *keys) {
 
     /* gCurrAreaIndex is s16; a byte read at its big-endian address sees 0. */
     area = R16(A_CURR_AREA);
-    /* In mode 2 A is held continuously throughout Area 3. By the contact
+    /* In modes 2 and 3 A is held continuously throughout Area 3. By the contact
      * trial this is a down level, not a new edge (the 0.5-A case). */
-#if CONTACT_MODE == 2
+#if CONTACT_MODE >= 2
     if (area == 3) keys->A_BUTTON = 1;
 #endif
     if (gPoll == 150 || gPoll == 330 || gPoll == 360 || gPoll == 400 ||
@@ -402,6 +404,9 @@ EXPORT void CALL GetKeys(int control, BUTTONS *keys) {
             W32(A_MARIO_STATES + 0x10, 0x00800457);
             W16(A_MARIO_STATES + 0x18, 1);
 #else
+            /* Mode 3 deliberately preloads IDLE while A is already held.
+             * IDLE tests INPUT_A_PRESSED, not INPUT_A_DOWN, so no jump occurs
+             * before the later controller B edge. */
             W32(A_MARIO_STATES + 0x0c, 0x0c400201); /* ACT_IDLE */
             W32(A_MARIO_STATES + 0x10, 0x0c400201);
             W16(A_MARIO_STATES + 0x18, 0);
@@ -451,7 +456,7 @@ EXPORT void CALL GetKeys(int control, BUTTONS *keys) {
         fprintf(stderr,
                 "CONTACT B-only entry hand=%08x topY=%.3f rearZOffset=-125 stagedAction=04000440 forwardVel=29 faceYaw=0 input=B+stick127 A=up\n",
                 gContactHand, topY);
-#else
+#elif CONTACT_MODE == 2
         /* Reset only the documented MOVE_PUNCHING state precondition. A has
          * already been down for dozens of polls, so retail code must see
          * INPUT_A_DOWN without INPUT_A_PRESSED and enter JUMP_KICK itself. */
@@ -468,6 +473,31 @@ EXPORT void CALL GetKeys(int control, BUTTONS *keys) {
         fprintf(stderr,
                 "CONTACT held-A entry hand=%08x topY=%.3f stagedAction=00800457 state=0 forwardVel=0 A=continuously-down-since-area-entry B=up\n",
                 gContactHand, topY);
+#else
+        /* This branch performs no Mario-state write at release.  Starting
+         * from the ROM-authenticated IDLE contact boundary, one controller B
+         * edge must make the retail action loop execute
+         * IDLE -> PUNCHING -> JUMP_KICK while A remains held without a new A
+         * edge. */
+        if (R32(A_MARIO_STATES + 0x0c) != 0x0c400201
+            || R16(A_MARIO_STATES + 0x18) != 0
+            || R32(A_MARIO_PLATFORM) != gContactHand
+            || rfloat(A_MARIO_STATES + 0x70) < topY - 0.5f
+            || rfloat(A_MARIO_STATES + 0x70) > topY + 0.5f) {
+            fprintf(stderr,
+                    "CONTACT held-A+B boundary rejected hand=%08x action=%08x state=%u marioY=%.3f floorH=%.3f platform=%08x\n",
+                    gContactHand, R32(A_MARIO_STATES + 0x0c),
+                    R16(A_MARIO_STATES + 0x18),
+                    rfloat(A_MARIO_STATES + 0x40),
+                    rfloat(A_MARIO_STATES + 0x70),
+                    R32(A_MARIO_PLATFORM));
+        } else {
+            keys->B_BUTTON = 1;
+            gDiveStaged = 1;
+            fprintf(stderr,
+                    "CONTACT held-A+B controller-only predecessor accepted hand=%08x topY=%.3f action=0c400201 state=0 forwardVel=%.3f A=continuously-down-since-area-entry B=new-edge noMarioWritesAtRelease=1\n",
+                    gContactHand, topY, rfloat(A_MARIO_STATES + 0x54));
+        }
 #endif
     }
 

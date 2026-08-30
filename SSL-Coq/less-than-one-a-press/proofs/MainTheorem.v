@@ -26,6 +26,7 @@ From LessThanOneAPress.Proofs Require Import
   WritableActionTablePrivateLive
   WritableActionTableReachedExecution
   PlatformIntegerAliasClosure Area1Rank3PayloadWriterClosure
+  EyerokRank15ControllerRide
   CompCertRouteScope.
 
 Import ListNotations.
@@ -169,6 +170,19 @@ Proof. exact area1_rank4_warp_top_trace_checked_boundary_holds. Qed.
 Theorem current_rank5_state_split_trace_receipt :
   Area1Rank5StateSplitTraceCheckedBoundary.
 Proof. exact area1_rank5_state_split_trace_checked_boundary_holds. Qed.
+
+(** Rank 15 no longer needs an injected punching or jump-kick action at its
+    accepted local hand-contact boundary.  With A already held, one real B
+    edge makes the US retail loop execute idle -> punching -> jump-kick with
+    no Mario-state write at release, then Mario catches and rides all six
+    positive double-pound steps to Y=-943.  The generated US/JP ASTs retain
+    the same action chain.  The boss/contact prefix remains staged, and the
+    resulting hand is still 303 units below the first tunnel query (243 even
+    after granting another 60-unit action envelope), so this is a stronger
+    primitive rather than a complete no-A route. *)
+Theorem current_rank15_controller_ride_boundary :
+  EyerokRank15ControllerRideBoundary.
+Proof. exact eyerok_rank15_controller_ride_boundary_holds. Qed.
 
 (** Rank 3 can no longer use an ordinary integer-to-pointer cast as a clean
     platform-cell producer: integer constructors never become CompCert block

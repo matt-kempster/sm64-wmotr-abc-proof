@@ -172,7 +172,7 @@ The detailed sections are organized as:
 | 13A | State-first installation | Terrain-dispatch or collision-prefix writer outside the platform phase | Low; proof branch with no reached extra writer |
 | 13B | State-first installation | Interaction-stage writer or cached-floor snap composite | Low; the ordinary branch is conditionally blocked |
 | 14 | Eyerok | Carry a stale Eyerok-hand address from Area 3 to Area 2 in JP | Retired in the audited stock model; no hand can install the pointer at the warp, and the sole reused nonzero payload moves about 8 down and 38 backward |
-| 15 | Eyerok | Board and ride a raised hand into a lower Area-2 route | Low-medium as a primitive; very low as a complete route |
+| 15 | Eyerok | Board and ride a raised hand into a lower Area-2 route | Medium as a proved local primitive; very low as a complete route |
 | 16 | Goomba / PU transport | Goomba raising, PU transport, and Spindel handoff | Very low as a full route; one revised timing class remains |
 | 17 | JP stale-platform lineage | Fresh same-slot replacement payload | Low abstractly; absent in the authenticated best trace |
 | 18 | State-first installation | Skipped, wrong-index, or redirected State-to-Object copy | Low; no normal receiver or return failure has been observed |
@@ -787,25 +787,13 @@ The detailed historical experiments are in the clearly archived
 
 ### Board and ride a raised hand into the lower route
 
-**Overall rank: 15. Family priority: 2. Likelihood: low-medium as a primitive,
-very low as a full route.**
+**Overall rank: 15. Family priority: 2. Likelihood: medium as a proved local primitive, very low as a full route.**
 
-**In plain language.** Start Mario's air motion before a double-pound launch so
-the first hand step remains within floor-snap tolerance, then ride the hand's
-finite rise and depart toward the tunnel.
+**In plain language.** Hold A before boarding, stand idle on the real Eyerok hand, and press B once just before its double-pound rise; the game turns that ordinary B press into a jump-kick without a new A press, allowing Mario to catch and ride the hand upward, although the hand still stops far below the tunnel.
 
-**What is already known.** Injected US local continuations snap at the first
-eligible gap and ride the modeled `+85,+70,+55,+40,+25,+10` sequence.  One uses
-preheld A with no new edge and one uses B only.  The resulting hand top remains
-`303` below the lowest tunnel query; even granting the same `+60` action
-envelope would leave it `243` short.  The predecessor and boss timing are
-injected, not reached.  The separate nonlethal long-jump reboard trace has the
-`288`/`228` deficits, but it inherits an earlier fresh-A predecessor.
+**What is already known.** A hash-checked North-American retail run now starts from game-confirmed floor and platform ownership on the real hand and, on the release poll, writes nothing to Mario while supplying only one B edge with A already held; the game performs idle to punching to jump-kick in one frame with no new A edge, catches the ordinary 49-unit first gap, and rides every `+85,+70,+55,+40,+25,+10` step to Y `-943`, while the generated US and JP source contains the same action-loop chain.  This removes the earlier injected action predecessor, but the boss schedule and initial hand boarding are still staged, and the final hand top remains `303` below the lowest tunnel query or `243` short even after generously granting another `+60` action envelope; the separate long-jump reboard remains `288`/`228` short and needs an earlier fresh A.  See the [controller-authentic raised-hand ride](notes/rank15-eyerok-controller-ride.md).
 
-**What closes it.** Authenticate the controller-only predecessor and boss
-phase, live hand collision ownership, an additional lift/support mechanism,
-the hand-to-warp departure, and the Act-3 continuation.  Act 6 remains a
-separate downstream task.
+**What closes it.** Reach the fight and the confirmed idle-on-hand boundary from ordinary controller play, then find an additional lift or support that erases at least the remaining `243`-unit generous deficit, execute the hand-to-warp departure, and continue to the Act-3 star; proving that every clean boss/hand schedule stays within the checked height envelope would instead rule this route out, while Act 6 remains a separate downstream task.
 
 ### Second-hand ceiling to the Area-2 Y=1280 tier
 
