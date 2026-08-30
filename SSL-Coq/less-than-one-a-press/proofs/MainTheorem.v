@@ -226,20 +226,30 @@ Theorem current_rank29_stock_cycle_closure :
   EyerokRank29CycleClosure.
 Proof. exact eyerok_rank29_cycle_closure_holds. Qed.
 
-(** Rank 12's strongest named Area-2 impulse actor is now reduced to a
-    collision/support residual.  The selected roster has exactly two homing
+(** Rank 12's strongest named Area-2 impulse actor has no direct payoff.  The
+    selected roster has exactly two homing
     Amps and one circling Amp, but none of the cannon, shell, Tweester,
     Heave-Ho, Chuckya, Fly Guy, or jumping-box preset families.  Even granting
     that the nearest homing Amp is perfectly lured to the second-pole top, its
     shock handler contains no push and the shocked action zeroes horizontal
     velocity before the air step; the stock pole grab had already erased
     inherited speed.  Consequently Amp shock supplies no direct horizontal
-    dismount.  A useful composite must now name a wall response, support
-    change, platform carry, pre-existing crossing, or a failed source/model
-    premise. *)
+    dismount. *)
 Theorem current_rank12_object_impulse_boundary :
   Area2Rank12ObjectImpulseBoundary.
 Proof. exact area2_rank12_object_impulse_boundary_holds. Qed.
+
+(** The formerly open stationary-shock wall/support composite is also closed
+    in the finite stock source model.  [perform_air_step] applies gravity, so
+    the pole-top seed is stationary for one update and lands on the static
+    Y=3200 base on update 21.  Radius-50 wall queries miss the aperture walls,
+    all six stock moving-owner corridors miss the pole disc, and the scheduler
+    clears the cached platform across the 820-unit gap.  A counterexample now
+    needs a transported low-tier actor or a concrete failure of the runtime
+    owner/corridor projection, not ordinary Amp shock plus stock support. *)
+Theorem current_rank12_stock_shock_composite_closure :
+  Area2Rank12ShockCompositeClosure.
+Proof. exact area2_rank12_shock_composite_closure_holds. Qed.
 
 (** Rank 3 can no longer use an ordinary integer-to-pointer cast as a clean
     platform-cell producer: integer constructors never become CompCert block

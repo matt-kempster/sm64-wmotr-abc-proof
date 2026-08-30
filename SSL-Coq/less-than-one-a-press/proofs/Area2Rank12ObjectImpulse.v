@@ -12,9 +12,11 @@
     case.  The airborne/on-pole shocked action calls
     [mario_set_forward_vel(m, 0)] before [perform_air_step]; the setter writes
     forwardVel and both horizontal velocity components, but not vertical
-    velocity.  Thus the Amp is a brake/action change rather than a horizontal
-    impulse.  Any useful crossing after it must come from a separately proved
-    wall response, support change, platform carry, or pre-existing crossing.
+    velocity.  [perform_air_step] then applies normal gravity after its four
+    collision quarters.  Thus the Amp is a brake/action change rather than a
+    horizontal impulse: the exact pole-top seed is stationary for only the
+    first shocked frame and then falls down the shaft.  The closure below
+    checks the stock wall and moving-support composite that this exposes.
 
     The roster receipt also makes the search finite.  Area 2 has exactly two
     homing Amps and one circling Amp.  Its macro list contains none of the
@@ -27,7 +29,8 @@
 From Coq Require Import Bool Lia List ZArith.
 From compcert Require Import AST Clight Integers.
 From LessThanOneAPress.Proofs Require Import
-  ASTFacts ClightFacts.
+  ASTFacts ClightFacts CollisionMeshFacts Area2LowerTargetCut
+  EyerokRank29CycleClosure.
 
 Import ListNotations.
 Local Open Scope Z_scope.
@@ -316,4 +319,344 @@ Proof.
   - exact rank12_amp_interaction_source_shape_checked.
   - exact rank12_granted_amp_installation_distance_budget.
   - exact rank12_installed_amp_cannot_supply_direct_pole_dismount.
+Qed.
+
+(** * The formerly open shocked wall/support composite
+
+    The direct boundary above deliberately stopped before collision and
+    support selection.  The finite source-shaped model below closes that
+    stock residual.  It does not claim that a controller can install the Amp:
+    installation remains granted.  Nor does it include a stale, forged, or
+    relocated moving owner as "stock support". *)
+
+Definition rank12_grindel_vertices_us : list (Z * Z * Z) :=
+  collision_vertices_from_words 8
+    (init_int16_values
+      (gvar_init us_ssl_collision.v_ssl_seg7_collision_grindel)).
+
+Definition rank12_grindel_vertices_jp : list (Z * Z * Z) :=
+  collision_vertices_from_words 8
+    (init_int16_values
+      (gvar_init jp_ssl_collision.v_ssl_seg7_collision_grindel)).
+
+Definition rank12_spindel_vertices_us : list (Z * Z * Z) :=
+  collision_vertices_from_words 18
+    (init_int16_values
+      (gvar_init us_ssl_collision.v_ssl_seg7_collision_spindel)).
+
+Definition rank12_spindel_vertices_jp : list (Z * Z * Z) :=
+  collision_vertices_from_words 18
+    (init_int16_values
+      (gvar_init jp_ssl_collision.v_ssl_seg7_collision_spindel)).
+
+Definition rank12_wall_vertices_us : list (Z * Z * Z) :=
+  collision_vertices_from_words 8
+    (init_int16_values
+      (gvar_init us_ssl_collision.v_ssl_seg7_collision_0702808C)).
+
+Definition rank12_wall_vertices_jp : list (Z * Z * Z) :=
+  collision_vertices_from_words 8
+    (init_int16_values
+      (gvar_init jp_ssl_collision.v_ssl_seg7_collision_0702808C)).
+
+Definition rank12_elevator_vertices_us : list (Z * Z * Z) :=
+  collision_vertices_from_words 20
+    (init_int16_values
+      (gvar_init us_ssl_collision.v_ssl_seg7_collision_pyramid_elevator)).
+
+Definition rank12_elevator_vertices_jp : list (Z * Z * Z) :=
+  collision_vertices_from_words 20
+    (init_int16_values
+      (gvar_init jp_ssl_collision.v_ssl_seg7_collision_pyramid_elevator)).
+
+Definition Rank12MovingMeshBoundsSourceShape : Prop :=
+  collision_vertex_bounds rank12_grindel_vertices_us =
+    (Some (-224, 224), Some (3, 450), Some (-224, 224)) /\
+  collision_vertex_bounds rank12_grindel_vertices_jp =
+    (Some (-224, 224), Some (3, 450), Some (-224, 224)) /\
+  collision_vertex_bounds rank12_spindel_vertices_us =
+    (Some (-306, 307), Some (-188, 189), Some (-188, 189)) /\
+  collision_vertex_bounds rank12_spindel_vertices_jp =
+    (Some (-306, 307), Some (-188, 189), Some (-188, 189)) /\
+  collision_vertex_bounds rank12_wall_vertices_us =
+    (Some (-63, 64), Some (0, 512), Some (-306, 307)) /\
+  collision_vertex_bounds rank12_wall_vertices_jp =
+    (Some (-63, 64), Some (0, 512), Some (-306, 307)) /\
+  collision_vertex_bounds rank12_elevator_vertices_us =
+    (Some (-511, 512), Some (-50, 256), Some (-511, 512)) /\
+  collision_vertex_bounds rank12_elevator_vertices_jp =
+    (Some (-511, 512), Some (-50, 256), Some (-511, 512)).
+
+Theorem rank12_moving_mesh_bounds_source_shape_checked :
+  Rank12MovingMeshBoundsSourceShape.
+Proof.
+  unfold Rank12MovingMeshBoundsSourceShape,
+    rank12_grindel_vertices_us, rank12_grindel_vertices_jp,
+    rank12_spindel_vertices_us, rank12_spindel_vertices_jp,
+    rank12_wall_vertices_us, rank12_wall_vertices_jp,
+    rank12_elevator_vertices_us, rank12_elevator_vertices_jp.
+  vm_compute. repeat split; reflexivity.
+Qed.
+
+(** These intervals are the safe world axis for each stock moving owner:
+    regular Grindel X, upper/lower horizontal-Grindel X, Spindel X, all four
+    moving-wall Z values, and elevator Z.  The horizontal Grindels move only
+    along Z at their stock yaw endpoints; the other named behaviors change
+    only Y or pitch on the safe axis. *)
+Definition rank12_stock_moving_surface_corridor (x z : Z) : Prop :=
+  (3073 <= x <= 3521) \/
+  (-1094 <= x <= -646) \/
+  (-3586 <= x <= -3138) \/
+  (-2764 <= x <= -2151) \/
+  (-2613 <= z <= -2000) \/
+  (-255 <= z <= 768).
+
+Definition rank12_pole_wall_query_disc (x z : Z) : Prop :=
+  Z.abs x <= 50 /\ Z.abs (z - 1331) <= 50.
+
+Theorem rank12_every_stock_moving_corridor_misses_pole_query :
+  forall x z,
+    rank12_stock_moving_surface_corridor x z ->
+    ~ rank12_pole_wall_query_disc x z.
+Proof.
+  intros x z Hcorr [Hx Hz].
+  apply Z.abs_le in Hx.
+  apply Z.abs_le in Hz.
+  unfold rank12_stock_moving_surface_corridor in Hcorr.
+  destruct Hcorr as [H | [H | [H | [H | [H | H]]]]]; lia.
+Qed.
+
+(** The four static aperture planes are 101, 102, 102, and 103 units from
+    the exact pole centre.  Both air-quarter wall queries use radius 50, so a
+    zero-X/Z shocked fall cannot acquire any of them. *)
+Theorem rank12_pole_centre_misses_all_aperture_walls :
+  50 < Z.abs (0 - lower_aperture_west) /\
+  50 < Z.abs (0 - lower_aperture_east) /\
+  50 < Z.abs (1331 - lower_aperture_south) /\
+  50 < Z.abs (1331 - lower_aperture_north).
+Proof.
+  unfold lower_aperture_west, lower_aperture_east,
+    lower_aperture_south, lower_aperture_north.
+  vm_compute. repeat split; lia.
+Qed.
+
+Definition Rank12PoleBaseFloorSourceShape : Prop :=
+  [nth_error area2_default_triangles_us 746;
+   nth_error area2_default_triangles_us 753] =
+    map (@Some (Z * Z * Z)) lower_pole_platform_triangles /\
+  [nth_error area2_default_triangles_jp 746;
+   nth_error area2_default_triangles_jp 753] =
+    map (@Some (Z * Z * Z)) lower_pole_platform_triangles /\
+  nth_error area2_collision_vertices_us 593 =
+    Some (-204, 3200, 1536) /\
+  nth_error area2_collision_vertices_us 805 =
+    Some (205, 3200, 1459) /\
+  nth_error area2_collision_vertices_us 807 =
+    Some (-204, 3200, 1126) /\
+  nth_error area2_collision_vertices_us 1010 =
+    Some (205, 3200, 1126) /\
+  nth_error area2_collision_vertices_jp 593 =
+    Some (-204, 3200, 1536) /\
+  nth_error area2_collision_vertices_jp 805 =
+    Some (205, 3200, 1459) /\
+  nth_error area2_collision_vertices_jp 807 =
+    Some (-204, 3200, 1126) /\
+  nth_error area2_collision_vertices_jp 1010 =
+    Some (205, 3200, 1126).
+
+Theorem rank12_pole_base_floor_source_shape_checked :
+  Rank12PoleBaseFloorSourceShape.
+Proof.
+  unfold Rank12PoleBaseFloorSourceShape.
+  vm_compute. repeat split; reflexivity.
+Qed.
+
+Definition rank12_cross_xz
+    (ax az bx bz px pz : Z) : Z :=
+  (bx - ax) * (pz - az) - (bz - az) * (px - ax).
+
+(** The pole centre is not merely inside the four-vertex bounding box: it is
+    on the inward side of all three edges of source triangle 746. *)
+Theorem rank12_pole_centre_is_over_static_base_triangle :
+  rank12_cross_xz (-204) 1536 205 1126 0 1331 <= 0 /\
+  rank12_cross_xz 205 1126 (-204) 1126 0 1331 <= 0 /\
+  rank12_cross_xz (-204) 1126 (-204) 1536 0 1331 <= 0.
+Proof. unfold rank12_cross_xz. repeat split; lia. Qed.
+
+(** An exact integer kernel for this particular Float32 fall.  All positions,
+    speeds, the -4 decrement, and the -75 terminal speed are exactly
+    representable.  Landing is the monotone-quarter-step condition: when the
+    full intended Y is at or below the static Y=3200 floor, one of the four
+    quarters snaps to that floor. *)
+Record Rank12ShockVerticalState := {
+  rank12_shock_y : Z;
+  rank12_shock_vy : Z;
+  rank12_shock_landed : bool
+}.
+
+Definition rank12_next_normal_gravity (vy : Z) : Z :=
+  Z.max (-75) (vy - 4).
+
+Definition rank12_shock_vertical_frame
+    (state : Rank12ShockVerticalState) : Rank12ShockVerticalState :=
+  if rank12_shock_landed state then state else
+  let intended_y := rank12_shock_y state + rank12_shock_vy state in
+  if intended_y <=? 3200 then
+    {| rank12_shock_y := 3200;
+       rank12_shock_vy := 0;
+       rank12_shock_landed := true |}
+  else
+    {| rank12_shock_y := intended_y;
+       rank12_shock_vy := rank12_next_normal_gravity (rank12_shock_vy state);
+       rank12_shock_landed := false |}.
+
+Fixpoint rank12_shock_vertical_frames
+    (frames : nat) (state : Rank12ShockVerticalState)
+    : Rank12ShockVerticalState :=
+  match frames with
+  | O => state
+  | S rest =>
+      rank12_shock_vertical_frames rest
+        (rank12_shock_vertical_frame state)
+  end.
+
+Definition rank12_pole_top_shock_seed : Rank12ShockVerticalState :=
+  {| rank12_shock_y := 4020;
+     rank12_shock_vy := 0;
+     rank12_shock_landed := false |}.
+
+Theorem rank12_shock_is_only_initially_stationary_then_lands_at_base :
+  rank12_shock_vertical_frames 1 rank12_pole_top_shock_seed =
+    {| rank12_shock_y := 4020;
+       rank12_shock_vy := -4;
+       rank12_shock_landed := false |} /\
+  rank12_shock_vertical_frames 19 rank12_pole_top_shock_seed =
+    {| rank12_shock_y := 3336;
+       rank12_shock_vy := -75;
+       rank12_shock_landed := false |} /\
+  rank12_shock_vertical_frames 20 rank12_pole_top_shock_seed =
+    {| rank12_shock_y := 3261;
+       rank12_shock_vy := -75;
+       rank12_shock_landed := false |} /\
+  rank12_shock_vertical_frames 21 rank12_pole_top_shock_seed =
+    {| rank12_shock_y := 3200;
+       rank12_shock_vy := 0;
+       rank12_shock_landed := true |}.
+Proof. vm_compute. repeat split; reflexivity. Qed.
+
+Definition Rank12ShockCollisionSourceShape : Prop :=
+  ident_subsequenceb
+    [UStep._perform_air_quarter_step; UStep._apply_gravity;
+     UStep._apply_vertical_wind]
+    (direct_callees_s (fn_body UStep.f_perform_air_step)) = true /\
+  ident_subsequenceb
+    [JStep._perform_air_quarter_step; JStep._apply_gravity;
+     JStep._apply_vertical_wind]
+    (direct_callees_s (fn_body JStep.f_perform_air_step)) = true /\
+  statement_mentions_int_s 4 (fn_body UStep.f_perform_air_step) = true /\
+  statement_mentions_int_s 4 (fn_body JStep.f_perform_air_step) = true /\
+  statement_mentions_float32_bits_s float32_four_bits
+    (fn_body UStep.f_apply_gravity) = true /\
+  statement_mentions_float32_bits_s float32_four_bits
+    (fn_body JStep.f_apply_gravity) = true /\
+  statement_mentions_float32_bits_s 1117126656
+    (fn_body UStep.f_apply_gravity) = true /\
+  statement_mentions_float32_bits_s 1117126656
+    (fn_body JStep.f_apply_gravity) = true /\
+  calls_ident_s UStep._resolve_and_return_wall_collisions
+    (fn_body UStep.f_perform_air_quarter_step) = true /\
+  calls_ident_s JStep._resolve_and_return_wall_collisions
+    (fn_body JStep.f_perform_air_quarter_step) = true /\
+  statement_mentions_float32_bits_s float32_fifty_bits
+    (fn_body UStep.f_perform_air_quarter_step) = true /\
+  statement_mentions_float32_bits_s float32_fifty_bits
+    (fn_body JStep.f_perform_air_quarter_step) = true /\
+  statement_mentions_float32_bits_s float32_four_bits
+    (fn_body UPD.f_update_mario_platform) = true /\
+  statement_mentions_float32_bits_s float32_four_bits
+    (fn_body JPD.f_update_mario_platform) = true.
+
+Theorem rank12_shock_collision_source_shape_checked :
+  Rank12ShockCollisionSourceShape.
+Proof.
+  unfold Rank12ShockCollisionSourceShape.
+  vm_compute. repeat split; reflexivity.
+Qed.
+
+Definition rank12_platform_near_floor (mario_y floor_y : Z) : Prop :=
+  Z.abs (mario_y - floor_y) < 4.
+
+Theorem rank12_pole_and_fall_cannot_retain_cached_platform :
+  ~ rank12_platform_near_floor 4020 3200 /\
+  (forall y, 3204 <= y -> ~ rank12_platform_near_floor y 3200).
+Proof.
+  unfold rank12_platform_near_floor.
+  split.
+  - change (~ (820 < 4)%Z). lia.
+  - intros y Hy Hnear.
+    apply Z.abs_lt in Hnear. lia.
+Qed.
+
+Record Area2Rank12ShockCompositeClosure : Prop := {
+  rank12_composite_direct_boundary : Area2Rank12ObjectImpulseBoundary;
+  rank12_composite_collision_source : Rank12ShockCollisionSourceShape;
+  rank12_composite_platform_schedule :
+    ident_subsequenceb
+      [UOL._clear_dynamic_surfaces; UOL._update_terrain_objects;
+       UOL._apply_mario_platform_displacement; UOL._detect_object_collisions;
+       UOL._update_non_terrain_objects; UOL._unload_deactivated_objects;
+       UOL._update_mario_platform]
+      (direct_callees_s (fn_body UOL.f_update_objects)) = true /\
+    ident_subsequenceb
+      [JOL._clear_dynamic_surfaces; JOL._update_terrain_objects;
+       JOL._apply_mario_platform_displacement; JOL._detect_object_collisions;
+       JOL._update_non_terrain_objects; JOL._unload_deactivated_objects;
+       JOL._update_mario_platform]
+      (direct_callees_s (fn_body JOL.f_update_objects)) = true;
+  rank12_composite_moving_reload : Rank29PlatformReloadSourceShape;
+  rank12_composite_moving_motion : Rank29PlatformMotionSourceShape;
+  rank12_composite_mesh_bounds : Rank12MovingMeshBoundsSourceShape;
+  rank12_composite_base_floor : Rank12PoleBaseFloorSourceShape;
+  rank12_composite_centre_over_base :
+    rank12_cross_xz (-204) 1536 205 1126 0 1331 <= 0 /\
+    rank12_cross_xz 205 1126 (-204) 1126 0 1331 <= 0 /\
+    rank12_cross_xz (-204) 1126 (-204) 1536 0 1331 <= 0;
+  rank12_composite_static_walls :
+    50 < Z.abs (0 - lower_aperture_west) /\
+    50 < Z.abs (0 - lower_aperture_east) /\
+    50 < Z.abs (1331 - lower_aperture_south) /\
+    50 < Z.abs (1331 - lower_aperture_north);
+  rank12_composite_moving_corridors :
+    forall x z,
+      rank12_stock_moving_surface_corridor x z ->
+      ~ rank12_pole_wall_query_disc x z;
+  rank12_composite_vertical_fall :
+    rank12_shock_vertical_frames 21 rank12_pole_top_shock_seed =
+      {| rank12_shock_y := 3200;
+         rank12_shock_vy := 0;
+         rank12_shock_landed := true |};
+  rank12_composite_platform_cleared :
+    ~ rank12_platform_near_floor 4020 3200 /\
+    (forall y, 3204 <= y -> ~ rank12_platform_near_floor y 3200)
+}.
+
+Theorem area2_rank12_shock_composite_closure_holds :
+  Area2Rank12ShockCompositeClosure.
+Proof.
+  constructor.
+  - exact area2_rank12_object_impulse_boundary_holds.
+  - exact rank12_shock_collision_source_shape_checked.
+  - split.
+    + exact update_objects_direct_callee_order_us.
+    + exact update_objects_direct_callee_order_jp.
+  - exact rank29_platform_reload_source_shape_checked.
+  - exact rank29_platform_motion_source_shape_checked.
+  - exact rank12_moving_mesh_bounds_source_shape_checked.
+  - exact rank12_pole_base_floor_source_shape_checked.
+  - exact rank12_pole_centre_is_over_static_base_triangle.
+  - exact rank12_pole_centre_misses_all_aperture_walls.
+  - exact rank12_every_stock_moving_corridor_misses_pole_query.
+  - exact (proj2 (proj2 (proj2
+      rank12_shock_is_only_initially_stationary_then_lands_at_base))).
+  - exact rank12_pole_and_fall_cannot_retain_cached_platform.
 Qed.
