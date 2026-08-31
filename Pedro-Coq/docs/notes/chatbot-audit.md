@@ -30,7 +30,18 @@
    must keep Mario in the same Pedro spot and must be reachable under the
    concrete object schedule.
 
-The current Coq capstone checks items 1-4 at the source-reduction level and
-computes the flat-floor speed witnesses. A genuine Clight big-step now checks
-one zero-seed execution of the generated `random_u16` leaf, but item 5 and the
-linked object/behavior execution bridge remain open.
+The current Coq capstones check items 1-4 at the source-reduction level and
+compute the flat-floor speed witnesses. The linked-Clight frontier now executes
+one generated WhitePuff2 `cur_obj_update` dispatch cycle and its `CALL_NATIVE`
+command, including the native,
+random-X/Z helper, two nested `random_float` calls, two nested `random_u16`
+calls, seed stores, and X/Z stores in both versions. Item 5 and the surrounding
+retail-frame bridge remain open. The exact generated parent-bit-clear handler
+is now executed separately under explicit arbitrary-`genv` premises, including
+its Mario bit-clear and cursor stores, but typed-link instantiation and the Mist
+script dispatch that reaches it are not. The following `ADD_INT`/`END_REPEAT`,
+function tail, list scheduler,
+particle dispatch, spawn/allocation path, WhitePuff1, and a reachable stock
+Pedro memory image are not yet linked into one big-step. In particular,
+generated `segmented_to_virtual` reaches pointer-to-integer arithmetic that
+requires an explicit N64-address refinement under CompCert's symbolic memory.

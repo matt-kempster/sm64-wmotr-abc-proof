@@ -13,12 +13,23 @@ the pool model accepts all three D/D/U allocations and the active-bit model is
 set then cleared. The derived dust-only event list has four `random_u16` calls
 on that frame: Puff1 X/Z in DEFAULT, then Puff2 X/Z in UNIMPORTANT.
 
-This is not yet retail execution. The CompCert link theorem covers a
-symbol-level structural slice, while the executable schedule is a separate
-source-derived model. A new scalar theorem does execute the exact generated
-`random_u16` Clight body from a writable zero seed cell and proves that it
-returns and stores `57460`; it is not an execution of the linked object chain
-or an arbitrary-seed refinement.
+This is not yet a retail-frame execution, but the typed CompCert frontier now
+goes beyond a symbol-only slice. In both versions it executes one actual
+WhitePuff2 `cur_obj_update` dispatch cycle through `BehaviorCmdTable[12]`, the
+generated `CALL_NATIVE` handler, the native loop, random X/Z translation, and
+two nested `random_float`/`random_u16` calls. From seed zero the exact stores
+are `0 -> 57460 -> 55882`, and the behavior cursor advances `20 -> 28`.
+Separately, the generated parent-bit-clear handler is executed under explicit
+arbitrary-`genv` symbol/layout/memory premises: it masks Mario's bit 1 at
+raw-data byte 224, proves the result clear, and advances the Mist cursor
+`4 -> 12`. Its typed-link instantiation remains open.
+
+The remaining downward chain is not executable under unrefined standard
+Clight merely by adding memory premises. Generated `segmented_to_virtual`
+casts a symbolic `Vptr` to unsigned and shifts it; CompCert preserves the
+pointer value at the cast, while the shift accepts only integers. A full proof
+therefore needs an explicit N64-flat-address refinement, followed by a
+CompCert realization of allocation and object-list memory.
 
 The TTC loader audit now counts a generated source inventory of 110 macro
 descriptors, 9 area object descriptors, and Mario. The resulting 120-slot
@@ -36,6 +47,14 @@ bounds of 80 and 94 non-dust calls. A reachable live-state snapshot and a proof
 that no outside consumer was omitted are still required to instantiate those
 bounds. The spinner's first opportunity to observe the post-tap seed remains
 the next frame because SURFACE precedes PLAYER, DEFAULT, and UNIMPORTANT.
+
+A fail-closed static closure now terminates only at declared-external `sqrtf`.
+The authenticated US and JP retail leaves are checked byte-for-byte as the
+four instructions `jr ra; sqrt.s f0,f12; nop; nop`, with no conservatively
+recognized nested call or store. That finite opcode receipt does not supply a
+MIPS semantic contract for the CompCert external. The complete 240-slot and
+ten-call runtime receipt remains a debug-origin SLOW-mode boundary, not a
+controller-only stock/Pedro/RANDOM witness.
 
 The most important factual correction to the motivating chatbot summary is
 the timing: `AIR_STEP_LANDED` does not directly create dust. It selects a

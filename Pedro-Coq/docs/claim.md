@@ -62,6 +62,38 @@ exactly: two dust pairs contribute four calls and a non-dust count `k` gives
 conditional conservative non-dust bounds of 80 and 94 calls, respectively.
 The live snapshot and no-unaccounted-call premises of those bounds are retained.
 
+`checked_dust_linked_runtime_census_frontier_us_jp` combines three stronger
+evidence areas in four conjuncts, still carefully separated:
+
+- a typed official CompCert link and an actual generated-Clight big-step for
+  one WhitePuff2 `cur_obj_update` dispatch cycle in US and JP, including
+  opcode fetch, `BehaviorCmdTable[12]`, the indirect `CALL_NATIVE`, native loop,
+  random X/Z translation, two nested `random_float`/`random_u16` calls, seed
+  `0 -> 57460 -> 55882`, the X/Z stores, cursor advance `20 -> 28`, and the
+  genuine CONTINUE branch;
+- a complete 240-slot debug-replay pool boundary with reserve 116, a clear
+  active-dust bit, a dust request, and normal time; and
+- a fail-closed static TTC RNG census plus a ten-call dynamic `F`/`F+1`
+  receipt. Each observed frame has one list-2 Bob-omb call and four dust-owned
+  calls, with exact contiguous call indices and seed transitions.
+
+`DustParentBitClearExecution.v` adds a generated-Clight big-step for the US/JP
+`bhv_cmd_parent_bit_clear` handler under explicit arbitrary-`genv` symbol,
+layout, and memory premises. The handler follows the Mist spawner's parent,
+masks bit 1 from Mario's raw-data word at byte 224, proves the result has that
+bit clear, and advances the behavior cursor `4 -> 12`; typed-link instantiation
+remains open. `checked_static_terminal_frontier_us_jp` pairs the static TTC
+census with a complete four-instruction retail receipt for `sqrtf`: the US
+and JP leaves are `jr ra; sqrt.s f0,f12; nop; nop`, with no recognized nested
+call or store.
+
+The theorems retain the critical qualifications: the Clight executors start
+from explicit memory images, the replay origin is proved non-stock, the
+observed TTC setting is SLOW rather than RANDOM, and the observed Bob-omb
+address bridge is a checked projection rather than a proved
+source/linker/retail refinement. The `sqrtf` byte theorem is a finite opcode
+receipt, not a MIPS semantic contract for CompCert's declared external.
+
 These are reduction theorems, not relabeled versions of the ultimate claims.
 
 ## What is not proved yet
@@ -70,13 +102,21 @@ These are reduction theorems, not relabeled versions of the ultimate claims.
 - Every stock Pedro spot has been enumerated from retail collision data.
 - Each stock spot admits the flat-floor/no-slope-acceleration premise used by
   the arithmetic tap, or has a separately proved slope-aware tap.
-- The dust projection has not been lifted to linked object/behavior Clight
-  big-step execution; only the scalar zero-seed PRNG leaf is executed.
+- The linked Clight proof reaches one real WhitePuff2 `cur_obj_update` dispatch
+  cycle, but not the following `ADD_INT`/`END_REPEAT`, function tail, object-list
+  scheduler, Mario particle dispatch, Mist script dispatch, Puff allocation and
+  initialization, or WhitePuff1 path. The parent-bit-clear handler itself is
+  now conditionally executed in an arbitrary generated-compatible `genv`.
 - A reachable tap has not been shown to start with the dust bit clear or to
   retain at least three reserve units after every competing allocation.
-- A reachable live-state certificate has not instantiated the DEFAULT/
-  UNIMPORTANT gap or the conditional 80/94-call spinner-window bounds, so an
-  unconditional concrete global seed result is not available.
+- The finite pool and exact `F`/`F+1` receipts use debug level-select entry and
+  SLOW mode. A controller-only stock TTC/Pedro/RANDOM-mode certificate has not
+  instantiated the DEFAULT/UNIMPORTANT gap or the conditional 80/94-call
+  spinner-window bounds.
+- The selected Clight call closure terminates at declared-external `sqrtf`.
+  Its authenticated retail leaf has no recognized nested call/store, but no
+  theorem yet gives MIPS semantics to that external or refines authenticated
+  retail addresses/traces to the linked CompCert memory image.
 - A Mario entry state reaches the proved TTC spinner Pedro geometry.
 - A finite controller/RNG schedule preserves that geometry interval on random
   mode.

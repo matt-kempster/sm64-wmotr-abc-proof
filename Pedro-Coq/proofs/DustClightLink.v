@@ -58,14 +58,23 @@ Definition us_dust_leaf_definitions :
   [ (UBD._bhvMistParticleSpawner, Gvar UBD.v_bhvMistParticleSpawner);
     (UBD._bhvWhitePuff1, Gvar UBD.v_bhvWhitePuff1);
     (UBD._bhvWhitePuff2, Gvar UBD.v_bhvWhitePuff2);
+    (UBA._gCurrentObject, Gvar UBA.v_gCurrentObject);
     (UBA._bhv_white_puff_1_loop,
       Gfun (Internal UBA.f_bhv_white_puff_1_loop));
     (UBA._bhv_white_puff_2_loop,
       Gfun (Internal UBA.f_bhv_white_puff_2_loop));
     (UOH._spawn_object_at_origin,
       Gfun (Internal UOH.f_spawn_object_at_origin));
+    (UOH._obj_copy_pos_and_angle,
+      Gfun (Internal UOH.f_obj_copy_pos_and_angle));
     (UOH._obj_translate_xz_random,
       Gfun (Internal UOH.f_obj_translate_xz_random));
+    (UBS._BehaviorCmdTable, Gvar UBS.v_BehaviorCmdTable);
+    (UBS._gCurBhvCommand, Gvar UBS.v_gCurBhvCommand);
+    (UBS._bhv_cmd_call_native,
+      Gfun (Internal UBS.f_bhv_cmd_call_native));
+    (UBS._bhv_cmd_parent_bit_clear,
+      Gfun (Internal UBS.f_bhv_cmd_parent_bit_clear));
     (UBS._gRandomSeed16, Gvar UBS.v_gRandomSeed16);
     (UBS._random_float, Gfun (Internal UBS.f_random_float));
     (UBS._random_u16, Gfun (Internal UBS.f_random_u16)) ].
@@ -91,14 +100,23 @@ Definition jp_dust_leaf_definitions :
   [ (JBD._bhvMistParticleSpawner, Gvar JBD.v_bhvMistParticleSpawner);
     (JBD._bhvWhitePuff1, Gvar JBD.v_bhvWhitePuff1);
     (JBD._bhvWhitePuff2, Gvar JBD.v_bhvWhitePuff2);
+    (JBA._gCurrentObject, Gvar JBA.v_gCurrentObject);
     (JBA._bhv_white_puff_1_loop,
       Gfun (Internal JBA.f_bhv_white_puff_1_loop));
     (JBA._bhv_white_puff_2_loop,
       Gfun (Internal JBA.f_bhv_white_puff_2_loop));
     (JOH._spawn_object_at_origin,
       Gfun (Internal JOH.f_spawn_object_at_origin));
+    (JOH._obj_copy_pos_and_angle,
+      Gfun (Internal JOH.f_obj_copy_pos_and_angle));
     (JOH._obj_translate_xz_random,
       Gfun (Internal JOH.f_obj_translate_xz_random));
+    (JBS._BehaviorCmdTable, Gvar JBS.v_BehaviorCmdTable);
+    (JBS._gCurBhvCommand, Gvar JBS.v_gCurBhvCommand);
+    (JBS._bhv_cmd_call_native,
+      Gfun (Internal JBS.f_bhv_cmd_call_native));
+    (JBS._bhv_cmd_parent_bit_clear,
+      Gfun (Internal JBS.f_bhv_cmd_parent_bit_clear));
     (JBS._gRandomSeed16, Gvar JBS.v_gRandomSeed16);
     (JBS._random_float, Gfun (Internal JBS.f_random_float));
     (JBS._random_u16, Gfun (Internal JBS.f_random_u16)) ].

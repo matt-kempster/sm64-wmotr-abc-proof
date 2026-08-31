@@ -22,6 +22,25 @@ find "$PINNED_SOURCE" -mindepth 1 -delete
 git -c "safe.directory=$SOURCE_REPOSITORY" -C "$SOURCE_REPOSITORY" \
   archive --format=tar "$DECOMP_REVISION" | tar -xf - -C "$PINNED_SOURCE"
 
+# levels/scripts.c includes this Makefile-derived header by its basename.
+# Reproduce the upstream rule inside the pinned tree so no ambient build
+# directory can influence Clight generation.
+cc -E -P -x c -I "$PINNED_SOURCE" \
+  "$PINNED_SOURCE/levels/level_headers.h.in" |
+  sed -E '/^[[:space:]]*$/d; s|(.+)|#include "\1"|' \
+  > "$PINNED_SOURCE/levels/level_headers.h"
+
+LEVEL_HEADERS_SHA256="fdfe0de8afdb3c751251a6ecbe10ef5b109b3b6711a9b430a32a88641a5d958c"
+if [ "$(wc -l < "$PINNED_SOURCE/levels/level_headers.h")" -ne 31 ]; then
+  echo "derived levels/level_headers.h has an unexpected line count" >&2
+  exit 1
+fi
+if ! printf '%s  %s\n' "$LEVEL_HEADERS_SHA256" \
+    "$PINNED_SOURCE/levels/level_headers.h" | sha256sum -c --status; then
+  echo "derived levels/level_headers.h does not match the pinned digest" >&2
+  exit 1
+fi
+
 # Flags are intentionally ordered and recorded verbatim in every generated
 # header. They match the N64-oriented pipeline used by the neighboring proof.
 COMMON_FLAGS=(
@@ -45,14 +64,21 @@ TRANSLATION_UNITS=(
   "mario_actions_airborne:src/game/mario_actions_airborne.c"
   "mario_actions_moving:src/game/mario_actions_moving.c"
   "area:src/game/area.c"
+  "level_scripts:levels/scripts.c"
+  "save_file:src/game/save_file.c"
+  "spawn_sound:src/game/spawn_sound.c"
+  "memory:src/game/memory.c"
   "object_list_processor:src/game/object_list_processor.c"
   "behavior_script:src/engine/behavior_script.c"
+  "graph_node:src/engine/graph_node.c"
+  "audio_external:src/audio/external.c"
   "spawn_object:src/game/spawn_object.c"
   "macro_special_objects:src/game/macro_special_objects.c"
   "math_util:src/engine/math_util.c"
   "surface_load:src/engine/surface_load.c"
   "surface_collision:src/engine/surface_collision.c"
   "object_helpers:src/game/object_helpers.c"
+  "obj_behaviors:src/game/obj_behaviors.c"
   "behavior_actions:src/game/behavior_actions.c"
   "obj_behaviors_2:src/game/obj_behaviors_2.c"
   "behavior_data:data/behavior_data.c"
@@ -70,6 +96,7 @@ generate_one() {
   local input="$PINNED_SOURCE/$source_path"
   local output="$PROJECT_ROOT/generated/${version}_${stem}.v"
   local version_flags=()
+  local unit_flags=()
 
   case "$source_path" in
     PROJECT_TTC_MACRO_INPUT)
@@ -92,6 +119,12 @@ generate_one() {
     *) echo "unsupported version: $version" >&2; exit 2 ;;
   esac
 
+  case "$source_path" in
+    levels/scripts.c)
+      unit_flags=("-I$PINNED_SOURCE/levels")
+      ;;
+  esac
+
   # CompCert 3.15's C parser does not accept the decomp's long-double literal
   # suffixes. Match the neighboring proof pipeline's semantics-preserving
   # translation to double for this one translation unit.
@@ -105,7 +138,7 @@ generate_one() {
 
   bash "$PROJECT_ROOT/pipeline/clightgen.sh" \
     "$input" "$source_label" "VERSION_${version^^}" "$output" \
-    "${COMMON_FLAGS[@]}" "${version_flags[@]}"
+    "${COMMON_FLAGS[@]}" "${unit_flags[@]}" "${version_flags[@]}"
 }
 
 export CLIGHTGEN_SOURCE_ROOT="$PINNED_SOURCE"

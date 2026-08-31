@@ -1,7 +1,7 @@
 SHELL := /usr/bin/env bash
 COQMAKEFILE := CoqMakefile
 
-.PHONY: all generate reproducible configure proofs no-admitted assumptions check clean
+.PHONY: all generate reproducible configure proofs no-admitted runtime-receipt assumptions check clean
 
 all: check
 
@@ -17,10 +17,13 @@ $(COQMAKEFILE): _CoqProject
 	bash -c 'source pipeline/env.sh && coq_makefile -f _CoqProject -o $(COQMAKEFILE)'
 
 proofs: configure
-	bash -c 'source pipeline/env.sh && $(MAKE) -f $(COQMAKEFILE) -j$${COQ_JOBS:-2}'
+	bash -c 'source pipeline/env.sh && $(MAKE) -f $(COQMAKEFILE) -j$${COQ_JOBS:-1}'
 
 no-admitted:
 	bash pipeline/check-no-admitted.sh
+
+runtime-receipt:
+	python3 pipeline/check-ttc-runtime-snapshot.py
 
 assumptions: proofs
 	bash pipeline/assumptions.sh \
@@ -32,10 +35,15 @@ assumptions: proofs
 	bash pipeline/assumptions.sh \
 	  Pedro.Proofs.MainTheorem checked_dust_frontier_reductions_us_jp
 	bash pipeline/assumptions.sh \
+	  Pedro.Proofs.MainTheorem checked_dust_linked_runtime_census_frontier_us_jp
+	bash pipeline/assumptions.sh \
+	  Pedro.Proofs.MainTheorem checked_static_terminal_frontier_us_jp
+	bash pipeline/assumptions.sh \
 	  Pedro.Proofs.TTCSpinnerSchedule no_dust_tap_schedule_keeps_this_interval
 
 check:
 	$(MAKE) reproducible
+	$(MAKE) runtime-receipt
 	$(MAKE) proofs
 	$(MAKE) no-admitted
 	$(MAKE) assumptions

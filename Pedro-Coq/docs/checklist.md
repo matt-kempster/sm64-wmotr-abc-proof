@@ -13,7 +13,7 @@ audits below.
       escape hatches.
 - [x] Regenerate with CompCert 3.15 and verify byte-for-byte stability.
 - [x] Compile the complete `_CoqProject` in the configured CompCert proof switch.
-- [x] Inspect all three capstones with `Print Assumptions`.
+- [x] Inspect every named capstone with `Print Assumptions`.
 
 ## Generic Pedro mechanism
 
@@ -57,20 +57,45 @@ audits below.
   - [x] Construct a genuine CompCert Clight big-step for the exact generated
         scalar `random_u16` leaf at the initialized zero seed, returning and
         storing `57460`.
-  - [ ] Lift that projection to Clight big-step execution with a complete
-        composite environment, resolved globals, and behavior-command calls.
+  - [x] Build typed US/JP links with the generated composite environment and
+        execute `obj_translate_xz_random`, both nested `random_float` calls,
+        and both nested `random_u16` calls, including the object X/Z stores.
+  - [x] Execute the exact generated WhitePuff2 timer-zero native and its
+        `bhv_cmd_call_native` wrapper, including cursor advance `20 -> 28` and
+        seed advance `0 -> 57460 -> 55882`, in both supported versions.
+  - [x] Execute one exact generated `cur_obj_update` loop cycle: fetch opcode
+        `0x0C`, load `BehaviorCmdTable[12]`, indirectly call the linked handler,
+        store result zero, and take the CONTINUE branch in both versions.
+  - [x] Execute the exact generated US/JP `bhv_cmd_parent_bit_clear` handler
+        under explicit symbol, composite-layout, and memory premises; prove the
+        masked Mario word's bit 1 clear and advance the Mist cursor `4 -> 12`.
+  - [ ] Execute `cur_obj_update`'s complete command loop, list traversal,
+        Mario particle dispatch, Mist/Puff spawn/allocation, and WhitePuff1.
+        The next WhitePuff2 commands are `ADD_INT` and `END_REPEAT`; the
+        downward chain additionally reaches pointer-to-integer arithmetic in
+        generated `segmented_to_virtual`, which standard CompCert cannot
+        evaluate from a symbolic global `Vptr`. It needs a proved N64
+        flat-address refinement and a concrete CompCert memory realization of
+        the object/free-list topology.
 - [ ] Prove object-pool and active-particle-flag premises for a reachable tap.
   - [x] Prove the isolated D/D/U allocation trace succeeds iff
         `free + unimportant >= 3`.
   - [x] Prove the active-bit guard accepts a clear bit, sets it, and the spawned
         mist clears it in the same-frame projection.
+  - [x] Execute the generated parent-bit-clear store itself in US/JP arbitrary
+        compatible `genv`s, including the parent load, byte-224 mask,
+        bit-clear postcondition, and cursor store.
   - [x] Generate the TTC level-script and loader units, count the exact source
         inventory `110` macro descriptors + `9` area object descriptors +
         Mario, and reduce the nominal later-competitor allowance to `117`.
   - [x] Prove the normal-frame reduction keeps a freshly clear dust bit clear
         across any finite request sequence.
+  - [x] Check a complete 240-slot US/JP debug-replay census with reserve 116,
+        a dust request, a clear active-dust bit, normal time, and identical
+        normalized object-list state in both versions.
   - [ ] Derive a clear bit, sufficient reserve after competing allocations, and
-        list integrity at a reachable US and JP TTC tap.
+        list integrity at a controller-only reachable US and JP TTC tap. The
+        checked finite census uses level-select debug entry and SLOW mode.
 - [ ] Prove the exact number and frame timing of seed advances.
   - [x] In the conditional source-derived dust-only projection, derive Puff1-X,
         Puff1-Z, Puff2-X, and Puff2-Z as four dust-owned calls on the tap frame.
@@ -82,9 +107,22 @@ audits below.
   - [x] Derive the US/JP generated macro prefixes before spinner 0 and spinner
         7, check their Clight RNG call sites, and prove conditional conservative
         non-dust bounds of `80` and `94` calls respectively.
+  - [x] Parse the generated TTC level/behavior scripts, close the selected
+        post-PLAYER forward/reverse call graphs, decode the one reached
+        indirect Heave-Ho dispatch, and prove `random_u16` is the unique
+        syntactic writer of `gRandomSeed16`. The fail-closed terminal frontier
+        records declared-external `sqrtf`.
+  - [x] Authenticate and check the complete US/JP retail `sqrtf` byte leaves as
+        `jr ra; sqrt.s f0,f12; nop; nop`, with no conservatively recognized
+        nested call or memory store. This is an opcode receipt, not an external
+        semantics refinement.
+  - [x] Check the debug replay's exact ten contiguous calls on `F` and `F+1`:
+        one list-2 Bob-omb call then four dust calls per frame, including every
+        seed transition and the US/JP behavior-address projection.
   - [ ] Establish those timing facts for linked Clight/retail execution and
-        supply a reachable live-state snapshot plus the outside-consumer census
-        needed to instantiate the finite window bounds.
+        supply a controller-only stock/Pedro/RANDOM-mode snapshot, a CompCert
+        contract for declared externals, and a runtime-address-to-Clight
+        refinement needed to instantiate the finite window bounds.
 
 ## TTC spinner witness
 

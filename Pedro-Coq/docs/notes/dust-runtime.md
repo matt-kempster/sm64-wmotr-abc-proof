@@ -61,25 +61,80 @@ reduction proves that any finite request sequence ends each DEFAULT phase with
 the bit clear. A retail trace must still refine its frames to that reduction
 and exclude the relevant time-stop cases.
 
-No current theorem derives the clear bit or reserve bound at a reachable TTC
-Pedro tap.
+`TTCDebugBoundary.v` now checks one complete finite boundary: exactly 240 pool
+slots, 115 free objects, one UNIMPORTANT object, 125 active objects, reserve
+116, a set dust request, a clear active-dust bit, and normal time in both
+versions. This discharges the abstract pool/flag model for that boundary.
+However, its origin is the dormant level-select debug mechanism, its dust is
+ordinary walking dust, and its TTC setting is SLOW. The Coq statement includes
+those negative provenance facts, so it does not derive the same premises at a
+reachable TTC Pedro tap.
+
+## RNG-consumer census and timing receipt
+
+`TTCRNGCensus.v` parses exact generated TTC LevelScript and BehaviorScript
+initializers rather than relying on a hand-maintained object list. It computes
+the post-PLAYER descriptor roots, scheduler phases, stable behavior/native
+closures, all reached direct calls, and the sole reached indirect action-table
+dispatch. The selected static scope identifies the Amp, Bob-omb, and hidden
+red-coin-star RNG-capable descriptors and proves that `random_u16` is the only
+generated function that syntactically writes the file-local seed. The closure
+fails closed at the declared external `sqrtf`; no effect contract is silently
+assumed for that terminal. `TTCRetailSqrt.v` separately checks the authenticated
+US/JP retail leaf bytes and decodes the complete four-word body as
+`jr ra; sqrt.s f0,f12; nop; nop`; conservative recognizers find no nested call
+or store. This closes the finite retail opcode receipt, not the missing MIPS or
+CompCert-external semantics.
+
+The committed debug receipt contains ten contiguous completed `random_u16`
+calls: calls 33--37 on `F` and 38--42 on `F+1`. Each frame has one pre-existing
+list-2 Bob-omb call followed by two Puff1 and two Puff2 calls. Every entry/return
+seed transition is checked, giving five total steps per frame and ten across
+the window. The address-to-Bob-omb association is an explicit checked
+projection, not a proved linker-map or runtime-to-Clight refinement.
 
 ## Clight link boundary
 
-`DustClightLink.v` selects the relevant generated definitions verbatim and
-proves that two disjoint symbol slices have a witness under CompCert's official
-`Linking.link`. This is useful link-hygiene evidence, but the slice is
-structural: it is not a complete program with every composite definition,
-global, and external resolved.
+`DustClightLink.v` selects the relevant generated definitions verbatim.
+`DustLinkedExecution.v` then places them under the exact generated composite
+environment and obtains US/JP witnesses under CompCert's official
+`Linking.link`.
 
 `DustBehavior.v` separately executes a source-derived behavior/list model. No
-theorem currently identifies that model with a Clight big-step execution of the
-linked retail translation units.
+theorem currently identifies the complete model with a Clight big-step of a
+retail frame.
 
-`DustClightExec.v` does supply one genuine semantic foothold: in a complete
-scalar program containing the exact generated seed global and `random_u16`
-function, a writable zero seed cell has a silent CompCert big-step that returns
-and stores `57460`. US and JP definitions are definitionally identical. This is
-one zero-seed leaf execution, not arbitrary-seed refinement or execution of the
-object/behavior scheduler. Consequently the top-level "link and execute" and
-reachable-tap checklist items remain open.
+The executable frontier is now substantially deeper than the scalar leaf.
+`DustLinkedExecution.v`, `DustLinkedExecutionJP.v`, and
+`DustWhitePuffExecution.v` execute the exact generated object translation,
+both nested `random_float`/`random_u16` calls, and WhitePuff2's timer-zero
+native in the linked US and JP environments. `DustBehaviorCommandExecution.v`
+wraps that native in the real generated `bhv_cmd_call_native`: the command
+loads its function pointer, calls the native, stores seed
+`0 -> 57460 -> 55882`, updates X/Z, and advances `gCurBhvCommand` from byte 20
+to byte 28. `DustCurObjUpdateExecution.v` then executes one exact surrounding
+dispatcher cycle: opcode `0x0C`, `BehaviorCmdTable[12]`, indirect handler call,
+result zero, and the generated CONTINUE branch.
+
+`DustParentBitClearExecution.v` also executes the exact generated
+`bhv_cmd_parent_bit_clear` function in an arbitrary compatible `genv`. Given
+explicit symbol, layout, command, current-object, parent, raw-data, and store
+premises, its US and JP
+big-steps follow the Mist spawner's parent pointer, clear bit 1 in Mario's
+raw-data word at byte 224, prove that bit clear, advance the behavior cursor
+from byte 4 to byte 12, and return zero. The initializer words are checked too,
+but typed-link instantiation and reaching it from the Mist script are open.
+
+That theorem starts from a concrete memory-image premise. It stops before the
+following `ADD_INT`, `END_REPEAT`, and `cur_obj_update` tail, and does not
+execute object-list traversal, Mario particle dispatch, three object
+allocations, or WhitePuff1. The downward spawn chain reaches
+`segmented_to_virtual`, whose generated pointer-to-32-bit-address arithmetic
+cannot shift a symbolic CompCert `Vptr`: on the configured 32-bit target the
+pointer-to-unsigned cast preserves `Vptr`, while `Oshr` requires integer
+operands. A full standard-Clight big-step therefore needs an explicit
+N64-flat-address/CompCert-pointer refinement or proved normalization at this
+seam. Allocation also
+requires a CompCert memory realization of the observed free/object list, not
+only a runtime row census. Consequently the parent "link and execute" and
+reachable-tap checklist items remain open at full retail-frame strength.

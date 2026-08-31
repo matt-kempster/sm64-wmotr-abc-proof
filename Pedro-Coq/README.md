@@ -52,6 +52,50 @@ before spinner 7. Those bounds still require a matching live-state snapshot
 and a proof that the remainder of the observation window has no uncounted RNG
 call.
 
+`Pedro.Proofs.MainTheorem.checked_dust_linked_runtime_census_frontier_us_jp`
+advances all three dust-to-PRNG obligations while retaining their evidence
+boundaries. For US and JP, a typed CompCert link now executes one exact
+generated `cur_obj_update` dispatch cycle: it fetches opcode `0x0C`, reads
+`BehaviorCmdTable[12]`, indirectly invokes `bhv_cmd_call_native`, and takes the
+real CONTINUE branch. The nested big-step executes
+`bhv_white_puff_2_loop`, `obj_translate_xz_random`, two `random_float` calls,
+and two `random_u16` calls; from seed zero it stores the successive seeds
+57,460 and 55,882, updates the object's X/Z fields, and moves the behavior
+cursor from byte 20 to byte 28. The theorem is conditional on an explicit
+concrete memory image and stops before the following `ADD_INT`, `END_REPEAT`,
+and `cur_obj_update` tail.
+
+`DustParentBitClearExecution.v` executes the exact generated
+`bhv_cmd_parent_bit_clear` handler for US and JP under explicit global-symbol,
+layout, and memory premises. It follows the spawner's parent pointer, masks bit
+1 from Mario's raw-data word at byte 224, proves the mask result clear, and
+advances the behavior cursor from byte 4 to byte 12. This is an arbitrary-`genv`
+handler theorem, not a typed-link or preceding Mist dispatch/allocation proof.
+`checked_static_terminal_frontier_us_jp` separately pairs the TTC static census
+with the authenticated retail `sqrtf` receipt.
+
+The same capstone includes a reproducible debug-replay boundary certificate:
+all 240 object-pool slots are covered exactly, the isolated reserve is 116,
+the dust request is set, the active-dust bit is clear, and time is not stopped.
+It also checks ten contiguous `random_u16` calls across frames `F` and `F+1`:
+one pre-existing list-2 Bob-omb call followed by four dust-owned calls on each
+frame, with every individual seed transition verified. This receipt entered
+TTC through the dormant level-select mechanism and observed `TTC_SPEED_SLOW`,
+so its Coq projection explicitly proves that it is neither a stock-entry nor a
+RANDOM-mode witness.
+
+Finally, a fail-closed generated-Clight census parses the TTC level and
+behavior scripts, computes the exact post-PLAYER scheduler roots and their
+forward/reverse call closures, checks the one reached indirect Heave-Ho action
+dispatch, and proves that `random_u16` is the unique syntactic writer of the
+file-local seed. The static terminal frontier is the declared external
+`sqrtf`. A separate authenticated retail-byte receipt checks the complete US
+and JP leaf as `jr ra; sqrt.s f0,f12; nop; nop` and proves that conservative
+instruction recognizers find no nested call or store. This closes that finite
+retail opcode question, but it is not a MIPS semantics or a CompCert
+`EF_external` refinement. The runtime Bob-omb address bridge is likewise an
+audited projection rather than a proved linker/retail refinement.
+
 These theorems are deliberately **not yet the ultimate gameplay claims**. The
 remaining semantic and control obligations are listed in
 [`docs/checklist.md`](docs/checklist.md). In particular, a syntax receipt is not
@@ -59,11 +103,18 @@ a proof that the corresponding Clight path executes, and the TTC random-mode
 source describes a bounded oscillation rather than a platform that stays at one
 mathematically fixed angle. The proved geometry interval is too narrow for the
 first 200-unit post-pause motion, so it is not yet a preservation witness. The
-structural Clight link is also not a complete linked-program execution proof:
-the new scalar PRNG execution does not execute the object/behavior chain, and
-reachable tap state, composite-layout refinement, unresolved callees, live
-competing allocations, and the concrete RNG-window snapshot remain explicit
-obligations.
+typed Clight link now executes one actual `cur_obj_update` dispatch cycle and
+its WhitePuff2 RNG subtree, but it is still not a complete retail-frame
+execution: the remaining command loop and function tail, list scheduler,
+particle dispatch, Mist-script dispatch, Puff spawning/allocation, and
+WhitePuff1 remain open. The generated `segmented_to_virtual` body performs
+pointer-to-integer address arithmetic that standard CompCert's symbolic-block
+memory model cannot execute from a global `Vptr`; crossing that seam requires
+an explicit N64-flat-address refinement rather than another unconstrained
+execution premise. A stock
+controller-only TTC snapshot, a refinement from runtime addresses to CompCert
+memory, the external-function contract, and a reachable Pedro/RANDOM-mode tap
+also remain explicit obligations.
 The exact event order and premise boundary are summarized in
 [`docs/notes/dust-runtime.md`](docs/notes/dust-runtime.md).
 
@@ -94,10 +145,10 @@ VERSION_US: -DVERSION_US=1 -DF3DEX_GBI_2=1 -DF3DEX_GBI_SHARED=1
 VERSION_JP: -DVERSION_JP=1 -DF3D_OLD=1
 ```
 
-There is one source preprocessing step, inherited from the established
-repository pipeline because CompCert 3.15 does not parse C `long double`
-suffixes. For `src/game/object_helpers.c` only, a generated build copy is made
-with this exact command before `clightgen`:
+There are two source preprocessing steps. The first is inherited from the
+established repository pipeline because CompCert 3.15 does not parse C
+`long double` suffixes. For `src/game/object_helpers.c` only, a generated build
+copy is made with this exact command before `clightgen`:
 
 ```sh
 sed -E 's/([[:digit:]]+\.[[:digit:]]+)([lL])([^[:alnum:]_]|$)/\1\3/g' \
@@ -106,7 +157,24 @@ sed -E 's/([[:digit:]]+\.[[:digit:]]+)([lL])([^[:alnum:]_]|$)/\1\3/g' \
 ```
 
 It removes only an `l`/`L` suffix immediately following a decimal literal;
-the pinned source tree itself is never edited.
+the archived `object_helpers.c` itself is never edited.
+
+The upstream build derives `level_headers.h` from
+`levels/level_headers.h.in`. For `levels/scripts.c` only, the proof generator
+reproduces that rule inside the archived source tree with this exact command:
+
+```sh
+cc -E -P -x c -I build/pinned-sm64 \
+  build/pinned-sm64/levels/level_headers.h.in |
+  sed -E '/^[[:space:]]*$/d; s|(.+)|#include "\1"|' \
+  > build/pinned-sm64/levels/level_headers.h
+```
+
+That translation unit alone receives the additional preprocessing flag
+`-Ibuild/pinned-sm64/levels`. The generated header contains 31 include lines;
+its SHA-256 digest at the pinned revision is
+`fdfe0de8afdb3c751251a6ecbe10ef5b109b3b6711a9b430a32a88641a5d958c`.
+Generation fails closed unless both that exact line count and digest match.
 
 The complete command construction, source list, pinned revision check, path
 normalization, and private string-literal atom prefixing are in
@@ -130,9 +198,12 @@ make check
 ```
 
 `make reproducible` performs two clean generations and compares SHA-256
-manifests. `make check` runs that reproducibility check, builds every listed
-proof, rejects proof holes and unconstrained declarations, and prints the
-assumptions of all checked capstones.
+manifests. `make check` runs that reproducibility check, validates the committed
+TTC runtime receipts against their Coq projection, builds every listed proof,
+rejects proof holes and unconstrained declarations, and prints the assumptions
+of all checked capstones. Proof compilation defaults to one job because the
+generated call-closure census is memory-intensive; set `COQ_JOBS` explicitly
+to opt into more parallelism.
 
 The default decomp checkout is `../../reference-sm64-decomp`; set
 `SM64_SOURCE` to another Git checkout containing the pinned commit if needed.

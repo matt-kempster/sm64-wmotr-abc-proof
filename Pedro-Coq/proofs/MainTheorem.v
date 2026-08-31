@@ -2,7 +2,8 @@ From Coq Require Import List ZArith.
 From Pedro.Proofs Require Import
   GameTypes PedroCollision LandingDust RNGAdvance InputSemantics TTCSpinners
   TTCSpinnerGeometry TTCSpinnerSchedule DustPool TTCRuntimePremises DustRuntime
-  DustClightExec TTCRNGWindow.
+  DustClightExec DustBehaviorCommandExecution DustCurObjUpdateExecution
+  TTCDebugBoundary TTCRNGWindow TTCRNGCensus TTCRetailSqrt.
 
 (** Initial source-and-arithmetic capstone. Every conjunct is tied either to a
     generated Clight AST or to CompCert's executable binary32 operations. This
@@ -76,4 +77,36 @@ Proof.
   refine (conj (pedro_collision_source_receipt_supported version) _).
   refine (conj (landing_dust_source_receipt_supported version) _).
   exact (rng_source_chain_receipt_supported version).
+Qed.
+
+(** Executable and census frontier for the three dust-to-PRNG obligations.
+    The first conjunct is a genuine linked Clight big-step through one exact
+    [cur_obj_update] dispatch cycle, the generated CALL_NATIVE handler,
+    white-puff-2 loop, random translation, and two PRNG calls in both supported
+    versions.  The remaining conjuncts pair a complete finite debug-replay
+    pool/RNG receipt with the fail-closed static TTC consumer census.  The
+    debug origin is explicitly non-stock and SLOW; this theorem therefore does
+    not assert a reachable Pedro tap or RANDOM-mode spinner execution. *)
+Theorem checked_dust_linked_runtime_census_frontier_us_jp :
+  linked_cur_obj_update_call_native_dispatch_cycle_us_jp_claim /\
+  ttc_debug_replay_boundary_reduction_claim /\
+  ttc_rng_static_census_claim /\
+  ttc_debug_slow_observed_rng_census_claim.
+Proof.
+  refine (conj
+    checked_linked_cur_obj_update_call_native_dispatch_cycle_us_jp _).
+  refine (conj checked_ttc_debug_replay_boundary_reduction_us_jp _).
+  refine (conj checked_ttc_rng_static_census_us_jp _).
+  exact checked_ttc_debug_slow_observed_rng_census_us_jp.
+Qed.
+
+(** The static Clight census is paired with a check of the complete four-word
+    retail [sqrtf] leaf for nested call/store instructions.  This does not turn
+    the external [sqrtf] declaration into a MIPS semantic contract. *)
+Theorem checked_static_terminal_frontier_us_jp :
+  ttc_rng_static_census_claim /\
+  RetailSqrtfInstructionReceipt.
+Proof.
+  exact (conj checked_ttc_rng_static_census_us_jp
+    retail_sqrtf_instruction_receipt_checked).
 Qed.
