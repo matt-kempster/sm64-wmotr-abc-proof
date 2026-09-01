@@ -908,7 +908,13 @@ The active project imports only narrow facts from the archived Eyerok work.
 Most results below are substantial conditional or source-shaped evidence, not
 linked retail executions.  See [archived proof evidence](notes/archived-proof-evidence.md).
 The detailed historical experiments are in the clearly archived
-[Eyerok notebook](../../old-proofs/eyerok-manipulation/Eyerok.md).
+[Eyerok notebook](../../old-proofs/eyerok-manipulation/Eyerok.md).  A new
+[controller-manipulation map](notes/eyerok-controller-manipulation.md) checks
+the exact movement-sensitive state-machine choices in both generated versions:
+Mario can deterministically request a tracking hand in a narrow Z strip, steer
+its chase, hold and release the alternating double-pound loop, choose sweep
+direction, and place a two-hand formation in Z, but movement cannot directly
+choose the active side or force fist-push independently of RNG.
 
 <a id="route-rank-14"></a>
 

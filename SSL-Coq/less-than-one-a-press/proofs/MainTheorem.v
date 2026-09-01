@@ -27,7 +27,8 @@ From LessThanOneAPress.Proofs Require Import
   WritableActionTableReachedExecution
   PlatformIntegerAliasClosure Area1Rank3PayloadWriterClosure
   EyerokRank15ControllerRide EyerokRank15VSC EyerokRank29Preload
-  EyerokRank29CycleClosure Area2Rank12ObjectImpulse
+  EyerokRank29CycleClosure EyerokControllerManipulation
+  Area2Rank12ObjectImpulse
   CompCertRouteScope.
 
 Import ListNotations.
@@ -225,6 +226,21 @@ Proof. exact eyerok_rank29_preload_boundary_holds. Qed.
 Theorem current_rank29_stock_cycle_closure :
   EyerokRank29CycleClosure.
 Proof. exact eyerok_rank29_cycle_closure_holds. Qed.
+
+(** Mario's movement has several real, finite controls over Eyerok's hand
+    state machine.  The 300-unit difference between the boss-relative and
+    hand-relative Z gates yields a deterministic TARGET_MARIO selection strip;
+    crossing its forward edge releases the chosen hand into a steerable chase.
+    The boss gate can hold and release the negative alternating double-pound
+    loop, Mario-relative position chooses either sweep sign, and the positive
+    sixth-cycle formation clamps Mario's sampled Z to a 1,200-unit band.  The
+    same model proves two important limits: position alone cannot force
+    FIST_PUSH against both RNG results, and movement does not directly select
+    left versus right.  This is a bilateral generated-source and arithmetic
+    boundary, not a controller-reachable movie or a target-star route. *)
+Theorem current_eyerok_controller_manipulation_boundary :
+  EyerokControllerManipulationBoundary.
+Proof. exact eyerok_controller_manipulation_boundary_holds. Qed.
 
 (** Rank 12's strongest named Area-2 impulse actor has no direct payoff.  The
     selected roster has exactly two homing

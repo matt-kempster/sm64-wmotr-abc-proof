@@ -400,5 +400,6 @@ proofs/EyerokRank15ControllerRide.v
 proofs/EyerokRank15VSC.v
 proofs/EyerokRank29Preload.v
 proofs/EyerokRank29CycleClosure.v
+proofs/EyerokControllerManipulation.v
 proofs/Area2Rank12ObjectImpulse.v
 proofs/MainTheorem.v
