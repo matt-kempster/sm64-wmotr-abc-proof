@@ -2181,6 +2181,12 @@ check: proofs
 	  LessThanOneAPress.Proofs.EyerokRank15DynamicSupport \
 	  eyerok_rank15_dynamic_support_boundary_holds
 	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.EyerokRank15LiveProjection \
+	  eyerok_rank15_memory_faithful_projection_boundary_holds
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.MainTheorem \
+	  current_rank15_memory_faithful_projection_boundary
+	bash pipeline/assumptions.sh \
 	  LessThanOneAPress.Proofs.MainTheorem \
 	  current_rank15_dynamic_support_boundary
 

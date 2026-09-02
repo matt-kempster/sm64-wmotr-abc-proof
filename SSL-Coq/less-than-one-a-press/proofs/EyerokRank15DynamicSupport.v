@@ -417,18 +417,21 @@ Definition rank15_hand_pair_safe (pair : Rank15HandPair) : Prop :=
 Inductive Rank15FirstHandStep :
     Rank15HandEnvelope -> Rank15HandEnvelope -> Prop :=
 | rank15_first_direct : forall before target,
+    rank15_hand_mode before <> Rank15Deleted ->
     target <= rank15_direct_pose_y_cap ->
     Rank15FirstHandStep before
       {| rank15_hand_mode := Rank15Controlled;
          rank15_hand_y := target;
          rank15_hand_remaining_rise := 0 |}
 | rank15_first_land : forall before floor_y,
+    rank15_hand_mode before <> Rank15Deleted ->
     floor_y <= rank15_arena_floor_y_cap ->
     Rank15FirstHandStep before
       {| rank15_hand_mode := Rank15Controlled;
          rank15_hand_y := floor_y;
          rank15_hand_remaining_rise := 0 |}
 | rank15_first_launch : forall before budget,
+    rank15_hand_mode before <> Rank15Deleted ->
     rank15_hand_y before <= rank15_arena_floor_y_cap ->
     0 <= budget <= rank15_upward_episode_cap ->
     Rank15FirstHandStep before
@@ -461,6 +464,7 @@ Inductive Rank15FirstHandStep :
 Inductive Rank15LaterHandStep (earlier : Rank15HandEnvelope) :
     Rank15HandEnvelope -> Rank15HandEnvelope -> Prop :=
 | rank15_later_direct : forall before target,
+    rank15_hand_mode before <> Rank15Deleted ->
     target <= rank15_direct_pose_y_cap ->
     Rank15LaterHandStep earlier before
       {| rank15_hand_mode := Rank15Controlled;
@@ -481,6 +485,7 @@ Inductive Rank15LaterHandStep (earlier : Rank15HandEnvelope) :
          rank15_hand_remaining_rise :=
            rank15_hand_remaining_rise before |}
 | rank15_later_launch : forall before budget,
+    rank15_hand_mode before <> Rank15Deleted ->
     rank15_hand_y before <= rank15_area3_floor_y_cap ->
     0 <= budget <= rank15_upward_episode_cap ->
     Rank15LaterHandStep earlier before
@@ -510,9 +515,11 @@ Inductive Rank15LaterHandStep (earlier : Rank15HandEnvelope) :
          rank15_hand_y := rank15_hand_y before;
          rank15_hand_remaining_rise := 0 |}.
 
-(** A Clight small step changes at most one projected hand envelope.  The
-    later-hand constructor observes the current earlier hand, matching the
-    source scheduler's append/list order once that order is derived live. *)
+(** One classified abstract chunk changes at most one hand envelope.  A chunk
+    is intentionally larger than a Clight small step: the generated movement
+    helper stores velocity, optionally clamps it, and only then stores Y.
+    [EyerokRank15LiveProjection] supplies the connected-step chunking and the
+    memory observations at its endpoints. *)
 Inductive Rank15HandPairStep : Rank15HandPair -> Rank15HandPair -> Prop :=
 | rank15_pair_first : forall pair next_first,
     Rank15FirstHandStep (rank15_earlier_hand pair) next_first ->
@@ -550,7 +557,7 @@ Proof.
       rank15_direct_pose_y_cap, rank15_upward_episode_cap in *.
   - split; [split |]; lia.
   - split; [split |]; lia.
-  - split; [exact H0 | lia].
+  - split; [exact H1 | lia].
   - split; [split |]; lia.
   - split; [exact Hbudget | lia].
   - split; assumption.
@@ -576,7 +583,7 @@ Proof.
   - split; [split |]; lia.
   - split; [exact Hbudget | lia].
   - split; [exact Hbudget | lia].
-  - split; [exact H0 | lia].
+  - split; [exact H1 | lia].
   - split; [split |]; lia.
   - split; [exact Hbudget | lia].
   - split; assumption.
@@ -597,6 +604,28 @@ Proof.
   - split.
     + exact Hfirst.
     + eapply rank15_later_step_preserves_safe; eauto.
+Qed.
+
+(** Deletion is genuinely absorbing.  An earlier draft allowed [direct],
+    [land], or [launch] to turn a deleted envelope back into a live one.  That
+    did not weaken the arithmetic ceiling, but it hid exactly the same-slot
+    reuse/lifetime escape that the live projection must expose. *)
+Lemma rank15_first_deleted_mode_is_absorbing : forall before after,
+  rank15_hand_mode before = Rank15Deleted ->
+  Rank15FirstHandStep before after ->
+  rank15_hand_mode after = Rank15Deleted.
+Proof.
+  intros before after Hdeleted Hstep.
+  destruct Hstep; cbn in *; try congruence.
+Qed.
+
+Lemma rank15_later_deleted_mode_is_absorbing : forall earlier before after,
+  rank15_hand_mode before = Rank15Deleted ->
+  Rank15LaterHandStep earlier before after ->
+  rank15_hand_mode after = Rank15Deleted.
+Proof.
+  intros earlier before after Hdeleted Hstep.
+  destruct Hstep; cbn in *; try congruence.
 Qed.
 
 Inductive Rank15HandPairReachable : Rank15HandPair -> Prop :=
@@ -678,14 +707,14 @@ Proof.
       (rank15_reachable_vertical_ceiling pair Hreachable)))))).
 Qed.
 
-(** * Exact selected-Clight bridge still required *)
+(** * Superseded micro-step bridge *)
 
-(** This inductive is intentionally conditional.  Its constructors force one
-    continuous execution of the selected linked program and one classified
-    pair step at every Clight step.  Completing Rank 15 negatively now means
-    defining [project_pair] from the real live object/list/floor memory and
-    constructing this relation from an accepted controller start.  A constant
-    or otherwise non-memory-faithful projection is not that missing proof. *)
+(** This older relation is retained for compatibility, but is no longer the
+    accepted live bridge: demanding one complete envelope transition after
+    every Clight micro-step cuts the velocity update apart from the following
+    position store.  The replacement module uses nonempty connected chunks
+    and exact [Mem.load] observations, so a constant [project_pair] cannot
+    satisfy its endpoint facts. *)
 Inductive Rank15SelectedClightPairRun
     (version : GameVersion) (start : Clight.state)
     (project_pair : Clight.state -> option Rank15HandPair) :

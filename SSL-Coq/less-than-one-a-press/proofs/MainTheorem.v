@@ -27,7 +27,7 @@ From LessThanOneAPress.Proofs Require Import
   WritableActionTableReachedExecution
   PlatformIntegerAliasClosure Area1Rank3PayloadWriterClosure
   EyerokRank15ControllerRide EyerokRank15VSC EyerokRank15ScheduleSearch
-  EyerokRank15DynamicSupport
+  EyerokRank15DynamicSupport EyerokRank15LiveProjection
   EyerokRank29Preload
   EyerokRank29CycleClosure EyerokControllerManipulation
   EyerokControllerReachability
@@ -230,6 +230,20 @@ Proof. exact eyerok_rank15_schedule_search_boundary_holds. Qed.
 Theorem current_rank15_dynamic_support_boundary :
   EyerokRank15DynamicSupportBoundary.
 Proof. exact eyerok_rank15_dynamic_support_boundary_holds. Qed.
+
+(** The accepted Rank-15 bridge now reads both hand slots, their behavior and
+    active flags, exact poses/actions/floors, the selected surfaces' owner
+    fields, and a real SURFACE-list path directly from CompCert memory.  The
+    generated velocity/clamp/position store order proves why a whole connected
+    chunk, rather than one envelope transition per micro-step, is necessary.
+    Distinct live slots cannot alias any observed cell, and deletion cannot
+    resurrect an envelope.  Every successfully constructed continuous chunk
+    run therefore inherits the 1809 < 1889 barrier.  Reached-chunk coverage,
+    the complete transitive outside-call inventory, and exact effects for its
+    reached sound/spawner and earlier-prefix calls remain explicit. *)
+Theorem current_rank15_memory_faithful_projection_boundary :
+  EyerokRank15MemoryFaithfulProjectionBoundary.
+Proof. exact eyerok_rank15_memory_faithful_projection_boundary_holds. Qed.
 
 (** Rank 29 no longer has an unidentified direct stock speed source.  The
     selected US/JP initializers authenticate the complete Area-2/Area-3

@@ -400,6 +400,7 @@ proofs/EyerokRank15ControllerRide.v
 proofs/EyerokRank15VSC.v
 proofs/EyerokRank15ScheduleSearch.v
 proofs/EyerokRank15DynamicSupport.v
+proofs/EyerokRank15LiveProjection.v
 proofs/EyerokRank29Preload.v
 proofs/EyerokRank29CycleClosure.v
 proofs/EyerokControllerManipulation.v
