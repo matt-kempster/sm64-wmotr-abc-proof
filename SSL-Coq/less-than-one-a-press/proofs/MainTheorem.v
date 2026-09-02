@@ -28,6 +28,7 @@ From LessThanOneAPress.Proofs Require Import
   PlatformIntegerAliasClosure Area1Rank3PayloadWriterClosure
   EyerokRank15ControllerRide EyerokRank15VSC EyerokRank29Preload
   EyerokRank29CycleClosure EyerokControllerManipulation
+  EyerokControllerReachability
   Area2Rank12ObjectImpulse
   CompCertRouteScope.
 
@@ -241,6 +242,21 @@ Proof. exact eyerok_rank29_cycle_closure_holds. Qed.
 Theorem current_eyerok_controller_manipulation_boundary :
   EyerokControllerManipulationBoundary.
 Proof. exact eyerok_controller_manipulation_boundary_holds. Qed.
+
+(** A paired hash-authenticated US retail suffix now reaches the exact
+    controller gates rather than merely modeling them: after the ordinary
+    Area-3 boundary, stick input wakes Eyerok, occupies the deterministic
+    TARGET_MARIO strip, releases the chase, and produces either sweep sign
+    with no A poll, no memory write, and no hand floor/platform ownership.
+    The forward-side sample falls from the arena edge at Z=-1889.765; the
+    grounded mirror moves chiefly in X but bends backward after its stored
+    speed reaches zero.  Source and collision bounds separately leave every
+    deterministic target surface behind the warp and the chase top 288 units
+    below the tunnel-query threshold.  This closes these two concrete suffixes
+    as routes, not every analog schedule or the fixture-assisted prefix. *)
+Theorem current_eyerok_controller_reachability_boundary :
+  EyerokControllerReachabilityBoundary.
+Proof. exact eyerok_controller_reachability_boundary_holds. Qed.
 
 (** Rank 12's strongest named Area-2 impulse actor has no direct payoff.  The
     selected roster has exactly two homing

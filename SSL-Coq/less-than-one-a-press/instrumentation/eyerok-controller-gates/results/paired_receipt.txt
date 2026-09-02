@@ -1,0 +1,13 @@
+Eyerok controller-gate paired retail receipt
+ROM MD5: 20b854b239203baf6c961b850a4a51a2
+ROM SHA-256: 17ce077343c6133f8c9f2d6d6d9a4ab62c8cd2aa57c40aea1f490b4c8bb21d91
+Boundary: ordinary Area-3 entry after disclosed fixture-assisted travel; no post-boundary memory writes
+Inputs after boundary: analog stick plus 13 B polls for the mandatory intro dialog; 0 A polls
+Common chronology: boundary 363; wake 560; target-strip arrival 603; deterministic TARGET_MARIO 903; smash 952; sweep 981
+Target selection: Mario Z=-2998.542969, hand Z=-3393.000000; farthest hand pivot Z=-1970.731445
+Positive/front sweep: entry Mario=(921.000000,-1534.000000,-1889.765137), yaw=+16384, static floor; X-edge fall visible by timer 1020
+Negative/front sweep: entry Mario=(602.704895,-1534.000000,-1897.535522), yaw=-16384, static floor
+Negative/front post-zero displacement: dX=-1232.672241, dZ=-133.265625; stored forward speed stays 0
+Ownership: 0 hand-floor frames and 0 hand-platform frames in both runs
+Verdict: the deterministic chase and both sweep signs are controller-reachable in the suffix, but the observed sweep is a bounded position push, not boarding or conserved-speed creation; the forward placement exits the arena and the grounded placement bends away from the warp
+Scope: this paired receipt is finite US-retail evidence, not an exhaustive analog-input theorem and not a controller-only construction of the pre-Area-3 prefix
