@@ -26,7 +26,8 @@ From LessThanOneAPress.Proofs Require Import
   WritableActionTablePrivateLive
   WritableActionTableReachedExecution
   PlatformIntegerAliasClosure Area1Rank3PayloadWriterClosure
-  EyerokRank15ControllerRide EyerokRank15VSC EyerokRank29Preload
+  EyerokRank15ControllerRide EyerokRank15VSC EyerokRank15ScheduleSearch
+  EyerokRank29Preload
   EyerokRank29CycleClosure EyerokControllerManipulation
   EyerokControllerReachability
   Area2Rank12ObjectImpulse
@@ -198,6 +199,22 @@ Proof. exact eyerok_rank15_controller_ride_boundary_holds. Qed.
 Theorem current_rank15_vsc_vertical_boundary :
   EyerokRank15VSCBoundary.
 Proof. exact eyerok_rank15_vsc_boundary_holds. Qed.
+
+(** A literal controller-word search has unbounded waits and continuous
+    positions, so Rank 15 now uses a finite source-action quotient instead.
+    The executable receipt counts 181,944 combinations of boss edge, two hand
+    edges, and candidate Mario effect, then checks the six representatives
+    and proves that every raw tuple projects to one of them; an induction
+    extends the result across arbitrarily many cycles.  From any entry seed at
+    most 31, no schedule represented by the quotient manufactures 32: its only
+    fresh top bounce is 30 and the other relevant effects preserve, clear, or
+    install 20.  Dynamic support is not silently discarded; it is reduced to
+    seven upward hand-action classes whose exact Float32 geometry and ownership
+    remain to be searched, while live frames still need refinement into the
+    six effect classes. *)
+Theorem current_rank15_finite_schedule_search_boundary :
+  EyerokRank15ScheduleSearchBoundary.
+Proof. exact eyerok_rank15_schedule_search_boundary_holds. Qed.
 
 (** Rank 29 no longer has an unidentified direct stock speed source.  The
     selected US/JP initializers authenticate the complete Area-2/Area-3
