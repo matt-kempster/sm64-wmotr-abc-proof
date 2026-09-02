@@ -27,6 +27,7 @@ From LessThanOneAPress.Proofs Require Import
   WritableActionTableReachedExecution
   PlatformIntegerAliasClosure Area1Rank3PayloadWriterClosure
   EyerokRank15ControllerRide EyerokRank15VSC EyerokRank15ScheduleSearch
+  EyerokRank15DynamicSupport
   EyerokRank29Preload
   EyerokRank29CycleClosure EyerokControllerManipulation
   EyerokControllerReachability
@@ -215,6 +216,20 @@ Proof. exact eyerok_rank15_vsc_boundary_holds. Qed.
 Theorem current_rank15_finite_schedule_search_boundary :
   EyerokRank15ScheduleSearchBoundary.
 Proof. exact eyerok_rank15_schedule_search_boundary_holds. Qed.
+
+(** The seven upward hand-action classes left by the finite quotient are now
+    absorbed by one deliberately generous two-hand barrier.  The current
+    US/JP AST census pins every direct vertical-velocity and gravity write in
+    the complete hand-handler family; the collision receipts pin every upward
+    Area-3 floor below 384 and the scaled hand top at 507.  Even granting each
+    positive episode 288 units, later-hand support on the earlier hand, and an
+    additional 630-unit Mario rise, the projected query peaks at 1809 below
+    the required 1889.  The verdict is conditional on constructing the named
+    memory-faithful selected-Clight hand/list/floor projection; the first live
+    step outside the barrier would be an exact counterexample producer. *)
+Theorem current_rank15_dynamic_support_boundary :
+  EyerokRank15DynamicSupportBoundary.
+Proof. exact eyerok_rank15_dynamic_support_boundary_holds. Qed.
 
 (** Rank 29 no longer has an unidentified direct stock speed source.  The
     selected US/JP initializers authenticate the complete Area-2/Area-3

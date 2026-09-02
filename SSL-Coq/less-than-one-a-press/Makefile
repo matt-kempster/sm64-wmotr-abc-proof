@@ -2177,6 +2177,12 @@ check: proofs
 	bash pipeline/assumptions.sh \
 	  LessThanOneAPress.Proofs.MainTheorem \
 	  current_timer131_accepted_spinning_post_entry_machine_boundary
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.EyerokRank15DynamicSupport \
+	  eyerok_rank15_dynamic_support_boundary_holds
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.MainTheorem \
+	  current_rank15_dynamic_support_boundary
 
 clean:
 	-$(MAKE) -f $(COQMAKEFILE) clean
