@@ -35,7 +35,11 @@ positive witness.
 
 ## Post-climb Float32 witness
 
-The checked start is the ordinary pole-top sample `(0,4020,1331)`.  The target
+The checked start is the normalized pole-top sample `(0,4020,1331)`, not a
+universal statement about every live handstand pose or release. A separate
+[ordinary-exit audit](rank11-pole-exit-live-audit.md) now records a staged
+retail timed-Z release at Y 4070, without any table mutation; it does not
+install this payload or prove a clean prefix. The target
 ring is at Y `3942`, with the nearest central-aperture edges at X `-101/102`
 and Z `1229/1434`.  The executable Coq kernel chooses a southbound heading,
 no analog acceleration, no wind, and twenty successful collision quarters.

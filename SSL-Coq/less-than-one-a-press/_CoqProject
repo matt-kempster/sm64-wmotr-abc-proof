@@ -279,6 +279,10 @@ proofs/Area2ElevatorCut.v
 proofs/UpperElevatorQuarterStepClosure.v
 proofs/UpperElevatorWingCapTransitionClosure.v
 proofs/Area2LowerTargetCut.v
+proofs/Area2Rank11PoleExitSplit.v
+proofs/Area2Rank11BodyResolution.v
+proofs/Area2Rank11LivePoleExit.v
+proofs/Area2Rank11FallingInitializer.v
 proofs/Area2DownstreamGeometry.v
 proofs/Area2NegativeQuicksandStarHypothesis.v
 proofs/Area2DownstreamReceipts.v

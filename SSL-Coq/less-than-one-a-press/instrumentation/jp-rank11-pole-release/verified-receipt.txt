@@ -1,0 +1,25 @@
+SCOPE=fixture-assisted JP suffix; not a clean entry, full quarter-step trace, or Clight bridge
+ROM_MD5=85d61f5525af708c9f1e84dce6dc10e9
+ROM_SHA256=9cf7a80db321b07a8d461fe536c02c87b7412433953891cdec9191bfad2db317
+EXTRA_POLE_FIXTURE_WRITES=23 (in addition to the inherited Area-2 loader)
+
+RUN_MODE=0
+R11_STAGE,timer=516,mode=0,pole=80350418,behavior=800e8464,mario=80346e78,fixtureWrites=23,pos=(0,4020,1331),speed=0
+R11_Z_REQUEST,timer=610,action=00100344,anim=12,frame=0,y=4070,vy=0
+R11_FRAME,timer=610,relative=94,action=00100344,arg=1,anim=12,frame=0,pos=(0,4070,1331),vy=0,forwardVel=0,polePos=820,floor=801991d0,owner=00000000,platform=00000000,input=0005,A=0,Z=1,stickY=0
+R11_FIRST_BONK,timer=611,pos=(0,4070,1329),forwardVel=-2,vy=-4
+R11_FRAME,timer=618,relative=102,action=010208b6,arg=0,anim=86,frame=0,pos=(0,3958,1257.74414),vy=-32,forwardVel=-2,polePos=820,floor=801991d0,owner=00000000,platform=00000000,input=0024,A=0,Z=0,stickY=0
+R11_FRAME,timer=619,relative=103,action=010208b6,arg=0,anim=86,frame=0,pos=(0,3926,1255.74414),vy=-36,forwardVel=-2,polePos=820,floor=801991d0,owner=00000000,platform=00000000,input=0024,A=0,Z=0,stickY=0
+R11_FRAME,timer=632,relative=116,action=04000471,arg=0,anim=86,frame=0,pos=(0,3200,1254.05103),vy=-75,forwardVel=-2,polePos=820,floor=801991d0,owner=00000000,platform=00000000,input=0020,A=0,Z=0,stickY=0
+R11_RESULT,mode=0,staged=1,fixtureWrites=23,topPolls=60,releaseSent=1,sawBonk=1,maxY=4194,minZWhileYAtLeast3942=1257.74414,aPressedFrames=0,aDownFrames=0,controllerAFrames=0
+
+RUN_MODE=1
+R11_STAGE,timer=516,mode=1,pole=80350418,behavior=800e8464,mario=80346e78,fixtureWrites=23,pos=(0,4020,1331),speed=0
+R11_FRAME,timer=610,relative=94,action=00100344,arg=1,anim=12,frame=0,pos=(0,4070,1331),vy=0,forwardVel=0,polePos=820,floor=801991d0,owner=00000000,platform=00000000,input=0005,A=0,Z=0,stickY=0
+R11_Z_REQUEST,timer=611,action=08100340,anim=13,frame=0,y=4020,vy=0
+R11_FRAME,timer=611,relative=95,action=08100340,arg=0,anim=13,frame=0,pos=(0,4020,1331),vy=0,forwardVel=0,polePos=820,floor=801991d0,owner=00000000,platform=00000000,input=0024,A=0,Z=1,stickY=0
+R11_FIRST_BONK,timer=612,pos=(0,4020,1329),forwardVel=-2,vy=-4
+R11_FRAME,timer=617,relative=101,action=010208b6,arg=0,anim=86,frame=0,pos=(0,3960,1268.21704),vy=-24,forwardVel=-2,polePos=820,floor=801991d0,owner=00000000,platform=00000000,input=0024,A=0,Z=0,stickY=0
+R11_FRAME,timer=618,relative=102,action=010208b6,arg=0,anim=86,frame=0,pos=(0,3936,1259.74414),vy=-28,forwardVel=-2,polePos=820,floor=801991d0,owner=00000000,platform=00000000,input=0024,A=0,Z=0,stickY=0
+R11_FRAME,timer=632,relative=116,action=04000471,arg=0,anim=86,frame=0,pos=(0,3200,1253.0647),vy=-75,forwardVel=-2,polePos=820,floor=801991d0,owner=00000000,platform=00000000,input=0020,A=0,Z=0,stickY=0
+R11_RESULT,mode=1,staged=1,fixtureWrites=23,topPolls=60,releaseSent=1,sawBonk=1,maxY=4194,minZWhileYAtLeast3942=1268.21704,aPressedFrames=0,aDownFrames=0,controllerAFrames=0

@@ -19,6 +19,7 @@ From LessThanOneAPress.Proofs Require Import
   NegativeDepthInteractionClosure NegativeDepthDefinedProducerClosure
   WritableActionTableClosure
   Area2LowerTargetCut Area2HypotheticalPoleLongJump
+  Area2Rank11PoleExitSplit Area2Rank11LivePoleExit Area2Rank11FallingInitializer
   Area2NegativeQuicksandStarHypothesis
   WritableActionTableAliasExternalClosure
   WritableActionTableWholeGameAliases
@@ -425,6 +426,23 @@ Proof.
   split; [exact hypothetical_base_contact_single_long_jump_misses_target_air |].
   split; [exact (proj2 (proj2 (proj2 hypothetical_3702_contact_enters_target_air_at_the_apex))) |].
   exact (proj2 hypothetical_pole_long_jump_five_frames_use_zero_a_presses).
+Qed.
+
+(** Rank 11 now has a bilateral source exit census and actual selected-program
+    execution for every collected A test and the ordinary falling initializer.
+    The latter starts at a real function call with its actual parameter binding
+    and returns with position and speed unchanged.  Its entry reads still
+    require zero squish/depth; the caller, animation pose, interaction push,
+    collision/support chronology and outside frames are NOT derived here.
+    In particular this does not instantiate the complete lower-cut theorem. *)
+Theorem current_rank11_pole_exit_boundary :
+  Rank11PoleExitSourceBoundary /\
+  Rank11NoATestBoundary /\
+  Rank11FallingCallClosure.
+Proof.
+  split; [exact rank11_pole_exit_source_boundary_holds |].
+  split; [exact rank11_every_source_a_test_is_closed_at_a_no_a_memory_read |].
+  exact rank11_selected_falling_call_safely_returns.
 Qed.
 
 (** Area 2 has an exact moving-quicksand support under the Act-6 star, but
