@@ -551,9 +551,13 @@ Lemma goomba_revised_precollision_tail_total_rise :
       (goomba_revised_precollision_tail additional_hits) =
       goomba_productive_rise_z * Z.of_nat additional_hits.
 Proof.
-  induction additional_hits as [| additional_hits IH]; simpl.
-  - lia.
-  - rewrite IH, Nat2Z.inj_succ. lia.
+  induction additional_hits as [| additional_hits IH].
+  - reflexivity.
+  - change (goomba_productive_rise_z +
+      goomba_precollision_total_rise_z
+        (goomba_revised_precollision_tail additional_hits) =
+      goomba_productive_rise_z * Z.of_nat (S additional_hits)).
+    rewrite IH, Nat2Z.inj_succ. lia.
 Qed.
 
 Theorem goomba_return_first_precollision_schedule_exact :
@@ -589,9 +593,17 @@ Theorem goomba_phase_shifted_precollision_schedule_exact :
           S (2 * remaining)%nat
     end.
 Proof.
-  intros [| remaining]; simpl.
+  intros [| remaining].
   - repeat split; reflexivity.
-  - rewrite goomba_revised_precollision_tail_hit_count,
+  - change
+      (S (goomba_precollision_productive_hits
+         (goomba_revised_precollision_tail remaining)) = S remaining /\
+       goomba_productive_rise_z + goomba_precollision_total_rise_z
+         (goomba_revised_precollision_tail remaining) =
+         goomba_productive_rise_z * Z.of_nat (S remaining) /\
+       S (length (goomba_revised_precollision_tail remaining)) =
+         S (2 * remaining)%nat).
+    rewrite goomba_revised_precollision_tail_hit_count,
       goomba_revised_precollision_tail_total_rise,
       goomba_revised_precollision_tail_length,
       Nat2Z.inj_succ.
@@ -609,8 +621,7 @@ Proof.
   pose proof (goomba_return_first_precollision_schedule_exact hits)
     as (Hlength & _).
   rewrite Hlength, Nat2Z.inj_mul in Hwindow.
-  unfold pyramid_top_productive_window_frames in Hwindow.
-  simpl in Hwindow.
+  change (2 * Z.of_nat hits <= 91) in Hwindow.
   lia.
 Qed.
 
@@ -625,10 +636,11 @@ Proof.
   pose proof
     (goomba_phase_shifted_precollision_schedule_exact (S remaining))
     as (_ & _ & Hlength).
-  simpl in Hlength.
+  change (length (goomba_phase_shifted_precollision_schedule (S remaining)) =
+    S (2 * remaining)%nat) in Hlength.
   rewrite Hlength, Nat2Z.inj_succ, Nat2Z.inj_mul in Hwindow.
-  unfold pyramid_top_productive_window_frames in Hwindow.
-  simpl in Hwindow.
+  change (Z.succ (2 * Z.of_nat remaining) <= 91) in Hwindow.
+  rewrite Nat2Z.inj_succ.
   lia.
 Qed.
 
@@ -636,7 +648,7 @@ Theorem forty_five_return_first_hits_fit_idealized_window :
   Z.of_nat
     (length (goomba_return_first_precollision_schedule 45)) <=
     pyramid_top_productive_window_frames.
-Proof. vm_compute. lia. Qed.
+Proof. vm_compute. discriminate. Qed.
 
 Theorem forty_six_phase_shifted_hits_fill_idealized_window :
   Z.of_nat

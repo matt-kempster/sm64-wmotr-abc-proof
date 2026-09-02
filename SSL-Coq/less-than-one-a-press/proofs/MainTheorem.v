@@ -1,5 +1,5 @@
-From Coq Require Import List ZArith.
-From compcert Require Import AST Clight Ctypes.
+From Coq Require Import Lia List ZArith.
+From compcert Require Import AST Clight Ctypes Floats Integers.
 From LessThanOneAPress.Proofs Require Import
   GameTypes InputSemantics CleanEntry ObjectProvenance StarCollection
   CollisionRegions AreaTransitions HiddenStar LowerEntrance UpperEntrance
@@ -28,6 +28,7 @@ From LessThanOneAPress.Proofs Require Import
   PlatformIntegerAliasClosure Area1Rank3PayloadWriterClosure
   EyerokRank15ControllerRide EyerokRank15VSC EyerokRank15ScheduleSearch
   EyerokRank15DynamicSupport EyerokRank15LiveProjection
+  EyerokRank15LiveCallClosure EyerokRank15LiveMovement
   EyerokRank29Preload
   EyerokRank29CycleClosure EyerokControllerManipulation
   EyerokControllerReachability
@@ -237,13 +238,25 @@ Proof. exact eyerok_rank15_dynamic_support_boundary_holds. Qed.
     generated velocity/clamp/position store order proves why a whole connected
     chunk, rather than one envelope transition per micro-step, is necessary.
     Distinct live slots cannot alias any observed cell, and deletion cannot
-    resurrect an envelope.  Every successfully constructed continuous chunk
-    run therefore inherits the 1809 < 1889 barrier.  Reached-chunk coverage,
-    the complete transitive outside-call inventory, and exact effects for its
-    reached sound/spawner and earlier-prefix calls remain explicit. *)
+    resurrect an envelope.  Height comparisons now check the signed-integer
+    range before conversion; a regression rejects a negative envelope that
+    previously wrapped to +2000.  Every successfully constructed continuous chunk
+    run therefore inherits the 1809 < 1889 barrier.  The native boss/hand
+    closure is now checked: 157 internal bodies, nine unresolved names, and
+    no indirect call inside those bodies.  The generated position-update
+    fragment now constructs a connected memory-faithful later-hand chunk
+    from real loads, an explicit new-Y comparison and disjoint floor-owner
+    reads; its after-projection is no longer assumed.  Other reached chunks,
+    the scheduler/prefix, and the exact outside effects remain open. *)
 Theorem current_rank15_memory_faithful_projection_boundary :
-  EyerokRank15MemoryFaithfulProjectionBoundary.
-Proof. exact eyerok_rank15_memory_faithful_projection_boundary_holds. Qed.
+  EyerokRank15MemoryFaithfulProjectionBoundary /\
+  EyerokRank15LiveNativeCallBoundary /\
+  EyerokRank15LiveMovementBoundary.
+Proof.
+  exact (conj eyerok_rank15_memory_faithful_projection_boundary_holds
+    (conj eyerok_rank15_live_native_call_boundary_checked
+      eyerok_rank15_live_movement_boundary_checked)).
+Qed.
 
 (** Rank 29 no longer has an unidentified direct stock speed source.  The
     selected US/JP initializers authenticate the complete Area-2/Area-3

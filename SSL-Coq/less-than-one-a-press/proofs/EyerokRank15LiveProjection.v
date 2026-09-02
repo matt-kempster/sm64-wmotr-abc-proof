@@ -358,7 +358,44 @@ Definition Rank15FloorOwnerLoad
   end.
 
 Definition rank15_float_upper_bound (value : float32) (bound : Z) : Prop :=
+  Int.min_signed <= bound <= Int.max_signed /\
   Float32.cmp Cle value (Float32.of_int (Int.repr bound)) = true.
+
+(** The envelope uses mathematical integers.  Merely converting an arbitrary
+    negative envelope with [Int.repr] can turn it into a positive ceiling.
+    Range validity is part of the live projection, not an implicit promise. *)
+Lemma rank15_projected_height_bound_cannot_wrap : forall value bound,
+  rank15_float_upper_bound value bound ->
+  Int.signed (Int.repr bound) = bound.
+Proof.
+  intros value bound [Hrange _]. apply Int.signed_repr. exact Hrange.
+Qed.
+
+Definition rank15_wrapped_height_bound : Z := 2000 - Int.modulus.
+
+Definition Rank15HeightWrapRegression : Prop :=
+  rank15_wrapped_height_bound < 0 /\
+  rank15_area2_floor_query_min < 2000 /\
+  Float32.cmp Cle (Float32.of_int (Int.repr 2000))
+    (Float32.of_int (Int.repr rank15_wrapped_height_bound)) = true /\
+  ~ rank15_float_upper_bound (Float32.of_int (Int.repr 2000))
+      rank15_wrapped_height_bound.
+
+Theorem rank15_height_wrap_regression_checked : Rank15HeightWrapRegression.
+Proof. vm_compute. intuition discriminate. Qed.
+
+Definition EyerokRank15HeightEncodingBoundary : Prop :=
+  (forall value bound,
+    rank15_float_upper_bound value bound ->
+    Int.signed (Int.repr bound) = bound) /\
+  Rank15HeightWrapRegression.
+
+Theorem eyerok_rank15_height_encoding_boundary_checked :
+  EyerokRank15HeightEncodingBoundary.
+Proof.
+  exact (conj rank15_projected_height_bound_cannot_wrap
+    rank15_height_wrap_regression_checked).
+Qed.
 
 Definition rank15_hand_mode_matches_active
     (mode : Rank15HandEnvelopeMode) (active : int) : Prop :=
@@ -693,6 +730,7 @@ Definition EyerokRank15MemoryFaithfulProjectionBoundary : Prop :=
   EyerokRank15LiveOrderingReceipt /\
   EyerokRank15OutsideCallSyntaxReceipt /\
   EyerokRank15ObservedLayoutReceipt /\
+  EyerokRank15HeightEncodingBoundary /\
   (forall memory binding slot first second,
     Rank15HandCellLoads memory binding slot first ->
     Rank15HandCellLoads memory binding slot second ->
@@ -728,6 +766,7 @@ Proof.
   refine (conj eyerok_rank15_live_ordering_receipt_checked _).
   refine (conj eyerok_rank15_outside_call_syntax_receipt_checked _).
   refine (conj eyerok_rank15_observed_layout_receipt_checked _).
+  refine (conj eyerok_rank15_height_encoding_boundary_checked _).
   refine (conj rank15_hand_cell_loads_are_determinate _).
   refine (conj rank15_bound_slots_observed_cells_do_not_alias _).
   refine (conj rank15_first_deleted_mode_is_absorbing _).

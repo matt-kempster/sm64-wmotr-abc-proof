@@ -303,9 +303,10 @@ Theorem rank15_every_integral_seed_through_31_misses_tunnel :
     rank15_ideal_ledge_query_ceiling seed < rank15_tunnel_floor_y.
 Proof.
   intros seed Hseed.
-  pose proof (rank15_ascent_monotone_in_seed seed 31 16 Hseed) as Hascent.
-  change (rank15_ideal_vsc_ascent seed <=
-    rank15_ideal_vsc_ascent 31) in Hascent.
+  assert (Hascent : rank15_ideal_vsc_ascent seed <=
+    rank15_ideal_vsc_ascent 31).
+  { unfold rank15_ideal_vsc_ascent.
+    apply rank15_ascent_monotone_in_seed. exact Hseed. }
   destruct rank15_checked_seed_ascents_are_exact as [_ [_ [_ [H31 _]]]].
   rewrite H31 in Hascent.
   unfold rank15_ideal_ledge_query_ceiling,
