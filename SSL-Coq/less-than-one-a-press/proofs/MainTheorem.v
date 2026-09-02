@@ -15,6 +15,7 @@ From LessThanOneAPress.Proofs Require Import
   InkTimer131RetailMipsFrames Area1SurfacePoolRangeSeparation
   Area1Rank1LiveBoundaryReceipt Area1Rank1UpperWarpTraceReceipt
   Area1Rank4WarpTopTraceReceipt Area1Rank5StateSplitTraceReceipt
+  Area1Rank18CopyResolution Area1Ranks13To18TraceReceipt
   InkTimer131RealEntryPrefix InkTimer131PostEntryMachineTrace TurningAnimation
   NegativeDepthInteractionClosure NegativeDepthDefinedProducerClosure
   WritableActionTableClosure
@@ -177,6 +178,26 @@ Proof. exact area1_rank4_warp_top_trace_checked_boundary_holds. Qed.
 Theorem current_rank5_state_split_trace_receipt :
   Area1Rank5StateSplitTraceCheckedBoundary.
 Proof. exact area1_rank5_state_split_trace_checked_boundary_holds. Qed.
+
+(** The route-matched replay now watches every raw-Object coordinate store,
+    every interaction dispatch/return, the copy index and three readbacks,
+    and the cached floor through the final upper-warp query.  All 2,462 copies
+    are faithful; the only three post-selection State stores rewrite the
+    already occupied height 768.  This is a finite machine receipt, not an
+    all-controller-history theorem or a machine-to-Clight bridge. *)
+Theorem current_ranks13_to18_copy_interaction_trace_receipt :
+  Area1Ranks13To18TraceCheckedBoundary.
+Proof. exact area1_ranks13_to18_trace_checked_boundary_holds. Qed.
+
+(** Separately, actual Clight memory bounds close the alternate-index read:
+    the real US/JP copy first reads velocity at byte 272 if index one is
+    selected, but the initialized MarioState global is at most 200 bytes.
+    No successful Clight step, including an abstract external, can enlarge
+    that old allocation.  This does not exclude skipped/redirected copies on
+    another history or assert a result about post-OOB retail continuation. *)
+Theorem current_rank18_wrong_index_copy_boundary :
+  Area1Rank18CopyCheckedBoundary.
+Proof. exact area1_rank18_copy_checked_boundary_holds. Qed.
 
 (** Rank 15 no longer needs an injected punching or jump-kick action at its
     accepted local hand-contact boundary.  With A already held, one real B

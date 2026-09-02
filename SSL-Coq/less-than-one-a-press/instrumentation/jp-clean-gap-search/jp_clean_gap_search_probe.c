@@ -35,6 +35,14 @@
 #define RANK5_STATE_SPLIT_AUDIT 0
 #endif
 
+#ifndef RANK13_18_COPY_AUDIT
+#define RANK13_18_COPY_AUDIT 0
+#endif
+
+#if RANK13_18_COPY_AUDIT && !RANK5_STATE_SPLIT_AUDIT
+#error "RANK13_18_COPY_AUDIT requires RANK5_STATE_SPLIT_AUDIT"
+#endif
+
 #if RANK4_WARP_TOP_AUDIT && !RANK1_BOUNDARY_AUDIT
 #error "RANK4_WARP_TOP_AUDIT requires RANK1_BOUNDARY_AUDIT"
 #endif
@@ -1704,6 +1712,10 @@ static void rank5_print_result(void) {
 }
 #endif
 
+#if RANK13_18_COPY_AUDIT
+#include "../jp-ranks13-18/jp_ranks13_18_probe.h"
+#endif
+
 static int rank1_surface_index(uint32_t surface) {
     uint32_t offset;
     if (surface < gRank1SurfaceBase) return -1;
@@ -1997,6 +2009,13 @@ static int rank1_handle_write(uint32_t pc, uint64_t *registers,
     uint32_t physical = target & 0x1fffffffu;
     int watched = 0;
 
+#if RANK13_18_COPY_AUDIT
+    if (!decoded) {
+        if (rank13_note_undecoded_write(accessed)) watched = 1;
+    } else if (rank13_note_write(pc, target, width)) {
+        watched = 1;
+    }
+#endif
 #if RANK5_STATE_SPLIT_AUDIT
     if (!decoded) {
         if (rank5_note_undecoded_write(accessed)) watched = 1;
@@ -2382,6 +2401,9 @@ static int rank1_handle_breakpoint(uint32_t pc, uint64_t *registers) {
     if ((trigger_flags & M64P_BKP_FLAG_EXEC) == 0) return 0;
 #if RANK5_STATE_SPLIT_AUDIT
     rank5_handled = rank5_handle_exec(pc);
+#endif
+#if RANK13_18_COPY_AUDIT
+    if (rank13_handle_exec(pc, registers)) rank5_handled = 1;
 #endif
     if (pc == A_UPDATE_OBJECTS) {
         if (gRank1AuditState == 1) rank1_start_audit();
@@ -3426,6 +3448,9 @@ EXPORT int CALL RomOpen(void) {
 }
 
 EXPORT void CALL RomClosed(void) {
+#if RANK13_18_COPY_AUDIT
+    rank13_print_result();
+#endif
 #if RANK5_STATE_SPLIT_AUDIT
     rank5_print_result();
 #endif
@@ -3665,6 +3690,9 @@ EXPORT void CALL GetKeys(int control, BUTTONS *keys) {
 #endif
 #if RANK5_STATE_SPLIT_AUDIT
     arm_rank5_state_split_audit();
+#endif
+#if RANK13_18_COPY_AUDIT
+    arm_rank13_copy_audit();
 #endif
     observe_gap();
     observe_top();

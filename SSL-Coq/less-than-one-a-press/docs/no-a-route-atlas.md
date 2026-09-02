@@ -185,14 +185,14 @@ The detailed sections are organized as:
 | 11 | Direct Area-2 gates | [Lower-aperture impulse, clip, or support switch](#route-rank-11) | Low; timed release retains 50 units but tested suffixes fail; mutation remains hypothetical |
 | 12 | Direct Area-2 gates | [Homing Amp or a moving collision owner](#route-rank-12) | Very low after the stock shock-composite closure; only a transported Goomba or a failed runtime-owner premise remains |
 | 12A | Direct Area-2 gates | [Reload, nonzero warp destination, or same-position support-selection change](#route-rank-12a) | Low; useful coverage branch, but no concrete clean witness |
-| 13 | State-first installation | [Raw-Object-only return or impulse writer](#route-rank-13) | Low; broad proof branch, but no concrete gameplay writer |
-| 13A | State-first installation | [Terrain-dispatch or collision-prefix writer outside the platform phase](#route-rank-13a) | Low; proof branch with no reached extra writer |
-| 13B | State-first installation | [Interaction-stage writer or cached-floor snap composite](#route-rank-13b) | Low; the ordinary branch is conditionally blocked |
+| 13 | State-first installation | [Raw-Object-only return or impulse writer](#route-rank-13) | Very low on the checked clean run; all 7,386 collision-position writes are faithful ordinary copies |
+| 13A | State-first installation | [Terrain-dispatch or collision-prefix writer outside the platform phase](#route-rank-13a) | Very low on the checked clean run; no extra pre-collision position writer occurs |
+| 13B | State-first installation | [Interaction-stage writer or cached-floor snap composite](#route-rank-13b) | Very low on the checked clean run; the warp stops later interactions and all three floor snaps leave Mario at Y=768 |
 | 14 | Eyerok | [Carry a stale Eyerok-hand address from Area 3 to Area 2 in JP](#route-rank-14) | Retired in the audited stock model; no hand can install the pointer at the warp, and the sole reused nonzero payload moves about 8 down and 38 backward |
 | 15 | Eyerok | [Board and ride a raised hand into a lower Area-2 route](#route-rank-15) | Medium as a proved local ride, very low as a full route; one live-memory movement case is constructed, but the complete timeline and outside-call effects remain open |
 | 16 | Goomba / PU transport | [Goomba raising, PU transport, and Spindel handoff](#route-rank-16) | Very low; both finite top-window timing classes are refuted, and the generous revised case reaches only Y=1017 |
 | 17 | JP stale-platform lineage | [Fresh same-slot replacement payload](#route-rank-17) | Low abstractly; absent in the authenticated best trace |
-| 18 | State-first installation | [Skipped, wrong-index, or redirected State-to-Object copy](#route-rank-18) | Low; no normal receiver or return failure has been observed |
+| 18 | State-first installation | [Skipped, wrong-index, or redirected State-to-Object copy](#route-rank-18) | Very low; tested copies are exact, and the second-state read cannot succeed in the initialized proof model |
 | 19 | Ink installation | [Negative quicksand depth plus stalled automatic dialog](#route-rank-19) | Very low; no clean seed, failed lookup, or Graphics-to-collision bridge |
 | 20 | Ink installation | [Mario behavior flag plus a large graphical Y offset](#route-rank-20) | Very low; ordinary stock writers are excluded |
 | 21 | Ink installation | [Non-stock Graphics anchor or spawned anchor actor](#route-rank-21) | Very low; the required parent actors are absent from stock Area 1 |
@@ -593,21 +593,14 @@ on the checked run; the conditional effect itself is exact.**
 
 ### Raw-Object-only return or impulse writer
 
-**Overall rank: 13. Family priority: 4. Likelihood: low as a proof
-branch; no concrete gameplay writer is known.**
+**Overall rank: 13. Family priority: 4. Likelihood: very low on the checked
+clean run; another input history remains open.**
 
-**In plain language.** Instead of moving State, change only Mario's raw
-collision Object after synchronization.  State remains at the remote sample
-while Object is returned to the warp.
+**In plain language.** Mario has separate movement and collision positions.  A change to only the collision position could put him back at the warp while leaving his movement position somewhere else, allowing the two game checks to disagree.
 
-**What is already known.** Abstract countermodels show that call ordering alone
-cannot exclude this.  The Goomba work names pre-collision raw-return, lifecycle,
-and entry writer classes, but no stock SSL Area-1 writer has been shown to hit
-the right endpoint at the right time.
+**What is already known.** The completed zero-A four-pillar run now has write-by-write coverage across all 2,462 frames, including the action and copy intervals missing from the older late-write audit.  Its only 7,386 writes to Mario's collision coordinates are the ordinary three-coordinate copies; every value is read back correctly from the same Mario, with no intervening retarget.  No extra return or impulse writer occurs on this run.  Abstract examples still show why ordering alone cannot rule out other histories, but none is a clean gameplay witness.  See the [four-route copy/interaction audit](notes/area1-ranks13-18-copy-interaction-audit.md).
 
-**What closes it.** Prove an exact first-divergence/last-writer chronology with
-receiver, component, and timing data, or frame every reachable Object writer
-through the collision sample.
+**What closes it.** Extend the checked write coverage to every reachable clean history, or find one different history with an actual collision-position write that creates the useful disagreement.  A candidate must identify which Mario it changes, the coordinate and timing of the change, and why the ordinary copy does not erase it before the relevant check.
 
 [Back to the at-a-glance ranking](#at-a-glance-ranking)
 
@@ -615,22 +608,14 @@ through the collision sample.
 
 ### Terrain-dispatch or collision-prefix writer outside the platform phase
 
-**Overall rank: 13A. Family priority: 5. Likelihood: low as a proof
-branch; no concrete gameplay writer is known.**
+**Overall rank: 13A. Family priority: 5. Likelihood: very low on the checked
+clean run; no extra writer is known.**
 
-**In plain language.** A store in terrain handling or the collision prefix
-moves State or Object before the warp test, but falls outside the modeled
-ordinary/platform stages.
+**In plain language.** Terrain handling or the beginning of collision detection might change one of Mario's positions before the warp test, outside the usual moving-platform step.  Such an extra change could create the disagreement needed by an installer.
 
-**What is already known.** Abstract framed-stage theorems make terrain,
-platform, and collision refinement failures explicit instead of silently
-assuming them away.  Source-level direct-writer censuses are narrow and do not
-prove live receivers, indirect callbacks, or external frames.  No specific
-extra stock writer has been identified.
+**What is already known.** On the same 2,462-frame clean run, no movement- or collision-position write occurs before the platform step, or after it through the end of collision detection; the platform helper itself never runs.  The positions agree at every checked collision boundary.  These are live write-watch results, including any reached indirect or outside call, rather than an assumption that the listed source writers are exhaustive.  The new replay reproduces the complete earlier receipt exactly, so no extra terrain or collision-prefix writer supplies a split here.  See the [four-route audit](notes/area1-ranks13-18-copy-interaction-audit.md).
 
-**What closes it.** Instantiate each stage with actual linked steps and
-protected loads, prove every direct and indirect receiver, and either frame all
-stores or return the first concrete State/Object-changing step.
+**What closes it.** Show that every other reachable clean frame follows the checked stages without an extra position change, including unusual callbacks and object lifetimes.  Alternatively, exhibit the first real write outside those safe cases and show that it changes the relevant Mario position before the warp collision test.
 
 [Back to the at-a-glance ranking](#at-a-glance-ranking)
 
@@ -638,28 +623,14 @@ stores or return the first concrete State/Object-changing step.
 
 ### Interaction-stage writer or cached-floor snap composite
 
-**Overall rank: 13B. Family priority: 6. Likelihood: low.**
+**Overall rank: 13B. Family priority: 6. Likelihood: very low on the checked
+clean run; a different useful cached floor remains unproved.**
 
-**In plain language.** Let geometry cache the warp, then have a later object
-interaction push/bounce State or let `ACT_DISAPPEARED` snap Mario to an older
-floor before the copy and final query.
+**In plain language.** After the game chooses the warp, another interaction might push or bounce Mario, or the disappearing action might snap him to a previously remembered floor.  A useful change at that moment could make the final floor check disagree with the earlier warp check.
 
-**What is already known.** These source mechanisms are real.  The bilateral
-source receipt now pins `interact_warp` at table index `4`; the accepted
-nonfading branch returns the result of
-`set_mario_action(ACT_DISAPPEARED)`, that call returns `1`, and the loop breaks
-on a nonzero handler result.  Under explicitly supplied live table/dispatch/
-return, receiver, alias/external-frame, and final-copy facts, later handlers
-cannot run and direct post-selection coordinate changes reduce to the
-cached-floor Y snap.  Every same-sample floor admitted by the finite
-`find_floor` model is at most Y=`896`, and the completed query at preserved
-warp X/Z is null against every modeled stock owner.  Live binary32 floor
-selection and owner/list projection remain open premises.
+**What is already known.** The live upper-warp interaction now confirms the source prediction: it reports success and stops the interaction loop, so no later handler runs.  Mario then spends three frames disappearing; each performs a real remembered-floor height write, but merely rewrites his existing Y=768.  No sideways write occurs after selection, the remembered floor stays intact through the final query, and that query returns the same floor without a moving-object owner.  The floor itself exists; it is the remembered platform that is empty.  The copy remains faithful throughout, so this composite creates no useful movement on the checked run.  See the [four-route audit](notes/area1-ranks13-18-copy-interaction-audit.md).
 
-**What closes it.** Derive the supplied dispatch/receiver/frame facts and the
-live floor/owner projection from one linked frame.  A survivor must violate one
-of those premises rather than merely invoke a later normal handler or an
-ordinary same-sample cached-floor snap.
+**What closes it.** Find a clean warp acceptance with a usefully different remembered floor, or an actual operation that breaks the checked interaction, position, or floor conditions.  Otherwise prove that every reachable clean warp frame has the same harmless short-circuit, floor snap, and completed copy.  Merely invoking another ordinary handler after the accepted warp is not a surviving mechanism.
 
 [Back to the at-a-glance ranking](#at-a-glance-ranking)
 
@@ -667,24 +638,14 @@ ordinary same-sample cached-floor snap.
 
 ### Skipped, wrong-index, or redirected State-to-Object copy
 
-**Overall rank: 18. Family priority: 7. Likelihood: low.**
+**Overall rank: 18. Family priority: 7. Likelihood: very low; the second-state
+read is excluded in the initialized proof model.**
 
-**In plain language.** Let ordinary or PU movement create a State difference,
-then skip the expected copy, copy from the wrong MarioState entry, or write a
-different Object.
+**In plain language.** Let Mario's movement position change, then prevent the normal update of his collision position: skip the copy, choose a second Mario-state entry, or send the copied coordinates to the wrong object.
 
-**What is already known.** The source call shape and order are checked, but
-live equality of `gCurrentObject`, `gMarioObject`, `MarioState.marioObj`, and
-`gMarioStates[0]` is not yet an invariant.  The proof layer explicitly retains
-skipped/nonreturning, wrong-target, wrong-transfer, retarget, and lifecycle
-copy escapes.
-No normal wrong receiver, index, or nonreturning path has been observed; the
-branch ranks lower here than in the proof-obligation matrix because it has no
-current gameplay seed despite its high value for exhaustiveness.
+**What is already known.** All 2,462 copies in the clean run execute and return with the first state entry, the same Mario object, stable source coordinates, and three exact coordinate writes.  Separately, the US/JP Coq proof now shows why selecting a second entry cannot provide a successful copy: there is only one allocated Mario-state entry, and the stock function tries to read beyond it before copying any position.  No operation in the initialized proof model can enlarge that allocation, including an abstract outside call.  This excludes the second-entry read in that model, but not skipped or redirected copies on other histories.  See the [copy/read proof and audit](notes/area1-ranks13-18-copy-interaction-audit.md).
 
-**What closes it.** Prove every relevant path reaches and returns from the copy
-with index `0`, stable live endpoints, exact three-coordinate stores, and no
-intervening retarget; classify deaths, warps, abnormal returns, and externals.
+**What closes it.** Prove that every remaining clean path reaches and returns from the copy with the same live Mario and unchanged source coordinates, including deaths, warps, object replacement, and outside calls; or exhibit the first real skipped copy, redirected receiver, or altered transfer.  Reading past the state array and continuing on the retail machine is a separate out-of-bounds extension, not an unfinished successful-Clight route.
 
 [Back to the at-a-glance ranking](#at-a-glance-ranking)
 

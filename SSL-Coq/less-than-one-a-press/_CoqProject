@@ -413,4 +413,9 @@ proofs/EyerokRank29CycleClosure.v
 proofs/EyerokControllerManipulation.v
 proofs/EyerokControllerReachability.v
 proofs/Area2Rank12ObjectImpulse.v
+proofs/ClightAllocationBounds.v
+proofs/Area1Rank18StateArrayBound.v
+proofs/Area1Rank18CopyRead.v
+proofs/Area1Rank18CopyResolution.v
+proofs/Area1Ranks13To18TraceReceipt.v
 proofs/MainTheorem.v
