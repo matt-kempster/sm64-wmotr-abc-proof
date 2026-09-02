@@ -226,6 +226,18 @@ Completed work is grouped by subject. Each item retains its original scope warni
   collision band, and schedule-specific finite Area-1 top-window bound.
   Compute matching US/JP callback/action/collision/load source-shape receipts.
 
+- [x] Close the revised Rank-16 finite timing class.  Formalize the exact
+  alternating raw-Object return/reset and productive-departure quotient,
+  prove that its return-first form permits at most 45 rises in 91 frames, and
+  grant a stronger phase-shifted form a productive first frame to obtain the
+  sharp 46-rise bound.  Compute exact binary32 Y `1017` from Y `51`, leaving
+  774 units to Y `1791`, and record bilateral generated
+  collision/non-terrain, PLAYER/PUSHABLE-list, Mario-copy, and Goomba-update
+  source-order anchors without claiming a linked execution.  This closes the
+  finite top-window timing class without assuming
+  that either raw-Object writer is reachable; longer timing, state-machine
+  escapes, PU transport, and handoffs remain separate.
+
 - [x] Parse the generated US/JP Area-1 static initializers in Rocq and compute
   the exact 17-wall/26-floor cell inventories.  Compute all four static-wall
   and both static-floor decision lists as all-rejection, then package

@@ -572,12 +572,15 @@ or the Clight refinement of the confirmed instruction-boundary payload load.
 The Goomba-raising proposal supplies another conditional primitive, not a
 closed route.  `GoombaRaising.v` proves the corrected action-2 H/F/R cycle and
 its finite arithmetic, with exact binary32 velocity and selected low-height
-position checks rather than a universal exact-21 position claim.  The
-Area-1/top bound applies only to one H/F/R schedule; a pre-collision raw-Object
-writer schedule remains open.  The project goal still requires trace-wide
-no-A linked witnesses for both shuttles, Spindel collision loading and PU
-capture, same-allocation Goomba transport, intermediate handoffs, and
-continuation to a target collision.  None is assumed by the ultimate theorem.
+position checks rather than a universal exact-21 position claim.  Both named
+Area-1/top timing classes are now bounded: H/F/R permits 31 rises, while the
+raw-Object return/reset and departure class permits 45 in its exact form and
+46 under a deliberately favorable phase shift, reaching exact binary32 Y
+`1017` rather than Y `1791`.  The project goal still requires a longer or
+state-machine-escaping schedule plus trace-wide no-A linked shuttling, Spindel
+collision loading and PU capture, same-allocation Goomba transport,
+intermediate handoffs, and continuation to a target collision.  None is
+assumed by the ultimate theorem.
 The US state model blocks retention after a successful spawn clear, but its
 Clight memory effect remains pending.  Warp-to-top, top-to-warp, and
 collision-preserving clone possibilities remain only as different-history

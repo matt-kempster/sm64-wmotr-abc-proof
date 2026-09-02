@@ -783,11 +783,29 @@ check: proofs
 	  LessThanOneAPress.Proofs.GoombaRaising \
 	  goomba_raising_bounded_kernel
 	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.GoombaRaising \
+	  return_first_precollision_window_allows_at_most_45_productive_hits
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.GoombaRaising \
+	  phase_shifted_precollision_window_allows_at_most_46_productive_hits
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.GoombaRaising \
+	  revised_precollision_window_cannot_raise_y51_to_y1791
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.GoombaRaising \
+	  pyramid_top_y51_after_46_float32_rises_checked
+	bash pipeline/assumptions.sh \
 	  LessThanOneAPress.Proofs.ClightFacts \
 	  goomba_state_machine_source_shape_us
 	bash pipeline/assumptions.sh \
 	  LessThanOneAPress.Proofs.ClightFacts \
 	  goomba_state_machine_source_shape_jp
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.ClightFacts \
+	  goomba_revised_timing_source_shape_us
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.ClightFacts \
+	  goomba_revised_timing_source_shape_jp
 	bash pipeline/assumptions.sh \
 	  LessThanOneAPress.Proofs.ClightFacts \
 	  goomba_player_collision_source_shape_us
@@ -839,6 +857,9 @@ check: proofs
 	bash pipeline/assumptions.sh \
 	  LessThanOneAPress.Proofs.MainTheorem \
 	  current_goomba_raising_source_event_boundary
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.MainTheorem \
+	  current_goomba_revised_timing_boundary
 	bash pipeline/assumptions.sh \
 	  LessThanOneAPress.Proofs.MainTheorem \
 	  current_ink_fallback_evidence_boundary

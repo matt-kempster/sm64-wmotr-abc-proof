@@ -699,11 +699,11 @@ Qed.
    concrete integer-aligned Y=51 computations at 31 and 83 rises, but not a
    universal exact-21 position recurrence.  This capstone also records the
    binary32 fixed-point witness at 2^29, the integer-abstraction Spindel
-   height-band exclusion for the Area-2 Y=778 singleton, and the 31-hit bound
-   for the specific post-collision H/F/R top-window schedule.  It does not
-   provide linked binary32 hitbox bounds or inhabit the
-   full-float shuttle, alternate pre-collision writer, PU capture/transport,
-   or height-handoff obligations. *)
+   height-band exclusion for the Area-2 Y=778 singleton, the 31-hit bound for
+   the post-collision H/F/R top-window schedule, and the conservative 46-hit
+   bound for the revised pre-collision schedule.  It does not provide linked
+   binary32 hitbox bounds or inhabit the full-float shuttle, raw-Object writer,
+   PU capture/transport, or height-handoff obligations. *)
 Theorem current_goomba_raising_bounded_boundary :
   goomba_raising_bounded_claim.
 Proof.
@@ -717,6 +717,8 @@ Theorem current_goomba_raising_source_event_boundary :
   goomba_raising_bounded_claim /\
   goomba_state_machine_source_shape_us_claim /\
   goomba_state_machine_source_shape_jp_claim /\
+  goomba_revised_timing_source_shape_us_claim /\
+  goomba_revised_timing_source_shape_jp_claim /\
   goomba_player_collision_source_shape_us_claim /\
   goomba_player_collision_source_shape_jp_claim /\
   spindel_pu_station_source_shape_us_claim /\
@@ -725,10 +727,64 @@ Proof.
   split; [exact goomba_raising_bounded_kernel |].
   split; [exact goomba_state_machine_source_shape_us |].
   split; [exact goomba_state_machine_source_shape_jp |].
+  split; [exact goomba_revised_timing_source_shape_us |].
+  split; [exact goomba_revised_timing_source_shape_jp |].
   split; [exact goomba_player_collision_source_shape_us |].
   split; [exact goomba_player_collision_source_shape_jp |].
   split; [exact spindel_pu_station_source_shape_us |].
   exact spindel_pu_station_source_shape_jp.
+Qed.
+
+(** Rank 16's sole revised top-window timing class is now closed even under a
+    deliberately favorable writer oracle.  Generated US/JP syntax fixes
+    collision before non-terrain updates, PLAYER list 0 before the Goomba's
+    PUSHABLE list 5, Mario action before State-to-Object copying, and the
+    Goomba action/attack/movement order.  The exact return-first schedule can
+    therefore supply at most 45 rises in the accepted 91-frame interval.  A
+    stronger phase-shifted quotient, granted a productive first frame, permits
+    46 rises and exact binary32 Y=1017, still 774 below Y=1791.
+
+    This theorem does not prove that either raw-Object writer exists.  It makes
+    writer reachability irrelevant to this finite top-window proposal; a
+    future Goomba route must instead obtain a longer independent interval or
+    a different per-frame state/action effect, then still discharge physical
+    PU transport, capture, handoff, and target continuation. *)
+Theorem current_goomba_revised_timing_boundary :
+  goomba_revised_timing_source_shape_us_claim /\
+  goomba_revised_timing_source_shape_jp_claim /\
+  (forall hits,
+      Z.of_nat
+        (length (goomba_return_first_precollision_schedule hits)) <=
+        pyramid_top_productive_window_frames ->
+      Z.of_nat hits <= 45) /\
+  (forall hits,
+      Z.of_nat
+        (length (goomba_phase_shifted_precollision_schedule hits)) <=
+        pyramid_top_productive_window_frames ->
+      Z.of_nat hits <= 46) /\
+  (forall hits,
+      Z.of_nat
+        (length (goomba_phase_shifted_precollision_schedule hits)) <=
+        pyramid_top_productive_window_frames ->
+      51 + goomba_productive_rise_z * Z.of_nat hits <= 1017 /\
+      51 + goomba_productive_rise_z * Z.of_nat hits < 1791) /\
+  Float32.to_bits
+    (iterate_goomba_float32_rises 46
+      (Float32.of_int (Int.repr 51))) =
+    Float32.to_bits (Float32.of_int (Int.repr 1017)) /\
+  1791 - 1017 = 774.
+Proof.
+  split; [exact goomba_revised_timing_source_shape_us |].
+  split; [exact goomba_revised_timing_source_shape_jp |].
+  split.
+  - exact return_first_precollision_window_allows_at_most_45_productive_hits.
+  - split.
+    + exact phase_shifted_precollision_window_allows_at_most_46_productive_hits.
+    + split.
+      * exact revised_precollision_window_cannot_raise_y51_to_y1791.
+      * split.
+        -- exact pyramid_top_y51_after_46_float32_rises_checked.
+        -- lia.
 Qed.
 
 (* The graphical-fallback tranche shows that update order does not by itself

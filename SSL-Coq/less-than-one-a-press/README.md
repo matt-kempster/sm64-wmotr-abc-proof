@@ -1008,16 +1008,22 @@ singleton at integer Y `778` cannot use it directly.  Linked binary32
 collision/addition bounds remain open.  A 91-frame Area-1 pyramid-top
 window permits at most 31 productive hits for the post-collision H/F/R
 schedule; 83 are needed arithmetically to reach Y `1791` from Y `51`.
-An alternate pre-collision raw-Object writer schedule remains open.
+The revised pre-collision raw-Object class still alternates a non-rising
+return/reset frame with a productive departure.  Its exact return-first phase
+permits 45 rises, and a deliberately favorable phase shift permits 46; the
+latter reaches exact binary32 Y `1017`, still 774 below Y `1791`.  Thus both
+finite top-window timing classes are refuted even if the proposed writers are
+granted for free.
 
 Generated US/JP receipts separately check Goomba callback/action/movement
 syntax, generic collision bodies without a direct FAR guard, Spindel callback
 and pitch syntax, the generic allocation write of `1000.0f`, full-float object
 distance, and signed-16 narrowing of transformed dynamic vertices.  They do
 not couple every constant to its live branch and are not a semantic link to
-the H/F/R model.  Trace-wide no-A shuttling, both raw-Object scheduling
-shapes, same-segment local-load/PU capture, physical singleton transport,
-collision capacity/liveness, and every later height handoff remain unproved.
+the H/F/R model.  Trace-wide no-A shuttling, a longer independent interval or
+defined state-machine escape, same-segment local-load/PU capture, physical
+singleton transport, collision capacity/liveness, and every later height
+handoff remain unproved.
 No clean retail counterexample was found.
 
 A separate, current-source-rechecked

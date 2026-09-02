@@ -930,13 +930,17 @@ concrete clean-retail predecessor needed to outrank the linked installer proof.
 ### Goomba raising and PU transport
 
 - [ ] Construct a linked clean no-A `FullFloatHFRShuttleObligation`,
-  `PreCollisionRawObjectReturnRaisingObligation`,
   `SpindelSameSegmentPUCaptureObligation`,
   `GoombaParallelUniverseTransportObligation`, and
   `RaisedGoombaToSpindelHandoffObligation`; then prove every later
   collision-preserving height handoff and continuation to the second-pole cut.
   Every execution trace must satisfy no A edge at all intermediate frames.
-  Do not infer these witnesses from the vertical arithmetic alone.
+  The separate `PreCollisionRawObjectReturnRaisingObligation` remains useful
+  for identifying a concrete writer, but its two-frame repetition is now
+  proved too slow for the accepted 91-frame top window even when a productive
+  first frame is granted.  A route using it must first establish a longer
+  independent interval or a state-machine escape.  Do not infer any remaining
+  witness from vertical arithmetic alone.
 
 ### Shell and wall interactions
 

@@ -2059,3 +2059,34 @@ finite route and lifecycle result.  The following paths changed:
 - `SSL-Coq/less-than-one-a-press/docs/notes/rank1-player-floor-owner-residual.md`
 - `SSL-Coq/less-than-one-a-press/docs/notes/changed-paths.md`
 - `SSL-Coq/less-than-one-a-press/notes/source-map.md`
+
+## Rank-16 revised Goomba timing tranche
+
+The formerly open pre-collision raw-Object timing class has been reduced to
+its exact two-phase schedule.  A cached-hit return/reset frame is FAR and
+cannot rise; the following departure frame can rise.  The return-first form
+therefore permits at most 45 rises in the accepted 91-frame pyramid-top
+window, while a deliberately favorable phase shift permits 46.  CompCert
+binary32 computes the favorable Y=`51` endpoint as Y=`1017`, 774 below the
+required Y=`1791`.  Bilateral generated-source receipts record collision
+before non-terrain updates, PLAYER before PUSHABLE traversal, Mario action
+before State-to-Object copying, and the checked Goomba update order.  The
+finite timing proposal is closed even if its raw-Object writers are granted;
+longer intervals, state-machine departures, transport, and handoffs remain
+separate obligations.  The following paths changed:
+
+- `SSL-Coq/README.md`
+- `SSL-Coq/less-than-one-a-press/README.md`
+- `SSL-Coq/less-than-one-a-press/Makefile`
+- `SSL-Coq/less-than-one-a-press/docs/checklist-completed.md`
+- `SSL-Coq/less-than-one-a-press/docs/checklist.md`
+- `SSL-Coq/less-than-one-a-press/docs/claim.md`
+- `SSL-Coq/less-than-one-a-press/docs/goal.md`
+- `SSL-Coq/less-than-one-a-press/docs/no-a-route-atlas.md`
+- `SSL-Coq/less-than-one-a-press/docs/notes/changed-paths.md`
+- `SSL-Coq/less-than-one-a-press/docs/notes/goomba-raising.md`
+- `SSL-Coq/less-than-one-a-press/docs/notes/local-object-nonlocal-state-gap-matrix.md`
+- `SSL-Coq/less-than-one-a-press/human-readable-proof.md`
+- `SSL-Coq/less-than-one-a-press/proofs/ClightFacts.v`
+- `SSL-Coq/less-than-one-a-press/proofs/GoombaRaising.v`
+- `SSL-Coq/less-than-one-a-press/proofs/MainTheorem.v`

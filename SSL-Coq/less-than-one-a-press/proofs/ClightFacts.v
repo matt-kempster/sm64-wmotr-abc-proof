@@ -2696,6 +2696,68 @@ Proof.
   vm_compute. repeat split.
 Qed.
 
+(** The revised Rank-16 timing quotient additionally depends on whole-frame
+    order.  Collision caching precedes non-terrain updates; within those
+    updates, the initialized list order visits Mario's PLAYER list [0] before
+    the Goomba's PUSHABLE list [5]; and Mario's behavior executes his action
+    before copying State to raw Object.  The Goomba behavior's leading command
+    selects list [5].
+
+    Combined with the state-machine receipts above, this explains the two
+    revised phases: a FAR cached-hit frame is movement-suppressed, while the
+    following action-1 frame calls [goomba_begin_jump] before movement.  These
+    are generated-source facts, not a linked execution or a proof that a
+    proposed raw-Object writer is reachable. *)
+Definition goomba_object_list_update_order : list init_data :=
+  [Init_int8 (Int.repr 11); Init_int8 (Int.repr 9);
+   Init_int8 (Int.repr 10); Init_int8 (Int.repr 0);
+   Init_int8 (Int.repr 5); Init_int8 (Int.repr 4);
+   Init_int8 (Int.repr 2); Init_int8 (Int.repr 6);
+   Init_int8 (Int.repr 8); Init_int8 (Int.repr 12);
+   Init_int8 (Int.repr (-1))].
+
+Definition goomba_revised_timing_source_shape_us_claim : Prop :=
+  goomba_state_machine_source_shape_us_claim /\
+  gvar_init UOL.v_sObjectListUpdateOrder = goomba_object_list_update_order /\
+  hd_error (gvar_init UBD.v_bhvGoomba) =
+    Some (Init_int32 (Int.repr 327680)) /\
+  ident_subsequenceb
+    [UOL._detect_object_collisions; UOL._update_non_terrain_objects]
+    (direct_callees_s (fn_body UOL.f_update_objects)) = true /\
+  ident_subsequenceb
+    [UOL._execute_mario_action; UOL._copy_mario_state_to_object]
+    (direct_callees_s (fn_body UOL.f_bhv_mario_update)) = true.
+
+Theorem goomba_revised_timing_source_shape_us :
+  goomba_revised_timing_source_shape_us_claim.
+Proof.
+  unfold goomba_revised_timing_source_shape_us_claim.
+  split; [exact goomba_state_machine_source_shape_us |].
+  unfold goomba_object_list_update_order.
+  vm_compute. repeat split.
+Qed.
+
+Definition goomba_revised_timing_source_shape_jp_claim : Prop :=
+  goomba_state_machine_source_shape_jp_claim /\
+  gvar_init JOL.v_sObjectListUpdateOrder = goomba_object_list_update_order /\
+  hd_error (gvar_init JBD.v_bhvGoomba) =
+    Some (Init_int32 (Int.repr 327680)) /\
+  ident_subsequenceb
+    [JOL._detect_object_collisions; JOL._update_non_terrain_objects]
+    (direct_callees_s (fn_body JOL.f_update_objects)) = true /\
+  ident_subsequenceb
+    [JOL._execute_mario_action; JOL._copy_mario_state_to_object]
+    (direct_callees_s (fn_body JOL.f_bhv_mario_update)) = true.
+
+Theorem goomba_revised_timing_source_shape_jp :
+  goomba_revised_timing_source_shape_jp_claim.
+Proof.
+  unfold goomba_revised_timing_source_shape_jp_claim.
+  split; [exact goomba_state_machine_source_shape_jp |].
+  unfold goomba_object_list_update_order.
+  vm_compute. repeat split.
+Qed.
+
 (** Player-object collision reaches the generic list-collision body; the
     caller contains literal 5, and the inspected bodies use full-float position
     raw-data slots with no direct [activeFlags] test.  The current recognizer

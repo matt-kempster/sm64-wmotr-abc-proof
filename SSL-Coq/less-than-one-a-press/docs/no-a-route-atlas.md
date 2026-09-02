@@ -189,7 +189,7 @@ The detailed sections are organized as:
 | 13B | State-first installation | [Interaction-stage writer or cached-floor snap composite](#route-rank-13b) | Low; the ordinary branch is conditionally blocked |
 | 14 | Eyerok | [Carry a stale Eyerok-hand address from Area 3 to Area 2 in JP](#route-rank-14) | Retired in the audited stock model; no hand can install the pointer at the warp, and the sole reused nonzero payload moves about 8 down and 38 backward |
 | 15 | Eyerok | [Board and ride a raised hand into a lower Area-2 route](#route-rank-15) | Medium as a proved local ride, but very low as a full route; the memory-backed bridge now exposes any surviving pose, owner, list, write, outside-call, or lifetime escape exactly |
-| 16 | Goomba / PU transport | [Goomba raising, PU transport, and Spindel handoff](#route-rank-16) | Very low as a full route; one revised timing class remains |
+| 16 | Goomba / PU transport | [Goomba raising, PU transport, and Spindel handoff](#route-rank-16) | Very low; both finite top-window timing classes are refuted, and the generous revised case reaches only Y=1017 |
 | 17 | JP stale-platform lineage | [Fresh same-slot replacement payload](#route-rank-17) | Low abstractly; absent in the authenticated best trace |
 | 18 | State-first installation | [Skipped, wrong-index, or redirected State-to-Object copy](#route-rank-18) | Low; no normal receiver or return failure has been observed |
 | 19 | Ink installation | [Negative quicksand depth plus stalled automatic dialog](#route-rank-19) | Very low; no clean seed, failed lookup, or Graphics-to-collision bridge |
@@ -884,20 +884,9 @@ reset, and near rearm cycle; then try to use a parallel-universe coordinate
 alias, capture the object in the useful segment, and hand the setup to Spindel
 or another moving object.
 
-**What is already known.** The H/F/R primitive and binary32 velocity arithmetic
-are real.  Full-float object-distance semantics instead explain why a PU alias
-does not by itself transport the Goomba or keep a distant Spindel loaded.  The
-original post-collision schedule can perform only `31` useful hits in the
-`91`-frame window where `83` are required, so that version is refuted.  A
-pre-collision raw-Object-return schedule remains open, while physical singleton
-transport, same-segment capture, repeatability, and every handoff are still
-uninhabited.  Failed nonfinite casts trap instead of yielding a continuing
-coordinate.
+**What is already known.** The H/F/R primitive and binary32 velocity arithmetic are real, but full-float object distance means that a PU alias neither transports the Goomba nor keeps a distant Spindel loaded.  The original post-collision schedule permits only `31` useful rises in the accepted `91`-frame top window, and the formerly open raw-Object timing still has to alternate a non-rising return/reset frame with a rising departure frame: its exact return-first form permits `45` rises, while a deliberately more favorable phase shift permits `46`, reaching exact binary32 Y=`1017` from Y=`51`, still `774` below Y=`1791`.  Thus both finite top-window timing classes are refuted even if their coordinate writers are granted for free; physical singleton transport, same-segment capture, repeatability, longer independent timing, and every handoff remain unconstructed, while failed nonfinite casts trap rather than produce a continuing coordinate.
 
-**What closes it.** Execute a revised pre-collision schedule, prove the exact
-Goomba receiver and lifecycle, preserve it through PU transport, instantiate
-every handoff, and then give a target continuation.  Otherwise prove the
-remaining writer/timing classes cannot beat the hit budget.
+**What closes it.** A counterexample must now leave the checked finite timing family by supplying a clean longer raising interval or a defined action, FAR-state, velocity, or scheduling effect that can produce rises more often than every other frame, then keep the same live Goomba through physical PU transport, moving-collision capture, every handoff, and a target-star continuation; an impossibility result must rule out those departures and the remaining transport and handoff obligations, since finding either raw-Object writer alone no longer rescues the `91`-frame top proposal.
 
 [Back to the at-a-glance ranking](#at-a-glance-ranking)
 
@@ -1133,7 +1122,8 @@ is not repeatedly rediscovered.
 | JP platform R1 | Intact stock top simultaneously touches the warp and is selected from the same sample | Refuted by the imported stock geometry. | Different samples, relocation, clone, or corrupted geometry. | Closed for the fixed same-sample model. |
 | JP platform R2 | Stock yaw-only top motion supplies the needed vertical PU change | Refuted in the checked arithmetic model. | A different payload field or replacement object. | Very low as stated. |
 | PU/casts R1 | NaN, infinity, or failed large cast becomes a usable terrain coordinate | Modeled retail invalid conversion traps before a continuing query. | A proved different FPCSR mode or resumable handler. | Very low. |
-| Goomba R1 | Original post-collision Goomba H/F/R schedule reaches the target height | It permits `31` useful hits where `83` are required. | A genuinely different pre-collision schedule or writer. | Closed for that schedule. |
+| Goomba R1 | Original post-collision Goomba H/F/R schedule reaches the target height | It permits `31` useful hits where `83` are required. | A longer independent interval or a state-machine escape. | Closed for that schedule. |
+| Goomba R2 | Revised raw-Object timing reaches the target within the same top window | Return/reset cannot rise, so the exact schedule permits `45` rises; even granting a productive first frame permits `46`, ending at Y=`1017`, `774` short. | A longer independent interval or a defined action/FAR/velocity/scheduler effect outside the two-phase quotient. | Closed for the accepted `91`-frame timing class. |
 | Animation/HOLP R1 | [Turning action `0xBD`](notes/turning-animation-upwarp.md) creates a 189-unit rise | The relevant normalization is `189/189 = 1`; metadata preserves position. | A defined overlapping-buffer writer; raw DMA is outside the current execution model. | Closed as arithmetic. |
 | Animation/HOLP R2 | Turning/HOLP moves Mario through the rendered hand matrix | The matrix can update `heldObjLastPosition`, but turning drops held objects first; HOLP affects a later drop/throw, not Mario's gameplay position. | A proved held-object survival path, defined buffer overlap, or later machine-level DMA model. | Very low. |
 | Ink R1 | Shell `+42/+45` graphics offsets accumulate forever | Normal frames reanchor them. | A proved skipped reanchor or alias schedule. | Very low alone. |

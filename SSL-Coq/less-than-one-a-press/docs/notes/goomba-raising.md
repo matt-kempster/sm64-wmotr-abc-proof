@@ -15,7 +15,8 @@ The checked result is narrower:
 | Does FAR status itself prevent player collision testing? | No direct FAR guard occurs in the generated player/list/hitbox bodies, but tangibility, list membership, and collision capacity are still required. |
 | Does a local Spindel automatically provide the repeated PU shuttle? | No. Collision loading is distance-gated in full-float object coordinates, and a usable platform must be captured again after an ejection. |
 | Can the Area-2 singleton at integer Y `778` directly use the audited Spindel height band in the current abstraction? | No. The integer collision band begins at Goomba Y `1961`; linked binary32 collision bounds remain open. |
-| Does the audited post-collision H/F/R schedule raise the Area-1 Y `51` singleton to the Y `1791` top floor during the finite spin? | No: its idealized one-hit-per-three-frames bound allows only 31 productive hits. Other schedules remain open. |
+| Does the audited post-collision H/F/R schedule raise the Area-1 Y `51` singleton to the Y `1791` top floor during the finite spin? | No: its idealized one-hit-per-three-frames bound allows only 31 productive hits. |
+| Does the revised raw-Object timing beat that bound? | It improves the idealized rate, but not enough. The exact return-first form allows 45 rises; even granting a productive first frame allows only 46, ending at exact binary32 Y `1017`, which is 774 below the target. |
 | Was a clean US/JP retail counterexample found? | No. |
 
 Chatbot A was right that the state machine contains a useful conditional
@@ -120,15 +121,29 @@ unchanged action-2 endpoint.
   post-collision-return H/F/R schedule;
 - `pyramid_top_hfr_window_cannot_raise_y51_to_y1791`: under that schedule,
   `51 + 31*21 = 702`, below `1791`; and
+- `goomba_return_first_precollision_schedule_exact` and
+  `goomba_phase_shifted_precollision_schedule_exact`: executable two-phase
+  schedules count every return/reset and productive departure, with the
+  phase-shifted version generously allowed to rise on its first frame;
+- `return_first_precollision_window_allows_at_most_45_productive_hits` and
+  `phase_shifted_precollision_window_allows_at_most_46_productive_hits`: the
+  exact and generous revised schedules cannot exceed 45 and 46 rises,
+  respectively, in 91 frames;
+- `revised_precollision_window_cannot_raise_y51_to_y1791` and
+  `pyramid_top_y51_after_46_float32_rises_checked`: even the generous schedule
+  is bounded by Y `1017`, and the selected 46-step binary32 computation is
+  exact; and
 - `eighty_three_productive_hits_are_the_first_arithmetic_crossing`: 83 is the
   first integer hit count that reaches or exceeds `1791` from `51`.
 
 The `[2036,2336]` Spindel floor envelope and the 91-frame top window are
 audited inputs to these arithmetic theorems. They are not yet linked
 surface-selection, binary32 hitbox/addition, or behavior-timer execution
-theorems.  The 31-hit result is not route-exhaustive: a separate pre-collision
-raw-Object return schedule is now named as an open obligation and may have
-different frame cost.
+theorems.  The two finite top-window results are schedule-exhaustive only for
+their named phase classes: the revised proof grants the raw-Object writers and
+even a productive first frame, but does not rule out a longer independent
+raising interval or a defined action/FAR/velocity mutation outside the
+two-phase quotient.
 
 `goomba_raising_bounded_kernel` exports only the unconditional arithmetic and
 finite-model facts. It does not consume any retail reachability obligation.
@@ -147,6 +162,13 @@ finite-model facts. It does not consume any retail reachability obligation.
   `OBJ_MOVE_MASK_ON_GROUND` guard dataflow/polarity; the retail observation and
   missing trace schemas therefore record the on-ground condition explicitly;
 - the generated update body has the lexical action/attack/movement call order;
+- `update_objects` places collision detection before non-terrain updates,
+  `sObjectListUpdateOrder` is exactly
+  `[11,9,10,0,5,4,2,6,8,12,-1]`, `bhvGoomba` selects list `5`, and Mario's
+  list-0 behavior executes his action before copying State to raw Object;
+  together these bilateral receipts record the actual source-order anchors
+  used by the revised reset/departure quotient without claiming linked loop
+  execution;
 - `cur_obj_move_standard` mentions `activeFlags` and calls `cur_obj_move_y`;
 - `cur_obj_update` computes object distance and directly updates FAR status;
 - the player collision chain reaches the generic list and hitbox-overlap
@@ -214,9 +236,10 @@ The proposal does not currently construct Ink's graphical fallback:
   automatically PU-amplified platform rotation.
 - The pyramid top supplies genuine yaw angular velocity, but only for a finite
   scripted interval. The audited post-collision-return H/F/R schedule supplies
-  at most 31 productive hits, far below the 83-hit arithmetic minimum from the
-  selected Y `51` singleton to the Y `1791` top floor.  This does not yet
-  exclude the separately named pre-collision raw-Object writer schedule.
+  at most 31 productive hits.  The revised raw-Object class cannot rise on its
+  cached-hit return/reset frame, so its exact form permits 45 rises and the
+  deliberately favorable phase-shifted form permits 46.  Even the latter ends
+  at exact binary32 Y `1017`, far below the 83-hit/Y `1791` requirement.
 - Mario geometry fallback runs before cached Goomba interactions. A Goomba hit
   therefore cannot create the already-needed Graphics sample on that same
   frame.
@@ -237,7 +260,9 @@ The module leaves concrete, uninhabited witness schemas:
   retail `INTERACTED` and `ATTACKED_MARIO` status bits, the Goomba update
   consumes that cache without moving the Goomba, and a separately classified
   departure-writer trace changes overlap to non-overlap before the
-  no-collision upward move;
+  no-collision upward move.  This remains a useful writer/lifecycle schema,
+  but its repeated two-frame timing is now proved insufficient inside the
+  accepted 91-frame top window even if the writers are granted;
 - `SpindelSameSegmentPUCaptureObligation`: begin after collision is already
   loaded locally and capture the corresponding PU-aliased Spindel platform in
   one linked trace, with the PU gap imposed on Mario Object and State/Object
@@ -264,4 +289,8 @@ health/invulnerability scheduling, collision-list capacity, and a final pole
 escape that continues to a target region without an A edge.
 
 No assumption, axiom, or admitted theorem inhabits any of these obligations.
-No clean retail counterexample was found.
+No clean retail counterexample was found.  In particular, the atlas's former
+“one revised timing class remains” statement is retired: the finite timing
+class is disproved, while longer-window raising, a state-machine escape, and
+the independent PU transport/handoff chain remain the honest Rank-16
+residuals.

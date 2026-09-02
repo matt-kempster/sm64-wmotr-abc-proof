@@ -632,12 +632,17 @@ the velocity update `25 + (-4) = 21` exact, while the position model adds
 adding `21.0f`; no theorem claims the selected Y `51` orbit reaches it.
 The checked integer abstraction rules out direct use of the audited Spindel
 height band by the Area-2 Y `778` singleton; linked binary32 collision bounds
-remain open.  The 31-hit Area-1 bound applies only to
-the post-collision H/F/R schedule; an alternate pre-collision raw-Object writer
-schedule is explicitly open.  Generated US/JP AST receipts support source
-shapes but do not construct trace-wide no-A shuttling, same-segment PU
-platform capture, singleton transport, or geometric handoffs.  This is not a
-saved A press or a retail counterexample; see the
+remain open.  The post-collision H/F/R schedule permits only 31 rises in the
+accepted 91-frame Area-1 top window.  The revised pre-collision raw-Object
+class cannot rise on its return/reset frame and therefore permits only 45
+rises in exact return-first phase, or 46 after generously granting a
+productive first frame; that strongest case reaches exact binary32 Y `1017`,
+still 774 below Y `1791`.  Generated US/JP AST receipts record the quotient's
+collision, PLAYER/PUSHABLE-list, Mario-copy, and Goomba-update source-order
+anchors, but are not a linked execution and do
+not construct trace-wide no-A shuttling, a longer or state-machine-escaping
+schedule, same-segment PU platform capture, singleton transport, or geometric
+handoffs.  This is not a saved A press or a retail counterexample; see the
 [Goomba-raising audit](less-than-one-a-press/docs/notes/goomba-raising.md).
 
 `JPSlotLifetime.v` checks the JP allocation/unload source anchors, the

@@ -395,11 +395,17 @@ or frame.  See [CompCert execution scope](compcert-execution-scope.md).
   position increments need not equal exactly 21 and addition stagnates at Y
   `2^29`.  Conditional integer Spindel-band arithmetic excludes direct use by
   the Area-2 integer-Y `778` singleton; linked binary32 collision/addition
-  bounds remain open.  The 31-hit Area-1 bound applies to the
-  post-collision H/F/R schedule, not the open pre-collision raw-Object writer
-  schedule.  Trace-wide no-A shuttling, both scheduling shapes, same-segment
-  PU platform capture, physical singleton transport, and all height handoffs
-  are uninhabited obligations.  No retail counterexample follows.
+  bounds remain open.  The post-collision H/F/R schedule permits 31 rises in
+  the accepted 91-frame Area-1 window.  The revised pre-collision raw-Object
+  class must alternate a non-rising return/reset with a productive departure:
+  its exact return-first form permits 45 rises, and even a favorable
+  phase-shift permits only 46, reaching exact binary32 Y `1017`, 774 below
+  Y `1791`.  Generated bilateral receipts record the quotient's collision,
+  PLAYER/PUSHABLE-list, State-copy, and Goomba-update source-order anchors;
+  they are not a linked execution.  Trace-wide no-A
+  shuttling, a longer or state-machine-escaping schedule, same-segment PU
+  capture, physical singleton transport, and all height handoffs remain
+  uninhabited obligations.  No retail counterexample follows.
 - `Area1FirstNull.v` parses the generated US/JP collision initializers and
   kernel-computes the 574 vertices, 962 triangles, and exact 17-wall/26-floor
   cell inventories.  It computes all four static-wall decision lists and both

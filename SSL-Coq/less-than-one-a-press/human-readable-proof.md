@@ -694,12 +694,20 @@ engineering but does not know *Super Mario 64*.
 > audited Mario-height interval `[2036,2336]` to a Goomba collision band
 > `[1961,2496]`, with an idealized final hit to `2517`; the integer-Y `778`
 > singleton cannot use it directly.  Linked binary32 collision/addition bounds
-> remain open.  For Area 1, the
-> post-collision-return H/F/R schedule permits at most 31 productive hits in
-> the 91-frame pyramid-top window, while 83 are needed arithmetically.  A
-> distinct pre-collision raw-Object writer schedule is not excluded.
+> remain open.  For Area 1, the post-collision-return H/F/R schedule permits at
+> most 31 productive hits in the 91-frame pyramid-top window, while 83 are
+> needed arithmetically.  The revised pre-collision raw-Object class does not
+> remove the reset: the frame that consumes the cached hit is FAR and cannot
+> move, while the next frame begins the jump and rises.  The exact return-first
+> phase therefore permits 45 rises, and even granting a productive first frame
+> permits only 46.  Rocq computes the favorable endpoint as exact binary32 Y
+> `1017`, still 774 below Y `1791`.  That revised finite timing class is
+> therefore refuted even if its proposed coordinate writers are granted for
+> free.
 >
-> The remaining Rocq schemas are deliberately hard to satisfy accidentally.
+> The remaining Rocq schemas are deliberately hard to satisfy accidentally
+> and now matter only to a longer interval, a defined departure from the
+> checked action/FAR/velocity schedule, or another use of the writer.
 > They require a functional projection from each concrete Clight state, a
 > certificate that the listed trace contains every modeled frame, and no A
 > edge at every projected state.  The pre-collision alternative explicitly

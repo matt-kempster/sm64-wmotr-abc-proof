@@ -466,6 +466,218 @@ Proof.
   lia.
 Qed.
 
+(** ** The revised pre-collision timing class
+
+    The raw-Object proposal below changes which frame establishes overlap,
+    but it does not remove the Goomba state machine's reset frame.  A
+    return/reset frame consumes the cached hit while FAR suppresses movement;
+    the following departure frame begins the jump and performs the productive
+    rise.  [goomba_revised_precollision_tail] is the exact alternating
+    quotient of those two phases.
+
+    The phase-shifted schedule deliberately grants the proposal its strongest
+    possible start: the first useful top frame is already a productive
+    departure.  The concrete obligation below instead begins FAR and therefore
+    uses [goomba_return_first_precollision_schedule].  Thus the 46-hit bound is
+    conservative even if a future linked execution supplies both raw-Object
+    writers for free. *)
+Inductive GoombaPrecollisionTimingPhase : Type :=
+| GoombaPrecollisionReturnReset
+| GoombaPrecollisionDepartureRise.
+
+Fixpoint goomba_revised_precollision_tail
+    (additional_hits : nat) : list GoombaPrecollisionTimingPhase :=
+  match additional_hits with
+  | O => []
+  | S remaining =>
+      GoombaPrecollisionReturnReset ::
+      GoombaPrecollisionDepartureRise ::
+      goomba_revised_precollision_tail remaining
+  end.
+
+Definition goomba_phase_shifted_precollision_schedule
+    (hits : nat) : list GoombaPrecollisionTimingPhase :=
+  match hits with
+  | O => []
+  | S remaining =>
+      GoombaPrecollisionDepartureRise ::
+      goomba_revised_precollision_tail remaining
+  end.
+
+Definition goomba_return_first_precollision_schedule
+    (hits : nat) : list GoombaPrecollisionTimingPhase :=
+  goomba_revised_precollision_tail hits.
+
+Fixpoint goomba_precollision_productive_hits
+    (schedule : list GoombaPrecollisionTimingPhase) : nat :=
+  match schedule with
+  | [] => O
+  | GoombaPrecollisionReturnReset :: remaining =>
+      goomba_precollision_productive_hits remaining
+  | GoombaPrecollisionDepartureRise :: remaining =>
+      S (goomba_precollision_productive_hits remaining)
+  end.
+
+Fixpoint goomba_precollision_total_rise_z
+    (schedule : list GoombaPrecollisionTimingPhase) : Z :=
+  match schedule with
+  | [] => 0
+  | GoombaPrecollisionReturnReset :: remaining =>
+      goomba_precollision_total_rise_z remaining
+  | GoombaPrecollisionDepartureRise :: remaining =>
+      goomba_productive_rise_z +
+      goomba_precollision_total_rise_z remaining
+  end.
+
+Lemma goomba_revised_precollision_tail_length :
+  forall additional_hits,
+    length (goomba_revised_precollision_tail additional_hits) =
+      (2 * additional_hits)%nat.
+Proof.
+  induction additional_hits as [| additional_hits IH]; simpl; lia.
+Qed.
+
+Lemma goomba_revised_precollision_tail_hit_count :
+  forall additional_hits,
+    goomba_precollision_productive_hits
+      (goomba_revised_precollision_tail additional_hits) = additional_hits.
+Proof.
+  induction additional_hits as [| additional_hits IH]; simpl; lia.
+Qed.
+
+Lemma goomba_revised_precollision_tail_total_rise :
+  forall additional_hits,
+    goomba_precollision_total_rise_z
+      (goomba_revised_precollision_tail additional_hits) =
+      goomba_productive_rise_z * Z.of_nat additional_hits.
+Proof.
+  induction additional_hits as [| additional_hits IH]; simpl.
+  - lia.
+  - rewrite IH, Nat2Z.inj_succ. lia.
+Qed.
+
+Theorem goomba_return_first_precollision_schedule_exact :
+  forall hits,
+    length (goomba_return_first_precollision_schedule hits) =
+      (2 * hits)%nat /\
+    goomba_precollision_productive_hits
+      (goomba_return_first_precollision_schedule hits) = hits /\
+    goomba_precollision_total_rise_z
+      (goomba_return_first_precollision_schedule hits) =
+      goomba_productive_rise_z * Z.of_nat hits.
+Proof.
+  intros hits.
+  unfold goomba_return_first_precollision_schedule.
+  repeat split.
+  - exact (goomba_revised_precollision_tail_length hits).
+  - exact (goomba_revised_precollision_tail_hit_count hits).
+  - exact (goomba_revised_precollision_tail_total_rise hits).
+Qed.
+
+Theorem goomba_phase_shifted_precollision_schedule_exact :
+  forall hits,
+    goomba_precollision_productive_hits
+      (goomba_phase_shifted_precollision_schedule hits) = hits /\
+    goomba_precollision_total_rise_z
+      (goomba_phase_shifted_precollision_schedule hits) =
+      goomba_productive_rise_z * Z.of_nat hits /\
+    match hits with
+    | O =>
+        length (goomba_phase_shifted_precollision_schedule hits) = O
+    | S remaining =>
+        length (goomba_phase_shifted_precollision_schedule hits) =
+          S (2 * remaining)%nat
+    end.
+Proof.
+  intros [| remaining]; simpl.
+  - repeat split; reflexivity.
+  - rewrite goomba_revised_precollision_tail_hit_count,
+      goomba_revised_precollision_tail_total_rise,
+      goomba_revised_precollision_tail_length,
+      Nat2Z.inj_succ.
+    repeat split; lia.
+Qed.
+
+Theorem return_first_precollision_window_allows_at_most_45_productive_hits :
+  forall hits,
+    Z.of_nat
+      (length (goomba_return_first_precollision_schedule hits)) <=
+      pyramid_top_productive_window_frames ->
+    Z.of_nat hits <= 45.
+Proof.
+  intros hits Hwindow.
+  pose proof (goomba_return_first_precollision_schedule_exact hits)
+    as (Hlength & _).
+  rewrite Hlength, Nat2Z.inj_mul in Hwindow.
+  unfold pyramid_top_productive_window_frames in Hwindow.
+  simpl in Hwindow.
+  lia.
+Qed.
+
+Theorem phase_shifted_precollision_window_allows_at_most_46_productive_hits :
+  forall hits,
+    Z.of_nat
+      (length (goomba_phase_shifted_precollision_schedule hits)) <=
+      pyramid_top_productive_window_frames ->
+    Z.of_nat hits <= 46.
+Proof.
+  intros [| remaining] Hwindow; [simpl; lia |].
+  pose proof
+    (goomba_phase_shifted_precollision_schedule_exact (S remaining))
+    as (_ & _ & Hlength).
+  simpl in Hlength.
+  rewrite Hlength, Nat2Z.inj_succ, Nat2Z.inj_mul in Hwindow.
+  unfold pyramid_top_productive_window_frames in Hwindow.
+  simpl in Hwindow.
+  lia.
+Qed.
+
+Theorem forty_five_return_first_hits_fit_idealized_window :
+  Z.of_nat
+    (length (goomba_return_first_precollision_schedule 45)) <=
+    pyramid_top_productive_window_frames.
+Proof. vm_compute. lia. Qed.
+
+Theorem forty_six_phase_shifted_hits_fill_idealized_window :
+  Z.of_nat
+    (length (goomba_phase_shifted_precollision_schedule 46)) =
+    pyramid_top_productive_window_frames.
+Proof. vm_compute. reflexivity. Qed.
+
+Theorem revised_precollision_window_cannot_raise_y51_to_y1791 :
+  forall hits,
+    Z.of_nat
+      (length (goomba_phase_shifted_precollision_schedule hits)) <=
+      pyramid_top_productive_window_frames ->
+    51 + goomba_productive_rise_z * Z.of_nat hits <= 1017 /\
+    51 + goomba_productive_rise_z * Z.of_nat hits < 1791.
+Proof.
+  intros hits Hwindow.
+  pose proof
+    (phase_shifted_precollision_window_allows_at_most_46_productive_hits
+      hits Hwindow) as Hhits.
+  unfold goomba_productive_rise_z.
+  lia.
+Qed.
+
+Theorem pyramid_top_y51_after_46_float32_rises_checked :
+  Float32.to_bits
+    (iterate_goomba_float32_rises 46
+      (Float32.of_int (Int.repr 51))) =
+  Float32.to_bits (Float32.of_int (Int.repr 1017)).
+Proof.
+  vm_compute.
+  reflexivity.
+Qed.
+
+Theorem revised_precollision_best_case_misses_top_by_774 :
+  51 + goomba_productive_rise_z * 46 = 1017 /\
+  1791 - 1017 = 774.
+Proof.
+  unfold goomba_productive_rise_z.
+  lia.
+Qed.
+
 (** * Concrete missing retail-execution schemas
 
     The following observation record names the memory values that a future
@@ -727,7 +939,7 @@ Definition FullFloatHFRShuttleObligation
     raising_goomba_position next_h_observation =
       raising_goomba_position r_end_observation.
 
-(** A distinct open schedule can return Mario's raw Object before collision
+(** A distinct writer schema can return Mario's raw Object before collision
     while the Goomba still begins the frame FAR.  That frame may cache both
     [INTERACTED] and [ATTACKED_MARIO], select action 1 with movement
     suppressed, consume the cache, and clear FAR.  A following departure frame
@@ -736,7 +948,10 @@ Definition FullFloatHFRShuttleObligation
     The writer inventory is a classification interface only.  No constructor
     below is proved reachable, and a linked proof must show the classified
     relation covers the concrete raw-Object write.  Every represented
-    intermediate state must preserve the same live singleton allocation. *)
+    intermediate state must preserve the same live singleton allocation.  The
+    obligation remains useful for identifying a writer or a different route,
+    but repeating this exact two-frame shape cannot meet the checked Rank-16
+    91-frame height budget proved above. *)
 Inductive GoombaRawObjectWriterClass : Type :=
 | GoombaWriterMarioStateToObjectSync
 | GoombaWriterPlatformOrPUStateCopy
@@ -1131,7 +1346,26 @@ Definition goomba_raising_bounded_claim : Prop :=
       ~ regular_goomba_vertical_overlap mario_y 778) /\
   (forall hits,
       post_collision_hfr_hits_fit_window hits -> hits <= 31) /\
-  51 + 21 * 31 < 1791.
+  51 + 21 * 31 < 1791 /\
+  (forall hits,
+      Z.of_nat
+        (length (goomba_return_first_precollision_schedule hits)) <=
+        pyramid_top_productive_window_frames ->
+      Z.of_nat hits <= 45) /\
+  (forall hits,
+      Z.of_nat
+        (length (goomba_phase_shifted_precollision_schedule hits)) <=
+        pyramid_top_productive_window_frames ->
+      Z.of_nat hits <= 46) /\
+  (forall hits,
+      Z.of_nat
+        (length (goomba_phase_shifted_precollision_schedule hits)) <=
+        pyramid_top_productive_window_frames ->
+      51 + goomba_productive_rise_z * Z.of_nat hits < 1791) /\
+  Float32.to_bits
+    (iterate_goomba_float32_rises 46
+      (Float32.of_int (Int.repr 51))) =
+    Float32.to_bits (Float32.of_int (Int.repr 1017)).
 
 Theorem goomba_raising_bounded_kernel :
   goomba_raising_bounded_claim.
@@ -1160,5 +1394,18 @@ Proof.
                              apply
                                pyramid_top_hfr_window_allows_at_most_31_productive_hits.
                              exact Hfits.
-                         *** lia.
+                         *** split; [lia |].
+                             split.
+                             ---- exact
+                               return_first_precollision_window_allows_at_most_45_productive_hits.
+                             ---- split.
+                                  ++++ exact
+                                    phase_shifted_precollision_window_allows_at_most_46_productive_hits.
+                                  ++++ split.
+                                       **** intros hits Hwindow.
+                                            exact (proj2
+                                              (revised_precollision_window_cannot_raise_y51_to_y1791
+                                                hits Hwindow)).
+                                       **** exact
+                                            pyramid_top_y51_after_46_float32_rises_checked.
 Qed.
