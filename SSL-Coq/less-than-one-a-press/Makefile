@@ -607,7 +607,19 @@ check: proofs
 	  every_nonwing_candidate_qstep_is_at_or_below_wall_cutoff
 	bash pipeline/assumptions.sh \
 	  LessThanOneAPress.Proofs.UpperElevatorQuarterStepClosure \
+	  full_return_qsteps_have_later_checked_maxima
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.UpperElevatorQuarterStepClosure \
+	  every_full_return_candidate_qstep_is_at_or_below_wall_cutoff
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.UpperElevatorQuarterStepClosure \
 	  retained_wing_cap_has_a_234_unit_transient_query
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.UpperElevatorLiveTraceReceipt \
+	  jp_rank10_b_only_live_receipt_checked
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.UpperElevatorLiveTraceReceipt \
+	  jp_rank10_b_only_live_and_vertical_boundary_checked
 	bash pipeline/assumptions.sh \
 	  LessThanOneAPress.Proofs.UpperElevatorWingCapTransitionClosure \
 	  upper_entry_transition_source_checked
@@ -851,6 +863,9 @@ check: proofs
 	bash pipeline/assumptions.sh \
 	  LessThanOneAPress.Proofs.MainTheorem \
 	  current_ordinary_motion_evidence_boundary
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.MainTheorem \
+	  current_rank10_b_only_live_and_vertical_boundary
 	bash pipeline/assumptions.sh \
 	  LessThanOneAPress.Proofs.MainTheorem \
 	  current_goomba_raising_bounded_boundary

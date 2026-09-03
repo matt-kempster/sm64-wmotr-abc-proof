@@ -10,10 +10,12 @@ shaft by their exact triangle ordinals.  It checks those triangles against
 the generated US and JP Clight global initializers.
 
 This is not yet a retail proof that Mario cannot leave the elevator without a
-new A edge.  The checked result is the finite mesh/arithmetic kernel and a
-conditional first-crossing theorem.  Live dynamic-surface construction,
-collision-list selection, and all reachable writers remain explicit
-obligations.
+new A edge.  The checked result is the finite mesh/arithmetic kernel, a
+conditional first-crossing theorem, and one authenticated original-JP B-only
+execution.  That execution now supplies the live descent, floor owner,
+elevator landing, rollout action, selected east wall, and return landing for
+one controller schedule; universal collision-call and writer coverage remain
+explicit obligations.
 
 ## Exact surface inventory
 
@@ -113,8 +115,10 @@ The fully checked subkernel now contains:
 - exact clean-entry cell membership;
 - existing US/JP source-shape receipts for the entry action, held-A jump kick,
   and B-driven rollout candidates;
-- exact binary32 replays of all 32 held-A jump-kick and 40 B-rollout
-  quarter-step queries, with maxima `134` and `224.5`;
+- exact binary32 replays of the 32 held-A jump-kick and 40 B-rollout rising
+  quarter-step queries, plus conservative full-return envelopes of 64 and 84
+  queries; the rising maxima `134` and `224.5` become the later full-return
+  maxima `135` and `227.5`, still below `231`;
 - a generated-source return split limited to codes `0,1,2,3,4,6`;
 - a checked Area-1-node-`0x1E` to Area-2-node-`0x14` call chain through
   `warp_area`, `init_mario_after_warp`, `init_mario`, and the initial-cap
@@ -125,7 +129,7 @@ The fully checked subkernel now contains:
   are back to `230` and `228`.
 
 The ordinary arithmetic facts eliminate the modeled vertical-clearance
-versions at every query, not merely at frame endpoints.  The stock transition
+versions throughout the conservative return envelope, not merely at frame endpoints.  The stock transition
 also eliminates preservation of a Wing Cap carried from Area 1, subject to the
 still-needed live-execution link showing that the decoded route and ordinary
 call chain operate on the same Mario state.  A hypothetical post-reset Wing
@@ -174,18 +178,50 @@ existing first-crossing writer-coverage theorem, so there
 is no unclassified abstract event after a valid strictly earlier-frame adapter
 crossing has been supplied.  The premise is not inhabited here.
 
+## Authenticated original-JP B-only execution
+
+`instrumentation/jp-rank10-upper-elevator` extends the established clean,
+zero-A four-pillar route through the upper warp without patching game memory.
+Its exact 3500-frame mode-1 summary is pinned.  Area 2 begins at timer 2831
+with MarioState and `gMarioObject` both naming pool slot 10 and with one live
+elevator.  The 17 observed descent heights are
+`534, 530, 522, 510, 494, 474, 450, 422, 390, 354, 314, 270, 222, 170, 114,
+54, 0`; every selected floor is owned by the elevator, and landing occurs at
+timer 2847.
+
+After a bounded runway/orbit setup, B starts the speed-kick dive at timer 3198.
+The dive lands on the moving elevator, and a second B at timer 3214 starts
+`ACT_FORWARD_ROLLOUT`.  The first rollout update selects surface `0x801a2c50`,
+owned by the same elevator.  It is the east wall at X `461`, spanning Z
+`-204..717`, with inward normal `(-1,0,0)` and padded Y bounds `1381..1647`.
+Mario is resolved to center X `411`, horizontal speed becomes zero, and all 20
+observed rollout frames keep that wall and elevator floor.  Relative endpoint
+heights are
+`40, 76, 108, 136, 160, 180, 196, 208, 216, 220, 220, 216, 208, 196, 180,
+160, 136, 108, 76, 40`; the following update lands on the elevator.  Across
+all 671 Area-2 frames there are zero Mario/elevator identity failures, zero
+floor-owner mismatches, zero A inputs, and zero Wing frames.
+
+`proofs/UpperElevatorLiveTraceReceipt.v` packages those exact facts and pairs
+them with the full-return Float32 envelope.  This closes the concrete B-only
+trajectory's ordinary vertical/wall version.  It remains a finite retail
+machine receipt rather than an IDO-to-Clight simulation or a theorem over all
+controller histories, and the sampled MarioState wall/floor fields do not
+enumerate every internal query program point.
+
 ## Remaining retail obligations
 
 The following are still open and prevent an unconditional elevator-gate
 claim:
 
-1. map each initializer key to the transformed live `Surface` in US and JP
-   memory, including allocation epoch and list insertion;
-2. execute the initial fall and prove the entry floor pointer does not already
-   name a target-side surface;
+1. generalize the observed JP dynamic surface identity to every relevant
+   launch and to US, including allocation epoch and list insertion;
+2. project every internal wall, floor, and ceiling call in the held-A and
+   genuinely distinct B-only schedules, rather than relying only on the
+   observed end-of-frame selected pointers;
 3. prove the elevator pose and translated moving-cell-to-sweep relation at
    every relevant frame;
-4. execute all floor, wall, and ceiling queries and prove the intended base,
+4. execute all remaining floor, wall, and ceiling queries and prove the intended base,
    inner-wall, rim, or surrounding-floor selection;
 5. construct the first moving-relative source-to-target crossing before either target
    collision, including paths which skip a normal rim landing, and resolve

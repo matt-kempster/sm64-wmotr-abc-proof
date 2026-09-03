@@ -6,8 +6,10 @@
     moved and before Mario completes the frame.  This file executes that
     Float32 schedule exactly.
 
-    The result strengthens the ordinary (non-Wing) cases: held-A jump-kick
-    queries at relative Y at most 134 and B rollout at most 224.5, both below
+    The result strengthens the ordinary (non-Wing) cases: the rising-half
+    checks put held-A jump-kick at relative Y at most 134 and B rollout at
+    most 224.5.  The conservative full-return envelopes find the slightly
+    later true maxima, 135 and 227.5 respectively, which are still below
     the strict 231-unit height at which the lower wall query can miss the
     elevator's padded inner wall.  It also corrects a false comfort in the old
     Wing endpoint bound: a retained Wing Cap has a transient query at 234 even
@@ -196,6 +198,24 @@ Definition b_rollout_qsteps : list float32 :=
 Definition wing_rollout_qsteps : list float32 :=
   map ueq_half_f32 wing_rollout_scaled_qsteps.
 
+(** The shorter lists above stop once the critical rising half has been
+    checked.  These conservative full-return envelopes continue the same
+    generated update order until the relative-height recurrence reaches the
+    elevator floor again.  They deliberately execute all four quarters of
+    the final return frame even though a live floor result may stop that frame
+    early; this over-approximation can only add low samples. *)
+Definition held_a_jump_kick_full_return_scaled_qsteps : list Z :=
+  ueq_scaled_nonwing_frames 16 0 held_a_jump_kick_initial_vy.
+
+Definition b_rollout_full_return_scaled_qsteps : list Z :=
+  ueq_scaled_nonwing_frames 21 0 rollout_initial_vy.
+
+Definition held_a_jump_kick_full_return_qsteps : list float32 :=
+  map ueq_half_f32 held_a_jump_kick_full_return_scaled_qsteps.
+
+Definition b_rollout_full_return_qsteps : list float32 :=
+  map ueq_half_f32 b_rollout_full_return_scaled_qsteps.
+
 Fixpoint ueq_scaled_list_max (current : Z) (values : list Z) : Z :=
   match values with
   | [] => current
@@ -240,6 +260,19 @@ Proof.
   rewrite map_length, ueq_scaled_nonwing_frames_length. reflexivity.
 Qed.
 
+Theorem full_return_envelopes_have_64_and_84_qsteps :
+  length held_a_jump_kick_full_return_qsteps = 64%nat /\
+  length b_rollout_full_return_qsteps = 84%nat.
+Proof.
+  unfold held_a_jump_kick_full_return_qsteps,
+    b_rollout_full_return_qsteps,
+    held_a_jump_kick_full_return_scaled_qsteps,
+    b_rollout_full_return_scaled_qsteps.
+  repeat rewrite map_length.
+  repeat rewrite ueq_scaled_nonwing_frames_length.
+  split; reflexivity.
+Qed.
+
 Theorem held_a_jump_kick_qstep_max_is_134 :
   ueq_scaled_list_max 0 held_a_jump_kick_scaled_qsteps = 268 /\
   Float32.to_bits (ueq_half_f32 268) = Float32.to_bits (ueq_f32 134).
@@ -256,6 +289,13 @@ Theorem nonwing_candidate_qsteps_remain_below_wall_cutoff :
   ueq_all_at_or_below_cutoff b_rollout_qsteps = true.
 Proof. vm_compute. split; reflexivity. Qed.
 
+Theorem full_return_qsteps_have_later_checked_maxima :
+  ueq_scaled_list_max 0 held_a_jump_kick_full_return_scaled_qsteps = 270 /\
+  ueq_scaled_list_max 0 b_rollout_full_return_scaled_qsteps = 455 /\
+  ueq_all_at_or_below_cutoff held_a_jump_kick_full_return_qsteps = true /\
+  ueq_all_at_or_below_cutoff b_rollout_full_return_qsteps = true.
+Proof. vm_compute. repeat split; reflexivity. Qed.
+
 Inductive UpperElevatorNonwingCandidate : Type :=
 | UEHeldAJumpKick
 | UEBRollout.
@@ -265,6 +305,13 @@ Definition ueq_nonwing_candidate_qsteps
   match candidate with
   | UEHeldAJumpKick => held_a_jump_kick_qsteps
   | UEBRollout => b_rollout_qsteps
+  end.
+
+Definition ueq_nonwing_full_return_candidate_qsteps
+    (candidate : UpperElevatorNonwingCandidate) : list float32 :=
+  match candidate with
+  | UEHeldAJumpKick => held_a_jump_kick_full_return_qsteps
+  | UEBRollout => b_rollout_full_return_qsteps
   end.
 
 (** This is the pointwise form of the finite computation above: it applies to
@@ -281,6 +328,22 @@ Proof.
   unfold ueq_all_at_or_below_cutoff in Hheld, Hroll.
   rewrite forallb_forall in Hheld, Hroll.
   destruct candidate; cbn [ueq_nonwing_candidate_qsteps] in Hquery.
+  - exact (Hheld query Hquery).
+  - exact (Hroll query Hquery).
+Qed.
+
+Theorem every_full_return_candidate_qstep_is_at_or_below_wall_cutoff :
+  forall candidate query,
+    In query (ueq_nonwing_full_return_candidate_qsteps candidate) ->
+    Float32.cmp Cle query ueq_f32_cutoff = true.
+Proof.
+  intros candidate query Hquery.
+  destruct full_return_qsteps_have_later_checked_maxima as
+    [_ [_ [Hheld Hroll]]].
+  unfold ueq_all_at_or_below_cutoff in Hheld, Hroll.
+  rewrite forallb_forall in Hheld, Hroll.
+  destruct candidate;
+    cbn [ueq_nonwing_full_return_candidate_qsteps] in Hquery.
   - exact (Hheld query Hquery).
   - exact (Hroll query Hquery).
 Qed.
@@ -510,10 +573,17 @@ Record UpperElevatorLiveExecutionBoundary : Type := {
 Definition UpperElevatorQuarterStepCheckedBoundary : Prop :=
   length held_a_jump_kick_qsteps = 32%nat /\
   length b_rollout_qsteps = 40%nat /\
+  length held_a_jump_kick_full_return_qsteps = 64%nat /\
+  length b_rollout_full_return_qsteps = 84%nat /\
   ueq_all_at_or_below_cutoff held_a_jump_kick_qsteps = true /\
   ueq_all_at_or_below_cutoff b_rollout_qsteps = true /\
+  ueq_all_at_or_below_cutoff held_a_jump_kick_full_return_qsteps = true /\
+  ueq_all_at_or_below_cutoff b_rollout_full_return_qsteps = true /\
   (forall candidate query,
     In query (ueq_nonwing_candidate_qsteps candidate) ->
+    Float32.cmp Cle query ueq_f32_cutoff = true) /\
+  (forall candidate query,
+    In query (ueq_nonwing_full_return_candidate_qsteps candidate) ->
     Float32.cmp Cle query ueq_f32_cutoff = true) /\
   (forallb ueq_float32_transition_exact
       (ueq_scaled_nonwing_transitions
@@ -536,9 +606,18 @@ Proof.
   unfold UpperElevatorQuarterStepCheckedBoundary.
   split; [exact held_a_jump_kick_executes_exactly_32_qsteps |].
   split; [exact b_rollout_executes_exactly_40_qsteps |].
+  destruct full_return_envelopes_have_64_and_84_qsteps as
+    [Hfull_jump_length Hfull_roll_length].
+  split; [exact Hfull_jump_length |].
+  split; [exact Hfull_roll_length |].
   destruct nonwing_candidate_qsteps_remain_below_wall_cutoff as [Hjump Hroll].
   split; [exact Hjump |]. split; [exact Hroll |].
+  destruct full_return_qsteps_have_later_checked_maxima as
+    [_ [_ [Hfull_jump Hfull_roll]]].
+  split; [exact Hfull_jump |]. split; [exact Hfull_roll |].
   split; [exact every_nonwing_candidate_qstep_is_at_or_below_wall_cutoff |].
+  split;
+    [exact every_full_return_candidate_qstep_is_at_or_below_wall_cutoff |].
   split; [exact every_candidate_scaled_transition_matches_float32 |].
   split.
   - exact (proj2 wing_endpoint_228_does_not_bound_every_qstep).

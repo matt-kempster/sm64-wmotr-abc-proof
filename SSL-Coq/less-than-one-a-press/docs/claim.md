@@ -837,7 +837,16 @@ or frame.  See [CompCert execution scope](compcert-execution-scope.md).
   conditional first-crossing contradictions only after a concrete crossing
   and seven no-A writer/support exclusions are supplied.  The moving elevator
   still requires a live pose-relative refinement because its absolute sweep
-  adapter is not the exact component.  Version-indexed downstream suffix
+  adapter is not the exact component.  A new finite original-JP receipt does
+  execute one clean B-only case: all 17 descent samples and all 671 selected
+  floors name the unique live elevator, the speed-kick dive lands, the rollout
+  selects that elevator's east inner wall, stops at X 411, stays below relative
+  Y 221, and lands back on the elevator with no A input or Wing state.  The
+  Float32 proof now extends the rising checks to conservative 64/84-quarter
+  full-return envelopes, exposing the later but still-safe maxima 135 and
+  227.5.  This closes that exact schedule, not held-A, US,
+  alternate histories, or the program-point projection of every internal
+  collision query.  Version-indexed downstream suffix
   schemas separate gate reachability from Act-3, all-five-trigger, and Act-6
   capability.  No such US/JP cut-starting suffix is inhabited; the conditional
   JP trigger and pickup observations remain separate injected receipts.  The

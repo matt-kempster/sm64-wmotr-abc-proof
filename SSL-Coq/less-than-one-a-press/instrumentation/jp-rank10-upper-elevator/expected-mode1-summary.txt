@@ -1,0 +1,11 @@
+RANK10_AREA2_START,timer=2831,marioObject=8033d8d8,stateMarioObject=8033d8d8,marioSlot=10,elevator=8033ebd8,candidates=1,mode=1
+RANK10_STAGE,timer=2863,stage=1,label=walk-to-west-runway-start,action=0c400201,mario=(0,4906,256),forwardVel=0
+RANK10_STAGE,timer=3017,stage=2,label=settle-at-west-runway-start,action=04000440,mario=(-339.283356,3366,258.912231),forwardVel=1.97971594
+RANK10_STAGE,timer=3021,stage=3,label=move-to-orbit-entry,action=0c400201,mario=(-340.222565,3326,258.633545),forwardVel=0
+RANK10_STAGE,timer=3144,stage=4,label=settle-at-orbit-entry,action=04000440,mario=(-339.507843,2096,13.9854736),forwardVel=1.82066298
+RANK10_STAGE,timer=3148,stage=5,label=bounded-clockwise-speed-build,action=0c400201,mario=(-339.324371,2056,13.185585),forwardVel=0
+RANK10_STAGE,timer=3198,stage=6,label=sixty-degree-speed-kick-dive-input,action=04000440,mario=(-263.280945,1556,159.566742),forwardVel=31.1650848
+RANK10_STAGE,timer=3214,stage=7,label=dive-slide-rollout-input,action=00880456,mario=(393.953735,1396,539.139709),forwardVel=48.5546188
+RANK10_FIRST_WALL,timer=3215,wall=801a2c50,owner=8033ebd8,type=118,lowerY=1381,upperY=1647,v1=(461,1642,-204),v2=(461,1386,717),v3=(461,1642,717),normal=(-1,0,0)
+RANK10_STAGE,timer=3235,stage=8,label=rollout-ended,action=0c000232,mario=(411,1186,579.533264),forwardVel=1.49998403
+RANK10_RESULT,mode=1,firstTimer=2831,lastTimer=3501,area2Frames=671,sequentialFailures=0,elevator=8033ebd8,elevatorCandidates=1,landingTimer=2847,elevatorPlatformFrames=620,elevatorFloorFrames=671,nonWingFrames=671,aPressedFrames=0,aDownFrames=0,controllerAFrames=0,controllerBFrames=2,stage=8,identityMismatchFrames=0,elevatorIdentityFailureFrames=0,floorOwnerMismatchFrames=0,descentMismatchFrames=0,diveTimer=3198,rolloutTimer=3214,rolloutFrames=20,rolloutWallStops=20,rolloutMaxRelativeY=220,rolloutMaxX=411,rolloutWallFrames=20,rolloutElevatorWallFrames=20,rolloutFloorOwnerFrames=20,rolloutOutsideInnerCenterFrames=0,firstRolloutWall=801a2c50

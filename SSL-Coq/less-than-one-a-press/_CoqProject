@@ -420,4 +420,5 @@ proofs/Area1Rank18StateArrayBound.v
 proofs/Area1Rank18CopyRead.v
 proofs/Area1Rank18CopyResolution.v
 proofs/Area1Ranks13To18TraceReceipt.v
+proofs/UpperElevatorLiveTraceReceipt.v
 proofs/MainTheorem.v

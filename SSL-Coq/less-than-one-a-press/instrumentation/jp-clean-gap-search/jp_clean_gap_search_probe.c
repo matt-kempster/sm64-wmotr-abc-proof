@@ -746,12 +746,14 @@ static int rank1_decode_store_range(uint32_t instruction,
  * platform cell through the existing GPR snapshot.  Coprocessor stores must
  * not be classified from the same-numbered GPR.  Partial and 64-bit stores
  * are still range-decoded, but their platform value is failed closed. */
+#if RANK5_STATE_SPLIT_AUDIT
 static int rank1_store_u32_value_known(uint32_t instruction,
                                        unsigned width) {
     uint32_t opcode = instruction >> 26;
     return width == 4
         && (opcode == 0x2a || opcode == 0x2b || opcode == 0x2e);
 }
+#endif
 
 static void rank1_count_writer(struct rank1_writer_count *counts,
                                unsigned *kinds, unsigned capacity,

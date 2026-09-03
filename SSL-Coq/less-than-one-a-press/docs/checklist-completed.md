@@ -1576,9 +1576,11 @@ Completed work is grouped by subject. Each item retains its original scope warni
   from the conservative absolute-sweep adapter.
 
 - [x] Execute the finite binary32 upper-elevator action schedules.
-  `UpperElevatorQuarterStepClosure.v` checks exactly 32 held-A jump-kick and 40
-  B-rollout quarter-step queries and all corresponding binary32 transitions;
-  their maxima are `134` and `224.5`, below the strict `231` wall cutoff.  It
+  `UpperElevatorQuarterStepClosure.v` checks 32 held-A jump-kick and 40
+  B-rollout rising quarter-step queries and all corresponding binary32
+  transitions, then checks conservative 64/84-quarter full-return envelopes;
+  their later maxima are `135` and `227.5`, still below the strict `231` wall
+  cutoff.  It
   also enumerates the six literal quarter-step return values and checks that
   every direct `init_mario` cap-field assignment is non-Wing with a zero timer.
   The old Wing endpoint argument is corrected: the retained-Wing schedule has
@@ -1587,9 +1589,18 @@ Completed work is grouped by subject. Each item retains its original scope warni
   `UpperElevatorWingCapTransitionClosure.v` checks the stock node-`0x1E` to
   node-`0x14` area-change call chain, the non-Wing initializer values, and
   SSL's failure to select any initial special-cap case.  Thus normal Wing
-  preservation is closed at the defined-source boundary; live route/receiver
-  linking, descent, surface selection, and action/collision projection remain
-  open.
+  preservation is closed at the defined-source boundary; universal live
+  route/receiver and collision-call projection remain open.
+
+- [x] Execute one clean original-JP B-only upper-elevator trajectory.
+  `UpperElevatorLiveTraceReceipt.v` packages the pinned read-only replay: 17
+  exact descent samples land on the unique live elevator, all 671 Area-2
+  floors have that owner, a B speed-kick dive lands, a second B enters forward
+  rollout, and the first rollout update selects the elevator's east inner wall
+  and resolves Mario to X `411`.  All 20 rollout endpoints remain inside,
+  peak at relative Y `220`, and return to the elevator.  The run has zero A,
+  Wing, identity, descent, and floor-owner failures.  This is a finite JP
+  receipt, not held-A/US/universal controller-history closure.
 
 - [x] Authenticate the US/JP lower ring triangles `1414..1421`, aperture
   walls `1534..1541`, selected vertex/side/Y receipts, and mesh maximum Y;

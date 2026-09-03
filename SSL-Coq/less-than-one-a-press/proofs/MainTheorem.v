@@ -35,7 +35,7 @@ From LessThanOneAPress.Proofs Require Import
   EyerokRank29Preload
   EyerokRank29CycleClosure EyerokControllerManipulation
   EyerokControllerReachability
-  Area2Rank12ObjectImpulse
+  Area2Rank12ObjectImpulse UpperElevatorLiveTraceReceipt
   CompCertRouteScope.
 
 Import ListNotations.
@@ -768,6 +768,19 @@ Proof.
   split.
   - exact upper_ordinary_ascent_kernel_checked.
   - exact wing_cap_rollout_arithmetic_countermodel.
+Qed.
+
+(** Rank 10 now has one continuous original-JP B-only execution from the
+    established zero-A upper warp through the Area-2 descent, live-elevator
+    landing, speed-kick dive, rollout, east-wall stop, and return landing.
+    The finite receipt is paired with the conservative 84-quarter full-return
+    Float32 envelope.  This closes that concrete trajectory's vertical and
+    ordinary-wall version; it remains neither a universal controller-history
+    theorem nor an IDO-machine-to-Clight step correspondence. *)
+Theorem current_rank10_b_only_live_and_vertical_boundary :
+  JPRank10BOnlyLiveAndVerticalBoundary.
+Proof.
+  exact jp_rank10_b_only_live_and_vertical_boundary_checked.
 Qed.
 
 (* The transcript's regular-Goomba observation is a real but bounded,

@@ -1451,9 +1451,12 @@ and target-exclusion obligations compose.  The follow-up
 `UpperElevatorQuarterStepClosure.v` executes the finite upper-elevator
 arithmetic at collision-query granularity:
 
-- held-A jump kick executes exactly 32 binary32 quarter-step queries and peaks
-  at `134` units relative to the descending elevator;
-- B rollout executes exactly 40 queries and peaks at `224.5` units;
+- the rising-half held-A jump-kick check executes 32 binary32 quarter steps
+  and peaks at `134`, while its conservative 64-quarter full-return envelope
+  peaks one unit later at `135` relative to the descending elevator;
+- the rising-half B-rollout check executes 40 queries and peaks at `224.5`,
+  while its conservative 84-quarter full-return envelope peaks later at
+  `227.5`;
 - every scaled transition is checked against the generated binary32 addition,
   and the quarter-step body returns only literal codes `0,1,2,3,4,6`; and
 - the generated elevator mesh has side vertices through local Y `256`, the
@@ -1462,8 +1465,9 @@ arithmetic at collision-query granularity:
   vertically only when relative center Y is strictly greater than
   `256 + 5 - 30 = 231`.
 
-Thus both modeled ascent chains remain below the wall-clearance threshold at
-every query: `134 < 231` and `224.5 < 231`, on the non-Wing branch.  Their
+Thus both modeled full-return envelopes remain below the wall-clearance
+threshold at every query: `135 < 231` and `227.5 < 231`, on the non-Wing
+branch.  Their
 generated US/JP action bodies call
 `perform_air_step` with literal step argument zero, so these actions do not
 request the ledge-grab check.  Exact US/JP mesh receipts also recover the

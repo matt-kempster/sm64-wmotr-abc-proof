@@ -2090,3 +2090,36 @@ separate obligations.  The following paths changed:
 - `SSL-Coq/less-than-one-a-press/proofs/ClightFacts.v`
 - `SSL-Coq/less-than-one-a-press/proofs/GoombaRaising.v`
 - `SSL-Coq/less-than-one-a-press/proofs/MainTheorem.v`
+
+## Rank-10 live upper-elevator B-rollout tranche
+
+A hash-gated original-JP observer now extends the established clean zero-A
+four-pillar route into Area 2.  The exact receipt identifies Mario pool slot
+10, the unique elevator, all 17 descent samples, and that elevator as the
+selected floor owner on every one of 671 observed frames.  A controller-only
+schedule builds a legal speed-kick, lands the dive, enters forward rollout
+with the second B input, and selects the live elevator's east wall.  The wall
+resolves Mario to X 411 and zero horizontal speed; 20 rollout endpoints peak
+at relative Y 220 and return to the same elevator.  No A or Wing frame occurs.
+The Float32 proof now extends its rising schedules with conservative 64/84-
+quarter full-return envelopes.  Those expose later maxima of 135 and 227.5,
+both still below the strict 231 cutoff.
+The result closes this concrete B-only trajectory, while held-A, US, alternate
+launch histories, and a program-point trace of every internal collision query
+remain open.  The following paths changed:
+
+- `SSL-Coq/less-than-one-a-press/proofs/UpperElevatorQuarterStepClosure.v`
+- `SSL-Coq/less-than-one-a-press/proofs/UpperElevatorLiveTraceReceipt.v` (new)
+- `SSL-Coq/less-than-one-a-press/proofs/MainTheorem.v`
+- `SSL-Coq/less-than-one-a-press/_CoqProject`
+- `SSL-Coq/less-than-one-a-press/Makefile`
+- `SSL-Coq/less-than-one-a-press/instrumentation/jp-clean-gap-search/jp_clean_gap_search_probe.c`
+- `SSL-Coq/less-than-one-a-press/instrumentation/jp-rank10-upper-elevator/README.md` (new)
+- `SSL-Coq/less-than-one-a-press/instrumentation/jp-rank10-upper-elevator/expected-mode1-summary.txt` (new)
+- `SSL-Coq/less-than-one-a-press/instrumentation/jp-rank10-upper-elevator/jp_rank10_upper_elevator_probe.c` (new)
+- `SSL-Coq/less-than-one-a-press/instrumentation/jp-rank10-upper-elevator/run.sh` (new)
+- `SSL-Coq/less-than-one-a-press/docs/no-a-route-atlas.md`
+- `SSL-Coq/less-than-one-a-press/docs/checklist.md`
+- `SSL-Coq/less-than-one-a-press/docs/claim.md`
+- `SSL-Coq/less-than-one-a-press/docs/notes/area2-elevator-cut.md`
+- `SSL-Coq/less-than-one-a-press/docs/notes/changed-paths.md`

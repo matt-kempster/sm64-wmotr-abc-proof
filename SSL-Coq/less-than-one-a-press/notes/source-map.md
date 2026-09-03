@@ -971,8 +971,9 @@ below the integer-translation wall-rejection threshold formed from the raw rim,
 the source-backed `+5` surface pad, and the lower query offset.
 `proofs/UpperElevatorQuarterStepClosure.v` refines that endpoint model: its
 scaled recurrence is checked against every binary32 transition, giving 32
-held-A queries with maximum `134` and 40 B-rollout queries with maximum
-`224.5`, both below `231`.  It computes the generated quarter-step return codes
+held-A rising queries with maximum `134` and 40 B-rollout rising queries with
+maximum `224.5`, then conservative 64/84-quarter full-return envelopes with
+later maxima `135` and `227.5`, both below `231`.  It computes the generated quarter-step return codes
 as `0,1,2,3,4,6` and checks all direct `init_mario` assignments to the
 flags/timer as non-Wing/zero.  `proofs/UpperElevatorWingCapTransitionClosure.v`
 then checks the packed Area-1 node-`0x1E` route to Area 2 node `0x14`, the

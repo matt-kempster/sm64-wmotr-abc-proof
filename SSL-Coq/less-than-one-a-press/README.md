@@ -935,8 +935,10 @@ alone cannot exclude a crossing.  The generated US/JP ASTs also expose a
 concrete reason that "no A edge" must not be read as "no ascent": when A was
 already held, punching can select `ACT_JUMP_KICK` after B without a new A
   edge.  `UpperElevatorQuarterStepClosure.v` now replaces the frame-end
-  estimates with every binary32 collision sample: 32 held-A jump-kick queries
-  peak at `134`, and 40 B-rollout queries peak at `224.5`, both below the strict
+  estimates with binary32 collision samples: the 32 held-A jump-kick and 40
+  B-rollout rising queries, plus conservative 64/84-quarter full-return
+  envelopes.  The rising maxima `134` and `224.5` become full-return maxima
+  `135` and `227.5`, both still below the strict
   `231` wall-rejection cutoff after the dynamic surface's five-unit upper-Y
   pad.  It also checks each arithmetic transition and enumerates the six
   literal quarter-step results.  `UpperElevatorWingCapTransitionClosure.v`
@@ -948,8 +950,14 @@ already held, punching can select `ACT_JUMP_KICK` after B without a new A
   receiver/route connection.  A hypothetical Wing installed after reset has
   only two above-cutoff queries, `234` and `232`, before returning to `230` and
   `228`; that is a wall-selection opportunity, not a crossing witness.  The
-  descent, live elevator/surface selection, and action/collision execution
-  remain open.  The lower route remains open beyond
+  `UpperElevatorLiveTraceReceipt.v` now packages one uninterrupted original-JP
+  zero-A execution: the 17-sample descent selects the unique live elevator,
+  the B speed-kick dive lands, the B rollout selects that elevator's east wall
+  and stops at X `411`, all 20 rollout endpoints remain inside with a relative
+  peak of `220`, and Mario returns to the elevator with no Wing.  That closes
+  one concrete B-only trajectory, while held-A, US, alternate controller
+  histories, and every internal query-program-point projection remain open.
+  The lower route remains open beyond
 the existing normalized soft-bonk subcase.  See
 [`docs/notes/ordinary-motion.md`](docs/notes/ordinary-motion.md).
 
@@ -2230,12 +2238,14 @@ clightgen -normalize -nostdinc -fstruct-passing \
   number, but completeness of that observation stream is itself part of the
   missing concrete refinement.
 - Ordinary motion has not been globally excluded.  The checked jump-kick and
-  rollout arithmetic is a non-Wing upper-elevator subkernel, not an action
+  rollout arithmetic and one JP B-only live receipt form a non-Wing
+  upper-elevator subkernel, not a universal action
   inventory or collision-execution theorem.  `GameState` does not yet project
   Mario's flags or cap timer; a Wing-Cap arithmetic countermodel demonstrates
   that the normal `220` bound is not cap-independent, although its `228`
   result remains below the corrected `231` vertical threshold.  Retail cap
-  initialization and preservation must still be linked explicitly.
+  initialization and preservation must still be linked explicitly outside the
+  one receipt, which observes no Wing on every Area-2 frame.
   The lower Z soft-bonk result remains a normalized subcase rather than a
   complete second-pole or static-geometry proof.
   The newer Area-2 cut files authenticate candidate surface inventories and
