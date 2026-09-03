@@ -4,6 +4,7 @@
 
 From Coq Require Import List.
 From compcert Require Import AST Clight Coqlib Ctypes Globalenvs Linking Maps.
+From LessThanOneAPress.Generated Require Import us_interaction jp_interaction.
 From LessThanOneAPress.Proofs Require Import
   Area2Rank11PoleExitSplit CleanedClightPrograms ClightLinkExecution GameTypes
   GlobalInterfaceStructural JPSourceSymbolTransport JPWarpLevelEntryResolution
@@ -14,27 +15,37 @@ From LessThanOneAPress.Proofs Require Import
 
 Inductive Rank11NativeBody :=
 | R11PoleNative (handler : Rank11PoleHandler)
-| R11AirborneInitializer.
+| R11AirborneInitializer
+| R11KnockbackSelector.
 
 Definition rank11_native_body version native : function :=
   match native with
   | R11PoleNative handler => rank11_pole_body version handler
   | R11AirborneInitializer => rank11_airborne_body version
+  | R11KnockbackSelector => match version with
+      | VersionUS => us_interaction.f_determine_knockback_action
+      | VersionJP => jp_interaction.f_determine_knockback_action
+      end
   end.
 
 Definition rank11_native_ident native : ident :=
   match native with
   | R11PoleNative handler => rank11_pole_ident handler
   | R11AirborneInitializer => R11MU._set_mario_action_airborne
+  | R11KnockbackSelector => us_interaction._determine_knockback_action
   end.
 
 Definition rank11_source_unit_index native : nat :=
-  match native with R11PoleNative _ => 3 | R11AirborneInitializer => 1 end.
+  match native with
+  | R11PoleNative _ => 3 | R11AirborneInitializer => 1
+  | R11KnockbackSelector => 10
+  end.
 
 Definition rank11_us_source_definitions native :=
   match native with
   | R11PoleNative _ => R11U.global_definitions
   | R11AirborneInitializer => R11MU.global_definitions
+  | R11KnockbackSelector => us_interaction.global_definitions
   end.
 
 Fixpoint rank11_definition_index (id : ident)
@@ -54,7 +65,7 @@ Lemma rank11_us_source_definition_receipt : forall native,
     (rank11_source_definition_index native) =
     Some (rank11_native_ident native,
       Gfun (Internal (rank11_native_body VersionUS native))).
-Proof. intros [[] |]; vm_compute; reflexivity. Qed.
+Proof. intros [[] | |]; vm_compute; reflexivity. Qed.
 
 Lemma rank11_us_source_union_member : forall native,
   In (rank11_native_ident native,
@@ -64,11 +75,13 @@ Proof.
   intro native. eapply source_unit_definition_enters_source_union
     with (unit := us_nlist_at (rank11_source_unit_index native) us_units).
   - exact (us_nlist_at_nIn _ (rank11_source_unit_index native) us_units).
-  - destruct native as [handler |].
+  - destruct native as [handler | |].
     + eapply nth_error_In. exact (rank11_us_source_definition_receipt
         (R11PoleNative handler)).
     + eapply nth_error_In. exact (rank11_us_source_definition_receipt
         R11AirborneInitializer).
+    + eapply nth_error_In. exact (rank11_us_source_definition_receipt
+        R11KnockbackSelector).
 Qed.
 
 Lemma rank11_us_normalized_selection : forall native,
@@ -88,7 +101,7 @@ Lemma rank11_us_native_needs_no_repair : forall native,
   us_selected_definition_needs_viewport_repair
     (rank11_native_ident native,
       Gfun (Internal (rank11_native_body VersionUS native))) = false.
-Proof. intros [[] |]; vm_compute; reflexivity. Qed.
+Proof. intros [[] | |]; vm_compute; reflexivity. Qed.
 
 Lemma rank11_us_selected_member : forall native,
   In (rank11_native_ident native,
@@ -109,7 +122,7 @@ Definition rank11_jp_cleaned_unit native : Clight.program :=
 Lemma rank11_jp_cleaned_defmap_receipt : forall native,
   (prog_defmap (rank11_jp_cleaned_unit native)) ! (rank11_native_ident native) =
     Some (Gfun (Internal (rank11_native_body VersionJP native))).
-Proof. intros [[] |]; vm_compute; reflexivity. Qed.
+Proof. intros [[] | |]; vm_compute; reflexivity. Qed.
 
 Theorem rank11_selected_native_body_resolves : forall version native,
   exists function_block,

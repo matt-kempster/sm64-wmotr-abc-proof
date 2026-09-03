@@ -6,6 +6,12 @@ The homing-Amp shock plus an ordinary wall or moving support does not provide th
 
 This closes the specifically proposed “stationary shocked stall plus a wall or moving support” in the finite stock source model.  Rank 12 is not retired universally: a low-tier Goomba would still need a real transport to the pole, and a linked execution could still matter if it falsifies one of the checked stock corridor, owner, or collision premises.
 
+The subsequent [Rank-11 damage test](rank11-handstand-damage.md) confirms
+that an explicitly relocated Goomba can provide that departure from both
+handstand and ordinary holding height. This does not reopen the Amp-shock
+result: normal enemy damage selects a different action with horizontal
+knockback. Clean Goomba transport remains missing.
+
 ## Why the Amp was the best actor to check
 
 The selected US and JP Area-2 data contain exactly two homing Amps, at `(1621, 3368, -1142)` and `(1621, 3389, 478)`, and one circling Amp at `(3056, 736, -3267)`.  The second homing Amp begins about `1831.74` horizontal units from the second pole, and its chase-plus-give-up distance budget is large enough that distance alone does not disprove a lure.  The proof therefore grants perfect installation instead of hiding behind unproved controller timing, height alignment, wall avoidance, or object-loading claims.

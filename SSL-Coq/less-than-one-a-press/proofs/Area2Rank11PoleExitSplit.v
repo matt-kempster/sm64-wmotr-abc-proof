@@ -244,10 +244,17 @@ Definition rank11_airborne_tail (version : GameVersion) : statement :=
   | _ => Sskip
   end.
 
-Inductive Rank11FallingExit := R11SoftBonk | R11Freefall.
+(* Ordinary damage while on a pole selects the AIR knockback row, not the
+   ground row.  These two actions also take the initializer's default case:
+   they preserve an incoming handstand height rather than adding a jump. *)
+Inductive Rank11FallingExit :=
+| R11SoftBonk | R11Freefall | R11BackwardDamage | R11ForwardDamage.
 
 Definition rank11_falling_action (exit : Rank11FallingExit) : int :=
-  Int.repr (match exit with R11SoftBonk => 16910518 | R11Freefall => 16779404 end).
+  Int.repr (match exit with
+    | R11SoftBonk => 16910518 | R11Freefall => 16779404
+    | R11BackwardDamage => 16910512 | R11ForwardDamage => 16910513
+    end).
 
 Theorem rank11_falling_exits_select_no_jump_initializer :
   forall version exit,

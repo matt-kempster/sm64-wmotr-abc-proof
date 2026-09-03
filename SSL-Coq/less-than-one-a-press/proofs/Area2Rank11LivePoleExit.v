@@ -20,7 +20,7 @@ Local Open Scope Z_scope.
 (** Reuse the cached selected-header transport instead of evaluating either
     entire linked program.  Every numeric offset is independently checked. *)
 Definition rank11_mario_fields : list (ident * Z) :=
-  [(R11MU._input, 2); (R11MU._flags, 4); (R11MU._pos, 60);
+  [(R11MU._input, 2); (R11MU._flags, 4); (R11MU._action, 12); (R11MU._pos, 60);
    (R11MU._squishTimer, 180); (R11MU._peakHeight, 188);
    (R11MU._quicksandDepth, 192)].
 

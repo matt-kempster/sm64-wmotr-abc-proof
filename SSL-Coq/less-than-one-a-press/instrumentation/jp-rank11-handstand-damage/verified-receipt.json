@@ -1,0 +1,1260 @@
+{
+  "scope": "Fixture-assisted JP suffix only; NOT clean entry, quarter-step trace, star collection, or IDO-to-Clight bridge.",
+  "rom_md5": "85d61f5525af708c9f1e84dce6dc10e9",
+  "rom_sha256": "9cf7a80db321b07a8d461fe536c02c87b7412433953891cdec9191bfad2db317",
+  "probe_sha256_lf": "0c4d648336ab46b8c8f108c83c0bcd988c713847a2070b8f8d34478eec42df02",
+  "input_phase": "H11_INPUT is after wrapper overrides, for the next update; H11_FRAME reads memory at that poll.",
+  "runs": [
+    {
+      "mode": 0,
+      "stage": {
+        "tag": "R11_STAGE",
+        "timer": "516",
+        "mode": "0",
+        "pole": "80350418",
+        "behavior": "800e8464",
+        "mario": "80346e78",
+        "fixtureWrites": "23",
+        "pos": "(0,4020,1331)",
+        "speed": "0"
+      },
+      "pole_fixture_writes": [
+        {
+          "tag": "R11_FIXTURE_WRITE",
+          "address": "80339e0c",
+          "value": "08100340"
+        },
+        {
+          "tag": "R11_FIXTURE_WRITE",
+          "address": "80339e10",
+          "value": "08100340"
+        },
+        {
+          "tag": "R11_FIXTURE_WRITE",
+          "address": "80339e18",
+          "value": "00000000"
+        },
+        {
+          "tag": "R11_FIXTURE_WRITE",
+          "address": "80339e1c",
+          "value": "00000000"
+        },
+        {
+          "tag": "R11_FIXTURE_WRITE",
+          "address": "80339e2c",
+          "value": "00000000"
+        },
+        {
+          "tag": "R11_FIXTURE_WRITE",
+          "address": "80339e3c",
+          "value": "00000000"
+        },
+        {
+          "tag": "R11_FIXTURE_WRITE",
+          "address": "80346f18",
+          "value": "00000000"
+        },
+        {
+          "tag": "R11_FIXTURE_WRITE",
+          "address": "80346e98",
+          "value": "00000000"
+        },
+        {
+          "tag": "R11_FIXTURE_WRITE",
+          "address": "80339e48",
+          "value": "00000000"
+        },
+        {
+          "tag": "R11_FIXTURE_WRITE",
+          "address": "80339e40",
+          "value": "457b4000"
+        },
+        {
+          "tag": "R11_FIXTURE_WRITE",
+          "address": "80346f1c",
+          "value": "457b4000"
+        },
+        {
+          "tag": "R11_FIXTURE_WRITE",
+          "address": "80346e9c",
+          "value": "457b4000"
+        },
+        {
+          "tag": "R11_FIXTURE_WRITE",
+          "address": "80339e4c",
+          "value": "00000000"
+        },
+        {
+          "tag": "R11_FIXTURE_WRITE",
+          "address": "80339e44",
+          "value": "44a66000"
+        },
+        {
+          "tag": "R11_FIXTURE_WRITE",
+          "address": "80346f20",
+          "value": "44a66000"
+        },
+        {
+          "tag": "R11_FIXTURE_WRITE",
+          "address": "80346ea0",
+          "value": "44a66000"
+        },
+        {
+          "tag": "R11_FIXTURE_WRITE",
+          "address": "80339e50",
+          "value": "00000000"
+        },
+        {
+          "tag": "R11_FIXTURE_WRITE",
+          "address": "80339e54",
+          "value": "00000000"
+        },
+        {
+          "tag": "R11_FIXTURE_WRITE",
+          "address": "80339e78",
+          "value": "80350418"
+        },
+        {
+          "tag": "R11_FIXTURE_WRITE",
+          "address": "80339e80",
+          "value": "80350418"
+        },
+        {
+          "tag": "R11_FIXTURE_WRITE",
+          "address": "80346f84",
+          "value": "00000000"
+        },
+        {
+          "tag": "R11_FIXTURE_WRITE",
+          "address": "80346f88",
+          "value": "444d0000"
+        },
+        {
+          "tag": "R11_FIXTURE_WRITE",
+          "address": "8032fed4",
+          "value": "00000000"
+        }
+      ],
+      "before_goomba": {
+        "tag": "H11_BEFORE_GOOMBA",
+        "timer": "543",
+        "object": "80348fb8",
+        "behavior": "800eca2c",
+        "action": "0",
+        "flags": "0103",
+        "intangible": "0",
+        "pos": "(3263.03931,640,3157.39795)",
+        "home": "(3263,640,3157)"
+      },
+      "extra_goomba_writes": [
+        {
+          "tag": "H11_FIXTURE_WRITE",
+          "address": "80349058",
+          "value": "00000000"
+        },
+        {
+          "tag": "H11_FIXTURE_WRITE",
+          "address": "8034905c",
+          "value": "45831000"
+        },
+        {
+          "tag": "H11_FIXTURE_WRITE",
+          "address": "80349060",
+          "value": "44ab6000"
+        }
+      ],
+      "placed": {
+        "tag": "H11_PLACED",
+        "timer": "543",
+        "mode": "0",
+        "object": "80348fb8",
+        "marioAction": "00100345",
+        "y": "4194",
+        "vy": "0",
+        "forwardVel": "0",
+        "extraWrites": "3"
+      },
+      "contact_input": {
+        "tag": "H11_INPUT",
+        "timer": "543",
+        "action": "00100345",
+        "anim": "9",
+        "frame": "9",
+        "X": "0",
+        "Y": "0",
+        "A": "0",
+        "B": "0",
+        "Z": "0"
+      },
+      "first_knockback": {
+        "tag": "H11_FRAME",
+        "timer": "544",
+        "action": "010208b0",
+        "pos": "(0,4194,1315)",
+        "bits": "(0,1166217216,1151623168)",
+        "vy": "-4",
+        "forwardVel": "-16",
+        "floor": "801991d0",
+        "floorHeight": "3200",
+        "goombaPos": "(0,4194,1371)",
+        "A": "0",
+        "B": "0",
+        "Z": "0"
+      },
+      "first_target": {
+        "tag": "H11_FRAME",
+        "timer": "550",
+        "action": "010208b0",
+        "pos": "(0,4110,1219)",
+        "bits": "(0,1166045184,1150836736)",
+        "vy": "-28",
+        "forwardVel": "-16",
+        "floor": "801a1000",
+        "floorHeight": "3942",
+        "goombaPos": "(0,4260,1371)",
+        "A": "0",
+        "B": "0",
+        "Z": "0"
+      },
+      "first_landing": {
+        "tag": "H11_FRAME",
+        "timer": "555",
+        "action": "00020462",
+        "pos": "(0,3942,1143)",
+        "bits": "(0,1165385728,1150214144)",
+        "vy": "-48",
+        "forwardVel": "-16",
+        "floor": "801a0f10",
+        "floorHeight": "3942",
+        "goombaPos": "(0,4205,1371)",
+        "A": "0",
+        "B": "0",
+        "Z": "0"
+      },
+      "first_idle": {
+        "tag": "H11_FRAME",
+        "timer": "586",
+        "action": "0c400201",
+        "pos": "(0,3942,996.3797)",
+        "bits": "(0,1165385728,1148786765)",
+        "vy": "0",
+        "forwardVel": "-0.100000001",
+        "floor": "801a0f10",
+        "floorHeight": "3942",
+        "goombaPos": "(5.91194391,3356,1354.21167)",
+        "A": "0",
+        "B": "0",
+        "Z": "0"
+      },
+      "frames_through_landing": [
+        {
+          "tag": "H11_FRAME",
+          "timer": "543",
+          "action": "00100345",
+          "pos": "(0,4194,1331)",
+          "bits": "(0,1166217216,1151754240)",
+          "vy": "0",
+          "forwardVel": "0",
+          "floor": "801991d0",
+          "floorHeight": "3200",
+          "goombaPos": "(0,4194,1371)",
+          "A": "0",
+          "B": "0",
+          "Z": "0"
+        },
+        {
+          "tag": "H11_FRAME",
+          "timer": "544",
+          "action": "010208b0",
+          "pos": "(0,4194,1315)",
+          "bits": "(0,1166217216,1151623168)",
+          "vy": "-4",
+          "forwardVel": "-16",
+          "floor": "801991d0",
+          "floorHeight": "3200",
+          "goombaPos": "(0,4194,1371)",
+          "A": "0",
+          "B": "0",
+          "Z": "0"
+        },
+        {
+          "tag": "H11_FRAME",
+          "timer": "545",
+          "action": "010208b0",
+          "pos": "(0,4190,1299)",
+          "bits": "(0,1166209024,1151492096)",
+          "vy": "-8",
+          "forwardVel": "-16",
+          "floor": "801991d0",
+          "floorHeight": "3200",
+          "goombaPos": "(0,4215,1371)",
+          "A": "0",
+          "B": "0",
+          "Z": "0"
+        },
+        {
+          "tag": "H11_FRAME",
+          "timer": "546",
+          "action": "010208b0",
+          "pos": "(0,4182,1283)",
+          "bits": "(0,1166192640,1151361024)",
+          "vy": "-12",
+          "forwardVel": "-16",
+          "floor": "801991d0",
+          "floorHeight": "3200",
+          "goombaPos": "(0,4232,1371)",
+          "A": "0",
+          "B": "0",
+          "Z": "0"
+        },
+        {
+          "tag": "H11_FRAME",
+          "timer": "547",
+          "action": "010208b0",
+          "pos": "(0,4170,1267)",
+          "bits": "(0,1166168064,1151229952)",
+          "vy": "-16",
+          "forwardVel": "-16",
+          "floor": "801991d0",
+          "floorHeight": "3200",
+          "goombaPos": "(0,4245,1371)",
+          "A": "0",
+          "B": "0",
+          "Z": "0"
+        },
+        {
+          "tag": "H11_FRAME",
+          "timer": "548",
+          "action": "010208b0",
+          "pos": "(0,4154,1251)",
+          "bits": "(0,1166135296,1151098880)",
+          "vy": "-20",
+          "forwardVel": "-16",
+          "floor": "801991d0",
+          "floorHeight": "3200",
+          "goombaPos": "(0,4254,1371)",
+          "A": "0",
+          "B": "0",
+          "Z": "0"
+        },
+        {
+          "tag": "H11_FRAME",
+          "timer": "549",
+          "action": "010208b0",
+          "pos": "(0,4134,1235)",
+          "bits": "(0,1166094336,1150967808)",
+          "vy": "-24",
+          "forwardVel": "-16",
+          "floor": "801991d0",
+          "floorHeight": "3200",
+          "goombaPos": "(0,4259,1371)",
+          "A": "0",
+          "B": "0",
+          "Z": "0"
+        },
+        {
+          "tag": "H11_FRAME",
+          "timer": "550",
+          "action": "010208b0",
+          "pos": "(0,4110,1219)",
+          "bits": "(0,1166045184,1150836736)",
+          "vy": "-28",
+          "forwardVel": "-16",
+          "floor": "801a1000",
+          "floorHeight": "3942",
+          "goombaPos": "(0,4260,1371)",
+          "A": "0",
+          "B": "0",
+          "Z": "0"
+        },
+        {
+          "tag": "H11_FRAME",
+          "timer": "551",
+          "action": "010208b0",
+          "pos": "(0,4082,1203)",
+          "bits": "(0,1165959168,1150705664)",
+          "vy": "-32",
+          "forwardVel": "-16",
+          "floor": "801a0f10",
+          "floorHeight": "3942",
+          "goombaPos": "(0,4257,1371)",
+          "A": "0",
+          "B": "0",
+          "Z": "0"
+        },
+        {
+          "tag": "H11_FRAME",
+          "timer": "552",
+          "action": "010208b0",
+          "pos": "(0,4050,1187)",
+          "bits": "(0,1165828096,1150574592)",
+          "vy": "-36",
+          "forwardVel": "-16",
+          "floor": "801a0f10",
+          "floorHeight": "3942",
+          "goombaPos": "(0,4250,1371)",
+          "A": "0",
+          "B": "0",
+          "Z": "0"
+        },
+        {
+          "tag": "H11_FRAME",
+          "timer": "553",
+          "action": "010208b0",
+          "pos": "(0,4014,1171)",
+          "bits": "(0,1165680640,1150443520)",
+          "vy": "-40",
+          "forwardVel": "-16",
+          "floor": "801a0f10",
+          "floorHeight": "3942",
+          "goombaPos": "(0,4239,1371)",
+          "A": "0",
+          "B": "0",
+          "Z": "0"
+        },
+        {
+          "tag": "H11_FRAME",
+          "timer": "554",
+          "action": "010208b0",
+          "pos": "(0,3974,1155)",
+          "bits": "(0,1165516800,1150312448)",
+          "vy": "-44",
+          "forwardVel": "-16",
+          "floor": "801a0f10",
+          "floorHeight": "3942",
+          "goombaPos": "(0,4224,1371)",
+          "A": "0",
+          "B": "0",
+          "Z": "0"
+        },
+        {
+          "tag": "H11_FRAME",
+          "timer": "555",
+          "action": "00020462",
+          "pos": "(0,3942,1143)",
+          "bits": "(0,1165385728,1150214144)",
+          "vy": "-48",
+          "forwardVel": "-16",
+          "floor": "801a0f10",
+          "floorHeight": "3942",
+          "goombaPos": "(0,4205,1371)",
+          "A": "0",
+          "B": "0",
+          "Z": "0"
+        }
+      ],
+      "input_samples": 236,
+      "position_samples": 110,
+      "result": {
+        "tag": "H11_RESULT",
+        "mode": "0",
+        "placed": "1",
+        "extraWrites": "3",
+        "contactY": "4194",
+        "sawKnockback": "1",
+        "firstY": "4194",
+        "crossed": "1",
+        "minZAboveRing": "996.3797",
+        "aPressedFrames": "0",
+        "aDownFrames": "0",
+        "controllerAFrames": "0"
+      },
+      "trace_sha256_lf": "2cd80f0b6ca5afad771413913fee90163467cddd6bd532113058defaffff50ea",
+      "rejected_altered_receipts": 7
+    },
+    {
+      "mode": 1,
+      "stage": {
+        "tag": "R11_STAGE",
+        "timer": "516",
+        "mode": "0",
+        "pole": "80350418",
+        "behavior": "800e8464",
+        "mario": "80346e78",
+        "fixtureWrites": "23",
+        "pos": "(0,4020,1331)",
+        "speed": "0"
+      },
+      "pole_fixture_writes": [
+        {
+          "tag": "R11_FIXTURE_WRITE",
+          "address": "80339e0c",
+          "value": "08100340"
+        },
+        {
+          "tag": "R11_FIXTURE_WRITE",
+          "address": "80339e10",
+          "value": "08100340"
+        },
+        {
+          "tag": "R11_FIXTURE_WRITE",
+          "address": "80339e18",
+          "value": "00000000"
+        },
+        {
+          "tag": "R11_FIXTURE_WRITE",
+          "address": "80339e1c",
+          "value": "00000000"
+        },
+        {
+          "tag": "R11_FIXTURE_WRITE",
+          "address": "80339e2c",
+          "value": "00000000"
+        },
+        {
+          "tag": "R11_FIXTURE_WRITE",
+          "address": "80339e3c",
+          "value": "00000000"
+        },
+        {
+          "tag": "R11_FIXTURE_WRITE",
+          "address": "80346f18",
+          "value": "00000000"
+        },
+        {
+          "tag": "R11_FIXTURE_WRITE",
+          "address": "80346e98",
+          "value": "00000000"
+        },
+        {
+          "tag": "R11_FIXTURE_WRITE",
+          "address": "80339e48",
+          "value": "00000000"
+        },
+        {
+          "tag": "R11_FIXTURE_WRITE",
+          "address": "80339e40",
+          "value": "457b4000"
+        },
+        {
+          "tag": "R11_FIXTURE_WRITE",
+          "address": "80346f1c",
+          "value": "457b4000"
+        },
+        {
+          "tag": "R11_FIXTURE_WRITE",
+          "address": "80346e9c",
+          "value": "457b4000"
+        },
+        {
+          "tag": "R11_FIXTURE_WRITE",
+          "address": "80339e4c",
+          "value": "00000000"
+        },
+        {
+          "tag": "R11_FIXTURE_WRITE",
+          "address": "80339e44",
+          "value": "44a66000"
+        },
+        {
+          "tag": "R11_FIXTURE_WRITE",
+          "address": "80346f20",
+          "value": "44a66000"
+        },
+        {
+          "tag": "R11_FIXTURE_WRITE",
+          "address": "80346ea0",
+          "value": "44a66000"
+        },
+        {
+          "tag": "R11_FIXTURE_WRITE",
+          "address": "80339e50",
+          "value": "00000000"
+        },
+        {
+          "tag": "R11_FIXTURE_WRITE",
+          "address": "80339e54",
+          "value": "00000000"
+        },
+        {
+          "tag": "R11_FIXTURE_WRITE",
+          "address": "80339e78",
+          "value": "80350418"
+        },
+        {
+          "tag": "R11_FIXTURE_WRITE",
+          "address": "80339e80",
+          "value": "80350418"
+        },
+        {
+          "tag": "R11_FIXTURE_WRITE",
+          "address": "80346f84",
+          "value": "00000000"
+        },
+        {
+          "tag": "R11_FIXTURE_WRITE",
+          "address": "80346f88",
+          "value": "444d0000"
+        },
+        {
+          "tag": "R11_FIXTURE_WRITE",
+          "address": "8032fed4",
+          "value": "00000000"
+        }
+      ],
+      "before_goomba": {
+        "tag": "H11_BEFORE_GOOMBA",
+        "timer": "525",
+        "object": "80348fb8",
+        "behavior": "800eca2c",
+        "action": "0",
+        "flags": "0103",
+        "intangible": "0",
+        "pos": "(3263.03931,640,3157.39795)",
+        "home": "(3263,640,3157)"
+      },
+      "extra_goomba_writes": [
+        {
+          "tag": "H11_FIXTURE_WRITE",
+          "address": "80349058",
+          "value": "00000000"
+        },
+        {
+          "tag": "H11_FIXTURE_WRITE",
+          "address": "8034905c",
+          "value": "457b4000"
+        },
+        {
+          "tag": "H11_FIXTURE_WRITE",
+          "address": "80349060",
+          "value": "44ab6000"
+        }
+      ],
+      "placed": {
+        "tag": "H11_PLACED",
+        "timer": "525",
+        "mode": "1",
+        "object": "80348fb8",
+        "marioAction": "08100340",
+        "y": "4020",
+        "vy": "0",
+        "forwardVel": "0",
+        "extraWrites": "3"
+      },
+      "contact_input": {
+        "tag": "H11_INPUT",
+        "timer": "525",
+        "action": "08100340",
+        "anim": "13",
+        "frame": "8",
+        "X": "0",
+        "Y": "0",
+        "A": "0",
+        "B": "0",
+        "Z": "0"
+      },
+      "first_knockback": {
+        "tag": "H11_FRAME",
+        "timer": "526",
+        "action": "010208b0",
+        "pos": "(0,4020,1315)",
+        "bits": "(0,1165705216,1151623168)",
+        "vy": "-4",
+        "forwardVel": "-16",
+        "floor": "801991d0",
+        "floorHeight": "3200",
+        "goombaPos": "(0,4020,1371)",
+        "A": "0",
+        "B": "0",
+        "Z": "0"
+      },
+      "first_target": {
+        "tag": "H11_FRAME",
+        "timer": "530",
+        "action": "010208b0",
+        "pos": "(0,3980,1222.40405)",
+        "bits": "(0,1165541376,1150864622)",
+        "vy": "-20",
+        "forwardVel": "-16",
+        "floor": "801a1000",
+        "floorHeight": "3942",
+        "goombaPos": "(0,4080,1371)",
+        "A": "0",
+        "B": "0",
+        "Z": "0"
+      },
+      "first_landing": {
+        "tag": "H11_FRAME",
+        "timer": "532",
+        "action": "00020462",
+        "pos": "(0,3942,1194.40405)",
+        "bits": "(0,1165385728,1150635246)",
+        "vy": "-28",
+        "forwardVel": "-16",
+        "floor": "801a0f10",
+        "floorHeight": "3942",
+        "goombaPos": "(0,4086,1371)",
+        "A": "0",
+        "B": "0",
+        "Z": "0"
+      },
+      "first_idle": {
+        "tag": "H11_FRAME",
+        "timer": "563",
+        "action": "0c400201",
+        "pos": "(0,3942,1047.78442)",
+        "bits": "(0,1165385728,1149434138)",
+        "vy": "0",
+        "forwardVel": "-0.100000001",
+        "floor": "801a0f10",
+        "floorHeight": "3942",
+        "goombaPos": "(3.94289088,3370,1357.68494)",
+        "A": "0",
+        "B": "0",
+        "Z": "0"
+      },
+      "frames_through_landing": [
+        {
+          "tag": "H11_FRAME",
+          "timer": "525",
+          "action": "08100340",
+          "pos": "(0,4020,1331)",
+          "bits": "(0,1165705216,1151754240)",
+          "vy": "0",
+          "forwardVel": "0",
+          "floor": "801991d0",
+          "floorHeight": "3200",
+          "goombaPos": "(0,4020,1371)",
+          "A": "0",
+          "B": "0",
+          "Z": "0"
+        },
+        {
+          "tag": "H11_FRAME",
+          "timer": "526",
+          "action": "010208b0",
+          "pos": "(0,4020,1315)",
+          "bits": "(0,1165705216,1151623168)",
+          "vy": "-4",
+          "forwardVel": "-16",
+          "floor": "801991d0",
+          "floorHeight": "3200",
+          "goombaPos": "(0,4020,1371)",
+          "A": "0",
+          "B": "0",
+          "Z": "0"
+        },
+        {
+          "tag": "H11_FRAME",
+          "timer": "527",
+          "action": "010208b0",
+          "pos": "(0,4016,1286.6571)",
+          "bits": "(0,1165688832,1151390983)",
+          "vy": "-8",
+          "forwardVel": "-16",
+          "floor": "801991d0",
+          "floorHeight": "3200",
+          "goombaPos": "(0,4041,1371)",
+          "A": "0",
+          "B": "0",
+          "Z": "0"
+        },
+        {
+          "tag": "H11_FRAME",
+          "timer": "528",
+          "action": "010208b0",
+          "pos": "(0,4008,1254.40405)",
+          "bits": "(0,1165656064,1151126766)",
+          "vy": "-12",
+          "forwardVel": "-16",
+          "floor": "801991d0",
+          "floorHeight": "3200",
+          "goombaPos": "(0,4058,1371)",
+          "A": "0",
+          "B": "0",
+          "Z": "0"
+        },
+        {
+          "tag": "H11_FRAME",
+          "timer": "529",
+          "action": "010208b0",
+          "pos": "(0,3996,1238.40405)",
+          "bits": "(0,1165606912,1150995694)",
+          "vy": "-16",
+          "forwardVel": "-16",
+          "floor": "801991d0",
+          "floorHeight": "3200",
+          "goombaPos": "(0,4071,1371)",
+          "A": "0",
+          "B": "0",
+          "Z": "0"
+        },
+        {
+          "tag": "H11_FRAME",
+          "timer": "530",
+          "action": "010208b0",
+          "pos": "(0,3980,1222.40405)",
+          "bits": "(0,1165541376,1150864622)",
+          "vy": "-20",
+          "forwardVel": "-16",
+          "floor": "801a1000",
+          "floorHeight": "3942",
+          "goombaPos": "(0,4080,1371)",
+          "A": "0",
+          "B": "0",
+          "Z": "0"
+        },
+        {
+          "tag": "H11_FRAME",
+          "timer": "531",
+          "action": "010208b0",
+          "pos": "(0,3960,1206.40405)",
+          "bits": "(0,1165459456,1150733550)",
+          "vy": "-24",
+          "forwardVel": "-16",
+          "floor": "801a0f10",
+          "floorHeight": "3942",
+          "goombaPos": "(0,4085,1371)",
+          "A": "0",
+          "B": "0",
+          "Z": "0"
+        },
+        {
+          "tag": "H11_FRAME",
+          "timer": "532",
+          "action": "00020462",
+          "pos": "(0,3942,1194.40405)",
+          "bits": "(0,1165385728,1150635246)",
+          "vy": "-28",
+          "forwardVel": "-16",
+          "floor": "801a0f10",
+          "floorHeight": "3942",
+          "goombaPos": "(0,4086,1371)",
+          "A": "0",
+          "B": "0",
+          "Z": "0"
+        }
+      ],
+      "input_samples": 236,
+      "position_samples": 110,
+      "result": {
+        "tag": "H11_RESULT",
+        "mode": "1",
+        "placed": "1",
+        "extraWrites": "3",
+        "contactY": "4020",
+        "sawKnockback": "1",
+        "firstY": "4020",
+        "crossed": "1",
+        "minZAboveRing": "1047.78442",
+        "aPressedFrames": "0",
+        "aDownFrames": "0",
+        "controllerAFrames": "0"
+      },
+      "trace_sha256_lf": "aabbc4a11a7d7b6810b829a3558cff88a198461ba6849d2eb9ae472314e8bb9a",
+      "rejected_altered_receipts": 7
+    },
+    {
+      "mode": 2,
+      "stage": {
+        "tag": "R11_STAGE",
+        "timer": "516",
+        "mode": "0",
+        "pole": "80350418",
+        "behavior": "800e8464",
+        "mario": "80346e78",
+        "fixtureWrites": "23",
+        "pos": "(0,4020,1331)",
+        "speed": "0"
+      },
+      "pole_fixture_writes": [
+        {
+          "tag": "R11_FIXTURE_WRITE",
+          "address": "80339e0c",
+          "value": "08100340"
+        },
+        {
+          "tag": "R11_FIXTURE_WRITE",
+          "address": "80339e10",
+          "value": "08100340"
+        },
+        {
+          "tag": "R11_FIXTURE_WRITE",
+          "address": "80339e18",
+          "value": "00000000"
+        },
+        {
+          "tag": "R11_FIXTURE_WRITE",
+          "address": "80339e1c",
+          "value": "00000000"
+        },
+        {
+          "tag": "R11_FIXTURE_WRITE",
+          "address": "80339e2c",
+          "value": "00000000"
+        },
+        {
+          "tag": "R11_FIXTURE_WRITE",
+          "address": "80339e3c",
+          "value": "00000000"
+        },
+        {
+          "tag": "R11_FIXTURE_WRITE",
+          "address": "80346f18",
+          "value": "00000000"
+        },
+        {
+          "tag": "R11_FIXTURE_WRITE",
+          "address": "80346e98",
+          "value": "00000000"
+        },
+        {
+          "tag": "R11_FIXTURE_WRITE",
+          "address": "80339e48",
+          "value": "00000000"
+        },
+        {
+          "tag": "R11_FIXTURE_WRITE",
+          "address": "80339e40",
+          "value": "457b4000"
+        },
+        {
+          "tag": "R11_FIXTURE_WRITE",
+          "address": "80346f1c",
+          "value": "457b4000"
+        },
+        {
+          "tag": "R11_FIXTURE_WRITE",
+          "address": "80346e9c",
+          "value": "457b4000"
+        },
+        {
+          "tag": "R11_FIXTURE_WRITE",
+          "address": "80339e4c",
+          "value": "00000000"
+        },
+        {
+          "tag": "R11_FIXTURE_WRITE",
+          "address": "80339e44",
+          "value": "44a66000"
+        },
+        {
+          "tag": "R11_FIXTURE_WRITE",
+          "address": "80346f20",
+          "value": "44a66000"
+        },
+        {
+          "tag": "R11_FIXTURE_WRITE",
+          "address": "80346ea0",
+          "value": "44a66000"
+        },
+        {
+          "tag": "R11_FIXTURE_WRITE",
+          "address": "80339e50",
+          "value": "00000000"
+        },
+        {
+          "tag": "R11_FIXTURE_WRITE",
+          "address": "80339e54",
+          "value": "00000000"
+        },
+        {
+          "tag": "R11_FIXTURE_WRITE",
+          "address": "80339e78",
+          "value": "80350418"
+        },
+        {
+          "tag": "R11_FIXTURE_WRITE",
+          "address": "80339e80",
+          "value": "80350418"
+        },
+        {
+          "tag": "R11_FIXTURE_WRITE",
+          "address": "80346f84",
+          "value": "00000000"
+        },
+        {
+          "tag": "R11_FIXTURE_WRITE",
+          "address": "80346f88",
+          "value": "444d0000"
+        },
+        {
+          "tag": "R11_FIXTURE_WRITE",
+          "address": "8032fed4",
+          "value": "00000000"
+        }
+      ],
+      "before_goomba": {
+        "tag": "H11_BEFORE_GOOMBA",
+        "timer": "610",
+        "object": "80348fb8",
+        "behavior": "800eca2c",
+        "action": "0",
+        "flags": "0103",
+        "intangible": "0",
+        "pos": "(3263.03931,640,3157.39795)",
+        "home": "(3263,640,3157)"
+      },
+      "extra_goomba_writes": [
+        {
+          "tag": "H11_FIXTURE_WRITE",
+          "address": "80349058",
+          "value": "00000000"
+        },
+        {
+          "tag": "H11_FIXTURE_WRITE",
+          "address": "8034905c",
+          "value": "457e6000"
+        },
+        {
+          "tag": "H11_FIXTURE_WRITE",
+          "address": "80349060",
+          "value": "44ab6000"
+        }
+      ],
+      "placed": {
+        "tag": "H11_PLACED",
+        "timer": "610",
+        "mode": "2",
+        "object": "80348fb8",
+        "marioAction": "00100344",
+        "y": "4070",
+        "vy": "0",
+        "forwardVel": "0",
+        "extraWrites": "3"
+      },
+      "contact_input": {
+        "tag": "H11_INPUT",
+        "timer": "610",
+        "action": "00100344",
+        "anim": "12",
+        "frame": "0",
+        "X": "0",
+        "Y": "0",
+        "A": "0",
+        "B": "0",
+        "Z": "0"
+      },
+      "first_knockback": {
+        "tag": "H11_FRAME",
+        "timer": "611",
+        "action": "010208b0",
+        "pos": "(0,4070,1315)",
+        "bits": "(0,1165910016,1151623168)",
+        "vy": "-4",
+        "forwardVel": "-16",
+        "floor": "801991d0",
+        "floorHeight": "3200",
+        "goombaPos": "(0,4070,1371)",
+        "A": "0",
+        "B": "0",
+        "Z": "0"
+      },
+      "first_target": {
+        "tag": "H11_FRAME",
+        "timer": "615",
+        "action": "010208b0",
+        "pos": "(0,4030,1222.40405)",
+        "bits": "(0,1165746176,1150864622)",
+        "vy": "-20",
+        "forwardVel": "-16",
+        "floor": "801a1000",
+        "floorHeight": "3942",
+        "goombaPos": "(0,4130,1371)",
+        "A": "0",
+        "B": "0",
+        "Z": "0"
+      },
+      "first_landing": {
+        "tag": "H11_FRAME",
+        "timer": "619",
+        "action": "00020462",
+        "pos": "(0,3942,1166.40405)",
+        "bits": "(0,1165385728,1150405870)",
+        "vy": "-36",
+        "forwardVel": "-16",
+        "floor": "801a0f10",
+        "floorHeight": "3942",
+        "goombaPos": "(0,4126,1371)",
+        "A": "0",
+        "B": "0",
+        "Z": "0"
+      },
+      "first_idle": {
+        "tag": "H11_FRAME",
+        "timer": "650",
+        "action": "0c400201",
+        "pos": "(0,3942,1019.78418)",
+        "bits": "(0,1165385728,1149170224)",
+        "vy": "0",
+        "forwardVel": "-0.100000001",
+        "floor": "801a0f10",
+        "floorHeight": "3942",
+        "goombaPos": "(4.88479567,3365,1355.92419)",
+        "A": "0",
+        "B": "0",
+        "Z": "0"
+      },
+      "frames_through_landing": [
+        {
+          "tag": "H11_FRAME",
+          "timer": "610",
+          "action": "00100344",
+          "pos": "(0,4070,1331)",
+          "bits": "(0,1165910016,1151754240)",
+          "vy": "0",
+          "forwardVel": "0",
+          "floor": "801991d0",
+          "floorHeight": "3200",
+          "goombaPos": "(0,4070,1371)",
+          "A": "0",
+          "B": "0",
+          "Z": "0"
+        },
+        {
+          "tag": "H11_FRAME",
+          "timer": "611",
+          "action": "010208b0",
+          "pos": "(0,4070,1315)",
+          "bits": "(0,1165910016,1151623168)",
+          "vy": "-4",
+          "forwardVel": "-16",
+          "floor": "801991d0",
+          "floorHeight": "3200",
+          "goombaPos": "(0,4070,1371)",
+          "A": "0",
+          "B": "0",
+          "Z": "0"
+        },
+        {
+          "tag": "H11_FRAME",
+          "timer": "612",
+          "action": "010208b0",
+          "pos": "(0,4066,1286.6571)",
+          "bits": "(0,1165893632,1151390983)",
+          "vy": "-8",
+          "forwardVel": "-16",
+          "floor": "801991d0",
+          "floorHeight": "3200",
+          "goombaPos": "(0,4091,1371)",
+          "A": "0",
+          "B": "0",
+          "Z": "0"
+        },
+        {
+          "tag": "H11_FRAME",
+          "timer": "613",
+          "action": "010208b0",
+          "pos": "(0,4058,1254.40405)",
+          "bits": "(0,1165860864,1151126766)",
+          "vy": "-12",
+          "forwardVel": "-16",
+          "floor": "801991d0",
+          "floorHeight": "3200",
+          "goombaPos": "(0,4108,1371)",
+          "A": "0",
+          "B": "0",
+          "Z": "0"
+        },
+        {
+          "tag": "H11_FRAME",
+          "timer": "614",
+          "action": "010208b0",
+          "pos": "(0,4046,1238.40405)",
+          "bits": "(0,1165811712,1150995694)",
+          "vy": "-16",
+          "forwardVel": "-16",
+          "floor": "801991d0",
+          "floorHeight": "3200",
+          "goombaPos": "(0,4121,1371)",
+          "A": "0",
+          "B": "0",
+          "Z": "0"
+        },
+        {
+          "tag": "H11_FRAME",
+          "timer": "615",
+          "action": "010208b0",
+          "pos": "(0,4030,1222.40405)",
+          "bits": "(0,1165746176,1150864622)",
+          "vy": "-20",
+          "forwardVel": "-16",
+          "floor": "801a1000",
+          "floorHeight": "3942",
+          "goombaPos": "(0,4130,1371)",
+          "A": "0",
+          "B": "0",
+          "Z": "0"
+        },
+        {
+          "tag": "H11_FRAME",
+          "timer": "616",
+          "action": "010208b0",
+          "pos": "(0,4010,1206.40405)",
+          "bits": "(0,1165664256,1150733550)",
+          "vy": "-24",
+          "forwardVel": "-16",
+          "floor": "801a0f10",
+          "floorHeight": "3942",
+          "goombaPos": "(0,4135,1371)",
+          "A": "0",
+          "B": "0",
+          "Z": "0"
+        },
+        {
+          "tag": "H11_FRAME",
+          "timer": "617",
+          "action": "010208b0",
+          "pos": "(0,3986,1190.40405)",
+          "bits": "(0,1165565952,1150602478)",
+          "vy": "-28",
+          "forwardVel": "-16",
+          "floor": "801a0f10",
+          "floorHeight": "3942",
+          "goombaPos": "(0,4136,1371)",
+          "A": "0",
+          "B": "0",
+          "Z": "0"
+        },
+        {
+          "tag": "H11_FRAME",
+          "timer": "618",
+          "action": "010208b0",
+          "pos": "(0,3958,1174.40405)",
+          "bits": "(0,1165451264,1150471406)",
+          "vy": "-32",
+          "forwardVel": "-16",
+          "floor": "801a0f10",
+          "floorHeight": "3942",
+          "goombaPos": "(0,4133,1371)",
+          "A": "0",
+          "B": "0",
+          "Z": "0"
+        },
+        {
+          "tag": "H11_FRAME",
+          "timer": "619",
+          "action": "00020462",
+          "pos": "(0,3942,1166.40405)",
+          "bits": "(0,1165385728,1150405870)",
+          "vy": "-36",
+          "forwardVel": "-16",
+          "floor": "801a0f10",
+          "floorHeight": "3942",
+          "goombaPos": "(0,4126,1371)",
+          "A": "0",
+          "B": "0",
+          "Z": "0"
+        }
+      ],
+      "input_samples": 336,
+      "position_samples": 110,
+      "result": {
+        "tag": "H11_RESULT",
+        "mode": "2",
+        "placed": "1",
+        "extraWrites": "3",
+        "contactY": "4070",
+        "sawKnockback": "1",
+        "firstY": "4070",
+        "crossed": "1",
+        "minZAboveRing": "1019.78418",
+        "aPressedFrames": "0",
+        "aDownFrames": "0",
+        "controllerAFrames": "0"
+      },
+      "trace_sha256_lf": "26c998335ff1ff17fd3687000166a95765a5e214f6d3a00141454ea6da7da6b0",
+      "rejected_altered_receipts": 7
+    }
+  ]
+}

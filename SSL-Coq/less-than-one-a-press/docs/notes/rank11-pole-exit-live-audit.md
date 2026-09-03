@@ -12,6 +12,12 @@ last frame of the return from a handstand. Both tested releases fall back to
 the Y-3200 pole base; neither supplies a counterexample. The timing result is
 not a clean-entry proof or an exhaustive collision search.
 
+A subsequent [ordinary-damage test](rank11-handstand-damage.md) retains the
+full Y-4194 handstand and crosses the aperture after an explicitly relocated
+Goomba hits Mario. Its Y-4020 holding control also crosses, so damage-contact
+installation is now a concrete follow-up; the two enemy-free Z-release
+failures below remain unchanged. No clean enemy transport is established.
+
 ## Exhaustive direct action split
 
 The census reads the generated bodies, not a handwritten replacement for
@@ -39,7 +45,8 @@ because the six pole handlers have been enumerated.
 ## What the new execution proof actually constructs
 
 [`Area2Rank11BodyResolution.v`](../../proofs/Area2Rank11BodyResolution.v)
-resolves the seven audited bodies and `set_mario_action_airborne` in the
+resolves the seven audited pole bodies, `set_mario_action_airborne`, and
+`determine_knockback_action` in the
 selected US and JP global environments. It uses per-definition receipts and
 the existing symbolic link transport, rather than evaluating a whole linked
 program or assuming that a source name resolves to the expected function.
@@ -55,8 +62,9 @@ same Mario receiver through preceding calls remain separate tasks.
 [`Area2Rank11FallingInitializer.v`](../../proofs/Area2Rank11FallingInitializer.v)
 starts at a real call to `set_mario_action_airborne`, binds its actual three
 parameters, executes its generated body, and returns through the same call
-continuation. For `ACT_SOFT_BONK` and `ACT_FREEFALL`, neither action matches a
-jump-initialization switch case. From the explicitly checked normal entry
+continuation. For `ACT_SOFT_BONK`, `ACT_FREEFALL`, and now ordinary
+`ACT_BACKWARD_AIR_KB` / `ACT_FORWARD_AIR_KB`, none matches a jump-initialization
+switch case. From the explicitly checked normal entry
 (`squishTimer = 0`, `quicksandDepth = 0`), the only writes are:
 
 | Destination in the same MarioState block | Effect |

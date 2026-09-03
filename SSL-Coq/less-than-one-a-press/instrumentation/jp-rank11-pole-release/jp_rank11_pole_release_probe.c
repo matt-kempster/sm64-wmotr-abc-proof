@@ -14,6 +14,12 @@
 #ifndef RANK11_RELEASE_MODE
 #define RANK11_RELEASE_MODE 0
 #endif
+#ifndef JP_RANK11_GET_KEYS
+#define JP_RANK11_GET_KEYS GetKeys
+#endif
+#ifndef JP_RANK11_ROM_CLOSED
+#define JP_RANK11_ROM_CLOSED RomClosed
+#endif
 
 enum {
     R11_HOLDING = 0x08100340,
@@ -80,7 +86,7 @@ static void rank11_stage(uint32_t mario) {
             R32(gR11Pole + O_BEHAVIOR), mario, gR11Writes);
 }
 
-EXPORT void CALL GetKeys(int control, BUTTONS *keys) {
+EXPORT void CALL JP_RANK11_GET_KEYS(int control, BUTTONS *keys) {
     uint32_t mario, action, timer, floor, owner = 0;
     int animation, frame;
     float y, z;
@@ -156,7 +162,7 @@ EXPORT void CALL GetKeys(int control, BUTTONS *keys) {
                 (unsigned) keys->Z_TRIG, (int) keys->Y_AXIS);
 }
 
-EXPORT void CALL RomClosed(void) {
+EXPORT void CALL JP_RANK11_ROM_CLOSED(void) {
     fprintf(stderr, "R11_RESULT,mode=%d,staged=%d,fixtureWrites=%u,"
             "topPolls=%u,releaseSent=%d,sawBonk=%d,maxY=%.9g,"
             "minZWhileYAtLeast3942=%.9g,aPressedFrames=%d,aDownFrames=%d,"

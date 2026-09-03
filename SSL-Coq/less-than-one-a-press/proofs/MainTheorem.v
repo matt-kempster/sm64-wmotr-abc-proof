@@ -21,6 +21,7 @@ From LessThanOneAPress.Proofs Require Import
   WritableActionTableClosure
   Area2LowerTargetCut Area2HypotheticalPoleLongJump
   Area2Rank11PoleExitSplit Area2Rank11LivePoleExit Area2Rank11FallingInitializer
+  Area2Rank11HandstandDamage
   Area2NegativeQuicksandStarHypothesis
   WritableActionTableAliasExternalClosure
   WritableActionTableWholeGameAliases
@@ -465,6 +466,16 @@ Proof.
   split; [exact rank11_every_source_a_test_is_closed_at_a_no_a_memory_read |].
   exact rank11_selected_falling_call_safely_returns.
 Qed.
+
+(** Ordinary enemy damage is a genuine height-preserving departure candidate,
+    without a table mutation: the selected damage function reads a pole action
+    from memory and takes the airborne terrain branch.  The now-extended real
+    initializer call preserves all seven kinematic cells for normal forward
+    and backward damage as well as freefall/soft bonk.  Clean enemy placement,
+    the complete caller, strength/direction, and subsequent collisions are not
+    consequences of these local executions; the retail payoff is a fixture. *)
+Theorem current_rank11_handstand_damage_boundary : Rank11HandstandDamageBoundary.
+Proof. exact rank11_handstand_damage_boundary_holds. Qed.
 
 (** Area 2 has an exact moving-quicksand support under the Act-6 star, but
     negative depth alone changes only Graphics and therefore cannot change

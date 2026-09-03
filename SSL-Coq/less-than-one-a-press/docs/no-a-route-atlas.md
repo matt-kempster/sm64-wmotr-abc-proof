@@ -1,6 +1,6 @@
 # No-A two-star route atlas
 
-> Status snapshot: 2026-09-02.  Rankings are intentionally revisable as linked
+> Status snapshot: 2026-09-03.  Rankings are intentionally revisable as linked
 > execution evidence or new counterexamples arrive.
 
 ## Purpose and scope
@@ -147,6 +147,10 @@ The detailed sections are organized as:
   hardware semantics before this project can decide them.
 - **Act 6 has the strongest downstream evidence:** trigger/spawn and
   pickup/save-bit replays both exist conditionally, but still need joining.
+- **Ordinary enemy damage has a confirmed lower-gate payoff:** an explicitly
+  relocated Goomba knocks Mario from the second pole onto the upper ring with
+  zero A, retaining the full handstand height; ordinary holding also works.
+  Clean enemy transport, not an action-table edit, is the missing setup.
 - **Act 3 is the main downstream gap:** the upper and lower itineraries are
   specified and source geometry is checked, but neither has a cut-starting
   linked replay.
@@ -182,7 +186,7 @@ The detailed sections are organized as:
 | 8 | Downstream collection | [Lower Act-3 100-coin-star/Grindel itinerary](#route-rank-8) | High conditional value; the recovered five-trial account and published run reach Act 3 after the sole second-pole press, while exact inputs currently stop at the Grindel base |
 | 9 | Downstream collection | [Upper Act-3 100-coin/star-dance itinerary](#route-rank-9) | Low-medium conditional continuation; no cut-starting replay |
 | 10 | Direct Area-2 gates | [Held-A jump-kick or B rollout from the upper elevator shaft](#route-rank-10) | Very low for the checked vertical routes; live collision closure remains |
-| 11 | Direct Area-2 gates | [Lower-aperture impulse, clip, or support switch](#route-rank-11) | Low; timed release retains 50 units but tested suffixes fail; mutation remains hypothetical |
+| 11 | Direct Area-2 gates | [Lower-aperture impulse, clip, or support switch](#route-rank-11) | Low for a clean route; staged ordinary enemy damage now crosses from both handstand and holding height, but enemy installation is missing |
 | 12 | Direct Area-2 gates | [Homing Amp or a moving collision owner](#route-rank-12) | Very low after the stock shock-composite closure; only a transported Goomba or a failed runtime-owner premise remains |
 | 12A | Direct Area-2 gates | [Reload, nonzero warp destination, or same-position support-selection change](#route-rank-12a) | Low; useful coverage branch, but no concrete clean witness |
 | 13 | State-first installation | [Raw-Object-only return or impulse writer](#route-rank-13) | Very low on the checked clean run; all 7,386 collision-position writes are faithful ordinary copies |
@@ -681,14 +685,14 @@ get over or through the elevator-shaft wall.
 
 ### Lower-aperture impulse, clip, or support switch
 
-**Overall rank: 11. Family priority: 2. Likelihood: low in the current model,
-but high conditional payoff under a correctly timed retail mutation.**
+**Overall rank: 11. Family priority: 2. Likelihood: low for a clean route,
+but ordinary enemy damage now has an observed conditional payoff.**
 
-**In plain language.** Leave the second pole without A and cross the floor-ring aperture using a collision clip, object shove, moving support, a change in which floor the game selects, or—if a future machine-level exploit can edit the game's tables—a properly initialized long jump triggered after the ordinary climb.
+**In plain language.** Leave the second pole without A and cross the opening using an enemy hit that preserves the handstand height, another object shove, a collision clip, or moving support. A separate hypothetical version would use a future table-editing exploit to trigger a proper long jump after the ordinary climb.
 
-**What is already known.** The proof now enumerates every direct action change in both versions' pole handlers and executes the A checks and the normal falling initializer; that initializer adds no height or speed. A new staged retail test finds a real timing wrinkle: pressing Z on the final handstand-return frame releases Mario 50 units higher, at Y 4070 instead of 4020. Both tested releases fall back to the pole base, but the old Y-4020 calculation cannot cover every exit; see the [ordinary-exit audit](notes/rank11-pole-exit-live-audit.md). The separate [hypothetical table edit](notes/hypothetical-pole-long-jump-mutation.md) still gives a promising calculated long jump if installed after the grab, or at an independently reached high contact. An early pole-handler edit replaces the grab, and editing only the knockback table does nothing at the handstand. The proof rules out table mutation in successful in-bounds runs; retail-machine corruption remains a separate hypothetical. No clean installer, complete live collision proof, or star continuation is established.
+**What is already known.** Ordinary enemy damage can preserve all 174 extra handstand units: a [staged Goomba test](notes/rank11-handstand-damage.md) leaves at Y 4194, crosses the opening, and lands on the upper ring without A. Controls at Y 4070 and ordinary holding height 4020 also succeed, so this payoff does not require the handstand or a table edit. The missing ingredient is getting the enemy there cleanly—the test explicitly moves it. The proof now executes the pole-to-air damage selection and shows that the normal damage initializer preserves position and speed. The earlier [timed Z release](notes/rank11-pole-exit-live-audit.md) retains 50 units but still falls back without an enemy. The separate [hypothetical long-jump edit](notes/hypothetical-pole-long-jump-mutation.md) remains outside the current in-bounds execution model. No clean setup, complete collision proof, or target-star continuation is established.
 
-**What closes it.** Follow a clean lower entry through the grab, animation, every release and every collision check, including the newly observed 50-unit timing advantage; then prove that every shove, clip, changing support and outside effect either stays short of the target side or supplies an exact usable crossing. The checked action list and initializer are pieces of that execution, not a replacement for it. The hypothetical edit separately needs a continuous retail-machine proof of the actual writes, their timing, the selected table entry, normal long-jump initialization, all twenty collision steps and the eventual star collection. Corruption outside the current memory model remains a separate extension, not an unexplained escape inside this proof.
+**What closes it.** First find a clean way to bring a real damaging enemy to the right side and height while Mario holds the pole, or prove that every such installation fails; the successful holding control means full handstand height is optional. Any success must connect the ordinary lower entry, contact, every movement and collision check, ring landing, and star collection in one run without staging writes. Other shoves, clips, changing supports and outside effects still need the same complete accounting. The hypothetical table edit separately needs a justified machine-level execution of its writes, timing, long-jump setup and star continuation; it is not needed for ordinary damage.
 
 [Back to the at-a-glance ranking](#at-a-glance-ranking)
 
@@ -699,7 +703,7 @@ but high conditional payoff under a correctly timed retail mutation.**
 **Overall rank: 12. Family priority: 3. Likelihood: very low after the stock
 Amp wall/support composite was closed.**
 
-**In plain language.** Use an actor that really exists in Area 2 to push, carry, shock, or reanchor Mario across a gate; the most plausible direct attempt is to lure a homing Amp to the second pole and have it knock Mario off without pressing A, while the remaining versions use a Grindel, moving wall, Spindel, or elevator as a changing support.
+**In plain language.** Test whether an Area-2 Amp's shock, a Grindel, a moving wall, Spindel, or the elevator can push, carry, or reposition Mario across a gate without A. The distinct ordinary-Goomba damage departure is now tracked under [Rank 11](#route-rank-11), where its payoff works but clean enemy transport is missing.
 
 **What is already known.** The exact US/JP roster contains two homing Amps and one circling Amp, but no cannon, shell source, Tweester, Heave-Ho, Chuckya, Fly Guy, or jumping box; the scripted moving owners are the known Grindels, Spindel, four walls, and elevator.  The proof grants perfect Amp installation at the pole, then checks the payoff: shock contains no push, zeroes all horizontal motion, and calls the ordinary air step, which applies gravity after four collision quarters.  Mario is stationary for only the first shocked frame, then falls at the fixed pole centre and lands on the static Y-`3200` base on update 21.  The aperture walls are 101–103 units from the centre against radius-`50` queries, all six stock moving-owner corridors miss the pole disc (the closest is the elevator, still 513 units away), and the 820-unit pole-to-floor gap makes the final platform update clear any cached support before the fall.  Thus the formerly open stationary-shock plus wall/platform composite is disproved in the finite stock source model; see the [Rank-12 object-impulse audit](notes/rank12-area2-object-impulse.md).
 
