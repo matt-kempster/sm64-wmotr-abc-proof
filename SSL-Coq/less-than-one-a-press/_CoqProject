@@ -414,6 +414,7 @@ proofs/EyerokRank29CycleClosure.v
 proofs/EyerokControllerManipulation.v
 proofs/EyerokControllerReachability.v
 proofs/Area2Rank12ObjectImpulse.v
+proofs/Area2Rank11GoombaInstaller.v
 proofs/ClightAllocationBounds.v
 proofs/Area1Rank18StateArrayBound.v
 proofs/Area1Rank18CopyRead.v

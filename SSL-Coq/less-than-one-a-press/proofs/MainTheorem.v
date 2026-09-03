@@ -21,7 +21,7 @@ From LessThanOneAPress.Proofs Require Import
   WritableActionTableClosure
   Area2LowerTargetCut Area2HypotheticalPoleLongJump
   Area2Rank11PoleExitSplit Area2Rank11LivePoleExit Area2Rank11FallingInitializer
-  Area2Rank11HandstandDamage
+  Area2Rank11HandstandDamage Area2Rank11GoombaInstaller
   Area2NegativeQuicksandStarHypothesis
   WritableActionTableAliasExternalClosure
   WritableActionTableWholeGameAliases
@@ -476,6 +476,20 @@ Qed.
     consequences of these local executions; the retail payoff is a fixture. *)
 Theorem current_rank11_handstand_damage_boundary : Rank11HandstandDamageBoundary.
 Proof. exact rank11_handstand_damage_boundary_holds. Qed.
+
+(** The useful damage payoff is now separated from its stock installer.  Both
+    selected programs contain six singleton regular Goombas and one regular
+    triplet (nine damaging actors after expansion).  A ring-level Goomba needs
+    one ordinary jump update to overlap holding Mario, but the reviewed finite
+    mesh receipt finds no route from any stock spawn through ordinary walking,
+    144-unit jump-floor snaps, or even 216-unit pair separation.  The only
+    low-tier vertical Grindel has no upper discharge floor and tops out far
+    below the ring.  This is the ordinary source-mesh boundary, not a linked
+    Clight execution theorem or a closure of H/F/R, stale/forged actors,
+    outside writers, OOB, DMA, or ACE. *)
+Theorem current_rank11_goomba_installer_boundary :
+  Area2Rank11OrdinaryGoombaInstallerBoundary.
+Proof. exact area2_rank11_ordinary_goomba_installer_boundary_holds. Qed.
 
 (** Area 2 has an exact moving-quicksand support under the Act-6 star, but
     negative depth alone changes only Graphics and therefore cannot change
