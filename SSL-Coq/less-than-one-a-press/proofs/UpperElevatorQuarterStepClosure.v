@@ -314,6 +314,29 @@ Definition ueq_nonwing_full_return_candidate_qsteps
   | UEBRollout => b_rollout_full_return_qsteps
   end.
 
+(** Horizontal launch pose is intentionally absent from the vertical update:
+    [perform_air_step] forms X, Y, and Z intended coordinates independently,
+    while this finite recurrence projects only the Y coordinate relative to
+    the elevator.  The four-face live sweep checks that ordinary wall contact
+    does not invalidate this projection at representative east, west, north,
+    and south launches. *)
+Record UpperElevatorHorizontalLaunchPose : Type := {
+  ueq_launch_x : float32;
+  ueq_launch_z : float32;
+  ueq_launch_yaw : Int.int
+}.
+
+Definition ueq_pose_vertical_projection
+    (_pose : UpperElevatorHorizontalLaunchPose)
+    (candidate : UpperElevatorNonwingCandidate) : list float32 :=
+  ueq_nonwing_full_return_candidate_qsteps candidate.
+
+Theorem horizontal_launch_pose_does_not_change_vertical_projection :
+  forall pose candidate,
+    ueq_pose_vertical_projection pose candidate =
+      ueq_nonwing_full_return_candidate_qsteps candidate.
+Proof. reflexivity. Qed.
+
 (** This is the pointwise form of the finite computation above: it applies to
     every one of the 72 modeled collision queries, rather than merely to each
     trajectory's maximum. *)
@@ -346,6 +369,18 @@ Proof.
     cbn [ueq_nonwing_full_return_candidate_qsteps] in Hquery.
   - exact (Hheld query Hquery).
   - exact (Hroll query Hquery).
+Qed.
+
+Theorem every_horizontal_launch_pose_remains_below_wall_cutoff :
+  forall pose candidate query,
+    In query (ueq_pose_vertical_projection pose candidate) ->
+    Float32.cmp Cle query ueq_f32_cutoff = true.
+Proof.
+  intros pose candidate query Hquery.
+  rewrite horizontal_launch_pose_does_not_change_vertical_projection
+    in Hquery.
+  exact (every_full_return_candidate_qstep_is_at_or_below_wall_cutoff
+    candidate query Hquery).
 Qed.
 
 Theorem every_candidate_scaled_transition_matches_float32 :
@@ -585,6 +620,9 @@ Definition UpperElevatorQuarterStepCheckedBoundary : Prop :=
   (forall candidate query,
     In query (ueq_nonwing_full_return_candidate_qsteps candidate) ->
     Float32.cmp Cle query ueq_f32_cutoff = true) /\
+  (forall pose candidate query,
+    In query (ueq_pose_vertical_projection pose candidate) ->
+    Float32.cmp Cle query ueq_f32_cutoff = true) /\
   (forallb ueq_float32_transition_exact
       (ueq_scaled_nonwing_transitions
         8 0 held_a_jump_kick_initial_vy) = true /\
@@ -618,6 +656,7 @@ Proof.
   split; [exact every_nonwing_candidate_qstep_is_at_or_below_wall_cutoff |].
   split;
     [exact every_full_return_candidate_qstep_is_at_or_below_wall_cutoff |].
+  split; [exact every_horizontal_launch_pose_remains_below_wall_cutoff |].
   split; [exact every_candidate_scaled_transition_matches_float32 |].
   split.
   - exact (proj2 wing_endpoint_228_does_not_bound_every_qstep).

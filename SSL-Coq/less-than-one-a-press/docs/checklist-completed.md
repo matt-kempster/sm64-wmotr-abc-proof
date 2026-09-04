@@ -1602,6 +1602,23 @@ Completed work is grouped by subject. Each item retains its original scope warni
   Wing, identity, descent, and floor-owner failures.  This is a finite JP
   receipt, not held-A/US/universal controller-history closure.
 
+- [x] Execute live held-A and internal-query coverage for Rank 10.  The
+  accepted Area-1 disappearance checkpoint reproduces the same Area-2 start;
+  holding A before the transition and pressing B on the elevator produces a
+  real jump kick with no Area-2 A edge.  All 64 jump-kick quarter steps and all
+  84 B-rollout quarter steps execute the exact `wall, wall, floor, ceiling`
+  query sequence with zero phase, receiver, step-argument, or result-accounting
+  failures.  Every live intended Y matches the checked envelope (maxima `135`
+  and `227.5`), every floor and non-null wall is elevator-owned, and every
+  ceiling is static.  Four representative east/west/north/south launches select four
+  distinct correctly oriented walls owned by the same elevator, remain over
+  that elevator floor and inside the cage, and peak at relative Y `128`.
+  `UpperElevatorQueryResolution.v` resolves the real air-step, wrapper, and
+  surface-query bodies in both selected US and JP programs and checks their
+  unconditional call prefixes; `UpperElevatorLiveTraceReceipt.v` packages the
+  finite JP counts and four-face receipt.  This closes those concrete ordinary
+  schedules, not every continuous horizontal launch pose or a corruption path.
+
 - [x] Authenticate the US/JP lower ring triangles `1414..1421`, aperture
   walls `1534..1541`, selected vertex/side/Y receipts, and mesh maximum Y;
   define four conservative closed binary32 target boxes excluding the pole

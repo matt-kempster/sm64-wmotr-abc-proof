@@ -950,13 +950,21 @@ already held, punching can select `ACT_JUMP_KICK` after B without a new A
   receiver/route connection.  A hypothetical Wing installed after reset has
   only two above-cutoff queries, `234` and `232`, before returning to `230` and
   `228`; that is a wall-selection opportunity, not a crossing witness.  The
-  `UpperElevatorLiveTraceReceipt.v` now packages one uninterrupted original-JP
-  zero-A execution: the 17-sample descent selects the unique live elevator,
-  the B speed-kick dive lands, the B rollout selects that elevator's east wall
-  and stops at X `411`, all 20 rollout endpoints remain inside with a relative
-  peak of `220`, and Mario returns to the elevator with no Wing.  That closes
-  one concrete B-only trajectory, while held-A, US, alternate controller
-  histories, and every internal query-program-point projection remain open.
+  `UpperElevatorLiveTraceReceipt.v` packages the uninterrupted original-JP
+  zero-A descent and B-only execution, plus the held-A/four-face receipts.  The
+  held-A jump kick accounts for all 64 quarter steps and the rollout all 84;
+  every step performs exactly two wall, one floor, and one ceiling query, with
+  no phase, receiver, argument, vertical-envelope, surface-owner, or
+  result-accounting failure.  The live query maxima exactly reproduce `135`
+  and `227.5`; every floor and non-null wall is elevator-owned and every
+  ceiling is static.  East, west,
+  north, and south launches each hit the matching elevator wall, remain inside,
+  and peak at relative Y `128`.  `UpperElevatorQueryResolution.v` resolves the
+  seven actual air-step/wrapper/query bodies in both selected US and JP Clight
+  programs and checks their unconditional wall–wall–floor–ceiling prefix.
+  Those concrete schedules are closed; continuously varying launch poses, a
+  separate US machine receipt, and alternate clip/support/writer histories
+  remain open.
   The lower route remains open beyond
 the existing normalized soft-bonk subcase.  See
 [`docs/notes/ordinary-motion.md`](docs/notes/ordinary-motion.md).
@@ -2238,9 +2246,10 @@ clightgen -normalize -nostdinc -fstruct-passing \
   number, but completeness of that observation stream is itself part of the
   missing concrete refinement.
 - Ordinary motion has not been globally excluded.  The checked jump-kick and
-  rollout arithmetic and one JP B-only live receipt form a non-Wing
-  upper-elevator subkernel, not a universal action
-  inventory or collision-execution theorem.  `GameState` does not yet project
+  rollout arithmetic, complete JP held-A/rollout quarter-step receipts,
+  selected US/JP query chains, and JP four-face held-A sweep form a non-Wing
+  upper-elevator subkernel, not a universal action or continuous-pose
+  inventory.  `GameState` does not yet project
   Mario's flags or cap timer; a Wing-Cap arithmetic countermodel demonstrates
   that the normal `220` bound is not cap-independent, although its `228`
   result remains below the corrected `231` vertical threshold.  Retail cap

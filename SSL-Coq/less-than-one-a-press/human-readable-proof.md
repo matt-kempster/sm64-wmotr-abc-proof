@@ -1477,6 +1477,36 @@ Wing-Cap arithmetic below, as the closed theorem
 `current_ordinary_motion_evidence_boundary`; that theorem is not a retail
 containment theorem.
 
+The remaining named schedules have now also been executed at the internal
+query boundary.  In the JP held-A run, B changes the already-held-A walking
+state into a real jump kick without an Area-2 A edge.  The debugger observes
+the synthetic held state from the final Area-1 disappearance frame, so this
+run checks Area-2 mechanics but is not itself an end-to-end zero-edge witness.
+It observes
+all 64 quarter steps, and each one enters two wall queries, one floor query,
+and one ceiling query in exactly that order; 61 steps are clear, two hit the
+elevator wall, and the final step lands.  The B rollout independently accounts
+for all 84 quarter steps with the same per-step query order.  There are no
+missing phases, wrong Mario receivers, nonzero step arguments, or unclassified
+return values.  Every intended Y is checked against the formal relative-height
+recurrence, producing zero mismatches and exact live maxima `135` and `227.5`;
+every returned floor and non-null wall is owned by the elevator and every
+returned ceiling is static.  East, west, north, and south launch samples each hit the
+matching live elevator face, stay in the cage, and reach the same relative
+height `128`.
+
+The US side is not inferred from those JP addresses.  Instead,
+`UpperElevatorQueryResolution.v` resolves the seven actual air-step, wrapper,
+and surface-query function bodies in each selected US/JP Clight program.  It
+checks that both quarter-step bodies reach wall, wall, floor, and ceiling
+before their first control split, that both wall wrappers reach the real wall
+query, and that both ceiling wrappers reach the real ceiling query.  Horizontal
+X/Z position and yaw are absent from the exact vertical recurrence, so changing
+pose cannot enlarge that vertical envelope; the live four-face sweep separately
+checks representative collision responses.  This is stronger than an
+end-of-frame pointer sample, but it is still not a proof that four samples
+exhaust every continuously varying launch pose.
+
 Cap state is a necessary engineering precondition, not decorative state.
 The stock upper entrance is Area-1 warp node `0x1E`, whose LevelScript route
 targets Area 2 node `0x14`.  Because this is a same-level area change rather
@@ -1504,11 +1534,13 @@ window therefore helps only if live X/Z, transformed elevator ownership,
 surface-list selection, and the wall response all line up; it is not itself a
 bypass.
 
-This is not yet an unconditional elevator-containment proof.  It still needs
-linked Clight execution of the action and gravity paths, live transformed-wall
-ownership and list selection, bounds for every intermediate collision query,
-normal collision rather than a clip/tunnel, the stock route/reset-to-live-
-receiver connection, and closure of the reachable upper-entry action states.
+This is not yet an unconditional elevator-containment proof.  The selected
+Clight bodies and the complete tested JP query sequences are now linked, but a
+universal result still needs every continuously reachable launch pose, live
+transformed-wall/list choice, clip/tunnel alternative, support switch,
+action/identity writer, and stock route/reset-to-live-receiver connection.
+An independent live US machine receipt is needed only if the selected-source
+resolution is not accepted as sufficient version coverage.
 The lower route is less complete: Z can leave the second pole through
 `ACT_SOFT_BONK`, so A is not literally the only pole exit.  The existing
 normalized pole arithmetic blocks that restricted Z-exit model, but does not

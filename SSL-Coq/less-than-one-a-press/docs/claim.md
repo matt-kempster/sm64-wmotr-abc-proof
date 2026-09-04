@@ -844,9 +844,17 @@ or frame.  See [CompCert execution scope](compcert-execution-scope.md).
   Y 221, and lands back on the elevator with no A input or Wing state.  The
   Float32 proof now extends the rising checks to conservative 64/84-quarter
   full-return envelopes, exposing the later but still-safe maxima 135 and
-  227.5.  This closes that exact schedule, not held-A, US,
-  alternate histories, or the program-point projection of every internal
-  collision query.  Version-indexed downstream suffix
+  227.5.  A held-A JP replay now accounts for all 64 quarter steps and a B
+  rollout accounts for all 84: each has exactly two wall, one floor, and one
+  ceiling query, with no missing phase, wrong receiver, or unknown result.
+  Every intended Y matches the checked envelope, every floor and non-null wall
+  is elevator-owned, and every ceiling is static.
+  East, west, north, and south held-A launches each hit the corresponding live
+  elevator face, stay inside, and peak at relative Y 128.  The selected US and
+  JP Clight targets resolve the same exact air-step, wrapper, and query bodies
+  and their unconditional wall–wall–floor–ceiling prefix.  This closes those
+  concrete schedules, not every continuous launch pose, an independent US
+  machine replay, or alternate clip/support/writer histories.  Version-indexed downstream suffix
   schemas separate gate reachability from Act-3, all-five-trigger, and Act-6
   capability.  No such US/JP cut-starting suffix is inhabited; the conditional
   JP trigger and pickup observations remain separate injected receipts.  The

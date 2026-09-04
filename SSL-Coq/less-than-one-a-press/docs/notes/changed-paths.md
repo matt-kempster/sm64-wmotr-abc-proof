@@ -532,7 +532,6 @@ remain open.  The following paths changed:
 - `SSL-Coq/less-than-one-a-press/docs/notes/ordinary-area1-entry-memory.md`
 - `SSL-Coq/less-than-one-a-press/docs/notes/clean-jp-graphics-gap-source-audit.md`
 - `SSL-Coq/less-than-one-a-press/docs/notes/changed-paths.md`
-- `SSL-Coq/less-than-one-a-press/notes/source-map.md`
 
 ## Rank-4 warp/top relocation and clone tranche
 
@@ -2121,5 +2120,44 @@ remain open.  The following paths changed:
 - `SSL-Coq/less-than-one-a-press/docs/no-a-route-atlas.md`
 - `SSL-Coq/less-than-one-a-press/docs/checklist.md`
 - `SSL-Coq/less-than-one-a-press/docs/claim.md`
+- `SSL-Coq/less-than-one-a-press/docs/notes/area2-elevator-cut.md`
+- `SSL-Coq/less-than-one-a-press/docs/notes/changed-paths.md`
+
+## Rank-10 held-A, four-face, and internal-query tranche
+
+The accepted Area-1 disappearance checkpoint now supports short, unpatched JP
+replays of the upper-elevator actions.  A held-A plus B launch executes a real
+jump kick without an Area-2 A edge; all 64 quarter steps have exactly two wall,
+one floor, and one ceiling query.  The B rollout independently accounts for all
+84 quarter steps.  Four east/west/north/south launches select distinct live
+elevator walls, stay inside and over the elevator floor, and peak at relative
+Y 128.  A new selected-program theorem resolves the seven exact air-step,
+wrapper, and surface-query bodies for US and JP and checks the unconditional
+query prefix in both.  The query receipt also reports zero vertical-envelope,
+floor-owner, non-null-wall-owner, and static-ceiling mismatches, with live
+query maxima exactly `135` and `227.5`.  The tranche closes those concrete schedules but leaves
+continuous-pose exhaustiveness and alternate clip/support/writer histories
+open.  The following paths changed:
+
+- `SSL-Coq/less-than-one-a-press/proofs/UpperElevatorQueryResolution.v` (new)
+- `SSL-Coq/less-than-one-a-press/proofs/UpperElevatorQuarterStepClosure.v`
+- `SSL-Coq/less-than-one-a-press/proofs/UpperElevatorLiveTraceReceipt.v`
+- `SSL-Coq/less-than-one-a-press/proofs/MainTheorem.v`
+- `SSL-Coq/less-than-one-a-press/_CoqProject`
+- `SSL-Coq/less-than-one-a-press/Makefile`
+- `SSL-Coq/less-than-one-a-press/instrumentation/jp-rank10-upper-elevator/README.md`
+- `SSL-Coq/less-than-one-a-press/instrumentation/jp-rank10-upper-elevator/expected-held-face-summary.txt` (new)
+- `SSL-Coq/less-than-one-a-press/instrumentation/jp-rank10-upper-elevator/expected-query-summary.txt` (new)
+- `SSL-Coq/less-than-one-a-press/instrumentation/jp-rank10-upper-elevator/jp_rank10_upper_elevator_probe.c`
+- `SSL-Coq/less-than-one-a-press/instrumentation/jp-rank10-upper-elevator/make-checkpoint.sh` (new)
+- `SSL-Coq/less-than-one-a-press/instrumentation/jp-rank10-upper-elevator/run-held-face-sweep.sh` (new)
+- `SSL-Coq/less-than-one-a-press/instrumentation/jp-rank10-upper-elevator/run-query-traces.sh` (new)
+- `SSL-Coq/less-than-one-a-press/instrumentation/jp-rank10-upper-elevator/run.sh`
+- `SSL-Coq/less-than-one-a-press/README.md`
+- `SSL-Coq/less-than-one-a-press/human-readable-proof.md`
+- `SSL-Coq/less-than-one-a-press/docs/checklist-completed.md`
+- `SSL-Coq/less-than-one-a-press/docs/checklist.md`
+- `SSL-Coq/less-than-one-a-press/docs/claim.md`
+- `SSL-Coq/less-than-one-a-press/docs/no-a-route-atlas.md`
 - `SSL-Coq/less-than-one-a-press/docs/notes/area2-elevator-cut.md`
 - `SSL-Coq/less-than-one-a-press/docs/notes/changed-paths.md`

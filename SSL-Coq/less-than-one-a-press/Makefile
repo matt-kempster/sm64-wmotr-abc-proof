@@ -613,13 +613,28 @@ check: proofs
 	  every_full_return_candidate_qstep_is_at_or_below_wall_cutoff
 	bash pipeline/assumptions.sh \
 	  LessThanOneAPress.Proofs.UpperElevatorQuarterStepClosure \
+	  every_horizontal_launch_pose_remains_below_wall_cutoff
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.UpperElevatorQuarterStepClosure \
 	  retained_wing_cap_has_a_234_unit_transient_query
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.UpperElevatorQueryResolution \
+	  upper_elevator_selected_query_boundary_checked
 	bash pipeline/assumptions.sh \
 	  LessThanOneAPress.Proofs.UpperElevatorLiveTraceReceipt \
 	  jp_rank10_b_only_live_receipt_checked
 	bash pipeline/assumptions.sh \
 	  LessThanOneAPress.Proofs.UpperElevatorLiveTraceReceipt \
 	  jp_rank10_b_only_live_and_vertical_boundary_checked
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.UpperElevatorLiveTraceReceipt \
+	  jp_rank10_held_a_four_face_receipt_checked
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.UpperElevatorLiveTraceReceipt \
+	  jp_rank10_internal_query_receipt_checked
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.UpperElevatorLiveTraceReceipt \
+	  jp_rank10_live_query_and_pose_boundary_checked
 	bash pipeline/assumptions.sh \
 	  LessThanOneAPress.Proofs.UpperElevatorWingCapTransitionClosure \
 	  upper_entry_transition_source_checked

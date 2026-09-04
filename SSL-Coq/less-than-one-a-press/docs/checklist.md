@@ -856,9 +856,9 @@ These obligations materially strengthen the proof but are not the shortest route
 - [ ] Instantiate the ordinary safe envelope for each clean US/JP entrance
   from linked Clight action execution and live collision surfaces.  Prove
   controller-memory alignment, the stock cap-reset-to-live-receiver link,
-  reachable action closure, the upper no-spin entry descent and intended-floor
-  landing, every intermediate floor/wall/ceiling query, and collision
-  observation alignment.  `UpperElevatorQuarterStepClosure.v` now checks the 32 held-A
+  reachable action closure, and collision-observation alignment for every
+  continuously reachable launch rather than only the tested schedules.
+  `UpperElevatorQuarterStepClosure.v` now checks the 32 held-A
   jump-kick and 40 B-rollout rising binary32 quarter-steps and conservative
   64/84-quarter full-return envelopes, whose later maxima are `135` and
   `227.5`, still below the strict `231` cutoff, and enumerates the six literal
@@ -868,11 +868,16 @@ These obligations materially strengthen the proof but are not the shortest route
   has only two above-cutoff queries, `234` and `232`, before falling below at
   `230`.  Still link the decoded route and reset writes to the same live Mario
   receiver, and classify any post-reset cap writer.  The new authenticated JP
-  receipt executes one zero-A descent, identifies the live elevator as every
-  selected floor owner, lands a B speed-kick dive, observes the rollout hit
-  that elevator's east wall at X `411`, and returns to its floor with no Wing;
-  held-A, US, alternate launch histories, and every internal query program
-  point remain open.  The finite calculations and normalized Z soft-bonk
+  receipts execute the zero-A descent, identify the live elevator as every
+  selected floor owner, and cover both the B rollout and a held-A jump kick.
+  All 84 rollout and 64 jump-kick quarter steps contain exactly two wall, one
+  floor, and one ceiling query; four cardinal held-A poses hit four distinct
+  elevator walls below the cutoff.  Their intended Y values exactly reproduce
+  the formal maxima `227.5` and `135`, every floor and non-null wall is
+  elevator-owned, and every ceiling is static.  The selected US/JP target resolves all
+  seven actual air-step/wrapper/query bodies and their unconditional call
+  prefix.  Every continuous X/Z/yaw history, a separate live US machine run,
+  and clip/support/writer alternatives remain open.  The finite calculations and normalized Z soft-bonk
   subcase are not yet a universal collision-phase theorem.
   For the Ink branch, replace
   the predicate-sensitive `Area1InkWriterCoverageObligation` schema with a

@@ -9,13 +9,16 @@ upper rim, fixed entry chamber walls, and the static floor surrounding the
 shaft by their exact triangle ordinals.  It checks those triangles against
 the generated US and JP Clight global initializers.
 
-This is not yet a retail proof that Mario cannot leave the elevator without a
-new A edge.  The checked result is the finite mesh/arithmetic kernel, a
-conditional first-crossing theorem, and one authenticated original-JP B-only
-execution.  That execution now supplies the live descent, floor owner,
-elevator landing, rollout action, selected east wall, and return landing for
-one controller schedule; universal collision-call and writer coverage remain
-explicit obligations.
+This is not yet a universal retail proof that Mario cannot leave the elevator
+without a new A edge.  The checked result now includes the finite
+mesh/arithmetic kernel, a conditional first-crossing theorem, complete
+internal-query receipts for one JP held-A jump kick and one JP B rollout, and a
+four-face held-A sweep.  All 148 tested quarter steps have the exact two-wall,
+one-floor, one-ceiling query sequence; the selected US and JP source programs
+resolve the same real query bodies.  Every live intended Y agrees with the
+proved envelope, every floor and non-null wall has the elevator owner, and
+every ceiling is static.  Continuous-pose exhaustiveness and the
+remaining writer/clip/support alternatives stay explicit obligations.
 
 ## Exact surface inventory
 
@@ -120,6 +123,14 @@ The fully checked subkernel now contains:
   queries; the rising maxima `134` and `224.5` become the later full-return
   maxima `135` and `227.5`, still below `231`;
 - a generated-source return split limited to codes `0,1,2,3,4,6`;
+- selected-program resolution of the real US/JP air-step, wall-wrapper,
+  ceiling-wrapper, wall-query, floor-query, and ceiling-query bodies, including
+  their unconditional `wall, wall, floor, ceiling` prefix;
+- a JP held-A receipt covering all 64 full-return quarter steps and a JP
+  B-rollout receipt covering all 84, with no missing sequence, wrong receiver,
+  nonzero step argument, vertical projection, surface-owner, or unknown-result
+  failure; four cardinal held-A poses each
+  hit the matching live elevator face and peak at relative Y `128`;
 - a checked Area-1-node-`0x1E` to Area-2-node-`0x14` call chain through
   `warp_area`, `init_mario_after_warp`, `init_mario`, and the initial-cap
   helper, proving that the stock transition resets Wing and that SSL course 8
@@ -204,32 +215,46 @@ floor-owner mismatches, zero A inputs, and zero Wing frames.
 
 `proofs/UpperElevatorLiveTraceReceipt.v` packages those exact facts and pairs
 them with the full-return Float32 envelope.  This closes the concrete B-only
-trajectory's ordinary vertical/wall version.  It remains a finite retail
-machine receipt rather than an IDO-to-Clight simulation or a theorem over all
-controller histories, and the sampled MarioState wall/floor fields do not
-enumerate every internal query program point.
+trajectory's ordinary vertical/wall version.
+
+The held-A replay arms A at the accepted Area-1 disappearance boundary and
+therefore has no Area-2 A edge.  Its east launch executes exactly 64 quarter
+steps: 61 return clear, two hit the elevator wall, and one lands.  Each step
+executes two wall queries, one floor query, and one ceiling query in that order,
+and every selected floor is owned by the same elevator.  The B rollout
+independently executes 84 complete sequences: three clear, 80 wall-hit, and one
+landing result.  Its 168 wall, 84 floor, and 84 ceiling calls are all accounted
+for.  Their query-relative maxima are exactly `135` and `227.5`, matching the
+Coq envelopes, with zero floor-owner, non-null-wall-owner, or static-ceiling
+mismatch.
+
+Checkpoint replays toward the four cardinal faces select four distinct live
+walls with normals `(-1,0,0)`, `(1,0,0)`, `(0,0,-1)`, and `(0,0,1)`.
+Every jump kick remains inside the cage, has 15 elevator-floor frames and one
+elevator-wall frame, and reaches relative Y `128`; no launch creates the
+needed vertical miss.  `UpperElevatorQueryResolution.v` separately proves
+that the exact queried bodies and call prefix resolve in both selected US and
+JP Clight programs.  These remain finite JP machine receipts rather than an
+IDO-to-Clight simulation or a theorem over every continuous controller pose.
 
 ## Remaining retail obligations
 
 The following are still open and prevent an unconditional elevator-gate
 claim:
 
-1. generalize the observed JP dynamic surface identity to every relevant
-   launch and to US, including allocation epoch and list insertion;
-2. project every internal wall, floor, and ceiling call in the held-A and
-   genuinely distinct B-only schedules, rather than relying only on the
-   observed end-of-frame selected pointers;
+1. generalize the observed four JP wall classes to every continuously
+   reachable X/Z/yaw launch, including allocation epoch and list insertion;
+2. add an independent live US machine receipt if selected-source resolution is
+   not accepted as sufficient US coverage;
 3. prove the elevator pose and translated moving-cell-to-sweep relation at
    every relevant frame;
-4. execute all remaining floor, wall, and ceiling queries and prove the intended base,
-   inner-wall, rim, or surrounding-floor selection;
-5. construct the first moving-relative source-to-target crossing before either target
+4. construct the first moving-relative source-to-target crossing before either target
    collision, including paths which skip a normal rim landing, and resolve
    the closed Y=5222 chamber/surrounding-floor edge with the real surface-list
    tie behavior;
-6. discharge each of the seven no-A writer/domain exclusions for all clean
+5. discharge each of the seven no-A writer/domain exclusions for all clean
    US and JP executions; and
-7. separately validate downstream continuation from the target side to the
+6. separately validate downstream continuation from the target side to the
    Act 3 interaction region and all five Act 6 triggers.
 
 An additional named obligation requires every actual projected target-event

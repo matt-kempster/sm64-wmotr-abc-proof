@@ -1,0 +1,12 @@
+RANK10_POSE,timer=2863,pose=east,launch=(250,256),direction=(1,0)
+RANK10_FIRST_JUMP_WALL,timer=2989,wall=801a2c50,owner=8033ebd8,type=118,lowerY=3641,upperY=3907,v1=(461,3902,-204),v2=(461,3646,717),v3=(461,3902,717),normal=(-1,0,0)
+RANK10_HELD_RESULT,pose=east,armTimer=2809,inputTimer=2980,jumpKickTimer=2981,jumpKickFrames=15,jumpKickMaxRelativeY=128,jumpKickMaxX=411,jumpKickMaxOutward=411,jumpKickWallFrames=1,jumpKickElevatorWallFrames=1,jumpKickFloorOwnerFrames=15,jumpKickOutsideInnerCenterFrames=0,firstJumpKickWall=801a2c50
+RANK10_POSE,timer=2863,pose=west,launch=(-250,256),direction=(-1,0)
+RANK10_FIRST_JUMP_WALL,timer=2987,wall=801a3070,owner=8033ebd8,type=118,lowerY=3661,upperY=3927,v1=(-460,3922,717),v2=(-460,3666,-204),v3=(-460,3922,-204),normal=(1,0,0)
+RANK10_HELD_RESULT,pose=west,armTimer=2809,inputTimer=2978,jumpKickTimer=2979,jumpKickFrames=15,jumpKickMaxRelativeY=128,jumpKickMaxX=-202.918518,jumpKickMaxOutward=410,jumpKickWallFrames=1,jumpKickElevatorWallFrames=1,jumpKickFloorOwnerFrames=15,jumpKickOutsideInnerCenterFrames=0,firstJumpKickWall=801a3070
+RANK10_POSE,timer=2863,pose=north,launch=(0,506),direction=(0,1)
+RANK10_FIRST_JUMP_WALL,timer=2975,wall=801a2fb0,owner=8033ebd8,type=118,lowerY=3781,upperY=4047,v1=(461,4042,717),v2=(-460,3786,717),v3=(-460,4042,717),normal=(0,0,-1)
+RANK10_HELD_RESULT,pose=north,armTimer=2809,inputTimer=2966,jumpKickTimer=2967,jumpKickFrames=15,jumpKickMaxRelativeY=128,jumpKickMaxX=0.54082644,jumpKickMaxOutward=411,jumpKickWallFrames=1,jumpKickElevatorWallFrames=1,jumpKickFloorOwnerFrames=15,jumpKickOutsideInnerCenterFrames=0,firstJumpKickWall=801a2fb0
+RANK10_POSE,timer=2863,pose=south,launch=(0,6),direction=(0,-1)
+RANK10_FIRST_JUMP_WALL,timer=2975,wall=801a2fe0,owner=8033ebd8,type=118,lowerY=3781,upperY=4047,v1=(-460,4042,-204),v2=(461,3786,-204),v3=(461,4042,-204),normal=(0,0,1)
+RANK10_HELD_RESULT,pose=south,armTimer=2809,inputTimer=2966,jumpKickTimer=2967,jumpKickFrames=15,jumpKickMaxRelativeY=128,jumpKickMaxX=0,jumpKickMaxOutward=410,jumpKickWallFrames=1,jumpKickElevatorWallFrames=1,jumpKickFloorOwnerFrames=15,jumpKickOutsideInnerCenterFrames=0,firstJumpKickWall=801a2fe0

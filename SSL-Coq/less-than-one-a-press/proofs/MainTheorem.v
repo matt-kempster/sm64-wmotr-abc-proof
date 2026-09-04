@@ -783,6 +783,21 @@ Proof.
   exact jp_rank10_b_only_live_and_vertical_boundary_checked.
 Qed.
 
+(** Rank 10's remaining finite coverage is now connected at three levels.
+    The JP retail receipts cover held-A on all four inner faces and every
+    quarter-step query in both the held-A and B-rollout runs.  The selected US
+    and JP Clight programs resolve the exact air-step, wrapper, and surface
+    query bodies, whose unconditional prefix is wall, wall, floor, ceiling.
+    Horizontal launch pose cannot change the proved vertical projection.
+    This closes the ordinary four-face candidates represented by the live
+    sweep; it does not assert that four samples exhaust every continuous X/Z
+    launch or supply a route after an out-of-model memory mutation. *)
+Theorem current_rank10_live_query_and_pose_boundary :
+  JPRank10LiveQueryAndPoseBoundary.
+Proof.
+  exact jp_rank10_live_query_and_pose_boundary_checked.
+Qed.
+
 (* The transcript's regular-Goomba observation is a real but bounded,
    conditional state-machine primitive.  The idealized Z-valued H/F/R model
    adds 21 per cycle; binary32 proves the 25 + (-4) velocity update and the

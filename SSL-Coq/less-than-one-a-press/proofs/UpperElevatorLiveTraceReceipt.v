@@ -14,7 +14,7 @@
 From Coq Require Import Lia List ZArith.
 From compcert Require Import Floats Integers.
 From LessThanOneAPress.Proofs Require Import
-  UpperElevatorQuarterStepClosure.
+  UpperElevatorQuarterStepClosure UpperElevatorQueryResolution.
 
 Import ListNotations.
 Local Open Scope Z_scope.
@@ -190,4 +190,237 @@ Proof.
   - intros query Hquery.
     exact (every_full_return_candidate_qstep_is_at_or_below_wall_cutoff
       UEBRollout query Hquery).
+Qed.
+
+(** * Held-A launch and four-face receipts
+
+    A checkpoint is taken at the accepted Area-1 disappearance boundary and
+    replayed without changing N64 memory.  A is already down before Area 2,
+    so Area 2 observes no A edge.  Modes 2--5 select one representative launch
+    toward each inner face.  Every run enters jump kick through B while A is
+    held, reaches the live elevator wall, remains over the elevator floor, and
+    returns with the same 128-unit relative-height maximum. *)
+
+Definition jp_rank10_held_face_wall_pointers : list Z :=
+  [2149198928; 2149199984; 2149199792; 2149199840].
+Definition jp_rank10_held_face_wall_owners : list Z :=
+  [jp_rank10_elevator_object; jp_rank10_elevator_object;
+   jp_rank10_elevator_object; jp_rank10_elevator_object].
+Definition jp_rank10_held_face_input_timers : list Z :=
+  [2980; 2978; 2966; 2966].
+Definition jp_rank10_held_face_jump_timers : list Z :=
+  [2981; 2979; 2967; 2967].
+Definition jp_rank10_held_face_max_relative_y : list Z := [128; 128; 128; 128].
+Definition jp_rank10_held_face_max_outward : list Z := [411; 410; 411; 410].
+Definition jp_rank10_held_face_wall_frames : list Z := [1; 1; 1; 1].
+Definition jp_rank10_held_face_floor_frames : list Z := [15; 15; 15; 15].
+Definition jp_rank10_held_face_outside_frames : list Z := [0; 0; 0; 0].
+Definition jp_rank10_held_face_normals_xz : list (Z * Z) :=
+  [(-1, 0); (1, 0); (0, -1); (0, 1)].
+
+Record JPRank10HeldAFourFaceReceipt : Prop := {
+  jp_rank10_held_receipt_four_distinct_faces :
+    length jp_rank10_held_face_wall_pointers = 4%nat /\
+    NoDup jp_rank10_held_face_wall_pointers;
+  jp_rank10_held_receipt_live_elevator_owns_each_wall :
+    Forall (fun owner => owner = jp_rank10_elevator_object)
+      jp_rank10_held_face_wall_owners;
+  jp_rank10_held_receipt_each_pose_enters_one_kick :
+    length jp_rank10_held_face_input_timers = 4%nat /\
+    length jp_rank10_held_face_jump_timers = 4%nat /\
+    Forall2 (fun input kick => kick = input + 1)
+      jp_rank10_held_face_input_timers jp_rank10_held_face_jump_timers;
+  jp_rank10_held_receipt_same_vertical_envelope :
+    Forall (fun height => height = 128)
+      jp_rank10_held_face_max_relative_y;
+  jp_rank10_held_receipt_reaches_each_cardinal_wall :
+    jp_rank10_held_face_normals_xz =
+      [(-1, 0); (1, 0); (0, -1); (0, 1)] /\
+    Forall (fun outward => 410 <= outward <= 411)
+      jp_rank10_held_face_max_outward;
+  jp_rank10_held_receipt_wall_floor_and_cell :
+    Forall (fun frames => frames = 1) jp_rank10_held_face_wall_frames /\
+    Forall (fun frames => frames = 15) jp_rank10_held_face_floor_frames /\
+    Forall (fun frames => frames = 0) jp_rank10_held_face_outside_frames
+}.
+
+Theorem jp_rank10_held_a_four_face_receipt_checked :
+  JPRank10HeldAFourFaceReceipt.
+Proof.
+  unfold jp_rank10_held_face_wall_pointers,
+    jp_rank10_held_face_wall_owners, jp_rank10_held_face_input_timers,
+    jp_rank10_held_face_jump_timers, jp_rank10_held_face_max_relative_y,
+    jp_rank10_held_face_max_outward, jp_rank10_held_face_wall_frames,
+    jp_rank10_held_face_floor_frames, jp_rank10_held_face_outside_frames,
+    jp_rank10_held_face_normals_xz, jp_rank10_elevator_object.
+  constructor.
+  - split; [reflexivity |].
+    repeat constructor; cbn; intuition congruence.
+  - repeat constructor; reflexivity.
+  - repeat split; try reflexivity.
+    repeat constructor; lia.
+  - repeat constructor; reflexivity.
+  - split; [reflexivity |].
+    repeat constructor; lia.
+  - repeat split; repeat constructor; reflexivity.
+Qed.
+
+(** * Exact internal-query receipts
+
+    Execute breakpoints at the JP retail quarter-step entry, all four query
+    callees, all four post-call stores, and the common return establish one
+    complete [wall, wall, floor, ceiling] sequence per quarter-step.  The
+    observer also checks every intended Y against the same half-unit recurrence
+    used above, requires each floor and non-null wall to belong to the live
+    elevator, and requires every ceiling to be static. *)
+
+Definition jp_rank10_held_query_steps : nat := 64.
+Definition jp_rank10_held_complete_query_steps : nat := 64.
+Definition jp_rank10_held_wall_query_calls : nat := 128.
+Definition jp_rank10_held_floor_query_calls : nat := 64.
+Definition jp_rank10_held_ceil_query_calls : nat := 64.
+Definition jp_rank10_held_sequence_failures : nat := 0.
+Definition jp_rank10_held_phase_failures : nat := 0.
+Definition jp_rank10_held_wrong_mario : nat := 0.
+Definition jp_rank10_held_nonzero_step_args : nat := 0.
+Definition jp_rank10_held_vertical_mismatches : nat := 0.
+Definition jp_rank10_held_floor_owner_mismatches : nat := 0.
+Definition jp_rank10_held_wall_owner_mismatches : nat := 0.
+Definition jp_rank10_held_ceil_owner_mismatches : nat := 0.
+Definition jp_rank10_held_max_relative_half : Z := 270.
+Definition jp_rank10_held_query_results : list nat :=
+  [61%nat; 1%nat; 2%nat; 0%nat; 0%nat; 0%nat; 0%nat].
+Definition jp_rank10_held_other_results : nat := 0.
+Definition jp_rank10_held_active_at_close : nat := 0.
+
+Definition jp_rank10_rollout_query_steps : nat := 84.
+Definition jp_rank10_rollout_complete_query_steps : nat := 84.
+Definition jp_rank10_rollout_wall_query_calls : nat := 168.
+Definition jp_rank10_rollout_floor_query_calls : nat := 84.
+Definition jp_rank10_rollout_ceil_query_calls : nat := 84.
+Definition jp_rank10_rollout_sequence_failures : nat := 0.
+Definition jp_rank10_rollout_phase_failures : nat := 0.
+Definition jp_rank10_rollout_wrong_mario : nat := 0.
+Definition jp_rank10_rollout_nonzero_step_args : nat := 0.
+Definition jp_rank10_rollout_vertical_mismatches : nat := 0.
+Definition jp_rank10_rollout_floor_owner_mismatches : nat := 0.
+Definition jp_rank10_rollout_wall_owner_mismatches : nat := 0.
+Definition jp_rank10_rollout_ceil_owner_mismatches : nat := 0.
+Definition jp_rank10_rollout_max_relative_half : Z := 455.
+Definition jp_rank10_rollout_query_results : list nat :=
+  [3%nat; 1%nat; 80%nat; 0%nat; 0%nat; 0%nat; 0%nat].
+Definition jp_rank10_rollout_other_results : nat := 0.
+Definition jp_rank10_rollout_active_at_close : nat := 0.
+
+Record JPRank10InternalQueryReceipt : Prop := {
+  jp_rank10_held_query_receipt_matches_envelope :
+    jp_rank10_held_query_steps =
+      length held_a_jump_kick_full_return_qsteps /\
+    jp_rank10_held_complete_query_steps = jp_rank10_held_query_steps;
+  jp_rank10_held_query_receipt_exact_multiplicity :
+    jp_rank10_held_wall_query_calls =
+      (2 * jp_rank10_held_query_steps)%nat /\
+    jp_rank10_held_floor_query_calls = jp_rank10_held_query_steps /\
+    jp_rank10_held_ceil_query_calls = jp_rank10_held_query_steps;
+  jp_rank10_held_query_receipt_no_structural_failure :
+    jp_rank10_held_sequence_failures = 0%nat /\
+    jp_rank10_held_phase_failures = 0%nat /\
+    jp_rank10_held_wrong_mario = 0%nat /\
+    jp_rank10_held_nonzero_step_args = 0%nat;
+  jp_rank10_held_query_receipt_matches_vertical_and_owners :
+    jp_rank10_held_vertical_mismatches = 0%nat /\
+    jp_rank10_held_floor_owner_mismatches = 0%nat /\
+    jp_rank10_held_wall_owner_mismatches = 0%nat /\
+    jp_rank10_held_ceil_owner_mismatches = 0%nat /\
+    jp_rank10_held_max_relative_half =
+      ueq_scaled_list_max 0 held_a_jump_kick_full_return_scaled_qsteps;
+  jp_rank10_held_query_receipt_all_results_accounted :
+    fold_right Nat.add 0%nat jp_rank10_held_query_results =
+      jp_rank10_held_query_steps /\
+    jp_rank10_held_other_results = 0%nat /\
+    jp_rank10_held_active_at_close = 0%nat;
+  jp_rank10_rollout_query_receipt_matches_envelope :
+    jp_rank10_rollout_query_steps =
+      length b_rollout_full_return_qsteps /\
+    jp_rank10_rollout_complete_query_steps = jp_rank10_rollout_query_steps;
+  jp_rank10_rollout_query_receipt_exact_multiplicity :
+    jp_rank10_rollout_wall_query_calls =
+      (2 * jp_rank10_rollout_query_steps)%nat /\
+    jp_rank10_rollout_floor_query_calls = jp_rank10_rollout_query_steps /\
+    jp_rank10_rollout_ceil_query_calls = jp_rank10_rollout_query_steps;
+  jp_rank10_rollout_query_receipt_no_structural_failure :
+    jp_rank10_rollout_sequence_failures = 0%nat /\
+    jp_rank10_rollout_phase_failures = 0%nat /\
+    jp_rank10_rollout_wrong_mario = 0%nat /\
+    jp_rank10_rollout_nonzero_step_args = 0%nat;
+  jp_rank10_rollout_query_receipt_matches_vertical_and_owners :
+    jp_rank10_rollout_vertical_mismatches = 0%nat /\
+    jp_rank10_rollout_floor_owner_mismatches = 0%nat /\
+    jp_rank10_rollout_wall_owner_mismatches = 0%nat /\
+    jp_rank10_rollout_ceil_owner_mismatches = 0%nat /\
+    jp_rank10_rollout_max_relative_half =
+      ueq_scaled_list_max 0 b_rollout_full_return_scaled_qsteps;
+  jp_rank10_rollout_query_receipt_all_results_accounted :
+    fold_right Nat.add 0%nat jp_rank10_rollout_query_results =
+      jp_rank10_rollout_query_steps /\
+    jp_rank10_rollout_other_results = 0%nat /\
+    jp_rank10_rollout_active_at_close = 0%nat
+}.
+
+Theorem jp_rank10_internal_query_receipt_checked :
+  JPRank10InternalQueryReceipt.
+Proof.
+  constructor; unfold jp_rank10_held_query_steps,
+    jp_rank10_held_complete_query_steps, jp_rank10_held_wall_query_calls,
+    jp_rank10_held_floor_query_calls, jp_rank10_held_ceil_query_calls,
+    jp_rank10_held_sequence_failures, jp_rank10_held_phase_failures,
+    jp_rank10_held_wrong_mario, jp_rank10_held_nonzero_step_args,
+    jp_rank10_held_vertical_mismatches,
+    jp_rank10_held_floor_owner_mismatches,
+    jp_rank10_held_wall_owner_mismatches,
+    jp_rank10_held_ceil_owner_mismatches,
+    jp_rank10_held_max_relative_half,
+    jp_rank10_held_query_results, jp_rank10_held_other_results,
+    jp_rank10_held_active_at_close, jp_rank10_rollout_query_steps,
+    jp_rank10_rollout_complete_query_steps, jp_rank10_rollout_wall_query_calls,
+    jp_rank10_rollout_floor_query_calls, jp_rank10_rollout_ceil_query_calls,
+    jp_rank10_rollout_sequence_failures, jp_rank10_rollout_phase_failures,
+    jp_rank10_rollout_wrong_mario, jp_rank10_rollout_nonzero_step_args,
+    jp_rank10_rollout_vertical_mismatches,
+    jp_rank10_rollout_floor_owner_mismatches,
+    jp_rank10_rollout_wall_owner_mismatches,
+    jp_rank10_rollout_ceil_owner_mismatches,
+    jp_rank10_rollout_max_relative_half,
+    jp_rank10_rollout_query_results, jp_rank10_rollout_other_results,
+    jp_rank10_rollout_active_at_close.
+  - rewrite (proj1 full_return_envelopes_have_64_and_84_qsteps).
+    split; reflexivity.
+  - cbn. repeat split; reflexivity.
+  - cbn. repeat split; reflexivity.
+  - rewrite (proj1 full_return_qsteps_have_later_checked_maxima).
+    repeat split; reflexivity.
+  - cbn. repeat split; reflexivity.
+  - rewrite (proj2 full_return_envelopes_have_64_and_84_qsteps).
+    split; reflexivity.
+  - cbn. repeat split; reflexivity.
+  - cbn. repeat split; reflexivity.
+  - rewrite (proj1 (proj2 full_return_qsteps_have_later_checked_maxima)).
+    repeat split; reflexivity.
+  - cbn. repeat split; reflexivity.
+Qed.
+
+Definition JPRank10LiveQueryAndPoseBoundary : Prop :=
+  JPRank10BOnlyLiveAndVerticalBoundary /\
+  JPRank10HeldAFourFaceReceipt /\
+  JPRank10InternalQueryReceipt /\
+  UpperElevatorSelectedQueryBoundary.
+
+Theorem jp_rank10_live_query_and_pose_boundary_checked :
+  JPRank10LiveQueryAndPoseBoundary.
+Proof.
+  unfold JPRank10LiveQueryAndPoseBoundary.
+  split; [exact jp_rank10_b_only_live_and_vertical_boundary_checked |].
+  split; [exact jp_rank10_held_a_four_face_receipt_checked |].
+  split; [exact jp_rank10_internal_query_receipt_checked |].
+  exact upper_elevator_selected_query_boundary_checked.
 Qed.
