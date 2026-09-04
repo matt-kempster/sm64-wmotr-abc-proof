@@ -1,6 +1,6 @@
 # No-A two-star route atlas
 
-> Status snapshot: 2026-09-03.  Rankings are intentionally revisable as linked
+> Status snapshot: 2026-09-04.  Rankings are intentionally revisable as linked
 > execution evidence or new counterexamples arrive.
 
 ## Purpose and scope
@@ -190,7 +190,7 @@ The detailed sections are organized as:
 | 10 | Direct Area-2 gates | [Held-A jump-kick or B rollout from the upper elevator shaft](#route-rank-10) | Very low; live held-A launches hit all four elevator faces below the cutoff, and every JP held-A/rollout query is now linked and accounted for |
 | 11 | Direct Area-2 gates | [Lower-aperture impulse, clip, or support switch](#route-rank-11) | Very low for a clean route; Goomba damage works, but all nine stock Goombas fail the ordinary source-mesh and accessible-lift installer audit |
 | 12 | Direct Area-2 gates | [Homing Amp or a moving collision owner](#route-rank-12) | Very low; the stock shock composite and ordinary nine-Goomba transport are closed, leaving only an extraordinary writer/identity failure or another named mechanism |
-| 12A | Direct Area-2 gates | [Reload, nonzero warp destination, or same-position support-selection change](#route-rank-12a) | Low; useful coverage branch, but no concrete clean witness |
+| 12A | Direct Area-2 gates | [Reload, nonzero warp destination, or same-position support-selection change](#route-rank-12a) | Very low; an exact staged support refresh exists, but it is ownerless, stationary, and gives no gate crossing |
 | 13 | State-first installation | [Raw-Object-only return or impulse writer](#route-rank-13) | Very low on the checked clean run; all 7,386 collision-position writes are faithful ordinary copies |
 | 13A | State-first installation | [Terrain-dispatch or collision-prefix writer outside the platform phase](#route-rank-13a) | Very low on the checked clean run; no extra pre-collision position writer occurs |
 | 13B | State-first installation | [Interaction-stage writer or cached-floor snap composite](#route-rank-13b) | Very low on the checked clean run; the warp stops later interactions and all three floor snaps leave Mario at Y=768 |
@@ -717,23 +717,13 @@ Amp wall/support composite was closed.**
 
 ### Reload, nonzero warp destination, or same-position support change
 
-**Overall rank: 12A. Family priority: 4. Likelihood: low as a coverage
-branch; no concrete clean witness is known.**
+**Overall rank: 12A. Family priority: 4. Likelihood: very low; the support-refresh mechanism is now witnessed exactly, but the observed refresh is stationary and ownerless.**
 
-**In plain language.** Cross a route cut because an area transition reloads a
-different entry, a corrupted/nonstandard warp destination adds movement, or
-the game changes which floor/platform supports Mario even though his position
-does not change.
+**In plain language.** Cross a route cut because an area transition reloads a different entry, a corrupted or nonstandard warp destination adds movement, or the game changes which floor or platform supports Mario even though his position does not change.
 
-**What is already known.** The ordinary Area-2/Area-3 instant warp has zero
-displacement, and a coherent reload to the same recorded entry cannot cross a
-validated cut in the certified semantics.  Same-position support selection is
-an explicit first-crossing case for both upper and lower gates.  Linked
-execution outside those coherent premises remains open.
+**What is already known.** The new [Rank-12A audit](notes/rank12a-reload-support.md) checks the normal upper destination as SSL Area 2 node `0x14`, its airborne-warp entry at `(0,5500,256)`, both zero-offset Area-2/Area-3 instant warps, and every direct writer to the private warp destination. It also finds the exact changed-support witness: in a staged original-JP Area-3-to-Area-2 transition, the selected floor changes from `0x80192630` to `0x8019DAF0` while the displayed movement is zero, both floor owners are null, and Mario's platform remains null. This proves that a reload really can replace a same-position floor, but this particular replacement supplies no movement or useful support and the staging means it is not a clean controller route.
 
-**What closes it.** Prove every reachable destination, entry snapshot,
-area-load memory effect, and selected support from the linked program; or
-produce the exact nonzero/corrupted destination or changed-support witness.
+**What closes it.** The bare changed-support alternative is now resolved, so a counterexample must produce a clean in-bounds nonzero or corrupted destination, a different entry, or a replacement floor with useful geometry or a non-null moving owner that actually crosses a gate. An impossibility result must connect the checked route and loader to live execution, show that every indirect or aliased write preserves the destination, give each reached area-load operation its exact memory effect, and prove that every resulting floor query selects only the rebuilt stock supports; the staged stationary refresh alone cannot do the job.
 
 [Back to the at-a-glance ranking](#at-a-glance-ranking)
 

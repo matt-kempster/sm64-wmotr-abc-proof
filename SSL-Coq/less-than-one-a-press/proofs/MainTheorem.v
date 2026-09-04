@@ -35,7 +35,8 @@ From LessThanOneAPress.Proofs Require Import
   EyerokRank29Preload
   EyerokRank29CycleClosure EyerokControllerManipulation
   EyerokControllerReachability
-  Area2Rank12ObjectImpulse UpperElevatorLiveTraceReceipt
+  Area2Rank12ObjectImpulse Area2Rank12AReloadSupport
+  UpperElevatorLiveTraceReceipt
   CompCertRouteScope.
 
 Import ListNotations.
@@ -796,6 +797,22 @@ Theorem current_rank10_live_query_and_pose_boundary :
   JPRank10LiveQueryAndPoseBoundary.
 Proof.
   exact jp_rank10_live_query_and_pose_boundary_checked.
+Qed.
+
+(** Rank 12A now has an exact positive witness for the support-refresh branch.
+    Across a staged original-JP Area-3-to-Area-2 instant warp, the selected
+    static floor changes from 0x80192630 to 0x8019daf0 while the logged XYZ
+    delta, both floor owners, and [gMarioPlatform] are zero.  The selected
+    source also fixes the normal upper destination and entry record, and a
+    root-sensitive census narrows direct [sWarpDest] writes to the expected
+    routines.  Because the machine fixture staged Mario and an earlier warp,
+    this theorem does not assert a clean route or universal Clight memory
+    frame; it proves the exact changed-support alternative and its lack of
+    payoff in the observed case. *)
+Theorem current_rank12a_reload_and_changed_support_boundary :
+  Rank12ACheckedBoundary.
+Proof.
+  exact rank12a_checked_boundary_holds.
 Qed.
 
 (* The transcript's regular-Goomba observation is a real but bounded,

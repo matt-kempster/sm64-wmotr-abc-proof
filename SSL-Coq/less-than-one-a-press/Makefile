@@ -636,6 +636,24 @@ check: proofs
 	  LessThanOneAPress.Proofs.UpperElevatorLiveTraceReceipt \
 	  jp_rank10_live_query_and_pose_boundary_checked
 	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.Area2Rank12AReloadSupport \
+	  rank12a_warp_destination_direct_writer_census_checked
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.Area2Rank12AReloadSupport \
+	  rank12a_script_destination_and_entry_checked
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.Area2Rank12AReloadSupport \
+	  rank12a_area_load_source_shape_checked
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.Area2Rank12AReloadSupport \
+	  rank12a_changed_support_receipt_checked
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.Area2Rank12AReloadSupport \
+	  rank12a_exact_changed_support_witness_exists
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.Area2Rank12AReloadSupport \
+	  rank12a_checked_boundary_holds
+	bash pipeline/assumptions.sh \
 	  LessThanOneAPress.Proofs.UpperElevatorWingCapTransitionClosure \
 	  upper_entry_transition_source_checked
 	bash pipeline/assumptions.sh \
@@ -881,6 +899,9 @@ check: proofs
 	bash pipeline/assumptions.sh \
 	  LessThanOneAPress.Proofs.MainTheorem \
 	  current_rank10_b_only_live_and_vertical_boundary
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.MainTheorem \
+	  current_rank12a_reload_and_changed_support_boundary
 	bash pipeline/assumptions.sh \
 	  LessThanOneAPress.Proofs.MainTheorem \
 	  current_goomba_raising_bounded_boundary
