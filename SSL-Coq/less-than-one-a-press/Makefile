@@ -2282,6 +2282,15 @@ check-rank9a: $(COQMAKEFILE)
 	  LessThanOneAPress.Proofs.Area2Rank9AStarGeometry \
 	  rank9a_geometric_test_boundary_checked
 	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.Area2Rank9ACoinProducers \
+	  rank9ac_coin_producer_source_boundary_checked
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.Area2Rank9ACoinLaunch \
+	  rank9ac_launch_executes_from_live_memory
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.Area2Rank9ACoinLaunch \
+	  rank9ac_coin_launch_boundary_checked
+	bash pipeline/assumptions.sh \
 	  LessThanOneAPress.Proofs.MainTheorem \
 	  current_rank9a_coin_star_gate_boundary
 

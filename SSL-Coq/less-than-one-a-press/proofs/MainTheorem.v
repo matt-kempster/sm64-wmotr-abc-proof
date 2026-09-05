@@ -38,6 +38,7 @@ From LessThanOneAPress.Proofs Require Import
   Area2Rank12ObjectImpulse Area2Rank12AReloadSupport
   UpperElevatorLiveTraceReceipt
   Area2Rank9AStarSource Area2Rank9AStarExecution Area2Rank9AStarGeometry
+  Area2Rank9ACoinProducers Area2Rank9ACoinLaunch
   CompCertRouteScope.
 
 Import ListNotations.
@@ -776,14 +777,19 @@ Qed.
     just a possible action interruption: every attached pole pose selects
     the standing dance, its generated snap overwrites Y with cached floor Y,
     and a rising ledge-check body returns without a write or outside call.
-    The west-ring binary32 test target and individual-coin initializer census
-    keep the survivor concrete.  They do NOT construct a star installation,
-    live wall/floor selection or a complete controller-reachable crossing. *)
+    The west-ring test target, generated fixed-coin/producer census and actual
+    post-RNG coin-launch execution keep the survivor concrete. They do NOT
+    construct a star installation, live wall/floor selection or a complete
+    controller-reachable crossing. The launch theorem does not substitute
+    a Goomba movement envelope for the coin's own collision/lifetime proof. *)
 Theorem current_rank9a_coin_star_gate_boundary :
-  Rank9ASelectedStarBoundary /\ Rank9AGeometricTestBoundary.
+  Rank9ASelectedStarBoundary /\ Rank9AGeometricTestBoundary /\
+  Rank9ACoinProducerSourceBoundary /\ Rank9ACoinLaunchBoundary.
 Proof.
-  split; [exact rank9a_selected_star_boundary_holds |
-    exact rank9a_geometric_test_boundary_checked].
+  split; [exact rank9a_selected_star_boundary_holds |].
+  split; [exact rank9a_geometric_test_boundary_checked |].
+  split; [exact rank9ac_coin_producer_source_boundary_checked |
+    exact rank9ac_coin_launch_boundary_checked].
 Qed.
 
 (** Rank 10 now has one continuous original-JP B-only execution from the

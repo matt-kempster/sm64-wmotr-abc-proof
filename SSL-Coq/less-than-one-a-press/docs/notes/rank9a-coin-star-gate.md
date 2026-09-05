@@ -128,11 +128,15 @@ raw-Object copies, star orbit, horizontal travel, time stop, and first tangible
 frame must be linked. The existing orbit mirror's live Float32/lifecycle
 refinement remains open; the new interval theorem does not discharge it.
 
-The generated Area-2 list contains 15 individually placed yellow coins. None
-has its initial X/Z inside `[-302,302] × [1029,1634]`, which generously expands
-the central shaft by about 200 units. Thus those initial positions are not an
-obvious nearby 100th coin. Coin-formation children, enemy drops, coin motion,
-and a different useful pickup location are **not** excluded by that census.
+The follow-up [ordinary coin audit](rank9a-ordinary-coin-producers.md) expands
+the original 15-yellow-coin census to all 41 fixed coin actors: 23 formation
+children and three switched blues are also away from
+`[-302,302] × [1029,1634]`. The generated parents/presets and conservative
+separation are Coq-checked; exact formation expansion is a separate diagnostic,
+not a complete live-memory preservation theorem. Regular Goomba drops are
+the concrete mobile producer, with their real post-RNG launch now executed
+in Coq. Neither their useful placement nor every later coin motion has been
+proved or disproved. A different useful pickup location remains possible.
 
 The lower published route also spends the coin star at the big steps before
 the second pole. A new lower route must replace that earlier use or justify
@@ -142,8 +146,9 @@ star-collection suffix. The coin star itself is index 6, not either target.
 
 ## Next decisive work
 
-For the pole, first find an ordinary coin producer and controller history
-which can create the star in a compatible place, then reach an airborne
+For the pole, first follow a normal Goomba defeat and its moving loot coin
+through a controller history which creates the star in a compatible place,
+or exclude every such drop; a different source needs its own evidence. Then reach an airborne
 contact and a non-rising ledge check without consuming the resource earlier. The numeric
 sample above is a useful test target, not a requirement imposed on all
 possible counterexamples. A different wall, star height, or departure can be
@@ -165,9 +170,16 @@ scan, generated-link hygiene check, and all six focused assumption audits;
 no project-local axiom was introduced. The atlas anchors, single-paragraph
 Rank 9A sections, and changed notes' local links were also checked.
 
+The 2026-09-05 producer follow-up compiled both additional modules and the
+main theorem, and passed the expanded nine-audit `check-rank9a` target plus
+the ultimate conditional theorem's assumption audit. Its separate diagnostic
+checks all 41 fixed placements and 65,536 isolated coin-launch return values;
+see the [producer notes](rank9a-ordinary-coin-producers.md) for the limits.
+
 `current_rank9a_coin_star_gate_boundary` in
 [MainTheorem.v](../../proofs/MainTheorem.v) consumes the selected-program
-execution boundary and the geometric/coin-census boundary. This adds checked
+execution boundary, geometric/coin census, and the follow-up ordinary-producer
+and live-memory launch boundaries. This adds checked
 evidence to the active proof; it does **not** discharge the ultimate theorem's
 whole-program refinement or open first-crossing writer obligations.
 
