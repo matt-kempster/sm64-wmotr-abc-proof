@@ -2,7 +2,7 @@ COQMAKEFILE := CoqMakefile
 COQBIN ?=
 COQMAKEFILE_CMD ?= $(COQBIN)coq_makefile
 
-.PHONY: all generated regenerate verify-generated proofs check check-rank9a check-rank10a clean
+.PHONY: all generated regenerate verify-generated proofs check check-rank9a check-rank10a check-rank12b clean
 
 all: proofs
 
@@ -2343,6 +2343,27 @@ check-rank10a: $(COQMAKEFILE)
 	bash pipeline/assumptions.sh \
 	  LessThanOneAPress.Proofs.MainTheorem \
 	  conditional_evidence_bearing_clight_run_impossibility
+
+check-rank12b: $(COQMAKEFILE)
+	$(MAKE) -f $(COQMAKEFILE) proofs/MainTheorem.vo
+	bash pipeline/check-no-admitted.sh
+	bash pipeline/check-link-hygiene.sh
+	bash pipeline/assumptions.sh LessThanOneAPress.Proofs.Area2Rank12BContact rank12b_selected_contact_body_resolves
+	bash pipeline/assumptions.sh LessThanOneAPress.Proofs.Area2Rank12BContact rank12b_generated_radius_tail_is_exact
+	bash pipeline/assumptions.sh LessThanOneAPress.Proofs.Area2Rank12BContact rank12b_no_contact_from_either_gate_footprint
+	bash pipeline/assumptions.sh LessThanOneAPress.Proofs.Area2Rank12BContact rank12b_gate_rejection_executes_in_selected_clight
+	bash pipeline/assumptions.sh LessThanOneAPress.Proofs.Area2Rank12BContact rank12b_entire_mesh_census
+	bash pipeline/assumptions.sh LessThanOneAPress.Proofs.Area2Rank12BContact rank12b_no_omitted_geometric_floor
+	bash pipeline/assumptions.sh LessThanOneAPress.Proofs.Area2Rank12BContact rank12b_stock_hitbox_descriptors_are_exact
+	bash pipeline/assumptions.sh LessThanOneAPress.Proofs.Area2Rank12BContact rank12b_act3_rim_is_a_source_contact_candidate
+	bash pipeline/assumptions.sh LessThanOneAPress.Proofs.Area2Rank12BContact rank12b_highest_secret_has_only_its_platform
+	bash pipeline/assumptions.sh LessThanOneAPress.Proofs.Area2Rank12BContact rank12b_settled_act6_has_no_static_standing_candidate
+	bash pipeline/assumptions.sh LessThanOneAPress.Proofs.Area2Rank12BContact rank12b_upper_secret_underside_source
+	bash pipeline/assumptions.sh LessThanOneAPress.Proofs.Area2Rank12BContact rank12b_ceiling_respecting_underpass_cannot_touch_secret
+	bash pipeline/assumptions.sh LessThanOneAPress.Proofs.Area2Rank12BContact rank12b_upper_secret_airborne_boundary_samples
+	bash pipeline/assumptions.sh LessThanOneAPress.Proofs.Area2Rank12BContact rank12b_contact_boundary_checked
+	bash pipeline/assumptions.sh LessThanOneAPress.Proofs.MainTheorem current_rank12b_cross_barrier_contact_boundary
+	bash pipeline/assumptions.sh LessThanOneAPress.Proofs.MainTheorem conditional_evidence_bearing_clight_run_impossibility
 
 clean:
 	-$(MAKE) -f $(COQMAKEFILE) clean

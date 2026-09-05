@@ -161,6 +161,14 @@ Source anchors: the four action bodies and `f_act_freefall` in
 
 ## Rank 12B — Contact across a barrier, not a prescribed floor crossing
 
+The [source-linked contact and whole-mesh follow-up](rank12b-cross-barrier-contact.md)
+now rules out standard contact from either unchanged gate footprint at any
+height. It leaves only the highest secret's own platform as a static standing
+candidate, checks its 128-unit-thick underside, and finds a positive Act-3
+sloped-rim contact sample. None supplies a clean controller predecessor or a
+global live-floor projection; the original flat-floor gaps below remain
+sample-specific.
+
 `detect_object_hitbox_overlap` compares X/Z distance with the sum of the
 interaction radii, checks overlap of the vertical intervals, and checks the
 two four-entry contact arrays.  Its sole direct callee in both generated

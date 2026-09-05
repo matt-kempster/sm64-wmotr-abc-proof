@@ -39,7 +39,7 @@ From LessThanOneAPress.Proofs Require Import
   UpperElevatorLiveTraceReceipt
   Area2Rank9AStarSource Area2Rank9AStarExecution Area2Rank9AStarGeometry
   Area2Rank9ACoinProducers Area2Rank9ACoinLaunch Area2Rank9ACoinFlight
-  Area2Rank10AGroundPound
+  Area2Rank10AGroundPound Area2Rank12BContact
   CompCertRouteScope.
 
 Import ListNotations.
@@ -836,6 +836,15 @@ Qed.
 Theorem current_rank10a_ground_pound_moving_geometry_boundary :
   Rank10AGroundPoundBoundary.
 Proof. exact rank10a_ground_pound_boundary_checked. Qed.
+
+(** Rank 12B does not presume that target contact entails a gate crossing.
+    The actual selected radius-test tail rejects every standard target from
+    either stock gate footprint, provided its preceding reads/sqrtf return
+    the checked values. A whole static-mesh census narrows standing contact;
+    a sloped Act-3 rim sample is a positive geometric candidate. Neither the
+    census nor that sample supplies a live support or controller predecessor. *)
+Theorem current_rank12b_cross_barrier_contact_boundary : Rank12BContactBoundary.
+Proof. exact rank12b_contact_boundary_checked. Qed.
 
 (** Rank 12A now has an exact positive witness for the support-refresh branch.
     Across a staged original-JP Area-3-to-Area-2 instant warp, the selected

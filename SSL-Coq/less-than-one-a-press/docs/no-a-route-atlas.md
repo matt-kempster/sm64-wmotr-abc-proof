@@ -1,6 +1,6 @@
 # No-A two-star route atlas
 
-> Status snapshot: 2026-09-04.  Rankings are intentionally revisable as linked
+> Status snapshot: 2026-09-05.  Rankings are intentionally revisable as linked
 > execution evidence or new counterexamples arrive.
 
 ## Purpose and scope
@@ -203,7 +203,7 @@ The detailed sections are organized as:
 | 11 | Direct Area-2 gates | [Lower-aperture impulse, clip, or support switch](#route-rank-11) | Very low for a clean route; Goomba damage works, but all nine stock Goombas fail the ordinary source-mesh and accessible-lift installer audit |
 | 12 | Direct Area-2 gates | [Homing Amp or a moving collision owner](#route-rank-12) | Very low; the stock shock composite and ordinary nine-Goomba transport are closed, leaving only an extraordinary writer/identity failure or another named mechanism |
 | 12A | Direct Area-2 gates | [Reload, nonzero warp destination, or same-position support-selection change](#route-rank-12a) | Very low; an exact staged support refresh exists, but it is ownerless, stationary, and gives no gate crossing |
-| 12B | Direct Area-2 gates | [Touch a secret or star across a barrier without crossing the usual gate](#route-rank-12b) | Low as an untested geometry question; ordinary contact has no wall-visibility test, but no qualifying source-side pose is known |
+| 12B | Direct Area-2 gates | [Touch a secret or star across a barrier without crossing the usual gate](#route-rank-12b) | Low; contact from inside either unchanged gate footprint is excluded, while the Act-3 rim and airborne secret approaches still need a clean route |
 | 13 | State-first installation | [Raw-Object-only return or impulse writer](#route-rank-13) | Very low on the checked clean run; all 7,386 collision-position writes are faithful ordinary copies |
 | 13A | State-first installation | [Terrain-dispatch or collision-prefix writer outside the platform phase](#route-rank-13a) | Very low on the checked clean run; no extra pre-collision position writer occurs |
 | 13B | State-first installation | [Interaction-stage writer or cached-floor snap composite](#route-rank-13b) | Very low on the checked clean run; the warp stops later interactions and all three floor snaps leave Mario at Y=768 |
@@ -782,14 +782,14 @@ Amp wall/support composite was closed.**
 
 ### Touch a secret or star across a barrier without crossing the usual gate
 
-**Overall rank: 12B. Family priority: 7. Likelihood: low as an untested
-geometry question; no qualifying source-side pose is known.**
+**Overall rank: 12B. Family priority: 7. Likelihood: low; direct gate-interior
+contact is excluded, but rim and airborne approaches remain open.**
 
 **In plain language.** Instead of landing beyond the pole or elevator barrier, get close enough to touch a required secret or star from a neighboring floor or an airborne position on the other side of a wall. The game's touch tests may recognize that contact without Mario taking the usual path.
 
-**What is already known.** Ordinary object contact checks horizontal distance and vertical overlap, not whether terrain separates Mario from the object. That creates a real question about nearby positions, but it does not remove walls, enlarge reach, or guarantee that Mario can get there. The checked standing samples still miss the Act-3 star by 75 units and Act 6 by 11; neither sample excludes every neighboring floor or airborne approach. Act 6 also still needs legitimate credit for all five secrets before its star exists. No pose that bypasses the usual gate has been established. See the [contact audit](notes/ordinary-gameplay-route-coverage.md#rank-12b--contact-across-a-barrier-not-a-prescribed-floor-crossing).
+**What is already known.** Contact does not check whether a wall separates Mario from a target, but the [new contact proof and whole-floor scan](notes/rank12b-cross-barrier-contact.md) sharply limit that idea: with normal target positions and sizes, Mario cannot touch any required secret or settled target star while still inside the stock elevator footprint or second-pole opening, at any height. The highest secret's own platform is its only static standing-floor candidate, and approaching directly below it fails if Mario stays clear of its 128-unit-thick underside. For Act 3, a nearby sloped-rim sample does reach the star's touch range; the earlier 75-unit miss applied only to the flat floor. Reaching that rim or a useful airborne secret contact without the usual gate remains unproved, and Act 6 still needs genuine credit for all five secrets.
 
-**What closes it.** Check the actual touch volume of each target and required secret against every reachable near-side floor, moving support, and airborne approach, including the moment within the frame when contact is tested. A survivor must trigger the real contact and complete the correct star and save result from the accepted start. Otherwise prove that every successful contact really requires a previously classified gate crossing; that requirement must be derived, not imposed on proposed counterexamples.
+**What closes it.** Reach the Act-3 rim or a useful airborne or edge approach to the highest secret from ordinary no-A play, checking the surrounding walls, platform underside, moving supports, and the exact moment of contact. Connect the floor scan to the floors and positions actually used by the game, then complete the genuine secret credits, correct star contact, and saved result from the accepted start. An impossibility proof must instead cover every remaining reachable contact and show that it requires an already-classified gate crossing; it must not assume that requirement merely because the usual route crosses a gate.
 
 [Back to the at-a-glance ranking](#at-a-glance-ranking)
 

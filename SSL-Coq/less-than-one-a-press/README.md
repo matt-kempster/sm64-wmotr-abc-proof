@@ -2435,3 +2435,10 @@ clightgen -normalize -nostdinc -fstruct-passing \
 The supplied A-press transcript was used only to identify candidate routes and
 version-sensitive behavior.  The pinned source and formal definitions control
 the claims.
+
+The [Rank-12B contact audit](docs/notes/rank12b-cross-barrier-contact.md) adds
+all-Float32-X/Z gate-footprint exclusions, a selected Clight contact-test
+rejection, and a census of all 1,558 Area-2 static triangles. It also preserves
+the positive Act-3 rim contact candidate and the unresolved airborne/edge
+approaches. Run `make check-rank12b` through the bounded build wrapper; these
+local results do not replace the global live-execution obligations.
