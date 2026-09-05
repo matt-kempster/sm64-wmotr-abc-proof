@@ -2,7 +2,7 @@ COQMAKEFILE := CoqMakefile
 COQBIN ?=
 COQMAKEFILE_CMD ?= $(COQBIN)coq_makefile
 
-.PHONY: all generated regenerate verify-generated proofs check check-rank9 check-rank9a check-rank10a check-rank12b clean
+.PHONY: all generated regenerate verify-generated proofs check check-rank9 check-rank9-timing check-rank9a check-rank10a check-rank12b clean
 
 all: proofs
 
@@ -2378,6 +2378,17 @@ check-rank9: $(COQMAKEFILE)
 	bash pipeline/assumptions.sh LessThanOneAPress.Proofs.Area2Rank9UpperStarDance rank9_coin_descriptor_and_offset_are_generated
 	bash pipeline/assumptions.sh LessThanOneAPress.Proofs.Area2Rank9UpperStarDance rank9_nearby_coin_and_star_vertical_window
 	bash pipeline/assumptions.sh LessThanOneAPress.Proofs.Area2Rank9UpperStarDance rank9_upper_star_dance_boundary_checked
+	bash pipeline/assumptions.sh LessThanOneAPress.Proofs.MainTheorem current_rank9_upper_star_dance_boundary
+	bash pipeline/assumptions.sh LessThanOneAPress.Proofs.MainTheorem conditional_less_than_one_a_press_impossibility
+
+check-rank9-timing: $(COQMAKEFILE)
+	$(MAKE) -f $(COQMAKEFILE) proofs/MainTheorem.vo
+	bash pipeline/check-no-admitted.sh
+	bash pipeline/check-link-hygiene.sh
+	bash pipeline/assumptions.sh LessThanOneAPress.Proofs.Area2Rank9StarTiming rank9t_home_y_executes
+	bash pipeline/assumptions.sh LessThanOneAPress.Proofs.Area2Rank9StarTiming rank9t_orbit_and_first_contact
+	bash pipeline/assumptions.sh LessThanOneAPress.Proofs.Area2Rank9StarTiming rank9t_late_collection_cannot_use_same_startup
+	bash pipeline/assumptions.sh LessThanOneAPress.Proofs.Area2Rank9StarTiming rank9t_star_timing_boundary_checked
 	bash pipeline/assumptions.sh LessThanOneAPress.Proofs.MainTheorem current_rank9_upper_star_dance_boundary
 	bash pipeline/assumptions.sh LessThanOneAPress.Proofs.MainTheorem conditional_less_than_one_a_press_impossibility
 

@@ -85,12 +85,15 @@ height.
 
 ## Transcript-specified Act 3 continuations
 
-The [Rank-9 upper-platform follow-up](rank9-upper-star-dance.md) now identifies
-a concrete rear-wall star-fall catch and following landing in an offline
-static-collision test, along with a nearby ordinary coin candidate. Coq
-executes the real floor-pair commit and the caller's ledge-result decision.
-This sharpens the upper itinerary's local ledge stage, but still does not
-construct its cut-starting suffix, timely star placement, or live query trace.
+The [Rank-9 upper-platform follow-up](rank9-upper-star-dance.md) now connects
+a granted airborne coin pickup to star spawning, ground-pound resumption,
+first star contact, a rear-wall catch and landing in one local timing test.
+It works when the coin is collected in the update that starts the ground
+pound; all nine tested later startup timings leave too little rise. Coq
+executes the actual star-home Y stores as well as the earlier floor-pair
+commit and ledge-result decision, with separate Float32 timing checks.
+The initial airborne pose and 99-coin history, live whole-frame execution,
+dance completion and final Act-3 pickup remain unproved.
 
 The transcript supplies two different post-gate methods; the failed experiment
 below did not execute either one.

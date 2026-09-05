@@ -39,7 +39,7 @@ From LessThanOneAPress.Proofs Require Import
   UpperElevatorLiveTraceReceipt
   Area2Rank9AStarSource Area2Rank9AStarExecution Area2Rank9AStarGeometry
   Area2Rank9ACoinProducers Area2Rank9ACoinLaunch Area2Rank9ACoinFlight
-  Area2Rank10AGroundPound Area2Rank12BContact Area2Rank9UpperStarDance
+  Area2Rank10AGroundPound Area2Rank12BContact Area2Rank9UpperStarDance Area2Rank9StarTiming
   CompCertRouteScope.
 
 Import ListNotations.
@@ -850,10 +850,18 @@ Proof. exact rank12b_contact_boundary_checked. Qed.
     commit and a post-air-step branch that does not undo a ledge result.
     Generated geometry and Float32 arithmetic identify a concrete rear-wall
     window and a nearby fixed-coin placement candidate. The static query
-    diagnostic is NOT a live Clight query, and no controller prefix, timely
-    star placement, remaining call frame, or target collection is inferred. *)
-Theorem current_rank9_upper_star_dance_boundary : Rank9UpperStarDanceBoundary.
-Proof. exact rank9_upper_star_dance_boundary_checked. Qed.
+    diagnostic is NOT a live Clight query. The exact home-Y copy/add/copy
+    now executes in the selected Clight memory.
+    A Float32 timing receipt connects a granted first-startup coin sample to
+    first star contact inside the catch window and rejects nine later samples
+    for that same startup. Clean arrival, whole-frame projection, the dance,
+    and target collection remain open; these are not a cut-starting replay. *)
+Theorem current_rank9_upper_star_dance_boundary :
+  Rank9UpperStarDanceBoundary /\ Rank9StarTimingBoundary.
+Proof.
+  split; [exact rank9_upper_star_dance_boundary_checked |
+    exact rank9t_star_timing_boundary_checked].
+Qed.
 
 (** Rank 12A now has an exact positive witness for the support-refresh branch.
     Across a staged original-JP Area-3-to-Area-2 instant warp, the selected

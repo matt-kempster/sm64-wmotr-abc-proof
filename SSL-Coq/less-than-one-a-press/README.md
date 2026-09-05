@@ -2448,5 +2448,11 @@ a concrete rear-wall star-fall catch, a 50-height static test window, and a
 nearby ordinary coin candidate. Its Coq module executes the real floor-pair
 commit and caller decision, and is consumed by `MainTheorem.v`. Run
 `check-rank9` through the build wrapper and the offline diagnostic described
-in the note. Timely star placement, live queries, and the complete zero-A
-continuation remain unproved.
+in the note. The follow-up `Area2Rank9StarTiming.v` executes the selected
+star-home Y copy/add/copy and checks a 77-update Float32 star orbit with a
+first-startup coin pickup: first star contact at Y=4686 fits the catch,
+whereas nine later same-startup timings fail. `timing.js` carries those
+conditional samples through every startup geometry check and the next
+landing. Run `check-rank9-timing` through the build wrapper for this tranche.
+Clean arrival with 99 coins, the complete live timeline, dance completion
+and final Act-3 collection remain unproved.

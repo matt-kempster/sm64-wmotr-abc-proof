@@ -107,6 +107,7 @@ function quarter(p,velocity,ledgeEnabled=true) {
   return {...receipt,result:'ordinary',p:next};
 }
 
+function regression() {
 const inputPose=[340,4700,-850], prepared=geometry(inputPose);
 const first=quarter(prepared.p,[0,-50,0]);
 assert.equal(first.result,'ledge');
@@ -132,3 +133,8 @@ const report={inputPose,geometryInputs:prepared,firstQuarter:first,nextGeometryI
   integralHeightWindow:{first:pass[0],last:pass.at(-1),count:pass.length},
   scope:'Static Float32 source diagnostic only. No controller prefix, live dynamic lists, coin/star lifecycle, or linked Clight query execution.'};
 console.log(JSON.stringify(report,null,2));
+return report;
+}
+
+module.exports={f,add,sub,mul,div,triangles,planeQuery,walls,geometry,quarter,regression};
+if(require.main===module) regression();

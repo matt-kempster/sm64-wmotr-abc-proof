@@ -2,13 +2,14 @@
 
 ## Result
 
-**Open, with a concrete ledge-and-landing target instead of only a transcript
-description.** An offline test of the complete static pyramid mesh finds a
-rear-wall catch onto the Act-3 platform. At one fixed horizontal position and
-downward speed, 50 integer starting heights succeed. The following update
-lands on the caught platform. Coq separately executes the real operations
-that record the caught floor and the caller's decision to retain a ledge
-result. Neither result is a controller-reachable upper continuation.
+**Open, now with a continuous local coin/star timing candidate as well as
+the ledge-and-landing target.** Starting from a granted airborne coin pickup,
+the diagnostic carries the same Mario and star positions through spawning,
+the freeze, remaining ground-pound lifts, first star contact, rear-wall catch
+and landing. Coq executes the actual star-home Y stores and checks the
+Float32 timing; it already executes the caught-floor commit and the caller's
+decision to retain the ledge result. The clean arrival, live whole-frame
+execution and final Act-3 collection are still missing.
 
 This is Rank **9**, not the Rank-9A proposal to spend the 100-coin star at the
 elevator or second pole. Rank 9 assumes an earlier successful upper-gate
@@ -126,12 +127,102 @@ stores, wall/floor identities, and test poses. It does **not** construct
 `UpperTranscriptAct3ContinuationObligation` or discharge the global
 upper-entrance reachability premise.
 
+## The coin/startup timing connection
+
+The new [timing module](../../proofs/Area2Rank9StarTiming.v) and
+[`timing.js`](../../instrumentation/rank9-upper-star-dance/timing.js) examine
+a **same-attempt variant**: collect the 100th coin in the update that first
+starts the ground pound. This is not a claim that the transcript's separate
+prepare-star-then-conserve-speed itinerary must use this timing.
+
+The granted arrival need not be rising: ordinary freefall accepts Z, and
+ground-pound startup sets vertical speed to -50 regardless of its incoming
+value. A controlled descent from a sufficiently high post-gate state is
+therefore another candidate predecessor; stored rollout speed is not a
+necessary premise of this **local** timing test. Neither predecessor has
+been constructed, and the nearby upper row coins must not trigger an earlier
+100-coin spawn during the descent.
+
+Coin collisions use the preceding raw Mario-object position. The coin
+handler runs before Mario's action, but the newly spawned LEVEL-list star
+runs after Mario's PLAYER-list update and `copy_mario_state_to_object`.
+Consequently, its home samples **post-action** Mario, not the coin-contact
+height. Time stop starts after this update; it does not undo that first lift.
+The existing generated list-order/behavior receipts support this scheduling
+explanation, but executing the complete linked scheduler remains necessary.
+
+The following sequence has one shared state throughout. The initial
+freefall pose, 99 coins, unspent reward and surviving row coin are premises;
+they have not been reached from the accepted upper cut by controller inputs.
+
+| Event | Mario / star result |
+| --- | --- |
+| Coin-contact phase, with Z requesting the first ground pound | Mario `(340,4578,-850)` overlaps the child at `(290,4607,-940)`; 99 becomes 100 |
+| Same update's first startup lift | Mario Y becomes 4598; vertical speed becomes -50; startup timer becomes 1 |
+| Later star update samples Mario | Home Y becomes 4848; initial star X/Z and home X/Z coincide, so no horizontal flight is needed |
+| Star movement while Mario is frozen | After 77 object updates it waits at `(340,4843,-850)`; Mario remains at Y=4598, timer 1 |
+| Camera completion clears time stop | This branch does not yet install the hitbox |
+| First unfrozen Mario update | Mario rises to 4616; the later star update installs the hitbox |
+| Subsequent startup heights | 4632, 4646, 4658, 4668, 4676, 4682, 4686; geometry pushes X from 340 to 337 before the 4646 sample |
+| Last missed contact | At Y=4682, Mario's hitbox ends at 4842: **one unit below** the star |
+| First star contact | `(337,4686,-850)`, timer 9; the star-fall action retains vertical speed -50 |
+| First star-fall quarter | Intended Y=4673.5; wall 680 and floor 1400 produce `(397,4815,-850)` |
+| Next update | Lands on floor 1400 at the same position |
+
+The diagnostic performs both pre-action wall checks and the floor/ceiling
+queries on **every** startup update. It also tests 61 integer initial
+freefall heights: exactly 4570..4619 catch. Camera completion and preservation
+of the frozen Mario/star state are granted, not simulated or proved. The 77
+updates count the star's own movement, not controller polls or the complete
+camera cutscene duration. Other coincident row coins can be picked
+up later, but cannot retrigger the already-crossed 100-coin threshold.
+
+### Why collecting the coin later fails in this variant
+
+The settled star is 245 units above the sampled Mario height; Mario's
+160-unit hitbox therefore needs another 85 units of rise. If the sample is
+taken after the first startup lift, 90 units remain. After the second lift,
+only 72 remain, and the later samples leave progressively less. At the
+checked base height, all nine coin-collection controls with startup timer
+1..9 fail even if every remaining lift is granted: the best late case misses
+by 13 units. This closes those **same-startup timing controls**, not routes
+using another launch, a moving support, or an independently prepared star.
+
+`rank9t_home_y_executes` executes the actual three consecutive Clight
+operations: copy raw Mario Y to star home Y, add the generated 250.0f
+constant, then copy home Y to star position Y. It works with Mario and star
+in separate subranges of the **same object-pool block**; it does not assume
+the two objects have different memory blocks. The output frame protects
+every byte range disjoint from the two written cells. The prior home-X/Z
+copies, later `sqrtf` and motion, allocator and scheduler are outside this
+fragment. `rank9t_orbit_and_first_contact`, `rank9t_timed_contacts_checked`
+and `rank9t_late_collection_cannot_use_same_startup` check the Float32 orbit,
+contact samples and late-case arithmetic separately; they are not a proof
+that the real loop executes the whole diagnostic. The integrated Rank-9
+boundary consumes the new memory execution and timing package.
+
+### An arrival shortcut that must not be assumed
+
+The floor under the catch is Y=4429. The nearby Y=4480 shelf, triangles
+1404/1405, occupies X=-204..131 and Z=-767..-716. Moving off its east or rear
+edge onto the 4429 floor drops only 51 units, below the ground step's strict
+100-unit departure test; its ordinary outcome is a grounded snap, not the
+freefall needed to reactivate conserved speed. Simply adding a rollout's
+stored ascent and 110 units of ground-pound lift to **4480** therefore does
+not establish the desired arrival. A front-edge departure, different
+support or other ordinary approach needs its actual movement and early
+coin-contact checks. The supplied 2013 upper-entry video, rechecked using
+its existing contact sheets, collects no coins and does not show this
+100-coin timing setup.
+
 ## What still closes the route
 
-Construct one continuous, zero-new-A continuation from a useful upper-cut
-state through the nearby coin, spawned star, stored-speed reactivation,
-ground-pound timing, and first star contact. Then realize the diagnostic's
-wall/list/floor/ceiling choices in live memory, including any moving geometry,
+Reach the specified first-startup coin-contact boundary, or another useful
+placement, from a useful upper-cut state with zero new A presses and the
+necessary 99-coin history. Preserve the nearby coin until the correct
+collision phase; the previous frame must not already collect it. Then
+realize the diagnostic's wall/list/floor/ceiling choices in live memory,
+including any moving geometry,
 and connect the position copy, angle calculations, animation, gravity, next
 landing, and standing dance. A rollout cannot request a ground pound directly:
 the proposed conservation/reactivation must genuinely reach an action that
@@ -151,12 +242,16 @@ From the repository root, use the installed proof switch and wrappers:
 ```sh
 SM64_PROOF_SWITCH=sm64-item-proof bash pipeline/build.sh \
   -C SSL-Coq/less-than-one-a-press check-rank9
+
+SM64_PROOF_SWITCH=sm64-item-proof bash pipeline/build.sh \
+  -C SSL-Coq/less-than-one-a-press check-rank9-timing
 ```
 
 From the SSL project directory:
 
 ```sh
 node instrumentation/rank9-upper-star-dance/check.js
+node instrumentation/rank9-upper-star-dance/timing.js
 ```
 
 The diagnostic reads pinned decompile revision
@@ -166,7 +261,7 @@ verified translation: in particular `sqrtf` is represented by `Math.sqrt`
 followed by Float32 rounding. Actual surface allocation, transformed dynamic
 lists, live ownership, and query execution remain outside that receipt.
 
-Validation on 2026-09-05: the new module and integrated `MainTheorem.v`
+Initial ledge-tranche validation on 2026-09-05: the new module and integrated `MainTheorem.v`
 compiled with Coq 8.16.1 / CompCert 3.15. The no-hole and link-hygiene checks,
 all eleven focused/boundary/overall assumption audits, the offline collision
 regressions, and atlas paragraph/link checks passed. The mesh's Git blob
@@ -177,5 +272,17 @@ this is not a claim that one uninterrupted `check-rank9` invocation passed.
 The repository-wide discipline audit still cannot build the legacy root
 project because its `sm64-proof` switch is absent; the active SSL validation
 uses the installed `sm64-item-proof` switch. No project-local axiom was added.
+
+Timing follow-up validation on 2026-09-05: `Area2Rank9StarTiming.v` and the
+final `MainTheorem.v` compile; all six `check-rank9-timing` assumption audits
+pass, with only the standard foundational/CompCert assumptions. The combined
+target built Main and passed no-hole/link-hygiene checks, but WSL stopped
+during its second audit; the remaining audits were completed individually.
+Both diagnostics and the atlas's three-paragraph/45-anchor navigation checks
+pass. The mesh hash is unchanged. The Float32 orbit checker keeps bit patterns
+between updates to avoid duplicating large intermediate proof terms; its
+successful leaf check uses a 4-GiB cap, while Main uses the standard 6.5-GiB
+cap. The final repository-wide discipline audit retains the same missing
+legacy `sm64-proof` switch limitation described above.
 
 [Back to Rank 9](../no-a-route-atlas.md#route-rank-9)
