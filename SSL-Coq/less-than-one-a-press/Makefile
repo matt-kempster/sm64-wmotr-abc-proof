@@ -2,7 +2,7 @@ COQMAKEFILE := CoqMakefile
 COQBIN ?=
 COQMAKEFILE_CMD ?= $(COQBIN)coq_makefile
 
-.PHONY: all generated regenerate verify-generated proofs check check-rank9a clean
+.PHONY: all generated regenerate verify-generated proofs check check-rank9a check-rank10a clean
 
 all: proofs
 
@@ -2302,6 +2302,47 @@ check-rank9a: $(COQMAKEFILE)
 	bash pipeline/assumptions.sh \
 	  LessThanOneAPress.Proofs.MainTheorem \
 	  current_rank9a_coin_star_gate_boundary
+
+check-rank10a: $(COQMAKEFILE)
+	$(MAKE) -f $(COQMAKEFILE) proofs/MainTheorem.vo
+	bash pipeline/check-no-admitted.sh
+	bash pipeline/check-link-hygiene.sh
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.Area2Rank10AGroundPound \
+	  rank10a_selected_bodies_resolve
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.Area2Rank10AGroundPound \
+	  rank10a_startup_prefix_is_generated
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.Area2Rank10AGroundPound \
+	  rank10a_direct_entry_census
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.Area2Rank10AGroundPound \
+	  rank10a_y_write_executes
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.Area2Rank10AGroundPound \
+	  rank10a_y_store_preserves_mario_xz
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.Area2Rank10AGroundPound \
+	  rank10a_every_headroom_schedule_is_bounded
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.Area2Rank10AGroundPound \
+	  rank10a_ordinary_descriptor_has_a_height_window
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.Area2Rank10AGroundPound \
+	  rank10a_zero_speed_has_no_hidden_horizontal_magnitude
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.Area2Rank10AGroundPound \
+	  rank10a_ten_unit_descent_cannot_pass_off_floor_test
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.Area2Rank10AGroundPound \
+	  rank10a_ground_pound_boundary_checked
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.MainTheorem \
+	  current_rank10a_ground_pound_moving_geometry_boundary
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.MainTheorem \
+	  conditional_evidence_bearing_clight_run_impossibility
 
 clean:
 	-$(MAKE) -f $(COQMAKEFILE) clean

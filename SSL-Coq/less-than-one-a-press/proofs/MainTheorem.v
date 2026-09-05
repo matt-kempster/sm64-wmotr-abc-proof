@@ -39,6 +39,7 @@ From LessThanOneAPress.Proofs Require Import
   UpperElevatorLiveTraceReceipt
   Area2Rank9AStarSource Area2Rank9AStarExecution Area2Rank9AStarGeometry
   Area2Rank9ACoinProducers Area2Rank9ACoinLaunch Area2Rank9ACoinFlight
+  Area2Rank10AGroundPound
   CompCertRouteScope.
 
 Import ListNotations.
@@ -825,6 +826,16 @@ Theorem current_rank10_live_query_and_pose_boundary :
 Proof.
   exact jp_rank10_live_query_and_pose_boundary_checked.
 Qed.
+
+(** Rank 10A has a real conditional height window, not a clean installer.
+    The selected startup Y-store executes, every non-wrapping headroom
+    schedule obeys the Float32 110-unit bound, and the granted fifteen-update
+    elevator scenario reaches relative 260. Zero horizontal speed and the
+    earlier live geometry queries remain essential: entry, other whole-frame
+    effects and a useful departure are not discharged by this boundary. *)
+Theorem current_rank10a_ground_pound_moving_geometry_boundary :
+  Rank10AGroundPoundBoundary.
+Proof. exact rank10a_ground_pound_boundary_checked. Qed.
 
 (** Rank 12A now has an exact positive witness for the support-refresh branch.
     Across a staged original-JP Area-3-to-Area-2 instant warp, the selected

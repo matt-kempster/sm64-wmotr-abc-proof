@@ -429,4 +429,5 @@ proofs/Area2Rank9AStarGeometry.v
 proofs/Area2Rank9ACoinProducers.v
 proofs/Area2Rank9ACoinLaunch.v
 proofs/Area2Rank9ACoinFlight.v
+proofs/Area2Rank10AGroundPound.v
 proofs/MainTheorem.v

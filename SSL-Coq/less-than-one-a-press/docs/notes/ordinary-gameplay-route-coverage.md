@@ -109,6 +109,13 @@ Source anchors: `f_interact_coin`, `f_interact_star_or_key` in
 
 ## Rank 10A — Ground-pound startup and moving geometry
 
+The follow-up [source-linked proof and timing audit](rank10a-ground-pound-moving-geometry.md)
+now checks the height window and its limits: the normal fifteen-update pause
+can reach relative Y=260 in a granted steady-descent scenario, but zeros
+sideways speed and does not skip the earlier wall/floor queries. A clean
+eligible entry and useful departure remain missing. The simple ten-unit
+floor-lag-to-freefall entry is excluded when the actual base is followed.
+
 The startup branch of `act_ground_pound` changes **MarioState Y**, not just
 Graphics Y.  For timers 0 through 9, its attempted offsets are
 `20,18,16,14,12,10,8,6,4,2`: at most 110 units in total if all headroom checks
