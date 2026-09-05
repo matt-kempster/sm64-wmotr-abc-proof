@@ -38,7 +38,7 @@ From LessThanOneAPress.Proofs Require Import
   Area2Rank12ObjectImpulse Area2Rank12AReloadSupport
   UpperElevatorLiveTraceReceipt
   Area2Rank9AStarSource Area2Rank9AStarExecution Area2Rank9AStarGeometry
-  Area2Rank9ACoinProducers Area2Rank9ACoinLaunch
+  Area2Rank9ACoinProducers Area2Rank9ACoinLaunch Area2Rank9ACoinFlight
   CompCertRouteScope.
 
 Import ListNotations.
@@ -781,15 +781,21 @@ Qed.
     post-RNG coin-launch execution keep the survivor concrete. They do NOT
     construct a star installation, live wall/floor selection or a complete
     controller-reachable crossing. The launch theorem does not substitute
-    a Goomba movement envelope for the coin's own collision/lifetime proof. *)
+    a Goomba movement envelope for the coin's own collision/lifetime proof.
+    The Float32 flight envelope now handles all bounded random launches,
+    arbitrary pauses and checked lower-support resets. It still requires
+    projection of live steps; airborne re-jumps, higher selected supports and
+    movement between contact and star-home sampling are not ruled out. *)
 Theorem current_rank9a_coin_star_gate_boundary :
   Rank9ASelectedStarBoundary /\ Rank9AGeometricTestBoundary /\
-  Rank9ACoinProducerSourceBoundary /\ Rank9ACoinLaunchBoundary.
+  Rank9ACoinProducerSourceBoundary /\ Rank9ACoinLaunchBoundary /\
+  Rank9ACoinFlightBoundary.
 Proof.
   split; [exact rank9a_selected_star_boundary_holds |].
   split; [exact rank9a_geometric_test_boundary_checked |].
-  split; [exact rank9ac_coin_producer_source_boundary_checked |
-    exact rank9ac_coin_launch_boundary_checked].
+  split; [exact rank9ac_coin_producer_source_boundary_checked |].
+  split; [exact rank9ac_coin_launch_boundary_checked |
+    exact rank9cf_coin_flight_boundary_checked].
 Qed.
 
 (** Rank 10 now has one continuous original-JP B-only execution from the

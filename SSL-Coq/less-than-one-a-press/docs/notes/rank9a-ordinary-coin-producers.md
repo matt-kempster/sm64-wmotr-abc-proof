@@ -2,6 +2,12 @@
 
 ## Result
 
+Follow-up: the [Goomba defeat/coin flight audit](rank9a-goomba-coin-flight.md)
+now bounds all ordinary random launches with CompCert Float32 rounding,
+arbitrary pauses and checked lower-support resets. The bounded flight branch
+is too low even from the conditional Spindel raising station. A clean higher
+installation or another gameplay-glitch height gain remains open.
+
 **A defeated regular Goomba is the concrete mobile producer to investigate;
 no clean gate-side installation has been found.** The other ordinary Area-2
 coin layouts do not solve the placement problem: the 15 individual yellows,
@@ -131,15 +137,15 @@ outside call. No memory-modification method is developed.
 
 ## Next decisive test
 
-Follow one normal Goomba defeat through the actual coin's allocation, floor
-choice, launch, motion, first tangible contact and 100-coin threshold, then
-through the star's home initialization. For the previously checked wall/ledge
-sample, Mario's raw Y at that last initialization must be in [3505,3715];
-the coin's spawn Y alone is not that sample. A moving support or an ordinary
-partial-update/floor-selection exception must be exhibited, not granted.
-Also preserve the earlier climb and the single-use coin-star budget. If
-every such reachable drop is too low or too far, this producer closes;
-the isolated toss and the fixed-coin census are not yet that proof.
+Find an attack pose or subsequent support/movement event outside the new
+bounded flight branch, or show that every reachable game update fits that
+branch. Pausing alone does not add height; airborne Goomba re-jumps and higher
+selected floors are still in scope. Then follow the same coin through its
+first tangible contact and the 100-coin threshold to the star's home sample.
+That sample must be in [3505,3715] for the checked ledge location; it is not
+automatically the coin's spawn height or Mario's contact height. Preserve the
+earlier climb and the single-use star budget. No clean installation or full
+glitch-exhaustive impossibility result has been obtained.
 
 ## Verification
 
