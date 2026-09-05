@@ -2,8 +2,16 @@
 
 ## Result
 
-**Open, now with a continuous local coin/star timing candidate as well as
-the ledge-and-landing target.** Starting from a granted airborne coin pickup,
+**Parked pending an independently demonstrated no-A elevator escape.**
+This is a conditional continuation after Mario is already outside the upper
+elevator, not a way to escape it. Even a fully successful continuation would
+still leave one A press if Mario uses the ordinary elevator jump. The local
+results below remain useful supporting evidence, but do not remove that
+bottleneck or establish a zero-A route. Prioritize a clean elevator bypass;
+resume this continuation only once that bypass supplies a compatible starting
+state, including the required coin history and unspent 100-coin reward.
+
+**Conditional local result.** Starting from a granted airborne coin pickup,
 the diagnostic carries the same Mario and star positions through spawning,
 the freeze, remaining ground-pound lifts, first star contact, rear-wall catch
 and landing. Coq executes the actual star-home Y stores and checks the
@@ -216,6 +224,14 @@ its existing contact sheets, collects no coins and does not show this
 100-coin timing setup.
 
 ## What still closes the route
+
+First demonstrate an independent elevator escape without a new A press and
+connect its actual endpoint to the proposed continuation. Starting with Mario
+already outside the elevator does not discharge this obligation. Rank 9 is
+parked, not disproved: the existing timing and ledge results are retained for
+that future connection, but further suffix work is not the current search
+priority. A standalone continuation proof would settle only the downstream
+subproblem, not the complete zero-A route.
 
 Reach the specified first-startup coin-contact boundary, or another useful
 placement, from a useful upper-cut state with zero new A presses and the

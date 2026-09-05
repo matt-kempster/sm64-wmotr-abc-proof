@@ -2456,3 +2456,9 @@ conditional samples through every startup geometry check and the next
 landing. Run `check-rank9-timing` through the build wrapper for this tranche.
 Clean arrival with 99 coins, the complete live timeline, dance completion
 and final Act-3 collection remain unproved.
+
+**Rank 9 is parked pending an independent no-A elevator escape.** All of
+this work starts beyond the upper-elevator barrier; none of the local results
+supplies that escape. Even completing the continuation would leave one A
+press if Mario uses the ordinary elevator jump. Retain the checked results
+as conditional support and prioritize a clean bypass before extending them.

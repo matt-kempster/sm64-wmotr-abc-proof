@@ -85,6 +85,13 @@ height.
 
 ## Transcript-specified Act 3 continuations
 
+**Rank 9 is parked pending an independent no-A elevator escape.** Its upper
+continuation begins with Mario already outside the elevator; none of the
+coin, timing or ledge results below supplies that escape. Even completing
+the continuation would leave one A press if the ordinary elevator jump is
+used. Keep these results as conditional supporting work and prioritize the
+gate itself before extending this suffix.
+
 The [Rank-9 upper-platform follow-up](rank9-upper-star-dance.md) now connects
 a granted airborne coin pickup to star spawning, ground-pound resumption,
 first star contact, a rear-wall catch and landing in one local timing test.
@@ -98,7 +105,8 @@ dance completion and final Act-3 pickup remain unproved.
 The transcript supplies two different post-gate methods; the failed experiment
 below did not execute either one.
 
-For an upper-entrance elevator escape, the transcript's route is:
+After an independently achieved upper-entrance elevator escape, the
+transcript's continuation is:
 
 1. make the 100th coin spawn the 100-coin star near the Act 3 platform;
 2. store the upward part of a rollout with vertical-speed conservation;

@@ -21,6 +21,12 @@ source-code, or memory-model terminology; include technical names only when
 they are needed to identify evidence, and move exhaustive detail to the linked
 checklist, proof narrative, or technical notes.
 
+For downstream continuations, name the unresolved gate before describing the
+payoff. Never treat a start beyond that gate as evidence of a no-A bypass.
+When work is paused for that missing prerequisite, mark the continuation as
+parked. Keep conditional results separate from progress on removing the
+required A press.
+
 Keep the navigation bidirectional whenever an approach is added, removed, or
 reranked: its **Approach** cell in the at-a-glance table must link to a stable
 explicit `route-rank-*` anchor immediately above the approach heading, and the
@@ -72,7 +78,7 @@ ideas.  These are research priorities, not numerical probabilities.
 Lettered ranks such as `5A` place a tightly related subroute immediately after
 the numbered route without obscuring the stable top-level ordering.
 
-Likelihood labels mean:
+Likelihood and status labels mean:
 
 - **High:** the best current lead, with a substantial conditional execution
   already observed; it is still not a clean counterexample.
@@ -84,6 +90,9 @@ Likelihood labels mean:
   significant source, geometry, timing, or arithmetic evidence.
 - **Retired:** the proposal as stated has been disproved.  It can return only
   if a named premise of that disproof is broken by new evidence.
+- **Parked:** supporting work awaits an unresolved prerequisite; this is not
+  a disproof. Its existing rank and links remain for reference, not as a
+  recommendation to pursue it before the prerequisite.
 
 No single item below currently supplies a complete clean route to either
 target.  A successful counterexample for one target needs all three layers:
@@ -165,6 +174,10 @@ The detailed sections are organized as:
 - **Act 3 is the main downstream gap:** the upper and lower itineraries are
   specified and source geometry is checked, but neither has a cut-starting
   linked replay.
+- **Rank 9 is parked behind the upper-elevator barrier:** its star-dance
+  continuation assumes Mario is already outside. Even a complete continuation
+  leaves one A press if the ordinary elevator jump is used; prioritize a
+  clean no-A escape before extending this downstream work.
 - **The stale Eyerok-hand route is retired in the audited stock model:** the
   only hand motion that reaches the warp is vertically below both Pedro bands,
   every rising family remains horizontally behind it, the later-writer and
@@ -196,7 +209,7 @@ The detailed sections are organized as:
 | 7 | Downstream collection | [Join all five Act-6 triggers, spawn, pickup, and save-bit update](#route-rank-7) | High conditional value; the recovered transcript and published run put the sole press at the second pole, and an exact one-edge controller segment now reaches the downstream Grindel base |
 | 7A | Downstream collection | [Assemble Puzzle secret progress across ordinary area revisits](#route-rank-7a) | Very low as a bypass; normal credit survives revisits, but no unearned secret or avoided hard contact is known |
 | 8 | Downstream collection | [Lower Act-3 100-coin-star/Grindel itinerary](#route-rank-8) | High conditional value; the recovered five-trial account and published run reach Act 3 after the sole second-pole press, while exact inputs currently stop at the Grindel base |
-| 9 | Downstream collection | [Upper Act-3 100-coin/star-dance itinerary](#route-rank-9) | Low-medium conditional continuation; one coin/startup timing now reaches the catch in a local test, but clean arrival and final collection remain unproved |
+| 9 | Downstream collection | [Upper Act-3 100-coin/star-dance itinerary](#route-rank-9) | Parked pending an independent no-A elevator escape; low-medium only as a downstream continuation, with no elevator bypass supplied |
 | 9A | Direct Area-2 gates | [Use the 100-coin star to interrupt an action at the gate](#route-rank-9a) | Low; fixed coins are far away, and the bounded Goomba-attack/coin-toss branch is too low even from the conditional Spindel station; further raising, higher supports or movement before the star chooses its position remain open |
 | 10 | Direct Area-2 gates | [Held-A jump-kick or B rollout from the upper elevator shaft](#route-rank-10) | Very low; live held-A launches hit all four elevator faces below the cutoff, and every JP held-A/rollout query is now linked and accounted for |
 | 10A | Direct Area-2 gates | [Ground-pound startup while the elevator or another support moves](#route-rank-10a) | Low; a granted startup clears the wall-height cutoff while the elevator descends, but stops sideways speed; clean entry and a useful collision, support or interaction departure remain missing |
@@ -250,6 +263,11 @@ strong height and speed obstructions.  Those two need a specific new setup.
 promise, while **3** is mainly proof-value work.  **7 and 8** are the strongest
 downstream continuations, not independent high-likelihood bypasses.  This is a
 research-priority judgment, not a measured probability or a newly found route.
+
+**Park 9 until an independent no-A elevator escape is demonstrated.** Its
+local star-dance timing starts beyond the barrier and cannot remove the
+ordinary elevator jump's A press. Work on crossing the barrier first; then
+check that the resulting state can actually feed this continuation.
 
 ## Family 1 — JP stale-platform and spawning-displacement routes
 
@@ -871,13 +889,13 @@ important for complete collection accounting.**
 
 ### Upper Act-3 100-coin/star-dance itinerary
 
-**Overall rank: 9. Family priority: 4. Likelihood: low-medium as a conditional continuation.**
+**Overall rank: 9. Family priority: 4. Status: parked pending a no-A elevator escape. Likelihood: low-medium only as a conditional continuation.**
 
-**In plain language.** After bypassing the elevator, arrange an airborne 100-coin-star pickup that interrupts a ground pound, letting the star-collection animation catch the high platform; then get the Act-3 star without another A press. Stored rollout speed or a suitably controlled fall could supply the earlier airborne approach.
+**In plain language.** This idea starts with Mario already outside the upper elevator; it does not get him out. After an independent no-A escape, arrange an airborne 100-coin-star pickup that interrupts a ground pound, letting the star-collection animation catch the high platform, then reach the Act-3 star. Stored rollout speed or a controlled fall are possible approaches to that pickup, not established elevator escapes.
 
-**What is already known.** The [upper-platform investigation](notes/rank9-upper-star-dance.md) now connects a nearby coin, star spawning and the rear-wall catch in one local timing test: collecting the coin as the ground pound starts lets Mario touch its star late enough to catch the platform and land. Collecting the coin one startup update later already leaves too little rise; all nine tested later timings fail. Coq executes the game's star-height writes and checks the timing and contact arithmetic, alongside the earlier caught-floor proof. However, the test grants the airborne starting position and 99 coins, and the nearby shelf cannot simply reactivate stored speed by its small downward step. A clean arrival, live execution and final pickup remain unproved; standing on the flat platform still leaves a 75-unit gap to the Act-3 star.
+**What is already known.** Even a completed continuation would leave one A press if Mario uses the ordinary elevator jump, so Rank 9 is parked as supporting work rather than an active bypass search. The [upper-platform investigation](notes/rank9-upper-star-dance.md) connects a nearby coin, star spawning, the rear-wall catch and landing in one conditional local test; all nine tested later pickup timings fail. Coq checks the star-height writes, timing, contacts and caught-floor operations, but the test grants an airborne start outside the elevator and 99 coins. The nearby shelf's small drop does not establish the needed approach. The independent elevator escape, clean arrival, complete live execution and final pickup remain unproved; the flat platform still leaves a 75-unit gap to the target star.
 
-**What closes it.** Reach the checked airborne coin-contact position with 99 coins, keeping the coin untouched until the update that starts the ground pound, or find another useful earlier star placement. Then follow one real run through star spawning, the freeze and resumption, every movement and collision check, the catch, landing, dance and final Act-3 pickup without another A press; the local timing test supplies neither that clean arrival nor the earlier elevator escape.
+**What closes it.** First demonstrate an independent no-A elevator escape and show that its actual endpoint can reach the proposed pickup with the required coin history and unused 100-coin reward; do not assume Mario is already outside. Only then resume this continuation: reach the checked coin-contact position with 99 coins at the first ground-pound update, or another useful placement, and follow one real run through spawning, the freeze, resumption, movement and collision checks, catch, landing, dance and final Act-3 pickup without a new A press. Finishing the downstream portion alone would not close the full route.
 
 [Back to the at-a-glance ranking](#at-a-glance-ranking)
 

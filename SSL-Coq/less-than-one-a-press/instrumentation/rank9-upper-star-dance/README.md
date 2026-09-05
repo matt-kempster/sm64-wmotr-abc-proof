@@ -1,5 +1,11 @@
 # Rank 9 static collision and conditional timing diagnostics
 
+**Parked pending an independent no-A elevator escape.** These diagnostics
+start outside the elevator and test only a downstream continuation. They
+cannot remove the A press used by the ordinary elevator exit, even if every
+local check succeeds. Preserve them as supporting evidence for a future
+bypass; they are not a controller-reachable escape demonstration.
+
 Run from `SSL-Coq/less-than-one-a-press`:
 
 ```sh
