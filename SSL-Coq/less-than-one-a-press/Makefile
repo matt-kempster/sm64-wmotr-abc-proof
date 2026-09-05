@@ -2,7 +2,7 @@ COQMAKEFILE := CoqMakefile
 COQBIN ?=
 COQMAKEFILE_CMD ?= $(COQBIN)coq_makefile
 
-.PHONY: all generated regenerate verify-generated proofs check clean
+.PHONY: all generated regenerate verify-generated proofs check check-rank9a clean
 
 all: proofs
 
@@ -2261,6 +2261,29 @@ check: proofs
 	bash pipeline/assumptions.sh \
 	  LessThanOneAPress.Proofs.MainTheorem \
 	  current_rank15_dynamic_support_boundary
+
+check-rank9a: $(COQMAKEFILE)
+	$(MAKE) -f $(COQMAKEFILE) proofs/MainTheorem.vo
+	bash pipeline/check-no-admitted.sh
+	bash pipeline/check-link-hygiene.sh
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.Area2Rank9AStarSource \
+	  rank9a_selected_body_resolves
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.Area2Rank9AStarExecution \
+	  rank9a_selected_star_boundary_holds
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.Area2Rank9AStarExecution \
+	  rank9a_standing_initializer_is_memory_identity
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.Area2Rank9AStarExecution \
+	  rank9a_air_flag_always_selects_falling
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.Area2Rank9AStarGeometry \
+	  rank9a_geometric_test_boundary_checked
+	bash pipeline/assumptions.sh \
+	  LessThanOneAPress.Proofs.MainTheorem \
+	  current_rank9a_coin_star_gate_boundary
 
 clean:
 	-$(MAKE) -f $(COQMAKEFILE) clean

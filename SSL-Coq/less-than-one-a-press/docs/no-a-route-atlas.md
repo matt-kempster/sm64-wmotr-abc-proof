@@ -197,7 +197,7 @@ The detailed sections are organized as:
 | 7A | Downstream collection | [Assemble Puzzle secret progress across ordinary area revisits](#route-rank-7a) | Very low as a bypass; normal credit survives revisits, but no unearned secret or avoided hard contact is known |
 | 8 | Downstream collection | [Lower Act-3 100-coin-star/Grindel itinerary](#route-rank-8) | High conditional value; the recovered five-trial account and published run reach Act 3 after the sole second-pole press, while exact inputs currently stop at the Grindel base |
 | 9 | Downstream collection | [Upper Act-3 100-coin/star-dance itinerary](#route-rank-9) | Low-medium conditional continuation; no cut-starting replay |
-| 9A | Direct Area-2 gates | [Use the 100-coin star to interrupt an action at the gate](#route-rank-9a) | Low and untested at the gate; real action change, but no useful clean star placement and the earlier/later coin-star budget must work |
+| 9A | Direct Area-2 gates | [Use the 100-coin star to interrupt an action at the gate](#route-rank-9a) | Low; attached-pole pickup cannot use the ledge trick, but a descending wall/ledge setup is geometrically plausible; clean star placement and the coin-star budget remain open |
 | 10 | Direct Area-2 gates | [Held-A jump-kick or B rollout from the upper elevator shaft](#route-rank-10) | Very low; live held-A launches hit all four elevator faces below the cutoff, and every JP held-A/rollout query is now linked and accounted for |
 | 10A | Direct Area-2 gates | [Ground-pound startup while the elevator or another support moves](#route-rank-10a) | Low and untested as a composite; up to 110 real upward units, but no clean useful entry or sideways departure is known |
 | 11 | Direct Area-2 gates | [Lower-aperture impulse, clip, or support switch](#route-rank-11) | Very low for a clean route; Goomba damage works, but all nine stock Goombas fail the ordinary source-mesh and accessible-lift installer audit |
@@ -691,14 +691,14 @@ Technical background: [upper elevator cut](notes/area2-elevator-cut.md),
 
 ### Use the 100-coin star to interrupt an action at the gate
 
-**Overall rank: 9A. Family priority: 1. Likelihood: low; source-backed action
-mechanism, but no useful clean at-gate placement.**
+**Overall rank: 9A. Family priority: 1. Likelihood: low; attached-pole version
+excluded locally, descending wall/ledge candidate still needs installation.**
 
 **In plain language.** Save the 100-coin star for the difficult pole or elevator, then collect it at a moment when changing Mario's action might let him catch a ledge or keep a useful position. This uses ordinary coin collection, not a changed action table, and is separate from using the star after the gate.
 
-**What is already known.** The 100th coin really creates a no-exit star, and collecting it changes Mario's action without A. An airborne pickup enables the normal falling/ledge-grab routine, but clears horizontal speed rather than granting a jump; the standing dance repeatedly places Mario at his remembered floor height. The star starts its own normal appearance sequence relative to Mario, so its position and availability cannot be chosen freely. The lower published route already spends this star at the earlier big steps, and the upper Act-3 plan needs it later: a new route must account for those competing uses. No useful pickup at either gate has been demonstrated. See the [ordinary-gameplay review](notes/ordinary-gameplay-route-coverage.md#rank-9a--spend-the-100-coin-star-at-a-gate).
+**What is already known.** Coq now checks that collecting the star during any of the six attached pole poses selects the standing dance, not the airborne ledge trick; its height snap replaces the handstand elevation with the remembered floor height. The ledge check also rejects a rising Mario. An airborne, descending pickup remains interesting: a checked local wall/ledge calculation reaches the upper ring, but no clean star placement or complete collision sequence has been shown. None of the 15 individually placed yellow coins starts near the shaft. The lower route already spends the star at earlier big steps, and the upper Act-3 plan needs it later. See the [Rank 9A proof notes](notes/rank9a-coin-star-gate.md).
 
-**What closes it.** First find a clean 100th-coin placement and later star contact while Mario is still on the near side of the gate, with an earlier climb and later target route that do not spend the same star twice. Then follow the actual action change, velocity, moving support, ledge checks, and star continuation in one zero-A run. Alternatively, rule out every useful coin placement, contact, or action outcome; a displayed star dance or an artificially placed star is insufficient.
+**What closes it.** First find an ordinary coin producer and route that creates a useful star, then collect it while airborne and reach a suitable ledge check while level or descending; the earlier climb and later target route must not spend the same star twice. Follow its appearance, actual contact, every wall/floor/ceiling choice, action change, landing and star continuation in one zero-A run. Alternatively, exclude all compatible producers and departures. A changed remembered floor or moving elevator needs its own checks, and neither an artificially placed star nor the local ring calculation proves a route.
 
 [Back to the at-a-glance ranking](#at-a-glance-ranking)
 

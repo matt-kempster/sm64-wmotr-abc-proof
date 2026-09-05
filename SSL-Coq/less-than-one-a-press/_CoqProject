@@ -423,4 +423,7 @@ proofs/Area1Rank18CopyResolution.v
 proofs/Area1Ranks13To18TraceReceipt.v
 proofs/UpperElevatorQueryResolution.v
 proofs/UpperElevatorLiveTraceReceipt.v
+proofs/Area2Rank9AStarSource.v
+proofs/Area2Rank9AStarExecution.v
+proofs/Area2Rank9AStarGeometry.v
 proofs/MainTheorem.v

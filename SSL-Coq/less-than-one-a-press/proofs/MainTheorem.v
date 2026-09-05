@@ -37,6 +37,7 @@ From LessThanOneAPress.Proofs Require Import
   EyerokControllerReachability
   Area2Rank12ObjectImpulse Area2Rank12AReloadSupport
   UpperElevatorLiveTraceReceipt
+  Area2Rank9AStarSource Area2Rank9AStarExecution Area2Rank9AStarGeometry
   CompCertRouteScope.
 
 Import ListNotations.
@@ -769,6 +770,20 @@ Proof.
   split.
   - exact upper_ordinary_ascent_kernel_checked.
   - exact wing_cap_rollout_arithmetic_countermodel.
+Qed.
+
+(** Rank 9A now has selected-program, memory-executed exclusions rather than
+    just a possible action interruption: every attached pole pose selects
+    the standing dance, its generated snap overwrites Y with cached floor Y,
+    and a rising ledge-check body returns without a write or outside call.
+    The west-ring binary32 test target and individual-coin initializer census
+    keep the survivor concrete.  They do NOT construct a star installation,
+    live wall/floor selection or a complete controller-reachable crossing. *)
+Theorem current_rank9a_coin_star_gate_boundary :
+  Rank9ASelectedStarBoundary /\ Rank9AGeometricTestBoundary.
+Proof.
+  split; [exact rank9a_selected_star_boundary_holds |
+    exact rank9a_geometric_test_boundary_checked].
 Qed.
 
 (** Rank 10 now has one continuous original-JP B-only execution from the

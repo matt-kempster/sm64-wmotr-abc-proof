@@ -58,6 +58,13 @@ entire game.  A complete no-go still needs the linked coverage obligations in
 
 ## Rank 9A — Spend the 100-coin star at a gate
 
+Follow-up: the [Rank 9A Coq investigation](rank9a-coin-star-gate.md) now
+checks the attached-pole action split, cached-height snap, and immediate
+rising-ledge rejection. A descending west-ring setup has consistent local
+geometry but no clean star installation or live collision sequence. The
+15 individually placed yellow-coin records are all away from the shaft.
+The original review below describes the wider route and resource question.
+
 The ordinary coin handler creates the no-exit star when the coin total crosses
 100.  Its spawn helper uses star index 6, not either target index.  The spawned
 star's normal initial home uses Mario's raw position with Y increased by 250;
