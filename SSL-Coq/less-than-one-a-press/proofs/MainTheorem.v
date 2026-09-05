@@ -39,7 +39,7 @@ From LessThanOneAPress.Proofs Require Import
   UpperElevatorLiveTraceReceipt
   Area2Rank9AStarSource Area2Rank9AStarExecution Area2Rank9AStarGeometry
   Area2Rank9ACoinProducers Area2Rank9ACoinLaunch Area2Rank9ACoinFlight
-  Area2Rank10AGroundPound Area2Rank12BContact
+  Area2Rank10AGroundPound Area2Rank12BContact Area2Rank9UpperStarDance
   CompCertRouteScope.
 
 Import ListNotations.
@@ -845,6 +845,15 @@ Proof. exact rank10a_ground_pound_boundary_checked. Qed.
     census nor that sample supplies a live support or controller predecessor. *)
 Theorem current_rank12b_cross_barrier_contact_boundary : Rank12BContactBoundary.
 Proof. exact rank12b_contact_boundary_checked. Qed.
+
+(** Rank 9's upper continuation now has an actual memory-executed floor
+    commit and a post-air-step branch that does not undo a ledge result.
+    Generated geometry and Float32 arithmetic identify a concrete rear-wall
+    window and a nearby fixed-coin placement candidate. The static query
+    diagnostic is NOT a live Clight query, and no controller prefix, timely
+    star placement, remaining call frame, or target collection is inferred. *)
+Theorem current_rank9_upper_star_dance_boundary : Rank9UpperStarDanceBoundary.
+Proof. exact rank9_upper_star_dance_boundary_checked. Qed.
 
 (** Rank 12A now has an exact positive witness for the support-refresh branch.
     Across a staged original-JP Area-3-to-Area-2 instant warp, the selected

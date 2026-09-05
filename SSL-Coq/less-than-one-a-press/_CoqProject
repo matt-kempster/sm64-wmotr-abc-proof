@@ -431,4 +431,5 @@ proofs/Area2Rank9ACoinLaunch.v
 proofs/Area2Rank9ACoinFlight.v
 proofs/Area2Rank10AGroundPound.v
 proofs/Area2Rank12BContact.v
+proofs/Area2Rank9UpperStarDance.v
 proofs/MainTheorem.v

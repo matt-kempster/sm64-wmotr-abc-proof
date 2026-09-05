@@ -2,7 +2,7 @@ COQMAKEFILE := CoqMakefile
 COQBIN ?=
 COQMAKEFILE_CMD ?= $(COQBIN)coq_makefile
 
-.PHONY: all generated regenerate verify-generated proofs check check-rank9a check-rank10a check-rank12b clean
+.PHONY: all generated regenerate verify-generated proofs check check-rank9 check-rank9a check-rank10a check-rank12b clean
 
 all: proofs
 
@@ -2364,6 +2364,22 @@ check-rank12b: $(COQMAKEFILE)
 	bash pipeline/assumptions.sh LessThanOneAPress.Proofs.Area2Rank12BContact rank12b_contact_boundary_checked
 	bash pipeline/assumptions.sh LessThanOneAPress.Proofs.MainTheorem current_rank12b_cross_barrier_contact_boundary
 	bash pipeline/assumptions.sh LessThanOneAPress.Proofs.MainTheorem conditional_evidence_bearing_clight_run_impossibility
+
+check-rank9: $(COQMAKEFILE)
+	$(MAKE) -f $(COQMAKEFILE) proofs/MainTheorem.vo
+	bash pipeline/check-no-admitted.sh
+	bash pipeline/check-link-hygiene.sh
+	bash pipeline/assumptions.sh LessThanOneAPress.Proofs.Area2Rank9UpperStarDance rank9_fall_enables_the_ledge_check
+	bash pipeline/assumptions.sh LessThanOneAPress.Proofs.Area2Rank9UpperStarDance rank9_ledge_result_smallsteps
+	bash pipeline/assumptions.sh LessThanOneAPress.Proofs.Area2Rank9UpperStarDance rank9_ledge_commits_same_floor_and_height
+	bash pipeline/assumptions.sh LessThanOneAPress.Proofs.Area2Rank9UpperStarDance rank9_wall_and_destination_are_generated
+	bash pipeline/assumptions.sh LessThanOneAPress.Proofs.Area2Rank9UpperStarDance rank9_fifty_integral_height_samples
+	bash pipeline/assumptions.sh LessThanOneAPress.Proofs.Area2Rank9UpperStarDance rank9_sample_exact_snap
+	bash pipeline/assumptions.sh LessThanOneAPress.Proofs.Area2Rank9UpperStarDance rank9_coin_descriptor_and_offset_are_generated
+	bash pipeline/assumptions.sh LessThanOneAPress.Proofs.Area2Rank9UpperStarDance rank9_nearby_coin_and_star_vertical_window
+	bash pipeline/assumptions.sh LessThanOneAPress.Proofs.Area2Rank9UpperStarDance rank9_upper_star_dance_boundary_checked
+	bash pipeline/assumptions.sh LessThanOneAPress.Proofs.MainTheorem current_rank9_upper_star_dance_boundary
+	bash pipeline/assumptions.sh LessThanOneAPress.Proofs.MainTheorem conditional_less_than_one_a_press_impossibility
 
 clean:
 	-$(MAKE) -f $(COQMAKEFILE) clean

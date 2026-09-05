@@ -2442,3 +2442,11 @@ rejection, and a census of all 1,558 Area-2 static triangles. It also preserves
 the positive Act-3 rim contact candidate and the unresolved airborne/edge
 approaches. Run `make check-rank12b` through the bounded build wrapper; these
 local results do not replace the global live-execution obligations.
+
+The [Rank-9 upper-platform audit](docs/notes/rank9-upper-star-dance.md) supplies
+a concrete rear-wall star-fall catch, a 50-height static test window, and a
+nearby ordinary coin candidate. Its Coq module executes the real floor-pair
+commit and caller decision, and is consumed by `MainTheorem.v`. Run
+`check-rank9` through the build wrapper and the offline diagnostic described
+in the note. Timely star placement, live queries, and the complete zero-A
+continuation remain unproved.

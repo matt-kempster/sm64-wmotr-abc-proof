@@ -85,6 +85,13 @@ height.
 
 ## Transcript-specified Act 3 continuations
 
+The [Rank-9 upper-platform follow-up](rank9-upper-star-dance.md) now identifies
+a concrete rear-wall star-fall catch and following landing in an offline
+static-collision test, along with a nearby ordinary coin candidate. Coq
+executes the real floor-pair commit and the caller's ledge-result decision.
+This sharpens the upper itinerary's local ledge stage, but still does not
+construct its cut-starting suffix, timely star placement, or live query trace.
+
 The transcript supplies two different post-gate methods; the failed experiment
 below did not execute either one.
 
