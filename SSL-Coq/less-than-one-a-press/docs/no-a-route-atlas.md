@@ -54,11 +54,14 @@ example, an A-dependent action can sometimes continue when A was already held
 at the boundary.  Every such use still needs an authenticated predecessor and
 input history.
 
-This is intended to cover every approach presently named in the active project
-and its audited archives.  It is not a claim that nobody can invent a new SM64
-mechanism.  The generic memory, external-call, collision-cache, and scheduler
-escape classes near the end are where a genuinely new mechanism would
-currently land.
+This covers the approaches named in the active project and its audited
+archives, including the new [ordinary-gameplay coverage review](notes/ordinary-gameplay-route-coverage.md).
+It is not an exhaustive proof of every controller-reachable route: a broad
+collision or scheduler category does not mean all of its gameplay uses have
+been tested.  This review investigates ordinary behavior and defined,
+in-bounds execution only; historical ACE, out-of-bounds, and arbitrary
+memory/code modification ideas remain deferred, outside-model entries, not
+methods being developed or retail possibilities that have been disproved.
 
 ## How to read the rankings
 
@@ -85,7 +88,8 @@ Likelihood labels mean:
 No single item below currently supplies a complete clean route to either
 target.  A successful counterexample for one target needs all three layers:
 
-1. reach or bypass an Area-2 gate with zero new A edges;
+1. reach the needed target/secret contacts with zero new A edges, either by
+   crossing an Area-2 gate or by a route that avoids the usual gate entirely;
 2. complete the relevant target-star continuation; and
 3. connect the entire execution to the selected Clight program and retail ROM.
 
@@ -104,11 +108,16 @@ The detailed sections are organized as:
 ## Bottom line
 
 - **No clean retail counterexample is currently established.**
-- **The leading route is JP-only, but its known clean schedule now fails:** a
+- **The high-payoff retained-top design is JP-only, and its known clean schedule fails:** a
   complete zero-A four-pillar and upper-warp run never remembers the spinning
   top and produces no useful positive split; another schedule would have to
   break a precisely checked query, owner, alias, outside-call, or lifecycle
   boundary before the old JP pointer can help.
+- **Four ordinary-gameplay questions now have explicit entries:** spending the
+  100-coin star at a gate (9A), ground-pound startup with moving geometry
+  (10A), touching a secret or star across a barrier (12B), and Puzzle progress
+  across area revisits (7A).  Their source mechanisms exist, but no new clean
+  bypass has been demonstrated; their promise is low or very low.
 - **A real cached-floor collision/query split is now checked:** it is the
   Y-only change `(0,-50,0)`, so it proves that the two samples need not be
   equal but cannot install the top.
@@ -185,12 +194,16 @@ The detailed sections are organized as:
 | 5A | State-first installation | [Pre-collision cached-platform displacement creates the split](#route-rank-5a) | Very low as a clean origin on the checked run; the effect remains exact if another history installs a valid pointer |
 | 6 | JP stale-platform lineage | [Moving skipped-query interval](#route-rank-6) | Very low; no moving skip appears in the audited scheduler shapes |
 | 7 | Downstream collection | [Join all five Act-6 triggers, spawn, pickup, and save-bit update](#route-rank-7) | High conditional value; the recovered transcript and published run put the sole press at the second pole, and an exact one-edge controller segment now reaches the downstream Grindel base |
+| 7A | Downstream collection | [Assemble Puzzle secret progress across ordinary area revisits](#route-rank-7a) | Very low as a bypass; normal credit survives revisits, but no unearned secret or avoided hard contact is known |
 | 8 | Downstream collection | [Lower Act-3 100-coin-star/Grindel itinerary](#route-rank-8) | High conditional value; the recovered five-trial account and published run reach Act 3 after the sole second-pole press, while exact inputs currently stop at the Grindel base |
 | 9 | Downstream collection | [Upper Act-3 100-coin/star-dance itinerary](#route-rank-9) | Low-medium conditional continuation; no cut-starting replay |
+| 9A | Direct Area-2 gates | [Use the 100-coin star to interrupt an action at the gate](#route-rank-9a) | Low and untested at the gate; real action change, but no useful clean star placement and the earlier/later coin-star budget must work |
 | 10 | Direct Area-2 gates | [Held-A jump-kick or B rollout from the upper elevator shaft](#route-rank-10) | Very low; live held-A launches hit all four elevator faces below the cutoff, and every JP held-A/rollout query is now linked and accounted for |
+| 10A | Direct Area-2 gates | [Ground-pound startup while the elevator or another support moves](#route-rank-10a) | Low and untested as a composite; up to 110 real upward units, but no clean useful entry or sideways departure is known |
 | 11 | Direct Area-2 gates | [Lower-aperture impulse, clip, or support switch](#route-rank-11) | Very low for a clean route; Goomba damage works, but all nine stock Goombas fail the ordinary source-mesh and accessible-lift installer audit |
 | 12 | Direct Area-2 gates | [Homing Amp or a moving collision owner](#route-rank-12) | Very low; the stock shock composite and ordinary nine-Goomba transport are closed, leaving only an extraordinary writer/identity failure or another named mechanism |
 | 12A | Direct Area-2 gates | [Reload, nonzero warp destination, or same-position support-selection change](#route-rank-12a) | Very low; an exact staged support refresh exists, but it is ownerless, stationary, and gives no gate crossing |
+| 12B | Direct Area-2 gates | [Touch a secret or star across a barrier without crossing the usual gate](#route-rank-12b) | Low as an untested geometry question; ordinary contact has no wall-visibility test, but no qualifying source-side pose is known |
 | 13 | State-first installation | [Raw-Object-only return or impulse writer](#route-rank-13) | Very low on the checked clean run; all 7,386 collision-position writes are faithful ordinary copies |
 | 13A | State-first installation | [Terrain-dispatch or collision-prefix writer outside the platform phase](#route-rank-13a) | Very low on the checked clean run; no extra pre-collision position writer occurs |
 | 13B | State-first installation | [Interaction-stage writer or cached-floor snap composite](#route-rank-13b) | Very low on the checked clean run; the warp stops later interactions and all three floor snaps leave Mario at Y=768 |
@@ -219,16 +232,24 @@ The detailed sections are organized as:
 | 31 | Memory and control escapes | [Defined alias/external/cache/hitbox escapes; machine-only corruption deferred](#route-rank-31) | Very low as a known gameplay route; proof-critical |
 | 32 | Upstream scope extension | [Castle-to-SSL glitch or retained inbound pointer](#route-rank-32) | Very low and intentionally deferred |
 
-This review makes three substantive priority changes.  Genuine moving-object
-mechanics and support changes moved from ranks `20/20A` to `12/12A` because
-they could bypass the installer families entirely; the later Rank-12 roster
-and Amp-payoff audit has now reduced that branch to named collision/support
-composites without yet changing its search order.  Negative quicksand falls
-from rank `12` to `19`, and the five
-abstract floor-owner residuals fall from `18A–18E` to `26A–26E`, because the
-producer audits and continuous clean upper-warp trace found none of their
-needed effects.  Ranks 1–3 remain high for decision value and exact conditional
-mechanisms, not because any now has a likely clean stock producer.
+Earlier reviews moved moving-object/support ideas to `12/12A`, negative
+quicksand to `19`, and the abstract floor-owner residuals to `26A–26E` as the
+evidence changed.  This review adds `7A`, `9A`, `10A`, and `12B` without
+renumbering established links.  Ranks 1–3 remain high for decision value and
+exact conditional mechanisms, not because any has a likely clean producer.
+
+### Which ranks are most promising now?
+
+For **new controller searches**, try **9A and 10A** first, then the contact
+geometry in **12B**: these are concrete ordinary mechanisms not settled by the
+old route-specific tests, but all still have low promise and no clean setup.
+**11** has the strongest demonstrated gate-crossing payoff, although the
+ordinary Goomba installation now fails; **15** has a real local hand ride but
+strong height and speed obstructions.  Those two need a specific new setup.
+**1 and 2** remain high-payoff conditional designs with very low clean-producer
+promise, while **3** is mainly proof-value work.  **7 and 8** are the strongest
+downstream continuations, not independent high-likelihood bypasses.  This is a
+research-priority judgment, not a measured probability or a newly found route.
 
 ## Family 1 — JP stale-platform and spawning-displacement routes
 
@@ -666,11 +687,26 @@ Technical background: [upper elevator cut](notes/area2-elevator-cut.md),
 [lower target cut](notes/area2-lower-target-cut.md), and
 [route exhaustiveness](notes/route-exhaustiveness.md).
 
+<a id="route-rank-9a"></a>
+
+### Use the 100-coin star to interrupt an action at the gate
+
+**Overall rank: 9A. Family priority: 1. Likelihood: low; source-backed action
+mechanism, but no useful clean at-gate placement.**
+
+**In plain language.** Save the 100-coin star for the difficult pole or elevator, then collect it at a moment when changing Mario's action might let him catch a ledge or keep a useful position. This uses ordinary coin collection, not a changed action table, and is separate from using the star after the gate.
+
+**What is already known.** The 100th coin really creates a no-exit star, and collecting it changes Mario's action without A. An airborne pickup enables the normal falling/ledge-grab routine, but clears horizontal speed rather than granting a jump; the standing dance repeatedly places Mario at his remembered floor height. The star starts its own normal appearance sequence relative to Mario, so its position and availability cannot be chosen freely. The lower published route already spends this star at the earlier big steps, and the upper Act-3 plan needs it later: a new route must account for those competing uses. No useful pickup at either gate has been demonstrated. See the [ordinary-gameplay review](notes/ordinary-gameplay-route-coverage.md#rank-9a--spend-the-100-coin-star-at-a-gate).
+
+**What closes it.** First find a clean 100th-coin placement and later star contact while Mario is still on the near side of the gate, with an earlier climb and later target route that do not spend the same star twice. Then follow the actual action change, velocity, moving support, ledge checks, and star continuation in one zero-A run. Alternatively, rule out every useful coin placement, contact, or action outcome; a displayed star dance or an artificially placed star is insufficient.
+
+[Back to the at-a-glance ranking](#at-a-glance-ranking)
+
 <a id="route-rank-10"></a>
 
 ### Held-A jump-kick or B rollout from the upper elevator shaft
 
-**Overall rank: 10. Family priority: 1. Likelihood: very low for the checked
+**Overall rank: 10. Family priority: 2. Likelihood: very low for the checked
 vertical routes.**
 
 **In plain language.** First complete the no-spin descent on the shaft line and
@@ -683,11 +719,26 @@ get over or through the elevator-shaft wall.
 
 [Back to the at-a-glance ranking](#at-a-glance-ranking)
 
+<a id="route-rank-10a"></a>
+
+### Ground-pound startup while the elevator or another support moves
+
+**Overall rank: 10A. Family priority: 3. Likelihood: low; useful entry and
+departure remain unconstructed.**
+
+**In plain language.** During the pause before a ground pound, Mario moves slightly upward and briefly avoids the usual airborne movement routine. Try to combine that pause with a descending elevator or another ordinary interaction, then leave the obstacle without A.
+
+**What is already known.** The startup can add up to 110 units to Mario's real height if there is enough headroom, while the elevator's steady descent moves it down 10 units per update. This is a different action from the already-tested rollout and jump-kick, so their height bounds do not cover the combination. However, startup stops horizontal movement and prepares a fast downward fall; it does not itself provide an escape. Ordinary freefall accepts Z, but the checked rollout, jump-kick, and initial upper-entry drop have no direct Z-to-ground-pound transition. Simply adding 110 to the rollout maximum therefore does not establish a route. No clean useful entry or subsequent departure is known. See the [startup audit](notes/ordinary-gameplay-route-coverage.md#rank-10a--ground-pound-startup-and-moving-geometry).
+
+**What closes it.** Find a controller-reachable action and position that allow startup before crossing the gate, then check every headroom test, actual elevator phase, support update, interruption, and resumed collision step until Mario escapes or lands. A disproof can instead show that all eligible entries are unreachable or that every reachable startup ends harmlessly. Any time-stop variant must follow the game's real rules for which objects and Mario continue updating.
+
+[Back to the at-a-glance ranking](#at-a-glance-ranking)
+
 <a id="route-rank-11"></a>
 
 ### Lower-aperture impulse, clip, or support switch
 
-**Overall rank: 11. Family priority: 2. Likelihood: very low for a clean route,
+**Overall rank: 11. Family priority: 4. Likelihood: very low for a clean route,
 although ordinary enemy damage has an observed conditional payoff.**
 
 **In plain language.** Leave the second pole without A and cross the opening using an enemy hit that preserves the handstand height, another object shove, a collision clip, or moving support. A separate hypothetical version would use a future table-editing exploit to trigger a proper long jump after the ordinary climb.
@@ -702,14 +753,14 @@ although ordinary enemy damage has an observed conditional payoff.**
 
 ### Moving geometry or object impulse
 
-**Overall rank: 12. Family priority: 3. Likelihood: very low after the stock
+**Overall rank: 12. Family priority: 5. Likelihood: very low after the stock
 Amp wall/support composite was closed.**
 
 **In plain language.** Test whether an Area-2 Amp's shock, a Grindel, a moving wall, Spindel, or the elevator can push, carry, or reposition Mario across a gate without A. The distinct ordinary-Goomba damage departure is tracked under [Rank 11](#route-rank-11), where its payoff works but the complete ordinary stock installer now fails.
 
 **What is already known.** The exact US/JP roster contains two homing Amps and one circling Amp, but no cannon, shell source, Tweester, Heave-Ho, Chuckya, Fly Guy, or jumping box; the scripted moving owners are the known Grindels, Spindel, four walls, and elevator.  The proof grants perfect Amp installation at the pole, then checks the payoff: shock contains no push, zeroes all horizontal motion, and calls the ordinary air step, which applies gravity after four collision quarters.  Mario is stationary for only the first shocked frame, then falls at the fixed pole centre and lands on the static Y-`3200` base on update 21.  The aperture walls are 101–103 units from the centre against radius-`50` queries, all six stock moving-owner corridors miss the pole disc (the closest is the elevator, still 513 units away), and the 820-unit pole-to-floor gap makes the final platform update clear any cached support before the fall.  Thus the formerly open stationary-shock plus wall/platform composite is disproved in the finite stock source model; see the [Rank-12 object-impulse audit](notes/rank12-area2-object-impulse.md).
 
-**What closes it.** Ordinary low-tier Goomba transport is now negative in the reviewed source-mesh envelope, so the remaining in-model task is to link a real Amp/moving-owner execution to the finite closure and show that every runtime object keeps its decoded home, axis, owner and collision-list entry; the present geometry then closes the stock family, while the first wrong position, surface or owner identifies a concrete producer. A Goomba version can reopen only through the separately named H/F/R or writer/identity escape. Stale, relocated, forged, out-of-bounds or ACE-created supports are machine-level routes rather than unfinished stock composites.
+**What closes it.** Ordinary low-tier Goomba transport is now negative in the reviewed source-mesh envelope, so the remaining in-model task is to link a real Amp/moving-owner execution to the finite closure and show that every runtime object keeps its decoded home, axis, owner and collision-list entry; the present geometry then closes the stock family, while the first wrong position, surface or owner identifies a concrete producer. A Goomba version can reopen only through the separately named H/F/R or writer/identity escape. Supports changed by ordinary movement, deletion, or reuse remain legitimate in-model cases and need their own execution evidence; supports supplied only by out-of-bounds writes, arbitrary memory modification, or ACE remain deferred outside-model variants.
 
 [Back to the at-a-glance ranking](#at-a-glance-ranking)
 
@@ -717,13 +768,28 @@ Amp wall/support composite was closed.**
 
 ### Reload, nonzero warp destination, or same-position support change
 
-**Overall rank: 12A. Family priority: 4. Likelihood: very low; the support-refresh mechanism is now witnessed exactly, but the observed refresh is stationary and ownerless.**
+**Overall rank: 12A. Family priority: 6. Likelihood: very low; the support-refresh mechanism is now witnessed exactly, but the observed refresh is stationary and ownerless.**
 
-**In plain language.** Cross a route cut because an area transition reloads a different entry, a corrupted or nonstandard warp destination adds movement, or the game changes which floor or platform supports Mario even though his position does not change.
+**In plain language.** Use an ordinary alternate warp or an area reload to reach a different entry or change Mario's support. The normal interior teleporter must be checked separately from the Area-2/Area-3 connection, which keeps his position; altered-destination proposals remain separate from these stock routes.
 
-**What is already known.** The new [Rank-12A audit](notes/rank12a-reload-support.md) checks the normal upper destination as SSL Area 2 node `0x14`, its airborne-warp entry at `(0,5500,256)`, both zero-offset Area-2/Area-3 instant warps, and every direct writer to the private warp destination. It also finds the exact changed-support witness: in a staged original-JP Area-3-to-Area-2 transition, the selected floor changes from `0x80192630` to `0x8019DAF0` while the displayed movement is zero, both floor owners are null, and Mario's platform remains null. This proves that a reload really can replace a same-position floor, but this particular replacement supplies no movement or useful support and the staging means it is not a clean controller route.
+**What is already known.** The [Rank-12A audit](notes/rank12a-reload-support.md) checks the normal upper entry at `(0,5500,256)`, both zero-offset Area-2/Area-3 instant warps, and the direct destination writers. The stock interior fading warps instead connect `(3070,1280,2900)` and `(2546,1150,-2647)`; they are part of the known lower itinerary, not a newly found high exit. A staged original-JP Area-3-to-Area-2 receipt also replaces the selected floor while logging zero movement, but both floors have no object owner and Mario's platform remains empty. That receipt demonstrates support refresh, not a clean controller route or a useful crossing. The [coverage review](notes/ordinary-gameplay-route-coverage.md#existing-routes-clarified-rather-than-duplicated) keeps normal alternate entries distinct from changed-destination proposals.
 
-**What closes it.** The bare changed-support alternative is now resolved, so a counterexample must produce a clean in-bounds nonzero or corrupted destination, a different entry, or a replacement floor with useful geometry or a non-null moving owner that actually crosses a gate. An impossibility result must connect the checked route and loader to live execution, show that every indirect or aliased write preserves the destination, give each reached area-load operation its exact memory effect, and prove that every resulting floor query selects only the rebuilt stock supports; the staged stationary refresh alone cannot do the job.
+**What closes it.** A useful ordinary route must connect a real warp, alternate entry, or replacement support to a gate bypass or target contact. An impossibility result must cover both fading-warp destinations as well as the upper, lower, and Area-3 entries, follow the actual reload and destination values, and show that every resulting floor check chooses only harmless rebuilt stock supports. The staged stationary refresh does not discharge those live obligations, and an arbitrarily supplied destination is not a controller-reachable witness.
+
+[Back to the at-a-glance ranking](#at-a-glance-ranking)
+
+<a id="route-rank-12b"></a>
+
+### Touch a secret or star across a barrier without crossing the usual gate
+
+**Overall rank: 12B. Family priority: 7. Likelihood: low as an untested
+geometry question; no qualifying source-side pose is known.**
+
+**In plain language.** Instead of landing beyond the pole or elevator barrier, get close enough to touch a required secret or star from a neighboring floor or an airborne position on the other side of a wall. The game's touch tests may recognize that contact without Mario taking the usual path.
+
+**What is already known.** Ordinary object contact checks horizontal distance and vertical overlap, not whether terrain separates Mario from the object. That creates a real question about nearby positions, but it does not remove walls, enlarge reach, or guarantee that Mario can get there. The checked standing samples still miss the Act-3 star by 75 units and Act 6 by 11; neither sample excludes every neighboring floor or airborne approach. Act 6 also still needs legitimate credit for all five secrets before its star exists. No pose that bypasses the usual gate has been established. See the [contact audit](notes/ordinary-gameplay-route-coverage.md#rank-12b--contact-across-a-barrier-not-a-prescribed-floor-crossing).
+
+**What closes it.** Check the actual touch volume of each target and required secret against every reachable near-side floor, moving support, and airborne approach, including the moment within the frame when contact is tested. A survivor must trigger the real contact and complete the correct star and save result from the accepted start. Otherwise prove that every successful contact really requires a previously classified gate crossing; that requirement must be derived, not imposed on proposed counterexamples.
 
 [Back to the at-a-glance ranking](#at-a-glance-ranking)
 
@@ -731,27 +797,22 @@ Amp wall/support composite was closed.**
 
 ### Direct Float32 pole exit or pole avoidance
 
-**Overall rank: 24. Family priority: 5. Likelihood: very low on current
+**Overall rank: 24. Family priority: 8. Likelihood: very low on current
 evidence.**
 
-**In plain language.** Find an untested quarter-step, seam, wall response, or
-action that gets Mario around the second-pole ring without using the larger
-installer mechanisms above.
+**In plain language.** Find an untested movement step, seam, wall response, ledge climb, or ceiling-hanging path that gets Mario around the second-pole ring without using the larger installer mechanisms above.
 
-**What is already known.** The normalized route is negative, and exact local
-geometry makes the opening narrow.  It is also proved false that A is the only
-way off a pole: Z soft-bonk and freefall exits exist.  No live zero-A exit has
-yet reached the target side.
+**What is already known.** The normalized pole exit fails, and the checked opening is narrow; Z soft-bonk and freefall nevertheless prove that A is not the only way off a pole. Ordinary ledge climbs can also use the stick or nearby-floor geometry, and ceiling hanging can continue with A already held. Area 2 has six hangable triangles, but they are only at heights 957 and 1853, well below the second-pole ring at 3942; they belong to lower routing rather than an already available high bridge. No new live zero-A crossing was found. See the [mesh and action review](notes/ordinary-gameplay-route-coverage.md#existing-routes-clarified-rather-than-duplicated).
 
-**What closes it.** Enumerate every pole action/health/version branch, all four
-air quarter-steps, floor/wall/lava-wall outcomes, and the live support mesh.
+**What closes it.** Enumerate every pole exit and ordinary alternate path, including health/version branches, ledge or ceiling acquisition and release, speed-dependent wall responses, every movement and collision step, and the actual supporting mesh. A hanging version must authenticate its already-held A history; a low mesh or normal teleporter must still connect to the far side of the second-pole gate or a genuine target contact.
 
 [Back to the at-a-glance ranking](#at-a-glance-ranking)
 
 ## Family 5 — Downstream collection of the two target stars
 
 An installer or gate crossing is not enough.  These are the remaining routes
-from a supplied Area-2 boundary to the actual target objects and save bits.  A
+from a supplied Area-2 boundary to the actual target objects and save bits,
+including the separate accounting needed when progress spans area visits.  A
 published lower-entrance video now shows both targets being collected in
 separate one-A runs: the recovered full transcript places their sole displayed
 press at the upper second-pole jump, so the post-pole downstream play is
@@ -773,7 +834,22 @@ hidden star spawn, then overlap and collect it without a new A press.
 
 **What is already known.** The five trigger locations are checked, one controlled JP run touches all five and spawns the star, and a separate controlled run collects it and records the correct completion flag; the published lower-entrance video supplies the missing continuous gameplay witness by visibly doing all of those things in one run.  The recovered full transcript identifies the sole displayed A press as the upper/second-pole jump—the third of five trials—and says the later Amp, Grindel, and elevator work uses no additional press; a new JP controller test creates exactly that one press, keeps the same press held without counting it again, and lands beside the real Grindel, but no `.m64` is available, the video's game version is unknown, the earlier route and Grindel mount have not been recreated, and the edited counter is not a raw input record.
 
-**What closes it.** Obtain the `.m64` or recreate everything after the pole on a known game version with every input recorded, then show in that one run the Amp, Grindel, elevator, all five trigger regions, star spawn, pickup, and completion flag with no new A press; a complete zero-A route must separately replace the second-pole jump or reach the far side another way.
+**What closes it.** Obtain the `.m64` or recreate everything after the pole on a known game version with every input recorded, then show in that one run the Amp, Grindel, elevator, all five trigger regions, star spawn, pickup, and completion flag with no new A press; a complete zero-A route must separately replace the second-pole jump or reach the necessary contacts another way. A route spread across area visits must instead connect its legitimate earlier secret credit through the reloads, as described in Rank 7A.
+
+[Back to the at-a-glance ranking](#at-a-glance-ranking)
+
+<a id="route-rank-7a"></a>
+
+### Assemble Puzzle secret progress across ordinary area revisits
+
+**Overall rank: 7A. Family priority: 2. Likelihood: very low as a bypass;
+important for complete collection accounting.**
+
+**In plain language.** Touch some Puzzle secrets, leave and revisit the area, and finish the remaining secrets under a different ordinary entry or platform schedule. The game can remember earlier work, so the five contacts need not all occur during the final visit.
+
+**What is already known.** When the hidden-star controller starts, it counts the remaining secret objects and treats the missing ones as completed; if none remain, it creates the target star immediately. Ordinary secret contact removes that secret and records that it should not return, while the controller itself can return. This is a real bookkeeping path omitted from the old touch-five-then-spawn description, but it does not establish free credit: walking far away does not affect the count, and normal object allocation does not simply skip secrets when space runs out. No ordinary history that credits an untouched secret or avoids the difficult contact is known. See the [revisit audit](notes/ordinary-gameplay-route-coverage.md#rank-7a--secret-progress-across-ordinary-area-revisits).
+
+**What closes it.** Track each of the five original secrets through its real contact, removal, saved respawn record, every area reload, and the final star creation and pickup in one zero-A history. Either exhibit a useful route that assembles those contacts across visits, or prove that every credited missing secret corresponds to a distinct earlier genuine touch and still requires the hard route. An unexplained missing object or prefilled progress is not a counterexample.
 
 [Back to the at-a-glance ranking](#at-a-glance-ranking)
 
@@ -781,7 +857,7 @@ hidden star spawn, then overlap and collect it without a new A press.
 
 ### Lower Act-3 100-coin-star/Grindel itinerary
 
-**Overall rank: 8. Family priority: 2. Likelihood: high as a conditional continuation; the one displayed pole-jump press remains.**
+**Overall rank: 8. Family priority: 3. Likelihood: high as a conditional continuation; the one displayed pole-jump press remains.**
 
 **In plain language.** Start at the lower pyramid entrance, clip onto the mesh and reverse the teleporter, use the 100-coin star dance at the big steps, make the route's one ordinary jump from the upper second pole, use the homing Amp at the later ledge, then use the Grindel and undescended elevator to cross to the Act-3 platform and collect the star without another A press.
 
@@ -795,7 +871,7 @@ hidden star spawn, then overlap and collect it without a new A press.
 
 ### Upper Act-3 100-coin/star-dance itinerary
 
-**Overall rank: 9. Family priority: 3. Likelihood: low-medium.**
+**Overall rank: 9. Family priority: 4. Likelihood: low-medium as a conditional continuation.**
 
 **In plain language.** Spawn the 100-coin star near the Act-3 platform, store the upward part of a rollout, reactivate that vertical speed, collect the 100-coin star with a ground pound, use the star dance for a ledge grab, and roll into the Act-3 star.
 
@@ -809,7 +885,7 @@ hidden star spawn, then overlap and collect it without a new A press.
 
 ### Negative-depth transport to a fresh or older star
 
-**Overall rank: 26. Family priority: 4. Likelihood: very low.**
+**Overall rank: 26. Family priority: 5. Likelihood: very low.**
 
 **In plain language.** Use the negative-depth/dialog machinery not to install
 Ink, but to arrange a fresh 100-coin star or another already tangible star at a
@@ -1033,7 +1109,7 @@ route; high proof importance.**
 
 **In plain language.** Make a valid pointer name the wrong live field or object, have a reachable outside routine change protected state, retain a stale warp collision, alter a hitbox, or forge an action, timer, or owner through an otherwise valid game write.  Out-of-bounds overwrites, arbitrary code execution, and raw DMA are tracked here only as deferred retail possibilities because the current source execution cannot perform them.
 
-**What is already known.** A defined one-store State/Object divergence must target one endpoint block, so a different CompCert allocation cannot wrap into it; direct platform writers are censused, collision-cache and hitbox observations have explicit escape classifiers, capacity guards can drop collisions but do not invent one, and animation metadata preserves Mario's coordinates.  For the writable action tables, all 38 modeled units per version contain no initializer or export alias, every body occurrence is a final read, the three expected linked blocks are valid at initialization, and ordinary level transitions do not name them; the completed reached-execution theorem constructs a relation that leaves those blocks private and carries it through every actual Clight step and outside call in every finite successful selected run without changing a table byte or returning a table pointer.  Valid same-block aliases to other state, wrong logical object slots, stale pool bytes, known-function retargets, and outside-call effects on public or passed state remain possible in Clight.  By contrast, a successful invalid load/store, invalid function target, ACE continuation, post-undefined-behavior MIPS behavior, DMA, interrupt, or self-modifying-code effect has no witness in the current Clight run; that absence is a model limitation, not a retail disproof.  No clean in-scope corruptor is known.
+**What is already known.** A defined one-store State/Object divergence must target one endpoint block, so a different CompCert allocation cannot wrap into it; direct platform writers are censused, and collision-cache and hitbox observations have explicit escape classifiers. The four-contact object-list limit can drop an additional object contact, but does not invent one or remove a terrain wall. Animation metadata alone does not move Mario, although specific action bodies such as the ground-pound startup in Rank 10A do. For the writable action tables, all 38 modeled units per version contain no initializer or export alias, every body occurrence is a final read, the three expected linked blocks are valid at initialization, and ordinary level transitions do not name them; the completed reached-execution theorem constructs a relation that leaves those blocks private and carries it through every actual Clight step and outside call in every finite successful selected run without changing a table byte or returning a table pointer. Valid same-block aliases to other state, wrong logical object slots, stale pool bytes, known-function retargets, and outside-call effects on public or passed state remain possible in Clight. By contrast, a successful invalid load/store, invalid function target, ACE continuation, post-undefined-behavior MIPS behavior, DMA, interrupt, or self-modifying-code effect has no witness in the current Clight run; that absence is a model limitation, not a retail disproof. No clean in-scope corruptor is known.
 
 **What closes it.** The writable-table part is closed in the selected successful in-bounds Clight model; the remaining in-scope work is to prove live pointer/block/offset provenance for the other protected stores and link same-frame collision clearing, traversal, owner return, hitbox writers, and object-pool epochs, with any failure identifying the exact valid store, call, cache entry, or field.  For the deferred part, first add a retail MIPS/hardware execution model with the RAM layout, devices, interrupts, selected-binary connection, and explicit post-undefined-behavior rule.  Until then, report out-of-bounds, ACE, and DMA variants as outside the current model rather than open Clight obligations or disproved routes.
 
@@ -1076,7 +1152,7 @@ is not repeatedly rediscovered.
 | Input semantics R1 | “No A edge means Mario cannot move upward” | False: B rollout and already-held-A actions can create upward movement without a new edge. | Nothing; use the correct input-edge model. | Closed misconception. |
 | Input semantics R2 | “A is the only way to leave the second pole” | False: Z soft-bonk, below-bottom freefall, walls, and health/version branches exist. | Nothing; enumerate those branches instead. | Closed misconception. |
 | Direct gates R1 | The normalized pole soft-bonk clears the lower route | Refuted for the modeled trajectory; it loses the needed height/clearance. | A different live Float32 phase, writer, support, or action. | Very low for that trajectory. |
-| Direct gates R2 | Pure upper jump-kick/rollout/Wing flutter clears the wall | Checked envelopes remain below the `231` threshold. | A collision glitch, moving-relative wall, extra writer, or broken cap premise. | Very low under the checked bounds. |
+| Direct gates R2 | Ordinary upper jump-kick/rollout clears the wall by height alone | The stock envelopes peak at `135` and `227.5`, below `231`; ordinary entry also removes Wing. Hypothetical Wing samples above the cutoff are a separate conditional case, not below-threshold evidence. | A different reachable action, collision response, moving-relative wall, or valid post-entry cap acquisition. | Very low under the checked bounds. |
 | JP platform R1 | Intact stock top simultaneously touches the warp and is selected from the same sample | Refuted by the imported stock geometry. | Different samples, relocation, clone, or corrupted geometry. | Closed for the fixed same-sample model. |
 | JP platform R2 | Stock yaw-only top motion supplies the needed vertical PU change | Refuted in the checked arithmetic model. | A different payload field or replacement object. | Very low as stated. |
 | PU/casts R1 | NaN, infinity, or failed large cast becomes a usable terrain coordinate | Modeled retail invalid conversion traps before a continuing query. | A proved different FPCSR mode or resumable handler. | Very low. |
@@ -1105,8 +1181,9 @@ connected execution that:
 1. starts at the declared SSL Area-1 boundary, or explicitly extends and
    replaces that boundary;
 2. has an authenticated input history with no new A edge;
-3. crosses the relevant Area-2 gates through actual collision and object-list
-   execution;
+3. reaches the required contacts through actual collision and object-list
+   execution, crossing the Area-2 gates or demonstrating a route around the
+   proposed separator rather than assuming that separator is exhaustive;
 4. reaches and collects the chosen Act-3 or Act-6 target object with correct
    provenance;
 5. newly sets that target's corresponding save bit; and
