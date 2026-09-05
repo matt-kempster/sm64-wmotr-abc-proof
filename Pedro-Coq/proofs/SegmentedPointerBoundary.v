@@ -1,6 +1,4 @@
-(** ARCHIVED PROMOTION SNAPSHOT.  The checked canonical module is
-    [proofs/SegmentedPointerBoundary.v].  This copy is deliberately excluded
-    from [_CoqProject]. *)
+
 From Coq Require Import ZArith.
 From compcert Require Import Archi AST Clight ClightBigstep Clightdefs Cop
   Ctypes Integers Maps Memory Values.

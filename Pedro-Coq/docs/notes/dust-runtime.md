@@ -61,6 +61,16 @@ reduction proves that any finite request sequence ends each DEFAULT phase with
 the bit clear. A retail trace must still refine its frames to that reduction
 and exclude the relevant time-stop cases.
 
+`DustSpawnParticleExecution.v` and its JP companion now give exact generated
+Clight big-steps for that accepted caller branch. They load the word at byte
+224, take the clear-bit branch, store the ORed word, call
+`spawn_object_at_origin(gCurrentObject, 0, 142, behavior)`, and call
+`obj_copy_pos_and_angle` on the returned particle and Mario. A separate exact
+table conjunct identifies the dust entry's `behavior` as
+`bhvMistParticleSpawner`. The callee big-steps and preservation of the stored
+active word across them are explicit premises; the proof does not manufacture
+an allocation result.
+
 `TTCDebugBoundary.v` now checks one complete finite boundary: exactly 240 pool
 slots, 115 free objects, one UNIMPORTANT object, 125 active objects, reserve
 116, a set dust request, a clear active-dust bit, and normal time in both
@@ -120,21 +130,21 @@ result zero, and the generated CONTINUE branch.
 `bhv_cmd_parent_bit_clear` function in an arbitrary compatible `genv`. Given
 explicit symbol, layout, command, current-object, parent, raw-data, and store
 premises, its US and JP
-big-steps follow the Mist spawner's parent pointer, clear bit 1 in Mario's
-raw-data word at byte 224, prove that bit clear, advance the behavior cursor
+big-steps follow the Mist spawner's parent pointer, clear mask 1 (bit zero) in
+Mario's raw-data word at byte 224, prove that bit clear, advance the behavior cursor
 from byte 4 to byte 12, and return zero. The initializer words are checked too,
 but typed-link instantiation and reaching it from the Mist script are open.
 
-That theorem starts from a concrete memory-image premise. It stops before the
-following `ADD_INT`, `END_REPEAT`, and `cur_obj_update` tail, and does not
-execute object-list traversal, Mario particle dispatch, three object
-allocations, or WhitePuff1. The downward spawn chain reaches
-`segmented_to_virtual`, whose generated pointer-to-32-bit-address arithmetic
-cannot shift a symbolic CompCert `Vptr`: on the configured 32-bit target the
-pointer-to-unsigned cast preserves `Vptr`, while `Oshr` requires integer
-operands. A full standard-Clight big-step therefore needs an explicit
-N64-flat-address/CompCert-pointer refinement or proved normalization at this
-seam. Allocation also
+That parent-clear theorem starts from a concrete memory-image premise. It stops
+before the following `ADD_INT`, `END_REPEAT`, and `cur_obj_update` tail. The
+separate spawn-particle theorems close the caller's accepted branch but do not
+derive its two callee executions from object-list traversal or Mario dispatch.
+`SegmentedPointerBoundary.v` proves the precise next obstruction against the
+exact US/JP generated expressions: on the configured 32-bit target the
+pointer-to-unsigned cast preserves a symbolic `Vptr`, while `Oshr` has no
+pointer operand case. A full standard-Clight allocation big-step therefore
+needs an explicit N64-flat-address/CompCert-pointer refinement or proved
+normalization at this seam. Allocation also
 requires a CompCert memory realization of the observed free/object list, not
 only a runtime row census. Consequently the parent "link and execute" and
 reachable-tap checklist items remain open at full retail-frame strength.

@@ -3,7 +3,13 @@ From Pedro.Proofs Require Import
   GameTypes PedroCollision LandingDust RNGAdvance InputSemantics TTCSpinners
   TTCSpinnerGeometry TTCSpinnerSchedule DustPool TTCRuntimePremises DustRuntime
   DustClightExec DustBehaviorCommandExecution DustCurObjUpdateExecution
-  TTCDebugBoundary TTCRNGWindow TTCRNGCensus TTCRetailSqrt.
+  DustSpawnParticleExecution DustSpawnParticleExecutionJP
+  SegmentedPointerBoundary TTCDebugBoundary TTCRNGWindow TTCRNGCensus
+  TTCRetailSqrt.
+
+Module MainSpawnUS := DustSpawnParticleExecution.
+Module MainSpawnJP := DustSpawnParticleExecutionJP.
+Module MainSegmented := SegmentedPointerBoundary.
 
 (** Initial source-and-arithmetic capstone. Every conjunct is tied either to a
     generated Clight AST or to CompCert's executable binary32 operations. This
@@ -109,4 +115,22 @@ Theorem checked_static_terminal_frontier_us_jp :
 Proof.
   exact (conj checked_ttc_rng_static_census_us_jp
     retail_sqrtf_instruction_receipt_checked).
+Qed.
+
+(** Exact accepted-branch executions for the generated US and JP
+    [spawn_particle] callers, paired with the formal reason the first call
+    inside [spawn_object_at_origin] cannot yet execute directly from a
+    symbolic CompCert pointer.  Each caller theorem retains exact [eval_funcall]
+    premises for [spawn_object_at_origin] and [obj_copy_pos_and_angle]; this
+    capstone therefore closes the caller, not the complete allocation chain. *)
+Theorem checked_spawn_particle_caller_and_segmented_boundary_us_jp :
+  MainSpawnUS.us_spawn_particle_execution_claim /\
+  MainSpawnJP.jp_spawn_particle_execution_claim /\
+  MainSegmented.segmented_pointer_boundary_claim.
+Proof.
+  refine (conj
+    MainSpawnUS.us_generated_spawn_particle_accepts_clear_dust_in_any_genv _).
+  exact (conj
+    MainSpawnJP.jp_generated_spawn_particle_accepts_clear_dust_in_any_genv
+    MainSegmented.checked_segmented_pointer_boundary_us_jp).
 Qed.

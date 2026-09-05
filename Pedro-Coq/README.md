@@ -103,15 +103,18 @@ a proof that the corresponding Clight path executes, and the TTC random-mode
 source describes a bounded oscillation rather than a platform that stays at one
 mathematically fixed angle. The proved geometry interval is too narrow for the
 first 200-unit post-pause motion, so it is not yet a preservation witness. The
-typed Clight link now executes one actual `cur_obj_update` dispatch cycle and
-its WhitePuff2 RNG subtree, but it is still not a complete retail-frame
-execution: the remaining command loop and function tail, list scheduler,
-particle dispatch, Mist-script dispatch, Puff spawning/allocation, and
-WhitePuff1 remain open. The generated `segmented_to_virtual` body performs
-pointer-to-integer address arithmetic that standard CompCert's symbolic-block
-memory model cannot execute from a global `Vptr`; crossing that seam requires
-an explicit N64-flat-address refinement rather than another unconstrained
-execution premise. A stock
+typed Clight frontier now executes one actual `cur_obj_update` dispatch cycle
+and its WhitePuff2 RNG subtree. Separate US/JP big-steps also execute the exact
+accepted branch of `spawn_particle`: they read the clear guard, set the active
+bit, and issue the generated allocation and position-copy calls with their
+exact arguments. Those two callees remain explicit execution and preservation
+premises, so this is still not a complete retail-frame execution: the remaining
+command loop and function tail, list scheduler, Mario particle dispatch,
+Mist-script dispatch, allocation, and WhitePuff1 remain open. A new US/JP
+theorem proves why the generated `segmented_to_virtual` body cannot cross that
+next seam in standard CompCert Clight: the pointer-to-unsigned cast preserves a
+symbolic `Vptr`, while the first right shift requires an integer. Crossing it
+requires an explicit N64-flat-address refinement. A stock
 controller-only TTC snapshot, a refinement from runtime addresses to CompCert
 memory, the external-function contract, and a reachable Pedro/RANDOM-mode tap
 also remain explicit obligations.

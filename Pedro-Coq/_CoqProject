@@ -77,6 +77,9 @@ proofs/DustWhitePuffExecution.v
 proofs/DustBehaviorCommandExecution.v
 proofs/DustParentBitClearExecution.v
 proofs/DustCurObjUpdateExecution.v
+proofs/DustSpawnParticleExecution.v
+proofs/DustSpawnParticleExecutionJP.v
+proofs/SegmentedPointerBoundary.v
 proofs/TTCDebugBoundary.v
 proofs/TTCRNGWindow.v
 proofs/TTCRNGCensus.v

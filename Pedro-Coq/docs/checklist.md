@@ -68,7 +68,17 @@ audits below.
         store result zero, and take the CONTINUE branch in both versions.
   - [x] Execute the exact generated US/JP `bhv_cmd_parent_bit_clear` handler
         under explicit symbol, composite-layout, and memory premises; prove the
-        masked Mario word's bit 1 clear and advance the Mist cursor `4 -> 12`.
+        Mario word's mask-1 bit (bit zero) clear and advance the Mist cursor
+        `4 -> 12`.
+  - [x] Execute the exact generated US/JP `spawn_particle` accepted branch:
+        read a clear active-particle bit, set mask 1 (bit zero) in raw-data
+        word 22, call `spawn_object_at_origin` with model 142 and the supplied
+        behavior argument, then call `obj_copy_pos_and_angle`, under explicit
+        callee-execution and memory-preservation premises. The paired exact
+        table receipt names `bhvMistParticleSpawner` for the dust entry.
+  - [x] Prove the exact standard-Clight boundary in US/JP
+        `segmented_to_virtual`: the generated pointer-to-`u32` cast preserves a
+        symbolic `Vptr`, so its first integer right shift cannot evaluate.
   - [ ] Execute `cur_obj_update`'s complete command loop, list traversal,
         Mario particle dispatch, Mist/Puff spawn/allocation, and WhitePuff1.
         The next WhitePuff2 commands are `ADD_INT` and `END_REPEAT`; the
@@ -85,6 +95,9 @@ audits below.
   - [x] Execute the generated parent-bit-clear store itself in US/JP arbitrary
         compatible `genv`s, including the parent load, byte-224 mask,
         bit-clear postcondition, and cursor store.
+  - [x] Execute the generated `spawn_particle` clear-bit guard and byte-224
+        OR-store in US/JP, proving the stored bit set across its two explicitly
+        premised callees.
   - [x] Generate the TTC level-script and loader units, count the exact source
         inventory `110` macro descriptors + `9` area object descriptors +
         Mario, and reduce the nominal later-competitor allowance to `117`.

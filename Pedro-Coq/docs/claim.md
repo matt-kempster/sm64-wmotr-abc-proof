@@ -80,12 +80,26 @@ evidence areas in four conjuncts, still carefully separated:
 `DustParentBitClearExecution.v` adds a generated-Clight big-step for the US/JP
 `bhv_cmd_parent_bit_clear` handler under explicit arbitrary-`genv` symbol,
 layout, and memory premises. The handler follows the Mist spawner's parent,
-masks bit 1 from Mario's raw-data word at byte 224, proves the result has that
-bit clear, and advances the behavior cursor `4 -> 12`; typed-link instantiation
-remains open. `checked_static_terminal_frontier_us_jp` pairs the static TTC
+masks value 1 (bit zero) from Mario's raw-data word at byte 224, proves the
+result has that bit clear, and advances the behavior cursor `4 -> 12`;
+typed-link instantiation remains open. `checked_static_terminal_frontier_us_jp`
+pairs the static TTC
 census with a complete four-instruction retail receipt for `sqrtf`: the US
 and JP leaves are `jr ra; sqrt.s f0,f12; nop; nop`, with no recognized nested
 call or store.
+
+`checked_spawn_particle_caller_and_segmented_boundary_us_jp` promotes the two
+previous draft obligations into one checked main capstone. Its first two
+conjuncts execute the exact generated US and JP `spawn_particle` accepted
+branches: the clear guard succeeds, raw-data word 22 is ORed with mask 1 (bit
+zero), and the generated calls use Mario, model 142, the supplied behavior
+pointer, and the returned particle pointer. Each regional claim also includes
+the exact table receipt that names `bhvMistParticleSpawner` for the dust entry.
+The allocation and copy callees remain explicit `eval_funcall`/preservation
+premises. Its third conjunct proves, from the exact US/JP generated first
+expression, that standard 32-bit CompCert preserves a
+symbolic `Vptr` through the pointer-to-unsigned cast and therefore cannot
+evaluate the following integer shift in `segmented_to_virtual`.
 
 The theorems retain the critical qualifications: the Clight executors start
 from explicit memory images, the replay origin is proved non-stock, the
@@ -105,8 +119,10 @@ These are reduction theorems, not relabeled versions of the ultimate claims.
 - The linked Clight proof reaches one real WhitePuff2 `cur_obj_update` dispatch
   cycle, but not the following `ADD_INT`/`END_REPEAT`, function tail, object-list
   scheduler, Mario particle dispatch, Mist script dispatch, Puff allocation and
-  initialization, or WhitePuff1 path. The parent-bit-clear handler itself is
-  now conditionally executed in an arbitrary generated-compatible `genv`.
+  initialization, or WhitePuff1 path. The `spawn_particle` caller and
+  parent-bit-clear handler are now conditionally executed in arbitrary
+  generated-compatible `genv`s, but neither is yet reached from that full
+  scheduler execution.
 - A reachable tap has not been shown to start with the dust bit clear or to
   retain at least three reserve units after every competing allocation.
 - The finite pool and exact `F`/`F+1` receipts use debug level-select entry and

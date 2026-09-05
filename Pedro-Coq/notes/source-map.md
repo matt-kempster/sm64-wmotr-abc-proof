@@ -17,7 +17,7 @@ is textually rewritten.
 | Analog landing friction | `src/game/mario_actions_moving.c:334-347` | `us_mario_actions_moving.v`, `jp_mario_actions_moving.v` |
 | Floor-class deceleration | `src/game/mario_actions_moving.c:393-417` | `us_mario_actions_moving.v`, `jp_mario_actions_moving.v` |
 | Mario action result supplies particle flags | `src/game/mario.c:1699-1782` | `us_mario.v`, `jp_mario.v` |
-| Dust particle table and dispatch | `src/game/object_list_processor.c:188-217,255-287` | `us_object_list_processor.v`, `jp_object_list_processor.v` |
+| Dust particle table and dispatch | `src/game/object_list_processor.c:188-217,255-287` | `us_object_list_processor.v`, `jp_object_list_processor.v`; exact accepted-caller big-steps in `proofs/DustSpawnParticleExecution.v` and `proofs/DustSpawnParticleExecutionJP.v` |
 | Object-list phase order and dynamic-next traversal | `src/game/object_list_processor.c:172-217,289-307,573-581` | `us_object_list_processor.v`, `jp_object_list_processor.v` |
 | Free-list allocation, eviction fallback, and object creation | `src/game/spawn_object.c:79-99,208-253,313-352` | `us_spawn_object.v`, `jp_spawn_object.v` |
 | Area load, Mario load, and area-change active-particle clear | `src/game/area.c` | `us_area.v`, `jp_area.v` |
@@ -41,6 +41,7 @@ is textually rewritten.
 | Post-PLAYER forward-callgraph support: save data | `src/game/save_file.c` | `us_save_file.v`, `jp_save_file.v` |
 | Post-PLAYER forward-callgraph support: sound spawning | `src/game/spawn_sound.c` | `us_spawn_sound.v`, `jp_spawn_sound.v` |
 | Post-PLAYER forward-callgraph support: allocation | `src/game/memory.c` | `us_memory.v`, `jp_memory.v` |
+| Segmented-address conversion boundary | `src/game/memory.c:78-105` | `us_memory.v`, `jp_memory.v`; exact standard-Clight non-evaluation certificate in `proofs/SegmentedPointerBoundary.v` |
 | Post-PLAYER forward-callgraph support: graph nodes | `src/engine/graph_node.c` | `us_graph_node.v`, `jp_graph_node.v` |
 | Post-PLAYER forward-callgraph support: audio helpers | `src/audio/external.c` | `us_audio_external.v`, `jp_audio_external.v` |
 | Heave-Ho action table and indirect action dispatch | `src/game/behaviors/heave_ho.inc.c:106-115`, `src/game/object_helpers.c:2324-2326` | `us_behavior_actions.v`, `jp_behavior_actions.v`, `us_object_helpers.v`, `jp_object_helpers.v`; exact AST-shape receipt in `proofs/TTCRNGCensus.v` |

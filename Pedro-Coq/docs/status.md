@@ -20,16 +20,24 @@ generated `CALL_NATIVE` handler, the native loop, random X/Z translation, and
 two nested `random_float`/`random_u16` calls. From seed zero the exact stores
 are `0 -> 57460 -> 55882`, and the behavior cursor advances `20 -> 28`.
 Separately, the generated parent-bit-clear handler is executed under explicit
-arbitrary-`genv` symbol/layout/memory premises: it masks Mario's bit 1 at
-raw-data byte 224, proves the result clear, and advances the Mist cursor
-`4 -> 12`. Its typed-link instantiation remains open.
+arbitrary-`genv` symbol/layout/memory premises: it clears Mario's mask-1 bit
+(bit zero) at raw-data byte 224, proves the result clear, and advances the Mist cursor
+`4 -> 12`. The exact US/JP `spawn_particle` callers are also executed on their
+accepted branch: they read a clear bit, set raw-data word 22's mask-1 bit
+(bit zero), call `spawn_object_at_origin` with model 142 and their supplied
+behavior argument, and copy Mario's position and angle to the returned
+particle. A paired exact table receipt identifies the dust argument as the
+Mist behavior. The two callee executions and their active-word preservation
+remain premises, so typed-link instantiation
+of this downward edge remains open.
 
 The remaining downward chain is not executable under unrefined standard
-Clight merely by adding memory premises. Generated `segmented_to_virtual`
-casts a symbolic `Vptr` to unsigned and shifts it; CompCert preserves the
-pointer value at the cast, while the shift accepts only integers. A full proof
-therefore needs an explicit N64-flat-address refinement, followed by a
-CompCert realization of allocation and object-list memory.
+Clight merely by adding memory premises. `SegmentedPointerBoundary.v` now
+proves against both exact generated bodies that `segmented_to_virtual` casts a
+symbolic `Vptr` to unsigned without changing the semantic value, after which
+the first right shift has no integer operand case. A full proof therefore needs
+an explicit N64-flat-address refinement, followed by a CompCert realization of
+allocation and object-list memory.
 
 The TTC loader audit now counts a generated source inventory of 110 macro
 descriptors, 9 area object descriptors, and Mario. The resulting 120-slot

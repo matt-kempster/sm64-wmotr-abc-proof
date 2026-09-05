@@ -1,7 +1,3 @@
-(** ARCHIVED PROMOTION SNAPSHOT.  The checked canonical US module is
-    [proofs/DustSpawnParticleExecution.v], with its JP companion in
-    [proofs/DustSpawnParticleExecutionJP.v].  This copy is deliberately
-    excluded from [_CoqProject]. *)
 From Coq Require Import List ZArith.
 From compcert Require Import AST Clight Clightdefs ClightBigstep Cop Ctypes
   Errors Events Globalenvs Integers Linking Maps Memory Values.

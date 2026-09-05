@@ -1,17 +1,13 @@
-(** ARCHIVED PROMOTION SNAPSHOT.  The checked canonical US module is
-    [proofs/DustSpawnParticleExecution.v], with its JP companion in
-    [proofs/DustSpawnParticleExecutionJP.v].  This copy is deliberately
-    excluded from [_CoqProject]. *)
 From Coq Require Import List ZArith.
 From compcert Require Import AST Clight Clightdefs ClightBigstep Cop Ctypes
   Errors Events Globalenvs Integers Linking Maps Memory Values.
 From Pedro.Generated Require Import
-  us_object_helpers us_object_list_processor.
+  jp_object_helpers jp_object_list_processor.
 
 Import ListNotations.
 
-Module SPUS := us_object_list_processor.
-Module SPUSOH := us_object_helpers.
+Module SPJP := jp_object_list_processor.
+Module SPJPOH := jp_object_helpers.
 
 Definition raw_data_byte_offset : Z := 136.
 Definition active_particle_word_byte_offset : Z := 224.
@@ -73,40 +69,40 @@ Proof.
   apply Int.and_or_absorb.
 Qed.
 
-Lemma us_dust_particle_descriptor_exact :
-  firstn 5 (gvar_init SPUS.v_sParticleTypes) =
+Lemma jp_dust_particle_descriptor_exact :
+  firstn 5 (gvar_init SPJP.v_sParticleTypes) =
     [Init_int32 dust_spawn_flag;
      Init_int32 dust_spawn_flag;
      Init_int8 dust_spawn_model;
      Init_space 3;
-     Init_addrof SPUS._bhvMistParticleSpawner Ptrofs.zero].
+     Init_addrof SPJP._bhvMistParticleSpawner Ptrofs.zero].
 Proof. reflexivity. Qed.
 
-Definition us_spawn_raw_u32_array_expr (object_temp : ident) : expr :=
+Definition jp_spawn_raw_u32_array_expr (object_temp : ident) : expr :=
   Efield
     (Efield
       (Ederef
-        (Etempvar object_temp (tptr (Tstruct SPUS._Object noattr)))
-        (Tstruct SPUS._Object noattr))
-      SPUS._rawData (Tunion SPUS.__764 noattr))
-    SPUS._asU32 (tarray tuint 80).
+        (Etempvar object_temp (tptr (Tstruct SPJP._Object noattr)))
+        (Tstruct SPJP._Object noattr))
+      SPJP._rawData (Tunion SPJP.__727 noattr))
+    SPJP._asU32 (tarray tuint 80).
 
-Definition us_spawn_active_word_lvalue (object_temp : ident) : expr :=
+Definition jp_spawn_active_word_lvalue (object_temp : ident) : expr :=
   Ederef
-    (Ebinop Oadd (us_spawn_raw_u32_array_expr object_temp)
+    (Ebinop Oadd (jp_spawn_raw_u32_array_expr object_temp)
       (Econst_int (Int.repr 22) tint) (tptr tuint))
     tuint.
 
-Lemma eval_us_spawn_current_object :
+Lemma eval_jp_spawn_current_object :
   forall (ge : Clight.genv) environment locals memory
       current_block mario_block,
-    environment ! SPUS._gCurrentObject = None ->
-    Genv.find_symbol ge SPUS._gCurrentObject = Some current_block ->
+    environment ! SPJP._gCurrentObject = None ->
+    Genv.find_symbol ge SPJP._gCurrentObject = Some current_block ->
     Mem.load Mptr memory current_block 0 =
       Some (Vptr mario_block Ptrofs.zero) ->
     eval_expr ge environment locals memory
-      (Evar SPUS._gCurrentObject
-        (tptr (Tstruct SPUS._Object noattr)))
+      (Evar SPJP._gCurrentObject
+        (tptr (Tstruct SPJP._Object noattr)))
       (Vptr mario_block Ptrofs.zero).
 Proof.
   intros ge environment locals memory current_block mario_block
@@ -116,37 +112,37 @@ Proof.
   - eapply deref_loc_value; [reflexivity | cbn; exact Hload].
 Qed.
 
-Lemma eval_us_spawn_raw_u32_array_pointer :
+Lemma eval_jp_spawn_raw_u32_array_pointer :
   forall (ge : Clight.genv) environment locals memory object_temp
       object_block object_composite raw_composite,
     locals ! object_temp = Some (Vptr object_block Ptrofs.zero) ->
-    (genv_cenv ge) ! SPUS._Object = Some object_composite ->
-    field_offset (genv_cenv ge) SPUS._rawData
+    (genv_cenv ge) ! SPJP._Object = Some object_composite ->
+    field_offset (genv_cenv ge) SPJP._rawData
       (co_members object_composite) = OK (raw_data_byte_offset, Full) ->
-    (genv_cenv ge) ! SPUS.__764 = Some raw_composite ->
-    union_field_offset (genv_cenv ge) SPUS._asU32
+    (genv_cenv ge) ! SPJP.__727 = Some raw_composite ->
+    union_field_offset (genv_cenv ge) SPJP._asU32
       (co_members raw_composite) = OK (0%Z, Full) ->
     eval_expr ge environment locals memory
-      (us_spawn_raw_u32_array_expr object_temp)
+      (jp_spawn_raw_u32_array_expr object_temp)
       (Vptr object_block (Ptrofs.repr raw_data_byte_offset)).
 Proof.
   intros ge environment locals memory object_temp object_block
     object_composite raw_composite Htemp Hobject Hraw_offset Hraw
     Harray_offset.
-  unfold us_spawn_raw_u32_array_expr.
+  unfold jp_spawn_raw_u32_array_expr.
   eapply eval_Elvalue.
   - replace (Ptrofs.repr raw_data_byte_offset) with
       (Ptrofs.add (Ptrofs.repr raw_data_byte_offset) Ptrofs.zero)
       by (cbn; reflexivity).
     eapply eval_Efield_union with
-      (id := SPUS.__764) (co := raw_composite) (att := noattr)
+      (id := SPJP.__727) (co := raw_composite) (att := noattr)
       (delta := 0%Z) (bf := Full).
     + eapply eval_Elvalue.
       * replace (Ptrofs.repr raw_data_byte_offset) with
           (Ptrofs.add Ptrofs.zero (Ptrofs.repr raw_data_byte_offset))
           by (cbn; reflexivity).
         eapply eval_Efield_struct with
-          (id := SPUS._Object) (co := object_composite) (att := noattr)
+          (id := SPJP._Object) (co := object_composite) (att := noattr)
           (delta := raw_data_byte_offset) (bf := Full).
         -- eapply eval_Elvalue.
            ++ eapply eval_Ederef. eapply eval_Etempvar. exact Htemp.
@@ -161,52 +157,52 @@ Proof.
   - eapply deref_loc_reference. reflexivity.
 Qed.
 
-Lemma eval_us_spawn_active_word_lvalue :
+Lemma eval_jp_spawn_active_word_lvalue :
   forall (ge : Clight.genv) environment locals memory object_temp
       object_block object_composite raw_composite,
     locals ! object_temp = Some (Vptr object_block Ptrofs.zero) ->
-    (genv_cenv ge) ! SPUS._Object = Some object_composite ->
-    field_offset (genv_cenv ge) SPUS._rawData
+    (genv_cenv ge) ! SPJP._Object = Some object_composite ->
+    field_offset (genv_cenv ge) SPJP._rawData
       (co_members object_composite) = OK (raw_data_byte_offset, Full) ->
-    (genv_cenv ge) ! SPUS.__764 = Some raw_composite ->
-    union_field_offset (genv_cenv ge) SPUS._asU32
+    (genv_cenv ge) ! SPJP.__727 = Some raw_composite ->
+    union_field_offset (genv_cenv ge) SPJP._asU32
       (co_members raw_composite) = OK (0%Z, Full) ->
     eval_lvalue ge environment locals memory
-      (us_spawn_active_word_lvalue object_temp)
+      (jp_spawn_active_word_lvalue object_temp)
       object_block (Ptrofs.repr active_particle_word_byte_offset) Full.
 Proof.
   intros ge environment locals memory object_temp object_block
     object_composite raw_composite Htemp Hobject Hraw_offset Hraw
     Harray_offset.
-  unfold us_spawn_active_word_lvalue.
+  unfold jp_spawn_active_word_lvalue.
   eapply eval_Ederef.
   eapply eval_Ebinop.
-  - eapply eval_us_spawn_raw_u32_array_pointer; eassumption.
+  - eapply eval_jp_spawn_raw_u32_array_pointer; eassumption.
   - constructor.
   - unfold raw_data_byte_offset, active_particle_word_byte_offset.
     cbn. reflexivity.
 Qed.
 
-Lemma eval_us_spawn_active_word_value :
+Lemma eval_jp_spawn_active_word_value :
   forall (ge : Clight.genv) environment locals memory object_temp
       object_block object_composite raw_composite flags,
     locals ! object_temp = Some (Vptr object_block Ptrofs.zero) ->
-    (genv_cenv ge) ! SPUS._Object = Some object_composite ->
-    field_offset (genv_cenv ge) SPUS._rawData
+    (genv_cenv ge) ! SPJP._Object = Some object_composite ->
+    field_offset (genv_cenv ge) SPJP._rawData
       (co_members object_composite) = OK (raw_data_byte_offset, Full) ->
-    (genv_cenv ge) ! SPUS.__764 = Some raw_composite ->
-    union_field_offset (genv_cenv ge) SPUS._asU32
+    (genv_cenv ge) ! SPJP.__727 = Some raw_composite ->
+    union_field_offset (genv_cenv ge) SPJP._asU32
       (co_members raw_composite) = OK (0%Z, Full) ->
     Mem.load Mint32 memory object_block active_particle_word_byte_offset =
       Some (Vint flags) ->
     eval_expr ge environment locals memory
-      (us_spawn_active_word_lvalue object_temp) (Vint flags).
+      (jp_spawn_active_word_lvalue object_temp) (Vint flags).
 Proof.
   intros ge environment locals memory object_temp object_block
     object_composite raw_composite flags Htemp Hobject Hraw_offset Hraw
     Harray_offset Hload.
   eapply eval_Elvalue.
-  - eapply eval_us_spawn_active_word_lvalue; eassumption.
+  - eapply eval_jp_spawn_active_word_lvalue; eassumption.
   - eapply deref_loc_value.
     + reflexivity.
     + unfold Mem.loadv, active_particle_word_byte_offset.
@@ -235,105 +231,105 @@ Definition preserves_spawn_active_word
   Mem.load Mint32 after object_block active_particle_word_byte_offset =
     Some (Vint flags).
 
-(** A compact transcription of the generated US body.  Keeping this body as a
+(** A compact transcription of the generated JP body.  Keeping this body as a
     separate definition prevents proof reduction from unfolding the complete
     generated translation unit whenever the big-step derivation is checked. *)
-Definition us_spawn_particle_body : statement :=
+Definition jp_spawn_particle_body : statement :=
   Ssequence
-    (Sset SPUS._t'2
-      (Evar SPUS._gCurrentObject
-        (tptr (Tstruct SPUS._Object noattr))))
+    (Sset SPJP._t'2
+      (Evar SPJP._gCurrentObject
+        (tptr (Tstruct SPJP._Object noattr))))
     (Ssequence
-      (Sset SPUS._t'3 (us_spawn_active_word_lvalue SPUS._t'2))
+      (Sset SPJP._t'3 (jp_spawn_active_word_lvalue SPJP._t'2))
       (Sifthenelse
         (Eunop Onotbool
-          (Ebinop Oand (Etempvar SPUS._t'3 tuint)
-            (Etempvar SPUS._activeParticleFlag tuint) tuint) tint)
+          (Ebinop Oand (Etempvar SPJP._t'3 tuint)
+            (Etempvar SPJP._activeParticleFlag tuint) tuint) tint)
         (Ssequence
           (Ssequence
-            (Sset SPUS._t'6
-              (Evar SPUS._gCurrentObject
-                (tptr (Tstruct SPUS._Object noattr))))
+            (Sset SPJP._t'6
+              (Evar SPJP._gCurrentObject
+                (tptr (Tstruct SPJP._Object noattr))))
             (Ssequence
-              (Sset SPUS._t'7
-                (Evar SPUS._gCurrentObject
-                  (tptr (Tstruct SPUS._Object noattr))))
+              (Sset SPJP._t'7
+                (Evar SPJP._gCurrentObject
+                  (tptr (Tstruct SPJP._Object noattr))))
               (Ssequence
-                (Sset SPUS._t'8
-                  (us_spawn_active_word_lvalue SPUS._t'7))
+                (Sset SPJP._t'8
+                  (jp_spawn_active_word_lvalue SPJP._t'7))
                 (Sassign
-                  (us_spawn_active_word_lvalue SPUS._t'6)
-                  (Ebinop Oor (Etempvar SPUS._t'8 tuint)
-                    (Etempvar SPUS._activeParticleFlag tuint) tuint)))))
+                  (jp_spawn_active_word_lvalue SPJP._t'6)
+                  (Ebinop Oor (Etempvar SPJP._t'8 tuint)
+                    (Etempvar SPJP._activeParticleFlag tuint) tuint)))))
           (Ssequence
             (Ssequence
               (Ssequence
-                (Sset SPUS._t'5
-                  (Evar SPUS._gCurrentObject
-                    (tptr (Tstruct SPUS._Object noattr))))
-                (Scall (Some SPUS._t'1)
-                  (Evar SPUS._spawn_object_at_origin
+                (Sset SPJP._t'5
+                  (Evar SPJP._gCurrentObject
+                    (tptr (Tstruct SPJP._Object noattr))))
+                (Scall (Some SPJP._t'1)
+                  (Evar SPJP._spawn_object_at_origin
                     (Tfunction
-                      ((tptr (Tstruct SPUS._Object noattr)) :: tint ::
+                      ((tptr (Tstruct SPJP._Object noattr)) :: tint ::
                        tuint :: (tptr tuint) :: nil)
-                      (tptr (Tstruct SPUS._Object noattr)) cc_default))
-                  ((Etempvar SPUS._t'5
-                      (tptr (Tstruct SPUS._Object noattr))) ::
+                      (tptr (Tstruct SPJP._Object noattr)) cc_default))
+                  ((Etempvar SPJP._t'5
+                      (tptr (Tstruct SPJP._Object noattr))) ::
                    (Econst_int (Int.repr 0) tint) ::
-                   (Etempvar SPUS._model tshort) ::
-                   (Etempvar SPUS._behavior (tptr tuint)) :: nil)))
-              (Sset SPUS._particle
-                (Etempvar SPUS._t'1
-                  (tptr (Tstruct SPUS._Object noattr)))))
+                   (Etempvar SPJP._model tshort) ::
+                   (Etempvar SPJP._behavior (tptr tuint)) :: nil)))
+              (Sset SPJP._particle
+                (Etempvar SPJP._t'1
+                  (tptr (Tstruct SPJP._Object noattr)))))
             (Ssequence
-              (Sset SPUS._t'4
-                (Evar SPUS._gCurrentObject
-                  (tptr (Tstruct SPUS._Object noattr))))
+              (Sset SPJP._t'4
+                (Evar SPJP._gCurrentObject
+                  (tptr (Tstruct SPJP._Object noattr))))
               (Scall None
-                (Evar SPUS._obj_copy_pos_and_angle
+                (Evar SPJP._obj_copy_pos_and_angle
                   (Tfunction
-                    ((tptr (Tstruct SPUS._Object noattr)) ::
-                     (tptr (Tstruct SPUS._Object noattr)) :: nil)
+                    ((tptr (Tstruct SPJP._Object noattr)) ::
+                     (tptr (Tstruct SPJP._Object noattr)) :: nil)
                     tvoid cc_default))
-                ((Etempvar SPUS._particle
-                    (tptr (Tstruct SPUS._Object noattr))) ::
-                 (Etempvar SPUS._t'4
-                    (tptr (Tstruct SPUS._Object noattr))) :: nil)))))
+                ((Etempvar SPJP._particle
+                    (tptr (Tstruct SPJP._Object noattr))) ::
+                 (Etempvar SPJP._t'4
+                    (tptr (Tstruct SPJP._Object noattr))) :: nil)))))
         Sskip)).
 
-Lemma us_spawn_particle_body_exact :
-  fn_body SPUS.f_spawn_particle = us_spawn_particle_body.
+Lemma jp_spawn_particle_body_exact :
+  fn_body SPJP.f_spawn_particle = jp_spawn_particle_body.
 Proof. reflexivity. Qed.
 
 
-(** Exact US caller execution.  [Hspawn_call] and [Hcopy_call] are executions
+(** Exact JP caller execution.  [Hspawn_call] and [Hcopy_call] are executions
     of the generated callees with the exact arguments emitted by
     [f_spawn_particle].  They make the segmented-address boundary explicit
     instead of replacing either callee with a hand-written transition. *)
-Definition us_spawn_particle_execution_claim : Prop :=
-  firstn 5 (gvar_init SPUS.v_sParticleTypes) =
+Definition jp_spawn_particle_execution_claim : Prop :=
+  firstn 5 (gvar_init SPJP.v_sParticleTypes) =
     [Init_int32 dust_spawn_flag;
      Init_int32 dust_spawn_flag;
      Init_int8 dust_spawn_model;
      Init_space 3;
-     Init_addrof SPUS._bhvMistParticleSpawner Ptrofs.zero] /\
+     Init_addrof SPJP._bhvMistParticleSpawner Ptrofs.zero] /\
   (forall (ge : Clight.genv)
       (memory_before memory_flag_set memory_spawned memory_after : mem)
       (current_block mario_block behavior_block spawn_block copy_block
        particle_block : block)
       (object_composite raw_composite : composite) flags,
-    Genv.find_symbol ge SPUS._gCurrentObject = Some current_block ->
-    Genv.find_symbol ge SPUS._spawn_object_at_origin = Some spawn_block ->
+    Genv.find_symbol ge SPJP._gCurrentObject = Some current_block ->
+    Genv.find_symbol ge SPJP._spawn_object_at_origin = Some spawn_block ->
     Genv.find_funct_ptr ge spawn_block =
-      Some (Internal SPUSOH.f_spawn_object_at_origin) ->
-    Genv.find_symbol ge SPUS._obj_copy_pos_and_angle = Some copy_block ->
+      Some (Internal SPJPOH.f_spawn_object_at_origin) ->
+    Genv.find_symbol ge SPJP._obj_copy_pos_and_angle = Some copy_block ->
     Genv.find_funct_ptr ge copy_block =
-      Some (Internal SPUSOH.f_obj_copy_pos_and_angle) ->
-    (genv_cenv ge) ! SPUS._Object = Some object_composite ->
-    field_offset (genv_cenv ge) SPUS._rawData
+      Some (Internal SPJPOH.f_obj_copy_pos_and_angle) ->
+    (genv_cenv ge) ! SPJP._Object = Some object_composite ->
+    field_offset (genv_cenv ge) SPJP._rawData
       (co_members object_composite) = OK (raw_data_byte_offset, Full) ->
-    (genv_cenv ge) ! SPUS.__764 = Some raw_composite ->
-    union_field_offset (genv_cenv ge) SPUS._asU32
+    (genv_cenv ge) ! SPJP.__727 = Some raw_composite ->
+    union_field_offset (genv_cenv ge) SPJP._asU32
       (co_members raw_composite) = OK (0%Z, Full) ->
     Mem.load Mptr memory_before current_block 0 =
       Some (Vptr mario_block Ptrofs.zero) ->
@@ -345,7 +341,7 @@ Definition us_spawn_particle_execution_claim : Prop :=
       active_particle_word_byte_offset
       (Vint (set_dust_spawn_flag flags)) = Some memory_flag_set ->
     eval_funcall function_entry2 ge memory_flag_set
-      (Internal SPUSOH.f_spawn_object_at_origin)
+      (Internal SPJPOH.f_spawn_object_at_origin)
       [Vptr mario_block Ptrofs.zero; Vint Int.zero;
        Vint dust_spawn_model; Vptr behavior_block Ptrofs.zero]
       E0 memory_spawned (Vptr particle_block Ptrofs.zero) ->
@@ -354,13 +350,13 @@ Definition us_spawn_particle_execution_claim : Prop :=
     preserves_spawn_active_word memory_flag_set memory_spawned mario_block
       (set_dust_spawn_flag flags) ->
     eval_funcall function_entry2 ge memory_spawned
-      (Internal SPUSOH.f_obj_copy_pos_and_angle)
+      (Internal SPJPOH.f_obj_copy_pos_and_angle)
       [Vptr particle_block Ptrofs.zero; Vptr mario_block Ptrofs.zero]
       E0 memory_after Vundef ->
     preserves_spawn_active_word memory_spawned memory_after mario_block
       (set_dust_spawn_flag flags) ->
     eval_funcall function_entry2 ge memory_before
-      (Internal SPUS.f_spawn_particle)
+      (Internal SPJP.f_spawn_particle)
       [Vint dust_spawn_flag; Vint dust_spawn_model;
        Vptr behavior_block Ptrofs.zero]
       E0 memory_after Vundef /\
@@ -369,12 +365,12 @@ Definition us_spawn_particle_execution_claim : Prop :=
       Some (Vint (set_dust_spawn_flag flags)) /\
     dust_spawn_flag_is_set (set_dust_spawn_flag flags)).
 
-Theorem us_generated_spawn_particle_accepts_clear_dust_in_any_genv :
-  us_spawn_particle_execution_claim.
+Theorem jp_generated_spawn_particle_accepts_clear_dust_in_any_genv :
+  jp_spawn_particle_execution_claim.
 Proof.
-  unfold us_spawn_particle_execution_claim.
+  unfold jp_spawn_particle_execution_claim.
   split.
-  - exact us_dust_particle_descriptor_exact.
+  - exact jp_dust_particle_descriptor_exact.
   - intros ge memory_before memory_flag_set memory_spawned memory_after
     current_block mario_block behavior_block spawn_block copy_block
     particle_block object_composite raw_composite flags Hcurrent_symbol
@@ -407,17 +403,17 @@ Proof.
       * constructor.
       * cbn.
         apply Coqlib.list_norepet_cons.
-        -- cbn [SPUS._activeParticleFlag SPUS._model SPUS._behavior].
+        -- cbn [SPJP._activeParticleFlag SPJP._model SPJP._behavior].
            intros [Hequal | [Hequal | Hnone]].
-           ++ unfold SPUS._activeParticleFlag, SPUS._model in Hequal.
+           ++ unfold SPJP._activeParticleFlag, SPJP._model in Hequal.
               discriminate.
-           ++ unfold SPUS._activeParticleFlag, SPUS._behavior in Hequal.
+           ++ unfold SPJP._activeParticleFlag, SPJP._behavior in Hequal.
               discriminate.
            ++ contradiction.
         -- apply Coqlib.list_norepet_cons.
-           ++ cbn [SPUS._model SPUS._behavior].
+           ++ cbn [SPJP._model SPJP._behavior].
               intros [Hequal | Hnone].
-              ** unfold SPUS._model, SPUS._behavior in Hequal.
+              ** unfold SPJP._model, SPJP._behavior in Hequal.
                  discriminate.
               ** contradiction.
            ++ apply Coqlib.list_norepet_cons.
@@ -440,24 +436,24 @@ Proof.
                  [Htemporary | [Htemporary | Hnone]]]]]]]]];
           try contradiction;
         subst parameter;
-        cbv [SPUS._activeParticleFlag SPUS._model SPUS._behavior
-          SPUS._particle SPUS._t'1 SPUS._t'8 SPUS._t'7 SPUS._t'6
-          SPUS._t'5 SPUS._t'4 SPUS._t'3 SPUS._t'2]
+        cbv [SPJP._activeParticleFlag SPJP._model SPJP._behavior
+          SPJP._particle SPJP._t'1 SPJP._t'8 SPJP._t'7 SPJP._t'6
+          SPJP._t'5 SPJP._t'4 SPJP._t'3 SPJP._t'2]
           in Htemporary;
         discriminate.
       * constructor.
       * cbn. reflexivity.
-    + rewrite us_spawn_particle_body_exact.
-      unfold us_spawn_particle_body.
+    + rewrite jp_spawn_particle_body_exact.
+      unfold jp_spawn_particle_body.
       eapply exec_Sseq_1 with (t1 := E0) (t2 := E0).
       * eapply exec_Sset.
-        eapply eval_us_spawn_current_object.
+        eapply eval_jp_spawn_current_object.
         -- cbn. reflexivity.
         -- exact Hcurrent_symbol.
         -- exact Hcurrent_before.
       * eapply exec_Sseq_1 with (t1 := E0) (t2 := E0).
         -- eapply exec_Sset.
-           eapply eval_us_spawn_active_word_value.
+           eapply eval_jp_spawn_active_word_value.
            ++ apply PTree.gss.
            ++ exact Hobject.
            ++ exact Hraw_offset.
@@ -475,19 +471,19 @@ Proof.
            ++ eapply exec_Sseq_1 with (t1 := E0) (t2 := E0).
               ** eapply exec_Sseq_1 with (t1 := E0) (t2 := E0).
                  --- eapply exec_Sset.
-                     eapply eval_us_spawn_current_object.
+                     eapply eval_jp_spawn_current_object.
                      +++ cbn. reflexivity.
                      +++ exact Hcurrent_symbol.
                      +++ exact Hcurrent_before.
                  --- eapply exec_Sseq_1 with (t1 := E0) (t2 := E0).
                      +++ eapply exec_Sset.
-                         eapply eval_us_spawn_current_object.
+                         eapply eval_jp_spawn_current_object.
                          *** cbn. reflexivity.
                          *** exact Hcurrent_symbol.
                          *** exact Hcurrent_before.
                      +++ eapply exec_Sseq_1 with (t1 := E0) (t2 := E0).
                          *** eapply exec_Sset.
-                             eapply eval_us_spawn_active_word_value.
+                             eapply eval_jp_spawn_active_word_value.
                              ---- apply PTree.gss.
                              ---- exact Hobject.
                              ---- exact Hraw_offset.
@@ -495,7 +491,7 @@ Proof.
                              ---- exact Harray_offset.
                              ---- exact Hflags_before.
                          *** eapply exec_Sassign.
-                             ---- eapply eval_us_spawn_active_word_lvalue.
+                             ---- eapply eval_jp_spawn_active_word_lvalue.
                                   ++++ cbn. reflexivity.
                                   ++++ exact Hobject.
                                   ++++ exact Hraw_offset.
@@ -512,7 +508,7 @@ Proof.
                  --- eapply exec_Sseq_1 with (t1 := E0) (t2 := E0).
                      +++ eapply exec_Sseq_1 with (t1 := E0) (t2 := E0).
                          *** eapply exec_Sset.
-                             eapply eval_us_spawn_current_object.
+                             eapply eval_jp_spawn_current_object.
                              ---- cbn. reflexivity.
                              ---- exact Hcurrent_symbol.
                              ---- exact Hcurrent_flag_set.
@@ -539,7 +535,7 @@ Proof.
                          eapply eval_Etempvar. apply PTree.gss.
                  --- eapply exec_Sseq_1 with (t1 := E0) (t2 := E0).
                      +++ eapply exec_Sset.
-                         eapply eval_us_spawn_current_object.
+                         eapply eval_jp_spawn_current_object.
                          *** cbn. reflexivity.
                          *** exact Hcurrent_symbol.
                          *** exact Hcurrent_spawned.
