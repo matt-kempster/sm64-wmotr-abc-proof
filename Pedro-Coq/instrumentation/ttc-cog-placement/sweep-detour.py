@@ -38,7 +38,8 @@ def main():
     parser.add_argument("name", help="fresh search directory name")
     parser.add_argument("--first", type=int, default=0)
     parser.add_argument("--count", type=int, default=6)
-    parser.add_argument("--suite", choices=("rim", "phase", "brake", "tip", "tip_brake"), default="rim")
+    parser.add_argument("--suite", choices=("rim", "phase", "brake", "tip", "tip_brake",
+                                           "turn_fine", "brake_early", "edge_fine"), default="rim")
     args = parser.parse_args()
     candidates = [(x, turn, jump, 0) for turn in (136, 132, 140)
                   for jump in (None, 132) for x in (1370, 1410, 1450)]
@@ -46,6 +47,12 @@ def main():
         candidates = [(1410, 136, None, delay) for delay in (4, 8, 12, 16, 24, 32, 48, 64, 80, 96, 128, 160)]
     if args.suite == "brake":
         candidates = [(1410, stop, None, 0) for stop in (130,131,132,133,134,135)]
+    if args.suite == "turn_fine":
+        candidates = [(1410, turn, None, 0) for turn in (129,130,131,133,134,135,137)]
+    if args.suite == "brake_early":
+        candidates = [(1410, stop, None, 0) for stop in (122,124,126,128,130,132)]
+    if args.suite == "edge_fine":
+        candidates = [(x, 134, None, 0) for x in range(1376, 1421, 4)]
     if args.suite == "tip":
         candidates = [(-radius, 130, None, 0) for radius in (298,302,304,306,308,310)]
     if args.suite == "tip_brake":
@@ -64,7 +71,8 @@ def main():
                           (f"{jump+delay},{jump+delay},0,0,A\n" if jump else ""))
         route = [(0,65,1450,-660,75), (66,100,1320,-720,65),
                  (101,114,1300,-965,65), (115,turn-1,x,-1240,80),
-                 (146 if args.suite == "brake" else turn,310,1490,-873,80)]
+                 (146 if args.suite == "brake" else
+                  134 if args.suite == "brake_early" else turn,310,1490,-873,80)]
         waypoints.write_text("".join(f"{a+delay},{b+delay},{x},{z},{mag}\n"
                                      for a,b,x,z,mag in route))
         if args.suite in ("tip", "tip_brake"):

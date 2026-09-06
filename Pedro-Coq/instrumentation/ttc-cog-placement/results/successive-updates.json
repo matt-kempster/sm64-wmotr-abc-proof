@@ -1,0 +1,3198 @@
+{
+  "date": "2026-09-06",
+  "source_pin": "9921382a68bb0c865e5e45eb594d9c64db59b1af",
+  "initialization_patch_sha256": "6daa97f3c5836c157ceba2d926d57481fd2b17713392845b3b3f4374cb56da91",
+  "scope": "Completed controller experiments and finite observation checks, outside the Coq trusted base. No sustained-entry or preserving-RNG-control witness.",
+  "searches": [
+    {
+      "trial": "successive_turn_a_00_us",
+      "version": "us",
+      "trace_sha256": "6cf534f6d9dff02e40343612e296f1a714d20a1262156b7adcb49395842f393a",
+      "counts": {
+        "CINPUT": 315,
+        "CFRAME": 315,
+        "CCOG": 2520,
+        "CRNG": 1503,
+        "CAIR": 124,
+        "CWALL": 198
+      },
+      "pedro_frames": [],
+      "observer_sha256": "eceb3203a304f202bf4fea73e33b90769cd6d6f786f5f4a1a5940ff37d9adf17",
+      "inputs_sha256": "74cb6cfe808846c3cdae0c96c8f9815cae6a7fca303db639f78a194d72e66472",
+      "waypoints_sha256": "f0c77e23996acbc900b2015db5c6f77b60ec1b086811fb2cce84baed56ba48ef",
+      "render_frame_limit": 690,
+      "controller_intervals": [
+        [
+          "76",
+          "80",
+          "0",
+          "0",
+          "A"
+        ]
+      ],
+      "waypoints": [
+        [
+          "0",
+          "65",
+          "1450",
+          "-660",
+          "75"
+        ],
+        [
+          "66",
+          "100",
+          "1320",
+          "-720",
+          "65"
+        ],
+        [
+          "101",
+          "114",
+          "1300",
+          "-965",
+          "65"
+        ],
+        [
+          "115",
+          "128",
+          "1410",
+          "-1240",
+          "80"
+        ],
+        [
+          "129",
+          "310",
+          "1490",
+          "-873",
+          "80"
+        ]
+      ]
+    },
+    {
+      "trial": "successive_turn_a_01_us",
+      "version": "us",
+      "trace_sha256": "50d8589cdfeb5905b7eec96d4de2c200201eb3118a1e6ae595910914029cca8d",
+      "counts": {
+        "CINPUT": 263,
+        "CFRAME": 263,
+        "CCOG": 2104,
+        "CRNG": 1220,
+        "CAIR": 571,
+        "CWALL": 21
+      },
+      "pedro_frames": [],
+      "observer_sha256": "eceb3203a304f202bf4fea73e33b90769cd6d6f786f5f4a1a5940ff37d9adf17",
+      "inputs_sha256": "74cb6cfe808846c3cdae0c96c8f9815cae6a7fca303db639f78a194d72e66472",
+      "waypoints_sha256": "af36d985f5adbd89c7c7eb3cfdde8bd8493fc8566a3169177983a71c346a1fb6",
+      "render_frame_limit": 690,
+      "controller_intervals": [
+        [
+          "76",
+          "80",
+          "0",
+          "0",
+          "A"
+        ]
+      ],
+      "waypoints": [
+        [
+          "0",
+          "65",
+          "1450",
+          "-660",
+          "75"
+        ],
+        [
+          "66",
+          "100",
+          "1320",
+          "-720",
+          "65"
+        ],
+        [
+          "101",
+          "114",
+          "1300",
+          "-965",
+          "65"
+        ],
+        [
+          "115",
+          "129",
+          "1410",
+          "-1240",
+          "80"
+        ],
+        [
+          "130",
+          "310",
+          "1490",
+          "-873",
+          "80"
+        ]
+      ]
+    },
+    {
+      "trial": "successive_turn_a_02_us",
+      "version": "us",
+      "trace_sha256": "189e5d6ceb4fbc4c4ae3b3164875870a77c11937f3e089014f3e478c6e0f63cb",
+      "counts": {
+        "CINPUT": 263,
+        "CFRAME": 263,
+        "CCOG": 2104,
+        "CRNG": 1220,
+        "CAIR": 571,
+        "CWALL": 21
+      },
+      "pedro_frames": [],
+      "observer_sha256": "eceb3203a304f202bf4fea73e33b90769cd6d6f786f5f4a1a5940ff37d9adf17",
+      "inputs_sha256": "74cb6cfe808846c3cdae0c96c8f9815cae6a7fca303db639f78a194d72e66472",
+      "waypoints_sha256": "3755def1c2d4172dc1db347e8bf676e80be3702f373b99c7a22c6ca301d203bc",
+      "render_frame_limit": 690,
+      "controller_intervals": [
+        [
+          "76",
+          "80",
+          "0",
+          "0",
+          "A"
+        ]
+      ],
+      "waypoints": [
+        [
+          "0",
+          "65",
+          "1450",
+          "-660",
+          "75"
+        ],
+        [
+          "66",
+          "100",
+          "1320",
+          "-720",
+          "65"
+        ],
+        [
+          "101",
+          "114",
+          "1300",
+          "-965",
+          "65"
+        ],
+        [
+          "115",
+          "130",
+          "1410",
+          "-1240",
+          "80"
+        ],
+        [
+          "131",
+          "310",
+          "1490",
+          "-873",
+          "80"
+        ]
+      ]
+    },
+    {
+      "trial": "successive_turn_a_03_us",
+      "version": "us",
+      "trace_sha256": "c60864df0abee9fc8fecac0557b8219487d833c0f604a1fe3de38e712d661e82",
+      "counts": {
+        "CINPUT": 263,
+        "CFRAME": 263,
+        "CCOG": 2104,
+        "CRNG": 1220,
+        "CAIR": 583,
+        "CWALL": 21
+      },
+      "pedro_frames": [
+        138
+      ],
+      "observer_sha256": "eceb3203a304f202bf4fea73e33b90769cd6d6f786f5f4a1a5940ff37d9adf17",
+      "inputs_sha256": "74cb6cfe808846c3cdae0c96c8f9815cae6a7fca303db639f78a194d72e66472",
+      "waypoints_sha256": "51531d1729ffcc7f8c9b744cccb54cf0e7eb9c384ef06be3238837d2c54212d5",
+      "render_frame_limit": 690,
+      "controller_intervals": [
+        [
+          "76",
+          "80",
+          "0",
+          "0",
+          "A"
+        ]
+      ],
+      "waypoints": [
+        [
+          "0",
+          "65",
+          "1450",
+          "-660",
+          "75"
+        ],
+        [
+          "66",
+          "100",
+          "1320",
+          "-720",
+          "65"
+        ],
+        [
+          "101",
+          "114",
+          "1300",
+          "-965",
+          "65"
+        ],
+        [
+          "115",
+          "132",
+          "1410",
+          "-1240",
+          "80"
+        ],
+        [
+          "133",
+          "310",
+          "1490",
+          "-873",
+          "80"
+        ]
+      ]
+    },
+    {
+      "trial": "successive_turn_a_04_us",
+      "version": "us",
+      "trace_sha256": "a31ee65e777fba81f27dd608f186537528788c9039035fc14e71cba1559748cd",
+      "counts": {
+        "CINPUT": 263,
+        "CFRAME": 263,
+        "CCOG": 2104,
+        "CRNG": 1220,
+        "CAIR": 584,
+        "CWALL": 21
+      },
+      "pedro_frames": [
+        138
+      ],
+      "observer_sha256": "eceb3203a304f202bf4fea73e33b90769cd6d6f786f5f4a1a5940ff37d9adf17",
+      "inputs_sha256": "74cb6cfe808846c3cdae0c96c8f9815cae6a7fca303db639f78a194d72e66472",
+      "waypoints_sha256": "04a07c7e5692d27bc6ff7dd7cfd7175daa0ab0d0a18750be2573b628352d0ebd",
+      "render_frame_limit": 690,
+      "controller_intervals": [
+        [
+          "76",
+          "80",
+          "0",
+          "0",
+          "A"
+        ]
+      ],
+      "waypoints": [
+        [
+          "0",
+          "65",
+          "1450",
+          "-660",
+          "75"
+        ],
+        [
+          "66",
+          "100",
+          "1320",
+          "-720",
+          "65"
+        ],
+        [
+          "101",
+          "114",
+          "1300",
+          "-965",
+          "65"
+        ],
+        [
+          "115",
+          "133",
+          "1410",
+          "-1240",
+          "80"
+        ],
+        [
+          "134",
+          "310",
+          "1490",
+          "-873",
+          "80"
+        ]
+      ]
+    },
+    {
+      "trial": "successive_turn_a_05_us",
+      "version": "us",
+      "trace_sha256": "450fac83906038b732e0d4d57489438254fbe26dffbe498c2a841e58062b7b54",
+      "counts": {
+        "CINPUT": 263,
+        "CFRAME": 263,
+        "CCOG": 2104,
+        "CRNG": 1220,
+        "CAIR": 584,
+        "CWALL": 21
+      },
+      "pedro_frames": [
+        138
+      ],
+      "observer_sha256": "eceb3203a304f202bf4fea73e33b90769cd6d6f786f5f4a1a5940ff37d9adf17",
+      "inputs_sha256": "74cb6cfe808846c3cdae0c96c8f9815cae6a7fca303db639f78a194d72e66472",
+      "waypoints_sha256": "2d59f14ae67ffe62e932199d17fff4ead08d62bce888c398266616ca44bcbe6a",
+      "render_frame_limit": 690,
+      "controller_intervals": [
+        [
+          "76",
+          "80",
+          "0",
+          "0",
+          "A"
+        ]
+      ],
+      "waypoints": [
+        [
+          "0",
+          "65",
+          "1450",
+          "-660",
+          "75"
+        ],
+        [
+          "66",
+          "100",
+          "1320",
+          "-720",
+          "65"
+        ],
+        [
+          "101",
+          "114",
+          "1300",
+          "-965",
+          "65"
+        ],
+        [
+          "115",
+          "134",
+          "1410",
+          "-1240",
+          "80"
+        ],
+        [
+          "135",
+          "310",
+          "1490",
+          "-873",
+          "80"
+        ]
+      ]
+    },
+    {
+      "trial": "successive_turn_a_06_us",
+      "version": "us",
+      "trace_sha256": "d36641b3294f572198289be6afa70127287928573179e741029a4df43ba66d30",
+      "counts": {
+        "CINPUT": 315,
+        "CFRAME": 315,
+        "CCOG": 2520,
+        "CRNG": 1611,
+        "CAIR": 152,
+        "CWALL": 150
+      },
+      "pedro_frames": [],
+      "observer_sha256": "eceb3203a304f202bf4fea73e33b90769cd6d6f786f5f4a1a5940ff37d9adf17",
+      "inputs_sha256": "74cb6cfe808846c3cdae0c96c8f9815cae6a7fca303db639f78a194d72e66472",
+      "waypoints_sha256": "57916f29f54d0c64b083012906a9b6a9acc56f63019113960a4122fcf8f2a655",
+      "render_frame_limit": 690,
+      "controller_intervals": [
+        [
+          "76",
+          "80",
+          "0",
+          "0",
+          "A"
+        ]
+      ],
+      "waypoints": [
+        [
+          "0",
+          "65",
+          "1450",
+          "-660",
+          "75"
+        ],
+        [
+          "66",
+          "100",
+          "1320",
+          "-720",
+          "65"
+        ],
+        [
+          "101",
+          "114",
+          "1300",
+          "-965",
+          "65"
+        ],
+        [
+          "115",
+          "136",
+          "1410",
+          "-1240",
+          "80"
+        ],
+        [
+          "137",
+          "310",
+          "1490",
+          "-873",
+          "80"
+        ]
+      ]
+    },
+    {
+      "trial": "successive_brake_a_00_us",
+      "version": "us",
+      "trace_sha256": "7024b97945877b1af7827fe630f6753d69cdc4d597b918d70c916217892b437f",
+      "counts": {
+        "CINPUT": 315,
+        "CFRAME": 315,
+        "CCOG": 2520,
+        "CRNG": 1578,
+        "CAIR": 159,
+        "CWALL": 182
+      },
+      "pedro_frames": [],
+      "observer_sha256": "eceb3203a304f202bf4fea73e33b90769cd6d6f786f5f4a1a5940ff37d9adf17",
+      "inputs_sha256": "74cb6cfe808846c3cdae0c96c8f9815cae6a7fca303db639f78a194d72e66472",
+      "waypoints_sha256": "6be87c6415aa9568a49b3333bb3465d4d112d5fda69edaf9f00e9cd2ce6e4625",
+      "render_frame_limit": 690,
+      "controller_intervals": [
+        [
+          "76",
+          "80",
+          "0",
+          "0",
+          "A"
+        ]
+      ],
+      "waypoints": [
+        [
+          "0",
+          "65",
+          "1450",
+          "-660",
+          "75"
+        ],
+        [
+          "66",
+          "100",
+          "1320",
+          "-720",
+          "65"
+        ],
+        [
+          "101",
+          "114",
+          "1300",
+          "-965",
+          "65"
+        ],
+        [
+          "115",
+          "121",
+          "1410",
+          "-1240",
+          "80"
+        ],
+        [
+          "134",
+          "310",
+          "1490",
+          "-873",
+          "80"
+        ]
+      ]
+    },
+    {
+      "trial": "successive_brake_a_01_us",
+      "version": "us",
+      "trace_sha256": "38b44f569a30140893921610e25372ccfd6ad86c9c2d379fb34e7ae13f3f2062",
+      "counts": {
+        "CINPUT": 315,
+        "CFRAME": 315,
+        "CCOG": 2520,
+        "CRNG": 1581,
+        "CAIR": 171,
+        "CWALL": 182
+      },
+      "pedro_frames": [],
+      "observer_sha256": "eceb3203a304f202bf4fea73e33b90769cd6d6f786f5f4a1a5940ff37d9adf17",
+      "inputs_sha256": "74cb6cfe808846c3cdae0c96c8f9815cae6a7fca303db639f78a194d72e66472",
+      "waypoints_sha256": "905b412cfed0b21f7211683ebf7def52622a50c05a7a8d98e3a4a11e25283e77",
+      "render_frame_limit": 690,
+      "controller_intervals": [
+        [
+          "76",
+          "80",
+          "0",
+          "0",
+          "A"
+        ]
+      ],
+      "waypoints": [
+        [
+          "0",
+          "65",
+          "1450",
+          "-660",
+          "75"
+        ],
+        [
+          "66",
+          "100",
+          "1320",
+          "-720",
+          "65"
+        ],
+        [
+          "101",
+          "114",
+          "1300",
+          "-965",
+          "65"
+        ],
+        [
+          "115",
+          "123",
+          "1410",
+          "-1240",
+          "80"
+        ],
+        [
+          "134",
+          "310",
+          "1490",
+          "-873",
+          "80"
+        ]
+      ]
+    },
+    {
+      "trial": "successive_brake_a_02_us",
+      "version": "us",
+      "trace_sha256": "bd4b1c24163998eda7b68bbb7eebd22dae19f5618993c14ce307331214535496",
+      "counts": {
+        "CINPUT": 315,
+        "CFRAME": 315,
+        "CCOG": 2520,
+        "CRNG": 1554,
+        "CAIR": 147,
+        "CWALL": 194
+      },
+      "pedro_frames": [],
+      "observer_sha256": "eceb3203a304f202bf4fea73e33b90769cd6d6f786f5f4a1a5940ff37d9adf17",
+      "inputs_sha256": "74cb6cfe808846c3cdae0c96c8f9815cae6a7fca303db639f78a194d72e66472",
+      "waypoints_sha256": "87a50a2d4e15c393b3369c009f1eb23b228d507dcea5cc16b5931d2ac772f6f9",
+      "render_frame_limit": 690,
+      "controller_intervals": [
+        [
+          "76",
+          "80",
+          "0",
+          "0",
+          "A"
+        ]
+      ],
+      "waypoints": [
+        [
+          "0",
+          "65",
+          "1450",
+          "-660",
+          "75"
+        ],
+        [
+          "66",
+          "100",
+          "1320",
+          "-720",
+          "65"
+        ],
+        [
+          "101",
+          "114",
+          "1300",
+          "-965",
+          "65"
+        ],
+        [
+          "115",
+          "125",
+          "1410",
+          "-1240",
+          "80"
+        ],
+        [
+          "134",
+          "310",
+          "1490",
+          "-873",
+          "80"
+        ]
+      ]
+    },
+    {
+      "trial": "successive_brake_a_03_us",
+      "version": "us",
+      "trace_sha256": "63252ddf5281f27bbe8b1a4f12db9e76fbbae5b2cbceb590070ac3529b1c65cb",
+      "counts": {
+        "CINPUT": 243,
+        "CFRAME": 243,
+        "CCOG": 1944,
+        "CRNG": 1124,
+        "CAIR": 531,
+        "CWALL": 36
+      },
+      "pedro_frames": [],
+      "observer_sha256": "eceb3203a304f202bf4fea73e33b90769cd6d6f786f5f4a1a5940ff37d9adf17",
+      "inputs_sha256": "74cb6cfe808846c3cdae0c96c8f9815cae6a7fca303db639f78a194d72e66472",
+      "waypoints_sha256": "1d8e930a3ba094817a23f7ff3546b29da29cefbbe543ea212dfe62e7b9ad10e7",
+      "render_frame_limit": 690,
+      "controller_intervals": [
+        [
+          "76",
+          "80",
+          "0",
+          "0",
+          "A"
+        ]
+      ],
+      "waypoints": [
+        [
+          "0",
+          "65",
+          "1450",
+          "-660",
+          "75"
+        ],
+        [
+          "66",
+          "100",
+          "1320",
+          "-720",
+          "65"
+        ],
+        [
+          "101",
+          "114",
+          "1300",
+          "-965",
+          "65"
+        ],
+        [
+          "115",
+          "127",
+          "1410",
+          "-1240",
+          "80"
+        ],
+        [
+          "134",
+          "310",
+          "1490",
+          "-873",
+          "80"
+        ]
+      ]
+    },
+    {
+      "trial": "successive_brake_a_04_us",
+      "version": "us",
+      "trace_sha256": "5f27746af060b94ab0147fe96d1dbe8ae702b43355f9e0d6bb611a26c9412985",
+      "counts": {
+        "CINPUT": 315,
+        "CFRAME": 315,
+        "CCOG": 2520,
+        "CRNG": 1496,
+        "CAIR": 304,
+        "CWALL": 18
+      },
+      "pedro_frames": [],
+      "observer_sha256": "eceb3203a304f202bf4fea73e33b90769cd6d6f786f5f4a1a5940ff37d9adf17",
+      "inputs_sha256": "74cb6cfe808846c3cdae0c96c8f9815cae6a7fca303db639f78a194d72e66472",
+      "waypoints_sha256": "43fbca9550195ce9a390ed650cad721c39a52ac63f7ed6f33cf24292c2a39a57",
+      "render_frame_limit": 690,
+      "controller_intervals": [
+        [
+          "76",
+          "80",
+          "0",
+          "0",
+          "A"
+        ]
+      ],
+      "waypoints": [
+        [
+          "0",
+          "65",
+          "1450",
+          "-660",
+          "75"
+        ],
+        [
+          "66",
+          "100",
+          "1320",
+          "-720",
+          "65"
+        ],
+        [
+          "101",
+          "114",
+          "1300",
+          "-965",
+          "65"
+        ],
+        [
+          "115",
+          "129",
+          "1410",
+          "-1240",
+          "80"
+        ],
+        [
+          "134",
+          "310",
+          "1490",
+          "-873",
+          "80"
+        ]
+      ]
+    },
+    {
+      "trial": "successive_brake_a_05_us",
+      "version": "us",
+      "trace_sha256": "d9962ef8358e411e5d33182f4f2e51a7b2c8731cc714ed83407d0887016edc07",
+      "counts": {
+        "CINPUT": 276,
+        "CFRAME": 276,
+        "CCOG": 2208,
+        "CRNG": 1255,
+        "CAIR": 562,
+        "CWALL": 75
+      },
+      "pedro_frames": [],
+      "observer_sha256": "eceb3203a304f202bf4fea73e33b90769cd6d6f786f5f4a1a5940ff37d9adf17",
+      "inputs_sha256": "74cb6cfe808846c3cdae0c96c8f9815cae6a7fca303db639f78a194d72e66472",
+      "waypoints_sha256": "8525acdbb1e09f7237ff88d4aa7afeea889dc29c700894f25dba5ac19e264648",
+      "render_frame_limit": 690,
+      "controller_intervals": [
+        [
+          "76",
+          "80",
+          "0",
+          "0",
+          "A"
+        ]
+      ],
+      "waypoints": [
+        [
+          "0",
+          "65",
+          "1450",
+          "-660",
+          "75"
+        ],
+        [
+          "66",
+          "100",
+          "1320",
+          "-720",
+          "65"
+        ],
+        [
+          "101",
+          "114",
+          "1300",
+          "-965",
+          "65"
+        ],
+        [
+          "115",
+          "131",
+          "1410",
+          "-1240",
+          "80"
+        ],
+        [
+          "134",
+          "310",
+          "1490",
+          "-873",
+          "80"
+        ]
+      ]
+    },
+    {
+      "trial": "successive_edge_a_00_us",
+      "version": "us",
+      "trace_sha256": "d62953f9b57fad7093528837feabe2ef671e5012af67a2486addf21591d7690f",
+      "counts": {
+        "CINPUT": 315,
+        "CFRAME": 315,
+        "CCOG": 2520,
+        "CRNG": 1557,
+        "CAIR": 124,
+        "CWALL": 116
+      },
+      "pedro_frames": [],
+      "observer_sha256": "eceb3203a304f202bf4fea73e33b90769cd6d6f786f5f4a1a5940ff37d9adf17",
+      "inputs_sha256": "74cb6cfe808846c3cdae0c96c8f9815cae6a7fca303db639f78a194d72e66472",
+      "waypoints_sha256": "670a014a311336ab72b40dc1873c7ad80bb3ea11ae5c32d4d763fc1a90354679",
+      "render_frame_limit": 690,
+      "controller_intervals": [
+        [
+          "76",
+          "80",
+          "0",
+          "0",
+          "A"
+        ]
+      ],
+      "waypoints": [
+        [
+          "0",
+          "65",
+          "1450",
+          "-660",
+          "75"
+        ],
+        [
+          "66",
+          "100",
+          "1320",
+          "-720",
+          "65"
+        ],
+        [
+          "101",
+          "114",
+          "1300",
+          "-965",
+          "65"
+        ],
+        [
+          "115",
+          "133",
+          "1376",
+          "-1240",
+          "80"
+        ],
+        [
+          "134",
+          "310",
+          "1490",
+          "-873",
+          "80"
+        ]
+      ]
+    },
+    {
+      "trial": "successive_edge_a_01_us",
+      "version": "us",
+      "trace_sha256": "99690224b66a956f4b19e3bf6c75f4f96b733bce3471fb87e1b711748128874f",
+      "counts": {
+        "CINPUT": 315,
+        "CFRAME": 315,
+        "CCOG": 2520,
+        "CRNG": 1545,
+        "CAIR": 176,
+        "CWALL": 119
+      },
+      "pedro_frames": [],
+      "observer_sha256": "eceb3203a304f202bf4fea73e33b90769cd6d6f786f5f4a1a5940ff37d9adf17",
+      "inputs_sha256": "74cb6cfe808846c3cdae0c96c8f9815cae6a7fca303db639f78a194d72e66472",
+      "waypoints_sha256": "792f2b20ef9104abb5d0b857c22d1e3fea46b2329ed65da1482dfaec5e377801",
+      "render_frame_limit": 690,
+      "controller_intervals": [
+        [
+          "76",
+          "80",
+          "0",
+          "0",
+          "A"
+        ]
+      ],
+      "waypoints": [
+        [
+          "0",
+          "65",
+          "1450",
+          "-660",
+          "75"
+        ],
+        [
+          "66",
+          "100",
+          "1320",
+          "-720",
+          "65"
+        ],
+        [
+          "101",
+          "114",
+          "1300",
+          "-965",
+          "65"
+        ],
+        [
+          "115",
+          "133",
+          "1380",
+          "-1240",
+          "80"
+        ],
+        [
+          "134",
+          "310",
+          "1490",
+          "-873",
+          "80"
+        ]
+      ]
+    },
+    {
+      "trial": "successive_edge_a_02_us",
+      "version": "us",
+      "trace_sha256": "c56dba485cf13abbe5bd0fc8f7534391c729d9f713d2cc331703dd573ef1c4cf",
+      "counts": {
+        "CINPUT": 315,
+        "CFRAME": 315,
+        "CCOG": 2520,
+        "CRNG": 1550,
+        "CAIR": 124,
+        "CWALL": 129
+      },
+      "pedro_frames": [],
+      "observer_sha256": "eceb3203a304f202bf4fea73e33b90769cd6d6f786f5f4a1a5940ff37d9adf17",
+      "inputs_sha256": "74cb6cfe808846c3cdae0c96c8f9815cae6a7fca303db639f78a194d72e66472",
+      "waypoints_sha256": "02d4bc0a14291b962dde48a63deb119201674cef391e54f6e4825630c0e54c7c",
+      "render_frame_limit": 690,
+      "controller_intervals": [
+        [
+          "76",
+          "80",
+          "0",
+          "0",
+          "A"
+        ]
+      ],
+      "waypoints": [
+        [
+          "0",
+          "65",
+          "1450",
+          "-660",
+          "75"
+        ],
+        [
+          "66",
+          "100",
+          "1320",
+          "-720",
+          "65"
+        ],
+        [
+          "101",
+          "114",
+          "1300",
+          "-965",
+          "65"
+        ],
+        [
+          "115",
+          "133",
+          "1384",
+          "-1240",
+          "80"
+        ],
+        [
+          "134",
+          "310",
+          "1490",
+          "-873",
+          "80"
+        ]
+      ]
+    },
+    {
+      "trial": "successive_edge_a_03_us",
+      "version": "us",
+      "trace_sha256": "2b894bdc073e7815532b75c89659606f7c2c2dca6a571b298125c1f84f17ad32",
+      "counts": {
+        "CINPUT": 315,
+        "CFRAME": 315,
+        "CCOG": 2520,
+        "CRNG": 1550,
+        "CAIR": 124,
+        "CWALL": 129
+      },
+      "pedro_frames": [],
+      "observer_sha256": "eceb3203a304f202bf4fea73e33b90769cd6d6f786f5f4a1a5940ff37d9adf17",
+      "inputs_sha256": "74cb6cfe808846c3cdae0c96c8f9815cae6a7fca303db639f78a194d72e66472",
+      "waypoints_sha256": "ea9016463bcab578756f6f98ef98ec12dc86c88723401b43c765c76c191f1bad",
+      "render_frame_limit": 690,
+      "controller_intervals": [
+        [
+          "76",
+          "80",
+          "0",
+          "0",
+          "A"
+        ]
+      ],
+      "waypoints": [
+        [
+          "0",
+          "65",
+          "1450",
+          "-660",
+          "75"
+        ],
+        [
+          "66",
+          "100",
+          "1320",
+          "-720",
+          "65"
+        ],
+        [
+          "101",
+          "114",
+          "1300",
+          "-965",
+          "65"
+        ],
+        [
+          "115",
+          "133",
+          "1388",
+          "-1240",
+          "80"
+        ],
+        [
+          "134",
+          "310",
+          "1490",
+          "-873",
+          "80"
+        ]
+      ]
+    },
+    {
+      "trial": "successive_edge_a_04_us",
+      "version": "us",
+      "trace_sha256": "e0cb3ef9c04f22ddeed9755fb1568a83ea9c37dfd785dd0c18bfbbc320cf2ea6",
+      "counts": {
+        "CINPUT": 315,
+        "CFRAME": 315,
+        "CCOG": 2520,
+        "CRNG": 1578,
+        "CAIR": 124,
+        "CWALL": 129
+      },
+      "pedro_frames": [],
+      "observer_sha256": "eceb3203a304f202bf4fea73e33b90769cd6d6f786f5f4a1a5940ff37d9adf17",
+      "inputs_sha256": "74cb6cfe808846c3cdae0c96c8f9815cae6a7fca303db639f78a194d72e66472",
+      "waypoints_sha256": "c5fd93f8eee0c3683b96fba4d4ac15697562b5cf039d90897689de961ed3786d",
+      "render_frame_limit": 690,
+      "controller_intervals": [
+        [
+          "76",
+          "80",
+          "0",
+          "0",
+          "A"
+        ]
+      ],
+      "waypoints": [
+        [
+          "0",
+          "65",
+          "1450",
+          "-660",
+          "75"
+        ],
+        [
+          "66",
+          "100",
+          "1320",
+          "-720",
+          "65"
+        ],
+        [
+          "101",
+          "114",
+          "1300",
+          "-965",
+          "65"
+        ],
+        [
+          "115",
+          "133",
+          "1392",
+          "-1240",
+          "80"
+        ],
+        [
+          "134",
+          "310",
+          "1490",
+          "-873",
+          "80"
+        ]
+      ]
+    },
+    {
+      "trial": "successive_edge_a_05_us",
+      "version": "us",
+      "trace_sha256": "7d03489147ad34c22fe5e9096f3afb9bd9052dc15146ec2744fbc2cc7b41a436",
+      "counts": {
+        "CINPUT": 263,
+        "CFRAME": 263,
+        "CCOG": 2104,
+        "CRNG": 1220,
+        "CAIR": 571,
+        "CWALL": 21
+      },
+      "pedro_frames": [],
+      "observer_sha256": "eceb3203a304f202bf4fea73e33b90769cd6d6f786f5f4a1a5940ff37d9adf17",
+      "inputs_sha256": "74cb6cfe808846c3cdae0c96c8f9815cae6a7fca303db639f78a194d72e66472",
+      "waypoints_sha256": "3f4a73165ae599631232532573468a4e5f80f26237069a77a566c7c481b8515e",
+      "render_frame_limit": 690,
+      "controller_intervals": [
+        [
+          "76",
+          "80",
+          "0",
+          "0",
+          "A"
+        ]
+      ],
+      "waypoints": [
+        [
+          "0",
+          "65",
+          "1450",
+          "-660",
+          "75"
+        ],
+        [
+          "66",
+          "100",
+          "1320",
+          "-720",
+          "65"
+        ],
+        [
+          "101",
+          "114",
+          "1300",
+          "-965",
+          "65"
+        ],
+        [
+          "115",
+          "133",
+          "1396",
+          "-1240",
+          "80"
+        ],
+        [
+          "134",
+          "310",
+          "1490",
+          "-873",
+          "80"
+        ]
+      ]
+    },
+    {
+      "trial": "successive_edge_a_06_us",
+      "version": "us",
+      "trace_sha256": "bfe0db5208f45b2affebfec92367e95b8d597c5ff37151b803874026315f47a7",
+      "counts": {
+        "CINPUT": 263,
+        "CFRAME": 263,
+        "CCOG": 2104,
+        "CRNG": 1220,
+        "CAIR": 571,
+        "CWALL": 21
+      },
+      "pedro_frames": [],
+      "observer_sha256": "eceb3203a304f202bf4fea73e33b90769cd6d6f786f5f4a1a5940ff37d9adf17",
+      "inputs_sha256": "74cb6cfe808846c3cdae0c96c8f9815cae6a7fca303db639f78a194d72e66472",
+      "waypoints_sha256": "a02322c9adbca142c7c84b875d43a47aaf52555486e535cbc87aee9c417230b6",
+      "render_frame_limit": 690,
+      "controller_intervals": [
+        [
+          "76",
+          "80",
+          "0",
+          "0",
+          "A"
+        ]
+      ],
+      "waypoints": [
+        [
+          "0",
+          "65",
+          "1450",
+          "-660",
+          "75"
+        ],
+        [
+          "66",
+          "100",
+          "1320",
+          "-720",
+          "65"
+        ],
+        [
+          "101",
+          "114",
+          "1300",
+          "-965",
+          "65"
+        ],
+        [
+          "115",
+          "133",
+          "1400",
+          "-1240",
+          "80"
+        ],
+        [
+          "134",
+          "310",
+          "1490",
+          "-873",
+          "80"
+        ]
+      ]
+    },
+    {
+      "trial": "successive_edge_a_07_us",
+      "version": "us",
+      "trace_sha256": "12c91a66a4c8a958e24002d07fc73ab5e00dd6b875b00af66d947a3e79253abd",
+      "counts": {
+        "CINPUT": 263,
+        "CFRAME": 263,
+        "CCOG": 2104,
+        "CRNG": 1220,
+        "CAIR": 571,
+        "CWALL": 21
+      },
+      "pedro_frames": [],
+      "observer_sha256": "eceb3203a304f202bf4fea73e33b90769cd6d6f786f5f4a1a5940ff37d9adf17",
+      "inputs_sha256": "74cb6cfe808846c3cdae0c96c8f9815cae6a7fca303db639f78a194d72e66472",
+      "waypoints_sha256": "020c9432682c4eb8f2568b8bf089a45eb865209eb2cb357908210b4de157c0af",
+      "render_frame_limit": 690,
+      "controller_intervals": [
+        [
+          "76",
+          "80",
+          "0",
+          "0",
+          "A"
+        ]
+      ],
+      "waypoints": [
+        [
+          "0",
+          "65",
+          "1450",
+          "-660",
+          "75"
+        ],
+        [
+          "66",
+          "100",
+          "1320",
+          "-720",
+          "65"
+        ],
+        [
+          "101",
+          "114",
+          "1300",
+          "-965",
+          "65"
+        ],
+        [
+          "115",
+          "133",
+          "1404",
+          "-1240",
+          "80"
+        ],
+        [
+          "134",
+          "310",
+          "1490",
+          "-873",
+          "80"
+        ]
+      ]
+    },
+    {
+      "trial": "successive_edge_a_08_us",
+      "version": "us",
+      "trace_sha256": "60cf3cb613b88c1d73f19d3ccd512f890f6e5776aa0fb6134fd07752a4abe542",
+      "counts": {
+        "CINPUT": 263,
+        "CFRAME": 263,
+        "CCOG": 2104,
+        "CRNG": 1220,
+        "CAIR": 588,
+        "CWALL": 21
+      },
+      "pedro_frames": [
+        139
+      ],
+      "observer_sha256": "eceb3203a304f202bf4fea73e33b90769cd6d6f786f5f4a1a5940ff37d9adf17",
+      "inputs_sha256": "74cb6cfe808846c3cdae0c96c8f9815cae6a7fca303db639f78a194d72e66472",
+      "waypoints_sha256": "a89210f13dec973af21e1f3e9a837ac4aec9c345eb59c3960b5bed347b1e2748",
+      "render_frame_limit": 690,
+      "controller_intervals": [
+        [
+          "76",
+          "80",
+          "0",
+          "0",
+          "A"
+        ]
+      ],
+      "waypoints": [
+        [
+          "0",
+          "65",
+          "1450",
+          "-660",
+          "75"
+        ],
+        [
+          "66",
+          "100",
+          "1320",
+          "-720",
+          "65"
+        ],
+        [
+          "101",
+          "114",
+          "1300",
+          "-965",
+          "65"
+        ],
+        [
+          "115",
+          "133",
+          "1408",
+          "-1240",
+          "80"
+        ],
+        [
+          "134",
+          "310",
+          "1490",
+          "-873",
+          "80"
+        ]
+      ]
+    },
+    {
+      "trial": "successive_edge_a_09_us",
+      "version": "us",
+      "trace_sha256": "77019538c512f493f29297adecf3c88bf56be7cd4765740b0ca6313ce3d88977",
+      "counts": {
+        "CINPUT": 263,
+        "CFRAME": 263,
+        "CCOG": 2104,
+        "CRNG": 1220,
+        "CAIR": 602,
+        "CWALL": 21
+      },
+      "pedro_frames": [],
+      "observer_sha256": "eceb3203a304f202bf4fea73e33b90769cd6d6f786f5f4a1a5940ff37d9adf17",
+      "inputs_sha256": "74cb6cfe808846c3cdae0c96c8f9815cae6a7fca303db639f78a194d72e66472",
+      "waypoints_sha256": "6633a0aba82a842fb2482bfd972adec98e4e52db1701ef4d2de98dc6891c8f6c",
+      "render_frame_limit": 690,
+      "controller_intervals": [
+        [
+          "76",
+          "80",
+          "0",
+          "0",
+          "A"
+        ]
+      ],
+      "waypoints": [
+        [
+          "0",
+          "65",
+          "1450",
+          "-660",
+          "75"
+        ],
+        [
+          "66",
+          "100",
+          "1320",
+          "-720",
+          "65"
+        ],
+        [
+          "101",
+          "114",
+          "1300",
+          "-965",
+          "65"
+        ],
+        [
+          "115",
+          "133",
+          "1412",
+          "-1240",
+          "80"
+        ],
+        [
+          "134",
+          "310",
+          "1490",
+          "-873",
+          "80"
+        ]
+      ]
+    },
+    {
+      "trial": "successive_edge_a_10_us",
+      "version": "us",
+      "trace_sha256": "bce9e91c1965c6184fac6ce4aa834574c0f9f9d0aa1b33a57ab9fb19f7e98121",
+      "counts": {
+        "CINPUT": 259,
+        "CFRAME": 259,
+        "CCOG": 2072,
+        "CRNG": 1208,
+        "CAIR": 602,
+        "CWALL": 20
+      },
+      "pedro_frames": [],
+      "observer_sha256": "eceb3203a304f202bf4fea73e33b90769cd6d6f786f5f4a1a5940ff37d9adf17",
+      "inputs_sha256": "74cb6cfe808846c3cdae0c96c8f9815cae6a7fca303db639f78a194d72e66472",
+      "waypoints_sha256": "aa10e4f6b7cfdbc3d5859897790facfd3631277e5008a530ef2b960ff755a8bb",
+      "render_frame_limit": 690,
+      "controller_intervals": [
+        [
+          "76",
+          "80",
+          "0",
+          "0",
+          "A"
+        ]
+      ],
+      "waypoints": [
+        [
+          "0",
+          "65",
+          "1450",
+          "-660",
+          "75"
+        ],
+        [
+          "66",
+          "100",
+          "1320",
+          "-720",
+          "65"
+        ],
+        [
+          "101",
+          "114",
+          "1300",
+          "-965",
+          "65"
+        ],
+        [
+          "115",
+          "133",
+          "1416",
+          "-1240",
+          "80"
+        ],
+        [
+          "134",
+          "310",
+          "1490",
+          "-873",
+          "80"
+        ]
+      ]
+    },
+    {
+      "trial": "successive_edge_a_11_us",
+      "version": "us",
+      "trace_sha256": "47517425ab09b8beda7ef17c4e893b6956ac4d1fda066219181fec199c9ee046",
+      "counts": {
+        "CINPUT": 259,
+        "CFRAME": 259,
+        "CCOG": 2072,
+        "CRNG": 1208,
+        "CAIR": 602,
+        "CWALL": 20
+      },
+      "pedro_frames": [],
+      "observer_sha256": "eceb3203a304f202bf4fea73e33b90769cd6d6f786f5f4a1a5940ff37d9adf17",
+      "inputs_sha256": "74cb6cfe808846c3cdae0c96c8f9815cae6a7fca303db639f78a194d72e66472",
+      "waypoints_sha256": "5ff11ae507cf973b38f58e952839899ce3648e5034ed4bbc01a50300c3bd6208",
+      "render_frame_limit": 690,
+      "controller_intervals": [
+        [
+          "76",
+          "80",
+          "0",
+          "0",
+          "A"
+        ]
+      ],
+      "waypoints": [
+        [
+          "0",
+          "65",
+          "1450",
+          "-660",
+          "75"
+        ],
+        [
+          "66",
+          "100",
+          "1320",
+          "-720",
+          "65"
+        ],
+        [
+          "101",
+          "114",
+          "1300",
+          "-965",
+          "65"
+        ],
+        [
+          "115",
+          "133",
+          "1420",
+          "-1240",
+          "80"
+        ],
+        [
+          "134",
+          "310",
+          "1490",
+          "-873",
+          "80"
+        ]
+      ]
+    },
+    {
+      "trial": "successive_drop_a_00_us",
+      "version": "us",
+      "trace_sha256": "68bd906d25be714f4ee089f4351d99c04ea84fdab5fcd83d0fde723e8522089d",
+      "counts": {
+        "CINPUT": 315,
+        "CFRAME": 315,
+        "CCOG": 2520,
+        "CRNG": 1604,
+        "CAIR": 101,
+        "CWALL": 114
+      },
+      "pedro_frames": [],
+      "observer_sha256": "eceb3203a304f202bf4fea73e33b90769cd6d6f786f5f4a1a5940ff37d9adf17",
+      "inputs_sha256": "2f1f956b294a93aee88b92b44af8685feaeb529fa36d1cea7f30dfa1d29872dd",
+      "waypoints_sha256": "4ce9981785949a9db2e5d25f335a71c54b28879b08caf4351abcfd75fd95e88d",
+      "render_frame_limit": 690,
+      "controller_intervals": [
+        [
+          "76",
+          "80",
+          "0",
+          "0",
+          "A"
+        ],
+        [
+          "95",
+          "100",
+          "0",
+          "0",
+          "A"
+        ]
+      ],
+      "waypoints": [
+        [
+          "0",
+          "65",
+          "1450",
+          "-660",
+          "75"
+        ],
+        [
+          "66",
+          "100",
+          "1320",
+          "-720",
+          "65"
+        ],
+        [
+          "101",
+          "120",
+          "1052",
+          "-769",
+          "65"
+        ],
+        [
+          "121",
+          "310",
+          "1200",
+          "-1150",
+          "65"
+        ]
+      ]
+    },
+    {
+      "trial": "successive_drop_a_01_us",
+      "version": "us",
+      "trace_sha256": "e2490760166471764b281fdc8376bbcbbe086fc97f2cea38b54a29a2f469e0b9",
+      "counts": {
+        "CINPUT": 315,
+        "CFRAME": 315,
+        "CCOG": 2520,
+        "CRNG": 1661,
+        "CAIR": 128,
+        "CWALL": 62
+      },
+      "pedro_frames": [],
+      "observer_sha256": "eceb3203a304f202bf4fea73e33b90769cd6d6f786f5f4a1a5940ff37d9adf17",
+      "inputs_sha256": "2f1f956b294a93aee88b92b44af8685feaeb529fa36d1cea7f30dfa1d29872dd",
+      "waypoints_sha256": "76f67d78b56ad32c55bc089c81545314040cbb6297522eeb523b367ee608e2a4",
+      "render_frame_limit": 690,
+      "controller_intervals": [
+        [
+          "76",
+          "80",
+          "0",
+          "0",
+          "A"
+        ],
+        [
+          "95",
+          "100",
+          "0",
+          "0",
+          "A"
+        ]
+      ],
+      "waypoints": [
+        [
+          "0",
+          "65",
+          "1450",
+          "-660",
+          "75"
+        ],
+        [
+          "66",
+          "100",
+          "1320",
+          "-720",
+          "65"
+        ],
+        [
+          "101",
+          "120",
+          "1052",
+          "-769",
+          "65"
+        ],
+        [
+          "121",
+          "310",
+          "1250",
+          "-1150",
+          "65"
+        ]
+      ]
+    },
+    {
+      "trial": "successive_drop_a_02_us",
+      "version": "us",
+      "trace_sha256": "7e4d5208b8b67d342355956fa8b30eef1433559b599e11525d05aa66a78a416a",
+      "counts": {
+        "CINPUT": 315,
+        "CFRAME": 315,
+        "CCOG": 2520,
+        "CRNG": 1659,
+        "CAIR": 133,
+        "CWALL": 92
+      },
+      "pedro_frames": [],
+      "observer_sha256": "eceb3203a304f202bf4fea73e33b90769cd6d6f786f5f4a1a5940ff37d9adf17",
+      "inputs_sha256": "2f1f956b294a93aee88b92b44af8685feaeb529fa36d1cea7f30dfa1d29872dd",
+      "waypoints_sha256": "66b43fb45ce573ee439cfdc58bfc8ddb860547d25dae228e77c727ace55a8291",
+      "render_frame_limit": 690,
+      "controller_intervals": [
+        [
+          "76",
+          "80",
+          "0",
+          "0",
+          "A"
+        ],
+        [
+          "95",
+          "100",
+          "0",
+          "0",
+          "A"
+        ]
+      ],
+      "waypoints": [
+        [
+          "0",
+          "65",
+          "1450",
+          "-660",
+          "75"
+        ],
+        [
+          "66",
+          "100",
+          "1320",
+          "-720",
+          "65"
+        ],
+        [
+          "101",
+          "120",
+          "1052",
+          "-769",
+          "65"
+        ],
+        [
+          "121",
+          "310",
+          "1300",
+          "-1150",
+          "65"
+        ]
+      ]
+    },
+    {
+      "trial": "successive_drop_a_03_us",
+      "version": "us",
+      "trace_sha256": "f711cfe5b8c60f6eed147cf421720e06fbbf089b7eb54ed2aae8d57adc9437a4",
+      "counts": {
+        "CINPUT": 315,
+        "CFRAME": 315,
+        "CCOG": 2520,
+        "CRNG": 1435,
+        "CAIR": 139,
+        "CWALL": 9
+      },
+      "pedro_frames": [],
+      "observer_sha256": "eceb3203a304f202bf4fea73e33b90769cd6d6f786f5f4a1a5940ff37d9adf17",
+      "inputs_sha256": "2f1f956b294a93aee88b92b44af8685feaeb529fa36d1cea7f30dfa1d29872dd",
+      "waypoints_sha256": "b5ddb2f04d0fc2f650d4ca558354223124157905828479e4808f6d2c5248787b",
+      "render_frame_limit": 690,
+      "controller_intervals": [
+        [
+          "76",
+          "80",
+          "0",
+          "0",
+          "A"
+        ],
+        [
+          "95",
+          "100",
+          "0",
+          "0",
+          "A"
+        ]
+      ],
+      "waypoints": [
+        [
+          "0",
+          "65",
+          "1450",
+          "-660",
+          "75"
+        ],
+        [
+          "66",
+          "100",
+          "1320",
+          "-720",
+          "65"
+        ],
+        [
+          "101",
+          "120",
+          "1052",
+          "-769",
+          "65"
+        ],
+        [
+          "121",
+          "310",
+          "1300",
+          "-1000",
+          "65"
+        ]
+      ]
+    },
+    {
+      "trial": "successive_drop_a_04_us",
+      "version": "us",
+      "trace_sha256": "9c4caffb69a39d73329f54217081b83d7f011b155bb090a88ca7cb70d0e2ef25",
+      "counts": {
+        "CINPUT": 315,
+        "CFRAME": 315,
+        "CCOG": 2520,
+        "CRNG": 1597,
+        "CAIR": 141,
+        "CWALL": 89
+      },
+      "pedro_frames": [],
+      "observer_sha256": "eceb3203a304f202bf4fea73e33b90769cd6d6f786f5f4a1a5940ff37d9adf17",
+      "inputs_sha256": "2f1f956b294a93aee88b92b44af8685feaeb529fa36d1cea7f30dfa1d29872dd",
+      "waypoints_sha256": "4dff2f6021154240280fe11d6903e59e1b7ba433bbde2bf6c0cc7f73851c6f8e",
+      "render_frame_limit": 690,
+      "controller_intervals": [
+        [
+          "76",
+          "80",
+          "0",
+          "0",
+          "A"
+        ],
+        [
+          "95",
+          "100",
+          "0",
+          "0",
+          "A"
+        ]
+      ],
+      "waypoints": [
+        [
+          "0",
+          "65",
+          "1450",
+          "-660",
+          "75"
+        ],
+        [
+          "66",
+          "100",
+          "1320",
+          "-720",
+          "65"
+        ],
+        [
+          "101",
+          "120",
+          "1120",
+          "-930",
+          "65"
+        ],
+        [
+          "121",
+          "310",
+          "1200",
+          "-1150",
+          "65"
+        ]
+      ]
+    },
+    {
+      "trial": "successive_drop_a_05_us",
+      "version": "us",
+      "trace_sha256": "c566f12893d0d0038add851dea1401810fca0dcd07b7146de1378c5e66518383",
+      "counts": {
+        "CINPUT": 315,
+        "CFRAME": 315,
+        "CCOG": 2520,
+        "CRNG": 1509,
+        "CAIR": 139,
+        "CWALL": 26
+      },
+      "pedro_frames": [],
+      "observer_sha256": "eceb3203a304f202bf4fea73e33b90769cd6d6f786f5f4a1a5940ff37d9adf17",
+      "inputs_sha256": "2f1f956b294a93aee88b92b44af8685feaeb529fa36d1cea7f30dfa1d29872dd",
+      "waypoints_sha256": "f5fd86d3bae6afcfcd3a203f3e338d32e61dc18a655d15685238f7a87c093407",
+      "render_frame_limit": 690,
+      "controller_intervals": [
+        [
+          "76",
+          "80",
+          "0",
+          "0",
+          "A"
+        ],
+        [
+          "95",
+          "100",
+          "0",
+          "0",
+          "A"
+        ]
+      ],
+      "waypoints": [
+        [
+          "0",
+          "65",
+          "1450",
+          "-660",
+          "75"
+        ],
+        [
+          "66",
+          "100",
+          "1320",
+          "-720",
+          "65"
+        ],
+        [
+          "101",
+          "120",
+          "1120",
+          "-930",
+          "65"
+        ],
+        [
+          "121",
+          "310",
+          "1250",
+          "-1150",
+          "65"
+        ]
+      ]
+    },
+    {
+      "trial": "successive_drop_a_06_us",
+      "version": "us",
+      "trace_sha256": "d7c9f5b40b731a8341b2b2fa7786a68ef52511f2272df4bd6b0659adf32c112b",
+      "counts": {
+        "CINPUT": 315,
+        "CFRAME": 315,
+        "CCOG": 2520,
+        "CRNG": 1388,
+        "CAIR": 139,
+        "CWALL": 15
+      },
+      "pedro_frames": [],
+      "observer_sha256": "eceb3203a304f202bf4fea73e33b90769cd6d6f786f5f4a1a5940ff37d9adf17",
+      "inputs_sha256": "2f1f956b294a93aee88b92b44af8685feaeb529fa36d1cea7f30dfa1d29872dd",
+      "waypoints_sha256": "42840957f424f2faa17697b3073ea9dda002431100a958ba9cdcd4115e70a194",
+      "render_frame_limit": 690,
+      "controller_intervals": [
+        [
+          "76",
+          "80",
+          "0",
+          "0",
+          "A"
+        ],
+        [
+          "95",
+          "100",
+          "0",
+          "0",
+          "A"
+        ]
+      ],
+      "waypoints": [
+        [
+          "0",
+          "65",
+          "1450",
+          "-660",
+          "75"
+        ],
+        [
+          "66",
+          "100",
+          "1320",
+          "-720",
+          "65"
+        ],
+        [
+          "101",
+          "120",
+          "1120",
+          "-930",
+          "65"
+        ],
+        [
+          "121",
+          "310",
+          "1300",
+          "-1150",
+          "65"
+        ]
+      ]
+    },
+    {
+      "trial": "successive_drop_a_07_us",
+      "version": "us",
+      "trace_sha256": "a699e6969824ad0a343dccfb0c9412a225589c2478dae8eee8313b4be6de0c49",
+      "counts": {
+        "CINPUT": 315,
+        "CFRAME": 315,
+        "CCOG": 2520,
+        "CRNG": 1438,
+        "CAIR": 139,
+        "CWALL": 51
+      },
+      "pedro_frames": [],
+      "observer_sha256": "eceb3203a304f202bf4fea73e33b90769cd6d6f786f5f4a1a5940ff37d9adf17",
+      "inputs_sha256": "2f1f956b294a93aee88b92b44af8685feaeb529fa36d1cea7f30dfa1d29872dd",
+      "waypoints_sha256": "f17de315d663428b3ae3c33208cc23d9a99a80a2b33c18d29c7b8a064c0f1556",
+      "render_frame_limit": 690,
+      "controller_intervals": [
+        [
+          "76",
+          "80",
+          "0",
+          "0",
+          "A"
+        ],
+        [
+          "95",
+          "100",
+          "0",
+          "0",
+          "A"
+        ]
+      ],
+      "waypoints": [
+        [
+          "0",
+          "65",
+          "1450",
+          "-660",
+          "75"
+        ],
+        [
+          "66",
+          "100",
+          "1320",
+          "-720",
+          "65"
+        ],
+        [
+          "101",
+          "120",
+          "1120",
+          "-930",
+          "65"
+        ],
+        [
+          "121",
+          "310",
+          "1300",
+          "-1000",
+          "65"
+        ]
+      ]
+    },
+    {
+      "trial": "inner_edge_path_us",
+      "version": "us",
+      "trace_sha256": "be47cb11342e31f68657ecf804777a93b1b3cef205d2ff3de9d7f60b00d463e4",
+      "counts": {
+        "CINPUT": 275,
+        "CFRAME": 275,
+        "CCOG": 2200,
+        "CRNG": 1389,
+        "CPATH": 1794,
+        "CSURFACE": 1099,
+        "CAIR": 183,
+        "CWALL": 98
+      },
+      "pedro_frames": [],
+      "observer_sha256": "eceb3203a304f202bf4fea73e33b90769cd6d6f786f5f4a1a5940ff37d9adf17",
+      "inputs_sha256": "b205d67ef50952877fb4481f05ac54dacc9e354933aa5e186f129d05333ad70b",
+      "waypoints_sha256": "97b23274db7d568ef6ca6ea95d92028884655066021c15d9636c51d0489d41e8",
+      "render_frame_limit": 650,
+      "controller_intervals": [
+        [
+          "76",
+          "80",
+          "0",
+          "0",
+          "A"
+        ]
+      ],
+      "waypoints": [
+        [
+          "0",
+          "65",
+          "1450",
+          "-660",
+          "75"
+        ],
+        [
+          "66",
+          "100",
+          "1320",
+          "-720",
+          "65"
+        ],
+        [
+          "101",
+          "114",
+          "1300",
+          "-965",
+          "65"
+        ],
+        [
+          "115",
+          "135",
+          "1250",
+          "-1150",
+          "80"
+        ],
+        [
+          "136",
+          "310",
+          "1490",
+          "-873",
+          "80"
+        ]
+      ]
+    },
+    {
+      "trial": "higher_drop_path_us",
+      "version": "us",
+      "trace_sha256": "616dc292646b5f67577cc70424417c54beac5568eb6778998f3c15cf096d2761",
+      "counts": {
+        "CINPUT": 275,
+        "CFRAME": 275,
+        "CCOG": 2200,
+        "CRNG": 1255,
+        "CPATH": 1568,
+        "CSURFACE": 967,
+        "CAIR": 139,
+        "CWALL": 11
+      },
+      "pedro_frames": [],
+      "observer_sha256": "eceb3203a304f202bf4fea73e33b90769cd6d6f786f5f4a1a5940ff37d9adf17",
+      "inputs_sha256": "945fd9bb2120ca2fdc2573c861e6ae42ccfdf08054c114d030dcdf3b9d438b34",
+      "waypoints_sha256": "9bfb6984dfb033e15dfe6b9c13838c464663a3abe8038264d7c0881ec69b22e8",
+      "render_frame_limit": 650,
+      "controller_intervals": [
+        [
+          "76",
+          "80",
+          "0",
+          "0",
+          "A"
+        ],
+        [
+          "95",
+          "100",
+          "0",
+          "0",
+          "A"
+        ]
+      ],
+      "waypoints": [
+        [
+          "0",
+          "65",
+          "1450",
+          "-660",
+          "75"
+        ],
+        [
+          "66",
+          "100",
+          "1320",
+          "-720",
+          "65"
+        ],
+        [
+          "101",
+          "120",
+          "1052",
+          "-769",
+          "65"
+        ],
+        [
+          "121",
+          "300",
+          "1450",
+          "-1120",
+          "65"
+        ]
+      ]
+    }
+  ],
+  "fixed_replay": {
+    "inputs_file": "inputs/ledge-rim-turn-133-us.csv",
+    "inputs_sha256": "5adc251f5b64dca13277f678c9c01c77cfb688af1cab20619babdfc4fb220ae8",
+    "observed_frames": [
+      0,
+      164
+    ],
+    "normalized_events": 4296,
+    "us_trace_sha256": "5d0d973eef4446ebe326fca9f4ccb689d88bcff1d878b5849e46b82536e73746",
+    "jp_trace_sha256": "59d1d39f2988e1370b8e4af825b84e06c22b33ca7fb4d67fbb11d190c6ff619f",
+    "counts": {
+      "CINPUT": 165,
+      "CFRAME": 165,
+      "CCOG": 1320,
+      "CRNG": 823,
+      "CPATH": 916,
+      "CSURFACE": 750,
+      "CAIR": 140,
+      "CWALL": 17
+    },
+    "complete_us_jp_logical_comparison": true,
+    "original_steering_prefix_through_164_matches": true,
+    "corrected_mesh_detour_prefix_through_114_matches": true,
+    "milestones": [
+      {
+        "kind": "CPATH",
+        "seq": "756",
+        "rel": "136",
+        "timer": "513",
+        "routine": "update_mario_geometry_inputs",
+        "phase": "exit",
+        "action": "0100088c",
+        "prevAction": "04000440",
+        "actionState": "0",
+        "actionTimer": "0",
+        "input": "0005",
+        "particles": "00000000",
+        "active": "00000000",
+        "speed": "0",
+        "vy": "-8",
+        "x": "1461.44458",
+        "y": "-2092",
+        "z": "-1147.88965",
+        "floorOwner": -1,
+        "floorHeight": "-8191",
+        "ceilOwner": -1,
+        "ceilHeight": "7746.20996",
+        "platform": -1,
+        "lowerYaw": "-18000",
+        "lowerSpeed": "0",
+        "lowerTarget": "200",
+        "upperYaw": "27400",
+        "upperSpeed": "800",
+        "upperTarget": "1000"
+      },
+      {
+        "kind": "CPATH",
+        "seq": "759",
+        "rel": "136",
+        "timer": "513",
+        "routine": "execute_mario_action",
+        "phase": "exit",
+        "action": "04000471",
+        "prevAction": "0100088c",
+        "actionState": "0",
+        "actionTimer": "0",
+        "input": "0005",
+        "particles": "00000000",
+        "active": "00000000",
+        "speed": "-1.37593651",
+        "vy": "-12",
+        "x": "1459.43958",
+        "y": "-2088",
+        "z": "-1145.44739",
+        "floorOwner": 29,
+        "floorHeight": "-2088",
+        "ceilOwner": -1,
+        "ceilHeight": "7746.20996",
+        "platform": -1,
+        "lowerYaw": "-18000",
+        "lowerSpeed": "0",
+        "lowerTarget": "200",
+        "upperYaw": "27400",
+        "upperSpeed": "800",
+        "upperTarget": "1000",
+        "result": "00000000"
+      },
+      {
+        "kind": "CPATH",
+        "seq": "762",
+        "rel": "137",
+        "timer": "514",
+        "routine": "update_mario_geometry_inputs",
+        "phase": "exit",
+        "action": "04000471",
+        "prevAction": "0100088c",
+        "actionState": "0",
+        "actionTimer": "0",
+        "input": "0001",
+        "particles": "00000000",
+        "active": "00000000",
+        "speed": "-1.37593651",
+        "vy": "-12",
+        "x": "1458.18616",
+        "y": "-2088",
+        "z": "-1145.30383",
+        "floorOwner": 29,
+        "floorHeight": "-2088",
+        "ceilOwner": 32,
+        "ceilHeight": "-1934",
+        "platform": 29,
+        "lowerYaw": "-17950",
+        "lowerSpeed": "50",
+        "lowerTarget": "200",
+        "upperYaw": "28250",
+        "upperSpeed": "850",
+        "upperTarget": "1000"
+      },
+      {
+        "kind": "CPATH",
+        "seq": "764",
+        "rel": "137",
+        "timer": "514",
+        "routine": "common_landing_cancels",
+        "phase": "exit",
+        "action": "04000471",
+        "prevAction": "0100088c",
+        "actionState": "0",
+        "actionTimer": "1",
+        "input": "0001",
+        "particles": "00000000",
+        "active": "00000000",
+        "speed": "-1.37593651",
+        "vy": "-12",
+        "x": "1458.18616",
+        "y": "-2088",
+        "z": "-1145.30383",
+        "floorOwner": 29,
+        "floorHeight": "-2088",
+        "ceilOwner": 32,
+        "ceilHeight": "-1934",
+        "platform": 29,
+        "lowerYaw": "-17950",
+        "lowerSpeed": "50",
+        "lowerTarget": "200",
+        "upperYaw": "28250",
+        "upperSpeed": "850",
+        "upperTarget": "1000",
+        "result": "00000000"
+      },
+      {
+        "kind": "CPATH",
+        "seq": "768",
+        "rel": "137",
+        "timer": "514",
+        "routine": "common_landing_action",
+        "phase": "exit",
+        "action": "04000471",
+        "prevAction": "0100088c",
+        "actionState": "0",
+        "actionTimer": "1",
+        "input": "0001",
+        "particles": "00000000",
+        "active": "00000000",
+        "speed": "-1.34841776",
+        "vy": "0",
+        "x": "1458.18616",
+        "y": "-2088",
+        "z": "-1145.30383",
+        "floorOwner": 29,
+        "floorHeight": "-2088",
+        "ceilOwner": 32,
+        "ceilHeight": "-1934",
+        "platform": 29,
+        "lowerYaw": "-17950",
+        "lowerSpeed": "50",
+        "lowerTarget": "200",
+        "upperYaw": "28250",
+        "upperSpeed": "850",
+        "upperTarget": "1000",
+        "result": "00000002"
+      },
+      {
+        "kind": "CPATH",
+        "seq": "769",
+        "rel": "137",
+        "timer": "514",
+        "routine": "execute_mario_action",
+        "phase": "exit",
+        "action": "04000471",
+        "prevAction": "0100088c",
+        "actionState": "0",
+        "actionTimer": "1",
+        "input": "0001",
+        "particles": "00000000",
+        "active": "00000000",
+        "speed": "-1.34841776",
+        "vy": "0",
+        "x": "1458.18616",
+        "y": "-2088",
+        "z": "-1145.30383",
+        "floorOwner": 29,
+        "floorHeight": "-2088",
+        "ceilOwner": 32,
+        "ceilHeight": "-1934",
+        "platform": 29,
+        "lowerYaw": "-17950",
+        "lowerSpeed": "50",
+        "lowerTarget": "200",
+        "upperYaw": "28250",
+        "upperSpeed": "850",
+        "upperTarget": "1000",
+        "result": "00000000"
+      },
+      {
+        "kind": "CPATH",
+        "seq": "772",
+        "rel": "138",
+        "timer": "515",
+        "routine": "update_mario_geometry_inputs",
+        "phase": "exit",
+        "action": "04000471",
+        "prevAction": "0100088c",
+        "actionState": "0",
+        "actionTimer": "1",
+        "input": "0005",
+        "particles": "00000000",
+        "active": "00000000",
+        "speed": "-1.34841776",
+        "vy": "0",
+        "x": "1455.68127",
+        "y": "-2088",
+        "z": "-1144.99951",
+        "floorOwner": -1,
+        "floorHeight": "-8191",
+        "ceilOwner": 32,
+        "ceilHeight": "-1934",
+        "platform": 29,
+        "lowerYaw": "-17850",
+        "lowerSpeed": "100",
+        "lowerTarget": "200",
+        "upperYaw": "29150",
+        "upperSpeed": "900",
+        "upperTarget": "1000"
+      },
+      {
+        "kind": "CSURFACE",
+        "rel": "138",
+        "scope": "geometryFloor",
+        "seq": "772",
+        "owner": -1,
+        "valid": "1",
+        "type": "10",
+        "flagsRoom": "0",
+        "nx": "0",
+        "ny": "1",
+        "nz": "0",
+        "offset": "8191",
+        "x1": "2253",
+        "y1": "-8191",
+        "z1": "-2252",
+        "x2": "-2252",
+        "y2": "-8191",
+        "z2": "2253",
+        "x3": "2253",
+        "y3": "-8191",
+        "z3": "2253"
+      },
+      {
+        "kind": "CSURFACE",
+        "rel": "138",
+        "scope": "geometryCeil",
+        "seq": "772",
+        "owner": 32,
+        "valid": "1",
+        "type": "21",
+        "flagsRoom": "256",
+        "nx": "0",
+        "ny": "-1",
+        "nz": "0",
+        "offset": "-1934",
+        "x1": "1449",
+        "y1": "-1934",
+        "z1": "-1412",
+        "x2": "1502",
+        "y2": "-1934",
+        "z2": "-1110",
+        "x3": "1268",
+        "y3": "-1934",
+        "z3": "-913"
+      },
+      {
+        "kind": "CPATH",
+        "seq": "776",
+        "rel": "138",
+        "timer": "515",
+        "routine": "common_landing_cancels",
+        "phase": "exit",
+        "action": "0100088c",
+        "prevAction": "04000471",
+        "actionState": "0",
+        "actionTimer": "0",
+        "input": "0005",
+        "particles": "00000000",
+        "active": "00000000",
+        "speed": "-1.34841776",
+        "vy": "0",
+        "x": "1455.68127",
+        "y": "-2088",
+        "z": "-1144.99951",
+        "floorOwner": -1,
+        "floorHeight": "-8191",
+        "ceilOwner": 32,
+        "ceilHeight": "-1934",
+        "platform": 29,
+        "lowerYaw": "-17850",
+        "lowerSpeed": "100",
+        "lowerTarget": "200",
+        "upperYaw": "29150",
+        "upperSpeed": "900",
+        "upperTarget": "1000",
+        "result": "00000001"
+      },
+      {
+        "kind": "CSURFACE",
+        "rel": "138",
+        "scope": "airOldFloor",
+        "seq": "135",
+        "owner": -1,
+        "valid": "1",
+        "type": "10",
+        "flagsRoom": "0",
+        "nx": "0",
+        "ny": "1",
+        "nz": "0",
+        "offset": "8191",
+        "x1": "2253",
+        "y1": "-8191",
+        "z1": "-2252",
+        "x2": "-2252",
+        "y2": "-8191",
+        "z2": "2253",
+        "x3": "2253",
+        "y3": "-8191",
+        "z3": "2253"
+      },
+      {
+        "kind": "CAIR",
+        "seq": "135",
+        "rel": "138",
+        "timer": "515",
+        "action": "0100088c",
+        "input": "0005",
+        "stepArg": "1",
+        "oldX": "1455.68127",
+        "oldY": "-2088",
+        "oldZ": "-1144.99951",
+        "oldFloorHeight": "-8191",
+        "qx": "1455.13",
+        "qy": "-2088",
+        "qz": "-1143.95032",
+        "floorOwner": 29,
+        "floorHeight": "-2088",
+        "ceilOwner": 32,
+        "ceilHeight": "-1934",
+        "result": "1",
+        "newX": "1455.68127",
+        "newY": "-2088",
+        "newZ": "-1144.99951",
+        "speed": "-2.36597681",
+        "vy": "0",
+        "pedroCandidate": "1",
+        "ix": "1455.13",
+        "iy": "-2088",
+        "iz": "-1143.95032"
+      },
+      {
+        "kind": "CSURFACE",
+        "rel": "138",
+        "scope": "airFloor",
+        "seq": "135",
+        "owner": 29,
+        "valid": "1",
+        "type": "21",
+        "flagsRoom": "256",
+        "nx": "0",
+        "ny": "1",
+        "nz": "0",
+        "offset": "2088",
+        "x1": "1773",
+        "y1": "-2088",
+        "z1": "-987",
+        "x2": "1533",
+        "y2": "-2088",
+        "z2": "-1175",
+        "x3": "1248",
+        "y3": "-2088",
+        "z3": "-1061"
+      },
+      {
+        "kind": "CSURFACE",
+        "rel": "138",
+        "scope": "airCeil",
+        "seq": "135",
+        "owner": 32,
+        "valid": "1",
+        "type": "21",
+        "flagsRoom": "256",
+        "nx": "0",
+        "ny": "-1",
+        "nz": "0",
+        "offset": "-1934",
+        "x1": "1449",
+        "y1": "-1934",
+        "z1": "-1412",
+        "x2": "1502",
+        "y2": "-1934",
+        "z2": "-1110",
+        "x3": "1268",
+        "y3": "-1934",
+        "z3": "-913"
+      },
+      {
+        "kind": "CPATH",
+        "seq": "779",
+        "rel": "138",
+        "timer": "515",
+        "routine": "execute_mario_action",
+        "phase": "exit",
+        "action": "04000471",
+        "prevAction": "0100088c",
+        "actionState": "0",
+        "actionTimer": "0",
+        "input": "0005",
+        "particles": "00000000",
+        "active": "00000000",
+        "speed": "-2.36597681",
+        "vy": "-4",
+        "x": "1455.68127",
+        "y": "-2088",
+        "z": "-1144.99951",
+        "floorOwner": -1,
+        "floorHeight": "-8191",
+        "ceilOwner": 32,
+        "ceilHeight": "-1934",
+        "platform": 29,
+        "lowerYaw": "-17850",
+        "lowerSpeed": "100",
+        "lowerTarget": "200",
+        "upperYaw": "29150",
+        "upperSpeed": "900",
+        "upperTarget": "1000",
+        "result": "00000000"
+      },
+      {
+        "kind": "CPATH",
+        "seq": "782",
+        "rel": "139",
+        "timer": "516",
+        "routine": "update_mario_geometry_inputs",
+        "phase": "exit",
+        "action": "04000471",
+        "prevAction": "0100088c",
+        "actionState": "0",
+        "actionTimer": "0",
+        "input": "0001",
+        "particles": "00000000",
+        "active": "00000000",
+        "speed": "-2.36597681",
+        "vy": "-4",
+        "x": "1455.68127",
+        "y": "-2088",
+        "z": "-1144.99951",
+        "floorOwner": 29,
+        "floorHeight": "-2088",
+        "ceilOwner": 32,
+        "ceilHeight": "-1934",
+        "platform": -1,
+        "lowerYaw": "-17700",
+        "lowerSpeed": "150",
+        "lowerTarget": "200",
+        "upperYaw": "30100",
+        "upperSpeed": "950",
+        "upperTarget": "1000"
+      },
+      {
+        "kind": "CPATH",
+        "seq": "784",
+        "rel": "139",
+        "timer": "516",
+        "routine": "common_landing_cancels",
+        "phase": "exit",
+        "action": "04000471",
+        "prevAction": "0100088c",
+        "actionState": "0",
+        "actionTimer": "1",
+        "input": "0001",
+        "particles": "00000000",
+        "active": "00000000",
+        "speed": "-2.36597681",
+        "vy": "-4",
+        "x": "1455.68127",
+        "y": "-2088",
+        "z": "-1144.99951",
+        "floorOwner": 29,
+        "floorHeight": "-2088",
+        "ceilOwner": 32,
+        "ceilHeight": "-1934",
+        "platform": -1,
+        "lowerYaw": "-17700",
+        "lowerSpeed": "150",
+        "lowerTarget": "200",
+        "upperYaw": "30100",
+        "upperSpeed": "950",
+        "upperTarget": "1000",
+        "result": "00000000"
+      },
+      {
+        "kind": "CPATH",
+        "seq": "788",
+        "rel": "139",
+        "timer": "516",
+        "routine": "common_landing_action",
+        "phase": "exit",
+        "action": "04000471",
+        "prevAction": "0100088c",
+        "actionState": "0",
+        "actionTimer": "1",
+        "input": "0001",
+        "particles": "00000000",
+        "active": "00000000",
+        "speed": "-2.3186574",
+        "vy": "0",
+        "x": "1455.68127",
+        "y": "-2088",
+        "z": "-1144.99951",
+        "floorOwner": 29,
+        "floorHeight": "-2088",
+        "ceilOwner": 32,
+        "ceilHeight": "-1934",
+        "platform": -1,
+        "lowerYaw": "-17700",
+        "lowerSpeed": "150",
+        "lowerTarget": "200",
+        "upperYaw": "30100",
+        "upperSpeed": "950",
+        "upperTarget": "1000",
+        "result": "00000002"
+      },
+      {
+        "kind": "CPATH",
+        "seq": "789",
+        "rel": "139",
+        "timer": "516",
+        "routine": "execute_mario_action",
+        "phase": "exit",
+        "action": "04000471",
+        "prevAction": "0100088c",
+        "actionState": "0",
+        "actionTimer": "1",
+        "input": "0001",
+        "particles": "00000000",
+        "active": "00000000",
+        "speed": "-2.3186574",
+        "vy": "0",
+        "x": "1455.68127",
+        "y": "-2088",
+        "z": "-1144.99951",
+        "floorOwner": 29,
+        "floorHeight": "-2088",
+        "ceilOwner": 32,
+        "ceilHeight": "-1934",
+        "platform": -1,
+        "lowerYaw": "-17700",
+        "lowerSpeed": "150",
+        "lowerTarget": "200",
+        "upperYaw": "30100",
+        "upperSpeed": "950",
+        "upperTarget": "1000",
+        "result": "00000000"
+      },
+      {
+        "kind": "CPATH",
+        "seq": "792",
+        "rel": "140",
+        "timer": "517",
+        "routine": "update_mario_geometry_inputs",
+        "phase": "exit",
+        "action": "04000471",
+        "prevAction": "0100088c",
+        "actionState": "0",
+        "actionTimer": "1",
+        "input": "0001",
+        "particles": "00000000",
+        "active": "00000000",
+        "speed": "-2.3186574",
+        "vy": "0",
+        "x": "1450.26428",
+        "y": "-2088",
+        "z": "-1144.26111",
+        "floorOwner": 29,
+        "floorHeight": "-2088",
+        "ceilOwner": 32,
+        "ceilHeight": "-1934",
+        "platform": 29,
+        "lowerYaw": "-17500",
+        "lowerSpeed": "200",
+        "lowerTarget": "1000",
+        "upperYaw": "31100",
+        "upperSpeed": "1000",
+        "upperTarget": "800"
+      },
+      {
+        "kind": "CPATH",
+        "seq": "794",
+        "rel": "140",
+        "timer": "517",
+        "routine": "common_landing_cancels",
+        "phase": "exit",
+        "action": "04000471",
+        "prevAction": "0100088c",
+        "actionState": "0",
+        "actionTimer": "2",
+        "input": "0001",
+        "particles": "00000000",
+        "active": "00000000",
+        "speed": "-2.3186574",
+        "vy": "0",
+        "x": "1450.26428",
+        "y": "-2088",
+        "z": "-1144.26111",
+        "floorOwner": 29,
+        "floorHeight": "-2088",
+        "ceilOwner": 32,
+        "ceilHeight": "-1934",
+        "platform": 29,
+        "lowerYaw": "-17500",
+        "lowerSpeed": "200",
+        "lowerTarget": "1000",
+        "upperYaw": "31100",
+        "upperSpeed": "1000",
+        "upperTarget": "800",
+        "result": "00000000"
+      },
+      {
+        "kind": "CPATH",
+        "seq": "798",
+        "rel": "140",
+        "timer": "517",
+        "routine": "common_landing_action",
+        "phase": "exit",
+        "action": "04000471",
+        "prevAction": "0100088c",
+        "actionState": "0",
+        "actionTimer": "2",
+        "input": "0001",
+        "particles": "00000000",
+        "active": "00000000",
+        "speed": "-2.27228427",
+        "vy": "0",
+        "x": "1450.26428",
+        "y": "-2088",
+        "z": "-1144.26111",
+        "floorOwner": 29,
+        "floorHeight": "-2088",
+        "ceilOwner": 32,
+        "ceilHeight": "-1934",
+        "platform": 29,
+        "lowerYaw": "-17500",
+        "lowerSpeed": "200",
+        "lowerTarget": "1000",
+        "upperYaw": "31100",
+        "upperSpeed": "1000",
+        "upperTarget": "800",
+        "result": "00000002"
+      },
+      {
+        "kind": "CPATH",
+        "seq": "799",
+        "rel": "140",
+        "timer": "517",
+        "routine": "execute_mario_action",
+        "phase": "exit",
+        "action": "04000471",
+        "prevAction": "0100088c",
+        "actionState": "0",
+        "actionTimer": "2",
+        "input": "0001",
+        "particles": "00000000",
+        "active": "00000000",
+        "speed": "-2.27228427",
+        "vy": "0",
+        "x": "1450.26428",
+        "y": "-2088",
+        "z": "-1144.26111",
+        "floorOwner": 29,
+        "floorHeight": "-2088",
+        "ceilOwner": 32,
+        "ceilHeight": "-1934",
+        "platform": 29,
+        "lowerYaw": "-17500",
+        "lowerSpeed": "200",
+        "lowerTarget": "1000",
+        "upperYaw": "31100",
+        "upperSpeed": "1000",
+        "upperTarget": "800",
+        "result": "00000000"
+      }
+    ]
+  },
+  "preservation_check": {
+    "script_sha256": "61857161936e0c9c203e440e187c7661b0bfa75a571bdc7ff807d52f6e254646",
+    "minimum_updates": 2,
+    "real_trace_rejections": [
+      {
+        "trial": "successive_turn_path_us",
+        "trace_sha256": "5d0d973eef4446ebe326fca9f4ccb689d88bcff1d878b5849e46b82536e73746",
+        "longest_both_cogs_fixed": 0,
+        "longest_lower_cog_fixed": 0,
+        "candidate_updates": [
+          {
+            "frame": 138,
+            "position": [
+              1455.6812744140625,
+              -2088.0,
+              -1144.99951171875
+            ],
+            "air_sequences": [
+              135
+            ],
+            "rejected_because": [
+              "Mario moves between bracketing snapshots",
+              "Mario has a platform reference",
+              "lower cog is not at one zero-speed pose",
+              "upper cog is not at one zero-speed pose",
+              "lower-cog pose changes across update boundaries",
+              "upper-cog pose changes across update boundaries"
+            ]
+          }
+        ]
+      },
+      {
+        "trial": "successive_turn_path_jp",
+        "trace_sha256": "59d1d39f2988e1370b8e4af825b84e06c22b33ca7fb4d67fbb11d190c6ff619f",
+        "longest_both_cogs_fixed": 0,
+        "longest_lower_cog_fixed": 0,
+        "candidate_updates": [
+          {
+            "frame": 138,
+            "position": [
+              1455.6812744140625,
+              -2088.0,
+              -1144.99951171875
+            ],
+            "air_sequences": [
+              135
+            ],
+            "rejected_because": [
+              "Mario moves between bracketing snapshots",
+              "Mario has a platform reference",
+              "lower cog is not at one zero-speed pose",
+              "upper cog is not at one zero-speed pose",
+              "lower-cog pose changes across update boundaries",
+              "upper-cog pose changes across update boundaries"
+            ]
+          }
+        ]
+      },
+      {
+        "trial": "rim_pound_entry_us",
+        "trace_sha256": "2899f4d887e0ccb344e526151755230cb62614eb95fc1d9b1ebf493657ca410a",
+        "longest_both_cogs_fixed": 0,
+        "longest_lower_cog_fixed": 0,
+        "candidate_updates": [
+          {
+            "frame": 149,
+            "position": [
+              1365.7763671875,
+              -2088.0,
+              -1120.2564697265625
+            ],
+            "air_sequences": [
+              124
+            ],
+            "rejected_because": [
+              "Mario moves between bracketing snapshots",
+              "Mario has a platform reference",
+              "air path is not an off-floor close-gap rejection of horizontal motion",
+              "actual position has a supporting floor after geometry refresh",
+              "ground-pound path needs separate preservation analysis",
+              "lower cog is not at one zero-speed pose",
+              "upper cog is not at one zero-speed pose",
+              "lower-cog pose changes across update boundaries",
+              "upper-cog pose changes across update boundaries"
+            ]
+          }
+        ]
+      },
+      {
+        "trial": "rim_pound_entry_jp",
+        "trace_sha256": "d5c61ae707f1a3bc052672a1db9e3cfa6a14f5857ba464cd274a51c8288b30dc",
+        "longest_both_cogs_fixed": 0,
+        "longest_lower_cog_fixed": 0,
+        "candidate_updates": [
+          {
+            "frame": 149,
+            "position": [
+              1365.7763671875,
+              -2088.0,
+              -1120.2564697265625
+            ],
+            "air_sequences": [
+              124
+            ],
+            "rejected_because": [
+              "Mario moves between bracketing snapshots",
+              "Mario has a platform reference",
+              "air path is not an off-floor close-gap rejection of horizontal motion",
+              "actual position has a supporting floor after geometry refresh",
+              "ground-pound path needs separate preservation analysis",
+              "lower cog is not at one zero-speed pose",
+              "upper cog is not at one zero-speed pose",
+              "lower-cog pose changes across update boundaries",
+              "upper-cog pose changes across update boundaries"
+            ]
+          }
+        ]
+      },
+      {
+        "trial": "inner_rim/inner_rim_path_us",
+        "trace_sha256": "660252b58a4081b2772b197ddf418974092dc6f13964b041d79e61dc2b6829b1",
+        "longest_both_cogs_fixed": 0,
+        "longest_lower_cog_fixed": 0,
+        "candidate_updates": [
+          {
+            "frame": 0,
+            "position": [
+              1313.0,
+              -2088.0,
+              -1098.0
+            ],
+            "air_sequences": [
+              0
+            ],
+            "rejected_because": [
+              "air path is not an off-floor close-gap rejection of horizontal motion",
+              "actual position has a supporting floor after geometry refresh",
+              "lower cog is not at one zero-speed pose",
+              "upper cog is not at one zero-speed pose",
+              "lower-cog pose changes across update boundaries",
+              "upper-cog pose changes across update boundaries"
+            ]
+          },
+          {
+            "frame": 1,
+            "position": [
+              1310.9366455078125,
+              -2088.0,
+              -1096.3614501953125
+            ],
+            "air_sequences": [
+              1
+            ],
+            "rejected_because": [
+              "Mario moves between bracketing snapshots",
+              "Mario has a platform reference",
+              "lower cog is not at one zero-speed pose",
+              "upper cog is not at one zero-speed pose",
+              "lower-cog pose changes across update boundaries",
+              "upper-cog pose changes across update boundaries"
+            ]
+          }
+        ]
+      },
+      {
+        "trial": "inner_edge_path_us",
+        "trace_sha256": "be47cb11342e31f68657ecf804777a93b1b3cef205d2ff3de9d7f60b00d463e4",
+        "longest_both_cogs_fixed": 0,
+        "longest_lower_cog_fixed": 0,
+        "candidate_updates": []
+      },
+      {
+        "trial": "higher_drop_path_us",
+        "trace_sha256": "616dc292646b5f67577cc70424417c54beac5568eb6778998f3c15cf096d2761",
+        "longest_both_cogs_fixed": 0,
+        "longest_lower_cog_fixed": 0,
+        "candidate_updates": []
+      },
+      {
+        "trial": "inner_rim/inner_menu_delay_01_us",
+        "trace_sha256": "3ed5b6feb7d38b864e58ac0e16f5ef46cd3a4a006a1d7edf47af15a866c0fe90",
+        "longest_both_cogs_fixed": 0,
+        "longest_lower_cog_fixed": 0,
+        "candidate_updates": [
+          {
+            "frame": 0,
+            "position": [
+              1313.0,
+              -2088.0,
+              -1098.0
+            ],
+            "air_sequences": [
+              0
+            ],
+            "rejected_because": [
+              "air path is not an off-floor close-gap rejection of horizontal motion",
+              "actual position has a supporting floor after geometry refresh",
+              "lower cog is not at one zero-speed pose",
+              "upper cog is not at one zero-speed pose",
+              "lower-cog pose changes across update boundaries",
+              "upper-cog pose changes across update boundaries"
+            ]
+          },
+          {
+            "frame": 1,
+            "position": [
+              1310.9366455078125,
+              -2088.0,
+              -1096.3614501953125
+            ],
+            "air_sequences": [
+              1
+            ],
+            "rejected_because": [
+              "Mario moves between bracketing snapshots",
+              "Mario has a platform reference",
+              "lower cog is not at one zero-speed pose",
+              "upper cog is not at one zero-speed pose",
+              "lower-cog pose changes across update boundaries",
+              "upper-cog pose changes across update boundaries"
+            ]
+          }
+        ]
+      }
+    ],
+    "positive_gameplay_witness_available": false,
+    "positive_acceptance_path_validated_on_gameplay": false
+  }
+}

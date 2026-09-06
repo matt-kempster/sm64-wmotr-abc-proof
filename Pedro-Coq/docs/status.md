@@ -1,6 +1,14 @@
 # Status
 
 The active target is the US/JP TTC cog entry/control claim. It remains open.
+The [successive-update follow-up](ttc-cog-successive-updates.md) adds a stricter
+finite observation check and 35 completed route searches. A fixed ordinary-air
+replay agrees in US/JP over 4296 events, including one off-floor close-gap
+return. Mario moves before it, both cogs rotate, and the next update finds a
+supporting floor. Neither the strict check nor its weaker lower-cog-only
+diagnostic finds a sustained witness. The preserving-input comparison remains
+pending; Coq/generated files are unchanged.
+
 The [detour follow-up](ttc-cog-detour-followup.md) checks 48 bounded searches
 and connects the controller detour to one ground-pound close-gap landing in
 both versions. That frame requests mist-circle and horizontal-star particles,

@@ -50,6 +50,15 @@ current request.
       preserve Mario/cog state. Do not classify this as a trapped entry.
 - [ ] Connect that controller approach to sustained actual close-gap returns
       with the relevant cog poses and Mario state preserved.
+- [x] Add a successive-update observation check that excludes supporting-floor
+      impacts and ground-pound startup; reject eight recorded full paths in
+      both the strict and weaker diagnostic modes.
+- [x] Complete 35 further bounded route searches and independently replay an
+      ordinary off-floor return in US/JP; record the failure of the following
+      update to preserve the Pedro state in the
+      [successive-update report](ttc-cog-successive-updates.md).
+- [ ] Validate the observation check's acceptance path on a successful
+      gameplay trace; no positive witness is currently available.
 - [ ] Only after preservation, compare input continuations and their ordered
       RNG draws; then instantiate the linked execution obligations.
 - [x] Review the repeated content notice and record the known facts,

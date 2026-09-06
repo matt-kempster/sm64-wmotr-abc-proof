@@ -79,7 +79,7 @@ world coordinates; `cog` rotates the target with the observed lower cog, and
 are controller policies, not collision models or verified game dynamics.
 Only the resulting bounded integer stick inputs are supplied to the game.
 
-`sweep-detour.py SEARCH_NAME --suite rim|phase|brake|tip|tip_brake` runs a
+`sweep-detour.py SEARCH_NAME --suite rim|phase|brake|tip|tip_brake|turn_fine|brake_early|edge_fine` runs a
 bounded, declared set of fresh trials. `--first` and `--count` choose a
 contiguous subset of the listed candidates. The phase suite waits neutrally
 on the starting ledge; it does not set cog angles or RNG values. Every trial
@@ -119,6 +119,16 @@ matching triangle description for every selected floor/ceiling observation.
 `report-path.py TRIAL --first F --last L` exports a checked inclusive frame
 window with its events in original order. A particle request alone is not
 proof of a new allocation or of preserving RNG control.
+
+`check-preservation.py TRIAL --minimum 2` applies the narrow successive-update
+check described in the [follow-up report](../../docs/ttc-cog-successive-updates.md).
+It requires repeated off-floor close-gap rejections of nonzero intended motion,
+complete action updates, fixed Mario position and both relevant cog poses.
+It excludes supporting-floor impacts and ground-pound paths. Other actions
+need their own complete preserving-path analysis. `--allow-upper-rotation`
+produces a separately labeled weaker diagnostic. Neither mode has a validated
+positive gameplay example yet; an empty witness list is not an impossibility
+proof. Reports go to `preservation.json` or `preservation-lower-only.json`.
 
 For video capture, pass `--capture-from 350 --video-frames 600` to save every
 rendered frame in that inclusive range. This uses the emulator's screenshot

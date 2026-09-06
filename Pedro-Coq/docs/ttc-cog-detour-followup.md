@@ -1,5 +1,9 @@
 # Detour, natural cog phases, and action-path follow-up
 
+Later work: the [successive-update report](ttc-cog-successive-updates.md)
+records the stricter preservation check, 35 further searches, and a US/JP
+ordinary off-floor return. That path also fails preservation.
+
 The sustained entry/control objective remains open. The corrected detour now
 connects to one executed close-gap landing branch during a ground pound in
 both US and JP. It does not connect to a sustained trapped state: Mario is

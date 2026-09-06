@@ -158,6 +158,14 @@ Pinned source: `9921382a68bb0c865e5e45eb594d9c64db59b1af`.
 
 ## Results and remaining work
 
+The [successive-update check](ttc-cog-successive-updates.md) now tests complete
+action boundaries, bracketing Mario/cog poses, off-floor geometry, nonzero
+attempted motion and repeated close-gap returns. Thirty-five further route
+trials and a 4296-event US/JP ordinary-air replay still provide no sustained
+witness. The single new return is followed by supporting-floor geometry.
+Keep entry and preserving input/RNG control open; the check is discovery
+tooling and has no validated positive gameplay example yet.
+
 The [controller-detour follow-up](ttc-cog-detour-followup.md) completes 48
 bounded route/phase searches and adds complete action/surface observations.
 A fixed ground-pound entry candidate executes the close-gap landing branch

@@ -1,5 +1,34 @@
 # Content notice review — 2026-09-06
 
+## Later notices: confirmed client-log evidence
+
+A read-only review of this task's local client logs found model-turn errors
+at **21:25:41 and 21:37:41 UTC** on 2026-09-06 (4:25:41 and 4:37:41 PM Central).
+Both report that content was flagged for possible cybersecurity risk. Neither
+record identifies a triggering source line, request fragment, or tool action.
+The user subsequently reported another notice while the work was being
+wrapped up; it has not been attributed to a particular operation either.
+
+These are confirmed content-check interruptions. The 35 additional completed
+route experiments and the later US/JP replay both finished with emulator exit
+zero, no observer errors, and cheats disabled. Existing saved-data checks
+also completed. There is no evidence connecting the content flags to a game
+or Coq failure, or establishing that a particular operation caused them.
+
+The current official [false-positive guidance](https://learn.chatgpt.com/docs/cyber-safety#false-positives)
+explicitly covers unrelated activity and recommends reviewing available
+notices/logs and reporting suspected Codex false positives through `/feedback`.
+That is an appropriate route for a report about this gameplay-proof task;
+the documentation does not disclose this task's exact trigger. No feedback,
+private logs, or account information has been sent externally.
+
+The wrap-up preserves completed results, keeps source/trace inspection
+focused, and leaves the gameplay claim open. Safeguards and access settings
+have not been changed. An exact diagnosis would require further information
+from the service; avoiding particular words is not an established remedy.
+
+## Earlier review
+
 The user reported a second “This content can't be shown” notice referring to
 cybersecurity safeguards. The screenshot contains no blocked request ID,
 specific reason, or failing emulator/Coq command. The exact trigger is unknown.
