@@ -12,6 +12,9 @@ Only the North American and Japanese retail configurations are in scope:
 
 EU, Shindou, and iQue are intentionally unsupported.
 
+For an introduction aimed at programmers who do not already know Super Mario
+64 or Coq, see [`docs/plain-english-guide.md`](docs/plain-english-guide.md).
+
 ## Current theorem boundary
 
 `Pedro.Proofs.MainTheorem.checked_pedro_rng_mechanism_us_jp` is the initial
@@ -27,7 +30,7 @@ load-bearing capstone. It combines mechanically checked facts about:
 `Pedro.Proofs.MainTheorem.checked_ttc_spinner_source_reduction_us_jp` adds the
 TTC spinner inventory, collision-array, speed-table, behavior-script, and
 random-mode source receipts. It also contains an executable, source-derived
-geometry certificate for pitch values 15,856 through 15,951 and the exact
+geometry certificate for pitch values 15,664 through 16,031 and the exact
 random-mode timer/direction model.
 
 `Pedro.Proofs.MainTheorem.checked_dust_source_projection_us_jp` adds the new
