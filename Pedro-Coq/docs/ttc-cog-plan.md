@@ -55,6 +55,16 @@ No current capstone establishes entry, repeatable Mario control, or reachable
 multi-frame cog stasis.
 `Print Assumptions` alone cannot detect these missing theorem hypotheses.
 
+The later user priority is to prove or exclude RNG-producing actions under
+an in-spot premise, starting with the sliding phase of a slide kick. The
+[slide-kick work](ttc-cog-slide-kick.md) adds an exact generated caller proof
+with explicit helper residuals, a ground-gap suffix execution and a finite
+direct-dust writer inventory. These are included in the active cog capstone.
+The helper residuals, dispatcher/entry path, particle acceptance and broader
+source coverage remain open. Controller discovery has found no preserving
+sliding-phase event. Continue with those discharges and a specified in-spot
+state; do not infer all-action impossibility from unsuccessful route searches.
+
 ## Source findings that determine the work
 
 Pinned source: `9921382a68bb0c865e5e45eb594d9c64db59b1af`.

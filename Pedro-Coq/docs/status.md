@@ -1,13 +1,25 @@
 # Status
 
 The active target is the US/JP TTC cog entry/control claim. It remains open.
+The [slide-kick proof](ttc-cog-slide-kick.md) now executes the generated sliding
+handler under seven actual-helper execution premises: a wall-stop result can
+still lead to a dust request with `INPUT_OFF_FLOOR` set. A separate generated
+ground-gap suffix proof returns without memory changes at gap 154. The caller's
+two particle stores preserve Mario's position/floor fields; helper-boundary
+preservation remains conditional. A generated inventory covers 11 moving and
+two airborne direct literal dust writers, not all possible RNG sources.
+Six new US controller trials and a JP comparison find no Pedro return or
+sliding-phase witness; the compared trials agree over 5,257 logical events.
+Reachable in-spot dust, accepted particles, and preserving RNG control remain
+unproved. No general impossibility result has been claimed.
+
 The [successive-update follow-up](ttc-cog-successive-updates.md) adds a stricter
 finite observation check and 35 completed route searches. A fixed ordinary-air
 replay agrees in US/JP over 4296 events, including one off-floor close-gap
 return. Mario moves before it, both cogs rotate, and the next update finds a
 supporting floor. Neither the strict check nor its weaker lower-cog-only
 diagnostic finds a sustained witness. The preserving-input comparison remains
-pending; Coq/generated files are unchanged.
+pending; that successive-update follow-up did not change Coq/generated files.
 
 The [detour follow-up](ttc-cog-detour-followup.md) checks 48 bounded searches
 and connects the controller detour to one ground-pound close-gap landing in

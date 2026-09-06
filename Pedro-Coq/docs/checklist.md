@@ -61,6 +61,23 @@ current request.
       gameplay trace; no positive witness is currently available.
 - [ ] Only after preservation, compare input continuations and their ordered
       RNG draws; then instantiate the linked execution obligations.
+- [x] Enumerate direct literal dust writers in the generated moving/airborne
+      units (11 and 2 functions) with a finite Coq syntax check for US/JP.
+- [x] Execute the generated ground-gap suffix at heights -2088/-1934 and
+      prove its return-2 branch leaves memory unchanged; preceding queries open.
+- [x] Execute the generated slide-kick sliding caller's wall-stop dust path
+      with OFF_FLOOR input, retaining seven actual-helper execution premises.
+      Check generated field offsets and prove its own stores preserve the
+      position/floor fields, with helper-boundary preservation conditional.
+- [x] Run six slide-kick timing trials in US and compare one in JP; retain
+      [recipes and negative results](ttc-cog-slide-kick.md). No Pedro return or
+      sliding-phase witness; all 5,257 compared logical events agree.
+- [ ] Discharge slide-kick helper execution/preservation premises and execute
+      the dispatcher, entry/bounce path and following knockback update in the
+      actual cog state. Account for downstream dust clearing and acceptance.
+- [ ] Complete coverage of other actions, indirect/non-dust sources, objects
+      and camera, then prove preserving RNG possibilities or exclusions for
+      a specified in-spot state. The direct-writer inventory is not this theorem.
 - [x] Review the repeated content notice and record the known facts,
       uncertainty and [continued gameplay scope](content-notice-review.md).
 - [x] Replay the back-of-cog jump attempt with internal call tracing; record
@@ -104,6 +121,11 @@ current request.
 - [x] Run the separate root proof-discipline audit with the installed
       `sm64-item-proof` switch; exit 0. This is additional repository hygiene,
       not a replacement for the Pedro checks.
+- [x] Validate the slide-kick additions: final proof/no-hole checks, both
+      regeneration passes matching all 56 outputs, all 12 named assumption
+      checks and the root discipline audit. Complete interrupted batches via
+      Linux-local regeneration and individual assumption invocations; see
+      [the verification receipt](ttc-cog-slide-kick.md#verification-receipt).
 
 ## Generic Pedro mechanism
 

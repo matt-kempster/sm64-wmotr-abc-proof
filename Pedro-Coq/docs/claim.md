@@ -19,7 +19,7 @@ to game memory or code throughout discovery and validation.
 
 ## What the checked capstones prove
 
-`checked_ttc_cog_local_mechanism_us_jp` combines three distinct results:
+`MainTheorem.checked_ttc_cog_local_mechanism_us_jp` combines four distinct results:
 
 - Exact generated US/JP cog inventory and a pairwise geometry certificate:
   hexagonal cogs 0 and 3, yaw 57344 and 0, query `(1330, -1025)`, floor height
@@ -36,9 +36,17 @@ to game memory or code throughout discovery and validation.
   failing to keep both targets zero to keeping both zero. The selected cogs
   are not consecutive in the real schedule. This calculation proves neither
   accepted dust production nor an actual frame schedule or repeated stasis.
+- A finite direct-dust syntax inventory in the generated moving/airborne units,
+  a no-write execution of the ground-gap suffix, checked structure offsets,
+  and the generated slide-kick sliding caller's wall-stop dust request. The
+  caller retains seven actual-helper execution premises and conditional
+  preservation at their boundaries. These are not a reachable in-spot event
+  or an exhaustive proof about all preserving RNG sources. See
+  [the exact slide-kick boundary](ttc-cog-slide-kick.md).
 
 `checked_ttc_cog_source_geometry_us_jp` exposes the geometry component alone.
-Neither cog capstone is the requested gameplay theorem.
+`checked_ttc_cog_dust_action_frontier_us_jp` exposes the new action component.
+None of these cog capstones is the requested gameplay theorem.
 
 `checked_pedro_rng_mechanism_us_jp` is an unconditional theorem combining:
 

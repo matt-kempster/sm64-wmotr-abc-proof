@@ -27,6 +27,8 @@ runtime-receipt:
 
 assumptions: proofs
 	bash pipeline/assumptions.sh \
+	  Pedro.Proofs.MainTheorem checked_ttc_cog_dust_action_frontier_us_jp
+	bash pipeline/assumptions.sh \
 	  Pedro.Proofs.MainTheorem checked_ttc_cog_local_mechanism_us_jp
 	bash pipeline/assumptions.sh \
 	  Pedro.Proofs.MainTheorem checked_ttc_cog_source_geometry_us_jp

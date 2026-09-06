@@ -2,8 +2,10 @@
 
 Source inspection on 2026-09-06, against pin
 `9921382a68bb0c865e5e45eb594d9c64db59b1af`, for US and JP only.
-These are source findings and experiment requirements, not a new execution
-theorem or a successful in-spot RNG-control witness.
+The original findings below are source analysis and experiment requirements.
+The later [slide-kick follow-up](ttc-cog-slide-kick.md) adds a conditional
+generated-Clight caller proof and a ground-gap suffix execution. Neither is
+a successful in-spot RNG-control witness.
 
 ## Two different floor queries
 
@@ -81,6 +83,7 @@ See [the checked trace results](ttc-cog-placement-results.md#checked-inner-rim-p
 | Action | Relevant source behavior | Remaining obstacle |
 | --- | --- | --- |
 | Dive, then dive slide | `act_dive` can select `ACT_DIVE_SLIDE`; that action does not use `common_landing_cancels`. `common_slide_action` requests dust on `GROUND_STEP_NONE`. | Must reach the dive landing and the correct ground-step result while preserving the spot. The close-gap ground branch returns a wall-stop result instead. |
+| Slide kick, then slide-kick slide | `act_slide_kick_slide` requests dust after the step switch, including its wall-stop case; no speed-above-16 gate on this tail. The caller path now has a conditional Clight proof. | Reach the sliding phase after its possible airborne bounce, execute the actual helpers, preserve the spot through the resulting backward ground knockback, and establish downstream acceptance. |
 | Ground pound | A completed landing can request mist; its particle helper contains gameplay RNG calls. | Startup zeros forward speed and can change Y, potentially removing the inward movement needed for the Pedro collision. |
 | Sidling along a wall | `push_or_sidle_wall` can request dust at low speed, depending on wall angle and animation frame. | Requires a reachable walking action and the sidling branch; observed approach dust is not in-spot control. |
 | Punch/kick impact particles | The tiny-triangle initializer uses a fixed movement table. | Visible particles alone do not establish additional RNG calls. |
@@ -97,7 +100,7 @@ and ground bonk without landing dust. Ground-pound mist occurs only after
 Mario falls to a lower platform. Neither tested continuation preserves the
 spot, and neither establishes a general impossibility result for that action.
 
-## Next decisive experiment
+## Remaining entry and action work
 
 The [detour follow-up](ttc-cog-detour-followup.md) now records actual/intended/
 queried positions, selected triangles, action transitions and particle requests.
@@ -110,3 +113,10 @@ Connect the corrected mesh detour to sustained close-gap returns with the
 relevant Mario and cog state preserved. Only then compare input continuations
 and their ordered RNG draws. An alternative action is a candidate until its
 entire preserving path is checked.
+
+The user's later priority is to resolve possible RNG sources, starting with
+slide-kick dust, even before a sustained entry is available. Conditional local
+proofs can address that priority. The [new proof and inventory](ttc-cog-slide-kick.md)
+keep their explicit state, helper and coverage obligations separate from the
+missing preserving witness. Six additional slide-kick timing trials and one
+JP comparison reach no Pedro return or sliding phase in the spot.

@@ -148,3 +148,10 @@ and ground-step paths, accepted dust requests, and their ordered RNG calls.
 No trial may force a cog pose/speed, RNG seed, or action after initialization.
 
 See [the recorded results](../../docs/ttc-cog-placement-results.md).
+
+The [slide-kick follow-up](../../docs/ttc-cog-slide-kick.md) records six US
+timing trials and one JP comparison using this same controller/observer
+workflow. `results/slide-kick-discovery.json` preserves the exact waypoint
+and button recipes, hashes and checked outcomes. None observes a Pedro return
+or sliding-phase dust witness. It is separate from the conditional Coq caller
+proof added in that follow-up.

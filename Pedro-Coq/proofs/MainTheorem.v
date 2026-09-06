@@ -5,11 +5,32 @@ From Pedro.Proofs Require Import
   DustClightExec DustBehaviorCommandExecution DustCurObjUpdateExecution
   DustSpawnParticleExecution DustSpawnParticleExecutionJP
   SegmentedPointerBoundary TTCDebugBoundary TTCRNGWindow TTCRNGCensus
-  TTCRetailSqrt TTCCogGeometry TTCCogRNG TTCCogExecution.
+  TTCRetailSqrt TTCCogGeometry TTCCogRNG TTCCogExecution
+  GroundGapReturn SlideKickDustExecution MarioDustSources.
 
 Module MainSpawnUS := DustSpawnParticleExecution.
 Module MainSpawnJP := DustSpawnParticleExecutionJP.
 Module MainSegmented := SegmentedPointerBoundary.
+
+(** Exact generated action/collision frontier. The direct-writer census has
+    only the two stated translation units as its scope. The ground theorem
+    begins after the queries. The slide-kick caller retains seven actual
+    helper-execution premises and their anchor-boundary conditions. None is
+    an existence theorem for a reachable in-spot dust event. *)
+Definition ttc_cog_dust_action_frontier_claim : Prop :=
+  mario_direct_dust_inventory_claim /\
+  cog_gap_return_claim /\
+  slide_layout_receipt /\
+  (forall version, slide_kick_framed_caller_claim version).
+
+Theorem checked_ttc_cog_dust_action_frontier_us_jp :
+  ttc_cog_dust_action_frontier_claim.
+Proof.
+  exact (conj generated_mario_direct_dust_inventory_us_jp
+    (conj checked_cog_gap_return_us_jp
+      (conj slide_caller_and_anchor_offsets_generated_us_jp
+        generated_slide_kick_dust_caller_with_anchor_boundaries_us_jp))).
+Qed.
 
 (** Active cog target: exact stock inventory and a pairwise binary32 geometry
     certificate. Entry, query selection, and controller preservation remain
@@ -26,9 +47,13 @@ Proof. exact checked_ttc_cog_geometry_reduction_us_jp. Qed.
 Theorem checked_ttc_cog_local_mechanism_us_jp :
   ttc_cog_geometry_reduction_claim /\
   ttc_cog_rng_reduction_claim /\
-  (forall version, cog_zero_update_execution_claim version).
+  (forall version, cog_zero_update_execution_claim version) /\
+  ttc_cog_dust_action_frontier_claim.
 Proof.
-  exact TTCCogExecution.checked_ttc_cog_local_mechanism_us_jp.
+  destruct TTCCogExecution.checked_ttc_cog_local_mechanism_us_jp
+    as [Hgeometry [Hrng Hexecution]].
+  exact (conj Hgeometry (conj Hrng (conj Hexecution
+    checked_ttc_cog_dust_action_frontier_us_jp))).
 Qed.
 
 (** Initial source-and-arithmetic capstone. Every conjunct is tied either to a

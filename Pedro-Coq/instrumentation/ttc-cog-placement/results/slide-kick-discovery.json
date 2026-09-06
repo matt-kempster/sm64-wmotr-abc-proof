@@ -1,0 +1,792 @@
+{
+  "date": "2026-09-06",
+  "source_pin": "9921382a68bb0c865e5e45eb594d9c64db59b1af",
+  "initialization_patch_sha256": "6daa97f3c5836c157ceba2d926d57481fd2b17713392845b3b3f4374cb56da91",
+  "initialization": "Declared ledge placement (1742,-2088,-125), yaw 188 degrees, TTC RANDOM mode; ordinary idle initialization.",
+  "scope": "Completed ordinary-controller waypoint trials with read-only observation. Outside the Coq trusted base. No in-spot dust or preserving RNG-control witness, and no impossibility theorem.",
+  "trial_recipe": "Write each controller_intervals and waypoints array as LF CSV rows, then run run.py VERSION TRIAL --inputs INPUTS --waypoints WAYPOINTS --trace-path --video-frames 555. This is a waypoint policy, not an exported fixed-controller replay.",
+  "dust_frame_scope": "Mario execute_mario_action exit requests from button_start onward; these are not accepted allocations or in-spot dust events.",
+  "comparison": {
+    "trials": [
+      "slide_kick_caller_04_us",
+      "slide_kick_caller_04_jp"
+    ],
+    "observed_logical_fields_agree": true,
+    "event_count": 5257,
+    "normalization": "Existing check-trace.py normalized(): raw surface/caller/behavior addresses excluded; object owners normalized to pool slots."
+  },
+  "trials": [
+    {
+      "trial": "slide_kick_caller_00_us",
+      "version": "us",
+      "button_start": 118,
+      "trace_sha256": "a46952c472375bb746fd970dd5777888d92a44b79526458267e5c14f918af931",
+      "counts": {
+        "CINPUT": 180,
+        "CFRAME": 180,
+        "CCOG": 1440,
+        "CRNG": 833,
+        "CPATH": 898,
+        "CSURFACE": 1224,
+        "CAIR": 288,
+        "CWALL": 60
+      },
+      "pedro_branch_count": 0,
+      "airborne_slide_kick_exit_frames": [],
+      "sliding_phase_observed_frames": [],
+      "dust_request_exit_frames_from_button_start": [],
+      "controller_intervals": [
+        [
+          "76",
+          "80",
+          "0",
+          "0",
+          "A"
+        ],
+        [
+          "118",
+          "118",
+          "0",
+          "0",
+          "Z"
+        ],
+        [
+          "119",
+          "119",
+          "0",
+          "0",
+          "ZB"
+        ]
+      ],
+      "waypoints": [
+        [
+          "0",
+          "65",
+          "1450",
+          "-660",
+          "75"
+        ],
+        [
+          "66",
+          "100",
+          "1320",
+          "-720",
+          "65"
+        ],
+        [
+          "101",
+          "114",
+          "1300",
+          "-965",
+          "65"
+        ],
+        [
+          "115",
+          "132",
+          "1410",
+          "-1240",
+          "80"
+        ],
+        [
+          "133",
+          "180",
+          "1490",
+          "-873",
+          "80"
+        ]
+      ],
+      "render_frame_limit": 555,
+      "rom_sha256": "70a5c1a85ab5790c98f76d295f9875debcf4e531f9b0dbdd511a74dac08a4ee6",
+      "elf_sha256": "36ae1e7f250e7631eda9e0a9ea6e5f98d01444fd6007bc971caa64b8e47af70b",
+      "inputs_sha256": "480be5d7c4eec6d3e65fad9b20f2eb448b7be789a51fca9b4a8ae46e03238872",
+      "waypoints_sha256": "c9b665e8435fed497703679de1ad54ef99481bd68a90acab06099441958007e2",
+      "observer_sha256": "eceb3203a304f202bf4fea73e33b90769cd6d6f786f5f4a1a5940ff37d9adf17",
+      "runner_sha256": "e5f0d2c201ca6967abf3429e619a1c623af674f3389eea380037dc8fb42610bf",
+      "emulator_exit": 0,
+      "cheats_disabled": true,
+      "observer_errors": [],
+      "normalized_event_sha256": "290ff9e678aae1be4fb289413101eca9de267ed9330ed0e84abbcf23c99941db"
+    },
+    {
+      "trial": "slide_kick_caller_01_us",
+      "version": "us",
+      "button_start": 122,
+      "trace_sha256": "f1f30d607d33b754f9833a32d30945ef4d928e17c21526dca26cf47233da343c",
+      "counts": {
+        "CINPUT": 180,
+        "CFRAME": 180,
+        "CCOG": 1440,
+        "CRNG": 833,
+        "CPATH": 928,
+        "CSURFACE": 1191,
+        "CAIR": 277,
+        "CWALL": 52
+      },
+      "pedro_branch_count": 0,
+      "airborne_slide_kick_exit_frames": [],
+      "sliding_phase_observed_frames": [],
+      "dust_request_exit_frames_from_button_start": [
+        141
+      ],
+      "controller_intervals": [
+        [
+          "76",
+          "80",
+          "0",
+          "0",
+          "A"
+        ],
+        [
+          "122",
+          "122",
+          "0",
+          "0",
+          "Z"
+        ],
+        [
+          "123",
+          "123",
+          "0",
+          "0",
+          "ZB"
+        ]
+      ],
+      "waypoints": [
+        [
+          "0",
+          "65",
+          "1450",
+          "-660",
+          "75"
+        ],
+        [
+          "66",
+          "100",
+          "1320",
+          "-720",
+          "65"
+        ],
+        [
+          "101",
+          "114",
+          "1300",
+          "-965",
+          "65"
+        ],
+        [
+          "115",
+          "132",
+          "1410",
+          "-1240",
+          "80"
+        ],
+        [
+          "133",
+          "180",
+          "1490",
+          "-873",
+          "80"
+        ]
+      ],
+      "render_frame_limit": 555,
+      "rom_sha256": "70a5c1a85ab5790c98f76d295f9875debcf4e531f9b0dbdd511a74dac08a4ee6",
+      "elf_sha256": "36ae1e7f250e7631eda9e0a9ea6e5f98d01444fd6007bc971caa64b8e47af70b",
+      "inputs_sha256": "4956f3cf40fdbea8ec90fd747125b37b103b19599e5ee39e7533e9715985dd1c",
+      "waypoints_sha256": "c9b665e8435fed497703679de1ad54ef99481bd68a90acab06099441958007e2",
+      "observer_sha256": "eceb3203a304f202bf4fea73e33b90769cd6d6f786f5f4a1a5940ff37d9adf17",
+      "runner_sha256": "e5f0d2c201ca6967abf3429e619a1c623af674f3389eea380037dc8fb42610bf",
+      "emulator_exit": 0,
+      "cheats_disabled": true,
+      "observer_errors": [],
+      "normalized_event_sha256": "b847334a63d76d0d4542e4088c508221a26965efe847ed13436343e975e6e264"
+    },
+    {
+      "trial": "slide_kick_caller_02_us",
+      "version": "us",
+      "button_start": 126,
+      "trace_sha256": "181b988b3a2e5737e20851340eb0a1946ac1a358a9e5f892ec7e24b67ce7b9a7",
+      "counts": {
+        "CINPUT": 180,
+        "CFRAME": 180,
+        "CCOG": 1440,
+        "CRNG": 906,
+        "CPATH": 1000,
+        "CSURFACE": 1107,
+        "CAIR": 249,
+        "CWALL": 47
+      },
+      "pedro_branch_count": 0,
+      "airborne_slide_kick_exit_frames": [],
+      "sliding_phase_observed_frames": [],
+      "dust_request_exit_frames_from_button_start": [
+        126,
+        127,
+        128,
+        129,
+        130,
+        132,
+        133,
+        134,
+        135,
+        136,
+        137,
+        138,
+        139,
+        140
+      ],
+      "controller_intervals": [
+        [
+          "76",
+          "80",
+          "0",
+          "0",
+          "A"
+        ],
+        [
+          "126",
+          "126",
+          "0",
+          "0",
+          "Z"
+        ],
+        [
+          "127",
+          "127",
+          "0",
+          "0",
+          "ZB"
+        ]
+      ],
+      "waypoints": [
+        [
+          "0",
+          "65",
+          "1450",
+          "-660",
+          "75"
+        ],
+        [
+          "66",
+          "100",
+          "1320",
+          "-720",
+          "65"
+        ],
+        [
+          "101",
+          "114",
+          "1300",
+          "-965",
+          "65"
+        ],
+        [
+          "115",
+          "132",
+          "1410",
+          "-1240",
+          "80"
+        ],
+        [
+          "133",
+          "180",
+          "1490",
+          "-873",
+          "80"
+        ]
+      ],
+      "render_frame_limit": 555,
+      "rom_sha256": "70a5c1a85ab5790c98f76d295f9875debcf4e531f9b0dbdd511a74dac08a4ee6",
+      "elf_sha256": "36ae1e7f250e7631eda9e0a9ea6e5f98d01444fd6007bc971caa64b8e47af70b",
+      "inputs_sha256": "bbcfbb501f5e73c1faf98e635d1f9a73830d1beb7c2ee98496de4da12962c7d2",
+      "waypoints_sha256": "c9b665e8435fed497703679de1ad54ef99481bd68a90acab06099441958007e2",
+      "observer_sha256": "eceb3203a304f202bf4fea73e33b90769cd6d6f786f5f4a1a5940ff37d9adf17",
+      "runner_sha256": "e5f0d2c201ca6967abf3429e619a1c623af674f3389eea380037dc8fb42610bf",
+      "emulator_exit": 0,
+      "cheats_disabled": true,
+      "observer_errors": [],
+      "normalized_event_sha256": "acfefcd47df0f3ee139ba1112c4e9be9a52db3d8f7a5b4f131b4d35a6de8ce87"
+    },
+    {
+      "trial": "slide_kick_caller_03_us",
+      "version": "us",
+      "button_start": 128,
+      "trace_sha256": "bfba4f0e6d539164b2e871b4aaee7ab96c06650841dc3402a33161243367908f",
+      "counts": {
+        "CINPUT": 180,
+        "CFRAME": 180,
+        "CCOG": 1440,
+        "CRNG": 939,
+        "CPATH": 1040,
+        "CSURFACE": 732,
+        "CAIR": 124,
+        "CWALL": 25
+      },
+      "pedro_branch_count": 0,
+      "airborne_slide_kick_exit_frames": [],
+      "sliding_phase_observed_frames": [],
+      "dust_request_exit_frames_from_button_start": [
+        128,
+        129,
+        130,
+        131,
+        132,
+        133,
+        137,
+        138,
+        139,
+        140,
+        141,
+        142,
+        143,
+        164,
+        171,
+        172,
+        173,
+        174
+      ],
+      "controller_intervals": [
+        [
+          "76",
+          "80",
+          "0",
+          "0",
+          "A"
+        ],
+        [
+          "128",
+          "128",
+          "0",
+          "0",
+          "Z"
+        ],
+        [
+          "129",
+          "129",
+          "0",
+          "0",
+          "ZB"
+        ]
+      ],
+      "waypoints": [
+        [
+          "0",
+          "65",
+          "1450",
+          "-660",
+          "75"
+        ],
+        [
+          "66",
+          "100",
+          "1320",
+          "-720",
+          "65"
+        ],
+        [
+          "101",
+          "114",
+          "1300",
+          "-965",
+          "65"
+        ],
+        [
+          "115",
+          "132",
+          "1410",
+          "-1240",
+          "80"
+        ],
+        [
+          "133",
+          "180",
+          "1490",
+          "-873",
+          "80"
+        ]
+      ],
+      "render_frame_limit": 555,
+      "rom_sha256": "70a5c1a85ab5790c98f76d295f9875debcf4e531f9b0dbdd511a74dac08a4ee6",
+      "elf_sha256": "36ae1e7f250e7631eda9e0a9ea6e5f98d01444fd6007bc971caa64b8e47af70b",
+      "inputs_sha256": "3dba4ac2c79d8a12219c457482f1275dcc57f96495db1843354fb35b7fe99a12",
+      "waypoints_sha256": "c9b665e8435fed497703679de1ad54ef99481bd68a90acab06099441958007e2",
+      "observer_sha256": "eceb3203a304f202bf4fea73e33b90769cd6d6f786f5f4a1a5940ff37d9adf17",
+      "runner_sha256": "e5f0d2c201ca6967abf3429e619a1c623af674f3389eea380037dc8fb42610bf",
+      "emulator_exit": 0,
+      "cheats_disabled": true,
+      "observer_errors": [],
+      "normalized_event_sha256": "2df6ce33fab720456e90d9f5f614577214ea262f70a6691cdd3936c40f9a20c0"
+    },
+    {
+      "trial": "slide_kick_caller_04_us",
+      "version": "us",
+      "button_start": 130,
+      "trace_sha256": "073054efbfa789348863d55b83fa546b53d54cb1aaa0df6c8a4510eda4dabbfe",
+      "counts": {
+        "CINPUT": 180,
+        "CFRAME": 180,
+        "CCOG": 1440,
+        "CRNG": 864,
+        "CPATH": 924,
+        "CSURFACE": 1320,
+        "CAIR": 320,
+        "CWALL": 29
+      },
+      "pedro_branch_count": 0,
+      "airborne_slide_kick_exit_frames": [
+        131,
+        132,
+        133,
+        134,
+        135,
+        136,
+        137,
+        138,
+        139,
+        140,
+        141,
+        142,
+        143,
+        144,
+        145,
+        146,
+        147,
+        148,
+        149,
+        150,
+        151,
+        152,
+        153,
+        154,
+        155,
+        156,
+        157,
+        158,
+        159,
+        160
+      ],
+      "sliding_phase_observed_frames": [],
+      "dust_request_exit_frames_from_button_start": [
+        130
+      ],
+      "controller_intervals": [
+        [
+          "76",
+          "80",
+          "0",
+          "0",
+          "A"
+        ],
+        [
+          "130",
+          "130",
+          "0",
+          "0",
+          "Z"
+        ],
+        [
+          "131",
+          "131",
+          "0",
+          "0",
+          "ZB"
+        ]
+      ],
+      "waypoints": [
+        [
+          "0",
+          "65",
+          "1450",
+          "-660",
+          "75"
+        ],
+        [
+          "66",
+          "100",
+          "1320",
+          "-720",
+          "65"
+        ],
+        [
+          "101",
+          "114",
+          "1300",
+          "-965",
+          "65"
+        ],
+        [
+          "115",
+          "132",
+          "1410",
+          "-1240",
+          "80"
+        ],
+        [
+          "133",
+          "180",
+          "1490",
+          "-873",
+          "80"
+        ]
+      ],
+      "render_frame_limit": 555,
+      "rom_sha256": "70a5c1a85ab5790c98f76d295f9875debcf4e531f9b0dbdd511a74dac08a4ee6",
+      "elf_sha256": "36ae1e7f250e7631eda9e0a9ea6e5f98d01444fd6007bc971caa64b8e47af70b",
+      "inputs_sha256": "8ff40a6e5b05789766b6b5bf0391b31a0d5fa9c14305a74bb64b7687bb730bde",
+      "waypoints_sha256": "c9b665e8435fed497703679de1ad54ef99481bd68a90acab06099441958007e2",
+      "observer_sha256": "eceb3203a304f202bf4fea73e33b90769cd6d6f786f5f4a1a5940ff37d9adf17",
+      "runner_sha256": "e5f0d2c201ca6967abf3429e619a1c623af674f3389eea380037dc8fb42610bf",
+      "emulator_exit": 0,
+      "cheats_disabled": true,
+      "observer_errors": [],
+      "normalized_event_sha256": "cb1f5a98934ac1ba4b4d5326b30ebf099970b0e4f6636cf2654cc6fdf7629012"
+    },
+    {
+      "trial": "slide_kick_caller_05_us",
+      "version": "us",
+      "button_start": 132,
+      "trace_sha256": "11f30b2d6c67ef008db5955b27a7f6222e374f36df8258e085fa100602bc8929",
+      "counts": {
+        "CINPUT": 180,
+        "CFRAME": 180,
+        "CCOG": 1440,
+        "CRNG": 867,
+        "CPATH": 932,
+        "CSURFACE": 1296,
+        "CAIR": 312,
+        "CWALL": 19
+      },
+      "pedro_branch_count": 0,
+      "airborne_slide_kick_exit_frames": [
+        133,
+        134,
+        135,
+        136,
+        137,
+        138,
+        139,
+        140,
+        141,
+        142,
+        143,
+        144,
+        145,
+        146,
+        147,
+        148,
+        149,
+        150,
+        151,
+        152,
+        153,
+        154,
+        155,
+        156,
+        157,
+        158,
+        159,
+        160,
+        161,
+        162
+      ],
+      "sliding_phase_observed_frames": [],
+      "dust_request_exit_frames_from_button_start": [
+        132
+      ],
+      "controller_intervals": [
+        [
+          "76",
+          "80",
+          "0",
+          "0",
+          "A"
+        ],
+        [
+          "132",
+          "132",
+          "0",
+          "0",
+          "Z"
+        ],
+        [
+          "133",
+          "133",
+          "0",
+          "0",
+          "ZB"
+        ]
+      ],
+      "waypoints": [
+        [
+          "0",
+          "65",
+          "1450",
+          "-660",
+          "75"
+        ],
+        [
+          "66",
+          "100",
+          "1320",
+          "-720",
+          "65"
+        ],
+        [
+          "101",
+          "114",
+          "1300",
+          "-965",
+          "65"
+        ],
+        [
+          "115",
+          "132",
+          "1410",
+          "-1240",
+          "80"
+        ],
+        [
+          "133",
+          "180",
+          "1490",
+          "-873",
+          "80"
+        ]
+      ],
+      "render_frame_limit": 555,
+      "rom_sha256": "70a5c1a85ab5790c98f76d295f9875debcf4e531f9b0dbdd511a74dac08a4ee6",
+      "elf_sha256": "36ae1e7f250e7631eda9e0a9ea6e5f98d01444fd6007bc971caa64b8e47af70b",
+      "inputs_sha256": "9e7143b501c5681efe3f5fdc10da499e1f445a8dbfb02980c465ae82b0a1f8ec",
+      "waypoints_sha256": "c9b665e8435fed497703679de1ad54ef99481bd68a90acab06099441958007e2",
+      "observer_sha256": "eceb3203a304f202bf4fea73e33b90769cd6d6f786f5f4a1a5940ff37d9adf17",
+      "runner_sha256": "e5f0d2c201ca6967abf3429e619a1c623af674f3389eea380037dc8fb42610bf",
+      "emulator_exit": 0,
+      "cheats_disabled": true,
+      "observer_errors": [],
+      "normalized_event_sha256": "e143f94c32d34a5c073b6127e58a790f3a5e612bae5eae3c5305cc32dab7ee5d"
+    },
+    {
+      "trial": "slide_kick_caller_04_jp",
+      "version": "jp",
+      "button_start": 130,
+      "trace_sha256": "d1666999e0deba2e7c8cc1e42f1bba28d0c0cfce331c6f0dedf816b391fc7ec6",
+      "counts": {
+        "CINPUT": 180,
+        "CFRAME": 180,
+        "CCOG": 1440,
+        "CRNG": 864,
+        "CPATH": 924,
+        "CSURFACE": 1320,
+        "CAIR": 320,
+        "CWALL": 29
+      },
+      "pedro_branch_count": 0,
+      "airborne_slide_kick_exit_frames": [
+        131,
+        132,
+        133,
+        134,
+        135,
+        136,
+        137,
+        138,
+        139,
+        140,
+        141,
+        142,
+        143,
+        144,
+        145,
+        146,
+        147,
+        148,
+        149,
+        150,
+        151,
+        152,
+        153,
+        154,
+        155,
+        156,
+        157,
+        158,
+        159,
+        160
+      ],
+      "sliding_phase_observed_frames": [],
+      "dust_request_exit_frames_from_button_start": [
+        130
+      ],
+      "controller_intervals": [
+        [
+          "76",
+          "80",
+          "0",
+          "0",
+          "A"
+        ],
+        [
+          "130",
+          "130",
+          "0",
+          "0",
+          "Z"
+        ],
+        [
+          "131",
+          "131",
+          "0",
+          "0",
+          "ZB"
+        ]
+      ],
+      "waypoints": [
+        [
+          "0",
+          "65",
+          "1450",
+          "-660",
+          "75"
+        ],
+        [
+          "66",
+          "100",
+          "1320",
+          "-720",
+          "65"
+        ],
+        [
+          "101",
+          "114",
+          "1300",
+          "-965",
+          "65"
+        ],
+        [
+          "115",
+          "132",
+          "1410",
+          "-1240",
+          "80"
+        ],
+        [
+          "133",
+          "180",
+          "1490",
+          "-873",
+          "80"
+        ]
+      ],
+      "render_frame_limit": 555,
+      "rom_sha256": "fd48ddfed37f1725de7d6c135115083448a4c08a66bff73aead2e0877547e5a7",
+      "elf_sha256": "371c4ec67de4ec7ddb112bce20a387375b35d5517ba7c752a5acff9663028378",
+      "inputs_sha256": "8ff40a6e5b05789766b6b5bf0391b31a0d5fa9c14305a74bb64b7687bb730bde",
+      "waypoints_sha256": "c9b665e8435fed497703679de1ad54ef99481bd68a90acab06099441958007e2",
+      "observer_sha256": "eceb3203a304f202bf4fea73e33b90769cd6d6f786f5f4a1a5940ff37d9adf17",
+      "runner_sha256": "e5f0d2c201ca6967abf3429e619a1c623af674f3389eea380037dc8fb42610bf",
+      "emulator_exit": 0,
+      "cheats_disabled": true,
+      "observer_errors": [],
+      "normalized_event_sha256": "cb1f5a98934ac1ba4b4d5326b30ebf099970b0e4f6636cf2654cc6fdf7629012"
+    }
+  ]
+}
