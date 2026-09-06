@@ -99,11 +99,22 @@ Parts of this chain have been executed directly in CompCert's formal Clight
 semantics for both supported versions. The complete retail object loop and a
 controller-only reachable memory snapshot are still open obligations.
 
-## Tic Tock Clock and its spinners
+## Tic Tock Clock: spinners and cogs
 
 Tic Tock Clock, usually shortened to **TTC**, is a level containing moving
-clockwork platforms. The platforms relevant here are called spinners. Their
-collision surfaces rotate as their pitch angle changes.
+clockwork platforms. Two relevant families are **spinners** and **cogs**. They
+are separate game objects with different shapes and movement rules; "spinner"
+is not a general name for every rotating TTC platform.
+
+The proved interval later in this guide concerns only the spinner family. A cog
+can still be part of a Pedro spot because the generic landing code does not care
+what kind of object supplied the floor or ceiling. It only cares about the
+surfaces it found, their overlap, and the gap between them.
+
+### Spinners
+
+The spinners used by the current proof tilt around a horizontal axis. Their
+collision surfaces therefore change height as their pitch angle changes.
 
 In the random clock setting, a spinner chooses a direction and a change timer
 using the shared random seed. After a direction change, object timers 1 through
@@ -114,7 +125,54 @@ The possible change timers are 30, 60, 90, and 120.
 Changing the random seed can influence a future direction or timer choice. It
 cannot retroactively change a direction that the spinner has already selected.
 
+### Cogs
+
+The game's `bhvTTCCog` object covers two shapes: a hexagonal platform and a
+triangular prism. The pinned TTC level data lists eight cog placements: six
+hexagons and two triangular prisms. Seven occur before the first spinner in the
+object order already checked by the project's RNG census.
+
+Cogs turn around the vertical Y axis, so their yaw changes their horizontal
+footprint rather than tilting the whole platform up and down. That can still
+create or remove the horizontal overlap needed for a Pedro spot. A lower cog's
+top and an upper cog's underside are therefore legitimate floor/ceiling
+candidates. Several stock hexagon placements have promising vertical spacing
+once the mesh's 153-unit thickness is considered, but that observation has not
+yet been promoted into a checked geometry theorem.
+
+Cog motion also differs from spinner motion:
+
+- on the slow setting, the cog speed is 200 angle units per frame;
+- on the fast setting, it is 400;
+- on the random setting, the current speed changes toward a target by 50 per
+  frame; and
+- after reaching a target, the cog uses the shared RNG to choose a new signed
+  target from zero through 1,200 in steps of 200.
+
+Each cog also has a fixed clockwise or counter-clockwise multiplier selected by
+its level data. The game multiplies that direction by the current speed and
+adds the result to the cog's yaw each frame.
+
+This matters twice. First, dust manipulation could affect a cog's next target
+speed and direction. Second, a cog choosing a target consumes random values of
+its own, so cogs can change the seed seen later by a spinner or another cog.
+The existing RNG census accounts for cog call sites, but it does not yet prove
+a complete cog Pedro schedule.
+
+The spinner theorem cannot simply be relabeled as a cog theorem. A cog proof
+needs to:
+
+1. generate and authenticate the hexagon and triangle collision arrays;
+2. enumerate all eight placements, shapes, and fixed directions in US and JP;
+3. transform their collision triangles over exact yaw values;
+4. find overlapping floor/ceiling pairs with a gap in `(0, 160]`;
+5. prove a reachable Mario entry and both landing-input continuations; and
+6. combine the cog's gradual random-speed rule with every dust and non-dust RNG
+   call on the relevant frames.
+
 ## The proved TTC Pedro interval
+
+This section is specifically about two **spinners**, not the TTC cogs.
 
 The collision proof found one concrete cramped region shared by two spinners:
 
@@ -201,6 +259,7 @@ still needs:
 - a reachable retail object-pool, particle-flag, and object-list state;
 - complete linked execution of the remaining dust behavior chain;
 - a geometry/control schedule that survives more than one moving frame; and
+- a separate collision and motion certificate for any claimed cog Pedro spot;
 - a classification and repeatability proof for every stock Pedro spot.
 
 That distinction is important: the existing work proves the mechanism and a
