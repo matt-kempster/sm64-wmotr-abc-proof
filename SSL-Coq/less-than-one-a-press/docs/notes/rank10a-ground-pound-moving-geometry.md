@@ -88,10 +88,31 @@ before its first branch. Moving geometry may matter through those queries,
 the platform update, an interaction or resumed falling collisions. The
 Y-store's X/Z frame does not cover those other operations or the startup's
 sound/animation/copy calls. A falling ground pound can also change to backward
-air knockback after a wall hit. That collision-dependent departure remains
-to be tested; it is not a B/Z cancel and is not silently excluded.
+air knockback after a wall hit. The bounded test below excludes a direct
+outward launch from an ordinary inner-face hit, not every collision-dependent
+departure; this is not a B/Z cancel.
 
-## Entry restrictions
+## Bounded falling-wall departure check
+
+The ordinary inner-wall hit does **not** provide an outward launch through
+the same elevator face. The source-mesh diagnostic extracts all eight inner
+wall triangles, checks their four inward cardinal normals, and enumerates
+all 65,536 facing angles for each. The wall-hit test accepts 16,383 angles
+per face. In all 65,532 accepted cases, the ground pound's new backward
+speed points strictly inward relative to that face. Tangential motion can
+remain, but the new velocity does not propel Mario through the wall he hit.
+
+This checks the signed-16 yaw comparison and pinned Float32 trigonometric
+values used by the normal speed setter, not a new Coq theorem or a live
+trajectory. The generated US `mario_step` body also contains the signed-short
+comparison against 24,576. The no-floor and low-ceiling returns can report
+the same wall-hit result without that facing test; they are **not** excluded.
+Neither are corner/multiple-wall histories, another selected surface, prior
+collision corrections, or later collisions after the inward launch. A useful
+departure now needs one of those concrete additions rather than merely the
+ordinary same-face hit. The eligible ground-pound entry remains missing.
+
+## Eligible predecessors
 
 The generated airborne-source census has twelve direct requesters: jump,
 double jump, triple jump, backflip, freefall, held-object jump, held-object
@@ -144,6 +165,11 @@ absolute-world falling samples, signed-zero controls and 128,004 numeric
 floor-following samples. These diagnostics supplement the Coq induction and
 selected-source/store proofs. `check-rank10a` rebuilds the imported capstone
 and audits its focused theorem assumptions.
+
+The 2026-09-05 wall-response follow-up also passes all 262,144 side/facing
+tests: all 65,532 accepted ordinary hits point inward, with minimum inward
+speed `11.313708305358887`. The existing diagnostic controls still pass.
+This follow-up changes no Coq code and makes no new live-execution claim.
 
 Validation passed: the bounded module compile, integrated SSL build, no-hole
 and link-hygiene checks, all twelve focused/capstone assumption audits, and

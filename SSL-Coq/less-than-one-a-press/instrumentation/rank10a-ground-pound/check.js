@@ -43,6 +43,54 @@ assert.match(geometry, /m->pos\[1\] > m->floorHeight \+ 100\.0f/);
 const elevator = read('src/game/behaviors/pyramid_elevator.inc.c');
 assert.match(elevator, /o->oVelY = -10\.0f;\s*o->oPosY \+= o->oVelY/);
 
+// Bounded ordinary-wall response, not a live collision or reachability proof.
+// The no-floor/low-ceiling HIT_WALL returns do not use this yaw test.
+const step = body(read('src/game/mario_step.c'), 'perform_air_quarter_step');
+assert.match(step, /wallDYaw = atan2s\(m->wall->normal.z, m->wall->normal.x\) - m->faceAngle\[1\]/);
+assert.match(step, /wallDYaw < -0x6000 \|\| wallDYaw > 0x6000/);
+assert.match(gp, /stepResult == AIR_STEP_HIT_WALL[\s\S]*mario_set_forward_vel\(m, -16\.0f\)/);
+const speedSetter = body(mario, 'mario_set_forward_vel');
+assert.match(speedSetter, /sins\(m->faceAngle\[1\]\) \* m->forwardVel/);
+assert.match(speedSetter, /coss\(m->faceAngle\[1\]\) \* m->forwardVel/);
+// Read the intended overlapping sine/cosine VALUES, not runtime addresses.
+const trig = [...read('include/trig_tables.inc.c').matchAll(/(-?\d+\.\d+)f/g)]
+  .map(m => f(Number(m[1])));
+assert.equal(trig.length, 5120);
+const mesh = read('levels/ssl/pyramid_elevator/collision.inc.c');
+const vertices = [...mesh.matchAll(/COL_VERTEX\((-?\d+),\s*(-?\d+),\s*(-?\d+)\)/g)]
+  .map(m => m.slice(1).map(Number));
+const faces = [...mesh.matchAll(/COL_TRI\((\d+),\s*(\d+),\s*(\d+)\)/g)]
+  .map(m => m.slice(1).map(Number).map(i => vertices[i]));
+const normals = new Map();
+let innerTriangles = 0;
+for (const [a, b, c] of faces) {
+  const axis = [0, 2].find(i => a[i] === b[i] && b[i] === c[i] && Math.abs(a[i]) < 500);
+  if (axis === undefined) continue;
+  const u = b.map((v, i) => v - a[i]), v = c.map((n, i) => n - b[i]);
+  const cross = [u[1]*v[2]-u[2]*v[1], u[2]*v[0]-u[0]*v[2], u[0]*v[1]-u[1]*v[0]];
+  const sign = Math.sign(cross[axis]);
+  assert(sign * a[axis] < 0, 'inner face must point into the elevator');
+  normals.set(`${axis}:${sign}`, {axis, sign});
+  ++innerTriangles;
+}
+assert.equal(innerTriangles, 8);
+assert.equal(normals.size, 4);
+let wallKickCases = 0, minInwardSpeed = Infinity;
+for (const {axis, sign} of normals.values()) {
+  const normalYaw = axis === 0 ? (sign > 0 ? 0x4000 : 0xc000) : (sign > 0 ? 0 : 0x8000);
+  let accepted = 0;
+  for (let yaw = 0; yaw < 65536; ++yaw) {
+    const dyaw = ((normalYaw - yaw + 32768) & 65535) - 32768;
+    if (!(dyaw < -0x6000 || dyaw > 0x6000)) continue;
+    const velocity = mul(trig[(yaw >>> 4) + (axis === 2 ? 1024 : 0)], -16);
+    const inward = mul(velocity, sign);
+    assert(inward > 0, 'ordinary wall response must not launch through that inner face');
+    minInwardSpeed = Math.min(minInwardSpeed, inward);
+    ++accepted; ++wallKickCases;
+  }
+  assert.equal(accepted, 16383);
+}
+
 const animationFiles = ['assets/anims/anim_3C_3D.inc.c', 'assets/anims/anim_3B.inc.c'];
 const loopEnds = animationFiles.map(relative => {
   const match = /static const struct Animation \w+\[\]\s*=\s*\{([\s\S]*?)ANIMINDEX_NUMPARTS/.exec(read(relative));
@@ -117,6 +165,9 @@ console.log(JSON.stringify({
   firstDownwardQuarterHeights: firstFall,
   headroomSchedulesChecked: 1024,
   floorFollowingSamples: floorCases,
+  innerWallResponse: {innerTriangles, facingsTested: 4 * 65536,
+    acceptedWallHitCases: wallKickCases, minInwardSpeed,
+    scope: 'same-face ordinary wall yaw return only; other returns and later collisions excluded'},
   fractionalRoundingControl: {entry: fractionalEntry, end: fractionalEnd},
   sourceHashes: Object.fromEntries(animationFiles.map(relative =>
     [relative, crypto.createHash('sha256').update(read(relative)).digest('hex')])),
