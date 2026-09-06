@@ -1,4 +1,4 @@
-From Coq Require Import Bool String List PArith.BinPos ZArith.
+From Coq Require Import Bool String List PArith.BinPos ZArith MSets.MSetPositive.
 From compcert Require Import AST Clight Ctypes Integers.
 From Pedro.Generated Require Import
   us_level_scripts
@@ -541,6 +541,45 @@ Definition census_function_names_are_unique
     (version : GameVersion) : Prop :=
   nodup Pos.eq_dec (function_names (census_internal_functions version)) =
   function_names (census_internal_functions version).
+
+(** A binary trie checks the same complete name list without constructing the
+    quadratic [in_dec] proof terms in [nodup]. This checker is proved sound;
+    the public uniqueness proposition remains unchanged. *)
+Fixpoint census_names_fresh (seen : PositiveSet.t) (names : list ident) : bool :=
+  match names with
+  | [] => true
+  | name :: rest =>
+      if PositiveSet.mem name seen then false
+      else census_names_fresh (PositiveSet.add name seen) rest
+  end.
+
+Lemma census_names_fresh_sound :
+  forall names seen,
+    census_names_fresh seen names = true ->
+    NoDup names /\
+    (forall name, In name names -> ~ PositiveSet.In name seen).
+Proof.
+  induction names as [|head rest IH]; intros seen Hfresh.
+  - split; [constructor | intros name H; contradiction].
+  - simpl in Hfresh.
+    destruct (PositiveSet.mem head seen) eqn:Hmem; [discriminate |].
+    destruct (IH (PositiveSet.add head seen) Hfresh) as [Hnodup Houtside].
+    split.
+    + constructor; [|exact Hnodup].
+      intro Hin. apply (Houtside head Hin).
+      apply PositiveSet.add_spec. now left.
+    + intros name [Heq | Hin] Hseen.
+      * subst name. apply PositiveSet.mem_spec in Hseen. congruence.
+      * apply (Houtside name Hin). apply PositiveSet.add_spec. now right.
+Qed.
+
+Lemma census_nodup_fixed :
+  forall names : list ident, NoDup names -> nodup Pos.eq_dec names = names.
+Proof.
+  intros names H; induction H; simpl; [reflexivity |].
+  destruct (in_dec Pos.eq_dec x l); [contradiction |].
+  now rewrite IHNoDup.
+Qed.
 
 Definition generated_function_callgraph
     (functions : list (ident * function)) : list (ident * list ident) :=
@@ -1738,7 +1777,15 @@ Proof. intros []; vm_compute; repeat split; reflexivity. Qed.
 
 Theorem generated_census_function_names_unique_us_jp :
   forall version, census_function_names_are_unique version.
-Proof. intros []; vm_compute; reflexivity. Qed.
+Proof.
+  intro version. unfold census_function_names_are_unique.
+  apply census_nodup_fixed.
+  assert (Hfresh : census_names_fresh PositiveSet.empty
+    (function_names (census_internal_functions version)) = true).
+  { destruct version; lazy; reflexivity. }
+  exact (proj1 (census_names_fresh_sound
+    (function_names (census_internal_functions version)) PositiveSet.empty Hfresh)).
+Qed.
 
 Theorem generated_census_function_names_NoDup_us_jp :
   forall version,

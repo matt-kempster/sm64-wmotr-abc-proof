@@ -1,7 +1,12 @@
 # TTC runtime snapshot receipt
 
-This directory contains a deterministic discovery probe for the authentic US
-and JP retail ROMs. The input plugin performs no RAM writes. It:
+This directory preserves historical discovery receipts from authentic US and
+JP retail ROMs entered through a level-select cheat. The launcher is retired:
+the active cog task permits ordinary gameplay and read-only observation only.
+These receipts remain useful for auditing earlier source projections, but are
+not legal-entry or cog witnesses. No new experiments may use this debug route.
+
+The input plugin itself performs no RAM or register writes. Historically it:
 
 - opens the dormant level-select screen with controller input;
 - selects TTC;
@@ -13,15 +18,15 @@ and JP retail ROMs. The input plugin performs no RAM writes. It:
   consistency, and exact coverage of all 240 pool slots; and
 - records each slot's list, active flags, behavior address, action, and timer.
 
-Run:
+Validate the existing receipts without launching an emulator:
 
 ```sh
-./run-probe.sh /path/to/baserom.us.z64 /path/to/baserom.jp.z64
+python3 Pedro-Coq/pipeline/check-ttc-runtime-snapshot.py
 ```
 
-The script rejects ROMs whose MD5 and SHA-256 digests differ from the pinned
-US and JP images, generates `build/us.snapshot` and `build/jp.snapshot`, and
-compares them byte-for-byte with `results/`.
+The former launcher rejected ROMs whose MD5 and SHA-256 digests differed from
+the pinned US and JP images and compared generated receipts with `results/`.
+`run-probe.sh` now exits before performing any emulator or ROM operation.
 
 Both receipts observe global timer 414, TTC level 14 area 1, Mario in pool slot
 119, `particleFlags & 1 = 1`, the Mario object's active-particle dust bit clear,
@@ -102,8 +107,8 @@ MIPS execution semantics or a CompCert external-function refinement.
 
 ## Evidence boundary
 
-The configured emulator cheat only enables the retail binary's dormant
-level-select screen, but it is still a debug entry mechanism. These receipts
+The former emulator cheat enabled the retail binary's dormant level-select
+screen. That debug entry is outside the current task's scope. These receipts
 therefore establish reproducible runtime evidence and supply the finite census
 and dynamic call projection checked by `TTCDebugBoundary.v` and
 `TTCRNGCensus.v`; they do **not** prove stock reachability or a CompCert

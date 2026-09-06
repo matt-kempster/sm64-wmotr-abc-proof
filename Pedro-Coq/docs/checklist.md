@@ -4,6 +4,67 @@ Checked source-reduction items mean the corresponding recognizer and theorem
 have been authored against a pinned-source inspection and passed the pipeline
 audits below.
 
+## Active TTC cog target
+
+The active target is `bhvTTCCog` entry, in-spot RNG control, and fixed cog yaw
+for US/JP. See [the cog plan](ttc-cog-plan.md). The spinner checklist below is
+retained as prior work, and enumerating every stock Pedro spot is outside the
+current request.
+
+- [x] Audit the existing capstone statements and identify the cog/spinner
+      distinction in pinned source.
+- [x] Record the implementation plan and update the goal to the requested cogs.
+- [x] Record the controller-only, no-ACE/no-corruption/no-arbitrary-game-edits
+      restriction and retire the legacy cheat-enabled emulator launcher.
+- [x] Verify that the placement observer uses controller input and read-only
+      observation, with loaded instruction checks and cheats disabled.
+- [ ] Obtain ordinary save/checkpoint provenance for a normal-entry experiment.
+- [x] Review the user-supplied cog video and record its overlays and limitations.
+- [x] Run the authorized near-cog placement experiment in US and JP with three
+      declared initial setups and stock behavior functions; record failed entries.
+- [x] Export and replay the US ledge-to-lower-cog controller sequence, reproducing
+      all 2250 input/Mario/cog records from the declared placement.
+- [x] Replay that approach independently in JP; compare the complete logical
+      event sequence, including all RNG and air-step returns, with US.
+- [x] Record the US approach replay as normal-speed and half-speed silent MP4s;
+      confirm its complete trace is byte-identical to the verified US replay.
+- [x] Review the wall obstruction identified by the user; test a detour with
+      a jump around the mesh end and reach its back side in the US placement.
+- [x] Export that detour's controller sequence, replay it in US and JP, and
+      compare all logical events; keep the zero-Pedro-branch result explicit.
+- [x] Export the corrected detour at normal and half speed, verify both videos
+      decode and match the recorded frame counts, and inspect the preview.
+- [x] Trace source-level floor selection and landing cancellation; record
+      [alternative particle-action candidates](ttc-cog-floor-actions.md).
+- [x] Observe and check actual close-gap air returns from the `inner_rim`
+      test placement in US and JP, including a far-below retained floor and
+      the off-floor cancellation path. Keep cog motion and placement premises explicit.
+- [x] Compare dive and ground-pound continuations in US/JP; record their
+      failure to produce preserving in-spot RNG control.
+- [x] Review the repeated content notice and record the known facts,
+      uncertainty and [continued gameplay scope](content-notice-review.md).
+- [x] Replay the back-of-cog jump attempt with internal call tracing; record
+      its failed entry and passing recurrence/continuity check.
+- [x] Compare the US/JP back-of-cog and edge traces after normalizing addresses;
+      check every recorded RNG transition and air-step branch classification.
+- [x] Generate both stock cog collision arrays for US and JP.
+- [x] Check cog macro placements, preset mapping, behavior, and update order.
+- [x] Certify a concrete pairwise cog floor/ceiling geometry witness in Coq.
+- [x] Pin the exact zero-target RANDOM branch and yaw-update ordering.
+- [x] Execute the generated zero-speed cog update and approach helper, including
+      both RNG calls, under explicit function/layout/memory-image premises.
+- [x] Search the simplified consecutive-pair RNG model with fixed non-dust
+      consumer counts 0 through 8; distinguish its finite result from gameplay.
+- [ ] Instantiate the actual intervening-object schedule for cogs 0 and 3.
+- [ ] Obtain a legal US/JP entry replay and both preserving input choices.
+- [ ] Trace the landing cancellation path at a successful Pedro entry; prove
+      that the proposed dust-producing action is reached before using its
+      velocity calculation. Investigate other actions if it is cancelled.
+- [ ] Instantiate floor/ceiling selection, wall resolution, referenced floor,
+      action/speed repeatability, pool reserve, and accepted dust requests.
+- [ ] Compose linked Clight frame execution and address refinement.
+- [ ] Prove the requested cog entry/control theorem with an explicit duration.
+
 ## Pipeline and scope
 
 - [x] Pin decomp commit `9921382a68bb0c865e5e45eb594d9c64db59b1af`.
@@ -11,9 +72,18 @@ audits below.
 - [x] Record the exact `clightgen -normalize` command and preprocessing flags.
 - [x] Reject `Admitted`, `Axiom`, `Parameter`, `Conjecture`, `Abort`, and tactic
       escape hatches.
-- [x] Regenerate with CompCert 3.15 and verify byte-for-byte stability.
+- [x] Complete the current two-pass CompCert 3.15 reproducibility check in an
+      authenticated temporary Linux copy. Both passes agree, and all 56 outputs
+      match the workspace byte for byte (`build/cog-repro-local.log`, exit 0).
 - [x] Compile the complete `_CoqProject` in the configured CompCert proof switch.
-- [x] Inspect every named capstone with `Print Assumptions`.
+- [x] Inspect the new cog execution capstone with `Print Assumptions` (standard
+      Coq/CompCert axioms only).
+- [x] Inspect every named capstone with `Print Assumptions`, completing the
+      interrupted batch with individual pipeline invocations. Only standard
+      Coq/CompCert axioms appear; the two schedule results are closed.
+- [x] Run the separate root proof-discipline audit with the installed
+      `sm64-item-proof` switch; exit 0. This is additional repository hygiene,
+      not a replacement for the Pedro checks.
 
 ## Generic Pedro mechanism
 

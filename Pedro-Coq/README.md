@@ -12,10 +12,31 @@ Only the North American and Japanese retail configurations are in scope:
 
 EU, Shindou, and iQue are intentionally unsupported.
 
+The active target is entry into a TTC **cog** Pedro spot, controller-selectable
+RNG changes while Mario stays there, and preservation of the relevant cog yaw
+angles. See the [execution plan](docs/ttc-cog-plan.md) and
+[gameplay restrictions](docs/goal.md#gameplay-restrictions). Discovery uses
+ordinary entry, legal inputs, and read-only observation. The old level-select
+probe is retired; its saved receipts remain historical evidence only.
+The user subsequently authorized a separate
+[near-cog placement experiment](instrumentation/ttc-cog-placement/README.md).
+Its declared test initialization is a discovery aid, not an entry witness.
+The [placement results](docs/ttc-cog-placement-results.md) include a reproducible
+US/JP approach onto the lower cog and unsuccessful overlap/edge entry trials.
+
 For an introduction aimed at programmers who do not already know Super Mario
 64 or Coq, see [`docs/plain-english-guide.md`](docs/plain-english-guide.md).
 
 ## Current theorem boundary
+
+`Pedro.Proofs.MainTheorem.checked_ttc_cog_local_mechanism_us_jp` adds stock cog
+inventory and collision geometry, a complete generated cog update execution
+under explicit initial-state premises, and a finite RNG calculation. The
+geometry uses two hexagonal cogs with a 154-unit gap at specified rotations.
+The execution proves a zero-speed update preserves yaw and consumes the two
+real RNG draws. It does not establish legal entry, the complete collision
+search, an executed dust choice, or repeated freezing. The exact conditions
+are recorded in [the claim boundary](docs/claim.md).
 
 `Pedro.Proofs.MainTheorem.checked_pedro_rng_mechanism_us_jp` is the initial
 load-bearing capstone. It combines mechanically checked facts about:

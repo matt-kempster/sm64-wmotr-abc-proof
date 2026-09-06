@@ -1,4 +1,5 @@
 /build/
+/generated/.clightgen-output.*
 /CoqMakefile
 /CoqMakefile.conf
 /*.aux

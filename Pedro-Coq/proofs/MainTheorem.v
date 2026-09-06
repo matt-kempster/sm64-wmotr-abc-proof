@@ -5,11 +5,31 @@ From Pedro.Proofs Require Import
   DustClightExec DustBehaviorCommandExecution DustCurObjUpdateExecution
   DustSpawnParticleExecution DustSpawnParticleExecutionJP
   SegmentedPointerBoundary TTCDebugBoundary TTCRNGWindow TTCRNGCensus
-  TTCRetailSqrt.
+  TTCRetailSqrt TTCCogGeometry TTCCogRNG TTCCogExecution.
 
 Module MainSpawnUS := DustSpawnParticleExecution.
 Module MainSpawnJP := DustSpawnParticleExecutionJP.
 Module MainSegmented := SegmentedPointerBoundary.
+
+(** Active cog target: exact stock inventory and a pairwise binary32 geometry
+    certificate. Entry, query selection, and controller preservation remain
+    open; this is not the final gameplay theorem. *)
+Theorem checked_ttc_cog_source_geometry_us_jp :
+  ttc_cog_geometry_reduction_claim.
+Proof. exact checked_ttc_cog_geometry_reduction_us_jp. Qed.
+
+(** The full generated cog update executes both real RNG draws and preserves
+    yaw from the specified zero-speed image. The separate recurrence window
+    illustrates a four-draw choice; it is not an executed dust/frame schedule.
+    Legal reachability of the memory image, actual collision query selection,
+    the second cog's execution, and repeated controller control remain open. *)
+Theorem checked_ttc_cog_local_mechanism_us_jp :
+  ttc_cog_geometry_reduction_claim /\
+  ttc_cog_rng_reduction_claim /\
+  (forall version, cog_zero_update_execution_claim version).
+Proof.
+  exact TTCCogExecution.checked_ttc_cog_local_mechanism_us_jp.
+Qed.
 
 (** Initial source-and-arithmetic capstone. Every conjunct is tied either to a
     generated Clight AST or to CompCert's executable binary32 operations. This

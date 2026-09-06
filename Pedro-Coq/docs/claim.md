@@ -1,21 +1,44 @@
 # Claim and theorem boundary
 
-## Ultimate claims
+## Active ultimate claim
 
 For `VERSION_US` and `VERSION_JP` only:
 
-> It is possible to manipulate RNG while in any stock Pedro spot.
+> It is possible to enter a Pedro spot formed by the Tic Tock Clock cogs at
+> suitable rotations, then manipulate RNG while Mario remains in that spot,
+> keeping the relevant cogs frozen.
 
-> It is possible to enter a Pedro spot formed by the Tic Tock Clock spinners at
-> the required rotation, and then manipulate RNG while Mario remains in that
-> spot, maintaining the required spinner-angle regime.
-
-The wording "maintaining the required spinner-angle regime" is the
-source-faithful formal replacement for "keeping the spinners frozen." Exact
-random-mode stasis is not the behavior implemented by
-`bhv_ttc_spinner_update`.
+This is `bhvTTCCog`, whose RANDOM branch can select zero target speed. Exact
+cog yaw preservation is the target. The older spinner results below concern a
+different object behavior and do not establish or refute the cog claim. The
+previous every-stock-spot claim is outside the current scope. See
+[`ttc-cog-plan.md`](ttc-cog-plan.md) for the execution plan.
+The [gameplay restrictions](goal.md#gameplay-restrictions) require legal
+controller input and prohibit ACE, corruption, cheats, and arbitrary changes
+to game memory or code throughout discovery and validation.
 
 ## What the checked capstones prove
+
+`checked_ttc_cog_local_mechanism_us_jp` combines three distinct results:
+
+- Exact generated US/JP cog inventory and a pairwise geometry certificate:
+  hexagonal cogs 0 and 3, yaw 57344 and 0, query `(1330, -1025)`, floor height
+  -2088 and ceiling height -1934. The gap is 154 units and passes the ceiling
+  query buffer check. Full collision-query selection and entry are open.
+- The exact generated `bhv_ttc_cog_update`, approach helper, `random_sign`,
+  and both nested `random_u16` calls have a silent Clight big-step under
+  explicit symbol, composite-layout, and memory premises. Starting with RANDOM
+  mode, direction +1, speed/target +0, yaw 57344, and seed 16, the update returns
+  with unchanged yaw, zero speed/target/yaw velocity, and seed 54874. There is
+  no assumed callee execution, but the initial memory is not proved reachable.
+- A separate exact recurrence calculation shows that four draws from seed 18
+  reach seed 4409, changing an isolated pair of cog target selections from
+  failing to keep both targets zero to keeping both zero. The selected cogs
+  are not consecutive in the real schedule. This calculation proves neither
+  accepted dust production nor an actual frame schedule or repeated stasis.
+
+`checked_ttc_cog_source_geometry_us_jp` exposes the geometry component alone.
+Neither cog capstone is the requested gameplay theorem.
 
 `checked_pedro_rng_mechanism_us_jp` is an unconditional theorem combining:
 
@@ -31,8 +54,8 @@ random-mode stasis is not the behavior implemented by
 `checked_ttc_spinner_source_reduction_us_jp` adds unconditional generated-AST
 receipts for the spinner speed table, random-mode update calls, behavior-data
 links, fourteen stock macro placements, and the 170-element collision stream.
-It also proves a concrete collision certificate for pitch values 15,856 through
-15,951 and includes the random-mode timer/direction model.
+It also proves a concrete collision certificate for pitch values 15,664 through
+16,031 and includes the random-mode timer/direction model.
 
 `checked_dust_source_projection_us_jp` combines a CompCert structural-link
 witness with the executable, source-derived dust projection. Given an isolated

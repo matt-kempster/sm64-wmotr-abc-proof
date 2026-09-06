@@ -1,9 +1,74 @@
 # Status
 
-The project currently establishes the source-level reduction, exact binary32
-landing-speed witnesses, a concrete TTC spinner collision interval, the
+The active target is the US/JP TTC cog entry/control claim. It remains open.
+The new cog work derives the eight-object inventory from generated source,
+certifies a 154-unit pairwise gap between hexagonal cogs 0 and 3, and executes
+the complete generated cog update from an explicit zero-speed memory image.
+That real Clight execution includes the approach helper and both RNG calls:
+seed `16 -> 59500 -> 54874`, unchanged yaw 57344, and zero speed, target, and
+yaw velocity. The memory image and symbol/layout premises still need a
+reachable, properly linked gameplay instantiation.
+
+An exact four-draw recurrence example changes a pair's zero-target outcome.
+The finite search in `pipeline/search-ttc-cog-rng.js` found no infinite
+continuation in its simplified consecutive-pair model for any fixed number
+of other calls from 0 through 8. This is a discovery result, not a formal
+negative gameplay theorem; the real cog pair is separated by other objects.
+
+Normal entry, actual floor/ceiling selection, both preserving controller
+choices, all intervening consumers, and repeated stasis remain unproved.
+New work excludes ACE, corruption, cheats, debug entry, and arbitrary
+game-memory/code edits. The legacy cheat-enabled launcher has been retired.
+See the [cog plan](ttc-cog-plan.md) for the remaining work.
+The user subsequently authorized a separately labeled experiment that starts
+Mario near the cogs. Its initialization-only test build and read-only observer
+are in `instrumentation/ttc-cog-placement/`. It cannot establish normal entry.
+
+Three declared placements have now run in both versions. The back-of-cog
+setup selects a real 154-unit floor/ceiling gap; it and the edge setup fall
+without a Pedro branch. Their complete observed logical traces agree between
+US and JP after excluding raw addresses. A US controller approach from the
+test ledge reaches the lower cog, and its exported replay reproduces all 2250
+input/Mario/cog records. The JP replay independently reproduces the US logical
+event sequence, including its RNG and air-step returns. A traced back-of-cog
+jump replay also falls without a Pedro branch. Recorded RNG transitions pass
+the recurrence checker.
+A corrected route now goes around the mesh end with a jump and reaches the
+back of the lower cog. Its recorded inputs reproduce all logical events in
+US and JP, including the US video capture. Mario subsequently falls, and
+none of its 456 air-quarter-step returns takes the Pedro branch. Floor
+detection and candidate particle actions are analyzed in
+[the floor/action note](ttc-cog-floor-actions.md).
+See [the placement results](ttc-cog-placement-results.md) for trace hashes,
+scope and unsuccessful continuations.
+
+The pinned freefall landing action checks `common_landing_cancels` before
+the dust code. The observed edge state has `INPUT_OFF_FLOOR` and a floor at
+Y=-8191, so this cancellation path is a concrete obstacle to investigate at a
+successful Pedro entry. The existing velocity witnesses do not discharge it.
+
+The later `inner_rim` placement now produces actual close-gap air returns in
+both US and JP. Its complete 65-frame comparison agrees, including a return
+with retained floor -8191, queried floor -2088 and ceiling -1934. The observed
+action sequence matches off-floor landing cancellation. The cogs still rotate
+and carry Mario between calls, so this is a transient mechanism witness.
+Paired dive and ground-pound continuations also agree across US/JP: the dive
+bonks without landing dust, and ground-pound mist occurs only after falling
+to a lower platform. Preserving in-spot RNG control remains open.
+
+The complete Pedro proof build, no-hole check, all named capstone assumption
+checks, and separate root proof-discipline audit pass. The new cog execution
+depends only on standard Coq/CompCert axioms beyond its explicit premises.
+After interruptions in the mounted workspace, the unchanged two-pass
+regeneration pipeline passes in a temporary Linux copy: both passes agree and
+all 56 outputs match the workspace byte for byte. Individual pipeline calls
+completed the interrupted assumption audit. One launch reported a WSL service
+error; the precise cause of the earlier exits remains unknown. Verification
+and the open gameplay claim are tracked separately in [the checklist](checklist.md).
+
+The earlier work establishes the source-level Pedro reduction, exact binary32
+landing-speed witnesses, a TTC spinner collision interval, the spinner's
 random-mode timer/direction model, and a conditional dust-runtime projection.
-It does not yet establish either ultimate gameplay claim.
 
 For both supported versions, the new projection decodes the stock Mist and
 white-puff behavior words, checks the normal object-list order and dynamic-next
@@ -79,7 +144,7 @@ in `(0, 160]`.
 That interval admits one controlled movement: pitch 15,864 with direction `-1`
 reaches pitch 15,664 and remains certified. It is still not a bounded-oscillation
 target. After the five stopped timer values, the second movement frame reaches
-`pitch +/- 400` and necessarily exits the interval. The next TTC milestones are
-therefore a multi-interval or moving-position geometry witness,
-a reproducible reachable US/JP entry trace with pool/flag and RNG-window
-evidence, and a complete linked-Clight execution/refinement for the dust chain.
+`pitch +/- 400` and necessarily exits the interval. Those spinner milestones
+are prior work. The active cog milestones are a reproducible reachable US/JP
+entry trace with pool/flag and RNG-window evidence and a complete linked-Clight
+execution/refinement for the dust and cog chain.

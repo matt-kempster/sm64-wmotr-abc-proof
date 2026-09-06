@@ -164,8 +164,8 @@ static uint32_t random_u16_signature_hash(void) {
 }
 
 static void rng_debugger_update(unsigned int pc) {
-    int64_t *registers =
-        (int64_t *) DebugGetCPUDataPtrApi(M64P_CPU_REG_REG);
+    const int64_t *registers =
+        (const int64_t *) DebugGetCPUDataPtrApi(M64P_CPU_REG_REG);
 
     if (registers == NULL) {
         fprintf(stderr,

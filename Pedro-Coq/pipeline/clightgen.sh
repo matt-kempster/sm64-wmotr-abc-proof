@@ -29,7 +29,8 @@ esac
 
 mkdir -p "$(dirname "$OUTPUT")"
 TMP_V="$(mktemp --suffix=.v)"
-trap 'rm -f "$TMP_V"' EXIT
+FINAL_V="$(mktemp "$(dirname "$OUTPUT")/.clightgen-output.XXXXXX")"
+trap 'rm -f "$TMP_V" "$FINAL_V"' EXIT
 
 "$CLIGHTGEN_CMD" -normalize "$@" -o "$TMP_V" "$INPUT"
 
@@ -81,6 +82,13 @@ ATOM_PREFIX="$(basename "$OUTPUT" .v)"
     next
   }
   { pending_blank_lines++ }
-' > "$OUTPUT"
+' > "$FINAL_V"
 
-echo "wrote $OUTPUT"
+# Reproducibility checks regenerate every unit twice. Preserve timestamps for
+# identical ASTs so those checks do not invalidate the complete proof build.
+if cmp -s "$FINAL_V" "$OUTPUT"; then
+  echo "unchanged $OUTPUT"
+else
+  mv -- "$FINAL_V" "$OUTPUT"
+  echo "wrote $OUTPUT"
+fi

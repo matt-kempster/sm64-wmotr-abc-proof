@@ -18,9 +18,10 @@ case "$PINNED_SOURCE" in
 esac
 
 mkdir -p "$PINNED_SOURCE"
-find "$PINNED_SOURCE" -mindepth 1 -delete
-git -c "safe.directory=$SOURCE_REPOSITORY" -C "$SOURCE_REPOSITORY" \
-  archive --format=tar "$DECOMP_REVISION" | tar -xf - -C "$PINNED_SOURCE"
+# Check the complete pinned file inventory and contents on every pass. Avoid
+# repeatedly deleting the whole OneDrive-backed cache between generation runs.
+python3 "$PROJECT_ROOT/pipeline/restore-pinned-source.py" \
+  "$SOURCE_REPOSITORY" "$DECOMP_REVISION"
 
 # levels/scripts.c includes this Makefile-derived header by its basename.
 # Reproduce the upstream rule inside the pinned tree so no ambient build
@@ -86,6 +87,7 @@ TRANSLATION_UNITS=(
   "ttc_level_script:levels/ttc/script.c"
   "ttc_area1_macro:PROJECT_TTC_MACRO_INPUT"
   "ttc_spinner_collision:PROJECT_TTC_COLLISION_INPUT"
+  "ttc_cog_collision:PROJECT_TTC_COG_COLLISION_INPUT"
 )
 
 generate_one() {
@@ -106,6 +108,10 @@ generate_one() {
     PROJECT_TTC_COLLISION_INPUT)
       input="$PROJECT_ROOT/inputs/ttc_spinner_collision.c"
       source_label="levels/ttc/spinner/collision.inc.c (project wrapper)"
+      ;;
+    PROJECT_TTC_COG_COLLISION_INPUT)
+      input="$PROJECT_ROOT/inputs/ttc_cog_collision.c"
+      source_label="levels/ttc/{rotating_hexagon,rotating_triangle}/collision.inc.c (project wrapper)"
       ;;
   esac
 

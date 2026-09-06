@@ -4,11 +4,18 @@ This guide is for a reader who knows basic C# programming but does not know
 Super Mario 64 or proof assistants. It explains the Rocq/Coq proof system used
 by this project, what a Pedro spot is, why dust can matter to the game's random
 number generator, and exactly what has been proved about the Tic Tock Clock
-spinner Pedro interval.
+spinner Pedro interval and the newer cog work.
 
 Only the North American (`VERSION_US`) and Japanese (`VERSION_JP`) versions of
 the original game are covered. Nothing here should be assumed for the European,
 Shindou, or iQue versions.
+
+The active task now concerns TTC cogs, which have their own behavior. The cog
+work has certified a pair of overlapping surfaces and proved one complete
+stock cog update preserves its angle under specified initial conditions.
+Reaching those conditions and controlling RNG while Mario stays in the spot
+are still open. See [the cog plan](ttc-cog-plan.md). Gameplay experiments must
+use legal inputs and read-only observation, with no cheats or state edits.
 
 ## The game ideas first
 
