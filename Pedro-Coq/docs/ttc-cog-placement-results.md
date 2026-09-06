@@ -6,6 +6,11 @@ cogs. They use separate initialization-only US/JP builds of pinned source
 and none of the completed trials establishes in-spot RNG control or frozen
 cogs. Failed trials are not an impossibility proof.
 
+The later [detour follow-up](ttc-cog-detour-followup.md) adds 48 bounded
+searches and a controller-connected ground-pound close-gap landing in US/JP.
+That impact has a supporting floor and zero horizontal speed; the complete
+path changes Mario's position and cog yaw. It is not sustained trapped entry.
+
 ## Setup and evidence
 
 Only `levels/menu/script.c`, `levels/ttc/script.c`, and

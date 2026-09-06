@@ -158,6 +158,14 @@ Pinned source: `9921382a68bb0c865e5e45eb594d9c64db59b1af`.
 
 ## Results and remaining work
 
+The [controller-detour follow-up](ttc-cog-detour-followup.md) completes 48
+bounded route/phase searches and adds complete action/surface observations.
+A fixed ground-pound entry candidate executes the close-gap landing branch
+in US and JP with particle requests. Its zero horizontal speed, existing
+supporting floor and prior cog displacement prevent treating it as sustained
+Pedro entry or preserving RNG control. Both replays and comparison receipts
+are saved; the preserving-input comparison remains pending.
+
 The generated cog arrays, inventory, preset mapping, behavior ordering, and
 154-unit pairwise collision certificate are compiled in `TTCCogGeometry.v`.
 `TTCCogApproachExecution.v`, `TTCCogRNGExecution.v`, and `TTCCogExecution.v`
@@ -197,9 +205,10 @@ The precise cause of the earlier interruptions is not established. Source
 restoration now verifies the complete pin and preserves unchanged files, and
 Clight generation preserves timestamps for identical output.
 
-The next discovery milestone is an observed close-gap air return with a
-controller entry and natural cog phase. Then inspect the actual cancellation
-and ground-step paths and test paired preserving inputs. Normal-entry
+The next discovery milestone is a sustained close-gap state reached by the
+controller detour at a natural cog phase. The observed ground-pound impact
+does not discharge it. Then test paired preserving inputs against the recorded
+complete cancellation, ground-step and particle paths. Normal-entry
 provenance, whole-frame linking/address refinement, other RNG consumers, and
 an explicit preservation duration remain open. Failed placement trials do
 not settle whether the requested gameplay target is possible.

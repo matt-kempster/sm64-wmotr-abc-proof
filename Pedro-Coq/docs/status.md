@@ -1,6 +1,14 @@
 # Status
 
 The active target is the US/JP TTC cog entry/control claim. It remains open.
+The [detour follow-up](ttc-cog-detour-followup.md) checks 48 bounded searches
+and connects the controller detour to one ground-pound close-gap landing in
+both versions. That frame requests mist-circle and horizontal-star particles,
+but Mario was already carried by the moving cog, has zero horizontal speed,
+and references the supporting floor. It is not a sustained trapped-state or
+preserving RNG-control witness. The requested preserving-input comparison
+remains pending. Full action/surface traces and both fixed input files are saved.
+
 The new cog work derives the eight-object inventory from generated source,
 certifies a 154-unit pairwise gap between hexagonal cogs 0 and 3, and executes
 the complete generated cog update from an explicit zero-speed memory image.

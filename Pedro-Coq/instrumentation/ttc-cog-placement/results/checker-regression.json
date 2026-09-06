@@ -1,0 +1,26 @@
+{
+  "source_trace_sha256": "2899f4d887e0ccb344e526151755230cb62614eb95fc1d9b1ebf493657ca410a",
+  "cases": [
+    {
+      "case": "missing_action_return",
+      "rejected": true,
+      "reason": "nonconsecutive action-path indices"
+    },
+    {
+      "case": "missing_selected_triangle",
+      "rejected": true,
+      "reason": "selected-surface description is missing or inconsistent"
+    },
+    {
+      "case": "changed_pedro_position",
+      "rejected": true,
+      "reason": "Pedro candidate lacks the expected branch effects"
+    },
+    {
+      "case": "changed_rng_observation",
+      "rejected": true,
+      "reason": "RNG chain mismatch at call 0"
+    }
+  ],
+  "scope": "Deliberately incomplete/altered copies of observation logs only; no game-state changes."
+}

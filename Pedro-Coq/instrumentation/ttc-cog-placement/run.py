@@ -26,6 +26,16 @@ SYMBOLS = {
     "BHV_TTC_COG": "bhvTTCCog",
     "A_CURRENT_OBJECT": "gCurrentObject",
     "PC_AIR_ENTRY": "perform_air_quarter_step",
+    "A_MARIO_PLATFORM": "gMarioPlatform",
+}
+PATH_ROUTINES = {
+    "update_mario_geometry_inputs": False,
+    "set_mario_action": True,
+    "common_landing_cancels": True,
+    "common_landing_action": True,
+    "perform_ground_step": True,
+    "execute_mario_action": True,
+    "spawn_particle": False,
 }
 
 
@@ -39,7 +49,8 @@ def fields(line):
 
 def observer_records(raw):
     """Keep complete observer records, including a known console log collision."""
-    prefixes = ("CINPUT,", "CFRAME,", "CCOG,", "CWALL,", "CAIR,", "CRNG,", "COG_ERROR,")
+    prefixes = ("CINPUT,", "CFRAME,", "CCOG,", "CWALL,", "CAIR,", "CRNG,",
+                "CPATH,", "CSURFACE,", "COG_ERROR,")
     records, recovered = [], 0
     for line in raw.splitlines():
         if line.startswith(prefixes):
@@ -101,7 +112,10 @@ def main():
                         help="save every rendered frame from this index through --video-frames")
     parser.add_argument("--trace-calls", action="store_true",
                         help="observe RNG and air-quarter-step entries/returns")
+    parser.add_argument("--trace-path", action="store_true",
+                        help="also observe geometry, action, ground-step and particle paths")
     args = parser.parse_args()
+    args.trace_calls = args.trace_calls or args.trace_path
     if not args.name.isidentifier() or not 300 <= args.video_frames <= 12000:
         parser.error("invalid trial name or video-frame limit")
     if args.capture_from is not None and not 1 <= args.capture_from <= args.video_frames:
@@ -159,9 +173,37 @@ def main():
         "AIR_CODE_HASH": code_hash(air_words), "RNG_CODE_HASH": code_hash(rng_words)
     }.items():
         header += f"#define {name} 0x{value:x}u\n"
+    header += "struct path_point { unsigned pc; const char *routine; int leaving, returns_value; };\n"
+    header += "static const struct path_point path_points[] = {\n"
+    path_checks = []
+    for routine, returns_value in PATH_ROUTINES.items():
+        words, disassembly = routine_words(elf, routine)
+        start = min(words)
+        if sorted(words) != list(range(start, max(words) + 4, 4)):
+            raise RuntimeError(f"noncontiguous routine: {routine}")
+        returns = [pc for pc, word in words.items() if word == 0x03e00008]
+        if not returns:
+            raise RuntimeError(f"missing return: {routine}")
+        # Return observations occur before jr ra. Reject a delay-slot result
+        # assignment, which would make the observed v0 premature.
+        for pc in returns:
+            delay = words[pc + 4]
+            if returns_value and delay != 0 and delay >> 16 != 0x27bd:
+                raise RuntimeError(f"unrecognized return delay slot: {routine}")
+        header += f'{{0x{start:08x}u, "{routine}", 0, 0}},\n'
+        for pc in returns:
+            header += f'{{0x{pc:08x}u, "{routine}", 1, {int(returns_value)}}},\n'
+        path_checks.append((start, len(words), code_hash(words)))
+        (out / f"{routine}.disassembly.txt").write_text(disassembly)
+    header += "};\nstruct path_code { unsigned start, count, hash; };\n"
+    header += "static const struct path_code path_codes[] = {\n"
+    header += "".join(f"{{0x{start:08x}u, {count}u, 0x{digest:08x}u}},\n"
+                      for start, count, digest in path_checks) + "};\n"
     (out / "addresses.h").write_text(header)
+    observer_copy = out / "observer.c"
+    observer_copy.write_bytes((HERE / "observer.c").read_bytes())
     subprocess.run(["gcc", "-shared", "-fPIC", "-std=c99", "-Wall", "-Wextra",
-        "-Werror", "-O2", "-I", str(out), str(HERE / "observer.c"), "-ldl", "-lm",
+        "-Werror", "-O2", "-I", str(out), str(observer_copy), "-ldl", "-lm",
         "-o", str(out / "observer.so")], check=True)
     env = dict(os.environ)
     env.update({"XDG_CONFIG_HOME": str(out / "config"),
@@ -169,8 +211,11 @@ def main():
                 "COG_INPUT_FILE": str(input_copy), "LIBGL_ALWAYS_SOFTWARE": "1"})
     env.pop("COG_WAYPOINT_FILE", None)
     env.pop("COG_TRACE_CALLS", None)
+    env.pop("COG_TRACE_PATH", None)
     if args.trace_calls:
         env["COG_TRACE_CALLS"] = "1"
+    if args.trace_path:
+        env["COG_TRACE_PATH"] = "1"
     if waypoint_copy:
         env["COG_WAYPOINT_FILE"] = str(waypoint_copy)
     capture_frames = (list(range(args.capture_from, args.video_frames + 1))
@@ -185,9 +230,11 @@ def main():
     command.append(str(rom))
     manifest = {"initialization": initialization, "version": args.version,
         "rom_sha256": sha(rom), "elf_sha256": sha(elf),
-        "inputs_sha256": sha(input_copy), "observer_sha256": sha(HERE / "observer.c"),
+        "inputs_sha256": sha(input_copy), "observer_sha256": sha(observer_copy),
         "waypoints_sha256": sha(waypoint_copy) if waypoint_copy else None,
         "trace_calls": args.trace_calls,
+        "trace_path": args.trace_path,
+        "runner_sha256": sha(Path(__file__)),
         "captured_render_frames": capture_frames,
         "symbols": symbols, "command": command,
         "boundary": "input polls; state observation precedes the returned input"}

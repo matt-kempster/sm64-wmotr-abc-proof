@@ -72,6 +72,20 @@ outputs ordinary stick values, recorded in `CINPUT`. Export those values with
 `analyze.py TRIAL --replay NEW.csv` and replay without `--waypoints` to check
 determinism independently of the steering routine.
 
+An optional seven-column row appends `space,stop_distance`. `world` keeps
+world coordinates; `cog` rotates the target with the observed lower cog, and
+`cog_brake` adds a coasting heuristic. For example,
+`130,310,-306,0,80,cog,0.5` steers toward a point near its moving tip. These
+are controller policies, not collision models or verified game dynamics.
+Only the resulting bounded integer stick inputs are supplied to the game.
+
+`sweep-detour.py SEARCH_NAME --suite rim|phase|brake|tip|tip_brake` runs a
+bounded, declared set of fresh trials. `--first` and `--count` choose a
+contiguous subset of the listed candidates. The phase suite waits neutrally
+on the starting ledge; it does not set cog angles or RNG values. Every trial
+keeps its input/waypoint files and hashes. Search results report observed
+close-gap returns; they do not certify a preserving interval.
+
 `inputs/ledge-around-mesh-us.csv` is the later verified detour around the mesh,
 including a jump over the neighboring cog's side. Its complete logical trace
 agrees in US and JP. It reaches the back of the lower cog but subsequently
@@ -85,11 +99,26 @@ or a preserving controller continuation. Calls can continue during the ending
 transition after the last initialized-TTC input snapshot, so the complete
 collector output is not automatically a TTC-only frame census.
 
+`--trace-path` includes call tracing and adds `CPATH` entry/return observations
+for geometry refresh, action changes, landing cancellation/body, ground steps,
+the complete Mario action update, and particle spawning. The reported cog
+poses are observed at those boundaries, after the surface objects' updates.
+`CSURFACE` records selected triangles, owners, normals and plane offsets before
+their storage can be reused. `CAIR` also distinguishes the original intended
+point (`ix/iy/iz`) from the wall-resolved query (`qx/qy/qz`). Every additional
+observed routine is authenticated against the exact test ELF before a run.
+
 `check-trace.py TRIAL` checks the complete observed RNG recurrence/chain and
 Pedro branch effects, and requires one controller record and Mario snapshot
 for every observed TTC frame. `--compare OTHER_TRIAL` compares observed logical fields
 across trials, excluding raw addresses. Both scripts are discovery tools;
 they are outside the Coq trusted base.
+
+Path checking additionally requires balanced routine entries/returns and a
+matching triangle description for every selected floor/ceiling observation.
+`report-path.py TRIAL --first F --last L` exports a checked inclusive frame
+window with its events in original order. A particle request alone is not
+proof of a new allocation or of preserving RNG control.
 
 For video capture, pass `--capture-from 350 --video-frames 600` to save every
 rendered frame in that inclusive range. This uses the emulator's screenshot

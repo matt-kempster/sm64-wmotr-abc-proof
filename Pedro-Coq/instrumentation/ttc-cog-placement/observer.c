@@ -23,19 +23,27 @@ static int started;
 struct input_interval { unsigned first, last; int x, y; char buttons[32]; };
 static struct input_interval intervals[512];
 static unsigned interval_count;
-struct waypoint { unsigned first, last; float x, z; int magnitude; };
+struct waypoint {
+    unsigned first, last;
+    float x, z;
+    int magnitude;
+    char space[16];
+    float stop_distance;
+};
 static struct waypoint waypoints[128];
 static unsigned waypoint_count;
 static ptr_DebugSetCallbacks SetCallbacks;
 static ptr_DebugSetRunState SetRunState;
 static ptr_DebugGetCPUDataPtr GetCPUData;
 static ptr_DebugBreakpointCommand BreakpointCommand;
-static int trace_calls, trace_installed, rng_pending, air_pending;
-static unsigned rng_index, air_index;
+static int trace_calls, trace_path, trace_installed, rng_pending, air_pending;
+static unsigned rng_index, air_index, path_index;
 static uint32_t rng_caller, rng_object, rng_behavior;
 static uint16_t rng_before;
 static uint32_t air_action, air_floor, air_input, air_arg;
 static float air_x, air_y, air_z, air_floor_height;
+static float air_intended_x, air_intended_y, air_intended_z;
+static uint32_t lower_cog, upper_cog;
 
 static float rf(uint32_t address) {
     uint32_t bits = R32(address);
@@ -51,6 +59,75 @@ static int valid_surface(uint32_t surface) {
 
 static uint32_t surface_owner(uint32_t surface) {
     return valid_surface(surface) ? R32(surface + 0x2c) : 0;
+}
+
+static int valid_object(uint32_t object) {
+    return object >= A_OBJECT_POOL && object < A_OBJECT_POOL + 240 * 0x260
+        && (object - A_OBJECT_POOL) % 0x260 == 0;
+}
+
+static void describe_surface(const char *scope, unsigned seq, uint32_t surface) {
+    unsigned i;
+    if (!trace_path) return;
+    fprintf(stderr, "CSURFACE,%s,rel=%u,scope=%s,seq=%u,surface=%08x,owner=%08x,valid=%u",
+            VERSION_NAME, R32(A_GLOBAL_TIMER) - start_timer, scope, seq, surface,
+            surface_owner(surface), valid_surface(surface));
+    if (valid_surface(surface)) {
+        fprintf(stderr, ",type=%d,flagsRoom=%u,nx=%.9g,ny=%.9g,nz=%.9g,offset=%.9g",
+                (int16_t) R16(surface), R16(surface + 4), rf(surface + 0x1c),
+                rf(surface + 0x20), rf(surface + 0x24), rf(surface + 0x28));
+        for (i = 0; i < 3; ++i)
+            fprintf(stderr, ",x%u=%d,y%u=%d,z%u=%d", i + 1,
+                    (int16_t) R16(surface + 0x0a + i * 6), i + 1,
+                    (int16_t) R16(surface + 0x0c + i * 6), i + 1,
+                    (int16_t) R16(surface + 0x0e + i * 6));
+    }
+    fprintf(stderr, "\n");
+}
+
+static int observe_path(uint32_t pc, const int64_t *registers) {
+    unsigned i;
+    uint32_t m = A_MARIO_STATES;
+    if (!trace_path) return 0;
+    for (i = 0; i < sizeof(path_points) / sizeof(path_points[0]); ++i) {
+        const struct path_point *point = &path_points[i];
+        uint32_t floor, ceil, mario_object = R32(A_MARIO_OBJECT);
+        if (pc != point->pc) continue;
+        floor = R32(m + 0x68); ceil = R32(m + 0x64);
+        fprintf(stderr, "CPATH,%s,seq=%u,rel=%u,timer=%u,routine=%s,phase=%s,"
+                "action=%08x,prevAction=%08x,actionState=%u,actionTimer=%u,input=%04x,"
+                "particles=%08x,active=%08x,speed=%.9g,vy=%.9g,x=%.9g,y=%.9g,z=%.9g,"
+                "floor=%08x,floorOwner=%08x,floorHeight=%.9g,"
+                "ceil=%08x,ceilOwner=%08x,ceilHeight=%.9g,platform=%08x",
+                VERSION_NAME, path_index, R32(A_GLOBAL_TIMER) - start_timer,
+                R32(A_GLOBAL_TIMER), point->routine, point->leaving ? "exit" : "enter",
+                R32(m + 0x0c), R32(m + 0x10), R16(m + 0x18), R16(m + 0x1a), R16(m + 2),
+                R32(m + 8), valid_object(mario_object) ? R32(mario_object + 0xe0) : 0,
+                rf(m + 0x54), rf(m + 0x4c),
+                rf(m + 0x3c), rf(m + 0x40), rf(m + 0x44), floor, surface_owner(floor),
+                rf(m + 0x70), ceil, surface_owner(ceil), rf(m + 0x6c), R32(A_MARIO_PLATFORM));
+        if (lower_cog && upper_cog)
+            fprintf(stderr, ",lowerYaw=%d,lowerSpeed=%.9g,lowerTarget=%.9g,"
+                    "upperYaw=%d,upperSpeed=%.9g,upperTarget=%.9g",
+                    (int32_t) R32(lower_cog + 212), rf(lower_cog + 248), rf(lower_cog + 252),
+                    (int32_t) R32(upper_cog + 212), rf(upper_cog + 248), rf(upper_cog + 252));
+        if (point->returns_value)
+            fprintf(stderr, ",result=%08x", (uint32_t) registers[2]);
+        if (!point->leaving && strcmp(point->routine, "set_mario_action") == 0)
+            fprintf(stderr, ",requestedAction=%08x,requestedArg=%u",
+                    (uint32_t) registers[5], (uint32_t) registers[6]);
+        if (!point->leaving && strcmp(point->routine, "spawn_particle") == 0)
+            fprintf(stderr, ",requestedActive=%08x,requestedModel=%d",
+                    (uint32_t) registers[4], (int16_t) registers[5]);
+        fprintf(stderr, "\n");
+        if (point->leaving && strcmp(point->routine, "update_mario_geometry_inputs") == 0) {
+            describe_surface("geometryFloor", path_index, floor);
+            describe_surface("geometryCeil", path_index, ceil);
+        }
+        ++path_index;
+        return 1;
+    }
+    return 0;
 }
 
 static uint16_t camera_yaw(void) {
@@ -76,10 +153,7 @@ static void debugger_update(unsigned int pc) {
         rng_before = R16(A_RANDOM_SEED16);
         rng_caller = (uint32_t) registers[31];
         rng_object = R32(A_CURRENT_OBJECT);
-        rng_behavior = rng_object >= A_OBJECT_POOL
-            && rng_object < A_OBJECT_POOL + 240 * 0x260
-            && (rng_object - A_OBJECT_POOL) % 0x260 == 0
-            ? R32(rng_object + 0x20c) : 0;
+        rng_behavior = valid_object(rng_object) ? R32(rng_object + 0x20c) : 0;
     } else if (pc == PC_RNG_EXIT) {
         if (!rng_pending) fprintf(stderr, "COG_ERROR,reason=unpaired-rng-return\n");
         else fprintf(stderr, "CRNG,%s,seq=%u,rel=%u,timer=%u,caller=%08x,"
@@ -96,6 +170,10 @@ static void debugger_update(unsigned int pc) {
         air_input = R16(m + 2); air_arg = (uint32_t) registers[6];
         air_x = rf(m + 0x3c); air_y = rf(m + 0x40); air_z = rf(m + 0x44);
         air_floor_height = rf(m + 0x70);
+        air_intended_x = rf((uint32_t) registers[5]);
+        air_intended_y = rf((uint32_t) registers[5] + 4);
+        air_intended_z = rf((uint32_t) registers[5] + 8);
+        describe_surface("airOldFloor", air_index, air_floor);
     } else if (pc == PC_AIR_EXIT) {
         uint32_t sp = (uint32_t) registers[29];
         uint32_t floor = R32(sp + 0x30), ceil = R32(sp + 0x34);
@@ -108,16 +186,19 @@ static void debugger_update(unsigned int pc) {
             "floor=%08x,floorOwner=%08x,floorHeight=%.9g,"
             "ceil=%08x,ceilOwner=%08x,ceilHeight=%.9g,result=%d,"
             "newX=%.9g,newY=%.9g,newZ=%.9g,newFloor=%08x,"
-            "speed=%.9g,vy=%.9g,pedroCandidate=%u\n",
+            "speed=%.9g,vy=%.9g,pedroCandidate=%u,ix=%.9g,iy=%.9g,iz=%.9g\n",
             VERSION_NAME, air_index++, timer - start_timer, timer,
             air_action, air_input, air_arg, air_x, air_y, air_z,
             air_floor, air_floor_height, qx, qy, qz, floor, surface_owner(floor),
             floor_height, ceil, surface_owner(ceil), ceil_height,
             (int32_t) registers[2], rf(m + 0x3c), rf(m + 0x40), rf(m + 0x44),
             R32(m + 0x68), rf(m + 0x54), rf(m + 0x4c),
-            floor != 0 && qy <= floor_height && ceil_height - floor_height <= 160.0f);
+            floor != 0 && qy <= floor_height && ceil_height - floor_height <= 160.0f,
+            air_intended_x, air_intended_y, air_intended_z);
+        describe_surface("airFloor", air_index - 1, floor);
+        describe_surface("airCeil", air_index - 1, ceil);
         air_pending = 0;
-    } else {
+    } else if (!observe_path(pc, registers)) {
         fprintf(stderr, "COG_ERROR,reason=unexpected-debug-stop,pc=%08x\n", pc);
     }
     SetRunState(M64P_DBG_RUNSTATE_RUNNING);
@@ -140,6 +221,11 @@ static void install_trace(void) {
         fprintf(stderr, "COG_ERROR,reason=loaded-code-does-not-match-test-elf\n");
         return;
     }
+    if (trace_path) for (i = 0; i < sizeof(path_codes) / sizeof(path_codes[0]); ++i)
+        if (observed_code_hash(path_codes[i].start, path_codes[i].count) != path_codes[i].hash) {
+            fprintf(stderr, "COG_ERROR,reason=path-code-does-not-match-test-elf\n");
+            return;
+        }
     if (SetCallbacks(debugger_init, debugger_update, debugger_vi) != M64ERR_SUCCESS) {
         fprintf(stderr, "COG_ERROR,reason=debug-callback-installation\n");
         return;
@@ -150,6 +236,11 @@ static void install_trace(void) {
         breakpoint.address = addresses[i]; breakpoint.endaddr = addresses[i];
         if (BreakpointCommand(M64P_BKP_CMD_ADD_STRUCT, 0, &breakpoint) < 0)
             fprintf(stderr, "COG_ERROR,reason=debug-breakpoint-installation\n");
+    }
+    if (trace_path) for (i = 0; i < sizeof(path_points) / sizeof(path_points[0]); ++i) {
+        breakpoint.address = path_points[i].pc; breakpoint.endaddr = path_points[i].pc;
+        if (BreakpointCommand(M64P_BKP_CMD_ADD_STRUCT, 0, &breakpoint) < 0)
+            fprintf(stderr, "COG_ERROR,reason=path-breakpoint-installation\n");
     }
 }
 
@@ -187,6 +278,10 @@ static void snapshot(unsigned rel, uint32_t timer) {
         uint32_t object = A_OBJECT_POOL + slot * 0x260;
         if (!R16(object + 0x74) || R32(object + 0x20c) != cog_behavior) continue;
         ++count;
+        if (rf(object + 0xa0) == 1490 && rf(object + 0xa4) == -2088
+                && rf(object + 0xa8) == -873) lower_cog = object;
+        if (rf(object + 0xa0) == 1215 && rf(object + 0xa4) == -1781
+                && rf(object + 0xa8) == -1215) upper_cog = object;
         fprintf(stderr,
             "CCOG,%s,rel=%u,slot=%u,object=%08x,x=%.9g,y=%.9g,z=%.9g,"
             "yaw=%d,angleVel=%d,speed=%.9g,target=%.9g,dir=%.9g\n",
@@ -248,8 +343,10 @@ EXPORT int CALL RomOpen(void) {
     polls = 0; started = 0; start_timer = 0; last_timer = UINT32_MAX;
     interval_count = 0; waypoint_count = 0;
     trace_calls = getenv("COG_TRACE_CALLS") != NULL;
+    trace_path = getenv("COG_TRACE_PATH") != NULL;
     trace_installed = rng_pending = air_pending = 0;
-    rng_index = air_index = 0;
+    rng_index = air_index = path_index = 0;
+    lower_cog = upper_cog = 0;
     if (!path) return 1;
     input = fopen(path, "r");
     if (!input) return 0;
@@ -273,11 +370,17 @@ EXPORT int CALL RomOpen(void) {
     input = fopen(path, "r");
     if (!input) return 0;
     while (fgets(line, sizeof(line), input)) {
-        struct waypoint row;
+        struct waypoint row = {0};
+        int columns;
+        strcpy(row.space, "world");
+        row.stop_distance = 20.0f;
         if (line[0] == '#' || line[0] == '\n') continue;
-        if (sscanf(line, "%u,%u,%f,%f,%d", &row.first, &row.last,
-                   &row.x, &row.z, &row.magnitude) != 5
+        columns = sscanf(line, "%u,%u,%f,%f,%d,%15[^,],%f", &row.first, &row.last,
+                         &row.x, &row.z, &row.magnitude, row.space, &row.stop_distance);
+        if ((columns != 5 && columns != 7)
             || row.last < row.first || !isfinite(row.x) || !isfinite(row.z)
+            || (strcmp(row.space, "world") && strcmp(row.space, "cog") && strcmp(row.space, "cog_brake"))
+            || !isfinite(row.stop_distance) || row.stop_distance < 0 || row.stop_distance > 20
             || row.magnitude < 0 || row.magnitude > 80 || waypoint_count == 128
             || (waypoint_count && row.first <= waypoints[waypoint_count - 1].last)) {
             fprintf(stderr, "COG_ERROR,reason=invalid-controller-waypoint\n");
@@ -333,13 +436,34 @@ EXPORT void CALL GetKeys(int control, BUTTONS *keys) {
        the actual stick values so a successful trial can be replayed directly. */
     for (i = 0; i < waypoint_count; ++i) {
         const struct waypoint *row = &waypoints[i];
-        double dx, dz, distance, angle, magnitude;
+        double dx, dz, distance, angle, magnitude, target_x = row->x, target_z = row->z;
         if (rel < row->first || rel > row->last) continue;
-        dx = row->x - rf(A_MARIO_STATES + 0x3c);
-        dz = row->z - rf(A_MARIO_STATES + 0x44);
+        if (strcmp(row->space, "world") != 0) {
+            double rotation;
+            if (!lower_cog) {
+                fprintf(stderr, "COG_ERROR,reason=missing-cog-for-controller-target\n");
+                break;
+            }
+            /* This rotating target is only a controller steering aid. The
+               recorded integer inputs must be replayed without this policy. */
+            rotation = (uint16_t) R32(lower_cog + 212) * (6.283185307179586 / 65536.0);
+            target_x = rf(lower_cog + 0xa0) + cos(rotation) * row->x + sin(rotation) * row->z;
+            target_z = rf(lower_cog + 0xa8) - sin(rotation) * row->x + cos(rotation) * row->z;
+        }
+        dx = target_x - rf(A_MARIO_STATES + 0x3c);
+        dz = target_z - rf(A_MARIO_STATES + 0x44);
         distance = hypot(dx, dz);
         angle = atan2(dx, dz) - camera_yaw() * (6.283185307179586 / 65536.0);
-        magnitude = distance < 20.0 ? 0.0 : fmin(row->magnitude, 20.0 + distance / 2.0);
+        magnitude = distance < row->stop_distance ? 0.0 : fmin(row->magnitude, 20.0 + distance / 2.0);
+        if (strcmp(row->space, "cog_brake") == 0 && distance > 0.0
+                && !(R32(A_MARIO_STATES + 0x0c) & 0x800u)) {
+            /* Discovery-only coasting heuristic. It chooses neutral input;
+               neither this estimate nor its target is a game-state update. */
+            double closing = fmax(0.0, (rf(A_MARIO_STATES + 0x48) * dx
+                                        + rf(A_MARIO_STATES + 0x50) * dz) / distance);
+            if (distance <= closing * (closing + 1.0) / 2.0 + row->stop_distance)
+                magnitude = 0.0;
+        }
         keys->X_AXIS = (int) lround(magnitude * sin(angle));
         keys->Y_AXIS = (int) lround(-magnitude * cos(angle));
         break;

@@ -41,6 +41,17 @@ current request.
       the off-floor cancellation path. Keep cog motion and placement premises explicit.
 - [x] Compare dive and ground-pound continuations in US/JP; record their
       failure to produce preserving in-spot RNG control.
+- [x] Add checked action-path and selected-triangle observations; confirm
+      transparency against the earlier inner-rim replay.
+- [x] Complete 48 bounded detour/phase/braking/tip searches and retain their
+      inputs, observations and [negative receipts](ttc-cog-detour-followup.md).
+- [x] Connect the detour to a ground-pound close-gap landing branch in US/JP,
+      record its particle requests, and check the complete path's failure to
+      preserve Mario/cog state. Do not classify this as a trapped entry.
+- [ ] Connect that controller approach to sustained actual close-gap returns
+      with the relevant cog poses and Mario state preserved.
+- [ ] Only after preservation, compare input continuations and their ordered
+      RNG draws; then instantiate the linked execution obligations.
 - [x] Review the repeated content notice and record the known facts,
       uncertainty and [continued gameplay scope](content-notice-review.md).
 - [x] Replay the back-of-cog jump attempt with internal call tracing; record

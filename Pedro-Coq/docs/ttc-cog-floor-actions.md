@@ -99,8 +99,14 @@ spot, and neither establishes a general impossibility result for that action.
 
 ## Next decisive experiment
 
-Connect the corrected mesh detour to a natural cog phase and a sustained
-version of the now-observed close-gap air return. Record the actual and attempted
-positions, selected surfaces, action transitions and particle requests.
-Only then compare input continuations and their ordered RNG draws. An
-alternative action is a candidate until its entire preserving path is checked.
+The [detour follow-up](ttc-cog-detour-followup.md) now records actual/intended/
+queried positions, selected triangles, action transitions and particle requests.
+It reaches a natural zero-speed frame on a failed rim return and a single
+ground-pound close-gap landing in US/JP. The latter has a supporting floor and
+zero horizontal speed; the full path changes Mario's position and cog yaw.
+It cannot replace the missing sustained entry.
+
+Connect the corrected mesh detour to sustained close-gap returns with the
+relevant Mario and cog state preserved. Only then compare input continuations
+and their ordered RNG draws. An alternative action is a candidate until its
+entire preserving path is checked.

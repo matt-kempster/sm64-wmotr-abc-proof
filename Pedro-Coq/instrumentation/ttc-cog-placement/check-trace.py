@@ -40,7 +40,7 @@ def normalized(trial, trace):
         fields = dict(fields)
         for key in ("floor", "ceil", "surface", "oldFloor", "newFloor", "caller", "behavior"):
             fields.pop(key, None)
-        for key in ("object", "floorOwner", "ceilOwner", "owner"):
+        for key in ("object", "floorOwner", "ceilOwner", "owner", "platform"):
             if key in fields:
                 address = int(fields[key], 16)
                 fields[key] = (address - pool) // 0x260 if address else -1
@@ -59,6 +59,7 @@ def check(trial):
     counts = Counter()
     pedro = []
     input_frames, mario_frames = [], []
+    path_stack, path_records, surface_records = [], {}, {}
     for kind, fields in trace:
         counts[kind] += 1
         if kind == "CINPUT":
@@ -76,6 +77,30 @@ def check(trial):
             if int(fields["seq"]) != counts[kind] - 1:
                 raise ValueError("nonconsecutive RNG call indices")
             expected = after
+        elif kind == "CPATH":
+            if int(fields["seq"]) != counts[kind] - 1:
+                raise ValueError("nonconsecutive action-path indices")
+            path_records[fields["seq"]] = fields
+            if fields["phase"] == "enter":
+                path_stack.append(fields)
+            elif fields["phase"] == "exit":
+                if not path_stack or path_stack[-1]["routine"] != fields["routine"]:
+                    raise ValueError("unpaired action-path return")
+                entry = path_stack.pop()
+                if entry["rel"] != fields["rel"]:
+                    raise ValueError("action routine crossed a frame boundary")
+                if fields["routine"] == "execute_mario_action":
+                    expected_particles = fields["particles"] if fields["action"] != "00000000" \
+                        and fields["floor"] != "00000000" else "00000000"
+                    if fields["result"] != expected_particles:
+                        raise ValueError("returned particle requests differ from Mario flags")
+            else:
+                raise ValueError("unknown action-path phase")
+        elif kind == "CSURFACE":
+            key = fields["scope"], fields["seq"]
+            if key in surface_records:
+                raise ValueError("duplicate selected-surface record")
+            surface_records[key] = fields
         elif kind == "CAIR":
             if int(fields["seq"]) != counts[kind] - 1:
                 raise ValueError("nonconsecutive air-quarter-step indices")
@@ -91,6 +116,29 @@ def check(trial):
                         or fields["newY"] != fields["floorHeight"]:
                     raise ValueError("Pedro candidate lacks the expected branch effects")
                 pedro.append(fields)
+    if path_stack:
+        raise ValueError("incomplete action-path calls at end of trace")
+    if manifest.get("trace_path"):
+        if not path_records:
+            raise ValueError("requested action path was not recorded")
+        selected = []
+        for kind, fields in trace:
+            if kind == "CAIR":
+                selected.extend((scope, fields, key, owner) for scope, key, owner in (
+                    ("airOldFloor", "oldFloor", None), ("airFloor", "floor", "floorOwner"),
+                    ("airCeil", "ceil", "ceilOwner")))
+            elif kind == "CPATH" and fields["routine"] == "update_mario_geometry_inputs" \
+                    and fields["phase"] == "exit":
+                selected.extend((scope, fields, key, owner) for scope, key, owner in (
+                    ("geometryFloor", "floor", "floorOwner"), ("geometryCeil", "ceil", "ceilOwner")))
+        for scope, fields, pointer, owner in selected:
+            surface = surface_records.get((scope, fields["seq"]))
+            if surface is None or surface["surface"] != fields[pointer] \
+                    or surface["rel"] != fields["rel"] \
+                    or (owner and surface["owner"] != fields[owner]):
+                raise ValueError("selected-surface description is missing or inconsistent")
+        if len(surface_records) != len(selected):
+            raise ValueError("unreferenced selected-surface description")
     if not mario_frames or mario_frames != list(range(len(mario_frames))) \
             or input_frames != mario_frames:
         raise ValueError("requires one controller record and Mario snapshot for every TTC frame")
