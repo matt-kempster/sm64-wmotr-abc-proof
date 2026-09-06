@@ -41,6 +41,8 @@ assumptions: proofs
 	bash pipeline/assumptions.sh \
 	  Pedro.Proofs.MainTheorem checked_spawn_particle_caller_and_segmented_boundary_us_jp
 	bash pipeline/assumptions.sh \
+	  Pedro.Proofs.TTCSpinnerSchedule widened_interval_admits_one_negative_motion
+	bash pipeline/assumptions.sh \
 	  Pedro.Proofs.TTCSpinnerSchedule no_dust_tap_schedule_keeps_this_interval
 
 check:

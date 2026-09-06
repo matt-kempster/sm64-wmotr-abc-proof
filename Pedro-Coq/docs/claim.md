@@ -137,11 +137,14 @@ These are reduction theorems, not relabeled versions of the ultimate claims.
 - A finite controller/RNG schedule preserves that geometry interval on random
   mode.
 
-The current interval itself cannot support that schedule: after a direction
-change the spinner pauses through timers 1--5, then moves by 200 at timer 6.
-`no_dust_tap_schedule_keeps_this_interval` proves that this first motion exits
-the 96-unit certified interval for either direction, regardless of RNG draws.
-A wider or multi-interval collision witness is therefore required.
+The fixed-point certificate now covers pitches 15,664 through 16,031.  It can
+contain one selected 200-unit movement: from pitch 15,864, direction `-1`
+reaches the lower endpoint.  It cannot support a complete random-mode run,
+however.  After the pause through timers 1--5, the next two movement frames
+reach `pitch + 400 * direction`; `no_dust_tap_schedule_keeps_this_interval`
+proves that value is outside the 368-unit interval for either legal direction,
+regardless of RNG draws.  A multi-interval or moving-position witness is still
+required.
 
 Those obligations remain visible in `docs/checklist.md` rather than being
 packaged as assumptions whose names restate the conclusion.

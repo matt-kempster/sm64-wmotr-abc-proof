@@ -72,13 +72,14 @@ particle bit if the resulting forward velocity is strictly greater than 16.
 
 The TTC geometry certificate uses spinner 7 triangle 12 as the floor, spinner 0
 triangle 4 as the ceiling, and the common horizontal point `(1045, 1603)`. For
-every pitch from 15,856 through 15,951, CompCert binary32 transformation and the
+every pitch from 15,664 through 16,031, CompCert binary32 transformation and the
 signed-16-bit terrain cast produce strict horizontal containment and a plane gap
 in `(0, 160]`.
 
-That interval is not a bounded-oscillation target. The schedule proof shows
-that, after the five stopped timer values, the next frame moves by 200 in either
-direction and exits the interval independently of all RNG observations. The
-next TTC milestones are therefore a wider or multi-interval geometry witness,
+That interval admits one controlled movement: pitch 15,864 with direction `-1`
+reaches pitch 15,664 and remains certified. It is still not a bounded-oscillation
+target. After the five stopped timer values, the second movement frame reaches
+`pitch +/- 400` and necessarily exits the interval. The next TTC milestones are
+therefore a multi-interval or moving-position geometry witness,
 a reproducible reachable US/JP entry trace with pool/flag and RNG-window
 evidence, and a complete linked-Clight execution/refinement for the dust chain.

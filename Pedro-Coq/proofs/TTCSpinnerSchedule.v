@@ -163,13 +163,58 @@ Proof.
 Qed.
 
 Definition in_certified_pitch_interval (pitch : Z) : Prop :=
-  15856 <= pitch <= 15951.
+  15664 <= pitch <= 16031.
+
+(** Unlike the original 96-unit subinterval, the strengthened certificate can
+    contain one controlled 200-unit motion.  This is not yet a complete tap
+    schedule: it isolates the geometric/schedule witness that such a schedule
+    must arrange. *)
+Theorem widened_interval_admits_one_negative_motion :
+  forall change draws,
+    In change [30; 60; 90; 120] ->
+    in_certified_pitch_interval 15864 /\
+    in_certified_pitch_interval
+      (face_pitch
+        (run_random_mode 6 (SpinnerState 15864 1 change (-1)) draws)).
+Proof.
+  intros change draws Hchange.
+  split; [unfold in_certified_pitch_interval; lia|].
+  rewrite first_post_stop_motion by exact Hchange.
+  unfold in_certified_pitch_interval; simpl; lia.
+Qed.
+
+Theorem second_post_stop_motion :
+  forall pitch change direction draws,
+    In change [30; 60; 90; 120] ->
+    run_random_mode 7 (SpinnerState pitch 1 change direction) draws =
+      SpinnerState (pitch + 400 * direction) 8 change direction.
+Proof.
+  intros pitch change direction draws Hchange.
+  simpl in Hchange.
+  destruct Hchange as [H | [H | [H | [H | H]]]]; try contradiction.
+  - subst change.
+    change (SpinnerState (pitch + 200 * direction + 200 * direction)
+      8 30 direction = SpinnerState (pitch + 400 * direction) 8 30 direction).
+    f_equal; lia.
+  - subst change.
+    change (SpinnerState (pitch + 200 * direction + 200 * direction)
+      8 60 direction = SpinnerState (pitch + 400 * direction) 8 60 direction).
+    f_equal; lia.
+  - subst change.
+    change (SpinnerState (pitch + 200 * direction + 200 * direction)
+      8 90 direction = SpinnerState (pitch + 400 * direction) 8 90 direction).
+    f_equal; lia.
+  - subst change.
+    change (SpinnerState (pitch + 200 * direction + 200 * direction)
+      8 120 direction = SpinnerState (pitch + 400 * direction) 8 120 direction).
+    f_equal; lia.
+Qed.
 
 (** This is a negative search result, not the requested positive control
     schedule.  It quantifies over every RNG observation, hence over any seed
     changes a dust-tap strategy could arrange before the spinner consumes its
-    draws.  The proved geometry interval is narrower than one 200-unit motion,
-    so the first post-stop motion necessarily leaves it. *)
+    draws.  The strengthened geometry interval admits one 200-unit motion but
+    is narrower than two, so the second post-stop motion necessarily leaves it. *)
 Theorem no_dust_tap_schedule_keeps_this_interval :
   forall pitch change direction draws,
     in_certified_pitch_interval pitch ->
@@ -177,10 +222,10 @@ Theorem no_dust_tap_schedule_keeps_this_interval :
     In direction [-1; 1] ->
     ~ in_certified_pitch_interval
         (face_pitch
-          (run_random_mode 6 (SpinnerState pitch 1 change direction) draws)).
+          (run_random_mode 7 (SpinnerState pitch 1 change direction) draws)).
 Proof.
   intros pitch change direction draws Hpitch Hchange Hdirection.
-  rewrite first_post_stop_motion by exact Hchange.
+  rewrite second_post_stop_motion by exact Hchange.
   simpl.
   simpl in Hdirection.
   destruct Hdirection as [H | [H | H]]; try contradiction;

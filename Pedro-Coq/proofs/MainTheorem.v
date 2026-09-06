@@ -69,7 +69,7 @@ Theorem checked_ttc_spinner_source_reduction_us_jp :
     ttc_geometry_source_receipt version /\
     ttc_schedule_source_receipt version /\
     (forall pitch,
-      15856 <= pitch <= 15951 ->
+      15664 <= pitch <= 16031 ->
       spinner_geometry_certificate version (pitch_table_index pitch) = true) /\
     pedro_collision_source_receipt version /\
     landing_dust_source_receipt version /\

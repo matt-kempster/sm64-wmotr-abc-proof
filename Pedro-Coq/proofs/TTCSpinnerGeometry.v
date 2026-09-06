@@ -299,21 +299,37 @@ Proof. vm_compute; repeat split; reflexivity. Qed.
 
 Theorem ttc_spinner_pitch_table_interval_certificate :
   forall version pitch_index,
-    991 <= pitch_index <= 996 ->
+    979 <= pitch_index <= 1001 ->
     spinner_geometry_certificate version pitch_index = true.
 Proof.
   intros version pitch_index Hrange.
-  destruct version.
-  - assert (pitch_index = 991 \/ pitch_index = 992 \/ pitch_index = 993 \/
-            pitch_index = 994 \/ pitch_index = 995 \/ pitch_index = 996) as Hcases
-      by lia.
-    destruct Hcases as [-> | [-> | [-> | [-> | [-> | ->]]]]];
-      vm_compute; reflexivity.
-  - assert (pitch_index = 991 \/ pitch_index = 992 \/ pitch_index = 993 \/
-            pitch_index = 994 \/ pitch_index = 995 \/ pitch_index = 996) as Hcases
-      by lia.
-    destruct Hcases as [-> | [-> | [-> | [-> | [-> | ->]]]]];
-      vm_compute; reflexivity.
+  assert (
+    pitch_index = 979 \/
+      pitch_index = 980 \/
+      pitch_index = 981 \/
+      pitch_index = 982 \/
+      pitch_index = 983 \/
+      pitch_index = 984 \/
+      pitch_index = 985 \/
+      pitch_index = 986 \/
+      pitch_index = 987 \/
+      pitch_index = 988 \/
+      pitch_index = 989 \/
+      pitch_index = 990 \/
+      pitch_index = 991 \/
+      pitch_index = 992 \/
+      pitch_index = 993 \/
+      pitch_index = 994 \/
+      pitch_index = 995 \/
+      pitch_index = 996 \/
+      pitch_index = 997 \/
+      pitch_index = 998 \/
+      pitch_index = 999 \/
+      pitch_index = 1000 \/
+      pitch_index = 1001) as Hcases by lia.
+  destruct version;
+    destruct Hcases as [-> | [-> | [-> | [-> | [-> | [-> | [-> | [-> | [-> | [-> | [-> | [-> | [-> | [-> | [-> | [-> | [-> | [-> | [-> | [-> | [-> | [-> | ->]]]]]]]]]]]]]]]]]]]]]];
+    vm_compute; reflexivity.
 Qed.
 
 Definition pitch_table_index (pitch : Z) : Z :=
@@ -321,26 +337,26 @@ Definition pitch_table_index (pitch : Z) : Z :=
 
 Theorem full_pitch_interval_uses_certified_entries :
   forall pitch,
-    15856 <= pitch <= 15951 ->
-    991 <= pitch_table_index pitch <= 996.
+    15664 <= pitch <= 16031 ->
+    979 <= pitch_table_index pitch <= 1001.
 Proof.
   intros pitch Hrange.
   unfold pitch_table_index.
-  change (991 <= Z.shiftr (Z.land pitch (Z.ones 16)) 4 <= 996).
+  change (979 <= Z.shiftr (Z.land pitch (Z.ones 16)) 4 <= 1001).
   rewrite Z.land_ones by lia.
   rewrite Z.mod_small by lia.
   rewrite Z.shiftr_div_pow2 by lia.
-  change (991 <= pitch / 16 <= 996).
+  change (979 <= pitch / 16 <= 1001).
   split.
   - apply Z.div_le_lower_bound; lia.
-  - assert (pitch / 16 < 997).
+  - assert (pitch / 16 < 1002).
     { apply Z.div_lt_upper_bound; lia. }
     lia.
 Qed.
 
 Theorem concrete_ttc_spinner_pitch_interval :
   forall version pitch,
-    15856 <= pitch <= 15951 ->
+    15664 <= pitch <= 16031 ->
     spinner_geometry_certificate version (pitch_table_index pitch) = true.
 Proof.
   intros version pitch Hrange.

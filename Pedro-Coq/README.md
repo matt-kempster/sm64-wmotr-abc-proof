@@ -101,8 +101,9 @@ remaining semantic and control obligations are listed in
 [`docs/checklist.md`](docs/checklist.md). In particular, a syntax receipt is not
 a proof that the corresponding Clight path executes, and the TTC random-mode
 source describes a bounded oscillation rather than a platform that stays at one
-mathematically fixed angle. The proved geometry interval is too narrow for the
-first 200-unit post-pause motion, so it is not yet a preservation witness. The
+mathematically fixed angle. The widened 368-unit geometry interval admits one
+selected 200-unit post-pause motion, but the second movement necessarily exits,
+so it is not yet a complete preservation witness. The
 typed Clight frontier now executes one actual `cur_obj_update` dispatch cycle
 and its WhitePuff2 RNG subtree. Separate US/JP big-steps also execute the exact
 accepted branch of `spawn_particle`: they read the clear guard, set the active

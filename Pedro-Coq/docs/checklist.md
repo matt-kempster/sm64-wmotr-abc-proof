@@ -155,6 +155,10 @@ audits below.
 - [x] Model the random-setting timer/direction schedule.
 - [ ] Search for and prove a dust-tap schedule that keeps the spinner inside the
       proved angle interval.
-- [x] Prove that no dust/RNG schedule can preserve the current 96-unit interval:
-      the first post-pause movement is 200 units in either direction.
+  - [x] Strengthen the fixed `(1045, 1603)` collision witness to the 368-unit
+        pitch interval `[15664, 16031]` in both supported versions.
+  - [x] Prove that a selected `-1` direction can keep pitch `15864` inside for
+        the first 200-unit motion.
+  - [x] Prove that no dust/RNG schedule can preserve this fixed interval through
+        the second post-pause motion, which reaches `pitch +/- 400`.
 - [ ] State and prove the final TTC Clight execution theorem.
