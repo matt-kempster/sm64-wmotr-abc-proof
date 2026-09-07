@@ -4,7 +4,8 @@ The full theorem classifying **preserving controller control in the cog Pedro
 spot remains open**. This work closes the generated-source inventory gap and
 proves one complete environmental exclusion path. It does not establish that
 Mario can or cannot create dust there. The slide-kick caller still has its
-seven helper-execution premises.
+four remaining helper-execution premises after the
+[animation and sound execution follow-up](ttc-cog-helper-execution.md).
 
 Scope is the gameplay `gRandomSeed16` generator used by TTC cogs, with the
 pinned US/JP configurations only. Audio has a separate generator; an audible
@@ -144,8 +145,10 @@ or scheduler position. Those values distinguish the paths being classified.
 The remaining work is to:
 
 1. Establish a precise legal in-spot state or state family and preserving
-   successive action updates. For the slide kick, execute all seven helpers,
-   its dispatcher/entry path and the following knockback update.
+   successive action updates. For the slide kick, execute the four remaining
+   helpers, its dispatcher/entry path and the following knockback update.
+   Establish the live animation-cache and sound-queue images used by the
+   three now-executed helper calls.
 2. Resolve the relevant indirect targets and native/scripted child spawning.
    Prove which of the 53 writer functions and other interaction paths are
    reachable while the spot invariant holds. Exclude the others by actual

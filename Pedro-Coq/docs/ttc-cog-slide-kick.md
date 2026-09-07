@@ -9,10 +9,16 @@ can reach this phase inside the cog Pedro spot, remain there through the
 helpers and following updates, or cause an accepted particle and RNG draw.
 No theorem currently proves or disproves all preserving RNG sources there.
 
-## What the new Coq results say
+The [execution follow-up](ttc-cog-helper-execution.md) now discharges the
+animation setter/end test and sound request from the active caller, leaving
+four helper executions and their preservation facts. The original seven-helper
+caller proof described below remains available as the composition lemma.
 
-`MainTheorem.checked_ttc_cog_dust_action_frontier_us_jp` combines four results
-and is included in the active `checked_ttc_cog_local_mechanism_us_jp` capstone.
+## Original caller proof
+
+The original four components are described here. The active
+`MainTheorem.checked_ttc_cog_dust_action_frontier_us_jp` now consumes the
+stronger caller and additional layout receipts as well.
 
 1. `MarioDustSources.v` computes the complete list recognized by a finite
    syntax predicate over the generated moving and airborne translation units.

@@ -7,7 +7,8 @@ From Pedro.Proofs Require Import
   SegmentedPointerBoundary TTCDebugBoundary TTCRNGWindow TTCRNGCensus
   TTCRetailSqrt TTCCogGeometry TTCCogRNG TTCCogExecution
   GroundGapReturn SlideKickDustExecution MarioDustSources
-  RNGSourceCoverage MarioParticleCatalogue EnvironmentNoRNG.
+  RNGSourceCoverage MarioParticleCatalogue EnvironmentNoRNG
+  SoundRequestExecution SlideKickAnimationExecution SlideKickHelperDischarge.
 
 Module MainSpawnUS := DustSpawnParticleExecution.
 Module MainSpawnJP := DustSpawnParticleExecutionJP.
@@ -15,14 +16,17 @@ Module MainSegmented := SegmentedPointerBoundary.
 
 (** Exact generated action/collision frontier. The direct-writer census has
     only the two stated translation units as its scope. The ground theorem
-    begins after the queries. The slide-kick caller retains seven actual
-    helper-execution premises and their anchor-boundary conditions. None is
+    begins after the queries. The slide-kick caller executes its cached
+    animation and sound helpers; four actual helper-execution premises and
+    their anchor-boundary conditions remain. None is
     an existence theorem for a reachable in-spot dust event. *)
 Definition ttc_cog_dust_action_frontier_claim : Prop :=
   mario_direct_dust_inventory_claim /\
   cog_gap_return_claim /\
   slide_layout_receipt /\
-  (forall version, slide_kick_framed_caller_claim version).
+  animation_layout_receipt /\
+  sound_layout_receipt /\
+  (forall version, slide_discharged_caller_claim version).
 
 Theorem checked_ttc_cog_dust_action_frontier_us_jp :
   ttc_cog_dust_action_frontier_claim.
@@ -30,7 +34,9 @@ Proof.
   exact (conj generated_mario_direct_dust_inventory_us_jp
     (conj checked_cog_gap_return_us_jp
       (conj slide_caller_and_anchor_offsets_generated_us_jp
-        generated_slide_kick_dust_caller_with_anchor_boundaries_us_jp))).
+        (conj animation_layout_generated_us_jp
+          (conj sound_layout_generated_us_jp
+            generated_slide_kick_with_animation_and_sound_discharged_us_jp))))).
 Qed.
 
 (** Active cog target: exact stock inventory and a pairwise binary32 geometry

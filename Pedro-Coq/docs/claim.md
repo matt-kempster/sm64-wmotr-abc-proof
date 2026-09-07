@@ -39,8 +39,10 @@ to game memory or code throughout discovery and validation.
 - A finite direct-dust syntax inventory in the generated moving/airborne units,
   a no-write execution of the ground-gap suffix, checked structure offsets,
   and the generated slide-kick sliding caller's wall-stop dust request. The
-  caller retains seven actual-helper execution premises and conditional
-  preservation at their boundaries. These are not a reachable in-spot event
+  active caller executes the real cached animation and sound paths, retaining
+  four actual-helper execution premises and conditional preservation at their
+  boundaries. See [the helper discharges](ttc-cog-helper-execution.md).
+  These are not a reachable in-spot event
   or an exhaustive proof about all preserving RNG sources. See
   [the exact slide-kick boundary](ttc-cog-slide-kick.md).
 - Complete direct-RNG, computed-call and particle-field-write syntax coverage

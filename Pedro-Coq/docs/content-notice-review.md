@@ -27,6 +27,31 @@ focused, and leaves the gameplay claim open. Safeguards and access settings
 have not been changed. An exact diagnosis would require further information
 from the service; avoiding particular words is not an established remedy.
 
+## Source-proof continuation after the expanded RNG census
+
+The user reported another content notice while requesting continuation of the
+execution proofs. The notice did not identify a request ID or exact triggering
+operation. No new content-check or automatic-approval rejection was observed
+during the ensuing sound and animation proof work. The existing client-log
+findings above do not establish the cause of this later notice.
+
+The official false-positive guidance was checked again. It still covers
+unrelated activity and recommends reviewing notices/logs and reporting through
+`/feedback`. No report, private log, or account information was sent externally.
+The exact trigger remains unknown; no change to safeguards was attempted.
+
+There was a separate, reproducible Coq resource problem: a general tactic
+expanded symbolic array-stride arithmetic before resolving the struct layout.
+The capped build reported `Fatal error: out of memory`. The proof now uses a
+small address lemma and bounded reduction; the full corrected build passes
+with a 4-GiB virtual-memory cap. An attempted interrupt found the process had
+already exited. This compiler failure is not evidence about the content notice.
+
+The continuation used pinned source, generated ASTs and ordinary Coq proofs.
+There was no emulator run or game-memory/code modification. See the
+[execution report](ttc-cog-helper-execution.md) for the proved results and
+remaining semantic boundaries.
+
 ## Earlier review
 
 The user reported a second “This content can't be shown” notice referring to

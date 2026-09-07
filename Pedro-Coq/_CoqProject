@@ -127,4 +127,7 @@ proofs/RNGSourceCatalogue.v
 proofs/EnvironmentNoRNG.v
 proofs/MarioParticleCatalogue.v
 proofs/RNGSourceCoverage.v
+proofs/SoundRequestExecution.v
+proofs/SlideKickAnimationExecution.v
+proofs/SlideKickHelperDischarge.v
 proofs/MainTheorem.v

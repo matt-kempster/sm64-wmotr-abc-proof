@@ -46,6 +46,12 @@ authenticated source gate accounts for all 81 pinned C/header files naming
 the gameplay RNG. The [all-RNG report](docs/ttc-cog-all-rng.md) distinguishes
 this source coverage from the still-open proof of preserving RNG choices.
 
+The [helper execution follow-up](docs/ttc-cog-helper-execution.md) executes the
+real cached slide-kick animation setter/end test and sound request. The active
+dust caller now retains four helper-execution/preservation premises for that
+state family. Particle allocation, the following action and complete ordered
+RNG control remain unproved.
+
 `Pedro.Proofs.MainTheorem.checked_pedro_rng_mechanism_us_jp` is the initial
 load-bearing capstone. It combines mechanically checked facts about:
 

@@ -1,6 +1,12 @@
 # Status
 
 The active target is the US/JP TTC cog entry/control claim. It remains open.
+The [helper execution follow-up](ttc-cog-helper-execution.md) discharges the
+real cached animation setter/end test and sound request in the slide-kick
+caller. Sound stores are constructed from valid entry permissions and preserve
+all other memory blocks. The active capstone now retains four helper executions
+and their preservation premises; entry, following actions, particles, camera,
+ordered draws and the N64 allocation refinement remain open.
 The [all-RNG source proof](ttc-cog-all-rng.md) now checks every direct primitive
 call, computed-call caller and particle-field writer in 41 generated units per
 version, plus all 18 Mario particle entries. It accounts for 81 pinned
@@ -9,7 +15,7 @@ update leaves memory unchanged. This closes the source inventory gap, not the
 full preserving-control theorem. Runtime indirect targets, action preservation,
 accepted particle execution and the N64 address refinement remain open.
 
-The [slide-kick proof](ttc-cog-slide-kick.md) now executes the generated sliding
+The original [slide-kick proof](ttc-cog-slide-kick.md) executes the generated sliding
 handler under seven actual-helper execution premises: a wall-stop result can
 still lead to a dust request with `INPUT_OFF_FLOOR` set. A separate generated
 ground-gap suffix proof returns without memory changes at gap 154. The caller's

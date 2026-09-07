@@ -72,7 +72,14 @@ current request.
 - [x] Run six slide-kick timing trials in US and compare one in JP; retain
       [recipes and negative results](ttc-cog-slide-kick.md). No Pedro return or
       sliding-phase witness; all 5,257 compared logical events agree.
-- [ ] Discharge slide-kick helper execution/preservation premises and execute
+- [x] Execute the generated US/JP sound request for every bounded queue index;
+      construct all three stores and prove preservation outside the queue/count.
+- [x] Execute the real animation-cache hit, cached slide-kick setter and
+      non-ended animation test with unchanged memory and checked field offsets.
+- [x] Consume these results in the active cog capstone, removing three of seven
+      helper-execution/preservation premises; record the remaining four in the
+      [helper execution report](ttc-cog-helper-execution.md).
+- [ ] Discharge the remaining four slide-kick helper execution/preservation premises and execute
       the dispatcher, entry/bounce path and following knockback update in the
       actual cog state. Account for downstream dust clearing and acceptance.
 - [x] Generate all seven Mario action groups, interaction, camera, environmental
@@ -134,6 +141,10 @@ current request.
       [validation receipt](../inputs/rng-frontier-validation.json).
 - [x] Inspect the new cog execution capstone with `Print Assumptions` (standard
       Coq/CompCert axioms only).
+- [x] Validate the animation/sound discharges: full Pedro build, no-hole check,
+      unchanged source-coverage receipt for 82 generated files, identical
+      before/after active-capstone assumptions and clean root discipline audit.
+      Keep the [separate receipt](../inputs/helper-execution-validation.json).
 - [x] Inspect every named capstone with `Print Assumptions`, completing the
       interrupted batch with individual pipeline invocations. Only standard
       Coq/CompCert axioms appear; the two schedule results are closed.

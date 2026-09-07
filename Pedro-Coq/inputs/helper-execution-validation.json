@@ -1,0 +1,96 @@
+{
+  "schema": 1,
+  "recorded_utc": "2026-09-07T03:49:58.309956+00:00",
+  "branch": "codex/ssl-pyramid-item-proof",
+  "parent_commit": "95ce13ea0d0ae7a2d4ada4adf43ee3c75f248d4d",
+  "source_revision": "9921382a68bb0c865e5e45eb594d9c64db59b1af",
+  "versions": [
+    "VERSION_US",
+    "VERSION_JP"
+  ],
+  "toolchain": {
+    "coq": "8.16.1",
+    "compcert": "3.15",
+    "switch": "sm64-item-proof"
+  },
+  "staged_source_sha256": {
+    "Pedro-Coq/_CoqProject": "95c6b64563164fd4a46b06118263df9798e580410554ce0ee5353d6241ae10d0",
+    "Pedro-Coq/proofs/MainTheorem.v": "262a137b336664204567c2910087cf942612217dc2b05854a9f8d9fbd8eb5858",
+    "Pedro-Coq/proofs/SoundRequestExecution.v": "5f06242d8129b7277bc52e3fe6f98f5ecca935421fffde16fc7eb0f9ebc7f934",
+    "Pedro-Coq/proofs/SlideKickAnimationExecution.v": "5d4c2104f907b983a1d305d630d885a70a9b3cf1df82e041ba1c70080ceaf276",
+    "Pedro-Coq/proofs/SlideKickHelperDischarge.v": "1e84f2b3d4213883b45551ea6cdf146bf164bb807a5b284aa1105900a218347b"
+  },
+  "checks": [
+    {
+      "command": "bash Pedro-Coq/pipeline/build.sh proofs",
+      "exit_code": 0,
+      "virtual_memory_cap_kib": 4194304,
+      "log": "build/execution-build.log"
+    },
+    {
+      "command": "bash Pedro-Coq/pipeline/check-no-admitted.sh",
+      "exit_code": 0,
+      "log": "build/helper-no-holes.log"
+    },
+    {
+      "command": "python Pedro-Coq/pipeline/check-rng-source-coverage.py",
+      "exit_code": 0,
+      "pinned_rng_bearing_files": 81,
+      "generated_files": 82
+    },
+    {
+      "command": "bash Pedro-Coq/pipeline/assumptions.sh Pedro.Proofs.MainTheorem checked_ttc_cog_local_mechanism_us_jp",
+      "exit_code": 0,
+      "log": "build/helper-assumptions.log",
+      "identical_to_baseline": true
+    },
+    {
+      "command": "SM64_PROOF_SWITCH=sm64-item-proof bash .claude/skills/proof-discipline/discipline_check.sh",
+      "exit_code": 0,
+      "log": "build/helper-discipline.log"
+    }
+  ],
+  "standard_assumption_names": [
+    "ClassicalDedekindReals.sig_not_dec",
+    "ClassicalDedekindReals.sig_forall_dec",
+    "Events.inline_assembly_sem",
+    "FunctionalExtensionality.functional_extensionality_dep",
+    "Events.external_functions_sem",
+    "Classical_Prop.classic"
+  ],
+  "generated_files_changed": false,
+  "new_regeneration_performed": false,
+  "generation_provenance": "Existing two-pass receipt and unchanged generated hashes in rng-source-coverage.json.",
+  "discharged_caller_helpers": [
+    "set_mario_animation (cache hit)",
+    "is_anim_at_end (false)",
+    "play_sound"
+  ],
+  "additional_executed_callee": "load_patchable_table (cache hit)",
+  "remaining_caller_helper_executions_and_anchor_premises": [
+    "update_sliding",
+    "perform_ground_step",
+    "mario_bonk_reflection",
+    "set_mario_action"
+  ],
+  "remaining_entry_requirements": [
+    "Generated-compatible linked symbols and composite layouts.",
+    "Valid animation cache for entry 140 and a non-ended already-selected animation.",
+    "Sound queue bounds/permissions and Mario separation at the sound-call boundary.",
+    "The caller input, terrain/object/particle loads and post-action particle write permission."
+  ],
+  "not_established": [
+    "Legal or sustained cog-Pedro entry and the following knockback update.",
+    "N64 address refinement, complete particle allocation and acceptance.",
+    "Complete object/camera schedule and ordered preserving RNG control.",
+    "Exhaustive all-preserving-input existence or impossibility theorem."
+  ],
+  "notice_diagnosis": {
+    "exact_content_notice_trigger": "unknown",
+    "new_content_or_approval_rejection_observed_in_continuation": false,
+    "separate_coq_resource_failure": "An early symbolic-stride reduction exhausted the capped build; a small address lemma fixes it.",
+    "safeguards_changed": false,
+    "new_emulator_experiment": false,
+    "game_memory_or_code_modified": false
+  }
+}
