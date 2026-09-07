@@ -123,10 +123,10 @@ Definition slide_helper_path (version : GameVersion) (ge : Clight.genv)
   eval_funcall function_entry2 ge m6 (Internal (slide_action_function version))
     [Vptr mario Ptrofs.zero; Vint (Int.repr 132194); Vint Int.zero]
     E0 m7 (Vint Int.one) /\
-  Mem.load Mint32 m7 mario 20 = Some (Vint Int.zero) /\
+  Mem.load Mint32 m7 mario 20 = Some (Vint (Int.repr 196608)) /\
   Mem.load Mptr m7 mario 136 = Some (Vptr object Ptrofs.zero) /\
   eval_funcall function_entry2 ge m7 (Internal (slide_sound_function version))
-    [Vint (Int.repr 335544321); Vptr object (Ptrofs.repr 84)] E0 m8 Vundef /\
+    [Vint (Int.repr 335740929); Vptr object (Ptrofs.repr 84)] E0 m8 Vundef /\
   Mem.load Mint32 m8 mario 8 = Some (Vint (Int.repr 2)) /\
   Mem.store Mint32 m8 mario 8 (Vint (Int.repr 3)) = Some m9.
 

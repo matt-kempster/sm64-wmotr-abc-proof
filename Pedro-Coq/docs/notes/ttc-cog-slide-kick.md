@@ -9,9 +9,9 @@ can reach this phase inside the cog Pedro spot, remain there through the
 helpers and following updates, or cause an accepted particle and RNG draw.
 No theorem currently proves or disproves all preserving RNG sources there.
 
-The [execution follow-up](ttc-cog-helper-execution.md) now discharges the
-animation setter/end test and sound request from the active caller, leaving
-four helper executions and their preservation facts. The original seven-helper
+The [transition follow-up](ttc-cog-transition-execution.md) now discharges the
+animation setter/end test, sound request, no-wall reflection and action transition,
+leaving two helper executions and their preservation facts. The original seven-helper
 caller proof described below remains available as the composition lemma.
 
 ## Original caller proof

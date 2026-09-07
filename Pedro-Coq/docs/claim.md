@@ -39,9 +39,12 @@ to game memory or code throughout discovery and validation.
 - A finite direct-dust syntax inventory in the generated moving/airborne units,
   a no-write execution of the ground-gap suffix, checked structure offsets,
   and the generated slide-kick sliding caller's wall-stop dust request. The
-  active caller executes the real cached animation and sound paths, retaining
-  four actual-helper execution premises and conditional preservation at their
-  boundaries. See [the helper discharges](notes/ttc-cog-helper-execution.md).
+  active caller executes the real cached animation, sound, no-wall reflection
+  and backward-knockback transition, retaining two actual-helper execution
+  premises and conditional preservation at the sliding/ground boundaries.
+  Its dry dust-clearing tail is composed; occupied-bit particle rejection
+  executes, while clear-bit allocation retains the N64 boundary. See
+  [the helper discharges](notes/ttc-cog-transition-execution.md).
   These are not a reachable in-spot event
   or an exhaustive proof about all preserving RNG sources. See
   [the exact slide-kick boundary](notes/ttc-cog-slide-kick.md).

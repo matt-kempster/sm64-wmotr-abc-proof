@@ -66,8 +66,11 @@ writes and the complete Mario particle table. It also executes the real
 NONE-mode environmental early return with both real callees. The
 [helper execution follow-up](ttc-cog-helper-execution.md) executes the real
 cached animation setter/end test and sound request, reducing the caller's
-helper residuals from seven to four for that state family. The four remaining
-helpers, dispatcher/entry path, particle acceptance, runtime indirect targets
+helper residuals from seven to four for that state family. The
+[transition follow-up](ttc-cog-transition-execution.md) executes no-wall reflection
+and the action transition, leaving sliding and the full ground step. It also
+checks the dispatcher dust tail and active-bit rejection. The remaining
+helpers, complete dispatcher/entry/following paths, particle acceptance, runtime indirect targets
 and preserving control remain open. Controller discovery has found no preserving
 sliding-phase event. Continue with those discharges and a specified in-spot
 state; do not infer all-action impossibility from unsuccessful route searches.

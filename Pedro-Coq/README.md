@@ -46,11 +46,12 @@ authenticated source gate accounts for all 81 pinned C/header files naming
 the gameplay RNG. The [all-RNG report](docs/notes/ttc-cog-all-rng.md) distinguishes
 this source coverage from the still-open proof of preserving RNG choices.
 
-The [helper execution follow-up](docs/notes/ttc-cog-helper-execution.md) executes the
-real cached slide-kick animation setter/end test and sound request. The active
-dust caller now retains four helper-execution/preservation premises for that
-state family. Particle allocation, the following action and complete ordered
-RNG control remain unproved.
+The [transition follow-up](docs/notes/ttc-cog-transition-execution.md) additionally
+executes no-wall reflection and the backward-knockback transition, leaving two
+helper-execution/preservation premises: sliding and the full ground step. It
+corrects TTC's terrain sound and checks downstream dust clearing and active-bit
+rejection. Complete dispatch, entry/following actions, accepted particles and
+ordered preserving RNG control remain unproved.
 
 `Pedro.Proofs.MainTheorem.checked_pedro_rng_mechanism_us_jp` is the initial
 load-bearing capstone. It combines mechanically checked facts about:

@@ -79,9 +79,20 @@ current request.
 - [x] Consume these results in the active cog capstone, removing three of seven
       helper-execution/preservation premises; record the remaining four in the
       [helper execution report](notes/ttc-cog-helper-execution.md).
-- [ ] Discharge the remaining four slide-kick helper execution/preservation premises and execute
+- [x] Execute the real no-wall reflection, HIT queue operation and velocity setter;
+      construct their stores and prove position/floor preservation and bounded trig reads.
+- [x] Execute the real floor-class, moving-action initializer and backward-knockback
+      transition; construct all seven transition stores and prove their frame properties.
+- [x] Correct dry TTC's terrain addend to 196608 using the full generated helper,
+      and consume the stronger two-helper caller in the active cog capstone.
+- [x] Compose the original dry dust-clearing suffix after that caller; also execute
+      its water-clearing case and the complete already-active dust rejection.
+      See [the transition report](notes/ttc-cog-transition-execution.md).
+- [ ] Discharge the remaining two slide-kick helper execution/preservation premises
+      (`update_sliding` and `perform_ground_step`) and execute
       the dispatcher, entry/bounce path and following knockback update in the
-      actual cog state. Account for downstream dust clearing and acceptance.
+      actual cog state. Finish particle acceptance and its N64 address refinement,
+      accounting for both dust and vertical-star requests and their ordered draws.
 - [x] Generate all seven Mario action groups, interaction, camera, environmental
       effects and supporting dialog/geometry units for US/JP: 41 units each.
 - [x] Prove structural coverage and exact lists for 282 direct RNG sites,

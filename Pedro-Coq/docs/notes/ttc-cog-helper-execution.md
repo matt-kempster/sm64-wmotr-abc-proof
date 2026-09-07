@@ -2,7 +2,12 @@
 
 US/JP only; pinned source `9921382a68bb0c865e5e45eb594d9c64db59b1af`.
 
-The active cog capstone now uses a stronger slide-kick caller theorem with
+This report records the earlier animation/sound milestone. The subsequent
+[reflection and transition work](ttc-cog-transition-execution.md) reduces the
+remaining caller premises from four to two and corrects TTC's terrain sound.
+The descriptions and validation receipt below refer to the earlier milestone.
+
+At this milestone the active cog capstone used a stronger slide-kick caller theorem with
 **four**, rather than seven, remaining helper-execution premises. It executes
 the real animation setter, animation end test, and sound request. It still
 does not prove a reachable Pedro state, preservation across the following

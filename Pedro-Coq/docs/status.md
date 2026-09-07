@@ -1,12 +1,15 @@
 # Status
 
 The active target is the US/JP TTC cog entry/control claim. It remains open.
-The [helper execution follow-up](notes/ttc-cog-helper-execution.md) discharges the
-real cached animation setter/end test and sound request in the slide-kick
-caller. Sound stores are constructed from valid entry permissions and preserve
-all other memory blocks. The active capstone now retains four helper executions
-and their preservation premises; entry, following actions, particles, camera,
-ordered draws and the N64 allocation refinement remain open.
+The [transition follow-up](notes/ttc-cog-transition-execution.md) discharges the
+real no-wall reflection and backward-knockback transition, including nested
+helpers and their preservation properties. With the earlier animation/sound
+proofs, the active caller now retains two helper executions and anchor premises:
+sliding and the full ground step. Dry TTC's sound addend is corrected to 196608.
+The dry dispatcher dust tail is composed after the caller; the water tail and
+already-active dust rejection also execute. The complete dispatcher, entry,
+following knockback update, accepted particles, camera, ordered draws and N64
+allocation refinement remain open. This is not yet an actual cog-state witness.
 The [all-RNG source proof](notes/ttc-cog-all-rng.md) now checks every direct primitive
 call, computed-call caller and particle-field writer in 41 generated units per
 version, plus all 18 Mario particle entries. It accounts for 81 pinned

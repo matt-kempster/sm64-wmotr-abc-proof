@@ -1,0 +1,131 @@
+{
+  "schema": 1,
+  "recorded_utc": "2026-09-07T05:09:09.057724+00:00",
+  "branch": "codex/ssl-pyramid-item-proof",
+  "parent_commit": "1a8d9ab8ff485bce5940986d09b190ef61ade378",
+  "source_revision": "9921382a68bb0c865e5e45eb594d9c64db59b1af",
+  "versions": [
+    "VERSION_US",
+    "VERSION_JP"
+  ],
+  "toolchain": {
+    "coq": "8.16.1",
+    "compcert": "3.15",
+    "switch": "sm64-item-proof"
+  },
+  "staged_source_sha256": {
+    "Pedro-Coq/_CoqProject": "21d3e8084a6163315c5bc69540e972d0e8b56c5f2f9bf3969c7f8efa9b36f5c1",
+    "Pedro-Coq/proofs/CogActionExecution.v": "2ee14c74857fb67b792c8063c287c07896d8556b23bee0fb662cb96535749579",
+    "Pedro-Coq/proofs/CogDustClearing.v": "576618ce1e308b0ace721ba0be540c051da6ea193ef7e7b2a7be486e7cf5bc06",
+    "Pedro-Coq/proofs/CogParticleAcceptance.v": "59cfc1504615b0f21c56e820bf8877eaf4d327217e040a71b22966fd28c13f4d",
+    "Pedro-Coq/proofs/CogReflectionExecution.v": "da036741bb34ee0d869aa83dc1159f70e6764b6dad25e280dcf243c1438471c1",
+    "Pedro-Coq/proofs/CogSlideExecution.v": "4df8cd16f439daf1947c95cd1026eb2d9260c90369004fa3acb1b0180c21dde4",
+    "Pedro-Coq/proofs/MainTheorem.v": "c243a06b4cda07f9c8a8bba7bde656d17d78b48ee0a440a98ab81024432fc30c",
+    "Pedro-Coq/proofs/SlideKickDustExecution.v": "518f9729e2719ee8dac6d2592c84e33b1a4e5dbabd9092542274002ddde53fb5",
+    "Pedro-Coq/proofs/SlideKickHelperDischarge.v": "46add335cc08328f1b27902a1d8fa3f075259f2be9beff6ab8ba668842a98f79"
+  },
+  "checks": [
+    {
+      "command": "bash Pedro-Coq/pipeline/build.sh proofs",
+      "exit_code": 0,
+      "virtual_memory_cap_kib": 4194304,
+      "log": "build/cog-action-work.log",
+      "log_sha256": "d40a2da8f0365e91225c0c449cfdbee24a54ff2d1458c038ce82fbd637a4a417"
+    },
+    {
+      "command": "bash Pedro-Coq/pipeline/check-no-admitted.sh",
+      "exit_code": 0,
+      "log": "build/cog-transition-no-holes.log",
+      "log_sha256": "30740e5e288838f99272181e71b4280edde451d4ba72da6379fc974503088d15"
+    },
+    {
+      "command": "python Pedro-Coq/pipeline/check-rng-source-coverage.py",
+      "exit_code": 0,
+      "pinned_rng_bearing_files": 81,
+      "generated_files": 82
+    },
+    {
+      "command": "bash Pedro-Coq/pipeline/assumptions.sh Pedro.Proofs.MainTheorem checked_ttc_cog_local_mechanism_us_jp",
+      "exit_code": 0,
+      "log": "build/cog-transition-assumptions.log",
+      "identical_to_baseline": true,
+      "log_sha256": "649c4dfb867a6c016545c885a436502f8914780184b149d6ec8de83b399b034d"
+    },
+    {
+      "command": "SM64_PROOF_SWITCH=sm64-item-proof bash .claude/skills/proof-discipline/discipline_check.sh",
+      "exit_code": 0,
+      "log": "build/cog-transition-discipline.log",
+      "log_sha256": "819bae79d93609aaec743b476873074411f25ded3641b15c1f33a4e7a58eac0a"
+    },
+    {
+      "command": "git diff --cached --check",
+      "exit_code": 0
+    },
+    {
+      "command": "Validate local Markdown links in staged changed documents",
+      "exit_code": 0,
+      "checked_targets": 56
+    }
+  ],
+  "standard_assumption_names": [
+    "ClassicalDedekindReals.sig_not_dec",
+    "ClassicalDedekindReals.sig_forall_dec",
+    "Events.inline_assembly_sem",
+    "FunctionalExtensionality.functional_extensionality_dep",
+    "Events.external_functions_sem",
+    "Classical_Prop.classic"
+  ],
+  "generated_files_changed": false,
+  "new_regeneration_performed": false,
+  "generation_provenance": "Unchanged 82 generated hashes authenticated by the existing source-coverage receipt; no new generation claimed.",
+  "newly_discharged_caller_helpers": [
+    "mario_bonk_reflection (null wall; actual HIT request and velocity setter)",
+    "set_mario_action (slide-kick slide to backward ground knockback; actual nested helpers and seven stores)"
+  ],
+  "additional_executed_paths": [
+    "mario_get_floor_class: terrain row 1, retained surface type 0, old slide-kick-slide action",
+    "set_mario_action_moving: target backward ground knockback, intended magnitude 0",
+    "mario_set_forward_vel: exact signed angle shift, bounded sine/cosine reads, five stores",
+    "mario_get_terrain_sound_addend: dry TTC/default floor returns 196608 without writes",
+    "Moving-dispatcher dust suffix: input 4 retains mask 3; input 516 changes mask 3 to 1026",
+    "spawn_particle: any active mask with dust bit set skips all callees and leaves memory unchanged"
+  ],
+  "composition": {
+    "active_theorem": "Pedro.Proofs.MainTheorem.checked_ttc_cog_local_mechanism_us_jp",
+    "caller": "CogSlideExecution.generated_cog_slide_with_two_helpers_us_jp",
+    "ordered_sound_requests": [
+      71614593,
+      335740929
+    ],
+    "sound_count": "Second sound uses zero_ext8(index + 1), derived from the first request stores.",
+    "final_action": 132194,
+    "final_input": 4,
+    "final_particle_request_mask": 3,
+    "anchor_boundaries": 10,
+    "dry_dispatcher_tail": "Executed with identical final memory, consuming the proved final input load."
+  },
+  "remaining_caller_helper_executions_and_anchor_premises": [
+    "update_sliding",
+    "perform_ground_step"
+  ],
+  "remaining_entry_requirements": [
+    "Generated-compatible global/function bindings and composite layouts.",
+    "Already selected and cached animation 140; non-ended frame.",
+    "Ground-step output has terrain addend 196608, null wall, readable retained type-0 floor, action 8389722, zero intended magnitude, input 4, clear Mario request mask.",
+    "Actual sine/cosine table values and readable/writable velocity/action/particle cells.",
+    "Sound queue, next slot permissions and stated Mario/area/floor/global block separation."
+  ],
+  "remaining_scope": [
+    "No legal or sustained in-spot state satisfying the complete memory image has been exhibited.",
+    "Actual surface-query selection and full ground-step/sliding execution remain open.",
+    "sqrtf remains an external semantic boundary; retail instruction receipt is not an external-call contract.",
+    "Complete dispatcher prefix/switch, airborne entry/bounce, and following backward-ground-knockback update remain open.",
+    "Knockback requests animation 123; the existing cache-hit proof for animation 140 does not establish that transition.",
+    "Clear-bit allocation/copy, N64 address refinement, pool and active-bit state, dust and star scheduling, camera and all ordered RNG draws remain open."
+  ],
+  "requested_checklist_item_complete": false,
+  "new_emulator_experiments": false,
+  "game_memory_or_game_code_modified": false,
+  "observed_content_or_approval_rejection": false,
+  "prior_notice_trigger": "Unknown; no bypass or claim about classifier cause."
+}

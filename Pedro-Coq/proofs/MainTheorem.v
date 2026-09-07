@@ -8,7 +8,9 @@ From Pedro.Proofs Require Import
   TTCRetailSqrt TTCCogGeometry TTCCogRNG TTCCogExecution
   GroundGapReturn SlideKickDustExecution MarioDustSources
   RNGSourceCoverage MarioParticleCatalogue EnvironmentNoRNG
-  SoundRequestExecution SlideKickAnimationExecution SlideKickHelperDischarge.
+  SoundRequestExecution SlideKickAnimationExecution SlideKickHelperDischarge
+  CogActionExecution CogReflectionExecution CogSlideExecution CogDustClearing
+  CogParticleAcceptance.
 
 Module MainSpawnUS := DustSpawnParticleExecution.
 Module MainSpawnJP := DustSpawnParticleExecutionJP.
@@ -17,8 +19,9 @@ Module MainSegmented := SegmentedPointerBoundary.
 (** Exact generated action/collision frontier. The direct-writer census has
     only the two stated translation units as its scope. The ground theorem
     begins after the queries. The slide-kick caller executes its cached
-    animation and sound helpers; four actual helper-execution premises and
-    their anchor-boundary conditions remain. None is
+    animation, sound, no-wall reflection and action transition; two actual
+    helper-execution premises and their anchor-boundary conditions remain.
+    The dispatcher dust-clearing suffix is also executed. None is
     an existence theorem for a reachable in-spot dust event. *)
 Definition ttc_cog_dust_action_frontier_claim : Prop :=
   mario_direct_dust_inventory_claim /\
@@ -26,7 +29,13 @@ Definition ttc_cog_dust_action_frontier_claim : Prop :=
   slide_layout_receipt /\
   animation_layout_receipt /\
   sound_layout_receipt /\
-  (forall version, slide_discharged_caller_claim version).
+  cog_action_layout_receipt /\
+  cog_reflection_layout_receipt /\
+  cog_trig_table_bounds_claim /\
+  (forall version, cog_slide_two_helper_claim version) /\
+  (forall version, cog_dust_clearing_claim version) /\
+  (forall version, cog_terrain_execution_claim version) /\
+  cog_particle_acceptance_frontier_claim.
 
 Theorem checked_ttc_cog_dust_action_frontier_us_jp :
   ttc_cog_dust_action_frontier_claim.
@@ -36,7 +45,13 @@ Proof.
       (conj slide_caller_and_anchor_offsets_generated_us_jp
         (conj animation_layout_generated_us_jp
           (conj sound_layout_generated_us_jp
-            generated_slide_kick_with_animation_and_sound_discharged_us_jp))))).
+            (conj cog_action_layout_generated_us_jp
+              (conj cog_reflection_layout_generated_us_jp
+                (conj cog_trig_table_bounds_generated_us_jp
+                 (conj generated_cog_slide_with_two_helpers_us_jp
+                  (conj generated_cog_dispatcher_dust_clearing_us_jp
+                    (conj generated_cog_stone_terrain_addend_us_jp
+                      checked_cog_particle_acceptance_frontier_us_jp))))))))))).
 Qed.
 
 (** Active cog target: exact stock inventory and a pairwise binary32 geometry

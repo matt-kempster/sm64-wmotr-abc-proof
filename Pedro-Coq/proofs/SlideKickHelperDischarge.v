@@ -26,7 +26,7 @@ Definition slide_four_helper_path version ge m0 m3 m4 m5 m6 m7 mario object : Pr
   eval_funcall function_entry2 ge m6 (Internal (slide_action_function version))
     [Vptr mario Ptrofs.zero; Vint (Int.repr 132194); Vint Int.zero]
     E0 m7 (Vint Int.one) /\
-  Mem.load Mint32 m7 mario 20 = Some (Vint Int.zero) /\
+  Mem.load Mint32 m7 mario 20 = Some (Vint (Int.repr 196608)) /\
   Mem.load Mptr m7 mario 136 = Some (Vptr object Ptrofs.zero) /\
   Mem.load Mint32 m7 mario 8 = Some (Vint (Int.repr 2)) /\
   Mem.valid_access m7 Mint32 mario 8 Writable.
@@ -63,7 +63,8 @@ Definition slide_discharged_caller_claim version : Prop :=
       map (fun m => slide_anchor m mario) [m0;m0;m0;m3;m4;m5;m6;m7;m8;m9] =
         repeat (slide_anchor m0 mario) 10 /\
       (forall chunk b offset, b <> queue -> b <> count ->
-        Mem.load chunk m8 b offset = Mem.load chunk m7 b offset).
+        Mem.load chunk m8 b offset = Mem.load chunk m7 b offset) /\
+      Mem.store Mint32 m8 mario 8 (Vint (Int.repr 3)) = Some m9.
 
 Theorem generated_slide_kick_with_animation_and_sound_discharged_us_jp :
   forall version, slide_discharged_caller_claim version.
@@ -80,7 +81,7 @@ Proof.
   pose proof (generated_slide_animation_not_at_end_us_jp version ge m0 mario object
     list target frame loop_end caller Hanimation_layout Hanimation_image) as Hend.
   destruct (generated_sound_request_executes_and_frames_us_jp version ge m7 queue count index
-    (Int.repr 335544321) object (Ptrofs.repr 84) Hsound_layout Hqueue Hcount Hsound_image)
+    (Int.repr 335740929) object (Ptrofs.repr 84) Hsound_layout Hqueue Hcount Hsound_image)
     as [q1 [q2 [m8 [Hstores [Hsound Hsound_frame]]]]].
   destruct Hfour as [Hinput [Hsliding [Hground [Hreflection [Hflags [Hstars [Haction
     [Hterrain [Hobject [Hstars_m7 Hwrite]]]]]]]]]].

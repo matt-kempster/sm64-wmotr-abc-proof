@@ -129,5 +129,10 @@ proofs/MarioParticleCatalogue.v
 proofs/RNGSourceCoverage.v
 proofs/SoundRequestExecution.v
 proofs/SlideKickAnimationExecution.v
+proofs/CogActionExecution.v
+proofs/CogReflectionExecution.v
 proofs/SlideKickHelperDischarge.v
+proofs/CogSlideExecution.v
+proofs/CogDustClearing.v
+proofs/CogParticleAcceptance.v
 proofs/MainTheorem.v
