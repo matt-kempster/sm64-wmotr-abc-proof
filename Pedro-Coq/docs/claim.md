@@ -19,7 +19,7 @@ to game memory or code throughout discovery and validation.
 
 ## What the checked capstones prove
 
-`MainTheorem.checked_ttc_cog_local_mechanism_us_jp` combines four distinct results:
+`MainTheorem.checked_ttc_cog_local_mechanism_us_jp` combines five distinct results:
 
 - Exact generated US/JP cog inventory and a pairwise geometry certificate:
   hexagonal cogs 0 and 3, yaw 57344 and 0, query `(1330, -1025)`, floor height
@@ -43,9 +43,18 @@ to game memory or code throughout discovery and validation.
   preservation at their boundaries. These are not a reachable in-spot event
   or an exhaustive proof about all preserving RNG sources. See
   [the exact slide-kick boundary](ttc-cog-slide-kick.md).
+- Complete direct-RNG, computed-call and particle-field-write syntax coverage
+  in 41 generated units per version, all 18 Mario particle table entries,
+  and a full generated NONE-mode environmental update with both real callees
+  and identical memory. Source-token/include coverage is separately checked
+  against the pin. Runtime linkage/aliasing, TTC environmental entry premises,
+  action preservation and accepted particles remain open. See
+  [the all-RNG boundary](ttc-cog-all-rng.md).
 
 `checked_ttc_cog_source_geometry_us_jp` exposes the geometry component alone.
 `checked_ttc_cog_dust_action_frontier_us_jp` exposes the new action component.
+`checked_ttc_cog_rng_source_frontier_us_jp` exposes the expanded source and
+environmental execution component.
 None of these cog capstones is the requested gameplay theorem.
 
 `checked_pedro_rng_mechanism_us_jp` is an unconditional theorem combining:

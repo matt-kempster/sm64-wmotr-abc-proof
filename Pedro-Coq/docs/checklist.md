@@ -75,9 +75,23 @@ current request.
 - [ ] Discharge slide-kick helper execution/preservation premises and execute
       the dispatcher, entry/bounce path and following knockback update in the
       actual cog state. Account for downstream dust clearing and acceptance.
-- [ ] Complete coverage of other actions, indirect/non-dust sources, objects
-      and camera, then prove preserving RNG possibilities or exclusions for
-      a specified in-spot state. The direct-writer inventory is not this theorem.
+- [x] Generate all seven Mario action groups, interaction, camera, environmental
+      effects and supporting dialog/geometry units for US/JP: 41 units each.
+- [x] Prove structural coverage and exact lists for 282 direct RNG sites,
+      16 computed-call callers and 53 particle-field writers per version.
+      Retain runtime indirect resolution and aliasing as semantic obligations.
+- [x] Decode and check all 18 Mario particle rows plus their terminal sentinel;
+      prove source table-selection coverage for arbitrary request masks.
+- [x] Authenticate all 81 pinned RNG-bearing C/header files and their
+      generated-unit include coverage, with hashes of all 82 generated files.
+- [x] Execute the real NONE-mode environmental update and both real callees,
+      proving identical memory under the stated global-value/binding premises.
+      Separately check TTC's geometry callback argument zero.
+- [ ] Prove preserving RNG possibilities or exclusions for a precise legal
+      in-spot state family, using the [expanded inventory](ttc-cog-all-rng.md).
+      Resolve indirect targets, native/script spawns, TTC environment entry,
+      the runtime table/allocator and all ordered draws. Source coverage alone
+      does not discharge these execution/preservation obligations.
 - [x] Review the repeated content notice and record the known facts,
       uncertainty and [continued gameplay scope](content-notice-review.md).
 - [x] Replay the back-of-cog jump attempt with internal call tracing; record
@@ -110,9 +124,14 @@ current request.
 - [x] Reject `Admitted`, `Axiom`, `Parameter`, `Conjecture`, `Abort`, and tactic
       escape hatches.
 - [x] Complete the current two-pass CompCert 3.15 reproducibility check in an
-      authenticated temporary Linux copy. Both passes agree, and all 56 outputs
-      match the workspace byte for byte (`build/cog-repro-local.log`, exit 0).
+      authenticated temporary Linux copy. Both passes agree, and all 82 outputs
+      match the workspace byte for byte (`build/all-rng-generate-text.log`, exit 0).
 - [x] Compile the complete `_CoqProject` in the configured CompCert proof switch.
+- [x] Validate the expanded all-RNG frontier: 82 reproducible outputs, full
+      Pedro build, no holes, authenticated source coverage, three missing-unit
+      rejection checks, standard assumptions for both expanded cog capstones,
+      and the separate root discipline audit. Retain the
+      [validation receipt](../inputs/rng-frontier-validation.json).
 - [x] Inspect the new cog execution capstone with `Print Assumptions` (standard
       Coq/CompCert axioms only).
 - [x] Inspect every named capstone with `Print Assumptions`, completing the

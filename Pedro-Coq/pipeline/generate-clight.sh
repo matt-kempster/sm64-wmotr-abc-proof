@@ -64,6 +64,18 @@ TRANSLATION_UNITS=(
   "mario_step:src/game/mario_step.c"
   "mario_actions_airborne:src/game/mario_actions_airborne.c"
   "mario_actions_moving:src/game/mario_actions_moving.c"
+  "mario_actions_stationary:src/game/mario_actions_stationary.c"
+  "mario_actions_automatic:src/game/mario_actions_automatic.c"
+  "mario_actions_submerged:src/game/mario_actions_submerged.c"
+  "mario_actions_cutscene:src/game/mario_actions_cutscene.c"
+  "mario_actions_object:src/game/mario_actions_object.c"
+  "interaction:src/game/interaction.c"
+  "camera:src/game/camera.c"
+  "envfx_snow:src/game/envfx_snow.c"
+  "envfx_bubbles:src/game/envfx_bubbles.c"
+  "mario_misc:src/game/mario_misc.c"
+  "ingame_menu:src/game/ingame_menu.c"
+  "level_geo:src/game/level_geo.c"
   "area:src/game/area.c"
   "level_scripts:levels/scripts.c"
   "save_file:src/game/save_file.c"
@@ -85,6 +97,7 @@ TRANSLATION_UNITS=(
   "behavior_data:data/behavior_data.c"
   "platform_displacement:src/game/platform_displacement.c"
   "ttc_level_script:levels/ttc/script.c"
+  "ttc_geo:levels/ttc/geo.c"
   "ttc_area1_macro:PROJECT_TTC_MACRO_INPUT"
   "ttc_spinner_collision:PROJECT_TTC_COLLISION_INPUT"
   "ttc_cog_collision:PROJECT_TTC_COG_COLLISION_INPUT"
@@ -128,6 +141,23 @@ generate_one() {
   case "$source_path" in
     levels/scripts.c)
       unit_flags=("-I$PINNED_SOURCE/levels")
+      ;;
+    src/game/ingame_menu.c)
+      # Reproduce upstream's text_strings.h/text_menu_strings.h rules using
+      # the pinned textconv implementation, never an ambient generated header.
+      local text_include="$PROJECT_ROOT/build/text-$version"
+      mkdir -p "$text_include"
+      cc -O2 -I "$PINNED_SOURCE/tools" \
+        "$PINNED_SOURCE/tools/textconv.c" "$PINNED_SOURCE/tools/utf8.c" \
+        "$PINNED_SOURCE/tools/hashtable.c" -o "$text_include/textconv"
+      cc -E -P -x c "-DVERSION_${version^^}=1" "$PINNED_SOURCE/charmap.txt" \
+        > "$text_include/charmap.txt"
+      "$text_include/textconv" "$PINNED_SOURCE/charmap_menu.txt" \
+        "$PINNED_SOURCE/include/text_menu_strings.h.in" \
+        "$text_include/text_menu_strings.h"
+      "$text_include/textconv" "$text_include/charmap.txt" \
+        "$PINNED_SOURCE/include/text_strings.h.in" "$text_include/text_strings.h"
+      unit_flags=("-I$text_include")
       ;;
   esac
 

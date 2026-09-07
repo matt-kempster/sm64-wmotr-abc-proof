@@ -6,7 +6,8 @@ From Pedro.Proofs Require Import
   DustSpawnParticleExecution DustSpawnParticleExecutionJP
   SegmentedPointerBoundary TTCDebugBoundary TTCRNGWindow TTCRNGCensus
   TTCRetailSqrt TTCCogGeometry TTCCogRNG TTCCogExecution
-  GroundGapReturn SlideKickDustExecution MarioDustSources.
+  GroundGapReturn SlideKickDustExecution MarioDustSources
+  RNGSourceCoverage MarioParticleCatalogue EnvironmentNoRNG.
 
 Module MainSpawnUS := DustSpawnParticleExecution.
 Module MainSpawnJP := DustSpawnParticleExecutionJP.
@@ -39,6 +40,26 @@ Theorem checked_ttc_cog_source_geometry_us_jp :
   ttc_cog_geometry_reduction_claim.
 Proof. exact checked_ttc_cog_geometry_reduction_us_jp. Qed.
 
+(** Exhaustive syntactic inventories within the 41 generated units: all direct
+    primitive calls, all computed-call callers, and all particle-field writers.
+    The separate authenticated source-token/include gate accounts for every
+    pinned C/header file naming the gameplay RNG. Neither gate is a semantic
+    linkage/aliasing theorem. The environmental conjunct executes a real
+    NONE-mode update; connecting its entry globals to TTC remains open.
+    This frontier does not assert exhaustive preserving controller choices. *)
+Definition ttc_cog_rng_source_frontier_claim : Prop :=
+  rng_source_coverage_claim /\
+  mario_particle_catalogue_claim /\
+  environment_exclusion_frontier_claim.
+
+Theorem checked_ttc_cog_rng_source_frontier_us_jp :
+  ttc_cog_rng_source_frontier_claim.
+Proof.
+  exact (conj checked_rng_source_coverage_us_jp
+    (conj checked_mario_particle_catalogue_us_jp
+      checked_environment_exclusion_frontier_us_jp)).
+Qed.
+
 (** The full generated cog update executes both real RNG draws and preserves
     yaw from the specified zero-speed image. The separate recurrence window
     illustrates a four-draw choice; it is not an executed dust/frame schedule.
@@ -48,12 +69,14 @@ Theorem checked_ttc_cog_local_mechanism_us_jp :
   ttc_cog_geometry_reduction_claim /\
   ttc_cog_rng_reduction_claim /\
   (forall version, cog_zero_update_execution_claim version) /\
-  ttc_cog_dust_action_frontier_claim.
+  ttc_cog_dust_action_frontier_claim /\
+  ttc_cog_rng_source_frontier_claim.
 Proof.
   destruct TTCCogExecution.checked_ttc_cog_local_mechanism_us_jp
     as [Hgeometry [Hrng Hexecution]].
   exact (conj Hgeometry (conj Hrng (conj Hexecution
-    checked_ttc_cog_dust_action_frontier_us_jp))).
+    (conj checked_ttc_cog_dust_action_frontier_us_jp
+      checked_ttc_cog_rng_source_frontier_us_jp)))).
 Qed.
 
 (** Initial source-and-arithmetic capstone. Every conjunct is tied either to a

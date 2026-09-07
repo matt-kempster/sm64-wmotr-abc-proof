@@ -1,0 +1,996 @@
+{
+  "schema": 1,
+  "source_revision": "9921382a68bb0c865e5e45eb594d9c64db59b1af",
+  "scope": "gameplay 16-bit RNG; conservative source-token and literal-include coverage",
+  "versions": [
+    "VERSION_US",
+    "VERSION_JP"
+  ],
+  "translation_units": {
+    "mario": "src/game/mario.c",
+    "mario_step": "src/game/mario_step.c",
+    "mario_actions_airborne": "src/game/mario_actions_airborne.c",
+    "mario_actions_moving": "src/game/mario_actions_moving.c",
+    "mario_actions_stationary": "src/game/mario_actions_stationary.c",
+    "mario_actions_automatic": "src/game/mario_actions_automatic.c",
+    "mario_actions_submerged": "src/game/mario_actions_submerged.c",
+    "mario_actions_cutscene": "src/game/mario_actions_cutscene.c",
+    "mario_actions_object": "src/game/mario_actions_object.c",
+    "interaction": "src/game/interaction.c",
+    "camera": "src/game/camera.c",
+    "envfx_snow": "src/game/envfx_snow.c",
+    "envfx_bubbles": "src/game/envfx_bubbles.c",
+    "mario_misc": "src/game/mario_misc.c",
+    "ingame_menu": "src/game/ingame_menu.c",
+    "level_geo": "src/game/level_geo.c",
+    "area": "src/game/area.c",
+    "level_scripts": "levels/scripts.c",
+    "save_file": "src/game/save_file.c",
+    "spawn_sound": "src/game/spawn_sound.c",
+    "memory": "src/game/memory.c",
+    "object_list_processor": "src/game/object_list_processor.c",
+    "behavior_script": "src/engine/behavior_script.c",
+    "graph_node": "src/engine/graph_node.c",
+    "audio_external": "src/audio/external.c",
+    "spawn_object": "src/game/spawn_object.c",
+    "macro_special_objects": "src/game/macro_special_objects.c",
+    "math_util": "src/engine/math_util.c",
+    "surface_load": "src/engine/surface_load.c",
+    "surface_collision": "src/engine/surface_collision.c",
+    "object_helpers": "src/game/object_helpers.c",
+    "obj_behaviors": "src/game/obj_behaviors.c",
+    "behavior_actions": "src/game/behavior_actions.c",
+    "obj_behaviors_2": "src/game/obj_behaviors_2.c",
+    "behavior_data": "data/behavior_data.c",
+    "platform_displacement": "src/game/platform_displacement.c",
+    "ttc_level_script": "levels/ttc/script.c",
+    "ttc_geo": "levels/ttc/geo.c",
+    "ttc_area1_macro": "PROJECT_TTC_MACRO_INPUT",
+    "ttc_spinner_collision": "PROJECT_TTC_COLLISION_INPUT",
+    "ttc_cog_collision": "PROJECT_TTC_COG_COLLISION_INPUT"
+  },
+  "primitive_bearing_sources": [
+    {
+      "path": "src/engine/behavior_script.c",
+      "sha256": "f648bd72f34714c86aba5bb5d1d413ca6c1e5b564e062ab2d8128523e9beb3b3",
+      "identifiers": [
+        "gRandomSeed16",
+        "random_float",
+        "random_sign",
+        "random_u16"
+      ],
+      "including_units": [
+        "behavior_script"
+      ]
+    },
+    {
+      "path": "src/engine/behavior_script.h",
+      "sha256": "4cf651885f9224d968f7f014a8bca00dd84e9e6b1912424efb07b19b01e4d2b4",
+      "identifiers": [
+        "random_float",
+        "random_sign",
+        "random_u16"
+      ],
+      "including_units": [
+        "behavior_actions",
+        "behavior_script",
+        "camera",
+        "envfx_bubbles",
+        "envfx_snow",
+        "mario_actions_cutscene",
+        "mario_misc",
+        "obj_behaviors",
+        "obj_behaviors_2",
+        "object_helpers",
+        "object_list_processor",
+        "spawn_sound",
+        "surface_load"
+      ]
+    },
+    {
+      "path": "src/game/behaviors/amp.inc.c",
+      "sha256": "4917c32eab9a1ec1c4a36e81a8b5cdc1cc69151f5ee4edaa482f6950616aa3d2",
+      "identifiers": [
+        "random_u16"
+      ],
+      "including_units": [
+        "obj_behaviors"
+      ]
+    },
+    {
+      "path": "src/game/behaviors/beta_chest.inc.c",
+      "sha256": "464137c7fcf2c07d9a1786d224999a39f4a30041928756e5cc44498eeb2779bc",
+      "identifiers": [
+        "random_u16"
+      ],
+      "including_units": [
+        "behavior_actions"
+      ]
+    },
+    {
+      "path": "src/game/behaviors/bird.inc.c",
+      "sha256": "add0d61698c4e9f271cab9271a0d34d592df9cb7f214642fd3e0a987ce865808",
+      "identifiers": [
+        "random_float",
+        "random_u16"
+      ],
+      "including_units": [
+        "obj_behaviors_2"
+      ]
+    },
+    {
+      "path": "src/game/behaviors/blue_fish.inc.c",
+      "sha256": "e3fc5b5ceffa76b9af2f6a502aecc740042dd65e43d9731f1fcdb956e037c499",
+      "identifiers": [
+        "random_float",
+        "random_sign"
+      ],
+      "including_units": [
+        "behavior_actions"
+      ]
+    },
+    {
+      "path": "src/game/behaviors/bobomb.inc.c",
+      "sha256": "4c68f24820a85bc88f764d25f4b6e8fdfe16a8c7c033b0af6c55b6a6c2e24ada",
+      "identifiers": [
+        "random_float"
+      ],
+      "including_units": [
+        "obj_behaviors"
+      ]
+    },
+    {
+      "path": "src/game/behaviors/bomp.inc.c",
+      "sha256": "a77e1f1ef72ec5db4ec28ff12c3f34568e6d9f53e2f7392ff10262b77288659e",
+      "identifiers": [
+        "random_float"
+      ],
+      "including_units": [
+        "obj_behaviors"
+      ]
+    },
+    {
+      "path": "src/game/behaviors/boo.inc.c",
+      "sha256": "91776dbe882b21567d736380cc69857dabfd799d53f1726d69972a83ddcc5e10",
+      "identifiers": [
+        "random_float",
+        "random_u16"
+      ],
+      "including_units": [
+        "behavior_actions"
+      ]
+    },
+    {
+      "path": "src/game/behaviors/boulder.inc.c",
+      "sha256": "1fb8fb86a5eb97d797baa3b461afff87a0d9a2f641b76a8ef23910dc36f2a94c",
+      "identifiers": [
+        "random_float"
+      ],
+      "including_units": [
+        "obj_behaviors"
+      ]
+    },
+    {
+      "path": "src/game/behaviors/bouncing_fireball.inc.c",
+      "sha256": "c6b66b84f066ea3996c22d90aaba8940600f80ee7df30b5a6e7400f71b4bf09d",
+      "identifiers": [
+        "random_float"
+      ],
+      "including_units": [
+        "behavior_actions"
+      ]
+    },
+    {
+      "path": "src/game/behaviors/bowling_ball.inc.c",
+      "sha256": "a9b662b7fff13f9777973ee3c88986f4053abf5b474c5322c24ebd055062927b",
+      "identifiers": [
+        "random_float"
+      ],
+      "including_units": [
+        "obj_behaviors"
+      ]
+    },
+    {
+      "path": "src/game/behaviors/bowser.inc.c",
+      "sha256": "0f188b6fb37d865a38fde399a83bd5608fb14a366d229d9dcf47ccf580a006b1",
+      "identifiers": [
+        "random_float"
+      ],
+      "including_units": [
+        "behavior_actions"
+      ]
+    },
+    {
+      "path": "src/game/behaviors/bowser_bomb.inc.c",
+      "sha256": "becc81339d114bdf63eaf9c18c127673ce101b3904d7d9129691a48825c37170",
+      "identifiers": [
+        "random_float"
+      ],
+      "including_units": [
+        "obj_behaviors"
+      ]
+    },
+    {
+      "path": "src/game/behaviors/bowser_flame.inc.c",
+      "sha256": "d42d795d188fdf1481d4d90e0ccfe86471cfed41a2767440302ac8839dd546c4",
+      "identifiers": [
+        "random_float",
+        "random_u16"
+      ],
+      "including_units": [
+        "behavior_actions"
+      ]
+    },
+    {
+      "path": "src/game/behaviors/break_particles.inc.c",
+      "sha256": "45d79f5f77b7d6fc7f3519a6efbb843e3d755b5bf8990207730dbe918f52d9d4",
+      "identifiers": [
+        "random_float",
+        "random_u16"
+      ],
+      "including_units": [
+        "behavior_actions"
+      ]
+    },
+    {
+      "path": "src/game/behaviors/breakable_box_small.inc.c",
+      "sha256": "27d7735e30af7c31dab7f037a92168eb66686098ccb0e024206f672f94728273",
+      "identifiers": [
+        "random_float"
+      ],
+      "including_units": [
+        "obj_behaviors"
+      ]
+    },
+    {
+      "path": "src/game/behaviors/bub.inc.c",
+      "sha256": "81331b03eb8931c0ecccc4484a3d3a2013620a2f000253915ea9075b2660bd94",
+      "identifiers": [
+        "random_float"
+      ],
+      "including_units": [
+        "behavior_actions"
+      ]
+    },
+    {
+      "path": "src/game/behaviors/bubba.inc.c",
+      "sha256": "8e3cbddcc02711b6acb005563e6fc69fec9095d5569d58c9dd121cd16ef45b45",
+      "identifiers": [
+        "random_u16"
+      ],
+      "including_units": [
+        "obj_behaviors_2"
+      ]
+    },
+    {
+      "path": "src/game/behaviors/bubble.inc.c",
+      "sha256": "98befc995ab4863bcc7e086c73ffb6a39ecbcbf3ce9d34ab2d6e7128cae1b370",
+      "identifiers": [
+        "random_float"
+      ],
+      "including_units": [
+        "obj_behaviors"
+      ]
+    },
+    {
+      "path": "src/game/behaviors/bullet_bill.inc.c",
+      "sha256": "3629cd1f9919db7ef2f616783ebdb551f8a2de21c09677552581b4c5ec3b604a",
+      "identifiers": [
+        "random_float"
+      ],
+      "including_units": [
+        "behavior_actions"
+      ]
+    },
+    {
+      "path": "src/game/behaviors/bully.inc.c",
+      "sha256": "3003e7e5e18bc8fb9c15a7bb26a7a5f2b002977bee49b5ccc56f44569eb2b7b1",
+      "identifiers": [
+        "random_float"
+      ],
+      "including_units": [
+        "obj_behaviors"
+      ]
+    },
+    {
+      "path": "src/game/behaviors/butterfly.inc.c",
+      "sha256": "e38aa05005c07b26790074b3efc12257fa727a7b81c47bdf5cd52b540b6b0f74",
+      "identifiers": [
+        "random_float"
+      ],
+      "including_units": [
+        "obj_behaviors"
+      ]
+    },
+    {
+      "path": "src/game/behaviors/castle_flag.inc.c",
+      "sha256": "bd74b300e76a8db2b61fb24ad149ef0b9ed7c82f757ad11b9d6e77e20efd392c",
+      "identifiers": [
+        "random_float"
+      ],
+      "including_units": [
+        "obj_behaviors"
+      ]
+    },
+    {
+      "path": "src/game/behaviors/chain_chomp.inc.c",
+      "sha256": "53291ffb2131fa5debb2eabd80d27ce33b554b93e8cf8467980644a9215ca88e",
+      "identifiers": [
+        "random_sign"
+      ],
+      "including_units": [
+        "obj_behaviors_2"
+      ]
+    },
+    {
+      "path": "src/game/behaviors/chuckya.inc.c",
+      "sha256": "ea3fcf559f9735162f17c2674f086d7a590897bf227ac1bf81579df9a88bb50f",
+      "identifiers": [
+        "random_float"
+      ],
+      "including_units": [
+        "behavior_actions"
+      ]
+    },
+    {
+      "path": "src/game/behaviors/coin.inc.c",
+      "sha256": "4ac7bb763239d320703af8980785f63be09593371cef7626fc56d3137b88bbf6",
+      "identifiers": [
+        "random_float",
+        "random_u16"
+      ],
+      "including_units": [
+        "behavior_actions"
+      ]
+    },
+    {
+      "path": "src/game/behaviors/corkbox.inc.c",
+      "sha256": "d739af1d2a1b1c22461224896640d854c3cd11dc54b17c91eb5e4e920c1ef0ab",
+      "identifiers": [
+        "random_float"
+      ],
+      "including_units": [
+        "obj_behaviors"
+      ]
+    },
+    {
+      "path": "src/game/behaviors/end_birds_1.inc.c",
+      "sha256": "63d213e1092bbe53acfac6690b23a14080f6d23a5969d75f7acb36ef2bbe130c",
+      "identifiers": [
+        "random_float"
+      ],
+      "including_units": [
+        "camera"
+      ]
+    },
+    {
+      "path": "src/game/behaviors/end_birds_2.inc.c",
+      "sha256": "194df888791dcac3cf991842a13115253ac1ffbcdf1c8402048756508f63fe93",
+      "identifiers": [
+        "random_float"
+      ],
+      "including_units": [
+        "camera"
+      ]
+    },
+    {
+      "path": "src/game/behaviors/eyerok.inc.c",
+      "sha256": "8d6cfd5bbb8579cb681bcf7cb589a28d880f99ed8bdf3a8d0264045e6bb780d0",
+      "identifiers": [
+        "random_u16"
+      ],
+      "including_units": [
+        "obj_behaviors_2"
+      ]
+    },
+    {
+      "path": "src/game/behaviors/fish.inc.c",
+      "sha256": "66ff53ff64b849b2ce8fbb2df66f4d51b53a9aedcb137186d5694c5501193d43",
+      "identifiers": [
+        "random_float"
+      ],
+      "including_units": [
+        "behavior_actions"
+      ]
+    },
+    {
+      "path": "src/game/behaviors/flame.inc.c",
+      "sha256": "d6ab778e90fccf19768af70e07336caf79da204dbebc11b67b138dd8f2ae9275",
+      "identifiers": [
+        "random_float",
+        "random_u16"
+      ],
+      "including_units": [
+        "obj_behaviors_2"
+      ]
+    },
+    {
+      "path": "src/game/behaviors/flame_mario.inc.c",
+      "sha256": "a277c9f3e426e6864446a32a1429e5872152ddf95fb2f146c095415347277670",
+      "identifiers": [
+        "random_float",
+        "random_u16"
+      ],
+      "including_units": [
+        "behavior_actions"
+      ]
+    },
+    {
+      "path": "src/game/behaviors/flamethrower.inc.c",
+      "sha256": "e76f1a085619ba73d777b8056cfaaab93a80307dc80ff0577cbbf84ff7506062",
+      "identifiers": [
+        "random_float"
+      ],
+      "including_units": [
+        "behavior_actions"
+      ]
+    },
+    {
+      "path": "src/game/behaviors/fly_guy.inc.c",
+      "sha256": "672e8be0d9a69e03004866b555c2c6535d834304a0c3209cd2d0342b8e21752d",
+      "identifiers": [
+        "random_float",
+        "random_u16"
+      ],
+      "including_units": [
+        "obj_behaviors_2"
+      ]
+    },
+    {
+      "path": "src/game/behaviors/flying_bookend_switch.inc.c",
+      "sha256": "c527123caab656f13477caa72e47dbe1bb354dd405ceae264c0a8122130c23ce",
+      "identifiers": [
+        "random_u16"
+      ],
+      "including_units": [
+        "obj_behaviors_2"
+      ]
+    },
+    {
+      "path": "src/game/behaviors/goomba.inc.c",
+      "sha256": "52126a24eabea3e99abb6f1270615a1bcd074fb230718c391fc87a47976b5a5a",
+      "identifiers": [
+        "random_u16"
+      ],
+      "including_units": [
+        "obj_behaviors_2"
+      ]
+    },
+    {
+      "path": "src/game/behaviors/intro_scene.inc.c",
+      "sha256": "c9a4b786b8af3f69865adf1eac8f4d1ac2da18016acda53769a5e25ce91a4635",
+      "identifiers": [
+        "random_float"
+      ],
+      "including_units": [
+        "camera"
+      ]
+    },
+    {
+      "path": "src/game/behaviors/jumping_box.inc.c",
+      "sha256": "b1bcc1a08c3ae3020e9a282184038e51f194e7386db8d84c67c462c4387d5572",
+      "identifiers": [
+        "random_float"
+      ],
+      "including_units": [
+        "behavior_actions"
+      ]
+    },
+    {
+      "path": "src/game/behaviors/klepto.inc.c",
+      "sha256": "d024e1d08b0c6c7f60298d5d97496398fd4f4aad76a2e5dab261ffeac57a410c",
+      "identifiers": [
+        "random_u16"
+      ],
+      "including_units": [
+        "obj_behaviors_2"
+      ]
+    },
+    {
+      "path": "src/game/behaviors/koopa.inc.c",
+      "sha256": "2e2ed948726d7e74f23ec16332dc915687789138285f3fc40792ecdcd2fa0275",
+      "identifiers": [
+        "random_sign"
+      ],
+      "including_units": [
+        "obj_behaviors_2"
+      ]
+    },
+    {
+      "path": "src/game/behaviors/koopa_shell.inc.c",
+      "sha256": "16d7b01532f2258c52f8d2258c98dcfe5dabe8c769c897cec9d85eb9938d3a80",
+      "identifiers": [
+        "random_float",
+        "random_u16"
+      ],
+      "including_units": [
+        "behavior_actions"
+      ]
+    },
+    {
+      "path": "src/game/behaviors/lll_hexagonal_ring.inc.c",
+      "sha256": "e6f366929b6e8df98b7ef9990f7fd0bf43afc3a932eb42733097ce1bd258ba26",
+      "identifiers": [
+        "random_float",
+        "random_u16"
+      ],
+      "including_units": [
+        "behavior_actions"
+      ]
+    },
+    {
+      "path": "src/game/behaviors/moneybag.inc.c",
+      "sha256": "0706b8af7b141bb3bcc63ee81a07e676ed1683613e5f4595485c1cb83bff979b",
+      "identifiers": [
+        "random_float"
+      ],
+      "including_units": [
+        "obj_behaviors"
+      ]
+    },
+    {
+      "path": "src/game/behaviors/monty_mole.inc.c",
+      "sha256": "b8668d3326554381e5eeffd344361bddac8366731fdc2b344744b455ee5ea8f4",
+      "identifiers": [
+        "random_float",
+        "random_sign"
+      ],
+      "including_units": [
+        "obj_behaviors_2"
+      ]
+    },
+    {
+      "path": "src/game/behaviors/mr_i.inc.c",
+      "sha256": "2ffa452f3bc7cf3ee4e55bbf0edccffb9ddca1664d2a3bf7488ea070fc02a7df",
+      "identifiers": [
+        "random_float",
+        "random_u16"
+      ],
+      "including_units": [
+        "behavior_actions"
+      ]
+    },
+    {
+      "path": "src/game/behaviors/piranha_bubbles.inc.c",
+      "sha256": "5998cc39a77d78bbe195974d6d97376746ccc3eed40c367b281342bb2e56621c",
+      "identifiers": [
+        "random_float",
+        "random_u16"
+      ],
+      "including_units": [
+        "behavior_actions"
+      ]
+    },
+    {
+      "path": "src/game/behaviors/pyramid_top.inc.c",
+      "sha256": "53661da16ad0b1952ef96dc9b8b5c3ea2e418be2ff42507b55584207a5c0c6a8",
+      "identifiers": [
+        "random_float",
+        "random_u16"
+      ],
+      "including_units": [
+        "obj_behaviors"
+      ]
+    },
+    {
+      "path": "src/game/behaviors/seaweed.inc.c",
+      "sha256": "807463fe613d421e8a726120097ea1bb956b8a4d793bccadead6f73027265eea",
+      "identifiers": [
+        "random_float"
+      ],
+      "including_units": [
+        "obj_behaviors"
+      ]
+    },
+    {
+      "path": "src/game/behaviors/skeeter.inc.c",
+      "sha256": "a7314392dfc6f2191c5d73f532297dbeebc233ebd9dbbec14d3b68484d0e062b",
+      "identifiers": [
+        "random_u16"
+      ],
+      "including_units": [
+        "obj_behaviors_2"
+      ]
+    },
+    {
+      "path": "src/game/behaviors/sliding_platform.inc.c",
+      "sha256": "b2811ea91124a1ae9faeff0fd92c4b70c335a0edec1342debe1426a8124c0448",
+      "identifiers": [
+        "random_float"
+      ],
+      "including_units": [
+        "obj_behaviors"
+      ]
+    },
+    {
+      "path": "src/game/behaviors/spiny.inc.c",
+      "sha256": "44a2c5908ce167b831828c458d1cf3415276e79d7b2bd0fe0d3b002e912f680e",
+      "identifiers": [
+        "random_sign"
+      ],
+      "including_units": [
+        "obj_behaviors_2"
+      ]
+    },
+    {
+      "path": "src/game/behaviors/thwomp.inc.c",
+      "sha256": "7882dfed7e6eae59afab9f1d6b3b3d33650f3ce6636ea87da817ccb2af3eeee4",
+      "identifiers": [
+        "random_float"
+      ],
+      "including_units": [
+        "behavior_actions"
+      ]
+    },
+    {
+      "path": "src/game/behaviors/tree_particles.inc.c",
+      "sha256": "d947ff1c693a5ef7c55feafe7a937917e1cb12a846d33fa7a74e641be018cb2b",
+      "identifiers": [
+        "random_float",
+        "random_u16"
+      ],
+      "including_units": [
+        "behavior_actions"
+      ]
+    },
+    {
+      "path": "src/game/behaviors/triplet_butterfly.inc.c",
+      "sha256": "8f7773fb49859938fb4185fdf040a6ea53535e3a595b0995347ef0c828d8df4a",
+      "identifiers": [
+        "random_u16"
+      ],
+      "including_units": [
+        "obj_behaviors_2"
+      ]
+    },
+    {
+      "path": "src/game/behaviors/ttc_2d_rotator.inc.c",
+      "sha256": "f5892f014759e89f1c65ccb378ee4a4c48fb5c139e5c761c14a3258f230ff979",
+      "identifiers": [
+        "random_u16"
+      ],
+      "including_units": [
+        "obj_behaviors_2"
+      ]
+    },
+    {
+      "path": "src/game/behaviors/ttc_cog.inc.c",
+      "sha256": "f3f475f0aa26e7bdac0e9e30a95e41f4fab4ba6e3db54c8158299d767a1b16c2",
+      "identifiers": [
+        "random_sign",
+        "random_u16"
+      ],
+      "including_units": [
+        "obj_behaviors_2"
+      ]
+    },
+    {
+      "path": "src/game/behaviors/ttc_elevator.inc.c",
+      "sha256": "95e3293ecb133154254e9d4fd6f004753cec121afc49268a25561e320d307d69",
+      "identifiers": [
+        "random_sign"
+      ],
+      "including_units": [
+        "obj_behaviors_2"
+      ]
+    },
+    {
+      "path": "src/game/behaviors/ttc_moving_bar.inc.c",
+      "sha256": "abc5e1f827c76b839f1a9fa07c50342fcf58bec7c5ace7f1b30764b86602883c",
+      "identifiers": [
+        "random_u16"
+      ],
+      "including_units": [
+        "obj_behaviors_2"
+      ]
+    },
+    {
+      "path": "src/game/behaviors/ttc_pendulum.inc.c",
+      "sha256": "117a6d1962b3372fc83cd9179ab8f356b7f177c4226f71de4d6604b036d60ffc",
+      "identifiers": [
+        "random_u16"
+      ],
+      "including_units": [
+        "obj_behaviors_2"
+      ]
+    },
+    {
+      "path": "src/game/behaviors/ttc_spinner.inc.c",
+      "sha256": "111ced3e334bea30c245ada3c568ac4826c7eb2e83d6917b6420682fd26ac385",
+      "identifiers": [
+        "random_sign"
+      ],
+      "including_units": [
+        "obj_behaviors_2"
+      ]
+    },
+    {
+      "path": "src/game/behaviors/ttc_treadmill.inc.c",
+      "sha256": "da746db85b3e8cf1088560c2e15ed86580b3c614e817a87bbe7ee6f5bb13f632",
+      "identifiers": [
+        "random_sign"
+      ],
+      "including_units": [
+        "obj_behaviors_2"
+      ]
+    },
+    {
+      "path": "src/game/behaviors/tumbling_bridge.inc.c",
+      "sha256": "c507008f4a71e0c01f46adbd15f284120eff20d9eeb16d0c2b8aa2d4c0e94778",
+      "identifiers": [
+        "random_sign"
+      ],
+      "including_units": [
+        "behavior_actions"
+      ]
+    },
+    {
+      "path": "src/game/behaviors/tuxie.inc.c",
+      "sha256": "452c22f90ad66283c2cb16bb14600d3648200d326966c9c4d816226daafea9b5",
+      "identifiers": [
+        "random_float"
+      ],
+      "including_units": [
+        "behavior_actions"
+      ]
+    },
+    {
+      "path": "src/game/behaviors/tweester.inc.c",
+      "sha256": "5c830197074bb241d0ad9962c88776310941dcb897dd0c2a83ff26d20ed813a6",
+      "identifiers": [
+        "random_float",
+        "random_u16"
+      ],
+      "including_units": [
+        "behavior_actions"
+      ]
+    },
+    {
+      "path": "src/game/behaviors/ukiki.inc.c",
+      "sha256": "1c6d5ecaba9f020ede647ce6fbe5e7c6e51a1b6f3614cea8354847ea3bb2cc63",
+      "identifiers": [
+        "random_float"
+      ],
+      "including_units": [
+        "behavior_actions"
+      ]
+    },
+    {
+      "path": "src/game/behaviors/water_bomb_cannon.inc.c",
+      "sha256": "6d73645dfb0352d8bb28af3fafccbcbf5886c16d7b08498710bb0e1cb0e08435",
+      "identifiers": [
+        "random_u16"
+      ],
+      "including_units": [
+        "obj_behaviors_2"
+      ]
+    },
+    {
+      "path": "src/game/behaviors/water_mist.inc.c",
+      "sha256": "774ceb0f2a115e99a2cb52eb583aa92a25bb0ecf9e038390cc72c2a5b5e81001",
+      "identifiers": [
+        "random_float"
+      ],
+      "including_units": [
+        "behavior_actions"
+      ]
+    },
+    {
+      "path": "src/game/behaviors/water_objs.inc.c",
+      "sha256": "1233a40ffac0169525d1a7690372a6a89cac5e4dd87c4c35c536ed110270a858",
+      "identifiers": [
+        "random_float"
+      ],
+      "including_units": [
+        "behavior_actions"
+      ]
+    },
+    {
+      "path": "src/game/behaviors/water_ring.inc.c",
+      "sha256": "55298c387170b708f0302ec406f1c7727f0f9346923d0f7480ea854ca7924372",
+      "identifiers": [
+        "random_float"
+      ],
+      "including_units": [
+        "obj_behaviors"
+      ]
+    },
+    {
+      "path": "src/game/behaviors/water_splashes_and_waves.inc.c",
+      "sha256": "a70d31332e5411b7003e3a850cf8ea021b602b1f80d0f331cf2dd4a09b7387b7",
+      "identifiers": [
+        "random_float",
+        "random_u16"
+      ],
+      "including_units": [
+        "behavior_actions"
+      ]
+    },
+    {
+      "path": "src/game/behaviors/wiggler.inc.c",
+      "sha256": "80efee4f4253cf8cc3e42bd7cb9d266402532232ed95bd0e39483d9eca569803",
+      "identifiers": [
+        "random_sign"
+      ],
+      "including_units": [
+        "obj_behaviors_2"
+      ]
+    },
+    {
+      "path": "src/game/behaviors/wind.inc.c",
+      "sha256": "de7794a89acdd19063fa23dc7cbfffe488eefb52c0aece81d33ed028823ce3a8",
+      "identifiers": [
+        "random_float",
+        "random_u16"
+      ],
+      "including_units": [
+        "behavior_actions"
+      ]
+    },
+    {
+      "path": "src/game/behaviors/yoshi.inc.c",
+      "sha256": "3f08a47c2c6d9c01aa973df783f83ab1caa23be0bb004e67bc4f417647a8a35e",
+      "identifiers": [
+        "random_float"
+      ],
+      "including_units": [
+        "obj_behaviors"
+      ]
+    },
+    {
+      "path": "src/game/camera.c",
+      "sha256": "61be2adc8e87e349f28e161de3585ef68c307270d5fd6cd9735fe1fd922a58ef",
+      "identifiers": [
+        "random_float"
+      ],
+      "including_units": [
+        "camera"
+      ]
+    },
+    {
+      "path": "src/game/envfx_bubbles.c",
+      "sha256": "909e58f9a3495c0be990955cce5139a3e5001b4f3dc44dbe16a3e96f2ef5fe7a",
+      "identifiers": [
+        "random_float",
+        "random_u16"
+      ],
+      "including_units": [
+        "envfx_bubbles"
+      ]
+    },
+    {
+      "path": "src/game/envfx_snow.c",
+      "sha256": "b54270e361d48b2cd4209171c21930d5dff58c7645f1d84033e88630c2c5e012",
+      "identifiers": [
+        "random_float"
+      ],
+      "including_units": [
+        "envfx_snow"
+      ]
+    },
+    {
+      "path": "src/game/obj_behaviors.c",
+      "sha256": "a4b523577849559c7c029b5d120ae102621f731a8482d6570315e8e6c9aae217",
+      "identifiers": [
+        "random_float",
+        "random_u16"
+      ],
+      "including_units": [
+        "obj_behaviors"
+      ]
+    },
+    {
+      "path": "src/game/obj_behaviors_2.c",
+      "sha256": "6ca1c8e343658640dee2af51741d0fd2fc2d340fd85b874a729bfc6a6ed5481e",
+      "identifiers": [
+        "random_float",
+        "random_sign",
+        "random_u16"
+      ],
+      "including_units": [
+        "obj_behaviors_2"
+      ]
+    },
+    {
+      "path": "src/game/object_helpers.c",
+      "sha256": "f25b45830541914ee18628e023ff8b7bb93a08559196f5896b85db135b633663",
+      "identifiers": [
+        "random_float",
+        "random_u16"
+      ],
+      "including_units": [
+        "object_helpers"
+      ]
+    }
+  ],
+  "generated_sha256": {
+    "us_mario.v": "b361be71d9ac105350ccbf16c7088eeedb40d08d7ef2bc0adbd4984a8264566f",
+    "us_mario_step.v": "51240a5cdac4b6e482edcf465d8a4670bd8f0b7a276bdf026eb9a5c022a50dc9",
+    "us_mario_actions_airborne.v": "54c91a5e5717ed31a1f373c7305c2ba952aed73f55a807237d553f9a0c4c6a5a",
+    "us_mario_actions_moving.v": "024e740eaccd8b1395470e5ac3d9a2ac8f429a3c45f01f51738758a9416dd9dc",
+    "us_mario_actions_stationary.v": "5bf3bd47fc5f7a69d2679270d0437d081509b42133bda3039b78beac5298af18",
+    "us_mario_actions_automatic.v": "eea94291d1e73de401c119e46c26faafabb2eb61e74de36e8c545431e3b6978a",
+    "us_mario_actions_submerged.v": "4dda1bca64f4077bd0e5ae0eca35ed59ed9971bde8d3a235bf153f3a77a2155a",
+    "us_mario_actions_cutscene.v": "34cfa174debc16cf951e7e78b79e7f81fa4ae4af89ee187e1c3a22c2ebec2bcf",
+    "us_mario_actions_object.v": "c973be2a1062e5cf3c7e38a28d72c44c83a94bb974c76a48454d0130f34bb9f4",
+    "us_interaction.v": "ef5dbb6c271df4cc97d962cf22097380d6e807486bf89968f64fcc686b905bba",
+    "us_camera.v": "d6cceeac64ed50492426e0c362e95444141dffdcd348ad5b40e2a67b1e4d2cb9",
+    "us_envfx_snow.v": "5c2707af1772d1000ecfed5317dfeafc42bb8debea49408be64f2034f74aef1d",
+    "us_envfx_bubbles.v": "e4757e083448805b1a1360a778c28956475303a52d1a8010cfca8925643af31e",
+    "us_mario_misc.v": "7c3dd1f2bcaac77025e42ce8900bf53c5e54d466f08bfe9ce8ed776bf77c4602",
+    "us_ingame_menu.v": "f4bd3f02da742b5368ff7a8f38bf69ffccb674a8fe54129830f08f2b6534684a",
+    "us_level_geo.v": "1ce1929be7f5e4838d8a6c0a7df8dda89e9812e41a5b3767ddae8fe4ee152fbd",
+    "us_area.v": "5234563c4e7067b96f5e87b710d3a8d8df5a1f4059ef4d24d9c933a0007c344e",
+    "us_level_scripts.v": "36603f1716212b1ec106d648637f77b5b5d5a3a6c92db08970d8143552df6a22",
+    "us_save_file.v": "1ef5e3c73cad165f18b99076afd3593f4850862c2c3ef0e6b91d4d9e98527ed8",
+    "us_spawn_sound.v": "db84c5ce063a70245f44ae4591d1dbe2be8de6cdd0d6f50989b1a99149e1fc6a",
+    "us_memory.v": "11e82ca69c87d90d3cc387f839023800f12f12b143636ceb90cd71a9d013aabe",
+    "us_object_list_processor.v": "a9a80562a39c065e63ce28083816de93d9a87a9ee03780cb4817ee711343ec19",
+    "us_behavior_script.v": "43065842d559ecb4919e4555a4f49e0dbeec25c30c3531ed24e54ce48154795d",
+    "us_graph_node.v": "6577200ef03529c5c9d4e712b6cfdb2ad0a28915092e32290be505a98d6dc754",
+    "us_audio_external.v": "b4cf527e6fda9abbfd1d3a3abd76572a07cd9b305f8983a0689f9709882c7a7a",
+    "us_spawn_object.v": "05905a0e8e322f34479b048240e96390715f80fb142fac3660ae4a1cce76c556",
+    "us_macro_special_objects.v": "5ab7eb7becee83f1ba42c92980cba51e85fbb0227bc496524f64f2e3ff3f51f4",
+    "us_math_util.v": "a0f2675aa84f08aff04dc83da3593d6ddc342b5acc83f21bdc43cabfef1267f3",
+    "us_surface_load.v": "f4b617126f6280fac06cd05b54d89f8da817b8b8fd0aa944a846d8465226ca93",
+    "us_surface_collision.v": "cc682cae99b3c523968861000262d1b5a175dc1a8d08fbf4323ce5d91138d970",
+    "us_object_helpers.v": "155342054668992547d2c6f47132f5d3735ca1992f85ceafb79fa4f22273f70c",
+    "us_obj_behaviors.v": "7df1c2218de34407fbed02a5f3c72616131f66278dd5f9b96e5b77f92101da8f",
+    "us_behavior_actions.v": "5f4d8eb3b65a2ad8b2e440609f5c659a87d2047379cc8c712680969ce1b6d6b2",
+    "us_obj_behaviors_2.v": "ed1fc3ac7f6106fc0d375ca27a6d9b5bb577e50c7ac0b0b406359985b93705ab",
+    "us_behavior_data.v": "92ab7072d4c630876fdb7f2c6906287ebc67919e7308391977f98dd7aa1124a4",
+    "us_platform_displacement.v": "e0dcb5973a4a66b1b38edfe536d2b9a4cce93510503404ef5489c94bf812ac1b",
+    "us_ttc_level_script.v": "2261cf79e846d7b356c0bc5603813a57c9cf521a47a55874b33676d63f4f78e0",
+    "us_ttc_geo.v": "f1c172558c79e82d2006ab0526df86fc74bca4cc30c22de0f863d3c662d83330",
+    "us_ttc_area1_macro.v": "6d97ae38a92ff25947c00546c0bb7ce19a0e4ff0368fb479a230ea901bcc7f25",
+    "us_ttc_spinner_collision.v": "cf4c535b302fd523cb167b19a474a7309c12d5b1b5bd4a9bf6a1e7a5d3edf74a",
+    "us_ttc_cog_collision.v": "35212cb18a97f8d2b270deaa5da81cf504d4cee05bf6f8e84d15bccf614036a3",
+    "jp_mario.v": "099d0dfac65c8fa543f270926a4dccbe89aea5c9aa83ccd8daf9956775a2db9e",
+    "jp_mario_step.v": "012fe8861834f38c91f75b979668c347058134b9a7274512697523a3a762bd51",
+    "jp_mario_actions_airborne.v": "201f84bfe00aa592e1a4ac402e063b3cdbf9042c43b82f9229ac90ec7c15874e",
+    "jp_mario_actions_moving.v": "b02fb3b6114acbcc057431f9d0f67b68de24766ea3b096b43c780a605cb31a76",
+    "jp_mario_actions_stationary.v": "8d1cc9c6487b33ea3db1ac0eaf710f15f99c091fe8a66d03531c2ed2f7eedf56",
+    "jp_mario_actions_automatic.v": "a5a485c106a78fcb33f135dde872cd83f5ea888c14e7fd9a6a02fb3c95f3b169",
+    "jp_mario_actions_submerged.v": "b3591e98497080e59e62ad926b07c846c14c0cbabee6cf4c7cdf757a682ef79e",
+    "jp_mario_actions_cutscene.v": "0ee526256bc13a5f3433a970176dd1da141be3d358701d6062f2bd83ba3360d2",
+    "jp_mario_actions_object.v": "d027885529d9bca52825de409cc1a7f43ab0ec6a759511395a7cdcde2c1ceebb",
+    "jp_interaction.v": "2015298612cca8ef46466b04b960f24570f44a9f2adc8277c3ad45885c036047",
+    "jp_camera.v": "67a99d12bf5b96bc8173726a04c0cbd4fcad92ffaf4ed01313d7924d2f551c2a",
+    "jp_envfx_snow.v": "88d43d423fdf23fe2c7daf99407c29d448689f67c109d7a1d1c4975a8c5dd6f7",
+    "jp_envfx_bubbles.v": "953a91028282fa5b21953c7f8d9cac075fb67972ad6829a0c1ee05aa05cd9c53",
+    "jp_mario_misc.v": "8c3b737ac726440b59156345322e569ff80bf578cc655c1f63f2af977889af37",
+    "jp_ingame_menu.v": "306bada57633bfbe9d055b1f970dadbb9c634737bae11907ffbe467fc369c3ab",
+    "jp_level_geo.v": "94fae5afbe9631ffe7769cc864d8484a1563f8549c0a1fdb9e6bd6183974ed42",
+    "jp_area.v": "de3942dbfe53b13872f9e051f5e4c2c484f4e5ef18a42814dd6748615f507036",
+    "jp_level_scripts.v": "e6d27cad23ef31b234419862cb2871c2c51a12f9bf536f7f61c41bbdbc01f6be",
+    "jp_save_file.v": "a17fd11b12f1567260a5e511d1fedd47940898c4f1138efc768d5d97b9b13747",
+    "jp_spawn_sound.v": "98794a0ed38a766dd2c92d57707a68a3523e38cae64b5721c6ac4c9c5a1ab00d",
+    "jp_memory.v": "8611d166b00d66ace8e631db55591fd42dc0fde8953c54dfe5ce2a9b35c31d89",
+    "jp_object_list_processor.v": "8a28fab1429fe5542a297603067d1058dfcccd56c71a36f04fa39aa288ab303a",
+    "jp_behavior_script.v": "2763c3716222be776cf63be239b91457f03ef8f8767dac0292a556ae87a36b00",
+    "jp_graph_node.v": "44ebea40b6a43d17e8c8461982c1f36f3bc30028ed5016eeadda11eb5fdb8543",
+    "jp_audio_external.v": "6163a70d70cc2d3bd3f62e986778902fd360e427e979e16cd4fa19840292291a",
+    "jp_spawn_object.v": "160983a0e32fc9e68cdbbab8a94ec073889e1aa679b4e0fd2854d604db242598",
+    "jp_macro_special_objects.v": "3d9b104f45ed24208567f9687d9a0fd7b737d7fc86a12b67f605c4e8e23dcfd0",
+    "jp_math_util.v": "7f52e854d0980218fc95fef9de1b0897ecc2b8d492a7ad9d0243e2fea606c045",
+    "jp_surface_load.v": "14a23443f97e36d3fa595f9ebd3a06819749609a06df3e1b3c5f6a7a8b49fcc5",
+    "jp_surface_collision.v": "a2cc53301af225181935ea0240f12fd408c20d10384d8d55437445494207e737",
+    "jp_object_helpers.v": "967a2a7a4df778315369beb03a6438714096df253e52b6e33d454b2951518765",
+    "jp_obj_behaviors.v": "1b798f9d38a634c5154decf13e87c1451f622c7884d53cfd2b131ba1f3ff3498",
+    "jp_behavior_actions.v": "f4eb43048b3c8c7ba21cc52eb605422c115449e7b9743dc49ea7edee536cafcb",
+    "jp_obj_behaviors_2.v": "920ce5796c8ca73ec328598a372a2269bcc902a9e7c20b1cb0e37262c5c91330",
+    "jp_behavior_data.v": "2a3e6dd52f1d155b2ac41ade84ee2156253b1c4d55c4b844667337c124019c46",
+    "jp_platform_displacement.v": "640c0949fb02e4defc1cd8b22e0ca310006501af2f1f4947e931d24a111c66aa",
+    "jp_ttc_level_script.v": "adc9dcfecb821e65136d3cfa1dd4e9823c79a7341ed14907fbe61f05fad68d9e",
+    "jp_ttc_geo.v": "80cbca1b2ff41e31ab3cd73c0b6d4ad5968b35c250a1b870a807b0701e96f1fc",
+    "jp_ttc_area1_macro.v": "3bb28cb87ae381e0af3f29e96d9fe33fdfcdd5632d38c70cfdf0101d30532034",
+    "jp_ttc_spinner_collision.v": "8e275ded10f1ef86db695dfa9a18e09af28453ec83009e54d1c5681321285bb4",
+    "jp_ttc_cog_collision.v": "48aaee7a9b5302db87a3cb09044dfa1a34305ee302de46ab2bc216ddbe3c9753"
+  },
+  "limits": [
+    "Not a proof of the C preprocessor or a fully linked program.",
+    "Literal include closure includes inactive version branches.",
+    "Runtime indirect targets, memory aliases, allocation and preserving controller paths remain semantic obligations.",
+    "Audio randomness is a separate generator; this census concerns the seed read by TTC cogs."
+  ]
+}

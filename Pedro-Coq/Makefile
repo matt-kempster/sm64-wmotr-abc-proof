@@ -1,7 +1,7 @@
 SHELL := /usr/bin/env bash
 COQMAKEFILE := CoqMakefile
 
-.PHONY: all generate reproducible configure proofs no-admitted runtime-receipt assumptions check clean
+.PHONY: all generate reproducible configure proofs no-admitted runtime-receipt rng-source-coverage assumptions check clean
 
 all: check
 
@@ -25,7 +25,12 @@ no-admitted:
 runtime-receipt:
 	python3 pipeline/check-ttc-runtime-snapshot.py
 
+rng-source-coverage:
+	python3 pipeline/check-rng-source-coverage.py
+
 assumptions: proofs
+	bash pipeline/assumptions.sh \
+	  Pedro.Proofs.MainTheorem checked_ttc_cog_rng_source_frontier_us_jp
 	bash pipeline/assumptions.sh \
 	  Pedro.Proofs.MainTheorem checked_ttc_cog_dust_action_frontier_us_jp
 	bash pipeline/assumptions.sh \
@@ -54,6 +59,7 @@ assumptions: proofs
 check:
 	$(MAKE) reproducible
 	$(MAKE) runtime-receipt
+	$(MAKE) rng-source-coverage
 	$(MAKE) proofs
 	$(MAKE) no-admitted
 	$(MAKE) assumptions

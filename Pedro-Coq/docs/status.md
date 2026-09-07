@@ -1,6 +1,14 @@
 # Status
 
 The active target is the US/JP TTC cog entry/control claim. It remains open.
+The [all-RNG source proof](ttc-cog-all-rng.md) now checks every direct primitive
+call, computed-call caller and particle-field writer in 41 generated units per
+version, plus all 18 Mario particle entries. It accounts for 81 pinned
+RNG-bearing C/header files and proves a complete NONE-mode environmental
+update leaves memory unchanged. This closes the source inventory gap, not the
+full preserving-control theorem. Runtime indirect targets, action preservation,
+accepted particle execution and the N64 address refinement remain open.
+
 The [slide-kick proof](ttc-cog-slide-kick.md) now executes the generated sliding
 handler under seven actual-helper execution premises: a wall-stop result can
 still lead to a dust request with `INPUT_OFF_FLOOR` set. A separate generated

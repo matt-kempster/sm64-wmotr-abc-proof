@@ -1,0 +1,90 @@
+{
+  "schema": 1,
+  "date": "2026-09-06",
+  "base_commit": "8245d355bf7b22acaaa7f229f3c01f089d9639fc",
+  "source_revision": "9921382a68bb0c865e5e45eb594d9c64db59b1af",
+  "versions": [
+    "VERSION_US",
+    "VERSION_JP"
+  ],
+  "checked_frontier": "source coverage, all Mario particle rows, and complete conditional NONE-mode environment execution",
+  "full_preserving_rng_control_proved": false,
+  "checks": [
+    {
+      "name": "two successive clightgen passes",
+      "exit_code": 0,
+      "generated_files": 82,
+      "all_preexisting_outputs_unchanged": true
+    },
+    {
+      "name": "full Pedro proof build",
+      "exit_code": 0
+    },
+    {
+      "name": "proof holes and authenticated RNG source coverage",
+      "exit_code": 0
+    },
+    {
+      "name": "missing camera/snow/bubbles translation-unit rejection tests",
+      "exit_code": 0,
+      "cases": 3
+    },
+    {
+      "name": "root proof-discipline audit (separate root capstones)",
+      "exit_code": 0
+    },
+    {
+      "name": "both expanded cog capstone assumption audits",
+      "exit_code": 0
+    }
+  ],
+  "assumptions": {
+    "checked_ttc_cog_rng_source_frontier_us_jp": [
+      "ClassicalDedekindReals.sig_not_dec",
+      "ClassicalDedekindReals.sig_forall_dec",
+      "Events.inline_assembly_sem",
+      "FunctionalExtensionality.functional_extensionality_dep",
+      "Events.external_functions_sem",
+      "Classical_Prop.classic"
+    ],
+    "checked_ttc_cog_local_mechanism_us_jp": [
+      "ClassicalDedekindReals.sig_not_dec",
+      "ClassicalDedekindReals.sig_forall_dec",
+      "Events.inline_assembly_sem",
+      "FunctionalExtensionality.functional_extensionality_dep",
+      "Events.external_functions_sem",
+      "Classical_Prop.classic"
+    ]
+  },
+  "checked_file_sha256": {
+    "proofs/RNGEffectSyntax.v": "9e9624c212ca3c0cdc0d8d4ef4ef0367edfe8531cda78f423e559242d9fb1bbb",
+    "proofs/RNGSourceCatalogue.v": "f2822958ba51aa96f21d0e99a104ee09f257b838fef4d63f0420590049cb82ec",
+    "proofs/RNGSourceCoverage.v": "2a027d1cce90b3efa2297df6ff21b822d99eaf3b6a006124733c8ff76f7d9ca4",
+    "proofs/MarioParticleCatalogue.v": "2f8800421454f3cb420ec86e94d21ea0fe3c2b00982baa6da2c6c3e2a706bdde",
+    "proofs/EnvironmentNoRNG.v": "3ef5548f351640121de9d9520042fc75077e0e3d113c316876474d0d5150bcc2",
+    "proofs/MainTheorem.v": "19d0760c108b012b66b72d058c555781a6502849eb2d8bf497b9e776c4186d96",
+    "pipeline/check-rng-source-coverage.py": "7f7d4a86b6d3bb4afad1095fd1869bd5824d64b35866c48568767cd1af452e98",
+    "pipeline/generate-clight.sh": "cc3f9941ccfec7b589cbd59ddb87cba9dc8c29a64980a8d291ad9eca498ceb06",
+    "_CoqProject": "0cf9241f4c98fe3e5f0804f8ffde7b7afb5832a1aface981150e023f040a73e7",
+    "Makefile": "d62e43e3818b2cc5d00922094d2156ac006c5068f83e49851272d087890e8989",
+    "inputs/rng-source-coverage.json": "8d62d35edb2618f71edb934e19d24d22868656bbd4bb5ec5d45ee77af414c3c2"
+  },
+  "local_log_sha256": {
+    "all-rng-generate-text.log": "92ba49dd23b240e3bb5ccb41d982485fed1d82b71f31df28a7438221b425e580",
+    "all-rng-final-build.log": "7d478a7ae7c8cd41da6fb6feca9cb16cc8753f7c5221090e6f49b35643001cec",
+    "all-rng-source-assumptions.log": "649c4dfb867a6c016545c885a436502f8914780184b149d6ec8de83b399b034d",
+    "all-rng-cog-assumptions.log": "649c4dfb867a6c016545c885a436502f8914780184b149d6ec8de83b399b034d",
+    "all-rng-gates.log": "314c72d8507358fa6d766204acd899926596895040f15b72c51a39f6102f7d20",
+    "all-rng-final-discipline.log": "819bae79d93609aaec743b476873074411f25ded3641b15c1f33a4e7a58eac0a",
+    "all-rng-coverage-negative.log": "35830363a5556ccbd9ece7b859e76441281a0e571f204670715bc9693e353c7d"
+  },
+  "remaining_obligations": [
+    "legal in-spot state invariant and successive action preservation",
+    "slide-kick seven helper executions and following action",
+    "runtime indirect callees and memory aliasing",
+    "particle table/dispatch/allocation and native/scripted children",
+    "N64 address refinement and external-call contracts",
+    "TTC environment-entry globals and camera paths",
+    "full ordered RNG schedule and preserving controller alternatives"
+  ]
+}

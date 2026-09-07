@@ -60,8 +60,12 @@ an in-spot premise, starting with the sliding phase of a slide kick. The
 [slide-kick work](ttc-cog-slide-kick.md) adds an exact generated caller proof
 with explicit helper residuals, a ground-gap suffix execution and a finite
 direct-dust writer inventory. These are included in the active cog capstone.
-The helper residuals, dispatcher/entry path, particle acceptance and broader
-source coverage remain open. Controller discovery has found no preserving
+The [all-RNG follow-up](ttc-cog-all-rng.md) closes generated-source inventory
+coverage, including camera, environment, indirect callers, all particle field
+writes and the complete Mario particle table. It also executes the real
+NONE-mode environmental early return with both real callees. The helper
+residuals, dispatcher/entry path, particle acceptance, runtime indirect targets
+and preserving control remain open. Controller discovery has found no preserving
 sliding-phase event. Continue with those discharges and a specified in-spot
 state; do not infer all-action impossibility from unsuccessful route searches.
 

@@ -38,6 +38,14 @@ real RNG draws. It does not establish legal entry, the complete collision
 search, an executed dust choice, or repeated freezing. The exact conditions
 are recorded in [the claim boundary](docs/claim.md).
 
+`checked_ttc_cog_rng_source_frontier_us_jp`, also consumed by that capstone,
+checks complete direct-RNG, indirect-caller and particle-field-write inventories
+in 41 generated units per version, the full 18-entry Mario particle table, and
+an executed NONE-mode environmental update with unchanged memory. An
+authenticated source gate accounts for all 81 pinned C/header files naming
+the gameplay RNG. The [all-RNG report](docs/ttc-cog-all-rng.md) distinguishes
+this source coverage from the still-open proof of preserving RNG choices.
+
 `Pedro.Proofs.MainTheorem.checked_pedro_rng_mechanism_us_jp` is the initial
 load-bearing capstone. It combines mechanically checked facts about:
 
