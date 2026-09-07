@@ -14,14 +14,14 @@ EU, Shindou, and iQue are intentionally unsupported.
 
 The active target is entry into a TTC **cog** Pedro spot, controller-selectable
 RNG changes while Mario stays there, and preservation of the relevant cog yaw
-angles. See the [execution plan](docs/ttc-cog-plan.md) and
+angles. See the [execution plan](docs/notes/ttc-cog-plan.md) and
 [gameplay restrictions](docs/goal.md#gameplay-restrictions). Discovery uses
 ordinary entry, legal inputs, and read-only observation. The old level-select
 probe is retired; its saved receipts remain historical evidence only.
 The user subsequently authorized a separate
 [near-cog placement experiment](instrumentation/ttc-cog-placement/README.md).
 Its declared test initialization is a discovery aid, not an entry witness.
-The [placement results](docs/ttc-cog-placement-results.md) include a reproducible
+The [placement results](docs/notes/ttc-cog-placement-results.md) include a reproducible
 US/JP approach onto the lower cog and unsuccessful overlap/edge entry trials.
 
 For an introduction aimed at programmers who do not already know Super Mario
@@ -43,10 +43,10 @@ checks complete direct-RNG, indirect-caller and particle-field-write inventories
 in 41 generated units per version, the full 18-entry Mario particle table, and
 an executed NONE-mode environmental update with unchanged memory. An
 authenticated source gate accounts for all 81 pinned C/header files naming
-the gameplay RNG. The [all-RNG report](docs/ttc-cog-all-rng.md) distinguishes
+the gameplay RNG. The [all-RNG report](docs/notes/ttc-cog-all-rng.md) distinguishes
 this source coverage from the still-open proof of preserving RNG choices.
 
-The [helper execution follow-up](docs/ttc-cog-helper-execution.md) executes the
+The [helper execution follow-up](docs/notes/ttc-cog-helper-execution.md) executes the
 real cached slide-kick animation setter/end test and sound request. The active
 dust caller now retains four helper-execution/preservation premises for that
 state family. Particle allocation, the following action and complete ordered

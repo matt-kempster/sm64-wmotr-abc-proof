@@ -12,7 +12,7 @@ This is `bhvTTCCog`, whose RANDOM branch can select zero target speed. Exact
 cog yaw preservation is the target. The older spinner results below concern a
 different object behavior and do not establish or refute the cog claim. The
 previous every-stock-spot claim is outside the current scope. See
-[`ttc-cog-plan.md`](ttc-cog-plan.md) for the execution plan.
+[`ttc-cog-plan.md`](notes/ttc-cog-plan.md) for the execution plan.
 The [gameplay restrictions](goal.md#gameplay-restrictions) require legal
 controller input and prohibit ACE, corruption, cheats, and arbitrary changes
 to game memory or code throughout discovery and validation.
@@ -41,17 +41,17 @@ to game memory or code throughout discovery and validation.
   and the generated slide-kick sliding caller's wall-stop dust request. The
   active caller executes the real cached animation and sound paths, retaining
   four actual-helper execution premises and conditional preservation at their
-  boundaries. See [the helper discharges](ttc-cog-helper-execution.md).
+  boundaries. See [the helper discharges](notes/ttc-cog-helper-execution.md).
   These are not a reachable in-spot event
   or an exhaustive proof about all preserving RNG sources. See
-  [the exact slide-kick boundary](ttc-cog-slide-kick.md).
+  [the exact slide-kick boundary](notes/ttc-cog-slide-kick.md).
 - Complete direct-RNG, computed-call and particle-field-write syntax coverage
   in 41 generated units per version, all 18 Mario particle table entries,
   and a full generated NONE-mode environmental update with both real callees
   and identical memory. Source-token/include coverage is separately checked
   against the pin. Runtime linkage/aliasing, TTC environmental entry premises,
   action preservation and accepted particles remain open. See
-  [the all-RNG boundary](ttc-cog-all-rng.md).
+  [the all-RNG boundary](notes/ttc-cog-all-rng.md).
 
 `checked_ttc_cog_source_geometry_us_jp` exposes the geometry component alone.
 `checked_ttc_cog_dust_action_frontier_us_jp` exposes the new action component.

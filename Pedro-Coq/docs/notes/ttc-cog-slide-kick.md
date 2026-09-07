@@ -124,7 +124,7 @@ request, or approach dust is not enough for either result.
 
 ## Completed controller trials
 
-The [receipt](../instrumentation/ttc-cog-placement/results/slide-kick-discovery.json)
+The [receipt](../../instrumentation/ttc-cog-placement/results/slide-kick-discovery.json)
 records six US trials and one JP comparison. They use the existing declared
 ledge initialization, unchanged behavior functions and read-only observer,
 with ordinary controller inputs afterward. Cogs continue their natural RANDOM

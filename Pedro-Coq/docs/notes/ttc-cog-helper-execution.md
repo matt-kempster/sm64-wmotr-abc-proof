@@ -124,10 +124,10 @@ pass. The active-capstone assumption output is identical to its baseline;
 only the existing Coq/CompCert assumptions occur. The generated files were
 unchanged, so their earlier two-pass regeneration receipt remains applicable;
 no new regeneration is claimed. The durable check results and code hashes are
-in [the validation receipt](../inputs/helper-execution-validation.json).
+in [the validation receipt](../../inputs/helper-execution-validation.json).
 
 This observed compiler-resource failure is separate from the user's content
 notice. This continuation has no observed content-check or approval rejection.
 The notice's exact trigger remains unknown; see
-[the notice review](content-notice-review.md). The existing restrictions on
+[the notice review](../content-notice-review.md). The existing restrictions on
 ordinary gameplay and read-only observation remain in force.

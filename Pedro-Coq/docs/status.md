@@ -1,13 +1,13 @@
 # Status
 
 The active target is the US/JP TTC cog entry/control claim. It remains open.
-The [helper execution follow-up](ttc-cog-helper-execution.md) discharges the
+The [helper execution follow-up](notes/ttc-cog-helper-execution.md) discharges the
 real cached animation setter/end test and sound request in the slide-kick
 caller. Sound stores are constructed from valid entry permissions and preserve
 all other memory blocks. The active capstone now retains four helper executions
 and their preservation premises; entry, following actions, particles, camera,
 ordered draws and the N64 allocation refinement remain open.
-The [all-RNG source proof](ttc-cog-all-rng.md) now checks every direct primitive
+The [all-RNG source proof](notes/ttc-cog-all-rng.md) now checks every direct primitive
 call, computed-call caller and particle-field writer in 41 generated units per
 version, plus all 18 Mario particle entries. It accounts for 81 pinned
 RNG-bearing C/header files and proves a complete NONE-mode environmental
@@ -15,7 +15,7 @@ update leaves memory unchanged. This closes the source inventory gap, not the
 full preserving-control theorem. Runtime indirect targets, action preservation,
 accepted particle execution and the N64 address refinement remain open.
 
-The original [slide-kick proof](ttc-cog-slide-kick.md) executes the generated sliding
+The original [slide-kick proof](notes/ttc-cog-slide-kick.md) executes the generated sliding
 handler under seven actual-helper execution premises: a wall-stop result can
 still lead to a dust request with `INPUT_OFF_FLOOR` set. A separate generated
 ground-gap suffix proof returns without memory changes at gap 154. The caller's
@@ -27,7 +27,7 @@ sliding-phase witness; the compared trials agree over 5,257 logical events.
 Reachable in-spot dust, accepted particles, and preserving RNG control remain
 unproved. No general impossibility result has been claimed.
 
-The [successive-update follow-up](ttc-cog-successive-updates.md) adds a stricter
+The [successive-update follow-up](notes/ttc-cog-successive-updates.md) adds a stricter
 finite observation check and 35 completed route searches. A fixed ordinary-air
 replay agrees in US/JP over 4296 events, including one off-floor close-gap
 return. Mario moves before it, both cogs rotate, and the next update finds a
@@ -35,7 +35,7 @@ supporting floor. Neither the strict check nor its weaker lower-cog-only
 diagnostic finds a sustained witness. The preserving-input comparison remains
 pending; that successive-update follow-up did not change Coq/generated files.
 
-The [detour follow-up](ttc-cog-detour-followup.md) checks 48 bounded searches
+The [detour follow-up](notes/ttc-cog-detour-followup.md) checks 48 bounded searches
 and connects the controller detour to one ground-pound close-gap landing in
 both versions. That frame requests mist-circle and horizontal-star particles,
 but Mario was already carried by the moving cog, has zero horizontal speed,
@@ -61,7 +61,7 @@ Normal entry, actual floor/ceiling selection, both preserving controller
 choices, all intervening consumers, and repeated stasis remain unproved.
 New work excludes ACE, corruption, cheats, debug entry, and arbitrary
 game-memory/code edits. The legacy cheat-enabled launcher has been retired.
-See the [cog plan](ttc-cog-plan.md) for the remaining work.
+See the [cog plan](notes/ttc-cog-plan.md) for the remaining work.
 The user subsequently authorized a separately labeled experiment that starts
 Mario near the cogs. Its initialization-only test build and read-only observer
 are in `instrumentation/ttc-cog-placement/`. It cannot establish normal entry.
@@ -80,8 +80,8 @@ back of the lower cog. Its recorded inputs reproduce all logical events in
 US and JP, including the US video capture. Mario subsequently falls, and
 none of its 456 air-quarter-step returns takes the Pedro branch. Floor
 detection and candidate particle actions are analyzed in
-[the floor/action note](ttc-cog-floor-actions.md).
-See [the placement results](ttc-cog-placement-results.md) for trace hashes,
+[the floor/action note](notes/ttc-cog-floor-actions.md).
+See [the placement results](notes/ttc-cog-placement-results.md) for trace hashes,
 scope and unsuccessful continuations.
 
 The pinned freefall landing action checks `common_landing_cancels` before

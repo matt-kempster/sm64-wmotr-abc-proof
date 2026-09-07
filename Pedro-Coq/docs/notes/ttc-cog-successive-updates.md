@@ -12,7 +12,7 @@ No Coq or generated Clight files changed in this follow-up.
 
 ## What the new check requires
 
-[`check-preservation.py`](../instrumentation/ttc-cog-placement/check-preservation.py)
+[`check-preservation.py`](../../instrumentation/ttc-cog-placement/check-preservation.py)
 first runs the existing complete trace-consistency check. Its narrow
 ordinary-air witness class requires at least two successive complete Mario
 action updates with:
@@ -60,7 +60,7 @@ The neighboring-cog route does climb the ledge, but its tested continuations
 remain supported or return to supporting geometry. The inner-edge route is
 also supported. These finite failures do not settle the existence question.
 
-[`successive-updates.json`](../instrumentation/ttc-cog-placement/results/successive-updates.json)
+[`successive-updates.json`](../../instrumentation/ttc-cog-placement/results/successive-updates.json)
 contains every trial's exact controller intervals and waypoint rows, input
 and trace hashes, counts, and close-gap frames. The three fine-search suites
 are reproducible with `sweep-detour.py --suite turn_fine|brake_early|edge_fine`.
@@ -70,7 +70,7 @@ and the recorded render-frame limit.
 
 ## Checked ordinary-air replay
 
-[`ledge-rim-turn-133-us.csv`](../instrumentation/ttc-cog-placement/inputs/ledge-rim-turn-133-us.csv)
+[`ledge-rim-turn-133-us.csv`](../../instrumentation/ttc-cog-placement/inputs/ledge-rim-turn-133-us.csv)
 has SHA-256
 `5adc251f5b64dca13277f678c9c01c77cfb688af1cab20619babdfc4fb220ae8`.
 The fixed-input US and JP runs agree in all 4296 normalized events over

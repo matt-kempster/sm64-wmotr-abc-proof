@@ -22,7 +22,7 @@ position/orientation), preserving all gameplay behavior functions and using
 controller inputs plus observation afterward. Do not force cog states or RNG.
 The final entry witness must still use normal game entry and legal inputs.
 The repeated content notice was reviewed in
-[content-notice-review.md](content-notice-review.md); its exact trigger remains
+[content-notice-review.md](../content-notice-review.md); its exact trigger remains
 unknown. Keep reads focused and retain the same gameplay restrictions.
 Preserve provenance for ordinary saves and checkpoints. CompCert `Mem.store`
 facts describe stock C assignments within a proof, not an instruction to edit

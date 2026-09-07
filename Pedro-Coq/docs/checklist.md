@@ -7,7 +7,7 @@ audits below.
 ## Active TTC cog target
 
 The active target is `bhvTTCCog` entry, in-spot RNG control, and fixed cog yaw
-for US/JP. See [the cog plan](ttc-cog-plan.md). The spinner checklist below is
+for US/JP. See [the cog plan](notes/ttc-cog-plan.md). The spinner checklist below is
 retained as prior work, and enumerating every stock Pedro spot is outside the
 current request.
 
@@ -35,7 +35,7 @@ current request.
 - [x] Export the corrected detour at normal and half speed, verify both videos
       decode and match the recorded frame counts, and inspect the preview.
 - [x] Trace source-level floor selection and landing cancellation; record
-      [alternative particle-action candidates](ttc-cog-floor-actions.md).
+      [alternative particle-action candidates](notes/ttc-cog-floor-actions.md).
 - [x] Observe and check actual close-gap air returns from the `inner_rim`
       test placement in US and JP, including a far-below retained floor and
       the off-floor cancellation path. Keep cog motion and placement premises explicit.
@@ -44,7 +44,7 @@ current request.
 - [x] Add checked action-path and selected-triangle observations; confirm
       transparency against the earlier inner-rim replay.
 - [x] Complete 48 bounded detour/phase/braking/tip searches and retain their
-      inputs, observations and [negative receipts](ttc-cog-detour-followup.md).
+      inputs, observations and [negative receipts](notes/ttc-cog-detour-followup.md).
 - [x] Connect the detour to a ground-pound close-gap landing branch in US/JP,
       record its particle requests, and check the complete path's failure to
       preserve Mario/cog state. Do not classify this as a trapped entry.
@@ -56,7 +56,7 @@ current request.
 - [x] Complete 35 further bounded route searches and independently replay an
       ordinary off-floor return in US/JP; record the failure of the following
       update to preserve the Pedro state in the
-      [successive-update report](ttc-cog-successive-updates.md).
+      [successive-update report](notes/ttc-cog-successive-updates.md).
 - [ ] Validate the observation check's acceptance path on a successful
       gameplay trace; no positive witness is currently available.
 - [ ] Only after preservation, compare input continuations and their ordered
@@ -70,7 +70,7 @@ current request.
       Check generated field offsets and prove its own stores preserve the
       position/floor fields, with helper-boundary preservation conditional.
 - [x] Run six slide-kick timing trials in US and compare one in JP; retain
-      [recipes and negative results](ttc-cog-slide-kick.md). No Pedro return or
+      [recipes and negative results](notes/ttc-cog-slide-kick.md). No Pedro return or
       sliding-phase witness; all 5,257 compared logical events agree.
 - [x] Execute the generated US/JP sound request for every bounded queue index;
       construct all three stores and prove preservation outside the queue/count.
@@ -78,7 +78,7 @@ current request.
       non-ended animation test with unchanged memory and checked field offsets.
 - [x] Consume these results in the active cog capstone, removing three of seven
       helper-execution/preservation premises; record the remaining four in the
-      [helper execution report](ttc-cog-helper-execution.md).
+      [helper execution report](notes/ttc-cog-helper-execution.md).
 - [ ] Discharge the remaining four slide-kick helper execution/preservation premises and execute
       the dispatcher, entry/bounce path and following knockback update in the
       actual cog state. Account for downstream dust clearing and acceptance.
@@ -95,7 +95,7 @@ current request.
       proving identical memory under the stated global-value/binding premises.
       Separately check TTC's geometry callback argument zero.
 - [ ] Prove preserving RNG possibilities or exclusions for a precise legal
-      in-spot state family, using the [expanded inventory](ttc-cog-all-rng.md).
+      in-spot state family, using the [expanded inventory](notes/ttc-cog-all-rng.md).
       Resolve indirect targets, native/script spawns, TTC environment entry,
       the runtime table/allocator and all ordered draws. Source coverage alone
       does not discharge these execution/preservation obligations.
@@ -155,7 +155,7 @@ current request.
       regeneration passes matching all 56 outputs, all 12 named assumption
       checks and the root discipline audit. Complete interrupted batches via
       Linux-local regeneration and individual assumption invocations; see
-      [the verification receipt](ttc-cog-slide-kick.md#verification-receipt).
+      [the verification receipt](notes/ttc-cog-slide-kick.md#verification-receipt).
 
 ## Generic Pedro mechanism
 

@@ -49,7 +49,7 @@ already exited. This compiler failure is not evidence about the content notice.
 
 The continuation used pinned source, generated ASTs and ordinary Coq proofs.
 There was no emulator run or game-memory/code modification. See the
-[execution report](ttc-cog-helper-execution.md) for the proved results and
+[execution report](notes/ttc-cog-helper-execution.md) for the proved results and
 remaining semantic boundaries.
 
 ## Earlier review

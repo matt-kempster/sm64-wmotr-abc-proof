@@ -181,6 +181,6 @@ emulator memory edit was performed in this source/proof work.
 
 Local generation/build logs are under `build/all-rng-*.log`. The durable
 source coverage receipt is `inputs/rng-source-coverage.json` and the
-[validation receipt](../inputs/rng-frontier-validation.json) records successful
+[validation receipt](../../inputs/rng-frontier-validation.json) records successful
 checks, file/log digests and the open obligations. The checked statements and
 explicit entry premises are in the proof files themselves.

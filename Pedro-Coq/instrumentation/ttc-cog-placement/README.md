@@ -121,7 +121,7 @@ window with its events in original order. A particle request alone is not
 proof of a new allocation or of preserving RNG control.
 
 `check-preservation.py TRIAL --minimum 2` applies the narrow successive-update
-check described in the [follow-up report](../../docs/ttc-cog-successive-updates.md).
+check described in the [follow-up report](../../docs/notes/ttc-cog-successive-updates.md).
 It requires repeated off-floor close-gap rejections of nonzero intended motion,
 complete action updates, fixed Mario position and both relevant cog poses.
 It excludes supporting-floor impacts and ground-pound paths. Other actions
@@ -147,9 +147,9 @@ Before making an in-spot RNG-control claim, establish the landing cancellation
 and ground-step paths, accepted dust requests, and their ordered RNG calls.
 No trial may force a cog pose/speed, RNG seed, or action after initialization.
 
-See [the recorded results](../../docs/ttc-cog-placement-results.md).
+See [the recorded results](../../docs/notes/ttc-cog-placement-results.md).
 
-The [slide-kick follow-up](../../docs/ttc-cog-slide-kick.md) records six US
+The [slide-kick follow-up](../../docs/notes/ttc-cog-slide-kick.md) records six US
 timing trials and one JP comparison using this same controller/observer
 workflow. `results/slide-kick-discovery.json` preserves the exact waypoint
 and button recipes, hashes and checked outcomes. None observes a Pedro return

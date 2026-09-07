@@ -14,7 +14,7 @@ The active task now concerns TTC cogs, which have their own behavior. The cog
 work has certified a pair of overlapping surfaces and proved one complete
 stock cog update preserves its angle under specified initial conditions.
 Reaching those conditions and controlling RNG while Mario stays in the spot
-are still open. See [the cog plan](ttc-cog-plan.md). Gameplay experiments must
+are still open. See [the cog plan](notes/ttc-cog-plan.md). Gameplay experiments must
 use legal inputs and read-only observation, with no cheats or state edits.
 
 ## The game ideas first

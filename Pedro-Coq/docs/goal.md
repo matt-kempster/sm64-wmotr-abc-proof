@@ -50,5 +50,5 @@ witness discovery and regression evidence, but do not replace the Clight proof.
 
 No theorem may silently extend the result to EU, Shindou, or iQue.
 
-See [`ttc-cog-plan.md`](ttc-cog-plan.md) for the execution plan and evidence
+See [`ttc-cog-plan.md`](notes/ttc-cog-plan.md) for the execution plan and evidence
 boundaries.

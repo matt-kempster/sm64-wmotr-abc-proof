@@ -39,7 +39,7 @@ These instruments remain outside the Coq trusted base.
 ## Bounded route searches
 
 The 48 completed US searches in
-[`detour-search.json`](../instrumentation/ttc-cog-placement/results/detour-search.json)
+[`detour-search.json`](../../instrumentation/ttc-cog-placement/results/detour-search.json)
 include:
 
 | Search | Trials | Change after the common detour prefix |
@@ -59,7 +59,7 @@ estimate are controller policies, not SM64 collision models or proof lemmas.
 ## A natural stop occurs after the ceiling disappears
 
 The fixed controller file
-[`ledge-rim-return-us.csv`](../instrumentation/ttc-cog-placement/inputs/ledge-rim-return-us.csv)
+[`ledge-rim-return-us.csv`](../../instrumentation/ttc-cog-placement/inputs/ledge-rim-return-us.csv)
 has SHA-256
 `2fd5fe2a11b9fcfd1d2892c2e1d77f16261fc564112082fde3ad6e1d62d67141`.
 Its events through frame 114 exactly match the corrected mesh detour's
@@ -83,7 +83,7 @@ replays match in all 8131 normalized events over 315 input snapshots.
 ## Ground pound reaches the branch, but fails preservation
 
 The additional fixed input file
-[`ledge-rim-ground-pound-us.csv`](../instrumentation/ttc-cog-placement/inputs/ledge-rim-ground-pound-us.csv)
+[`ledge-rim-ground-pound-us.csv`](../../instrumentation/ttc-cog-placement/inputs/ledge-rim-ground-pound-us.csv)
 has SHA-256
 `7edeeafb8c6152c83550024964eb7baa1fc6be03b31f5fed85d8d7484db2c50f`.
 It adds Z on frame 134. The preceding event prefix and the incoming frame-134
@@ -117,7 +117,7 @@ pending. Visible particles or a single landed return do not discharge it.
 
 ## Receipts and reproduction
 
-[`detour-paths.json`](../instrumentation/ttc-cog-placement/results/detour-paths.json)
+[`detour-paths.json`](../../instrumentation/ttc-cog-placement/results/detour-paths.json)
 records complete US/JP trace hashes, comparison counts and selected milestones.
 Raw logs, all observations, authenticated routine descriptions, initialization
 manifests and reports remain under ignored `build/cog-placement/`.
@@ -134,7 +134,7 @@ The observer compiles with warnings treated as errors. The Python helpers
 pass syntax checks. The checker rejects a missing action return, missing
 selected triangle, altered Pedro returned position and altered RNG observation
 in separate copies of the logs; see
-[`checker-regression.json`](../instrumentation/ttc-cog-placement/results/checker-regression.json).
+[`checker-regression.json`](../../instrumentation/ttc-cog-placement/results/checker-regression.json).
 
 With the already prepared ledge builds, replay in Ubuntu-24.04:
 
