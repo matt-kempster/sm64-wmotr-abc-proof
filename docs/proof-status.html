@@ -65,7 +65,7 @@ unreachable under never-press-A inputs. It splits into two goals.</p>
 <div class="statusline">
   <span><span class="pill p-proved">GOAL 1 · COMPLETE</span>&ensp;no-A ⇒ Mario never enters a flying action</span>
   <span><span class="pill p-open">GOAL 2 · ACTIVE</span>&ensp;without flying, Mario’s height stays below the star</span>
-  <span>Last updated <b>2026-07-10</b></span>
+  <span>Last updated <b>2026-09-26</b></span>
 </div>
 
 <h2>How a fact about SM64 becomes a theorem (the pipeline)</h2>
@@ -82,15 +82,19 @@ unreachable under never-press-A inputs. It splits into two goals.</p>
 Every offset, constant, and function body cited in a proof is read off the generated AST.</p>
 
 <h2>GOAL 1 — no-A ⇒ no-fly <span class="pill p-proved">proved</span></h2>
-<p>Six audited theorems, all passing the discipline audit (build · no admits ·
+<p>Seven audited theorems, all passing the discipline audit (build · no admits ·
 <b>standard CompCert axioms only</b> · firewall clean). The sharpest form:</p>
 <div class="callout">
   <h3><code>noA_no_spawn_never_flying_linked12</code></h3>
-  <p style="margin:.2rem 0">For <b>any</b> CompCert link of the twelve clightgen’d action TUs: a run that
-  starts in a well-formed WMotR spawn state, under inputs that never press A and never
-  spawn flying, never reaches a flying action. Companion theorems
-  <code>linked12_inhabited</code> (the twelve TUs <b>provably link</b> — zero hypotheses) and
-  <code>linked12_init_mem</code> (its initial memory exists) make the quantification non-vacuous.</p>
+  <p style="margin:.2rem 0">For <b>any</b> CompCert link of the twelve clightgen’d action TUs: starting
+  from a well-formed memory, repeatedly running <b>one real <code>execute_mario_action</code></b> with
+  the A bit clear never produces a flying action. <b>Scope:</b> the step is Mario’s action update only;
+  objects, level scripts and warps (which also write Mario’s state in the real game) are outside it.
+  Companion theorems: <code>linked12_inhabited</code> (the twelve TUs <b>provably link</b>) and
+  <code>A_pressed_frame_reaches_flying</code> — the <b>positive control</b>: with A pressed, one real
+  frame goes from the double-jump landing (with the wing cap) to <code>ACT_FLYING_TRIPLE_JUMP</code>.
+  It is proved by <em>running</em> the generated code in Coq with a sound interpreter, so the no-A premise is
+  what does the work. Still open: a start memory that meets <em>all</em> the rows below.</p>
 </div>
 
 <h3>Structure (one frame)</h3>
