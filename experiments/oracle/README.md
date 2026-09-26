@@ -35,6 +35,54 @@ This is evidence, not proof. Nothing in `proofs/` depends on it.
   the full RDRAM at entry and the changed bytes at its return site (0x8029CA70
   in `bhv_mario_update`). Output goes to `~/sm64-oracle/rec/<seed>/fNNNN.pkl.zlib`.
 
+## The differential test (tether 5.1): does the model do what the game does?
+
+```bash
+bash pipeline/build.sh oracle-extract           # OCaml extraction of the proved-sound interpreter + 12-TU link
+bash experiments/oracle/extract/build.sh replay # (DRV_DEPS=pp) compile the replay driver
+python3 experiments/oracle/record.py 300 2      # 300 real frames, seed 2 (~1 min)
+python3 experiments/oracle/difftest.py 2        # replay every frame through the model (~5 min)
+```
+
+For each recorded frame, `extract/drv/replay.ml` does the following:
+1. **Builds a CompCert memory from the real RAM.** Each global of the twelve-TU link
+   gets its own block, with contents taken from its real address. Addresses come
+   from the ROM map. Statics come from each `.o`'s `.mdebug` (`mdebug_statics.py`).
+   Segmented symbols go through the live `sSegmentTable`. One extra block holds all
+   of RAM, for heap memory.
+2. **Rebuilds pointers from C types.** It walks every global's type, and the heap
+   objects those globals point to. Each pointer-typed word becomes a CompCert
+   pointer into the block that owns that address.
+3. **Runs `execute_mario_action`** with the extracted interpreter (`ex_call`, proved
+   sound against `ClightBigstep`).
+4. **Replays external calls.** A call to anything outside the link must match the
+   real game's next call: same callee and same argument words (o32 convention). The
+   real call's memory effects and return value are then applied. Model locals passed
+   by address (out-params like `&floor`) are bound to the real stack address for that
+   call.
+5. **Compares the final memory** with the real RAM at return. This covers every placed
+   global (about 27 KB) and every typed heap object (about 53 KB), byte by byte. It
+   also counts how many of the changed bytes the model computed itself, rather than
+   copying them from a replayed call, so a match can't be vacuous.
+
+**Result (seed 2, 300 frames of random input, 15 distinct actions including
+jumps, double jumps, jump kicks, crouch-slides and crawling):**
+
+| outcome | frames |
+|---|---|
+| MATCH: same calls, same arguments, byte-identical final memory | **267** |
+| DIFF: completed with different memory | 0 |
+| DIVERGE: different external-call sequence or arguments | 0 |
+| STUCK: model has no execution | 33 |
+
+All 33 STUCK frames have one cause, and it is real (TRUST.md 3.2).
+`set_mario_animation` and `set_mario_anim_with_accel` run
+`VIRTUAL_TO_PHYSICAL(ptr)`, which is `(uintptr_t)ptr & 0x1FFFFFFF`, whenever a new
+animation has just been DMA-loaded. Bitwise AND on a pointer is undefined in
+CompCert C, so these frames, about 11% of real play, **have no CompCert execution**.
+The game runs them fine. Completed frames change about 29 bytes of placed globals,
+and about 18 of those are computed by the model.
+
 ## Gotchas (learned the hard way)
 
 - Register breakpoints **before** `run()`. Adding one mid-run invalidates the
@@ -45,6 +93,17 @@ This is evidence, not proof. Nothing in `proofs/` depends on it.
 - A `STATE_LOAD` at VI 1 is too early. Load at about VI 60.
 - The speed limiter has to be switched off through `CORE_STATE_SET` once the
   emulator is running.
+- The core allows at most 128 breakpoints. External calls are therefore caught by
+  single-stepping inside `execute_mario_action` (debugger STEPPING state, a Python
+  callback on every instruction). That takes about 0.2 s per frame.
+- `play_mode_normal` clears `sWarpDest` at the top of every frame, so a warp poke
+  has to happen inside the frame, at `initiate_delayed_warp`.
+- Sizes of `extern T x[]`: distance to the next ROM symbol, capped at the end of its
+  section, except that `gCosineTable` lies inside `gSineTable` (with AVOID_UB,
+  `math_util.h` makes it `gSineTable + 0x400`).
+- An out-param often keeps its value across the call, so it is missing from the diff.
+  The recorder therefore also saves the 64 bytes behind each pointer argument at
+  return.
 
 ## Observed so far (feeds the trust ledger)
 

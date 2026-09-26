@@ -1,0 +1,2007 @@
+fun water_level_pillar_undrained
+fun water_level_pillar_drained
+extfun warp_camera void
+fun warp_credits
+fun warp_special
+fun warp_area
+var warp_pipe_seg3_collision_03009AC8 0 init=0
+fun warp_level
+fun whomp_on_ground_general
+fun whomp_on_ground
+fun whomp_init
+fun whomp_patrol
+fun whomp_play_sfx_from_pound_animation
+fun whomp_prepare_jump
+fun whomp_land
+fun whomp_die
+fun whomp_turn
+fun whomp_jump
+var wdw_seg7_collision_070186B4 0 init=0
+var wdw_seg7_collision_07018528 0 init=0
+var wf_seg7_collision_tumbling_bridge 0 init=0
+var wf_seg7_collision_rotating_platform 0 init=0
+var gMarioAnimsBuf 12 init=0
+var gMarioObject 4 init=0
+var gMarioOnMerryGoRound 2 init=0
+var gMarioCurrentRoom 2 init=0
+var gMarioShotFromCannon 2 init=0
+var gMarioSpawnInfo 4 init=0
+var gMarioStates 200 init=200
+var gMarioState 4 init=4
+var gMenuOptSelectIndex 2 init=0
+var gEnvironmentRegions 4 init=0
+var gEnvironmentLevels 80 init=0
+var gAudioRandom 4 init=0
+var gAreaUpdateCounter 2 init=0
+var gAreas 4 init=0
+var gOpenableGrills 16 init=16
+var gObjCutsceneDone 4 init=0
+var gGlobalSoundSource 12 init=0
+var gGlobalTimer 4 init=0
+var gWaterSurfacePseudoFloor 48 init=48
+var gWarpTransition 22 init=0
+var gWDWWaterLevelChanging 2 init=0
+var gControllers 84 init=0
+var gCameraMovementFlags 2 init=0
+var gCamera 4 init=0
+var gCCMEnteredSlide 2 init=0
+var gCutsceneFocus 4 init=0
+var gCurGraphNodeObject 4 init=0
+var gCurGraphNodeCamera 4 init=0
+var gCurGraphNodeHeldObject 4 init=0
+var gCurrActNum 2 init=0
+var gCurrAreaIndex 2 init=0
+var gCurrCourseStarFlags 1 init=0
+var gCurrCourseNum 2 init=0
+var gCurrCreditsEntry 4 init=0
+var gCurrSaveFileNum 2 init=0
+var gCurrentArea 4 init=0
+var gCurrentObject 4 init=0
+var gCurrDemoInput 4 init=0
+var gCurrLevelNum 2 init=0
+var gSineTable 0 init=0
+var gSaveOptSelectIndex 2 init=0
+var gSavedCourseNum 2 init=0
+var gSecondCameraFocus 4 init=0
+var gShowProfiler 1 init=0
+var gShowDebugText 1 init=0
+var gShallowWaterWaveDropletParams 36 init=36
+var gShallowWaterSplashDropletParams 36 init=36
+var gSpecialTripleJump 1 init=0
+fun geo_switch_peach_eyes
+fun geo_switch_tuxie_mother_eyes
+fun geo_switch_bowser_eyes
+fun geo_scale_bowser_key
+fun geo_move_mario_part_from_parent
+extfun geo_update_animation_frame int
+fun geo_update_held_mario_pos
+fun geo_update_projectile_pos_from_parent_copy
+fun geo_update_body_rot_from_parent
+fun geo_bits_bowser_coloring
+extfun get_current_background_music int
+fun get_credits_str_width
+fun get_star_collection_dialog
+fun get_additive_y_vel_for_jumps
+fun get_mario_cap_flag
+extfun get_mario_spawn_type int
+extfun get_mario_pos void
+fun get_painting_warp_node
+fun get_door_save_file_flag
+extfun get_dialog_id int
+fun get_buoyancy
+fun general_star_dance_handler
+fun generate_yellow_sparkles
+var gNeverEnteredCastle 1 init=1
+var gFreeObjectList 104 init=0
+var gVec3fZero 12 init=0
+var gBodyStates 80 init=0
+var gRecentCutscene 1 init=0
+var gPaintingMarioYEntry 4 init=0
+var gPlayerCameraState 72 init=0
+var gPlayerSpawnInfos 0 init=0
+var gPlayer1Controller 4 init=0
+var gPrevFrameObjectCount 2 init=0
+var gHudDisplay 14 init=14
+fun grindel_thwomp_act_idle_at_top
+fun grindel_thwomp_act_idle_at_bottom
+fun grindel_thwomp_act_lower
+fun grindel_thwomp_act_land
+fun grindel_thwomp_act_raise
+fun grand_star_zero_velocity
+var gDoorAdjacentRooms 120 init=0
+var gDialogResponse 4 init=0
+var gDebugInfo 0 init=0
+var gDebugLevelSelect 1 init=0
+var gDDDPaintingStatus 1 init=0
+var gTimeStopState 4 init=0
+var gTHIWaterDrained 2 init=0
+var gTTCSpeedSetting 2 init=0
+var gLastCompletedCourseNum 1 init=0
+var gLastCompletedStarNum 1 init=0
+var gLevelToCourseNumTable 0 init=0
+fun opened_cannon_act_0
+fun opened_cannon_act_4
+fun opened_cannon_act_2
+fun opened_cannon_act_6
+fun opened_cannon_act_1
+fun opened_cannon_act_5
+fun opened_cannon_act_3
+fun object_facing_mario
+extfun obj_copy_graph_y_offset void
+extfun obj_copy_scale void
+extfun obj_copy_pos_and_angle void
+extfun obj_copy_pos void
+extfun obj_copy_behavior_params void
+extfun obj_check_if_collided_with_object int
+extfun obj_scale_xyz void
+extfun obj_scale_random void
+extfun obj_scale void
+extfun obj_set_gfx_pos_at_obj_pos void
+extfun obj_set_gfx_pos_from_pos void
+extfun obj_set_collision_data void
+fun obj_set_secondary_camera_focus
+extfun obj_set_angle void
+extfun obj_set_hitbox void
+extfun obj_set_held_state void
+extfun obj_set_pos void
+extfun obj_set_parent_relative_pos void
+extfun obj_set_billboard void
+extfun obj_set_behavior void
+extfun obj_spit_fire void
+extfun obj_spawn_loot_yellow_coins void
+extfun obj_is_hidden int
+extfun obj_init_animation_with_sound void
+extfun obj_attack_collided_from_other_object int
+extfun obj_angle_to_object int
+extfun obj_mark_for_deletion void
+extfun obj_explode_and_spawn_coins void
+extfun obj_update_pos_from_parent_transformation void
+fun obj_has_attack_type
+extfun obj_has_behavior int
+extfun obj_turn_toward_object int
+extfun obj_translate_xyz_random void
+extfun obj_translate_xz_random void
+extfun obj_translate_local void
+extfun obj_become_tangible void
+extfun obj_build_transform_from_pos_and_angle void
+extfun override_viewport_and_clip void
+fun koopa_shell_spawn_water_drop
+fun koopa_shell_spawn_sparkles
+fun king_whomp_on_ground
+fun king_whomp_chase
+fun king_whomp_stop_music
+fun king_bobomb_act_0
+fun king_bobomb_act_8
+fun king_bobomb_act_4
+fun king_bobomb_act_2
+fun king_bobomb_act_6
+fun king_bobomb_act_1
+fun king_bobomb_act_5
+fun king_bobomb_act_3
+fun king_bobomb_act_7
+fun king_bobomb_move
+fun coin_inside_boo_act_0
+fun coin_inside_boo_act_1
+fun common_water_knockback_step
+fun common_ground_knockback_action
+fun common_swimming_step
+fun common_slide_action_with_jump
+fun common_slide_action
+fun common_idle_step
+fun common_air_knockback_step
+fun common_air_action_step
+fun common_anchor_mario_behavior
+fun common_landing_cancels
+fun common_landing_action
+fun common_death_handler
+var cyan_fish_seg6_anims_0600E264 0 init=0
+fun cage_ukiki_held_loop
+extfun camera_approach_f32_symmetric f32
+fun cap_switch_act_0
+fun cap_switch_act_2
+fun cap_switch_act_1
+fun cap_switch_act_3
+fun cap_ukiki_held_loop
+extfun cutscene_object int
+fun cutscene_put_cap_on
+fun cutscene_take_cap_off
+extfun cur_obj_was_attacked_or_ground_pounded int
+extfun cur_obj_wait_then_blink int
+extfun cur_obj_get_dropped void
+extfun cur_obj_get_thrown_or_placed void
+extfun cur_obj_compute_vel_xz void
+extfun cur_obj_call_action_function void
+extfun cur_obj_can_mario_activate_textbox_2 int
+extfun cur_obj_can_mario_activate_textbox int
+extfun cur_obj_change_action void
+extfun cur_obj_check_grabbed_mario int
+extfun cur_obj_check_interacted int
+extfun cur_obj_check_if_near_animation_end int
+extfun cur_obj_check_anim_frame_in_range int
+extfun cur_obj_check_anim_frame int
+extfun cur_obj_clear_interact_status_flag int
+extfun cur_obj_scale_over_time void
+extfun cur_obj_scale void
+extfun cur_obj_set_y_vel_and_animation void
+extfun cur_obj_set_action_table int
+extfun cur_obj_set_model void
+extfun cur_obj_set_hitbox_and_die_if_attacked int
+extfun cur_obj_set_hitbox_radius_and_height void
+extfun cur_obj_set_hurtbox_radius_and_height void
+extfun cur_obj_set_pos_to_home_with_debug void
+extfun cur_obj_set_pos_to_home_and_stop void
+extfun cur_obj_set_pos_to_home void
+extfun cur_obj_set_pos_relative void
+extfun cur_obj_set_pos_via_transform void
+extfun cur_obj_set_behavior void
+extfun cur_obj_set_vel_from_mario_vel void
+extfun cur_obj_shake_screen void
+extfun cur_obj_shake_y void
+extfun cur_obj_spawn_star_at_y_offset void
+fun cur_obj_spawn_strong_wind_particles
+extfun cur_obj_spawn_particles void
+extfun cur_obj_spawn_loot_coin_at_mario_pos void
+extfun cur_obj_spawn_loot_blue_coin void
+extfun cur_obj_start_cam_event void
+extfun cur_obj_is_mario_ground_pounding_platform int
+extfun cur_obj_is_mario_on_platform int
+extfun cur_obj_init_animation_with_sound void
+extfun cur_obj_init_animation_with_accel_and_sound void
+extfun cur_obj_init_animation_and_check_if_near_end int
+extfun cur_obj_init_animation_and_anim_frame void
+extfun cur_obj_init_animation_and_extend_if_at_end void
+extfun cur_obj_if_hit_wall_bounce_away void
+extfun cur_obj_apply_drag_xz void
+extfun cur_obj_align_gfx_with_floor void
+extfun cur_obj_angle_to_home int
+extfun cur_obj_move_standard void
+extfun cur_obj_move_y void
+extfun cur_obj_move_using_fvel_and_gravity void
+extfun cur_obj_move_using_vel_and_gravity void
+extfun cur_obj_mario_far_away int
+extfun cur_obj_extend_animation_if_at_end void
+extfun cur_obj_enable_rendering void
+extfun cur_obj_update_dialog_with_cutscene int
+extfun cur_obj_update_dialog int
+extfun cur_obj_update_floor_and_walls void
+extfun cur_obj_update_floor_height_and_get_floor ptr
+extfun cur_obj_update_floor_height void
+extfun cur_obj_unhide void
+extfun cur_obj_unrender_set_action_and_anim void
+extfun cur_obj_hide_if_mario_far_away_y int
+extfun cur_obj_hide void
+extfun cur_obj_has_model int
+extfun cur_obj_has_behavior int
+extfun cur_obj_push_mario_away_from_cylinder void
+extfun cur_obj_push_mario_away void
+extfun cur_obj_play_sound_2 void
+extfun cur_obj_play_sound_1 void
+extfun cur_obj_progress_action_table int
+extfun cur_obj_lateral_dist_to_home f32
+extfun cur_obj_lateral_dist_from_mario_to_home f32
+extfun cur_obj_disable_rendering void
+extfun cur_obj_disable void
+extfun cur_obj_dist_to_nearest_object_with_behavior f32
+extfun cur_obj_become_intangible void
+extfun cur_obj_become_tangible void
+extfun cur_obj_rotate_yaw_toward int
+extfun cur_obj_rotate_face_angle_using_vel void
+extfun cur_obj_resolve_wall_collisions int
+extfun cur_obj_reverse_animation void
+extfun cur_obj_nearest_object_with_behavior ptr
+extfun cur_obj_follow_path int
+extfun cur_obj_forward_vel_approach_upward void
+extfun cur_obj_find_nearest_object_with_behavior ptr
+extfun cur_obj_find_nearby_held_actor ptr
+extfun change_area void
+fun checkerboard_plat_act_move_y
+fun checkerboard_plat_act_rotate
+fun check_wall_kick
+fun check_water_grab
+fun check_water_jump
+extfun check_warp_checkpoint int
+fun check_ground_dive_or_punch
+fun check_object_grab_mario
+fun check_kick_or_punch_wall
+fun check_kick_or_dive_in_air
+fun check_common_object_cancels
+fun check_common_submerged_cancels
+fun check_common_stationary_cancels
+fun check_common_idle_cancels
+fun check_common_action_exits
+fun check_common_airborne_cancels
+fun check_common_automatic_cancels
+fun check_common_moving_cancels
+fun check_common_hold_idle_cancels
+fun check_common_hold_action_exits
+fun check_common_landing_cancels
+fun check_instant_warp
+extfun check_if_should_set_warp_checkpoint void
+fun check_if_moving_over_floor
+fun check_mario_attacking
+fun check_horizontal_wind
+fun check_lava_boost
+fun check_ledge_grab
+fun check_ledge_climb_down
+fun check_death_barrier
+fun check_read_sign
+fun check_npc_talk
+fun check_for_instant_quicksand
+fun check_fall_damage_or_get_stuck
+fun check_fall_damage
+fun chuckya_act_0
+fun chuckya_act_2
+fun chuckya_act_1
+fun chuckya_act_3
+fun chuckya_move
+fun climb_up_ledge
+fun clear_particle_flags
+extfun clear_time_stop_flags void
+extfun create_sound_spawner void
+extfun create_dialog_inverted_box void
+extfun create_dialog_box_with_response void
+extfun create_dialog_box_with_var void
+extfun create_dialog_box void
+extfun create_transformation_from_matrices void
+fun create_transform_from_normals
+var credits08 16 init=16
+var credits04 16 init=16
+var credits02 12 init=12
+var credits06 12 init=12
+var credits01 8 init=8
+var credits09 8 init=8
+var credits05 16 init=16
+var credits03 12 init=12
+var credits07 12 init=12
+var credits20 8 init=8
+var credits10 16 init=16
+var credits18 16 init=16
+var credits14 8 init=8
+var credits12 8 init=8
+var credits16 20 init=20
+var credits11 12 init=12
+var credits19 8 init=8
+var credits15 12 init=12
+var credits13 16 init=16
+var credits17 16 init=16
+fun swimming_near_surface
+var sMovingSandSpeeds 8 init=8
+var sMistParticles 20 init=20
+var sMarioBlinkOverride 20 init=20
+var sMetalBoxHitbox 16 init=16
+var sMrIActions 16 init=16
+var sMrIParticleActions 8 init=8
+var sMrIHitbox 16 init=16
+var sExclamationBoxActions 24 init=24
+var sExclamationBoxContents 128 init=128
+var sExclamationBoxHitbox 16 init=16
+var sElevatorActions 20 init=20
+var sElevatorHeights 42 init=42
+var sEndCutsceneVp 16 init=16
+var sEndRightToadObj 4 init=4
+var sEndJumboStarObj 4 init=4
+var sEndPeachAnimation 2 init=2
+var sEndPeachObj 4 init=4
+var sEndToadAnims 4 init=4
+var sEndLeftToadObj 4 init=4
+extfun sound_banks_enable void
+extfun sound_banks_disable void
+var sUkikiActions 32 init=32
+var sUkikiCageActions 16 init=16
+var sUkikiSoundStates 104 init=104
+var sUnusedChuckyaData 60 init=60
+var sUnusedLevelUpdateBss 2 init=2
+fun scale_bubble_sin
+fun scale_bubble_random
+var sInteractionHandlers 248 init=248
+var sIntroWarpPipeObj 4 init=4
+var sInvulnerable 2 init=2
+var sYellowCoinHitbox 16 init=16
+extfun signum_positive int
+fun sinking_rectangular_plat_actions
+fun sink_mario_in_quicksand
+var sOpenedCannonActions 28 init=28
+extfun save_file_get_cap_pos int
+extfun save_file_get_star_flags int
+extfun save_file_get_total_star_count int
+extfun save_file_get_flags int
+extfun save_file_collect_star_or_key void
+extfun save_file_clear_flags void
+extfun save_file_set_cap_pos void
+extfun save_file_set_flags void
+extfun save_file_move_cap_to_default_location void
+extfun save_file_exists int
+extfun save_file_do_save void
+extfun save_file_reload void
+var sGlobalMistParticles 20 init=20
+var sGrowingBowserFlameHitbox 16 init=16
+var sGrindelThwompActions 20 init=20
+fun squish_mario_model
+fun square_plat_set_yaw_until_timer
+extfun sqrtf f32
+var sWasAtSurface 2 init=2
+var sWaterCurrentSpeeds 8 init=8
+var sWaterSplashDropletParams 36 init=36
+var sWaterDropletFishParams 36 init=36
+var sWarpCheckpointActive 1 init=1
+var sWarpDest 8 init=8
+var sWhompActions 40 init=40
+var sCoinArrowPositions 32 init=32
+var sCoinInsideBooActions 8 init=8
+var sCourtyardBooTripletPositions 18 init=18
+var sCageUkikiPath 90 init=90
+var sCapSwitchActions 16 init=16
+var sCapSwitchText 3 init=3
+var sCapSaveFlags 12 init=12
+var sCapFlickerFrames 8 init=8
+var sCurrPlayMode 2 init=2
+var sCheepCheepActions 12 init=12
+var sChuckyaActions 16 init=16
+var sCreditsSequence 368 init=368
+fun small_penguin_act_0
+fun small_penguin_act_4
+fun small_penguin_act_2
+fun small_penguin_act_1
+fun small_penguin_act_5
+fun small_penguin_act_3
+fun small_penguin_dive_with_mario
+fun small_penguin_free_actions
+var sSwimStrength 2 init=2
+var sSourceWarpNodeId 2 init=2
+var sSkullSlidingBoxHitbox 16 init=16
+var sScuttlebugHitbox 16 init=16
+var sSideFlipLandAction 24 init=24
+var sSandParticles 20 init=20
+var sSquishScaleOverTime 16 init=16
+var sSmokeMovementParams 8 init=8
+var sSmallPenguinActions 24 init=24
+var sSpindriftHitbox 16 init=16
+var sSparkleGenPhi 4 init=4
+var sSparkleGenTheta 4 init=4
+var sSparkleSpawnStarHitbox 16 init=16
+var sStarsNeededForDialog 6 init=6
+var sStrongWindParticleHitbox 16 init=16
+var sSnowParticles 20 init=20
+var sSLWalkingPenguinErraticSteps 112 init=112
+extfun segmented_to_virtual ptr
+extfun seq_player_unlower_volume void
+extfun seq_player_lower_volume void
+extfun seq_player_fade_out void
+extfun select_mario_cam_mode void
+fun set_water_plunge_action
+extfun set_object_respawn_info_bits void
+fun set_obj_anim_with_accel_and_sound
+fun set_koopa_shell_underwater_hitbox
+extfun set_camera_shake_from_hit void
+extfun set_camera_mode void
+extfun set_cutscene_message void
+fun set_swimming_at_surface_particles
+extfun set_sound_moving_speed void
+fun set_submerged_cam_preset_and_spawn_bubbles
+fun set_sparkle_spawn_star_hitbox
+fun set_steep_jump_action
+extfun set_yoshi_as_not_dead void
+fun set_y_home_to_pos
+fun set_anim_to_frame
+fun set_mario_y_vel_based_on_fspeed
+fun set_mario_initial_cap_powerup
+fun set_mario_initial_action
+fun set_mario_action_cutscene
+fun set_mario_action_submerged
+fun set_mario_action_airborne
+fun set_mario_action_moving
+fun set_mario_action
+fun set_mario_animation
+fun set_mario_anim_with_accel
+extfun set_mario_pos void
+fun set_mario_npc_dialog
+extfun set_menu_mode void
+extfun set_environmental_camera_shake void
+fun set_home_to_mario
+fun set_pole_position
+fun set_play_mode
+fun set_door_camera_event
+extfun set_time_stop_flags void
+fun set_triple_jump_action
+fun set_jumping_action
+fun set_jump_from_landing
+extfun set_background_music void
+fun set_vel_from_yaw
+fun set_vel_from_pitch_and_yaw
+var sKoopaShellUnderwaterHitbox 16 init=16
+var sKoopaShellHitbox 16 init=16
+var sKingBobombActions 36 init=36
+var sKingBobombSoundStates 96 init=96
+fun surface_swim_bob
+fun should_get_stuck_in_ground
+fun should_strengthen_gravity_for_jump_ascent
+fun should_push_or_pull_door
+fun should_begin_sliding
+var sForwardKnockbackActions 36 init=36
+var sFishActions 12 init=12
+var sFishSpawnerActions 12 init=12
+var sFallingBowserPlatformActions 12 init=12
+var sFloorAlignMatrix 128 init=128
+var sFlameFloatingYLimit 12 init=12
+var sFreefallLandAction 24 init=24
+fun spawn_wind_particles
+extfun spawn_water_droplet ptr
+fun spawn_wf_platform_group
+extfun spawn_object_with_scale ptr
+extfun spawn_object_abs_with_rot ptr
+extfun spawn_object_relative_with_scale ptr
+extfun spawn_object_relative ptr
+extfun spawn_object ptr
+fun spawn_obj_at_mario_rel_yaw
+fun spawn_coin_in_formation
+fun spawn_smoke_with_velocity
+fun spawn_sparkle_particles
+fun spawn_and_init_wf_platforms
+extfun spawn_mist_particles_with_sound void
+fun spawn_mist_particles_variable
+extfun spawn_mist_particles void
+fun spawn_mist_from_global
+fun spawn_mr_i_particle
+extfun spawn_default_star void
+fun spawn_triangle_break_particles
+var sBowserActions 80 init=80
+var sBowserSoundStates 216 init=216
+var sBowserShockwaveHitPoints 16 init=16
+var sBowserKeyHitbox 16 init=16
+var sBowserFallingPlatform 132 init=132
+var sBowserFVelAir 2 init=2
+var sBowserFlameHitbox 16 init=16
+var sBowserVelYAir 2 init=2
+var sBowserRainbowLight 3 init=3
+var sBowsertiltPlatformData 72 init=72
+var sBowserPuzzlePieceActions 28 init=28
+var sBowserPuzzlePieces 112 init=112
+var sBowserHealth 3 init=3
+var sBowserDanceStepNoises 4 init=4
+var sBowserDebugActions 16 init=16
+var sBowserDefeatedDialogText 6 init=6
+var sBowserTailAnchorActions 12 init=12
+var sBooActions 24 init=24
+var sBooGivingStarActions 20 init=20
+var sBooGivingStarHitbox 16 init=16
+var sBooWithCageActions 16 init=16
+var sBooCageHitbox 16 init=16
+var sBooHitRotations 64 init=64
+var sBobIncrement 2 init=2
+var sBobHeight 4 init=4
+var sBobTimer 2 init=2
+var sBirdChirpChirpActions 16 init=16
+var sBackwardKnockbackActions 36 init=36
+var sBackflipLandAction 24 init=24
+var sBetaBooKeyActions 12 init=12
+var sBulletBillActions 20 init=20
+var sBreakableBoxHitbox 16 init=16
+fun slow_star_rotation
+fun slide_bonk
+fun sl_walking_penguin_turn
+var sRotatingCwFireBarsActions 16 init=16
+var sRotatingPlatformData 24 init=24
+var sJustTeleported 1 init=1
+var sJumpingBoxActions 8 init=8
+var sJumpingBoxHitbox 16 init=16
+var sJumpLandAction 24 init=24
+var sJumboStarKeyframes 216 init=216
+fun stomach_slide_action
+extfun stop_cap_music void
+extfun stop_sound void
+extfun stop_shell_music void
+fun stop_and_set_height_to_floor
+extfun stop_background_music void
+fun stopping_step
+fun stationary_ground_step
+fun stationary_slow_down
+fun star_door_update_pos
+fun stuck_in_ground_handler
+fun stub_mario_step_2
+fun stub_mario_step_1
+fun stub_level_update_1
+var sPieceActions08 27 init=27
+var sPieceActions04 27 init=27
+var sPieceActions02 27 init=27
+var sPieceActions06 27 init=27
+var sPieceActions01 27 init=27
+var sPieceActions09 27 init=27
+var sPieceActions05 27 init=27
+var sPieceActions03 27 init=27
+var sPieceActions07 27 init=27
+var sPieceActions10 27 init=27
+var sPieceActions14 27 init=27
+var sPieceActions12 27 init=27
+var sPieceActions11 27 init=27
+var sPieceActions13 27 init=27
+var sPiranhaPlantBiteSoundFrames 5 init=5
+var sPSSSlideStarted 1 init=1
+var sPunchingForwardVelocities 8 init=8
+var sHoldFreefallLandAction 24 init=24
+var sHoldJumpLandAction 24 init=24
+var sHeaveHoActions 16 init=16
+var sDoorActions 40 init=40
+var sDoorOpenSounds 8 init=8
+var sDoorCloseSounds 8 init=8
+var sDoubleJumpLandAction 24 init=24
+var sDispCreditsEntry 4 init=4
+var sDisplayingDoorText 1 init=1
+var sDelayInvincTimer 1 init=1
+var sDelayedWarpArg 4 init=4
+var sDelayedWarpOp 2 init=2
+var sDelayedWarpTimer 2 init=2
+var sTweesterActions 12 init=12
+var sTweesterHitbox 16 init=16
+var sToxBoxActions 32 init=32
+var sToxBoxActionTables 12 init=12
+var sToxBoxActionTable2 35 init=35
+var sToxBoxActionTable1 52 init=52
+var sToxBoxActionTable3 36 init=36
+var sTimerRunning 1 init=1
+var sTinyStarMovementParams 28 init=28
+var sTinyTriMovementParams 24 init=24
+var sTerrainSounds 42 init=42
+var sTumblingBridgeActions 16 init=16
+var sTumblingBridgeData 48 init=48
+var sTuxiesMotherActions 12 init=12
+var sTHITopPuffs 20 init=20
+var sTripleJumpLandAction 24 init=24
+var sTransitionUpdate 4 init=4
+var sTransitionTimer 2 init=2
+var sLongJumpLandAction 24 init=24
+fun is_cap_ukiki_and_mario_has_normal_cap_on_head
+extfun is_item_in_array int
+fun is_anim_at_end
+fun is_anim_past_end
+fun is_anim_past_frame
+extfun is_mario_moving_fast_or_in_air int
+fun idle_ukiki_taunt
+extfun increment_velocity_toward_range f32
+var inside_castle_seg7_collision_ddd_warp_2 0 init=0
+var inside_castle_seg7_collision_ddd_warp 0 init=0
+fun initiate_warp
+fun initiate_painting_warp
+fun initiate_delayed_warp
+fun init_kickable_board_rock
+fun init_mario_after_warp
+fun init_mario_from_save_file
+fun init_mario
+fun init_level
+fun init_door_warp
+fun init_bully_collision_data
+fun interact_water_ring
+fun interact_warp_door
+fun interact_warp
+fun interact_whirlpool
+fun interact_grabbable
+fun interact_koopa_shell
+fun interact_coin
+fun interact_cap
+fun interact_cannon_base
+fun interact_clam_or_bubba
+fun interact_shock
+fun interact_star_or_key
+fun interact_strong_wind
+fun interact_snufit_bullet
+fun interact_igloo_barrier
+fun interact_mr_blizzard
+fun interact_unknown_08
+fun interact_hoot
+fun interact_hit_from_below
+fun interact_pole
+fun interact_door
+fun interact_damage
+fun interact_tornado
+fun interact_text
+fun interact_bounce_top
+fun interact_bully
+fun interact_bbh_entrance
+fun interact_breakable
+fun interact_flame
+fun intro_cutscene_set_mario_to_idle
+fun intro_cutscene_hide_hud_and_mario
+fun intro_cutscene_peach_lakitu_scene
+fun intro_cutscene_lower_pipe
+fun intro_cutscene_land_outside_pipe
+fun intro_cutscene_jump_out_of_pipe
+fun intro_cutscene_raise_pipe
+fun act_waking_up
+fun act_waiting_for_dialog
+fun act_walking
+fun act_wall_kick_air
+fun act_water_shocked
+fun act_water_shell_swimming
+fun act_water_idle
+fun act_water_action_end
+fun act_water_punch
+fun act_water_plunge
+fun act_water_death
+fun act_water_throw
+fun act_water_jump
+fun act_warp_door_spawn
+fun act_going_through_door
+fun act_getting_blown
+fun act_ground_pound_land
+fun act_ground_pound
+fun act_ground_bonk
+fun act_grab_pole_slow
+fun act_grab_pole_fast
+fun act_grabbed
+fun act_coughing
+fun act_caught_in_whirlpool
+fun act_climbing_pole
+fun act_crouching
+fun act_crouch_slide
+fun act_crawling
+fun act_crazy_box_bounce
+fun act_credits_cutscene
+fun act_swimming_end
+fun act_soft_bonk
+fun act_soft_backward_ground_kb
+fun act_soft_forward_ground_kb
+fun act_side_flip_land_stop
+fun act_side_flip_land
+fun act_side_flip
+fun act_squished
+fun act_suffocation
+fun act_shockwave_bounce
+fun act_shocked
+fun act_shot_from_cannon
+fun act_shivering
+fun act_spawn_spin_airborne
+fun act_spawn_spin_landing
+fun act_spawn_no_spin_airborne
+fun act_spawn_no_spin_landing
+fun act_special_exit_airborne
+fun act_special_death_exit
+fun act_special_triple_jump
+fun act_slide_kick_slide_stop
+fun act_slide_kick_slide
+fun act_slide_kick
+fun act_sleeping
+fun act_stomach_slide_stop
+fun act_stomach_slide
+fun act_stop_crouching
+fun act_stop_crawling
+fun act_star_dance_water
+fun act_star_dance
+fun act_start_crouching
+fun act_start_crawling
+fun act_start_sleeping
+fun act_start_hanging
+fun act_standing_against_wall
+fun act_standing_death
+fun act_steep_jump
+fun act_idle
+fun act_in_cannon
+fun act_in_quicksand
+fun act_intro_cutscene
+fun act_air_hit_wall
+fun act_air_throw_land
+fun act_air_throw
+fun act_quicksand_death
+fun act_quicksand_jump_land
+fun act_move_punching
+fun act_metal_water_walking
+fun act_metal_water_standing
+fun act_metal_water_jump_land
+fun act_metal_water_jump
+fun act_metal_water_falling
+fun act_metal_water_fall_land
+fun act_eaten_by_bubba
+fun act_emerge_from_pipe
+fun act_exit_airborne
+fun act_exit_land_save_dialog
+fun act_electrocution
+fun act_end_waving_cutscene
+fun act_end_peach_cutscene
+fun act_entering_star_door
+fun act_unused_death_exit
+fun act_unlocking_key_door
+fun act_unlocking_star_door
+fun act_holding_pole
+fun act_holding_bowser
+fun act_hold_walking
+fun act_hold_water_idle
+fun act_hold_water_action_end
+fun act_hold_water_jump
+fun act_hold_swimming_end
+fun act_hold_stomach_slide
+fun act_hold_idle
+fun act_hold_quicksand_jump_land
+fun act_hold_metal_water_walking
+fun act_hold_metal_water_standing
+fun act_hold_metal_water_jump_land
+fun act_hold_metal_water_jump
+fun act_hold_metal_water_falling
+fun act_hold_metal_water_fall_land
+fun act_hold_heavy_walking
+fun act_hold_heavy_idle
+fun act_hold_panting_unused
+fun act_hold_decelerating
+fun act_hold_jump_land_stop
+fun act_hold_jump_land
+fun act_hold_jump
+fun act_hold_butt_slide_stop
+fun act_hold_butt_slide_air
+fun act_hold_butt_slide
+fun act_hold_breaststroke
+fun act_hold_flutter_kick
+fun act_hold_freefall_land_stop
+fun act_hold_freefall_land
+fun act_hold_freefall
+fun act_hard_backward_ground_kb
+fun act_hard_backward_air_kb
+fun act_hard_forward_ground_kb
+fun act_hard_forward_air_kb
+fun act_hanging
+fun act_hang_moving
+fun act_head_stuck_in_ground
+fun act_heavy_throw
+fun act_picking_up_bowser
+fun act_picking_up
+fun act_panting
+fun act_putting_on_cap
+fun act_punching
+fun act_placing_down
+fun act_long_jump_land_stop
+fun act_long_jump_land
+fun act_long_jump
+fun act_lava_boost_land
+fun act_lava_boost
+fun act_ledge_grab
+fun act_ledge_climb_slow
+fun act_ledge_climb_down
+fun act_ledge_climb_fast
+fun act_double_jump_land_stop
+fun act_double_jump_land
+fun act_double_jump
+fun act_disappeared
+fun act_dive_slide
+fun act_dive_picking_up
+fun act_dive
+fun act_decelerating
+fun act_death_on_stomach
+fun act_death_on_back
+fun act_death_exit_land
+fun act_death_exit
+fun act_debug_free_move
+fun act_drowning
+fun act_twirling
+fun act_twirl_land
+fun act_top_of_pole_transition
+fun act_top_of_pole_jump
+fun act_top_of_pole
+fun act_tornado_twirling
+fun act_teleport_fade_out
+fun act_teleport_fade_in
+fun act_turning_around
+fun act_throwing
+fun act_thrown_backward
+fun act_thrown_forward
+fun act_triple_jump_land_stop
+fun act_triple_jump_land
+fun act_triple_jump
+fun act_jump_kick
+fun act_jump_land_stop
+fun act_jump_land
+fun act_jump
+fun act_jumbo_star_cutscene
+fun act_backward_water_kb
+fun act_backward_ground_kb
+fun act_backward_air_kb
+fun act_backward_rollout
+fun act_backflip_land_stop
+fun act_backflip_land
+fun act_backflip
+fun act_butt_slide_stop
+fun act_butt_slide_air
+fun act_butt_slide
+fun act_butt_stuck_in_ground
+fun act_burning_ground
+fun act_burning_jump
+fun act_burning_fall
+fun act_bbh_enter_spin
+fun act_bbh_enter_jump
+fun act_braking_stop
+fun act_braking
+fun act_breaststroke
+fun act_riding_shell_ground
+fun act_riding_shell_air
+fun act_riding_hoot
+fun act_reading_sign
+fun act_reading_automatic_dialog
+fun act_reading_npc_dialog
+fun act_releasing_bowser
+fun act_forward_water_kb
+fun act_forward_ground_kb
+fun act_forward_air_kb
+fun act_forward_rollout
+fun act_first_person
+fun act_finish_turning_around
+fun act_falling_exit_airborne
+fun act_falling_death_exit
+fun act_fall_after_star_grab
+fun act_feet_stuck_in_ground
+fun act_flying_triple_jump
+fun act_flying
+fun act_flutter_kick
+fun act_freefall_land_stop
+fun act_freefall_land
+fun act_freefall
+fun act_vertical_wind
+fun apply_water_current
+fun apply_gravity
+fun apply_slope_accel
+fun apply_slope_decel
+extfun apply_platform_displacement void
+fun apply_landing_accel
+fun apply_twirl_gravity
+fun apply_vertical_wind
+extfun approach_s16_symmetric int
+extfun approach_s32 int
+fun approach_by_increment
+fun approach_forward_vel
+extfun approach_f32_symmetric f32
+extfun approach_f32_signed int
+extfun approach_f32 f32
+fun align_with_floor
+extfun alloc_display_list ptr
+fun add_tree_leaf_particles
+fun adjust_sound_for_speed
+fun advance_cutscene_step
+extfun atan2s int
+fun attack_object
+extfun absi int
+extfun abs_angle_diff int
+extfun absf f32
+fun able_to_grab_object
+fun arc_to_goal_pos
+extfun area_get_warp_node ptr
+extfun area_update_objects void
+fun animated_stationary_ground_step
+extfun anim_spline_init void
+extfun anim_spline_poll int
+fun anim_and_audio_for_walk
+fun anim_and_audio_for_hold_walk
+fun anim_and_audio_for_heavy_walk
+fun analog_stick_held_back
+fun quicksand_jump_land_action
+extfun mark_obj_for_deletion void
+fun mario_get_collided_object
+fun mario_get_terrain_sound_addend
+fun mario_get_floor_class
+fun mario_grab_used_object
+fun mario_obj_angle_to_object
+fun mario_can_talk
+fun mario_check_object_grab
+fun mario_set_forward_vel
+fun mario_stop_riding_object
+fun mario_stop_riding_and_holding
+extfun mario_is_in_air_action int
+extfun mario_is_dive_sliding int
+fun mario_is_far_below_object
+fun mario_moving_fast_enough_to_make_piranha_plant_bite
+fun mario_execute_object_action
+fun mario_execute_cutscene_action
+fun mario_execute_submerged_action
+fun mario_execute_stationary_action
+fun mario_execute_airborne_action
+fun mario_execute_automatic_action
+fun mario_execute_moving_action
+fun mario_update_windy_ground
+fun mario_update_quicksand
+fun mario_update_moving_sand
+fun mario_update_hitbox_and_cap_model
+fun mario_update_punch_sequence
+fun mario_handle_special_floors
+fun mario_push_off_steep_floor
+fun mario_process_interactions
+fun mario_lose_cap_to_enemy
+fun mario_drop_held_object
+fun mario_throw_held_object
+fun mario_bonk_reflection
+fun mario_blow_off_cap
+fun mario_reset_bodystate
+fun mario_ready_to_speak
+fun mario_retrieve_cap
+fun mario_facing_downhill
+fun mario_floor_is_slope
+fun mario_floor_is_slippery
+fun mario_floor_is_steep
+fun music_changed_through_warp
+extfun mtxf_align_terrain_triangle void
+extfun mtxf_align_terrain_normal void
+extfun mtxf_rotate_zxy_and_translate void
+fun mr_i_act_0
+fun mr_i_act_2
+fun mr_i_act_1
+fun mr_i_act_3
+fun mr_i_piranha_particle_act_0
+fun mr_i_piranha_particle_act_1
+fun exclamation_box_spawn_contents
+fun exclamation_box_act_0
+fun exclamation_box_act_4
+fun exclamation_box_act_2
+fun exclamation_box_act_1
+fun exclamation_box_act_5
+fun exclamation_box_act_3
+fun execute_mario_action
+extfun exec_anim_sound_state void
+fun elevator_starting_shake
+fun elevator_act_0
+fun elevator_act_4
+fun elevator_act_2
+fun elevator_act_1
+fun elevator_act_3
+extfun enable_time_stop void
+extfun enable_background_sound void
+fun end_obj_set_visual_pos
+fun end_peach_cutscene_kiss_from_peach
+fun end_peach_cutscene_summon_jumbo_star
+fun end_peach_cutscene_spawn_peach
+fun end_peach_cutscene_star_dance
+fun end_peach_cutscene_mario_landing
+fun end_peach_cutscene_mario_falling
+fun end_peach_cutscene_dialog_2
+fun end_peach_cutscene_dialog_1
+fun end_peach_cutscene_dialog_3
+fun end_peach_cutscene_descend_peach
+fun end_peach_cutscene_run_to_castle
+fun end_peach_cutscene_run_to_peach
+fun end_peach_cutscene_fade_out
+fun ukiki_cage_act_wait_for_ukiki
+fun ukiki_cage_act_spin
+fun ukiki_cage_act_hide
+fun ukiki_cage_act_fall
+fun ukiki_act_wait_to_respawn
+fun ukiki_act_go_to_cage
+fun ukiki_act_idle
+fun ukiki_act_unused_turn
+fun ukiki_act_turn_to_mario
+fun ukiki_act_jump
+fun ukiki_act_return_home
+fun ukiki_act_run
+fun ukiki_free_loop
+fun update_walking_speed
+fun update_water_pitch
+extfun update_camera void
+fun update_swimming_speed
+fun update_swimming_yaw
+fun update_swimming_pitch
+fun update_shell_speed
+fun update_sliding_angle
+fun update_sliding
+fun update_air_without_turn
+fun update_air_with_turn
+fun update_angle_from_move_flags
+fun update_and_return_cap_flags
+fun update_mario_geometry_inputs
+fun update_mario_sound_and_camera
+fun update_mario_inputs
+fun update_mario_info_for_cam
+fun update_mario_health
+fun update_mario_pos_for_anim
+fun update_mario_joystick_inputs
+fun update_mario_button_inputs
+fun update_metal_water_walking_speed
+fun update_metal_water_jump_speed
+fun update_hang_stationary
+fun update_hang_moving
+fun update_hud_values
+fun update_lava_boost_or_twirling
+fun update_ledge_climb_camera
+fun update_ledge_climb
+fun update_level
+fun update_decelerating_speed
+fun update_flying_yaw
+fun update_flying_pitch
+fun update_flying
+fun unknown_chuckya_function
+var unused80339F10 4 init=4
+var unused80339F1C 20 init=20
+var unused2 4 init=4
+var unused1 2 init=2
+extfun unload_mario_area void
+extother __compcert_i64_sar __compcert_i64_sar
+extother __compcert_i64_smod __compcert_i64_smod
+extother __compcert_i64_smulh __compcert_i64_smulh
+extother __compcert_i64_shl __compcert_i64_shl
+extother __compcert_i64_shr __compcert_i64_shr
+extother __compcert_i64_sdiv __compcert_i64_sdiv
+extother __compcert_i64_stod __compcert_i64_stod
+extother __compcert_i64_stof __compcert_i64_stof
+extother __compcert_i64_umod __compcert_i64_umod
+extother __compcert_i64_umulh __compcert_i64_umulh
+extother __compcert_i64_udiv __compcert_i64_udiv
+extother __compcert_i64_utod __compcert_i64_utod
+extother __compcert_i64_utof __compcert_i64_utof
+extother __compcert_i64_dtos __compcert_i64_dtos
+extother __compcert_i64_dtou __compcert_i64_dtou
+extother __compcert_va_composite __compcert_va_composite
+extother __compcert_va_int64 __compcert_va_int64
+extother __compcert_va_int32 __compcert_va_int32
+extother __compcert_va_float64 __compcert_va_float64
+var __stringlit_mario_2 7 init=7
+var __stringlit_mario_1 7 init=7
+var __stringlit_mario_3 7 init=7
+var __stringlit_level_update_8 20 init=20
+var __stringlit_level_update_40 19 init=19
+var __stringlit_level_update_48 12 init=12
+var __stringlit_level_update_44 16 init=16
+var __stringlit_level_update_42 19 init=19
+var __stringlit_level_update_46 12 init=12
+var __stringlit_level_update_4 17 init=17
+var __stringlit_level_update_41 22 init=22
+var __stringlit_level_update_49 12 init=12
+var __stringlit_level_update_45 21 init=21
+var __stringlit_level_update_43 11 init=11
+var __stringlit_level_update_47 11 init=11
+var __stringlit_level_update_20 11 init=11
+var __stringlit_level_update_28 16 init=16
+var __stringlit_level_update_24 16 init=16
+var __stringlit_level_update_22 18 init=18
+var __stringlit_level_update_26 18 init=18
+var __stringlit_level_update_2 15 init=15
+var __stringlit_level_update_21 11 init=11
+var __stringlit_level_update_29 16 init=16
+var __stringlit_level_update_25 17 init=17
+var __stringlit_level_update_23 16 init=16
+var __stringlit_level_update_27 11 init=11
+var __stringlit_level_update_60 20 init=20
+var __stringlit_level_update_6 19 init=19
+var __stringlit_level_update_10 14 init=14
+var __stringlit_level_update_18 14 init=14
+var __stringlit_level_update_14 15 init=15
+var __stringlit_level_update_12 13 init=13
+var __stringlit_level_update_16 19 init=19
+var __stringlit_level_update_1 17 init=17
+var __stringlit_level_update_11 14 init=14
+var __stringlit_level_update_19 18 init=18
+var __stringlit_level_update_15 22 init=22
+var __stringlit_level_update_13 14 init=14
+var __stringlit_level_update_17 18 init=18
+var __stringlit_level_update_9 15 init=15
+var __stringlit_level_update_50 20 init=20
+var __stringlit_level_update_58 10 init=10
+var __stringlit_level_update_54 17 init=17
+var __stringlit_level_update_52 12 init=12
+var __stringlit_level_update_56 10 init=10
+var __stringlit_level_update_5 21 init=21
+var __stringlit_level_update_51 17 init=17
+var __stringlit_level_update_59 17 init=17
+var __stringlit_level_update_55 23 init=23
+var __stringlit_level_update_53 13 init=13
+var __stringlit_level_update_57 19 init=19
+var __stringlit_level_update_30 13 init=13
+var __stringlit_level_update_38 19 init=19
+var __stringlit_level_update_34 15 init=15
+var __stringlit_level_update_32 15 init=15
+var __stringlit_level_update_36 21 init=21
+var __stringlit_level_update_3 15 init=15
+var __stringlit_level_update_31 17 init=17
+var __stringlit_level_update_39 13 init=13
+var __stringlit_level_update_35 16 init=16
+var __stringlit_level_update_33 16 init=16
+var __stringlit_level_update_37 12 init=12
+var __stringlit_level_update_7 17 init=17
+var __stringlit_behavior_actions_8 5 init=5
+var __stringlit_behavior_actions_4 6 init=6
+var __stringlit_behavior_actions_2 6 init=6
+var __stringlit_behavior_actions_6 11 init=11
+var __stringlit_behavior_actions_10 5 init=5
+var __stringlit_behavior_actions_1 3 init=3
+var __stringlit_behavior_actions_9 5 init=5
+var __stringlit_behavior_actions_5 11 init=11
+var __stringlit_behavior_actions_3 6 init=6
+var __stringlit_behavior_actions_7 11 init=11
+extother __builtin_write64_reversed __builtin_write64_reversed
+extother __builtin_write16_reversed __builtin_write16_reversed
+extother __builtin_write32_reversed __builtin_write32_reversed
+extother __builtin_get_spr64 __builtin_get_spr64
+extother __builtin_get_spr __builtin_get_spr
+extother __builtin_call_frame __builtin_call_frame
+extother __builtin_cmpb __builtin_cmpb
+extother __builtin_clz __builtin_clz
+extother __builtin_clzl __builtin_clzl
+extother __builtin_clzll __builtin_clzll
+extother __builtin_ctz __builtin_ctz
+extother __builtin_ctzl __builtin_ctzl
+extother __builtin_ctzll __builtin_ctzll
+extother __builtin_sync_fetch_and_add __builtin_sync_fetch_and_add
+extother __builtin_sync __builtin_sync
+extother __builtin_sqrt __builtin_sqrt
+extother __builtin_sel __builtin_sel
+extother __builtin_set_spr64 __builtin_set_spr64
+extother __builtin_set_spr __builtin_set_spr
+extother __builtin_icbi __builtin_icbi
+extother __builtin_icbtls __builtin_icbtls
+extother __builtin_isync __builtin_isync
+extother __builtin_isel64 __builtin_isel64
+extother __builtin_isel __builtin_isel
+extother __builtin_ais_annot __builtin_ais_annot
+extother __builtin_atomic_compare_exchange __builtin_atomic_compare_exchange
+extother __builtin_atomic_exchange __builtin_atomic_exchange
+extother __builtin_atomic_load __builtin_atomic_load
+extother __builtin_annot_intval __builtin_annot_intval
+extother __builtin_annot __builtin_annot
+extother __builtin_memcpy_aligned __builtin_memcpy_aligned
+extother __builtin_membar __builtin_membar
+extother __builtin_mulhwu __builtin_mulhwu
+extother __builtin_mulhw __builtin_mulhw
+extother __builtin_mulhdu __builtin_mulhdu
+extother __builtin_mulhd __builtin_mulhd
+extother __builtin_mbar __builtin_mbar
+extother __builtin_mr __builtin_mr
+extother __builtin_eieio __builtin_eieio
+extother __builtin_expect __builtin_expect
+extother __builtin_uisel64 __builtin_uisel64
+extother __builtin_uisel __builtin_uisel
+extother __builtin_unreachable __builtin_unreachable
+extother __builtin_prefetch __builtin_prefetch
+extother __builtin_lwsync __builtin_lwsync
+extother __builtin_dcbi __builtin_dcbi
+extother __builtin_dcbtls __builtin_dcbtls
+extother __builtin_dcbz __builtin_dcbz
+extother __builtin_dcbf __builtin_dcbf
+extfun __builtin_debug void
+extother __builtin_trap __builtin_trap
+extother __builtin_bswap64 __builtin_bswap64
+extother __builtin_bswap __builtin_bswap
+extother __builtin_bswap16 __builtin_bswap16
+extother __builtin_bswap32 __builtin_bswap32
+extother __builtin_bsel __builtin_bsel
+extother __builtin_read64_reversed __builtin_read64_reversed
+extother __builtin_read16_reversed __builtin_read16_reversed
+extother __builtin_read32_reversed __builtin_read32_reversed
+extother __builtin_return_address __builtin_return_address
+extother __builtin_nop __builtin_nop
+extother __builtin_fcti __builtin_fcti
+extother __builtin_fsqrt __builtin_fsqrt
+extother __builtin_fsel __builtin_fsel
+extother __builtin_fabs __builtin_fabs
+extother __builtin_fabsf __builtin_fabsf
+extother __builtin_fmsub __builtin_fmsub
+extother __builtin_fmadd __builtin_fmadd
+extother __builtin_frsqrte __builtin_frsqrte
+extother __builtin_fres __builtin_fres
+extother __builtin_fnmsub __builtin_fnmsub
+extother __builtin_fnmadd __builtin_fnmadd
+extother __builtin_va_copy __builtin_va_copy
+extother __builtin_va_start __builtin_va_start
+extother __builtin_va_arg __builtin_va_arg
+extother __builtin_va_end __builtin_va_end
+fun hidden_wdw_platform_actions
+fun hidden_breakable_box_actions
+fun hit_object_from_below
+fun handle_cap_ukiki_reset
+fun handle_save_menu
+fun handle_merry_go_round_music
+var hmc_seg7_collision_0702B65C 0 init=0
+fun heave_ho_act_0
+fun heave_ho_act_2
+fun heave_ho_act_1
+fun heave_ho_act_3
+fun heave_ho_move
+fun hexagonal_ring_spawn_flames
+fun hurt_and_set_mario_action
+fun pss_end_slide
+fun pss_begin_slide
+fun piranha_plant_check_interactions
+fun piranha_plant_act_woken_up
+fun piranha_plant_act_wait_to_respawn
+fun piranha_plant_act_shrink_and_die
+fun piranha_plant_act_sleeping
+fun piranha_plant_act_stopped_biting
+fun piranha_plant_act_idle
+fun piranha_plant_act_biting
+fun piranha_plant_act_respawn
+fun piranha_plant_attacked
+fun piranha_plant_reset_when_far
+fun perform_water_step
+fun perform_water_full_step
+fun perform_ground_step
+fun perform_ground_quarter_step
+fun perform_air_step
+fun perform_air_quarter_step
+fun perform_hanging_step
+fun push_or_sidle_wall
+fun push_mario_out_of_object
+extfun player_performed_grab_escape_action int
+fun play_warp_door_open_noise
+fun play_knockback_sound
+extfun play_course_clear void
+extfun play_cap_music void
+extfun play_cutscene_music void
+fun play_climbing_sounds
+fun play_swimming_noise
+fun play_sound_if_no_flag
+fun play_sound_and_spawn_particles
+extfun play_sound void
+extfun play_secondary_music void
+extfun play_shell_music void
+fun play_step_sound
+extfun play_infinite_stairs_music void
+fun play_anim_sound
+fun play_mode_change_area
+fun play_mode_change_level
+fun play_mode_paused
+fun play_mode_normal
+fun play_mode_frame_advance
+fun play_mario_sound
+fun play_mario_action_sound
+fun play_mario_heavy_landing_sound_once
+fun play_mario_heavy_landing_sound
+fun play_mario_landing_sound_once
+fun play_mario_landing_sound
+fun play_mario_jump_sound
+fun play_metal_water_walking_sound
+fun play_metal_water_jumping_sound
+extfun play_music void
+extfun play_power_star_jingle void
+extfun play_painting_eject_sound void
+extfun play_peachs_jingle void
+fun play_penguin_walking_sound
+extfun play_puzzle_jingle void
+fun play_door_open_noise
+extfun play_transition_after_delay void
+extfun play_transition void
+fun play_far_fall_sound
+fun play_flip_sounds
+extfun print_credits_str_ascii void
+extfun print_intro_text void
+fun print_displaying_credits_entry
+extfun print_debug_top_down_objectinfo void
+extfun print_debug_bottom_up void
+extfun print_text_fmt_int void
+fun pressed_pause
+extfun lower_background_noise void
+extfun load_object_collision_model void
+extfun load_area void
+extfun load_mario_area void
+extfun load_patchable_table int
+fun load_level_init_text
+extfun linear_mtxf_mul_vec3f void
+fun launch_mario_until_land
+extfun lateral_dist_between_objects f32
+fun landing_step
+fun lava_boost_on_wall
+fun let_go_of_ledge
+fun level_control_timer
+fun level_set_transition
+fun level_trigger_warp
+fun lll_octagonal_mesh_move
+fun lll_octagonal_mesh_find_y_offset
+var lll_seg7_collision_0701D21C 0 init=0
+fun lvl_set_current_level
+fun lvl_init_or_update
+fun lvl_init_from_save_file
+fun lvl_play_the_end_screen_sound
+fun door_animation_and_reset
+fun does_mario_have_normal_cap_on_head
+extfun disable_warp_checkpoint void
+extfun disable_time_stop void
+extfun disable_background_sound void
+extfun dist_between_objects f32
+fun determine_knockback_action
+fun determine_interaction
+fun debug_print_speed_action_normal
+var dBowserFlamesOrientationValues 0 init=0
+extfun dl_rgba16_stop_cutscene_msg_fade void
+extfun dl_rgba16_begin_cutscene_msg_fade void
+fun drop_and_set_mario_action
+extfun drop_queued_background_music void
+fun tweester_scale_and_move
+fun tweester_act_chase
+fun tweester_act_idle
+fun tweester_act_hide
+fun tox_box_shake_screen
+fun tox_box_act_idle
+fun tox_box_act_init
+fun tox_box_act_unused_idle
+fun tox_box_act_roll_land
+fun tox_box_act_roll_left
+fun tox_box_act_roll_backward
+fun tox_box_act_roll_right
+fun tox_box_act_roll_forward
+fun tox_box_move
+fun tilt_body_walking
+fun tilt_body_ground_shell
+fun tilt_body_butt_slide
+fun tilt_body_running
+fun take_damage_and_knock_back
+fun take_damage_from_interact_object
+fun tumbling_bridge_act_0
+fun tumbling_bridge_act_2
+fun tumbling_bridge_act_1
+fun tumbling_bridge_act_3
+fun tuxies_mother_act_0
+fun tuxies_mother_act_2
+fun tuxies_mother_act_1
+extfun try_to_spawn_object ptr
+extfun trigger_cutscene_dialog int
+fun transition_submerged_to_walking
+fun transfer_bully_speed
+extfun jiggle_bbh_stair int
+fun jumping_box_act_0
+fun jumping_box_act_1
+fun jumping_box_free_update
+fun jumbo_star_cutscene_taking_off
+fun jumbo_star_cutscene_falling
+fun jumbo_star_cutscene_flying
+fun bowser_open_eye_switch
+fun bowser_check_hit_mine
+fun bowser_check_fallen_off_stage
+fun bowser_set_goal_invisible
+fun bowser_set_act_big_jump
+fun bowser_set_anim_slow_gait
+fun bowser_set_anim_look_up_and_walk
+fun bowser_set_anim_look_down_stop_walk
+fun bowser_set_anim_jump
+fun bowser_short_second_hop
+fun bowser_spawn_collectable
+fun bowser_spawn_shockwave
+fun bowser_init_camera_actions
+fun bowser_act_wait
+fun bowser_act_walk_to_mario
+fun bowser_act_charge_mario
+fun bowser_act_spit_fire_onto_floor
+fun bowser_act_spit_fire_into_sky
+fun bowser_act_idle
+fun bowser_act_intro_walk
+fun bowser_act_quick_jump
+fun bowser_act_hit_mine
+fun bowser_act_hit_edge
+fun bowser_act_dance
+fun bowser_act_dead
+fun bowser_act_default
+fun bowser_act_tilt_lava_platform
+fun bowser_act_teleport
+fun bowser_act_turn_from_edge
+fun bowser_act_thrown
+fun bowser_act_jump_onto_stage
+fun bowser_act_big_jump
+fun bowser_act_breath_fire
+fun bowser_held_update
+fun bowser_land
+fun bowser_dead_wait_for_mario
+fun bowser_dead_hide
+fun bowser_dead_default_stage_ending
+fun bowser_dead_twirl_up
+fun bowser_dead_bounce
+fun bowser_dead_final_stage_ending
+fun bowser_tilt_platform
+fun bowser_tail_anchor_act_default
+fun bowser_tail_anchor_act_touched_mario
+fun bowser_tail_anchor_thrown
+fun bowser_turn_on_timer
+fun bowser_thrown_dropped_update
+var bowser_3_seg7_collision_07004EAC 0 init=0
+var bowser_3_seg7_collision_07004E28 0 init=0
+var bowser_3_seg7_collision_07004C18 0 init=0
+var bowser_3_seg7_collision_07004C9C 0 init=0
+var bowser_3_seg7_collision_07004FB4 0 init=0
+var bowser_3_seg7_collision_07004F30 0 init=0
+var bowser_3_seg7_collision_07004B94 0 init=0
+var bowser_3_seg7_collision_07004DA4 0 init=0
+var bowser_3_seg7_collision_07004D20 0 init=0
+var bowser_3_seg7_collision_07005038 0 init=0
+fun bowser_bounce_effects
+fun bowser_bits_actions
+fun bowser_bits_action_list
+fun bowser_bitdw_actions
+fun bowser_bitfs_actions
+fun bowser_reset_fallen_off_stage
+fun bowser_fly_back_dead
+fun bowser_flame_should_despawn
+fun bowser_flame_move
+fun bowser_flame_despawn
+fun bowser_free_update
+fun boo_with_cage_act_0
+fun boo_with_cage_act_2
+fun boo_with_cage_act_1
+fun boo_with_cage_act_3
+fun boo_get_attack_status
+fun boo_oscillate
+fun boo_chase_mario
+fun boo_set_move_yaw_for_during_hit
+fun boo_should_be_stopped
+fun boo_should_be_active
+fun boo_stop
+fun boo_act_0
+fun boo_act_4
+fun boo_act_2
+fun boo_act_1
+fun boo_act_5
+fun boo_act_3
+fun boo_approach_target_opacity_and_update_scale
+fun boo_move_during_hit
+fun boo_update_after_bounced_on
+fun boo_update_during_death
+fun boo_reset_after_hit
+fun boo_vanish_or_appear
+fun bounce_off_object
+fun bounce_back_from_attack
+var bob_seg7_collision_gate 0 init=0
+fun big_boo_shake_after_hit
+fun big_boo_spawn_ghost_hunt_star
+fun big_boo_spawn_merry_go_round_star
+fun big_boo_spawn_balcony_star
+fun big_boo_act_0
+fun big_boo_act_4
+fun big_boo_act_2
+fun big_boo_act_1
+fun big_boo_act_3
+fun big_boo_update_during_nonlethal_hit
+extfun bit_shift_left int
+var bitfs_seg7_collision_07015288 0 init=0
+fun basic_update
+fun begin_walking_action
+fun begin_braking_action
+fun beta_boo_key_inside_boo_loop
+fun beta_boo_key_drop
+fun beta_boo_key_dropped_loop
+fun bully_knock_back_mario
+fun bullet_bill_act_0
+fun bullet_bill_act_4
+fun bullet_bill_act_2
+fun bullet_bill_act_1
+fun bullet_bill_act_3
+fun bub_spawner_act_0
+fun bub_spawner_act_2
+fun bub_spawner_act_1
+fun bub_spawner_act_3
+fun bub_act_0
+fun bub_act_2
+fun bub_act_1
+fun bub_move_vertically
+var bhvMetalCap 0 init=0
+var bhvMerryGoRound 0 init=0
+var bhvMerryGoRoundBooManager 0 init=0
+var bhvMerryGoRoundBoo 0 init=0
+var bhvMerryGoRoundBigBoo 0 init=0
+var bhvMrIParticle 0 init=0
+var bhvEndPeach 0 init=0
+var bhvEndToad 0 init=0
+var bhvUkikiCageChild 0 init=0
+var bhvUnused20E0 0 init=0
+var bhvUnlockDoorStar 0 init=0
+var bhvInSunkenShip3 0 init=0
+var bhvYellowCoin 0 init=0
+var bhvYellowBall 0 init=0
+var bhvOpenableCageDoor 0 init=0
+var bhvObjectWaterSplash 0 init=0
+var bhvObjectWaveTrail 0 init=0
+var bhvGoldenCoinSparkles 0 init=0
+var bhvGiantPole 0 init=0
+var bhvGhostHuntBoo 0 init=0
+var bhvGhostHuntBigBoo 0 init=0
+var bhvGrandStar 0 init=0
+var bhvWingCap 0 init=0
+var bhvWind 0 init=0
+var bhvWallTinyStarParticle 0 init=0
+var bhvWaterMist 0 init=0
+var bhvWaterAirBubble 0 init=0
+var bhvWaterDropletSplash 0 init=0
+var bhvWaterDroplet 0 init=0
+var bhvWaterLevelPillar 0 init=0
+var bhvWhitePuffSmoke2 0 init=0
+var bhvWhitePuffSmoke 0 init=0
+var bhvWFElevatorTowerPlatform 0 init=0
+var bhvWFSolidTowerPlatform 0 init=0
+var bhvWFSlidingTowerPlatform 0 init=0
+var bhvWFBreakableWallRight 0 init=0
+var bhvCoinSparkles 0 init=0
+var bhvCoinFormationSpawn 0 init=0
+var bhvCapSwitchBase 0 init=0
+var bhvCarrySomething4 0 init=0
+var bhvCarrySomething5 0 init=0
+var bhvCarrySomething3 0 init=0
+var bhvCelebrationStar 0 init=0
+var bhvCheckerboardPlatformSub 0 init=0
+var bhvClockMinuteHand 0 init=0
+var bhvScuttlebug 0 init=0
+var bhvSingleCoinGetsSpawned 0 init=0
+var bhvSmallParticleSnow 0 init=0
+var bhvSmallParticle 0 init=0
+var bhvSmallParticleBubbles 0 init=0
+var bhvSmallPenguin 0 init=0
+var bhvSpawnedStar 0 init=0
+var bhvSpawnedStarNoLevelExit 0 init=0
+var bhvSparkleSpawn 0 init=0
+var bhvSparkle 0 init=0
+var bhvStaticObject 0 init=0
+var bhvStarKeyCollectionPuffSpawner 0 init=0
+var bhvStarDoor 0 init=0
+var bhvStrongWindParticle 0 init=0
+var bhvSLWalkingPenguin 0 init=0
+var bhvKoopaShellUnderwater 0 init=0
+var bhvKoopaShell 0 init=0
+var bhvKoopaShellFlame 0 init=0
+fun bhv_wind_loop
+fun bhv_wall_tiny_star_particle_loop
+fun bhv_water_waves_init
+fun bhv_water_splash_spawn_droplets
+fun bhv_water_air_bubble_init
+fun bhv_water_air_bubble_loop
+fun bhv_water_mist_spawn_loop
+fun bhv_water_mist_2_loop
+fun bhv_water_mist_loop
+fun bhv_water_level_pillar_init
+fun bhv_water_level_pillar_loop
+fun bhv_water_level_diamond_loop
+fun bhv_water_droplet_splash_init
+fun bhv_water_droplet_loop
+fun bhv_warp_loop
+fun bhv_wave_trail_shrink
+fun bhv_whomp_loop
+fun bhv_white_puff_smoke_init
+fun bhv_white_puff_2_loop
+fun bhv_white_puff_exploding_loop
+fun bhv_white_puff_1_loop
+fun bhv_wdw_express_elevator_loop
+fun bhv_wf_solid_tower_platform_loop
+fun bhv_wf_sliding_tower_platform_loop
+fun bhv_wf_elevator_tower_platform_loop
+fun bhv_wf_breakable_wall_loop
+fun bhv_wf_rotating_wooden_platform_loop
+fun bhv_golden_coin_sparkles_loop
+fun bhv_giant_pole_loop
+fun bhv_ground_sand_init
+fun bhv_ground_snow_init
+fun bhv_grindel_thwomp_loop
+fun bhv_grand_star_loop
+fun bhv_openable_grill_loop
+fun bhv_openable_cage_door_loop
+fun bhv_koopa_shell_underwater_loop
+fun bhv_koopa_shell_loop
+fun bhv_koopa_shell_flame_spawn
+fun bhv_koopa_shell_flame_loop
+fun bhv_kickable_board_loop
+fun bhv_king_bobomb_loop
+fun bhv_coin_sparkles_init
+fun bhv_coin_sparkles_loop
+fun bhv_coin_inside_boo_loop
+fun bhv_coin_formation_spawn_loop
+fun bhv_coin_formation_init
+fun bhv_coin_formation_loop
+fun bhv_courtyard_boo_triplet_init
+fun bhv_ccm_touched_star_spawn_loop
+fun bhv_castle_floor_trap_open_detect
+fun bhv_castle_floor_trap_open
+fun bhv_castle_floor_trap_close_detect
+fun bhv_castle_floor_trap_close
+fun bhv_castle_floor_trap_init
+fun bhv_castle_floor_trap_loop
+fun bhv_castle_floor_trap_rotate
+fun bhv_cap_switch_loop
+fun bhv_cannon_base_unused_loop
+fun bhv_cannon_base_loop
+fun bhv_cannon_barrel_loop
+fun bhv_checkerboard_elevator_group_init
+fun bhv_checkerboard_platform_init
+fun bhv_checkerboard_platform_loop
+fun bhv_chuckya_anchor_mario_loop
+fun bhv_chuckya_loop
+fun bhv_sound_spawner_init
+fun bhv_scuttlebug_spawn_loop
+fun bhv_scuttlebug_loop
+fun bhv_squishable_platform_loop
+fun bhv_squarish_path_moving_loop
+fun bhv_small_water_wave_loop
+fun bhv_small_penguin_loop
+fun bhv_small_bubbles_loop
+fun bhv_sushi_shark_collision_loop
+fun bhv_sushi_shark_loop
+fun bhv_sunken_ship_part_loop
+fun bhv_ship_part_3_loop
+fun bhv_shallow_water_splash_init
+fun bhv_spindrift_loop
+fun bhv_spawned_coin_init
+fun bhv_spawned_coin_loop
+fun bhv_spawned_star_init
+fun bhv_spawned_star_loop
+fun bhv_spawn_star_no_level_exit
+fun bhv_sparkle_spawn_loop
+fun bhv_sl_walking_penguin_loop
+fun bhv_sl_snowman_wind_loop
+fun bhv_static_checkered_platform_loop
+fun bhv_star_door_loop_2
+fun bhv_star_door_loop
+fun bhv_strong_wind_particle_loop
+fun bhv_snow_leaf_particle_spawn_init
+fun bhv_yellow_coin_init
+fun bhv_yellow_coin_loop
+fun bhv_idle_water_wave_loop
+fun bhv_init_changing_water_level_loop
+extfun bhv_init_room void
+fun bhv_invisible_objects_under_bridge_init
+fun bhv_alpha_boo_key_loop
+fun bhv_animated_texture_loop
+fun bhv_moat_grills_loop
+fun bhv_merry_go_round_loop
+fun bhv_merry_go_round_boo_manager_loop
+fun bhv_mr_i_particle_loop
+fun bhv_mr_i_loop
+fun bhv_mr_i_body_loop
+fun bhv_exclamation_box_loop
+fun bhv_elevator_init
+fun bhv_elevator_loop
+fun bhv_end_peach_loop
+fun bhv_end_toad_loop
+fun bhv_ukiki_cage_star_loop
+fun bhv_ukiki_cage_loop
+fun bhv_ukiki_init
+fun bhv_ukiki_loop
+fun bhv_unused_poundable_platform
+fun bhv_unused_particle_spawn_loop
+fun bhv_hidden_object_loop
+fun bhv_hidden_blue_coin_loop
+fun bhv_haunted_bookshelf_loop
+fun bhv_heave_ho_loop
+fun bhv_heave_ho_throw_mario_loop
+fun bhv_pound_white_puffs_init
+fun bhv_pound_tiny_star_particle_init
+fun bhv_pound_tiny_star_particle_loop
+fun bhv_pole_init
+fun bhv_pole_base_loop
+fun bhv_piranha_particle_loop
+fun bhv_piranha_plant_waking_bubbles_loop
+fun bhv_piranha_plant_loop
+fun bhv_piranha_plant_bubble_loop
+fun bhv_particle_init
+fun bhv_particle_loop
+fun bhv_pushable_loop
+fun bhv_purple_switch_loop
+fun bhv_punch_tiny_triangle_init
+fun bhv_punch_tiny_triangle_loop
+fun bhv_play_music_track_when_touched_loop
+fun bhv_platform_normals_init
+fun bhv_lll_wood_piece_loop
+fun bhv_lll_sinking_square_platforms_loop
+fun bhv_lll_sinking_rock_block_loop
+fun bhv_lll_sinking_rectangular_platform_loop
+fun bhv_lll_moving_octagonal_mesh_platform_loop
+fun bhv_lll_bowser_puzzle_spawn_pieces
+fun bhv_lll_bowser_puzzle_spawn_piece
+fun bhv_lll_bowser_puzzle_piece_idle
+fun bhv_lll_bowser_puzzle_piece_action_0
+fun bhv_lll_bowser_puzzle_piece_action_1
+fun bhv_lll_bowser_puzzle_piece_move_up
+fun bhv_lll_bowser_puzzle_piece_move_left
+fun bhv_lll_bowser_puzzle_piece_move_down
+fun bhv_lll_bowser_puzzle_piece_move_right
+fun bhv_lll_bowser_puzzle_piece_move
+fun bhv_lll_bowser_puzzle_piece_update
+fun bhv_lll_bowser_puzzle_piece_loop
+fun bhv_lll_bowser_puzzle_loop
+fun bhv_lll_rotating_hexagonal_ring_loop
+fun bhv_lll_rotating_hex_flame_loop
+fun bhv_lll_rotating_block_fire_bars_loop
+fun bhv_lll_floating_wood_bridge_loop
+fun bhv_door_init
+fun bhv_door_loop
+fun bhv_ddd_warp_loop
+fun bhv_ddd_moving_pole_loop
+fun bhv_tweester_sand_particle_loop
+fun bhv_tweester_loop
+fun bhv_tower_platform_group_loop
+fun bhv_tower_door_loop
+fun bhv_tox_box_loop
+fun bhv_tilting_inverted_pyramid_loop
+fun bhv_tiny_star_particles_init
+fun bhv_tank_fish_group_loop
+fun bhv_temp_coin_loop
+fun bhv_tumbling_bridge_platform_loop
+fun bhv_tumbling_bridge_loop
+fun bhv_tuxies_mother_loop
+fun bhv_thi_huge_island_top_loop
+fun bhv_thi_tiny_island_top_loop
+fun bhv_tree_snow_or_leaf_loop
+fun bhv_jumping_box_loop
+fun bhv_jrb_sliding_box_loop
+fun bhv_bowsers_sub_loop
+fun bhv_bowser_key_course_exit_loop
+fun bhv_bowser_key_unlock_door_loop
+fun bhv_bowser_key_loop
+fun bhv_bowser_shock_wave_loop
+fun bhv_bowser_init
+fun bhv_bowser_loop
+fun bhv_bowser_tail_anchor_loop
+fun bhv_bowser_body_anchor_loop
+fun bhv_bowser_flame_spawn_loop
+fun bhv_boo_with_cage_init
+fun bhv_boo_with_cage_loop
+fun bhv_boo_cage_loop
+fun bhv_boo_staircase
+fun bhv_boo_init
+fun bhv_boo_in_castle_loop
+fun bhv_boo_loop
+fun bhv_bouncing_fireball_loop
+fun bhv_bouncing_fireball_flame_loop
+fun bhv_bobomb_anchor_mario_loop
+fun bhv_big_boo_loop
+fun bhv_bitfs_sinking_cage_platform_loop
+fun bhv_bitfs_sinking_platform_loop
+fun bhv_beta_chest_lid_loop
+fun bhv_beta_chest_bottom_init
+fun bhv_beta_chest_bottom_loop
+fun bhv_beta_moving_flames_spawn_loop
+fun bhv_beta_moving_flames_loop
+fun bhv_beta_trampoline_spring_loop
+fun bhv_beta_trampoline_top_loop
+fun bhv_beta_bowser_anchor_loop
+fun bhv_beta_boo_key_loop
+fun bhv_beta_fish_splash_spawner_loop
+fun bhv_bullet_bill_init
+fun bhv_bullet_bill_loop
+fun bhv_bub_spawner_loop
+fun bhv_bub_loop
+fun bhv_bubble_wave_init
+fun bhv_bubble_splash_init
+fun bhv_bubble_maybe_loop
+fun bhv_black_smoke_mario_loop
+fun bhv_black_smoke_upward_loop
+fun bhv_black_smoke_bowser_loop
+fun bhv_blue_coin_switch_loop
+fun bhv_blue_bowser_flame_init
+fun bhv_blue_bowser_flame_loop
+fun bhv_blue_fish_movement_loop
+fun bhv_blue_flames_group_loop
+fun bhv_bbh_tilting_trap_platform_loop
+fun bhv_breakable_box_loop
+fun bhv_rotating_clock_arm_loop
+fun bhv_rotating_exclamation_box_loop
+fun bhv_rotating_platform_loop
+fun bhv_rr_rotating_bridge_platform_loop
+fun bhv_fish_group_loop
+fun bhv_fish_spawner_loop
+fun bhv_fish_loop
+fun bhv_falling_bowser_platform_loop
+fun bhv_fading_warp_loop
+fun bhv_floor_trap_in_castle_loop
+fun bhv_flame_moving_forward_growing_init
+fun bhv_flame_moving_forward_growing_loop
+fun bhv_flame_mario_loop
+fun bhv_flame_large_burning_out_init
+fun bhv_flame_bowser_init
+fun bhv_flame_bowser_loop
+fun bhv_flame_bouncing_init
+fun bhv_flame_bouncing_loop
+fun bhv_flame_floating_landing_init
+fun bhv_flame_floating_landing_loop
+fun bhv_flamethrower_loop
+fun bhv_flamethrower_flame_loop
+fun bhv_volcano_flames_loop
+var bhv1UpWalking 0 init=0
+var bhv1UpRunningAway 0 init=0
+var bhvNormalCap 0 init=0
+var bhvFish 0 init=0
+var bhvFloorSwitchGrills 0 init=0
+var bhvFloorSwitchHiddenObjects 0 init=0
+var bhvFloorTrapInCastle 0 init=0
+var bhvFlameMovingForwardGrowing 0 init=0
+var bhvFlameFloatingLanding 0 init=0
+var bhvFlameBowser 0 init=0
+var bhvFlameBouncing 0 init=0
+var bhvFlamethrowerFlame 0 init=0
+var bhvFlameLargeBurningOut 0 init=0
+var bhvVolcanoFlames 0 init=0
+var bhvVanishCap 0 init=0
+var bhvBowserShockWave 0 init=0
+var bhvBowserKeyUnlockDoor 0 init=0
+var bhvBowserKeyCourseExit 0 init=0
+var bhvBowserKey 0 init=0
+var bhvBowser 0 init=0
+var bhvBowserBomb 0 init=0
+var bhvBooCage 0 init=0
+var bhvBooStaircase 0 init=0
+var bhvBoo 0 init=0
+var bhvBouncingFireballFlame 0 init=0
+var bhvBalconyBigBoo 0 init=0
+var bhvBetaMovingFlames 0 init=0
+var bhvBetaChestLid 0 init=0
+var bhvBetaTrampolineSpring 0 init=0
+var bhvBub 0 init=0
+var bhvBubbleMaybe 0 init=0
+var bhvBlackSmokeMario 0 init=0
+var bhvBlackSmokeUpward 0 init=0
+var bhvBlackSmokeBowser 0 init=0
+var bhvBlueCoinSwitch 0 init=0
+var bhvBlueFish 0 init=0
+var bhvBlueFlamesGroup 0 init=0
+var bhvBlueBowserFlame 0 init=0
+var bhvBreakBoxTriangle 0 init=0
+var bhvRotatingExclamationMark 0 init=0
+var bhvRRElevatorPlatform 0 init=0
+var bhvJumpingBox 0 init=0
+var bhvPoundTinyStarParticle 0 init=0
+var bhvPiranhaPlantWakingBubbles 0 init=0
+var bhvPenguinBaby 0 init=0
+var bhvPurpleParticle 0 init=0
+var bhvPunchTinyTriangle 0 init=0
+var bhvHiddenBlueCoin 0 init=0
+var bhvDoor 0 init=0
+var bhvTweesterSandParticle 0 init=0
+var bhvTiltingBowserLavaPlatform 0 init=0
+var bhvTinyStrongWindParticle 0 init=0
+var bhvTemporaryYellowCoin 0 init=0
+var bhvTenCoinsSpawn 0 init=0
+var bhvTumblingBridgePlatform 0 init=0
+var bhvTuxiesMother 0 init=0
+var bhvThreeCoinsSpawn 0 init=0
+var bhvTreeSnow 0 init=0
+var bhvTree 0 init=0
+var bhvTreeLeaf 0 init=0
+var bhvLLLWoodPiece 0 init=0
+var bhvLLLBowserPuzzlePiece 0 init=0
+var bhvLLLRotatingHexFlame 0 init=0
+var bhvLLLTumblingBridge 0 init=0
+var blue_fish_seg3_anims_0301C2B0 0 init=0
+var bbh_seg7_collision_07026B1C 0 init=0
+fun breakable_box_init
+extfun raise_background_noise void
+extfun random_sign int
+extfun random_u16 int
+extfun random_float f32
+extfun random_f32_around_zero f32
+fun resolve_and_return_wall_collisions
+extfun reset_camera void
+extfun reset_cutscene_msg_fade void
+fun reset_mario_pitch
+extfun reset_dialog_render_state void
+fun reset_bob_variables
+extfun reset_volume void
+fun return_mario_anim_y_translation
+extfun retrieve_animation_index int
+var D_8032CBE8 1 init=1
+var D_8032CBE4 1 init=1
+var D_8032CBEC 7 init=7
+var D_8032F860 52 init=52
+var D_8032F8C8 8 init=8
+var D_8032F894 52 init=52
+var D_8032F460 40 init=40
+var D_8032F754 40 init=40
+var D_8035FEE4 2 init=0
+var D_8035FF10 2 init=2
+var D_80339EE0 2 init=2
+var D_80339ECA 2 init=2
+extfun nop_change_course void
+var TablePiranhaPlantActions 36 init=36
+fun fish_spawner_act_spawn
+fun fish_spawner_act_idle
+fun fish_spawner_act_respawn
+fun fish_act_init
+fun fish_act_roam
+fun fish_act_flee
+fun fish_vertical_roam
+fun fire_bar_spawn_flames
+fun fire_bar_act_0
+fun fire_bar_act_2
+fun fire_bar_act_1
+fun fire_bar_act_3
+extfun find_wall_collisions int
+extfun find_water_level f32
+extfun find_ceil f32
+fun find_mario_anim_flags_and_translation
+extfun find_poison_gas_level f32
+fun find_floor_slope
+fun find_floor_height_relative_polar
+extfun find_floor f32
+fun falling_bowser_plat_act_check
+fun falling_bowser_plat_act_start
+fun falling_bowser_plat_act_fall
+extfun fadeout_cap_music void
+extfun fadeout_music void
+extfun fadeout_level_music void
+fun fade_into_special_warp
+extfun func_80321080 void
+extfun f32_find_wall_collision int
+extfun virtual_to_segmented ptr
+extfun vec3s_copy ptr
+extfun vec3s_set ptr
+extfun vec3s_to_vec3f ptr
+fun vec3f_copy_2
+extfun vec3f_copy ptr
+extfun vec3f_set ptr
+fun vec3f_find_ceil

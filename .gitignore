@@ -29,3 +29,11 @@ _opam/
 .CoqMakefile.d
 .*.d
 __pycache__/
+experiments/oracle/extract/ml/
+experiments/oracle/extract/*.vo*
+experiments/oracle/extract/*.glob
+experiments/oracle/extract/.*.aux
+experiments/oracle/extract/drv/*.cm*
+experiments/oracle/extract/drv/*.o
+experiments/oracle/extract/drv/introspect
+experiments/oracle/extract/drv/replay

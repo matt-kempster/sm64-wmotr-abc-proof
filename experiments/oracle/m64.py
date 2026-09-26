@@ -16,6 +16,8 @@ import re
 import struct
 import tempfile
 
+import numpy as np
+
 ORACLE = os.path.expanduser("~/sm64-oracle")
 CORE = f"{ORACLE}/mupen64plus-core/projects/unix/libmupen64plus.so.2"
 RSP = f"{ORACLE}/mupen64plus-rsp-hle/projects/unix/mupen64plus-rsp-hle.so"
@@ -26,9 +28,9 @@ M64TYPE_INT, M64TYPE_BOOL = 1, 3
 M64PLUGIN_RSP, M64PLUGIN_GFX, M64PLUGIN_INPUT = 1, 2, 4
 CMD_ROM_OPEN, CMD_EXECUTE, CMD_STOP, CMD_STATE_LOAD, CMD_STATE_SAVE = 1, 5, 6, 10, 11
 CMD_CORE_STATE_SET, M64CORE_SPEED_LIMITER = 17, 5
-RUNSTATE_PAUSED, RUNSTATE_RUNNING = 0, 2
+RUNSTATE_PAUSED, RUNSTATE_STEPPING, RUNSTATE_RUNNING = 0, 1, 2
 DBG_PTR_RDRAM = 1
-CPU_PC, CPU_REG_REG = 1, 2
+CPU_PC, CPU_REG_REG, CPU_REG_COP1_SIMPLE_PTR = 1, 2, 7
 BKP_CMD_ADD_ADDR, BKP_CMD_REMOVE_ADDR = 1, 3
 RDRAM_SIZE = 0x400000  # SM64 uses 4 MB
 
@@ -71,6 +73,8 @@ class Emu:
         self._cbs = []  # keep ctypes callbacks alive
         self.on_vi = None
         self.bp_handlers = {}  # pc -> fn(emu, pc)
+        self.on_step = None    # fn(emu, pc) for every instruction while stepping
+        self.stepping = False
         self.frame = 0
         self.keys = 0
         cfg = tempfile.mkdtemp(prefix="m64cfg")
@@ -111,6 +115,7 @@ class Emu:
         self.core.DebugGetCPUDataPtr.restype = C.c_void_p
         self._rdram = None
         self._regs = None
+        self._fprs = None
 
     # ---------------- memory (N64 byte order) ----------------
     def _ram(self):
@@ -151,7 +156,7 @@ class Emu:
 
     def dump(self):
         """All of RDRAM as N64-order bytes."""
-        return struct.pack(f">{RDRAM_SIZE // 4}I", *self._ram())
+        return np.ctypeslib.as_array(self._ram()).astype(">u4").tobytes()
 
     def sym(self, name):
         return self.syms[name]
@@ -161,6 +166,12 @@ class Emu:
         if self._regs is None:
             self._regs = (C.c_int64 * 32).from_address(self.core.DebugGetCPUDataPtr(CPU_REG_REG))
         return self._regs[i] & 0xFFFFFFFF
+
+    def fpr_bits(self, i):
+        """Raw 32 bits of single-precision FPR i (e.g. f0, f12, f14)."""
+        if self._fprs is None:
+            self._fprs = (C.c_void_p * 32).from_address(self.core.DebugGetCPUDataPtr(CPU_REG_COP1_SIMPLE_PTR))
+        return C.c_uint32.from_address(self._fprs[i]).value
 
     # ---------------- breakpoints ----------------
     def add_bp(self, pc, fn):
@@ -172,13 +183,18 @@ class Emu:
         self.core.DebugBreakpointCommand(BKP_CMD_REMOVE_ADDR, pc, None)
 
     def _on_update(self, pc):
+        """Called on a breakpoint hit (core paused) and, while stepping, on every
+        instruction (core not paused).  Breakpoints are checked in both states."""
+        hit = pc in self.bp_handlers
         try:
-            fn = self.bp_handlers.get(pc)
-            if fn:
-                fn(self, pc)
+            if hit:
+                self.bp_handlers[pc](self, pc)
+            if self.stepping and self.on_step:
+                self.on_step(self, pc)
         finally:
-            self.core.DebugSetRunState(RUNSTATE_RUNNING)
-            self.core.DebugStep()
+            self.core.DebugSetRunState(RUNSTATE_STEPPING if self.stepping else RUNSTATE_RUNNING)
+            if hit:
+                self.core.DebugStep()
 
     def _on_vi(self):
         if self.frame == 0:  # unthrottle once running

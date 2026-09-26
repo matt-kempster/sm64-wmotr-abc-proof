@@ -33,7 +33,7 @@ GENERATED := generated/toy.v generated/shadow.v \
   generated/mario_step.v generated/mario_misc.v \
   generated/math_util.v generated/surface_collision.v
 
-.PHONY: all generated proofs regen clean
+.PHONY: all generated proofs regen clean oracle-extract
 
 all: generated proofs
 
@@ -117,6 +117,12 @@ $(COQMAKEFILE): _CoqProject
 # regenerate from the pinned submodule.
 proofs: $(COQMAKEFILE)
 	$(MAKE) -f $(COQMAKEFILE)
+
+# OCaml extraction of the interpreter + twelve-TU link for the recorded-RAM
+# differential tester (experiments/oracle, TRUST.md 5.1). Not part of `all`.
+oracle-extract: proofs
+	mkdir -p experiments/oracle/extract/ml
+	coqc -R generated SM64.Generated -R proofs SM64.Proofs experiments/oracle/extract/Extract.v
 
 regen:
 	rm -f $(GENERATED)
