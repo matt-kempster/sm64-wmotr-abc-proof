@@ -264,11 +264,11 @@ Sources: [Cross-barrier contact](../../docs/notes/rank12b-cross-barrier-contact.
 
 **The question.** Can legal hand control, attack timing or reboarding produce a stronger support or departure than the checked hand model allows?
 
-**What is already known.** A local controller suffix rides a real hand, and one live-memory movement case is proved. Ordinary boss/contact reachability is still separate. The checked two-hand height and speed models fall short; standing on the hand misses the eye, and tested reboarding does not supply a clean useful rise.
+**What is already known.** The selected local double-pound flight now has a real US/JP velocity/clamp/height execution proof and an exact ten-step binary32 certificate. Its rise stays at 285; the same closed-hand, seed-through-31 payoff misses the tunnel by at least seven units. Separate Mario cells survive these hand stores. The supplied contact prefix, complete cycle and other reboards are not thereby proved.
 
-**First compute batch.** Extend the existing live hand-update proof through one remaining reached movement or attack phase, deriving its selected owner, rounded height and relevant call effects instead of assuming the whole hand history.
+**First compute batch.** The selected rise, crest and early descent are checked locally. Next connect its actual water/floor tail and impact/reset to a second launch on the selected support. Do not assume that floor selection or intervening callbacks preserve the desired state.
 
-**What a negative result would settle.** Show that the selected reachable hand cycle preserves the established height/seed bounds, then extend the cycle classification if necessary. This can rule out a named ride or reboard payoff without re-proving all Eyerok gameplay.
+**What a negative result would settle.** The existing conditional payoff excludes reboarding within this same height/seed envelope. Proving the impact/reset and between-call connections would extend that result to the named repeated cycle. Different attack launches, support owners or larger incoming seeds need separate cases.
 
 **What a useful exception must show.** An authenticated attack/ride/reboard history with an omitted support or useful speed/height increase, followed by a viable hand-to-warp departure.
 

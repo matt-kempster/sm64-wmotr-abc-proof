@@ -412,6 +412,7 @@ proofs/EyerokRank15LiveProjection.v
 proofs/EyerokRank15LiveCallClosure.v
 proofs/EyerokRank15MovementBodyResolution.v
 proofs/EyerokRank15LiveMovement.v
+proofs/EyerokRank15PoundFlight.v
 proofs/EyerokRank29Preload.v
 proofs/EyerokRank29CycleClosure.v
 proofs/EyerokControllerManipulation.v

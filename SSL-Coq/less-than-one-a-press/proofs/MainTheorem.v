@@ -32,7 +32,7 @@ From LessThanOneAPress.Proofs Require Import
   PlatformIntegerAliasClosure Area1Rank3PayloadWriterClosure
   EyerokRank15ControllerRide EyerokRank15VSC EyerokRank15ScheduleSearch
   EyerokRank15DynamicSupport EyerokRank15LiveProjection
-  EyerokRank15LiveCallClosure EyerokRank15LiveMovement
+  EyerokRank15LiveCallClosure EyerokRank15LiveMovement EyerokRank15PoundFlight
   EyerokRank29Preload
   EyerokRank29CycleClosure EyerokControllerManipulation
   EyerokControllerReachability
@@ -310,11 +310,13 @@ Proof. exact eyerok_rank15_dynamic_support_boundary_holds. Qed.
 Theorem current_rank15_memory_faithful_projection_boundary :
   EyerokRank15MemoryFaithfulProjectionBoundary /\
   EyerokRank15LiveNativeCallBoundary /\
-  EyerokRank15LiveMovementBoundary.
+  EyerokRank15LiveMovementBoundary /\
+  EyerokRank15PoundFlightBoundary.
 Proof.
   exact (conj eyerok_rank15_memory_faithful_projection_boundary_holds
     (conj eyerok_rank15_live_native_call_boundary_checked
-      eyerok_rank15_live_movement_boundary_checked)).
+      (conj eyerok_rank15_live_movement_boundary_checked
+        eyerok_rank15_pound_flight_boundary_checked))).
 Qed.
 
 (** Rank 29 no longer has an unidentified direct stock speed source.  The

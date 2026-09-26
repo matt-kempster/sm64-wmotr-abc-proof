@@ -51,6 +51,10 @@ contact call. This is a local C1 refinement, **not** a discharge of E1 or any
 of W1–W6; importing this interface does not automatically instantiate the
 final theorem's execution/classification obligations.
 
+## Eyerok selected-flight connection — 26 September 2026
+
+`EyerokRank15PoundFlight.v` now constructs the real US/JP movement-helper prefix from body entry through velocity, clamp and Y stores. The ten specified rounded flight steps derive their outputs, and disjoint Mario cells are framed. The extracted airborne action leaves memory unchanged while rising and installs `-20` gravity while falling. Under the selected upright closed-hand and integral-seed-through-31 envelope, the ride/reboard payoff is still at least seven units short of the tunnel. This is a local execution construction plus a finite flight certificate and conditional payoff theorem; floor/water work, contact, impact/reset and between-call coverage are still required for the whole cycle. The result is consumed by `current_rank15_memory_faithful_projection_boundary`; none of W1–W6 is closed by it. Details are in the [selected-flight note](notes/rank15-eyerok-controller-ride.md#selected-double-pound-flight-actual-velocity-and-height-updates).
+
 ## Results already used by the final argument
 
 These are actual dependencies of the existing collection/first-contact

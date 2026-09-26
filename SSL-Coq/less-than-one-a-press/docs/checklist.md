@@ -1,5 +1,16 @@
 # Verification checklist
 
+- [x] Extend the selected Eyerok double-pound flight through the actual US/JP
+  velocity addition, terminal check and height store; check all ten specified
+  unclamped steps, the rising/falling action branches and closed-hand mesh.
+  The rounded outputs are derived, with separate Mario cells framed. Under
+  the selected height/seed envelope the tunnel payoff remains seven units
+  short. See the [flight scope](notes/rank15-eyerok-controller-ride.md#selected-double-pound-flight-actual-velocity-and-height-updates).
+- [ ] Connect that flight's water/floor tail, wall/contact work, terminal
+  clamp, impact/reset and next launch before claiming a repeated-cycle
+  exclusion. The supplied contact prefix and attack/reboard cases outside
+  this envelope remain separate; no whole Eyerok or target-star closure.
+
 - [x] Complete the bounded [Wafel JP pilot](../instrumentation/wafel-jp-pilot/README.md):
   2,483 baseline Area-1 snapshots and 2,442 branch snapshots match the named
   fields with the explicitly checked +1 global-timer mapping. Five 90-update
