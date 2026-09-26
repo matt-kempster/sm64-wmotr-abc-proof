@@ -215,6 +215,16 @@ proofs/NoAImpliesNoFly/NoAImpliesNoFlyLinked.v
 #     linked12 chain premise; 56 -> 43 rows) ---
 proofs/NoAImpliesNoFly/NoAImpliesNoFlyTwelve.v
 
+# --- executable Clight: interpreter (sound vs ClightBigstep), vm-computable
+#     memory ops (= Mem.*), computable linked genv (= globalenv lp), memory builder ---
+proofs/Interp/CMem.v
+proofs/Interp/ClightInterp.v
+proofs/Interp/LinkGenv.v
+proofs/Interp/MemBuild.v
+
+# --- GOAL 1 positive control: with A pressed, a real frame reaches flying ---
+proofs/NoAImpliesNoFly/PositiveControl.v
+
 # --- GOAL 1 / the superseded VACUOUS mario_ge capstone (kept for history) ---
 proofs/NoAImpliesNoFly/Unwired/NoAImpliesNoFlyVacuous.v
 

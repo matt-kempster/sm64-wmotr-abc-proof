@@ -6,28 +6,34 @@
 (* sixteen genuinely-external whitelist ids (exempt_ext_ids), so           *)
 (* linked12_ext_pin discharges it for any twelve-TU link.                  *)
 (* ====================================================================== *)
-(* THE TWELVE-TU CAPSTONE (SPINE: P3 slice 2, the sharpest GOAL-1          *)
-(* statement).                                                             *)
+(* THE TWELVE-TU CAPSTONE (the sharpest GOAL-1 statement).                *)
 (*                                                                        *)
-(* Same conclusion as noA_no_spawn_never_flying_real_mwf, but the 12      *)
-(* per-TU linkorder pins and the negative pin Hrest_ext_only are GONE     *)
-(* from the assumed surface: they are DERIVED (LinkedTwelve.v) from the   *)
-(* single structural premise                                              *)
+(* WHAT IT SAYS, exactly: let lp be a CompCert link of the twelve         *)
+(* clightgen'd SM64 TUs (linked12 lp).  Start from a memory satisfying    *)
+(* mem_ok_lp, and repeatedly apply ONE step = one real eval_funcall of     *)
+(* execute_mario_action over globalenv lp, with the controller's A bit     *)
+(* clear before every step.  Then Mario's action is never a flying one.   *)
 (*                                                                        *)
-(*   linked12 lp   --   lp IS a CompCert link of THE twelve               *)
-(*                      mechanically-clightgen'd SM64 TUs                 *)
+(* WHAT IT DOES NOT SAY: the step is execute_mario_action ONLY -- not the *)
+(* rest of the game loop.  Object behaviours, level scripts and warps     *)
+(* run between Mario frames in the real game and also write Mario's       *)
+(* state; they are outside this step relation.  Functions outside the     *)
+(* twelve TUs (collision, math_util, audio, ...) are CompCert externals,  *)
+(* constrained only by the Hocp_/Hpres_/Hext_ rows below.                 *)
 (*                                                                        *)
-(* so the theorem now reads: ANY link of the twelve generated TUs, from   *)
-(* a well-formed spawn, under never-A inputs, never reaches a flying      *)
-(* action.  Assumed surface: 56 -> 43 rows (12 LO_* + Hrest_ext_only      *)
-(* deleted; +1 linked12).  The remaining rows are the runtime-layout      *)
-(* facts (bm/bc/SafeB distinctness, init validity), the gated             *)
-(* terminal-external model boundary, WL_exempt (env hygiene), and the     *)
-(* Hret_unsafe / Hext_action / Hmwf_ext engine rows -- see                *)
-(* docs/director-roadmap-2026-07-01.md for the ledger.                    *)
+(* NON-VACUITY: linked12 is inhabited (Linked12Sat.linked12_inhabited),   *)
+(* and the step relation really can reach flying WITH A pressed           *)
+(* (PositiveControl.A_pressed_frame_reaches_flying) -- so the no-A        *)
+(* premise is what does the work.  Still open: that mem_ok_lp and the     *)
+(* rows below are jointly satisfiable by a memory the step accepts.       *)
 (*                                                                        *)
-(* Non-vacuity of linked12 (that the twelve TUs actually link) is the     *)
-(* explicit remaining P3 question, tracked in LinkedTwelve.v's header.    *)
+(* The per-TU linkorder pins and the negative pin are DERIVED from        *)
+(* linked12 (LinkedTwelve.v).  The remaining rows are the runtime-layout  *)
+(* facts (SafeB), the external-call model boundary (Hocp_/Hpres_/...),    *)
+(* WL_exempt (env hygiene), and the Hext_action / Hmwf_ext engine rows.   *)
+(* The spawn-exclusion input of the underlying real_mwf capstone is       *)
+(* instantiated to "never" here: that theorem holds for EVERY choice of   *)
+(* it, so the premise was decorative and dropping it loses nothing.       *)
 (* ====================================================================== *)
 
 From compcert Require Import Coqlib Maps AST Integers Values Events Memory Globalenvs
@@ -59,7 +65,6 @@ Section NoAImpliesNoFlyTwelve.
   Variable bc : block.    (* the controller struct's block *)
   Variable oc0 : ptrofs.  (* the controller struct's offset within bc *)
   Variable SafeB : block -> Prop.  (* blocks the pointer chase can reach *)
-  Variable spawn_flying : mem -> bool.
 
   Notation MWF := (MWF_real lp bm bc oc0 SafeB).
 
@@ -218,13 +223,13 @@ Section NoAImpliesNoFlyTwelve.
     forall (init : mem) (is : list mem) (m : mem),
       mem_ok_lp bm MWF init ->
       Forall (fun i => a_pressed_real bm i = false) is ->
-      Forall (fun i => spawn_flying i = false) is ->
       reachable mem mem (step_real lp) init is m ->
       ~ mem_flying_lp bm m.
   Proof.
-    exact (noA_no_spawn_never_flying_real_mwf lp
+    intros init is m Hok HA Hr.
+    refine (noA_no_spawn_never_flying_real_mwf lp
              (linked12_LO_mario lp H12)
-             bm bc oc0 SafeB spawn_flying
+             bm bc oc0 SafeB (fun _ => false)
              HSafeB_sym_iff Hspawn
              Hocp_find_floor Hocp_find_ceil Hwolcp_fwc Hscp_v3f Hscp_v3s
              Hwlcp_v3f_real WL_exempt
@@ -241,7 +246,9 @@ Section NoAImpliesNoFlyTwelve.
              Holcp_fwc_real Hw1cp_v3f_real Hwolcp_v3f_real Hw1cp_v3fset_real
              Hscp_v3fset_real Hpres_floors_ext
              Hcp_spawn_real Hcp_savefile_real Hcpx_ibcd_real Hcpx_tbs_real
-             Hpres_warp_ext Hext_action Hmwf_ext).
+             Hpres_warp_ext Hext_action Hmwf_ext
+             init is m Hok HA _ Hr).
+    apply Forall_forall; reflexivity.
   Qed.
 
 End NoAImpliesNoFlyTwelve.
