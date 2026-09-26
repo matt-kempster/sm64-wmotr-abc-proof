@@ -96,6 +96,16 @@ including the Tweester copy checkpoint, source census, final warp-action call,
 conditional child-copy and allocator results alongside earlier local/model claims.
 Their wider gameplay connections remain on this board; no route is closed
 merely by moving an existing result into that section.
+
+- [x] Review all 45 atlas ranks separately for conditional and full
+  impossibility. Each now states its actual exclusion, conditions and practical
+  sufficiency, or explicitly identifies finite evidence, a supplied success or
+  a scope restriction. The full-result paragraph states the remaining broader
+  obligation. Rank 19 keeps its accepted conditional stopping point. No new
+  Coq theorem or additional accepted assumption package is claimed; route
+  estimates remain unchanged. The private site mirrors the two paragraphs for
+  each rank.
+
 Apply the [CompCert execution-scope boundary](compcert-execution-scope.md)
 before adding a corruption obligation: defined aliases and known-function
 retargets stay on this board, reachable unresolved externals first need exact
