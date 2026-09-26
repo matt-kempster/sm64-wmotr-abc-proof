@@ -149,6 +149,27 @@ surface (there are no hidden <code>Admitted</code>s — the audit checks this). 
   theorem’s <em>conditional</em>. Discharging it would mean modeling boot + level-load outside the
   twelve TUs (inventing the initial state). The honest form is the conditional we have.</p>
 </div>
+<h3>Tethered to the real game — differential testing</h3>
+<p>The model is now checked against the <b>real ROM</b> (sha1 matches the US baserom), running headless
+in an emulator. The recorder captures real WMotR frames of <code>execute_mario_action</code>. Each one is
+replayed through the proved-sound interpreter on a CompCert memory built from the real RAM, with the
+calls outside the link replayed from the game (callee and arguments must match). The final memory is
+then compared byte for byte (<code>experiments/oracle/</code>, ledger 5.1).</p>
+<div class="tablewrap"><table>
+  <tr><th>300 random-input frames (15 actions incl. jumps, double jumps, kicks)</th><th class="num">Frames</th></tr>
+  <tr><td><span class="pill p-proved">MATCH</span> same calls, same arguments, byte-identical memory</td><td class="num">267</td></tr>
+  <tr><td>DIFF / DIVERGE: the model computed something the game didn’t</td><td class="num">0</td></tr>
+  <tr><td><span class="pill p-assumed">STUCK</span> the model has <em>no execution</em> (CompCert UB)</td><td class="num">33</td></tr>
+</table></div>
+<div class="callout warn">
+  <h3>Found: 11% of real frames are outside GOAL 1</h3>
+  <p style="margin:.2rem 0">All 33 STUCK frames have one cause. After a fresh animation DMA, <code>set_mario_animation</code>
+  runs <code>VIRTUAL_TO_PHYSICAL(ptr)</code> = <code>ptr &amp; 0x1FFFFFFF</code>. Bitwise AND on a pointer is
+  undefined in CompCert C. The game runs these frames, but CompCert has no execution for them, so a
+  “for all executions” theorem says nothing about them. Fix candidate: a proof-only
+  pointer-subtraction form of the macro, bit-identical on KSEG0 addresses (ledger 3.2). Not applied yet.</p>
+</div>
+
 <p class="small">History worth remembering: four hypothesis rows that <em>looked</em> fine were found
 <b>false of the real game</b> (vacuous capstone, bully aliasing, sound-flag OR, dead return-plumbing)
 and repaired — green-and-axiom-clean never means non-vacuous. The store-scout audit
