@@ -27,6 +27,13 @@ Every fact about SM64 comes from the mechanically `clightgen`'d Clight AST under
 `proofs/`; `generated/` is regenerated, never edited. (`README.md`,
 `proofs/README.md`.)
 
+## 3. The trust ledger: `docs/TRUST.md`
+
+Everything a reader must believe for the final theorem to be about the real game
+(foundations, ROM→C gaps like the `AVOID_UB` preprocessing, C-vs-N64 semantics,
+out-of-scope code, tethers). Any change that adds, removes or moves trust updates
+the ledger in the same commit.
+
 ## Build & verify — always via `pipeline/*.sh`, never bare `coqc`
 
 ```bash

@@ -1,0 +1,88 @@
+# The trust ledger — what a reader must believe when the proof is done
+
+Every item a reader has to *accept* in order to believe the final theorem is
+about the real Super Mario 64. A proof shrinks this list; it can never empty it.
+The target ("~no assumptions") is: **only the Foundations layer remains**, plus a
+theorem statement short enough to read, with everything else proved or pinned to
+recorded evidence.
+
+Each row: what you have to believe, why it's there, how it's tethered to reality today,
+and how it shrinks. Keep this file current: add a row the moment a new kind of trust
+enters the proof, and never let one enter silently.
+
+Status key: **PROVED** (a theorem, Foundations only) · **TETHERED** (checked
+against the real game, not proved) · **ASSUMED** (neither).
+
+---
+
+## 0. The statement itself
+
+*You must read the final theorem and agree it says "WMotR's star can't be collected
+without pressing A".*
+
+| # | Item | Status / notes |
+|---|---|---|
+| 0.1 | The definition of "no A": the controller's `buttonPressed & A_BUTTON` is clear every frame (`AGates.v`) | Needs a reader check. `buttonPressed` is the rising edge, so holding A from boot is not "pressing". This matches ABC convention, but the ledger should say it. |
+| 0.2 | The definition of "flying" (`Flying.v`: `ACT_FLYING`, `ACT_FLYING_TRIPLE_JUMP`; the invariant set also has `ACT_SHOT_FROM_CANNON`) | Constants read from the generated AST. |
+| 0.3 | "Collect the star" = the red-coin star spawns and is touched. The GOAL-2 height bound must imply you can't | GOAL 2 is not stated yet. |
+| 0.4 | The starting states the theorem quantifies over (currently `mem_ok_lp`: about 10 invented rows) | **ASSUMED**. Must become "every state the real game can be in when WMotR starts", or be checked on real recorded states (§5). |
+| 0.5 | The step relation = what one real frame does | Today it's **only `execute_mario_action`**. Objects, level scripts, warps, platforms and the other threads are outside it. This is the largest scope gap. |
+
+## 1. Foundations (irreducible; every formal proof has these)
+
+| # | Item | Notes |
+|---|---|---|
+| 1.1 | The Rocq/Coq 8.19.2 kernel is sound | Standard. |
+| 1.2 | Axioms: classical logic, functional extensionality, proof irrelevance, Flocq's classical reals | Standard. `discipline_check.sh` enforces that nothing else appears. |
+| 1.3 | CompCert 3.15's definitions of C (Clight syntax, big-step semantics, memory model, `Cop` arithmetic, IEEE floats via Flocq) mean what C means | This is a *definition* to trust, not CompCert's compiler-correctness theorem. We never use the compiler. |
+
+## 2. From the ROM to the C we verify
+
+| # | Item | Status / notes |
+|---|---|---|
+| 2.1 | The decomp C is the game: compiled with IDO 5.3 it reproduces the US ROM byte-for-byte | **Checkable, not yet checked here.** Build `vendor/sm64` matching and compare the sha1 to the baserom. |
+| 2.2 | **We verify a different preprocessing of that C.** `pipeline/clightgen.sh` passes `-DNON_MATCHING=1 -DAVOID_UB=1`, so every `#ifdef AVOID_UB` / `NON_MATCHING` site is C that the ROM was *not* built from | **ASSUMED, must be itemized.** Known in-scope site: `act_air_hit_wall` (`mario_actions_airborne.c:1340`). The ROM's missing `return` returns leftover register contents (the result of `set_mario_animation`, behind the "firsties" behavior), and AVOID_UB makes that return explicit. Also `BAD_RETURN`, `GET_HIGH_U16_OF_32` (`sm64.h`, `types.h`), `math_util.c:574`, and C replacements for `GLOBAL_ASM` functions. Each needs a row: *identical behavior to the ROM, or a documented difference*. |
+| 2.3 | `clightgen` (CompCert's *unverified* front end: parser, elaborator, `-normalize`) translates that C faithfully | ASSUMED. Mitigation: differential testing (§5) exercises exactly this. |
+| 2.4 | Our post-processing of the generated `.v` is semantics-preserving: stringlit renaming, anonymous-composite renaming (`canonicalize_anon.py`), completing extern incomplete arrays | ASSUMED. Each is a documented rename or type completion. Could be proved (rename = alpha-equivalence) or regenerated and diffed. |
+| 2.5 | The target configuration (ppc32 eabi: 32-bit, big-endian) gives the same struct layout, sizes and alignment as IDO/MIPS | Partly TETHERED: offsets cited in proofs (action@12, controller@156, buttonPressed@18) match the decomp's `/*0x..*/` layout comments. Should be checked for every struct in scope, mechanically, against the built ROM's symbol/debug info. |
+
+## 3. C semantics versus what the N64 actually does
+
+| # | Item | Status / notes |
+|---|---|---|
+| 3.1 | CompCert's C semantics agrees with IDO-compiled MIPS on the code in scope: evaluation order, integer promotions, float rounding (single vs double), float→int casts | ASSUMED. Mitigation: differential testing (§5). |
+| 3.2 | **Undefined behavior means "no execution" in CompCert.** If a real frame hits UB (uninitialized read, out-of-range float→s16), the model has *no* derivation for it, and a "for all executions" theorem says **nothing** about that frame | ASSUMED. This is a genuine soundness-of-scope hole: SM64 has known UB-dependent glitches. Mitigation: the interpreter gets *stuck* exactly on UB, so differential testing detects any recorded frame where the game runs but the model can't. |
+| 3.3 | Concurrency: the game thread is the only writer of the state we reason about, and frames don't interleave with other threads' writes (audio, VI/PI interrupts, controller reads via `osContGetReadData`) | ASSUMED. The input buffer is written by the controller path. Needs an argument (likely: those threads write only buffers the game thread copies at a fixed point). |
+| 3.4 | Lag frames and frame pacing don't matter (the theorem is per *game-logic* frame) | ASSUMED, probably easy. |
+
+## 4. Scope: code and data outside what is linked
+
+| # | Item | Status / notes |
+|---|---|---|
+| 4.1 | Functions outside the 12 linked files (collision, `math_util`, audio, camera, save file, object spawning) behave as the capstone's rows say (`Hocp_*`, `Hpres_*`, `Hext_*`, …) | **ASSUMED, the ~35 project rows.** Shrinks by linking more files (collision and `math_util` next, then the object system) until only truly external things remain. |
+| 4.2 | CompCert's `external_functions_sem` is an abstract Parameter. Anything left external is constrained *only* by our rows | Permanent for whatever stays external. The goal is that nothing game-logic stays external. |
+| 4.3 | Level data (WMotR collision triangles, object placements, the red-coin positions) is what the ROM contains | Not yet in scope at all. Can be clightgen'd like code (`levels/wmotr/*.inc.c`). |
+| 4.4 | The proof's internal vocabulary (`MWF_real`, `SafeB`, `call_pres_ext_*`) appears in the *statement's* hypotheses | Anti-goal: a reader shouldn't have to understand proof internals to know what's assumed. Rows must eventually be about the game, or be gone. |
+
+## 5. Tethers: evidence the model is the game (NOT proof)
+
+These don't make the theorem stronger. They check that its assumptions describe the
+real game, and they find false rows (four were found historically, all "provable but
+false about the game").
+
+| # | Tether | What it checks | Status |
+|---|---|---|---|
+| 5.1 | **Recorded-RAM differential testing.** Headless emulator (Mupen64Plus in WSL) running the matching ROM, RDRAM dumped each frame, translated into CompCert memory, one frame run by the proved-sound interpreter (`proofs/Interp/`), compared to the emulator's next frame | 2.2–2.5, 3.1, **3.2** (a stuck run on a real frame = the UB hole is live), 4.1 (do the real externals satisfy our rows on real states?), 0.4 (do real WMotR states satisfy the starting conditions?) | Planned. Trusts the emulator's accuracy for the sampled frames, and the RAM→memory translator. |
+| 5.2 | Positive control: with A pressed, the model can fly (`PositiveControl.A_pressed_frame_reaches_flying`) | The theorem isn't true for a trivial reason: the step relation is non-empty and flying is reachable | **PROVED**, under an invented flat-world oracle and a hand-built (non-real) memory. Should be redone from a *recorded* WMotR state (5.1). |
+| 5.3 | ESBMC model checking on the vendor C (`experiments/esbmc/`) | Candidate GOAL-2 invariants against the real C before Coq effort | A scout. Trusts ESBMC plus stub contracts; nothing in `proofs/` rests on it. |
+
+## 6. Tools we use but do not trust
+
+Their outputs are re-checked by the Coq kernel, so they add nothing to the ledger.
+Listing them makes that explicit.
+
+- `proofs/Interp/`: the interpreter (`ClightInterp`, soundness proved against
+  ClightBigstep), `CMem` (proved equal to `Mem.*`), `LinkGenv` (proved equal to
+  `globalenv lp`). Runs happen inside `vm_compute`, so the kernel re-checks them.
+- The `vm_compute` checker itself **is** trusted (part of 1.1; the kernel's VM).
+- `discipline_check.sh`, `check_unwired.py`, `tools/clight_pretty.py`: hygiene and display only.
