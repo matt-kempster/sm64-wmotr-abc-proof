@@ -28,3 +28,4 @@ _opam/
 !.claude/skills/
 .CoqMakefile.d
 .*.d
+__pycache__/
