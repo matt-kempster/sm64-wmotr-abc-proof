@@ -13,7 +13,7 @@
 ```
 star needs all 8 red coins → coin #2 (y = 3140) must be touched
   └─ touching needs pos[1] ≥ 3140 − 160 (hitbox)
-       └─ a no-A run keeps pos[1] ≤ YMAX = H* + Δ_pot < 2980   ← HeightFrame.v
+       └─ a no-A run keeps pos[1] ≤ 2743 < 2980          ← HeightFrame.v + HeightPhi.v
             └─ Mario's own frame preserves GOAL 1's invariant   ← GOAL 1 (frame_ok_linked12)
 ```
 
@@ -26,11 +26,14 @@ Mario segment's preservation of GOAL 1's invariant is the proved
 
 ## What is still open
 
-- `Phi`: the height invariant. It is a **parameter** until T3 defines it (strategy v2's Φ over
-  Pot = y + ballistic(vel[1]) + windup).
-- `Hseg_action_phi` (the crux, T3): one real Mario frame preserves Φ.
-- `Hphi_y`: Φ ⇒ y ≤ YMAX. This is immediate once Φ is defined.
+- `Hseg_action_phi` (the crux, T3): one real Mario frame preserves Φ
+  (obligations: `docs/goal2-phi.md` §3).
+- `R_noA`: the no-A action whitelist inside Φ, still a parameter.
 - The four flank specs (TRUST.md 0.7) are labeled trust: that code isn't linked.
-- The value of YMAX and the coin/star link at the top of the chain (TRUST.md 0.3).
+- The coin/star link at the top of the chain (TRUST.md 0.3).
+
+Done: Φ is concrete (`HeightPhi.v`, `Phi_wmotr`: budget y + credit ≤ 2372 + 371 over
+real MarioState fields, offsets and action ids pinned against the generated AST), and
+`Hphi_y` is proved, so the bound is YMAX = 2743.
 
 Prototypes still live in `playground/` (T1 PlatformInert, T2 FloatBrick, T3 ValueWalk).

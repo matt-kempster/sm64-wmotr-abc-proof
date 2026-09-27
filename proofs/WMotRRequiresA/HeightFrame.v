@@ -24,12 +24,10 @@
 (*                                                                          *)
 (* WHAT IS OPEN -- every row is meant to be TRUE of the real game (no       *)
 (* forall over states the game never produces; see the comment on each):    *)
-(*   Phi             the height invariant: strategy v2's                    *)
-(*                   Phi = Phi_act /\ Phi_ground /\ Phi_air /\ Phi_special  *)
-(*                   over Pot = y + ballistic(vel[1]) + windup.  A          *)
-(*                   PARAMETER until T3 defines it from the real fields.    *)
-(*   Hphi_y          Phi m -> pos[1] <= YMAX (immediate once Phi is         *)
-(*                   defined: Pot >= y).                                    *)
+(*   Phi             CONCRETE since 2026-09-27 (HeightPhi.Phi_wmotr): the   *)
+(*                   height budget y + credit <= 2372 + 371 over real       *)
+(*                   MarioState fields.  Its action whitelist R_noA is      *)
+(*                   still a parameter.  Hphi_y is PROVED, YMAX = 2743.     *)
 (*   Hseg_action_phi THE CRUX (T3): one real execute_mario_action frame     *)
 (*                   preserves Phi.                                         *)
 (* and the flank SPECS are labeled trust: each states what that phase of    *)
@@ -62,6 +60,7 @@ From SM64.Proofs Require Import MWFReal RestSurface FloorsSurface
   FloorsLeafSurface.
 From SM64.Proofs Require Import LinkedTwelve SpawnInit InitMemSat.
 From SM64.Proofs Require Import NoAImpliesNoFlyLinked NoAImpliesNoFlyTwelve.
+From SM64.Proofs Require Import HeightPhi.
 Import ListNotations.
 
 (* ----------------------------------------------------------------------- *)
@@ -432,14 +431,22 @@ Section HeightLinked12.
       external_call ef (lp_ge lp) vargs m t vres m' ->
       Mem.valid_block m bm -> MWF m -> MWF m'.
 
-  (* ---- GOAL 2's own rows (see the HeightFrame section) ---- *)
-  Variable Phi : mem -> Prop.
-  Variable YMAX : R.
+  (* ---- GOAL 2's own rows.  Phi is CONCRETE (HeightPhi.v): the height
+     budget over real MarioState fields, K = 2372, A = 371.  Hphi_y is a
+     THEOREM (Phi_wmotr_y), so YMAX = PHI_YMAX = 2743 is no longer a
+     parameter.  What remains: the action whitelist R_noA (a parameter,
+     docs/goal2-phi.md §3.1) and the crux row. ---- *)
+  Variable R_noA : int -> Prop.
+  Notation Phi := (Phi_wmotr bm R_noA).
 
+  (* OPEN, THE CRUX (docs/goal2-phi.md §3): one real execute_mario_action
+     frame from a GOAL-1-well-formed state keeps the height budget. *)
   Hypothesis Hseg_action_phi :
     forall m m', mem_ok_lp bm MWF m -> Phi m ->
                  execute_mario_action_step_lp lp m m' -> Phi m'.
-  Hypothesis Hphi_y : forall m, Phi m -> y_le bm YMAX m.
+
+  Lemma Hphi_y : forall m, Phi m -> y_le bm PHI_YMAX m.
+  Proof. intros m Hphi v Hl. exact (Phi_wmotr_y bm R_noA m Hphi v Hl). Qed.
 
   (* GOAL 1's proved frame, at this section's surface *)
   Lemma frame_action_linked12 :
@@ -451,17 +458,17 @@ Section HeightLinked12.
   (* THE GOAL-2 CAPSTONE (height form): over any link of the twelve TUs,  *)
   (* a run of real game frames with the A bit clear after every poll,     *)
   (* started GOAL-1-well-formed and in the height invariant Phi, keeps    *)
-  (* Mario's height <= YMAX.                                              *)
+  (* Mario's height <= PHI_YMAX = 2743 (coin #2 needs >= 2980).           *)
   (* ==================================================================== *)
   Theorem wmotr_noA_height_bound_linked12 :
     forall (init : mem) (is : list mem) (m : mem),
       mem_ok_lp bm MWF init -> Phi init ->
       Forall (fun i => a_pressed_real bm i = false) is ->
       reachable mem mem (frame_step lp bm MWF Phi) init is m ->
-      y_le bm YMAX m.
+      y_le bm PHI_YMAX m.
   Proof.
     intros init is m Hok Hphi HA Hr.
-    exact (proj2 (noA_run_height_bound lp bm MWF Phi YMAX
+    exact (proj2 (noA_run_height_bound lp bm MWF Phi PHI_YMAX
                     frame_action_linked12 Hseg_action_phi Hphi_y
                     init is m Hok Hphi HA Hr)).
   Qed.

@@ -65,7 +65,7 @@ unreachable under never-press-A inputs. It splits into two goals.</p>
 <div class="statusline">
   <span><span class="pill p-proved">GOAL 1 · COMPLETE</span>&ensp;no-A ⇒ Mario never enters a flying action</span>
   <span><span class="pill p-open">GOAL 2 · ON THE SPINE</span>&ensp;without flying, Mario’s height stays below the star</span>
-  <span>Last updated <b>2026-09-26</b></span>
+  <span>Last updated <b>2026-09-27</b></span>
 </div>
 
 <h2>How a fact about SM64 becomes a theorem (the pipeline)</h2>
@@ -198,7 +198,7 @@ pole-grab correction and the 2026-09-27 slide-kick-gravity correction, <code>doc
 <p><b>On the spine</b> (2026-09-27): <code>WMotRRequiresA/HeightFrame.v</code>,
 capstone <code>wmotr_noA_height_bound_linked12</code>, passes the discipline audit and uses only standard axioms. Over any
 twelve-TU link: a run whose controller A bit is clear after every poll, starting GOAL-1-well-formed
-and inside the height invariant Φ, keeps <code>pos[1] ≤ YMAX</code>. The Mario segment is GOAL 1’s
+and inside the height invariant Φ, keeps <code>pos[1] ≤ 2743</code>. The Mario segment is GOAL 1’s
 <em>proved</em> frame (new per-frame export <code>frame_ok_linked12</code>), not a restatement. The playground’s
 flank rows were <em>false as stated</em>: they quantified over every post-memory, not just ones the game
 produces. They were rewritten as labeled specs that carry the invariants. The playground’s y-row was false too:
@@ -207,18 +207,19 @@ produces. They were rewritten as labeled specs that carry the invariants. The pl
 <h3>Open rows (the GOAL-2 scoreboard)</h3>
 <div class="tablewrap"><table>
   <tr><th>Row</th><th>Track</th><th>Status</th><th>What discharges it</th></tr>
-  <tr><td><code>Φ</code> (parameter)</td><td>T3</td>
-      <td><span class="pill p-open">the crux</span></td>
-      <td>Strategy v2’s invariant: Φ_act ∧ Φ_ground ∧ Φ_air ∧ Φ_special over
-      Pot = y + ballistic(vel[1]) + windup. Must be defined from the real <code>MarioState</code> fields.</td></tr>
+  <tr><td><code>Φ</code></td><td>T3</td>
+      <td><span class="pill p-proved">defined</span></td>
+      <td><code>HeightPhi.Phi_wmotr</code>: y + credit(action, state, timer, vel[1]) ≤ 2372 + 371 over real
+      <code>MarioState</code> fields (offsets and action ids pinned against the AST), plus side clauses. Holds on all
+      620 recorded real states. Still a parameter inside it: the no-A action whitelist <code>R_noA</code>.</td></tr>
   <tr><td><code>Hseg_action_phi</code></td><td>T2/T3</td>
       <td><span class="pill p-open">the crux</span></td>
       <td>One real <code>execute_mario_action</code> frame preserves Φ. Prototype <b>landed</b> (playground): one
       ballistic quarter-step walked end-to-end, stored value ≤ Y+V/4 via exact binary32 Flocq bricks.
       Next: loop generalization (×4 quarter-steps + gravity).</td></tr>
   <tr><td><code>Hphi_y</code></td><td>T3</td>
-      <td><span class="pill p-assumed">immediate</span></td>
-      <td>Φ ⇒ y ≤ YMAX: Pot ≥ y, once Φ is defined.</td></tr>
+      <td><span class="pill p-proved">proved</span></td>
+      <td>Φ ⇒ y ≤ 2743 (<code>Phi_wmotr_y</code>): every credit is ≥ 0.</td></tr>
   <tr><td>flank specs (poll / platform / level / rest)</td><td>T1/T4</td>
       <td><span class="pill p-boundary">labeled specs</span></td>
       <td>Each flank’s y/action clauses come from the censuses; its MWF/Φ carry becomes walkable once that code
