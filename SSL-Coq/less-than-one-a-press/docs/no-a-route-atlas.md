@@ -17,6 +17,8 @@ The [gap review](notes/ink-gap-backward.md) now separates the 20 reviewed entrie
 
 The [Reverse Scattershot review](notes/rank1-reverse-scattershot.md) distinguishes a proposed randomized search from the unfinished one-update implementation. Sampling valid predecessors could prioritize promising paths, but cannot supply missing callback semantics or turn failed trials into impossibility. The practical witness-search recommendation is to reuse controller-reached Wafel states, guide branches with backward requirements, preserve several timing/support alternatives and validate any complete replay. No new search was implemented or run, nothing moves to Already proved, and all 45 estimates remain unchanged.
 
+The [search-interpretation review](notes/rank1-search-interpretation.md) keeps the working supplied JP installation separate from its missing gameplay producer. A timeout or empty sample does not exclude a route; a complete bounded search excludes only its covered domain, while a proved contradiction at a required checkpoint can close a whole named approach. The 1,170.864868-unit example is not a universal minimum. The user has deferred the requested one-update search for this review, and no new run or proof is claimed. Three and five seconds mean 90 and 150 nominal updates; one-depth timing alone cannot price their exhaustive searches. All route verdicts and estimates remain unchanged.
+
 ## Purpose and scope
 
 This document is the readable inventory of ways the project currently knows
