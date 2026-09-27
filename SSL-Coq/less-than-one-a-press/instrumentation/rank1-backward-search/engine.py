@@ -21,8 +21,8 @@ def word(n): return z.BitVecVal(n % (1 << 32), 32)
 def float_bits(n): return z.fpBVToFP(word(n), FP)
 def truth(v):
     if z.is_bool(v): return v
-    if z.is_fp(v): return z.Not(z.fpEQ(v, z.FPVal(0, FP)))
-    return v != word(0)
+    if z.is_fp(v): return z.Not(z.fpEQ(v, z.FPVal(0, v.sort())))
+    return v != z.BitVecVal(0, v.size())
 def integer_bool(v): return z.If(v, word(1), word(0))
 def finite(v): return z.And(z.Not(z.fpIsNaN(v)), z.Not(z.fpIsInf(v)))
 def read(memory, address, size=4):
@@ -52,10 +52,15 @@ class Scope:
         self.function = function
         self.name = function.name + '.' + str(engine.counter)
         engine.counter += 1
-        self.temps = {k:z.Const(self.name+k, FP if t.tag == 'tfloat' else BV)
+        def sort(ty):
+            if ty.tag == 'tfloat': return FP
+            if ty.tag == 'tdouble': return z.Float64()
+            if ty.tag in ('tlong', 'tulong'): return z.BitVecSort(64)
+            return BV
+        self.temps = {k:z.Const(self.name+k, sort(t))
                       for k,t in (function.temps | function.params).items()}
         self.local_addresses = {k:engine.allocate_local() for k in function.locals}
-        self.result = z.Const(self.name+'.result', FP if function.returns.tag == 'tfloat' else BV)
+        self.result = z.Const(self.name+'.result', sort(function.returns))
 
 
 class Engine:
@@ -81,11 +86,16 @@ class Engine:
 
     def allocate_local(self):
         self.local_counter += 1
+        if self.local_counter >= 0x1000:
+            raise Unsupported('Canonical local-storage arena exhausted')
         return 0x20000000 + self.local_counter*0x10000
 
     def global_address(self, name):
         if name == '_gMarioStates': return STATE
-        if name not in self.globals: self.globals[name] = 0x10000000 + len(self.globals)*0x100000
+        if name not in self.globals:
+            if len(self.globals) >= 0x100:
+                raise Unsupported('Canonical global-storage arena exhausted; would overlap locals')
+            self.globals[name] = 0x10000000 + len(self.globals)*0x100000
         return self.globals[name]
 
     def address_var(self, scope, name):

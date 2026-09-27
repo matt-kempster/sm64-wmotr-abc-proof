@@ -35,7 +35,7 @@ class UpdateBenchmarkTests(unittest.TestCase):
             self.assertEqual(outer_items(body)[-1].args[1].args[0].tag,'_update_mario_platform')
             self.assertGreater(cut['excludedAfterTarget'],0)
 
-    def test_real_floor_loop_is_a_blocker_not_zero_iterations(self):
+    def test_legacy_base_rejects_floor_loop_instead_of_skipping_it(self):
         engine=StrictEngine('jp')
         fn=engine.function('surface_collision','find_floor_from_list')
         with self.assertRaises(CoverageBlock) as caught:

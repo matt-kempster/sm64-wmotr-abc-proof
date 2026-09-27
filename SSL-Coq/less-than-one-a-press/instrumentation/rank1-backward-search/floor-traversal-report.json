@@ -1,0 +1,205 @@
+{
+  "status": "The floor-list blocker is repaired; a complete controller update is still unfinished.",
+  "evidenceKind": "Exploratory application tests and helper-query attempts; no gameplay witness or new Coq theorem.",
+  "tests": {
+    "command": "python -m unittest discover -s instrumentation/rank1-backward-search -p 'test_*.py' -v",
+    "count": 32,
+    "result": "passed",
+    "seconds": 11.672
+  },
+  "solverTimeLimitMs": 15000,
+  "completeControllerUpdates": 0,
+  "survivingGameplaySequences": null,
+  "platformCallAttempts": {
+    "us": {
+      "version": "us",
+      "cut": "platform",
+      "completeControllerUpdates": 0,
+      "status": "cut-formula-built",
+      "paths": 1,
+      "solverResult": "unknown",
+      "reasonUnknown": "timeout",
+      "seconds": 15.53657050000038,
+      "peakWorkingSetBytes": 150073344,
+      "visitedStatements": 384,
+      "loops": [
+        {
+          "function": "find_floor_from_list",
+          "statementPath": "body.1.0",
+          "relation": "us.engine.0.loop.find_floor_from_list.3.0",
+          "semantics": "exists finite decreasing fuel; no fixed unroll bound"
+        },
+        {
+          "function": "find_floor_from_list",
+          "statementPath": "body.1.0",
+          "relation": "us.engine.0.loop.find_floor_from_list.4.1",
+          "semantics": "exists finite decreasing fuel; no fixed unroll bound"
+        },
+        {
+          "function": "find_floor_from_list",
+          "statementPath": "body.1.0",
+          "relation": "us.engine.0.loop.find_floor_from_list.5.2",
+          "semantics": "exists finite decreasing fuel; no fixed unroll bound"
+        }
+      ],
+      "finishedHelpers": [
+        "absf",
+        "find_floor_from_list",
+        "find_floor_from_list",
+        "find_floor_from_list",
+        "find_floor"
+      ],
+      "lastCalls": [
+        {
+          "caller": "update_mario_platform",
+          "callee": "absf",
+          "path": "body.1.1.1.1.1.0.0"
+        },
+        {
+          "caller": "update_mario_platform",
+          "callee": "find_floor",
+          "path": "body.1.1.1.1.0.0"
+        },
+        {
+          "caller": "find_floor",
+          "callee": "find_floor_from_list",
+          "path": "body.1.1.1.1.1.1.1.1.1.1.1.1.1.1.0.1.then.1.then.0.1"
+        },
+        {
+          "caller": "find_floor",
+          "callee": "find_floor_from_list",
+          "path": "body.1.1.1.1.1.1.1.1.1.1.1.1.1.0.0"
+        },
+        {
+          "caller": "find_floor",
+          "callee": "find_floor_from_list",
+          "path": "body.1.1.1.1.1.1.1.1.1.1.1.0.0"
+        }
+      ],
+      "sources": {
+        "update_mario_platform": {
+          "file": "generated\\us_platform_displacement.v",
+          "line": 515,
+          "sha256": "02b5a54c1691a5c2903645acb9663ca19a03b1eea60d5f2c37e70153dff33366"
+        },
+        "absf": {
+          "file": "generated\\us_object_helpers.v",
+          "line": 20062,
+          "sha256": "4a6e09dbcf61e5fd928e1e5da67ff26aa176d1fc65b2e6ba19bf8a3e7600728d"
+        },
+        "find_floor": {
+          "file": "generated\\us_surface_collision.v",
+          "line": 3051,
+          "sha256": "422d3873dbcd1f96990002d062ec515aa5e5d74166c018ddabad28fe7ced2276"
+        },
+        "find_floor_from_list": {
+          "file": "generated\\us_surface_collision.v",
+          "line": 2655,
+          "sha256": "a46b68f49bc147add0c8d208b2c6d1edc150775818a4dfe3957d0a36bf616b3b"
+        }
+      }
+    },
+    "jp": {
+      "version": "jp",
+      "cut": "platform",
+      "completeControllerUpdates": 0,
+      "status": "cut-formula-built",
+      "paths": 1,
+      "solverResult": "unknown",
+      "reasonUnknown": "timeout",
+      "seconds": 15.75507430000016,
+      "peakWorkingSetBytes": 148410368,
+      "visitedStatements": 384,
+      "loops": [
+        {
+          "function": "find_floor_from_list",
+          "statementPath": "body.1.0",
+          "relation": "jp.engine.0.loop.find_floor_from_list.3.0",
+          "semantics": "exists finite decreasing fuel; no fixed unroll bound"
+        },
+        {
+          "function": "find_floor_from_list",
+          "statementPath": "body.1.0",
+          "relation": "jp.engine.0.loop.find_floor_from_list.4.1",
+          "semantics": "exists finite decreasing fuel; no fixed unroll bound"
+        },
+        {
+          "function": "find_floor_from_list",
+          "statementPath": "body.1.0",
+          "relation": "jp.engine.0.loop.find_floor_from_list.5.2",
+          "semantics": "exists finite decreasing fuel; no fixed unroll bound"
+        }
+      ],
+      "finishedHelpers": [
+        "absf",
+        "find_floor_from_list",
+        "find_floor_from_list",
+        "find_floor_from_list",
+        "find_floor"
+      ],
+      "lastCalls": [
+        {
+          "caller": "update_mario_platform",
+          "callee": "absf",
+          "path": "body.1.1.1.1.1.0.0"
+        },
+        {
+          "caller": "update_mario_platform",
+          "callee": "find_floor",
+          "path": "body.1.1.1.1.0.0"
+        },
+        {
+          "caller": "find_floor",
+          "callee": "find_floor_from_list",
+          "path": "body.1.1.1.1.1.1.1.1.1.1.1.1.1.1.0.1.then.1.then.0.1"
+        },
+        {
+          "caller": "find_floor",
+          "callee": "find_floor_from_list",
+          "path": "body.1.1.1.1.1.1.1.1.1.1.1.1.1.0.0"
+        },
+        {
+          "caller": "find_floor",
+          "callee": "find_floor_from_list",
+          "path": "body.1.1.1.1.1.1.1.1.1.1.1.0.0"
+        }
+      ],
+      "sources": {
+        "update_mario_platform": {
+          "file": "generated\\jp_platform_displacement.v",
+          "line": 514,
+          "sha256": "4d92580f7c69bbfe8c7fde7748f40d4edc7d14e79800b1f25550abde6de3d339"
+        },
+        "absf": {
+          "file": "generated\\jp_object_helpers.v",
+          "line": 19985,
+          "sha256": "4a6e09dbcf61e5fd928e1e5da67ff26aa176d1fc65b2e6ba19bf8a3e7600728d"
+        },
+        "find_floor": {
+          "file": "generated\\jp_surface_collision.v",
+          "line": 3051,
+          "sha256": "422d3873dbcd1f96990002d062ec515aa5e5d74166c018ddabad28fe7ced2276"
+        },
+        "find_floor_from_list": {
+          "file": "generated\\jp_surface_collision.v",
+          "line": 2655,
+          "sha256": "192e814803c25f72943558caabfe39bd1002396430d917db6b41c2ed83ebbfd6"
+        }
+      }
+    }
+  },
+  "implementationHashes": {
+    "clight.py": "5d1ebc6545488f58767a730a12296d2a84455a688b20da347c467ceb3469988d",
+    "engine.py": "30cf6f566b067098989dc0614150f753baef23458513754771932d8eba7cbeba",
+    "search.py": "32de3bee1c27a16ec016ef08f6f4d7b861d369e09c0dbd9faa8abd54d463ed8b",
+    "benchmark_updates.py": "313e24930bd45dde7e5c57f5e4a4f552e7392914efa7d615c753065228e14840",
+    "loop_engine.py": "6e3fd4c94178d81da7e9dd7129f8fa69666a248a5bc5b414d88362884c03de7b",
+    "relational_engine.py": "2917902e897f459191b3756ef711fbdedccd38ccd9f2d8bd95a137a44046a30f",
+    "loop_probe.py": "7fe1dec36163bb30c80552a876b0f17f6e623b1a3e4d91c1acc5598a6294a514",
+    "test_search.py": "b9de2cf09d3e38423cffe45a80b774c979e2b3515d8464531c5f7545979234c9",
+    "test_benchmark.py": "af1b887515f4eb877141b754dacef9a68a920f554cf1b7dbd13c53a7c4babc00",
+    "test_loops.py": "f0c7c98d5c94d1809d9d240cd8ae8e15c5620d0c45ad9bd2956fd5060b42c1c5",
+    "test_relational.py": "3d4ead2ae70d84fc6fb309ead8fc6e2b4cb188c43e959e5983d9d2e25bc34cef"
+  },
+  "scope": "Fixtures are supplied regression byte cells, not live gameplay. Default loop relations describe finite execution without a fixed node cap. The complete helper formulas return solver unknown/timeout. The whole-update gate still rejects native callback and explicit runtime-domain gaps. No route estimate changes."
+}

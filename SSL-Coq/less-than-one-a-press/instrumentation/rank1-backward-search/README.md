@@ -23,7 +23,7 @@ python instrumentation/rank1-backward-search/search.py \
   --output build/rank1-backward-search/receipt
 python instrumentation/rank1-backward-search/group_inputs.py \
   --output build/rank1-backward-search/grouping-all-no-new-a
-python instrumentation/rank1-backward-search/test_benchmark.py
+python -m unittest discover -s instrumentation/rank1-backward-search -p 'test_*.py' -v
 python instrumentation/rank1-backward-search/benchmark_updates.py \
   --output build/rank1-backward-search/update-benchmark
 ```
@@ -58,17 +58,35 @@ between machines. An unknown result is never converted to a contradiction.
   whole-game states; unsupported calls are rejected.
 - `benchmark_updates.py` checks the prerequisite for the requested one-, two-
   and four-update benchmark. It expands the real final floor call and rejects
-  incomplete effects. Both versions currently stop at its live floor-list
-  loop; no full update, later horizon or surviving-gameplay count is reported.
+  incomplete effects. Both versions now traverse its real floor loops, then
+  stop at the live native behavior callback; no full update, later horizon
+  or surviving-gameplay count is reported.
   The [benchmark note](../../docs/notes/rank1-update-benchmark.md) explains the
   distinction between these measured failed attempts and full-frame timings.
-  Its seven tests include generated cast boundary and missing-call controls.
+- `loop_engine.py` adds merged formulas and finite-execution loop relations.
+  The loop guard, body, continue/break/return and memory effects come from the
+  actual generated code. The default chooses finite fuel existentially;
+  explicit fuel in regression fixtures is a test bound, not live-list coverage.
+- `relational_engine.py` shares actual function-body relations, with explicit
+  before/after memory and a decreasing call-depth parameter. It records live
+  indirect-call and optional library-binding domain obligations. Canonical
+  local-storage reuse across recursion is rejected. It does not claim a
+  refinement of CompCert allocation or the existing external-call oracle.
+- `loop_probe.py` can construct a complete original final-platform-call formula
+  using all three floor scans. Both unrestricted US/JP solver attempts returned
+  unknown after 15 seconds; the [receipt](floor-traversal-report.json) is not a
+  full-update result. The 32 combined tests include actual floor selection and
+  side effects, supported loop control, undefined results and failure controls.
 
-The functions interpreted recursively are `absf`, `vec3f_copy`, `vec3s_set`,
+In the original local-slice engine, the recursively interpreted functions are
+`absf`, `vec3f_copy`, `vec3s_set`,
 `stop_and_set_height_to_floor` and `mario_set_forward_vel`. Other calls have
 independent before/after memories and an explicitly unexpanded relation.
 Required floor results or normal receivers at returned-memory cuts are target
 obligations; the search does not prove that those calls supply them.
+The newer coverage benchmark rejects unexpanded calls instead. Its supplemental
+generated audio linkage and domain-limited `sqrtf` option are explicit
+exploratory configurations, with runtime binding/settings still to discharge.
 
 The final capture calculation checks the complete binary32 domain for the
 actual generated subtraction, absolute-value helper and strict four-unit
@@ -88,8 +106,8 @@ action, timer, depth or floor selection is imposed by that storage setup.
 
 This first engine does not establish general memory validity, allocation/free,
 pointer provenance, signed-overflow definedness, arbitrary aliasing or linked
-call resolution. Unsupported loops, casts and expressions fail rather than
-become no-ops. Solver consistency is not evidence that gameplay reaches a
+call resolution. Unsupported operations fail rather than become no-ops.
+Solver consistency is not evidence that gameplay reaches a
 state; contradiction is scoped to the interpreted slice and storage domain.
 Any formal exclusion must still be checked against the existing Coq boundary.
 

@@ -23,6 +23,10 @@ class Term:
 
 class Parser:
     def __init__(self, text):
+        # Keep an explicit attribute term. Recognizing an unused volatile
+        # bit-field declaration does not authorize evaluating its accesses.
+        text = re.sub(r'\{\|\s*attr_volatile\s*:=\s*(true|false);\s*attr_alignas\s*:=\s*None\s*\|\}',
+                      r'(Attributes \1 None)', text)
         self.tokens = re.findall(r"::|[(),]|-?\d+|[A-Za-z_][A-Za-z_0-9'.]*", text)
         residue = re.sub(r"::|[(),]|-?\d+|[A-Za-z_][A-Za-z_0-9'.]*|\s+", '', text)
         if residue:
@@ -123,13 +127,15 @@ class Function:
 
 class Unit:
     def __init__(self, version, name):
-        self.path = ROOT / 'generated' / (version + '_' + name + '.v')
+        directory, _, stem = name.rpartition('/')
+        self.path = ROOT / 'generated' / directory / (version + '_' + stem + '.v')
         self.text = self.path.read_text(encoding='utf-8')
         self.digest = hashlib.sha256(self.text.encode()).hexdigest()
         match = re.search(r'Definition composites : list composite_definition :=\s*(.*?)\.\s*Definition', self.text, re.S)
         if not match:
             raise ValueError('Missing generated composite list')
         self.composites = {}
+        self.bitfields = {}
         for c in items(parse(match[1])):
             if c.tag != 'Composite' or c.args[3].tag != 'noattr':
                 raise ValueError('Unsupported composite attributes')
@@ -151,15 +157,48 @@ class Unit:
     @lru_cache(None)
     def layout(self, tag):
         kind, members = self.composites[tag]
-        size, alignment, offsets = 0, 1, {}
+        position, alignment, offsets = 0, 1, {}
+        bitfields = {}
         for member in members:
+            if member.tag == 'Member_bitfield':
+                field, size_tag, signed, attr, width_term, padding = member.args
+                unit = {'I8':8, 'IBool':8, 'I16':16, 'I32':32}[size_tag.tag]
+                width = int(width_term.tag)
+                if width < 0 or width > unit:
+                    raise ValueError('Invalid bit-field width')
+                if padding.tag != 'true':
+                    alignment = max(alignment,unit//8)
+                start = 0 if kind == 'Union' else (position//unit)*unit
+                if position+width > start+unit and kind == 'Struct':
+                    start += unit
+                if width > 0 and padding.tag != 'true':
+                    bitfields[field.tag] = (start//8,unit,0 if kind == 'Union' or start > position else position-start,width,signed.tag,attr)
+                # Ctypes.next_field. Accesses still reject bit-fields below;
+                # this supplies the offsets of subsequent ordinary members.
+                if kind == 'Union':
+                    position = max(position,unit)
+                elif width == 0:
+                    position = ((position+unit-1)//unit)*unit
+                elif position+width <= (position//unit+1)*unit:
+                    position += width
+                else:
+                    position = (position//unit+1)*unit+width
+                continue
             field, ty = member.args
             width, align = self.size(ty)
             alignment = max(alignment, align)
-            offset = ((size+align-1)//align)*align if kind == 'Struct' else 0
+            offset = ((position+8*align-1)//(8*align))*align if kind == 'Struct' else 0
             offsets[field.tag] = offset
-            size = offset+width if kind == 'Struct' else max(size, width)
+            position = 8*(offset+width) if kind == 'Struct' else max(position,8*width)
+        size = (position+7)//8
+        self.bitfields[tag] = bitfields
         return ((size+alignment-1)//alignment)*alignment, alignment, offsets
+
+    def bitfield(self, ty, field):
+        if ty.tag not in ('Tstruct','Tunion'):
+            return None
+        self.layout(ty.args[0].tag)
+        return self.bitfields[ty.args[0].tag].get(field)
 
     def size(self, ty):
         if ty.tag in ('tptr', 'tint', 'tuint', 'tfloat'): return 4, 4
@@ -176,4 +215,6 @@ class Unit:
 
     def field_offset(self, ty, field):
         if ty.tag not in ('Tstruct', 'Tunion'): raise ValueError(str(ty))
+        if any(m.tag == 'Member_bitfield' and m.args[0].tag == field for m in self.composites[ty.args[0].tag][1]):
+            raise ValueError('Bit-field access is not implemented: '+field)
         return self.layout(ty.args[0].tag)[2][field]

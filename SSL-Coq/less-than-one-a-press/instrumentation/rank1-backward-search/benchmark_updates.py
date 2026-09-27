@@ -2,7 +2,7 @@
 
 This is deliberately a coverage gate, not a timing curve for partial frames.
 It expands the original final query instead of giving find_floor a free result.
-An unsupported call or loop stops the attempted predecessor calculation. The
+An unsupported effect or undischarged runtime domain stops the calculation. The
 requested two/four updates are not run if even this necessary part of one update
 is unavailable. Normal memory/layout interpretation is inherited from engine.py;
 none of this is a formally verified CompCert interpreter.
@@ -89,6 +89,9 @@ class StrictEngine(Engine):
             statementPath=path, constructor=node.tag,
             callStack=[s.function.name for s in self.stack], **extra))
 
+    def close_scope(self, paths, child):
+        return paths
+
     def wp(self, statement, normal, scope, returned=None, broken=None, path='body'):
         guards = []
         self.conversion_guards.append(guards)
@@ -130,6 +133,7 @@ class StrictEngine(Engine):
                 if target_query:
                     tail = [Branch(z.And(p.condition, z.fpToIEEEBV(child.result) == word(HEIGHT)), p.decisions, p.calls) for p in tail]
                 paths = self.wp(child.function.body, tail, child, tail, None, 'body')
+                paths = self.close_scope(paths, child)
                 paths = self.substitute(paths, *[(child.temps[p], value) for p, value in zip(child.function.params, values)])
                 if target_query:
                     target = z.And(z.fpToIEEEBV(values[0]) == word(bits(-2200)), z.fpToIEEEBV(values[2]) == word(bits(-1024)))
@@ -160,7 +164,7 @@ def inventory(function, body):
     calls = []
     loops = 0
     for path, node in walk(body):
-        if node.tag == 'Sloop': loops += 1
+        if node.tag in ('Sloop','Swhile','Sfor','Sdowhile'): loops += 1
         if node.tag == 'Scall':
             callee = node.args[1]
             calls.append(dict(callee=callee.args[0].tag.removeprefix('_') if callee.tag == 'Evar' else '<indirect>', path=list(path)))
@@ -170,7 +174,10 @@ def inventory(function, body):
 
 def worker(version, output):
     began = time.perf_counter()
-    e = StrictEngine(version)
+    from relational_engine import RelationalEngine
+    from benchmark_updates import CoverageBlock as EngineCoverageBlock
+    e = RelationalEngine(version, runtime_audio=True, sqrtf_binding=True,
+                         max_visits=200000)
     fn = e.function('object_list_processor', 'update_objects')
     body, cut = retention_prefix(fn)
     target = z.And(read(MEM, word(e.global_address('_gMarioPlatform'))) == word(TOP),
@@ -179,13 +186,14 @@ def worker(version, output):
     prepared = time.perf_counter()
     result = dict(version=version, cut=cut, requestedUpdates=1, completeUpdates=0,
         survivingPossibilities=None, solverCheckPerformed=False, solver=z.get_version_string(),
-        target='The ordinary Mario Object is present and both saved platform pointers name TOP, with the real final floor call returning the checked binary32 height at X=-2200,Z=-1024. No floor list or returned height is assumed.')
+        target='The ordinary Mario Object is present and both saved platform pointers name TOP, with the real final floor call returning the checked binary32 height at X=-2200,Z=-1024. No floor list or returned height is assumed.',
+        model='Exploratory flat byte memory; actual generated bodies, explicit supplemental audio linkage, and domain-limited sqrtf binding. These additions do not refine the old Coq external oracle or prove runtime conditions.')
     try:
         scope, paths = e.start(fn, target, body)
         if e.calls: raise AssertionError('Unexpanded call escaped strict gate')
         result.update(status='local-prerequisite-only', localPaths=len(paths),
             blocker=dict(reason='outer-frame-not-connected', explanation='Completing this prefix would still leave controller sampling, level scheduling and inter-update effects to connect.'))
-    except CoverageBlock as error:
+    except (CoverageBlock, EngineCoverageBlock) as error:
         result.update(status='blocked-before-one-update', blocker=error.detail)
     finished = time.perf_counter()
     result.update(elapsedSeconds=finished-began, parseSetupSeconds=prepared-began,
@@ -193,6 +201,9 @@ def worker(version, output):
         visitedStatements=e.visits, maxPartialPaths=e.max_paths,
         expandedCallSites=e.expanded_calls, finishedHelperTraversals=e.finished_functions,
         guardedFloatIntegerConversions=e.float_integer_conversions,
+        loopRelations=e.loops, sharedFunctionRelations=e.relation_receipts,
+        unresolvedIndirectDomains=e.indirect_domains, unresolvedLibraryDomains=e.library_domains,
+        pendingFunctions=[r['function'].name for r in e.pending],
         generatedFunctions=e.functions,
         objectUpdateInventory=inventory(fn, body))
     # The following is a source inventory, not additional symbolic execution.
@@ -230,13 +241,13 @@ def main():
                 survivingPossibilities=None, elapsedSeconds=time.perf_counter()-start,
                 blocker=dict(reason='worker-time-limit', seconds=args.timeout))
     report = dict(status='No complete one-update preimage; no two/four-update scaling measurement.',
-        method='Strict backward expansion of the actual final floor call within the actual object-update prefix. Unsupported semantics block the result; no call is an identity frame.',
+        method='Merged finite-execution loop preimages and shared actual-body call relations within the real object-update prefix. Unknown native receivers and undischarged runtime domains block completion; no arbitrary call gets an identity frame.',
         runtime=dict(python=platform.python_version(), system=platform.system()),
         requestedUpdates=[1,2,4], oneUpdatePrerequisite=runs,
         laterUpdates=[dict(updates=n,status='not-run',reason='The one-update coverage gate did not complete.',survivingPossibilities=None) for n in (2,4)],
         interpretation='Reported time/memory measure the failed prerequisite attempt only. Partial path counts are syntax states, not surviving gameplay possibilities. This diagnoses missing execution coverage, not computational impossibility of gameplay or of a complete solver.',
         implementationHashes={name:hashlib.sha256(Path(__file__).with_name(name).read_text(encoding='utf-8').encode()).hexdigest()
-            for name in ('clight.py','engine.py','search.py','benchmark_updates.py','test_benchmark.py')})
+            for name in ('clight.py','engine.py','search.py','benchmark_updates.py','loop_engine.py','relational_engine.py','loop_probe.py','test_benchmark.py','test_loops.py','test_relational.py')})
     if any(run['completeUpdates'] != 0 for run in runs.values()):
         raise RuntimeError('Extend the real frame composition before reporting multi-update coverage')
     (args.output/'report.json').write_text(json.dumps(report,indent=2)+'\n',encoding='utf-8')

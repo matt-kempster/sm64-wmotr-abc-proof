@@ -1,6 +1,6 @@
 {
   "status": "No complete one-update preimage; no two/four-update scaling measurement.",
-  "method": "Strict backward expansion of the actual final floor call within the actual object-update prefix. Unsupported semantics block the result; no call is an identity frame.",
+  "method": "Merged finite-execution loop preimages and shared actual-body call relations within the real object-update prefix. Unknown native receivers and undischarged runtime domains block completion; no arbitrary call gets an identity frame.",
   "runtime": {
     "python": "3.12.14",
     "system": "Windows"
@@ -25,54 +25,1604 @@
       "solverCheckPerformed": false,
       "solver": "4.15.4",
       "target": "The ordinary Mario Object is present and both saved platform pointers name TOP, with the real final floor call returning the checked binary32 height at X=-2200,Z=-1024. No floor list or returned height is assumed.",
+      "model": "Exploratory flat byte memory; actual generated bodies, explicit supplemental audio linkage, and domain-limited sqrtf binding. These additions do not refine the old Coq external oracle or prove runtime conditions.",
       "status": "blocked-before-one-update",
       "blocker": {
-        "reason": "unimplemented-live-loop",
-        "function": "find_floor_from_list",
-        "file": "generated\\us_surface_collision.v",
-        "definitionLine": 2655,
+        "reason": "unresolved-indirect-call",
+        "function": "bhv_cmd_call_native",
+        "file": "generated\\us_behavior_script.v",
+        "definitionLine": 1820,
         "statementPath": "body.1.0",
-        "constructor": "Swhile",
+        "constructor": "Scall",
         "callStack": [
-          "update_objects",
-          "update_mario_platform",
-          "find_floor",
-          "find_floor_from_list"
-        ],
-        "explanation": "The real loop has not been interpreted or given a checked complete summary. It is not replaced by zero iterations or a fixed arbitrary bound."
+          "bhv_cmd_call_native"
+        ]
       },
-      "elapsedSeconds": 0.13658939999993436,
-      "parseSetupSeconds": 0.014994000000001506,
-      "attemptedBackwardSeconds": 0.12159539999993285,
-      "peakWorkingSetBytes": 51056640,
-      "visitedStatements": 163,
-      "maxPartialPaths": 96,
+      "elapsedSeconds": 3.6965397999993,
+      "parseSetupSeconds": 0.02170750000004773,
+      "attemptedBackwardSeconds": 3.6748322999992524,
+      "peakWorkingSetBytes": 65908736,
+      "visitedStatements": 1955,
+      "maxPartialPaths": 1,
       "expandedCallSites": [
         {
           "caller": "update_objects",
           "callee": "update_mario_platform",
-          "path": "body.1.1.1.1.1.1.1.1.1.1.1.1.1.1.1.1.1.1.1.1"
+          "path": "body.1.1.1.1.1.1.1.1.1.1.1.1.1.1.1.1.1.1.1.1",
+          "method": "defined shared source relation"
+        },
+        {
+          "caller": "update_objects",
+          "callee": "get_clock_difference",
+          "path": "body.1.1.1.1.1.1.1.1.1.1.1.1.1.1.1.1.1.1.1.0.0.1",
+          "method": "defined shared source relation"
+        },
+        {
+          "caller": "update_objects",
+          "callee": "unload_deactivated_objects",
+          "path": "body.1.1.1.1.1.1.1.1.1.1.1.1.1.1.1.1.1.1.0",
+          "method": "defined shared source relation"
+        },
+        {
+          "caller": "update_objects",
+          "callee": "get_clock_difference",
+          "path": "body.1.1.1.1.1.1.1.1.1.1.1.1.1.1.1.1.1.0.0.1",
+          "method": "defined shared source relation"
+        },
+        {
+          "caller": "update_objects",
+          "callee": "update_non_terrain_objects",
+          "path": "body.1.1.1.1.1.1.1.1.1.1.1.1.1.1.1.1.0",
+          "method": "defined shared source relation"
+        },
+        {
+          "caller": "update_objects",
+          "callee": "get_clock_difference",
+          "path": "body.1.1.1.1.1.1.1.1.1.1.1.1.1.1.1.0.0.1",
+          "method": "defined shared source relation"
+        },
+        {
+          "caller": "update_objects",
+          "callee": "detect_object_collisions",
+          "path": "body.1.1.1.1.1.1.1.1.1.1.1.1.1.1.0",
+          "method": "defined shared source relation"
+        },
+        {
+          "caller": "update_objects",
+          "callee": "get_clock_difference",
+          "path": "body.1.1.1.1.1.1.1.1.1.1.1.1.1.0.0.1",
+          "method": "defined shared source relation"
+        },
+        {
+          "caller": "update_objects",
+          "callee": "apply_mario_platform_displacement",
+          "path": "body.1.1.1.1.1.1.1.1.1.1.1.1.0",
+          "method": "defined shared source relation"
+        },
+        {
+          "caller": "update_objects",
+          "callee": "update_terrain_objects",
+          "path": "body.1.1.1.1.1.1.1.1.1.1.1.0",
+          "method": "defined shared source relation"
+        },
+        {
+          "caller": "update_objects",
+          "callee": "get_clock_difference",
+          "path": "body.1.1.1.1.1.1.1.1.1.1.0.0.1",
+          "method": "defined shared source relation"
+        },
+        {
+          "caller": "update_objects",
+          "callee": "clear_dynamic_surfaces",
+          "path": "body.1.1.1.1.1.1.1.1.1.0",
+          "method": "defined shared source relation"
+        },
+        {
+          "caller": "update_objects",
+          "callee": "get_clock_difference",
+          "path": "body.1.1.1.1.1.1.1.1.0.0.1",
+          "method": "defined shared source relation"
+        },
+        {
+          "caller": "update_objects",
+          "callee": "stub_debug_5",
+          "path": "body.1.1.1.1.1.1.0",
+          "method": "defined shared source relation"
+        },
+        {
+          "caller": "update_objects",
+          "callee": "reset_debug_objectinfo",
+          "path": "body.1.1.1.1.1.0",
+          "method": "defined shared source relation"
+        },
+        {
+          "caller": "update_objects",
+          "callee": "get_current_clock",
+          "path": "body.0.0",
+          "method": "defined shared source relation"
         },
         {
           "caller": "update_mario_platform",
           "callee": "absf",
-          "path": "body.1.1.1.1.1.0.0"
+          "path": "body.1.1.1.1.1.0.0",
+          "method": "defined shared source relation"
         },
         {
           "caller": "update_mario_platform",
           "callee": "find_floor",
-          "path": "body.1.1.1.1.0.0"
+          "path": "body.1.1.1.1.0.0",
+          "method": "defined shared source relation"
+        },
+        {
+          "caller": "unload_deactivated_objects",
+          "callee": "unload_deactivated_objects_in_list",
+          "path": "body.1.0.iteration.1.0.1",
+          "method": "defined shared source relation"
+        },
+        {
+          "caller": "update_non_terrain_objects",
+          "callee": "update_objects_in_list",
+          "path": "body.1.iteration.1.0.0.1",
+          "method": "defined shared source relation"
+        },
+        {
+          "caller": "detect_object_collisions",
+          "callee": "check_pushable_object_collision",
+          "path": "body.1.1.1.1.1.1.1.1.1",
+          "method": "defined shared source relation"
+        },
+        {
+          "caller": "detect_object_collisions",
+          "callee": "check_destructive_object_collision",
+          "path": "body.1.1.1.1.1.1.1.1.0",
+          "method": "defined shared source relation"
+        },
+        {
+          "caller": "detect_object_collisions",
+          "callee": "check_player_object_collision",
+          "path": "body.1.1.1.1.1.1.1.0",
+          "method": "defined shared source relation"
+        },
+        {
+          "caller": "detect_object_collisions",
+          "callee": "clear_object_collision",
+          "path": "body.1.1.1.1.1.1.0.1",
+          "method": "defined shared source relation"
+        },
+        {
+          "caller": "detect_object_collisions",
+          "callee": "clear_object_collision",
+          "path": "body.1.1.1.1.1.0.1",
+          "method": "defined shared source relation"
+        },
+        {
+          "caller": "detect_object_collisions",
+          "callee": "clear_object_collision",
+          "path": "body.1.1.1.1.0.1",
+          "method": "defined shared source relation"
+        },
+        {
+          "caller": "detect_object_collisions",
+          "callee": "clear_object_collision",
+          "path": "body.1.1.1.0.1",
+          "method": "defined shared source relation"
+        },
+        {
+          "caller": "detect_object_collisions",
+          "callee": "clear_object_collision",
+          "path": "body.1.1.0.1",
+          "method": "defined shared source relation"
+        },
+        {
+          "caller": "detect_object_collisions",
+          "callee": "clear_object_collision",
+          "path": "body.1.0.1",
+          "method": "defined shared source relation"
+        },
+        {
+          "caller": "detect_object_collisions",
+          "callee": "clear_object_collision",
+          "path": "body.0.1",
+          "method": "defined shared source relation"
+        },
+        {
+          "caller": "apply_mario_platform_displacement",
+          "callee": "apply_platform_displacement",
+          "path": "body.1.1.then",
+          "method": "defined shared source relation"
+        },
+        {
+          "caller": "update_terrain_objects",
+          "callee": "update_objects_in_list",
+          "path": "body.1.0.1",
+          "method": "defined shared source relation"
+        },
+        {
+          "caller": "update_terrain_objects",
+          "callee": "update_objects_in_list",
+          "path": "body.0.0.1",
+          "method": "defined shared source relation"
+        },
+        {
+          "caller": "clear_dynamic_surfaces",
+          "callee": "clear_spatial_partition",
+          "path": "body.1.then.1.1",
+          "method": "defined shared source relation"
+        },
+        {
+          "caller": "reset_debug_objectinfo",
+          "callee": "update_debug_dpadmask",
+          "path": "body.1.1.1.1.1.1.1.1",
+          "method": "defined shared source relation"
+        },
+        {
+          "caller": "reset_debug_objectinfo",
+          "callee": "set_print_state_info",
+          "path": "body.1.1.1.1.1.1.1.0",
+          "method": "defined shared source relation"
+        },
+        {
+          "caller": "reset_debug_objectinfo",
+          "callee": "set_print_state_info",
+          "path": "body.1.1.1.1.1.1.0",
+          "method": "defined shared source relation"
         },
         {
           "caller": "find_floor",
           "callee": "find_floor_from_list",
-          "path": "body.1.1.1.1.1.1.1.1.1.1.1.1.1.1.0.1.then.1.then.0.1"
+          "path": "body.1.1.1.1.1.1.1.1.1.1.1.1.1.1.0.1.then.1.then.0.1",
+          "method": "defined shared source relation"
+        },
+        {
+          "caller": "find_floor",
+          "callee": "find_floor_from_list",
+          "path": "body.1.1.1.1.1.1.1.1.1.1.1.1.1.0.0",
+          "method": "defined shared source relation"
+        },
+        {
+          "caller": "find_floor",
+          "callee": "find_floor_from_list",
+          "path": "body.1.1.1.1.1.1.1.1.1.1.1.0.0",
+          "method": "defined shared source relation"
+        },
+        {
+          "caller": "unload_deactivated_objects_in_list",
+          "callee": "unload_object",
+          "path": "body.1.0.iteration.1.1.1.1.then.1.1",
+          "method": "defined shared source relation"
+        },
+        {
+          "caller": "unload_deactivated_objects_in_list",
+          "callee": "set_object_respawn_info_bits",
+          "path": "body.1.0.iteration.1.1.1.1.then.0.1.1.then.1",
+          "method": "defined shared source relation"
+        },
+        {
+          "caller": "update_objects_in_list",
+          "callee": "update_objects_starting_at",
+          "path": "body.1.0.1.then.0",
+          "method": "defined shared source relation"
+        },
+        {
+          "caller": "update_objects_in_list",
+          "callee": "update_objects_during_time_stop",
+          "path": "body.1.0.1.else.0",
+          "method": "defined shared source relation"
+        },
+        {
+          "caller": "check_pushable_object_collision",
+          "callee": "check_collision_in_list",
+          "path": "body.1.1.iteration.0.1",
+          "method": "defined shared source relation"
+        },
+        {
+          "caller": "check_destructive_object_collision",
+          "callee": "check_collision_in_list",
+          "path": "body.1.1.iteration.0.1.then.1.1.1.1.1.1",
+          "method": "defined shared source relation"
+        },
+        {
+          "caller": "check_destructive_object_collision",
+          "callee": "check_collision_in_list",
+          "path": "body.1.1.iteration.0.1.then.1.1.0.1.1.1",
+          "method": "defined shared source relation"
+        },
+        {
+          "caller": "check_destructive_object_collision",
+          "callee": "check_collision_in_list",
+          "path": "body.1.1.iteration.0.1.then.1.0.1.1.1",
+          "method": "defined shared source relation"
+        },
+        {
+          "caller": "check_destructive_object_collision",
+          "callee": "check_collision_in_list",
+          "path": "body.1.1.iteration.0.1.then.0.1",
+          "method": "defined shared source relation"
+        },
+        {
+          "caller": "check_player_object_collision",
+          "callee": "check_collision_in_list",
+          "path": "body.1.1.iteration.1.1.1.1.1.1.0.1.1.1",
+          "method": "defined shared source relation"
+        },
+        {
+          "caller": "check_player_object_collision",
+          "callee": "check_collision_in_list",
+          "path": "body.1.1.iteration.1.1.1.1.1.0.1.1.1",
+          "method": "defined shared source relation"
+        },
+        {
+          "caller": "check_player_object_collision",
+          "callee": "check_collision_in_list",
+          "path": "body.1.1.iteration.1.1.1.1.0.1.1.1",
+          "method": "defined shared source relation"
+        },
+        {
+          "caller": "check_player_object_collision",
+          "callee": "check_collision_in_list",
+          "path": "body.1.1.iteration.1.1.1.0.1.1.1",
+          "method": "defined shared source relation"
+        },
+        {
+          "caller": "check_player_object_collision",
+          "callee": "check_collision_in_list",
+          "path": "body.1.1.iteration.1.1.0.1.1.1",
+          "method": "defined shared source relation"
+        },
+        {
+          "caller": "check_player_object_collision",
+          "callee": "check_collision_in_list",
+          "path": "body.1.1.iteration.1.0.1.1.1",
+          "method": "defined shared source relation"
+        },
+        {
+          "caller": "check_player_object_collision",
+          "callee": "check_collision_in_list",
+          "path": "body.1.1.iteration.0.1",
+          "method": "defined shared source relation"
+        },
+        {
+          "caller": "apply_platform_displacement",
+          "callee": "set_mario_pos",
+          "path": "body.1.1.1.1.1.1.1.then.1.1.1",
+          "method": "defined shared source relation"
+        },
+        {
+          "caller": "apply_platform_displacement",
+          "callee": "linear_mtxf_mul_vec3f",
+          "path": "body.1.1.1.1.1.1.0.1.then.1.1.1.1.1.1.1.1.1.1.1.1.1.1.1.1.1.1.1.0",
+          "method": "defined shared source relation"
+        },
+        {
+          "caller": "apply_platform_displacement",
+          "callee": "mtxf_rotate_zxy_and_translate",
+          "path": "body.1.1.1.1.1.1.0.1.then.1.1.1.1.1.1.1.1.1.1.1.1.1.1.1.1.1.1.0",
+          "method": "defined shared source relation"
+        },
+        {
+          "caller": "apply_platform_displacement",
+          "callee": "linear_mtxf_transpose_mul_vec3f",
+          "path": "body.1.1.1.1.1.1.0.1.then.1.1.1.1.1.1.1.1.1.1.1.1.1.1.0",
+          "method": "defined shared source relation"
+        },
+        {
+          "caller": "apply_platform_displacement",
+          "callee": "mtxf_rotate_zxy_and_translate",
+          "path": "body.1.1.1.1.1.1.0.1.then.1.1.1.1.1.1.1.1.1.1.1.1.1.0",
+          "method": "defined shared source relation"
+        },
+        {
+          "caller": "apply_platform_displacement",
+          "callee": "get_mario_pos",
+          "path": "body.1.1.1.0.then.1",
+          "method": "defined shared source relation"
+        },
+        {
+          "caller": "unload_object",
+          "callee": "deallocate_object",
+          "path": "body.1.1.1.1.1.1.1.1",
+          "method": "defined shared source relation"
+        },
+        {
+          "caller": "unload_object",
+          "callee": "geo_add_child",
+          "path": "body.1.1.1.1.1.0",
+          "method": "defined shared source relation"
+        },
+        {
+          "caller": "unload_object",
+          "callee": "geo_remove_child",
+          "path": "body.1.1.1.1.0",
+          "method": "defined shared source relation"
+        },
+        {
+          "caller": "unload_object",
+          "callee": "stop_sounds_from_source",
+          "path": "body.1.1.1.0",
+          "method": "defined shared source relation"
+        },
+        {
+          "caller": "update_objects_starting_at",
+          "callee": "cur_obj_update",
+          "path": "body.1.0.iteration.1.1.0",
+          "method": "defined shared source relation"
+        },
+        {
+          "caller": "update_objects_during_time_stop",
+          "callee": "cur_obj_update",
+          "path": "body.1.0.iteration.1.1.1.0.then.1",
+          "method": "defined shared source relation"
+        },
+        {
+          "caller": "check_collision_in_list",
+          "callee": "detect_object_hurtbox_overlap",
+          "path": "body.1.then.iteration.0.1.then.1.then",
+          "method": "defined shared source relation"
+        },
+        {
+          "caller": "check_collision_in_list",
+          "callee": "detect_object_hitbox_overlap",
+          "path": "body.1.then.iteration.0.1.then.0.0",
+          "method": "defined shared source relation"
+        },
+        {
+          "caller": "stop_sounds_from_source",
+          "callee": "update_background_music_after_sound",
+          "path": "body.1.iteration.1.1.iteration.0.1.then.0",
+          "method": "defined shared source relation"
+        },
+        {
+          "caller": "cur_obj_update",
+          "callee": "cur_obj_enable_rendering_if_mario_in_room",
+          "path": "body.1.1.1.1.1.1.1.1.1.1.1.1.1.1.1.1.1.1.1.then",
+          "method": "defined shared source relation"
+        },
+        {
+          "caller": "cur_obj_update",
+          "callee": "obj_update_gfx_pos_and_angle",
+          "path": "body.1.1.1.1.1.1.1.1.1.1.1.1.1.1.1.1.0.then.1",
+          "method": "defined shared source relation"
+        },
+        {
+          "caller": "cur_obj_update",
+          "callee": "obj_set_throw_matrix_from_transform",
+          "path": "body.1.1.1.1.1.1.1.1.1.1.1.1.1.1.1.0.then.1",
+          "method": "defined shared source relation"
+        },
+        {
+          "caller": "cur_obj_update",
+          "callee": "obj_build_transform_relative_to_parent",
+          "path": "body.1.1.1.1.1.1.1.1.1.1.1.1.1.1.0.then.1",
+          "method": "defined shared source relation"
+        },
+        {
+          "caller": "cur_obj_update",
+          "callee": "cur_obj_move_y_with_terminal_vel",
+          "path": "body.1.1.1.1.1.1.1.1.1.1.1.1.1.0.then",
+          "method": "defined shared source relation"
+        },
+        {
+          "caller": "cur_obj_update",
+          "callee": "cur_obj_move_xz_using_fvel_and_yaw",
+          "path": "body.1.1.1.1.1.1.1.1.1.1.1.1.0.then",
+          "method": "defined shared source relation"
+        },
+        {
+          "caller": "cur_obj_update",
+          "callee": "obj_set_face_angle_to_move_angle",
+          "path": "body.1.1.1.1.1.1.1.1.1.1.0.then.1",
+          "method": "defined shared source relation"
+        },
+        {
+          "caller": "cur_obj_update",
+          "callee": "bhv_cmd_begin",
+          "path": "body.1.1.1.1.1.0.iteration.1.0.target.bhv_cmd_begin",
+          "method": "defined shared source relation"
+        },
+        {
+          "caller": "cur_obj_update",
+          "callee": "bhv_cmd_delay",
+          "path": "body.1.1.1.1.1.0.iteration.1.0.target.bhv_cmd_delay",
+          "method": "defined shared source relation"
+        },
+        {
+          "caller": "cur_obj_update",
+          "callee": "bhv_cmd_call",
+          "path": "body.1.1.1.1.1.0.iteration.1.0.target.bhv_cmd_call",
+          "method": "defined shared source relation"
+        },
+        {
+          "caller": "cur_obj_update",
+          "callee": "bhv_cmd_return",
+          "path": "body.1.1.1.1.1.0.iteration.1.0.target.bhv_cmd_return",
+          "method": "defined shared source relation"
+        },
+        {
+          "caller": "cur_obj_update",
+          "callee": "bhv_cmd_goto",
+          "path": "body.1.1.1.1.1.0.iteration.1.0.target.bhv_cmd_goto",
+          "method": "defined shared source relation"
+        },
+        {
+          "caller": "cur_obj_update",
+          "callee": "bhv_cmd_begin_repeat",
+          "path": "body.1.1.1.1.1.0.iteration.1.0.target.bhv_cmd_begin_repeat",
+          "method": "defined shared source relation"
+        },
+        {
+          "caller": "cur_obj_update",
+          "callee": "bhv_cmd_end_repeat",
+          "path": "body.1.1.1.1.1.0.iteration.1.0.target.bhv_cmd_end_repeat",
+          "method": "defined shared source relation"
+        },
+        {
+          "caller": "cur_obj_update",
+          "callee": "bhv_cmd_end_repeat_continue",
+          "path": "body.1.1.1.1.1.0.iteration.1.0.target.bhv_cmd_end_repeat_continue",
+          "method": "defined shared source relation"
+        },
+        {
+          "caller": "cur_obj_update",
+          "callee": "bhv_cmd_begin_loop",
+          "path": "body.1.1.1.1.1.0.iteration.1.0.target.bhv_cmd_begin_loop",
+          "method": "defined shared source relation"
+        },
+        {
+          "caller": "cur_obj_update",
+          "callee": "bhv_cmd_end_loop",
+          "path": "body.1.1.1.1.1.0.iteration.1.0.target.bhv_cmd_end_loop",
+          "method": "defined shared source relation"
+        },
+        {
+          "caller": "cur_obj_update",
+          "callee": "bhv_cmd_break",
+          "path": "body.1.1.1.1.1.0.iteration.1.0.target.bhv_cmd_break",
+          "method": "defined shared source relation"
+        },
+        {
+          "caller": "cur_obj_update",
+          "callee": "bhv_cmd_break_unused",
+          "path": "body.1.1.1.1.1.0.iteration.1.0.target.bhv_cmd_break_unused",
+          "method": "defined shared source relation"
+        },
+        {
+          "caller": "cur_obj_update",
+          "callee": "bhv_cmd_call_native",
+          "path": "body.1.1.1.1.1.0.iteration.1.0.target.bhv_cmd_call_native",
+          "method": "defined shared source relation"
+        },
+        {
+          "caller": "cur_obj_update",
+          "callee": "bhv_cmd_add_float",
+          "path": "body.1.1.1.1.1.0.iteration.1.0.target.bhv_cmd_add_float",
+          "method": "defined shared source relation"
+        },
+        {
+          "caller": "cur_obj_update",
+          "callee": "bhv_cmd_set_float",
+          "path": "body.1.1.1.1.1.0.iteration.1.0.target.bhv_cmd_set_float",
+          "method": "defined shared source relation"
+        },
+        {
+          "caller": "cur_obj_update",
+          "callee": "bhv_cmd_add_int",
+          "path": "body.1.1.1.1.1.0.iteration.1.0.target.bhv_cmd_add_int",
+          "method": "defined shared source relation"
+        },
+        {
+          "caller": "cur_obj_update",
+          "callee": "bhv_cmd_set_int",
+          "path": "body.1.1.1.1.1.0.iteration.1.0.target.bhv_cmd_set_int",
+          "method": "defined shared source relation"
+        },
+        {
+          "caller": "cur_obj_update",
+          "callee": "bhv_cmd_or_int",
+          "path": "body.1.1.1.1.1.0.iteration.1.0.target.bhv_cmd_or_int",
+          "method": "defined shared source relation"
+        },
+        {
+          "caller": "cur_obj_update",
+          "callee": "bhv_cmd_bit_clear",
+          "path": "body.1.1.1.1.1.0.iteration.1.0.target.bhv_cmd_bit_clear",
+          "method": "defined shared source relation"
+        },
+        {
+          "caller": "cur_obj_update",
+          "callee": "bhv_cmd_set_int_rand_rshift",
+          "path": "body.1.1.1.1.1.0.iteration.1.0.target.bhv_cmd_set_int_rand_rshift",
+          "method": "defined shared source relation"
+        },
+        {
+          "caller": "cur_obj_update",
+          "callee": "bhv_cmd_set_random_float",
+          "path": "body.1.1.1.1.1.0.iteration.1.0.target.bhv_cmd_set_random_float",
+          "method": "defined shared source relation"
+        },
+        {
+          "caller": "cur_obj_update",
+          "callee": "bhv_cmd_set_random_int",
+          "path": "body.1.1.1.1.1.0.iteration.1.0.target.bhv_cmd_set_random_int",
+          "method": "defined shared source relation"
+        },
+        {
+          "caller": "cur_obj_update",
+          "callee": "bhv_cmd_add_random_float",
+          "path": "body.1.1.1.1.1.0.iteration.1.0.target.bhv_cmd_add_random_float",
+          "method": "defined shared source relation"
+        },
+        {
+          "caller": "cur_obj_update",
+          "callee": "bhv_cmd_add_int_rand_rshift",
+          "path": "body.1.1.1.1.1.0.iteration.1.0.target.bhv_cmd_add_int_rand_rshift",
+          "method": "defined shared source relation"
+        },
+        {
+          "caller": "cur_obj_update",
+          "callee": "bhv_cmd_nop_1",
+          "path": "body.1.1.1.1.1.0.iteration.1.0.target.bhv_cmd_nop_1",
+          "method": "defined shared source relation"
+        },
+        {
+          "caller": "cur_obj_update",
+          "callee": "bhv_cmd_nop_2",
+          "path": "body.1.1.1.1.1.0.iteration.1.0.target.bhv_cmd_nop_2",
+          "method": "defined shared source relation"
+        },
+        {
+          "caller": "cur_obj_update",
+          "callee": "bhv_cmd_nop_3",
+          "path": "body.1.1.1.1.1.0.iteration.1.0.target.bhv_cmd_nop_3",
+          "method": "defined shared source relation"
+        },
+        {
+          "caller": "cur_obj_update",
+          "callee": "bhv_cmd_set_model",
+          "path": "body.1.1.1.1.1.0.iteration.1.0.target.bhv_cmd_set_model",
+          "method": "defined shared source relation"
+        },
+        {
+          "caller": "cur_obj_update",
+          "callee": "bhv_cmd_spawn_child",
+          "path": "body.1.1.1.1.1.0.iteration.1.0.target.bhv_cmd_spawn_child",
+          "method": "defined shared source relation"
+        },
+        {
+          "caller": "cur_obj_update",
+          "callee": "bhv_cmd_deactivate",
+          "path": "body.1.1.1.1.1.0.iteration.1.0.target.bhv_cmd_deactivate",
+          "method": "defined shared source relation"
+        },
+        {
+          "caller": "cur_obj_update",
+          "callee": "bhv_cmd_drop_to_floor",
+          "path": "body.1.1.1.1.1.0.iteration.1.0.target.bhv_cmd_drop_to_floor",
+          "method": "defined shared source relation"
+        },
+        {
+          "caller": "cur_obj_update",
+          "callee": "bhv_cmd_sum_float",
+          "path": "body.1.1.1.1.1.0.iteration.1.0.target.bhv_cmd_sum_float",
+          "method": "defined shared source relation"
+        },
+        {
+          "caller": "cur_obj_update",
+          "callee": "bhv_cmd_sum_int",
+          "path": "body.1.1.1.1.1.0.iteration.1.0.target.bhv_cmd_sum_int",
+          "method": "defined shared source relation"
+        },
+        {
+          "caller": "cur_obj_update",
+          "callee": "bhv_cmd_billboard",
+          "path": "body.1.1.1.1.1.0.iteration.1.0.target.bhv_cmd_billboard",
+          "method": "defined shared source relation"
+        },
+        {
+          "caller": "cur_obj_update",
+          "callee": "bhv_cmd_hide",
+          "path": "body.1.1.1.1.1.0.iteration.1.0.target.bhv_cmd_hide",
+          "method": "defined shared source relation"
+        },
+        {
+          "caller": "cur_obj_update",
+          "callee": "bhv_cmd_set_hitbox",
+          "path": "body.1.1.1.1.1.0.iteration.1.0.target.bhv_cmd_set_hitbox",
+          "method": "defined shared source relation"
+        },
+        {
+          "caller": "cur_obj_update",
+          "callee": "bhv_cmd_nop_4",
+          "path": "body.1.1.1.1.1.0.iteration.1.0.target.bhv_cmd_nop_4",
+          "method": "defined shared source relation"
+        },
+        {
+          "caller": "cur_obj_update",
+          "callee": "bhv_cmd_delay_var",
+          "path": "body.1.1.1.1.1.0.iteration.1.0.target.bhv_cmd_delay_var",
+          "method": "defined shared source relation"
+        },
+        {
+          "caller": "cur_obj_update",
+          "callee": "bhv_cmd_begin_repeat_unused",
+          "path": "body.1.1.1.1.1.0.iteration.1.0.target.bhv_cmd_begin_repeat_unused",
+          "method": "defined shared source relation"
+        },
+        {
+          "caller": "cur_obj_update",
+          "callee": "bhv_cmd_load_animations",
+          "path": "body.1.1.1.1.1.0.iteration.1.0.target.bhv_cmd_load_animations",
+          "method": "defined shared source relation"
+        },
+        {
+          "caller": "cur_obj_update",
+          "callee": "bhv_cmd_animate",
+          "path": "body.1.1.1.1.1.0.iteration.1.0.target.bhv_cmd_animate",
+          "method": "defined shared source relation"
+        },
+        {
+          "caller": "cur_obj_update",
+          "callee": "bhv_cmd_spawn_child_with_param",
+          "path": "body.1.1.1.1.1.0.iteration.1.0.target.bhv_cmd_spawn_child_with_param",
+          "method": "defined shared source relation"
+        },
+        {
+          "caller": "cur_obj_update",
+          "callee": "bhv_cmd_load_collision_data",
+          "path": "body.1.1.1.1.1.0.iteration.1.0.target.bhv_cmd_load_collision_data",
+          "method": "defined shared source relation"
+        },
+        {
+          "caller": "cur_obj_update",
+          "callee": "bhv_cmd_set_hitbox_with_offset",
+          "path": "body.1.1.1.1.1.0.iteration.1.0.target.bhv_cmd_set_hitbox_with_offset",
+          "method": "defined shared source relation"
+        },
+        {
+          "caller": "cur_obj_update",
+          "callee": "bhv_cmd_spawn_obj",
+          "path": "body.1.1.1.1.1.0.iteration.1.0.target.bhv_cmd_spawn_obj",
+          "method": "defined shared source relation"
+        },
+        {
+          "caller": "cur_obj_update",
+          "callee": "bhv_cmd_set_home",
+          "path": "body.1.1.1.1.1.0.iteration.1.0.target.bhv_cmd_set_home",
+          "method": "defined shared source relation"
+        },
+        {
+          "caller": "cur_obj_update",
+          "callee": "bhv_cmd_set_hurtbox",
+          "path": "body.1.1.1.1.1.0.iteration.1.0.target.bhv_cmd_set_hurtbox",
+          "method": "defined shared source relation"
+        },
+        {
+          "caller": "cur_obj_update",
+          "callee": "bhv_cmd_set_interact_type",
+          "path": "body.1.1.1.1.1.0.iteration.1.0.target.bhv_cmd_set_interact_type",
+          "method": "defined shared source relation"
+        },
+        {
+          "caller": "cur_obj_update",
+          "callee": "bhv_cmd_set_obj_physics",
+          "path": "body.1.1.1.1.1.0.iteration.1.0.target.bhv_cmd_set_obj_physics",
+          "method": "defined shared source relation"
+        },
+        {
+          "caller": "cur_obj_update",
+          "callee": "bhv_cmd_set_interact_subtype",
+          "path": "body.1.1.1.1.1.0.iteration.1.0.target.bhv_cmd_set_interact_subtype",
+          "method": "defined shared source relation"
+        },
+        {
+          "caller": "cur_obj_update",
+          "callee": "bhv_cmd_scale",
+          "path": "body.1.1.1.1.1.0.iteration.1.0.target.bhv_cmd_scale",
+          "method": "defined shared source relation"
+        },
+        {
+          "caller": "cur_obj_update",
+          "callee": "bhv_cmd_parent_bit_clear",
+          "path": "body.1.1.1.1.1.0.iteration.1.0.target.bhv_cmd_parent_bit_clear",
+          "method": "defined shared source relation"
+        },
+        {
+          "caller": "cur_obj_update",
+          "callee": "bhv_cmd_animate_texture",
+          "path": "body.1.1.1.1.1.0.iteration.1.0.target.bhv_cmd_animate_texture",
+          "method": "defined shared source relation"
+        },
+        {
+          "caller": "cur_obj_update",
+          "callee": "bhv_cmd_disable_rendering",
+          "path": "body.1.1.1.1.1.0.iteration.1.0.target.bhv_cmd_disable_rendering",
+          "method": "defined shared source relation"
+        },
+        {
+          "caller": "cur_obj_update",
+          "callee": "bhv_cmd_set_int_unused",
+          "path": "body.1.1.1.1.1.0.iteration.1.0.target.bhv_cmd_set_int_unused",
+          "method": "defined shared source relation"
+        },
+        {
+          "caller": "cur_obj_update",
+          "callee": "bhv_cmd_spawn_water_droplet",
+          "path": "body.1.1.1.1.1.0.iteration.1.0.target.bhv_cmd_spawn_water_droplet",
+          "method": "defined shared source relation"
+        },
+        {
+          "caller": "cur_obj_update",
+          "callee": "obj_angle_to_object",
+          "path": "body.1.1.0.then.0.1.1",
+          "method": "defined shared source relation"
+        },
+        {
+          "caller": "cur_obj_update",
+          "callee": "dist_between_objects",
+          "path": "body.1.0.then.0.0.1.1",
+          "method": "defined shared source relation"
+        },
+        {
+          "caller": "update_background_music_after_sound",
+          "callee": "begin_background_music_fade",
+          "path": "body.1.then.1",
+          "method": "defined shared source relation"
+        },
+        {
+          "caller": "cur_obj_enable_rendering_if_mario_in_room",
+          "callee": "cur_obj_enable_rendering",
+          "path": "body.1.then.1.then.0",
+          "method": "defined shared source relation"
+        },
+        {
+          "caller": "cur_obj_enable_rendering_if_mario_in_room",
+          "callee": "cur_obj_disable_rendering",
+          "path": "body.1.then.1.else.0",
+          "method": "defined shared source relation"
+        },
+        {
+          "caller": "obj_set_throw_matrix_from_transform",
+          "callee": "cur_obj_scale",
+          "path": "body.1.1",
+          "method": "defined shared source relation"
+        },
+        {
+          "caller": "obj_set_throw_matrix_from_transform",
+          "callee": "obj_apply_scale_to_transform",
+          "path": "body.0.1.then.1",
+          "method": "defined shared source relation"
+        },
+        {
+          "caller": "obj_set_throw_matrix_from_transform",
+          "callee": "obj_build_transform_from_pos_and_angle",
+          "path": "body.0.1.then.0",
+          "method": "defined shared source relation"
+        },
+        {
+          "caller": "obj_build_transform_relative_to_parent",
+          "callee": "cur_obj_scale",
+          "path": "body.1.1.1.1.1.1.1.1",
+          "method": "defined shared source relation"
+        },
+        {
+          "caller": "obj_build_transform_relative_to_parent",
+          "callee": "mtxf_mul",
+          "path": "body.1.1.1.0",
+          "method": "defined shared source relation"
+        },
+        {
+          "caller": "obj_build_transform_relative_to_parent",
+          "callee": "obj_apply_scale_to_transform",
+          "path": "body.1.1.0",
+          "method": "defined shared source relation"
+        },
+        {
+          "caller": "obj_build_transform_relative_to_parent",
+          "callee": "obj_build_transform_from_pos_and_angle",
+          "path": "body.1.0",
+          "method": "defined shared source relation"
+        },
+        {
+          "caller": "bhv_cmd_begin",
+          "callee": "cur_obj_has_behavior",
+          "path": "body.1.1.0.0",
+          "method": "defined shared source relation"
+        },
+        {
+          "caller": "bhv_cmd_begin",
+          "callee": "bhv_init_room",
+          "path": "body.1.0.1.then",
+          "method": "defined shared source relation"
+        },
+        {
+          "caller": "bhv_cmd_begin",
+          "callee": "cur_obj_has_behavior",
+          "path": "body.1.0.0",
+          "method": "defined shared source relation"
+        },
+        {
+          "caller": "bhv_cmd_begin",
+          "callee": "bhv_init_room",
+          "path": "body.0.1.then",
+          "method": "defined shared source relation"
+        },
+        {
+          "caller": "bhv_cmd_begin",
+          "callee": "cur_obj_has_behavior",
+          "path": "body.0.0",
+          "method": "defined shared source relation"
+        },
+        {
+          "caller": "bhv_cmd_call",
+          "callee": "segmented_to_virtual",
+          "path": "body.1.1.0.0.1.1",
+          "method": "defined shared source relation"
+        },
+        {
+          "caller": "bhv_cmd_call",
+          "callee": "cur_obj_bhv_stack_push",
+          "path": "body.1.0.1",
+          "method": "defined shared source relation"
+        },
+        {
+          "caller": "bhv_cmd_return",
+          "callee": "cur_obj_bhv_stack_pop",
+          "path": "body.0.0",
+          "method": "defined shared source relation"
+        },
+        {
+          "caller": "bhv_cmd_goto",
+          "callee": "segmented_to_virtual",
+          "path": "body.1.0.0.1.1",
+          "method": "defined shared source relation"
+        },
+        {
+          "caller": "bhv_cmd_begin_repeat",
+          "callee": "cur_obj_bhv_stack_push",
+          "path": "body.1.1.0",
+          "method": "defined shared source relation"
+        },
+        {
+          "caller": "bhv_cmd_begin_repeat",
+          "callee": "cur_obj_bhv_stack_push",
+          "path": "body.1.0.1",
+          "method": "defined shared source relation"
+        },
+        {
+          "caller": "bhv_cmd_end_repeat",
+          "callee": "cur_obj_bhv_stack_push",
+          "path": "body.1.1.0.then.1.1",
+          "method": "defined shared source relation"
+        },
+        {
+          "caller": "bhv_cmd_end_repeat",
+          "callee": "cur_obj_bhv_stack_push",
+          "path": "body.1.1.0.then.1.0.1",
+          "method": "defined shared source relation"
+        },
+        {
+          "caller": "bhv_cmd_end_repeat",
+          "callee": "cur_obj_bhv_stack_pop",
+          "path": "body.1.1.0.then.0.0",
+          "method": "defined shared source relation"
+        },
+        {
+          "caller": "bhv_cmd_end_repeat",
+          "callee": "cur_obj_bhv_stack_pop",
+          "path": "body.1.1.0.else.0",
+          "method": "defined shared source relation"
+        },
+        {
+          "caller": "bhv_cmd_end_repeat",
+          "callee": "cur_obj_bhv_stack_pop",
+          "path": "body.0.0",
+          "method": "defined shared source relation"
+        },
+        {
+          "caller": "bhv_cmd_end_repeat_continue",
+          "callee": "cur_obj_bhv_stack_push",
+          "path": "body.1.1.0.then.1.1",
+          "method": "defined shared source relation"
+        },
+        {
+          "caller": "bhv_cmd_end_repeat_continue",
+          "callee": "cur_obj_bhv_stack_push",
+          "path": "body.1.1.0.then.1.0.1",
+          "method": "defined shared source relation"
+        },
+        {
+          "caller": "bhv_cmd_end_repeat_continue",
+          "callee": "cur_obj_bhv_stack_pop",
+          "path": "body.1.1.0.then.0.0",
+          "method": "defined shared source relation"
+        },
+        {
+          "caller": "bhv_cmd_end_repeat_continue",
+          "callee": "cur_obj_bhv_stack_pop",
+          "path": "body.1.1.0.else.0",
+          "method": "defined shared source relation"
+        },
+        {
+          "caller": "bhv_cmd_end_repeat_continue",
+          "callee": "cur_obj_bhv_stack_pop",
+          "path": "body.0.0",
+          "method": "defined shared source relation"
+        },
+        {
+          "caller": "bhv_cmd_begin_loop",
+          "callee": "cur_obj_bhv_stack_push",
+          "path": "body.0.1",
+          "method": "defined shared source relation"
+        },
+        {
+          "caller": "bhv_cmd_end_loop",
+          "callee": "cur_obj_bhv_stack_push",
+          "path": "body.1.0.1",
+          "method": "defined shared source relation"
+        },
+        {
+          "caller": "bhv_cmd_end_loop",
+          "callee": "cur_obj_bhv_stack_pop",
+          "path": "body.0.0",
+          "method": "defined shared source relation"
         }
       ],
       "finishedHelperTraversals": [
-        "absf"
+        "update_mario_platform",
+        "get_clock_difference",
+        "unload_deactivated_objects",
+        "update_non_terrain_objects",
+        "detect_object_collisions",
+        "apply_mario_platform_displacement",
+        "update_terrain_objects",
+        "clear_dynamic_surfaces",
+        "stub_debug_5",
+        "reset_debug_objectinfo",
+        "get_current_clock",
+        "absf",
+        "find_floor",
+        "unload_deactivated_objects_in_list",
+        "update_objects_in_list",
+        "check_pushable_object_collision",
+        "check_destructive_object_collision",
+        "check_player_object_collision",
+        "clear_object_collision",
+        "apply_platform_displacement",
+        "clear_spatial_partition",
+        "update_debug_dpadmask",
+        "set_print_state_info",
+        "find_floor_from_list",
+        "unload_object",
+        "set_object_respawn_info_bits",
+        "update_objects_starting_at",
+        "update_objects_during_time_stop",
+        "check_collision_in_list",
+        "set_mario_pos",
+        "linear_mtxf_mul_vec3f",
+        "mtxf_rotate_zxy_and_translate",
+        "linear_mtxf_transpose_mul_vec3f",
+        "get_mario_pos",
+        "deallocate_object",
+        "geo_add_child",
+        "geo_remove_child",
+        "stop_sounds_from_source",
+        "cur_obj_update",
+        "detect_object_hurtbox_overlap",
+        "detect_object_hitbox_overlap",
+        "update_background_music_after_sound",
+        "cur_obj_enable_rendering_if_mario_in_room",
+        "obj_update_gfx_pos_and_angle",
+        "obj_set_throw_matrix_from_transform",
+        "obj_build_transform_relative_to_parent",
+        "cur_obj_move_y_with_terminal_vel",
+        "cur_obj_move_xz_using_fvel_and_yaw",
+        "obj_set_face_angle_to_move_angle",
+        "bhv_cmd_begin",
+        "bhv_cmd_delay",
+        "bhv_cmd_call",
+        "bhv_cmd_return",
+        "bhv_cmd_goto",
+        "bhv_cmd_begin_repeat",
+        "bhv_cmd_end_repeat",
+        "bhv_cmd_end_repeat_continue",
+        "bhv_cmd_begin_loop",
+        "bhv_cmd_end_loop",
+        "bhv_cmd_break",
+        "bhv_cmd_break_unused"
       ],
-      "guardedFloatIntegerConversions": 1,
+      "guardedFloatIntegerConversions": 4,
+      "loopRelations": [
+        {
+          "function": "unload_deactivated_objects",
+          "statementPath": "body.1.0",
+          "relation": "us.engine.0.loop.unload_deactivated_objects.5.0",
+          "semantics": "exists finite decreasing fuel; no fixed unroll bound"
+        },
+        {
+          "function": "update_non_terrain_objects",
+          "statementPath": "body.1",
+          "relation": "us.engine.0.loop.update_non_terrain_objects.8.1",
+          "semantics": "exists finite decreasing fuel; no fixed unroll bound"
+        },
+        {
+          "function": "unload_deactivated_objects_in_list",
+          "statementPath": "body.1.0",
+          "relation": "us.engine.0.loop.unload_deactivated_objects_in_list.32.2",
+          "semantics": "exists finite decreasing fuel; no fixed unroll bound"
+        },
+        {
+          "function": "check_pushable_object_collision",
+          "statementPath": "body.1.1",
+          "relation": "us.engine.0.loop.check_pushable_object_collision.36.3",
+          "semantics": "exists finite decreasing fuel; no fixed unroll bound"
+        },
+        {
+          "function": "check_destructive_object_collision",
+          "statementPath": "body.1.1",
+          "relation": "us.engine.0.loop.check_destructive_object_collision.38.4",
+          "semantics": "exists finite decreasing fuel; no fixed unroll bound"
+        },
+        {
+          "function": "check_player_object_collision",
+          "statementPath": "body.1.1",
+          "relation": "us.engine.0.loop.check_player_object_collision.40.5",
+          "semantics": "exists finite decreasing fuel; no fixed unroll bound"
+        },
+        {
+          "function": "clear_object_collision",
+          "statementPath": "body.1",
+          "relation": "us.engine.0.loop.clear_object_collision.42.6",
+          "semantics": "exists finite decreasing fuel; no fixed unroll bound"
+        },
+        {
+          "function": "clear_spatial_partition",
+          "statementPath": "body.1",
+          "relation": "us.engine.0.loop.clear_spatial_partition.54.7",
+          "semantics": "exists finite decreasing fuel; no fixed unroll bound"
+        },
+        {
+          "function": "find_floor_from_list",
+          "statementPath": "body.1.0",
+          "relation": "us.engine.0.loop.find_floor_from_list.61.8",
+          "semantics": "exists finite decreasing fuel; no fixed unroll bound"
+        },
+        {
+          "function": "update_objects_starting_at",
+          "statementPath": "body.1.0",
+          "relation": "us.engine.0.loop.update_objects_starting_at.69.9",
+          "semantics": "exists finite decreasing fuel; no fixed unroll bound"
+        },
+        {
+          "function": "update_objects_during_time_stop",
+          "statementPath": "body.1.0",
+          "relation": "us.engine.0.loop.update_objects_during_time_stop.71.10",
+          "semantics": "exists finite decreasing fuel; no fixed unroll bound"
+        },
+        {
+          "function": "check_collision_in_list",
+          "statementPath": "body.1.then",
+          "relation": "us.engine.0.loop.check_collision_in_list.73.11",
+          "semantics": "exists finite decreasing fuel; no fixed unroll bound"
+        },
+        {
+          "function": "linear_mtxf_mul_vec3f",
+          "statementPath": "body.1",
+          "relation": "us.engine.0.loop.linear_mtxf_mul_vec3f.88.12",
+          "semantics": "exists finite decreasing fuel; no fixed unroll bound"
+        },
+        {
+          "function": "linear_mtxf_transpose_mul_vec3f",
+          "statementPath": "body.1",
+          "relation": "us.engine.0.loop.linear_mtxf_transpose_mul_vec3f.92.13",
+          "semantics": "exists finite decreasing fuel; no fixed unroll bound"
+        },
+        {
+          "function": "stop_sounds_from_source",
+          "statementPath": "body.1",
+          "relation": "us.engine.0.loop.stop_sounds_from_source.103.14",
+          "semantics": "exists finite decreasing fuel; no fixed unroll bound"
+        },
+        {
+          "function": "stop_sounds_from_source",
+          "statementPath": "body.1.iteration.1.1",
+          "relation": "us.engine.0.loop.stop_sounds_from_source.103.15",
+          "semantics": "exists finite decreasing fuel; no fixed unroll bound"
+        },
+        {
+          "function": "cur_obj_update",
+          "statementPath": "body.1.1.1.1.1.0",
+          "relation": "us.engine.0.loop.cur_obj_update.105.16",
+          "semantics": "exists finite decreasing fuel; no fixed unroll bound"
+        }
+      ],
+      "sharedFunctionRelations": [
+        {
+          "function": "update_mario_platform",
+          "source": "02b5a54c1691a5c2903645acb9663ca19a03b1eea60d5f2c37e70153dff33366"
+        },
+        {
+          "function": "get_clock_difference",
+          "source": "e402986aa4220684df970cf7c9bf624909ea6b9668eff814916f2de27cf3594e"
+        },
+        {
+          "function": "unload_deactivated_objects",
+          "source": "0b5759edd5df1958d459c45043ca8dbae5bc4515e90d2e5c9e9dd25057112b2b"
+        },
+        {
+          "function": "update_non_terrain_objects",
+          "source": "401ab59a5d41b95181496b9ee9ef5d7b0b72ac87e11a46721928470fd7256c9f"
+        },
+        {
+          "function": "detect_object_collisions",
+          "source": "1c44d80722911ab7b6c3e210332d0e890fea4621ebce615fe1e02148bddce816"
+        },
+        {
+          "function": "apply_mario_platform_displacement",
+          "source": "969dda4d08e117f24ee1b93127e29c529e92d9881453aae4e4fd66ee954a8935"
+        },
+        {
+          "function": "update_terrain_objects",
+          "source": "834d6b1f587c0b2882bf0be95efda895dc9dc0c6246bd480e0b306460124d21b"
+        },
+        {
+          "function": "clear_dynamic_surfaces",
+          "source": "abfd20dfcce1f7a7392226b0fd5bc84582d8365a0b818f4c88cb9df6bf0683d9"
+        },
+        {
+          "function": "stub_debug_5",
+          "source": "68249520a2e6feb994351099c54d87fafa86e12d455ad04962aaf6ea614f40bf"
+        },
+        {
+          "function": "reset_debug_objectinfo",
+          "source": "9e78bc4ec9811bad40169c3118503eea093fd3a058a5955722c4c840ddb426ff"
+        },
+        {
+          "function": "get_current_clock",
+          "source": "5acc78bca2a0b9b110be150f7629d84837db79f87078d09bc3f74f35a8f97e0a"
+        },
+        {
+          "function": "absf",
+          "source": "4a6e09dbcf61e5fd928e1e5da67ff26aa176d1fc65b2e6ba19bf8a3e7600728d"
+        },
+        {
+          "function": "find_floor",
+          "source": "422d3873dbcd1f96990002d062ec515aa5e5d74166c018ddabad28fe7ced2276"
+        },
+        {
+          "function": "unload_deactivated_objects_in_list",
+          "source": "de75ce756633d3252a6159976b450318ee87c3e8cb8072f05a739d680d6bb702"
+        },
+        {
+          "function": "update_objects_in_list",
+          "source": "208db01c13e0f00326ebabe4e36a00322ba52e1e44fcf4661fc0acc3fc5da079"
+        },
+        {
+          "function": "check_pushable_object_collision",
+          "source": "a1c0cfb44012d94416ec169d8a2a16fcc3e1c33c7a82c051ff889e17e3c1faf3"
+        },
+        {
+          "function": "check_destructive_object_collision",
+          "source": "9f73089248de72ac23c9c26220b4b9973f07705ba6d17547c539b8f2923392c8"
+        },
+        {
+          "function": "check_player_object_collision",
+          "source": "7547eb9a2fa5c76e02aad1f5b4f5a7712c5bc6236cee86469d0540da86332e21"
+        },
+        {
+          "function": "clear_object_collision",
+          "source": "7bd642d80a91258b37bd34fd976ae21664d67ba6b7749b46e18134eab080c254"
+        },
+        {
+          "function": "apply_platform_displacement",
+          "source": "c1d034dd37eb2507f4bcee129559769ffa20adb925c91ca1e8127d72aacb8066"
+        },
+        {
+          "function": "clear_spatial_partition",
+          "source": "0e5ba397969c407bf26bd2577616606f2e9a2cd5f7609218698babe1e366c766"
+        },
+        {
+          "function": "update_debug_dpadmask",
+          "source": "caf0027dd68626515d677f3d9321c9a09a331b5c3ff818cddd69d8830cf6d9c8"
+        },
+        {
+          "function": "set_print_state_info",
+          "source": "35195eee0bdca90253eae3a0dc6e4d33478d1a20bffeeb65d1f6f14df0f537f7"
+        },
+        {
+          "function": "find_floor_from_list",
+          "source": "a46b68f49bc147add0c8d208b2c6d1edc150775818a4dfe3957d0a36bf616b3b"
+        },
+        {
+          "function": "unload_object",
+          "source": "27906627ca9b94c6cf612be7dc90d0083d0b7a72b64504d7b29a355e7eee6c9b"
+        },
+        {
+          "function": "set_object_respawn_info_bits",
+          "source": "53004c127ecba4393cecbc28c3b44d3c87040e271629790a7aed5ac98add1808"
+        },
+        {
+          "function": "update_objects_starting_at",
+          "source": "48dda93fb1dc8a3e1be2598c592f020204de5d18084b1f4a692e92e848dbceaa"
+        },
+        {
+          "function": "update_objects_during_time_stop",
+          "source": "c26ec32a1b4bb03bdefb8885b31b7541469a2c1f16fab42408f2b9a57404e87e"
+        },
+        {
+          "function": "check_collision_in_list",
+          "source": "190d1e76dee2e4007ed1eff7f7efd823a1be00c083f1ba8201100f9f0dd5d2c3"
+        },
+        {
+          "function": "set_mario_pos",
+          "source": "3496a2475da8a4cb2407a5c7215e8d2e904bf42a8285e8e781ca261d748786f8"
+        },
+        {
+          "function": "linear_mtxf_mul_vec3f",
+          "source": "8b14abc490aa658ab51b7956f06c61353194aac8c276dd568fba4216ee8b5b1b"
+        },
+        {
+          "function": "mtxf_rotate_zxy_and_translate",
+          "source": "86f09e8bebe84fc168985a3ae47553cb8bf3b5a88ee279c5333b854b631aba40"
+        },
+        {
+          "function": "linear_mtxf_transpose_mul_vec3f",
+          "source": "1b20c128f05f12bdace35eff323be1d3150808d28c9a14d9356c8ec97ab1d427"
+        },
+        {
+          "function": "get_mario_pos",
+          "source": "3d3bcfd2148c7a9c9136abf256521c5126c27ca95a10f027161d80f5476b3f0d"
+        },
+        {
+          "function": "deallocate_object",
+          "source": "bbb0fb661a369c1490080aba6ac45d17698dc4e759962a76652bf47b75fb0b5a"
+        },
+        {
+          "function": "geo_add_child",
+          "source": "515f48e7962638eae0ca6219c3a6705b45abc7b9a3abfa3fb45401e8f0d0f0c1"
+        },
+        {
+          "function": "geo_remove_child",
+          "source": "aaa005bb790bf5d78532a48337f7b19737770621d6e120adbe50ef4b90254958"
+        },
+        {
+          "function": "stop_sounds_from_source",
+          "source": "370b2e91f5165418507ab088d5a2aa88cdc8f49aae99e5515cd1c563b543d5b7"
+        },
+        {
+          "function": "cur_obj_update",
+          "source": "f06ed50485faf9808ffc942a074a6c76962015de29dc2c4d1ab470235deb1b1b"
+        },
+        {
+          "function": "detect_object_hurtbox_overlap",
+          "source": "638f528673ac9d122c6249cc53d0a5a1a38714960286a1e2fbb342be2ebe4779"
+        },
+        {
+          "function": "detect_object_hitbox_overlap",
+          "source": "afaa5f59d9b5d55842a05e270496f194a0aab6efc9d99ae960227244c4d87b67"
+        },
+        {
+          "function": "update_background_music_after_sound",
+          "source": "abb9897db170eda28dc9927688b8c136f5072985f89e92951a550ba8d4567ecd"
+        },
+        {
+          "function": "cur_obj_enable_rendering_if_mario_in_room",
+          "source": "5d4c1bedce1cb7df74655deaec7b577b02c5928b536b8ade5a1afd848cb039d2"
+        },
+        {
+          "function": "obj_update_gfx_pos_and_angle",
+          "source": "93f8922194c346e071f25f059f13adfca18c51425d645de2064c22809d7eba3f"
+        },
+        {
+          "function": "obj_set_throw_matrix_from_transform",
+          "source": "977de68e378a0485c005c055318b7825b14fcc8fa0bcecd3cc1df25dc9a0970c"
+        },
+        {
+          "function": "obj_build_transform_relative_to_parent",
+          "source": "ff537df8f7c1f027e246bfbf32f2f76a45d06b5b326fc062cec1638d243c3ecb"
+        },
+        {
+          "function": "cur_obj_move_y_with_terminal_vel",
+          "source": "b7d017fa09e72ffd6879953abc96de691c759235ad64554efb1e76853ca3bef1"
+        },
+        {
+          "function": "cur_obj_move_xz_using_fvel_and_yaw",
+          "source": "ec1b51ea02ce0334c39842d72cb98cc1d46a5ab51ab7a8dc48702757dd882aac"
+        },
+        {
+          "function": "obj_set_face_angle_to_move_angle",
+          "source": "e4735e03188f69d6a205c2d7af4ae9ba5ecaa03fd88f547620063757c411b012"
+        },
+        {
+          "function": "bhv_cmd_begin",
+          "source": "6958ed618369b796405eb5bbb1e314ea8648b98ae4f49ae6f6e912630ad19c2a"
+        },
+        {
+          "function": "bhv_cmd_delay",
+          "source": "c0c3c16f50d60b35df0748722e3e8b553661642461cd808ecebd5de6ca1d39b1"
+        },
+        {
+          "function": "bhv_cmd_call",
+          "source": "2fdec92b936aa4796603ae3be8acd4827f42256ed54cde63529b158349e362fa"
+        },
+        {
+          "function": "bhv_cmd_return",
+          "source": "32fbc48d05f7a76a883c04856aaed0014efcf6fc46ce4a96fefc72aa0f3dde45"
+        },
+        {
+          "function": "bhv_cmd_goto",
+          "source": "1b45a668cc957f1c4938c55892b2ed85bdc71b029bb4d32af9a2e469369d6fcd"
+        },
+        {
+          "function": "bhv_cmd_begin_repeat",
+          "source": "7711a1ef44d9745b3f52926d91678f531278b1e482bad363847b4682a116f2a8"
+        },
+        {
+          "function": "bhv_cmd_end_repeat",
+          "source": "5c780eb2aeccc573d3713aa906eca866c6dba1ee91091a16b2b6eb6d5e141f90"
+        },
+        {
+          "function": "bhv_cmd_end_repeat_continue",
+          "source": "b0304fb9a2a4b3aaab58d3071e9249515a3c7dba327be3cc91b11e343e2da086"
+        },
+        {
+          "function": "bhv_cmd_begin_loop",
+          "source": "37dd29acdbe8d6c21b5892fa666aac1aae46a4e20f5e6b8ba5eaf3c5df6a60b6"
+        },
+        {
+          "function": "bhv_cmd_end_loop",
+          "source": "7ed5913e020aa803479678820aae2874b21b53b67bca20aa425053e98e531efe"
+        },
+        {
+          "function": "bhv_cmd_break",
+          "source": "d7605c94e98f193645245abd72ed1923d73c127a85d5f78641db8644582b2830"
+        },
+        {
+          "function": "bhv_cmd_break_unused",
+          "source": "66cb6ba14c430c284771b78881eaae45ffce96daa74b9791b059acab08aeee95"
+        }
+      ],
+      "unresolvedIndirectDomains": [
+        {
+          "caller": "cur_obj_update",
+          "path": "body.1.1.1.1.1.0.iteration.1.0",
+          "sourceTable": "BehaviorCmdTable",
+          "targets": [
+            "bhv_cmd_begin",
+            "bhv_cmd_delay",
+            "bhv_cmd_call",
+            "bhv_cmd_return",
+            "bhv_cmd_goto",
+            "bhv_cmd_begin_repeat",
+            "bhv_cmd_end_repeat",
+            "bhv_cmd_end_repeat_continue",
+            "bhv_cmd_begin_loop",
+            "bhv_cmd_end_loop",
+            "bhv_cmd_break",
+            "bhv_cmd_break_unused",
+            "bhv_cmd_call_native",
+            "bhv_cmd_add_float",
+            "bhv_cmd_set_float",
+            "bhv_cmd_add_int",
+            "bhv_cmd_set_int",
+            "bhv_cmd_or_int",
+            "bhv_cmd_bit_clear",
+            "bhv_cmd_set_int_rand_rshift",
+            "bhv_cmd_set_random_float",
+            "bhv_cmd_set_random_int",
+            "bhv_cmd_add_random_float",
+            "bhv_cmd_add_int_rand_rshift",
+            "bhv_cmd_nop_1",
+            "bhv_cmd_nop_2",
+            "bhv_cmd_nop_3",
+            "bhv_cmd_set_model",
+            "bhv_cmd_spawn_child",
+            "bhv_cmd_deactivate",
+            "bhv_cmd_drop_to_floor",
+            "bhv_cmd_sum_float",
+            "bhv_cmd_sum_int",
+            "bhv_cmd_billboard",
+            "bhv_cmd_hide",
+            "bhv_cmd_set_hitbox",
+            "bhv_cmd_nop_4",
+            "bhv_cmd_delay_var",
+            "bhv_cmd_begin_repeat_unused",
+            "bhv_cmd_load_animations",
+            "bhv_cmd_animate",
+            "bhv_cmd_spawn_child_with_param",
+            "bhv_cmd_load_collision_data",
+            "bhv_cmd_set_hitbox_with_offset",
+            "bhv_cmd_spawn_obj",
+            "bhv_cmd_set_home",
+            "bhv_cmd_set_hurtbox",
+            "bhv_cmd_set_interact_type",
+            "bhv_cmd_set_obj_physics",
+            "bhv_cmd_set_interact_subtype",
+            "bhv_cmd_scale",
+            "bhv_cmd_parent_bit_clear",
+            "bhv_cmd_animate_texture",
+            "bhv_cmd_disable_rendering",
+            "bhv_cmd_set_int_unused",
+            "bhv_cmd_spawn_water_droplet"
+          ],
+          "unresolved": "Prove the live function pointer belongs to these source-initializer targets at this call. Non-members are not ruled out by this exploration."
+        }
+      ],
+      "unresolvedLibraryDomains": [
+        {
+          "caller": "detect_object_hurtbox_overlap",
+          "path": "body.1.1.1.1.1.1.0.0",
+          "theorem": "SqrtfClightBinding.sb_binding_value_and_frame",
+          "controls": "usable FPU, nearest-even rounding, inexact trapping disabled",
+          "input": "nonnegative finite normal binary32 or signed zero",
+          "unresolved": "Caller input domain and runtime control/binding conditions require discharge. Other inputs are not disproved."
+        },
+        {
+          "caller": "detect_object_hitbox_overlap",
+          "path": "body.1.1.1.1.1.1.0.0",
+          "theorem": "SqrtfClightBinding.sb_binding_value_and_frame",
+          "controls": "usable FPU, nearest-even rounding, inexact trapping disabled",
+          "input": "nonnegative finite normal binary32 or signed zero",
+          "unresolved": "Caller input domain and runtime control/binding conditions require discharge. Other inputs are not disproved."
+        }
+      ],
+      "pendingFunctions": [
+        "bhv_cmd_add_float",
+        "bhv_cmd_set_float",
+        "bhv_cmd_add_int",
+        "bhv_cmd_set_int",
+        "bhv_cmd_or_int",
+        "bhv_cmd_bit_clear",
+        "bhv_cmd_set_int_rand_rshift",
+        "bhv_cmd_set_random_float",
+        "bhv_cmd_set_random_int",
+        "bhv_cmd_add_random_float",
+        "bhv_cmd_add_int_rand_rshift",
+        "bhv_cmd_nop_1",
+        "bhv_cmd_nop_2",
+        "bhv_cmd_nop_3",
+        "bhv_cmd_set_model",
+        "bhv_cmd_spawn_child",
+        "bhv_cmd_deactivate",
+        "bhv_cmd_drop_to_floor",
+        "bhv_cmd_sum_float",
+        "bhv_cmd_sum_int",
+        "bhv_cmd_billboard",
+        "bhv_cmd_hide",
+        "bhv_cmd_set_hitbox",
+        "bhv_cmd_nop_4",
+        "bhv_cmd_delay_var",
+        "bhv_cmd_begin_repeat_unused",
+        "bhv_cmd_load_animations",
+        "bhv_cmd_animate",
+        "bhv_cmd_spawn_child_with_param",
+        "bhv_cmd_load_collision_data",
+        "bhv_cmd_set_hitbox_with_offset",
+        "bhv_cmd_spawn_obj",
+        "bhv_cmd_set_home",
+        "bhv_cmd_set_hurtbox",
+        "bhv_cmd_set_interact_type",
+        "bhv_cmd_set_obj_physics",
+        "bhv_cmd_set_interact_subtype",
+        "bhv_cmd_scale",
+        "bhv_cmd_parent_bit_clear",
+        "bhv_cmd_animate_texture",
+        "bhv_cmd_disable_rendering",
+        "bhv_cmd_set_int_unused",
+        "bhv_cmd_spawn_water_droplet",
+        "obj_angle_to_object",
+        "dist_between_objects",
+        "begin_background_music_fade",
+        "cur_obj_enable_rendering",
+        "cur_obj_disable_rendering",
+        "cur_obj_scale",
+        "obj_apply_scale_to_transform",
+        "obj_build_transform_from_pos_and_angle",
+        "mtxf_mul",
+        "cur_obj_has_behavior",
+        "bhv_init_room",
+        "segmented_to_virtual",
+        "cur_obj_bhv_stack_push",
+        "cur_obj_bhv_stack_pop"
+      ],
       "generatedFunctions": {
         "update_objects": {
           "file": "generated\\us_object_list_processor.v",
@@ -84,6 +1634,56 @@
           "line": 515,
           "sha256": "02b5a54c1691a5c2903645acb9663ca19a03b1eea60d5f2c37e70153dff33366"
         },
+        "get_clock_difference": {
+          "file": "generated\\us_debug.v",
+          "line": 1211,
+          "sha256": "e402986aa4220684df970cf7c9bf624909ea6b9668eff814916f2de27cf3594e"
+        },
+        "unload_deactivated_objects": {
+          "file": "generated\\us_object_list_processor.v",
+          "line": 3088,
+          "sha256": "0b5759edd5df1958d459c45043ca8dbae5bc4515e90d2e5c9e9dd25057112b2b"
+        },
+        "update_non_terrain_objects": {
+          "file": "generated\\us_object_list_processor.v",
+          "line": 3037,
+          "sha256": "401ab59a5d41b95181496b9ee9ef5d7b0b72ac87e11a46721928470fd7256c9f"
+        },
+        "detect_object_collisions": {
+          "file": "generated\\us_object_collision.v",
+          "line": 1695,
+          "sha256": "1c44d80722911ab7b6c3e210332d0e890fea4621ebce615fe1e02148bddce816"
+        },
+        "apply_mario_platform_displacement": {
+          "file": "generated\\us_platform_displacement.v",
+          "line": 1554,
+          "sha256": "969dda4d08e117f24ee1b93127e29c529e92d9881453aae4e4fd66ee954a8935"
+        },
+        "update_terrain_objects": {
+          "file": "generated\\us_object_list_processor.v",
+          "line": 3003,
+          "sha256": "834d6b1f587c0b2882bf0be95efda895dc9dc0c6246bd480e0b306460124d21b"
+        },
+        "clear_dynamic_surfaces": {
+          "file": "generated\\us_surface_load.v",
+          "line": 2462,
+          "sha256": "abfd20dfcce1f7a7392226b0fd5bc84582d8365a0b818f4c88cb9df6bf0683d9"
+        },
+        "stub_debug_5": {
+          "file": "generated\\us_debug.v",
+          "line": 2505,
+          "sha256": "68249520a2e6feb994351099c54d87fafa86e12d455ad04962aaf6ea614f40bf"
+        },
+        "reset_debug_objectinfo": {
+          "file": "generated\\us_debug.v",
+          "line": 2216,
+          "sha256": "9e78bc4ec9811bad40169c3118503eea093fd3a058a5955722c4c840ddb426ff"
+        },
+        "get_current_clock": {
+          "file": "generated\\us_debug.v",
+          "line": 1199,
+          "sha256": "5acc78bca2a0b9b110be150f7629d84837db79f87078d09bc3f74f35a8f97e0a"
+        },
         "absf": {
           "file": "generated\\us_object_helpers.v",
           "line": 20062,
@@ -94,10 +1694,535 @@
           "line": 3051,
           "sha256": "422d3873dbcd1f96990002d062ec515aa5e5d74166c018ddabad28fe7ced2276"
         },
+        "unload_deactivated_objects_in_list": {
+          "file": "generated\\us_object_list_processor.v",
+          "line": 2093,
+          "sha256": "de75ce756633d3252a6159976b450318ee87c3e8cb8072f05a739d680d6bb702"
+        },
+        "update_objects_in_list": {
+          "file": "generated\\us_object_list_processor.v",
+          "line": 2050,
+          "sha256": "208db01c13e0f00326ebabe4e36a00322ba52e1e44fcf4661fc0acc3fc5da079"
+        },
+        "check_pushable_object_collision": {
+          "file": "generated\\us_object_collision.v",
+          "line": 1419,
+          "sha256": "a1c0cfb44012d94416ec169d8a2a16fcc3e1c33c7a82c051ff889e17e3c1faf3"
+        },
+        "check_destructive_object_collision": {
+          "file": "generated\\us_object_collision.v",
+          "line": 1485,
+          "sha256": "9f73089248de72ac23c9c26220b4b9973f07705ba6d17547c539b8f2923392c8"
+        },
+        "check_player_object_collision": {
+          "file": "generated\\us_object_collision.v",
+          "line": 1131,
+          "sha256": "7547eb9a2fa5c76e02aad1f5b4f5a7712c5bc6236cee86469d0540da86332e21"
+        },
+        "clear_object_collision": {
+          "file": "generated\\us_object_collision.v",
+          "line": 959,
+          "sha256": "7bd642d80a91258b37bd34fd976ae21664d67ba6b7749b46e18134eab080c254"
+        },
+        "apply_platform_displacement": {
+          "file": "generated\\us_platform_displacement.v",
+          "line": 809,
+          "sha256": "c1d034dd37eb2507f4bcee129559769ffa20adb925c91ca1e8127d72aacb8066"
+        },
+        "clear_spatial_partition": {
+          "file": "generated\\us_surface_load.v",
+          "line": 608,
+          "sha256": "0e5ba397969c407bf26bd2577616606f2e9a2cd5f7609218698babe1e366c766"
+        },
+        "update_debug_dpadmask": {
+          "file": "generated\\us_debug.v",
+          "line": 2115,
+          "sha256": "caf0027dd68626515d677f3d9321c9a09a331b5c3ff818cddd69d8830cf6d9c8"
+        },
+        "set_print_state_info": {
+          "file": "generated\\us_debug.v",
+          "line": 1223,
+          "sha256": "35195eee0bdca90253eae3a0dc6e4d33478d1a20bffeeb65d1f6f14df0f537f7"
+        },
         "find_floor_from_list": {
           "file": "generated\\us_surface_collision.v",
           "line": 2655,
           "sha256": "a46b68f49bc147add0c8d208b2c6d1edc150775818a4dfe3957d0a36bf616b3b"
+        },
+        "unload_object": {
+          "file": "generated\\us_spawn_object.v",
+          "line": 858,
+          "sha256": "27906627ca9b94c6cf612be7dc90d0083d0b7a72b64504d7b29a355e7eee6c9b"
+        },
+        "set_object_respawn_info_bits": {
+          "file": "generated\\us_object_list_processor.v",
+          "line": 2186,
+          "sha256": "53004c127ecba4393cecbc28c3b44d3c87040e271629790a7aed5ac98add1808"
+        },
+        "update_objects_starting_at": {
+          "file": "generated\\us_object_list_processor.v",
+          "line": 1768,
+          "sha256": "48dda93fb1dc8a3e1be2598c592f020204de5d18084b1f4a692e92e848dbceaa"
+        },
+        "update_objects_during_time_stop": {
+          "file": "generated\\us_object_list_processor.v",
+          "line": 1837,
+          "sha256": "c26ec32a1b4bb03bdefb8885b31b7541469a2c1f16fab42408f2b9a57404e87e"
+        },
+        "check_collision_in_list": {
+          "file": "generated\\us_object_collision.v",
+          "line": 1045,
+          "sha256": "190d1e76dee2e4007ed1eff7f7efd823a1be00c083f1ba8201100f9f0dd5d2c3"
+        },
+        "set_mario_pos": {
+          "file": "generated\\us_platform_displacement.v",
+          "line": 762,
+          "sha256": "3496a2475da8a4cb2407a5c7215e8d2e904bf42a8285e8e781ca261d748786f8"
+        },
+        "linear_mtxf_mul_vec3f": {
+          "file": "generated\\us_object_helpers.v",
+          "line": 6895,
+          "sha256": "8b14abc490aa658ab51b7956f06c61353194aac8c276dd568fba4216ee8b5b1b"
+        },
+        "mtxf_rotate_zxy_and_translate": {
+          "file": "generated\\us_math_util.v",
+          "line": 8102,
+          "sha256": "86f09e8bebe84fc168985a3ae47553cb8bf3b5a88ee279c5333b854b631aba40"
+        },
+        "linear_mtxf_transpose_mul_vec3f": {
+          "file": "generated\\us_object_helpers.v",
+          "line": 6970,
+          "sha256": "1b20c128f05f12bdace35eff323be1d3150808d28c9a14d9356c8ec97ab1d427"
+        },
+        "get_mario_pos": {
+          "file": "generated\\us_platform_displacement.v",
+          "line": 708,
+          "sha256": "3d3bcfd2148c7a9c9136abf256521c5126c27ca95a10f027161d80f5476b3f0d"
+        },
+        "deallocate_object": {
+          "file": "generated\\us_spawn_object.v",
+          "line": 679,
+          "sha256": "bbb0fb661a369c1490080aba6ac45d17698dc4e759962a76652bf47b75fb0b5a"
+        },
+        "geo_add_child": {
+          "file": "generated\\us_graph_node.v",
+          "line": 2645,
+          "sha256": "515f48e7962638eae0ca6219c3a6705b45abc7b9a3abfa3fb45401e8f0d0f0c1"
+        },
+        "geo_remove_child": {
+          "file": "generated\\us_graph_node.v",
+          "line": 2739,
+          "sha256": "aaa005bb790bf5d78532a48337f7b19737770621d6e120adbe50ef4b90254958"
+        },
+        "stop_sounds_from_source": {
+          "file": "generated\\runtime\\us_audio_external.v",
+          "line": 11309,
+          "sha256": "370b2e91f5165418507ab088d5a2aa88cdc8f49aae99e5515cd1c563b543d5b7"
+        },
+        "cur_obj_update": {
+          "file": "generated\\us_behavior_script.v",
+          "line": 4437,
+          "sha256": "f06ed50485faf9808ffc942a074a6c76962015de29dc2c4d1ab470235deb1b1b"
+        },
+        "detect_object_hurtbox_overlap": {
+          "file": "generated\\us_object_collision.v",
+          "line": 708,
+          "sha256": "638f528673ac9d122c6249cc53d0a5a1a38714960286a1e2fbb342be2ebe4779"
+        },
+        "detect_object_hitbox_overlap": {
+          "file": "generated\\us_object_collision.v",
+          "line": 363,
+          "sha256": "afaa5f59d9b5d55842a05e270496f194a0aab6efc9d99ae960227244c4d87b67"
+        },
+        "update_background_music_after_sound": {
+          "file": "generated\\runtime\\us_audio_external.v",
+          "line": 3826,
+          "sha256": "abb9897db170eda28dc9927688b8c136f5072985f89e92951a550ba8d4567ecd"
+        },
+        "cur_obj_enable_rendering_if_mario_in_room": {
+          "file": "generated\\us_object_helpers.v",
+          "line": 21904,
+          "sha256": "5d4c1bedce1cb7df74655deaec7b577b02c5928b536b8ade5a1afd848cb039d2"
+        },
+        "obj_update_gfx_pos_and_angle": {
+          "file": "generated\\us_behavior_script.v",
+          "line": 620,
+          "sha256": "93f8922194c346e071f25f059f13adfca18c51425d645de2064c22809d7eba3f"
+        },
+        "obj_set_throw_matrix_from_transform": {
+          "file": "generated\\us_object_helpers.v",
+          "line": 17592,
+          "sha256": "977de68e378a0485c005c055318b7825b14fcc8fa0bcecd3cc1df25dc9a0970c"
+        },
+        "obj_build_transform_relative_to_parent": {
+          "file": "generated\\us_object_helpers.v",
+          "line": 17648,
+          "sha256": "ff537df8f7c1f027e246bfbf32f2f76a45d06b5b326fc062cec1638d243c3ecb"
+        },
+        "cur_obj_move_y_with_terminal_vel": {
+          "file": "generated\\us_object_helpers.v",
+          "line": 13195,
+          "sha256": "b7d017fa09e72ffd6879953abc96de691c759235ad64554efb1e76853ca3bef1"
+        },
+        "cur_obj_move_xz_using_fvel_and_yaw": {
+          "file": "generated\\us_object_helpers.v",
+          "line": 12986,
+          "sha256": "ec1b51ea02ce0334c39842d72cb98cc1d46a5ab51ab7a8dc48702757dd882aac"
+        },
+        "obj_set_face_angle_to_move_angle": {
+          "file": "generated\\us_object_helpers.v",
+          "line": 8487,
+          "sha256": "e4735e03188f69d6a205c2d7af4ae9ba5ecaa03fd88f547620063757c411b012"
+        },
+        "bhv_cmd_begin": {
+          "file": "generated\\us_behavior_script.v",
+          "line": 3607,
+          "sha256": "6958ed618369b796405eb5bbb1e314ea8648b98ae4f49ae6f6e912630ad19c2a"
+        },
+        "bhv_cmd_delay": {
+          "file": "generated\\us_behavior_script.v",
+          "line": 1388,
+          "sha256": "c0c3c16f50d60b35df0748722e3e8b553661642461cd808ecebd5de6ca1d39b1"
+        },
+        "bhv_cmd_call": {
+          "file": "generated\\us_behavior_script.v",
+          "line": 1328,
+          "sha256": "2fdec92b936aa4796603ae3be8acd4827f42256ed54cde63529b158349e362fa"
+        },
+        "bhv_cmd_return": {
+          "file": "generated\\us_behavior_script.v",
+          "line": 1372,
+          "sha256": "32fbc48d05f7a76a883c04856aaed0014efcf6fc46ce4a96fefc72aa0f3dde45"
+        },
+        "bhv_cmd_goto": {
+          "file": "generated\\us_behavior_script.v",
+          "line": 1544,
+          "sha256": "1b45a668cc957f1c4938c55892b2ed85bdc71b029bb4d32af9a2e469369d6fcd"
+        },
+        "bhv_cmd_begin_repeat": {
+          "file": "generated\\us_behavior_script.v",
+          "line": 1621,
+          "sha256": "7711a1ef44d9745b3f52926d91678f531278b1e482bad363847b4682a116f2a8"
+        },
+        "bhv_cmd_end_repeat": {
+          "file": "generated\\us_behavior_script.v",
+          "line": 1664,
+          "sha256": "5c780eb2aeccc573d3713aa906eca866c6dba1ee91091a16b2b6eb6d5e141f90"
+        },
+        "bhv_cmd_end_repeat_continue": {
+          "file": "generated\\us_behavior_script.v",
+          "line": 1717,
+          "sha256": "b0304fb9a2a4b3aaab58d3071e9249515a3c7dba327be3cc91b11e343e2da086"
+        },
+        "bhv_cmd_begin_loop": {
+          "file": "generated\\us_behavior_script.v",
+          "line": 1770,
+          "sha256": "37dd29acdbe8d6c21b5892fa666aac1aae46a4e20f5e6b8ba5eaf3c5df6a60b6"
+        },
+        "bhv_cmd_end_loop": {
+          "file": "generated\\us_behavior_script.v",
+          "line": 1795,
+          "sha256": "7ed5913e020aa803479678820aae2874b21b53b67bca20aa425053e98e531efe"
+        },
+        "bhv_cmd_break": {
+          "file": "generated\\us_behavior_script.v",
+          "line": 1308,
+          "sha256": "d7605c94e98f193645245abd72ed1923d73c127a85d5f78641db8644582b2830"
+        },
+        "bhv_cmd_break_unused": {
+          "file": "generated\\us_behavior_script.v",
+          "line": 1318,
+          "sha256": "66cb6ba14c430c284771b78881eaae45ffce96daa74b9791b059acab08aeee95"
+        },
+        "bhv_cmd_call_native": {
+          "file": "generated\\us_behavior_script.v",
+          "line": 1820,
+          "sha256": "a8a293b26bec3012f1647bfb95a79a8f5eeb1298b2147aeb2534e118b116301c"
+        },
+        "bhv_cmd_add_float": {
+          "file": "generated\\us_behavior_script.v",
+          "line": 2476,
+          "sha256": "42891245ced5c2b84d1c64cbf5fc9cdadf0f8e46da82720202e3ce8ec6a123b4"
+        },
+        "bhv_cmd_set_float": {
+          "file": "generated\\us_behavior_script.v",
+          "line": 1850,
+          "sha256": "be97f0657ac416591ff4dc6d2beebdf83d8fa0c861c04dba43655c2790a4c4d9"
+        },
+        "bhv_cmd_add_int": {
+          "file": "generated\\us_behavior_script.v",
+          "line": 2551,
+          "sha256": "a518cf33c227243314a92db292205ea83278452ac823f2eee863f7f837a6031c"
+        },
+        "bhv_cmd_set_int": {
+          "file": "generated\\us_behavior_script.v",
+          "line": 1910,
+          "sha256": "2343f65d04372935c33d351df0ca375c5c30d4f1cb496e699cf675482d3d7c25"
+        },
+        "bhv_cmd_or_int": {
+          "file": "generated\\us_behavior_script.v",
+          "line": 2626,
+          "sha256": "ce4dd8ae4a439bf31563d9493c3175b9fd2c6f3873b3ed481f1dbab820ca52b5"
+        },
+        "bhv_cmd_bit_clear": {
+          "file": "generated\\us_behavior_script.v",
+          "line": 2707,
+          "sha256": "7cd6f137ab8fc006712835b1a1999718bde92020df75c1c5e55af6032d8a9b9c"
+        },
+        "bhv_cmd_set_int_rand_rshift": {
+          "file": "generated\\us_behavior_script.v",
+          "line": 2194,
+          "sha256": "42800b456bbc90221cb742a73e84dd62e0e4159a2032e8c39cf02ddda81ef997"
+        },
+        "bhv_cmd_set_random_float": {
+          "file": "generated\\us_behavior_script.v",
+          "line": 2029,
+          "sha256": "99091d5182018b9123d9a7bb85055fc031d84cc931f0c41021b967baaac34a86"
+        },
+        "bhv_cmd_set_random_int": {
+          "file": "generated\\us_behavior_script.v",
+          "line": 2112,
+          "sha256": "1114dcd42f5c616ae6e3de3295439343547c398fd98acad181e0dab128857ff1"
+        },
+        "bhv_cmd_add_random_float": {
+          "file": "generated\\us_behavior_script.v",
+          "line": 2275,
+          "sha256": "f77246982b8418056c389731c051e2cdbf6f666df9f392d81fd307272b8b15b2"
+        },
+        "bhv_cmd_add_int_rand_rshift": {
+          "file": "generated\\us_behavior_script.v",
+          "line": 2375,
+          "sha256": "9492871788ccf940eec46baefd02c5524007037996194c562270fbe7d8845ba2"
+        },
+        "bhv_cmd_nop_1": {
+          "file": "generated\\us_behavior_script.v",
+          "line": 3034,
+          "sha256": "3b954b14e08414033075d987991102af3820656a3a08afffe39c9093aa3d5098"
+        },
+        "bhv_cmd_nop_2": {
+          "file": "generated\\us_behavior_script.v",
+          "line": 3098,
+          "sha256": "caf669af417a195bfc17f02bd4afebcf6eeb3343bca48599b916e295dd1d0f71"
+        },
+        "bhv_cmd_nop_3": {
+          "file": "generated\\us_behavior_script.v",
+          "line": 3066,
+          "sha256": "25031cbb5b9993d1c3f824a7897bdd93e45c8bbac535098cbb94e9c2d7a6be60"
+        },
+        "bhv_cmd_set_model": {
+          "file": "generated\\us_behavior_script.v",
+          "line": 997,
+          "sha256": "f5603e2833c938651f4f512ca4b42864d4ae902851c7b71b5faa6ffc2c0027f1"
+        },
+        "bhv_cmd_spawn_child": {
+          "file": "generated\\us_behavior_script.v",
+          "line": 1053,
+          "sha256": "d3c065cbedb66533221d22cdbc632e25eee2373f9aca8a72d3d30efc1c300cb3"
+        },
+        "bhv_cmd_deactivate": {
+          "file": "generated\\us_behavior_script.v",
+          "line": 1290,
+          "sha256": "1a6840645d954391beb374248c08079f27f6582c7fbbab00ebeacaa550f6c74e"
+        },
+        "bhv_cmd_drop_to_floor": {
+          "file": "generated\\us_behavior_script.v",
+          "line": 2914,
+          "sha256": "52fdbdfbf8618c5bacba1d41a7d3359a5b48d250e03ce7b992ef8c49e7aa13e8"
+        },
+        "bhv_cmd_sum_float": {
+          "file": "generated\\us_behavior_script.v",
+          "line": 3130,
+          "sha256": "472b7ed35bcf1d0f23a979117085c5b55379d53397dfc7d8af2c77fb4593cf8d"
+        },
+        "bhv_cmd_sum_int": {
+          "file": "generated\\us_behavior_script.v",
+          "line": 3238,
+          "sha256": "cc8b6820c601a3e27498363f814d6b3a515f260e1c9c0b46e9abc284104d77d0"
+        },
+        "bhv_cmd_billboard": {
+          "file": "generated\\us_behavior_script.v",
+          "line": 950,
+          "sha256": "eba0d76d4ef20452d7ca7d09694f26e647855ad3001f993909a878d9c3dc0343"
+        },
+        "bhv_cmd_hide": {
+          "file": "generated\\us_behavior_script.v",
+          "line": 884,
+          "sha256": "3c5eefce5f6029d9302f006f514d40de4f6c75e3182213335ee9c2b926a3c4f1"
+        },
+        "bhv_cmd_set_hitbox": {
+          "file": "generated\\us_behavior_script.v",
+          "line": 3346,
+          "sha256": "6965faac3e1aba5b67387ba5f8fde08c9898b45ca5a9f40bc182bd7298f4b258"
+        },
+        "bhv_cmd_nop_4": {
+          "file": "generated\\us_behavior_script.v",
+          "line": 3561,
+          "sha256": "89eb0fab5f64b24cfbbd0e0f4c955304352211335b985740b407d14fe016b5f9"
+        },
+        "bhv_cmd_delay_var": {
+          "file": "generated\\us_behavior_script.v",
+          "line": 1458,
+          "sha256": "380bffa296e1e01eb000cfe9a7e26e9f80071ceac0a511d2a5651f9f0d022055"
+        },
+        "bhv_cmd_begin_repeat_unused": {
+          "file": "generated\\us_behavior_script.v",
+          "line": 1576,
+          "sha256": "dd4d620d1016a5f05b32d26b6ad50ef04e3d014f9a3e64cb17916ce3c7727680"
+        },
+        "bhv_cmd_load_animations": {
+          "file": "generated\\us_behavior_script.v",
+          "line": 2790,
+          "sha256": "9c79de84731511a4485f7740e63a799179d1ce03b1cbf71ffc4cc3ecd1e9977c"
+        },
+        "bhv_cmd_animate": {
+          "file": "generated\\us_behavior_script.v",
+          "line": 2845,
+          "sha256": "9867e0fde9578061fa8e3a3b79a51085add526e0f9ef0a081ec8b737c774fdc6"
+        },
+        "bhv_cmd_spawn_child_with_param": {
+          "file": "generated\\us_behavior_script.v",
+          "line": 1196,
+          "sha256": "a9ddd01fcaf41c402defc56ebee02493c9408f5e79b654d7af019ac21b10cdc3"
+        },
+        "bhv_cmd_load_collision_data": {
+          "file": "generated\\us_behavior_script.v",
+          "line": 3665,
+          "sha256": "0044b267237e6716bd75694e9bfa87e8bbb1102011468e5b3f8a76ce5ec332ae"
+        },
+        "bhv_cmd_set_hitbox_with_offset": {
+          "file": "generated\\us_behavior_script.v",
+          "line": 3472,
+          "sha256": "b2bc475a3335636955a384d774ba8cb444769d8a5fcb356c1539fe4e330bdf84"
+        },
+        "bhv_cmd_spawn_obj": {
+          "file": "generated\\us_behavior_script.v",
+          "line": 1119,
+          "sha256": "afb9f9888af090d3da29fd338a70c10038cd98e2c77f7604c61718783160e729"
+        },
+        "bhv_cmd_set_home": {
+          "file": "generated\\us_behavior_script.v",
+          "line": 3706,
+          "sha256": "ba65ea15885b4e49dd0e97a8c2ea23dcdc5151ffef42653cadf704b11408182c"
+        },
+        "bhv_cmd_set_hurtbox": {
+          "file": "generated\\us_behavior_script.v",
+          "line": 3409,
+          "sha256": "f629958f29d621b328550615072bfc05c9f8ef66477514a31b3e38c5cca8f67b"
+        },
+        "bhv_cmd_set_interact_type": {
+          "file": "generated\\us_behavior_script.v",
+          "line": 3806,
+          "sha256": "4803007978a06ac049bcb2c23fd71e4c1b6e51a12d55962579c8db1942eeb43d"
+        },
+        "bhv_cmd_set_obj_physics": {
+          "file": "generated\\us_behavior_script.v",
+          "line": 3932,
+          "sha256": "0f4b3a92b259aff2ccd77cc8a31a1b648d803191ba4ab7acd864f37694d183d1"
+        },
+        "bhv_cmd_set_interact_subtype": {
+          "file": "generated\\us_behavior_script.v",
+          "line": 3843,
+          "sha256": "cdf8fe7a29f0d94c5e78b0ebb0b608355c2ced66ab26a2e8408776a382abee3b"
+        },
+        "bhv_cmd_scale": {
+          "file": "generated\\us_behavior_script.v",
+          "line": 3880,
+          "sha256": "100b47687cbea110868edf1dc19b8743628260ec332394aab2267141c62f907a"
+        },
+        "bhv_cmd_parent_bit_clear": {
+          "file": "generated\\us_behavior_script.v",
+          "line": 4146,
+          "sha256": "bb418bf052b1c1240201ae39978c76e5f3b38d7f79355083fc7f5b220d690409"
+        },
+        "bhv_cmd_animate_texture": {
+          "file": "generated\\us_behavior_script.v",
+          "line": 4278,
+          "sha256": "e376d40645c31be241d7b143b566011d70c1fc442f7f8bf26968c6bc3151359d"
+        },
+        "bhv_cmd_disable_rendering": {
+          "file": "generated\\us_behavior_script.v",
+          "line": 902,
+          "sha256": "dbb137b2a806785d08580ec26b01f41ac0e0881f592a8c4be36dc2f16ed499f2"
+        },
+        "bhv_cmd_set_int_unused": {
+          "file": "generated\\us_behavior_script.v",
+          "line": 1970,
+          "sha256": "6ee8ae4fe2055c0beb326cb798f6fa738a35b0955ca8eac4bf7a7155c3f863ab"
+        },
+        "bhv_cmd_spawn_water_droplet": {
+          "file": "generated\\us_behavior_script.v",
+          "line": 4238,
+          "sha256": "efafc3154dd001029f17f1ab823c5bee3af9fb754817a9fec34bb7fda0788f14"
+        },
+        "obj_angle_to_object": {
+          "file": "generated\\us_object_helpers.v",
+          "line": 4956,
+          "sha256": "04f265aa6535c586b69a5be7e34797a39079243aacc4882e66cad92a4a2da51c"
+        },
+        "dist_between_objects": {
+          "file": "generated\\us_object_helpers.v",
+          "line": 4585,
+          "sha256": "3c3ac08dda70692948c2079d7fce9d5c906ee7d8ba1c72560f0541a48fa7ce36"
+        },
+        "begin_background_music_fade": {
+          "file": "generated\\runtime\\us_audio_external.v",
+          "line": 10545,
+          "sha256": "df82610d18e7bf4909c84726aa447f1a707a5acacb0fe5855dc036da4c39cb0a"
+        },
+        "cur_obj_enable_rendering": {
+          "file": "generated\\us_object_helpers.v",
+          "line": 7875,
+          "sha256": "f763446407ad980b2b1fbf5a9772e29751c327543eb99833f70fb4a5cd65cf54"
+        },
+        "cur_obj_disable_rendering": {
+          "file": "generated\\us_object_helpers.v",
+          "line": 7957,
+          "sha256": "e6626065adde38aabfe6174d62f7ab3d5daf06e16ef055ac0f10a78717f1e7bd"
+        },
+        "cur_obj_scale": {
+          "file": "generated\\us_object_helpers.v",
+          "line": 7554,
+          "sha256": "bdeae28ad306ccba3b8cd132e7f944695793084b43f93751d0ed71dce2ebe10e"
+        },
+        "obj_apply_scale_to_transform": {
+          "file": "generated\\us_object_helpers.v",
+          "line": 7046,
+          "sha256": "f427e819b4e304725cd8c4af1d7cfe598d40622046f1e5dd7a746bd6644547c5"
+        },
+        "obj_build_transform_from_pos_and_angle": {
+          "file": "generated\\us_object_helpers.v",
+          "line": 17465,
+          "sha256": "403eac1cb01f17365ee08e4eafec591f93282fc95340fbf468da80e35f441315"
+        },
+        "mtxf_mul": {
+          "file": "generated\\us_math_util.v",
+          "line": 10454,
+          "sha256": "9054504be8842d433f969b8fc624f8e76447a7798ef05919839ced09de90ea60"
+        },
+        "cur_obj_has_behavior": {
+          "file": "generated\\us_object_helpers.v",
+          "line": 13504,
+          "sha256": "3e01a4e81b631d58acfbcd5c4cb034b058ac221a27f4f55e61573d40d22d9b3f"
+        },
+        "bhv_init_room": {
+          "file": "generated\\us_object_helpers.v",
+          "line": 21678,
+          "sha256": "f828a808c8ab3e3cad4af4bbb06bd9814a37d8937c732fda9256bd36814a06c7"
+        },
+        "segmented_to_virtual": {
+          "file": "generated\\us_memory.v",
+          "line": 598,
+          "sha256": "8936ec97b26a3a74560165b6406eec7e0c4bde11cb19bdc7119930cfc42849a3"
+        },
+        "cur_obj_bhv_stack_push": {
+          "file": "generated\\us_behavior_script.v",
+          "line": 792,
+          "sha256": "be945489b01bde177706346f81d9f54afd4b65c4fd85a9ff64d3f55bb2fec56c"
+        },
+        "cur_obj_bhv_stack_pop": {
+          "file": "generated\\us_behavior_script.v",
+          "line": 837,
+          "sha256": "db298ed2086fbd30ebc041a59ffac5d030a0f72652ee50aeb366c8bcf6fe135a"
         }
       },
       "objectUpdateInventory": {
@@ -488,10 +2613,10 @@
         "file": "generated\\us_surface_collision.v",
         "definitionLine": 2655,
         "sourceSHA256": "a46b68f49bc147add0c8d208b2c6d1edc150775818a4dfe3957d0a36bf616b3b",
-        "loops": 0,
+        "loops": 1,
         "calls": []
       },
-      "workerProcessSeconds": 0.32543060000000423
+      "workerProcessSeconds": 3.9221051999993506
     },
     "jp": {
       "version": "jp",
@@ -507,54 +2632,1604 @@
       "solverCheckPerformed": false,
       "solver": "4.15.4",
       "target": "The ordinary Mario Object is present and both saved platform pointers name TOP, with the real final floor call returning the checked binary32 height at X=-2200,Z=-1024. No floor list or returned height is assumed.",
+      "model": "Exploratory flat byte memory; actual generated bodies, explicit supplemental audio linkage, and domain-limited sqrtf binding. These additions do not refine the old Coq external oracle or prove runtime conditions.",
       "status": "blocked-before-one-update",
       "blocker": {
-        "reason": "unimplemented-live-loop",
-        "function": "find_floor_from_list",
-        "file": "generated\\jp_surface_collision.v",
-        "definitionLine": 2655,
+        "reason": "unresolved-indirect-call",
+        "function": "bhv_cmd_call_native",
+        "file": "generated\\jp_behavior_script.v",
+        "definitionLine": 1820,
         "statementPath": "body.1.0",
-        "constructor": "Swhile",
+        "constructor": "Scall",
         "callStack": [
-          "update_objects",
-          "update_mario_platform",
-          "find_floor",
-          "find_floor_from_list"
-        ],
-        "explanation": "The real loop has not been interpreted or given a checked complete summary. It is not replaced by zero iterations or a fixed arbitrary bound."
+          "bhv_cmd_call_native"
+        ]
       },
-      "elapsedSeconds": 0.1429120000000239,
-      "parseSetupSeconds": 0.016044899999997142,
-      "attemptedBackwardSeconds": 0.12686710000002677,
-      "peakWorkingSetBytes": 51044352,
-      "visitedStatements": 163,
-      "maxPartialPaths": 96,
+      "elapsedSeconds": 3.6153321000001597,
+      "parseSetupSeconds": 0.01148540000031062,
+      "attemptedBackwardSeconds": 3.603846699999849,
+      "peakWorkingSetBytes": 65445888,
+      "visitedStatements": 1955,
+      "maxPartialPaths": 1,
       "expandedCallSites": [
         {
           "caller": "update_objects",
           "callee": "update_mario_platform",
-          "path": "body.1.1.1.1.1.1.1.1.1.1.1.1.1.1.1.1.1.1.1.1"
+          "path": "body.1.1.1.1.1.1.1.1.1.1.1.1.1.1.1.1.1.1.1.1",
+          "method": "defined shared source relation"
+        },
+        {
+          "caller": "update_objects",
+          "callee": "get_clock_difference",
+          "path": "body.1.1.1.1.1.1.1.1.1.1.1.1.1.1.1.1.1.1.1.0.0.1",
+          "method": "defined shared source relation"
+        },
+        {
+          "caller": "update_objects",
+          "callee": "unload_deactivated_objects",
+          "path": "body.1.1.1.1.1.1.1.1.1.1.1.1.1.1.1.1.1.1.0",
+          "method": "defined shared source relation"
+        },
+        {
+          "caller": "update_objects",
+          "callee": "get_clock_difference",
+          "path": "body.1.1.1.1.1.1.1.1.1.1.1.1.1.1.1.1.1.0.0.1",
+          "method": "defined shared source relation"
+        },
+        {
+          "caller": "update_objects",
+          "callee": "update_non_terrain_objects",
+          "path": "body.1.1.1.1.1.1.1.1.1.1.1.1.1.1.1.1.0",
+          "method": "defined shared source relation"
+        },
+        {
+          "caller": "update_objects",
+          "callee": "get_clock_difference",
+          "path": "body.1.1.1.1.1.1.1.1.1.1.1.1.1.1.1.0.0.1",
+          "method": "defined shared source relation"
+        },
+        {
+          "caller": "update_objects",
+          "callee": "detect_object_collisions",
+          "path": "body.1.1.1.1.1.1.1.1.1.1.1.1.1.1.0",
+          "method": "defined shared source relation"
+        },
+        {
+          "caller": "update_objects",
+          "callee": "get_clock_difference",
+          "path": "body.1.1.1.1.1.1.1.1.1.1.1.1.1.0.0.1",
+          "method": "defined shared source relation"
+        },
+        {
+          "caller": "update_objects",
+          "callee": "apply_mario_platform_displacement",
+          "path": "body.1.1.1.1.1.1.1.1.1.1.1.1.0",
+          "method": "defined shared source relation"
+        },
+        {
+          "caller": "update_objects",
+          "callee": "update_terrain_objects",
+          "path": "body.1.1.1.1.1.1.1.1.1.1.1.0",
+          "method": "defined shared source relation"
+        },
+        {
+          "caller": "update_objects",
+          "callee": "get_clock_difference",
+          "path": "body.1.1.1.1.1.1.1.1.1.1.0.0.1",
+          "method": "defined shared source relation"
+        },
+        {
+          "caller": "update_objects",
+          "callee": "clear_dynamic_surfaces",
+          "path": "body.1.1.1.1.1.1.1.1.1.0",
+          "method": "defined shared source relation"
+        },
+        {
+          "caller": "update_objects",
+          "callee": "get_clock_difference",
+          "path": "body.1.1.1.1.1.1.1.1.0.0.1",
+          "method": "defined shared source relation"
+        },
+        {
+          "caller": "update_objects",
+          "callee": "stub_debug_5",
+          "path": "body.1.1.1.1.1.1.0",
+          "method": "defined shared source relation"
+        },
+        {
+          "caller": "update_objects",
+          "callee": "reset_debug_objectinfo",
+          "path": "body.1.1.1.1.1.0",
+          "method": "defined shared source relation"
+        },
+        {
+          "caller": "update_objects",
+          "callee": "get_current_clock",
+          "path": "body.0.0",
+          "method": "defined shared source relation"
         },
         {
           "caller": "update_mario_platform",
           "callee": "absf",
-          "path": "body.1.1.1.1.1.0.0"
+          "path": "body.1.1.1.1.1.0.0",
+          "method": "defined shared source relation"
         },
         {
           "caller": "update_mario_platform",
           "callee": "find_floor",
-          "path": "body.1.1.1.1.0.0"
+          "path": "body.1.1.1.1.0.0",
+          "method": "defined shared source relation"
+        },
+        {
+          "caller": "unload_deactivated_objects",
+          "callee": "unload_deactivated_objects_in_list",
+          "path": "body.1.0.iteration.1.0.1",
+          "method": "defined shared source relation"
+        },
+        {
+          "caller": "update_non_terrain_objects",
+          "callee": "update_objects_in_list",
+          "path": "body.1.iteration.1.0.0.1",
+          "method": "defined shared source relation"
+        },
+        {
+          "caller": "detect_object_collisions",
+          "callee": "check_pushable_object_collision",
+          "path": "body.1.1.1.1.1.1.1.1.1",
+          "method": "defined shared source relation"
+        },
+        {
+          "caller": "detect_object_collisions",
+          "callee": "check_destructive_object_collision",
+          "path": "body.1.1.1.1.1.1.1.1.0",
+          "method": "defined shared source relation"
+        },
+        {
+          "caller": "detect_object_collisions",
+          "callee": "check_player_object_collision",
+          "path": "body.1.1.1.1.1.1.1.0",
+          "method": "defined shared source relation"
+        },
+        {
+          "caller": "detect_object_collisions",
+          "callee": "clear_object_collision",
+          "path": "body.1.1.1.1.1.1.0.1",
+          "method": "defined shared source relation"
+        },
+        {
+          "caller": "detect_object_collisions",
+          "callee": "clear_object_collision",
+          "path": "body.1.1.1.1.1.0.1",
+          "method": "defined shared source relation"
+        },
+        {
+          "caller": "detect_object_collisions",
+          "callee": "clear_object_collision",
+          "path": "body.1.1.1.1.0.1",
+          "method": "defined shared source relation"
+        },
+        {
+          "caller": "detect_object_collisions",
+          "callee": "clear_object_collision",
+          "path": "body.1.1.1.0.1",
+          "method": "defined shared source relation"
+        },
+        {
+          "caller": "detect_object_collisions",
+          "callee": "clear_object_collision",
+          "path": "body.1.1.0.1",
+          "method": "defined shared source relation"
+        },
+        {
+          "caller": "detect_object_collisions",
+          "callee": "clear_object_collision",
+          "path": "body.1.0.1",
+          "method": "defined shared source relation"
+        },
+        {
+          "caller": "detect_object_collisions",
+          "callee": "clear_object_collision",
+          "path": "body.0.1",
+          "method": "defined shared source relation"
+        },
+        {
+          "caller": "apply_mario_platform_displacement",
+          "callee": "apply_platform_displacement",
+          "path": "body.1.1.then",
+          "method": "defined shared source relation"
+        },
+        {
+          "caller": "update_terrain_objects",
+          "callee": "update_objects_in_list",
+          "path": "body.1.0.1",
+          "method": "defined shared source relation"
+        },
+        {
+          "caller": "update_terrain_objects",
+          "callee": "update_objects_in_list",
+          "path": "body.0.0.1",
+          "method": "defined shared source relation"
+        },
+        {
+          "caller": "clear_dynamic_surfaces",
+          "callee": "clear_spatial_partition",
+          "path": "body.1.then.1.1",
+          "method": "defined shared source relation"
+        },
+        {
+          "caller": "reset_debug_objectinfo",
+          "callee": "update_debug_dpadmask",
+          "path": "body.1.1.1.1.1.1.1.1",
+          "method": "defined shared source relation"
+        },
+        {
+          "caller": "reset_debug_objectinfo",
+          "callee": "set_print_state_info",
+          "path": "body.1.1.1.1.1.1.1.0",
+          "method": "defined shared source relation"
+        },
+        {
+          "caller": "reset_debug_objectinfo",
+          "callee": "set_print_state_info",
+          "path": "body.1.1.1.1.1.1.0",
+          "method": "defined shared source relation"
         },
         {
           "caller": "find_floor",
           "callee": "find_floor_from_list",
-          "path": "body.1.1.1.1.1.1.1.1.1.1.1.1.1.1.0.1.then.1.then.0.1"
+          "path": "body.1.1.1.1.1.1.1.1.1.1.1.1.1.1.0.1.then.1.then.0.1",
+          "method": "defined shared source relation"
+        },
+        {
+          "caller": "find_floor",
+          "callee": "find_floor_from_list",
+          "path": "body.1.1.1.1.1.1.1.1.1.1.1.1.1.0.0",
+          "method": "defined shared source relation"
+        },
+        {
+          "caller": "find_floor",
+          "callee": "find_floor_from_list",
+          "path": "body.1.1.1.1.1.1.1.1.1.1.1.0.0",
+          "method": "defined shared source relation"
+        },
+        {
+          "caller": "unload_deactivated_objects_in_list",
+          "callee": "unload_object",
+          "path": "body.1.0.iteration.1.1.1.1.then.1.1",
+          "method": "defined shared source relation"
+        },
+        {
+          "caller": "unload_deactivated_objects_in_list",
+          "callee": "set_object_respawn_info_bits",
+          "path": "body.1.0.iteration.1.1.1.1.then.0.1.1.then.1",
+          "method": "defined shared source relation"
+        },
+        {
+          "caller": "update_objects_in_list",
+          "callee": "update_objects_starting_at",
+          "path": "body.1.0.1.then.0",
+          "method": "defined shared source relation"
+        },
+        {
+          "caller": "update_objects_in_list",
+          "callee": "update_objects_during_time_stop",
+          "path": "body.1.0.1.else.0",
+          "method": "defined shared source relation"
+        },
+        {
+          "caller": "check_pushable_object_collision",
+          "callee": "check_collision_in_list",
+          "path": "body.1.1.iteration.0.1",
+          "method": "defined shared source relation"
+        },
+        {
+          "caller": "check_destructive_object_collision",
+          "callee": "check_collision_in_list",
+          "path": "body.1.1.iteration.0.1.then.1.1.1.1.1.1",
+          "method": "defined shared source relation"
+        },
+        {
+          "caller": "check_destructive_object_collision",
+          "callee": "check_collision_in_list",
+          "path": "body.1.1.iteration.0.1.then.1.1.0.1.1.1",
+          "method": "defined shared source relation"
+        },
+        {
+          "caller": "check_destructive_object_collision",
+          "callee": "check_collision_in_list",
+          "path": "body.1.1.iteration.0.1.then.1.0.1.1.1",
+          "method": "defined shared source relation"
+        },
+        {
+          "caller": "check_destructive_object_collision",
+          "callee": "check_collision_in_list",
+          "path": "body.1.1.iteration.0.1.then.0.1",
+          "method": "defined shared source relation"
+        },
+        {
+          "caller": "check_player_object_collision",
+          "callee": "check_collision_in_list",
+          "path": "body.1.1.iteration.1.1.1.1.1.1.0.1.1.1",
+          "method": "defined shared source relation"
+        },
+        {
+          "caller": "check_player_object_collision",
+          "callee": "check_collision_in_list",
+          "path": "body.1.1.iteration.1.1.1.1.1.0.1.1.1",
+          "method": "defined shared source relation"
+        },
+        {
+          "caller": "check_player_object_collision",
+          "callee": "check_collision_in_list",
+          "path": "body.1.1.iteration.1.1.1.1.0.1.1.1",
+          "method": "defined shared source relation"
+        },
+        {
+          "caller": "check_player_object_collision",
+          "callee": "check_collision_in_list",
+          "path": "body.1.1.iteration.1.1.1.0.1.1.1",
+          "method": "defined shared source relation"
+        },
+        {
+          "caller": "check_player_object_collision",
+          "callee": "check_collision_in_list",
+          "path": "body.1.1.iteration.1.1.0.1.1.1",
+          "method": "defined shared source relation"
+        },
+        {
+          "caller": "check_player_object_collision",
+          "callee": "check_collision_in_list",
+          "path": "body.1.1.iteration.1.0.1.1.1",
+          "method": "defined shared source relation"
+        },
+        {
+          "caller": "check_player_object_collision",
+          "callee": "check_collision_in_list",
+          "path": "body.1.1.iteration.0.1",
+          "method": "defined shared source relation"
+        },
+        {
+          "caller": "apply_platform_displacement",
+          "callee": "set_mario_pos",
+          "path": "body.1.1.1.1.1.1.1.then.1.1.1",
+          "method": "defined shared source relation"
+        },
+        {
+          "caller": "apply_platform_displacement",
+          "callee": "linear_mtxf_mul_vec3f",
+          "path": "body.1.1.1.1.1.1.0.1.then.1.1.1.1.1.1.1.1.1.1.1.1.1.1.1.1.1.1.1.0",
+          "method": "defined shared source relation"
+        },
+        {
+          "caller": "apply_platform_displacement",
+          "callee": "mtxf_rotate_zxy_and_translate",
+          "path": "body.1.1.1.1.1.1.0.1.then.1.1.1.1.1.1.1.1.1.1.1.1.1.1.1.1.1.1.0",
+          "method": "defined shared source relation"
+        },
+        {
+          "caller": "apply_platform_displacement",
+          "callee": "linear_mtxf_transpose_mul_vec3f",
+          "path": "body.1.1.1.1.1.1.0.1.then.1.1.1.1.1.1.1.1.1.1.1.1.1.1.0",
+          "method": "defined shared source relation"
+        },
+        {
+          "caller": "apply_platform_displacement",
+          "callee": "mtxf_rotate_zxy_and_translate",
+          "path": "body.1.1.1.1.1.1.0.1.then.1.1.1.1.1.1.1.1.1.1.1.1.1.0",
+          "method": "defined shared source relation"
+        },
+        {
+          "caller": "apply_platform_displacement",
+          "callee": "get_mario_pos",
+          "path": "body.1.1.1.0.then.1",
+          "method": "defined shared source relation"
+        },
+        {
+          "caller": "unload_object",
+          "callee": "deallocate_object",
+          "path": "body.1.1.1.1.1.1.1.1",
+          "method": "defined shared source relation"
+        },
+        {
+          "caller": "unload_object",
+          "callee": "geo_add_child",
+          "path": "body.1.1.1.1.1.0",
+          "method": "defined shared source relation"
+        },
+        {
+          "caller": "unload_object",
+          "callee": "geo_remove_child",
+          "path": "body.1.1.1.1.0",
+          "method": "defined shared source relation"
+        },
+        {
+          "caller": "unload_object",
+          "callee": "stop_sounds_from_source",
+          "path": "body.1.1.1.0",
+          "method": "defined shared source relation"
+        },
+        {
+          "caller": "update_objects_starting_at",
+          "callee": "cur_obj_update",
+          "path": "body.1.0.iteration.1.1.0",
+          "method": "defined shared source relation"
+        },
+        {
+          "caller": "update_objects_during_time_stop",
+          "callee": "cur_obj_update",
+          "path": "body.1.0.iteration.1.1.1.0.then.1",
+          "method": "defined shared source relation"
+        },
+        {
+          "caller": "check_collision_in_list",
+          "callee": "detect_object_hurtbox_overlap",
+          "path": "body.1.then.iteration.0.1.then.1.then",
+          "method": "defined shared source relation"
+        },
+        {
+          "caller": "check_collision_in_list",
+          "callee": "detect_object_hitbox_overlap",
+          "path": "body.1.then.iteration.0.1.then.0.0",
+          "method": "defined shared source relation"
+        },
+        {
+          "caller": "stop_sounds_from_source",
+          "callee": "update_background_music_after_sound",
+          "path": "body.1.iteration.1.1.iteration.0.1.then.0",
+          "method": "defined shared source relation"
+        },
+        {
+          "caller": "cur_obj_update",
+          "callee": "cur_obj_enable_rendering_if_mario_in_room",
+          "path": "body.1.1.1.1.1.1.1.1.1.1.1.1.1.1.1.1.1.1.1.then",
+          "method": "defined shared source relation"
+        },
+        {
+          "caller": "cur_obj_update",
+          "callee": "obj_update_gfx_pos_and_angle",
+          "path": "body.1.1.1.1.1.1.1.1.1.1.1.1.1.1.1.1.0.then.1",
+          "method": "defined shared source relation"
+        },
+        {
+          "caller": "cur_obj_update",
+          "callee": "obj_set_throw_matrix_from_transform",
+          "path": "body.1.1.1.1.1.1.1.1.1.1.1.1.1.1.1.0.then.1",
+          "method": "defined shared source relation"
+        },
+        {
+          "caller": "cur_obj_update",
+          "callee": "obj_build_transform_relative_to_parent",
+          "path": "body.1.1.1.1.1.1.1.1.1.1.1.1.1.1.0.then.1",
+          "method": "defined shared source relation"
+        },
+        {
+          "caller": "cur_obj_update",
+          "callee": "cur_obj_move_y_with_terminal_vel",
+          "path": "body.1.1.1.1.1.1.1.1.1.1.1.1.1.0.then",
+          "method": "defined shared source relation"
+        },
+        {
+          "caller": "cur_obj_update",
+          "callee": "cur_obj_move_xz_using_fvel_and_yaw",
+          "path": "body.1.1.1.1.1.1.1.1.1.1.1.1.0.then",
+          "method": "defined shared source relation"
+        },
+        {
+          "caller": "cur_obj_update",
+          "callee": "obj_set_face_angle_to_move_angle",
+          "path": "body.1.1.1.1.1.1.1.1.1.1.0.then.1",
+          "method": "defined shared source relation"
+        },
+        {
+          "caller": "cur_obj_update",
+          "callee": "bhv_cmd_begin",
+          "path": "body.1.1.1.1.1.0.iteration.1.0.target.bhv_cmd_begin",
+          "method": "defined shared source relation"
+        },
+        {
+          "caller": "cur_obj_update",
+          "callee": "bhv_cmd_delay",
+          "path": "body.1.1.1.1.1.0.iteration.1.0.target.bhv_cmd_delay",
+          "method": "defined shared source relation"
+        },
+        {
+          "caller": "cur_obj_update",
+          "callee": "bhv_cmd_call",
+          "path": "body.1.1.1.1.1.0.iteration.1.0.target.bhv_cmd_call",
+          "method": "defined shared source relation"
+        },
+        {
+          "caller": "cur_obj_update",
+          "callee": "bhv_cmd_return",
+          "path": "body.1.1.1.1.1.0.iteration.1.0.target.bhv_cmd_return",
+          "method": "defined shared source relation"
+        },
+        {
+          "caller": "cur_obj_update",
+          "callee": "bhv_cmd_goto",
+          "path": "body.1.1.1.1.1.0.iteration.1.0.target.bhv_cmd_goto",
+          "method": "defined shared source relation"
+        },
+        {
+          "caller": "cur_obj_update",
+          "callee": "bhv_cmd_begin_repeat",
+          "path": "body.1.1.1.1.1.0.iteration.1.0.target.bhv_cmd_begin_repeat",
+          "method": "defined shared source relation"
+        },
+        {
+          "caller": "cur_obj_update",
+          "callee": "bhv_cmd_end_repeat",
+          "path": "body.1.1.1.1.1.0.iteration.1.0.target.bhv_cmd_end_repeat",
+          "method": "defined shared source relation"
+        },
+        {
+          "caller": "cur_obj_update",
+          "callee": "bhv_cmd_end_repeat_continue",
+          "path": "body.1.1.1.1.1.0.iteration.1.0.target.bhv_cmd_end_repeat_continue",
+          "method": "defined shared source relation"
+        },
+        {
+          "caller": "cur_obj_update",
+          "callee": "bhv_cmd_begin_loop",
+          "path": "body.1.1.1.1.1.0.iteration.1.0.target.bhv_cmd_begin_loop",
+          "method": "defined shared source relation"
+        },
+        {
+          "caller": "cur_obj_update",
+          "callee": "bhv_cmd_end_loop",
+          "path": "body.1.1.1.1.1.0.iteration.1.0.target.bhv_cmd_end_loop",
+          "method": "defined shared source relation"
+        },
+        {
+          "caller": "cur_obj_update",
+          "callee": "bhv_cmd_break",
+          "path": "body.1.1.1.1.1.0.iteration.1.0.target.bhv_cmd_break",
+          "method": "defined shared source relation"
+        },
+        {
+          "caller": "cur_obj_update",
+          "callee": "bhv_cmd_break_unused",
+          "path": "body.1.1.1.1.1.0.iteration.1.0.target.bhv_cmd_break_unused",
+          "method": "defined shared source relation"
+        },
+        {
+          "caller": "cur_obj_update",
+          "callee": "bhv_cmd_call_native",
+          "path": "body.1.1.1.1.1.0.iteration.1.0.target.bhv_cmd_call_native",
+          "method": "defined shared source relation"
+        },
+        {
+          "caller": "cur_obj_update",
+          "callee": "bhv_cmd_add_float",
+          "path": "body.1.1.1.1.1.0.iteration.1.0.target.bhv_cmd_add_float",
+          "method": "defined shared source relation"
+        },
+        {
+          "caller": "cur_obj_update",
+          "callee": "bhv_cmd_set_float",
+          "path": "body.1.1.1.1.1.0.iteration.1.0.target.bhv_cmd_set_float",
+          "method": "defined shared source relation"
+        },
+        {
+          "caller": "cur_obj_update",
+          "callee": "bhv_cmd_add_int",
+          "path": "body.1.1.1.1.1.0.iteration.1.0.target.bhv_cmd_add_int",
+          "method": "defined shared source relation"
+        },
+        {
+          "caller": "cur_obj_update",
+          "callee": "bhv_cmd_set_int",
+          "path": "body.1.1.1.1.1.0.iteration.1.0.target.bhv_cmd_set_int",
+          "method": "defined shared source relation"
+        },
+        {
+          "caller": "cur_obj_update",
+          "callee": "bhv_cmd_or_int",
+          "path": "body.1.1.1.1.1.0.iteration.1.0.target.bhv_cmd_or_int",
+          "method": "defined shared source relation"
+        },
+        {
+          "caller": "cur_obj_update",
+          "callee": "bhv_cmd_bit_clear",
+          "path": "body.1.1.1.1.1.0.iteration.1.0.target.bhv_cmd_bit_clear",
+          "method": "defined shared source relation"
+        },
+        {
+          "caller": "cur_obj_update",
+          "callee": "bhv_cmd_set_int_rand_rshift",
+          "path": "body.1.1.1.1.1.0.iteration.1.0.target.bhv_cmd_set_int_rand_rshift",
+          "method": "defined shared source relation"
+        },
+        {
+          "caller": "cur_obj_update",
+          "callee": "bhv_cmd_set_random_float",
+          "path": "body.1.1.1.1.1.0.iteration.1.0.target.bhv_cmd_set_random_float",
+          "method": "defined shared source relation"
+        },
+        {
+          "caller": "cur_obj_update",
+          "callee": "bhv_cmd_set_random_int",
+          "path": "body.1.1.1.1.1.0.iteration.1.0.target.bhv_cmd_set_random_int",
+          "method": "defined shared source relation"
+        },
+        {
+          "caller": "cur_obj_update",
+          "callee": "bhv_cmd_add_random_float",
+          "path": "body.1.1.1.1.1.0.iteration.1.0.target.bhv_cmd_add_random_float",
+          "method": "defined shared source relation"
+        },
+        {
+          "caller": "cur_obj_update",
+          "callee": "bhv_cmd_add_int_rand_rshift",
+          "path": "body.1.1.1.1.1.0.iteration.1.0.target.bhv_cmd_add_int_rand_rshift",
+          "method": "defined shared source relation"
+        },
+        {
+          "caller": "cur_obj_update",
+          "callee": "bhv_cmd_nop_1",
+          "path": "body.1.1.1.1.1.0.iteration.1.0.target.bhv_cmd_nop_1",
+          "method": "defined shared source relation"
+        },
+        {
+          "caller": "cur_obj_update",
+          "callee": "bhv_cmd_nop_2",
+          "path": "body.1.1.1.1.1.0.iteration.1.0.target.bhv_cmd_nop_2",
+          "method": "defined shared source relation"
+        },
+        {
+          "caller": "cur_obj_update",
+          "callee": "bhv_cmd_nop_3",
+          "path": "body.1.1.1.1.1.0.iteration.1.0.target.bhv_cmd_nop_3",
+          "method": "defined shared source relation"
+        },
+        {
+          "caller": "cur_obj_update",
+          "callee": "bhv_cmd_set_model",
+          "path": "body.1.1.1.1.1.0.iteration.1.0.target.bhv_cmd_set_model",
+          "method": "defined shared source relation"
+        },
+        {
+          "caller": "cur_obj_update",
+          "callee": "bhv_cmd_spawn_child",
+          "path": "body.1.1.1.1.1.0.iteration.1.0.target.bhv_cmd_spawn_child",
+          "method": "defined shared source relation"
+        },
+        {
+          "caller": "cur_obj_update",
+          "callee": "bhv_cmd_deactivate",
+          "path": "body.1.1.1.1.1.0.iteration.1.0.target.bhv_cmd_deactivate",
+          "method": "defined shared source relation"
+        },
+        {
+          "caller": "cur_obj_update",
+          "callee": "bhv_cmd_drop_to_floor",
+          "path": "body.1.1.1.1.1.0.iteration.1.0.target.bhv_cmd_drop_to_floor",
+          "method": "defined shared source relation"
+        },
+        {
+          "caller": "cur_obj_update",
+          "callee": "bhv_cmd_sum_float",
+          "path": "body.1.1.1.1.1.0.iteration.1.0.target.bhv_cmd_sum_float",
+          "method": "defined shared source relation"
+        },
+        {
+          "caller": "cur_obj_update",
+          "callee": "bhv_cmd_sum_int",
+          "path": "body.1.1.1.1.1.0.iteration.1.0.target.bhv_cmd_sum_int",
+          "method": "defined shared source relation"
+        },
+        {
+          "caller": "cur_obj_update",
+          "callee": "bhv_cmd_billboard",
+          "path": "body.1.1.1.1.1.0.iteration.1.0.target.bhv_cmd_billboard",
+          "method": "defined shared source relation"
+        },
+        {
+          "caller": "cur_obj_update",
+          "callee": "bhv_cmd_hide",
+          "path": "body.1.1.1.1.1.0.iteration.1.0.target.bhv_cmd_hide",
+          "method": "defined shared source relation"
+        },
+        {
+          "caller": "cur_obj_update",
+          "callee": "bhv_cmd_set_hitbox",
+          "path": "body.1.1.1.1.1.0.iteration.1.0.target.bhv_cmd_set_hitbox",
+          "method": "defined shared source relation"
+        },
+        {
+          "caller": "cur_obj_update",
+          "callee": "bhv_cmd_nop_4",
+          "path": "body.1.1.1.1.1.0.iteration.1.0.target.bhv_cmd_nop_4",
+          "method": "defined shared source relation"
+        },
+        {
+          "caller": "cur_obj_update",
+          "callee": "bhv_cmd_delay_var",
+          "path": "body.1.1.1.1.1.0.iteration.1.0.target.bhv_cmd_delay_var",
+          "method": "defined shared source relation"
+        },
+        {
+          "caller": "cur_obj_update",
+          "callee": "bhv_cmd_begin_repeat_unused",
+          "path": "body.1.1.1.1.1.0.iteration.1.0.target.bhv_cmd_begin_repeat_unused",
+          "method": "defined shared source relation"
+        },
+        {
+          "caller": "cur_obj_update",
+          "callee": "bhv_cmd_load_animations",
+          "path": "body.1.1.1.1.1.0.iteration.1.0.target.bhv_cmd_load_animations",
+          "method": "defined shared source relation"
+        },
+        {
+          "caller": "cur_obj_update",
+          "callee": "bhv_cmd_animate",
+          "path": "body.1.1.1.1.1.0.iteration.1.0.target.bhv_cmd_animate",
+          "method": "defined shared source relation"
+        },
+        {
+          "caller": "cur_obj_update",
+          "callee": "bhv_cmd_spawn_child_with_param",
+          "path": "body.1.1.1.1.1.0.iteration.1.0.target.bhv_cmd_spawn_child_with_param",
+          "method": "defined shared source relation"
+        },
+        {
+          "caller": "cur_obj_update",
+          "callee": "bhv_cmd_load_collision_data",
+          "path": "body.1.1.1.1.1.0.iteration.1.0.target.bhv_cmd_load_collision_data",
+          "method": "defined shared source relation"
+        },
+        {
+          "caller": "cur_obj_update",
+          "callee": "bhv_cmd_set_hitbox_with_offset",
+          "path": "body.1.1.1.1.1.0.iteration.1.0.target.bhv_cmd_set_hitbox_with_offset",
+          "method": "defined shared source relation"
+        },
+        {
+          "caller": "cur_obj_update",
+          "callee": "bhv_cmd_spawn_obj",
+          "path": "body.1.1.1.1.1.0.iteration.1.0.target.bhv_cmd_spawn_obj",
+          "method": "defined shared source relation"
+        },
+        {
+          "caller": "cur_obj_update",
+          "callee": "bhv_cmd_set_home",
+          "path": "body.1.1.1.1.1.0.iteration.1.0.target.bhv_cmd_set_home",
+          "method": "defined shared source relation"
+        },
+        {
+          "caller": "cur_obj_update",
+          "callee": "bhv_cmd_set_hurtbox",
+          "path": "body.1.1.1.1.1.0.iteration.1.0.target.bhv_cmd_set_hurtbox",
+          "method": "defined shared source relation"
+        },
+        {
+          "caller": "cur_obj_update",
+          "callee": "bhv_cmd_set_interact_type",
+          "path": "body.1.1.1.1.1.0.iteration.1.0.target.bhv_cmd_set_interact_type",
+          "method": "defined shared source relation"
+        },
+        {
+          "caller": "cur_obj_update",
+          "callee": "bhv_cmd_set_obj_physics",
+          "path": "body.1.1.1.1.1.0.iteration.1.0.target.bhv_cmd_set_obj_physics",
+          "method": "defined shared source relation"
+        },
+        {
+          "caller": "cur_obj_update",
+          "callee": "bhv_cmd_set_interact_subtype",
+          "path": "body.1.1.1.1.1.0.iteration.1.0.target.bhv_cmd_set_interact_subtype",
+          "method": "defined shared source relation"
+        },
+        {
+          "caller": "cur_obj_update",
+          "callee": "bhv_cmd_scale",
+          "path": "body.1.1.1.1.1.0.iteration.1.0.target.bhv_cmd_scale",
+          "method": "defined shared source relation"
+        },
+        {
+          "caller": "cur_obj_update",
+          "callee": "bhv_cmd_parent_bit_clear",
+          "path": "body.1.1.1.1.1.0.iteration.1.0.target.bhv_cmd_parent_bit_clear",
+          "method": "defined shared source relation"
+        },
+        {
+          "caller": "cur_obj_update",
+          "callee": "bhv_cmd_animate_texture",
+          "path": "body.1.1.1.1.1.0.iteration.1.0.target.bhv_cmd_animate_texture",
+          "method": "defined shared source relation"
+        },
+        {
+          "caller": "cur_obj_update",
+          "callee": "bhv_cmd_disable_rendering",
+          "path": "body.1.1.1.1.1.0.iteration.1.0.target.bhv_cmd_disable_rendering",
+          "method": "defined shared source relation"
+        },
+        {
+          "caller": "cur_obj_update",
+          "callee": "bhv_cmd_set_int_unused",
+          "path": "body.1.1.1.1.1.0.iteration.1.0.target.bhv_cmd_set_int_unused",
+          "method": "defined shared source relation"
+        },
+        {
+          "caller": "cur_obj_update",
+          "callee": "bhv_cmd_spawn_water_droplet",
+          "path": "body.1.1.1.1.1.0.iteration.1.0.target.bhv_cmd_spawn_water_droplet",
+          "method": "defined shared source relation"
+        },
+        {
+          "caller": "cur_obj_update",
+          "callee": "obj_angle_to_object",
+          "path": "body.1.1.0.then.0.1.1",
+          "method": "defined shared source relation"
+        },
+        {
+          "caller": "cur_obj_update",
+          "callee": "dist_between_objects",
+          "path": "body.1.0.then.0.0.1.1",
+          "method": "defined shared source relation"
+        },
+        {
+          "caller": "update_background_music_after_sound",
+          "callee": "begin_background_music_fade",
+          "path": "body.1.then.1",
+          "method": "defined shared source relation"
+        },
+        {
+          "caller": "cur_obj_enable_rendering_if_mario_in_room",
+          "callee": "cur_obj_enable_rendering",
+          "path": "body.1.then.1.then.0",
+          "method": "defined shared source relation"
+        },
+        {
+          "caller": "cur_obj_enable_rendering_if_mario_in_room",
+          "callee": "cur_obj_disable_rendering",
+          "path": "body.1.then.1.else.0",
+          "method": "defined shared source relation"
+        },
+        {
+          "caller": "obj_set_throw_matrix_from_transform",
+          "callee": "cur_obj_scale",
+          "path": "body.1.1",
+          "method": "defined shared source relation"
+        },
+        {
+          "caller": "obj_set_throw_matrix_from_transform",
+          "callee": "obj_apply_scale_to_transform",
+          "path": "body.0.1.then.1",
+          "method": "defined shared source relation"
+        },
+        {
+          "caller": "obj_set_throw_matrix_from_transform",
+          "callee": "obj_build_transform_from_pos_and_angle",
+          "path": "body.0.1.then.0",
+          "method": "defined shared source relation"
+        },
+        {
+          "caller": "obj_build_transform_relative_to_parent",
+          "callee": "cur_obj_scale",
+          "path": "body.1.1.1.1.1.1.1.1",
+          "method": "defined shared source relation"
+        },
+        {
+          "caller": "obj_build_transform_relative_to_parent",
+          "callee": "mtxf_mul",
+          "path": "body.1.1.1.0",
+          "method": "defined shared source relation"
+        },
+        {
+          "caller": "obj_build_transform_relative_to_parent",
+          "callee": "obj_apply_scale_to_transform",
+          "path": "body.1.1.0",
+          "method": "defined shared source relation"
+        },
+        {
+          "caller": "obj_build_transform_relative_to_parent",
+          "callee": "obj_build_transform_from_pos_and_angle",
+          "path": "body.1.0",
+          "method": "defined shared source relation"
+        },
+        {
+          "caller": "bhv_cmd_begin",
+          "callee": "cur_obj_has_behavior",
+          "path": "body.1.1.0.0",
+          "method": "defined shared source relation"
+        },
+        {
+          "caller": "bhv_cmd_begin",
+          "callee": "bhv_init_room",
+          "path": "body.1.0.1.then",
+          "method": "defined shared source relation"
+        },
+        {
+          "caller": "bhv_cmd_begin",
+          "callee": "cur_obj_has_behavior",
+          "path": "body.1.0.0",
+          "method": "defined shared source relation"
+        },
+        {
+          "caller": "bhv_cmd_begin",
+          "callee": "bhv_init_room",
+          "path": "body.0.1.then",
+          "method": "defined shared source relation"
+        },
+        {
+          "caller": "bhv_cmd_begin",
+          "callee": "cur_obj_has_behavior",
+          "path": "body.0.0",
+          "method": "defined shared source relation"
+        },
+        {
+          "caller": "bhv_cmd_call",
+          "callee": "segmented_to_virtual",
+          "path": "body.1.1.0.0.1.1",
+          "method": "defined shared source relation"
+        },
+        {
+          "caller": "bhv_cmd_call",
+          "callee": "cur_obj_bhv_stack_push",
+          "path": "body.1.0.1",
+          "method": "defined shared source relation"
+        },
+        {
+          "caller": "bhv_cmd_return",
+          "callee": "cur_obj_bhv_stack_pop",
+          "path": "body.0.0",
+          "method": "defined shared source relation"
+        },
+        {
+          "caller": "bhv_cmd_goto",
+          "callee": "segmented_to_virtual",
+          "path": "body.1.0.0.1.1",
+          "method": "defined shared source relation"
+        },
+        {
+          "caller": "bhv_cmd_begin_repeat",
+          "callee": "cur_obj_bhv_stack_push",
+          "path": "body.1.1.0",
+          "method": "defined shared source relation"
+        },
+        {
+          "caller": "bhv_cmd_begin_repeat",
+          "callee": "cur_obj_bhv_stack_push",
+          "path": "body.1.0.1",
+          "method": "defined shared source relation"
+        },
+        {
+          "caller": "bhv_cmd_end_repeat",
+          "callee": "cur_obj_bhv_stack_push",
+          "path": "body.1.1.0.then.1.1",
+          "method": "defined shared source relation"
+        },
+        {
+          "caller": "bhv_cmd_end_repeat",
+          "callee": "cur_obj_bhv_stack_push",
+          "path": "body.1.1.0.then.1.0.1",
+          "method": "defined shared source relation"
+        },
+        {
+          "caller": "bhv_cmd_end_repeat",
+          "callee": "cur_obj_bhv_stack_pop",
+          "path": "body.1.1.0.then.0.0",
+          "method": "defined shared source relation"
+        },
+        {
+          "caller": "bhv_cmd_end_repeat",
+          "callee": "cur_obj_bhv_stack_pop",
+          "path": "body.1.1.0.else.0",
+          "method": "defined shared source relation"
+        },
+        {
+          "caller": "bhv_cmd_end_repeat",
+          "callee": "cur_obj_bhv_stack_pop",
+          "path": "body.0.0",
+          "method": "defined shared source relation"
+        },
+        {
+          "caller": "bhv_cmd_end_repeat_continue",
+          "callee": "cur_obj_bhv_stack_push",
+          "path": "body.1.1.0.then.1.1",
+          "method": "defined shared source relation"
+        },
+        {
+          "caller": "bhv_cmd_end_repeat_continue",
+          "callee": "cur_obj_bhv_stack_push",
+          "path": "body.1.1.0.then.1.0.1",
+          "method": "defined shared source relation"
+        },
+        {
+          "caller": "bhv_cmd_end_repeat_continue",
+          "callee": "cur_obj_bhv_stack_pop",
+          "path": "body.1.1.0.then.0.0",
+          "method": "defined shared source relation"
+        },
+        {
+          "caller": "bhv_cmd_end_repeat_continue",
+          "callee": "cur_obj_bhv_stack_pop",
+          "path": "body.1.1.0.else.0",
+          "method": "defined shared source relation"
+        },
+        {
+          "caller": "bhv_cmd_end_repeat_continue",
+          "callee": "cur_obj_bhv_stack_pop",
+          "path": "body.0.0",
+          "method": "defined shared source relation"
+        },
+        {
+          "caller": "bhv_cmd_begin_loop",
+          "callee": "cur_obj_bhv_stack_push",
+          "path": "body.0.1",
+          "method": "defined shared source relation"
+        },
+        {
+          "caller": "bhv_cmd_end_loop",
+          "callee": "cur_obj_bhv_stack_push",
+          "path": "body.1.0.1",
+          "method": "defined shared source relation"
+        },
+        {
+          "caller": "bhv_cmd_end_loop",
+          "callee": "cur_obj_bhv_stack_pop",
+          "path": "body.0.0",
+          "method": "defined shared source relation"
         }
       ],
       "finishedHelperTraversals": [
-        "absf"
+        "update_mario_platform",
+        "get_clock_difference",
+        "unload_deactivated_objects",
+        "update_non_terrain_objects",
+        "detect_object_collisions",
+        "apply_mario_platform_displacement",
+        "update_terrain_objects",
+        "clear_dynamic_surfaces",
+        "stub_debug_5",
+        "reset_debug_objectinfo",
+        "get_current_clock",
+        "absf",
+        "find_floor",
+        "unload_deactivated_objects_in_list",
+        "update_objects_in_list",
+        "check_pushable_object_collision",
+        "check_destructive_object_collision",
+        "check_player_object_collision",
+        "clear_object_collision",
+        "apply_platform_displacement",
+        "clear_spatial_partition",
+        "update_debug_dpadmask",
+        "set_print_state_info",
+        "find_floor_from_list",
+        "unload_object",
+        "set_object_respawn_info_bits",
+        "update_objects_starting_at",
+        "update_objects_during_time_stop",
+        "check_collision_in_list",
+        "set_mario_pos",
+        "linear_mtxf_mul_vec3f",
+        "mtxf_rotate_zxy_and_translate",
+        "linear_mtxf_transpose_mul_vec3f",
+        "get_mario_pos",
+        "deallocate_object",
+        "geo_add_child",
+        "geo_remove_child",
+        "stop_sounds_from_source",
+        "cur_obj_update",
+        "detect_object_hurtbox_overlap",
+        "detect_object_hitbox_overlap",
+        "update_background_music_after_sound",
+        "cur_obj_enable_rendering_if_mario_in_room",
+        "obj_update_gfx_pos_and_angle",
+        "obj_set_throw_matrix_from_transform",
+        "obj_build_transform_relative_to_parent",
+        "cur_obj_move_y_with_terminal_vel",
+        "cur_obj_move_xz_using_fvel_and_yaw",
+        "obj_set_face_angle_to_move_angle",
+        "bhv_cmd_begin",
+        "bhv_cmd_delay",
+        "bhv_cmd_call",
+        "bhv_cmd_return",
+        "bhv_cmd_goto",
+        "bhv_cmd_begin_repeat",
+        "bhv_cmd_end_repeat",
+        "bhv_cmd_end_repeat_continue",
+        "bhv_cmd_begin_loop",
+        "bhv_cmd_end_loop",
+        "bhv_cmd_break",
+        "bhv_cmd_break_unused"
       ],
-      "guardedFloatIntegerConversions": 1,
+      "guardedFloatIntegerConversions": 4,
+      "loopRelations": [
+        {
+          "function": "unload_deactivated_objects",
+          "statementPath": "body.1.0",
+          "relation": "jp.engine.0.loop.unload_deactivated_objects.5.0",
+          "semantics": "exists finite decreasing fuel; no fixed unroll bound"
+        },
+        {
+          "function": "update_non_terrain_objects",
+          "statementPath": "body.1",
+          "relation": "jp.engine.0.loop.update_non_terrain_objects.8.1",
+          "semantics": "exists finite decreasing fuel; no fixed unroll bound"
+        },
+        {
+          "function": "unload_deactivated_objects_in_list",
+          "statementPath": "body.1.0",
+          "relation": "jp.engine.0.loop.unload_deactivated_objects_in_list.32.2",
+          "semantics": "exists finite decreasing fuel; no fixed unroll bound"
+        },
+        {
+          "function": "check_pushable_object_collision",
+          "statementPath": "body.1.1",
+          "relation": "jp.engine.0.loop.check_pushable_object_collision.36.3",
+          "semantics": "exists finite decreasing fuel; no fixed unroll bound"
+        },
+        {
+          "function": "check_destructive_object_collision",
+          "statementPath": "body.1.1",
+          "relation": "jp.engine.0.loop.check_destructive_object_collision.38.4",
+          "semantics": "exists finite decreasing fuel; no fixed unroll bound"
+        },
+        {
+          "function": "check_player_object_collision",
+          "statementPath": "body.1.1",
+          "relation": "jp.engine.0.loop.check_player_object_collision.40.5",
+          "semantics": "exists finite decreasing fuel; no fixed unroll bound"
+        },
+        {
+          "function": "clear_object_collision",
+          "statementPath": "body.1",
+          "relation": "jp.engine.0.loop.clear_object_collision.42.6",
+          "semantics": "exists finite decreasing fuel; no fixed unroll bound"
+        },
+        {
+          "function": "clear_spatial_partition",
+          "statementPath": "body.1",
+          "relation": "jp.engine.0.loop.clear_spatial_partition.54.7",
+          "semantics": "exists finite decreasing fuel; no fixed unroll bound"
+        },
+        {
+          "function": "find_floor_from_list",
+          "statementPath": "body.1.0",
+          "relation": "jp.engine.0.loop.find_floor_from_list.61.8",
+          "semantics": "exists finite decreasing fuel; no fixed unroll bound"
+        },
+        {
+          "function": "update_objects_starting_at",
+          "statementPath": "body.1.0",
+          "relation": "jp.engine.0.loop.update_objects_starting_at.69.9",
+          "semantics": "exists finite decreasing fuel; no fixed unroll bound"
+        },
+        {
+          "function": "update_objects_during_time_stop",
+          "statementPath": "body.1.0",
+          "relation": "jp.engine.0.loop.update_objects_during_time_stop.71.10",
+          "semantics": "exists finite decreasing fuel; no fixed unroll bound"
+        },
+        {
+          "function": "check_collision_in_list",
+          "statementPath": "body.1.then",
+          "relation": "jp.engine.0.loop.check_collision_in_list.73.11",
+          "semantics": "exists finite decreasing fuel; no fixed unroll bound"
+        },
+        {
+          "function": "linear_mtxf_mul_vec3f",
+          "statementPath": "body.1",
+          "relation": "jp.engine.0.loop.linear_mtxf_mul_vec3f.88.12",
+          "semantics": "exists finite decreasing fuel; no fixed unroll bound"
+        },
+        {
+          "function": "linear_mtxf_transpose_mul_vec3f",
+          "statementPath": "body.1",
+          "relation": "jp.engine.0.loop.linear_mtxf_transpose_mul_vec3f.92.13",
+          "semantics": "exists finite decreasing fuel; no fixed unroll bound"
+        },
+        {
+          "function": "stop_sounds_from_source",
+          "statementPath": "body.1",
+          "relation": "jp.engine.0.loop.stop_sounds_from_source.103.14",
+          "semantics": "exists finite decreasing fuel; no fixed unroll bound"
+        },
+        {
+          "function": "stop_sounds_from_source",
+          "statementPath": "body.1.iteration.1.1",
+          "relation": "jp.engine.0.loop.stop_sounds_from_source.103.15",
+          "semantics": "exists finite decreasing fuel; no fixed unroll bound"
+        },
+        {
+          "function": "cur_obj_update",
+          "statementPath": "body.1.1.1.1.1.0",
+          "relation": "jp.engine.0.loop.cur_obj_update.105.16",
+          "semantics": "exists finite decreasing fuel; no fixed unroll bound"
+        }
+      ],
+      "sharedFunctionRelations": [
+        {
+          "function": "update_mario_platform",
+          "source": "4d92580f7c69bbfe8c7fde7748f40d4edc7d14e79800b1f25550abde6de3d339"
+        },
+        {
+          "function": "get_clock_difference",
+          "source": "e402986aa4220684df970cf7c9bf624909ea6b9668eff814916f2de27cf3594e"
+        },
+        {
+          "function": "unload_deactivated_objects",
+          "source": "0b5759edd5df1958d459c45043ca8dbae5bc4515e90d2e5c9e9dd25057112b2b"
+        },
+        {
+          "function": "update_non_terrain_objects",
+          "source": "401ab59a5d41b95181496b9ee9ef5d7b0b72ac87e11a46721928470fd7256c9f"
+        },
+        {
+          "function": "detect_object_collisions",
+          "source": "1c44d80722911ab7b6c3e210332d0e890fea4621ebce615fe1e02148bddce816"
+        },
+        {
+          "function": "apply_mario_platform_displacement",
+          "source": "969dda4d08e117f24ee1b93127e29c529e92d9881453aae4e4fd66ee954a8935"
+        },
+        {
+          "function": "update_terrain_objects",
+          "source": "834d6b1f587c0b2882bf0be95efda895dc9dc0c6246bd480e0b306460124d21b"
+        },
+        {
+          "function": "clear_dynamic_surfaces",
+          "source": "abfd20dfcce1f7a7392226b0fd5bc84582d8365a0b818f4c88cb9df6bf0683d9"
+        },
+        {
+          "function": "stub_debug_5",
+          "source": "68249520a2e6feb994351099c54d87fafa86e12d455ad04962aaf6ea614f40bf"
+        },
+        {
+          "function": "reset_debug_objectinfo",
+          "source": "9e78bc4ec9811bad40169c3118503eea093fd3a058a5955722c4c840ddb426ff"
+        },
+        {
+          "function": "get_current_clock",
+          "source": "5acc78bca2a0b9b110be150f7629d84837db79f87078d09bc3f74f35a8f97e0a"
+        },
+        {
+          "function": "absf",
+          "source": "4a6e09dbcf61e5fd928e1e5da67ff26aa176d1fc65b2e6ba19bf8a3e7600728d"
+        },
+        {
+          "function": "find_floor",
+          "source": "422d3873dbcd1f96990002d062ec515aa5e5d74166c018ddabad28fe7ced2276"
+        },
+        {
+          "function": "unload_deactivated_objects_in_list",
+          "source": "9eb4710130a7322395e039b5e5f554d838c198973e3897141582f26c067d5ce0"
+        },
+        {
+          "function": "update_objects_in_list",
+          "source": "208db01c13e0f00326ebabe4e36a00322ba52e1e44fcf4661fc0acc3fc5da079"
+        },
+        {
+          "function": "check_pushable_object_collision",
+          "source": "a1c0cfb44012d94416ec169d8a2a16fcc3e1c33c7a82c051ff889e17e3c1faf3"
+        },
+        {
+          "function": "check_destructive_object_collision",
+          "source": "4279154fa2836d9c87941d45c1929b5fcd36fc840c0996a628c050fe708e7c75"
+        },
+        {
+          "function": "check_player_object_collision",
+          "source": "7547eb9a2fa5c76e02aad1f5b4f5a7712c5bc6236cee86469d0540da86332e21"
+        },
+        {
+          "function": "clear_object_collision",
+          "source": "e12d2bce30157dc79dc21ed5f8263a41872d1512f47c0c7ac3874171f61d1b85"
+        },
+        {
+          "function": "apply_platform_displacement",
+          "source": "f1ee1dab7b6b7a54556e0ea8359d8956e1ec4e133dfb2c7050b7e13f332ebd55"
+        },
+        {
+          "function": "clear_spatial_partition",
+          "source": "0e5ba397969c407bf26bd2577616606f2e9a2cd5f7609218698babe1e366c766"
+        },
+        {
+          "function": "update_debug_dpadmask",
+          "source": "caf0027dd68626515d677f3d9321c9a09a331b5c3ff818cddd69d8830cf6d9c8"
+        },
+        {
+          "function": "set_print_state_info",
+          "source": "35195eee0bdca90253eae3a0dc6e4d33478d1a20bffeeb65d1f6f14df0f537f7"
+        },
+        {
+          "function": "find_floor_from_list",
+          "source": "192e814803c25f72943558caabfe39bd1002396430d917db6b41c2ed83ebbfd6"
+        },
+        {
+          "function": "unload_object",
+          "source": "27906627ca9b94c6cf612be7dc90d0083d0b7a72b64504d7b29a355e7eee6c9b"
+        },
+        {
+          "function": "set_object_respawn_info_bits",
+          "source": "53004c127ecba4393cecbc28c3b44d3c87040e271629790a7aed5ac98add1808"
+        },
+        {
+          "function": "update_objects_starting_at",
+          "source": "48dda93fb1dc8a3e1be2598c592f020204de5d18084b1f4a692e92e848dbceaa"
+        },
+        {
+          "function": "update_objects_during_time_stop",
+          "source": "9fdc2822eddb10ccf2aed4cf200396ed5418e3b2ba07410d0cb2f13d664bcc93"
+        },
+        {
+          "function": "check_collision_in_list",
+          "source": "e0405c171a1f3edfb4419b40a075d1b670932f331061a672e29f2447ef33483f"
+        },
+        {
+          "function": "set_mario_pos",
+          "source": "3496a2475da8a4cb2407a5c7215e8d2e904bf42a8285e8e781ca261d748786f8"
+        },
+        {
+          "function": "linear_mtxf_mul_vec3f",
+          "source": "8b14abc490aa658ab51b7956f06c61353194aac8c276dd568fba4216ee8b5b1b"
+        },
+        {
+          "function": "mtxf_rotate_zxy_and_translate",
+          "source": "86f09e8bebe84fc168985a3ae47553cb8bf3b5a88ee279c5333b854b631aba40"
+        },
+        {
+          "function": "linear_mtxf_transpose_mul_vec3f",
+          "source": "1b20c128f05f12bdace35eff323be1d3150808d28c9a14d9356c8ec97ab1d427"
+        },
+        {
+          "function": "get_mario_pos",
+          "source": "3d3bcfd2148c7a9c9136abf256521c5126c27ca95a10f027161d80f5476b3f0d"
+        },
+        {
+          "function": "deallocate_object",
+          "source": "bbb0fb661a369c1490080aba6ac45d17698dc4e759962a76652bf47b75fb0b5a"
+        },
+        {
+          "function": "geo_add_child",
+          "source": "515f48e7962638eae0ca6219c3a6705b45abc7b9a3abfa3fb45401e8f0d0f0c1"
+        },
+        {
+          "function": "geo_remove_child",
+          "source": "aaa005bb790bf5d78532a48337f7b19737770621d6e120adbe50ef4b90254958"
+        },
+        {
+          "function": "stop_sounds_from_source",
+          "source": "370b2e91f5165418507ab088d5a2aa88cdc8f49aae99e5515cd1c563b543d5b7"
+        },
+        {
+          "function": "cur_obj_update",
+          "source": "ae787ba53dcbefafbdae47ca2edfb5c8211919cce5979eb1e8ead53b7d55db25"
+        },
+        {
+          "function": "detect_object_hurtbox_overlap",
+          "source": "0e2b1d1aeaeeeea5055a472c5b7daeccc6f330040a67430b25600e6b4f59e8dc"
+        },
+        {
+          "function": "detect_object_hitbox_overlap",
+          "source": "f1a24efd62e8966609af3d5cb285aeb8d4e9a75ebb4147fd75c3207df1d1d1e3"
+        },
+        {
+          "function": "update_background_music_after_sound",
+          "source": "abb9897db170eda28dc9927688b8c136f5072985f89e92951a550ba8d4567ecd"
+        },
+        {
+          "function": "cur_obj_enable_rendering_if_mario_in_room",
+          "source": "a1ce5fe0c2169ca551684ca6d041dac704bb38e8e9719a270f9998ca4f5f7c7e"
+        },
+        {
+          "function": "obj_update_gfx_pos_and_angle",
+          "source": "53ed24d773e2c1e5cc15e230e084bc271fe371ba4ba62445d6974b93dfcb487e"
+        },
+        {
+          "function": "obj_set_throw_matrix_from_transform",
+          "source": "c8b2f6fd019f3f80d7aa0272b1f84ecbc2aa9cbcee5bb348dc75851cad39044b"
+        },
+        {
+          "function": "obj_build_transform_relative_to_parent",
+          "source": "c2e3adc25eedb73a8e13301afc6f57ed87fb51d00b952e03bd1204381a2a6c06"
+        },
+        {
+          "function": "cur_obj_move_y_with_terminal_vel",
+          "source": "3445daf2c0d7ab872203a1ae88dfd27fec9c28a6504ca28e049d3eb8eb791241"
+        },
+        {
+          "function": "cur_obj_move_xz_using_fvel_and_yaw",
+          "source": "3b1a7c784418ebe5cf37cb53ce559ab281deea81091c8cfcb6ce7dc808bd2d00"
+        },
+        {
+          "function": "obj_set_face_angle_to_move_angle",
+          "source": "01aebe09d53d41c7d5aa70d00b3b2a1998c3e092749c7366b6996c226600fee0"
+        },
+        {
+          "function": "bhv_cmd_begin",
+          "source": "f8122eb44bbee3da856db4f4d50a6346ba3074c5fd1ec4f3c95472aa89ad58b6"
+        },
+        {
+          "function": "bhv_cmd_delay",
+          "source": "c0c3c16f50d60b35df0748722e3e8b553661642461cd808ecebd5de6ca1d39b1"
+        },
+        {
+          "function": "bhv_cmd_call",
+          "source": "2fdec92b936aa4796603ae3be8acd4827f42256ed54cde63529b158349e362fa"
+        },
+        {
+          "function": "bhv_cmd_return",
+          "source": "32fbc48d05f7a76a883c04856aaed0014efcf6fc46ce4a96fefc72aa0f3dde45"
+        },
+        {
+          "function": "bhv_cmd_goto",
+          "source": "1b45a668cc957f1c4938c55892b2ed85bdc71b029bb4d32af9a2e469369d6fcd"
+        },
+        {
+          "function": "bhv_cmd_begin_repeat",
+          "source": "7711a1ef44d9745b3f52926d91678f531278b1e482bad363847b4682a116f2a8"
+        },
+        {
+          "function": "bhv_cmd_end_repeat",
+          "source": "5c780eb2aeccc573d3713aa906eca866c6dba1ee91091a16b2b6eb6d5e141f90"
+        },
+        {
+          "function": "bhv_cmd_end_repeat_continue",
+          "source": "b0304fb9a2a4b3aaab58d3071e9249515a3c7dba327be3cc91b11e343e2da086"
+        },
+        {
+          "function": "bhv_cmd_begin_loop",
+          "source": "37dd29acdbe8d6c21b5892fa666aac1aae46a4e20f5e6b8ba5eaf3c5df6a60b6"
+        },
+        {
+          "function": "bhv_cmd_end_loop",
+          "source": "7ed5913e020aa803479678820aae2874b21b53b67bca20aa425053e98e531efe"
+        },
+        {
+          "function": "bhv_cmd_break",
+          "source": "d7605c94e98f193645245abd72ed1923d73c127a85d5f78641db8644582b2830"
+        },
+        {
+          "function": "bhv_cmd_break_unused",
+          "source": "66cb6ba14c430c284771b78881eaae45ffce96daa74b9791b059acab08aeee95"
+        }
+      ],
+      "unresolvedIndirectDomains": [
+        {
+          "caller": "cur_obj_update",
+          "path": "body.1.1.1.1.1.0.iteration.1.0",
+          "sourceTable": "BehaviorCmdTable",
+          "targets": [
+            "bhv_cmd_begin",
+            "bhv_cmd_delay",
+            "bhv_cmd_call",
+            "bhv_cmd_return",
+            "bhv_cmd_goto",
+            "bhv_cmd_begin_repeat",
+            "bhv_cmd_end_repeat",
+            "bhv_cmd_end_repeat_continue",
+            "bhv_cmd_begin_loop",
+            "bhv_cmd_end_loop",
+            "bhv_cmd_break",
+            "bhv_cmd_break_unused",
+            "bhv_cmd_call_native",
+            "bhv_cmd_add_float",
+            "bhv_cmd_set_float",
+            "bhv_cmd_add_int",
+            "bhv_cmd_set_int",
+            "bhv_cmd_or_int",
+            "bhv_cmd_bit_clear",
+            "bhv_cmd_set_int_rand_rshift",
+            "bhv_cmd_set_random_float",
+            "bhv_cmd_set_random_int",
+            "bhv_cmd_add_random_float",
+            "bhv_cmd_add_int_rand_rshift",
+            "bhv_cmd_nop_1",
+            "bhv_cmd_nop_2",
+            "bhv_cmd_nop_3",
+            "bhv_cmd_set_model",
+            "bhv_cmd_spawn_child",
+            "bhv_cmd_deactivate",
+            "bhv_cmd_drop_to_floor",
+            "bhv_cmd_sum_float",
+            "bhv_cmd_sum_int",
+            "bhv_cmd_billboard",
+            "bhv_cmd_hide",
+            "bhv_cmd_set_hitbox",
+            "bhv_cmd_nop_4",
+            "bhv_cmd_delay_var",
+            "bhv_cmd_begin_repeat_unused",
+            "bhv_cmd_load_animations",
+            "bhv_cmd_animate",
+            "bhv_cmd_spawn_child_with_param",
+            "bhv_cmd_load_collision_data",
+            "bhv_cmd_set_hitbox_with_offset",
+            "bhv_cmd_spawn_obj",
+            "bhv_cmd_set_home",
+            "bhv_cmd_set_hurtbox",
+            "bhv_cmd_set_interact_type",
+            "bhv_cmd_set_obj_physics",
+            "bhv_cmd_set_interact_subtype",
+            "bhv_cmd_scale",
+            "bhv_cmd_parent_bit_clear",
+            "bhv_cmd_animate_texture",
+            "bhv_cmd_disable_rendering",
+            "bhv_cmd_set_int_unused",
+            "bhv_cmd_spawn_water_droplet"
+          ],
+          "unresolved": "Prove the live function pointer belongs to these source-initializer targets at this call. Non-members are not ruled out by this exploration."
+        }
+      ],
+      "unresolvedLibraryDomains": [
+        {
+          "caller": "detect_object_hurtbox_overlap",
+          "path": "body.1.1.1.1.1.1.0.0",
+          "theorem": "SqrtfClightBinding.sb_binding_value_and_frame",
+          "controls": "usable FPU, nearest-even rounding, inexact trapping disabled",
+          "input": "nonnegative finite normal binary32 or signed zero",
+          "unresolved": "Caller input domain and runtime control/binding conditions require discharge. Other inputs are not disproved."
+        },
+        {
+          "caller": "detect_object_hitbox_overlap",
+          "path": "body.1.1.1.1.1.1.0.0",
+          "theorem": "SqrtfClightBinding.sb_binding_value_and_frame",
+          "controls": "usable FPU, nearest-even rounding, inexact trapping disabled",
+          "input": "nonnegative finite normal binary32 or signed zero",
+          "unresolved": "Caller input domain and runtime control/binding conditions require discharge. Other inputs are not disproved."
+        }
+      ],
+      "pendingFunctions": [
+        "bhv_cmd_add_float",
+        "bhv_cmd_set_float",
+        "bhv_cmd_add_int",
+        "bhv_cmd_set_int",
+        "bhv_cmd_or_int",
+        "bhv_cmd_bit_clear",
+        "bhv_cmd_set_int_rand_rshift",
+        "bhv_cmd_set_random_float",
+        "bhv_cmd_set_random_int",
+        "bhv_cmd_add_random_float",
+        "bhv_cmd_add_int_rand_rshift",
+        "bhv_cmd_nop_1",
+        "bhv_cmd_nop_2",
+        "bhv_cmd_nop_3",
+        "bhv_cmd_set_model",
+        "bhv_cmd_spawn_child",
+        "bhv_cmd_deactivate",
+        "bhv_cmd_drop_to_floor",
+        "bhv_cmd_sum_float",
+        "bhv_cmd_sum_int",
+        "bhv_cmd_billboard",
+        "bhv_cmd_hide",
+        "bhv_cmd_set_hitbox",
+        "bhv_cmd_nop_4",
+        "bhv_cmd_delay_var",
+        "bhv_cmd_begin_repeat_unused",
+        "bhv_cmd_load_animations",
+        "bhv_cmd_animate",
+        "bhv_cmd_spawn_child_with_param",
+        "bhv_cmd_load_collision_data",
+        "bhv_cmd_set_hitbox_with_offset",
+        "bhv_cmd_spawn_obj",
+        "bhv_cmd_set_home",
+        "bhv_cmd_set_hurtbox",
+        "bhv_cmd_set_interact_type",
+        "bhv_cmd_set_obj_physics",
+        "bhv_cmd_set_interact_subtype",
+        "bhv_cmd_scale",
+        "bhv_cmd_parent_bit_clear",
+        "bhv_cmd_animate_texture",
+        "bhv_cmd_disable_rendering",
+        "bhv_cmd_set_int_unused",
+        "bhv_cmd_spawn_water_droplet",
+        "obj_angle_to_object",
+        "dist_between_objects",
+        "begin_background_music_fade",
+        "cur_obj_enable_rendering",
+        "cur_obj_disable_rendering",
+        "cur_obj_scale",
+        "obj_apply_scale_to_transform",
+        "obj_build_transform_from_pos_and_angle",
+        "mtxf_mul",
+        "cur_obj_has_behavior",
+        "bhv_init_room",
+        "segmented_to_virtual",
+        "cur_obj_bhv_stack_push",
+        "cur_obj_bhv_stack_pop"
+      ],
       "generatedFunctions": {
         "update_objects": {
           "file": "generated\\jp_object_list_processor.v",
@@ -566,6 +4241,56 @@
           "line": 514,
           "sha256": "4d92580f7c69bbfe8c7fde7748f40d4edc7d14e79800b1f25550abde6de3d339"
         },
+        "get_clock_difference": {
+          "file": "generated\\jp_debug.v",
+          "line": 1211,
+          "sha256": "e402986aa4220684df970cf7c9bf624909ea6b9668eff814916f2de27cf3594e"
+        },
+        "unload_deactivated_objects": {
+          "file": "generated\\jp_object_list_processor.v",
+          "line": 3078,
+          "sha256": "0b5759edd5df1958d459c45043ca8dbae5bc4515e90d2e5c9e9dd25057112b2b"
+        },
+        "update_non_terrain_objects": {
+          "file": "generated\\jp_object_list_processor.v",
+          "line": 3027,
+          "sha256": "401ab59a5d41b95181496b9ee9ef5d7b0b72ac87e11a46721928470fd7256c9f"
+        },
+        "detect_object_collisions": {
+          "file": "generated\\jp_object_collision.v",
+          "line": 1695,
+          "sha256": "1c44d80722911ab7b6c3e210332d0e890fea4621ebce615fe1e02148bddce816"
+        },
+        "apply_mario_platform_displacement": {
+          "file": "generated\\jp_platform_displacement.v",
+          "line": 1553,
+          "sha256": "969dda4d08e117f24ee1b93127e29c529e92d9881453aae4e4fd66ee954a8935"
+        },
+        "update_terrain_objects": {
+          "file": "generated\\jp_object_list_processor.v",
+          "line": 2993,
+          "sha256": "834d6b1f587c0b2882bf0be95efda895dc9dc0c6246bd480e0b306460124d21b"
+        },
+        "clear_dynamic_surfaces": {
+          "file": "generated\\jp_surface_load.v",
+          "line": 2462,
+          "sha256": "abfd20dfcce1f7a7392226b0fd5bc84582d8365a0b818f4c88cb9df6bf0683d9"
+        },
+        "stub_debug_5": {
+          "file": "generated\\jp_debug.v",
+          "line": 2505,
+          "sha256": "68249520a2e6feb994351099c54d87fafa86e12d455ad04962aaf6ea614f40bf"
+        },
+        "reset_debug_objectinfo": {
+          "file": "generated\\jp_debug.v",
+          "line": 2216,
+          "sha256": "9e78bc4ec9811bad40169c3118503eea093fd3a058a5955722c4c840ddb426ff"
+        },
+        "get_current_clock": {
+          "file": "generated\\jp_debug.v",
+          "line": 1199,
+          "sha256": "5acc78bca2a0b9b110be150f7629d84837db79f87078d09bc3f74f35a8f97e0a"
+        },
         "absf": {
           "file": "generated\\jp_object_helpers.v",
           "line": 19985,
@@ -576,10 +4301,535 @@
           "line": 3051,
           "sha256": "422d3873dbcd1f96990002d062ec515aa5e5d74166c018ddabad28fe7ced2276"
         },
+        "unload_deactivated_objects_in_list": {
+          "file": "generated\\jp_object_list_processor.v",
+          "line": 2092,
+          "sha256": "9eb4710130a7322395e039b5e5f554d838c198973e3897141582f26c067d5ce0"
+        },
+        "update_objects_in_list": {
+          "file": "generated\\jp_object_list_processor.v",
+          "line": 2049,
+          "sha256": "208db01c13e0f00326ebabe4e36a00322ba52e1e44fcf4661fc0acc3fc5da079"
+        },
+        "check_pushable_object_collision": {
+          "file": "generated\\jp_object_collision.v",
+          "line": 1419,
+          "sha256": "a1c0cfb44012d94416ec169d8a2a16fcc3e1c33c7a82c051ff889e17e3c1faf3"
+        },
+        "check_destructive_object_collision": {
+          "file": "generated\\jp_object_collision.v",
+          "line": 1485,
+          "sha256": "4279154fa2836d9c87941d45c1929b5fcd36fc840c0996a628c050fe708e7c75"
+        },
+        "check_player_object_collision": {
+          "file": "generated\\jp_object_collision.v",
+          "line": 1131,
+          "sha256": "7547eb9a2fa5c76e02aad1f5b4f5a7712c5bc6236cee86469d0540da86332e21"
+        },
+        "clear_object_collision": {
+          "file": "generated\\jp_object_collision.v",
+          "line": 959,
+          "sha256": "e12d2bce30157dc79dc21ed5f8263a41872d1512f47c0c7ac3874171f61d1b85"
+        },
+        "apply_platform_displacement": {
+          "file": "generated\\jp_platform_displacement.v",
+          "line": 808,
+          "sha256": "f1ee1dab7b6b7a54556e0ea8359d8956e1ec4e133dfb2c7050b7e13f332ebd55"
+        },
+        "clear_spatial_partition": {
+          "file": "generated\\jp_surface_load.v",
+          "line": 608,
+          "sha256": "0e5ba397969c407bf26bd2577616606f2e9a2cd5f7609218698babe1e366c766"
+        },
+        "update_debug_dpadmask": {
+          "file": "generated\\jp_debug.v",
+          "line": 2115,
+          "sha256": "caf0027dd68626515d677f3d9321c9a09a331b5c3ff818cddd69d8830cf6d9c8"
+        },
+        "set_print_state_info": {
+          "file": "generated\\jp_debug.v",
+          "line": 1223,
+          "sha256": "35195eee0bdca90253eae3a0dc6e4d33478d1a20bffeeb65d1f6f14df0f537f7"
+        },
         "find_floor_from_list": {
           "file": "generated\\jp_surface_collision.v",
           "line": 2655,
           "sha256": "192e814803c25f72943558caabfe39bd1002396430d917db6b41c2ed83ebbfd6"
+        },
+        "unload_object": {
+          "file": "generated\\jp_spawn_object.v",
+          "line": 858,
+          "sha256": "27906627ca9b94c6cf612be7dc90d0083d0b7a72b64504d7b29a355e7eee6c9b"
+        },
+        "set_object_respawn_info_bits": {
+          "file": "generated\\jp_object_list_processor.v",
+          "line": 2185,
+          "sha256": "53004c127ecba4393cecbc28c3b44d3c87040e271629790a7aed5ac98add1808"
+        },
+        "update_objects_starting_at": {
+          "file": "generated\\jp_object_list_processor.v",
+          "line": 1767,
+          "sha256": "48dda93fb1dc8a3e1be2598c592f020204de5d18084b1f4a692e92e848dbceaa"
+        },
+        "update_objects_during_time_stop": {
+          "file": "generated\\jp_object_list_processor.v",
+          "line": 1836,
+          "sha256": "9fdc2822eddb10ccf2aed4cf200396ed5418e3b2ba07410d0cb2f13d664bcc93"
+        },
+        "check_collision_in_list": {
+          "file": "generated\\jp_object_collision.v",
+          "line": 1045,
+          "sha256": "e0405c171a1f3edfb4419b40a075d1b670932f331061a672e29f2447ef33483f"
+        },
+        "set_mario_pos": {
+          "file": "generated\\jp_platform_displacement.v",
+          "line": 761,
+          "sha256": "3496a2475da8a4cb2407a5c7215e8d2e904bf42a8285e8e781ca261d748786f8"
+        },
+        "linear_mtxf_mul_vec3f": {
+          "file": "generated\\jp_object_helpers.v",
+          "line": 6865,
+          "sha256": "8b14abc490aa658ab51b7956f06c61353194aac8c276dd568fba4216ee8b5b1b"
+        },
+        "mtxf_rotate_zxy_and_translate": {
+          "file": "generated\\jp_math_util.v",
+          "line": 8102,
+          "sha256": "86f09e8bebe84fc168985a3ae47553cb8bf3b5a88ee279c5333b854b631aba40"
+        },
+        "linear_mtxf_transpose_mul_vec3f": {
+          "file": "generated\\jp_object_helpers.v",
+          "line": 6940,
+          "sha256": "1b20c128f05f12bdace35eff323be1d3150808d28c9a14d9356c8ec97ab1d427"
+        },
+        "get_mario_pos": {
+          "file": "generated\\jp_platform_displacement.v",
+          "line": 707,
+          "sha256": "3d3bcfd2148c7a9c9136abf256521c5126c27ca95a10f027161d80f5476b3f0d"
+        },
+        "deallocate_object": {
+          "file": "generated\\jp_spawn_object.v",
+          "line": 679,
+          "sha256": "bbb0fb661a369c1490080aba6ac45d17698dc4e759962a76652bf47b75fb0b5a"
+        },
+        "geo_add_child": {
+          "file": "generated\\jp_graph_node.v",
+          "line": 2561,
+          "sha256": "515f48e7962638eae0ca6219c3a6705b45abc7b9a3abfa3fb45401e8f0d0f0c1"
+        },
+        "geo_remove_child": {
+          "file": "generated\\jp_graph_node.v",
+          "line": 2655,
+          "sha256": "aaa005bb790bf5d78532a48337f7b19737770621d6e120adbe50ef4b90254958"
+        },
+        "stop_sounds_from_source": {
+          "file": "generated\\runtime\\jp_audio_external.v",
+          "line": 10969,
+          "sha256": "370b2e91f5165418507ab088d5a2aa88cdc8f49aae99e5515cd1c563b543d5b7"
+        },
+        "cur_obj_update": {
+          "file": "generated\\jp_behavior_script.v",
+          "line": 4437,
+          "sha256": "ae787ba53dcbefafbdae47ca2edfb5c8211919cce5979eb1e8ead53b7d55db25"
+        },
+        "detect_object_hurtbox_overlap": {
+          "file": "generated\\jp_object_collision.v",
+          "line": 708,
+          "sha256": "0e2b1d1aeaeeeea5055a472c5b7daeccc6f330040a67430b25600e6b4f59e8dc"
+        },
+        "detect_object_hitbox_overlap": {
+          "file": "generated\\jp_object_collision.v",
+          "line": 363,
+          "sha256": "f1a24efd62e8966609af3d5cb285aeb8d4e9a75ebb4147fd75c3207df1d1d1e3"
+        },
+        "update_background_music_after_sound": {
+          "file": "generated\\runtime\\jp_audio_external.v",
+          "line": 3705,
+          "sha256": "abb9897db170eda28dc9927688b8c136f5072985f89e92951a550ba8d4567ecd"
+        },
+        "cur_obj_enable_rendering_if_mario_in_room": {
+          "file": "generated\\jp_object_helpers.v",
+          "line": 21827,
+          "sha256": "a1ce5fe0c2169ca551684ca6d041dac704bb38e8e9719a270f9998ca4f5f7c7e"
+        },
+        "obj_update_gfx_pos_and_angle": {
+          "file": "generated\\jp_behavior_script.v",
+          "line": 620,
+          "sha256": "53ed24d773e2c1e5cc15e230e084bc271fe371ba4ba62445d6974b93dfcb487e"
+        },
+        "obj_set_throw_matrix_from_transform": {
+          "file": "generated\\jp_object_helpers.v",
+          "line": 17515,
+          "sha256": "c8b2f6fd019f3f80d7aa0272b1f84ecbc2aa9cbcee5bb348dc75851cad39044b"
+        },
+        "obj_build_transform_relative_to_parent": {
+          "file": "generated\\jp_object_helpers.v",
+          "line": 17571,
+          "sha256": "c2e3adc25eedb73a8e13301afc6f57ed87fb51d00b952e03bd1204381a2a6c06"
+        },
+        "cur_obj_move_y_with_terminal_vel": {
+          "file": "generated\\jp_object_helpers.v",
+          "line": 13165,
+          "sha256": "3445daf2c0d7ab872203a1ae88dfd27fec9c28a6504ca28e049d3eb8eb791241"
+        },
+        "cur_obj_move_xz_using_fvel_and_yaw": {
+          "file": "generated\\jp_object_helpers.v",
+          "line": 12956,
+          "sha256": "3b1a7c784418ebe5cf37cb53ce559ab281deea81091c8cfcb6ce7dc808bd2d00"
+        },
+        "obj_set_face_angle_to_move_angle": {
+          "file": "generated\\jp_object_helpers.v",
+          "line": 8457,
+          "sha256": "01aebe09d53d41c7d5aa70d00b3b2a1998c3e092749c7366b6996c226600fee0"
+        },
+        "bhv_cmd_begin": {
+          "file": "generated\\jp_behavior_script.v",
+          "line": 3607,
+          "sha256": "f8122eb44bbee3da856db4f4d50a6346ba3074c5fd1ec4f3c95472aa89ad58b6"
+        },
+        "bhv_cmd_delay": {
+          "file": "generated\\jp_behavior_script.v",
+          "line": 1388,
+          "sha256": "c0c3c16f50d60b35df0748722e3e8b553661642461cd808ecebd5de6ca1d39b1"
+        },
+        "bhv_cmd_call": {
+          "file": "generated\\jp_behavior_script.v",
+          "line": 1328,
+          "sha256": "2fdec92b936aa4796603ae3be8acd4827f42256ed54cde63529b158349e362fa"
+        },
+        "bhv_cmd_return": {
+          "file": "generated\\jp_behavior_script.v",
+          "line": 1372,
+          "sha256": "32fbc48d05f7a76a883c04856aaed0014efcf6fc46ce4a96fefc72aa0f3dde45"
+        },
+        "bhv_cmd_goto": {
+          "file": "generated\\jp_behavior_script.v",
+          "line": 1544,
+          "sha256": "1b45a668cc957f1c4938c55892b2ed85bdc71b029bb4d32af9a2e469369d6fcd"
+        },
+        "bhv_cmd_begin_repeat": {
+          "file": "generated\\jp_behavior_script.v",
+          "line": 1621,
+          "sha256": "7711a1ef44d9745b3f52926d91678f531278b1e482bad363847b4682a116f2a8"
+        },
+        "bhv_cmd_end_repeat": {
+          "file": "generated\\jp_behavior_script.v",
+          "line": 1664,
+          "sha256": "5c780eb2aeccc573d3713aa906eca866c6dba1ee91091a16b2b6eb6d5e141f90"
+        },
+        "bhv_cmd_end_repeat_continue": {
+          "file": "generated\\jp_behavior_script.v",
+          "line": 1717,
+          "sha256": "b0304fb9a2a4b3aaab58d3071e9249515a3c7dba327be3cc91b11e343e2da086"
+        },
+        "bhv_cmd_begin_loop": {
+          "file": "generated\\jp_behavior_script.v",
+          "line": 1770,
+          "sha256": "37dd29acdbe8d6c21b5892fa666aac1aae46a4e20f5e6b8ba5eaf3c5df6a60b6"
+        },
+        "bhv_cmd_end_loop": {
+          "file": "generated\\jp_behavior_script.v",
+          "line": 1795,
+          "sha256": "7ed5913e020aa803479678820aae2874b21b53b67bca20aa425053e98e531efe"
+        },
+        "bhv_cmd_break": {
+          "file": "generated\\jp_behavior_script.v",
+          "line": 1308,
+          "sha256": "d7605c94e98f193645245abd72ed1923d73c127a85d5f78641db8644582b2830"
+        },
+        "bhv_cmd_break_unused": {
+          "file": "generated\\jp_behavior_script.v",
+          "line": 1318,
+          "sha256": "66cb6ba14c430c284771b78881eaae45ffce96daa74b9791b059acab08aeee95"
+        },
+        "bhv_cmd_call_native": {
+          "file": "generated\\jp_behavior_script.v",
+          "line": 1820,
+          "sha256": "a8a293b26bec3012f1647bfb95a79a8f5eeb1298b2147aeb2534e118b116301c"
+        },
+        "bhv_cmd_add_float": {
+          "file": "generated\\jp_behavior_script.v",
+          "line": 2476,
+          "sha256": "4328645635d4ef339f8d97776a87234cb10c669adf47900d489c4003356d536e"
+        },
+        "bhv_cmd_set_float": {
+          "file": "generated\\jp_behavior_script.v",
+          "line": 1850,
+          "sha256": "21cc00b18d72776e69c767a1e2345852084cdb71e67e1cb318967ae0d8baea08"
+        },
+        "bhv_cmd_add_int": {
+          "file": "generated\\jp_behavior_script.v",
+          "line": 2551,
+          "sha256": "c3498224cf7e3b24c05e86dee4d4248935f0e703d16948b3d67a34d44414f594"
+        },
+        "bhv_cmd_set_int": {
+          "file": "generated\\jp_behavior_script.v",
+          "line": 1910,
+          "sha256": "6b4cc8a2e27f990e327fddbeaf087a55b30878af1768010d441cccc02618b8e0"
+        },
+        "bhv_cmd_or_int": {
+          "file": "generated\\jp_behavior_script.v",
+          "line": 2626,
+          "sha256": "5c45b826904513be6324140ee2ecca005d74b89ae6e5bfab44ffcdcc79a1f36a"
+        },
+        "bhv_cmd_bit_clear": {
+          "file": "generated\\jp_behavior_script.v",
+          "line": 2707,
+          "sha256": "9f2f4912d56de98a85b774d573c2f9cbf5c8df12f1ec6445aab607383cb92d03"
+        },
+        "bhv_cmd_set_int_rand_rshift": {
+          "file": "generated\\jp_behavior_script.v",
+          "line": 2194,
+          "sha256": "885021c9f05d82cfc85af9dfc95930a4903bf0d925418192fbbe96258639231a"
+        },
+        "bhv_cmd_set_random_float": {
+          "file": "generated\\jp_behavior_script.v",
+          "line": 2029,
+          "sha256": "885250a153895a54c712a05bc0220ec85aca540f4cddf34eba50775b2f84f1ff"
+        },
+        "bhv_cmd_set_random_int": {
+          "file": "generated\\jp_behavior_script.v",
+          "line": 2112,
+          "sha256": "bfc066eb07e5803585f42c75c1a9ee8a1e6f32de61e56076bdf815e7e8e8f295"
+        },
+        "bhv_cmd_add_random_float": {
+          "file": "generated\\jp_behavior_script.v",
+          "line": 2275,
+          "sha256": "9a46fde9da9c0b6ece5bff0571c39907f4c304f6545219a6042979f0ebd63ff5"
+        },
+        "bhv_cmd_add_int_rand_rshift": {
+          "file": "generated\\jp_behavior_script.v",
+          "line": 2375,
+          "sha256": "45e647ebb0f51ab70a28da134ca6913f4e4e8fd23d79afc1bc676bbb329c0711"
+        },
+        "bhv_cmd_nop_1": {
+          "file": "generated\\jp_behavior_script.v",
+          "line": 3034,
+          "sha256": "3b954b14e08414033075d987991102af3820656a3a08afffe39c9093aa3d5098"
+        },
+        "bhv_cmd_nop_2": {
+          "file": "generated\\jp_behavior_script.v",
+          "line": 3098,
+          "sha256": "caf669af417a195bfc17f02bd4afebcf6eeb3343bca48599b916e295dd1d0f71"
+        },
+        "bhv_cmd_nop_3": {
+          "file": "generated\\jp_behavior_script.v",
+          "line": 3066,
+          "sha256": "25031cbb5b9993d1c3f824a7897bdd93e45c8bbac535098cbb94e9c2d7a6be60"
+        },
+        "bhv_cmd_set_model": {
+          "file": "generated\\jp_behavior_script.v",
+          "line": 997,
+          "sha256": "f5603e2833c938651f4f512ca4b42864d4ae902851c7b71b5faa6ffc2c0027f1"
+        },
+        "bhv_cmd_spawn_child": {
+          "file": "generated\\jp_behavior_script.v",
+          "line": 1053,
+          "sha256": "d3c065cbedb66533221d22cdbc632e25eee2373f9aca8a72d3d30efc1c300cb3"
+        },
+        "bhv_cmd_deactivate": {
+          "file": "generated\\jp_behavior_script.v",
+          "line": 1290,
+          "sha256": "1a6840645d954391beb374248c08079f27f6582c7fbbab00ebeacaa550f6c74e"
+        },
+        "bhv_cmd_drop_to_floor": {
+          "file": "generated\\jp_behavior_script.v",
+          "line": 2914,
+          "sha256": "3723b436e3d3ad7c83dd846484ce35c825e7c58278db64b59a1aa95323868ec9"
+        },
+        "bhv_cmd_sum_float": {
+          "file": "generated\\jp_behavior_script.v",
+          "line": 3130,
+          "sha256": "1621675d76e7b2852dc1d15b814e101acdbf1f1b7ee6a2c1d2eb9bb45ca053f8"
+        },
+        "bhv_cmd_sum_int": {
+          "file": "generated\\jp_behavior_script.v",
+          "line": 3238,
+          "sha256": "247089bec8ec4a82f848c0b037fc3fe7eb7188abb4d466bcc9574653ea58220a"
+        },
+        "bhv_cmd_billboard": {
+          "file": "generated\\jp_behavior_script.v",
+          "line": 950,
+          "sha256": "eba0d76d4ef20452d7ca7d09694f26e647855ad3001f993909a878d9c3dc0343"
+        },
+        "bhv_cmd_hide": {
+          "file": "generated\\jp_behavior_script.v",
+          "line": 884,
+          "sha256": "3c5eefce5f6029d9302f006f514d40de4f6c75e3182213335ee9c2b926a3c4f1"
+        },
+        "bhv_cmd_set_hitbox": {
+          "file": "generated\\jp_behavior_script.v",
+          "line": 3346,
+          "sha256": "6965faac3e1aba5b67387ba5f8fde08c9898b45ca5a9f40bc182bd7298f4b258"
+        },
+        "bhv_cmd_nop_4": {
+          "file": "generated\\jp_behavior_script.v",
+          "line": 3561,
+          "sha256": "89eb0fab5f64b24cfbbd0e0f4c955304352211335b985740b407d14fe016b5f9"
+        },
+        "bhv_cmd_delay_var": {
+          "file": "generated\\jp_behavior_script.v",
+          "line": 1458,
+          "sha256": "0e18766727ed826bc52e498b1cfa57da2697e51c228ffc9054331ce69b801a70"
+        },
+        "bhv_cmd_begin_repeat_unused": {
+          "file": "generated\\jp_behavior_script.v",
+          "line": 1576,
+          "sha256": "dd4d620d1016a5f05b32d26b6ad50ef04e3d014f9a3e64cb17916ce3c7727680"
+        },
+        "bhv_cmd_load_animations": {
+          "file": "generated\\jp_behavior_script.v",
+          "line": 2790,
+          "sha256": "fb7b24d5900b15e06251b507ee276d3ab12c09744d5e7d0a83a89b11bb35c9a6"
+        },
+        "bhv_cmd_animate": {
+          "file": "generated\\jp_behavior_script.v",
+          "line": 2845,
+          "sha256": "09178bc2f243e63d154452a16d12d88b238c73b21996e2ba7bb2d86a438463e0"
+        },
+        "bhv_cmd_spawn_child_with_param": {
+          "file": "generated\\jp_behavior_script.v",
+          "line": 1196,
+          "sha256": "3079e8eb92d12965389ce6f99e1334e9f78315ddcd0ae4fb64f2b1c461d2da19"
+        },
+        "bhv_cmd_load_collision_data": {
+          "file": "generated\\jp_behavior_script.v",
+          "line": 3665,
+          "sha256": "0044b267237e6716bd75694e9bfa87e8bbb1102011468e5b3f8a76ce5ec332ae"
+        },
+        "bhv_cmd_set_hitbox_with_offset": {
+          "file": "generated\\jp_behavior_script.v",
+          "line": 3472,
+          "sha256": "b2bc475a3335636955a384d774ba8cb444769d8a5fcb356c1539fe4e330bdf84"
+        },
+        "bhv_cmd_spawn_obj": {
+          "file": "generated\\jp_behavior_script.v",
+          "line": 1119,
+          "sha256": "afb9f9888af090d3da29fd338a70c10038cd98e2c77f7604c61718783160e729"
+        },
+        "bhv_cmd_set_home": {
+          "file": "generated\\jp_behavior_script.v",
+          "line": 3706,
+          "sha256": "5577a342348cff1e807faebf3d3e71f4c12c194dfed8eea5eb679dc32028cc2d"
+        },
+        "bhv_cmd_set_hurtbox": {
+          "file": "generated\\jp_behavior_script.v",
+          "line": 3409,
+          "sha256": "f629958f29d621b328550615072bfc05c9f8ef66477514a31b3e38c5cca8f67b"
+        },
+        "bhv_cmd_set_interact_type": {
+          "file": "generated\\jp_behavior_script.v",
+          "line": 3806,
+          "sha256": "41f32737cbd8ee8f68ce579c3287038f51b72ef9d80a8f869d90a4fecade6e65"
+        },
+        "bhv_cmd_set_obj_physics": {
+          "file": "generated\\jp_behavior_script.v",
+          "line": 3932,
+          "sha256": "f212b490748384a36f6ccc0b48843f5c3e65a5c5266b9ce870486507c925bcc0"
+        },
+        "bhv_cmd_set_interact_subtype": {
+          "file": "generated\\jp_behavior_script.v",
+          "line": 3843,
+          "sha256": "845955980e5e15cd3cd0940fb8ae1d33c1aa69002a98249b728b926ee95d99cf"
+        },
+        "bhv_cmd_scale": {
+          "file": "generated\\jp_behavior_script.v",
+          "line": 3880,
+          "sha256": "100b47687cbea110868edf1dc19b8743628260ec332394aab2267141c62f907a"
+        },
+        "bhv_cmd_parent_bit_clear": {
+          "file": "generated\\jp_behavior_script.v",
+          "line": 4146,
+          "sha256": "5771e903c64a64038d4c9ef8aecd2aa585ac746c23ed86ab6d98223be2f48832"
+        },
+        "bhv_cmd_animate_texture": {
+          "file": "generated\\jp_behavior_script.v",
+          "line": 4278,
+          "sha256": "af035b8084ca1feaa169433fd8f5d02845f0bc6e15f1c20ce7c23441fb027477"
+        },
+        "bhv_cmd_disable_rendering": {
+          "file": "generated\\jp_behavior_script.v",
+          "line": 902,
+          "sha256": "dbb137b2a806785d08580ec26b01f41ac0e0881f592a8c4be36dc2f16ed499f2"
+        },
+        "bhv_cmd_set_int_unused": {
+          "file": "generated\\jp_behavior_script.v",
+          "line": 1970,
+          "sha256": "3d7ca554f0bbac714c19e54fd418f4466e9b0cdfc73021121ea8fe34108a170f"
+        },
+        "bhv_cmd_spawn_water_droplet": {
+          "file": "generated\\jp_behavior_script.v",
+          "line": 4238,
+          "sha256": "efafc3154dd001029f17f1ab823c5bee3af9fb754817a9fec34bb7fda0788f14"
+        },
+        "obj_angle_to_object": {
+          "file": "generated\\jp_object_helpers.v",
+          "line": 4926,
+          "sha256": "7865ecbfef83d4537d08ca76101fcaddb2b16f32da5b1b4574a8f9036ba5e1ea"
+        },
+        "dist_between_objects": {
+          "file": "generated\\jp_object_helpers.v",
+          "line": 4555,
+          "sha256": "2116caa0f762e8a9c116b77dfa60e88ea3dddb2ac66e221cc36ad458e5a51591"
+        },
+        "begin_background_music_fade": {
+          "file": "generated\\runtime\\jp_audio_external.v",
+          "line": 10205,
+          "sha256": "c5b10ee601f1b640b01a45f55a5642e146f3294388a0ae0aa0e1c21968c4f93d"
+        },
+        "cur_obj_enable_rendering": {
+          "file": "generated\\jp_object_helpers.v",
+          "line": 7845,
+          "sha256": "f763446407ad980b2b1fbf5a9772e29751c327543eb99833f70fb4a5cd65cf54"
+        },
+        "cur_obj_disable_rendering": {
+          "file": "generated\\jp_object_helpers.v",
+          "line": 7927,
+          "sha256": "e6626065adde38aabfe6174d62f7ab3d5daf06e16ef055ac0f10a78717f1e7bd"
+        },
+        "cur_obj_scale": {
+          "file": "generated\\jp_object_helpers.v",
+          "line": 7524,
+          "sha256": "bdeae28ad306ccba3b8cd132e7f944695793084b43f93751d0ed71dce2ebe10e"
+        },
+        "obj_apply_scale_to_transform": {
+          "file": "generated\\jp_object_helpers.v",
+          "line": 7016,
+          "sha256": "f427e819b4e304725cd8c4af1d7cfe598d40622046f1e5dd7a746bd6644547c5"
+        },
+        "obj_build_transform_from_pos_and_angle": {
+          "file": "generated\\jp_object_helpers.v",
+          "line": 17388,
+          "sha256": "c3ab95b756c18e3f2d407d6e7778583bc491a46b08975294fd0b159c6d86af1e"
+        },
+        "mtxf_mul": {
+          "file": "generated\\jp_math_util.v",
+          "line": 10454,
+          "sha256": "9054504be8842d433f969b8fc624f8e76447a7798ef05919839ced09de90ea60"
+        },
+        "cur_obj_has_behavior": {
+          "file": "generated\\jp_object_helpers.v",
+          "line": 13474,
+          "sha256": "3e01a4e81b631d58acfbcd5c4cb034b058ac221a27f4f55e61573d40d22d9b3f"
+        },
+        "bhv_init_room": {
+          "file": "generated\\jp_object_helpers.v",
+          "line": 21601,
+          "sha256": "00712f77fb941c10d496efaa862fd58191119c1fa6e670e71d1c2748ae1fb375"
+        },
+        "segmented_to_virtual": {
+          "file": "generated\\jp_memory.v",
+          "line": 515,
+          "sha256": "8936ec97b26a3a74560165b6406eec7e0c4bde11cb19bdc7119930cfc42849a3"
+        },
+        "cur_obj_bhv_stack_push": {
+          "file": "generated\\jp_behavior_script.v",
+          "line": 792,
+          "sha256": "be945489b01bde177706346f81d9f54afd4b65c4fd85a9ff64d3f55bb2fec56c"
+        },
+        "cur_obj_bhv_stack_pop": {
+          "file": "generated\\jp_behavior_script.v",
+          "line": 837,
+          "sha256": "db298ed2086fbd30ebc041a59ffac5d030a0f72652ee50aeb366c8bcf6fe135a"
         }
       },
       "objectUpdateInventory": {
@@ -970,10 +5220,10 @@
         "file": "generated\\jp_surface_collision.v",
         "definitionLine": 2655,
         "sourceSHA256": "192e814803c25f72943558caabfe39bd1002396430d917db6b41c2ed83ebbfd6",
-        "loops": 0,
+        "loops": 1,
         "calls": []
       },
-      "workerProcessSeconds": 0.3469645999999784
+      "workerProcessSeconds": 3.848398399999496
     }
   },
   "laterUpdates": [
@@ -992,10 +5242,15 @@
   ],
   "interpretation": "Reported time/memory measure the failed prerequisite attempt only. Partial path counts are syntax states, not surviving gameplay possibilities. This diagnoses missing execution coverage, not computational impossibility of gameplay or of a complete solver.",
   "implementationHashes": {
-    "clight.py": "ddf8275fc32cb19067d40134a3f03f845e7a5cabfd99ee802cfce2b6b5f3a62a",
-    "engine.py": "c73a2f937d921146edbb638dfd35b9362c234e4fee0f673f2fd9b5892e235168",
+    "clight.py": "5d1ebc6545488f58767a730a12296d2a84455a688b20da347c467ceb3469988d",
+    "engine.py": "30cf6f566b067098989dc0614150f753baef23458513754771932d8eba7cbeba",
     "search.py": "32de3bee1c27a16ec016ef08f6f4d7b861d369e09c0dbd9faa8abd54d463ed8b",
-    "benchmark_updates.py": "3bb3701397fdd602a2ef51b29bac0e1c049eb44cb185cd42470249297f473ae6",
-    "test_benchmark.py": "5ee08d9d9b396792bfcd0a83275d1ea6592c9472090a0356325f68806c04ef23"
+    "benchmark_updates.py": "313e24930bd45dde7e5c57f5e4a4f552e7392914efa7d615c753065228e14840",
+    "loop_engine.py": "6e3fd4c94178d81da7e9dd7129f8fa69666a248a5bc5b414d88362884c03de7b",
+    "relational_engine.py": "2917902e897f459191b3756ef711fbdedccd38ccd9f2d8bd95a137a44046a30f",
+    "loop_probe.py": "7fe1dec36163bb30c80552a876b0f17f6e623b1a3e4d91c1acc5598a6294a514",
+    "test_benchmark.py": "af1b887515f4eb877141b754dacef9a68a920f554cf1b7dbd13c53a7c4babc00",
+    "test_loops.py": "f0c7c98d5c94d1809d9d240cd8ae8e15c5620d0c45ad9bd2956fd5060b42c1c5",
+    "test_relational.py": "3d4ead2ae70d84fc6fb309ead8fc6e2b4cb188c43e959e5983d9d2e25bc34cef"
   }
 }
