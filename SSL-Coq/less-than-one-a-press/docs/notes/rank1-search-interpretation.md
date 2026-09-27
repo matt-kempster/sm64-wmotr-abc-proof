@@ -1,5 +1,10 @@
 # What the backward search can settle about Ink
 
+**Later follow-up:** the user authorized a one-second run. The
+[live-dispatch and horizon attempt](rank1-live-dispatch-horizon.md) records the
+partial application repairs and the still-incomplete US/JP results. The
+deferral below describes this earlier review, not the current decision.
+
 27 September 2026. The user has deferred the requested one-update search
 while reviewing its purpose. This explanation adds no search, theorem,
 exclusion or route estimate. The [original search remains unfinished](rank1-complete-update-path.md).

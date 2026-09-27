@@ -1,5 +1,18 @@
 # Rank 1: bounded backward predecessor search
 
+**Latest:** the [live-dispatch and one-second report](../../docs/notes/rank1-live-dispatch-horizon.md)
+records a partial callback repair and an actual repeated-checkpoint runner.
+All 42 application tests pass. The real US/JP 30-checkpoint attempts remain
+incomplete: the broad caller still supplies no constrained script word, and
+the full game loop reaches an unmodeled controller-device call. No update
+throughput, exhaustive result or route exclusion is available.
+
+Use search_updates.py with --updates 30 and a new output directory for the
+actual horizon attempt. benchmark_updates.py remains a prerequisite diagnostic,
+not composition of thirty updates. Add --program-dispatch, --live-dispatch and
+the supplemental-generated directory to exercise its new callback resolver.
+Both commands return exit status 2 when their requested coverage is incomplete.
+
 **Current follow-up:** `trace_update.py --mario` completes an actual controller/level/Mario/floor path in US and JP and substitutes its effects backward. `trace_engine.py` checks live callback types and ordinary storage accesses. The supplied scene is a regression/conditional predecessor, not a reachable setup or exhaustive predecessor set. See [the complete-path report](../../docs/notes/rank1-complete-update-path.md) for the three supplemental source units, commands, all 36 checks and exact limits. Reverse Scattershot remains deferred.
 
 This is the first implementation of the approved backward-search batch. It

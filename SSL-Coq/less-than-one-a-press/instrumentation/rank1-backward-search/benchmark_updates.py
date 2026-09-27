@@ -1,10 +1,10 @@
-"""Gate a 1/2/4-update benchmark on completing its real last-query prerequisite.
+"""Gate a requested update horizon on its real last-query prerequisite.
 
 This is deliberately a coverage gate, not a timing curve for partial frames.
 It expands the original final query instead of giving find_floor a free result.
 An unsupported effect or undischarged runtime domain stops the calculation. The
-requested two/four updates are not run if even this necessary part of one update
-is unavailable. Normal memory/layout interpretation is inherited from engine.py;
+requested longer horizons are not run by this prerequisite diagnostic; use
+search_updates.py for actual horizon composition. Memory/layout interpretation is inherited from engine.py;
 none of this is a formally verified CompCert interpreter.
 """
 import argparse
@@ -172,12 +172,14 @@ def inventory(function, body):
                 definitionLine=function.line, sourceSHA256=function.digest, loops=loops, calls=calls)
 
 
-def worker(version, output):
+def worker(version, output, *, program_dispatch=False, supplemental=None, live_dispatch=False):
     began = time.perf_counter()
     from relational_engine import RelationalEngine
     from benchmark_updates import CoverageBlock as EngineCoverageBlock
     e = RelationalEngine(version, runtime_audio=True, sqrtf_binding=True,
-                         max_visits=200000)
+                         program_dispatch=program_dispatch,
+                         live_dispatch=live_dispatch,
+                         supplemental=supplemental, max_visits=200000)
     fn = e.function('object_list_processor', 'update_objects')
     body, cut = retention_prefix(fn)
     target = z.And(read(MEM, word(e.global_address('_gMarioPlatform'))) == word(TOP),
@@ -187,7 +189,10 @@ def worker(version, output):
     result = dict(version=version, cut=cut, requestedUpdates=1, completeUpdates=0,
         survivingPossibilities=None, solverCheckPerformed=False, solver=z.get_version_string(),
         target='The ordinary Mario Object is present and both saved platform pointers name TOP, with the real final floor call returning the checked binary32 height at X=-2200,Z=-1024. No floor list or returned height is assumed.',
-        model='Exploratory flat byte memory; actual generated bodies, explicit supplemental audio linkage, and domain-limited sqrtf binding. These additions do not refine the old Coq external oracle or prove runtime conditions.')
+        model='Exploratory flat byte memory; actual generated bodies, explicit supplemental audio linkage, and domain-limited sqrtf binding. These additions do not refine the old Coq external oracle or prove runtime conditions.',
+        dispatch='all compatible symbols in selected generated linkage' if program_dispatch else 'source command table with live-domain obligations',
+        suppliedScene=False, suppliedGap=False,
+        sourceUnits={})
     try:
         scope, paths = e.start(fn, target, body)
         if e.calls: raise AssertionError('Unexpanded call escaped strict gate')
@@ -203,12 +208,35 @@ def worker(version, output):
         guardedFloatIntegerConversions=e.float_integer_conversions,
         loopRelations=e.loops, sharedFunctionRelations=e.relation_receipts,
         unresolvedIndirectDomains=e.indirect_domains, unresolvedLibraryDomains=e.library_domains,
+        liveDispatch=e.dispatch_receipts,
         pendingFunctions=[r['function'].name for r in e.pending],
         generatedFunctions=e.functions,
         objectUpdateInventory=inventory(fn, body))
     # The following is a source inventory, not additional symbolic execution.
     result['floorQueryInventory'] = inventory(e.function('surface_collision','find_floor'), e.function('surface_collision','find_floor').body)
     result['floorListInventory'] = inventory(e.function('surface_collision','find_floor_from_list'), e.function('surface_collision','find_floor_from_list').body)
+    result['sourceUnits'] = {str(unit.path.relative_to(ROOT)):unit.digest for unit in e.units.values()}
+    if e.image is not None:
+        result['linkedSymbols'] = dict(total=len(e.image.symbols),
+            internal=sum(entry.internal for entry in e.image.symbols.values()),
+            external=sum(not entry.internal for entry in e.image.symbols.values()))
+        # Diagnose the excess type-compatible domain without narrowing it.
+        # Source operands do not prove that every live script pointer belongs
+        # to them; the search must still report its original coverage blocker.
+        native_fn = e.function('behavior_script','bhv_cmd_call_native')
+        native_call = next(node for _,node in walk(native_fn.body)
+                           if node.tag == 'Scall' and node.args[1].tag == 'Etempvar')
+        e.catalog_native = True
+        source_names = e.source_table_targets(Scope(e,native_fn),native_call.args[1])
+        missing_bodies = [name for name in source_names
+                          if name not in e.image.symbols or not e.image.symbols[name].internal]
+        result['nativeSourceCensus'] = dict(
+            source=str(e.unit('behavior_data').path.relative_to(ROOT)),
+            sourceSHA256=e.unit('behavior_data').digest,
+            distinctInitializerOperands=len(source_names),
+            names=source_names, missingInternalBodies=missing_bodies,
+            blockerDeclarationsAlsoInCensus=sorted(set(result['blocker'].get('missing',[])) & set(source_names)),
+            scope='Actual CALL_NATIVE initializer operands across the emitted behavior data. A source census, not a proof of live script/pointer reachability; no target is removed from the search.')
     output.write_text(json.dumps(result, indent=2)+'\n', encoding='utf-8')
     print(version+': '+result['status']+' at '+result['blocker']['reason'], flush=True)
 
@@ -219,15 +247,36 @@ def main():
     parser.add_argument('--worker', choices=('us','jp'))
     parser.add_argument('--worker-output', type=Path)
     parser.add_argument('--timeout', type=float, default=60)
+    parser.add_argument('--updates', type=int, nargs='+', default=[1,2,4],
+                        help='Requested horizons in nominal game updates; 30 is one second. No horizon is marked complete merely by selecting it.')
+    parser.add_argument('--program-dispatch', action='store_true',
+                        help='Use actual linked function signatures, retaining missing external alternatives as coverage errors.')
+    parser.add_argument('--live-dispatch', action='store_true',
+                        help='Resolve compatible targets using the actual pointer-load preimage; unresolved alternatives stay open.')
+    parser.add_argument('--supplemental', type=Path,
+                        help='Directory of additional pipeline-generated US/JP Clight units, never handwritten replacements.')
     args = parser.parse_args()
+    if any(n < 1 for n in args.updates):
+        parser.error('--updates must contain positive integers')
+    if args.timeout <= 0:
+        parser.error('--timeout must be positive')
+    if args.live_dispatch and not args.program_dispatch:
+        parser.error('--live-dispatch requires --program-dispatch')
     if args.worker:
-        worker(args.worker, args.worker_output)
+        worker(args.worker, args.worker_output, program_dispatch=args.program_dispatch,
+               supplemental=args.supplemental,live_dispatch=args.live_dispatch)
         return
     args.output.mkdir(parents=True, exist_ok=True)
     runs = {}
     for version in ('us','jp'):
         output = args.output/(version+'.json')
         command = [sys.executable, '-X', 'utf8', str(Path(__file__).resolve()), '--worker', version, '--worker-output', str(output.resolve())]
+        if args.program_dispatch:
+            command.append('--program-dispatch')
+        if args.live_dispatch:
+            command.append('--live-dispatch')
+        if args.supplemental is not None:
+            command.extend(['--supplemental',str(args.supplemental.resolve())])
         start = time.perf_counter()
         try:
             proc = subprocess.run(command, capture_output=True, text=True, timeout=args.timeout)
@@ -240,18 +289,26 @@ def main():
             runs[version] = dict(version=version, status='worker-timeout', completeUpdates=0,
                 survivingPossibilities=None, elapsedSeconds=time.perf_counter()-start,
                 blocker=dict(reason='worker-time-limit', seconds=args.timeout))
-    report = dict(status='No complete one-update preimage; no two/four-update scaling measurement.',
+    report = dict(status='No complete one-update preimage; requested horizons were not reached.',
         method='Merged finite-execution loop preimages and shared actual-body call relations within the real object-update prefix. Unknown native receivers and undischarged runtime domains block completion; no arbitrary call gets an identity frame.',
         runtime=dict(python=platform.python_version(), system=platform.system()),
-        requestedUpdates=[1,2,4], oneUpdatePrerequisite=runs,
-        laterUpdates=[dict(updates=n,status='not-run',reason='The one-update coverage gate did not complete.',survivingPossibilities=None) for n in (2,4)],
+        requestedUpdates=args.updates, nominalUpdatesPerSecond=30,
+        requestedGameSeconds=[n/30 for n in args.updates],
+        completedUpdates=0, survivingPossibilities=None,
+        priceEstimates={str(n):None for n in (90,150,300)},
+        priceEstimateReason='No complete update or growth measurement. Do not extrapolate the failed prerequisite duration.',
+        programDispatch=args.program_dispatch, liveDispatch=args.live_dispatch, oneUpdatePrerequisite=runs,
+        laterUpdates=[dict(updates=n,status='not-run',reason='The one-update coverage gate did not complete.',survivingPossibilities=None) for n in args.updates if n != 1],
         interpretation='Reported time/memory measure the failed prerequisite attempt only. Partial path counts are syntax states, not surviving gameplay possibilities. This diagnoses missing execution coverage, not computational impossibility of gameplay or of a complete solver.',
         implementationHashes={name:hashlib.sha256(Path(__file__).with_name(name).read_text(encoding='utf-8').encode()).hexdigest()
-            for name in ('clight.py','engine.py','search.py','benchmark_updates.py','loop_engine.py','relational_engine.py','loop_probe.py','test_benchmark.py','test_loops.py','test_relational.py')})
+            for name in ('clight.py','engine.py','search.py','benchmark_updates.py','loop_engine.py','relational_engine.py','program_image.py','live_dispatch.py','loop_probe.py','test_benchmark.py','test_loops.py','test_relational.py')})
     if any(run['completeUpdates'] != 0 for run in runs.values()):
         raise RuntimeError('Extend the real frame composition before reporting multi-update coverage')
     (args.output/'report.json').write_text(json.dumps(report,indent=2)+'\n',encoding='utf-8')
     print('RECORDED: coverage blocker; complete-update timings and surviving counts remain unavailable.',flush=True)
+    # A saved diagnostic is not a successful search. Supervising jobs must not
+    # mistake a cleanly reported blocker for completion of the requested depth.
+    raise SystemExit(2)
 
 
 if __name__ == '__main__': main()

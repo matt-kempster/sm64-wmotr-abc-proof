@@ -17,6 +17,7 @@ class RelationalEngine(LoopEngine):
         self.sqrtf_binding = kwargs.pop('sqrtf_binding',False)
         self.catalog_native = kwargs.pop('catalog_native',False)
         self.program_dispatch = kwargs.pop('program_dispatch',False)
+        self.live_dispatch = kwargs.pop('live_dispatch',False)
         supplemental = kwargs.pop('supplemental',None)
         supplemental_modules = kwargs.pop('supplemental_modules',None)
         super().__init__(version,auto_calls=True,**kwargs)
@@ -31,6 +32,9 @@ class RelationalEngine(LoopEngine):
         self.current_record = None
         self.call_edges = {}
         self.image = None
+        self.dispatch_receipts = []
+        self.dispatch_entry = None
+        self.resolving_dispatch = False
         self.source_paths = {} if supplemental is None else {
             'supplemental/'+p.stem[len(version)+1:]:p
             for p in supplemental.glob(version+'_*.v')
@@ -143,14 +147,27 @@ class RelationalEngine(LoopEngine):
         dest,callee,actual = statement.args
         if callee.tag != 'Evar':
             if self.image is not None:
-                symbols = self.image.compatible(self.typeof(callee), scope.function.unit)
+                if self.live_dispatch and not self.resolving_dispatch:
+                    from live_dispatch import resolve_live_call
+                    # A root entry constraint cannot be borrowed by a shared
+                    # callee after intervening memory effects.
+                    context, body = z.BoolVal(True), scope.function.body
+                    if self.dispatch_entry is not None and self.dispatch_entry[0] is scope:
+                        _, context, body = self.dispatch_entry
+                    symbols, receipt = resolve_live_call(self,scope,statement,
+                        context=context,body=body)
+                    receipt['path'] = path
+                    self.dispatch_receipts.append(receipt)
+                else:
+                    symbols = self.image.compatible(self.typeof(callee), scope.function.unit)
                 names = [entry.name for entry in symbols]
                 missing = [entry.name for entry in symbols if not entry.internal]
                 if missing:
-                    self.block('indirect-external-bodies-missing',scope,path,statement,
+                    self.block('live-indirect-targets-unresolved' if self.live_dispatch else 'indirect-external-bodies-missing',scope,path,statement,
                         signature=str(self.typeof(callee)), missing=missing,
                         internalTargets=len(symbols)-len(missing),
-                        explanation='Compatible external declarations remain in the actual linkage; they cannot be removed from live pointer lookup.')
+                        explanation='The actual pointer preimage still permits missing-body alternatives. No source initializer or earlier memory preservation was assumed.' if self.live_dispatch else
+                        'Compatible external declarations remain in the actual linkage; they cannot be removed from live pointer lookup.')
             else:
                 names = self.source_table_targets(scope,callee)
             if names is None:
@@ -255,8 +272,21 @@ class RelationalEngine(LoopEngine):
             self.relation_receipts.append(dict(function=fn.name,source=fn.digest))
             self.check_local_reentrancy()
 
-    def start(self,function,goal,body=None):
-        scope,paths = super().start(function,goal,body)
+    def start(self,function,goal,body=None,*,entry_condition=None):
+        if not self.live_dispatch:
+            if entry_condition is not None:
+                raise ValueError('Explicit entry context requires live_dispatch')
+            scope,paths = super().start(function,goal,body)
+        else:
+            scope = Scope(self,function)
+            body = function.body if body is None else body
+            context = z.BoolVal(True) if entry_condition is None else entry_condition
+            self.dispatch_entry = (scope,context,body)
+            try:
+                paths = self.wp(body,[Path(goal)],scope)
+                paths = self.guard(paths,context,'explicit-entry-condition')
+            finally:
+                self.dispatch_entry = None
         self.compile_pending()
         if self.indirect_domains or self.library_domains:
             self.block('explicit-runtime-domains-not-discharged',scope,'body',function.body,
