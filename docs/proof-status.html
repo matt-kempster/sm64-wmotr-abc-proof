@@ -64,7 +64,7 @@ mechanically-translated (<code>clightgen</code>) C of the actual game, that WMot
 unreachable under never-press-A inputs. It splits into two goals.</p>
 <div class="statusline">
   <span><span class="pill p-proved">GOAL 1 · COMPLETE</span>&ensp;no-A ⇒ Mario never enters a flying action</span>
-  <span><span class="pill p-open">GOAL 2 · ACTIVE</span>&ensp;without flying, Mario’s height stays below the star</span>
+  <span><span class="pill p-open">GOAL 2 · ON THE SPINE</span>&ensp;without flying, Mario’s height stays below the star</span>
   <span>Last updated <b>2026-09-26</b></span>
 </div>
 
@@ -185,43 +185,47 @@ The target invariant is a <b>height bound</b>: <code>m→pos[1] ≤ H*</code> fo
 with the star’s grab window above <code>H*</code> (real moat ≈ 622 units, margin ≈ 349 after the
 pole-grab correction). The frame is widened to the <em>real game frame</em> by composition:</p>
 <div class="flow">
+  <div class="box seg"><b>seg_input</b><span class="sub">controller poll<br>spec: carries MWF only if A not pressed</span></div>
+  <div class="arrow">∘</div>
   <div class="box seg"><b>seg_platform</b><span class="sub">platform displacement<br>spec: y-inert (NULL-or-wingcap-box)</span></div>
   <div class="arrow">∘</div>
-  <div class="box seg proved-core"><b>seg_action</b><span class="sub">GOAL-1’s proven frame, verbatim<br><code>execute_mario_action_step_lp</code></span></div>
+  <div class="box seg proved-core"><b>seg_action</b><span class="sub">GOAL-1’s proven frame, verbatim<br><code>frame_ok_linked12</code></span></div>
   <div class="arrow">∘</div>
-  <div class="box seg"><b>seg_level</b><span class="sub">level script / warps<br>spec: teleport writers censused</span></div>
+  <div class="box seg"><b>seg_level</b><span class="sub">level script / warps<br>spec: action untouched</span></div>
   <div class="arrow">∘</div>
   <div class="box seg"><b>seg_rest</b><span class="sub">object interactions<br>spec: no y-write; action unchanged <em>or</em> := READING_NPC_DIALOG (grounded, non-flying)</span></div>
 </div>
-<p class="small">Both glue theorems (<code>frame_step_preserves_mem_ok</code>, <code>frame_step_keeps_y_le</code>)
-are proved in the sandbox, zero admits. The flanking specs were <em>falsified twice</em> by censuses
-(carpets ≠ WMotR; the bobomb-buddy action write) and refined — five phantom rows caught before they were assumed.</p>
+<p><b>On the spine</b> (2026-09-27): <code>WMotRRequiresA/HeightFrame.v</code>,
+capstone <code>wmotr_noA_height_bound_linked12</code>, passes the discipline audit and uses only standard axioms. Over any
+twelve-TU link: a run whose controller A bit is clear after every poll, starting GOAL-1-well-formed
+and inside the height invariant Φ, keeps <code>pos[1] ≤ YMAX</code>. The Mario segment is GOAL 1’s
+<em>proved</em> frame (new per-frame export <code>frame_ok_linked12</code>), not a restatement. The playground’s
+flank rows were <em>false as stated</em>: they quantified over every post-memory, not just ones the game
+produces. They were rewritten as labeled specs that carry the invariants. The playground’s y-row was false too:
+<code>y ≤ YMAX</code> alone says nothing about upward velocity. It became the invariant row below.</p>
 
-<h3>Open hypothesis rows (the GOAL-2 scoreboard)</h3>
+<h3>Open rows (the GOAL-2 scoreboard)</h3>
 <div class="tablewrap"><table>
   <tr><th>Row</th><th>Track</th><th>Status</th><th>What discharges it</th></tr>
-  <tr><td><code>Hseg_action_y</code></td><td>T3</td>
+  <tr><td><code>Φ</code> (parameter)</td><td>T3</td>
       <td><span class="pill p-open">the crux</span></td>
-      <td>GOAL-1’s frame also bounds the y it writes. Prototype <b>landed</b>: one ballistic
-      quarter-step walked end-to-end, stored value ≤ Y+V/4 via exact binary32 Flocq bricks.
-      Next: loop generalization (×4 quarter-steps + gravity) — where the interval-env design earns its keep.</td></tr>
-  <tr><td><code>Hmiddle</code></td><td>T0</td>
-      <td><span class="pill p-assumed">restatement</span></td>
-      <td>seg_action really is GOAL-1’s step relation — definitional glue, discharged when the frame is rooted at the real caller.</td></tr>
-  <tr><td><code>Hmwf_platform / _level / _rest</code></td><td>T0/T1</td>
-      <td><span class="pill p-assumed">transport rows</span></td>
-      <td>Flank segments preserve the MWF invariant’s watched cells — walkable once each flank’s code is in the link (rungs 2–3).</td></tr>
-  <tr><td><code>Hteleport_y</code></td><td>T4</td>
-      <td><span class="pill p-assumed">census next</span></td>
-      <td>Level-phase teleport writers (<code>check_instant_warp</code> linked; <code>init_mario</code> is the antecedent) land below H*.</td></tr>
-  <tr><td><code>BP-INIT / BP-SEG-NULL / BP-SEG-BOX / BP-SURF-OBJ</code></td><td>T1</td>
-      <td><span class="pill p-boundary">platform boundary</span></td>
-      <td><code>gMarioPlatform</code> starts NULL and only ever names a wing-cap box whose y-write is
-      inert (boxes never spin). <code>BP-INIT</code> becomes a <code>gvar_init</code> fact after clightgen’ing
-      <code>platform_displacement.c</code> (rung 3); box-motionless half walkable today.</td></tr>
-  <tr><td><code>Hnoa_of_mwf</code></td><td>T0</td>
-      <td><span class="pill p-assumed">plumbing</span></td>
-      <td>Interface glue between the sandbox’s MWF bundle and the no-A input fact.</td></tr>
+      <td>Strategy v2’s invariant: Φ_act ∧ Φ_ground ∧ Φ_air ∧ Φ_special over
+      Pot = y + ballistic(vel[1]) + windup. Must be defined from the real <code>MarioState</code> fields.</td></tr>
+  <tr><td><code>Hseg_action_phi</code></td><td>T2/T3</td>
+      <td><span class="pill p-open">the crux</span></td>
+      <td>One real <code>execute_mario_action</code> frame preserves Φ. Prototype <b>landed</b> (playground): one
+      ballistic quarter-step walked end-to-end, stored value ≤ Y+V/4 via exact binary32 Flocq bricks.
+      Next: loop generalization (×4 quarter-steps + gravity).</td></tr>
+  <tr><td><code>Hphi_y</code></td><td>T3</td>
+      <td><span class="pill p-assumed">immediate</span></td>
+      <td>Φ ⇒ y ≤ YMAX: Pot ≥ y, once Φ is defined.</td></tr>
+  <tr><td>flank specs (poll / platform / level / rest)</td><td>T1/T4</td>
+      <td><span class="pill p-boundary">labeled specs</span></td>
+      <td>Each flank’s y/action clauses come from the censuses; its MWF/Φ carry becomes walkable once that code
+      is in the link (rungs 2–3). <code>BP-INIT / BP-SEG-NULL / BP-SEG-BOX / BP-SURF-OBJ</code> (T1) ground the platform spec.</td></tr>
+  <tr><td>YMAX, coin link</td><td>E1–E3</td>
+      <td><span class="pill p-assumed">level data</span></td>
+      <td>YMAX = H* + Δ_pot (273). Coin #2 at y = 3140 needs y ≥ 2980. Both come from level data, not generated/ yet.</td></tr>
 </table></div>
 
 <h3>The ladder to the real per-frame entry point</h3>

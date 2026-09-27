@@ -215,6 +215,11 @@ proofs/NoAImpliesNoFly/NoAImpliesNoFlyLinked.v
 #     linked12 chain premise; 56 -> 43 rows) ---
 proofs/NoAImpliesNoFly/NoAImpliesNoFlyTwelve.v
 
+# --- GOAL 2 capstone, height form (SPINE: the T0 composition frame promoted
+#     from playground/; seg_action = GOAL 1's frame_ok_linked12, the flank
+#     and y rows are named open hypotheses) ---
+proofs/WMotRRequiresA/HeightFrame.v
+
 # --- executable Clight: interpreter (sound vs ClightBigstep), vm-computable
 #     memory ops (= Mem.*), computable linked genv (= globalenv lp), memory builder ---
 proofs/Interp/CMem.v

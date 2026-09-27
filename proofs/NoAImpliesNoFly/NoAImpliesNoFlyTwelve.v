@@ -251,4 +251,35 @@ Section NoAImpliesNoFlyTwelve.
     apply Forall_forall; reflexivity.
   Qed.
 
+  (* THE PER-FRAME EXPORT over any twelve-TU link (GOAL 2's seg_action
+     middle): one real execute_mario_action frame preserves mem_ok_lp,
+     on exactly the assumed surface of the capstone above. *)
+  Lemma frame_ok_linked12 :
+    forall m m',
+      mem_ok_lp bm MWF m ->
+      execute_mario_action_step_lp lp m m' ->
+      mem_ok_lp bm MWF m'.
+  Proof.
+    exact (frame_ok_real_mwf lp
+             (linked12_LO_mario lp H12)
+             bm bc oc0 SafeB
+             HSafeB_sym_iff Hspawn
+             Hocp_find_floor Hocp_find_ceil Hwolcp_fwc Hscp_v3f Hscp_v3s
+             Hwlcp_v3f_real WL_exempt
+             (linked12_LO_sta lp H12) (linked12_LO_mov lp H12)
+             (linked12_LO_air lp H12) (linked12_LO_sub lp H12)
+             (linked12_LO_cut lp H12) (linked12_LO_aut lp H12)
+             (linked12_LO_obj lp H12) (linked12_LO_int lp H12)
+             (linked12_LO_beh lp H12) (linked12_LO_lvl lp H12)
+             (linked12_LO_stp lp H12)
+             (linked12_ext_pin lp H12)
+             Hpres_sta_ext Hpres_mov_ext Hcpx_approach_f32_real
+             Hw1cp_v3sset_real Hglob_obj_root Hpres_obj_ext Hpres_cut_ext
+             Hxcp_fwl_real Hscp_geo_real Hocp_rai_real Hcpx_approach_real
+             Holcp_fwc_real Hw1cp_v3f_real Hwolcp_v3f_real Hw1cp_v3fset_real
+             Hscp_v3fset_real Hpres_floors_ext
+             Hcp_spawn_real Hcp_savefile_real Hcpx_ibcd_real Hcpx_tbs_real
+             Hpres_warp_ext Hext_action Hmwf_ext).
+  Qed.
+
 End NoAImpliesNoFlyTwelve.

@@ -1,44 +1,36 @@
-# `WMotRRequiresA/` — GOAL 2 (the grand prize): WMotR cannot be done with 0 A presses
+# `WMotRRequiresA/` — GOAL 2: WMotR cannot be done with 0 A presses
 
-**Status: not started.** No Coq here yet — this directory marks the *eventual*
-target and what must be proved to reach it. Goal 1 (`../NoAImpliesNoFly/`) lands
-first; this goal builds on it.
+**Status: height form on the spine** (`HeightFrame.v`, capstone
+`wmotr_noA_height_bound_linked12`). It is a conditional theorem whose open rows are named.
 
 ## The claim
 
-The **Wing Mario over the Rainbow** star cannot be collected without pressing the
-A button — a formal A-Button-Challenge (ABC) impossibility result for this one
-SM64 star:
+> For every run that collects the WMotR (Wing Mario over the Rainbow) red-coin
+> star, the input sequence contains at least one A press.
 
-> For every run that collects the WMotR star, the input sequence contains at
-> least one A press.
-
-## The argument chain (from `docs/ROADMAP.md`)
+## The argument (strategy v2, `docs/goal2-strategy-v2-2026-07-01.md`)
 
 ```
-WMotR star collected  (with 0 A presses)                       ← to refute
-  └─ requires all 8 red coins → spawns bhvHiddenRedCoinStar    (level fact)
-       └─ the high red coins require altitude
-            └─ that altitude requires ACT_FLYING (wing-cap flight)
-                 └─ entering ACT_FLYING requires an A press     ← GOAL 1 (../NoAImpliesNoFly/)
-  ∴ collecting WMotR requires an A press.
+star needs all 8 red coins → coin #2 (y = 3140) must be touched
+  └─ touching needs pos[1] ≥ 3140 − 160 (hitbox)
+       └─ a no-A run keeps pos[1] ≤ YMAX = H* + Δ_pot < 2980   ← HeightFrame.v
+            └─ Mario's own frame preserves GOAL 1's invariant   ← GOAL 1 (frame_ok_linked12)
 ```
 
-GOAL 1 supplies the bottom limb (`noA_no_spawn_never_flying`). This goal must
-formalize the upper limbs and compose them.
+## What `HeightFrame.v` proves
 
-## What belongs here (the work, roughly bottom-up)
+One game frame = controller poll ∘ platform displacement ∘ **one real
+`execute_mario_action` over any twelve-TU link** ∘ level phase ∘ objects. The
+Mario segment's preservation of GOAL 1's invariant is the proved
+`NoAImpliesNoFlyTwelve.frame_ok_linked12`, not an assumption. The composition is proved.
 
-- **Altitude ⇒ ACT_FLYING.** A no-A run never enters `ACT_FLYING` (GOAL 1) ⇒ never
-  gains wing-cap altitude. Needs a link from "not flying" to a height/position bound.
-- **High red coins ⇒ altitude.** The 8th/high red coins sit above the
-  reachable-without-flight ceiling (level-geometry fact about the WMotR area).
-- **Star ⇒ 8 red coins.** `bhvHiddenRedCoinStar` only spawns once all 8 are
-  collected (behavior/level fact).
-- **Composition.** Chain the above with GOAL 1 into the capstone
-  `wmotr_requires_A` (state it here when GOAL 1 is solid).
+## What is still open
 
-Drop proved-but-not-yet-wired pieces into `Unwired/` (mirrors GOAL 1's layout).
+- `Phi`: the height invariant. It is a **parameter** until T3 defines it (strategy v2's Φ over
+  Pot = y + ballistic(vel[1]) + windup).
+- `Hseg_action_phi` (the crux, T3): one real Mario frame preserves Φ.
+- `Hphi_y`: Φ ⇒ y ≤ YMAX. This is immediate once Φ is defined.
+- The four flank specs (TRUST.md 0.7) are labeled trust: that code isn't linked.
+- The value of YMAX and the coin/star link at the top of the chain (TRUST.md 0.3).
 
-See also: `docs/must-press-a-to-fly.md`, `docs/wmotr-argument-shape` (memory),
-`docs/ROADMAP.md`.
+Prototypes still live in `playground/` (T1 PlatformInert, T2 FloatBrick, T3 ValueWalk).

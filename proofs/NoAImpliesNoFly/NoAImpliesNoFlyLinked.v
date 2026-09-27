@@ -350,6 +350,26 @@ Section NoARealInput.
              input_grounds_noA_real init is m Hinit HnoA Hns Hreach).
   Qed.
 
+  (* THE PER-FRAME EXPORT (GOAL 2 consumes this as its seg_action middle):
+     one real eval_funcall of execute_mario_action preserves mem_ok_lp.
+     No input premise -- the no-A fact the frame needs is a PROJECTION of
+     the carried invariant (Hnoa_of_mwf), so it is read off mem_ok itself. *)
+  Lemma frame_ok_real :
+    forall m m',
+      mem_ok_lp bm MWF m ->
+      execute_mario_action_step_lp lp m m' ->
+      mem_ok_lp bm MWF m'.
+  Proof.
+    intros m m' (Hv & Hsat & HMWF) Hst.
+    destruct (execute_mario_action_preserves_real_reached_lp lp LO_mario
+                not_tainted bm NoA_real MWF SafeB reached_id reached_fd m m'
+                Hreach_val Hnoa_of_mwf Hmobj_of_mwf Hgms_of_mwf
+                Hchase_safe Hstore_safe Hbcr Hbodyrck
+                (Hnoa_of_mwf m HMWF) HMWF Hv Hsat Hst)
+      as (_ & Hv' & Hs' & HMWF').
+    exact (conj Hv' (conj Hs' HMWF')).
+  Qed.
+
 End NoARealInput.
 
 (* ====================================================================== *)
@@ -581,6 +601,26 @@ Section NoARealInputV2.
       ~ mem_flying_lp bm m.
   Proof.
     exact (noA_no_spawn_never_flying_real lp LO_mario bm MWF spawn_flying
+             root_RID (reached_v2 lp) SafeB
+             (reach_value_preserves_reached_v2 lp LO_mario bm SafeB
+                (NoA_real bm) MWF
+                Hmwf_inp Hmwf_ctl HactVint HPgms HchaseRoot HchaseStep
+                HSafeNotBm Hmwf_window Hmwf_input Hmwf_glob Hmwf_chase
+                Hmwf_umbi WL_exempt Hrest_pres
+                Hext_action Hmwf_ext Hmwf_entry Hmwf_free Hmwf_ctl)
+             Hmwf_ctl Hmobj_of_mwf Hgms_of_mwf Hchase_safe Hstore_safe
+             (root_call_resolves lp LO_mario)
+             root_body_reach_chk).
+  Qed.
+
+  (* the per-frame export at the concrete reached set (see frame_ok_real) *)
+  Lemma frame_ok_real_v2 :
+    forall m m',
+      mem_ok_lp bm MWF m ->
+      execute_mario_action_step_lp lp m m' ->
+      mem_ok_lp bm MWF m'.
+  Proof.
+    exact (frame_ok_real lp LO_mario bm MWF
              root_RID (reached_v2 lp) SafeB
              (reach_value_preserves_reached_v2 lp LO_mario bm SafeB
                 (NoA_real bm) MWF
@@ -2495,16 +2535,18 @@ Section NoARealInputMWF.
   (* the carried invariant is the concrete MWF_real -- its 14 projection/ *)
   (* stability hypotheses are PROVED, not assumed.                        *)
   (* ==================================================================== *)
-  Theorem noA_no_spawn_never_flying_real_mwf :
-    forall (init : mem) (is : list mem) (m : mem),
-      mem_ok_lp bm MWF init ->
-      Forall (fun i => a_pressed_real bm i = false) is ->
-      Forall (fun i => spawn_flying i = false) is ->
-      reachable mem mem (step_real lp) init is m ->
-      ~ mem_flying_lp bm m.
+  (* THE PER-FRAME EXPORT at the concrete MWF_real (GOAL 2's seg_action
+     middle consumes this): one real execute_mario_action frame preserves
+     mem_ok_lp.  The capstone below is re-derived from it by the generic
+     run harness (ReachableRun.noA_run_not_flying). *)
+  Lemma frame_ok_real_mwf :
+    forall m m',
+      mem_ok_lp bm (MWF_real lp bm bc oc0 SafeB) m ->
+      execute_mario_action_step_lp lp m m' ->
+      mem_ok_lp bm (MWF_real lp bm bc oc0 SafeB) m'.
   Proof.
-    exact (noA_no_spawn_never_flying_real_v2 lp LO_mario bm SafeB
-             (MWF_real lp bm bc oc0 SafeB) spawn_flying
+    exact (frame_ok_real_v2 lp LO_mario bm SafeB
+             (MWF_real lp bm bc oc0 SafeB)
              (mwf_real_inp lp bm bc oc0 SafeB)
              (mwf_real_ctl lp bm bc oc0 SafeB)
              (mwf_real_act_vint lp bm bc oc0 SafeB)
@@ -3374,6 +3416,25 @@ Section NoARealInputMWF.
              (mwf_real_free lp bm bc oc0 SafeB Hbc_bm)
              (fun gb Hgb => proj2 (proj2 (Hgms_blk gb Hgb)))
              Hchase_safe Hstore_safe).
+  Qed.
+
+  Theorem noA_no_spawn_never_flying_real_mwf :
+    forall (init : mem) (is : list mem) (m : mem),
+      mem_ok_lp bm MWF init ->
+      Forall (fun i => a_pressed_real bm i = false) is ->
+      Forall (fun i => spawn_flying i = false) is ->
+      reachable mem mem (step_real lp) init is m ->
+      ~ mem_flying_lp bm m.
+  Proof.
+    intros init is m Hinit HnoA _ Hreach.
+    eapply (noA_run_not_flying mem mem (a_pressed_real bm) (step_real lp)
+              (mem_flying_lp bm) (mem_ok_lp bm MWF) init).
+    - exact Hinit.
+    - intros i s s' _ Hphi Hst.
+      exact (frame_ok_real_mwf s s' Hphi (step_real_steps lp i s s' Hst)).
+    - exact (mem_ok_not_flying_lp bm MWF).
+    - exact HnoA.
+    - exact Hreach.
   Qed.
 
 End NoARealInputMWF.

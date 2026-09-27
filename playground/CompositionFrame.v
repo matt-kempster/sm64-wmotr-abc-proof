@@ -1,3 +1,5 @@
+(* PROMOTED 2026-09-27 -> proofs/WMotRRequiresA/HeightFrame.v (spine).  Kept   *)
+(* as the T0 history; the promoted file fixes two false-as-stated row kinds.  *)
 (* ======================================================================= *)
 (*  GOAL-2 T0 — the SEGMENT-COMPOSITION frame skeleton.                     *)
 (*  (docs/goal2-real-frame-plan.md §0/§3-T0; scout cites =                  *)
