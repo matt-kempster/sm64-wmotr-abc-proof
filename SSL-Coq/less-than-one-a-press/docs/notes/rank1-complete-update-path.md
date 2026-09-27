@@ -1,4 +1,4 @@
-# Rank 1: one complete conditional update path
+# Rank 1: a supplied-scene update completes; the backward search remains open
 
 27 September 2026. **The application now completes a controller-to-retention
 path in both US and JP, including the live native callback.** It reverses all
@@ -6,6 +6,21 @@ the effects on that path and checks its predecessor condition. This is an
 application milestone on a supplied scene, not a newly reachable Ink setup,
 an exhaustive collection of predecessors, or a new Coq theorem. Reverse
 Scattershot has not been started. Rank 1 stays at its subjective 1–2%.
+
+## Did the requested one-update search finish?
+
+**No. One chosen update ran end to end, but the requested backward search
+did not finish.** Calling this just a “complete one-update run” blurred two
+different milestones. The successful test starts with the useful gap and
+support already supplied; it does not discover how to obtain them.
+
+When the broader solver attempts did not finish, the implementation switched
+to following a supplied scene and reversing that selected execution path.
+That checks a conditional predecessor and exercises the repaired application.
+It is a narrower fallback, not completion of the original search over
+possible predecessors. The unresolved solver attempts are unknown results,
+not evidence that the other possibilities fail. No new search or proof was
+performed for this status clarification.
 
 ## What completes
 

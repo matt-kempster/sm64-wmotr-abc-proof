@@ -1,6 +1,6 @@
 # Rank 1: floor traversal repaired; one complete update is still unfinished
 
-**Follow-up:** the [conditional full-interval path checker](rank1-complete-update-path.md) now completes both US/JP controller-to-retention paths, including live callbacks. It uses a supplied scene and does not close exhaustive predecessor coverage or gameplay reachability. The earlier measurements and limitations below are retained as that earlier result.
+**Follow-up and status clarification:** the [conditional full-interval path checker](rank1-complete-update-path.md) now completes both US/JP controller-to-retention paths, including live callbacks. This is a test starting with the gap and support already supplied. The originally requested one-update backward search remains unfinished; the broader solving attempts did not complete. The earlier measurements and limitations below are retained as that earlier result.
 
 27 September 2026. **The floor-list implementation blocker is fixed in the
 exploratory application. The requested complete one-update run is not done.**
