@@ -18,7 +18,7 @@ Sources (cite file:line):
   - vendor/sm64/levels/wmotr/areas/1/collision.inc.c   (vertex + triangle lists)
   - vendor/sm64/levels/wmotr/areas/1/macro.inc.c        (boxes, coins, objects)
   - vendor/sm64/levels/wmotr/script.c:65                (MARIO_POS spawn)
-  - vendor/sm64/actors/exclamation_box_outline/collision.inc.c (box: top face y=+52)
+  - vendor/sm64/actors/exclamation_box_outline/collision.inc.c (box: top face y=+52, x2 object scale = +104)
   - vendor/sm64/src/engine/surface_load.c:113-126       (floor iff normal.y > 0.01)
   - vendor/sm64/src/engine/surface_load.c:322-352       (normal from vertex winding)
 
@@ -43,9 +43,12 @@ COLLISION = os.path.join(REPO, "vendor/sm64/levels/wmotr/areas/1/collision.inc.c
 
 # --- spawn & object data (cited; positions are literal, no scaling) ----------
 SPAWN = (-67, 1669, -16)          # script.c:65 MARIO_POS
-BOX_TOP_OFFSET = 52               # exclamation_box_outline/collision.inc.c:11-14 (top face y = +52)
+BOX_TOP_OFFSET = 104              # exclamation_box_outline/collision.inc.c top face y = +52, SCALED x2:
+                                  # bhv_exclamation_box_loop calls cur_obj_scale(2.0f) (exclamation_box.inc.c:176)
+                                  # and transform_object_vertices applies obj_apply_scale_to_matrix (surface_load.c:680).
+                                  # Was +52 until 2026-09-27 (H* 2372 -> 2424).
 
-# macro.inc.c wing-cap boxes (macro_box_wing_cap): pos = oHomeY; dynamic floor top = y+52
+# macro.inc.c wing-cap boxes (macro_box_wing_cap): pos = oHomeY; dynamic floor top = y+104
 WING_CAP_BOXES = [  # (x, y, z, macro.inc.c line)
     (-400, 1960, -120, 15),
     (-240, -1080, 4520, 16),
@@ -219,7 +222,7 @@ def main():
 
     # box tops (dynamic floors)
     box_tops = [(y + BOX_TOP_OFFSET, ln, (x, y, z)) for (x, y, z, ln) in WING_CAP_BOXES]
-    print("\n# wing-cap box tops (dynamic floors, oHomeY+52):")
+    print("\n# wing-cap box tops (dynamic floors, oHomeY+104):")
     for top, ln, pos in sorted(box_tops):
         print(f"#   top y={top:6d}  (box home {pos}, macro.inc.c:{ln})")
 

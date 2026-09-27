@@ -22,6 +22,9 @@ generated/mario_step.v
 generated/mario_misc.v
 generated/math_util.v
 generated/surface_collision.v
+generated/wmotr_level_data.v
+generated/wmotr_script.v
+generated/macro_special_objects.v
 
 # --- shared infrastructure (used by GOAL 1; reusable) ---
 proofs/Generic/Frame.v
@@ -223,6 +226,7 @@ proofs/WMotRRequiresA/HeightInvariant.v
 proofs/WMotRRequiresA/HeightFloatSteps.v
 proofs/WMotRRequiresA/HeightBudgetArith.v
 proofs/WMotRRequiresA/HeightMoveCatalog.v
+proofs/WMotRRequiresA/WMotRLevel.v
 proofs/WMotRRequiresA/HeightFrame.v
 
 # --- executable Clight: interpreter (sound vs ClightBigstep), vm-computable

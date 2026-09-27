@@ -526,7 +526,7 @@ Qed.
 
 (* one windup add, pos[1] += yOffset (0 <= yOffset <= 20): rounds by < EPS *)
 Lemma windup_add : forall y o, F32 y = true -> F32 o = true ->
-  0 <= R2 o <= 20 -> -8192 <= R2 y <= 2744 ->
+  0 <= R2 o <= 20 -> -8192 <= R2 y <= 2796 ->
   F32 (Float32.add y o) = true /\ R2 (Float32.add y o) <= R2 y + R2 o + EPS.
 Proof.
   intros y o Fy Fo Ho Hy.

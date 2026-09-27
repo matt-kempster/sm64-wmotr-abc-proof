@@ -24,7 +24,7 @@ import zlib
 ORACLE = os.path.expanduser("~/sm64-oracle")
 MAP = f"{ORACLE}/decomp/build/us/sm64.us.map"
 
-K, A = 2372.0, 372.0
+K, A = 2424.0, 372.0  # K = H*: wing-cap box top 2320 + 104 (x2 scale); was 2372
 EPS = 1 / 64
 GP_RESERVE = 111.0
 FREEFALL, BSA, SK, GP = 0x0100088C, 0x0300088E, 0x018008AA, 0x008008A9

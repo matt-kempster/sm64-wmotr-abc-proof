@@ -35,7 +35,9 @@ GENERATED := generated/toy.v generated/shadow.v \
   generated/mario_actions_submerged.v generated/mario_actions_stationary.v \
   generated/mario_actions_cutscene.v generated/mario_actions_object.v \
   generated/mario_step.v generated/mario_misc.v \
-  generated/math_util.v generated/surface_collision.v
+  generated/math_util.v generated/surface_collision.v \
+  generated/wmotr_level_data.v generated/wmotr_script.v \
+  generated/macro_special_objects.v
 
 .PHONY: all generated proofs regen clean oracle-extract
 
@@ -108,6 +110,19 @@ generated/math_util.v: $(SM64)/src/engine/math_util.c pipeline/clightgen.sh pipe
 	$(CLIGHTGEN) $< $@ $(SM64_CGP)
 
 generated/surface_collision.v: $(SM64)/src/engine/surface_collision.c pipeline/clightgen.sh pipeline/proof_n64.h
+	$(CLIGHTGEN) $< $@ $(SM64_CGP)
+
+# GOAL-2 level data (TRUST.md 0.8): WMotR's terrain, macro objects and the
+# collision meshes of its two collision-bearing objects (a verbatim-#include
+# wrapper, pipeline/tu/), its level script (the pole OBJECTs), and the real
+# macro-preset table (preset id -> behavior).  Data only; no body is walked.
+generated/wmotr_level_data.v: pipeline/tu/wmotr_level_data.c pipeline/clightgen.sh
+	$(CLIGHTGEN) $< $@ $(SM64_CG)
+
+generated/wmotr_script.v: $(SM64)/levels/wmotr/script.c pipeline/clightgen.sh
+	$(CLIGHTGEN) $< $@ $(SM64_CG)
+
+generated/macro_special_objects.v: $(SM64)/src/game/macro_special_objects.c pipeline/clightgen.sh pipeline/proof_n64.h
 	$(CLIGHTGEN) $< $@ $(SM64_CGP)
 
 $(COQMAKEFILE): _CoqProject

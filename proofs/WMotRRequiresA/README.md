@@ -13,7 +13,7 @@
 ```
 star needs all 8 red coins → coin #2 (y = 3140) must be touched
   └─ touching needs pos[1] ≥ 3140 − 160 (hitbox)
-       └─ a no-A run keeps pos[1] ≤ 2744 < 2980          ← HeightFrame.v + HeightInvariant.v
+       └─ a no-A run keeps pos[1] ≤ 2796 < 2980          ← HeightFrame.v + HeightInvariant.v
             └─ Mario's own frame preserves GOAL 1's invariant   ← GOAL 1 (frame_ok_linked12)
 ```
 
@@ -32,7 +32,7 @@ Mario segment's preservation of GOAL 1's invariant is the proved
   new predicate. `R_noA` is still a parameter; the census is `docs/goal2-rnoa-census.md`.
 - `Hframe_is_move_chain`: the real frame's effect on Φ's cells is a chain of `HeightMoveCatalog` moves.
   This is the T3 value walk.
-- `wmotr_gap`, `wmotr_poles`: WMotR level data.
+- `wmotr_gap`, `wmotr_poles`: WMotR level data, **proved** in `WMotRLevel.v` (`wmotr_gap_proved`, `wmotr_poles_proved`).
 
 Also open:
 
@@ -41,10 +41,13 @@ Also open:
 
 ## Done
 
-- **Φ is concrete** (`HeightInvariant.v`, `height_invariant`). It is the budget y + credit ≤ 2372 + 372,
+- **Φ is concrete** (`HeightInvariant.v`, `height_invariant`). It is the budget y + credit ≤ 2424 + 372,
   over real MarioState cells plus `gfx.pos[1]`, with offsets and action ids pinned against
   the generated AST.
-- **`Hphi_y` is proved**, so YMAX = 2744.
+- **`Hphi_y` is proved**, so YMAX = 2796.
+- **Level data is generated and the rows are proved** (`WMotRLevel.v`): `wmotr_floor` and `wmotr_pole` are
+  decoded from clightgen'd terrain, macro objects and level script; the gap fact and the pole row are
+  `vm_compute` checks. It found that exclamation boxes are scaled ×2 (K 2372 → 2424).
 - **`HeightMoveCatalog.v`** defines the moves a frame can make (air step, ceiling cut, slide-kick
   signed energy, ground-pound windup, E3 switches, attach, floor refresh, OOB). Its
   `chain_keeps_budget` proves the budget for each one in binary32, using `HeightFloatSteps.v`

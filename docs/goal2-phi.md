@@ -40,6 +40,11 @@ E3 said Δ_pot = 273 (the bounce at g 4, plus the +78 snap). It had two errors:
    "freefall is only entered descending, so GP never stacks on an apex" is false
    for this edge: bounce apex 195 + GP windup 110 = **305**.
 
+**Update 2026-09-27 (level data in generated/):** the exclamation box is scaled ×2, so its top is
+y + 104, not y + 52. H* is **2424** (the wing-cap box at y = 2320), YMAX = **2796**, the coin #2 margin
+is **+184** and the pole-window margin **+198**. The gap fact still holds (no floor in (2424, 3046)).
+The numbers below predate this.
+
 **Consequences.** H* is unchanged (2372, entry-seeded): with attach 494 the ladder
 still stops below the next rung at 2994.
 
@@ -62,8 +67,8 @@ Fields, with offsets from `include/types.h` (to be pinned by `vm_compute` agains
 - `vel[1]` @ 0x4C
 - `floorHeight` @ 0x70
 
-Constants: K = H* = 2372 and A = 372: the SK-bounce apex 370.5625 in the
-energy form below, plus the rounding allowance (0.89 at the bounce). YMAX = K + A = **2744**.
+Constants: K = H* = 2424 (was 2372; see the update above) and A = 372: the SK-bounce apex 370.5625 in the
+energy form below, plus the rounding allowance (0.89 at the bounce). YMAX = K + A = **2796**.
 
 **Rounding allowance EPS = 1/64 per remaining ascent frame.** Real arithmetic conserves
 y + energy exactly. In binary32 each rising frame (4 roundings of `pos += vel/4`, one of

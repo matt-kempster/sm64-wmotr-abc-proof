@@ -9,8 +9,8 @@
 (* grounded and anchored modes -- the whole budget A (so y <= K there).     *)
 (* Plus the side facts the bounces and the ledge need.                      *)
 (*                                                                          *)
-(*   K = H* = 2372   the floor-ladder fixpoint (tools/goal2_ladder.py,      *)
-(*                   entry-seeded; level data, not yet in generated/)       *)
+(*   K = H* = 2424   the floor-ladder fixpoint (tools/goal2_ladder.py,      *)
+(*                   entry-seeded; the wing-cap box top 2320 + 104)         *)
 (*   A = 372         the no-A budget: slide-kick bounce apex 370.5625 in    *)
 (*                   the energy form, plus the binary32 rounding allowance  *)
 (*                   EPS per remaining ascent frame (0.89 at the bounce)    *)
@@ -167,9 +167,9 @@ Proof. vm_compute. auto. Qed.
 (* -----------------------------------------------------------------------  *)
 Local Open Scope R_scope.
 
-Definition PHI_K : R := 2372.
+Definition PHI_K : R := 2424.
 Definition PHI_A : R := 372.
-Definition PHI_YMAX : R := PHI_K + PHI_A.    (* 2744 < 3140 - 160 = 2980 *)
+Definition PHI_YMAX : R := PHI_K + PHI_A.    (* 2796 < 3140 - 160 = 2980 *)
 
 (* energy_g v = (v + g/2)^2 / (2g): exactly conserved by a frame
    y += v; v -= g   (energy g (v - g) = energy g v - v). *)

@@ -1,7 +1,8 @@
 # GOAL 2: decomposing the crux row `Hseg_action_phi` (2026-09-27)
 
 **Status: built.** `Hseg_action_phi` is now the lemma `HeightFrame.seg_action_phi`, from
-`Hframe_stays_noA`, `Hframe_is_move_chain`, `wmotr_gap` and `wmotr_poles`. The moves are the `Step`
+`Hframe_stays_noA`, `Hframe_is_move_chain`, and the level facts `wmotr_gap` and `wmotr_poles`, which are
+now proved from generated level data (`WMotRLevel.v`, K = 2424). The moves are the `Move`
 constructors in `proofs/WMotRRequiresA/HeightMoveCatalog.v`, and `chain_keeps_budget` proves them.
 The design below is kept for reference. §"As built" at the end lists what changed on the
 way.

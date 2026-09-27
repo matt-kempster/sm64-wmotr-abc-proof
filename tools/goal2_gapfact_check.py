@@ -13,7 +13,7 @@ This script reuses goal2_ladder.py's parser/classifier (same data, same
 surface_load.c classification), then:
   1. lists every floor triangle whose range meets (H*, H*+MOAT) or straddles H*;
   2. reports the smallest margin (minY - H* for triangles wholly above H*);
-  3. checks wing-cap box tops (flat, y+52) and pole grab windows;
+  3. checks wing-cap box tops (flat, y+104) and pole grab windows;
   4. emulates the game's binary32 plane evaluation
      (surface_load.c:322-372 normal/originOffset, surface_collision.c:455)
      at every vertex and at integer points along every edge, and reports the
@@ -27,7 +27,7 @@ import numpy as np
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import goal2_ladder as L  # noqa: E402
 
-HSTAR = 2372
+HSTAR = 2424  # wing-cap box top 2320 + 104 (x2 scale); was 2372
 MOAT = 622
 F = np.float32
 
@@ -119,7 +119,7 @@ def main():
         for st, idx, v, mn, mx, nyn in sorted(above, key=lambda f: f[3])[:5]:
             print(f"   {st} tri{idx} [{mn},{mx}] ny={nyn:.3f}")
 
-    print("\n## wing-cap box tops (flat, oHomeY+52):")
+    print("\n## wing-cap box tops (flat, oHomeY+104):")
     for (x, y, z, ln) in L.WING_CAP_BOXES:
         t = y + L.BOX_TOP_OFFSET
         tag = "IN BAND!" if lo < t < hi else ("<=H*" if t <= lo else f"above, minus H* = {t - lo}")
@@ -130,7 +130,7 @@ def main():
         top = by + bp2 * 10
         gb = by - L.MARIO_GRAB_SLACK
         print(f"   script.c:{ln} window [{gb},{top}]  grab-bottom - H* = {gb - lo}"
-              f"  vs YMAX=2744: {gb - 2744:+d}")
+              f"  vs YMAX=2796: {gb - 2796:+d}")
 
     # --- binary32 overshoot ---
     worst = (0.0, None)

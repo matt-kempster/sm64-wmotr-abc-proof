@@ -107,7 +107,7 @@ CHAINS = [
     ("  E3 priced the slide-kick bounce at g 4 (wrong)", launch(37.5, f(4))),
 ]
 
-H_STAR = 2372.0       # goal2_ladder.py, entry-seeded
+H_STAR = 2424.0       # goal2_ladder.py, entry-seeded (box top x2 scale; was 2372)
 MOAT = 622.0          # next rung above H*: pole 4 grab window, 2994
 COIN2_REACH = 3140.0 - 160.0
 

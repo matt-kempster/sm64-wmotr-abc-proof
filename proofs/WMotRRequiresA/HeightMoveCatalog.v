@@ -448,7 +448,7 @@ Section Moves.
     destruct H as ((?Fy & ?Fv & ?Fgy & ?Hylo & ?Hgylo & ?Hvlo & ?Hvhi)
                    & ?Hb & ?Hgb & ?Hsk & ?Hgp & ?Hl).
 
-  Lemma y_hi : forall c, budget_ok c -> R2 (c_posy c) <= 2744.
+  Lemma y_hi : forall c, budget_ok c -> R2 (c_posy c) <= 2796.
   Proof. intros c H. pose proof (budget_ok_y c H). unfold PHI_YMAX, PHI_K, PHI_A in *. lra. Qed.
 
   Lemma not_ledge_air : forall c, mode_of c <> M_Ground -> c_action c <> ACT_LEDGE_GRAB.

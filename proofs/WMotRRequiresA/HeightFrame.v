@@ -25,16 +25,16 @@
 (* WHAT IS OPEN -- every row is meant to be TRUE of the real game (no       *)
 (* forall over states the game never produces; see the comment on each):    *)
 (*   Phi             CONCRETE (HeightInvariant.height_invariant): the height budget *)
-(*                   y + credit <= 2372 + 372 over real MarioState cells    *)
+(*                   y + credit <= 2424 + 372 over real MarioState cells    *)
 (*                   and gfx.pos[1].  Its whitelist R_noA is a parameter.   *)
-(*                   Hphi_y is PROVED, YMAX = 2744.                         *)
+(*                   Hphi_y is PROVED, YMAX = 2796.                         *)
 (*   the crux        "one real execute_mario_action keeps Phi" is a LEMMA   *)
 (*                   (seg_action_phi): every move's budget arithmetic is    *)
 (*                   PROVED in binary32 (HeightMoveCatalog.chain_keeps_budget); open: *)
 (*     Hframe_stays_noA  the frame keeps the action in R_noA,               *)
 (*     Hframe_is_move_chain     the frame's effect on the cells is a chain of *)
 (*                     HeightMoveCatalog moves (the T3 value walk),         *)
-(*     wmotr_gap, wmotr_poles   WMotR level data.                           *)
+(*     (the level data -- floor gap, poles -- is PROVED, WMotRLevel.v)      *)
 (* and the flank SPECS are labeled trust: each states what that phase of    *)
 (* the real game does -- y / action loads as the censuses found them, and   *)
 (* that it carries GOAL 1's MWF and Phi.  (Stating the carries as separate  *)
@@ -44,8 +44,8 @@
 (* YMAX is a parameter.  docs/goal2-phi.md instantiates it as H* + 372      *)
 (* (slide-kick bounce apex; E3's 273 was wrong); red coin #2 (y = 3140) is  *)
 (* out of reach iff                                                         *)
-(* YMAX < 3140 - 160 (hitbox height).  Both numbers come from level data    *)
-(* not yet in generated/.                                                   *)
+(* YMAX < 3140 - 160 (hitbox height).  K = H* = 2424 is the wing-cap box    *)
+(* top (2320 + 2 * 52, the box's x2 scale), from WMotRLevel's data.         *)
 (* ======================================================================= *)
 
 From Coq Require Import ZArith List Reals.
@@ -65,7 +65,7 @@ From SM64.Proofs Require Import MWFReal RestSurface FloorsSurface
   FloorsLeafSurface.
 From SM64.Proofs Require Import LinkedTwelve SpawnInit InitMemSat.
 From SM64.Proofs Require Import NoAImpliesNoFlyLinked NoAImpliesNoFlyTwelve.
-From SM64.Proofs Require Import HeightInvariant HeightBudgetArith HeightMoveCatalog.
+From SM64.Proofs Require Import HeightInvariant HeightBudgetArith HeightMoveCatalog WMotRLevel.
 Import ListNotations.
 
 (* -----------------------------------------------------------------------  *)
@@ -437,23 +437,23 @@ Section HeightLinked12.
       Mem.valid_block m bm -> MWF m -> MWF m'.
 
   (* ---- GOAL 2's own rows.  Phi is CONCRETE (HeightInvariant.v): the height
-     budget over real MarioState cells (+ gfx.pos[1]), K = 2372, A = 372.
+     budget over real MarioState cells (+ gfx.pos[1]), K = 2424, A = 372.
      Hphi_y is a THEOREM (height_invariant_y).  The old crux row
      Hseg_action_phi ("one real execute_mario_action keeps Phi") is now a
      LEMMA (seg_action_phi below), from: the budget arithmetic of every
-     move, PROVED (HeightMoveCatalog.chain_keeps_budget), two WMotR level-data rows, and
+     move, PROVED (HeightMoveCatalog.chain_keeps_budget), the WMotR level data,
+     PROVED (WMotRLevel.v), and
      two rows about what the real frame does. ---- *)
   Variable R_noA : int -> Prop.
   Notation Phi := (height_invariant bm R_noA).
 
-  (* LEVEL DATA (WMotR collision / object placement, not in generated/):
-     no floor height in the moat (K, K + 622); every pole low or out of
-     reach.  tools/goal2_gapfact_check.py, docs/goal2-pole-window.md. *)
-  Variable wmotr_floor : R -> Prop.
-  Hypothesis wmotr_gap : forall h, wmotr_floor h -> ~ (PHI_K < h < PHI_K + GAP)%R.
-  Variable wmotr_pole : R -> R -> Prop.
-  Hypothesis wmotr_poles :
-    forall base top, wmotr_pole base top -> (top <= PHI_K \/ PHI_YMAX < base - 160)%R.
+  (* LEVEL DATA -- now DEFINED from generated/ and PROVED (WMotRLevel.v):
+     wmotr_floor / wmotr_pole are read off WMotR's clightgen'd terrain,
+     macro objects and level script; no floor height lies in the moat
+     (K, K + 622) and every pole is low or out of reach.  What remains
+     trusted about them (find_floor returns heights of exactly these
+     surfaces; which behaviors load collision) is TRUST.md 0.8 and lives
+     in Hframe_is_move_chain, whose MoveChain mentions them. *)
 
   (* OPEN (the action arm): one real frame keeps the action in the no-A
      whitelist.  GOAL 1's engine at Qv := R_noA
@@ -486,7 +486,8 @@ Section HeightLinked12.
     split; [ exact (Hframe_stays_noA m m' Hok Hphi Hst) | ].
     destruct (Hframe_is_move_chain m m' c Hok Hphi Hst Hcells Hc) as (c' & Hc' & Hmv).
     exists c'. split; [ exact Hc' | ].
-    exact (chain_keeps_budget wmotr_floor wmotr_gap wmotr_pole wmotr_poles c c' Hc Hmv).
+    exact (chain_keeps_budget wmotr_floor wmotr_gap_proved wmotr_pole wmotr_poles_proved
+             c c' Hc Hmv).
   Qed.
 
   Lemma Hphi_y : forall m, Phi m -> y_le bm PHI_YMAX m.
@@ -502,7 +503,7 @@ Section HeightLinked12.
   (* THE GOAL-2 CAPSTONE (height form): over any link of the twelve TUs,  *)
   (* a run of real game frames with the A bit clear after every poll,     *)
   (* started GOAL-1-well-formed and in the height invariant Phi, keeps    *)
-  (* Mario's height <= PHI_YMAX = 2744 (coin #2 needs >= 2980).           *)
+  (* Mario's height <= PHI_YMAX = 2796 (coin #2 needs >= 2980).           *)
   (* ==================================================================== *)
   Theorem wmotr_noA_height_bound_linked12 :
     forall (init : mem) (is : list mem) (m : mem),
