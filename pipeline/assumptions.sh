@@ -9,6 +9,7 @@
 # rest are lemma names within it.
 set -euo pipefail
 cd "$(dirname "$0")/.."
+source pipeline/memcap.sh "$PWD/pipeline/assumptions.sh" "$@"
 # shellcheck disable=SC1091
 source pipeline/env.sh
 

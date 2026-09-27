@@ -20,6 +20,7 @@
 # (run `bash pipeline/build.sh` first, or after editing an upstream file).
 set -uo pipefail
 cd "$(dirname "$0")/.."
+source pipeline/memcap.sh "$PWD/pipeline/check.sh" "$@"
 # shellcheck disable=SC1091
 source pipeline/env.sh
 

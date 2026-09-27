@@ -7,6 +7,7 @@
 #   bash pipeline/build.sh proofs     # == make proofs
 set -euo pipefail
 cd "$(dirname "$0")/.."
+source pipeline/memcap.sh "$PWD/pipeline/build.sh" "$@"
 # shellcheck disable=SC1091
 source pipeline/env.sh
 exec make "$@"

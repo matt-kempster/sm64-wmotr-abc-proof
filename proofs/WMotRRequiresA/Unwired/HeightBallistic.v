@@ -288,7 +288,7 @@ Qed.
 Theorem ballistic_frame : forall gf y v,
   F32 gf = true -> F32 y = true -> F32 v = true ->
   (R2 gf = 2 \/ R2 gf = 4) ->
-  -8192 <= R2 y <= 4096 -> Rabs (R2 v) <= 128 ->
+  Rabs (R2 y) <= 16000 -> Rabs (R2 v) <= 128 ->
   F32 (air_y4 y v) = true
   /\ R2 (air_y4 y v) + bal (R2 gf) (R2 (gravity gf v))
        <= R2 y + bal (R2 gf) (R2 v).
@@ -298,9 +298,9 @@ Proof.
   set (q := Float32.div v f4) in *.
   assert (Hqb : Rabs (R2 q) <= 33).
   { apply Rabs_le_inv in Hqe. apply Rabs_le_inv in Hv. apply Rabs_le. split; lra. }
-  apply Rabs_le_inv in Hqb.
+  apply Rabs_le_inv in Hqb. apply Rabs_le_inv in Hy.
   (* four quarter steps, each within 2^-10, staying inside |.| <= 2^14 *)
-  assert (B14 : forall z, -16000 <= z <= 16000 -> Rabs z <= bpow radix2 14)
+  assert (B14 : forall z, -16384 <= z <= 16384 -> Rabs z <= bpow radix2 14)
     by (intros z Hz; simpl; apply Rabs_le; split; lra).
   destruct (qstep_spec y q Fy Fq ltac:(apply B14; lra)) as (F1 & E1 & D1).
   set (y1 := qstep y q) in *. apply Rabs_le_inv in E1.
@@ -332,4 +332,66 @@ Proof.
     + apply Rabs_le_inv in Hv. lra.
     + lra.
     + destruct Hgr as [H | [_ H]]; [ left; exact H | right; exact H ].
+Qed.
+
+(* ----------------------------------------------------------------------- *)
+(* 7. Descending variant: no lower bound on y beyond finiteness.            *)
+(* ----------------------------------------------------------------------- *)
+Lemma qstep_spec_e : forall e y q, (-120 <= e <= 100)%Z ->
+  F32 y = true -> F32 q = true ->
+  Rabs (R2 y + R2 q) <= bpow radix2 e ->
+  F32 (qstep y q) = true
+  /\ Rabs (R2 (qstep y q) - (R2 y + R2 q)) <= bpow radix2 (e - 24)
+  /\ (R2 q <= 0 -> R2 (qstep y q) <= R2 y).
+Proof.
+  intros e y q He Fy Fq Hb.
+  assert (H100 : Rabs (R2 y + R2 q) <= bpow radix2 100)
+    by (eapply Rle_trans; [ exact Hb | apply bpow_le; lia ]).
+  destruct (f32_add_val y q Fy Fq H100) as [Hv Hf].
+  unfold qstep. rewrite Hv. split; [ exact Hf | split ].
+  - apply rnd_err; [ lia | exact Hb ].
+  - intros Hq. rewrite <- (rnd_B2R y) at 2. apply rnd_mono. lra.
+Qed.
+
+Theorem ballistic_frame_desc : forall gf y v,
+  F32 gf = true -> F32 y = true -> F32 v = true ->
+  (R2 gf = 2 \/ R2 gf = 4) ->
+  Rabs (R2 y) <= 1048576 -> -128 <= R2 v <= 0 ->
+  F32 (air_y4 y v) = true
+  /\ R2 (air_y4 y v) + bal (R2 gf) (R2 (gravity gf v))
+       <= R2 y + bal (R2 gf) (R2 v).
+Proof.
+  intros gf y v Fg Fy Fv Hg Hy Hv0.
+  assert (Hv : Rabs (R2 v) <= 128) by (apply Rabs_le; lra).
+  destruct (quarter_spec v Fv Hv) as (Fq & Hqe & Hqn & _).
+  set (q := Float32.div v f4) in *.
+  assert (Hneg : R2 v <= 0) by lra.
+  specialize (Hqn Hneg).
+  assert (Hqb : Rabs (R2 q) <= 33).
+  { apply Rabs_le_inv in Hqe. apply Rabs_le. split; lra. }
+  apply Rabs_le_inv in Hqb. apply Rabs_le_inv in Hy.
+  assert (B21 : forall z, -2097152 <= z <= 2097152 -> Rabs z <= bpow radix2 21)
+    by (intros z Hz; simpl; apply Rabs_le; split; lra).
+  assert (Ee : bpow radix2 (21 - 24) = / 8) by (simpl; lra).
+  destruct (qstep_spec_e 21 y q ltac:(lia) Fy Fq ltac:(apply B21; lra)) as (F1 & E1 & D1).
+  rewrite Ee in E1. set (y1 := qstep y q) in *. apply Rabs_le_inv in E1.
+  specialize (D1 Hqn).
+  destruct (qstep_spec_e 21 y1 q ltac:(lia) F1 Fq ltac:(apply B21; lra)) as (F2 & E2 & D2).
+  rewrite Ee in E2. set (y2 := qstep y1 q) in *. apply Rabs_le_inv in E2.
+  specialize (D2 Hqn).
+  destruct (qstep_spec_e 21 y2 q ltac:(lia) F2 Fq ltac:(apply B21; lra)) as (F3 & E3 & D3).
+  rewrite Ee in E3. set (y3 := qstep y2 q) in *. apply Rabs_le_inv in E3.
+  specialize (D3 Hqn).
+  destruct (qstep_spec_e 21 y3 q ltac:(lia) F3 Fq ltac:(apply B21; lra)) as (F4 & E4 & D4).
+  set (y4 := qstep y3 q) in *.
+  specialize (D4 Hqn).
+  assert (Hy4 : R2 (air_y4 y v) = R2 y4) by reflexivity.
+  split; [ exact F4 | rewrite Hy4 ].
+  pose proof (gravity_spec gf v Fg Fv Hg Hv) as Hgr.
+  assert (R2 y4 <= R2 y) by lra.
+  assert (Hvn : R2 (gravity gf v) <= 0).
+  { destruct Hgr as [-> | [-> _]]; [ lra | ].
+    rewrite <- rnd_0. apply rnd_mono. lra. }
+  unfold bal. destruct (Rle_dec (R2 (gravity gf v)) 0); [ | lra ].
+  destruct (Rle_dec (R2 v) 0); [ lra | contradiction ].
 Qed.

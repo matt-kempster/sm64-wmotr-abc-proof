@@ -25,6 +25,17 @@
 # others (e.g. a new capstone you just wired in). Exit 0 = clean, 1 = a hole.
 set -uo pipefail
 cd "$(dirname "$0")/../../.." || exit 2
+
+# Memory cap: re-exec inside a systemd user scope so a runaway coqc gets
+# OOM-killed inside its own cgroup instead of thrashing the whole WSL VM
+# (2026-09-27: an AssumptionsProbe coqc + a PPO run livelocked 8GB for hours).
+# Override with DISC_MEM_MAX=6G; skipped where systemd-run --user is unavailable.
+if [ -z "${DISC_CAPPED:-}" ] && systemd-run --user --scope --quiet true >/dev/null 2>&1; then
+  export DISC_CAPPED=1 SM64_MEMCAPPED=1   # nested pipeline drivers stay in this scope
+  exec systemd-run --user --scope --quiet \
+    -p MemoryMax="${DISC_MEM_MAX:-3G}" -p MemorySwapMax=512M \
+    bash "$PWD/.claude/skills/proof-discipline/discipline_check.sh" "$@"
+fi
 # shellcheck disable=SC1091
 source pipeline/env.sh >/dev/null 2>&1 || true
 
@@ -100,7 +111,14 @@ fi
 line; echo "[3/4] AXIOM FOOTPRINT (capstones rest only on the standard CompCert axioms)"
 while [ "$#" -ge 2 ]; do
   mod="$1"; thm="$2"; shift 2
-  out=$(bash pipeline/assumptions.sh "$mod" "$thm" 2>&1)
+  out=$(bash pipeline/assumptions.sh "$mod" "$thm" 2>&1); rc=$?
+  if [ "$rc" -ne 0 ]; then
+    # e.g. coqc OOM-killed by the memory cap: no Axioms: section -> would look "clean"
+    echo "  FAIL  $mod.$thm -- assumptions probe failed (exit $rc; 137 = killed, likely memory cap)."
+    echo "$out" | tail -3 | sed 's/^/        /'
+    fail=1
+    continue
+  fi
   if echo "$out" | grep -q 'Closed under the global context'; then
     echo "  OK  $mod.$thm -- closed (no axioms)."
     continue
