@@ -26,6 +26,7 @@ MAP = f"{ORACLE}/decomp/build/us/sm64.us.map"
 
 K, A = 2372.0, 372.0
 EPS = 1 / 64
+GP_RESERVE = 111.0
 FREEFALL, BSA, SK, GP = 0x0100088C, 0x0300088E, 0x018008AA, 0x008008A9
 LEDGE = 0x0800034B
 
@@ -47,13 +48,21 @@ def bal(g, v):
     return 0.0 if v <= 0 else energy(g, v) + EPS * (v / g + 1)
 
 
+def sk1_credit(v):
+    return energy(2, v) + EPS * max(0.0, (v + 75) / 2 + 1) + (0.25 if v > -1 else 0.0)
+
+
+def windup_left(tm):
+    return 0.0 if tm >= 10 else (10 - tm) * (11 - tm) + EPS * (10 - tm)
+
+
 def credit(a, st, tm, v):
     if a in (FREEFALL, BSA):
-        return bal(4, v) + 110
+        return bal(4, v) + GP_RESERVE
     if a == SK:
-        return bal(2, v) + 110 if st == 0 else energy(2, v) + EPS * max(0.0, (v + 75) / 2 + 1)
+        return bal(2, v) + GP_RESERVE if st == 0 else sk1_credit(v)
     if a == GP:
-        return (10 - tm) * (11 - tm) if (st == 0 and tm < 10) else 0.0
+        return windup_left(tm) if st == 0 else 0.0
     if a & 0x800:
         return bal(4, v)
     return A
@@ -66,14 +75,21 @@ def phi(ram, base):
     y, = struct.unpack(">f", ram[o + 64:o + 68])
     v, = struct.unpack(">f", ram[o + 76:o + 80])
     fh, = struct.unpack(">f", ram[o + 112:o + 116])
-    slack = K + A - (y + credit(a, st, tm, v))
+    obj, = struct.unpack(">I", ram[o + 136:o + 140])
+    gy, = struct.unpack(">f", ram[obj - 0x80000000 + 36:obj - 0x80000000 + 40])
+    c = credit(a, st, tm, v)
+    slack = K + A - (y + c)
     bad = []
     if slack < 0:
         bad.append(f"budget {slack:.1f}")
-    if v < -75:
-        bad.append(f"vel {v}")
-    if a == SK and st != 0 and v + 2 * tm > 37.5:
+    if gy + c > K + A:
+        bad.append(f"gfx budget {K + A - gy - c:.1f}")
+    if not (-75 <= v <= 128) or y < -8192 or gy < -8192:
+        bad.append(f"range y={y} gy={gy} v={v}")
+    if a == SK and not (v + 2 * tm <= 37.5 + tm / 1024 or v <= -73):
         bad.append("sk-timer")
+    if a == GP and st != 0 and v > 0:
+        bad.append("gp-vel")
     if a == LEDGE and fh > K:
         bad.append("ledge")
     return a, y, v, slack, bad

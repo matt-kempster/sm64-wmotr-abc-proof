@@ -61,6 +61,30 @@ Definition OFS_POSY   : Z := 64.    (* pos 60 + 4 *)
 Definition OFS_VELY   : Z := 76.    (* vel 72 + 4 *)
 Definition OFS_FLOORH : Z := 112.
 
+(* MarioState.marioObj (a struct Object * ) @ 136, and inside struct Object
+   header.gfx.pos @ 0 + 0 + 32, so gfx.pos[1] @ 36.  gfx.pos is the position
+   the OOB recovery copies back into pos (mario.c:1328); every air / ground
+   step and set_pole_position re-sync it from pos. *)
+Lemma mario_marioObj_offset_concrete :
+  field_offset (prog_comp_env mario.prog) mario._marioObj mario_state_members
+    = Errors.OK (136, Full).
+Proof. vm_compute. reflexivity. Qed.
+
+Definition members_of (id : ident) : members :=
+  match (prog_comp_env mario.prog) ! id with Some co => co_members co | None => nil end.
+
+Lemma gfx_pos_offsets_concrete :
+  field_offset (prog_comp_env mario.prog) mario._header (members_of mario._Object)
+    = Errors.OK (0, Full)
+  /\ field_offset (prog_comp_env mario.prog) mario._gfx (members_of mario._ObjectNode)
+    = Errors.OK (0, Full)
+  /\ field_offset (prog_comp_env mario.prog) mario._pos (members_of mario._GraphNodeObject)
+    = Errors.OK (32, Full).
+Proof. vm_compute. auto. Qed.
+
+Definition OFS_MARIOOBJ : Z := 136.
+Definition OFS_GFXY     : Z := 36.     (* header 0 + gfx 0 + pos 32 + 4 *)
+
 (* ----------------------------------------------------------------------- *)
 (* 2. Action constants, pinned to the real dispatch tables: each literal is *)
 (*    the switch label whose case calls the named handler.  (Header         *)
@@ -164,16 +188,23 @@ Definition bal (g v : R) : R :=
   if Rle_dec v 0 then 0 else energy g v + EPS * (v / g + 1).
 
 (* post-bounce slide kick: the SIGNED energy (it must stay informative on the
-   way down), with the allowance counted until the -75 clamp *)
+   way down), with the allowance counted until the -75 clamp, plus 1/4 while
+   v > -1: a ceiling bonk at 0 <= v < 2 zeroes vel (mario_step.c:446-452),
+   and gravity then gives v' = -2, whose signed energy 1/4 the old v may not
+   have carried (energy 2 v - v = (v-1)^2/4). *)
+Definition SK_BONK : R := 1 / 4.
 Definition sk1_credit (v : R) : R :=
-  energy 2 v + EPS * Rmax 0 ((v + 75) / 2 + 1).
+  energy 2 v + EPS * Rmax 0 ((v + 75) / 2 + 1)
+  + (if Rle_dec v (-1) then 0 else SK_BONK).
 
 (* ground-pound windup still to come: sum_{t=tm}^{9} (20 - 2t) = n(n+1),
-   n = 10 - tm (act_ground_pound, mario_actions_airborne.c:925-929) *)
+   n = 10 - tm (act_ground_pound, mario_actions_airborne.c:925-929), plus EPS
+   per windup frame left: each frame rounds pos[1] += yOffset in binary32. *)
 Definition windup_left (tm : Z) : R :=
-  if Z.leb 10 tm then 0 else IZR ((10 - tm) * (11 - tm)).
+  if Z.leb 10 tm then 0 else IZR ((10 - tm) * (11 - tm)) + EPS * IZR (10 - tm).
 
-Definition GP_RESERVE : R := 110.
+(* the Z -> ground-pound reserve: windup_left 0 = 110 + 10/64 <= 111 *)
+Definition GP_RESERVE : R := 111.
 
 Definition credit (a : int) (st tm : Z) (v : R) : R :=
   if Int.eq a ACT_FREEFALL then bal 4 v + GP_RESERVE
@@ -185,94 +216,138 @@ Definition credit (a : int) (st tm : Z) (v : R) : R :=
   else if is_air a then bal 4 v
   else PHI_A.                      (* grounded / anchored: y <= K *)
 
+(* ---- nonnegativity: every credit is headroom, never debt ------------- *)
+
+Lemma energy_nonneg : forall g v, 0 < g -> 0 <= energy g v.
+Proof.
+  intros g v Hg. unfold energy, Rdiv.
+  apply Rmult_le_pos; [ apply pow2_ge_0 | ].
+  left. apply Rinv_0_lt_compat. lra.
+Qed.
+
+Lemma bal_nonneg : forall g v, 0 < g -> 0 <= bal g v.
+Proof.
+  intros g v Hg. unfold bal. destruct (Rle_dec v 0); [ lra | ].
+  pose proof (energy_nonneg g v Hg).
+  assert (0 <= v / g)
+    by (unfold Rdiv; apply Rmult_le_pos; [ lra | left; apply Rinv_0_lt_compat; lra ]).
+  unfold EPS. nra.
+Qed.
+
+Lemma sk1_credit_nonneg : forall v, 0 <= sk1_credit v.
+Proof.
+  intros v. unfold sk1_credit, SK_BONK.
+  pose proof (energy_nonneg 2 v ltac:(lra)).
+  pose proof (Rmax_l 0 ((v + 75) / 2 + 1)).
+  destruct (Rle_dec v (-1)); unfold EPS; nra.
+Qed.
+
+Lemma windup_left_nonneg : forall tm, 0 <= windup_left tm.
+Proof.
+  intros tm. unfold windup_left. destruct (Z.leb_spec 10 tm); [ lra | ].
+  assert (0 <= IZR ((10 - tm) * (11 - tm))) by (apply IZR_le; apply Z.mul_nonneg_nonneg; lia).
+  assert (0 <= IZR (10 - tm)) by (apply IZR_le; lia).
+  unfold EPS. nra.
+Qed.
+
+Lemma credit_nonneg : forall a st tm v, 0 <= credit a st tm v.
+Proof.
+  intros a st tm v.
+  assert (H4 : 0 <= bal 4 v) by (apply bal_nonneg; lra).
+  assert (H2 : 0 <= bal 2 v) by (apply bal_nonneg; lra).
+  pose proof (sk1_credit_nonneg v) as E2.
+  pose proof (windup_left_nonneg tm) as HW.
+  unfold credit, GP_RESERVE, PHI_A.
+  destruct (Int.eq a ACT_FREEFALL); [ lra | ].
+  destruct (Int.eq a ACT_BUTT_SLIDE_AIR); [ lra | ].
+  destruct (Int.eq a ACT_SLIDE_KICK); [ destruct (Z.eqb st 0); lra | ].
+  destruct (Int.eq a ACT_GROUND_POUND); [ destruct (Z.eqb st 0); lra | ].
+  destruct (is_air a); lra.
+Qed.
+
 (* ----------------------------------------------------------------------- *)
-(* 4. Phi.                                                                  *)
+(* 4. The cells Phi reads, and Phi's numeric part over them (pure).         *)
+(* ----------------------------------------------------------------------- *)
+Notation R2 := (Binary.B2R 24 128).
+Notation F32 := (Binary.is_finite 24 128).
+
+Record cells := mkCells {
+  c_a  : int;        (* action          @ 12,  Mint32 *)
+  c_st : int;        (* actionState     @ 24,  u16    *)
+  c_tm : int;        (* actionTimer     @ 26,  u16    *)
+  c_y  : float32;    (* pos[1]          @ 64          *)
+  c_v  : float32;    (* vel[1]          @ 76          *)
+  c_fh : float32;    (* floorHeight     @ 112         *)
+  c_gy : float32     (* marioObj->header.gfx.pos[1]   *)
+}.
+
+Definition st_of (c : cells) : Z := Int.unsigned (c_st c).
+Definition tm_of (c : cells) : Z := Int.unsigned (c_tm c).
+Definition cr (c : cells) : R := credit (c_a c) (st_of c) (tm_of c) (R2 (c_v c)).
+
+(* the ranges: finiteness, the death plane (collision.inc.c: -8191, and
+   steps clamp pos to floorHeight), terminal / launch velocity
+   (docs/goal2-vel-y-bounds.md: -75 <= vel[1] <= 100 under no-A in WMotR) *)
+Definition Range (c : cells) : Prop :=
+  F32 (c_y c) = true /\ F32 (c_v c) = true /\ F32 (c_gy c) = true
+  /\ -8192 <= R2 (c_y c) /\ -8192 <= R2 (c_gy c)
+  /\ -75 <= R2 (c_v c) <= 128.
+
+Definition PhiC (c : cells) : Prop :=
+  Range c
+  (* the budget, at pos and at the gfx position OOB recovery restores *)
+  /\ R2 (c_y c) + cr c <= PHI_K + PHI_A
+  /\ R2 (c_gy c) + cr c <= PHI_K + PHI_A
+  (* slide kick: vel falls 2 per actionTimer tick from <= 37.5 (launch 12,
+     bounce <= 37.5, both reset the timer), up to binary32 rounding, until
+     the -75 clamp; so its ->FREEFALL edge (timer > 30) fires descending *)
+  /\ (c_a c = ACT_SLIDE_KICK ->
+        R2 (c_v c) + 2 * IZR (tm_of c) <= 37.5 + IZR (tm_of c) / 1024
+        \/ R2 (c_v c) <= -73)
+  (* ground pound past the windup falls (state 0 sets vel -50 each frame) *)
+  /\ (c_a c = ACT_GROUND_POUND -> st_of c <> 0%Z -> R2 (c_v c) <= 0)
+  (* a grabbed ledge is a laddered floor *)
+  /\ (c_a c = ACT_LEDGE_GRAB -> R2 (c_fh c) <= PHI_K).
+
+Lemma PhiC_y : forall c, PhiC c -> R2 (c_y c) <= PHI_YMAX.
+Proof.
+  intros c (_ & Hb & _). unfold cr in Hb.
+  pose proof (credit_nonneg (c_a c) (st_of c) (tm_of c) (R2 (c_v c))).
+  unfold PHI_YMAX. lra.
+Qed.
+
+(* ----------------------------------------------------------------------- *)
+(* 5. Phi over memory.                                                      *)
 (* ----------------------------------------------------------------------- *)
 Section Phi.
   Variable bm : block.            (* Mario's MarioState block *)
-  (* The no-A action whitelist (docs/goal2-phi.md §3.1).  A PARAMETER:
-     E3's airborne node table + the ground/automatic census, not yet
-     written down.  Hseg_action_phi is false without it (phantom forall). *)
+  (* The no-A action whitelist (docs/goal2-rnoa-census.md: 73 actions, 12
+     airborne).  A PARAMETER of the capstone; the frame rows say one real
+     frame keeps the action in it. *)
   Variable R_noA : int -> Prop.
 
+  Definition cells_of (m : mem) (c : cells) : Prop :=
+    Mem.load Mint32 m bm OFS_ACTION = Some (Vint (c_a c))
+    /\ Mem.load Mint16unsigned m bm OFS_ASTATE = Some (Vint (c_st c))
+    /\ Mem.load Mint16unsigned m bm OFS_ATIMER = Some (Vint (c_tm c))
+    /\ Mem.load Mfloat32 m bm OFS_POSY = Some (Vsingle (c_y c))
+    /\ Mem.load Mfloat32 m bm OFS_VELY = Some (Vsingle (c_v c))
+    /\ Mem.load Mfloat32 m bm OFS_FLOORH = Some (Vsingle (c_fh c))
+    /\ exists bo oo,
+         Mem.load Mptr m bm OFS_MARIOOBJ = Some (Vptr bo oo)
+         /\ Mem.load Mfloat32 m bo (Ptrofs.unsigned oo + OFS_GFXY)
+              = Some (Vsingle (c_gy c)).
+
   Definition Phi_wmotr (m : mem) : Prop :=
-    action_sat R_noA m bm /\
-    exists a st tm y v fh,
-      Mem.load Mint32 m bm OFS_ACTION = Some (Vint a)
-      /\ Mem.load Mint16unsigned m bm OFS_ASTATE = Some (Vint st)
-      /\ Mem.load Mint16unsigned m bm OFS_ATIMER = Some (Vint tm)
-      /\ Mem.load Mfloat32 m bm OFS_POSY = Some (Vsingle y)
-      /\ Mem.load Mfloat32 m bm OFS_VELY = Some (Vsingle v)
-      /\ Mem.load Mfloat32 m bm OFS_FLOORH = Some (Vsingle fh)
-      /\ is_finite _ _ y = true /\ is_finite _ _ v = true
-      (* the budget *)
-      /\ B2R _ _ y + credit a (Int.unsigned st) (Int.unsigned tm) (B2R _ _ v)
-           <= PHI_K + PHI_A
-      (* terminal velocity (apply_gravity clamps at -75): bounds the bounces *)
-      /\ -75 <= B2R _ _ v
-      (* post-bounce slide kick: vel falls 2 per actionTimer tick from <= 37.5,
-         so its ->FREEFALL edge (timer > 30) fires descending *)
-      /\ (a = ACT_SLIDE_KICK -> Int.unsigned st <> 0%Z ->
-            B2R _ _ v + 2 * IZR (Int.unsigned tm) <= 37.5)
-      (* a grabbed ledge is a laddered floor *)
-      /\ (a = ACT_LEDGE_GRAB -> B2R _ _ fh <= PHI_K).
+    action_sat R_noA m bm /\ exists c, cells_of m c /\ PhiC c.
 
   (* ---- Hphi_y: the invariant bounds the height ------------------------- *)
-
-  Lemma energy_nonneg : forall g v, 0 < g -> 0 <= energy g v.
-  Proof.
-    intros g v Hg. unfold energy, Rdiv.
-    apply Rmult_le_pos; [ apply pow2_ge_0 | ].
-    left. apply Rinv_0_lt_compat. lra.
-  Qed.
-
-  Lemma bal_nonneg : forall g v, 0 < g -> 0 <= bal g v.
-  Proof.
-    intros g v Hg. unfold bal. destruct (Rle_dec v 0); [ lra | ].
-    pose proof (energy_nonneg g v Hg).
-    assert (0 <= v / g)
-      by (unfold Rdiv; apply Rmult_le_pos; [ lra | left; apply Rinv_0_lt_compat; lra ]).
-    unfold EPS. nra.
-  Qed.
-
-  Lemma sk1_credit_nonneg : forall v, 0 <= sk1_credit v.
-  Proof.
-    intros v. unfold sk1_credit.
-    pose proof (energy_nonneg 2 v ltac:(lra)).
-    pose proof (Rmax_l 0 ((v + 75) / 2 + 1)).
-    unfold EPS. nra.
-  Qed.
-
-  Lemma windup_left_nonneg : forall tm, 0 <= windup_left tm.
-  Proof.
-    intros tm. unfold windup_left. destruct (Z.leb_spec 10 tm); [ lra | ].
-    apply IZR_le. apply Z.mul_nonneg_nonneg; lia.
-  Qed.
-
-  Lemma credit_nonneg : forall a st tm v, 0 <= credit a st tm v.
-  Proof.
-    intros a st tm v.
-    assert (H4 : 0 <= bal 4 v) by (apply bal_nonneg; lra).
-    assert (H2 : 0 <= bal 2 v) by (apply bal_nonneg; lra).
-    pose proof (sk1_credit_nonneg v) as E2.
-    pose proof (windup_left_nonneg tm) as HW.
-    unfold credit, GP_RESERVE, PHI_A.
-    destruct (Int.eq a ACT_FREEFALL); [ lra | ].
-    destruct (Int.eq a ACT_BUTT_SLIDE_AIR); [ lra | ].
-    destruct (Int.eq a ACT_SLIDE_KICK); [ destruct (Z.eqb st 0); lra | ].
-    destruct (Int.eq a ACT_GROUND_POUND); [ destruct (Z.eqb st 0); lra | ].
-    destruct (is_air a); lra.
-  Qed.
-
   Theorem Phi_wmotr_y :
     forall m, Phi_wmotr m ->
       forall v, Mem.load Mfloat32 m bm OFS_POSY = Some (Vsingle v) ->
                 (B2R _ _ v <= PHI_YMAX)%R.
   Proof.
-    intros m (_ & a & st & tm & y & vy & fh & _ & _ & _ & Hy & _ & _ & _ & _
-              & Hbud & _) v Hl.
-    rewrite Hy in Hl. injection Hl as <-.
-    pose proof (credit_nonneg a (Int.unsigned st) (Int.unsigned tm) (B2R _ _ vy)).
-    unfold PHI_YMAX. lra.
+    intros m (_ & c & (_ & _ & _ & Hy & _) & Hc) v Hl.
+    rewrite Hy in Hl. injection Hl as <-. exact (PhiC_y c Hc).
   Qed.
 End Phi.

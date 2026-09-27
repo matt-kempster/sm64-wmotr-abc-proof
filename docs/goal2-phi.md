@@ -1,5 +1,15 @@
 # GOAL 2: the height invariant Φ, concretely (2026-09-27)
 
+> **Update (as built, `HeightPhi.v` / `HeightMove.v`):**
+> - Φ reads its cells as `PhiC`, which adds `gfx.pos[1]` and its own budget.
+> - `GP_RESERVE` is 111.
+> - `windup_left` carries EPS per frame left.
+> - `sk1_credit` gains +1/4 while v > −1, so the bounce apex is 371.707 ≤ 372.
+> - The slide-kick clause is rounding-aware, and there is a new ground-pound clause.
+>
+> Why each change was needed: `docs/goal2-crux-decomposition.md` §"As built".
+> The table below is the original design.
+
 `HeightFrame.v` takes Φ as a parameter with two rows: `Hphi_y` (Φ ⇒ y ≤ YMAX)
 and `Hseg_action_phi` (one real `execute_mario_action` preserves Φ). This doc
 defines Φ over real `MarioState` fields. Writing it down turned up two errors in

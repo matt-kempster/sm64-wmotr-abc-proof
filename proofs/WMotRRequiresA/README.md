@@ -26,18 +26,28 @@ Mario segment's preservation of GOAL 1's invariant is the proved
 
 ## What is still open
 
-- `Hseg_action_phi` (the crux, T3): one real Mario frame preserves Φ
-  (obligations: `docs/goal2-phi.md` §3).
-- `R_noA`: the no-A action whitelist inside Φ, still a parameter.
-- The four flank specs (TRUST.md 0.7) are labeled trust: that code isn't linked.
+"One real Mario frame preserves Φ" is the lemma `seg_action_phi`. It rests on:
+
+- `Hact_whitelist`: the frame keeps the action in `R_noA`. This is GOAL 1's engine at a
+  new predicate. `R_noA` is still a parameter; the census is `docs/goal2-rnoa-census.md`.
+- `Hframe_move`: the real frame's effect on Φ's cells is a chain of `HeightMove` moves.
+  This is the T3 value walk.
+- `wmotr_gap`, `wmotr_poles`: WMotR level data.
+
+Also open:
+
+- The four flank specs (TRUST.md 0.7) are labeled trust, because that code isn't linked.
 - The coin/star link at the top of the chain (TRUST.md 0.3).
 
-Done: Φ is concrete (`HeightPhi.v`, `Phi_wmotr`: budget y + credit ≤ 2372 + 372 over
-real MarioState fields, offsets and action ids pinned against the generated AST), and
-`Hphi_y` is proved, so the bound is YMAX = 2744.
+## Done
 
-Staged (`Unwired/HeightBallistic.v`, not yet consumed): `ballistic_frame`, one real
-no-collision air frame in binary32 does not raise y + bal(v). It is the ballistic arm of
-the crux, and the reason Φ carries the rounding allowance EPS.
+- **Φ is concrete** (`HeightPhi.v`, `Phi_wmotr`). It is the budget y + credit ≤ 2372 + 372,
+  over real MarioState cells plus `gfx.pos[1]`, with offsets and action ids pinned against
+  the generated AST.
+- **`Hphi_y` is proved**, so YMAX = 2744.
+- **`HeightMove.v`** defines the moves a frame can make (air step, ceiling cut, slide-kick
+  signed energy, ground-pound windup, E3 switches, attach, floor refresh, OOB). Its
+  `Phi_of_moves` proves the budget for each one in binary32, using `HeightBallistic.v`
+  (float32 arithmetic) and `HeightMoves.v` (real arithmetic).
 
 Prototypes still live in `playground/` (T1 PlatformInert, T2 FloatBrick, T3 ValueWalk).

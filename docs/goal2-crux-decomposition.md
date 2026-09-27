@@ -1,6 +1,12 @@
-# GOAL 2: decomposing the crux row `Hseg_action_phi` (design, 2026-09-27)
+# GOAL 2: decomposing the crux row `Hseg_action_phi` (2026-09-27)
 
-Design only, nothing built yet. It is based on `HeightFrame.v`, `HeightPhi.v`,
+**Status: built.** `Hseg_action_phi` is now the lemma `HeightFrame.seg_action_phi`, from
+`Hact_whitelist`, `Hframe_move`, `wmotr_gap` and `wmotr_poles`. The moves are the `Step`
+constructors in `proofs/WMotRRequiresA/HeightMove.v`, and `Phi_of_moves` proves them.
+The design below is kept for reference. §"As built" at the end lists what changed on the
+way.
+
+Original design notes follow. It is based on `HeightFrame.v`, `HeightPhi.v`,
 `Unwired/HeightBallistic.v`, `Unwired/HeightMoves.v`, `goal2-phi.md` and GOAL 1's
 `RealFrameLinked.execute_mario_action_preserves_real_reached_lp`, which is
 parametric in the action predicate `Qv`.
@@ -70,3 +76,35 @@ generated AST (`docs/goal2-writers-vs-moves.md`).
 4. Restate `HeightFrame.v`: replace `Hseg_action_phi` with `Hact_whitelist`,
    `Hframe_move`, `Hother_edge`, `Hff_value` and `wmotr_gap`, and derive
    `seg_action_phi` as a Lemma.
+
+## As built (2026-09-27)
+
+- **Cells gained `gfx.pos[1]`** (`marioObj` @ 136, `header.gfx.pos` @ 32 in `Object`).
+  OOB recovery copies it into pos (`mario.c:1328`), so Φ also bounds the budget at gfx
+  y. Every air step, ground step and `set_pole_position` re-syncs it.
+- **Moves** (`Step`):
+  - `S_air`: 4 quarters, then gravity; v' may end *below* gravity (the jump-ascent `/= 4`).
+  - `S_air_cut`: a ceiling stops the step at k ≤ 4 quarters, or a GP state-1 fall.
+  - `S_sk1` and `S_sk1_cut`: the post-bounce slide kick over signed energy.
+  - `S_gp_windup` and `S_gp_hold`.
+  - `S_switch`: E3's edges. Plain-air targets get v' ≤ v; freefall is entered from
+    freefall, butt-slide-air or a slide kick past 30 ticks; freefall → GP.
+  - `S_attach`: anchored at a grounded y, a WMotR floor within 239, the ledge floor, or a
+    pole, with per-kind launch caps.
+  - `S_refresh` and `S_oob`.
+- **Constants changed**, each forced by a move:
+  - `sk1_credit` + 1/4 while v > −1: the SK ceiling bonk. The bounce apex is now 371.707.
+  - `windup_left` + EPS per windup frame left (the binary32 add), and `GP_RESERVE` 110 → 111.
+  - The slide-kick clause is `v + 2·tm ≤ 37.5 + tm/1024 ∨ v ≤ −73`, for both states,
+    because of binary32 rounding and the −75 clamp.
+  - A new ground-pound clause: state ≠ 0 ⇒ v ≤ 0.
+- **Ranges** (`Range`: finiteness, −75 ≤ v ≤ 128, y and gfx y ≥ −8192) are premises of
+  each move. Hframe_move must show the real frame lands in range
+  (`docs/goal2-vel-y-bounds.md`).
+- **Not modelled** (Hframe_move is false if these fire): hanging (A-gated), water, wind,
+  shells, grab and throw objects, the cannon. All are absent or A-gated in WMotR (E1/E3,
+  `docs/goal2-writers-vs-moves.md`).
+- **Next:** discharge `Hact_whitelist` with GOAL 1's engine at `Qv := R_noA`, and make
+  `R_noA` concrete from the census. Then start the `Hframe_move` value walk at
+  `perform_air_step`. Make `WFloor` and `WPole` concrete from WMotR's collision and
+  object data.

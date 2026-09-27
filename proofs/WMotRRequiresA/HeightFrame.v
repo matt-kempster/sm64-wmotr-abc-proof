@@ -24,12 +24,17 @@
 (*                                                                          *)
 (* WHAT IS OPEN -- every row is meant to be TRUE of the real game (no       *)
 (* forall over states the game never produces; see the comment on each):    *)
-(*   Phi             CONCRETE since 2026-09-27 (HeightPhi.Phi_wmotr): the   *)
-(*                   height budget y + credit <= 2372 + 372 over real       *)
-(*                   MarioState fields.  Its action whitelist R_noA is      *)
-(*                   still a parameter.  Hphi_y is PROVED, YMAX = 2744.     *)
-(*   Hseg_action_phi THE CRUX (T3): one real execute_mario_action frame     *)
-(*                   preserves Phi.                                         *)
+(*   Phi             CONCRETE (HeightPhi.Phi_wmotr): the height budget      *)
+(*                   y + credit <= 2372 + 372 over real MarioState cells    *)
+(*                   and gfx.pos[1].  Its whitelist R_noA is a parameter.   *)
+(*                   Hphi_y is PROVED, YMAX = 2744.                         *)
+(*   the crux        "one real execute_mario_action keeps Phi" is a LEMMA   *)
+(*                   (seg_action_phi): every move's budget arithmetic is    *)
+(*                   PROVED in binary32 (HeightMove.Phi_of_moves); open:    *)
+(*     Hact_whitelist  the frame keeps the action in R_noA,                 *)
+(*     Hframe_move     the frame's effect on the cells is a chain of        *)
+(*                     HeightMove moves (the T3 value walk),                *)
+(*     wmotr_gap, wmotr_poles   WMotR level data.                           *)
 (* and the flank SPECS are labeled trust: each states what that phase of    *)
 (* the real game does -- y / action loads as the censuses found them, and   *)
 (* that it carries GOAL 1's MWF and Phi.  (Stating the carries as separate  *)
@@ -60,7 +65,7 @@ From SM64.Proofs Require Import MWFReal RestSurface FloorsSurface
   FloorsLeafSurface.
 From SM64.Proofs Require Import LinkedTwelve SpawnInit InitMemSat.
 From SM64.Proofs Require Import NoAImpliesNoFlyLinked NoAImpliesNoFlyTwelve.
-From SM64.Proofs Require Import HeightPhi.
+From SM64.Proofs Require Import HeightPhi HeightMoves HeightMove.
 Import ListNotations.
 
 (* ----------------------------------------------------------------------- *)
@@ -432,18 +437,57 @@ Section HeightLinked12.
       Mem.valid_block m bm -> MWF m -> MWF m'.
 
   (* ---- GOAL 2's own rows.  Phi is CONCRETE (HeightPhi.v): the height
-     budget over real MarioState fields, K = 2372, A = 372.  Hphi_y is a
-     THEOREM (Phi_wmotr_y), so YMAX = PHI_YMAX = 2744 is no longer a
-     parameter.  What remains: the action whitelist R_noA (a parameter,
-     docs/goal2-phi.md §3.1) and the crux row. ---- *)
+     budget over real MarioState cells (+ gfx.pos[1]), K = 2372, A = 372.
+     Hphi_y is a THEOREM (Phi_wmotr_y).  The old crux row
+     Hseg_action_phi ("one real execute_mario_action keeps Phi") is now a
+     LEMMA (seg_action_phi below), from: the budget arithmetic of every
+     move, PROVED (HeightMove.Phi_of_moves), two WMotR level-data rows, and
+     two rows about what the real frame does. ---- *)
   Variable R_noA : int -> Prop.
   Notation Phi := (Phi_wmotr bm R_noA).
 
-  (* OPEN, THE CRUX (docs/goal2-phi.md §3): one real execute_mario_action
-     frame from a GOAL-1-well-formed state keeps the height budget. *)
-  Hypothesis Hseg_action_phi :
+  (* LEVEL DATA (WMotR collision / object placement, not in generated/):
+     no floor height in the moat (K, K + 622); every pole low or out of
+     reach.  tools/goal2_gapfact_check.py, docs/goal2-pole-window.md. *)
+  Variable WFloor : R -> Prop.
+  Hypothesis wmotr_gap : forall h, WFloor h -> ~ (PHI_K < h < PHI_K + GAP)%R.
+  Variable WPole : R -> R -> Prop.
+  Hypothesis wmotr_poles :
+    forall base top, WPole base top -> (top <= PHI_K \/ PHI_YMAX < base - 160)%R.
+
+  (* OPEN (the action arm): one real frame keeps the action in the no-A
+     whitelist.  GOAL 1's engine at Qv := R_noA
+     (execute_mario_action_preserves_real_reached_lp); target list
+     docs/goal2-rnoa-census.md. *)
+  Hypothesis Hact_whitelist :
+    forall m m', mem_ok_lp bm MWF m -> Phi m ->
+                 execute_mario_action_step_lp lp m m' -> action_sat R_noA m' bm.
+
+  (* OPEN (the value walk): what one real execute_mario_action does to
+     Phi's cells is a chain of HeightMove moves -- the air step, gravity,
+     windup, the E3 switches, attach, floor refresh, OOB recovery -- each
+     landing in range.  This is a claim about the generated Clight only;
+     all budget arithmetic is in Phi_of_moves.  Moves NOT modelled, so this
+     row is false if they fire: hanging (A-gated), water, wind, shells,
+     objects that grab or throw (absent in WMotR; E1/E3). *)
+  Hypothesis Hframe_move :
+    forall m m' c, mem_ok_lp bm MWF m -> Phi m ->
+                   execute_mario_action_step_lp lp m m' ->
+                   cells_of bm m c -> PhiC c ->
+                   exists c', cells_of bm m' c' /\ FrameMove WFloor WPole c c'.
+
+  (* THE CRUX, now derived *)
+  Lemma seg_action_phi :
     forall m m', mem_ok_lp bm MWF m -> Phi m ->
                  execute_mario_action_step_lp lp m m' -> Phi m'.
+  Proof.
+    intros m m' Hok Hphi Hst.
+    pose proof Hphi as (_ & c & Hcells & Hc).
+    split; [ exact (Hact_whitelist m m' Hok Hphi Hst) | ].
+    destruct (Hframe_move m m' c Hok Hphi Hst Hcells Hc) as (c' & Hc' & Hmv).
+    exists c'. split; [ exact Hc' | ].
+    exact (Phi_of_moves WFloor wmotr_gap WPole wmotr_poles c c' Hc Hmv).
+  Qed.
 
   Lemma Hphi_y : forall m, Phi m -> y_le bm PHI_YMAX m.
   Proof. intros m Hphi v Hl. exact (Phi_wmotr_y bm R_noA m Hphi v Hl). Qed.
@@ -469,7 +513,7 @@ Section HeightLinked12.
   Proof.
     intros init is m Hok Hphi HA Hr.
     exact (proj2 (noA_run_height_bound lp bm MWF Phi PHI_YMAX
-                    frame_action_linked12 Hseg_action_phi Hphi_y
+                    frame_action_linked12 seg_action_phi Hphi_y
                     init is m Hok Hphi HA Hr)).
   Qed.
 

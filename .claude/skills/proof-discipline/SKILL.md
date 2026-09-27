@@ -24,13 +24,17 @@ all in `Unwired/`, and the theorem moved nowhere. See
   any link of the 12 TUs. The open surface is its `Hypothesis` rows (~35 external-call
   and boundary rows; see `docs/TRUST.md` §4).
 - **GOAL 2** (WMotR needs A): `WMotRRequiresA/HeightFrame.v`,
-  `wmotr_noA_height_bound_linked12`. This is a conditional theorem. Its open rows:
-  - `Phi`, a parameter (design: `docs/goal2-phi.md`)
-  - `Hseg_action_phi`, the crux
-  - `Hphi_y`
+  `wmotr_noA_height_bound_linked12`. This is a conditional theorem. Φ is concrete
+  (`HeightPhi.v`), `Hphi_y` is proved (YMAX = 2744), and the crux is the lemma
+  `seg_action_phi`, whose move arithmetic is proved (`HeightMove.Phi_of_moves`). Open rows:
+  - `R_noA`, the whitelist parameter
+  - `Hact_whitelist`
+  - `Hframe_move`, the value walk. It is false if an unmodelled move fires, so check the
+    `Step` constructors against any new y/vel writer.
+  - `wmotr_gap` and `wmotr_poles`, level data
   - the flank specs (TRUST 0.7)
 
-  YMAX and the coin link are also open.
+  The coin link is also open.
 - `docs/TRUST.md` is the ledger of everything a reader must believe. Read
   `Print Assumptions` (`pipeline/assumptions.sh`) together with the Hypothesis rows:
   holes appear as axioms, but assumptions appear as rows.
