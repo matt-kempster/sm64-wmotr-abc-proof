@@ -198,7 +198,7 @@ pole-grab correction and the 2026-09-27 slide-kick-gravity correction, <code>doc
 <p><b>On the spine</b> (2026-09-27): <code>WMotRRequiresA/HeightFrame.v</code>,
 capstone <code>wmotr_noA_height_bound_linked12</code>, passes the discipline audit and uses only standard axioms. Over any
 twelve-TU link: a run whose controller A bit is clear after every poll, starting GOAL-1-well-formed
-and inside the height invariant Φ, keeps <code>pos[1] ≤ 2743</code>. The Mario segment is GOAL 1’s
+and inside the height invariant Φ, keeps <code>pos[1] ≤ 2744</code>. The Mario segment is GOAL 1’s
 <em>proved</em> frame (new per-frame export <code>frame_ok_linked12</code>), not a restatement. The playground’s
 flank rows were <em>false as stated</em>: they quantified over every post-memory, not just ones the game
 produces. They were rewritten as labeled specs that carry the invariants. The playground’s y-row was false too:
@@ -209,7 +209,7 @@ produces. They were rewritten as labeled specs that carry the invariants. The pl
   <tr><th>Row</th><th>Track</th><th>Status</th><th>What discharges it</th></tr>
   <tr><td><code>Φ</code></td><td>T3</td>
       <td><span class="pill p-proved">defined</span></td>
-      <td><code>HeightPhi.Phi_wmotr</code>: y + credit(action, state, timer, vel[1]) ≤ 2372 + 371 over real
+      <td><code>HeightPhi.Phi_wmotr</code>: y + credit(action, state, timer, vel[1]) ≤ 2372 + 372 over real
       <code>MarioState</code> fields (offsets and action ids pinned against the AST), plus side clauses. Holds on all
       620 recorded real states. Still a parameter inside it: the no-A action whitelist <code>R_noA</code>.</td></tr>
   <tr><td><code>Hseg_action_phi</code></td><td>T2/T3</td>
@@ -219,14 +219,14 @@ produces. They were rewritten as labeled specs that carry the invariants. The pl
       Next: loop generalization (×4 quarter-steps + gravity).</td></tr>
   <tr><td><code>Hphi_y</code></td><td>T3</td>
       <td><span class="pill p-proved">proved</span></td>
-      <td>Φ ⇒ y ≤ 2743 (<code>Phi_wmotr_y</code>): every credit is ≥ 0.</td></tr>
+      <td>Φ ⇒ y ≤ 2744 (<code>Phi_wmotr_y</code>): every credit is ≥ 0.</td></tr>
   <tr><td>flank specs (poll / platform / level / rest)</td><td>T1/T4</td>
       <td><span class="pill p-boundary">labeled specs</span></td>
       <td>Each flank’s y/action clauses come from the censuses; its MWF/Φ carry becomes walkable once that code
       is in the link (rungs 2–3). <code>BP-INIT / BP-SEG-NULL / BP-SEG-BOX / BP-SURF-OBJ</code> (T1) ground the platform spec.</td></tr>
   <tr><td>YMAX, coin link</td><td>E1–E3</td>
       <td><span class="pill p-assumed">level data</span></td>
-      <td>YMAX = H* + 371 = 2743 (<code>docs/goal2-phi.md</code>; E3’s Δ_pot 273 was wrong). Coin #2 at y = 3140 needs y ≥ 2980, margin 237. Both come from level data, not generated/ yet.</td></tr>
+      <td>YMAX = H* + 372 = 2744 (<code>docs/goal2-phi.md</code>; E3’s Δ_pot 273 was wrong). Coin #2 at y = 3140 needs y ≥ 2980, margin 236. Both come from level data, not generated/ yet.</td></tr>
 </table></div>
 
 <h3>The ladder to the real per-frame entry point</h3>

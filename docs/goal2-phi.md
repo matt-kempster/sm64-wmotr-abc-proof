@@ -52,8 +52,17 @@ Fields, with offsets from `include/types.h` (to be pinned by `vm_compute` agains
 - `vel[1]` @ 0x4C
 - `floorHeight` @ 0x70
 
-Constants: K = H* = 2372 and A = 371, the SK-bounce apex 370.5625 in the
-energy form below, plus rounding slack. YMAX = K + A = **2743**.
+Constants: K = H* = 2372 and A = 372: the SK-bounce apex 370.5625 in the
+energy form below, plus the rounding allowance (0.89 at the bounce). YMAX = K + A = **2744**.
+
+**Rounding allowance EPS = 1/64 per remaining ascent frame.** Real arithmetic conserves
+y + energy exactly. In binary32 each rising frame (4 roundings of `pos += vel/4`, one of
+`vel -= g`) can add up to ~1/128, and a per-frame invariant cannot absorb that
+repeatedly. So `bal_g(v) = energy + EPS·(v/g + 1)` for v > 0. Post-bounce slide kick
+carries EPS·((v+75)/2 + 1), counted until the −75 clamp. Descending frames round
+down-safely (y' ≤ y exactly) and need nothing. `Unwired/HeightBallistic.v`,
+`ballistic_frame`, proves the rising and falling air frame against this budget, in
+binary32, over the real operations.
 
 ```
 Φ(m) ≜ Φ_act ∧ Φ_pot ∧ Φ_side

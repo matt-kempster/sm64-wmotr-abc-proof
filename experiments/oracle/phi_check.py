@@ -24,7 +24,8 @@ import zlib
 ORACLE = os.path.expanduser("~/sm64-oracle")
 MAP = f"{ORACLE}/decomp/build/us/sm64.us.map"
 
-K, A = 2372.0, 371.0
+K, A = 2372.0, 372.0
+EPS = 1 / 64
 FREEFALL, BSA, SK, GP = 0x0100088C, 0x0300088E, 0x018008AA, 0x008008A9
 LEDGE = 0x0800034B
 
@@ -43,14 +44,14 @@ def energy(g, v):
 
 
 def bal(g, v):
-    return 0.0 if v <= 0 else energy(g, v)
+    return 0.0 if v <= 0 else energy(g, v) + EPS * (v / g + 1)
 
 
 def credit(a, st, tm, v):
     if a in (FREEFALL, BSA):
         return bal(4, v) + 110
     if a == SK:
-        return bal(2, v) + 110 if st == 0 else energy(2, v)
+        return bal(2, v) + 110 if st == 0 else energy(2, v) + EPS * max(0.0, (v + 75) / 2 + 1)
     if a == GP:
         return (10 - tm) * (11 - tm) if (st == 0 and tm < 10) else 0.0
     if a & 0x800:

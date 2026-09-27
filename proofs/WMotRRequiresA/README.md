@@ -13,7 +13,7 @@
 ```
 star needs all 8 red coins → coin #2 (y = 3140) must be touched
   └─ touching needs pos[1] ≥ 3140 − 160 (hitbox)
-       └─ a no-A run keeps pos[1] ≤ 2743 < 2980          ← HeightFrame.v + HeightPhi.v
+       └─ a no-A run keeps pos[1] ≤ 2744 < 2980          ← HeightFrame.v + HeightPhi.v
             └─ Mario's own frame preserves GOAL 1's invariant   ← GOAL 1 (frame_ok_linked12)
 ```
 
@@ -32,8 +32,12 @@ Mario segment's preservation of GOAL 1's invariant is the proved
 - The four flank specs (TRUST.md 0.7) are labeled trust: that code isn't linked.
 - The coin/star link at the top of the chain (TRUST.md 0.3).
 
-Done: Φ is concrete (`HeightPhi.v`, `Phi_wmotr`: budget y + credit ≤ 2372 + 371 over
+Done: Φ is concrete (`HeightPhi.v`, `Phi_wmotr`: budget y + credit ≤ 2372 + 372 over
 real MarioState fields, offsets and action ids pinned against the generated AST), and
-`Hphi_y` is proved, so the bound is YMAX = 2743.
+`Hphi_y` is proved, so the bound is YMAX = 2744.
+
+Staged (`Unwired/HeightBallistic.v`, not yet consumed): `ballistic_frame`, one real
+no-collision air frame in binary32 does not raise y + bal(v). It is the ballistic arm of
+the crux, and the reason Φ carries the rounding allowance EPS.
 
 Prototypes still live in `playground/` (T1 PlatformInert, T2 FloatBrick, T3 ValueWalk).

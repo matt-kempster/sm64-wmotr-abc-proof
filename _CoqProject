@@ -221,6 +221,7 @@ proofs/NoAImpliesNoFly/NoAImpliesNoFlyTwelve.v
 #     height invariant Phi over real MarioState fields) ---
 proofs/WMotRRequiresA/HeightPhi.v
 proofs/WMotRRequiresA/HeightFrame.v
+proofs/WMotRRequiresA/Unwired/HeightBallistic.v
 
 # --- executable Clight: interpreter (sound vs ClightBigstep), vm-computable
 #     memory ops (= Mem.*), computable linked genv (= globalenv lp), memory builder ---

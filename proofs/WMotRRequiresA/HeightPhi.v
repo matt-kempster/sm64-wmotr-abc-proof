@@ -11,8 +11,9 @@
 (*                                                                          *)
 (*   K = H* = 2372   the floor-ladder fixpoint (tools/goal2_ladder.py,      *)
 (*                   entry-seeded; level data, not yet in generated/)       *)
-(*   A = 371         the no-A budget: slide-kick bounce apex 370.5625 in    *)
-(*                   the energy form, plus rounding slack                   *)
+(*   A = 372         the no-A budget: slide-kick bounce apex 370.5625 in    *)
+(*                   the energy form, plus the binary32 rounding allowance  *)
+(*                   EPS per remaining ascent frame (0.89 at the bounce)    *)
 (*                                                                          *)
 (* K and A are plain numbers in a DEFINITION.  They carry no trust by       *)
 (* themselves: a wrong number makes Hseg_action_phi (preservation) false,   *)
@@ -143,15 +144,29 @@ Proof. vm_compute. auto. Qed.
 Local Open Scope R_scope.
 
 Definition PHI_K : R := 2372.
-Definition PHI_A : R := 371.
-Definition PHI_YMAX : R := PHI_K + PHI_A.    (* 2743 < 3140 - 160 = 2980 *)
+Definition PHI_A : R := 372.
+Definition PHI_YMAX : R := PHI_K + PHI_A.    (* 2744 < 3140 - 160 = 2980 *)
 
 (* energy_g v = (v + g/2)^2 / (2g): exactly conserved by a frame
    y += v; v -= g   (energy g (v - g) = energy g v - v). *)
 Definition energy (g v : R) : R := (v + g / 2) ^ 2 / (2 * g).
 
-(* ballistic headroom: the energy while rising, 0 once descending *)
-Definition bal (g v : R) : R := if Rle_dec v 0 then 0 else energy g v.
+(* Rounding allowance.  Real arithmetic conserves y + energy exactly, but
+   each binary32 frame (4 roundings of pos += vel/4, one of vel -= g) can add
+   up to ~1/128 while Mario rises.  A per-frame invariant cannot absorb that
+   repeatedly, so the credit carries EPS for every frame of ascent left
+   (v/g + 1).  Descending frames round DOWN-safely (y' <= y exactly), so they
+   need no allowance.  (Unwired/HeightBallistic.v proves the frame lemma.) *)
+Definition EPS : R := 1 / 64.
+
+(* ballistic headroom: energy plus allowance while rising, 0 once descending *)
+Definition bal (g v : R) : R :=
+  if Rle_dec v 0 then 0 else energy g v + EPS * (v / g + 1).
+
+(* post-bounce slide kick: the SIGNED energy (it must stay informative on the
+   way down), with the allowance counted until the -75 clamp *)
+Definition sk1_credit (v : R) : R :=
+  energy 2 v + EPS * Rmax 0 ((v + 75) / 2 + 1).
 
 (* ground-pound windup still to come: sum_{t=tm}^{9} (20 - 2t) = n(n+1),
    n = 10 - tm (act_ground_pound, mario_actions_airborne.c:925-929) *)
@@ -164,7 +179,7 @@ Definition credit (a : int) (st tm : Z) (v : R) : R :=
   if Int.eq a ACT_FREEFALL then bal 4 v + GP_RESERVE
   else if Int.eq a ACT_BUTT_SLIDE_AIR then bal 4 v + GP_RESERVE
   else if Int.eq a ACT_SLIDE_KICK then
-         (if Z.eqb st 0 then bal 2 v + GP_RESERVE else energy 2 v)
+         (if Z.eqb st 0 then bal 2 v + GP_RESERVE else sk1_credit v)
   else if Int.eq a ACT_GROUND_POUND then
          (if Z.eqb st 0 then windup_left tm else 0)
   else if is_air a then bal 4 v
@@ -214,7 +229,18 @@ Section Phi.
   Lemma bal_nonneg : forall g v, 0 < g -> 0 <= bal g v.
   Proof.
     intros g v Hg. unfold bal. destruct (Rle_dec v 0); [ lra | ].
-    now apply energy_nonneg.
+    pose proof (energy_nonneg g v Hg).
+    assert (0 <= v / g)
+      by (unfold Rdiv; apply Rmult_le_pos; [ lra | left; apply Rinv_0_lt_compat; lra ]).
+    unfold EPS. nra.
+  Qed.
+
+  Lemma sk1_credit_nonneg : forall v, 0 <= sk1_credit v.
+  Proof.
+    intros v. unfold sk1_credit.
+    pose proof (energy_nonneg 2 v ltac:(lra)).
+    pose proof (Rmax_l 0 ((v + 75) / 2 + 1)).
+    unfold EPS. nra.
   Qed.
 
   Lemma windup_left_nonneg : forall tm, 0 <= windup_left tm.
@@ -228,7 +254,7 @@ Section Phi.
     intros a st tm v.
     assert (H4 : 0 <= bal 4 v) by (apply bal_nonneg; lra).
     assert (H2 : 0 <= bal 2 v) by (apply bal_nonneg; lra).
-    assert (E2 : 0 <= energy 2 v) by (apply energy_nonneg; lra).
+    pose proof (sk1_credit_nonneg v) as E2.
     pose proof (windup_left_nonneg tm) as HW.
     unfold credit, GP_RESERVE, PHI_A.
     destruct (Int.eq a ACT_FREEFALL); [ lra | ].

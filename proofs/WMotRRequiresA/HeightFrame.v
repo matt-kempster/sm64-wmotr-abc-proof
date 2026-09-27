@@ -25,9 +25,9 @@
 (* WHAT IS OPEN -- every row is meant to be TRUE of the real game (no       *)
 (* forall over states the game never produces; see the comment on each):    *)
 (*   Phi             CONCRETE since 2026-09-27 (HeightPhi.Phi_wmotr): the   *)
-(*                   height budget y + credit <= 2372 + 371 over real       *)
+(*                   height budget y + credit <= 2372 + 372 over real       *)
 (*                   MarioState fields.  Its action whitelist R_noA is      *)
-(*                   still a parameter.  Hphi_y is PROVED, YMAX = 2743.     *)
+(*                   still a parameter.  Hphi_y is PROVED, YMAX = 2744.     *)
 (*   Hseg_action_phi THE CRUX (T3): one real execute_mario_action frame     *)
 (*                   preserves Phi.                                         *)
 (* and the flank SPECS are labeled trust: each states what that phase of    *)
@@ -36,7 +36,7 @@
 (* forall-rows over every memory matching the load clauses would be FALSE: *)
 (* an adversarial post-memory breaks MWF elsewhere.)                        *)
 (*                                                                          *)
-(* YMAX is a parameter.  docs/goal2-phi.md instantiates it as H* + 371     *)
+(* YMAX is a parameter.  docs/goal2-phi.md instantiates it as H* + 372     *)
 (* (slide-kick bounce apex; E3's 273 was wrong); red coin #2 (y = 3140) is  *)
 (* out of reach iff                                                         *)
 (* YMAX < 3140 - 160 (hitbox height).  Both numbers come from level data    *)
@@ -432,8 +432,8 @@ Section HeightLinked12.
       Mem.valid_block m bm -> MWF m -> MWF m'.
 
   (* ---- GOAL 2's own rows.  Phi is CONCRETE (HeightPhi.v): the height
-     budget over real MarioState fields, K = 2372, A = 371.  Hphi_y is a
-     THEOREM (Phi_wmotr_y), so YMAX = PHI_YMAX = 2743 is no longer a
+     budget over real MarioState fields, K = 2372, A = 372.  Hphi_y is a
+     THEOREM (Phi_wmotr_y), so YMAX = PHI_YMAX = 2744 is no longer a
      parameter.  What remains: the action whitelist R_noA (a parameter,
      docs/goal2-phi.md §3.1) and the crux row. ---- *)
   Variable R_noA : int -> Prop.
@@ -458,7 +458,7 @@ Section HeightLinked12.
   (* THE GOAL-2 CAPSTONE (height form): over any link of the twelve TUs,  *)
   (* a run of real game frames with the A bit clear after every poll,     *)
   (* started GOAL-1-well-formed and in the height invariant Phi, keeps    *)
-  (* Mario's height <= PHI_YMAX = 2743 (coin #2 needs >= 2980).           *)
+  (* Mario's height <= PHI_YMAX = 2744 (coin #2 needs >= 2980).           *)
   (* ==================================================================== *)
   Theorem wmotr_noA_height_bound_linked12 :
     forall (init : mem) (is : list mem) (m : mem),
