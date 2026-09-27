@@ -1,207 +1,109 @@
 ---
 name: proof-discipline
-description: READ FIRST before continuing, extending, discharging, finishing, or "advancing" any Rocq/Coq proof in this repo, and before adding a Definition/Lemma/Axiom/Hypothesis. The bottom line is advancing the REAL theorem (tethering the proof to the real SM64 program) — NOT a green build, NOT axiom-cleanliness, NOT proving another true-but-disconnected lemma. Guards against the LLM failure mode of doing clean, careful, axiom-free work that moves the real theorem nowhere. Triggers — "continue/finish/work on the proof", "discharge this hypothesis / sorry / Admitted", "prove <lemma>", "make it compile", anything touching proofs/ or the Unwired/ regime. Pairs with the run-sm64-wmotr-abc-proof build skill.
+description: Checklist for proof work in this repo. Use before committing Rocq/Coq changes, and before adding a Definition/Lemma/Hypothesis to the spine. Progress means the capstone says more about the REAL SM64 program; a green build, axiom-cleanliness or a new disconnected lemma is not progress. Covers the audit script, the tethering test, phantom-forall rows, and statement fidelity.
 ---
 
-# Proof discipline: advance the REAL theorem, or you did not make progress
+# Proof discipline
 
 ## The one question
 
-After any proof work, the only thing that matters:
+> Is the capstone now closer to a **true** statement about the **real** SM64
+> program than it was before?
 
-> **Is the capstone now closer to a TRUE statement about the REAL SM64 program
-> than it was before?**
+Green builds, axiom-cleanliness and new true lemmas are the floor. They are not the
+goal. The failure this skill exists for is a session of clean, `Qed`'d work that is
+disconnected from the real theorem: lemmas about placeholders, or a definition that
+doesn't mean what its name says. This happened here once: four green, axiom-clean commits,
+all in `Unwired/`, and the theorem moved nowhere. See
+[*Did you prove what you think you proved?*](https://leanprover-community.github.io/did_you_prove_it.html).
 
-Not "does it build." Not "is it axiom-clean." Not "did I prove a new lemma."
-Those are **hygiene** (necessary, cheap to satisfy, and below). The bottom line
-is **tethering** — how much of the real theorem the proof actually pins down.
+## Where the bottom line is (keep this current)
 
-**The failure mode this exists to stop (la-la-land).** It is *not* a red `Qed`.
-It is a session of green, axiom-free, fully-`Qed`'d, carefully-structured work
-that is **disconnected from the real theorem** — a tower of true lemmas about
-placeholders, or a definition that doesn't mean what its name says. This skill
-exists because exactly that happened: four green, axiom-clean, no-new-axiom
-commits, all inside `Unwired/`, advancing the real theorem **nowhere**. The
-metrics all passed; the bottom line did not move. See the Lean community's
-[*Did you actually prove what you think you proved?*](https://leanprover-community.github.io/did_you_prove_it.html).
+- **GOAL 1** (no-A ⇒ no-fly): `NoAImpliesNoFly/NoAImpliesNoFlyTwelve.v`,
+  `noA_no_spawn_never_flying_linked12`. The step is one real `execute_mario_action` over
+  any link of the 12 TUs. The open surface is its `Hypothesis` rows (~35 external-call
+  and boundary rows; see `docs/TRUST.md` §4).
+- **GOAL 2** (WMotR needs A): `WMotRRequiresA/HeightFrame.v`,
+  `wmotr_noA_height_bound_linked12`. This is a conditional theorem. Its open rows:
+  - `Phi`, a parameter (design: `docs/goal2-phi.md`)
+  - `Hseg_action_phi`, the crux
+  - `Hphi_y`
+  - the flank specs (TRUST 0.7)
 
-Paths below are relative to the repo root.
+  YMAX and the coin link are also open.
+- `docs/TRUST.md` is the ledger of everything a reader must believe. Read
+  `Print Assumptions` (`pipeline/assumptions.sh`) together with the Hypothesis rows:
+  holes appear as axioms, but assumptions appear as rows.
 
-## Step 1 — find the bottom line, and what is still a fiction
+## What counts as progress
 
-Read the capstone's *statement* and its current `Print Assumptions` **first** —
-that is the bottom line you must move, and it tells you what is still a fiction.
+1. **Eliminate a row.** Prove it for the real program.
+2. **Refine a row** into sharper real pieces that can each be discharged, even if the
+   count goes up. This counts only if the new rows:
+   - are about real program objects (named functions, fields and offsets from
+     `generated/`);
+   - are strictly more precise than what they replaced;
+   - have a credible discharge path;
+   - are consumed on the spine.
 
-- GOAL 1: `NoAImpliesNoFly/NoAImpliesNoFly.v : noA_no_spawn_never_flying`.
-  Today it rests on an **abstract** `step : Inp -> mem -> mem -> Prop` and a
-  black-box `frame_preserves_nonflying` hypothesis — i.e. it is a true theorem
-  about a **fiction** until `step` is the real clightgen'd frame. That gap *is*
-  the work.
-- GOAL 2: `WMotRRequiresA/` (not started).
+   Decompose the gap; never collapse it. A row that restates the conclusion is laundering.
+3. **Partial work aimed at 1 or 2, on the spine.** Half a closure on the spine beats a
+   finished lemma in `Unwired/`.
+4. **Finding that a row, number or design claim is false.** This is progress too, and
+   often the most valuable kind. Examples: E3's Δ_pot, the VIRTUAL_TO_PHYSICAL UB frames,
+   the flank ∀-rows.
 
-The honest scoreboard is the **residual-hypothesis surface** the audit prints
-(`reach_body_avoids`, `reach_ext_preserves`, `reach_value_preserves`,
-`assign_avoids`, the abstract `step`/`frame_preserves_nonflying`). The question
-that measures a session: *which of these is now proved for, or sharpened toward,
-the REAL program?*
+`Unwired/` work isn't done until it is promoted: `git mv` it onto the spine and have a
+spine file use it. Otherwise say plainly that nothing consumes it yet. CI's firewall
+forbids the spine from importing `Unwired/`.
 
-## Step 2 — what counts as progress (tethering)
+## We don't need `forall`: SM64 is one specific codebase
 
-Exactly one of these. Each *increases tethering* — makes the capstone say more
-about the real program, or makes a residual sharper and closer to removable.
+One program, one call graph, one set of externals. A row that quantifies over every
+`le` / `fd` / `ef` / memory can admit states the game never produces. Then a true fact
+becomes a false row. It happened repeatedly:
 
-1. **ELIMINATE a residual.** Prove a `reach_*` / `*_avoids` for the real Mario
-   genv, shrinking what the capstone rests on. Strongest.
+- `forall le m` in a per-`Sassign` check, where a temp was allowed to alias Mario's block
+  although the program had just loaded it from `marioObj`;
+- the GOAL-2 flank rows, "spec ⇒ MWF m ⇒ MWF m'" over every m' matching loose y/action
+  clauses;
+- "y ≤ YMAX is preserved by a frame": false, since upward velocity is unconstrained;
+- the crux row with a Φ that lacks an action whitelist, which would range over mem_ok
+  memories in A-gated actions.
 
-2. **REFINE a vague assumption into precise, real, removable ones — even if the
-   assumption COUNT goes UP.** Replacing the black-box `step` +
-   `frame_preserves_nonflying` with a *concrete* clightgen'd `step` plus a
-   *precise* `reach_frame_preserves` over the real callgraph is **progress**:
-   the proof now talks about SM64, and the new residuals have discharge paths.
-   Fewer-assumptions is *not* the metric; more-tethered is.
+The fix is always the same: reason about the actual execution, or enumerate the actual
+finite set. If a row looks true but won't go through, first ask whether it ranges over
+states the program never reaches. Also ask whether each premise is satisfiable: an
+unsatisfiable oracle premise makes everything above it vacuous (the P1′ lesson).
 
-3. **PARTIAL but spine-aimed work** toward (1) or (2). A half-built reach closure
-   **on the spine** beats a complete, polished lemma in `Unwired/`. It is fine to
-   leave a big step partway done and pick it up next session (goal mode continues
-   it). Direction beats completion — a correctly-aimed fragment of the real work
-   is worth more than a finished disconnected one.
+## PIPELINE, not bespoke
 
-## Step 3 — adding assumptions can be progress (the guardrail)
+Every fact about SM64 comes from the clightgen'd AST in `generated/`. Pin constants and
+offsets there with `vm_compute` (e.g. `mario_pos_offset_concrete`), and never transcribe
+them by hand. Numbers the proof depends on (budgets, level data) come from tools that read
+the vendor source, such as `tools/goal2_ladder.py` and `tools/goal2_budget.py`, not from
+prose. Check prose against code before building on it.
 
-Counterintuitive but true: **more** assumptions can mean **more** tethering. An
-added `Hypothesis`/`Variable`/`Definition` is *good* iff it is:
-
-- **(a) about REAL program objects** — named functions / fields / offsets from
-  `generated/`, the real genv, the real callgraph — not a fresh abstract
-  placeholder;
-- **(b) strictly MORE PRECISE** than what it replaced;
-- **(c) credibly DISCHARGEABLE** — a decidable check, a finite enumeration, a
-  standard CompCert lemma, a localized aliasing fact;
-- **(d) a NET INCREASE in tethering ON THE SPINE** — not a precise-but-disconnected
-  new island. (Precision alone is not enough: an exact assumption that nothing on
-  the capstone's path consumes is still la-la-land.)
-
-The line to hold: **decompose the gap, never collapse it.** "Assume
-`the_program_never_flies_without_A`" is precise and real-named — and worthless,
-because it is the conclusion. Refinement breaks the gap into smaller real pieces;
-laundering wishes it away. If an added assumption restates the goal, or pushes the
-hard part into a new abstraction, it is the failure mode wearing a precise costume.
-
-## What does NOT count as progress (hygiene, not the point)
-
-These are necessary, and they are the **floor**, not the goal. Satisfying every
-one while staying in `Unwired/` is precisely the trap:
-
-- a **green build**;
-- **no** `Admitted` / `Axiom` / `sorry`;
-- the capstone resting on **only the standard CompCert axioms**;
-- a **new true lemma** — if it sits unreferenced in `Unwired/`, it is *staging*,
-  not a result;
-- **"completing"** something — completion of disconnected work is still disconnected.
-
-`Unwired/` means "proved but the spine does not use it." Proving something there is
-**not done**. The same session: wire it into the spine (`git mv` it onto the
-capstone's path and have a spine file use it), **or** say plainly — "this is
-`Unwired/` scaffolding, nothing on the capstone consumes it yet, the wiring step is
-_____, I did not advance the capstone." Never report an `Unwired/` lemma as if it
-moved the theorem. (CI's firewall rejects a spine file that reaches into `Unwired/`,
-so the only way to *use* `Unwired/` work is to promote it.)
-
-## Don't invent the statement (PIPELINE-not-bespoke)
-
-This repo's credibility rests on it: every fact about SM64 must come from the
-mechanically-`clightgen`'d AST in `generated/`, never a hand-written model. A new
-`Definition mario_is_flying := ...` that *you* wrote — rather than one that reads
-the real `action` field at the real offset of the real `MarioState` composite
-(`vm_compute` over `prog_comp_env mario.prog`) — is a fiction you will then "prove"
-things about. If you must introduce a definition, tie it to the generated AST and
-check it computes to what you expect. Inventing the statement is the deepest form
-of un-tethering.
-
-## We don't need `forall` — SM64 is one specific codebase
-
-**We don't need to prove things like "for all," because SM64 is one specific
-codebase.** One program. One memory. One call graph. One set of externals. When you
-catch yourself quantifying over *every* local environment, *every* function, *every*
-external — stop. The program already fixes those. The `forall` isn't rigor; it's a
-phantom you invented, and it will admit cases the real run never produces —
-sometimes making a **TRUE fact unprovable**, because some impossible `le` the
-adversary picks breaks your lemma even though the actual execution never gets there.
-
-Three phantom `forall`s this proof wrote and had to undo:
-
-- **`forall le m`** in a per-`Sassign` check — let a temp alias Mario's block, even
-  though the program sets that temp from `gMarioState->marioObj` two lines up. The
-  check was just **false**, so the residual on top of it could never close.
-- **`forall fd`** ("every reached funcall preserves …") — there's a finite list of
-  functions; enumerate it (`Generic/CallgraphReach.v`).
-- **`forall ef`** ("every external preserves …") — it's a named handful of math
-  builtins, not "all externals."
-
-The fix is always the same: **reason about the actual execution, or enumerate the
-actual finite set.** Not a `forall le` frame check — a fact about the runs of the
-*one* body, where the temps hold the values the *one* program put there
-(`RealFrameValue.body_preserves_real` replaced the false `forall le`
-`body_stores_value_ok`). Not "all callees" — induct over the callgraph you can
-`vm_compute`. Block distinctness, field offsets, symbol addresses are **concrete**
-(`vm_compute` over `prog_comp_env mario.prog` / `Genv.find_symbol`) — never hide them
-behind a universal.
-
-When a residual looks *true but won't go through*, ask: **is it quantifying over a
-`le` / `fd` / `ef` the program never actually reaches?** If so, the `forall` is the
-bug, not the proof. Restate it over the concrete execution or the finite real set —
-that's tethering progress (Steps 2–3), and it usually turns an *unprovable* residual
-into a merely *unproved* one.
-
-## The mechanical audit — the hygiene gate (passing it ≠ progress)
+## The audit (the floor)
 
 ```bash
 bash .claude/skills/proof-discipline/discipline_check.sh
 ```
 
-It checks build / no-holes / axiom-footprint / firewall+orphans, and **prints the
-residual-hypothesis surface**. Run it after any proof work — but understand what it
-answers: *"is the tree clean and hooked in,"* **not** *"did the bottom line move."*
-A green audit is the floor. The residual list it prints is the real scoreboard;
-moving an item on it is the goal. Audit a different capstone with:
+It runs the build, checks for holes, checks each capstone's axiom footprint, and runs the
+firewall/orphan check. It also prints the residual surface. Run it before committing proof
+changes. To audit a specific capstone:
+`discipline_check.sh SM64.Proofs.<Path>.<Module> <theorem> ...`.
+Always build via `pipeline/*.sh`, never bare `coqc`: a bare `coqc` can report a false green.
 
-```bash
-bash .claude/skills/proof-discipline/discipline_check.sh SM64.Proofs.<Path>.<Module> <theorem> [more pairs...]
-```
+## Before claiming progress, answer
 
-## Step 4 — "Did you advance the bottom line?" (the judgment the script cannot do)
-
-Answer out loud before claiming progress:
-
-- **Tethering.** Does the capstone now pin down more of the real program than
-  before? Name the *specific* thing that got more real — a placeholder became a
-  generated-AST object, a residual got discharged or sharpened. If you cannot name
-  it, you did not make progress.
-- **Added an assumption?** Does it pass (a)–(d)? Is it a *refinement* (decompose) or
-  a *laundering* (collapse / restate the goal)?
-- **Spine, not island.** Is the new work reachable from the capstone, or did it land
-  in `Unwired/`? If `Unwired/`, say so and give the wiring step — do not round up.
-- **Statement fidelity.** Does the statement still mean what its name claims?
-  `step`, `mem_flying`, `noA_run_real` — the real notions, or stand-ins?
-- **Non-vacuity.** Hypotheses jointly satisfiable; not secretly the conclusion.
-
-If you can't point at the real thing that got more tethered, say what is still open
-rather than rounding up to "proved."
-
-## Gotchas (this repo)
-
-- **"No Admitted" ≠ no gaps.** This project surfaces residuals as explicit
-  `Prop`-valued hypotheses (`reach_*`, `*_avoids`, `*_ok`) instead of `Admitted`.
-  So the tree can be 100% `Qed` and the capstone still rest on big undischarged
-  assumptions. The honest progress metric is *which residuals are proved for the
-  real program*, not the admit count — this is the same point as Step 1, baked into
-  the project's style.
-- **`Print Assumptions` is the lie detector** for *holes* (an `Admitted` in a
-  capstone's cone shows up as a non-standard axiom). It is **not** a tethering
-  meter: a capstone over abstract placeholders can be axiom-clean and still be
-  about a fiction. Cleanliness and tethering are different axes; this skill is about
-  the second.
-- **`coqc` off-switch false-green.** Always build/check through `pipeline/*.sh`
-  (they activate the opam switch); a bare `coqc` can report RC 0 falsely.
-- **Don't `vm_compute`/link a whole program** (OOMs) — see
-  `Generic/SymbolicLinking.v` for the bounded pattern.
+- **What got more real?** Name the placeholder that became a generated-AST object, or the
+  row that was discharged or sharpened.
+- **New assumption?** Is it a refinement or a laundering? Update `docs/TRUST.md` in the
+  same commit.
+- **Spine or island?**
+- **Statement fidelity:** do `step`, `mem_ok`, `Phi` and `y_le` still mean what their
+  names claim?
+- **Non-vacuity:** are the rows jointly satisfiable? Does a positive control or real-game
+  tether (`experiments/oracle`) exercise them?

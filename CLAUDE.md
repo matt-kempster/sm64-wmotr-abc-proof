@@ -3,22 +3,20 @@
 A Rocq (Coq) + CompCert proof aimed at an SM64 **A-Button-Challenge impossibility**
 result. Two rules dominate everything you do here.
 
-## 1. Before ANY proof work, read the `proof-discipline` skill
+## 1. Progress = the capstone says more about the real program
 
-Before you continue, extend, "finish", or discharge a proof — or add a
-`Definition`/`Lemma`/`Axiom` — invoke **`/proof-discipline`**
-(`.claude/skills/proof-discipline/SKILL.md`) and run its audit:
+Before committing proof changes, run the audit (build, holes, axioms, firewall):
 
 ```bash
 bash .claude/skills/proof-discipline/discipline_check.sh
 ```
 
-A green build is **not** progress, and proving a true-looking lemma is **not**
-progress if it is disconnected, vacuous, or self-invented. Progress = a goal
-**capstone** resting on *fewer* assumptions, with new work **hooked into the
-spine** (not left in `Unwired/`). The failure mode to avoid is la-la-land:
-inventing definitions and proving a tower on top of them while drifting from the
-real theorem. (See <https://leanprover-community.github.io/did_you_prove_it.html>.)
+A green audit is the floor, not progress. Progress means a goal **capstone** that
+is more tethered to the real SM64 code: a row discharged or sharpened, a placeholder
+replaced by a generated-AST object, or a false claim found. New work must be
+**hooked into the spine** (not left in `Unwired/`). Watch for rows that quantify
+over states the game never produces (phantom ∀). The `proof-discipline` skill has
+the checklist and the current open surface; keep it current.
 
 ## 2. PIPELINE, not bespoke
 
