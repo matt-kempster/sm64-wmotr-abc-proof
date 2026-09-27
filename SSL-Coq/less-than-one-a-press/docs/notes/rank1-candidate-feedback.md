@@ -5,6 +5,21 @@ works for a search branch with a known controller prefix.** This does not
 complete the exhaustive one-second backward search, resolve arbitrary earlier
 memories, prove Ink impossible, or add a Coq theorem.
 
+## Did these runs start at Ink?
+
+**No. The emulator started earlier and ran forward.** Only the final generated
+caller was worked backward from the desired top-retention condition. The thirty
+preceding updates were executed forward from one fixed, controller-reached
+prefix. The solver did not reconstruct their predecessor states. Calling this
+"finishing the connection" was too broad: the completed piece is a concrete
+candidate validator, not the requested thirty-update backward search.
+
+The agreed endpoint remains the final Area-1 check retaining the checked top.
+That is a necessary checkpoint for this selected installation, not a complete
+Ink installation by itself. The target used here does not establish warp
+acceptance, pointer survival or the first useful Area-2 apply. No run began at
+an already installed Ink state.
+
 ## What changed
 
 Previously, a solver proposal could ask for a useful floor result, but the
@@ -115,6 +130,57 @@ A retained checked top would establish only this checkpoint. Warp acceptance,
 pointer lifetime and the first Area-2 apply still need their existing checks
 before calling anything a successful Ink installation. No case moves to
 Already proved, and all 45 subjective atlas estimates remain unchanged.
+
+## What exhaustive one-second coverage would require
+
+These are completion criteria, not newly completed work. Keep the requested
+endpoint above and count thirty completed gameplay updates before it. A fixed
+earlier replay gives a much narrower question: every allowed continuation of
+that replay. It cannot stand in for every allowed predecessor of the endpoint.
+For the broader question, earlier states must remain represented, with an
+explicit domain containing the allowed histories. The accepted normal start
+does not need to be reconstructed. A surviving candidate still needs a valid
+connection to it; an exclusion can instead cover a justified larger state set.
+
+1. **Represent the endpoint and one complete predecessor step.** Keep every
+   state that can reach the selected target under some allowed controller
+   input. Do not fill unknown earlier bytes with one convenient supplied scene.
+   Include the actual action, scheduler, callback, floor-list and runtime
+   effects needed by surviving branches. Calls may use their generated bodies,
+   justified summaries or sound conservative effects. A concrete emulator
+   reply establishes one reached case, not all symbolic cases. It is unnecessary
+   to expand an irrelevant call if a checked conservative calculation already
+   excludes the whole branch.
+2. **Join thirty steps with consistent state and input history.** The memory
+   after one update must be the memory before the next. Carry button edges,
+   timers, objects, RNG and other relevant state. Apply the selected no-A rule
+   explicitly; A always released is narrower than a justified already-held-A
+   boundary under the no-new-A rule. Handle pause and multiple controller polls
+   according to the declared horizon. Thirty polls are not automatically thirty
+   completed updates; the present adapter leaves mismatches pending.
+3. **Eliminate sets safely enough to make the calculation practical.** Keep
+   symbolic input ranges and prove any state merging or branch exclusion.
+   Equal XYZ, nine stick regions, or one failed representative do not establish
+   equivalent futures. The present feedback loop excludes one exact history
+   at a time and gives little guidance before replay. At thirty input samples,
+   its raw non-A encoding envelope contains `(2^29)^30 = 2^870` sequences;
+   this is an envelope, not a count of physically distinct gameplay choices.
+   Raising the candidate budget is not a practical exhaustive strategy.
+4. **Account for the entire domain before claiming exclusion.** Retain a
+   checkable coverage record: every relevant alternative must be included in a
+   completed calculation or excluded with justification. Timeouts, unanswered
+   calls and pending schedules cannot disappear from that record. A validated
+   witness can establish possibility before exhaustion; no witness after a
+   budget-limited run cannot establish impossibility. Solver results also need
+   their translation and runtime boundaries stated; this exploratory Python
+   engine is not a Coq-verified implementation of CompCert.
+
+The next implementation milestone should be a complete predecessor calculation
+for **one** update from the selected endpoint set, including all alternatives
+in its stated domain, followed by measurements at two and four updates. Only
+then can its growth inform a thirty-update estimate. This is a recommendation,
+not a claim that the thirty-update calculation will be tractable. No new search
+or proof was performed for this clarification.
 
 ## Reproduction
 
