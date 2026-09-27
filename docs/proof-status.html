@@ -156,18 +156,22 @@ replayed through the proved-sound interpreter on a CompCert memory built from th
 calls outside the link replayed from the game (callee and arguments must match). The final memory is
 then compared byte for byte (<code>experiments/oracle/</code>, ledger 5.1).</p>
 <div class="tablewrap"><table>
-  <tr><th>300 random-input frames (15 actions incl. jumps, double jumps, kicks)</th><th class="num">Frames</th></tr>
-  <tr><td><span class="pill p-proved">MATCH</span> same calls, same arguments, byte-identical memory</td><td class="num">267</td></tr>
-  <tr><td>DIFF / DIVERGE: the model computed something the game didn’t</td><td class="num">0</td></tr>
-  <tr><td><span class="pill p-assumed">STUCK</span> the model has <em>no execution</em> (CompCert UB)</td><td class="num">33</td></tr>
+  <tr><th>300 random-input frames (15 actions incl. jumps, double jumps, kicks)</th><th class="num">Before</th><th class="num">Now</th></tr>
+  <tr><td><span class="pill p-proved">MATCH</span> same calls, same arguments, byte-identical memory</td><td class="num">267</td><td class="num"><b>300</b></td></tr>
+  <tr><td>DIFF / DIVERGE: the model computed something the game didn’t</td><td class="num">0</td><td class="num">0</td></tr>
+  <tr><td><span class="pill p-assumed">STUCK</span> the model has <em>no execution</em> (CompCert UB)</td><td class="num">33</td><td class="num"><b>0</b></td></tr>
 </table></div>
-<div class="callout warn">
-  <h3>Found: 11% of real frames are outside GOAL 1</h3>
-  <p style="margin:.2rem 0">All 33 STUCK frames have one cause. After a fresh animation DMA, <code>set_mario_animation</code>
+<div class="callout">
+  <h3>Found and fixed: the proof was <em>using</em> undefined behavior</h3>
+  <p style="margin:.2rem 0">All 33 STUCK frames had one cause. After a fresh animation DMA, <code>set_mario_animation</code>
   runs <code>VIRTUAL_TO_PHYSICAL(ptr)</code> = <code>ptr &amp; 0x1FFFFFFF</code>. Bitwise AND on a pointer is
-  undefined in CompCert C. The game runs these frames, but CompCert has no execution for them, so a
-  “for all executions” theorem says nothing about them. Fix candidate: a proof-only
-  pointer-subtraction form of the macro, bit-identical on KSEG0 addresses (ledger 3.2). Not applied yet.</p>
+  undefined in CompCert C, so 11% of real frames had no execution, and a “for all executions” theorem said
+  nothing about them. Worse, the spine's walker had discharged those stores <em>by contradiction</em>:
+  it used the UB as a proof step. Fix: the policy is that the N64 is a real machine, so UB is really
+  defined behavior. Each site is rewritten to CompCert-defined C with the <em>same bits</em>, and gets a ledger row
+  (2.2 register, inventory in <code>docs/ub-sites.txt</code>). <code>VIRTUAL_TO_PHYSICAL</code> became
+  <code>ptr - 0x80000000</code>, which is equal on every KSEG0 address. The dead-code proof arm is gone. A real one proves the
+  stores safe, and the capstones stay clean. STUCK = 0 is now the regression gate.</p>
 </div>
 
 <p class="small">History worth remembering: four hypothesis rows that <em>looked</em> fine were found

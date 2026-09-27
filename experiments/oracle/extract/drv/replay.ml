@@ -349,9 +349,11 @@ let real_of_val = function
   | Vint i -> Some (zi i land 0xFFFFFFFF)
   | Vsingle f -> Some (zi (Floats.Float32.to_bits f) land 0xFFFFFFFF)
   | Vptr (b, o) -> (
+      (* 32-bit wraparound: proof_n64.h's VIRTUAL_TO_PHYSICAL makes offsets like o - 0x80000000 *)
+      let w x = x land 0xFFFFFFFF in
       match Hashtbl.find_opt addr_of_blk (blk_int b) with
-      | Some a -> Some (a + zi o)
-      | None -> (match Hashtbl.find_opt bindings (blk_int b) with Some (a, _, _) -> Some (a + zi o) | None -> None))
+      | Some a -> Some (w (a + zi o))
+      | None -> (match Hashtbl.find_opt bindings (blk_int b) with Some (a, _, _) -> Some (w (a + zi o)) | None -> None))
   | _ -> None
 
 let is_float = function Tfloat _ -> true | _ -> false

@@ -3,7 +3,7 @@
    Produced by: pipeline/clightgen.sh
    From source: vendor/sm64/src/game/mario.c
    clightgen:   The CompCert CompCert AST generator, version 3.15
-   Flags:       -normalize -nostdinc -fstruct-passing -Ivendor/sm64/include -Ivendor/sm64/build/us -Ivendor/sm64/build/us/include -Ivendor/sm64/src -Ivendor/sm64 -Ivendor/sm64/include/libc -DVERSION_US=1 -DF3DEX_GBI_2=1 -DF3DEX_GBI_SHARED=1 -D_FINALROM=1 -DTARGET_N64=1 -DNON_MATCHING=1 -DAVOID_UB=1 -D_LANGUAGE_C=1 (+ __stringlit_ -> __stringlit_mario_)
+   Flags:       -normalize -nostdinc -fstruct-passing -Ivendor/sm64/include -Ivendor/sm64/build/us -Ivendor/sm64/build/us/include -Ivendor/sm64/src -Ivendor/sm64 -Ivendor/sm64/include/libc -DVERSION_US=1 -DF3DEX_GBI_2=1 -DF3DEX_GBI_SHARED=1 -D_FINALROM=1 -DTARGET_N64=1 -DNON_MATCHING=1 -DAVOID_UB=1 -D_LANGUAGE_C=1 -include pipeline/proof_n64.h (+ __stringlit_ -> __stringlit_mario_)
    Regenerate:  make regen   (output must be byte-identical)
    ====================================================================== *)
 From Coq Require Import String List ZArith.
@@ -1023,16 +1023,17 @@ Definition f_set_mario_animation := {|
                     (Etempvar _targetAnim (tptr (Tstruct _Animation noattr)))
                     (Tstruct _Animation noattr)) _values (tptr tshort))
                 (Ecast
-                  (Ebinop Oand
-                    (Ecast
-                      (Ebinop Oadd
-                        (Ecast
-                          (Etempvar _targetAnim (tptr (Tstruct _Animation noattr)))
-                          (tptr tuchar))
-                        (Ecast (Etempvar _t'11 (tptr tshort)) tuint)
-                        (tptr tuchar)) tuint)
-                    (Econst_int (Int.repr 536870911) tint) tuint)
-                  (tptr tvoid))))
+                  (Ecast
+                    (Ebinop Osub
+                      (Ecast
+                        (Ebinop Oadd
+                          (Ecast
+                            (Etempvar _targetAnim (tptr (Tstruct _Animation noattr)))
+                            (tptr tuchar))
+                          (Ecast (Etempvar _t'11 (tptr tshort)) tuint)
+                          (tptr tuchar)) (tptr tuchar))
+                      (Econst_int (Int.repr (-2147483648)) tuint)
+                      (tptr tuchar)) tuint) (tptr tvoid))))
             (Ssequence
               (Sset _t'10
                 (Efield
@@ -1045,16 +1046,17 @@ Definition f_set_mario_animation := {|
                     (Etempvar _targetAnim (tptr (Tstruct _Animation noattr)))
                     (Tstruct _Animation noattr)) _index (tptr tushort))
                 (Ecast
-                  (Ebinop Oand
-                    (Ecast
-                      (Ebinop Oadd
-                        (Ecast
-                          (Etempvar _targetAnim (tptr (Tstruct _Animation noattr)))
-                          (tptr tuchar))
-                        (Ecast (Etempvar _t'10 (tptr tushort)) tuint)
-                        (tptr tuchar)) tuint)
-                    (Econst_int (Int.repr 536870911) tint) tuint)
-                  (tptr tvoid)))))
+                  (Ecast
+                    (Ebinop Osub
+                      (Ecast
+                        (Ebinop Oadd
+                          (Ecast
+                            (Etempvar _targetAnim (tptr (Tstruct _Animation noattr)))
+                            (tptr tuchar))
+                          (Ecast (Etempvar _t'10 (tptr tushort)) tuint)
+                          (tptr tuchar)) (tptr tuchar))
+                      (Econst_int (Int.repr (-2147483648)) tuint)
+                      (tptr tuchar)) tuint) (tptr tvoid)))))
           Sskip))
       (Ssequence
         (Ssequence
@@ -1287,16 +1289,17 @@ Definition f_set_mario_anim_with_accel := {|
                     (Etempvar _targetAnim (tptr (Tstruct _Animation noattr)))
                     (Tstruct _Animation noattr)) _values (tptr tshort))
                 (Ecast
-                  (Ebinop Oand
-                    (Ecast
-                      (Ebinop Oadd
-                        (Ecast
-                          (Etempvar _targetAnim (tptr (Tstruct _Animation noattr)))
-                          (tptr tuchar))
-                        (Ecast (Etempvar _t'12 (tptr tshort)) tuint)
-                        (tptr tuchar)) tuint)
-                    (Econst_int (Int.repr 536870911) tint) tuint)
-                  (tptr tvoid))))
+                  (Ecast
+                    (Ebinop Osub
+                      (Ecast
+                        (Ebinop Oadd
+                          (Ecast
+                            (Etempvar _targetAnim (tptr (Tstruct _Animation noattr)))
+                            (tptr tuchar))
+                          (Ecast (Etempvar _t'12 (tptr tshort)) tuint)
+                          (tptr tuchar)) (tptr tuchar))
+                      (Econst_int (Int.repr (-2147483648)) tuint)
+                      (tptr tuchar)) tuint) (tptr tvoid))))
             (Ssequence
               (Sset _t'11
                 (Efield
@@ -1309,16 +1312,17 @@ Definition f_set_mario_anim_with_accel := {|
                     (Etempvar _targetAnim (tptr (Tstruct _Animation noattr)))
                     (Tstruct _Animation noattr)) _index (tptr tushort))
                 (Ecast
-                  (Ebinop Oand
-                    (Ecast
-                      (Ebinop Oadd
-                        (Ecast
-                          (Etempvar _targetAnim (tptr (Tstruct _Animation noattr)))
-                          (tptr tuchar))
-                        (Ecast (Etempvar _t'11 (tptr tushort)) tuint)
-                        (tptr tuchar)) tuint)
-                    (Econst_int (Int.repr 536870911) tint) tuint)
-                  (tptr tvoid)))))
+                  (Ecast
+                    (Ebinop Osub
+                      (Ecast
+                        (Ebinop Oadd
+                          (Ecast
+                            (Etempvar _targetAnim (tptr (Tstruct _Animation noattr)))
+                            (tptr tuchar))
+                          (Ecast (Etempvar _t'11 (tptr tushort)) tuint)
+                          (tptr tuchar)) (tptr tuchar))
+                      (Econst_int (Int.repr (-2147483648)) tuint)
+                      (tptr tuchar)) tuint) (tptr tvoid)))))
           Sskip))
       (Ssequence
         (Ssequence

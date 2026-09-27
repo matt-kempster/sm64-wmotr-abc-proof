@@ -68,20 +68,23 @@ For each recorded frame, `extract/drv/replay.ml` does the following:
 **Result (seed 2, 300 frames of random input, 15 distinct actions including
 jumps, double jumps, jump kicks, crouch-slides and crawling):**
 
-| outcome | frames |
-|---|---|
-| MATCH: same calls, same arguments, byte-identical final memory | **267** |
-| DIFF: completed with different memory | 0 |
-| DIVERGE: different external-call sequence or arguments | 0 |
-| STUCK: model has no execution | 33 |
+| outcome | before the V2P rewrite | after |
+|---|---|---|
+| MATCH: same calls, same arguments, byte-identical final memory | 267 | **300** |
+| DIFF: completed with different memory | 0 | 0 |
+| DIVERGE: different external-call sequence or arguments | 0 | 0 |
+| STUCK: model has no execution | 33 | **0** |
 
-All 33 STUCK frames have one cause, and it is real (TRUST.md 3.2).
-`set_mario_animation` and `set_mario_anim_with_accel` run
-`VIRTUAL_TO_PHYSICAL(ptr)`, which is `(uintptr_t)ptr & 0x1FFFFFFF`, whenever a new
-animation has just been DMA-loaded. Bitwise AND on a pointer is undefined in
-CompCert C, so these frames, about 11% of real play, **have no CompCert execution**.
-The game runs them fine. Completed frames change about 29 bytes of placed globals,
-and about 18 of those are computed by the model.
+The 33 STUCK frames had one cause (TRUST.md 3.2). `set_mario_animation` and
+`set_mario_anim_with_accel` run `VIRTUAL_TO_PHYSICAL(ptr)`, which is
+`(uintptr_t)ptr & 0x1FFFFFFF`, whenever a new animation has just been
+DMA-loaded. Bitwise AND on a pointer is undefined in CompCert C, so those frames,
+about 11% of real play, had **no CompCert execution**, although the game runs them
+fine. `pipeline/proof_n64.h` now rewrites the macro as `ptr - 0x80000000`. That
+gives the same bits on every KSEG0 address (TRUST.md 2.2 register), and CompCert
+defines it. Completed frames change about 31 bytes of placed globals, and about
+19 of those are computed by the model. **STUCK must stay 0**: it is the
+regression gate for UB sites.
 
 ## Gotchas (learned the hard way)
 

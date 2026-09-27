@@ -22,6 +22,10 @@ SM64_CG := -nostdinc -fstruct-passing \
   -I$(SM64)/include -I$(SM64)/build/us -I$(SM64)/build/us/include -I$(SM64)/src -I$(SM64) -I$(SM64)/include/libc \
   -DVERSION_US=1 -DF3DEX_GBI_2=1 -DF3DEX_GBI_SHARED=1 -D_FINALROM=1 -DTARGET_N64=1 \
   -DNON_MATCHING=1 -DAVOID_UB=1 -D_LANGUAGE_C=1
+# Proof-only C rewrites (pipeline/proof_n64.h; TRUST.md 2.2; inventory: tools/ub_sites.py).
+# Not applied to shadow.c: it includes PR/gbi.h BEFORE macros.h, so pulling macros.h in
+# early would change its Gfx composite (gbi.h:1743 reads platform_info.h); it has no site.
+SM64_CGP := $(SM64_CG) -include pipeline/proof_n64.h
 
 GENERATED := generated/toy.v generated/shadow.v \
   generated/mario.v generated/mario_actions_airborne.v \
@@ -47,52 +51,52 @@ generated/shadow.v: $(SM64)/src/game/shadow.c pipeline/clightgen.sh
 
 # The Mario-action + level TUs that contain every set_mario_action(.., ACT_FLYING..)
 # site (the "must press A to fly" enumeration, R1). One recipe per TU; same flags.
-generated/mario.v: $(SM64)/src/game/mario.c pipeline/clightgen.sh
-	$(CLIGHTGEN) $< $@ $(SM64_CG)
+generated/mario.v: $(SM64)/src/game/mario.c pipeline/clightgen.sh pipeline/proof_n64.h
+	$(CLIGHTGEN) $< $@ $(SM64_CGP)
 
-generated/mario_actions_airborne.v: $(SM64)/src/game/mario_actions_airborne.c pipeline/clightgen.sh
-	$(CLIGHTGEN) $< $@ $(SM64_CG)
+generated/mario_actions_airborne.v: $(SM64)/src/game/mario_actions_airborne.c pipeline/clightgen.sh pipeline/proof_n64.h
+	$(CLIGHTGEN) $< $@ $(SM64_CGP)
 
-generated/mario_actions_moving.v: $(SM64)/src/game/mario_actions_moving.c pipeline/clightgen.sh
-	$(CLIGHTGEN) $< $@ $(SM64_CG)
+generated/mario_actions_moving.v: $(SM64)/src/game/mario_actions_moving.c pipeline/clightgen.sh pipeline/proof_n64.h
+	$(CLIGHTGEN) $< $@ $(SM64_CGP)
 
-generated/level_update.v: $(SM64)/src/game/level_update.c pipeline/clightgen.sh
-	$(CLIGHTGEN) $< $@ $(SM64_CG)
+generated/level_update.v: $(SM64)/src/game/level_update.c pipeline/clightgen.sh pipeline/proof_n64.h
+	$(CLIGHTGEN) $< $@ $(SM64_CGP)
 
 # The whole behavior C layer: behavior_actions.c #includes all ~111 behaviors/*.inc.c,
 # so this one TU is every behavior's native code. Used to mechanize "no behavior is a
 # flying-setter" (closes leak #3 for the action field, w.r.t. this TU).
-generated/behavior_actions.v: $(SM64)/src/game/behavior_actions.c pipeline/clightgen.sh
-	$(CLIGHTGEN) $< $@ $(SM64_CG)
+generated/behavior_actions.v: $(SM64)/src/game/behavior_actions.c pipeline/clightgen.sh pipeline/proof_n64.h
+	$(CLIGHTGEN) $< $@ $(SM64_CGP)
 
 # The remaining TUs that contain a direct write to MarioState.action (the choke-point
 # enumeration): mario_actions_automatic.c and interaction.c.
-generated/mario_actions_automatic.v: $(SM64)/src/game/mario_actions_automatic.c pipeline/clightgen.sh
-	$(CLIGHTGEN) $< $@ $(SM64_CG)
+generated/mario_actions_automatic.v: $(SM64)/src/game/mario_actions_automatic.c pipeline/clightgen.sh pipeline/proof_n64.h
+	$(CLIGHTGEN) $< $@ $(SM64_CGP)
 
-generated/interaction.v: $(SM64)/src/game/interaction.c pipeline/clightgen.sh
-	$(CLIGHTGEN) $< $@ $(SM64_CG)
+generated/interaction.v: $(SM64)/src/game/interaction.c pipeline/clightgen.sh pipeline/proof_n64.h
+	$(CLIGHTGEN) $< $@ $(SM64_CGP)
 
 # Whole-program MarioState.action writer enumeration (leak #3, action field): the
 # remaining Mario-action / Mario-step TUs. We scan every one for direct writers of
 # MarioState.action and prove none writes a flying constant (docs/whole-program-action-writers.md).
-generated/mario_actions_submerged.v: $(SM64)/src/game/mario_actions_submerged.c pipeline/clightgen.sh
-	$(CLIGHTGEN) $< $@ $(SM64_CG)
+generated/mario_actions_submerged.v: $(SM64)/src/game/mario_actions_submerged.c pipeline/clightgen.sh pipeline/proof_n64.h
+	$(CLIGHTGEN) $< $@ $(SM64_CGP)
 
-generated/mario_actions_stationary.v: $(SM64)/src/game/mario_actions_stationary.c pipeline/clightgen.sh
-	$(CLIGHTGEN) $< $@ $(SM64_CG)
+generated/mario_actions_stationary.v: $(SM64)/src/game/mario_actions_stationary.c pipeline/clightgen.sh pipeline/proof_n64.h
+	$(CLIGHTGEN) $< $@ $(SM64_CGP)
 
-generated/mario_actions_cutscene.v: $(SM64)/src/game/mario_actions_cutscene.c pipeline/clightgen.sh
-	$(CLIGHTGEN) $< $@ $(SM64_CG)
+generated/mario_actions_cutscene.v: $(SM64)/src/game/mario_actions_cutscene.c pipeline/clightgen.sh pipeline/proof_n64.h
+	$(CLIGHTGEN) $< $@ $(SM64_CGP)
 
-generated/mario_actions_object.v: $(SM64)/src/game/mario_actions_object.c pipeline/clightgen.sh
-	$(CLIGHTGEN) $< $@ $(SM64_CG)
+generated/mario_actions_object.v: $(SM64)/src/game/mario_actions_object.c pipeline/clightgen.sh pipeline/proof_n64.h
+	$(CLIGHTGEN) $< $@ $(SM64_CGP)
 
-generated/mario_step.v: $(SM64)/src/game/mario_step.c pipeline/clightgen.sh
-	$(CLIGHTGEN) $< $@ $(SM64_CG)
+generated/mario_step.v: $(SM64)/src/game/mario_step.c pipeline/clightgen.sh pipeline/proof_n64.h
+	$(CLIGHTGEN) $< $@ $(SM64_CGP)
 
-generated/mario_misc.v: $(SM64)/src/game/mario_misc.c pipeline/clightgen.sh
-	$(CLIGHTGEN) $< $@ $(SM64_CG)
+generated/mario_misc.v: $(SM64)/src/game/mario_misc.c pipeline/clightgen.sh pipeline/proof_n64.h
+	$(CLIGHTGEN) $< $@ $(SM64_CGP)
 
 # The C1 boundary shrink (director-roadmap-2026-07-01 P1): the two engine TUs
 # whose bodies stand behind ~16 assumed call_pres_ext_* rows on the capstone
@@ -100,11 +104,11 @@ generated/mario_misc.v: $(SM64)/src/game/mario_misc.c pipeline/clightgen.sh
 # find_wall_collisions/find_water_level in surface_collision.c). clightgen'ing
 # them makes those functions Internal in lp, so the gated specs become WALKED
 # lemmas instead of trust rows.
-generated/math_util.v: $(SM64)/src/engine/math_util.c pipeline/clightgen.sh
-	$(CLIGHTGEN) $< $@ $(SM64_CG)
+generated/math_util.v: $(SM64)/src/engine/math_util.c pipeline/clightgen.sh pipeline/proof_n64.h
+	$(CLIGHTGEN) $< $@ $(SM64_CGP)
 
-generated/surface_collision.v: $(SM64)/src/engine/surface_collision.c pipeline/clightgen.sh
-	$(CLIGHTGEN) $< $@ $(SM64_CG)
+generated/surface_collision.v: $(SM64)/src/engine/surface_collision.c pipeline/clightgen.sh pipeline/proof_n64.h
+	$(CLIGHTGEN) $< $@ $(SM64_CGP)
 
 $(COQMAKEFILE): _CoqProject
 	coq_makefile -f _CoqProject -o $@

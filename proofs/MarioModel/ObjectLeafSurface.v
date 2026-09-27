@@ -571,9 +571,10 @@ Proof. vm_compute. reflexivity. Qed.
 (* ---- set_mario_animation (B4): FOUR chase temps (the marioObj root
    _o, the animList roots _t'13/_t'12, and the chase-STEP temp
    _targetAnim = t'13->bufTarget), plus the EXTERNAL
-   load_patchable_table callee.  Its two `(anim + off) & 0x1FFFFFFF`
-   segmented-pointer mask stores are DEAD CODE in CompCert's semantics
-   (the dead-mask walker arm discharges them by contradiction). ---- *)
+   load_patchable_table callee.  Its two VIRTUAL_TO_PHYSICAL stores
+   (`anim->values = anim + off - 0x80000000`, pipeline/proof_n64.h) are
+   pointer arithmetic on _targetAnim: the chase-arithmetic walker arm
+   shows the stored pointer stays in a SafeB block. ---- *)
 Definition sma_cact : list ident :=
   mario._o :: mario._t'13 :: mario._t'12 :: mario._targetAnim :: nil.
 Definition sma_xids : list ident :=
@@ -1587,7 +1588,7 @@ Section ObjectLeafRows.
   Qed.
 
   (* ---- set_mario_animation (B4): the chase-step Sset arm, the
-     curAnim pointer-chase store, and the two dead mask stores; the
+     curAnim pointer-chase store, and the two pointer-arithmetic stores; the
      one callee is the EXTERNAL load_patchable_table. ---- *)
   Lemma sma_xids_rows : forall fid, mem_id fid sma_xids = true ->
       call_pres_ext lp bm NoA MWF fid.

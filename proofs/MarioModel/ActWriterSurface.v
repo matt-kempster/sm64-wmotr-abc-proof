@@ -271,6 +271,27 @@ Proof.
     (injection Hc as E1; discriminate E1).
 Qed.
 
+(* pointer +/- integer never CONSTRUCTS a pointer either: with a
+   pointer-typed left and an integer-typed right operand, classify_add /
+   classify_sub pick the pointer-int case, which needs the right VALUE to
+   be a Vint and keeps the left operand's block. *)
+Lemma sem_ptrint_vptr_src :
+  forall cenv op v1 ty a v2 sz sg att m bb oo,
+    (op = Oadd \/ op = Osub) ->
+    sem_binary_operation cenv op v1 (Tpointer ty a) v2 (Tint sz sg att) m
+      = Some (Vptr bb oo) ->
+    exists o, v1 = Vptr bb o.
+Proof.
+  intros cenv op v1 ty a v2 sz sg att m bb oo Hop Hs.
+  destruct Hop as [-> | ->]; destruct sz, sg; cbn in Hs;
+    destruct v1, v2; cbn in Hs; try discriminate Hs;
+    repeat match type of Hs with
+           | context [match ?x with _ => _ end] =>
+               destruct x; try discriminate Hs
+           end;
+    injection Hs as E1 E2; subst; eauto.
+Qed.
+
 Lemma sem_cast_nonptr_pres : forall v t1 t2 m w,
     sem_cast v t1 t2 m = Some w ->
     (forall bb oo, v <> Vptr bb oo) ->
@@ -1085,26 +1106,34 @@ Definition chase_ptr_store_chk (cact : list ident) (a1 a2 : expr) : bool :=
   | _, _, _ => false
   end.
 
-(* the N64 segmented-pointer MASK store: `anim->values = cast-to-void-ptr
-   of ((cast-to-u8-ptr of anim + off) & 0x1FFFFFFF)`.  In CompCert's
-   semantics the Oand of a POINTER and an integer has NO value
-   (sem_binarith refuses Vptr), while the store target forces the SAME
-   base temp to BE a pointer -- so the statement can never execute.  The
-   walker accepts it as DEAD CODE: the exec-derivation case discharges
-   by contradiction. *)
-Definition dead_mask_chk (a1 a2 : expr) : bool :=
-  match chain_root_l a1, a2 with
-  | Some q,
-    Ecast
-      (Ebinop Oand
-         (Ecast
-            (Ebinop Oadd
-               (Ecast (Etempvar q' (Tpointer _ _)) (Tpointer _ _))
-               (Ecast (Etempvar _ _) (Tint I32 Unsigned _))
-               (Tpointer _ _))
-            (Tint I32 Unsigned _))
-         (Econst_int _ (Tint I32 Signed _)) (Tint I32 Unsigned _))
-      (Tpointer _ _) => Pos.eqb q q'
+(* the pointer-ARITHMETIC rvalue: casts, and pointer +/- integer-typed
+   operand, bottoming out at a censused chase temp.  Its value, when a
+   pointer, lies in that chase temp's (SafeB) block -- neither a cast nor
+   pointer +/- integer constructs a pointer (sem_cast_vptr_inv,
+   sem_ptrint_vptr_src).  The integer operand is not walked: the
+   pointer-int case needs its VALUE to be a Vint. *)
+Fixpoint ptr_arith_e (cact : list ident) (a : expr) : bool :=
+  match a with
+  | Etempvar r _ => mem_id r cact
+  | Ecast a' _ => ptr_arith_e cact a'
+  | Ebinop Oadd x y _ | Ebinop Osub x y _ =>
+      match typeof x, typeof y with
+      | Tpointer _ _, Tint _ _ _ => ptr_arith_e cact x
+      | _, _ => false
+      end
+  | _ => false
+  end.
+
+(* the N64 physical-address store (proof_n64.h's VIRTUAL_TO_PHYSICAL):
+   `anim->values = (void * )((u8 * )anim + (u32)anim->values - 0x80000000)`
+   in set_mario_animation / set_mario_anim_with_accel.  A pointer store
+   through a chased lvalue whose value is pointer arithmetic on the same
+   chase temp: SafeB-if-a-pointer, absorbed by the MWF chase-ptr row.
+   (Under the vendor's `& 0x1FFFFFFF` this statement had NO CompCert
+   execution and the walker discharged it as dead code -- vacuously.) *)
+Definition chase_arith_store_chk (cact : list ident) (a1 a2 : expr) : bool :=
+  match chain_root_l a1, typeof a1 with
+  | Some ct, Tpointer _ _ => mem_id ct cact && ptr_arith_e cact a2
   | _, _ => false
   end.
 
@@ -2037,7 +2066,7 @@ Fixpoint wwalk_chk' (lids oc_pids wc_pids sc_pids nids np3_ids : list ident) (rt
       || chase_store_chk wact cact a1 a2
       || root_store_chk cact a1 a2
       || chase_ptr_store_chk cact a1 a2
-      || dead_mask_chk a1 a2
+      || chase_arith_store_chk cact a1 a2
       || local_idx_store_chk lids a1
       || nptr_store_chk nids cact a1 a2
   | Scall optid a al =>
@@ -2867,164 +2896,135 @@ Section ActWriterWalk.
   Qed.
 
   (* ================================================================== *)
-  (* The dead-mask brick: the N64 segmented-pointer mask store cannot   *)
-  (* EXECUTE -- the lvalue forces the base temp to hold a Vptr, and     *)
-  (* sem_binarith refuses Oand on a Vptr.  Pure contradiction.          *)
+  (* The chase ARITHMETIC-pointer store brick: the rhs is pointer         *)
+  (* arithmetic on a censused chase temp (ptr_arith_e), stored through a  *)
+  (* chased lvalue (SafeB block).  Its value, when a pointer, is in the   *)
+  (* chase temp's SafeB block; the MWF chase-ptr row absorbs the store.   *)
+  (* proof_n64.h's VIRTUAL_TO_PHYSICAL (set_mario_animation's             *)
+  (* `anim->values`/`anim->index` rebasing) is this shape.                *)
   (* ================================================================== *)
-  Lemma dead_mask_dead :
-    forall a1 a2 e le m0 tr le' m' out,
-      dead_mask_chk a1 a2 = true ->
+  Lemma ptr_arith_safe :
+    forall cact ge e le m a v,
+      chase_inv cact le ->
+      ptr_arith_e cact a = true ->
+      eval_expr ge e le m a v ->
+      forall bb oo, v = Vptr bb oo -> SafeB bb.
+  Proof.
+    intros cact ge e le m a.
+    induction a; intros v Hch Har Hev bb oo ->; cbn [ptr_arith_e] in Har;
+      try discriminate Har.
+    - (* a censused chase temp *)
+      apply eval_expr_Etempvar_val in Hev.
+      exact (Hch _ Har _ _ Hev).
+    - (* pointer +/- integer: the block is the pointer operand's *)
+      destruct b; try discriminate Har;
+        destruct (typeof a1) eqn:Ht1; try discriminate Har;
+        destruct (typeof a2) eqn:Ht2; try discriminate Har;
+        inv Hev;
+        try match goal with
+            | Hl : eval_lvalue _ _ _ _ (Ebinop _ _ _ _) _ _ _ |- _ => inv Hl
+            end;
+        match goal with
+        | Hev1 : eval_expr _ _ _ _ a1 ?v1,
+          Hop : sem_binary_operation _ _ ?v1 _ _ _ _ = Some _ |- _ =>
+            rewrite Ht1, Ht2 in Hop;
+            first
+              [ destruct (sem_ptrint_vptr_src _ _ _ _ _ _ _ _ _ _ _ _
+                            (or_introl eq_refl) Hop) as (o1 & Ev1)
+              | destruct (sem_ptrint_vptr_src _ _ _ _ _ _ _ _ _ _ _ _
+                            (or_intror eq_refl) Hop) as (o1 & Ev1) ];
+            exact (IHa1 _ Hch Har Hev1 _ _ Ev1)
+        end.
+    - (* a cast passes a pointer through *)
+      inv Hev;
+        try match goal with
+            | Hl : eval_lvalue _ _ _ _ (Ecast _ _) _ _ _ |- _ => inv Hl
+            end.
+      match goal with
+      | Hev1 : eval_expr _ _ _ _ a ?v1,
+        Hc : sem_cast ?v1 _ _ _ = Some (Vptr bb oo) |- _ =>
+          apply sem_cast_vptr_inv in Hc;
+          exact (IHa _ Hch Har Hev1 _ _ Hc)
+      end.
+  Qed.
+
+  Lemma chase_arith_assign_pres :
+    forall cact a1 a2 e le m0 tr le' m' out,
+      chase_arith_store_chk cact a1 a2 = true ->
+      chase_inv cact le ->
       exec_stmt function_entry2 (lp_ge lp) e le m0 (Sassign a1 a2)
         tr le' m' out ->
-      False.
+      MWF m0 -> Mem.valid_block m0 bm -> action_sat not_tainted m0 bm ->
+      Mem.valid_block m' bm /\ action_sat not_tainted m' bm /\ MWF m' /\
+      le' = le /\ out = Out_normal.
   Proof.
-    intros a1 a2 e le m0 tr le' m' out Hck Hexec.
-    unfold dead_mask_chk in Hck.
-    destruct (chain_root_l a1) as [q|] eqn:Hcr; [ | discriminate Hck ].
-    (* peel the rhs shape in the chk's examination order *)
-    destruct a2 as [ | | | | | | | | | | c cty | | | ];
-      try discriminate Hck.
-    destruct c as [ | | | | | | | | | ob cL cR oty | | | | ];
-      try discriminate Hck.
-    destruct ob; try discriminate Hck.
-    destruct cL as [ | | | | | | | | | | d dty | | | ];
-      try discriminate Hck.
-    destruct d as [ | | | | | | | | | db dL dR aty | | | | ];
-      try discriminate Hck.
-    destruct db; try discriminate Hck.
-    destruct dL as [ | | | | | | | | | | tq pty | | | ];
-      try discriminate Hck.
-    destruct tq as [ | | | | | q' qty | | | | | | | | ];
-      try discriminate Hck.
-    destruct qty; try discriminate Hck.
-    destruct pty; try discriminate Hck.
-    destruct dR as [ | | | | | | | | | | tr2 ity | | | ];
-      try discriminate Hck.
-    destruct tr2 as [ | | | | | r' rty' | | | | | | | | ];
-      try discriminate Hck.
-    destruct ity as [ | szi sgi atti | | | | | | | ];
-      try discriminate Hck.
-    destruct szi; try discriminate Hck.
-    destruct sgi; try discriminate Hck.
-    destruct aty; try discriminate Hck.
-    destruct dty as [ | szd sgd attd | | | | | | | ];
-      try discriminate Hck.
-    destruct szd; try discriminate Hck.
-    destruct sgd; try discriminate Hck.
-    destruct cR as [ c2 sty | | | | | | | | | | | | | ];
-      try discriminate Hck.
-    destruct sty as [ | szs sgs2 atts | | | | | | | ];
-      try discriminate Hck.
-    destruct szs; try discriminate Hck.
-    destruct sgs2; try discriminate Hck.
-    destruct oty as [ | szo sgo atto | | | | | | | ];
-      try discriminate Hck.
-    destruct szo; try discriminate Hck.
-    destruct sgo; try discriminate Hck.
-    destruct cty; try discriminate Hck.
-    pose proof (proj1 (Pos.eqb_eq _ _) Hck) as Eqq; subst q'.
+    intros cact a1 a2 e le m0 tr le' m' out Hck Hch Hexec HM HV HS.
+    unfold chase_arith_store_chk in Hck.
+    destruct (chain_root_l a1) as [ct|] eqn:Hcr; [ | discriminate Hck ].
+    destruct (typeof a1) eqn:Hty1; try discriminate Hck.
+    apply andb_prop in Hck as [Hctm Har].
     inv Hexec.
-    (* the lvalue pins le!q to a Vptr *)
+    (* the store target's block is the chase temp's SafeB block *)
     match goal with
     | Hlv : eval_lvalue _ _ _ _ a1 _ _ _ |- _ =>
         destruct (chain_root_l_block _ _ _ _ _ _ _ _ _ Hcr Hlv)
           as (o0 & Hlet)
     end.
-    (* unwind the rhs evaluation down to the Oand *)
+    pose proof (Hch _ Hctm _ _ Hlet) as Hsafe.
+    pose proof (HSafeNotBm _ Hsafe) as Hneq.
+    (* the stored value is SafeB when it is a pointer *)
     match goal with
-    | Hev : eval_expr _ _ _ _ (Ecast (Ebinop Oand _ _ _) _) _ |- _ =>
-        inv Hev;
-        try match goal with
-            | Hl : eval_lvalue _ _ _ _ (Ecast _ _) _ _ _ |- _ => inv Hl
-            end
+    | Hev2 : eval_expr _ _ _ _ a2 ?v2,
+      Hcast0 : sem_cast ?v2 _ _ _ = Some ?vw |- _ =>
+        assert (Hsp : forall bb oo, vw = Vptr bb oo -> SafeB bb)
+          by (intros bb oo Evw; rewrite Evw in Hcast0;
+              apply sem_cast_vptr_inv in Hcast0;
+              exact (ptr_arith_safe _ _ _ _ _ _ _ Hch Har Hev2 _ _ Hcast0))
     end.
+    (* the store lands in the SafeB block *)
     match goal with
-    | Hev : eval_expr _ _ _ _ (Ebinop Oand _ _ _) _ |- _ =>
-        inv Hev;
-        try match goal with
-            | Hl : eval_lvalue _ _ _ _ (Ebinop _ _ _ _) _ _ _ |- _ =>
-                inv Hl
-            end
+    | Has : assign_loc _ _ _ _ _ _ _ m' |- _ => inv Has
     end.
-    (* the right operand: an integer literal *)
-    match goal with
-    | Hev : eval_expr _ _ _ _ (Econst_int _ _) _ |- _ =>
-        inv Hev;
-        try match goal with
-            | Hl : eval_lvalue _ _ _ _ (Econst_int _ _) _ _ _ |- _ =>
-                inv Hl
-            end
-    end.
-    (* the left operand: cast of the Oadd *)
-    match goal with
-    | Hev : eval_expr _ _ _ _ (Ecast (Ebinop Oadd _ _ _) _) _ |- _ =>
-        inv Hev;
-        try match goal with
-            | Hl : eval_lvalue _ _ _ _ (Ecast _ _) _ _ _ |- _ => inv Hl
-            end
-    end.
-    match goal with
-    | Hev : eval_expr _ _ _ _ (Ebinop Oadd _ _ _) _ |- _ =>
-        inv Hev;
-        try match goal with
-            | Hl : eval_lvalue _ _ _ _ (Ebinop _ _ _ _) _ _ _ |- _ =>
-                inv Hl
-            end
-    end.
-    (* the base: the SAME temp q, cast ptr->ptr keeps the Vptr *)
-    match goal with
-    | Hev : eval_expr _ _ _ _ (Ecast (Etempvar _ _) (Tpointer _ _)) _
-      |- _ =>
-        inv Hev;
-        try match goal with
-            | Hl : eval_lvalue _ _ _ _ (Ecast _ _) _ _ _ |- _ => inv Hl
-            end
-    end.
-    match goal with
-    | Hev : eval_expr _ _ _ _ (Etempvar q _) _ |- _ =>
-        apply eval_expr_Etempvar_val in Hev;
-        rewrite Hlet in Hev; injection Hev as <-
-    end.
-    match goal with
-    | Hc : sem_cast (Vptr _ _) (typeof (Etempvar _ _)) _ _ = Some _
-      |- _ => cbn in Hc; injection Hc as <-
-    end.
-    (* the Oadd: pointer + int is a Vptr (or no value at all) *)
-    match goal with
-    | Hadd : sem_binary_operation _ Oadd (Vptr _ _) _ ?vr _ _ = Some _
-      |- _ =>
-        cbn [sem_binary_operation typeof classify_add sem_add] in Hadd;
-        destruct vr; cbn [sem_add_ptr_int] in Hadd;
-        try discriminate Hadd;
-        injection Hadd as <-
-    end.
-    (* Archi.ptr64 is Global Opaque: case-split it (the repo idiom).
-       ptr64 = true: the ptr->uint cast itself refuses the Vptr.
-       ptr64 = false: the cast is cast_case_pointer (keeps the Vptr)
-       and then the Oand's sem_binarith refuses it. *)
-    destruct Archi.ptr64 eqn:Hp64.
-    { match goal with
-      | Hc : sem_cast (Vptr _ _) (typeof (Ebinop Oadd _ _ _)) _ _
-             = Some _ |- _ =>
-          unfold sem_cast in Hc; cbn [typeof classify_cast] in Hc;
-          rewrite Hp64 in Hc; cbn in Hc; discriminate Hc
-      end. }
-    match goal with
-    | Hc : sem_cast (Vptr _ _) (typeof (Ebinop Oadd _ _ _)) _ _ = Some _
-      |- _ =>
-        unfold sem_cast in Hc; cbn [typeof classify_cast] in Hc;
-        rewrite Hp64 in Hc; cbn in Hc; injection Hc as <-
-    end.
-    (* the Oand on a Vptr: sem_binarith refuses -- contradiction *)
-    match goal with
-    | Hand : sem_binary_operation _ Oand (Vptr _ _) _ (Vint _) _ _
-             = Some _ |- _ =>
-        unfold sem_binary_operation, sem_and, sem_binarith in Hand;
-        cbn [typeof classify_binarith binarith_type] in Hand;
-        unfold sem_cast in Hand; cbn [classify_cast] in Hand;
-        repeat (rewrite Hp64 in Hand; cbn in Hand);
-        discriminate Hand
-    end.
+    - (* By_value *)
+      match goal with
+      | Hsv0 : Mem.storev _ _ _ _ = Some m' |- _ =>
+          unfold Mem.storev in Hsv0
+      end.
+      match goal with
+      | Hsv : Mem.store _ _ _ _ _ = Some m' |- _ =>
+          split; [ eauto using Mem.store_valid_block_1 | split ];
+          [ intros av Hload;
+            rewrite (Mem.load_store_other _ _ _ _ _ _ Hsv) in Hload;
+            [ exact (HS av Hload) | left; exact (not_eq_sym Hneq) ]
+          | split;
+            [ exact (HMWF_chase_safe _ _ _ _ _ _ HM Hsafe Hsp Hsv)
+            | split; reflexivity ] ]
+      end.
+    - (* By_copy: refuted -- the target's type is a POINTER (By_value) *)
+      match goal with
+      | Hac : access_mode (typeof a1) = By_copy |- _ =>
+          rewrite Hty1 in Hac; cbn [access_mode] in Hac;
+          discriminate Hac
+      end.
+    - (* bitfield: store_bitfield writes a Vint into the SafeB block *)
+      match goal with
+      | Hsb : store_bitfield _ _ _ _ _ _ _ _ _ _ |- _ => inv Hsb
+      end.
+      match goal with
+      | Hsv0 : Mem.storev _ _ _ (Vint _) = Some m' |- _ =>
+          unfold Mem.storev in Hsv0
+      end.
+      match goal with
+      | Hsv : Mem.store _ _ _ _ (Vint _) = Some m' |- _ =>
+          split; [ eauto using Mem.store_valid_block_1 | split ];
+          [ intros av Hload;
+            rewrite (Mem.load_store_other _ _ _ _ _ _ Hsv) in Hload;
+            [ exact (HS av Hload) | left; exact (not_eq_sym Hneq) ]
+          | split;
+            [ refine (HMWF_chase _ _ _ _ _ _ HM Hsafe _ Hsv);
+              intros bb oo E; discriminate E
+            | split; reflexivity ] ]
+      end.
   Qed.
 
   (* ================================================================== *)
@@ -4854,8 +4854,12 @@ Section ActWriterWalk.
           exact (conj HV' (conj HS' (conj HM' (conj HN'
                    (conj Htat (conj Hact (conj Hch (conj Hnp I)))))))). }
       apply orb_true_iff in Hchk.
-      destruct Hchk as [Hchk | Hdm].
-      2:{ exfalso. exact (dead_mask_dead a1 a2 _ _ _ _ _ _ _ Hdm Hex). }
+      destruct Hchk as [Hchk | Hcar].
+      2:{ destruct (chase_arith_assign_pres _ a1 a2 _ _ _ _ _ _ _ Hcar Hch
+                      Hex HM HV HS)
+            as (HV' & HS' & HM' & _ & _).
+          exact (conj HV' (conj HS' (conj HM' (conj (HNoA_of_MWF _ HM')
+                   (conj Htat (conj Hact (conj Hch (conj Hnp I)))))))). }
       apply orb_true_iff in Hchk.
       destruct Hchk as [Hchk | Hcpt].
       2:{ destruct (chase_ptr_assign_pres _ a1 a2 _ _ _ _ _ _ _ Hcpt Hch
