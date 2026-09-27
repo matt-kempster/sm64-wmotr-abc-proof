@@ -20,6 +20,7 @@ static unsigned searchFirstArea2Complete;
 static uint32_t searchPlatformFloor;
 static uint32_t searchPlatformHeight;
 static uint32_t searchQueryReturn, searchQueryArgs[3], searchQueryOutput;
+static uint32_t searchQueryStack, searchQueryObject;
 static int searchPendingWarp;
 
 /* The inherited Rank-5 observer does not initialize Rank-1's node-pool cache.
@@ -107,6 +108,8 @@ static void search_debug(unsigned int pc) {
         searchQueryArgs[1] = search_fpr(14);
         searchQueryArgs[2] = (uint32_t)r[6];
         searchQueryOutput = (uint32_t)r[7];
+        searchQueryStack = (uint32_t)r[29];
+        searchQueryObject = R32(A_MARIO_OBJECT);
         return;
     }
     floor = R32(A_MARIO_STATES+M_FLOOR);
@@ -147,12 +150,15 @@ static void search_debug(unsigned int pc) {
     }
     if (pc == SEARCH_QUERY1 || pc == SEARCH_QUERY2 || pc == A_POST_PLATFORM_FIND_FLOOR) {
         int sm, dm;
-        if (searchQueryReturn != pc || !searchQueryOutput || R32(searchQueryOutput) != floor)
+        if (searchQueryReturn != pc || !searchQueryOutput || R32(searchQueryOutput) != floor
+            || searchQueryStack != (uint32_t)r[29])
             searchFailures++;
         sm = search_membership(A_STATIC_SURFACE_PARTITION,floor);
         dm = search_membership(A_DYNAMIC_SURFACE_PARTITION,floor);
-        fprintf(stderr,"R1_SEARCH_QUERY,{\"poll\":%llu,\"timer\":%u,\"returnPC\":%u,\"arguments\":[%u,%u,%u],\"floor\":%u,\"height\":%u,\"staticMembership\":%d,\"dynamicMembership\":%d}\n",
-            (unsigned long long)gPoll,R32(A_GLOBAL_TIMER),pc,searchQueryArgs[0],searchQueryArgs[1],searchQueryArgs[2],floor,height,sm,dm);
+        fprintf(stderr,"R1_SEARCH_QUERY,{\"poll\":%llu,\"timer\":%u,\"returnPC\":%u,\"arguments\":[%u,%u,%u],\"floor\":%u,\"height\":%u,\"staticMembership\":%d,\"dynamicMembership\":%d,\"entryPC\":%u,\"entrySP\":%u,\"returnSP\":%u,\"outputAddress\":%u,\"entryObject\":%u,\"returnObject\":%u,\"stateObject\":%u}\n",
+            (unsigned long long)gPoll,R32(A_GLOBAL_TIMER),pc,searchQueryArgs[0],searchQueryArgs[1],searchQueryArgs[2],floor,height,sm,dm,
+            A_FIND_FLOOR,searchQueryStack,(uint32_t)r[29],searchQueryOutput,
+            searchQueryObject,R32(A_MARIO_OBJECT),R32(A_MARIO_STATES+M_MARIO_OBJ));
         searchQueryReturn = 0;
     }
     if (stage) search_sample(stage,pc,floor,height);

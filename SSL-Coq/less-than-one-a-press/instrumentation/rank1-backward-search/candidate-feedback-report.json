@@ -1,0 +1,131 @@
+{
+  "status": "Real candidate feedback rechecked; exhaustive search remains open.",
+  "context": {
+    "version": "jp",
+    "romSHA256": "9cf7a80db321b07a8d461fe536c02c87b7412433953891cdec9191bfad2db317",
+    "firstPoll": 2651,
+    "updates": 30,
+    "prefixSHA256": "d21b382794deb22dcfbfefbc4e58c47ad06e9a9f2aff21feaa83db0c8e537108",
+    "baselineSHA256": "9bcc451964025d9f0bb1344c45957b6bfd095451b44bfb9a01f8584a75db6a72",
+    "inputDomain": "All 13 physical non-A buttons and both signed 8-bit axes at every suffix poll.",
+    "proposalPriority": "Try no Start presses first; Start is not removed from the input domain.",
+    "horizonDomain": "One completed Area-1 retention check per suffix poll; other timings remain pending.",
+    "earlierHistories": "All prefixes other than this controller-reached prefix remain open."
+  },
+  "candidates": [
+    {
+      "candidate": 0,
+      "status": "rejected-exact-history",
+      "controllerSHA256": "6dbd4e3ae9d1d077bfd10161fc22e65cf9f53198981425cfdaaeab35e564eba5",
+      "captureSHA256": "20a867a3a7c63d4f0b7223a64999c57cdf163cc47bd3ef71ff617e613de2aa13",
+      "validatedUpdates": 30,
+      "matchedFloorCalls": 30,
+      "finalUpdate": 30,
+      "finalPoll": 2680,
+      "topTimer": 131,
+      "query": [
+        -5541.40283203125,
+        -0.0,
+        2007.1839599609375
+      ],
+      "floorHeight": -0.0,
+      "ownerSlot": -1,
+      "platformSlot": -1,
+      "targetAfterFeedback": "unsat",
+      "emulatorSeconds": 0.0,
+      "cacheRevalidated": true,
+      "proposedSHA256": "52e6bb983a69215022ff2d9a9c18f2fd6ccbdba76e9b88bdfebd1fe247445e0f",
+      "refinedSHA256": "41a78699615c596d28b44383d5136a4c19a3e9b683be9278d4008ee8b9d38604"
+    },
+    {
+      "candidate": 1,
+      "status": "rejected-exact-history",
+      "controllerSHA256": "fbf822dd5d7af8177f849ac215e63e54788505f51920915e65b1cab5f0be2361",
+      "captureSHA256": "b4d3c0cd5e86931296711ca98663c3e3a9fa31e9fa257ebc1f8d416e772dcd86",
+      "validatedUpdates": 30,
+      "matchedFloorCalls": 30,
+      "finalUpdate": 30,
+      "finalPoll": 2680,
+      "topTimer": 131,
+      "query": [
+        -5541.40283203125,
+        -0.0,
+        2007.1839599609375
+      ],
+      "floorHeight": -0.0,
+      "ownerSlot": -1,
+      "platformSlot": -1,
+      "targetAfterFeedback": "unsat",
+      "emulatorSeconds": 171.81567469999936,
+      "cacheRevalidated": false,
+      "proposedSHA256": "d23dd65ef1306fb5702185387cfe92d0fa0588ca8252fec11f88f8ebaf988c3a",
+      "refinedSHA256": "9d29f9005b5520629f2821b77f6acfbd7dc6c65b8a51aad60e4514c924be867f"
+    },
+    {
+      "candidate": 2,
+      "status": "rejected-exact-history",
+      "controllerSHA256": "2b7335b23ef7495c9341fe983f13f3d2f04fb7cd708db05fe2e246307ec7edee",
+      "captureSHA256": "78f23f71f6086e1510a80f589a93500c9a6b3e35058bfb90cc07ae241f0d8d06",
+      "validatedUpdates": 30,
+      "matchedFloorCalls": 30,
+      "finalUpdate": 30,
+      "finalPoll": 2680,
+      "topTimer": 131,
+      "query": [
+        -5541.40283203125,
+        -0.0,
+        2007.1839599609375
+      ],
+      "floorHeight": -0.0,
+      "ownerSlot": -1,
+      "platformSlot": -1,
+      "targetAfterFeedback": "unsat",
+      "emulatorSeconds": 150.15619389999847,
+      "cacheRevalidated": false,
+      "proposedSHA256": "091fabbcd6fcff90ce7ea4049f0492bff8c57b478b08c668f5516b50675f4d3f",
+      "refinedSHA256": "ff135c5082e9a71da7a007624d051188c116f30a9a4805382035249f8b742284"
+    }
+  ],
+  "rejectedExactHistories": 3,
+  "matchedFloorCallReplies": 90,
+  "pendingCandidates": 0,
+  "damagedObservationControlsRejected": [
+    "entrySP",
+    "returnSP",
+    "outputAddress",
+    "entryObject",
+    "returnObject",
+    "stateObject",
+    "controller-history",
+    "prefix-observation"
+  ],
+  "completedExhaustiveUpdates": 0,
+  "globalExclusion": false,
+  "wholeInkInstallationWitness": false,
+  "generatedSource": {
+    "update_mario_platform": {
+      "file": "generated\\jp_platform_displacement.v",
+      "line": 514,
+      "sha256": "4d92580f7c69bbfe8c7fde7748f40d4edc7d14e79800b1f25550abde6de3d339"
+    },
+    "absf": {
+      "file": "generated\\jp_object_helpers.v",
+      "line": 19985,
+      "sha256": "4a6e09dbcf61e5fd928e1e5da67ff26aa176d1fc65b2e6ba19bf8a3e7600728d"
+    }
+  },
+  "implementationHashes": {
+    "candidate_feedback.py": "5c9c9267b20cee7cdf0833e46ce9685be1f4e9f7a581102505c65a3f5777cfc4",
+    "engine.py": "3ac646352227447ff0154c46aa75ff2d2bd83dcd6e5ad44121f8a1de16407658",
+    "clight.py": "42ca7a1d9864b12cde6af70e111b908a8487ef93924b88004c0d486affd2f5b7"
+  },
+  "observerSHA256": "b0e39117ebb6c6cbcd714e533c72848276d3f8585af60411c56c523171597422",
+  "applicationTests": 58,
+  "limits": [
+    "The earlier controller prefix is fixed; other prefixes remain open.",
+    "Only these exact histories were tested. No failed sample excludes an input group.",
+    "The arbitrary-memory horizon and its unanchored call sites remain unresolved.",
+    "The checkpoint is necessary for this proposal; it is not the complete Ink installation.",
+    "Python/SMT/runtime validation is experimental evidence, not a new Coq theorem."
+  ]
+}

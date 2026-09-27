@@ -118,6 +118,12 @@ def worker(version, updates, output, supplemental, solver_seconds, emulator_capt
 
 
 def main():
+    # A concrete controller-grounded branch of the same retention target.
+    # Kept explicit: this does not discharge the arbitrary-entry source query.
+    if '--runtime-feedback' in sys.argv:
+        from candidate_feedback import main as feedback_main
+        sys.argv.remove('--runtime-feedback')
+        return feedback_main()
     p = argparse.ArgumentParser(description=__doc__)
     p.add_argument('--updates',type=int,required=True)
     p.add_argument('--versions',nargs='+',choices=('us','jp'),default=['us','jp'])

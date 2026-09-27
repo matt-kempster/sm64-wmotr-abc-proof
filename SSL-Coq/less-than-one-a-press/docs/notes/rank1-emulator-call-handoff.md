@@ -1,5 +1,10 @@
 # Rank 1: the first emulator call handoff
 
+Follow-up: the [controller-grounded candidate loop](rank1-candidate-feedback.md)
+now connects new input proposals to reached floor calls and feeds their results
+back into the target query. This earlier report records the separate first
+call-adapter experiment; its arbitrary-memory query remains incomplete.
+
 27 September 2026. **The first scoped call bridge works. The requested
 one-second exhaustive backward search is still incomplete.** No Coq theorem,
 new gameplay trajectory, Ink witness or impossibility result is added.

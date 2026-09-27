@@ -1,6 +1,14 @@
 # Rank 1: bounded backward predecessor search
 
-**Latest:** the [emulator call handoff](../../docs/notes/rank1-emulator-call-handoff.md)
+**Latest:** [candidate feedback](../../docs/notes/rank1-candidate-feedback.md)
+connects solver-proposed input histories to real JP floor-call occurrences and
+feeds the observations back into the generated final-caller query. Invoke
+`search_updates.py --runtime-feedback --prefix BASELINE/inputs.jsonl --rom ROM
+--updates 30 --candidate-budget 3 --output NEW_DIRECTORY`. The fixed earlier
+controller prefix and unmatched-history frontier are explicit. This is a
+working candidate/refinement branch, not exhaustive arbitrary-state inversion.
+
+**Earlier:** the [emulator call handoff](../../docs/notes/rank1-emulator-call-handoff.md)
 checks scoped replies and retains unanchored calls as pending. A relaxed
 30-update SAT result is explicitly an unverified proposal, with 64 unresolved
 sites; no complete inverse update or Ink witness is claimed.
