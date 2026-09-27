@@ -52,11 +52,13 @@ two survivors are the signs of the absolute-value calculation, not two gameplay
 routes. These counts do not retire 23 mechanisms.
 
 The tool is not yet a reverse-play viewer. The closed copy, snap and final-check
-statements do not read B or any other controller button. To return a complete
-previous frame for B, it still needs the actual action/input transitions and
-the missing connections between these cuts. Earlier physical controller history
-is not granted. No candidate reached the stage of a join to a controller-played
-prefix, so this batch did not run new Wafel trials.
+statements do not read controller buttons. The user's intended search includes
+all allowed inputs; B was only an example. Extending it to the requested
+[30 seconds before top retention](rank1-input-search-size.md) still needs the
+actual action/input transitions and the missing connections between these cuts.
+Earlier physical controller history is not granted. No candidate reached the
+stage of a join to a controller-played prefix, so this batch did not run new
+Wafel trials.
 
 ## What was checked
 

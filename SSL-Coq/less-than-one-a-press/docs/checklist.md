@@ -1,7 +1,7 @@
 # Verification checklist
 
 - [x] Implement and run the [first bounded predecessor engine](notes/rank1-backward-search.md) on actual generated US/JP code, starting from useful final owner selection. Check the complete binary32 raw-Y band, the ordinary copy and floor-snap predecessor relations, and the selected first-miss/high-display retry. Preserve unexpanded call effects and solver timeouts as open. Seven tests pass. This is exploratory tooling, not a new Coq result or complete inverse frame.
-- [ ] Connect those local predecessor conditions through the real action, geometry, interaction and callback effects. Derive a controller-reached predecessor and validate the complete joined replay before calling it a gameplay witness. Selecting B and returning a whole earlier frame is not yet implemented; live floors, contact, timing, pointer lifetime and first Area-2 payoff remain open.
+- [ ] Connect those local predecessor conditions through the real action, geometry, interaction and callback effects. The intended extension covers all allowed inputs in the [30 seconds before top retention](notes/rank1-input-search-size.md), or 900 nominal updates; B was only an example. Derive a controller-reached predecessor and validate the complete joined replay before calling it a gameplay witness. Complete earlier frames and a 900-update search are not yet implemented; live floors, contact, timing, pointer lifetime and first Area-2 payoff remain open.
 
 - [x] Run the [earlier Rank-1 controller search](notes/rank1-reachable-search.md):
   132 choices, 42,480 advances, and no upward gap among 36,855 SSL Area-1

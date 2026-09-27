@@ -82,7 +82,9 @@ The two surviving final-check branches are the two signs in `absf`; their
 count is not a count of gameplay routes.
 
 The closed copy, snap and final-check slices do not read controller input.
-There is no command yet that selects B and returns a complete previous frame.
+The intended search includes all allowed inputs; B was only an example. There
+is no complete previous-frame operation yet. The requested longer horizon is
+[900 nominal updates before top retention](../../docs/notes/rank1-input-search-size.md).
 Earlier action/input transitions, the same latched input across the frame,
 previous-button history, live floors, contact, timing and lifetime remain
 explicit work. No controller-reached predecessor was joined in this batch,

@@ -10,11 +10,13 @@ unchanged subjective 1–2% estimate.
 ## What “backward” means here
 
 The user's proposal is to start at a working Ink endpoint and ask which earlier
-states, followed by a chosen controller input, could produce it. Choosing B
-would mean: “Find the states from which this frame's B input reaches the target.”
-Repeat that question for the surviving predecessors until one connects to a
-state reached by an allowed controller history. This is backward reachability,
-not another batch launched from an earlier known checkpoint.
+states, followed by any allowed controller input, could produce it. B was only
+an example: the intended scope includes all allowed button combinations and
+stick inputs at every update. The requested horizon is now explicit: the
+[30 seconds before retaining the checked top](rank1-input-search-size.md), or
+900 nominal US/JP updates ending at that final check. Repeat the predecessor
+question until the surviving sets connect to allowed gameplay. This is backward
+reachability, not another batch launched from an earlier known checkpoint.
 
 There usually is not one previous state to display. Copies overwrite old
 positions, collision corrections can merge different approaches, clamps discard
