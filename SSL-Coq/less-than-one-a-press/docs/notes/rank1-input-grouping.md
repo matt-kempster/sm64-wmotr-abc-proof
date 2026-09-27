@@ -84,6 +84,11 @@ must not be raised to the 150th power and advertised as all game histories.
 
 ## Reproduce and inspect
 
+The subsequent [one-update feasibility attempt](rank1-update-benchmark.md)
+stops at the real floor-list loop before completing even its required object
+update prefix. Two and four updates were not run. The measured fast failure
+does not establish a practical full-update speed or a five-second budget.
+
 Use the existing isolated dependency described in the
 [tool README](../../instrumentation/rank1-backward-search/README.md):
 

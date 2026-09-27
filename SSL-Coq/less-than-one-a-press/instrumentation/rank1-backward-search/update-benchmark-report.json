@@ -1,0 +1,1001 @@
+{
+  "status": "No complete one-update preimage; no two/four-update scaling measurement.",
+  "method": "Strict backward expansion of the actual final floor call within the actual object-update prefix. Unsupported semantics block the result; no call is an identity frame.",
+  "runtime": {
+    "python": "3.12.14",
+    "system": "Windows"
+  },
+  "requestedUpdates": [
+    1,
+    2,
+    4
+  ],
+  "oneUpdatePrerequisite": {
+    "us": {
+      "version": "us",
+      "cut": {
+        "outerStatements": 27,
+        "included": 21,
+        "excludedAfterTarget": 6,
+        "meaning": "Actual object-update prefix ending at top retention; a necessary portion of one full controller update, not the whole frame."
+      },
+      "requestedUpdates": 1,
+      "completeUpdates": 0,
+      "survivingPossibilities": null,
+      "solverCheckPerformed": false,
+      "solver": "4.15.4",
+      "target": "The ordinary Mario Object is present and both saved platform pointers name TOP, with the real final floor call returning the checked binary32 height at X=-2200,Z=-1024. No floor list or returned height is assumed.",
+      "status": "blocked-before-one-update",
+      "blocker": {
+        "reason": "unimplemented-live-loop",
+        "function": "find_floor_from_list",
+        "file": "generated\\us_surface_collision.v",
+        "definitionLine": 2655,
+        "statementPath": "body.1.0",
+        "constructor": "Swhile",
+        "callStack": [
+          "update_objects",
+          "update_mario_platform",
+          "find_floor",
+          "find_floor_from_list"
+        ],
+        "explanation": "The real loop has not been interpreted or given a checked complete summary. It is not replaced by zero iterations or a fixed arbitrary bound."
+      },
+      "elapsedSeconds": 0.13658939999993436,
+      "parseSetupSeconds": 0.014994000000001506,
+      "attemptedBackwardSeconds": 0.12159539999993285,
+      "peakWorkingSetBytes": 51056640,
+      "visitedStatements": 163,
+      "maxPartialPaths": 96,
+      "expandedCallSites": [
+        {
+          "caller": "update_objects",
+          "callee": "update_mario_platform",
+          "path": "body.1.1.1.1.1.1.1.1.1.1.1.1.1.1.1.1.1.1.1.1"
+        },
+        {
+          "caller": "update_mario_platform",
+          "callee": "absf",
+          "path": "body.1.1.1.1.1.0.0"
+        },
+        {
+          "caller": "update_mario_platform",
+          "callee": "find_floor",
+          "path": "body.1.1.1.1.0.0"
+        },
+        {
+          "caller": "find_floor",
+          "callee": "find_floor_from_list",
+          "path": "body.1.1.1.1.1.1.1.1.1.1.1.1.1.1.0.1.then.1.then.0.1"
+        }
+      ],
+      "finishedHelperTraversals": [
+        "absf"
+      ],
+      "guardedFloatIntegerConversions": 1,
+      "generatedFunctions": {
+        "update_objects": {
+          "file": "generated\\us_object_list_processor.v",
+          "line": 3144,
+          "sha256": "cca89d63cbcd0fb619a4788b877bdf7d840071ff48a1c635ccd1420e3550a576"
+        },
+        "update_mario_platform": {
+          "file": "generated\\us_platform_displacement.v",
+          "line": 515,
+          "sha256": "02b5a54c1691a5c2903645acb9663ca19a03b1eea60d5f2c37e70153dff33366"
+        },
+        "absf": {
+          "file": "generated\\us_object_helpers.v",
+          "line": 20062,
+          "sha256": "4a6e09dbcf61e5fd928e1e5da67ff26aa176d1fc65b2e6ba19bf8a3e7600728d"
+        },
+        "find_floor": {
+          "file": "generated\\us_surface_collision.v",
+          "line": 3051,
+          "sha256": "422d3873dbcd1f96990002d062ec515aa5e5d74166c018ddabad28fe7ced2276"
+        },
+        "find_floor_from_list": {
+          "file": "generated\\us_surface_collision.v",
+          "line": 2655,
+          "sha256": "a46b68f49bc147add0c8d208b2c6d1edc150775818a4dfe3957d0a36bf616b3b"
+        }
+      },
+      "objectUpdateInventory": {
+        "function": "update_objects",
+        "file": "generated\\us_object_list_processor.v",
+        "definitionLine": 3144,
+        "sourceSHA256": "cca89d63cbcd0fb619a4788b877bdf7d840071ff48a1c635ccd1420e3550a576",
+        "loops": 0,
+        "calls": [
+          {
+            "callee": "get_current_clock",
+            "path": [
+              0,
+              0
+            ]
+          },
+          {
+            "callee": "reset_debug_objectinfo",
+            "path": [
+              1,
+              1,
+              1,
+              1,
+              1,
+              0
+            ]
+          },
+          {
+            "callee": "stub_debug_5",
+            "path": [
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              0
+            ]
+          },
+          {
+            "callee": "get_clock_difference",
+            "path": [
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              0,
+              0,
+              1
+            ]
+          },
+          {
+            "callee": "clear_dynamic_surfaces",
+            "path": [
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              0
+            ]
+          },
+          {
+            "callee": "get_clock_difference",
+            "path": [
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              0,
+              0,
+              1
+            ]
+          },
+          {
+            "callee": "update_terrain_objects",
+            "path": [
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              0
+            ]
+          },
+          {
+            "callee": "apply_mario_platform_displacement",
+            "path": [
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              0
+            ]
+          },
+          {
+            "callee": "get_clock_difference",
+            "path": [
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              0,
+              0,
+              1
+            ]
+          },
+          {
+            "callee": "detect_object_collisions",
+            "path": [
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              0
+            ]
+          },
+          {
+            "callee": "get_clock_difference",
+            "path": [
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              0,
+              0,
+              1
+            ]
+          },
+          {
+            "callee": "update_non_terrain_objects",
+            "path": [
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              0
+            ]
+          },
+          {
+            "callee": "get_clock_difference",
+            "path": [
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              0,
+              0,
+              1
+            ]
+          },
+          {
+            "callee": "unload_deactivated_objects",
+            "path": [
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              0
+            ]
+          },
+          {
+            "callee": "get_clock_difference",
+            "path": [
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              0,
+              0,
+              1
+            ]
+          },
+          {
+            "callee": "update_mario_platform",
+            "path": [
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1
+            ]
+          }
+        ]
+      },
+      "floorQueryInventory": {
+        "function": "find_floor",
+        "file": "generated\\us_surface_collision.v",
+        "definitionLine": 3051,
+        "sourceSHA256": "422d3873dbcd1f96990002d062ec515aa5e5d74166c018ddabad28fe7ced2276",
+        "loops": 0,
+        "calls": [
+          {
+            "callee": "find_floor_from_list",
+            "path": [
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              0,
+              0
+            ]
+          },
+          {
+            "callee": "find_floor_from_list",
+            "path": [
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              0,
+              0
+            ]
+          },
+          {
+            "callee": "find_floor_from_list",
+            "path": [
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              0,
+              1,
+              1,
+              1,
+              1,
+              0,
+              1
+            ]
+          }
+        ]
+      },
+      "floorListInventory": {
+        "function": "find_floor_from_list",
+        "file": "generated\\us_surface_collision.v",
+        "definitionLine": 2655,
+        "sourceSHA256": "a46b68f49bc147add0c8d208b2c6d1edc150775818a4dfe3957d0a36bf616b3b",
+        "loops": 0,
+        "calls": []
+      },
+      "workerProcessSeconds": 0.32543060000000423
+    },
+    "jp": {
+      "version": "jp",
+      "cut": {
+        "outerStatements": 27,
+        "included": 21,
+        "excludedAfterTarget": 6,
+        "meaning": "Actual object-update prefix ending at top retention; a necessary portion of one full controller update, not the whole frame."
+      },
+      "requestedUpdates": 1,
+      "completeUpdates": 0,
+      "survivingPossibilities": null,
+      "solverCheckPerformed": false,
+      "solver": "4.15.4",
+      "target": "The ordinary Mario Object is present and both saved platform pointers name TOP, with the real final floor call returning the checked binary32 height at X=-2200,Z=-1024. No floor list or returned height is assumed.",
+      "status": "blocked-before-one-update",
+      "blocker": {
+        "reason": "unimplemented-live-loop",
+        "function": "find_floor_from_list",
+        "file": "generated\\jp_surface_collision.v",
+        "definitionLine": 2655,
+        "statementPath": "body.1.0",
+        "constructor": "Swhile",
+        "callStack": [
+          "update_objects",
+          "update_mario_platform",
+          "find_floor",
+          "find_floor_from_list"
+        ],
+        "explanation": "The real loop has not been interpreted or given a checked complete summary. It is not replaced by zero iterations or a fixed arbitrary bound."
+      },
+      "elapsedSeconds": 0.1429120000000239,
+      "parseSetupSeconds": 0.016044899999997142,
+      "attemptedBackwardSeconds": 0.12686710000002677,
+      "peakWorkingSetBytes": 51044352,
+      "visitedStatements": 163,
+      "maxPartialPaths": 96,
+      "expandedCallSites": [
+        {
+          "caller": "update_objects",
+          "callee": "update_mario_platform",
+          "path": "body.1.1.1.1.1.1.1.1.1.1.1.1.1.1.1.1.1.1.1.1"
+        },
+        {
+          "caller": "update_mario_platform",
+          "callee": "absf",
+          "path": "body.1.1.1.1.1.0.0"
+        },
+        {
+          "caller": "update_mario_platform",
+          "callee": "find_floor",
+          "path": "body.1.1.1.1.0.0"
+        },
+        {
+          "caller": "find_floor",
+          "callee": "find_floor_from_list",
+          "path": "body.1.1.1.1.1.1.1.1.1.1.1.1.1.1.0.1.then.1.then.0.1"
+        }
+      ],
+      "finishedHelperTraversals": [
+        "absf"
+      ],
+      "guardedFloatIntegerConversions": 1,
+      "generatedFunctions": {
+        "update_objects": {
+          "file": "generated\\jp_object_list_processor.v",
+          "line": 3134,
+          "sha256": "cca89d63cbcd0fb619a4788b877bdf7d840071ff48a1c635ccd1420e3550a576"
+        },
+        "update_mario_platform": {
+          "file": "generated\\jp_platform_displacement.v",
+          "line": 514,
+          "sha256": "4d92580f7c69bbfe8c7fde7748f40d4edc7d14e79800b1f25550abde6de3d339"
+        },
+        "absf": {
+          "file": "generated\\jp_object_helpers.v",
+          "line": 19985,
+          "sha256": "4a6e09dbcf61e5fd928e1e5da67ff26aa176d1fc65b2e6ba19bf8a3e7600728d"
+        },
+        "find_floor": {
+          "file": "generated\\jp_surface_collision.v",
+          "line": 3051,
+          "sha256": "422d3873dbcd1f96990002d062ec515aa5e5d74166c018ddabad28fe7ced2276"
+        },
+        "find_floor_from_list": {
+          "file": "generated\\jp_surface_collision.v",
+          "line": 2655,
+          "sha256": "192e814803c25f72943558caabfe39bd1002396430d917db6b41c2ed83ebbfd6"
+        }
+      },
+      "objectUpdateInventory": {
+        "function": "update_objects",
+        "file": "generated\\jp_object_list_processor.v",
+        "definitionLine": 3134,
+        "sourceSHA256": "cca89d63cbcd0fb619a4788b877bdf7d840071ff48a1c635ccd1420e3550a576",
+        "loops": 0,
+        "calls": [
+          {
+            "callee": "get_current_clock",
+            "path": [
+              0,
+              0
+            ]
+          },
+          {
+            "callee": "reset_debug_objectinfo",
+            "path": [
+              1,
+              1,
+              1,
+              1,
+              1,
+              0
+            ]
+          },
+          {
+            "callee": "stub_debug_5",
+            "path": [
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              0
+            ]
+          },
+          {
+            "callee": "get_clock_difference",
+            "path": [
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              0,
+              0,
+              1
+            ]
+          },
+          {
+            "callee": "clear_dynamic_surfaces",
+            "path": [
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              0
+            ]
+          },
+          {
+            "callee": "get_clock_difference",
+            "path": [
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              0,
+              0,
+              1
+            ]
+          },
+          {
+            "callee": "update_terrain_objects",
+            "path": [
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              0
+            ]
+          },
+          {
+            "callee": "apply_mario_platform_displacement",
+            "path": [
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              0
+            ]
+          },
+          {
+            "callee": "get_clock_difference",
+            "path": [
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              0,
+              0,
+              1
+            ]
+          },
+          {
+            "callee": "detect_object_collisions",
+            "path": [
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              0
+            ]
+          },
+          {
+            "callee": "get_clock_difference",
+            "path": [
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              0,
+              0,
+              1
+            ]
+          },
+          {
+            "callee": "update_non_terrain_objects",
+            "path": [
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              0
+            ]
+          },
+          {
+            "callee": "get_clock_difference",
+            "path": [
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              0,
+              0,
+              1
+            ]
+          },
+          {
+            "callee": "unload_deactivated_objects",
+            "path": [
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              0
+            ]
+          },
+          {
+            "callee": "get_clock_difference",
+            "path": [
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              0,
+              0,
+              1
+            ]
+          },
+          {
+            "callee": "update_mario_platform",
+            "path": [
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1
+            ]
+          }
+        ]
+      },
+      "floorQueryInventory": {
+        "function": "find_floor",
+        "file": "generated\\jp_surface_collision.v",
+        "definitionLine": 3051,
+        "sourceSHA256": "422d3873dbcd1f96990002d062ec515aa5e5d74166c018ddabad28fe7ced2276",
+        "loops": 0,
+        "calls": [
+          {
+            "callee": "find_floor_from_list",
+            "path": [
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              0,
+              0
+            ]
+          },
+          {
+            "callee": "find_floor_from_list",
+            "path": [
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              0,
+              0
+            ]
+          },
+          {
+            "callee": "find_floor_from_list",
+            "path": [
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              0,
+              1,
+              1,
+              1,
+              1,
+              0,
+              1
+            ]
+          }
+        ]
+      },
+      "floorListInventory": {
+        "function": "find_floor_from_list",
+        "file": "generated\\jp_surface_collision.v",
+        "definitionLine": 2655,
+        "sourceSHA256": "192e814803c25f72943558caabfe39bd1002396430d917db6b41c2ed83ebbfd6",
+        "loops": 0,
+        "calls": []
+      },
+      "workerProcessSeconds": 0.3469645999999784
+    }
+  },
+  "laterUpdates": [
+    {
+      "updates": 2,
+      "status": "not-run",
+      "reason": "The one-update coverage gate did not complete.",
+      "survivingPossibilities": null
+    },
+    {
+      "updates": 4,
+      "status": "not-run",
+      "reason": "The one-update coverage gate did not complete.",
+      "survivingPossibilities": null
+    }
+  ],
+  "interpretation": "Reported time/memory measure the failed prerequisite attempt only. Partial path counts are syntax states, not surviving gameplay possibilities. This diagnoses missing execution coverage, not computational impossibility of gameplay or of a complete solver.",
+  "implementationHashes": {
+    "clight.py": "ddf8275fc32cb19067d40134a3f03f845e7a5cabfd99ee802cfce2b6b5f3a62a",
+    "engine.py": "c73a2f937d921146edbb638dfd35b9362c234e4fee0f673f2fd9b5892e235168",
+    "search.py": "32de3bee1c27a16ec016ef08f6f4d7b861d369e09c0dbd9faa8abd54d463ed8b",
+    "benchmark_updates.py": "3bb3701397fdd602a2ef51b29bac0e1c049eb44cb185cd42470249297f473ae6",
+    "test_benchmark.py": "5ee08d9d9b396792bfcd0a83275d1ea6592c9472090a0356325f68806c04ef23"
+  }
+}

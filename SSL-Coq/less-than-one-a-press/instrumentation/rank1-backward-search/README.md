@@ -23,6 +23,9 @@ python instrumentation/rank1-backward-search/search.py \
   --output build/rank1-backward-search/receipt
 python instrumentation/rank1-backward-search/group_inputs.py \
   --output build/rank1-backward-search/grouping-all-no-new-a
+python instrumentation/rank1-backward-search/test_benchmark.py
+python instrumentation/rank1-backward-search/benchmark_updates.py \
+  --output build/rank1-backward-search/update-benchmark
 ```
 
 Z3 is isolated under the ignored build directory. The recorded run used
@@ -53,6 +56,13 @@ between machines. An unknown result is never converted to a contradiction.
   [grouping report](../../docs/notes/rank1-input-grouping.md) and
   [saved checks](grouping-report.json). These groups are not interchangeable
   whole-game states; unsupported calls are rejected.
+- `benchmark_updates.py` checks the prerequisite for the requested one-, two-
+  and four-update benchmark. It expands the real final floor call and rejects
+  incomplete effects. Both versions currently stop at its live floor-list
+  loop; no full update, later horizon or surviving-gameplay count is reported.
+  The [benchmark note](../../docs/notes/rank1-update-benchmark.md) explains the
+  distinction between these measured failed attempts and full-frame timings.
+  Its seven tests include generated cast boundary and missing-call controls.
 
 The functions interpreted recursively are `absf`, `vec3f_copy`, `vec3s_set`,
 `stop_and_set_height_to_floor` and `mario_set_forward_vel`. Other calls have
