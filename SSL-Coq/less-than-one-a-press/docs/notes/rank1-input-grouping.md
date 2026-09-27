@@ -1,5 +1,7 @@
 # Rank 1: keep input possibilities together without losing their differences
 
+**Follow-up:** the [conditional full-interval path checker](rank1-complete-update-path.md) now completes both US/JP controller-to-retention paths, including live callbacks. It uses a supplied scene and does not close exhaustive predecessor coverage or gameplay reachability. The earlier measurements and limitations below are retained as that earlier result.
+
 27 September 2026. The first grouping implementation is checked against
 selected actual generated US/JP statements. It keeps sets of inputs as exact
 conditions and formulas, instead of choosing one example to represent a set.

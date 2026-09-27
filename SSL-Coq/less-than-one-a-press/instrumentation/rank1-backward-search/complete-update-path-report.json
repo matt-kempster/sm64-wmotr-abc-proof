@@ -1,0 +1,2820 @@
+{
+  "status": "One complete conditional source path through the controller/level/object interval in each version. Other predecessors and gameplay reachability remain open.",
+  "requestedEndpoint": "After the real update_mario_platform returns the checked top and writes both platform pointers, still Area 1.",
+  "scope": "Supplied finite scene selects a path; all reached original effects are reversed and its entry valuation checked. The 225-input group fixes the other entry bytes. This is not an exhaustive update preimage, a new warp acceptance, a gameplay witness or a Coq proof.",
+  "reverseScattershot": "Deferred; no random reverse search run.",
+  "runs": {
+    "us": {
+      "version": "us",
+      "exhaustiveOneUpdatePreimageComplete": false,
+      "fixtureComplete": true,
+      "completedConditionalUpdatePaths": 1,
+      "cut": {
+        "firstOriginalStatement": 1,
+        "totalOriginalStatements": 13,
+        "start": "Immediately after the OS has supplied controller pads; includes run_demo_inputs, edges, sticks and port copy."
+      },
+      "scene": {
+        "pc": 275776232,
+        "controller": 324009984,
+        "pads": 325058560,
+        "surface": 150994944,
+        "scope": "Supplied retry/disappeared predecessor with real Mario update; no claim of a newly accepted warp or reachable initial gap."
+      },
+      "status": "complete conditional fixture trace and reverse substitution",
+      "predecessorSHA256": "25cf4d842a37430add43a14dc6fb085d3fcfc78f6181a6aa7ecb2a023de853a8",
+      "predecessorFreeBytes": 457,
+      "neutralButtonStickGroup": {
+        "check": "unsat",
+        "samples": 225,
+        "meaning": "Exact input set for this one complete trace path, with the other supplied entry bytes fixed. Other paths are not excluded."
+      },
+      "seconds": 8.478448000001663,
+      "statements": 3924,
+      "events": 3068,
+      "calls": [
+        {
+          "function": "read_controller_inputs",
+          "scope": "read_controller_inputs.0",
+          "source": "d2112738876cb69d8f2fb84ef8057e3b4c8582fbe3b76bfd1622189a72fae1b2",
+          "line": 6814,
+          "file": "generated\\us_game_init.v",
+          "entryEvent": 0
+        },
+        {
+          "function": "run_demo_inputs",
+          "scope": "run_demo_inputs.1",
+          "source": "6acd7383047d403fdfc282bf83970a961589fa8959cb18cb2284babf04f6d17f",
+          "line": 6399,
+          "file": "generated\\us_game_init.v",
+          "entryEvent": 1
+        },
+        {
+          "function": "adjust_analog_stick",
+          "scope": "adjust_analog_stick.2",
+          "source": "4061a6fc1948baaa4b10eb20fea2b417ad49258f2dd868f408904da7c0ec0dbd",
+          "line": 6181,
+          "file": "generated\\us_game_init.v",
+          "entryEvent": 49
+        },
+        {
+          "function": "level_script_execute",
+          "scope": "level_script_execute.3",
+          "source": "6fef25b52d3053f9f17d37dbd8bbf09fbda1145b59b6048f6851fbc85e3d8e51",
+          "line": 7770,
+          "file": "generated\\us_level_script.v",
+          "entryEvent": 159
+        },
+        {
+          "function": "level_cmd_call_loop",
+          "scope": "level_cmd_call_loop.4",
+          "source": "4b403e491791242243e005f9eebc1d3e7d4bd46c4df90442a1ac8c963ccc0ce5",
+          "line": 2368,
+          "file": "generated\\us_level_script.v",
+          "entryEvent": 174
+        },
+        {
+          "function": "lvl_init_or_update",
+          "scope": "lvl_init_or_update.5",
+          "source": "39aa917378e1ee49923a283694236f65cfe6602d3be2451427f40906cf9808f2",
+          "line": 7679,
+          "file": "generated\\us_level_update.v",
+          "entryEvent": 190
+        },
+        {
+          "function": "update_level",
+          "scope": "update_level.6",
+          "source": "67aea842722d94a229dbeb80154af73b9644e3f2edb91402b4baf1b881905780",
+          "line": 7307,
+          "file": "generated\\us_level_update.v",
+          "entryEvent": 193
+        },
+        {
+          "function": "play_mode_normal",
+          "scope": "play_mode_normal.7",
+          "source": "5a5fbe0fd652ae5ab5423077afede3c6323d57e90f2daf3d0c94260230e00a57",
+          "line": 6757,
+          "file": "generated\\us_level_update.v",
+          "entryEvent": 197
+        },
+        {
+          "function": "warp_area",
+          "scope": "warp_area.8",
+          "source": "83745f7b9c15d33f18b397807a697e17b124cfeedc9ccdb280460dba7ee626fb",
+          "line": 3735,
+          "file": "generated\\us_level_update.v",
+          "entryEvent": 201
+        },
+        {
+          "function": "check_instant_warp",
+          "scope": "check_instant_warp.9",
+          "source": "ea962d09b1dd8d884456e45ea3c834a2fc46ae2d88ff3ec5dd5cfd1a28afb3a5",
+          "line": 4062,
+          "file": "generated\\us_level_update.v",
+          "entryEvent": 205
+        },
+        {
+          "function": "area_update_objects",
+          "scope": "area_update_objects.10",
+          "source": "eb4d8d0361b5445ba519a6362c94456ea157c624d152258632a86d0170c6a507",
+          "line": 2201,
+          "file": "generated\\us_area.v",
+          "entryEvent": 223
+        },
+        {
+          "function": "update_objects",
+          "scope": "update_objects.11",
+          "source": "cca89d63cbcd0fb619a4788b877bdf7d840071ff48a1c635ccd1420e3550a576",
+          "line": 3144,
+          "file": "generated\\us_object_list_processor.v",
+          "entryEvent": 228
+        },
+        {
+          "function": "get_current_clock",
+          "scope": "get_current_clock.12",
+          "source": "5acc78bca2a0b9b110be150f7629d84837db79f87078d09bc3f74f35a8f97e0a",
+          "line": 1199,
+          "file": "generated\\us_debug.v",
+          "entryEvent": 229
+        },
+        {
+          "function": "reset_debug_objectinfo",
+          "scope": "reset_debug_objectinfo.13",
+          "source": "9e78bc4ec9811bad40169c3118503eea093fd3a058a5955722c4c840ddb426ff",
+          "line": 2216,
+          "file": "generated\\us_debug.v",
+          "entryEvent": 246
+        },
+        {
+          "function": "set_print_state_info",
+          "scope": "set_print_state_info.14",
+          "source": "35195eee0bdca90253eae3a0dc6e4d33478d1a20bffeeb65d1f6f14df0f537f7",
+          "line": 1223,
+          "file": "generated\\us_debug.v",
+          "entryEvent": 259
+        },
+        {
+          "function": "set_print_state_info",
+          "scope": "set_print_state_info.15",
+          "source": "35195eee0bdca90253eae3a0dc6e4d33478d1a20bffeeb65d1f6f14df0f537f7",
+          "line": 1223,
+          "file": "generated\\us_debug.v",
+          "entryEvent": 272
+        },
+        {
+          "function": "update_debug_dpadmask",
+          "scope": "update_debug_dpadmask.16",
+          "source": "caf0027dd68626515d677f3d9321c9a09a331b5c3ff818cddd69d8830cf6d9c8",
+          "line": 2115,
+          "file": "generated\\us_debug.v",
+          "entryEvent": 285
+        },
+        {
+          "function": "stub_debug_5",
+          "scope": "stub_debug_5.17",
+          "source": "68249520a2e6feb994351099c54d87fafa86e12d455ad04962aaf6ea614f40bf",
+          "line": 2505,
+          "file": "generated\\us_debug.v",
+          "entryEvent": 296
+        },
+        {
+          "function": "get_clock_difference",
+          "scope": "get_clock_difference.18",
+          "source": "e402986aa4220684df970cf7c9bf624909ea6b9668eff814916f2de27cf3594e",
+          "line": 1211,
+          "file": "generated\\us_debug.v",
+          "entryEvent": 301
+        },
+        {
+          "function": "clear_dynamic_surfaces",
+          "scope": "clear_dynamic_surfaces.19",
+          "source": "abfd20dfcce1f7a7392226b0fd5bc84582d8365a0b818f4c88cb9df6bf0683d9",
+          "line": 2462,
+          "file": "generated\\us_surface_load.v",
+          "entryEvent": 307
+        },
+        {
+          "function": "get_clock_difference",
+          "scope": "get_clock_difference.20",
+          "source": "e402986aa4220684df970cf7c9bf624909ea6b9668eff814916f2de27cf3594e",
+          "line": 1211,
+          "file": "generated\\us_debug.v",
+          "entryEvent": 314
+        },
+        {
+          "function": "update_terrain_objects",
+          "scope": "update_terrain_objects.21",
+          "source": "834d6b1f587c0b2882bf0be95efda895dc9dc0c6246bd480e0b306460124d21b",
+          "line": 3003,
+          "file": "generated\\us_object_list_processor.v",
+          "entryEvent": 320
+        },
+        {
+          "function": "update_objects_in_list",
+          "scope": "update_objects_in_list.22",
+          "source": "208db01c13e0f00326ebabe4e36a00322ba52e1e44fcf4661fc0acc3fc5da079",
+          "line": 2050,
+          "file": "generated\\us_object_list_processor.v",
+          "entryEvent": 323
+        },
+        {
+          "function": "update_objects_during_time_stop",
+          "scope": "update_objects_during_time_stop.23",
+          "source": "c26ec32a1b4bb03bdefb8885b31b7541469a2c1f16fab42408f2b9a57404e87e",
+          "line": 1837,
+          "file": "generated\\us_object_list_processor.v",
+          "entryEvent": 330
+        },
+        {
+          "function": "update_objects_in_list",
+          "scope": "update_objects_in_list.24",
+          "source": "208db01c13e0f00326ebabe4e36a00322ba52e1e44fcf4661fc0acc3fc5da079",
+          "line": 2050,
+          "file": "generated\\us_object_list_processor.v",
+          "entryEvent": 342
+        },
+        {
+          "function": "update_objects_during_time_stop",
+          "scope": "update_objects_during_time_stop.25",
+          "source": "c26ec32a1b4bb03bdefb8885b31b7541469a2c1f16fab42408f2b9a57404e87e",
+          "line": 1837,
+          "file": "generated\\us_object_list_processor.v",
+          "entryEvent": 349
+        },
+        {
+          "function": "apply_mario_platform_displacement",
+          "scope": "apply_mario_platform_displacement.26",
+          "source": "969dda4d08e117f24ee1b93127e29c529e92d9881453aae4e4fd66ee954a8935",
+          "line": 1554,
+          "file": "generated\\us_platform_displacement.v",
+          "entryEvent": 403
+        },
+        {
+          "function": "get_clock_difference",
+          "scope": "get_clock_difference.27",
+          "source": "e402986aa4220684df970cf7c9bf624909ea6b9668eff814916f2de27cf3594e",
+          "line": 1211,
+          "file": "generated\\us_debug.v",
+          "entryEvent": 416
+        },
+        {
+          "function": "detect_object_collisions",
+          "scope": "detect_object_collisions.28",
+          "source": "1c44d80722911ab7b6c3e210332d0e890fea4621ebce615fe1e02148bddce816",
+          "line": 1695,
+          "file": "generated\\us_object_collision.v",
+          "entryEvent": 422
+        },
+        {
+          "function": "clear_object_collision",
+          "scope": "clear_object_collision.29",
+          "source": "7bd642d80a91258b37bd34fd976ae21664d67ba6b7749b46e18134eab080c254",
+          "line": 959,
+          "file": "generated\\us_object_collision.v",
+          "entryEvent": 425
+        },
+        {
+          "function": "clear_object_collision",
+          "scope": "clear_object_collision.30",
+          "source": "7bd642d80a91258b37bd34fd976ae21664d67ba6b7749b46e18134eab080c254",
+          "line": 959,
+          "file": "generated\\us_object_collision.v",
+          "entryEvent": 432
+        },
+        {
+          "function": "clear_object_collision",
+          "scope": "clear_object_collision.31",
+          "source": "7bd642d80a91258b37bd34fd976ae21664d67ba6b7749b46e18134eab080c254",
+          "line": 959,
+          "file": "generated\\us_object_collision.v",
+          "entryEvent": 450
+        },
+        {
+          "function": "clear_object_collision",
+          "scope": "clear_object_collision.32",
+          "source": "7bd642d80a91258b37bd34fd976ae21664d67ba6b7749b46e18134eab080c254",
+          "line": 959,
+          "file": "generated\\us_object_collision.v",
+          "entryEvent": 457
+        },
+        {
+          "function": "clear_object_collision",
+          "scope": "clear_object_collision.33",
+          "source": "7bd642d80a91258b37bd34fd976ae21664d67ba6b7749b46e18134eab080c254",
+          "line": 959,
+          "file": "generated\\us_object_collision.v",
+          "entryEvent": 464
+        },
+        {
+          "function": "clear_object_collision",
+          "scope": "clear_object_collision.34",
+          "source": "7bd642d80a91258b37bd34fd976ae21664d67ba6b7749b46e18134eab080c254",
+          "line": 959,
+          "file": "generated\\us_object_collision.v",
+          "entryEvent": 471
+        },
+        {
+          "function": "clear_object_collision",
+          "scope": "clear_object_collision.35",
+          "source": "7bd642d80a91258b37bd34fd976ae21664d67ba6b7749b46e18134eab080c254",
+          "line": 959,
+          "file": "generated\\us_object_collision.v",
+          "entryEvent": 489
+        },
+        {
+          "function": "check_player_object_collision",
+          "scope": "check_player_object_collision.36",
+          "source": "7547eb9a2fa5c76e02aad1f5b4f5a7712c5bc6236cee86469d0540da86332e21",
+          "line": 1131,
+          "file": "generated\\us_object_collision.v",
+          "entryEvent": 494
+        },
+        {
+          "function": "check_collision_in_list",
+          "scope": "check_collision_in_list.37",
+          "source": "190d1e76dee2e4007ed1eff7f7efd823a1be00c083f1ba8201100f9f0dd5d2c3",
+          "line": 1045,
+          "file": "generated\\us_object_collision.v",
+          "entryEvent": 504
+        },
+        {
+          "function": "check_collision_in_list",
+          "scope": "check_collision_in_list.38",
+          "source": "190d1e76dee2e4007ed1eff7f7efd823a1be00c083f1ba8201100f9f0dd5d2c3",
+          "line": 1045,
+          "file": "generated\\us_object_collision.v",
+          "entryEvent": 515
+        },
+        {
+          "function": "check_collision_in_list",
+          "scope": "check_collision_in_list.39",
+          "source": "190d1e76dee2e4007ed1eff7f7efd823a1be00c083f1ba8201100f9f0dd5d2c3",
+          "line": 1045,
+          "file": "generated\\us_object_collision.v",
+          "entryEvent": 526
+        },
+        {
+          "function": "check_collision_in_list",
+          "scope": "check_collision_in_list.40",
+          "source": "190d1e76dee2e4007ed1eff7f7efd823a1be00c083f1ba8201100f9f0dd5d2c3",
+          "line": 1045,
+          "file": "generated\\us_object_collision.v",
+          "entryEvent": 537
+        },
+        {
+          "function": "check_collision_in_list",
+          "scope": "check_collision_in_list.41",
+          "source": "190d1e76dee2e4007ed1eff7f7efd823a1be00c083f1ba8201100f9f0dd5d2c3",
+          "line": 1045,
+          "file": "generated\\us_object_collision.v",
+          "entryEvent": 548
+        },
+        {
+          "function": "check_collision_in_list",
+          "scope": "check_collision_in_list.42",
+          "source": "190d1e76dee2e4007ed1eff7f7efd823a1be00c083f1ba8201100f9f0dd5d2c3",
+          "line": 1045,
+          "file": "generated\\us_object_collision.v",
+          "entryEvent": 559
+        },
+        {
+          "function": "detect_object_hitbox_overlap",
+          "scope": "detect_object_hitbox_overlap.43",
+          "source": "afaa5f59d9b5d55842a05e270496f194a0aab6efc9d99ae960227244c4d87b67",
+          "line": 363,
+          "file": "generated\\us_object_collision.v",
+          "entryEvent": 567
+        },
+        {
+          "function": "check_collision_in_list",
+          "scope": "check_collision_in_list.44",
+          "source": "190d1e76dee2e4007ed1eff7f7efd823a1be00c083f1ba8201100f9f0dd5d2c3",
+          "line": 1045,
+          "file": "generated\\us_object_collision.v",
+          "entryEvent": 613
+        },
+        {
+          "function": "check_destructive_object_collision",
+          "scope": "check_destructive_object_collision.45",
+          "source": "9f73089248de72ac23c9c26220b4b9973f07705ba6d17547c539b8f2923392c8",
+          "line": 1485,
+          "file": "generated\\us_object_collision.v",
+          "entryEvent": 622
+        },
+        {
+          "function": "check_pushable_object_collision",
+          "scope": "check_pushable_object_collision.46",
+          "source": "a1c0cfb44012d94416ec169d8a2a16fcc3e1c33c7a82c051ff889e17e3c1faf3",
+          "line": 1419,
+          "file": "generated\\us_object_collision.v",
+          "entryEvent": 630
+        },
+        {
+          "function": "get_clock_difference",
+          "scope": "get_clock_difference.47",
+          "source": "e402986aa4220684df970cf7c9bf624909ea6b9668eff814916f2de27cf3594e",
+          "line": 1211,
+          "file": "generated\\us_debug.v",
+          "entryEvent": 640
+        },
+        {
+          "function": "update_non_terrain_objects",
+          "scope": "update_non_terrain_objects.48",
+          "source": "401ab59a5d41b95181496b9ee9ef5d7b0b72ac87e11a46721928470fd7256c9f",
+          "line": 3037,
+          "file": "generated\\us_object_list_processor.v",
+          "entryEvent": 646
+        },
+        {
+          "function": "update_objects_in_list",
+          "scope": "update_objects_in_list.49",
+          "source": "208db01c13e0f00326ebabe4e36a00322ba52e1e44fcf4661fc0acc3fc5da079",
+          "line": 2050,
+          "file": "generated\\us_object_list_processor.v",
+          "entryEvent": 655
+        },
+        {
+          "function": "update_objects_during_time_stop",
+          "scope": "update_objects_during_time_stop.50",
+          "source": "c26ec32a1b4bb03bdefb8885b31b7541469a2c1f16fab42408f2b9a57404e87e",
+          "line": 1837,
+          "file": "generated\\us_object_list_processor.v",
+          "entryEvent": 662
+        },
+        {
+          "function": "update_objects_in_list",
+          "scope": "update_objects_in_list.51",
+          "source": "208db01c13e0f00326ebabe4e36a00322ba52e1e44fcf4661fc0acc3fc5da079",
+          "line": 2050,
+          "file": "generated\\us_object_list_processor.v",
+          "entryEvent": 682
+        },
+        {
+          "function": "update_objects_during_time_stop",
+          "scope": "update_objects_during_time_stop.52",
+          "source": "c26ec32a1b4bb03bdefb8885b31b7541469a2c1f16fab42408f2b9a57404e87e",
+          "line": 1837,
+          "file": "generated\\us_object_list_processor.v",
+          "entryEvent": 689
+        },
+        {
+          "function": "cur_obj_update",
+          "scope": "cur_obj_update.53",
+          "source": "f06ed50485faf9808ffc942a074a6c76962015de29dc2c4d1ab470235deb1b1b",
+          "line": 4437,
+          "file": "generated\\us_behavior_script.v",
+          "entryEvent": 736
+        },
+        {
+          "function": "bhv_cmd_call_native",
+          "scope": "bhv_cmd_call_native.54",
+          "source": "a8a293b26bec3012f1647bfb95a79a8f5eeb1298b2147aeb2534e118b116301c",
+          "line": 1820,
+          "file": "generated\\us_behavior_script.v",
+          "entryEvent": 770
+        },
+        {
+          "function": "try_print_debug_mario_level_info",
+          "scope": "try_print_debug_mario_level_info.55",
+          "source": "03671b66f0e6ea8b8bc2e62623b29ea3a65d670978473150326769a7df5deaa9",
+          "line": 2590,
+          "file": "generated\\us_debug.v",
+          "entryEvent": 777
+        },
+        {
+          "function": "bhv_cmd_call_native",
+          "scope": "bhv_cmd_call_native.56",
+          "source": "a8a293b26bec3012f1647bfb95a79a8f5eeb1298b2147aeb2534e118b116301c",
+          "line": 1820,
+          "file": "generated\\us_behavior_script.v",
+          "entryEvent": 797
+        },
+        {
+          "function": "bhv_mario_update",
+          "scope": "bhv_mario_update.57",
+          "source": "55a884670e69237749f97e6bebc5f17bfc0cc928915b27445162f21c15f050cd",
+          "line": 1653,
+          "file": "generated\\us_object_list_processor.v",
+          "entryEvent": 804
+        },
+        {
+          "function": "execute_mario_action",
+          "scope": "execute_mario_action.58",
+          "source": "b422bfc0e85f884b7a0e79205dd5fbbbaa3952d811d3c4cbfa93e889a6f84bce",
+          "line": 9276,
+          "file": "generated\\us_mario.v",
+          "entryEvent": 808
+        },
+        {
+          "function": "mario_reset_bodystate",
+          "scope": "mario_reset_bodystate.59",
+          "source": "720787758e962b45ddd9672405e469657c2578c9b448a1306b956554c511b825",
+          "line": 8601,
+          "file": "generated\\us_mario.v",
+          "entryEvent": 830
+        },
+        {
+          "function": "update_mario_inputs",
+          "scope": "update_mario_inputs.60",
+          "source": "47cfb900660adedea675d47ccbc39309e10679ea29d89e01231849bc6ec2310e",
+          "line": 7636,
+          "file": "generated\\us_mario.v",
+          "entryEvent": 849
+        },
+        {
+          "function": "update_mario_button_inputs",
+          "scope": "update_mario_button_inputs.61",
+          "source": "230ffdaa612945c7a0106a4d629121e2af94a292cfce9133f309634d137c5425",
+          "line": 6596,
+          "file": "generated\\us_mario.v",
+          "entryEvent": 864
+        },
+        {
+          "function": "update_mario_joystick_inputs",
+          "scope": "update_mario_joystick_inputs.62",
+          "source": "cadb76eb81cecefa94302bc821ccfbe44987e342d057dfa1e3cfe13de1b5eceb",
+          "line": 6831,
+          "file": "generated\\us_mario.v",
+          "entryEvent": 913
+        },
+        {
+          "function": "update_mario_geometry_inputs",
+          "scope": "update_mario_geometry_inputs.63",
+          "source": "e05b108f3ac22e31d44be762b0e6201ee8a44c03340d28d04e0dc172cce3abb1",
+          "line": 6974,
+          "file": "generated\\us_mario.v",
+          "entryEvent": 933
+        },
+        {
+          "function": "f32_find_wall_collision",
+          "scope": "f32_find_wall_collision.64",
+          "source": "317ebf13aedccf55ae3bb6b42f02f02b31bb9ce26cfda29c3fcbd7d78eade9ee",
+          "line": 1728,
+          "file": "generated\\us_surface_collision.v",
+          "entryEvent": 934
+        },
+        {
+          "function": "find_wall_collisions",
+          "scope": "find_wall_collisions.65",
+          "source": "b9038e18fdfa10f154a7a01d8524ef499432434c8efab9fb0ab5691eb786790a",
+          "line": 1809,
+          "file": "generated\\us_surface_collision.v",
+          "entryEvent": 954
+        },
+        {
+          "function": "find_wall_collisions_from_list",
+          "scope": "find_wall_collisions_from_list.66",
+          "source": "061c294c95b985f3ee576040a531e17bc668745f2f04d0c17f46cddeb0e5baac",
+          "line": 710,
+          "file": "generated\\us_surface_collision.v",
+          "entryEvent": 984
+        },
+        {
+          "function": "find_wall_collisions_from_list",
+          "scope": "find_wall_collisions_from_list.67",
+          "source": "061c294c95b985f3ee576040a531e17bc668745f2f04d0c17f46cddeb0e5baac",
+          "line": 710,
+          "file": "generated\\us_surface_collision.v",
+          "entryEvent": 1004
+        },
+        {
+          "function": "f32_find_wall_collision",
+          "scope": "f32_find_wall_collision.68",
+          "source": "317ebf13aedccf55ae3bb6b42f02f02b31bb9ce26cfda29c3fcbd7d78eade9ee",
+          "line": 1728,
+          "file": "generated\\us_surface_collision.v",
+          "entryEvent": 1042
+        },
+        {
+          "function": "find_wall_collisions",
+          "scope": "find_wall_collisions.69",
+          "source": "b9038e18fdfa10f154a7a01d8524ef499432434c8efab9fb0ab5691eb786790a",
+          "line": 1809,
+          "file": "generated\\us_surface_collision.v",
+          "entryEvent": 1062
+        },
+        {
+          "function": "find_wall_collisions_from_list",
+          "scope": "find_wall_collisions_from_list.70",
+          "source": "061c294c95b985f3ee576040a531e17bc668745f2f04d0c17f46cddeb0e5baac",
+          "line": 710,
+          "file": "generated\\us_surface_collision.v",
+          "entryEvent": 1092
+        },
+        {
+          "function": "find_wall_collisions_from_list",
+          "scope": "find_wall_collisions_from_list.71",
+          "source": "061c294c95b985f3ee576040a531e17bc668745f2f04d0c17f46cddeb0e5baac",
+          "line": 710,
+          "file": "generated\\us_surface_collision.v",
+          "entryEvent": 1112
+        },
+        {
+          "function": "find_floor",
+          "scope": "find_floor.72",
+          "source": "422d3873dbcd1f96990002d062ec515aa5e5d74166c018ddabad28fe7ced2276",
+          "line": 3051,
+          "file": "generated\\us_surface_collision.v",
+          "entryEvent": 1156
+        },
+        {
+          "function": "find_floor_from_list",
+          "scope": "find_floor_from_list.73",
+          "source": "a46b68f49bc147add0c8d208b2c6d1edc150775818a4dfe3957d0a36bf616b3b",
+          "line": 2655,
+          "file": "generated\\us_surface_collision.v",
+          "entryEvent": 1187
+        },
+        {
+          "function": "find_floor_from_list",
+          "scope": "find_floor_from_list.74",
+          "source": "a46b68f49bc147add0c8d208b2c6d1edc150775818a4dfe3957d0a36bf616b3b",
+          "line": 2655,
+          "file": "generated\\us_surface_collision.v",
+          "entryEvent": 1232
+        },
+        {
+          "function": "vec3f_copy",
+          "scope": "vec3f_copy.75",
+          "source": "144b735009e8b8fa17960d543e81130113f70613d1bdb88980de09e9758e04d5",
+          "line": 6076,
+          "file": "generated\\us_math_util.v",
+          "entryEvent": 1271
+        },
+        {
+          "function": "find_floor",
+          "scope": "find_floor.76",
+          "source": "422d3873dbcd1f96990002d062ec515aa5e5d74166c018ddabad28fe7ced2276",
+          "line": 3051,
+          "file": "generated\\us_surface_collision.v",
+          "entryEvent": 1299
+        },
+        {
+          "function": "find_floor_from_list",
+          "scope": "find_floor_from_list.77",
+          "source": "a46b68f49bc147add0c8d208b2c6d1edc150775818a4dfe3957d0a36bf616b3b",
+          "line": 2655,
+          "file": "generated\\us_surface_collision.v",
+          "entryEvent": 1330
+        },
+        {
+          "function": "find_floor_from_list",
+          "scope": "find_floor_from_list.78",
+          "source": "a46b68f49bc147add0c8d208b2c6d1edc150775818a4dfe3957d0a36bf616b3b",
+          "line": 2655,
+          "file": "generated\\us_surface_collision.v",
+          "entryEvent": 1377
+        },
+        {
+          "function": "vec3f_find_ceil",
+          "scope": "vec3f_find_ceil.79",
+          "source": "086b6367768289b0c6324a85bf5007ac93eaebeaaea0476b230f0a7291eab1ab",
+          "line": 3383,
+          "file": "generated\\us_mario.v",
+          "entryEvent": 1418
+        },
+        {
+          "function": "find_ceil",
+          "scope": "find_ceil.80",
+          "source": "0893d203e4ad3e3f616d99b9d1a77d6dcefa946a39bf18e9b29d5f3e3f93cd50",
+          "line": 2271,
+          "file": "generated\\us_surface_collision.v",
+          "entryEvent": 1423
+        },
+        {
+          "function": "find_ceil_from_list",
+          "scope": "find_ceil_from_list.81",
+          "source": "6ebfe7275a4f1375ed82cd8577057128d21e0eb5a7defba148d6e46956729a5a",
+          "line": 1988,
+          "file": "generated\\us_surface_collision.v",
+          "entryEvent": 1454
+        },
+        {
+          "function": "find_ceil_from_list",
+          "scope": "find_ceil_from_list.82",
+          "source": "6ebfe7275a4f1375ed82cd8577057128d21e0eb5a7defba148d6e46956729a5a",
+          "line": 1988,
+          "file": "generated\\us_surface_collision.v",
+          "entryEvent": 1463
+        },
+        {
+          "function": "find_poison_gas_level",
+          "scope": "find_poison_gas_level.83",
+          "source": "fa2bf3585d4c97d8220701a3d379677e3e3fbfd18090cadd67647e1bd7a4eea9",
+          "line": 3495,
+          "file": "generated\\us_surface_collision.v",
+          "entryEvent": 1493
+        },
+        {
+          "function": "find_water_level",
+          "scope": "find_water_level.84",
+          "source": "7aac61152b29c37b8fd4200d4b4088e96c5a4174e628ab53081460416d463367",
+          "line": 3340,
+          "file": "generated\\us_surface_collision.v",
+          "entryEvent": 1505
+        },
+        {
+          "function": "atan2s",
+          "scope": "atan2s.85",
+          "source": "b880fa53b0a646919f1ae4f5a2a4b8b5770e66be426b5637dbba686efa8ed694",
+          "line": 12547,
+          "file": "generated\\us_math_util.v",
+          "entryEvent": 1526
+        },
+        {
+          "function": "atan2_lookup",
+          "scope": "atan2_lookup.86",
+          "source": "e76bb598b55328d699326dd78de1d8f6b820fb4c8048e08971f38b644f07582e",
+          "line": 12516,
+          "file": "generated\\us_math_util.v",
+          "entryEvent": 1532
+        },
+        {
+          "function": "mario_get_terrain_sound_addend",
+          "scope": "mario_get_terrain_sound_addend.87",
+          "source": "d1c1f18ebd8493671ad84c46fe7bc72657f025965172b263257e493e049335a9",
+          "line": 3094,
+          "file": "generated\\us_mario.v",
+          "entryEvent": 1545
+        },
+        {
+          "function": "mario_floor_is_slippery",
+          "scope": "mario_floor_is_slippery.88",
+          "source": "98d2f710e18bfc2ea1201a53fe325f19847e3d673f3c6b036973c1dd4ef1670f",
+          "line": 3476,
+          "file": "generated\\us_mario.v",
+          "entryEvent": 1587
+        },
+        {
+          "function": "mario_get_floor_class",
+          "scope": "mario_get_floor_class.89",
+          "source": "2d4acaabd2b397fcab2639903b019f03640f42647880dee2d762e551bda45096",
+          "line": 2935,
+          "file": "generated\\us_mario.v",
+          "entryEvent": 1595
+        },
+        {
+          "function": "debug_print_speed_action_normal",
+          "scope": "debug_print_speed_action_normal.90",
+          "source": "9b2afd78a8bef24422e3a3c73a8445aa71b94d896052b724a16beefb5df87c89",
+          "line": 6445,
+          "file": "generated\\us_mario.v",
+          "entryEvent": 1657
+        },
+        {
+          "function": "stub_mario_step_1",
+          "scope": "stub_mario_step_1.91",
+          "source": "aecf73fffe57e4b6ed30fdf6aada95e854fe694ccbaf3b49236b374d0f5d020f",
+          "line": 508,
+          "file": "generated\\us_mario_step.v",
+          "entryEvent": 1679
+        },
+        {
+          "function": "mario_handle_special_floors",
+          "scope": "mario_handle_special_floors.92",
+          "source": "1853cda4b49085d324aa0c3fe051b9558dde5a97297f61b28da52204e1f54357",
+          "line": 11377,
+          "file": "generated\\us_interaction.v",
+          "entryEvent": 1688
+        },
+        {
+          "function": "mario_process_interactions",
+          "scope": "mario_process_interactions.93",
+          "source": "974a41056d3b843d1a04abc9bd994b9e4198b434fe51ef61e1d99255d8588224",
+          "line": 10833,
+          "file": "generated\\us_interaction.v",
+          "entryEvent": 1695
+        },
+        {
+          "function": "check_kick_or_punch_wall",
+          "scope": "check_kick_or_punch_wall.94",
+          "source": "56bcc9b85e183a680830bbd54fb6b3f8b5746ee5e78d7dd73cf058cd1882d2cc",
+          "line": 10514,
+          "file": "generated\\us_interaction.v",
+          "entryEvent": 1718
+        },
+        {
+          "function": "mario_execute_cutscene_action",
+          "scope": "mario_execute_cutscene_action.95",
+          "source": "e536710b0d119d81bd4341386aac0b7ff286b2200175af389562c4c5820ab154",
+          "line": 16832,
+          "file": "generated\\us_mario_actions_cutscene.v",
+          "entryEvent": 1756
+        },
+        {
+          "function": "check_for_instant_quicksand",
+          "scope": "check_for_instant_quicksand.96",
+          "source": "3dc30a7414d8cde887ed65075010fac587039bcca6ee0ea57ae17293f0f20c5d",
+          "line": 16763,
+          "file": "generated\\us_mario_actions_cutscene.v",
+          "entryEvent": 1757
+        },
+        {
+          "function": "act_disappeared",
+          "scope": "act_disappeared.97",
+          "source": "df7339b649991f6c40855a43fa1c7a1aa5466915d8be78a4cea613e8ec7e309f",
+          "line": 2783,
+          "file": "generated\\us_mario_actions_cutscene.v",
+          "entryEvent": 1773
+        },
+        {
+          "function": "set_mario_animation",
+          "scope": "set_mario_animation.98",
+          "source": "7208a730a59f7a283e7243c12228021e4af600df07004172644bdca89a4d113c",
+          "line": 966,
+          "file": "generated\\us_mario.v",
+          "entryEvent": 1774
+        },
+        {
+          "function": "load_patchable_table",
+          "scope": "load_patchable_table.99",
+          "source": "e1e2927cb983042c807d6d4b55a6757c646bd4e2c6cafb253f32b394352a19a3",
+          "line": 2811,
+          "file": "generated\\us_memory.v",
+          "entryEvent": 1783
+        },
+        {
+          "function": "stop_and_set_height_to_floor",
+          "scope": "stop_and_set_height_to_floor.100",
+          "source": "dbd034e33309c64400c56bf983d4db644670526e277ac975ea01aa694a6dc634",
+          "line": 1709,
+          "file": "generated\\us_mario_step.v",
+          "entryEvent": 1809
+        },
+        {
+          "function": "mario_set_forward_vel",
+          "scope": "mario_set_forward_vel.101",
+          "source": "fe332abc7264bdc5c31186fe785d295f2c70de3962a045a69f0bea110ba9ee42",
+          "line": 2836,
+          "file": "generated\\us_mario.v",
+          "entryEvent": 1812
+        },
+        {
+          "function": "vec3f_copy",
+          "scope": "vec3f_copy.102",
+          "source": "144b735009e8b8fa17960d543e81130113f70613d1bdb88980de09e9758e04d5",
+          "line": 6076,
+          "file": "generated\\us_math_util.v",
+          "entryEvent": 1847
+        },
+        {
+          "function": "vec3s_set",
+          "scope": "vec3s_set.103",
+          "source": "79fee970d5440acec41dfb6af9911dc4b8c1390fc3de389d689d43b6bc5a3372",
+          "line": 6377,
+          "file": "generated\\us_math_util.v",
+          "entryEvent": 1871
+        },
+        {
+          "function": "sink_mario_in_quicksand",
+          "scope": "sink_mario_in_quicksand.104",
+          "source": "7f3d8dd1b0d26299a76061d50d00cdaecf2b51f67d9cfd84b76a4639c1226612",
+          "line": 8662,
+          "file": "generated\\us_mario.v",
+          "entryEvent": 1920
+        },
+        {
+          "function": "squish_mario_model",
+          "scope": "squish_mario_model.105",
+          "source": "1255c895df6270d2ae6bf654a6439bd0d90990df0ad72a61121d2b4a290b39ce",
+          "line": 6206,
+          "file": "generated\\us_mario.v",
+          "entryEvent": 1934
+        },
+        {
+          "function": "vec3f_set",
+          "scope": "vec3f_set.106",
+          "source": "1e349122c7f002c62fa825071db9a8269a707087ecd8f109d2a8c9dd0fde7b0c",
+          "line": 6130,
+          "file": "generated\\us_math_util.v",
+          "entryEvent": 1943
+        },
+        {
+          "function": "set_submerged_cam_preset_and_spawn_bubbles",
+          "scope": "set_submerged_cam_preset_and_spawn_bubbles.107",
+          "source": "6e94280e98a65615ca7a2a7d9a84bb55a4b52360166c8ebb796734e3ef2b3997",
+          "line": 7894,
+          "file": "generated\\us_mario.v",
+          "entryEvent": 1961
+        },
+        {
+          "function": "update_mario_health",
+          "scope": "update_mario_health.108",
+          "source": "238e481a58b2454de7d4a61c03f1bb918146a00f344dae4f9fed3025b9dbc75e",
+          "line": 8139,
+          "file": "generated\\us_mario.v",
+          "entryEvent": 1968
+        },
+        {
+          "function": "update_mario_info_for_cam",
+          "scope": "update_mario_info_for_cam.109",
+          "source": "755205668251f31f45710bcaa3aaabedbeee2eba2588178188dcbdb825f750ce",
+          "line": 8503,
+          "file": "generated\\us_mario.v",
+          "entryEvent": 2008
+        },
+        {
+          "function": "vec3s_copy",
+          "scope": "vec3s_copy.110",
+          "source": "2c0f40331efce4d84ddca2d7704807ede10ce3922fd9510e18cdcbf1a4bd91f3",
+          "line": 6323,
+          "file": "generated\\us_math_util.v",
+          "entryEvent": 2023
+        },
+        {
+          "function": "vec3f_copy",
+          "scope": "vec3f_copy.111",
+          "source": "144b735009e8b8fa17960d543e81130113f70613d1bdb88980de09e9758e04d5",
+          "line": 6076,
+          "file": "generated\\us_math_util.v",
+          "entryEvent": 2050
+        },
+        {
+          "function": "mario_update_hitbox_and_cap_model",
+          "scope": "mario_update_hitbox_and_cap_model.112",
+          "source": "b8218feea2dd641ea74fda7518e5722a465253c68c1dd77b15328adc1c8df6ef",
+          "line": 8997,
+          "file": "generated\\us_mario.v",
+          "entryEvent": 2074
+        },
+        {
+          "function": "update_and_return_cap_flags",
+          "scope": "update_and_return_cap_flags.113",
+          "source": "e20587a1f3dbdad0379505ab00f8dade117e5bffb10e9876ce6573566020f5e7",
+          "line": 8781,
+          "file": "generated\\us_mario.v",
+          "entryEvent": 2077
+        },
+        {
+          "function": "play_infinite_stairs_music",
+          "scope": "play_infinite_stairs_music.114",
+          "source": "ea59ea5388f835e7d9c7a042a7bb6b41368c700da804f6fc0adf3d16ad8dbcaa",
+          "line": 1324,
+          "file": "build\\rank1-backward-search\\supplemental-generated\\us_sound_init.v",
+          "entryEvent": 2123
+        },
+        {
+          "function": "copy_mario_state_to_object",
+          "scope": "copy_mario_state_to_object.115",
+          "source": "045bc0f150b044cef821079c9b51b02db7314cb805ae231e6d2b280081db5faf",
+          "line": 1042,
+          "file": "generated\\us_object_list_processor.v",
+          "entryEvent": 2152
+        },
+        {
+          "function": "bhv_cmd_call_native",
+          "scope": "bhv_cmd_call_native.116",
+          "source": "a8a293b26bec3012f1647bfb95a79a8f5eeb1298b2147aeb2534e118b116301c",
+          "line": 1820,
+          "file": "generated\\us_behavior_script.v",
+          "entryEvent": 2407
+        },
+        {
+          "function": "try_do_mario_debug_object_spawn",
+          "scope": "try_do_mario_debug_object_spawn.117",
+          "source": "fd3f5018ce73bc2500acc62744edde59ba67a3a73aa63e78c44f9d033feb74ed",
+          "line": 2620,
+          "file": "generated\\us_debug.v",
+          "entryEvent": 2414
+        },
+        {
+          "function": "bhv_cmd_end_loop",
+          "scope": "bhv_cmd_end_loop.118",
+          "source": "7ed5913e020aa803479678820aae2874b21b53b67bca20aa425053e98e531efe",
+          "line": 1795,
+          "file": "generated\\us_behavior_script.v",
+          "entryEvent": 2436
+        },
+        {
+          "function": "cur_obj_bhv_stack_pop",
+          "scope": "cur_obj_bhv_stack_pop.119",
+          "source": "db298ed2086fbd30ebc041a59ffac5d030a0f72652ee50aeb366c8bcf6fe135a",
+          "line": 837,
+          "file": "generated\\us_behavior_script.v",
+          "entryEvent": 2437
+        },
+        {
+          "function": "cur_obj_bhv_stack_push",
+          "scope": "cur_obj_bhv_stack_push.120",
+          "source": "be945489b01bde177706346f81d9f54afd4b65c4fd85a9ff64d3f55bb2fec56c",
+          "line": 792,
+          "file": "generated\\us_behavior_script.v",
+          "entryEvent": 2460
+        },
+        {
+          "function": "cur_obj_enable_rendering_if_mario_in_room",
+          "scope": "cur_obj_enable_rendering_if_mario_in_room.121",
+          "source": "5d4c1bedce1cb7df74655deaec7b577b02c5928b536b8ade5a1afd848cb039d2",
+          "line": 21904,
+          "file": "generated\\us_object_helpers.v",
+          "entryEvent": 2533
+        },
+        {
+          "function": "update_objects_in_list",
+          "scope": "update_objects_in_list.122",
+          "source": "208db01c13e0f00326ebabe4e36a00322ba52e1e44fcf4661fc0acc3fc5da079",
+          "line": 2050,
+          "file": "generated\\us_object_list_processor.v",
+          "entryEvent": 2564
+        },
+        {
+          "function": "update_objects_during_time_stop",
+          "scope": "update_objects_during_time_stop.123",
+          "source": "c26ec32a1b4bb03bdefb8885b31b7541469a2c1f16fab42408f2b9a57404e87e",
+          "line": 1837,
+          "file": "generated\\us_object_list_processor.v",
+          "entryEvent": 2571
+        },
+        {
+          "function": "update_objects_in_list",
+          "scope": "update_objects_in_list.124",
+          "source": "208db01c13e0f00326ebabe4e36a00322ba52e1e44fcf4661fc0acc3fc5da079",
+          "line": 2050,
+          "file": "generated\\us_object_list_processor.v",
+          "entryEvent": 2591
+        },
+        {
+          "function": "update_objects_during_time_stop",
+          "scope": "update_objects_during_time_stop.125",
+          "source": "c26ec32a1b4bb03bdefb8885b31b7541469a2c1f16fab42408f2b9a57404e87e",
+          "line": 1837,
+          "file": "generated\\us_object_list_processor.v",
+          "entryEvent": 2598
+        },
+        {
+          "function": "update_objects_in_list",
+          "scope": "update_objects_in_list.126",
+          "source": "208db01c13e0f00326ebabe4e36a00322ba52e1e44fcf4661fc0acc3fc5da079",
+          "line": 2050,
+          "file": "generated\\us_object_list_processor.v",
+          "entryEvent": 2618
+        },
+        {
+          "function": "update_objects_during_time_stop",
+          "scope": "update_objects_during_time_stop.127",
+          "source": "c26ec32a1b4bb03bdefb8885b31b7541469a2c1f16fab42408f2b9a57404e87e",
+          "line": 1837,
+          "file": "generated\\us_object_list_processor.v",
+          "entryEvent": 2625
+        },
+        {
+          "function": "update_objects_in_list",
+          "scope": "update_objects_in_list.128",
+          "source": "208db01c13e0f00326ebabe4e36a00322ba52e1e44fcf4661fc0acc3fc5da079",
+          "line": 2050,
+          "file": "generated\\us_object_list_processor.v",
+          "entryEvent": 2645
+        },
+        {
+          "function": "update_objects_during_time_stop",
+          "scope": "update_objects_during_time_stop.129",
+          "source": "c26ec32a1b4bb03bdefb8885b31b7541469a2c1f16fab42408f2b9a57404e87e",
+          "line": 1837,
+          "file": "generated\\us_object_list_processor.v",
+          "entryEvent": 2652
+        },
+        {
+          "function": "update_objects_in_list",
+          "scope": "update_objects_in_list.130",
+          "source": "208db01c13e0f00326ebabe4e36a00322ba52e1e44fcf4661fc0acc3fc5da079",
+          "line": 2050,
+          "file": "generated\\us_object_list_processor.v",
+          "entryEvent": 2672
+        },
+        {
+          "function": "update_objects_during_time_stop",
+          "scope": "update_objects_during_time_stop.131",
+          "source": "c26ec32a1b4bb03bdefb8885b31b7541469a2c1f16fab42408f2b9a57404e87e",
+          "line": 1837,
+          "file": "generated\\us_object_list_processor.v",
+          "entryEvent": 2679
+        },
+        {
+          "function": "update_objects_in_list",
+          "scope": "update_objects_in_list.132",
+          "source": "208db01c13e0f00326ebabe4e36a00322ba52e1e44fcf4661fc0acc3fc5da079",
+          "line": 2050,
+          "file": "generated\\us_object_list_processor.v",
+          "entryEvent": 2699
+        },
+        {
+          "function": "update_objects_during_time_stop",
+          "scope": "update_objects_during_time_stop.133",
+          "source": "c26ec32a1b4bb03bdefb8885b31b7541469a2c1f16fab42408f2b9a57404e87e",
+          "line": 1837,
+          "file": "generated\\us_object_list_processor.v",
+          "entryEvent": 2706
+        },
+        {
+          "function": "get_clock_difference",
+          "scope": "get_clock_difference.134",
+          "source": "e402986aa4220684df970cf7c9bf624909ea6b9668eff814916f2de27cf3594e",
+          "line": 1211,
+          "file": "generated\\us_debug.v",
+          "entryEvent": 2726
+        },
+        {
+          "function": "unload_deactivated_objects",
+          "scope": "unload_deactivated_objects.135",
+          "source": "0b5759edd5df1958d459c45043ca8dbae5bc4515e90d2e5c9e9dd25057112b2b",
+          "line": 3088,
+          "file": "generated\\us_object_list_processor.v",
+          "entryEvent": 2732
+        },
+        {
+          "function": "unload_deactivated_objects_in_list",
+          "scope": "unload_deactivated_objects_in_list.136",
+          "source": "de75ce756633d3252a6159976b450318ee87c3e8cb8072f05a739d680d6bb702",
+          "line": 2093,
+          "file": "generated\\us_object_list_processor.v",
+          "entryEvent": 2741
+        },
+        {
+          "function": "unload_deactivated_objects_in_list",
+          "scope": "unload_deactivated_objects_in_list.137",
+          "source": "de75ce756633d3252a6159976b450318ee87c3e8cb8072f05a739d680d6bb702",
+          "line": 2093,
+          "file": "generated\\us_object_list_processor.v",
+          "entryEvent": 2754
+        },
+        {
+          "function": "unload_deactivated_objects_in_list",
+          "scope": "unload_deactivated_objects_in_list.138",
+          "source": "de75ce756633d3252a6159976b450318ee87c3e8cb8072f05a739d680d6bb702",
+          "line": 2093,
+          "file": "generated\\us_object_list_processor.v",
+          "entryEvent": 2779
+        },
+        {
+          "function": "unload_deactivated_objects_in_list",
+          "scope": "unload_deactivated_objects_in_list.139",
+          "source": "de75ce756633d3252a6159976b450318ee87c3e8cb8072f05a739d680d6bb702",
+          "line": 2093,
+          "file": "generated\\us_object_list_processor.v",
+          "entryEvent": 2792
+        },
+        {
+          "function": "unload_deactivated_objects_in_list",
+          "scope": "unload_deactivated_objects_in_list.140",
+          "source": "de75ce756633d3252a6159976b450318ee87c3e8cb8072f05a739d680d6bb702",
+          "line": 2093,
+          "file": "generated\\us_object_list_processor.v",
+          "entryEvent": 2817
+        },
+        {
+          "function": "unload_deactivated_objects_in_list",
+          "scope": "unload_deactivated_objects_in_list.141",
+          "source": "de75ce756633d3252a6159976b450318ee87c3e8cb8072f05a739d680d6bb702",
+          "line": 2093,
+          "file": "generated\\us_object_list_processor.v",
+          "entryEvent": 2830
+        },
+        {
+          "function": "unload_deactivated_objects_in_list",
+          "scope": "unload_deactivated_objects_in_list.142",
+          "source": "de75ce756633d3252a6159976b450318ee87c3e8cb8072f05a739d680d6bb702",
+          "line": 2093,
+          "file": "generated\\us_object_list_processor.v",
+          "entryEvent": 2843
+        },
+        {
+          "function": "unload_deactivated_objects_in_list",
+          "scope": "unload_deactivated_objects_in_list.143",
+          "source": "de75ce756633d3252a6159976b450318ee87c3e8cb8072f05a739d680d6bb702",
+          "line": 2093,
+          "file": "generated\\us_object_list_processor.v",
+          "entryEvent": 2856
+        },
+        {
+          "function": "unload_deactivated_objects_in_list",
+          "scope": "unload_deactivated_objects_in_list.144",
+          "source": "de75ce756633d3252a6159976b450318ee87c3e8cb8072f05a739d680d6bb702",
+          "line": 2093,
+          "file": "generated\\us_object_list_processor.v",
+          "entryEvent": 2869
+        },
+        {
+          "function": "unload_deactivated_objects_in_list",
+          "scope": "unload_deactivated_objects_in_list.145",
+          "source": "de75ce756633d3252a6159976b450318ee87c3e8cb8072f05a739d680d6bb702",
+          "line": 2093,
+          "file": "generated\\us_object_list_processor.v",
+          "entryEvent": 2882
+        },
+        {
+          "function": "get_clock_difference",
+          "scope": "get_clock_difference.146",
+          "source": "e402986aa4220684df970cf7c9bf624909ea6b9668eff814916f2de27cf3594e",
+          "line": 1211,
+          "file": "generated\\us_debug.v",
+          "entryEvent": 2900
+        },
+        {
+          "function": "update_mario_platform",
+          "scope": "update_mario_platform.147",
+          "source": "02b5a54c1691a5c2903645acb9663ca19a03b1eea60d5f2c37e70153dff33366",
+          "line": 515,
+          "file": "generated\\us_platform_displacement.v",
+          "entryEvent": 2906
+        },
+        {
+          "function": "find_floor",
+          "scope": "find_floor.148",
+          "source": "422d3873dbcd1f96990002d062ec515aa5e5d74166c018ddabad28fe7ced2276",
+          "line": 3051,
+          "file": "generated\\us_surface_collision.v",
+          "entryEvent": 2922
+        },
+        {
+          "function": "find_floor_from_list",
+          "scope": "find_floor_from_list.149",
+          "source": "a46b68f49bc147add0c8d208b2c6d1edc150775818a4dfe3957d0a36bf616b3b",
+          "line": 2655,
+          "file": "generated\\us_surface_collision.v",
+          "entryEvent": 2953
+        },
+        {
+          "function": "find_floor_from_list",
+          "scope": "find_floor_from_list.150",
+          "source": "a46b68f49bc147add0c8d208b2c6d1edc150775818a4dfe3957d0a36bf616b3b",
+          "line": 2655,
+          "file": "generated\\us_surface_collision.v",
+          "entryEvent": 3000
+        },
+        {
+          "function": "absf",
+          "scope": "absf.151",
+          "source": "4a6e09dbcf61e5fd928e1e5da67ff26aa176d1fc65b2e6ba19bf8a3e7600728d",
+          "line": 20062,
+          "file": "generated\\us_object_helpers.v",
+          "entryEvent": 3038
+        }
+      ],
+      "floorCalls": [
+        {
+          "caller": "update_mario_geometry_inputs",
+          "queryBits": [
+            3305734144,
+            1145044992,
+            3296722944
+          ],
+          "heightBits": 3324764160,
+          "floor": 0
+        },
+        {
+          "caller": "update_mario_geometry_inputs",
+          "queryBits": [
+            3305734144,
+            1156733869,
+            3296722944
+          ],
+          "heightBits": 1156733869,
+          "floor": 150994944
+        },
+        {
+          "caller": "update_mario_platform",
+          "queryBits": [
+            3305734144,
+            1156733869,
+            3296722944
+          ],
+          "heightBits": 1156733869,
+          "floor": 150994944
+        }
+      ],
+      "indirectCalls": [
+        {
+          "caller": "level_script_execute",
+          "callee": "level_cmd_call_loop",
+          "address": 1879085056,
+          "path": "body.1.1.0.iteration0.1.1.1.1"
+        },
+        {
+          "caller": "level_cmd_call_loop",
+          "callee": "lvl_init_or_update",
+          "address": 1879086384,
+          "path": "body.1.0.0.1.1.1"
+        },
+        {
+          "caller": "cur_obj_update",
+          "callee": "bhv_cmd_call_native",
+          "address": 1879057344,
+          "path": "body.1.1.1.1.1.0.iteration0.1.0"
+        },
+        {
+          "caller": "bhv_cmd_call_native",
+          "callee": "try_print_debug_mario_level_info",
+          "address": 1879099168,
+          "path": "body.1.0"
+        },
+        {
+          "caller": "cur_obj_update",
+          "callee": "bhv_cmd_call_native",
+          "address": 1879057344,
+          "path": "body.1.1.1.1.1.0.iteration1.1.0"
+        },
+        {
+          "caller": "bhv_cmd_call_native",
+          "callee": "bhv_mario_update",
+          "address": 1879060560,
+          "path": "body.1.0"
+        },
+        {
+          "caller": "cur_obj_update",
+          "callee": "bhv_cmd_call_native",
+          "address": 1879057344,
+          "path": "body.1.1.1.1.1.0.iteration2.1.0"
+        },
+        {
+          "caller": "bhv_cmd_call_native",
+          "callee": "try_do_mario_debug_object_spawn",
+          "address": 1879099136,
+          "path": "body.1.0"
+        },
+        {
+          "caller": "cur_obj_update",
+          "callee": "bhv_cmd_end_loop",
+          "address": 1879057440,
+          "path": "body.1.1.1.1.1.0.iteration3.1.0"
+        }
+      ],
+      "libraryDomains": [
+        {
+          "caller": "adjust_analog_stick",
+          "external": "sqrtf",
+          "model": "Existing explicit instruction binding: nearest-even, usable FPU, no inexact trap; finite nonnegative normal or signed zero."
+        },
+        {
+          "caller": "detect_object_hitbox_overlap",
+          "external": "sqrtf",
+          "model": "Existing explicit instruction binding: nearest-even, usable FPU, no inexact trap; finite nonnegative normal or signed zero."
+        }
+      ],
+      "peakWorkingSetBytes": 249470976,
+      "generatedUnits": {
+        "generated\\runtime\\us_audio_external.v": "303a9482a732f119d20682630cebdc8fdd9c61b35164c23e51745c56c13d07ab",
+        "generated\\us_area.v": "3a3ae2e9cd8f237b5531b7733c1b366655826fbd24c671aebac33f8cd90f3c13",
+        "generated\\us_behavior_actions.v": "0b9a3b8feafa5957ecd5f346fd28549546689e0fdec698b63206c8646a717a72",
+        "generated\\us_behavior_data.v": "841832a71bc4b415b5b281f899eaf01803290a615914d820684057b376eb7e49",
+        "generated\\us_behavior_script.v": "a5c57f15e073e761f114df0ba9f91f85799ca85429a754ab10231967c1154a61",
+        "generated\\us_debug.v": "ae198d1c698ebea3a580fc47ecd218fd64b8d570d4285ec30183b999af90eb7f",
+        "generated\\us_game_init.v": "e8a3799a78c75378a39395052f7c12fc69d5b001c5cc447bb93830b91e7cc0a1",
+        "generated\\us_graph_node.v": "3f1b17a79c8ed153a0cf5995897e0a720751f67437498902cf441f2d08719cdd",
+        "generated\\us_interaction.v": "667179fdc995a6d43e364af44b91bbbc04806a752286788cd3ce3bae4d5d6be1",
+        "generated\\us_level_script.v": "2fba273edc6a2b670a283bd12ec878823fe327ad202f68deebc4347b19235e63",
+        "generated\\us_level_update.v": "ecf29c79739af939290e9bb2bdef1a7374e928c07991b152337a41108b334d08",
+        "generated\\us_macro_special_objects.v": "3ba16a8a275ead034ac89e772e318a9d92a18b5c2dbb1a75bfa796cd4541b7b0",
+        "generated\\us_mario.v": "9219c324571bede4ec6913a6c000c9a4ec41f9328e614d14967870f02af44dcf",
+        "generated\\us_mario_actions_airborne.v": "d1b60941e380695b229ab67a7cdaa764f486decb01fcb015eed6b15e5aabf6a0",
+        "generated\\us_mario_actions_automatic.v": "01b6cd75c95bd4d49270618e8d1a82302901f9f66f9bf8c789c59b4f03e5673b",
+        "generated\\us_mario_actions_cutscene.v": "ea98a4a6069dc429904a3fd302c9a1df46b99f64fbc69e143015358e83db00a0",
+        "generated\\us_mario_actions_moving.v": "d447fc51ac385c75eb1d4f1b5a38c96dcedaef825e75b7c9e322a1fbb428aa7a",
+        "generated\\us_mario_actions_object.v": "f9a4de766c794c86b8218e17939ef399c089226ca4dca769c6521f037299d8c8",
+        "generated\\us_mario_actions_stationary.v": "173c72e2f33aa964eefcd7c96dc03a4ec15e7157731c0c5f211e500fcd5e744c",
+        "generated\\us_mario_actions_submerged.v": "dc35146c86e5bff9c71a83a8c77e526728084e52ee6d3051c7fee5bde66226b3",
+        "generated\\us_mario_misc.v": "762a2c166686a87e90d11baa0e4f344e8387861869b11bd70333078e44beaf44",
+        "generated\\us_mario_step.v": "62d19876316049737f0eea01397edd361ddc6bc39954f21adf12a58b1a9d6639",
+        "generated\\us_math_util.v": "b4f4ec618a96c25b74a9eeb2a1f9583f71dd2e541db594c16797b7de85db3994",
+        "generated\\us_memory.v": "f29459b2a85d485abb5baf9c1af825ccfca35e745d03a7e390945ed50fd60794",
+        "generated\\us_obj_behaviors.v": "4e75afca706cc874df72fae9c56d6dc41e23265a7522bef957dc2aae434dcd8f",
+        "generated\\us_obj_behaviors_2.v": "800d3af312fc5f41dec5dd83ed5230f4b4bb539d2468994b90fba88259b4e32b",
+        "generated\\us_object_collision.v": "c8b0a3dcf484f8d5d38b91f7150c88895dce89028999d30eb3b14d5afb4f7095",
+        "generated\\us_object_helpers.v": "4f9dbf942d76584e2e2bc3e348db473940cf4c1cb78a7c465dcfd704e8ea32e0",
+        "generated\\us_object_list_processor.v": "1294308f49443b2a58148c6b5746450b8043a20e007808fb8d2357e636379c95",
+        "generated\\us_platform_displacement.v": "8bf09b0faa4e1abdd1aede8c5b650d2293ab42211b02ecd0bcf6a1aeb6a1ef02",
+        "generated\\us_rendering_graph_node.v": "334c406634eff8641477cba4ca87c1f45c6de24516e5be9342f8b75a7c25d051",
+        "generated\\us_save_file.v": "7a8e6b068ef99500eb369724ea2141c6028d781a7cba3f63ce7b56d047c41aba",
+        "generated\\us_spawn_object.v": "f1c010528e5689a6a131d94cab0115a235c5505b1b1366b0793be2e1e556dffa",
+        "generated\\us_ssl_area1_macro.v": "6c05ca28654dd17dcd91522baa268d952b1fa56b2afa8b0ea0c7663651296560",
+        "generated\\us_ssl_area2_macro.v": "bb653c7899e48424406841473850e04840f60d1ccad7db11654b1c74a4a795ed",
+        "generated\\us_ssl_collision.v": "9c0e55da25d7e9ed9b59af973757ef4ab57cac9e6bf4256bc6c9bf223211b1cf",
+        "generated\\us_ssl_script.v": "fa1feb299d67cc0a0b2f3e2b5d9b42f1e3f11fb22cd4271ea113aeccd9340f80",
+        "generated\\us_surface_collision.v": "65c2e4aa940e5f615fe48f35f459dd9d2c248fc035ff138c5ee160f51e863099",
+        "generated\\us_surface_load.v": "c116e48db48f7d9353512376d32074aaec7f5f24075393fd1dec8b600d535cb8",
+        "build\\rank1-backward-search\\supplemental-generated\\us_camera.v": "b1816bccc85e2a897c3f6847eb066b2bf584f76bc20e9c19c4395d12d8685b94",
+        "build\\rank1-backward-search\\supplemental-generated\\us_main.v": "6bf224094801ef66bf9f2acb4954a1371f7fee027bc6a478e25d1b70ff653266",
+        "build\\rank1-backward-search\\supplemental-generated\\us_sound_init.v": "3a04fc8c4c1da22f338581cd91b833a6ac867f82a3e474e28e0035aa191ba4a5"
+      },
+      "implementationHashes": {
+        "clight.py": "42ca7a1d9864b12cde6af70e111b908a8487ef93924b88004c0d486affd2f5b7",
+        "engine.py": "3ac646352227447ff0154c46aa75ff2d2bd83dcd6e5ad44121f8a1de16407658",
+        "loop_engine.py": "6e3fd4c94178d81da7e9dd7129f8fa69666a248a5bc5b414d88362884c03de7b",
+        "relational_engine.py": "cde41e3365120260517f51755751c87ab9752cdc91a78a8f4aa869cf8158450e",
+        "program_image.py": "6ac5fe85291000ff08155fff154dd719ecd0683282828cb4cf109ac2ce638721",
+        "trace_engine.py": "c6b0034056eeb7812bbe7ce9844b93ef94abd28366167b3cfbdd503c00b54e13",
+        "trace_update.py": "55becc4031c5d78e07d42519b90251437bdcac89e4a85f349b2b1c0807ac28ed",
+        "test_trace_update.py": "c538abb1b8a223fab07f63f40e21cb469fad461ef49d2d7e817b274a38e9289b"
+      }
+    },
+    "jp": {
+      "version": "jp",
+      "exhaustiveOneUpdatePreimageComplete": false,
+      "fixtureComplete": true,
+      "completedConditionalUpdatePaths": 1,
+      "cut": {
+        "firstOriginalStatement": 1,
+        "totalOriginalStatements": 13,
+        "start": "Immediately after the OS has supplied controller pads; includes run_demo_inputs, edges, sticks and port copy."
+      },
+      "scene": {
+        "pc": 275776232,
+        "controller": 324009984,
+        "pads": 325058560,
+        "surface": 150994944,
+        "scope": "Supplied retry/disappeared predecessor with real Mario update; no claim of a newly accepted warp or reachable initial gap."
+      },
+      "status": "complete conditional fixture trace and reverse substitution",
+      "predecessorSHA256": "0e804c0ec32a1952ae75cb91e45aa2ed4f21d3a1b24e68b19d6a0047c7dde705",
+      "predecessorFreeBytes": 457,
+      "neutralButtonStickGroup": {
+        "check": "unsat",
+        "samples": 225,
+        "meaning": "Exact input set for this one complete trace path, with the other supplied entry bytes fixed. Other paths are not excluded."
+      },
+      "seconds": 11.561419899997418,
+      "statements": 3924,
+      "events": 3068,
+      "calls": [
+        {
+          "function": "read_controller_inputs",
+          "scope": "read_controller_inputs.0",
+          "source": "d2112738876cb69d8f2fb84ef8057e3b4c8582fbe3b76bfd1622189a72fae1b2",
+          "line": 6406,
+          "file": "generated\\jp_game_init.v",
+          "entryEvent": 0
+        },
+        {
+          "function": "run_demo_inputs",
+          "scope": "run_demo_inputs.1",
+          "source": "6acd7383047d403fdfc282bf83970a961589fa8959cb18cb2284babf04f6d17f",
+          "line": 5991,
+          "file": "generated\\jp_game_init.v",
+          "entryEvent": 1
+        },
+        {
+          "function": "adjust_analog_stick",
+          "scope": "adjust_analog_stick.2",
+          "source": "4061a6fc1948baaa4b10eb20fea2b417ad49258f2dd868f408904da7c0ec0dbd",
+          "line": 5773,
+          "file": "generated\\jp_game_init.v",
+          "entryEvent": 49
+        },
+        {
+          "function": "level_script_execute",
+          "scope": "level_script_execute.3",
+          "source": "6fef25b52d3053f9f17d37dbd8bbf09fbda1145b59b6048f6851fbc85e3d8e51",
+          "line": 7687,
+          "file": "generated\\jp_level_script.v",
+          "entryEvent": 159
+        },
+        {
+          "function": "level_cmd_call_loop",
+          "scope": "level_cmd_call_loop.4",
+          "source": "4b403e491791242243e005f9eebc1d3e7d4bd46c4df90442a1ac8c963ccc0ce5",
+          "line": 2285,
+          "file": "generated\\jp_level_script.v",
+          "entryEvent": 174
+        },
+        {
+          "function": "lvl_init_or_update",
+          "scope": "lvl_init_or_update.5",
+          "source": "39aa917378e1ee49923a283694236f65cfe6602d3be2451427f40906cf9808f2",
+          "line": 7239,
+          "file": "generated\\jp_level_update.v",
+          "entryEvent": 190
+        },
+        {
+          "function": "update_level",
+          "scope": "update_level.6",
+          "source": "67aea842722d94a229dbeb80154af73b9644e3f2edb91402b4baf1b881905780",
+          "line": 6867,
+          "file": "generated\\jp_level_update.v",
+          "entryEvent": 193
+        },
+        {
+          "function": "play_mode_normal",
+          "scope": "play_mode_normal.7",
+          "source": "5a5fbe0fd652ae5ab5423077afede3c6323d57e90f2daf3d0c94260230e00a57",
+          "line": 6317,
+          "file": "generated\\jp_level_update.v",
+          "entryEvent": 197
+        },
+        {
+          "function": "warp_area",
+          "scope": "warp_area.8",
+          "source": "83745f7b9c15d33f18b397807a697e17b124cfeedc9ccdb280460dba7ee626fb",
+          "line": 3407,
+          "file": "generated\\jp_level_update.v",
+          "entryEvent": 201
+        },
+        {
+          "function": "check_instant_warp",
+          "scope": "check_instant_warp.9",
+          "source": "b70c229908d322c61de894d5037237920530654a7b78abfd340b20545db094d2",
+          "line": 3734,
+          "file": "generated\\jp_level_update.v",
+          "entryEvent": 205
+        },
+        {
+          "function": "area_update_objects",
+          "scope": "area_update_objects.10",
+          "source": "eb4d8d0361b5445ba519a6362c94456ea157c624d152258632a86d0170c6a507",
+          "line": 2117,
+          "file": "generated\\jp_area.v",
+          "entryEvent": 223
+        },
+        {
+          "function": "update_objects",
+          "scope": "update_objects.11",
+          "source": "cca89d63cbcd0fb619a4788b877bdf7d840071ff48a1c635ccd1420e3550a576",
+          "line": 3134,
+          "file": "generated\\jp_object_list_processor.v",
+          "entryEvent": 228
+        },
+        {
+          "function": "get_current_clock",
+          "scope": "get_current_clock.12",
+          "source": "5acc78bca2a0b9b110be150f7629d84837db79f87078d09bc3f74f35a8f97e0a",
+          "line": 1199,
+          "file": "generated\\jp_debug.v",
+          "entryEvent": 229
+        },
+        {
+          "function": "reset_debug_objectinfo",
+          "scope": "reset_debug_objectinfo.13",
+          "source": "9e78bc4ec9811bad40169c3118503eea093fd3a058a5955722c4c840ddb426ff",
+          "line": 2216,
+          "file": "generated\\jp_debug.v",
+          "entryEvent": 246
+        },
+        {
+          "function": "set_print_state_info",
+          "scope": "set_print_state_info.14",
+          "source": "35195eee0bdca90253eae3a0dc6e4d33478d1a20bffeeb65d1f6f14df0f537f7",
+          "line": 1223,
+          "file": "generated\\jp_debug.v",
+          "entryEvent": 259
+        },
+        {
+          "function": "set_print_state_info",
+          "scope": "set_print_state_info.15",
+          "source": "35195eee0bdca90253eae3a0dc6e4d33478d1a20bffeeb65d1f6f14df0f537f7",
+          "line": 1223,
+          "file": "generated\\jp_debug.v",
+          "entryEvent": 272
+        },
+        {
+          "function": "update_debug_dpadmask",
+          "scope": "update_debug_dpadmask.16",
+          "source": "caf0027dd68626515d677f3d9321c9a09a331b5c3ff818cddd69d8830cf6d9c8",
+          "line": 2115,
+          "file": "generated\\jp_debug.v",
+          "entryEvent": 285
+        },
+        {
+          "function": "stub_debug_5",
+          "scope": "stub_debug_5.17",
+          "source": "68249520a2e6feb994351099c54d87fafa86e12d455ad04962aaf6ea614f40bf",
+          "line": 2505,
+          "file": "generated\\jp_debug.v",
+          "entryEvent": 296
+        },
+        {
+          "function": "get_clock_difference",
+          "scope": "get_clock_difference.18",
+          "source": "e402986aa4220684df970cf7c9bf624909ea6b9668eff814916f2de27cf3594e",
+          "line": 1211,
+          "file": "generated\\jp_debug.v",
+          "entryEvent": 301
+        },
+        {
+          "function": "clear_dynamic_surfaces",
+          "scope": "clear_dynamic_surfaces.19",
+          "source": "abfd20dfcce1f7a7392226b0fd5bc84582d8365a0b818f4c88cb9df6bf0683d9",
+          "line": 2462,
+          "file": "generated\\jp_surface_load.v",
+          "entryEvent": 307
+        },
+        {
+          "function": "get_clock_difference",
+          "scope": "get_clock_difference.20",
+          "source": "e402986aa4220684df970cf7c9bf624909ea6b9668eff814916f2de27cf3594e",
+          "line": 1211,
+          "file": "generated\\jp_debug.v",
+          "entryEvent": 314
+        },
+        {
+          "function": "update_terrain_objects",
+          "scope": "update_terrain_objects.21",
+          "source": "834d6b1f587c0b2882bf0be95efda895dc9dc0c6246bd480e0b306460124d21b",
+          "line": 2993,
+          "file": "generated\\jp_object_list_processor.v",
+          "entryEvent": 320
+        },
+        {
+          "function": "update_objects_in_list",
+          "scope": "update_objects_in_list.22",
+          "source": "208db01c13e0f00326ebabe4e36a00322ba52e1e44fcf4661fc0acc3fc5da079",
+          "line": 2049,
+          "file": "generated\\jp_object_list_processor.v",
+          "entryEvent": 323
+        },
+        {
+          "function": "update_objects_during_time_stop",
+          "scope": "update_objects_during_time_stop.23",
+          "source": "9fdc2822eddb10ccf2aed4cf200396ed5418e3b2ba07410d0cb2f13d664bcc93",
+          "line": 1836,
+          "file": "generated\\jp_object_list_processor.v",
+          "entryEvent": 330
+        },
+        {
+          "function": "update_objects_in_list",
+          "scope": "update_objects_in_list.24",
+          "source": "208db01c13e0f00326ebabe4e36a00322ba52e1e44fcf4661fc0acc3fc5da079",
+          "line": 2049,
+          "file": "generated\\jp_object_list_processor.v",
+          "entryEvent": 342
+        },
+        {
+          "function": "update_objects_during_time_stop",
+          "scope": "update_objects_during_time_stop.25",
+          "source": "9fdc2822eddb10ccf2aed4cf200396ed5418e3b2ba07410d0cb2f13d664bcc93",
+          "line": 1836,
+          "file": "generated\\jp_object_list_processor.v",
+          "entryEvent": 349
+        },
+        {
+          "function": "apply_mario_platform_displacement",
+          "scope": "apply_mario_platform_displacement.26",
+          "source": "969dda4d08e117f24ee1b93127e29c529e92d9881453aae4e4fd66ee954a8935",
+          "line": 1553,
+          "file": "generated\\jp_platform_displacement.v",
+          "entryEvent": 403
+        },
+        {
+          "function": "get_clock_difference",
+          "scope": "get_clock_difference.27",
+          "source": "e402986aa4220684df970cf7c9bf624909ea6b9668eff814916f2de27cf3594e",
+          "line": 1211,
+          "file": "generated\\jp_debug.v",
+          "entryEvent": 416
+        },
+        {
+          "function": "detect_object_collisions",
+          "scope": "detect_object_collisions.28",
+          "source": "1c44d80722911ab7b6c3e210332d0e890fea4621ebce615fe1e02148bddce816",
+          "line": 1695,
+          "file": "generated\\jp_object_collision.v",
+          "entryEvent": 422
+        },
+        {
+          "function": "clear_object_collision",
+          "scope": "clear_object_collision.29",
+          "source": "e12d2bce30157dc79dc21ed5f8263a41872d1512f47c0c7ac3874171f61d1b85",
+          "line": 959,
+          "file": "generated\\jp_object_collision.v",
+          "entryEvent": 425
+        },
+        {
+          "function": "clear_object_collision",
+          "scope": "clear_object_collision.30",
+          "source": "e12d2bce30157dc79dc21ed5f8263a41872d1512f47c0c7ac3874171f61d1b85",
+          "line": 959,
+          "file": "generated\\jp_object_collision.v",
+          "entryEvent": 432
+        },
+        {
+          "function": "clear_object_collision",
+          "scope": "clear_object_collision.31",
+          "source": "e12d2bce30157dc79dc21ed5f8263a41872d1512f47c0c7ac3874171f61d1b85",
+          "line": 959,
+          "file": "generated\\jp_object_collision.v",
+          "entryEvent": 450
+        },
+        {
+          "function": "clear_object_collision",
+          "scope": "clear_object_collision.32",
+          "source": "e12d2bce30157dc79dc21ed5f8263a41872d1512f47c0c7ac3874171f61d1b85",
+          "line": 959,
+          "file": "generated\\jp_object_collision.v",
+          "entryEvent": 457
+        },
+        {
+          "function": "clear_object_collision",
+          "scope": "clear_object_collision.33",
+          "source": "e12d2bce30157dc79dc21ed5f8263a41872d1512f47c0c7ac3874171f61d1b85",
+          "line": 959,
+          "file": "generated\\jp_object_collision.v",
+          "entryEvent": 464
+        },
+        {
+          "function": "clear_object_collision",
+          "scope": "clear_object_collision.34",
+          "source": "e12d2bce30157dc79dc21ed5f8263a41872d1512f47c0c7ac3874171f61d1b85",
+          "line": 959,
+          "file": "generated\\jp_object_collision.v",
+          "entryEvent": 471
+        },
+        {
+          "function": "clear_object_collision",
+          "scope": "clear_object_collision.35",
+          "source": "e12d2bce30157dc79dc21ed5f8263a41872d1512f47c0c7ac3874171f61d1b85",
+          "line": 959,
+          "file": "generated\\jp_object_collision.v",
+          "entryEvent": 489
+        },
+        {
+          "function": "check_player_object_collision",
+          "scope": "check_player_object_collision.36",
+          "source": "7547eb9a2fa5c76e02aad1f5b4f5a7712c5bc6236cee86469d0540da86332e21",
+          "line": 1131,
+          "file": "generated\\jp_object_collision.v",
+          "entryEvent": 494
+        },
+        {
+          "function": "check_collision_in_list",
+          "scope": "check_collision_in_list.37",
+          "source": "e0405c171a1f3edfb4419b40a075d1b670932f331061a672e29f2447ef33483f",
+          "line": 1045,
+          "file": "generated\\jp_object_collision.v",
+          "entryEvent": 504
+        },
+        {
+          "function": "check_collision_in_list",
+          "scope": "check_collision_in_list.38",
+          "source": "e0405c171a1f3edfb4419b40a075d1b670932f331061a672e29f2447ef33483f",
+          "line": 1045,
+          "file": "generated\\jp_object_collision.v",
+          "entryEvent": 515
+        },
+        {
+          "function": "check_collision_in_list",
+          "scope": "check_collision_in_list.39",
+          "source": "e0405c171a1f3edfb4419b40a075d1b670932f331061a672e29f2447ef33483f",
+          "line": 1045,
+          "file": "generated\\jp_object_collision.v",
+          "entryEvent": 526
+        },
+        {
+          "function": "check_collision_in_list",
+          "scope": "check_collision_in_list.40",
+          "source": "e0405c171a1f3edfb4419b40a075d1b670932f331061a672e29f2447ef33483f",
+          "line": 1045,
+          "file": "generated\\jp_object_collision.v",
+          "entryEvent": 537
+        },
+        {
+          "function": "check_collision_in_list",
+          "scope": "check_collision_in_list.41",
+          "source": "e0405c171a1f3edfb4419b40a075d1b670932f331061a672e29f2447ef33483f",
+          "line": 1045,
+          "file": "generated\\jp_object_collision.v",
+          "entryEvent": 548
+        },
+        {
+          "function": "check_collision_in_list",
+          "scope": "check_collision_in_list.42",
+          "source": "e0405c171a1f3edfb4419b40a075d1b670932f331061a672e29f2447ef33483f",
+          "line": 1045,
+          "file": "generated\\jp_object_collision.v",
+          "entryEvent": 559
+        },
+        {
+          "function": "detect_object_hitbox_overlap",
+          "scope": "detect_object_hitbox_overlap.43",
+          "source": "f1a24efd62e8966609af3d5cb285aeb8d4e9a75ebb4147fd75c3207df1d1d1e3",
+          "line": 363,
+          "file": "generated\\jp_object_collision.v",
+          "entryEvent": 567
+        },
+        {
+          "function": "check_collision_in_list",
+          "scope": "check_collision_in_list.44",
+          "source": "e0405c171a1f3edfb4419b40a075d1b670932f331061a672e29f2447ef33483f",
+          "line": 1045,
+          "file": "generated\\jp_object_collision.v",
+          "entryEvent": 613
+        },
+        {
+          "function": "check_destructive_object_collision",
+          "scope": "check_destructive_object_collision.45",
+          "source": "4279154fa2836d9c87941d45c1929b5fcd36fc840c0996a628c050fe708e7c75",
+          "line": 1485,
+          "file": "generated\\jp_object_collision.v",
+          "entryEvent": 622
+        },
+        {
+          "function": "check_pushable_object_collision",
+          "scope": "check_pushable_object_collision.46",
+          "source": "a1c0cfb44012d94416ec169d8a2a16fcc3e1c33c7a82c051ff889e17e3c1faf3",
+          "line": 1419,
+          "file": "generated\\jp_object_collision.v",
+          "entryEvent": 630
+        },
+        {
+          "function": "get_clock_difference",
+          "scope": "get_clock_difference.47",
+          "source": "e402986aa4220684df970cf7c9bf624909ea6b9668eff814916f2de27cf3594e",
+          "line": 1211,
+          "file": "generated\\jp_debug.v",
+          "entryEvent": 640
+        },
+        {
+          "function": "update_non_terrain_objects",
+          "scope": "update_non_terrain_objects.48",
+          "source": "401ab59a5d41b95181496b9ee9ef5d7b0b72ac87e11a46721928470fd7256c9f",
+          "line": 3027,
+          "file": "generated\\jp_object_list_processor.v",
+          "entryEvent": 646
+        },
+        {
+          "function": "update_objects_in_list",
+          "scope": "update_objects_in_list.49",
+          "source": "208db01c13e0f00326ebabe4e36a00322ba52e1e44fcf4661fc0acc3fc5da079",
+          "line": 2049,
+          "file": "generated\\jp_object_list_processor.v",
+          "entryEvent": 655
+        },
+        {
+          "function": "update_objects_during_time_stop",
+          "scope": "update_objects_during_time_stop.50",
+          "source": "9fdc2822eddb10ccf2aed4cf200396ed5418e3b2ba07410d0cb2f13d664bcc93",
+          "line": 1836,
+          "file": "generated\\jp_object_list_processor.v",
+          "entryEvent": 662
+        },
+        {
+          "function": "update_objects_in_list",
+          "scope": "update_objects_in_list.51",
+          "source": "208db01c13e0f00326ebabe4e36a00322ba52e1e44fcf4661fc0acc3fc5da079",
+          "line": 2049,
+          "file": "generated\\jp_object_list_processor.v",
+          "entryEvent": 682
+        },
+        {
+          "function": "update_objects_during_time_stop",
+          "scope": "update_objects_during_time_stop.52",
+          "source": "9fdc2822eddb10ccf2aed4cf200396ed5418e3b2ba07410d0cb2f13d664bcc93",
+          "line": 1836,
+          "file": "generated\\jp_object_list_processor.v",
+          "entryEvent": 689
+        },
+        {
+          "function": "cur_obj_update",
+          "scope": "cur_obj_update.53",
+          "source": "ae787ba53dcbefafbdae47ca2edfb5c8211919cce5979eb1e8ead53b7d55db25",
+          "line": 4437,
+          "file": "generated\\jp_behavior_script.v",
+          "entryEvent": 736
+        },
+        {
+          "function": "bhv_cmd_call_native",
+          "scope": "bhv_cmd_call_native.54",
+          "source": "a8a293b26bec3012f1647bfb95a79a8f5eeb1298b2147aeb2534e118b116301c",
+          "line": 1820,
+          "file": "generated\\jp_behavior_script.v",
+          "entryEvent": 770
+        },
+        {
+          "function": "try_print_debug_mario_level_info",
+          "scope": "try_print_debug_mario_level_info.55",
+          "source": "03671b66f0e6ea8b8bc2e62623b29ea3a65d670978473150326769a7df5deaa9",
+          "line": 2590,
+          "file": "generated\\jp_debug.v",
+          "entryEvent": 777
+        },
+        {
+          "function": "bhv_cmd_call_native",
+          "scope": "bhv_cmd_call_native.56",
+          "source": "a8a293b26bec3012f1647bfb95a79a8f5eeb1298b2147aeb2534e118b116301c",
+          "line": 1820,
+          "file": "generated\\jp_behavior_script.v",
+          "entryEvent": 797
+        },
+        {
+          "function": "bhv_mario_update",
+          "scope": "bhv_mario_update.57",
+          "source": "e713d2c608b8ef771436007bbda36223785accd0d7e562a508e1de614011305f",
+          "line": 1652,
+          "file": "generated\\jp_object_list_processor.v",
+          "entryEvent": 804
+        },
+        {
+          "function": "execute_mario_action",
+          "scope": "execute_mario_action.58",
+          "source": "2799f784d6b9ac51a016feb985e0f7413cc3f269ba8e011a38661c4c89e84211",
+          "line": 9226,
+          "file": "generated\\jp_mario.v",
+          "entryEvent": 808
+        },
+        {
+          "function": "mario_reset_bodystate",
+          "scope": "mario_reset_bodystate.59",
+          "source": "720787758e962b45ddd9672405e469657c2578c9b448a1306b956554c511b825",
+          "line": 8551,
+          "file": "generated\\jp_mario.v",
+          "entryEvent": 830
+        },
+        {
+          "function": "update_mario_inputs",
+          "scope": "update_mario_inputs.60",
+          "source": "275f5829a991b8d852c3b07fdfe4dcbcd0e9348acdce6c4e696db2379e98ab5c",
+          "line": 7586,
+          "file": "generated\\jp_mario.v",
+          "entryEvent": 849
+        },
+        {
+          "function": "update_mario_button_inputs",
+          "scope": "update_mario_button_inputs.61",
+          "source": "230ffdaa612945c7a0106a4d629121e2af94a292cfce9133f309634d137c5425",
+          "line": 6546,
+          "file": "generated\\jp_mario.v",
+          "entryEvent": 864
+        },
+        {
+          "function": "update_mario_joystick_inputs",
+          "scope": "update_mario_joystick_inputs.62",
+          "source": "cadb76eb81cecefa94302bc821ccfbe44987e342d057dfa1e3cfe13de1b5eceb",
+          "line": 6781,
+          "file": "generated\\jp_mario.v",
+          "entryEvent": 913
+        },
+        {
+          "function": "update_mario_geometry_inputs",
+          "scope": "update_mario_geometry_inputs.63",
+          "source": "c00da5209870fa362c6c30a975ab6be5cacf08fbc1140bdb175f068659651445",
+          "line": 6924,
+          "file": "generated\\jp_mario.v",
+          "entryEvent": 933
+        },
+        {
+          "function": "f32_find_wall_collision",
+          "scope": "f32_find_wall_collision.64",
+          "source": "317ebf13aedccf55ae3bb6b42f02f02b31bb9ce26cfda29c3fcbd7d78eade9ee",
+          "line": 1728,
+          "file": "generated\\jp_surface_collision.v",
+          "entryEvent": 934
+        },
+        {
+          "function": "find_wall_collisions",
+          "scope": "find_wall_collisions.65",
+          "source": "b9038e18fdfa10f154a7a01d8524ef499432434c8efab9fb0ab5691eb786790a",
+          "line": 1809,
+          "file": "generated\\jp_surface_collision.v",
+          "entryEvent": 954
+        },
+        {
+          "function": "find_wall_collisions_from_list",
+          "scope": "find_wall_collisions_from_list.66",
+          "source": "39ba12b69014799f7460ff3cad752f771e0750644b66d67e0607bb0d1fd7042c",
+          "line": 710,
+          "file": "generated\\jp_surface_collision.v",
+          "entryEvent": 984
+        },
+        {
+          "function": "find_wall_collisions_from_list",
+          "scope": "find_wall_collisions_from_list.67",
+          "source": "39ba12b69014799f7460ff3cad752f771e0750644b66d67e0607bb0d1fd7042c",
+          "line": 710,
+          "file": "generated\\jp_surface_collision.v",
+          "entryEvent": 1004
+        },
+        {
+          "function": "f32_find_wall_collision",
+          "scope": "f32_find_wall_collision.68",
+          "source": "317ebf13aedccf55ae3bb6b42f02f02b31bb9ce26cfda29c3fcbd7d78eade9ee",
+          "line": 1728,
+          "file": "generated\\jp_surface_collision.v",
+          "entryEvent": 1042
+        },
+        {
+          "function": "find_wall_collisions",
+          "scope": "find_wall_collisions.69",
+          "source": "b9038e18fdfa10f154a7a01d8524ef499432434c8efab9fb0ab5691eb786790a",
+          "line": 1809,
+          "file": "generated\\jp_surface_collision.v",
+          "entryEvent": 1062
+        },
+        {
+          "function": "find_wall_collisions_from_list",
+          "scope": "find_wall_collisions_from_list.70",
+          "source": "39ba12b69014799f7460ff3cad752f771e0750644b66d67e0607bb0d1fd7042c",
+          "line": 710,
+          "file": "generated\\jp_surface_collision.v",
+          "entryEvent": 1092
+        },
+        {
+          "function": "find_wall_collisions_from_list",
+          "scope": "find_wall_collisions_from_list.71",
+          "source": "39ba12b69014799f7460ff3cad752f771e0750644b66d67e0607bb0d1fd7042c",
+          "line": 710,
+          "file": "generated\\jp_surface_collision.v",
+          "entryEvent": 1112
+        },
+        {
+          "function": "find_floor",
+          "scope": "find_floor.72",
+          "source": "422d3873dbcd1f96990002d062ec515aa5e5d74166c018ddabad28fe7ced2276",
+          "line": 3051,
+          "file": "generated\\jp_surface_collision.v",
+          "entryEvent": 1156
+        },
+        {
+          "function": "find_floor_from_list",
+          "scope": "find_floor_from_list.73",
+          "source": "192e814803c25f72943558caabfe39bd1002396430d917db6b41c2ed83ebbfd6",
+          "line": 2655,
+          "file": "generated\\jp_surface_collision.v",
+          "entryEvent": 1187
+        },
+        {
+          "function": "find_floor_from_list",
+          "scope": "find_floor_from_list.74",
+          "source": "192e814803c25f72943558caabfe39bd1002396430d917db6b41c2ed83ebbfd6",
+          "line": 2655,
+          "file": "generated\\jp_surface_collision.v",
+          "entryEvent": 1232
+        },
+        {
+          "function": "vec3f_copy",
+          "scope": "vec3f_copy.75",
+          "source": "144b735009e8b8fa17960d543e81130113f70613d1bdb88980de09e9758e04d5",
+          "line": 6076,
+          "file": "generated\\jp_math_util.v",
+          "entryEvent": 1271
+        },
+        {
+          "function": "find_floor",
+          "scope": "find_floor.76",
+          "source": "422d3873dbcd1f96990002d062ec515aa5e5d74166c018ddabad28fe7ced2276",
+          "line": 3051,
+          "file": "generated\\jp_surface_collision.v",
+          "entryEvent": 1299
+        },
+        {
+          "function": "find_floor_from_list",
+          "scope": "find_floor_from_list.77",
+          "source": "192e814803c25f72943558caabfe39bd1002396430d917db6b41c2ed83ebbfd6",
+          "line": 2655,
+          "file": "generated\\jp_surface_collision.v",
+          "entryEvent": 1330
+        },
+        {
+          "function": "find_floor_from_list",
+          "scope": "find_floor_from_list.78",
+          "source": "192e814803c25f72943558caabfe39bd1002396430d917db6b41c2ed83ebbfd6",
+          "line": 2655,
+          "file": "generated\\jp_surface_collision.v",
+          "entryEvent": 1377
+        },
+        {
+          "function": "vec3f_find_ceil",
+          "scope": "vec3f_find_ceil.79",
+          "source": "086b6367768289b0c6324a85bf5007ac93eaebeaaea0476b230f0a7291eab1ab",
+          "line": 3333,
+          "file": "generated\\jp_mario.v",
+          "entryEvent": 1418
+        },
+        {
+          "function": "find_ceil",
+          "scope": "find_ceil.80",
+          "source": "0893d203e4ad3e3f616d99b9d1a77d6dcefa946a39bf18e9b29d5f3e3f93cd50",
+          "line": 2271,
+          "file": "generated\\jp_surface_collision.v",
+          "entryEvent": 1423
+        },
+        {
+          "function": "find_ceil_from_list",
+          "scope": "find_ceil_from_list.81",
+          "source": "2401ae7ea85ea2988efc7c96b20cac9a7234254d35614034c8206ba619782029",
+          "line": 1988,
+          "file": "generated\\jp_surface_collision.v",
+          "entryEvent": 1454
+        },
+        {
+          "function": "find_ceil_from_list",
+          "scope": "find_ceil_from_list.82",
+          "source": "2401ae7ea85ea2988efc7c96b20cac9a7234254d35614034c8206ba619782029",
+          "line": 1988,
+          "file": "generated\\jp_surface_collision.v",
+          "entryEvent": 1463
+        },
+        {
+          "function": "find_poison_gas_level",
+          "scope": "find_poison_gas_level.83",
+          "source": "fa2bf3585d4c97d8220701a3d379677e3e3fbfd18090cadd67647e1bd7a4eea9",
+          "line": 3495,
+          "file": "generated\\jp_surface_collision.v",
+          "entryEvent": 1493
+        },
+        {
+          "function": "find_water_level",
+          "scope": "find_water_level.84",
+          "source": "7aac61152b29c37b8fd4200d4b4088e96c5a4174e628ab53081460416d463367",
+          "line": 3340,
+          "file": "generated\\jp_surface_collision.v",
+          "entryEvent": 1505
+        },
+        {
+          "function": "atan2s",
+          "scope": "atan2s.85",
+          "source": "b880fa53b0a646919f1ae4f5a2a4b8b5770e66be426b5637dbba686efa8ed694",
+          "line": 12547,
+          "file": "generated\\jp_math_util.v",
+          "entryEvent": 1526
+        },
+        {
+          "function": "atan2_lookup",
+          "scope": "atan2_lookup.86",
+          "source": "e76bb598b55328d699326dd78de1d8f6b820fb4c8048e08971f38b644f07582e",
+          "line": 12516,
+          "file": "generated\\jp_math_util.v",
+          "entryEvent": 1532
+        },
+        {
+          "function": "mario_get_terrain_sound_addend",
+          "scope": "mario_get_terrain_sound_addend.87",
+          "source": "d1c1f18ebd8493671ad84c46fe7bc72657f025965172b263257e493e049335a9",
+          "line": 3044,
+          "file": "generated\\jp_mario.v",
+          "entryEvent": 1545
+        },
+        {
+          "function": "mario_floor_is_slippery",
+          "scope": "mario_floor_is_slippery.88",
+          "source": "1f6dc0488718081ad9fe0ac1aafa0b80fb73fd6c6f5c747fad2cabc70d2219b7",
+          "line": 3426,
+          "file": "generated\\jp_mario.v",
+          "entryEvent": 1587
+        },
+        {
+          "function": "mario_get_floor_class",
+          "scope": "mario_get_floor_class.89",
+          "source": "dacd03d3675a9f7c521d56c0a463b45d3cfcf692741a24b3c5be45199b14a757",
+          "line": 2885,
+          "file": "generated\\jp_mario.v",
+          "entryEvent": 1595
+        },
+        {
+          "function": "debug_print_speed_action_normal",
+          "scope": "debug_print_speed_action_normal.90",
+          "source": "8e7bca532697410c4f56e7beb9d492840f1f960520a727238aa122a779a39753",
+          "line": 6395,
+          "file": "generated\\jp_mario.v",
+          "entryEvent": 1657
+        },
+        {
+          "function": "stub_mario_step_1",
+          "scope": "stub_mario_step_1.91",
+          "source": "aecf73fffe57e4b6ed30fdf6aada95e854fe694ccbaf3b49236b374d0f5d020f",
+          "line": 508,
+          "file": "generated\\jp_mario_step.v",
+          "entryEvent": 1679
+        },
+        {
+          "function": "mario_handle_special_floors",
+          "scope": "mario_handle_special_floors.92",
+          "source": "1853cda4b49085d324aa0c3fe051b9558dde5a97297f61b28da52204e1f54357",
+          "line": 11281,
+          "file": "generated\\jp_interaction.v",
+          "entryEvent": 1688
+        },
+        {
+          "function": "mario_process_interactions",
+          "scope": "mario_process_interactions.93",
+          "source": "b8e25da82c33e66d9dbf9c25e41b47ac6fb64f2d4409804242caff5831b6d821",
+          "line": 10737,
+          "file": "generated\\jp_interaction.v",
+          "entryEvent": 1695
+        },
+        {
+          "function": "check_kick_or_punch_wall",
+          "scope": "check_kick_or_punch_wall.94",
+          "source": "56bcc9b85e183a680830bbd54fb6b3f8b5746ee5e78d7dd73cf058cd1882d2cc",
+          "line": 10418,
+          "file": "generated\\jp_interaction.v",
+          "entryEvent": 1718
+        },
+        {
+          "function": "mario_execute_cutscene_action",
+          "scope": "mario_execute_cutscene_action.95",
+          "source": "e536710b0d119d81bd4341386aac0b7ff286b2200175af389562c4c5820ab154",
+          "line": 16251,
+          "file": "generated\\jp_mario_actions_cutscene.v",
+          "entryEvent": 1756
+        },
+        {
+          "function": "check_for_instant_quicksand",
+          "scope": "check_for_instant_quicksand.96",
+          "source": "3dc30a7414d8cde887ed65075010fac587039bcca6ee0ea57ae17293f0f20c5d",
+          "line": 16182,
+          "file": "generated\\jp_mario_actions_cutscene.v",
+          "entryEvent": 1757
+        },
+        {
+          "function": "act_disappeared",
+          "scope": "act_disappeared.97",
+          "source": "df7339b649991f6c40855a43fa1c7a1aa5466915d8be78a4cea613e8ec7e309f",
+          "line": 2601,
+          "file": "generated\\jp_mario_actions_cutscene.v",
+          "entryEvent": 1773
+        },
+        {
+          "function": "set_mario_animation",
+          "scope": "set_mario_animation.98",
+          "source": "7208a730a59f7a283e7243c12228021e4af600df07004172644bdca89a4d113c",
+          "line": 966,
+          "file": "generated\\jp_mario.v",
+          "entryEvent": 1774
+        },
+        {
+          "function": "load_patchable_table",
+          "scope": "load_patchable_table.99",
+          "source": "e1e2927cb983042c807d6d4b55a6757c646bd4e2c6cafb253f32b394352a19a3",
+          "line": 2731,
+          "file": "generated\\jp_memory.v",
+          "entryEvent": 1783
+        },
+        {
+          "function": "stop_and_set_height_to_floor",
+          "scope": "stop_and_set_height_to_floor.100",
+          "source": "dbd034e33309c64400c56bf983d4db644670526e277ac975ea01aa694a6dc634",
+          "line": 1748,
+          "file": "generated\\jp_mario_step.v",
+          "entryEvent": 1809
+        },
+        {
+          "function": "mario_set_forward_vel",
+          "scope": "mario_set_forward_vel.101",
+          "source": "fe332abc7264bdc5c31186fe785d295f2c70de3962a045a69f0bea110ba9ee42",
+          "line": 2786,
+          "file": "generated\\jp_mario.v",
+          "entryEvent": 1812
+        },
+        {
+          "function": "vec3f_copy",
+          "scope": "vec3f_copy.102",
+          "source": "144b735009e8b8fa17960d543e81130113f70613d1bdb88980de09e9758e04d5",
+          "line": 6076,
+          "file": "generated\\jp_math_util.v",
+          "entryEvent": 1847
+        },
+        {
+          "function": "vec3s_set",
+          "scope": "vec3s_set.103",
+          "source": "79fee970d5440acec41dfb6af9911dc4b8c1390fc3de389d689d43b6bc5a3372",
+          "line": 6377,
+          "file": "generated\\jp_math_util.v",
+          "entryEvent": 1871
+        },
+        {
+          "function": "sink_mario_in_quicksand",
+          "scope": "sink_mario_in_quicksand.104",
+          "source": "7f3d8dd1b0d26299a76061d50d00cdaecf2b51f67d9cfd84b76a4639c1226612",
+          "line": 8612,
+          "file": "generated\\jp_mario.v",
+          "entryEvent": 1920
+        },
+        {
+          "function": "squish_mario_model",
+          "scope": "squish_mario_model.105",
+          "source": "1255c895df6270d2ae6bf654a6439bd0d90990df0ad72a61121d2b4a290b39ce",
+          "line": 6156,
+          "file": "generated\\jp_mario.v",
+          "entryEvent": 1934
+        },
+        {
+          "function": "vec3f_set",
+          "scope": "vec3f_set.106",
+          "source": "1e349122c7f002c62fa825071db9a8269a707087ecd8f109d2a8c9dd0fde7b0c",
+          "line": 6130,
+          "file": "generated\\jp_math_util.v",
+          "entryEvent": 1943
+        },
+        {
+          "function": "set_submerged_cam_preset_and_spawn_bubbles",
+          "scope": "set_submerged_cam_preset_and_spawn_bubbles.107",
+          "source": "6e94280e98a65615ca7a2a7d9a84bb55a4b52360166c8ebb796734e3ef2b3997",
+          "line": 7844,
+          "file": "generated\\jp_mario.v",
+          "entryEvent": 1961
+        },
+        {
+          "function": "update_mario_health",
+          "scope": "update_mario_health.108",
+          "source": "238e481a58b2454de7d4a61c03f1bb918146a00f344dae4f9fed3025b9dbc75e",
+          "line": 8089,
+          "file": "generated\\jp_mario.v",
+          "entryEvent": 1968
+        },
+        {
+          "function": "update_mario_info_for_cam",
+          "scope": "update_mario_info_for_cam.109",
+          "source": "755205668251f31f45710bcaa3aaabedbeee2eba2588178188dcbdb825f750ce",
+          "line": 8453,
+          "file": "generated\\jp_mario.v",
+          "entryEvent": 2008
+        },
+        {
+          "function": "vec3s_copy",
+          "scope": "vec3s_copy.110",
+          "source": "2c0f40331efce4d84ddca2d7704807ede10ce3922fd9510e18cdcbf1a4bd91f3",
+          "line": 6323,
+          "file": "generated\\jp_math_util.v",
+          "entryEvent": 2023
+        },
+        {
+          "function": "vec3f_copy",
+          "scope": "vec3f_copy.111",
+          "source": "144b735009e8b8fa17960d543e81130113f70613d1bdb88980de09e9758e04d5",
+          "line": 6076,
+          "file": "generated\\jp_math_util.v",
+          "entryEvent": 2050
+        },
+        {
+          "function": "mario_update_hitbox_and_cap_model",
+          "scope": "mario_update_hitbox_and_cap_model.112",
+          "source": "b8218feea2dd641ea74fda7518e5722a465253c68c1dd77b15328adc1c8df6ef",
+          "line": 8947,
+          "file": "generated\\jp_mario.v",
+          "entryEvent": 2074
+        },
+        {
+          "function": "update_and_return_cap_flags",
+          "scope": "update_and_return_cap_flags.113",
+          "source": "e20587a1f3dbdad0379505ab00f8dade117e5bffb10e9876ce6573566020f5e7",
+          "line": 8731,
+          "file": "generated\\jp_mario.v",
+          "entryEvent": 2077
+        },
+        {
+          "function": "play_infinite_stairs_music",
+          "scope": "play_infinite_stairs_music.114",
+          "source": "ea59ea5388f835e7d9c7a042a7bb6b41368c700da804f6fc0adf3d16ad8dbcaa",
+          "line": 1239,
+          "file": "build\\rank1-backward-search\\supplemental-generated\\jp_sound_init.v",
+          "entryEvent": 2123
+        },
+        {
+          "function": "copy_mario_state_to_object",
+          "scope": "copy_mario_state_to_object.115",
+          "source": "478933263dced132f7bc1bb6ae7a75ae5f06e580864a0de0b96716d7a41f520a",
+          "line": 1041,
+          "file": "generated\\jp_object_list_processor.v",
+          "entryEvent": 2152
+        },
+        {
+          "function": "bhv_cmd_call_native",
+          "scope": "bhv_cmd_call_native.116",
+          "source": "a8a293b26bec3012f1647bfb95a79a8f5eeb1298b2147aeb2534e118b116301c",
+          "line": 1820,
+          "file": "generated\\jp_behavior_script.v",
+          "entryEvent": 2407
+        },
+        {
+          "function": "try_do_mario_debug_object_spawn",
+          "scope": "try_do_mario_debug_object_spawn.117",
+          "source": "fd3f5018ce73bc2500acc62744edde59ba67a3a73aa63e78c44f9d033feb74ed",
+          "line": 2620,
+          "file": "generated\\jp_debug.v",
+          "entryEvent": 2414
+        },
+        {
+          "function": "bhv_cmd_end_loop",
+          "scope": "bhv_cmd_end_loop.118",
+          "source": "7ed5913e020aa803479678820aae2874b21b53b67bca20aa425053e98e531efe",
+          "line": 1795,
+          "file": "generated\\jp_behavior_script.v",
+          "entryEvent": 2436
+        },
+        {
+          "function": "cur_obj_bhv_stack_pop",
+          "scope": "cur_obj_bhv_stack_pop.119",
+          "source": "db298ed2086fbd30ebc041a59ffac5d030a0f72652ee50aeb366c8bcf6fe135a",
+          "line": 837,
+          "file": "generated\\jp_behavior_script.v",
+          "entryEvent": 2437
+        },
+        {
+          "function": "cur_obj_bhv_stack_push",
+          "scope": "cur_obj_bhv_stack_push.120",
+          "source": "be945489b01bde177706346f81d9f54afd4b65c4fd85a9ff64d3f55bb2fec56c",
+          "line": 792,
+          "file": "generated\\jp_behavior_script.v",
+          "entryEvent": 2460
+        },
+        {
+          "function": "cur_obj_enable_rendering_if_mario_in_room",
+          "scope": "cur_obj_enable_rendering_if_mario_in_room.121",
+          "source": "a1ce5fe0c2169ca551684ca6d041dac704bb38e8e9719a270f9998ca4f5f7c7e",
+          "line": 21827,
+          "file": "generated\\jp_object_helpers.v",
+          "entryEvent": 2533
+        },
+        {
+          "function": "update_objects_in_list",
+          "scope": "update_objects_in_list.122",
+          "source": "208db01c13e0f00326ebabe4e36a00322ba52e1e44fcf4661fc0acc3fc5da079",
+          "line": 2049,
+          "file": "generated\\jp_object_list_processor.v",
+          "entryEvent": 2564
+        },
+        {
+          "function": "update_objects_during_time_stop",
+          "scope": "update_objects_during_time_stop.123",
+          "source": "9fdc2822eddb10ccf2aed4cf200396ed5418e3b2ba07410d0cb2f13d664bcc93",
+          "line": 1836,
+          "file": "generated\\jp_object_list_processor.v",
+          "entryEvent": 2571
+        },
+        {
+          "function": "update_objects_in_list",
+          "scope": "update_objects_in_list.124",
+          "source": "208db01c13e0f00326ebabe4e36a00322ba52e1e44fcf4661fc0acc3fc5da079",
+          "line": 2049,
+          "file": "generated\\jp_object_list_processor.v",
+          "entryEvent": 2591
+        },
+        {
+          "function": "update_objects_during_time_stop",
+          "scope": "update_objects_during_time_stop.125",
+          "source": "9fdc2822eddb10ccf2aed4cf200396ed5418e3b2ba07410d0cb2f13d664bcc93",
+          "line": 1836,
+          "file": "generated\\jp_object_list_processor.v",
+          "entryEvent": 2598
+        },
+        {
+          "function": "update_objects_in_list",
+          "scope": "update_objects_in_list.126",
+          "source": "208db01c13e0f00326ebabe4e36a00322ba52e1e44fcf4661fc0acc3fc5da079",
+          "line": 2049,
+          "file": "generated\\jp_object_list_processor.v",
+          "entryEvent": 2618
+        },
+        {
+          "function": "update_objects_during_time_stop",
+          "scope": "update_objects_during_time_stop.127",
+          "source": "9fdc2822eddb10ccf2aed4cf200396ed5418e3b2ba07410d0cb2f13d664bcc93",
+          "line": 1836,
+          "file": "generated\\jp_object_list_processor.v",
+          "entryEvent": 2625
+        },
+        {
+          "function": "update_objects_in_list",
+          "scope": "update_objects_in_list.128",
+          "source": "208db01c13e0f00326ebabe4e36a00322ba52e1e44fcf4661fc0acc3fc5da079",
+          "line": 2049,
+          "file": "generated\\jp_object_list_processor.v",
+          "entryEvent": 2645
+        },
+        {
+          "function": "update_objects_during_time_stop",
+          "scope": "update_objects_during_time_stop.129",
+          "source": "9fdc2822eddb10ccf2aed4cf200396ed5418e3b2ba07410d0cb2f13d664bcc93",
+          "line": 1836,
+          "file": "generated\\jp_object_list_processor.v",
+          "entryEvent": 2652
+        },
+        {
+          "function": "update_objects_in_list",
+          "scope": "update_objects_in_list.130",
+          "source": "208db01c13e0f00326ebabe4e36a00322ba52e1e44fcf4661fc0acc3fc5da079",
+          "line": 2049,
+          "file": "generated\\jp_object_list_processor.v",
+          "entryEvent": 2672
+        },
+        {
+          "function": "update_objects_during_time_stop",
+          "scope": "update_objects_during_time_stop.131",
+          "source": "9fdc2822eddb10ccf2aed4cf200396ed5418e3b2ba07410d0cb2f13d664bcc93",
+          "line": 1836,
+          "file": "generated\\jp_object_list_processor.v",
+          "entryEvent": 2679
+        },
+        {
+          "function": "update_objects_in_list",
+          "scope": "update_objects_in_list.132",
+          "source": "208db01c13e0f00326ebabe4e36a00322ba52e1e44fcf4661fc0acc3fc5da079",
+          "line": 2049,
+          "file": "generated\\jp_object_list_processor.v",
+          "entryEvent": 2699
+        },
+        {
+          "function": "update_objects_during_time_stop",
+          "scope": "update_objects_during_time_stop.133",
+          "source": "9fdc2822eddb10ccf2aed4cf200396ed5418e3b2ba07410d0cb2f13d664bcc93",
+          "line": 1836,
+          "file": "generated\\jp_object_list_processor.v",
+          "entryEvent": 2706
+        },
+        {
+          "function": "get_clock_difference",
+          "scope": "get_clock_difference.134",
+          "source": "e402986aa4220684df970cf7c9bf624909ea6b9668eff814916f2de27cf3594e",
+          "line": 1211,
+          "file": "generated\\jp_debug.v",
+          "entryEvent": 2726
+        },
+        {
+          "function": "unload_deactivated_objects",
+          "scope": "unload_deactivated_objects.135",
+          "source": "0b5759edd5df1958d459c45043ca8dbae5bc4515e90d2e5c9e9dd25057112b2b",
+          "line": 3078,
+          "file": "generated\\jp_object_list_processor.v",
+          "entryEvent": 2732
+        },
+        {
+          "function": "unload_deactivated_objects_in_list",
+          "scope": "unload_deactivated_objects_in_list.136",
+          "source": "9eb4710130a7322395e039b5e5f554d838c198973e3897141582f26c067d5ce0",
+          "line": 2092,
+          "file": "generated\\jp_object_list_processor.v",
+          "entryEvent": 2741
+        },
+        {
+          "function": "unload_deactivated_objects_in_list",
+          "scope": "unload_deactivated_objects_in_list.137",
+          "source": "9eb4710130a7322395e039b5e5f554d838c198973e3897141582f26c067d5ce0",
+          "line": 2092,
+          "file": "generated\\jp_object_list_processor.v",
+          "entryEvent": 2754
+        },
+        {
+          "function": "unload_deactivated_objects_in_list",
+          "scope": "unload_deactivated_objects_in_list.138",
+          "source": "9eb4710130a7322395e039b5e5f554d838c198973e3897141582f26c067d5ce0",
+          "line": 2092,
+          "file": "generated\\jp_object_list_processor.v",
+          "entryEvent": 2779
+        },
+        {
+          "function": "unload_deactivated_objects_in_list",
+          "scope": "unload_deactivated_objects_in_list.139",
+          "source": "9eb4710130a7322395e039b5e5f554d838c198973e3897141582f26c067d5ce0",
+          "line": 2092,
+          "file": "generated\\jp_object_list_processor.v",
+          "entryEvent": 2792
+        },
+        {
+          "function": "unload_deactivated_objects_in_list",
+          "scope": "unload_deactivated_objects_in_list.140",
+          "source": "9eb4710130a7322395e039b5e5f554d838c198973e3897141582f26c067d5ce0",
+          "line": 2092,
+          "file": "generated\\jp_object_list_processor.v",
+          "entryEvent": 2817
+        },
+        {
+          "function": "unload_deactivated_objects_in_list",
+          "scope": "unload_deactivated_objects_in_list.141",
+          "source": "9eb4710130a7322395e039b5e5f554d838c198973e3897141582f26c067d5ce0",
+          "line": 2092,
+          "file": "generated\\jp_object_list_processor.v",
+          "entryEvent": 2830
+        },
+        {
+          "function": "unload_deactivated_objects_in_list",
+          "scope": "unload_deactivated_objects_in_list.142",
+          "source": "9eb4710130a7322395e039b5e5f554d838c198973e3897141582f26c067d5ce0",
+          "line": 2092,
+          "file": "generated\\jp_object_list_processor.v",
+          "entryEvent": 2843
+        },
+        {
+          "function": "unload_deactivated_objects_in_list",
+          "scope": "unload_deactivated_objects_in_list.143",
+          "source": "9eb4710130a7322395e039b5e5f554d838c198973e3897141582f26c067d5ce0",
+          "line": 2092,
+          "file": "generated\\jp_object_list_processor.v",
+          "entryEvent": 2856
+        },
+        {
+          "function": "unload_deactivated_objects_in_list",
+          "scope": "unload_deactivated_objects_in_list.144",
+          "source": "9eb4710130a7322395e039b5e5f554d838c198973e3897141582f26c067d5ce0",
+          "line": 2092,
+          "file": "generated\\jp_object_list_processor.v",
+          "entryEvent": 2869
+        },
+        {
+          "function": "unload_deactivated_objects_in_list",
+          "scope": "unload_deactivated_objects_in_list.145",
+          "source": "9eb4710130a7322395e039b5e5f554d838c198973e3897141582f26c067d5ce0",
+          "line": 2092,
+          "file": "generated\\jp_object_list_processor.v",
+          "entryEvent": 2882
+        },
+        {
+          "function": "get_clock_difference",
+          "scope": "get_clock_difference.146",
+          "source": "e402986aa4220684df970cf7c9bf624909ea6b9668eff814916f2de27cf3594e",
+          "line": 1211,
+          "file": "generated\\jp_debug.v",
+          "entryEvent": 2900
+        },
+        {
+          "function": "update_mario_platform",
+          "scope": "update_mario_platform.147",
+          "source": "4d92580f7c69bbfe8c7fde7748f40d4edc7d14e79800b1f25550abde6de3d339",
+          "line": 514,
+          "file": "generated\\jp_platform_displacement.v",
+          "entryEvent": 2906
+        },
+        {
+          "function": "find_floor",
+          "scope": "find_floor.148",
+          "source": "422d3873dbcd1f96990002d062ec515aa5e5d74166c018ddabad28fe7ced2276",
+          "line": 3051,
+          "file": "generated\\jp_surface_collision.v",
+          "entryEvent": 2922
+        },
+        {
+          "function": "find_floor_from_list",
+          "scope": "find_floor_from_list.149",
+          "source": "192e814803c25f72943558caabfe39bd1002396430d917db6b41c2ed83ebbfd6",
+          "line": 2655,
+          "file": "generated\\jp_surface_collision.v",
+          "entryEvent": 2953
+        },
+        {
+          "function": "find_floor_from_list",
+          "scope": "find_floor_from_list.150",
+          "source": "192e814803c25f72943558caabfe39bd1002396430d917db6b41c2ed83ebbfd6",
+          "line": 2655,
+          "file": "generated\\jp_surface_collision.v",
+          "entryEvent": 3000
+        },
+        {
+          "function": "absf",
+          "scope": "absf.151",
+          "source": "4a6e09dbcf61e5fd928e1e5da67ff26aa176d1fc65b2e6ba19bf8a3e7600728d",
+          "line": 19985,
+          "file": "generated\\jp_object_helpers.v",
+          "entryEvent": 3038
+        }
+      ],
+      "floorCalls": [
+        {
+          "caller": "update_mario_geometry_inputs",
+          "queryBits": [
+            3305734144,
+            1145044992,
+            3296722944
+          ],
+          "heightBits": 3324764160,
+          "floor": 0
+        },
+        {
+          "caller": "update_mario_geometry_inputs",
+          "queryBits": [
+            3305734144,
+            1156733869,
+            3296722944
+          ],
+          "heightBits": 1156733869,
+          "floor": 150994944
+        },
+        {
+          "caller": "update_mario_platform",
+          "queryBits": [
+            3305734144,
+            1156733869,
+            3296722944
+          ],
+          "heightBits": 1156733869,
+          "floor": 150994944
+        }
+      ],
+      "indirectCalls": [
+        {
+          "caller": "level_script_execute",
+          "callee": "level_cmd_call_loop",
+          "address": 1879084976,
+          "path": "body.1.1.0.iteration0.1.1.1.1"
+        },
+        {
+          "caller": "level_cmd_call_loop",
+          "callee": "lvl_init_or_update",
+          "address": 1879086304,
+          "path": "body.1.0.0.1.1.1"
+        },
+        {
+          "caller": "cur_obj_update",
+          "callee": "bhv_cmd_call_native",
+          "address": 1879057344,
+          "path": "body.1.1.1.1.1.0.iteration0.1.0"
+        },
+        {
+          "caller": "bhv_cmd_call_native",
+          "callee": "try_print_debug_mario_level_info",
+          "address": 1879099024,
+          "path": "body.1.0"
+        },
+        {
+          "caller": "cur_obj_update",
+          "callee": "bhv_cmd_call_native",
+          "address": 1879057344,
+          "path": "body.1.1.1.1.1.0.iteration1.1.0"
+        },
+        {
+          "caller": "bhv_cmd_call_native",
+          "callee": "bhv_mario_update",
+          "address": 1879060560,
+          "path": "body.1.0"
+        },
+        {
+          "caller": "cur_obj_update",
+          "callee": "bhv_cmd_call_native",
+          "address": 1879057344,
+          "path": "body.1.1.1.1.1.0.iteration2.1.0"
+        },
+        {
+          "caller": "bhv_cmd_call_native",
+          "callee": "try_do_mario_debug_object_spawn",
+          "address": 1879098992,
+          "path": "body.1.0"
+        },
+        {
+          "caller": "cur_obj_update",
+          "callee": "bhv_cmd_end_loop",
+          "address": 1879057440,
+          "path": "body.1.1.1.1.1.0.iteration3.1.0"
+        }
+      ],
+      "libraryDomains": [
+        {
+          "caller": "adjust_analog_stick",
+          "external": "sqrtf",
+          "model": "Existing explicit instruction binding: nearest-even, usable FPU, no inexact trap; finite nonnegative normal or signed zero."
+        },
+        {
+          "caller": "detect_object_hitbox_overlap",
+          "external": "sqrtf",
+          "model": "Existing explicit instruction binding: nearest-even, usable FPU, no inexact trap; finite nonnegative normal or signed zero."
+        }
+      ],
+      "peakWorkingSetBytes": 247816192,
+      "generatedUnits": {
+        "generated\\jp_area.v": "9b8a4dc4e21ae588fb2385d153caa611edc13db4e8c6488d5cf601adf1663b40",
+        "generated\\jp_behavior_actions.v": "fff0885dafa95a72a5b9694ab808080bf4de0bfe06cc996836784ca143c37810",
+        "generated\\jp_behavior_data.v": "b5e582077d9fcc080d5424c4986fa224d33e98a6e2dcff685ff7e805eb3d217f",
+        "generated\\jp_behavior_script.v": "40112629e7f618bbfd352f8be8786fd70450dc8266930c1196552b6df383cf57",
+        "generated\\jp_debug.v": "5f24782c7f9a4c34d609f64872841e86a33ca29087a66df4a30612a3d7c16214",
+        "generated\\jp_game_init.v": "6be8ddb1a54ca25d57e404809487673d2276ca41abf5372fd6740982c34387e3",
+        "generated\\jp_graph_node.v": "600c8dab3079bdbac73f5d71577edb32b06fb207c1909a4f47ca1c490b01c280",
+        "generated\\jp_interaction.v": "39223e59a53a700e36c6e08f63b280889c3e25aef40dce66a063588467ae16e1",
+        "generated\\jp_level_script.v": "d23a455f0f5fa620c4edf6ca7bc053931118c9fef130240eb78a01c27ddf04f6",
+        "generated\\jp_level_update.v": "9ad1de70b261354cd3a9c598b3a7a0096eaa854575121159be9b7e6ecfd53b54",
+        "generated\\jp_macro_special_objects.v": "531ae86d804f2f25d80ea065b03dc6870ddba19513b6d39b189acf3d6656fadf",
+        "generated\\jp_mario.v": "6eae1a48bc0eb232f8a30a4d1089989d571418f34061f74e9a39a02d77922271",
+        "generated\\jp_mario_actions_airborne.v": "15baaa2ee897d1ed5af963e4b2dac8eaaf1cfe8176b7a0dbeb6036b4ca5b06e4",
+        "generated\\jp_mario_actions_automatic.v": "9c2ef7d849578a756c588b4649224aaca00405c59747b3efc36b216f797ce10c",
+        "generated\\jp_mario_actions_cutscene.v": "6a8a49283200ef88bf9a1845cec0e581aee55aef63fc1a2c3cb37cb0f92f9bef",
+        "generated\\jp_mario_actions_moving.v": "be1314c3ff8ea5ab33015e20a20344e7360d7b44533ba059d5c2b5b35d9084a7",
+        "generated\\jp_mario_actions_object.v": "907b27aba66715d895bcaf42e782ece53f244dcb8993091ab3e41fcd5844bbde",
+        "generated\\jp_mario_actions_stationary.v": "1e017d6778ced8f92e9519540ab6b05805bf459debadd00337e280249d129ce7",
+        "generated\\jp_mario_actions_submerged.v": "c7d746b91078b9b9fee62c472a0addc3d41b2480a4f87fab6e9d1be2a447489e",
+        "generated\\jp_mario_misc.v": "beea6fd7eb9c694b6053c5fb679edc12085e1de13d1669235615cbf3e58aae91",
+        "generated\\jp_mario_step.v": "6f54f2a9bbe4c39701aa39fd2350471bd52be704eda1db8f31edd7093a6a7854",
+        "generated\\jp_math_util.v": "35c03102cfeffb38dcde18c03b24cb8ebc854e4f85aad001c3fa0b7f09309859",
+        "generated\\jp_memory.v": "cdf8a03676021dd2a6aed24aeecada2a68c5d23aebce372017e00b5c5ea821e5",
+        "generated\\jp_obj_behaviors.v": "0947fe627c4854c49a19780a62624da9c77c00b22403bb98f116e210e1fcffa3",
+        "generated\\jp_obj_behaviors_2.v": "652e56988c836f394a348a882ae4cb03dbe4fb91417517dd225166fcfa61d489",
+        "generated\\jp_object_collision.v": "39ef3070008ab2f4a5e057456e148e3063a4fd0e2ddb441a7f1dcc7e0ff38f70",
+        "generated\\jp_object_helpers.v": "982b494d1a975d14851cbf6e6bdcea3c162764d104ecc477550f3b81fdcf917b",
+        "generated\\jp_object_list_processor.v": "570d7ed062b261fb59db6a851b7ac995d7c81c519b5f414f3e2bbcc2c13253e8",
+        "generated\\jp_platform_displacement.v": "9ecefdb3f9bf54747ee79e607bc671b94a9ee9bd9428d5014b6130a1a3116280",
+        "generated\\jp_rendering_graph_node.v": "31272c000aa77c6f6f1302c2f43189731992e3a7735f9662108637ad84a601b5",
+        "generated\\jp_save_file.v": "5f493030f5b6af2a14c7a84ef61a2501455c439d13824fa5a781faafb6d011a0",
+        "generated\\jp_spawn_object.v": "26a16b2dc509514c1bc228c25ed4c210a61e6a1e6f6e561d7261f958effe9ed3",
+        "generated\\jp_ssl_area1_macro.v": "7ccbab0f93efa245d4a11e0d43bebcc3befa123fe1d96f334ab4ce1d88d5a4ca",
+        "generated\\jp_ssl_area2_macro.v": "cf6ef9efc0c4e070926372ecab90ce82ded38b6ca36bff7300b92bad17a991ce",
+        "generated\\jp_ssl_collision.v": "c9a5b87b6f500adc325a5cfe917f1879474423837e0332518f7beeae6b6cf87d",
+        "generated\\jp_ssl_script.v": "067e1e7c109203c55c24a67776fef993d7acbb835f4e64b0d41db825def6958d",
+        "generated\\jp_surface_collision.v": "1475bf6d73fcbe1f64dddb1d4525b8d3e5899c920f46a46ccf892cd1aedb8ae0",
+        "generated\\jp_surface_load.v": "57ac72f6ce83e4bb1a74fbe239315136f903891c22c7300de8951573e72ebe51",
+        "generated\\runtime\\jp_audio_external.v": "464d1e2468d7cbd5cb01f9b815114ba5f27e9eac2cbf7a61ac45df8861ab3001",
+        "build\\rank1-backward-search\\supplemental-generated\\jp_camera.v": "bb2ebd4d218fce91e9310375dd792c76e342089ea9b845ebe3ed3965b99d9637",
+        "build\\rank1-backward-search\\supplemental-generated\\jp_main.v": "435d1156678a1d1a951827199a0bbc63f6e6aa88f506e66a5ef6d44c2ceaf30b",
+        "build\\rank1-backward-search\\supplemental-generated\\jp_sound_init.v": "897ceb9af08349744ac97dea6e912009329b0ec3027c9bef6d64da24b7c48da3"
+      },
+      "implementationHashes": {
+        "clight.py": "42ca7a1d9864b12cde6af70e111b908a8487ef93924b88004c0d486affd2f5b7",
+        "engine.py": "3ac646352227447ff0154c46aa75ff2d2bd83dcd6e5ad44121f8a1de16407658",
+        "loop_engine.py": "6e3fd4c94178d81da7e9dd7129f8fa69666a248a5bc5b414d88362884c03de7b",
+        "relational_engine.py": "cde41e3365120260517f51755751c87ab9752cdc91a78a8f4aa869cf8158450e",
+        "program_image.py": "6ac5fe85291000ff08155fff154dd719ecd0683282828cb4cf109ac2ce638721",
+        "trace_engine.py": "c6b0034056eeb7812bbe7ce9844b93ef94abd28366167b3cfbdd503c00b54e13",
+        "trace_update.py": "55becc4031c5d78e07d42519b90251437bdcac89e4a85f349b2b1c0807ac28ed",
+        "test_trace_update.py": "c538abb1b8a223fab07f63f40e21cb469fad461ef49d2d7e817b274a38e9289b"
+      }
+    }
+  },
+  "applicationTests": 36,
+  "unchangedCoqAudit": "build/audit/20260927-123816-0elnpc35",
+  "unrestrictedEarlierPathSolver": {
+    "result": "unknown",
+    "timeoutSeconds": 30,
+    "seconds": 30.538969299999735,
+    "meaning": "A separate earlier path-formula attempt; not an impossibility result."
+  }
+}

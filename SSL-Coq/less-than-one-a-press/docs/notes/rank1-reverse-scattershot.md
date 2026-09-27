@@ -1,5 +1,7 @@
 # Rank 1: what a Reverse Scattershot search could do
 
+**Follow-up:** the [conditional full-interval path checker](rank1-complete-update-path.md) now completes both US/JP controller-to-retention paths, including live callbacks. It uses a supplied scene and does not close exhaustive predecessor coverage or gameplay reachability. The earlier measurements and limitations below are retained as that earlier result.
+
 27 September 2026. **Method review only.** No reverse randomized search was
 implemented or run in this review. The requested complete one-update run is
 still unfinished. There is no new gameplay witness, exclusion or probability

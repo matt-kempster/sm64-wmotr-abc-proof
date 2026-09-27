@@ -1,5 +1,7 @@
 # Rank 1: bounded backward predecessor search
 
+**Current follow-up:** `trace_update.py --mario` completes an actual controller/level/Mario/floor path in US and JP and substitutes its effects backward. `trace_engine.py` checks live callback types and ordinary storage accesses. The supplied scene is a regression/conditional predecessor, not a reachable setup or exhaustive predecessor set. See [the complete-path report](../../docs/notes/rank1-complete-update-path.md) for the three supplemental source units, commands, all 36 checks and exact limits. Reverse Scattershot remains deferred.
+
 This is the first implementation of the approved backward-search batch. It
 starts with desired installation conditions and substitutes backward through
 the committed generated US/JP Clight statements. It does not replay an earlier

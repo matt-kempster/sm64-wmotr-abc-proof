@@ -27,8 +27,11 @@ class Parser:
         # bit-field declaration does not authorize evaluating its accesses.
         text = re.sub(r'\{\|\s*attr_volatile\s*:=\s*(true|false);\s*attr_alignas\s*:=\s*None\s*\|\}',
                       r'(Attributes \1 None)', text)
-        self.tokens = re.findall(r"::|[(),]|-?\d+|[A-Za-z_][A-Za-z_0-9'.]*", text)
-        residue = re.sub(r"::|[(),]|-?\d+|[A-Za-z_][A-Za-z_0-9'.]*|\s+", '', text)
+        text = re.sub(r'\{\|\s*cc_vararg\s*:=\s*(.*?);\s*cc_unproto\s*:=\s*(true|false);\s*cc_structret\s*:=\s*(true|false)\s*\|\}',
+                      r'(CallingConvention (\1) \2 \3)', text)
+        token_pattern = r'"(?:[^"\\]|\\.)*"|::|[(),]|-?\d+|[A-Za-z_][A-Za-z_0-9\'.]*'
+        self.tokens = re.findall(token_pattern, text)
+        residue = re.sub(token_pattern + r'|\s+', '', text)
         if residue:
             raise ValueError('Unsupported generated syntax: ' + residue[:80])
         self.i = 0
@@ -46,7 +49,7 @@ class Parser:
             raise ValueError('Unexpected token: ' + token)
         return Term(token)
 
-    def expr(self):
+    def application(self):
         values = []
         while self.i < len(self.tokens) and self.tokens[self.i] not in (')', ',', '::'):
             values.append(self.atom())
@@ -58,10 +61,22 @@ class Parser:
             value = Term(values[0].tag, tuple(values[1:]))
         else:
             value = values[0]
-        if self.i < len(self.tokens) and self.tokens[self.i] in ('::', ','):
-            op = self.tokens[self.i]
+        return value
+
+    def expr(self):
+        # Emitted global tables can have thousands of entries. Build their
+        # right-associated list spine iteratively instead of using one Python
+        # stack frame per entry. Parenthesized application precedence stays
+        # identical to the original reader.
+        values = [self.application()]
+        operators = []
+        while self.i < len(self.tokens) and self.tokens[self.i] in ('::', ','):
+            operators.append(self.tokens[self.i])
             self.i += 1
-            value = Term('cons' if op == '::' else 'pair', (value, self.expr()))
+            values.append(self.application())
+        value = values.pop()
+        for op, left in zip(reversed(operators), reversed(values)):
+            value = Term('cons' if op == '::' else 'pair', (left, value))
         return value
 
 
@@ -126,9 +141,9 @@ class Function:
 
 
 class Unit:
-    def __init__(self, version, name):
+    def __init__(self, version, name, source_path=None):
         directory, _, stem = name.rpartition('/')
-        self.path = ROOT / 'generated' / directory / (version + '_' + stem + '.v')
+        self.path = Path(source_path) if source_path is not None else ROOT / 'generated' / directory / (version + '_' + stem + '.v')
         self.text = self.path.read_text(encoding='utf-8')
         self.digest = hashlib.sha256(self.text.encode()).hexdigest()
         match = re.search(r'Definition composites : list composite_definition :=\s*(.*?)\.\s*Definition', self.text, re.S)
@@ -142,14 +157,33 @@ class Unit:
             self.composites[c.args[0].tag] = (c.args[1].tag, items(c.args[2]))
 
     @lru_cache(None)
-    def function(self, name):
+    def global_definitions(self):
+        match = re.search(r'Definition global_definitions :.*?:=\s*(.*?)\.\s*Definition public_idents', self.text, re.S)
+        if not match:
+            raise ValueError('Missing generated global definitions: '+str(self.path))
+        return {p.args[0].tag: p.args[1] for p in items(parse(match[1]))}
+
+    @lru_cache(None)
+    def function_signature(self, name):
+        match = re.search(r'Definition f_' + re.escape(name) + r' := \{\|(.*?)fn_body :=', self.text, re.S)
+        if not match:
+            raise ValueError('Missing generated function header: '+name)
+        fields = dict(re.findall(r'(fn_\w+) :=\s*(.*?)(?:;\s*(?=fn_\w+ :=)|\Z)', match[1], re.S))
+        parameters = [p.args[1] for p in items(parse(fields['fn_params']))]
+        types = Term('nil')
+        for ty in reversed(parameters):
+            types = Term('cons', (ty, types))
+        return Term('Tfunction', (types, parse(fields['fn_return']), parse(fields['fn_callconv'])))
+
+    @lru_cache(None)
+    def function(self, name, defer_body=False):
         match = re.search(r'Definition f_' + re.escape(name) + r' := \{\|(.*?)\|\}\.', self.text, re.S)
         if not match:
             raise ValueError('Missing generated function: ' + name)
-        fields = dict(re.findall(r'(fn_\w+) :=\s*(.*?)(?:;|\Z)', match[1], re.S))
+        fields = dict(re.findall(r'(fn_\w+) :=\s*(.*?)(?:;\s*(?=fn_\w+ :=)|\Z)', match[1], re.S))
         def bindings(key):
             return {p.args[0].tag:p.args[1] for p in items(parse(fields[key]))}
-        return Function(self, name, parse(fields['fn_body']), bindings('fn_params'),
+        return Function(self, name, None if defer_body else parse(fields['fn_body']), bindings('fn_params'),
                         bindings('fn_vars'), bindings('fn_temps'), parse(fields['fn_return']),
                         self.text.count('\n', 0, match.start())+1,
                         hashlib.sha256(match[0].encode()).hexdigest())

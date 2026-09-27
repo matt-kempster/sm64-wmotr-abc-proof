@@ -48,7 +48,7 @@ class Unsupported(Exception): pass
 
 
 class Scope:
-    def __init__(self, engine, function):
+    def __init__(self, engine, function, local_addresses=None):
         self.function = function
         self.name = function.name + '.' + str(engine.counter)
         engine.counter += 1
@@ -59,7 +59,8 @@ class Scope:
             return BV
         self.temps = {k:z.Const(self.name+k, sort(t))
                       for k,t in (function.temps | function.params).items()}
-        self.local_addresses = {k:engine.allocate_local() for k in function.locals}
+        self.local_addresses = ({k:engine.allocate_local() for k in function.locals}
+                                if local_addresses is None else local_addresses)
         self.result = z.Const(self.name+'.result', sort(function.returns))
 
 
@@ -75,7 +76,7 @@ class Engine:
         self.call_constraints = None
 
     def unit(self, name):
-        if name not in self.units: self.units[name] = Unit(self.version,name)
+        if name not in self.units: self.units[name] = Unit(self.version,name,getattr(self,'source_paths',{}).get(name))
         return self.units[name]
 
     def function(self, unit, name):
@@ -93,13 +94,17 @@ class Engine:
     def global_address(self, name):
         if name == '_gMarioStates': return STATE
         if name not in self.globals:
-            if len(self.globals) >= 0x100:
-                raise Unsupported('Canonical global-storage arena exhausted; would overlap locals')
-            self.globals[name] = 0x10000000 + len(self.globals)*0x100000
+            index = len(self.globals)
+            if index >= 0x500:
+                raise Unsupported('Canonical global-storage arena exhausted; would overlap code')
+            # Keep the established first arena and skip the local arena.
+            self.globals[name] = ((0x10000000 + index*0x100000) if index < 0x100
+                                  else (0x30000000 + (index-0x100)*0x100000))
         return self.globals[name]
 
     def address_var(self, scope, name):
-        return word(scope.local_addresses[name] if name in scope.local_addresses else self.global_address(name))
+        value = scope.local_addresses[name] if name in scope.local_addresses else self.global_address(name)
+        return word(value) if isinstance(value,int) else value
 
     @staticmethod
     def typeof(expr):
@@ -143,6 +148,9 @@ class Engine:
 
     def eval(self, expr, scope):
         tag,a = expr.tag,expr.args
+        if tag in ('Esizeof','Ealignof'):
+            size, alignment = scope.function.unit.size(a[0])
+            return word(size if tag == 'Esizeof' else alignment)
         if tag == 'Econst_int': return word(int(a[0].args[0].tag))
         if tag == 'Econst_single': return float_bits(int(a[0].args[0].args[0].tag))
         if tag == 'Etempvar': return scope.temps[a[0].tag]
@@ -161,6 +169,16 @@ class Engine:
         if op in ('Oadd','Osub') and lt.tag in ('tptr','tarray') and rt.tag not in ('tptr','tarray'):
             width,_ = scope.function.unit.size(self.pointer_element(lt))
             return left + right*word(width) if op == 'Oadd' else left-right*word(width)
+        if op == 'Oadd' and rt.tag in ('tptr','tarray') and lt.tag not in ('tptr','tarray'):
+            width,_ = scope.function.unit.size(self.pointer_element(rt))
+            return right + left*word(width)
+        if op == 'Osub' and lt.tag in ('tptr','tarray') and rt.tag in ('tptr','tarray'):
+            width,_ = scope.function.unit.size(self.pointer_element(lt))
+            if not 0 < width <= 0x7fffffff:
+                raise Unsupported('Pointer difference over an invalid element size')
+            # Cop.sem_sub/sub_case_pp uses signed Ptrofs.divs. Same-block
+            # provenance remains outside this explorer's flat-memory model.
+            return (left-right)/word(width)
         floating = z.is_fp(left) or z.is_fp(right)
         if floating:
             left,right = self.cast(left,lt,Term('tfloat')),self.cast(right,rt,Term('tfloat'))

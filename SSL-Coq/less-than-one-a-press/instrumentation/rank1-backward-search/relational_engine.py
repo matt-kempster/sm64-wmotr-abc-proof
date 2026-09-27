@@ -16,6 +16,9 @@ class RelationalEngine(LoopEngine):
     def __init__(self,version,**kwargs):
         self.sqrtf_binding = kwargs.pop('sqrtf_binding',False)
         self.catalog_native = kwargs.pop('catalog_native',False)
+        self.program_dispatch = kwargs.pop('program_dispatch',False)
+        supplemental = kwargs.pop('supplemental',None)
+        supplemental_modules = kwargs.pop('supplemental_modules',None)
         super().__init__(version,auto_calls=True,**kwargs)
         self.relations = {}
         self.pending = []
@@ -27,8 +30,27 @@ class RelationalEngine(LoopEngine):
         self.code_addresses = {}
         self.current_record = None
         self.call_edges = {}
+        self.image = None
+        self.source_paths = {} if supplemental is None else {
+            'supplemental/'+p.stem[len(version)+1:]:p
+            for p in supplemental.glob(version+'_*.v')
+            if supplemental_modules is None or p.stem[len(version)+1:] in supplemental_modules
+            if not (ROOT/'generated'/p.name).exists()}
+        if self.program_dispatch:
+            from program_image import ProgramImage
+            self.image = ProgramImage(self)
+
+    def resolve_call(self, name, scope):
+        if self.image is not None and name in self.image.symbols:
+            entry = self.image.symbols[name]
+            if entry.internal:
+                return entry.unit
+            raise Unsupported('Unimplemented generated external '+name+' declared in '+entry.unit)
+        return super().resolve_call(name, scope)
 
     def function_address(self,name):
+        if self.image is not None:
+            return self.image.address(name)
         if name not in self.code_addresses:
             self.code_addresses[name] = 0x70000000+16*len(self.code_addresses)
         return self.code_addresses[name]
@@ -120,7 +142,17 @@ class RelationalEngine(LoopEngine):
             return super().traverse(statement,normal,scope,returned,broken,path)
         dest,callee,actual = statement.args
         if callee.tag != 'Evar':
-            names = self.source_table_targets(scope,callee)
+            if self.image is not None:
+                symbols = self.image.compatible(self.typeof(callee), scope.function.unit)
+                names = [entry.name for entry in symbols]
+                missing = [entry.name for entry in symbols if not entry.internal]
+                if missing:
+                    self.block('indirect-external-bodies-missing',scope,path,statement,
+                        signature=str(self.typeof(callee)), missing=missing,
+                        internalTargets=len(symbols)-len(missing),
+                        explanation='Compatible external declarations remain in the actual linkage; they cannot be removed from live pointer lookup.')
+            else:
+                names = self.source_table_targets(scope,callee)
             if names is None:
                 self.block('unresolved-indirect-call',scope,path,statement)
             pointer = self.eval(callee,scope)
@@ -131,9 +163,10 @@ class RelationalEngine(LoopEngine):
                 direct = Term('Scall',(dest,Term('Evar',(Term('_'+name),ftype)),actual))
                 pred = self.wp(direct,normal,scope,returned,broken,path+'.target.'+name)[0].condition
                 cases.append(z.And(guard,pred)); guards.append(guard)
-            self.indirect_domains.append(dict(caller=scope.function.name,path=path,
-                sourceTable='BehaviorCmdTable' if scope.function.name == 'cur_obj_update' else 'CALL_NATIVE entries in behavior_data',targets=names,
-                unresolved='Prove the live function pointer belongs to these source-initializer targets at this call. Non-members are not ruled out by this exploration.'))
+            if self.image is None:
+                self.indirect_domains.append(dict(caller=scope.function.name,path=path,
+                    sourceTable='BehaviorCmdTable' if scope.function.name == 'cur_obj_update' else 'CALL_NATIVE entries in behavior_data',targets=names,
+                    unresolved='Prove the live function pointer belongs to these source-initializer targets at this call. Non-members are not ruled out by this exploration.'))
             return [Path(z.Or(*cases))]
         name = callee.args[0].tag.removeprefix('_')
         if name == 'sqrtf' and self.sqrtf_binding:
