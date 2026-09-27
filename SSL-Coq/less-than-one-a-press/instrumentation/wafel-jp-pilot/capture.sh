@@ -19,7 +19,7 @@ gcc -shared -fPIC -std=c99 -Wall -Wextra -Werror -O2 \
     -DALLOW_SETUP_A=0 -DSEARCH_MODE=12 \
     -DRANK1_BOUNDARY_AUDIT=1 -DRANK1_BOUNDARY_REPEAT_UNTIL=349 \
     -DRANK5_STATE_SPLIT_AUDIT=1 -DRANK13_18_COPY_AUDIT=1 \
-    "$script_dir/capture.c" -ldl -lm -o "$out/probe.so"
+    "${WAFEL_PILOT_PROBE:-$script_dir/capture.c}" -ldl -lm -o "$out/probe.so"
 printf 'Output: %s\n' "$out"
 printf 'run\n' | XDG_CONFIG_HOME="$out/config" XDG_DATA_HOME="$out/data" \
     LIBGL_ALWAYS_SOFTWARE=1 xvfb-run -a "${MUPEN64PLUS:-/usr/games/mupen64plus}" \

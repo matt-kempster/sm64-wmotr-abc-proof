@@ -108,6 +108,9 @@ static void wa_debugger_update(unsigned int pc) {
             }
         }
     }
+#ifdef WARP_ACCEPT_DEBUG_OBSERVER
+    WARP_ACCEPT_DEBUG_OBSERVER(pc);
+#endif
     CleanDebuggerUpdate(pc);
 }
 
@@ -129,6 +132,9 @@ EXPORT void CALL GetKeys(int control, BUTTONS *keys) {
 
 EXPORT void CALL RomClosed(void) {
     CleanRomClosed();
+#ifdef WARP_ACCEPT_CLOSE_OBSERVER
+    WARP_ACCEPT_CLOSE_OBSERVER();
+#endif
     fprintf(stderr,
         "WARP_ACCEPT_RESULT,armed=%u,accepted=%u,pending=%u,snapshots=%u,"
         "disappeared=%u,copied=%u,final=%u,topIdentified=%u,failures=%u\n",

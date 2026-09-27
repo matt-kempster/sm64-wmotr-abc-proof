@@ -1,5 +1,17 @@
 # Verification checklist
 
+- [x] Run the [earlier Rank-1 controller search](notes/rank1-reachable-search.md):
+  132 choices, 42,480 advances, and no upward gap among 36,855 SSL Area-1
+  after-update samples. Four exact JP replays pass 983 first-query and 983
+  final-query checks; no retry occurs and all final floors are ownerless.
+  The new box arrival accepts at equal Y=816, finishes at equal Y=768,
+  and has no platform or displacement at the first Area-2 apply. This is
+  finite runtime evidence, not a new Coq or all-history impossibility result.
+- [ ] Produce the useful gap from an earlier legal support/action history
+  before the geometry query, while preserving contact and top timing. The
+  A-never-held approaches and box variations do not cover held-A entries,
+  all earlier routes, or reward/dialog/moving-support predecessors.
+
 - [x] Connect Rank 1's final US/JP platform-update body to its actual raw
   coordinate reads, resolved floor call, distance test and returned owner's
   two stores. The query's actual returned memory is retained; the two stores'
@@ -9,7 +21,8 @@
   history, and carry any remembered address through the warp, slot lifetime
   and first Area-2 apply. The new body theorem does not establish its callers,
   local allocation/free, a useful split's reachability or universal list
-  contents. Rank 1 remains open; the clean recording is still only one run.
+  contents. Rank 1 remains open; the clean replays and finite controller
+  variations do not establish coverage of all allowed histories.
 
 - [x] Extend the selected Eyerok double-pound flight through the actual US/JP
   velocity addition, terminal check and height store; check all ten specified

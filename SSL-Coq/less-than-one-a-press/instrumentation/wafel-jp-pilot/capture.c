@@ -75,4 +75,7 @@ static void pilot_observe_input(int control, BUTTONS *keys) {
             R32(waOriginalTop + O_PYRAMID_PILLARS_TOUCHED), R16(waOriginalTop + O_ACTIVE_FLAGS));
     }
     fprintf(stderr, "}\n");
+#ifdef WAFEL_PILOT_EXTRA_INPUT
+    WAFEL_PILOT_EXTRA_INPUT(control, keys);
+#endif
 }

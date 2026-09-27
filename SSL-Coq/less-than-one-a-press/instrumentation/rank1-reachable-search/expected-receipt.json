@@ -1,0 +1,823 @@
+{
+  "scope": "Finite controller variations and exact JP replays; not an all-history exclusion.",
+  "batches": {
+    "approach": {
+      "trials": 72,
+      "updates": 17280,
+      "area1Samples": 14177,
+      "positiveGapTrials": 0,
+      "minDepth": 0.0,
+      "floorNullTrials": 0,
+      "topPlatformTrials": 0,
+      "disappearedTrials": 0,
+      "nearestWhileOriginalTopActive": 2211.168935836005,
+      "manifestSha256": "54813e6babde700f4dd9b586bd686f182e270c0903441fb602f5a49b57c2e5ed",
+      "inputHashes": {
+        "2549-direct-none": "24eda29feb2258cb31f288059122904372e6c04d69017711e037380f4a5cdb1b",
+        "2549-direct-b0": "cf53bc699428c2c75776895138ed0fcf2398303924e33e0be0624b14c0739c0d",
+        "2549-direct-b8": "f697bc90a687cc6370078e96e68d2d858d9a9e06f6321a3e0184c7863a6d7c78",
+        "2549-direct-b16": "3fb4b7b682141c0613e61aefcdceb49d65d8065efa5ba2cd39a7cde2d3fd2c52",
+        "2549-direct-b32": "02497d940398f5220a5b9d4a14395d494f53ecce80f3e0dc1ab45229510c51be",
+        "2549-direct-z16": "c5f6ef5f0b081da1ff96f6d88f885c0b549ca06c562c1863bd199006d7b48ce4",
+        "2549-south-none": "594e260e3466a9c9600ff6f06d9392fa382eb63714501af86f5ecac6f5f2cf7d",
+        "2549-south-b0": "bf9f6fff11cb0583960a59e785e1bf9aa41fe40927accaf9bbd8f4db48016ee7",
+        "2549-south-b8": "c6d21b9fabf493cd6d00dbb671840a17774374640e987481471e1f85bc88f7d5",
+        "2549-south-b16": "1cf72183bef625bf9e12369e5d136162fdad8968c81def951f2b567ef2b4c99c",
+        "2549-south-b32": "db8068a4480d47991c64877df3b98ad8f9e01daa876902cac09709861ea0b9b5",
+        "2549-south-z16": "db16f427bfd9d5420a12f73a9d837c99b68b8d9c5a2aa0175dfb95bbba3ceabc",
+        "2549-west-face-none": "e176052003bb41efbf87c4613c260973f1a9f1559cb2e3b6a449d2a17a947d82",
+        "2549-west-face-b0": "2afcdfeb9a978abb39fe93221199cc911f48e80f07025aa66b958571cd621f3a",
+        "2549-west-face-b8": "86e3bc7114e7115712449473592469716ad0762411bfd1c1d570117a95c240ba",
+        "2549-west-face-b16": "7ff3a194c4338aabc93b46f2418bd1af318dc8394fbd7c65569a6218468d1da7",
+        "2549-west-face-b32": "43691e6479c336813682f56d7fe459c06f0d16e62e417b435eec39d39407eb81",
+        "2549-west-face-z16": "3c9da43c9524df63b763b90ee64c1c640bc05ddf46bd4aadcc2355d79ecdd162",
+        "2549-north-none": "68496fd122f81759d612606ed8d3a0d5caa394532486d97e49210b4c2adf5a64",
+        "2549-north-b0": "ebb74493b6688c1befa51b7056b114532539d008e2379c33a1ff377b723565d4",
+        "2549-north-b8": "90fb6536765e942e1ddb3e1fafb9b1da55f6c00ec6dfb5d66e027d761f20528e",
+        "2549-north-b16": "7e8cd33f33ba1dbb5d6d6bcb0d6029724669d5a7ba570edc845f0204d3222c5e",
+        "2549-north-b32": "81b0dabb2f0ff77be2e6ba190556f353bff73b26edde5d2e650892dc42c260c9",
+        "2549-north-z16": "811fce1070bc86182cbfcc7c91110f89ae84d2e42ea6098ec850a8572836e11a",
+        "2555-direct-none": "108dd541803f3db11c3b937ef625fa710ff3f8b24d9e63b3e47acee1d7d4efb3",
+        "2555-direct-b0": "4aa5e865a083b1edc17f2c83130e3c81bb897951c6739d004a3ed3beb3c52677",
+        "2555-direct-b8": "76c0d92228626ec88f78e375946b37a61a7b528a8a460bbdba2ee6f666534da3",
+        "2555-direct-b16": "0ee90dc4f8b35b62c86434abd36d2041149709f2343f89223fcb5d92262bfc74",
+        "2555-direct-b32": "a5850e096e61d410eb1b6825ab1c1b93eff94ffc7a5290160533633ec3c78485",
+        "2555-direct-z16": "8d16ce214d84f55b640d88b7a6f2fd585d993c0fe3d57173a7886269c4c50b9a",
+        "2555-south-none": "3ef2b631f58f433e7bd48e4ed07ea8e0cf9311b6e9a4003d7ab5c486d8612993",
+        "2555-south-b0": "cb39571323d5ccfc69498120ec69ce7680e980999bb9a1b93d0cd8d56e0786f8",
+        "2555-south-b8": "e3ea4da06a4e326babbdbc5c9a09e204a8de938cee41b19595bd5422bd1aa558",
+        "2555-south-b16": "1556d9ef759e5c0b695f4aea7be694f7ee40e0565de7c5444206ca487f40d9a8",
+        "2555-south-b32": "1a8b1c033241f241eef21ba747ba738cafb0dcc41f945aadf420c86999423030",
+        "2555-south-z16": "d8e4eff20bd30beab56b045bc182dd876e5c3668b663c0512a36bee2aeadc1ee",
+        "2555-west-face-none": "276f667e8a5e38af34fccf0ee25f14e3ba90af35346c8c9ac2925e1557ec6828",
+        "2555-west-face-b0": "b273059d6aee9cece2a06a7da1495e11634c9e4e5cee358fbae775562b0f3092",
+        "2555-west-face-b8": "7ad2f458fc119855e1b6d1d5e0d1b1506c09540089aecf0737147684c65972ba",
+        "2555-west-face-b16": "37ddb6587ad6fb653fa93b24ec4c6a5b5553291ec1a299cb7f488201e614295e",
+        "2555-west-face-b32": "46fae32fd51f5efcd21f4f3f7ea85274d2d25c4ed100a5c222d4641c98da87c1",
+        "2555-west-face-z16": "0751176f9a9555aac2d5f0837b40d9d58c5d9f6abaa231a1ad8f0f5c1bc148e2",
+        "2555-north-none": "5973aa83fc0e516a6f22ca97bff3d570826466c8aaf79259ff1ab5c99154732f",
+        "2555-north-b0": "dedba9ed77f4a1257d7adcce6d3987d6256aefa6ace6b0becf0300edf3df0b81",
+        "2555-north-b8": "ba452d47a08a50494afe2b4be7fcaa44a51459a3ed5cf7312ed1cb42d82a6ca0",
+        "2555-north-b16": "44d653f26ee40a52c18cd1fef9c3623a00eddad38434920fb49a51683d77dc16",
+        "2555-north-b32": "e14055982042923e50327308ce41901a942ea8da7c0268805d7185ce7eb9790a",
+        "2555-north-z16": "dd9acab33831b3efd01cd3511ce54b5a91b85d301a241f0ba78e4adaaa769aab",
+        "2561-direct-none": "03427595ec7d8d4305f30f32ff3632c0f515c0d5605e5bcb488ee73b5b6b38ed",
+        "2561-direct-b0": "c7207a412564d380d3acdd3ab2277e87eaca2d33bc52977628ca013f5ce36a2a",
+        "2561-direct-b8": "c3027fbd7c9ce5e5ce07d5d811723b1c08259ac589d946988a28ed051f154868",
+        "2561-direct-b16": "eba06882d9f32b92d41ad04faff6dead39a9ab407319dd4c98fb20ea51afa10a",
+        "2561-direct-b32": "c03e03b135935cb359fa6dc06416c1a90b374d98fc32f84af9be7e75985140cb",
+        "2561-direct-z16": "9f4fedc5e4723e52c5b19cd24bb0db928ca85182d009dad7647bd5dfa0624421",
+        "2561-south-none": "9dbd88cda95e78dd1c2369c18ec1c2f8ef0f03f34153a7da4f284e94aa5aeea1",
+        "2561-south-b0": "d24862acb013a35232184c7e5b5b6b571fde2f3d9c9ed79d167a9a7c94971192",
+        "2561-south-b8": "4a24a417d8a6654e5ffe8605580ddfc1ac65906e1ba0137dbd395b3d75125157",
+        "2561-south-b16": "6eba9f146824d8c8fca6dea82bc4bf6005c1a986b24182cdf8f176e3dcf92a67",
+        "2561-south-b32": "8c23aa29b8fb40990b782d631ff6fb558f1b566643045ac92e2891a87f4d63a9",
+        "2561-south-z16": "2063c5db47ac7a0b3b051d0ad622d79b470f578238b133d1003ae50fe5e685fd",
+        "2561-west-face-none": "ddfd66e0c5d9dd5ce2f24f9966f2c07c524626883cc6d1823f6e5d79a7ee4375",
+        "2561-west-face-b0": "b306f80c84e729d3c686481a4b0e51a5e93e3d92f10fe54a4d3e28fb9de28383",
+        "2561-west-face-b8": "bc6531a5ca7063c1daf7f9ceb7686ba4e3b493834f6eb0187ee0dd4186a0dc36",
+        "2561-west-face-b16": "8a577dee7b3b381db0cb4a904b2515f91841db2a8714af492c90696a040ea1ec",
+        "2561-west-face-b32": "83216518be70a173ea8098ce77aaa31f832abbe95becf25f1b1fc430aaccc389",
+        "2561-west-face-z16": "ec8780d2f848f198d489faa88db319b0b373ecebebdc8eb943540114d8c28a68",
+        "2561-north-none": "c856bf262d73b351b3b6177f5eab4f307a653f42752810b8b36e4ec10ca38e25",
+        "2561-north-b0": "508de7414d0deb974463a2a5ed5522728c1908076fa269492370f2e398af39c1",
+        "2561-north-b8": "c17140ceb0025a7bba78a1bdeebc6b6ec6450b3bcb0b2fd140f5bed6dfb29d31",
+        "2561-north-b16": "d565ade2b5cc5b86815381b89aac44bc7c2116f678ef30e8e8a9105c403532b9",
+        "2561-north-b32": "8796010b0e03dde350edae1164da647d14a9fce64f6bd3ce2abd507d2d2df93f",
+        "2561-north-z16": "013de3af37717d92faab3a4e933ae61fce3724e50878493cff48c8496db8aa98"
+      }
+    },
+    "box": {
+      "trials": 60,
+      "updates": 25200,
+      "area1Samples": 22678,
+      "positiveGapTrials": 0,
+      "minDepth": 0.0,
+      "floorNullTrials": 0,
+      "topPlatformTrials": 0,
+      "disappearedTrials": 10,
+      "nearestWhileOriginalTopActive": 2654.937283394796,
+      "manifestSha256": "838759102a2bda9ef796dc842c542e7179b8d6ecda524d818961fb34f2eca886",
+      "inputHashes": {
+        "2540-box-direct-60-100": "1cebe275c82bc79e9cc5cc75a1d9f29e74eed659d4b879de775df782dca1f4ee",
+        "2540-box-direct-60-135": "8e683035209823cada655892c925bd2c75488f98339aa606c6beb8150b8958e7",
+        "2540-box-direct-90-100": "1cebe275c82bc79e9cc5cc75a1d9f29e74eed659d4b879de775df782dca1f4ee",
+        "2540-box-direct-90-135": "8e683035209823cada655892c925bd2c75488f98339aa606c6beb8150b8958e7",
+        "2540-box-direct-127-100": "1cebe275c82bc79e9cc5cc75a1d9f29e74eed659d4b879de775df782dca1f4ee",
+        "2540-box-direct-127-135": "8e683035209823cada655892c925bd2c75488f98339aa606c6beb8150b8958e7",
+        "2540-box-original-60-100": "c661a2839acd103fcf0aa931bc4fcd4ceca88e5bda421c9828b1fae6f625fe31",
+        "2540-box-original-60-135": "12a5c238681e587a64be29f7af96e3fdec4efe8511b88698678b91949d79dd78",
+        "2540-box-original-90-100": "4ab2a7047685f496c9b9909c5097b560696269ba4a3a769c97bc2a00a22c8c93",
+        "2540-box-original-90-135": "a202a29bb237a92754508f5aceb25323052048048b33171add7c90c1f7968a71",
+        "2540-box-original-127-100": "251d7db4b93086762ce6f4b43b4cbebcb0aa5bab912288f77316f93b737c5cb6",
+        "2540-box-original-127-135": "a918cd83ec616990917f44532ec6f5d7ec2c24dcb81ff76f2b032f07747fc3f0",
+        "2540-box-short-60-100": "2a5a2163df17271aa06c352a78b8baab0402b64c9f714d4997f6ceac7b49e8ac",
+        "2540-box-short-60-135": "582ae9a6a0406b6f07bf4d6c989675c2af621506a4796a003b85f397fd2331a6",
+        "2540-box-short-90-100": "d01575e009c2a7d1af610ec60700bae8a93703d79aea82ceec3a1db73b4ea936",
+        "2540-box-short-90-135": "fdad0ebef4ffd42943248122af6d222d3ea03f9bc3af34eb20e6e2c1ad467fe9",
+        "2540-box-short-127-100": "3435c4fcc3d981b82f89726c327475ce625dbacd902240956f77d793d556a340",
+        "2540-box-short-127-135": "7d122e8f5fc3bc8c43f97eb94e4b9d8c67c42501fb90455a82a6e3120762665c",
+        "2540-box-east-60-100": "a1091884c727cfbeddb7c31320ee94d0cc28f6d1006f242b15920bbc451df4ef",
+        "2540-box-east-60-135": "e646451a31ac29f5283df2f9990ef488c895a3772dc406b335afca9db34df864",
+        "2540-box-east-90-100": "83319eee7075eda67b60c96d0d2fe7376290d55e5bb00e15e5069c5bb735cb4c",
+        "2540-box-east-90-135": "7587caa6e5a4b8290919078fc03c28ddc6ffdb264e56d88fb86bb30e8bfb46e3",
+        "2540-box-east-127-100": "b49aa747dfa46ce2926e9b2bc9d4e602c601e448899ac9bd8d54fa23d1ddea48",
+        "2540-box-east-127-135": "04d588ed95300e922a354f6bc60775b84090bcef9aa256d9674e690e2184d818",
+        "2540-box-west-60-100": "b6563a3add757839fb14bfdaab5d89c255b20edae42ff32af37665e2bc4f5f3d",
+        "2540-box-west-60-135": "e9192f713bbdcb0ca88bf5b0b842c4b7e5f948cebc080e99ef40d19e4595260e",
+        "2540-box-west-90-100": "f82a78f7a0fbc14795a44c8f46b665589f83c440618d7061e12cee36713009a6",
+        "2540-box-west-90-135": "c0cf872ade2b93a622ea144cf35534f0d0451cf23af1752022378edef79cd727",
+        "2540-box-west-127-100": "46e2784725d83bf26b11eb38d967d6d8f9dae98b61bef7e2937def4dbd411a33",
+        "2540-box-west-127-135": "1bc65799f90f3bca40bfadfb6c3ac59f2c04a2555c783c705b12d3e9fd2a9931",
+        "2549-box-direct-60-100": "19b6ca03bc9440524a36dbb25b81e7c6c4511202768834582bdc248c255a784f",
+        "2549-box-direct-60-135": "cf74ac55a7575558b87691c5f57ee2c2be2b4c5963b7e7a863ce3961d32f2443",
+        "2549-box-direct-90-100": "19b6ca03bc9440524a36dbb25b81e7c6c4511202768834582bdc248c255a784f",
+        "2549-box-direct-90-135": "cf74ac55a7575558b87691c5f57ee2c2be2b4c5963b7e7a863ce3961d32f2443",
+        "2549-box-direct-127-100": "19b6ca03bc9440524a36dbb25b81e7c6c4511202768834582bdc248c255a784f",
+        "2549-box-direct-127-135": "cf74ac55a7575558b87691c5f57ee2c2be2b4c5963b7e7a863ce3961d32f2443",
+        "2549-box-original-60-100": "6f4f86e94bd7d02355c1ed2889395f2a517324eed40e54452dad51159221ab1b",
+        "2549-box-original-60-135": "51e6ffe1170c9019e5a8c910b1bd1b3b1d61d393ed58a6d4f836a7252fc2592f",
+        "2549-box-original-90-100": "8edeefc15a39d5fc0eaa29b9904fec26040683fcb256a8729cd7fcc7b896a1b4",
+        "2549-box-original-90-135": "5c073f135416b85895752d64b5a9d612d4b9fd5f8adfa2ac39239f1a76531bb1",
+        "2549-box-original-127-100": "38917689c2bf52ef7dedca9ecfc16c9d4b6dc14a743c45d27aba4ecdbb97dbc4",
+        "2549-box-original-127-135": "4b7809014e107230c67dbff684085fa2577ab8bc0cafa7797702e68ad8f8b027",
+        "2549-box-short-60-100": "4ac54e02649b2440af0948dc2fb0f4ec82b78e8b3a590a0dbda83c14ccdd8fe0",
+        "2549-box-short-60-135": "a708e3a871c81685ca8b621f73994c5f56f17e628fb7dcbf7a06d998dd57ceda",
+        "2549-box-short-90-100": "8953d9b4114e7f88a43b75ddb67fea47a4259c773aa75437f6073888588c795b",
+        "2549-box-short-90-135": "11597a8a03386f614cec3db90f8ef080c4e4aa1b4943f8d8e5ffc67ff53c16d5",
+        "2549-box-short-127-100": "73ad4ed576c24d0936e38ab1b519e380ce21fc55e1777fa4975540849c5162ce",
+        "2549-box-short-127-135": "01aeaca8ced2e39570205a63eb3cd90d42a6e31ccc4a43608a6cbc806230c9b0",
+        "2549-box-east-60-100": "1512d1dbe67756afe7de744fd4cd41f842496a30629c69f6993099eecc1406ae",
+        "2549-box-east-60-135": "49e02fc541beecf0bb31e189a398b0c93b51e155abfc47aad7090ec674693e67",
+        "2549-box-east-90-100": "a44b8a1e8fa3c7a2a736a2c3f5b60a1dd9157bcda0dedec4dc0cda2e290d0ec5",
+        "2549-box-east-90-135": "c5a5cd41cb4732142adbe5904d7dd5051bb4ea5de8b7d5a6a7daea43306d11b8",
+        "2549-box-east-127-100": "2ecb1616c4dbd067755b38db77276ff156e80f3a8f6e143c739dd02ed2d34a5d",
+        "2549-box-east-127-135": "c7e6566bafd658d14f49aa7009ffa339cfa14ddb4ce596e13689fb011b1b0591",
+        "2549-box-west-60-100": "d1108613274db745a035e2a08cdb93202d953fc1a848a83b04a2f3db421a18c1",
+        "2549-box-west-60-135": "1d1e580461714c391451b454d32687cbe4d15f2edcd32b69af9561583ac3d288",
+        "2549-box-west-90-100": "bb4fb4ba42205d693b0722278bc730fcbeb835ef3c87088639b868d7e941314f",
+        "2549-box-west-90-135": "5edff828e0bd6a2d0c8b527ef24d11e6d796b6d81df24c97c54cd4979868e04a",
+        "2549-box-west-127-100": "82fecc96de86b3dc494ad7e55f7663c42fd28a62e2e8d3a5b88003a52aa0d313",
+        "2549-box-west-127-135": "d2256fb9cf30f0aa2be8a980c07054138621b88f6e641a935c0f4de30b2271f5"
+      }
+    }
+  },
+  "replays": {
+    "baseline": {
+      "passed": true,
+      "inputPolls": 2852,
+      "controllerAFrames": 0,
+      "receipt": {
+        "armed": 1,
+        "firstPoll": 2500,
+        "endPollExclusive": 2851,
+        "queries": 329,
+        "misses": 0,
+        "retries": 0,
+        "finalQueries": 329,
+        "accepted": 1,
+        "samples": 2636,
+        "positionWrites": 7841,
+        "firstArea2Apply": 1,
+        "firstArea2ApplyComplete": 1,
+        "failures": 0
+      },
+      "stageSummary": {
+        "collision-entry": {
+          "count": 329,
+          "nullFloors": 0,
+          "ownedFloorResults": 0,
+          "maxDisplayMinusStateY": 0.0,
+          "minDisplayMinusStateY": 0.0,
+          "positionSplits": 0
+        },
+        "geometry-query1-return": {
+          "count": 329,
+          "nullFloors": 0,
+          "ownedFloorResults": 0,
+          "maxDisplayMinusStateY": 0.0,
+          "minDisplayMinusStateY": 0.0,
+          "positionSplits": 0
+        },
+        "accepted-return": {
+          "count": 1,
+          "nullFloors": 0,
+          "ownedFloorResults": 0,
+          "maxDisplayMinusStateY": 0.0,
+          "minDisplayMinusStateY": 0.0,
+          "positionSplits": 0
+        },
+        "ordinary-copy-return": {
+          "count": 329,
+          "nullFloors": 0,
+          "ownedFloorResults": 0,
+          "maxDisplayMinusStateY": 0.0,
+          "minDisplayMinusStateY": 0.0,
+          "positionSplits": 0
+        },
+        "final-query-return": {
+          "count": 329,
+          "nullFloors": 0,
+          "ownedFloorResults": 0,
+          "maxDisplayMinusStateY": 0.0,
+          "minDisplayMinusStateY": 0.0,
+          "positionSplits": 0
+        }
+      },
+      "accepted": [
+        {
+          "stage": "accepted-return",
+          "pc": 2149909280,
+          "poll": 2808,
+          "timer": 2807,
+          "area": 1,
+          "action": 4864,
+          "actionTimer": 0,
+          "depth": 0,
+          "positions": [
+            3304995876,
+            1145044992,
+            3296829920,
+            3304995876,
+            1145044992,
+            3296829920,
+            3304995876,
+            1145044992,
+            3296829920
+          ],
+          "floor": 2149146032,
+          "floorIndex": 468,
+          "height": 1145044992,
+          "owner": -1,
+          "platform": -1,
+          "objectPlatform": -1,
+          "topBehavior": 2148438228,
+          "topActive": 0,
+          "topTimer": 19,
+          "topAction": 0,
+          "liveTopCount": 0
+        }
+      ],
+      "firstArea2Apply": [
+        {
+          "stage": "first-area2-apply-entry",
+          "pc": 2150401008,
+          "poll": 2831,
+          "timer": 2830,
+          "area": 2,
+          "action": 6450,
+          "actionTimer": 0,
+          "depth": 0,
+          "positions": [
+            0,
+            1168891904,
+            1132462080,
+            0,
+            1168891904,
+            1132462080,
+            0,
+            1168891904,
+            1132462080
+          ],
+          "floor": 0,
+          "floorIndex": -1,
+          "height": 0,
+          "owner": -1,
+          "platform": -1,
+          "objectPlatform": -1,
+          "topBehavior": 2148438228,
+          "topActive": 0,
+          "topTimer": 19,
+          "topAction": 0,
+          "liveTopCount": -1
+        },
+        {
+          "stage": "first-area2-apply-return",
+          "pc": 2150223816,
+          "poll": 2831,
+          "timer": 2830,
+          "area": 2,
+          "action": 6450,
+          "actionTimer": 0,
+          "depth": 0,
+          "positions": [
+            0,
+            1168891904,
+            1132462080,
+            0,
+            1168891904,
+            1132462080,
+            0,
+            1168891904,
+            1132462080
+          ],
+          "floor": 0,
+          "floorIndex": -1,
+          "height": 0,
+          "owner": -1,
+          "platform": -1,
+          "objectPlatform": -1,
+          "topBehavior": 2148438228,
+          "topActive": 0,
+          "topTimer": 19,
+          "topAction": 0,
+          "liveTopCount": -1
+        }
+      ],
+      "scope": "Finite authentic-JP observations; no all-history theorem and no supplied gameplay state.",
+      "restoredOutputsMatched": 0,
+      "comparison": {
+        "inputRows": 2852,
+        "checkedRows": 2483,
+        "aButtonFrames": 0,
+        "timerOffsets": [
+          1
+        ],
+        "mismatchFieldCounts": {},
+        "firstMismatches": [],
+        "eventFields": {
+          "FLT_CHANGE_FORWARD_VEL": [
+            "from",
+            "reason",
+            "to",
+            "type"
+          ],
+          "FLT_CHANGE_ACTION": [
+            "from",
+            "to",
+            "type"
+          ],
+          "FLT_EXECUTE_ACTION": [
+            "action",
+            "faceAngle",
+            "forwardVel",
+            "pos",
+            "type",
+            "vel"
+          ],
+          "FLT_BEGIN_MOVEMENT_STEP": [
+            "stepNum",
+            "stepType",
+            "type"
+          ],
+          "FLT_END_MOVEMENT_STEP": [
+            "_placeholder",
+            "type"
+          ],
+          "FLT_WALL_PUSH": [
+            "from",
+            "surface",
+            "to",
+            "type"
+          ]
+        },
+        "passed": true
+      },
+      "rawLogSha256": "36a2bf5b063a6790a7fe5fffad10faa3b0f9a101bbdef2b0936e8c839834df66",
+      "inputsSha256": "9bcc451964025d9f0bb1344c45957b6bfd095451b44bfb9a01f8584a75db6a72",
+      "queryLists": {
+        "staticResults": 658,
+        "dynamicResults": 0
+      }
+    },
+    "direct": {
+      "passed": true,
+      "inputPolls": 2789,
+      "controllerAFrames": 0,
+      "receipt": {
+        "armed": 1,
+        "firstPoll": 2549,
+        "endPollExclusive": 2789,
+        "queries": 166,
+        "misses": 0,
+        "retries": 0,
+        "finalQueries": 166,
+        "accepted": 0,
+        "samples": 1328,
+        "positionWrites": 3991,
+        "firstArea2Apply": 0,
+        "firstArea2ApplyComplete": 0,
+        "failures": 0
+      },
+      "stageSummary": {
+        "collision-entry": {
+          "count": 166,
+          "nullFloors": 0,
+          "ownedFloorResults": 0,
+          "maxDisplayMinusStateY": 0.0,
+          "minDisplayMinusStateY": -181.1000213623047,
+          "positionSplits": 82
+        },
+        "geometry-query1-return": {
+          "count": 166,
+          "nullFloors": 0,
+          "ownedFloorResults": 0,
+          "maxDisplayMinusStateY": 0.0,
+          "minDisplayMinusStateY": -181.1000213623047,
+          "positionSplits": 82
+        },
+        "ordinary-copy-return": {
+          "count": 166,
+          "nullFloors": 0,
+          "ownedFloorResults": 0,
+          "maxDisplayMinusStateY": 0.0,
+          "minDisplayMinusStateY": -181.1000213623047,
+          "positionSplits": 83
+        },
+        "final-query-return": {
+          "count": 166,
+          "nullFloors": 0,
+          "ownedFloorResults": 0,
+          "maxDisplayMinusStateY": 0.0,
+          "minDisplayMinusStateY": -181.1000213623047,
+          "positionSplits": 83
+        }
+      },
+      "accepted": [],
+      "firstArea2Apply": [],
+      "scope": "Finite authentic-JP observations; no all-history theorem and no supplied gameplay state.",
+      "restoredOutputsMatched": 240,
+      "comparison": {
+        "inputRows": 2789,
+        "checkedRows": 2367,
+        "aButtonFrames": 0,
+        "timerOffsets": [
+          1
+        ],
+        "mismatchFieldCounts": {},
+        "firstMismatches": [],
+        "eventFields": {
+          "FLT_CHANGE_FORWARD_VEL": [
+            "from",
+            "reason",
+            "to",
+            "type"
+          ],
+          "FLT_CHANGE_ACTION": [
+            "from",
+            "to",
+            "type"
+          ],
+          "FLT_EXECUTE_ACTION": [
+            "action",
+            "faceAngle",
+            "forwardVel",
+            "pos",
+            "type",
+            "vel"
+          ],
+          "FLT_BEGIN_MOVEMENT_STEP": [
+            "stepNum",
+            "stepType",
+            "type"
+          ],
+          "FLT_END_MOVEMENT_STEP": [
+            "_placeholder",
+            "type"
+          ],
+          "FLT_WALL_PUSH": [
+            "from",
+            "surface",
+            "to",
+            "type"
+          ]
+        },
+        "passed": true
+      },
+      "rawLogSha256": "d28507afed7089ea57b15b69938aabf41e166d7e16bd97713a086e92b6d04087",
+      "inputsSha256": "dec0b39ea456b7bd13ec6889d0248dfcf9b17c2a2343f6459584586806dd11b1",
+      "queryLists": {
+        "staticResults": 332,
+        "dynamicResults": 0
+      }
+    },
+    "north": {
+      "passed": true,
+      "inputPolls": 2789,
+      "controllerAFrames": 0,
+      "receipt": {
+        "armed": 1,
+        "firstPoll": 2549,
+        "endPollExclusive": 2789,
+        "queries": 190,
+        "misses": 0,
+        "retries": 0,
+        "finalQueries": 190,
+        "accepted": 0,
+        "samples": 1520,
+        "positionWrites": 4615,
+        "firstArea2Apply": 0,
+        "firstArea2ApplyComplete": 0,
+        "failures": 0
+      },
+      "stageSummary": {
+        "collision-entry": {
+          "count": 190,
+          "nullFloors": 0,
+          "ownedFloorResults": 0,
+          "maxDisplayMinusStateY": 0.0,
+          "minDisplayMinusStateY": -181.1000213623047,
+          "positionSplits": 82
+        },
+        "geometry-query1-return": {
+          "count": 190,
+          "nullFloors": 0,
+          "ownedFloorResults": 0,
+          "maxDisplayMinusStateY": 0.0,
+          "minDisplayMinusStateY": -181.1000213623047,
+          "positionSplits": 82
+        },
+        "ordinary-copy-return": {
+          "count": 190,
+          "nullFloors": 0,
+          "ownedFloorResults": 0,
+          "maxDisplayMinusStateY": 0.0,
+          "minDisplayMinusStateY": -181.1000213623047,
+          "positionSplits": 83
+        },
+        "final-query-return": {
+          "count": 190,
+          "nullFloors": 0,
+          "ownedFloorResults": 0,
+          "maxDisplayMinusStateY": 0.0,
+          "minDisplayMinusStateY": -181.1000213623047,
+          "positionSplits": 83
+        }
+      },
+      "accepted": [],
+      "firstArea2Apply": [],
+      "scope": "Finite authentic-JP observations; no all-history theorem and no supplied gameplay state.",
+      "restoredOutputsMatched": 240,
+      "comparison": {
+        "inputRows": 2789,
+        "checkedRows": 2391,
+        "aButtonFrames": 0,
+        "timerOffsets": [
+          1
+        ],
+        "mismatchFieldCounts": {},
+        "firstMismatches": [],
+        "eventFields": {
+          "FLT_CHANGE_FORWARD_VEL": [
+            "from",
+            "reason",
+            "to",
+            "type"
+          ],
+          "FLT_CHANGE_ACTION": [
+            "from",
+            "to",
+            "type"
+          ],
+          "FLT_EXECUTE_ACTION": [
+            "action",
+            "faceAngle",
+            "forwardVel",
+            "pos",
+            "type",
+            "vel"
+          ],
+          "FLT_BEGIN_MOVEMENT_STEP": [
+            "stepNum",
+            "stepType",
+            "type"
+          ],
+          "FLT_END_MOVEMENT_STEP": [
+            "_placeholder",
+            "type"
+          ],
+          "FLT_WALL_PUSH": [
+            "from",
+            "surface",
+            "to",
+            "type"
+          ]
+        },
+        "passed": true
+      },
+      "rawLogSha256": "a0db29c957d2f6b06df6c9bd655231e80ad5b627c7cfc4b7cde79c429a9e80be",
+      "inputsSha256": "1a2f5be12b692b3eaf1538043c574a298bd32a415b78935fc97e0dbc7b82ad7b",
+      "queryLists": {
+        "staticResults": 380,
+        "dynamicResults": 0
+      }
+    },
+    "arrival": {
+      "passed": true,
+      "inputPolls": 2969,
+      "controllerAFrames": 0,
+      "receipt": {
+        "armed": 1,
+        "firstPoll": 2549,
+        "endPollExclusive": 2969,
+        "queries": 298,
+        "misses": 0,
+        "retries": 0,
+        "finalQueries": 298,
+        "accepted": 1,
+        "samples": 2388,
+        "positionWrites": 6985,
+        "firstArea2Apply": 1,
+        "firstArea2ApplyComplete": 1,
+        "failures": 0
+      },
+      "stageSummary": {
+        "collision-entry": {
+          "count": 298,
+          "nullFloors": 0,
+          "ownedFloorResults": 0,
+          "maxDisplayMinusStateY": 0.0,
+          "minDisplayMinusStateY": 0.0,
+          "positionSplits": 0
+        },
+        "geometry-query1-return": {
+          "count": 298,
+          "nullFloors": 0,
+          "ownedFloorResults": 0,
+          "maxDisplayMinusStateY": 0.0,
+          "minDisplayMinusStateY": 0.0,
+          "positionSplits": 0
+        },
+        "accepted-return": {
+          "count": 1,
+          "nullFloors": 0,
+          "ownedFloorResults": 0,
+          "maxDisplayMinusStateY": 0.0,
+          "minDisplayMinusStateY": 0.0,
+          "positionSplits": 0
+        },
+        "ordinary-copy-return": {
+          "count": 298,
+          "nullFloors": 0,
+          "ownedFloorResults": 0,
+          "maxDisplayMinusStateY": 0.0,
+          "minDisplayMinusStateY": 0.0,
+          "positionSplits": 0
+        },
+        "final-query-return": {
+          "count": 298,
+          "nullFloors": 0,
+          "ownedFloorResults": 0,
+          "maxDisplayMinusStateY": 0.0,
+          "minDisplayMinusStateY": 0.0,
+          "positionSplits": 0
+        }
+      },
+      "accepted": [
+        {
+          "stage": "accepted-return",
+          "pc": 2149909280,
+          "poll": 2826,
+          "timer": 2825,
+          "area": 1,
+          "action": 4864,
+          "actionTimer": 0,
+          "depth": 0,
+          "positions": [
+            3305007478,
+            1145831424,
+            3297140736,
+            3305007478,
+            1145831424,
+            3297140736,
+            3305007478,
+            1145831424,
+            3297140736
+          ],
+          "floor": 2149146032,
+          "floorIndex": 468,
+          "height": 1145044992,
+          "owner": -1,
+          "platform": -1,
+          "objectPlatform": -1,
+          "topBehavior": 2148438228,
+          "topActive": 0,
+          "topTimer": 19,
+          "topAction": 0,
+          "liveTopCount": 0
+        }
+      ],
+      "firstArea2Apply": [
+        {
+          "stage": "first-area2-apply-entry",
+          "pc": 2150401008,
+          "poll": 2849,
+          "timer": 2848,
+          "area": 2,
+          "action": 6450,
+          "actionTimer": 0,
+          "depth": 0,
+          "positions": [
+            0,
+            1168891904,
+            1132462080,
+            0,
+            1168891904,
+            1132462080,
+            0,
+            1168891904,
+            1132462080
+          ],
+          "floor": 0,
+          "floorIndex": -1,
+          "height": 0,
+          "owner": -1,
+          "platform": -1,
+          "objectPlatform": -1,
+          "topBehavior": 2148438228,
+          "topActive": 0,
+          "topTimer": 19,
+          "topAction": 0,
+          "liveTopCount": -1
+        },
+        {
+          "stage": "first-area2-apply-return",
+          "pc": 2150223816,
+          "poll": 2849,
+          "timer": 2848,
+          "area": 2,
+          "action": 6450,
+          "actionTimer": 0,
+          "depth": 0,
+          "positions": [
+            0,
+            1168891904,
+            1132462080,
+            0,
+            1168891904,
+            1132462080,
+            0,
+            1168891904,
+            1132462080
+          ],
+          "floor": 0,
+          "floorIndex": -1,
+          "height": 0,
+          "owner": -1,
+          "platform": -1,
+          "objectPlatform": -1,
+          "topBehavior": 2148438228,
+          "topActive": 0,
+          "topTimer": 19,
+          "topAction": 0,
+          "liveTopCount": -1
+        }
+      ],
+      "scope": "Finite authentic-JP observations; no all-history theorem and no supplied gameplay state.",
+      "restoredOutputsMatched": 420,
+      "comparison": {
+        "inputRows": 2969,
+        "checkedRows": 2501,
+        "aButtonFrames": 0,
+        "timerOffsets": [
+          1
+        ],
+        "mismatchFieldCounts": {},
+        "firstMismatches": [],
+        "eventFields": {
+          "FLT_CHANGE_FORWARD_VEL": [
+            "from",
+            "reason",
+            "to",
+            "type"
+          ],
+          "FLT_CHANGE_ACTION": [
+            "from",
+            "to",
+            "type"
+          ],
+          "FLT_EXECUTE_ACTION": [
+            "action",
+            "faceAngle",
+            "forwardVel",
+            "pos",
+            "type",
+            "vel"
+          ],
+          "FLT_BEGIN_MOVEMENT_STEP": [
+            "stepNum",
+            "stepType",
+            "type"
+          ],
+          "FLT_END_MOVEMENT_STEP": [
+            "_placeholder",
+            "type"
+          ],
+          "FLT_WALL_PUSH": [
+            "from",
+            "surface",
+            "to",
+            "type"
+          ]
+        },
+        "passed": true
+      },
+      "rawLogSha256": "ec050fe96feccf2fb027c41243c18cfc1d4b0a4e434e326863f851738b1db78a",
+      "inputsSha256": "ff35c0cff615d3c1a1d057a638d967110c13ea957a1e0673a345e47e584f025e",
+      "queryLists": {
+        "staticResults": 596,
+        "dynamicResults": 0
+      }
+    }
+  }
+}
