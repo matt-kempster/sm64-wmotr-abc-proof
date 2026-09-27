@@ -9,6 +9,11 @@ a new Coq theorem or a discharged capstone premise.
 
 ## What now works
 
+The follow-up [Reverse Scattershot review](rank1-reverse-scattershot.md) explains
+why stopping at this partial repair missed the requested milestone, and how
+randomized exploration differs from completing the update implementation.
+Neither the coverage gap nor the helper timeout establishes infeasibility.
+
 The application interprets the actual generated `find_floor_from_list` loop,
 including its next pointers, triangle tests, early rejection and first eligible
 return. It also constructs the complete `find_floor` calculation: dynamic and
