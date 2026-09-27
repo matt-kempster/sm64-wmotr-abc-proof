@@ -217,12 +217,12 @@ proofs/NoAImpliesNoFly/NoAImpliesNoFlyTwelve.v
 
 # --- GOAL 2 capstone, height form (SPINE: the T0 composition frame promoted
 #     from playground/; seg_action = GOAL 1's frame_ok_linked12, the flank
-#     and y rows are named open hypotheses; HeightPhi = the concrete
+#     and y rows are named open hypotheses; HeightInvariant = the concrete
 #     height invariant Phi over real MarioState fields) ---
-proofs/WMotRRequiresA/HeightPhi.v
-proofs/WMotRRequiresA/HeightBallistic.v
-proofs/WMotRRequiresA/HeightMoves.v
-proofs/WMotRRequiresA/HeightMove.v
+proofs/WMotRRequiresA/HeightInvariant.v
+proofs/WMotRRequiresA/HeightFloatSteps.v
+proofs/WMotRRequiresA/HeightBudgetArith.v
+proofs/WMotRRequiresA/HeightMoveCatalog.v
 proofs/WMotRRequiresA/HeightFrame.v
 
 # --- executable Clight: interpreter (sound vs ClightBigstep), vm-computable

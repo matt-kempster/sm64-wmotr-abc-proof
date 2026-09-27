@@ -1,10 +1,10 @@
 # GOAL 2: the height invariant Φ, concretely (2026-09-27)
 
-> **Update (as built, `HeightPhi.v` / `HeightMove.v`):**
-> - Φ reads its cells as `PhiC`, which adds `gfx.pos[1]` and its own budget.
+> **Update (as built, `HeightInvariant.v` / `HeightMoveCatalog.v`):**
+> - Φ reads its cells as `budget_ok`, which adds `gfx.pos[1]` and its own budget.
 > - `GP_RESERVE` is 111.
 > - `windup_left` carries EPS per frame left.
-> - `sk1_credit` gains +1/4 while v > −1, so the bounce apex is 371.707 ≤ 372.
+> - `sk_bounced_credit` gains +1/4 while v > −1, so the bounce apex is 371.707 ≤ 372.
 > - The slide-kick clause is rounding-aware, and there is a new ground-pound clause.
 >
 > Why each change was needed: `docs/goal2-crux-decomposition.md` §"As built".
@@ -70,7 +70,7 @@ y + energy exactly. In binary32 each rising frame (4 roundings of `pos += vel/4`
 `vel -= g`) can add up to ~1/128, and a per-frame invariant cannot absorb that
 repeatedly. So `bal_g(v) = energy + EPS·(v/g + 1)` for v > 0. Post-bounce slide kick
 carries EPS·((v+75)/2 + 1), counted until the −75 clamp. Descending frames round
-down-safely (y' ≤ y exactly) and need nothing. `Unwired/HeightBallistic.v`,
+down-safely (y' ≤ y exactly) and need nothing. `Unwired/HeightFloatSteps.v`,
 `ballistic_frame`, proves the rising and falling air frame against this budget, in
 binary32, over the real operations.
 

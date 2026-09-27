@@ -72,7 +72,7 @@ a floor/surface, with the exact window above the probed position.
 |---|---|---|---|---|
 | A1 | landing snap-up | `perform_air_quarter_step` land branch, `mario_step.c:431,442` | **+78** above `nextPos[1]` (find_floor buffer) | `nextPos[1] <= floorHeight`, any air step |
 | A2 | ledge grab | `check_ledge_grab`, `mario_step.c:348-386`, entered `:471` | **+238** above `nextPos[1]` (`160` search + `78` buffer), floor must be in `(+100, +238]` | `vel[1] <= 0` ∧ **upperWall(`+150`)==NULL** ∧ **lowerWall(`+30`)!=NULL** ∧ displacement-against-vel ∧ `ledge−nextPos > 100` ∧ stepArg has `LEDGE_GRAB` |
-| A3 | ground step-up | `perform_ground_quarter_step`, `mario_step.c:302` | **+78** per qstep (×4/frame), onto real floors | grounded; `nextPos[1] <= floorHeight+100` ∧ `floorHeight+160 < ceilHeight` |
+| A3 | ground step-up | `perform_ground_quarter_step`, `mario_step.c:302` | **+78** per quarter_step (×4/frame), onto real floors | grounded; `nextPos[1] <= floorHeight+100` ∧ `floorHeight+160 < ceilHeight` |
 | A4 | ground "left-ground" snap | `mario_step.c:287-295` | sets `m->floor`/`floorHeight` (no up-teleport of pos beyond nextPos) | `nextPos[1] > floorHeight+100` ∧ `nextPos[1]+160 < ceilHeight` |
 | A5 | ceiling hang grab | `perform_air_quarter_step`, `mario_step.c:451-454` | pins to hangable ceiling | `stepArg & AIR_STEP_CHECK_HANG` ∧ `m->ceil->type == SURFACE_HANGABLE` — **absent in WMotR** |
 | A6 | ledge-grab teleport | `check_ledge_grab` `mario_step.c:377` + `common_air_action_step:431` | `m->pos := ledgePos` (the A2 floor), action→`ACT_LEDGE_GRAB` | consequence of A2 |
@@ -151,7 +151,7 @@ needs a held object) qualifies** — all the jump-family entries are A-gated
 is reachable no-A (walk off an edge) and its `vel[1] <= 0` satisfies the gate.
 The rollouts (`:1363,1404`) and dive (`:743`) pass **`0`** — **no ledge grab**.
 
-### A3 — ground step-up (window +78/qstep, real floors)
+### A3 — ground step-up (window +78/quarter_step, real floors)
 `perform_ground_quarter_step` (`mario_step.c:258-320`): `floorHeight =
 find_floor(nextPos[0], nextPos[1], nextPos[2], &floor)` with `nextPos[1] =
 m->pos[1]` (`:330`), +78 buffer. If `nextPos[1] <= floorHeight+100` (`:287`
@@ -193,7 +193,7 @@ carried unchanged). Dead.
 ## CENSUS B — LAUNCH CONSTANTS (no-A)
 
 Every site that writes `m->vel[1]` to a positive value (the only lift channel:
-`pos += vel[1]/4` per qstep), plus the two non-`vel[1]` lifters (GP windup, anim
+`pos += vel[1]/4` per quarter_step), plus the two non-`vel[1]` lifters (GP windup, anim
 translation). Apex computed with the discrete recurrence (gravity `−4`).
 
 ### B.1 — Reachable without A (the honest kit)

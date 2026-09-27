@@ -25,11 +25,11 @@ all in `Unwired/`, and the theorem moved nowhere. See
   and boundary rows; see `docs/TRUST.md` §4).
 - **GOAL 2** (WMotR needs A): `WMotRRequiresA/HeightFrame.v`,
   `wmotr_noA_height_bound_linked12`. This is a conditional theorem. Φ is concrete
-  (`HeightPhi.v`), `Hphi_y` is proved (YMAX = 2744), and the crux is the lemma
-  `seg_action_phi`, whose move arithmetic is proved (`HeightMove.Phi_of_moves`). Open rows:
+  (`HeightInvariant.v`), `Hphi_y` is proved (YMAX = 2744), and the crux is the lemma
+  `seg_action_phi`, whose move arithmetic is proved (`HeightMoveCatalog.chain_keeps_budget`). Open rows:
   - `R_noA`, the whitelist parameter
-  - `Hact_whitelist`
-  - `Hframe_move`, the value walk. It is false if an unmodelled move fires, so check the
+  - `Hframe_stays_noA`
+  - `Hframe_is_move_chain`, the value walk. It is false if an unmodelled move fires, so check the
     `Step` constructors against any new y/vel writer.
   - `wmotr_gap` and `wmotr_poles`, level data
   - the flank specs (TRUST 0.7)

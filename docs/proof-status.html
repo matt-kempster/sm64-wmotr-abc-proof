@@ -209,19 +209,19 @@ produces. They were rewritten as labeled specs that carry the invariants. The pl
   <tr><th>Row</th><th>Track</th><th>Status</th><th>What discharges it</th></tr>
   <tr><td><code>Φ</code></td><td>T3</td>
       <td><span class="pill p-proved">defined</span></td>
-      <td><code>HeightPhi.Phi_wmotr</code>: y + credit(action, state, timer, vel[1]) ≤ 2372 + 372 over real
+      <td><code>HeightInvariant.height_invariant</code>: y + credit(action, state, timer, vel[1]) ≤ 2372 + 372 over real
       <code>MarioState</code> fields (offsets and action ids pinned against the AST), plus side clauses. Holds on all
       620 recorded real states. Still a parameter inside it: the no-A action whitelist <code>R_noA</code>.</td></tr>
   <tr><td>the crux, <code>seg_action_phi</code></td><td>T3</td>
       <td><span class="pill p-proved">lemma</span></td>
       <td>“One real <code>execute_mario_action</code> keeps Φ” is now derived. Every move a frame can make (binary32 air
       step, ceiling-cut step, slide-kick signed-energy step, ground-pound windup, E3 switches, attach to floor / ledge /
-      pole, floor refresh, OOB recovery) keeps the budget: <code>HeightMove.Phi_of_moves</code>, proved.</td></tr>
-  <tr><td><code>Hframe_move</code></td><td>T3</td>
+      pole, floor refresh, OOB recovery) keeps the budget: <code>HeightMoveCatalog.chain_keeps_budget</code>, proved.</td></tr>
+  <tr><td><code>Hframe_is_move_chain</code></td><td>T3</td>
       <td><span class="pill p-open">open</span></td>
       <td>The real frame’s effect on Φ’s cells is a chain of those moves: the value walk. Start at
       <code>perform_air_step</code> (the playground quarter-step prototype is its first brick).</td></tr>
-  <tr><td><code>Hact_whitelist</code>, <code>R_noA</code></td><td>T3</td>
+  <tr><td><code>Hframe_stays_noA</code>, <code>R_noA</code></td><td>T3</td>
       <td><span class="pill p-open">open</span></td>
       <td>The frame keeps the action in the no-A whitelist: GOAL 1’s engine at a new predicate. The census found
       73 actions, 12 of them airborne (<code>docs/goal2-rnoa-census.md</code>).</td></tr>
@@ -231,7 +231,7 @@ produces. They were rewritten as labeled specs that carry the invariants. The pl
       generated/.</td></tr>
   <tr><td><code>Hphi_y</code></td><td>T3</td>
       <td><span class="pill p-proved">proved</span></td>
-      <td>Φ ⇒ y ≤ 2744 (<code>Phi_wmotr_y</code>): every credit is ≥ 0.</td></tr>
+      <td>Φ ⇒ y ≤ 2744 (<code>height_invariant_y</code>): every credit is ≥ 0.</td></tr>
   <tr><td>flank specs (poll / platform / level / rest)</td><td>T1/T4</td>
       <td><span class="pill p-boundary">labeled specs</span></td>
       <td>Each flank’s y/action clauses come from the censuses; its MWF/Φ carry becomes walkable once that code

@@ -13,7 +13,7 @@
 ```
 star needs all 8 red coins → coin #2 (y = 3140) must be touched
   └─ touching needs pos[1] ≥ 3140 − 160 (hitbox)
-       └─ a no-A run keeps pos[1] ≤ 2744 < 2980          ← HeightFrame.v + HeightPhi.v
+       └─ a no-A run keeps pos[1] ≤ 2744 < 2980          ← HeightFrame.v + HeightInvariant.v
             └─ Mario's own frame preserves GOAL 1's invariant   ← GOAL 1 (frame_ok_linked12)
 ```
 
@@ -28,9 +28,9 @@ Mario segment's preservation of GOAL 1's invariant is the proved
 
 "One real Mario frame preserves Φ" is the lemma `seg_action_phi`. It rests on:
 
-- `Hact_whitelist`: the frame keeps the action in `R_noA`. This is GOAL 1's engine at a
+- `Hframe_stays_noA`: the frame keeps the action in `R_noA`. This is GOAL 1's engine at a
   new predicate. `R_noA` is still a parameter; the census is `docs/goal2-rnoa-census.md`.
-- `Hframe_move`: the real frame's effect on Φ's cells is a chain of `HeightMove` moves.
+- `Hframe_is_move_chain`: the real frame's effect on Φ's cells is a chain of `HeightMoveCatalog` moves.
   This is the T3 value walk.
 - `wmotr_gap`, `wmotr_poles`: WMotR level data.
 
@@ -41,13 +41,13 @@ Also open:
 
 ## Done
 
-- **Φ is concrete** (`HeightPhi.v`, `Phi_wmotr`). It is the budget y + credit ≤ 2372 + 372,
+- **Φ is concrete** (`HeightInvariant.v`, `height_invariant`). It is the budget y + credit ≤ 2372 + 372,
   over real MarioState cells plus `gfx.pos[1]`, with offsets and action ids pinned against
   the generated AST.
 - **`Hphi_y` is proved**, so YMAX = 2744.
-- **`HeightMove.v`** defines the moves a frame can make (air step, ceiling cut, slide-kick
+- **`HeightMoveCatalog.v`** defines the moves a frame can make (air step, ceiling cut, slide-kick
   signed energy, ground-pound windup, E3 switches, attach, floor refresh, OOB). Its
-  `Phi_of_moves` proves the budget for each one in binary32, using `HeightBallistic.v`
-  (float32 arithmetic) and `HeightMoves.v` (real arithmetic).
+  `chain_keeps_budget` proves the budget for each one in binary32, using `HeightFloatSteps.v`
+  (float32 arithmetic) and `HeightBudgetArith.v` (real arithmetic).
 
 Prototypes still live in `playground/` (T1 PlatformInert, T2 FloatBrick, T3 ValueWalk).

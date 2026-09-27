@@ -18,6 +18,34 @@ still rests on exactly the 4 standard CompCert axioms.
 
 ---
 
+## 00. GOAL 2 rename pass (2026-09-27)
+
+GOAL 2's first names were terse working names. Files and identifiers were renamed
+to literal ones; no statement changed.
+
+| Old file | New file | What it holds |
+|---|---|---|
+| `HeightPhi.v` | `HeightInvariant.v` | the height invariant Φ over real `MarioState` cells |
+| `HeightBallistic.v` | `HeightFloatSteps.v` | binary32 facts about the air/quarter steps and gravity |
+| `HeightMoves.v` | `HeightBudgetArith.v` | real-number budget arithmetic (launches, bounces, gap fact) |
+| `HeightMove.v` | `HeightMoveCatalog.v` | the `Move` catalog and `chain_keeps_budget` |
+
+| Old | New | Old | New |
+|---|---|---|---|
+| `PhiC` | `budget_ok` | `Phi_wmotr` | `height_invariant` |
+| `cells_of` | `read_cells` | `cr` | `credit_of` |
+| `Range` | `InRange` | `st_of` / `tm_of` | `state_of` / `timer_of` |
+| `c_a c_st c_tm c_y c_v c_fh c_gy` | `c_action c_state c_timer c_posy c_vely c_floorh c_gfxy` | `bal`, `bal_*` | `rise_credit`, `rise_credit_*` |
+| `kind` / `kind_of` / `kd` | `mode` / `mode_of_action` / `mode_of` | `kcredit` / `kg` | `mode_credit` / `mode_gravity` |
+| `KFF KSK0 KAir KSK1` | `M_Freefall M_SlideKick M_Air M_SlideKickBounced` | `KGP0 KGP1 KGround` | `M_PoundWindup M_PoundFall M_Ground` |
+| `sk1_*`, `S_sk1*` | `sk_bounced_*`, `S_sk_bounced*` | `vcap` | `launch_cap` |
+| `Step` / `HMove` / `FrameMove` | `Move` / `RangedMove` / `MoveChain` | `Anchor` / `Refreshed` | `AttachOK` / `FloorRefreshOK` |
+| `Phi_of_step` / `Phi_of_moves` | `move_keeps_budget` / `chain_keeps_budget` | `WFloor` / `WPole` | `wmotr_floor` / `wmotr_pole` |
+| `Hframe_move` | `Hframe_is_move_chain` | `Hact_whitelist` | `Hframe_stays_noA` |
+| `qstep` / `qiter` / `air_y4` | `quarter_step` / `quarter_steps` / `air_step_y` | | |
+
+---
+
 ## 0. Later: goal-based reorg + capstone rename (also 2026-06-01)
 
 After the layer reorg below, the tree was reorganized **by the two nested goals**,

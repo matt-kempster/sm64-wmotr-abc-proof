@@ -1,25 +1,25 @@
 (* ======================================================================= *)
 (* GOAL 2: the ballistic arm of the height frame moves (binary32).         *)
 (*                                                                          *)
-(* One no-collision air frame, in binary32, does not raise Phi's budget     *)
-(* quantity  y + bal_g(v)  (HeightPhi.bal: energy + EPS per ascent frame).  *)
-(* The frame is the real sequence of operations                             *)
-(*   perform_air_step (mario_step.c:618-623), 4 times:                      *)
-(*       intendedPos[1] = m->pos[1] + m->vel[1] / 4.0f;  pos := intended    *)
-(*   apply_gravity (mario_step.c:543-548 for g = 2, :575-579 for g = 4):    *)
-(*       m->vel[1] -= g;  if (m->vel[1] < -75.0f) m->vel[1] = -75.0f;       *)
-(* transcribed as Float32 operations below.  That the generated Clight      *)
-(* computes exactly these values is the T3 value walk's job; this file is   *)
-(* the arithmetic that walk will consume.                                   *)
+(* One no-collision air frame, in binary32, does not raise Phi's budget    *)
+(* quantity  y + rise_credit_g(v)  (HeightInvariant.rise_credit: energy + EPS per ascent frame). *)
+(* The frame is the real sequence of operations                            *)
+(*   perform_air_step (mario_step.c:618-623), 4 times:                     *)
+(*       intendedPos[1] = m->pos[1] + m->vel[1] / 4.0f;  pos := intended   *)
+(*   apply_gravity (mario_step.c:543-548 for g = 2, :575-579 for g = 4):   *)
+(*       m->vel[1] -= g;  if (m->vel[1] < -75.0f) m->vel[1] = -75.0f;      *)
+(* transcribed as Float32 operations below.  That the generated Clight     *)
+(* computes exactly these values is the T3 value walk's job; this file is  *)
+(* the arithmetic that walk will consume.                                  *)
 (*                                                                          *)
-(* Consumed by HeightMove.v (Phi_of_move, the air-step constructors).      *)
+(* Consumed by HeightMoveCatalog.v (chain_keeps_budget, the air-step constructors). *)
 (* ======================================================================= *)
 
 From Coq Require Import ZArith Reals Lra Lia.
 From compcert Require Import Floats Integers.
 From Flocq Require Import Binary Bits Defs Raux Zaux Generic_fmt FLT Ulp Round_NE.
 From Flocq Require Import BinarySingleNaN.
-From SM64.Proofs Require Import HeightPhi.
+From SM64.Proofs Require Import HeightInvariant.
 
 Local Open Scope R_scope.
 
@@ -35,10 +35,10 @@ Local Instance mono_exp_32 : Monotone_exp fexp32 := FLT_exp_monotone (-149) 24.
 Local Transparent Float32.add Float32.sub Float32.div Float32.cmp Float32.compare.
 
 (* ----------------------------------------------------------------------- *)
-(* 1. Rounding facts.                                                       *)
+(* 1. Rounding facts.                                                      *)
 (* ----------------------------------------------------------------------- *)
 
-(* |x| <= 2^e  ==>  round-to-nearest moves x by at most 2^(e-24) *)
+(* |x| <= 2^e  ==>  round-to-nearest moves x by at most 2^(e-24)           *)
 Lemma rnd_err : forall x e, (-120 <= e)%Z ->
   Rabs x <= bpow radix2 e -> Rabs (rnd x - x) <= bpow radix2 (e - 24).
 Proof.
@@ -94,7 +94,7 @@ Proof.
 Qed.
 
 (* ----------------------------------------------------------------------- *)
-(* 2. The three Float32 operations, as roundings of the real result.        *)
+(* 2. The three Float32 operations, as roundings of the real result.       *)
 (* ----------------------------------------------------------------------- *)
 Lemma f32_add_val : forall a b, F32 a = true -> F32 b = true ->
   Rabs (R2 a + R2 b) <= bpow radix2 100 ->
@@ -133,7 +133,7 @@ Proof.
 Qed.
 
 (* ----------------------------------------------------------------------- *)
-(* 3. The constants 4.0f, 2.0f, -75.0f (bit patterns as clightgen emits).   *)
+(* 3. The constants 4.0f, 2.0f, -75.0f (bit patterns as clightgen emits).  *)
 (* ----------------------------------------------------------------------- *)
 Definition f4  : float32 := Float32.of_bits (Int.repr 1082130432).   (* 0x40800000 *)
 Definition f2  : float32 := Float32.of_bits (Int.repr 1073741824).   (* 0x40000000 *)
@@ -150,34 +150,34 @@ Lemma F32_f2 : F32 f2 = true.   Proof. vm_compute. reflexivity. Qed.
 Lemma F32_fm75 : F32 fm75 = true. Proof. vm_compute. reflexivity. Qed.
 
 (* ----------------------------------------------------------------------- *)
-(* 4. The frame.                                                            *)
+(* 4. The frame.                                                           *)
 (* ----------------------------------------------------------------------- *)
-Definition qstep (y q : float32) : float32 := Float32.add y q.
+Definition quarter_step (y q : float32) : float32 := Float32.add y q.
 
-Definition air_y4 (y v : float32) : float32 :=
-  let q := Float32.div v f4 in qstep (qstep (qstep (qstep y q) q) q) q.
+Definition air_step_y (y v : float32) : float32 :=
+  let q := Float32.div v f4 in quarter_step (quarter_step (quarter_step (quarter_step y q) q) q) q.
 
 Definition gravity (gf v : float32) : float32 :=
   let v1 := Float32.sub v gf in
   if Float32.cmp Clt v1 fm75 then fm75 else v1.
 
 (* one quarter step: within 2^-10 of the exact sum, and monotone in q's sign *)
-Lemma qstep_spec : forall y q, F32 y = true -> F32 q = true ->
+Lemma quarter_step_spec : forall y q, F32 y = true -> F32 q = true ->
   Rabs (R2 y + R2 q) <= bpow radix2 14 ->
-  F32 (qstep y q) = true
-  /\ Rabs (R2 (qstep y q) - (R2 y + R2 q)) <= / 1024
-  /\ (R2 q <= 0 -> R2 (qstep y q) <= R2 y).
+  F32 (quarter_step y q) = true
+  /\ Rabs (R2 (quarter_step y q) - (R2 y + R2 q)) <= / 1024
+  /\ (R2 q <= 0 -> R2 (quarter_step y q) <= R2 y).
 Proof.
   intros y q Fy Fq Hb.
   destruct (f32_add_val y q Fy Fq (small_le_bpow100 _ Hb)) as [Hv Hf].
-  unfold qstep. rewrite Hv. split; [ exact Hf | split ].
+  unfold quarter_step. rewrite Hv. split; [ exact Hf | split ].
   - pose proof (rnd_err (R2 y + R2 q) 14 ltac:(lia) Hb) as He.
     replace (bpow radix2 (14 - 24)) with (/ 1024) in He
       by (simpl; lra). exact He.
   - intros Hq. rewrite <- (rnd_B2R y) at 2. apply rnd_mono. lra.
 Qed.
 
-(* the quarter velocity: within 2^-17 of v/4, sign-preserving *)
+(* the quarter velocity: within 2^-17 of v/4, sign-preserving              *)
 Lemma quarter_spec : forall v, F32 v = true -> Rabs (R2 v) <= 128 ->
   F32 (Float32.div v f4) = true
   /\ Rabs (R2 (Float32.div v f4) - R2 v / 4) <= / 131072
@@ -218,7 +218,7 @@ Proof.
 Qed.
 
 (* ----------------------------------------------------------------------- *)
-(* 5. The real-number core: rising, the EPS allowance pays for rounding.    *)
+(* 5. The real-number core: rising, the EPS allowance pays for rounding.   *)
 (* ----------------------------------------------------------------------- *)
 Lemma energy_step : forall g w, 0 < g ->
   energy g (w - g) = energy g w - w.
@@ -245,15 +245,15 @@ Lemma ballistic_real : forall g y v y4 v',
   (g = 2 \/ g = 4) -> 0 < v -> v <= 128 ->
   y4 <= y + v + / 128 ->
   (v' = -75 \/ Rabs (v' - (v - g)) <= / 65536) ->
-  y4 + bal g v' <= y + bal g v.
+  y4 + rise_credit g v' <= y + rise_credit g v.
 Proof.
   intros g y v y4 v' Hg Hv0 Hv Hy Hv'.
   assert (Hg0 : 0 < g) by lra.
-  unfold bal at 2. destruct (Rle_dec v 0) as [ | _ ]; [ lra | ].
+  unfold rise_credit at 2. destruct (Rle_dec v 0) as [ | _ ]; [ lra | ].
   assert (Hvg : 0 <= v / g)
     by (unfold Rdiv; apply Rmult_le_pos; [ lra | left; apply Rinv_0_lt_compat; lra ]).
   pose proof (energy_ge_v g v Hg0).
-  unfold bal. destruct (Rle_dec v' 0) as [Hle | Hgt].
+  unfold rise_credit. destruct (Rle_dec v' 0) as [Hle | Hgt].
   - (* the frame ends descending: Pot' = y4 <= y + v + 1/128 *)
     unfold EPS. nra.
   - (* still rising: energy pays for the height, EPS for the rounding *)
@@ -278,15 +278,15 @@ Proof.
 Qed.
 
 (* ----------------------------------------------------------------------- *)
-(* 6. THE BALLISTIC FRAME LEMMA.                                            *)
+(* 6. THE BALLISTIC FRAME LEMMA.                                           *)
 (* ----------------------------------------------------------------------- *)
 Theorem ballistic_frame : forall gf y v,
   F32 gf = true -> F32 y = true -> F32 v = true ->
   (R2 gf = 2 \/ R2 gf = 4) ->
   Rabs (R2 y) <= 16000 -> Rabs (R2 v) <= 128 ->
-  F32 (air_y4 y v) = true
-  /\ R2 (air_y4 y v) + bal (R2 gf) (R2 (gravity gf v))
-       <= R2 y + bal (R2 gf) (R2 v).
+  F32 (air_step_y y v) = true
+  /\ R2 (air_step_y y v) + rise_credit (R2 gf) (R2 (gravity gf v))
+       <= R2 y + rise_credit (R2 gf) (R2 v).
 Proof.
   intros gf y v Fg Fy Fv Hg Hy Hv.
   destruct (quarter_spec v Fv Hv) as (Fq & Hqe & Hqn & Hqp).
@@ -297,15 +297,15 @@ Proof.
   (* four quarter steps, each within 2^-10, staying inside |.| <= 2^14 *)
   assert (B14 : forall z, -16384 <= z <= 16384 -> Rabs z <= bpow radix2 14)
     by (intros z Hz; simpl; apply Rabs_le; split; lra).
-  destruct (qstep_spec y q Fy Fq ltac:(apply B14; lra)) as (F1 & E1 & D1).
-  set (y1 := qstep y q) in *. apply Rabs_le_inv in E1.
-  destruct (qstep_spec y1 q F1 Fq ltac:(apply B14; lra)) as (F2 & E2 & D2).
-  set (y2 := qstep y1 q) in *. apply Rabs_le_inv in E2.
-  destruct (qstep_spec y2 q F2 Fq ltac:(apply B14; lra)) as (F3 & E3 & D3).
-  set (y3 := qstep y2 q) in *. apply Rabs_le_inv in E3.
-  destruct (qstep_spec y3 q F3 Fq ltac:(apply B14; lra)) as (F4 & E4 & D4).
-  set (y4 := qstep y3 q) in *. apply Rabs_le_inv in E4.
-  assert (Hy4 : R2 (air_y4 y v) = R2 y4) by reflexivity.
+  destruct (quarter_step_spec y q Fy Fq ltac:(apply B14; lra)) as (F1 & E1 & D1).
+  set (y1 := quarter_step y q) in *. apply Rabs_le_inv in E1.
+  destruct (quarter_step_spec y1 q F1 Fq ltac:(apply B14; lra)) as (F2 & E2 & D2).
+  set (y2 := quarter_step y1 q) in *. apply Rabs_le_inv in E2.
+  destruct (quarter_step_spec y2 q F2 Fq ltac:(apply B14; lra)) as (F3 & E3 & D3).
+  set (y3 := quarter_step y2 q) in *. apply Rabs_le_inv in E3.
+  destruct (quarter_step_spec y3 q F3 Fq ltac:(apply B14; lra)) as (F4 & E4 & D4).
+  set (y4 := quarter_step y3 q) in *. apply Rabs_le_inv in E4.
+  assert (Hy4 : R2 (air_step_y y v) = R2 y4) by reflexivity.
   split; [ exact F4 | rewrite Hy4 ].
   pose proof (gravity_spec gf v Fg Fv Hg Hv) as Hgr.
   destruct (Rle_dec (R2 v) 0) as [Hneg | Hpos].
@@ -316,7 +316,7 @@ Proof.
     assert (Hvn : R2 (gravity gf v) <= 0).
     { destruct Hgr as [-> | [-> _]]; [ lra | ].
       rewrite <- rnd_0. apply rnd_mono. lra. }
-    unfold bal. destruct (Rle_dec (R2 (gravity gf v)) 0); [ | lra ].
+    unfold rise_credit. destruct (Rle_dec (R2 (gravity gf v)) 0); [ | lra ].
     destruct (Rle_dec (R2 v) 0); [ lra | contradiction ].
   - (* rising *)
     apply Rnot_le_lt in Hpos.
@@ -330,20 +330,20 @@ Proof.
 Qed.
 
 (* ----------------------------------------------------------------------- *)
-(* 7. Descending variant: no lower bound on y beyond finiteness.            *)
+(* 7. Descending variant: no lower bound on y beyond finiteness.           *)
 (* ----------------------------------------------------------------------- *)
-Lemma qstep_spec_e : forall e y q, (-120 <= e <= 100)%Z ->
+Lemma quarter_step_spec_e : forall e y q, (-120 <= e <= 100)%Z ->
   F32 y = true -> F32 q = true ->
   Rabs (R2 y + R2 q) <= bpow radix2 e ->
-  F32 (qstep y q) = true
-  /\ Rabs (R2 (qstep y q) - (R2 y + R2 q)) <= bpow radix2 (e - 24)
-  /\ (R2 q <= 0 -> R2 (qstep y q) <= R2 y).
+  F32 (quarter_step y q) = true
+  /\ Rabs (R2 (quarter_step y q) - (R2 y + R2 q)) <= bpow radix2 (e - 24)
+  /\ (R2 q <= 0 -> R2 (quarter_step y q) <= R2 y).
 Proof.
   intros e y q He Fy Fq Hb.
   assert (H100 : Rabs (R2 y + R2 q) <= bpow radix2 100)
     by (eapply Rle_trans; [ exact Hb | apply bpow_le; lia ]).
   destruct (f32_add_val y q Fy Fq H100) as [Hv Hf].
-  unfold qstep. rewrite Hv. split; [ exact Hf | split ].
+  unfold quarter_step. rewrite Hv. split; [ exact Hf | split ].
   - apply rnd_err; [ lia | exact Hb ].
   - intros Hq. rewrite <- (rnd_B2R y) at 2. apply rnd_mono. lra.
 Qed.
@@ -352,9 +352,9 @@ Theorem ballistic_frame_desc : forall gf y v,
   F32 gf = true -> F32 y = true -> F32 v = true ->
   (R2 gf = 2 \/ R2 gf = 4) ->
   Rabs (R2 y) <= 1048576 -> -128 <= R2 v <= 0 ->
-  F32 (air_y4 y v) = true
-  /\ R2 (air_y4 y v) + bal (R2 gf) (R2 (gravity gf v))
-       <= R2 y + bal (R2 gf) (R2 v).
+  F32 (air_step_y y v) = true
+  /\ R2 (air_step_y y v) + rise_credit (R2 gf) (R2 (gravity gf v))
+       <= R2 y + rise_credit (R2 gf) (R2 v).
 Proof.
   intros gf y v Fg Fy Fv Hg Hy Hv0.
   assert (Hv : Rabs (R2 v) <= 128) by (apply Rabs_le; lra).
@@ -368,74 +368,74 @@ Proof.
   assert (B21 : forall z, -2097152 <= z <= 2097152 -> Rabs z <= bpow radix2 21)
     by (intros z Hz; simpl; apply Rabs_le; split; lra).
   assert (Ee : bpow radix2 (21 - 24) = / 8) by (simpl; lra).
-  destruct (qstep_spec_e 21 y q ltac:(lia) Fy Fq ltac:(apply B21; lra)) as (F1 & E1 & D1).
-  rewrite Ee in E1. set (y1 := qstep y q) in *. apply Rabs_le_inv in E1.
+  destruct (quarter_step_spec_e 21 y q ltac:(lia) Fy Fq ltac:(apply B21; lra)) as (F1 & E1 & D1).
+  rewrite Ee in E1. set (y1 := quarter_step y q) in *. apply Rabs_le_inv in E1.
   specialize (D1 Hqn).
-  destruct (qstep_spec_e 21 y1 q ltac:(lia) F1 Fq ltac:(apply B21; lra)) as (F2 & E2 & D2).
-  rewrite Ee in E2. set (y2 := qstep y1 q) in *. apply Rabs_le_inv in E2.
+  destruct (quarter_step_spec_e 21 y1 q ltac:(lia) F1 Fq ltac:(apply B21; lra)) as (F2 & E2 & D2).
+  rewrite Ee in E2. set (y2 := quarter_step y1 q) in *. apply Rabs_le_inv in E2.
   specialize (D2 Hqn).
-  destruct (qstep_spec_e 21 y2 q ltac:(lia) F2 Fq ltac:(apply B21; lra)) as (F3 & E3 & D3).
-  rewrite Ee in E3. set (y3 := qstep y2 q) in *. apply Rabs_le_inv in E3.
+  destruct (quarter_step_spec_e 21 y2 q ltac:(lia) F2 Fq ltac:(apply B21; lra)) as (F3 & E3 & D3).
+  rewrite Ee in E3. set (y3 := quarter_step y2 q) in *. apply Rabs_le_inv in E3.
   specialize (D3 Hqn).
-  destruct (qstep_spec_e 21 y3 q ltac:(lia) F3 Fq ltac:(apply B21; lra)) as (F4 & E4 & D4).
-  set (y4 := qstep y3 q) in *.
+  destruct (quarter_step_spec_e 21 y3 q ltac:(lia) F3 Fq ltac:(apply B21; lra)) as (F4 & E4 & D4).
+  set (y4 := quarter_step y3 q) in *.
   specialize (D4 Hqn).
-  assert (Hy4 : R2 (air_y4 y v) = R2 y4) by reflexivity.
+  assert (Hy4 : R2 (air_step_y y v) = R2 y4) by reflexivity.
   split; [ exact F4 | rewrite Hy4 ].
   pose proof (gravity_spec gf v Fg Fv Hg Hv) as Hgr.
   assert (R2 y4 <= R2 y) by lra.
   assert (Hvn : R2 (gravity gf v) <= 0).
   { destruct Hgr as [-> | [-> _]]; [ lra | ].
     rewrite <- rnd_0. apply rnd_mono. lra. }
-  unfold bal. destruct (Rle_dec (R2 (gravity gf v)) 0); [ | lra ].
+  unfold rise_credit. destruct (Rle_dec (R2 (gravity gf v)) 0); [ | lra ].
   destruct (Rle_dec (R2 v) 0); [ lra | contradiction ].
 Qed.
 
 (* ----------------------------------------------------------------------- *)
-(* 8. For HeightMove: partial air steps, the -75 clamp, the slide-kick     *)
-(*    signed-energy frame, and one ground-pound windup add.                 *)
+(* 8. For HeightMoveCatalog: partial air steps, the -75 clamp, the slide-kick *)
+(*    signed-energy frame, and one ground-pound windup add.                *)
 (* ----------------------------------------------------------------------- *)
 
 (* k quarter steps.  A ceiling hit at vel >= 0 zeroes vel (mario_step.c:
-   446-452), so the remaining quarters add 0: y' = qiter k y q, k <= 4. *)
-Fixpoint qiter (k : nat) (y q : float32) : float32 :=
-  match k with O => y | S k' => qstep (qiter k' y q) q end.
+   446-452), so the remaining quarters add 0: y' = quarter_steps k y q, k <= 4. *)
+Fixpoint quarter_steps (k : nat) (y q : float32) : float32 :=
+  match k with O => y | S k' => quarter_step (quarter_steps k' y q) q end.
 
-Lemma air_y4_qiter : forall y v, air_y4 y v = qiter 4 y (Float32.div v f4).
+Lemma air_step_y_quarter_steps : forall y v, air_step_y y v = quarter_steps 4 y (Float32.div v f4).
 Proof. reflexivity. Qed.
 
-Lemma qiter_spec : forall k y q, (k <= 4)%nat ->
+Lemma quarter_steps_spec : forall k y q, (k <= 4)%nat ->
   F32 y = true -> F32 q = true -> Rabs (R2 y) <= 16000 -> Rabs (R2 q) <= 33 ->
-  F32 (qiter k y q) = true
-  /\ R2 y + INR k * R2 q - INR k / 1024 <= R2 (qiter k y q)
+  F32 (quarter_steps k y q) = true
+  /\ R2 y + INR k * R2 q - INR k / 1024 <= R2 (quarter_steps k y q)
                                        <= R2 y + INR k * R2 q + INR k / 1024
-  /\ (R2 q <= 0 -> R2 (qiter k y q) <= R2 y).
+  /\ (R2 q <= 0 -> R2 (quarter_steps k y q) <= R2 y).
 Proof.
   induction k as [ | k IH ]; intros y q Hk Fy Fq Hy Hq.
   - simpl. split; [ exact Fy | split; [ lra | intros; lra ] ].
   - destruct (IH y q ltac:(lia) Fy Fq Hy Hq) as (Fk & Ek & Dk).
-    set (yk := qiter k y q) in *.
+    set (yk := quarter_steps k y q) in *.
     assert (Hk3 : INR k <= 3) by (replace 3 with (INR 3) by (simpl; lra); apply le_INR; lia).
     pose proof (pos_INR k) as Hk0.
     pose proof (Rabs_le_inv _ _ Hy) as Hy'. pose proof (Rabs_le_inv _ _ Hq) as Hq'.
     assert (Hkq : -99 <= INR k * R2 q <= 99) by (split; nra).
     assert (B14 : Rabs (R2 yk + R2 q) <= bpow radix2 14)
       by (simpl; apply Rabs_le; split; lra).
-    destruct (qstep_spec yk q Fk Fq B14) as (F1 & E1 & D1).
+    destruct (quarter_step_spec yk q Fk Fq B14) as (F1 & E1 & D1).
     apply Rabs_le_inv in E1.
-    simpl qiter. fold yk. rewrite S_INR.
+    simpl quarter_steps. fold yk. rewrite S_INR.
     split; [ exact F1 | split; [ split; nra | ] ].
     intros Hn. specialize (Dk Hn). specialize (D1 Hn). lra.
 Qed.
 
 (* the budget-facing form: rising adds at most v + 1/128; falling never
    rises; the full four quarters add at most v + 1/128 (any sign of v) *)
-Lemma qiter_up : forall k y v, (k <= 4)%nat ->
+Lemma quarter_steps_up : forall k y v, (k <= 4)%nat ->
   F32 y = true -> F32 v = true -> Rabs (R2 y) <= 16000 -> Rabs (R2 v) <= 128 ->
-  F32 (qiter k y (Float32.div v f4)) = true
-  /\ (0 <= R2 v -> R2 (qiter k y (Float32.div v f4)) <= R2 y + R2 v + / 128)
-  /\ (R2 v <= 0 -> R2 (qiter k y (Float32.div v f4)) <= R2 y)
-  /\ (k = 4%nat -> R2 (qiter k y (Float32.div v f4)) <= R2 y + R2 v + / 128).
+  F32 (quarter_steps k y (Float32.div v f4)) = true
+  /\ (0 <= R2 v -> R2 (quarter_steps k y (Float32.div v f4)) <= R2 y + R2 v + / 128)
+  /\ (R2 v <= 0 -> R2 (quarter_steps k y (Float32.div v f4)) <= R2 y)
+  /\ (k = 4%nat -> R2 (quarter_steps k y (Float32.div v f4)) <= R2 y + R2 v + / 128).
 Proof.
   intros k y v Hk Fy Fv Hy Hv.
   destruct (quarter_spec v Fv Hv) as (Fq & Hqe & Hqn & Hqp).
@@ -443,7 +443,7 @@ Proof.
   apply Rabs_le_inv in Hqe.
   assert (Hqb : Rabs (R2 q) <= 33).
   { apply Rabs_le_inv in Hv. apply Rabs_le. split; lra. }
-  destruct (qiter_spec k y q Hk Fy Fq Hy Hqb) as (Fk & Ek & Dk).
+  destruct (quarter_steps_spec k y q Hk Fy Fq Hy Hqb) as (Fk & Ek & Dk).
   assert (Hk4 : INR k <= 4) by (replace 4 with (INR 4) by (simpl; lra); apply le_INR; lia).
   pose proof (pos_INR k) as Hk0.
   split; [ exact Fk | split; [ | split ] ].
@@ -453,7 +453,7 @@ Proof.
   - intros ->. simpl INR in Ek. lra.
 Qed.
 
-(* the clamp fires only when v - g really is below -75 *)
+(* the clamp fires only when v - g really is below -75                     *)
 Lemma gravity_spec2 : forall gf v, F32 gf = true -> F32 v = true ->
   (R2 gf = 2 \/ R2 gf = 4) -> Rabs (R2 v) <= 128 ->
   (R2 v - R2 gf < -75 /\ R2 (gravity gf v) = -75)
@@ -486,20 +486,20 @@ Proof.
       replace (bpow radix2 (8 - 24)) with (/ 65536) in He by (simpl; lra). exact He.
 Qed.
 
-(* the post-bounce slide kick frame (g = 2) over the SIGNED energy *)
-Theorem sk1_frame : forall y v,
+(* the post-bounce slide kick frame (g = 2) over the SIGNED energy         *)
+Theorem sk_bounced_frame : forall y v,
   F32 y = true -> F32 v = true -> Rabs (R2 y) <= 16000 -> -75 <= R2 v <= 128 ->
-  R2 (air_y4 y v) + sk1_credit (R2 (gravity f2 v)) <= R2 y + sk1_credit (R2 v).
+  R2 (air_step_y y v) + sk_bounced_credit (R2 (gravity f2 v)) <= R2 y + sk_bounced_credit (R2 v).
 Proof.
   intros y v Fy Fv Hy Hv.
   assert (Hva : Rabs (R2 v) <= 128) by (apply Rabs_le; lra).
-  destruct (qiter_up 4 y v ltac:(lia) Fy Fv Hy Hva) as (_ & _ & _ & H4).
-  rewrite air_y4_qiter. specialize (H4 eq_refl).
-  set (y4 := R2 (qiter 4 y (Float32.div v f4))) in *.
+  destruct (quarter_steps_up 4 y v ltac:(lia) Fy Fv Hy Hva) as (_ & _ & _ & H4).
+  rewrite air_step_y_quarter_steps. specialize (H4 eq_refl).
+  set (y4 := R2 (quarter_steps 4 y (Float32.div v f4))) in *.
   pose proof (gravity_spec2 f2 v F32_f2 Fv (or_introl B2R_f2) Hva) as Hg.
   rewrite B2R_f2 in Hg.
   set (w := R2 (gravity f2 v)) in *.
-  unfold sk1_credit, energy, EPS, SK_BONK.
+  unfold sk_bounced_credit, energy, EPS, SK_BONK.
   destruct Hg as [[Hlt Hw] | [Hw Hd]].
   - rewrite Hw.
     rewrite (Rmax_right 0 ((-75 + 75) / 2 + 1)) by lra.

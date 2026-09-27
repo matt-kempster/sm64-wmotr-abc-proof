@@ -21,10 +21,10 @@ Built-in cross-checks, all passing:
 R_reach is the closure from level entry over non-A-gated edges: **73 actions,
 12 of them airborne.**
 
-| airborne action in R_reach | Φ credit row (`HeightPhi.v`) |
+| airborne action in R_reach | Φ credit row (`HeightInvariant.v`) |
 |---|---|
 | ACT_FREEFALL, ACT_BUTT_SLIDE_AIR | bal4 + 110 |
-| ACT_SLIDE_KICK | state 0: bal2 + 110 / state 1: sk1_credit |
+| ACT_SLIDE_KICK | state 0: bal2 + 110 / state 1: sk_bounced_credit |
 | ACT_GROUND_POUND | windup_left / 0 |
 | ACT_DIVE, ACT_FORWARD_ROLLOUT, ACT_BACKWARD_ROLLOUT, ACT_FORWARD_AIR_KB, ACT_BACKWARD_AIR_KB, ACT_SOFT_BONK, ACT_AIR_HIT_WALL, ACT_SPAWN_NO_SPIN_AIRBORNE | bal4 |
 
