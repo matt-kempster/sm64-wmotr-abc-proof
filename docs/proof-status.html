@@ -182,8 +182,8 @@ and repaired — green-and-axiom-clean never means non-vacuous. The store-scout 
 <h2>GOAL 2 — WMotR requires A <span class="pill p-open">active</span></h2>
 <p>Remaining gap: even without flying, could no-A Mario climb to the star some other way?
 The target invariant is a <b>height bound</b>: <code>m→pos[1] ≤ H*</code> for every reachable frame,
-with the star’s grab window above <code>H*</code> (real moat ≈ 622 units, margin ≈ 349 after the
-pole-grab correction). The frame is widened to the <em>real game frame</em> by composition:</p>
+with the star’s grab window above <code>H*</code> (real moat ≈ 622 units; margin 128 after the
+pole-grab correction and the 2026-09-27 slide-kick-gravity correction, <code>docs/goal2-phi.md</code>). The frame is widened to the <em>real game frame</em> by composition:</p>
 <div class="flow">
   <div class="box seg"><b>seg_input</b><span class="sub">controller poll<br>spec: carries MWF only if A not pressed</span></div>
   <div class="arrow">∘</div>
@@ -225,7 +225,7 @@ produces. They were rewritten as labeled specs that carry the invariants. The pl
       is in the link (rungs 2–3). <code>BP-INIT / BP-SEG-NULL / BP-SEG-BOX / BP-SURF-OBJ</code> (T1) ground the platform spec.</td></tr>
   <tr><td>YMAX, coin link</td><td>E1–E3</td>
       <td><span class="pill p-assumed">level data</span></td>
-      <td>YMAX = H* + Δ_pot (273). Coin #2 at y = 3140 needs y ≥ 2980. Both come from level data, not generated/ yet.</td></tr>
+      <td>YMAX = H* + 371 = 2743 (<code>docs/goal2-phi.md</code>; E3’s Δ_pot 273 was wrong). Coin #2 at y = 3140 needs y ≥ 2980, margin 237. Both come from level data, not generated/ yet.</td></tr>
 </table></div>
 
 <h3>The ladder to the real per-frame entry point</h3>

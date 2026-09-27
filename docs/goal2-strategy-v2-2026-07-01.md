@@ -1,5 +1,12 @@
 # GOAL 2, strategy v2 — the attach-window / floor-ladder architecture
 
+> **ERRATA (2026-09-27, `docs/goal2-phi.md` §1, `tools/goal2_budget.py`):** this
+> doc's Δ_pot = 273 is wrong. (1) Slide kick flies under gravity −2
+> (`mario_step.c:543`), so its terminal bounce climbs 370.5, not 195. (2)
+> Butt-slide-air keeps `actionTimer` through its bounce, so →FREEFALL→GP can
+> stack on the rising bounce (195 + 110 = 305). Corrected: top +370.5, attach
+> +494, moat margin 128, coin #2 margin 237.5. The verdict holds.
+
 *2026-07-01, fresh-eyes rewrite. **Supersedes** `goal2-general-height-invariant.md`
 (v1). v1's skeleton (one-frame induction, y as the target, Mario as a state
 machine, finite-census discipline) survives; its load-bearing middle — the

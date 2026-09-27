@@ -1,5 +1,12 @@
 # GOAL 2 / E3 — the mid-air action-transition (episode) graph under no-A in WMotR
 
+> **ERRATA (2026-09-27, `docs/goal2-phi.md` §1, `tools/goal2_budget.py`):** this
+> doc's Δ_pot = 273 is wrong. (1) Slide kick flies under gravity −2
+> (`mario_step.c:543`), so its terminal bounce climbs 370.5, not 195. (2)
+> Butt-slide-air keeps `actionTimer` through its bounce, so →FREEFALL→GP can
+> stack on the rising bounce (195 + 110 = 305). Corrected: top +370.5, attach
+> +494, moat margin 128, coin #2 margin 237.5. The verdict holds.
+
 **Task:** E3 of `docs/goal2-strategy-v2-2026-07-01.md` §4 (the "episode graph"
 = P6a re-scoped). Enumerate every reachable-under-no-A airborne / attached
 action node, every **mid-air** edge between them (a transition that fires
