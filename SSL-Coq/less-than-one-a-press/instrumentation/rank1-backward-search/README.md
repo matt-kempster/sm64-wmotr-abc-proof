@@ -21,6 +21,8 @@ python -m pip install --target build/rank1-backward-search/python-deps \
 python instrumentation/rank1-backward-search/test_search.py
 python instrumentation/rank1-backward-search/search.py \
   --output build/rank1-backward-search/receipt
+python instrumentation/rank1-backward-search/group_inputs.py \
+  --output build/rank1-backward-search/grouping-all-no-new-a
 ```
 
 Z3 is isolated under the ignored build directory. The recorded run used
@@ -45,6 +47,12 @@ between machines. An unknown result is never converted to a contradiction.
 - `search.py` checks the final owner decision, ordinary raw copy, floor-snap
   helper and selected geometry retry. It also exposes the unexpanded calls in
   the disappearing action and inventories the surrounding generated callers.
+- `group_inputs.py` composes the selected real controller cuts with conditional
+  expressions, retaining exact input variables and held-button history. It
+  checks local groups against the existing backward engine. See the
+  [grouping report](../../docs/notes/rank1-input-grouping.md) and
+  [saved checks](grouping-report.json). These groups are not interchangeable
+  whole-game states; unsupported calls are rejected.
 
 The functions interpreted recursively are `absf`, `vec3f_copy`, `vec3s_set`,
 `stop_and_set_height_to_floor` and `mario_set_forward_vel`. Other calls have
@@ -83,8 +91,8 @@ count is not a count of gameplay routes.
 
 The closed copy, snap and final-check slices do not read controller input.
 The intended search includes all allowed inputs; B was only an example. There
-is no complete previous-frame operation yet. The requested longer horizon is
-[900 nominal updates before top retention](../../docs/notes/rank1-input-search-size.md).
+is no complete previous-frame operation yet. The horizon comparison covers
+[150 or 900 nominal updates before top retention](../../docs/notes/rank1-input-search-size.md).
 Earlier action/input transitions, the same latched input across the frame,
 previous-button history, live floors, contact, timing and lifetime remain
 explicit work. No controller-reached predecessor was joined in this batch,

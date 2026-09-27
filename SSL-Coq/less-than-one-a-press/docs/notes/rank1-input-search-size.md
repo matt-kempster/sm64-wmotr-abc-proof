@@ -1,10 +1,15 @@
-# Rank 1: all inputs during the 30 seconds before retention
+# Rank 1: all inputs before retention — five or thirty seconds
 
 27 September 2026. B was an example, not the intended search restriction.
 The requested horizon ends at the final Area-1 check that **retains the checked
-top** and extends 30 seconds backward. It does not start at warp acceptance or
-run 30 seconds forward from an earlier save. This clarification and size estimate
+top**. The original proposal extends 30 seconds backward; the user also asks
+whether five seconds would be feasible. Both end at the same retention check,
+not at warp acceptance or an earlier save. This clarification and size estimate
 add no gameplay witness, exclusion or Coq theorem. Rank 1 remains at 1–2%.
+
+The [first local grouping implementation](rank1-input-grouping.md) now checks
+exact input sets in the generated controller code. It has not yet measured
+the cost of a complete frame or either multi-update horizon below.
 
 ## One trajectory versus all trajectories
 
@@ -15,18 +20,19 @@ not 900 times K. Shared prefixes can save repeated simulation, but do not remove
 the exponential number of leaves. The count of transitions in the complete
 unmerged K-ary tree through depth 900 is `(K^901-K)/(K-1)` for K greater than one.
 
-| Input alphabet used for counting | Choices per update | Unpruned length-900 sequences |
-| --- | ---: | ---: |
-| Just two choices, for illustration | 2 | about `8.45271 × 10^270` |
-| Nine sampled stick poses (neutral and eight directions), with B/Z combinations | 36 | about `4.70165 × 10^1400` |
-| Full encoded stick pairs, with B/Z combinations only | 262,144 | about `4.85210 × 10^4876` |
-| Full encoded stick pairs and all 13 declared non-A button bits | 536,870,912 | about `7.63637 × 10^7856` |
+| Input alphabet used for counting | Choices per update | Five seconds: 150 updates | Thirty seconds: 900 updates |
+| --- | ---: | ---: | ---: |
+| Just two choices, for illustration | 2 | about `1.42725 × 10^45` | about `8.45271 × 10^270` |
+| Nine sampled stick poses (neutral and eight directions), with B/Z combinations | 36 | about `2.78853 × 10^233` | about `4.70165 × 10^1400` |
+| Full encoded stick pairs, with B/Z combinations only | 262,144 | about `6.03932 × 10^812` | about `4.85210 × 10^4876` |
+| Full encoded stick pairs and all 13 declared non-A button bits | 536,870,912 | about `3.02330 × 10^1309` | about `7.63637 × 10^7856` |
 
 The last row is a **conservative encoding envelope**, not a claim that every
 record is physically realizable or behaviorally distinct. Each stick axis is a
 signed byte: 256 possible encodings give 65,536 pairs. The source declares 14
 button bits; fixing A off leaves 13, hence `65,536 × 2^13 = 2^29` records and
-`2^26100` sequences. The two reserved button bits are excluded. Other controller
+`2^4350` or `2^26100` sequences for 150 or 900 updates. The two reserved button
+bits are excluded. Other controller
 ports, connection status and error flags are fixed in this calculation.
 The header documents a normal stick range around -80 to 80, and hardware gates
 and simultaneous-button restrictions can shrink the physical set. We have not
@@ -34,16 +40,32 @@ proved the exact physical or effective alphabet here. The smaller table rows
 are illustrations or subsets, not exhaustive coverage of gameplay.
 
 For scale, even a hypothetical trillion **complete sequences** per second
-would take about `2.68 × 10^251` years to enumerate the two-choice example.
+would take about `2.68 × 10^251` years to enumerate the 900-update two-choice example.
 That is an arithmetic illustration, not a measured Wafel speed or an estimate
 of the cost of a symbolic solver.
+
+## Would five seconds be feasible?
+
+**Much smaller, but still infeasible for exhaustive sequence-by-sequence
+enumeration.** Five seconds is 150 nominal updates, so the unpruned count is
+K^150. Even the two-choice example would take about `4.52 × 10^25` years at
+the same hypothetical trillion complete sequences per second. Shortening the
+horizon helps enormously, but does not make that enumeration practical.
+
+Five seconds is a more reasonable target for a search that eliminates whole
+sets, represents inputs symbolically, or merges states with proved equivalent
+future behavior. Its actual cost remains unknown: the unpruned counts do not
+predict how many predecessors of top retention survive. Selected finite trials
+can be useful, but cannot establish coverage of all 150-update histories.
+The current tool still covers local installation-frame cuts, not a complete
+150-update transition. No five-second search was launched by this comparison.
 
 ## The project rules still matter
 
 The table fixes A released throughout. Under the project's broader no-new-A
 rule, an already-held A may remain held and then be released once. For a fixed
-held-A initial boundary, 900 steps allow 901 A patterns (including never
-releasing); releasing and pressing again is forbidden. This is an additional
+held-A initial boundary, 900 steps allow 901 A patterns, while 150 steps allow
+151 (including never releasing); releasing and pressing again is forbidden. This is an additional
 history condition, not another freely chosen A bit every frame. The earlier
 history must justify an allowed held-A boundary where one is used. Newly pressed
 bits for every button are derived from previous and current held bits; they are
@@ -101,6 +123,7 @@ The displayed counts were computed with Python's standard decimal arithmetic:
 from decimal import Decimal, localcontext
 with localcontext() as context:
     context.prec = 50
-    for choices in (2, 36, 256**2 * 4, 256**2 * 2**13):
-        print(choices, format(Decimal(choices)**900, '.5E'))
+    for updates in (150, 900):
+        for choices in (2, 36, 256**2 * 4, 256**2 * 2**13):
+            print(updates, choices, format(Decimal(choices)**updates, '.5E'))
 ```

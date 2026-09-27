@@ -1,0 +1,1049 @@
+{
+  "status": "Checked local symbolic grouping; no complete-frame or 150-update coverage.",
+  "solver": "4.15.4",
+  "inputDomain": "One ordinary Player-1 sample, no newly pressed A and two reserved button bits zero; previous bits retained. Already-held A may remain held or be released. Earlier history is not granted. Stick axes are signed-byte encodings. Other state stays symbolic at the named separated-storage cuts.",
+  "grouping": "Exact conditional expressions and member predicates; never one representative for a whole-game state.",
+  "versions": {
+    "us": {
+      "buttons": {
+        "checks": {
+          "actual-edge-and-down": "unsat",
+          "original-held-and-edge-bits-retained": "unsat",
+          "previous-ABZ-suffice-for-signature": "unsat",
+          "all-nonzero-squish-values-agree": "unsat",
+          "same-signature-same-helper-writes": "unsat",
+          "merged-matches-backward-preimage": "unsat"
+        },
+        "profiles": [
+          {
+            "previousA": false,
+            "previousB": false,
+            "previousZ": false,
+            "squished": false,
+            "groups": [
+              {
+                "signature": 0,
+                "members": 2048
+              },
+              {
+                "signature": 8192,
+                "members": 2048
+              },
+              {
+                "signature": 49152,
+                "members": 2048
+              },
+              {
+                "signature": 57344,
+                "members": 2048
+              }
+            ]
+          },
+          {
+            "previousA": false,
+            "previousB": false,
+            "previousZ": false,
+            "squished": true,
+            "groups": [
+              {
+                "signature": 0,
+                "members": 8192
+              }
+            ]
+          },
+          {
+            "previousA": false,
+            "previousB": false,
+            "previousZ": true,
+            "squished": false,
+            "groups": [
+              {
+                "signature": 0,
+                "members": 2048
+              },
+              {
+                "signature": 8192,
+                "members": 2048
+              },
+              {
+                "signature": 16384,
+                "members": 2048
+              },
+              {
+                "signature": 24576,
+                "members": 2048
+              }
+            ]
+          },
+          {
+            "previousA": false,
+            "previousB": false,
+            "previousZ": true,
+            "squished": true,
+            "groups": [
+              {
+                "signature": 0,
+                "members": 8192
+              }
+            ]
+          },
+          {
+            "previousA": false,
+            "previousB": true,
+            "previousZ": false,
+            "squished": false,
+            "groups": [
+              {
+                "signature": 0,
+                "members": 4096
+              },
+              {
+                "signature": 49152,
+                "members": 4096
+              }
+            ]
+          },
+          {
+            "previousA": false,
+            "previousB": true,
+            "previousZ": false,
+            "squished": true,
+            "groups": [
+              {
+                "signature": 0,
+                "members": 8192
+              }
+            ]
+          },
+          {
+            "previousA": false,
+            "previousB": true,
+            "previousZ": true,
+            "squished": false,
+            "groups": [
+              {
+                "signature": 0,
+                "members": 4096
+              },
+              {
+                "signature": 16384,
+                "members": 4096
+              }
+            ]
+          },
+          {
+            "previousA": false,
+            "previousB": true,
+            "previousZ": true,
+            "squished": true,
+            "groups": [
+              {
+                "signature": 0,
+                "members": 8192
+              }
+            ]
+          },
+          {
+            "previousA": true,
+            "previousB": false,
+            "previousZ": false,
+            "squished": false,
+            "groups": [
+              {
+                "signature": 0,
+                "members": 2048
+              },
+              {
+                "signature": 128,
+                "members": 2048
+              },
+              {
+                "signature": 8192,
+                "members": 2048
+              },
+              {
+                "signature": 8320,
+                "members": 2048
+              },
+              {
+                "signature": 49152,
+                "members": 2048
+              },
+              {
+                "signature": 49280,
+                "members": 2048
+              },
+              {
+                "signature": 57344,
+                "members": 2048
+              },
+              {
+                "signature": 57472,
+                "members": 2048
+              }
+            ]
+          },
+          {
+            "previousA": true,
+            "previousB": false,
+            "previousZ": false,
+            "squished": true,
+            "groups": [
+              {
+                "signature": 0,
+                "members": 8192
+              },
+              {
+                "signature": 128,
+                "members": 8192
+              }
+            ]
+          },
+          {
+            "previousA": true,
+            "previousB": false,
+            "previousZ": true,
+            "squished": false,
+            "groups": [
+              {
+                "signature": 0,
+                "members": 2048
+              },
+              {
+                "signature": 128,
+                "members": 2048
+              },
+              {
+                "signature": 8192,
+                "members": 2048
+              },
+              {
+                "signature": 8320,
+                "members": 2048
+              },
+              {
+                "signature": 16384,
+                "members": 2048
+              },
+              {
+                "signature": 16512,
+                "members": 2048
+              },
+              {
+                "signature": 24576,
+                "members": 2048
+              },
+              {
+                "signature": 24704,
+                "members": 2048
+              }
+            ]
+          },
+          {
+            "previousA": true,
+            "previousB": false,
+            "previousZ": true,
+            "squished": true,
+            "groups": [
+              {
+                "signature": 0,
+                "members": 8192
+              },
+              {
+                "signature": 128,
+                "members": 8192
+              }
+            ]
+          },
+          {
+            "previousA": true,
+            "previousB": true,
+            "previousZ": false,
+            "squished": false,
+            "groups": [
+              {
+                "signature": 0,
+                "members": 4096
+              },
+              {
+                "signature": 128,
+                "members": 4096
+              },
+              {
+                "signature": 49152,
+                "members": 4096
+              },
+              {
+                "signature": 49280,
+                "members": 4096
+              }
+            ]
+          },
+          {
+            "previousA": true,
+            "previousB": true,
+            "previousZ": false,
+            "squished": true,
+            "groups": [
+              {
+                "signature": 0,
+                "members": 8192
+              },
+              {
+                "signature": 128,
+                "members": 8192
+              }
+            ]
+          },
+          {
+            "previousA": true,
+            "previousB": true,
+            "previousZ": true,
+            "squished": false,
+            "groups": [
+              {
+                "signature": 0,
+                "members": 4096
+              },
+              {
+                "signature": 128,
+                "members": 4096
+              },
+              {
+                "signature": 16384,
+                "members": 4096
+              },
+              {
+                "signature": 16512,
+                "members": 4096
+              }
+            ]
+          },
+          {
+            "previousA": true,
+            "previousB": true,
+            "previousZ": true,
+            "squished": true,
+            "groups": [
+              {
+                "signature": 0,
+                "members": 8192
+              },
+              {
+                "signature": 128,
+                "members": 8192
+              }
+            ]
+          }
+        ],
+        "writeFields": [
+          "_framesSinceA",
+          "_framesSinceB",
+          "_input"
+        ],
+        "heldButtonCounterexample": {
+          "previousB": true,
+          "firstSamples": [
+            0,
+            16384
+          ],
+          "nextSample": 16384,
+          "firstSignatures": [
+            0,
+            0
+          ],
+          "nextSignatures": [
+            8192,
+            0
+          ]
+        },
+        "meaning": "Groups have the same writes in this helper for the same other state. Original held bits remain in memory and in the group; these are not interchangeable whole-game states."
+      },
+      "sticks": {
+        "checks": {
+          "axis-independence": "unsat",
+          "raw-axes-retained": "unsat",
+          "merged-matches-backward-preimage": "unsat",
+          "unexpanded-call-rejected": "passed"
+        },
+        "rawPairs": 65536,
+        "symbolicRegions": [
+          {
+            "decisions": [
+              "adjust_analog_stick:body.1.1.0.1 true",
+              "adjust_analog_stick:body.1.1.1.0.1 false",
+              "adjust_analog_stick:body.1.1.1.1.0.1 true",
+              "adjust_analog_stick:body.1.1.1.1.1.1 false"
+            ],
+            "formula": "(let ((a!1 (concat ((_ extract 7 7) raw_X)\n                   ((_ extract 7 7) raw_X)\n                   ((_ extract 7 7) raw_X)\n                   ((_ extract 7 7) raw_X)\n                   ((_ extract 7 7) raw_X)\n                   ((_ extract 7 7) raw_X)\n                   ((_ extract 7 7) raw_X)\n                   ((_ extract 7 7) raw_X)\n                   ((_ extract 7 7) raw_X)\n                   ((_ extract 7 7) raw_X)\n                   ((_ extract 7 7) raw_X)\n                   ((_ extract 7 7) raw_X)\n                   ((_ extract 7 7) raw_X)\n                   ((_ extract 7 7) raw_X)\n                   ((_ extract 7 7) raw_X)\n                   ((_ extract 7 7) raw_X)\n                   ((_ extract 7 7) raw_X)\n                   ((_ extract 7 7) raw_X)\n                   ((_ extract 7 7) raw_X)\n                   ((_ extract 7 7) raw_X)\n                   ((_ extract 7 7) raw_X)\n                   ((_ extract 7 7) raw_X)\n                   ((_ extract 7 7) raw_X)\n                   ((_ extract 7 7) raw_X)\n                   raw_X))\n      (a!2 (concat ((_ extract 7 7) raw_Y)\n                   ((_ extract 7 7) raw_Y)\n                   ((_ extract 7 7) raw_Y)\n                   ((_ extract 7 7) raw_Y)\n                   ((_ extract 7 7) raw_Y)\n                   ((_ extract 7 7) raw_Y)\n                   ((_ extract 7 7) raw_Y)\n                   ((_ extract 7 7) raw_Y)\n                   ((_ extract 7 7) raw_Y)\n                   ((_ extract 7 7) raw_Y)\n                   ((_ extract 7 7) raw_Y)\n                   ((_ extract 7 7) raw_Y)\n                   ((_ extract 7 7) raw_Y)\n                   ((_ extract 7 7) raw_Y)\n                   ((_ extract 7 7) raw_Y)\n                   ((_ extract 7 7) raw_Y)\n                   ((_ extract 7 7) raw_Y)\n                   ((_ extract 7 7) raw_Y)\n                   ((_ extract 7 7) raw_Y)\n                   ((_ extract 7 7) raw_Y)\n                   ((_ extract 7 7) raw_Y)\n                   ((_ extract 7 7) raw_Y)\n                   ((_ extract 7 7) raw_Y)\n                   ((_ extract 7 7) raw_Y)\n                   raw_Y)))\n  (and (bvsle a!1 #xfffffff8)\n       (not (bvsle #x00000008 a!1))\n       (bvsle a!2 #xfffffff8)\n       (not (bvsle #x00000008 a!2))))"
+          },
+          {
+            "decisions": [
+              "adjust_analog_stick:body.1.1.0.1 true",
+              "adjust_analog_stick:body.1.1.1.0.1 false",
+              "adjust_analog_stick:body.1.1.1.1.0.1 false",
+              "adjust_analog_stick:body.1.1.1.1.1.1 true"
+            ],
+            "formula": "(let ((a!1 (concat ((_ extract 7 7) raw_X)\n                   ((_ extract 7 7) raw_X)\n                   ((_ extract 7 7) raw_X)\n                   ((_ extract 7 7) raw_X)\n                   ((_ extract 7 7) raw_X)\n                   ((_ extract 7 7) raw_X)\n                   ((_ extract 7 7) raw_X)\n                   ((_ extract 7 7) raw_X)\n                   ((_ extract 7 7) raw_X)\n                   ((_ extract 7 7) raw_X)\n                   ((_ extract 7 7) raw_X)\n                   ((_ extract 7 7) raw_X)\n                   ((_ extract 7 7) raw_X)\n                   ((_ extract 7 7) raw_X)\n                   ((_ extract 7 7) raw_X)\n                   ((_ extract 7 7) raw_X)\n                   ((_ extract 7 7) raw_X)\n                   ((_ extract 7 7) raw_X)\n                   ((_ extract 7 7) raw_X)\n                   ((_ extract 7 7) raw_X)\n                   ((_ extract 7 7) raw_X)\n                   ((_ extract 7 7) raw_X)\n                   ((_ extract 7 7) raw_X)\n                   ((_ extract 7 7) raw_X)\n                   raw_X))\n      (a!2 (concat ((_ extract 7 7) raw_Y)\n                   ((_ extract 7 7) raw_Y)\n                   ((_ extract 7 7) raw_Y)\n                   ((_ extract 7 7) raw_Y)\n                   ((_ extract 7 7) raw_Y)\n                   ((_ extract 7 7) raw_Y)\n                   ((_ extract 7 7) raw_Y)\n                   ((_ extract 7 7) raw_Y)\n                   ((_ extract 7 7) raw_Y)\n                   ((_ extract 7 7) raw_Y)\n                   ((_ extract 7 7) raw_Y)\n                   ((_ extract 7 7) raw_Y)\n                   ((_ extract 7 7) raw_Y)\n                   ((_ extract 7 7) raw_Y)\n                   ((_ extract 7 7) raw_Y)\n                   ((_ extract 7 7) raw_Y)\n                   ((_ extract 7 7) raw_Y)\n                   ((_ extract 7 7) raw_Y)\n                   ((_ extract 7 7) raw_Y)\n                   ((_ extract 7 7) raw_Y)\n                   ((_ extract 7 7) raw_Y)\n                   ((_ extract 7 7) raw_Y)\n                   ((_ extract 7 7) raw_Y)\n                   ((_ extract 7 7) raw_Y)\n                   raw_Y)))\n  (and (bvsle a!1 #xfffffff8)\n       (not (bvsle #x00000008 a!1))\n       (not (bvsle a!2 #xfffffff8))\n       (bvsle #x00000008 a!2)))"
+          },
+          {
+            "decisions": [
+              "adjust_analog_stick:body.1.1.0.1 true",
+              "adjust_analog_stick:body.1.1.1.0.1 false",
+              "adjust_analog_stick:body.1.1.1.1.0.1 false",
+              "adjust_analog_stick:body.1.1.1.1.1.1 false"
+            ],
+            "formula": "(let ((a!1 (concat ((_ extract 7 7) raw_X)\n                   ((_ extract 7 7) raw_X)\n                   ((_ extract 7 7) raw_X)\n                   ((_ extract 7 7) raw_X)\n                   ((_ extract 7 7) raw_X)\n                   ((_ extract 7 7) raw_X)\n                   ((_ extract 7 7) raw_X)\n                   ((_ extract 7 7) raw_X)\n                   ((_ extract 7 7) raw_X)\n                   ((_ extract 7 7) raw_X)\n                   ((_ extract 7 7) raw_X)\n                   ((_ extract 7 7) raw_X)\n                   ((_ extract 7 7) raw_X)\n                   ((_ extract 7 7) raw_X)\n                   ((_ extract 7 7) raw_X)\n                   ((_ extract 7 7) raw_X)\n                   ((_ extract 7 7) raw_X)\n                   ((_ extract 7 7) raw_X)\n                   ((_ extract 7 7) raw_X)\n                   ((_ extract 7 7) raw_X)\n                   ((_ extract 7 7) raw_X)\n                   ((_ extract 7 7) raw_X)\n                   ((_ extract 7 7) raw_X)\n                   ((_ extract 7 7) raw_X)\n                   raw_X))\n      (a!2 (concat ((_ extract 7 7) raw_Y)\n                   ((_ extract 7 7) raw_Y)\n                   ((_ extract 7 7) raw_Y)\n                   ((_ extract 7 7) raw_Y)\n                   ((_ extract 7 7) raw_Y)\n                   ((_ extract 7 7) raw_Y)\n                   ((_ extract 7 7) raw_Y)\n                   ((_ extract 7 7) raw_Y)\n                   ((_ extract 7 7) raw_Y)\n                   ((_ extract 7 7) raw_Y)\n                   ((_ extract 7 7) raw_Y)\n                   ((_ extract 7 7) raw_Y)\n                   ((_ extract 7 7) raw_Y)\n                   ((_ extract 7 7) raw_Y)\n                   ((_ extract 7 7) raw_Y)\n                   ((_ extract 7 7) raw_Y)\n                   ((_ extract 7 7) raw_Y)\n                   ((_ extract 7 7) raw_Y)\n                   ((_ extract 7 7) raw_Y)\n                   ((_ extract 7 7) raw_Y)\n                   ((_ extract 7 7) raw_Y)\n                   ((_ extract 7 7) raw_Y)\n                   ((_ extract 7 7) raw_Y)\n                   ((_ extract 7 7) raw_Y)\n                   raw_Y)))\n  (and (bvsle a!1 #xfffffff8)\n       (not (bvsle #x00000008 a!1))\n       (not (bvsle a!2 #xfffffff8))\n       (not (bvsle #x00000008 a!2))))"
+          },
+          {
+            "decisions": [
+              "adjust_analog_stick:body.1.1.0.1 false",
+              "adjust_analog_stick:body.1.1.1.0.1 true",
+              "adjust_analog_stick:body.1.1.1.1.0.1 true",
+              "adjust_analog_stick:body.1.1.1.1.1.1 false"
+            ],
+            "formula": "(let ((a!1 (concat ((_ extract 7 7) raw_X)\n                   ((_ extract 7 7) raw_X)\n                   ((_ extract 7 7) raw_X)\n                   ((_ extract 7 7) raw_X)\n                   ((_ extract 7 7) raw_X)\n                   ((_ extract 7 7) raw_X)\n                   ((_ extract 7 7) raw_X)\n                   ((_ extract 7 7) raw_X)\n                   ((_ extract 7 7) raw_X)\n                   ((_ extract 7 7) raw_X)\n                   ((_ extract 7 7) raw_X)\n                   ((_ extract 7 7) raw_X)\n                   ((_ extract 7 7) raw_X)\n                   ((_ extract 7 7) raw_X)\n                   ((_ extract 7 7) raw_X)\n                   ((_ extract 7 7) raw_X)\n                   ((_ extract 7 7) raw_X)\n                   ((_ extract 7 7) raw_X)\n                   ((_ extract 7 7) raw_X)\n                   ((_ extract 7 7) raw_X)\n                   ((_ extract 7 7) raw_X)\n                   ((_ extract 7 7) raw_X)\n                   ((_ extract 7 7) raw_X)\n                   ((_ extract 7 7) raw_X)\n                   raw_X))\n      (a!2 (concat ((_ extract 7 7) raw_Y)\n                   ((_ extract 7 7) raw_Y)\n                   ((_ extract 7 7) raw_Y)\n                   ((_ extract 7 7) raw_Y)\n                   ((_ extract 7 7) raw_Y)\n                   ((_ extract 7 7) raw_Y)\n                   ((_ extract 7 7) raw_Y)\n                   ((_ extract 7 7) raw_Y)\n                   ((_ extract 7 7) raw_Y)\n                   ((_ extract 7 7) raw_Y)\n                   ((_ extract 7 7) raw_Y)\n                   ((_ extract 7 7) raw_Y)\n                   ((_ extract 7 7) raw_Y)\n                   ((_ extract 7 7) raw_Y)\n                   ((_ extract 7 7) raw_Y)\n                   ((_ extract 7 7) raw_Y)\n                   ((_ extract 7 7) raw_Y)\n                   ((_ extract 7 7) raw_Y)\n                   ((_ extract 7 7) raw_Y)\n                   ((_ extract 7 7) raw_Y)\n                   ((_ extract 7 7) raw_Y)\n                   ((_ extract 7 7) raw_Y)\n                   ((_ extract 7 7) raw_Y)\n                   ((_ extract 7 7) raw_Y)\n                   raw_Y)))\n  (and (not (bvsle a!1 #xfffffff8))\n       (bvsle #x00000008 a!1)\n       (bvsle a!2 #xfffffff8)\n       (not (bvsle #x00000008 a!2))))"
+          },
+          {
+            "decisions": [
+              "adjust_analog_stick:body.1.1.0.1 false",
+              "adjust_analog_stick:body.1.1.1.0.1 true",
+              "adjust_analog_stick:body.1.1.1.1.0.1 false",
+              "adjust_analog_stick:body.1.1.1.1.1.1 true"
+            ],
+            "formula": "(let ((a!1 (concat ((_ extract 7 7) raw_X)\n                   ((_ extract 7 7) raw_X)\n                   ((_ extract 7 7) raw_X)\n                   ((_ extract 7 7) raw_X)\n                   ((_ extract 7 7) raw_X)\n                   ((_ extract 7 7) raw_X)\n                   ((_ extract 7 7) raw_X)\n                   ((_ extract 7 7) raw_X)\n                   ((_ extract 7 7) raw_X)\n                   ((_ extract 7 7) raw_X)\n                   ((_ extract 7 7) raw_X)\n                   ((_ extract 7 7) raw_X)\n                   ((_ extract 7 7) raw_X)\n                   ((_ extract 7 7) raw_X)\n                   ((_ extract 7 7) raw_X)\n                   ((_ extract 7 7) raw_X)\n                   ((_ extract 7 7) raw_X)\n                   ((_ extract 7 7) raw_X)\n                   ((_ extract 7 7) raw_X)\n                   ((_ extract 7 7) raw_X)\n                   ((_ extract 7 7) raw_X)\n                   ((_ extract 7 7) raw_X)\n                   ((_ extract 7 7) raw_X)\n                   ((_ extract 7 7) raw_X)\n                   raw_X))\n      (a!2 (concat ((_ extract 7 7) raw_Y)\n                   ((_ extract 7 7) raw_Y)\n                   ((_ extract 7 7) raw_Y)\n                   ((_ extract 7 7) raw_Y)\n                   ((_ extract 7 7) raw_Y)\n                   ((_ extract 7 7) raw_Y)\n                   ((_ extract 7 7) raw_Y)\n                   ((_ extract 7 7) raw_Y)\n                   ((_ extract 7 7) raw_Y)\n                   ((_ extract 7 7) raw_Y)\n                   ((_ extract 7 7) raw_Y)\n                   ((_ extract 7 7) raw_Y)\n                   ((_ extract 7 7) raw_Y)\n                   ((_ extract 7 7) raw_Y)\n                   ((_ extract 7 7) raw_Y)\n                   ((_ extract 7 7) raw_Y)\n                   ((_ extract 7 7) raw_Y)\n                   ((_ extract 7 7) raw_Y)\n                   ((_ extract 7 7) raw_Y)\n                   ((_ extract 7 7) raw_Y)\n                   ((_ extract 7 7) raw_Y)\n                   ((_ extract 7 7) raw_Y)\n                   ((_ extract 7 7) raw_Y)\n                   ((_ extract 7 7) raw_Y)\n                   raw_Y)))\n  (and (not (bvsle a!1 #xfffffff8))\n       (bvsle #x00000008 a!1)\n       (not (bvsle a!2 #xfffffff8))\n       (bvsle #x00000008 a!2)))"
+          },
+          {
+            "decisions": [
+              "adjust_analog_stick:body.1.1.0.1 false",
+              "adjust_analog_stick:body.1.1.1.0.1 true",
+              "adjust_analog_stick:body.1.1.1.1.0.1 false",
+              "adjust_analog_stick:body.1.1.1.1.1.1 false"
+            ],
+            "formula": "(let ((a!1 (concat ((_ extract 7 7) raw_X)\n                   ((_ extract 7 7) raw_X)\n                   ((_ extract 7 7) raw_X)\n                   ((_ extract 7 7) raw_X)\n                   ((_ extract 7 7) raw_X)\n                   ((_ extract 7 7) raw_X)\n                   ((_ extract 7 7) raw_X)\n                   ((_ extract 7 7) raw_X)\n                   ((_ extract 7 7) raw_X)\n                   ((_ extract 7 7) raw_X)\n                   ((_ extract 7 7) raw_X)\n                   ((_ extract 7 7) raw_X)\n                   ((_ extract 7 7) raw_X)\n                   ((_ extract 7 7) raw_X)\n                   ((_ extract 7 7) raw_X)\n                   ((_ extract 7 7) raw_X)\n                   ((_ extract 7 7) raw_X)\n                   ((_ extract 7 7) raw_X)\n                   ((_ extract 7 7) raw_X)\n                   ((_ extract 7 7) raw_X)\n                   ((_ extract 7 7) raw_X)\n                   ((_ extract 7 7) raw_X)\n                   ((_ extract 7 7) raw_X)\n                   ((_ extract 7 7) raw_X)\n                   raw_X))\n      (a!2 (concat ((_ extract 7 7) raw_Y)\n                   ((_ extract 7 7) raw_Y)\n                   ((_ extract 7 7) raw_Y)\n                   ((_ extract 7 7) raw_Y)\n                   ((_ extract 7 7) raw_Y)\n                   ((_ extract 7 7) raw_Y)\n                   ((_ extract 7 7) raw_Y)\n                   ((_ extract 7 7) raw_Y)\n                   ((_ extract 7 7) raw_Y)\n                   ((_ extract 7 7) raw_Y)\n                   ((_ extract 7 7) raw_Y)\n                   ((_ extract 7 7) raw_Y)\n                   ((_ extract 7 7) raw_Y)\n                   ((_ extract 7 7) raw_Y)\n                   ((_ extract 7 7) raw_Y)\n                   ((_ extract 7 7) raw_Y)\n                   ((_ extract 7 7) raw_Y)\n                   ((_ extract 7 7) raw_Y)\n                   ((_ extract 7 7) raw_Y)\n                   ((_ extract 7 7) raw_Y)\n                   ((_ extract 7 7) raw_Y)\n                   ((_ extract 7 7) raw_Y)\n                   ((_ extract 7 7) raw_Y)\n                   ((_ extract 7 7) raw_Y)\n                   raw_Y)))\n  (and (not (bvsle a!1 #xfffffff8))\n       (bvsle #x00000008 a!1)\n       (not (bvsle a!2 #xfffffff8))\n       (not (bvsle #x00000008 a!2))))"
+          },
+          {
+            "decisions": [
+              "adjust_analog_stick:body.1.1.0.1 false",
+              "adjust_analog_stick:body.1.1.1.0.1 false",
+              "adjust_analog_stick:body.1.1.1.1.0.1 true",
+              "adjust_analog_stick:body.1.1.1.1.1.1 false"
+            ],
+            "formula": "(let ((a!1 (concat ((_ extract 7 7) raw_X)\n                   ((_ extract 7 7) raw_X)\n                   ((_ extract 7 7) raw_X)\n                   ((_ extract 7 7) raw_X)\n                   ((_ extract 7 7) raw_X)\n                   ((_ extract 7 7) raw_X)\n                   ((_ extract 7 7) raw_X)\n                   ((_ extract 7 7) raw_X)\n                   ((_ extract 7 7) raw_X)\n                   ((_ extract 7 7) raw_X)\n                   ((_ extract 7 7) raw_X)\n                   ((_ extract 7 7) raw_X)\n                   ((_ extract 7 7) raw_X)\n                   ((_ extract 7 7) raw_X)\n                   ((_ extract 7 7) raw_X)\n                   ((_ extract 7 7) raw_X)\n                   ((_ extract 7 7) raw_X)\n                   ((_ extract 7 7) raw_X)\n                   ((_ extract 7 7) raw_X)\n                   ((_ extract 7 7) raw_X)\n                   ((_ extract 7 7) raw_X)\n                   ((_ extract 7 7) raw_X)\n                   ((_ extract 7 7) raw_X)\n                   ((_ extract 7 7) raw_X)\n                   raw_X))\n      (a!2 (concat ((_ extract 7 7) raw_Y)\n                   ((_ extract 7 7) raw_Y)\n                   ((_ extract 7 7) raw_Y)\n                   ((_ extract 7 7) raw_Y)\n                   ((_ extract 7 7) raw_Y)\n                   ((_ extract 7 7) raw_Y)\n                   ((_ extract 7 7) raw_Y)\n                   ((_ extract 7 7) raw_Y)\n                   ((_ extract 7 7) raw_Y)\n                   ((_ extract 7 7) raw_Y)\n                   ((_ extract 7 7) raw_Y)\n                   ((_ extract 7 7) raw_Y)\n                   ((_ extract 7 7) raw_Y)\n                   ((_ extract 7 7) raw_Y)\n                   ((_ extract 7 7) raw_Y)\n                   ((_ extract 7 7) raw_Y)\n                   ((_ extract 7 7) raw_Y)\n                   ((_ extract 7 7) raw_Y)\n                   ((_ extract 7 7) raw_Y)\n                   ((_ extract 7 7) raw_Y)\n                   ((_ extract 7 7) raw_Y)\n                   ((_ extract 7 7) raw_Y)\n                   ((_ extract 7 7) raw_Y)\n                   ((_ extract 7 7) raw_Y)\n                   raw_Y)))\n  (and (not (bvsle a!1 #xfffffff8))\n       (not (bvsle #x00000008 a!1))\n       (bvsle a!2 #xfffffff8)\n       (not (bvsle #x00000008 a!2))))"
+          },
+          {
+            "decisions": [
+              "adjust_analog_stick:body.1.1.0.1 false",
+              "adjust_analog_stick:body.1.1.1.0.1 false",
+              "adjust_analog_stick:body.1.1.1.1.0.1 false",
+              "adjust_analog_stick:body.1.1.1.1.1.1 true"
+            ],
+            "formula": "(let ((a!1 (concat ((_ extract 7 7) raw_X)\n                   ((_ extract 7 7) raw_X)\n                   ((_ extract 7 7) raw_X)\n                   ((_ extract 7 7) raw_X)\n                   ((_ extract 7 7) raw_X)\n                   ((_ extract 7 7) raw_X)\n                   ((_ extract 7 7) raw_X)\n                   ((_ extract 7 7) raw_X)\n                   ((_ extract 7 7) raw_X)\n                   ((_ extract 7 7) raw_X)\n                   ((_ extract 7 7) raw_X)\n                   ((_ extract 7 7) raw_X)\n                   ((_ extract 7 7) raw_X)\n                   ((_ extract 7 7) raw_X)\n                   ((_ extract 7 7) raw_X)\n                   ((_ extract 7 7) raw_X)\n                   ((_ extract 7 7) raw_X)\n                   ((_ extract 7 7) raw_X)\n                   ((_ extract 7 7) raw_X)\n                   ((_ extract 7 7) raw_X)\n                   ((_ extract 7 7) raw_X)\n                   ((_ extract 7 7) raw_X)\n                   ((_ extract 7 7) raw_X)\n                   ((_ extract 7 7) raw_X)\n                   raw_X))\n      (a!2 (concat ((_ extract 7 7) raw_Y)\n                   ((_ extract 7 7) raw_Y)\n                   ((_ extract 7 7) raw_Y)\n                   ((_ extract 7 7) raw_Y)\n                   ((_ extract 7 7) raw_Y)\n                   ((_ extract 7 7) raw_Y)\n                   ((_ extract 7 7) raw_Y)\n                   ((_ extract 7 7) raw_Y)\n                   ((_ extract 7 7) raw_Y)\n                   ((_ extract 7 7) raw_Y)\n                   ((_ extract 7 7) raw_Y)\n                   ((_ extract 7 7) raw_Y)\n                   ((_ extract 7 7) raw_Y)\n                   ((_ extract 7 7) raw_Y)\n                   ((_ extract 7 7) raw_Y)\n                   ((_ extract 7 7) raw_Y)\n                   ((_ extract 7 7) raw_Y)\n                   ((_ extract 7 7) raw_Y)\n                   ((_ extract 7 7) raw_Y)\n                   ((_ extract 7 7) raw_Y)\n                   ((_ extract 7 7) raw_Y)\n                   ((_ extract 7 7) raw_Y)\n                   ((_ extract 7 7) raw_Y)\n                   ((_ extract 7 7) raw_Y)\n                   raw_Y)))\n  (and (not (bvsle a!1 #xfffffff8))\n       (not (bvsle #x00000008 a!1))\n       (not (bvsle a!2 #xfffffff8))\n       (bvsle #x00000008 a!2)))"
+          },
+          {
+            "decisions": [
+              "adjust_analog_stick:body.1.1.0.1 false",
+              "adjust_analog_stick:body.1.1.1.0.1 false",
+              "adjust_analog_stick:body.1.1.1.1.0.1 false",
+              "adjust_analog_stick:body.1.1.1.1.1.1 false"
+            ],
+            "formula": "(let ((a!1 (concat ((_ extract 7 7) raw_X)\n                   ((_ extract 7 7) raw_X)\n                   ((_ extract 7 7) raw_X)\n                   ((_ extract 7 7) raw_X)\n                   ((_ extract 7 7) raw_X)\n                   ((_ extract 7 7) raw_X)\n                   ((_ extract 7 7) raw_X)\n                   ((_ extract 7 7) raw_X)\n                   ((_ extract 7 7) raw_X)\n                   ((_ extract 7 7) raw_X)\n                   ((_ extract 7 7) raw_X)\n                   ((_ extract 7 7) raw_X)\n                   ((_ extract 7 7) raw_X)\n                   ((_ extract 7 7) raw_X)\n                   ((_ extract 7 7) raw_X)\n                   ((_ extract 7 7) raw_X)\n                   ((_ extract 7 7) raw_X)\n                   ((_ extract 7 7) raw_X)\n                   ((_ extract 7 7) raw_X)\n                   ((_ extract 7 7) raw_X)\n                   ((_ extract 7 7) raw_X)\n                   ((_ extract 7 7) raw_X)\n                   ((_ extract 7 7) raw_X)\n                   ((_ extract 7 7) raw_X)\n                   raw_X))\n      (a!2 (concat ((_ extract 7 7) raw_Y)\n                   ((_ extract 7 7) raw_Y)\n                   ((_ extract 7 7) raw_Y)\n                   ((_ extract 7 7) raw_Y)\n                   ((_ extract 7 7) raw_Y)\n                   ((_ extract 7 7) raw_Y)\n                   ((_ extract 7 7) raw_Y)\n                   ((_ extract 7 7) raw_Y)\n                   ((_ extract 7 7) raw_Y)\n                   ((_ extract 7 7) raw_Y)\n                   ((_ extract 7 7) raw_Y)\n                   ((_ extract 7 7) raw_Y)\n                   ((_ extract 7 7) raw_Y)\n                   ((_ extract 7 7) raw_Y)\n                   ((_ extract 7 7) raw_Y)\n                   ((_ extract 7 7) raw_Y)\n                   ((_ extract 7 7) raw_Y)\n                   ((_ extract 7 7) raw_Y)\n                   ((_ extract 7 7) raw_Y)\n                   ((_ extract 7 7) raw_Y)\n                   ((_ extract 7 7) raw_Y)\n                   ((_ extract 7 7) raw_Y)\n                   ((_ extract 7 7) raw_Y)\n                   ((_ extract 7 7) raw_Y)\n                   raw_Y)))\n  (and (not (bvsle a!1 #xfffffff8))\n       (not (bvsle #x00000008 a!1))\n       (not (bvsle a!2 #xfffffff8))\n       (not (bvsle #x00000008 a!2))))"
+          }
+        ],
+        "axisGroups": {
+          "X": {
+            "groupCount": 242,
+            "memberSizes": {
+              "1": 241,
+              "15": 1
+            },
+            "neutralMembers": [
+              -7,
+              -6,
+              -5,
+              -4,
+              -3,
+              -2,
+              -1,
+              0,
+              1,
+              2,
+              3,
+              4,
+              5,
+              6,
+              7
+            ]
+          },
+          "Y": {
+            "groupCount": 242,
+            "memberSizes": {
+              "1": 241,
+              "15": 1
+            },
+            "neutralMembers": [
+              -7,
+              -6,
+              -5,
+              -4,
+              -3,
+              -2,
+              -1,
+              0,
+              1,
+              2,
+              3,
+              4,
+              5,
+              6,
+              7
+            ]
+          }
+        },
+        "distinctAdjustedPairs": 58564,
+        "neutralPairMembers": 225,
+        "boundary": "Before the sqrtf call, with raw axes retained. The nine regions contain exact raw variables; they are not nine representative joystick directions."
+      },
+      "generatedFunctions": {
+        "read_controller_inputs": {
+          "file": "generated\\us_game_init.v",
+          "line": 6814,
+          "sha256": "d2112738876cb69d8f2fb84ef8057e3b4c8582fbe3b76bfd1622189a72fae1b2"
+        },
+        "update_mario_button_inputs": {
+          "file": "generated\\us_mario.v",
+          "line": 6596,
+          "sha256": "230ffdaa612945c7a0106a4d629121e2af94a292cfce9133f309634d137c5425"
+        },
+        "adjust_analog_stick": {
+          "file": "generated\\us_game_init.v",
+          "line": 6181,
+          "sha256": "4061a6fc1948baaa4b10eb20fea2b417ad49258f2dd868f408904da7c0ec0dbd"
+        }
+      }
+    },
+    "jp": {
+      "buttons": {
+        "checks": {
+          "actual-edge-and-down": "unsat",
+          "original-held-and-edge-bits-retained": "unsat",
+          "previous-ABZ-suffice-for-signature": "unsat",
+          "all-nonzero-squish-values-agree": "unsat",
+          "same-signature-same-helper-writes": "unsat",
+          "merged-matches-backward-preimage": "unsat"
+        },
+        "profiles": [
+          {
+            "previousA": false,
+            "previousB": false,
+            "previousZ": false,
+            "squished": false,
+            "groups": [
+              {
+                "signature": 0,
+                "members": 2048
+              },
+              {
+                "signature": 8192,
+                "members": 2048
+              },
+              {
+                "signature": 49152,
+                "members": 2048
+              },
+              {
+                "signature": 57344,
+                "members": 2048
+              }
+            ]
+          },
+          {
+            "previousA": false,
+            "previousB": false,
+            "previousZ": false,
+            "squished": true,
+            "groups": [
+              {
+                "signature": 0,
+                "members": 8192
+              }
+            ]
+          },
+          {
+            "previousA": false,
+            "previousB": false,
+            "previousZ": true,
+            "squished": false,
+            "groups": [
+              {
+                "signature": 0,
+                "members": 2048
+              },
+              {
+                "signature": 8192,
+                "members": 2048
+              },
+              {
+                "signature": 16384,
+                "members": 2048
+              },
+              {
+                "signature": 24576,
+                "members": 2048
+              }
+            ]
+          },
+          {
+            "previousA": false,
+            "previousB": false,
+            "previousZ": true,
+            "squished": true,
+            "groups": [
+              {
+                "signature": 0,
+                "members": 8192
+              }
+            ]
+          },
+          {
+            "previousA": false,
+            "previousB": true,
+            "previousZ": false,
+            "squished": false,
+            "groups": [
+              {
+                "signature": 0,
+                "members": 4096
+              },
+              {
+                "signature": 49152,
+                "members": 4096
+              }
+            ]
+          },
+          {
+            "previousA": false,
+            "previousB": true,
+            "previousZ": false,
+            "squished": true,
+            "groups": [
+              {
+                "signature": 0,
+                "members": 8192
+              }
+            ]
+          },
+          {
+            "previousA": false,
+            "previousB": true,
+            "previousZ": true,
+            "squished": false,
+            "groups": [
+              {
+                "signature": 0,
+                "members": 4096
+              },
+              {
+                "signature": 16384,
+                "members": 4096
+              }
+            ]
+          },
+          {
+            "previousA": false,
+            "previousB": true,
+            "previousZ": true,
+            "squished": true,
+            "groups": [
+              {
+                "signature": 0,
+                "members": 8192
+              }
+            ]
+          },
+          {
+            "previousA": true,
+            "previousB": false,
+            "previousZ": false,
+            "squished": false,
+            "groups": [
+              {
+                "signature": 0,
+                "members": 2048
+              },
+              {
+                "signature": 128,
+                "members": 2048
+              },
+              {
+                "signature": 8192,
+                "members": 2048
+              },
+              {
+                "signature": 8320,
+                "members": 2048
+              },
+              {
+                "signature": 49152,
+                "members": 2048
+              },
+              {
+                "signature": 49280,
+                "members": 2048
+              },
+              {
+                "signature": 57344,
+                "members": 2048
+              },
+              {
+                "signature": 57472,
+                "members": 2048
+              }
+            ]
+          },
+          {
+            "previousA": true,
+            "previousB": false,
+            "previousZ": false,
+            "squished": true,
+            "groups": [
+              {
+                "signature": 0,
+                "members": 8192
+              },
+              {
+                "signature": 128,
+                "members": 8192
+              }
+            ]
+          },
+          {
+            "previousA": true,
+            "previousB": false,
+            "previousZ": true,
+            "squished": false,
+            "groups": [
+              {
+                "signature": 0,
+                "members": 2048
+              },
+              {
+                "signature": 128,
+                "members": 2048
+              },
+              {
+                "signature": 8192,
+                "members": 2048
+              },
+              {
+                "signature": 8320,
+                "members": 2048
+              },
+              {
+                "signature": 16384,
+                "members": 2048
+              },
+              {
+                "signature": 16512,
+                "members": 2048
+              },
+              {
+                "signature": 24576,
+                "members": 2048
+              },
+              {
+                "signature": 24704,
+                "members": 2048
+              }
+            ]
+          },
+          {
+            "previousA": true,
+            "previousB": false,
+            "previousZ": true,
+            "squished": true,
+            "groups": [
+              {
+                "signature": 0,
+                "members": 8192
+              },
+              {
+                "signature": 128,
+                "members": 8192
+              }
+            ]
+          },
+          {
+            "previousA": true,
+            "previousB": true,
+            "previousZ": false,
+            "squished": false,
+            "groups": [
+              {
+                "signature": 0,
+                "members": 4096
+              },
+              {
+                "signature": 128,
+                "members": 4096
+              },
+              {
+                "signature": 49152,
+                "members": 4096
+              },
+              {
+                "signature": 49280,
+                "members": 4096
+              }
+            ]
+          },
+          {
+            "previousA": true,
+            "previousB": true,
+            "previousZ": false,
+            "squished": true,
+            "groups": [
+              {
+                "signature": 0,
+                "members": 8192
+              },
+              {
+                "signature": 128,
+                "members": 8192
+              }
+            ]
+          },
+          {
+            "previousA": true,
+            "previousB": true,
+            "previousZ": true,
+            "squished": false,
+            "groups": [
+              {
+                "signature": 0,
+                "members": 4096
+              },
+              {
+                "signature": 128,
+                "members": 4096
+              },
+              {
+                "signature": 16384,
+                "members": 4096
+              },
+              {
+                "signature": 16512,
+                "members": 4096
+              }
+            ]
+          },
+          {
+            "previousA": true,
+            "previousB": true,
+            "previousZ": true,
+            "squished": true,
+            "groups": [
+              {
+                "signature": 0,
+                "members": 8192
+              },
+              {
+                "signature": 128,
+                "members": 8192
+              }
+            ]
+          }
+        ],
+        "writeFields": [
+          "_framesSinceA",
+          "_framesSinceB",
+          "_input"
+        ],
+        "heldButtonCounterexample": {
+          "previousB": true,
+          "firstSamples": [
+            0,
+            16384
+          ],
+          "nextSample": 16384,
+          "firstSignatures": [
+            0,
+            0
+          ],
+          "nextSignatures": [
+            8192,
+            0
+          ]
+        },
+        "meaning": "Groups have the same writes in this helper for the same other state. Original held bits remain in memory and in the group; these are not interchangeable whole-game states."
+      },
+      "sticks": {
+        "checks": {
+          "axis-independence": "unsat",
+          "raw-axes-retained": "unsat",
+          "merged-matches-backward-preimage": "unsat",
+          "unexpanded-call-rejected": "passed"
+        },
+        "rawPairs": 65536,
+        "symbolicRegions": [
+          {
+            "decisions": [
+              "adjust_analog_stick:body.1.1.0.1 true",
+              "adjust_analog_stick:body.1.1.1.0.1 false",
+              "adjust_analog_stick:body.1.1.1.1.0.1 true",
+              "adjust_analog_stick:body.1.1.1.1.1.1 false"
+            ],
+            "formula": "(let ((a!1 (concat ((_ extract 7 7) raw_X)\n                   ((_ extract 7 7) raw_X)\n                   ((_ extract 7 7) raw_X)\n                   ((_ extract 7 7) raw_X)\n                   ((_ extract 7 7) raw_X)\n                   ((_ extract 7 7) raw_X)\n                   ((_ extract 7 7) raw_X)\n                   ((_ extract 7 7) raw_X)\n                   ((_ extract 7 7) raw_X)\n                   ((_ extract 7 7) raw_X)\n                   ((_ extract 7 7) raw_X)\n                   ((_ extract 7 7) raw_X)\n                   ((_ extract 7 7) raw_X)\n                   ((_ extract 7 7) raw_X)\n                   ((_ extract 7 7) raw_X)\n                   ((_ extract 7 7) raw_X)\n                   ((_ extract 7 7) raw_X)\n                   ((_ extract 7 7) raw_X)\n                   ((_ extract 7 7) raw_X)\n                   ((_ extract 7 7) raw_X)\n                   ((_ extract 7 7) raw_X)\n                   ((_ extract 7 7) raw_X)\n                   ((_ extract 7 7) raw_X)\n                   ((_ extract 7 7) raw_X)\n                   raw_X))\n      (a!2 (concat ((_ extract 7 7) raw_Y)\n                   ((_ extract 7 7) raw_Y)\n                   ((_ extract 7 7) raw_Y)\n                   ((_ extract 7 7) raw_Y)\n                   ((_ extract 7 7) raw_Y)\n                   ((_ extract 7 7) raw_Y)\n                   ((_ extract 7 7) raw_Y)\n                   ((_ extract 7 7) raw_Y)\n                   ((_ extract 7 7) raw_Y)\n                   ((_ extract 7 7) raw_Y)\n                   ((_ extract 7 7) raw_Y)\n                   ((_ extract 7 7) raw_Y)\n                   ((_ extract 7 7) raw_Y)\n                   ((_ extract 7 7) raw_Y)\n                   ((_ extract 7 7) raw_Y)\n                   ((_ extract 7 7) raw_Y)\n                   ((_ extract 7 7) raw_Y)\n                   ((_ extract 7 7) raw_Y)\n                   ((_ extract 7 7) raw_Y)\n                   ((_ extract 7 7) raw_Y)\n                   ((_ extract 7 7) raw_Y)\n                   ((_ extract 7 7) raw_Y)\n                   ((_ extract 7 7) raw_Y)\n                   ((_ extract 7 7) raw_Y)\n                   raw_Y)))\n  (and (bvsle a!1 #xfffffff8)\n       (not (bvsle #x00000008 a!1))\n       (bvsle a!2 #xfffffff8)\n       (not (bvsle #x00000008 a!2))))"
+          },
+          {
+            "decisions": [
+              "adjust_analog_stick:body.1.1.0.1 true",
+              "adjust_analog_stick:body.1.1.1.0.1 false",
+              "adjust_analog_stick:body.1.1.1.1.0.1 false",
+              "adjust_analog_stick:body.1.1.1.1.1.1 true"
+            ],
+            "formula": "(let ((a!1 (concat ((_ extract 7 7) raw_X)\n                   ((_ extract 7 7) raw_X)\n                   ((_ extract 7 7) raw_X)\n                   ((_ extract 7 7) raw_X)\n                   ((_ extract 7 7) raw_X)\n                   ((_ extract 7 7) raw_X)\n                   ((_ extract 7 7) raw_X)\n                   ((_ extract 7 7) raw_X)\n                   ((_ extract 7 7) raw_X)\n                   ((_ extract 7 7) raw_X)\n                   ((_ extract 7 7) raw_X)\n                   ((_ extract 7 7) raw_X)\n                   ((_ extract 7 7) raw_X)\n                   ((_ extract 7 7) raw_X)\n                   ((_ extract 7 7) raw_X)\n                   ((_ extract 7 7) raw_X)\n                   ((_ extract 7 7) raw_X)\n                   ((_ extract 7 7) raw_X)\n                   ((_ extract 7 7) raw_X)\n                   ((_ extract 7 7) raw_X)\n                   ((_ extract 7 7) raw_X)\n                   ((_ extract 7 7) raw_X)\n                   ((_ extract 7 7) raw_X)\n                   ((_ extract 7 7) raw_X)\n                   raw_X))\n      (a!2 (concat ((_ extract 7 7) raw_Y)\n                   ((_ extract 7 7) raw_Y)\n                   ((_ extract 7 7) raw_Y)\n                   ((_ extract 7 7) raw_Y)\n                   ((_ extract 7 7) raw_Y)\n                   ((_ extract 7 7) raw_Y)\n                   ((_ extract 7 7) raw_Y)\n                   ((_ extract 7 7) raw_Y)\n                   ((_ extract 7 7) raw_Y)\n                   ((_ extract 7 7) raw_Y)\n                   ((_ extract 7 7) raw_Y)\n                   ((_ extract 7 7) raw_Y)\n                   ((_ extract 7 7) raw_Y)\n                   ((_ extract 7 7) raw_Y)\n                   ((_ extract 7 7) raw_Y)\n                   ((_ extract 7 7) raw_Y)\n                   ((_ extract 7 7) raw_Y)\n                   ((_ extract 7 7) raw_Y)\n                   ((_ extract 7 7) raw_Y)\n                   ((_ extract 7 7) raw_Y)\n                   ((_ extract 7 7) raw_Y)\n                   ((_ extract 7 7) raw_Y)\n                   ((_ extract 7 7) raw_Y)\n                   ((_ extract 7 7) raw_Y)\n                   raw_Y)))\n  (and (bvsle a!1 #xfffffff8)\n       (not (bvsle #x00000008 a!1))\n       (not (bvsle a!2 #xfffffff8))\n       (bvsle #x00000008 a!2)))"
+          },
+          {
+            "decisions": [
+              "adjust_analog_stick:body.1.1.0.1 true",
+              "adjust_analog_stick:body.1.1.1.0.1 false",
+              "adjust_analog_stick:body.1.1.1.1.0.1 false",
+              "adjust_analog_stick:body.1.1.1.1.1.1 false"
+            ],
+            "formula": "(let ((a!1 (concat ((_ extract 7 7) raw_X)\n                   ((_ extract 7 7) raw_X)\n                   ((_ extract 7 7) raw_X)\n                   ((_ extract 7 7) raw_X)\n                   ((_ extract 7 7) raw_X)\n                   ((_ extract 7 7) raw_X)\n                   ((_ extract 7 7) raw_X)\n                   ((_ extract 7 7) raw_X)\n                   ((_ extract 7 7) raw_X)\n                   ((_ extract 7 7) raw_X)\n                   ((_ extract 7 7) raw_X)\n                   ((_ extract 7 7) raw_X)\n                   ((_ extract 7 7) raw_X)\n                   ((_ extract 7 7) raw_X)\n                   ((_ extract 7 7) raw_X)\n                   ((_ extract 7 7) raw_X)\n                   ((_ extract 7 7) raw_X)\n                   ((_ extract 7 7) raw_X)\n                   ((_ extract 7 7) raw_X)\n                   ((_ extract 7 7) raw_X)\n                   ((_ extract 7 7) raw_X)\n                   ((_ extract 7 7) raw_X)\n                   ((_ extract 7 7) raw_X)\n                   ((_ extract 7 7) raw_X)\n                   raw_X))\n      (a!2 (concat ((_ extract 7 7) raw_Y)\n                   ((_ extract 7 7) raw_Y)\n                   ((_ extract 7 7) raw_Y)\n                   ((_ extract 7 7) raw_Y)\n                   ((_ extract 7 7) raw_Y)\n                   ((_ extract 7 7) raw_Y)\n                   ((_ extract 7 7) raw_Y)\n                   ((_ extract 7 7) raw_Y)\n                   ((_ extract 7 7) raw_Y)\n                   ((_ extract 7 7) raw_Y)\n                   ((_ extract 7 7) raw_Y)\n                   ((_ extract 7 7) raw_Y)\n                   ((_ extract 7 7) raw_Y)\n                   ((_ extract 7 7) raw_Y)\n                   ((_ extract 7 7) raw_Y)\n                   ((_ extract 7 7) raw_Y)\n                   ((_ extract 7 7) raw_Y)\n                   ((_ extract 7 7) raw_Y)\n                   ((_ extract 7 7) raw_Y)\n                   ((_ extract 7 7) raw_Y)\n                   ((_ extract 7 7) raw_Y)\n                   ((_ extract 7 7) raw_Y)\n                   ((_ extract 7 7) raw_Y)\n                   ((_ extract 7 7) raw_Y)\n                   raw_Y)))\n  (and (bvsle a!1 #xfffffff8)\n       (not (bvsle #x00000008 a!1))\n       (not (bvsle a!2 #xfffffff8))\n       (not (bvsle #x00000008 a!2))))"
+          },
+          {
+            "decisions": [
+              "adjust_analog_stick:body.1.1.0.1 false",
+              "adjust_analog_stick:body.1.1.1.0.1 true",
+              "adjust_analog_stick:body.1.1.1.1.0.1 true",
+              "adjust_analog_stick:body.1.1.1.1.1.1 false"
+            ],
+            "formula": "(let ((a!1 (concat ((_ extract 7 7) raw_X)\n                   ((_ extract 7 7) raw_X)\n                   ((_ extract 7 7) raw_X)\n                   ((_ extract 7 7) raw_X)\n                   ((_ extract 7 7) raw_X)\n                   ((_ extract 7 7) raw_X)\n                   ((_ extract 7 7) raw_X)\n                   ((_ extract 7 7) raw_X)\n                   ((_ extract 7 7) raw_X)\n                   ((_ extract 7 7) raw_X)\n                   ((_ extract 7 7) raw_X)\n                   ((_ extract 7 7) raw_X)\n                   ((_ extract 7 7) raw_X)\n                   ((_ extract 7 7) raw_X)\n                   ((_ extract 7 7) raw_X)\n                   ((_ extract 7 7) raw_X)\n                   ((_ extract 7 7) raw_X)\n                   ((_ extract 7 7) raw_X)\n                   ((_ extract 7 7) raw_X)\n                   ((_ extract 7 7) raw_X)\n                   ((_ extract 7 7) raw_X)\n                   ((_ extract 7 7) raw_X)\n                   ((_ extract 7 7) raw_X)\n                   ((_ extract 7 7) raw_X)\n                   raw_X))\n      (a!2 (concat ((_ extract 7 7) raw_Y)\n                   ((_ extract 7 7) raw_Y)\n                   ((_ extract 7 7) raw_Y)\n                   ((_ extract 7 7) raw_Y)\n                   ((_ extract 7 7) raw_Y)\n                   ((_ extract 7 7) raw_Y)\n                   ((_ extract 7 7) raw_Y)\n                   ((_ extract 7 7) raw_Y)\n                   ((_ extract 7 7) raw_Y)\n                   ((_ extract 7 7) raw_Y)\n                   ((_ extract 7 7) raw_Y)\n                   ((_ extract 7 7) raw_Y)\n                   ((_ extract 7 7) raw_Y)\n                   ((_ extract 7 7) raw_Y)\n                   ((_ extract 7 7) raw_Y)\n                   ((_ extract 7 7) raw_Y)\n                   ((_ extract 7 7) raw_Y)\n                   ((_ extract 7 7) raw_Y)\n                   ((_ extract 7 7) raw_Y)\n                   ((_ extract 7 7) raw_Y)\n                   ((_ extract 7 7) raw_Y)\n                   ((_ extract 7 7) raw_Y)\n                   ((_ extract 7 7) raw_Y)\n                   ((_ extract 7 7) raw_Y)\n                   raw_Y)))\n  (and (not (bvsle a!1 #xfffffff8))\n       (bvsle #x00000008 a!1)\n       (bvsle a!2 #xfffffff8)\n       (not (bvsle #x00000008 a!2))))"
+          },
+          {
+            "decisions": [
+              "adjust_analog_stick:body.1.1.0.1 false",
+              "adjust_analog_stick:body.1.1.1.0.1 true",
+              "adjust_analog_stick:body.1.1.1.1.0.1 false",
+              "adjust_analog_stick:body.1.1.1.1.1.1 true"
+            ],
+            "formula": "(let ((a!1 (concat ((_ extract 7 7) raw_X)\n                   ((_ extract 7 7) raw_X)\n                   ((_ extract 7 7) raw_X)\n                   ((_ extract 7 7) raw_X)\n                   ((_ extract 7 7) raw_X)\n                   ((_ extract 7 7) raw_X)\n                   ((_ extract 7 7) raw_X)\n                   ((_ extract 7 7) raw_X)\n                   ((_ extract 7 7) raw_X)\n                   ((_ extract 7 7) raw_X)\n                   ((_ extract 7 7) raw_X)\n                   ((_ extract 7 7) raw_X)\n                   ((_ extract 7 7) raw_X)\n                   ((_ extract 7 7) raw_X)\n                   ((_ extract 7 7) raw_X)\n                   ((_ extract 7 7) raw_X)\n                   ((_ extract 7 7) raw_X)\n                   ((_ extract 7 7) raw_X)\n                   ((_ extract 7 7) raw_X)\n                   ((_ extract 7 7) raw_X)\n                   ((_ extract 7 7) raw_X)\n                   ((_ extract 7 7) raw_X)\n                   ((_ extract 7 7) raw_X)\n                   ((_ extract 7 7) raw_X)\n                   raw_X))\n      (a!2 (concat ((_ extract 7 7) raw_Y)\n                   ((_ extract 7 7) raw_Y)\n                   ((_ extract 7 7) raw_Y)\n                   ((_ extract 7 7) raw_Y)\n                   ((_ extract 7 7) raw_Y)\n                   ((_ extract 7 7) raw_Y)\n                   ((_ extract 7 7) raw_Y)\n                   ((_ extract 7 7) raw_Y)\n                   ((_ extract 7 7) raw_Y)\n                   ((_ extract 7 7) raw_Y)\n                   ((_ extract 7 7) raw_Y)\n                   ((_ extract 7 7) raw_Y)\n                   ((_ extract 7 7) raw_Y)\n                   ((_ extract 7 7) raw_Y)\n                   ((_ extract 7 7) raw_Y)\n                   ((_ extract 7 7) raw_Y)\n                   ((_ extract 7 7) raw_Y)\n                   ((_ extract 7 7) raw_Y)\n                   ((_ extract 7 7) raw_Y)\n                   ((_ extract 7 7) raw_Y)\n                   ((_ extract 7 7) raw_Y)\n                   ((_ extract 7 7) raw_Y)\n                   ((_ extract 7 7) raw_Y)\n                   ((_ extract 7 7) raw_Y)\n                   raw_Y)))\n  (and (not (bvsle a!1 #xfffffff8))\n       (bvsle #x00000008 a!1)\n       (not (bvsle a!2 #xfffffff8))\n       (bvsle #x00000008 a!2)))"
+          },
+          {
+            "decisions": [
+              "adjust_analog_stick:body.1.1.0.1 false",
+              "adjust_analog_stick:body.1.1.1.0.1 true",
+              "adjust_analog_stick:body.1.1.1.1.0.1 false",
+              "adjust_analog_stick:body.1.1.1.1.1.1 false"
+            ],
+            "formula": "(let ((a!1 (concat ((_ extract 7 7) raw_X)\n                   ((_ extract 7 7) raw_X)\n                   ((_ extract 7 7) raw_X)\n                   ((_ extract 7 7) raw_X)\n                   ((_ extract 7 7) raw_X)\n                   ((_ extract 7 7) raw_X)\n                   ((_ extract 7 7) raw_X)\n                   ((_ extract 7 7) raw_X)\n                   ((_ extract 7 7) raw_X)\n                   ((_ extract 7 7) raw_X)\n                   ((_ extract 7 7) raw_X)\n                   ((_ extract 7 7) raw_X)\n                   ((_ extract 7 7) raw_X)\n                   ((_ extract 7 7) raw_X)\n                   ((_ extract 7 7) raw_X)\n                   ((_ extract 7 7) raw_X)\n                   ((_ extract 7 7) raw_X)\n                   ((_ extract 7 7) raw_X)\n                   ((_ extract 7 7) raw_X)\n                   ((_ extract 7 7) raw_X)\n                   ((_ extract 7 7) raw_X)\n                   ((_ extract 7 7) raw_X)\n                   ((_ extract 7 7) raw_X)\n                   ((_ extract 7 7) raw_X)\n                   raw_X))\n      (a!2 (concat ((_ extract 7 7) raw_Y)\n                   ((_ extract 7 7) raw_Y)\n                   ((_ extract 7 7) raw_Y)\n                   ((_ extract 7 7) raw_Y)\n                   ((_ extract 7 7) raw_Y)\n                   ((_ extract 7 7) raw_Y)\n                   ((_ extract 7 7) raw_Y)\n                   ((_ extract 7 7) raw_Y)\n                   ((_ extract 7 7) raw_Y)\n                   ((_ extract 7 7) raw_Y)\n                   ((_ extract 7 7) raw_Y)\n                   ((_ extract 7 7) raw_Y)\n                   ((_ extract 7 7) raw_Y)\n                   ((_ extract 7 7) raw_Y)\n                   ((_ extract 7 7) raw_Y)\n                   ((_ extract 7 7) raw_Y)\n                   ((_ extract 7 7) raw_Y)\n                   ((_ extract 7 7) raw_Y)\n                   ((_ extract 7 7) raw_Y)\n                   ((_ extract 7 7) raw_Y)\n                   ((_ extract 7 7) raw_Y)\n                   ((_ extract 7 7) raw_Y)\n                   ((_ extract 7 7) raw_Y)\n                   ((_ extract 7 7) raw_Y)\n                   raw_Y)))\n  (and (not (bvsle a!1 #xfffffff8))\n       (bvsle #x00000008 a!1)\n       (not (bvsle a!2 #xfffffff8))\n       (not (bvsle #x00000008 a!2))))"
+          },
+          {
+            "decisions": [
+              "adjust_analog_stick:body.1.1.0.1 false",
+              "adjust_analog_stick:body.1.1.1.0.1 false",
+              "adjust_analog_stick:body.1.1.1.1.0.1 true",
+              "adjust_analog_stick:body.1.1.1.1.1.1 false"
+            ],
+            "formula": "(let ((a!1 (concat ((_ extract 7 7) raw_X)\n                   ((_ extract 7 7) raw_X)\n                   ((_ extract 7 7) raw_X)\n                   ((_ extract 7 7) raw_X)\n                   ((_ extract 7 7) raw_X)\n                   ((_ extract 7 7) raw_X)\n                   ((_ extract 7 7) raw_X)\n                   ((_ extract 7 7) raw_X)\n                   ((_ extract 7 7) raw_X)\n                   ((_ extract 7 7) raw_X)\n                   ((_ extract 7 7) raw_X)\n                   ((_ extract 7 7) raw_X)\n                   ((_ extract 7 7) raw_X)\n                   ((_ extract 7 7) raw_X)\n                   ((_ extract 7 7) raw_X)\n                   ((_ extract 7 7) raw_X)\n                   ((_ extract 7 7) raw_X)\n                   ((_ extract 7 7) raw_X)\n                   ((_ extract 7 7) raw_X)\n                   ((_ extract 7 7) raw_X)\n                   ((_ extract 7 7) raw_X)\n                   ((_ extract 7 7) raw_X)\n                   ((_ extract 7 7) raw_X)\n                   ((_ extract 7 7) raw_X)\n                   raw_X))\n      (a!2 (concat ((_ extract 7 7) raw_Y)\n                   ((_ extract 7 7) raw_Y)\n                   ((_ extract 7 7) raw_Y)\n                   ((_ extract 7 7) raw_Y)\n                   ((_ extract 7 7) raw_Y)\n                   ((_ extract 7 7) raw_Y)\n                   ((_ extract 7 7) raw_Y)\n                   ((_ extract 7 7) raw_Y)\n                   ((_ extract 7 7) raw_Y)\n                   ((_ extract 7 7) raw_Y)\n                   ((_ extract 7 7) raw_Y)\n                   ((_ extract 7 7) raw_Y)\n                   ((_ extract 7 7) raw_Y)\n                   ((_ extract 7 7) raw_Y)\n                   ((_ extract 7 7) raw_Y)\n                   ((_ extract 7 7) raw_Y)\n                   ((_ extract 7 7) raw_Y)\n                   ((_ extract 7 7) raw_Y)\n                   ((_ extract 7 7) raw_Y)\n                   ((_ extract 7 7) raw_Y)\n                   ((_ extract 7 7) raw_Y)\n                   ((_ extract 7 7) raw_Y)\n                   ((_ extract 7 7) raw_Y)\n                   ((_ extract 7 7) raw_Y)\n                   raw_Y)))\n  (and (not (bvsle a!1 #xfffffff8))\n       (not (bvsle #x00000008 a!1))\n       (bvsle a!2 #xfffffff8)\n       (not (bvsle #x00000008 a!2))))"
+          },
+          {
+            "decisions": [
+              "adjust_analog_stick:body.1.1.0.1 false",
+              "adjust_analog_stick:body.1.1.1.0.1 false",
+              "adjust_analog_stick:body.1.1.1.1.0.1 false",
+              "adjust_analog_stick:body.1.1.1.1.1.1 true"
+            ],
+            "formula": "(let ((a!1 (concat ((_ extract 7 7) raw_X)\n                   ((_ extract 7 7) raw_X)\n                   ((_ extract 7 7) raw_X)\n                   ((_ extract 7 7) raw_X)\n                   ((_ extract 7 7) raw_X)\n                   ((_ extract 7 7) raw_X)\n                   ((_ extract 7 7) raw_X)\n                   ((_ extract 7 7) raw_X)\n                   ((_ extract 7 7) raw_X)\n                   ((_ extract 7 7) raw_X)\n                   ((_ extract 7 7) raw_X)\n                   ((_ extract 7 7) raw_X)\n                   ((_ extract 7 7) raw_X)\n                   ((_ extract 7 7) raw_X)\n                   ((_ extract 7 7) raw_X)\n                   ((_ extract 7 7) raw_X)\n                   ((_ extract 7 7) raw_X)\n                   ((_ extract 7 7) raw_X)\n                   ((_ extract 7 7) raw_X)\n                   ((_ extract 7 7) raw_X)\n                   ((_ extract 7 7) raw_X)\n                   ((_ extract 7 7) raw_X)\n                   ((_ extract 7 7) raw_X)\n                   ((_ extract 7 7) raw_X)\n                   raw_X))\n      (a!2 (concat ((_ extract 7 7) raw_Y)\n                   ((_ extract 7 7) raw_Y)\n                   ((_ extract 7 7) raw_Y)\n                   ((_ extract 7 7) raw_Y)\n                   ((_ extract 7 7) raw_Y)\n                   ((_ extract 7 7) raw_Y)\n                   ((_ extract 7 7) raw_Y)\n                   ((_ extract 7 7) raw_Y)\n                   ((_ extract 7 7) raw_Y)\n                   ((_ extract 7 7) raw_Y)\n                   ((_ extract 7 7) raw_Y)\n                   ((_ extract 7 7) raw_Y)\n                   ((_ extract 7 7) raw_Y)\n                   ((_ extract 7 7) raw_Y)\n                   ((_ extract 7 7) raw_Y)\n                   ((_ extract 7 7) raw_Y)\n                   ((_ extract 7 7) raw_Y)\n                   ((_ extract 7 7) raw_Y)\n                   ((_ extract 7 7) raw_Y)\n                   ((_ extract 7 7) raw_Y)\n                   ((_ extract 7 7) raw_Y)\n                   ((_ extract 7 7) raw_Y)\n                   ((_ extract 7 7) raw_Y)\n                   ((_ extract 7 7) raw_Y)\n                   raw_Y)))\n  (and (not (bvsle a!1 #xfffffff8))\n       (not (bvsle #x00000008 a!1))\n       (not (bvsle a!2 #xfffffff8))\n       (bvsle #x00000008 a!2)))"
+          },
+          {
+            "decisions": [
+              "adjust_analog_stick:body.1.1.0.1 false",
+              "adjust_analog_stick:body.1.1.1.0.1 false",
+              "adjust_analog_stick:body.1.1.1.1.0.1 false",
+              "adjust_analog_stick:body.1.1.1.1.1.1 false"
+            ],
+            "formula": "(let ((a!1 (concat ((_ extract 7 7) raw_X)\n                   ((_ extract 7 7) raw_X)\n                   ((_ extract 7 7) raw_X)\n                   ((_ extract 7 7) raw_X)\n                   ((_ extract 7 7) raw_X)\n                   ((_ extract 7 7) raw_X)\n                   ((_ extract 7 7) raw_X)\n                   ((_ extract 7 7) raw_X)\n                   ((_ extract 7 7) raw_X)\n                   ((_ extract 7 7) raw_X)\n                   ((_ extract 7 7) raw_X)\n                   ((_ extract 7 7) raw_X)\n                   ((_ extract 7 7) raw_X)\n                   ((_ extract 7 7) raw_X)\n                   ((_ extract 7 7) raw_X)\n                   ((_ extract 7 7) raw_X)\n                   ((_ extract 7 7) raw_X)\n                   ((_ extract 7 7) raw_X)\n                   ((_ extract 7 7) raw_X)\n                   ((_ extract 7 7) raw_X)\n                   ((_ extract 7 7) raw_X)\n                   ((_ extract 7 7) raw_X)\n                   ((_ extract 7 7) raw_X)\n                   ((_ extract 7 7) raw_X)\n                   raw_X))\n      (a!2 (concat ((_ extract 7 7) raw_Y)\n                   ((_ extract 7 7) raw_Y)\n                   ((_ extract 7 7) raw_Y)\n                   ((_ extract 7 7) raw_Y)\n                   ((_ extract 7 7) raw_Y)\n                   ((_ extract 7 7) raw_Y)\n                   ((_ extract 7 7) raw_Y)\n                   ((_ extract 7 7) raw_Y)\n                   ((_ extract 7 7) raw_Y)\n                   ((_ extract 7 7) raw_Y)\n                   ((_ extract 7 7) raw_Y)\n                   ((_ extract 7 7) raw_Y)\n                   ((_ extract 7 7) raw_Y)\n                   ((_ extract 7 7) raw_Y)\n                   ((_ extract 7 7) raw_Y)\n                   ((_ extract 7 7) raw_Y)\n                   ((_ extract 7 7) raw_Y)\n                   ((_ extract 7 7) raw_Y)\n                   ((_ extract 7 7) raw_Y)\n                   ((_ extract 7 7) raw_Y)\n                   ((_ extract 7 7) raw_Y)\n                   ((_ extract 7 7) raw_Y)\n                   ((_ extract 7 7) raw_Y)\n                   ((_ extract 7 7) raw_Y)\n                   raw_Y)))\n  (and (not (bvsle a!1 #xfffffff8))\n       (not (bvsle #x00000008 a!1))\n       (not (bvsle a!2 #xfffffff8))\n       (not (bvsle #x00000008 a!2))))"
+          }
+        ],
+        "axisGroups": {
+          "X": {
+            "groupCount": 242,
+            "memberSizes": {
+              "1": 241,
+              "15": 1
+            },
+            "neutralMembers": [
+              -7,
+              -6,
+              -5,
+              -4,
+              -3,
+              -2,
+              -1,
+              0,
+              1,
+              2,
+              3,
+              4,
+              5,
+              6,
+              7
+            ]
+          },
+          "Y": {
+            "groupCount": 242,
+            "memberSizes": {
+              "1": 241,
+              "15": 1
+            },
+            "neutralMembers": [
+              -7,
+              -6,
+              -5,
+              -4,
+              -3,
+              -2,
+              -1,
+              0,
+              1,
+              2,
+              3,
+              4,
+              5,
+              6,
+              7
+            ]
+          }
+        },
+        "distinctAdjustedPairs": 58564,
+        "neutralPairMembers": 225,
+        "boundary": "Before the sqrtf call, with raw axes retained. The nine regions contain exact raw variables; they are not nine representative joystick directions."
+      },
+      "generatedFunctions": {
+        "read_controller_inputs": {
+          "file": "generated\\jp_game_init.v",
+          "line": 6406,
+          "sha256": "d2112738876cb69d8f2fb84ef8057e3b4c8582fbe3b76bfd1622189a72fae1b2"
+        },
+        "update_mario_button_inputs": {
+          "file": "generated\\jp_mario.v",
+          "line": 6546,
+          "sha256": "230ffdaa612945c7a0106a4d629121e2af94a292cfce9133f309634d137c5425"
+        },
+        "adjust_analog_stick": {
+          "file": "generated\\jp_game_init.v",
+          "line": 5773,
+          "sha256": "4061a6fc1948baaa4b10eb20fea2b417ad49258f2dd868f408904da7c0ec0dbd"
+        }
+      }
+    }
+  },
+  "implementationHashes": {
+    "clight.py": "ddf8275fc32cb19067d40134a3f03f845e7a5cabfd99ee802cfce2b6b5f3a62a",
+    "engine.py": "c73a2f937d921146edbb638dfd35b9362c234e4fee0f673f2fd9b5892e235168",
+    "group_inputs.py": "dd2d24b62ae058bf1b6045dfc172e22f67a8d6c72e57f71104801b73f61f0fb6"
+  }
+}
