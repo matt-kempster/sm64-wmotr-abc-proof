@@ -13,6 +13,7 @@ From LessThanOneAPress.Proofs Require Import
   InkTimer131EntryExecutionClosure Area1PlayerListTailClosure
   Area1Rank1ResidualClosure Area1SurfaceWriteClosure
   Area1Rank1SixResidualAudit
+  Rank1PlatformInstallation
   InkTimer131RetailMipsFrames Area1SurfacePoolRangeSeparation
   Area1Rank1LiveBoundaryReceipt Area1Rank1UpperWarpTraceReceipt
   Area1Rank4WarpTopTraceReceipt Area1Rank5StateSplitTraceReceipt Area1PostCopyParticleExecution Area1AllocationCallback Area1AllocationReturn
@@ -126,10 +127,17 @@ Proof. exact area1_surface_write_closure_boundary_holds. Qed.
     node; and the projected stock upper-warp query has no alternate floor.
     A stale cached object is genuinely possible.  Public surface-pool pointers
     into the shared main pool, the remaining outside effects, and the live
-    allocator/query projection stay explicit rather than being framed away. *)
+    allocator/query projection stay explicit rather than being framed away.
+    The final generated update now connects its actual raw-coordinate reads
+    and real find_floor call to the returned owner's two pointer stores.
+    No equality with State/display or warp-contact positions is required;
+    live selection and later pointer lifetime remain unproved globally. *)
 Theorem current_rank1_six_residual_audit_boundary :
-  Area1Rank1SixResidualAuditBoundary.
-Proof. exact area1_rank1_six_residual_audit_boundary_holds. Qed.
+  Area1Rank1SixResidualAuditBoundary /\ Rank1FinalQueryOwnerConnection.
+Proof.
+  split; [exact area1_rank1_six_residual_audit_boundary_holds|].
+  exact r1o_final_query_connects_raw_position_to_owner.
+Qed.
 
 (** Rank 1's shared-main-pool residual is now a byte-range question rather
     than a free-form type-punning possibility.  The accepted JP receipt fixes

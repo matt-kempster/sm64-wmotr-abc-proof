@@ -583,6 +583,8 @@ proofs/InkPlatformWriteFrame.v
 proofs/InkPlatformMovementSource.v
 proofs/InkPlatformMovement.v
 proofs/InkPlatformDistance.v
+proofs/Rank1FinalPlatformQuery.v
+proofs/Rank1PlatformInstallation.v
 proofs/InkCourseEntryReset.v
 proofs/InkStockSeedConditional.v
 proofs/Area1PostCopyChildSource.v

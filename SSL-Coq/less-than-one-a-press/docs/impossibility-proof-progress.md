@@ -26,6 +26,16 @@ we do not require both stars in one run.
 
 ## The main unfinished connections
 
+Rank 1 now has a [checked final-query-to-owner connection](notes/rank1-final-platform-query.md)
+in both generated versions. The complete update body reads raw Object
+coordinates, calls the actual floor routine, and installs the returned owner
+only when the saved raw Y passes the rounded four-unit test. The owner stores'
+frames are derived, and no agreement with State or display is required. This
+settles that caller-side connection under its stated storage conditions; the
+callee's live list selection, useful split producer, warp lifetime and first
+Area-2 apply remain open across all allowed histories. Inactive ownership alone
+does not defeat the mechanism. No whole route is closed.
+
 These are stable tracking IDs, not percentages or equally sized tasks.
 
 | ID | What must be established | What we already have | Status |

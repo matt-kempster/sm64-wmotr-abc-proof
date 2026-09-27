@@ -1,5 +1,16 @@
 # Verification checklist
 
+- [x] Connect Rank 1's final US/JP platform-update body to its actual raw
+  coordinate reads, resolved floor call, distance test and returned owner's
+  two stores. The query's actual returned memory is retained; the two stores'
+  effects are derived. Position equality and an active-owner condition are
+  not assumed. See the [query scope](notes/rank1-final-platform-query.md).
+- [ ] Derive the live final floor and owner for every allowed upper-warp
+  history, and carry any remembered address through the warp, slot lifetime
+  and first Area-2 apply. The new body theorem does not establish its callers,
+  local allocation/free, a useful split's reachability or universal list
+  contents. Rank 1 remains open; the clean recording is still only one run.
+
 - [x] Extend the selected Eyerok double-pound flight through the actual US/JP
   velocity addition, terminal check and height store; check all ten specified
   unclamped steps, the rising/falling action branches and closed-hand mesh.
