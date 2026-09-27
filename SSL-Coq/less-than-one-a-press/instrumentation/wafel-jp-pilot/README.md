@@ -1,5 +1,14 @@
 # Wafel JP replay pilot
 
+The [27 September full-loop review](../../docs/notes/rank1-hybrid-call-review.md)
+adds benchmark_loop.py and loop-benchmark-report.json. The benchmark restores
+a controller-reached state and measures repeated known-replay windows of
+30/90/150 advances, with exact sampled-field comparisons. Run it with the same
+Python below, the captured inputs.jsonl as its positional argument, and
+--output pointing to a new build report. This does not implement call-level
+runtime delegation or search for predecessors; the report keeps that boundary
+explicit.
+
 Checked 25 September 2026. **The adapter passed one known JP replay and one
 controller-only branch.** This is a finite runtime check, not a Coq theorem
 or an all-input Ink exclusion. Nothing moves to Already proved on its strength.

@@ -1,0 +1,194 @@
+{
+  "schema": 1,
+  "recordedUtc": "2026-09-27T20:45:54.093574+00:00",
+  "verdict": "concrete-replay-benchmark-passed",
+  "scope": "One reached JP replay; repeated nested horizons. No predecessor enumeration, new route search, or impossibility result.",
+  "wafelRelease": "0.8.5",
+  "python": "3.9.13",
+  "librarySha256": "960fe979068b78e6733b3ddb87741833fbf4eb29b2a21a2bba871977427c2d0f",
+  "captureSha256": "9bcc451964025d9f0bb1344c45957b6bfd095451b44bfb9a01f8584a75db6a72",
+  "scriptSha256": "468fb0fcd2199ae92545b6b3fd8afb276368a2871b18dbbd3679459bd699aab2",
+  "adapterSha256": "ea422b6478e40931c9d61aaa0e19c9d86a551a0219dbeaca85cd9a82e70df66d",
+  "firstPoll": 2540,
+  "prefixAdvances": 2539,
+  "prefixComparedArea1Snapshots": 2191,
+  "prefixSeconds": 0.09923099999999985,
+  "aHeldFrames": 0,
+  "timerOffset": 1,
+  "totalTimedAdvances": 2700,
+  "uniqueComparedSuffixSnapshots": 150,
+  "notMeasured": [
+    "symbolic predecessors",
+    "number of required search branches",
+    "exact within-update warp/retention checkpoints",
+    "US runtime"
+  ],
+  "rawReportSha256": "6ca763aa13f9ae7462625b42c6c6102f18b3a003600bfa282a08839033075af5",
+  "results": [
+    {
+      "mode": "advance-only",
+      "advances": 30,
+      "nominalGameSeconds": 1.0,
+      "repeats": 5,
+      "restorePlusRunSeconds": {
+        "min": 0.0009348000000000134,
+        "median": 0.0012156999999999307,
+        "max": 0.002268600000000065,
+        "samples": [
+          0.002268600000000065,
+          0.0012156999999999307,
+          0.0011272999999998312,
+          0.001305900000000193,
+          0.0009348000000000134
+        ]
+      },
+      "medianAdvancesPerSecond": 44457.61707171926,
+      "checkedSnapshotsPerRepeat": 0,
+      "checkedTraceSha256": null,
+      "frameLogEventCountsPerRepeat": {},
+      "framesWithMarioActionEventsPerRepeat": 0
+    },
+    {
+      "mode": "checked-trace",
+      "advances": 30,
+      "nominalGameSeconds": 1.0,
+      "repeats": 5,
+      "restorePlusRunSeconds": {
+        "min": 0.0031897999999999094,
+        "median": 0.003447099999999814,
+        "max": 0.004380300000000004,
+        "samples": [
+          0.004380300000000004,
+          0.003440399999999899,
+          0.003447099999999814,
+          0.0031897999999999094,
+          0.003511599999999948
+        ]
+      },
+      "medianAdvancesPerSecond": 10088.781275221883,
+      "checkedSnapshotsPerRepeat": 30,
+      "checkedTraceSha256": "035f0cefa04de74ec79c86a555ddb52f9232d1b74249aec887b30b4d25d71bf3",
+      "frameLogEventCountsPerRepeat": {
+        "FLT_EXECUTE_ACTION": 30,
+        "FLT_CHANGE_FORWARD_VEL": 30,
+        "FLT_BEGIN_MOVEMENT_STEP": 120,
+        "FLT_END_MOVEMENT_STEP": 120
+      },
+      "framesWithMarioActionEventsPerRepeat": 30
+    },
+    {
+      "mode": "advance-only",
+      "advances": 90,
+      "nominalGameSeconds": 3.0,
+      "repeats": 5,
+      "restorePlusRunSeconds": {
+        "min": 0.0027561999999998754,
+        "median": 0.002896300000000185,
+        "max": 0.0035045000000000215,
+        "samples": [
+          0.002896300000000185,
+          0.0028144000000001057,
+          0.0035045000000000215,
+          0.0027561999999998754,
+          0.003280399999999961
+        ]
+      },
+      "medianAdvancesPerSecond": 36459.38829248554,
+      "checkedSnapshotsPerRepeat": 0,
+      "checkedTraceSha256": null,
+      "frameLogEventCountsPerRepeat": {},
+      "framesWithMarioActionEventsPerRepeat": 0
+    },
+    {
+      "mode": "checked-trace",
+      "advances": 90,
+      "nominalGameSeconds": 3.0,
+      "repeats": 5,
+      "restorePlusRunSeconds": {
+        "min": 0.00967169999999995,
+        "median": 0.010428700000000068,
+        "max": 0.011663000000000201,
+        "samples": [
+          0.011663000000000201,
+          0.010110400000000297,
+          0.010428700000000068,
+          0.00967169999999995,
+          0.0111988999999999
+        ]
+      },
+      "medianAdvancesPerSecond": 9369.534438244149,
+      "checkedSnapshotsPerRepeat": 90,
+      "checkedTraceSha256": "ba67d1c9b74f87ffa3301edc7b7f409c9e10ca6f6e790ed6414e8aa520e2ad01",
+      "frameLogEventCountsPerRepeat": {
+        "FLT_EXECUTE_ACTION": 90,
+        "FLT_CHANGE_FORWARD_VEL": 90,
+        "FLT_BEGIN_MOVEMENT_STEP": 360,
+        "FLT_END_MOVEMENT_STEP": 360
+      },
+      "framesWithMarioActionEventsPerRepeat": 90
+    },
+    {
+      "mode": "advance-only",
+      "advances": 150,
+      "nominalGameSeconds": 5.0,
+      "repeats": 5,
+      "restorePlusRunSeconds": {
+        "min": 0.004557499999999992,
+        "median": 0.004799400000000009,
+        "max": 0.004981499999999972,
+        "samples": [
+          0.004799400000000009,
+          0.004557499999999992,
+          0.004981499999999972,
+          0.004895400000000105,
+          0.0046704999999998
+        ]
+      },
+      "medianAdvancesPerSecond": 35830.30766290817,
+      "checkedSnapshotsPerRepeat": 0,
+      "checkedTraceSha256": null,
+      "frameLogEventCountsPerRepeat": {},
+      "framesWithMarioActionEventsPerRepeat": 0
+    },
+    {
+      "mode": "checked-trace",
+      "advances": 150,
+      "nominalGameSeconds": 5.0,
+      "repeats": 5,
+      "restorePlusRunSeconds": {
+        "min": 0.015322199999999953,
+        "median": 0.015669500000000003,
+        "max": 0.017206300000000008,
+        "samples": [
+          0.015322199999999953,
+          0.015444600000000142,
+          0.017206300000000008,
+          0.01636290000000007,
+          0.015669500000000003
+        ]
+      },
+      "medianAdvancesPerSecond": 9932.853907584846,
+      "checkedSnapshotsPerRepeat": 150,
+      "checkedTraceSha256": "41f50c34ddcc59464d076d683d2e215d8d39a1513fd8641cb1c9e2b78e88e8bd",
+      "frameLogEventCountsPerRepeat": {
+        "FLT_EXECUTE_ACTION": 154,
+        "FLT_CHANGE_FORWARD_VEL": 155,
+        "FLT_BEGIN_MOVEMENT_STEP": 548,
+        "FLT_END_MOVEMENT_STEP": 548,
+        "FLT_CHANGE_ACTION": 7
+      },
+      "framesWithMarioActionEventsPerRepeat": 150
+    }
+  ],
+  "sourceRevision": "9921382a68bb0c865e5e45eb594d9c64db59b1af",
+  "inspectedGeneratedSha256": {
+    "generated/us_game_init.v": "e8a3799a78c75378a39395052f7c12fc69d5b001c5cc447bb93830b91e7cc0a1",
+    "generated/us_level_script.v": "2fba273edc6a2b670a283bd12ec878823fe327ad202f68deebc4347b19235e63",
+    "generated/us_object_list_processor.v": "1294308f49443b2a58148c6b5746450b8043a20e007808fb8d2357e636379c95",
+    "generated/us_behavior_script.v": "a5c57f15e073e761f114df0ba9f91f85799ca85429a754ab10231967c1154a61",
+    "generated/jp_game_init.v": "6be8ddb1a54ca25d57e404809487673d2276ca41abf5372fd6740982c34387e3",
+    "generated/jp_level_script.v": "d23a455f0f5fa620c4edf6ca7bc053931118c9fef130240eb78a01c27ddf04f6",
+    "generated/jp_object_list_processor.v": "570d7ed062b261fb59db6a851b7ac995d7c81c519b5f414f3e2bbcc2c13253e8",
+    "generated/jp_behavior_script.v": "40112629e7f618bbfd352f8be8786fd70450dc8266930c1196552b6df383cf57"
+  }
+}

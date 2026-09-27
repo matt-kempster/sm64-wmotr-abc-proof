@@ -1,5 +1,10 @@
 # Rank 1: live callback repair and the one-second attempt
 
+Follow-up: the [hybrid-call review](rank1-hybrid-call-review.md) investigates
+delegating matched concrete calls to a runtime while retaining this backward
+search. That bridge is not yet implemented. Its successful Wafel replay timing
+check does not complete the predecessor classification described below.
+
 27 September 2026. **The requested one-second backward search is still
 incomplete.** We implemented and checked a more precise callback resolver and
 an actual repeated-update observer, then attempted 30 checkpoints in US and
