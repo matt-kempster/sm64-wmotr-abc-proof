@@ -222,6 +222,7 @@ proofs/NoAImpliesNoFly/NoAImpliesNoFlyTwelve.v
 proofs/WMotRRequiresA/HeightPhi.v
 proofs/WMotRRequiresA/HeightFrame.v
 proofs/WMotRRequiresA/Unwired/HeightBallistic.v
+proofs/WMotRRequiresA/Unwired/HeightMoves.v
 
 # --- executable Clight: interpreter (sound vs ClightBigstep), vm-computable
 #     memory ops (= Mem.*), computable linked genv (= globalenv lp), memory builder ---
