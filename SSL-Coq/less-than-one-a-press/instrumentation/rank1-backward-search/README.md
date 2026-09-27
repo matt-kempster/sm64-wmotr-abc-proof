@@ -1,6 +1,11 @@
 # Rank 1: bounded backward predecessor search
 
-**Latest:** the [live-dispatch and one-second report](../../docs/notes/rank1-live-dispatch-horizon.md)
+**Latest:** the [emulator call handoff](../../docs/notes/rank1-emulator-call-handoff.md)
+checks scoped replies and retains unanchored calls as pending. A relaxed
+30-update SAT result is explicitly an unverified proposal, with 64 unresolved
+sites; no complete inverse update or Ink witness is claimed.
+
+**Earlier:** the [live-dispatch and one-second report](../../docs/notes/rank1-live-dispatch-horizon.md)
 records a partial callback repair and an actual repeated-checkpoint runner.
 All 42 application tests pass. The real US/JP 30-checkpoint attempts remain
 incomplete: the broad caller still supplies no constrained script word, and

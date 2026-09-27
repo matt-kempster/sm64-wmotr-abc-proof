@@ -1,8 +1,11 @@
 # Rank 1: a runtime inside the backward search
 
-Reviewed 27 September 2026. **Feasible design; the hybrid bridge is not yet
-implemented.** A new concrete timing check passes. No predecessor search,
-Coq theorem, Ink witness or impossibility result is added by this review.
+Reviewed 27 September 2026. **Historical design review.** The later [first
+emulator handoff](rank1-emulator-call-handoff.md) implements scoped observed
+call replies and a pending-call frontier. The general candidate-to-replay
+connection and exhaustive one-second search remain unfinished. The design and
+Wafel timing results below describe the earlier stage; they add no Coq theorem,
+Ink witness or impossibility result.
 
 ## What is being proposed
 
@@ -48,8 +51,9 @@ The [relational engine](../../instrumentation/rank1-backward-search/relational_e
 currently builds call relations before solving. The
 [horizon engine](../../instrumentation/rank1-backward-search/horizon_engine.py)
 shares them across iterations. A missing body stops construction before a
-predecessor is proposed. There is no deferred-call queue, runtime-state adapter
-or candidate/refinement loop yet. Adding an ordinary Python callback does not
+predecessor is proposed. At the time of this review there was no deferred-call queue, runtime-state
+adapter or candidate/refinement loop. See the follow-up above for the limited
+implementation now checked. Adding an ordinary Python callback does not
 by itself provide those pieces.
 
 ## How the hybrid would preserve backward reasoning

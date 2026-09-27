@@ -1,0 +1,536 @@
+{
+  "status": "Exact replay call handoff checked; exhaustive inverse coverage remains open.",
+  "backend": "retail JP Mupen64Plus interpreter; read-only observations; controller-only continuation",
+  "version": "jp",
+  "romSHA256": "9cf7a80db321b07a8d461fe536c02c87b7412433953891cdec9191bfad2db317",
+  "captureSHA256": "2aece20f6abee400a0595300d685221803e7525a0136a4cabeb50b8391116f39",
+  "symbolFileSHA256": "bf05e5eb905b7d2a179f867523f19641ae71d7e3b68dabca1ce618f3efbeec8c",
+  "controllerPolls": 2852,
+  "controllerSHA256": "25052bc60714a139aaeb3b35ee1fecceb31f9e825633bad55b70e91ec907520b",
+  "requestedUpdates": 30,
+  "observedCompletedCheckpoints": 30,
+  "completedExhaustiveUpdates": 0,
+  "matchedCallCases": 60,
+  "contradictoryRepliesRejected": 60,
+  "callbackInvocations": 3628,
+  "callEffects": {
+    "osContGetReadData": {
+      "calls": 30,
+      "changedRegions": {
+        "gControllerPads": 20
+      },
+      "returns": {}
+    },
+    "osContStartReadData": {
+      "calls": 30,
+      "changedRegions": {
+        "__osContPifRam": 30
+      },
+      "returns": {
+        "0": 30
+      }
+    }
+  },
+  "limits": [
+    "Replay-event anchors identify exact experimental cases, not arbitrary symbolic memories.",
+    "Only mapped scalar bytes are constrained. OS queues, devices and all other memory remain open.",
+    "Observed native names/receivers guide case selection; other live pointers remain possible.",
+    "No supplied gap, no new controller trajectory, no Coq theorem, no global exclusion."
+  ],
+  "callbackBodyCount": 36,
+  "unmappedCallbacks": 0,
+  "callbacks": [
+    {
+      "name": "bhv_coin_formation_loop",
+      "calls": 60,
+      "receivers": [
+        41,
+        43
+      ],
+      "sourceSHA256": "02641b92feb286ba8070999eb046cd8b3d69686d6544b2f9376aa09aa7ebe097"
+    },
+    {
+      "name": "bhv_breakable_box_loop",
+      "calls": 60,
+      "receivers": [
+        13,
+        14
+      ],
+      "sourceSHA256": "416199555ef91c43bdfd7ed177859ed0267c5eef905aac9cc446f6bfc2551944"
+    },
+    {
+      "name": "load_object_collision_model",
+      "calls": 210,
+      "receivers": [
+        13,
+        14,
+        22,
+        34,
+        35,
+        51,
+        61
+      ],
+      "sourceSHA256": "d815a07b4b82cb817922eabfd2ff7418d226e045f1320ae4c232b574256f3710"
+    },
+    {
+      "name": "bhv_exclamation_box_loop",
+      "calls": 150,
+      "receivers": [
+        20,
+        21,
+        32,
+        33,
+        50
+      ],
+      "sourceSHA256": "37b4457ec8fd87655f69b021d43a029d140b115fec2576587882122914a20efd"
+    },
+    {
+      "name": "bhv_cannon_closed_loop",
+      "calls": 30,
+      "receivers": [
+        22
+      ],
+      "sourceSHA256": "3202d1e7c481f660d210a7983e2e17c60a369a36e251f9d497cebcc728086ed8"
+    },
+    {
+      "name": "bhv_tox_box_loop",
+      "calls": 90,
+      "receivers": [
+        58,
+        59,
+        60
+      ],
+      "sourceSHA256": "cbf79e9a1223d26afea3d3a05b01ec7a1910e8204d46f44b502e0461995fc11f"
+    },
+    {
+      "name": "bhv_pyramid_top_loop",
+      "calls": 30,
+      "receivers": [
+        61
+      ],
+      "sourceSHA256": "75e3207eaa087166f90c6194146bc25d5ce2798d2f31e17db6fbf0bfc95d3ec1"
+    },
+    {
+      "name": "bhv_pole_base_loop",
+      "calls": 30,
+      "receivers": [
+        5
+      ],
+      "sourceSHA256": "82dd2fb57a7ed1f9c96ebb5405f5940f3a1a5dfa95acab1df2b12fc8dd1183fa"
+    },
+    {
+      "name": "bhv_tweester_loop",
+      "calls": 90,
+      "receivers": [
+        55,
+        56,
+        57
+      ],
+      "sourceSHA256": "a03aa960cbdf7347fade1fe303dc353b8227e6f9c60d3160a7007e2eac090d03"
+    },
+    {
+      "name": "try_print_debug_mario_level_info",
+      "calls": 30,
+      "receivers": [
+        67
+      ],
+      "sourceSHA256": "03671b66f0e6ea8b8bc2e62623b29ea3a65d670978473150326769a7df5deaa9"
+    },
+    {
+      "name": "bhv_mario_update",
+      "calls": 30,
+      "receivers": [
+        67
+      ],
+      "sourceSHA256": "e713d2c608b8ef771436007bbda36223785accd0d7e562a508e1de614011305f"
+    },
+    {
+      "name": "try_do_mario_debug_object_spawn",
+      "calls": 30,
+      "receivers": [
+        67
+      ],
+      "sourceSHA256": "fd3f5018ce73bc2500acc62744edde59ba67a3a73aa63e78c44f9d033feb74ed"
+    },
+    {
+      "name": "bhv_goomba_update",
+      "calls": 90,
+      "receivers": [
+        6,
+        7,
+        8
+      ],
+      "sourceSHA256": "632f7ee2b601d966ece2aabdfde1d542438559ba1a09f05cc4db005662b1c16a"
+    },
+    {
+      "name": "bhv_pokey_update",
+      "calls": 120,
+      "receivers": [
+        9,
+        10,
+        11,
+        12
+      ],
+      "sourceSHA256": "278ef7407eb7d169d277426b6625a65426adc3746fee9b8ddc51d0e8aef1274f"
+    },
+    {
+      "name": "bhv_bobomb_buddy_loop",
+      "calls": 30,
+      "receivers": [
+        15
+      ],
+      "sourceSHA256": "20fb2b96d2802b66a30dd8a38b7a084ca213e2e9a6cd28f0cad745ab8d062579"
+    },
+    {
+      "name": "bhv_fly_guy_update",
+      "calls": 90,
+      "receivers": [
+        38,
+        44,
+        45
+      ],
+      "sourceSHA256": "15948d3768e0ca8bad66714ccf52d4352013845c8be37dd08fb230684f1b0822"
+    },
+    {
+      "name": "bhv_fire_spitter_update",
+      "calls": 60,
+      "receivers": [
+        42,
+        46
+      ],
+      "sourceSHA256": "ce0c2178c0e79d0533f6edcf6a313844049640d63fd2e0606e37b3fccc81fdb2"
+    },
+    {
+      "name": "bhv_jumping_box_loop",
+      "calls": 30,
+      "receivers": [
+        49
+      ],
+      "sourceSHA256": "d248c0ea23890866a205d82d2bbdb5810dbf03e3cd594b8571bb55a0ac2b1c28"
+    },
+    {
+      "name": "bhv_klepto_update",
+      "calls": 30,
+      "receivers": [
+        54
+      ],
+      "sourceSHA256": "af239d142ca63916dadf70ecf4edde710f7d8298b8355a2495f99ac725947ddf"
+    },
+    {
+      "name": "bhv_pokey_body_part_update",
+      "calls": 150,
+      "receivers": [
+        151,
+        145,
+        123,
+        160,
+        150
+      ],
+      "sourceSHA256": "5ab73248425ccf5620e5d9bffa6ccd085b7b075e0d39be2b904976516873bd54"
+    },
+    {
+      "name": "bhv_breakable_box_small_loop",
+      "calls": 30,
+      "receivers": [
+        23
+      ],
+      "sourceSHA256": "ea1f031aa6adf4b6123a6c57e9948f55b3b7a1f1c7a927c0336dbe252bd6af82"
+    },
+    {
+      "name": "bhv_bobomb_loop",
+      "calls": 60,
+      "receivers": [
+        39,
+        40
+      ],
+      "sourceSHA256": "9a0327c63673e10d98310fad403bd7e798e8fe80c3a059c98aca97ac2f92011a"
+    },
+    {
+      "name": "bhv_yellow_coin_loop",
+      "calls": 120,
+      "receivers": [
+        16,
+        17,
+        18,
+        19
+      ],
+      "sourceSHA256": "8eabdafd36991dc5842ca58224ace1a73aebed9fd4d50a511db18b2029389f3d"
+    },
+    {
+      "name": "bhv_red_coin_loop",
+      "calls": 240,
+      "receivers": [
+        24,
+        25,
+        26,
+        27,
+        28,
+        29,
+        30,
+        31
+      ],
+      "sourceSHA256": "2189a2e1903fd74f45c710d3aae2c0e5eb9d39faca5ad19cbe4af6aafb9692b8"
+    },
+    {
+      "name": "bhv_1up_hidden_in_pole_spawner_loop",
+      "calls": 30,
+      "receivers": [
+        36
+      ],
+      "sourceSHA256": "a81b32c995c23136c4e8b07ccbd99c39e731105f86a909f07f6130ddad67fd0c"
+    },
+    {
+      "name": "bhv_1up_loop",
+      "calls": 60,
+      "receivers": [
+        37,
+        48
+      ],
+      "sourceSHA256": "215adc87a66052a246e9f344505057b941b19f5f3c826d2ddac152518fda6c4e"
+    },
+    {
+      "name": "bhv_hidden_red_coin_star_loop",
+      "calls": 30,
+      "receivers": [
+        52
+      ],
+      "sourceSHA256": "0b67067dd3c58c265c4eef91e42755afdfebe063aa76f5471dcca3c84d417dc5"
+    },
+    {
+      "name": "bhv_collect_star_loop",
+      "calls": 30,
+      "receivers": [
+        53
+      ],
+      "sourceSHA256": "faab1ae42fe6b8fd0cd780aca71139c07f65d4288428ead9c3dcece5a11ae698"
+    },
+    {
+      "name": "bhv_fading_warp_loop",
+      "calls": 60,
+      "receivers": [
+        62,
+        63
+      ],
+      "sourceSHA256": "8e2e9b1371be4e6386289d8b1e12fa4de56642aa1179510e557122ee388ec7f3"
+    },
+    {
+      "name": "bhv_warp_loop",
+      "calls": 60,
+      "receivers": [
+        64,
+        65
+      ],
+      "sourceSHA256": "3bcf8cf5f2bf920b646e8fd14256ee0cd4e6d8608c75c108e610804ef75c6b60"
+    },
+    {
+      "name": "bhv_rotating_exclamation_box_loop",
+      "calls": 90,
+      "receivers": [
+        73,
+        74,
+        75
+      ],
+      "sourceSHA256": "0f92a4632bf851d077d662f7ead038133274c51d9012c9da2ab54f3c06beba46"
+    },
+    {
+      "name": "bhv_pyramid_top_fragment_loop",
+      "calls": 1035,
+      "receivers": [
+        118,
+        70,
+        121,
+        122,
+        149,
+        85,
+        117,
+        90,
+        133,
+        156,
+        157,
+        152,
+        165,
+        116,
+        115,
+        161,
+        114,
+        113,
+        112,
+        111,
+        148,
+        71,
+        110,
+        153,
+        147,
+        97,
+        88,
+        166,
+        131,
+        128,
+        168,
+        126,
+        135,
+        143,
+        134,
+        120,
+        119,
+        167,
+        132,
+        164,
+        146,
+        169,
+        105,
+        171,
+        130,
+        69,
+        136,
+        159,
+        106
+      ],
+      "sourceSHA256": "b7614c9f4a8962d0bff296db27e8557bb6a0bbbd99f450d9cc3b0df76cb1ed8c"
+    },
+    {
+      "name": "bhv_white_puff_1_loop",
+      "calls": 34,
+      "receivers": [
+        96,
+        68,
+        140,
+        144,
+        113,
+        112,
+        110,
+        153
+      ],
+      "sourceSHA256": "24028b6c72dee7663414d67ba08c8f31c9a125d65059ae7e99742c6079727aea"
+    },
+    {
+      "name": "bhv_white_puff_exploding_loop",
+      "calls": 265,
+      "receivers": [
+        141,
+        154,
+        127,
+        142,
+        139,
+        107,
+        108,
+        109,
+        47,
+        77,
+        124,
+        125,
+        137,
+        101,
+        102,
+        165,
+        152,
+        157,
+        156,
+        133,
+        114,
+        116,
+        161
+      ],
+      "sourceSHA256": "7549de781d03153c619e9836625ed03de81445a529dea4e618e3cb16ec65a524"
+    },
+    {
+      "name": "bhv_white_puff_2_loop",
+      "calls": 42,
+      "receivers": [
+        103,
+        98,
+        99,
+        100,
+        89,
+        111,
+        137,
+        125,
+        124
+      ],
+      "sourceSHA256": "890bc81ca3ba44c3c33dea83a318913f7370b121bcd82076476777e1911e9e2d"
+    },
+    {
+      "name": "bhv_ground_sand_init",
+      "calls": 2,
+      "receivers": [
+        116,
+        113
+      ],
+      "sourceSHA256": "e13f7e4f4b9d5dddedad5ceab2c67c8c05cd31e64ea6f902801eb70599367b56"
+    }
+  ],
+  "firstCheckpoint": {
+    "kind": "checkpoint",
+    "poll": 2651,
+    "timer": 2650,
+    "area": 1,
+    "rawY": 2147483648,
+    "stateY": 2147483648,
+    "displayY": 2147483648,
+    "platform": 0,
+    "objectPlatform": 0,
+    "top": 2150912504,
+    "topTimer": 102
+  },
+  "lastCheckpoint": {
+    "kind": "checkpoint",
+    "poll": 2680,
+    "timer": 2679,
+    "area": 1,
+    "rawY": 2147483648,
+    "stateY": 2147483648,
+    "displayY": 2147483648,
+    "platform": 0,
+    "objectPlatform": 0,
+    "top": 2150912504,
+    "topTimer": 131
+  },
+  "allCheckpointYsAgree": true,
+  "allPlatformsNull": true,
+  "lazyQuery": {
+    "status": "unverified-proposal",
+    "formulaBuilt": true,
+    "solverResult": "sat",
+    "definedFunctions": 14,
+    "visitedStatements": 632,
+    "seconds": 4.958692899999733,
+    "workerSeconds": 5.464348699999391,
+    "querySHA256": "75885abab51aa37e974aa9865c18890c5c839247a43cc137a40c2ed3690e582d",
+    "modelSHA256": "ec347c0dc7dee4e3caab75286cc89149cdc5cc6dbb863ff92d8951144c55e880",
+    "proposalWarning": "Pending call effects and checkpoint counts are unvalidated; this is not an executed 30-update trajectory.",
+    "pendingCallSites": 64,
+    "matchedEmulatorReplies": 0,
+    "exhaustiveUpdates": 0
+  },
+  "wideAttempt": {
+    "status": "worker-timeout",
+    "timeoutSeconds": 180.0,
+    "workerSeconds": 180.06657370000175,
+    "seconds": 159.7655049999994,
+    "definedFunctions": 203,
+    "visitedStatements": 20760,
+    "lastReferencedFunction": "calculate_yaw",
+    "pendingCallSitesAtLastSnapshot": 1072
+  },
+  "applicationTests": {
+    "suite": 50,
+    "additionalLoopDefinedness": 1,
+    "passed": true,
+    "finalFocusedSuite": 9,
+    "aggregateAddressWrapRegression": true
+  },
+  "evidenceFiles": {
+    "emulator-handoff-final-20260927.json": "5d9873d755b3444a5b69f1ac96599da474f3d931edc3f401e75472e0fb6d57ab",
+    "hybrid-lazy-30-20260927-final/report.json": "35b5a8b1e95d85d6c74c92cce80cdb38546cea592f15f61d818d8132590351ee",
+    "hybrid-30-20260927e/report.json": "47d1bc646c730e1fc0dfc0175531828d20da8008c45b94fef800774fbf7b9845"
+  },
+  "implementationHashes": {
+    "instrumentation\\rank1-emulator-handoff\\probe.c": "aaa800a89cb5425440005464c3e0dce739eb5e8904e5158baa20ad96f7537a30",
+    "instrumentation\\rank1-emulator-handoff\\capture.sh": "8004b433390c0c2fbb3e08fe6c68dad80265bb84b138347b28009fe977d22382",
+    "instrumentation\\rank1-emulator-handoff\\check.py": "291d4dc4ce195cb0ef1db259ecb653b2bc221a33fa9f3d1920229ee629cce182",
+    "instrumentation\\rank1-backward-search\\hybrid_engine.py": "48185772e04da44aeaee3b6d96bbcdcefeb1ce6c123698f2d4c289b00a881e5c",
+    "instrumentation\\rank1-backward-search\\emulator_oracle.py": "6b38859412586ea7e7cf16b9b310cfe386ea984204353d503848ca0d6f389cec",
+    "instrumentation\\rank1-backward-search\\search_updates.py": "c38f145ea2ed273dbed605604ebb373e1fe8e5a6eb84608dd8d983b233f25263",
+    "instrumentation\\rank1-backward-search\\test_emulator_oracle.py": "6cb7dcd9f2f7c5bec6d2a29fc5728ff857f87feb0912b76b94acab7e1a426a74"
+  }
+}
