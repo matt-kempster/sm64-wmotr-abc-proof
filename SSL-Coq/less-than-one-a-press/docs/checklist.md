@@ -1,5 +1,7 @@
 # Verification checklist
 
+- [ ] After user confirmation, implement the [bounded predecessor search](notes/rank1-backward-search-plan.md) from useful Ink installation conditions. Derive earlier-state constraints from the actual code; record contradictions and unresolved branches separately. Validate any connection to a controller-reached predecessor by a complete forward replay. This is a proposed method, not an implemented inverse engine or new result.
+
 - [x] Run the [earlier Rank-1 controller search](notes/rank1-reachable-search.md):
   132 choices, 42,480 advances, and no upward gap among 36,855 SSL Area-1
   after-update samples. Four exact JP replays pass 983 first-query and 983
