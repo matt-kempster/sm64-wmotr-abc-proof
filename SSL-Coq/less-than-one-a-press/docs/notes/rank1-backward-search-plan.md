@@ -1,8 +1,10 @@
 # Rank 1: search for predecessors of Ink
 
-Proposed 27 September 2026. **Awaiting the user's confirmation before coding or
-running the backward search.** This records a method and a proposed first scope;
-it adds no gameplay witness, exclusion or Coq theorem. Rank 1 stays open at its
+Approved 27 September 2026. **The first bounded predecessor engine is now
+implemented and checked on US and JP.** See the [results and remaining
+connections](rank1-backward-search.md). This document retains the agreed method
+and scope; the first batch is not a complete inverse frame or a gameplay witness.
+No new Coq theorem or route exclusion is claimed. Rank 1 stays open at its
 unchanged subjective 1–2% estimate.
 
 ## What “backward” means here
@@ -21,7 +23,7 @@ have no predecessor, one, or many. Reversing velocity or subtracting the apparen
 movement does not reconstruct the game. The search needs sets of possibilities
 and constraints on them, rather than one guessed trajectory.
 
-## The code we would need
+## The code and its limits
 
 The installed Wafel 0.8.5 interface provides forward advance, saved states and
 restoration. Its Game interface has no predecessor-enumeration operation.
@@ -29,7 +31,7 @@ Restoring an already recorded frame can rewind that recording; it cannot find
 an unrecorded past for an arbitrary target. The existing controller adapter can
 validate forward continuations, but it is not the proposed backward engine.
 
-New code would derive predecessor conditions from the pinned C and actual
+The new prototype derives predecessor conditions from the pinned C and actual
 generated US/JP Clight, carrying the effects and branch guards of the relevant
 calls. A constraint solver could help with fixed-width integers and binary32
 arithmetic; that does not automatically translate or verify a complete game
@@ -44,7 +46,7 @@ that it cannot affect the selected transition. Different instruction checkpoints
 within one frame use the same latched input; they are not extra chances to press
 a button. Preserve the no-new-A rule, including the previous-button history.
 
-## A first batch worth authorizing
+## The approved first batch
 
 Start with the useful installation conditions of the known JP mechanism, not
 every irrelevant byte of the supplied snapshot and not just a large numerical

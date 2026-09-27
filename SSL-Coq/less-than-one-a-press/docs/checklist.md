@@ -1,6 +1,7 @@
 # Verification checklist
 
-- [ ] After user confirmation, implement the [bounded predecessor search](notes/rank1-backward-search-plan.md) from useful Ink installation conditions. Derive earlier-state constraints from the actual code; record contradictions and unresolved branches separately. Validate any connection to a controller-reached predecessor by a complete forward replay. This is a proposed method, not an implemented inverse engine or new result.
+- [x] Implement and run the [first bounded predecessor engine](notes/rank1-backward-search.md) on actual generated US/JP code, starting from useful final owner selection. Check the complete binary32 raw-Y band, the ordinary copy and floor-snap predecessor relations, and the selected first-miss/high-display retry. Preserve unexpanded call effects and solver timeouts as open. Seven tests pass. This is exploratory tooling, not a new Coq result or complete inverse frame.
+- [ ] Connect those local predecessor conditions through the real action, geometry, interaction and callback effects. Derive a controller-reached predecessor and validate the complete joined replay before calling it a gameplay witness. Selecting B and returning a whole earlier frame is not yet implemented; live floors, contact, timing, pointer lifetime and first Area-2 payoff remain open.
 
 - [x] Run the [earlier Rank-1 controller search](notes/rank1-reachable-search.md):
   132 choices, 42,480 advances, and no upward gap among 36,855 SSL Area-1

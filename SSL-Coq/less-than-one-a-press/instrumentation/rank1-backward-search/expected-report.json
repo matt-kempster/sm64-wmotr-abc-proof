@@ -1,0 +1,3747 @@
+{
+  "status": "Bounded predecessor engine and solver checks; no new Coq theorem or clean gameplay witness.",
+  "direction": "Target conditions first; Ssequence is processed last statement first. No earlier replay seeds or forward controller sampling.",
+  "storageScope": "Canonical disjoint State/Object/Surface/global/local regions using generated field layouts; valid ordinary receivers. Allocation, undefined behavior, arbitrary pointer aliasing and call resolution are not a proved CompCert simulation.",
+  "inputs": "The closed copy/snap/final-check slices do not read controller buttons. Their predecessors do not choose B versus Z. The earlier physical-input and action history is an explicit frontier.",
+  "solver": "4.15.4",
+  "versions": {
+    "us": {
+      "version": "us",
+      "finalCapture": {
+        "branches": [
+          {
+            "branch": 0,
+            "status": "contradiction-in-extracted-slice",
+            "decisions": [
+              "update_mario_platform:body.0.1 true"
+            ],
+            "unexpandedCalls": [],
+            "reason": null
+          },
+          {
+            "branch": 1,
+            "status": "contradiction-in-extracted-slice",
+            "decisions": [
+              "update_mario_platform:body.0.1 false",
+              "absf:body true",
+              "update_mario_platform:body.1.1.1.1.1.0.1 true",
+              "update_mario_platform:body.1.1.1.1.1.1 case 1"
+            ],
+            "unexpandedCalls": [
+              {
+                "function": "find_floor",
+                "caller": "update_mario_platform",
+                "path": "body.1.1.1.1.0.0",
+                "memory": "independent before/after; no preservation granted"
+              }
+            ],
+            "reason": null
+          },
+          {
+            "branch": 2,
+            "status": "unresolved-call-obligations",
+            "decisions": [
+              "update_mario_platform:body.0.1 false",
+              "absf:body true",
+              "update_mario_platform:body.1.1.1.1.1.0.1 true",
+              "update_mario_platform:body.1.1.1.1.1.1 case 0",
+              "update_mario_platform:body.1.1.1.1.1.1.case0.0.0.1 true",
+              "update_mario_platform:body.1.1.1.1.1.1.case0.0.1 true"
+            ],
+            "unexpandedCalls": [
+              {
+                "function": "find_floor",
+                "caller": "update_mario_platform",
+                "path": "body.1.1.1.1.0.0",
+                "memory": "independent before/after; no preservation granted"
+              }
+            ],
+            "reason": null
+          },
+          {
+            "branch": 3,
+            "status": "contradiction-in-extracted-slice",
+            "decisions": [
+              "update_mario_platform:body.0.1 false",
+              "absf:body true",
+              "update_mario_platform:body.1.1.1.1.1.0.1 true",
+              "update_mario_platform:body.1.1.1.1.1.1 case 0",
+              "update_mario_platform:body.1.1.1.1.1.1.case0.0.0.1 true",
+              "update_mario_platform:body.1.1.1.1.1.1.case0.0.1 false"
+            ],
+            "unexpandedCalls": [
+              {
+                "function": "find_floor",
+                "caller": "update_mario_platform",
+                "path": "body.1.1.1.1.0.0",
+                "memory": "independent before/after; no preservation granted"
+              }
+            ],
+            "reason": null
+          },
+          {
+            "branch": 4,
+            "status": "contradiction-in-extracted-slice",
+            "decisions": [
+              "update_mario_platform:body.0.1 false",
+              "absf:body true",
+              "update_mario_platform:body.1.1.1.1.1.0.1 true",
+              "update_mario_platform:body.1.1.1.1.1.1 case 0",
+              "update_mario_platform:body.1.1.1.1.1.1.case0.0.0.1 false",
+              "update_mario_platform:body.1.1.1.1.1.1.case0.0.1 true"
+            ],
+            "unexpandedCalls": [
+              {
+                "function": "find_floor",
+                "caller": "update_mario_platform",
+                "path": "body.1.1.1.1.0.0",
+                "memory": "independent before/after; no preservation granted"
+              }
+            ],
+            "reason": null
+          },
+          {
+            "branch": 5,
+            "status": "contradiction-in-extracted-slice",
+            "decisions": [
+              "update_mario_platform:body.0.1 false",
+              "absf:body true",
+              "update_mario_platform:body.1.1.1.1.1.0.1 true",
+              "update_mario_platform:body.1.1.1.1.1.1 case 0",
+              "update_mario_platform:body.1.1.1.1.1.1.case0.0.0.1 false",
+              "update_mario_platform:body.1.1.1.1.1.1.case0.0.1 false"
+            ],
+            "unexpandedCalls": [
+              {
+                "function": "find_floor",
+                "caller": "update_mario_platform",
+                "path": "body.1.1.1.1.0.0",
+                "memory": "independent before/after; no preservation granted"
+              }
+            ],
+            "reason": null
+          },
+          {
+            "branch": 6,
+            "status": "contradiction-in-extracted-slice",
+            "decisions": [
+              "update_mario_platform:body.0.1 false",
+              "absf:body true",
+              "update_mario_platform:body.1.1.1.1.1.0.1 true",
+              "update_mario_platform:body.1.1.1.1.1.1 default"
+            ],
+            "unexpandedCalls": [
+              {
+                "function": "find_floor",
+                "caller": "update_mario_platform",
+                "path": "body.1.1.1.1.0.0",
+                "memory": "independent before/after; no preservation granted"
+              }
+            ],
+            "reason": null
+          },
+          {
+            "branch": 7,
+            "status": "contradiction-in-extracted-slice",
+            "decisions": [
+              "update_mario_platform:body.0.1 false",
+              "absf:body true",
+              "update_mario_platform:body.1.1.1.1.1.0.1 false",
+              "update_mario_platform:body.1.1.1.1.1.1 case 1"
+            ],
+            "unexpandedCalls": [
+              {
+                "function": "find_floor",
+                "caller": "update_mario_platform",
+                "path": "body.1.1.1.1.0.0",
+                "memory": "independent before/after; no preservation granted"
+              }
+            ],
+            "reason": null
+          },
+          {
+            "branch": 8,
+            "status": "contradiction-in-extracted-slice",
+            "decisions": [
+              "update_mario_platform:body.0.1 false",
+              "absf:body true",
+              "update_mario_platform:body.1.1.1.1.1.0.1 false",
+              "update_mario_platform:body.1.1.1.1.1.1 case 0",
+              "update_mario_platform:body.1.1.1.1.1.1.case0.0.0.1 true",
+              "update_mario_platform:body.1.1.1.1.1.1.case0.0.1 true"
+            ],
+            "unexpandedCalls": [
+              {
+                "function": "find_floor",
+                "caller": "update_mario_platform",
+                "path": "body.1.1.1.1.0.0",
+                "memory": "independent before/after; no preservation granted"
+              }
+            ],
+            "reason": null
+          },
+          {
+            "branch": 9,
+            "status": "contradiction-in-extracted-slice",
+            "decisions": [
+              "update_mario_platform:body.0.1 false",
+              "absf:body true",
+              "update_mario_platform:body.1.1.1.1.1.0.1 false",
+              "update_mario_platform:body.1.1.1.1.1.1 case 0",
+              "update_mario_platform:body.1.1.1.1.1.1.case0.0.0.1 true",
+              "update_mario_platform:body.1.1.1.1.1.1.case0.0.1 false"
+            ],
+            "unexpandedCalls": [
+              {
+                "function": "find_floor",
+                "caller": "update_mario_platform",
+                "path": "body.1.1.1.1.0.0",
+                "memory": "independent before/after; no preservation granted"
+              }
+            ],
+            "reason": null
+          },
+          {
+            "branch": 10,
+            "status": "contradiction-in-extracted-slice",
+            "decisions": [
+              "update_mario_platform:body.0.1 false",
+              "absf:body true",
+              "update_mario_platform:body.1.1.1.1.1.0.1 false",
+              "update_mario_platform:body.1.1.1.1.1.1 case 0",
+              "update_mario_platform:body.1.1.1.1.1.1.case0.0.0.1 false",
+              "update_mario_platform:body.1.1.1.1.1.1.case0.0.1 true"
+            ],
+            "unexpandedCalls": [
+              {
+                "function": "find_floor",
+                "caller": "update_mario_platform",
+                "path": "body.1.1.1.1.0.0",
+                "memory": "independent before/after; no preservation granted"
+              }
+            ],
+            "reason": null
+          },
+          {
+            "branch": 11,
+            "status": "contradiction-in-extracted-slice",
+            "decisions": [
+              "update_mario_platform:body.0.1 false",
+              "absf:body true",
+              "update_mario_platform:body.1.1.1.1.1.0.1 false",
+              "update_mario_platform:body.1.1.1.1.1.1 case 0",
+              "update_mario_platform:body.1.1.1.1.1.1.case0.0.0.1 false",
+              "update_mario_platform:body.1.1.1.1.1.1.case0.0.1 false"
+            ],
+            "unexpandedCalls": [
+              {
+                "function": "find_floor",
+                "caller": "update_mario_platform",
+                "path": "body.1.1.1.1.0.0",
+                "memory": "independent before/after; no preservation granted"
+              }
+            ],
+            "reason": null
+          },
+          {
+            "branch": 12,
+            "status": "contradiction-in-extracted-slice",
+            "decisions": [
+              "update_mario_platform:body.0.1 false",
+              "absf:body true",
+              "update_mario_platform:body.1.1.1.1.1.0.1 false",
+              "update_mario_platform:body.1.1.1.1.1.1 default"
+            ],
+            "unexpandedCalls": [
+              {
+                "function": "find_floor",
+                "caller": "update_mario_platform",
+                "path": "body.1.1.1.1.0.0",
+                "memory": "independent before/after; no preservation granted"
+              }
+            ],
+            "reason": null
+          },
+          {
+            "branch": 13,
+            "status": "contradiction-in-extracted-slice",
+            "decisions": [
+              "update_mario_platform:body.0.1 false",
+              "absf:body false",
+              "update_mario_platform:body.1.1.1.1.1.0.1 true",
+              "update_mario_platform:body.1.1.1.1.1.1 case 1"
+            ],
+            "unexpandedCalls": [
+              {
+                "function": "find_floor",
+                "caller": "update_mario_platform",
+                "path": "body.1.1.1.1.0.0",
+                "memory": "independent before/after; no preservation granted"
+              }
+            ],
+            "reason": null
+          },
+          {
+            "branch": 14,
+            "status": "unresolved-call-obligations",
+            "decisions": [
+              "update_mario_platform:body.0.1 false",
+              "absf:body false",
+              "update_mario_platform:body.1.1.1.1.1.0.1 true",
+              "update_mario_platform:body.1.1.1.1.1.1 case 0",
+              "update_mario_platform:body.1.1.1.1.1.1.case0.0.0.1 true",
+              "update_mario_platform:body.1.1.1.1.1.1.case0.0.1 true"
+            ],
+            "unexpandedCalls": [
+              {
+                "function": "find_floor",
+                "caller": "update_mario_platform",
+                "path": "body.1.1.1.1.0.0",
+                "memory": "independent before/after; no preservation granted"
+              }
+            ],
+            "reason": null
+          },
+          {
+            "branch": 15,
+            "status": "contradiction-in-extracted-slice",
+            "decisions": [
+              "update_mario_platform:body.0.1 false",
+              "absf:body false",
+              "update_mario_platform:body.1.1.1.1.1.0.1 true",
+              "update_mario_platform:body.1.1.1.1.1.1 case 0",
+              "update_mario_platform:body.1.1.1.1.1.1.case0.0.0.1 true",
+              "update_mario_platform:body.1.1.1.1.1.1.case0.0.1 false"
+            ],
+            "unexpandedCalls": [
+              {
+                "function": "find_floor",
+                "caller": "update_mario_platform",
+                "path": "body.1.1.1.1.0.0",
+                "memory": "independent before/after; no preservation granted"
+              }
+            ],
+            "reason": null
+          },
+          {
+            "branch": 16,
+            "status": "contradiction-in-extracted-slice",
+            "decisions": [
+              "update_mario_platform:body.0.1 false",
+              "absf:body false",
+              "update_mario_platform:body.1.1.1.1.1.0.1 true",
+              "update_mario_platform:body.1.1.1.1.1.1 case 0",
+              "update_mario_platform:body.1.1.1.1.1.1.case0.0.0.1 false",
+              "update_mario_platform:body.1.1.1.1.1.1.case0.0.1 true"
+            ],
+            "unexpandedCalls": [
+              {
+                "function": "find_floor",
+                "caller": "update_mario_platform",
+                "path": "body.1.1.1.1.0.0",
+                "memory": "independent before/after; no preservation granted"
+              }
+            ],
+            "reason": null
+          },
+          {
+            "branch": 17,
+            "status": "contradiction-in-extracted-slice",
+            "decisions": [
+              "update_mario_platform:body.0.1 false",
+              "absf:body false",
+              "update_mario_platform:body.1.1.1.1.1.0.1 true",
+              "update_mario_platform:body.1.1.1.1.1.1 case 0",
+              "update_mario_platform:body.1.1.1.1.1.1.case0.0.0.1 false",
+              "update_mario_platform:body.1.1.1.1.1.1.case0.0.1 false"
+            ],
+            "unexpandedCalls": [
+              {
+                "function": "find_floor",
+                "caller": "update_mario_platform",
+                "path": "body.1.1.1.1.0.0",
+                "memory": "independent before/after; no preservation granted"
+              }
+            ],
+            "reason": null
+          },
+          {
+            "branch": 18,
+            "status": "contradiction-in-extracted-slice",
+            "decisions": [
+              "update_mario_platform:body.0.1 false",
+              "absf:body false",
+              "update_mario_platform:body.1.1.1.1.1.0.1 true",
+              "update_mario_platform:body.1.1.1.1.1.1 default"
+            ],
+            "unexpandedCalls": [
+              {
+                "function": "find_floor",
+                "caller": "update_mario_platform",
+                "path": "body.1.1.1.1.0.0",
+                "memory": "independent before/after; no preservation granted"
+              }
+            ],
+            "reason": null
+          },
+          {
+            "branch": 19,
+            "status": "contradiction-in-extracted-slice",
+            "decisions": [
+              "update_mario_platform:body.0.1 false",
+              "absf:body false",
+              "update_mario_platform:body.1.1.1.1.1.0.1 false",
+              "update_mario_platform:body.1.1.1.1.1.1 case 1"
+            ],
+            "unexpandedCalls": [
+              {
+                "function": "find_floor",
+                "caller": "update_mario_platform",
+                "path": "body.1.1.1.1.0.0",
+                "memory": "independent before/after; no preservation granted"
+              }
+            ],
+            "reason": null
+          },
+          {
+            "branch": 20,
+            "status": "contradiction-in-extracted-slice",
+            "decisions": [
+              "update_mario_platform:body.0.1 false",
+              "absf:body false",
+              "update_mario_platform:body.1.1.1.1.1.0.1 false",
+              "update_mario_platform:body.1.1.1.1.1.1 case 0",
+              "update_mario_platform:body.1.1.1.1.1.1.case0.0.0.1 true",
+              "update_mario_platform:body.1.1.1.1.1.1.case0.0.1 true"
+            ],
+            "unexpandedCalls": [
+              {
+                "function": "find_floor",
+                "caller": "update_mario_platform",
+                "path": "body.1.1.1.1.0.0",
+                "memory": "independent before/after; no preservation granted"
+              }
+            ],
+            "reason": null
+          },
+          {
+            "branch": 21,
+            "status": "contradiction-in-extracted-slice",
+            "decisions": [
+              "update_mario_platform:body.0.1 false",
+              "absf:body false",
+              "update_mario_platform:body.1.1.1.1.1.0.1 false",
+              "update_mario_platform:body.1.1.1.1.1.1 case 0",
+              "update_mario_platform:body.1.1.1.1.1.1.case0.0.0.1 true",
+              "update_mario_platform:body.1.1.1.1.1.1.case0.0.1 false"
+            ],
+            "unexpandedCalls": [
+              {
+                "function": "find_floor",
+                "caller": "update_mario_platform",
+                "path": "body.1.1.1.1.0.0",
+                "memory": "independent before/after; no preservation granted"
+              }
+            ],
+            "reason": null
+          },
+          {
+            "branch": 22,
+            "status": "contradiction-in-extracted-slice",
+            "decisions": [
+              "update_mario_platform:body.0.1 false",
+              "absf:body false",
+              "update_mario_platform:body.1.1.1.1.1.0.1 false",
+              "update_mario_platform:body.1.1.1.1.1.1 case 0",
+              "update_mario_platform:body.1.1.1.1.1.1.case0.0.0.1 false",
+              "update_mario_platform:body.1.1.1.1.1.1.case0.0.1 true"
+            ],
+            "unexpandedCalls": [
+              {
+                "function": "find_floor",
+                "caller": "update_mario_platform",
+                "path": "body.1.1.1.1.0.0",
+                "memory": "independent before/after; no preservation granted"
+              }
+            ],
+            "reason": null
+          },
+          {
+            "branch": 23,
+            "status": "contradiction-in-extracted-slice",
+            "decisions": [
+              "update_mario_platform:body.0.1 false",
+              "absf:body false",
+              "update_mario_platform:body.1.1.1.1.1.0.1 false",
+              "update_mario_platform:body.1.1.1.1.1.1 case 0",
+              "update_mario_platform:body.1.1.1.1.1.1.case0.0.0.1 false",
+              "update_mario_platform:body.1.1.1.1.1.1.case0.0.1 false"
+            ],
+            "unexpandedCalls": [
+              {
+                "function": "find_floor",
+                "caller": "update_mario_platform",
+                "path": "body.1.1.1.1.0.0",
+                "memory": "independent before/after; no preservation granted"
+              }
+            ],
+            "reason": null
+          },
+          {
+            "branch": 24,
+            "status": "contradiction-in-extracted-slice",
+            "decisions": [
+              "update_mario_platform:body.0.1 false",
+              "absf:body false",
+              "update_mario_platform:body.1.1.1.1.1.0.1 false",
+              "update_mario_platform:body.1.1.1.1.1.1 default"
+            ],
+            "unexpandedCalls": [
+              {
+                "function": "find_floor",
+                "caller": "update_mario_platform",
+                "path": "body.1.1.1.1.0.0",
+                "memory": "independent before/after; no preservation granted"
+              }
+            ],
+            "reason": null
+          }
+        ],
+        "scope": "Actual generated body or named cut, ordinary separated storage; interpreter is not formally verified.",
+        "heightBits": 1156733869,
+        "queryXZ": [
+          -2200,
+          -1024
+        ],
+        "acceptedRawYBits": [
+          1156701102,
+          1156766636
+        ],
+        "acceptedRawY": [
+          1934.864990234375,
+          1942.86474609375
+        ],
+        "checks": {
+          "outside-band": {
+            "result": "unsat",
+            "meaning": "No solution in this extracted storage/arithmetic model."
+          },
+          "all-binary32-distance-band": {
+            "result": "unsat",
+            "meaning": "No solution in this extracted storage/arithmetic model."
+          },
+          "lower": {
+            "result": "sat",
+            "meaning": "Consistent local constraints; this is not a controller-reachable state."
+          },
+          "upper": {
+            "result": "sat",
+            "meaning": "Consistent local constraints; this is not a controller-reachable state."
+          },
+          "below": {
+            "result": "unsat",
+            "meaning": "No solution in this extracted storage/arithmetic model."
+          },
+          "above": {
+            "result": "unsat",
+            "meaning": "No solution in this extracted storage/arithmetic model."
+          },
+          "exact": {
+            "result": "sat",
+            "meaning": "Consistent local constraints; this is not a controller-reachable state."
+          },
+          "raw-768": {
+            "result": "unsat",
+            "meaning": "No solution in this extracted storage/arithmetic model."
+          }
+        },
+        "missing": "Actual find_floor execution must supply the requested top/height and returned-memory conditions; no list or call frame is granted."
+      },
+      "localPredecessors": {
+        "copy_mario_state_to_object": {
+          "branches": [
+            {
+              "branch": 0,
+              "status": "contradiction-in-extracted-slice",
+              "decisions": [
+                "copy_mario_state_to_object:body.1.0.1.1 true"
+              ],
+              "unexpandedCalls": [],
+              "reason": null
+            },
+            {
+              "branch": 1,
+              "status": "consistent-local-predecessor",
+              "decisions": [
+                "copy_mario_state_to_object:body.1.0.1.1 false"
+              ],
+              "unexpandedCalls": [],
+              "reason": null
+            }
+          ],
+          "scope": "Actual generated body or named cut, ordinary separated storage; interpreter is not formally verified.",
+          "checks": {
+            "exact-equivalence": {
+              "result": "unsat",
+              "meaning": "No solution in this extracted storage/arithmetic model."
+            },
+            "nonempty": {
+              "result": "sat",
+              "meaning": "Consistent local constraints; this is not a controller-reachable state."
+            },
+            "interval-equivalence": {
+              "result": "unsat",
+              "meaning": "No solution in this extracted storage/arithmetic model."
+            }
+          },
+          "predecessor": "Incoming State Y is in the same required band.",
+          "missing": "This is a local call. Intervening calls and scheduler intervals are not silently connected or framed."
+        },
+        "stop_and_set_height_to_floor": {
+          "branches": [
+            {
+              "branch": 0,
+              "status": "consistent-local-predecessor",
+              "decisions": [],
+              "unexpandedCalls": [],
+              "reason": null
+            }
+          ],
+          "scope": "Actual generated body or named cut, ordinary separated storage; interpreter is not formally verified.",
+          "checks": {
+            "exact-equivalence": {
+              "result": "unsat",
+              "meaning": "No solution in this extracted storage/arithmetic model."
+            },
+            "nonempty": {
+              "result": "sat",
+              "meaning": "Consistent local constraints; this is not a controller-reachable state."
+            },
+            "interval-equivalence": {
+              "result": "unsat",
+              "meaning": "No solution in this extracted storage/arithmetic model."
+            },
+            "old-low-positions-allowed": {
+              "result": "sat",
+              "meaning": "Consistent local constraints; this is not a controller-reachable state."
+            },
+            "old-high-display-insufficient": {
+              "result": "unsat",
+              "meaning": "No solution in this extracted storage/arithmetic model."
+            }
+          },
+          "predecessor": "Cached floorHeight at this call is in the required band. The old State/display Y need not be high.",
+          "missing": "This is a local call. Intervening calls and scheduler intervals are not silently connected or framed."
+        }
+      },
+      "retryArguments": {
+        "branches": [
+          {
+            "branch": 0,
+            "status": "unresolved-call-obligations",
+            "decisions": [
+              "update_mario_geometry_inputs:body.1.1.1.1 true"
+            ],
+            "unexpandedCalls": [
+              {
+                "function": "f32_find_wall_collision",
+                "caller": "update_mario_geometry_inputs",
+                "path": "body.0",
+                "memory": "independent before/after; no preservation granted"
+              },
+              {
+                "function": "f32_find_wall_collision",
+                "caller": "update_mario_geometry_inputs",
+                "path": "body.1.0",
+                "memory": "independent before/after; no preservation granted"
+              },
+              {
+                "function": "find_floor",
+                "caller": "update_mario_geometry_inputs",
+                "path": "body.1.1.0.0.1.1.1",
+                "memory": "independent before/after; no preservation granted"
+              },
+              {
+                "function": "find_floor",
+                "caller": "update_mario_geometry_inputs",
+                "path": "body.1.1.1.1.then.1.0.1.1.1",
+                "memory": "independent before/after; no preservation granted"
+              }
+            ],
+            "reason": null
+          },
+          {
+            "branch": 1,
+            "status": "outside-selected-call-branch",
+            "decisions": [
+              "update_mario_geometry_inputs:body.1.1.1.1 false"
+            ],
+            "unexpandedCalls": [
+              {
+                "function": "f32_find_wall_collision",
+                "caller": "update_mario_geometry_inputs",
+                "path": "body.0",
+                "memory": "independent before/after; no preservation granted"
+              },
+              {
+                "function": "f32_find_wall_collision",
+                "caller": "update_mario_geometry_inputs",
+                "path": "body.1.0",
+                "memory": "independent before/after; no preservation granted"
+              },
+              {
+                "function": "find_floor",
+                "caller": "update_mario_geometry_inputs",
+                "path": "body.1.1.0.0.1.1.1",
+                "memory": "independent before/after; no preservation granted"
+              }
+            ],
+            "reason": "This path does not execute the selected retry call."
+          }
+        ],
+        "scope": "Actual generated body or named cut, ordinary separated storage; interpreter is not formally verified.",
+        "checks": {
+          "has-local-candidate": {
+            "result": "sat",
+            "meaning": "Consistent local constraints; this is not a controller-reachable state."
+          },
+          "first-result-must-miss": {
+            "result": "unsat",
+            "meaning": "No solution in this extracted storage/arithmetic model."
+          },
+          "display-at-copy-must-be-high": {
+            "result": "unsat",
+            "meaning": "No solution in this extracted storage/arithmetic model."
+          },
+          "pre-call-low-display-remains-open": {
+            "result": "sat",
+            "meaning": "Consistent local constraints; this is not a controller-reachable state."
+          }
+        },
+        "sourceCut": "First four outer statements of update_mario_geometry_inputs",
+        "predecessor": "At the copy after the first query: floor is null and displayed vector is (-2200,1938.8648681640625,-1024).",
+        "missing": "Both wall calls and both floor calls retain independent before/after memory. The low pre-call display SAT case is an unresolved callee effect, not a discovered display writer. Later geometry and interaction calls are outside this cut."
+      },
+      "disappeared": {
+        "branches": [
+          {
+            "branch": 0,
+            "status": "unknown",
+            "decisions": [
+              "act_disappeared:body.1.1.1.0.1 true",
+              "act_disappeared:body.1.1.1.0.1.then.1.1 true"
+            ],
+            "unexpandedCalls": [
+              {
+                "function": "set_mario_animation",
+                "caller": "act_disappeared",
+                "path": "body.0",
+                "memory": "independent before/after; no preservation granted"
+              },
+              {
+                "function": "level_trigger_warp",
+                "caller": "act_disappeared",
+                "path": "body.1.1.1.0.1.then.1.1.then.1",
+                "memory": "independent before/after; no preservation granted"
+              }
+            ],
+            "reason": "timeout"
+          },
+          {
+            "branch": 1,
+            "status": "unresolved-call-obligations",
+            "decisions": [
+              "act_disappeared:body.1.1.1.0.1 true",
+              "act_disappeared:body.1.1.1.0.1.then.1.1 false"
+            ],
+            "unexpandedCalls": [
+              {
+                "function": "set_mario_animation",
+                "caller": "act_disappeared",
+                "path": "body.0",
+                "memory": "independent before/after; no preservation granted"
+              }
+            ],
+            "reason": null
+          },
+          {
+            "branch": 2,
+            "status": "unresolved-call-obligations",
+            "decisions": [
+              "act_disappeared:body.1.1.1.0.1 false"
+            ],
+            "unexpandedCalls": [
+              {
+                "function": "set_mario_animation",
+                "caller": "act_disappeared",
+                "path": "body.0",
+                "memory": "independent before/after; no preservation granted"
+              }
+            ],
+            "reason": null
+          }
+        ],
+        "scope": "Actual generated body or named cut, ordinary separated storage; interpreter is not formally verified.",
+        "missing": "set_mario_animation and, on its reached branch, level_trigger_warp are unexpanded. The named ordinary Mario receiver is required at each returned-memory cut. Full action-call entry does not inherit the snap predecessor without the real call effects."
+      },
+      "actualCallInventory": {
+        "update_objects": [
+          {
+            "function": "get_current_clock",
+            "path": [
+              0,
+              0
+            ]
+          },
+          {
+            "function": "reset_debug_objectinfo",
+            "path": [
+              1,
+              1,
+              1,
+              1,
+              1,
+              0
+            ]
+          },
+          {
+            "function": "stub_debug_5",
+            "path": [
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              0
+            ]
+          },
+          {
+            "function": "get_clock_difference",
+            "path": [
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              0,
+              0,
+              1
+            ]
+          },
+          {
+            "function": "clear_dynamic_surfaces",
+            "path": [
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              0
+            ]
+          },
+          {
+            "function": "get_clock_difference",
+            "path": [
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              0,
+              0,
+              1
+            ]
+          },
+          {
+            "function": "update_terrain_objects",
+            "path": [
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              0
+            ]
+          },
+          {
+            "function": "apply_mario_platform_displacement",
+            "path": [
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              0
+            ]
+          },
+          {
+            "function": "get_clock_difference",
+            "path": [
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              0,
+              0,
+              1
+            ]
+          },
+          {
+            "function": "detect_object_collisions",
+            "path": [
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              0
+            ]
+          },
+          {
+            "function": "get_clock_difference",
+            "path": [
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              0,
+              0,
+              1
+            ]
+          },
+          {
+            "function": "update_non_terrain_objects",
+            "path": [
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              0
+            ]
+          },
+          {
+            "function": "get_clock_difference",
+            "path": [
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              0,
+              0,
+              1
+            ]
+          },
+          {
+            "function": "unload_deactivated_objects",
+            "path": [
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              0
+            ]
+          },
+          {
+            "function": "get_clock_difference",
+            "path": [
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              0,
+              0,
+              1
+            ]
+          },
+          {
+            "function": "update_mario_platform",
+            "path": [
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              0
+            ]
+          },
+          {
+            "function": "get_clock_difference",
+            "path": [
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              0,
+              0,
+              1
+            ]
+          },
+          {
+            "function": "try_print_debug_mario_object_info",
+            "path": [
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              0
+            ]
+          }
+        ],
+        "bhv_mario_update": [
+          {
+            "function": "execute_mario_action",
+            "path": [
+              1,
+              0,
+              0,
+              1
+            ]
+          },
+          {
+            "function": "copy_mario_state_to_object",
+            "path": [
+              1,
+              1,
+              1,
+              0
+            ]
+          },
+          {
+            "function": "spawn_particle",
+            "path": [
+              1,
+              1,
+              1,
+              1,
+              1,
+              0,
+              1,
+              0,
+              1,
+              1,
+              1,
+              1,
+              1
+            ]
+          }
+        ],
+        "execute_mario_action": [
+          {
+            "function": "mario_reset_bodystate",
+            "path": [
+              1,
+              0,
+              1,
+              1,
+              1,
+              1,
+              0,
+              1
+            ]
+          },
+          {
+            "function": "update_mario_inputs",
+            "path": [
+              1,
+              0,
+              1,
+              1,
+              1,
+              1,
+              1,
+              0,
+              1
+            ]
+          },
+          {
+            "function": "mario_handle_special_floors",
+            "path": [
+              1,
+              0,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              0,
+              1
+            ]
+          },
+          {
+            "function": "mario_process_interactions",
+            "path": [
+              1,
+              0,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              0,
+              1
+            ]
+          },
+          {
+            "function": "mario_execute_stationary_action",
+            "path": [
+              1,
+              0,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              0,
+              1,
+              1,
+              1,
+              1,
+              1,
+              0,
+              0,
+              1
+            ]
+          },
+          {
+            "function": "mario_execute_moving_action",
+            "path": [
+              1,
+              0,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              0,
+              1,
+              1,
+              1,
+              1,
+              2,
+              1,
+              0,
+              0,
+              1
+            ]
+          },
+          {
+            "function": "mario_execute_airborne_action",
+            "path": [
+              1,
+              0,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              0,
+              1,
+              1,
+              1,
+              1,
+              2,
+              2,
+              1,
+              0,
+              0,
+              1
+            ]
+          },
+          {
+            "function": "mario_execute_submerged_action",
+            "path": [
+              1,
+              0,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              0,
+              1,
+              1,
+              1,
+              1,
+              2,
+              2,
+              2,
+              1,
+              0,
+              0,
+              1
+            ]
+          },
+          {
+            "function": "mario_execute_cutscene_action",
+            "path": [
+              1,
+              0,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              0,
+              1,
+              1,
+              1,
+              1,
+              2,
+              2,
+              2,
+              2,
+              1,
+              0,
+              0,
+              1
+            ]
+          },
+          {
+            "function": "mario_execute_automatic_action",
+            "path": [
+              1,
+              0,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              0,
+              1,
+              1,
+              1,
+              1,
+              2,
+              2,
+              2,
+              2,
+              2,
+              1,
+              0,
+              0,
+              1
+            ]
+          },
+          {
+            "function": "mario_execute_object_action",
+            "path": [
+              1,
+              0,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              0,
+              1,
+              1,
+              1,
+              1,
+              2,
+              2,
+              2,
+              2,
+              2,
+              2,
+              1,
+              0,
+              0,
+              1
+            ]
+          },
+          {
+            "function": "sink_mario_in_quicksand",
+            "path": [
+              1,
+              0,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              0,
+              1
+            ]
+          },
+          {
+            "function": "squish_mario_model",
+            "path": [
+              1,
+              0,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              0,
+              1
+            ]
+          },
+          {
+            "function": "set_submerged_cam_preset_and_spawn_bubbles",
+            "path": [
+              1,
+              0,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              0,
+              1
+            ]
+          },
+          {
+            "function": "update_mario_health",
+            "path": [
+              1,
+              0,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              0,
+              1
+            ]
+          },
+          {
+            "function": "update_mario_info_for_cam",
+            "path": [
+              1,
+              0,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              0,
+              1
+            ]
+          },
+          {
+            "function": "mario_update_hitbox_and_cap_model",
+            "path": [
+              1,
+              0,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              0,
+              1
+            ]
+          },
+          {
+            "function": "spawn_wind_particles",
+            "path": [
+              1,
+              0,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              0,
+              1,
+              1,
+              1,
+              1,
+              0,
+              1,
+              1,
+              1
+            ]
+          },
+          {
+            "function": "play_sound",
+            "path": [
+              1,
+              0,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              0,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1
+            ]
+          },
+          {
+            "function": "spawn_wind_particles",
+            "path": [
+              1,
+              0,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              0,
+              1,
+              1,
+              1,
+              1,
+              0
+            ]
+          },
+          {
+            "function": "play_sound",
+            "path": [
+              1,
+              0,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              0,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1
+            ]
+          },
+          {
+            "function": "play_infinite_stairs_music",
+            "path": [
+              1,
+              0,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              0
+            ]
+          }
+        ],
+        "interact_warp": [
+          {
+            "function": "set_mario_action",
+            "path": [
+              0,
+              1,
+              1,
+              1,
+              2,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              0
+            ]
+          },
+          {
+            "function": "segmented_to_virtual",
+            "path": [
+              0,
+              1,
+              2,
+              1,
+              1,
+              1,
+              1,
+              1,
+              0,
+              0,
+              0
+            ]
+          },
+          {
+            "function": "play_sound",
+            "path": [
+              0,
+              1,
+              2,
+              1,
+              1,
+              1,
+              1,
+              1,
+              0,
+              1,
+              1
+            ]
+          },
+          {
+            "function": "mario_stop_riding_object",
+            "path": [
+              0,
+              1,
+              2,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              0
+            ]
+          },
+          {
+            "function": "set_mario_action",
+            "path": [
+              0,
+              1,
+              2,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              0
+            ]
+          }
+        ]
+      },
+      "generatedFunctions": {
+        "update_mario_platform": {
+          "file": "generated\\us_platform_displacement.v",
+          "line": 515,
+          "sha256": "02b5a54c1691a5c2903645acb9663ca19a03b1eea60d5f2c37e70153dff33366"
+        },
+        "absf": {
+          "file": "generated\\us_object_helpers.v",
+          "line": 20062,
+          "sha256": "4a6e09dbcf61e5fd928e1e5da67ff26aa176d1fc65b2e6ba19bf8a3e7600728d"
+        },
+        "copy_mario_state_to_object": {
+          "file": "generated\\us_object_list_processor.v",
+          "line": 1042,
+          "sha256": "045bc0f150b044cef821079c9b51b02db7314cb805ae231e6d2b280081db5faf"
+        },
+        "stop_and_set_height_to_floor": {
+          "file": "generated\\us_mario_step.v",
+          "line": 1709,
+          "sha256": "dbd034e33309c64400c56bf983d4db644670526e277ac975ea01aa694a6dc634"
+        },
+        "vec3s_set": {
+          "file": "generated\\us_math_util.v",
+          "line": 6377,
+          "sha256": "79fee970d5440acec41dfb6af9911dc4b8c1390fc3de389d689d43b6bc5a3372"
+        },
+        "vec3f_copy": {
+          "file": "generated\\us_math_util.v",
+          "line": 6076,
+          "sha256": "144b735009e8b8fa17960d543e81130113f70613d1bdb88980de09e9758e04d5"
+        },
+        "mario_set_forward_vel": {
+          "file": "generated\\us_mario.v",
+          "line": 2836,
+          "sha256": "fe332abc7264bdc5c31186fe785d295f2c70de3962a045a69f0bea110ba9ee42"
+        },
+        "update_mario_geometry_inputs": {
+          "file": "generated\\us_mario.v",
+          "line": 6974,
+          "sha256": "e05b108f3ac22e31d44be762b0e6201ee8a44c03340d28d04e0dc172cce3abb1"
+        },
+        "act_disappeared": {
+          "file": "generated\\us_mario_actions_cutscene.v",
+          "line": 2783,
+          "sha256": "df7339b649991f6c40855a43fa1c7a1aa5466915d8be78a4cea613e8ec7e309f"
+        },
+        "update_objects": {
+          "file": "generated\\us_object_list_processor.v",
+          "line": 3144,
+          "sha256": "cca89d63cbcd0fb619a4788b877bdf7d840071ff48a1c635ccd1420e3550a576"
+        },
+        "bhv_mario_update": {
+          "file": "generated\\us_object_list_processor.v",
+          "line": 1653,
+          "sha256": "55a884670e69237749f97e6bebc5f17bfc0cc928915b27445162f21c15f050cd"
+        },
+        "execute_mario_action": {
+          "file": "generated\\us_mario.v",
+          "line": 9276,
+          "sha256": "b422bfc0e85f884b7a0e79205dd5fbbbaa3952d811d3c4cbfa93e889a6f84bce"
+        },
+        "interact_warp": {
+          "file": "generated\\us_interaction.v",
+          "line": 5426,
+          "sha256": "a6ef604c4de450061c4014d354ff96c43d19c40fd737d582f4dc23752a49783e"
+        }
+      },
+      "generatedUnitHashes": {
+        "generated\\us_interaction.v": "667179fdc995a6d43e364af44b91bbbc04806a752286788cd3ce3bae4d5d6be1",
+        "generated\\us_object_list_processor.v": "1294308f49443b2a58148c6b5746450b8043a20e007808fb8d2357e636379c95",
+        "generated\\us_mario_actions_cutscene.v": "ea98a4a6069dc429904a3fd302c9a1df46b99f64fbc69e143015358e83db00a0",
+        "generated\\us_object_helpers.v": "4f9dbf942d76584e2e2bc3e348db473940cf4c1cb78a7c465dcfd704e8ea32e0",
+        "generated\\us_platform_displacement.v": "8bf09b0faa4e1abdd1aede8c5b650d2293ab42211b02ecd0bcf6a1aeb6a1ef02",
+        "generated\\us_mario.v": "9219c324571bede4ec6913a6c000c9a4ec41f9328e614d14967870f02af44dcf",
+        "generated\\us_mario_step.v": "62d19876316049737f0eea01397edd361ddc6bc39954f21adf12a58b1a9d6639",
+        "generated\\us_math_util.v": "b4f4ec618a96c25b74a9eeb2a1f9583f71dd2e541db594c16797b7de85db3994"
+      }
+    },
+    "jp": {
+      "version": "jp",
+      "finalCapture": {
+        "branches": [
+          {
+            "branch": 0,
+            "status": "contradiction-in-extracted-slice",
+            "decisions": [
+              "update_mario_platform:body.0.1 true"
+            ],
+            "unexpandedCalls": [],
+            "reason": null
+          },
+          {
+            "branch": 1,
+            "status": "contradiction-in-extracted-slice",
+            "decisions": [
+              "update_mario_platform:body.0.1 false",
+              "absf:body true",
+              "update_mario_platform:body.1.1.1.1.1.0.1 true",
+              "update_mario_platform:body.1.1.1.1.1.1 case 1"
+            ],
+            "unexpandedCalls": [
+              {
+                "function": "find_floor",
+                "caller": "update_mario_platform",
+                "path": "body.1.1.1.1.0.0",
+                "memory": "independent before/after; no preservation granted"
+              }
+            ],
+            "reason": null
+          },
+          {
+            "branch": 2,
+            "status": "unresolved-call-obligations",
+            "decisions": [
+              "update_mario_platform:body.0.1 false",
+              "absf:body true",
+              "update_mario_platform:body.1.1.1.1.1.0.1 true",
+              "update_mario_platform:body.1.1.1.1.1.1 case 0",
+              "update_mario_platform:body.1.1.1.1.1.1.case0.0.0.1 true",
+              "update_mario_platform:body.1.1.1.1.1.1.case0.0.1 true"
+            ],
+            "unexpandedCalls": [
+              {
+                "function": "find_floor",
+                "caller": "update_mario_platform",
+                "path": "body.1.1.1.1.0.0",
+                "memory": "independent before/after; no preservation granted"
+              }
+            ],
+            "reason": null
+          },
+          {
+            "branch": 3,
+            "status": "contradiction-in-extracted-slice",
+            "decisions": [
+              "update_mario_platform:body.0.1 false",
+              "absf:body true",
+              "update_mario_platform:body.1.1.1.1.1.0.1 true",
+              "update_mario_platform:body.1.1.1.1.1.1 case 0",
+              "update_mario_platform:body.1.1.1.1.1.1.case0.0.0.1 true",
+              "update_mario_platform:body.1.1.1.1.1.1.case0.0.1 false"
+            ],
+            "unexpandedCalls": [
+              {
+                "function": "find_floor",
+                "caller": "update_mario_platform",
+                "path": "body.1.1.1.1.0.0",
+                "memory": "independent before/after; no preservation granted"
+              }
+            ],
+            "reason": null
+          },
+          {
+            "branch": 4,
+            "status": "contradiction-in-extracted-slice",
+            "decisions": [
+              "update_mario_platform:body.0.1 false",
+              "absf:body true",
+              "update_mario_platform:body.1.1.1.1.1.0.1 true",
+              "update_mario_platform:body.1.1.1.1.1.1 case 0",
+              "update_mario_platform:body.1.1.1.1.1.1.case0.0.0.1 false",
+              "update_mario_platform:body.1.1.1.1.1.1.case0.0.1 true"
+            ],
+            "unexpandedCalls": [
+              {
+                "function": "find_floor",
+                "caller": "update_mario_platform",
+                "path": "body.1.1.1.1.0.0",
+                "memory": "independent before/after; no preservation granted"
+              }
+            ],
+            "reason": null
+          },
+          {
+            "branch": 5,
+            "status": "contradiction-in-extracted-slice",
+            "decisions": [
+              "update_mario_platform:body.0.1 false",
+              "absf:body true",
+              "update_mario_platform:body.1.1.1.1.1.0.1 true",
+              "update_mario_platform:body.1.1.1.1.1.1 case 0",
+              "update_mario_platform:body.1.1.1.1.1.1.case0.0.0.1 false",
+              "update_mario_platform:body.1.1.1.1.1.1.case0.0.1 false"
+            ],
+            "unexpandedCalls": [
+              {
+                "function": "find_floor",
+                "caller": "update_mario_platform",
+                "path": "body.1.1.1.1.0.0",
+                "memory": "independent before/after; no preservation granted"
+              }
+            ],
+            "reason": null
+          },
+          {
+            "branch": 6,
+            "status": "contradiction-in-extracted-slice",
+            "decisions": [
+              "update_mario_platform:body.0.1 false",
+              "absf:body true",
+              "update_mario_platform:body.1.1.1.1.1.0.1 true",
+              "update_mario_platform:body.1.1.1.1.1.1 default"
+            ],
+            "unexpandedCalls": [
+              {
+                "function": "find_floor",
+                "caller": "update_mario_platform",
+                "path": "body.1.1.1.1.0.0",
+                "memory": "independent before/after; no preservation granted"
+              }
+            ],
+            "reason": null
+          },
+          {
+            "branch": 7,
+            "status": "contradiction-in-extracted-slice",
+            "decisions": [
+              "update_mario_platform:body.0.1 false",
+              "absf:body true",
+              "update_mario_platform:body.1.1.1.1.1.0.1 false",
+              "update_mario_platform:body.1.1.1.1.1.1 case 1"
+            ],
+            "unexpandedCalls": [
+              {
+                "function": "find_floor",
+                "caller": "update_mario_platform",
+                "path": "body.1.1.1.1.0.0",
+                "memory": "independent before/after; no preservation granted"
+              }
+            ],
+            "reason": null
+          },
+          {
+            "branch": 8,
+            "status": "contradiction-in-extracted-slice",
+            "decisions": [
+              "update_mario_platform:body.0.1 false",
+              "absf:body true",
+              "update_mario_platform:body.1.1.1.1.1.0.1 false",
+              "update_mario_platform:body.1.1.1.1.1.1 case 0",
+              "update_mario_platform:body.1.1.1.1.1.1.case0.0.0.1 true",
+              "update_mario_platform:body.1.1.1.1.1.1.case0.0.1 true"
+            ],
+            "unexpandedCalls": [
+              {
+                "function": "find_floor",
+                "caller": "update_mario_platform",
+                "path": "body.1.1.1.1.0.0",
+                "memory": "independent before/after; no preservation granted"
+              }
+            ],
+            "reason": null
+          },
+          {
+            "branch": 9,
+            "status": "contradiction-in-extracted-slice",
+            "decisions": [
+              "update_mario_platform:body.0.1 false",
+              "absf:body true",
+              "update_mario_platform:body.1.1.1.1.1.0.1 false",
+              "update_mario_platform:body.1.1.1.1.1.1 case 0",
+              "update_mario_platform:body.1.1.1.1.1.1.case0.0.0.1 true",
+              "update_mario_platform:body.1.1.1.1.1.1.case0.0.1 false"
+            ],
+            "unexpandedCalls": [
+              {
+                "function": "find_floor",
+                "caller": "update_mario_platform",
+                "path": "body.1.1.1.1.0.0",
+                "memory": "independent before/after; no preservation granted"
+              }
+            ],
+            "reason": null
+          },
+          {
+            "branch": 10,
+            "status": "contradiction-in-extracted-slice",
+            "decisions": [
+              "update_mario_platform:body.0.1 false",
+              "absf:body true",
+              "update_mario_platform:body.1.1.1.1.1.0.1 false",
+              "update_mario_platform:body.1.1.1.1.1.1 case 0",
+              "update_mario_platform:body.1.1.1.1.1.1.case0.0.0.1 false",
+              "update_mario_platform:body.1.1.1.1.1.1.case0.0.1 true"
+            ],
+            "unexpandedCalls": [
+              {
+                "function": "find_floor",
+                "caller": "update_mario_platform",
+                "path": "body.1.1.1.1.0.0",
+                "memory": "independent before/after; no preservation granted"
+              }
+            ],
+            "reason": null
+          },
+          {
+            "branch": 11,
+            "status": "contradiction-in-extracted-slice",
+            "decisions": [
+              "update_mario_platform:body.0.1 false",
+              "absf:body true",
+              "update_mario_platform:body.1.1.1.1.1.0.1 false",
+              "update_mario_platform:body.1.1.1.1.1.1 case 0",
+              "update_mario_platform:body.1.1.1.1.1.1.case0.0.0.1 false",
+              "update_mario_platform:body.1.1.1.1.1.1.case0.0.1 false"
+            ],
+            "unexpandedCalls": [
+              {
+                "function": "find_floor",
+                "caller": "update_mario_platform",
+                "path": "body.1.1.1.1.0.0",
+                "memory": "independent before/after; no preservation granted"
+              }
+            ],
+            "reason": null
+          },
+          {
+            "branch": 12,
+            "status": "contradiction-in-extracted-slice",
+            "decisions": [
+              "update_mario_platform:body.0.1 false",
+              "absf:body true",
+              "update_mario_platform:body.1.1.1.1.1.0.1 false",
+              "update_mario_platform:body.1.1.1.1.1.1 default"
+            ],
+            "unexpandedCalls": [
+              {
+                "function": "find_floor",
+                "caller": "update_mario_platform",
+                "path": "body.1.1.1.1.0.0",
+                "memory": "independent before/after; no preservation granted"
+              }
+            ],
+            "reason": null
+          },
+          {
+            "branch": 13,
+            "status": "contradiction-in-extracted-slice",
+            "decisions": [
+              "update_mario_platform:body.0.1 false",
+              "absf:body false",
+              "update_mario_platform:body.1.1.1.1.1.0.1 true",
+              "update_mario_platform:body.1.1.1.1.1.1 case 1"
+            ],
+            "unexpandedCalls": [
+              {
+                "function": "find_floor",
+                "caller": "update_mario_platform",
+                "path": "body.1.1.1.1.0.0",
+                "memory": "independent before/after; no preservation granted"
+              }
+            ],
+            "reason": null
+          },
+          {
+            "branch": 14,
+            "status": "unresolved-call-obligations",
+            "decisions": [
+              "update_mario_platform:body.0.1 false",
+              "absf:body false",
+              "update_mario_platform:body.1.1.1.1.1.0.1 true",
+              "update_mario_platform:body.1.1.1.1.1.1 case 0",
+              "update_mario_platform:body.1.1.1.1.1.1.case0.0.0.1 true",
+              "update_mario_platform:body.1.1.1.1.1.1.case0.0.1 true"
+            ],
+            "unexpandedCalls": [
+              {
+                "function": "find_floor",
+                "caller": "update_mario_platform",
+                "path": "body.1.1.1.1.0.0",
+                "memory": "independent before/after; no preservation granted"
+              }
+            ],
+            "reason": null
+          },
+          {
+            "branch": 15,
+            "status": "contradiction-in-extracted-slice",
+            "decisions": [
+              "update_mario_platform:body.0.1 false",
+              "absf:body false",
+              "update_mario_platform:body.1.1.1.1.1.0.1 true",
+              "update_mario_platform:body.1.1.1.1.1.1 case 0",
+              "update_mario_platform:body.1.1.1.1.1.1.case0.0.0.1 true",
+              "update_mario_platform:body.1.1.1.1.1.1.case0.0.1 false"
+            ],
+            "unexpandedCalls": [
+              {
+                "function": "find_floor",
+                "caller": "update_mario_platform",
+                "path": "body.1.1.1.1.0.0",
+                "memory": "independent before/after; no preservation granted"
+              }
+            ],
+            "reason": null
+          },
+          {
+            "branch": 16,
+            "status": "contradiction-in-extracted-slice",
+            "decisions": [
+              "update_mario_platform:body.0.1 false",
+              "absf:body false",
+              "update_mario_platform:body.1.1.1.1.1.0.1 true",
+              "update_mario_platform:body.1.1.1.1.1.1 case 0",
+              "update_mario_platform:body.1.1.1.1.1.1.case0.0.0.1 false",
+              "update_mario_platform:body.1.1.1.1.1.1.case0.0.1 true"
+            ],
+            "unexpandedCalls": [
+              {
+                "function": "find_floor",
+                "caller": "update_mario_platform",
+                "path": "body.1.1.1.1.0.0",
+                "memory": "independent before/after; no preservation granted"
+              }
+            ],
+            "reason": null
+          },
+          {
+            "branch": 17,
+            "status": "contradiction-in-extracted-slice",
+            "decisions": [
+              "update_mario_platform:body.0.1 false",
+              "absf:body false",
+              "update_mario_platform:body.1.1.1.1.1.0.1 true",
+              "update_mario_platform:body.1.1.1.1.1.1 case 0",
+              "update_mario_platform:body.1.1.1.1.1.1.case0.0.0.1 false",
+              "update_mario_platform:body.1.1.1.1.1.1.case0.0.1 false"
+            ],
+            "unexpandedCalls": [
+              {
+                "function": "find_floor",
+                "caller": "update_mario_platform",
+                "path": "body.1.1.1.1.0.0",
+                "memory": "independent before/after; no preservation granted"
+              }
+            ],
+            "reason": null
+          },
+          {
+            "branch": 18,
+            "status": "contradiction-in-extracted-slice",
+            "decisions": [
+              "update_mario_platform:body.0.1 false",
+              "absf:body false",
+              "update_mario_platform:body.1.1.1.1.1.0.1 true",
+              "update_mario_platform:body.1.1.1.1.1.1 default"
+            ],
+            "unexpandedCalls": [
+              {
+                "function": "find_floor",
+                "caller": "update_mario_platform",
+                "path": "body.1.1.1.1.0.0",
+                "memory": "independent before/after; no preservation granted"
+              }
+            ],
+            "reason": null
+          },
+          {
+            "branch": 19,
+            "status": "contradiction-in-extracted-slice",
+            "decisions": [
+              "update_mario_platform:body.0.1 false",
+              "absf:body false",
+              "update_mario_platform:body.1.1.1.1.1.0.1 false",
+              "update_mario_platform:body.1.1.1.1.1.1 case 1"
+            ],
+            "unexpandedCalls": [
+              {
+                "function": "find_floor",
+                "caller": "update_mario_platform",
+                "path": "body.1.1.1.1.0.0",
+                "memory": "independent before/after; no preservation granted"
+              }
+            ],
+            "reason": null
+          },
+          {
+            "branch": 20,
+            "status": "contradiction-in-extracted-slice",
+            "decisions": [
+              "update_mario_platform:body.0.1 false",
+              "absf:body false",
+              "update_mario_platform:body.1.1.1.1.1.0.1 false",
+              "update_mario_platform:body.1.1.1.1.1.1 case 0",
+              "update_mario_platform:body.1.1.1.1.1.1.case0.0.0.1 true",
+              "update_mario_platform:body.1.1.1.1.1.1.case0.0.1 true"
+            ],
+            "unexpandedCalls": [
+              {
+                "function": "find_floor",
+                "caller": "update_mario_platform",
+                "path": "body.1.1.1.1.0.0",
+                "memory": "independent before/after; no preservation granted"
+              }
+            ],
+            "reason": null
+          },
+          {
+            "branch": 21,
+            "status": "contradiction-in-extracted-slice",
+            "decisions": [
+              "update_mario_platform:body.0.1 false",
+              "absf:body false",
+              "update_mario_platform:body.1.1.1.1.1.0.1 false",
+              "update_mario_platform:body.1.1.1.1.1.1 case 0",
+              "update_mario_platform:body.1.1.1.1.1.1.case0.0.0.1 true",
+              "update_mario_platform:body.1.1.1.1.1.1.case0.0.1 false"
+            ],
+            "unexpandedCalls": [
+              {
+                "function": "find_floor",
+                "caller": "update_mario_platform",
+                "path": "body.1.1.1.1.0.0",
+                "memory": "independent before/after; no preservation granted"
+              }
+            ],
+            "reason": null
+          },
+          {
+            "branch": 22,
+            "status": "contradiction-in-extracted-slice",
+            "decisions": [
+              "update_mario_platform:body.0.1 false",
+              "absf:body false",
+              "update_mario_platform:body.1.1.1.1.1.0.1 false",
+              "update_mario_platform:body.1.1.1.1.1.1 case 0",
+              "update_mario_platform:body.1.1.1.1.1.1.case0.0.0.1 false",
+              "update_mario_platform:body.1.1.1.1.1.1.case0.0.1 true"
+            ],
+            "unexpandedCalls": [
+              {
+                "function": "find_floor",
+                "caller": "update_mario_platform",
+                "path": "body.1.1.1.1.0.0",
+                "memory": "independent before/after; no preservation granted"
+              }
+            ],
+            "reason": null
+          },
+          {
+            "branch": 23,
+            "status": "contradiction-in-extracted-slice",
+            "decisions": [
+              "update_mario_platform:body.0.1 false",
+              "absf:body false",
+              "update_mario_platform:body.1.1.1.1.1.0.1 false",
+              "update_mario_platform:body.1.1.1.1.1.1 case 0",
+              "update_mario_platform:body.1.1.1.1.1.1.case0.0.0.1 false",
+              "update_mario_platform:body.1.1.1.1.1.1.case0.0.1 false"
+            ],
+            "unexpandedCalls": [
+              {
+                "function": "find_floor",
+                "caller": "update_mario_platform",
+                "path": "body.1.1.1.1.0.0",
+                "memory": "independent before/after; no preservation granted"
+              }
+            ],
+            "reason": null
+          },
+          {
+            "branch": 24,
+            "status": "contradiction-in-extracted-slice",
+            "decisions": [
+              "update_mario_platform:body.0.1 false",
+              "absf:body false",
+              "update_mario_platform:body.1.1.1.1.1.0.1 false",
+              "update_mario_platform:body.1.1.1.1.1.1 default"
+            ],
+            "unexpandedCalls": [
+              {
+                "function": "find_floor",
+                "caller": "update_mario_platform",
+                "path": "body.1.1.1.1.0.0",
+                "memory": "independent before/after; no preservation granted"
+              }
+            ],
+            "reason": null
+          }
+        ],
+        "scope": "Actual generated body or named cut, ordinary separated storage; interpreter is not formally verified.",
+        "heightBits": 1156733869,
+        "queryXZ": [
+          -2200,
+          -1024
+        ],
+        "acceptedRawYBits": [
+          1156701102,
+          1156766636
+        ],
+        "acceptedRawY": [
+          1934.864990234375,
+          1942.86474609375
+        ],
+        "checks": {
+          "outside-band": {
+            "result": "unsat",
+            "meaning": "No solution in this extracted storage/arithmetic model."
+          },
+          "all-binary32-distance-band": {
+            "result": "unsat",
+            "meaning": "No solution in this extracted storage/arithmetic model."
+          },
+          "lower": {
+            "result": "sat",
+            "meaning": "Consistent local constraints; this is not a controller-reachable state."
+          },
+          "upper": {
+            "result": "sat",
+            "meaning": "Consistent local constraints; this is not a controller-reachable state."
+          },
+          "below": {
+            "result": "unsat",
+            "meaning": "No solution in this extracted storage/arithmetic model."
+          },
+          "above": {
+            "result": "unsat",
+            "meaning": "No solution in this extracted storage/arithmetic model."
+          },
+          "exact": {
+            "result": "sat",
+            "meaning": "Consistent local constraints; this is not a controller-reachable state."
+          },
+          "raw-768": {
+            "result": "unsat",
+            "meaning": "No solution in this extracted storage/arithmetic model."
+          }
+        },
+        "missing": "Actual find_floor execution must supply the requested top/height and returned-memory conditions; no list or call frame is granted."
+      },
+      "localPredecessors": {
+        "copy_mario_state_to_object": {
+          "branches": [
+            {
+              "branch": 0,
+              "status": "contradiction-in-extracted-slice",
+              "decisions": [
+                "copy_mario_state_to_object:body.1.0.1.1 true"
+              ],
+              "unexpandedCalls": [],
+              "reason": null
+            },
+            {
+              "branch": 1,
+              "status": "consistent-local-predecessor",
+              "decisions": [
+                "copy_mario_state_to_object:body.1.0.1.1 false"
+              ],
+              "unexpandedCalls": [],
+              "reason": null
+            }
+          ],
+          "scope": "Actual generated body or named cut, ordinary separated storage; interpreter is not formally verified.",
+          "checks": {
+            "exact-equivalence": {
+              "result": "unsat",
+              "meaning": "No solution in this extracted storage/arithmetic model."
+            },
+            "nonempty": {
+              "result": "sat",
+              "meaning": "Consistent local constraints; this is not a controller-reachable state."
+            },
+            "interval-equivalence": {
+              "result": "unsat",
+              "meaning": "No solution in this extracted storage/arithmetic model."
+            }
+          },
+          "predecessor": "Incoming State Y is in the same required band.",
+          "missing": "This is a local call. Intervening calls and scheduler intervals are not silently connected or framed."
+        },
+        "stop_and_set_height_to_floor": {
+          "branches": [
+            {
+              "branch": 0,
+              "status": "consistent-local-predecessor",
+              "decisions": [],
+              "unexpandedCalls": [],
+              "reason": null
+            }
+          ],
+          "scope": "Actual generated body or named cut, ordinary separated storage; interpreter is not formally verified.",
+          "checks": {
+            "exact-equivalence": {
+              "result": "unsat",
+              "meaning": "No solution in this extracted storage/arithmetic model."
+            },
+            "nonempty": {
+              "result": "sat",
+              "meaning": "Consistent local constraints; this is not a controller-reachable state."
+            },
+            "interval-equivalence": {
+              "result": "unsat",
+              "meaning": "No solution in this extracted storage/arithmetic model."
+            },
+            "old-low-positions-allowed": {
+              "result": "sat",
+              "meaning": "Consistent local constraints; this is not a controller-reachable state."
+            },
+            "old-high-display-insufficient": {
+              "result": "unsat",
+              "meaning": "No solution in this extracted storage/arithmetic model."
+            }
+          },
+          "predecessor": "Cached floorHeight at this call is in the required band. The old State/display Y need not be high.",
+          "missing": "This is a local call. Intervening calls and scheduler intervals are not silently connected or framed."
+        }
+      },
+      "retryArguments": {
+        "branches": [
+          {
+            "branch": 0,
+            "status": "unresolved-call-obligations",
+            "decisions": [
+              "update_mario_geometry_inputs:body.1.1.1.1 true"
+            ],
+            "unexpandedCalls": [
+              {
+                "function": "f32_find_wall_collision",
+                "caller": "update_mario_geometry_inputs",
+                "path": "body.0",
+                "memory": "independent before/after; no preservation granted"
+              },
+              {
+                "function": "f32_find_wall_collision",
+                "caller": "update_mario_geometry_inputs",
+                "path": "body.1.0",
+                "memory": "independent before/after; no preservation granted"
+              },
+              {
+                "function": "find_floor",
+                "caller": "update_mario_geometry_inputs",
+                "path": "body.1.1.0.0.1.1.1",
+                "memory": "independent before/after; no preservation granted"
+              },
+              {
+                "function": "find_floor",
+                "caller": "update_mario_geometry_inputs",
+                "path": "body.1.1.1.1.then.1.0.1.1.1",
+                "memory": "independent before/after; no preservation granted"
+              }
+            ],
+            "reason": null
+          },
+          {
+            "branch": 1,
+            "status": "outside-selected-call-branch",
+            "decisions": [
+              "update_mario_geometry_inputs:body.1.1.1.1 false"
+            ],
+            "unexpandedCalls": [
+              {
+                "function": "f32_find_wall_collision",
+                "caller": "update_mario_geometry_inputs",
+                "path": "body.0",
+                "memory": "independent before/after; no preservation granted"
+              },
+              {
+                "function": "f32_find_wall_collision",
+                "caller": "update_mario_geometry_inputs",
+                "path": "body.1.0",
+                "memory": "independent before/after; no preservation granted"
+              },
+              {
+                "function": "find_floor",
+                "caller": "update_mario_geometry_inputs",
+                "path": "body.1.1.0.0.1.1.1",
+                "memory": "independent before/after; no preservation granted"
+              }
+            ],
+            "reason": "This path does not execute the selected retry call."
+          }
+        ],
+        "scope": "Actual generated body or named cut, ordinary separated storage; interpreter is not formally verified.",
+        "checks": {
+          "has-local-candidate": {
+            "result": "sat",
+            "meaning": "Consistent local constraints; this is not a controller-reachable state."
+          },
+          "first-result-must-miss": {
+            "result": "unsat",
+            "meaning": "No solution in this extracted storage/arithmetic model."
+          },
+          "display-at-copy-must-be-high": {
+            "result": "unsat",
+            "meaning": "No solution in this extracted storage/arithmetic model."
+          },
+          "pre-call-low-display-remains-open": {
+            "result": "sat",
+            "meaning": "Consistent local constraints; this is not a controller-reachable state."
+          }
+        },
+        "sourceCut": "First four outer statements of update_mario_geometry_inputs",
+        "predecessor": "At the copy after the first query: floor is null and displayed vector is (-2200,1938.8648681640625,-1024).",
+        "missing": "Both wall calls and both floor calls retain independent before/after memory. The low pre-call display SAT case is an unresolved callee effect, not a discovered display writer. Later geometry and interaction calls are outside this cut."
+      },
+      "disappeared": {
+        "branches": [
+          {
+            "branch": 0,
+            "status": "unknown",
+            "decisions": [
+              "act_disappeared:body.1.1.1.0.1 true",
+              "act_disappeared:body.1.1.1.0.1.then.1.1 true"
+            ],
+            "unexpandedCalls": [
+              {
+                "function": "set_mario_animation",
+                "caller": "act_disappeared",
+                "path": "body.0",
+                "memory": "independent before/after; no preservation granted"
+              },
+              {
+                "function": "level_trigger_warp",
+                "caller": "act_disappeared",
+                "path": "body.1.1.1.0.1.then.1.1.then.1",
+                "memory": "independent before/after; no preservation granted"
+              }
+            ],
+            "reason": "timeout"
+          },
+          {
+            "branch": 1,
+            "status": "unresolved-call-obligations",
+            "decisions": [
+              "act_disappeared:body.1.1.1.0.1 true",
+              "act_disappeared:body.1.1.1.0.1.then.1.1 false"
+            ],
+            "unexpandedCalls": [
+              {
+                "function": "set_mario_animation",
+                "caller": "act_disappeared",
+                "path": "body.0",
+                "memory": "independent before/after; no preservation granted"
+              }
+            ],
+            "reason": null
+          },
+          {
+            "branch": 2,
+            "status": "unresolved-call-obligations",
+            "decisions": [
+              "act_disappeared:body.1.1.1.0.1 false"
+            ],
+            "unexpandedCalls": [
+              {
+                "function": "set_mario_animation",
+                "caller": "act_disappeared",
+                "path": "body.0",
+                "memory": "independent before/after; no preservation granted"
+              }
+            ],
+            "reason": null
+          }
+        ],
+        "scope": "Actual generated body or named cut, ordinary separated storage; interpreter is not formally verified.",
+        "missing": "set_mario_animation and, on its reached branch, level_trigger_warp are unexpanded. The named ordinary Mario receiver is required at each returned-memory cut. Full action-call entry does not inherit the snap predecessor without the real call effects."
+      },
+      "actualCallInventory": {
+        "update_objects": [
+          {
+            "function": "get_current_clock",
+            "path": [
+              0,
+              0
+            ]
+          },
+          {
+            "function": "reset_debug_objectinfo",
+            "path": [
+              1,
+              1,
+              1,
+              1,
+              1,
+              0
+            ]
+          },
+          {
+            "function": "stub_debug_5",
+            "path": [
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              0
+            ]
+          },
+          {
+            "function": "get_clock_difference",
+            "path": [
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              0,
+              0,
+              1
+            ]
+          },
+          {
+            "function": "clear_dynamic_surfaces",
+            "path": [
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              0
+            ]
+          },
+          {
+            "function": "get_clock_difference",
+            "path": [
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              0,
+              0,
+              1
+            ]
+          },
+          {
+            "function": "update_terrain_objects",
+            "path": [
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              0
+            ]
+          },
+          {
+            "function": "apply_mario_platform_displacement",
+            "path": [
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              0
+            ]
+          },
+          {
+            "function": "get_clock_difference",
+            "path": [
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              0,
+              0,
+              1
+            ]
+          },
+          {
+            "function": "detect_object_collisions",
+            "path": [
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              0
+            ]
+          },
+          {
+            "function": "get_clock_difference",
+            "path": [
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              0,
+              0,
+              1
+            ]
+          },
+          {
+            "function": "update_non_terrain_objects",
+            "path": [
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              0
+            ]
+          },
+          {
+            "function": "get_clock_difference",
+            "path": [
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              0,
+              0,
+              1
+            ]
+          },
+          {
+            "function": "unload_deactivated_objects",
+            "path": [
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              0
+            ]
+          },
+          {
+            "function": "get_clock_difference",
+            "path": [
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              0,
+              0,
+              1
+            ]
+          },
+          {
+            "function": "update_mario_platform",
+            "path": [
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              0
+            ]
+          },
+          {
+            "function": "get_clock_difference",
+            "path": [
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              0,
+              0,
+              1
+            ]
+          },
+          {
+            "function": "try_print_debug_mario_object_info",
+            "path": [
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              0
+            ]
+          }
+        ],
+        "bhv_mario_update": [
+          {
+            "function": "execute_mario_action",
+            "path": [
+              1,
+              0,
+              0,
+              1
+            ]
+          },
+          {
+            "function": "copy_mario_state_to_object",
+            "path": [
+              1,
+              1,
+              1,
+              0
+            ]
+          },
+          {
+            "function": "spawn_particle",
+            "path": [
+              1,
+              1,
+              1,
+              1,
+              1,
+              0,
+              1,
+              0,
+              1,
+              1,
+              1,
+              1,
+              1
+            ]
+          }
+        ],
+        "execute_mario_action": [
+          {
+            "function": "mario_reset_bodystate",
+            "path": [
+              1,
+              0,
+              1,
+              1,
+              1,
+              1,
+              0,
+              1
+            ]
+          },
+          {
+            "function": "update_mario_inputs",
+            "path": [
+              1,
+              0,
+              1,
+              1,
+              1,
+              1,
+              1,
+              0,
+              1
+            ]
+          },
+          {
+            "function": "mario_handle_special_floors",
+            "path": [
+              1,
+              0,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              0,
+              1
+            ]
+          },
+          {
+            "function": "mario_process_interactions",
+            "path": [
+              1,
+              0,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              0,
+              1
+            ]
+          },
+          {
+            "function": "mario_execute_stationary_action",
+            "path": [
+              1,
+              0,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              0,
+              1,
+              1,
+              1,
+              1,
+              1,
+              0,
+              0,
+              1
+            ]
+          },
+          {
+            "function": "mario_execute_moving_action",
+            "path": [
+              1,
+              0,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              0,
+              1,
+              1,
+              1,
+              1,
+              2,
+              1,
+              0,
+              0,
+              1
+            ]
+          },
+          {
+            "function": "mario_execute_airborne_action",
+            "path": [
+              1,
+              0,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              0,
+              1,
+              1,
+              1,
+              1,
+              2,
+              2,
+              1,
+              0,
+              0,
+              1
+            ]
+          },
+          {
+            "function": "mario_execute_submerged_action",
+            "path": [
+              1,
+              0,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              0,
+              1,
+              1,
+              1,
+              1,
+              2,
+              2,
+              2,
+              1,
+              0,
+              0,
+              1
+            ]
+          },
+          {
+            "function": "mario_execute_cutscene_action",
+            "path": [
+              1,
+              0,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              0,
+              1,
+              1,
+              1,
+              1,
+              2,
+              2,
+              2,
+              2,
+              1,
+              0,
+              0,
+              1
+            ]
+          },
+          {
+            "function": "mario_execute_automatic_action",
+            "path": [
+              1,
+              0,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              0,
+              1,
+              1,
+              1,
+              1,
+              2,
+              2,
+              2,
+              2,
+              2,
+              1,
+              0,
+              0,
+              1
+            ]
+          },
+          {
+            "function": "mario_execute_object_action",
+            "path": [
+              1,
+              0,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              0,
+              1,
+              1,
+              1,
+              1,
+              2,
+              2,
+              2,
+              2,
+              2,
+              2,
+              1,
+              0,
+              0,
+              1
+            ]
+          },
+          {
+            "function": "sink_mario_in_quicksand",
+            "path": [
+              1,
+              0,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              0,
+              1
+            ]
+          },
+          {
+            "function": "squish_mario_model",
+            "path": [
+              1,
+              0,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              0,
+              1
+            ]
+          },
+          {
+            "function": "set_submerged_cam_preset_and_spawn_bubbles",
+            "path": [
+              1,
+              0,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              0,
+              1
+            ]
+          },
+          {
+            "function": "update_mario_health",
+            "path": [
+              1,
+              0,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              0,
+              1
+            ]
+          },
+          {
+            "function": "update_mario_info_for_cam",
+            "path": [
+              1,
+              0,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              0,
+              1
+            ]
+          },
+          {
+            "function": "mario_update_hitbox_and_cap_model",
+            "path": [
+              1,
+              0,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              0,
+              1
+            ]
+          },
+          {
+            "function": "spawn_wind_particles",
+            "path": [
+              1,
+              0,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              0,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1
+            ]
+          },
+          {
+            "function": "spawn_wind_particles",
+            "path": [
+              1,
+              0,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              0,
+              1,
+              1,
+              1,
+              1
+            ]
+          },
+          {
+            "function": "play_infinite_stairs_music",
+            "path": [
+              1,
+              0,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              0
+            ]
+          }
+        ],
+        "interact_warp": [
+          {
+            "function": "set_mario_action",
+            "path": [
+              0,
+              1,
+              1,
+              1,
+              2,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              0
+            ]
+          },
+          {
+            "function": "segmented_to_virtual",
+            "path": [
+              0,
+              1,
+              2,
+              1,
+              1,
+              1,
+              1,
+              1,
+              0,
+              0,
+              0
+            ]
+          },
+          {
+            "function": "play_sound",
+            "path": [
+              0,
+              1,
+              2,
+              1,
+              1,
+              1,
+              1,
+              1,
+              0,
+              1,
+              1
+            ]
+          },
+          {
+            "function": "mario_stop_riding_object",
+            "path": [
+              0,
+              1,
+              2,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              0
+            ]
+          },
+          {
+            "function": "set_mario_action",
+            "path": [
+              0,
+              1,
+              2,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              0
+            ]
+          }
+        ]
+      },
+      "generatedFunctions": {
+        "update_mario_platform": {
+          "file": "generated\\jp_platform_displacement.v",
+          "line": 514,
+          "sha256": "4d92580f7c69bbfe8c7fde7748f40d4edc7d14e79800b1f25550abde6de3d339"
+        },
+        "absf": {
+          "file": "generated\\jp_object_helpers.v",
+          "line": 19985,
+          "sha256": "4a6e09dbcf61e5fd928e1e5da67ff26aa176d1fc65b2e6ba19bf8a3e7600728d"
+        },
+        "copy_mario_state_to_object": {
+          "file": "generated\\jp_object_list_processor.v",
+          "line": 1041,
+          "sha256": "478933263dced132f7bc1bb6ae7a75ae5f06e580864a0de0b96716d7a41f520a"
+        },
+        "stop_and_set_height_to_floor": {
+          "file": "generated\\jp_mario_step.v",
+          "line": 1748,
+          "sha256": "dbd034e33309c64400c56bf983d4db644670526e277ac975ea01aa694a6dc634"
+        },
+        "vec3s_set": {
+          "file": "generated\\jp_math_util.v",
+          "line": 6377,
+          "sha256": "79fee970d5440acec41dfb6af9911dc4b8c1390fc3de389d689d43b6bc5a3372"
+        },
+        "vec3f_copy": {
+          "file": "generated\\jp_math_util.v",
+          "line": 6076,
+          "sha256": "144b735009e8b8fa17960d543e81130113f70613d1bdb88980de09e9758e04d5"
+        },
+        "mario_set_forward_vel": {
+          "file": "generated\\jp_mario.v",
+          "line": 2786,
+          "sha256": "fe332abc7264bdc5c31186fe785d295f2c70de3962a045a69f0bea110ba9ee42"
+        },
+        "update_mario_geometry_inputs": {
+          "file": "generated\\jp_mario.v",
+          "line": 6924,
+          "sha256": "c00da5209870fa362c6c30a975ab6be5cacf08fbc1140bdb175f068659651445"
+        },
+        "act_disappeared": {
+          "file": "generated\\jp_mario_actions_cutscene.v",
+          "line": 2601,
+          "sha256": "df7339b649991f6c40855a43fa1c7a1aa5466915d8be78a4cea613e8ec7e309f"
+        },
+        "update_objects": {
+          "file": "generated\\jp_object_list_processor.v",
+          "line": 3134,
+          "sha256": "cca89d63cbcd0fb619a4788b877bdf7d840071ff48a1c635ccd1420e3550a576"
+        },
+        "bhv_mario_update": {
+          "file": "generated\\jp_object_list_processor.v",
+          "line": 1652,
+          "sha256": "e713d2c608b8ef771436007bbda36223785accd0d7e562a508e1de614011305f"
+        },
+        "execute_mario_action": {
+          "file": "generated\\jp_mario.v",
+          "line": 9226,
+          "sha256": "2799f784d6b9ac51a016feb985e0f7413cc3f269ba8e011a38661c4c89e84211"
+        },
+        "interact_warp": {
+          "file": "generated\\jp_interaction.v",
+          "line": 5418,
+          "sha256": "6823e6211941527f0f17dda73fe8bc4f9bf066d18e31be0b55567b97452f9e78"
+        }
+      },
+      "generatedUnitHashes": {
+        "generated\\jp_object_list_processor.v": "570d7ed062b261fb59db6a851b7ac995d7c81c519b5f414f3e2bbcc2c13253e8",
+        "generated\\jp_math_util.v": "35c03102cfeffb38dcde18c03b24cb8ebc854e4f85aad001c3fa0b7f09309859",
+        "generated\\jp_object_helpers.v": "982b494d1a975d14851cbf6e6bdcea3c162764d104ecc477550f3b81fdcf917b",
+        "generated\\jp_mario.v": "6eae1a48bc0eb232f8a30a4d1089989d571418f34061f74e9a39a02d77922271",
+        "generated\\jp_mario_actions_cutscene.v": "6a8a49283200ef88bf9a1845cec0e581aee55aef63fc1a2c3cb37cb0f92f9bef",
+        "generated\\jp_mario_step.v": "6f54f2a9bbe4c39701aa39fd2350471bd52be704eda1db8f31edd7093a6a7854",
+        "generated\\jp_interaction.v": "39223e59a53a700e36c6e08f63b280889c3e25aef40dce66a063588467ae16e1",
+        "generated\\jp_platform_displacement.v": "9ecefdb3f9bf54747ee79e607bc671b94a9ee9bd9428d5014b6130a1a3116280"
+      }
+    }
+  },
+  "implementationHashes": {
+    "clight.py": "ddf8275fc32cb19067d40134a3f03f845e7a5cabfd99ee802cfce2b6b5f3a62a",
+    "engine.py": "c73a2f937d921146edbb638dfd35b9362c234e4fee0f673f2fd9b5892e235168",
+    "search.py": "32de3bee1c27a16ec016ef08f6f4d7b861d369e09c0dbd9faa8abd54d463ed8b"
+  },
+  "queryHashes": {
+    "jp-copy_mario_state_to_object-exact.smt2": "7d1c49bdca1db06c9095cf78fabc80e28f062443b1e6052510ad1cf131e17313",
+    "jp-copy_mario_state_to_object-interval.smt2": "b562f5e2d1df8c846b6748f72ce428ad29940bb58936181ad02120794594ac6b",
+    "jp-copy_mario_state_to_object-nonempty.smt2": "6297a73dc509dcfdcd1656eeb2e28f2792d3df4c0559fe7828072cee1cd95fb9",
+    "jp-distance-band-equivalence.smt2": "f994d877193058ad28754bd83bcbdc6531eb9ebc4d05f4e36cad9f951a6c3447",
+    "jp-final-above.smt2": "b1e35ac7b0b295427c552a77323706ec02f654243eb1a63f887834975a2ea545",
+    "jp-final-below.smt2": "1dac0f9d397c973779e4df2dae65fae793d8fed3d945206a03719cd1340daa85",
+    "jp-final-exact.smt2": "e8c4eb37edc49332992d87dfd3b4f57e8477949bbd8cafe2d30614475cb1fb62",
+    "jp-final-lower.smt2": "4213177c4bd7870e0ac6458cfcd954326941ee2cc91228a2c6a8b85445348974",
+    "jp-final-outside-band.smt2": "896ea7180d94d10343e5c1cc3b1f8ea3d90d27f0ebbbdfe2ea815c2fbf5640c2",
+    "jp-final-raw-768.smt2": "a0501225a57572401360ad54ddb10a4cc64336e0def25826254a2d04d04b090c",
+    "jp-final-upper.smt2": "0418b1bfe6b463d6dc2f2bc55fc30acecebcfdd238d515a1db8abce41e77105e",
+    "jp-retry-candidate.smt2": "766d09c85dcbf5f0dd90c6afb1f4a814736fc8df5b4184d95864991f7eedff4f",
+    "jp-retry-first-nonnull.smt2": "75150bbb148d40a1f7eadb1466c47a60af7257708da47f30fb3ae69e464eec48",
+    "jp-retry-low-display.smt2": "03840e7a9497665adfee3a3a9b97b57e33e7c188344e916e57be8684a2625b22",
+    "jp-retry-pre-call-low.smt2": "b808df54f3220b6a0617816c4c4807418b7f256934d8a066dddbd893db34312b",
+    "jp-snap-low-floor.smt2": "39fca7fddde6187df2631f15f42ddd9277912b1a1ea228aabb3cb19e0536588a",
+    "jp-snap-old-low.smt2": "dc2587a888f4a660420b395cd7acd09485f2d285a528ac6fb65f2f64a7d15fd8",
+    "jp-stop_and_set_height_to_floor-exact.smt2": "8b7a8466eefdc7c403615a55b36fe39d04d8cf6928da4a19745d97bdedf09134",
+    "jp-stop_and_set_height_to_floor-interval.smt2": "862c85355b41ae5c37ffff7906b48d26f9a54ced7ce4d4eac2cff05818900c89",
+    "jp-stop_and_set_height_to_floor-nonempty.smt2": "6dfd31f98dd7a45d00a60095eae21b06b9ffe93ec02648f25d1e1d6cedca7df1",
+    "us-copy_mario_state_to_object-exact.smt2": "05161bbf5f16e909b1c7d67fdd90eb91f75b3c96a6d542964398ced6aa75d1bd",
+    "us-copy_mario_state_to_object-interval.smt2": "dc52aee54d7ec3f117e772041fb6d2c3153573bc9f6b7a9fae0dbce73afdaab9",
+    "us-copy_mario_state_to_object-nonempty.smt2": "cf6bfd71df33d48b3c763265f843a43140177998b0a715592c3a5c6c248fa4c9",
+    "us-distance-band-equivalence.smt2": "2381ef10c1bfbc839b3e833b040c9ed56b4c2a6d366203edb9398f2cb2c34876",
+    "us-final-above.smt2": "9ba8c72e1d8e7e1e6877780b21a61b5b3922e70f8100689a5560a0d08ef1f18f",
+    "us-final-below.smt2": "240b09fd948df56254526d76af2922bc0c0d72588dfe3c3a5c6c16774c010acc",
+    "us-final-exact.smt2": "82d89b70e2c1266e296c4a577555d186aa89389ddea8b7193f1368d12e0df0eb",
+    "us-final-lower.smt2": "14f3f2e1cec7b1c1158a3e4e0669f2a4496dde31f3a4027e0d980fc6557c1f02",
+    "us-final-outside-band.smt2": "2b4dc96106240c8201d8039a6b7086508ae27449e4d999603d4350cc0aa6945d",
+    "us-final-raw-768.smt2": "7ae524ba9d119287493cc33f42cbee13f3da433fa18f41b8fefa6834b250952b",
+    "us-final-upper.smt2": "43be6a1934525ca7376ae5b639e77c5351f87fd438ff9b3eee828a1f3ac0589f",
+    "us-retry-candidate.smt2": "4c572cd9e8bc4b1e263e765630c4ee950c1ab6506c78f93394ce6334ffe92ed7",
+    "us-retry-first-nonnull.smt2": "0b5015a8175e66aadcfa04a3c2189d02a85f9a2430744b62d762383f2ffcba32",
+    "us-retry-low-display.smt2": "f2dd6a4d397b4bdaff26121385490787e4c02e2549eafdfe713fa8b1c821b5dc",
+    "us-retry-pre-call-low.smt2": "93b6558c5b0bad4e327f073003ec5f267ef4af2d24a99ffbcfdc70c1bd915967",
+    "us-snap-low-floor.smt2": "ddd3ddecbafb4d6f5a4431f346ccfae44deb90192d21c8455568eaf5af109ed6",
+    "us-snap-old-low.smt2": "6bb40bd66d6c6d24100133301a8247dac838ced979df13d97f277909e772985e",
+    "us-stop_and_set_height_to_floor-exact.smt2": "daf9bb579deaf891d69f33bc84a74b59233508a1200d89f89c99d2f63e88258e",
+    "us-stop_and_set_height_to_floor-interval.smt2": "a85ae88d511429b6a57dfbc840328901cb157757cf34869d9bbc0131b3af61ed",
+    "us-stop_and_set_height_to_floor-nonempty.smt2": "558d4e7d93a13662cd925e4503f02a83bb873c37a5efb706c45357b9bcb7c543"
+  }
+}

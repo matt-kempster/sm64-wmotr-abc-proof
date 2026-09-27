@@ -1,0 +1,19 @@
+digraph InkPredecessors {
+  rankdir=RL;
+  owner [label="Target: remember useful top"];
+  query [label="Final raw Y in strict 4-unit band
+Live floor result OPEN"];
+  copy [label="Actual State-to-Object copy
+Incoming State Y in same band"];
+  snap [label="Actual floor snap + display copy
+Incoming cached floorHeight in band"];
+  retry [label="Selected retry query at checked height
+Null first result + high display at copy"];
+  producer [label="Earlier walls, live floors, display producer
+Controller reachability OPEN"];
+  owner -> query;
+  query -> copy [style=dashed,label="intervening callbacks OPEN"];
+  copy -> snap [style=dashed,label="action tail and timing OPEN"];
+  snap -> retry [style=dashed,label="geometry/interactions/call effects OPEN"];
+  retry -> producer [style=dashed,label="no memory frame granted"];
+}
