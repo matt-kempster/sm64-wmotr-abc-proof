@@ -229,6 +229,7 @@ proofs/WMotRRequiresA/HeightMoveCatalog.v
 proofs/WMotRRequiresA/WMotRLevel.v
 proofs/WMotRRequiresA/HeightFrame.v
 proofs/WMotRRequiresA/YWriterCensus.v
+proofs/WMotRRequiresA/HeldObjCensus.v
 
 # --- executable Clight: interpreter (sound vs ClightBigstep), vm-computable
 #     memory ops (= Mem.*), computable linked genv (= globalenv lp), memory builder ---
