@@ -18,9 +18,16 @@ Reproduce its supplementary original source with
 `bash pipeline/generate-endpoint-clight.sh` in the established WSL toolchain.
 Then run `python instrumentation/rank1-backward-search/endpoint_update.py
 --versions jp us --timeout 600 --output NEW_DIRECTORY` from the SSL project.
-The output directory must be new. Formula construction, solving and unresolved
-calls are reported separately. Exit status 0 means every requested conditional
-query received SAT or UNSAT; it never means gameplay is proved. Exit status 2
+The output directory must be new. Run across 30 completed checkpoints with
+`--updates 30 --versions jp --timeout 480 --solver-seconds 120`; see the
+[conditional one-second run](../../docs/notes/rank1-conditional-second.md).
+One update retains the original single-iteration cut; larger horizons keep the
+original repeated game loop and stop only at the requested retention check.
+Formula construction, solving and unresolved calls are reported separately.
+The JP 30-update attempt built its formula, then timed out at the 120-second
+solver limit (417.82 seconds total); no conditional query was solved.
+Exit status 0 means every requested conditional
+query received SAT or UNSAT; it never means gameplay is proved. A nonzero status
 means a query was inconclusive or failed. `completedExhaustiveUpdates` stays zero
 until the separate coverage/model obligations have actually been discharged.
 Run the application checks with `python -m unittest discover

@@ -29,10 +29,10 @@ from candidate_policy import SEARCH_POLICY, interpret_solver_result, conditional
 class EndpointEngine(HybridHorizonEngine):
     RUNTIME_BOUNDARIES = set()
 
-    def __init__(self, version, **kwargs):
+    def __init__(self, version, updates=1, **kwargs):
         self.target_mario=z.BitVec(version+'.endpoint.mario_identity',32)
         self.target_top=z.BitVec(version+'.endpoint.top_identity',32)
-        super().__init__(version, updates=1, lazy_calls=False,
+        super().__init__(version, updates=updates, lazy_calls=False,
                          sqrtf_binding=False, fresh_call_frames=True, target_specific_query=True,
                          context_parameters=[self.target_mario,self.target_top], **kwargs)
         self.dead_calls = []
@@ -134,6 +134,22 @@ class EndpointEngine(HybridHorizonEngine):
                                                 (scope.frame_base,word(0x80000000))),
                                  entry,'SSL-Area-1-entry-domain')
 
+    def start_window(self, fn, loop, target, entry):
+        """Keep the original loop between N completed retention checks."""
+        self.target, self.stop_post = target, z.BoolVal(True)
+        scope = Scope(self, fn)
+        self.prepare_frame(scope)
+        self.dispatch_entry = (scope, entry, loop)
+        try:
+            paths = self.wp(loop, [Path(z.BoolVal(False))], scope,
+                            [Path(z.BoolVal(False))], path='original-game-loop')
+        finally:
+            self.dispatch_entry = None
+        self.compile_pending()
+        return scope, self.guard(self.substitute(paths,
+            (self.remaining, z.IntVal(self.updates)),
+            (scope.frame_base, word(0x80000000))), entry, 'SSL-Area-1-window-entry')
+
 
 def syntactically_false(expression):
     if z.is_false(expression):return True
@@ -164,20 +180,21 @@ def archive_definitions(engine, output, goal):
     return digest.hexdigest()
 
 
-def worker(version, output, solver_seconds, archive=False):
+def worker(version, output, solver_seconds, archive=False, updates=1):
     began=time.perf_counter()
     stack_log=output.with_suffix('.stack.log').open('w')
     faulthandler.enable(file=stack_log)
     z.set_param('memory_max_size', 6144)
-    e=EndpointEngine(version,runtime_audio=True,program_dispatch=True,live_dispatch=True,
+    e=EndpointEngine(version,updates=updates,runtime_audio=True,program_dispatch=True,live_dispatch=True,
         supplemental=ROOT/'build/rank1-backward-search/supplemental-generated',max_visits=250000)
-    report=dict(version=version,requestedUpdates=1,completedExhaustiveUpdates=0,
+    report=dict(version=version,requestedUpdates=updates,nominalGameSeconds=updates/30,completedExhaustiveUpdates=0,
         searchPolicy=SEARCH_POLICY,conditionalQueryCompleted=False,
         controllerTrials=0,suppliedGap=False,suppliedScene=False,recordedPrefix=False,
         start='Beginning of one original thread5_game_loop iteration; SSL Area 1, otherwise symbolic memory and retained thread locals.',
         stop='After the original update_objects -> update_mario_platform call at checked X/Z and height; both platform pointers name the designated pyramid-top Object.',
         domain='Exploratory flat-memory source model. No initialized-script or live-list invariant supplied; defined storage/provenance and runtime correspondence remain outside this interpreter.',
-        semantics='Continue/end without this checkpoint is failure for this iteration. No next iteration or later checkpoint is substituted.')
+        semantics=('Continue/end without this checkpoint is failure for this iteration. No next iteration or later checkpoint is substituted.' if updates==1 else
+                   'Original game loop retained; stop at the requested completed retention check. Earlier checks need not retain the top; skipped/paused iterations remain in the loop. Nominal seconds count gameplay checkpoints, not input polls or wall time.'))
     report.update(checkpointGraph=e.checkpoint_graph.receipt(),
         sourceUnits={str(u.path.relative_to(ROOT)):u.digest for u in e.units.values()},
         implementationHashes={n:hashlib.sha256(FilePath(__file__).with_name(n).read_bytes()).hexdigest()
@@ -210,7 +227,8 @@ def worker(version, output, solver_seconds, archive=False):
         target=e.retention_target()
         entry=z.And(read(MEM,word(e.global_address('_gCurrLevelNum')),2)==z.BitVecVal(8,16),
                     read(MEM,word(e.global_address('_gCurrAreaIndex')),2)==z.BitVecVal(1,16))
-        _,paths=e.start_iteration(fn,loop,target,entry)
+        _,paths=(e.start_iteration(fn,loop,target,entry) if updates==1 else
+                 e.start_window(fn,loop,target,entry))
         report['formulaBuilt']=True
         capture()
         report.update(status='formula-built-awaiting-solver',seconds=time.perf_counter()-began)
@@ -243,6 +261,8 @@ def worker(version, output, solver_seconds, archive=False):
 def main():
     p=argparse.ArgumentParser(description=__doc__)
     p.add_argument('--output',type=FilePath,required=True)
+    p.add_argument('--updates',type=int,default=1,
+                   help='1: original single iteration; >1: original loop through N completed checkpoints.')
     p.add_argument('--versions',nargs='+',choices=('us','jp'),default=['us','jp'])
     p.add_argument('--worker',choices=('us','jp'))
     p.add_argument('--timeout',type=float,default=180)
@@ -250,25 +270,27 @@ def main():
     p.add_argument('--archive-definitions',action='store_true',
                    help='After solving, also export exact AST text; may be very large/slow.')
     a=p.parse_args()
+    if a.updates<1 or a.timeout<=0 or a.solver_seconds<=0:
+        p.error('Update count and time limits must be positive')
     if a.worker:
         # Formula traversal in native Z3 also uses this stack. Use a bounded
         # explicit stack instead of Windows' small default main-thread stack.
         threading.stack_size(64*1024*1024)
         errors=[]
         def run_worker():
-            try:worker(a.worker,a.output,a.solver_seconds,a.archive_definitions)
+            try:worker(a.worker,a.output,a.solver_seconds,a.archive_definitions,a.updates)
             except BaseException as exc:errors.append(exc)
         thread=threading.Thread(target=run_worker)
         thread.start();thread.join()
         if errors:raise errors[0]
         return
     a.output.mkdir(parents=True,exist_ok=False)
-    report=dict(requestedUpdates=1,completedExhaustiveUpdates=0,controllerTrials=0,
+    report=dict(requestedUpdates=a.updates,nominalGameSeconds=a.updates/30,completedExhaustiveUpdates=0,controllerTrials=0,
                 searchPolicy=SEARCH_POLICY,runs={})
     for version in a.versions:
         output=a.output/(version+'.json')
         cmd=[sys.executable,'-X','utf8',__file__,'--worker',version,'--output',str(output),
-             '--solver-seconds',str(a.solver_seconds)]
+             '--solver-seconds',str(a.solver_seconds),'--updates',str(a.updates)]
         if a.archive_definitions:cmd.append('--archive-definitions')
         try:
             run=subprocess.run(cmd,capture_output=True,text=True,encoding='utf-8',timeout=a.timeout)

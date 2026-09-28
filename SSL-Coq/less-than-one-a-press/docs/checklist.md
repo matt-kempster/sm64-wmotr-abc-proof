@@ -1,5 +1,11 @@
 # Verification checklist
 
+Latest run: the [conditional one-second JP attempt](notes/rank1-conditional-second.md) built the actual repeated-loop formula for 30 completed retention checks. Construction took 297.12 seconds; the solver returned unknown at its 120-second limit, for 417.82 seconds total. Its 3,335 source bodies and 472 unanswered call sites are application counts, not gameplay histories. No supplied gap, scene, prefix or forward trial was used. This attempt produced no candidate or exclusion and does not price longer exhaustive searches. US was not rerun; Coq and route verdicts remain unchanged.
+
+- [x] Add the 30-update option to the repaired endpoint-first runner and run the JP query with accepted conditional effects/state validity. Four targeted controls pass; the synthetic stopping check gives SAT and UNSAT as expected. Neither control is SM64 gameplay evidence.
+- [ ] Solve the conditional 30-update predecessor query. This attempt timed out; unknown was the actual solver answer, not a replacement for conditional UNSAT. A later UNSAT answer can exclude its encoded case, subject to the stated conditions and coverage needed for the claimed gameplay conclusion.
+- [ ] Diagnose complete-update solver cost before expanding the horizon again. The 120-second timeout is a configured application limit, not a game obstruction; no solver profile identifies the dominant bottleneck. Increasing the limit alone is not an established repair.
+
 Current decision: use [conditional candidate search](notes/rank1-endpoint-update.md#accepted-policy-search-conditionally-validate-candidates-afterward). The user accepts unanswered call effects and state validity as conditions to check on proposed candidates; they need not be proved globally before searching. A solver match stays unvalidated until its effects, earlier state, concrete trace and allowed controller history are checked. UNSAT is limited to the encoded query, and unknown remains inconclusive. The previous US/JP timeouts remain unchanged; this decision adds no gameplay witness or exclusion.
 
 - [x] Distinguish conditional candidates, conditional model exclusions and inconclusive solver answers; keep missing effects and state validity visible. All 79 application tests pass, including three new reporting controls; none is a new gameplay trial or Coq theorem.

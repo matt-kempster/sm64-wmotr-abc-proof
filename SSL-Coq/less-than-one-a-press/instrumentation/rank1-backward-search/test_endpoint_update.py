@@ -1,7 +1,7 @@
 """Coverage controls. Synthetic harnesses are never gameplay witnesses."""
 from dataclasses import replace
 import unittest
-from clight import ROOT, Term, parse, walk, is_variadic
+from clight import ROOT, Term, parse, walk, is_variadic, seq
 from engine import MEM, Path, Scope, read, word, z
 from hybrid_engine import HybridHorizonEngine
 from horizon_engine import HorizonEngine
@@ -12,6 +12,23 @@ from global_storage import GlobalStorage, storage_type
 
 
 class EndpointTests(unittest.TestCase):
+    def test_window_stops_at_thirtieth_check_and_keeps_earlier_effects(self):
+        # Synthetic counter harness, not thirty SM64 gameplay updates.
+        for expected,answer in ((320,'sat'),(330,'unsat')):
+            e=HybridHorizonEngine('jp',updates=30,program_dispatch=False,live_dispatch=False,
+                fresh_call_frames=True,checkpoint=('test_window','get_current_clock'),
+                loop_fuel=30,call_fuel=0)
+            fn=e.function('debug','get_current_clock')
+            call=parse('(Scall None (Evar _get_current_clock (Tfunction nil tulong cc_default)) nil)')
+            def add(n):
+                return parse(f'(Sassign (Evar _window_counter tint) (Ebinop Oadd (Evar _window_counter tint) (Econst_int (Int.repr {n}) tint) tint))')
+            loop=Term('Swhile',(parse('(Econst_int (Int.repr 1) tint)'),seq([add(1),call,add(10)])))
+            harness=replace(fn,name='test_window',body=loop,temps={},params={},locals={})
+            address=e.global_address('_window_counter')
+            _,paths=EndpointEngine.start_window(e,harness,loop,
+                read(MEM,word(address))==word(expected),read(MEM,word(address))==word(0))
+            self.assertEqual(e.solve(paths[0].condition)[0],answer)
+
     def test_definition_archive_keeps_exact_named_bodies(self):
         import hashlib,json,tempfile
         from pathlib import Path as FilePath
