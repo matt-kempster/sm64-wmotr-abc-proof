@@ -157,6 +157,31 @@ footer{margin-top:64px; padding-top:16px; border-top:1px solid var(--rule); font
   .catch{grid-template-columns:1fr; gap:4px;}
   .part-body dl{grid-template-columns:1fr;}
 }
+/* the writer sorter */
+.sorter{display:grid; grid-template-columns:repeat(5,minmax(0,1fr)); gap:10px;}
+.bin{background:var(--paper); border:1px solid var(--rule); border-radius:12px; padding:12px; display:grid; gap:8px; align-content:start;}
+.bin-head{display:flex; justify-content:space-between; align-items:baseline; gap:8px;}
+.bin-head h3{font-size:1rem;}
+.bin-n{font-family:var(--display); font-weight:800; font-size:1.6rem; line-height:1; font-variant-numeric:tabular-nums;}
+.bin p{font-size:.86rem; color:var(--muted);}
+.chips{display:flex; flex-wrap:wrap; gap:5px;}
+.chip{font-family:var(--mono); font-size:.68rem; min-width:1.9rem; text-align:center; padding:.18em .35em; border-radius:6px;
+  border:1px solid transparent; cursor:pointer; background:var(--faint); color:var(--ink);}
+.chip:hover,.chip[aria-pressed="true"]{border-color:var(--accent);}
+.b-climb{border-top:3px solid var(--open);}
+.b-snap{border-top:3px solid var(--proved);}
+.b-gated{border-top:3px solid var(--trusted);}
+.b-absent{border-top:3px solid var(--rule);}
+.b-other{border-top:3px solid var(--spec);}
+.site{background:var(--paper); border:1px dashed var(--rule); border-radius:10px; padding:10px 14px; font-size:.9rem; min-height:3.2em;}
+.site .mono{color:var(--muted);}
+.ledger{display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:10px;}
+.ledger div{display:grid; gap:6px; align-content:start; padding:14px 16px; border-left:3px solid var(--accent); background:var(--paper); border-radius:0 12px 12px 0;}
+.ledger h3{font-size:1rem;}
+.ledger p{font-size:.92rem;}
+@media (max-width:980px){ .sorter{grid-template-columns:repeat(2,minmax(0,1fr));} }
+@media (max-width:860px){ .ledger{grid-template-columns:1fr;} }
+@media (max-width:520px){ .sorter{grid-template-columns:1fr;} }
 @media (prefers-reduced-motion: reduce){ #bounce{display:none;} }
 </style>
 
@@ -171,8 +196,8 @@ footer{margin-top:64px; padding-top:16px; border-top:1px solid var(--rule); font
     <ol class="argument">
       <li><span><b>The highest floor you can stand on is 2424.</b> It’s the top of the wing-cap box at y = 2320 (the box is
         scaled ×2, so its top sits 104 up).</span></li>
-      <li><span><b>No move without A gains more than 372.</b> The biggest is the slide-kick bounce, whose peak is 370.6 plus float
-        rounding.</span></li>
+      <li><span><b>No move without A gains more than 372.</b> We know because we found every line of code that writes Mario’s y
+        (<a href="#crawl">the crawl, below</a>). The biggest gain is the slide-kick bounce: 370.6, plus float rounding.</span></li>
       <li><span><b>So Mario never gets above 2796,</b> and there is no floor between 2424 and 3046 to climb onto next.</span></li>
       <li><span><b>Coin #2 needs 2980.</b> It floats at 3140, and Mario’s body is 160 tall. That leaves 184 units to spare.</span></li>
     </ol>
@@ -185,6 +210,33 @@ footer{margin-top:64px; padding-top:16px; border-top:1px solid var(--rule); font
       the clightgen’d level data in <code>WMotRLevel.v</code>.</figcaption>
   </figure>
 </header>
+
+<section id="crawl">
+  <div class="section-head">
+    <span class="eyebrow">How we can bound the height at all</span>
+    <h2>Mario’s y only changes where the code writes it. So we found every write.</h2>
+    <p>Mario’s height is one float in memory, <code>MarioState.pos[1]</code> at byte offset 64. Nothing moves him up or down unless
+      some line of C stores a new value there. So instead of reasoning about gameplay, we crawled the generated code for
+      <b>every store that can reach that float</b>, either as a direct field store or through a whole-vector copy like
+      <code>vec3f_copy(m-&gt;pos, …)</code>. There are 40 across the twelve Mario files. Each one is sorted into a bin. Tap a site to see it.</p>
+  </div>
+
+  <div class="sorter" id="sorter"></div>
+  <div class="site" id="site" aria-live="polite">Tap a numbered site to see where it is and what it writes.</div>
+
+  <div class="ledger">
+    <div><h3>Climbing is bookkept, not guessed</h3><p>Only the <b>climb</b> bin raises y freely, and it is really one operation:
+      <code>y += vel / 4</code>, four times a frame, while gravity pulls vel down. So the budget counts height <i>plus</i> the rise the
+      current speed can still buy. A step spends that credit to gain height and never creates any. The same crawl over <code>vel[1]</code> shows
+      that without A, no launch sets more than 52 upward speed (a slide kick at most 30), so the credit starts small.</p></div>
+    <div><h3>Snaps land on real floors</h3><p>Every <b>snap</b> writes a floor, ledge or pole height taken from the level. The level data
+      proves no floor exists between 2424 and 3046, and a snap only reaches a floor within 239 of where Mario already is. So no snap
+      carries him across the gap.</p></div>
+    <div><h3>What the proof still has to show</h3><p>The census is a scan of the generated code, written up in
+      <code>docs/goal2-posy-writer-census.md</code>. Coq doesn’t check it yet. Making it formal is the open part
+      <code>Hframe_is_move_chain</code>: walk the real code and show each write is the move its bin says. That walk is the next step.</p></div>
+  </div>
+</section>
 
 <section id="machine">
   <div class="section-head">
@@ -250,7 +302,7 @@ footer{margin-top:64px; padding-top:16px; border-top:1px solid var(--rule); font
             <summary><span class="part-title"><span class="name">The frame is a chain of known moves</span><span class="coq">Hframe_is_move_chain</span></span><span class="lamp l-open">open · next</span></summary>
             <div class="part-body"><dl>
               <dt>Says</dt><dd>Whatever the real code does to Mario’s height, speed and action is a sequence of moves from the catalog, each staying in range. It includes the claim that the floor heights the game finds come from this level’s surfaces.</dd>
-              <dt>Discharge</dt><dd>Walk the generated C value by value, starting at <code>perform_air_step</code>. This is the main remaining work.</dd>
+              <dt>Discharge</dt><dd>This is the <a href="#crawl">writer crawl</a> made formal: walk the generated C value by value and show each of the 40 writes is the move its bin says, starting at <code>perform_air_step</code>. This is the main remaining work.</dd>
               <dt>Fails if</dt><dd>An unmodelled move fires: hanging (needs A), water, wind, shells, or objects that grab or throw. WMotR has none of these.</dd>
             </dl></div>
           </details>
@@ -462,6 +514,78 @@ footer{margin-top:64px; padding-top:16px; border-top:1px solid var(--rule); font
       const t = p < .8 ? p/.8 : 1 - (p-.8)/.2; const [x,y] = pos(t);
       b.setAttribute('cx', x); b.setAttribute('cy', y); requestAnimationFrame(tick); };
     requestAnimationFrame(tick);
+  }
+
+  // ---------- the pos[1] writer sorter (docs/goal2-posy-writer-census.md, goal2-writers-vs-moves.md) ----------
+  const W1 = [
+    [1,'mario.c','update_mario_pos_for_anim','y + anim offset','absent','only door and star cutscenes call it'],
+    [2,'mario.c','set_water_plunge_action','waterLevel − 100','absent','needs water'],
+    [3,'mario_step.c','stop_and_set_height_to_floor','floorHeight','snap',''],
+    [4,'mario_step.c','stationary_ground_step','floorHeight','snap',''],
+    [5,'mario_step.c','perform_air_quarter_step','clamped nextPos','climb','the air step, clamped by floor or ceiling'],
+    [6,'mario_step.c','perform_air_quarter_step','nextPos = y + vel/4','climb','the air step'],
+    [7,'mario_step.c','perform_air_quarter_step','floorHeight','snap','landing'],
+    [8,'mario_actions_airborne.c','act_ground_pound','y + yOffset','climb','ground-pound windup rise, about 110 in total'],
+    [9,'mario_actions_airborne.c','act_riding_hoot','hootY − 92.5','absent','needs Hoot'],
+    [10,'mario_actions_moving.c','align_with_floor','floorHeight','snap',''],
+    [11,'mario_actions_stationary.c','act_shockwave_bounce','bounce curve','absent','needs a Bowser shockwave'],
+    [12,'mario_actions_stationary.c','act_shockwave_bounce','bounce curve','absent','needs a Bowser shockwave'],
+    [13,'mario_actions_submerged.c','act_caught_in_whirlpool','whirlpool y','absent','needs a whirlpool'],
+    [14,'mario_actions_submerged.c','check_common_submerged_cancels','waterLevel − 80','absent','needs water'],
+    [15,'mario_actions_cutscene.c','end_peach_cutscene_run_to_peach','cutscene target','absent','ending cutscene'],
+    [16,'mario_actions_automatic.c','set_pole_position','pole.y + climb height','snap','pole climb, capped at the pole top'],
+    [17,'mario_actions_automatic.c','set_pole_position','ceilHeight − 160','snap','pole ceiling clamp'],
+    [18,'mario_actions_automatic.c','set_pole_position','floorHeight','snap','pole floor clamp'],
+    [19,'mario_actions_automatic.c','update_hang_stationary','ceilHeight − 160','gated','hanging lets go unless A is held'],
+    [20,'mario_actions_automatic.c','let_go_of_ledge','ledgeY − 100','snap','drops below the ledge'],
+    [21,'mario_actions_automatic.c','let_go_of_ledge','floorHeight','snap',''],
+    [22,'mario_actions_automatic.c','act_in_cannon','cannonY + 350','gated','the cannon fires on A'],
+    [23,'interaction.c','bounce_off_object','y + offset','absent','needs a bounceable object'],
+    [24,'level_update.c','check_instant_warp','y + warp offset','other','level phase (station 4)'],
+    [25,'mario.c','update_mario_geometry_inputs','last frame’s display position','other','out-of-bounds recovery, covered by its own move'],
+    [26,'mario.c','init_mario','spawn position','other','level load, the starting state'],
+    [27,'mario_step.c','perform_ground_quarter_step','nextPos on the ground','snap','ground step, follows the floor'],
+    [28,'mario_step.c','perform_ground_quarter_step','(x, floorHeight, z)','snap',''],
+    [29,'mario_step.c','check_ledge_grab','ledge floor height','snap','a floor at most 239 up'],
+    [30,'mario_step.c','perform_air_quarter_step','copy of nextPos','climb','the air step'],
+    [31,'mario_step.c','perform_air_quarter_step','copy of nextPos','climb','the air step'],
+    [32,'mario_actions_submerged.c','perform_water_full_step','swim step','absent','needs water'],
+    [33,'mario_actions_submerged.c','perform_water_full_step','water surface','absent','needs water'],
+    [34,'mario_actions_submerged.c','perform_water_full_step','water floor','absent','needs water'],
+    [35,'mario_actions_cutscene.c','act_debug_free_move','free-move target','absent','debug action'],
+    [36,'mario_actions_cutscene.c','jumbo_star_cutscene_taking_off','cutscene path','absent','Grand Star cutscene'],
+    [37,'mario_actions_cutscene.c','jumbo_star_cutscene_flying','cutscene path','absent','Grand Star cutscene'],
+    [38,'mario_actions_automatic.c','perform_hanging_step','hang position','gated','hanging lets go unless A is held'],
+    [39,'mario_actions_automatic.c','act_grabbed','held position','absent','needs an enemy that grabs'],
+    [40,'mario_actions_automatic.c','act_tornado_twirling','tornado path','absent','needs a Tweester'],
+  ];
+  const BINS = [
+    ['climb','b-climb','Climb','Adds to y: the quarter air step, and the ground-pound windup.'],
+    ['snap','b-snap','Snap','Sets y to a floor, ledge or pole height from the level.'],
+    ['gated','b-gated','Needs A','Hanging and the cannon. Unreachable without A.'],
+    ['absent','b-absent','Not in WMotR','Water, Hoot, cutscenes, grabbers, debug.'],
+    ['other','b-other','Other stations','Warps, spawn and out-of-bounds recovery, outside Mario’s action.'],
+  ];
+  const sorter = document.getElementById('sorter'), siteBox = document.getElementById('site');
+  let pressed = null;
+  const show = (b, w) => {
+    if (pressed) pressed.setAttribute('aria-pressed','false');
+    b.setAttribute('aria-pressed','true'); pressed = b;
+    siteBox.innerHTML = `<b>Site ${w[0]} · <code>${w[2]}</code></b> <span class="mono">(${w[1]})</span><br>writes y := ${w[3]}${w[5] ? '. ' + w[5].charAt(0).toUpperCase() + w[5].slice(1) : ''}.`;
+  };
+  for (const [key, cls, name, blurb] of BINS) {
+    const items = W1.filter(w => w[4] === key);
+    const bin = document.createElement('div'); bin.className = 'bin ' + cls;
+    bin.innerHTML = `<div class="bin-head"><h3>${name}</h3><span class="bin-n">${items.length}</span></div><p>${blurb}</p><div class="chips"></div>`;
+    const chips = bin.querySelector('.chips');
+    for (const w of items) {
+      const b = document.createElement('button'); b.type = 'button'; b.className = 'chip'; b.textContent = w[0];
+      b.setAttribute('aria-pressed','false'); b.setAttribute('aria-label', `Site ${w[0]}: ${w[2]}`);
+      b.addEventListener('click', () => show(b, w));
+      chips.appendChild(b);
+      if (w[0] === 6) show(b, w);   // resting state: the defining climb site
+    }
+    sorter.appendChild(bin);
   }
 
   // ---------- scoreboard ----------
