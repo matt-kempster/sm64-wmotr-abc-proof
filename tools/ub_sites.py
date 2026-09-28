@@ -24,16 +24,17 @@ COMMON = ["-nostdinc", f"-I{SM64}/include", f"-I{SM64}/build/us", f"-I{SM64}/bui
           "-DTARGET_N64=1", "-D_LANGUAGE_C=1"]
 PROOF = ["-DNON_MATCHING=1", "-DAVOID_UB=1"]
 SHIM = ["-include", "pipeline/proof_n64.h"]
-NO_SHIM = {"shadow"}   # mirrors the Makefile (SM64_CG vs SM64_CGP)
+NO_SHIM = {"shadow", "behavior_data"}   # mirrors the Makefile (SM64_CG vs SM64_CGP)
 ROM = ["-D__sgi=1"]   # IDO predefines __sgi (macros.h: matching build, GLOBAL_ASM live)
 TUS = ("mario mario_actions_airborne mario_actions_moving mario_actions_stationary "
        "mario_actions_submerged mario_actions_cutscene mario_actions_automatic "
        "mario_actions_object interaction behavior_actions level_update mario_step "
-       "mario_misc math_util surface_collision shadow").split()   # every generated SM64 TU
+       "mario_misc math_util surface_collision shadow object_helpers obj_behaviors "
+       "obj_behaviors_2 spawn_object object_list_processor behavior_data").split()   # every generated SM64 TU
 
 
 def src_of(tu):
-    for d in ("src/game", "src/engine"):
+    for d in ("src/game", "src/engine", "data"):
         p = f"{SM64}/{d}/{tu}.c"
         if os.path.exists(os.path.join(ROOT, p)):
             return p

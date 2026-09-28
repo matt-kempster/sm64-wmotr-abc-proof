@@ -25,6 +25,12 @@ generated/surface_collision.v
 generated/wmotr_level_data.v
 generated/wmotr_script.v
 generated/macro_special_objects.v
+generated/behavior_data.v
+generated/object_helpers.v
+generated/obj_behaviors.v
+generated/obj_behaviors_2.v
+generated/spawn_object.v
+generated/object_list_processor.v
 
 # --- shared infrastructure (used by GOAL 1; reusable) ---
 proofs/Generic/Frame.v
@@ -230,6 +236,7 @@ proofs/WMotRRequiresA/WMotRLevel.v
 proofs/WMotRRequiresA/HeightFrame.v
 proofs/WMotRRequiresA/YWriterCensus.v
 proofs/WMotRRequiresA/HeldObjCensus.v
+proofs/WMotRRequiresA/BehaviorScripts.v
 
 # --- executable Clight: interpreter (sound vs ClightBigstep), vm-computable
 #     memory ops (= Mem.*), computable linked genv (= globalenv lp), memory builder ---

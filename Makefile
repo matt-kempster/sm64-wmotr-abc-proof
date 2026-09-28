@@ -37,7 +37,9 @@ GENERATED := generated/toy.v generated/shadow.v \
   generated/mario_step.v generated/mario_misc.v \
   generated/math_util.v generated/surface_collision.v \
   generated/wmotr_level_data.v generated/wmotr_script.v \
-  generated/macro_special_objects.v
+  generated/macro_special_objects.v generated/behavior_data.v \
+  generated/object_helpers.v generated/obj_behaviors.v generated/obj_behaviors_2.v \
+  generated/spawn_object.v generated/object_list_processor.v
 
 .PHONY: all generated proofs regen clean oracle-extract
 
@@ -150,3 +152,28 @@ regen:
 clean:
 	-$(MAKE) -f $(COQMAKEFILE) clean 2>/dev/null || true
 	rm -f $(COQMAKEFILE) $(COQMAKEFILE).conf .*.aux
+
+# Every behavior script (data/behavior_data.c) as data: the object census of
+# GOAL 2 (which behaviors WMotR spawns, their interaction types, which load
+# collision) is decoded from it (WMotRRequiresA/BehaviorScripts.v).
+generated/behavior_data.v: $(SM64)/data/behavior_data.c pipeline/clightgen.sh
+	$(CLIGHTGEN) $< $@ $(SM64_CG)
+
+# The object layer around the behaviors (GOAL 2 object census: what WMotR's
+# objects can spawn, BehaviorScripts.v).  object_helpers.c has a `1.0l`
+# literal in a debug function; -flongdouble maps long double to double, as
+# IDO's o32 ABI does (TRUST.md 2).
+generated/object_helpers.v: $(SM64)/src/game/object_helpers.c pipeline/clightgen.sh pipeline/proof_n64.h
+	$(CLIGHTGEN) $< $@ -flongdouble $(SM64_CGP)
+
+generated/obj_behaviors.v: $(SM64)/src/game/obj_behaviors.c pipeline/clightgen.sh pipeline/proof_n64.h
+	$(CLIGHTGEN) $< $@ $(SM64_CGP)
+
+generated/obj_behaviors_2.v: $(SM64)/src/game/obj_behaviors_2.c pipeline/clightgen.sh pipeline/proof_n64.h
+	$(CLIGHTGEN) $< $@ $(SM64_CGP)
+
+generated/spawn_object.v: $(SM64)/src/game/spawn_object.c pipeline/clightgen.sh pipeline/proof_n64.h
+	$(CLIGHTGEN) $< $@ $(SM64_CGP)
+
+generated/object_list_processor.v: $(SM64)/src/game/object_list_processor.c pipeline/clightgen.sh pipeline/proof_n64.h
+	$(CLIGHTGEN) $< $@ $(SM64_CGP)
