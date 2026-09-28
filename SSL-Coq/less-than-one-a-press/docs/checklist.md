@@ -1,5 +1,10 @@
 # Verification checklist
 
+The [profiled one-update repair](notes/rank1-profiled-single.md) did not establish tractability. Both construction attempts hit their 900-second worker limit before calling the solver. The corrected pass last reported 3,173 source bodies and 87,792 statements; completed local rewrites reduced their summed node visits from 1,163,546 to 881,024 but consumed 256.15 seconds themselves. Eight targeted controls pass. Rewriting preserves the encoded alternatives, with unchanged-expression fallbacks, but overall construction regressed; it is now explicitly opt-in. Zero gameplay-model solver queries were issued, no candidate or exclusion was obtained, and no estimate or proof verdict changes.
+
+- [x] Preserve the failed preprocessing evidence and make the expensive simplification opt-in.
+- [ ] Obtain the requested solved one-update query. Both preprocessing attempts stopped before the solver.
+
 Latest run: the [conditional one-second JP attempt](notes/rank1-conditional-second.md) built the actual repeated-loop formula for 30 completed retention checks. Construction took 297.12 seconds; the solver returned unknown at its 120-second limit, for 417.82 seconds total. Its 3,335 source bodies and 472 unanswered call sites are application counts, not gameplay histories. No supplied gap, scene, prefix or forward trial was used. This attempt produced no candidate or exclusion and does not price longer exhaustive searches. US was not rerun; Coq and route verdicts remain unchanged.
 
 - [x] Add the 30-update option to the repaired endpoint-first runner and run the JP query with accepted conditional effects/state validity. Four targeted controls pass; the synthetic stopping check gives SAT and UNSAT as expected. Neither control is SM64 gameplay evidence.

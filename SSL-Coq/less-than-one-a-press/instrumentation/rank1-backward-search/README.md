@@ -1,5 +1,14 @@
 # Rank 1: bounded backward predecessor search
 
+The [profiled single-update pass](../../docs/notes/rank1-profiled-single.md)
+adds exact local simplification before naming continuations, a construction
+profile and solver statistics. Recursive applications are temporarily renamed
+and restored so simplification cannot unfold the whole game. No callback,
+input or loop-fuel restriction is added. Eight targeted controls pass. Large
+formulas or exhausted rewrite budgets retain the unchanged expression. Both
+construction attempts timed out before the solver; enable this expensive
+experimental mode only with `--simplify-continuations`. It is off by default.
+
 **Endpoint-first runner:** `endpoint_update.py` constructs a predecessor formula from
 the chosen retention event back to the beginning of one original game-loop
 iteration. It uses symbolic earlier memory and object identities, not a saved

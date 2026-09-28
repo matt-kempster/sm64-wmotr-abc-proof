@@ -24,12 +24,14 @@ from search_updates import game_loop
 from loop_engine import get_vars
 from global_storage import GlobalStorage
 from candidate_policy import SEARCH_POLICY, interpret_solver_result, conditional_exit_code
+from formula_profile import ExactLocalSimplifier
 
 
 class EndpointEngine(HybridHorizonEngine):
     RUNTIME_BOUNDARIES = set()
 
-    def __init__(self, version, updates=1, **kwargs):
+    def __init__(self, version, updates=1, simplify_continuations=False, **kwargs):
+        self.simplify_continuations = simplify_continuations
         self.target_mario=z.BitVec(version+'.endpoint.mario_identity',32)
         self.target_top=z.BitVec(version+'.endpoint.top_identity',32)
         super().__init__(version, updates=updates, lazy_calls=False,
@@ -38,6 +40,8 @@ class EndpointEngine(HybridHorizonEngine):
         self.dead_calls = []
         self.shared_continuations = []
         self.share_counts = {}
+        self.local_simplifier = ExactLocalSimplifier()
+        self.body_profile = []
         self.checkpoint_graph = CheckpointGraph(self, self.checkpoint)
         self.global_storage=GlobalStorage(self.units.values())
 
@@ -54,6 +58,7 @@ class EndpointEngine(HybridHorizonEngine):
             read(MEM,word(self.global_address('_gCurrAreaIndex')),2)==z.BitVecVal(1,16))
 
     def wp(self, st, normal, scope, returned=None, broken=None, path='body'):
+        began=time.perf_counter() if st is scope.function.body and path=='body' else None
         result = super().wp(st, normal, scope, returned, broken, path)
         self.share_counts[scope.name] = self.share_counts.get(scope.name,0)+1
         # Every memory write gets an exact name: repeated writes through a
@@ -61,7 +66,9 @@ class EndpointEngine(HybridHorizonEngine):
         # later addresses (especially generated display-list macros).
         if st.tag=='Sassign' or (self.share_counts[scope.name] >= 32 and st.tag in ('Ssequence', 'Scall', 'Sswitch', 'Sloop', 'Swhile', 'Sfor', 'Sdowhile')):
             self.share_counts[scope.name] = 0
-            return self.share_continuation(result, scope, path)
+            result = self.share_continuation(result, scope, path)
+        if began is not None:
+            self.body_profile.append(dict(function=scope.function.name,seconds=time.perf_counter()-began))
         return result
 
     def share_continuation(self, paths, scope, path):
@@ -72,8 +79,10 @@ class EndpointEngine(HybridHorizonEngine):
         free constants, including memory and the checkpoint observer.
         """
         expression = paths[0].condition
+        if self.simplify_continuations:
+            expression = self.local_simplifier.rewrite(expression, scope.function.name+':'+path)
         if syntactically_false(expression) or z.is_true(expression):
-            return paths
+            return [Path(expression, decisions=paths[0].decisions, calls=paths[0].calls)]
         variables = get_vars(expression)
         name = scope.name+'.continuation.'+str(len(self.shared_continuations))
         relation = z.RecFunction(name, *[v.sort() for v in variables], z.BoolSort())
@@ -180,14 +189,14 @@ def archive_definitions(engine, output, goal):
     return digest.hexdigest()
 
 
-def worker(version, output, solver_seconds, archive=False, updates=1):
+def worker(version, output, solver_seconds, archive=False, updates=1, simplify=False):
     began=time.perf_counter()
     stack_log=output.with_suffix('.stack.log').open('w')
     faulthandler.enable(file=stack_log)
     z.set_param('memory_max_size', 6144)
-    e=EndpointEngine(version,updates=updates,runtime_audio=True,program_dispatch=True,live_dispatch=True,
+    e=EndpointEngine(version,updates=updates,simplify_continuations=simplify,runtime_audio=True,program_dispatch=True,live_dispatch=True,
         supplemental=ROOT/'build/rank1-backward-search/supplemental-generated',max_visits=250000)
-    report=dict(version=version,requestedUpdates=updates,nominalGameSeconds=updates/30,completedExhaustiveUpdates=0,
+    report=dict(version=version,simplifyContinuations=simplify,requestedUpdates=updates,nominalGameSeconds=updates/30,completedExhaustiveUpdates=0,
         searchPolicy=SEARCH_POLICY,conditionalQueryCompleted=False,
         controllerTrials=0,suppliedGap=False,suppliedScene=False,recordedPrefix=False,
         start='Beginning of one original thread5_game_loop iteration; SSL Area 1, otherwise symbolic memory and retained thread locals.',
@@ -200,7 +209,7 @@ def worker(version, output, solver_seconds, archive=False, updates=1):
         implementationHashes={n:hashlib.sha256(FilePath(__file__).with_name(n).read_bytes()).hexdigest()
                               for n in ('endpoint_update.py','checkpoint_graph.py','hybrid_engine.py','horizon_engine.py',
                                         'relational_engine.py','loop_engine.py','engine.py','clight.py','program_image.py','global_storage.py',
-                                        'candidate_policy.py')})
+                                        'candidate_policy.py','formula_profile.py')})
     output.with_suffix('.context.json').write_text(json.dumps(report,indent=2)+'\n')
     last=[0.0]
     def progress(name):
@@ -213,6 +222,7 @@ def worker(version, output, solver_seconds, archive=False, updates=1):
             definedFunctions=len(e.relation_receipts),pendingFunctions=len(e.pending),
             deferredCalls=e.deferred,deadCalls=e.dead_calls,
             visitedStatements=e.visits,sharedContinuations=len(e.shared_continuations),
+            simplification=e.local_simplifier.receipt(),
             peakWorkingSetBytes=peak_working_set()),indent=2)+'\n')
     e.progress_callback=progress
     def capture():
@@ -220,7 +230,9 @@ def worker(version, output, solver_seconds, archive=False, updates=1):
             pendingFunctions=[r['function'].name for r in e.pending],deferredCalls=e.deferred,
             deadCalls=e.dead_calls,dispatch=e.dispatch_receipts,visitedStatements=e.visits,
             sharedContinuations=e.shared_continuations,globalStorage=e.global_storage.receipt(),
+            simplification=e.local_simplifier.receipt(),
             peakWorkingSetBytes=peak_working_set())
+        report['sourceBodyProfile']=sorted(e.body_profile,key=lambda row:row['seconds'],reverse=True)[:20]
     try:
         fn,loop=game_loop(e)
         report['rootSource']=fn.digest
@@ -229,14 +241,21 @@ def worker(version, output, solver_seconds, archive=False, updates=1):
                     read(MEM,word(e.global_address('_gCurrAreaIndex')),2)==z.BitVecVal(1,16))
         _,paths=(e.start_iteration(fn,loop,target,entry) if updates==1 else
                  e.start_window(fn,loop,target,entry))
+        if simplify:
+            paths[0].condition=e.local_simplifier.rewrite(paths[0].condition,'root-goal')
         report['formulaBuilt']=True
+        report['constructionSeconds']=time.perf_counter()-began
         capture()
         report.update(status='formula-built-awaiting-solver',seconds=time.perf_counter()-began)
         output.write_text(json.dumps(report,indent=2)+'\n')
         s=z.Solver();s.set(timeout=int(solver_seconds*1000));s.add(paths[0].condition)
         output.with_suffix('.stage.json').write_text(json.dumps(dict(stage='solving-formula',
             seconds=time.perf_counter()-began))+'\n')
+        solve_began=time.perf_counter()
         result=s.check();report.update(interpret_solver_result(result))
+        report['solverSeconds']=time.perf_counter()-solve_began
+        stats=s.statistics()
+        report['solverStatistics']={key:stats.get_key_value(key) for key in stats.keys()}
         if result==z.unknown:report['solverReason']=s.reason_unknown()
         # Never let optional diagnostic printing prevent the solver result.
         report['seconds']=time.perf_counter()-began
@@ -269,6 +288,8 @@ def main():
     p.add_argument('--solver-seconds',type=float,default=30)
     p.add_argument('--archive-definitions',action='store_true',
                    help='After solving, also export exact AST text; may be very large/slow.')
+    p.add_argument('--simplify-continuations',action='store_true',
+                   help='Experimental exact rewriting; currently regresses construction time.')
     a=p.parse_args()
     if a.updates<1 or a.timeout<=0 or a.solver_seconds<=0:
         p.error('Update count and time limits must be positive')
@@ -278,7 +299,7 @@ def main():
         threading.stack_size(64*1024*1024)
         errors=[]
         def run_worker():
-            try:worker(a.worker,a.output,a.solver_seconds,a.archive_definitions,a.updates)
+            try:worker(a.worker,a.output,a.solver_seconds,a.archive_definitions,a.updates,a.simplify_continuations)
             except BaseException as exc:errors.append(exc)
         thread=threading.Thread(target=run_worker)
         thread.start();thread.join()
@@ -292,6 +313,7 @@ def main():
         cmd=[sys.executable,'-X','utf8',__file__,'--worker',version,'--output',str(output),
              '--solver-seconds',str(a.solver_seconds),'--updates',str(a.updates)]
         if a.archive_definitions:cmd.append('--archive-definitions')
+        if a.simplify_continuations:cmd.append('--simplify-continuations')
         try:
             run=subprocess.run(cmd,capture_output=True,text=True,encoding='utf-8',timeout=a.timeout)
             if run.returncode:result=dict(status='worker-error',returnCode=run.returncode,error=run.stderr[-5000:])

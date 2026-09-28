@@ -1,0 +1,120 @@
+{
+  "date": "2026-09-27",
+  "requestedUpdates": 1,
+  "version": "jp",
+  "preprocessingAttempts": 2,
+  "gameplayModelSolverQueries": 0,
+  "status": "preprocessing-timeout",
+  "workerLimitSecondsPerAttempt": 900,
+  "lastProgressSeconds": 897.5976424999972,
+  "lastSourceBodies": 3173,
+  "lastSourceFunction": "cutscene_unlock_key_door_approach_mario",
+  "visitedStatements": 87792,
+  "simplification": {
+    "totals": {
+      "calls": 13589,
+      "nodesBefore": 1163546,
+      "nodesAfter": 881024,
+      "seconds": 256.14735890016163,
+      "arrayOperations": 120036,
+      "recursiveApplications": 23943,
+      "quantifiers": 9775,
+      "skippedLarge": 38,
+      "skippedStepLimit": 25
+    },
+    "slowest": [
+      {
+        "label": "parse_p1_controller:body.1.1.1.1.1.1.1.1.1.1.1.1.1.1.1.1.1.1.1.1.1.1.1.1.1.1.1.1.1.1.1.1.1.1.1.1.1.1.1.0.1.then.1.1.1.1.1",
+        "seconds": 0.8599014999999781,
+        "nodesBefore": 726,
+        "nodesAfter": 506
+      },
+      {
+        "label": "update_game_sound:body.1.1.1.1.1.iteration.1.1.0.1.iteration.1.1.0.1.then.1.1.1.then.1.1.1.1.1.case1.1.then.1.0.1.1",
+        "seconds": 0.829712800004927,
+        "nodesBefore": 395,
+        "nodesAfter": 346
+      },
+      {
+        "label": "update_game_sound:body.1.1.1.1.1.iteration.1.1.0.1.iteration.1.1.0.1.then.1.1.1.else.else.1.1.1.else.case1.1.then.1.0.1.1",
+        "seconds": 0.7901387000019895,
+        "nodesBefore": 395,
+        "nodesAfter": 346
+      },
+      {
+        "label": "update_game_sound:body.1.1.1.1.1.iteration.1.1.0.1.iteration.1.1.0.1.then.1.1.0",
+        "seconds": 0.763962500001071,
+        "nodesBefore": 558,
+        "nodesAfter": 477
+      },
+      {
+        "label": "display_and_vsync:body.1.1.0.1.then.0.1.target.toad_message_opaque",
+        "seconds": 0.5874515999967116,
+        "nodesBefore": 37,
+        "nodesAfter": 35
+      },
+      {
+        "label": "parse_p1_controller:body.1.1.1.1.1.1.1.1.1.1.1.1.1.1.1.1.1.1.1.1.1.1.1.1.1.1.1.1.1.1.1.1.1.0.1",
+        "seconds": 0.5691997000030824,
+        "nodesBefore": 622,
+        "nodesAfter": 437
+      },
+      {
+        "label": "update_game_sound:body.1.1.1.1.1.iteration.1.1.0.1.iteration.1.1.0.1.then.1.1.1.then.1.1.1.1.1.case1.1.then.1.1.0.1.then.1.1.1",
+        "seconds": 0.5623026000030222,
+        "nodesBefore": 341,
+        "nodesAfter": 328
+      },
+      {
+        "label": "update_game_sound:body.1.1.1.1.1.iteration.1.1.0.1.iteration.1.1.0.1.then.1.1.1.else.else.1.1.1.else.case1.1.then.1.1.0.1.else.1.1.1",
+        "seconds": 0.5600352999972529,
+        "nodesBefore": 341,
+        "nodesAfter": 328
+      },
+      {
+        "label": "update_game_sound:body.1.1.1.1.1.iteration.1.1.0.1.iteration.1.1.0.1.then.1.1.1.then.1.1.1.1.1.case1.1.then.1.1.0.1.else.1.1.1",
+        "seconds": 0.5542131000038353,
+        "nodesBefore": 341,
+        "nodesAfter": 328
+      },
+      {
+        "label": "update_game_sound:body.1.1.1.1.1.iteration.1.1.0.1.iteration.1.1.0.1.then.1.1.1.else.else.1.1.1.else.case1.1.then.1.1.0.1.then.1.1.1",
+        "seconds": 0.5439317999989726,
+        "nodesBefore": 341,
+        "nodesAfter": 328
+      }
+    ],
+    "scope": "Summed local DAG visits; not globally unique nodes or gameplay histories.",
+    "bounds": "Skip expressions over 1000 nodes; on 5000 simplifier steps, retain original expression. No execution-depth bound.",
+    "method": "Recursive declarations shadowed, equivalent local rewrites, declarations restored."
+  },
+  "implementationHashesAsRun": {
+    "endpoint_update.py": "9a5f31a87f2fc4bac5e9cdfea68aaa4fc5124f16e6bb6b9535419a196018116f",
+    "checkpoint_graph.py": "d80c1ccd049941a4d45837b030d95a85f9eca49cdd61470e45438c7ade0687eb",
+    "hybrid_engine.py": "3d108f31dc552852589eff07654dcbaf3ff296adba07f6973eaeab3d6e934ee9",
+    "horizon_engine.py": "593b6d55b4d7f3dc27ae9352f70051a20861105514e34fc2ba783ec265769319",
+    "relational_engine.py": "2e900102589d3dac81c01b505fc59d16eb31cf4a113918f674cfcf3201269081",
+    "loop_engine.py": "a52a7c1b6904d55b651ef9eff572189162ae60d61adb022e940d943925597c7d",
+    "engine.py": "3ac646352227447ff0154c46aa75ff2d2bd83dcd6e5ad44121f8a1de16407658",
+    "clight.py": "1863437315b615a5f46669dc34ffa891d51795445d8468ac680e20bfa3c8cb32",
+    "program_image.py": "6ac5fe85291000ff08155fff154dd719ecd0683282828cb4cf109ac2ce638721",
+    "global_storage.py": "fc131a38beb05462d2d5d1b21dcbc92b467b38b098f61f116930a96dfcd8eb02",
+    "candidate_policy.py": "37314c7d7f518f7da6cb857dccd528de426038c88e48a92eb313d3bccd34a974",
+    "formula_profile.py": "c8897ddb79323fffc642d4cf405f86e23c9397e961d5c5aba7ced9545dd7c0d1"
+  },
+  "testsPassed": 8,
+  "defaultSimplificationEnabled": false,
+  "gameplayExcluded": false,
+  "tractabilityEstablished": false,
+  "meaning": "Two formula-construction attempts timed out before the single requested solver query could be issued. Expensive rewriting is now opt-in; no further gameplay query was run.",
+  "rawReports": [
+    {
+      "path": "build/rank1-backward-search/profiled-single-20260927/report.json",
+      "sha256": "15ac8a536adb251e58104f30564da529c7e30bd6de12a1ecc1d561b328410938"
+    },
+    {
+      "path": "build/rank1-backward-search/profiled-single-bounded-20260927/report.json",
+      "sha256": "6267ada4b4247beaa1383c067be4ac700bd38b069ee392d8e7af3f7cc17fcb10"
+    }
+  ]
+}
