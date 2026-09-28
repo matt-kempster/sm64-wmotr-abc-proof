@@ -24,12 +24,18 @@ def interpret_solver_result(result):
         gameplayValidated=False,
         gameplayExcluded=False,
         completedExhaustiveUpdates=0,
-        pendingValidation=[
+        pendingValidation=([
             'Real call effects match the effects used by the proposed execution.',
             'Proposed earlier memory, live objects and callbacks are valid game state.',
             'A concrete predecessor trace and controller inputs can be extracted.',
             'An allowed controller history reaches the earlier state and replay reaches the target.'
-        ],
+        ] if result == 'sat' else [
+            'The encoded entry conditions, endpoint and assumptions match the claimed case.',
+            'Every relevant real execution is represented; conservative call effects may suffice.',
+            'Any broader route exclusion requires this endpoint to be necessary for that route.'
+        ] if result == 'unsat' else [
+            'Obtain a solved query before claiming a candidate or an exclusion.'
+        ]),
         interpretation={
             'sat': 'Symbolic candidate only; retain its call/state conditions and validate before claiming gameplay.',
             'unsat': 'No solution in this encoded conditional query; no game exclusion without a justified model/coverage connection.',

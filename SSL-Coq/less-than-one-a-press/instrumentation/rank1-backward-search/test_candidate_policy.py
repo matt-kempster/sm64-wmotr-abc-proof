@@ -20,6 +20,8 @@ class CandidatePolicyTests(unittest.TestCase):
         checked = interpret_solver_result(solver.check())
         self.assertFalse(checked['candidateFound'])
         self.assertFalse(checked['gameplayExcluded'])
+        self.assertTrue(any('conservative call effects' in item for item in checked['pendingValidation']))
+        self.assertFalse(any('replay' in item for item in checked['pendingValidation']))
         self.assertEqual(conditional_exit_code({'jp': checked}), 0)
 
     def test_a_symbolic_state_candidate_can_fail_its_validity_check(self):
@@ -39,6 +41,7 @@ class CandidatePolicyTests(unittest.TestCase):
         unknown = interpret_solver_result('unknown')
         self.assertFalse(unknown['candidateFound'])
         self.assertFalse(unknown['conditionalQueryCompleted'])
+        self.assertTrue(all('Obtain a solved query' in item for item in unknown['pendingValidation']))
         self.assertEqual(conditional_exit_code({'jp': unknown}), 2)
         known = interpret_solver_result('sat')
         self.assertEqual(conditional_exit_code({'jp': known, 'us': unknown}), 2)

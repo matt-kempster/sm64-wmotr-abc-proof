@@ -42,6 +42,44 @@ conditional queries. They are not gameplay trials. The original 76-check run
 and its receipt below remain historical; no source formula was rerun merely to
 apply a new label.
 
+## What UNSAT would mean
+
+UNSAT means there is no assignment of the encoded earlier state, inputs and
+permitted call effects that satisfies the target. It is a logical exclusion
+for that formula, not a report that some sampled candidates failed. If the
+formula correctly represents a stated set of assumptions, this is a meaningful
+conditional impossibility result for the question expressed by that formula.
+
+Transferring that result to gameplay needs a direction-of-coverage check:
+every real execution relevant to the claim must be represented in the model.
+The model may include extra, impossible states without harming this direction.
+If even the larger set contains no success, the real subset contains none.
+Conversely, a model that silently omits a legal action, callback or earlier
+state could return UNSAT while the game has an omitted solution.
+
+This refines the earlier warning about unanswered calls. We need not know each
+call's exact implementation to use a negative result if its modeled effects
+are shown to include every relevant real effect. Extra freedom can produce
+false candidates, but cannot hide a real success when that inclusion holds.
+The current runner leaves many effects open; this fact alone does not establish
+that the whole interpreter, memory representation and query cover the game.
+
+The scope also matters. This query targets one original loop iteration and
+the particular top-retention endpoint described below. It does not encode all
+Ink endpoints. One-update UNSAT could rule out a whole named approach if every
+valid immediate predecessor is covered and that approach necessarily passes
+through this endpoint; a longer earlier history would not rescue it. Those
+connections must be established rather than inferred from the length of the run.
+
+SAT and UNSAT therefore need different follow-up. A candidate needs its actual
+state, effects and replay checked. A negative result has no candidate to replay:
+check the encoding, assumptions and coverage of the claimed case instead.
+Accepting conditions for search does not turn an omitted legal case or a
+translation bug into a valid exclusion. The recorded full US/JP attempts returned
+**unknown**, not UNSAT. This explanation supplies no new route exclusion.
+The reporting checklist now distinguishes these follow-ups; its three policy
+controls pass. No new game query or Coq proof was run for this clarification.
+
 ## The exact question this runner asks
 
 At the end of the selected Area-1 `update_objects` call, both platform
