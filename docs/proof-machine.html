@@ -361,7 +361,7 @@ footer{margin-top:64px; padding-top:16px; border-top:1px solid var(--rule); font
   </div>
 
   <div class="io"><span class="io-arrow">OUT</span><span>Φ still holds, so <span class="mono">pos[1] ≤ 2796</span> (proved: <span class="mono">height_invariant_y</span>)</span>
-    <span class="io-arrow">→</span><span>coin #2 out of reach</span><span class="lamp l-open">link open</span></div>
+    <span class="io-arrow">→</span><span>coin #2 out of reach (collision step proved)</span><span class="lamp l-open">link open</span></div>
 </section>
 
 <section id="scoreboard">
@@ -387,6 +387,9 @@ footer{margin-top:64px; padding-top:16px; border-top:1px solid var(--rule); font
     <p>A proof that only ever confirms is suspicious. These are claims that looked right until the proof, or tethering it to the real game, said otherwise.</p>
   </div>
   <div class="catches">
+    <div class="catch"><span class="date">2026-09-27</span><p><b>The collision check has no return value when objects miss sideways.</b> In the ROM,
+      <code>detect_object_hitbox_overlap</code> falls off its end, so it returns whatever is in the register. Our C returns 0 there.
+      The coin theorem was restated so the returned value doesn’t matter: it proves only that the check returns without touching memory.</p></div>
     <div class="catch"><span class="date">2026-09-27</span><p><b>Exclamation boxes are twice as tall as we thought.</b> The game scales object collision by the
       object’s size, and the box runs at scale 2. Its top is y + 104, so the highest floor moved from 2372 to 2424 and the margin
       to coin #2 dropped from 236 to 184. Found by decoding the real level data.</p></div>
@@ -409,7 +412,7 @@ footer{margin-top:64px; padding-top:16px; border-top:1px solid var(--rule); font
   </div>
   <div class="next">
     <div><h3>Walk the air step</h3><p>Start proving the frame is a chain of moves by stepping through the generated <code>perform_air_step</code>.</p></div>
-    <div><h3>Close the coin link</h3><p>Prove “Mario below 2980 means coin #2 is never touched, so the star never spawns.”</p></div>
+    <div><h3>Finish the coin link</h3><p>The real collision check is proved to miss coin #2 below 2980. Next: compose it into the capstone (Mario’s hitbox fields at collision time, coin #2’s fields), then “not collected ⇒ no star”.</p></div>
     <div><h3>Widen GOAL 1’s engine</h3><p>Re-run it with the 73 no-A actions to discharge <code>Hframe_stays_noA</code>.</p></div>
   </div>
 </section>
@@ -623,7 +626,9 @@ footer{margin-top:64px; padding-top:16px; border-top:1px solid var(--rule); font
     ['The frame is a chain of known moves', 'open', 'Value walk from <code>perform_air_step</code>'],
     ['The frame stays in no-A actions', 'open', 'GOAL 1’s engine at the 73-action set'],
     ['Poll, platform, level and object stations', 'spec', 'Generate and walk each phase (ladder rungs 2–5)'],
-    ['Below 2980 ⇒ coin #2 never collected ⇒ no star', 'open', 'State and prove the coin/star link'],
+    ['Below 2980 ⇒ the real collision check never registers coin #2', 'proved', '<code>mario_coin2_no_contact</code>, over the generated <code>detect_object_hitbox_overlap</code>'],
+    ['Coin #2 never moves (no cloning)', 'trusted', 'heldObj, pickup-entry and object censuses are machine-checked; copies of action values and level-phase code remain (TRUST 0.3, 0.10)'],
+    ['No contact ⇒ coin not collected ⇒ no star, inside the capstone', 'open', 'Compose with the height capstone: Mario’s hitbox fields, oPosY sync, star counter'],
     ['The starting state is a real WMotR spawn', 'trusted', 'Check against recorded real states (TRUST 0.4)'],
   ];
   const tb = document.getElementById('parts'); const count = {proved:0, trusted:0, open:0, spec:0};
