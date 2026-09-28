@@ -26,6 +26,8 @@
 
 From Coq Require Import ZArith List Bool.
 From compcert Require Import Coqlib Integers AST Ctypes Cop Clight.
+From SM64.Generated Require behavior_data object_helpers obj_behaviors obj_behaviors_2
+  spawn_object object_list_processor.
 From SM64.Generated Require mario mario_step mario_actions_stationary
   mario_actions_moving mario_actions_airborne mario_actions_submerged
   mario_actions_cutscene mario_actions_automatic mario_actions_object
@@ -202,3 +204,69 @@ Lemma grab_stores_usedObj :
   forallb (fun p => negb (Pos.eqb (fst p) interaction._t'3) || snd p)
           (temp_sources (fn_body interaction.f_mario_grab_used_object)) = true.
 Proof. vm_compute. auto 10. Qed.
+
+(* ----------------------------------------------------------------------- *)
+(* (5) Entering a picking-up action.  act_picking_up / act_picking_up_bowser *)
+(* grab usedObj unconditionally, so they must only be entered by a grab.    *)
+(* Every occurrence of the constants ACT_PICKING_UP (0x383) and             *)
+(* ACT_PICKING_UP_BOWSER (0x390) as a value -- in any expression of any     *)
+(* generated function, or in any initialized data -- is in                  *)
+(* mario_check_object_grab, after its grab-bit test.  (Switch case labels   *)
+(* are not values.)  Open: a value copied out of m->action or m->prevAction *)
+(* while Mario is already picking up (GOAL 1's value engine closes that     *)
+(* kind of flow for the flying set).                                        *)
+(* ----------------------------------------------------------------------- *)
+Definition PICKUP_ACTS : list Z := [899; 912].   (* 0x383, 0x390 *)
+
+Fixpoint mentions (a : expr) : bool :=
+  match a with
+  | Econst_int n _ => existsb (Z.eqb (Int.unsigned n)) PICKUP_ACTS
+  | Efield b _ _ | Ederef b _ | Eaddrof b _ | Eunop _ b _ | Ecast b _ => mentions b
+  | Ebinop _ x y _ => mentions x || mentions y
+  | _ => false
+  end.
+
+Fixpoint smentions (s : statement) : bool :=
+  match s with
+  | Sassign a b => mentions a || mentions b
+  | Sset _ a => mentions a
+  | Scall _ f al => mentions f || existsb mentions al
+  | Sbuiltin _ _ _ al => existsb mentions al
+  | Ssequence a b | Sloop a b => smentions a || smentions b
+  | Sifthenelse c a b => mentions c || smentions a || smentions b
+  | Sreturn (Some a) => mentions a
+  | Sswitch a ls => mentions a || smentions_ls ls
+  | Slabel _ a => smentions a
+  | _ => false
+  end
+with smentions_ls (ls : labeled_statements) : bool :=
+  match ls with LSnil => false | LScons _ a r => smentions a || smentions_ls r end.
+
+Definition init_mentions (l : list init_data) : bool :=
+  existsb (fun d => match d with
+                    | Init_int32 n => existsb (Z.eqb (Int.unsigned n)) PICKUP_ACTS
+                    | _ => false end) l.
+
+Definition pickup_sites_in (defs : list (ident * globdef fundef type)) : list ident :=
+  flat_map (fun '(id, g) =>
+    match g with
+    | Gfun (Internal f) => if smentions (fn_body f) then [id] else nil
+    | Gvar v => if init_mentions (gvar_init v) then [id] else nil
+    | _ => nil
+    end) defs.
+
+Lemma pickup_entry_sites :
+  map string_of_ident (flat_map pickup_sites_in
+    [ mario.global_definitions; mario_step.global_definitions;
+      mario_actions_stationary.global_definitions; mario_actions_moving.global_definitions;
+      mario_actions_airborne.global_definitions; mario_actions_submerged.global_definitions;
+      mario_actions_cutscene.global_definitions; mario_actions_automatic.global_definitions;
+      mario_actions_object.global_definitions; interaction.global_definitions;
+      behavior_actions.global_definitions; level_update.global_definitions;
+      mario_misc.global_definitions; surface_collision.global_definitions;
+      math_util.global_definitions; shadow.global_definitions;
+      object_helpers.global_definitions; obj_behaviors.global_definitions;
+      obj_behaviors_2.global_definitions; spawn_object.global_definitions;
+      object_list_processor.global_definitions ])
+  = ["mario_check_object_grab"]%string.
+Proof. vm_compute. reflexivity. Qed.
