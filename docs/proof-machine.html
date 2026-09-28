@@ -158,7 +158,7 @@ footer{margin-top:64px; padding-top:16px; border-top:1px solid var(--rule); font
   .part-body dl{grid-template-columns:1fr;}
 }
 /* the writer sorter */
-.sorter{display:grid; grid-template-columns:repeat(5,minmax(0,1fr)); gap:10px;}
+.sorter{display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:10px;}
 .bin{background:var(--paper); border:1px solid var(--rule); border-radius:12px; padding:12px; display:grid; gap:8px; align-content:start;}
 .bin-head{display:flex; justify-content:space-between; align-items:baseline; gap:8px;}
 .bin-head h3{font-size:1rem;}
@@ -173,13 +173,14 @@ footer{margin-top:64px; padding-top:16px; border-top:1px solid var(--rule); font
 .b-gated{border-top:3px solid var(--trusted);}
 .b-absent{border-top:3px solid var(--rule);}
 .b-other{border-top:3px solid var(--spec);}
+.b-same{border-top:3px solid var(--muted);}
 .site{background:var(--paper); border:1px dashed var(--rule); border-radius:10px; padding:10px 14px; font-size:.9rem; min-height:3.2em;}
 .site .mono{color:var(--muted);}
 .ledger{display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:10px;}
 .ledger div{display:grid; gap:6px; align-content:start; padding:14px 16px; border-left:3px solid var(--accent); background:var(--paper); border-radius:0 12px 12px 0;}
 .ledger h3{font-size:1rem;}
 .ledger p{font-size:.92rem;}
-@media (max-width:980px){ .sorter{grid-template-columns:repeat(2,minmax(0,1fr));} }
+@media (max-width:860px){ .sorter{grid-template-columns:repeat(2,minmax(0,1fr));} }
 @media (max-width:860px){ .ledger{grid-template-columns:1fr;} }
 @media (max-width:520px){ .sorter{grid-template-columns:1fr;} }
 @media (prefers-reduced-motion: reduce){ #bounce{display:none;} }
@@ -218,7 +219,9 @@ footer{margin-top:64px; padding-top:16px; border-top:1px solid var(--rule); font
     <p>Mario’s height is one float in memory, <code>MarioState.pos[1]</code> at byte offset 64. Nothing moves him up or down unless
       some line of C stores a new value there. So instead of reasoning about gameplay, we crawled the generated code for
       <b>every store that can reach that float</b>, either as a direct field store or through a whole-vector copy like
-      <code>vec3f_copy(m-&gt;pos, …)</code>. There are 40 across the twelve Mario files. Each one is sorted into a bin. Tap a site to see it.</p>
+      <code>vec3f_copy(m-&gt;pos, …)</code>. Coq does the crawl itself (<code>YWriterCensus.v</code>): it scans every function of the twelve
+      Mario files and proves there are exactly 52 such sites, and that the address of <code>pos</code> never hides in a variable
+      or in memory where a later write could use it. Each site is sorted into a bin. Tap one to see it.</p>
   </div>
 
   <div class="sorter" id="sorter"></div>
@@ -232,9 +235,9 @@ footer{margin-top:64px; padding-top:16px; border-top:1px solid var(--rule); font
     <div><h3>Snaps land on real floors</h3><p>Every <b>snap</b> writes a floor, ledge or pole height taken from the level. The level data
       proves no floor exists between 2424 and 3046, and a snap only reaches a floor within 239 of where Mario already is. So no snap
       carries him across the gap.</p></div>
-    <div><h3>What the proof still has to show</h3><p>The census is a scan of the generated code, written up in
-      <code>docs/goal2-posy-writer-census.md</code>. Coq doesn’t check it yet. Making it formal is the open part
-      <code>Hframe_is_move_chain</code>: walk the real code and show each write is the move its bin says. That walk is the next step.</p></div>
+    <div><h3>What the proof still has to show</h3><p>The list of sites is machine-checked. What each site <i>does</i> is not
+      yet: that is the open part <code>Hframe_is_move_chain</code>, which walks the real code and shows each write is the move its bin says.
+      The machine-checked census found 12 sites that the hand-written census had merged together.</p></div>
   </div>
 </section>
 
@@ -302,7 +305,7 @@ footer{margin-top:64px; padding-top:16px; border-top:1px solid var(--rule); font
             <summary><span class="part-title"><span class="name">The frame is a chain of known moves</span><span class="coq">Hframe_is_move_chain</span></span><span class="lamp l-open">open · next</span></summary>
             <div class="part-body"><dl>
               <dt>Says</dt><dd>Whatever the real code does to Mario’s height, speed and action is a sequence of moves from the catalog, each staying in range. It includes the claim that the floor heights the game finds come from this level’s surfaces.</dd>
-              <dt>Discharge</dt><dd>This is the <a href="#crawl">writer crawl</a> made formal: walk the generated C value by value and show each of the 40 writes is the move its bin says, starting at <code>perform_air_step</code>. This is the main remaining work.</dd>
+              <dt>Discharge</dt><dd>This is the <a href="#crawl">writer crawl</a> made formal: walk the generated C value by value and show each of the 52 writes is the move its bin says, starting at <code>perform_air_step</code>. This is the main remaining work.</dd>
               <dt>Fails if</dt><dd>An unmodelled move fires: hanging (needs A), water, wind, shells, or objects that grab or throw. WMotR has none of these.</dd>
             </dl></div>
           </details>
@@ -558,6 +561,18 @@ footer{margin-top:64px; padding-top:16px; border-top:1px solid var(--rule); font
     [38,'mario_actions_automatic.c','perform_hanging_step','hang position','gated','hanging lets go unless A is held'],
     [39,'mario_actions_automatic.c','act_grabbed','held position','absent','needs an enemy that grabs'],
     [40,'mario_actions_automatic.c','act_tornado_twirling','tornado path','absent','needs a Tweester'],
+    [41,'mario_step.c','perform_air_quarter_step','m->floorHeight','snap','out of bounds and below the last floor'],
+    [42,'mario_step.c','perform_air_quarter_step','m->floorHeight','snap','under a ceiling and below the last floor'],
+    [43,'mario_actions_automatic.c','set_pole_position','pole.y − hitboxDownOffset','snap','sliding off the bottom of a pole'],
+    [44,'mario_actions_automatic.c','act_in_cannon','y + 120·sin(pitch)','gated','aiming the cannon'],
+    [45,'mario_actions_automatic.c','act_tornado_twirling','tornado path','absent','needs a Tweester'],
+    [46,'mario_actions_automatic.c','act_tornado_twirling','floorHeight','absent','needs a Tweester'],
+    [47,'mario.c','init_mario','floorHeight','other','spawn floor clamp'],
+    [48,'mario.c','update_mario_geometry_inputs','the same y (wall push)','same','f32_find_wall_collision writes y back unchanged'],
+    [49,'mario.c','update_mario_geometry_inputs','the same y (wall push)','same','f32_find_wall_collision writes y back unchanged'],
+    [50,'mario_actions_automatic.c','set_pole_position','the same y (wall push)','same','f32_find_wall_collision writes y back unchanged'],
+    [51,'mario_actions_automatic.c','set_pole_position','the same y (wall push)','same','f32_find_wall_collision writes y back unchanged'],
+    [52,'interaction.c','push_mario_out_of_object','the same y (wall push)','same','f32_find_wall_collision writes y back unchanged'],
   ];
   const BINS = [
     ['climb','b-climb','Climb','Adds to y: the quarter air step, and the ground-pound windup.'],
@@ -565,6 +580,7 @@ footer{margin-top:64px; padding-top:16px; border-top:1px solid var(--rule); font
     ['gated','b-gated','Needs A','Hanging and the cannon. Unreachable without A.'],
     ['absent','b-absent','Not in WMotR','Water, Hoot, cutscenes, grabbers, debug.'],
     ['other','b-other','Other stations','Warps, spawn and out-of-bounds recovery, outside Mario’s action.'],
+    ['same','b-same','Unchanged','Wall collision writes the same y back.'],
   ];
   const sorter = document.getElementById('sorter'), siteBox = document.getElementById('site');
   let pressed = null;

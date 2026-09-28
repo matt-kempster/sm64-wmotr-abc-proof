@@ -12,6 +12,13 @@ store-scout law: classify against the Clight, cite comments only to *interpret*.
 row cites `generated/<TU>.v:<line>` (the load-bearing fact) and, where useful, the
 `vendor/sm64/…` line it corresponds to.
 
+> **Machine-checked (2026-09-27).** `proofs/WMotRRequiresA/YWriterCensus.v` redoes this census in Coq over the
+> generated ASTs: **31 direct `pos[1]` stores + 21 write-escapes = 52 sites** (TRUST 0.9). The hand census below
+> merged some sites. It missed 7 direct stores: `perform_air_quarter_step` ×2 (the `floorHeight` snaps when out of bounds
+> or under a ceiling), `set_pole_position` (`oPosY − hitboxDownOffset`, sliding off the bottom), `act_in_cannon` (`+= 120·sin`,
+> A-gated), `act_tornado_twirling` ×2 (absent in WMotR), and `init_mario` (the spawn floor clamp). It also missed the
+> 5 `f32_find_wall_collision(&pos[1], …)` writebacks, which leave y unchanged.
+
 ## 0. What we are counting, and how it was found
 
 `gMarioState->pos` is a `Vec3f` (`float[3]`) at MarioState offset 60; **`pos[1]`
