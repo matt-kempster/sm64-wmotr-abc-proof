@@ -9,14 +9,22 @@ Rocq, under `generated/`) → hand-written analyses and theorems over those ASTs
 `proofs/`). The toolchain is configured N64-faithfully (32-bit pointers, big-endian).
 See `docs/` for the design conversations that led here.
 
-> **Status.** GOAL 1 — *"a run with no A-press never enters a flying action"* — has a
-> live capstone theorem, `noA_no_spawn_never_flying_real_mwf`
-> (`proofs/NoAImpliesNoFly/NoAImpliesNoFlyLinked.v`), stated over the **real linked
-> program**: the mechanically generated Clight of `mario.c` linked with the interaction
-> and action-handler translation units, under CompCert's bigstep semantics. It is fully
-> `Qed`'d and rests only on the standard CompCert axioms — **but it is not finished**:
-> it still consumes an explicit, shrinking set of named residual hypotheses (see the
-> honest scoreboard below). GOAL 2 (WMotR itself requires A) is not started.
+> **The picture.** [`docs/proof-machine.html`](docs/proof-machine.html) explains the whole
+> argument visually and doubles as the status page. It includes a to-scale height gauge, the
+> crawl of every write to Mario's y, and the proof as machinery with a status lamp on each
+> part. Open it in a browser.
+>
+> **Status (2026-09-27).**
+> - **GOAL 1, no A-press ⇒ never flying, is proved.** The capstone is
+>   `noA_no_spawn_never_flying_linked12` (`proofs/NoAImpliesNoFly/NoAImpliesNoFlyTwelve.v`),
+>   over any CompCert link of the twelve generated Mario translation units. It rests on the
+>   standard CompCert axioms plus an explicit set of named hypotheses about code outside the
+>   link.
+> - **GOAL 2, WMotR requires A, is on the spine.** The capstone is
+>   `wmotr_noA_height_bound_linked12` (`proofs/WMotRRequiresA/HeightFrame.v`): a no-A run keeps
+>   Mario at or below y = 2796, while red coin #2 needs 2980. The move arithmetic and the level
+>   data are proved. Two rows are open: the real frame is a chain of those moves, and the frame
+>   stays within the no-A actions.
 
 ---
 
