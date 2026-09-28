@@ -28,7 +28,7 @@
    PROOF followStatus = 0;
 == vendor/sm64/src/game/behaviors/wiggler.inc.c:154   [1 TU: obj_behaviors_2]
    PROOF gCurrentObject->rawData.asS32[0x3F] = 4;
-== vendor/sm64/src/game/camera.h:346   [19 TU: behavior_actions, behavior_data, interaction, level_update, mario, mario_actions_airborne, mario_actions_automatic, mario_actions_cutscene, mario_actions_moving, mario_actions_stationary, mario_actions_submerged, mario_misc, obj_behaviors, obj_behaviors_2, object_helpers, object_list_processor, shadow, spawn_object, surface_collision]
+== vendor/sm64/src/game/camera.h:346   [20 TU: behavior_actions, behavior_data, interaction, level_update, mario, mario_actions_airborne, mario_actions_automatic, mario_actions_cutscene, mario_actions_moving, mario_actions_stationary, mario_actions_submerged, mario_misc, obj_behaviors, obj_behaviors_2, object_collision, object_helpers, object_list_processor, shadow, spawn_object, surface_collision]
    ROM   typedef s32 (*CameraEvent)(struct Camera *c);
    PROOF typedef void (*CameraEvent)(struct Camera *c);
 == vendor/sm64/src/game/mario_actions_airborne.c:1341   [1 TU: mario_actions_airborne]
@@ -50,12 +50,16 @@
 == vendor/sm64/src/game/mario_step.h:25   [11 TU: behavior_actions, interaction, mario, mario_actions_airborne, mario_actions_automatic, mario_actions_cutscene, mario_actions_moving, mario_actions_object, mario_actions_stationary, mario_actions_submerged, mario_step]
    ROM   s32 init_bully_collision_data(struct BullyCollisionData *data, f32 posX, f32 posZ,
    PROOF void init_bully_collision_data(struct BullyCollisionData *data, f32 posX, f32 posZ,
-== vendor/sm64/src/game/memory.h:78   [21 TU: behavior_actions, behavior_data, interaction, level_update, mario, mario_actions_airborne, mario_actions_automatic, mario_actions_cutscene, mario_actions_moving, mario_actions_stationary, mario_actions_submerged, mario_misc, mario_step, math_util, obj_behaviors, obj_behaviors_2, object_helpers, object_list_processor, shadow, spawn_object, surface_collision]
+== vendor/sm64/src/game/memory.h:78   [22 TU: behavior_actions, behavior_data, interaction, level_update, mario, mario_actions_airborne, mario_actions_automatic, mario_actions_cutscene, mario_actions_moving, mario_actions_stationary, mario_actions_submerged, mario_misc, mario_step, math_util, obj_behaviors, obj_behaviors_2, object_collision, object_helpers, object_list_processor, shadow, spawn_object, surface_collision]
    ROM   s32 mem_pool_free(struct MemoryPool *pool, void *addr);
    PROOF void mem_pool_free(struct MemoryPool *pool, void *addr);
 == vendor/sm64/src/game/obj_behaviors_2.c:127   [1 TU: obj_behaviors_2]
    ROM   static u32 obj_perform_position_op(s32 op) {
    PROOF static void obj_perform_position_op(s32 op) {
+== vendor/sm64/src/game/object_collision.c:61   [1 TU: object_collision]
+   PROOF return 0;
+== vendor/sm64/src/game/object_collision.c:96   [1 TU: object_collision]
+   PROOF return 0;
 == vendor/sm64/src/game/object_helpers.c:136   [1 TU: object_helpers]
    ROM   Gfx *geo_switch_anim_state(s32 callContext, struct GraphNode *node)
    PROOF Gfx *geo_switch_anim_state(s32 callContext, struct GraphNode *node, void *context)
@@ -84,4 +88,4 @@
 == vendor/sm64/src/game/shadow.c:191   [1 TU: shadow]
    PROOF return waterLevel;
 
-236 changed sites: cosine-alias 206, unclassified 28, v2p-subtraction (proof_n64.h) 2
+238 changed sites: cosine-alias 206, unclassified 30, v2p-subtraction (proof_n64.h) 2

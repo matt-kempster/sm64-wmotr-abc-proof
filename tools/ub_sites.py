@@ -30,7 +30,7 @@ TUS = ("mario mario_actions_airborne mario_actions_moving mario_actions_stationa
        "mario_actions_submerged mario_actions_cutscene mario_actions_automatic "
        "mario_actions_object interaction behavior_actions level_update mario_step "
        "mario_misc math_util surface_collision shadow object_helpers obj_behaviors "
-       "obj_behaviors_2 spawn_object object_list_processor behavior_data").split()   # every generated SM64 TU
+       "obj_behaviors_2 spawn_object object_list_processor behavior_data object_collision").split()   # every generated SM64 TU
 
 
 def src_of(tu):

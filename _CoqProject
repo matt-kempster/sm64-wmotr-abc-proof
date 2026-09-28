@@ -31,6 +31,7 @@ generated/obj_behaviors.v
 generated/obj_behaviors_2.v
 generated/spawn_object.v
 generated/object_list_processor.v
+generated/object_collision.v
 
 # --- shared infrastructure (used by GOAL 1; reusable) ---
 proofs/Generic/Frame.v
@@ -41,6 +42,7 @@ proofs/Generic/ReachableRun.v
 proofs/Generic/GlobalSeparation.v
 proofs/Generic/SymbolicLinking.v
 proofs/Generic/RootedLvalue.v
+proofs/Generic/ClightDeterm.v
 
 # --- shared: Mario action vocabulary + value engine ---
 proofs/MarioModel/Flying.v
@@ -237,6 +239,7 @@ proofs/WMotRRequiresA/HeightFrame.v
 proofs/WMotRRequiresA/YWriterCensus.v
 proofs/WMotRRequiresA/HeldObjCensus.v
 proofs/WMotRRequiresA/BehaviorScripts.v
+proofs/WMotRRequiresA/CoinLink.v
 
 # --- executable Clight: interpreter (sound vs ClightBigstep), vm-computable
 #     memory ops (= Mem.*), computable linked genv (= globalenv lp), memory builder ---
