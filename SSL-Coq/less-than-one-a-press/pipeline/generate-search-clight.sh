@@ -22,8 +22,8 @@ COMMON=( -nostdinc -fstruct-passing
 for item in "$@"; do
   stem="${item%%=*}"
   input="${item#*=}"
-  [[ "$stem" =~ ^[a-zA-Z0-9_]+$ && "$input" =~ ^src/[a-zA-Z0-9_./]+\.c$ && "$input" != *..* ]] || {
-    echo 'Expected safe name=src/path.c arguments' >&2; exit 2;
+  [[ "$stem" =~ ^[a-zA-Z0-9_]+$ && "$input" =~ ^(src|lib/src)/[a-zA-Z0-9_./]+\.c$ && "$input" != *..* ]] || {
+    echo 'Expected safe name=src/path.c or name=lib/src/path.c arguments' >&2; exit 2;
   }
   # Match the game's own PNG -> u8 include build rule. These are existing
   # extracted assets, never blank stand-ins; they stay in ignored build output.

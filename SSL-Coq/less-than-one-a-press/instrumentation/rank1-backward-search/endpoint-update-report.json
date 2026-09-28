@@ -1,0 +1,1060 @@
+{
+  "schema": "rank1-endpoint-update-attempt-v1",
+  "date": "2026-09-27",
+  "sourcePin": "9921382a68bb0c865e5e45eb594d9c64db59b1af",
+  "requestedUpdates": 1,
+  "completedExhaustiveUpdates": 0,
+  "controllerTrials": 0,
+  "applicationTests": 76,
+  "solverLimitSeconds": 30,
+  "workerLimitSeconds": 600,
+  "command": "python -X utf8 instrumentation/rank1-backward-search/endpoint_update.py --versions jp us --timeout 600 --output build/rank1-backward-search/endpoint-one-20260927-k",
+  "verdict": "Both source formulas built; both solver answers unknown (timeout). No complete predecessor classification, gameplay witness or exclusion.",
+  "targetScope": "Final selected Area-1 update_objects -> update_mario_platform occurrence, query X=-2200, Z=-1024, returned height bits 1156733869, both platform references name a designated Object with bhvPyramidTop behavior. Reused-slot variants with another behavior, warp acceptance and Area-2 payoff are outside this target.",
+  "entryScope": "Start of one original thread5_game_loop iteration, SSL Area 1; symbolic earlier byte memory, symbolic Mario/top identities and retained thread locals. No supplied scene, replay prefix or controller sampling. No new A edge at the decoded-input boundary; earlier physical-A history is not established.",
+  "modelLimits": [
+    "Unanswered runtime/library/variadic effects remain predicates with no memory-frame promise.",
+    "All compatible linked callbacks are represented, including cases not shown reachable in SSL.",
+    "Flat byte memory, reserved addresses and local frames lack a complete defined-storage/provenance and runtime correspondence argument.",
+    "One original loop iteration ending without the checkpoint is rejected; this does not cover arbitrary skipped iterations or pause schedules."
+  ],
+  "runs": {
+    "jp": {
+      "status": "unresolved-unknown",
+      "solverResult": "unknown",
+      "solverReason": "timeout",
+      "formulaBuilt": true,
+      "seconds": 264.30106469999737,
+      "sourceBodyDefinitions": 3335,
+      "pendingSourceBodyDefinitions": 0,
+      "unansweredCallSites": 472,
+      "unansweredCallees": 106,
+      "visitedStatements": 92058,
+      "sharedContinuations": 14265,
+      "peakWorkingSetBytes": 1408069632,
+      "globalReservations": 1316,
+      "unknownGlobalExtents": 68,
+      "rawReport": "build/rank1-backward-search/endpoint-one-20260927-k/jp.json",
+      "rawReportSHA256": "ff72836e3b779043bbc9e42d69105f33cbe7f93779ed45718e2aef36b38b79f8",
+      "rootSource": "c540332e61c86ab3a2c241942c0b37fde2181efef7405f556ae297cb98f5871c",
+      "implementationHashes": {
+        "endpoint_update.py": "00ce64ab915b6c2ea550dbeaf427e56b04eed69ae03815de0d56e8e6fc474b6c",
+        "checkpoint_graph.py": "d80c1ccd049941a4d45837b030d95a85f9eca49cdd61470e45438c7ade0687eb",
+        "hybrid_engine.py": "3d108f31dc552852589eff07654dcbaf3ff296adba07f6973eaeab3d6e934ee9",
+        "horizon_engine.py": "593b6d55b4d7f3dc27ae9352f70051a20861105514e34fc2ba783ec265769319",
+        "relational_engine.py": "2e900102589d3dac81c01b505fc59d16eb31cf4a113918f674cfcf3201269081",
+        "loop_engine.py": "a52a7c1b6904d55b651ef9eff572189162ae60d61adb022e940d943925597c7d",
+        "engine.py": "3ac646352227447ff0154c46aa75ff2d2bd83dcd6e5ad44121f8a1de16407658",
+        "clight.py": "1863437315b615a5f46669dc34ffa891d51795445d8468ac680e20bfa3c8cb32",
+        "program_image.py": "6ac5fe85291000ff08155fff154dd719ecd0683282828cb4cf109ac2ce638721",
+        "global_storage.py": "fc131a38beb05462d2d5d1b21dcbc92b467b38b098f61f116930a96dfcd8eb02"
+      },
+      "sourceUnits": {
+        "generated\\jp_area.v": "9b8a4dc4e21ae588fb2385d153caa611edc13db4e8c6488d5cf601adf1663b40",
+        "generated\\jp_behavior_actions.v": "fff0885dafa95a72a5b9694ab808080bf4de0bfe06cc996836784ca143c37810",
+        "generated\\jp_behavior_data.v": "b5e582077d9fcc080d5424c4986fa224d33e98a6e2dcff685ff7e805eb3d217f",
+        "generated\\jp_behavior_script.v": "40112629e7f618bbfd352f8be8786fd70450dc8266930c1196552b6df383cf57",
+        "generated\\jp_debug.v": "5f24782c7f9a4c34d609f64872841e86a33ca29087a66df4a30612a3d7c16214",
+        "generated\\jp_game_init.v": "6be8ddb1a54ca25d57e404809487673d2276ca41abf5372fd6740982c34387e3",
+        "generated\\jp_graph_node.v": "600c8dab3079bdbac73f5d71577edb32b06fb207c1909a4f47ca1c490b01c280",
+        "generated\\jp_interaction.v": "39223e59a53a700e36c6e08f63b280889c3e25aef40dce66a063588467ae16e1",
+        "generated\\jp_level_script.v": "d23a455f0f5fa620c4edf6ca7bc053931118c9fef130240eb78a01c27ddf04f6",
+        "generated\\jp_level_update.v": "9ad1de70b261354cd3a9c598b3a7a0096eaa854575121159be9b7e6ecfd53b54",
+        "generated\\jp_macro_special_objects.v": "531ae86d804f2f25d80ea065b03dc6870ddba19513b6d39b189acf3d6656fadf",
+        "generated\\jp_mario.v": "6eae1a48bc0eb232f8a30a4d1089989d571418f34061f74e9a39a02d77922271",
+        "generated\\jp_mario_actions_airborne.v": "15baaa2ee897d1ed5af963e4b2dac8eaaf1cfe8176b7a0dbeb6036b4ca5b06e4",
+        "generated\\jp_mario_actions_automatic.v": "9c2ef7d849578a756c588b4649224aaca00405c59747b3efc36b216f797ce10c",
+        "generated\\jp_mario_actions_cutscene.v": "6a8a49283200ef88bf9a1845cec0e581aee55aef63fc1a2c3cb37cb0f92f9bef",
+        "generated\\jp_mario_actions_moving.v": "be1314c3ff8ea5ab33015e20a20344e7360d7b44533ba059d5c2b5b35d9084a7",
+        "generated\\jp_mario_actions_object.v": "907b27aba66715d895bcaf42e782ece53f244dcb8993091ab3e41fcd5844bbde",
+        "generated\\jp_mario_actions_stationary.v": "1e017d6778ced8f92e9519540ab6b05805bf459debadd00337e280249d129ce7",
+        "generated\\jp_mario_actions_submerged.v": "c7d746b91078b9b9fee62c472a0addc3d41b2480a4f87fab6e9d1be2a447489e",
+        "generated\\jp_mario_misc.v": "beea6fd7eb9c694b6053c5fb679edc12085e1de13d1669235615cbf3e58aae91",
+        "generated\\jp_mario_step.v": "6f54f2a9bbe4c39701aa39fd2350471bd52be704eda1db8f31edd7093a6a7854",
+        "generated\\jp_math_util.v": "35c03102cfeffb38dcde18c03b24cb8ebc854e4f85aad001c3fa0b7f09309859",
+        "generated\\jp_memory.v": "cdf8a03676021dd2a6aed24aeecada2a68c5d23aebce372017e00b5c5ea821e5",
+        "generated\\jp_obj_behaviors.v": "0947fe627c4854c49a19780a62624da9c77c00b22403bb98f116e210e1fcffa3",
+        "generated\\jp_obj_behaviors_2.v": "652e56988c836f394a348a882ae4cb03dbe4fb91417517dd225166fcfa61d489",
+        "generated\\jp_object_collision.v": "39ef3070008ab2f4a5e057456e148e3063a4fd0e2ddb441a7f1dcc7e0ff38f70",
+        "generated\\jp_object_helpers.v": "982b494d1a975d14851cbf6e6bdcea3c162764d104ecc477550f3b81fdcf917b",
+        "generated\\jp_object_list_processor.v": "570d7ed062b261fb59db6a851b7ac995d7c81c519b5f414f3e2bbcc2c13253e8",
+        "generated\\jp_platform_displacement.v": "9ecefdb3f9bf54747ee79e607bc671b94a9ee9bd9428d5014b6130a1a3116280",
+        "generated\\jp_rendering_graph_node.v": "31272c000aa77c6f6f1302c2f43189731992e3a7735f9662108637ad84a601b5",
+        "generated\\jp_save_file.v": "5f493030f5b6af2a14c7a84ef61a2501455c439d13824fa5a781faafb6d011a0",
+        "generated\\jp_spawn_object.v": "26a16b2dc509514c1bc228c25ed4c210a61e6a1e6f6e561d7261f958effe9ed3",
+        "generated\\jp_ssl_area1_macro.v": "7ccbab0f93efa245d4a11e0d43bebcc3befa123fe1d96f334ab4ce1d88d5a4ca",
+        "generated\\jp_ssl_area2_macro.v": "cf6ef9efc0c4e070926372ecab90ce82ded38b6ca36bff7300b92bad17a991ce",
+        "generated\\jp_ssl_collision.v": "c9a5b87b6f500adc325a5cfe917f1879474423837e0332518f7beeae6b6cf87d",
+        "generated\\jp_ssl_script.v": "067e1e7c109203c55c24a67776fef993d7acbb835f4e64b0d41db825def6958d",
+        "generated\\jp_surface_collision.v": "1475bf6d73fcbe1f64dddb1d4525b8d3e5899c920f46a46ccf892cd1aedb8ae0",
+        "generated\\jp_surface_load.v": "57ac72f6ce83e4bb1a74fbe239315136f903891c22c7300de8951573e72ebe51",
+        "generated\\runtime\\jp_audio_external.v": "464d1e2468d7cbd5cb01f9b815114ba5f27e9eac2cbf7a61ac45df8861ab3001",
+        "build\\rank1-backward-search\\supplemental-generated\\jp_camera.v": "bb2ebd4d218fce91e9310375dd792c76e342089ea9b845ebe3ed3965b99d9637",
+        "build\\rank1-backward-search\\supplemental-generated\\jp_goddard_renderer.v": "92aa0cdef6822b2e77857465d2abb38efaa9d7ecb4fa6aea152ab4041fb38ea9",
+        "build\\rank1-backward-search\\supplemental-generated\\jp_goddard_sfx.v": "d0d1e13ff65be0b80ad644dba44087d9abdb3b03f358b0902465eefd14adc9e9",
+        "build\\rank1-backward-search\\supplemental-generated\\jp_hud.v": "84c216d55178bab74a2c31a601d2b608c7b28982fe48d344237d07c41d2b1b07",
+        "build\\rank1-backward-search\\supplemental-generated\\jp_ingame_menu.v": "d48d16d803fb9889e9cf40c1f87de90753ed6322883ea31a4ad81f9b39bab7f8",
+        "build\\rank1-backward-search\\supplemental-generated\\jp_main.v": "435d1156678a1d1a951827199a0bbc63f6e6aa88f506e66a5ef6d44c2ceaf30b",
+        "build\\rank1-backward-search\\supplemental-generated\\jp_menu_file_select.v": "716c18141de271e46636fa4fc9ad3a4856887f07dc6a99eeb94908b93efe4e49",
+        "build\\rank1-backward-search\\supplemental-generated\\jp_menu_star_select.v": "68dd7fbff0306cc0cbd04635b11f6481fd3b3a21c10d934d497058d2f8fc7550",
+        "build\\rank1-backward-search\\supplemental-generated\\jp_os_controller_read.v": "5036ffa221de41c513cd15500429a03b9b4b052b31adbc2438be81c9bf7cddeb",
+        "build\\rank1-backward-search\\supplemental-generated\\jp_os_create_message_queue.v": "f8c0644326180e2cbe086691b839867b151c51c90abaaf7be070303a0d2287a9",
+        "build\\rank1-backward-search\\supplemental-generated\\jp_os_receive_message.v": "462e2f56500744416a98c6ba48544d49808fc06f887b84e2a247d2735f743a76",
+        "build\\rank1-backward-search\\supplemental-generated\\jp_os_send_message.v": "e02f989fead6d04fd1eed6c89786807ef8c93fe5e99e77276a14aa4ef754c0aa",
+        "build\\rank1-backward-search\\supplemental-generated\\jp_os_si_access.v": "c57a457861bc3341bd84589872bb0d66bc7d3aa3c89b701bcf1d61a525cc2bea",
+        "build\\rank1-backward-search\\supplemental-generated\\jp_os_time.v": "18df8eb08889f763e41467376cec2a0edd2cbec98341fc349f9b586719a0ba70",
+        "build\\rank1-backward-search\\supplemental-generated\\jp_print.v": "0baff6c1bde30a45756e53087fc0049d15b64c4dc65c5be361370a3c23ebf772",
+        "build\\rank1-backward-search\\supplemental-generated\\jp_profiler.v": "2543e84a71401da440540fc5ad596bb06bdea6a27e776e375b8753853f2dd196",
+        "build\\rank1-backward-search\\supplemental-generated\\jp_sound_init.v": "897ceb9af08349744ac97dea6e912009329b0ec3027c9bef6d64da24b7c48da3",
+        "build\\rank1-backward-search\\supplemental-generated\\jp_spawn_sound.v": "f6a9567b1ed7bf06cf258938e4fbdcc6bf70e81d4d226fcd050a4cd5c470c5fb"
+      },
+      "frontier": [
+        {
+          "callee": "__builtin_eieio",
+          "sites": 4
+        },
+        {
+          "callee": "__builtin_isync",
+          "sites": 4
+        },
+        {
+          "callee": "__builtin_lwsync",
+          "sites": 4
+        },
+        {
+          "callee": "__builtin_membar",
+          "sites": 4
+        },
+        {
+          "callee": "__builtin_nop",
+          "sites": 4
+        },
+        {
+          "callee": "__builtin_sync",
+          "sites": 4
+        },
+        {
+          "callee": "__builtin_trap",
+          "sites": 4
+        },
+        {
+          "callee": "__builtin_unreachable",
+          "sites": 4
+        },
+        {
+          "callee": "__osDisableInt",
+          "sites": 4
+        },
+        {
+          "callee": "__osEnqueueAndYield",
+          "sites": 2
+        },
+        {
+          "callee": "__osPopThread",
+          "sites": 2
+        },
+        {
+          "callee": "__osRestoreInt",
+          "sites": 5
+        },
+        {
+          "callee": "__osSiRawStartDma",
+          "sites": 2
+        },
+        {
+          "callee": "activate_timing",
+          "sites": 5
+        },
+        {
+          "callee": "addto_group",
+          "sites": 1
+        },
+        {
+          "callee": "apply_to_obj_types_in_group",
+          "sites": 4
+        },
+        {
+          "callee": "audio_init",
+          "sites": 4
+        },
+        {
+          "callee": "audio_reset_session",
+          "sites": 1
+        },
+        {
+          "callee": "bcopy",
+          "sites": 7
+        },
+        {
+          "callee": "bzero",
+          "sites": 5
+        },
+        {
+          "callee": "create_shadow_below_xyz",
+          "sites": 1
+        },
+        {
+          "callee": "d_add_valptr",
+          "sites": 8
+        },
+        {
+          "callee": "d_end_group",
+          "sites": 2
+        },
+        {
+          "callee": "d_makeobj",
+          "sites": 9
+        },
+        {
+          "callee": "d_set_init_pos",
+          "sites": 1
+        },
+        {
+          "callee": "d_set_obj_draw_flag",
+          "sites": 7
+        },
+        {
+          "callee": "d_set_parm_f",
+          "sites": 14
+        },
+        {
+          "callee": "d_set_parm_ptr",
+          "sites": 1
+        },
+        {
+          "callee": "d_set_rel_pos",
+          "sites": 1
+        },
+        {
+          "callee": "d_set_scale",
+          "sites": 7
+        },
+        {
+          "callee": "d_set_shapeptrptr",
+          "sites": 1
+        },
+        {
+          "callee": "d_set_type",
+          "sites": 8
+        },
+        {
+          "callee": "d_set_world_pos",
+          "sites": 7
+        },
+        {
+          "callee": "d_start_group",
+          "sites": 2
+        },
+        {
+          "callee": "d_use_obj",
+          "sites": 9
+        },
+        {
+          "callee": "deactivate_timing",
+          "sites": 5
+        },
+        {
+          "callee": "decompress",
+          "sites": 2
+        },
+        {
+          "callee": "decrease_sample_dma_ttls",
+          "sites": 4
+        },
+        {
+          "callee": "fatal_printf",
+          "sites": 10
+        },
+        {
+          "callee": "gd_add_mem_to_heap",
+          "sites": 2
+        },
+        {
+          "callee": "gd_get_colour",
+          "sites": 1
+        },
+        {
+          "callee": "gd_printf",
+          "sites": 8
+        },
+        {
+          "callee": "gd_request_mem",
+          "sites": 1
+        },
+        {
+          "callee": "gd_set_identity_mat4",
+          "sites": 1
+        },
+        {
+          "callee": "get_scaled_timer_total",
+          "sites": 4
+        },
+        {
+          "callee": "get_timernum",
+          "sites": 1
+        },
+        {
+          "callee": "guMtxF2L",
+          "sites": 1
+        },
+        {
+          "callee": "guOrtho",
+          "sites": 3
+        },
+        {
+          "callee": "guPerspective",
+          "sites": 1
+        },
+        {
+          "callee": "guRotate",
+          "sites": 1
+        },
+        {
+          "callee": "guScale",
+          "sites": 1
+        },
+        {
+          "callee": "guTranslate",
+          "sites": 2
+        },
+        {
+          "callee": "imin",
+          "sites": 4
+        },
+        {
+          "callee": "imout",
+          "sites": 8
+        },
+        {
+          "callee": "init_mem_block_lists",
+          "sites": 5
+        },
+        {
+          "callee": "load_mario_head",
+          "sites": 2
+        },
+        {
+          "callee": "load_sequence",
+          "sites": 1
+        },
+        {
+          "callee": "load_shapes2",
+          "sites": 5
+        },
+        {
+          "callee": "make_group",
+          "sites": 1
+        },
+        {
+          "callee": "make_shape",
+          "sites": 5
+        },
+        {
+          "callee": "make_view",
+          "sites": 4
+        },
+        {
+          "callee": "mem_stats",
+          "sites": 7
+        },
+        {
+          "callee": "nop_change_course",
+          "sites": 5
+        },
+        {
+          "callee": "null_obj_lists",
+          "sites": 5
+        },
+        {
+          "callee": "osContInit",
+          "sites": 2
+        },
+        {
+          "callee": "osCreateThread",
+          "sites": 1
+        },
+        {
+          "callee": "osEepromLongRead",
+          "sites": 1
+        },
+        {
+          "callee": "osEepromLongWrite",
+          "sites": 1
+        },
+        {
+          "callee": "osEepromProbe",
+          "sites": 1
+        },
+        {
+          "callee": "osGetCount",
+          "sites": 1
+        },
+        {
+          "callee": "osInitialize",
+          "sites": 5
+        },
+        {
+          "callee": "osInvalDCache",
+          "sites": 3
+        },
+        {
+          "callee": "osInvalICache",
+          "sites": 2
+        },
+        {
+          "callee": "osMapTLB",
+          "sites": 1
+        },
+        {
+          "callee": "osPiStartDma",
+          "sites": 1
+        },
+        {
+          "callee": "osSetEventMesg",
+          "sites": 5
+        },
+        {
+          "callee": "osSetTime",
+          "sites": 1
+        },
+        {
+          "callee": "osSpTaskLoad",
+          "sites": 1
+        },
+        {
+          "callee": "osSpTaskStartGo",
+          "sites": 1
+        },
+        {
+          "callee": "osSpTaskYield",
+          "sites": 5
+        },
+        {
+          "callee": "osSpTaskYielded",
+          "sites": 1
+        },
+        {
+          "callee": "osStartThread",
+          "sites": 3
+        },
+        {
+          "callee": "osUnmapTLBAll",
+          "sites": 5
+        },
+        {
+          "callee": "osViBlack",
+          "sites": 1
+        },
+        {
+          "callee": "osVirtualToPhysical",
+          "sites": 12
+        },
+        {
+          "callee": "osViSetEvent",
+          "sites": 1
+        },
+        {
+          "callee": "osViSetSpecialFeatures",
+          "sites": 2
+        },
+        {
+          "callee": "osViSwapBuffer",
+          "sites": 2
+        },
+        {
+          "callee": "osWritebackDCacheAll",
+          "sites": 9
+        },
+        {
+          "callee": "preload_sequence",
+          "sites": 3
+        },
+        {
+          "callee": "print_all_memtrackers",
+          "sites": 7
+        },
+        {
+          "callee": "print_all_timers",
+          "sites": 5
+        },
+        {
+          "callee": "process_geo_layout",
+          "sites": 2
+        },
+        {
+          "callee": "remove_all_memtrackers",
+          "sites": 5
+        },
+        {
+          "callee": "remove_all_timers",
+          "sites": 5
+        },
+        {
+          "callee": "render_screen_transition",
+          "sites": 1
+        },
+        {
+          "callee": "reset_nets_and_gadgets",
+          "sites": 2
+        },
+        {
+          "callee": "restart_timer",
+          "sites": 2
+        },
+        {
+          "callee": "sequence_player_disable",
+          "sites": 1
+        },
+        {
+          "callee": "split_timer",
+          "sites": 3
+        },
+        {
+          "callee": "sprintf",
+          "sites": 2
+        },
+        {
+          "callee": "sqrtf",
+          "sites": 74
+        },
+        {
+          "callee": "start_memtracker",
+          "sites": 4
+        },
+        {
+          "callee": "start_timer",
+          "sites": 17
+        },
+        {
+          "callee": "stop_memtracker",
+          "sites": 3
+        },
+        {
+          "callee": "stop_timer",
+          "sites": 16
+        }
+      ]
+    },
+    "us": {
+      "status": "unresolved-unknown",
+      "solverResult": "unknown",
+      "solverReason": "timeout",
+      "formulaBuilt": true,
+      "seconds": 262.33585049999965,
+      "sourceBodyDefinitions": 3346,
+      "pendingSourceBodyDefinitions": 0,
+      "unansweredCallSites": 473,
+      "unansweredCallees": 107,
+      "visitedStatements": 92993,
+      "sharedContinuations": 14444,
+      "peakWorkingSetBytes": 1709654016,
+      "globalReservations": 1324,
+      "unknownGlobalExtents": 69,
+      "rawReport": "build/rank1-backward-search/endpoint-one-20260927-k/us.json",
+      "rawReportSHA256": "cfa8cf2a487aeba5ff11acf3f66594b4dd6713ae68c00ea20b5904be526cfaf2",
+      "rootSource": "45cbdff650a356c359f172942f89e582426d70e0567099e7b90ce859334e5890",
+      "implementationHashes": {
+        "endpoint_update.py": "00ce64ab915b6c2ea550dbeaf427e56b04eed69ae03815de0d56e8e6fc474b6c",
+        "checkpoint_graph.py": "d80c1ccd049941a4d45837b030d95a85f9eca49cdd61470e45438c7ade0687eb",
+        "hybrid_engine.py": "3d108f31dc552852589eff07654dcbaf3ff296adba07f6973eaeab3d6e934ee9",
+        "horizon_engine.py": "593b6d55b4d7f3dc27ae9352f70051a20861105514e34fc2ba783ec265769319",
+        "relational_engine.py": "2e900102589d3dac81c01b505fc59d16eb31cf4a113918f674cfcf3201269081",
+        "loop_engine.py": "a52a7c1b6904d55b651ef9eff572189162ae60d61adb022e940d943925597c7d",
+        "engine.py": "3ac646352227447ff0154c46aa75ff2d2bd83dcd6e5ad44121f8a1de16407658",
+        "clight.py": "1863437315b615a5f46669dc34ffa891d51795445d8468ac680e20bfa3c8cb32",
+        "program_image.py": "6ac5fe85291000ff08155fff154dd719ecd0683282828cb4cf109ac2ce638721",
+        "global_storage.py": "fc131a38beb05462d2d5d1b21dcbc92b467b38b098f61f116930a96dfcd8eb02"
+      },
+      "sourceUnits": {
+        "generated\\runtime\\us_audio_external.v": "303a9482a732f119d20682630cebdc8fdd9c61b35164c23e51745c56c13d07ab",
+        "generated\\us_area.v": "3a3ae2e9cd8f237b5531b7733c1b366655826fbd24c671aebac33f8cd90f3c13",
+        "generated\\us_behavior_actions.v": "0b9a3b8feafa5957ecd5f346fd28549546689e0fdec698b63206c8646a717a72",
+        "generated\\us_behavior_data.v": "841832a71bc4b415b5b281f899eaf01803290a615914d820684057b376eb7e49",
+        "generated\\us_behavior_script.v": "a5c57f15e073e761f114df0ba9f91f85799ca85429a754ab10231967c1154a61",
+        "generated\\us_debug.v": "ae198d1c698ebea3a580fc47ecd218fd64b8d570d4285ec30183b999af90eb7f",
+        "generated\\us_game_init.v": "e8a3799a78c75378a39395052f7c12fc69d5b001c5cc447bb93830b91e7cc0a1",
+        "generated\\us_graph_node.v": "3f1b17a79c8ed153a0cf5995897e0a720751f67437498902cf441f2d08719cdd",
+        "generated\\us_interaction.v": "667179fdc995a6d43e364af44b91bbbc04806a752286788cd3ce3bae4d5d6be1",
+        "generated\\us_level_script.v": "2fba273edc6a2b670a283bd12ec878823fe327ad202f68deebc4347b19235e63",
+        "generated\\us_level_update.v": "ecf29c79739af939290e9bb2bdef1a7374e928c07991b152337a41108b334d08",
+        "generated\\us_macro_special_objects.v": "3ba16a8a275ead034ac89e772e318a9d92a18b5c2dbb1a75bfa796cd4541b7b0",
+        "generated\\us_mario.v": "9219c324571bede4ec6913a6c000c9a4ec41f9328e614d14967870f02af44dcf",
+        "generated\\us_mario_actions_airborne.v": "d1b60941e380695b229ab67a7cdaa764f486decb01fcb015eed6b15e5aabf6a0",
+        "generated\\us_mario_actions_automatic.v": "01b6cd75c95bd4d49270618e8d1a82302901f9f66f9bf8c789c59b4f03e5673b",
+        "generated\\us_mario_actions_cutscene.v": "ea98a4a6069dc429904a3fd302c9a1df46b99f64fbc69e143015358e83db00a0",
+        "generated\\us_mario_actions_moving.v": "d447fc51ac385c75eb1d4f1b5a38c96dcedaef825e75b7c9e322a1fbb428aa7a",
+        "generated\\us_mario_actions_object.v": "f9a4de766c794c86b8218e17939ef399c089226ca4dca769c6521f037299d8c8",
+        "generated\\us_mario_actions_stationary.v": "173c72e2f33aa964eefcd7c96dc03a4ec15e7157731c0c5f211e500fcd5e744c",
+        "generated\\us_mario_actions_submerged.v": "dc35146c86e5bff9c71a83a8c77e526728084e52ee6d3051c7fee5bde66226b3",
+        "generated\\us_mario_misc.v": "762a2c166686a87e90d11baa0e4f344e8387861869b11bd70333078e44beaf44",
+        "generated\\us_mario_step.v": "62d19876316049737f0eea01397edd361ddc6bc39954f21adf12a58b1a9d6639",
+        "generated\\us_math_util.v": "b4f4ec618a96c25b74a9eeb2a1f9583f71dd2e541db594c16797b7de85db3994",
+        "generated\\us_memory.v": "f29459b2a85d485abb5baf9c1af825ccfca35e745d03a7e390945ed50fd60794",
+        "generated\\us_obj_behaviors.v": "4e75afca706cc874df72fae9c56d6dc41e23265a7522bef957dc2aae434dcd8f",
+        "generated\\us_obj_behaviors_2.v": "800d3af312fc5f41dec5dd83ed5230f4b4bb539d2468994b90fba88259b4e32b",
+        "generated\\us_object_collision.v": "c8b0a3dcf484f8d5d38b91f7150c88895dce89028999d30eb3b14d5afb4f7095",
+        "generated\\us_object_helpers.v": "4f9dbf942d76584e2e2bc3e348db473940cf4c1cb78a7c465dcfd704e8ea32e0",
+        "generated\\us_object_list_processor.v": "1294308f49443b2a58148c6b5746450b8043a20e007808fb8d2357e636379c95",
+        "generated\\us_platform_displacement.v": "8bf09b0faa4e1abdd1aede8c5b650d2293ab42211b02ecd0bcf6a1aeb6a1ef02",
+        "generated\\us_rendering_graph_node.v": "334c406634eff8641477cba4ca87c1f45c6de24516e5be9342f8b75a7c25d051",
+        "generated\\us_save_file.v": "7a8e6b068ef99500eb369724ea2141c6028d781a7cba3f63ce7b56d047c41aba",
+        "generated\\us_spawn_object.v": "f1c010528e5689a6a131d94cab0115a235c5505b1b1366b0793be2e1e556dffa",
+        "generated\\us_ssl_area1_macro.v": "6c05ca28654dd17dcd91522baa268d952b1fa56b2afa8b0ea0c7663651296560",
+        "generated\\us_ssl_area2_macro.v": "bb653c7899e48424406841473850e04840f60d1ccad7db11654b1c74a4a795ed",
+        "generated\\us_ssl_collision.v": "9c0e55da25d7e9ed9b59af973757ef4ab57cac9e6bf4256bc6c9bf223211b1cf",
+        "generated\\us_ssl_script.v": "fa1feb299d67cc0a0b2f3e2b5d9b42f1e3f11fb22cd4271ea113aeccd9340f80",
+        "generated\\us_surface_collision.v": "65c2e4aa940e5f615fe48f35f459dd9d2c248fc035ff138c5ee160f51e863099",
+        "generated\\us_surface_load.v": "c116e48db48f7d9353512376d32074aaec7f5f24075393fd1dec8b600d535cb8",
+        "build\\rank1-backward-search\\supplemental-generated\\us_camera.v": "b1816bccc85e2a897c3f6847eb066b2bf584f76bc20e9c19c4395d12d8685b94",
+        "build\\rank1-backward-search\\supplemental-generated\\us_goddard_renderer.v": "345010390d7132bda9a674f9c391e9976eb237142586725be280b73b2bcb3288",
+        "build\\rank1-backward-search\\supplemental-generated\\us_goddard_sfx.v": "b5cd9ada6127331fda2de797b8e5f756ad4182af71d2643b5c3d008657561d1e",
+        "build\\rank1-backward-search\\supplemental-generated\\us_hud.v": "986b9433c1768ad0878c05ce45def49e95fd20fa96ee8b8d50fdec47ba7e52a4",
+        "build\\rank1-backward-search\\supplemental-generated\\us_ingame_menu.v": "1dcdcbea779563f0c293620c01ed579c6220f1bc39fd6e4dfef1888e50db2d44",
+        "build\\rank1-backward-search\\supplemental-generated\\us_main.v": "6bf224094801ef66bf9f2acb4954a1371f7fee027bc6a478e25d1b70ff653266",
+        "build\\rank1-backward-search\\supplemental-generated\\us_menu_file_select.v": "634957acdc69ed7496d5c136728b2aa9f37028417a6984be0af221c3558e2e8e",
+        "build\\rank1-backward-search\\supplemental-generated\\us_menu_star_select.v": "272b7243b9252b9af472c2bbe6ed0cb57d5aa2e7d28f857bdba2f983a6419124",
+        "build\\rank1-backward-search\\supplemental-generated\\us_os_controller_read.v": "70ef79c6ce49d4ef72c8152f582e18b3d4c38fb8ea6dbacb3e6d08899ce52a66",
+        "build\\rank1-backward-search\\supplemental-generated\\us_os_create_message_queue.v": "66d491811fe26ecdecfa5ba94859199b210e3465561458c5968640c9fa452ef5",
+        "build\\rank1-backward-search\\supplemental-generated\\us_os_receive_message.v": "02e3801c3a161dda87760fbc7811ad7cc5885d109736477a081334fad389d969",
+        "build\\rank1-backward-search\\supplemental-generated\\us_os_send_message.v": "76fec6bcb964fc6a29c41ecd3754da4219ac604a87632592eb287dd6d3c20c3e",
+        "build\\rank1-backward-search\\supplemental-generated\\us_os_si_access.v": "b9bf3d1c8e48c94db000d7f6e4bd7c7c8322a3071bcfb95cf2f9558f4604e535",
+        "build\\rank1-backward-search\\supplemental-generated\\us_os_time.v": "448f7d3a9bf72eba7765f091f7190d2e42cc8cca59d97d8545cf12392f847bbb",
+        "build\\rank1-backward-search\\supplemental-generated\\us_print.v": "68fcb4f8651daa471198f41a565448e5269be3188b85cc2ed3a8742e8f1a9b2e",
+        "build\\rank1-backward-search\\supplemental-generated\\us_profiler.v": "f75e63f5688ec0450b95d574a7b411e5787d46ba6242bffd26e132497d4c176d",
+        "build\\rank1-backward-search\\supplemental-generated\\us_sound_init.v": "3a04fc8c4c1da22f338581cd91b833a6ac867f82a3e474e28e0035aa191ba4a5",
+        "build\\rank1-backward-search\\supplemental-generated\\us_spawn_sound.v": "9ae3d3c42ce8d48e34fdfd8488441b0c04ddf6a9e10ec1b5f171d9c8d1d570db"
+      },
+      "frontier": [
+        {
+          "callee": "__builtin_eieio",
+          "sites": 4
+        },
+        {
+          "callee": "__builtin_isync",
+          "sites": 4
+        },
+        {
+          "callee": "__builtin_lwsync",
+          "sites": 4
+        },
+        {
+          "callee": "__builtin_membar",
+          "sites": 4
+        },
+        {
+          "callee": "__builtin_nop",
+          "sites": 4
+        },
+        {
+          "callee": "__builtin_sync",
+          "sites": 4
+        },
+        {
+          "callee": "__builtin_trap",
+          "sites": 4
+        },
+        {
+          "callee": "__builtin_unreachable",
+          "sites": 4
+        },
+        {
+          "callee": "__osDisableInt",
+          "sites": 4
+        },
+        {
+          "callee": "__osEnqueueAndYield",
+          "sites": 2
+        },
+        {
+          "callee": "__osPopThread",
+          "sites": 2
+        },
+        {
+          "callee": "__osRestoreInt",
+          "sites": 5
+        },
+        {
+          "callee": "__osSiRawStartDma",
+          "sites": 2
+        },
+        {
+          "callee": "activate_timing",
+          "sites": 5
+        },
+        {
+          "callee": "addto_group",
+          "sites": 1
+        },
+        {
+          "callee": "apply_to_obj_types_in_group",
+          "sites": 4
+        },
+        {
+          "callee": "audio_init",
+          "sites": 4
+        },
+        {
+          "callee": "audio_reset_session",
+          "sites": 1
+        },
+        {
+          "callee": "bcopy",
+          "sites": 7
+        },
+        {
+          "callee": "bzero",
+          "sites": 5
+        },
+        {
+          "callee": "create_shadow_below_xyz",
+          "sites": 1
+        },
+        {
+          "callee": "d_add_valptr",
+          "sites": 8
+        },
+        {
+          "callee": "d_end_group",
+          "sites": 2
+        },
+        {
+          "callee": "d_makeobj",
+          "sites": 9
+        },
+        {
+          "callee": "d_set_init_pos",
+          "sites": 1
+        },
+        {
+          "callee": "d_set_obj_draw_flag",
+          "sites": 7
+        },
+        {
+          "callee": "d_set_parm_f",
+          "sites": 14
+        },
+        {
+          "callee": "d_set_parm_ptr",
+          "sites": 1
+        },
+        {
+          "callee": "d_set_rel_pos",
+          "sites": 1
+        },
+        {
+          "callee": "d_set_scale",
+          "sites": 7
+        },
+        {
+          "callee": "d_set_shapeptrptr",
+          "sites": 1
+        },
+        {
+          "callee": "d_set_type",
+          "sites": 8
+        },
+        {
+          "callee": "d_set_world_pos",
+          "sites": 7
+        },
+        {
+          "callee": "d_start_group",
+          "sites": 2
+        },
+        {
+          "callee": "d_use_obj",
+          "sites": 9
+        },
+        {
+          "callee": "deactivate_timing",
+          "sites": 5
+        },
+        {
+          "callee": "decompress",
+          "sites": 2
+        },
+        {
+          "callee": "decrease_sample_dma_ttls",
+          "sites": 4
+        },
+        {
+          "callee": "fatal_printf",
+          "sites": 10
+        },
+        {
+          "callee": "gd_add_mem_to_heap",
+          "sites": 2
+        },
+        {
+          "callee": "gd_get_colour",
+          "sites": 1
+        },
+        {
+          "callee": "gd_printf",
+          "sites": 8
+        },
+        {
+          "callee": "gd_request_mem",
+          "sites": 1
+        },
+        {
+          "callee": "gd_set_identity_mat4",
+          "sites": 1
+        },
+        {
+          "callee": "get_scaled_timer_total",
+          "sites": 4
+        },
+        {
+          "callee": "get_timernum",
+          "sites": 1
+        },
+        {
+          "callee": "guLookAtReflect",
+          "sites": 1
+        },
+        {
+          "callee": "guMtxF2L",
+          "sites": 1
+        },
+        {
+          "callee": "guOrtho",
+          "sites": 3
+        },
+        {
+          "callee": "guPerspective",
+          "sites": 1
+        },
+        {
+          "callee": "guRotate",
+          "sites": 1
+        },
+        {
+          "callee": "guScale",
+          "sites": 1
+        },
+        {
+          "callee": "guTranslate",
+          "sites": 2
+        },
+        {
+          "callee": "imin",
+          "sites": 4
+        },
+        {
+          "callee": "imout",
+          "sites": 8
+        },
+        {
+          "callee": "init_mem_block_lists",
+          "sites": 5
+        },
+        {
+          "callee": "load_mario_head",
+          "sites": 2
+        },
+        {
+          "callee": "load_sequence",
+          "sites": 1
+        },
+        {
+          "callee": "load_shapes2",
+          "sites": 5
+        },
+        {
+          "callee": "make_group",
+          "sites": 1
+        },
+        {
+          "callee": "make_shape",
+          "sites": 5
+        },
+        {
+          "callee": "make_view",
+          "sites": 4
+        },
+        {
+          "callee": "mem_stats",
+          "sites": 7
+        },
+        {
+          "callee": "nop_change_course",
+          "sites": 5
+        },
+        {
+          "callee": "null_obj_lists",
+          "sites": 5
+        },
+        {
+          "callee": "osContInit",
+          "sites": 2
+        },
+        {
+          "callee": "osCreateThread",
+          "sites": 1
+        },
+        {
+          "callee": "osEepromLongRead",
+          "sites": 1
+        },
+        {
+          "callee": "osEepromLongWrite",
+          "sites": 1
+        },
+        {
+          "callee": "osEepromProbe",
+          "sites": 1
+        },
+        {
+          "callee": "osGetCount",
+          "sites": 1
+        },
+        {
+          "callee": "osInitialize",
+          "sites": 5
+        },
+        {
+          "callee": "osInvalDCache",
+          "sites": 3
+        },
+        {
+          "callee": "osInvalICache",
+          "sites": 2
+        },
+        {
+          "callee": "osMapTLB",
+          "sites": 1
+        },
+        {
+          "callee": "osPiStartDma",
+          "sites": 1
+        },
+        {
+          "callee": "osSetEventMesg",
+          "sites": 5
+        },
+        {
+          "callee": "osSetTime",
+          "sites": 1
+        },
+        {
+          "callee": "osSpTaskLoad",
+          "sites": 1
+        },
+        {
+          "callee": "osSpTaskStartGo",
+          "sites": 1
+        },
+        {
+          "callee": "osSpTaskYield",
+          "sites": 5
+        },
+        {
+          "callee": "osSpTaskYielded",
+          "sites": 1
+        },
+        {
+          "callee": "osStartThread",
+          "sites": 3
+        },
+        {
+          "callee": "osUnmapTLBAll",
+          "sites": 5
+        },
+        {
+          "callee": "osViBlack",
+          "sites": 1
+        },
+        {
+          "callee": "osVirtualToPhysical",
+          "sites": 12
+        },
+        {
+          "callee": "osViSetEvent",
+          "sites": 1
+        },
+        {
+          "callee": "osViSetSpecialFeatures",
+          "sites": 2
+        },
+        {
+          "callee": "osViSwapBuffer",
+          "sites": 2
+        },
+        {
+          "callee": "osWritebackDCacheAll",
+          "sites": 9
+        },
+        {
+          "callee": "preload_sequence",
+          "sites": 3
+        },
+        {
+          "callee": "print_all_memtrackers",
+          "sites": 7
+        },
+        {
+          "callee": "print_all_timers",
+          "sites": 5
+        },
+        {
+          "callee": "process_geo_layout",
+          "sites": 2
+        },
+        {
+          "callee": "remove_all_memtrackers",
+          "sites": 5
+        },
+        {
+          "callee": "remove_all_timers",
+          "sites": 5
+        },
+        {
+          "callee": "render_screen_transition",
+          "sites": 1
+        },
+        {
+          "callee": "reset_nets_and_gadgets",
+          "sites": 2
+        },
+        {
+          "callee": "restart_timer",
+          "sites": 2
+        },
+        {
+          "callee": "sequence_player_disable",
+          "sites": 1
+        },
+        {
+          "callee": "split_timer",
+          "sites": 3
+        },
+        {
+          "callee": "sprintf",
+          "sites": 2
+        },
+        {
+          "callee": "sqrtf",
+          "sites": 74
+        },
+        {
+          "callee": "start_memtracker",
+          "sites": 4
+        },
+        {
+          "callee": "start_timer",
+          "sites": 17
+        },
+        {
+          "callee": "stop_memtracker",
+          "sites": 3
+        },
+        {
+          "callee": "stop_timer",
+          "sites": 16
+        }
+      ]
+    }
+  },
+  "testLogSHA256": "9790944300704d82661681cc6e386cca9fdf5abd81cfb840101d14721944b09e"
+}

@@ -1,6 +1,13 @@
 # Verification checklist
 
-Current decision: the [controller-grounded feedback branch](notes/rank1-candidate-feedback.md) now proposes inputs, replays their complete history in the emulator, matches the reached floor call, and refines the same source-derived target query. Three thirty-update candidates were rejected with 90 matched floor-call replies. This completes that scoped connection, not the exhaustive one-second search or the arbitrary-memory horizon.
+Latest work: the [endpoint-first one-iteration runner](notes/rank1-endpoint-update.md) works backward from top retention with symbolic earlier state, rather than a fixed replay prefix. Both US/JP formulas finish construction and reach the solver; both return unknown after its 30-second limit, with 473/472 unanswered call sites. All 76 application checks pass. Zero complete predecessor updates are certified: runtime effects and the storage/model connection remain open. This batch makes no forward controller trials, changes no Coq result or route verdict, and supplies no longer-horizon price. The older forward-feedback results below keep their narrower scope.
+
+- [x] Repair false checkpoint completion through atomic external calls; retain all compatible callback targets and distinguish control reachability from memory preservation.
+- [x] Link the actual controller/queue/clock/profiler C bodies and check the successful one-controller decoder and queue initializer in US/JP.
+- [x] Repair recursive local storage, forward goto, switch fall-through, mixed-width arithmetic, final-query occurrence scoping and global reservations; use symbolic Object identities rather than isolated-fixture addresses.
+- [ ] Complete the requested one-update predecessor calculation with justified coverage. Source expansion, regression checks and unresolved solver answers do not discharge runtime effects, earlier-state validity or controller reachability. No longer-horizon price follows yet.
+
+Earlier result: the [controller-grounded feedback branch](notes/rank1-candidate-feedback.md) proposes inputs, replays their complete history in the emulator, matches the reached floor call, and refines the same source-derived target query. Three thirty-update candidates were rejected with 90 matched floor-call replies. This completes that scoped connection, not the exhaustive one-second search or the arbitrary-memory horizon.
 
 Clarification: those emulator runs start earlier and run forward. Only the final caller is worked backward; no thirty-update predecessor chain was reconstructed from Ink. The [exhaustive completion criteria](notes/rank1-candidate-feedback.md#what-exhaustive-one-second-coverage-would-require) distinguish every continuation of one fixed prefix from every allowed predecessor of top retention. A complete predecessor step, thirty connected updates, justified grouping and complete accounting of pending alternatives remain required. This clarification adds no search or proof result.
 

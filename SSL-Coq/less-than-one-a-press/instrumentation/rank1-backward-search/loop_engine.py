@@ -219,6 +219,30 @@ class LoopEngine(StrictEngine):
                 if right.size() > width: right=z.Extract(width-1,0,right)
                 if op.tag == 'Oshl': return left << right
                 return z.LShR(left,right) if lt.tag in ('tuint','tulong') else left >> right
+            if (lt.tag in ('tlong','tulong') or rt.tag in ('tlong','tulong')) and lt.tag not in ('tptr','tfloat','tdouble') and rt.tag not in ('tptr','tfloat','tdouble'):
+                # C usual arithmetic conversion: unsigned long long wins;
+                # signed long long represents every 32-bit unsigned value.
+                unsigned='tulong' in (lt.tag,rt.tag)
+                common=Term('tulong' if unsigned else 'tlong')
+                left=self.cast(self.eval(le,scope),lt,common)
+                right=self.cast(self.eval(re,scope),rt,common)
+                if op.tag in ('Odiv','Omod'):
+                    valid=right!=z.BitVecVal(0,64)
+                    if not unsigned:
+                        valid=z.And(valid,z.Not(z.And(left==z.BitVecVal(1<<63,64),right==z.BitVecVal(-1,64))))
+                    self.conversion_guards[-1].append(valid)
+                    if op.tag=='Odiv':return z.UDiv(left,right) if unsigned else left/right
+                    return z.URem(left,right) if unsigned else z.SRem(left,right)
+                operations={'Oadd':lambda a,b:a+b,'Osub':lambda a,b:a-b,'Omul':lambda a,b:a*b,
+                            'Oand':lambda a,b:a&b,'Oor':lambda a,b:a|b,'Oxor':lambda a,b:a^b}
+                if op.tag in operations:return operations[op.tag](left,right)
+                comparisons={'Oeq':lambda a,b:a==b,'One':lambda a,b:a!=b,
+                    'Olt':z.ULT if unsigned else lambda a,b:a<b,
+                    'Ole':z.ULE if unsigned else lambda a,b:a<=b,
+                    'Ogt':z.UGT if unsigned else lambda a,b:a>b,
+                    'Oge':z.UGE if unsigned else lambda a,b:a>=b}
+                if op.tag in comparisons:return z.If(comparisons[op.tag](left,right),word(1),word(0))
+                raise Unsupported('64-bit arithmetic operation '+op.tag)
             if lt.tag in ('tfloat','tdouble') or rt.tag in ('tfloat','tdouble'):
                 dest = Term('tdouble' if 'tdouble' in (lt.tag,rt.tag) else 'tfloat')
                 left = self.cast(self.eval(le,scope),lt,dest)
@@ -288,6 +312,28 @@ class LoopEngine(StrictEngine):
     def traverse(self, statement, normal, scope, returned=None, broken=None, path='body'):
         tag, a = statement.tag, statement.args
         returned = normal if returned is None else returned
+        if tag == 'Sswitch':
+            value=self.eval(a[0],scope)
+            if not z.is_bv(value):
+                raise Unsupported('Non-integer switch selector')
+            labels=[];rest=a[1]
+            while rest.tag=='LScons':
+                label,body,rest=rest.args
+                labels.append((None if label.tag=='None' else int(label.args[0].tag),body))
+            if rest.tag!='LSnil':raise Unsupported('Switch labels')
+            cases=[n for n,_ in labels if n is not None]
+            default=z.And(*[value!=z.BitVecVal(n,value.size()) for n in cases])
+            suffix=normal;result=[]
+            # Each fall-through suffix is built once. Break always exits the
+            # SWITCH to its original continuation, not to the next case.
+            for index in range(len(labels)-1,-1,-1):
+                label,body=labels[index]
+                suffix=self.wp(body,suffix,scope,returned,normal,path+'.case'+str(label))
+                guard=default if label is None else value==z.BitVecVal(label,value.size())
+                result+=self.guard(suffix,guard,'switch-case-'+str(label))
+            if all(n is not None for n,_ in labels):
+                result+=self.guard(normal,default,'switch-no-match')
+            return merge(result)
         if tag == 'Sassign' and a[0].tag == 'Efield':
             base, field, ty = a[0].args
             info = scope.function.unit.bitfield(self.typeof(base),field.tag)

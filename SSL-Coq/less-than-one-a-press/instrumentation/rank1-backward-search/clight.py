@@ -21,6 +21,15 @@ class Term:
         return self.tag if not self.args else '(' + self.tag + ' ' + ' '.join(map(str, self.args)) + ')'
 
 
+def is_variadic(signature):
+    if signature.tag == 'tptr':
+        signature = signature.args[0]
+    if signature.tag != 'Tfunction':
+        return False
+    cc = signature.args[2]
+    return cc.tag == 'CallingConvention' and cc.args[0].tag == 'Some'
+
+
 class Parser:
     def __init__(self, text):
         # Keep an explicit attribute term. Recognizing an unused volatile

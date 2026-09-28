@@ -25,6 +25,8 @@ The [candidate feedback loop](notes/rank1-candidate-feedback.md) now connects pr
 
 ## Purpose and scope
 
+The [endpoint-first one-update attempt](notes/rank1-endpoint-update.md) now works backward from the selected top-retention condition with earlier state left open. Both US/JP source formulas finish construction and reach the solver; both return unknown after its 30-second limit, with 473/472 unanswered call sites in the broad source expansion. All 76 application checks pass. There are zero certified complete predecessor updates: runtime effects and the validity of the represented earlier states still need justification. No forward trials were substituted. This is application work, not an Ink possibility or impossibility proof or a longer-search price; all 45 estimates and Section 01 verdicts remain unchanged.
+
 This document is the readable inventory of ways the project currently knows
 to pursue the two target stars without a new A-button press.  It complements
 the [open checklist](checklist.md): the checklist says what proof obligation is

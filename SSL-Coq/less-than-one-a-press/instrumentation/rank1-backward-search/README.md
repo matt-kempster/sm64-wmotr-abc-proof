@@ -1,6 +1,23 @@
 # Rank 1: bounded backward predecessor search
 
-**Latest:** [candidate feedback](../../docs/notes/rank1-candidate-feedback.md)
+**Endpoint-first runner:** `endpoint_update.py` constructs a predecessor formula from
+the chosen retention event back to the beginning of one original game-loop
+iteration. It uses symbolic earlier memory and object identities, not a saved
+scene or controller prefix. Missing effects and incomplete storage extents stay
+explicit. Its source model is exploratory, not a verified Clight interpreter;
+it does not yet certify complete predecessor coverage. The dedicated report is
+[here](../../docs/notes/rank1-endpoint-update.md).
+
+Reproduce its supplementary original source with
+`bash pipeline/generate-endpoint-clight.sh` in the established WSL toolchain.
+Then run `python instrumentation/rank1-backward-search/endpoint_update.py
+--versions jp us --timeout 600 --output NEW_DIRECTORY` from the SSL project.
+The output directory must be new. Formula construction, solving and unresolved
+calls are reported separately; exit status 2 means coverage is not established.
+Run the application checks with `python -m unittest discover
+-s instrumentation/rank1-backward-search -p 'test_*.py' -v`.
+
+**Earlier forward branch:** [candidate feedback](../../docs/notes/rank1-candidate-feedback.md)
 connects solver-proposed input histories to real JP floor-call occurrences and
 feeds the observations back into the generated final-caller query. Invoke
 `search_updates.py --runtime-feedback --prefix BASELINE/inputs.jsonl --rom ROM
@@ -26,9 +43,9 @@ not composition of thirty updates. Add --program-dispatch, --live-dispatch and
 the supplemental-generated directory to exercise its new callback resolver.
 Both commands return exit status 2 when their requested coverage is incomplete.
 
-**Current follow-up:** `trace_update.py --mario` completes an actual controller/level/Mario/floor path in US and JP and substitutes its effects backward. `trace_engine.py` checks live callback types and ordinary storage accesses. The supplied scene is a regression/conditional predecessor, not a reachable setup or exhaustive predecessor set. See [the complete-path report](../../docs/notes/rank1-complete-update-path.md) for the three supplemental source units, commands, all 36 checks and exact limits. Reverse Scattershot remains deferred.
+**Earlier supplied-scene check:** `trace_update.py --mario` completes an actual controller/level/Mario/floor path in US and JP and substitutes its effects backward. `trace_engine.py` checks live callback types and ordinary storage accesses. The supplied scene is a regression/conditional predecessor, not a reachable setup or exhaustive predecessor set. See [the complete-path report](../../docs/notes/rank1-complete-update-path.md) for the three supplemental source units, commands, all 36 checks and exact limits. Reverse Scattershot remains deferred.
 
-This is the first implementation of the approved backward-search batch. It
+The original `search.py` implementation of the approved backward-search batch
 starts with desired installation conditions and substitutes backward through
 the committed generated US/JP Clight statements. It does not replay an earlier
 state forward and call that a backward search. No emulator, ROM, Wafel library,

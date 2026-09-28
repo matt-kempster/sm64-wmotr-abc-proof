@@ -19,14 +19,39 @@ class HorizonEngine(RelationalEngine):
         kwargs.setdefault('live_dispatch', True)
         kwargs.setdefault('program_dispatch', True)
         self.call_fuel = kwargs.pop('call_fuel',None)
+        self.fresh_call_frames = kwargs.pop('fresh_call_frames',False)
+        self.target_specific_query = kwargs.pop('target_specific_query',False)
+        self.context_parameters = kwargs.pop('context_parameters',[])
         super().__init__(version, **kwargs)
         self.updates = updates
         self.checkpoint = checkpoint or ('update_objects', 'update_mario_platform')
         self.remaining = z.Int(f'{version}.engine.{self.serial}.updates_remaining')
         self.stop_post = None
         self.target = None
-        self.target_floor_call = False
+        self.target_floor_call = z.Bool(f'{version}.engine.{self.serial}.target_floor_call')
         self.horizon_receipts = []
+
+    def prepare_frame(self,scope):
+        if not self.fresh_call_frames or hasattr(scope,'frame_base'):
+            return
+        scope.frame_base=z.BitVec(scope.name+'.frame_base',32)
+        offset=0
+        addresses={}
+        for name,ty in scope.function.locals.items():
+            size,align=scope.function.unit.size(ty)
+            offset=(offset+align-1)//align*align
+            addresses[name]=scope.frame_base+word(offset)
+            offset+=size
+        scope.local_addresses=addresses
+        scope.frame_bytes=(offset+15)//16*16
+
+    def frame_domain(self,scope):
+        # Separated canonical stack arena for the exploratory flat model.
+        # This is not a CompCert allocation/provenance refinement theorem.
+        wide=z.ZeroExt(1,scope.frame_base)
+        return z.And(z.UGE(scope.frame_base,word(0x80000000)),
+            z.URem(scope.frame_base,word(16))==0,
+            z.ULE(wide+z.BitVecVal(scope.frame_bytes,33),z.BitVecVal(0xfffffff0,33)))
 
     def reference(self, fn):
         record = super().reference(fn)
@@ -35,13 +60,19 @@ class HorizonEngine(RelationalEngine):
             record['after_remaining'] = z.Int(scope.name+'.output_remaining')
             record['stopped'] = z.Bool(scope.name+'.stopped_at_target')
             record['arguments'] += [self.remaining, record['after_remaining'], record['stopped']]
+            if self.fresh_call_frames:
+                self.prepare_frame(scope)
+                record['arguments'].append(scope.frame_base)
+            if self.target_specific_query:
+                record['arguments'].append(self.target_floor_call)
+            record['arguments'].extend(self.context_parameters)
             record['relation'] = z.RecFunction(
                 self.version+'.horizon.'+str(self.serial)+'.function.'+scope.name,
                 *[v.sort() for v in record['arguments']], z.BoolSort())
         return record
 
     def loop_context_variables(self):
-        return super().loop_context_variables()+[self.remaining]
+        return super().loop_context_variables()+[self.remaining]+([self.target_floor_call] if self.target_specific_query else [])+self.context_parameters
 
     def traverse(self, statement, normal, scope, returned=None, broken=None, path='body'):
         if statement.tag != 'Scall' or statement.args[1].tag != 'Evar':
@@ -97,7 +128,8 @@ class HorizonEngine(RelationalEngine):
         # Only the LAST floor query is targeted. Requiring all 30 queries to
         # retain TOP would silently discard possible producers.
         if scope.function.name == 'update_mario_platform' and name == 'find_floor':
-            normal_tail = z.And(normal_tail,z.Implies(self.remaining == 1,z.And(
+            selected=z.And(self.remaining == 1,self.target_floor_call) if self.target_specific_query else self.remaining==1
+            normal_tail = z.And(normal_tail,z.Implies(selected,z.And(
                 z.fpToIEEEBV(out) == word(HEIGHT),
                 z.fpToIEEEBV(values[0]) == word(bits(-2200)),
                 z.fpToIEEEBV(values[2]) == word(bits(-1024)))))
@@ -107,6 +139,12 @@ class HorizonEngine(RelationalEngine):
         tail = z.Or(z.And(stopped,left == 0,stop_tail),
                     z.And(z.Not(stopped),left > 0,normal_tail))
         relation_args = [MEM,*values,after,out,defined,self.remaining,left,stopped]
+        if self.fresh_call_frames:
+            self.prepare_frame(scope)
+            relation_args.append(scope.frame_base+word(scope.frame_bytes))
+        if self.target_specific_query:
+            relation_args.append(z.BoolVal((scope.function.name,name)==self.checkpoint))
+        relation_args.extend(self.context_parameters)
         variables = [after,out,defined,left,stopped]
         if self.current_depth is None:
             if self.call_fuel is not None:
@@ -128,6 +166,7 @@ class HorizonEngine(RelationalEngine):
         while self.pending:
             rec = self.pending.pop(0)
             fn,scope = rec['function'],rec['scope']
+            self.compiling_function = fn.name
             frame = z.And(MEM == rec['after'],self.remaining == rec['after_remaining'])
             goal = z.And(frame,z.Not(rec['stopped']),rec['defined'])
             no_value = z.And(frame,z.Not(rec['stopped']),z.Not(rec['defined']))
@@ -149,6 +188,8 @@ class HorizonEngine(RelationalEngine):
                 self.undefined_return = None
                 self.stop_post = saved_stop
             formula = z.And(rec['depth'] >= 0,self.remaining > 0,paths[0].condition)
+            if self.fresh_call_frames:
+                formula=z.And(self.frame_domain(scope),formula)
             allowed = {v.get_id() for v in rec['arguments']}
             unexpected = [v for v in get_vars(formula) if v.get_id() not in allowed]
             if unexpected:
@@ -157,7 +198,8 @@ class HorizonEngine(RelationalEngine):
             self.definitions.append((rec['relation'],rec['arguments'],formula))
             self.finished_functions.append(fn.name)
             self.relation_receipts.append(dict(function=fn.name,source=fn.digest))
-            self.check_local_reentrancy()
+            if not self.fresh_call_frames:
+                self.check_local_reentrancy()
 
     def start_horizon(self,function,goal,body,*,entry_condition=None):
         self.target = goal

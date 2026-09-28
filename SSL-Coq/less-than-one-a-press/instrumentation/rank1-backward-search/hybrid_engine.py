@@ -5,7 +5,7 @@ memory preservation and are never accepted as gameplay evidence. An anchored
 emulator reply constrains only its mapped observed bytes. The complement is
 retained. No SAT/UNSAT verdict from this engine discharges the pending frontier.
 """
-from clight import items, Term
+from clight import items, Term, is_variadic
 from engine import MEM, Scope, Path, Unsupported, word, z
 from horizon_engine import HorizonEngine
 from emulator_oracle import UnmatchedCall
@@ -35,6 +35,8 @@ class HybridHorizonEngine(HorizonEngine):
         self.call_obligations = []
         self.active_loop_scope = None
         self.progress_callback = None
+        self.checkpoint_graph = None
+        self.label_continuations = {}
 
     def reference(self,fn):
         result=super().reference(fn)
@@ -79,19 +81,36 @@ class HybridHorizonEngine(HorizonEngine):
         scope=self.active_loop_scope
         if scope is not None:
             variables += [self.initialized(scope,name) for name in scope.function.temps.keys()-scope.function.params.keys()]
+            if hasattr(scope,'frame_base'):
+                variables.append(scope.frame_base)
         return variables
 
     def external_call(self, statement, normal, scope, path):
         dest,callee,actual = statement.args
         direct = callee.tag == 'Evar'
         name = callee.args[0].tag.removeprefix('_') if direct else '<live-indirect-call>'
+        atomic = False
+        if direct:
+            if self.image is not None:
+                symbol = self.image.symbols.get(name)
+                atomic = symbol is not None and not symbol.internal
+            else:
+                try:
+                    self.resolve_call(name, scope)
+                except Unsupported:
+                    definition = scope.function.unit.global_definitions().get('_'+name)
+                    atomic = (definition is not None and definition.tag == 'Gfun'
+                              and definition.args[0].tag == 'External')
         signature = self.typeof(callee)
         if signature.tag == 'tptr':
             signature = signature.args[0]
         params,returns,_ = signature.args
         arguments = items(actual)
         types = items(params)
-        if len(arguments) != len(types):
+        variadic = is_variadic(signature)
+        if variadic and len(arguments)>=len(types):
+            types += [self.typeof(expr) for expr in arguments[len(types):]]
+        elif len(arguments) != len(types):
             raise Unsupported('External argument count: '+name)
         values = [self.cast(self.eval(expr,scope),self.typeof(expr),ty)
                   for expr,ty in zip(arguments,types)]
@@ -108,11 +127,15 @@ class HybridHorizonEngine(HorizonEngine):
                      'tlong':z.BitVecSort(64),'tulong':z.BitVecSort(64)}.get(returns.tag,z.BitVecSort(32))
         out=z.Const(ident+'.result',result_sort)
         tail=self.substitute(normal,(MEM,after),*([(scope.temps[dest.args[0].tag],out)] if dest.tag=='Some' else []))[0].condition
-        # The observer count is also pending: an unspecified external is not
-        # silently assumed to preserve it. Constrain it only in an exact
-        # experiment or a separately justified domain, never by its name.
+        # A Clight External call is one atomic transition: it cannot execute
+        # an Internal statement checkpoint. This constrains only our observer,
+        # NOT its return or memory effects. Deferred Internal/indirect bodies
+        # can still contain checkpoints and keep their observer effects open.
         left=z.Int(ident+'.remaining')
         stopped=z.Bool(ident+'.stopped')
+        may_checkpoint = not atomic
+        if self.checkpoint_graph is not None:
+            may_checkpoint = self.checkpoint_graph.may_cross(statement,scope)
         tail=z.substitute(tail,(self.remaining,left))
         if self.stop_post is not None:
             stopped_target=z.BoolVal(True) if self.target is None else z.substitute(self.target,(MEM,after))
@@ -125,6 +148,8 @@ class HybridHorizonEngine(HorizonEngine):
         entry=z.BoolVal(True)
         relation=z.Function(ident+'.UNRESOLVED',*[v.sort() for v in [MEM,*values,after,out,self.remaining,left,stopped]],z.BoolSort())(
             MEM,*values,after,out,self.remaining,left,stopped)
+        if not may_checkpoint:
+            relation=z.And(relation,left==self.remaining,z.Not(stopped))
         if self.oracle is not None:
             try:
                 if self.version != 'jp':
@@ -143,7 +168,8 @@ class HybridHorizonEngine(HorizonEngine):
         else:
             reason='No emulator oracle supplied'
         record=dict(caller=scope.function.name,callee=name,path=path,source=scope.function.digest,
-                    request=ident,matchedReplay=answered)
+                    request=ident,matchedReplay=answered,atomicExternal=atomic,
+                    mayCrossCheckpoint=may_checkpoint)
         if not answered:
             record['reason']=reason
             self.deferred.append(record)
@@ -154,6 +180,16 @@ class HybridHorizonEngine(HorizonEngine):
         return [Path(z.And(pointer_guard,entry,z.Exists([after,out,left,stopped],z.And(relation,tail))))]
 
     def traverse(self, statement, normal, scope, returned=None, broken=None, path='body'):
+        if statement.tag=='Slabel':
+            label,body=statement.args
+            result=self.wp(body,normal,scope,returned,broken,path+'.label.'+label.tag)
+            self.label_continuations[(scope.name,label.tag)]=result
+            return result
+        if statement.tag=='Sgoto':
+            key=(scope.name,statement.args[0].tag)
+            if key not in self.label_continuations:
+                raise Unsupported('Goto needs an as-yet unavailable label continuation: '+str(key))
+            return self.label_continuations[key]
         if statement.tag=='Sset':
             name,expr=statement.args
             return self.substitute(normal,(scope.temps[name.tag],self.eval(expr,scope)),
@@ -210,7 +246,7 @@ class HybridHorizonEngine(HorizonEngine):
         if statement.tag=='Scall' and statement.args[1].tag=='Evar':
             name=statement.args[1].args[0].tag.removeprefix('_')
             entry=self.image.symbols.get(name) if self.image is not None else None
-            if name!='sqrtf' and (name in self.RUNTIME_BOUNDARIES
+            if not (name=='sqrtf' and self.sqrtf_binding) and (name in self.RUNTIME_BOUNDARIES
                 or (self.lazy_calls and name not in self.SOURCE_SPINE)
                 or (entry is not None and not entry.internal)):
                 return self.external_call(statement,normal,scope,path)
