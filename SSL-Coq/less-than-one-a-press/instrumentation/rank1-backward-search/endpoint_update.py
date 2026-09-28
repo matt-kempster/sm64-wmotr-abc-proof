@@ -3,7 +3,8 @@
 No recorded prefix, fixture, controller sampling or emulator result is used.
 The program counter is the start of thread5's original loop iteration. Paths
 that continue/finish the iteration without the target are not predecessors.
-Unimplemented memory effects remain obligations, never successful coverage.
+Unimplemented memory effects and state validity are conditions for candidate
+generation, never successful coverage. Any proposal still needs validation.
 """
 import argparse
 import faulthandler
@@ -22,6 +23,7 @@ from hybrid_engine import HybridHorizonEngine
 from search_updates import game_loop
 from loop_engine import get_vars
 from global_storage import GlobalStorage
+from candidate_policy import SEARCH_POLICY, interpret_solver_result, conditional_exit_code
 
 
 class EndpointEngine(HybridHorizonEngine):
@@ -170,6 +172,7 @@ def worker(version, output, solver_seconds, archive=False):
     e=EndpointEngine(version,runtime_audio=True,program_dispatch=True,live_dispatch=True,
         supplemental=ROOT/'build/rank1-backward-search/supplemental-generated',max_visits=250000)
     report=dict(version=version,requestedUpdates=1,completedExhaustiveUpdates=0,
+        searchPolicy=SEARCH_POLICY,conditionalQueryCompleted=False,
         controllerTrials=0,suppliedGap=False,suppliedScene=False,recordedPrefix=False,
         start='Beginning of one original thread5_game_loop iteration; SSL Area 1, otherwise symbolic memory and retained thread locals.',
         stop='After the original update_objects -> update_mario_platform call at checked X/Z and height; both platform pointers name the designated pyramid-top Object.',
@@ -179,7 +182,8 @@ def worker(version, output, solver_seconds, archive=False):
         sourceUnits={str(u.path.relative_to(ROOT)):u.digest for u in e.units.values()},
         implementationHashes={n:hashlib.sha256(FilePath(__file__).with_name(n).read_bytes()).hexdigest()
                               for n in ('endpoint_update.py','checkpoint_graph.py','hybrid_engine.py','horizon_engine.py',
-                                        'relational_engine.py','loop_engine.py','engine.py','clight.py','program_image.py','global_storage.py')})
+                                        'relational_engine.py','loop_engine.py','engine.py','clight.py','program_image.py','global_storage.py',
+                                        'candidate_policy.py')})
     output.with_suffix('.context.json').write_text(json.dumps(report,indent=2)+'\n')
     last=[0.0]
     def progress(name):
@@ -214,8 +218,7 @@ def worker(version, output, solver_seconds, archive=False):
         s=z.Solver();s.set(timeout=int(solver_seconds*1000));s.add(paths[0].condition)
         output.with_suffix('.stage.json').write_text(json.dumps(dict(stage='solving-formula',
             seconds=time.perf_counter()-began))+'\n')
-        result=s.check();report['solverResult']=str(result)
-        report['status']='unresolved-'+str(result) if e.deferred else 'source-model-'+str(result)
+        result=s.check();report.update(interpret_solver_result(result))
         if result==z.unknown:report['solverReason']=s.reason_unknown()
         # Never let optional diagnostic printing prevent the solver result.
         report['seconds']=time.perf_counter()-began
@@ -232,7 +235,7 @@ def worker(version, output, solver_seconds, archive=False):
     capture()
     report['seconds']=time.perf_counter()-began
     output.write_text(json.dumps(report,indent=2)+'\n')
-    print(version+': '+report['status']+'; exhaustive update not established.',flush=True)
+    print(version+': '+report['status']+'; conditional search, gameplay unvalidated.',flush=True)
     faulthandler.disable()
     stack_log.close()
 
@@ -260,7 +263,8 @@ def main():
         if errors:raise errors[0]
         return
     a.output.mkdir(parents=True,exist_ok=False)
-    report=dict(requestedUpdates=1,completedExhaustiveUpdates=0,controllerTrials=0,runs={})
+    report=dict(requestedUpdates=1,completedExhaustiveUpdates=0,controllerTrials=0,
+                searchPolicy=SEARCH_POLICY,runs={})
     for version in a.versions:
         output=a.output/(version+'.json')
         cmd=[sys.executable,'-X','utf8',__file__,'--worker',version,'--output',str(output),
@@ -281,8 +285,10 @@ def main():
         stage=output.with_suffix('.stage.json')
         if stage.exists():result['lastStage']=json.loads(stage.read_text())
         report['runs'][version]=result
+    report['conditionalQueriesCompleted']=sum(
+        r.get('conditionalQueryCompleted') is True for r in report['runs'].values())
     (a.output/'report.json').write_text(json.dumps(report,indent=2)+'\n')
-    raise SystemExit(2)
+    raise SystemExit(conditional_exit_code(report['runs']))
 
 
 if __name__=='__main__':main()

@@ -5,7 +5,13 @@ the chosen retention event back to the beginning of one original game-loop
 iteration. It uses symbolic earlier memory and object identities, not a saved
 scene or controller prefix. Missing effects and incomplete storage extents stay
 explicit. Its source model is exploratory, not a verified Clight interpreter;
-it does not yet certify complete predecessor coverage. The dedicated report is
+it does not yet certify complete predecessor coverage. The accepted working
+policy is conditional candidate generation: call effects and state validity
+may remain pending during search and must be checked before a gameplay claim.
+SAT reports `conditional-candidate` (not yet replay-ready); UNSAT reports
+`conditional-model-exclusion`; unknown reports `inconclusive`. This reporting
+policy does not alter the generated-source formula or assume harmless calls.
+The dedicated report is
 [here](../../docs/notes/rank1-endpoint-update.md).
 
 Reproduce its supplementary original source with
@@ -13,7 +19,10 @@ Reproduce its supplementary original source with
 Then run `python instrumentation/rank1-backward-search/endpoint_update.py
 --versions jp us --timeout 600 --output NEW_DIRECTORY` from the SSL project.
 The output directory must be new. Formula construction, solving and unresolved
-calls are reported separately; exit status 2 means coverage is not established.
+calls are reported separately. Exit status 0 means every requested conditional
+query received SAT or UNSAT; it never means gameplay is proved. Exit status 2
+means a query was inconclusive or failed. `completedExhaustiveUpdates` stays zero
+until the separate coverage/model obligations have actually been discharged.
 Run the application checks with `python -m unittest discover
 -s instrumentation/rank1-backward-search -p 'test_*.py' -v`.
 

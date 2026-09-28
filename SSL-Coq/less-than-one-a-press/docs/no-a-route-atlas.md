@@ -25,6 +25,8 @@ The [candidate feedback loop](notes/rank1-candidate-feedback.md) now connects pr
 
 ## Purpose and scope
 
+The accepted [conditional-search policy](notes/rank1-endpoint-update.md#accepted-policy-search-conditionally-validate-candidates-afterward) lets candidate generation proceed with unanswered call effects and state validity left as explicit conditions. A solver match is a conditional candidate to validate, not a gameplay witness; UNSAT applies only to its encoded query, and unknown stays inconclusive. Check each proposed execution's actual effects, valid earlier state, concrete trace and allowed controller history before using it as gameplay evidence. This policy does not grant the useful gap, assume calls harmless, or convert the existing timeouts into results. No new game search, Coq theorem, route closure, Already proved promotion or estimate change follows from the decision.
+
 The [endpoint-first one-update attempt](notes/rank1-endpoint-update.md) now works backward from the selected top-retention condition with earlier state left open. Both US/JP source formulas finish construction and reach the solver; both return unknown after its 30-second limit, with 473/472 unanswered call sites in the broad source expansion. All 76 application checks pass. There are zero certified complete predecessor updates: runtime effects and the validity of the represented earlier states still need justification. No forward trials were substituted. This is application work, not an Ink possibility or impossibility proof or a longer-search price; all 45 estimates and Section 01 verdicts remain unchanged.
 
 This document is the readable inventory of ways the project currently knows

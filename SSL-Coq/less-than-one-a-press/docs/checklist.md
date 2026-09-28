@@ -1,5 +1,10 @@
 # Verification checklist
 
+Current decision: use [conditional candidate search](notes/rank1-endpoint-update.md#accepted-policy-search-conditionally-validate-candidates-afterward). The user accepts unanswered call effects and state validity as conditions to check on proposed candidates; they need not be proved globally before searching. A solver match stays unvalidated until its effects, earlier state, concrete trace and allowed controller history are checked. UNSAT is limited to the encoded query, and unknown remains inconclusive. The previous US/JP timeouts remain unchanged; this decision adds no gameplay witness or exclusion.
+
+- [x] Distinguish conditional candidates, conditional model exclusions and inconclusive solver answers; keep missing effects and state validity visible. All 79 application tests pass, including three new reporting controls; none is a new gameplay trial or Coq theorem.
+- [ ] Obtain a solved predecessor proposal and validate the conditions it actually uses, including a concrete executable trace and the connection to allowed controller history.
+
 Latest work: the [endpoint-first one-iteration runner](notes/rank1-endpoint-update.md) works backward from top retention with symbolic earlier state, rather than a fixed replay prefix. Both US/JP formulas finish construction and reach the solver; both return unknown after its 30-second limit, with 473/472 unanswered call sites. All 76 application checks pass. Zero complete predecessor updates are certified: runtime effects and the storage/model connection remain open. This batch makes no forward controller trials, changes no Coq result or route verdict, and supplies no longer-horizon price. The older forward-feedback results below keep their narrower scope.
 
 - [x] Repair false checkpoint completion through atomic external calls; retain all compatible callback targets and distinguish control reachability from memory preservation.

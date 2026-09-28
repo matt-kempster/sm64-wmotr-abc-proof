@@ -6,6 +6,42 @@ does not substitute a forward controller trial, supplied scene or known prefix.
 No Coq theorem or route verdict changes. Rank 1 keeps its subjective **1–2%**
 estimate; this is not a measured probability.
 
+## Accepted policy: search conditionally, validate candidates afterward
+
+The user has accepted unanswered call effects and earlier-state validity as
+conditions for candidate generation. We can continue the backward search without
+first proving these conditions for every represented state. Each proposed result
+must keep its unresolved conditions visible and be validated before it counts
+as a gameplay result. This permission does not assert that the conditions are
+true, change a missing call into a no-op, or supply a reachable starting pose.
+
+The runner now distinguishes three answers: **SAT is a conditional candidate**;
+**UNSAT excludes only the encoded conditional query**; **unknown is inconclusive**.
+None closes Ink by itself. The search can finish a conditional query while
+certified gameplay coverage remains zero. A timeout still needs a computational
+repair; relabeling it does not produce a candidate. The earlier US/JP timeouts
+below remain unchanged, and no additional game search accompanies this policy
+change.
+
+For a candidate, check the concrete call effects it relies on, its live objects
+and earlier state, and the extracted predecessor/input trace. Then test the
+joined controller history in the emulator or Wafel, keeping the existing exact
+observer for the decisive contact/query/warp checks. A symbolic match is not
+automatically a replay-ready input sequence. A supplied-state local test can
+validate a conditional segment but cannot establish how ordinary gameplay
+reaches that state. Rejecting one candidate does not reject its whole family.
+
+This is the working search policy, not a new conditional Coq theorem, a grant of
+the useful gap or a promotion to Already proved. The current computational
+obstacle is obtaining a solved predecessor proposal from the large formula.
+
+Validation of this reporting change: all **79 application tests pass**. Three
+new synthetic controls check that a conditional match can fail its call-effect
+or state-validity check, and that unknown/failed runs never become completed
+conditional queries. They are not gameplay trials. The original 76-check run
+and its receipt below remain historical; no source formula was rerun merely to
+apply a new label.
+
 ## The exact question this runner asks
 
 At the end of the selected Area-1 `update_objects` call, both platform
@@ -102,9 +138,9 @@ Their presence in the conservative source expansion is not evidence that
 ordinary SSL gameplay can call them. A justified smaller live-call set would
 help; simply assuming that set is intact would not demonstrate coverage.
 
-## What would complete the requested milestone
+## What would validate the result beyond conditional candidate search
 
-The final query needs a checked solution or exclusion with all relevant call
+For a gameplay result, the final query needs a checked solution or exclusion with all relevant call
 effects accounted for. Its earlier-state domain also needs a sound connection
 to the selected defined, in-bounds model. This byte-memory interpreter still
 lacks a complete allocation, provenance, initialized-storage and runtime
