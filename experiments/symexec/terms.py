@@ -288,6 +288,13 @@ def mk(op, kind, *args):
         return mk('and', kind, args[1], args[0])
     if op in ('sext16', 'zext16', 'sext8', 'zext8') and isinstance(args[0], T) and args[0].op == op:
         return args[0]
+    # zero-extending a value already masked into range is the identity
+    if op in ('zext16', 'zext8') and isinstance(args[0], T) and args[0].op == 'and' \
+            and is_concrete(args[0].args[1]) and args[0].args[1] <= (0xffff if op == 'zext16' else 0xff):
+        return args[0]
+    if op in ('sext16', 'sext8') and isinstance(args[0], T) and args[0].op == 'and' \
+            and is_concrete(args[0].args[1]) and args[0].args[1] <= (0x7fff if op == 'sext16' else 0x7f):
+        return args[0]
     if op == 'notbool' and isinstance(args[0], T) and args[0].op in INT_CMP | FLT_CMP:
         pass
     return T(op, args, rkind)

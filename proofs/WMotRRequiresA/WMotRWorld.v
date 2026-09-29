@@ -88,10 +88,105 @@ Definition surface_nonnull_ok (m : mem) (v : val) : Prop :=
     /\ Mem.load Mint16signed m b (Ptrofs.unsigned o) = Some (Vint t)
     /\ In (Int.signed t) wmotr_surface_types.
 
+(* ---- 3. object collisions (the frame reads them in                     *)
+(*      mario_process_interactions and update_mario_inputs).  The fields   *)
+(*      are the ones experiments/symexec found the whole frame reads;      *)
+(*      Phi depends on object memory ONLY through a collided pole's        *)
+(*      oPosY / hitboxDownOffset / hitboxHeight and a collided cannon      *)
+(*      base's oPosY.                                                       *)
+Definition MARIOOBJ_OFF : Z := 136.   (* MarioState.marioObj *)
+
+Definition object_members : members :=
+  match (prog_comp_env mario.prog) ! mario._Object with
+  | Some co => co_members co
+  | None => nil
+  end.
+
+Definition NUMCOLL_OFF : Z := 118.    (* Object.numCollidedObjs, s16 *)
+Definition COLL_OFF : Z := 120.       (* Object.collidedObjs[4] *)
+Definition RAW_OFF : Z := 136.        (* Object.rawData *)
+Definition HITBOX_H_OFF : Z := 508.   (* Object.hitboxHeight *)
+Definition HITBOX_DOWN_OFF : Z := 520. (* Object.hitboxDownOffset *)
+(* rawData slots (object_fields.h): OBJECT_FIELD_*(i) is rawData + 4 i *)
+Definition O_POSY : Z := RAW_OFF + 4 * 7.            (* 0xA4 *)
+Definition O_INTERACT_TYPE : Z := RAW_OFF + 4 * 42.  (* 0x130 *)
+Definition O_INTERACT_STATUS : Z := RAW_OFF + 4 * 43. (* 0x134 *)
+
+Lemma object_field_offsets :
+  field_offset (prog_comp_env mario.prog) mario._marioObj mario_state_members = OK (MARIOOBJ_OFF, Full)
+  /\ field_offset (prog_comp_env mario.prog) mario._numCollidedObjs object_members = OK (NUMCOLL_OFF, Full)
+  /\ field_offset (prog_comp_env mario.prog) mario._collidedObjs object_members = OK (COLL_OFF, Full)
+  /\ field_offset (prog_comp_env mario.prog) mario._rawData object_members = OK (RAW_OFF, Full)
+  /\ field_offset (prog_comp_env mario.prog) mario._hitboxHeight object_members = OK (HITBOX_H_OFF, Full)
+  /\ field_offset (prog_comp_env mario.prog) mario._hitboxDownOffset object_members = OK (HITBOX_DOWN_OFF, Full).
+Proof. vm_compute. repeat split. Qed.
+
+(* interaction.h *)
+Definition INTERACT_COIN : Z := 16.
+Definition INTERACT_CAP : Z := 32.
+Definition INTERACT_POLE : Z := 64.
+Definition INTERACT_BREAKABLE : Z := 512.
+Definition INTERACT_CANNON_BASE : Z := 16384.
+Definition INTERACT_TEXT : Z := 8388608.
+(* INT_STATUS_MARIO_STUNNED | _KNOCKBACK_DMG | _SHOCKWAVE: the INPUT_STOMPED
+   bits (mario.c update_mario_inputs), set only by Bowser / shock waves /
+   enemies absent from WMotR (docs/goal2-wmotr-behavior-census.md §3) *)
+Definition STOMP_BITS : Z := 19.
+
+(* The interact types of WMotR's collidable objects (docs/goal2-wmotr-
+   behavior-census.md): red coins and 1-ups (COIN), the wing cap (CAP), the
+   6 poles (POLE), the ! boxes (BREAKABLE), the 2 cannons (CANNON_BASE), the
+   bob-omb buddy (TEXT); 0 = no interaction.  A hand census, tethered by
+   experiments/oracle/ywatch.py (every collided object at every frame
+   entry).  NOT here: the red-coin star (INTERACT_STAR_OR_KEY).  It exists
+   only after all 8 red coins, and coin #2 needs y >= 2980 > YMAX
+   (TRUST.md 0.3, docs/goal2-coin-star-chain.md); experiments/symexec found
+   that collecting it reaches STAR_DANCE_* / FALL_AFTER_STAR_GRAB, which are
+   outside R_noA, so this exclusion is load-bearing. *)
+Definition wmotr_interact_types : list Z :=
+  [0; INTERACT_COIN; INTERACT_CAP; INTERACT_POLE; INTERACT_BREAKABLE;
+   INTERACT_CANNON_BASE; INTERACT_TEXT].
+
+Definition f32z (z : Z) : val := Vsingle (Float32.of_int (Int.repr z)).
+
+(* a collided pole is one of the level script's (WMotRLevel §5): oPosY =
+   base, hitboxDownOffset = 0 (spawn_object.c), hitboxHeight = top - base
+   (pole.inc.c: 10 * bparam2) *)
+Definition pole_obj_ok (m : mem) (b : block) (o : Z) : Prop :=
+  exists base top, In (base, top) wmotr_pole_list
+    /\ Mem.load Mfloat32 m b (o + O_POSY) = Some (f32z base)
+    /\ Mem.load Mfloat32 m b (o + HITBOX_DOWN_OFF) = Some (Vsingle Float32.zero)
+    /\ Mem.load Mfloat32 m b (o + HITBOX_H_OFF) = Some (f32z (top - base)).
+
+(* a collided cannon base sits at its lid's y - 340 (WMotRLevel §5b), so
+   act_in_cannon's seat, oPosY + 350, is in wmotr_cannon_list *)
+Definition cannon_obj_ok (m : mem) (b : block) (o : Z) : Prop :=
+  exists y, In y wmotr_cannon_list
+    /\ Mem.load Mfloat32 m b (o + O_POSY) = Some (f32z (y - CANNON_SEAT)).
+
+Definition coll_obj_ok (m : mem) (v : val) : Prop :=
+  exists b o t, v = Vptr b o
+    /\ Mem.load Mint32 m b (Ptrofs.unsigned o + O_INTERACT_TYPE) = Some (Vint t)
+    /\ In (Int.unsigned t) wmotr_interact_types
+    /\ (Int.unsigned t = INTERACT_POLE -> pole_obj_ok m b (Ptrofs.unsigned o))
+    /\ (Int.unsigned t = INTERACT_CANNON_BASE -> cannon_obj_ok m b (Ptrofs.unsigned o)).
+
+Definition wmotr_objects (bm : block) (m : mem) : Prop :=
+  exists mb mo s n,
+    Mem.load Mint32 m bm MARIOOBJ_OFF = Some (Vptr mb mo)
+    /\ Mem.load Mint32 m mb (Ptrofs.unsigned mo + O_INTERACT_STATUS) = Some (Vint s)
+    /\ Int.and s (Int.repr STOMP_BITS) = Int.zero
+    /\ Mem.load Mint16signed m mb (Ptrofs.unsigned mo + NUMCOLL_OFF) = Some (Vint n)
+    /\ 0 <= Int.signed n <= 4
+    /\ forall i v, 0 <= i < Int.signed n ->
+         Mem.load Mint32 m mb (Ptrofs.unsigned mo + COLL_OFF + 4 * i) = Some v ->
+         coll_obj_ok m v.
+
 Definition wmotr_world (bm : block) (m : mem) : Prop :=
   (forall v, Mem.load Mint32 m bm WALL_OFF = Some v -> surface_ok m v)
   /\ (forall v, Mem.load Mint32 m bm CEIL_OFF = Some v -> surface_ok m v)
   /\ (forall v, Mem.load Mint32 m bm FLOOR_OFF = Some v -> surface_nonnull_ok m v)
   /\ Mem.load Mint32 m bm HELD_OFF = Some Vnullptr
   /\ Mem.load Mint32 m bm RIDDEN_OFF = Some Vnullptr
-  /\ Mem.load Mfloat32 m bm QSD_OFF = Some (Vsingle Float32.zero).
+  /\ Mem.load Mfloat32 m bm QSD_OFF = Some (Vsingle Float32.zero)
+  /\ wmotr_objects bm m.

@@ -27,7 +27,8 @@ import numpy as np
 from clight_parse import Id, Program, load_tu
 from clight_types import (Layout, tkind, INT_TYPES, LONG_TYPES, chunk_of, CHUNK_SIZE)
 from terms import (T, var, mk, is_concrete, canon, Undef, f32_of_bits, f64_of_bits,
-                   bits_of_f32, signed, show_val, M32, M64)
+                   bits_of_f32, signed, show_val, M32, M64, INT_CMP as INT_CMP_OPS,
+                   FLT_CMP as FLT_CMP_OPS)
 
 TINT = 'tint'
 import os
@@ -74,7 +75,7 @@ class Region:
 class State:
     """One execution path."""
     __slots__ = ('mem', 'owned', 'temps', 'locals', 'facts', 'pc', 'calls', 'reads',
-                 'warns', 'ctr', 'depth', 'fname', 'steps', 'subst')
+                 'warns', 'ctr', 'depth', 'fname', 'steps', 'subst', 'bounds', 'ns')
 
     def __init__(self):
         self.mem = {}
@@ -91,6 +92,8 @@ class State:
         self.fname = None
         self.steps = 0
         self.subst = {}
+        self.bounds = {}      # term key -> (lo, hi) learned from path facts
+        self.ns = ''          # fresh-name namespace ('' main run, 'sN_' summary N)
 
     def clone(self):
         s = State.__new__(State)
@@ -109,6 +112,8 @@ class State:
         s.fname = self.fname
         s.steps = self.steps
         s.subst = dict(self.subst)
+        s.bounds = dict(self.bounds)
+        s.ns = self.ns
         return s
 
     def region_w(self, reg):
@@ -122,7 +127,7 @@ class State:
     def fresh(self, base):
         n = self.ctr.get(base, 0) + 1
         self.ctr[base] = n
-        return '%s#%d' % (base, n)
+        return '%s#%s%d' % (base, self.ns, n)
 
     def warn(self, msg):
         self.warns = log_push(self.warns, msg)
@@ -179,6 +184,31 @@ class Explorer:
         self.truncations = []
         self.written_globals = self._scan_written_globals() if const_globals_from_init else None
         self.const_globals_used = set()
+        # --- interval reasoning
+        self.var_range = {}             # var name -> (lo, hi) assumed (e.g. Φ's InRange)
+        self.atoms = {}                 # fact key -> atom term (for summary substitution)
+        # --- per-function summaries
+        self.var_origin = {}            # lazily created world var -> (region, ofs, chunk, ty)
+        self.region_origin = {}         # lazily created world region -> (region, ofs, ptr ty)
+        self.path_region = {}           # region access path -> region name
+        self.summarize = None           # fn(fname) -> bool
+        self.summary_cache = {}
+        self.summary_active = set()
+        self.summary_stats = collections.Counter()
+        self.summary_inlined = collections.Counter()
+        self.summary_skeleton = []      # [(reg, ofs, chunk, value)] root cells (pointers, W)
+        self.summary_skel_facts = []    # [(fact key, polarity, reg, ofs of the pointer cell)]
+        self.summary_presets = []       # [(reg, ofs, chunk)] copied into the key when concrete
+        self.summary_masked = []        # [(reg, ofs, chunk)] keyed by the caller's possibly-set bits
+        self.summary_ctr = 0
+        self.track_regions = set()      # regions whose every access is logged (TRACK:/TRACKW:)
+        self.summary_pc = bool(os.environ.get('SYMEXEC_SUMMARY_PC'))
+        self.join_vals = {}             # join var name -> joined int value terms
+        self._mb_memo = {}
+        self.cut_cycles = True
+        self.cycle_cuts = collections.Counter()
+        self.cycle_keys = collections.Counter()
+        self.bits = {}                  # join var name -> mask of bits that may be 1
 
     # ------------------------------------------------------------------ regions
     def region(self, name, ty, path, lazy, nullable, kind):
@@ -186,6 +216,7 @@ class Explorer:
         if r is None:
             r = Region(name, ty, path, lazy, nullable, kind)
             self.regions[name] = r
+            self.path_region.setdefault(path, name)
         return r
 
     def global_region(self, st, gname):
@@ -343,6 +374,8 @@ class Explorer:
             t = T('load', (r.path, ofs, chunk), k)
             return self._wrap(chunk, t, ty, st, None)
         ofs = signed(ofs) if ofs >= 1 << 31 else ofs
+        if reg in self.track_regions:
+            st.reads = log_push(st.reads, 'TRACK:%s%s' % (r.path, self._path(r, ofs, chunk)))
         cells = st.mem.get(reg, {})
         hit = cells.get(ofs)
         if hit is not None and CHUNK_SIZE[hit[0]] == size:
@@ -353,6 +386,7 @@ class Explorer:
                 # a lazily created world cell first read through an int view of a
                 # union (e.g. rawData.asU32) and now as a pointer: it is a pointer
                 v = self._wrap(chunk, hv[1], ty, st, hv[1].args[0])
+                self.region_origin.setdefault(v[1], (reg, ofs, ty))
                 st.region_w(reg)[ofs] = (chunk, v)
                 return v
             return self._convert(chunk, hit[0], hv, st)
@@ -382,6 +416,10 @@ class Explorer:
             if d is not None:
                 self.domains[name] = frozenset(d)
         v = self._wrap(chunk, var(name, self._kind(chunk)), ty, st, name)
+        if v[0] == 'P':
+            self.region_origin.setdefault(v[1], (reg, ofs, ty))
+        else:
+            self.var_origin.setdefault(name, (reg, ofs, chunk, ty))
         dom = self.domains.get(name)
         if dom is not None and len(dom) == 1 and v[0] == 'I':
             v = ('I', next(iter(dom)))     # world invariant pins the value
@@ -487,6 +525,8 @@ class Explorer:
             st.warn('IGNORED store at symbolic offset %s[%s]' % (r.path, show_val(ofs)))
             return
         ofs = signed(ofs) if ofs >= 1 << 31 else ofs
+        if reg in self.track_regions:
+            st.reads = log_push(st.reads, 'TRACKW:%s%s' % (r.path, self._path(r, ofs, chunk)))
         size = CHUNK_SIZE[chunk]
         cells = st.region_w(reg)
         for o in [o for o, (c, _) in cells.items() if o < ofs + size and ofs < o + CHUNK_SIZE[c]]:
@@ -890,6 +930,8 @@ class Explorer:
         for val, s in ((True, st), (False, st2)):
             fact = (val == pol)   # truth of atom on this branch
             s.facts[key] = fact
+            self.atoms.setdefault(key, atom)
+            self.learn(s, atom, fact)
             s.pc = log_push(s.pc, ('' if val else '!') + (label or '') + '[' + b.key() + ']' if label else (('' if val else 'NOT ') + b.key()))
             if fact and atom.op == 'eq' and isinstance(atom.args[0], T) and atom.args[0].op == 'var' \
                     and is_concrete(atom.args[1]):
@@ -898,7 +940,10 @@ class Explorer:
         return out
 
     def range_decide(self, st, atom):
-        """Decide `var == c` from a world-invariant domain of var, if any."""
+        """Decide an atom without forking: `var == c` from a world-invariant
+        domain of var; comparisons from intervals (Φ ranges, small-int chunk
+        ranges, domains, bounds learned on this path).  Floats are assumed
+        non-NaN here."""
         if atom.op == 'eq' and isinstance(atom.args[0], T) and atom.args[0].op == 'var' \
                 and is_concrete(atom.args[1]):
             dom = self.domains.get(atom.args[0].args[0])
@@ -908,7 +953,273 @@ class Explorer:
                     return False
                 if dom == {c}:
                     return True
+        op = atom.op
+        if op in ('flt', 'fle', 'feq', 'lts', 'ltu', 'eq'):
+            x, y = atom.args
+            if op in ('lts', 'ltu', 'eq') and any(isinstance(z, T) and z.kind == 'i64' for z in (x, y)):
+                return None
+            ix = self.interval(st, x)
+            if ix is None:
+                return None
+            iy = self.interval(st, y)
+            if iy is None:
+                return None
+            if op == 'ltu' and (ix[0] < 0 or iy[0] < 0):
+                return None
+            if op in ('flt', 'lts', 'ltu'):
+                if ix[1] < iy[0]:
+                    return True
+                if ix[0] >= iy[1]:
+                    return False
+            elif op == 'fle':
+                if ix[1] <= iy[0]:
+                    return True
+                if ix[0] > iy[1]:
+                    return False
+            else:
+                if ix[1] < iy[0] or iy[1] < ix[0]:
+                    return False
+                if op == 'eq' and ix[0] == ix[1] == iy[0] == iy[1]:
+                    return True
+            return None
+        if op == 'eq' and is_concrete(atom.args[1]) and isinstance(atom.args[1], int) \
+                and atom.args[1] & ~self.maybe_bits(atom.args[0]) & M32:
+            return False
+        if atom.kind == 'i32' and op not in ('feq', 'fne', 'flt', 'fle', 'fgt', 'fge'):
+            if op not in INT_CMP_OPS and self.maybe_bits(atom) == 0:
+                return False
+            ix = self.interval(st, atom)
+            if ix is not None:
+                if ix[0] > 0 or ix[1] < 0:
+                    return True
+                if ix[0] == ix[1] == 0:
+                    return False
         return None
+
+    # ------------------------------------------------------------------ intervals
+    _SMALL = {'sext8': (-128, 127), 'zext8': (0, 255), 'sext16': (-32768, 32767), 'zext16': (0, 65535)}
+    _CHUNK_RANGE = {'i8s': (-128, 127), 'i8u': (0, 255), 'i16s': (-32768, 32767), 'i16u': (0, 65535)}
+
+    def interval(self, st, t, memo=None):
+        """A sound-ish enclosing interval of term t (None = unknown).  i32
+        terms are read as signed; floats are widened by one part in 2^21 per op."""
+        if not isinstance(t, T):
+            if isinstance(t, bool):
+                return (int(t), int(t))
+            if isinstance(t, int):
+                return (signed(t), signed(t))
+            x = float(t)
+            if x != x:
+                return None
+            return (x, x)
+        if t.kind == 'i64':
+            return None
+        if memo is None:
+            memo = {}
+        k = t.key()
+        if k in memo:
+            return memo[k]
+        memo[k] = None
+        r = self._interval(st, t, memo)
+        if r is not None and (r[0] != r[0] or r[1] != r[1]):
+            r = None
+        b = st.bounds.get(k) if st is not None else None
+        if b is not None:
+            r = b if r is None else (max(r[0], b[0]), min(r[1], b[1]))
+        memo[k] = r
+        return r
+
+    @staticmethod
+    def _meet(a, b):
+        if a is None:
+            return b
+        if b is None:
+            return a
+        return (max(a[0], b[0]), min(a[1], b[1]))
+
+    @staticmethod
+    def _widen(r):
+        if r is None:
+            return None
+        e0 = abs(r[0]) * 2.0 ** -21 + 1e-30
+        e1 = abs(r[1]) * 2.0 ** -21 + 1e-30
+        return (r[0] - e0, r[1] + e1)
+
+    def _interval(self, st, t, memo):
+        op, a = t.op, t.args
+        iv = lambda x: self.interval(st, x, memo)
+        if op == 'var':
+            name = a[0]
+            r = self.var_range.get(name)
+            o = self.var_origin.get(name)
+            if o is not None and o[2] in self._CHUNK_RANGE:
+                r = self._meet(r, self._CHUNK_RANGE[o[2]])
+            dom = self.domains.get(name)
+            if dom:
+                vals = [signed(x) if isinstance(x, int) else float(x) for x in dom]
+                r = self._meet(r, (min(vals), max(vals)))
+            return r
+        if op in self._SMALL:
+            base = self._SMALL[op]
+            x = iv(a[0])
+            if x is not None and base[0] <= x[0] and x[1] <= base[1]:
+                return x
+            return base
+        if op in ('s2f', 's2d', 'f2d', 'd2f'):
+            return self._widen(iv(a[0]))
+        if op in ('u2f', 'u2d'):
+            x = iv(a[0])
+            return self._widen(x) if x is not None and x[0] >= 0 else None
+        if op in ('f2s', 'd2s'):
+            x = iv(a[0])
+            if x is None or not (-2.0 ** 31 < x[0] and x[1] < 2.0 ** 31):
+                return None
+            import math
+            return (math.trunc(x[0]), math.trunc(x[1]))
+        if op in ('add', 'fadd', 'sub', 'fsub', 'mul', 'fmul'):
+            x, y = iv(a[0]), iv(a[1])
+            if x is None or y is None:
+                return None
+            if op in ('add', 'fadd'):
+                r = (x[0] + y[0], x[1] + y[1])
+            elif op in ('sub', 'fsub'):
+                r = (x[0] - y[1], x[1] - y[0])
+            else:
+                ps = [x[0] * y[0], x[0] * y[1], x[1] * y[0], x[1] * y[1]]
+                r = (min(ps), max(ps))
+            if op[0] == 'f':
+                return self._widen(r)
+            if r[0] < -2 ** 31 or r[1] > 2 ** 31 - 1:
+                return None
+            return r
+        if op in ('fdiv', 'divs'):
+            x, y = iv(a[0]), iv(a[1])
+            if x is None or y is None or y[0] <= 0 <= y[1]:
+                return None
+            ps = [x[0] / y[0], x[0] / y[1], x[1] / y[0], x[1] / y[1]]
+            r = (min(ps), max(ps))
+            if op == 'divs':
+                import math
+                if not (math.isfinite(r[0]) and math.isfinite(r[1])):
+                    return None
+                return (math.trunc(r[0]), math.trunc(r[1]))
+            return self._widen(r)
+        if op in ('neg', 'fneg'):
+            x = iv(a[0])
+            return None if x is None else (-x[1], -x[0])
+        if op == 'fabs':
+            x = iv(a[0])
+            if x is None:
+                return None
+            if x[0] >= 0:
+                return x
+            if x[1] <= 0:
+                return (-x[1], -x[0])
+            return (0.0, max(-x[0], x[1]))
+        if op == 'and' and is_concrete(a[1]) and a[1] < 2 ** 31:
+            return (0, a[1])
+        if op in ('eq', 'ne', 'lts', 'ltu', 'les', 'leu', 'gts', 'gtu', 'ges', 'geu', 'notbool',
+                  'feq', 'fne', 'flt', 'fle', 'fgt', 'fge'):
+            return (0, 1)
+        return None
+
+    def maybe_bits(self, t):
+        """Bits of an i32 term that may be 1 (known-zero-bits analysis)."""
+        if not isinstance(t, T):
+            return t & M32 if isinstance(t, int) else M32
+        if t.kind != 'i32':
+            return M32
+        k = t.key()
+        hit = self._mb_memo.get(k)
+        if hit is None:
+            hit = self._maybe_bits(t)
+            self._mb_memo[k] = hit
+        return hit
+
+    def _maybe_bits(self, t):
+        op, a = t.op, t.args
+        if op == 'var':
+            name = a[0]
+            b = self.bits.get(name)
+            if b is not None:
+                return b
+            dom = self.domains.get(name)
+            if dom and all(isinstance(x, int) for x in dom):
+                m = 0
+                for x in dom:
+                    m |= x
+                return m & M32
+            o = self.var_origin.get(name)
+            if o is not None and o[2] in ('i16u', 'i8u'):
+                return 0xFFFF if o[2] == 'i16u' else 0xFF
+            return M32
+        if op == 'zext16':
+            return self.maybe_bits(a[0]) & 0xFFFF
+        if op == 'zext8':
+            return self.maybe_bits(a[0]) & 0xFF
+        if op in ('or', 'xor'):
+            return self.maybe_bits(a[0]) | self.maybe_bits(a[1])
+        if op == 'and':
+            return self.maybe_bits(a[0]) & self.maybe_bits(a[1])
+        if op == 'shl' and is_concrete(a[1]) and a[1] < 32:
+            return (self.maybe_bits(a[0]) << a[1]) & M32
+        if op == 'shru' and is_concrete(a[1]) and a[1] < 32:
+            return self.maybe_bits(a[0]) >> a[1]
+        if op in INT_CMP_OPS or op in FLT_CMP_OPS or op == 'notbool':
+            return 1
+        return M32
+
+    def learn(self, st, atom, truth):
+        """Record interval bounds implied by `atom == truth` (comparisons with a constant)."""
+        op = atom.op
+        if op not in ('flt', 'fle', 'lts', 'eq', 'feq'):
+            return
+        x, y = atom.args
+        if op in ('lts', 'eq') and any(isinstance(z, T) and z.kind == 'i64' for z in (x, y)):
+            return
+
+        def val(c):
+            return signed(c) if isinstance(c, int) else float(c)
+
+        def bound(t, lo, hi):
+            k = t.key()
+            old = st.bounds.get(k)
+            st.bounds[k] = (lo, hi) if old is None else (max(old[0], lo), min(old[1], hi))
+        inf = float('inf')
+        one = 1 if op == 'lts' else 0
+        if op in ('eq', 'feq'):
+            if truth:
+                if isinstance(x, T) and is_concrete(y):
+                    bound(x, val(y), val(y))
+                elif isinstance(y, T) and is_concrete(x):
+                    bound(y, val(x), val(x))
+            return
+        strict_true = op in ('flt', 'lts')
+        if isinstance(x, T) and is_concrete(y):
+            c = val(y)
+            if truth:        # x < c  (or x <= c)
+                bound(x, -inf, c - one if strict_true else c)
+            else:            # x >= c (or x > c)
+                bound(x, c + (0 if strict_true else (1 if op == 'lts' else 0)), inf)
+        elif isinstance(y, T) and is_concrete(x):
+            c = val(x)
+            if truth:        # c < y
+                bound(y, c + one if strict_true else c, inf)
+            else:            # y <= c
+                bound(y, -inf, c)
+        elif isinstance(x, T) and isinstance(y, T):
+            # relational: transfer the other side's interval (non-strict)
+            ix, iy = self.interval(st, x), self.interval(st, y)
+            if truth:        # x < y (x <= y)
+                if iy is not None:
+                    bound(x, -inf, iy[1])
+                if ix is not None:
+                    bound(y, ix[0], inf)
+            else:            # x >= y (x > y)
+                if iy is not None:
+                    bound(x, iy[0], inf)
+                if ix is not None:
+                    bound(y, -inf, ix[1])
 
     def substitute(self, st, v, c):
         """After learning var v == c, replace plain occurrences of v by c."""
@@ -1028,6 +1339,7 @@ class Explorer:
         out = []
         cur = [st]
         k = 0
+        seen = set()
         while cur:
             if k > self.loop_fuel:
                 self.truncations.append('loop fuel in %s' % cur[0].fname)
@@ -1035,6 +1347,7 @@ class Explorer:
                 break
             nxt = []
             for c in cur:
+                c.ctr['iter@' + str(c.fname)] = max(c.ctr.get('iter@' + str(c.fname), 0), k + 1)
                 for o, a in self.exec(s1, c):
                     if o is N or o is CNT:
                         for o2, b in self.exec(s2, a):
@@ -1053,6 +1366,21 @@ class Explorer:
             if self.join_loops and len(nxt) > 1:
                 n0 = len(nxt)
                 nxt = self.join_states('loop@%s#%d' % (st.fname, k + 1), nxt)
+            if self.join_loops and self.cut_cycles and nxt:
+                # a loop-head state whose key (temps + Φ + key cells) was already
+                # seen at an earlier iteration only repeats explored behaviour
+                # (up to the cells outside the key): cut it and count it
+                keep = []
+                for c in nxt:
+                    lk = self.loop_key(c)
+                    if lk in seen:
+                        self.cycle_cuts[st.fname] += 1
+                        if self.merge_key is not None:
+                            self.cycle_keys[(st.fname, lk[-1][2] if len(lk[-1]) > 2 else '')] += 1
+                    else:
+                        seen.add(lk)
+                        keep.append(c)
+                nxt = keep
                 if DEBUG:
                     import sys
                     sys.stderr.write('loop %s iter %d: %d -> %d states\n' % (st.fname, k + 1, n0, len(nxt)))
@@ -1070,16 +1398,19 @@ class Explorer:
                       [(N, b) for b in self.join_states('loop-exit@%s' % st.fname, normal)]
         return out
 
+    def loop_key(self, s1):
+        # clightgen's t'N temps are single-use (always set before read), so
+        # they are dead at a loop head and are not part of the key
+        key = (tuple(sorted((str(t), self._vkey(v)) for t, v in s1.temps.items()
+                            if not str(t).startswith("t'"))),)
+        if self.merge_key is not None:
+            key += (self.merge_key(self, s1),)
+        return key
+
     def join_states(self, label, states):
         groups = collections.OrderedDict()
         for s1 in states:
-            # clightgen's t'N temps are single-use (always set before read), so
-            # they are dead at a loop head and are not part of the key
-            key = (tuple(sorted((str(t), self._vkey(v)) for t, v in s1.temps.items()
-                                if not str(t).startswith("t'"))),)
-            if self.merge_key is not None:
-                key += (self.merge_key(self, s1),)
-            groups.setdefault(key, []).append(s1)
+            groups.setdefault(self.loop_key(s1), []).append(s1)
         res = []
         for items in groups.values():
             if len(items) == 1:
@@ -1153,11 +1484,14 @@ class Explorer:
                 raise Trunc('path cap %d reached' % self.max_paths)
             hit = rest.clone()
             hit.facts[atom.key()] = pol
+            self.atoms.setdefault(atom.key(), atom)
+            self.learn(hit, atom, pol)
             hit.pc = log_push(hit.pc, 'switch %s == %s' % (show_val(x), show_val(n)))
             if isinstance(x, T) and x.op == 'var':
                 self.substitute(hit, x, n)
             out.extend(run_from(index_for(n), hit))
             rest.facts[atom.key()] = not pol
+            self.atoms.setdefault(atom.key(), atom)
         if dom is not None and dom <= set(labels):
             return out
         rest.pc = log_push(rest.pc, 'switch %s default' % show_val(x))
@@ -1199,6 +1533,13 @@ class Explorer:
     def call(self, fname, vargs, targs, tret, st):
         """Returns [(retval | ('stuck',msg) | ('trunc',msg), state)]."""
         f = self.functions.get(fname)
+        if f is not None and fname not in self.opaque and st.depth < self.max_depth \
+                and self.summarize is not None and self.summarize(fname):
+            out = self.summarized_call(fname, vargs, targs, tret, st)
+            if out is not None:
+                if ('*' in self.merge_funcs or fname in self.merge_funcs) and len(out) > 1:
+                    out = self.merge_results(fname, out)
+                return out
         if f is None or fname in self.opaque or st.depth >= self.max_depth:
             if f is not None and fname not in self.opaque:
                 self.truncations.append('depth cap at %s' % fname)
@@ -1246,6 +1587,422 @@ class Explorer:
         if ('*' in self.merge_funcs or fname in self.merge_funcs) and len(out) > 1:
             out = self.merge_results(fname, out)
         return out
+
+    # ------------------------------------------------------------------ summaries
+    #
+    # A summary of `f(args)` is the outcome set of one symbolic run of f from a
+    # fresh state in which the MarioState / objects / world are lazily symbolic
+    # (named by access path, exactly like the caller's lazily-read cells), plus
+    # the root "skeleton" cells (m->marioObj, gMarioState, W presets, ...) that
+    # agree with the caller, plus the caller's concrete values of a few key cells
+    # (action, actionState, actionArg, input).  Applying a summary at a call
+    # site substitutes, per outcome:
+    #   path-named var  -> the caller's current value of that cell,
+    #   lazy region     -> the caller's pointer stored in the originating cell,
+    #   fresh '#'/mrg names -> fresh caller names,
+    # then checks the outcome's path facts against the caller (facts + intervals;
+    # infeasible outcomes are dropped), stores the outcome's written cells, and
+    # returns the substituted return value.
+
+    _TOKEN = __import__('re').compile(r'^(.*#(?:s\d+_)?\d+|mrg\d+)(.*)$')
+
+    def _renamable(self, name):
+        return self._TOKEN.match(name) is not None
+
+    def _summary_key(self, fname, vargs, st):
+        ak = []
+        for v in vargs:
+            if v[0] == 'P':
+                r = self.regions[v[1]]
+                if not is_concrete(v[2]) or r.kind in ('local', 'ext') or self._renamable(r.path):
+                    return None
+                if v[1] in self.region_origin:
+                    return None
+            elif v[0] in ('I', 'L', 'S', 'F'):
+                if not is_concrete(v[1]):
+                    return None
+            else:
+                return None
+            ak.append(self._vkey(v))
+        skel = []
+        for i, (reg, ofs, chunk, val) in enumerate(self.summary_skeleton):
+            cell = st.mem.get(reg, {}).get(ofs)
+            if cell is not None and cell[0] == chunk and self._vkey(cell[1]) == self._vkey(val):
+                skel.append(i)
+        sfacts = []
+        for i, (key, pol, reg, ofs) in enumerate(self.summary_skel_facts):
+            cell = st.mem.get(reg, {}).get(ofs)
+            if st.facts.get(key) == pol and (cell is None or (cell[1][0] == 'P' and self.regions[cell[1][1]].path == key[8:-1])):
+                sfacts.append(i)
+        pre = []
+        for (reg, ofs, chunk) in self.summary_presets:
+            cell = st.mem.get(reg, {}).get(ofs)
+            if cell is not None and cell[0] == chunk and cell[1][0] == 'I' and is_concrete(cell[1][1]):
+                pre.append((reg, ofs, chunk, cell[1][1]))
+        for (reg, ofs, chunk) in self.summary_masked:
+            cell = st.mem.get(reg, {}).get(ofs)
+            m = M32
+            if cell is not None and cell[1][0] == 'I':
+                m = self.maybe_bits(cell[1][1])
+            elif cell is None:
+                continue
+            m &= {'i16u': 0xFFFF, 'i8u': 0xFF}.get(chunk, M32)
+            pre.append((reg, ofs, chunk, ('mask', m)))
+        return (fname, tuple(ak), tuple(skel), tuple(sfacts), tuple(pre))
+
+    def summarized_call(self, fname, vargs, targs, tret, st):
+        key = self._summary_key(fname, vargs, st)
+        if key is None or key in self.summary_active:
+            self.summary_stats['inlined (not summarizable here)'] += 1
+            self.summary_inlined[fname] += 1
+            return None
+        ent = self.summary_cache.get(key)
+        if ent is None:
+            self.summary_ctr += 1
+            s0 = State()
+            s0.ns = 's%d_' % self.summary_ctr
+            s0.depth = st.depth
+            s0.fname = st.fname
+            init = {}
+            for i in key[2]:
+                reg, ofs, chunk, val = self.summary_skeleton[i]
+                s0.region_w(reg)[ofs] = (chunk, val)
+                init[(reg, ofs)] = self._vkey(val)
+            for i in key[3]:
+                k, pol, _, _ = self.summary_skel_facts[i]
+                s0.facts[k] = pol
+            for reg, ofs, chunk, c in key[4]:
+                if isinstance(c, tuple):        # a masked symbol: the caller's value, bits known
+                    r = self.regions[reg]
+                    name = '%s%s&0x%x' % (r.path, self._path(r, ofs, chunk), c[1])
+                    self.bits[name] = c[1]
+                    self.var_origin[name] = (reg, ofs, chunk, None)
+                    v = ('I', var(name, 'i32'))
+                else:
+                    v = ('I', c)
+                s0.region_w(reg)[ofs] = (chunk, v)
+                init[(reg, ofs)] = self._vkey(v)
+            self.summary_active.add(key)
+            f0 = self.forks
+            try:
+                res = self.call(fname, vargs, targs, tret, s0)
+            finally:
+                self.summary_active.discard(key)
+            for _, fs in res:          # slim the cached outcome states
+                if not self.summary_pc:
+                    fs.pc = None
+                fs.temps = {}
+                fs.subst = {}
+                fs.owned = set()
+                fs.reads = tuple(sorted(set(log_list(fs.reads))))
+                # keep only what application needs: written cells + fresh regions
+                keep = {}
+                for reg, cells in fs.mem.items():
+                    r = self.regions[reg]
+                    if r.kind == 'local' or not r.lazy:
+                        continue
+                    if reg.startswith('R:') and self._renamable(reg[2:]):
+                        keep[reg] = cells
+                        continue
+                    w = {o: c for o, c in cells.items()
+                         if not self._is_initial({'init': init}, reg, o, c[0], c[1])}
+                    if w:
+                        keep[reg] = w
+                fs.mem = keep
+            ent = {'res': res, 'init': init, 'facts': {self.summary_skel_facts[i][0] for i in key[3]},
+                   'forks': self.forks - f0, 'id': self.summary_ctr}
+            self.summary_cache[key] = ent
+            self.summary_stats['summaries computed'] += 1
+            self.summary_stats['summary outcomes'] += len(res)
+            if DEBUG:
+                import sys
+                sys.stderr.write('summary %s %s: %d outcomes, %d forks\n' % (
+                    fname, [p[3] if not isinstance(p[3], tuple) else hex(p[3][1]) for p in key[4]], len(res), ent['forks']))
+                sys.stderr.flush()
+        else:
+            self.summary_stats['summary reuses'] += 1
+        out = []
+        for ret, fs in ent['res']:
+            r = self._apply_outcome(fname, ent, ret, fs, st)
+            if r is not None:
+                out.append(r)
+            else:
+                self.summary_stats['outcomes pruned at call site'] += 1
+        self.summary_stats['outcomes applied'] += len(out)
+        return out
+
+    class _Ctx:
+        __slots__ = ('st', 'fs', 'ren', 'mt', 'mr', 'pending')
+
+    def _rename(self, ctx, name):
+        m = self._TOKEN.match(name)
+        if m is None:
+            return name
+        tok, rest = m.group(1), m.group(2)
+        new = ctx.ren.get(tok)
+        if new is None:
+            if tok.startswith('mrg') and '#' not in tok:
+                self.mrg_ctr += 1
+                new = 'mrg%d' % self.mrg_ctr
+            else:
+                new = ctx.st.fresh(tok[:tok.rindex('#')])
+            ctx.ren[tok] = new
+        nn = new + rest
+        if not rest and name in self.join_vals and nn not in self.join_vals:
+            # re-derive the joined values' domain / known bits in caller terms
+            self.join_vals[nn] = []
+            vals = [self._map_term(ctx, t) for t in self.join_vals[name]]
+            if not any(isinstance(x, tuple) for x in vals):
+                self.join_vals[nn] = vals
+                if all(is_concrete(x) for x in vals):
+                    self.domains[nn] = frozenset(x & M32 for x in vals)
+                else:
+                    mb = 0
+                    for x in vals:
+                        mb |= self.maybe_bits(x)
+                    mb &= self.bits.get(name, M32)
+                    if mb != M32:
+                        self.bits[nn] = mb
+            return nn
+        if name in self.domains and nn not in self.domains:
+            self.domains[nn] = self.domains[name]
+        if name in self.bits and nn not in self.bits:
+            self.bits[nn] = self.bits[name]
+        return nn
+
+    def _map_region(self, ctx, rname):
+        hit = ctx.mr.get(rname)
+        if hit is not None:
+            return hit
+        r = self.regions[rname]
+        if rname.startswith('R:') and self._renamable(rname[2:]):
+            nn = self._rename(ctx, rname[2:])
+            new = 'R:' + nn
+            self.region(new, r.ty, nn, r.lazy, r.nullable, r.kind)
+            ctx.pending.append((rname, new))
+            res = ('P', new, 0)
+        elif rname in self.region_origin:
+            preg, pofs, pty = self.region_origin[rname]
+            base = self._map_region(ctx, preg)
+            if base[0] != 'P' or not is_concrete(base[2]):
+                raise Stuck('summary: region %s has no caller base' % r.path)
+            v = self.load(ctx.st, 'i32', pty, base[1], (base[2] + pofs) & M32)
+            if v[0] == 'P':
+                res = v
+            elif v[0] == 'I' and is_concrete(v[1]) and v[1] == 0:
+                res = ('I', 0)
+            else:
+                raise Stuck('summary: pointer cell of %s is not a pointer in the caller' % r.path)
+        else:
+            res = ('P', rname, 0)
+        ctx.mr[rname] = res
+        return res
+
+    def _map_var(self, ctx, name, kind):
+        """Caller meaning of a summary var: a term/concrete, or a ('P',..) pointer."""
+        if name.startswith('nonnull('):
+            reg = self.path_region.get(name[8:-1])
+            if reg is None:
+                return var(name, kind)
+            p = self._map_region(ctx, reg)
+            if p[0] != 'P':
+                return 0
+            b = self.bool_term(ctx.st, p, None)
+            return int(b) if isinstance(b, bool) else b
+        if self._renamable(name):
+            return var(self._rename(ctx, name), kind)
+        o = self.var_origin.get(name)
+        if o is not None:
+            reg, ofs, chunk, ty = o
+            base = self._map_region(ctx, reg)
+            if base[0] != 'P' or not is_concrete(base[2]):
+                raise Stuck('summary: cell %s has no caller base' % name)
+            v = self.load(ctx.st, chunk, ty, base[1], (base[2] + ofs) & M32)
+            if v[0] == 'P':
+                return v
+            if v[0] == 'U':
+                raise Stuck('summary: undefined caller cell %s' % name)
+            return v[1]
+        if self._renamable(name):
+            return var(self._rename(ctx, name), kind)
+        return var(name, kind)
+
+    def _map_term(self, ctx, t):
+        if not isinstance(t, T):
+            return t
+        k = t.key()
+        hit = ctx.mt.get(k)
+        if hit is not None:
+            return hit
+        op = t.op
+        if op == 'var':
+            res = self._map_var(ctx, t.args[0], t.kind)
+        elif op == 'load':
+            path, ofs, chunk = t.args
+            o2 = self._map_term(ctx, ofs)
+            reg = self.path_region.get(path)
+            res = T('load', (path, o2, chunk), t.kind)
+            if reg is not None:
+                base = self._map_region(ctx, reg)
+                if base[0] == 'P':
+                    res = T('load', (self.regions[base[1]].path, mk('add', 'i32', base[2], o2), chunk), t.kind)
+        else:
+            args = [self._map_term(ctx, a) for a in t.args]
+            if any(isinstance(a, tuple) for a in args):
+                raise Stuck('summary: pointer inside arithmetic after substitution')
+            if op in INT_CMP_OPS or op == 'notbool':
+                kind = next((a.kind for a in t.args if isinstance(a, T)), 'i32')
+            elif op in FLT_CMP_OPS:
+                kind = next((a.kind for a in t.args if isinstance(a, T)), 'f32')
+            else:
+                kind = t.kind
+            res = mk(op, kind, *args)
+        ctx.mt[k] = res
+        return res
+
+    def _map_val(self, ctx, v):
+        if v is None or v[0] == 'U':
+            return v
+        if v[0] == 'P':
+            base = self._map_region(ctx, v[1])
+            off = self._map_term(ctx, v[2])
+            if isinstance(off, tuple):
+                raise Stuck('summary: pointer offset is a pointer')
+            if base[0] == 'P':
+                o = (base[2] + off) & M32 if is_concrete(base[2]) and is_concrete(off) else mk('add', 'i32', base[2], off)
+                return ('P', base[1], o)
+            return ('I', off)
+        x = self._map_term(ctx, v[1])
+        if isinstance(x, tuple):
+            if v[0] == 'I':
+                return x
+            raise Stuck('summary: non-int view of a pointer')
+        return (v[0], x)
+
+    def _is_initial(self, ent, reg, ofs, chunk, v):
+        iv = ent['init'].get((reg, ofs))
+        if iv is not None:
+            return self._vkey(v) == iv
+        r = self.regions[reg]
+        name = '%s%s' % (r.path, self._path(r, ofs, chunk))
+        if v[0] == 'P':
+            return v[1] == 'R:' + name and is_concrete(v[2]) and v[2] == 0
+        x = v[1] if v[0] != 'U' else None
+        if isinstance(x, T) and x.op == 'var' and x.args[0] == name:
+            return True
+        dom = self.domains.get(name)
+        if dom is not None and len(dom) == 1 and v[0] == 'I' and is_concrete(x) and x == next(iter(dom)):
+            return True
+        return False
+
+    def _apply_outcome(self, fname, ent, ret, fs, st):
+        ctx = Explorer._Ctx()
+        cst = st.clone()
+        ctx.st, ctx.fs, ctx.ren, ctx.mt, ctx.mr, ctx.pending = cst, fs, {}, {}, {}, []
+        try:
+            # 1. path facts of the outcome, checked against the caller
+            for key, pol in fs.facts.items():
+                if key in ent['facts']:
+                    continue
+                atom = self.atoms.get(key)
+                if atom is None:
+                    if key.startswith('nonnull('):
+                        atom = var(key, 'i32')
+                    else:
+                        continue
+                a2 = self._map_term(ctx, atom)
+                if isinstance(a2, tuple):
+                    a2 = self.bool_term(cst, a2, None)
+                    if not isinstance(a2, bool):
+                        a2 = a2
+                if isinstance(a2, bool) or is_concrete(a2):
+                    if (a2 != 0) != pol:
+                        return None
+                    continue
+                at, p2 = canon(a2)
+                if is_concrete(at):
+                    if ((at != 0) == p2) != pol:
+                        return None
+                    continue
+                val = (pol == p2)
+                k2 = at.key()
+                have = cst.facts.get(k2)
+                if have is not None:
+                    if have != val:
+                        return None
+                    continue
+                rd = self.range_decide(cst, at)
+                if rd is not None:
+                    if rd != val:
+                        return None
+                    continue
+                cst.facts[k2] = val
+                self.atoms.setdefault(k2, at)
+                self.learn(cst, at, val)
+            # 2. written cells (values relative to the call-entry state)
+            writes = []
+            if not (isinstance(ret, tuple) and ret[0] in ('stuck', 'trunc')):
+                for reg, cells in fs.mem.items():
+                    r = self.regions[reg]
+                    if r.kind == 'local' or not r.lazy:
+                        continue
+                    if reg.startswith('R:') and self._renamable(reg[2:]):
+                        continue
+                    for ofs, (chunk, v) in cells.items():
+                        if self._is_initial(ent, reg, ofs, chunk, v):
+                            continue
+                        base = self._map_region(ctx, reg)
+                        if base[0] != 'P' or not is_concrete(base[2]):
+                            return None     # the summary wrote through what is NULL here
+                        writes.append((base[1], (base[2] + ofs) & M32, chunk, self._map_val(ctx, v)))
+                ret2 = self._map_val(ctx, ret) if ret is not None else None
+            else:
+                ret2 = ret
+            # world reads, in caller terms (logs caller reads of e.g. collided-object fields)
+            for name in fs.reads:
+                if name in self.var_origin:
+                    try:
+                        self._map_var(ctx, name, 'i32')
+                    except Stuck:
+                        pass
+                elif '#' not in name:
+                    cst.reads = log_push(cst.reads, name)
+            # fresh regions reached from the outcome: copy their cells
+            copies = []
+            done = set()
+            while ctx.pending:
+                old, new = ctx.pending.pop()
+                if old in done:
+                    continue
+                done.add(old)
+                for ofs, (chunk, v) in fs.mem.get(old, {}).items():
+                    copies.append((new, ofs, chunk, self._map_val(ctx, v)))
+                okey = 'nonnull(%s)' % self.regions[old].path
+                if okey in fs.facts:
+                    cst.facts['nonnull(%s)' % self.regions[new].path] = fs.facts[okey]
+            for reg, ofs, chunk, v in writes:
+                self.store(cst, chunk, reg, ofs, v)
+            for reg, ofs, chunk, v in copies:
+                cst.region_w(reg)[ofs] = (chunk, v)
+        except Stuck as e:
+            self.summary_stats['outcomes unmappable'] += 1
+            cst.warn('summary %s: outcome not mappable (%s)' % (fname, e))
+            return (('stuck', 'summary %s: %s' % (fname, e)), cst)
+        # 3. logs
+        cst.calls = log_push(cst.calls, ('internal', fname))
+        for c in log_list(fs.calls):
+            cst.calls = log_push(cst.calls, c)
+        for w in log_list(fs.warns):
+            cst.warns = log_push(cst.warns, w)
+        cst.pc = log_push(cst.pc, 'summary %s#%d {' % (fname, ent['id']))
+        if self.summary_pc:
+            for c in log_list(fs.pc):
+                cst.pc = log_push(cst.pc, '  ' + c)
+            cst.pc = log_push(cst.pc, '} %s' % fname)
+        for c, n in fs.ctr.items():
+            if c.startswith('iter@') and n > cst.ctr.get(c, 0):
+                cst.ctr[c] = n
+        return (ret2, cst)
 
     # ------------------------------------------------------------------ merging
     def _vkey(self, v):
@@ -1337,6 +2094,19 @@ class Explorer:
                         break
                 if dom is not None:
                     self.domains[name] = frozenset(dom)
+                elif chunk not in ('f32', 'f64', 'i64') and all(v[1][0] == 'I' for v in vals):
+                    uniq = {}
+                    for v in vals:
+                        uniq.setdefault(show_val(v[1][1]), v[1][1])
+                    if len(uniq) <= 64:
+                        self.join_vals[name] = list(uniq.values())
+                    mb = 0
+                    for v in vals:
+                        mb |= self.maybe_bits(v[1][1])
+                    if chunk in ('i16u',):
+                        mb &= 0xFFFF
+                    if mb != M32:
+                        self.bits[name] = mb
                 if v0[0] == 'P' or any(v[1][0] == 'P' for v in vals):
                     rn = 'R:' + name
                     ty = self.layout.type_at(r.ty, o) if r.ty is not None else None
@@ -1355,6 +2125,12 @@ class Explorer:
         # facts: keep the agreed ones
         base.facts = {k: v for k, v in base.facts.items() if all(s.facts.get(k) == v for s in states)}
         base.subst = {k: v for k, v in base.subst.items() if all(s.subst.get(k) == v for s in states)}
+        bnd = {}
+        for k, b in base.bounds.items():
+            bs = [s.bounds.get(k) for s in states]
+            if all(x is not None for x in bs):
+                bnd[k] = (min(x[0] for x in bs), max(x[1] for x in bs))
+        base.bounds = bnd
         # pc: common prefix + note
         pcs = [log_list(s.pc) for s in states]
         n = 0

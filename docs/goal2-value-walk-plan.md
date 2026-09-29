@@ -124,3 +124,60 @@ allows vel ≥ −75. Water paths need Φ's y ≥ −8192 as a path fact. World
 reads the proof needs facts about: surface type/flags/normal,
 `area->terrainType` (SNOW, so FEET/HEAD_STUCK_IN_GROUND are real), squishTimer,
 hurtCounter, health, peakHeight, interactObj.
+
+## 6. Whole-frame results (experiments/symexec, 2026-09-29; unverified)
+
+**Tractability: yes.** `execute_mario_action` with no A and W assumed
+terminates from every starting action group, in 2–86 s and ≤ 336 MB. Starts:
+FREEFALL, SLIDE_KICK, GROUND_POUND, DIVE, WALKING, CROUCH_SLIDE, DIVE_SLIDE,
+IDLE, HOLDING_POLE, CLIMBING_POLE, TOP_OF_POLE, LEDGE_GRAB, IN_CANNON. Each
+run reports 10–1,212 paths; these are upper bounds, since there is no solver.
+Four things make it work:
+- **Per-function summaries,** keyed on the caller's concrete action, state
+  and arg. Validated only on act_freefall: the same 107 Φ shapes with and
+  without summaries.
+- **Interval pruning** on Y / GY / V from Φ's ranges, including relational
+  bounds. This kills every water path.
+- **Known-bits joins,** which keep the A bits of `m->input` known-zero.
+- **Cycle cuts** at the dispatch TRUE-loop head. WALKING never converges
+  (about 680 states). A loop-head state whose key has already occurred is cut,
+  which under-approximates the cells outside the key.
+
+**Φ results vs the Move catalog:** all of them map to catalog Moves:
+- air / cut / OOB steps, ground-pound windup / hold, attach;
+- ground → rollout (attach, then S_air);
+- ground → AIR_KB (attach; launch_cap 52 ≥ 43);
+- pole grab (Φ = pole oPosY − hitboxDownOffset, clamped by hitboxHeight: the
+  wmotr_pole row);
+- IN_CANNON (usedObj->oPosY + 350: the wmotr_cannon attach).
+
+The only exception is a SQUISHED ↔ IDLE cycle, which W's geometry removes (below).
+
+**Actions outside R_noA the frame reaches over phantom worlds, and what excludes each:**
+
+| reached | trigger | excluded by |
+|---|---|---|
+| ACT_SQUISHED | INPUT_SQUISHED: a DYNAMIC floor or ceiling and 0 ≤ ceil − floor ≤ 150 (mario.c:1344) | a geometry fact about WMotR's dynamic surfaces (the ! boxes and cannon lid) that belongs in the find_floor / find_ceil value contracts (plan step 1); no such pair exists (goal2-state: the squish-cancel ratchet is dead) |
+| ACT_SHOCKED, SHOCKWAVE_BOUNCE | INPUT_STOMPED from marioObj->oInteractStatus bits 0x13 | **W** (`wmotr_objects`): no stomp bit. The frame zeroes the field (mario.c:1773); no WMotR object sets it (census §3) |
+| STAR_DANCE_*, FALL_AFTER_STAR_GRAB, JUMBO_STAR_CUTSCENE | a collided INTERACT_STAR_OR_KEY object | **W**: collided interact types ⊆ WMotR's {0, COIN, CAP, POLE, BREAKABLE, CANNON_BASE, TEXT}. The star exists only after coin #2, which needs y ≥ 2980 (TRUST 0.3) |
+| ACT_COUGHING, SUFFOCATION | IN_POISON_GAS | nothing needed: a prototype imprecision (a summary join loses the bit). WMotR has no gas, which is also a find_poison_gas_level contract |
+| SHOCKED, BURNING_* | shell / flame probe objects | W's interact-type clause |
+
+**Object memory Φ depends on:** only a collided pole's oPosY,
+hitboxDownOffset and hitboxHeight, and a collided cannon base's oPosY. W pins
+each to a WMotRLevel list entry. The prototype saw other fields read, but
+they reach only path facts or nothing:
+- coin: 0x180 value;
+- breakable: oPosY, used for the hit-from-below test;
+- text: hitboxRadius, oPosX/Z, subtype;
+- star: bhvParams, subtype.
+
+**Caveats:**
+- no solver, so path counts are upper bounds;
+- summaries are validated on one handler only;
+- unmodelled externals are havoc or have no memory effect;
+- floats are assumed non-NaN;
+- one collided object per run.
+
+The Coq executor must replace each of these with a sound rule: a join or
+widening instead of a cycle cut, and contracts instead of havoc.

@@ -45,6 +45,14 @@ PHI = [  # (label, region, offset, chunk)
 
 ACT_NAMES = {}
 
+DEFAULT_SUMMARIZE = (r'^(act_\w+|mario_execute_\w+_action|common_\w+|perform_\w*step|'
+                     r'mario_process_interactions|update_mario_\w+|mario_handle_special_floors|'
+                     r'sink_mario_in_quicksand|squish_mario_model|set_submerged_cam_preset_and_spawn_bubbles|'
+                     r'mario_update_hitbox_and_cap_model|interact_\w+|check_\w+|set_mario_action\w*|'
+                     r'mario_reset_bodystate|drop_and_set_mario_action|hurt_and_set_mario_action)$')
+# the Φ InRange of HeightInvariant.v (Y's upper bound PHI_K + PHI_A = 2796 holds when credit >= 0)
+PHI_RANGES = {'Y': (-8192.0, 2796.0), 'GY': (-8192.0, 2796.0), 'V': (-75.0, 43.0)}
+
 
 def load_act_names():
     """ACT_* names from the decomp header (for display only)."""
@@ -220,6 +228,65 @@ def install_world(ex, st, world):
     ex.store(st, 'f32', 'M', ly.field('MarioState', 'quicksandDepth')[1], ('S', np.float32(0)))
 
 
+# collided-object kinds (docs/goal2-wmotr-behavior-census.md; interaction
+# types from proofs/WMotRRequiresA/BehaviorScripts.v closure_itypes_value).
+# (interactType, preset rawData fields {word index: value}, note)
+O_INTERACT_TYPE, O_INTERACTION_SUBTYPE, O_DAMAGE_OR_COIN = 0x2A, 0x42, 0x3E
+OBJ_KINDS = {
+    'coin':      (0x10, {O_DAMAGE_OR_COIN: 1}, 'yellow coin (bhvCoinFormation child / 1-up pole spawner coins), value 1'),
+    'redcoin':   (0x10, {O_DAMAGE_OR_COIN: 2}, 'bhvRedCoin, value 2'),
+    'pole':      (0x40, {}, 'bhvPoleGrabbing'),
+    'breakable': (0x200, {}, 'bhvExclamationBox (sExclamationBoxHitbox)'),
+    'cap':       (0x20, {}, 'sCapHitbox (box contents)'),
+    'star':      (0x1000, {}, 'bhvHiddenRedCoinStar star / sCollectStarHitbox'),
+    'cannon':    (0x4000, {}, 'bhvCannon base (opened by the buddy)'),
+    'text':      (0x800000, {O_INTERACTION_SUBTYPE: 0x4000}, 'bhvBobombBuddyOpensCannon, INT_SUBTYPE_NPC'),
+    'none':      (0, {}, '1-up / sparkles / warp: collided, no interaction type'),
+    'shell':     (0x80000, {}, 'sKoopaShellHitbox: over-approximated closure only'),
+    'flame':     (0x40000, {}, 'bhvKoopaShellFlame: over-approximated closure only'),
+}
+
+
+def install_collided(ex, st, kind):
+    """marioObj->numCollidedObjs = 1, collidedObjs[0] = COLL (an Object of `kind`);
+    every other COLL field is lazily symbolic and its reads are tracked."""
+    ly = ex.layout
+    itype, fields, _ = OBJ_KINDS[kind]
+    ex.region('COLL', OBJ_T, 'coll', True, False, 'obj')
+    ex.store(st, 'i16s', 'OBJ', ly.field('Object', 'numCollidedObjs')[1], ('I', 1))
+    ex.store(st, 'i32', 'OBJ', ly.field('Object', 'collidedObjs')[1], ('P', 'COLL', 0))
+    ex.store(st, 'i32', 'OBJ', ly.field('Object', 'collidedObjInteractTypes')[1], ('I', itype))
+    raw = ly.field('Object', 'rawData')[1]
+    ex.store(st, 'i32', 'COLL', raw + 4 * O_INTERACT_TYPE, ('I', itype))
+    for idx, val in fields.items():
+        ex.store(st, 'i32', 'COLL', raw + 4 * idx, ('I', val & 0xffffffff))
+    ex.track_regions.add('COLL')
+
+
+def object_field_names():
+    """Object byte offset -> o* field names (include/object_fields.h)."""
+    import re
+    p = os.path.join(os.path.dirname(__file__), '..', '..', 'vendor', 'sm64', 'include', 'object_fields.h')
+    out = collections.defaultdict(list)
+    try:
+        for line in open(p):
+            m = re.match(r'#define\s+/\*(0x[0-9A-Fa-f]+)\*/\s+(o[A-Z]\w*)\s+OBJECT_FIELD_', line)
+            if m:
+                out[int(m.group(1), 0)].append(m.group(2))
+    except OSError:
+        pass
+    return out
+
+
+def r_noa_set():
+    import re
+    p = os.path.join(os.path.dirname(__file__), '..', '..', 'proofs', 'WMotRRequiresA', 'NoAActions.v')
+    try:
+        return {int(x) for x in re.findall(r'^\s+(\d+) \(\*', open(p).read(), re.M)}
+    except OSError:
+        return set()
+
+
 def show_action(v):
     if v[0] == 'I' and is_concrete(v[1]):
         return '0x%08X%s' % (v[1], (' ' + ACT_NAMES[v[1]]) if v[1] in ACT_NAMES else '')
@@ -242,13 +309,96 @@ def phi_of(ex, st):
 KEY_CELLS = [('input', 'M', 2, 'i16u'), ('flags', 'M', 4, 'i32'), ('waterLevel', 'M', 118, 'i16s')]
 
 
+EXACT_KEY = {'waterLevel'}   # + 'input' / 'flags' with --exact-input / --exact-flags
+
+
 def merge_key(ex, st):
     k = tuple(phi_of(ex, st).values())
     extra = []
     for lab, reg, ofs, ch in KEY_CELLS:
+        if lab not in EXACT_KEY:
+            continue
         cell = st.mem.get(reg, {}).get(ofs)
         extra.append(ex.show_value(cell[1]) if cell else '-')
-    return k + tuple(extra)
+    # inside a summary, facts on the callee's initial m->input / held-object
+    # pointers must survive joins: they are what the call site decides
+    kf = tuple(sorted((f, v) for f, v in st.facts.items() if any(p in f for p in KEY_FACT_SUBSTR)))
+    return k + tuple(extra) + kf
+
+
+KEY_FACT_SUBSTR = ('nonnull(m->heldObj)', 'nonnull(m->riddenObj)', 'nonnull(m->usedObj)',
+                   'nonnull(m->interactObj)')
+
+
+def install_summary_skeleton(ex, st, key_input=False):
+    """Root cells a summary may assume when the caller still holds them: every
+    preset cell of the initial state except Φ / the key cells (pointers
+    m->marioObj, gMarioState, m->controller, W's quicksandDepth, the
+    collided-object model, ...), and W's nonnull facts on m->floor / heldObj /
+    riddenObj while those cells are unwritten."""
+    skip = {(reg, ofs) for _, reg, ofs, _ in PHI} | {(reg, ofs) for _, reg, ofs, _ in KEY_CELLS}
+    for reg, cells in st.mem.items():
+        for ofs, (chunk, v) in cells.items():
+            if (reg, ofs) not in skip:
+                ex.summary_skeleton.append((reg, ofs, chunk, v))
+    for key, pol in st.facts.items():
+        path = key[len('nonnull('):-1]
+        if key.startswith('nonnull(m->') and '->' not in path[3:]:
+            ex.summary_skel_facts.append((key, pol, 'M', ex.layout.field('MarioState', path[3:])[1]))
+    ly = ex.layout
+    ex.summary_presets = [('M', 12, 'i32'), ('M', 24, 'i16u'),
+                          ('M', ly.field('MarioState', 'actionArg')[1], 'i32')]
+    if key_input:
+        ex.summary_presets.append(('M', 2, 'i16u'))
+    else:
+        ex.summary_masked.append(('M', 2, 'i16u'))
+
+
+def report_object_fields(ex, results):
+    """Which collided-object fields the frame reads / writes, and whether a
+    field's value reaches the Φ result, the return value or a path fact."""
+    import re
+    names = object_field_names()
+    raw = ex.layout.field('Object', 'rawData')[1]
+    rd, wr = collections.Counter(), collections.Counter()
+    blob_phi, blob_pc = [], []
+    for ret, s in results:
+        for r in set(log_list(s.reads)):
+            if r.startswith('TRACK:'):
+                rd[r[6:]] += 1
+            elif r.startswith('TRACKW:'):
+                wr[r[7:]] += 1
+        blob_phi.append(' '.join(phi_of(ex, s).values()) + ' ' + (ex.show_value(ret) if not (
+            isinstance(ret, tuple) and ret[0] in ('stuck', 'trunc')) else ''))
+        blob_pc.append(' '.join(s.facts.keys()))
+    phi_txt, pc_txt = '\n'.join(blob_phi), '\n'.join(blob_pc)
+    ly = ex.layout
+    presets = ex.summary_skeleton
+    preset_paths = set()
+    for reg, ofs, chunk, v in presets:
+        if reg == 'COLL':
+            r = ex.regions['COLL']
+            preset_paths.add('%s%s' % (r.path, ex._path(r, ofs, chunk)))
+    print('   collided-object (coll) field accesses (%d paths):' % len(results))
+    for path in sorted(set(rd) | set(wr)):
+        m = re.search(r'rawData\.as\w+\[(\d+)\]', path)
+        o = None
+        if m:
+            o = raw + 4 * int(m.group(1))
+        else:
+            f = path.split('->', 1)[1].split('.')[0].split('[')[0]
+            try:
+                o = ly.field('Object', f)[1]
+            except Exception:
+                o = None
+        nm = '/'.join(names.get(o, [])[:3]) if m else ''
+        ofs = '+0x%X' % o if o is not None else ''
+        esc = re.escape(path)
+        in_phi = re.search(esc + r'(?![\w\[.])', phi_txt) is not None
+        in_pc = re.search(esc + r'(?![\w\[.])', pc_txt) is not None
+        dep = ('preset; ' if path in preset_paths else '') + (
+            'in Φ/ret' if in_phi else ('in final path facts' if in_pc else 'no trace in result'))
+        print('     %-34s %-8s %-40s R%-5d W%-5d %s' % (path, ofs, nm, rd.get(path, 0), wr.get(path, 0), dep))
 
 
 def root_of(read):
@@ -282,11 +432,26 @@ def main():
                     help='marioObj->numCollidedObjs = 0 and collidedObjInteractTypes = 0 (no object interactions this frame)')
     ap.add_argument('--world', choices=['any', 'wmotr'], default='any',
                     help='wmotr: assume W (surface types in the WMotR set, m->floor != NULL)')
+    ap.add_argument('--collide', choices=sorted(OBJ_KINDS),
+                    help='one collided object of this WMotR kind (see OBJ_KINDS)')
+    ap.add_argument('--summarize', default=DEFAULT_SUMMARIZE,
+                    help='regex of functions run once as summaries and applied at call sites ("" disables)')
+    ap.add_argument('--exact-input', action='store_true',
+                    help='joins keep m->input exact (default: joined into a symbol whose possibly-set '
+                         'bits are tracked, which keeps INPUT_A_PRESSED/A_DOWN known-zero under --noA)')
+    ap.add_argument('--exact-flags', action='store_true',
+                    help='joins keep m->flags exact (default: joined, possibly-set bits tracked)')
+    ap.add_argument('--summary-key-input', action='store_true',
+                    help='also specialise summaries on a concrete m->input (default: input stays symbolic '
+                         'in the summary and is decided at the call site)')
+    ap.add_argument('--no-phi-ranges', action='store_true',
+                    help='do not assume Φ InRange (-8192 <= Y, GY <= 2796; -75 <= V <= 43)')
     ap.add_argument('--max-paths', type=int, default=200000, help='cap on the number of forks')
     ap.add_argument('--loop-fuel', type=int, default=64)
     ap.add_argument('--max-depth', type=int, default=40)
     ap.add_argument('--show', type=int, default=12, help='paths to print in full')
     ap.add_argument('--no-pc', action='store_true')
+    ap.add_argument('--show-action', type=lambda x: int(x, 0), help='also print 3 paths ending in this action')
     ap.add_argument('--shapes', action='store_true', help='print Φ result shapes (normalised)')
     ap.add_argument('--group', action='store_true', help='group paths by Φ result')
     args = ap.parse_args()
@@ -310,6 +475,20 @@ def main():
             o = ex.layout.field('Controller', fld)[1]
             ex.store(st, 'i16u', 'CTRL', o,
                      ('I', mk('and', 'i32', var('m->controller->' + fld, 'i32'), 0x7FFF)))
+    if args.exact_input:
+        EXACT_KEY.add('input')
+    if args.exact_flags:
+        EXACT_KEY.add('flags')
+    if args.collide:
+        install_collided(ex, st, args.collide)
+    if not args.no_phi_ranges:
+        ex.var_range.update(PHI_RANGES)
+    if args.summarize:
+        import re
+        rx = re.compile(args.summarize)
+        top = args.function
+        ex.summarize = lambda fn: fn != top and rx.match(fn) is not None
+        install_summary_skeleton(ex, st, args.summary_key_input)
     f = ex.functions[args.function]
     p0 = f['fn_params'][0][2] if f['fn_params'] else None
     obj_first = isinstance(p0, tuple) and p0[0] == 'tptr' and str(p0[1][1]) == 'Object'
@@ -333,6 +512,7 @@ def main():
     reads = collections.Counter()
     warns = collections.Counter()
     groups = collections.OrderedDict()
+    shown_action = [0]
     for i, (ret, s) in enumerate(results):
         if isinstance(ret, tuple) and ret[0] in ('stuck', 'trunc'):
             kind = ret[0] + ': ' + ret[1]
@@ -356,13 +536,18 @@ def main():
         phi = phi_of(ex, s)
         key = (rets,) + tuple(phi.values())
         groups.setdefault(key, []).append(i)
-        if i < args.show:
+        fa = s.mem.get('M', {}).get(12)
+        want = args.show_action is not None and fa is not None and fa[1] == ('I', args.show_action)
+        if i < args.show or (want and shown_action[0] < 3):
+            if want:
+                shown_action[0] += 1
             print('\n-- path %d: %s' % (i, rets))
             if not args.no_pc:
                 for c in log_list(s.pc):
                     print('   pc  ', c if len(c) < 200 else c[:200] + '...')
             for k, v in phi.items():
                 print('   %-12s = %s' % (k, v))
+            print('   facts    :', '; '.join('%s%s' % ('' if v else 'NOT ', k[:120]) for k, v in s.facts.items()))
             print('   externals:', ', '.join('%s(%s)' % (c[1], c[2][:60]) for c in ext) or '-')
             ws = log_list(s.warns)
             if ws:
@@ -379,7 +564,7 @@ def main():
                 '%s=%s' % (lab, v) for (lab, _, _, _), v in zip(PHI, key[1:]))))
     if args.shapes:
         import re
-        norm = lambda x: re.sub(r'mrg\d+', 'mrg', re.sub(r'#\d+', '#k', x))
+        norm = lambda x: re.sub(r'mrg\d+', 'mrg', re.sub(r'#(?:s\d+_)?\d+', '#k', x))
         shapes = collections.Counter()
         for key, idx in groups.items():
             ph = dict(zip([p[0] for p in PHI], key[1:]))
@@ -391,6 +576,37 @@ def main():
         print('   Φ shapes (indices #k / mrg ids normalised): %d' % len(shapes))
         for sh, n in sorted(shapes.items()):
             print('     %4d  %s' % (n, ' | '.join(sh)))
+    # action-dispatch loop: iterations of `while (inLoop)` (last one exits)
+    iters = collections.Counter()
+    for ret, s in results:
+        n = s.ctr.get('iter@execute_mario_action')
+        if n is not None:
+            iters[n - 1] += 1
+    if iters:
+        print('   dispatch-loop handler calls per path:', dict(sorted(iters.items())))
+    if ex.cycle_cuts:
+        print('   loop-head states cut as repeats of an earlier iteration (abstract cycles):', dict(ex.cycle_cuts))
+        print('     by action at the loop head:', ', '.join('%s×%d' % (a.split()[-1], n) for (f, a), n in
+                                                          ex.cycle_keys.most_common(12)))
+    # actions reached
+    noa = r_noa_set()
+    acts = collections.Counter()
+    for ret, s in results:
+        if isinstance(ret, tuple) and ret[0] in ('stuck', 'trunc'):
+            continue
+        v = ex.load(s, 'i32', None, 'M', 12)
+        acts[v[1] if v[0] == 'I' and is_concrete(v[1]) else show_val(v[1])] += 1
+    print('   final actions (%d):' % len(acts))
+    for a, n in sorted(acts.items(), key=lambda kv: -kv[1]):
+        if isinstance(a, int):
+            flag = '' if a in noa else '   <-- NOT in R_noA'
+            print('     %5d  0x%08X %s%s' % (n, a, ACT_NAMES.get(a, '?'), flag))
+        else:
+            print('     %5d  %s   <-- symbolic' % (n, a))
+    if ex.summary_stats:
+        print('   summaries:', dict(ex.summary_stats))
+    if 'COLL' in ex.track_regions:
+        report_object_fields(ex, results)
     print('   internal functions executed:', ', '.join(sorted(internals)))
     print('   externals (%d): %s' % (len(externals), ', '.join('%s×%d' % kv for kv in sorted(externals.items()))))
     byroot = collections.defaultdict(set)

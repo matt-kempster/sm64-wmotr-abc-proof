@@ -53,6 +53,57 @@ fresh symbol named by its access path, such as `m->floor->type` or
 are `floorY#k`, `ceilY#k`, `waterY#k`, `wallX#k`, `numWalls#k` and so on. Joined
 values are `mrgN`.
 
+## Whole-frame mode: summaries, intervals, known bits, collided objects
+
+`execute_mario_action` is tractable only with three additions (all on by default):
+
+- **Per-function summaries** (`--summarize REGEX`, default: `act_*`, the
+  `mario_execute_*_action` dispatchers, `common_*`, `perform_*step`,
+  `update_mario_*`, `mario_process_interactions`, `interact_*`, `check_*`,
+  `set_mario_action*`, the epilogue calls; `--summarize=` disables). A summary is
+  one run of the callee from a fresh state where M / objects / world are lazily
+  symbolic and named by access path (the same names the caller would give them),
+  plus the root *skeleton* cells that still agree with the caller (m->marioObj,
+  gMarioState, m->controller and its no-A buttons, quicksandDepth, the
+  collided-object model, W's nonnull facts), plus the caller's concrete
+  `action`, `actionState`, `actionArg` (the cache key; `--summary-key-input` also
+  keys on `m->input`). At a call site each outcome is *applied*: path-named vars
+  become the caller's current cell values, lazily created regions follow the
+  caller's pointer in the originating cell, `#`/`mrg` names are renamed fresh; the
+  outcome's path facts are re-checked against the caller's facts and intervals
+  (infeasible outcomes are dropped); written cells are stored; world reads are
+  replayed as caller reads. Validation: `act_freefall` with and without
+  summaries gives the identical set of 107 normalised Φ shapes.
+- **Intervals** (`Explorer.interval`, used in `range_decide`): Φ's InRange as
+  assumptions on the frame-entry symbols (`Y, GY ∈ [-8192, 2796]`, `V ∈ [-75, 43]`;
+  `--no-phi-ranges` drops them), small-int chunk ranges, domains, and bounds
+  learned from comparisons with constants on the path, plus a relational
+  transfer (`x < y` with y bounded bounds x, and vice versa). Floats are widened by
+  2^-21 relative per op and assumed non-NaN. This kills e.g. every water path
+  (`Y ≥ -8192 > waterLevel - 100 = -11100`).
+- **Known bits** (`Explorer.maybe_bits`): joins record which bits of a joined
+  int may be 1 (re-derived in caller terms when a summary's join symbol is
+  renamed), so `m->input` can be joined while `INPUT_A_PRESSED` / `INPUT_A_DOWN`
+  stay known-zero under `--noA`.
+- The dispatch loop `while (inLoop)` is bounded by `--loop-fuel`; the report
+  prints the number of handler calls per path. With `--join-loops`, a
+  loop-head state whose key (temps + Φ + key cells) already occurred at an
+  earlier iteration is **cut** (its continuation repeats explored behaviour up
+  to cells outside the key); the report counts these "abstract cycles" per
+  action. Without this, WALKING never converges (≈680 states cycling).
+- Joins keep only `m->waterLevel` exact besides Φ, plus the path facts
+  `nonnull(m->heldObj / riddenObj / usedObj / interactObj)` (`KEY_FACT_SUBSTR`); `m->input` and `m->flags`
+  are joined with known bits (`--exact-input`, `--exact-flags` restore
+  exactness). Summaries see the caller's `m->input` as a symbol whose
+  possibly-set bits are the caller's (so the A bits are known-zero inside every
+  summary under `--noA`); cached outcomes are slimmed to their written cells.
+- `--collide KIND` installs one collided object `coll` (`numCollidedObjs = 1`)
+  of a WMotR kind (`run.py` `OBJ_KINDS`: interact type and the script-set
+  fields); every other field is lazily symbolic, every access to `coll` is
+  logged, and the report lists the fields read/written with offset, `o*` name
+  and whether the value reaches Φ / the return value, only path facts, or
+  nothing.
+
 ## Semantics implemented (following CompCert 3.15 Clight / Cop)
 
 - **Statements:** `Ssequence`, `Sskip`, `Sset`, `Sassign` (a struct assignment copies its scalar leaves), `Scall`, `Sifthenelse`, `Sloop` (s1 then s2, with break and continue), the `Swhile` notation, `Sbreak`, `Scontinue`, `Sreturn`, and `Sswitch` with `LScons` fallthrough and default. `Sbuiltin`, `Sgoto` and `Slabel` do not occur in the frame TUs and are rejected.
@@ -89,5 +140,6 @@ Domains flow through joins: a joined variable gets the union of the joined value
 - **Symbolic offsets.** A store at a symbolic offset is **ignored**, with a warning. A load at a symbolic offset from a pointer array held in a local (`collisionData.walls[numWalls-1]`) becomes a fresh pointer.
 - **Unmodelled externals** are assumed to have no memory effect (see the warning above).
 - **Bitfields** are laid out but not accessed. Nothing in the frame's Mario path uses them.
-- **Floating point.** No path condition is checked for feasibility. Float→int overflow on a symbolic value is not flagged. It would be a side condition.
+- **Summaries** are applied by substitution; aliasing between a summary's lazily created regions and caller-written cells other than through the originating pointer cell is not modelled. Outcomes whose mapping fails are reported as `stuck: summary ...`.
+- **Floating point.** Feasibility is checked only by intervals (no solver). Float→int overflow on a symbolic value is not flagged. It would be a side condition.
 - **Static helpers.** If two TUs define a static helper with the same name, the first one wins. None occur in the 12 TUs.

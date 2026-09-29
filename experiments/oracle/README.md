@@ -119,6 +119,8 @@ kicks once. Scripted policies advance once per Mario frame, because the game pol
 per two VIs and a one-VI pulse can be missed. **Trap:** without the wing-cap save flag
 the wing-cap boxes are intangible outlines (`exclamation_box_act_1`), so a plain `box*`
 spot never stands on a box. Use the `*w` spots for the K = 2424 case.
+The `pole` and `buddy` spots start next to the low pole and the cannon-island buddy.
+They exercise W's object clause (`objs_bad`), which reads Mario's collided objects at every `execute_mario_action` entry.
 
 Gotchas: the core rebuilds its memory handlers when emulation starts, so write
 watches must be added while running (unlike PC breakpoints). The store's new value is

@@ -89,6 +89,11 @@ SPOTS = {
     # are intangible outlines (exclamation_box_act_1) and nobody stands on them
     "box2424w": (-2760.0, 2430.0, -4080.0),
     "box2064w": (-400.0, 2070.0, -120.0),
+    # in the air next to the low pole (script.c:19, base -2739, top -1919),
+    # so falls and dives collide with it (wmotr_objects' pole clause)
+    "pole": (3996.0, -2300.0, 5420.0),
+    # the cannon island, next to the bob-omb buddy (TEXT) and the cannon
+    "buddy": (3684.0, -2600.0, 4800.0),
 }
 # WMotRWorld.wmotr_surface_types_value
 WMOTR_SURFACE_TYPES = {5, 10, 21, 55, 0}
@@ -164,8 +169,24 @@ def record(n_frames, seed, policy, spot=None):
                 "held": e.read32(ms + 124), "ridden": e.read32(ms + 132),
                 "qsd": f32(e.read32(ms + 192))}
 
+    def objs(e):
+        """WMotRWorld.wmotr_objects' fields at execute_mario_action entry:
+        Mario's oInteractStatus, then each collided object's (interactType,
+        oPosY, hitboxDownOffset, hitboxHeight)."""
+        mo = e.read32(ms + 0x88)
+        n = e.read16(mo + 0x76)
+        n = n - 0x10000 if n >= 0x8000 else n
+        coll = []
+        for i in range(max(0, min(n, 4))):
+            o = e.read32(mo + 0x78 + 4 * i)
+            coll.append([e.read32(o + 0x130), f32(e.read32(o + 0xA4)),
+                         f32(e.read32(o + 0x208)), f32(e.read32(o + 0x1FC))])
+        return {"istatus": e.read32(mo + 0x134), "n": n, "coll": coll}
+
     def on_entry(e, pc):
         st["in_ema"] = True
+        if st["armed"]:
+            st["objs"] = objs(e)
 
     def on_exit(e, pc):
         st["in_ema"] = False
@@ -176,7 +197,7 @@ def record(n_frames, seed, policy, spot=None):
                               "action": read_cell(e, "action"),
                               "st_tm": read_cell(e, "state_timer"),
                               "floorh": read_cell(e, "floorh"), "gfxy": read_cell(e, "gfxy"),
-                              "world": world(e),
+                              "world": world(e), "objs": st.get("objs"),
                               "level": e.read16(S["gCurrLevelNum"])}) + "\n")
         st["n"] += 1
         st["ep_n"] += 1
@@ -327,6 +348,29 @@ def learn():
     emu.run()
 
 
+# WMotRWorld.wmotr_objects (the lists are WMotRLevel's pole_list_value and
+# cannon_list_value; cannon base oPosY = seat - 350)
+WMOTR_INTERACT_TYPES = {0, 0x10, 0x20, 0x40, 0x200, 0x4000, 0x800000}
+WMOTR_POLES = {(-2739, -1919), (3564, 4404), (3359, 4409), (3154, 4404), (4048, 4408), (3636, 4406)}
+WMOTR_CANNON_BASES = {837 - 350, -2730 - 350}
+
+
+def objs_bad(ob):
+    bad = []
+    if ob["istatus"] & 0x13:
+        bad.append(f"objs: stomp bits {ob['istatus']:#x}")
+    if not 0 <= ob["n"] <= 4:
+        bad.append(f"objs: numCollidedObjs {ob['n']}")
+    for t, y, down, h in ob["coll"]:
+        if t not in WMOTR_INTERACT_TYPES:
+            bad.append(f"objs: interact type {t:#x}")
+        if t == 0x40 and not (down == 0.0 and (y, y + h) in WMOTR_POLES):
+            bad.append(f"objs: pole {y} {down} {h}")
+        if t == 0x4000 and y not in WMOTR_CANNON_BASES:
+            bad.append(f"objs: cannon base {y}")
+    return bad
+
+
 def phi_bad(r):
     """Phi's numeric part (phi_check.py) on a frame-end record; None if the
     record predates the full cell set."""
@@ -357,6 +401,9 @@ def phi_bad(r):
                 bad.append(f"world: {k} type {w[k]}")
         if w["held"] or w["ridden"] or w["qsd"] != 0.0:
             bad.append(f"world: held/ridden/quicksand {w}")
+    ob = r.get("objs")
+    if ob is not None:
+        bad += objs_bad(ob)
     return bad, phi_check.K + phi_check.A - y - c
 
 
