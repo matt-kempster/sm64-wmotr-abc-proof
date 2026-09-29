@@ -37,8 +37,9 @@ python3 experiments/symexec/run.py execute_mario_action --action 0x0100088C --no
 Useful flags:
 - `--action/--state/--timer/--input` make those cells concrete. Otherwise they are the symbols `A`, `ST`, `TM`, or lazily symbolic.
 - `--arg N|sym` sets the extra int arguments after `m`, for example `stepArg`.
-- `--merge f,g` or `--merge '*'` joins a call's outcomes that agree on the return value and all Φ cells. `--join-loops` joins states at every loop head and loop exit that agree on Φ and on all non-`t'` temps. Without these, `perform_air_step` explodes past 200k forks.
-- `--world wmotr` assumes part of the world invariant W (see below).
+- `--merge f,g` or `--merge '*'` joins a call's outcomes that agree on the return value, all Φ cells and the control cells `m->input`, `m->flags` and `m->waterLevel` (`run.py` `KEY_CELLS`). Leaving `m->input` out of the key lets a join lose the no-A fact and invent A-gated paths. `--join-loops` joins states at every loop head and loop exit that agree on Φ and on all non-`t'` temps. Without these, `perform_air_step` explodes past 200k forks.
+- `--world wmotr` also makes `find_water_level` and `find_poison_gas_level` return -11000 (no water boxes). It assumes part of the world invariant W (see below).
+- `--no-collisions` sets `marioObj->numCollidedObjs` and `collidedObjInteractTypes` to 0, so no object interaction happens this frame.
 - `--noA` masks the A bit (0x8000) out of `m->controller->buttonDown/buttonPressed`.
 - `--opaque f,...` treats internal functions as externals. The default is `set_mario_animation,set_mario_anim_with_accel`.
 - `--group` prints each distinct Φ result. `--shapes` prints them normalised (`#k`, `mrg`). `--show N` prints the first N paths with their path conditions.

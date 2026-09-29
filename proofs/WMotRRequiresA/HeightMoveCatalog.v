@@ -281,12 +281,14 @@ Section Moves.
          timer_of c' = (timer_of c + 1)%Z /\ c_vely c' = gravity gf (c_vely c)) ->
       Move c c'
   (* the same step cut by a ceiling (vel >= 0 zeroed, mario_step.c:446-452;
-     the remaining quarters add 0) or any GP-state-1 fall; vel ends <= 0 *)
+     the remaining quarters add 0) or any GP-state-1 fall; vel ends <= 0.
+     pos is equal as a REAL, not as a float: each remaining quarter computes
+     pos + 0.0f, which turns -0.0 into +0.0 (found by experiments/symexec) *)
   | S_air_cut : forall n,
       mode_of c = M_Freefall \/ mode_of c = M_SlideKick \/ mode_of c = M_Air \/ mode_of c = M_PoundFall ->
       (n <= 4)%nat ->
       c_action c' = c_action c -> c_state c' = c_state c ->
-      c_posy c' = quarter_steps n (c_posy c) (Float32.div (c_vely c) f4) ->
+      R2 (c_posy c') = R2 (quarter_steps n (c_posy c) (Float32.div (c_vely c) f4)) ->
       R2 (c_vely c') <= 0 ->
       c_gfxy c' = c_posy c' ->
       (c_action c = ACT_SLIDE_KICK ->
@@ -303,7 +305,7 @@ Section Moves.
       mode_of c = M_SlideKickBounced -> (n <= 4)%nat ->
       c_action c' = c_action c -> c_state c' = c_state c ->
       0 <= R2 (c_vely c) ->
-      c_posy c' = quarter_steps n (c_posy c) (Float32.div (c_vely c) f4) -> R2 (c_vely c') = -2 ->
+      R2 (c_posy c') = R2 (quarter_steps n (c_posy c) (Float32.div (c_vely c) f4)) -> R2 (c_vely c') = -2 ->
       timer_of c' = (timer_of c + 1)%Z -> c_gfxy c' = c_posy c' ->
       Move c c'
   (* act_ground_pound state 0, timer < 10 (airborne.c:925-938):

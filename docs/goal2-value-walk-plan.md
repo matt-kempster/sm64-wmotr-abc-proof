@@ -91,3 +91,36 @@ details (16-bit chunks, Vsingle casts, overlapping stores); vm_compute cost over
 the 12-TU genv (bool readback only, `ge12` / `CMem`); path explosion in
 `mario_process_interactions`; further Φ non-inductivity. So run the executor's
 path summaries against the oracle before proving anything.
+
+## 5. Prototype results (experiments/symexec, 2026-09-29; unverified)
+
+A Python symbolic executor over the real generated Clight: all 12 TUs plus
+`generated/math_util.v` (the vec3 helpers are generated too). Joins at call
+returns and loop heads are what make it tractable.
+
+- **perform_air_step** (freefall, no A, W assumed): 102 outcomes (stepArg 0),
+  193 (stepArg symbolic), about 5k forks, 4 s. pos[1] is exactly the binary32
+  quarter sum `(((Y + V/4) + V/4) + V/4) + V/4`, or a floor height on landing
+  (FH on an OOB landing), or the ledge floor. vel[1] is `V - 4`, `-75`, or
+  `-4` (ceiling cut). gfx = pos on every path.
+- **apply_gravity**: two results, `V - 4` and `-75`, i.e. `gravity f4 V`.
+- **act_freefall**: 421 outcomes, 8 target actions. **act_slide_kick**: 151,
+  matching S_air's slide-kick clause (timer + 1, g = 2), the bounce
+  (vel = −(V − 2)/2, state 1, timer 0), and the → freefall switch.
+- **execute_mario_action**: runs, but hits the 400k-fork cap. It needs
+  per-handler summaries or feasibility pruning. With arbitrary collided
+  objects it reaches about 40 actions, which is the phantom-world problem seen
+  concretely: W needs an object-collision conjunct.
+
+**Statement fixes it forced (done):**
+- S_air_cut / S_sk_bounced_cut equated pos as binary32. The remaining quarters
+  compute pos + 0.0f, which maps −0.0 to +0.0, so the equality is now over R2.
+- W now requires `m->floor ≠ NULL` (apply_vertical_wind dereferences it).
+
+**Still to check:** landings keep vel (`V − 4`, down to −75), and a pedro-spot
+landing leaves floorHeight stale while pos = the new floor. S_attach must
+accept both; it does not constrain floorh except at ledges, and InRange
+allows vel ≥ −75. Water paths need Φ's y ≥ −8192 as a path fact. World
+reads the proof needs facts about: surface type/flags/normal,
+`area->terrainType` (SNOW, so FEET/HEAD_STUCK_IN_GROUND are real), squishTimer,
+hurtCounter, health, peakHeight, interactObj.

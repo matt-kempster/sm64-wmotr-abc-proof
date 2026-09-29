@@ -7,7 +7,8 @@
 (* rows are false (a BURNING floor sends Mario to ACT_LAVA_BOOST; a         *)
 (* quicksand depth lowers gfx.pos every frame; docs/goal2-value-walk-       *)
 (* plan.md §1).  `wmotr_world` says the world is WMotR's:                   *)
-(*   - m->wall / m->ceil / m->floor are NULL or point at a surface whose    *)
+(*   - m->wall / m->ceil are NULL or, like m->floor (never NULL), point at *)
+(*     a surface whose                                                      *)
 (*     type is one of the types WMotR's collision data uses (computed from  *)
 (*     the generated terrain and object meshes, not listed by hand);        *)
 (*   - no held and no ridden object (WMotR has nothing grabbable or         *)
@@ -76,10 +77,21 @@ Definition surface_ok (m : mem) (v : val) : Prop :=
        /\ Mem.load Mint16signed m b (Ptrofs.unsigned o) = Some (Vint t)
        /\ In (Int.signed t) wmotr_surface_types.
 
+(* the floor is never NULL at a frame boundary: the frame dereferences it
+   (apply_vertical_wind reads m->floor->type), and every step that sets it
+   stores a find_floor hit; a NULL find_floor leaves m->floor as it was
+   (perform_air_quarter_step, update_mario_geometry_inputs' OOB branch).
+   Found by experiments/symexec; the write watch saw no NULL floor at a
+   frame end in 11,379 frames. *)
+Definition surface_nonnull_ok (m : mem) (v : val) : Prop :=
+  exists b o t, v = Vptr b o
+    /\ Mem.load Mint16signed m b (Ptrofs.unsigned o) = Some (Vint t)
+    /\ In (Int.signed t) wmotr_surface_types.
+
 Definition wmotr_world (bm : block) (m : mem) : Prop :=
   (forall v, Mem.load Mint32 m bm WALL_OFF = Some v -> surface_ok m v)
   /\ (forall v, Mem.load Mint32 m bm CEIL_OFF = Some v -> surface_ok m v)
-  /\ (forall v, Mem.load Mint32 m bm FLOOR_OFF = Some v -> surface_ok m v)
+  /\ (forall v, Mem.load Mint32 m bm FLOOR_OFF = Some v -> surface_nonnull_ok m v)
   /\ Mem.load Mint32 m bm HELD_OFF = Some Vnullptr
   /\ Mem.load Mint32 m bm RIDDEN_OFF = Some Vnullptr
   /\ Mem.load Mfloat32 m bm QSD_OFF = Some (Vsingle Float32.zero).

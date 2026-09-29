@@ -350,6 +350,8 @@ def phi_bad(r):
         bad.append("ledge")
     w = r.get("world")
     if w is not None:
+        if w["floor"] is None:
+            bad.append("world: NULL floor")
         for k in ("wall", "ceil", "floor"):
             if w[k] is not None and w[k] not in WMOTR_SURFACE_TYPES:
                 bad.append(f"world: {k} type {w[k]}")
