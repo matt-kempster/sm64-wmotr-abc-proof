@@ -150,9 +150,21 @@ Section HeightFrame.
     /\ (Mem.valid_block m bm -> Mem.valid_block m' bm)
     /\ carries m m'.
 
+  (* The game is still in WMotR: gCurrLevelNum (level_update.c, set only by
+     the warp code from sWarpDest, :477/:502) holds LEVEL_WMOTR (pinned from
+     the level's own script, WMotRLevel.level_wmotr_self_warp). *)
+  Definition in_wmotr (m : mem) : Prop :=
+    exists b, Genv.find_symbol (lp_ge lp) level_update._gCurrLevelNum = Some b
+              /\ Mem.load Mint16signed m b 0 = Some (Vint (Int.repr LEVEL_WMOTR)).
+
   (* ===================================================================== *)
   (* 2. THE FRAME.  The per-frame input i is the post-poll memory (GOAL 1's *)
   (*    convention: the input IS the memory the frame reads it from).       *)
+  (*    A frame that ends in another level is not a step: the run is ONE    *)
+  (*    WMotR visit.  Leaving re-inits Mario elsewhere (the real game,      *)
+  (*    experiments/oracle/ywatch.py: falling off sends Mario to the castle *)
+  (*    grounds at y = 4500), and a new visit starts again at the entry     *)
+  (*    warp, with the red coins and the star counter reloaded (TRUST 0.3). *)
   (* ===================================================================== *)
   Definition frame_step (i m m' : mem) : Prop :=
     exists m1 m2 m3,
@@ -160,7 +172,8 @@ Section HeightFrame.
       /\ seg_platform_spec i m1
       /\ execute_mario_action_step_lp lp m1 m2
       /\ seg_level_spec m2 m3
-      /\ seg_rest_spec m3 m'.
+      /\ seg_rest_spec m3 m'
+      /\ in_wmotr m'.
 
   Variable YMAX : R.
 
@@ -231,7 +244,7 @@ Section HeightFrame.
       mem_ok m' /\ Phi m'.
   Proof.
     intros i m m' HU (Hok & Hphi)
-           (m1 & m2 & m3 & Hin & Hplat & Hact & Hlvl & Hrest).
+           (m1 & m2 & m3 & Hin & Hplat & Hact & Hlvl & Hrest & _).
     destruct (a_used_real_false bm i HU) as (HA & HD).
     (* input *)
     destruct Hin as (_ & Hai & Hvi & Hmi & Hpi).

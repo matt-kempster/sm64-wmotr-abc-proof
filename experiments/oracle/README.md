@@ -86,6 +86,28 @@ defines it. Completed frames change about 31 bytes of placed globals, and about
 19 of those are computed by the model. **STUCK must stay 0**: it is the
 regression gate for UB sites.
 
+## Height-cell write watch (tether 5.4): which code writes Φ's cells?
+
+```bash
+python3 experiments/oracle/ywatch.py --learn              # once: Mario's object address in the savestate
+python3 experiments/oracle/ywatch.py 3000 1 noA           # 3000 Mario frames, 300-frame episodes
+python3 experiments/oracle/ywatch.py 3000 11 noA box2424  # episodes start on the K = 2424 box top (pos poke)
+python3 experiments/oracle/ywatch.py --summary ~/sm64-oracle/ywatch/noA-*.jsonl
+```
+
+Memory write-watchpoints (not single-stepping) on the cells `HeightInvariant.read_cells`
+reads, over whole frames. Each store is logged with its PC, function (and caller for
+`vec3f_copy`-style helpers), inside/outside `execute_mario_action`, old and new value,
+and the level. The summary flags a value-changing height write by a writer outside
+the Move catalog, and a pos[1] change outside `execute_mario_action`. Frames that end
+outside WMotR are set aside: they are not steps of the capstone's run
+(`HeightFrame.in_wmotr`). Found so far: falling off WMotR sends Mario to the castle
+grounds at y = 4500, which is why the run is one visit.
+
+Gotchas: the core rebuilds its memory handlers when emulation starts, so write
+watches must be added while running (unlike PC breakpoints). The store's new value is
+read one instruction later (the watch fires before the store lands).
+
 ## Gotchas (learned the hard way)
 
 - Register breakpoints **before** `run()`. Adding one mid-run invalidates the

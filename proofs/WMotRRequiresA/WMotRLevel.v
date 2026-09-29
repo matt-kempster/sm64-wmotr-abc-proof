@@ -347,3 +347,21 @@ Proof.
   destruct level_checks as (_ & _ & Hp).
   exact (poles_generic wmotr_pole_list Hp).
 Qed.
+
+(* -----------------------------------------------------------------------  *)
+(* LEVEL_WMOTR, read off the level's own script: the WARP_NODE with id      *)
+(* 0x0A (the node Mario enters by: the entry OBJECT's bhvAirborneWarp       *)
+(* param, script.c:51-52) targets WMotR itself, and the command word is     *)
+(* CMD_BBBB(0x26, 0x08, 0x0A, destLevel) (level_commands.h:231).  The       *)
+(* level's other nodes send Mario to LEVEL_CASTLE (6: success, death) and   *)
+(* LEVEL_CASTLE_GROUNDS (0x10: the warp floor, i.e. falling off).           *)
+(* -----------------------------------------------------------------------  *)
+Definition LEVEL_WMOTR : Z := 31.
+
+Definition has_word (l : list init_data) (w : Z) : bool :=
+  existsb (fun d => match d with Init_int32 i => Int.eq i (Int.repr w) | _ => false end) l.
+
+Lemma level_wmotr_self_warp :
+  has_word (gvar_init wmotr_script.v_level_wmotr_entry)
+    (0x26080A00 + LEVEL_WMOTR) = true.
+Proof. vm_compute. reflexivity. Qed.

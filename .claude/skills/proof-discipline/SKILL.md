@@ -24,7 +24,9 @@ all in `Unwired/`, and the theorem moved nowhere. See
   any link of the 12 TUs. The open surface is its `Hypothesis` rows (~35 external-call
   and boundary rows; see `docs/TRUST.md` §4).
 - **GOAL 2** (WMotR needs A): `WMotRRequiresA/HeightFrame.v`,
-  `wmotr_noA_height_bound_linked12`. This is a conditional theorem. Φ is concrete
+  `wmotr_noA_height_bound_linked12`. This is a conditional theorem over ONE WMotR
+  visit (frames end with `in_wmotr`), under input with A neither pressed nor held
+  (`a_used_real`). Φ is concrete
   (`HeightInvariant.v`), `Hphi_y` is proved (YMAX = 2796), the level-data rows are proved (`WMotRLevel.v`), and the crux is the lemma
   `seg_action_phi`, whose move arithmetic is proved (`HeightMoveCatalog.chain_keeps_budget`). Open rows:
   - `R_noA`, the whitelist parameter

@@ -31,7 +31,8 @@ CMD_CORE_STATE_SET, M64CORE_SPEED_LIMITER = 17, 5
 RUNSTATE_PAUSED, RUNSTATE_STEPPING, RUNSTATE_RUNNING = 0, 1, 2
 DBG_PTR_RDRAM = 1
 CPU_PC, CPU_REG_REG, CPU_REG_COP1_SIMPLE_PTR = 1, 2, 7
-BKP_CMD_ADD_ADDR, BKP_CMD_REMOVE_ADDR = 1, 3
+BKP_CMD_ADD_ADDR, BKP_CMD_ADD_STRUCT, BKP_CMD_REMOVE_ADDR = 1, 2, 4
+BKP_FLAG_ENABLED, BKP_FLAG_WRITE = 0x01, 0x04
 RDRAM_SIZE = 0x400000  # SM64 uses 4 MB
 
 # buttons (BUTTONS union bit order, low 16 bits)
@@ -58,6 +59,10 @@ def load_map(path):
     return syms
 
 
+class Breakpoint(C.Structure):
+    _fields_ = [("address", C.c_uint32), ("endaddr", C.c_uint32), ("flags", C.c_uint)]
+
+
 DEBUGCB = C.CFUNCTYPE(None, C.c_void_p, C.c_int, C.c_char_p)
 STATECB = C.CFUNCTYPE(None, C.c_void_p, C.c_int, C.c_int)
 DBG_INIT = C.CFUNCTYPE(None)
@@ -74,6 +79,7 @@ class Emu:
         self.on_vi = None
         self.bp_handlers = {}  # pc -> fn(emu, pc)
         self.on_step = None    # fn(emu, pc) for every instruction while stepping
+        self.on_write = None   # fn(emu, pc, addr) on a write-watch hit, BEFORE the store lands
         self.stepping = False
         self.frame = 0
         self.keys = 0
@@ -178,6 +184,14 @@ class Emu:
         self.bp_handlers[pc] = fn
         self.core.DebugBreakpointCommand(BKP_CMD_ADD_ADDR, pc, None)
 
+    def add_write_watch(self, addr, n=4):
+        """Pause on any CPU store to [addr, addr+n) (physical address match).
+        Register while running (the core rebuilds memory handlers on start)."""
+        a = self._phys(addr)
+        bp = Breakpoint(a, a + n - 1, BKP_FLAG_ENABLED | BKP_FLAG_WRITE)
+        rc = self.core.DebugBreakpointCommand(BKP_CMD_ADD_STRUCT, 0, C.byref(bp))
+        assert rc >= 0, f"write watch at {addr:#x}: {rc}"
+
     def del_bp(self, pc):
         self.bp_handlers.pop(pc, None)
         self.core.DebugBreakpointCommand(BKP_CMD_REMOVE_ADDR, pc, None)
@@ -186,14 +200,20 @@ class Emu:
         """Called on a breakpoint hit (core paused) and, while stepping, on every
         instruction (core not paused).  Breakpoints are checked in both states."""
         hit = pc in self.bp_handlers
+        # a write watch is the only other way to get here while not stepping
+        mem = not hit and not self.stepping
         try:
             if hit:
                 self.bp_handlers[pc](self, pc)
-            if self.stepping and self.on_step:
+            elif mem and self.on_write:
+                flags, acc = C.c_uint32(), C.c_uint32()
+                self.core.DebugBreakpointTriggeredBy(C.byref(flags), C.byref(acc))
+                self.on_write(self, pc, acc.value)
+            if self.stepping and self.on_step and not mem:
                 self.on_step(self, pc)
         finally:
             self.core.DebugSetRunState(RUNSTATE_STEPPING if self.stepping else RUNSTATE_RUNNING)
-            if hit:
+            if hit or mem:
                 self.core.DebugStep()
 
     def _on_vi(self):
