@@ -34,6 +34,11 @@ This is evidence, not proof. Nothing in `proofs/` depends on it.
   (stick, plus A/B/Z presses). For each call of `execute_mario_action` it stores
   the full RDRAM at entry and the changed bytes at its return site (0x8029CA70
   in `bhv_mario_update`). Output goes to `~/sm64-oracle/rec/<seed>/fNNNN.pkl.zlib`.
+- `cannon_probe.py`: pokes Mario next to WMotR's bob-omb buddy, talks and
+  advances the dialog with B only, then steers into the opened cannon. On entry
+  y goes −2950 → −2730 = lid y − 340 + 350. This showed the cannon entry is
+  reachable without A (it is the `wmotr_cannon` Move case; TRUST 0.6/0.8).
+  The one poke is a shortcut, not a route.
 
 ## The differential test (tether 5.1): does the model do what the game does?
 

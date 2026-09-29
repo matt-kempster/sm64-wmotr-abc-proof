@@ -26,7 +26,7 @@
 
 From Coq Require Import ZArith List Bool Reals Lra Lia.
 From compcert Require Import Coqlib Integers AST.
-From SM64.Generated Require wmotr_level_data wmotr_script macro_special_objects.
+From SM64.Generated Require wmotr_level_data wmotr_script macro_special_objects behavior_data.
 From SM64.Proofs Require Import HeightInvariant HeightBudgetArith.
 Import ListNotations.
 
@@ -255,6 +255,38 @@ Lemma pole_list_value :
                      (3154, 4404); (4048, 4408); (3636, 4406)].
 Proof. vm_compute. reflexivity. Qed.
 
+(* ----------------------------------------------------------------------- *)
+(* 5b. Cannons.  act_in_cannon state 0 puts Mario at usedObj.y + 350        *)
+(*     (mario_actions_automatic.c), with NO input gate: the cannon is       *)
+(*     entered by touching it (interact_cannon_base), and the buddy who     *)
+(*     opens it talks on B (experiments/oracle/cannon_probe.py).  The       *)
+(*     cannon base spawns at its lid's home (cannon_door.inc.c:9-11) and    *)
+(*     its script moves it down 340 before SET_HOME (bhvCannon, pinned      *)
+(*     below from generated/behavior_data.v).  So an entry height is        *)
+(*     lid y - 340 + 350 = lid y + 10.                                      *)
+(* ----------------------------------------------------------------------- *)
+Definition CANNON_DROP : Z := 340.
+Definition CANNON_SEAT : Z := 350.
+
+(* bhvCannon: ... ADD_FLOAT(oPosY, -340) = BC_BBH(0x0D, 0x07, -340); SET_HOME = BC_B(0x2D) *)
+Lemma bhvCannon_drop_then_home :
+  exists pre post, gvar_init behavior_data.v_bhvCannon =
+    pre ++ Init_int32 (Int.repr (0x0D070000 + (65536 - CANNON_DROP)))
+        :: Init_int32 (Int.repr 0x2D000000) :: post.
+Proof.
+  exists (firstn 6 (gvar_init behavior_data.v_bhvCannon)),
+         (skipn 8 (gvar_init behavior_data.v_bhvCannon)).
+  vm_compute. reflexivity.
+Qed.
+
+Definition wmotr_cannon_list : list Z :=
+  map (fun o => m_y o - CANNON_DROP + CANNON_SEAT)
+      (filter (fun o => Pos.eqb (bhv_of o) macro_special_objects._bhvCannonClosed)
+              wmotr_macro_objs).
+
+Lemma cannon_list_value : wmotr_cannon_list = [837; -2730].
+Proof. vm_compute. reflexivity. Qed.
+
 (* the level really loads these arrays: level_wmotr_entry's TERRAIN,
    MACRO_OBJECTS and JUMP_LINK commands point at them (script.c:57-60) *)
 Definition refs (l : list init_data) (id : ident) : bool :=
@@ -347,6 +379,26 @@ Proof.
   destruct level_checks as (_ & _ & Hp).
   exact (poles_generic wmotr_pole_list Hp).
 Qed.
+
+(* the heights entering a cannon puts Mario at: both below K *)
+Definition cannon_in (C : list Z) (h : R) : Prop := exists y, In y C /\ h = IZR y.
+Definition cannon_check (C : list Z) : bool := forallb (fun y => (y <=? 2424)%Z) C.
+
+Lemma cannons_generic : forall C, cannon_check C = true ->
+  forall h, cannon_in C h -> h <= PHI_K.
+Proof.
+  intros C Hc h (y & Hin & ->). rewrite K_val.
+  unfold cannon_check in Hc. rewrite forallb_forall in Hc.
+  specialize (Hc y Hin). apply Z.leb_le in Hc. apply IZR_le in Hc. exact Hc.
+Qed.
+
+Lemma cannon_checks : cannon_check wmotr_cannon_list = true.
+Proof. vm_compute. reflexivity. Qed.
+
+Definition wmotr_cannon : R -> Prop := cannon_in wmotr_cannon_list.
+
+Theorem wmotr_cannons_proved : forall h, wmotr_cannon h -> h <= PHI_K.
+Proof. exact (cannons_generic wmotr_cannon_list cannon_checks). Qed.
 
 (* -----------------------------------------------------------------------  *)
 (* LEVEL_WMOTR, read off the level's own script: the WARP_NODE with id      *)

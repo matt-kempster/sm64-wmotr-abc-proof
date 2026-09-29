@@ -465,9 +465,10 @@ Section HeightLinked12.
   Notation Phi := (height_invariant bm R_noA).
 
   (* LEVEL DATA -- now DEFINED from generated/ and PROVED (WMotRLevel.v):
-     wmotr_floor / wmotr_pole are read off WMotR's clightgen'd terrain,
-     macro objects and level script; no floor height lies in the moat
-     (K, K + 622) and every pole is low or out of reach.  What remains
+     wmotr_floor / wmotr_pole / wmotr_cannon are read off WMotR's
+     clightgen'd terrain, macro objects, level script and behavior scripts;
+     no floor height lies in the moat (K, K + 622), every pole is low or out
+     of reach, and both cannons seat Mario below K.  What remains
      trusted about them (find_floor returns heights of exactly these
      surfaces; which behaviors load collision) is TRUST.md 0.8 and lives
      in Hframe_is_move_chain, whose MoveChain mentions them. *)
@@ -489,12 +490,15 @@ Section HeightLinked12.
      landing in range.  This is a claim about the generated Clight only;
      all budget arithmetic is in chain_keeps_budget.  Moves NOT modelled, so this
      row is false if they fire: hanging (A-gated), water, wind, shells,
-     objects that grab or throw (absent in WMotR; E1/E3). *)
+     objects that grab or throw (absent in WMotR; E1/E3).  The cannon
+     entry (pos := cannon.y + 350, reachable with B only: the buddy talks
+     on B, cannon_probe.py) was such a move until the attach case
+     wmotr_cannon was added. *)
   Hypothesis Hframe_is_move_chain :
     forall m m' c, mem_ok_lp bm MWF m -> Phi m -> a_down_real bm m = false ->
                    execute_mario_action_step_lp lp m m' ->
                    read_cells bm m c -> budget_ok c ->
-                   exists c', read_cells bm m' c' /\ MoveChain wmotr_floor wmotr_pole c c'.
+                   exists c', read_cells bm m' c' /\ MoveChain wmotr_floor wmotr_pole wmotr_cannon c c'.
 
   (* THE CRUX, now derived *)
   Lemma seg_action_phi :
@@ -507,6 +511,7 @@ Section HeightLinked12.
     destruct (Hframe_is_move_chain m m' c Hok Hphi HD Hst Hcells Hc) as (c' & Hc' & Hmv).
     exists c'. split; [ exact Hc' | ].
     exact (chain_keeps_budget wmotr_floor wmotr_gap_proved wmotr_pole wmotr_poles_proved
+             wmotr_cannon wmotr_cannons_proved
              c c' Hc Hmv).
   Qed.
 

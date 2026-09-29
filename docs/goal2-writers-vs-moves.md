@@ -31,7 +31,9 @@ Rows 2,9,11–15,23,32–37,39,40 (water, hoot, shockwave, whirlpool, cutscenes,
 grabbed, tornado, debug_free_move). Also `update_mario_pos_for_anim` (`mario.c:219`), whose only callers
 are door/star cutscene actions (`mario_actions_cutscene.c:799,852,933,1881`). No moving or
 stationary action calls it, and WMotR has no doors. Row 22: cannon `+120·sin` (`automatic.c:735`)
-sits under `INPUT_A_PRESSED`.
+sits under `INPUT_A_PRESSED`. The cannon **entry** write in the same function, `pos[1] = cannon.y + 350`
+(state 0), is NOT A-gated. It is reachable in WMotR with B only (`cannon_probe.py`) and is the
+`wmotr_cannon` attach case (added 2026-09-28; it was missing from this table).
 
 ## NOT COVERED
 

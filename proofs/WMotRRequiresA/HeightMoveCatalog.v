@@ -246,6 +246,11 @@ Section Moves.
   Variable wmotr_pole : R -> R -> Prop.
   Hypothesis wmotr_poles :
     forall base top, wmotr_pole base top -> top <= PHI_K \/ PHI_YMAX < base - 160.
+  (* wmotr_cannon h: entering a WMotR cannon puts Mario at h (act_in_cannon
+     state 0, pos[1] := cannon.y + 350; no input gate, only firing reads A).
+     WMotR's two cannons seat Mario at 837 and -2730. *)
+  Variable wmotr_cannon : R -> Prop.
+  Hypothesis wmotr_cannons : forall h, wmotr_cannon h -> h <= PHI_K.
 
   (* what an attach may snap pos[1] up to *)
   Definition AttachOK (c : cells) (h : R) : Prop :=
@@ -253,7 +258,8 @@ Section Moves.
     \/ (wmotr_floor h /\ h <= R2 (c_posy c) + STEP_UP)             (* landing, ledge grab *)
     \/ (c_action c = ACT_LEDGE_GRAB /\ h <= R2 (c_floorh c))        (* ledge climb *)
     \/ (exists base top, wmotr_pole base top                    (* pole grab / climb *)
-          /\ base - 160 <= R2 (c_posy c) /\ h <= top).
+          /\ base - 160 <= R2 (c_posy c) /\ h <= top)
+    \/ wmotr_cannon h.                                             (* cannon entry *)
 
   Definition FloorRefreshOK (y fh : R) : Prop :=
     fh = -11000 \/ (wmotr_floor fh /\ fh <= y + STEP_UP).
@@ -319,7 +325,8 @@ Section Moves.
       Move c c'
   (* attach: landing / bounce (pos := floorHeight, airborne.c:1444,1602),
      ledge grab (pos := ledgePos, mario_step.c:371-377), ledge climb, pole
-     (set_pole_position), a ground step, or a launch from the ground;
+     (set_pole_position), cannon entry (act_in_cannon), a ground step, or a
+     launch from the ground;
      the new vel within the mode's cap *)
   | S_attach : forall h,
       AttachOK c h -> R2 (c_posy c') <= h ->
@@ -350,13 +357,14 @@ Section Moves.
     pose proof (budget_ok_y c Hc) as Hy.
     destruct Hc as (_ & Hb & _ & _ & _ & Hl).
     rewrite credit_of_mode in Hb.
-    destruct Ha as [[Hk Hh] | [[Hf Hh] | [[Ha Hh] | (base & top & Hp & Hw & Hh)]]].
+    destruct Ha as [[Hk Hh] | [[Hf Hh] | [[Ha Hh] | [(base & top & Hp & Hw & Hh) | Hcn]]]].
     - rewrite Hk in Hb. simpl in Hb. lra.
     - apply (gap_fact_step h (R2 (c_posy c)) (mode_credit (mode_of c) (timer_of c) (R2 (c_vely c))));
         [ exact Hh | | exact Hb | apply wmotr_gap; exact Hf ].
       rewrite <- credit_of_mode. apply credit_nonneg.
     - specialize (Hl Ha). lra.
     - destruct (wmotr_poles base top Hp); lra.
+    - exact (wmotr_cannons h Hcn).
   Qed.
 
   Lemma floor_refresh_ledge : forall c y fh,

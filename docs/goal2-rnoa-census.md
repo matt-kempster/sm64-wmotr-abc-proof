@@ -38,9 +38,12 @@ which `Hframe_stays_noA` receives as `a_down_real bm m = false`.
 
 ## Follow-ups (not yet checked)
 
-- **ACT_IN_CANNON is in R_reach.** The census context does not filter by level
-  objects. WMotR should have no cannon, so this is a filter to add (object
-  census), not a hole. Cannon firing is A-gated anyway (automatic.c:732).
+- **ACT_IN_CANNON is in R_reach, and it must stay in R_noA.** WMotR has two
+  cannons (macro.inc.c:3-4) and the bob-omb buddy who opens them (:5). Talking
+  and advancing the dialog take B only, and entering needs no button
+  (`experiments/oracle/cannon_probe.py`, 2026-09-28). Firing is A-gated
+  (automatic.c:732), so Mario stays in the cannon. The entry height is the
+  `wmotr_cannon` attach case (HeightMoveCatalog).
 - **Pole actions** (HOLDING / CLIMBING / TOP_OF_POLE, GRAB_POLE_*) are non-air,
   so Φ gives them credit A, i.e. y ≤ K. This needs the pole-top ≤ K row from
   `goal2-writers-vs-moves.md`. WMotR's reachable pole top is −1919.

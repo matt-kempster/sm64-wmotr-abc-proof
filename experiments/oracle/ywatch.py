@@ -50,6 +50,7 @@ COVERED_Y = {
     "update_mario_geometry_inputs",     # OOB recovery (S_oob)
     "perform_air_step", "perform_ground_step",
     "set_pole_position",                # pole attach
+    "act_in_cannon",                    # cannon entry (wmotr_cannon attach)
     "bhv_mario_update",                 # copies pos into gfx (gfx := pos)
 }
 HELPERS = {"vec3f_copy", "vec3f_set", "vec3s_to_vec3f", "vec3f_to_object_pos",

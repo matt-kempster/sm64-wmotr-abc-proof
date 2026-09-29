@@ -83,7 +83,7 @@ listed to prove the census saw them (e.g. bully knockback is x/z only).
 | 19 | `mario_actions_automatic.v:3542` | `update_hang_stationary` | `ceilY − 160` | ATTACH | needs a hangable ceiling |
 | 20 | `mario_actions_automatic.v:4280` | `let_go_of_ledge` | `ledgeY − 100` | ATTACH | ledge release |
 | 21 | `mario_actions_automatic.v:4292` | `let_go_of_ledge` | `= floorHeight` | ATTACH/PIN | ledge release floor |
-| 22 | `mario_actions_automatic.v:5718` | `act_in_cannon` | `cannonY + 350` | ATTACH→TELEPORT | **A-gated + taint-T** (cannon; GOAL-1 flying set) |
+| 22 | `mario_actions_automatic.v:5718` | `act_in_cannon` | `cannonY + 350` | ATTACH→TELEPORT | **NOT A-gated** (corrected 2026-09-28). The entry write (state 0) has no input gate, and WMotR's buddy opens the cannon on B (`cannon_probe.py`: y −2950 → −2730 on entry). Only the fire branch (`+120·sin`) reads A, and ACT_IN_CANNON is not in T. Covered by the `wmotr_cannon` attach case (lid y + 10: 837, −2730) |
 | 23 | `interaction.v:3476` | `bounce_off_object` | `t'3 + t'4` | EXOGENOUS | **ABSENT** — needs bounceable object |
 | 24 | `level_update.v:4283` | `check_instant_warp` | `pos[1] + (short)warpΔ` | **TELEPORT** | instant-warp displacement (see §7 — not in exec_mario_action) |
 
@@ -229,7 +229,7 @@ gap**, exactly like GOAL-1's `surface_collision`/`find_floor` external boundary.
 | `update_mario_pos_for_anim` | mario | ✓ | action | `pos + animY` | EXOGENOUS-tiny (ε) |
 | `set_pole_position` (×3) | automatic | ✓ | action | pole/ceil/floor | **ATTACH** (poles = binding) |
 | `perform_hanging_step`, `update_hang_stationary`, `let_go_of_ledge`, `check_ledge_grab`, `align_with_floor`, `stop_and_set_height_to_floor`, `stationary_ground_step` | automatic/step/moving | ✓ | action | floor/ledge/ceil | **ATTACH/PIN** |
-| `act_in_cannon` | automatic | ✓ | action | `cannonY + 350` | ATTACH→TELEPORT, **A-gated+taint** |
+| `act_in_cannon` | automatic | ✓ | action | `cannonY + 350` | ATTACH (`wmotr_cannon`), **not A-gated** (see row 22) |
 | `act_grabbed`, `act_tornado_twirling`, `act_riding_hoot`, `bounce_off_object`, `act_shockwave_bounce`, `act_caught_in_whirlpool`, water/plunge, cutscene star/peach, `act_debug_free_move` | automatic/airborne/interaction/stationary/submerged/cutscene | ✓ | action/interact | object / absolute | **ABSENT / DEBUG** (object or surface WMotR lacks) |
 | `f32_find_wall_collision`, `resolve_*` (y-identity) | mario/step/automatic (+ surface_collision) | ✓ (callee ext) | pre-action/action | `y ← y` | **MONOTONE-SAFE** |
 | `update_mario_geometry_inputs` OOB gfx copy | mario | ✓ | **pre-action** | `= gfx.pos` (`floor==NULL`) | **EXOGENOUS-gfx** (row 25) — not in GOAL-1 walk |
