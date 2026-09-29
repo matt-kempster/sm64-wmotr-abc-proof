@@ -96,7 +96,9 @@ regression gate for UB sites.
 ```bash
 python3 experiments/oracle/ywatch.py --learn              # once: Mario's object address in the savestate
 python3 experiments/oracle/ywatch.py 3000 1 noA           # 3000 Mario frames, 300-frame episodes
-python3 experiments/oracle/ywatch.py 3000 11 noA box2424  # episodes start on the K = 2424 box top (pos poke)
+python3 experiments/oracle/ywatch.py 3000 11 noA box2424  # episodes start at the K = 2424 box top (pos poke)
+python3 experiments/oracle/ywatch.py 4000 21 macro box2424w  # scripted sequences; `w` sets the wing-cap save flag
+python3 experiments/oracle/ywatch.py 2400 41 boxsk box2424w  # one slide kick per episode from the box top
 python3 experiments/oracle/ywatch.py --summary ~/sm64-oracle/ywatch/noA-*.jsonl
 ```
 
@@ -108,6 +110,15 @@ the Move catalog, and a pos[1] change outside `execute_mario_action`. Frames tha
 outside WMotR are set aside: they are not steps of the capstone's run
 (`HeightFrame.in_wmotr`). Found so far: falling off WMotR sends Mario to the castle
 grounds at y = 4500, which is why the run is one visit.
+
+Every frame-end record also carries all of Φ's cells, and the summary evaluates Φ's
+numeric part on it (`phi_check.credit`). That checks the value claim, not just which
+writer ran. Policies: `noA` is random B/Z/stick; `macro` plays scripted sequences
+(runs, slide kicks, dive + B rollout, ground pounds, turns); `boxsk` settles and slide
+kicks once. Scripted policies advance once per Mario frame, because the game polls once
+per two VIs and a one-VI pulse can be missed. **Trap:** without the wing-cap save flag
+the wing-cap boxes are intangible outlines (`exclamation_box_act_1`), so a plain `box*`
+spot never stands on a box. Use the `*w` spots for the K = 2424 case.
 
 Gotchas: the core rebuilds its memory handlers when emulation starts, so write
 watches must be added while running (unlike PC breakpoints). The store's new value is

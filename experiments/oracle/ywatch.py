@@ -1,12 +1,13 @@
 """Watch every write to GOAL 2's height cells in the real game, under no-A input.
 
-    python3 experiments/oracle/ywatch.py [N=600] [seed=1] [policy=noA|heldA] [spot]
+    python3 experiments/oracle/ywatch.py [N=600] [seed=1] [policy=noA|macro|boxsk|heldA] [spot]
 
 This is a falsifier for HeightFrame's value-walk row `Hframe_is_move_chain` and for
 the flank specs (TRUST 0.6, 0.7).  From wmotr_idle.st it plays N game frames of
 seeded random input that never presses or holds A (policy heldA holds A down
 from the start without a fresh press: the control that shows the held-A premise
-matters).  Memory write-watches sit on the cells Phi reads:
+matters; policy macro plays scripted no-A sequences instead of noise: long runs,
+slide kicks, dive + B rollout, ground pounds, walking off ledges).  Memory write-watches sit on the cells Phi reads:
 
     MarioState  action @12, actionState/actionTimer @24, pos[1] @64,
                 vel[1] @76, floorHeight @112
@@ -21,6 +22,7 @@ Output: ~/sm64-oracle/ywatch/<policy>-<seed>.jsonl, and a summary on stdout
 """
 import bisect
 import json
+import math
 import os
 import random
 import struct
@@ -28,6 +30,7 @@ import sys
 
 sys.path.insert(0, os.path.dirname(__file__))
 from m64 import Emu, pad, A, B, Z
+import phi_check
 
 ORACLE = os.path.expanduser("~/sm64-oracle")
 ROM = f"{ORACLE}/decomp/build/us/sm64.us.z64"
@@ -82,7 +85,12 @@ SPOTS = {
     "box2424": (-2760.0, 2424.0, -4080.0),
     # the box top at 2064
     "box2064": (-400.0, 2064.0, -120.0),
+    # the same two tops with the wing-cap save flag set: without it the boxes
+    # are intangible outlines (exclamation_box_act_1) and nobody stands on them
+    "box2424w": (-2760.0, 2430.0, -4080.0),
+    "box2064w": (-400.0, 2070.0, -120.0),
 }
+SAVE_FILE_SIZE, SAVE_FLAGS_OFF, SAVE_FLAG_HAVE_WING_CAP = 0x38, 8, 1 << 1
 
 
 def record(n_frames, seed, policy, spot=None):
@@ -151,16 +159,53 @@ def record(n_frames, seed, policy, spot=None):
         out.write(json.dumps({"ep": st["ep"], "f": st["n"], "frame_end": True,
                               "posy": read_cell(e, "posy"), "vely": read_cell(e, "vely"),
                               "action": read_cell(e, "action"),
+                              "st_tm": read_cell(e, "state_timer"),
+                              "floorh": read_cell(e, "floorh"), "gfxy": read_cell(e, "gfxy"),
                               "level": e.read16(S["gCurrLevelNum"])}) + "\n")
         st["n"] += 1
         st["ep_n"] += 1
-        if st["ep_n"] >= EPISODE or e.read16(S["gCurrLevelNum"]) != st["level"]:
+        if st["ep_n"] >= (120 if policy == "boxsk" else EPISODE) or e.read16(S["gCurrLevelNum"]) != st["level"]:
             st["reload"] = True
+            st["q"] = []
             st["armed"] = False
         if st["n"] % 100 == 0:
             print(f"[ywatch] {st['n']}/{n_frames} frames, {st['writes']} cell writes", flush=True)
 
+    def macro():
+        """One scripted no-A sequence, as a list of per-frame pads."""
+        th = rng.uniform(0, 2 * math.pi)
+        sx, sy = int(127 * math.cos(th)), int(127 * math.sin(th))
+        run = lambda n, b=0: [pad(b, sx, sy)] * n
+        kind = rng.choice(["slidekick", "slidekick", "shortsk", "shortsk", "dive", "pound", "run",
+                           "crouchB", "turn"])
+        if kind == "shortsk":          # a slide kick from a few steps (fits on a box top)
+            return run(rng.randint(1, 6)) + run(1, Z) + run(1, Z | B) + run(rng.randint(10, 40), Z)
+        if kind == "slidekick":        # walking Z -> crouch slide, B -> slide kick
+            return run(rng.randint(8, 45)) + run(rng.randint(1, 3), Z) + run(1, Z | B) + run(rng.randint(10, 40), Z)
+        if kind == "dive":             # B at speed -> dive; B in the dive slide -> rollout
+            return run(rng.randint(25, 70)) + run(1, B) + run(rng.randint(6, 25)) + run(1, B) + run(rng.randint(10, 30))
+        if kind == "pound":            # run (maybe off an edge) with Z pulses: GP if airborne
+            return sum((run(rng.randint(3, 9)) + run(1, Z) for _ in range(rng.randint(3, 12))), [])
+        if kind == "crouchB":          # crouch, then B
+            return [pad(Z)] * rng.randint(2, 10) + [pad(Z | B)] + [pad(Z)] * rng.randint(5, 20)
+        if kind == "turn":             # run, then snap the stick back (skid / sideflip-less turn)
+            back = [pad(0, -sx, -sy)] * rng.randint(5, 20)
+            return run(rng.randint(20, 50)) + back + run(1, B) + [0] * 5
+        return run(rng.randint(10, 90))
+
     def next_keys():
+        if policy == "boxsk":          # one slide kick per episode, from rest on the spot
+            if not st.get("q"):
+                th = rng.uniform(0, 2 * math.pi)
+                sx, sy = int(127 * math.cos(th)), int(127 * math.sin(th))
+                st["q"] = ([0] * 25 + [pad(0, sx, sy)] * rng.randint(3, 8) + [pad(Z, sx, sy)]
+                           + [pad(Z | B, sx, sy)] + [pad(Z, sx, sy)] * rng.randint(5, 40)
+                           + [0] * 400)
+            return st["q"].pop(0)
+        if policy == "macro":
+            if not st.get("q"):
+                st["q"] = macro()
+            return st["q"].pop(0)
         if st["hold"] <= 0:
             st["hold"] = rng.randint(3, 25)
             mag = rng.choice([0, 40, 80, 127, 127])
@@ -195,6 +240,11 @@ def record(n_frames, seed, policy, spot=None):
             obj = e.read32(ms + 136)
             assert obj == st["addr"]["gfxy"] - 36, (hex(obj), hex(st["addr"]["gfxy"]))
             st["level"] = e.read16(S["gCurrLevelNum"])
+            if spot and spot.endswith("w"):
+                # gSaveBuffer.files[gCurrSaveFileNum - 1][0].flags |= HAVE_WING_CAP
+                fa = (S["gSaveBuffer"] + (e.read16(S["gCurrSaveFileNum"]) - 1) * 2 * SAVE_FILE_SIZE
+                      + SAVE_FLAGS_OFF)
+                e.write32(fa, e.read32(fa) | SAVE_FLAG_HAVE_WING_CAP)
             if spot:
                 for k, v in enumerate(SPOTS[spot]):
                     e.write32(ms + 60 + 4 * k, struct.unpack(">I", struct.pack(">f", v))[0])
@@ -206,7 +256,14 @@ def record(n_frames, seed, policy, spot=None):
                     e.add_write_watch(st["addr"][name], 4)
             st["watched"] = True
             st["armed"] = True
-        e.keys = next_keys()
+        if policy in ("macro", "boxsk"):
+            # scripted policies step once per Mario frame (the game polls once
+            # per 2 VIs), so a one-entry B pulse is never missed
+            if st.get("keys_n") != st["n"]:
+                st["keys_n"], st["cur"] = st["n"], next_keys()
+            e.keys = st["cur"]
+        else:
+            e.keys = next_keys()
         if st["n"] >= n_frames:
             e.stop()
 
@@ -254,9 +311,34 @@ def learn():
     emu.run()
 
 
+def phi_bad(r):
+    """Phi's numeric part (phi_check.py) on a frame-end record; None if the
+    record predates the full cell set."""
+    if "st_tm" not in r:
+        return None
+    a, (s, tm) = r["action"], r["st_tm"]
+    y, v, fh, gy = r["posy"], r["vely"], r["floorh"], r["gfxy"]
+    c = phi_check.credit(a, s, tm, v)
+    bad = []
+    if y + c > phi_check.K + phi_check.A:
+        bad.append(f"budget {phi_check.K + phi_check.A - y - c:.2f}")
+    if gy + c > phi_check.K + phi_check.A:
+        bad.append(f"gfx budget {phi_check.K + phi_check.A - gy - c:.2f}")
+    if not (-75 <= v <= 128) or y < -8192 or gy < -8192:
+        bad.append("range")
+    if a == phi_check.SK and not (v + 2 * tm <= 37.5 + tm / 1024 or v <= -73):
+        bad.append("sk-timer")
+    if a == phi_check.GP and s != 0 and v > 0:
+        bad.append("gp-vel")
+    if a == phi_check.LEDGE and fh > phi_check.K:
+        bad.append("ledge")
+    return bad, phi_check.K + phi_check.A - y - c
+
+
 def summarize(paths):
     from collections import Counter
     y_sites, flags, other, ymax = Counter(), [], Counter(), {}
+    phi_n, phi_fail, slack_min = 0, [], None
     WMOTR = 31
     n_frames, exits = 0, 0
     for path in paths:
@@ -272,6 +354,13 @@ def summarize(paths):
             if r.get("frame_end"):
                 n_frames += 1
                 ymax[r["action"]] = max(ymax.get(r["action"], -1e9), r["posy"])
+                pb = phi_bad(r)
+                if pb is not None:
+                    phi_n += 1
+                    if pb[0]:
+                        phi_fail.append((pb[0], r))
+                    if slack_min is None or pb[1] < slack_min[0]:
+                        slack_min = (pb[1], r)
                 continue
             who = r["caller"] or r["fn"]
             changed = r["old"] != r["new"]
@@ -302,6 +391,11 @@ def summarize(paths):
     print("\n== max pos[1] at frame end, by action ==")
     for a, y in sorted(ymax.items(), key=lambda kv: -kv[1])[:15]:
         print(f"  {y:9.2f}  action {a:#010x}")
+    print(f"\n== Phi (numeric part) at frame end: {phi_n} checked, {len(phi_fail)} violate ==")
+    for bad, r in phi_fail[:10]:
+        print(f"  {bad}: {r}")
+    if slack_min:
+        print(f"  tightest budget slack {slack_min[0]:.2f}: {slack_min[1]}")
     print(f"\n== FLAGS: {len(flags)} ==")
     seen = Counter()
     for why, r in flags:
@@ -324,5 +418,5 @@ if __name__ == "__main__":
         seed = int(sys.argv[2]) if len(sys.argv) > 2 else 1
         policy = sys.argv[3] if len(sys.argv) > 3 else "noA"
         spot = sys.argv[4] if len(sys.argv) > 4 else None
-        assert policy in ("noA", "heldA") and (spot is None or spot in SPOTS)
+        assert policy in ("noA", "macro", "boxsk", "heldA") and (spot is None or spot in SPOTS)
         summarize([record(n, seed, policy, spot)])

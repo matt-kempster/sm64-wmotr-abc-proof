@@ -103,8 +103,9 @@ generated AST (`docs/goal2-writers-vs-moves.md`).
   each move. Hframe_is_move_chain must show the real frame lands in range
   (`docs/goal2-vel-y-bounds.md`).
 - **Not modelled** (Hframe_is_move_chain is false if these fire): hanging (A-gated), water, wind,
-  shells, grab and throw objects, the cannon. All are absent or A-gated in WMotR (E1/E3,
-  `docs/goal2-writers-vs-moves.md`).
+  shells, grab and throw objects. All are absent or A-gated in WMotR (E1/E3,
+  `docs/goal2-writers-vs-moves.md`). The cannon was on this list, but its entry is
+  reachable with B only; it is the `wmotr_cannon` attach case since 2026-09-28.
 - **Next:** discharge `Hframe_stays_noA` with GOAL 1's engine at `Qv := R_noA`, and make
   `R_noA` concrete from the census. Then start the `Hframe_is_move_chain` value walk at
   `perform_air_step`. Make `wmotr_floor` and `wmotr_pole` concrete from WMotR's collision and
