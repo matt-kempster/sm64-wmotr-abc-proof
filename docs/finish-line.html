@@ -163,17 +163,17 @@ svg text{font-family:"JetBrains Mono",monospace}
 const DONE = [
   {label:"GOAL 1: no A ⇒ no flying", share:12, what:"The capstone over the 12 real TUs, with its engine, positive control and non-vacuity companions."},
   {label:"GOAL 2 height machinery", share:10, what:"The height invariant Φ, the binary32 budget for every move, and the real level data (floor gap, poles), all proved."},
-  {label:"Censuses and real-game tether", share:10, what:"pos[1] writers, heldObj and behavior censuses, the coin collision step, and the recorded-frame differential tester (300/300 match)."}
+  {label:"Censuses and real-game tethers", share:11, what:"pos[1] writers, heldObj and behavior censuses, the coin collision step, the recorded-frame differential tester (300/300 match), and the height-cell write watch (about 18k WMotR frames, no uncovered writer)."}
 ];
 const GAPS = [
-  {id:"walk", label:"The value walk", est:18, lo:10, hi:30, risk:"high",
+  {id:"walk", label:"The value walk", est:17, lo:10, hi:28, risk:"high",
    what:"Hframe_is_move_chain: show that one real execute_mario_action changes Mario's height cells only by the catalogued moves. That means walking the real Clight of every no-A action through binary32, including a find_floor value row.",
-   next:"Start at perform_air_step with the interval environment (T3), then extend to the ground actions.",
-   why:"An unmodelled mechanism (PUs, the hangable ceiling, a y-writer we missed) would make this row false."},
+   next:"Aim the write watch at the dangerous sequences (slide-kick bounce, ledge climb, poles), then start the Coq walk at perform_air_step.",
+   why:"An unmodelled mechanism (PUs, a y-writer we missed) would make this row false. The real-game write watch found none in about 18k random no-A frames, but random input rarely tries the risky sequences."},
   {id:"world", label:"The rest of the frame", est:15, lo:8, hi:30, risk:"med",
    what:"The step is one real Mario call plus four specified flanks (controller poll, platforms, level phase, other objects). Those flanks are specs, not linked code. Finishing means rooting the frame at game_loop_one_iteration.",
    next:"Link platform_displacement, then the WMotR behaviors (about 10 of them).",
-   why:"Each flank spec is a claim about code nobody has walked yet. One such claim was already false once."},
+   why:"Each flank spec is a claim about code nobody has walked yet. Two were false: an early object-write spec, and (2026-09-28) the level phase on the exit frame, which is why the run is now one WMotR visit."},
   {id:"ext", label:"External-call rows", est:12, lo:6, hi:20, risk:"low",
    what:"About 35 rows describe code outside the 12 linked TUs: collision, math_util, audio, camera, save file. Shrinking them means linking more TUs (P1′).",
    next:"Generalize the gated-writer channel so that find_floor's pointer out-param can be linked.",
@@ -199,13 +199,15 @@ const SNAPSHOTS = [
   {date:"2026-06-01", pct:10, lo:5,  hi:20, live:false, note:"The capstone engine assembled; GOAL 1 rows mostly open."},
   {date:"2026-07-09", pct:20, lo:12, hi:32, live:false, note:"GOAL 1 done over 12 TUs."},
   {date:"2026-09-26", pct:26, lo:16, hi:38, live:false, note:"Real-game differential tester; the V2P undefined behavior fixed."},
-  {date:"2026-09-28", pct:32, lo:20, hi:45, live:true,  commit:"d6df40e", note:"GOAL 2 on the spine; crux reduced to two rows; level data and coin collision proved."}
+  {date:"2026-09-28", pct:32, lo:20, hi:45, live:true,  commit:"d6df40e", note:"GOAL 2 on the spine; crux reduced to two rows; level data and coin collision proved."},
+  {date:"2026-09-28", pct:33, lo:21, hi:45, live:true,  commit:"c1f11db", note:"Premise now excludes holding A (a false row fixed); run scoped to one WMotR visit after the write watch caught the level exit; write watch finds no uncovered height writer."}
 ];
 const COUNTERS = [
   {n:36, label:"Hypothesis rows on GOAL 1's capstone"},
   {n:41, label:"Hypothesis rows in GOAL 2's HeightFrame.v"},
   {n:2,  label:"GOAL 2 rows about Mario's frame still open"},
-  {n:"300/300", label:"recorded real frames matched byte for byte"}
+  {n:"300/300", label:"recorded real frames matched byte for byte"},
+  {n:"17,977", label:"real WMotR frames write-watched, 0 uncovered height writes"}
 ];
 
 /* ============================================================ */
