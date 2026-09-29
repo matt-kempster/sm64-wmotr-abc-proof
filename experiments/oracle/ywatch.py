@@ -324,7 +324,7 @@ def phi_bad(r):
         bad.append(f"budget {phi_check.K + phi_check.A - y - c:.2f}")
     if gy + c > phi_check.K + phi_check.A:
         bad.append(f"gfx budget {phi_check.K + phi_check.A - gy - c:.2f}")
-    if not (-75 <= v <= 128) or y < -8192 or gy < -8192:
+    if not (-75 <= v <= phi_check.VMAX) or y < -8192 or gy < -8192:
         bad.append("range")
     if a == phi_check.SK and not (v + 2 * tm <= 37.5 + tm / 1024 or v <= -73):
         bad.append("sk-timer")

@@ -27,6 +27,7 @@ MAP = f"{ORACLE}/decomp/build/us/sm64.us.map"
 K, A = 2424.0, 372.0  # K = H*: wing-cap box top 2320 + 104 (x2 scale); was 2372
 EPS = 1 / 64
 GP_RESERVE = 111.0
+VMAX = 43.0  # InRange: vel[1] <= 43 (HeightInvariant.InRange)
 FREEFALL, BSA, SK, GP = 0x0100088C, 0x0300088E, 0x018008AA, 0x008008A9
 LEDGE = 0x0800034B
 
@@ -84,7 +85,7 @@ def phi(ram, base):
         bad.append(f"budget {slack:.1f}")
     if gy + c > K + A:
         bad.append(f"gfx budget {K + A - gy - c:.1f}")
-    if not (-75 <= v <= 128) or y < -8192 or gy < -8192:
+    if not (-75 <= v <= VMAX) or y < -8192 or gy < -8192:
         bad.append(f"range y={y} gy={gy} v={v}")
     if a == SK and not (v + 2 * tm <= 37.5 + tm / 1024 or v <= -73):
         bad.append("sk-timer")

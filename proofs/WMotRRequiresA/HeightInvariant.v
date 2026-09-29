@@ -286,12 +286,18 @@ Definition timer_of (c : cells) : Z := Int.unsigned (c_timer c).
 Definition credit_of (c : cells) : R := credit (c_action c) (state_of c) (timer_of c) (R2 (c_vely c)).
 
 (* the ranges: finiteness, the death plane (collision.inc.c: -8191, and
-   steps clamp pos to floorHeight), terminal / launch velocity
-   (docs/goal2-vel-y-bounds.md: -75 <= vel[1] <= 100 under no-A in WMotR) *)
+   steps clamp pos to floorHeight), terminal / launch velocity.  The upper
+   velocity bound is 43, the freefall launch cap, in EVERY mode: with the old
+   bound (128) Phi admitted a grounded Mario rising at up to 128, whose
+   walk-off (stationary landings keep vel[1]) is in no Move, so
+   Hframe_is_move_chain was false over Phi.  Real no-A launches in WMotR are
+   <= 37.5 (slide-kick bounce; rollout 30, dive 20, slide kick 12;
+   docs/goal2-vel-y-bounds.md and the 2026-09-28 label audit), and the write
+   watch saw at most 26 at frame end in 86k frames. *)
 Definition InRange (c : cells) : Prop :=
   F32 (c_posy c) = true /\ F32 (c_vely c) = true /\ F32 (c_gfxy c) = true
   /\ -8192 <= R2 (c_posy c) /\ -8192 <= R2 (c_gfxy c)
-  /\ -75 <= R2 (c_vely c) <= 128.
+  /\ -75 <= R2 (c_vely c) <= 43.
 
 Definition budget_ok (c : cells) : Prop :=
   InRange c

@@ -555,7 +555,8 @@ Section Moves.
         apply (not_ledge_air c); [ | exact Ha' ]; destruct Hk as [? | [? | [? | ?]]]; congruence.
     - (* S_sk_bounced *)
       assert (Hk' : mode_of c' = mode_of c) by (apply mode_of_same; auto).
-      pose proof (sk_bounced_frame (c_posy c) (c_vely c) Fy Fv Hy16 (conj Hvlo Hvhi)) as Hf.
+      assert (Hv128' : R2 (c_vely c) <= 128) by lra.
+      pose proof (sk_bounced_frame (c_posy c) (c_vely c) Fy Fv Hy16 (conj Hvlo Hv128')) as Hf.
       rewrite <- Hy', <- Hv' in Hf.
       assert (Hcr : R2 (c_posy c') + credit_of c' <= R2 (c_posy c) + credit_of c)
         by (rewrite !credit_of_mode, Hk', Hk; simpl; exact Hf).
