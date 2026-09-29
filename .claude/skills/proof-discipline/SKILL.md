@@ -31,6 +31,9 @@ all in `Unwired/`, and the theorem moved nowhere. See
   `seg_action_phi`, whose move arithmetic is proved (`HeightMoveCatalog.chain_keeps_budget`). Open rows:
   - `R_noA`, the whitelist parameter
   - `Hframe_stays_noA`
+  - `Hframe_keeps_world`: the run carries `PhiW` = Φ ∧ `WMotRWorld.wmotr_world` (surfaces of
+    WMotR's types, nothing held or ridden, no quicksand). Without W the other rows are false
+    over phantom worlds; grow W, don't drop it
   - `Hframe_is_move_chain`, the value walk. It is false if an unmodelled move fires, so check the
     `Step` constructors against any new y/vel writer.
   - (`wmotr_gap` and `wmotr_poles` are now proved from generated level data, `WMotRLevel.v`)

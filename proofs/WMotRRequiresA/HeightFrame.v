@@ -35,6 +35,8 @@
 (*     Hframe_stays_noA  the frame keeps the action in R_noA,               *)
 (*     Hframe_is_move_chain     the frame's effect on the cells is a chain of *)
 (*                     HeightMoveCatalog moves (the T3 value walk),         *)
+(*     Hframe_keeps_world  the frame keeps the WMotR world (WMotRWorld.v),  *)
+(*                     which the run carries next to Phi (PhiW)             *)
 (*     (the level data -- floor gap, poles -- is PROVED, WMotRLevel.v)      *)
 (* and the flank SPECS are labeled trust: each states what that phase of    *)
 (* the real game does -- y / action loads as the censuses found them, and   *)
@@ -66,7 +68,8 @@ From SM64.Proofs Require Import MWFReal RestSurface FloorsSurface
   FloorsLeafSurface.
 From SM64.Proofs Require Import LinkedTwelve SpawnInit InitMemSat.
 From SM64.Proofs Require Import NoAImpliesNoFlyLinked NoAImpliesNoFlyTwelve.
-From SM64.Proofs Require Import HeightInvariant HeightBudgetArith HeightMoveCatalog WMotRLevel.
+From SM64.Proofs Require Import HeightInvariant HeightBudgetArith HeightMoveCatalog WMotRLevel
+  WMotRWorld.
 Import ListNotations.
 
 (* -----------------------------------------------------------------------  *)
@@ -462,7 +465,11 @@ Section HeightLinked12.
      PROVED (WMotRLevel.v), and
      two rows about what the real frame does. ---- *)
   Variable R_noA : int -> Prop.
-  Notation Phi := (height_invariant bm R_noA).
+  (* The run carries the height invariant AND the WMotR world invariant
+     (WMotRWorld.v): without the world the rows below are false over
+     phantom worlds (a BURNING floor, a quicksand depth, a held object). *)
+  Definition PhiW (m : mem) : Prop := height_invariant bm R_noA m /\ wmotr_world bm m.
+  Notation Phi := PhiW.
 
   (* LEVEL DATA -- now DEFINED from generated/ and PROVED (WMotRLevel.v):
      wmotr_floor / wmotr_pole / wmotr_cannon are read off WMotR's
@@ -494,6 +501,17 @@ Section HeightLinked12.
      entry (pos := cannon.y + 350, reachable with B only: the buddy talks
      on B, cannon_probe.py) was such a move until the attach case
      wmotr_cannon was added. *)
+  (* OPEN (the world): one real frame keeps the world WMotR's.  Every
+     surface the frame stores into m->wall/ceil/floor comes from find_floor /
+     find_ceil / the wall resolvers over WMotR's static and object surfaces;
+     nothing the no-A frame does picks up or rides an object; the quicksand
+     code only deepens on a quicksand type.  Tethered by the write watch
+     (TRUST.md 5.4); the symbolic walk (docs/goal2-value-walk-plan.md) is
+     meant to discharge it together with the two rows around it. *)
+  Hypothesis Hframe_keeps_world :
+    forall m m', mem_ok_lp bm MWF m -> Phi m -> a_down_real bm m = false ->
+                 execute_mario_action_step_lp lp m m' -> wmotr_world bm m'.
+
   Hypothesis Hframe_is_move_chain :
     forall m m' c, mem_ok_lp bm MWF m -> Phi m -> a_down_real bm m = false ->
                    execute_mario_action_step_lp lp m m' ->
@@ -506,7 +524,8 @@ Section HeightLinked12.
                  execute_mario_action_step_lp lp m m' -> Phi m'.
   Proof.
     intros m m' Hok Hphi HD Hst.
-    pose proof Hphi as (_ & c & Hcells & Hc).
+    pose proof Hphi as ((_ & c & Hcells & Hc) & _).
+    split; [ | exact (Hframe_keeps_world m m' Hok Hphi HD Hst) ].
     split; [ exact (Hframe_stays_noA m m' Hok Hphi HD Hst) | ].
     destruct (Hframe_is_move_chain m m' c Hok Hphi HD Hst Hcells Hc) as (c' & Hc' & Hmv).
     exists c'. split; [ exact Hc' | ].
@@ -516,7 +535,7 @@ Section HeightLinked12.
   Qed.
 
   Lemma Hphi_y : forall m, Phi m -> y_le bm PHI_YMAX m.
-  Proof. intros m Hphi v Hl. exact (height_invariant_y bm R_noA m Hphi v Hl). Qed.
+  Proof. intros m Hphi v Hl. exact (height_invariant_y bm R_noA m (proj1 Hphi) v Hl). Qed.
 
   (* GOAL 1's proved frame, at this section's surface *)
   Lemma frame_action_linked12 :

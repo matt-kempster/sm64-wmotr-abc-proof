@@ -90,6 +90,8 @@ SPOTS = {
     "box2424w": (-2760.0, 2430.0, -4080.0),
     "box2064w": (-400.0, 2070.0, -120.0),
 }
+# WMotRWorld.wmotr_surface_types_value
+WMOTR_SURFACE_TYPES = {5, 10, 21, 55, 0}
 SAVE_FILE_SIZE, SAVE_FLAGS_OFF, SAVE_FLAG_HAVE_WING_CAP = 0x38, 8, 1 << 1
 
 
@@ -149,6 +151,19 @@ def record(n_frames, seed, policy, spot=None):
         out.write(json.dumps(rec) + "\n")
         st["writes"] += 1
 
+    def world(e):
+        """WMotRWorld.wmotr_world's fields: surface types at wall/ceil/floor
+        (None = NULL), heldObj, riddenObj, quicksandDepth."""
+        def stype(off):
+            p = e.read32(ms + off)
+            if p == 0:
+                return None
+            t = e.read16(p)
+            return t - 0x10000 if t >= 0x8000 else t
+        return {"wall": stype(96), "ceil": stype(100), "floor": stype(104),
+                "held": e.read32(ms + 124), "ridden": e.read32(ms + 132),
+                "qsd": f32(e.read32(ms + 192))}
+
     def on_entry(e, pc):
         st["in_ema"] = True
 
@@ -161,6 +176,7 @@ def record(n_frames, seed, policy, spot=None):
                               "action": read_cell(e, "action"),
                               "st_tm": read_cell(e, "state_timer"),
                               "floorh": read_cell(e, "floorh"), "gfxy": read_cell(e, "gfxy"),
+                              "world": world(e),
                               "level": e.read16(S["gCurrLevelNum"])}) + "\n")
         st["n"] += 1
         st["ep_n"] += 1
@@ -332,6 +348,13 @@ def phi_bad(r):
         bad.append("gp-vel")
     if a == phi_check.LEDGE and fh > phi_check.K:
         bad.append("ledge")
+    w = r.get("world")
+    if w is not None:
+        for k in ("wall", "ceil", "floor"):
+            if w[k] is not None and w[k] not in WMOTR_SURFACE_TYPES:
+                bad.append(f"world: {k} type {w[k]}")
+        if w["held"] or w["ridden"] or w["qsd"] != 0.0:
+            bad.append(f"world: held/ridden/quicksand {w}")
     return bad, phi_check.K + phi_check.A - y - c
 
 

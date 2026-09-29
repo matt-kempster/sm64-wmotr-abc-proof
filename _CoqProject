@@ -235,6 +235,7 @@ proofs/WMotRRequiresA/HeightFloatSteps.v
 proofs/WMotRRequiresA/HeightBudgetArith.v
 proofs/WMotRRequiresA/HeightMoveCatalog.v
 proofs/WMotRRequiresA/WMotRLevel.v
+proofs/WMotRRequiresA/WMotRWorld.v
 proofs/WMotRRequiresA/HeightFrame.v
 proofs/WMotRRequiresA/YWriterCensus.v
 proofs/WMotRRequiresA/HeldObjCensus.v
