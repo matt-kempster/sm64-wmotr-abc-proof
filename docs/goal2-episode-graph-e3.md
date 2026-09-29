@@ -520,3 +520,36 @@ constant moves from E2's `238` to **`273` (raw)**, still comfortably inside E1's
    (fall into the void) are pure `launch_mario_until_land` falls that leave the
    level or re-init at spawn (`init_mario`, `vel=0`, `mario.c:1828`); Φ is
    re-established at the spawn island. No trick edges. (v2 §6.5.)
+
+## Corrections (label audit, 2026-09-28)
+
+An adversarial re-check of this doc's labels against the US source found no
+missing no-A height mechanism beyond the cannon entry, which is now the
+`wmotr_cannon` attach case. It did find these wrong labels and reasons:
+
+- **Ground → freefall does not always leave with vel[1] = 0.** An air step lands
+  when `nextPos[1] ≤ floorHeight` (mario_step.c:431-442), even while rising, and
+  a stationary landing (e.g. ACT_FREEFALL_LAND_STOP after a rollout) never zeroes
+  vel[1]. INPUT_OFF_FLOOR on the next frame then enters ACT_FREEFALL still rising,
+  at up to 30. The Move catalog already allows this (`launch_cap` Freefall ≤ 43);
+  only the "vel ≈ 0 on ground-leave" claims here were wrong.
+- **Poles are not "X".** `interact_pole` needs only an airborne action id, and
+  climbing reads only the stick. The pole *jump* is A-gated (automatic.c:286).
+  The height side is `wmotr_pole` (every pole low or out of reach).
+- **ACT_FORWARD_AIR_KB is not "enemies only".** It is reachable via a dive
+  landing with fall damage → HARD_FORWARD_GROUND_KB → leaving the ground
+  (moving.c:1623). It sets no vel[1].
+- **Wing-cap boxes can be broken without A**, from below by a rising
+  non-attacking air action or by a GP windup, if the wing-cap save flag makes
+  them tangible. This is harmless: every wing-cap effect is A-gated
+  (mario_step.c:566 needs A_DOWN; flight needs A). Breaking one writes vel[1] = 0
+  and may set ACT_MOVE_PUNCHING (interaction.c:525, 652). The "box tops
+  unreachable" reason was false (box tops 2012 and 2372 are E1 ladder rungs).
+- **The box's bounce_off_object case is dead code** (INT_HIT_FROM_ABOVE is not
+  in the attack mask, interaction.c:44), which is the real reason it can't fire.
+- Citation: JUMP_KICK's second entry is act_move_punching (moving.c:846), not
+  act_crawling.
+- **Open (U1):** ACT_SQUISHED needs a dynamic floor or ceiling with a gap ≤ 150
+  (mario.c:1343-1349). The box slabs and cannon lids were not re-checked against
+  nearby surfaces. Squish writes no pos (writers-vs-moves), so this only affects
+  the action whitelist.

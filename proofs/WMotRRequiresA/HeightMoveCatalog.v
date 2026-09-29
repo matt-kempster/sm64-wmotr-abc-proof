@@ -159,7 +159,9 @@ Qed.
    credit within A, so launching from a floor <= K stays in budget *)
 Definition launch_cap (k : mode) (tm : Z) (v : R) : Prop :=
   match k with
-  | M_Freefall => v <= 43                           (* dive/rollout: 20/30; walk-off 0 *)
+  | M_Freefall => v <= 43                           (* dive/rollout: 20/30; a walk-off can
+                                                      carry a rising vel (<= 30) out of a
+                                                      stationary landing, which keeps vel[1] *)
   | M_SlideKick => v <= 30 /\ tm = 0%Z              (* slide-kick launch 12 *)
   | M_Air => v <= 52
   | M_SlideKickBounced => 0 <= v <= 37.5 /\ tm = 0%Z       (* bounce: -vel/2, vel >= -75 *)

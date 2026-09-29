@@ -34,8 +34,10 @@ the store-scout methodology caught 5 false claims elsewhere this week.
 > **The dogs that did not bark (loud negatives):** the game's dangerous
 > object-side y/velocity writers — `heave_ho` (`vel[1] = 95`), `chuckya`
 > (`vel[1]`), `recovery_heart` (`healCounter`), `butterfly` (`gMarioObject->oPosY`)
-> — are **all absent** from WMotR. No object in this level launches, lifts, or
-> knocks Mario upward.
+> — are **all absent** from WMotR. No object in this level launches or knocks
+> Mario upward. **Correction 2026-09-28:** the cannon *lifts* him: entering it
+> (`interact_cannon_base`, then `act_in_cannon` pos := cannon.y + 350) is
+> reachable with B only. It is the `wmotr_cannon` attach case.
 
 **Action item for the composition skeleton (T0):** `seg_rest`'s spec row must
 be stated as the refined predicate above (`pos[1]` preserved + `action` writes

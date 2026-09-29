@@ -62,7 +62,7 @@ listed to prove the census saw them (e.g. bully knockback is x/z only).
 
 | # | writer site (generated) | function | value written (AST) | class | verdict in WMotR-no-A |
 |---|---|---|---|---|---|
-| 1 | `mario.v:2082` | `update_mario_pos_for_anim` | `pos[1] + (short)animY` | EXOGENOUS (tiny) | REACH — bounded anim translation (the ε); runs each action |
+| 1 | `mario.v:2082` | `update_mario_pos_for_anim` | `pos[1] + (short)animY` | EXOGENOUS (tiny) | ABSENT in WMotR (corrected 2026-09-28): only door/star cutscene actions call it (`mario_actions_cutscene.c:799,852,933,1881`), as `goal2-writers-vs-moves.md` says |
 | 2 | `mario.v:6085` | `set_water_plunge_action` | `waterLevel − 100` | ATTACH | **ABSENT** — needs water (none in WMotR) |
 | 3 | `mario_step.v:1744` | `stop_and_set_height_to_floor` | `= floorHeight` (`t'2`) | ATTACH/PIN | reachable; floor-bounded |
 | 4 | `mario_step.v:1854` | `stationary_ground_step` | `= floorHeight` (`t'5`) | ATTACH/PIN | reachable; floor-bounded |
