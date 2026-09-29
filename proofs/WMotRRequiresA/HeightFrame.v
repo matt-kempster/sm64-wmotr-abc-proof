@@ -14,8 +14,9 @@
 (*   seg_level    the warp / level phase,                                   *)
 (*   seg_rest     the rest of update_objects + gfx (non-Mario).             *)
 (* For a height invariant Phi that implies pos[1] <= YMAX: a run that       *)
-(* starts GOAL-1-well-formed and in Phi, with the controller's A bit clear  *)
-(* after every poll, keeps Mario's height <= YMAX forever.                  *)
+(* starts GOAL-1-well-formed and in Phi, with A neither pressed nor held    *)
+(* after every poll (a_used_real: holding A counts as using it), keeps      *)
+(* Mario's height <= YMAX forever.                                          *)
 (*                                                                          *)
 (* WHAT IS PROVED.  seg_action preserving GOAL 1's invariant is NOT         *)
 (* assumed: it is NoAImpliesNoFlyTwelve.frame_ok_linked12, on exactly       *)
@@ -128,6 +129,7 @@ Section HeightFrame.
     Mem.load Mfloat32 m' bm POSY = Mem.load Mfloat32 m bm POSY
     /\ Mem.load Mint32 m' bm 12 = Mem.load Mint32 m bm 12
     /\ (Mem.valid_block m bm -> Mem.valid_block m' bm)
+    /\ a_down_real bm m' = a_down_real bm m   (* no controller write *)
     /\ carries m m'.
 
   (* seg_level: the warp / level phase.  None of its writers touches
@@ -179,8 +181,8 @@ Section HeightFrame.
      brick T2; launches reset Pot to floor + budget; attach via the
      find_floor value contract). *)
   Hypothesis Hseg_action_phi :
-    forall m m', mem_ok m -> Phi m -> execute_mario_action_step_lp lp m m' ->
-                 Phi m'.
+    forall m m', mem_ok m -> Phi m -> a_down_real bm m = false ->
+                 execute_mario_action_step_lp lp m m' -> Phi m'.
 
   (* OPEN (immediate once Phi is defined): the invariant bounds the height. *)
   Hypothesis Hphi_y : forall m, Phi m -> y_le m.
@@ -223,23 +225,25 @@ Section HeightFrame.
   (* ===================================================================== *)
   Theorem frame_step_ok :
     forall i m m',
-      a_pressed_real bm i = false ->
+      a_used_real bm i = false ->
       mem_ok m /\ Phi m ->
       frame_step i m m' ->
       mem_ok m' /\ Phi m'.
   Proof.
-    intros i m m' HA (Hok & Hphi)
+    intros i m m' HU (Hok & Hphi)
            (m1 & m2 & m3 & Hin & Hplat & Hact & Hlvl & Hrest).
+    destruct (a_used_real_false bm i HU) as (HA & HD).
     (* input *)
     destruct Hin as (_ & Hai & Hvi & Hmi & Hpi).
     pose proof (inert_flank m i Hai Hvi (Hmi HA) Hok) as Hok0.
     pose proof (Hpi Hphi) as Hphi0.
     (* platform *)
-    destruct Hplat as (_ & Hap & Hvp & Hmp & Hpp).
+    destruct Hplat as (_ & Hap & Hvp & Hdp & Hmp & Hpp).
+    assert (HD1 : a_down_real bm m1 = false) by congruence.
     pose proof (inert_flank i m1 Hap Hvp Hmp Hok0) as Hok1.
     pose proof (Hpp Hphi0) as Hphi1.
     (* the Mario action: GOAL 1's frame + the crux *)
-    pose proof (Hseg_action_phi m1 m2 Hok1 Hphi1 Hact) as Hphi2.
+    pose proof (Hseg_action_phi m1 m2 Hok1 Hphi1 HD1 Hact) as Hphi2.
     pose proof (Hframe_action m1 m2 Hok1 Hact) as (Hv2 & Hs2 & Hm2).
     (* level *)
     destruct Hlvl as (Hact3 & Hml & Hpl).
@@ -263,12 +267,12 @@ Section HeightFrame.
   Theorem noA_run_height_bound :
     forall (init : mem) (is : list mem) (m : mem),
       mem_ok init -> Phi init ->
-      Forall (fun i => a_pressed_real bm i = false) is ->
+      Forall (fun i => a_used_real bm i = false) is ->
       reachable mem mem frame_step init is m ->
       mem_ok m /\ y_le m.
   Proof.
     intros init is m Hok Hphi HA Hr.
-    destruct (reachable_preserves_Phi mem mem (a_pressed_real bm) frame_step
+    destruct (reachable_preserves_Phi mem mem (a_used_real bm) frame_step
                 (fun s => mem_ok s /\ Phi s)
                 (fun i s s' Ha Hs Hst => frame_step_ok i s s' Ha Hs Hst)
                 init is m Hr (conj Hok Hphi) HA) as (Hok' & Hphi').
@@ -458,9 +462,12 @@ Section HeightLinked12.
   (* OPEN (the action arm): one real frame keeps the action in the no-A
      whitelist.  GOAL 1's engine at Qv := R_noA
      (execute_mario_action_preserves_real_reached_lp); target list
-     docs/goal2-rnoa-census.md. *)
+     docs/goal2-rnoa-census.md.  The a_down premise is load-bearing: with
+     A held (never pressed) act_punching / act_move_punching enter
+     ACT_JUMP_KICK (mario_actions_object.c:156, _moving.c:845), which is not
+     in the census whitelist, so without it this row would be FALSE. *)
   Hypothesis Hframe_stays_noA :
-    forall m m', mem_ok_lp bm MWF m -> Phi m ->
+    forall m m', mem_ok_lp bm MWF m -> Phi m -> a_down_real bm m = false ->
                  execute_mario_action_step_lp lp m m' -> action_sat R_noA m' bm.
 
   (* OPEN (the value walk): what one real execute_mario_action does to
@@ -471,20 +478,20 @@ Section HeightLinked12.
      row is false if they fire: hanging (A-gated), water, wind, shells,
      objects that grab or throw (absent in WMotR; E1/E3). *)
   Hypothesis Hframe_is_move_chain :
-    forall m m' c, mem_ok_lp bm MWF m -> Phi m ->
+    forall m m' c, mem_ok_lp bm MWF m -> Phi m -> a_down_real bm m = false ->
                    execute_mario_action_step_lp lp m m' ->
                    read_cells bm m c -> budget_ok c ->
                    exists c', read_cells bm m' c' /\ MoveChain wmotr_floor wmotr_pole c c'.
 
   (* THE CRUX, now derived *)
   Lemma seg_action_phi :
-    forall m m', mem_ok_lp bm MWF m -> Phi m ->
+    forall m m', mem_ok_lp bm MWF m -> Phi m -> a_down_real bm m = false ->
                  execute_mario_action_step_lp lp m m' -> Phi m'.
   Proof.
-    intros m m' Hok Hphi Hst.
+    intros m m' Hok Hphi HD Hst.
     pose proof Hphi as (_ & c & Hcells & Hc).
-    split; [ exact (Hframe_stays_noA m m' Hok Hphi Hst) | ].
-    destruct (Hframe_is_move_chain m m' c Hok Hphi Hst Hcells Hc) as (c' & Hc' & Hmv).
+    split; [ exact (Hframe_stays_noA m m' Hok Hphi HD Hst) | ].
+    destruct (Hframe_is_move_chain m m' c Hok Hphi HD Hst Hcells Hc) as (c' & Hc' & Hmv).
     exists c'. split; [ exact Hc' | ].
     exact (chain_keeps_budget wmotr_floor wmotr_gap_proved wmotr_pole wmotr_poles_proved
              c c' Hc Hmv).
@@ -501,14 +508,15 @@ Section HeightLinked12.
 
   (* ==================================================================== *)
   (* THE GOAL-2 CAPSTONE (height form): over any link of the twelve TUs,  *)
-  (* a run of real game frames with the A bit clear after every poll,     *)
+  (* a run of real game frames with A neither pressed nor held after     *)
+  (* every poll,                                                          *)
   (* started GOAL-1-well-formed and in the height invariant Phi, keeps    *)
   (* Mario's height <= PHI_YMAX = 2796 (coin #2 needs >= 2980).           *)
   (* ==================================================================== *)
   Theorem wmotr_noA_height_bound_linked12 :
     forall (init : mem) (is : list mem) (m : mem),
       mem_ok_lp bm MWF init -> Phi init ->
-      Forall (fun i => a_pressed_real bm i = false) is ->
+      Forall (fun i => a_used_real bm i = false) is ->
       reachable mem mem (frame_step lp bm MWF Phi) init is m ->
       y_le bm PHI_YMAX m.
   Proof.

@@ -83,6 +83,11 @@ Lemma mario_buttonPressed_offset_concrete :
     = OK (18, Full).
 Proof. vm_compute. reflexivity. Qed.
 
+Lemma mario_buttonDown_offset_concrete :
+  field_offset (prog_comp_env mario.prog) mario._buttonDown mario_controller_members
+    = OK (16, Full).
+Proof. vm_compute. reflexivity. Qed.
+
 Lemma mario_Controller_isSome :
   match (prog_comp_env mario.prog) ! mario._Controller with
   | Some _ => true | None => false end = true.
@@ -132,6 +137,31 @@ Definition a_pressed_real (bm : block) (m : mem) : bool :=
       end
   | _ => true
   end.
+
+(* "is the player HOLDING A": the same chase, testing buttonDown (@16,
+   pinned above) & A_BUTTON -- what update_mario_button_inputs turns into
+   INPUT_A_DOWN (mario.c:1258).  Same pessimism: unreadable counts as held. *)
+Definition a_down_real (bm : block) (m : mem) : bool :=
+  match Mem.load Mptr m bm 156 with
+  | Some (Vptr bc oc) =>
+      match Mem.load Mint16unsigned m bc
+              (Ptrofs.unsigned (Ptrofs.add oc (Ptrofs.repr 16))) with
+      | Some (Vint v) => negb (Int.eq (Int.and v (Int.repr 32768)) Int.zero)
+      | _ => true
+      end
+  | _ => true
+  end.
+
+(* THE no-A input of GOAL 2: A is neither pressed nor held this frame.
+   Holding A counts as using it (the ABC convention: a press carried in
+   held is a "0.5x" press, game_init.c:544). *)
+Definition a_used_real (bm : block) (m : mem) : bool :=
+  a_pressed_real bm m || a_down_real bm m.
+
+Lemma a_used_real_false :
+  forall bm m, a_used_real bm m = false ->
+               a_pressed_real bm m = false /\ a_down_real bm m = false.
+Proof. intros bm m H. unfold a_used_real in H. apply Bool.orb_false_iff in H. exact H. Qed.
 
 (* the input grounding: an A-silent frame start satisfies the concrete
    controller invariant. This is what discharges the capstone's

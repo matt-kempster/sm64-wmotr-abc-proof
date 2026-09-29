@@ -32,7 +32,9 @@ This matches the table in `goal2-phi.md` §2 exactly. Every A-gated air action
 drops out, including ACT_JUMP, the double and triple jumps, ACT_FLYING,
 ACT_TWIRLING, ACT_STEEP_JUMP and ACT_WATER_JUMP. If A_DOWN (held, never pressed)
 were allowed, the only addition would be ACT_JUMP_KICK, from `act_punching`
-(mario_actions_object:157). Under ABC, A is never down without a press.
+(mario_actions_object:157). Holding A counts as using it, and since 2026-09-28 the
+GOAL-2 capstone's premise says so (`AGates.a_used_real`: A neither pressed nor held),
+which `Hframe_stays_noA` receives as `a_down_real bm m = false`.
 
 ## Follow-ups (not yet checked)
 
