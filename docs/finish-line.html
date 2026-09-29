@@ -166,10 +166,10 @@ const DONE = [
   {label:"Censuses and real-game tethers", share:11, what:"pos[1] writers, heldObj and behavior censuses, the coin collision step, the recorded-frame differential tester (300/300 match), the height-cell write watch (about 86k WMotR frames with Φ checked each frame, including the solid K = 2424 box top), the cannon probe, and an adversarial audit of every A-gated or absent label."}
 ];
 const GAPS = [
-  {id:"walk", label:"The value walk", est:16, lo:11, hi:24, risk:"high",
+  {id:"walk", label:"The value walk", est:16, lo:11, hi:20, risk:"high",
    what:"Hframe_is_move_chain: show that one real execute_mario_action changes Mario's height cells only by the catalogued moves. That means walking the real Clight of every no-A action through binary32, including a find_floor value row.",
-   next:"Give W an object-collision conjunct, tame execute_mario_action's path count in the Python prototype (per-handler summaries), then start the Coq symbolic executor from ClightInterp (docs/goal2-value-walk-plan.md).",
-   why:"Truth risk is down: the cannon entry was a real missing move (found and added), a label audit found no other, and about 86k scripted no-A frames kept Φ, including slide kicks from the K = 2424 box top (apex K + 42, as the catalog says). The route is now chosen: a symbolic executor proved sound once (about 11 to 18 sessions). A Python prototype runs the air step and two handlers on the real code, and its terms match the catalog. It also found two more statement bugs (both fixed). Open: the whole-frame path count."},
+   next:"Start the Coq symbolic executor from ClightInterp (docs/goal2-value-walk-plan.md), with the prototype's per-function summaries and interval pruning as the sound rules to prove.",
+   why:"Truth risk is down: the cannon entry was a real missing move (found and added), a label audit found no other, and about 86k scripted no-A frames kept Φ, including slide kicks from the K = 2424 box top (apex K + 42, as the catalog says). The route is now chosen: a symbolic executor proved sound once (about 11 to 18 sessions). A Python prototype runs the air step and two handlers on the real code, and its terms match the catalog. It also found two more statement bugs (both fixed). The whole frame is tractable: every starting action group terminates in 2 to 86 s with per-function summaries, and every height result maps to a catalog Move. Over phantom objects it reached actions outside R_noA (star collection, stomps), so W now pins collided objects."},
   {id:"world", label:"The rest of the frame", est:15, lo:8, hi:30, risk:"med",
    what:"The step is one real Mario call plus four specified flanks (controller poll, platforms, level phase, other objects). Those flanks are specs, not linked code. Finishing means rooting the frame at game_loop_one_iteration.",
    next:"Link platform_displacement, then the WMotR behaviors (about 10 of them).",
@@ -187,7 +187,7 @@ const GAPS = [
    next:"Parameterize the engine over the predicate, or run it a second time at R_noA.",
    why:"The census already matches Φ's table, so this is mostly refactoring."},
   {id:"stmt", label:"Readable statement and residual trust", est:6, lo:3, hi:10, risk:"low",
-   what:"Remove proof-internal words (MWF_real, SafeB, call_pres_ext_*) from the statement, fix R_noA as a constant, and argue the C-versus-N64 items: DMA and threads, struct layout, generated-file post-processing.",
+   what:"Remove proof-internal words (MWF_real, SafeB, call_pres_ext_*) from the statement, and argue the C-versus-N64 items: DMA and threads, struct layout, generated-file post-processing.",
    next:"Mechanically check struct layout against the ROM's symbols.",
    why:""},
   {id:"coin", label:"Coin to star link", est:4, lo:2, hi:8, risk:"low",
@@ -202,14 +202,15 @@ const SNAPSHOTS = [
   {date:"2026-09-28", pct:32, lo:20, hi:45, live:true,  commit:"d6df40e", note:"GOAL 2 on the spine; crux reduced to two rows; level data and coin collision proved."},
   {date:"2026-09-28", pct:33, lo:21, hi:45, live:true,  commit:"c1f11db", note:"Premise now excludes holding A (a false row fixed); run scoped to one WMotR visit after the write watch caught the level exit; write watch finds no uncovered height writer."},
   {date:"2026-09-28", pct:35, lo:23, hi:46, live:true,  commit:"6a29d8c", note:"Found a false row: entering the cannon (B only) lifts Mario and was in no Move; now the wmotr_cannon case. Label audit clean otherwise; Φ held on about 86k scripted no-A frames including the solid box top."},
-  {date:"2026-09-29", pct:36, lo:24, hi:46, live:true,  commit:"6982dca", note:"Three more statement bugs fixed (vel ceiling 128 was not inductive; cut moves' -0.0; NULL floor). The run now carries a concrete WMotR world invariant. Value-walk route chosen (symbolic executor); a Python prototype runs the air step on the real code."}
+  {date:"2026-09-29", pct:36, lo:24, hi:46, live:true,  commit:"6982dca", note:"Three more statement bugs fixed (vel ceiling 128 was not inductive; cut moves' -0.0; NULL floor). The run now carries a concrete WMotR world invariant. Value-walk route chosen (symbolic executor); a Python prototype runs the air step on the real code."},
+  {date:"2026-09-29", pct:38, lo:26, hi:47, live:true,  commit:"9eab581", note:"The biggest uncertainty is answered: the whole Mario frame is tractable for symbolic execution (2 to 86 s per start; every height result is a catalog Move). R_noA is concrete. W now pins collided objects: no star (it reached star-dance actions outside R_noA) and no stomp bits; checked on 9,000 more real frames."}
 ];
 const COUNTERS = [
   {n:36, label:"Hypothesis rows on GOAL 1's capstone"},
   {n:41, label:"Hypothesis rows in GOAL 2's HeightFrame.v"},
   {n:3,  label:"GOAL 2 rows about Mario's frame still open (now incl. the world)"},
   {n:"300/300", label:"recorded real frames matched byte for byte"},
-  {n:"85,800", label:"real no-A WMotR frames watched, Φ held on every one"}
+  {n:"94,800", label:"real no-A WMotR frames watched, Φ held on every one"}
 ];
 
 /* ============================================================ */
