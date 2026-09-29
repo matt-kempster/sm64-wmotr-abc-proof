@@ -69,7 +69,7 @@ From SM64.Proofs Require Import MWFReal RestSurface FloorsSurface
 From SM64.Proofs Require Import LinkedTwelve SpawnInit InitMemSat.
 From SM64.Proofs Require Import NoAImpliesNoFlyLinked NoAImpliesNoFlyTwelve.
 From SM64.Proofs Require Import HeightInvariant HeightBudgetArith HeightMoveCatalog WMotRLevel
-  WMotRWorld.
+  WMotRWorld NoAActions.
 Import ListNotations.
 
 (* -----------------------------------------------------------------------  *)
@@ -464,7 +464,7 @@ Section HeightLinked12.
      move, PROVED (HeightMoveCatalog.chain_keeps_budget), the WMotR level data,
      PROVED (WMotRLevel.v), and
      two rows about what the real frame does. ---- *)
-  Variable R_noA : int -> Prop.
+  (* R_noA is CONCRETE: the census whitelist (NoAActions.v, 73 actions) *)
   (* The run carries the height invariant AND the WMotR world invariant
      (WMotRWorld.v): without the world the rows below are false over
      phantom worlds (a BURNING floor, a quicksand depth, a held object). *)

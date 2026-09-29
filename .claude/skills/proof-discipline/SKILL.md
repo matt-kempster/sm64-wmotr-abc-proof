@@ -29,7 +29,6 @@ all in `Unwired/`, and the theorem moved nowhere. See
   (`a_used_real`). Φ is concrete
   (`HeightInvariant.v`), `Hphi_y` is proved (YMAX = 2796), the level-data rows are proved (`WMotRLevel.v`), and the crux is the lemma
   `seg_action_phi`, whose move arithmetic is proved (`HeightMoveCatalog.chain_keeps_budget`). Open rows:
-  - `R_noA`, the whitelist parameter
   - `Hframe_stays_noA`
   - `Hframe_keeps_world`: the run carries `PhiW` = Φ ∧ `WMotRWorld.wmotr_world` (surfaces of
     WMotR's types, nothing held or ridden, no quicksand). Without W the other rows are false
