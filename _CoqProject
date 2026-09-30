@@ -248,6 +248,9 @@ proofs/WMotRRequiresA/CoinLink.v
 proofs/Interp/CMem.v
 proofs/Interp/ClightInterp.v
 proofs/Interp/LinkGenv.v
+proofs/Interp/SymExec.v
+# GOAL 2 value-walk slice (UNWIRED): SymExec on the real apply_gravity -> catalog gravity
+proofs/WMotRRequiresA/Unwired/GravitySlice.v
 proofs/Interp/MemBuild.v
 
 # --- GOAL 1 positive control: with A pressed, a real frame reaches flying ---

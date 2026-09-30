@@ -181,3 +181,38 @@ they reach only path facts or nothing:
 
 The Coq executor must replace each of these with a sound rule: a join or
 widening instead of a cycle cut, and contracts instead of havoc.
+
+## 7. First Coq slice (2026-09-29; proved, UNWIRED)
+
+The route of §4 now runs end-to-end in Coq on the smallest real function.
+
+- **Executor:** `proofs/Interp/SymExec.v`. It is a path-splitting symbolic executor for
+  Clight, proved to cover every big-step run (`sx_sound` / `sx_call_sound`,
+  `eval_funcall function_entry2`, no admits).
+  - Symbolic values are denoted at the initial memory.
+  - Constant operators fold through CompCert's generic injection lemmas.
+  - Branch conditions are recorded as path facts.
+  - Known-zero bits (`kz`) carry premises like no-A; known initial values (`kv`) carry
+    facts like the action.
+- **Consumer:** `proofs/WMotRRequiresA/Unwired/GravitySlice.v`, theorem
+  `apply_gravity_freefall_noA`. It covers any program that links the twelve TUs, running
+  the generated `f_apply_gravity` in ACT_FREEFALL with no A bits.
+  - It proves vel[1] becomes `gravity f4 V`, the catalog's S_air formula including the −75
+    clamp.
+  - It proves no other byte of memory changes.
+  - A vm_computed check (~10 s) confirms all 18 paths have that shape. The no-A fact prunes
+    the wing branch.
+
+**What it cost / taught:**
+- Soundness is proved once, about 1.3k lines. A consumer is small: one checker, one
+  shape lemma per path, and a denotation lemma.
+- Kernel trap: never let a `Definition` stand between the vm_computed run and
+  an abstract genv. Unfolding it makes the kernel evaluate the executor lazily, and `Qed` hangs.
+  State the checked `match` inline, and consume it through a lemma over an arbitrary option.
+
+**Still needed before perform_air_step and the full frame:**
+- local variables (alloc and free; the frame currently needs `fn_vars = nil`);
+- loops and `switch`;
+- external calls as contracts;
+- pointers loaded from memory (region aliasing);
+- summaries at call sites instead of inlining.
