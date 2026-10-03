@@ -32,6 +32,28 @@ than assuming that an apparently inactive button can never matter. Start can
 pause; camera controls can affect later movement. No button-equivalence
 theorem is used to discard them.
 
+### Does L actually do anything?
+
+In stock US/JP SSL gameplay, L has no assigned normal Mario movement or camera
+action. It is included in the larger search alphabet for conservative input
+coverage, not because it is a known Ink mechanism. The input reader still
+records its bit; that alone does not make Mario move.
+
+The C source does use L elsewhere. Holding any button, including L, resets the
+title screen's idle-demo countdown. The debug free-move action uses L to set
+its movement multiplier to 0.01; the actual generated US/JP action bodies
+contain that test. The source census finds its dispatcher case but no ordinary
+request for that action. The profiler uses L to switch display mode only when
+`gShowProfiler` enables its drawing call. The flag starts false, and its debug
+activation-sequence function has no caller in the checked C source. Other
+debug L checks are in unused routines; the Chinese file-score menu also has
+an L/R use outside our US/JP versions. Goddard records an L flag, but the
+checked source contains no consumer of that flag.
+
+This is a source review, not a new Coq noninterference theorem or a proof that
+every complete state is identical with L toggled. The full button option and
+its counts are unchanged. No new gameplay search or route verdict follows.
+
 | Stick range | Button range | Inputs per proposed pose |
 | --- | --- | ---: |
 | Sampled | B/Z | 36 |
