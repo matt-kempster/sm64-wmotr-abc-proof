@@ -1,5 +1,7 @@
 # Rank 1: what a Reverse Scattershot search could do
 
+**3 October variant-only run:** the [low-display follow-up](rank1-low-display-backward.md) uses a thirty-update horizon from movement Y=1861 and collision/display Y=768. It checks 1,476 proposals in 9.95 seconds, retains one last-update pose and rejects all 1,260 sampled earlier proposals. A final-dialog near match has the wrong collision height. No thirty-update chain, new producer or full predecessor coverage is obtained; all atlas estimates and Coq verdicts stay unchanged.
+
 **2 October Ink experiment:** the [new concrete backward run](rank1-concrete-ink-backward.md) starts from the supplied installation, tests 7,812 proposals in 51.0 seconds and keeps six last-update pose cases. No tested earlier move reproduces them, so the finite tree empties at depth two; the requested thirty-update chain remains absent. Three named setups pass the exact emulator checkpoint and first Area-2 apply, including movement Y=1861 with collision/display Y=768 and depth zero. That variant requires a 1,093-unit movement/collision split, not a raised display; its producer remains open. This is a finite menu in supplied contexts, not exhaustive one-second coverage or a no-A producer. All route estimates and Coq verdicts remain unchanged.
 
 **2 October runtime follow-up:** the [tiny concrete backward pilot](rank1-concrete-backward-pilot.md)

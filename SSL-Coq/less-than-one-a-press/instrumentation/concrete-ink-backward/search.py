@@ -32,6 +32,42 @@ END_FIELDS = POSE_FIELDS + ('actionArg', 'usedSlot', 'floorHeight',
                            'floorOwner', 'platform')
 
 
+def accepted_target(name):
+    low = [bits(-2200.), bits(768.), bits(-1024.)]
+    if name == 'low-display':
+        movement = [low[0], bits(1861.), low[2]]
+        display = list(low)
+    elif name == 'raised-display':
+        movement = [low[0], 1156733869, low[2]]
+        display = list(movement)
+    else:
+        raise ValueError('Unknown installation target')
+    return dict(movement=movement, collision=low, display=display)
+
+
+def target_fixture(accepted):
+    # This supplied control recognizes installation; it does not establish
+    # that gameplay can construct the initial disagreement.
+    movement = (accepted['movement'] if accepted['display'] == accepted['collision']
+                else accepted['collision'])
+    return dict(movement=list(movement), collision=list(accepted['collision']),
+                display=list(accepted['display']), depth=bits(0.), vy=bits(0.),
+                action=IDLE, actionState=0, actionArg=0, actionTimer=0)
+
+
+def target_install_moves(accepted, name):
+    seen = set()
+    for move in install_moves(accepted):
+        # The variant-only run has no raised-display hypotheses. Remove
+        # duplicate declared patches/inputs, not different hidden states.
+        if name == 'low-display':
+            key = json.dumps([move.patch, move.control.record()], sort_keys=True)
+            if key in seen:
+                continue
+            seen.add(key)
+        yield move
+
+
 @dataclass
 class Saved:
     frame: int
@@ -221,12 +257,10 @@ def run(args):
     contexts = prepare(backend, load_capture(capture), args.depth)
     preparation_seconds = time.perf_counter() - started
     scene = contexts[-1]
-    accepted = dict(movement=[bits(-2200.), 1156733869, bits(-1024.)],
-                    collision=[bits(-2200.), bits(768.), bits(-1024.)],
-                    display=[bits(-2200.), 1156733869, bits(-1024.)])
+    target_name = getattr(args, 'target', 'raised-display')
+    accepted = accepted_target(target_name)
     # Supplied mechanics control, used only to recognize the target outcome.
-    fixture = next(install_moves(accepted))
-    backend.restore(scene); backend.patch(fixture.patch)
+    backend.restore(scene); backend.patch(target_fixture(accepted))
     setup = backend.capture(); backend.advance(Input()); endpoint = backend.capture()
     events = [e for e in game.frame_log() if e['type'] == 'FLT_EXECUTE_ACTION']
     if (len(events) != 1 or events[0]['action'] != DISAPPEARED
@@ -267,8 +301,9 @@ def run(args):
                                          input=move.control.record(), result=result))
         return result, predecessor
 
-    for move in install_moves(accepted):
-        result, predecessor = trial(scene, move, [endpoint], [move.control])
+    for move in target_install_moves(accepted, target_name):
+        expected_event = accepted['movement'] if target_name == 'low-display' else None
+        result, predecessor = trial(scene, move, [endpoint], [move.control], expected_event)
         if stopped:
             break
         if predecessor:
@@ -313,7 +348,8 @@ def run(args):
                                   statuses=dict(layer_counts)))
         frontier = next_frontier
     search_seconds = time.perf_counter() - search_start
-    return dict(schema=1, backend='Wafel 0.8.5 JP', requestedUpdates=args.depth,
+    return dict(schema=1, backend='Wafel 0.8.5 JP', targetName=target_name,
+                requestedUpdates=args.depth,
                 nominalSeconds=args.depth / 30., deepestValidatedUpdates=deepest,
                 status=stopped or ('depth-reached' if deepest == args.depth else 'finite-frontier-empty'),
                 preparationSeconds=preparation_seconds, searchSeconds=search_seconds,
@@ -336,6 +372,8 @@ def run(args):
                                  'are conditional proposals, not controller-reached states.',
                 coverage='Finite inverse menu and 36 input representatives. Not all binary32 values, '
                          'actions, support, prior scene histories or physical controller samples.',
+                grouping='Equal declared predecessor poses retain the first validated input suffix. '
+                         'Other suffixes are sampled but not proved equivalent in omitted state.',
                 pricing='Measured price of this context-conditioned finite tree only. An empty frontier '
                         'does not price or exclude every one-second Ink predecessor.',
                 sourceHashes={name: hashlib.sha256((ROOT / name).read_bytes()).hexdigest() for name in
@@ -348,6 +386,7 @@ def run(args):
 
 def main():
     p = argparse.ArgumentParser(description=__doc__)
+    p.add_argument('--target', choices=('raised-display', 'low-display'), default='raised-display')
     p.add_argument('--depth', type=int, default=30)
     p.add_argument('--candidates', type=int, default=9000)
     p.add_argument('--seconds', type=float, default=90)

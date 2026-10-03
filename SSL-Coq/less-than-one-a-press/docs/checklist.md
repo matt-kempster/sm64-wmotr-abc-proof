@@ -1,5 +1,11 @@
 # Verification checklist
 
+The [3 October low-display run](notes/rank1-low-display-backward.md) uses a thirty-update horizon from the supplied movement-Y=1861, collision/display-Y=768 installation at depth zero. It checks 1,476 proposals in 9.95 seconds and validates one predecessor update. All 1,260 sampled earlier moves fail, so no thirty-update chain is obtained. This is finite conditional evidence; all proof verdicts and route estimates stay unchanged.
+
+- [x] Recognize this exact acceptance height rather than accepting any end-of-update match; retain the separate exact emulator-return check.
+- [x] Save the variant-only timing receipt, 35 neutral mismatch diagnostics, continuous neutral retention check and 30 passing code tests. The final-dialog near match has collision Y=1861, so it does not provide the required low record.
+- [ ] Derive a producer of the 1,093-unit movement/collision split, or broader predecessor coverage. Moving support, earlier collision positions, late writers and other full contexts are not covered by this menu.
+
 The [2 October Ink backward experiment](notes/rank1-concrete-ink-backward.md) now measures a finite search from the supplied installation. It costs 51.0 seconds for 7,812 checks. Six last-update pose cases install; none of the tested earlier moves reproduces them. The thirty-update target horizon empties at depth two, rather than yielding a thirty-edge chain. This is a checked finite experiment, not an exhaustive second, new gameplay producer or Coq exclusion. All estimates and proof verdicts remain unchanged.
 
 - [x] Observe the actual accepted warp return and first retained-top Area-2 apply in three named emulator controls: the high-display Y=768 and Y=1861 setups, plus movement Y=1861 with collision/display Y=768. The last works at depth zero; its 1,093-unit movement/collision split remains supplied.

@@ -1,5 +1,15 @@
 # Concrete backward experiment from Ink
 
+The 3 October variant-only mode uses `--target low-display`. It requires
+movement Y=1861 at the action-entry checkpoint with collision/display Y=768
+and a supplied depth-zero setup. Its thirty-update horizon checks 1,476
+proposals in 9.947622 seconds, keeps one last-update pose and empties at depth
+two. All 1,260 sampled earlier moves fail. The final-dialog near match copies
+collision Y to 1861. See [the follow-up note](../../docs/notes/rank1-low-display-backward.md)
+and `expected-low-display-result.json`; the earlier measurements below are
+preserved separately. The current fifteen search tests and fifteen original
+pilot tests pass. No thirty-edge chain or gameplay producer is claimed.
+
 This separate prototype extends Dot's concrete Wafel loop to a real Ink
 target. It does not change the symbolic search or the freefall pilot. The
 first backward move proposes a low collision record and candidate display from
@@ -67,6 +77,7 @@ Use the installed Windows x64 Python 3.9.13 / Wafel 0.8.5 runtime for the DLL:
 
 ```powershell
 & './build/wafel-pilot/python/python.exe' instrumentation/concrete-ink-backward/search.py --depth 30 --candidates 9000 --seconds 90 --beam 6 --output build/concrete-ink-backward/20261002-expanded/report.json
+& './build/wafel-pilot/python/python.exe' instrumentation/concrete-ink-backward/search.py --target low-display --depth 30 --candidates 9000 --seconds 90 --beam 6 --output build/concrete-ink-backward/20261003-low-display/report.json
 & './build/wafel-pilot/python/python.exe' -m unittest discover -s instrumentation/concrete-ink-backward -p 'test_*.py' -v
 ```
 

@@ -2,6 +2,7 @@ import copy
 import unittest
 from check_receipt import check, word
 from search import CONTROLS, DIALOG, DISAPPEARED, END_FIELDS, Input, Move, Saved, install_moves, previous_moves, replay
+from search import accepted_target, target_fixture, target_install_moves
 
 
 def target():
@@ -26,6 +27,27 @@ def receipt(y, display_y=1938.8648681640625):
 
 
 class Tests(unittest.TestCase):
+    def test_low_display_target_and_control_are_distinct_from_retry(self):
+        accepted = accepted_target('low-display')
+        self.assertEqual(accepted['movement'][1], word(1861))
+        self.assertEqual(accepted['display'], accepted['collision'])
+        fixture = target_fixture(accepted)
+        self.assertEqual(fixture['movement'], accepted['movement'])
+        self.assertEqual(fixture['depth'], word(0))
+        self.assertEqual(target_fixture(accepted_target('raised-display'))['movement'][1], word(768))
+    def test_variant_menu_deduplicates_only_identical_patches_and_inputs(self):
+        moves = list(target_install_moves(accepted_target('low-display'), 'low-display'))
+        self.assertEqual(len(moves), 216)
+        self.assertTrue(all(m.patch['display'] == m.patch['collision'] for m in moves))
+        self.assertEqual(sum(m.patch['movement'][1] == word(1861) for m in moves), 36)
+    def test_other_action_entry_is_rejected_even_if_final_fields_match(self):
+        backend = ScriptedBackend()
+        context = backend.capture()
+        result, earlier = replay(backend, context, Move('fixture', {}, Input(), 'test-only'),
+                                 [Saved(1, backend.steps[0], None), Saved(2, backend.steps[1], None)],
+                                 [Input(), Input()], accepted_target('low-display')['movement'])
+        self.assertEqual(result['status'], 'rejected-event')
+        self.assertIsNone(earlier)
     def test_target_derived_first_move(self):
         a = target(); b = copy.deepcopy(a); b['collision'][1] = word(780)
         self.assertEqual(next(install_moves(a)).patch['movement'][1], word(768))

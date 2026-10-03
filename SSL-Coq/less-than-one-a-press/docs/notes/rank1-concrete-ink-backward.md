@@ -1,5 +1,10 @@
 # Working backward from the actual Ink checkpoint
 
+Follow-up: the [3 October variant-only run](rank1-low-display-backward.md)
+starts solely from the low-display Y=1861 installation. Its thirty-update
+horizon tests 1,476 proposals in 9.95 seconds and empties at depth two. Keep
+that narrower result separate from the six-parent run recorded below.
+
 2 October 2026. The new concrete experiment starts at the supplied Ink
 installation, rather than the earlier freefall pilot. Its bounded search
 took **51.0 seconds**, testing **7,812 proposals**. It kept six last-update
