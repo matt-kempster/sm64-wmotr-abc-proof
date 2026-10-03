@@ -25,11 +25,14 @@ may change action after reading the supplied controls.
 
 ## Inputs and exact proposal counts
 
-Every Ink proposal is paired with **36 controller samples**: no buttons, B, Z
+By default, every Ink proposal is paired with **36 controller samples**: no buttons, B, Z
 or B+Z, each with a centered stick or one of eight directions. The nonzero raw
 stick components are -127 or +127. A is released in all of these samples.
-Other stick magnitudes, buttons and preceding controller-edge histories are
-not enumerated.
+The [new controller options](rank1-encoded-controller-options.md) can instead
+generate all 65,536 raw stick pairs and all 8,192 declared non-A button masks,
+with A released or already held. The counts below describe the default mode
+and its original enumeration. Wider runs remain budgeted; their larger
+alphabet does not add inverse move families or gameplay-history coverage.
 
 The raised-display installation menu has **252 proposals**: seven poses
 times 36 controls. The low-display menu removes its duplicated pose and has
@@ -42,8 +45,9 @@ For the current low-display parent, movement Y=1861 and display Y=768 make the
 ground/freefall depth guesses 0 and 1093. The message-ending guesses are 0,
 36.43333435058594 and 1093. These are supplied test values, not stock depths
 derived from a gameplay history. The actual update can clear or clamp them.
-A read-only enumeration confirms that all 1,260 declared patch/input pairs for
-this parent are distinct.
+A read-only enumeration at commit `0019005` confirms that all 1,260 declared
+default patch/input pairs for this parent are distinct. Its receipt's source
+hashes identify that earlier generator revision.
 
 ## What the tool changes, and what it inherits
 

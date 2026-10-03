@@ -2,10 +2,44 @@
 
 The [implemented move inventory](../../docs/notes/rank1-concrete-move-inventory.md)
 lists both installation setups and the three earlier action families. Its
-read-only enumeration checks 252/216 installation proposals and 1,260 earlier
+original default-mode enumeration checks 252/216 installation proposals and 1,260 earlier
 proposals per parent. Every earlier proposal inherits collision position and
 keeps movement X/Z fixed; no horizontal or moving-support inverse exists yet.
 This inventory is not a new gameplay search or broader coverage result.
+
+## Controller options
+
+Both installation and earlier generators now accept the following options:
+
+| Switch | Default | Other mode |
+| --- | --- | --- |
+| `--sticks` | `sampled`: nine raw stick poses | `encoded`: all 65,536 signed-byte pairs |
+| `--buttons` | `bz`: four B/Z combinations | `all-non-a`: all 8,192 combinations of B, Z, Start, L, R, C buttons and D-pad |
+| `--a-mode` | `released` | `held`: real preparation press before the searched contexts, then hold without a new edge |
+
+The full product has 536,870,912 choices per pose and is generated lazily.
+The old 36 controls come first; wider modes then try all pose templates for
+each remaining input. Candidate/time limits still apply, so the configured
+alphabet need not be exhausted. Reserved bits 6/7 are excluded. Raw encoding
+coverage is not physical-controller realizability or gameplay-history coverage.
+
+Held mode does not patch button history: it makes one real preparation press
+at frame 361, verifies A is already down in every searched context, and
+rejects a release or new A-pressed flag during every continuously replayed
+suffix. This is not an A-never-pressed route. No release/repress mode is added.
+
+Thirty-eight real Wafel input probes and 37 application tests pass. The
+default released-A and held-A one-update low-display menus each test 216
+proposals and match 36. Wider one-update smoke tests exercise the switches
+but stop at candidate limits. See the [checked input-options note](../../docs/notes/rank1-encoded-controller-options.md)
+and `expected-input-options.json` for exact scope, timings and source hashes.
+This adds input choices to the same five move families; it does not discover
+a gap producer or complete an exhaustive one-second search.
+
+```powershell
+& './build/wafel-pilot/python/python.exe' instrumentation/concrete-ink-backward/search.py --target low-display --depth 1 --sticks encoded --buttons all-non-a --a-mode held --candidates 240 --seconds 30 --output build/concrete-ink-backward/20261003-input-options/encoded-all-held.json
+& './build/wafel-pilot/python/python.exe' instrumentation/concrete-ink-backward/input_options_check.py --output build/concrete-ink-backward/20261003-input-options/runtime.json
+```
 
 The 3 October variant-only mode uses `--target low-display`. It requires
 movement Y=1861 at the action-entry checkpoint with collision/display Y=768
@@ -80,7 +114,7 @@ Each extended trial restores its earliest full context, patches once, and
 advances continuously. It stops on a mismatching checkpoint and restores the
 caller; it never patches or restores an intermediate state.
 
-The finite move menu samples seven last-update poses across six heights,
+The original measured finite move menu samples seven last-update poses across six heights,
 including the low-display Y=1861 variant, five freefall speeds, three ground
 heights, selected depth values, and 36 released-A input
 representatives (neutral/B/Z/B+Z with nine stick directions). It does not

@@ -1,0 +1,1029 @@
+{
+  "schema": 1,
+  "status": "checked-controller-options",
+  "runtime": {
+    "schema": 1,
+    "status": "checked-input-options",
+    "backend": "Wafel 0.8.5 JP",
+    "encodedPairs": 65536,
+    "bzChoices": 262144,
+    "fullNonAChoices": 536870912,
+    "modes": [
+      {
+        "aMode": "released",
+        "contextsAlreadyDown": false,
+        "earliestSearchFrame": 463,
+        "preparationAPresses": [],
+        "probes": [
+          {
+            "kind": "stick",
+            "input": {
+              "buttons": 0,
+              "stick": [
+                0,
+                0
+              ]
+            },
+            "rawStick": [
+              0,
+              0
+            ],
+            "previousButtonDown": 0,
+            "buttonDown": 0,
+            "buttonPressed": 0,
+            "area": 1,
+            "action": 4864
+          },
+          {
+            "kind": "stick",
+            "input": {
+              "buttons": 0,
+              "stick": [
+                13,
+                -27
+              ]
+            },
+            "rawStick": [
+              13,
+              -27
+            ],
+            "previousButtonDown": 0,
+            "buttonDown": 0,
+            "buttonPressed": 0,
+            "area": 1,
+            "action": 4864
+          },
+          {
+            "kind": "stick",
+            "input": {
+              "buttons": 0,
+              "stick": [
+                -128,
+                -128
+              ]
+            },
+            "rawStick": [
+              -128,
+              -128
+            ],
+            "previousButtonDown": 0,
+            "buttonDown": 0,
+            "buttonPressed": 0,
+            "area": 1,
+            "action": 4864
+          },
+          {
+            "kind": "stick",
+            "input": {
+              "buttons": 0,
+              "stick": [
+                -128,
+                127
+              ]
+            },
+            "rawStick": [
+              -128,
+              127
+            ],
+            "previousButtonDown": 0,
+            "buttonDown": 0,
+            "buttonPressed": 0,
+            "area": 1,
+            "action": 4864
+          },
+          {
+            "kind": "stick",
+            "input": {
+              "buttons": 0,
+              "stick": [
+                127,
+                -128
+              ]
+            },
+            "rawStick": [
+              127,
+              -128
+            ],
+            "previousButtonDown": 0,
+            "buttonDown": 0,
+            "buttonPressed": 0,
+            "area": 1,
+            "action": 4864
+          },
+          {
+            "kind": "stick",
+            "input": {
+              "buttons": 0,
+              "stick": [
+                127,
+                127
+              ]
+            },
+            "rawStick": [
+              127,
+              127
+            ],
+            "previousButtonDown": 0,
+            "buttonDown": 0,
+            "buttonPressed": 0,
+            "area": 1,
+            "action": 4864
+          },
+          {
+            "kind": "button",
+            "input": {
+              "buttons": 16384,
+              "stick": [
+                0,
+                0
+              ]
+            },
+            "rawStick": [
+              0,
+              0
+            ],
+            "previousButtonDown": 0,
+            "buttonDown": 16384,
+            "buttonPressed": 16384,
+            "area": 1,
+            "action": 4864
+          },
+          {
+            "kind": "button",
+            "input": {
+              "buttons": 8192,
+              "stick": [
+                0,
+                0
+              ]
+            },
+            "rawStick": [
+              0,
+              0
+            ],
+            "previousButtonDown": 0,
+            "buttonDown": 8192,
+            "buttonPressed": 8192,
+            "area": 1,
+            "action": 4864
+          },
+          {
+            "kind": "button",
+            "input": {
+              "buttons": 4096,
+              "stick": [
+                0,
+                0
+              ]
+            },
+            "rawStick": [
+              0,
+              0
+            ],
+            "previousButtonDown": 0,
+            "buttonDown": 4096,
+            "buttonPressed": 4096,
+            "area": 1,
+            "action": 4864
+          },
+          {
+            "kind": "button",
+            "input": {
+              "buttons": 2048,
+              "stick": [
+                0,
+                0
+              ]
+            },
+            "rawStick": [
+              0,
+              0
+            ],
+            "previousButtonDown": 0,
+            "buttonDown": 2048,
+            "buttonPressed": 2048,
+            "area": 1,
+            "action": 4864
+          },
+          {
+            "kind": "button",
+            "input": {
+              "buttons": 1024,
+              "stick": [
+                0,
+                0
+              ]
+            },
+            "rawStick": [
+              0,
+              0
+            ],
+            "previousButtonDown": 0,
+            "buttonDown": 1024,
+            "buttonPressed": 1024,
+            "area": 1,
+            "action": 4864
+          },
+          {
+            "kind": "button",
+            "input": {
+              "buttons": 512,
+              "stick": [
+                0,
+                0
+              ]
+            },
+            "rawStick": [
+              0,
+              0
+            ],
+            "previousButtonDown": 0,
+            "buttonDown": 512,
+            "buttonPressed": 512,
+            "area": 1,
+            "action": 4864
+          },
+          {
+            "kind": "button",
+            "input": {
+              "buttons": 256,
+              "stick": [
+                0,
+                0
+              ]
+            },
+            "rawStick": [
+              0,
+              0
+            ],
+            "previousButtonDown": 0,
+            "buttonDown": 256,
+            "buttonPressed": 256,
+            "area": 1,
+            "action": 4864
+          },
+          {
+            "kind": "button",
+            "input": {
+              "buttons": 32,
+              "stick": [
+                0,
+                0
+              ]
+            },
+            "rawStick": [
+              0,
+              0
+            ],
+            "previousButtonDown": 0,
+            "buttonDown": 32,
+            "buttonPressed": 32,
+            "area": 1,
+            "action": 4864
+          },
+          {
+            "kind": "button",
+            "input": {
+              "buttons": 16,
+              "stick": [
+                0,
+                0
+              ]
+            },
+            "rawStick": [
+              0,
+              0
+            ],
+            "previousButtonDown": 0,
+            "buttonDown": 16,
+            "buttonPressed": 16,
+            "area": 1,
+            "action": 4864
+          },
+          {
+            "kind": "button",
+            "input": {
+              "buttons": 8,
+              "stick": [
+                0,
+                0
+              ]
+            },
+            "rawStick": [
+              0,
+              0
+            ],
+            "previousButtonDown": 0,
+            "buttonDown": 8,
+            "buttonPressed": 8,
+            "area": 1,
+            "action": 4864
+          },
+          {
+            "kind": "button",
+            "input": {
+              "buttons": 4,
+              "stick": [
+                0,
+                0
+              ]
+            },
+            "rawStick": [
+              0,
+              0
+            ],
+            "previousButtonDown": 0,
+            "buttonDown": 4,
+            "buttonPressed": 4,
+            "area": 1,
+            "action": 4864
+          },
+          {
+            "kind": "button",
+            "input": {
+              "buttons": 2,
+              "stick": [
+                0,
+                0
+              ]
+            },
+            "rawStick": [
+              0,
+              0
+            ],
+            "previousButtonDown": 0,
+            "buttonDown": 2,
+            "buttonPressed": 2,
+            "area": 1,
+            "action": 4864
+          },
+          {
+            "kind": "button",
+            "input": {
+              "buttons": 1,
+              "stick": [
+                0,
+                0
+              ]
+            },
+            "rawStick": [
+              0,
+              0
+            ],
+            "previousButtonDown": 0,
+            "buttonDown": 1,
+            "buttonPressed": 1,
+            "area": 1,
+            "action": 4864
+          }
+        ]
+      },
+      {
+        "aMode": "held",
+        "contextsAlreadyDown": true,
+        "earliestSearchFrame": 463,
+        "preparationAPresses": [
+          {
+            "frame": 361,
+            "buttonPressed": 32768
+          }
+        ],
+        "probes": [
+          {
+            "kind": "stick",
+            "input": {
+              "buttons": 32768,
+              "stick": [
+                0,
+                0
+              ]
+            },
+            "rawStick": [
+              0,
+              0
+            ],
+            "previousButtonDown": 32768,
+            "buttonDown": 32768,
+            "buttonPressed": 0,
+            "area": 1,
+            "action": 4864
+          },
+          {
+            "kind": "stick",
+            "input": {
+              "buttons": 32768,
+              "stick": [
+                13,
+                -27
+              ]
+            },
+            "rawStick": [
+              13,
+              -27
+            ],
+            "previousButtonDown": 32768,
+            "buttonDown": 32768,
+            "buttonPressed": 0,
+            "area": 1,
+            "action": 4864
+          },
+          {
+            "kind": "stick",
+            "input": {
+              "buttons": 32768,
+              "stick": [
+                -128,
+                -128
+              ]
+            },
+            "rawStick": [
+              -128,
+              -128
+            ],
+            "previousButtonDown": 32768,
+            "buttonDown": 32768,
+            "buttonPressed": 0,
+            "area": 1,
+            "action": 4864
+          },
+          {
+            "kind": "stick",
+            "input": {
+              "buttons": 32768,
+              "stick": [
+                -128,
+                127
+              ]
+            },
+            "rawStick": [
+              -128,
+              127
+            ],
+            "previousButtonDown": 32768,
+            "buttonDown": 32768,
+            "buttonPressed": 0,
+            "area": 1,
+            "action": 4864
+          },
+          {
+            "kind": "stick",
+            "input": {
+              "buttons": 32768,
+              "stick": [
+                127,
+                -128
+              ]
+            },
+            "rawStick": [
+              127,
+              -128
+            ],
+            "previousButtonDown": 32768,
+            "buttonDown": 32768,
+            "buttonPressed": 0,
+            "area": 1,
+            "action": 4864
+          },
+          {
+            "kind": "stick",
+            "input": {
+              "buttons": 32768,
+              "stick": [
+                127,
+                127
+              ]
+            },
+            "rawStick": [
+              127,
+              127
+            ],
+            "previousButtonDown": 32768,
+            "buttonDown": 32768,
+            "buttonPressed": 0,
+            "area": 1,
+            "action": 4864
+          },
+          {
+            "kind": "button",
+            "input": {
+              "buttons": 49152,
+              "stick": [
+                0,
+                0
+              ]
+            },
+            "rawStick": [
+              0,
+              0
+            ],
+            "previousButtonDown": 32768,
+            "buttonDown": 49152,
+            "buttonPressed": 16384,
+            "area": 1,
+            "action": 4864
+          },
+          {
+            "kind": "button",
+            "input": {
+              "buttons": 40960,
+              "stick": [
+                0,
+                0
+              ]
+            },
+            "rawStick": [
+              0,
+              0
+            ],
+            "previousButtonDown": 32768,
+            "buttonDown": 40960,
+            "buttonPressed": 8192,
+            "area": 1,
+            "action": 4864
+          },
+          {
+            "kind": "button",
+            "input": {
+              "buttons": 36864,
+              "stick": [
+                0,
+                0
+              ]
+            },
+            "rawStick": [
+              0,
+              0
+            ],
+            "previousButtonDown": 32768,
+            "buttonDown": 36864,
+            "buttonPressed": 4096,
+            "area": 1,
+            "action": 4864
+          },
+          {
+            "kind": "button",
+            "input": {
+              "buttons": 34816,
+              "stick": [
+                0,
+                0
+              ]
+            },
+            "rawStick": [
+              0,
+              0
+            ],
+            "previousButtonDown": 32768,
+            "buttonDown": 34816,
+            "buttonPressed": 2048,
+            "area": 1,
+            "action": 4864
+          },
+          {
+            "kind": "button",
+            "input": {
+              "buttons": 33792,
+              "stick": [
+                0,
+                0
+              ]
+            },
+            "rawStick": [
+              0,
+              0
+            ],
+            "previousButtonDown": 32768,
+            "buttonDown": 33792,
+            "buttonPressed": 1024,
+            "area": 1,
+            "action": 4864
+          },
+          {
+            "kind": "button",
+            "input": {
+              "buttons": 33280,
+              "stick": [
+                0,
+                0
+              ]
+            },
+            "rawStick": [
+              0,
+              0
+            ],
+            "previousButtonDown": 32768,
+            "buttonDown": 33280,
+            "buttonPressed": 512,
+            "area": 1,
+            "action": 4864
+          },
+          {
+            "kind": "button",
+            "input": {
+              "buttons": 33024,
+              "stick": [
+                0,
+                0
+              ]
+            },
+            "rawStick": [
+              0,
+              0
+            ],
+            "previousButtonDown": 32768,
+            "buttonDown": 33024,
+            "buttonPressed": 256,
+            "area": 1,
+            "action": 4864
+          },
+          {
+            "kind": "button",
+            "input": {
+              "buttons": 32800,
+              "stick": [
+                0,
+                0
+              ]
+            },
+            "rawStick": [
+              0,
+              0
+            ],
+            "previousButtonDown": 32768,
+            "buttonDown": 32800,
+            "buttonPressed": 32,
+            "area": 1,
+            "action": 4864
+          },
+          {
+            "kind": "button",
+            "input": {
+              "buttons": 32784,
+              "stick": [
+                0,
+                0
+              ]
+            },
+            "rawStick": [
+              0,
+              0
+            ],
+            "previousButtonDown": 32768,
+            "buttonDown": 32784,
+            "buttonPressed": 16,
+            "area": 1,
+            "action": 4864
+          },
+          {
+            "kind": "button",
+            "input": {
+              "buttons": 32776,
+              "stick": [
+                0,
+                0
+              ]
+            },
+            "rawStick": [
+              0,
+              0
+            ],
+            "previousButtonDown": 32768,
+            "buttonDown": 32776,
+            "buttonPressed": 8,
+            "area": 1,
+            "action": 4864
+          },
+          {
+            "kind": "button",
+            "input": {
+              "buttons": 32772,
+              "stick": [
+                0,
+                0
+              ]
+            },
+            "rawStick": [
+              0,
+              0
+            ],
+            "previousButtonDown": 32768,
+            "buttonDown": 32772,
+            "buttonPressed": 4,
+            "area": 1,
+            "action": 4864
+          },
+          {
+            "kind": "button",
+            "input": {
+              "buttons": 32770,
+              "stick": [
+                0,
+                0
+              ]
+            },
+            "rawStick": [
+              0,
+              0
+            ],
+            "previousButtonDown": 32768,
+            "buttonDown": 32770,
+            "buttonPressed": 2,
+            "area": 1,
+            "action": 4864
+          },
+          {
+            "kind": "button",
+            "input": {
+              "buttons": 32769,
+              "stick": [
+                0,
+                0
+              ]
+            },
+            "rawStick": [
+              0,
+              0
+            ],
+            "previousButtonDown": 32768,
+            "buttonDown": 32769,
+            "buttonPressed": 1,
+            "area": 1,
+            "action": 4864
+          }
+        ]
+      }
+    ],
+    "controlWithoutHeldHistory": {
+      "buttonPressed": 32768,
+      "isNewAPress": true
+    },
+    "elapsedSeconds": 5.2541131,
+    "scope": "Finite input readback checks from supplied low-display fixtures; no gap producer or controller-reachable route",
+    "sourceHashes": {
+      "generated/us_game_init.v": "e8a3799a78c75378a39395052f7c12fc69d5b001c5cc447bb93830b91e7cc0a1",
+      "generated/jp_game_init.v": "6be8ddb1a54ca25d57e404809487673d2276ca41abf5372fd6740982c34387e3",
+      "instrumentation/concrete-ink-backward/controller_inputs.py": "122c1f37ac7e03981b7e0d645ace0b0fb36aa748786cde3c2e96122ffe94b8bf",
+      "instrumentation/concrete-ink-backward/search.py": "00b39ee7f0b165b7959231ee796241a13daf2ea0aaef5049dce983b8580d69f3"
+    },
+    "dllSha256": "960fe979068b78e6733b3ddb87741833fbf4eb29b2a21a2bba871977427c2d0f"
+  },
+  "unitTests": {
+    "controllerAndSearch": 22,
+    "originalPilot": 15,
+    "total": 37
+  },
+  "enumeration": {
+    "encodedStickPairs": 65536,
+    "bzEncodedControls": 262144,
+    "declaredNonAButtonMasks": 8192,
+    "fullEncodedControls": 536870912,
+    "reservedButtonBitsExcluded": [
+      6,
+      7
+    ]
+  },
+  "oneUpdateRuns": [
+    {
+      "name": "released",
+      "status": "depth-reached",
+      "inputSpace": {
+        "sticks": "sampled",
+        "buttons": "bz",
+        "aMode": "released",
+        "stickPairs": 9,
+        "nonAMasks": 4,
+        "choicesPerPose": 36,
+        "lazy": true,
+        "order": "36 representatives first, then remaining encoded product",
+        "widePoseOrder": "all pose templates for each input",
+        "coverage": "Encoded samples, not physical-controller realizability or gameplay-history coverage"
+      },
+      "aPreparationPresses": [],
+      "searchedContextButtonDown": [
+        0
+      ],
+      "aHistoryCondition": "A released in the selected search alphabet",
+      "requestedUpdates": 1,
+      "deepestValidatedUpdates": 1,
+      "tested": 216,
+      "statuses": {
+        "rejected": 180,
+        "accepted-projection": 36
+      },
+      "layers": [
+        {
+          "depth": 1,
+          "retained": 1,
+          "distinctAccepted": 1,
+          "tested": 216,
+          "statuses": {
+            "rejected": 180,
+            "accepted-projection": 36
+          }
+        }
+      ],
+      "candidateLimit": 216,
+      "timeLimitSeconds": 30.0,
+      "searchSeconds": 2.2765400000000002,
+      "totalSeconds": 5.2794475
+    },
+    {
+      "name": "held",
+      "status": "depth-reached",
+      "inputSpace": {
+        "sticks": "sampled",
+        "buttons": "bz",
+        "aMode": "held",
+        "stickPairs": 9,
+        "nonAMasks": 4,
+        "choicesPerPose": 36,
+        "lazy": true,
+        "order": "36 representatives first, then remaining encoded product",
+        "widePoseOrder": "all pose templates for each input",
+        "coverage": "Encoded samples, not physical-controller realizability or gameplay-history coverage"
+      },
+      "aPreparationPresses": [
+        {
+          "frame": 361,
+          "buttonPressed": 32768
+        }
+      ],
+      "searchedContextButtonDown": [
+        32768
+      ],
+      "aHistoryCondition": "One actual preparation press precedes the searched window; A remains down without another press in validated suffixes. This is not an A-never-pressed route.",
+      "requestedUpdates": 1,
+      "deepestValidatedUpdates": 1,
+      "tested": 216,
+      "statuses": {
+        "rejected": 180,
+        "accepted-projection": 36
+      },
+      "layers": [
+        {
+          "depth": 1,
+          "retained": 1,
+          "distinctAccepted": 1,
+          "tested": 216,
+          "statuses": {
+            "rejected": 180,
+            "accepted-projection": 36
+          }
+        }
+      ],
+      "candidateLimit": 216,
+      "timeLimitSeconds": 30.0,
+      "searchSeconds": 2.0084283000000003,
+      "totalSeconds": 4.603831700000001
+    },
+    {
+      "name": "encoded",
+      "status": "candidate-budget",
+      "inputSpace": {
+        "sticks": "encoded",
+        "buttons": "bz",
+        "aMode": "released",
+        "stickPairs": 65536,
+        "nonAMasks": 4,
+        "choicesPerPose": 262144,
+        "lazy": true,
+        "order": "36 representatives first, then remaining encoded product",
+        "widePoseOrder": "all pose templates for each input",
+        "coverage": "Encoded samples, not physical-controller realizability or gameplay-history coverage"
+      },
+      "aPreparationPresses": [],
+      "searchedContextButtonDown": [
+        0
+      ],
+      "aHistoryCondition": "A released in the selected search alphabet",
+      "requestedUpdates": 1,
+      "deepestValidatedUpdates": 1,
+      "tested": 240,
+      "statuses": {
+        "rejected": 200,
+        "accepted-projection": 40
+      },
+      "layers": [
+        {
+          "depth": 1,
+          "retained": 1,
+          "distinctAccepted": 1,
+          "tested": 240,
+          "statuses": {
+            "rejected": 200,
+            "accepted-projection": 40
+          }
+        }
+      ],
+      "candidateLimit": 240,
+      "timeLimitSeconds": 30.0,
+      "searchSeconds": 2.3507991,
+      "totalSeconds": 4.3031582
+    },
+    {
+      "name": "all-buttons-held",
+      "status": "candidate-budget",
+      "inputSpace": {
+        "sticks": "sampled",
+        "buttons": "all-non-a",
+        "aMode": "held",
+        "stickPairs": 9,
+        "nonAMasks": 8192,
+        "choicesPerPose": 73728,
+        "lazy": true,
+        "order": "36 representatives first, then remaining encoded product",
+        "widePoseOrder": "all pose templates for each input",
+        "coverage": "Encoded samples, not physical-controller realizability or gameplay-history coverage"
+      },
+      "aPreparationPresses": [
+        {
+          "frame": 361,
+          "buttonPressed": 32768
+        }
+      ],
+      "searchedContextButtonDown": [
+        32768
+      ],
+      "aHistoryCondition": "One actual preparation press precedes the searched window; A remains down without another press in validated suffixes. This is not an A-never-pressed route.",
+      "requestedUpdates": 1,
+      "deepestValidatedUpdates": 1,
+      "tested": 270,
+      "statuses": {
+        "rejected": 225,
+        "accepted-projection": 45
+      },
+      "layers": [
+        {
+          "depth": 1,
+          "retained": 1,
+          "distinctAccepted": 1,
+          "tested": 270,
+          "statuses": {
+            "rejected": 225,
+            "accepted-projection": 45
+          }
+        }
+      ],
+      "candidateLimit": 270,
+      "timeLimitSeconds": 30.0,
+      "searchSeconds": 1.8223336000000003,
+      "totalSeconds": 3.7772328
+    },
+    {
+      "name": "encoded-all-held",
+      "status": "candidate-budget",
+      "inputSpace": {
+        "sticks": "encoded",
+        "buttons": "all-non-a",
+        "aMode": "held",
+        "stickPairs": 65536,
+        "nonAMasks": 8192,
+        "choicesPerPose": 536870912,
+        "lazy": true,
+        "order": "36 representatives first, then remaining encoded product",
+        "widePoseOrder": "all pose templates for each input",
+        "coverage": "Encoded samples, not physical-controller realizability or gameplay-history coverage"
+      },
+      "aPreparationPresses": [
+        {
+          "frame": 361,
+          "buttonPressed": 32768
+        }
+      ],
+      "searchedContextButtonDown": [
+        32768
+      ],
+      "aHistoryCondition": "One actual preparation press precedes the searched window; A remains down without another press in validated suffixes. This is not an A-never-pressed route.",
+      "requestedUpdates": 1,
+      "deepestValidatedUpdates": 1,
+      "tested": 240,
+      "statuses": {
+        "rejected": 200,
+        "accepted-projection": 40
+      },
+      "layers": [
+        {
+          "depth": 1,
+          "retained": 1,
+          "distinctAccepted": 1,
+          "tested": 240,
+          "statuses": {
+            "rejected": 200,
+            "accepted-projection": 40
+          }
+        }
+      ],
+      "candidateLimit": 240,
+      "timeLimitSeconds": 30.0,
+      "searchSeconds": 1.3754028000000003,
+      "totalSeconds": 2.5748872
+    }
+  ],
+  "codeSha256": {
+    "search.py": "00b39ee7f0b165b7959231ee796241a13daf2ea0aaef5049dce983b8580d69f3",
+    "controller_inputs.py": "122c1f37ac7e03981b7e0d645ace0b0fb36aa748786cde3c2e96122ffe94b8bf",
+    "input_options_check.py": "d58d4511f3d5cddbc17929a0a13ea3448d881c7702211f30e881713a81453e57",
+    "test_controller_inputs.py": "65e2d2873668868c0cac49f16c9d0c790cf2c215a5df4d6009525a08fd60caaa"
+  },
+  "scope": "Controller enumeration and finite one-update supplied-state checks, not full-input gameplay coverage, a gap producer or a no-A route"
+}
