@@ -15,6 +15,9 @@ checked pilot; the site remains outside this batch.
 - [x] Complete the accepted edge, deliberate rejection and two-edge continuous replay checks on Wafel 0.8.5 JP. Fifteen final code tests pass, including two rejection-control checks.
 - [ ] Establish a useful Ink predecessor and its allowed gameplay connection. This freefall pilot does not address either.
 
+- [x] Clarify the [backward gap-producer goal](notes/rank1-reverse-scattershot.md#2-october-clarification-find-where-the-gap-was-first-made): inherited gaps stay unexplained; finite random failures do not establish complete predecessor coverage. A checked obstruction can close a named mechanism, while whole Ink exclusion needs every allowed useful installation variant. This review adds no search or proof result.
+- [x] Obtain explicit authorization to update the private site for this new reporting batch. The earlier no-site instruction applied to the runtime-check batch; the user has now lifted that restriction for this update. Keep the pilot separate from Ink reachability and retain every route estimate.
+
 The [profiled one-update repair](notes/rank1-profiled-single.md) did not establish tractability. Both construction attempts hit their 900-second worker limit before calling the solver. The corrected pass last reported 3,173 source bodies and 87,792 statements; completed local rewrites reduced their summed node visits from 1,163,546 to 881,024 but consumed 256.15 seconds themselves. Eight targeted controls pass. Rewriting preserves the encoded alternatives, with unchanged-expression fallbacks, but overall construction regressed; it is now explicitly opt-in. Zero gameplay-model solver queries were issued, no candidate or exclusion was obtained, and no estimate or proof verdict changes.
 
 - [x] Preserve the failed preprocessing evidence and make the expensive simplification opt-in.

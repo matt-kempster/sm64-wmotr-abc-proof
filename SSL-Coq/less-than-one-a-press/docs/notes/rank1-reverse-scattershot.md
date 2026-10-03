@@ -9,6 +9,59 @@ the remaining state supplied by saved contexts. This is a checked small
 backward-testing loop, not a new Ink witness, full-state inverse or route result.
 The dated methodological review below is retained as historical context.
 
+## 2 October clarification: find where the gap was first made
+
+The point of working backward is to discover whether gameplay can make the
+useful separation, not merely to find another position that works after a
+large display gap has been supplied. The freefall pilot checks that its loop
+works; its other fields come from recorded contexts, and its accepted mapped
+values reproduce the known trace. It has not found an Ink producer.
+
+For an Ink branch, the checkpoint is the successful nonfading `interact_warp`
+return in Area 1, before the disappeared action executes. The existing exact
+emulator observer records all three position vectors there and follows the
+later ordinary copy and final platform query. The installation test must
+also check the required top selection and retention; disagreement alone is
+not sufficient. An end-of-update observation cannot substitute for the
+within-update checkpoint.
+
+Each backward edge should record whether it creates the useful gap or merely
+inherits it. A candidate that inherits it stays unexplained and must be
+followed further backward. It must not be rejected just because that one
+edge did not create the gap. Conversely, restoring a high display from the
+saved context and finding a successful low-position proposal does not show
+how the display was raised. The first actual writer or support change that
+creates the useful separation is the target of the producer search.
+
+Keep multiple compatible candidates, state exactly which values each inverse
+move proposes and which come from context, and replay every extended chain
+continuously from its earliest patch. No intermediate patch may manufacture
+the next checkpoint. Matching selected fields validates the tested suffix;
+it does not establish equality of omitted state or controller reachability.
+A final witness needs a controller-only replay from the accepted SSL start,
+with no gameplay state patches and no new A press.
+
+An unsuccessful randomized batch says only that its sampled moves found
+nothing within the budget. It can still expose a shared obstruction. If the
+actual source and checked proof show that every relevant predecessor in a
+named mechanism violates a required condition, that mechanism can be ruled
+out under the stated model conditions. A complete backward preimage that is
+empty, or excludes the accepted starting states, can support the same kind of
+conditional exclusion. Missing inverse moves, supplied-state validity and
+uncompared state must not be converted into coverage by a failed sample.
+
+Ruling out the exact timer-131, 1,170.864868-unit example does not by itself
+exclude every Ink installation. Whole-installation impossibility needs
+coverage of every useful accepted-warp/top-retention variant allowed by the
+selected model, including a gap created earlier and preserved across more
+than the initial one- or two-update window. The example gap is not a universal
+minimum. A checked obstruction can close a narrower approach before this
+broader coverage is established.
+
+This is a clarified goal and reporting rule, not a new Ink experiment or
+proof result. No new predecessor search has run in this review, no route
+estimate changes, and nothing is promoted to Already proved.
+
 **Follow-up:** the [conditional full-interval path checker](rank1-complete-update-path.md) now completes both US/JP controller-to-retention paths, including live callbacks. It uses a supplied scene and does not close exhaustive predecessor coverage or gameplay reachability. The earlier measurements and limitations below are retained as that earlier result.
 
 27 September 2026. **Method review only.** No reverse randomized search was
