@@ -1,5 +1,7 @@
 # Verification checklist
 
+- [x] Extend the supplied last update of the automatic message-reading action for 24 uninterrupted neutral updates: no disappeared action or Area-2 entry. No star pickup or opened message constructs the test state. After this action, collision Y=1861 lies above the upper warp's Y=768..818 hitbox; the next ordinary update refreshes display too. This is a finite conditional continuation, not a new impossibility theorem. See the [saved check](notes/rank1-low-display-backward.md#why-this-continuation-misses-the-upper-warp).
+
 The [3 October low-display run](notes/rank1-low-display-backward.md) uses a thirty-update horizon from the supplied movement-Y=1861, collision/display-Y=768 installation at depth zero. It checks 1,476 proposals in 9.95 seconds and validates one predecessor update. All 1,260 sampled earlier moves fail, so no thirty-update chain is obtained. This is finite conditional evidence; all proof verdicts and route estimates stay unchanged.
 
 - [x] Recognize this exact acceptance height rather than accepting any end-of-update match; retain the separate exact emulator-return check.

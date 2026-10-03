@@ -56,6 +56,14 @@ through the first Area-2 displacement.
 
 ## The useful rejection detail
 
+Here, "dialog" means Mario's automatic message-reading action, used for
+star-count milestone messages. This trial supplies `ACT_READING_AUTOMATIC_DIALOG`
+with action state 24, immediately before its final update returns to idle.
+It also supplies movement Y=1861, collision/display Y=768 and depth zero.
+No star is collected and no actual message box is opened to construct that
+state. The test asks what the action ending does to those candidate records;
+it does not demonstrate a reachable reward/message predecessor.
+
 The neutral ground proposal at movement Y=1861 instead reaches the disappeared
 action one update early and synchronizes the three heights at 1899.650390625.
 The sampled freefall proposal with speed -16 does the same. These trials do not
@@ -69,6 +77,38 @@ depth 1093, the corresponding proposal also retains the wrong depth. Thirty-five
 additional neutral diagnostics save the exact mismatch and patch records
 outside the timed search. These are finite counterchecks, not whole-family
 proofs about dialog, freefall or grounded movement.
+
+## Why this continuation misses the upper warp
+
+The neutral final-dialog continuation was separately extended for 24 updates
+from its single initial patch. It never reaches the disappeared action or
+Area 2 in that window. This is a checked finite continuation, not a statement
+about every later input or dialog history.
+
+During automatic dialog, the action's intangible flag prevents the warp
+handler from running. When that update ends, Mario returns to idle and the
+normal Object copy writes movement Y=1861 into collision Y. Display stays at
+768 for that one boundary. The next contact test uses collision, not display.
+The live upper warp is at Y=768 with height 50 and down-offset zero, so its
+vertical span ends at 818. Mario's collision bottom is 1861 with down-offset
+zero, above that volume. The source's hitbox-overlap test rejects such separated
+vertical intervals. The next ordinary update refreshes the display as well:
+movement, collision and display all become Y=1935.7481689453125. The old low
+picture therefore does not supply the required low collision contact.
+
+This explains rejection of this trial without assuming that every movement
+and display split is useless. The useful supplied installation instead has
+collision Y=768 when the warp is checked, while movement Y=1861 lets the first
+geometry query find the top. Creating that simultaneous relationship remains
+open. The actual US/JP generated hitbox, warp, interaction and Object-copy
+functions were inspected; the new runtime continuation is JP only.
+
+The reproducible diagnostic is
+[`dialog_continuation.py`](../../instrumentation/concrete-ink-backward/dialog_continuation.py),
+with a [compact receipt](../../instrumentation/concrete-ink-backward/expected-dialog-continuation.json).
+Full observations remain in
+`build/concrete-ink-backward/20261003-low-display/dialog-continuation.json`.
+No formal theorem, estimate change or Already proved promotion follows.
 
 ## What remains conditional
 

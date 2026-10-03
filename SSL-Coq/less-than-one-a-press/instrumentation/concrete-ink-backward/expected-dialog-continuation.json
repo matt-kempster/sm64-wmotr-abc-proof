@@ -1,0 +1,312 @@
+{
+  "schema": 1,
+  "status": "checked-finite-dialog-continuation",
+  "backend": "Wafel 0.8.5 JP",
+  "condition": "Supplied final-dialog predecessor, one initial patch, neutral continuation",
+  "patch": {
+    "movement": [
+      3305734144,
+      1156096000,
+      3296722944
+    ],
+    "collision": [
+      3305734144,
+      1145044992,
+      3296722944
+    ],
+    "display": [
+      3305734144,
+      1145044992,
+      3296722944
+    ],
+    "action": 536875781,
+    "actionState": 24,
+    "actionTimer": 0,
+    "actionArg": 0,
+    "depth": 0,
+    "vy": 0
+  },
+  "upperWarpSlot": 64,
+  "upperWarp": {
+    "oPosX": -2048.0,
+    "oPosY": 768.0,
+    "oPosZ": -1024.0,
+    "hitboxHeight": 50.0,
+    "hitboxRadius": 150.0,
+    "hitboxDownOffset": 0.0,
+    "oIntangibleTimer": 0,
+    "oInteractType": 8192,
+    "oBhvParams": 253624320
+  },
+  "intermediatePatches": 0,
+  "intermediateRestores": 0,
+  "area2Reached": false,
+  "disappearedReached": false,
+  "scope": "No warp in these 24 updates, not every later history or dialog route",
+  "sourceHashes": {
+    "generated/jp_object_collision.v": "39ef3070008ab2f4a5e057456e148e3063a4fd0e2ddb441a7f1dcc7e0ff38f70",
+    "generated/us_object_collision.v": "c8b0a3dcf484f8d5d38b91f7150c88895dce89028999d30eb3b14d5afb4f7095",
+    "generated/jp_object_list_processor.v": "570d7ed062b261fb59db6a851b7ac995d7c81c519b5f414f3e2bbcc2c13253e8",
+    "generated/us_object_list_processor.v": "1294308f49443b2a58148c6b5746450b8043a20e007808fb8d2357e636379c95",
+    "generated/jp_interaction.v": "39223e59a53a700e36c6e08f63b280889c3e25aef40dce66a063588467ae16e1",
+    "generated/us_interaction.v": "667179fdc995a6d43e364af44b91bbbc04806a752286788cd3ce3bae4d5d6be1",
+    "generated/jp_behavior_actions.v": "fff0885dafa95a72a5b9694ab808080bf4de0bfe06cc996836784ca143c37810",
+    "generated/us_behavior_actions.v": "0b9a3b8feafa5957ecd5f346fd28549546689e0fdec698b63206c8646a717a72"
+  },
+  "dllSha256": "960fe979068b78e6733b3ddb87741833fbf4eb29b2a21a2bba871977427c2d0f",
+  "completedUpdates": 24,
+  "firstThreeUpdates": [
+    {
+      "update": 1,
+      "frame": 492,
+      "observation": {
+        "timer": 493,
+        "area": 1,
+        "action": 205521409,
+        "actionTimer": 0,
+        "input": 40,
+        "floorHeight": 1156412624,
+        "floorNull": 0,
+        "floorOwner": 61,
+        "platform": -1,
+        "marioSlot": 67,
+        "topSlot": 61,
+        "topTimer": 131,
+        "topAction": 1,
+        "pillars": 4,
+        "topActive": 257,
+        "collision": [
+          3305734144,
+          1156096000,
+          3296722944
+        ],
+        "display": [
+          3305734144,
+          1145044992,
+          3296722944
+        ],
+        "level": 8,
+        "vx": 0,
+        "vy": 0,
+        "vz": 2147483648,
+        "forwardVel": 0,
+        "flags": 17,
+        "actionArg": 0,
+        "rng": 50242,
+        "buttonDown": 0,
+        "buttonPressed": 0,
+        "pad": [
+          0,
+          0,
+          0
+        ],
+        "movement": [
+          3305734144,
+          1156096000,
+          3296722944
+        ],
+        "depth": 0,
+        "actionState": 0,
+        "usedSlot": -1
+      },
+      "actions": [
+        {
+          "vel": [
+            0.0,
+            0.0,
+            -0.0
+          ],
+          "pos": [
+            -2200.0,
+            1861.0,
+            -1024.0
+          ],
+          "action": 536875781,
+          "type": "FLT_EXECUTE_ACTION",
+          "forwardVel": 0.0,
+          "faceAngle": [
+            0,
+            18611,
+            0
+          ]
+        }
+      ],
+      "marioHitboxDownOffset": 0.0
+    },
+    {
+      "update": 2,
+      "frame": 493,
+      "observation": {
+        "timer": 494,
+        "area": 1,
+        "action": 9176147,
+        "actionTimer": 1,
+        "input": 40,
+        "floorHeight": 1156708337,
+        "floorNull": 0,
+        "floorOwner": 61,
+        "platform": 61,
+        "marioSlot": 67,
+        "topSlot": 61,
+        "topTimer": 132,
+        "topAction": 1,
+        "pillars": 4,
+        "topActive": 257,
+        "collision": [
+          3305748016,
+          1156708337,
+          3296737772
+        ],
+        "display": [
+          3305748016,
+          1156708337,
+          3296737772
+        ],
+        "level": 8,
+        "vx": 3231268298,
+        "vy": 0,
+        "vz": 3223572868,
+        "forwardVel": 3232612913,
+        "flags": 17,
+        "actionArg": 0,
+        "rng": 54870,
+        "buttonDown": 0,
+        "buttonPressed": 0,
+        "pad": [
+          0,
+          0,
+          0
+        ],
+        "movement": [
+          3305748016,
+          1156708337,
+          3296737772
+        ],
+        "depth": 0,
+        "actionState": 0,
+        "usedSlot": -1
+      },
+      "actions": [
+        {
+          "faceAngle": [
+            0,
+            18611,
+            0
+          ],
+          "vel": [
+            0.0,
+            0.0,
+            -0.0
+          ],
+          "pos": [
+            -2200.0,
+            1861.0,
+            -1024.0
+          ],
+          "action": 205521409,
+          "forwardVel": 0.0,
+          "type": "FLT_EXECUTE_ACTION"
+        },
+        {
+          "faceAngle": [
+            0,
+            18611,
+            0
+          ],
+          "action": 9176147,
+          "type": "FLT_EXECUTE_ACTION",
+          "pos": [
+            -2200.0,
+            1861.0,
+            -1024.0
+          ],
+          "forwardVel": 0.0,
+          "vel": [
+            0.0,
+            0.0,
+            -0.0
+          ]
+        }
+      ],
+      "marioHitboxDownOffset": 0.0
+    },
+    {
+      "update": 3,
+      "frame": 494,
+      "observation": {
+        "timer": 495,
+        "area": 1,
+        "action": 9176147,
+        "actionTimer": 2,
+        "input": 40,
+        "floorHeight": 1156404060,
+        "floorNull": 0,
+        "floorOwner": 61,
+        "platform": 61,
+        "marioSlot": 67,
+        "topSlot": 61,
+        "topTimer": 133,
+        "topAction": 1,
+        "pillars": 4,
+        "topActive": 257,
+        "collision": [
+          3305675433,
+          1156404060,
+          3295343652
+        ],
+        "display": [
+          3305675433,
+          1156404060,
+          3295343652
+        ],
+        "level": 8,
+        "vx": 3240098557,
+        "vy": 0,
+        "vz": 3220598604,
+        "forwardVel": 3240291148,
+        "flags": 17,
+        "actionArg": 0,
+        "rng": 13460,
+        "buttonDown": 0,
+        "buttonPressed": 0,
+        "pad": [
+          0,
+          0,
+          0
+        ],
+        "movement": [
+          3305675433,
+          1156404060,
+          3295343652
+        ],
+        "depth": 0,
+        "actionState": 0,
+        "usedSlot": -1
+      },
+      "actions": [
+        {
+          "vel": [
+            -4.788792610168457,
+            0.0,
+            -2.5596628189086914
+          ],
+          "forwardVel": -5.429955005645752,
+          "faceAngle": [
+            0,
+            24243,
+            0
+          ],
+          "action": 9176147,
+          "type": "FLT_EXECUTE_ACTION",
+          "pos": [
+            -2178.592041015625,
+            1935.7481689453125,
+            -938.45263671875
+          ]
+        }
+      ],
+      "marioHitboxDownOffset": 0.0
+    }
+  ],
+  "codeSha256": "d5cdd479862cac6fc2ffc92d6dd0090b16126ff88cabf649e7f415034f9ccc30"
+}

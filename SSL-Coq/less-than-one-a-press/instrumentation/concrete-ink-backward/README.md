@@ -10,6 +10,18 @@ and `expected-low-display-result.json`; the earlier measurements below are
 preserved separately. The current fifteen search tests and fifteen original
 pilot tests pass. No thirty-edge chain or gameplay producer is claimed.
 
+The separate `dialog_continuation.py` check advances the supplied neutral
+final-dialog near match for 24 updates from one patch. It confirms no warp or
+Area-2 entry: dialog blocks interaction, then collision Y=1861 is above the
+upper warp's Y=768..818 hitbox, and the next update refreshes display as well.
+`expected-dialog-continuation.json` records that finite check; it is not a new
+backward search, gameplay witness or Coq exclusion.
+
+"Dialog" here is the automatic milestone-message action, supplied at action
+state 24 before its final update. The candidate already has movement Y=1861,
+collision/display Y=768 and depth zero. No star pickup or opened message is
+used to construct it; that predecessor's gameplay validity remains conditional.
+
 This separate prototype extends Dot's concrete Wafel loop to a real Ink
 target. It does not change the symbolic search or the freefall pilot. The
 first backward move proposes a low collision record and candidate display from
@@ -78,6 +90,7 @@ Use the installed Windows x64 Python 3.9.13 / Wafel 0.8.5 runtime for the DLL:
 ```powershell
 & './build/wafel-pilot/python/python.exe' instrumentation/concrete-ink-backward/search.py --depth 30 --candidates 9000 --seconds 90 --beam 6 --output build/concrete-ink-backward/20261002-expanded/report.json
 & './build/wafel-pilot/python/python.exe' instrumentation/concrete-ink-backward/search.py --target low-display --depth 30 --candidates 9000 --seconds 90 --beam 6 --output build/concrete-ink-backward/20261003-low-display/report.json
+& './build/wafel-pilot/python/python.exe' instrumentation/concrete-ink-backward/dialog_continuation.py --output build/concrete-ink-backward/20261003-low-display/dialog-continuation.json
 & './build/wafel-pilot/python/python.exe' -m unittest discover -s instrumentation/concrete-ink-backward -p 'test_*.py' -v
 ```
 
