@@ -1,0 +1,237 @@
+{
+  "schema": 1,
+  "backend": "Wafel 0.8.5 JP",
+  "requestedUpdates": 30,
+  "nominalSeconds": 1.0,
+  "deepestValidatedUpdates": 1,
+  "status": "finite-frontier-empty",
+  "preparationSeconds": 1.4462252,
+  "searchSeconds": 41.0987075,
+  "totalSeconds": 42.5552236,
+  "candidateLimit": 7500,
+  "timeLimitSeconds": 60.0,
+  "beamLimit": 5,
+  "tested": 6516,
+  "statuses": {
+    "accepted-projection": 180,
+    "rejected": 6336
+  },
+  "layers": [
+    {
+      "depth": 1,
+      "retained": 5,
+      "distinctAccepted": 5,
+      "tested": 216,
+      "statuses": {
+        "accepted-projection": 180,
+        "rejected": 36
+      }
+    },
+    {
+      "depth": 2,
+      "retained": 0,
+      "distinctAccepted": 0,
+      "tested": 6300,
+      "statuses": {
+        "rejected": 6300
+      }
+    }
+  ],
+  "trialSeconds": {
+    "min": 0.004207300000000913,
+    "median": 0.006091200000000185,
+    "max": 0.011788899999999103,
+    "sum": 40.78374999999975
+  },
+  "compared": {
+    "parentFields": [
+      "movement",
+      "collision",
+      "display",
+      "action",
+      "depth"
+    ],
+    "finalFields": [
+      "movement",
+      "collision",
+      "display",
+      "action",
+      "depth",
+      "actionArg",
+      "usedSlot",
+      "floorHeight",
+      "floorOwner",
+      "platform"
+    ],
+    "actionEntry": "ACT_DISAPPEARED and exact movement words from frame log"
+  },
+  "contextCondition": "Other full-state values use the stock neutral scene at corresponding times after supplied pillar completion. The pose/depth/action patches are conditional proposals, not controller-reached states.",
+  "coverage": "Finite inverse menu and 36 input representatives. Not all binary32 values, actions, support, prior scene histories or physical controller samples.",
+  "pricing": "Measured price of this context-conditioned finite tree only. An empty frontier does not price or exclude every one-second Ink predecessor.",
+  "sourceHashes": {
+    "generated/jp_mario.v": "6eae1a48bc0eb232f8a30a4d1089989d571418f34061f74e9a39a02d77922271",
+    "generated/us_mario.v": "9219c324571bede4ec6913a6c000c9a4ec41f9328e614d14967870f02af44dcf",
+    "generated/jp_mario_actions_cutscene.v": "6a8a49283200ef88bf9a1845cec0e581aee55aef63fc1a2c3cb37cb0f92f9bef",
+    "generated/us_mario_actions_cutscene.v": "ea98a4a6069dc429904a3fd302c9a1df46b99f64fbc69e143015358e83db00a0",
+    "generated/jp_object_list_processor.v": "570d7ed062b261fb59db6a851b7ac995d7c81c519b5f414f3e2bbcc2c13253e8",
+    "generated/us_object_list_processor.v": "1294308f49443b2a58148c6b5746450b8043a20e007808fb8d2357e636379c95"
+  },
+  "captureSha256": "9bcc451964025d9f0bb1344c45957b6bfd095451b44bfb9a01f8584a75db6a72",
+  "dllSha256": "960fe979068b78e6733b3ddb87741833fbf4eb29b2a21a2bba871977427c2d0f",
+  "acceptedPoseCases": [
+    {
+      "movementYWord": 1145044992,
+      "actionEntryWords": [
+        3305734144,
+        1156733869,
+        3296722944
+      ]
+    },
+    {
+      "movementYWord": 1145028608,
+      "actionEntryWords": [
+        3305734144,
+        1156733869,
+        3296722944
+      ]
+    },
+    {
+      "movementYWord": 1145061376,
+      "actionEntryWords": [
+        3305734144,
+        1156733869,
+        3296722944
+      ]
+    },
+    {
+      "movementYWord": 1150689280,
+      "actionEntryWords": [
+        3305734144,
+        1156733869,
+        3296722944
+      ]
+    },
+    {
+      "movementYWord": 1156096000,
+      "actionEntryWords": [
+        3305734144,
+        1156096000,
+        3296722944
+      ]
+    }
+  ],
+  "emulatorControls": [
+    {
+      "status": "checked-conditional-installation",
+      "actualSetupY": 768,
+      "acceptedTimer": 492,
+      "acceptedMovementWords": [
+        3305734144,
+        1156733869,
+        3296722944
+      ],
+      "collisionWords": [
+        3305734144,
+        1145044992,
+        3296722944
+      ],
+      "displayWords": [
+        3305734144,
+        1156733869,
+        3296722944
+      ],
+      "top": "803451f8",
+      "used": "80345918",
+      "checkpoint": "successful interact_warp return before act_disappeared",
+      "firstApplyMovementWords": [
+        1136053216,
+        1168891904,
+        3297319343
+      ],
+      "scope": "Supplied fixture, not controller reachability or inverse coverage"
+    },
+    {
+      "status": "checked-conditional-installation",
+      "actualSetupY": 1861,
+      "acceptedTimer": 492,
+      "acceptedMovementWords": [
+        3305734144,
+        1156096000,
+        3296722944
+      ],
+      "collisionWords": [
+        3305734144,
+        1145044992,
+        3296722944
+      ],
+      "displayWords": [
+        3305734144,
+        1156733869,
+        3296722944
+      ],
+      "top": "803451f8",
+      "used": "80345918",
+      "checkpoint": "successful interact_warp return before act_disappeared",
+      "firstApplyMovementWords": [
+        1136053216,
+        1168891904,
+        3297319343
+      ],
+      "scope": "Supplied fixture, not controller reachability or inverse coverage"
+    }
+  ],
+  "tests": {
+    "newTests": 10,
+    "originalPilotTests": 15,
+    "passed": true
+  },
+  "retainedNeutralBranchControls": [
+    {
+      "movementYWord": 1145044992,
+      "area1RetainedPolls": 22,
+      "area2DisplacementPassed": true,
+      "patches": 1,
+      "intermediateRestores": 0,
+      "intermediatePatches": 0
+    },
+    {
+      "movementYWord": 1145028608,
+      "area1RetainedPolls": 22,
+      "area2DisplacementPassed": true,
+      "patches": 1,
+      "intermediateRestores": 0,
+      "intermediatePatches": 0
+    },
+    {
+      "movementYWord": 1145061376,
+      "area1RetainedPolls": 22,
+      "area2DisplacementPassed": true,
+      "patches": 1,
+      "intermediateRestores": 0,
+      "intermediatePatches": 0
+    },
+    {
+      "movementYWord": 1150689280,
+      "area1RetainedPolls": 22,
+      "area2DisplacementPassed": true,
+      "patches": 1,
+      "intermediateRestores": 0,
+      "intermediatePatches": 0
+    },
+    {
+      "movementYWord": 1156096000,
+      "area1RetainedPolls": 22,
+      "area2DisplacementPassed": true,
+      "patches": 1,
+      "intermediateRestores": 0,
+      "intermediatePatches": 0
+    }
+  ],
+  "codeHashes": {
+    "capture.sh": "dbada50a313bfd7273e55d97425f22fd5e044a26273a1daea9f9692a550561be",
+    "check_receipt.py": "e56f4a9f9c6b418176be27d5d5476a98ac1a16744a76383d3af190a5b05214ce",
+    "probe.c": "0e367d3c426c65f2815a05a7dce9b22786983f3cba6343b5ab97ec9f5248ae38",
+    "search.py": "b7e6fda80da9a7cf2b61a4fa6c5fa153911a8f5c52d21277ded547af054709ab",
+    "test_search.py": "2766d45879c81995b2d60d5fc880df5cb76bc8b71726d0ef90934b5034f349d5"
+  }
+}

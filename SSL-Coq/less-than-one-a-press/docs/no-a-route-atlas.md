@@ -1,7 +1,9 @@
 # No-A two-star route atlas
 
-> Status snapshot: 2026-09-27.  Rankings are intentionally revisable as linked
+> Status snapshot: 2026-10-02.  Rankings are intentionally revisable as linked
 > execution evidence or new counterexamples arrive.
+
+The [2 October concrete Ink backward experiment](notes/rank1-concrete-ink-backward.md) starts at the supplied installation and checks the actual accepted-warp positions with the emulator. Its thirty-update horizon costs 41.1 seconds for 6,516 finite proposals: five last-update pose cases install, but all 6,300 earlier proposals fail, so the tree empties at depth two and no thirty-edge chain is validated. A supplied movement Y=1861 with collision Y=768 and display Y=1938.864868 also installs and retains the top; its first lookup already succeeds. That variant is kept rather than rejected for a different acceptance height. The chosen unmounted ground, freefall and final-dialog inverse menu is finite; moving support, late writers, other contexts and unsampled histories remain open. This prices the pruned experiment, not exhaustive one-second coverage or three/five-second searches. Twenty-five code tests pass; no Coq result, gap producer, route exclusion, promotion or estimate change is claimed.
 
 The [tiny concrete backward pilot](notes/rank1-concrete-backward-pilot.md) now passes its 2 October check on the installed Wafel 0.8.5 JP runtime: a target-derived one-frame predecessor matches, a deliberately wrong height is rejected, and a two-edge chain matches both checkpoints without an intermediate patch or restore. Fifteen code tests pass. Matching covers only the declared fields in an ordinary SSL freefall segment, with all other state supplied by saved contexts. This validates the small backward-testing loop, not a full-state inverse, reachable Ink installation, Coq result or route exclusion; all rankings, verdicts and estimates remain unchanged. The private site is deliberately unchanged for this batch, as requested.
 

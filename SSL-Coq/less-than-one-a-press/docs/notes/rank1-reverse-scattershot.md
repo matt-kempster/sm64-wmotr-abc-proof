@@ -1,5 +1,7 @@
 # Rank 1: what a Reverse Scattershot search could do
 
+**2 October Ink experiment:** the [new concrete backward run](rank1-concrete-ink-backward.md) starts from the supplied installation, tests 6,516 proposals in 41.1 seconds and keeps five last-update pose cases. No tested earlier move reproduces them, so the finite tree empties at depth two; the requested thirty-update chain remains absent. Both supplied Y=768 and Y=1861 installations pass the exact emulator checkpoint and first Area-2 apply. This is a finite menu in supplied contexts, not exhaustive one-second coverage or a no-A producer. All route estimates and Coq verdicts remain unchanged.
+
 **2 October runtime follow-up:** the [tiny concrete backward pilot](rank1-concrete-backward-pilot.md)
 passes the installed Wafel JP check: a target-derived vertical freefall
 predecessor matches, a deliberately wrong height is rejected, and a two-edge
