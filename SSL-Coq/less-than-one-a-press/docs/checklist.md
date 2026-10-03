@@ -1,10 +1,10 @@
 # Verification checklist
 
-The [2 October Ink backward experiment](notes/rank1-concrete-ink-backward.md) now measures a finite search from the supplied installation. It costs 41.1 seconds for 6,516 checks. Five last-update pose cases install; none of the tested earlier moves reproduces them. The thirty-update target horizon empties at depth two, rather than yielding a thirty-edge chain. This is a checked finite experiment, not an exhaustive second, new gameplay producer or Coq exclusion. All estimates and proof verdicts remain unchanged.
+The [2 October Ink backward experiment](notes/rank1-concrete-ink-backward.md) now measures a finite search from the supplied installation. It costs 51.0 seconds for 7,812 checks. Six last-update pose cases install; none of the tested earlier moves reproduces them. The thirty-update target horizon empties at depth two, rather than yielding a thirty-edge chain. This is a checked finite experiment, not an exhaustive second, new gameplay producer or Coq exclusion. All estimates and proof verdicts remain unchanged.
 
-- [x] Observe the actual accepted warp return and the first retained-top Area-2 apply for both supplied Y=768 and Y=1861 controls; keep the successful second variant.
-- [x] Keep all five distinct last-update pose cases in the bounded concrete menu; compare extended candidates continuously from one earliest patch.
-- [x] Save the 6,516-check timing receipt, limits, source/runtime hashes, rejection diagnostics and 25 passing code tests.
+- [x] Observe the actual accepted warp return and first retained-top Area-2 apply in three named emulator controls: the high-display Y=768 and Y=1861 setups, plus movement Y=1861 with collision/display Y=768. The last works at depth zero; its 1,093-unit movement/collision split remains supplied.
+- [x] Keep all six distinct last-update pose cases in the bounded concrete menu; compare extended candidates continuously from one earliest patch.
+- [x] Save the 7,812-check timing receipt, limits, source/runtime hashes, rejection diagnostics and 27 passing code tests.
 - [ ] Derive a gameplay producer or broader inverse coverage. The finite unmounted ground/freefall/final-dialog menu does not establish either, and supplies no three/five-second exhaustive price.
 
 The [2 October concrete backward pilot](notes/rank1-concrete-backward-pilot.md)

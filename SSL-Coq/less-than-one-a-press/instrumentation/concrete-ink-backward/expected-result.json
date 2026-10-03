@@ -5,25 +5,25 @@
   "nominalSeconds": 1.0,
   "deepestValidatedUpdates": 1,
   "status": "finite-frontier-empty",
-  "preparationSeconds": 1.4462252,
-  "searchSeconds": 41.0987075,
-  "totalSeconds": 42.5552236,
-  "candidateLimit": 7500,
-  "timeLimitSeconds": 60.0,
-  "beamLimit": 5,
-  "tested": 6516,
+  "preparationSeconds": 1.0933775000000001,
+  "searchSeconds": 50.950589099999995,
+  "totalSeconds": 52.051066399999996,
+  "candidateLimit": 9000,
+  "timeLimitSeconds": 90.0,
+  "beamLimit": 6,
+  "tested": 7812,
   "statuses": {
-    "accepted-projection": 180,
-    "rejected": 6336
+    "accepted-projection": 216,
+    "rejected": 7596
   },
   "layers": [
     {
       "depth": 1,
-      "retained": 5,
-      "distinctAccepted": 5,
-      "tested": 216,
+      "retained": 6,
+      "distinctAccepted": 6,
+      "tested": 252,
       "statuses": {
-        "accepted-projection": 180,
+        "accepted-projection": 216,
         "rejected": 36
       }
     },
@@ -31,17 +31,17 @@
       "depth": 2,
       "retained": 0,
       "distinctAccepted": 0,
-      "tested": 6300,
+      "tested": 7560,
       "statuses": {
-        "rejected": 6300
+        "rejected": 7560
       }
     }
   ],
   "trialSeconds": {
-    "min": 0.004207300000000913,
-    "median": 0.006091200000000185,
-    "max": 0.011788899999999103,
-    "sum": 40.78374999999975
+    "min": 0.0035943999999998866,
+    "median": 0.005971850000000778,
+    "max": 0.022108499999999864,
+    "sum": 50.70072929999985
   },
   "compared": {
     "parentFields": [
@@ -118,6 +118,14 @@
         1156096000,
         3296722944
       ]
+    },
+    {
+      "movementYWord": 1156096000,
+      "actionEntryWords": [
+        3305734144,
+        1156096000,
+        3296722944
+      ]
     }
   ],
   "emulatorControls": [
@@ -178,10 +186,39 @@
         3297319343
       ],
       "scope": "Supplied fixture, not controller reachability or inverse coverage"
+    },
+    {
+      "status": "checked-conditional-installation",
+      "actualSetupY": 1861,
+      "acceptedTimer": 492,
+      "acceptedMovementWords": [
+        3305734144,
+        1156096000,
+        3296722944
+      ],
+      "collisionWords": [
+        3305734144,
+        1145044992,
+        3296722944
+      ],
+      "displayWords": [
+        3305734144,
+        1145044992,
+        3296722944
+      ],
+      "top": "803451f8",
+      "used": "80345918",
+      "checkpoint": "successful interact_warp return before act_disappeared",
+      "firstApplyMovementWords": [
+        1136053216,
+        1168891904,
+        3297319343
+      ],
+      "scope": "Supplied fixture, not controller reachability or inverse coverage"
     }
   ],
   "tests": {
-    "newTests": 10,
+    "newTests": 12,
     "originalPilotTests": 15,
     "passed": true
   },
@@ -225,13 +262,21 @@
       "patches": 1,
       "intermediateRestores": 0,
       "intermediatePatches": 0
+    },
+    {
+      "movementYWord": 1156096000,
+      "area1RetainedPolls": 22,
+      "area2DisplacementPassed": true,
+      "patches": 1,
+      "intermediateRestores": 0,
+      "intermediatePatches": 0
     }
   ],
   "codeHashes": {
-    "capture.sh": "dbada50a313bfd7273e55d97425f22fd5e044a26273a1daea9f9692a550561be",
-    "check_receipt.py": "e56f4a9f9c6b418176be27d5d5476a98ac1a16744a76383d3af190a5b05214ce",
-    "probe.c": "0e367d3c426c65f2815a05a7dce9b22786983f3cba6343b5ab97ec9f5248ae38",
-    "search.py": "b7e6fda80da9a7cf2b61a4fa6c5fa153911a8f5c52d21277ded547af054709ab",
-    "test_search.py": "2766d45879c81995b2d60d5fc880df5cb76bc8b71726d0ef90934b5034f349d5"
+    "capture.sh": "08d38be6027bd2752cc826791a49688b929f5d8cc836106f2d307e3685a875b7",
+    "check_receipt.py": "228027f22a0e1b4e4eb1a9e0cdde135432480e65ed02d07350f9936fdbdbfce9",
+    "probe.c": "df89a8c32755c337d23f15ed49660e6803a1533167a4f5fa2fb7212cce91c1b1",
+    "search.py": "c6cf0652aef762ad450c56e1fbad1183737be77e645db6bee2dc03dd49c59dbd",
+    "test_search.py": "24fcd79282d61d49600cd47c3cbaa5c6266c6d9eeddcedba0bab2b340ae13bff"
   }
 }

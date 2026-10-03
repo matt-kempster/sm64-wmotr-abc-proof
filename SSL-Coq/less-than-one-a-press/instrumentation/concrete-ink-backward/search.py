@@ -138,6 +138,15 @@ def install_moves(accepted):
                      action=IDLE, actionState=0, actionArg=0, actionTimer=0)
         for control in CONTROLS:
             yield Move('pre-action-retry-y-%g' % y, patch, control, 'inherits supplied display')
+    # Successful first lookup does not read the old display. Keep this separate
+    # State-only split rather than imposing an unnecessary high display.
+    patch = dict(movement=[accepted['collision'][0], bits(1861.), accepted['collision'][2]],
+                 collision=accepted['collision'], display=accepted['collision'],
+                 depth=bits(0.), vy=bits(0.), action=IDLE, actionState=0,
+                 actionArg=0, actionTimer=0)
+    for control in CONTROLS:
+        yield Move('successful-query-state-only-y-1861', patch, control,
+                   'high movement with low collision and normal low display')
 
 
 def previous_moves(target):
@@ -340,9 +349,9 @@ def run(args):
 def main():
     p = argparse.ArgumentParser(description=__doc__)
     p.add_argument('--depth', type=int, default=30)
-    p.add_argument('--candidates', type=int, default=7500)
-    p.add_argument('--seconds', type=float, default=60)
-    p.add_argument('--beam', type=int, default=5)
+    p.add_argument('--candidates', type=int, default=9000)
+    p.add_argument('--seconds', type=float, default=90)
+    p.add_argument('--beam', type=int, default=6)
     p.add_argument('--output', type=Path, required=True)
     args = p.parse_args()
     if not 1 <= args.depth <= 30 or args.candidates < 1 or args.seconds <= 0 or args.beam < 1:

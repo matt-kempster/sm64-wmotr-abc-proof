@@ -10,15 +10,16 @@ def target():
                 display=[word(-2200), 1156733869, word(-1024)], action=0x0C400201, depth=0)
 
 
-def receipt(y):
+def receipt(y, display_y=1938.8648681640625):
     high = [word(-2200), 1156733869, word(-1024)]
     low = [word(-2200), word(768), word(-1024)]
     movement = high if y == 768 else [word(-2200), word(1861), word(-1024)]
+    display = [word(-2200), word(display_y), word(-1024)]
     def record(stage):
         return ('BACKWARD_INK,stage=%s,timer=492,area=1,action=00001300,arg=00040002,'
                 'used=80345880,upper=80345880,top=803451f8,floor=8019ba80,owner=803451f8,'
                 'platform=00000000,positions=%s' %
-                (stage, ':'.join('%08x' % n for n in movement + low + high)))
+                (stage, ':'.join('%08x' % n for n in movement + low + display)))
     return '\n'.join([record('setup'), record('accepted-return'), record('disappeared-entry'),
                        'FIRST_APPLY_ENTRY,area=2,platform=803451f8,marioBits=(00000000,45abe000,43800000)',
                        'FIRST_APPLY_RETURN,area=2,platform=803451f8,marioBits=(43b6cbe0,45abe000,c48919af)'])
@@ -39,6 +40,14 @@ class Tests(unittest.TestCase):
     def test_exact_return_and_alternate_return(self):
         for y in (768, 1861):
             self.assertEqual(check(receipt(y), y)['status'], 'checked-conditional-installation')
+    def test_low_display_is_kept_for_successful_first_lookup(self):
+        moves = [m for m in install_moves(target()) if m.name=='successful-query-state-only-y-1861']
+        self.assertEqual(len(moves), 36)
+        self.assertEqual(moves[0].patch['display'], moves[0].patch['collision'])
+        self.assertEqual(moves[0].patch['movement'][1], word(1861))
+    def test_low_display_exact_receipt(self):
+        result = check(receipt(1861,768),1861,768)
+        self.assertEqual(result['displayWords'], result['collisionWords'])
     def test_wrong_return_position_rejected(self):
         with self.assertRaises(ValueError):
             check(receipt(768).replace('44f25bad', '44f25bae'), 768)

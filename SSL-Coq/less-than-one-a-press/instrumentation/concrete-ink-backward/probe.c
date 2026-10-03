@@ -10,6 +10,9 @@
 #ifndef INK_ACTUAL_Y
 #define INK_ACTUAL_Y 768.0f
 #endif
+#ifndef INK_DISPLAY_WORD
+#define INK_DISPLAY_WORD 0x44f25bad
+#endif
 enum { INK_HANDLER_CALL = 0x80250318, INK_HANDLER_RETURN = 0x80250320,
        INK_HANDLER = 0x8024dd68, INK_DISAPPEARED = 0x80257794 };
 static unsigned inkPending, inkAccepted;
@@ -57,7 +60,7 @@ EXPORT void CALL GetKeys(int control, BUTTONS *keys) {
     W32(object + O_POS_Y, fbits(768.0f));
     W32(object + O_POS_Z, fbits(-1024.0f));
     W32(object + GFX_POS_X, fbits(-2200.0f));
-    W32(object + GFX_POS_Y, 0x44f25bad);
+    W32(object + GFX_POS_Y, INK_DISPLAY_WORD);
     W32(object + GFX_POS_Z, fbits(-1024.0f));
     ink_snapshot("setup");
     if (DSetCallbacks(debugger_init_callback, ink_debugger, debugger_vi_callback) != M64ERR_SUCCESS
