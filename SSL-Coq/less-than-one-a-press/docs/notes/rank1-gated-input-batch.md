@@ -7,6 +7,41 @@ new gap producer, a thirty-update chain, a Coq theorem or an Ink exclusion.
 Rank 1 stays at its subjective 1–2%; the 35% trial pass rate is not a route
 probability.
 
+## Examples: the same input, different supplied poses
+
+These are existing ledger cases, not additional trials. Every example uses
+**raw stick (-128, -128), buttons 0x0000: no buttons, including A**. Every
+position has X=-2200 and Z=-1024. Let H=1938.8648681640625, the exact checked
+top height. The pose columns below are the three Y coordinates **before**
+the one update; "entry" is Mario's movement Y when the disappeared warp
+action begins, before its floor alignment.
+
+| Target menu | Result | Case | Movement Y before | Collision Y before | Display Y before | Actual entry Y | Required entry Y |
+| --- | --- | ---: | ---: | ---: | ---: | ---: | ---: |
+| Original | Passed | 0 | 768 | 768 | H | H | H |
+| Original | Entry height differs | 5 | 1861 | 768 | H | 1861 | H |
+| Variant | Passed | 12 | 1861 | 768 | 768 | 1861 | 1861 |
+| Variant | Entry height differs | — | — | — | — | — | — |
+| Hybrid | Passed | 18 | 1861 | 768 | H | 1861 | 1861 |
+| Hybrid | Entry height differs | 13 | 768 | 768 | H | H | 1861 |
+
+**Variant has no entry-height mismatch in this batch:** zero among its
+1,500 trials. Its 1,250 nonmatches differ in the end fields instead.
+
+All five supplied poses also set ACT_IDLE, action state/argument/timer zero,
+vertical speed zero and quicksand depth zero. The surrounding world,
+horizontal motion/heading, camera, floor lists and controller history come
+from the restored context. The initial split is patched; the stick input
+does not create it. Only the selected comparison is being validated.
+
+Cases 0 and 13 start from the same patched pose and input. The Original target
+asks for entry at H, while Hybrid asks for 1861, so the very same outcome
+passes one and misses the other. Likewise, cases 5 and 18 start identically:
+entry at 1861 misses Original and passes Hybrid. An "entry height differs"
+result still matched the end fields, including the warp action and top
+capture; it is not a failed warp or an Ink disproof. The successful examples
+do not derive a controller-only route to their supplied poses.
+
 ## First, what happened to input grouping?
 
 We have **not justified using representatives for the complete update**.

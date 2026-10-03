@@ -1,5 +1,6 @@
 # Verification checklist
 
+- [x] Extract five [input/pose examples](notes/rank1-gated-input-batch.md#examples-the-same-input-different-supplied-poses) from existing cases 0, 5, 12, 18 and 13. All use raw stick (-128,-128) and no buttons. Original/Hybrid entry-height mismatches can pass the other target's checkpoint; Variant has no such mismatch among its 1,500 trials. No further game trials or proof promotion.
 - [x] Run and stop the [requested 5,000 individual one-update trials](notes/rank1-gated-input-batch.md): 1,750 selected-field matches, 3,250 nonmatches across the three supplied target menus, with A released. The 1,500 action-entry-height nonmatches are not whole-Ink exclusions. The gap remains supplied; no producer or longer chain is derived.
 - [x] Split this test into two 2,500-case processes and resume without duplication; retain exact input/pose/status diagnostics for cases 0–4,999, signature/hash checks and next cursor 5,000. Forty-five code tests and 160 cached/uncached comparison controls pass. Stop for review; no continued search is scheduled.
 - [x] Gate L and the four D-pad bits by the user's requested scope: 256 masks, all 65,536 raw stick pairs and 335,544,320 menu/input cases per fixed A mode, a 32-fold reduction. The measured test rate projects about 2.9 days for this one-update product, not an exhaustive longer backward tree.
