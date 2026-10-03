@@ -1,5 +1,14 @@
 # Rank 1: what a Reverse Scattershot search could do
 
+**2 October runtime follow-up:** the [tiny concrete backward pilot](rank1-concrete-backward-pilot.md)
+passes the installed Wafel JP check: a target-derived vertical freefall
+predecessor matches, a deliberately wrong height is rejected, and a two-edge
+continuous replay matches without an intermediate patch or restore. Fifteen
+code tests pass. Matching is explicitly limited to a named projection, with
+the remaining state supplied by saved contexts. This is a checked small
+backward-testing loop, not a new Ink witness, full-state inverse or route result.
+The dated methodological review below is retained as historical context.
+
 **Follow-up:** the [conditional full-interval path checker](rank1-complete-update-path.md) now completes both US/JP controller-to-retention paths, including live callbacks. It uses a supplied scene and does not close exhaustive predecessor coverage or gameplay reachability. The earlier measurements and limitations below are retained as that earlier result.
 
 27 September 2026. **Method review only.** No reverse randomized search was

@@ -1,5 +1,15 @@
 # Wafel JP replay pilot
 
+The [2 October concrete backward pilot](../../docs/notes/rank1-concrete-backward-pilot.md)
+adds `backward_validation.py`, `backward_wafel.py` and deterministic tests. It
+inverse-maps height/vertical velocity, checks N-1 and N-2 candidates, then
+replays both edges with no intermediate patch. Full saved contexts support
+restoration; acceptance is explicitly exact named-projection matching. The
+fifteen standard-library tests pass. **The installed Wafel 0.8.5 JP runtime
+now passes the accepted edge, deliberate rejection and continuous two-edge
+checks.** This is an ordinary two-frame freefall harness, not an Ink search
+or route result. See the linked note for the exact command and saved logs.
+
 The [27 September full-loop review](../../docs/notes/rank1-hybrid-call-review.md)
 adds benchmark_loop.py and loop-benchmark-report.json. The benchmark restores
 a controller-reached state and measures repeated known-replay windows of

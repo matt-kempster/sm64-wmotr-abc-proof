@@ -1,5 +1,20 @@
 # Verification checklist
 
+The [2 October concrete backward pilot](notes/rank1-concrete-backward-pilot.md)
+passes its small real Wafel JP check. It derives height and vertical velocity
+from the target, validates a one-frame predecessor, rejects a deliberately
+wrong height, and replays two edges continuously with only the earliest patch.
+The remaining state comes from saved contexts; equality covers the declared
+fields only. This is a runtime validation of the small loop, not an Ink
+predecessor, full-state equality, exhaustive coverage or a new Coq result.
+The runtime-check batch left the private site and remotes untouched as
+requested. The subsequent request authorizes committing and pushing this
+checked pilot; the site remains outside this batch.
+
+- [x] Apply Dot's patch after checking the exact base and preserving unrelated work; run its original 13 tests on the installed Python.
+- [x] Complete the accepted edge, deliberate rejection and two-edge continuous replay checks on Wafel 0.8.5 JP. Fifteen final code tests pass, including two rejection-control checks.
+- [ ] Establish a useful Ink predecessor and its allowed gameplay connection. This freefall pilot does not address either.
+
 The [profiled one-update repair](notes/rank1-profiled-single.md) did not establish tractability. Both construction attempts hit their 900-second worker limit before calling the solver. The corrected pass last reported 3,173 source bodies and 87,792 statements; completed local rewrites reduced their summed node visits from 1,163,546 to 881,024 but consumed 256.15 seconds themselves. Eight targeted controls pass. Rewriting preserves the encoded alternatives, with unchanged-expression fallbacks, but overall construction regressed; it is now explicitly opt-in. Zero gameplay-model solver queries were issued, no candidate or exclusion was obtained, and no estimate or proof verdict changes.
 
 - [x] Preserve the failed preprocessing evidence and make the expensive simplification opt-in.
