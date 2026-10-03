@@ -1,0 +1,132 @@
+{
+  "scope": "Read-only enumeration of implemented generators; no gameplay search or new proof",
+  "sourceSha256": "5d4c9c3a4f4cdeba791dc7eff90a6c876a061dfe8cb4e8b7f86e422b51a58ae9",
+  "controls": 36,
+  "buttonMasks": [
+    0,
+    8192,
+    16384,
+    24576
+  ],
+  "sticks": [
+    [
+      0,
+      0
+    ],
+    [
+      -127,
+      0
+    ],
+    [
+      127,
+      0
+    ],
+    [
+      0,
+      -127
+    ],
+    [
+      0,
+      127
+    ],
+    [
+      -127,
+      -127
+    ],
+    [
+      -127,
+      127
+    ],
+    [
+      127,
+      -127
+    ],
+    [
+      127,
+      127
+    ]
+  ],
+  "installation": {
+    "raised-display": 252,
+    "low-display": 216
+  },
+  "previousProposals": {
+    "ground": 432,
+    "freefall": 720,
+    "dialog": 108
+  },
+  "previousTotal": 1260,
+  "previousUnique": 1260,
+  "earlierActions": [
+    16779404,
+    205521409,
+    536875781
+  ],
+  "previousActionStates": [
+    0,
+    24
+  ],
+  "previousActionTimers": [
+    0
+  ],
+  "previousActionArgs": [
+    0
+  ],
+  "preservesEarlierCollision": true,
+  "preservesMovementXZ": true,
+  "patchFields": [
+    "action",
+    "actionArg",
+    "actionState",
+    "actionTimer",
+    "collision",
+    "depth",
+    "display",
+    "movement",
+    "vy"
+  ],
+  "parentComparedFields": [
+    "movement",
+    "collision",
+    "display",
+    "action",
+    "depth"
+  ],
+  "finalComparedFields": [
+    "movement",
+    "collision",
+    "display",
+    "action",
+    "depth",
+    "actionArg",
+    "usedSlot",
+    "floorHeight",
+    "floorOwner",
+    "platform"
+  ],
+  "groundY": [
+    1202.0,
+    1280.0,
+    1861.0
+  ],
+  "groundDepth": [
+    0.0,
+    1093.0
+  ],
+  "freefallSpeed": [
+    -75.0,
+    -16.0,
+    -4.0,
+    0.0,
+    4.0
+  ],
+  "dialogDepth": [
+    0.0,
+    36.43333435058594,
+    1093.0
+  ],
+  "separatePilotCounts": {
+    "2": 25,
+    "4": 81
+  }
+}

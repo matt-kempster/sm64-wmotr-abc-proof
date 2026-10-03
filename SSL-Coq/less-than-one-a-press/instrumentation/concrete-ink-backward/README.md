@@ -1,5 +1,12 @@
 # Concrete backward experiment from Ink
 
+The [implemented move inventory](../../docs/notes/rank1-concrete-move-inventory.md)
+lists both installation setups and the three earlier action families. Its
+read-only enumeration checks 252/216 installation proposals and 1,260 earlier
+proposals per parent. Every earlier proposal inherits collision position and
+keeps movement X/Z fixed; no horizontal or moving-support inverse exists yet.
+This inventory is not a new gameplay search or broader coverage result.
+
 The 3 October variant-only mode uses `--target low-display`. It requires
 movement Y=1861 at the action-entry checkpoint with collision/display Y=768
 and a supplied depth-zero setup. Its thirty-update horizon checks 1,476
