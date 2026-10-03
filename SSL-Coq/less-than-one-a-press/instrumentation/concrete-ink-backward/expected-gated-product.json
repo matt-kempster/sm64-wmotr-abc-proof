@@ -1,0 +1,1747 @@
+{
+  "schema": 2,
+  "date": "2026-10-03",
+  "status": "stopped-at-requested-5000",
+  "completeProduct": false,
+  "inputGrouping": "No whole-update representative equivalence established; every counted trial ran separately",
+  "gate": {
+    "excluded": [
+      "L",
+      "D-pad up",
+      "D-pad down",
+      "D-pad left",
+      "D-pad right"
+    ],
+    "basis": "User-selected scope, not a proved noninterference theorem",
+    "remaining": [
+      "B",
+      "Z",
+      "Start",
+      "R",
+      "C up",
+      "C down",
+      "C left",
+      "C right"
+    ]
+  },
+  "inputCounts": {
+    "rawMasks": 8192,
+    "gatedMasks": 256,
+    "stickPairs": 65536,
+    "rawInputsPerPose": 536870912,
+    "gatedInputsPerPose": 16777216,
+    "poseCounts": {
+      "original": 7,
+      "variant": 6,
+      "hybrid": 7
+    },
+    "totalGatedCasesPerAMode": 335544320,
+    "reduction": 32
+  },
+  "signature": {
+    "aMode": "released",
+    "inputSpace": {
+      "stickPairs": 65536,
+      "nonAMasks": 256,
+      "choicesPerPose": 16777216,
+      "buttonsMode": "stock-gameplay",
+      "gatedMask": 3872,
+      "gating": "L and D-pad excluded by user-selected scope, not a proved equivalence"
+    },
+    "sourceHashes": {
+      "product_sweep.py": "4ed65ebe6c24d19294192626c45447fbcc9d11d09821bcf15afe4c84c305242e",
+      "search.py": "00b39ee7f0b165b7959231ee796241a13daf2ea0aaef5049dce983b8580d69f3",
+      "controller_inputs.py": "122c1f37ac7e03981b7e0d645ace0b0fb36aa748786cde3c2e96122ffe94b8bf",
+      "replay.py": "ea422b6478e40931c9d61aaa0e19c9d86a551a0219dbeaca85cd9a82e70df66d",
+      "backward_wafel.py": "a2df51c3f68db76ebc855eec5f495593bbc2e591931fa0412979a07532c5cb52",
+      "backward_validation.py": "06437f52f074d958ff56642e19eaf304fd8ef7dcb78897e4ca6bd0e4cd3651de"
+    },
+    "jobOrder": [
+      {
+        "setup": "original",
+        "move": "pre-action-retry-y-768",
+        "patch": {
+          "movement": [
+            3305734144,
+            1145044992,
+            3296722944
+          ],
+          "collision": [
+            3305734144,
+            1145044992,
+            3296722944
+          ],
+          "display": [
+            3305734144,
+            1156733869,
+            3296722944
+          ],
+          "depth": 0,
+          "vy": 0,
+          "action": 205521409,
+          "actionState": 0,
+          "actionArg": 0,
+          "actionTimer": 0
+        }
+      },
+      {
+        "setup": "original",
+        "move": "pre-action-retry-y-767",
+        "patch": {
+          "movement": [
+            3305734144,
+            1145028608,
+            3296722944
+          ],
+          "collision": [
+            3305734144,
+            1145044992,
+            3296722944
+          ],
+          "display": [
+            3305734144,
+            1156733869,
+            3296722944
+          ],
+          "depth": 0,
+          "vy": 0,
+          "action": 205521409,
+          "actionState": 0,
+          "actionArg": 0,
+          "actionTimer": 0
+        }
+      },
+      {
+        "setup": "original",
+        "move": "pre-action-retry-y-769",
+        "patch": {
+          "movement": [
+            3305734144,
+            1145061376,
+            3296722944
+          ],
+          "collision": [
+            3305734144,
+            1145044992,
+            3296722944
+          ],
+          "display": [
+            3305734144,
+            1156733869,
+            3296722944
+          ],
+          "depth": 0,
+          "vy": 0,
+          "action": 205521409,
+          "actionState": 0,
+          "actionArg": 0,
+          "actionTimer": 0
+        }
+      },
+      {
+        "setup": "original",
+        "move": "pre-action-retry-y-1201",
+        "patch": {
+          "movement": [
+            3305734144,
+            1150689280,
+            3296722944
+          ],
+          "collision": [
+            3305734144,
+            1145044992,
+            3296722944
+          ],
+          "display": [
+            3305734144,
+            1156733869,
+            3296722944
+          ],
+          "depth": 0,
+          "vy": 0,
+          "action": 205521409,
+          "actionState": 0,
+          "actionArg": 0,
+          "actionTimer": 0
+        }
+      },
+      {
+        "setup": "original",
+        "move": "pre-action-retry-y-1202",
+        "patch": {
+          "movement": [
+            3305734144,
+            1150697472,
+            3296722944
+          ],
+          "collision": [
+            3305734144,
+            1145044992,
+            3296722944
+          ],
+          "display": [
+            3305734144,
+            1156733869,
+            3296722944
+          ],
+          "depth": 0,
+          "vy": 0,
+          "action": 205521409,
+          "actionState": 0,
+          "actionArg": 0,
+          "actionTimer": 0
+        }
+      },
+      {
+        "setup": "original",
+        "move": "pre-action-retry-y-1861",
+        "patch": {
+          "movement": [
+            3305734144,
+            1156096000,
+            3296722944
+          ],
+          "collision": [
+            3305734144,
+            1145044992,
+            3296722944
+          ],
+          "display": [
+            3305734144,
+            1156733869,
+            3296722944
+          ],
+          "depth": 0,
+          "vy": 0,
+          "action": 205521409,
+          "actionState": 0,
+          "actionArg": 0,
+          "actionTimer": 0
+        }
+      },
+      {
+        "setup": "original",
+        "move": "successful-query-state-only-y-1861",
+        "patch": {
+          "movement": [
+            3305734144,
+            1156096000,
+            3296722944
+          ],
+          "collision": [
+            3305734144,
+            1145044992,
+            3296722944
+          ],
+          "display": [
+            3305734144,
+            1145044992,
+            3296722944
+          ],
+          "depth": 0,
+          "vy": 0,
+          "action": 205521409,
+          "actionState": 0,
+          "actionArg": 0,
+          "actionTimer": 0
+        }
+      },
+      {
+        "setup": "variant",
+        "move": "pre-action-retry-y-768",
+        "patch": {
+          "movement": [
+            3305734144,
+            1145044992,
+            3296722944
+          ],
+          "collision": [
+            3305734144,
+            1145044992,
+            3296722944
+          ],
+          "display": [
+            3305734144,
+            1145044992,
+            3296722944
+          ],
+          "depth": 0,
+          "vy": 0,
+          "action": 205521409,
+          "actionState": 0,
+          "actionArg": 0,
+          "actionTimer": 0
+        }
+      },
+      {
+        "setup": "variant",
+        "move": "pre-action-retry-y-767",
+        "patch": {
+          "movement": [
+            3305734144,
+            1145028608,
+            3296722944
+          ],
+          "collision": [
+            3305734144,
+            1145044992,
+            3296722944
+          ],
+          "display": [
+            3305734144,
+            1145044992,
+            3296722944
+          ],
+          "depth": 0,
+          "vy": 0,
+          "action": 205521409,
+          "actionState": 0,
+          "actionArg": 0,
+          "actionTimer": 0
+        }
+      },
+      {
+        "setup": "variant",
+        "move": "pre-action-retry-y-769",
+        "patch": {
+          "movement": [
+            3305734144,
+            1145061376,
+            3296722944
+          ],
+          "collision": [
+            3305734144,
+            1145044992,
+            3296722944
+          ],
+          "display": [
+            3305734144,
+            1145044992,
+            3296722944
+          ],
+          "depth": 0,
+          "vy": 0,
+          "action": 205521409,
+          "actionState": 0,
+          "actionArg": 0,
+          "actionTimer": 0
+        }
+      },
+      {
+        "setup": "variant",
+        "move": "pre-action-retry-y-1201",
+        "patch": {
+          "movement": [
+            3305734144,
+            1150689280,
+            3296722944
+          ],
+          "collision": [
+            3305734144,
+            1145044992,
+            3296722944
+          ],
+          "display": [
+            3305734144,
+            1145044992,
+            3296722944
+          ],
+          "depth": 0,
+          "vy": 0,
+          "action": 205521409,
+          "actionState": 0,
+          "actionArg": 0,
+          "actionTimer": 0
+        }
+      },
+      {
+        "setup": "variant",
+        "move": "pre-action-retry-y-1202",
+        "patch": {
+          "movement": [
+            3305734144,
+            1150697472,
+            3296722944
+          ],
+          "collision": [
+            3305734144,
+            1145044992,
+            3296722944
+          ],
+          "display": [
+            3305734144,
+            1145044992,
+            3296722944
+          ],
+          "depth": 0,
+          "vy": 0,
+          "action": 205521409,
+          "actionState": 0,
+          "actionArg": 0,
+          "actionTimer": 0
+        }
+      },
+      {
+        "setup": "variant",
+        "move": "pre-action-retry-y-1861",
+        "patch": {
+          "movement": [
+            3305734144,
+            1156096000,
+            3296722944
+          ],
+          "collision": [
+            3305734144,
+            1145044992,
+            3296722944
+          ],
+          "display": [
+            3305734144,
+            1145044992,
+            3296722944
+          ],
+          "depth": 0,
+          "vy": 0,
+          "action": 205521409,
+          "actionState": 0,
+          "actionArg": 0,
+          "actionTimer": 0
+        }
+      },
+      {
+        "setup": "hybrid",
+        "move": "pre-action-retry-y-768",
+        "patch": {
+          "movement": [
+            3305734144,
+            1145044992,
+            3296722944
+          ],
+          "collision": [
+            3305734144,
+            1145044992,
+            3296722944
+          ],
+          "display": [
+            3305734144,
+            1156733869,
+            3296722944
+          ],
+          "depth": 0,
+          "vy": 0,
+          "action": 205521409,
+          "actionState": 0,
+          "actionArg": 0,
+          "actionTimer": 0
+        }
+      },
+      {
+        "setup": "hybrid",
+        "move": "pre-action-retry-y-767",
+        "patch": {
+          "movement": [
+            3305734144,
+            1145028608,
+            3296722944
+          ],
+          "collision": [
+            3305734144,
+            1145044992,
+            3296722944
+          ],
+          "display": [
+            3305734144,
+            1156733869,
+            3296722944
+          ],
+          "depth": 0,
+          "vy": 0,
+          "action": 205521409,
+          "actionState": 0,
+          "actionArg": 0,
+          "actionTimer": 0
+        }
+      },
+      {
+        "setup": "hybrid",
+        "move": "pre-action-retry-y-769",
+        "patch": {
+          "movement": [
+            3305734144,
+            1145061376,
+            3296722944
+          ],
+          "collision": [
+            3305734144,
+            1145044992,
+            3296722944
+          ],
+          "display": [
+            3305734144,
+            1156733869,
+            3296722944
+          ],
+          "depth": 0,
+          "vy": 0,
+          "action": 205521409,
+          "actionState": 0,
+          "actionArg": 0,
+          "actionTimer": 0
+        }
+      },
+      {
+        "setup": "hybrid",
+        "move": "pre-action-retry-y-1201",
+        "patch": {
+          "movement": [
+            3305734144,
+            1150689280,
+            3296722944
+          ],
+          "collision": [
+            3305734144,
+            1145044992,
+            3296722944
+          ],
+          "display": [
+            3305734144,
+            1156733869,
+            3296722944
+          ],
+          "depth": 0,
+          "vy": 0,
+          "action": 205521409,
+          "actionState": 0,
+          "actionArg": 0,
+          "actionTimer": 0
+        }
+      },
+      {
+        "setup": "hybrid",
+        "move": "pre-action-retry-y-1202",
+        "patch": {
+          "movement": [
+            3305734144,
+            1150697472,
+            3296722944
+          ],
+          "collision": [
+            3305734144,
+            1145044992,
+            3296722944
+          ],
+          "display": [
+            3305734144,
+            1156733869,
+            3296722944
+          ],
+          "depth": 0,
+          "vy": 0,
+          "action": 205521409,
+          "actionState": 0,
+          "actionArg": 0,
+          "actionTimer": 0
+        }
+      },
+      {
+        "setup": "hybrid",
+        "move": "pre-action-retry-y-1861",
+        "patch": {
+          "movement": [
+            3305734144,
+            1156096000,
+            3296722944
+          ],
+          "collision": [
+            3305734144,
+            1145044992,
+            3296722944
+          ],
+          "display": [
+            3305734144,
+            1156733869,
+            3296722944
+          ],
+          "depth": 0,
+          "vy": 0,
+          "action": 205521409,
+          "actionState": 0,
+          "actionArg": 0,
+          "actionTimer": 0
+        }
+      },
+      {
+        "setup": "hybrid",
+        "move": "successful-query-state-only-y-1861",
+        "patch": {
+          "movement": [
+            3305734144,
+            1156096000,
+            3296722944
+          ],
+          "collision": [
+            3305734144,
+            1145044992,
+            3296722944
+          ],
+          "display": [
+            3305734144,
+            1145044992,
+            3296722944
+          ],
+          "depth": 0,
+          "vy": 0,
+          "action": 205521409,
+          "actionState": 0,
+          "actionArg": 0,
+          "actionTimer": 0
+        }
+      }
+    ],
+    "order": "mixed",
+    "captureSha256": "9bcc451964025d9f0bb1344c45957b6bfd095451b44bfb9a01f8584a75db6a72",
+    "dllSha256": "960fe979068b78e6733b3ddb87741833fbf4eb29b2a21a2bba871977427c2d0f",
+    "contextFrame": 492,
+    "buttonDown": 0
+  },
+  "metadata": {
+    "aMode": "released",
+    "frame": 492,
+    "preparationAPresses": [],
+    "buttonDown": 0,
+    "recognitionControls": [
+      {
+        "setup": "original",
+        "fixture": {
+          "movement": [
+            3305734144,
+            1145044992,
+            3296722944
+          ],
+          "collision": [
+            3305734144,
+            1145044992,
+            3296722944
+          ],
+          "display": [
+            3305734144,
+            1156733869,
+            3296722944
+          ],
+          "depth": 0,
+          "vy": 0,
+          "action": 205521409,
+          "actionState": 0,
+          "actionArg": 0,
+          "actionTimer": 0
+        },
+        "accepted": {
+          "movement": [
+            3305734144,
+            1156733869,
+            3296722944
+          ],
+          "collision": [
+            3305734144,
+            1145044992,
+            3296722944
+          ],
+          "display": [
+            3305734144,
+            1156733869,
+            3296722944
+          ]
+        },
+        "endpoint": {
+          "timer": 494,
+          "area": 1,
+          "action": 4864,
+          "actionTimer": 0,
+          "input": 40,
+          "floorHeight": 1156733869,
+          "floorNull": 0,
+          "floorOwner": 61,
+          "platform": 61,
+          "marioSlot": 67,
+          "topSlot": 61,
+          "topTimer": 132,
+          "topAction": 1,
+          "pillars": 4,
+          "topActive": 257,
+          "collision": [
+            3305734144,
+            1156733869,
+            3296722944
+          ],
+          "display": [
+            3305734144,
+            1156733869,
+            3296722944
+          ],
+          "level": 8,
+          "vx": 0,
+          "vy": 0,
+          "vz": 2147483648,
+          "forwardVel": 0,
+          "flags": 17,
+          "actionArg": 262145,
+          "rng": 20512,
+          "buttonDown": 0,
+          "buttonPressed": 0,
+          "pad": [
+            0,
+            0,
+            0
+          ],
+          "movement": [
+            3305734144,
+            1156733869,
+            3296722944
+          ],
+          "depth": 0,
+          "actionState": 0,
+          "usedSlot": 64
+        },
+        "retainedFirstArea2Apply": true
+      },
+      {
+        "setup": "variant",
+        "fixture": {
+          "movement": [
+            3305734144,
+            1156096000,
+            3296722944
+          ],
+          "collision": [
+            3305734144,
+            1145044992,
+            3296722944
+          ],
+          "display": [
+            3305734144,
+            1145044992,
+            3296722944
+          ],
+          "depth": 0,
+          "vy": 0,
+          "action": 205521409,
+          "actionState": 0,
+          "actionArg": 0,
+          "actionTimer": 0
+        },
+        "accepted": {
+          "movement": [
+            3305734144,
+            1156096000,
+            3296722944
+          ],
+          "collision": [
+            3305734144,
+            1145044992,
+            3296722944
+          ],
+          "display": [
+            3305734144,
+            1145044992,
+            3296722944
+          ]
+        },
+        "endpoint": {
+          "timer": 494,
+          "area": 1,
+          "action": 4864,
+          "actionTimer": 0,
+          "input": 40,
+          "floorHeight": 1156733869,
+          "floorNull": 0,
+          "floorOwner": 61,
+          "platform": 61,
+          "marioSlot": 67,
+          "topSlot": 61,
+          "topTimer": 132,
+          "topAction": 1,
+          "pillars": 4,
+          "topActive": 257,
+          "collision": [
+            3305734144,
+            1156733869,
+            3296722944
+          ],
+          "display": [
+            3305734144,
+            1156733869,
+            3296722944
+          ],
+          "level": 8,
+          "vx": 0,
+          "vy": 0,
+          "vz": 2147483648,
+          "forwardVel": 0,
+          "flags": 17,
+          "actionArg": 262145,
+          "rng": 20512,
+          "buttonDown": 0,
+          "buttonPressed": 0,
+          "pad": [
+            0,
+            0,
+            0
+          ],
+          "movement": [
+            3305734144,
+            1156733869,
+            3296722944
+          ],
+          "depth": 0,
+          "actionState": 0,
+          "usedSlot": 64
+        },
+        "retainedFirstArea2Apply": true
+      },
+      {
+        "setup": "hybrid",
+        "fixture": {
+          "movement": [
+            3305734144,
+            1156096000,
+            3296722944
+          ],
+          "collision": [
+            3305734144,
+            1145044992,
+            3296722944
+          ],
+          "display": [
+            3305734144,
+            1156733869,
+            3296722944
+          ],
+          "depth": 0,
+          "vy": 0,
+          "action": 205521409,
+          "actionState": 0,
+          "actionArg": 0,
+          "actionTimer": 0
+        },
+        "accepted": {
+          "movement": [
+            3305734144,
+            1156096000,
+            3296722944
+          ],
+          "collision": [
+            3305734144,
+            1145044992,
+            3296722944
+          ],
+          "display": [
+            3305734144,
+            1156733869,
+            3296722944
+          ]
+        },
+        "endpoint": {
+          "timer": 494,
+          "area": 1,
+          "action": 4864,
+          "actionTimer": 0,
+          "input": 40,
+          "floorHeight": 1156733869,
+          "floorNull": 0,
+          "floorOwner": 61,
+          "platform": 61,
+          "marioSlot": 67,
+          "topSlot": 61,
+          "topTimer": 132,
+          "topAction": 1,
+          "pillars": 4,
+          "topActive": 257,
+          "collision": [
+            3305734144,
+            1156733869,
+            3296722944
+          ],
+          "display": [
+            3305734144,
+            1156733869,
+            3296722944
+          ],
+          "level": 8,
+          "vx": 0,
+          "vy": 0,
+          "vz": 2147483648,
+          "forwardVel": 0,
+          "flags": 17,
+          "actionArg": 262145,
+          "rng": 20512,
+          "buttonDown": 0,
+          "buttonPressed": 0,
+          "pad": [
+            0,
+            0,
+            0
+          ],
+          "movement": [
+            3305734144,
+            1156733869,
+            3296722944
+          ],
+          "depth": 0,
+          "actionState": 0,
+          "usedSlot": 64
+        },
+        "retainedFirstArea2Apply": true
+      }
+    ],
+    "preparationSeconds": 1.1516994,
+    "poseCounts": {
+      "original": 7,
+      "variant": 6,
+      "hybrid": 7
+    },
+    "inputSpace": {
+      "stickPairs": 65536,
+      "nonAMasks": 256,
+      "choicesPerPose": 16777216,
+      "buttonsMode": "stock-gameplay",
+      "gatedMask": 3872,
+      "gating": "L and D-pad excluded by user-selected scope, not a proved equivalence"
+    },
+    "totalCases": 335544320,
+    "jobOrder": [
+      {
+        "setup": "original",
+        "move": "pre-action-retry-y-768",
+        "patch": {
+          "movement": [
+            3305734144,
+            1145044992,
+            3296722944
+          ],
+          "collision": [
+            3305734144,
+            1145044992,
+            3296722944
+          ],
+          "display": [
+            3305734144,
+            1156733869,
+            3296722944
+          ],
+          "depth": 0,
+          "vy": 0,
+          "action": 205521409,
+          "actionState": 0,
+          "actionArg": 0,
+          "actionTimer": 0
+        }
+      },
+      {
+        "setup": "original",
+        "move": "pre-action-retry-y-767",
+        "patch": {
+          "movement": [
+            3305734144,
+            1145028608,
+            3296722944
+          ],
+          "collision": [
+            3305734144,
+            1145044992,
+            3296722944
+          ],
+          "display": [
+            3305734144,
+            1156733869,
+            3296722944
+          ],
+          "depth": 0,
+          "vy": 0,
+          "action": 205521409,
+          "actionState": 0,
+          "actionArg": 0,
+          "actionTimer": 0
+        }
+      },
+      {
+        "setup": "original",
+        "move": "pre-action-retry-y-769",
+        "patch": {
+          "movement": [
+            3305734144,
+            1145061376,
+            3296722944
+          ],
+          "collision": [
+            3305734144,
+            1145044992,
+            3296722944
+          ],
+          "display": [
+            3305734144,
+            1156733869,
+            3296722944
+          ],
+          "depth": 0,
+          "vy": 0,
+          "action": 205521409,
+          "actionState": 0,
+          "actionArg": 0,
+          "actionTimer": 0
+        }
+      },
+      {
+        "setup": "original",
+        "move": "pre-action-retry-y-1201",
+        "patch": {
+          "movement": [
+            3305734144,
+            1150689280,
+            3296722944
+          ],
+          "collision": [
+            3305734144,
+            1145044992,
+            3296722944
+          ],
+          "display": [
+            3305734144,
+            1156733869,
+            3296722944
+          ],
+          "depth": 0,
+          "vy": 0,
+          "action": 205521409,
+          "actionState": 0,
+          "actionArg": 0,
+          "actionTimer": 0
+        }
+      },
+      {
+        "setup": "original",
+        "move": "pre-action-retry-y-1202",
+        "patch": {
+          "movement": [
+            3305734144,
+            1150697472,
+            3296722944
+          ],
+          "collision": [
+            3305734144,
+            1145044992,
+            3296722944
+          ],
+          "display": [
+            3305734144,
+            1156733869,
+            3296722944
+          ],
+          "depth": 0,
+          "vy": 0,
+          "action": 205521409,
+          "actionState": 0,
+          "actionArg": 0,
+          "actionTimer": 0
+        }
+      },
+      {
+        "setup": "original",
+        "move": "pre-action-retry-y-1861",
+        "patch": {
+          "movement": [
+            3305734144,
+            1156096000,
+            3296722944
+          ],
+          "collision": [
+            3305734144,
+            1145044992,
+            3296722944
+          ],
+          "display": [
+            3305734144,
+            1156733869,
+            3296722944
+          ],
+          "depth": 0,
+          "vy": 0,
+          "action": 205521409,
+          "actionState": 0,
+          "actionArg": 0,
+          "actionTimer": 0
+        }
+      },
+      {
+        "setup": "original",
+        "move": "successful-query-state-only-y-1861",
+        "patch": {
+          "movement": [
+            3305734144,
+            1156096000,
+            3296722944
+          ],
+          "collision": [
+            3305734144,
+            1145044992,
+            3296722944
+          ],
+          "display": [
+            3305734144,
+            1145044992,
+            3296722944
+          ],
+          "depth": 0,
+          "vy": 0,
+          "action": 205521409,
+          "actionState": 0,
+          "actionArg": 0,
+          "actionTimer": 0
+        }
+      },
+      {
+        "setup": "variant",
+        "move": "pre-action-retry-y-768",
+        "patch": {
+          "movement": [
+            3305734144,
+            1145044992,
+            3296722944
+          ],
+          "collision": [
+            3305734144,
+            1145044992,
+            3296722944
+          ],
+          "display": [
+            3305734144,
+            1145044992,
+            3296722944
+          ],
+          "depth": 0,
+          "vy": 0,
+          "action": 205521409,
+          "actionState": 0,
+          "actionArg": 0,
+          "actionTimer": 0
+        }
+      },
+      {
+        "setup": "variant",
+        "move": "pre-action-retry-y-767",
+        "patch": {
+          "movement": [
+            3305734144,
+            1145028608,
+            3296722944
+          ],
+          "collision": [
+            3305734144,
+            1145044992,
+            3296722944
+          ],
+          "display": [
+            3305734144,
+            1145044992,
+            3296722944
+          ],
+          "depth": 0,
+          "vy": 0,
+          "action": 205521409,
+          "actionState": 0,
+          "actionArg": 0,
+          "actionTimer": 0
+        }
+      },
+      {
+        "setup": "variant",
+        "move": "pre-action-retry-y-769",
+        "patch": {
+          "movement": [
+            3305734144,
+            1145061376,
+            3296722944
+          ],
+          "collision": [
+            3305734144,
+            1145044992,
+            3296722944
+          ],
+          "display": [
+            3305734144,
+            1145044992,
+            3296722944
+          ],
+          "depth": 0,
+          "vy": 0,
+          "action": 205521409,
+          "actionState": 0,
+          "actionArg": 0,
+          "actionTimer": 0
+        }
+      },
+      {
+        "setup": "variant",
+        "move": "pre-action-retry-y-1201",
+        "patch": {
+          "movement": [
+            3305734144,
+            1150689280,
+            3296722944
+          ],
+          "collision": [
+            3305734144,
+            1145044992,
+            3296722944
+          ],
+          "display": [
+            3305734144,
+            1145044992,
+            3296722944
+          ],
+          "depth": 0,
+          "vy": 0,
+          "action": 205521409,
+          "actionState": 0,
+          "actionArg": 0,
+          "actionTimer": 0
+        }
+      },
+      {
+        "setup": "variant",
+        "move": "pre-action-retry-y-1202",
+        "patch": {
+          "movement": [
+            3305734144,
+            1150697472,
+            3296722944
+          ],
+          "collision": [
+            3305734144,
+            1145044992,
+            3296722944
+          ],
+          "display": [
+            3305734144,
+            1145044992,
+            3296722944
+          ],
+          "depth": 0,
+          "vy": 0,
+          "action": 205521409,
+          "actionState": 0,
+          "actionArg": 0,
+          "actionTimer": 0
+        }
+      },
+      {
+        "setup": "variant",
+        "move": "pre-action-retry-y-1861",
+        "patch": {
+          "movement": [
+            3305734144,
+            1156096000,
+            3296722944
+          ],
+          "collision": [
+            3305734144,
+            1145044992,
+            3296722944
+          ],
+          "display": [
+            3305734144,
+            1145044992,
+            3296722944
+          ],
+          "depth": 0,
+          "vy": 0,
+          "action": 205521409,
+          "actionState": 0,
+          "actionArg": 0,
+          "actionTimer": 0
+        }
+      },
+      {
+        "setup": "hybrid",
+        "move": "pre-action-retry-y-768",
+        "patch": {
+          "movement": [
+            3305734144,
+            1145044992,
+            3296722944
+          ],
+          "collision": [
+            3305734144,
+            1145044992,
+            3296722944
+          ],
+          "display": [
+            3305734144,
+            1156733869,
+            3296722944
+          ],
+          "depth": 0,
+          "vy": 0,
+          "action": 205521409,
+          "actionState": 0,
+          "actionArg": 0,
+          "actionTimer": 0
+        }
+      },
+      {
+        "setup": "hybrid",
+        "move": "pre-action-retry-y-767",
+        "patch": {
+          "movement": [
+            3305734144,
+            1145028608,
+            3296722944
+          ],
+          "collision": [
+            3305734144,
+            1145044992,
+            3296722944
+          ],
+          "display": [
+            3305734144,
+            1156733869,
+            3296722944
+          ],
+          "depth": 0,
+          "vy": 0,
+          "action": 205521409,
+          "actionState": 0,
+          "actionArg": 0,
+          "actionTimer": 0
+        }
+      },
+      {
+        "setup": "hybrid",
+        "move": "pre-action-retry-y-769",
+        "patch": {
+          "movement": [
+            3305734144,
+            1145061376,
+            3296722944
+          ],
+          "collision": [
+            3305734144,
+            1145044992,
+            3296722944
+          ],
+          "display": [
+            3305734144,
+            1156733869,
+            3296722944
+          ],
+          "depth": 0,
+          "vy": 0,
+          "action": 205521409,
+          "actionState": 0,
+          "actionArg": 0,
+          "actionTimer": 0
+        }
+      },
+      {
+        "setup": "hybrid",
+        "move": "pre-action-retry-y-1201",
+        "patch": {
+          "movement": [
+            3305734144,
+            1150689280,
+            3296722944
+          ],
+          "collision": [
+            3305734144,
+            1145044992,
+            3296722944
+          ],
+          "display": [
+            3305734144,
+            1156733869,
+            3296722944
+          ],
+          "depth": 0,
+          "vy": 0,
+          "action": 205521409,
+          "actionState": 0,
+          "actionArg": 0,
+          "actionTimer": 0
+        }
+      },
+      {
+        "setup": "hybrid",
+        "move": "pre-action-retry-y-1202",
+        "patch": {
+          "movement": [
+            3305734144,
+            1150697472,
+            3296722944
+          ],
+          "collision": [
+            3305734144,
+            1145044992,
+            3296722944
+          ],
+          "display": [
+            3305734144,
+            1156733869,
+            3296722944
+          ],
+          "depth": 0,
+          "vy": 0,
+          "action": 205521409,
+          "actionState": 0,
+          "actionArg": 0,
+          "actionTimer": 0
+        }
+      },
+      {
+        "setup": "hybrid",
+        "move": "pre-action-retry-y-1861",
+        "patch": {
+          "movement": [
+            3305734144,
+            1156096000,
+            3296722944
+          ],
+          "collision": [
+            3305734144,
+            1145044992,
+            3296722944
+          ],
+          "display": [
+            3305734144,
+            1156733869,
+            3296722944
+          ],
+          "depth": 0,
+          "vy": 0,
+          "action": 205521409,
+          "actionState": 0,
+          "actionArg": 0,
+          "actionTimer": 0
+        }
+      },
+      {
+        "setup": "hybrid",
+        "move": "successful-query-state-only-y-1861",
+        "patch": {
+          "movement": [
+            3305734144,
+            1156096000,
+            3296722944
+          ],
+          "collision": [
+            3305734144,
+            1145044992,
+            3296722944
+          ],
+          "display": [
+            3305734144,
+            1145044992,
+            3296722944
+          ],
+          "depth": 0,
+          "vy": 0,
+          "action": 205521409,
+          "actionState": 0,
+          "actionArg": 0,
+          "actionTimer": 0
+        }
+      }
+    ]
+  },
+  "matching": "END_FIELDS plus exact movement at ACT_DISAPPEARED entry. Collision/display at the accepted return still need the separate exact observer; this is not full-state equality.",
+  "context": "All world state comes from saved normally initialized SSL after supplied pillar completion; pose templates are conditional inverse proposals, not reached gameplay.",
+  "accepted": 1750,
+  "rejected": 3250,
+  "counts": {
+    "original": {
+      "accepted-projection": 1000,
+      "rejected": 250,
+      "rejected-event": 500
+    },
+    "variant": {
+      "rejected": 1250,
+      "accepted-projection": 250
+    },
+    "hybrid": {
+      "rejected-event": 1000,
+      "rejected": 250,
+      "accepted-projection": 500
+    }
+  },
+  "poseCounts": [
+    {
+      "jobId": 0,
+      "setup": "original",
+      "pose": "pre-action-retry-y-768",
+      "movementY": 768.0,
+      "collisionY": 768.0,
+      "displayY": 1938.8648681640625,
+      "counts": {
+        "accepted-projection": 250
+      }
+    },
+    {
+      "jobId": 1,
+      "setup": "original",
+      "pose": "pre-action-retry-y-767",
+      "movementY": 767.0,
+      "collisionY": 768.0,
+      "displayY": 1938.8648681640625,
+      "counts": {
+        "accepted-projection": 250
+      }
+    },
+    {
+      "jobId": 2,
+      "setup": "original",
+      "pose": "pre-action-retry-y-769",
+      "movementY": 769.0,
+      "collisionY": 768.0,
+      "displayY": 1938.8648681640625,
+      "counts": {
+        "accepted-projection": 250
+      }
+    },
+    {
+      "jobId": 3,
+      "setup": "original",
+      "pose": "pre-action-retry-y-1201",
+      "movementY": 1201.0,
+      "collisionY": 768.0,
+      "displayY": 1938.8648681640625,
+      "counts": {
+        "accepted-projection": 250
+      }
+    },
+    {
+      "jobId": 4,
+      "setup": "original",
+      "pose": "pre-action-retry-y-1202",
+      "movementY": 1202.0,
+      "collisionY": 768.0,
+      "displayY": 1938.8648681640625,
+      "counts": {
+        "rejected": 250
+      }
+    },
+    {
+      "jobId": 5,
+      "setup": "original",
+      "pose": "pre-action-retry-y-1861",
+      "movementY": 1861.0,
+      "collisionY": 768.0,
+      "displayY": 1938.8648681640625,
+      "counts": {
+        "rejected-event": 250
+      }
+    },
+    {
+      "jobId": 6,
+      "setup": "original",
+      "pose": "successful-query-state-only-y-1861",
+      "movementY": 1861.0,
+      "collisionY": 768.0,
+      "displayY": 768.0,
+      "counts": {
+        "rejected-event": 250
+      }
+    },
+    {
+      "jobId": 7,
+      "setup": "variant",
+      "pose": "pre-action-retry-y-768",
+      "movementY": 768.0,
+      "collisionY": 768.0,
+      "displayY": 768.0,
+      "counts": {
+        "rejected": 250
+      }
+    },
+    {
+      "jobId": 8,
+      "setup": "variant",
+      "pose": "pre-action-retry-y-767",
+      "movementY": 767.0,
+      "collisionY": 768.0,
+      "displayY": 768.0,
+      "counts": {
+        "rejected": 250
+      }
+    },
+    {
+      "jobId": 9,
+      "setup": "variant",
+      "pose": "pre-action-retry-y-769",
+      "movementY": 769.0,
+      "collisionY": 768.0,
+      "displayY": 768.0,
+      "counts": {
+        "rejected": 250
+      }
+    },
+    {
+      "jobId": 10,
+      "setup": "variant",
+      "pose": "pre-action-retry-y-1201",
+      "movementY": 1201.0,
+      "collisionY": 768.0,
+      "displayY": 768.0,
+      "counts": {
+        "rejected": 250
+      }
+    },
+    {
+      "jobId": 11,
+      "setup": "variant",
+      "pose": "pre-action-retry-y-1202",
+      "movementY": 1202.0,
+      "collisionY": 768.0,
+      "displayY": 768.0,
+      "counts": {
+        "rejected": 250
+      }
+    },
+    {
+      "jobId": 12,
+      "setup": "variant",
+      "pose": "pre-action-retry-y-1861",
+      "movementY": 1861.0,
+      "collisionY": 768.0,
+      "displayY": 768.0,
+      "counts": {
+        "accepted-projection": 250
+      }
+    },
+    {
+      "jobId": 13,
+      "setup": "hybrid",
+      "pose": "pre-action-retry-y-768",
+      "movementY": 768.0,
+      "collisionY": 768.0,
+      "displayY": 1938.8648681640625,
+      "counts": {
+        "rejected-event": 250
+      }
+    },
+    {
+      "jobId": 14,
+      "setup": "hybrid",
+      "pose": "pre-action-retry-y-767",
+      "movementY": 767.0,
+      "collisionY": 768.0,
+      "displayY": 1938.8648681640625,
+      "counts": {
+        "rejected-event": 250
+      }
+    },
+    {
+      "jobId": 15,
+      "setup": "hybrid",
+      "pose": "pre-action-retry-y-769",
+      "movementY": 769.0,
+      "collisionY": 768.0,
+      "displayY": 1938.8648681640625,
+      "counts": {
+        "rejected-event": 250
+      }
+    },
+    {
+      "jobId": 16,
+      "setup": "hybrid",
+      "pose": "pre-action-retry-y-1201",
+      "movementY": 1201.0,
+      "collisionY": 768.0,
+      "displayY": 1938.8648681640625,
+      "counts": {
+        "rejected-event": 250
+      }
+    },
+    {
+      "jobId": 17,
+      "setup": "hybrid",
+      "pose": "pre-action-retry-y-1202",
+      "movementY": 1202.0,
+      "collisionY": 768.0,
+      "displayY": 1938.8648681640625,
+      "counts": {
+        "rejected": 250
+      }
+    },
+    {
+      "jobId": 18,
+      "setup": "hybrid",
+      "pose": "pre-action-retry-y-1861",
+      "movementY": 1861.0,
+      "collisionY": 768.0,
+      "displayY": 1938.8648681640625,
+      "counts": {
+        "accepted-projection": 250
+      }
+    },
+    {
+      "jobId": 19,
+      "setup": "hybrid",
+      "pose": "successful-query-state-only-y-1861",
+      "movementY": 1861.0,
+      "collisionY": 768.0,
+      "displayY": 768.0,
+      "counts": {
+        "accepted-projection": 250
+      }
+    }
+  ],
+  "processed": 5000,
+  "unprocessed": 335539320,
+  "order": "One exact permutation of the selected input alphabet; no input grouping",
+  "uniqueInputs": 250,
+  "distinctButtonMasks": 100,
+  "rawStickPairs": 250,
+  "distinctPatchTemplates": 12,
+  "distinctPatchInputPairs": 3000,
+  "batches": [
+    {
+      "start": 0,
+      "end": 2500,
+      "tested": 2500,
+      "seconds": 1.8083898999999999,
+      "casesPerSecond": 1382.4452348467553
+    },
+    {
+      "start": 2500,
+      "end": 5000,
+      "tested": 2500,
+      "seconds": 1.9149174999999998,
+      "casesPerSecond": 1305.5392725796282
+    }
+  ],
+  "searchSeconds": 3.7233073999999995,
+  "casesPerSecond": 1342.892074933163,
+  "projectedFullPassDays": 2.8919783557499255,
+  "referenceComparisons": 160,
+  "codeTests": 45,
+  "ledger": {
+    "path": "C:\\Users\\tariq\\OneDrive\\Documents\\sm64 - the item-grab proof\\reference-sm64-wmotr-abc-proof\\SSL-Coq\\less-than-one-a-press\\build\\concrete-ink-backward\\20261003-5000-ledger\\report.trials.jsonl",
+    "records": 5000,
+    "sha256": "6cb17e4a722adc5a4283612d225d76b8624221aebf2fa089fee5909783684744"
+  },
+  "csv": {
+    "path": "ink-input-batch.csv",
+    "rows": 5000,
+    "sha256": "c97aa4c9ede128d7d6ffa4ba7e04954b59b83aae7dcb9a225cf18a8b2e2f8868"
+  },
+  "boundaries": {
+    "checkpoint": "Movement at disappeared-action entry plus END_FIELDS after one update",
+    "acceptedReturnNineWords": "Separate emulator controls; not measured for every trial",
+    "retainedArea2Apply": "Three neutral supplied controls, not every successful input",
+    "earlierGapProducer": "Not searched in this batch; every inverse pose inherits a split",
+    "fullStateEquality": false,
+    "gameplayReachability": false,
+    "newCoqProof": false,
+    "exhaustiveOneSecond": false,
+    "continuedSearch": false
+  },
+  "runtime": "Windows x64 Python 3.9.13, Wafel 0.8.5, authenticated JP DLL"
+}

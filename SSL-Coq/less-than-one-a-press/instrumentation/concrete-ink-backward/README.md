@@ -1,5 +1,37 @@
 # Concrete backward experiment from Ink
 
+## Latest: an individual, resumable one-update counter
+
+`product_sweep.py` tests all three target menus with a cached, fully restored
+scene for each actual Wafel update. `--buttons stock-gameplay` gates L and the
+four D-pad bits at the user's request, retaining B/Z/Start/R/all C buttons and
+all 65,536 stick pairs. The selected product has 335,544,320 menu/input cases
+per fixed A mode. This does not assert those excluded buttons are formally
+equivalent in every history. Legacy full-button options remain available.
+
+The [stopped 5,000-trial check](../../docs/notes/rank1-gated-input-batch.md)
+passes 1,750 selected-field comparisons and rejects 3,250. It uses two resumed
+2,500-case batches, with 3.7233 seconds of timed trials. All 45 code tests pass.
+No whole-update input grouping, gameplay gap producer or full-state match
+is established. `rejected-event` may fit another installation height; it is
+not a whole-Ink exclusion. The exact accepted-return observer and Area-2
+suffix checks remain separate from per-trial matching.
+
+```powershell
+& './build/wafel-pilot/python/python.exe' -X utf8 instrumentation/concrete-ink-backward/product_sweep.py --buttons stock-gameplay --order mixed --cases 2500 --seconds 30 --output build/concrete-ink-backward/20261003-5000-ledger/report.json
+& './build/wafel-pilot/python/python.exe' -X utf8 instrumentation/concrete-ink-backward/product_sweep.py --buttons stock-gameplay --order mixed --resume --cases 2500 --seconds 30 --output build/concrete-ink-backward/20261003-5000-ledger/report.json
+```
+
+`--cases` and `--seconds` bound each invocation. `--order mixed` is an exact
+permutation of the alphabet, so short batches spread through it; no input
+representative stands in for another. The report and adjacent `.trials.jsonl`
+ledger checkpoint every 1,000 completed cases. Resume verifies source/runtime
+hashes, prior controller state, exact enumeration and counts. A mismatched
+or uncheckpointed tail is rejected for explicit recovery; preserve it.
+`--benchmark` is a timing sample and cannot resume this coverage stream.
+The compact `expected-gated-product.json` records the stopped result.
+No continuation is running; start a later batch only on user instruction.
+
 The [implemented move inventory](../../docs/notes/rank1-concrete-move-inventory.md)
 lists both installation setups and the three earlier action families. Its
 original default-mode enumeration checks 252/216 installation proposals and 1,260 earlier

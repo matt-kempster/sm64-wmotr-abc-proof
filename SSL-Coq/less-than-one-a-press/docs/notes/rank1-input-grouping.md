@@ -1,5 +1,13 @@
 # Rank 1: keep input possibilities together without losing their differences
 
+**3 October decision:** the current review has not justified replacing inputs
+by representatives across the complete concrete installation update. The user
+requested stopping that investigation and running [5,000 individual trials](rank1-gated-input-batch.md)
+instead. Those cases now have an exact resumable ledger; no untested group
+members are counted. L and D-pad gating is a user-selected scope. The smaller
+source-derived groups below keep their original scope; no new Coq equivalence
+or route exclusion is claimed.
+
 **Follow-up:** the [conditional full-interval path checker](rank1-complete-update-path.md) now completes both US/JP controller-to-retention paths, including live callbacks. It uses a supplied scene and does not close exhaustive predecessor coverage or gameplay reachability. The earlier measurements and limitations below are retained as that earlier result.
 
 27 September 2026. The first grouping implementation is checked against
