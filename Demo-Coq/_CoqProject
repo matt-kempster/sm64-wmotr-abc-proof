@@ -11,6 +11,7 @@ generated/us_menu_level_script.v
 generated/us_star_select.v
 generated/us_memory.v
 generated/us_area.v
+generated/us_camera.v
 generated/us_ingame_menu.v
 generated/us_bitdw_level_script.v
 generated/us_bowser_1_level_script.v
@@ -30,6 +31,7 @@ generated/jp_menu_level_script.v
 generated/jp_star_select.v
 generated/jp_memory.v
 generated/jp_area.v
+generated/jp_camera.v
 generated/jp_ingame_menu.v
 generated/jp_bitdw_level_script.v
 generated/jp_bowser_1_level_script.v
@@ -56,11 +58,14 @@ proofs/DemoNormalTimerExecution.v
 proofs/DemoNormalPreObjectsExecution.v
 proofs/DemoPlaybackExecution.v
 proofs/DemoPlaybackAdvanceExecution.v
+proofs/DemoPlaybackSecondControllerExecution.v
 proofs/DemoControllerInputExecution.v
 proofs/DemoAnalogInputExecution.v
 proofs/DemoControllerCopyExecution.v
+proofs/DemoSecondControllerExecution.v
 proofs/DemoConsumedInputExecution.v
 proofs/DemoControllerReadExecution.v
+proofs/DemoConnectedSecondControllerReadExecution.v
 proofs/DemoDispatchFacts.v
 proofs/DemoLevelSelectionExecution.v
 proofs/DemoCurrentLevelGetExecution.v
@@ -70,6 +75,7 @@ proofs/DemoNormalPostCameraExecution.v
 proofs/DemoNormalDelayedExecution.v
 proofs/DemoStartWarpExecution.v
 proofs/DemoDelayedWarpTerminalExecution.v
+proofs/DemoDialogZoomExecution.v
 proofs/DemoInstantWarpExecution.v
 proofs/DemoStartSchedulingExecution.v
 proofs/DemoNormalStartExecution.v

@@ -35,13 +35,13 @@ kept separate from unproved composition and reachability.
   opcode dereference still requires a representation simulation.
 - [x] Actual connected-controller branch with neutral sticks through the real
   analog-adjustment call and its allocation/free, using an explicit pure
-  contract for the named external `sqrtf` call. Arbitrary-stick and whole-loop
-  composition remain open. A separate complete analog-call theorem now
+  contract for the named external `sqrtf` call. A separate complete analog-call
+  theorem now
   handles arbitrary sticks and both cap branches under the same named
   pure math contract.
 - [x] Actual disconnected second-controller branch and player-three field
   copy suffixes, preserving player-one bytes and entry-valid accesses.
-  The positive-record post-polling caller below now composes both iterations.
+  The all-timer post-polling caller below now composes both iterations.
 - [x] Actual normal-frame timer segment, including preservation of the scheduled
   operation/timer via its concrete memory frame.
 - [x] Contiguous actual warp/instant-warp/timer caller interval up to object
@@ -63,9 +63,11 @@ kept separate from unproved composition and reachability.
   analog call, both loop iterations and player-three copies. Exact outputs,
   stream pointer/timer/header and protected reads are preserved. Start/EOF
   guards follow as separate corollaries. Second logical controller absent,
-  concrete resources and named math contract remain explicit; connected P2,
-  hardware entry and all-frame provenance remain open.
-- [x] Scoped private globals in all 38 regenerated units, positive eight-unit
+  concrete resources and named math contract remain explicit. The connected-P2
+  extension below removes that absence restriction for pad byte offsets 0 and 6;
+  hardware entry, all physical-port assignments and all-frame provenance
+  remain open.
+- [x] Scoped private globals in all 40 regenerated units, positive eight-unit
   AST links and two actual Clight unit-pair links. Public declarations and
   the full game link remain separate obligations.
 - [x] Proved empty-array declaration normalization from actual initialized
@@ -75,8 +77,9 @@ kept separate from unproved composition and reachability.
 - [x] Complete actual delayed Demo Next calls for timers 2 through 20 and
   terminal timer 1, including real dialog reset, transition helper and
   special-warp call. Terminal debug0/non-null-demo/dialogtype!=1 reads
-  and scalar resources remain explicit. Consecutive gameplay-frame
-  preservation, dialog zoom and caller composition remain separate.
+  and scalar resources remain explicit in that theorem. The all-dialog
+  extension below removes the dialogtype restriction. Consecutive gameplay-frame
+  preservation remains separate.
 - [x] Actual normal caller after painting through the complete terminal
   delayed call and mode-4 zero return; full post-camera painting/countdown/
   pause/return interval for every pending timer 2–20. These do not establish
@@ -84,7 +87,21 @@ kept separate from unproved composition and reachability.
 - [x] Exact next selected-source pointer-type link failure, current
   normalization's invariance on it, and finite corresponding Gfx definition/
   layout checks. This certifies a remaining anonymous-tag boundary, not an
-  all-19-unit link or a type-renaming simulation.
+  wider source link or a type-renaming simulation.
+- [x] Complete actual playback consumer with the second logical controller
+  connected at pad byte offset 6 and the first at offset 0, for every timer branch.
+  Exact neutral second-pad writes, first-pad outputs and byte frames are proved.
+- [x] Actual connected second-controller copy and neutral analog call through
+  real allocation/free, and its composition into the complete original
+  post-polling path, both loop iterations and player-three copies. Physical
+  pad offsets 0/6 and two precise pure sqrtf contracts remain explicit. Initialization,
+  hardware polling and every physical-port assignment remain open.
+- [x] Complete actual terminal Demo Next dispatcher and normal caller after
+  painting for every readable dialog type, including the real camera
+  trigger2 call. Concrete camera cell/callee resources replace the earlier
+  dialogtype!=1 premise; debug, active-demo and scalar resources remain.
+  Camera translations were added by the pipeline; all 40 ASTs reproduced
+  identically twice and the previous 38 are byte-identical.
 - [ ] Formalize the actual loaded-gameplay/consumed-input observation boundary
   and permitted initial/external events; exclude mere title-fade bookkeeping.
 - [ ] Prove loader allocation, table/index/cache and DMA memory invariants

@@ -13,7 +13,7 @@ hand is not a normal-boot counterexample.
 
 This is a separate project alongside SSL-Coq and Pedro-Coq. Its source of
 truth is decomp commit `9921382a68bb0c865e5e45eb594d9c64db59b1af`.
-The pipeline mechanically generates 19 translation units for each of
+The pipeline mechanically generates 20 translation units for each of
 `VERSION_US` and `VERSION_JP` with CompCert 3.15. Generated Clight is never
 hand-edited. EU, Shindou, iQue, ROM patches, and emulator refinements are
 outside the current result.
@@ -45,6 +45,10 @@ retail-binary execution and hardware is open.
 - [Actual area reset and null warp tables](docs/notes/area-initialization.md)
 - [Current-level GET command execution](docs/notes/current-level-get-execution.md)
 - [Playback-to-controller consumption boundary](docs/notes/consumed-input-execution.md)
+- [Connected-player-two complete input path](docs/notes/connected-second-controller-read.md)
+- [Actual second-pad playback](docs/notes/second-controller-playback.md)
+- [Actual second-controller analog processing](docs/notes/second-controller-execution.md)
+- [Terminal exit for every dialog type](docs/notes/dialog-zoom-execution.md)
 - [Executed warp boundaries](docs/notes/gameplay-boundary.md)
 - [Executed pause exclusion](docs/notes/pause-exclusion.md)
 - [Finite retail gameplay search](docs/notes/gameplay-search.md)

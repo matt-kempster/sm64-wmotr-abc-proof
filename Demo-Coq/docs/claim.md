@@ -167,7 +167,7 @@ now executes that entire real analog callee for arbitrary axes, both cap
 branches and actual allocation/free under the same named math contract.
 The [actual controller-tail executions](notes/controller-copy-execution.md)
 cover the disconnected second-controller branch and player-three copies
-with exact byte frames; their loop composition remains open.
+with exact byte frames; complete caller compositions are described below.
 The [post-camera caller interval](notes/normal-postcamera-execution.md)
 composes actual painting, pending countdown, complete pause query and return.
 Neither result establishes the whole frame or boot reachability.
@@ -208,13 +208,25 @@ processing and player-three copies, with exact outputs and stream/header
 preservation for EOF, expiry and non-expiry. It allows arbitrary physical
 and prior buttons; separate corollaries supply the real Start/EOF guards.
 The disconnected second logical controller, named math contract and concrete
-memory premises remain explicit. Connected P2, hardware-entry reachability
-and all-frame provenance remain open.
+memory premises remain explicit in that theorem. The
+[connected-P2 caller](notes/connected-second-controller-read.md) now executes
+the same original complete path for every timer, including the actual
+second-pad neutralization and connected-controller analog processing. It
+consumes [complete connected-P2 playback](notes/second-controller-playback.md)
+and the [actual second-controller branch](notes/second-controller-execution.md).
+Physical pad offsets 0/6, two named pure math contracts and concrete entry
+resources remain explicit. All other physical-port assignments, hardware-entry
+reachability and all-frame provenance remain open.
 The [complete delayed Demo Next calls](notes/delayed-warp-terminal-execution.md)
 cover countdown values 2–20 and terminal expiry through every real callee,
 under the stated debug/demo/dialog guards. They do not establish a sequence
 of complete gameplay frames or eliminate the ordinary warp destination
 condition.
+The [all-dialog terminal extension](notes/dialog-zoom-execution.md) removes
+the earlier dialogtype!=1 condition for both the complete terminal dispatcher
+and normal caller after painting. It executes the actual camera trigger2
+callee and replaces that condition with exact camera-cell/callee resources.
+This does not frame the whole camera update or establish boot reachability.
 The [normal caller composition](notes/normal-delayed-execution.md) consumes
 those actual delayed-call proofs, including terminal exit after painting and
 the full post-camera interval for all pending ticks 2–20. The

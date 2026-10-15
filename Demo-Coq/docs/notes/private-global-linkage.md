@@ -48,6 +48,13 @@ inventory, exact unit scopes and absence of private-global collisions across
 each version. The full 24-module registered proof build passed after
 regeneration.
 
+Those counts describe the original private-name correction. The current
+pipeline additionally generates the camera unit in both versions for the
+actual terminal dialog helper. There are now 40 generated units and 427
+private atoms (218 US and 209 JP). All 40 reproduce identically twice, and
+the earlier 38 ASTs remain byte-identical. The added camera helper does not
+establish a whole camera-update frame or complete game link.
+
 The selected complete script images and callback bytes were reauthenticated
 against the clean ROMs. All words, placements and retail hashes remained
 unchanged; only the 18 generated-source digest fields in `script-images.json`

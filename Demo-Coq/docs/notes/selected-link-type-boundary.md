@@ -1,9 +1,9 @@
 # The next selected-unit type-link boundary
 
 The gameplay verdict remains **open**. The normalized nine-unit script link is
-proved, but no link of all 19 currently generated units per version is claimed.
-Those 19 units are themselves a selected partial source inventory, not the
-complete game.
+proved, but no complete link of the current 20 generated units per version
+is claimed. The certificate and triage below use the pre-camera 19-unit
+selection. Both inventories cover only part of the game.
 
 The next narrow certificate, `DemoSelectedLinkTypeBoundary.v`, connects the
 existing nine-unit link result to an additional concrete type mismatch:
@@ -19,7 +19,7 @@ anonymous union tags.
 The proved array-declaration normalization leaves all four pointer globals
 exactly unchanged, for every definition catalog and public list. Its scope is
 zero-extent array declarations; it does not identify these anonymous composite
-types. A read-only Python metadata triage of the current ordered 19-unit list
+types. A read-only Python metadata triage of the pre-camera ordered 19-unit list
 first observed a variable-metadata mismatch when adding `area`, after the first
 17 units. That triage is not a Coq proof that the preceding complete AST or
 Clight prefix links: function-prototype and composite constraints also matter.

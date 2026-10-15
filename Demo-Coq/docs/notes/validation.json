@@ -22,7 +22,7 @@
     "coqchk": 0,
     "data": 0
   },
-  "reproducibility": "PASS: two fresh complete byte-identical generations after private-global freshening, all 38 units",
+  "reproducibility": "PASS: two fresh complete byte-identical generations of all40 units,20 perversion; old38 sources separately byte-checked unchanged; new production camera ASTs match isolated repeated generation.",
   "rom_metadata": "PASS: canonical US/JP ROM hashes; 7/6 selected streams, distinct headers, terminal records, buffer bounds",
   "audit": {
     "toolchain": "sm64-item-proof",
@@ -37,7 +37,7 @@
       {
         "name": "source inventory",
         "status": "PASS",
-        "detail": "75 source files; 0 inventory problems",
+        "detail": "81 source files; 0 inventory problems",
         "problems": []
       },
       {
@@ -74,23 +74,25 @@
       {
         "name": "integration",
         "status": "PASS",
-        "detail": "37/37 modules in MainTheorem's import closure; 0 standalone-only; 0 problems",
+        "detail": "41/41 modules in MainTheorem's import closure; 0 standalone-only; 0 problems",
         "problems": []
       }
     ],
     "integration": {
-      "proof_modules": 37,
+      "proof_modules": 41,
       "main_import_closure": [
         "proofs/DemoAnalogInputExecution.v",
         "proofs/DemoAreaInitialMemory.v",
         "proofs/DemoAreaInitialization.v",
         "proofs/DemoConditionalDispatchExecution.v",
+        "proofs/DemoConnectedSecondControllerReadExecution.v",
         "proofs/DemoConsumedInputExecution.v",
         "proofs/DemoControllerCopyExecution.v",
         "proofs/DemoControllerInputExecution.v",
         "proofs/DemoControllerReadExecution.v",
         "proofs/DemoCurrentLevelGetExecution.v",
         "proofs/DemoDelayedWarpTerminalExecution.v",
+        "proofs/DemoDialogZoomExecution.v",
         "proofs/DemoDispatchFacts.v",
         "proofs/DemoExternArrayCompletion.v",
         "proofs/DemoGameplayBoundary.v",
@@ -108,9 +110,11 @@
         "proofs/DemoPauseExclusion.v",
         "proofs/DemoPlaybackAdvanceExecution.v",
         "proofs/DemoPlaybackExecution.v",
+        "proofs/DemoPlaybackSecondControllerExecution.v",
         "proofs/DemoPrivateGlobalLinkReceipt.v",
         "proofs/DemoScriptDispatchFacts.v",
         "proofs/DemoScriptNumericImage.v",
+        "proofs/DemoSecondControllerExecution.v",
         "proofs/DemoSelectedLinkTypeBoundary.v",
         "proofs/DemoStartExecution.v",
         "proofs/DemoStartSchedulingExecution.v",
@@ -132,6 +136,7 @@
     "generated/jp_bbh_level_script.v": "f160cd89b190a0856a963946dd669733a48751f398816e3b8c24263d46ed7418",
     "generated/jp_bitdw_level_script.v": "ca66ac133af927a79386cd9df8e1ee25d0b8d00ac9edccc41dec540537f68e43",
     "generated/jp_bowser_1_level_script.v": "ac038cbe1612a16a30bdf605c328ba89cfce5dfe763a1234fee3974f271d8dbd",
+    "generated/jp_camera.v": "7f5f1634187c01c2e7d60dc242cb9d2d0d2daa2ce6bc9f620ba4765a474e8f14",
     "generated/jp_ccm_level_script.v": "cea3116aee648d7a1be8d9f0321bbb3071e372236c0a1109a5c091ef50c3d554",
     "generated/jp_game_init.v": "fd5d609e686e72dc7763e003492a2a3b1bff6ad6c1f92f01cfed21600a844316",
     "generated/jp_hmc_level_script.v": "bebebe365de529566ce032f6de1391a9be43f830970efd7456e065d07c3ac865",
@@ -151,6 +156,7 @@
     "generated/us_bbh_level_script.v": "cd9521f77c9847840dd374b63a4f1eaa6fcd973d0f251461945da132e6c67469",
     "generated/us_bitdw_level_script.v": "7f84db0d452b7090e85c543d1c1ef015f6d22719f3eece69eb9f37c23cef3ffe",
     "generated/us_bowser_1_level_script.v": "55e816f04933e6aeb8011738e49de1a950f3d8f0e497495d65bec1fea25f72f9",
+    "generated/us_camera.v": "6ea0b174ce2fc775a2ac3f16804943ffdd56caabb3c05425dd2a397f05e1b310",
     "generated/us_ccm_level_script.v": "5fe39cac10f6dd53ebe5d2b0f3444ba22e63b1f6e8424ebc6622fd48209c2fac",
     "generated/us_game_init.v": "2b329aef26e3e1d438b088df512d3972a12826e426f8a331b94cd1df14dff034",
     "generated/us_hmc_level_script.v": "d7252896f40702bab74ac2fecece2bcc6be23fe07a4b57c9539709a517791a46",
@@ -170,12 +176,14 @@
     "proofs/DemoAreaInitialization.v": "17e71a94830d5abf3eb4e685c7de23575b85c2093d6793c1e24297b9dea1dec0",
     "proofs/DemoAreaInitialMemory.v": "e60aa817f2f452cfdd250e316a63ad09789440869d960681bde965164f548a31",
     "proofs/DemoConditionalDispatchExecution.v": "b1f0b8ba62cf91e909713e2be2cb6260369f458f08721da750abdd276cf5ed4c",
+    "proofs/DemoConnectedSecondControllerReadExecution.v": "cea9418cc9c18077ef46656a961cc20042f38e84cef9e139409e769cae691faa",
     "proofs/DemoConsumedInputExecution.v": "5d546d77bc13b001544926e99557826e86425e1b09140bcca107e4a35079fc44",
     "proofs/DemoControllerCopyExecution.v": "9514e04b2adef8b03a286dd4df7ddb468e5e0b26d329705f620d95342967314d",
     "proofs/DemoControllerInputExecution.v": "e64084900deb71f0ed24e04f6c30d69b9ccacda59f0ce55ede0335fd2922d1f0",
     "proofs/DemoControllerReadExecution.v": "ae9884bc12999a5b1a7f08c80ff69156e70e40326332eb5bc13a08ecdaf4ac5e",
     "proofs/DemoCurrentLevelGetExecution.v": "1c288630030712af0185085611b4d75fbc8851289ad66f81fb1adbb9952aca37",
     "proofs/DemoDelayedWarpTerminalExecution.v": "0379cb6d20685fabcc123d3cb501842614dd9df450f61c2b575699a6f74bc868",
+    "proofs/DemoDialogZoomExecution.v": "829b935b3e1b4e516a536a4394ad3fae3a9cad2fdb149ce5ec9737375c07c509",
     "proofs/DemoDispatchFacts.v": "2149b38746cfe48b8c9d68e6a9febfb21b2c42a589f8f2adba62f3152d8fe23d",
     "proofs/DemoExternArrayCompletion.v": "313a3622060868141adff574c4ec3ddd2f89aaf2721651239f245b8c2fcc8848",
     "proofs/DemoGameplayBoundary.v": "43cbfc9c731103db08a33c74987c530cd59cda66ad39753f51934fa97e86214c",
@@ -193,33 +201,35 @@
     "proofs/DemoPauseExclusion.v": "660659cb8e7efd1e7855adb2a2b1a267930bc4919b7d11425ab30c4244390d26",
     "proofs/DemoPlaybackAdvanceExecution.v": "a93d83c85eef8b0ffbbcbeb539f5fdcf50cf1744d64e13381f187e1932141238",
     "proofs/DemoPlaybackExecution.v": "8e827d1d0bfc25984f53ca7315e9736ed9ca0ae38a0d97f322d29e9bf704d300",
+    "proofs/DemoPlaybackSecondControllerExecution.v": "e381ba8d06a3fb48b50960af8733608bd947f7117a2df016a966a593c0f2260e",
     "proofs/DemoPrivateGlobalLinkReceipt.v": "e6f4699ec2c6ddaaeb94fa6fa51a24e0919af8178e8a4cd30b6efe492dfbe162",
     "proofs/DemoScriptDispatchFacts.v": "1d0a06cd313155e79fb42c44483a6994128706ef411ad79e0ebe7acf49bab2fe",
     "proofs/DemoScriptNumericImage.v": "deba478cf0b38daa368272ceb8987cc1c04bd3ab49c6ba011271b8f8a4989241",
+    "proofs/DemoSecondControllerExecution.v": "fbe5faf66a93f1ee40125cac7e68745821eba9c7618b6b5c5c17a352fa9f363e",
     "proofs/DemoSelectedLinkTypeBoundary.v": "0f6fe1496ac16deb7a0f310ab9d80cf72987531d27a5bfd9c982da1408591dab",
     "proofs/DemoStartExecution.v": "757861403b39b88d8a0d894ef9fa855f0f0fe4e717bd10638a5db7f8b1f7e2f0",
     "proofs/DemoStartSchedulingExecution.v": "3551fcdc394694725f08614c245c10bb5a7ecc68ff2b99d5a9dae6e2cca8e4a1",
     "proofs/DemoStartWarpExecution.v": "39bc927dbcec2042ed94cf820f6c1751fcfd0bac7ac927e769e6515b027280cc",
     "proofs/DemoTitleStartExecution.v": "fe641382f6f181cb0702ef7f240e182a80c6d62814097857290fa3da5fe6fb5e",
-    "proofs/MainTheorem.v": "c62b139ce02c1acd586a60a835a2e00dac98b455e77e7fc2bf679ea4f2c95035",
+    "proofs/MainTheorem.v": "1eab79fc9aa0017802799025e7bc957edfd2c55894cdc69a880cb8ec4c9baa4c",
     "proofs/SourceFacts.v": "669339106aafe1f808da1cd5dac4dbfa88c2ee3a296b4c4e8a58a34268a83026"
   },
-  "boundary": "Exact per-unit initial-memory and step preservation under derived empty-array declaration normalization; official nine-unit script Clight links US/JP; actual next pointer-type link failure and finite corresponding Gfx definition/layout checks. Complete original post-polling controller path for all timers including EOF, arbitrary raw sticks and current/prior buttons, real analog and P2-disconnected/P3 processing, exact stream/header/protected-read frames and guard corollaries. Complete delayed Demo Next countdown2..20 and terminal1 with actual callees; actual normal terminal suffix and full post-camera pending2..20 interval. Earlier components retained. Connected P2, hardware entry/boot/DMA, all-frame bounds/preservation, full-source linking, active-overlay address simulation and retail/hardware refinement remain open.",
-  "audit_report": "build/audit/20261015-155310-jl1n9mjy/report.json",
+  "boundary": "Complete original post-polling controller paths for all timers with P2 absent or connected, exact outputs/stream/header/protected-read frames. Connected variant fixes physical pad offsets0/6 and two named pure sqrtf contracts. Complete terminal Demo Next dispatcher and actual normal caller after painting now cover every readable dialog type through real trigger2/reset/transition/special-warp callees. Debug/demo, camera-cell/callee and scalar resources remain explicit. Earlier exact declaration normalization/nine-unit links, source-type boundary, initial-memory reset and local startup/input/warp/interpreter results retained. Hardware entry/boot/DMA, all physical-port assignments, all-frame bounds/preservation, complete source linking, active-overlay address simulation and retail/hardware refinement remain open.",
+  "audit_report": "build/audit/20261015-162346-ttb27n5e/report.json",
   "gameplay_search_receipt_sha256": "13ebfaf563fc8ef18a26a64089c78f931f2dae612b7fd5c7781a4ea270c8731b",
   "historical_full_reproduction_check": {
     "checkpoint": "886cb4fa30a8b5622620b45af5fa86c1e99923f8",
     "return_code": 0,
     "log": "build/checkpoint-check.log",
     "generated_units": 38,
-    "reuse": "Not reused after private-global freshening. The current 38-unit reproduction and expanded proof checks are fresh."
+    "reuse": "Historical only; current40-unit full reproduction is fresh."
   },
   "current_validation_logs": [
-    "build/private-freshening-reproducible.log",
-    "build/checkpoint6-proofs.log",
-    "build/checkpoint6-discipline.log",
-    "build/checkpoint6-coqchk.log",
-    "build/checkpoint6-data.log"
+    "build/camera-promotion/full-reproducible.log",
+    "build/checkpoint7-proofs.log",
+    "build/checkpoint7-discipline.log",
+    "build/checkpoint7-coqchk.log",
+    "build/checkpoint7-data.log"
   ],
   "script_image_check": "PASS: authenticated complete matching ROMs, all selected script initializer words and relocations, three complete native callback byte ranges, exact Coq numeric transcription. Finite external check; no runtime or MIPS semantics refinement.",
   "allowed_foundations_used": [
@@ -237,7 +247,7 @@
     "pipeline/assumptions.sh": "4ba1fd71ebe8928c31efd673aef1141c07731542f32896624e905377a4c695ac",
     "pipeline/build.sh": "47b522d3d54e2470c6ebb44f577120d1646d88ade7764062cae8900969c8af94",
     "pipeline/check-demo-data.py": "8e1b99a5ca97bcb60a012bd7145d6e77138bef37432a85049539f390f6891b1e",
-    "pipeline/check-link-hygiene.sh": "2865bf95627e82dd8760f01596811e92d46ef9583d4ea7f545601bcd2aa098fe",
+    "pipeline/check-link-hygiene.sh": "809f05266c7a0bf68630e1ef7732020f4a88edfa5aa251f511bd78e0d89074a7",
     "pipeline/check-no-admitted.sh": "c1ed021a097fe121245abcf3c2b610f3d38ddf35a5dce3c4b18df5d40ffa33e6",
     "pipeline/check-reproducible.sh": "567a3d208db08030ac067605188dc1c2174e251818b0805d719da9f75f4ff545",
     "pipeline/check-script-images.py": "655f4a333aa856ad8c0f3365df67c9868cd539d46931bb421138174a92eed526",
@@ -246,22 +256,22 @@
     "pipeline/discipline-check.sh": "0a67621847ffb26c95e59306300226cbd5cf9b69677aa1c7ca7d4f37fbdc887f",
     "pipeline/discipline_audit.py": "a6999e7c722f9a44de3fd2e4c93c35048a5fa8184e7ac55db7e6fd8893659bf4",
     "pipeline/env.sh": "96d8b4494e66ddaafcc133cb83ef13c89652f05650b011e679d035f16274bf71",
-    "pipeline/generate-clight.sh": "bb552e08f50337d16d495b02fca820679c146d2b9d864f1e15e5207d2b403c78",
+    "pipeline/generate-clight.sh": "2551cd54eb0bfc8528321bb8ccbac25e767430e55a206ae50e914ebdb9e12bde",
     "pipeline/restore-pinned-source.py": "9457912862085f16cf91f0c0aaefd9ea385eccf76513433fdc7ad92c15f1cc55",
     "pipeline/scope-private-globals.py": "af124a62de8bc7e30f7ca68f34ca1cf8f6517e75fc989d7a4669183b475a6d69"
   },
   "private_global_freshening": {
-    "private_globals": 425,
-    "us": 217,
-    "jp": 208,
-    "changed_nonliteral_atom_strings": 299,
+    "private_globals": 427,
+    "us": 218,
+    "jp": 209,
     "public_non_global_and_existing_string_atoms": "unchanged",
-    "generated_change": "private atom definitions and hygiene headers only",
+    "generated_change": "Prior38 AST bytes unchanged; two mechanically generated camera units added, one scoped private atom each.",
     "selected_ast_links": "all eight level-script units per version",
     "selected_clight_links": "BBH+CCM per version",
-    "public_array_declaration_refinement": "PASS for selected nine script units via proved declaration normalization; original generated programs unchanged; wider source-link/type-renaming and gameplay refinement OPEN."
+    "public_array_declaration_refinement": "PASS for selected nine script units via proved declaration normalization; original generated programs unchanged; wider source-link/type-renaming and gameplay refinement OPEN.",
+    "historical_38_unit_changed_nonliteral_atom_strings": 299
   },
-  "generation_reuse": "Complete two-pass reproduction at6565e6c reused after checking every generated-source and pipeline digest against the preceding receipt. All38 generated sources and generation scripts are unchanged. Registered37-module build, discipline/assumptions, independent kernel and data checks are fresh.",
+  "generation_reuse": "Not reused: full40 two-pass generation, registered41-module build, discipline/assumptions, independent kernel and authenticated data checks are fresh.",
   "normalized_selected_link": {
     "units_per_version": 9,
     "normalization": "only empty zero-extent public arrays, metadata derived from actual positive initialized definitions; readonly on empty declarations only",
@@ -275,8 +285,20 @@
     "semantics": "star step2 under Clight.globalenv prog",
     "timers": "all, including EOF and expiry",
     "physical_and_previous_buttons": "arbitrary",
-    "second_logical_controller": "absent",
-    "math": "named pure sqrtf contract on emitted stick square sum",
-    "boot_and_connected_P2": "OPEN"
+    "second_logical_controller": "absent or connected; connected variant fixes physical pads0/6",
+    "math": "named pure sqrtf contracts: emitted P1 stick square sum; P2 zero sum with capfalse",
+    "boot_hardware_all_physical_ports_and_provenance": "OPEN"
+  },
+  "terminal_dialog": {
+    "types": "all readable dialog types",
+    "semantics": "complete actual terminal dispatcher and original normal suffix after painting",
+    "real_callees": [
+      "trigger_cutscene_dialog(2)",
+      "reset_dialog_render_state",
+      "level_set_transition",
+      "warp_special"
+    ],
+    "entry": "debug0, valid nonnull active demo, operation22/timer1, scalar/camera symbols, reads and writable/separated cells",
+    "whole_camera_frame_and_reachability": "OPEN"
   }
 }

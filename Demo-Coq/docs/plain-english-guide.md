@@ -55,7 +55,7 @@ The controller-processing branch proves actual button edges for neutral
 sticks. A new complete analog-call theorem removes that stick restriction:
 it executes arbitrary raw axes, every deadzone and magnitude-cap branch,
 and the real stack allocation/free, with exact symbolic float outputs and
-a named pure `sqrtf` contract. The complete polling loop remains open.
+a named pure `sqrtf` contract. Hardware polling remains open.
 The actual disconnected second-controller branch and player-three copies
 also execute separately, with byte frames protecting player one's inputs.
 They now compose with playback, analog processing, both actual loop
@@ -65,8 +65,14 @@ expiry, arbitrary current and prior buttons, and arbitrary recorded sticks.
 It retains exact controller values and the stream pointer, timer and header
 through the loop. Start and EOF guards are separate consequences of the
 proved final button value. The second logical controller is absent in this
-theorem; connected-player-two processing, hardware polling/boot and
-all-frame provenance remain open.
+theorem. A [connected-player-two extension](notes/connected-second-controller-read.md)
+now executes the same complete path with both logical controllers connected:
+the actual playback code clears player two's physical pad, then the real
+copy and analog call process those neutral inputs. Every timer branch is
+covered, including EOF. This extension fixes the first two physical pads
+at byte offsets 0 and 6 and uses two precise pure math contracts. Deriving
+pad pointers from initialization, all other physical-port assignments,
+hardware polling/boot and all-frame provenance remain open.
 
 An additional proof connects ordinary-record playback, including expiry,
 to the actual input loop's controller-copy boundary for arbitrary recorded
@@ -109,7 +115,7 @@ HUD and camera effects remain open.
 
 The delayed-warp routine itself now executes every Demo Next countdown
 value from 2 through 20 and its full terminal timer-1 path. Under the real
-debug/demo guards and a non-zoom dialog type, terminal expiry executes
+debug/demo guards and initially a non-zoom dialog type, terminal expiry executes
 the actual dialog reset, transition helper and special-warp call. It
 sets mode 4, control code -2, zero transition timer and null callback.
 This is a proof of the actual calls, not an induction over gameplay frames;
@@ -121,6 +127,13 @@ pause query and zero return. For terminal timer 1 it covers the suffix
 immediately after painting through the full delayed call and final mode-4
 decision. The different entry points and explicit guards remain part of
 those statements.
+
+The [all-dialog terminal extension](notes/dialog-zoom-execution.md) now removes
+the non-zoom restriction from the complete terminal call and normal caller
+after painting. It executes the real camera `trigger_cutscene_dialog(2)`
+when required, rather than assuming that callee's execution. Exact camera
+cell and target-resolution resources replace the old dialog-type premise.
+The whole camera update and the earlier frame remain separate obligations.
 
 The complete area-reset call now executes all eight loop iterations. It
 establishes null painting and instant-warp tables in all eight area records,

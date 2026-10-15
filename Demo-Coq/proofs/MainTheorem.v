@@ -9,7 +9,9 @@ From Demo.Proofs Require Import SourceFacts DemoDispatchFacts DemoStartExecution
   DemoAreaInitialization DemoAreaInitialMemory DemoAnalogInputExecution
   DemoControllerCopyExecution DemoNormalPostCameraExecution DemoExternArrayCompletion
   DemoDelayedWarpTerminalExecution DemoControllerReadExecution
-  DemoNormalDelayedExecution DemoSelectedLinkTypeBoundary.
+  DemoNormalDelayedExecution DemoSelectedLinkTypeBoundary
+  DemoPlaybackSecondControllerExecution DemoSecondControllerExecution
+  DemoConnectedSecondControllerReadExecution DemoDialogZoomExecution.
 
 (** This capstone composes actual source/semantic components on the route to
     the gameplay invariant. It is not yet a theorem of no desync from boot. *)
@@ -33,7 +35,10 @@ Definition demo_checked_boundary_claim : Prop :=
   demo_controller_copy_execution_claim /\ demo_normal_postcamera_execution_claim /\
   demo_extern_array_completion_boundary_claim_us_jp /\ demo_delayed_warp_execution_claim /\
   demo_controller_post_polling_claim_us_jp /\ demo_normal_delayed_execution_claim /\
-  demo_selected_link_type_boundary_claim_us_jp.
+  demo_selected_link_type_boundary_claim_us_jp /\ demo_connected_second_playback_claim_us_jp /\
+  demo_second_controller_execution_claim /\
+  demo_connected_second_controller_post_polling_claim_us_jp /\
+  demo_dialog_zoom_terminal_execution_claim.
 
 Theorem checked_demo_source_boundary_us_jp : demo_checked_boundary_claim.
 Proof.
@@ -71,5 +76,9 @@ Proof.
                                                               (conj generated_demo_delayed_warp_execution_us_jp
                                                                 (conj generated_controller_post_polling_us_jp
                                                                   (conj generated_normal_delayed_execution_us_jp
-                                                                    generated_demo_selected_link_type_boundary_us_jp)))))))))))))))))))))))))))))))))).
+                                                                    (conj generated_demo_selected_link_type_boundary_us_jp
+                                                                      (conj generated_connected_second_playback_us_jp
+                                                                        (conj generated_second_connected_neutral_controller_executes_us_jp
+                                                                          (conj generated_connected_second_controller_post_polling_us_jp
+                                                                            generated_dialog_zoom_terminal_execution_us_jp)))))))))))))))))))))))))))))))))))))).
 Qed.

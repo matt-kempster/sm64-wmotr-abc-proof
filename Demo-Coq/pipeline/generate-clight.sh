@@ -70,6 +70,7 @@ TRANSLATION_UNITS=(
   "star_select:src/menu/star_select.c"
   "memory:src/game/memory.c"
   "area:src/game/area.c"
+  "camera:src/game/camera.c"
   "ingame_menu:src/game/ingame_menu.c"
   "bitdw_level_script:levels/bitdw/script.c"
   "bowser_1_level_script:levels/bowser_1/script.c"

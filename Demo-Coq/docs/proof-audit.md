@@ -20,7 +20,7 @@ rechecked on 2026-10-15 through `pipeline/env.sh`:
 `pipeline/discipline-check.sh` activate this environment themselves. Use these
 entry points instead of invoking bare `coqc`.
 
-The source pin is `9921382a68bb0c865e5e45eb594d9c64db59b1af`. There are 19
+The source pin is `9921382a68bb0c865e5e45eb594d9c64db59b1af`. There are 20
 translation units per version, mechanically generated for US and JP. The
 generation pipeline restores and byte-checks the complete pinned source
 inventory, derives and hash-checks `levels/level_headers.h`, derives the text
@@ -109,20 +109,22 @@ verified environment above.
 
 ## Recorded validation
 
-Fresh registered validation passed for all 37 proof modules:
+Fresh registered validation passed for all 41 proof modules:
 
-- build: `build/checkpoint6-proofs.log`, exit 0;
-- discipline and capstone assumptions: `build/checkpoint6-discipline.log`, exit 0;
-- independent silent kernel check: `build/checkpoint6-coqchk.log`, exit 0;
-- authenticated demo/script data and proof-hole scan: `build/checkpoint6-data.log`, exit 0.
+- complete40-source two-pass generation: `build/camera-promotion/full-reproducible.log`, exit0;
+- registered build: `build/checkpoint7-proofs.log`, exit0;
+- discipline/capstone assumptions: `build/checkpoint7-discipline.log`, exit0;
+- independent silent kernel check: `build/checkpoint7-coqchk.log`, exit0;
+- authenticated demo/script data and proof-hole scan: `build/checkpoint7-data.log`, exit0.
 
-The final audit is `build/audit/20261015-155310-jl1n9mjy/report.json`. All 75 sources
-are registered and all 37 proof modules occur in the capstone import closure.
+The audit is `build/audit/20261015-162346-ttb27n5e/report.json`. All 81 sources are
+registered, and all 41 proof modules occur in the capstone import closure.
 Exact source/pipeline hashes and the full report are in `notes/validation.json`.
-The two-pass reproduction at `6565e6c` is reused only after verifying every
-generated-source and pipeline digest against the preceding receipt. Those
-38 generated sources and pipeline scripts are unchanged; proof/kernel checks
-above are fresh. The data checks use unchanged data/checker inputs.
+The camera unit was added for both versions through the normal pipeline.
+All 40 ASTs reproduce identically twice; the preceding 38 ASTs are separately
+byte-checked unchanged, and both camera ASTs match isolated repeated generation.
+There are 427 scoped private atoms: 218 US and 209 JP. This does not certify
+whole-program linking or compatibility of public declarations.
 
 The nine allowed Coq/CompCert foundations actually used are:
 
@@ -136,42 +138,36 @@ The nine allowed Coq/CompCert foundations actually used are:
 - `Events.inline_assembly_sem`;
 - `FunctionalExtensionality.functional_extensionality_dep`.
 
-There are no project axioms. The declaration simulation uses CompCert's
-standard external-function and inline-assembly properties in addition to
-their semantic parameters. All nine were already on the allowlist. These
-properties do not establish the named sqrtf or SDK/hardware contracts, nor
-do they discharge concrete memory or reachable-entry premises.
+There are no project axioms. Standard external-function/inline-assembly
+properties do not establish the named math or SDK/hardware contracts, nor
+discharge concrete memory or reachable-entry premises.
 
-The [proved declaration normalization](notes/extern-array-completion.md)
-preserves each actual selected unit's exact initial memory and every step,
-then establishes official nine-unit Clight links. The
-[next type-boundary certificate](notes/selected-link-type-boundary.md)
-checks an actual anonymous Gfx pointer-type rejection and corresponding
-generated definitions/layouts. There is no type-renaming simulation,
-all-19-unit link, complete game link or active-overlay refinement.
+The [connected-P2 playback](notes/second-controller-playback.md),
+[actual second-controller branch](notes/second-controller-execution.md) and
+[complete caller](notes/connected-second-controller-read.md) now compose
+the entire original post-polling path with P2 connected. Every timer branch,
+arbitrary P1 raw axes/current/prior buttons, real P2 neutral analog call,
+both loop iterations and player-three copies execute. Exact outputs,
+stream pointer/timer/header and protected-read frames are retained.
+Physical pad offsets0/6 and two precise pure sqrtf contracts remain explicit;
+hardware entry, other physical-port assignments and all-frame provenance
+remain open. The earlier P2-absent caller remains valid with its literal scope.
 
-The [complete original post-polling caller](notes/controller-read-execution.md)
-now handles every timer including EOF and expiry, arbitrary physical/prior
-buttons and recorded sticks, actual analog processing, both loop iterations
-and final player-three copy. It preserves the stream pointer, expected
-timer, header and protected loaded cells. Start/EOF guards are separate
-corollaries. The second logical controller is absent and concrete memory,
-program, symbol/layout and named pure math contracts remain explicit.
-Connected P2, hardware entry, boot and all-frame provenance remain open.
+The [all-dialog terminal result](notes/dialog-zoom-execution.md) removes the
+earlier dialogtype!=1 restriction from the complete terminal dispatcher and
+actual normal suffix after painting. It executes the real camera trigger2,
+reset, transition and special-warp callees. Exact camera-cell/callee resources
+replace that dialog restriction. Debug/demo/scalar resources and ordinary warp
+destination remain explicit. The earlier full post-camera pending2..20 interval
+does not establish twenty consecutive gameplay frames. Whole object/HUD/camera
+effects and boot reachability remain open.
 
-The [complete delayed calls](notes/delayed-warp-terminal-execution.md) cover
-pending ticks 2–20 and terminal tick 1 through all actual callees. The
-[normal caller](notes/normal-delayed-execution.md) consumes those proofs:
-terminal after-painting exit through the final decision, and full post-camera
-painting/countdown/pause/return for ticks 2–20. The terminal dialogtype!=1,
-debug/demo reads, ordinary warp destination and other concrete premises retain
-their literal scopes. This is not an induction over consecutive game frames.
-
-The actual area-unit initial-memory reset, startup/loader, numeric-script,
-current-level GET and earlier input/warp components retain their recorded
-boundaries. Object/HUD/camera effects, complete loaded-gameplay composition,
-authentic boot/DMA, global preservation and MIPS/hardware refinement remain
-open. Additional ignored staging work is not counted as completed.
+The exact declaration normalization and official nine-unit script links,
+checked next anonymous-tag boundary, area-unit initial-memory reset and earlier
+startup/input/interpreter/warp components retain their recorded scopes.
+There is no complete source-link/type-renaming proof, active-overlay simulation,
+whole loaded-gameplay composition or N64 MIPS/hardware refinement. Ignored
+staging is not counted as completed.
 
 The full gameplay verdict remains **OPEN**, with no reachable counterexample
 established. Bounded retail evidence remains 12,866 observed updates with
