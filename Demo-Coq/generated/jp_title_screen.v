@@ -5,7 +5,7 @@
    Source:          src/menu/title_screen.c
    Generator:       The CompCert CompCert AST generator, version 3.15
    Flags:           -normalize -nostdinc -fstruct-passing -Ibuild/pinned-sm64/include -Ibuild/pinned-sm64/src -Ibuild/pinned-sm64/src/game -Ibuild/pinned-sm64 -Ibuild/pinned-sm64/include/libc -D_FINALROM=1 -DTARGET_N64=1 -DNON_MATCHING=1 -DAVOID_UB=1 -D_LANGUAGE_C=1 -DVERSION_JP=1 -DF3D_OLD=1
-   Link hygiene:    private __stringlit_N atoms prefixed with jp_title_screen
+   Link hygiene:    private globals scoped by translation unit title_screen
    ====================================================================== *)
 From Coq Require Import String List ZArith.
 From compcert Require Import Coqlib Integers Floats AST Ctypes Cop Clight Clightdefs.
@@ -172,8 +172,8 @@ Definition _rawStickX : ident := $"rawStickX".
 Definition _rawStickY : ident := $"rawStickY".
 Definition _retVar : ident := $"retVar".
 Definition _run_level_id_or_demo : ident := $"run_level_id_or_demo".
-Definition _sDemoCountdown : ident := $"sDemoCountdown".
-Definition _sLevelSelectStageNames : ident := $"sLevelSelectStageNames".
+Definition _sDemoCountdown : ident := $"__demo_title_screen_sDemoCountdown".
+Definition _sLevelSelectStageNames : ident := $"__demo_title_screen_sLevelSelectStageNames".
 Definition _set_background_music : ident := $"set_background_music".
 Definition _size : ident := $"size".
 Definition _srcAddr : ident := $"srcAddr".

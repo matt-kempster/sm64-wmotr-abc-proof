@@ -175,3 +175,25 @@ actual equality and address-helper callees and stores the exact numeric PC,
 with its numeric target-cell read explicit. The actual next-opcode expression
 cannot dereference that `Vint` in ordinary Clight. This sharpens the caller
 boundary without asserting a full boot or overlay simulation.
+
+The [current-level GET command](notes/current-level-get-execution.md) now
+executes its complete real function call and exact register/pointer stores;
+finite syntax checks tie it to the dispatch command and handler table.
+The [complete area reset](notes/area-initialization.md) executes all eight
+iterations and establishes null painting/instant pointers under explicit
+entry memory conditions and a checked generated composite layout.
+
+The [consumed-input connection](notes/consumed-input-execution.md) composes
+ordinary playback, including expiry and arbitrary stick bytes, with the
+actual controller-copy prefix and Start/END guard masks. It additionally
+supplies an original-loop small-step path from the post-hardware-polling
+body to the analog call under `ge = Clight.globalenv prog`. It does not
+establish boot or post-polling-entry reachability or subsequent processing.
+
+The [private-name correction](notes/private-global-linkage.md) is now in the
+generation pipeline. It preserves public/non-global and existing string
+names and scopes every private global. Selected official AST and Clight
+links succeed. A checked incomplete/complete public array type rejection
+remains; no public type was changed to force a link. Whole-game linking and
+active-image simulation remain open. The official Clight link construction
+uses CompCert's existing proof-irrelevance foundation, not a project axiom.

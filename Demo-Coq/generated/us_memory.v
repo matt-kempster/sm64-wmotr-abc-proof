@@ -5,7 +5,7 @@
    Source:          src/game/memory.c
    Generator:       The CompCert CompCert AST generator, version 3.15
    Flags:           -normalize -nostdinc -fstruct-passing -Ibuild/pinned-sm64/include -Ibuild/pinned-sm64/src -Ibuild/pinned-sm64/src/game -Ibuild/pinned-sm64 -Ibuild/pinned-sm64/include/libc -D_FINALROM=1 -DTARGET_N64=1 -DNON_MATCHING=1 -DAVOID_UB=1 -D_LANGUAGE_C=1 -DVERSION_US=1 -DF3DEX_GBI_2=1 -DF3DEX_GBI_SHARED=1
-   Link hygiene:    private __stringlit_N atoms prefixed with us_memory
+   Link hygiene:    private globals scoped by translation unit memory
    ====================================================================== *)
 From Coq Require Import String List ZArith.
 From compcert Require Import Coqlib Integers Floats AST Ctypes Cop Clight Clightdefs.
@@ -197,10 +197,10 @@ Definition _destSize : ident := $"destSize".
 Definition _devAddr : ident := $"devAddr".
 Definition _dma : ident := $"dma".
 Definition _dmaTable : ident := $"dmaTable".
-Definition _dma_read : ident := $"dma_read".
+Definition _dma_read : ident := $"__demo_memory_dma_read".
 Definition _dram : ident := $"dram".
 Definition _dramAddr : ident := $"dramAddr".
-Definition _dynamic_dma_read : ident := $"dynamic_dma_read".
+Definition _dynamic_dma_read : ident := $"__demo_memory_dynamic_dma_read".
 Definition _end : ident := $"end".
 Definition _f : ident := $"f".
 Definition _f_even : ident := $"f_even".
@@ -241,7 +241,7 @@ Definition _gDmaIoMesg : ident := $"gDmaIoMesg".
 Definition _gDmaMesgQueue : ident := $"gDmaMesgQueue".
 Definition _gEffectsMemoryPool : ident := $"gEffectsMemoryPool".
 Definition _gGfxPoolEnd : ident := $"gGfxPoolEnd".
-Definition _gMainPoolState : ident := $"gMainPoolState".
+Definition _gMainPoolState : ident := $"__demo_memory_gMainPoolState".
 Definition _gMainReceivedMesg : ident := $"gMainReceivedMesg".
 Definition _get_segment_base_addr : ident := $"get_segment_base_addr".
 Definition _gp : ident := $"gp".
@@ -257,7 +257,7 @@ Definition _list : ident := $"list".
 Definition _listHeadL : ident := $"listHeadL".
 Definition _listHeadR : ident := $"listHeadR".
 Definition _lo : ident := $"lo".
-Definition _load_dma_table_address : ident := $"load_dma_table_address".
+Definition _load_dma_table_address : ident := $"__demo_memory_load_dma_table_address".
 Definition _load_engine_code_segment : ident := $"load_engine_code_segment".
 Definition _load_patchable_table : ident := $"load_patchable_table".
 Definition _load_segment : ident := $"load_segment".

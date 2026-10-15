@@ -5,7 +5,7 @@
    Source:          src/menu/star_select.c
    Generator:       The CompCert CompCert AST generator, version 3.15
    Flags:           -normalize -nostdinc -fstruct-passing -Ibuild/pinned-sm64/include -Ibuild/pinned-sm64/src -Ibuild/pinned-sm64/src/game -Ibuild/pinned-sm64 -Ibuild/pinned-sm64/include/libc -D_FINALROM=1 -DTARGET_N64=1 -DNON_MATCHING=1 -DAVOID_UB=1 -D_LANGUAGE_C=1 -I/mnt/c/Users/tariq/OneDrive/Documents/sm64 - the item-grab proof/reference-sm64-wmotr-abc-proof/Demo-Coq/build/text-jp -DVERSION_JP=1 -DF3D_OLD=1
-   Link hygiene:    private __stringlit_N atoms prefixed with jp_star_select
+   Link hygiene:    private globals scoped by translation unit star_select
    ====================================================================== *)
 From Coq Require Import String List ZArith.
 From compcert Require Import Coqlib Integers Floats AST Ctypes Cop Clight Clightdefs.
@@ -279,14 +279,14 @@ Definition _respawnInfo : ident := $"respawnInfo".
 Definition _respawnInfoType : ident := $"respawnInfoType".
 Definition _roll : ident := $"roll".
 Definition _room : ident := $"room".
-Definition _sActSelectorMenuTimer : ident := $"sActSelectorMenuTimer".
-Definition _sInitSelectedActNum : ident := $"sInitSelectedActNum".
-Definition _sLoadedActNum : ident := $"sLoadedActNum".
-Definition _sObtainedStars : ident := $"sObtainedStars".
-Definition _sSelectableStarIndex : ident := $"sSelectableStarIndex".
-Definition _sSelectedActIndex : ident := $"sSelectedActIndex".
-Definition _sStarSelectorModels : ident := $"sStarSelectorModels".
-Definition _sVisibleStars : ident := $"sVisibleStars".
+Definition _sActSelectorMenuTimer : ident := $"__demo_star_select_sActSelectorMenuTimer".
+Definition _sInitSelectedActNum : ident := $"__demo_star_select_sInitSelectedActNum".
+Definition _sLoadedActNum : ident := $"__demo_star_select_sLoadedActNum".
+Definition _sObtainedStars : ident := $"__demo_star_select_sObtainedStars".
+Definition _sSelectableStarIndex : ident := $"__demo_star_select_sSelectableStarIndex".
+Definition _sSelectedActIndex : ident := $"__demo_star_select_sSelectedActIndex".
+Definition _sStarSelectorModels : ident := $"__demo_star_select_sStarSelectorModels".
+Definition _sVisibleStars : ident := $"__demo_star_select_sVisibleStars".
 Definition _save_file_get_course_coin_score : ident := $"save_file_get_course_coin_score".
 Definition _save_file_get_course_star_count : ident := $"save_file_get_course_star_count".
 Definition _save_file_get_star_flags : ident := $"save_file_get_star_flags".

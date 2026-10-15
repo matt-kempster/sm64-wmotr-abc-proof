@@ -5,7 +5,7 @@
    Source:          levels/bitdw/script.c
    Generator:       The CompCert CompCert AST generator, version 3.15
    Flags:           -normalize -nostdinc -fstruct-passing -Ibuild/pinned-sm64/include -Ibuild/pinned-sm64/src -Ibuild/pinned-sm64/src/game -Ibuild/pinned-sm64 -Ibuild/pinned-sm64/include/libc -D_FINALROM=1 -DTARGET_N64=1 -DNON_MATCHING=1 -DAVOID_UB=1 -D_LANGUAGE_C=1 -DVERSION_JP=1 -DF3D_OLD=1
-   Link hygiene:    private __stringlit_N atoms prefixed with jp_bitdw_level_script
+   Link hygiene:    private globals scoped by translation unit bitdw_level_script
    ====================================================================== *)
 From Coq Require Import String List ZArith.
 From compcert Require Import Coqlib Integers Floats AST Ctypes Cop Clight Clightdefs.
@@ -187,9 +187,9 @@ Definition _main : ident := $"main".
 Definition _script_func_global_1 : ident := $"script_func_global_1".
 Definition _script_func_global_12 : ident := $"script_func_global_12".
 Definition _script_func_global_18 : ident := $"script_func_global_18".
-Definition _script_func_local_1 : ident := $"script_func_local_1".
-Definition _script_func_local_2 : ident := $"script_func_local_2".
-Definition _script_func_local_3 : ident := $"script_func_local_3".
+Definition _script_func_local_1 : ident := $"__demo_bitdw_level_script_script_func_local_1".
+Definition _script_func_local_2 : ident := $"__demo_bitdw_level_script_script_func_local_2".
+Definition _script_func_local_3 : ident := $"__demo_bitdw_level_script_script_func_local_3".
 Definition _warp_pipe_geo : ident := $"warp_pipe_geo".
 
 Definition v_bhvWarpPipe := {|

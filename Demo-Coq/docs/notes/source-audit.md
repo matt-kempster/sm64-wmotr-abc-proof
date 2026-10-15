@@ -216,8 +216,19 @@ jump. Their remaining composition includes the explicit
 [address-refinement gap](address-refinement.md); Demo now executes its own
 numeric helper and authenticates finite numeric script images, while
 relocation/caller/dereference simulation remains open. The actual private
-script-name collision and prepared correction are recorded in
+script-name collision, applied private-global correction and remaining
+public-array declaration boundary are recorded in
 [private-global-linkage.md](private-global-linkage.md).
+
+The complete [area reset](area-initialization.md) now supplies a checked
+null-table producer, with generated layouts and explicit starting-memory
+resources. The [current-level GET command](current-level-get-execution.md)
+executes its complete real register/pointer stores. The
+[consumed-input connection](consumed-input-execution.md) now also follows
+the original input loop's small steps from its supplied post-polling state
+to the actual analog call, with arbitrary record sticks and exact Start/END
+guards. Actual boot entry, subsequent processing and loaded-level preservation
+are not inferred from these local executions.
 
 To close the requested normal-execution impossibility claim, the remaining
 work includes:

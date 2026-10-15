@@ -10,7 +10,7 @@
         {
           "unit": "level_scripts",
           "segment": "scripts",
-          "generated_sha256": "36603f1716212b1ec106d648637f77b5b5d5a3a6c92db08970d8143552df6a22",
+          "generated_sha256": "42d28d1387dec31848b1d192fea34976bdc5932c95efff5112a0ad9378815e35",
           "initializers": {
             "level_main_scripts_entry": {
               "address": 352321536,
@@ -658,7 +658,7 @@
         {
           "unit": "bbh_level_script",
           "segment": "bbh",
-          "generated_sha256": "da758fea5d0ae8ea8aa8ad95131900b549a3f0e7b8c7e029af711b37b73e97c0",
+          "generated_sha256": "cd9521f77c9847840dd374b63a4f1eaa6fcd973d0f251461945da132e6c67469",
           "initializers": {
             "level_bbh_entry": {
               "address": 234882072,
@@ -760,7 +760,7 @@
         {
           "unit": "ccm_level_script",
           "segment": "ccm",
-          "generated_sha256": "08f9f9e2b3f5ae36b68cb76d3bffdad69689a88fafaa02f4087ca92d9f188498",
+          "generated_sha256": "5fe39cac10f6dd53ebe5d2b0f3444ba22e63b1f6e8424ebc6622fd48209c2fac",
           "initializers": {
             "level_ccm_entry": {
               "address": 234881400,
@@ -861,7 +861,7 @@
         {
           "unit": "hmc_level_script",
           "segment": "hmc",
-          "generated_sha256": "5a0eee9b48ee2de692c027c10b8c5099af7a022eba5e40f4df6236bfde605cef",
+          "generated_sha256": "d7252896f40702bab74ac2fecece2bcc6be23fe07a4b57c9539709a517791a46",
           "initializers": {
             "level_hmc_entry": {
               "address": 234881928,
@@ -953,7 +953,7 @@
         {
           "unit": "jrb_level_script",
           "segment": "jrb",
-          "generated_sha256": "f24172d40fa76056ad70cde7f3cd21d12ed41fd1de8fbcea8a29d023a8972c32",
+          "generated_sha256": "364c59d8559b91ce9be3aba1570e9ae26684980019edee89f5ae13b376cf3381",
           "initializers": {
             "level_jrb_entry": {
               "address": 234882796,
@@ -1068,7 +1068,7 @@
         {
           "unit": "wf_level_script",
           "segment": "wf",
-          "generated_sha256": "a55f7894e769146a6f50956c69481926c344033a710727f27afd2e5a0ae63167",
+          "generated_sha256": "fe7d439318a9f57ca2cb3cc2bfd6ef7bd7b13d59f8cbd03ea5e426e65523d59f",
           "initializers": {
             "level_wf_entry": {
               "address": 234882408,
@@ -1200,7 +1200,7 @@
         {
           "unit": "pss_level_script",
           "segment": "pss",
-          "generated_sha256": "43244592f694bbc4e1cff1d88b6ce3f875573a2949c1ee6addd5268138b755c1",
+          "generated_sha256": "2ab71d84aae69a7e8ace8f461a3e610ce8e771b320bea7880aeeb8e95d4c5164",
           "initializers": {
             "level_pss_entry": {
               "address": 234881024,
@@ -1235,7 +1235,7 @@
         {
           "unit": "bowser_1_level_script",
           "segment": "bowser_1",
-          "generated_sha256": "e50142e98e1265b736ee7713e110f8bbe98a3808b897b4f9dc33cef728d367f4",
+          "generated_sha256": "55e816f04933e6aeb8011738e49de1a950f3d8f0e497495d65bec1fea25f72f9",
           "initializers": {
             "level_bowser_1_entry": {
               "address": 234881024,
@@ -1265,7 +1265,7 @@
         {
           "unit": "bitdw_level_script",
           "segment": "bitdw",
-          "generated_sha256": "e0e722ba0a0b76aee9cab8511c5607fb1154e23e649cb56713fcb737741dd66a",
+          "generated_sha256": "7f84db0d452b7090e85c543d1c1ef015f6d22719f3eece69eb9f37c23cef3ffe",
           "initializers": {
             "level_bitdw_entry": {
               "address": 234881396,
@@ -1391,7 +1391,7 @@
         {
           "unit": "level_scripts",
           "segment": "scripts",
-          "generated_sha256": "e6d27cad23ef31b234419862cb2871c2c51a12f9bf536f7f61c41bbdbc01f6be",
+          "generated_sha256": "da4cea75c420592bba6672823d740d09439f5dcdbcc1d81c944f5bc9659ecd6b",
           "initializers": {
             "level_main_scripts_entry": {
               "address": 352321536,
@@ -2039,7 +2039,7 @@
         {
           "unit": "bbh_level_script",
           "segment": "bbh",
-          "generated_sha256": "c8ddde17bbf0b13940da8f86b2a2b82ffbdae3808d1200a4b50baafd939ba74e",
+          "generated_sha256": "f160cd89b190a0856a963946dd669733a48751f398816e3b8c24263d46ed7418",
           "initializers": {
             "level_bbh_entry": {
               "address": 234882072,
@@ -2141,7 +2141,7 @@
         {
           "unit": "ccm_level_script",
           "segment": "ccm",
-          "generated_sha256": "cb615c9148ca81edf351f1da564fc8218c965951f8545d1c23cff3b8eb97365c",
+          "generated_sha256": "cea3116aee648d7a1be8d9f0321bbb3071e372236c0a1109a5c091ef50c3d554",
           "initializers": {
             "level_ccm_entry": {
               "address": 234881376,
@@ -2241,7 +2241,7 @@
         {
           "unit": "hmc_level_script",
           "segment": "hmc",
-          "generated_sha256": "945285c585e38e123588c8acc82f8ba770c3b3707ceffb3463736f124232ced3",
+          "generated_sha256": "bebebe365de529566ce032f6de1391a9be43f830970efd7456e065d07c3ac865",
           "initializers": {
             "level_hmc_entry": {
               "address": 234881928,
@@ -2333,7 +2333,7 @@
         {
           "unit": "jrb_level_script",
           "segment": "jrb",
-          "generated_sha256": "64a5f7601838d3cc905e8a350042c67ce5d42b44ec5a4230c56423dec29100f6",
+          "generated_sha256": "ef78ea0cc93afe7bb786d1af5cad16cde55f30cbdc9e9c2f06da50c2d472229c",
           "initializers": {
             "level_jrb_entry": {
               "address": 234882796,
@@ -2447,7 +2447,7 @@
         {
           "unit": "wf_level_script",
           "segment": "wf",
-          "generated_sha256": "5eaee8c6e57d5c8016141b2bb09dc6610f6b2028d5f55f600e9bc8fde33b6212",
+          "generated_sha256": "20dcf457839f75baed6027326eb03fe2159a2c64cad5a1b030463e3a933166cb",
           "initializers": {
             "level_wf_entry": {
               "address": 234882408,
@@ -2579,7 +2579,7 @@
         {
           "unit": "pss_level_script",
           "segment": "pss",
-          "generated_sha256": "ee81555c8c9956595d3e4669dac01a09c530fbb4dcd3ca40f9c470cf389112a9",
+          "generated_sha256": "7e605087e0caa6076dfe67a8357b9e810cb3623cdaf629db521f769fd1363e72",
           "initializers": {
             "level_pss_entry": {
               "address": 234881024,
@@ -2614,7 +2614,7 @@
         {
           "unit": "bowser_1_level_script",
           "segment": "bowser_1",
-          "generated_sha256": "1f52e2a3a94779d1b809457e55cb4e52fab003cfba6313edad24c7786cb93f0e",
+          "generated_sha256": "ac038cbe1612a16a30bdf605c328ba89cfce5dfe763a1234fee3974f271d8dbd",
           "initializers": {
             "level_bowser_1_entry": {
               "address": 234881024,
@@ -2644,7 +2644,7 @@
         {
           "unit": "bitdw_level_script",
           "segment": "bitdw",
-          "generated_sha256": "44e881ad966cb7570483650ee42c94fab44398f7b26db6859a4e3e2f9f17c67a",
+          "generated_sha256": "ca66ac133af927a79386cd9df8e1ee25d0b8d00ac9edccc41dec540537f68e43",
           "initializers": {
             "level_bitdw_entry": {
               "address": 234881396,

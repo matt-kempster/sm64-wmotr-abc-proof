@@ -41,6 +41,16 @@ kept separate from unproved composition and reachability.
   operation/timer via its concrete memory frame.
 - [x] Contiguous actual warp/instant-warp/timer caller interval up to object
   updates, with no warp-callee execution premise and explicit entry reads.
+- [x] Complete eight-iteration area reset, null painting/instant pointers
+  and actual generated layout witness. Initial memory and later lifecycle remain open.
+- [x] Complete real current-level GET command and call, exact register and
+  pointer results, actual handler-table and command-word syntax checks.
+- [x] Actual ordinary playback through the controller-copy boundary with
+  arbitrary stick bytes and new-Start/END guards; original-loop small-step
+  path to the analog call under a supplied program's global environment.
+- [x] Scoped private globals in all 38 regenerated units, positive eight-unit
+  AST links and two actual Clight unit-pair links. Public declarations and
+  the full game link remain separate obligations.
 - [ ] Formalize the actual loaded-gameplay/consumed-input observation boundary
   and permitted initial/external events; exclude mere title-fade bookkeeping.
 - [ ] Prove loader allocation, table/index/cache and DMA memory invariants
@@ -50,8 +60,8 @@ kept separate from unproved composition and reachability.
 - [ ] Execute the concrete script-interpreter route from returned header
   through the register and level initializer to the selected gameplay level.
   Include indirect targets, stack/command pointers and segment/address rules.
-- [ ] Establish the correct per-unit/private-atom linkage and retail-address
-  refinement rather than treating independently generated units as linked.
+- [ ] Complete the public declaration/source-link and retail-address
+  refinement rather than treating selected unit links as a complete game.
   Include numerical segmented addresses and a non-vacuous boot trace: the
   actual helper's shift is undefined on an unrefined symbolic `Vptr`.
 - [ ] Prove construction and preservation of absent painting/instant-warp

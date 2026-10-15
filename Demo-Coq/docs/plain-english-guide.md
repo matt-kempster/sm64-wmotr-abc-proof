@@ -1,8 +1,8 @@
 # Can a demo's inputs play in the wrong level?
 
 **We have not proved or disproved that this can happen during normal SM64
-play.** Demo-Coq currently proves a smaller fact about the real startup code
-and checks the source paths most relevant to the question.
+play.** Demo-Coq proves concrete startup, input, interpreter and warp paths,
+while the complete boot-to-gameplay invariant remains open.
 
 Each demo has a four-byte header followed by recorded controller inputs.
 The first header byte identifies its level. When the title screen chooses a
@@ -57,6 +57,13 @@ the actual button-edge formula and controller outputs, with a named pure
 `sqrtf` contract. Arbitrary stick values and the complete polling loop are
 still outside that local result.
 
+An additional proof connects ordinary-record playback, including expiry,
+to the actual input loop's controller-copy boundary for arbitrary recorded
+stick bytes. Under a supplied program's global environment, it follows the
+original loop's small steps to its analog call and proves the actual new-Start
+and END-clear guards there. Reaching the post-polling entry from boot and
+preserving these results through subsequent processing remain open.
+
 The separate ROM check authenticates the seven US and six JP selected demo
 files, their level headers, terminal records and buffer bounds. That is a
 finite data check outside Coq; it does not prove that DMA and all intervening
@@ -80,6 +87,12 @@ The actual warp, instant-warp and timer statements now compose through their
 caller up to the object-update boundary. This executes that interval under
 explicit entry reads, without assuming either warp callee's execution.
 
+The complete area-reset call now executes all eight loop iterations. It
+establishes null painting and instant-warp tables in all eight area records,
+using checked generated layouts. Its concrete starting-memory conditions,
+later area selection and preservation through script/gameplay calls remain
+to be connected.
+
 The complete instant-warp check now returns without writes for a null floor
 or null instant-warp table under its stated conditions. A separate finite
 check authenticates the selected script images and native callback byte
@@ -92,6 +105,13 @@ the numeric address, using both real callees and storing the exact returned
 address. The next opcode read still cannot dereference that integer in
 ordinary Clight. This pinpoints the remaining simulation boundary; it does
 not establish a reachable boot route.
+
+The dispatch table's current-level GET command also executes completely:
+it copies the signed stored level into the script register and advances the
+command pointer four bytes. Private global names are now scoped by source
+unit, and selected real source links succeed. The remaining public array
+declaration mismatch needs a sound linking refinement. None of these local
+results yet establishes that normal boot reaches a matching loaded level.
 
 Four authenticated retail-ROM experiments provide a separate finite check of
 idle cycles and physical Start interruptions. They observed 12,866 demo

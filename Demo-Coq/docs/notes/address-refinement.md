@@ -115,9 +115,10 @@ backend; the installed package inventory contains no separate MIPS semantics
 framework. The emulator and authenticated finite observations remain useful
 evidence, not a kernel-checked replacement for that bridge.
 
-The full route still needs an authenticated numerical image for the relevant
-level scripts, relocation words and callback targets; actual loader/segment
-base invariants; a justified relation across numeric and symbolic values and
+The finite selected level-script, relocation-word and callback images are
+now authenticated and their numeric Coq transcriptions are checked. The full
+route still needs their runtime loading/segment-base invariants, a justified
+relation across numeric and symbolic values and
 memories; and caller, load, store and indirect-call simulation through the
 representation changes. Hardware/external effects and the global gameplay
 invariant remain separate obligations. These are gaps in the current proof

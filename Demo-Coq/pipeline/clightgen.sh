@@ -47,6 +47,12 @@ for flag in "$@"; do
 done
 DISPLAY_FLAGS="${DISPLAY_ARGS[*]}"
 ATOM_PREFIX="$(basename "$OUTPUT" .v)"
+UNIT_SCOPE="${ATOM_PREFIX#us_}"
+UNIT_SCOPE="${UNIT_SCOPE#jp_}"
+SCOPED_V="$(mktemp --suffix=.v)"
+trap 'rm -f "$TMP_V" "$FINAL_V" "$SCOPED_V"' EXIT
+python3 "$(dirname "$0")/scope-private-globals.py" "$TMP_V" \
+  --output-name "$OUTPUT" > "$SCOPED_V"
 
 {
   echo "(* ======================================================================"
@@ -56,11 +62,10 @@ ATOM_PREFIX="$(basename "$OUTPUT" .v)"
   echo "   Source:          $SOURCE_LABEL"
   echo "   Generator:       $CLIGHTGEN_VERSION"
   echo "   Flags:           -normalize $DISPLAY_FLAGS"
-  echo "   Link hygiene:    private __stringlit_N atoms prefixed with $ATOM_PREFIX"
+  echo "   Link hygiene:    private globals scoped by translation unit $UNIT_SCOPE"
   echo "   ====================================================================== *)"
   sed_args=(
     -E
-    -e "s|^(Definition ___stringlit_[0-9]+ : ident := \\$\")__stringlit_|\1__${ATOM_PREFIX}_stringlit_|"
     -e 's/\r$//'
     -e 's/[[:space:]]+$//'
   )
@@ -71,7 +76,7 @@ ATOM_PREFIX="$(basename "$OUTPUT" .v)"
       -e "s|$CLIGHTGEN_PROJECT_ROOT|.|g"
     )
   fi
-  sed "${sed_args[@]}" "$TMP_V"
+  sed "${sed_args[@]}" "$SCOPED_V"
 } | awk '
   NF {
     while (pending_blank_lines > 0) {

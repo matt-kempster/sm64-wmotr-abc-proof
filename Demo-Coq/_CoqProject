@@ -41,19 +41,23 @@ generated/jp_hmc_level_script.v
 generated/jp_pss_level_script.v
 
 proofs/SourceFacts.v
+proofs/DemoPrivateGlobalLinkReceipt.v
 proofs/DemoScriptDispatchFacts.v
 proofs/DemoScriptNumericImage.v
 proofs/DemoConditionalDispatchExecution.v
 proofs/DemoNumericAddressExecution.v
 proofs/DemoNumericDispatchExecution.v
 proofs/DemoStartExecution.v
+proofs/DemoAreaInitialization.v
 proofs/DemoNormalTimerExecution.v
 proofs/DemoNormalPreObjectsExecution.v
 proofs/DemoPlaybackExecution.v
 proofs/DemoPlaybackAdvanceExecution.v
 proofs/DemoControllerInputExecution.v
+proofs/DemoConsumedInputExecution.v
 proofs/DemoDispatchFacts.v
 proofs/DemoLevelSelectionExecution.v
+proofs/DemoCurrentLevelGetExecution.v
 proofs/DemoGameplayBoundary.v
 proofs/DemoPauseExclusion.v
 proofs/DemoStartWarpExecution.v

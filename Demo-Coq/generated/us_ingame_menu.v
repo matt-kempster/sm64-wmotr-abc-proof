@@ -5,7 +5,7 @@
    Source:          src/game/ingame_menu.c
    Generator:       The CompCert CompCert AST generator, version 3.15
    Flags:           -normalize -nostdinc -fstruct-passing -Ibuild/pinned-sm64/include -Ibuild/pinned-sm64/src -Ibuild/pinned-sm64/src/game -Ibuild/pinned-sm64 -Ibuild/pinned-sm64/include/libc -D_FINALROM=1 -DTARGET_N64=1 -DNON_MATCHING=1 -DAVOID_UB=1 -D_LANGUAGE_C=1 -I/mnt/c/Users/tariq/OneDrive/Documents/sm64 - the item-grab proof/reference-sm64-wmotr-abc-proof/Demo-Coq/build/text-us -DVERSION_US=1 -DF3DEX_GBI_2=1 -DF3DEX_GBI_SHARED=1
-   Link hygiene:    private __stringlit_N atoms prefixed with us_ingame_menu
+   Link hygiene:    private globals scoped by translation unit ingame_menu
    ====================================================================== *)
 From Coq Require Import String List ZArith.
 From compcert Require Import Coqlib Integers Floats AST Ctypes Cop Clight Clightdefs.

@@ -5,7 +5,7 @@
    Source:          levels/scripts.c
    Generator:       The CompCert CompCert AST generator, version 3.15
    Flags:           -normalize -nostdinc -fstruct-passing -Ibuild/pinned-sm64/include -Ibuild/pinned-sm64/src -Ibuild/pinned-sm64/src/game -Ibuild/pinned-sm64 -Ibuild/pinned-sm64/include/libc -D_FINALROM=1 -DTARGET_N64=1 -DNON_MATCHING=1 -DAVOID_UB=1 -D_LANGUAGE_C=1 -Ibuild/pinned-sm64/levels -DVERSION_US=1 -DF3DEX_GBI_2=1 -DF3DEX_GBI_SHARED=1
-   Link hygiene:    private __stringlit_N atoms prefixed with us_level_scripts
+   Link hygiene:    private globals scoped by translation unit level_scripts
    ====================================================================== *)
 From Coq Require Import String List ZArith.
 From compcert Require Import Coqlib Integers Floats AST Ctypes Cop Clight Clightdefs.
@@ -290,8 +290,8 @@ Definition _fmt : ident := $"fmt".
 Definition _force_structure_alignment : ident := $"force_structure_alignment".
 Definition _fwoosh_geo : ident := $"fwoosh_geo".
 Definition _goomba_geo : ident := $"goomba_geo".
-Definition _goto_mario_head_dizzy : ident := $"goto_mario_head_dizzy".
-Definition _goto_mario_head_regular : ident := $"goto_mario_head_regular".
+Definition _goto_mario_head_dizzy : ident := $"__demo_level_scripts_goto_mario_head_dizzy".
+Definition _goto_mario_head_regular : ident := $"__demo_level_scripts_goto_mario_head_regular".
 Definition _haunted_cage_geo : ident := $"haunted_cage_geo".
 Definition _haunted_chair_geo : ident := $"haunted_chair_geo".
 Definition _heart_geo : ident := $"heart_geo".
@@ -407,41 +407,41 @@ Definition _red_flame_shadow_geo : ident := $"red_flame_shadow_geo".
 Definition _s : ident := $"s".
 Definition _sand_seg3_dl_0302BCD0 : ident := $"sand_seg3_dl_0302BCD0".
 Definition _scale : ident := $"scale".
-Definition _script_L1 : ident := $"script_L1".
-Definition _script_L2 : ident := $"script_L2".
-Definition _script_L5 : ident := $"script_L5".
-Definition _script_exec_bbh : ident := $"script_exec_bbh".
-Definition _script_exec_bitdw : ident := $"script_exec_bitdw".
-Definition _script_exec_bitfs : ident := $"script_exec_bitfs".
-Definition _script_exec_bits : ident := $"script_exec_bits".
-Definition _script_exec_bob : ident := $"script_exec_bob".
-Definition _script_exec_bowser_1 : ident := $"script_exec_bowser_1".
-Definition _script_exec_bowser_2 : ident := $"script_exec_bowser_2".
-Definition _script_exec_bowser_3 : ident := $"script_exec_bowser_3".
-Definition _script_exec_castle_courtyard : ident := $"script_exec_castle_courtyard".
-Definition _script_exec_castle_grounds : ident := $"script_exec_castle_grounds".
-Definition _script_exec_castle_inside : ident := $"script_exec_castle_inside".
-Definition _script_exec_ccm : ident := $"script_exec_ccm".
-Definition _script_exec_cotmc : ident := $"script_exec_cotmc".
-Definition _script_exec_ddd : ident := $"script_exec_ddd".
-Definition _script_exec_ending : ident := $"script_exec_ending".
-Definition _script_exec_hmc : ident := $"script_exec_hmc".
-Definition _script_exec_jrb : ident := $"script_exec_jrb".
-Definition _script_exec_level_table : ident := $"script_exec_level_table".
-Definition _script_exec_lll : ident := $"script_exec_lll".
-Definition _script_exec_pss : ident := $"script_exec_pss".
-Definition _script_exec_rr : ident := $"script_exec_rr".
-Definition _script_exec_sa : ident := $"script_exec_sa".
-Definition _script_exec_sl : ident := $"script_exec_sl".
-Definition _script_exec_ssl : ident := $"script_exec_ssl".
-Definition _script_exec_thi : ident := $"script_exec_thi".
-Definition _script_exec_totwc : ident := $"script_exec_totwc".
-Definition _script_exec_ttc : ident := $"script_exec_ttc".
-Definition _script_exec_ttm : ident := $"script_exec_ttm".
-Definition _script_exec_vcutm : ident := $"script_exec_vcutm".
-Definition _script_exec_wdw : ident := $"script_exec_wdw".
-Definition _script_exec_wf : ident := $"script_exec_wf".
-Definition _script_exec_wmotr : ident := $"script_exec_wmotr".
+Definition _script_L1 : ident := $"__demo_level_scripts_script_L1".
+Definition _script_L2 : ident := $"__demo_level_scripts_script_L2".
+Definition _script_L5 : ident := $"__demo_level_scripts_script_L5".
+Definition _script_exec_bbh : ident := $"__demo_level_scripts_script_exec_bbh".
+Definition _script_exec_bitdw : ident := $"__demo_level_scripts_script_exec_bitdw".
+Definition _script_exec_bitfs : ident := $"__demo_level_scripts_script_exec_bitfs".
+Definition _script_exec_bits : ident := $"__demo_level_scripts_script_exec_bits".
+Definition _script_exec_bob : ident := $"__demo_level_scripts_script_exec_bob".
+Definition _script_exec_bowser_1 : ident := $"__demo_level_scripts_script_exec_bowser_1".
+Definition _script_exec_bowser_2 : ident := $"__demo_level_scripts_script_exec_bowser_2".
+Definition _script_exec_bowser_3 : ident := $"__demo_level_scripts_script_exec_bowser_3".
+Definition _script_exec_castle_courtyard : ident := $"__demo_level_scripts_script_exec_castle_courtyard".
+Definition _script_exec_castle_grounds : ident := $"__demo_level_scripts_script_exec_castle_grounds".
+Definition _script_exec_castle_inside : ident := $"__demo_level_scripts_script_exec_castle_inside".
+Definition _script_exec_ccm : ident := $"__demo_level_scripts_script_exec_ccm".
+Definition _script_exec_cotmc : ident := $"__demo_level_scripts_script_exec_cotmc".
+Definition _script_exec_ddd : ident := $"__demo_level_scripts_script_exec_ddd".
+Definition _script_exec_ending : ident := $"__demo_level_scripts_script_exec_ending".
+Definition _script_exec_hmc : ident := $"__demo_level_scripts_script_exec_hmc".
+Definition _script_exec_jrb : ident := $"__demo_level_scripts_script_exec_jrb".
+Definition _script_exec_level_table : ident := $"__demo_level_scripts_script_exec_level_table".
+Definition _script_exec_lll : ident := $"__demo_level_scripts_script_exec_lll".
+Definition _script_exec_pss : ident := $"__demo_level_scripts_script_exec_pss".
+Definition _script_exec_rr : ident := $"__demo_level_scripts_script_exec_rr".
+Definition _script_exec_sa : ident := $"__demo_level_scripts_script_exec_sa".
+Definition _script_exec_sl : ident := $"__demo_level_scripts_script_exec_sl".
+Definition _script_exec_ssl : ident := $"__demo_level_scripts_script_exec_ssl".
+Definition _script_exec_thi : ident := $"__demo_level_scripts_script_exec_thi".
+Definition _script_exec_totwc : ident := $"__demo_level_scripts_script_exec_totwc".
+Definition _script_exec_ttc : ident := $"__demo_level_scripts_script_exec_ttc".
+Definition _script_exec_ttm : ident := $"__demo_level_scripts_script_exec_ttm".
+Definition _script_exec_vcutm : ident := $"__demo_level_scripts_script_exec_vcutm".
+Definition _script_exec_wdw : ident := $"__demo_level_scripts_script_exec_wdw".
+Definition _script_exec_wf : ident := $"__demo_level_scripts_script_exec_wf".
+Definition _script_exec_wmotr : ident := $"__demo_level_scripts_script_exec_wmotr".
 Definition _script_func_global_1 : ident := $"script_func_global_1".
 Definition _script_func_global_10 : ident := $"script_func_global_10".
 Definition _script_func_global_11 : ident := $"script_func_global_11".

@@ -25,7 +25,8 @@ translation units per version, mechanically generated for US and JP. The
 generation pipeline restores and byte-checks the complete pinned source
 inventory, derives and hash-checks `levels/level_headers.h`, derives the text
 headers required by star select and in-game menus, and records the generation flags. Private
-string-literal atoms receive per-unit prefixes mechanically. This does not
+global atoms receive unit scopes mechanically, with public/non-global and
+existing string atoms preserved. This does not
 certify whole-program linking or compatibility of public declarations.
 
 ## Commands
@@ -54,7 +55,7 @@ bash pipeline/build.sh check
 ```
 
 It runs two generation passes with SHA-256 manifest comparison, the
-independent authenticated ROM metadata checker, the full registered build,
+independent authenticated demo metadata and selected script-image checks, the full registered build,
 the proof-hole scan, capstone assumptions, `coqchk`, and the project discipline
 audit. The metadata check is an external finite check, not a Coq proof of DMA
 loading or retail execution.
@@ -70,7 +71,7 @@ The Demo gate adapts the existing SSL audit infrastructure to the
    pipeline within the configured timeout. `--full-build` instead builds all
    registered modules.
 3. All proof and generated sources pass the forbidden-hole scan, and each
-   generated unit passes the private-string-literal prefix check.
+   generated unit passes the private-global scope and cross-unit collision check.
 4. Each requested theorem produces a complete `Print Assumptions` report;
    only the explicitly listed standard Coq/CompCert foundations are allowed.
    Missing output, compiler errors, timeouts and non-standard axioms fail.
@@ -108,28 +109,32 @@ verified environment above.
 
 ## Recorded validation
 
-Checkpoint `886cb4f` passed the complete `bash pipeline/build.sh check`
-(`build/checkpoint-check.log`), including two byte-identical generations of
-all 38 units and authenticated demo metadata. All 38 generated hashes remain
-unchanged; that generation evidence is reused. The current expanded proofs
-have fresh separate validation:
+The private-global correction has fresh complete reproducibility evidence:
+`build/private-freshening-reproducible.log`, exit 0, two byte-identical
+generations of all 38 units. Comparison with checkpoint `22882e2` established
+that only hygiene headers and 299 nonliteral private atom strings changed.
+All public/non-global names and existing string atoms were preserved.
+The 18 generated-source digests in the script-image receipt were refreshed;
+retail words, placements, callback bytes and Coq numeric transcription remain
+unchanged. Earlier generation hashes are not reused for this checkpoint.
 
-- full registered build: `build/checkpoint3-proofs.log`, exit 0;
-- selected discipline audit and capstone assumptions:
-  `build/checkpoint3-discipline.log`, exit 0;
-- independent kernel check: `build/checkpoint3-coqchk.log`, exit 0;
-- authenticated script-image and exact Coq-transcription check:
-  `build/checkpoint3-script-images.log`, exit 0.
+Fresh registered validation passed:
 
-The final audit is `build/audit/20261015-142250-e87snnog/report.json`.
-It checks 62 sources and all 24 proof modules in MainTheorem's import closure,
-with no standalone modules, inventory/structure problems or proof holes.
-Exact source hashes and the complete audit are in `notes/validation.json`.
-The `script-images` target is now included in `check`; its existing matching
-ELF cache requirement is documented in the README.
+- full 28-module build: `build/checkpoint4-proofs.log`, exit 0;
+- discipline and capstone assumptions: `build/checkpoint4-discipline.log`, exit 0;
+- independent silent kernel check: `build/checkpoint4-coqchk.log`, exit 0;
+- authenticated demo/script data and proof-hole scan:
+  `build/checkpoint4-data.log`, exit 0.
 
-The capstone's six allowed foundations remain:
+The final audit is `build/audit/20261015-145542-lkrzem5f/report.json`.
+It checks 66 sources and all 28 proof modules in MainTheorem's import closure,
+with no standalone modules or inventory/structure problems. Exact source and
+pipeline hashes, actual foundation names and the full report are recorded in
+`notes/validation.json`.
 
+The seven allowed Coq/CompCert foundations actually used are:
+
+- `Axioms.proof_irr`;
 - `ClassicalDedekindReals.sig_forall_dec`;
 - `ClassicalDedekindReals.sig_not_dec`;
 - `Classical_Prop.classic`;
@@ -137,39 +142,41 @@ The capstone's six allowed foundations remain:
 - `Events.inline_assembly_sem`;
 - `FunctionalExtensionality.functional_extensionality_dep`.
 
-There are no project axioms. Explicit memory, layout, resolution and execution
-premises remain. In particular, the connected-controller execution is confined
-to neutral sticks and the named pure `sqrtf` contract. Its separate general
-ordinary-playback bit proof establishes the actual new-Start and END-clear
-guard masks. All timer branches of the actual demo consumer are executed,
-with precise frames; authentic all-frame bounds/provenance remain open.
+`Axioms.proof_irr` is used by CompCert's official Clight link construction.
+It was already on the project's standard-foundation allowlist. There are no
+project axioms; this does not discharge explicit memory/execution premises or
+establish normal-boot non-vacuity. External math/hardware contracts retain
+their literal scopes.
 
-The normal Start prefix selects the actual scheduler but retains the real
-per-version intro-text call. The contiguous warp/instant-warp/timer caller
-interval executes through its actual internal callees without execution
-premises and preserves the scheduled operation. Object/HUD/camera updates,
-the connection of entry reads and a complete frame invariant remain open.
+The complete eight-iteration `clear_areas` call now establishes all eight
+null painting/instant pointers, with checked generated layout and an exact
+outside-written-block frame. Its initial symbol/access/relocation resources
+and later area-table lifecycle remain open. The staged build took 223.9 s;
+the registered build and kernel check above include its promoted source.
 
-The taken numeric script jump now executes both actual callees and stores its
-exact numeric PC. The actual next-opcode expression cannot dereference that
-integer in ordinary Clight. Finite script/callback image authentication and
-numeric representation certificates do not supply the missing active-overlay
-address simulation. Shared addresses do not identify loaded level images.
+The actual dispatch current-level GET command executes its full function
+call, signed-level register store and four-byte command advance, with exact
+handler/command syntax checks. It does not establish interpreter reachability.
+Ordinary playback, including expiry and arbitrary record sticks, now composes
+with controller copying and the real Start/END guards. Under a supplied
+program's global environment, a genuine original-loop small-step path reaches
+the analog call. Boot/post-polling entry and remaining input processing are
+still separate obligations.
 
-The audit's private-string prefix check is **not** a whole-program link check.
-Actual private script-global name collisions make the current BBH/CCM AST
-link fail. A fail-closed private-global freshener and successful corrected
-two-unit links are staging evidence; production generation remains unchanged.
-See `notes/private-global-linkage.md`. Regeneration, renewed hash receipts and
-the full source link remain further work. No vacuous no-gameplay theorem is
-claimed from the address or link obstruction.
+All eight selected level-script AST units link officially per version; the
+actual BBH/CCM pair also links as Clight programs with compatible composites.
+The current main/BBH incomplete/complete public array pair is rejected by
+strict variable type equality. No public type or flag was changed to force
+a link. A justified metadata/source-link refinement and a complete game link
+remain open. Private collision hygiene does not supply that result.
 
-The corrected script census checks Bowser 1 (30) for the `bitdw.bin` stream,
-rather than the BITDW course (17). A zero ordinary warp destination is still
-required because it takes priority over a negative demo return code. Four
-authenticated retail trials recorded 12,866 active-demo updates with no
-mismatch/error. These bounded observations remain separate from Coq.
+The numeric taken jump and authenticated script images still require an
+active-overlay representation simulation for subsequent opcode loads and
+callbacks. Shared addresses do not identify loaded images. Remaining UI,
+object/HUD/camera processing, authentic loading/initialization, all-frame
+preservation and retail/hardware refinement are not assumed solved.
 
-The requested full gameplay claim remains **OPEN**, with no reachable
-counterexample established. The area-initialization proof and further layout
-witnesses currently in ignored staging are not included in this checkpoint.
+The full gameplay claim remains **OPEN**, with no reachable counterexample
+established. The bounded retail evidence remains 12,866 observed updates,
+zero mismatches/errors. Initial-memory resource and public-type completion
+work in ignored staging is not counted as a completed gameplay result.
