@@ -15,6 +15,12 @@ consumed-input observation boundary, along with a precise external-system
 contract. It is **OPEN** in this project. No reachable desync counterexample
 has been established.
 
+The [primary specification audit](notes/gameplay-observation-status.md)
+records that the existing normal-update observation is not used by a theorem
+and does not establish the actual application/loaded-scene boundary. There is
+no full admissible normal-boot/external-memory-event relation yet. Current
+local components must not be reported as closing that first obligation.
+
 The mechanized object is the pinned source translated with `TARGET_N64=1`,
 `NON_MATCHING=1` and `AVOID_UB=1` using the configured 32-bit, big-endian
 PowerPC EABI CompCert target (`powerpc` / `ppc32`, as the generated `Info`
@@ -217,6 +223,12 @@ and the [actual second-controller branch](notes/second-controller-execution.md).
 Physical pad offsets 0/6, two named pure math contracts and concrete entry
 resources remain explicit. All other physical-port assignments, hardware-entry
 reachability and all-frame provenance remain open.
+The later [physical-pad caller](notes/physical-controller-read-execution.md)
+generalizes that local path to arbitrary bounded pad bases, using
+[shifted branches](notes/shifted-controller-execution.md) and
+[physical-pad playback](notes/physical-pad-playback-execution.md), while
+preserving the actual mapping pointers24/52 and entry-valid accesses.
+Actual initialization and the global observation/history remain unproved.
 The [complete delayed Demo Next calls](notes/delayed-warp-terminal-execution.md)
 cover countdown values 2–20 and terminal expiry through every real callee,
 under the stated debug/demo/dialog guards. They do not establish a sequence
@@ -227,6 +239,9 @@ the earlier dialogtype!=1 condition for both the complete terminal dispatcher
 and normal caller after painting. It executes the actual camera trigger2
 callee and replaces that condition with exact camera-cell/callee resources.
 This does not frame the whole camera update or establish boot reachability.
+The [full terminal post-camera interval](notes/normal-terminal-postcamera-execution.md)
+also executes painting's real allocation/free and transports those resources
+from the earlier entry. It is still one conditional caller interval.
 The [normal caller composition](notes/normal-delayed-execution.md) consumes
 those actual delayed-call proofs, including terminal exit after painting and
 the full post-camera interval for all pending ticks 2–20. The

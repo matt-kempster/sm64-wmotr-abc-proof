@@ -26,6 +26,7 @@ retail-binary execution and hardware is open.
 - [Plain English guide](docs/plain-english-guide.md)
 - [Exact claim and proof boundary](docs/claim.md)
 - [Remaining obligations](docs/checklist.md)
+- [Missing primary gameplay specification and current priority](docs/notes/gameplay-observation-status.md)
 - [Build and audit details](docs/proof-audit.md)
 - [Detailed source audit](docs/notes/source-audit.md)
 - [Executed startup and interpreter paths](docs/notes/gameplay-execution.md)

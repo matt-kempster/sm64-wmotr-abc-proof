@@ -3,6 +3,14 @@
 The requested all-executions claim remains **OPEN**. Completed local work is
 kept separate from unproved composition and reachability.
 
+**Primary specification gap:** the first unchecked item below remains
+unformalized at the required scope. Recent local input/exit extensions have
+not closed a major unchecked gameplay obligation. The existing normal-update
+entry predicate is unused and does not identify consumed-record or loaded-scene
+provenance. Work now prioritizes that observation and permitted boot/external
+memory/event histories over further local case expansion. See
+[the exact status](notes/gameplay-observation-status.md).
+
 - [x] Separate Demo-Coq project, US/JP pin, reproducible Clight pipeline and
   registered proof modules.
 - [x] Constructive local CompCert execution of the generated installation
@@ -67,6 +75,9 @@ kept separate from unproved composition and reachability.
   extension below removes that absence restriction for pad byte offsets 0 and 6;
   hardware entry, all physical-port assignments and all-frame provenance
   remain open.
+  A subsequent conditional caller covers arbitrary bounded physical-pad bases
+  and preserves mapping pointers24/52; actual initialization and hardware entry
+  still have not been derived.
 - [x] Scoped private globals in all 40 regenerated units, positive eight-unit
   AST links and two actual Clight unit-pair links. Public declarations and
   the full game link remain separate obligations.
@@ -84,6 +95,8 @@ kept separate from unproved composition and reachability.
   delayed call and mode-4 zero return; full post-camera painting/countdown/
   pause/return interval for every pending timer 2–20. These do not establish
   twenty consecutive gameplay frames or the earlier object/HUD/camera frame.
+  The terminal result now also starts before painting's real allocation/free,
+  transporting its entry resources through the full post-camera interval.
 - [x] Exact next selected-source pointer-type link failure, current
   normalization's invariance on it, and finite corresponding Gfx definition/
   layout checks. This certifies a remaining anonymous-tag boundary, not an
@@ -96,6 +109,8 @@ kept separate from unproved composition and reachability.
   post-polling path, both loop iterations and player-three copies. Physical
   pad offsets 0/6 and two precise pure sqrtf contracts remain explicit. Initialization,
   hardware polling and every physical-port assignment remain open.
+  Generalized playback and shifted controller/caller results remove the local
+  fixed-base restriction; initialization's actual port assignment remains open.
 - [x] Complete actual terminal Demo Next dispatcher and normal caller after
   painting for every readable dialog type, including the real camera
   trigger2 call. Concrete camera cell/callee resources replace the earlier
@@ -104,6 +119,9 @@ kept separate from unproved composition and reachability.
   identically twice and the previous 38 are byte-identical.
 - [ ] Formalize the actual loaded-gameplay/consumed-input observation boundary
   and permitted initial/external events; exclude mere title-fade bookkeeping.
+  **Not done:** no capstone-consumed application observation or full admissible
+  execution specification exists. A title-phase label must not exclude actual
+  gameplay input use; only bookkeeping without application can be excluded.
 - [ ] Prove loader allocation, table/index/cache and DMA memory invariants
   from the real initialization; connect authenticated ROM data to memory.
 - [ ] Discharge the first-start loader premise, cover later indices/wrap,

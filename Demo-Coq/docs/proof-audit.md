@@ -109,66 +109,26 @@ verified environment above.
 
 ## Recorded validation
 
-Fresh registered validation passed for all 41 proof modules:
+The fresh 45-module build, discipline/assumption audit and independent silent
+kernel check all returned exit0, as did authenticated data and hole checks:
+`build/checkpoint8-proofs.log`, `build/checkpoint8-discipline.log`,
+`build/checkpoint8-coqchk.log`, and `build/checkpoint8-data.log`.
+The audit is `build/audit/20261015-164212-ll15vszq/report.json`: all85 sources
+registered, all45 proof modules in the capstone import closure, no project
+axioms, and the same nine allowed foundations recorded in `notes/validation.json`.
+The full40-source two-pass reproduction at9b0dc8d is reused after checking
+every generated-source and pipeline hash unchanged. Memory limits are unchanged.
 
-- complete40-source two-pass generation: `build/camera-promotion/full-reproducible.log`, exit0;
-- registered build: `build/checkpoint7-proofs.log`, exit0;
-- discipline/capstone assumptions: `build/checkpoint7-discipline.log`, exit0;
-- independent silent kernel check: `build/checkpoint7-coqchk.log`, exit0;
-- authenticated demo/script data and proof-hole scan: `build/checkpoint7-data.log`, exit0.
+New conditional components cover arbitrary physical-pad playback/controller
+paths and the full post-camera terminal interval. They remove local pad-base
+and caller-entry restrictions; initialized port mapping, SDK entry, record
+provenance/bounds and earlier frame effects remain explicit obligations.
 
-The audit is `build/audit/20261015-162346-ttb27n5e/report.json`. All 81 sources are
-registered, and all 41 proof modules occur in the capstone import closure.
-Exact source/pipeline hashes and the full report are in `notes/validation.json`.
-The camera unit was added for both versions through the normal pipeline.
-All 40 ASTs reproduce identically twice; the preceding 38 ASTs are separately
-byte-checked unchanged, and both camera ASTs match isolated repeated generation.
-There are 427 scoped private atoms: 218 US and 209 JP. This does not certify
-whole-program linking or compatibility of public declarations.
-
-The nine allowed Coq/CompCert foundations actually used are:
-
-- `Axioms.proof_irr`;
-- `ClassicalDedekindReals.sig_forall_dec`;
-- `ClassicalDedekindReals.sig_not_dec`;
-- `Classical_Prop.classic`;
-- `Events.external_functions_properties`;
-- `Events.external_functions_sem`;
-- `Events.inline_assembly_properties`;
-- `Events.inline_assembly_sem`;
-- `FunctionalExtensionality.functional_extensionality_dep`.
-
-There are no project axioms. Standard external-function/inline-assembly
-properties do not establish the named math or SDK/hardware contracts, nor
-discharge concrete memory or reachable-entry premises.
-
-The [connected-P2 playback](notes/second-controller-playback.md),
-[actual second-controller branch](notes/second-controller-execution.md) and
-[complete caller](notes/connected-second-controller-read.md) now compose
-the entire original post-polling path with P2 connected. Every timer branch,
-arbitrary P1 raw axes/current/prior buttons, real P2 neutral analog call,
-both loop iterations and player-three copies execute. Exact outputs,
-stream pointer/timer/header and protected-read frames are retained.
-Physical pad offsets0/6 and two precise pure sqrtf contracts remain explicit;
-hardware entry, other physical-port assignments and all-frame provenance
-remain open. The earlier P2-absent caller remains valid with its literal scope.
-
-The [all-dialog terminal result](notes/dialog-zoom-execution.md) removes the
-earlier dialogtype!=1 restriction from the complete terminal dispatcher and
-actual normal suffix after painting. It executes the real camera trigger2,
-reset, transition and special-warp callees. Exact camera-cell/callee resources
-replace that dialog restriction. Debug/demo/scalar resources and ordinary warp
-destination remain explicit. The earlier full post-camera pending2..20 interval
-does not establish twenty consecutive gameplay frames. Whole object/HUD/camera
-effects and boot reachability remain open.
-
-The exact declaration normalization and official nine-unit script links,
-checked next anonymous-tag boundary, area-unit initial-memory reset and earlier
-startup/input/interpreter/warp components retain their recorded scopes.
-There is no complete source-link/type-renaming proof, active-overlay simulation,
-whole loaded-gameplay composition or N64 MIPS/hardware refinement. Ignored
-staging is not counted as completed.
-
-The full gameplay verdict remains **OPEN**, with no reachable counterexample
-established. Bounded retail evidence remains 12,866 observed updates with
-zero mismatches/errors.
+These mechanical checks do not close the primary gameplay specification.
+The [observation status audit](notes/gameplay-observation-status.md) records
+that the existing entry predicate is unused and insufficient, the complete
+boot/external memory-event relation is undefined, and no authentic gameplay
+history witness has been proved. The current capstone remains a conjunction
+of conditional components, not the requested all-executions theorem.
+The full verdict remains **OPEN**. Finite retail observations remain12,866
+updates with zero mismatches/errors; they do not decide the claim.

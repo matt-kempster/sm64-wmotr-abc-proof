@@ -4,6 +4,14 @@
 play.** Demo-Coq proves concrete startup, input, interpreter and warp paths,
 while the complete boot-to-gameplay invariant remains open.
 
+The [primary gameplay specification is still missing](notes/gameplay-observation-status.md).
+The existing observation predicate is only an unused normal-update entry
+check. It does not identify Mario's actual input application, the record that
+supplied it, or the independently loaded scene. Permitted normal-boot states
+and external memory/event histories are not yet defined. Recent local
+input/exit extensions do not close this first unchecked obligation. Defining
+that actual execution boundary now takes priority over more local case proofs.
+
 Each demo has a four-byte header followed by recorded controller inputs.
 The first header byte identifies its level. When the title screen chooses a
 demo, it loads one buffer, takes the level from that buffer's header, and
@@ -74,6 +82,12 @@ at byte offsets 0 and 6 and uses two precise pure math contracts. Deriving
 pad pointers from initialization, all other physical-port assignments,
 hardware polling/boot and all-frame provenance remain open.
 
+The later [generalized physical-pad caller](notes/physical-controller-read-execution.md)
+removes the local fixed-base restriction. It consumes actual shifted playback
+and controller branches, preserves the mapping pointers and entry-valid
+accesses, and covers both one- and two-controller arrangements. This does not
+derive the mapping from boot or supply a loaded-gameplay observation.
+
 An additional proof connects ordinary-record playback, including expiry,
 to the actual input loop's controller-copy boundary for arbitrary recorded
 stick bytes. Under a supplied program's global environment, it follows the
@@ -134,6 +148,11 @@ after painting. It executes the real camera `trigger_cutscene_dialog(2)`
 when required, rather than assuming that callee's execution. Exact camera
 cell and target-resolution resources replace the old dialog-type premise.
 The whole camera update and the earlier frame remain separate obligations.
+
+The [full terminal post-camera interval](notes/normal-terminal-postcamera-execution.md)
+now starts before painting's actual allocation/free and transports the terminal
+resources through it. This removes a local caller-entry restriction, not an
+unchecked boot/gameplay obligation.
 
 The complete area-reset call now executes all eight loop iterations. It
 establishes null painting and instant-warp tables in all eight area records,

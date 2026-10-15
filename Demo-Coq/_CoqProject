@@ -59,13 +59,16 @@ proofs/DemoNormalPreObjectsExecution.v
 proofs/DemoPlaybackExecution.v
 proofs/DemoPlaybackAdvanceExecution.v
 proofs/DemoPlaybackSecondControllerExecution.v
+proofs/DemoPhysicalPadPlaybackExecution.v
 proofs/DemoControllerInputExecution.v
 proofs/DemoAnalogInputExecution.v
 proofs/DemoControllerCopyExecution.v
 proofs/DemoSecondControllerExecution.v
+proofs/DemoShiftedControllerExecution.v
 proofs/DemoConsumedInputExecution.v
 proofs/DemoControllerReadExecution.v
 proofs/DemoConnectedSecondControllerReadExecution.v
+proofs/DemoPhysicalControllerReadExecution.v
 proofs/DemoDispatchFacts.v
 proofs/DemoLevelSelectionExecution.v
 proofs/DemoCurrentLevelGetExecution.v
@@ -76,6 +79,7 @@ proofs/DemoNormalDelayedExecution.v
 proofs/DemoStartWarpExecution.v
 proofs/DemoDelayedWarpTerminalExecution.v
 proofs/DemoDialogZoomExecution.v
+proofs/DemoNormalTerminalPostCameraExecution.v
 proofs/DemoInstantWarpExecution.v
 proofs/DemoStartSchedulingExecution.v
 proofs/DemoNormalStartExecution.v

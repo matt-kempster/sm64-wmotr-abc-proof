@@ -22,7 +22,7 @@
     "coqchk": 0,
     "data": 0
   },
-  "reproducibility": "PASS: two fresh complete byte-identical generations of all40 units,20 perversion; old38 sources separately byte-checked unchanged; new production camera ASTs match isolated repeated generation.",
+  "reproducibility": "PASS at9b0dc8d: full40 two-pass byte-identical generation; reused only after checking all40 generated and every pipeline digest unchanged.",
   "rom_metadata": "PASS: canonical US/JP ROM hashes; 7/6 selected streams, distinct headers, terminal records, buffer bounds",
   "audit": {
     "toolchain": "sm64-item-proof",
@@ -37,7 +37,7 @@
       {
         "name": "source inventory",
         "status": "PASS",
-        "detail": "81 source files; 0 inventory problems",
+        "detail": "85 source files; 0 inventory problems",
         "problems": []
       },
       {
@@ -74,12 +74,12 @@
       {
         "name": "integration",
         "status": "PASS",
-        "detail": "41/41 modules in MainTheorem's import closure; 0 standalone-only; 0 problems",
+        "detail": "45/45 modules in MainTheorem's import closure; 0 standalone-only; 0 problems",
         "problems": []
       }
     ],
     "integration": {
-      "proof_modules": 41,
+      "proof_modules": 45,
       "main_import_closure": [
         "proofs/DemoAnalogInputExecution.v",
         "proofs/DemoAreaInitialMemory.v",
@@ -104,10 +104,13 @@
         "proofs/DemoNormalPostCameraExecution.v",
         "proofs/DemoNormalPreObjectsExecution.v",
         "proofs/DemoNormalStartExecution.v",
+        "proofs/DemoNormalTerminalPostCameraExecution.v",
         "proofs/DemoNormalTimerExecution.v",
         "proofs/DemoNumericAddressExecution.v",
         "proofs/DemoNumericDispatchExecution.v",
         "proofs/DemoPauseExclusion.v",
+        "proofs/DemoPhysicalControllerReadExecution.v",
+        "proofs/DemoPhysicalPadPlaybackExecution.v",
         "proofs/DemoPlaybackAdvanceExecution.v",
         "proofs/DemoPlaybackExecution.v",
         "proofs/DemoPlaybackSecondControllerExecution.v",
@@ -116,6 +119,7 @@
         "proofs/DemoScriptNumericImage.v",
         "proofs/DemoSecondControllerExecution.v",
         "proofs/DemoSelectedLinkTypeBoundary.v",
+        "proofs/DemoShiftedControllerExecution.v",
         "proofs/DemoStartExecution.v",
         "proofs/DemoStartSchedulingExecution.v",
         "proofs/DemoStartWarpExecution.v",
@@ -195,10 +199,13 @@
     "proofs/DemoNormalPostCameraExecution.v": "e376b12345f74ea4854dd1a63b369395a17aa098379ff4b54cdcdb0890543955",
     "proofs/DemoNormalPreObjectsExecution.v": "a8c899e743aec94f5a67fc6cf67d9cc1bce13ce2703c2fa111d6f695397971dd",
     "proofs/DemoNormalStartExecution.v": "781a7ea96143457478f10e9b1b91b7942db04d9d3765fff7ab0b2aed9959d1d1",
+    "proofs/DemoNormalTerminalPostCameraExecution.v": "a071b4324cd72ad2006b037b0a0a85a1e1ca84319687532e384e0ab1227bd5dc",
     "proofs/DemoNormalTimerExecution.v": "3cd5a128735374485e13bf35744b1ff22af273d9ce30285dd5b4f533aee22fec",
     "proofs/DemoNumericAddressExecution.v": "789110fbbaed16db331052c96690c1f952523ea76f625a0c1ce0f428955062e9",
     "proofs/DemoNumericDispatchExecution.v": "aad7148c403b0ded390d912990d160090377415ff7ad81364d9f436690f13932",
     "proofs/DemoPauseExclusion.v": "660659cb8e7efd1e7855adb2a2b1a267930bc4919b7d11425ab30c4244390d26",
+    "proofs/DemoPhysicalControllerReadExecution.v": "32c9f2057180a175c7b081b7222d7dc58d5b03630badc9c6fbdd9e80620d2ee7",
+    "proofs/DemoPhysicalPadPlaybackExecution.v": "c7fc4edb046f4fdc296dd902e8ffdad04dd3871653b7baf0e7dc15cb6d576c7d",
     "proofs/DemoPlaybackAdvanceExecution.v": "a93d83c85eef8b0ffbbcbeb539f5fdcf50cf1744d64e13381f187e1932141238",
     "proofs/DemoPlaybackExecution.v": "8e827d1d0bfc25984f53ca7315e9736ed9ca0ae38a0d97f322d29e9bf704d300",
     "proofs/DemoPlaybackSecondControllerExecution.v": "e381ba8d06a3fb48b50960af8733608bd947f7117a2df016a966a593c0f2260e",
@@ -207,29 +214,30 @@
     "proofs/DemoScriptNumericImage.v": "deba478cf0b38daa368272ceb8987cc1c04bd3ab49c6ba011271b8f8a4989241",
     "proofs/DemoSecondControllerExecution.v": "fbe5faf66a93f1ee40125cac7e68745821eba9c7618b6b5c5c17a352fa9f363e",
     "proofs/DemoSelectedLinkTypeBoundary.v": "0f6fe1496ac16deb7a0f310ab9d80cf72987531d27a5bfd9c982da1408591dab",
+    "proofs/DemoShiftedControllerExecution.v": "1a5f425bc51440ab9c0a5e67073536eff7b3aa7f542e634cc27c41a14f68bc1b",
     "proofs/DemoStartExecution.v": "757861403b39b88d8a0d894ef9fa855f0f0fe4e717bd10638a5db7f8b1f7e2f0",
     "proofs/DemoStartSchedulingExecution.v": "3551fcdc394694725f08614c245c10bb5a7ecc68ff2b99d5a9dae6e2cca8e4a1",
     "proofs/DemoStartWarpExecution.v": "39bc927dbcec2042ed94cf820f6c1751fcfd0bac7ac927e769e6515b027280cc",
     "proofs/DemoTitleStartExecution.v": "fe641382f6f181cb0702ef7f240e182a80c6d62814097857290fa3da5fe6fb5e",
-    "proofs/MainTheorem.v": "1eab79fc9aa0017802799025e7bc957edfd2c55894cdc69a880cb8ec4c9baa4c",
+    "proofs/MainTheorem.v": "28aa8e2348b841a35f5a232da9c17576d9ce6d7fdadc10c0d1bbb50feac7c898",
     "proofs/SourceFacts.v": "669339106aafe1f808da1cd5dac4dbfa88c2ee3a296b4c4e8a58a34268a83026"
   },
-  "boundary": "Complete original post-polling controller paths for all timers with P2 absent or connected, exact outputs/stream/header/protected-read frames. Connected variant fixes physical pad offsets0/6 and two named pure sqrtf contracts. Complete terminal Demo Next dispatcher and actual normal caller after painting now cover every readable dialog type through real trigger2/reset/transition/special-warp callees. Debug/demo, camera-cell/callee and scalar resources remain explicit. Earlier exact declaration normalization/nine-unit links, source-type boundary, initial-memory reset and local startup/input/warp/interpreter results retained. Hardware entry/boot/DMA, all physical-port assignments, all-frame bounds/preservation, complete source linking, active-overlay address simulation and retail/hardware refinement remain open.",
-  "audit_report": "build/audit/20261015-162346-ttb27n5e/report.json",
+  "boundary": "Conditional real-source components only. Arbitrary physical-pad single/connected post-polling callers for all timers now preserve24/52 mapping pointers, exact outputs/stream/header, protected loads and valid accesses. Actual full post-camera terminal interval composes painting alloc/free and all-dialog dispatcher/normal return. Initialization mapping/SDK entry, record bounds and all-frame preservation remain open. The primary loaded-gameplay/consumed-input observation, full admissible boot/external memory-event relation and nonvacuous gameplay witness are NOT formalized. No major unchecked gameplay obligation is closed by these component extensions.",
+  "audit_report": "build/audit/20261015-164212-ll15vszq/report.json",
   "gameplay_search_receipt_sha256": "13ebfaf563fc8ef18a26a64089c78f931f2dae612b7fd5c7781a4ea270c8731b",
   "historical_full_reproduction_check": {
     "checkpoint": "886cb4fa30a8b5622620b45af5fa86c1e99923f8",
     "return_code": 0,
     "log": "build/checkpoint-check.log",
     "generated_units": 38,
-    "reuse": "Historical only; current40-unit full reproduction is fresh."
+    "reuse": "Historical only; current40-unit reproduction at9b0dc8d reused after exact generated/pipeline digest checks."
   },
   "current_validation_logs": [
     "build/camera-promotion/full-reproducible.log",
-    "build/checkpoint7-proofs.log",
-    "build/checkpoint7-discipline.log",
-    "build/checkpoint7-coqchk.log",
-    "build/checkpoint7-data.log"
+    "build/checkpoint8-proofs.log",
+    "build/checkpoint8-discipline.log",
+    "build/checkpoint8-coqchk.log",
+    "build/checkpoint8-data.log"
   ],
   "script_image_check": "PASS: authenticated complete matching ROMs, all selected script initializer words and relocations, three complete native callback byte ranges, exact Coq numeric transcription. Finite external check; no runtime or MIPS semantics refinement.",
   "allowed_foundations_used": [
@@ -271,7 +279,7 @@
     "public_array_declaration_refinement": "PASS for selected nine script units via proved declaration normalization; original generated programs unchanged; wider source-link/type-renaming and gameplay refinement OPEN.",
     "historical_38_unit_changed_nonliteral_atom_strings": 299
   },
-  "generation_reuse": "Not reused: full40 two-pass generation, registered41-module build, discipline/assumptions, independent kernel and authenticated data checks are fresh.",
+  "generation_reuse": "Reused complete40-unit reproduction from9b0dc8d after exact source/pipeline digest checks. Registered45-module build, discipline/assumptions, independent kernel and authenticated data checks are fresh.",
   "normalized_selected_link": {
     "units_per_version": 9,
     "normalization": "only empty zero-extent public arrays, metadata derived from actual positive initialized definitions; readonly on empty declarations only",
@@ -285,13 +293,15 @@
     "semantics": "star step2 under Clight.globalenv prog",
     "timers": "all, including EOF and expiry",
     "physical_and_previous_buttons": "arbitrary",
-    "second_logical_controller": "absent or connected; connected variant fixes physical pads0/6",
+    "second_logical_controller": "absent or connected; arbitrary physical pad bases0..18, ordered/disjoint for connected case",
     "math": "named pure sqrtf contracts: emitted P1 stick square sum; P2 zero sum with capfalse",
-    "boot_hardware_all_physical_ports_and_provenance": "OPEN"
+    "boot_hardware_all_physical_ports_and_provenance": "OPEN",
+    "preserved_initial_mapping": "actual controllerData pointers at24/52 and every entry-valid access",
+    "initialization_mapping_and_hardware_entry": "OPEN"
   },
   "terminal_dialog": {
     "types": "all readable dialog types",
-    "semantics": "complete actual terminal dispatcher and original normal suffix after painting",
+    "semantics": "complete actual post-camera interval: painting alloc/free, all-dialog terminal dispatcher and normal return",
     "real_callees": [
       "trigger_cutscene_dialog(2)",
       "reset_dialog_render_state",
@@ -300,5 +310,13 @@
     ],
     "entry": "debug0, valid nonnull active demo, operation22/timer1, scalar/camera symbols, reads and writable/separated cells",
     "whole_camera_frame_and_reachability": "OPEN"
+  },
+  "primary_gameplay_specification": {
+    "status": "NOT FORMALIZED at required scope",
+    "existing_observation": "unused Callstate play_mode_normal plus current demo/level loads; no theorem consumes it",
+    "missing": "actual gameplay input-application coverage, consumed-load/record epoch, independently materialized scene provenance, permitted boot/external memory-event histories, nonvacuous authentic gameplay witness",
+    "title_fade": "exclude bookkeeping without application; do not exclude actual gameplay input use by phase label",
+    "priority": "formal full execution statement before further local case expansion",
+    "report": "docs/notes/gameplay-observation-status.md"
   }
 }
