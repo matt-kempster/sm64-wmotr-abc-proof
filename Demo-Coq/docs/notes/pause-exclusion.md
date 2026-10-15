@@ -42,9 +42,11 @@ press schedules `WARP_OP_DEMO_NEXT` when the transition is inactive and no
 operation is pending. The actual `level_trigger_warp` branch also calls
 `play_transition`. The complete scheduling function and its actual
 transition/RGB callees are now executed separately in
-[the scheduling proof](start-scheduling-execution.md). Selecting that call
-from the real Start prefix, instantiating its premises and preserving its
-result through the intervening frame callees remain required; reading this
+[the scheduling proof](start-scheduling-execution.md), and
+[the actual Start prefix](normal-start-execution.md) now selects that call
+under explicit UI/guard premises. Instantiating these premises in a
+reachable frame and preserving the result through intervening frame
+callees remain required; reading this
 ordering in the source does not establish it for a reachable frame. The later
 `pressed_pause` call is now a proved consumer of the resulting condition.
 

@@ -73,20 +73,23 @@ frame the intervening object/HUD/camera calls.
 
 The actual scheduling call is now proved in
 [start-scheduling-execution.md](start-scheduling-execution.md), including its
-real transition and RGB callees. Selecting it from the actual Start prefix
-and framing the remaining interval remain open.
+real transition and RGB callees. The [actual Start prefix](normal-start-execution.md)
+now selects it, retaining the exact per-version intro-text execution and
+post-UI reads as premises. Framing the remaining interval remains open.
 
 ## Actual record playback and conditional dispatch
 
 [playback-execution.md](playback-execution.md) executes the full input consumer
-for a positive countdown record with the second logical controller absent.
-Its frame excludes only the pad's first four bytes and the single timer byte.
-Record advance, end-of-demo and complete input-to-gameplay provenance remain open.
+for every timer branch with the second logical controller absent. It proves
+record advance, terminal behavior and exact byte-range frames. Initial and
+all-frame bounds/provenance, and complete input-to-gameplay composition remain open.
 
 [conditional-dispatch.md](conditional-dispatch.md) executes the actual equality
 helper and a complete nonmatching script jump. The taken jump needs the
 numeric/symbolic address bridge described in [address-refinement.md](address-refinement.md).
-An existing Pedro proof executes numeric helper inputs, but ordinary relocated
+Demo's [numeric helper proof](numeric-address-execution.md) now executes
+numeric inputs against its own generated unit. The [numeric image check](script-numeric-image.md)
+authenticates finite script/callback bytes, but ordinary relocated
 caller/dereference/callback simulation remains unproved. No vacuous full-game
 result is inferred from the symbolic-pointer obstruction.
 

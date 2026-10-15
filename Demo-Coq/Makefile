@@ -1,7 +1,7 @@
 SHELL := /usr/bin/env bash
 COQMAKEFILE := CoqMakefile
 
-.PHONY: all generate reproducible configure proofs audit-build no-admitted demo-data assumptions coqchk check check-discipline clean
+.PHONY: all generate reproducible configure proofs audit-build no-admitted demo-data script-images assumptions coqchk check check-discipline clean
 
 all: check
 
@@ -29,6 +29,9 @@ no-admitted:
 demo-data:
 	python3 pipeline/check-demo-data.py
 
+script-images:
+	python3 pipeline/check-script-images.py --check-receipt docs/notes/script-images.json --check-coq proofs/DemoScriptNumericImage.v
+
 assumptions: proofs
 	bash pipeline/assumptions.sh Demo.Proofs.MainTheorem checked_demo_source_boundary_us_jp
 
@@ -41,6 +44,7 @@ check-discipline:
 check:
 	$(MAKE) reproducible
 	$(MAKE) demo-data
+	$(MAKE) script-images
 	$(MAKE) proofs
 	$(MAKE) no-admitted
 	$(MAKE) assumptions

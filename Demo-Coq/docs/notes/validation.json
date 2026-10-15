@@ -18,7 +18,8 @@
     "proofs": 0,
     "discipline": 0,
     "assumptions": 0,
-    "coqchk": 0
+    "coqchk": 0,
+    "script_images": 0
   },
   "reproducibility": "PASS: two complete byte-identical Clight generations, 38 units",
   "rom_metadata": "PASS: canonical US/JP ROM hashes; 7/6 selected streams, distinct headers, terminal records, buffer bounds",
@@ -35,7 +36,7 @@
       {
         "name": "source inventory",
         "status": "PASS",
-        "detail": "53 source files; 0 inventory problems",
+        "detail": "62 source files; 0 inventory problems",
         "problems": []
       },
       {
@@ -69,22 +70,31 @@
       {
         "name": "integration",
         "status": "PASS",
-        "detail": "15/15 modules in MainTheorem's import closure; 0 standalone-only; 0 problems",
+        "detail": "24/24 modules in MainTheorem's import closure; 0 standalone-only; 0 problems",
         "problems": []
       }
     ],
     "integration": {
-      "proof_modules": 15,
+      "proof_modules": 24,
       "main_import_closure": [
         "proofs/DemoConditionalDispatchExecution.v",
+        "proofs/DemoControllerInputExecution.v",
         "proofs/DemoDispatchFacts.v",
         "proofs/DemoGameplayBoundary.v",
+        "proofs/DemoInstantWarpExecution.v",
         "proofs/DemoLevelSelectionExecution.v",
         "proofs/DemoLoadedTitleExecution.v",
         "proofs/DemoLoaderExecution.v",
+        "proofs/DemoNormalPreObjectsExecution.v",
+        "proofs/DemoNormalStartExecution.v",
+        "proofs/DemoNormalTimerExecution.v",
+        "proofs/DemoNumericAddressExecution.v",
+        "proofs/DemoNumericDispatchExecution.v",
         "proofs/DemoPauseExclusion.v",
+        "proofs/DemoPlaybackAdvanceExecution.v",
         "proofs/DemoPlaybackExecution.v",
         "proofs/DemoScriptDispatchFacts.v",
+        "proofs/DemoScriptNumericImage.v",
         "proofs/DemoStartExecution.v",
         "proofs/DemoStartSchedulingExecution.v",
         "proofs/DemoStartWarpExecution.v",
@@ -140,34 +150,45 @@
     "generated/us_title_screen.v": "55d6803050814eeaa6eaad34beed70527474a41a441e37835427739b603759eb",
     "generated/us_wf_level_script.v": "a55f7894e769146a6f50956c69481926c344033a710727f27afd2e5a0ae63167",
     "proofs/DemoConditionalDispatchExecution.v": "b1f0b8ba62cf91e909713e2be2cb6260369f458f08721da750abdd276cf5ed4c",
+    "proofs/DemoControllerInputExecution.v": "e64084900deb71f0ed24e04f6c30d69b9ccacda59f0ce55ede0335fd2922d1f0",
     "proofs/DemoDispatchFacts.v": "2149b38746cfe48b8c9d68e6a9febfb21b2c42a589f8f2adba62f3152d8fe23d",
     "proofs/DemoGameplayBoundary.v": "43cbfc9c731103db08a33c74987c530cd59cda66ad39753f51934fa97e86214c",
+    "proofs/DemoInstantWarpExecution.v": "d49ecd1c55394f2867a9cf52069cb9408549a3643ff7853101e9432bffd92325",
     "proofs/DemoLevelSelectionExecution.v": "eebcdff2e41daa4980d39e8f85e0e1ad7dd84aec43e14d30a6667548ade7286f",
     "proofs/DemoLoadedTitleExecution.v": "16bc43c9c21cbec1ca121bf4a11eb40c18141434e20c95aec6b40da7326140a7",
     "proofs/DemoLoaderExecution.v": "2cd8fc1195c81bdbd6ee286043bd1ad16ae6b288fd670f3faafb40b17ff3c797",
+    "proofs/DemoNormalPreObjectsExecution.v": "a8c899e743aec94f5a67fc6cf67d9cc1bce13ce2703c2fa111d6f695397971dd",
+    "proofs/DemoNormalStartExecution.v": "781a7ea96143457478f10e9b1b91b7942db04d9d3765fff7ab0b2aed9959d1d1",
+    "proofs/DemoNormalTimerExecution.v": "3cd5a128735374485e13bf35744b1ff22af273d9ce30285dd5b4f533aee22fec",
+    "proofs/DemoNumericAddressExecution.v": "789110fbbaed16db331052c96690c1f952523ea76f625a0c1ce0f428955062e9",
+    "proofs/DemoNumericDispatchExecution.v": "aad7148c403b0ded390d912990d160090377415ff7ad81364d9f436690f13932",
     "proofs/DemoPauseExclusion.v": "660659cb8e7efd1e7855adb2a2b1a267930bc4919b7d11425ab30c4244390d26",
+    "proofs/DemoPlaybackAdvanceExecution.v": "a93d83c85eef8b0ffbbcbeb539f5fdcf50cf1744d64e13381f187e1932141238",
     "proofs/DemoPlaybackExecution.v": "8e827d1d0bfc25984f53ca7315e9736ed9ca0ae38a0d97f322d29e9bf704d300",
     "proofs/DemoScriptDispatchFacts.v": "1d0a06cd313155e79fb42c44483a6994128706ef411ad79e0ebe7acf49bab2fe",
+    "proofs/DemoScriptNumericImage.v": "deba478cf0b38daa368272ceb8987cc1c04bd3ab49c6ba011271b8f8a4989241",
     "proofs/DemoStartExecution.v": "757861403b39b88d8a0d894ef9fa855f0f0fe4e717bd10638a5db7f8b1f7e2f0",
     "proofs/DemoStartSchedulingExecution.v": "3551fcdc394694725f08614c245c10bb5a7ecc68ff2b99d5a9dae6e2cca8e4a1",
     "proofs/DemoStartWarpExecution.v": "39bc927dbcec2042ed94cf820f6c1751fcfd0bac7ac927e769e6515b027280cc",
     "proofs/DemoTitleStartExecution.v": "fe641382f6f181cb0702ef7f240e182a80c6d62814097857290fa3da5fe6fb5e",
-    "proofs/MainTheorem.v": "04c5c98b46523050e1482a573b17ca8675dff246f5298382e10f7604a4ef526f",
+    "proofs/MainTheorem.v": "56cf56e5a90c158ce23f460c129c60d828b16e409f3d83fc4fc1727ce0e20f1f",
     "proofs/SourceFacts.v": "669339106aafe1f808da1cd5dac4dbfa88c2ee3a296b4c4e8a58a34268a83026"
   },
-  "boundary": "Composed actual first-loader/title body, active-demo interpreter CALL, conditional equality dispatch, Demo Next scheduling with real transition/RGB helpers, painting/warp/pause paths and constrained positive-record playback where registered. Authentic DMA, numerical-address/relocation/caller simulation, reachable initialization, all-frame preservation and retail/hardware refinement remain open.",
-  "audit_report": "build/audit/20261015-133727-ve3h3rzs/report.json",
+  "boundary": "Composed first-loader/title body, all timer branches of playback, neutral connected-controller processing with named sqrtf contract, actual Start scheduling prefix, composed pre-object warp/instant/timer interval, numeric helper and complete taken numeric jump, finite authenticated script-image representations. Authentic DMA, numeric-to-symbolic caller/dereference/active-overlay simulation, reachable initialization, whole-frame preservation, full source linkage and retail/hardware refinement remain open.",
+  "audit_report": "build/audit/20261015-142250-e87snnog/report.json",
   "gameplay_search_receipt_sha256": "13ebfaf563fc8ef18a26a64089c78f931f2dae612b7fd5c7781a4ea270c8731b",
   "historical_full_reproduction_check": {
     "checkpoint": "886cb4fa30a8b5622620b45af5fa86c1e99923f8",
     "return_code": 0,
     "log": "build/checkpoint-check.log",
     "generated_units": 38,
-    "reuse": "All 38 generated source hashes remain identical. Current expanded proofs have fresh separate checks below."
+    "reuse": "All 38 generated source hashes remain identical. Current 24-module proof checks and script-image check are separate below."
   },
   "current_validation_logs": [
-    "build/checkpoint2-proofs.log",
-    "build/checkpoint2-discipline.log",
-    "build/checkpoint2-coqchk.log"
-  ]
+    "build/checkpoint3-proofs.log",
+    "build/checkpoint3-discipline.log",
+    "build/checkpoint3-coqchk.log",
+    "build/checkpoint3-script-images.log"
+  ],
+  "script_image_check": "PASS: authenticated complete matching ROMs, all selected script initializer words and relocations, three complete native callback byte ranges, exact Coq numeric transcription. Finite external check; no runtime or MIPS semantics refinement."
 }

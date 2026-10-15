@@ -43,12 +43,19 @@ fade, when a stale current-level number can remain. That is not already
 gameplay in the old level. The full property must observe the actual loaded
 gameplay level at the time its demo input is used.
 
-Coq now executes the input consumer for one positive countdown record with
-the second logical controller absent. It proves the actual stick/button
-output, timer decrement, unchanged record pointer, and preservation of loads
-outside the four pad bytes and the single timer byte. Thus the header, other
-records and a separately stored level are preserved on that path. The next
-record, terminal record and complete input-to-gameplay sequence still need proof.
+Coq now executes every timer branch of the input consumer with the second
+logical controller absent. Ordinary records decrement their timer; expiring
+records advance the pointer four bytes; terminal records produce END_DEMO.
+The proofs give exact stick/button outputs and preservation outside the
+specific pad, timer and pointer writes. They also preserve the header when
+the record starts after it. Initial pointer provenance, buffer bounds across
+all frames, and the complete input-to-gameplay sequence remain open.
+
+The next controller-processing branch now executes too for neutral sticks,
+including its real analog-adjustment call and stack allocation/free. It proves
+the actual button-edge formula and controller outputs, with a named pure
+`sqrtf` contract. Arbitrary stick values and the complete polling loop are
+still outside that local result.
 
 The separate ROM check authenticates the seven US and six JP selected demo
 files, their level headers, terminal records and buffer bounds. That is a
@@ -58,13 +65,33 @@ game code preserve those bytes and pointers.
 The warp and pause proofs now execute their concrete local paths too. Coq
 also executes Demo Next scheduling and its real transition/RGB helpers,
 establishing the pending operation and timer from an initially zero operation.
-Selecting that call from Start handling still needs composition. A null
+The actual Start-handling prefix now selects that call, with the real intro-text
+execution and post-UI reads still explicit premises. A null
 painting table prevents the painting routine from acting. A pending warp or
 active transition makes the complete pause query return false. The demo exit
 branch executes the real `warp_special`, and transition completion returns
 its negative title code **provided the ordinary warp destination is zero**.
 That condition is essential: an existing destination takes priority. Proving
 that ordinary demo frames establish and preserve these conditions is ongoing.
+The actual normal-frame timer block now preserves the scheduled operation
+through its precise store frame; object, HUD and camera updates remain to be
+connected and framed.
+The actual warp, instant-warp and timer statements now compose through their
+caller up to the object-update boundary. This executes that interval under
+explicit entry reads, without assuming either warp callee's execution.
+
+The complete instant-warp check now returns without writes for a null floor
+or null instant-warp table under its stated conditions. A separate finite
+check authenticates the selected script images and native callback byte
+ranges against the clean retail ROMs. Coq checks their numeric dispatch
+transcriptions and executes the numeric address helper. This still needs a
+runtime bridge: equal addresses can hold different loaded level images,
+and ordinary CompCert pointers cannot simply be replaced by integers.
+Coq now executes a taken script jump when its target cell already contains
+the numeric address, using both real callees and storing the exact returned
+address. The next opcode read still cannot dereference that integer in
+ordinary Clight. This pinpoints the remaining simulation boundary; it does
+not establish a reachable boot route.
 
 Four authenticated retail-ROM experiments provide a separate finite check of
 idle cycles and physical Start interruptions. They observed 12,866 demo

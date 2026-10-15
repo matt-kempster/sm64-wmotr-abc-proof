@@ -145,10 +145,33 @@ a normally reachable mismatched gameplay episode with input-stream identity
 and loaded level established. Neither a forced emulator state nor an
 arbitrary CompCert memory mismatch meets that standard.
 
-The additional [playback execution](notes/playback-execution.md) proves a
-complete real `run_demo_inputs` call for a positive countdown whose decrement
-stays nonzero, with the second logical controller absent. It constructs exact
-stick/button outputs and a frame outside the pad's first four bytes and the
-single record-timer byte. It does not prove record advance, end-of-demo,
-initialization/provenance or every frame. The scheduling execution is detailed
-in [start-scheduling-execution.md](notes/start-scheduling-execution.md).
+The complete [playback consumer](notes/playback-execution.md) executes all
+three actual timer cases with the second logical controller absent. It proves
+exact outputs, pointer advance on expiry, terminal END_DEMO behavior, and
+byte-range frames. Its no-wrap next-record bound remains conditional on the
+supplied authentic buffer extent; initial and all-frame provenance remain open.
+The [Start caller prefix](notes/normal-start-execution.md) selects the actual
+proved scheduler under checked button/transition/operation reads. Its remaining
+call premise is the actual per-version intro-text routine, with explicit
+returned memory and post-UI reads. The [complete instant-warp check](notes/instant-warp-execution.md)
+returns without writes for a null floor or null table under its stated reads.
+The [pre-object caller interval](notes/normal-preobjects-execution.md) composes
+the actual warp, instant-warp and timer statements, preserving the scheduled
+operation through that interval without callee-execution premises. Its entry
+reads still need connection to startup and the Start scheduler. The
+[connected-controller branch](notes/controller-input-execution.md) executes
+neutral-stick processing and exact button edges through the real analog
+callee, under its named pure `sqrtf` contract; it is not the full input loop.
+
+[Numeric helper execution](notes/numeric-address-execution.md) and
+[authenticated numeric script images](notes/script-numeric-image.md) expose
+the remaining representation obligation precisely. The external checker
+authenticates complete matching ROMs, selected initializer words and three
+native callback byte ranges. Coq checks numeric source representations and
+header dispatch. None supplies a runtime dereference/callback simulation or
+identifies an active overlay solely from a shared numerical entry address.
+The [taken numeric jump](notes/numeric-dispatch-execution.md) now executes its
+actual equality and address-helper callees and stores the exact numeric PC,
+with its numeric target-cell read explicit. The actual next-opcode expression
+cannot dereference that `Vint` in ordinary Clight. This sharpens the caller
+boundary without asserting a full boot or overlay simulation.

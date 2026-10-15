@@ -56,6 +56,14 @@ small exact-body proof requires no new semantics, source flags or axioms.
 The dust-specific placement and decoder theorems are useful examples, but
 their three behavior-script regions are not the demo level-script domain.
 
+That Demo-specific adaptation is now implemented in
+[`DemoNumericAddressExecution.v`](../../proofs/DemoNumericAddressExecution.v),
+including both the complete numeric execution and complete `Vptr` call
+impossibility. See [numeric-address-execution.md](numeric-address-execution.md).
+The new authenticated finite demo script/relocation image is described in
+[script-numeric-image.md](script-numeric-image.md). These results sharpen the
+remaining representation-simulation obligation; they do not discharge it.
+
 ## Why linking and ordinary memory injection do not finish it
 
 The installed CompCert 3.15 sources make the representation distinction

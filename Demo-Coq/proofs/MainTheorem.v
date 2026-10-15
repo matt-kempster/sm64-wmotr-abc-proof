@@ -2,7 +2,9 @@ From Demo.Proofs Require Import SourceFacts DemoDispatchFacts DemoStartExecution
   DemoTitleStartExecution DemoLevelSelectionExecution DemoGameplayBoundary
   DemoPauseExclusion DemoScriptDispatchFacts DemoStartWarpExecution DemoLoaderExecution
   DemoLoadedTitleExecution DemoConditionalDispatchExecution DemoStartSchedulingExecution
-  DemoPlaybackExecution.
+  DemoPlaybackExecution DemoPlaybackAdvanceExecution DemoNumericAddressExecution DemoNormalStartExecution
+  DemoScriptNumericImage DemoInstantWarpExecution DemoNormalTimerExecution
+  DemoControllerInputExecution DemoNormalPreObjectsExecution DemoNumericDispatchExecution.
 
 (** This capstone composes actual source/semantic components on the route to
     the gameplay invariant. It is not yet a theorem of no desync from boot. *)
@@ -15,7 +17,11 @@ Definition demo_checked_boundary_claim : Prop :=
   demo_script_dispatch_routes_claim_us_jp /\ demo_start_warp_execution_claim /\
   demo_loader_execution_boundary_claim_us_jp /\ demo_dma_to_first_title_claim_us_jp /\
   demo_conditional_dispatch_execution_boundary_claim_us_jp /\
-  demo_start_scheduling_execution_claim /\ demo_playback_execution_claim_us_jp.
+  demo_start_scheduling_execution_claim /\ demo_complete_playback_consumer_claim_us_jp /\
+  demo_numeric_address_execution_boundary_claim_us_jp /\ demo_normal_start_execution_claim /\
+  demo_script_numeric_image_boundary_claim_us_jp /\ demo_instant_warp_execution_claim /\
+  demo_normal_timer_boundary_claim /\ demo_controller_input_execution_claim_us_jp /\
+  demo_normal_preobjects_execution_claim /\ demo_numeric_dispatch_execution_boundary_claim_us_jp.
 
 Theorem checked_demo_source_boundary_us_jp : demo_checked_boundary_claim.
 Proof.
@@ -32,5 +38,13 @@ Proof.
                     (conj generated_dma_to_first_title_us_jp
                       (conj generated_demo_conditional_dispatch_execution_boundary_us_jp
                         (conj generated_demo_next_is_really_scheduled_us_jp
-                          generated_demo_playback_execution_us_jp))))))))))))).
+                          (conj generated_complete_playback_consumer_us_jp
+                            (conj generated_demo_numeric_address_execution_boundary_us_jp
+                              (conj generated_normal_demo_start_prefix_executes
+                                (conj generated_demo_script_numeric_image_boundary_us_jp
+                                  (conj generated_demo_instant_warp_execution_us_jp
+                                    (conj generated_normal_timer_boundary_us_jp
+                                      (conj generated_demo_controller_input_execution_us_jp
+                                        (conj generated_normal_preobjects_interval_executes
+                                          generated_demo_numeric_dispatch_execution_boundary_us_jp))))))))))))))))))))).
 Qed.

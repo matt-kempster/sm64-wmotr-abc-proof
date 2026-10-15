@@ -210,11 +210,14 @@ The newer [composed startup proof](loaded-title-execution.md) discharges the
 whole-loader premise, leaving the exact DMA call and post-DMA reads. The
 [actual scheduling proof](start-scheduling-execution.md) executes Demo Next and
 its transition/RGB callees. The [playback proof](playback-execution.md) executes
-a positive countdown record with a byte-range frame, and the
+  all timer branches of the demo input consumer with byte-range frames, and the
 [conditional-dispatch proof](conditional-dispatch.md) executes a nonmatching
 jump. Their remaining composition includes the explicit
-[address-refinement gap](address-refinement.md); a numeric helper proof exists
-in Pedro, while relocation/caller/dereference simulation remains open.
+[address-refinement gap](address-refinement.md); Demo now executes its own
+numeric helper and authenticates finite numeric script images, while
+relocation/caller/dereference simulation remains open. The actual private
+script-name collision and prepared correction are recorded in
+[private-global-linkage.md](private-global-linkage.md).
 
 To close the requested normal-execution impossibility claim, the remaining
 work includes:

@@ -42,15 +42,24 @@ generated/jp_pss_level_script.v
 
 proofs/SourceFacts.v
 proofs/DemoScriptDispatchFacts.v
+proofs/DemoScriptNumericImage.v
 proofs/DemoConditionalDispatchExecution.v
+proofs/DemoNumericAddressExecution.v
+proofs/DemoNumericDispatchExecution.v
 proofs/DemoStartExecution.v
+proofs/DemoNormalTimerExecution.v
+proofs/DemoNormalPreObjectsExecution.v
 proofs/DemoPlaybackExecution.v
+proofs/DemoPlaybackAdvanceExecution.v
+proofs/DemoControllerInputExecution.v
 proofs/DemoDispatchFacts.v
 proofs/DemoLevelSelectionExecution.v
 proofs/DemoGameplayBoundary.v
 proofs/DemoPauseExclusion.v
 proofs/DemoStartWarpExecution.v
+proofs/DemoInstantWarpExecution.v
 proofs/DemoStartSchedulingExecution.v
+proofs/DemoNormalStartExecution.v
 proofs/DemoTitleStartExecution.v
 proofs/DemoLoaderExecution.v
 proofs/DemoLoadedTitleExecution.v

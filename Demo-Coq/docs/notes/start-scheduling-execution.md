@@ -49,9 +49,10 @@ This discharges the local execution obligation for Demo Next scheduling
 and its transition callees. The earlier pending-dispatch theorem started
 with operation 22 and timer 20; it did not execute the scheduling call or
 assume a completed call. The new result leaves three distinct
-composition obligations: the real active-demo/Start prefix must select
-this call with these arguments; its starting-memory conditions must be
-established in a reachable state; and the object/HUD/camera/instant-warp/
+composition obligations. The real active-demo/Start prefix is now executed
+under explicit UI/guard premises in [the caller proof](normal-start-execution.md).
+Its UI and starting-memory conditions must be established in a reachable
+state, and the object/HUD/camera/instant-warp/
 painting interval must preserve the scheduled condition before the later
 pause decision. The independent zero-`sWarpDest.type` invariant is still
 needed for both `warp_area` and transition completion. None of these

@@ -103,9 +103,10 @@ equality, must be carried across the real scheduler execution.
   The relevant source ordering is that an active demo sees Start earlier
   in `play_mode_normal` and schedules its demo exit before the pause test;
   the actual scheduling function and its transition/RGB callees are now
-  executed in [the scheduling proof](start-scheduling-execution.md), while
-  selection from the Start prefix and framing of the intervening calls
-  remain required. Debug/frame-advance and credits reachability also need
+  executed in [the scheduling proof](start-scheduling-execution.md), and
+  [the actual Start prefix](normal-start-execution.md) selects that call
+  under explicit UI/guard premises. Reachable instantiation and framing of
+  the intervening calls remain required. Debug/frame-advance and credits reachability also need
   their concrete start-state exclusions.
 - Link independent generated units with the correct public/private atoms,
   instantiate all symbol/layout and nonaliasing facts, and preserve stream,

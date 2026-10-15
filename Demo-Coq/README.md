@@ -33,7 +33,15 @@ retail-binary execution and hardware is open.
 - [Executed conditional dispatch and address-model obstruction](docs/notes/conditional-dispatch.md)
 - [Existing address-refinement results and remaining bridge](docs/notes/address-refinement.md)
 - [Actual Demo Next scheduling and transition callees](docs/notes/start-scheduling-execution.md)
-- [Actual positive-record playback and byte-range frame](docs/notes/playback-execution.md)
+- [Complete demo-record consumer and byte-range frames](docs/notes/playback-execution.md)
+- [Actual Start handling prefix](docs/notes/normal-start-execution.md)
+- [Complete instant-warp rejection](docs/notes/instant-warp-execution.md)
+- [Numeric address-helper execution](docs/notes/numeric-address-execution.md)
+- [Authenticated numeric script images](docs/notes/script-numeric-image.md)
+- [Taken numeric jump and next-opcode boundary](docs/notes/numeric-dispatch-execution.md)
+- [Actual controller processing branch](docs/notes/controller-input-execution.md)
+- [Warp and timer caller interval before object updates](docs/notes/normal-preobjects-execution.md)
+- [Private global linking correction still to apply](docs/notes/private-global-linkage.md)
 - [Executed warp boundaries](docs/notes/gameplay-boundary.md)
 - [Executed pause exclusion](docs/notes/pause-exclusion.md)
 - [Finite retail gameplay search](docs/notes/gameplay-search.md)
@@ -57,10 +65,13 @@ pause query with its real dialog helper, and Demo Next scheduling with its
 actual transition/RGB callees. These components have explicit memory, symbol,
 layout and branch premises. Their conjunction does not prove that a complete
 normally reachable execution satisfies those premises.
-The actual input consumer also executes one positive countdown record with
-the second logical controller absent. It proves the exact input output,
-timer decrement, unchanged record pointer and a byte-range memory frame;
-record advance, end-of-demo and all-frame provenance remain open.
+The actual input consumer now executes every timer branch with the second
+logical controller absent: ordinary decrement, record advance, and the
+terminal record. It proves exact outputs and byte-range memory frames;
+initialization, bounds and all-frame provenance remain open. The actual Start
+prefix selects the proved scheduler, with its real per-version intro-text
+call still an explicit premise. The complete instant-warp routine returns
+without writes for a null floor or null table under its stated reads.
 
 The finite source certificates inspect playback's lack of a current-level
 reference, the painting path's lack of a demo-pointer reference, the delayed
@@ -91,7 +102,7 @@ bash pipeline/build.sh check
 ```
 
 `check` regenerates twice and compares hashes, authenticates the finite ROM
-metadata receipt, builds the registered modules with one job by default,
+metadata and numeric script-image receipts, builds the registered modules with one job by default,
 checks for proof holes, prints the capstone's assumptions, runs `coqchk`, and
 runs the project discipline audit. Keep the established memory limit.
 
@@ -111,6 +122,14 @@ button/stick streams. To intentionally regenerate that metadata after review:
 ```sh
 python3 pipeline/check-demo-data.py --write
 ```
+
+`script-images` additionally requires the existing matching US/JP ELF/ROM
+build cache at `../Pedro-Coq/instrumentation/ttc-runtime-snapshot/build/retail-map-9921382`.
+It authenticates the complete build ROM against the clean ROM before using
+ELF placements, checks all selected initializer words, and checks that the
+Coq numeric transcription matches. The checker's `--help` lists explicit
+source/cache overrides. These checks authenticate finite
+data; they do not supply a runtime address simulation.
 
 The private site source is the workspace sibling `demo-proof-notes-site`.
 Keep its verdict aligned with these documents and preserve owner-only access.

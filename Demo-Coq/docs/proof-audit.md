@@ -110,18 +110,23 @@ verified environment above.
 
 Checkpoint `886cb4f` passed the complete `bash pipeline/build.sh check`
 (`build/checkpoint-check.log`), including two byte-identical generations of
-all 38 units and the authenticated ROM metadata check. Those 38 generated
-source hashes are unchanged by this continuation. Their reproducibility
-evidence is reused; the expanded proof development has fresh checks below.
+all 38 units and authenticated demo metadata. All 38 generated hashes remain
+unchanged; that generation evidence is reused. The current expanded proofs
+have fresh separate validation:
 
-The current full registered build passed (`build/checkpoint2-proofs.log`).
-The selected discipline audit and its capstone assumptions passed
-(`build/checkpoint2-discipline.log`). Independent `coqchk` of the expanded
-capstone passed (`build/checkpoint2-coqchk.log`). The final audit report is
-`build/audit/20261015-133727-ve3h3rzs/report.json`. It checks 53 sources and
-all 15 proof modules in MainTheorem's import closure, with no standalone
-modules, inventory/structure problems, proof holes or literal-prefix problems.
-Exact source hashes and the complete report are in `docs/notes/validation.json`.
+- full registered build: `build/checkpoint3-proofs.log`, exit 0;
+- selected discipline audit and capstone assumptions:
+  `build/checkpoint3-discipline.log`, exit 0;
+- independent kernel check: `build/checkpoint3-coqchk.log`, exit 0;
+- authenticated script-image and exact Coq-transcription check:
+  `build/checkpoint3-script-images.log`, exit 0.
+
+The final audit is `build/audit/20261015-142250-e87snnog/report.json`.
+It checks 62 sources and all 24 proof modules in MainTheorem's import closure,
+with no standalone modules, inventory/structure problems or proof holes.
+Exact source hashes and the complete audit are in `notes/validation.json`.
+The `script-images` target is now included in `check`; its existing matching
+ELF cache requirement is documented in the README.
 
 The capstone's six allowed foundations remain:
 
@@ -132,28 +137,39 @@ The capstone's six allowed foundations remain:
 - `Events.inline_assembly_sem`;
 - `FunctionalExtensionality.functional_extensionality_dep`.
 
-There are no project axioms. This does not remove the explicit execution,
-memory, layout and linkage premises, establish whole-boot non-vacuity or
-close any gameplay/hardware obligation. The initial independent read-only
-review found no critical statement-fidelity issue by inspection.
+There are no project axioms. Explicit memory, layout, resolution and execution
+premises remain. In particular, the connected-controller execution is confined
+to neutral sticks and the named pure `sqrtf` contract. Its separate general
+ordinary-playback bit proof establishes the actual new-Start and END-clear
+guard masks. All timer branches of the actual demo consumer are executed,
+with precise frames; authentic all-frame bounds/provenance remain open.
 
-Since the first checkpoint, the actual first-entry loader is composed with
-the whole title body, reducing its whole-loader premise to the exact DMA
-call and explicit post-DMA reads. Actual Demo Next scheduling executes its
-real transition and RGB callees. Conditional equality dispatch executes its
-helper and the nonmatching jump. Their notes state the remaining premises.
-Any registered positive-record playback result is confined to its literal
-record/controller constraints and does not establish all-record reachability.
+The normal Start prefix selects the actual scheduler but retains the real
+per-version intro-text call. The contiguous warp/instant-warp/timer caller
+interval executes through its actual internal callees without execution
+premises and preserves the scheduled operation. Object/HUD/camera updates,
+the connection of entry reads and a complete frame invariant remain open.
 
-The real segmented-address helper's shift is undefined on an unrefined
-symbolic pointer; the generated expression and semantic operation are checked
-mechanically. Existing Pedro proofs execute numeric inputs and prove the
-symbolic-call obstruction. They leave ordinary caller/relocation/dereference
-simulation open; no full numeric-address boot bridge was found. This is a
-model/refinement issue, not a reachable desync. See `notes/address-refinement.md`.
+The taken numeric script jump now executes both actual callees and stores its
+exact numeric PC. The actual next-opcode expression cannot dereference that
+integer in ordinary Clight. Finite script/callback image authentication and
+numeric representation certificates do not supply the missing active-overlay
+address simulation. Shared addresses do not identify loaded level images.
 
-The corrected script census checks Bowser 1 (30) for `bitdw.bin`, rather than
-the BITDW course (17). The ordinary warp destination must remain zero because
-it takes priority over a stored negative demo code. Four authenticated retail
-trials recorded 12,866 active-demo updates with zero mismatches/errors. Their
-finite metadata receipt and scope remain separate from the Coq statements.
+The audit's private-string prefix check is **not** a whole-program link check.
+Actual private script-global name collisions make the current BBH/CCM AST
+link fail. A fail-closed private-global freshener and successful corrected
+two-unit links are staging evidence; production generation remains unchanged.
+See `notes/private-global-linkage.md`. Regeneration, renewed hash receipts and
+the full source link remain further work. No vacuous no-gameplay theorem is
+claimed from the address or link obstruction.
+
+The corrected script census checks Bowser 1 (30) for the `bitdw.bin` stream,
+rather than the BITDW course (17). A zero ordinary warp destination is still
+required because it takes priority over a negative demo return code. Four
+authenticated retail trials recorded 12,866 active-demo updates with no
+mismatch/error. These bounded observations remain separate from Coq.
+
+The requested full gameplay claim remains **OPEN**, with no reachable
+counterexample established. The area-initialization proof and further layout
+witnesses currently in ignored staging are not included in this checkpoint.

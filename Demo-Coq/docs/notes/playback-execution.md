@@ -1,64 +1,80 @@
-# Complete execution of a positive demo-input record
+# Complete execution of demo-input playback
 
-The full gameplay no-desync claim remains **OPEN**. The new playback theorem
-executes the real input consumer for one precisely described controller and
-record path; it does not supply initialization or all-frame reachability.
+The full gameplay no-desync claim remains **OPEN**. These playback theorems
+execute the actual input consumer for a precisely described controller state.
+They do not supply authentic initialization or whole-frame reachability.
 
-`proofs/DemoPlaybackExecution.v` proves
-`generated_demo_playback_execution_us_jp`. The actual generated US and JP
-`run_demo_inputs` function definitions are equal. For each, the proof constructs
-a complete internal CompCert `eval_funcall`, including function entry, the
-entire generated body, implicit void return and cleanup. No callee execution,
+`proofs/DemoPlaybackExecution.v` proves the positive countdown path that does
+not yet advance the record. `proofs/DemoPlaybackAdvanceExecution.v` adds the
+record-expiry and EOF cases, then proves
+`generated_complete_playback_consumer_us_jp`. The generated US and JP
+`run_demo_inputs` definitions are equal. For both versions the result
+constructs a complete internal CompCert `eval_funcall`, including entry, the
+entire generated body, implicit void return, and cleanup. No callee execution,
 abstract frame step, or already-completed playback execution is assumed.
 
-The covered state has the first logical controller pointing to the beginning
-of its pad block and the second logical controller's `controllerData` null.
+The common state has the first logical controller pointing to offset zero of
+its pad block, and the second logical controller's `controllerData` null.
 This includes the usual single controller in physical port zero, subject to
 the unproved initialization bridge. The current demo pointer is a readable,
-valid pointer into the supplied stream block. Its unsigned-byte timer is
-nonzero, and the actual unsigned-byte decrement is also nonzero: this is the
-positive countdown path that does not yet advance to the next record. The
-physical button value, recorded stick bytes and recorded button mask are
-arbitrary values returned by the real typed loads.
+valid pointer into the supplied stream block. The physical buttons, timer,
+recorded stick bytes and recorded button mask are arbitrary values returned
+by actual typed loads. All timer values are covered:
 
-The whole generated execution performs six stores:
+- A nonzero timer whose unsigned-byte decrement remains nonzero executes
+  six stores: mask physical buttons, copy signed X and Y, decode the record's
+  button nibbles, OR in captured physical Start, and decrement the timer.
+  The record pointer remains unchanged.
+- A nonzero timer whose unsigned-byte decrement is zero executes the same
+  six stores, then stores the current stream pointer plus one four-byte
+  record in `gCurrDemoInput`. In particular, an actual timer of one reaches
+  this case. The new pointer keeps the same CompCert stream block.
+- A zero timer executes the EOF branch: after the initial physical button
+  mask it clears both sticks and stores `END_DEMO` (128). It leaves the
+  stream and current demo pointer unchanged. Physical Start is not retained
+  by that EOF output.
 
-1. Masks the physical first-controller buttons with the actual valid mask.
-2. Copies the recorded signed X byte into the pad.
-3. Copies the recorded signed Y byte into the pad.
-4. Decodes the record's high button nibble into bits 15-12 and its low nibble
-   into bits 3-0, storing the resulting pad buttons.
-5. ORs in the physical Start bit captured after the initial valid-button mask.
-6. Decrements exactly the current record's timer byte.
+The all-timer theorem gives the exact final pointer, timer, sticks, and
+buttons as conditional expressions matching those branches. Physical Start
+is represented by the exact mask/decode/OR expression executed by the code.
+These conclusions do not assume that other physical movement buttons reach
+gameplay.
 
-The conclusions give the exact final stick/button values, decremented timer,
-and unchanged current demo pointer. Physical Start handling is represented by
-the exact integer mask/decode/OR expression executed by the generated code;
-the theorem does not assume that physical movement buttons reach gameplay.
+Each branch derives a byte-range memory frame from its actual stores. The
+common theorem preserves every load disjoint from pad bytes `[0,4)`, the
+current record's one-byte timer cell, and the four-byte global current-pointer
+cell. Its explicit additional conclusion preserves the buffer's first
+four bytes when the current record starts at offset four or later. Other
+records and a separately located `gCurrLevelNum` cell are covered by the
+frame. The EOF branch separately has the stronger pad-only frame.
 
-Its memory frame is stated at byte ranges rather than discarding an entire
-stream block. Every readable load disjoint from pad bytes `[0,4)` and the one
-current-record timer byte is unchanged. This includes other demo records and
-the header when their bytes are outside that timer cell. A separately located
-`gCurrLevelNum` cell is also preserved by this frame. These conclusions are
-derived from the six actual stores, not supplied as a preservation premise.
+The pointer arithmetic theorem connects the actual conditional output
+pointer to a supplied buffer bound: if its current offset is at least four,
+the current and next four-byte records fit inside a supplied byte size, and
+that size is no larger than `Ptrofs.max_unsigned`, the next record remains
+inside that buffer and beyond its header without integer wrap. This is a
+generic arithmetic condition; the authenticated ROM stream sizes and
+terminal-record positions in `demo-data.json` are still outside Coq and are
+not yet used to prove that condition from normal loading.
 
-The explicit premises resolve the two real globals, the controller/pad/record
-composites and their actual field offsets, the controller size of 28 bytes,
-record size of four bytes, the named typed reads, writable destination cells,
-the valid current-record pointer and touched-block separation. The theorem
-does not instantiate these in a complete linked retail environment or show
-their joint boot reachability. The additional generated-layout witness and
-buffer-bounds helper remain draft work outside the registered proof.
+The explicit execution premises resolve the two real globals, the actual
+controller/pad/record composites and field offsets, controller size 28,
+record size four, the named typed reads, writable destination cells, the
+valid current-record pointer, and touched-block separation. They are not
+instantiated in a complete linked retail environment or proved jointly
+reachable from boot. The common theorem supplies writable timer and pointer
+cells and the input-record fields even in the EOF branch, which does not
+need all of them. No generated composite-layout witness is yet included for
+this playback layout.
 
-Still required are the timer-one record-advance case, the zero-timer end-demo
-case, the second-controller clearing path, nonzero physical-pad offsets,
-authentic DMA/input provenance and record bounds, and composition through the
-remaining `read_controller_inputs` updates into an actual loaded gameplay
-frame. In particular, this conditional playback call is not a whole-game
-no-desync theorem or a reachable mismatch witness.
+Still required are the second-controller clearing path, nonzero physical
+pad offsets, authentic DMA/input provenance and an inductive record-bound
+invariant, and composition through the remaining `read_controller_inputs`
+updates into actual loaded gameplay frames. The complete consumer theorem
+under these explicit conditions is neither a whole-game no-desync theorem
+nor a reachable mismatch witness.
 
-The semantic leaf was validated through the existing Ubuntu WSL pipeline,
-using the `sm64-item-proof` switch, Coq 8.16.1 and CompCert 3.15, with an
-isolated staging target/dependency file before promotion. The main report
-records its capstone wiring and project-wide audit.
+Both semantic modules were validated through the existing Ubuntu WSL
+pipeline, using the `sm64-item-proof` switch, Coq 8.16.1 and CompCert 3.15,
+with isolated staging targets/dependency files before promotion. The main
+report records capstone wiring and project-wide audits.

@@ -21,9 +21,26 @@ kept separate from unproved composition and reachability.
 - [x] Actual local painting-null, delayed-demo/internal-warp, transition
   completion and full pause/dialog-query executions under explicit premises.
 - [x] Complete Demo Next scheduling, including the real transition and RGB
-  callees; the actual Start prefix and intervening frame still need proof.
-- [x] Complete positive-countdown playback call with second logical
-  controller absent, exact input outputs and a byte-range memory frame.
+  callees, and its actual Start caller prefix with the real intro-text call
+  still a premise; the intervening frame still needs proof.
+- [x] Complete playback consumer for ordinary, expiring and terminal records
+  with second logical controller absent, exact outputs and byte-range frames.
+- [x] Complete instant-warp rejection for null floor or null table under
+  explicit actual field reads and the non-castle level condition.
+- [x] Execute the numeric address helper and authenticate finite selected
+  script/callback images; kernel-check numeric script representations and
+  the seven-header decoder. Runtime caller/overlay simulation remains open.
+- [x] Actual taken conditional jump with numeric target-cell input, both
+  real callees, exact numeric PC store and other-block frame. The following
+  opcode dereference still requires a representation simulation.
+- [x] Actual connected-controller branch with neutral sticks through the real
+  analog-adjustment call and its allocation/free, using an explicit pure
+  contract for the named external `sqrtf` call. Arbitrary-stick and whole-loop
+  composition remain open.
+- [x] Actual normal-frame timer segment, including preservation of the scheduled
+  operation/timer via its concrete memory frame.
+- [x] Contiguous actual warp/instant-warp/timer caller interval up to object
+  updates, with no warp-callee execution premise and explicit entry reads.
 - [ ] Formalize the actual loaded-gameplay/consumed-input observation boundary
   and permitted initial/external events; exclude mere title-fade bookkeeping.
 - [ ] Prove loader allocation, table/index/cache and DMA memory invariants
