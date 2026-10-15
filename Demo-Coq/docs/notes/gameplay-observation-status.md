@@ -139,6 +139,17 @@ rather than requiring trajectory/RNG enumeration for that specific route.
 Indirect/assembly/external writes and the real memory/initialization invariant
 remain unproved. No new retail trial or reachable counterexample is claimed.
 
+## Bounded research on the required address execution correspondence
+
+The [primary-source research note](concrete-address-semantics-research.md)
+reviews CompCertS, MoreC and quasi-concrete memory work. None of the inspected
+artifacts supplies a demonstrated unchanged-Clight3.15/N64 drop-in. CompCertS
+has older interfaces and placement-independent normalization; MoreC's published
+proof covers a smaller language and leaves function pointers open. No artifact
+was installed, compiled or claimed compatible. This research identifies possible
+semantic ingredients and the native/callback/lifetime obligations; it is not
+new Coq execution evidence or a closed checklist item.
+
 ## Intended full statement, still unfinished
 
 For every permitted real execution, whenever an authentic demo record's
