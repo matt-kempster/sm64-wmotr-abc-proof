@@ -42,11 +42,16 @@ generated/jp_pss_level_script.v
 
 proofs/SourceFacts.v
 proofs/DemoScriptDispatchFacts.v
+proofs/DemoConditionalDispatchExecution.v
 proofs/DemoStartExecution.v
+proofs/DemoPlaybackExecution.v
 proofs/DemoDispatchFacts.v
 proofs/DemoLevelSelectionExecution.v
 proofs/DemoGameplayBoundary.v
 proofs/DemoPauseExclusion.v
 proofs/DemoStartWarpExecution.v
+proofs/DemoStartSchedulingExecution.v
 proofs/DemoTitleStartExecution.v
+proofs/DemoLoaderExecution.v
+proofs/DemoLoadedTitleExecution.v
 proofs/MainTheorem.v

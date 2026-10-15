@@ -102,8 +102,10 @@ equality, must be carried across the real scheduler execution.
 - Cover the pause path: `pressed_pause` has no direct demo-pointer guard.
   The relevant source ordering is that an active demo sees Start earlier
   in `play_mode_normal` and schedules its demo exit before the pause test;
-  this requires actual execution/framing of `level_trigger_warp` and the
-  intervening calls. Debug/frame-advance and credits reachability also need
+  the actual scheduling function and its transition/RGB callees are now
+  executed in [the scheduling proof](start-scheduling-execution.md), while
+  selection from the Start prefix and framing of the intervening calls
+  remain required. Debug/frame-advance and credits reachability also need
   their concrete start-state exclusions.
 - Link independent generated units with the correct public/private atoms,
   instantiate all symbol/layout and nonaliasing facts, and preserve stream,

@@ -9,8 +9,8 @@ generated dispatch table, level 30 selects the **Bowser 1 arena**, through
 `script_exec_bowser_1` and `level_bowser_1_entry`. The BITDW course uses level
 **17**, `script_exec_bitdw` and `level_bitdw_entry`. Treating the asset filename
 as its selected gameplay level omitted the Bowser 1 script from the intended
-US demo domain. The corrected script inventory includes that arena; BITDW
-course scripts can remain as additional conservative coverage. JP's demo
+US demo domain. The corrected script inventory includes that arena. BITDW
+course units remain generated but are outside that seven-script census. JP's demo
 table omits the stream named `bitdw`; its generated level dispatch table
 nevertheless contains both level routes.
 

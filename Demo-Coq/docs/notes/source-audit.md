@@ -206,6 +206,16 @@ over the negative title code during transition completion. Its zero-state
 invariant remains necessary. The finite retail search is recorded separately
 in [gameplay-search.md](gameplay-search.md).
 
+The newer [composed startup proof](loaded-title-execution.md) discharges the
+whole-loader premise, leaving the exact DMA call and post-DMA reads. The
+[actual scheduling proof](start-scheduling-execution.md) executes Demo Next and
+its transition/RGB callees. The [playback proof](playback-execution.md) executes
+a positive countdown record with a byte-range frame, and the
+[conditional-dispatch proof](conditional-dispatch.md) executes a nonmatching
+jump. Their remaining composition includes the explicit
+[address-refinement gap](address-refinement.md); a numeric helper proof exists
+in Pedro, while relocation/caller/dereference simulation remains open.
+
 To close the requested normal-execution impossibility claim, the remaining
 work includes:
 

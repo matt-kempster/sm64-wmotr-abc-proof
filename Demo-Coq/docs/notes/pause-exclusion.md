@@ -40,9 +40,12 @@ The source ordering that could establish this condition still needs
 composition. At the start of `play_mode_normal`, an active demo's Start
 press schedules `WARP_OP_DEMO_NEXT` when the transition is inactive and no
 operation is pending. The actual `level_trigger_warp` branch also calls
-`play_transition`. Executing that branch and preserving its result through
-the intervening frame callees is still required; reading this ordering in
-the source does not establish it for a reachable frame. The later
+`play_transition`. The complete scheduling function and its actual
+transition/RGB callees are now executed separately in
+[the scheduling proof](start-scheduling-execution.md). Selecting that call
+from the real Start prefix, instantiating its premises and preserving its
+result through the intervening frame callees remain required; reading this
+ordering in the source does not establish it for a reachable frame. The later
 `pressed_pause` call is now a proved consumer of the resulting condition.
 
 The zero-`sWarpDest.type` invariant discussed in

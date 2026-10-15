@@ -84,8 +84,9 @@ delayed-demo branch executes the actual internal `warp_special` function.
 The exact hypotheses and remaining composition are described in
 [gameplay-execution.md](notes/gameplay-execution.md),
 [gameplay-boundary.md](notes/gameplay-boundary.md) and
-[pause-exclusion.md](notes/pause-exclusion.md). The whole title body retains
-an execution premise for the named real loader. No theorem here supplies a
+[pause-exclusion.md](notes/pause-exclusion.md). The original title theorem retains
+its named loader premise; the composed loader/title theorem below reduces
+that premise to the concrete DMA call. No theorem here supplies a
 normal-boot reachability or whole-program store-preservation invariant.
 
 `DemoScriptDispatchFacts.v` parses the actual generated dispatch table and
@@ -104,6 +105,23 @@ required; proving only the -8/-2 branch is insufficient.
 The retail experiments in [gameplay-search.md](notes/gameplay-search.md)
 are bounded evidence outside Coq. They do not replace any universal gameplay
 or hardware-refinement obligation.
+
+The subsequent composed startup theorem in
+[loaded-title-execution.md](notes/loaded-title-execution.md) now executes the
+actual loader and uses its proved cache-store frame, replacing the whole
+loader-call premise with the exact generated `dma_read` call and explicit
+post-DMA reads. The original local title statement is retained with its
+literal narrower boundary; no reachability premise was silently discharged.
+
+The complete equality helper and a nonmatching `level_cmd_jump_if` body are
+executed in [conditional-dispatch.md](notes/conditional-dispatch.md). The same
+module selects the real first expression of `segmented_to_virtual` and proves
+that its pointer-to-integer cast preserves a symbolic `Vptr`, while its shift
+by 24 returns `None` in CompCert semantics. It supplies no assumed taken-jump
+callee mapping from a symbolic relocation to an arbitrary target pointer.
+The result identifies a model/refinement obstruction, not a retail mismatch
+or a proof that all numerical-address executions get stuck. A complete
+boot-to-gameplay claim needs a non-vacuous, justified address correspondence.
 
 ## Authenticated finite data check
 
@@ -126,3 +144,11 @@ preservation obligations in [the checklist](checklist.md). A disproof needs
 a normally reachable mismatched gameplay episode with input-stream identity
 and loaded level established. Neither a forced emulator state nor an
 arbitrary CompCert memory mismatch meets that standard.
+
+The additional [playback execution](notes/playback-execution.md) proves a
+complete real `run_demo_inputs` call for a positive countdown whose decrement
+stays nonzero, with the second logical controller absent. It constructs exact
+stick/button outputs and a frame outside the pad's first four bytes and the
+single record-timer byte. It does not prove record advance, end-of-demo,
+initialization/provenance or every frame. The scheduling execution is detailed
+in [start-scheduling-execution.md](notes/start-scheduling-execution.md).

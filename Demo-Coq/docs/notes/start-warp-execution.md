@@ -29,9 +29,11 @@ invariant. These starting-memory facts are the remaining composition
 obligations, not a hidden assertion that demo pausing or desync is
 unreachable.
 
+The actual `level_trigger_warp` scheduling function and its transition/RGB
+callees are now executed in [the scheduling proof](start-scheduling-execution.md).
 To connect these results to the complete pause exclusion theorem, the
-actual Start path must execute `level_trigger_warp` and its
-`play_transition` callee. The object update, HUD, camera, instant-warp and
+actual Start prefix must select that call and instantiate its premises.
+The object update, HUD, camera, instant-warp and
 painting calls between that prefix and the pause decision must preserve
 the relevant operation/transition and destination invariants. The
 generated functions and concrete call sites are known, but these memory

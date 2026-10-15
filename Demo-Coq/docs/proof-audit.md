@@ -108,18 +108,20 @@ verified environment above.
 
 ## Recorded validation
 
-The continuation's complete `bash pipeline/build.sh check` returned status 0
-(`build/checkpoint-check.log`): two byte-identical generation passes for all
-38 units, authenticated US/JP ROM metadata, full registered build, proof-hole
-scan, capstone assumptions, independent `coqchk`, and project discipline.
-The standalone selected audit also passed (`build/checkpoint-discipline.log`),
-and the separate kernel check passed (`build/checkpoint-coqchk.log`).
+Checkpoint `886cb4f` passed the complete `bash pipeline/build.sh check`
+(`build/checkpoint-check.log`), including two byte-identical generations of
+all 38 units and the authenticated ROM metadata check. Those 38 generated
+source hashes are unchanged by this continuation. Their reproducibility
+evidence is reused; the expanded proof development has fresh checks below.
 
-The final audit report is `build/audit/20261015-131106-idieex1z/report.json`. It checks 48 source files,
-all 10 proof modules in MainTheorem's import closure, no standalone-only
-modules, no inventory/structure problems, no proof holes and no literal-prefix
-problems. The exact report and SHA-256 hashes of every registered generated
-and proof source are retained in `docs/notes/validation.json`.
+The current full registered build passed (`build/checkpoint2-proofs.log`).
+The selected discipline audit and its capstone assumptions passed
+(`build/checkpoint2-discipline.log`). Independent `coqchk` of the expanded
+capstone passed (`build/checkpoint2-coqchk.log`). The final audit report is
+`build/audit/20261015-133727-ve3h3rzs/report.json`. It checks 53 sources and
+all 15 proof modules in MainTheorem's import closure, with no standalone
+modules, inventory/structure problems, proof holes or literal-prefix problems.
+Exact source hashes and the complete report are in `docs/notes/validation.json`.
 
 The capstone's six allowed foundations remain:
 
@@ -130,22 +132,28 @@ The capstone's six allowed foundations remain:
 - `Events.inline_assembly_sem`;
 - `FunctionalExtensionality.functional_extensionality_dep`.
 
-There are no project axioms in that report. This does not remove the explicit
-premises of the local execution theorems or close the reachable-gameplay and
-hardware obligations. A read-only independent review found no critical
-statement-fidelity issue by inspection; it did not instantiate a full boot
-memory or prove non-vacuity of the entire gameplay composition.
+There are no project axioms. This does not remove the explicit execution,
+memory, layout and linkage premises, establish whole-boot non-vacuity or
+close any gameplay/hardware obligation. The initial independent read-only
+review found no critical statement-fidelity issue by inspection.
 
-The corrected script census now checks Bowser 1 (header 30), rather than the
-BITDW course (17), for the stream file named `bitdw.bin`. Exact generated
-dispatch-table parsing checks all seven actual header-to-entry mappings.
-The earlier intended-domain error is corrected, not counted as a gameplay
-counterexample. The real warp consumer also makes zero `sWarpDest.type`
-essential: a nonzero ordinary destination takes priority over a negative
-demo title code.
+Since the first checkpoint, the actual first-entry loader is composed with
+the whole title body, reducing its whole-loader premise to the exact DMA
+call and explicit post-DMA reads. Actual Demo Next scheduling executes its
+real transition and RGB callees. Conditional equality dispatch executes its
+helper and the nonmatching jump. Their notes state the remaining premises.
+Any registered positive-record playback result is confined to its literal
+record/controller constraints and does not establish all-record reachability.
 
-Four frozen-observer retail trials recorded 12,866 active-demo update entries,
-zero mismatches and zero observer errors. Stream bytes, observed MIPS routines
-and terrain prefixes were authenticated against the retail ROMs. These are
-finite experiments outside Coq; exact hashes, policies and limitations are in
-`docs/notes/gameplay-search.md` and its metadata-only receipt.
+The real segmented-address helper's shift is undefined on an unrefined
+symbolic pointer; the generated expression and semantic operation are checked
+mechanically. Existing Pedro proofs execute numeric inputs and prove the
+symbolic-call obstruction. They leave ordinary caller/relocation/dereference
+simulation open; no full numeric-address boot bridge was found. This is a
+model/refinement issue, not a reachable desync. See `notes/address-refinement.md`.
+
+The corrected script census checks Bowser 1 (30) for `bitdw.bin`, rather than
+the BITDW course (17). The ordinary warp destination must remain zero because
+it takes priority over a stored negative demo code. Four authenticated retail
+trials recorded 12,866 active-demo updates with zero mismatches/errors. Their
+finite metadata receipt and scope remain separate from the Coq statements.

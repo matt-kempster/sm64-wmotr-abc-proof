@@ -16,12 +16,15 @@ the real loader call, next-index update, count comparison, buffer pointer
 installation, header read, save/act stores and final return. US/JP bodies and
 loader function definitions are checked identical.
 
-The loader is **still an explicit execution premise for the concrete generated
-`load_patchable_table`**, with its exact arguments and post-load memory reads.
-The theorem also takes the two prefix store equations and the index store
-equation, compatible composite layouts, symbol resolutions, separation and
-the installation's writable cells as premises. It constructs the remaining
-stores and the actual whole-body execution. It does not establish boot
+The original title theorem retains an explicit execution premise for the
+concrete generated `load_patchable_table`. The new composed theorem in
+[loaded-title-execution.md](loaded-title-execution.md) discharges that premise
+using [the actual loader execution](loader-execution.md). Its remaining call
+premise is the exact generated `dma_read`, with explicit post-DMA metadata reads.
+The original theorem takes the two prefix store equations and the index store
+equation; the composition now constructs the index store too. Compatible
+composite layouts, symbol resolutions, separation and writable cells remain
+explicit premises. Both construct the actual whole-body execution. They do not establish boot
 reachability, execute DMA, handle every later index/wrap case, or preserve
 all demo bytes through arbitrary intervening gameplay.
 
@@ -67,6 +70,25 @@ The two helpers in [start-warp-execution.md](start-warp-execution.md) execute
 the initial timer decrement while preserving the pending operation and
 `warp_area` with a zero destination. They do not execute Start scheduling or
 frame the intervening object/HUD/camera calls.
+
+The actual scheduling call is now proved in
+[start-scheduling-execution.md](start-scheduling-execution.md), including its
+real transition and RGB callees. Selecting it from the actual Start prefix
+and framing the remaining interval remain open.
+
+## Actual record playback and conditional dispatch
+
+[playback-execution.md](playback-execution.md) executes the full input consumer
+for a positive countdown record with the second logical controller absent.
+Its frame excludes only the pad's first four bytes and the single timer byte.
+Record advance, end-of-demo and complete input-to-gameplay provenance remain open.
+
+[conditional-dispatch.md](conditional-dispatch.md) executes the actual equality
+helper and a complete nonmatching script jump. The taken jump needs the
+numeric/symbolic address bridge described in [address-refinement.md](address-refinement.md).
+An existing Pedro proof executes numeric helper inputs, but ordinary relocated
+caller/dereference/callback simulation remains unproved. No vacuous full-game
+result is inferred from the symbolic-pointer obstruction.
 
 The corrected generated dispatch-table certificate is documented in
 [script-dispatch.md](script-dispatch.md). Header 30 selects the Bowser 1 arena,

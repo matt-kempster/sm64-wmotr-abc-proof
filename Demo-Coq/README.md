@@ -29,6 +29,11 @@ retail-binary execution and hardware is open.
 - [Build and audit details](docs/proof-audit.md)
 - [Detailed source audit](docs/notes/source-audit.md)
 - [Executed startup and interpreter paths](docs/notes/gameplay-execution.md)
+- [Composed loader/title path](docs/notes/loaded-title-execution.md)
+- [Executed conditional dispatch and address-model obstruction](docs/notes/conditional-dispatch.md)
+- [Existing address-refinement results and remaining bridge](docs/notes/address-refinement.md)
+- [Actual Demo Next scheduling and transition callees](docs/notes/start-scheduling-execution.md)
+- [Actual positive-record playback and byte-range frame](docs/notes/playback-execution.md)
 - [Executed warp boundaries](docs/notes/gameplay-boundary.md)
 - [Executed pause exclusion](docs/notes/pause-exclusion.md)
 - [Finite retail gameplay search](docs/notes/gameplay-search.md)
@@ -43,14 +48,19 @@ demo-installation suffix and the real return statement. With the declared
 layout, symbol, readable-header, writable-cell and separation premises, that
 code installs the buffer pointer plus four bytes and returns the signed first
 header byte from the same buffer. US and JP use the same installation code.
-The capstone also executes the whole first-demo title body, with the concrete
-loader call still an explicit execution premise; the full active-demo
-`lvl_set_current_level` and interpreter `level_cmd_call`; painting-warp
-rejection with a null table; delayed-demo dispatch through the real
-`warp_special`; transition completion with a zero warp destination; and the
-full pause query with its real dialog helper. These components have explicit
-memory, symbol, layout and branch premises. Their conjunction does not prove
-that a complete normally reachable execution satisfies those premises.
+The capstone composes the actual loader with the whole first-demo title body,
+reducing the remaining call premise to the exact `dma_read`. It also executes
+the full active-demo `lvl_set_current_level` and interpreter `level_cmd_call`,
+painting rejection with a null table, delayed-demo dispatch through the real
+`warp_special`, transition completion with a zero warp destination, the full
+pause query with its real dialog helper, and Demo Next scheduling with its
+actual transition/RGB callees. These components have explicit memory, symbol,
+layout and branch premises. Their conjunction does not prove that a complete
+normally reachable execution satisfies those premises.
+The actual input consumer also executes one positive countdown record with
+the second logical controller absent. It proves the exact input output,
+timer decrement, unchanged record pointer and a byte-range memory frame;
+record advance, end-of-demo and all-frame provenance remain open.
 
 The finite source certificates inspect playback's lack of a current-level
 reference, the painting path's lack of a demo-pointer reference, the delayed
@@ -62,6 +72,11 @@ header to its level entry. The file `bitdw.bin` selects header 30, the
 used the wrong first script; it is corrected to `bowser_1`. These finite
 checks are syntax results, not whole-program execution proofs.
 In particular, no-painting declarations do not establish a memory invariant.
+The actual equality helper and a complete nonmatching conditional jump are
+executed too. A separate mechanical check exposes why a taken script jump
+cannot simply assume that `segmented_to_virtual` converts an `Init_addrof`
+symbolic pointer to a retail numeric address: its first pointer shift is
+undefined in this memory model. This is a refinement gap, not a game desync.
 
 ## Reproduce
 

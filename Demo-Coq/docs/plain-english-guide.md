@@ -12,11 +12,17 @@ choices of “which inputs” and “which level” in this assignment. Advancin
 next-demo index does not change the source of the current level.
 
 Coq now executes the whole first-demo title path under explicit memory and
-layout conditions, including its countdown and index stores. The loader's
-execution and authentic memory result remain premises. Coq also executes
+layout conditions, including its countdown and index stores. The actual loader
+is now composed into that proof; its concrete DMA call and post-DMA reads
+remain premises. Coq also executes
 the active-demo level-selection function and the actual interpreter command
 that calls it, captures its result and advances the command pointer. Reaching
 that command from startup and loading the selected level still need proof.
+The equality helper and a nonmatching script jump are now executed too.
+The taken jump exposes an address-model gap: the actual helper shifts pointer
+bits, but the current Coq memory represents relocated pointers symbolically.
+Coq checks that this shift is undefined on those symbolic values. This does
+not say that retail hardware fails; a justified address bridge is required.
 
 The source review also checks what happens if a demo reaches an exit. The
 ordinary delayed-warp code redirects active demos to the title/splash route.
@@ -37,12 +43,22 @@ fade, when a stale current-level number can remain. That is not already
 gameplay in the old level. The full property must observe the actual loaded
 gameplay level at the time its demo input is used.
 
+Coq now executes the input consumer for one positive countdown record with
+the second logical controller absent. It proves the actual stick/button
+output, timer decrement, unchanged record pointer, and preservation of loads
+outside the four pad bytes and the single timer byte. Thus the header, other
+records and a separately stored level are preserved on that path. The next
+record, terminal record and complete input-to-gameplay sequence still need proof.
+
 The separate ROM check authenticates the seven US and six JP selected demo
 files, their level headers, terminal records and buffer bounds. That is a
 finite data check outside Coq; it does not prove that DMA and all intervening
 game code preserve those bytes and pointers.
 
-The warp and pause proofs now execute their concrete local paths too. A null
+The warp and pause proofs now execute their concrete local paths too. Coq
+also executes Demo Next scheduling and its real transition/RGB helpers,
+establishing the pending operation and timer from an initially zero operation.
+Selecting that call from Start handling still needs composition. A null
 painting table prevents the painting routine from acting. A pending warp or
 active transition makes the complete pause query return false. The demo exit
 branch executes the real `warp_special`, and transition completion returns
