@@ -1,5 +1,10 @@
 # Status of the primary gameplay specification
 
+Research stopped at the user's request on October 15, 2026. See the
+[full results and conditions](../proven-results.md) and
+[final validation and handoff](stopping-point.md). The unfinished helper/caller
+drafts are not promoted results, and no automatic continuation is scheduled.
+
 The full claim remains **OPEN**. The first unchecked checklist item is now
 **partially formalized, not complete**. No major unchecked gameplay obligation
 has been closed. Work below refines that existing item; it does not add new

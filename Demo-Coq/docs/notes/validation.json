@@ -467,5 +467,12 @@
     "source_projection": "unchanged generated expressions evaluated in separate numeric candidate; scalar one-way Clight soundness; no new ordinary Clight dereference/step rule",
     "negative_controls": "staged authenticator rejected wrong main/engine mapping, forged ELF code byte, altered fixture base GPR and altered receipt instruction word; production CLI narrowed to explicitly named outputs",
     "permitted_boot_or_gameplay_nonvacuity": "OPEN"
-  }
+  },
+  "work_status": "STOPPED at user request to conserve compute; no active goal or scheduled continuation",
+  "checked_proof_checkpoint": "5dfb2332f69da710f19e0b9ab9891571fc4290d8",
+  "stopping_report": "docs/notes/stopping-point.md",
+  "proven_results_and_conditions": "docs/proven-results.md",
+  "exact_statement_catalog": "docs/notes/proven-statements.json",
+  "final_staged_validation": "docs/notes/paused-draft-validation.json",
+  "final_staged_validation_summary": "4 files type-checked and independently kernel-checked;3 incomplete files failed; no staging promoted into capstone; canonical62-module validation reused after exact proof/pipeline/configuration hash check"
 }

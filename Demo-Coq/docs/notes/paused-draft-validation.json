@@ -1,0 +1,113 @@
+{
+  "status": "Research stopped at user request; no automatic resumption",
+  "canonical_checked_proof_checkpoint": "5dfb2332f69da710f19e0b9ab9891571fc4290d8",
+  "canonical_proof_modules": 62,
+  "canonical_source_changes_after_checkpoint": false,
+  "staged_validation": "Existing files checked without proof extensions; each build limited to120seconds",
+  "independent_kernel_check_return_code": 0,
+  "assumptions_check_return_code": 0,
+  "kernel_check_scope": "the four staged modules with type-check return_code0 and their dependencies",
+  "standard_foundations_for_selected_staged_results": [
+    "ClassicalDedekindReals.sig_not_dec",
+    "ClassicalDedekindReals.sig_forall_dec",
+    "FunctionalExtensionality.functional_extensionality_dep",
+    "Classical_Prop.classic"
+  ],
+  "project_axioms_added": false,
+  "results": [
+    {
+      "module": "Demo.NativeHelper.DemoNativeHelperImages",
+      "source": "build/native-helper/DemoNativeHelperImages.v",
+      "sha256": "3dac667d201457a8d0cb2ecb779d864cae166b25f319be08e8bcfb3558743851",
+      "return_code": 0,
+      "seconds": 7.22,
+      "log": "build/paused-validation/DemoNativeHelperImages.log"
+    },
+    {
+      "module": "Demo.NativeHelper.DemoNativeHelperMachine",
+      "source": "build/native-helper/DemoNativeHelperMachine.v",
+      "sha256": "80854a8a19c147fbcdec118e8c1429f2f593e5261a972935f214d006ccaaef5b",
+      "return_code": 0,
+      "seconds": 6.83,
+      "log": "build/paused-validation/DemoNativeHelperMachine.log"
+    },
+    {
+      "module": "Demo.NativeHelper.DemoNativeHelperExecution",
+      "source": "build/native-helper/DemoNativeHelperExecution.v",
+      "sha256": "aacf03a1448b489e3267428e9c452e831abd2d6a6fed23cb8b0f2db3e095368b",
+      "return_code": 2,
+      "seconds": 7.82,
+      "log": "build/paused-validation/DemoNativeHelperExecution.log"
+    },
+    {
+      "module": "Demo.NativeCaller.DemoNativeCallerImages",
+      "source": "build/native-caller/DemoNativeCallerImages.v",
+      "sha256": "107043b74f038681f3f706bbdb6d81a52b899ca8225c416139569aa65aa4899f",
+      "return_code": 0,
+      "seconds": 6.62,
+      "log": "build/paused-validation/DemoNativeCallerImages.log"
+    },
+    {
+      "module": "Demo.NativeCaller.DemoNativeGeometryCaller",
+      "source": "build/native-caller/DemoNativeGeometryCaller.v",
+      "sha256": "c86068b297ad1bee4bd6e43d2536b242cd19cf01a18332e1bc8045d137e52627",
+      "return_code": 2,
+      "seconds": 6.82,
+      "log": "build/paused-validation/DemoNativeGeometryCaller.log"
+    },
+    {
+      "module": "Demo.NativeSourceConnection.DemoNativeSourceTableConnection",
+      "source": "build/native-source-connection/DemoNativeSourceTableConnection.v",
+      "sha256": "f8cbb2e74f3da834a3f94ddd9d0bdc9d675f92dd0316ae68541f53ac60fc92f1",
+      "return_code": 2,
+      "seconds": 5.42,
+      "log": "build/paused-validation/DemoNativeSourceTableConnection.log"
+    },
+    {
+      "module": "Demo.SceneConnectionWitness.DemoSceneConnectionWitness",
+      "source": "build/scene-connection-witness/DemoSceneConnectionWitness.v",
+      "sha256": "8421a62b913a55e2c41c7d6238c1fb0e2bb5a3333c5fe04c7f0d1a4355b3ca82",
+      "return_code": 0,
+      "seconds": 6.32,
+      "log": "build/paused-validation/DemoSceneConnectionWitness.log"
+    }
+  ],
+  "archive": "checkpoints/paused-address-work-2026-10-15.zip",
+  "archive_sha256": "03cf6b1a5bf78d317e828d0a0d807fa252b130f6cfa18839640ba2912307518c",
+  "archive_members": {
+    "build/native-caller/DemoNativeCallerImages.v": "107043b74f038681f3f706bbdb6d81a52b899ca8225c416139569aa65aa4899f",
+    "build/native-caller/DemoNativeGeometryCaller.v": "c86068b297ad1bee4bd6e43d2536b242cd19cf01a18332e1bc8045d137e52627",
+    "build/native-caller/make-native-caller-fixture.py": "c61059abbd8c638d88d178d1a22fd187bc673c6b5de36286b56bd516f0f72d9b",
+    "build/native-helper/DemoNativeHelperExecution.v": "aacf03a1448b489e3267428e9c452e831abd2d6a6fed23cb8b0f2db3e095368b",
+    "build/native-helper/DemoNativeHelperImages.v": "3dac667d201457a8d0cb2ecb779d864cae166b25f319be08e8bcfb3558743851",
+    "build/native-helper/DemoNativeHelperMachine.v": "80854a8a19c147fbcdec118e8c1429f2f593e5261a972935f214d006ccaaef5b",
+    "build/native-helper/make-native-helper-fixture.py": "aec75c8aedeb9a8967dd791a9041f2e01add075cc0099cfbe2142b5d1f6a65dd",
+    "build/native-source-connection/DemoNativeSourceTableConnection.v": "f8cbb2e74f3da834a3f94ddd9d0bdc9d675f92dd0316ae68541f53ac60fc92f1",
+    "build/paused-validation/assumptions.log": "93885128d0495961c7638be7d0ccacfa80cb131707944a1f535cef7e1076ac8c",
+    "build/paused-validation/coqchk.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "build/paused-validation/DemoNativeCallerImages.log": "a7cc92d77ca4b998f934f9380b601cf329f4e94ddda9257e77639c11202695ca",
+    "build/paused-validation/DemoNativeGeometryCaller.log": "279ac26e31e43e0e80e30d070b962d809bb2640fb633a6c896cd90d4d9745b53",
+    "build/paused-validation/DemoNativeHelperExecution.log": "eef6210af66afd90f2900392557b40868e6419f248eca85797e0fe223ede70a9",
+    "build/paused-validation/DemoNativeHelperImages.log": "f8fdcd4cff982b0f94b2fe7e997c4fd5ae1f9e7dabfe0938752f958eeb862bd4",
+    "build/paused-validation/DemoNativeHelperMachine.log": "a9ae6f7c3060df828c85dcf46a8a5d814637b21f1e1c5432bc7b36e92f76814b",
+    "build/paused-validation/DemoNativeSourceTableConnection.log": "3934a559303a1e00a6344757ae16560d795b121a589ee388a467a675d2547760",
+    "build/paused-validation/DemoSceneConnectionWitness.log": "af3ca75eac8254adb382564863198ec2135ac6c09dff64ebef75a377edf49184",
+    "build/paused-validation/results.json": "26455f5881fc4484a8e863df1457c7d53d94a9e002058bf7e9db988754b36ebf",
+    "build/paused-validation/Validation.v": "4693d37c012dec819ee8a3b067136e8b1b677e8a47090bf0f40263df2cbc3299",
+    "build/scene-connection-witness/DemoSceneConnectionWitness.v": "8421a62b913a55e2c41c7d6238c1fb0e2bb5a3333c5fe04c7f0d1a4355b3ca82",
+    "build/validate-paused-staging.py": "cdb820de9069f947222753bd4e95df7cf99e756a07a784487625d59a4913c397"
+  },
+  "failures": {
+    "DemoNativeHelperExecution": "line176: Int64.ofwords rewrite does not match; helper20-step theorem unfinished",
+    "DemoNativeGeometryCaller": "line116: closed arithmetic proof fails; no complete19-instruction caller execution",
+    "DemoNativeSourceTableConnection": "line54: closed table-placement arithmetic proof fails; source/helper byte connection unfinished"
+  },
+  "passed_limits": {
+    "DemoNativeHelperImages": "finite helper instruction fixture only",
+    "DemoNativeHelperMachine": "generic partial decoded ISA and local structural properties; not helper20-step execution or hardware adequacy",
+    "DemoNativeCallerImages": "finite caller instruction fixture only",
+    "DemoSceneConnectionWitness": "joint constructed local scalar source-view/RAM witnesses for all nine descriptors x US/JP x geometry/terrain; no initialized asset, loading, boot or gameplay witness"
+  },
+  "promoted_into_capstone": false,
+  "full_gameplay_verdict": "OPEN"
+}

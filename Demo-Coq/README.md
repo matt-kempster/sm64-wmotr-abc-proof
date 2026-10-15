@@ -1,5 +1,10 @@
 # Demo-Coq
 
+**Research stopped at the user's request on October 15, 2026.** The full claim
+remains open. Read [what is proved, with its conditions](docs/proven-results.md)
+and the [stopping point and preserved validation](docs/notes/stopping-point.md).
+No automatic continuation is scheduled.
+
 Coq + CompCert investigation of the claim:
 
 > Demo desync is not possible. Demo desync is having one demo input sequence

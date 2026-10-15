@@ -1,5 +1,14 @@
 # Demo-Coq proof audit
 
+Research is stopped at the user's request. The canonical proof-code remains
+checkpoint `5dfb233`, with its existing build/assumption/kernel validation and
+unchanged source hashes. A final bounded check of later staging found four
+files that type-check and pass independent kernel checking, and three incomplete
+files that fail. They remain outside the capstone. Full statuses, conditions
+and preserved sources are in [the stopping record](notes/stopping-point.md)
+and [proven-results report](proven-results.md). No proof search was resumed to
+repair those failures.
+
 The gameplay verdict remains **OPEN**. The checks described here validate the
 registered Coq development and its recorded source boundary. They do not prove
 that every execution from retail boot preserves demo/level pairing, and they

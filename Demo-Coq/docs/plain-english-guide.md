@@ -1,5 +1,11 @@
 # Can a demo's inputs play in the wrong level?
 
+**Research is stopped at the user's request.** The
+[proven-results report](proven-results.md) lists the checked results with their
+conditions; the [stopping record](notes/stopping-point.md) preserves the partial
+work and distinguishes validated staging from three incomplete drafts. Nothing
+is scheduled to continue automatically.
+
 **We have not proved or disproved that this can happen during normal SM64
 play.** Demo-Coq proves concrete startup, input, interpreter and warp paths,
 while the complete boot-to-gameplay invariant remains open.

@@ -1,5 +1,10 @@
 # Claim and evidence boundary
 
+Research is stopped at the user's request. The original objective and full
+scope remain recorded in [the stopping point](notes/stopping-point.md);
+[the proven-results report](proven-results.md) gives the conditions of the
+checked results. Stopping does not complete or disprove the requested claim.
+
 ## Requested claim
 
 The question is whether an authentic demo's inputs can run as gameplay in a

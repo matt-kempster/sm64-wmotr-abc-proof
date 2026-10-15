@@ -1,5 +1,11 @@
 # Obligations for a gameplay verdict
 
+**Research stopped on October 15, 2026, at the user's request to conserve
+compute. No automatic continuation is scheduled.** The checked proof-code
+snapshot is `5dfb233`; all existing unchecked gameplay items remain unchecked.
+See [what is proved and every condition](proven-results.md) and the
+[stopping point, preserved drafts and final validation](notes/stopping-point.md).
+
 The requested all-executions claim remains **OPEN**. Completed local work is
 kept separate from unproved composition and reachability.
 
