@@ -22,12 +22,14 @@ equality, removing the free layout-record argument from that corollary.
 `generated_demo_area_initialization_us_jp` proves the aggregate
 `demo_area_initialization_claim_us_jp`.
 
-The remaining entry premises are concrete symbol resolution, separation
+The generic execution theorem's entry premises are concrete symbol resolution, separation
 of the written objects, the real `gMarioSpawnInfo` pointer read, writable
 accesses for the initial fields, and the writable 480-byte area-array
-range. Their instantiation from actual initialized memory is separate
-work. Linking the selected unit's composite environment into the complete
-game environment is also separate.
+range. The [actual unit initial-memory composition](area-initial-memory.md)
+now discharges all of these for the selected generated area unit, and
+proves that its initial memory exists. Linking that unit environment and
+initial-memory image into the complete game's boot execution remains
+separate work.
 
 This supplies the actual reset producer for the
 [instant-warp null-table execution](instant-warp-execution.md) and

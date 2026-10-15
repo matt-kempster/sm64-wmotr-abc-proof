@@ -6,7 +6,8 @@ From Demo.Proofs Require Import SourceFacts DemoDispatchFacts DemoStartExecution
   DemoScriptNumericImage DemoInstantWarpExecution DemoNormalTimerExecution
   DemoControllerInputExecution DemoNormalPreObjectsExecution DemoNumericDispatchExecution
   DemoPrivateGlobalLinkReceipt DemoConsumedInputExecution DemoCurrentLevelGetExecution
-  DemoAreaInitialization.
+  DemoAreaInitialization DemoAreaInitialMemory DemoAnalogInputExecution
+  DemoControllerCopyExecution DemoNormalPostCameraExecution.
 
 (** This capstone composes actual source/semantic components on the route to
     the gameplay invariant. It is not yet a theorem of no desync from boot. *)
@@ -25,7 +26,9 @@ Definition demo_checked_boundary_claim : Prop :=
   demo_normal_timer_boundary_claim /\ demo_controller_input_execution_claim_us_jp /\
   demo_normal_preobjects_execution_claim /\ demo_numeric_dispatch_execution_boundary_claim_us_jp /\
   demo_private_global_link_boundary_claim_us_jp /\ demo_consumed_record_start_boundary_claim_us_jp /\
-  demo_current_level_get_claim_us_jp /\ demo_area_initialization_claim_us_jp.
+  demo_current_level_get_claim_us_jp /\ demo_area_initialization_claim_us_jp /\
+  demo_area_initial_memory_execution_claim /\ demo_arbitrary_analog_call_claim_us_jp /\
+  demo_controller_copy_execution_claim /\ demo_normal_postcamera_execution_claim.
 
 Theorem checked_demo_source_boundary_us_jp : demo_checked_boundary_claim.
 Proof.
@@ -54,5 +57,9 @@ Proof.
                                             (conj generated_demo_private_global_link_boundary_us_jp
                                               (conj generated_demo_consumed_record_start_boundary_us_jp
                                                 (conj generated_current_level_get_us_jp
-                                                  generated_demo_area_initialization_us_jp))))))))))))))))))))))))).
+                                                  (conj generated_demo_area_initialization_us_jp
+                                                    (conj generated_area_initial_memory_executes_clear_areas_us_jp
+                                                      (conj generated_demo_arbitrary_analog_call_us_jp
+                                                        (conj generated_controller_copy_execution_us_jp
+                                                          generated_normal_postcamera_interval_executes_us_jp))))))))))))))))))))))))))))).
 Qed.

@@ -36,13 +36,23 @@ kept separate from unproved composition and reachability.
 - [x] Actual connected-controller branch with neutral sticks through the real
   analog-adjustment call and its allocation/free, using an explicit pure
   contract for the named external `sqrtf` call. Arbitrary-stick and whole-loop
-  composition remain open.
+  composition remain open. A separate complete analog-call theorem now
+  handles arbitrary sticks and both cap branches under the same named
+  pure math contract.
+- [x] Actual disconnected second-controller branch and player-three field
+  copy suffixes, preserving player-one bytes and entry-valid accesses.
+  Whole-loop composition remains open.
 - [x] Actual normal-frame timer segment, including preservation of the scheduled
   operation/timer via its concrete memory frame.
 - [x] Contiguous actual warp/instant-warp/timer caller interval up to object
   updates, with no warp-callee execution premise and explicit entry reads.
+- [x] Contiguous actual post-camera interval through painting's real
+  allocation/free, pending timer20-to19, full pause query and zero return,
+  with explicit entry reads; earlier object/HUD/camera effects remain open.
 - [x] Complete eight-iteration area reset, null painting/instant pointers
-  and actual generated layout witness. Initial memory and later lifecycle remain open.
+  and actual generated layout witness. A composed theorem now constructs
+  the actual area unit's initial memory and discharges all reset resources.
+  Linked boot and later lifecycle remain open.
 - [x] Complete real current-level GET command and call, exact register and
   pointer results, actual handler-table and command-word syntax checks.
 - [x] Actual ordinary playback through the controller-copy boundary with

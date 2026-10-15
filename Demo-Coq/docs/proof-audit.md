@@ -109,30 +109,25 @@ verified environment above.
 
 ## Recorded validation
 
-The private-global correction has fresh complete reproducibility evidence:
-`build/private-freshening-reproducible.log`, exit 0, two byte-identical
-generations of all 38 units. Comparison with checkpoint `22882e2` established
-that only hygiene headers and 299 nonliteral private atom strings changed.
-All public/non-global names and existing string atoms were preserved.
-The 18 generated-source digests in the script-image receipt were refreshed;
-retail words, placements, callback bytes and Coq numeric transcription remain
-unchanged. Earlier generation hashes are not reused for this checkpoint.
+Fresh registered validation passed for all 32 proof modules:
 
-Fresh registered validation passed:
+- build: `build/checkpoint5-initial-proofs.log` and `build/checkpoint5-proofs.log`, exit 0;
+- discipline and capstone assumptions: `build/checkpoint5-discipline.log`, exit 0;
+- independent silent kernel check: `build/checkpoint5-coqchk.log`, exit 0;
+- authenticated demo/script data and proof-hole scan: `build/checkpoint5-data.log`, exit 0.
 
-- full 28-module build: `build/checkpoint4-proofs.log`, exit 0;
-- discipline and capstone assumptions: `build/checkpoint4-discipline.log`, exit 0;
-- independent silent kernel check: `build/checkpoint4-coqchk.log`, exit 0;
-- authenticated demo/script data and proof-hole scan:
-  `build/checkpoint4-data.log`, exit 0.
+The audit is `build/audit/20261015-152356-1h_x461y/report.json`. All 70 generated/proof
+sources are registered, and all 32 proof modules are in the capstone import
+closure. There are no inventory, standalone-module or proof-hole failures.
+Exact source/pipeline hashes and the full report are in `notes/validation.json`.
 
-The final audit is `build/audit/20261015-145542-lkrzem5f/report.json`.
-It checks 66 sources and all 28 proof modules in MainTheorem's import closure,
-with no standalone modules or inventory/structure problems. Exact source and
-pipeline hashes, actual foundation names and the full report are recorded in
-`notes/validation.json`.
+The complete two-pass reproduction in
+`build/private-freshening-reproducible.log` is reused after verifying every
+generated-source and pipeline digest against the preceding receipt. Those 38
+generated sources and all pipeline scripts are unchanged from checkpoint
+`6565e6c`; proof, assumptions, kernel and data checks above are fresh.
 
-The seven allowed Coq/CompCert foundations actually used are:
+The seven allowed Coq/CompCert foundations actually used remain:
 
 - `Axioms.proof_irr`;
 - `ClassicalDedekindReals.sig_forall_dec`;
@@ -142,41 +137,36 @@ The seven allowed Coq/CompCert foundations actually used are:
 - `Events.inline_assembly_sem`;
 - `FunctionalExtensionality.functional_extensionality_dep`.
 
-`Axioms.proof_irr` is used by CompCert's official Clight link construction.
-It was already on the project's standard-foundation allowlist. There are no
-project axioms; this does not discharge explicit memory/execution premises or
-establish normal-boot non-vacuity. External math/hardware contracts retain
-their literal scopes.
+There are no project axioms. CompCert's official Clight link construction
+uses its standard proof-irrelevance foundation. Explicit external contracts
+and concrete memory premises retain their literal scope.
 
-The complete eight-iteration `clear_areas` call now establishes all eight
-null painting/instant pointers, with checked generated layout and an exact
-outside-written-block frame. Its initial symbol/access/relocation resources
-and later area-table lifecycle remain open. The staged build took 223.9 s;
-the registered build and kernel check above include its promoted source.
+The actual US/JP area-unit initial memories now exist constructively, and
+their real symbols, spawn initializer, separation, writable accesses and
+generated layouts discharge every entry resource of the complete area-reset
+call. The final theorem has only a version argument. It is a unit image,
+not the complete linked game's initialized memory or a boot execution.
 
-The actual dispatch current-level GET command executes its full function
-call, signed-level register store and four-byte command advance, with exact
-handler/command syntax checks. It does not establish interpreter reachability.
-Ordinary playback, including expiry and arbitrary record sticks, now composes
-with controller copying and the real Start/END guards. Under a supplied
-program's global environment, a genuine original-loop small-step path reaches
-the analog call. Boot/post-polling entry and remaining input processing are
-still separate obligations.
+The actual arbitrary-stick analog call now executes all deadzone/cap branches
+and its real allocation/free, with exact symbolic outputs and preserved
+old-memory accesses. Its named pure `sqrtf` contract remains explicit. The
+actual second-controller disconnected stores and seven player3 field copies
+have precise byte frames. Composition through the whole input loop remains
+open.
 
-All eight selected level-script AST units link officially per version; the
-actual BBH/CCM pair also links as Clight programs with compatible composites.
-The current main/BBH incomplete/complete public array pair is rejected by
-strict variable type equality. No public type or flag was changed to force
-a link. A justified metadata/source-link refinement and a complete game link
-remain open. Private collision hygiene does not supply that result.
+The actual contiguous normal-frame interval after camera processing now
+executes painting rejection with its real local allocation/free, pending
+Demo Next countdown 20-to-19, complete pause query and final zero return.
+Concrete entry reads and separation remain explicit; no painting, delayed
+warp or pause callee execution is assumed. Earlier object/HUD/camera effects
+and later countdown/expiry are still unproved composition obligations.
 
-The numeric taken jump and authenticated script images still require an
-active-overlay representation simulation for subsequent opcode loads and
-callbacks. Shared addresses do not identify loaded images. Remaining UI,
-object/HUD/camera processing, authentic loading/initialization, all-frame
-preservation and retail/hardware refinement are not assumed solved.
+The selected source links, actual current-level GET, original-loop path to
+analog, numeric taken jump and authenticated script images retain their
+previous boundaries. Full linking, active-overlay representation simulation,
+authentic DMA/boot, all-frame preservation and MIPS/hardware refinement remain
+open. Additional ignored staging work is not counted as a completed result.
 
-The full gameplay claim remains **OPEN**, with no reachable counterexample
-established. The bounded retail evidence remains 12,866 observed updates,
-zero mismatches/errors. Initial-memory resource and public-type completion
-work in ignored staging is not counted as a completed gameplay result.
+The full gameplay verdict remains **OPEN**, with no reachable counterexample
+established. The finite retail evidence remains 12,866 observed updates,
+zero mismatches/errors.

@@ -162,6 +162,15 @@ reads still need connection to startup and the Start scheduler. The
 [connected-controller branch](notes/controller-input-execution.md) executes
 neutral-stick processing and exact button edges through the real analog
 callee, under its named pure `sqrtf` contract; it is not the full input loop.
+The [arbitrary-stick analog theorem](notes/arbitrary-analog-execution.md)
+now executes that entire real analog callee for arbitrary axes, both cap
+branches and actual allocation/free under the same named math contract.
+The [actual controller-tail executions](notes/controller-copy-execution.md)
+cover the disconnected second-controller branch and player-three copies
+with exact byte frames; their loop composition remains open.
+The [post-camera caller interval](notes/normal-postcamera-execution.md)
+composes actual painting, pending countdown, complete pause query and return.
+Neither result establishes the whole frame or boot reachability.
 
 [Numeric helper execution](notes/numeric-address-execution.md) and
 [authenticated numeric script images](notes/script-numeric-image.md) expose
@@ -182,6 +191,10 @@ finite syntax checks tie it to the dispatch command and handler table.
 The [complete area reset](notes/area-initialization.md) executes all eight
 iterations and establishes null painting/instant pointers under explicit
 entry memory conditions and a checked generated composite layout.
+The [actual unit initial-memory theorem](notes/area-initial-memory.md)
+constructs that unit's initialized memory and discharges all those entry
+resources. Its only argument selects US or JP. It does not establish the
+linked game environment or reachability from boot.
 
 The [consumed-input connection](notes/consumed-input-execution.md) composes
 ordinary playback, including expiry and arbitrary stick bytes, with the

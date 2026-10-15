@@ -37,7 +37,7 @@
       {
         "name": "source inventory",
         "status": "PASS",
-        "detail": "66 source files; 0 inventory problems",
+        "detail": "70 source files; 0 inventory problems",
         "problems": []
       },
       {
@@ -72,16 +72,19 @@
       {
         "name": "integration",
         "status": "PASS",
-        "detail": "28/28 modules in MainTheorem's import closure; 0 standalone-only; 0 problems",
+        "detail": "32/32 modules in MainTheorem's import closure; 0 standalone-only; 0 problems",
         "problems": []
       }
     ],
     "integration": {
-      "proof_modules": 28,
+      "proof_modules": 32,
       "main_import_closure": [
+        "proofs/DemoAnalogInputExecution.v",
+        "proofs/DemoAreaInitialMemory.v",
         "proofs/DemoAreaInitialization.v",
         "proofs/DemoConditionalDispatchExecution.v",
         "proofs/DemoConsumedInputExecution.v",
+        "proofs/DemoControllerCopyExecution.v",
         "proofs/DemoControllerInputExecution.v",
         "proofs/DemoCurrentLevelGetExecution.v",
         "proofs/DemoDispatchFacts.v",
@@ -90,6 +93,7 @@
         "proofs/DemoLevelSelectionExecution.v",
         "proofs/DemoLoadedTitleExecution.v",
         "proofs/DemoLoaderExecution.v",
+        "proofs/DemoNormalPostCameraExecution.v",
         "proofs/DemoNormalPreObjectsExecution.v",
         "proofs/DemoNormalStartExecution.v",
         "proofs/DemoNormalTimerExecution.v",
@@ -155,9 +159,12 @@
     "generated/us_star_select.v": "299642c829f8dc0d9278f13a5f38dd0d0850fb8e3c3852bc537422cff16c7e7e",
     "generated/us_title_screen.v": "e86c299a0df21fe7005d2af4105c4a2744a80e9f89b4ced63152a3f73f689d90",
     "generated/us_wf_level_script.v": "fe7d439318a9f57ca2cb3cc2bfd6ef7bd7b13d59f8cbd03ea5e426e65523d59f",
+    "proofs/DemoAnalogInputExecution.v": "1e482883624523245c8caec57af4b843af7f3a6b67a83d938710323281e08bb3",
     "proofs/DemoAreaInitialization.v": "17e71a94830d5abf3eb4e685c7de23575b85c2093d6793c1e24297b9dea1dec0",
+    "proofs/DemoAreaInitialMemory.v": "e60aa817f2f452cfdd250e316a63ad09789440869d960681bde965164f548a31",
     "proofs/DemoConditionalDispatchExecution.v": "b1f0b8ba62cf91e909713e2be2cb6260369f458f08721da750abdd276cf5ed4c",
     "proofs/DemoConsumedInputExecution.v": "5d546d77bc13b001544926e99557826e86425e1b09140bcca107e4a35079fc44",
+    "proofs/DemoControllerCopyExecution.v": "9514e04b2adef8b03a286dd4df7ddb468e5e0b26d329705f620d95342967314d",
     "proofs/DemoControllerInputExecution.v": "e64084900deb71f0ed24e04f6c30d69b9ccacda59f0ce55ede0335fd2922d1f0",
     "proofs/DemoCurrentLevelGetExecution.v": "1c288630030712af0185085611b4d75fbc8851289ad66f81fb1adbb9952aca37",
     "proofs/DemoDispatchFacts.v": "2149b38746cfe48b8c9d68e6a9febfb21b2c42a589f8f2adba62f3152d8fe23d",
@@ -166,6 +173,7 @@
     "proofs/DemoLevelSelectionExecution.v": "eebcdff2e41daa4980d39e8f85e0e1ad7dd84aec43e14d30a6667548ade7286f",
     "proofs/DemoLoadedTitleExecution.v": "16bc43c9c21cbec1ca121bf4a11eb40c18141434e20c95aec6b40da7326140a7",
     "proofs/DemoLoaderExecution.v": "2cd8fc1195c81bdbd6ee286043bd1ad16ae6b288fd670f3faafb40b17ff3c797",
+    "proofs/DemoNormalPostCameraExecution.v": "e376b12345f74ea4854dd1a63b369395a17aa098379ff4b54cdcdb0890543955",
     "proofs/DemoNormalPreObjectsExecution.v": "a8c899e743aec94f5a67fc6cf67d9cc1bce13ce2703c2fa111d6f695397971dd",
     "proofs/DemoNormalStartExecution.v": "781a7ea96143457478f10e9b1b91b7942db04d9d3765fff7ab0b2aed9959d1d1",
     "proofs/DemoNormalTimerExecution.v": "3cd5a128735374485e13bf35744b1ff22af273d9ce30285dd5b4f533aee22fec",
@@ -181,11 +189,11 @@
     "proofs/DemoStartSchedulingExecution.v": "3551fcdc394694725f08614c245c10bb5a7ecc68ff2b99d5a9dae6e2cca8e4a1",
     "proofs/DemoStartWarpExecution.v": "39bc927dbcec2042ed94cf820f6c1751fcfd0bac7ac927e769e6515b027280cc",
     "proofs/DemoTitleStartExecution.v": "fe641382f6f181cb0702ef7f240e182a80c6d62814097857290fa3da5fe6fb5e",
-    "proofs/MainTheorem.v": "3030d39b8acf2a408f37ec6294f154ff466bce442df6d3cf544cc71ce11db485",
+    "proofs/MainTheorem.v": "108ef2030b9a4c40610621ac08a3dc7365fe1df5489b2741f57931fb81c18abd",
     "proofs/SourceFacts.v": "669339106aafe1f808da1cd5dac4dbfa88c2ee3a296b4c4e8a58a34268a83026"
   },
-  "boundary": "Complete local area reset with generated layout; complete current-level GET command/call; actual ordinary playback through controller copying and original-loop step2 path to analog call; scoped private globals and selected official source links; earlier startup, playback, warp and numeric-image components. Authentic initial-memory/boot/DMA, public declaration completion, full game linking, active-overlay address simulation, subsequent frame processing and retail/hardware refinement remain open.",
-  "audit_report": "build/audit/20261015-145542-lkrzem5f/report.json",
+  "boundary": "Actual area-unit initial memory constructed and complete reset resources discharged; arbitrary-stick complete analog call with named pure sqrtf contract; actual disconnected second-controller and player3 copy suffixes; actual contiguous normal post-camera interval through painting allocation/free, pending countdown, full pause query and return. Earlier startup/input/script components retained. Linked game boot/DMA, full caller composition, public declaration completion, active-overlay address simulation, all-frame preservation and retail/hardware refinement remain open.",
+  "audit_report": "build/audit/20261015-152356-1h_x461y/report.json",
   "gameplay_search_receipt_sha256": "13ebfaf563fc8ef18a26a64089c78f931f2dae612b7fd5c7781a4ea270c8731b",
   "historical_full_reproduction_check": {
     "checkpoint": "886cb4fa30a8b5622620b45af5fa86c1e99923f8",
@@ -196,10 +204,11 @@
   },
   "current_validation_logs": [
     "build/private-freshening-reproducible.log",
-    "build/checkpoint4-proofs.log",
-    "build/checkpoint4-discipline.log",
-    "build/checkpoint4-coqchk.log",
-    "build/checkpoint4-data.log"
+    "build/checkpoint5-initial-proofs.log",
+    "build/checkpoint5-proofs.log",
+    "build/checkpoint5-discipline.log",
+    "build/checkpoint5-coqchk.log",
+    "build/checkpoint5-data.log"
   ],
   "script_image_check": "PASS: authenticated complete matching ROMs, all selected script initializer words and relocations, three complete native callback byte ranges, exact Coq numeric transcription. Finite external check; no runtime or MIPS semantics refinement.",
   "allowed_foundations_used": [
@@ -238,5 +247,6 @@
     "selected_ast_links": "all eight level-script units per version",
     "selected_clight_links": "BBH+CCM per version",
     "public_array_declaration_refinement": "OPEN"
-  }
+  },
+  "generation_reuse": "The complete two-pass private-freshening reproduction at6565e6c is reused only after checking every generated-source and pipeline digest against the preceding receipt. All38 generated sources and generation scripts are unchanged; the32-module proof build, discipline/assumptions, kernel and data checks are fresh."
 }

@@ -51,11 +51,14 @@ specific pad, timer and pointer writes. They also preserve the header when
 the record starts after it. Initial pointer provenance, buffer bounds across
 all frames, and the complete input-to-gameplay sequence remain open.
 
-The next controller-processing branch now executes too for neutral sticks,
-including its real analog-adjustment call and stack allocation/free. It proves
-the actual button-edge formula and controller outputs, with a named pure
-`sqrtf` contract. Arbitrary stick values and the complete polling loop are
-still outside that local result.
+The controller-processing branch proves actual button edges for neutral
+sticks. A new complete analog-call theorem removes that stick restriction:
+it executes arbitrary raw axes, every deadzone and magnitude-cap branch,
+and the real stack allocation/free, with exact symbolic float outputs and
+a named pure `sqrtf` contract. The complete polling loop remains open.
+The actual disconnected second-controller branch and player-three copies
+also execute separately, with byte frames protecting player one's inputs.
+Their loop increments and tests still need composition.
 
 An additional proof connects ordinary-record playback, including expiry,
 to the actual input loop's controller-copy boundary for arbitrary recorded
@@ -87,11 +90,19 @@ The actual warp, instant-warp and timer statements now compose through their
 caller up to the object-update boundary. This executes that interval under
 explicit entry reads, without assuming either warp callee's execution.
 
+The actual normal-frame interval after camera processing now composes too:
+null-table painting, its real local allocation/free, pending demo countdown
+from 20 to 19, the full pause query and final zero return. Concrete entry
+reads and separation still need connection to the earlier frame. Object,
+HUD and camera effects and later countdown/expiry remain open.
+
 The complete area-reset call now executes all eight loop iterations. It
 establishes null painting and instant-warp tables in all eight area records,
-using checked generated layouts. Its concrete starting-memory conditions,
-later area selection and preservation through script/gameplay calls remain
-to be connected.
+using checked generated layouts. A composed theorem now constructs the
+actual US/JP area unit's initial memory and discharges its starting-memory
+conditions, including the actual spawn pointer and writable allocations.
+The linked game's boot execution, later area selection and preservation
+through script/gameplay calls remain to be connected.
 
 The complete instant-warp check now returns without writes for a null floor
 or null instant-warp table under its stated conditions. A separate finite
