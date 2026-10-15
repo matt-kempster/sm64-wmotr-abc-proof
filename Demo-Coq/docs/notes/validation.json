@@ -1,0 +1,153 @@
+{
+  "date": "2026-10-15",
+  "source_revision": "9921382a68bb0c865e5e45eb594d9c64db59b1af",
+  "gameplay_verdict": "OPEN",
+  "reachable_counterexample_established": false,
+  "completed_gameplay_impossibility_proof": false,
+  "capstone": "Demo.Proofs.MainTheorem.checked_demo_source_boundary_us_jp",
+  "switch": "sm64-item-proof",
+  "coq": "8.16.1",
+  "compcert": "3.15",
+  "translation_target": "powerpc / ppc32 / EABI / 32-bit / big-endian",
+  "generation_flags": [
+    "TARGET_N64=1",
+    "NON_MATCHING=1",
+    "AVOID_UB=1"
+  ],
+  "return_codes": {
+    "check": 0,
+    "proofs": 0,
+    "discipline": 0,
+    "assumptions": 0,
+    "coqchk": 0
+  },
+  "reproducibility": "PASS: two complete byte-identical Clight generations, 38 units",
+  "rom_metadata": "PASS: canonical US/JP ROM hashes; 7/6 selected streams, distinct headers, terminal records, buffer bounds",
+  "audit": {
+    "toolchain": "sm64-item-proof",
+    "scope": "MainTheorem and requested module dependencies",
+    "theorems": [
+      [
+        "Demo.Proofs.MainTheorem",
+        "checked_demo_source_boundary_us_jp"
+      ]
+    ],
+    "checks": [
+      {
+        "name": "source inventory",
+        "status": "PASS",
+        "detail": "48 source files; 0 inventory problems",
+        "problems": []
+      },
+      {
+        "name": "build",
+        "status": "PASS",
+        "detail": "exit 0; see build.log"
+      },
+      {
+        "name": "proof holes",
+        "status": "PASS",
+        "detail": "exit 0; includes untracked source files"
+      },
+      {
+        "name": "link hygiene",
+        "status": "PASS",
+        "detail": "exit 0; includes untracked source files"
+      },
+      {
+        "name": "assumptions Demo.Proofs.MainTheorem.checked_demo_source_boundary_us_jp",
+        "status": "PASS",
+        "detail": "6 allowed foundations; see assumptions-1.log",
+        "axioms": [
+          "ClassicalDedekindReals.sig_forall_dec",
+          "ClassicalDedekindReals.sig_not_dec",
+          "Classical_Prop.classic",
+          "Events.external_functions_sem",
+          "Events.inline_assembly_sem",
+          "FunctionalExtensionality.functional_extensionality_dep"
+        ]
+      },
+      {
+        "name": "integration",
+        "status": "PASS",
+        "detail": "10/10 modules in MainTheorem's import closure; 0 standalone-only; 0 problems",
+        "problems": []
+      }
+    ],
+    "integration": {
+      "proof_modules": 10,
+      "main_import_closure": [
+        "proofs/DemoDispatchFacts.v",
+        "proofs/DemoGameplayBoundary.v",
+        "proofs/DemoLevelSelectionExecution.v",
+        "proofs/DemoPauseExclusion.v",
+        "proofs/DemoScriptDispatchFacts.v",
+        "proofs/DemoStartExecution.v",
+        "proofs/DemoStartWarpExecution.v",
+        "proofs/DemoTitleStartExecution.v",
+        "proofs/MainTheorem.v",
+        "proofs/SourceFacts.v"
+      ],
+      "standalone_only": [],
+      "registered_reasons": {},
+      "staged_unwired": [],
+      "problems": []
+    },
+    "passed": true,
+    "caution": "Mechanical hygiene only. Explicit hypotheses, live reachability, and statement fidelity require review."
+  },
+  "source_sha256": {
+    "generated/jp_area.v": "de3942dbfe53b13872f9e051f5e4c2c484f4e5ef18a42814dd6748615f507036",
+    "generated/jp_bbh_level_script.v": "c8ddde17bbf0b13940da8f86b2a2b82ffbdae3808d1200a4b50baafd939ba74e",
+    "generated/jp_bitdw_level_script.v": "44e881ad966cb7570483650ee42c94fab44398f7b26db6859a4e3e2f9f17c67a",
+    "generated/jp_bowser_1_level_script.v": "1f52e2a3a94779d1b809457e55cb4e52fab003cfba6313edad24c7786cb93f0e",
+    "generated/jp_ccm_level_script.v": "cb615c9148ca81edf351f1da564fc8218c965951f8545d1c23cff3b8eb97365c",
+    "generated/jp_game_init.v": "4cd6a34e14ce0a0be50cee225db6a7f464d1bcfc16fbfb1d9acd72c948d8bdba",
+    "generated/jp_hmc_level_script.v": "945285c585e38e123588c8acc82f8ba770c3b3707ceffb3463736f124232ced3",
+    "generated/jp_ingame_menu.v": "faf69b509c480d4591cfff485a0605e7e3527f051cf82ea56ee69f9d03d34ade",
+    "generated/jp_intro_level_script.v": "d18895a32820eedd3830f810bf212edb5578a4ada321c609337103ccf60561e2",
+    "generated/jp_jrb_level_script.v": "64a5f7601838d3cc905e8a350042c67ce5d42b44ec5a4230c56423dec29100f6",
+    "generated/jp_level_script.v": "8b418d562e2e12a75e8f9c8afa9de5edbc21da8f0aa9bed29a7d7e7953ec56d3",
+    "generated/jp_level_scripts.v": "e6d27cad23ef31b234419862cb2871c2c51a12f9bf536f7f61c41bbdbc01f6be",
+    "generated/jp_level_update.v": "e0be75fbee7e6f10dab6eac62852fc1d6b473c34570c7865ffb88f63c13b6e91",
+    "generated/jp_memory.v": "8611d166b00d66ace8e631db55591fd42dc0fde8953c54dfe5ce2a9b35c31d89",
+    "generated/jp_menu_level_script.v": "05f1fc18200ec28557595b4f17626e6729bb7c9452e25e816807841beed27c36",
+    "generated/jp_pss_level_script.v": "ee81555c8c9956595d3e4669dac01a09c530fbb4dcd3ca40f9c470cf389112a9",
+    "generated/jp_star_select.v": "514c02f9d2d5d1f0635c39146cbbf5de2b4d7957b35561b79a2139eb9bc0f767",
+    "generated/jp_title_screen.v": "9c937b01e83291172e8a0ca54ca4aede54049d5818677f706e94bc2e381911ce",
+    "generated/jp_wf_level_script.v": "5eaee8c6e57d5c8016141b2bb09dc6610f6b2028d5f55f600e9bc8fde33b6212",
+    "generated/us_area.v": "5234563c4e7067b96f5e87b710d3a8d8df5a1f4059ef4d24d9c933a0007c344e",
+    "generated/us_bbh_level_script.v": "da758fea5d0ae8ea8aa8ad95131900b549a3f0e7b8c7e029af711b37b73e97c0",
+    "generated/us_bitdw_level_script.v": "e0e722ba0a0b76aee9cab8511c5607fb1154e23e649cb56713fcb737741dd66a",
+    "generated/us_bowser_1_level_script.v": "e50142e98e1265b736ee7713e110f8bbe98a3808b897b4f9dc33cef728d367f4",
+    "generated/us_ccm_level_script.v": "08f9f9e2b3f5ae36b68cb76d3bffdad69689a88fafaa02f4087ca92d9f188498",
+    "generated/us_game_init.v": "602dc680926201778b09c914376f87235944c9929698aa0be2c25694cc0cfcd9",
+    "generated/us_hmc_level_script.v": "5a0eee9b48ee2de692c027c10b8c5099af7a022eba5e40f4df6236bfde605cef",
+    "generated/us_ingame_menu.v": "e1761f74ffa7af5c8ab71eb3e65fbc05ebcbed75c62743c6e197f7a42408233d",
+    "generated/us_intro_level_script.v": "0b32ab573a9301e022c60e13ad715d211157222064aded1fab775ef873da1285",
+    "generated/us_jrb_level_script.v": "f24172d40fa76056ad70cde7f3cd21d12ed41fd1de8fbcea8a29d023a8972c32",
+    "generated/us_level_script.v": "d00e3a63e605474bb09585982b1f59050c034a802cb126a698126a7946199f0d",
+    "generated/us_level_scripts.v": "36603f1716212b1ec106d648637f77b5b5d5a3a6c92db08970d8143552df6a22",
+    "generated/us_level_update.v": "9f72cc92395fb4f3710257ce4038028e614823a161e09925c6ad98b3d4ed6a97",
+    "generated/us_memory.v": "11e82ca69c87d90d3cc387f839023800f12f12b143636ceb90cd71a9d013aabe",
+    "generated/us_menu_level_script.v": "694f54cba4f46efa81703ab1317df7c9a8e94d32e0dd202020129daea2220aed",
+    "generated/us_pss_level_script.v": "43244592f694bbc4e1cff1d88b6ce3f875573a2949c1ee6addd5268138b755c1",
+    "generated/us_star_select.v": "6ebabc13bbf161cf36f9700647888818ba2e4aa2ee716c075dd3eb4044a85932",
+    "generated/us_title_screen.v": "55d6803050814eeaa6eaad34beed70527474a41a441e37835427739b603759eb",
+    "generated/us_wf_level_script.v": "a55f7894e769146a6f50956c69481926c344033a710727f27afd2e5a0ae63167",
+    "proofs/DemoDispatchFacts.v": "2149b38746cfe48b8c9d68e6a9febfb21b2c42a589f8f2adba62f3152d8fe23d",
+    "proofs/DemoGameplayBoundary.v": "43cbfc9c731103db08a33c74987c530cd59cda66ad39753f51934fa97e86214c",
+    "proofs/DemoLevelSelectionExecution.v": "eebcdff2e41daa4980d39e8f85e0e1ad7dd84aec43e14d30a6667548ade7286f",
+    "proofs/DemoPauseExclusion.v": "660659cb8e7efd1e7855adb2a2b1a267930bc4919b7d11425ab30c4244390d26",
+    "proofs/DemoScriptDispatchFacts.v": "1d0a06cd313155e79fb42c44483a6994128706ef411ad79e0ebe7acf49bab2fe",
+    "proofs/DemoStartExecution.v": "757861403b39b88d8a0d894ef9fa855f0f0fe4e717bd10638a5db7f8b1f7e2f0",
+    "proofs/DemoStartWarpExecution.v": "39bc927dbcec2042ed94cf820f6c1751fcfd0bac7ac927e769e6515b027280cc",
+    "proofs/DemoTitleStartExecution.v": "fe641382f6f181cb0702ef7f240e182a80c6d62814097857290fa3da5fe6fb5e",
+    "proofs/MainTheorem.v": "6bed41c50ba788791348dffdfa677b80008679b30e50a4373fd1ed39e57987f1",
+    "proofs/SourceFacts.v": "669339106aafe1f808da1cd5dac4dbfa88c2ee3a296b4c4e8a58a34268a83026"
+  },
+  "boundary": "Concrete first-title, interpreter CALL/level-selector, painting-null, delayed-demo/internal-warp, transition, pause/dialog and scheduler-helper executions; corrected numeric header-to-entry and opcode certificates. Loader/DMA, reachable initialization, script composition, whole-game store preservation and retail/hardware refinement remain open.",
+  "audit_report": "build/audit/20261015-131106-idieex1z/report.json",
+  "check_log": "build/checkpoint-check.log",
+  "gameplay_search_receipt_sha256": "13ebfaf563fc8ef18a26a64089c78f931f2dae612b7fd5c7781a4ea270c8731b"
+}

@@ -1,0 +1,12 @@
+/build/
+/generated/.clightgen-output.*
+/CoqMakefile
+/CoqMakefile.conf
+/*.aux
+/**/*.aux
+/**/*.glob
+/**/*.vo
+/**/*.vos
+/**/*.vok
+__pycache__/
+.CoqMakefile.d

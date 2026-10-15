@@ -1,0 +1,1456 @@
+{
+  "scope": "finite authenticated retail-ROM emulator observations outside Coq; not an all-gameplay theorem",
+  "source_pin": "9921382a68bb0c865e5e45eb594d9c64db59b1af",
+  "trials": [
+    {
+      "trial": "us_terrain_cycle",
+      "version": "us",
+      "rom_sha1": "9bef1128717f958171a4afac3ed78ee2bb4e86ce",
+      "rom_sha256": "17ce077343c6133f8c9f2d6d6d9a4ab62c8cd2aa57c40aea1f490b4c8bb21d91",
+      "elf_sha256": "40d72222255b7d4a1168d2163e7fca4841933efeb29eb0dba64f474f9d231c25",
+      "observer_sha256": "af9774900eea523cad3c8dd9e65d411bc140a06b2bc2b281e4b04d3192225d53",
+      "runner_sha256": "94b56c2ed9cb5018d28200e8471d27718b5b5216b0b8de0644f20cb5e2b2edbf",
+      "trace_sha256": "a1155db4ef8e0265ae233e5977e951e8bd6ba4f050ad90519602c1b748bf2231",
+      "observed_code_receipts": [
+        {
+          "routine": "run_demo_inputs",
+          "start": 2149876888,
+          "count": 104,
+          "hash": 3566743881,
+          "rom_offset": 13464,
+          "sha256": "3a12316ca291dda3f43e46e4572ca0c2de49d91964a512435cf40d06df2a9e43"
+        },
+        {
+          "routine": "update_level",
+          "start": 2149890488,
+          "count": 53,
+          "hash": 1477820848,
+          "rom_offset": 27064,
+          "sha256": "62519c2363a3c23f3b67cbb09fbbb1bd6a81ae4e116dc8e3d98eadf524e07d2a"
+        }
+      ],
+      "terrain_receipts": [
+        {
+          "name": "bowser_1_seg7_collision_level",
+          "level": 30,
+          "area": 1,
+          "symbol": 117450808,
+          "size": 656,
+          "segment_rom_start": 4991264,
+          "segment_rom_end": 4997568,
+          "level_elf_sha256": "25562b529abc8c42790aa509dc4de7579935f0237e1b0120216d4ac7574bc800",
+          "terrain_sha256": "e16f65cc09e303e00781a5746049794f3f4bf867821ff1d9d9af0741c78dd550",
+          "observed_prefix_bytes": 256,
+          "prefix_sha256": "0b97554522cb85aef5a6992266d82c1750fc08b75e4bf220e3f63919c127affe"
+        },
+        {
+          "name": "wf_seg7_collision_070102D8",
+          "level": 24,
+          "area": 1,
+          "symbol": 117506776,
+          "size": 6494,
+          "segment_rom_start": 4808848,
+          "segment_rom_end": 4840016,
+          "level_elf_sha256": "802a69c3288106ce02172809fce7eaffb72b75ab924d54cc3315c2549983875b",
+          "terrain_sha256": "18f19bb513232df152dd7289f3bf43c20c717ffe3f64f79716c57d7087da0ca0",
+          "observed_prefix_bytes": 256,
+          "prefix_sha256": "4602bdf0b35314c8095ac36c249b76addafc5026b1ceb0ccbd7cd182d024740b"
+        },
+        {
+          "name": "ccm_seg7_area_1_collision",
+          "level": 5,
+          "area": 1,
+          "symbol": 117520616,
+          "size": 10650,
+          "segment_rom_start": 3684688,
+          "segment_rom_end": 3759248,
+          "level_elf_sha256": "6909c8ed7e8feac277c38447c77f5b45e29c1534273d64eae24dab1680ec8d88",
+          "terrain_sha256": "65d814a95887d55b8235f75630e999fdb77f4dd5601a3b80fad6d3db681c0a88",
+          "observed_prefix_bytes": 256,
+          "prefix_sha256": "b67aa752e216c433ec85969659a0017a9ab6071b595280cbce1f06cb440eb917"
+        },
+        {
+          "name": "ccm_seg7_area_2_collision",
+          "level": 5,
+          "area": 2,
+          "symbol": 117573760,
+          "size": 11240,
+          "segment_rom_start": 3684688,
+          "segment_rom_end": 3759248,
+          "level_elf_sha256": "6909c8ed7e8feac277c38447c77f5b45e29c1534273d64eae24dab1680ec8d88",
+          "terrain_sha256": "7d9323e97a98c4d773547830f67f3f9765eca69e45d0de14faf04534d8a9e998",
+          "observed_prefix_bytes": 256,
+          "prefix_sha256": "6788ea7e370a91855d2336e2bb3c48d1b2dd4cd7cd08e52d3a0aa7f8548df34b"
+        },
+        {
+          "name": "bbh_seg7_collision_level",
+          "level": 4,
+          "area": 1,
+          "symbol": 117573536,
+          "size": 22716,
+          "segment_rom_start": 3611712,
+          "segment_rom_end": 3680448,
+          "level_elf_sha256": "a0922d76b2c7cef973793d68f28d421f600b41bbce30f475a8f085617a4b7ce0",
+          "terrain_sha256": "8cedfe0b641507cb9941bd206743d10e5940cf03345c0348cf302248d0fff02e",
+          "observed_prefix_bytes": 256,
+          "prefix_sha256": "3fca557da6ff91b387b5beec507a11af82956e21c024b5321ec44d1fc58cdf70"
+        },
+        {
+          "name": "jrb_seg7_area_1_collision",
+          "level": 12,
+          "area": 1,
+          "symbol": 117485656,
+          "size": 5264,
+          "segment_rom_start": 4302688,
+          "segment_rom_end": 4340512,
+          "level_elf_sha256": "1b531b69bfdb02eae1267e08525b61a16324334a4c5a120df021763a1cb608a4",
+          "terrain_sha256": "f115b843c5f5c588c58adf60668c7498cc80b1cf50eba7cc0918b33ebf01cd9d",
+          "observed_prefix_bytes": 256,
+          "prefix_sha256": "e7044515183f1c14dfcec7bfd65869085ec96f161a4586424b633c862f7d86d8"
+        },
+        {
+          "name": "jrb_seg7_area_2_collision",
+          "level": 12,
+          "area": 2,
+          "symbol": 117507512,
+          "size": 3512,
+          "segment_rom_start": 4302688,
+          "segment_rom_end": 4340512,
+          "level_elf_sha256": "1b531b69bfdb02eae1267e08525b61a16324334a4c5a120df021763a1cb608a4",
+          "terrain_sha256": "b1ce78967cefd28bec1f12127adcf5518049415f7a0916c3966b5e8955c6ba13",
+          "observed_prefix_bytes": 256,
+          "prefix_sha256": "120be17232216eb2bb3943d46c05e93213d0de88ac3de224d3f18856d8b233c9"
+        },
+        {
+          "name": "hmc_seg7_collision_level",
+          "level": 7,
+          "area": 1,
+          "symbol": 117593492,
+          "size": 21732,
+          "segment_rom_start": 4001216,
+          "segment_rom_end": 4090368,
+          "level_elf_sha256": "a441032c014a5b946897aa32b29bdc29b2ad86b6999c0a3ce1896b108124a998",
+          "terrain_sha256": "bdf8af4e65df3c7aee5da29b27b8175a2ae82e86cae54330a1af5efba23360e7",
+          "observed_prefix_bytes": 256,
+          "prefix_sha256": "837a7dec5c8c6324db529530f362877022a57e6ea3fa9238abb2fe257a0e93ec"
+        },
+        {
+          "name": "pss_seg7_collision",
+          "level": 27,
+          "area": 1,
+          "symbol": 117499024,
+          "size": 10864,
+          "segment_rom_start": 4913456,
+          "segment_rom_end": 4947728,
+          "level_elf_sha256": "90ae48a2224380a1c873b95ed96091f26d3b8fc335c272feb973743e9dab3669",
+          "terrain_sha256": "aaba966b254f3ea46d9b8aea5d0df2f13366170dc1498e3f147bd7d6631badd9",
+          "observed_prefix_bytes": 256,
+          "prefix_sha256": "9f791253e82f67692c4075c195fb4809d250af187e028db6db6b2c526c812352"
+        }
+      ],
+      "loaded_terrain_check": "byte-exact 256-byte prefixes, distinct among declared demo areas; ELF data byte-matched to authenticated retail ROM MIO0 output",
+      "initialization": "boot; fresh configuration and save-data directories; no cheats or state injection",
+      "start_at": null,
+      "start_frames": 1,
+      "reset_title": false,
+      "rendered_frame_cutoff": 14500,
+      "observed_active_demo_updates": 6746,
+      "mismatched_updates": 0,
+      "initial_stream_comparison": "byte-exact comparison with authenticated ROM stream before timer mutation",
+      "all_observed_painting_tables_null": true,
+      "all_observed_instant_tables_null": true,
+      "observer_errors": 0,
+      "checks": {
+        "cheats_disabled": true,
+        "code_hashes_verified": true,
+        "physical_start_polls": 0,
+        "physical_title_A_polls": 0
+      },
+      "episodes": [
+        {
+          "episode": 1,
+          "stream": "bitdw",
+          "header_level": 30,
+          "first_input_global_frame": 918,
+          "level_enum": "LEVEL_BOWSER_1",
+          "level_folder": "bowser_1",
+          "observed_updates": 701,
+          "first_update_global_frame": 935,
+          "last_update_global_frame": 1635,
+          "observed_level_numbers": [
+            30
+          ],
+          "observed_area_indices": [
+            1
+          ],
+          "observed_terrain_pointers": [
+            "800fd3d8"
+          ],
+          "observed_terrain_names": [
+            "bowser_1_seg7_collision_level"
+          ],
+          "observed_play_modes": [
+            0,
+            4
+          ]
+        },
+        {
+          "episode": 2,
+          "stream": "wf",
+          "header_level": 24,
+          "first_input_global_frame": 2460,
+          "level_enum": "LEVEL_WF",
+          "level_folder": "wf",
+          "observed_updates": 609,
+          "first_update_global_frame": 2477,
+          "last_update_global_frame": 3085,
+          "observed_level_numbers": [
+            24
+          ],
+          "observed_area_indices": [
+            1
+          ],
+          "observed_terrain_pointers": [
+            "8010b9d8"
+          ],
+          "observed_terrain_names": [
+            "wf_seg7_collision_070102D8"
+          ],
+          "observed_play_modes": [
+            0,
+            4
+          ]
+        },
+        {
+          "episode": 3,
+          "stream": "ccm",
+          "header_level": 5,
+          "first_input_global_frame": 3910,
+          "level_enum": "LEVEL_CCM",
+          "level_folder": "ccm",
+          "observed_updates": 948,
+          "first_update_global_frame": 3927,
+          "last_update_global_frame": 4874,
+          "observed_level_numbers": [
+            5
+          ],
+          "observed_area_indices": [
+            1
+          ],
+          "observed_terrain_pointers": [
+            "8010e9d8"
+          ],
+          "observed_terrain_names": [
+            "ccm_seg7_area_1_collision"
+          ],
+          "observed_play_modes": [
+            0,
+            4
+          ]
+        },
+        {
+          "episode": 4,
+          "stream": "bbh",
+          "header_level": 4,
+          "first_input_global_frame": 5699,
+          "level_enum": "LEVEL_BBH",
+          "level_folder": "bbh",
+          "observed_updates": 835,
+          "first_update_global_frame": 5716,
+          "last_update_global_frame": 6550,
+          "observed_level_numbers": [
+            4
+          ],
+          "observed_area_indices": [
+            1
+          ],
+          "observed_terrain_pointers": [
+            "8011c270"
+          ],
+          "observed_terrain_names": [
+            "bbh_seg7_collision_level"
+          ],
+          "observed_play_modes": [
+            0,
+            4
+          ]
+        },
+        {
+          "episode": 5,
+          "stream": "jrb",
+          "header_level": 12,
+          "first_input_global_frame": 7375,
+          "level_enum": "LEVEL_JRB",
+          "level_folder": "jrb",
+          "observed_updates": 743,
+          "first_update_global_frame": 7392,
+          "last_update_global_frame": 8134,
+          "observed_level_numbers": [
+            12
+          ],
+          "observed_area_indices": [
+            1
+          ],
+          "observed_terrain_pointers": [
+            "80106648"
+          ],
+          "observed_terrain_names": [
+            "jrb_seg7_area_1_collision"
+          ],
+          "observed_play_modes": [
+            0,
+            4
+          ]
+        },
+        {
+          "episode": 6,
+          "stream": "hmc",
+          "header_level": 7,
+          "first_input_global_frame": 8959,
+          "level_enum": "LEVEL_HMC",
+          "level_folder": "hmc",
+          "observed_updates": 1051,
+          "first_update_global_frame": 8976,
+          "last_update_global_frame": 10026,
+          "observed_level_numbers": [
+            7
+          ],
+          "observed_area_indices": [
+            1
+          ],
+          "observed_terrain_pointers": [
+            "80120c84"
+          ],
+          "observed_terrain_names": [
+            "hmc_seg7_collision_level"
+          ],
+          "observed_play_modes": [
+            0,
+            4
+          ]
+        },
+        {
+          "episode": 7,
+          "stream": "pss",
+          "header_level": 27,
+          "first_input_global_frame": 10851,
+          "level_enum": "LEVEL_PSS",
+          "level_folder": "pss",
+          "observed_updates": 750,
+          "first_update_global_frame": 10868,
+          "last_update_global_frame": 11617,
+          "observed_level_numbers": [
+            27
+          ],
+          "observed_area_indices": [
+            1
+          ],
+          "observed_terrain_pointers": [
+            "80109090"
+          ],
+          "observed_terrain_names": [
+            "pss_seg7_collision"
+          ],
+          "observed_play_modes": [
+            0,
+            4
+          ]
+        },
+        {
+          "episode": 8,
+          "stream": "bitdw",
+          "header_level": 30,
+          "first_input_global_frame": 12535,
+          "level_enum": "LEVEL_BOWSER_1",
+          "level_folder": "bowser_1",
+          "observed_updates": 701,
+          "first_update_global_frame": 12552,
+          "last_update_global_frame": 13252,
+          "observed_level_numbers": [
+            30
+          ],
+          "observed_area_indices": [
+            1
+          ],
+          "observed_terrain_pointers": [
+            "800fd3d8"
+          ],
+          "observed_terrain_names": [
+            "bowser_1_seg7_collision_level"
+          ],
+          "observed_play_modes": [
+            0,
+            4
+          ]
+        },
+        {
+          "episode": 9,
+          "stream": "wf",
+          "header_level": 24,
+          "first_input_global_frame": 14077,
+          "level_enum": "LEVEL_WF",
+          "level_folder": "wf",
+          "observed_updates": 408,
+          "first_update_global_frame": 14094,
+          "last_update_global_frame": 14501,
+          "observed_level_numbers": [
+            24
+          ],
+          "observed_area_indices": [
+            1
+          ],
+          "observed_terrain_pointers": [
+            "8010b9d8"
+          ],
+          "observed_terrain_names": [
+            "wf_seg7_collision_070102D8"
+          ],
+          "observed_play_modes": [
+            0
+          ]
+        }
+      ]
+    },
+    {
+      "trial": "jp_terrain_cycle",
+      "version": "jp",
+      "rom_sha1": "8a20a5c83d6ceb0f0506cfc9fa20d8f438cafe51",
+      "rom_sha256": "9cf7a80db321b07a8d461fe536c02c87b7412433953891cdec9191bfad2db317",
+      "elf_sha256": "ae22c2f5a65fa56a939ff6cbab9927598c4636f7113f5133ec6a0816f8595bd7",
+      "observer_sha256": "af9774900eea523cad3c8dd9e65d411bc140a06b2bc2b281e4b04d3192225d53",
+      "runner_sha256": "94b56c2ed9cb5018d28200e8471d27718b5b5216b0b8de0644f20cb5e2b2edbf",
+      "trace_sha256": "c24fd11dd76eebf52089ea57c90ef0f8d7deffd6c22918293cd65230fe63b4b5",
+      "observed_code_receipts": [
+        {
+          "routine": "run_demo_inputs",
+          "start": 2149876840,
+          "count": 104,
+          "hash": 1303092729,
+          "rom_offset": 13416,
+          "sha256": "c0015f1e6c5534c45e89be9d5e9d5b47bf4e87828065fd68f234d37e0ae12cc5"
+        },
+        {
+          "routine": "update_level",
+          "start": 2149890072,
+          "count": 53,
+          "hash": 308142980,
+          "rom_offset": 26648,
+          "sha256": "729257531dd27f0e9e67f1a2578ef08ae12cd6a38907581117086abfb70d33b4"
+        }
+      ],
+      "terrain_receipts": [
+        {
+          "name": "wf_seg7_collision_070102D8",
+          "level": 24,
+          "area": 1,
+          "symbol": 117506776,
+          "size": 6494,
+          "segment_rom_start": 4800560,
+          "segment_rom_end": 4831728,
+          "level_elf_sha256": "802a69c3288106ce02172809fce7eaffb72b75ab924d54cc3315c2549983875b",
+          "terrain_sha256": "18f19bb513232df152dd7289f3bf43c20c717ffe3f64f79716c57d7087da0ca0",
+          "observed_prefix_bytes": 256,
+          "prefix_sha256": "4602bdf0b35314c8095ac36c249b76addafc5026b1ceb0ccbd7cd182d024740b"
+        },
+        {
+          "name": "ccm_seg7_area_1_collision",
+          "level": 5,
+          "area": 1,
+          "symbol": 117520616,
+          "size": 10650,
+          "segment_rom_start": 3677936,
+          "segment_rom_end": 3752496,
+          "level_elf_sha256": "6909c8ed7e8feac277c38447c77f5b45e29c1534273d64eae24dab1680ec8d88",
+          "terrain_sha256": "65d814a95887d55b8235f75630e999fdb77f4dd5601a3b80fad6d3db681c0a88",
+          "observed_prefix_bytes": 256,
+          "prefix_sha256": "b67aa752e216c433ec85969659a0017a9ab6071b595280cbce1f06cb440eb917"
+        },
+        {
+          "name": "ccm_seg7_area_2_collision",
+          "level": 5,
+          "area": 2,
+          "symbol": 117573760,
+          "size": 11240,
+          "segment_rom_start": 3677936,
+          "segment_rom_end": 3752496,
+          "level_elf_sha256": "6909c8ed7e8feac277c38447c77f5b45e29c1534273d64eae24dab1680ec8d88",
+          "terrain_sha256": "7d9323e97a98c4d773547830f67f3f9765eca69e45d0de14faf04534d8a9e998",
+          "observed_prefix_bytes": 256,
+          "prefix_sha256": "6788ea7e370a91855d2336e2bb3c48d1b2dd4cd7cd08e52d3a0aa7f8548df34b"
+        },
+        {
+          "name": "bbh_seg7_collision_level",
+          "level": 4,
+          "area": 1,
+          "symbol": 117573536,
+          "size": 22716,
+          "segment_rom_start": 3604960,
+          "segment_rom_end": 3673696,
+          "level_elf_sha256": "a0922d76b2c7cef973793d68f28d421f600b41bbce30f475a8f085617a4b7ce0",
+          "terrain_sha256": "8cedfe0b641507cb9941bd206743d10e5940cf03345c0348cf302248d0fff02e",
+          "observed_prefix_bytes": 256,
+          "prefix_sha256": "3fca557da6ff91b387b5beec507a11af82956e21c024b5321ec44d1fc58cdf70"
+        },
+        {
+          "name": "jrb_seg7_area_1_collision",
+          "level": 12,
+          "area": 1,
+          "symbol": 117485656,
+          "size": 5264,
+          "segment_rom_start": 4294592,
+          "segment_rom_end": 4332416,
+          "level_elf_sha256": "1b531b69bfdb02eae1267e08525b61a16324334a4c5a120df021763a1cb608a4",
+          "terrain_sha256": "f115b843c5f5c588c58adf60668c7498cc80b1cf50eba7cc0918b33ebf01cd9d",
+          "observed_prefix_bytes": 256,
+          "prefix_sha256": "e7044515183f1c14dfcec7bfd65869085ec96f161a4586424b633c862f7d86d8"
+        },
+        {
+          "name": "jrb_seg7_area_2_collision",
+          "level": 12,
+          "area": 2,
+          "symbol": 117507512,
+          "size": 3512,
+          "segment_rom_start": 4294592,
+          "segment_rom_end": 4332416,
+          "level_elf_sha256": "1b531b69bfdb02eae1267e08525b61a16324334a4c5a120df021763a1cb608a4",
+          "terrain_sha256": "b1ce78967cefd28bec1f12127adcf5518049415f7a0916c3966b5e8955c6ba13",
+          "observed_prefix_bytes": 256,
+          "prefix_sha256": "120be17232216eb2bb3943d46c05e93213d0de88ac3de224d3f18856d8b233c9"
+        },
+        {
+          "name": "hmc_seg7_collision_level",
+          "level": 7,
+          "area": 1,
+          "symbol": 117593492,
+          "size": 21732,
+          "segment_rom_start": 3993136,
+          "segment_rom_end": 4082272,
+          "level_elf_sha256": "f63d9bf66734c337be9cb071bcf8f3aaea9663ff9f7c9ded02fbb6d09e36fc4f",
+          "terrain_sha256": "bdf8af4e65df3c7aee5da29b27b8175a2ae82e86cae54330a1af5efba23360e7",
+          "observed_prefix_bytes": 256,
+          "prefix_sha256": "837a7dec5c8c6324db529530f362877022a57e6ea3fa9238abb2fe257a0e93ec"
+        },
+        {
+          "name": "pss_seg7_collision",
+          "level": 27,
+          "area": 1,
+          "symbol": 117499024,
+          "size": 10864,
+          "segment_rom_start": 4905168,
+          "segment_rom_end": 4939440,
+          "level_elf_sha256": "90ae48a2224380a1c873b95ed96091f26d3b8fc335c272feb973743e9dab3669",
+          "terrain_sha256": "aaba966b254f3ea46d9b8aea5d0df2f13366170dc1498e3f147bd7d6631badd9",
+          "observed_prefix_bytes": 256,
+          "prefix_sha256": "9f791253e82f67692c4075c195fb4809d250af187e028db6db6b2c526c812352"
+        }
+      ],
+      "loaded_terrain_check": "byte-exact 256-byte prefixes, distinct among declared demo areas; ELF data byte-matched to authenticated retail ROM MIO0 output",
+      "initialization": "boot; fresh configuration and save-data directories; no cheats or state injection",
+      "start_at": null,
+      "start_frames": 1,
+      "reset_title": false,
+      "rendered_frame_cutoff": 12500,
+      "observed_active_demo_updates": 5587,
+      "mismatched_updates": 0,
+      "initial_stream_comparison": "byte-exact comparison with authenticated ROM stream before timer mutation",
+      "all_observed_painting_tables_null": true,
+      "all_observed_instant_tables_null": true,
+      "observer_errors": 0,
+      "checks": {
+        "cheats_disabled": true,
+        "code_hashes_verified": true,
+        "physical_start_polls": 0,
+        "physical_title_A_polls": 0
+      },
+      "episodes": [
+        {
+          "episode": 1,
+          "stream": "wf",
+          "header_level": 24,
+          "first_input_global_frame": 918,
+          "level_enum": "LEVEL_WF",
+          "level_folder": "wf",
+          "observed_updates": 609,
+          "first_update_global_frame": 935,
+          "last_update_global_frame": 1543,
+          "observed_level_numbers": [
+            24
+          ],
+          "observed_area_indices": [
+            1
+          ],
+          "observed_terrain_pointers": [
+            "80108b58"
+          ],
+          "observed_terrain_names": [
+            "wf_seg7_collision_070102D8"
+          ],
+          "observed_play_modes": [
+            0,
+            4
+          ]
+        },
+        {
+          "episode": 2,
+          "stream": "ccm",
+          "header_level": 5,
+          "first_input_global_frame": 2368,
+          "level_enum": "LEVEL_CCM",
+          "level_folder": "ccm",
+          "observed_updates": 948,
+          "first_update_global_frame": 2385,
+          "last_update_global_frame": 3332,
+          "observed_level_numbers": [
+            5
+          ],
+          "observed_area_indices": [
+            1
+          ],
+          "observed_terrain_pointers": [
+            "8010bb48"
+          ],
+          "observed_terrain_names": [
+            "ccm_seg7_area_1_collision"
+          ],
+          "observed_play_modes": [
+            0,
+            4
+          ]
+        },
+        {
+          "episode": 3,
+          "stream": "bbh",
+          "header_level": 4,
+          "first_input_global_frame": 4157,
+          "level_enum": "LEVEL_BBH",
+          "level_folder": "bbh",
+          "observed_updates": 835,
+          "first_update_global_frame": 4174,
+          "last_update_global_frame": 5008,
+          "observed_level_numbers": [
+            4
+          ],
+          "observed_area_indices": [
+            1
+          ],
+          "observed_terrain_pointers": [
+            "801193f0"
+          ],
+          "observed_terrain_names": [
+            "bbh_seg7_collision_level"
+          ],
+          "observed_play_modes": [
+            0,
+            4
+          ]
+        },
+        {
+          "episode": 4,
+          "stream": "jrb",
+          "header_level": 12,
+          "first_input_global_frame": 5833,
+          "level_enum": "LEVEL_JRB",
+          "level_folder": "jrb",
+          "observed_updates": 743,
+          "first_update_global_frame": 5850,
+          "last_update_global_frame": 6592,
+          "observed_level_numbers": [
+            12
+          ],
+          "observed_area_indices": [
+            1
+          ],
+          "observed_terrain_pointers": [
+            "801037c8"
+          ],
+          "observed_terrain_names": [
+            "jrb_seg7_area_1_collision"
+          ],
+          "observed_play_modes": [
+            0,
+            4
+          ]
+        },
+        {
+          "episode": 5,
+          "stream": "hmc",
+          "header_level": 7,
+          "first_input_global_frame": 7417,
+          "level_enum": "LEVEL_HMC",
+          "level_folder": "hmc",
+          "observed_updates": 1051,
+          "first_update_global_frame": 7434,
+          "last_update_global_frame": 8484,
+          "observed_level_numbers": [
+            7
+          ],
+          "observed_area_indices": [
+            1
+          ],
+          "observed_terrain_pointers": [
+            "8011de04"
+          ],
+          "observed_terrain_names": [
+            "hmc_seg7_collision_level"
+          ],
+          "observed_play_modes": [
+            0,
+            4
+          ]
+        },
+        {
+          "episode": 6,
+          "stream": "pss",
+          "header_level": 27,
+          "first_input_global_frame": 9309,
+          "level_enum": "LEVEL_PSS",
+          "level_folder": "pss",
+          "observed_updates": 750,
+          "first_update_global_frame": 9326,
+          "last_update_global_frame": 10075,
+          "observed_level_numbers": [
+            27
+          ],
+          "observed_area_indices": [
+            1
+          ],
+          "observed_terrain_pointers": [
+            "80106210"
+          ],
+          "observed_terrain_names": [
+            "pss_seg7_collision"
+          ],
+          "observed_play_modes": [
+            0,
+            4
+          ]
+        },
+        {
+          "episode": 7,
+          "stream": "wf",
+          "header_level": 24,
+          "first_input_global_frame": 10993,
+          "level_enum": "LEVEL_WF",
+          "level_folder": "wf",
+          "observed_updates": 609,
+          "first_update_global_frame": 11010,
+          "last_update_global_frame": 11618,
+          "observed_level_numbers": [
+            24
+          ],
+          "observed_area_indices": [
+            1
+          ],
+          "observed_terrain_pointers": [
+            "80108b58"
+          ],
+          "observed_terrain_names": [
+            "wf_seg7_collision_070102D8"
+          ],
+          "observed_play_modes": [
+            0,
+            4
+          ]
+        },
+        {
+          "episode": 8,
+          "stream": "ccm",
+          "header_level": 5,
+          "first_input_global_frame": 12443,
+          "level_enum": "LEVEL_CCM",
+          "level_folder": "ccm",
+          "observed_updates": 42,
+          "first_update_global_frame": 12460,
+          "last_update_global_frame": 12501,
+          "observed_level_numbers": [
+            5
+          ],
+          "observed_area_indices": [
+            1
+          ],
+          "observed_terrain_pointers": [
+            "8010bb48"
+          ],
+          "observed_terrain_names": [
+            "ccm_seg7_area_1_collision"
+          ],
+          "observed_play_modes": [
+            0
+          ]
+        }
+      ]
+    },
+    {
+      "trial": "us_terrain_start_20",
+      "version": "us",
+      "rom_sha1": "9bef1128717f958171a4afac3ed78ee2bb4e86ce",
+      "rom_sha256": "17ce077343c6133f8c9f2d6d6d9a4ab62c8cd2aa57c40aea1f490b4c8bb21d91",
+      "elf_sha256": "40d72222255b7d4a1168d2163e7fca4841933efeb29eb0dba64f474f9d231c25",
+      "observer_sha256": "af9774900eea523cad3c8dd9e65d411bc140a06b2bc2b281e4b04d3192225d53",
+      "runner_sha256": "94b56c2ed9cb5018d28200e8471d27718b5b5216b0b8de0644f20cb5e2b2edbf",
+      "trace_sha256": "f7f677674238998ec5d3eb46765fd0aca2301f4fdc6ec022146879cb25a1ffba",
+      "observed_code_receipts": [
+        {
+          "routine": "run_demo_inputs",
+          "start": 2149876888,
+          "count": 104,
+          "hash": 3566743881,
+          "rom_offset": 13464,
+          "sha256": "3a12316ca291dda3f43e46e4572ca0c2de49d91964a512435cf40d06df2a9e43"
+        },
+        {
+          "routine": "update_level",
+          "start": 2149890488,
+          "count": 53,
+          "hash": 1477820848,
+          "rom_offset": 27064,
+          "sha256": "62519c2363a3c23f3b67cbb09fbbb1bd6a81ae4e116dc8e3d98eadf524e07d2a"
+        }
+      ],
+      "terrain_receipts": [
+        {
+          "name": "bowser_1_seg7_collision_level",
+          "level": 30,
+          "area": 1,
+          "symbol": 117450808,
+          "size": 656,
+          "segment_rom_start": 4991264,
+          "segment_rom_end": 4997568,
+          "level_elf_sha256": "25562b529abc8c42790aa509dc4de7579935f0237e1b0120216d4ac7574bc800",
+          "terrain_sha256": "e16f65cc09e303e00781a5746049794f3f4bf867821ff1d9d9af0741c78dd550",
+          "observed_prefix_bytes": 256,
+          "prefix_sha256": "0b97554522cb85aef5a6992266d82c1750fc08b75e4bf220e3f63919c127affe"
+        },
+        {
+          "name": "wf_seg7_collision_070102D8",
+          "level": 24,
+          "area": 1,
+          "symbol": 117506776,
+          "size": 6494,
+          "segment_rom_start": 4808848,
+          "segment_rom_end": 4840016,
+          "level_elf_sha256": "802a69c3288106ce02172809fce7eaffb72b75ab924d54cc3315c2549983875b",
+          "terrain_sha256": "18f19bb513232df152dd7289f3bf43c20c717ffe3f64f79716c57d7087da0ca0",
+          "observed_prefix_bytes": 256,
+          "prefix_sha256": "4602bdf0b35314c8095ac36c249b76addafc5026b1ceb0ccbd7cd182d024740b"
+        },
+        {
+          "name": "ccm_seg7_area_1_collision",
+          "level": 5,
+          "area": 1,
+          "symbol": 117520616,
+          "size": 10650,
+          "segment_rom_start": 3684688,
+          "segment_rom_end": 3759248,
+          "level_elf_sha256": "6909c8ed7e8feac277c38447c77f5b45e29c1534273d64eae24dab1680ec8d88",
+          "terrain_sha256": "65d814a95887d55b8235f75630e999fdb77f4dd5601a3b80fad6d3db681c0a88",
+          "observed_prefix_bytes": 256,
+          "prefix_sha256": "b67aa752e216c433ec85969659a0017a9ab6071b595280cbce1f06cb440eb917"
+        },
+        {
+          "name": "ccm_seg7_area_2_collision",
+          "level": 5,
+          "area": 2,
+          "symbol": 117573760,
+          "size": 11240,
+          "segment_rom_start": 3684688,
+          "segment_rom_end": 3759248,
+          "level_elf_sha256": "6909c8ed7e8feac277c38447c77f5b45e29c1534273d64eae24dab1680ec8d88",
+          "terrain_sha256": "7d9323e97a98c4d773547830f67f3f9765eca69e45d0de14faf04534d8a9e998",
+          "observed_prefix_bytes": 256,
+          "prefix_sha256": "6788ea7e370a91855d2336e2bb3c48d1b2dd4cd7cd08e52d3a0aa7f8548df34b"
+        },
+        {
+          "name": "bbh_seg7_collision_level",
+          "level": 4,
+          "area": 1,
+          "symbol": 117573536,
+          "size": 22716,
+          "segment_rom_start": 3611712,
+          "segment_rom_end": 3680448,
+          "level_elf_sha256": "a0922d76b2c7cef973793d68f28d421f600b41bbce30f475a8f085617a4b7ce0",
+          "terrain_sha256": "8cedfe0b641507cb9941bd206743d10e5940cf03345c0348cf302248d0fff02e",
+          "observed_prefix_bytes": 256,
+          "prefix_sha256": "3fca557da6ff91b387b5beec507a11af82956e21c024b5321ec44d1fc58cdf70"
+        },
+        {
+          "name": "jrb_seg7_area_1_collision",
+          "level": 12,
+          "area": 1,
+          "symbol": 117485656,
+          "size": 5264,
+          "segment_rom_start": 4302688,
+          "segment_rom_end": 4340512,
+          "level_elf_sha256": "1b531b69bfdb02eae1267e08525b61a16324334a4c5a120df021763a1cb608a4",
+          "terrain_sha256": "f115b843c5f5c588c58adf60668c7498cc80b1cf50eba7cc0918b33ebf01cd9d",
+          "observed_prefix_bytes": 256,
+          "prefix_sha256": "e7044515183f1c14dfcec7bfd65869085ec96f161a4586424b633c862f7d86d8"
+        },
+        {
+          "name": "jrb_seg7_area_2_collision",
+          "level": 12,
+          "area": 2,
+          "symbol": 117507512,
+          "size": 3512,
+          "segment_rom_start": 4302688,
+          "segment_rom_end": 4340512,
+          "level_elf_sha256": "1b531b69bfdb02eae1267e08525b61a16324334a4c5a120df021763a1cb608a4",
+          "terrain_sha256": "b1ce78967cefd28bec1f12127adcf5518049415f7a0916c3966b5e8955c6ba13",
+          "observed_prefix_bytes": 256,
+          "prefix_sha256": "120be17232216eb2bb3943d46c05e93213d0de88ac3de224d3f18856d8b233c9"
+        },
+        {
+          "name": "hmc_seg7_collision_level",
+          "level": 7,
+          "area": 1,
+          "symbol": 117593492,
+          "size": 21732,
+          "segment_rom_start": 4001216,
+          "segment_rom_end": 4090368,
+          "level_elf_sha256": "a441032c014a5b946897aa32b29bdc29b2ad86b6999c0a3ce1896b108124a998",
+          "terrain_sha256": "bdf8af4e65df3c7aee5da29b27b8175a2ae82e86cae54330a1af5efba23360e7",
+          "observed_prefix_bytes": 256,
+          "prefix_sha256": "837a7dec5c8c6324db529530f362877022a57e6ea3fa9238abb2fe257a0e93ec"
+        },
+        {
+          "name": "pss_seg7_collision",
+          "level": 27,
+          "area": 1,
+          "symbol": 117499024,
+          "size": 10864,
+          "segment_rom_start": 4913456,
+          "segment_rom_end": 4947728,
+          "level_elf_sha256": "90ae48a2224380a1c873b95ed96091f26d3b8fc335c272feb973743e9dab3669",
+          "terrain_sha256": "aaba966b254f3ea46d9b8aea5d0df2f13366170dc1498e3f147bd7d6631badd9",
+          "observed_prefix_bytes": 256,
+          "prefix_sha256": "9f791253e82f67692c4075c195fb4809d250af187e028db6db6b2c526c812352"
+        }
+      ],
+      "loaded_terrain_check": "byte-exact 256-byte prefixes, distinct among declared demo areas; ELF data byte-matched to authenticated retail ROM MIO0 output",
+      "initialization": "boot; fresh configuration and save-data directories; no cheats or state injection",
+      "start_at": 20,
+      "start_frames": 1,
+      "reset_title": false,
+      "rendered_frame_cutoff": 6600,
+      "observed_active_demo_updates": 287,
+      "mismatched_updates": 0,
+      "initial_stream_comparison": "byte-exact comparison with authenticated ROM stream before timer mutation",
+      "all_observed_painting_tables_null": true,
+      "all_observed_instant_tables_null": true,
+      "observer_errors": 0,
+      "checks": {
+        "cheats_disabled": true,
+        "code_hashes_verified": true,
+        "physical_start_polls": 7,
+        "physical_title_A_polls": 0
+      },
+      "episodes": [
+        {
+          "episode": 1,
+          "stream": "bitdw",
+          "header_level": 30,
+          "first_input_global_frame": 918,
+          "level_enum": "LEVEL_BOWSER_1",
+          "level_folder": "bowser_1",
+          "observed_updates": 41,
+          "first_update_global_frame": 935,
+          "last_update_global_frame": 975,
+          "observed_level_numbers": [
+            30
+          ],
+          "observed_area_indices": [
+            1
+          ],
+          "observed_terrain_pointers": [
+            "800fd3d8"
+          ],
+          "observed_terrain_names": [
+            "bowser_1_seg7_collision_level"
+          ],
+          "observed_play_modes": [
+            0,
+            4
+          ]
+        },
+        {
+          "episode": 2,
+          "stream": "wf",
+          "header_level": 24,
+          "first_input_global_frame": 1800,
+          "level_enum": "LEVEL_WF",
+          "level_folder": "wf",
+          "observed_updates": 41,
+          "first_update_global_frame": 1817,
+          "last_update_global_frame": 1857,
+          "observed_level_numbers": [
+            24
+          ],
+          "observed_area_indices": [
+            1
+          ],
+          "observed_terrain_pointers": [
+            "8010b9d8"
+          ],
+          "observed_terrain_names": [
+            "wf_seg7_collision_070102D8"
+          ],
+          "observed_play_modes": [
+            0,
+            4
+          ]
+        },
+        {
+          "episode": 3,
+          "stream": "ccm",
+          "header_level": 5,
+          "first_input_global_frame": 2682,
+          "level_enum": "LEVEL_CCM",
+          "level_folder": "ccm",
+          "observed_updates": 41,
+          "first_update_global_frame": 2699,
+          "last_update_global_frame": 2739,
+          "observed_level_numbers": [
+            5
+          ],
+          "observed_area_indices": [
+            1
+          ],
+          "observed_terrain_pointers": [
+            "8010e9d8"
+          ],
+          "observed_terrain_names": [
+            "ccm_seg7_area_1_collision"
+          ],
+          "observed_play_modes": [
+            0,
+            4
+          ]
+        },
+        {
+          "episode": 4,
+          "stream": "bbh",
+          "header_level": 4,
+          "first_input_global_frame": 3564,
+          "level_enum": "LEVEL_BBH",
+          "level_folder": "bbh",
+          "observed_updates": 41,
+          "first_update_global_frame": 3581,
+          "last_update_global_frame": 3621,
+          "observed_level_numbers": [
+            4
+          ],
+          "observed_area_indices": [
+            1
+          ],
+          "observed_terrain_pointers": [
+            "8011c270"
+          ],
+          "observed_terrain_names": [
+            "bbh_seg7_collision_level"
+          ],
+          "observed_play_modes": [
+            0,
+            4
+          ]
+        },
+        {
+          "episode": 5,
+          "stream": "jrb",
+          "header_level": 12,
+          "first_input_global_frame": 4446,
+          "level_enum": "LEVEL_JRB",
+          "level_folder": "jrb",
+          "observed_updates": 41,
+          "first_update_global_frame": 4463,
+          "last_update_global_frame": 4503,
+          "observed_level_numbers": [
+            12
+          ],
+          "observed_area_indices": [
+            1
+          ],
+          "observed_terrain_pointers": [
+            "80106648"
+          ],
+          "observed_terrain_names": [
+            "jrb_seg7_area_1_collision"
+          ],
+          "observed_play_modes": [
+            0,
+            4
+          ]
+        },
+        {
+          "episode": 6,
+          "stream": "hmc",
+          "header_level": 7,
+          "first_input_global_frame": 5328,
+          "level_enum": "LEVEL_HMC",
+          "level_folder": "hmc",
+          "observed_updates": 41,
+          "first_update_global_frame": 5345,
+          "last_update_global_frame": 5385,
+          "observed_level_numbers": [
+            7
+          ],
+          "observed_area_indices": [
+            1
+          ],
+          "observed_terrain_pointers": [
+            "80120c84"
+          ],
+          "observed_terrain_names": [
+            "hmc_seg7_collision_level"
+          ],
+          "observed_play_modes": [
+            0,
+            4
+          ]
+        },
+        {
+          "episode": 7,
+          "stream": "pss",
+          "header_level": 27,
+          "first_input_global_frame": 6210,
+          "level_enum": "LEVEL_PSS",
+          "level_folder": "pss",
+          "observed_updates": 41,
+          "first_update_global_frame": 6227,
+          "last_update_global_frame": 6267,
+          "observed_level_numbers": [
+            27
+          ],
+          "observed_area_indices": [
+            1
+          ],
+          "observed_terrain_pointers": [
+            "80109090"
+          ],
+          "observed_terrain_names": [
+            "pss_seg7_collision"
+          ],
+          "observed_play_modes": [
+            0,
+            4
+          ]
+        }
+      ]
+    },
+    {
+      "trial": "jp_terrain_start_20",
+      "version": "jp",
+      "rom_sha1": "8a20a5c83d6ceb0f0506cfc9fa20d8f438cafe51",
+      "rom_sha256": "9cf7a80db321b07a8d461fe536c02c87b7412433953891cdec9191bfad2db317",
+      "elf_sha256": "ae22c2f5a65fa56a939ff6cbab9927598c4636f7113f5133ec6a0816f8595bd7",
+      "observer_sha256": "af9774900eea523cad3c8dd9e65d411bc140a06b2bc2b281e4b04d3192225d53",
+      "runner_sha256": "94b56c2ed9cb5018d28200e8471d27718b5b5216b0b8de0644f20cb5e2b2edbf",
+      "trace_sha256": "ab22b9408f77fe83bfd37e16b15afec482ec2b43aa4fbafd1461fdf5a615ba09",
+      "observed_code_receipts": [
+        {
+          "routine": "run_demo_inputs",
+          "start": 2149876840,
+          "count": 104,
+          "hash": 1303092729,
+          "rom_offset": 13416,
+          "sha256": "c0015f1e6c5534c45e89be9d5e9d5b47bf4e87828065fd68f234d37e0ae12cc5"
+        },
+        {
+          "routine": "update_level",
+          "start": 2149890072,
+          "count": 53,
+          "hash": 308142980,
+          "rom_offset": 26648,
+          "sha256": "729257531dd27f0e9e67f1a2578ef08ae12cd6a38907581117086abfb70d33b4"
+        }
+      ],
+      "terrain_receipts": [
+        {
+          "name": "wf_seg7_collision_070102D8",
+          "level": 24,
+          "area": 1,
+          "symbol": 117506776,
+          "size": 6494,
+          "segment_rom_start": 4800560,
+          "segment_rom_end": 4831728,
+          "level_elf_sha256": "802a69c3288106ce02172809fce7eaffb72b75ab924d54cc3315c2549983875b",
+          "terrain_sha256": "18f19bb513232df152dd7289f3bf43c20c717ffe3f64f79716c57d7087da0ca0",
+          "observed_prefix_bytes": 256,
+          "prefix_sha256": "4602bdf0b35314c8095ac36c249b76addafc5026b1ceb0ccbd7cd182d024740b"
+        },
+        {
+          "name": "ccm_seg7_area_1_collision",
+          "level": 5,
+          "area": 1,
+          "symbol": 117520616,
+          "size": 10650,
+          "segment_rom_start": 3677936,
+          "segment_rom_end": 3752496,
+          "level_elf_sha256": "6909c8ed7e8feac277c38447c77f5b45e29c1534273d64eae24dab1680ec8d88",
+          "terrain_sha256": "65d814a95887d55b8235f75630e999fdb77f4dd5601a3b80fad6d3db681c0a88",
+          "observed_prefix_bytes": 256,
+          "prefix_sha256": "b67aa752e216c433ec85969659a0017a9ab6071b595280cbce1f06cb440eb917"
+        },
+        {
+          "name": "ccm_seg7_area_2_collision",
+          "level": 5,
+          "area": 2,
+          "symbol": 117573760,
+          "size": 11240,
+          "segment_rom_start": 3677936,
+          "segment_rom_end": 3752496,
+          "level_elf_sha256": "6909c8ed7e8feac277c38447c77f5b45e29c1534273d64eae24dab1680ec8d88",
+          "terrain_sha256": "7d9323e97a98c4d773547830f67f3f9765eca69e45d0de14faf04534d8a9e998",
+          "observed_prefix_bytes": 256,
+          "prefix_sha256": "6788ea7e370a91855d2336e2bb3c48d1b2dd4cd7cd08e52d3a0aa7f8548df34b"
+        },
+        {
+          "name": "bbh_seg7_collision_level",
+          "level": 4,
+          "area": 1,
+          "symbol": 117573536,
+          "size": 22716,
+          "segment_rom_start": 3604960,
+          "segment_rom_end": 3673696,
+          "level_elf_sha256": "a0922d76b2c7cef973793d68f28d421f600b41bbce30f475a8f085617a4b7ce0",
+          "terrain_sha256": "8cedfe0b641507cb9941bd206743d10e5940cf03345c0348cf302248d0fff02e",
+          "observed_prefix_bytes": 256,
+          "prefix_sha256": "3fca557da6ff91b387b5beec507a11af82956e21c024b5321ec44d1fc58cdf70"
+        },
+        {
+          "name": "jrb_seg7_area_1_collision",
+          "level": 12,
+          "area": 1,
+          "symbol": 117485656,
+          "size": 5264,
+          "segment_rom_start": 4294592,
+          "segment_rom_end": 4332416,
+          "level_elf_sha256": "1b531b69bfdb02eae1267e08525b61a16324334a4c5a120df021763a1cb608a4",
+          "terrain_sha256": "f115b843c5f5c588c58adf60668c7498cc80b1cf50eba7cc0918b33ebf01cd9d",
+          "observed_prefix_bytes": 256,
+          "prefix_sha256": "e7044515183f1c14dfcec7bfd65869085ec96f161a4586424b633c862f7d86d8"
+        },
+        {
+          "name": "jrb_seg7_area_2_collision",
+          "level": 12,
+          "area": 2,
+          "symbol": 117507512,
+          "size": 3512,
+          "segment_rom_start": 4294592,
+          "segment_rom_end": 4332416,
+          "level_elf_sha256": "1b531b69bfdb02eae1267e08525b61a16324334a4c5a120df021763a1cb608a4",
+          "terrain_sha256": "b1ce78967cefd28bec1f12127adcf5518049415f7a0916c3966b5e8955c6ba13",
+          "observed_prefix_bytes": 256,
+          "prefix_sha256": "120be17232216eb2bb3943d46c05e93213d0de88ac3de224d3f18856d8b233c9"
+        },
+        {
+          "name": "hmc_seg7_collision_level",
+          "level": 7,
+          "area": 1,
+          "symbol": 117593492,
+          "size": 21732,
+          "segment_rom_start": 3993136,
+          "segment_rom_end": 4082272,
+          "level_elf_sha256": "f63d9bf66734c337be9cb071bcf8f3aaea9663ff9f7c9ded02fbb6d09e36fc4f",
+          "terrain_sha256": "bdf8af4e65df3c7aee5da29b27b8175a2ae82e86cae54330a1af5efba23360e7",
+          "observed_prefix_bytes": 256,
+          "prefix_sha256": "837a7dec5c8c6324db529530f362877022a57e6ea3fa9238abb2fe257a0e93ec"
+        },
+        {
+          "name": "pss_seg7_collision",
+          "level": 27,
+          "area": 1,
+          "symbol": 117499024,
+          "size": 10864,
+          "segment_rom_start": 4905168,
+          "segment_rom_end": 4939440,
+          "level_elf_sha256": "90ae48a2224380a1c873b95ed96091f26d3b8fc335c272feb973743e9dab3669",
+          "terrain_sha256": "aaba966b254f3ea46d9b8aea5d0df2f13366170dc1498e3f147bd7d6631badd9",
+          "observed_prefix_bytes": 256,
+          "prefix_sha256": "9f791253e82f67692c4075c195fb4809d250af187e028db6db6b2c526c812352"
+        }
+      ],
+      "loaded_terrain_check": "byte-exact 256-byte prefixes, distinct among declared demo areas; ELF data byte-matched to authenticated retail ROM MIO0 output",
+      "initialization": "boot; fresh configuration and save-data directories; no cheats or state injection",
+      "start_at": 20,
+      "start_frames": 1,
+      "reset_title": false,
+      "rendered_frame_cutoff": 5700,
+      "observed_active_demo_updates": 246,
+      "mismatched_updates": 0,
+      "initial_stream_comparison": "byte-exact comparison with authenticated ROM stream before timer mutation",
+      "all_observed_painting_tables_null": true,
+      "all_observed_instant_tables_null": true,
+      "observer_errors": 0,
+      "checks": {
+        "cheats_disabled": true,
+        "code_hashes_verified": true,
+        "physical_start_polls": 6,
+        "physical_title_A_polls": 0
+      },
+      "episodes": [
+        {
+          "episode": 1,
+          "stream": "wf",
+          "header_level": 24,
+          "first_input_global_frame": 918,
+          "level_enum": "LEVEL_WF",
+          "level_folder": "wf",
+          "observed_updates": 41,
+          "first_update_global_frame": 935,
+          "last_update_global_frame": 975,
+          "observed_level_numbers": [
+            24
+          ],
+          "observed_area_indices": [
+            1
+          ],
+          "observed_terrain_pointers": [
+            "80108b58"
+          ],
+          "observed_terrain_names": [
+            "wf_seg7_collision_070102D8"
+          ],
+          "observed_play_modes": [
+            0,
+            4
+          ]
+        },
+        {
+          "episode": 2,
+          "stream": "ccm",
+          "header_level": 5,
+          "first_input_global_frame": 1800,
+          "level_enum": "LEVEL_CCM",
+          "level_folder": "ccm",
+          "observed_updates": 41,
+          "first_update_global_frame": 1817,
+          "last_update_global_frame": 1857,
+          "observed_level_numbers": [
+            5
+          ],
+          "observed_area_indices": [
+            1
+          ],
+          "observed_terrain_pointers": [
+            "8010bb48"
+          ],
+          "observed_terrain_names": [
+            "ccm_seg7_area_1_collision"
+          ],
+          "observed_play_modes": [
+            0,
+            4
+          ]
+        },
+        {
+          "episode": 3,
+          "stream": "bbh",
+          "header_level": 4,
+          "first_input_global_frame": 2682,
+          "level_enum": "LEVEL_BBH",
+          "level_folder": "bbh",
+          "observed_updates": 41,
+          "first_update_global_frame": 2699,
+          "last_update_global_frame": 2739,
+          "observed_level_numbers": [
+            4
+          ],
+          "observed_area_indices": [
+            1
+          ],
+          "observed_terrain_pointers": [
+            "801193f0"
+          ],
+          "observed_terrain_names": [
+            "bbh_seg7_collision_level"
+          ],
+          "observed_play_modes": [
+            0,
+            4
+          ]
+        },
+        {
+          "episode": 4,
+          "stream": "jrb",
+          "header_level": 12,
+          "first_input_global_frame": 3564,
+          "level_enum": "LEVEL_JRB",
+          "level_folder": "jrb",
+          "observed_updates": 41,
+          "first_update_global_frame": 3581,
+          "last_update_global_frame": 3621,
+          "observed_level_numbers": [
+            12
+          ],
+          "observed_area_indices": [
+            1
+          ],
+          "observed_terrain_pointers": [
+            "801037c8"
+          ],
+          "observed_terrain_names": [
+            "jrb_seg7_area_1_collision"
+          ],
+          "observed_play_modes": [
+            0,
+            4
+          ]
+        },
+        {
+          "episode": 5,
+          "stream": "hmc",
+          "header_level": 7,
+          "first_input_global_frame": 4446,
+          "level_enum": "LEVEL_HMC",
+          "level_folder": "hmc",
+          "observed_updates": 41,
+          "first_update_global_frame": 4463,
+          "last_update_global_frame": 4503,
+          "observed_level_numbers": [
+            7
+          ],
+          "observed_area_indices": [
+            1
+          ],
+          "observed_terrain_pointers": [
+            "8011de04"
+          ],
+          "observed_terrain_names": [
+            "hmc_seg7_collision_level"
+          ],
+          "observed_play_modes": [
+            0,
+            4
+          ]
+        },
+        {
+          "episode": 6,
+          "stream": "pss",
+          "header_level": 27,
+          "first_input_global_frame": 5328,
+          "level_enum": "LEVEL_PSS",
+          "level_folder": "pss",
+          "observed_updates": 41,
+          "first_update_global_frame": 5345,
+          "last_update_global_frame": 5385,
+          "observed_level_numbers": [
+            27
+          ],
+          "observed_area_indices": [
+            1
+          ],
+          "observed_terrain_pointers": [
+            "80106210"
+          ],
+          "observed_terrain_names": [
+            "pss_seg7_collision"
+          ],
+          "observed_play_modes": [
+            0,
+            4
+          ]
+        }
+      ]
+    }
+  ]
+}

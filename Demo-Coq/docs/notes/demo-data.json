@@ -1,0 +1,135 @@
+{
+  "scope": "authenticated finite ROM data; not an execution theorem",
+  "source_revision": "9921382a68bb0c865e5e45eb594d9c64db59b1af",
+  "assets_manifest_sha256": "bceace44a08a7851c0f89a2dc39e52f7775e971cabc18feacdae977d95240d92",
+  "demo_table_sha256": "ce950c555199ea4baa829b217880d1cc9b300ee100ac86311fe06bb8559fcb5e",
+  "versions": {
+    "us": {
+      "rom_sha1": "9bef1128717f958171a4afac3ed78ee2bb4e86ce",
+      "streams": [
+        {
+          "stream": "bitdw",
+          "header_level": 30,
+          "data_size": 1412,
+          "dma_size": 1412,
+          "terminal_offset": 1408,
+          "recorded_frames": 697,
+          "sha256": "947ded6c977672521a0ad7d3c51c3c41b72aee8df1c5c75452b64800a96da707"
+        },
+        {
+          "stream": "wf",
+          "header_level": 24,
+          "data_size": 672,
+          "dma_size": 1040,
+          "terminal_offset": 668,
+          "recorded_frames": 605,
+          "sha256": "7c1a6dbd30228f718e4b5d49df4c94eee8dbe5404c80d336795932115a83092a"
+        },
+        {
+          "stream": "ccm",
+          "header_level": 5,
+          "data_size": 1320,
+          "dma_size": 1320,
+          "terminal_offset": 1316,
+          "recorded_frames": 944,
+          "sha256": "ba26e6f95226267d2a98f5672047908633710f144b53e708343dafe194670b28"
+        },
+        {
+          "stream": "bbh",
+          "header_level": 4,
+          "data_size": 988,
+          "dma_size": 988,
+          "terminal_offset": 984,
+          "recorded_frames": 831,
+          "sha256": "28821b6f611f6d38f753e5e5080dc299a3035f0b122bb6f0ffab2a16f96ac29f"
+        },
+        {
+          "stream": "jrb",
+          "header_level": 12,
+          "data_size": 620,
+          "dma_size": 620,
+          "terminal_offset": 616,
+          "recorded_frames": 739,
+          "sha256": "c9084368f964160e63e175091b713207de757bf9645be5a6adb682473946437a"
+        },
+        {
+          "stream": "hmc",
+          "header_level": 7,
+          "data_size": 980,
+          "dma_size": 980,
+          "terminal_offset": 976,
+          "recorded_frames": 1047,
+          "sha256": "760669d08efe05011340bed02d8003436bd5b5e9b295b0f7de79f149b7302980"
+        },
+        {
+          "stream": "pss",
+          "header_level": 27,
+          "data_size": 748,
+          "dma_size": 748,
+          "terminal_offset": 744,
+          "recorded_frames": 746,
+          "sha256": "c41502d973fc838ee126a029e855ec1a840fd1ee0b519e4aadef91735dafa9b0"
+        }
+      ]
+    },
+    "jp": {
+      "rom_sha1": "8a20a5c83d6ceb0f0506cfc9fa20d8f438cafe51",
+      "streams": [
+        {
+          "stream": "wf",
+          "header_level": 24,
+          "data_size": 672,
+          "dma_size": 1040,
+          "terminal_offset": 668,
+          "recorded_frames": 605,
+          "sha256": "7c1a6dbd30228f718e4b5d49df4c94eee8dbe5404c80d336795932115a83092a"
+        },
+        {
+          "stream": "ccm",
+          "header_level": 5,
+          "data_size": 1320,
+          "dma_size": 1320,
+          "terminal_offset": 1316,
+          "recorded_frames": 944,
+          "sha256": "ba26e6f95226267d2a98f5672047908633710f144b53e708343dafe194670b28"
+        },
+        {
+          "stream": "bbh",
+          "header_level": 4,
+          "data_size": 988,
+          "dma_size": 988,
+          "terminal_offset": 984,
+          "recorded_frames": 831,
+          "sha256": "28821b6f611f6d38f753e5e5080dc299a3035f0b122bb6f0ffab2a16f96ac29f"
+        },
+        {
+          "stream": "jrb",
+          "header_level": 12,
+          "data_size": 620,
+          "dma_size": 620,
+          "terminal_offset": 616,
+          "recorded_frames": 739,
+          "sha256": "c9084368f964160e63e175091b713207de757bf9645be5a6adb682473946437a"
+        },
+        {
+          "stream": "hmc",
+          "header_level": 7,
+          "data_size": 980,
+          "dma_size": 980,
+          "terminal_offset": 976,
+          "recorded_frames": 1047,
+          "sha256": "760669d08efe05011340bed02d8003436bd5b5e9b295b0f7de79f149b7302980"
+        },
+        {
+          "stream": "pss",
+          "header_level": 27,
+          "data_size": 748,
+          "dma_size": 748,
+          "terminal_offset": 744,
+          "recorded_frames": 746,
+          "sha256": "c41502d973fc838ee126a029e855ec1a840fd1ee0b519e4aadef91735dafa9b0"
+        }
+      ]
+    }
+  }
+}
