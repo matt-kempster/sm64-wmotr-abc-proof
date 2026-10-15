@@ -37,7 +37,7 @@
       {
         "name": "source inventory",
         "status": "PASS",
-        "detail": "85 source files; 0 inventory problems",
+        "detail": "90 source files; 0 inventory problems",
         "problems": []
       },
       {
@@ -74,12 +74,12 @@
       {
         "name": "integration",
         "status": "PASS",
-        "detail": "45/45 modules in MainTheorem's import closure; 0 standalone-only; 0 problems",
+        "detail": "50/50 modules in MainTheorem's import closure; 0 standalone-only; 0 problems",
         "problems": []
       }
     ],
     "integration": {
-      "proof_modules": 45,
+      "proof_modules": 50,
       "main_import_closure": [
         "proofs/DemoAnalogInputExecution.v",
         "proofs/DemoAreaInitialMemory.v",
@@ -94,8 +94,12 @@
         "proofs/DemoDelayedWarpTerminalExecution.v",
         "proofs/DemoDialogZoomExecution.v",
         "proofs/DemoDispatchFacts.v",
+        "proofs/DemoExecutionHistory.v",
         "proofs/DemoExternArrayCompletion.v",
         "proofs/DemoGameplayBoundary.v",
+        "proofs/DemoGameplayConsumptionObservation.v",
+        "proofs/DemoGameplayObservationConnection.v",
+        "proofs/DemoInputOriginObservation.v",
         "proofs/DemoInstantWarpExecution.v",
         "proofs/DemoLevelSelectionExecution.v",
         "proofs/DemoLoadedTitleExecution.v",
@@ -109,6 +113,7 @@
         "proofs/DemoNumericAddressExecution.v",
         "proofs/DemoNumericDispatchExecution.v",
         "proofs/DemoPauseExclusion.v",
+        "proofs/DemoPermittedExternalSpec.v",
         "proofs/DemoPhysicalControllerReadExecution.v",
         "proofs/DemoPhysicalPadPlaybackExecution.v",
         "proofs/DemoPlaybackAdvanceExecution.v",
@@ -189,8 +194,12 @@
     "proofs/DemoDelayedWarpTerminalExecution.v": "0379cb6d20685fabcc123d3cb501842614dd9df450f61c2b575699a6f74bc868",
     "proofs/DemoDialogZoomExecution.v": "829b935b3e1b4e516a536a4394ad3fae3a9cad2fdb149ce5ec9737375c07c509",
     "proofs/DemoDispatchFacts.v": "2149b38746cfe48b8c9d68e6a9febfb21b2c42a589f8f2adba62f3152d8fe23d",
+    "proofs/DemoExecutionHistory.v": "7116eed4911e71041b48f985a9401dcad72d8c92cba7b6ca149485c26a13fb23",
     "proofs/DemoExternArrayCompletion.v": "313a3622060868141adff574c4ec3ddd2f89aaf2721651239f245b8c2fcc8848",
     "proofs/DemoGameplayBoundary.v": "43cbfc9c731103db08a33c74987c530cd59cda66ad39753f51934fa97e86214c",
+    "proofs/DemoGameplayConsumptionObservation.v": "6314ba05fbfdbfc54e157bc83491ce6a06f5827b0290134d84953b43440c966a",
+    "proofs/DemoGameplayObservationConnection.v": "362f90c376d03b2ca94cec60e7c858dda7f995e8dfccf228385645326c89a8af",
+    "proofs/DemoInputOriginObservation.v": "b6f34a4ffd0acc25f05695bb389ff145ae498d149bc5c37a9b033fa9f2fcdabe",
     "proofs/DemoInstantWarpExecution.v": "d49ecd1c55394f2867a9cf52069cb9408549a3643ff7853101e9432bffd92325",
     "proofs/DemoLevelSelectionExecution.v": "eebcdff2e41daa4980d39e8f85e0e1ad7dd84aec43e14d30a6667548ade7286f",
     "proofs/DemoLoadedTitleExecution.v": "16bc43c9c21cbec1ca121bf4a11eb40c18141434e20c95aec6b40da7326140a7",
@@ -204,6 +213,7 @@
     "proofs/DemoNumericAddressExecution.v": "789110fbbaed16db331052c96690c1f952523ea76f625a0c1ce0f428955062e9",
     "proofs/DemoNumericDispatchExecution.v": "aad7148c403b0ded390d912990d160090377415ff7ad81364d9f436690f13932",
     "proofs/DemoPauseExclusion.v": "660659cb8e7efd1e7855adb2a2b1a267930bc4919b7d11425ab30c4244390d26",
+    "proofs/DemoPermittedExternalSpec.v": "026c2ceccb96f52973b3928e0177980b77ad78c64a679316d7ea5d0775a2d004",
     "proofs/DemoPhysicalControllerReadExecution.v": "32c9f2057180a175c7b081b7222d7dc58d5b03630badc9c6fbdd9e80620d2ee7",
     "proofs/DemoPhysicalPadPlaybackExecution.v": "c7fc4edb046f4fdc296dd902e8ffdad04dd3871653b7baf0e7dc15cb6d576c7d",
     "proofs/DemoPlaybackAdvanceExecution.v": "a93d83c85eef8b0ffbbcbeb539f5fdcf50cf1744d64e13381f187e1932141238",
@@ -219,11 +229,11 @@
     "proofs/DemoStartSchedulingExecution.v": "3551fcdc394694725f08614c245c10bb5a7ecc68ff2b99d5a9dae6e2cca8e4a1",
     "proofs/DemoStartWarpExecution.v": "39bc927dbcec2042ed94cf820f6c1751fcfd0bac7ac927e769e6515b027280cc",
     "proofs/DemoTitleStartExecution.v": "fe641382f6f181cb0702ef7f240e182a80c6d62814097857290fa3da5fe6fb5e",
-    "proofs/MainTheorem.v": "28aa8e2348b841a35f5a232da9c17576d9ce6d7fdadc10c0d1bbb50feac7c898",
+    "proofs/MainTheorem.v": "2a072599ebd8e3d8f0c886a819481b841157ea9b6bd07d03fdee58eb5eb609fa",
     "proofs/SourceFacts.v": "669339106aafe1f808da1cd5dac4dbfa88c2ee3a296b4c4e8a58a34268a83026"
   },
-  "boundary": "Conditional real-source components only. Arbitrary physical-pad single/connected post-polling callers for all timers now preserve24/52 mapping pointers, exact outputs/stream/header, protected loads and valid accesses. Actual full post-camera terminal interval composes painting alloc/free and all-dialog dispatcher/normal return. Initialization mapping/SDK entry, record bounds and all-frame preservation remain open. The primary loaded-gameplay/consumed-input observation, full admissible boot/external memory-event relation and nonvacuous gameplay witness are NOT formalized. No major unchecked gameplay obligation is closed by these component extensions.",
-  "audit_report": "build/audit/20261015-164212-ll15vszq/report.json",
+  "boundary": "Conditional actual-source components only. A real Controller-field application/history observer, record-selection/backing-load/emission receipts and conditional origin-to-generated-camera-read connection now refine the existing primary specification item. A phase-carrying candidate external history policy constrains a finite SDK/math subset but does not prove SDK/hardware adequacy. Complete loaded-scene provenance, all-read/all-producer coverage, permitted initial states, authentication/refinement and jointly inhabited authentic gameplay histories remain OPEN. No major unchecked gameplay obligation is closed.",
+  "audit_report": "build/audit/20261015-171209-29jje2lv/report.json",
   "gameplay_search_receipt_sha256": "13ebfaf563fc8ef18a26a64089c78f931f2dae612b7fd5c7781a4ea270c8731b",
   "historical_full_reproduction_check": {
     "checkpoint": "886cb4fa30a8b5622620b45af5fa86c1e99923f8",
@@ -234,10 +244,10 @@
   },
   "current_validation_logs": [
     "build/camera-promotion/full-reproducible.log",
-    "build/checkpoint8-proofs.log",
-    "build/checkpoint8-discipline.log",
-    "build/checkpoint8-coqchk.log",
-    "build/checkpoint8-data.log"
+    "build/checkpoint9-proofs.log",
+    "build/checkpoint9-discipline.log",
+    "build/checkpoint9-coqchk.log",
+    "build/checkpoint9-data.log"
   ],
   "script_image_check": "PASS: authenticated complete matching ROMs, all selected script initializer words and relocations, three complete native callback byte ranges, exact Coq numeric transcription. Finite external check; no runtime or MIPS semantics refinement.",
   "allowed_foundations_used": [
@@ -279,7 +289,7 @@
     "public_array_declaration_refinement": "PASS for selected nine script units via proved declaration normalization; original generated programs unchanged; wider source-link/type-renaming and gameplay refinement OPEN.",
     "historical_38_unit_changed_nonliteral_atom_strings": 299
   },
-  "generation_reuse": "Reused complete40-unit reproduction from9b0dc8d after exact source/pipeline digest checks. Registered45-module build, discipline/assumptions, independent kernel and authenticated data checks are fresh.",
+  "generation_reuse": "Reused complete40-unit reproduction from9b0dc8d after every generated/pipeline digest check. Registered50-module build, discipline/assumptions, independent kernel and authenticated data checks are fresh.",
   "normalized_selected_link": {
     "units_per_version": 9,
     "normalization": "only empty zero-extent public arrays, metadata derived from actual positive initialized definitions; readonly on empty declarations only",
@@ -312,11 +322,17 @@
     "whole_camera_frame_and_reachability": "OPEN"
   },
   "primary_gameplay_specification": {
-    "status": "NOT FORMALIZED at required scope",
-    "existing_observation": "unused Callstate play_mode_normal plus current demo/level loads; no theorem consumes it",
-    "missing": "actual gameplay input-application coverage, consumed-load/record epoch, independently materialized scene provenance, permitted boot/external memory-event histories, nonvacuous authentic gameplay witness",
-    "title_fade": "exclude bookkeeping without application; do not exclude actual gameplay input use by phase label",
-    "priority": "formal full execution statement before further local case expansion",
-    "report": "docs/notes/gameplay-observation-status.md"
+    "status": "PARTIALLY FORMALIZED; first checklist item remains unchecked",
+    "actual_observation": "actual Controller-field eval_expr and step2 under generated normal/basic/script object/camera update continuations; checked US/JP camera buttonPressed site",
+    "origin_receipts": "actual selection/backing DMA/cache/reader/playback history; consumed record before pointer advance; positive and EOF separate; P1 field transport under explicit frames",
+    "capstone_connection": "conditional record-origin-to-actual-generated-camera-read/history-step theorem, with site/layout/receipt/frame premises explicit",
+    "external_policy": "candidate finite SDK/math effects over actual external_call; one controller/DMA phase across history; internal continuity; unknown calls and builtins rejected",
+    "missing": "independently materialized scene provenance, all-read/all-producer coverage incl physical/P3, permitted normal-boot states, SDK/hardware adequacy incl EEPROM/SI/DMA/scheduler, ROM/address refinement, jointly inhabited authentic gameplay history and intended-domain coverage",
+    "title_fade": "do not exclude actual gameplay input use by phase label; polling/bookkeeping alone is not application",
+    "full_statement_and_environment": "NOT formalized at required scope",
+    "major_unchecked_obligations_closed": 0,
+    "priority": "continue existing primary specification obligation; local case expansion deferred",
+    "report": "docs/notes/gameplay-observation-status.md",
+    "policy_report": "docs/notes/permitted-external-policy.md"
   }
 }

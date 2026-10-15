@@ -21,12 +21,19 @@ Generation uses `TARGET_N64=1`, `NON_MATCHING=1` and `AVOID_UB=1` with a
 32-bit big-endian PowerPC EABI CompCert target. Refinement to N64 MIPS
 retail-binary execution and hardware is open.
 
+The primary gameplay observation is partially formalized: an actual
+controller-read hook and conditional demo-origin-to-camera-read connection
+are consumed by the capstone. A candidate external-history policy constrains
+some memory effects and call sequencing. Complete loaded-scene provenance,
+read/producer coverage, permitted boot states and SDK/hardware adequacy remain
+open; the first checklist obligation stays unchecked.
+
 ## Read the result
 
 - [Plain English guide](docs/plain-english-guide.md)
 - [Exact claim and proof boundary](docs/claim.md)
 - [Remaining obligations](docs/checklist.md)
-- [Missing primary gameplay specification and current priority](docs/notes/gameplay-observation-status.md)
+- [Partial primary gameplay specification and current gaps](docs/notes/gameplay-observation-status.md)
 - [Build and audit details](docs/proof-audit.md)
 - [Detailed source audit](docs/notes/source-audit.md)
 - [Executed startup and interpreter paths](docs/notes/gameplay-execution.md)

@@ -4,13 +4,16 @@
 play.** Demo-Coq proves concrete startup, input, interpreter and warp paths,
 while the complete boot-to-gameplay invariant remains open.
 
-The [primary gameplay specification is still missing](notes/gameplay-observation-status.md).
-The existing observation predicate is only an unused normal-update entry
-check. It does not identify Mario's actual input application, the record that
-supplied it, or the independently loaded scene. Permitted normal-boot states
-and external memory/event histories are not yet defined. Recent local
-input/exit extensions do not close this first unchecked obligation. Defining
-that actual execution boundary now takes priority over more local case proofs.
+The [primary gameplay specification is partially formalized](notes/gameplay-observation-status.md).
+Coq now observes an actual controller-field read in generated gameplay code
+and conditionally connects a demo record's emitted value to a real camera read.
+The receipt tracks the consumed record before playback advances its pointer;
+EOF has a separate origin. A candidate external policy constrains some SDK
+calls' memory effects and sequencing. These are parts of the existing first
+checklist obligation, which stays unchecked. Loaded-scene identity, complete
+input-use coverage, permitted boot states and hardware/SDK adequacy remain open.
+No major unchecked gameplay obligation has been closed. This work takes priority
+over further local input/exit cases.
 
 Each demo has a four-byte header followed by recorded controller inputs.
 The first header byte identifies its level. When the title screen chooses a
@@ -47,9 +50,10 @@ and preserved as intended is still required.
 Playback itself does not ask whether it is in the right level. That does
 **not** demonstrate a desync: a state that can be constructed by hand may
 never arise through normal play. Similarly, playback begins during the title
-fade, when a stale current-level number can remain. That is not already
-gameplay in the old level. The full property must observe the actual loaded
-gameplay level at the time its demo input is used.
+fade, when a stale current-level number can remain. That scalar mismatch alone
+does not establish gameplay in the old level. Actual input application during
+a fade must remain eligible. The full property must independently identify the
+loaded scene at the time its demo input is used.
 
 Coq now executes every timer branch of the input consumer with the second
 logical controller absent. Ordinary records decrement their timer; expiring

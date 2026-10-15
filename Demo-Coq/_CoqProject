@@ -86,4 +86,9 @@ proofs/DemoNormalStartExecution.v
 proofs/DemoTitleStartExecution.v
 proofs/DemoLoaderExecution.v
 proofs/DemoLoadedTitleExecution.v
+proofs/DemoExecutionHistory.v
+proofs/DemoInputOriginObservation.v
+proofs/DemoGameplayConsumptionObservation.v
+proofs/DemoGameplayObservationConnection.v
+proofs/DemoPermittedExternalSpec.v
 proofs/MainTheorem.v

@@ -3,12 +3,14 @@
 The requested all-executions claim remains **OPEN**. Completed local work is
 kept separate from unproved composition and reachability.
 
-**Primary specification gap:** the first unchecked item below remains
-unformalized at the required scope. Recent local input/exit extensions have
-not closed a major unchecked gameplay obligation. The existing normal-update
-entry predicate is unused and does not identify consumed-record or loaded-scene
-provenance. Work now prioritizes that observation and permitted boot/external
-memory/event histories over further local case expansion. See
+**Primary specification gap: partially formalized, not complete.** Actual
+controller-read/history observations and a conditional connection from demo
+record receipts to a generated camera read now exist on the capstone path.
+A candidate external memory/effect policy carries controller/DMA phases across
+real steps. Loaded-scene provenance, complete read/producer coverage, permitted
+boot states and adequate hardware/SDK behavior remain missing. No major
+unchecked gameplay obligation is closed. Work remains on this existing item;
+further local case expansion is deferred. See
 [the exact status](notes/gameplay-observation-status.md).
 
 - [x] Separate Demo-Coq project, US/JP pin, reproducible Clight pipeline and
@@ -119,9 +121,13 @@ memory/event histories over further local case expansion. See
   identically twice and the previous 38 are byte-identical.
 - [ ] Formalize the actual loaded-gameplay/consumed-input observation boundary
   and permitted initial/external events; exclude mere title-fade bookkeeping.
-  **Not done:** no capstone-consumed application observation or full admissible
-  execution specification exists. A title-phase label must not exclude actual
-  gameplay input use; only bookkeeping without application can be excluded.
+  **Partial, still unchecked:** capstone-consumed actual-read observations,
+  positive/EOF origin receipts, a conditional camera-read connection and a
+  phase-carrying candidate external policy now exist. Independently loaded-scene
+  provenance, all-read/all-producer coverage, permitted boot states, SDK/hardware
+  adequacy and authentic gameplay non-vacuity remain open. No title-phase label
+  excludes actual input application; polling/bookkeeping alone is not application.
+
 - [ ] Prove loader allocation, table/index/cache and DMA memory invariants
   from the real initialization; connect authenticated ROM data to memory.
 - [ ] Discharge the first-start loader premise, cover later indices/wrap,

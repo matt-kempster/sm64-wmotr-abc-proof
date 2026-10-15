@@ -109,26 +109,27 @@ verified environment above.
 
 ## Recorded validation
 
-The fresh 45-module build, discipline/assumption audit and independent silent
-kernel check all returned exit0, as did authenticated data and hole checks:
-`build/checkpoint8-proofs.log`, `build/checkpoint8-discipline.log`,
-`build/checkpoint8-coqchk.log`, and `build/checkpoint8-data.log`.
-The audit is `build/audit/20261015-164212-ll15vszq/report.json`: all85 sources
-registered, all45 proof modules in the capstone import closure, no project
-axioms, and the same nine allowed foundations recorded in `notes/validation.json`.
+The fresh registered build, discipline/assumption audit and independent silent
+kernel check returned exit0, as did authenticated data and hole checks:
+`build/checkpoint9-proofs.log`, `build/checkpoint9-discipline.log`,
+`build/checkpoint9-coqchk.log`, and `build/checkpoint9-data.log`.
+The audit is `build/audit/20261015-171209-29jje2lv/report.json`: all90 sources
+registered, all50 proof modules in the capstone import closure, no project
+axioms, and the same nine allowed foundations in `notes/validation.json`.
 The full40-source two-pass reproduction at9b0dc8d is reused after checking
 every generated-source and pipeline hash unchanged. Memory limits are unchanged.
 
-New conditional components cover arbitrary physical-pad playback/controller
-paths and the full post-camera terminal interval. They remove local pad-base
-and caller-entry restrictions; initialized port mapping, SDK entry, record
-provenance/bounds and earlier frame effects remain explicit obligations.
+The capstone now consumes an actual Controller-field/history observation,
+a conditional demo-record-origin-to-generated-camera-read connection, and
+structural facts about a phase-carrying candidate external policy. This
+refines the existing first checklist obligation; it does not close it.
+The [primary specification status](notes/gameplay-observation-status.md) and
+[candidate policy scope](notes/permitted-external-policy.md) distinguish these
+facts from unproved coverage, independently loaded-scene provenance, permitted
+boot states, SDK/hardware adequacy and authentic gameplay non-vacuity.
 
-These mechanical checks do not close the primary gameplay specification.
-The [observation status audit](notes/gameplay-observation-status.md) records
-that the existing entry predicate is unused and insufficient, the complete
-boot/external memory-event relation is undefined, and no authentic gameplay
-history witness has been proved. The current capstone remains a conjunction
-of conditional components, not the requested all-executions theorem.
-The full verdict remains **OPEN**. Finite retail observations remain12,866
-updates with zero mismatches/errors; they do not decide the claim.
+No major unchecked gameplay obligation is closed. The full verdict remains
+**OPEN**. The current capstone remains a conjunction of conditional components,
+not the requested all-executions statement or proof. Finite retail evidence
+remains12,866 observed updates with zero mismatches/errors; it does not decide
+the claim.

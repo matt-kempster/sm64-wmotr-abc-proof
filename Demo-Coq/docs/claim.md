@@ -15,11 +15,14 @@ consumed-input observation boundary, along with a precise external-system
 contract. It is **OPEN** in this project. No reachable desync counterexample
 has been established.
 
-The [primary specification audit](notes/gameplay-observation-status.md)
-records that the existing normal-update observation is not used by a theorem
-and does not establish the actual application/loaded-scene boundary. There is
-no full admissible normal-boot/external-memory-event relation yet. Current
-local components must not be reported as closing that first obligation.
+The [primary specification status](notes/gameplay-observation-status.md)
+records partial actual-read/history and input-origin formalization. The capstone
+now consumes a conditional connection to a real generated camera read and
+structural facts about a candidate external memory/event policy. Independently
+loaded-scene provenance, complete read/producer coverage, permitted boot states,
+SDK/hardware adequacy and an authentic gameplay witness remain open. The full
+statement is not yet formalized at the required scope; the first checklist item
+remains unchecked.
 
 The mechanized object is the pinned source translated with `TARGET_N64=1`,
 `NON_MATCHING=1` and `AVOID_UB=1` using the configured 32-bit, big-endian

@@ -13,11 +13,12 @@ From Demo.Proofs Require Import SourceFacts DemoDispatchFacts DemoStartExecution
   DemoPlaybackSecondControllerExecution DemoSecondControllerExecution
   DemoConnectedSecondControllerReadExecution DemoDialogZoomExecution
   DemoPhysicalPadPlaybackExecution DemoNormalTerminalPostCameraExecution
-  DemoShiftedControllerExecution DemoPhysicalControllerReadExecution.
+  DemoShiftedControllerExecution DemoPhysicalControllerReadExecution
+  DemoGameplayConsumptionObservation DemoGameplayObservationConnection DemoPermittedExternalSpec.
 
 (** This capstone composes actual source/semantic components on the route to
     the gameplay invariant. It is not yet a theorem of no desync from boot. *)
-Definition demo_checked_boundary_claim : Prop :=
+Definition demo_checked_execution_components_claim : Prop :=
   demo_source_boundary_claim /\ demo_dispatch_boundary_claim /\
   demo_installation_execution_claim_us_jp /\
   demo_first_title_start_claim_us_jp /\
@@ -44,7 +45,7 @@ Definition demo_checked_boundary_claim : Prop :=
   demo_normal_terminal_postcamera_execution_claim /\ demo_shifted_controller_execution_claim /\
   demo_physical_controller_post_polling_claim_us_jp.
 
-Theorem checked_demo_source_boundary_us_jp : demo_checked_boundary_claim.
+Theorem checked_demo_execution_components_us_jp : demo_checked_execution_components_claim.
 Proof.
   exact (conj generated_demo_source_boundary_us_jp
     (conj generated_demo_dispatch_boundary_us_jp
@@ -89,4 +90,24 @@ Proof.
                                                                                 (conj generated_normal_terminal_postcamera_interval_executes_us_jp
                                                                                   (conj generated_shifted_controller_execution_us_jp
                                                                                     generated_physical_controller_post_polling_us_jp)))))))))))))))))))))))))))))))))))))))))).
+Qed.
+
+(** Partial work on the existing primary gameplay-specification obligation.
+    The camera connection consumes the actual-read and record-origin boundaries;
+    the external facts describe a candidate policy, not SDK/hardware adequacy.
+    Loaded-scene provenance, complete read/producer coverage, admissible boot
+    states and a nonvacuous authentic gameplay history are still absent.
+    This capstone is NOT the full gameplay no-desync statement or its proof. *)
+Definition demo_checked_boundary_claim : Prop :=
+  demo_checked_execution_components_claim /\
+  demo_gameplay_consumption_observation_claim /\
+  demo_origin_camera_connection_claim /\
+  demo_external_history_policy_claim.
+
+Theorem checked_demo_source_boundary_us_jp : demo_checked_boundary_claim.
+Proof.
+  exact (conj checked_demo_execution_components_us_jp
+    (conj generated_gameplay_consumption_observation_us_jp
+      (conj checked_origin_camera_connection_us_jp
+        checked_demo_external_history_policy))).
 Qed.

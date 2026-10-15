@@ -1,102 +1,95 @@
 # Status of the primary gameplay specification
 
-The full claim remains **OPEN**. The first unchecked checklist item is not
-formalized to the required scope. Recent input and exit extensions discharge
-local execution subcases; they do not close this item or the other major
-unchecked gameplay obligations. Further local case expansion is deferred while
-the actual observation and admissible-execution specification take priority.
+The full claim remains **OPEN**. The first unchecked checklist item is now
+**partially formalized, not complete**. No major unchecked gameplay obligation
+has been closed. Work below refines that existing item; it does not add new
+checklist goals. Further local input/exit case expansion remains deferred.
 
-## What currently exists
+## What now observes actual input application
 
-`proofs/DemoGameplayBoundary.v` defines `demo_normal_update_observation` as a
-`Callstate` of generated `play_mode_normal` plus loads of `gCurrDemoInput` and
-`gCurrLevelNum`. No proof or capstone clause consumes this predicate. Its own
-comment explicitly omits initialized area, authentic stream and consumed-record
-provenance. It is a preliminary entry-state observation, not the requested
-loaded-gameplay/input-application boundary.
+`proofs/DemoExecutionHistory.v` indexes original `Clight.step2` transitions.
+Its prefix theorem recovers an ordinary CompCert execution. This record does
+not supply permitted initial states or prove boot reachability.
 
-The input proofs execute actual playback and controller processing under
-explicit entry resources. They identify locally emitted controller values.
-They do not carry an authenticated load/record receipt through the interpreter
-and object dispatch to the instant Mario uses those values. No project
-definition yet specifies the full permitted normal-boot states and external
-memory/event histories.
+`proofs/DemoGameplayConsumptionObservation.v` observes evaluation of an actual
+`Controller` input-field load and its actual silent Clight step. The evaluated
+controller address and value are explicit. Continuation certificates identify
+the generated object/camera-update calls under `play_mode_normal`,
+`basic_update` and the level-script object-update command. An exact selector
+checks a real `update_camera` buttonPressed read in both US and JP ASTs.
+A constructed readable memory witnesses that local read; it is not a boot or
+authentic-demo witness.
 
-## What the real source requires the observation to capture
+The observation requires no title-fade, play-mode, level-equality, P1-alias,
+scene-coherence or nonzero-input condition. Mere polling and Start/END
+bookkeeping do not qualify as a gameplay application. A real read under a
+qualifying update context remains eligible during a fade. We have not proved
+that the current root/read-syntax inventory covers every gameplay consumer.
 
-One concrete pinned-source gameplay button application is in
-`src/game/mario.c:update_mario_button_inputs`, beginning with
-`m->controller->buttonPressed`; joystick application reads the controller's
-processed axes and magnitude. `execute_mario_action` calls `update_mario_inputs`,
-which calls these routines. Mario's translation unit is not among the current
-generated units, so this actual read has no generated observation hook yet.
-The object/behavior dispatch and surface-loading units also remain outside
-the current generated inventory. Mario's read is a useful witness, not a
-complete consumption-site definition: camera and object helpers also read
-gameplay controller fields. A checked set of actual applications or a proved
-dominating update observation must cover those uses too.
+`proofs/DemoInputOriginObservation.v` specifies receipts over the same history:
+actual matched loader/DMA/reader/playback calls and returns; table selection
+separate from backing DMA occurrence or cache reuse; a record's pre-playback
+address; completed controller outputs; and byte preservation to the read.
+The pointer after emission may already refer to the next record. Reused buffers
+and advanced demo indices therefore do not stand in for sequence identity.
+Positive records and EOF-generated terminal input have separate receipts.
+Header/payload preservation permits playback's legitimate timer-byte writes.
 
-Observing only `play_mode_normal` would miss other actual update routes:
-`basic_update` transition callbacks and the level-script object-update command
-can also reach object/Mario processing. Conversely, a title-fade label alone
-must not exclude an observation. If recorded inputs really reach Mario in an
-old loaded scene during a fade, that is an eligible mismatch. Only polling or
-bookkeeping without actual gameplay application can be excluded; absence of
-such application must be established from the real execution.
+`proofs/DemoGameplayObservationConnection.v` connects those receipts to the
+actual generated camera buttonPressed load and the next actual history step.
+The capstone consumes this conditional connection and the observation facts.
+It still assumes the receipts, matching site, layout and protected-byte history.
+It does not derive them from boot, authenticate their ROM source, or identify
+the loaded level. This is partial specification/connection work, not the full
+no-desync statement or a new completed gameplay invariant.
 
-Sequence provenance must identify the authenticated table entry and load
-occurrence. The same demo buffer is reused for later sequences, and the global
-demo index is incremented immediately after loading. At timer1 the current
-record pointer advances before Mario applies the emitted values. Buffer block,
-current index and current pointer alone therefore do not identify the record
-whose inputs were applied.
+## Candidate external memory/event policy
 
-Loaded-level identity must independently follow actual area/script/geometry
-and collision loading. `struct Area` has no level-number field, and area slots
-are reused across levels. A non-null `gCurrentArea`, area index1, or a scalar
-`gCurrLevelNum` comparison is insufficient. The real area commands install
-processed geometry and relocated terrain pointers; `load_area` materializes
-terrain and spawns objects. Shared segmented addresses require active-image
-provenance. Later areas within CCM or JRB still belong to the same level.
+`proofs/DemoPermittedExternalSpec.v` constrains actual `Events.external_call`
+transitions for a finite SDK/math subset. It carries one controller/DMA phase
+through the history, constrains argument/return values and memory effects,
+keeps that phase on internal steps, and explicitly rejects builtin invocation
+so it cannot bypass the policy. Unknown externals, including omitted game
+functions, are rejected. The capstone consumes these policy-structure facts.
 
-## Initial states and external behavior are also unspecified
+This is a **candidate partial policy**, not the permitted retail environment.
+It has no initial-state predicate or boot witness. Normal-boot EEPROM long
+reads/writes are absent. SDK/private-memory refinement, shared SI/PIF behavior,
+queue FIFO/blocking/wakeup, failed calls, input-domain coverage and asynchronous
+DMA/scheduling remain unproved. Numerical DMA addresses also require the
+symbolic-pointer/native-address bridge. The [policy scope](permitted-external-policy.md)
+gives exact effects and limitations. No jointly inhabited authentic gameplay
+history satisfying this policy and the origin receipts has been established.
 
-The current generated units do not supply a complete linked boot program or
-a normal-boot execution witness. Their selected `main` atom does not have a
-matching ordinary `int main(void)` definition. The real source starts through
-native boot and OS-created threads before `thread5_game_loop`; an arbitrary
-memory at that game-thread entry is only a conditional starting point.
-Existing metadata-normalization lemmas preserve initial states if they exist;
-they do not establish such a boot state or a gameplay execution.
+## What still prevents completing the checklist item
 
-CompCert's general external-call assumptions do not supply the N64 hardware
-contract. Restricting observable event names/values alone does not restrict
-silent DMA or controller-memory writes. The specification must also constrain
-the exact named calls' return values, memory footprints and scheduling, and
-justify a nonempty permitted implementation. Omitted game functions such as
-object updates or terrain loading must not be treated as arbitrary hardware
-actions. ROM/version, initialized memory/address image and the permitted
-retail save/EEPROM states must be specified without assuming the desired
-demo/level agreement.
+- **Loaded-scene provenance:** independently identify materialized geometry,
+  collision, area and script ownership through real loading. `struct Area`
+  has no level field; area slots and segmented addresses are reused. Non-null
+  area, area index1, or `gCurrLevelNum` alone is insufficient. Processed geometry
+  pointers differ from raw script symbols. CCM/JRB area2 must retain level identity.
+- **Complete read and producer coverage:** include the missing Mario and
+  object/behavior/helper units, embedded expressions and every reached update
+  route. Classify physical input, positive demo records, EOF and derived/P3
+  copies from producer history, without hiding a read when classification or
+  scene coherence fails. Current origin transport covers P1 fields only.
+- **Permitted starts and adequate externals:** specify native boot, initialized
+  save/EEPROM states, scheduler and hardware events without assuming stream/level
+  agreement; justify that the specification covers intended normal histories.
+  The generated inventory has no complete linked ordinary `main`/boot program.
+- **Authenticity and non-vacuity:** connect actual ROM bytes, active images,
+  numerical/segmented address behavior and SDK calls, then exhibit an authentic
+  boot-to-gameplay history and establish the intended-domain coverage.
 
-## Intended full statement, still unformalized
+The original `DemoGameplayBoundary.v:demo_normal_update_observation` remains
+an unused entry-state predicate. The new actual-read connection is distinct
+from it. A green component build does not close the missing items above.
+
+## Intended full statement, still unfinished
 
 For every permitted real execution, whenever an authentic demo record's
-emitted inputs are actually applied by a gameplay consumer, the independently identified
-materialized gameplay scene belongs to that demo's header level. A disproof
-uses the same observation and provenance with unequal levels.
-
-The next work is to express that statement over real CompCert states and
-transitions, define the permitted start and external memory/event relation,
-and require a non-vacuous authentic gameplay witness. Stream provenance and
-loaded-scene provenance must not assume their levels equal. This is the
-existing first checklist obligation; it is not counted as completed by this
-status note, by another local execution lemma, or by a module-count increase.
-
-Coverage is part of the obligation: missing provenance must not make a real
-gameplay input read disappear from the observations. In particular, do not require
-Mario/current-area/terrain agreement as an eligibility premise and thereby
-exclude a possible incoherent execution. Classify actual demo-derived reads
-and establish the necessary scene coherence. EOF-generated neutral/END input
-and ordinary record-derived input also need distinct origins. Authentication
-must account for the timer bytes that playback legitimately mutates.
+emitted inputs are actually applied by a gameplay consumer, the independently
+identified materialized scene belongs to that demo's header level. A disproof
+uses the same boundary/provenance with unequal levels. The full statement,
+its coverage and its permitted normal-boot environment are not yet formalized
+at the required scope. The checklist item stays unchecked.
