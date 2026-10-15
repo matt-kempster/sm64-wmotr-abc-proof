@@ -58,14 +58,18 @@ records an additional source-link boundary. The shared dispatcher declares
 `level_bbh_entry` as `tarray tuint 0`; BBH defines `tarray tuint 100`.
 `Ctypes.Linker_types` uses exact `type_eq`, and the actual variable-definition
 link evaluates to `None` in both versions. This ordinary incomplete/complete C
-array pair needs an appropriate source-link refinement; its rejection by this
-strict Clight operation is not a retail C linker failure. No public type or
-flag was changed to force a link.
+array pair is rejected by the unmodified strict operation; this is not a
+retail C linker failure. The new [checked declaration normalization](extern-array-completion.md)
+addresses that selected boundary with a separate semantics proof. It derives
+extent and readonly metadata for empty zero-extent public array declarations
+from actual initialized definitions, proves exact per-unit initial-memory
+and step preservation, and establishes official nine-unit Clight links.
+Production generated programs and initialized definitions remain unchanged.
 
 The receipt boundary is
 `demo_private_global_link_boundary_claim_us_jp`, proved by
 `generated_demo_private_global_link_boundary_us_jp`. It establishes selected
-source-link hygiene and identifies the remaining strict declaration boundary.
+source-link hygiene and identifies the unmodified strict declaration boundary.
 Its final-path build and assumption audit passed; the latter reports only
 CompCert's existing `Axioms.proof_irr` for the official Clight link construction.
 It does not prove that all required game functions have been generated or

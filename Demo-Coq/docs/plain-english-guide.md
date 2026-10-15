@@ -58,7 +58,15 @@ and the real stack allocation/free, with exact symbolic float outputs and
 a named pure `sqrtf` contract. The complete polling loop remains open.
 The actual disconnected second-controller branch and player-three copies
 also execute separately, with byte frames protecting player one's inputs.
-Their loop increments and tests still need composition.
+They now compose with playback, analog processing, both actual loop
+increments/tests and the final copy in the original post-polling source.
+This complete path now handles every timer branch, including EOF and
+expiry, arbitrary current and prior buttons, and arbitrary recorded sticks.
+It retains exact controller values and the stream pointer, timer and header
+through the loop. Start and EOF guards are separate consequences of the
+proved final button value. The second logical controller is absent in this
+theorem; connected-player-two processing, hardware polling/boot and
+all-frame provenance remain open.
 
 An additional proof connects ordinary-record playback, including expiry,
 to the actual input loop's controller-copy boundary for arbitrary recorded
@@ -66,6 +74,9 @@ stick bytes. Under a supplied program's global environment, it follows the
 original loop's small steps to its analog call and proves the actual new-Start
 and END-clear guards there. Reaching the post-polling entry from boot and
 preserving these results through subsequent processing remain open.
+The [complete post-polling path](notes/controller-read-execution.md)
+extends that earlier analog-entry result through the rest of the loop
+under the scope above.
 
 The separate ROM check authenticates the seven US and six JP selected demo
 files, their level headers, terminal records and buffer bounds. That is a
@@ -94,7 +105,22 @@ The actual normal-frame interval after camera processing now composes too:
 null-table painting, its real local allocation/free, pending demo countdown
 from 20 to 19, the full pause query and final zero return. Concrete entry
 reads and separation still need connection to the earlier frame. Object,
-HUD and camera effects and later countdown/expiry remain open.
+HUD and camera effects remain open.
+
+The delayed-warp routine itself now executes every Demo Next countdown
+value from 2 through 20 and its full terminal timer-1 path. Under the real
+debug/demo guards and a non-zoom dialog type, terminal expiry executes
+the actual dialog reset, transition helper and special-warp call. It
+sets mode 4, control code -2, zero transition timer and null callback.
+This is a proof of the actual calls, not an induction over gameplay frames;
+intervening frame effects and the zero ordinary warp destination remain
+necessary obligations.
+The [actual caller composition](notes/normal-delayed-execution.md) now covers
+every pending timer from 2 through 20 through the painting call, countdown,
+pause query and zero return. For terminal timer 1 it covers the suffix
+immediately after painting through the full delayed call and final mode-4
+decision. The different entry points and explicit guards remain part of
+those statements.
 
 The complete area-reset call now executes all eight loop iterations. It
 establishes null painting and instant-warp tables in all eight area records,
@@ -120,9 +146,17 @@ not establish a reachable boot route.
 The dispatch table's current-level GET command also executes completely:
 it copies the signed stored level into the script register and advances the
 command pointer four bytes. Private global names are now scoped by source
-unit, and selected real source links succeed. The remaining public array
-declaration mismatch needs a sound linking refinement. None of these local
-results yet establishes that normal boot reaches a matching loaded level.
+unit, and selected real source links succeed. A new declaration
+normalization now resolves the selected public-array mismatch: it derives
+empty declarations from actual initialized definitions, proves that each
+unit keeps exactly the same initialized memory and Clight steps, and links
+nine script-data units with the official linker in each version. The
+generated source files are unchanged. Full game linking, active-overlay
+execution and normal-boot reachability remain open.
+The [next source-link certificate](notes/selected-link-type-boundary.md)
+identifies a graphics pointer's different anonymous type names across two
+units. Their corresponding definitions/layouts are checked, but proving a
+complete type-renaming simulation and wider link is separate work.
 
 Four authenticated retail-ROM experiments provide a separate finite check of
 idle cycles and physical Start interruptions. They observed 12,866 demo

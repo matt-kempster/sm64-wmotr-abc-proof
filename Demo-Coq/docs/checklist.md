@@ -41,7 +41,7 @@ kept separate from unproved composition and reachability.
   pure math contract.
 - [x] Actual disconnected second-controller branch and player-three field
   copy suffixes, preserving player-one bytes and entry-valid accesses.
-  Whole-loop composition remains open.
+  The positive-record post-polling caller below now composes both iterations.
 - [x] Actual normal-frame timer segment, including preservation of the scheduled
   operation/timer via its concrete memory frame.
 - [x] Contiguous actual warp/instant-warp/timer caller interval up to object
@@ -58,9 +58,33 @@ kept separate from unproved composition and reachability.
 - [x] Actual ordinary playback through the controller-copy boundary with
   arbitrary stick bytes and new-Start/END guards; original-loop small-step
   path to the analog call under a supplied program's global environment.
+- [x] Complete original post-polling controller path for every timer branch,
+  including EOF and expiry, arbitrary sticks/current/prior buttons, actual
+  analog call, both loop iterations and player-three copies. Exact outputs,
+  stream pointer/timer/header and protected reads are preserved. Start/EOF
+  guards follow as separate corollaries. Second logical controller absent,
+  concrete resources and named math contract remain explicit; connected P2,
+  hardware entry and all-frame provenance remain open.
 - [x] Scoped private globals in all 38 regenerated units, positive eight-unit
   AST links and two actual Clight unit-pair links. Public declarations and
   the full game link remain separate obligations.
+- [x] Proved empty-array declaration normalization from actual initialized
+  definitions, with exact per-unit initial-memory and step preservation;
+  official nine-unit Clight links in both versions. This is a selected
+  script-data link; full game linking and overlay simulation remain open.
+- [x] Complete actual delayed Demo Next calls for timers 2 through 20 and
+  terminal timer 1, including real dialog reset, transition helper and
+  special-warp call. Terminal debug0/non-null-demo/dialogtype!=1 reads
+  and scalar resources remain explicit. Consecutive gameplay-frame
+  preservation, dialog zoom and caller composition remain separate.
+- [x] Actual normal caller after painting through the complete terminal
+  delayed call and mode-4 zero return; full post-camera painting/countdown/
+  pause/return interval for every pending timer 2–20. These do not establish
+  twenty consecutive gameplay frames or the earlier object/HUD/camera frame.
+- [x] Exact next selected-source pointer-type link failure, current
+  normalization's invariance on it, and finite corresponding Gfx definition/
+  layout checks. This certifies a remaining anonymous-tag boundary, not an
+  all-19-unit link or a type-renaming simulation.
 - [ ] Formalize the actual loaded-gameplay/consumed-input observation boundary
   and permitted initial/external events; exclude mere title-fade bookkeeping.
 - [ ] Prove loader allocation, table/index/cache and DMA memory invariants

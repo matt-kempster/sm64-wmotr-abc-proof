@@ -42,6 +42,8 @@ generated/jp_pss_level_script.v
 
 proofs/SourceFacts.v
 proofs/DemoPrivateGlobalLinkReceipt.v
+proofs/DemoExternArrayCompletion.v
+proofs/DemoSelectedLinkTypeBoundary.v
 proofs/DemoScriptDispatchFacts.v
 proofs/DemoScriptNumericImage.v
 proofs/DemoConditionalDispatchExecution.v
@@ -58,13 +60,16 @@ proofs/DemoControllerInputExecution.v
 proofs/DemoAnalogInputExecution.v
 proofs/DemoControllerCopyExecution.v
 proofs/DemoConsumedInputExecution.v
+proofs/DemoControllerReadExecution.v
 proofs/DemoDispatchFacts.v
 proofs/DemoLevelSelectionExecution.v
 proofs/DemoCurrentLevelGetExecution.v
 proofs/DemoGameplayBoundary.v
 proofs/DemoPauseExclusion.v
 proofs/DemoNormalPostCameraExecution.v
+proofs/DemoNormalDelayedExecution.v
 proofs/DemoStartWarpExecution.v
+proofs/DemoDelayedWarpTerminalExecution.v
 proofs/DemoInstantWarpExecution.v
 proofs/DemoStartSchedulingExecution.v
 proofs/DemoNormalStartExecution.v

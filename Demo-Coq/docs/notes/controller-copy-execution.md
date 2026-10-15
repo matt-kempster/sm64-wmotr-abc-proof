@@ -33,9 +33,10 @@ controller record lies outside both write intervals. Stream or level
 reads are protected when their actual byte ranges avoid those intervals;
 the theorem does not silently assume a whole-game frame property.
 
-The remaining caller work includes the first controller's arbitrary-stick
-analog call, actual loop increments and tests, and composition with these
-two subtrees. Layout, symbol, pointer-cell, readability and writability
+The [complete post-polling caller](controller-read-execution.md) now supplies
+the first controller's arbitrary-stick analog call, actual loop increments
+and tests, and composition with these two subtrees for every timer branch.
+Layout, symbol, pointer-cell, readability and writability
 premises remain explicit. Hardware polling, reachable post-polling memory,
 boot and all later gameplay frames remain outside this local result.
 Consequently the full gameplay no-desync claim remains open.

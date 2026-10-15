@@ -202,11 +202,34 @@ actual controller-copy prefix and Start/END guard masks. It additionally
 supplies an original-loop small-step path from the post-hardware-polling
 body to the analog call under `ge = Clight.globalenv prog`. It does not
 establish boot or post-polling-entry reachability or subsequent processing.
+The [complete all-timer post-polling caller](notes/controller-read-execution.md)
+now extends that path through both iterations, arbitrary-stick analog
+processing and player-three copies, with exact outputs and stream/header
+preservation for EOF, expiry and non-expiry. It allows arbitrary physical
+and prior buttons; separate corollaries supply the real Start/EOF guards.
+The disconnected second logical controller, named math contract and concrete
+memory premises remain explicit. Connected P2, hardware-entry reachability
+and all-frame provenance remain open.
+The [complete delayed Demo Next calls](notes/delayed-warp-terminal-execution.md)
+cover countdown values 2–20 and terminal expiry through every real callee,
+under the stated debug/demo/dialog guards. They do not establish a sequence
+of complete gameplay frames or eliminate the ordinary warp destination
+condition.
+The [normal caller composition](notes/normal-delayed-execution.md) consumes
+those actual delayed-call proofs, including terminal exit after painting and
+the full post-camera interval for all pending ticks 2–20. The
+[next selected-source type boundary](notes/selected-link-type-boundary.md)
+checks an anonymous Gfx pointer-type mismatch and matching definitions/layouts;
+it does not establish a type-renaming simulation or a wider link.
 
 The [private-name correction](notes/private-global-linkage.md) is now in the
 generation pipeline. It preserves public/non-global and existing string
 names and scopes every private global. Selected official AST and Clight
-links succeed. A checked incomplete/complete public array type rejection
-remains; no public type was changed to force a link. Whole-game linking and
-active-image simulation remain open. The official Clight link construction
+links succeed. The unmodified incomplete/complete public array pair still
+fails strict type equality. A [proved declaration normalization](notes/extern-array-completion.md)
+now derives empty public declarations from actual initialized array
+definitions, preserves each unit's complete initial memory and every
+ordinary Clight step, and establishes official nine-unit Clight links for
+both versions. Production generated sources remain unchanged. Whole-game
+linking and active-image simulation remain open. The official Clight link construction
 uses CompCert's existing proof-irrelevance foundation, not a project axiom.

@@ -109,64 +109,70 @@ verified environment above.
 
 ## Recorded validation
 
-Fresh registered validation passed for all 32 proof modules:
+Fresh registered validation passed for all 37 proof modules:
 
-- build: `build/checkpoint5-initial-proofs.log` and `build/checkpoint5-proofs.log`, exit 0;
-- discipline and capstone assumptions: `build/checkpoint5-discipline.log`, exit 0;
-- independent silent kernel check: `build/checkpoint5-coqchk.log`, exit 0;
-- authenticated demo/script data and proof-hole scan: `build/checkpoint5-data.log`, exit 0.
+- build: `build/checkpoint6-proofs.log`, exit 0;
+- discipline and capstone assumptions: `build/checkpoint6-discipline.log`, exit 0;
+- independent silent kernel check: `build/checkpoint6-coqchk.log`, exit 0;
+- authenticated demo/script data and proof-hole scan: `build/checkpoint6-data.log`, exit 0.
 
-The audit is `build/audit/20261015-152356-1h_x461y/report.json`. All 70 generated/proof
-sources are registered, and all 32 proof modules are in the capstone import
-closure. There are no inventory, standalone-module or proof-hole failures.
+The final audit is `build/audit/20261015-155310-jl1n9mjy/report.json`. All 75 sources
+are registered and all 37 proof modules occur in the capstone import closure.
 Exact source/pipeline hashes and the full report are in `notes/validation.json`.
+The two-pass reproduction at `6565e6c` is reused only after verifying every
+generated-source and pipeline digest against the preceding receipt. Those
+38 generated sources and pipeline scripts are unchanged; proof/kernel checks
+above are fresh. The data checks use unchanged data/checker inputs.
 
-The complete two-pass reproduction in
-`build/private-freshening-reproducible.log` is reused after verifying every
-generated-source and pipeline digest against the preceding receipt. Those 38
-generated sources and all pipeline scripts are unchanged from checkpoint
-`6565e6c`; proof, assumptions, kernel and data checks above are fresh.
-
-The seven allowed Coq/CompCert foundations actually used remain:
+The nine allowed Coq/CompCert foundations actually used are:
 
 - `Axioms.proof_irr`;
 - `ClassicalDedekindReals.sig_forall_dec`;
 - `ClassicalDedekindReals.sig_not_dec`;
 - `Classical_Prop.classic`;
+- `Events.external_functions_properties`;
 - `Events.external_functions_sem`;
+- `Events.inline_assembly_properties`;
 - `Events.inline_assembly_sem`;
 - `FunctionalExtensionality.functional_extensionality_dep`.
 
-There are no project axioms. CompCert's official Clight link construction
-uses its standard proof-irrelevance foundation. Explicit external contracts
-and concrete memory premises retain their literal scope.
+There are no project axioms. The declaration simulation uses CompCert's
+standard external-function and inline-assembly properties in addition to
+their semantic parameters. All nine were already on the allowlist. These
+properties do not establish the named sqrtf or SDK/hardware contracts, nor
+do they discharge concrete memory or reachable-entry premises.
 
-The actual US/JP area-unit initial memories now exist constructively, and
-their real symbols, spawn initializer, separation, writable accesses and
-generated layouts discharge every entry resource of the complete area-reset
-call. The final theorem has only a version argument. It is a unit image,
-not the complete linked game's initialized memory or a boot execution.
+The [proved declaration normalization](notes/extern-array-completion.md)
+preserves each actual selected unit's exact initial memory and every step,
+then establishes official nine-unit Clight links. The
+[next type-boundary certificate](notes/selected-link-type-boundary.md)
+checks an actual anonymous Gfx pointer-type rejection and corresponding
+generated definitions/layouts. There is no type-renaming simulation,
+all-19-unit link, complete game link or active-overlay refinement.
 
-The actual arbitrary-stick analog call now executes all deadzone/cap branches
-and its real allocation/free, with exact symbolic outputs and preserved
-old-memory accesses. Its named pure `sqrtf` contract remains explicit. The
-actual second-controller disconnected stores and seven player3 field copies
-have precise byte frames. Composition through the whole input loop remains
-open.
+The [complete original post-polling caller](notes/controller-read-execution.md)
+now handles every timer including EOF and expiry, arbitrary physical/prior
+buttons and recorded sticks, actual analog processing, both loop iterations
+and final player-three copy. It preserves the stream pointer, expected
+timer, header and protected loaded cells. Start/EOF guards are separate
+corollaries. The second logical controller is absent and concrete memory,
+program, symbol/layout and named pure math contracts remain explicit.
+Connected P2, hardware entry, boot and all-frame provenance remain open.
 
-The actual contiguous normal-frame interval after camera processing now
-executes painting rejection with its real local allocation/free, pending
-Demo Next countdown 20-to-19, complete pause query and final zero return.
-Concrete entry reads and separation remain explicit; no painting, delayed
-warp or pause callee execution is assumed. Earlier object/HUD/camera effects
-and later countdown/expiry are still unproved composition obligations.
+The [complete delayed calls](notes/delayed-warp-terminal-execution.md) cover
+pending ticks 2–20 and terminal tick 1 through all actual callees. The
+[normal caller](notes/normal-delayed-execution.md) consumes those proofs:
+terminal after-painting exit through the final decision, and full post-camera
+painting/countdown/pause/return for ticks 2–20. The terminal dialogtype!=1,
+debug/demo reads, ordinary warp destination and other concrete premises retain
+their literal scopes. This is not an induction over consecutive game frames.
 
-The selected source links, actual current-level GET, original-loop path to
-analog, numeric taken jump and authenticated script images retain their
-previous boundaries. Full linking, active-overlay representation simulation,
-authentic DMA/boot, all-frame preservation and MIPS/hardware refinement remain
-open. Additional ignored staging work is not counted as a completed result.
+The actual area-unit initial-memory reset, startup/loader, numeric-script,
+current-level GET and earlier input/warp components retain their recorded
+boundaries. Object/HUD/camera effects, complete loaded-gameplay composition,
+authentic boot/DMA, global preservation and MIPS/hardware refinement remain
+open. Additional ignored staging work is not counted as completed.
 
 The full gameplay verdict remains **OPEN**, with no reachable counterexample
-established. The finite retail evidence remains 12,866 observed updates,
+established. Bounded retail evidence remains 12,866 observed updates with
 zero mismatches/errors.
