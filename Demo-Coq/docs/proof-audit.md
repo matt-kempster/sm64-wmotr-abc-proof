@@ -109,35 +109,36 @@ verified environment above.
 
 ## Recorded validation
 
-Fresh full44-source two-pass reproduction, the registered build, discipline/
-assumption audit and independent silent kernel check returned exit0. Authenticated
-demo/script data, the new scene-native fixture check and hole checks returned exit0.
-The audit is `build/audit/20261015-174827-bma7x3p6/report.json`: all99 sources
-registered, all55 proof modules in the capstone import closure, no project
-axioms and the same nine allowed foundations in `notes/validation.json`.
-Exact source/pipeline/project-configuration hashes are recorded there.
-Logs are `build/checkpoint10-{proofs,discipline,coqchk,data}.log`.
+Fresh registered proof build, three selected discipline/assumption checks,
+independent silent kernel check and authenticated demo/script/scene/native
+fixture checks returned exit0. The audit is
+`build/audit/20261015-182514-y_k299mf/report.json`: 106 sources registered,
+all 62 proof modules in MainTheorem's import closure, no project axioms and
+the same nine allowed foundations for MainTheorem. The two new selected
+scalar-connection/local-inhabitation claims use only four standard foundations.
+Exact current source/pipeline/configuration hashes are in `notes/validation.json`.
+Logs are `build/checkpoint11-{proofs,discipline,coqchk,data}.log`.
 
-The complete44-unit generation is fresh, not a reused result. Its reproduction
-and guards are `build/scene-promotion/full-reproducible.log`, `final-guard.log`
-and `link-hygiene.log`. All40 preceding ASTs remain byte-identical, and all4
-new geometry/terrain builder ASTs match isolated production-wrapper outputs.
-There are459 scoped private atoms:234 US,225 JP. Memory/concurrency caps are
-unchanged. This does not certify whole-program linking or public declarations.
+The 44 generated ASTs are unchanged by exact digest comparison with the previous
+fresh complete two-pass reproduction at 851921a. That generation result is
+reused; it is not reported as a new generation run. Its logs remain
+`build/scene-promotion/full-reproducible.log`, `final-guard.log` and
+`link-hygiene.log`. No generation pipeline/input changed. Scoped private atoms
+remain 459 (234 US, 225 JP), and established memory/concurrency caps are unchanged.
 
-The capstone now consumes total raw same-index scene probing, actual Area field
-observations, checked selected-source/native scene operands, an explicit bounded
-numeric view, and exact original-Clight scene-builder read obstructions.
-The [primary status](notes/gameplay-observation-status.md),
-[source inventory](notes/scene-source-inventory.md),
-[probe scope](notes/gameplay-scene-probe.md),
-[builder diagnostic](notes/scene-address-boundary.md), and
-[address-view scope](notes/scene-address-view.md) distinguish these from missing
-runtime materialization/ownership, source/native execution correspondence,
-permitted boot, adequate SDK/hardware behavior and authentic gameplay non-vacuity.
-The two source audits are evidence guiding the next invariant, not Coq whole-run
-or retail counterexample results.
+The [bounded scalar-read connection](notes/native-scalar-read-connection.md)
+uses actual selected generated expressions, per-read byte transport, fetched
+retail LBU/LH words and exact instruction PCs. It derives positive scalar
+results and has constructive local RAM witnesses. Its numeric-expression
+evaluator and native load projection are explicitly partial candidates;
+ordinary-Clight/whole-native/hardware adequacy is unproved. The finite external
+receipt authenticates complete small routine ranges and selected assets, not
+their runtime activation or execution. Local RAM inhabitation is not normal-boot
+or authentic gameplay non-vacuity.
 
-No major unchecked gameplay obligation is closed; the first checklist item
-stays partial and unchecked. The full verdict remains **OPEN**. Finite retail
-evidence remains12,866 updates with zero mismatches/errors; no new trial is claimed.
+Loaded-scene ownership, complete read/producer coverage, permitted starts,
+adequate SDK/hardware events and the composed all-executions invariant remain
+open. No major unchecked gameplay obligation is closed. The first checklist
+item remains partial and unchecked; the full verdict is **OPEN**. The existing
+finite retail evidence remains 12,866 updates with zero mismatches/errors;
+no new gameplay trial or counterexample is claimed.

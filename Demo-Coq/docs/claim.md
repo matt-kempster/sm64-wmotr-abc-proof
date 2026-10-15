@@ -33,6 +33,13 @@ representation could be vacuous. The explicit decoder view is not a next
 Clight step or a source/native execution correspondence. See
 [scene-address-boundary.md](notes/scene-address-boundary.md).
 
+The [bounded scalar-read connection](notes/native-scalar-read-connection.md)
+adds positive source/RAM reads and fetched retail LBU/LH steps in explicit
+candidate numeric-expression/native-load projections. Its exact-site and
+byte-range premises do not establish authentic image activation, whole-language
+or hardware adequacy, or loaded ownership. Constructed local RAM witnesses
+are distinguished from the still-missing normal-boot gameplay witness.
+
 The mechanized object is the pinned source translated with `TARGET_N64=1`,
 `NON_MATCHING=1` and `AVOID_UB=1` using the configured 32-bit, big-endian
 PowerPC EABI CompCert target (`powerpc` / `ppc32`, as the generated `Info`

@@ -16,7 +16,8 @@ From Demo.Proofs Require Import SourceFacts DemoDispatchFacts DemoStartExecution
   DemoShiftedControllerExecution DemoPhysicalControllerReadExecution
   DemoGameplayConsumptionObservation DemoGameplayObservationConnection DemoPermittedExternalSpec
   DemoAreaSceneObservation DemoSceneSourceInventory DemoGameplaySceneObservation
-  DemoSceneAddressBoundary DemoSceneAddressView.
+  DemoSceneAddressBoundary DemoSceneAddressView DemoSceneReadNativeConnection
+  DemoNativeReadWitness.
 
 (** This capstone composes actual source/semantic components on the route to
     the gameplay invariant. It is not yet a theorem of no desync from boot. *)
@@ -103,7 +104,12 @@ Qed.
 (** Raw same-index scene probes retain failure observations. Source/native
     scene operands, the explicit supplied-image view and actual-builder
     diagnostics do not establish loaded ownership or an execution simulation.
-    No completed-load receipt or normal-gameplay safety theorem is asserted. *)
+    Positive scalar-read connections below use an explicit candidate numeric
+    expression evaluator and partial native LOAD projection, with authentic
+    instruction fixtures and supplied RAM/state premises. Their local RAM
+    witnesses are not normal-boot or loaded-gameplay witnesses. Whole-language
+    and hardware adequacy remain open. No completed-load receipt or
+    normal-gameplay safety theorem is asserted. *)
 Definition demo_checked_boundary_claim : Prop :=
   demo_checked_execution_components_claim /\
   demo_gameplay_consumption_observation_claim /\
@@ -114,7 +120,9 @@ Definition demo_checked_boundary_claim : Prop :=
   demo_area_scene_observation_claim /\
   demo_gameplay_scene_observation_claim /\
   demo_scene_address_boundary_claim_us_jp /\
-  demo_scene_address_view_claim.
+  demo_scene_address_view_claim /\
+  demo_scene_read_native_connection_claim /\
+  demo_native_local_read_inhabitation_claim.
 
 Theorem checked_demo_source_boundary_us_jp : demo_checked_boundary_claim.
 Proof.
@@ -127,5 +135,7 @@ Proof.
     (conj generated_area_scene_observation_us_jp
     (conj checked_demo_gameplay_scene_observation
     (conj generated_scene_address_boundary_us_jp
-    checked_demo_scene_address_view))))))))).
+    (conj checked_demo_scene_address_view
+    (conj checked_demo_scene_read_native_connection
+    checked_demo_native_local_read_inhabitation))))))))))).
 Qed.

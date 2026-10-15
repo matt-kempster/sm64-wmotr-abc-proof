@@ -22,7 +22,7 @@
     "coqchk": 0,
     "data": 0
   },
-  "reproducibility": "PASS: fresh complete44-unit two-pass byte-identical generation; original40 separately byte-checked unchanged; new4 match isolated production-wrapper generation.",
+  "reproducibility": "PASS, reused by exact current44 generated AST hashes: complete two-pass reproduction recorded at checkpoint851921a in build/scene-promotion/full-reproducible.log. No generation inputs changed in this checkpoint.",
   "rom_metadata": "PASS: canonical US/JP ROM hashes; 7/6 selected streams, distinct headers, terminal records, buffer bounds",
   "audit": {
     "toolchain": "sm64-item-proof",
@@ -31,13 +31,21 @@
       [
         "Demo.Proofs.MainTheorem",
         "checked_demo_source_boundary_us_jp"
+      ],
+      [
+        "Demo.Proofs.DemoSceneReadNativeConnection",
+        "checked_demo_scene_read_native_connection"
+      ],
+      [
+        "Demo.Proofs.DemoNativeReadWitness",
+        "checked_demo_native_local_read_inhabitation"
       ]
     ],
     "checks": [
       {
         "name": "source inventory",
         "status": "PASS",
-        "detail": "99 source files; 0 inventory problems",
+        "detail": "106 source files; 0 inventory problems",
         "problems": []
       },
       {
@@ -72,19 +80,44 @@
         ]
       },
       {
+        "name": "assumptions Demo.Proofs.DemoSceneReadNativeConnection.checked_demo_scene_read_native_connection",
+        "status": "PASS",
+        "detail": "4 allowed foundations; see assumptions-2.log",
+        "axioms": [
+          "ClassicalDedekindReals.sig_forall_dec",
+          "ClassicalDedekindReals.sig_not_dec",
+          "Classical_Prop.classic",
+          "FunctionalExtensionality.functional_extensionality_dep"
+        ]
+      },
+      {
+        "name": "assumptions Demo.Proofs.DemoNativeReadWitness.checked_demo_native_local_read_inhabitation",
+        "status": "PASS",
+        "detail": "4 allowed foundations; see assumptions-3.log",
+        "axioms": [
+          "ClassicalDedekindReals.sig_forall_dec",
+          "ClassicalDedekindReals.sig_not_dec",
+          "Classical_Prop.classic",
+          "FunctionalExtensionality.functional_extensionality_dep"
+        ]
+      },
+      {
         "name": "integration",
         "status": "PASS",
-        "detail": "55/55 modules in MainTheorem's import closure; 0 standalone-only; 0 problems",
+        "detail": "62/62 modules in MainTheorem's import closure; 0 standalone-only; 0 problems",
         "problems": []
       }
     ],
     "integration": {
-      "proof_modules": 55,
+      "proof_modules": 62,
       "main_import_closure": [
         "proofs/DemoAnalogInputExecution.v",
         "proofs/DemoAreaInitialMemory.v",
         "proofs/DemoAreaInitialization.v",
         "proofs/DemoAreaSceneObservation.v",
+        "proofs/DemoConcreteExpression.v",
+        "proofs/DemoConcreteMemoryTransport.v",
+        "proofs/DemoConcreteScalarRange.v",
         "proofs/DemoConditionalDispatchExecution.v",
         "proofs/DemoConnectedSecondControllerReadExecution.v",
         "proofs/DemoConsumedInputExecution.v",
@@ -106,6 +139,9 @@
         "proofs/DemoLevelSelectionExecution.v",
         "proofs/DemoLoadedTitleExecution.v",
         "proofs/DemoLoaderExecution.v",
+        "proofs/DemoNativeAddressImages.v",
+        "proofs/DemoNativeAddressMachine.v",
+        "proofs/DemoNativeReadWitness.v",
         "proofs/DemoNormalDelayedExecution.v",
         "proofs/DemoNormalPostCameraExecution.v",
         "proofs/DemoNormalPreObjectsExecution.v",
@@ -124,6 +160,7 @@
         "proofs/DemoPrivateGlobalLinkReceipt.v",
         "proofs/DemoSceneAddressBoundary.v",
         "proofs/DemoSceneAddressView.v",
+        "proofs/DemoSceneReadNativeConnection.v",
         "proofs/DemoSceneSourceInventory.v",
         "proofs/DemoScriptDispatchFacts.v",
         "proofs/DemoScriptNumericImage.v",
@@ -194,6 +231,9 @@
     "proofs/DemoAreaInitialization.v": "17e71a94830d5abf3eb4e685c7de23575b85c2093d6793c1e24297b9dea1dec0",
     "proofs/DemoAreaInitialMemory.v": "e60aa817f2f452cfdd250e316a63ad09789440869d960681bde965164f548a31",
     "proofs/DemoAreaSceneObservation.v": "d3c5f5b17e7651bca0492797e8a35bb30f2e07ba47dcfd1b2d2c9d3800b1cc12",
+    "proofs/DemoConcreteExpression.v": "baf98082d60a5a0eb0883ab0378d1de2c4a8e06b3f295813e6311f14e9b9ff89",
+    "proofs/DemoConcreteMemoryTransport.v": "cadffece99d8e521ceba3bf90a17afda0c020af21f6ed7f0676af524864eb964",
+    "proofs/DemoConcreteScalarRange.v": "e2d95f53fe1aceb3ce4baf6daeb8fd3652e9f3649e1ae17f41ae052ed5ae62b6",
     "proofs/DemoConditionalDispatchExecution.v": "b1f0b8ba62cf91e909713e2be2cb6260369f458f08721da750abdd276cf5ed4c",
     "proofs/DemoConnectedSecondControllerReadExecution.v": "cea9418cc9c18077ef46656a961cc20042f38e84cef9e139409e769cae691faa",
     "proofs/DemoConsumedInputExecution.v": "5d546d77bc13b001544926e99557826e86425e1b09140bcca107e4a35079fc44",
@@ -215,6 +255,9 @@
     "proofs/DemoLevelSelectionExecution.v": "eebcdff2e41daa4980d39e8f85e0e1ad7dd84aec43e14d30a6667548ade7286f",
     "proofs/DemoLoadedTitleExecution.v": "16bc43c9c21cbec1ca121bf4a11eb40c18141434e20c95aec6b40da7326140a7",
     "proofs/DemoLoaderExecution.v": "2cd8fc1195c81bdbd6ee286043bd1ad16ae6b288fd670f3faafb40b17ff3c797",
+    "proofs/DemoNativeAddressImages.v": "e894d0e00912e641704ec78686861167de093a46d8840b0b75e665783b3d1a2f",
+    "proofs/DemoNativeAddressMachine.v": "1628e5b5ede60f032824d7d4d8a6c598c4918ba0ade508ea0d85eff4c00d0df4",
+    "proofs/DemoNativeReadWitness.v": "d8072684a04a140c1e5b590bd843122e59fd34c790eadcb88285a31d9a150383",
     "proofs/DemoNormalDelayedExecution.v": "7e004e964ee6156886198babd1cd70bdc05e5656f4bd7e1219a0bf5685adef89",
     "proofs/DemoNormalPostCameraExecution.v": "e376b12345f74ea4854dd1a63b369395a17aa098379ff4b54cdcdb0890543955",
     "proofs/DemoNormalPreObjectsExecution.v": "a8c899e743aec94f5a67fc6cf67d9cc1bce13ce2703c2fa111d6f695397971dd",
@@ -233,6 +276,7 @@
     "proofs/DemoPrivateGlobalLinkReceipt.v": "e6f4699ec2c6ddaaeb94fa6fa51a24e0919af8178e8a4cd30b6efe492dfbe162",
     "proofs/DemoSceneAddressBoundary.v": "24bae8eacab64d54ed1718edf08f74fe466dd2346f00f9302a96b3ec632d4111",
     "proofs/DemoSceneAddressView.v": "dc689f57c556aa6c389e6b3ffe4b58881a097f34153fc0cef7f7e21d869f2bf7",
+    "proofs/DemoSceneReadNativeConnection.v": "bc938000a37318d85f6c3d92e37e5806e0eb9c812a498e22605f22b22e9110ba",
     "proofs/DemoSceneSourceInventory.v": "8315f47d8efbfdfe3a2ee5f252875b040961c00385f816f48fd8133b75b8539e",
     "proofs/DemoScriptDispatchFacts.v": "1d0a06cd313155e79fb42c44483a6994128706ef411ad79e0ebe7acf49bab2fe",
     "proofs/DemoScriptNumericImage.v": "deba478cf0b38daa368272ceb8987cc1c04bd3ab49c6ba011271b8f8a4989241",
@@ -243,11 +287,11 @@
     "proofs/DemoStartSchedulingExecution.v": "3551fcdc394694725f08614c245c10bb5a7ecc68ff2b99d5a9dae6e2cca8e4a1",
     "proofs/DemoStartWarpExecution.v": "39bc927dbcec2042ed94cf820f6c1751fcfd0bac7ac927e769e6515b027280cc",
     "proofs/DemoTitleStartExecution.v": "fe641382f6f181cb0702ef7f240e182a80c6d62814097857290fa3da5fe6fb5e",
-    "proofs/MainTheorem.v": "5f06dc43be21ae546bbdbdb60a6f4111df827e9aca2ae140ca825b0ed38f5597",
+    "proofs/MainTheorem.v": "4e4cbfd416db686bd78fc1243b93a4ddc250eaeb042bb6002372112b3908c110",
     "proofs/SourceFacts.v": "669339106aafe1f808da1cd5dac4dbfa88c2ee3a296b4c4e8a58a34268a83026"
   },
-  "boundary": "Conditional actual-source components only. Every existing input-read hook has a total same-index raw scene probe, including failed/null/invalid observations. All9 selected AREA/terrain scopes per version and native operands are checked independently of demo headers. Exact original scene-builder numeric-read failures expose the execution-representation gap; an explicit bounded supplied-block decoder/helper result is NOT an ordinary next step, active-image/asset proof, or source/native simulation. Complete loaded ownership, all-read/all-producer coverage, permitted boot, hardware/SDK adequacy and authentic nonvacuous gameplay remain OPEN. No major unchecked gameplay obligation is closed.",
-  "audit_report": "build/audit/20261015-174827-bma7x3p6/report.json",
+  "boundary": "Conditional actual-source components and explicit candidate numeric-expression/native-load projections only. New exact-PC scalar-read connections derive positive source/RAM reads from selected loadbytes ranges and execute fetched retail LBU/LH words in a restricted64-bit GPR load projection. Constructed local RAM witnesses do not establish normal boot, authentic image activation, runtime scene ownership, complete source/native or hardware adequacy. Primary gameplay specification remains partial; no major unchecked gameplay obligation is closed; full claim OPEN.",
+  "audit_report": "build/audit/20261015-182514-y_k299mf/report.json",
   "gameplay_search_receipt_sha256": "13ebfaf563fc8ef18a26a64089c78f931f2dae612b7fd5c7781a4ea270c8731b",
   "historical_full_reproduction_check": {
     "checkpoint": "886cb4fa30a8b5622620b45af5fa86c1e99923f8",
@@ -257,13 +301,10 @@
     "reuse": "Historical only; current40-unit reproduction at9b0dc8d reused after exact generated/pipeline digest checks."
   },
   "current_validation_logs": [
-    "build/scene-promotion/full-reproducible.log",
-    "build/scene-promotion/final-guard.log",
-    "build/scene-promotion/link-hygiene.log",
-    "build/checkpoint10-proofs.log",
-    "build/checkpoint10-discipline.log",
-    "build/checkpoint10-coqchk.log",
-    "build/checkpoint10-data.log"
+    "build/checkpoint11-proofs.log",
+    "build/checkpoint11-discipline.log",
+    "build/checkpoint11-coqchk.log",
+    "build/checkpoint11-data.log"
   ],
   "script_image_check": "PASS: authenticated complete matching ROMs, all selected script initializer words and relocations, three complete native callback byte ranges, exact Coq numeric transcription. Finite external check; no runtime or MIPS semantics refinement.",
   "allowed_foundations_used": [
@@ -282,6 +323,7 @@
     "pipeline/build.sh": "47b522d3d54e2470c6ebb44f577120d1646d88ade7764062cae8900969c8af94",
     "pipeline/check-demo-data.py": "8e1b99a5ca97bcb60a012bd7145d6e77138bef37432a85049539f390f6891b1e",
     "pipeline/check-link-hygiene.sh": "acd195ff5ed1729a4a25a6144e73e909b3f07cfab0aa482724e3308dbfa35db2",
+    "pipeline/check-native-address-images.py": "022c67b2f692e79a3fccb3e5f5e546d0a318a880235e45a5a574d0a69dead0e0",
     "pipeline/check-no-admitted.sh": "c1ed021a097fe121245abcf3c2b610f3d38ddf35a5dce3c4b18df5d40ffa33e6",
     "pipeline/check-reproducible.sh": "567a3d208db08030ac067605188dc1c2174e251818b0805d719da9f75f4ff545",
     "pipeline/check-scene-source-images.py": "e86989074cc0c8242923f8aa935610c00d4d4b07411d22cbcbe6104e566ac111",
@@ -300,13 +342,13 @@
     "us": 234,
     "jp": 225,
     "public_non_global_and_existing_string_atoms": "unchanged",
-    "generated_change": "Prior40 AST bytes unchanged; four mechanically generated geo_layout/surface_load units added, US/JP. Full44 two-pass reproduction fresh; selected links remain separate.",
+    "generated_change": "All44 ASTs unchanged from851921a;459 scoped private atoms unchanged. Current checkpoint adds proof/candidate-model/fixture modules, not translated units.",
     "selected_ast_links": "all eight level-script units per version",
     "selected_clight_links": "BBH+CCM per version",
     "public_array_declaration_refinement": "PASS for selected nine script units via proved declaration normalization; original generated programs unchanged; wider source-link/type-renaming and gameplay refinement OPEN.",
     "historical_38_unit_changed_nonliteral_atom_strings": 299
   },
-  "generation_reuse": "Not reused: complete44-unit reproduction is fresh. Registered55-module build, discipline/assumptions, independent kernel and authenticated script/demo/scene-operand checks are fresh.",
+  "generation_reuse": "Complete44-unit generation is reused after exact AST digest comparison; no generated sources or generation pipeline changed. All62 registered proofs, three selected discipline/assumption checks, independent kernel and authenticated demo/script/scene/native fixtures were freshly checked.",
   "normalized_selected_link": {
     "units_per_version": 9,
     "normalization": "only empty zero-extent public arrays, metadata derived from actual positive initialized definitions; readonly on empty declarations only",
@@ -344,7 +386,7 @@
     "origin_receipts": "actual selection/backing DMA/cache/reader/playback history; consumed record before pointer advance; positive and EOF separate; P1 field transport under explicit frames",
     "capstone_connection": "conditional record-origin-to-actual-generated-camera-read/history-step theorem, with site/layout/receipt/frame premises explicit",
     "external_policy": "candidate finite SDK/math effects over actual external_call; one controller/DMA phase across history; internal continuity; unknown calls and builtins rejected",
-    "missing": "independently materialized runtime scene/lifetime ownership, source/native execution correspondence, all-read/all-producer coverage incl physical/P3, permitted normal-boot states, SDK/hardware adequacy incl EEPROM/SI/DMA/scheduler, authentic gameplay witness and intended-domain coverage",
+    "missing": "complete source/native/hardware semantic adequacy, authentic code/data activation and active-image epochs, processed runtime scene/lifetime ownership, all-read/all-producer coverage incl physical/P3, permitted normal boot, SDK/EEPROM/SI/DMA/scheduler adequacy, authentic gameplay history and intended-domain coverage",
     "title_fade": "do not exclude actual gameplay input use by phase label; polling/bookkeeping alone is not application",
     "full_statement_and_environment": "NOT formalized at required scope",
     "major_unchecked_obligations_closed": 0,
@@ -355,11 +397,13 @@
     "source_scene_inventory": "all9 source AREA/terrain scopes perversion selected via actual dispatch, exact command byte locations, source/native operands checked after ROM/ELF authentication",
     "address_boundary": "actual generated geometry/terrain numeric-pointer reads have no ordinary step2 successor; symbolic operand helper shift also fails; local diagnostics do NOT assert retail loading failure or safety",
     "address_view": "actual numeric helper plus explicit bounded supplied-block decode/load equality; no active-image epoch, readable asset, caller next step or source/native execution simulation; local witness arithmetic only",
-    "next_action": "establish justified source/native address execution and active-image ownership; do not compose potentially uninhabited ordinary-Clight completed-load receipts"
+    "next_action": "execute/relate the actual segmented helper and constructor caller, including stack effects, calls and delay slots; establish active-image ownership and boot/environment adequacy; do not treat the candidate scalar-load projection as a complete simulation",
+    "scalar_native_connection": "actual US/JP generated first geometry/terrain expressions, selected per-read source/RAM bytes and exact-PC RAM-fetched retail LBU/LH instructions agree in candidate projections; positive loads and exact destination/PC/memory facts",
+    "local_nonvacuity": "constructive Mem.alloc/two-store local RAM code/data witnesses for both sites/versions; NOT a boot, authentic loaded-image or gameplay witness"
   },
   "project_configuration_sha256": {
-    "_CoqProject": "ef2fc080c03033a109f2dba7933c6ad44feb7198d753281bc07657ecd33582de",
-    "Makefile": "616ce8b26edd8b9101598df7faf30064ea67bc4efc78c1825152835a1e0a7f83"
+    "_CoqProject": "ec9ebd10cf1d4c994ea2a62469f21f3fb6a3f28c7fd412d209a5c2153b978ffa",
+    "Makefile": "6308eebee47f86cb212b09e016415f44d9e5726d5058e0632728652e5872e50a"
   },
   "scene_source_scope": {
     "areas_per_version": 9,
@@ -383,5 +427,45 @@
     "native_fixture_checker": "pipeline/check-scene-source-images.py",
     "authentication_order": "existing ROM/ELF script-images authentication before native fixture check",
     "runtime_activation_materialization_lifetime_and_coverage": "OPEN"
+  },
+  "native_scalar_read_connection": {
+    "source_modules": [
+      "DemoConcreteMemoryTransport",
+      "DemoConcreteScalarRange",
+      "DemoConcreteExpression",
+      "DemoNativeAddressImages",
+      "DemoNativeAddressMachine",
+      "DemoNativeReadWitness",
+      "DemoSceneReadNativeConnection"
+    ],
+    "native_sites": {
+      "geometry": {
+        "pc": "0x8037e150",
+        "word": "0x916c0000",
+        "chunk": "Mint8unsigned"
+      },
+      "terrain": {
+        "pc": "0x803833fc",
+        "word": "0x85cf0000",
+        "chunk": "Mint16signed"
+      }
+    },
+    "receipt": "docs/notes/native-address-images.json",
+    "checker": "pipeline/check-native-address-images.py",
+    "authenticated_routine_words_per_version": {
+      "segmented_to_virtual": 22,
+      "process_geo_layout": 58,
+      "load_area_terrain": 123
+    },
+    "authenticated_scenes_per_version": 9,
+    "first_scalar_values": {
+      "geometry_u8": 8,
+      "terrain_be16": 64
+    },
+    "ownership_limit": "All selected first scalar values are equal and cannot identify a level; full symbols authenticated externally, activation/epochs/materialization unproved.",
+    "native_projection": "LBU/LH/LW successful-load subset, actual same-RAM code/data Mem.load,64-bit GPRs, canonical base/effective-address and signed32 no-overflow restrictions, partial pending-PC projection; NOT complete hardware semantics",
+    "source_projection": "unchanged generated expressions evaluated in separate numeric candidate; scalar one-way Clight soundness; no new ordinary Clight dereference/step rule",
+    "negative_controls": "staged authenticator rejected wrong main/engine mapping, forged ELF code byte, altered fixture base GPR and altered receipt instruction word; production CLI narrowed to explicitly named outputs",
+    "permitted_boot_or_gameplay_nonvacuity": "OPEN"
   }
 }

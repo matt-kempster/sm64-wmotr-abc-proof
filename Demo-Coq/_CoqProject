@@ -101,3 +101,12 @@ proofs/DemoSceneAddressBoundary.v
 proofs/DemoSceneAddressView.v
 proofs/DemoGameplaySceneObservation.v
 proofs/MainTheorem.v
+
+proofs/DemoConcreteMemoryTransport.v
+proofs/DemoConcreteExpression.v
+proofs/DemoConcreteScalarRange.v
+proofs/DemoNativeAddressImages.v
+proofs/DemoNativeAddressMachine.v
+proofs/DemoNativeReadWitness.v
+
+proofs/DemoSceneReadNativeConnection.v

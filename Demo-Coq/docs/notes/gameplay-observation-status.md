@@ -82,6 +82,24 @@ readable data and actual execution. The local one-byte arbitrary-block witness
 is arithmetic inhabitation only. A source/native execution correspondence and
 an authentic gameplay history remain required.
 
+## Positive scalar reads in explicit candidate projections
+
+The [bounded scene-read connection](native-scalar-read-connection.md) now
+selects the actual US/JP geometry opcode and terrain type expressions, evaluates
+them using a separate numeric-expression candidate, and connects their positive
+scalar results to actual RAM-fetched retail LBU/LH instructions in a partial
+native load projection. Code and data use the same CompCert RAM. Per-read byte
+ranges derive successful data loads without demanding that a mixed symbolic
+initializer contain only bytes. Exact native PCs, matching temps/GPRs, alignment
+and a supplied image remain explicit premises.
+
+Constructed local RAM witnesses fetch/read/execute successfully. They do not
+establish normal-boot or loaded-asset reachability. The candidate evaluator is
+not ordinary Clight numeric dereference; the load projection is not a complete
+hardware model. This refines the existing representation gap, but leaves
+whole-program adequacy, active image epochs/ownership and authentic gameplay
+non-vacuity unproved. No major checklist item closes.
+
 ## Candidate external memory/event policy
 
 `proofs/DemoPermittedExternalSpec.v` constrains actual `Events.external_call`

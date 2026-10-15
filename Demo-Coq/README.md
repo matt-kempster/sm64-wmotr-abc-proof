@@ -31,6 +31,13 @@ correspondence exposed by actual builder loads. Complete loaded-scene provenance
 read/producer coverage, permitted boot states and SDK/hardware adequacy remain
 open; the first checklist obligation stays unchecked.
 
+The existing address gap now has a bounded positive
+[scalar-read connection](docs/notes/native-scalar-read-connection.md). Selected
+unchanged generated expressions and fetched retail LBU/LH instructions agree
+under explicit source/RAM range and state premises in candidate numeric/ISA
+projections. Constructed local RAM witnesses are not boot or gameplay witnesses.
+The complete source/native simulation and runtime scene ownership remain open.
+
 ## Read the result
 
 - [Plain English guide](docs/plain-english-guide.md)

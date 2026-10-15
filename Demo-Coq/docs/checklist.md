@@ -14,6 +14,11 @@ gameplay remain open. No major unchecked obligation is closed. Work remains on
 this existing item; further local input/exit case expansion stays deferred. See
 [the exact status](notes/gameplay-observation-status.md).
 
+The address subproblem now also has a positive, bounded expression/native-load
+connection with explicit byte/state premises and constructed local RAM witnesses.
+It uses candidate numeric/ISA projections, without whole-program adequacy or
+authentic runtime activation. See [its precise scope](notes/native-scalar-read-connection.md).
+
 - [x] Separate Demo-Coq project, US/JP pin, reproducible Clight pipeline and
   registered proof modules.
 - [x] Constructive local CompCert execution of the generated installation
@@ -130,6 +135,14 @@ this existing item; further local input/exit case expansion stays deferred. See
   SDK/hardware adequacy and authentic gameplay non-vacuity remain open. No
   title-phase label excludes actual input application; bookkeeping alone is
   not application. Invalid raw scene observations are retained.
+
+  The existing address subproblem now has a bounded positive
+  [scalar-read connection](notes/native-scalar-read-connection.md): actual
+  generated expressions, per-read source/RAM bytes and fetched retail load
+  instructions agree in explicit candidate expression/ISA projections. Local
+  RAM witnesses establish successful reads. Whole-program semantic adequacy,
+  actual image activation/ownership and authentic gameplay non-vacuity remain
+  open. This refines the same unchecked item; no new checklist goal is added.
 
 - [ ] Prove loader allocation, table/index/cache and DMA memory invariants
   from the real initialization; connect authenticated ROM data to memory.

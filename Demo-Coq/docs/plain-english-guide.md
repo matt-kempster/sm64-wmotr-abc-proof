@@ -25,6 +25,14 @@ The explicit decoder view keeps those representations separate; a justified
 execution correspondence remains missing. See the
 [exact diagnostic](notes/scene-address-boundary.md).
 
+A [bounded scalar-read connection](notes/native-scalar-read-connection.md)
+now evaluates the actual selected geometry/terrain expressions and fetched
+retail load instructions in explicit candidate numeric/ISA projections.
+Matching scalar byte ranges derive positive data reads, and constructed local
+RAM witnesses demonstrate successful execution in that projection. These do
+not prove ordinary-Clight/native adequacy, actual loading, scene ownership or
+normal-boot reachability. The first checklist item stays unchecked.
+
 Each demo has a four-byte header followed by recorded controller inputs.
 The first header byte identifies its level. When the title screen chooses a
 demo, it loads one buffer, takes the level from that buffer's header, and
