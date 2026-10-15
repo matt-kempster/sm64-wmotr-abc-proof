@@ -20,7 +20,7 @@ rechecked on 2026-10-15 through `pipeline/env.sh`:
 `pipeline/discipline-check.sh` activate this environment themselves. Use these
 entry points instead of invoking bare `coqc`.
 
-The source pin is `9921382a68bb0c865e5e45eb594d9c64db59b1af`. There are 20
+The source pin is `9921382a68bb0c865e5e45eb594d9c64db59b1af`. There are 22
 translation units per version, mechanically generated for US and JP. The
 generation pipeline restores and byte-checks the complete pinned source
 inventory, derives and hash-checks `levels/level_headers.h`, derives the text
@@ -109,27 +109,35 @@ verified environment above.
 
 ## Recorded validation
 
-The fresh registered build, discipline/assumption audit and independent silent
-kernel check returned exit0, as did authenticated data and hole checks:
-`build/checkpoint9-proofs.log`, `build/checkpoint9-discipline.log`,
-`build/checkpoint9-coqchk.log`, and `build/checkpoint9-data.log`.
-The audit is `build/audit/20261015-171209-29jje2lv/report.json`: all90 sources
-registered, all50 proof modules in the capstone import closure, no project
-axioms, and the same nine allowed foundations in `notes/validation.json`.
-The full40-source two-pass reproduction at9b0dc8d is reused after checking
-every generated-source and pipeline hash unchanged. Memory limits are unchanged.
+Fresh full44-source two-pass reproduction, the registered build, discipline/
+assumption audit and independent silent kernel check returned exit0. Authenticated
+demo/script data, the new scene-native fixture check and hole checks returned exit0.
+The audit is `build/audit/20261015-174827-bma7x3p6/report.json`: all99 sources
+registered, all55 proof modules in the capstone import closure, no project
+axioms and the same nine allowed foundations in `notes/validation.json`.
+Exact source/pipeline/project-configuration hashes are recorded there.
+Logs are `build/checkpoint10-{proofs,discipline,coqchk,data}.log`.
 
-The capstone now consumes an actual Controller-field/history observation,
-a conditional demo-record-origin-to-generated-camera-read connection, and
-structural facts about a phase-carrying candidate external policy. This
-refines the existing first checklist obligation; it does not close it.
-The [primary specification status](notes/gameplay-observation-status.md) and
-[candidate policy scope](notes/permitted-external-policy.md) distinguish these
-facts from unproved coverage, independently loaded-scene provenance, permitted
-boot states, SDK/hardware adequacy and authentic gameplay non-vacuity.
+The complete44-unit generation is fresh, not a reused result. Its reproduction
+and guards are `build/scene-promotion/full-reproducible.log`, `final-guard.log`
+and `link-hygiene.log`. All40 preceding ASTs remain byte-identical, and all4
+new geometry/terrain builder ASTs match isolated production-wrapper outputs.
+There are459 scoped private atoms:234 US,225 JP. Memory/concurrency caps are
+unchanged. This does not certify whole-program linking or public declarations.
 
-No major unchecked gameplay obligation is closed. The full verdict remains
-**OPEN**. The current capstone remains a conjunction of conditional components,
-not the requested all-executions statement or proof. Finite retail evidence
-remains12,866 observed updates with zero mismatches/errors; it does not decide
-the claim.
+The capstone now consumes total raw same-index scene probing, actual Area field
+observations, checked selected-source/native scene operands, an explicit bounded
+numeric view, and exact original-Clight scene-builder read obstructions.
+The [primary status](notes/gameplay-observation-status.md),
+[source inventory](notes/scene-source-inventory.md),
+[probe scope](notes/gameplay-scene-probe.md),
+[builder diagnostic](notes/scene-address-boundary.md), and
+[address-view scope](notes/scene-address-view.md) distinguish these from missing
+runtime materialization/ownership, source/native execution correspondence,
+permitted boot, adequate SDK/hardware behavior and authentic gameplay non-vacuity.
+The two source audits are evidence guiding the next invariant, not Coq whole-run
+or retail counterexample results.
+
+No major unchecked gameplay obligation is closed; the first checklist item
+stays partial and unchecked. The full verdict remains **OPEN**. Finite retail
+evidence remains12,866 updates with zero mismatches/errors; no new trial is claimed.

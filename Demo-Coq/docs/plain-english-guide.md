@@ -15,6 +15,16 @@ input-use coverage, permitted boot states and hardware/SDK adequacy remain open.
 No major unchecked gameplay obligation has been closed. This work takes priority
 over further local input/exit cases.
 
+Each observed input read now also has a raw scene-probe result, even when the
+area is null, unreadable or invalid. Coq checks the selected scripts' nine area
+declarations and their geometry/terrain operands. These do not identify an
+independently materialized loaded level. Actual geometry/terrain loads expose
+an address-model obstruction: numeric addresses cannot be dereferenced by
+ordinary Clight, while symbolic pointers fail the helper's bit arithmetic.
+The explicit decoder view keeps those representations separate; a justified
+execution correspondence remains missing. See the
+[exact diagnostic](notes/scene-address-boundary.md).
+
 Each demo has a four-byte header followed by recorded controller inputs.
 The first header byte identifies its level. When the title screen chooses a
 demo, it loads one buffer, takes the level from that buffer's header, and

@@ -4,13 +4,14 @@ The requested all-executions claim remains **OPEN**. Completed local work is
 kept separate from unproved composition and reachability.
 
 **Primary specification gap: partially formalized, not complete.** Actual
-controller-read/history observations and a conditional connection from demo
-record receipts to a generated camera read now exist on the capstone path.
-A candidate external memory/effect policy carries controller/DMA phases across
-real steps. Loaded-scene provenance, complete read/producer coverage, permitted
-boot states and adequate hardware/SDK behavior remain missing. No major
-unchecked gameplay obligation is closed. Work remains on this existing item;
-further local case expansion is deferred. See
+input reads now carry a same-index raw scene probe, including null/invalid/
+unreadable results. The selected source's nine AREA/terrain declarations and
+native operands are checked independently of demo headers. Actual builder
+loads expose the symbolic/numeric address boundary; the explicit decoder view
+does not establish an execution correspondence or loaded ownership. Permitted
+boot, adequate externals, complete read/producer coverage and nonvacuous authentic
+gameplay remain open. No major unchecked obligation is closed. Work remains on
+this existing item; further local input/exit case expansion stays deferred. See
 [the exact status](notes/gameplay-observation-status.md).
 
 - [x] Separate Demo-Coq project, US/JP pin, reproducible Clight pipeline and
@@ -80,7 +81,7 @@ further local case expansion is deferred. See
   A subsequent conditional caller covers arbitrary bounded physical-pad bases
   and preserves mapping pointers24/52; actual initialization and hardware entry
   still have not been derived.
-- [x] Scoped private globals in all 40 regenerated units, positive eight-unit
+- [x] Scoped private globals in all 44 regenerated units, positive eight-unit
   AST links and two actual Clight unit-pair links. Public declarations and
   the full game link remain separate obligations.
 - [x] Proved empty-array declaration normalization from actual initialized
@@ -121,12 +122,14 @@ further local case expansion is deferred. See
   identically twice and the previous 38 are byte-identical.
 - [ ] Formalize the actual loaded-gameplay/consumed-input observation boundary
   and permitted initial/external events; exclude mere title-fade bookkeeping.
-  **Partial, still unchecked:** capstone-consumed actual-read observations,
-  positive/EOF origin receipts, a conditional camera-read connection and a
-  phase-carrying candidate external policy now exist. Independently loaded-scene
-  provenance, all-read/all-producer coverage, permitted boot states, SDK/hardware
-  adequacy and authentic gameplay non-vacuity remain open. No title-phase label
-  excludes actual input application; polling/bookkeeping alone is not application.
+  **Partial, still unchecked:** actual-read and raw scene probes, input-origin
+  receipts, selected AREA/terrain source/native metadata and candidate external
+  sequencing now exist. Actual scene-builder loads expose the required address
+  execution correspondence; a decoder lookup does not supply it. Independently
+  materialized ownership, all-read/all-producer coverage, permitted boot,
+  SDK/hardware adequacy and authentic gameplay non-vacuity remain open. No
+  title-phase label excludes actual input application; bookkeeping alone is
+  not application. Invalid raw scene observations are retained.
 
 - [ ] Prove loader allocation, table/index/cache and DMA memory invariants
   from the real initialization; connect authenticated ROM data to memory.

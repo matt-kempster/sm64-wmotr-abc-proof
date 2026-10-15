@@ -14,7 +14,9 @@ From Demo.Proofs Require Import SourceFacts DemoDispatchFacts DemoStartExecution
   DemoConnectedSecondControllerReadExecution DemoDialogZoomExecution
   DemoPhysicalPadPlaybackExecution DemoNormalTerminalPostCameraExecution
   DemoShiftedControllerExecution DemoPhysicalControllerReadExecution
-  DemoGameplayConsumptionObservation DemoGameplayObservationConnection DemoPermittedExternalSpec.
+  DemoGameplayConsumptionObservation DemoGameplayObservationConnection DemoPermittedExternalSpec
+  DemoAreaSceneObservation DemoSceneSourceInventory DemoGameplaySceneObservation
+  DemoSceneAddressBoundary DemoSceneAddressView.
 
 (** This capstone composes actual source/semantic components on the route to
     the gameplay invariant. It is not yet a theorem of no desync from boot. *)
@@ -98,16 +100,32 @@ Qed.
     Loaded-scene provenance, complete read/producer coverage, admissible boot
     states and a nonvacuous authentic gameplay history are still absent.
     This capstone is NOT the full gameplay no-desync statement or its proof. *)
+(** Raw same-index scene probes retain failure observations. Source/native
+    scene operands, the explicit supplied-image view and actual-builder
+    diagnostics do not establish loaded ownership or an execution simulation.
+    No completed-load receipt or normal-gameplay safety theorem is asserted. *)
 Definition demo_checked_boundary_claim : Prop :=
   demo_checked_execution_components_claim /\
   demo_gameplay_consumption_observation_claim /\
   demo_origin_camera_connection_claim /\
-  demo_external_history_policy_claim.
+  demo_external_history_policy_claim /\
+  scene_source_inventory_claim_us_jp /\
+  scene_source_native_operand_claim_us_jp /\
+  demo_area_scene_observation_claim /\
+  demo_gameplay_scene_observation_claim /\
+  demo_scene_address_boundary_claim_us_jp /\
+  demo_scene_address_view_claim.
 
 Theorem checked_demo_source_boundary_us_jp : demo_checked_boundary_claim.
 Proof.
   exact (conj checked_demo_execution_components_us_jp
     (conj generated_gameplay_consumption_observation_us_jp
-      (conj checked_origin_camera_connection_us_jp
-        checked_demo_external_history_policy))).
+    (conj checked_origin_camera_connection_us_jp
+    (conj checked_demo_external_history_policy
+    (conj generated_scene_source_inventory_us_jp
+    (conj generated_scene_source_native_operands_us_jp
+    (conj generated_area_scene_observation_us_jp
+    (conj checked_demo_gameplay_scene_observation
+    (conj generated_scene_address_boundary_us_jp
+    checked_demo_scene_address_view))))))))).
 Qed.

@@ -5,6 +5,8 @@ generated/us_title_screen.v
 generated/us_game_init.v
 generated/us_level_update.v
 generated/us_level_script.v
+generated/us_geo_layout.v
+generated/us_surface_load.v
 generated/us_level_scripts.v
 generated/us_intro_level_script.v
 generated/us_menu_level_script.v
@@ -25,6 +27,8 @@ generated/jp_title_screen.v
 generated/jp_game_init.v
 generated/jp_level_update.v
 generated/jp_level_script.v
+generated/jp_geo_layout.v
+generated/jp_surface_load.v
 generated/jp_level_scripts.v
 generated/jp_intro_level_script.v
 generated/jp_menu_level_script.v
@@ -91,4 +95,9 @@ proofs/DemoInputOriginObservation.v
 proofs/DemoGameplayConsumptionObservation.v
 proofs/DemoGameplayObservationConnection.v
 proofs/DemoPermittedExternalSpec.v
+proofs/DemoAreaSceneObservation.v
+proofs/DemoSceneSourceInventory.v
+proofs/DemoSceneAddressBoundary.v
+proofs/DemoSceneAddressView.v
+proofs/DemoGameplaySceneObservation.v
 proofs/MainTheorem.v

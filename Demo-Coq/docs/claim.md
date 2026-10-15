@@ -24,6 +24,15 @@ SDK/hardware adequacy and an authentic gameplay witness remain open. The full
 statement is not yet formalized at the required scope; the first checklist item
 remains unchecked.
 
+The raw scene probe now retains absent/invalid/unreadable scene results at
+an actual input read. Source-owned AREA/terrain declarations and authenticated
+native operand metadata are checked for all nine selected areas per version.
+They do not establish runtime ownership. The actual scene-builder diagnostic
+shows why a completed-load claim over the unrefined ordinary Clight pointer
+representation could be vacuous. The explicit decoder view is not a next
+Clight step or a source/native execution correspondence. See
+[scene-address-boundary.md](notes/scene-address-boundary.md).
+
 The mechanized object is the pinned source translated with `TARGET_N64=1`,
 `NON_MATCHING=1` and `AVOID_UB=1` using the configured 32-bit, big-endian
 PowerPC EABI CompCert target (`powerpc` / `ppc32`, as the generated `Info`

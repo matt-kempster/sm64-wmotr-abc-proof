@@ -50,8 +50,8 @@ regeneration.
 
 Those counts describe the original private-name correction. The current
 pipeline additionally generates the camera unit in both versions for the
-actual terminal dialog helper. There are now 40 generated units and 427
-private atoms (218 US and 209 JP). All 40 reproduce identically twice, and
+actual terminal dialog helper. At the camera checkpoint there were 40 generated units and 427
+private atoms (218 US and 209 JP). Those 40 reproduced identically twice, and
 the earlier 38 ASTs remain byte-identical. The added camera helper does not
 establish a whole camera-update frame or complete game link.
 
@@ -83,3 +83,11 @@ It does not prove that all required game functions have been generated or
 linked, or that the source blocks simulate active retail overlays. The
 caller/active-overlay representation simulation and full gameplay claim remain
 open.
+
+The scene-construction audit subsequently added actual `geo_layout` and
+`surface_load` translations in both versions. There are now 44 generated units
+and 459 scoped private globals (234 US, 225 JP), with no private collisions.
+A fresh full 44 two-pass reproduction passed; the preceding 40 files remain
+byte-identical, and the four additions match isolated production-wrapper output.
+This does not extend the selected official links to a complete game or prove
+scene construction or numerical-address/native correspondence.

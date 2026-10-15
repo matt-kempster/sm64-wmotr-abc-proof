@@ -64,6 +64,8 @@ TRANSLATION_UNITS=(
   "game_init:src/game/game_init.c"
   "level_update:src/game/level_update.c"
   "level_script:src/engine/level_script.c"
+  "geo_layout:src/engine/geo_layout.c"
+  "surface_load:src/engine/surface_load.c"
   "level_scripts:levels/scripts.c"
   "intro_level_script:levels/intro/script.c"
   "menu_level_script:levels/menu/script.c"

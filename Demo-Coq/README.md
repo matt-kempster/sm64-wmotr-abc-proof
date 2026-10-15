@@ -13,7 +13,7 @@ hand is not a normal-boot counterexample.
 
 This is a separate project alongside SSL-Coq and Pedro-Coq. Its source of
 truth is decomp commit `9921382a68bb0c865e5e45eb594d9c64db59b1af`.
-The pipeline mechanically generates 20 translation units for each of
+The pipeline mechanically generates 22 translation units for each of
 `VERSION_US` and `VERSION_JP` with CompCert 3.15. Generated Clight is never
 hand-edited. EU, Shindou, iQue, ROM patches, and emulator refinements are
 outside the current result.
@@ -22,9 +22,12 @@ Generation uses `TARGET_N64=1`, `NON_MATCHING=1` and `AVOID_UB=1` with a
 retail-binary execution and hardware is open.
 
 The primary gameplay observation is partially formalized: an actual
-controller-read hook and conditional demo-origin-to-camera-read connection
+controller-read hook, total same-index raw scene probe and conditional
+demo-origin-to-camera-read connection
 are consumed by the capstone. A candidate external-history policy constrains
-some memory effects and call sequencing. Complete loaded-scene provenance,
+some memory effects and call sequencing. Checked source/native scene operands
+and an explicit address decoder are separate from the unproved execution
+correspondence exposed by actual builder loads. Complete loaded-scene provenance,
 read/producer coverage, permitted boot states and SDK/hardware adequacy remain
 open; the first checklist obligation stays unchecked.
 

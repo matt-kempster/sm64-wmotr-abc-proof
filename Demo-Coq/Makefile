@@ -31,6 +31,7 @@ demo-data:
 
 script-images:
 	python3 pipeline/check-script-images.py --check-receipt docs/notes/script-images.json --check-coq proofs/DemoScriptNumericImage.v
+	python3 pipeline/check-scene-source-images.py --check-coq proofs/DemoSceneSourceInventory.v
 
 assumptions: proofs
 	bash pipeline/assumptions.sh Demo.Proofs.MainTheorem checked_demo_source_boundary_us_jp
