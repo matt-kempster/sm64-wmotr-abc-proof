@@ -459,22 +459,94 @@ End SEXPR.
 (* Joins                                                              *)
 (* ---------------------------------------------------------------- *)
 
-(* Join two paths into one that covers both: a slot on which they agree
-   keeps its term, a slot on which they disagree becomes a fresh name (the
-   proof gives it the value the real run has), and only the facts both
-   paths carry are kept. *)
-Definition jslot2 (t1 t2 : sval) (nx : positive) : option (sval * positive) :=
-  if sbeq t1 t2 then Some (t1, nx)
-  else if loc_ptr t1 || loc_ptr t2 then None else Some (Sfresh nx, Pos.succ nx).
+(* Join two paths into one that covers both, by ANTI-UNIFICATION: a slot on
+   which they agree keeps its term; terms with the same operator are joined
+   operand-wise; any other pair of terms becomes a fresh name, the SAME name
+   for the same pair (a memo), so a relation that holds on both paths (pos =
+   floorHeight) survives.  Facts are joined through the memo without new
+   names: [Fworld f1 n] and [Fworld f2 n] become [Fworld k n] when the pair
+   (f1, f2) already has the name k.  The proof gives each fresh name the
+   value the real run has. *)
+Definition memo : Type := list (sval * sval * positive).
+
+Fixpoint mfind (mo : memo) (t1 t2 : sval) : option positive :=
+  match mo with
+  | nil => None
+  | (a, b, k) :: mo' => if sbeq a t1 && sbeq b t2 then Some k else mfind mo' t1 t2
+  end.
+
+(* a fresh name for the pair; in read-only mode only a known one *)
+Definition au_new (ro : bool) (t1 t2 : sval) (nx : positive) (mo : memo)
+    : option (sval * positive * memo) :=
+  match mfind mo t1 t2 with
+  | Some k => Some (Sfresh k, nx, mo)
+  | None =>
+      if ro then None
+      else if loc_ptr t1 || loc_ptr t2 then None
+      else Some (Sfresh nx, Pos.succ nx, (t1, t2, nx) :: mo)
+  end.
+
+Fixpoint au (ro : bool) (t1 t2 : sval) (nx : positive) (mo : memo) {struct t1}
+    : option (sval * positive * memo) :=
+  if sbeq t1 t2 then Some (t1, nx, mo) else
+  match t1, t2 with
+  | Swld p k ch, Swld p' k' ch' =>
+      if Z.eq_dec k k' then if chunk_eq ch ch' then
+        match au ro p p' nx mo with
+        | Some (x, n1, m1) => Some (Swld x k ch, n1, m1)
+        | None => None
+        end
+      else au_new ro t1 t2 nx mo else au_new ro t1 t2 nx mo
+  | Swoff p k, Swoff p' k' =>
+      if Z.eq_dec k k' then
+        match au ro p p' nx mo with
+        | Some (x, n1, m1) => Some (Swoff x k, n1, m1)
+        | None => None
+        end
+      else au_new ro t1 t2 nx mo
+  | Sunop op a ty, Sunop op' a' ty' =>
+      if unop_eq op op' then if type_eq ty ty' then
+        match au ro a a' nx mo with
+        | Some (x, n1, m1) => Some (Sunop op x ty, n1, m1)
+        | None => None
+        end
+      else au_new ro t1 t2 nx mo else au_new ro t1 t2 nx mo
+  | Sbinop op a1 ty1 a2 ty2, Sbinop op' a1' ty1' a2' ty2' =>
+      if binop_eq op op' then if type_eq ty1 ty1' then if type_eq ty2 ty2' then
+        match au ro a1 a1' nx mo with
+        | Some (x, n1, m1) =>
+            match au ro a2 a2' n1 m1 with
+            | Some (y, n2, m2) => Some (Sbinop op x ty1 y ty2, n2, m2)
+            | None => None
+            end
+        | None => None
+        end
+      else au_new ro t1 t2 nx mo else au_new ro t1 t2 nx mo else au_new ro t1 t2 nx mo
+  | Scast a ta tb, Scast a' ta' tb' =>
+      if type_eq ta ta' then if type_eq tb tb' then
+        match au ro a a' nx mo with
+        | Some (x, n1, m1) => Some (Scast x ta tb, n1, m1)
+        | None => None
+        end
+      else au_new ro t1 t2 nx mo else au_new ro t1 t2 nx mo
+  | Sldres ch a, Sldres ch' a' =>
+      if chunk_eq ch ch' then
+        match au ro a a' nx mo with
+        | Some (x, n1, m1) => Some (Sldres ch x, n1, m1)
+        | None => None
+        end
+      else au_new ro t1 t2 nx mo
+  | _, _ => au_new ro t1 t2 nx mo
+  end.
 
 Fixpoint jtemps (l : list (ident * sval)) (le2 : PTree.t sval) (acc : PTree.t sval)
-    (nx : positive) : option (PTree.t sval * positive) :=
+    (nx : positive) (mo : memo) : option (PTree.t sval * positive * memo) :=
   match l with
-  | nil => Some (acc, nx)
+  | nil => Some (acc, nx, mo)
   | (id, t1) :: l' =>
       let? t2 := le2 ! id in
-      match jslot2 t1 t2 nx with
-      | Some (t, nx') => jtemps l' le2 (PTree.set id t acc) nx'
+      match au false t1 t2 nx mo with
+      | Some (t, nx', mo') => jtemps l' le2 (PTree.set id t acc) nx' mo'
       | None => None
       end
   end.
@@ -486,17 +558,17 @@ Definition key_eq (a b : positive * Z * memory_chunk) : bool :=
   let '(r, o, ch) := a in let '(r', o', ch') := b in
   Pos.eqb r r' && Z.eqb o o' && (if chunk_eq ch ch' then true else false).
 
-Fixpoint jmem (ks : list (positive * Z * memory_chunk)) (g1 g2 : gst) (nx : positive)
-    : option (smem * positive) :=
+Fixpoint jmem (ks : list (positive * Z * memory_chunk)) (g1 g2 : gst) (nx : positive) (mo : memo)
+    : option (smem * positive * memo) :=
   match ks with
-  | nil => Some (nil, nx)
+  | nil => Some (nil, nx, mo)
   | (r, o, ch) :: ks' =>
       let? t1 := sload g1 r o ch in
       let? t2 := sload g2 r o ch in
-      match jslot2 t1 t2 nx with
-      | Some (t, nx') =>
-          match jmem ks' g1 g2 nx' with
-          | Some (sm, nx'') => Some ((r, o, ch, t) :: sm, nx'')
+      match au false t1 t2 nx mo with
+      | Some (t, nx', mo') =>
+          match jmem ks' g1 g2 nx' mo' with
+          | Some (sm, nx'', mo'') => Some ((r, o, ch, t) :: sm, nx'', mo'')
           | None => None
           end
       | None => None
@@ -507,35 +579,65 @@ Definition jkeys_of (g1 g2 : gst) : list (positive * Z * memory_chunk) :=
   let k1 := map skey (g_sm g1) in
   k1 ++ filter (fun k => negb (existsb (key_eq k) k1)) (map skey (g_sm g2)).
 
-Definition jout (o1 o2 : sout) (nx : positive) : option (sout * positive) :=
+Definition jout (o1 o2 : sout) (nx : positive) (mo : memo) : option (sout * positive * memo) :=
   match o1, o2 with
-  | SOnormal, SOnormal => Some (SOnormal, nx)
-  | SObreak, SObreak => Some (SObreak, nx)
-  | SOcontinue, SOcontinue => Some (SOcontinue, nx)
-  | SOreturn None, SOreturn None => Some (SOreturn None, nx)
+  | SOnormal, SOnormal => Some (SOnormal, nx, mo)
+  | SObreak, SObreak => Some (SObreak, nx, mo)
+  | SOcontinue, SOcontinue => Some (SOcontinue, nx, mo)
+  | SOreturn None, SOreturn None => Some (SOreturn None, nx, mo)
   | SOreturn (Some (v1, t1)), SOreturn (Some (v2, t2)) =>
       if type_eq t1 t2 then
-        match jslot2 v1 v2 nx with
-        | Some (v, nx') => Some (SOreturn (Some (v, t1)), nx')
+        match au false v1 v2 nx mo with
+        | Some (v, nx', mo') => Some (SOreturn (Some (v, t1)), nx', mo')
         | None => None
         end
       else None
   | _, _ => None
   end.
 
+(* a fact of both paths, through the memo (no new names) *)
+Definition au_fact (f1 f2 : fact) (nx : positive) (mo : memo) : option fact :=
+  match f1, f2 with
+  | Fbool c1 ty b, Fbool c2 ty' b' =>
+      if type_eq ty ty' then if bool_dec b b' then
+        match au true c1 c2 nx mo with Some (c, _, _) => Some (Fbool c ty b) | None => None end
+      else None else None
+  | Fworld p1 n, Fworld p2 n' =>
+      if Z.eq_dec n n' then
+        match au true p1 p2 nx mo with Some (p, _, _) => Some (Fworld p n) | None => None end
+      else None
+  | Fbits t1 k, Fbits t2 k' =>
+      if Int.eq_dec k k' then
+        match au true t1 t2 nx mo with Some (t, _, _) => Some (Fbits t k) | None => None end
+      else None
+  | Fuser _ _, Fuser _ _ => if fact_eq f1 f2 then Some f1 else None
+  | _, _ => None
+  end.
+
+Fixpoint first_some {A B : Type} (f : A -> option B) (l : list A) : option B :=
+  match l with
+  | nil => None
+  | x :: l' => match f x with Some y => Some y | None => first_some f l' end
+  end.
+
+Definition jfacts (pc1 pc2 : list fact) (nx : positive) (mo : memo) : list fact :=
+  flat_map (fun f1 => match first_some (fun f2 => au_fact f1 f2 nx mo) pc2 with
+                      | Some f => [f]
+                      | None => nil
+                      end) pc1.
+
 Definition join2 (p1 p2 : spath) : option spath :=
   let '(le1, g1, o1) := p1 in
   let '(le2, g2, o2) := p2 in
   if list_eq_dec Pos.eq_dec (g_loc g1) (g_loc g2) then
   if list_eq_dec Pos.eq_dec (map fst (PTree.elements le1)) (map fst (PTree.elements le2)) then
-    match jout o1 o2 (Pos.max (g_nx g1) (g_nx g2)) with
-    | Some (o, nx1) =>
-        match jtemps (PTree.elements le1) le2 (PTree.empty sval) nx1 with
-        | Some (le, nx2) =>
-            match jmem (jkeys_of g1 g2) g1 g2 nx2 with
-            | Some (sm, nx3) =>
-                Some (le, mkg sm (filter (fun f => existsb (fbeq f) (g_pc g2)) (g_pc g1))
-                              nx3 (g_loc g1), o)
+    match jout o1 o2 (Pos.max (g_nx g1) (g_nx g2)) nil with
+    | Some (o, nx1, mo1) =>
+        match jtemps (PTree.elements le1) le2 (PTree.empty sval) nx1 mo1 with
+        | Some (le, nx2, mo2) =>
+            match jmem (jkeys_of g1 g2) g1 g2 nx2 mo2 with
+            | Some (sm, nx3, mo3) =>
+                Some (le, mkg sm (jfacts (g_pc g1) (g_pc g2) nx3 mo3) nx3 (g_loc g1), o)
             | None => None
             end
         | None => None
@@ -565,10 +667,26 @@ Definition out_tag (o : sout) : nat * option sval :=
 
 Definition is_const (t : sval) : bool := match t with Sconst _ => true | _ => false end.
 
+(* a term's shape: fresh names erased (they are numbered per path, so two
+   paths that made the same kind of choice differ only there).  Keys only
+   decide which joins are tried; every join is sound. *)
+Fixpoint skel (a : sval) : sval :=
+  match a with
+  | Sfresh _ => Sfresh xH
+  | Swld p k ch => Swld (skel p) k ch
+  | Swoff p k => Swoff (skel p) k
+  | Sunop op a ty => Sunop op (skel a) ty
+  | Sbinop op a1 t1 a2 t2 => Sbinop op (skel a1) t1 (skel a2) t2
+  | Scast a t1 t2 => Scast (skel a) t1 t2
+  | Sldres ch a => Sldres ch (skel a)
+  | _ => a
+  end.
+
 Definition key_of (p : spath) : pkey :=
   let '(le, g, o) := p in
   let '(tag, ov) := out_tag o in
-  (tag, ov :: map (fun k => let '(r, o, ch) := k in sload g r o ch) jkeys,
+  (tag, option_map skel ov
+          :: map (fun k => let '(r, o, ch) := k in option_map skel (sload g r o ch)) jkeys,
    filter (fun x => is_const (snd x)) (PTree.elements le)).
 
 Fixpoint jinsert (p : spath) (k : pkey) (acc : list (pkey * spath)) : list (pkey * spath) :=
@@ -2073,53 +2191,231 @@ Proof. intros. unfold inb. rewrite H. reflexivity. Qed.
 
 Definition sel (sd : bool) (t1 t2 : sval) : sval := if sd then t1 else t2.
 
-Lemma jslot2_side : forall E nx t1 t2 t nx' sd, jslot2 t1 t2 nx = Some (t, nx') ->
-  sok nx (sel sd t1 t2) -> env_ok E -> Ple nbase nx ->
-  exists E', Rx E E' nx /\ env_ok E' /\ den E' t = den E (sel sd t1 t2) /\ sok nx' t /\ Ple nx nx'.
+(* the join invariant: [Es] is the real side's environment, [nx0] the join's
+   start, [E] the joined environment so far; each memo name holds the value
+   its pair has on the real side *)
+Definition MINV (sd : bool) (Es : senv) (nx0 : positive) (E : senv) (mo : memo) (nx : positive)
+    : Prop :=
+  Rx Es E nx0 /\ env_ok E /\ Ple nbase nx0 /\ Ple nx0 nx
+  /\ (forall a b k, In (a, b, k) mo -> Plt k nx /\ e_rho E k = den Es (sel sd a b)).
+
+Definition AUC (sd : bool) (Es : senv) (nx0 : positive) (E : senv) (ro : bool)
+    (t1 t2 : sval) (nx : positive) (mo : memo) (t : sval) (nx' : positive) (mo' : memo) : Prop :=
+  exists E', MINV sd Es nx0 E' mo' nx' /\ Rx E E' nx /\ Ple nx nx'
+    /\ den E' t = den Es (sel sd t1 t2) /\ nlt nx' t
+    /\ (dold (sel sd t1 t2) -> dold t) /\ (sok nx0 (sel sd t1 t2) -> sok nx' t)
+    /\ (ro = true -> nx' = nx /\ mo' = mo).
+
+Lemma mfind_in : forall mo t1 t2 k, mfind mo t1 t2 = Some k -> In (t1, t2, k) mo.
 Proof.
-  intros E nx t1 t2 t nx' sd J S EO L. unfold jslot2 in J.
-  destruct (sbeq t1 t2) eqn:Q.
-  - inv J. unfold sbeq in Q. destruct (sval_eq t t2); [ subst | discriminate ].
-    exists E. split; [ apply Rx_refl | split; [ exact EO | split ] ].
-    + destruct sd; reflexivity.
-    + split; [ destruct sd; exact S | apply Ple_refl ].
-  - destruct (loc_ptr t1 || loc_ptr t2) eqn:LP; [ discriminate | ]. inv J.
-    apply orb_false_iff in LP as [L1 L2].
-    exists (upd E nx (den E (sel sd t1 t2))).
-    split; [ apply Rx_upd | split; [ | split; [ | split ] ] ].
-    + eapply env_ok_Rx; [ exact EO | apply Rx_upd | exact L | ].
-      intros k v H. cbn in H. destruct (Pos.eq_dec k nx).
-      * eapply sok_old; eauto. destruct sd; auto.
-      * destruct EO as (_ & _ & _ & _ & _ & R). eapply R; eauto.
-    + cbn. destruct (Pos.eq_dec nx nx); [ reflexivity | congruence ].
-    + split; cbn; auto. apply Plt_succ.
-    + apply Ple_succ.
+  induction mo as [|[[a b] k'] mo IH]; intros t1 t2 k H; cbn in H; [ discriminate | ].
+  destruct (sbeq a t1 && sbeq b t2) eqn:Q.
+  - injection H as <-. apply andb_true_iff in Q as [Q1 Q2]. unfold sbeq in Q1, Q2.
+    destruct (sval_eq a t1); [ | discriminate ]. destruct (sval_eq b t2); [ | discriminate ].
+    subst. left; reflexivity.
+  - right. eauto.
 Qed.
 
-Lemma jtemps_side : forall sd l le2 acc nx le nx2 E,
-  jtemps l le2 acc nx = Some (le, nx2) -> env_ok E -> Ple nbase nx ->
+Lemma sok_of_dold : forall n a, nlt n a -> dold a -> sok n a.
+Proof. intros n a N D. split; [ exact N | destruct a; auto ]. Qed.
+
+Lemma sok_struct : forall n0 n s t, nlt n t -> (dold s -> dold t) ->
+  (forall r o, s <> Sptr r o) -> (forall r o, t <> Sptr r o) -> sok n0 s -> sok n t.
+Proof.
+  intros n0 n s t N D Hs Ht [_ S]. split; [ exact N | ].
+  destruct t; try (exfalso; eapply Ht; reflexivity); apply D;
+    (destruct s; [ exact S | exfalso; eapply Hs; reflexivity | exact S .. ]).
+Qed.
+
+Lemma au_eq_side : forall sd Es nx0 ro t1 nx mo E, MINV sd Es nx0 E mo nx -> nlt nx0 t1 ->
+  AUC sd Es nx0 E ro t1 t1 nx mo t1 nx mo.
+Proof.
+  intros sd Es nx0 ro t1 nx mo E M N. pose proof M as (R & EO & L0 & L1 & MO).
+  assert (SE : sel sd t1 t1 = t1) by (destruct sd; reflexivity).
+  exists E. rewrite SE.
+  split; [ exact M | split; [ apply Rx_refl | split; [ apply Ple_refl | split ] ] ].
+  - eapply den_Rx; eauto.
+  - split; [ eapply nlt_mono; eauto | split; [ auto | split ] ].
+    + intros S. eapply sok_mono; eauto.
+    + intros _. split; reflexivity.
+Qed.
+
+Lemma au_new_side : forall sd Es nx0 ro t1 t2 nx mo t nx' mo' E,
+  au_new ro t1 t2 nx mo = Some (t, nx', mo') -> MINV sd Es nx0 E mo nx ->
+  nlt nx0 (sel sd t1 t2) -> (ro = false -> sok nx0 (sel sd t1 t2)) ->
+  AUC sd Es nx0 E ro t1 t2 nx mo t nx' mo'.
+Proof.
+  intros sd Es nx0 ro t1 t2 nx mo t nx' mo' E J M N S. unfold au_new in J.
+  pose proof M as (R & EO & L0 & L1 & MO).
+  destruct (mfind mo t1 t2) as [k|] eqn:F.
+  - injection J as <- <- <-. apply mfind_in in F. destruct (MO _ _ _ F) as [K Ek].
+    exists E. split; [ exact M | split; [ apply Rx_refl | split; [ apply Ple_refl | split ] ] ].
+    + cbn. exact Ek.
+    + split; [ cbn; exact K | split; [ cbn; auto | split ] ].
+      * intros _. split; cbn; auto.
+      * intros _. split; reflexivity.
+  - destruct ro; [ discriminate | ].
+    destruct (loc_ptr t1 || loc_ptr t2) eqn:LP; [ discriminate | ]. injection J as <- <- <-.
+    apply orb_false_iff in LP as [LP1 LP2]. specialize (S eq_refl).
+    set (E' := upd E nx (den Es (sel sd t1 t2))).
+    assert (RU : Rx E E' nx) by apply Rx_upd.
+    exists E'. split; [ | split; [ exact RU | split; [ apply Ple_succ | split ] ] ].
+    + split; [ eapply Rx_trans; [ exact R | exact RU | exact L1 ] | split; [ | split; [ exact L0 | split ] ] ].
+      * eapply env_ok_Rx; [ exact EO | exact RU | unfold Ple in *; lia | ].
+        intros k v H. unfold E', upd in H; cbn in H. destruct (Pos.eq_dec k nx).
+        -- eapply sok_old; [ exact EO | exact S | destruct sd; auto | ].
+           rewrite (den_Rx Es E nx0); [ exact H | exact R | exact N ].
+        -- destruct EO as (_ & _ & _ & _ & _ & RO). eapply RO; eauto.
+      * unfold Ple in *; lia.
+      * intros a b k [Eq | I].
+        -- injection Eq as <- <- <-. split; [ apply Plt_succ | ].
+           unfold E', upd; cbn. destruct (Pos.eq_dec nx nx); [ reflexivity | congruence ].
+        -- destruct (MO a b k I) as [K Ek]. split; [ unfold Plt in *; lia | ].
+           unfold E', upd; cbn. destruct (Pos.eq_dec k nx); [ subst; exfalso; eapply Plt_strict; eauto | exact Ek ].
+    + unfold E', upd; cbn. destruct (Pos.eq_dec nx nx); [ reflexivity | congruence ].
+    + split; [ cbn; apply Plt_succ | split; [ intros _; cbn; auto | split ] ].
+      * intros _. split; cbn; [ apply Plt_succ | auto ].
+      * intros H. discriminate.
+Qed.
+
+Ltac au_dec J :=
+  repeat (match type of J with context [if ?d then _ else _] => destruct d end; cbn beta iota in J);
+  subst.
+
+Ltac au_new_solve := eapply au_new_side; [ eassumption | eassumption | eassumption | eassumption ].
+
+Lemma au_side : forall sd Es nx0 ro t1 t2 nx mo t nx' mo' E,
+  au ro t1 t2 nx mo = Some (t, nx', mo') -> MINV sd Es nx0 E mo nx ->
+  nlt nx0 (sel sd t1 t2) -> (ro = false -> sok nx0 (sel sd t1 t2)) ->
+  AUC sd Es nx0 E ro t1 t2 nx mo t nx' mo'.
+Proof.
+  intros sd Es nx0 ro t1.
+  induction t1 as [ v | r o | r o ch | p IHp k ch | p IHp k | n | op a IHa ty
+                  | op a1 IHa1 ty1 a2 IHa2 ty2 | a IHa ta tb | ch a IHa ];
+    intros u nx mo w nx' mo' E J M N S; cbn [au] in J;
+    (match type of J with context [sbeq ?x u] => destruct (sbeq x u) eqn:Q end;
+     [ injection J as <- <- <-; unfold sbeq in Q;
+       match type of Q with context [sval_eq ?x ?y] => destruct (sval_eq x y) as [<- | ]; [ | discriminate Q ] end;
+       apply au_eq_side; [ exact M | destruct sd; exact N ] | ]).
+  1-3,6: destruct u; cbn beta iota in J; au_new_solve.
+  (* Swld *)
+  - destruct u as [ | | | p' k' ch' | | | | | | ]; cbn beta iota in J; au_dec J; try au_new_solve.
+    destruct (au ro p p' nx mo) as [[[x n1] m1]|] eqn:A; [ | discriminate J ].
+    cbn beta iota in J. injection J as <- <- <-.
+    destruct (IHp p' nx mo x n1 m1 E A M) as (E' & M' & R' & L' & D' & N' & DO' & SO' & RO').
+    { destruct sd; exact N. }
+    { intros F. destruct (S F) as [S1 S2]. apply sok_of_dold; [ destruct sd; exact S1 | destruct sd; exact S2 ]. }
+    match goal with |- AUC _ _ _ _ _ ?T1 ?T2 _ _ ?T _ _ =>
+      assert (DOt : dold (sel sd T1 T2) -> dold T) by (intros H; apply DO'; destruct sd; exact H) end.
+    exists E'. split; [ exact M' | split; [ exact R' | split; [ exact L' | split ] ] ].
+    { destruct sd; cbn [sel den] in D' |- *; rewrite D'; reflexivity. }
+    split; [ exact N' | split; [ exact DOt | split; [ | exact RO' ] ] ].
+    apply sok_struct; [ exact N' | exact DOt | intros ? ?; destruct sd; discriminate | intros ? ?; discriminate ].
+  (* Swoff *)
+  - destruct u as [ | | | | p' k' | | | | | ]; cbn beta iota in J; au_dec J; try au_new_solve.
+    destruct (au ro p p' nx mo) as [[[x n1] m1]|] eqn:A; [ | discriminate J ].
+    cbn beta iota in J. injection J as <- <- <-.
+    destruct (IHp p' nx mo x n1 m1 E A M) as (E' & M' & R' & L' & D' & N' & DO' & SO' & RO').
+    { destruct sd; exact N. }
+    { intros F. destruct (S F) as [S1 S2]. apply sok_of_dold; [ destruct sd; exact S1 | destruct sd; exact S2 ]. }
+    match goal with |- AUC _ _ _ _ _ ?T1 ?T2 _ _ ?T _ _ =>
+      assert (DOt : dold (sel sd T1 T2) -> dold T) by (intros H; apply DO'; destruct sd; exact H) end.
+    exists E'. split; [ exact M' | split; [ exact R' | split; [ exact L' | split ] ] ].
+    { destruct sd; cbn [sel den] in D' |- *; rewrite D'; reflexivity. }
+    split; [ exact N' | split; [ exact DOt | split; [ | exact RO' ] ] ].
+    apply sok_struct; [ exact N' | exact DOt | intros ? ?; destruct sd; discriminate | intros ? ?; discriminate ].
+  (* Sunop *)
+  - destruct u as [ | | | | | | op' a' ty' | | | ]; cbn beta iota in J; au_dec J; try au_new_solve.
+    destruct (au ro a a' nx mo) as [[[x n1] m1]|] eqn:A; [ | discriminate J ].
+    cbn beta iota in J. injection J as <- <- <-.
+    destruct (IHa a' nx mo x n1 m1 E A M) as (E' & M' & R' & L' & D' & N' & DO' & SO' & RO').
+    { destruct sd; exact N. }
+    { intros F. destruct (S F) as [S1 S2]. apply sok_of_dold; [ destruct sd; exact S1 | destruct sd; exact S2 ]. }
+    match goal with |- AUC _ _ _ _ _ ?T1 ?T2 _ _ ?T _ _ =>
+      assert (DOt : dold (sel sd T1 T2) -> dold T) by (intros H; apply DO'; destruct sd; exact H) end.
+    exists E'. split; [ exact M' | split; [ exact R' | split; [ exact L' | split ] ] ].
+    { destruct sd; cbn [sel den] in D' |- *; rewrite D'; reflexivity. }
+    split; [ exact N' | split; [ exact DOt | split; [ | exact RO' ] ] ].
+    apply sok_struct; [ exact N' | exact DOt | intros ? ?; destruct sd; discriminate | intros ? ?; discriminate ].
+  (* Sbinop *)
+  - destruct u as [ | | | | | | | op' b1 ty1' b2 ty2' | | ]; cbn beta iota in J; au_dec J; try au_new_solve.
+    destruct (au ro a1 b1 nx mo) as [[[x n1] m1]|] eqn:A1; [ | discriminate J ]. cbn beta iota in J.
+    destruct (au ro a2 b2 n1 m1) as [[[y n2] m2]|] eqn:A2; [ | discriminate J ]. cbn beta iota in J.
+    injection J as <- <- <-.
+    assert (Na : nlt nx0 (sel sd a1 b1) /\ nlt nx0 (sel sd a2 b2)) by (destruct sd; exact N).
+    destruct Na as [Na1 Na2].
+    assert (Sa : ro = false -> sok nx0 (sel sd a1 b1) /\ sok nx0 (sel sd a2 b2)).
+    { intros F. pose proof (S F) as SF.
+      destruct sd; destruct SF as [[S1 S1'] [S2 S2']]; split; apply sok_of_dold; assumption. }
+    destruct (IHa1 b1 nx mo x n1 m1 E A1 M Na1 (fun F => proj1 (Sa F)))
+      as (E1 & M1 & R1 & L1 & D1 & N1 & DO1 & SO1 & RO1).
+    destruct (IHa2 b2 n1 m1 y n2 m2 E1 A2 M1 Na2 (fun F => proj2 (Sa F)))
+      as (E2 & M2 & R2 & L2 & D2 & N2 & DO2 & SO2 & RO2).
+    match goal with |- AUC _ _ _ _ _ ?T1 ?T2 _ _ ?T _ _ =>
+      assert (DOt : dold (sel sd T1 T2) -> dold T) end.
+    { intros H. destruct sd; destruct H as [H1 H2]; split; [ apply DO1 | apply DO2 | apply DO1 | apply DO2 ];
+        assumption. }
+    match goal with |- AUC _ _ _ _ _ _ _ _ _ ?T _ _ =>
+      assert (NT : nlt n2 T) by (split; [ eapply nlt_mono; eauto | exact N2 ]) end.
+    exists E2. split; [ exact M2 | split; [ eapply Rx_trans; eauto | split; [ eapply Ple_trans; eauto | split ] ] ].
+    { rewrite <- (den_Rx E1 E2 n1 x R2 N1) in D1.
+      destruct sd; cbn [sel den] in D1, D2 |- *; rewrite D1, D2; reflexivity. }
+    split; [ exact NT | split; [ exact DOt | split ] ].
+    + apply sok_struct; [ exact NT | exact DOt | intros ? ?; destruct sd; discriminate | intros ? ?; discriminate ].
+    + intros H. destruct (RO1 H) as [-> ->]. destruct (RO2 H) as [-> ->]. split; reflexivity.
+  (* Scast *)
+  - destruct u as [ | | | | | | | | a' ta' tb' | ]; cbn beta iota in J; au_dec J; try au_new_solve.
+    destruct (au ro a a' nx mo) as [[[x n1] m1]|] eqn:A; [ | discriminate J ].
+    cbn beta iota in J. injection J as <- <- <-.
+    destruct (IHa a' nx mo x n1 m1 E A M) as (E' & M' & R' & L' & D' & N' & DO' & SO' & RO').
+    { destruct sd; exact N. }
+    { intros F. destruct (S F) as [S1 S2]. apply sok_of_dold; [ destruct sd; exact S1 | destruct sd; exact S2 ]. }
+    match goal with |- AUC _ _ _ _ _ ?T1 ?T2 _ _ ?T _ _ =>
+      assert (DOt : dold (sel sd T1 T2) -> dold T) by (intros H; apply DO'; destruct sd; exact H) end.
+    exists E'. split; [ exact M' | split; [ exact R' | split; [ exact L' | split ] ] ].
+    { destruct sd; cbn [sel den] in D' |- *; rewrite D'; reflexivity. }
+    split; [ exact N' | split; [ exact DOt | split; [ | exact RO' ] ] ].
+    apply sok_struct; [ exact N' | exact DOt | intros ? ?; destruct sd; discriminate | intros ? ?; discriminate ].
+  (* Sldres *)
+  - destruct u as [ | | | | | | | | | ch' a' ]; cbn beta iota in J; au_dec J; try au_new_solve.
+    destruct (au ro a a' nx mo) as [[[x n1] m1]|] eqn:A; [ | discriminate J ].
+    cbn beta iota in J. injection J as <- <- <-.
+    destruct (IHa a' nx mo x n1 m1 E A M) as (E' & M' & R' & L' & D' & N' & DO' & SO' & RO').
+    { destruct sd; exact N. }
+    { intros F. destruct (S F) as [S1 S2]. apply sok_of_dold; [ destruct sd; exact S1 | destruct sd; exact S2 ]. }
+    match goal with |- AUC _ _ _ _ _ ?T1 ?T2 _ _ ?T _ _ =>
+      assert (DOt : dold (sel sd T1 T2) -> dold T) by (intros H; apply DO'; destruct sd; exact H) end.
+    exists E'. split; [ exact M' | split; [ exact R' | split; [ exact L' | split ] ] ].
+    { destruct sd; cbn [sel den] in D' |- *; rewrite D'; reflexivity. }
+    split; [ exact N' | split; [ exact DOt | split; [ | exact RO' ] ] ].
+    apply sok_struct; [ exact N' | exact DOt | intros ? ?; destruct sd; discriminate | intros ? ?; discriminate ].
+Qed.
+
+Lemma jtemps_side : forall sd Es nx0 l le2 acc nx mo le nx2 mo2 E,
+  jtemps l le2 acc nx mo = Some (le, nx2, mo2) -> MINV sd Es nx0 E mo nx ->
   (forall id t, acc ! id = Some t -> sok nx t) ->
-  (forall id t1 t2, In (id, t1) l -> le2 ! id = Some t2 -> sok nx (sel sd t1 t2)) ->
-  exists E', Rx E E' nx /\ env_ok E' /\ Ple nx nx2 /\
+  (forall id t1 t2, In (id, t1) l -> le2 ! id = Some t2 -> sok nx0 (sel sd t1 t2)) ->
+  exists E', MINV sd Es nx0 E' mo2 nx2 /\ Rx E E' nx /\ Ple nx nx2 /\
     forall id t, le ! id = Some t -> sok nx2 t /\
       ((acc ! id = Some t /\ den E' t = den E t) \/
-       (exists t1 t2, In (id, t1) l /\ le2 ! id = Some t2 /\ den E' t = den E (sel sd t1 t2))).
+       (exists t1 t2, In (id, t1) l /\ le2 ! id = Some t2 /\ den E' t = den Es (sel sd t1 t2))).
 Proof.
-  intros sd l le2. induction l as [|[id t1] l IH]; intros acc nx le nx2 E J EO L A S;
+  intros sd Es nx0 l le2. induction l as [|[id t1] l IH]; intros acc nx mo le nx2 mo2 E J M A S;
     cbn [jtemps] in J.
-  - inv J. exists E. split; [ apply Rx_refl | split; [ exact EO | split; [ apply Ple_refl | ] ] ].
+  - injection J as <- <- <-.
+    exists E. split; [ exact M | split; [ apply Rx_refl | split; [ apply Ple_refl | ] ] ].
     intros id t H. split; [ eapply A; eauto | left; auto ].
   - destruct (le2 ! id) as [t2|] eqn:T2; [ | discriminate ].
-    destruct (jslot2 t1 t2 nx) as [[t nx']|] eqn:J2; [ | discriminate ].
-    destruct (jslot2_side E nx t1 t2 t nx' sd J2 (S id t1 t2 (or_introl eq_refl) T2) EO L)
-      as (E1 & R1 & EO1 & D1 & S1 & L1).
-    destruct (IH (PTree.set id t acc) nx' le nx2 E1 J EO1 ltac:(unfold Ple in *; lia))
-      as (E2 & R2 & EO2 & L2 & H2).
+    destruct (au false t1 t2 nx mo) as [[[t nx'] mo']|] eqn:J2; [ | discriminate ].
+    pose proof (S id t1 t2 (or_introl eq_refl) T2) as S0.
+    destruct (au_side sd Es nx0 false t1 t2 nx mo t nx' mo' E J2 M (sok_nlt _ _ S0) (fun _ => S0))
+      as (E1 & M1 & R1 & L1 & D1 & N1 & DO1 & SO1 & _).
+    destruct (IH (PTree.set id t acc) nx' mo' le nx2 mo2 E1 J M1) as (E2 & M2 & R2 & L2 & H2).
     { intros id' t' H. rewrite PTree.gsspec in H. destruct (peq id' id).
-      - inv H. exact S1.
+      - inv H. exact (SO1 S0).
       - eapply sok_mono; [ eapply A; eauto | exact L1 ]. }
-    { intros id' a b I B. eapply sok_mono; [ apply (S id' a b (or_intror I) B) | exact L1 ]. }
-    exists E2. split; [ eapply Rx_trans; eauto | split; [ exact EO2 | split ] ].
+    { intros id' a b I B. exact (S id' a b (or_intror I) B). }
+    exists E2. split; [ exact M2 | split; [ eapply Rx_trans; eauto | split ] ].
     { unfold Ple in *; lia. }
     intros id' t' H. destruct (H2 id' t' H) as [Sx [(Ha & Hd) | (a & b & I & B & Hd)]].
     + split; [ exact Sx | ]. rewrite PTree.gsspec in Ha. destruct (peq id' id).
@@ -2127,65 +2423,124 @@ Proof.
         rewrite Hd. exact D1.
       * left. split; [ exact Ha | ]. rewrite Hd. eapply den_Rx; [ exact R1 | ].
         apply sok_nlt. eapply A; eauto.
-    + split; [ exact Sx | ]. right. exists a, b. split; [ right; exact I | split; [ exact B | ] ].
-      rewrite Hd. eapply den_Rx; [ exact R1 | ]. apply sok_nlt. eapply S; eauto. right; exact I.
+    + split; [ exact Sx | ]. right. exists a, b. split; [ right; exact I | split; [ exact B | exact Hd ] ].
 Qed.
 
-Lemma jmem_side : forall sd ks g1 g2 nx sm nx3 E,
-  jmem ks g1 g2 nx = Some (sm, nx3) -> env_ok E -> Ple nbase nx ->
+Lemma jmem_side : forall sd Es nx0 ks g1 g2 nx mo sm nx3 mo3 E,
+  jmem ks g1 g2 nx mo = Some (sm, nx3, mo3) -> MINV sd Es nx0 E mo nx ->
   (forall r o ch t1 t2, In (r, o, ch) ks -> sload g1 r o ch = Some t1 -> sload g2 r o ch = Some t2 ->
-     sok nx (sel sd t1 t2)) ->
-  exists E', Rx E E' nx /\ env_ok E' /\ Ple nx nx3 /\ map skey sm = ks /\
+     sok nx0 (sel sd t1 t2)) ->
+  exists E', MINV sd Es nx0 E' mo3 nx3 /\ Rx E E' nx /\ Ple nx nx3 /\ map skey sm = ks /\
     forall r o ch t, In (r, o, ch, t) sm -> sok nx3 t /\
       exists t1 t2, sload g1 r o ch = Some t1 /\ sload g2 r o ch = Some t2
-                    /\ den E' t = den E (sel sd t1 t2).
+                    /\ den E' t = den Es (sel sd t1 t2).
 Proof.
-  intros sd ks g1 g2. induction ks as [|[[r o] ch] ks IH]; intros nx sm nx3 E J EO L S;
+  intros sd Es nx0 ks g1 g2. induction ks as [|[[r o] ch] ks IH]; intros nx mo sm nx3 mo3 E J M S;
     cbn [jmem] in J.
-  - inv J. exists E. split; [ apply Rx_refl | split; [ exact EO | split; [ apply Ple_refl | ] ] ].
+  - injection J as <- <- <-.
+    exists E. split; [ exact M | split; [ apply Rx_refl | split; [ apply Ple_refl | ] ] ].
     split; [ reflexivity | ]. intros r o ch t [].
   - destruct (sload g1 r o ch) as [t1|] eqn:T1; [ | discriminate ].
     destruct (sload g2 r o ch) as [t2|] eqn:T2; [ | discriminate ].
-    destruct (jslot2 t1 t2 nx) as [[t nx']|] eqn:J2; [ | discriminate ].
-    destruct (jmem ks g1 g2 nx') as [[sm' nx'']|] eqn:J3; [ | discriminate ]. inv J.
-    destruct (jslot2_side E nx t1 t2 t nx' sd J2 (S r o ch t1 t2 (or_introl eq_refl) T1 T2) EO L)
-      as (E1 & R1 & EO1 & D1 & S1 & L1).
-    destruct (IH nx' sm' nx3 E1 J3 EO1 ltac:(unfold Ple in *; lia)) as (E2 & R2 & EO2 & L2 & K2 & H2).
-    { intros r' o' ch' a b I A B. eapply sok_mono; [ apply (S r' o' ch' a b (or_intror I) A B) | exact L1 ]. }
-    exists E2. split; [ eapply Rx_trans; eauto | split; [ exact EO2 | split ] ].
+    destruct (au false t1 t2 nx mo) as [[[t nx'] mo']|] eqn:J2; [ | discriminate ].
+    destruct (jmem ks g1 g2 nx' mo') as [[[sm' nx''] mo'']|] eqn:J3; [ | discriminate ].
+    injection J as <- <- <-.
+    pose proof (S r o ch t1 t2 (or_introl eq_refl) T1 T2) as S0.
+    destruct (au_side sd Es nx0 false t1 t2 nx mo t nx' mo' E J2 M (sok_nlt _ _ S0) (fun _ => S0))
+      as (E1 & M1 & R1 & L1 & D1 & N1 & DO1 & SO1 & _).
+    destruct (IH nx' mo' sm' nx'' mo'' E1 J3 M1) as (E2 & M2 & R2 & L2 & K2 & H2).
+    { intros r' o' ch' a b I A B. exact (S r' o' ch' a b (or_intror I) A B). }
+    exists E2. split; [ exact M2 | split; [ eapply Rx_trans; eauto | split ] ].
     { unfold Ple in *; lia. }
     split; [ cbn; rewrite K2; reflexivity | ].
     intros r' o' ch' t' [Eq | I].
-    + inv Eq. split; [ eapply sok_mono; eauto | ]. exists t1, t2. split; [ exact T1 | split; [ exact T2 | ] ].
-      rewrite (den_Rx E1 E2 nx'); [ exact D1 | exact R2 | apply sok_nlt; exact S1 ].
+    + inv Eq. split; [ eapply sok_mono; [ exact (SO1 S0) | exact L2 ] | ].
+      exists t1, t2. split; [ exact T1 | split; [ exact T2 | ] ].
+      rewrite (den_Rx E1 E2 nx'); [ exact D1 | exact R2 | exact N1 ].
     + destruct (H2 _ _ _ _ I) as [Sx (a & b & A & B & Hd)]. split; [ exact Sx | ].
-      exists a, b. split; [ exact A | split; [ exact B | ] ]. rewrite Hd.
-      eapply den_Rx; [ exact R1 | ]. apply sok_nlt. eapply S; eauto. right.
-      assert (IK : In (r', o', ch') (map skey sm')) by (apply (in_map skey) in I; exact I).
-      rewrite K2 in IK. exact IK.
+      exists a, b. split; [ exact A | split; [ exact B | exact Hd ] ].
 Qed.
 
-Lemma jout_side : forall (sd : bool) o1 o2 nx o nx1 E out, jout o1 o2 nx = Some (o, nx1) ->
-  env_ok E -> Ple nbase nx -> out_match E nx out (if sd then o1 else o2) ->
-  exists E', Rx E E' nx /\ env_ok E' /\ Ple nx nx1 /\ out_match E' nx1 out o.
+Lemma jout_side : forall (sd : bool) Es nx0 o1 o2 nx mo o nx1 mo1 E out,
+  jout o1 o2 nx mo = Some (o, nx1, mo1) -> MINV sd Es nx0 E mo nx ->
+  out_match Es nx0 out (if sd then o1 else o2) ->
+  exists E', MINV sd Es nx0 E' mo1 nx1 /\ Rx E E' nx /\ Ple nx nx1 /\ out_match E' nx1 out o.
 Proof.
-  intros sd o1 o2 nx o nx1 E out J EO L M.
-  assert (TRIV : o1 = o2 -> o = o1 -> nx1 = nx -> exists E', Rx E E' nx /\ env_ok E' /\ Ple nx nx1 /\ out_match E' nx1 out o).
-  { intros <- -> ->. exists E. split; [ apply Rx_refl | split; [ exact EO | split; [ apply Ple_refl | ] ] ].
-    destruct sd; exact M. }
-  destruct o1 as [ | | | [[v1 t1]|]]; destruct o2 as [ | | | [[v2 t2]|]]; cbn in J; try discriminate;
-    try (inv J; apply TRIV; reflexivity).
+  intros sd Es nx0 o1 o2 nx mo o nx1 mo1 E out J M OM.
+  pose proof M as (R & EO & L0 & L1 & MO).
+  assert (TRIV : o1 = o2 -> o = o1 -> nx1 = nx -> mo1 = mo ->
+            exists E', MINV sd Es nx0 E' mo1 nx1 /\ Rx E E' nx /\ Ple nx nx1 /\ out_match E' nx1 out o).
+  { intros <- -> -> ->. exists E. split; [ exact M | split; [ apply Rx_refl | split; [ apply Ple_refl | ] ] ].
+    eapply out_match_mono; [ destruct sd; exact OM | exact R | exact L1 ]. }
+  destruct o1 as [ | | | [[v1 t1]|]]; destruct o2 as [ | | | [[v2 t2]|]]; cbn [jout] in J; try discriminate;
+    try (injection J as <- <- <-; apply TRIV; reflexivity).
   destruct (type_eq t1 t2); [ subst | discriminate ].
-  destruct (jslot2 v1 v2 nx) as [[v nx']|] eqn:J2; [ | discriminate ]. inv J.
-  destruct out as [ | | | [[w ty]|]]; destruct sd; cbn in M; try contradiction.
-  - destruct M as (<- & Dw & Sw).
-    destruct (jslot2_side E nx v1 v2 v nx1 true J2 Sw EO L) as (E1 & R1 & EO1 & D1 & S1 & L1).
-    exists E1. split; [ exact R1 | split; [ exact EO1 | split; [ exact L1 | ] ] ].
-    cbn. split; [ reflexivity | split; [ rewrite D1; exact Dw | exact S1 ] ].
-  - destruct M as (<- & Dw & Sw).
-    destruct (jslot2_side E nx v1 v2 v nx1 false J2 Sw EO L) as (E1 & R1 & EO1 & D1 & S1 & L1).
-    exists E1. split; [ exact R1 | split; [ exact EO1 | split; [ exact L1 | ] ] ].
-    cbn. split; [ reflexivity | split; [ rewrite D1; exact Dw | exact S1 ] ].
+  destruct (au false v1 v2 nx mo) as [[[v nx'] mo']|] eqn:J2; [ | discriminate ].
+  injection J as <- <- <-.
+  destruct out as [ | | | [[w ty]|]]; destruct sd; cbn in OM; try contradiction.
+  - destruct OM as (<- & Dw & Sw).
+    destruct (au_side true Es nx0 false v1 v2 nx mo v nx' mo' E J2 M (sok_nlt _ _ Sw) (fun _ => Sw))
+      as (E1 & M1 & R1 & L1' & D1 & N1 & _ & SO1 & _).
+    exists E1. split; [ exact M1 | split; [ exact R1 | split; [ exact L1' | ] ] ].
+    cbn. split; [ reflexivity | split; [ rewrite D1; exact Dw | exact (SO1 Sw) ] ].
+  - destruct OM as (<- & Dw & Sw).
+    destruct (au_side false Es nx0 false v1 v2 nx mo v nx' mo' E J2 M (sok_nlt _ _ Sw) (fun _ => Sw))
+      as (E1 & M1 & R1 & L1' & D1 & N1 & _ & SO1 & _).
+    exists E1. split; [ exact M1 | split; [ exact R1 | split; [ exact L1' | ] ] ].
+    cbn. split; [ reflexivity | split; [ rewrite D1; exact Dw | exact (SO1 Sw) ] ].
+Qed.
+
+Lemma au_fact_side : forall (sd : bool) Es nx0 E mo nx f1 f2 f,
+  au_fact f1 f2 nx mo = Some f -> MINV sd Es nx0 E mo nx ->
+  fact_nlt nx0 (if sd then f1 else f2) -> fact_holds Es (if sd then f1 else f2) ->
+  fact_nlt nx f /\ fact_holds E f.
+Proof.
+  intros sd Es nx0 E mo nx f1 f2 f J M FN FH.
+  pose proof M as (R & EO & L0 & L1 & MO).
+  assert (AU : forall c1 c2 c nx' mo', au true c1 c2 nx mo = Some (c, nx', mo') ->
+            nlt nx0 (sel sd c1 c2) -> nlt nx c /\ den E c = den Es (sel sd c1 c2)).
+  { intros c1 c2 c nx' mo' A N.
+    destruct (au_side sd Es nx0 true c1 c2 nx mo c nx' mo' E A M N (fun F => ltac:(discriminate F)))
+      as (E1 & M1 & R1 & L1' & D1 & N1 & _ & _ & RO1).
+    destruct (RO1 eq_refl) as [-> ->]. split; [ exact N1 | ].
+    rewrite <- D1. symmetry. eapply den_Rx; [ exact R1 | exact N1 ]. }
+  pose proof R as (BA & BB & _).
+  destruct f1 as [c1 ty1 b1 | p1 n1 | t1 k1 | u1 a1], f2 as [c2 ty2 b2 | p2 n2 | t2 k2 | u2 a2];
+    cbn [au_fact] in J; try discriminate.
+  - destruct (type_eq ty1 ty2); [ subst | discriminate ]. destruct (bool_dec b1 b2); [ subst | discriminate ].
+    destruct (au true c1 c2 nx mo) as [[[c n'] m']|] eqn:A; [ | discriminate ]. injection J as <-.
+    destruct (AU c1 c2 c n' m' A) as [N D]; [ destruct sd; exact FN | ].
+    split; [ exact N | ]. cbn. rewrite D. destruct sd; exact FH.
+  - destruct (Z.eq_dec n1 n2); [ subst | discriminate ].
+    destruct (au true p1 p2 nx mo) as [[[c n'] m']|] eqn:A; [ | discriminate ]. injection J as <-.
+    destruct (AU p1 p2 c n' m' A) as [N D]; [ destruct sd; exact FN | ].
+    split; [ exact N | ]. cbn. rewrite D, BA, BB. destruct sd; exact FH.
+  - destruct (Int.eq_dec k1 k2); [ subst | discriminate ].
+    destruct (au true t1 t2 nx mo) as [[[c n'] m']|] eqn:A; [ | discriminate ]. injection J as <-.
+    destruct (AU t1 t2 c n' m' A) as [N D]; [ destruct sd; exact FN | ].
+    split; [ exact N | ]. cbn. rewrite D. destruct sd; exact FH.
+  - destruct (fact_eq (Fuser u1 a1) (Fuser u2 a2)) as [Q|]; [ | discriminate ]. injection J as <-.
+    assert (FN' : fact_nlt nx0 (Fuser u1 a1)) by (destruct sd; [ exact FN | rewrite Q; exact FN ]).
+    assert (FH' : fact_holds Es (Fuser u1 a1)) by (destruct sd; [ exact FH | rewrite Q; exact FH ]).
+    split; [ eapply fact_nlt_mono; eauto | eapply fact_holds_Rx; eauto ].
+Qed.
+
+Lemma first_some_in : forall {A B : Type} (f : A -> option B) l y,
+  first_some f l = Some y -> exists x, In x l /\ f x = Some y.
+Proof.
+  intros A B f l. induction l as [|a l IH]; intros y H; cbn in H; [ discriminate | ].
+  destruct (f a) as [b|] eqn:F.
+  - injection H as <-. exists a. split; [ left; reflexivity | exact F ].
+  - destruct (IH y H) as (x & I & Fx). exists x. split; [ right; exact I | exact Fx ].
+Qed.
+
+Lemma jfacts_in : forall pc1 pc2 nx mo f, In f (jfacts pc1 pc2 nx mo) ->
+  exists f1 f2, In f1 pc1 /\ In f2 pc2 /\ au_fact f1 f2 nx mo = Some f.
+Proof.
+  intros pc1 pc2 nx mo f I. unfold jfacts in I. apply in_flat_map in I. destruct I as (f1 & I1 & I2).
+  destruct (first_some (fun f2 => au_fact f1 f2 nx mo) pc2) as [f'|] eqn:F; [ | destruct I2 ].
+  destruct I2 as [<- | []]. destruct (first_some_in _ _ _ F) as (f2 & If2 & A).
+  exists f1, f2. split; [ exact I1 | split; [ exact If2 | exact A ] ].
 Qed.
 
 Lemma key_eq_true : forall a b, key_eq a b = true -> a = b.
@@ -2215,10 +2570,11 @@ Proof.
   destruct (list_eq_dec Pos.eq_dec (g_loc g1) (g_loc g2)) as [GL | ]; [ | discriminate ].
   destruct (list_eq_dec Pos.eq_dec _ _) as [KE | ]; [ | discriminate ].
   set (nx0 := Pos.max (g_nx g1) (g_nx g2)) in J.
-  destruct (jout o1 o2 nx0) as [[o nx1]|] eqn:JO; [ | discriminate ].
-  destruct (jtemps (PTree.elements le1) le2 (PTree.empty sval) nx1) as [[le nx2]|] eqn:JT;
+  destruct (jout o1 o2 nx0 nil) as [[[o nx1] mo1]|] eqn:JO; [ | discriminate ].
+  destruct (jtemps (PTree.elements le1) le2 (PTree.empty sval) nx1 mo1) as [[[le nx2] mo2]|] eqn:JT;
     [ | discriminate ].
-  destruct (jmem (jkeys_of g1 g2) g1 g2 nx2) as [[sm nx3]|] eqn:JM; [ | discriminate ]. inv J.
+  destruct (jmem (jkeys_of g1 g2) g1 g2 nx2 mo2) as [[[sm nx3] mo3]|] eqn:JM; [ | discriminate ].
+  injection J as <-.
   set (gs := if sd then g1 else g2).
   set (les := if sd then le1 else le2).
   set (os := if sd then o1 else o2).
@@ -2229,29 +2585,29 @@ Proof.
   assert (Lgs : Ple (g_nx gs) nx0) by (unfold gs, nx0; destruct sd; [ apply Pos.le_max_l | apply Pos.le_max_r ]).
   pose proof MM as (EO & NB & ENT & FR & VP & NX & PC & LOC & LINJ).
   assert (NB0 : Ple nbase nx0) by (unfold Ple in *; lia).
+  assert (M0 : MINV sd Es nx0 Es nil nx0).
+  { split; [ apply Rx_refl | split; [ exact EO | split; [ exact NB0 | split; [ apply Ple_refl | ] ] ] ].
+    intros a b k []. }
   (* stage 1: outcome *)
-  destruct (jout_side sd o1 o2 nx0 o nx1 Es out JO EO NB0
-              (out_match_mono Es Es _ _ _ _ OM (Rx_refl _ _) Lgs)) as (E1 & R1 & EO1 & L1 & OM1).
+  destruct (jout_side sd Es nx0 o1 o2 nx0 nil o nx1 mo1 Es out JO M0
+              (out_match_mono Es Es _ _ _ _ OM (Rx_refl _ _) Lgs)) as (E1 & M1 & R1 & L1 & OM1).
   (* stage 2: temps *)
-  destruct (jtemps_side sd (PTree.elements le1) le2 (PTree.empty sval) nx1 le nx2 E1 JT EO1
-              ltac:(unfold Ple in *; lia)) as (E2 & R2 & EO2 & L2 & TJ).
+  destruct (jtemps_side sd Es nx0 (PTree.elements le1) le2 (PTree.empty sval) nx1 mo1 le nx2 mo2 E1 JT M1)
+    as (E2 & M2 & R2 & L2 & TJ).
   { intros id t H. rewrite PTree.gempty in H. discriminate. }
   { intros id t1 t2 I B. apply PTree.elements_complete in I.
     assert (Hs : les ! id = Some (sel sd t1 t2)) by (unfold les, sel; destruct sd; auto).
-    destruct (TM id _ Hs) as (_ & _ & _ & S). eapply sok_mono; [ exact S | unfold Ple in *; lia ]. }
+    destruct (TM id _ Hs) as (_ & _ & _ & S). eapply sok_mono; [ exact S | exact Lgs ]. }
   (* stage 3: memory *)
   assert (SLs : forall r o ch t1 t2, sload g1 r o ch = Some t1 -> sload g2 r o ch = Some t2 ->
             sload gs r o ch = Some (sel sd t1 t2)) by (intros; unfold gs, sel; destruct sd; auto).
-  destruct (jmem_side sd (jkeys_of g1 g2) g1 g2 nx2 sm nx3 E2 JM EO2
-              ltac:(unfold Ple in *; lia)) as (E3 & R3 & EO3 & L3 & K3 & MJ).
+  destruct (jmem_side sd Es nx0 (jkeys_of g1 g2) g1 g2 nx2 mo2 sm nx3 mo3 E2 JM M2)
+    as (E3 & M3 & R3 & L3 & K3 & MJ).
   { intros r o' ch t1 t2 I A B. pose proof (SLs _ _ _ _ _ A B) as Ss.
-    destruct (sload_sound _ _ _ _ _ _ _ MM Ss) as [_ S]. eapply sok_mono; [ exact S | unfold Ple in *; lia ]. }
-  assert (R03 : Rx Es E3 nx0).
-  { eapply Rx_trans; [ exact R1 | | exact L1 ]. eapply Rx_trans; [ exact R2 | exact R3 | exact L2 ]. }
+    destruct (sload_sound _ _ _ _ _ _ _ MM Ss) as [_ S]. eapply sok_mono; [ exact S | exact Lgs ]. }
+  pose proof M3 as (R03 & EO3 & _ & L03 & _).
   assert (R13 : Rx E1 E3 nx1) by (eapply Rx_trans; [ exact R2 | exact R3 | exact L2 ]).
   assert (Rs3 : Rx Es E3 (g_nx gs)) by (eapply Rx_mono; eauto).
-  assert (DS : forall a, nlt (g_nx gs) a -> den E3 a = den Es a)
-    by (intros; eapply den_Rx; eauto).
   assert (GL1 : g_loc gs = g_loc g1) by (unfold gs; destruct sd; auto).
   pose proof R03 as (BA & BB & _).
   exists E3. split; [ eapply Ext_trans; [ exact X0 | apply Rx_Ext; exact Rs3 | exact P0 ] | ].
@@ -2266,8 +2622,7 @@ Proof.
       * cbn [g_sm]. unfold sload in Ss. destruct (inb gs r o' ch) eqn:IB; [ | discriminate ].
         rewrite (inb_loc gs); [ exact IB | cbn; congruence ].
       * destruct (sload_sound _ _ _ _ _ _ _ MM Ss) as [Ld Sd].
-        rewrite Hd. rewrite (den_Rx Es E2 nx0) by (eauto using Rx_trans; apply sok_nlt; eapply sok_mono; eauto).
-        rewrite BA, (addr_Rx Es E3 nx0 r o' R03). exact Ld.
+        rewrite Hd, BA, (addr_Rx Es E3 nx0 r o' R03). exact Ld.
     + (* frame *)
       intros b z ch OLD NOV. apply FR; [ exact OLD | ].
       intros e I. assert (IK : In (skey e) (map skey sm)).
@@ -2275,13 +2630,10 @@ Proof.
       apply in_map_iff in IK. destruct IK as [e' [Ke I']].
       rewrite <- (cell_disj_Rx Es E3 nx0 _ _ _ _ R03). rewrite <- Ke. apply NOV. exact I'.
     + (* facts *)
-      intros f I. cbn [g_pc] in I. apply filter_In in I. destruct I as [I1 I2].
-      assert (Is : In f (g_pc gs)).
-      { unfold gs; destruct sd; [ exact I1 | ].
-        apply existsb_exists in I2. destruct I2 as [f' [If Ef]]. unfold fbeq in Ef.
-        destruct (fact_eq f f'); [ subst; exact If | discriminate ]. }
-      destruct (PC f Is) as [Fn Fh]. split; [ eapply fact_nlt_mono; [ exact Fn | unfold Ple in *; lia ] | ].
-      eapply fact_holds_Rx; eauto.
+      intros f I. destruct (jfacts_in _ _ _ _ _ I) as (f1 & f2 & I1 & I2 & A).
+      assert (Is : In (if sd then f1 else f2) (g_pc gs)) by (unfold gs; destruct sd; assumption).
+      destruct (PC _ Is) as [Fn Fh].
+      eapply au_fact_side; [ exact A | exact M3 | eapply fact_nlt_mono; [ exact Fn | exact Lgs ] | exact Fh ].
     + (* locals *)
       intros r I. rewrite <- GL1 in I. destruct (LOC r I) as (A & B & C & D & F).
       rewrite BA, BB. split; [ exact A | split; [ unfold Plt, Ple in *; lia | auto ] ].
@@ -2292,9 +2644,8 @@ Proof.
     + apply PTree.elements_complete in I.
       assert (Hs : les ! id = Some (sel sd t1 t2)) by (unfold les, sel; destruct sd; auto).
       destruct (TM id _ Hs) as (v & Tv & Dv & Sv). exists v. split; [ exact Tv | split ].
-      * rewrite (den_Rx E2 E3 nx2 t R3 (sok_nlt _ _ S)), Hd.
-        rewrite (den_Rx Es E1 nx0); [ exact Dv | exact R1 | apply sok_nlt; eapply sok_mono; eauto ].
-      * eapply sok_mono; eauto.
+      * rewrite (den_Rx E2 E3 nx2 t R3 (sok_nlt _ _ S)), Hd. exact Dv.
+      * eapply sok_mono; [ exact S | exact L3 ].
   - (* outcome *)
     eapply out_match_mono; [ exact OM1 | exact R13 | unfold Ple in *; lia ].
 Qed.

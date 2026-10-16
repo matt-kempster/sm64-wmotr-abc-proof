@@ -194,3 +194,12 @@ Definition dbg_top (f : function) (args : list sval) :=
 Time Eval vm_compute in option_map (@List.length _) (runf mario_step.f_perform_air_quarter_step [MP; PP; Sconst (Vint Int.zero)]).
 Time Eval vm_compute in option_map (@List.length _) (runf mario_step.f_apply_gravity [MP]).
 Time Eval vm_compute in (option_map (@List.length _) (res true true)).
+
+(* the call-site join on the whole step's outcomes (anti-unification joins):
+   7328 raw outcomes; 225 keyed on [jkeys]; 4 keyed on the action cells only *)
+Definition jg (ks : list (positive * Z * memory_chunk)) (cs : list cpath) :=
+  match ge12 with Some g => jgroup_c NB (R0x g) (kv g) ks cs | None => None end.
+Definition ka : list (positive * Z * memory_chunk) :=
+  [(RM, 12, Mint32); (RM, 24, Mint16unsigned); (RM, 26, Mint16unsigned)].
+Time Eval vm_compute in (match res true true with Some cs => option_map (@List.length _) (jg jkeys cs) | None => None end).
+Time Eval vm_compute in (match res true true with Some cs => option_map (@List.length _) (jg ka cs) | None => None end).

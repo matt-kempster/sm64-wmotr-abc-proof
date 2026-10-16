@@ -245,8 +245,21 @@ Measured on the real code (`playground/SymExec2Lab.v`, with stand-in contracts):
 - resolve_and_return_wall_collisions: 5.
 - perform_air_quarter_step: 112 paths, 16 after the call-site join.
 
-**Open: the full perform_air_step still blows up** (stack overflow after about 800 s). A
-join needs the key cells (pos[1], vel[1], floorHeight, ...) to be syntactically equal.
-Each quarter step leaves a different pos[1] term on each path, so four rounds never
-re-merge. The next step is coarser keys: join on the outcome tag and the constant temps,
-and let the fresh-name join abstract the differing cells.
+**The full perform_air_step now runs** (22 s, 7328 raw outcomes) after two changes:
+- **Skeleton keys.** `key_of` erases fresh numbering (`skel`). Paths whose key cells
+  differ only in which fresh name they hold now meet. The old keys kept four quarter
+  steps' worth of distinct terms apart and overflowed the stack after about 800 s.
+- **Anti-unification joins.** `join2` used to replace every differing slot with a new
+  fresh name and keep only facts that were literally equal on both sides. That dropped
+  `Fworld (Sfresh 49) ...` for the floor pointer, so `apply_vertical_wind` could not read
+  `m->floor` and the run returned None. `au` now joins same-operator terms operand-wise
+  and names each differing pair once, through a memo. Facts are joined through the same
+  memo (`au_fact`, read-only), so a fact or relation that holds on both paths survives
+  (the floor pointer's `Fworld` fact, `pos[1] = floorHeight`). The proof's invariant
+  `MINV` gives each memo name the value its pair has on the real side.
+
+The call-site join on the whole step's outcomes gives 225 classes keyed on the lab's
+key cells, and 4 keyed on the action cells alone. In those 4, `pos[1]` is either one
+fresh name or a sum of two, so the action-only key is too coarse for the value walk.
+Next: real contracts in place of the lab's stand-ins (`find_floor`'s value row, the wall
+contract), then port the gravity slice to v2.
