@@ -29,11 +29,11 @@ cd "$(dirname "$0")/../../.." || exit 2
 # Memory cap: re-exec inside a systemd user scope so a runaway coqc gets
 # OOM-killed inside its own cgroup instead of thrashing the whole WSL VM
 # (2026-09-27: an AssumptionsProbe coqc + a PPO run livelocked 8GB for hours).
-# Override with DISC_MEM_MAX=6G; skipped where systemd-run --user is unavailable.
+# Override with DISC_MEM_MAX=24G; skipped where systemd-run --user is unavailable.
 if [ -z "${DISC_CAPPED:-}" ] && systemd-run --user --scope --quiet true >/dev/null 2>&1; then
   export DISC_CAPPED=1 SM64_MEMCAPPED=1   # nested pipeline drivers stay in this scope
   exec systemd-run --user --scope --quiet \
-    -p MemoryMax="${DISC_MEM_MAX:-3G}" -p MemorySwapMax=512M \
+    -p MemoryMax="${DISC_MEM_MAX:-16G}" -p MemorySwapMax=1G \
     bash "$PWD/.claude/skills/proof-discipline/discipline_check.sh" "$@"
 fi
 # shellcheck disable=SC1091
