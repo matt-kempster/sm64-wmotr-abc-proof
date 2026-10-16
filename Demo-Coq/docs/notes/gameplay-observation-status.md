@@ -48,6 +48,25 @@ It does not derive them from boot, authenticate their ROM source, or identify
 the loaded level. This is partial specification/connection work, not the full
 no-desync statement or a new completed gameplay invariant.
 
+### Contribution of the camera connection
+
+For this connection theorem, "if the expected input value is already present,
+the relevant bytes are preserved, and execution reaches the matching camera
+read, then that read obtains the value" is an accurate summary.
+`demo_input_emission_common` explicitly includes the expected final controller
+fields as a premise. `demo_input_origin_at` requires protected-byte history;
+`demo_camera_pressed_site` requires the history already to be at the selected
+read with its matching pointer and update context. The connection does not
+derive these premises from the separately proved local playback components.
+
+The checked work identifies the exact read in both generated camera functions,
+derives `buttonPressed`'s offset 18 from the generated structure layout,
+transports a typed load through the supplied unchanged-byte history, and
+establishes the actual next Clight read step. These are concrete interface and
+memory-semantics facts. They remove no normal-boot, output-correctness,
+all-frame preservation, site-reachability or loaded-level-identity obligation.
+Their formal validity must not be presented as a substantive no-desync result.
+
 ## Raw scene observations and source ownership metadata
 
 `DemoGameplaySceneObservation.v` pairs every existing actual controller-read

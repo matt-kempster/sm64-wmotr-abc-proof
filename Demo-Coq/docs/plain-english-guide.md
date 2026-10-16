@@ -21,6 +21,16 @@ input-use coverage, permitted boot states and hardware/SDK adequacy remain open.
 No major unchecked gameplay obligation has been closed. This work takes priority
 over further local input/exit cases.
 
+The camera connection is a conditional memory/read lemma. Its premises already
+include the expected controller output after input processing, preservation of
+the relevant bytes, and execution at the selected camera read with the matching
+pointer and layout. Coq checks the real generated read, its field offset and
+typed execution, and transports the supplied value through the supplied history.
+This is interface groundwork; it does not establish output correctness,
+preservation or reachability for normal gameplay, and closes none of those
+remaining obligations. Separate local playback proofs are not a complete
+boot-to-camera composition.
+
 Each observed input read now also has a raw scene-probe result, even when the
 area is null, unreadable or invalid. Coq checks the selected scripts' nine area
 declarations and their geometry/terrain operands. These do not identify an
