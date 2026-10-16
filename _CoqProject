@@ -249,6 +249,8 @@ proofs/Interp/CMem.v
 proofs/Interp/ClightInterp.v
 proofs/Interp/LinkGenv.v
 proofs/Interp/SymExec.v
+# second-generation symbolic executor: locals, loops, calls + contracts, joins (proved sound)
+proofs/Interp/SymExec2.v
 # GOAL 2 value-walk slice (UNWIRED): SymExec on the real apply_gravity -> catalog gravity
 proofs/WMotRRequiresA/Unwired/GravitySlice.v
 proofs/Interp/MemBuild.v

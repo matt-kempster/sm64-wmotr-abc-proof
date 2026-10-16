@@ -216,3 +216,37 @@ The route of §4 now runs end-to-end in Coq on the smallest real function.
 - external calls as contracts;
 - pointers loaded from memory (region aliasing);
 - summaries at call sites instead of inlining.
+
+## 8. Second-generation executor (2026-10-16; proved, kept, not yet consumed)
+
+`proofs/Interp/SymExec2.v` closes every item of §7's "still needed" list. It is proved to
+cover every big-step run (`sx_sound`, `sx_call_sound`). It has no admits and only CompCert's
+standard axioms.
+
+- **Locals.** Each `fn_vars` entry is a fresh region. Its block is chosen when
+  `Mem.alloc` runs (`salloc_sound`), and `Mem.free_list` drops its cells (`sfree_sound`).
+- **Loops** run breadth-first (`sx_loop`): all live states take one iteration together.
+  The back edges are joined before the next round, so joins act across paths.
+- **Switch** works when the scrutinee is decided.
+- **Calls.** Internal calls are inlined, or answered by a consumer contract (`xc`).
+  Contract soundness is a section hypothesis, `xc_sound`, stated against `eval_funcall`.
+  A consumer that instantiates it must prove it, or list it in `docs/TRUST.md`.
+- **World pointers.** Reads go through a pointer term `p` that a path fact `Fworld p n`
+  says points at `n` bytes of `m0` outside every consumer region. Such reads read `m0`.
+- **Fresh symbols** (`Sfresh`) are denoted by an environment that the proof extends.
+- **Joins** (`join2`, `jgroup`, `jgroup_c` at contract-merged call sites) are proved to
+  cover both inputs (`join2_sound`, `jgroup_PM`).
+- **Premise of the meaning.** The meaning assumes `m0_closed`: m0's contents point only at
+  m0's blocks. It is a hypothesis of the section, so a consumer must discharge it. For
+  example, the GOAL-2 run invariant must carry it.
+
+Measured on the real code (`playground/SymExec2Lab.v`, with stand-in contracts):
+- apply_gravity: 18 paths; apply_vertical_wind: 9.
+- resolve_and_return_wall_collisions: 5.
+- perform_air_quarter_step: 112 paths, 16 after the call-site join.
+
+**Open: the full perform_air_step still blows up** (stack overflow after about 800 s). A
+join needs the key cells (pos[1], vel[1], floorHeight, ...) to be syntactically equal.
+Each quarter step leaves a different pos[1] term on each path, so four rounds never
+re-merge. The next step is coarser keys: join on the outcome tag and the constant temps,
+and let the fresh-name join abstract the differing cells.

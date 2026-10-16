@@ -18,13 +18,14 @@
 # Exit code == coqc's RC (0 ok, 124 timeout, else Coq error). Full per-sentence
 # timing stays in pipeline/_check_time.log. Deps must already be built
 # (run `bash pipeline/build.sh` first, or after editing an upstream file).
+# CHECK_LOG=path overrides the log file (for running two checks at once).
 set -uo pipefail
 cd "$(dirname "$0")/.."
 source pipeline/memcap.sh "$PWD/pipeline/check.sh" "$@"
 # shellcheck disable=SC1091
 source pipeline/env.sh
 
-LOG=pipeline/_check_time.log
+LOG="${CHECK_LOG:-pipeline/_check_time.log}"
 LIMIT="${CHECK_TIMEOUT:-600}"
 
 : > "$LOG"
