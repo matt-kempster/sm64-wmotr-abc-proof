@@ -306,6 +306,7 @@ footer{margin-top:64px; padding-top:16px; border-top:1px solid var(--rule); font
             <div class="part-body"><dl>
               <dt>Says</dt><dd>Whatever the real code does to Mario’s height, speed and action is a sequence of moves from the catalog, each staying in range. It includes the claim that the floor heights the game finds come from this level’s surfaces.</dd>
               <dt>Discharge</dt><dd>This is the <a href="#crawl">writer crawl</a> made formal: walk the generated C value by value and show each of the 52 writes is the move its bin says, starting at <code>perform_air_step</code>. This is the main remaining work.</dd>
+              <dt>Progress</dt><dd>The tool is built: a symbolic executor for the generated Clight (<code>SymExec2.v</code>), proved to cover every real run, with joins that keep relations both paths share. It runs the whole real <code>perform_air_step</code> in 22 s (225 outcome classes) with stand-in contracts. Next: real contracts for <code>find_floor</code> and the wall check, then wire it into this row.</dd>
               <dt>Fails if</dt><dd>An unmodelled move fires: hanging (needs A), water, wind, shells, or objects that grab or throw. WMotR has none of these.</dd>
             </dl></div>
           </details>
