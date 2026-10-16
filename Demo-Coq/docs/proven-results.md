@@ -6,6 +6,8 @@ Checked proof checkpoint: `5dfb2332f69da710f19e0b9ab9891571fc4290d8`.
 
 This report covers all 62 registered proof modules at that checkpoint. The capstone is a conjunction of conditional components, not the requested gameplay theorem.
 
+The [significance review](notes/result-significance-review.md) distinguishes substantive local behavior, finite facts, modeling infrastructure and results that leave the hard gameplay premises supplied. No result establishes the requested full normal-gameplay invariant.
+
 ## Conditions shared across the results
 
 - The checked generated program is source revision 9921382a68bb0c865e5e45eb594d9c64db59b1af, US/JP configurations, TARGET_N64=1, NON_MATCHING=1 and AVOID_UB=1, translated by CompCert 3.15 for 32-bit big-endian PowerPC EABI. This is not a proved retail-MIPS or hardware refinement.
@@ -22,15 +24,19 @@ This report covers all 62 registered proof modules at that checkpoint. The capst
 
 **Limits.** No authentic DMA-to-memory proof, successful boot allocation, general later-index/wrap invariant, or normal-boot reachability. A local same-buffer result does not identify the scene that is eventually loaded.
 
+**Significance review.** Substantive local pairing. Derives the header return and buffer+4 installation from the same incoming buffer; it does not assume that output pairing. Authentic DMA contents, normal entry and the subsequently loaded scene remain unestablished.
+
 **Complete statements, predicate definitions and proofs:** [DemoStartExecution](../proofs/DemoStartExecution.v), [DemoTitleStartExecution](../proofs/DemoTitleStartExecution.v), [DemoLoaderExecution](../proofs/DemoLoaderExecution.v), [DemoLoadedTitleExecution](../proofs/DemoLoadedTitleExecution.v).
 
 ## Interpreter operations and selected header dispatch
 
 **Proved result.** Real level selection, CALL/register transfer, current-level GET, equality and conditional-jump paths execute locally. Finite generated-table checks map headers 4,5,7,12,24,27,30 to their selected entries; header30 selects the Bowser1 arena.
 
-**Conditions.** Actual command/register/stack/pointer cells and reads, layouts and function/handler resolution. Taken numeric jumps require the specified numeric target-cell input. The numeric address helper requires its actual source table slot to contain the supplied numeric base.
+**Conditions.** Actual command/register/stack/pointer cells and reads, layouts and function/handler resolution. The level setter's supplied argument is not related to the demo header by this theorem. Taken numeric jumps require the specified numeric target-cell input. The numeric address helper requires its actual source table slot to contain the supplied numeric base.
 
 **Limits.** No complete boot-to-interpreter-to-level route. A numeric command pointer still cannot be dereferenced by ordinary Clight. Indirect target, overlay lifetime and complete source/native correspondence are not discharged.
+
+**Significance review.** Real local routing; no level-match guarantee. Derives register transfers, stores, comparisons and branches; finite tables identify selected targets. The level setter accepts the supplied level while preserving the active demo pointer, without proving that level matches the header. Runtime target/image correctness and the complete route remain open.
 
 **Complete statements, predicate definitions and proofs:** [DemoLevelSelectionExecution](../proofs/DemoLevelSelectionExecution.v), [DemoDispatchFacts](../proofs/DemoDispatchFacts.v), [DemoScriptDispatchFacts](../proofs/DemoScriptDispatchFacts.v), [DemoConditionalDispatchExecution](../proofs/DemoConditionalDispatchExecution.v), [DemoNumericAddressExecution](../proofs/DemoNumericAddressExecution.v), [DemoNumericDispatchExecution](../proofs/DemoNumericDispatchExecution.v), [DemoCurrentLevelGetExecution](../proofs/DemoCurrentLevelGetExecution.v), [DemoScriptNumericImage](../proofs/DemoScriptNumericImage.v).
 
@@ -42,15 +48,19 @@ This report covers all 62 registered proof modules at that checkpoint. The capst
 
 **Limits.** Entry is after hardware polling. No SDK polling correctness, boot port mapping, authentic all-frame stream provenance or bounds induction, or complete later gameplay frame.
 
+**Significance review.** Substantive local input processing. Derives buttons, sticks, timers, pointer changes and protected-memory effects from initial record bytes, including composed post-polling callers. Correct entry stream/mapping resources and square-root contracts remain supplied; authentic all-frame provenance and loaded-level pairing are unproved.
+
 **Complete statements, predicate definitions and proofs:** [DemoPlaybackExecution](../proofs/DemoPlaybackExecution.v), [DemoPlaybackAdvanceExecution](../proofs/DemoPlaybackAdvanceExecution.v), [DemoConsumedInputExecution](../proofs/DemoConsumedInputExecution.v), [DemoControllerInputExecution](../proofs/DemoControllerInputExecution.v), [DemoAnalogInputExecution](../proofs/DemoAnalogInputExecution.v), [DemoControllerCopyExecution](../proofs/DemoControllerCopyExecution.v), [DemoControllerReadExecution](../proofs/DemoControllerReadExecution.v), [DemoPlaybackSecondControllerExecution](../proofs/DemoPlaybackSecondControllerExecution.v), [DemoSecondControllerExecution](../proofs/DemoSecondControllerExecution.v), [DemoConnectedSecondControllerReadExecution](../proofs/DemoConnectedSecondControllerReadExecution.v), [DemoPhysicalPadPlaybackExecution](../proofs/DemoPhysicalPadPlaybackExecution.v), [DemoShiftedControllerExecution](../proofs/DemoShiftedControllerExecution.v), [DemoPhysicalControllerReadExecution](../proofs/DemoPhysicalControllerReadExecution.v).
 
 ## Warp, pause and Demo Next paths
 
-**Proved result.** Actual null-painting/instant-warp rejection, demo delayed-exit dispatch, transition completion, pause/dialog query, scheduling, countdown and selected normal-caller intervals execute with their real internal callees.
+**Proved result.** Actual null-painting/instant-warp rejection, demo delayed-exit dispatch, transition completion, pause/dialog query, scheduling, countdown and selected normal-caller intervals execute locally. Selected compositions use the actual internal callees; the Normal Start prefix retains its intro-text call premise.
 
-**Conditions.** Each actual branch's entry reads and resources: null painting table or null instant floor/table where used; non-castle condition for the corresponding instant-warp theorem; active demo/debug/mode/operation/timer/transition/dialog cells where stated. Special-code transition completion requires zero ordinary warp destination. Start scheduling retains its concrete intro-text call and specified post-UI reads. Countdown results cover their stated timers and camera/dialog resources, including the all-dialog extension.
+**Conditions.** Each actual branch's entry reads and resources: null painting table or null instant floor/table where used; non-castle condition for the corresponding instant-warp theorem; active demo/debug/mode/operation/timer/transition/dialog cells where stated. Special-code transition completion requires zero ordinary warp destination. The Normal Start prefix assumes the concrete print_intro_text execution and specified post-UI reads; that callee is not proved here. Countdown results cover their stated timers and camera/dialog resources, including the all-dialog extension.
 
 **Limits.** Ordinary nonzero warp destination takes priority over a negative special code. No theorem here establishes that it remains zero in every gameplay history. Selected caller intervals do not execute all object/HUD/camera effects or twenty consecutive gameplay frames.
+
+**Significance review.** Mixed: real effects, safety guards supplied. Scheduling and selected countdown/exit effects are derived. Absence of ordinary warp destinations and relevant warp resources is assumed where required, rather than established throughout gameplay. Object/HUD/camera intervals and the intro-text callee remain incompletely composed.
 
 **Complete statements, predicate definitions and proofs:** [DemoGameplayBoundary](../proofs/DemoGameplayBoundary.v), [DemoPauseExclusion](../proofs/DemoPauseExclusion.v), [DemoStartWarpExecution](../proofs/DemoStartWarpExecution.v), [DemoStartSchedulingExecution](../proofs/DemoStartSchedulingExecution.v), [DemoNormalStartExecution](../proofs/DemoNormalStartExecution.v), [DemoInstantWarpExecution](../proofs/DemoInstantWarpExecution.v), [DemoNormalTimerExecution](../proofs/DemoNormalTimerExecution.v), [DemoNormalPreObjectsExecution](../proofs/DemoNormalPreObjectsExecution.v), [DemoNormalPostCameraExecution](../proofs/DemoNormalPostCameraExecution.v), [DemoDelayedWarpTerminalExecution](../proofs/DemoDelayedWarpTerminalExecution.v), [DemoNormalDelayedExecution](../proofs/DemoNormalDelayedExecution.v), [DemoDialogZoomExecution](../proofs/DemoDialogZoomExecution.v), [DemoNormalTerminalPostCameraExecution](../proofs/DemoNormalTerminalPostCameraExecution.v).
 
@@ -62,6 +72,8 @@ This report covers all 62 registered proof modules at that checkpoint. The capst
 
 **Limits.** This is one unit's initial memory, not complete linked-game boot, authenticated retail RAM, later area loading or a lifetime/preservation invariant.
 
+**Significance review.** Substantive isolated initializer. Constructs the actual area unit's initialized memory and derives clearing all eight area slots without assuming null outputs. This discharges the local reset resources, but proves no linked normal boot or later lifetime invariant.
+
 **Complete statements, predicate definitions and proofs:** [DemoAreaInitialization](../proofs/DemoAreaInitialization.v), [DemoAreaInitialMemory](../proofs/DemoAreaInitialMemory.v).
 
 ## Finite source inventories and selected source links
@@ -71,6 +83,8 @@ This report covers all 62 registered proof modules at that checkpoint. The capst
 **Conditions.** Exactly the fixed generated units, selected owners/entries, command-boundary parsers and normalization metadata in the statements. Nine-unit script links use the proved empty-array completion; preservation claims use the stated environment agreement. ROM/ELF operand authentication is an external finite check.
 
 **Limits.** No full 22-unit-per-version game link, transitive script/callback execution, all indirect-store census, or wider anonymous-tag/type-renaming refinement. Raw geometry symbols and first scalar values do not establish processed scene ownership.
+
+**Significance review.** Finite facts and substantive modeling infrastructure. Actual syntax/table checks and selected links are established; declaration normalization also preserves initial memory and Clight steps. These remove specific modeling obstacles, but direct syntax absence is not transitive runtime noninterference and no unified whole-game environment is established.
 
 **Complete statements, predicate definitions and proofs:** [SourceFacts](../proofs/SourceFacts.v), [DemoPrivateGlobalLinkReceipt](../proofs/DemoPrivateGlobalLinkReceipt.v), [DemoExternArrayCompletion](../proofs/DemoExternArrayCompletion.v), [DemoSelectedLinkTypeBoundary](../proofs/DemoSelectedLinkTypeBoundary.v), [DemoSceneSourceInventory](../proofs/DemoSceneSourceInventory.v), [DemoNativeAddressImages](../proofs/DemoNativeAddressImages.v).
 
@@ -82,6 +96,8 @@ This report covers all 62 registered proof modules at that checkpoint. The capst
 
 **Limits.** This is conditional read-interface groundwork. It removes no normal-gameplay obligation to establish the expected output, byte preservation or read-site reachability. Receipts and histories are not derived from boot. No exhaustive Mario/object/behavior/read-producer coverage, full physical/P3 provenance, authenticated loaded-level identity, resulting camera response or authentic gameplay witness. Polling/Start bookkeeping alone is not gameplay application.
 
+**Significance review.** Mostly observation and transport groundwork. Expected controller outputs, protected bytes and the reached camera site are supplied. Raw scene probes report supplied memory without establishing a valid loaded scene or its level. Concrete read/layout checks are useful infrastructure, with little direct force against desync.
+
 **Complete statements, predicate definitions and proofs:** [DemoExecutionHistory](../proofs/DemoExecutionHistory.v), [DemoInputOriginObservation](../proofs/DemoInputOriginObservation.v), [DemoGameplayConsumptionObservation](../proofs/DemoGameplayConsumptionObservation.v), [DemoGameplayObservationConnection](../proofs/DemoGameplayObservationConnection.v), [DemoAreaSceneObservation](../proofs/DemoAreaSceneObservation.v), [DemoGameplaySceneObservation](../proofs/DemoGameplaySceneObservation.v).
 
 ## Structure of a candidate external-event policy
@@ -91,6 +107,8 @@ This report covers all 62 registered proof modules at that checkpoint. The capst
 **Conditions.** The history is assumed to satisfy the explicit finite policy. Its exact API signatures, global arguments, layout/queue/DMA resources, result values, permitted traces and memory footprints apply. DMA uses an explicit supplied ROM byte resource and pending/completed phases. Unknown externals are rejected.
 
 **Limits.** This is a proposed policy, not verified SDK/hardware behavior or a permitted normal-boot environment. EEPROM long read/write, shared SI/PIF serialization, failures, FIFO/blocking/wakeup, native DMA timing, scheduler and input-domain coverage remain open. There is no initial-state predicate or authentic gameplay witness.
+
+**Significance review.** Mostly consequences of a proposed policy. Permitted effects and sequencing are stipulated by the policy; the lemmas recover those conditions from policy-admitted histories. They do not prove the SDK/hardware obeys it or that any authentic normal gameplay history is admitted.
 
 **Complete statements, predicate definitions and proofs:** [DemoPermittedExternalSpec](../proofs/DemoPermittedExternalSpec.v).
 
@@ -102,6 +120,8 @@ This report covers all 62 registered proof modules at that checkpoint. The capst
 
 **Limits.** Stuck ordinary-Clight representations do not imply retail failure, unreachable gameplay or safety. Decoder load equality can be None=None. Address equality does not choose an active image or establish readable/authentic assets and ownership.
 
+**Significance review.** Model diagnostics and supplied-image arithmetic. Proves a real helper's local arithmetic and exposes ordinary-Clight representation obstructions. The decoder's block/image is supplied; it neither discovers the active scene nor proves readable/authentic assets, and equality may compare two failed reads.
+
 **Complete statements, predicate definitions and proofs:** [DemoSceneAddressBoundary](../proofs/DemoSceneAddressBoundary.v), [DemoSceneAddressView](../proofs/DemoSceneAddressView.v).
 
 ## Positive scalar-read connection in explicit candidate projections
@@ -111,6 +131,8 @@ This report covers all 62 registered proof modules at that checkpoint. The capst
 **Conditions.** Equal actual source/RAM loadbytes at the selected scalar range; actual descriptor/native operand view; bounds, extent and alignment; matching context memory/RAM block, temp and canonical base GPR; exact authenticated instruction PC/word fetch; sequential pending next PC. The restricted native model checks canonical addresses and no signed32 address overflow. Candidate scope is big-endian kernel RAM with coherent caches and no intervening hardware event. Whole-image byte transport separately requires a pure-byte image; pointer fragments do not satisfy it.
 
 **Limits.** The numeric evaluator is not ordinary Clight pointer dereference, and the LOAD projection is not a full VR4300 model or whole-language simulation. Image presence, activation/epoch/ownership and reached caller states remain premises. Local RAM witnesses place data at 0x80001000 and are not normal-boot, loaded-asset or joint loaded-scene witnesses. Complete helper/caller execution and authentic gameplay non-vacuity remain open.
+
+**Significance review.** Limited custom-model read agreement. Derives single-load agreement from matching bytes, code fetches, registers and supplied image placement in candidate expression/ISA models. Correct loading, reachability, active ownership and model adequacy remain open. Prefix values 8 and 64 cannot identify the level.
 
 **Complete statements, predicate definitions and proofs:** [DemoConcreteMemoryTransport](../proofs/DemoConcreteMemoryTransport.v), [DemoConcreteScalarRange](../proofs/DemoConcreteScalarRange.v), [DemoConcreteExpression](../proofs/DemoConcreteExpression.v), [DemoNativeAddressMachine](../proofs/DemoNativeAddressMachine.v), [DemoNativeReadWitness](../proofs/DemoNativeReadWitness.v), [DemoSceneReadNativeConnection](../proofs/DemoSceneReadNativeConnection.v).
 

@@ -89,11 +89,13 @@ def main():
            'Checked proof checkpoint: `'+catalog['checked_proof_checkpoint']+'`.','',
            'This report covers all '+str(len(modules))+' registered proof modules at that checkpoint. '+
            'The capstone is a conjunction of conditional components, not the requested gameplay theorem.','',
+           'The [significance review](notes/result-significance-review.md) distinguishes substantive local behavior, finite facts, modeling infrastructure and results that leave the hard gameplay premises supplied. No result establishes the requested full normal-gameplay invariant.','',
            '## Conditions shared across the results','']
     lines += ['- '+text for text in catalog['shared_conditions']]
     for family in catalog['families']:
         lines += ['', '## '+family['title'],'', '**Proved result.** '+family['result'],'',
                   '**Conditions.** '+family['conditions'],'', '**Limits.** '+family['limits'],'',
+                  '**Significance review.** '+family['assessment_label']+'. '+family['assessment'],'',
                   '**Complete statements, predicate definitions and proofs:** '+', '.join(
                       '['+name+'](../proofs/'+name+'.v)' for name in family['modules'])+'.']
     lines += ['', '## Exact formal conditions','',

@@ -9,6 +9,10 @@ See [what is proved and every condition](proven-results.md) and the
 The requested all-executions claim remains **OPEN**. Completed local work is
 kept separate from unproved composition and reachability.
 
+The [read-only significance review](notes/result-significance-review.md)
+classifies the existing results by their actual conclusions and supplied
+premises. It closes no checklist item and resumes no proof work.
+
 **Primary specification gap: partially formalized, not complete.** Actual
 input reads now carry a same-index raw scene probe, including null/invalid/
 unreadable results. The selected source's nine AREA/terrain declarations and

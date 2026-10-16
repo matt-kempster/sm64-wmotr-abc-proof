@@ -10,6 +10,17 @@ is scheduled to continue automatically.
 play.** Demo-Coq proves concrete startup, input, interpreter and warp paths,
 while the complete boot-to-gameplay invariant remains open.
 
+The [result-significance review](notes/result-significance-review.md) assesses
+what those proofs contribute. Startup derives a same-buffer header/input
+pairing, playback derives controller outputs, and area reset constructs its own
+unit-level starting memory. Those are substantive local results. Conditional
+warp exclusions still assume their safety-relevant guards. Observation,
+external-policy and supplied-image connections leave the central runtime
+premises unproved. Selected syntax/ROM checks and normalization/linking results
+are factual or modeling support, not full gameplay safety. The level setter's
+proof accepts its supplied level without checking a relation to the demo header.
+The capstone collects components; it does not compose an authentic normal run.
+
 The [primary gameplay specification is partially formalized](notes/gameplay-observation-status.md).
 Coq now observes an actual controller-field read in generated gameplay code
 and conditionally connects a demo record's emitted value to a real camera read.

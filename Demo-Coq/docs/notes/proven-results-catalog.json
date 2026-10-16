@@ -12,6 +12,8 @@
   "families": [
     {
       "title": "Startup installs a stream pointer and returns its own header level",
+      "assessment_label": "Substantive local pairing",
+      "assessment": "Derives the header return and buffer+4 installation from the same incoming buffer; it does not assume that output pairing. Authentic DMA contents, normal entry and the subsequently loaded scene remain unestablished.",
       "result": "The generated installation suffix installs buffer+4 and returns the signed first header byte. The whole first-demo title path and real first cache-miss loader are composed locally.",
       "conditions": "Exact title/demo branch, countdown/index/cache and buffer resources; real symbol/layout facts, readable header/pointers, writable cells and the stated protected-byte separations. The composed loader/title result still requires the concrete generated dma_read execution and its specified post-DMA memory reads. Earlier, narrower suffix/title theorems retain their own stronger premises.",
       "limits": "No authentic DMA-to-memory proof, successful boot allocation, general later-index/wrap invariant, or normal-boot reachability. A local same-buffer result does not identify the scene that is eventually loaded.",
@@ -19,13 +21,17 @@
     },
     {
       "title": "Interpreter operations and selected header dispatch",
+      "assessment_label": "Real local routing; no level-match guarantee",
+      "assessment": "Derives register transfers, stores, comparisons and branches; finite tables identify selected targets. The level setter accepts the supplied level while preserving the active demo pointer, without proving that level matches the header. Runtime target/image correctness and the complete route remain open.",
       "result": "Real level selection, CALL/register transfer, current-level GET, equality and conditional-jump paths execute locally. Finite generated-table checks map headers 4,5,7,12,24,27,30 to their selected entries; header30 selects the Bowser1 arena.",
-      "conditions": "Actual command/register/stack/pointer cells and reads, layouts and function/handler resolution. Taken numeric jumps require the specified numeric target-cell input. The numeric address helper requires its actual source table slot to contain the supplied numeric base.",
+      "conditions": "Actual command/register/stack/pointer cells and reads, layouts and function/handler resolution. The level setter's supplied argument is not related to the demo header by this theorem. Taken numeric jumps require the specified numeric target-cell input. The numeric address helper requires its actual source table slot to contain the supplied numeric base.",
       "limits": "No complete boot-to-interpreter-to-level route. A numeric command pointer still cannot be dereferenced by ordinary Clight. Indirect target, overlay lifetime and complete source/native correspondence are not discharged.",
       "modules": ["DemoLevelSelectionExecution", "DemoDispatchFacts", "DemoScriptDispatchFacts", "DemoConditionalDispatchExecution", "DemoNumericAddressExecution", "DemoNumericDispatchExecution", "DemoCurrentLevelGetExecution", "DemoScriptNumericImage"]
     },
     {
       "title": "Recorded input playback and controller processing",
+      "assessment_label": "Substantive local input processing",
+      "assessment": "Derives buttons, sticks, timers, pointer changes and protected-memory effects from initial record bytes, including composed post-polling callers. Correct entry stream/mapping resources and square-root contracts remain supplied; authentic all-frame provenance and loaded-level pairing are unproved.",
       "result": "Playback handles ordinary, expiring and EOF records; proves exact stick/button outputs, timer/pointer effects and byte frames. Original post-polling callers compose both controller iterations and player-three copies, including connected-P2 and bounded shifted-pad variants.",
       "conditions": "Actual record/header/current-pointer loads, bounded non-wrapping record addresses, writable pads/controller region and explicit separation/protected reads. Each variant's P1/P2 port/pointer conditions still apply; generalized bounded pad bases do not derive hardware port initialization. Analog calls use the named pure sqrtf contract on the exact Float32 operand and specified return, trace and unchanged memory. Start/EOF guard corollaries additionally need their stated current/prior button bits.",
       "limits": "Entry is after hardware polling. No SDK polling correctness, boot port mapping, authentic all-frame stream provenance or bounds induction, or complete later gameplay frame.",
@@ -33,13 +39,17 @@
     },
     {
       "title": "Warp, pause and Demo Next paths",
-      "result": "Actual null-painting/instant-warp rejection, demo delayed-exit dispatch, transition completion, pause/dialog query, scheduling, countdown and selected normal-caller intervals execute with their real internal callees.",
-      "conditions": "Each actual branch's entry reads and resources: null painting table or null instant floor/table where used; non-castle condition for the corresponding instant-warp theorem; active demo/debug/mode/operation/timer/transition/dialog cells where stated. Special-code transition completion requires zero ordinary warp destination. Start scheduling retains its concrete intro-text call and specified post-UI reads. Countdown results cover their stated timers and camera/dialog resources, including the all-dialog extension.",
+      "assessment_label": "Mixed: real effects, safety guards supplied",
+      "assessment": "Scheduling and selected countdown/exit effects are derived. Absence of ordinary warp destinations and relevant warp resources is assumed where required, rather than established throughout gameplay. Object/HUD/camera intervals and the intro-text callee remain incompletely composed.",
+      "result": "Actual null-painting/instant-warp rejection, demo delayed-exit dispatch, transition completion, pause/dialog query, scheduling, countdown and selected normal-caller intervals execute locally. Selected compositions use the actual internal callees; the Normal Start prefix retains its intro-text call premise.",
+      "conditions": "Each actual branch's entry reads and resources: null painting table or null instant floor/table where used; non-castle condition for the corresponding instant-warp theorem; active demo/debug/mode/operation/timer/transition/dialog cells where stated. Special-code transition completion requires zero ordinary warp destination. The Normal Start prefix assumes the concrete print_intro_text execution and specified post-UI reads; that callee is not proved here. Countdown results cover their stated timers and camera/dialog resources, including the all-dialog extension.",
       "limits": "Ordinary nonzero warp destination takes priority over a negative special code. No theorem here establishes that it remains zero in every gameplay history. Selected caller intervals do not execute all object/HUD/camera effects or twenty consecutive gameplay frames.",
       "modules": ["DemoGameplayBoundary", "DemoPauseExclusion", "DemoStartWarpExecution", "DemoStartSchedulingExecution", "DemoNormalStartExecution", "DemoInstantWarpExecution", "DemoNormalTimerExecution", "DemoNormalPreObjectsExecution", "DemoNormalPostCameraExecution", "DemoDelayedWarpTerminalExecution", "DemoNormalDelayedExecution", "DemoDialogZoomExecution", "DemoNormalTerminalPostCameraExecution"]
     },
     {
       "title": "Area reset, including an actual unit initial-memory witness",
+      "assessment_label": "Substantive isolated initializer",
+      "assessment": "Constructs the actual area unit's initialized memory and derives clearing all eight area slots without assuming null outputs. This discharges the local reset resources, but proves no linked normal boot or later lifetime invariant.",
       "result": "clear_areas executes all eight resets and leaves current area and painting/instant pointers null. The final US/JP area-unit theorem constructs Genv.init_mem and discharges its own layout, symbol, separation and write-access resources.",
       "conditions": "The strongest witness uses exactly Clight.globalenv of the generated US or JP area translation unit and its initializer image. Earlier generic reset theorems still require their explicit resources. The frame only protects the stated blocks/bytes outside the reset writes.",
       "limits": "This is one unit's initial memory, not complete linked-game boot, authenticated retail RAM, later area loading or a lifetime/preservation invariant.",
@@ -47,6 +57,8 @@
     },
     {
       "title": "Finite source inventories and selected source links",
+      "assessment_label": "Finite facts and substantive modeling infrastructure",
+      "assessment": "Actual syntax/table checks and selected links are established; declaration normalization also preserves initial memory and Clight steps. These remove specific modeling obstacles, but direct syntax absence is not transitive runtime noninterference and no unified whole-game environment is established.",
       "result": "Generated syntax/command censuses, private-global scoping, selected US/JP links and empty-array declaration normalization are checked. All nine selected AREA/TERRAIN declarations per version and their native operand words are recorded.",
       "conditions": "Exactly the fixed generated units, selected owners/entries, command-boundary parsers and normalization metadata in the statements. Nine-unit script links use the proved empty-array completion; preservation claims use the stated environment agreement. ROM/ELF operand authentication is an external finite check.",
       "limits": "No full 22-unit-per-version game link, transitive script/callback execution, all indirect-store census, or wider anonymous-tag/type-renaming refinement. Raw geometry symbols and first scalar values do not establish processed scene ownership.",
@@ -54,6 +66,8 @@
     },
     {
       "title": "Input-use histories, provenance receipts and raw scene observations",
+      "assessment_label": "Mostly observation and transport groundwork",
+      "assessment": "Expected controller outputs, protected bytes and the reached camera site are supplied. Raw scene probes report supplied memory without establishing a valid loaded scene or its level. Concrete read/layout checks are useful infrastructure, with little direct force against desync.",
       "result": "Indexed original Clight steps support actual selected controller-field observations. The conditional camera connection checks the generated read/layout and transports an already-assumed emitted controller value to that read. Every covered read has a total same-index raw scene probe, retaining missing/null/invalid/unreadable results.",
       "conditions": "A supplied actual execution history, valid indices, selected generated update/read contexts and successful typed evaluations. Origin connection requires actual loader/DMA/reader/playback call/return receipts, which already include the expected final controller fields; protected-byte history; and execution already at the selected camera read with matching pointer/context/layout. These premises are not derived here from the separate local playback proofs. P1 origin transport and positive-record/EOF cases have their exact separate conditions. Raw snapshot claims need actual symbols/layout/loads; observation eligibility does not assume scene/header equality or exclude fades by phase label.",
       "limits": "This is conditional read-interface groundwork. It removes no normal-gameplay obligation to establish the expected output, byte preservation or read-site reachability. Receipts and histories are not derived from boot. No exhaustive Mario/object/behavior/read-producer coverage, full physical/P3 provenance, authenticated loaded-level identity, resulting camera response or authentic gameplay witness. Polling/Start bookkeeping alone is not gameplay application.",
@@ -61,6 +75,8 @@
     },
     {
       "title": "Structure of a candidate external-event policy",
+      "assessment_label": "Mostly consequences of a proposed policy",
+      "assessment": "Permitted effects and sequencing are stipulated by the policy; the lemmas recover those conditions from policy-admitted histories. They do not prove the SDK/hardware obeys it or that any authentic normal gameplay history is admitted.",
       "result": "Policy-admitted edges are actual Clight edges with exact external call/return effects, carried controller/DMA phase, internal phase continuity and rejection of builtin bypasses.",
       "conditions": "The history is assumed to satisfy the explicit finite policy. Its exact API signatures, global arguments, layout/queue/DMA resources, result values, permitted traces and memory footprints apply. DMA uses an explicit supplied ROM byte resource and pending/completed phases. Unknown externals are rejected.",
       "limits": "This is a proposed policy, not verified SDK/hardware behavior or a permitted normal-boot environment. EEPROM long read/write, shared SI/PIF serialization, failures, FIFO/blocking/wakeup, native DMA timing, scheduler and input-domain coverage remain open. There is no initial-state predicate or authentic gameplay witness.",
@@ -68,6 +84,8 @@
     },
     {
       "title": "Address-model diagnostics and supplied-image arithmetic",
+      "assessment_label": "Model diagnostics and supplied-image arithmetic",
+      "assessment": "Proves a real helper's local arithmetic and exposes ordinary-Clight representation obstructions. The decoder's block/image is supplied; it neither discovers the active scene nor proves readable/authentic assets, and equality may compare two failed reads.",
       "result": "The real numeric helper executes locally. Symbolic helper bit shifts and selected integer-address dereferences cannot execute in ordinary Clight. A separate bounded decoder maps the numeric result into an explicitly supplied block.",
       "conditions": "The exact numeric/symbolic input representation, actual source table read and temp bindings. Decoder results require supplied image/block/epoch, nonnegative placement/start, positive extent and the stated KSEG0 arithmetic bounds.",
       "limits": "Stuck ordinary-Clight representations do not imply retail failure, unreachable gameplay or safety. Decoder load equality can be None=None. Address equality does not choose an active image or establish readable/authentic assets and ownership.",
@@ -75,6 +93,8 @@
     },
     {
       "title": "Positive scalar-read connection in explicit candidate projections",
+      "assessment_label": "Limited custom-model read agreement",
+      "assessment": "Derives single-load agreement from matching bytes, code fetches, registers and supplied image placement in candidate expression/ISA models. Correct loading, reachability, active ownership and model adequacy remain open. Prefix values 8 and 64 cannot identify the level.",
       "result": "The selected generated geometry-byte and terrain-halfword expressions agree with successful RAM-fetched retail LBU/LH steps at their exact PCs. Constructed local RAM witnesses produce code/data reads, expression values 8/64 and full 64-bit destination results.",
       "conditions": "Equal actual source/RAM loadbytes at the selected scalar range; actual descriptor/native operand view; bounds, extent and alignment; matching context memory/RAM block, temp and canonical base GPR; exact authenticated instruction PC/word fetch; sequential pending next PC. The restricted native model checks canonical addresses and no signed32 address overflow. Candidate scope is big-endian kernel RAM with coherent caches and no intervening hardware event. Whole-image byte transport separately requires a pure-byte image; pointer fragments do not satisfy it.",
       "limits": "The numeric evaluator is not ordinary Clight pointer dereference, and the LOAD projection is not a full VR4300 model or whole-language simulation. Image presence, activation/epoch/ownership and reached caller states remain premises. Local RAM witnesses place data at 0x80001000 and are not normal-boot, loaded-asset or joint loaded-scene witnesses. Complete helper/caller execution and authentic gameplay non-vacuity remain open.",
