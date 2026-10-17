@@ -311,7 +311,7 @@ Section RestSurface.
   (* THE DECOMPOSITION: the consumer's whole-surface Hrest_pres from the
      ELEVEN per-real-body residuals (the stub is proved). *)
   Lemma rest_pres_decompose :
-    forall (NoA MWF : mem -> Prop) (bm : block),
+    forall (NoA MWF : mem -> Prop) (bm : block) (SafeB : block -> Prop),
       body_pres NoA MWF bm
         mario_actions_stationary.f_mario_execute_stationary_action ->
       body_pres NoA MWF bm
@@ -335,13 +335,14 @@ Section RestSurface.
         rest_fd lp (Internal f) ->
         (marg_exempt (Internal f) = false -> marg_ok bm vargs) ->
         sargs_ok (Internal f) vargs ->
+        wgate bm SafeB (type_of_fundef (Internal f)) vargs ->
         eval_funcall function_entry2 (lp_ge lp) m (Internal f) vargs t m' vres ->
         NoA m -> MWF m -> Mem.valid_block m bm ->
         action_sat not_tainted m bm ->
         Mem.valid_block m' bm /\ action_sat not_tainted m' bm /\ MWF m'.
   Proof.
-    intros NoA MWF bm Hsta Hmov Hair Hsub Hcut Haut Hobj Hflo Hint Hwnd Hwrp Hvfc
-           m f vargs t m' vres Hrest Hmarg Hsargs Hevf Hno Hmwf Hv Hsat.
+    intros NoA MWF bm SafeB Hsta Hmov Hair Hsub Hcut Haut Hobj Hflo Hint Hwnd Hwrp Hvfc
+           m f vargs t m' vres Hrest Hmarg Hsargs _ Hevf Hno Hmwf Hv Hsat.
     destruct (rest_internal_cases f Hrest) as
       [-> | [-> | [-> | [-> | [-> | [-> | [-> | [-> | [-> | [-> | [-> | [-> | ->]]]]]]]]]]]].
     - exact (Hsta m vargs t m' vres Hmarg Hevf Hno Hmwf Hv Hsat).

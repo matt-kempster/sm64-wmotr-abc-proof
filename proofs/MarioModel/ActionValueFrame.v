@@ -1380,6 +1380,20 @@ Definition reach_value_preserves_reached
     Mem.valid_block m bm -> action_sat Q m bm ->
     Mem.valid_block m' bm /\ action_sat Q m' bm /\ MWF m'.
 
+(* the G-gated export: as reach_value_preserves_reached, but the funcall is
+   also entered with the per-call argument gate G (see Hcallgate in
+   exec_funcall_reach_value_v2). *)
+Definition reach_value_preserves_reached_g
+    (Q : int -> Prop) (bm : block) (ge : genv) (NoA MWF : mem -> Prop)
+    (G : Clight.fundef -> list val -> Prop)
+    (Reached_fd : Clight.fundef -> Prop) : Prop :=
+  forall m fd vargs t m' vres,
+    Reached_fd fd -> NoA m -> MWF m -> (marg_exempt fd = false -> marg_ok bm vargs) ->
+    sargs_ok fd vargs -> G fd vargs ->
+    eval_funcall function_entry2 ge m fd vargs t m' vres ->
+    Mem.valid_block m bm -> action_sat Q m bm ->
+    Mem.valid_block m' bm /\ action_sat Q m' bm /\ MWF m'.
+
 Theorem exec_funcall_reach_value_reached :
   forall (Q : int -> Prop) (bm : block) (ge : genv)
          (NoA MWF : mem -> Prop) (writer : Clight.fundef -> Prop)
@@ -1662,12 +1676,13 @@ Qed.
 Definition reach_value_preserves_v2
     (Q : int -> Prop) (bm : block) (ge : genv) (NoA MWF : mem -> Prop)
     (writer : Clight.fundef -> Prop) (W : list val -> Prop)
+    (G : Clight.fundef -> list val -> Prop)
     (Reached_fd : Clight.fundef -> Prop) : Prop :=
   forall m fd vargs t m' vres,
     Reached_fd fd -> NoA m -> MWF m ->
     (marg_exempt fd = false -> marg_ok bm vargs) ->
     (writer fd -> W vargs) ->
-    sargs_ok fd vargs ->
+    sargs_ok fd vargs -> G fd vargs ->
     eval_funcall function_entry2 ge m fd vargs t m' vres ->
     Mem.valid_block m bm -> action_sat Q m bm ->
     Mem.valid_block m' bm /\ action_sat Q m' bm /\ MWF m'.
@@ -1676,6 +1691,7 @@ Theorem exec_funcall_reach_value_v2 :
   forall (Q : int -> Prop) (bm : block) (ge : genv)
          (NoA MWF : mem -> Prop) (writer : Clight.fundef -> Prop)
          (W : list val -> Prop)
+         (G : Clight.fundef -> list val -> Prop)
          (bridged : Clight.fundef -> Prop)
          (Reached_fd : Clight.fundef -> Prop)
          (I : Type)
@@ -1703,7 +1719,7 @@ Theorem exec_funcall_reach_value_v2 :
     (forall f vargs m t m' vres,
        Reached_fd (Internal f) -> bridged (Internal f) ->
        (marg_exempt (Internal f) = false -> marg_ok bm vargs) ->
-       sargs_ok (Internal f) vargs ->
+       sargs_ok (Internal f) vargs -> G (Internal f) vargs ->
        eval_funcall function_entry2 ge m (Internal f) vargs t m' vres ->
        NoA m -> MWF m -> Mem.valid_block m bm -> action_sat Q m bm ->
        Mem.valid_block m' bm /\ action_sat Q m' bm /\ MWF m') ->
@@ -1727,7 +1743,7 @@ Theorem exec_funcall_reach_value_v2 :
        forall-vargs was a phantom no real call site produces. *)
     (forall f vargs m t m' vres,
        Reached_fd (Internal f) -> marg_exempt (Internal f) = true ->
-       sargs_ok (Internal f) vargs ->
+       sargs_ok (Internal f) vargs -> G (Internal f) vargs ->
        eval_funcall function_entry2 ge m (Internal f) vargs t m' vres ->
        NoA m -> MWF m -> Mem.valid_block m bm -> action_sat Q m bm ->
        Mem.valid_block m' bm /\ action_sat Q m' bm /\ MWF m') ->
@@ -1775,6 +1791,19 @@ Theorem exec_funcall_reach_value_v2 :
        eval_expr ge e le m a vf -> Genv.find_funct ge vf = Some fd ->
        writer fd ->
        eval_exprlist ge e le m al tyargs vargs -> W vargs) ->
+    (* NEW (Hcallgate): the generic per-call ARGUMENT gate. The census
+       reads the call's real argument expressions (and the callee's
+       function type, which exec_Scall ties to the resolved fundef's) and
+       hands the bridged/exempt leaves a fact about the values they are
+       entered with -- e.g. "the out-param points at a Mario window cell or
+       a SafeB object". Without it those leaves quantify over ALL vargs,
+       which a writer body (find_floor's *pfloor = ...) cannot satisfy. *)
+    (forall i e le m optid a al tyargs tyres cc vargs vf fd,
+       TI i e le -> C i (Scall optid a al) ->
+       classify_fun (typeof a) = fun_case_f tyargs tyres cc ->
+       eval_expr ge e le m a vf -> Genv.find_funct ge vf = Some fd ->
+       type_of_fundef fd = Tfunction tyargs tyres cc ->
+       eval_exprlist ge e le m al tyargs vargs -> G fd vargs) ->
     (* leaf B (the writer) V2: gets W vargs -- no forall-vargs phantom. *)
     (forall m fd vargs t m' vres,
        Reached_fd fd -> NoA m -> MWF m -> W vargs ->
@@ -1844,11 +1873,11 @@ Theorem exec_funcall_reach_value_v2 :
        C i (Sswitch a ls) -> MWF m -> action_sat Q m bm -> TI i e le ->
        eval_expr ge e le m a v -> sem_switch_arg v (typeof a) = Some n ->
        C i (seq_of_labeled_statement (select_switch n ls))) ->
-    reach_value_preserves_v2 Q bm ge NoA MWF writer W Reached_fd.
+    reach_value_preserves_v2 Q bm ge NoA MWF writer W G Reached_fd.
 Proof.
-  intros Q bm ge NoA MWF writer W bridged Reached_fd I TI C
+  intros Q bm ge NoA MWF writer W G bridged Reached_fd I TI C
          Hbody Hbridged Hassign Hcallmarg Hexempt HTI_set HTI_optc HCbuiltin
-         Hcall_reached Hcallwriter Hw
+         Hcall_reached Hcallwriter Hcallgate Hw
          Hext Hmwf_ext Hmwf_entry Hmwf_free Hmwf_noa HCseq1 HCseq2 HCif HCloop HCsw.
   assert (MAIN :
     (forall e le m s t le' m' out,
@@ -1863,7 +1892,7 @@ Proof.
        NoA m -> MWF m -> Mem.valid_block m bm -> action_sat Q m bm ->
        (marg_exempt fd = false -> marg_ok bm vargs) ->
        (writer fd -> W vargs) ->
-       sargs_ok fd vargs ->
+       sargs_ok fd vargs -> G fd vargs ->
        Mem.valid_block m' bm /\ action_sat Q m' bm /\ MWF m')).
   { apply (exec_stmt_funcall_ind function_entry2 ge
       (fun e le m s t le' m' out =>
@@ -1875,7 +1904,7 @@ Proof.
          NoA m -> MWF m -> Mem.valid_block m bm -> action_sat Q m bm ->
          (marg_exempt fd = false -> marg_ok bm vargs) ->
          (writer fd -> W vargs) ->
-         sargs_ok fd vargs ->
+         sargs_ok fd vargs -> G fd vargs ->
          Mem.valid_block m' bm /\ action_sat Q m' bm /\ MWF m')).
     - (* Sskip *) intros e le m HnoA HMWF Hv Hsat i HTI _.
       split; [ exact Hv | split; [ exact Hsat | split; [ exact HMWF | exact HTI ] ] ].
@@ -1891,6 +1920,9 @@ Proof.
     - (* Scall: derive Reached_fd + the writer-args bridge, then funcall IH *)
       intros e le m optid a al tyargs tyres cconv vf vargs f t m' vres
              Hcf He Hel Hff Htof Hfd IHfun HnoA HMWF Hv Hsat i HTI HC.
+      assert (Hgate : G f vargs)
+        by (eapply Hcallgate;
+            [ exact HTI | exact HC | exact Hcf | exact He | exact Hff | exact Htof | exact Hel ]).
       assert (Hmarg : marg_exempt f = false -> marg_ok bm vargs)
         by (intro Hne; eapply Hcallmarg;
             [ exact HTI | exact HC | exact He | exact Hff | exact Hne | exact Hel ]).
@@ -1905,7 +1937,7 @@ Proof.
       { intro Hs. unfold sig_sub32 in Hs. rewrite Htof in Hs. cbn in Hs.
         apply Forall_forall. intros v0 Hin.
         exact (eval_exprlist_sub32i_vint ge e le m al tyargs vargs Hel Hs v0 Hin). }
-      destruct (IHfun Hreached HnoA HMWF Hv Hsat Hmarg Hwargs Hsargs) as (Hv' & Hsat' & HMWF').
+      destruct (IHfun Hreached HnoA HMWF Hv Hsat Hmarg Hwargs Hsargs Hgate) as (Hv' & Hsat' & HMWF').
       split; [ exact Hv' | split; [ exact Hsat' | split; [ exact HMWF' |
         eapply HTI_optc; [ exact HC | exact HTI ] ] ] ].
     - (* Sbuiltin: REFUTED -- the census forbids builtins *)
@@ -1956,10 +1988,10 @@ Proof.
       eapply HCsw; [ exact HC | exact HMWF | exact Hsat | exact HTI | exact He | exact Hsa ].
     - (* eval_funcall_internal: bridged-split, then writer-split *)
       intros m f vargs t e le1 le2 m1 m2 out vres m3
-             Hentry Hbexec IHbody Hout Hfree Hreached HnoA HMWF Hv Hsat Hmarg Hwargs Hsargs.
+             Hentry Hbexec IHbody Hout Hfree Hreached HnoA HMWF Hv Hsat Hmarg Hwargs Hsargs Hgate.
       destruct (classic (bridged (Internal f))) as [Hbr | Hnbr].
       { eapply Hbridged;
-          [ exact Hreached | exact Hbr | exact Hmarg | exact Hsargs
+          [ exact Hreached | exact Hbr | exact Hmarg | exact Hsargs | exact Hgate
           | eapply eval_funcall_internal; [ exact Hentry | exact Hbexec | exact Hout | exact Hfree ]
           | exact HnoA | exact HMWF | exact Hv | exact Hsat ]. }
       destruct (classic (writer (Internal f))) as [Hwr | Hnwr].
@@ -1969,7 +2001,7 @@ Proof.
           | exact Hwr | exact Hv | exact Hsat ].
       + destruct (marg_exempt (Internal f)) eqn:Hexm.
         * eapply Hexempt;
-            [ exact Hreached | exact Hexm | exact Hsargs
+            [ exact Hreached | exact Hexm | exact Hsargs | exact Hgate
             | eapply eval_funcall_internal; [ exact Hentry | exact Hbexec | exact Hout | exact Hfree ]
             | exact HnoA | exact HMWF | exact Hv | exact Hsat ].
         * assert (Hmarg' : marg_ok bm vargs) by (apply Hmarg; reflexivity).
@@ -1995,13 +2027,13 @@ Proof.
             [ eapply action_sat_unchanged_on; [ exact Ufree_ac | exact Hv2 | exact Hsat2 ]
             | eapply Hmwf_free; [ exact Hfree | exact HMWF2 ] ] ].
     - (* eval_funcall_external: the only external_call site -- reached-gated *)
-      intros m ef targs tres cconv vargs t vres m' Hec Hreached HnoA HMWF Hv Hsat Hmarg _ _.
+      intros m ef targs tres cconv vargs t vres m' Hec Hreached HnoA HMWF Hv Hsat Hmarg _ _ _.
       split;
       [ eapply external_call_valid_block; [ exact Hec | exact Hv ]
       | split;
         [ eapply action_sat_unchanged_on;
             [ eapply Hext; [ exact Hreached | exact Hec ] | exact Hv | exact Hsat ]
         | eapply Hmwf_ext; [ exact Hreached | exact Hec | exact Hv | exact HMWF ] ] ]. }
-  intros m fd vargs t m' vres Hreached HnoA HMWF Hmarg Hwargs Hsargs Hev Hv Hsat.
-  exact (proj2 MAIN m fd vargs t m' vres Hev Hreached HnoA HMWF Hv Hsat Hmarg Hwargs Hsargs).
+  intros m fd vargs t m' vres Hreached HnoA HMWF Hmarg Hwargs Hsargs Hgate Hev Hv Hsat.
+  exact (proj2 MAIN m fd vargs t m' vres Hev Hreached HnoA HMWF Hv Hsat Hmarg Hwargs Hsargs Hgate).
 Qed.

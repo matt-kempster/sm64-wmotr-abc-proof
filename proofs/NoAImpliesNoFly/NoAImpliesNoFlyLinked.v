@@ -126,6 +126,9 @@ Section NoAImpliesNoFlyLinked.
   Variable reached_id : ident -> Prop.
   Variable reached_fd : Clight.fundef -> Prop.
   Variable SafeB : block -> Prop.
+  (* the engine's per-call argument gate (EngineV2Consumer.call_gate at the
+     concrete instantiation) *)
+  Variable G : Clight.fundef -> list val -> Prop.
 
   (* ---- THE REACH RESIDUALS, ALL OVER THE LINKED GENV lp. None is the false
      reach_ext_action_cell; each ranges over lp and is satisfiable. ---- *)
@@ -137,7 +140,7 @@ Section NoAImpliesNoFlyLinked.
      act_flying_triple_jump) are dispatched only when the action is already
      in T, and the sole T-entry edges are A-gated (Taint.v). *)
   Hypothesis Hreach_val :
-    reach_value_preserves_reached not_tainted bm (lp_ge lp) NoA MWF reached_fd.
+    reach_value_preserves_reached_g not_tainted bm (lp_ge lp) NoA MWF G reached_fd.
   (* the three MWF projections that REPLACED the funcall-level rest row
      (reach_rest_marg_lp, DELETED 2026-06-10): with the carried wf rows
      CONDITIONAL, everything the wrapper needs after a reached funcall is
@@ -174,6 +177,8 @@ Section NoAImpliesNoFlyLinked.
       Genv.find_funct (lp_ge lp) vf = Some fd -> reached_fd fd.
   Hypothesis Hbodyrck :
     RealFrameValue.reach_chk reached_id (fn_body mario.f_execute_mario_action).
+  Hypothesis Hbodytck :
+    tcall_chk (root_gate_ty G) (fn_body mario.f_execute_mario_action).
 
   (* input grounding: a no-A frame's starting memory satisfies NoA (same residual
      as the spine capstone's input_grounds_noA). *)
@@ -189,9 +194,9 @@ Section NoAImpliesNoFlyLinked.
   Proof.
     intros i m m' Ha _ (Hv & Hsat & HMWF) Hst.
     assert (HnoA : NoA m) by (eapply input_grounds_noA; eassumption).
-    destruct (execute_mario_action_preserves_real_reached_lp lp LO_mario not_tainted bm NoA MWF SafeB reached_id reached_fd m m'
+    destruct (execute_mario_action_preserves_real_reached_lp lp LO_mario not_tainted bm NoA MWF SafeB reached_id reached_fd G m m'
                 Hreach_val Hnoa_of_mwf Hmobj_of_mwf Hgms_of_mwf
-                Hchase_safe Hstore_safe Hbcr Hbodyrck
+                Hchase_safe Hstore_safe Hbcr Hbodyrck Hbodytck
                 HnoA HMWF Hv Hsat (step_lp_real i m m' Hst))
       as (_ & Hv' & Hs' & HMWF').
     exact (conj Hv' (conj Hs' HMWF')).
@@ -273,6 +278,9 @@ Section NoARealInput.
   Variable reached_id : ident -> Prop.
   Variable reached_fd : Clight.fundef -> Prop.
   Variable SafeB : block -> Prop.
+  (* the engine's per-call argument gate (EngineV2Consumer.call_gate at the
+     concrete instantiation) *)
+  Variable G : Clight.fundef -> list val -> Prop.
 
   (* THE CONCRETE NO-A INVARIANT: the controller's A bit is clear in memory. *)
   Definition NoA_real (m : mem) : Prop := ctl_a_clear m bm.
@@ -297,7 +305,7 @@ Section NoARealInput.
   (* ---- the engine residuals, now at the CONCRETE invariant (the sharpened
      Phase-B target). Same shapes as the abstract section's. ---- *)
   Hypothesis Hreach_val :
-    reach_value_preserves_reached not_tainted bm (lp_ge lp) NoA_real MWF reached_fd.
+    reach_value_preserves_reached_g not_tainted bm (lp_ge lp) NoA_real MWF G reached_fd.
   (* the three MWF projections replacing the rest row (see the abstract
      section's comment). All three are PROVED at the MWF_real grounding. *)
   Hypothesis Hnoa_of_mwf : forall m, MWF m -> NoA_real m.
@@ -326,6 +334,8 @@ Section NoARealInput.
       Genv.find_funct (lp_ge lp) vf = Some fd -> reached_fd fd.
   Hypothesis Hbodyrck :
     RealFrameValue.reach_chk reached_id (fn_body mario.f_execute_mario_action).
+  Hypothesis Hbodytck :
+    tcall_chk (root_gate_ty G) (fn_body mario.f_execute_mario_action).
 
   (* ==================================================================== *)
   (* THE GROUNDED THEOREM: same conclusion as the abstract capstone, but    *)
@@ -344,9 +354,9 @@ Section NoARealInput.
     intros init is m Hinit HnoA Hns Hreach.
     exact (noA_no_spawn_never_flying_lp lp LO_mario bm MWF mem
              (a_pressed_real bm) spawn_flying step_real step_real_steps
-             NoA_real reached_id reached_fd SafeB
+             NoA_real reached_id reached_fd SafeB G
              Hreach_val Hnoa_of_mwf Hmobj_of_mwf Hgms_of_mwf
-             Hchase_safe Hstore_safe Hbcr Hbodyrck
+             Hchase_safe Hstore_safe Hbcr Hbodyrck Hbodytck
              input_grounds_noA_real init is m Hinit HnoA Hns Hreach).
   Qed.
 
@@ -362,9 +372,9 @@ Section NoARealInput.
   Proof.
     intros m m' (Hv & Hsat & HMWF) Hst.
     destruct (execute_mario_action_preserves_real_reached_lp lp LO_mario
-                not_tainted bm NoA_real MWF SafeB reached_id reached_fd m m'
+                not_tainted bm NoA_real MWF SafeB reached_id reached_fd G m m'
                 Hreach_val Hnoa_of_mwf Hmobj_of_mwf Hgms_of_mwf
-                Hchase_safe Hstore_safe Hbcr Hbodyrck
+                Hchase_safe Hstore_safe Hbcr Hbodyrck Hbodytck
                 (Hnoa_of_mwf m HMWF) HMWF Hv Hsat Hst)
       as (_ & Hv' & Hs' & HMWF').
     exact (conj Hv' (conj Hs' HMWF')).
@@ -492,6 +502,7 @@ Section NoARealInputV2.
       rest_fd lp (Internal f) ->
       (marg_exempt (Internal f) = false -> marg_ok bm vargs) ->
       sargs_ok (Internal f) vargs ->
+      wgate bm SafeB (type_of_fundef (Internal f)) vargs ->
       eval_funcall function_entry2 (lp_ge lp) m (Internal f) vargs t m' vres ->
       NoA_real bm m -> MWF m -> Mem.valid_block m bm ->
       action_sat not_tainted m bm ->
@@ -601,7 +612,7 @@ Section NoARealInputV2.
       ~ mem_flying_lp bm m.
   Proof.
     exact (noA_no_spawn_never_flying_real lp LO_mario bm MWF spawn_flying
-             root_RID (reached_v2 lp) SafeB
+             root_RID (reached_v2 lp) SafeB (call_gate bm SafeB)
              (reach_value_preserves_reached_v2 lp LO_mario bm SafeB
                 (NoA_real bm) MWF
                 Hmwf_inp Hmwf_ctl HactVint HPgms HchaseRoot HchaseStep
@@ -610,7 +621,7 @@ Section NoARealInputV2.
                 Hext_action Hmwf_ext Hmwf_entry Hmwf_free Hmwf_ctl)
              Hmwf_ctl Hmobj_of_mwf Hgms_of_mwf Hchase_safe Hstore_safe
              (root_call_resolves lp LO_mario)
-             root_body_reach_chk).
+             root_body_reach_chk (root_body_tcall_chk bm SafeB)).
   Qed.
 
   (* the per-frame export at the concrete reached set (see frame_ok_real) *)
@@ -621,7 +632,7 @@ Section NoARealInputV2.
       mem_ok_lp bm MWF m'.
   Proof.
     exact (frame_ok_real lp LO_mario bm MWF
-             root_RID (reached_v2 lp) SafeB
+             root_RID (reached_v2 lp) SafeB (call_gate bm SafeB)
              (reach_value_preserves_reached_v2 lp LO_mario bm SafeB
                 (NoA_real bm) MWF
                 Hmwf_inp Hmwf_ctl HactVint HPgms HchaseRoot HchaseStep
@@ -630,7 +641,7 @@ Section NoARealInputV2.
                 Hext_action Hmwf_ext Hmwf_entry Hmwf_free Hmwf_ctl)
              Hmwf_ctl Hmobj_of_mwf Hgms_of_mwf Hchase_safe Hstore_safe
              (root_call_resolves lp LO_mario)
-             root_body_reach_chk).
+             root_body_reach_chk (root_body_tcall_chk bm SafeB)).
   Qed.
 
 End NoARealInputV2.
@@ -2563,7 +2574,7 @@ Section NoARealInputMWF.
              WL_exempt
              (rest_pres_decompose lp LO_mario LO_sta LO_mov LO_air LO_sub LO_cut
                 LO_aut LO_obj LO_int LO_beh LO_lvl LO_stp Hrest_ext_only
-                (NoA_real bm) (MWF_real lp bm bc oc0 SafeB) bm
+                (NoA_real bm) (MWF_real lp bm bc oc0 SafeB) bm SafeB
                 (stationary_pres lp LO_mario LO_sta LO_stp bm (NoA_real bm)
                    (MWF_real lp bm bc oc0 SafeB)
                    (mwf_real_ctl lp bm bc oc0 SafeB)

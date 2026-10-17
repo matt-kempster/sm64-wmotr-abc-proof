@@ -505,6 +505,87 @@ Section ReRoot.
       vm_compute in Hlk; discriminate Hlk.
   Qed.
 
+  (* ---- the TYPED call census of the root body: every call's function
+     type satisfies P.  exec_Scall pins the resolved fundef's type to the
+     call expression's, so P (typeof a) speaks about the callee that really
+     runs -- the root walk discharges the engine's per-call argument gate
+     (reach_value_preserves_reached_g's G) this way. Genv-free. ---- *)
+  Fixpoint tcall_chk (P : type -> Prop) (s : statement) : Prop :=
+    match s with
+    | Scall _ a _           => P (typeof a)
+    | Ssequence s1 s2       => tcall_chk P s1 /\ tcall_chk P s2
+    | Sifthenelse _ s1 s2   => tcall_chk P s1 /\ tcall_chk P s2
+    | Sloop s1 s2           => tcall_chk P s1 /\ tcall_chk P s2
+    | Slabel _ s1           => tcall_chk P s1
+    | Sswitch _ ls          => tcall_chk_ls P ls
+    | _                     => True
+    end
+  with tcall_chk_ls (P : type -> Prop) (ls : labeled_statements) : Prop :=
+    match ls with
+    | LSnil           => True
+    | LScons _ s rest => tcall_chk P s /\ tcall_chk_ls P rest
+    end.
+
+  Lemma tcall_ssd : forall P sl, tcall_chk_ls P sl -> tcall_chk_ls P (select_switch_default sl).
+  Proof.
+    intros P. induction sl as [| o s rest IH]; simpl; intros H; auto.
+    destruct o as [c|]; simpl; [ destruct H as [_ Hr]; apply IH; exact Hr | exact H ].
+  Qed.
+
+  Lemma tcall_ssc : forall P n sl res,
+    tcall_chk_ls P sl -> select_switch_case n sl = Some res -> tcall_chk_ls P res.
+  Proof.
+    intros P n. induction sl as [| o s rest IH]; simpl; intros res Hav Hsel; try discriminate.
+    destruct Hav as [Hs Hr]. destruct o as [c|]; simpl in Hsel.
+    - destruct (zeq c n).
+      + inv Hsel. simpl. split; [ exact Hs | exact Hr ].
+      + exact (IH res Hr Hsel).
+    - exact (IH res Hr Hsel).
+  Qed.
+
+  Lemma tcall_seq_of : forall P ls, tcall_chk_ls P ls -> tcall_chk P (seq_of_labeled_statement ls).
+  Proof.
+    intros P. induction ls as [| o s rest IH]; simpl; intros H; auto. destruct H. split; auto.
+  Qed.
+
+  Lemma tcall_select_switch : forall P n sl,
+    tcall_chk_ls P sl -> tcall_chk_ls P (select_switch n sl).
+  Proof.
+    intros P n sl H. unfold select_switch.
+    destruct (select_switch_case n sl) eqn:E.
+    - exact (tcall_ssc P n sl l H E).
+    - apply tcall_ssd; exact H.
+  Qed.
+
+  Fixpoint tcall_mono (P P' : type -> Prop) (HP : forall ty, P ty -> P' ty)
+      (s : statement) {struct s} : tcall_chk P s -> tcall_chk P' s :=
+    match s as s0 return tcall_chk P s0 -> tcall_chk P' s0 with
+    | Scall _ a _ => HP (typeof a)
+    | Ssequence s1 s2 => fun H =>
+        conj (tcall_mono P P' HP s1 (proj1 H)) (tcall_mono P P' HP s2 (proj2 H))
+    | Sifthenelse _ s1 s2 => fun H =>
+        conj (tcall_mono P P' HP s1 (proj1 H)) (tcall_mono P P' HP s2 (proj2 H))
+    | Sloop s1 s2 => fun H =>
+        conj (tcall_mono P P' HP s1 (proj1 H)) (tcall_mono P P' HP s2 (proj2 H))
+    | Slabel _ s1 => tcall_mono P P' HP s1
+    | Sswitch _ ls => tcall_mono_ls P P' HP ls
+    | Sskip | Sassign _ _ | Sset _ _ | Sbuiltin _ _ _ _ | Sbreak | Scontinue
+    | Sreturn _ | Sgoto _ => fun H => H
+    end
+  with tcall_mono_ls (P P' : type -> Prop) (HP : forall ty, P ty -> P' ty)
+      (ls : labeled_statements) {struct ls} : tcall_chk_ls P ls -> tcall_chk_ls P' ls :=
+    match ls as l0 return tcall_chk_ls P l0 -> tcall_chk_ls P' l0 with
+    | LSnil => fun H => H
+    | LScons _ s rest => fun H =>
+        conj (tcall_mono P P' HP s (proj1 H)) (tcall_mono_ls P P' HP rest (proj2 H))
+    end.
+
+  (* the gate a typed root call discharges: any fundef of that type, entered
+     with any args, satisfies G (true at the root, whose callees have no
+     writer signature) *)
+  Definition root_gate_ty (G : Clight.fundef -> list val -> Prop) (ty : type) : Prop :=
+    forall fd vargs, type_of_fundef fd = ty -> G fd vargs.
+
   (* ---- THE MARG/MWF/REACHED BODY ENGINE over lp_ge. ---- *)
   Section ReachedLp.
     Variable bm gb : block.
@@ -513,6 +594,7 @@ Section ReRoot.
     Variable SafeB : block -> Prop.
     Variable Reached_id : ident -> Prop.
     Variable Reached_fd : Clight.fundef -> Prop.
+    Variable G : Clight.fundef -> list val -> Prop.
 
     (* the chase-root row of the carried MWF: the marioObj cell's value, if
        a pointer, lands in the safe object region. At the grounded capstone
@@ -543,7 +625,7 @@ Section ReRoot.
     Hypothesis reach_meminv_reached_lp :
       forall m fd vargs t m' vres,
         Reached_fd fd -> NoA m -> meminv_lp bm m -> MWF m -> marg_ok bm vargs ->
-        sargs_ok fd vargs ->
+        sargs_ok fd vargs -> G fd vargs ->
         eval_funcall function_entry2 lp_ge m fd vargs t m' vres ->
         NoA m' /\ meminv_lp bm m' /\ MWF m'.
     (* the call-resolution hypothesis is stated at the EMPTY env -- the only
@@ -625,18 +707,20 @@ Section ReRoot.
         NoA m -> meminv_lp bm m -> tprov bm gb le -> Pgms bm le -> MWF m ->
         tsafe le ->
         prov_ok s -> pgms_chk s -> reach_chk Reached_id s ->
+        tcall_chk (root_gate_ty G) s ->
         NoA m' /\ meminv_lp bm m' /\ tprov bm gb le' /\ Pgms bm le' /\ MWF m' /\ tsafe le'.
     Proof.
-      intros le m s t le' m' out H Hno Hmem Htp Hpg Hmwf Hts Hck Hpck Hrck.
+      intros le m s t le' m' out H Hno Hmem Htp Hpg Hmwf Hts Hck Hpck Hrck Htck.
       assert (He : empty_env ! mario._gMarioState = None) by apply PTree.gempty.
       apply (body_check_generic lp_ge empty_env
                (fun mm ll => NoA mm /\ meminv_lp bm mm /\ tprov bm gb ll /\ Pgms bm ll /\ MWF mm /\ tsafe ll)
-               (fun ss => prov_ok ss /\ pgms_chk ss /\ reach_chk Reached_id ss))
+               (fun ss => prov_ok ss /\ pgms_chk ss /\ reach_chk Reached_id ss
+                          /\ tcall_chk (root_gate_ty G) ss))
         with (le := le) (m := m) (s := s) (t := t) (le' := le') (m' := m') (out := out);
         try exact H;
         try (split; [ exact Hno | split; [ exact Hmem | split; [ exact Htp
               | split; [ exact Hpg | split; [ exact Hmwf | exact Hts ] ] ] ] ]);
-        try (split; [ exact Hck | split; [ exact Hpck | exact Hrck ] ]).
+        try (split; [ exact Hck | split; [ exact Hpck | split; [ exact Hrck | exact Htck ] ] ]).
       - (* Sassign leaf: the restated store row consumes the tsafe facts *)
         intros le0 m0 a1 a2 t0 le0' m0' out0 (Hno0 & Hmem0 & Htp0 & Hpg0 & Hmwf0 & Hts0) (Hck0 & _ & _) Hexec.
         assert (Hle : le0' = le0) by (inversion Hexec; reflexivity). subst le0'.
@@ -665,7 +749,7 @@ Section ReRoot.
         + eapply tsafe_sset_preserves;
             [ exact Hmem0 | exact Hmwf0 | exact Htp0 | exact Hts0 | exact Hck0 | exact Hexec ].
       - (* Scall leaf *)
-        intros le0 m0 oid a al t0 le0' m0' out0 (Hno0 & Hmem0 & Htp0 & Hpg0 & Hmwf0 & Hts0) (Hck0 & Hpck0 & Hrck0) Hexec.
+        intros le0 m0 oid a al t0 le0' m0' out0 (Hno0 & Hmem0 & Htp0 & Hpg0 & Hmwf0 & Hts0) (Hck0 & Hpck0 & Hrck0 & Htck0) Hexec.
         cbn [prov_ok] in Hck0. cbn [pgms_chk] in Hpck0.
         destruct Hpck0 as (Hres & Hargs).
         inversion Hexec; subst.
@@ -685,8 +769,21 @@ Section ReRoot.
               by (intro Hs; unfold sig_sub32 in Hs; rewrite Htof in Hs; cbn in Hs;
                   apply Forall_forall; intros v0 Hin0;
                   exact (eval_exprlist_sub32i_vint _ _ _ _ _ _ _ Hel Hs v0 Hin0)) end.
+        (* the per-call gate: the root's typed census at the call's type,
+           which exec_Scall ties to the resolved fundef's type *)
+        assert (Hta : exists tl r c, typeof a = Tfunction tl r c).
+        { cbn [reach_chk] in Hrck0. destruct a; try contradiction.
+          destruct t1; try contradiction. cbn. eauto. }
+        match goal with
+          Hcf : classify_fun (typeof a) = fun_case_f ?tyargs ?tyres ?cc,
+          Htof : type_of_fundef ?fd = Tfunction _ _ _,
+          Hel : eval_exprlist _ _ _ _ al _ ?vargs |- _ =>
+            assert (Hgate : G fd vargs)
+              by (destruct Hta as (tl & r & c & Ht); cbn [tcall_chk] in Htck0;
+                  rewrite Ht in Hcf, Htck0; cbn in Hcf; inv Hcf;
+                  exact (Htck0 _ _ Htof)) end.
         match goal with Hf : eval_funcall _ _ _ _ _ _ _ _ |- _ =>
-          destruct (reach_meminv_reached_lp _ _ _ _ _ _ Hrf Hno0 Hmem0 Hmwf0 Hmarg Hsargs Hf)
+          destruct (reach_meminv_reached_lp _ _ _ _ _ _ Hrf Hno0 Hmem0 Hmwf0 Hmarg Hsargs Hgate Hf)
             as (Hno0' & Hmem0' & Hmwf0') end.
         split; [ exact Hno0' | split; [ exact Hmem0' | split; [ | split; [ | split ] ] ] ].
         + apply tprov_set_opttemp; [ exact Hck0 | exact Htp0 ].
@@ -696,19 +793,20 @@ Section ReRoot.
       - (* Sbuiltin leaf: REFUTED by the census (the body has no builtins) *)
         intros le0 m0 oid ef tyl al t0 le0' m0' out0 _ (Hck0 & _) _.
         cbn [prov_ok] in Hck0. destruct Hck0.
-      - (* Hseq *) intros s1 s2 Hd; destruct Hd as (Hp & Hg & Hr);
-          cbn [prov_ok pgms_chk reach_chk] in Hp, Hg, Hr; tauto.
-      - (* Hif *) intros a s1 s2 Hd; destruct Hd as (Hp & Hg & Hr);
-          cbn [prov_ok pgms_chk reach_chk] in Hp, Hg, Hr; tauto.
-      - (* Hloop *) intros s1 s2 Hd; destruct Hd as (Hp & Hg & Hr);
-          cbn [prov_ok pgms_chk reach_chk] in Hp, Hg, Hr; tauto.
-      - (* Hlabel *) intros l s0 Hd; destruct Hd as (Hp & Hg & Hr);
-          cbn [prov_ok pgms_chk reach_chk] in Hp, Hg, Hr; tauto.
-      - (* Hsw *) intros a ls n Hd; destruct Hd as (Hp & Hg & Hr);
-          cbn [prov_ok pgms_chk reach_chk] in Hp, Hg, Hr.
+      - (* Hseq *) intros s1 s2 Hd; destruct Hd as (Hp & Hg & Hr & Ht);
+          cbn [prov_ok pgms_chk reach_chk tcall_chk] in Hp, Hg, Hr, Ht; tauto.
+      - (* Hif *) intros a s1 s2 Hd; destruct Hd as (Hp & Hg & Hr & Ht);
+          cbn [prov_ok pgms_chk reach_chk tcall_chk] in Hp, Hg, Hr, Ht; tauto.
+      - (* Hloop *) intros s1 s2 Hd; destruct Hd as (Hp & Hg & Hr & Ht);
+          cbn [prov_ok pgms_chk reach_chk tcall_chk] in Hp, Hg, Hr, Ht; tauto.
+      - (* Hlabel *) intros l s0 Hd; destruct Hd as (Hp & Hg & Hr & Ht);
+          cbn [prov_ok pgms_chk reach_chk tcall_chk] in Hp, Hg, Hr, Ht; tauto.
+      - (* Hsw *) intros a ls n Hd; destruct Hd as (Hp & Hg & Hr & Ht);
+          cbn [prov_ok pgms_chk reach_chk tcall_chk] in Hp, Hg, Hr, Ht.
         split; [ apply seq_of_prov_ok; apply select_switch_prov_ok; exact Hp
                | split; [ apply pgms_seq_of; apply pgms_select_switch; exact Hg
-                        | apply reach_seq_of; apply reach_select_switch; exact Hr ] ].
+                        | split; [ apply reach_seq_of; apply reach_select_switch; exact Hr
+                                 | apply tcall_seq_of; apply tcall_select_switch; exact Ht ] ] ].
     Qed.
   End ReachedLp.
 
@@ -722,22 +820,23 @@ Section ReRoot.
        gms_cond  (R5 verbatim).
      The three projection rows below are PROVED at the MWF_real grounding. *)
   Lemma reach_meminv_reached_build_lp :
-    forall bm NoA MWF (Reached_fd : Clight.fundef -> Prop),
-      reach_value_preserves_reached Qv bm lp_ge NoA MWF Reached_fd ->
+    forall bm NoA MWF (Reached_fd : Clight.fundef -> Prop)
+           (G : Clight.fundef -> list val -> Prop),
+      reach_value_preserves_reached_g Qv bm lp_ge NoA MWF G Reached_fd ->
       (forall m, MWF m -> NoA m) ->
       (forall m, MWF m -> mobj_cond_lp m bm) ->
       (forall m, MWF m -> gms_cond_lp m bm) ->
       forall m fd vargs t m' vres,
         Reached_fd fd ->
         NoA m -> meminv_lp bm m -> MWF m -> marg_ok bm vargs ->
-        sargs_ok fd vargs ->
+        sargs_ok fd vargs -> G fd vargs ->
         eval_funcall function_entry2 lp_ge m fd vargs t m' vres ->
         NoA m' /\ meminv_lp bm m' /\ MWF m'.
   Proof.
-    intros bm NoA MWF Reached_fd Hval Hnoa_mwf Hmo_mwf Hgm_mwf
-           m fd vargs t m' vres Hrf Hno Hmem HMWF Hmarg Hsargs Hev.
+    intros bm NoA MWF Reached_fd G Hval Hnoa_mwf Hmo_mwf Hgm_mwf
+           m fd vargs t m' vres Hrf Hno Hmem HMWF Hmarg Hsargs Hgate Hev.
     destruct Hmem as (Hv & Hsat & _ & _).
-    destruct (Hval m fd vargs t m' vres Hrf Hno HMWF (fun _ => Hmarg) Hsargs Hev Hv Hsat) as (Hv' & Hsat' & HMWF').
+    destruct (Hval m fd vargs t m' vres Hrf Hno HMWF (fun _ => Hmarg) Hsargs Hgate Hev Hv Hsat) as (Hv' & Hsat' & HMWF').
     split; [ exact (Hnoa_mwf m' HMWF') | ].
     split; [ | exact HMWF' ].
     exact (conj Hv' (conj Hsat' (conj (Hmo_mwf m' HMWF') (Hgm_mwf m' HMWF')))).
@@ -756,8 +855,9 @@ Section ReRoot.
   (* ================================================================== *)
   Theorem execute_mario_action_preserves_real_reached_lp :
     forall (bm : block) (NoA MWF : mem -> Prop) (SafeB : block -> Prop)
-           (Reached_id : ident -> Prop) (Reached_fd : Clight.fundef -> Prop) m m',
-      reach_value_preserves_reached Qv bm lp_ge NoA MWF Reached_fd ->
+           (Reached_id : ident -> Prop) (Reached_fd : Clight.fundef -> Prop)
+           (G : Clight.fundef -> list val -> Prop) m m',
+      reach_value_preserves_reached_g Qv bm lp_ge NoA MWF G Reached_fd ->
       (forall mm, MWF mm -> NoA mm) ->
       (forall mm, MWF mm -> mobj_cond_lp mm bm) ->
       (forall mm, MWF mm -> gms_cond_lp mm bm) ->
@@ -778,16 +878,17 @@ Section ReRoot.
           eval_expr lp_ge empty_env le mm a vf ->
           Genv.find_funct lp_ge vf = Some fd -> Reached_fd fd) ->
       reach_chk Reached_id (fn_body mario.f_execute_mario_action) ->
+      tcall_chk (root_gate_ty G) (fn_body mario.f_execute_mario_action) ->
       NoA m -> MWF m ->
       Mem.valid_block m bm -> action_sat Qv m bm ->
       execute_mario_action_step_lp m m' ->
       NoA m' /\ Mem.valid_block m' bm /\ action_sat Qv m' bm /\ MWF m'.
   Proof.
-    intros bm NoA MWF SafeB Reached_id Reached_fd m m' Hval Hnoa_mwf Hmo_mwf Hgm_mwf
-           Hchase Hstore Hbcr Hbodyrck
+    intros bm NoA MWF SafeB Reached_id Reached_fd G m m' Hval Hnoa_mwf Hmo_mwf Hgm_mwf
+           Hchase Hstore Hbcr Hbodyrck Hbodytck
            HnoA HMWF Hv Hsat (b_o & t & res & Hfun).
     destruct gMarioState_symbol_resolves_lp as (gb & Hgb).
-    pose proof (reach_meminv_reached_build_lp bm NoA MWF Reached_fd Hval
+    pose proof (reach_meminv_reached_build_lp bm NoA MWF Reached_fd G Hval
                   Hnoa_mwf Hmo_mwf Hgm_mwf) as Hreachmem.
     assert (HPm' :
       NoA m' /\ Mem.valid_block m' bm /\ action_sat Qv m' bm /\ MWF m').
@@ -797,7 +898,7 @@ Section ReRoot.
                 m m' t res eq_refl);
         [ | exact (conj HnoA (conj Hv (conj Hsat HMWF))) | exact Hfun ].
       intros le mm tt le' mm' out Hbind (Hn & Hvv & Hss & Hmf) Hexec.
-      edestruct (exec_body_prov_reached_lp bm gb Hgb NoA MWF SafeB Reached_id Reached_fd
+      edestruct (exec_body_prov_reached_lp bm gb Hgb NoA MWF SafeB Reached_id Reached_fd G
                    Hchase Hstore Hreachmem Hbcr
                    le mm (fn_body mario.f_execute_mario_action) tt le' mm' out)
         as (Hn' & Hmem' & _ & _ & Hmf' & _);
@@ -811,6 +912,7 @@ Section ReRoot.
         | exact execute_mario_action_body_prov_ok
         | exact execute_mario_action_body_pgms_ok
         | exact Hbodyrck
+        | exact Hbodytck
         | ].
       destruct Hmem' as (Hvv' & Hss' & _ & _).
       exact (conj Hn' (conj Hvv' (conj Hss' Hmf'))). }

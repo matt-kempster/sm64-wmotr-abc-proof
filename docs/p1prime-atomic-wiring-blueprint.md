@@ -427,6 +427,17 @@ each `<> bm` (static-layout, same trust class as the existing entries).
 >    function block. Fixed by `cpure2_walk` (empty env, `Evar` of function type):
 >    `atan2s_memid_pinned` / `atan2s_body_frame_pinned` need only
 >    `resolves_to atan2_lookup`.
+>
+> **§3-B ENGINE ARM: DONE (landed ahead of the atomic commit).** The v2 engine
+> carries a per-call argument gate (`Hcallgate`); `CensusV2.chk`'s Scall arm
+> requires `wargs_chk` (writer-signature calls pass window / SafeB out-params),
+> proved sound (`chk_call_gate`) and passed by all 15 censused bodies;
+> `Hrest_pres` / `rest_pres_decompose` now receive `wgate`. MathGeomGated §9
+> (`writer_types_pinned`, `owin_out_cell`, `osafe_vec_out`) turns the gate into
+> the writer frames' premises. Still open for the atomic commit: the writers can
+> stay on `exempt_callees` (the gate rides the class-E arm), but `vec3f_find_ceil`
+> (passes `&m->ceil` on to `find_ceil`) needs its own signature in `wgate` before
+> `vfc_pres` is re-proved (§3-C).
 
 - **P-1** Re-state facts #13/#14 (`find_floor_body_frame`, `find_ceil_body_frame`):
   arg-aware `sg_walk` that (a) recognizes the `find_{floor,ceil}_from_list`

@@ -201,6 +201,7 @@ Section V2Consumer.
       rest_fd (Internal f) ->
       (marg_exempt (Internal f) = false -> marg_ok bm vargs) ->
       sargs_ok (Internal f) vargs ->
+      wgate bm SafeB (type_of_fundef (Internal f)) vargs ->
       eval_funcall function_entry2 (lp_ge lp) m (Internal f) vargs t m' vres ->
       NoA m -> MWF m -> Mem.valid_block m bm -> action_sat not_tainted m bm ->
       Mem.valid_block m' bm /\ action_sat not_tainted m' bm /\ MWF m'.
@@ -403,7 +404,9 @@ Section V2Consumer.
     intros bc le m optid a al vf fd HC Hevf Hff.
     change ((call_optid_ok bc optid
              && (call_head_is_mptr bc al && callee_in_mptr a
-                 || call_callee_exempt a)) = true) in HC.
+                 || call_callee_exempt a)
+             && wargs_chk bc (typeof a) al) = true) in HC.
+    apply andb_true_iff in HC as [HC _].
     apply andb_true_iff in HC as [_ HC].
     apply orb_true_iff in HC as [HM | HE].
     - (* class M *)
@@ -740,13 +743,29 @@ Section V2Consumer.
 
   (* ---------------- THE EXPORT ---------------- *)
 
+  (* the per-call argument gate the census establishes (CensusV2.wgate):
+     keyed on the resolved callee's function type *)
+  Definition call_gate (fd : Clight.fundef) (vargs : list val) : Prop :=
+    wgate bm SafeB (type_of_fundef fd) vargs.
+
+  (* the root body's 22 calls have no writer signature, so the gate is
+     free there (checked against the generated AST) *)
+  Lemma root_body_tcall_chk :
+    tcall_chk (root_gate_ty call_gate) (fn_body mario.f_execute_mario_action).
+  Proof.
+    apply (tcall_mono (fun ty => is_wty ty = false)).
+    - intros ty Hty fd vargs Htof. unfold call_gate. rewrite Htof.
+      exact (wgate_nonwriter bm SafeB ty vargs Hty).
+    - vm_compute. repeat split.
+  Qed.
+
   Theorem reach_value_preserves_reached_v2 :
-    reach_value_preserves_reached not_tainted bm (lp_ge lp) NoA MWF reached_v2.
+    reach_value_preserves_reached_g not_tainted bm (lp_ge lp) NoA MWF call_gate reached_v2.
   Proof.
     assert (HV2 : reach_value_preserves_v2 not_tainted bm (lp_ge lp) NoA MWF
-                    writer_fd (fun _ => True) reached_v2).
+                    writer_fd (fun _ => True) call_gate reached_v2).
     { apply (exec_funcall_reach_value_v2 not_tainted bm (lp_ge lp) NoA MWF
-               writer_fd (fun _ => True) bridged_fd reached_v2
+               writer_fd (fun _ => True) call_gate bridged_fd reached_v2
                body_census
                (fun bc e le => TI_of not_tainted bm SafeB bc e le
                                /\ e = empty_env)
@@ -764,7 +783,7 @@ Section V2Consumer.
         exact (entry_novars_empty_env _ _ _ _ _ _ _ Hentry
                  (censused_body_novars _ HC)).
       - (* Hbridged: umbi (proved) / rest (residual) *)
-        intros f vargs0 m0 t0 m0' vres0 _ Hb Hmargc Hsargs Hevf Hno0 Hmwf0 Hv0 Hsat0.
+        intros f vargs0 m0 t0 m0' vres0 _ Hb Hmargc Hsargs Hgate Hevf Hno0 Hmwf0 Hv0 Hsat0.
         destruct Hb as [Eumbi | Hrest].
         + injection Eumbi as Eumbi. subst f.
           assert (Hmarg0 : marg_ok bm vargs0) by (apply Hmargc; reflexivity).
@@ -782,7 +801,7 @@ Section V2Consumer.
               [ exact Hac | exact Hv0 | exact Hsat0 ].
           * eapply Hmwf_umbi; [ exact Hmwf0 | exact Hunch | exact Hinp' ].
         + exact (Hrest_pres m0 f vargs0 t0 m0' vres0
-                   Hrest Hmargc Hsargs Hevf Hno0 Hmwf0 Hv0 Hsat0).
+                   Hrest Hmargc Hsargs Hgate Hevf Hno0 Hmwf0 Hv0 Hsat0).
       - (* Hassign: the censused store leaf *)
         intros bc e le m0 a1 a2 loc ofs bf v2 v m0'
                Hlv Hev2 Hcast Has [HTI _] HC Hmwf0 Hv0 Hsat0.
@@ -797,7 +816,7 @@ Section V2Consumer.
                  optid a al tyargs vargs0 vf fd0 HTI HC Hevf Hff Hnex Hargs).
       - (* Hexempt: censused/umbi are non-exempt (compute); rest is the
            residual *)
-        intros f vargs0 m0 t0 m0' vres0 Hr Hex Hsargs Hevf Hno0 Hmwf0 Hv0 Hsat0.
+        intros f vargs0 m0 t0 m0' vres0 Hr Hex Hsargs Hgate Hevf Hno0 Hmwf0 Hv0 Hsat0.
         destruct Hr as [(f0 & Ef & HC0) | [Eumbi | Hrest]].
         + exfalso. injection Ef as Ef. subst f0.
           rewrite (censused_body_nonexempt _ HC0) in Hex. discriminate Hex.
@@ -825,6 +844,11 @@ Section V2Consumer.
         exact (call_resolves_v2 bc le m0 optid a al vf fd0 HC Hevf Hff).
       - (* Hcallwriter: W := True *)
         intros. exact I.
+      - (* Hcallgate: PROVED -- the census reads the out-param arguments *)
+        intros bc e le m0 optid a al tyargs tyres cc vargs0 vf fd0
+               [HTI _] HC Hcf _ _ Htof Hel.
+        exact (chk_call_gate lp LO_mario not_tainted bm SafeB bc e le m0
+                 optid a al tyargs tyres cc vargs0 fd0 HTI HC Hcf Htof Hel).
       - (* Hw: REFUTED -- the pinned internals are not the writer record *)
         intros m0 fd0 vargs0 t0 m0' vres0 Hr _ _ _ _ Hwr _ _.
         exfalso. destruct Hwr as [Efd Hnb].
@@ -855,9 +879,9 @@ Section V2Consumer.
       - (* HCsw: the dispatch kill *)
         intros bc e le m0 a ls v n HC _ _ [HTI _] Hev0 Hsa.
         exact (chk_sw lp bm SafeB bc e le m0 a ls v n HC HTI Hev0 Hsa). }
-    intros m fd vargs t m' vres Hrf HnoA HMWF Hmarg Hsargs Hev Hv Hsat.
+    intros m fd vargs t m' vres Hrf HnoA HMWF Hmarg Hsargs Hgate Hev Hv Hsat.
     exact (HV2 m fd vargs t m' vres Hrf HnoA HMWF Hmarg (fun _ => I)
-             Hsargs Hev Hv Hsat).
+             Hsargs Hgate Hev Hv Hsat).
   Qed.
 
 End V2Consumer.

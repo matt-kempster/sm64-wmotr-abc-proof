@@ -1937,8 +1937,8 @@ Proof.
 Qed.
 
 (* ====================================================================== *)
-(* 8. atan2s: its callee premise "for ALL envs, a call named atan2_lookup  *)
-(*    keeps memory" was false (a local shadow can point the name at any   *)
+(* 8. atan2s: its callee premise (for ALL envs, a call named atan2_lookup  *)
+(*    keeps memory) was false (a local shadow can point the name at any   *)
 (*    function block).  atan2s has no locals, so the name resolves to the  *)
 (*    global; with the link resolving it to the real atan2_lookup body,    *)
 (*    whose memory identity is proved, nothing is left to assume.          *)
@@ -2036,3 +2036,84 @@ Proof.
   rewrite (atan2s_memid_pinned ge Hpin m vargs t m' vres Hevf).
   exact (conj Hv (conj Hsat Hmwf)).
 Qed.
+
+(* ====================================================================== *)
+(* 9. The engine's argument gate meets the writer frames.                  *)
+(*    CensusV2.wgate (handed to the rest leaf by the engine's Hcallgate)   *)
+(*    is keyed on the callee's function type.  The real writer bodies'     *)
+(*    types ARE those signatures (so the gate is not silently vacuous),    *)
+(*    and the gate's content supplies exactly the out_cell / vec_out       *)
+(*    premises of sections 3-7.                                            *)
+(* ====================================================================== *)
+
+Lemma writer_types_pinned :
+  type_of_fundef (Internal surface_collision.f_find_floor) = CensusV2.T_ffc /\
+  type_of_fundef (Internal surface_collision.f_find_ceil) = CensusV2.T_ffc /\
+  type_of_fundef (Internal surface_collision.f_f32_find_wall_collision) = CensusV2.T_f32w /\
+  type_of_fundef (Internal math_util.f_vec3f_copy) = CensusV2.T_v3fcopy /\
+  type_of_fundef (Internal math_util.f_vec3f_set) = CensusV2.T_v3fset /\
+  type_of_fundef (Internal math_util.f_vec3s_copy) = CensusV2.T_v3scopy.
+Proof. vm_compute. repeat split. Qed.
+
+Lemma store_window_ok_sub : forall d n k sz,
+  CensusV2.store_window_ok d n = true -> 0 <= k -> 0 < sz -> k + sz <= n ->
+  CensusV2.store_window_ok (d + k) sz = true.
+Proof.
+  intros d n k sz H Hk Hsz Hkn. unfold CensusV2.store_window_ok in *.
+  repeat (apply andb_true_iff in H; destruct H as [H ?]).
+  repeat match goal with Hb : (_ || _)%bool = true |- _ =>
+    apply orb_true_iff in Hb; destruct Hb as [Hb | Hb] end;
+  repeat match goal with Hb : (_ <=? _) = true |- _ => apply Z.leb_le in Hb end;
+  repeat match goal with Hb : (_ <? _) = true |- _ => apply Z.ltb_lt in Hb end;
+  repeat (apply andb_true_iff; split);
+  try (apply orb_true_iff);
+  first [ apply Z.ltb_lt; lia | apply Z.leb_le; lia
+        | left; apply Z.leb_le; lia | right; apply Z.leb_le; lia ].
+Qed.
+
+Section GATE.
+  Variable bm : block.
+  Variable MWF : mem -> Prop.
+  Variable SafeB : block -> Prop.
+  Hypothesis Hmwf_window : forall mm mm' ch (delta : Z) vv,
+      MWF mm -> CensusV2.store_window_ok delta (size_chunk ch) = true ->
+      Mem.store ch mm bm delta vv = Some mm' -> MWF mm'.
+  Hypothesis HSafeNotBm : forall b, SafeB b -> b <> bm.
+  Hypothesis Hmwf_chase : forall mm ch bsafe (d : Z) vv mm',
+      MWF mm -> SafeB bsafe ->
+      (forall bb oo, vv <> Vptr bb oo) ->
+      Mem.store ch mm bsafe d vv = Some mm' -> MWF mm'.
+
+  (* a window-gated out-param: find_floor / find_ceil / f32's exact cells *)
+  Lemma owin_out_cell : forall v b o,
+    CensusV2.owin bm 4 v -> v = Vptr b o -> out_cell not_tainted bm MWF b o.
+  Proof.
+    intros v b o Hg Ev. destruct (Hg b o Ev) as [-> Hw].
+    rewrite <- (Ptrofs.repr_unsigned o).
+    apply (out_cell_window bm MWF Hmwf_window); [ exact Hw | ].
+    pose proof (Ptrofs.unsigned_range_2 o). lia.
+  Qed.
+
+  (* a window-or-SafeB vec3 out-param: vec3f_copy / vec3f_set / vec3s_copy *)
+  Lemma osafe_vec_out : forall n ch v b o,
+    size_chunk ch * 3 <= n ->
+    CensusV2.osafe bm SafeB n v -> v = Vptr b o -> vec_out not_tainted bm MWF ch b o.
+  Proof.
+    intros n ch v b o Hn Hg Ev.
+    destruct (Hg b o Ev) as [[-> Hw] | Hs].
+    - rewrite <- (Ptrofs.repr_unsigned o).
+      pose proof (size_chunk_pos ch) as Hp.
+      pose proof (Ptrofs.unsigned_range_2 o) as Hr.
+      apply (vec_out_window bm MWF Hmwf_window).
+      + intros i Hi. split.
+        * apply (store_window_ok_sub _ n); [ exact Hw | nia | lia | nia ].
+        * pose proof (store_window_ok_sub _ n (size_chunk ch * i) (size_chunk ch) Hw
+                        ltac:(nia) ltac:(lia) ltac:(nia)) as Hc.
+          unfold CensusV2.store_window_ok in Hc.
+          repeat (apply andb_true_iff in Hc; destruct Hc as [Hc ?]).
+          repeat match goal with Hb : (_ <=? _) = true |- _ => apply Z.leb_le in Hb end.
+          lia.
+      + exact Hr.
+    - exact (vec_out_safeb bm MWF SafeB HSafeNotBm Hmwf_chase ch b o Hs).
+  Qed.
+End GATE.

@@ -997,6 +997,133 @@ Definition chase_store_ok (bc : body_census) (a1 a2 : expr) : bool :=
   | None => false
   end.
 
+(* ====================================================================== *)
+(* The out-param argument gate.                                            *)
+(*                                                                         *)
+(* The exempt callees include WRITERS: find_floor/find_ceil store through  *)
+(* their last pointer, f32_find_wall_collision through its first three,    *)
+(* vec3f_copy/vec3f_set/vec3s_copy through their first.  Whatever a        *)
+(* writer's body does is only harmless for the arguments its call sites    *)
+(* really pass.  The census therefore checks, at every call whose function *)
+(* TYPE is a writer signature, that each out-param argument is a Mario     *)
+(* window field (&m->fld, m->arr, m->arr + i, with the bytes it may write  *)
+(* inside store_window_ok) or -- for the vec3 writers, whose stores are    *)
+(* float/short casts -- a chain through a tabled SafeB chase temp.  The    *)
+(* engine hands the resulting value-level gate (wgate) to the exempt       *)
+(* leaf.  Keying on the function type is sound because exec_Scall pins the *)
+(* resolved fundef's type to the call expression's type.                   *)
+(* ====================================================================== *)
+
+Definition tySurfPP : type := tptr (tptr (Tstruct mario._Surface noattr)).
+Definition T_ffc : type :=
+  Tfunction (tfloat :: tfloat :: tfloat :: tySurfPP :: nil) tfloat cc_default.
+Definition T_f32w : type :=
+  Tfunction (tptr tfloat :: tptr tfloat :: tptr tfloat :: tfloat :: tfloat :: nil)
+    tint cc_default.
+Definition T_v3fcopy : type :=
+  Tfunction (tptr tfloat :: tptr tfloat :: nil) (tptr tvoid) cc_default.
+Definition T_v3fset : type :=
+  Tfunction (tptr tfloat :: tfloat :: tfloat :: tfloat :: nil) (tptr tvoid) cc_default.
+Definition T_v3scopy : type :=
+  Tfunction (tptr tshort :: tptr tshort :: nil) (tptr tvoid) cc_default.
+
+(* a pointer argument lands n window bytes into Mario's block *)
+Definition owin (bm : block) (n : Z) (v : val) : Prop :=
+  forall b o, v = Vptr b o -> b = bm /\ store_window_ok (Ptrofs.unsigned o) n = true.
+
+(* ... or in a SafeB object *)
+Definition osafe (bm : block) (SafeB : block -> Prop) (n : Z) (v : val) : Prop :=
+  forall b o, v = Vptr b o ->
+    (b = bm /\ store_window_ok (Ptrofs.unsigned o) n = true) \/ SafeB b.
+
+Definition wgate (bm : block) (SafeB : block -> Prop) (ty : type)
+    (vargs : list val) : Prop :=
+  if type_eq ty T_ffc then owin bm 4 (nth 3 vargs Vundef)
+  else if type_eq ty T_f32w then
+    owin bm 4 (nth 0 vargs Vundef) /\ owin bm 4 (nth 1 vargs Vundef)
+    /\ owin bm 4 (nth 2 vargs Vundef)
+  else if type_eq ty T_v3fcopy then osafe bm SafeB 12 (nth 0 vargs Vundef)
+  else if type_eq ty T_v3fset then osafe bm SafeB 12 (nth 0 vargs Vundef)
+  else if type_eq ty T_v3scopy then osafe bm SafeB 6 (nth 0 vargs Vundef)
+  else True.
+
+(* m->fld (the lvalue), at its mario.prog field offset *)
+Definition mfield_lv (mptr : ident) (a : expr) : option Z :=
+  match a with
+  | Efield (Ederef (Etempvar p pty) sty) fld _ =>
+      if Pos.eqb p mptr && proj_sumbool (type_eq pty (tptr tyMS))
+         && proj_sumbool (type_eq sty tyMS)
+      then match field_offset (prog_comp_env mario.prog) fld mario_state_members with
+           | OK (delta, Full) => Some delta
+           | _ => None
+           end
+      else None
+  | _ => None
+  end.
+
+Definition win_ptr_chk (mptr : ident) (n : Z) (a : expr) : bool :=
+  match a with
+  | Eaddrof lv _ =>
+      match mfield_lv mptr lv with Some d => store_window_ok d n | None => false end
+  | Efield _ _ (Tarray _ _ _) =>
+      match mfield_lv mptr a with Some d => store_window_ok d n | None => false end
+  | Ebinop Oadd lv (Econst_int i ity) _ =>
+      match typeof lv with
+      | Tarray elt _ _ =>
+          proj_sumbool (type_eq elt tfloat) && proj_sumbool (type_eq ity tint)
+          && (0 <=? Int.signed i)
+          && match lv with
+             | Efield _ _ _ =>
+                 match mfield_lv mptr lv with
+                 | Some d => (0 <=? d) && store_window_ok (d + 4 * Int.signed i) n
+                 | None => false
+                 end
+             | _ => false
+             end
+      | _ => false
+      end
+  | _ => false
+  end.
+
+Definition safe_ptr_chk (bc : body_census) (a : expr) : bool :=
+  match chain_root_e a with
+  | Some t => mem_id t (bc_chase bc)
+  | None => false
+  end.
+
+Definition wargs_chk (bc : body_census) (ty : type) (al : list expr) : bool :=
+  let arg k := nth k al (Econst_int Int.zero tint) in
+  if type_eq ty T_ffc then win_ptr_chk (bc_mptr bc) 4 (arg 3%nat)
+  else if type_eq ty T_f32w then
+    win_ptr_chk (bc_mptr bc) 4 (arg 0%nat) && win_ptr_chk (bc_mptr bc) 4 (arg 1%nat)
+    && win_ptr_chk (bc_mptr bc) 4 (arg 2%nat)
+  else if type_eq ty T_v3fcopy then
+    win_ptr_chk (bc_mptr bc) 12 (arg 0%nat) || safe_ptr_chk bc (arg 0%nat)
+  else if type_eq ty T_v3fset then
+    win_ptr_chk (bc_mptr bc) 12 (arg 0%nat) || safe_ptr_chk bc (arg 0%nat)
+  else if type_eq ty T_v3scopy then
+    win_ptr_chk (bc_mptr bc) 6 (arg 0%nat) || safe_ptr_chk bc (arg 0%nat)
+  else true.
+
+(* the writer signatures, as a decidable test: a call of any OTHER function
+   type owes no argument gate *)
+Definition is_wty (ty : type) : bool :=
+  proj_sumbool (type_eq ty T_ffc) || proj_sumbool (type_eq ty T_f32w)
+  || proj_sumbool (type_eq ty T_v3fcopy) || proj_sumbool (type_eq ty T_v3fset)
+  || proj_sumbool (type_eq ty T_v3scopy).
+
+Lemma wgate_nonwriter : forall bm SafeB ty vargs,
+  is_wty ty = false -> wgate bm SafeB ty vargs.
+Proof.
+  intros bm SafeB ty vargs H. unfold is_wty in H. unfold wgate.
+  destruct (type_eq ty T_ffc); [ discriminate H | ].
+  destruct (type_eq ty T_f32w); [ discriminate H | ].
+  destruct (type_eq ty T_v3fcopy); [ discriminate H | ].
+  destruct (type_eq ty T_v3fset); [ discriminate H | ].
+  destruct (type_eq ty T_v3scopy); [ discriminate H | ].
+  exact I.
+Qed.
+
 Lemma input_rhs_aclear_shape :
   forall bc rhs, input_rhs_aclear bc rhs = true ->
     (exists c, rhs = Econst_int c tint /\
@@ -1086,6 +1213,7 @@ Fixpoint chk (bc : body_census) (s : statement) : bool :=
       call_optid_ok bc optid
       && (call_head_is_mptr bc al && callee_in_mptr a
           || call_callee_exempt a)
+      && wargs_chk bc (typeof a) al
   | Sbuiltin _ _ _ _ => false
   | Sgoto _ => false
   end
@@ -1587,8 +1715,10 @@ Section CensusLeavesLp.
     intros Q bm SafeB bc e optid a al v le HC HTI.
     change ((call_optid_ok bc optid
              && (call_head_is_mptr bc al && callee_in_mptr a
-                 || call_callee_exempt a)) = true)
+                 || call_callee_exempt a)
+             && wargs_chk bc (typeof a) al) = true)
       in HC.
+    apply andb_true_iff in HC as [HC _].
     apply andb_true_iff in HC as [Hopt _].
     destruct optid as [rid|]; cbn [set_opttemp]; [ | exact HTI ].
     change ((negb (Pos.eqb rid (bc_mptr bc))
@@ -1643,8 +1773,10 @@ Section CensusLeavesLp.
            HTI HC Hevf Hff Hnex Hargs.
     change ((call_optid_ok bc optid
              && (call_head_is_mptr bc al && callee_in_mptr a
-                 || call_callee_exempt a)) = true)
+                 || call_callee_exempt a)
+             && wargs_chk bc (typeof a) al) = true)
       in HC.
+    apply andb_true_iff in HC as [HC _].
     apply andb_true_iff in HC as [_ HC].
     apply orb_true_iff in HC as [HM | HE].
     - (* class M: head = Etempvar mptr *)
@@ -1670,6 +1802,243 @@ Section CensusLeavesLp.
       destruct t; try discriminate HE.
       rewrite (WL_exempt _ _ _ _ _ _ _ HE Hevf Hff) in Hnex.
       discriminate Hnex.
+  Qed.
+
+  (* ---- Hcallgate: the out-param argument gate is SOUND.  Each censused
+     out-param argument evaluates to a Mario window address (TI pins the
+     Mario param to (bm,0); the field offset is mario.prog's, transferred
+     by linkorder) or into a tabled chase temp's SafeB block; sem_cast
+     passes pointers through unchanged. ---- *)
+  Lemma exprlist_nth_val :
+    forall ge e le m al tyl vl, eval_exprlist ge e le m al tyl vl ->
+    forall k, nth k vl Vundef = Vundef \/
+      exists a v0 ty, nth_error al k = Some a /\ eval_expr ge e le m a v0 /\
+                      sem_cast v0 (typeof a) ty m = Some (nth k vl Vundef).
+  Proof.
+    intros ge e le m al tyl vl H. induction H; intros [|k].
+    - left. reflexivity.
+    - left. reflexivity.
+    - right. cbn. do 3 eexists. split; [ reflexivity | split; eassumption ].
+    - destruct (IHeval_exprlist k) as [E | (a0 & v0 & ty0 & Hn & Hev & Hc)];
+        [ left; exact E | right; exists a0, v0, ty0; cbn; auto ].
+  Qed.
+
+  Lemma window_bounds : forall d n,
+    store_window_ok d n = true -> 0 < n /\ 0 <= d /\ d + n <= Ptrofs.max_unsigned.
+  Proof.
+    intros d n H. unfold store_window_ok in H.
+    repeat (apply andb_true_iff in H; destruct H as [H ?]).
+    apply Z.ltb_lt in H.
+    repeat match goal with
+           | Hb : (_ <=? _) = true |- _ => apply Z.leb_le in Hb
+           end.
+    lia.
+  Qed.
+
+  Lemma mfield_lv_shape : forall mptr lv d,
+    mfield_lv mptr lv = Some d ->
+    exists fld fty,
+      lv = Efield (Ederef (Etempvar mptr (tptr tyMS)) tyMS) fld fty /\
+      field_offset (prog_comp_env mario.prog) fld mario_state_members = OK (d, Full).
+  Proof.
+    intros mptr lv d H.
+    destruct lv as [ | | | | | | | | | | | a0 fld fty | | ]; try discriminate H.
+    destruct a0 as [ | | | | | | a1 sty | | | | | | | ]; try discriminate H.
+    destruct a1 as [ | | | | | p pty | | | | | | | | ]; try discriminate H.
+    unfold mfield_lv in H.
+    (* abstract the cenv lookup BEFORE any discriminate: hnf on it would
+       compute mario.prog's whole composite env *)
+    remember (field_offset (prog_comp_env mario.prog) fld mario_state_members) as FO eqn:Hfo.
+    destruct (Pos.eqb p mptr && proj_sumbool (type_eq pty (tptr tyMS))
+              && proj_sumbool (type_eq sty tyMS)) eqn:Hc; [ | discriminate H ].
+    destruct FO as [[dd bf] | ]; [ | discriminate H ].
+    destruct bf; [ | discriminate H ].
+    injection H as <-.
+    repeat match goal with
+           | Hb : (_ && _) = true |- _ => apply andb_true_iff in Hb as [? ?]
+           | Hb : Pos.eqb _ _ = true |- _ => apply Pos.eqb_eq in Hb
+           | Hb : proj_sumbool _ = true |- _ => apply proj_sumbool_true in Hb
+           end.
+    subst. eauto.
+  Qed.
+
+  Lemma mfield_lv_sound :
+    forall Q bm SafeB bc e le m lv d loc ofs bf,
+      TI_of Q bm SafeB bc e le ->
+      mfield_lv (bc_mptr bc) lv = Some d ->
+      eval_lvalue (lp_ge lp) e le m lv loc ofs bf ->
+      loc = bm /\ ofs = Ptrofs.repr d.
+  Proof.
+    intros Q bm SafeB bc e le m lv d loc ofs bf HTI Hm Hlv.
+    destruct (mfield_lv_shape _ _ _ Hm) as (fld & fty & -> & Hfo).
+    pose proof Hlv as Hlv0.
+    apply eval_lvalue_Efield_base in Hlv0 as (o0 & Hb0).
+    apply eval_expr_Ederef_load in Hb0 as (lb & ob & bfb & Hlvb & _).
+    apply eval_lvalue_Ederef_base in Hlvb.
+    apply eval_expr_Etempvar_val in Hlvb.
+    destruct HTI as (Hmp & _).
+    destruct (Hmp _ _ Hlvb) as [-> ->].
+    destruct (mfield_lvalue_geom_lp _ _ _ _ _ _ _ _ _ _ _ _ Hlvb Hfo Hlv)
+      as (-> & -> & _).
+    split; [ reflexivity | apply Ptrofs.add_zero_l ].
+  Qed.
+
+  Lemma win_ptr_chk_sound :
+    forall Q bm SafeB bc e le m n a v,
+      TI_of Q bm SafeB bc e le ->
+      win_ptr_chk (bc_mptr bc) n a = true ->
+      eval_expr (lp_ge lp) e le m a v ->
+      owin bm n v.
+  Proof.
+    intros Q bm SafeB bc e le m n a v HTI Hc Hev b o ->.
+    destruct a as [ | | | | | | | lv aty | | op lv r bty | | a' fld fty | | ];
+      try discriminate Hc.
+    - (* &m->fld *)
+      cbn [win_ptr_chk] in Hc. destruct (mfield_lv (bc_mptr bc) lv) as [d|] eqn:Hm; [ | discriminate Hc ].
+      inv Hev; [ | match goal with H : eval_lvalue _ _ _ _ (Eaddrof _ _) _ _ _ |- _ => inv H end ].
+      destruct (mfield_lv_sound _ _ _ _ _ _ _ _ _ _ _ _ HTI Hm
+                  ltac:(eassumption)) as [-> ->].
+      destruct (window_bounds _ _ Hc) as (Hn & Hd & Hdn).
+      rewrite Ptrofs.unsigned_repr by lia. auto.
+    - (* m->arr + i *)
+      destruct op; try discriminate Hc.
+      destruct r as [ i ity | | | | | | | | | | | | | ]; try discriminate Hc.
+      cbn [win_ptr_chk] in Hc.
+      destruct (typeof lv) as [ | | | | | elt sz att | | | ] eqn:Hty; try discriminate Hc.
+      repeat (apply andb_true_iff in Hc; destruct Hc as [Hc ?]).
+      apply proj_sumbool_true in Hc.
+      match goal with H : proj_sumbool (type_eq ity tint) = true |- _ =>
+        apply proj_sumbool_true in H end.
+      match goal with H : (0 <=? Int.signed i) = true |- _ =>
+        apply Z.leb_le in H; rename H into Hsi end.
+      subst elt ity.
+      destruct lv as [ | | | | | | | | | | | a' fld fty | | ]; try discriminate.
+      match goal with H : (match ?x with _ => _ end) = true |- _ => rename H into Hc0 end.
+      destruct (mfield_lv (bc_mptr bc) (Efield a' fld fty)) as [d|] eqn:Hm; [ | discriminate ].
+      apply andb_true_iff in Hc0 as [Hd0 Hw]. apply Z.leb_le in Hd0.
+      inv Hev; [ | match goal with H : eval_lvalue _ _ _ _ (Ebinop _ _ _ _) _ _ _ |- _ => inv H end ].
+      match goal with
+      | H1 : eval_expr _ _ _ _ (Efield a' fld fty) ?v1,
+        H2 : eval_expr _ _ _ _ (Econst_int i tint) ?v2,
+        Hs : sem_binary_operation _ Oadd ?v1 _ ?v2 _ _ = Some _ |- _ =>
+          rename H1 into Hev1; rename H2 into Hev2; rename Hs into Hsem
+      end.
+      inv Hev2; [ | match goal with H : eval_lvalue _ _ _ _ (Econst_int _ _) _ _ _ |- _ => inv H end ].
+      cbn [typeof] in Hty, Hsem. subst fty.
+      unfold sem_binary_operation, sem_add in Hsem. cbn in Hsem.
+      unfold sem_add_ptr_int in Hsem.
+      destruct v1; try discriminate Hsem;
+        try (destruct Archi.ptr64; discriminate Hsem).
+      injection Hsem as <- <-.
+      apply eval_expr_Efield_load in Hev1 as (loc & ofs & bf & Hlv & Hdr).
+      apply deref_loc_aggregate_eq in Hdr as [-> ->]; [ | left; reflexivity ].
+      destruct (mfield_lv_sound _ _ _ _ _ _ _ _ _ _ _ _ HTI Hm Hlv) as [-> ->].
+      split; [ reflexivity | ].
+      destruct (window_bounds _ _ Hw) as (Hn & Hd & Hdn).
+      unfold ptrofs_of_int, Ptrofs.of_ints, Ptrofs.add, Ptrofs.mul.
+      assert (H4 : 4 <= Ptrofs.max_unsigned) by (vm_compute; intro Hcmp; discriminate Hcmp).
+      rewrite (Ptrofs.unsigned_repr 4) by lia.
+      rewrite (Ptrofs.unsigned_repr (Int.signed i)) by lia.
+      rewrite (Ptrofs.unsigned_repr (4 * Int.signed i)) by lia.
+      rewrite (Ptrofs.unsigned_repr d) by lia.
+      rewrite Ptrofs.unsigned_repr by lia. exact Hw.
+    - (* m->arr *)
+      destruct fty as [ | | | | | elt sz att | | | ]; try discriminate Hc.
+      cbn [win_ptr_chk] in Hc.
+      destruct (mfield_lv (bc_mptr bc) (Efield a' fld (Tarray elt sz att))) as [d|] eqn:Hm;
+        [ | discriminate Hc ].
+      apply eval_expr_Efield_load in Hev as (loc & ofs & bf & Hlv & Hdr).
+      apply deref_loc_aggregate_eq in Hdr as [-> ->]; [ | left; reflexivity ].
+      destruct (mfield_lv_sound _ _ _ _ _ _ _ _ _ _ _ _ HTI Hm Hlv) as [-> ->].
+      destruct (window_bounds _ _ Hc) as (Hn & Hd & Hdn).
+      rewrite Ptrofs.unsigned_repr by lia. auto.
+  Qed.
+
+  Lemma arg_owin :
+    forall Q bm SafeB bc e le m al tyargs vargs k n,
+      TI_of Q bm SafeB bc e le ->
+      eval_exprlist (lp_ge lp) e le m al tyargs vargs ->
+      win_ptr_chk (bc_mptr bc) n (nth k al (Econst_int Int.zero tint)) = true ->
+      owin bm n (nth k vargs Vundef).
+  Proof.
+    intros Q bm SafeB bc e le m al tyargs vargs k n HTI Hel Hc.
+    destruct (exprlist_nth_val _ _ _ _ _ _ _ Hel k) as [E | (a & v0 & ty0 & Hn & Hev & Hcast)].
+    - rewrite E. intros b o Hv. discriminate Hv.
+    - rewrite (nth_error_nth _ _ _ Hn) in Hc.
+      intros b o Hv. rewrite Hv in Hcast.
+      apply sem_cast_ptr_result_inv in Hcast. subst v0.
+      exact (win_ptr_chk_sound _ _ _ _ _ _ _ _ _ _ HTI Hc Hev b o eq_refl).
+  Qed.
+
+  Lemma arg_osafe :
+    forall Q bm SafeB bc e le m al tyargs vargs k n,
+      TI_of Q bm SafeB bc e le ->
+      eval_exprlist (lp_ge lp) e le m al tyargs vargs ->
+      (win_ptr_chk (bc_mptr bc) n (nth k al (Econst_int Int.zero tint))
+       || safe_ptr_chk bc (nth k al (Econst_int Int.zero tint))) = true ->
+      osafe bm SafeB n (nth k vargs Vundef).
+  Proof.
+    intros Q bm SafeB bc e le m al tyargs vargs k n HTI Hel Hc.
+    apply orb_true_iff in Hc as [Hw | Hs].
+    - intros b o Hv. left.
+      exact (arg_owin _ _ _ _ _ _ _ _ _ _ _ _ HTI Hel Hw b o Hv).
+    - destruct (exprlist_nth_val _ _ _ _ _ _ _ Hel k) as [E | (a & v0 & ty0 & Hn & Hev & Hcast)].
+      + rewrite E. intros b o Hv. discriminate Hv.
+      + rewrite (nth_error_nth _ _ _ Hn) in Hs.
+        intros b o Hv. rewrite Hv in Hcast.
+        apply sem_cast_ptr_result_inv in Hcast. subst v0.
+        unfold safe_ptr_chk in Hs.
+        destruct (chain_root_e a) as [t|] eqn:Hcr; [ | discriminate Hs ].
+        destruct (chain_root_e_block _ _ _ _ _ _ _ _ Hcr Hev) as (o0 & Hlk).
+        right. destruct HTI as (_ & _ & _ & _ & _ & Hch).
+        exact (Hch t Hs b o0 Hlk).
+  Qed.
+
+  Lemma wargs_chk_sound :
+    forall Q bm SafeB bc e le m ty al tyargs vargs,
+      TI_of Q bm SafeB bc e le ->
+      wargs_chk bc ty al = true ->
+      eval_exprlist (lp_ge lp) e le m al tyargs vargs ->
+      wgate bm SafeB ty vargs.
+  Proof.
+    intros Q bm SafeB bc e le m ty al tyargs vargs HTI Hc Hel.
+    unfold wargs_chk, wgate in *.
+    destruct (type_eq ty T_ffc); [ exact (arg_owin _ _ _ _ _ _ _ _ _ _ _ _ HTI Hel Hc) | ].
+    destruct (type_eq ty T_f32w).
+    { repeat (apply andb_true_iff in Hc; destruct Hc as [Hc ?]).
+      refine (conj _ (conj _ _)); eapply arg_owin; eauto. }
+    destruct (type_eq ty T_v3fcopy); [ eapply arg_osafe; eauto | ].
+    destruct (type_eq ty T_v3fset); [ eapply arg_osafe; eauto | ].
+    destruct (type_eq ty T_v3scopy); [ eapply arg_osafe; eauto | ].
+    exact I.
+  Qed.
+
+  Lemma chk_call_gate :
+    forall Q bm SafeB bc e le m optid a al tyargs tyres cc vargs fd,
+      TI_of Q bm SafeB bc e le ->
+      chk bc (Scall optid a al) = true ->
+      classify_fun (typeof a) = fun_case_f tyargs tyres cc ->
+      type_of_fundef fd = Tfunction tyargs tyres cc ->
+      eval_exprlist (lp_ge lp) e le m al tyargs vargs ->
+      wgate bm SafeB (type_of_fundef fd) vargs.
+  Proof.
+    intros Q bm SafeB bc e le m optid a al tyargs tyres cc vargs fd
+           HTI HC Hcf Htof Hel.
+    change ((call_optid_ok bc optid
+             && (call_head_is_mptr bc al && callee_in_mptr a
+                 || call_callee_exempt a)
+             && wargs_chk bc (typeof a) al) = true) in HC.
+    apply andb_true_iff in HC as [HC Hw].
+    assert (Hta : typeof a = Tfunction tyargs tyres cc).
+    { apply andb_true_iff in HC as [_ HC].
+      apply orb_true_iff in HC as [HM | HE].
+      - apply andb_true_iff in HM as [_ HM].
+        destruct (callee_in_mptr_shape _ HM) as (fid & tl & r & c & -> & _).
+        cbn in Hcf |- *. inv Hcf. reflexivity.
+      - destruct (call_callee_exempt_shape _ HE) as (fid & tl & r & c & -> & _).
+        cbn in Hcf |- *. inv Hcf. reflexivity. }
+    rewrite Htof, <- Hta.
+    exact (wargs_chk_sound _ _ _ _ _ _ _ _ _ _ _ HTI Hw Hel).
   Qed.
 
   (* ---- Hassign: a censused store preserves valid, action_sat, and --
