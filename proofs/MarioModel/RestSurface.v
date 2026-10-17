@@ -483,18 +483,26 @@ Section RestSurface.
      body's gated residual: the out-pointer vec3f_find_ceil forwards is its
      own third param, which its gate (T_vfc) already places in a Mario
      window cell. *)
-  Lemma vfc_pres :
-    forall (MWF : mem -> Prop) (bm : block) (SafeB : block -> Prop),
+  Lemma vfc_walk :
+    forall (MWF : mem -> Prop) (bm : block) (G : block -> ptrofs -> Prop),
       (forall m lo hi m' b, Mem.alloc m lo hi = (m', b) -> MWF m -> MWF m') ->
       (forall m2 m3 l, Mem.free_list m2 l = Some m3 -> MWF m2 -> MWF m3) ->
-      body_pres_w MWF bm SafeB surface_collision.f_find_ceil ->
-      body_pres_w MWF bm SafeB mario.f_vec3f_find_ceil.
+      (forall m vargs t m' vres,
+          (exists b o, nth 3 vargs Vundef = Vptr b o /\ G b o) ->
+          eval_funcall function_entry2 (lp_ge lp) m
+            (Internal surface_collision.f_find_ceil) vargs t m' vres ->
+          MWF m -> Mem.valid_block m bm -> action_sat not_tainted m bm ->
+          Mem.valid_block m' bm /\ action_sat not_tainted m' bm /\ MWF m') ->
+      forall m vargs t m' vres,
+        (exists b o, nth 2 vargs Vundef = Vptr b o /\ G b o) ->
+        eval_funcall function_entry2 (lp_ge lp) m
+          (Internal mario.f_vec3f_find_ceil) vargs t m' vres ->
+        MWF m -> Mem.valid_block m bm -> action_sat not_tainted m bm ->
+        Mem.valid_block m' bm /\ action_sat not_tainted m' bm /\ MWF m'.
   Proof.
-    intros MWF bm SafeB Halloc Hfree Hfc.
-    unfold body_pres_w.
+    intros MWF bm G Halloc Hfree Hfc.
     intros m vargs t m' vres Hgate Hevf Hmwf Hv Hsat.
-    rewrite vfc_type in Hgate. apply wgate_vfc_elim in Hgate.
-    destruct Hgate as (oc & Hceil & Hwin).
+    destruct Hgate as (bo & oc & Hceil & Hwin).
     unfold mario.f_vec3f_find_ceil in Hevf.
     inv Hevf.
     match goal with He : function_entry2 _ _ _ _ _ _ _ |- _ => rename He into Hentry end.
@@ -607,19 +615,16 @@ Section RestSurface.
           match type of Hfc_call with
           | eval_funcall _ _ _ _ ?vv _ _ _ => rename vv into vfc_args
           end.
-          assert (Hg : wgate bm SafeB
-                         (type_of_fundef (Internal surface_collision.f_find_ceil))
-                         vfc_args).
-          { rewrite find_ceil_type. apply wgate_ffc_intro.
-            destruct (exprlist_nth_val2 _ _ _ _ _ _ _ Hel 3
+          assert (Hg : exists b o, nth 3 vfc_args Vundef = Vptr b o /\ G b o).
+          { destruct (exprlist_nth_val2 _ _ _ _ _ _ _ Hel 3
                         (Etempvar mario._ceil (tptr (tptr (Tstruct mario._Surface noattr))))
                         eq_refl) as (vc0 & ty0 & Hty0 & Hev0 & Hc0).
             cbn in Hty0. injection Hty0 as <-.
             inv Hev0; [ | match goal with H : eval_lvalue _ _ _ _ (Etempvar _ _) _ _ _ |- _ => inv H end ].
             match goal with H : PTree.get mario._ceil _ = Some vc0 |- _ =>
               cbn in H; injection H as <- end.
-            apply sem_cast_vptr_ptr in Hc0. rewrite Hc0.
-            exists oc. split; [ reflexivity | exact Hwin ]. }
+            apply sem_cast_vptr_ptr in Hc0.
+            exists bo, oc. split; [ exact Hc0 | exact Hwin ]. }
           destruct (Hfc _ _ _ _ _ Hg Hfc_call HmwfA HvA HsatA) as (HvB & HsatB & HmwfB).
           (* the Sreturn is pure *)
           inv Hret.
@@ -671,6 +676,27 @@ Section RestSurface.
         | Hne : Out_normal <> Out_normal |- _ =>
             exact (False_ind _ (Hne eq_refl))
         end.
+  Qed.
+
+  (* the window instance: vec3f_find_ceil's gated residual. *)
+  Lemma vfc_pres :
+    forall (MWF : mem -> Prop) (bm : block) (SafeB : block -> Prop),
+      (forall m lo hi m' b, Mem.alloc m lo hi = (m', b) -> MWF m -> MWF m') ->
+      (forall m2 m3 l, Mem.free_list m2 l = Some m3 -> MWF m2 -> MWF m3) ->
+      body_pres_w MWF bm SafeB surface_collision.f_find_ceil ->
+      body_pres_w MWF bm SafeB mario.f_vec3f_find_ceil.
+  Proof.
+    intros MWF bm SafeB Halloc Hfree Hfc.
+    intros m vargs t m' vres Hgate Hevf Hmwf Hv Hsat.
+    rewrite vfc_type in Hgate. apply wgate_vfc_elim in Hgate.
+    destruct Hgate as (oc & Hceil & Hwin).
+    refine (vfc_walk MWF bm
+              (fun b o => b = bm /\ store_window_ok (Ptrofs.unsigned o) 4 = true)
+              Halloc Hfree _ m vargs t m' vres _ Hevf Hmwf Hv Hsat).
+    - intros m0 va t0 m0' vr (b & o & Hn & Hb & Hw) Hev HM HV HS. subst b.
+      apply (Hfc m0 va t0 m0' vr); [ | exact Hev | exact HM | exact HV | exact HS ].
+      rewrite find_ceil_type. apply wgate_ffc_intro. exists o. split; assumption.
+    - exists bm, oc. split; [ exact Hceil | split; [ reflexivity | exact Hwin ] ].
   Qed.
 
 End RestSurface.

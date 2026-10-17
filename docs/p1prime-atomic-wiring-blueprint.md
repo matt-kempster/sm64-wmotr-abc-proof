@@ -392,7 +392,7 @@ each `<> bm` (static-layout, same trust class as the existing entries).
 > **STATUS 2026-10-17 (later): surface_collision LINKED.** `LinkedTwelve.tu_rest` now
 > includes `surface_collision.prog` (13 TUs). MathGeomBodies/MathGeomGated are promoted
 > to the spine; `SurfaceBodies.v` proves the five lifted bodies' `body_pres_w` and turns
-> four capstone rows into lemmas (`Hocp_find_floor`, `Hxcp_fwl_real`, `Hwolcp_fwc`,
+> five capstone rows into lemmas (`Hocp_find_floor`, `Hocp_find_ceil`, `Hxcp_fwl_real`, `Hwolcp_fwc`,
 > `Holcp_fwc_real`). `math_util` is NOT linkable as-is (`gSineTable` is `tarray tfloat 0`
 > in 11 TUs vs 5120 in math_util; needs the extern-array completion table).
 >

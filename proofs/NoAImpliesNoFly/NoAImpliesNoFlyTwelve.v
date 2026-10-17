@@ -114,9 +114,6 @@ Section NoAImpliesNoFlyTwelve.
   (* P5 SLICE 4: Hglob_valid is DISCHARGED at the real_mwf capstone (from the
      R0 nextblock-bound conjunct via glob_valid_of_nextbound), so it is no
      longer an assumed row here either. *)
-  Hypothesis Hocp_find_ceil :
-    call_pres_ext_oc lp bm (NoA_real bm) MWF SafeB
-      mario_actions_automatic._vec3f_find_ceil.
   Hypothesis Hscp_v3f :
     call_pres_ext_sc lp bm (NoA_real bm) MWF SafeB
       mario_actions_automatic._vec3f_copy.
@@ -222,7 +219,7 @@ Section NoAImpliesNoFlyTwelve.
              bm bc oc0 SafeB (fun _ => false)
              HSafeB_sym_iff Hspawn
              (linked12_LO_surf lp H12)
-             Hocp_find_ceil Hscp_v3f Hscp_v3s
+             Hscp_v3f Hscp_v3s
              Hwlcp_v3f_real WL_exempt
              (linked12_LO_sta lp H12) (linked12_LO_mov lp H12)
              (linked12_LO_air lp H12) (linked12_LO_sub lp H12)
@@ -256,7 +253,7 @@ Section NoAImpliesNoFlyTwelve.
              bm bc oc0 SafeB
              HSafeB_sym_iff Hspawn
              (linked12_LO_surf lp H12)
-             Hocp_find_ceil Hscp_v3f Hscp_v3s
+             Hscp_v3f Hscp_v3s
              Hwlcp_v3f_real WL_exempt
              (linked12_LO_sta lp H12) (linked12_LO_mov lp H12)
              (linked12_LO_air lp H12) (linked12_LO_sub lp H12)

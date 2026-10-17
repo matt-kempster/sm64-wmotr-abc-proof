@@ -22,7 +22,7 @@ all in `Unwired/`, and the theorem moved nowhere. See
 - **GOAL 1** (no-A ⇒ no-fly): `NoAImpliesNoFly/NoAImpliesNoFlyTwelve.v`,
   `noA_no_spawn_never_flying_linked12`. The step is one real `execute_mario_action` over
   any link of the 13 TUs (the 12 Mario TUs + `surface_collision`, since 2026-10-17). The
-  open surface is its `Hypothesis` rows (32 as of 2026-10-17, external-call and boundary
+  open surface is its `Hypothesis` rows (31 as of 2026-10-17, external-call and boundary
   rows; see `docs/TRUST.md` §4). The collision rows are lemmas now (`SurfaceBodies.v`);
   `math_util` is the next link (blocked on the `gSineTable` extern-array completion).
 - **GOAL 2** (WMotR needs A): `WMotRRequiresA/HeightFrame.v`,

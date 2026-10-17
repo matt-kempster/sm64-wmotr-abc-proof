@@ -426,6 +426,7 @@ Section Rows.
       kb <> bm /\ kb <> bc /\ ~ SafeB kb.
   Hypothesis LO_surf : linkorder surface_collision.prog lp.
   Hypothesis Hbc_sym : exists gid, Genv.find_symbol (lp_ge lp) gid = Some bc.
+  Hypothesis LO_mario : linkorder mario.prog lp.
 
   Let MWF := MWF_real lp bm bc oc0 SafeB.
   Let NoA := fun m => ctl_a_clear m bm.
@@ -527,5 +528,36 @@ Section Rows.
                 m0 vargs0 t0 m1 vres0 Hevf Hb HB Hv Hsat HM)
       as (Hv' & Hs' & HM').
     exact (conj Hv' (conj Hs' (conj HM' (mwf_real_ctl lp bm bc oc0 SafeB m1 HM')))).
+  Qed.
+  (* vec3f_find_ceil(pos, h, &ceil) with ceil a caller stack local: its real
+     mario.c body forwards &ceil to the real find_ceil (RestSurface.vfc_walk
+     at G := local_blk), whose only store is through that local cell. *)
+  Lemma Hocp_find_ceil_proved :
+    call_pres_ext_oc lp bm NoA MWF SafeB mario_actions_automatic._vec3f_find_ceil.
+  Proof.
+    intros fd m0 vargs0 t0 m1 vres0 Hevf Hres (b & ofs & Hl & Hloc) _ HM Hv Hsat.
+    pose proof (resolves_pin_fd lp _ _ _ _ LO_mario mario_defmap_vfc Hres) as ->.
+    pose proof (funcall_len _ _ _ _ _ _ _ Hevf) as Hlen.
+    apply last_val_nth in Hl. rewrite Hlen in Hl. cbn in Hl.
+    destruct (vfc_walk lp LO_surf MWF bm (fun b _ => local_blk lp bm SafeB b)
+                (mwf_real_alloc lp bm bc oc0 SafeB Hbc_bm)
+                (mwf_real_free lp bm bc oc0 SafeB Hbc_bm))
+      with (m := m0) (vargs := vargs0) (t := t0) (m' := m1) (vres := vres0)
+      as (Hv' & Hs' & HM').
+    - intros m va t m' vr (b' & o' & Hn & Hlb) Hev HM0 HV HS.
+      exact (find_ceil_body_frame_pinned (lp_ge lp) MWF bm b' o'
+               (sb_frame_oracles lp bm bc oc0 SafeB Hbc_bm)
+               (sb_statics_c lp bm bc oc0 SafeB Hbc_bm Hglob_blk)
+               (sb_resolves lp LO_surf _ _ surf_dm_fcl)
+               m va t m' vr Hev (nth_vptr_nth_error _ _ _ _ Hn)
+               (local_out_cell b' o' Hlb) HV HS HM0).
+    - exists b, ofs. split; [ | exact Hloc ].
+      destruct vargs0 as [| ? [| ? [| x ?]]]; try discriminate Hl.
+      injection Hl as ->. reflexivity.
+    - exact Hevf.
+    - exact HM.
+    - exact Hv.
+    - exact Hsat.
+    - exact (conj Hv' (conj Hs' (conj HM' (mwf_real_ctl lp bm bc oc0 SafeB m1 HM')))).
   Qed.
 End Rows.

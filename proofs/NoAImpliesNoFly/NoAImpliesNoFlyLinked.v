@@ -831,7 +831,7 @@ Section NoARealInputMWF.
   Hypothesis LO_surf : linkorder surface_collision.prog lp.
   Ltac sb_row := first [ exact Hbc_bm | exact HSafeB_not_bm | exact Hgms_blk
     | exact Hglob_blk | exact Hgtimer_blk | exact Htable_blk | exact Hktab_blk
-    | exact LO_surf | exact Hbc_sym ].
+    | exact LO_surf | exact Hbc_sym | exact LO_mario ].
   (* PROVED (was a row): find_floor's real body, linked
      (SurfaceBodies.Hocp_find_floor_proved). *)
   Lemma Hocp_find_floor :
@@ -850,9 +850,13 @@ Section NoARealInputMWF.
          a single row, with the wc/ol forms derived (call_pres_ext_wc_of_wol
          / call_pres_ext_ol_of_wol);
        - vec3f_copy / vec3s_set: object writers (dst chases m->marioObj->SafeB). *)
-  Hypothesis Hocp_find_ceil :
+  (* PROVED (was a row): vec3f_find_ceil's real mario.c body forwarding a
+     local &ceil to the real find_ceil (SurfaceBodies.Hocp_find_ceil_proved,
+     via RestSurface.vfc_walk). *)
+  Lemma Hocp_find_ceil :
     call_pres_ext_oc lp bm (NoA_real bm) MWF SafeB
       mario_actions_automatic._vec3f_find_ceil.
+  Proof. eapply SurfaceBodies.Hocp_find_ceil_proved; sb_row. Qed.
   (* PROVED (was a row): SurfaceBodies.Hwolcp_fwc_proved. *)
   Lemma Hwolcp_fwc :
     call_pres_ext_wol lp bm (NoA_real bm) MWF SafeB
