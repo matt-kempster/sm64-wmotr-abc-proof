@@ -283,14 +283,14 @@ footer{margin-top:64px; padding-top:16px; border-top:1px solid var(--rule); font
       <span class="stage-tag">Station 3 · Mario’s own code</span>
       <div class="station">
         <div class="station-head"><h3>The real <code>execute_mario_action</code></h3><span class="lamp l-proved">derived, not assumed</span></div>
-        <p style="font-size:.93rem;color:var(--muted)">One real call of the game’s compiled C per frame, run over any link of the twelve Mario translation units.
+        <p style="font-size:.93rem;color:var(--muted)">One real call of the game’s compiled C per frame, run over any link of the twelve Mario translation units plus the collision code.
           “The frame keeps the budget” used to be a single assumption. It is now a lemma (<code>seg_action_phi</code>) built from these parts.</p>
         <div class="parts-grid">
           <details class="part">
             <summary><span class="part-title"><span class="name">Never flies (GOAL 1)</span><span class="coq">frame_ok_linked12</span></span><span class="lamp l-proved">proved</span></summary>
             <div class="part-body"><dl>
               <dt>Says</dt><dd>Without A, one real frame never enters a flying action, and the memory stays well-formed.</dd>
-              <dt>Held up by</dt><dd>36 named assumptions about code outside the link (math and collision helpers, audio, objects). About 17 of them go away when <code>math_util</code> and <code>surface_collision</code> join the link.</dd>
+              <dt>Held up by</dt><dd>31 named assumptions about code outside the link (math helpers, audio, objects). <code>surface_collision</code> joined the link on 2026-10-17, and five assumptions became theorems. <code>math_util</code> is next, but two of the assumptions turned out to be false for it: they let its vector writers write through any pointer. Those have to be restated first.</dd>
               <dt>Control</dt><dd>With A pressed, the same machinery runs one real frame into <code>ACT_FLYING_TRIPLE_JUMP</code>, so it is the missing A that does the work.</dd>
             </dl></div>
           </details>
@@ -612,8 +612,8 @@ footer{margin-top:64px; padding-top:16px; border-top:1px solid var(--rule); font
   const S = {proved:['l-proved','proved'], trusted:['l-trusted','trusted'], open:['l-open','open'], spec:['l-spec','spec']};
   const rows = [
     ['GOAL 1 · no A means no flying'],
-    ['Never-flying frame, over any link of 12 TUs', 'proved', 'Nothing; this is done. <code>noA_no_spawn_never_flying_linked12</code>'],
-    ['The 12 TUs really link', 'proved', '<code>linked12_inhabited</code>'],
+    ['Never-flying frame, over any link of 13 TUs', 'proved', 'Nothing; this is done. <code>noA_no_spawn_never_flying_linked12</code>'],
+    ['The 13 TUs really link', 'proved', '<code>linked12_inhabited</code>'],
     ['Math and collision helpers (≈17 rows)', 'trusted', 'Link <code>math_util</code> and <code>surface_collision</code>; their bodies are already proved'],
     ['Per-family external callees (7 rows)', 'trusted', 'Shrinks with the same link growth'],
     ['Run layout, object pool, gated externals (9 rows)', 'spec', 'By design: code outside the verified units'],
