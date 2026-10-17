@@ -1,4 +1,4 @@
-(* kept: P1' Unwired pre-stage — standalone math/geometry body facts, consumed at the future atomic fourteen-TU link commit; NOT yet capstone-wired. *)
+(* SPINE (P1' widening, 2026-10-17): standalone facts about the real surface_collision / math_util bodies; the surface_collision ones are consumed by SurfaceBodies.v at the 13-TU link. *)
 
 (* ====================================================================== *)
 (* P1' PRE-STAGE (task #90).  Two of the three PURE geometry bodies of      *)

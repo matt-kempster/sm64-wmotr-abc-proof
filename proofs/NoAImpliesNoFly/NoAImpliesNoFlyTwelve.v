@@ -114,14 +114,9 @@ Section NoAImpliesNoFlyTwelve.
   (* P5 SLICE 4: Hglob_valid is DISCHARGED at the real_mwf capstone (from the
      R0 nextblock-bound conjunct via glob_valid_of_nextbound), so it is no
      longer an assumed row here either. *)
-  Hypothesis Hocp_find_floor :
-    call_pres_ext_oc lp bm (NoA_real bm) MWF SafeB mario._find_floor.
   Hypothesis Hocp_find_ceil :
     call_pres_ext_oc lp bm (NoA_real bm) MWF SafeB
       mario_actions_automatic._vec3f_find_ceil.
-  Hypothesis Hwolcp_fwc :
-    call_pres_ext_wol lp bm (NoA_real bm) MWF SafeB
-      mario_actions_automatic._f32_find_wall_collision.
   Hypothesis Hscp_v3f :
     call_pres_ext_sc lp bm (NoA_real bm) MWF SafeB
       mario_actions_automatic._vec3f_copy.
@@ -161,8 +156,6 @@ Section NoAImpliesNoFlyTwelve.
   Hypothesis Hpres_cut_ext : forall fid,
       mem_id fid CutsceneLeafSurface.cut_ext_ids = true ->
       call_pres_ext lp bm (NoA_real bm) MWF fid.
-  Hypothesis Hxcp_fwl_real :
-    call_pres_ext lp bm (NoA_real bm) MWF mario_step._find_water_level.
   Hypothesis Hscp_geo_real :
     call_pres_ext_sc lp bm (NoA_real bm) MWF SafeB
       mario._geo_update_animation_frame.
@@ -172,9 +165,6 @@ Section NoAImpliesNoFlyTwelve.
   Hypothesis Hcpx_approach_real :
     call_pres_ext lp bm (NoA_real bm) MWF
       mario_actions_automatic._approach_s32.
-  Hypothesis Holcp_fwc_real :
-    call_pres_ext_ol lp bm (NoA_real bm) MWF SafeB
-      mario._find_wall_collisions.
   Hypothesis Hw1cp_v3f_real :
     call_pres_ext_w1 lp bm (NoA_real bm) MWF
       mario_actions_automatic._vec3f_copy.
@@ -231,7 +221,8 @@ Section NoAImpliesNoFlyTwelve.
              (linked12_LO_mario lp H12)
              bm bc oc0 SafeB (fun _ => false)
              HSafeB_sym_iff Hspawn
-             Hocp_find_floor Hocp_find_ceil Hwolcp_fwc Hscp_v3f Hscp_v3s
+             (linked12_LO_surf lp H12)
+             Hocp_find_ceil Hscp_v3f Hscp_v3s
              Hwlcp_v3f_real WL_exempt
              (linked12_LO_sta lp H12) (linked12_LO_mov lp H12)
              (linked12_LO_air lp H12) (linked12_LO_sub lp H12)
@@ -242,8 +233,8 @@ Section NoAImpliesNoFlyTwelve.
              (linked12_ext_pin lp H12)
              Hpres_sta_ext Hpres_mov_ext Hcpx_approach_f32_real
              Hw1cp_v3sset_real Hglob_obj_root Hpres_obj_ext Hpres_cut_ext
-             Hxcp_fwl_real Hscp_geo_real Hocp_rai_real Hcpx_approach_real
-             Holcp_fwc_real Hw1cp_v3f_real Hwolcp_v3f_real Hw1cp_v3fset_real
+             Hscp_geo_real Hocp_rai_real Hcpx_approach_real
+             Hw1cp_v3f_real Hwolcp_v3f_real Hw1cp_v3fset_real
              Hscp_v3fset_real Hpres_floors_ext
              Hcp_spawn_real Hcp_savefile_real Hcpx_ibcd_real Hcpx_tbs_real
              Hpres_warp_ext Hext_action Hmwf_ext
@@ -264,7 +255,8 @@ Section NoAImpliesNoFlyTwelve.
              (linked12_LO_mario lp H12)
              bm bc oc0 SafeB
              HSafeB_sym_iff Hspawn
-             Hocp_find_floor Hocp_find_ceil Hwolcp_fwc Hscp_v3f Hscp_v3s
+             (linked12_LO_surf lp H12)
+             Hocp_find_ceil Hscp_v3f Hscp_v3s
              Hwlcp_v3f_real WL_exempt
              (linked12_LO_sta lp H12) (linked12_LO_mov lp H12)
              (linked12_LO_air lp H12) (linked12_LO_sub lp H12)
@@ -275,8 +267,8 @@ Section NoAImpliesNoFlyTwelve.
              (linked12_ext_pin lp H12)
              Hpres_sta_ext Hpres_mov_ext Hcpx_approach_f32_real
              Hw1cp_v3sset_real Hglob_obj_root Hpres_obj_ext Hpres_cut_ext
-             Hxcp_fwl_real Hscp_geo_real Hocp_rai_real Hcpx_approach_real
-             Holcp_fwc_real Hw1cp_v3f_real Hwolcp_v3f_real Hw1cp_v3fset_real
+             Hscp_geo_real Hocp_rai_real Hcpx_approach_real
+             Hw1cp_v3f_real Hwolcp_v3f_real Hw1cp_v3fset_real
              Hscp_v3fset_real Hpres_floors_ext
              Hcp_spawn_real Hcp_savefile_real Hcpx_ibcd_real Hcpx_tbs_real
              Hpres_warp_ext Hext_action Hmwf_ext).

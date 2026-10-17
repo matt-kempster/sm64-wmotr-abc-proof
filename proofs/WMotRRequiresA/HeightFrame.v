@@ -355,14 +355,9 @@ Section HeightLinked12.
   (* P5 SLICE 4: Hglob_valid is DISCHARGED at the real_mwf capstone (from the
      R0 nextblock-bound conjunct via glob_valid_of_nextbound), so it is no
      longer an assumed row here either. *)
-  Hypothesis Hocp_find_floor :
-    call_pres_ext_oc lp bm (NoA_real bm) MWF SafeB mario._find_floor.
   Hypothesis Hocp_find_ceil :
     call_pres_ext_oc lp bm (NoA_real bm) MWF SafeB
       mario_actions_automatic._vec3f_find_ceil.
-  Hypothesis Hwolcp_fwc :
-    call_pres_ext_wol lp bm (NoA_real bm) MWF SafeB
-      mario_actions_automatic._f32_find_wall_collision.
   Hypothesis Hscp_v3f :
     call_pres_ext_sc lp bm (NoA_real bm) MWF SafeB
       mario_actions_automatic._vec3f_copy.
@@ -402,8 +397,6 @@ Section HeightLinked12.
   Hypothesis Hpres_cut_ext : forall fid,
       mem_id fid CutsceneLeafSurface.cut_ext_ids = true ->
       call_pres_ext lp bm (NoA_real bm) MWF fid.
-  Hypothesis Hxcp_fwl_real :
-    call_pres_ext lp bm (NoA_real bm) MWF mario_step._find_water_level.
   Hypothesis Hscp_geo_real :
     call_pres_ext_sc lp bm (NoA_real bm) MWF SafeB
       mario._geo_update_animation_frame.
@@ -413,9 +406,6 @@ Section HeightLinked12.
   Hypothesis Hcpx_approach_real :
     call_pres_ext lp bm (NoA_real bm) MWF
       mario_actions_automatic._approach_s32.
-  Hypothesis Holcp_fwc_real :
-    call_pres_ext_ol lp bm (NoA_real bm) MWF SafeB
-      mario._find_wall_collisions.
   Hypothesis Hw1cp_v3f_real :
     call_pres_ext_w1 lp bm (NoA_real bm) MWF
       mario_actions_automatic._vec3f_copy.

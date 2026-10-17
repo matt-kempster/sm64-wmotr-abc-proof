@@ -41,7 +41,8 @@ From Coq Require Import List. Import ListNotations.
 From SM64.Generated Require mario mario_actions_stationary
   mario_actions_moving mario_actions_airborne mario_actions_submerged
   mario_actions_cutscene mario_actions_automatic mario_actions_object
-  interaction behavior_actions level_update mario_step.
+  interaction behavior_actions level_update mario_step surface_collision.
+From SM64.Proofs Require SurfaceBodies.
 From SM64.Proofs Require Import Flying Taint ActionValue ActionValueFrame ReachableRun
   RealFrameValue RealFrameLinked AGates SymbolicLinking FieldNonInterference.
 From SM64.Proofs Require Import CensusV2 EngineV2Consumer.
@@ -822,8 +823,20 @@ Section NoARealInputMWF.
   (* find_floor as a faithful OUT-PARAM writer: carried-preservation GATED
      on the out-param being a caller stack local (local_blk).  TRUE in the
      intended model; replaces the FALSE `call_pres_ext find_floor`. *)
-  Hypothesis Hocp_find_floor :
+  (* the P1' widening: surface_collision is in the link, so find_floor /
+     find_ceil / f32_find_wall_collision / find_water_level /
+     find_poison_gas_level resolve to their REAL bodies -- five more pinned
+     rest cases, each PROVED below from the generated Clight
+     (SurfaceBodies). *)
+  Hypothesis LO_surf : linkorder surface_collision.prog lp.
+  Ltac sb_row := first [ exact Hbc_bm | exact HSafeB_not_bm | exact Hgms_blk
+    | exact Hglob_blk | exact Hgtimer_blk | exact Htable_blk | exact Hktab_blk
+    | exact LO_surf | exact Hbc_sym ].
+  (* PROVED (was a row): find_floor's real body, linked
+     (SurfaceBodies.Hocp_find_floor_proved). *)
+  Lemma Hocp_find_floor :
     call_pres_ext_oc lp bm (NoA_real bm) MWF SafeB mario._find_floor.
+  Proof. eapply SurfaceBodies.Hocp_find_floor_proved; sb_row. Qed.
   (* the SHARED pole/tornado/hang external residuals -- the HONEST gated
      refinements that let set_pole_position's body be WALKED (replacing the old
      opaque Hcp_spp whole-function residual).  Each is GATED on the real call
@@ -840,9 +853,11 @@ Section NoARealInputMWF.
   Hypothesis Hocp_find_ceil :
     call_pres_ext_oc lp bm (NoA_real bm) MWF SafeB
       mario_actions_automatic._vec3f_find_ceil.
-  Hypothesis Hwolcp_fwc :
+  (* PROVED (was a row): SurfaceBodies.Hwolcp_fwc_proved. *)
+  Lemma Hwolcp_fwc :
     call_pres_ext_wol lp bm (NoA_real bm) MWF SafeB
       mario_actions_automatic._f32_find_wall_collision.
+  Proof. eapply SurfaceBodies.Hwolcp_fwc_proved; sb_row. Qed.
   Hypothesis Hscp_v3f :
     call_pres_ext_sc lp bm (NoA_real bm) MWF SafeB
       mario_actions_automatic._vec3f_copy.
@@ -1321,8 +1336,11 @@ Section NoARealInputMWF.
      EVERY generated TU (mario.v:12252, mario_step.v:5662, shadow.v,
      behavior_actions.v) -- the same honest terminal-external
      model-boundary class as atan2s. *)
-  Hypothesis Hxcp_fwl_real :
+  (* PROVED (was a row): find_water_level's real body is store-free
+     (SurfaceBodies.Hxcp_fwl_proved). *)
+  Lemma Hxcp_fwl_real :
     call_pres_ext lp bm (NoA_real bm) MWF mario_step._find_water_level.
+  Proof. eapply SurfaceBodies.Hxcp_fwl_proved; sb_row. Qed.
   (* mario_get_terrain_sound_addend, WALKED (MarioStepSurface.mgtsa_cp):
      EF_external in mario_step.prog but INTERNAL in mario.prog; its body
      is MEMORY-PURE (no stores, no calls -- chase loads + one Sswitch),
@@ -1411,9 +1429,11 @@ Section NoARealInputMWF.
        - vec3f_copy(&m->pos, nextPos): writes ONLY through its dst = &m->pos,
          a 12-byte safe bm-window (action cell @12 clear), src = nextPos local,
          so the honest gate is arg0_window (call_pres_ext_w1). *)
-  Hypothesis Holcp_fwc_real :
+  (* PROVED (was a row): SurfaceBodies.Holcp_fwc_proved. *)
+  Lemma Holcp_fwc_real :
     call_pres_ext_ol lp bm (NoA_real bm) MWF SafeB
       mario._find_wall_collisions.
+  Proof. eapply SurfaceBodies.Holcp_fwc_proved; sb_row. Qed.
   Hypothesis Hw1cp_v3f_real :
     call_pres_ext_w1 lp bm (NoA_real bm) MWF
       mario_actions_automatic._vec3f_copy.
@@ -2550,6 +2570,34 @@ Section NoARealInputMWF.
      middle consumes this): one real execute_mario_action frame preserves
      mem_ok_lp.  The capstone below is re-derived from it by the generic
      run harness (ReachableRun.noA_run_not_flying). *)
+  (* the five lifted surface bodies at MWF_real (SurfaceBodies) *)
+  Lemma sb_ff : body_pres_w lp (MWF_real lp bm bc oc0 SafeB) bm SafeB
+                  surface_collision.f_find_floor.
+  Proof.
+    exact (SurfaceBodies.find_floor_pres lp bm bc oc0 SafeB Hbc_bm HSafeB_not_bm
+             Hgms_blk Hglob_blk Hgtimer_blk Htable_blk Hktab_blk LO_surf).
+  Qed.
+  Lemma sb_fc : body_pres_w lp (MWF_real lp bm bc oc0 SafeB) bm SafeB
+                  surface_collision.f_find_ceil.
+  Proof.
+    exact (SurfaceBodies.find_ceil_pres lp bm bc oc0 SafeB Hbc_bm HSafeB_not_bm
+             Hgms_blk Hglob_blk Hgtimer_blk Htable_blk Hktab_blk LO_surf).
+  Qed.
+  Lemma sb_ffwc : body_pres_w lp (MWF_real lp bm bc oc0 SafeB) bm SafeB
+                    surface_collision.f_f32_find_wall_collision.
+  Proof.
+    exact (SurfaceBodies.f32_find_wall_collision_pres lp bm bc oc0 SafeB Hbc_bm
+             HSafeB_not_bm Hgms_blk Hglob_blk Hgtimer_blk Htable_blk Hktab_blk LO_surf).
+  Qed.
+  Lemma sb_fw : body_pres_w lp (MWF_real lp bm bc oc0 SafeB) bm SafeB
+                  surface_collision.f_find_water_level.
+  Proof. exact (SurfaceBodies.find_water_level_pres lp bm bc oc0 SafeB). Qed.
+  Lemma sb_fp : body_pres_w lp (MWF_real lp bm bc oc0 SafeB) bm SafeB
+                  surface_collision.f_find_poison_gas_level.
+  Proof.
+    exact (SurfaceBodies.find_poison_gas_level_pres lp bm bc oc0 SafeB Hbc_bm).
+  Qed.
+
   Lemma frame_ok_real_mwf :
     forall m m',
       mem_ok_lp bm (MWF_real lp bm bc oc0 SafeB) m ->
@@ -2573,7 +2621,7 @@ Section NoARealInputMWF.
              (mwf_real_umbi lp bm bc oc0 SafeB Hbc_bm HSafeB_not_bm Hgms_blk Hgtimer_blk Htable_blk Hktab_blk)
              WL_exempt
              (rest_pres_decompose lp LO_mario LO_sta LO_mov LO_air LO_sub LO_cut
-                LO_aut LO_obj LO_int LO_beh LO_lvl LO_stp Hrest_ext_only
+                LO_aut LO_obj LO_int LO_beh LO_lvl LO_stp LO_surf Hrest_ext_only
                 (NoA_real bm) (MWF_real lp bm bc oc0 SafeB) bm SafeB
                 (stationary_pres lp LO_mario LO_sta LO_stp bm (NoA_real bm)
                    (MWF_real lp bm bc oc0 SafeB)
@@ -3406,22 +3454,13 @@ Section NoARealInputMWF.
                       Hgms_blk Hgtimer_blk Htable_blk Hktab_blk)
                    (mwf_real_glob lp bm bc oc0 SafeB Hbc_bm Hglob_blk)
                    Hpres_warp_ext)
-                (* the #95 thirteenth body: vec3f_find_ceil WALKED, zero
-                   new trust (alloc/free bricks + the repaired pin's
-                   find_ceil instance + the reached-external rows) *)
-                (vfc_pres lp (NoA_real bm) (MWF_real lp bm bc oc0 SafeB) bm
+                (* vec3f_find_ceil WALKED: alloc/free bricks + the REAL
+                   find_ceil body (pinned by LO_surf, SurfaceBodies) *)
+                (vfc_pres lp LO_surf (MWF_real lp bm bc oc0 SafeB) bm SafeB
                    (mwf_real_alloc lp bm bc oc0 SafeB Hbc_bm)
                    (mwf_real_free lp bm bc oc0 SafeB Hbc_bm)
-                   (fun f => Hrest_ext_only mario._find_ceil f
-                               (or_introl find_ceil_in_ext))
-                   (fun ef targs tres cc vargs mx tx vresx mx' Hres Hec =>
-                      Hext_action ef targs tres cc vargs mx tx vresx mx'
-                        (or_intror (or_intror (ex_intro _ mario._find_ceil
-                           (conj (or_introl find_ceil_in_exempt) Hres)))) Hec)
-                   (fun ef targs tres cc vargs mx tx vresx mx' Hres Hec Hvv HMM =>
-                      Hmwf_ext ef targs tres cc vargs mx tx vresx mx'
-                        (or_intror (or_intror (ex_intro _ mario._find_ceil
-                           (conj (or_introl find_ceil_in_exempt) Hres)))) Hec Hvv HMM)))
+                   sb_fc)
+                sb_ffwc sb_ff sb_fc sb_fp sb_fw)
              Hext_action Hmwf_ext
              (mwf_real_entry lp bm bc oc0 SafeB Hbc_bm)
              (mwf_real_free lp bm bc oc0 SafeB Hbc_bm)

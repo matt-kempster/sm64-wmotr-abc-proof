@@ -37,6 +37,7 @@
 From Coq Require Import ZArith List Lia.
 From compcert Require Import Coqlib Maps AST Integers Values Events Memory
   Globalenvs Ctypes Cop Clightdefs Clight ClightBigstep Linking Errors.
+From SM64.Generated Require surface_collision.
 From SM64.Generated Require mario level_update mario_step mario_actions_submerged
   mario_actions_cutscene.
 From SM64.Proofs Require Import SymbolicLinking Flying Taint
@@ -897,7 +898,15 @@ Definition stored_globals : list ident :=
   mario_actions_cutscene._D_8032CBE8 ::
   mario_actions_cutscene._sMarioBlinkOverride ::
   mario_actions_cutscene._sSparkleGenTheta ::
-  mario_actions_cutscene._sSparkleGenPhi :: nil.
+  mario_actions_cutscene._sSparkleGenPhi ::
+  (* the surface_collision statics the linked find_floor / find_ceil /
+     find_wall_collisions bodies write (P1' widening): the call counter, the
+     floor-miss counter, and the intangible-floor flag find_floor clears.
+     Static data symbols of surface_collision.c, bm/bc/SafeB-disjoint per
+     Hglob_blk exactly like every entry above. *)
+  surface_collision._gNumCalls ::
+  surface_collision._gNumFindFloorMisses ::
+  surface_collision._gFindFloorIncludeSurfaceIntangible :: nil.
 
 (* ---------------------------------------------------------------------- *)
 (* The interaction-handler census (the Hpres_inter arc): the 28 DISTINCT   *)
@@ -1026,10 +1035,16 @@ Definition T_v3fset : type :=
   Tfunction (tptr tfloat :: tfloat :: tfloat :: tfloat :: nil) (tptr tvoid) cc_default.
 Definition T_v3scopy : type :=
   Tfunction (tptr tshort :: tptr tshort :: nil) (tptr tvoid) cc_default.
+(* vec3f_find_ceil (mario.c) hands its 3rd param straight to find_ceil *)
+Definition T_vfc : type :=
+  Tfunction (tptr tfloat :: tfloat :: tySurfPP :: nil) tfloat cc_default.
 
-(* a pointer argument lands n window bytes into Mario's block *)
+(* a pointer argument lands n window bytes into Mario's block.  It IS a
+   pointer: every accepted argument shape evaluates to one, and a cast to a
+   pointer parameter keeps it (sem_cast_vptr_ptr), so the body's out-param
+   frame applies without a separate non-pointer case. *)
 Definition owin (bm : block) (n : Z) (v : val) : Prop :=
-  forall b o, v = Vptr b o -> b = bm /\ store_window_ok (Ptrofs.unsigned o) n = true.
+  exists o, v = Vptr bm o /\ store_window_ok (Ptrofs.unsigned o) n = true.
 
 (* ... or in a SafeB object *)
 Definition osafe (bm : block) (SafeB : block -> Prop) (n : Z) (v : val) : Prop :=
@@ -1045,6 +1060,7 @@ Definition wgate (bm : block) (SafeB : block -> Prop) (ty : type)
   else if type_eq ty T_v3fcopy then osafe bm SafeB 12 (nth 0 vargs Vundef)
   else if type_eq ty T_v3fset then osafe bm SafeB 12 (nth 0 vargs Vundef)
   else if type_eq ty T_v3scopy then osafe bm SafeB 6 (nth 0 vargs Vundef)
+  else if type_eq ty T_vfc then owin bm 4 (nth 2 vargs Vundef)
   else True.
 
 (* m->fld (the lvalue), at its mario.prog field offset *)
@@ -1103,6 +1119,7 @@ Definition wargs_chk (bc : body_census) (ty : type) (al : list expr) : bool :=
     win_ptr_chk (bc_mptr bc) 12 (arg 0%nat) || safe_ptr_chk bc (arg 0%nat)
   else if type_eq ty T_v3scopy then
     win_ptr_chk (bc_mptr bc) 6 (arg 0%nat) || safe_ptr_chk bc (arg 0%nat)
+  else if type_eq ty T_vfc then win_ptr_chk (bc_mptr bc) 4 (arg 2%nat)
   else true.
 
 (* the writer signatures, as a decidable test: a call of any OTHER function
@@ -1110,7 +1127,38 @@ Definition wargs_chk (bc : body_census) (ty : type) (al : list expr) : bool :=
 Definition is_wty (ty : type) : bool :=
   proj_sumbool (type_eq ty T_ffc) || proj_sumbool (type_eq ty T_f32w)
   || proj_sumbool (type_eq ty T_v3fcopy) || proj_sumbool (type_eq ty T_v3fset)
-  || proj_sumbool (type_eq ty T_v3scopy).
+  || proj_sumbool (type_eq ty T_v3scopy) || proj_sumbool (type_eq ty T_vfc).
+
+(* a cast to a pointer type keeps a pointer unchanged (32-bit target) *)
+Lemma sem_cast_vptr_ptr : forall b o ty1 t ta m v,
+  sem_cast (Vptr b o) ty1 (Tpointer t ta) m = Some v -> v = Vptr b o.
+Proof.
+  intros b o ty1 t ta m v Hc. unfold sem_cast in Hc.
+  destruct ty1 as [ | sz si a1 | si a1 | fs a1 | t1 a1 | t1 n a1 | tl r c | i a1 | i a1 ];
+    try destruct fs; cbn in Hc;
+    repeat (match goal with
+            | H : (if ?x then _ else _) = Some _ |- _ => destruct x eqn:?
+            | H : match ?x with _ => _ end = Some _ |- _ => destruct x eqn:?
+            | H : Some _ = Some _ |- _ => inversion H; clear H; subst
+            | H : None = Some _ |- _ => discriminate
+            end); try discriminate; try reflexivity.
+Qed.
+
+(* an aggregate (by-reference / by-copy) read yields its own address *)
+Lemma deref_loc_aggregate_val : forall ty m b ofs bf v,
+  (access_mode ty = By_reference \/ access_mode ty = By_copy) ->
+  deref_loc ty m b ofs bf v -> v = Vptr b ofs.
+Proof.
+  intros ty m b ofs bf v Hmode H; inv H.
+  - destruct Hmode as [Hm|Hm]; congruence.
+  - reflexivity.
+  - reflexivity.
+  - match goal with Hlb : load_bitfield _ _ _ _ _ _ _ _ |- _ => inv Hlb end;
+    destruct Hmode as [Hm|Hm];
+    match type of Hm with access_mode (Tint ?sz ?sg _) = _ =>
+      let s := fresh "sg" in set (s := sg) in Hm; clearbody s;
+      destruct sz, s; discriminate Hm end.
+Qed.
 
 Lemma wgate_nonwriter : forall bm SafeB ty vargs,
   is_wty ty = false -> wgate bm SafeB ty vargs.
@@ -1121,6 +1169,7 @@ Proof.
   destruct (type_eq ty T_v3fcopy); [ discriminate H | ].
   destruct (type_eq ty T_v3fset); [ discriminate H | ].
   destruct (type_eq ty T_v3scopy); [ discriminate H | ].
+  destruct (type_eq ty T_vfc); [ discriminate H | ].
   exact I.
 Qed.
 
@@ -1823,6 +1872,19 @@ Section CensusLeavesLp.
         [ left; exact E | right; exists a0, v0, ty0; cbn; auto ].
   Qed.
 
+  Lemma exprlist_nth_val2 :
+    forall ge e le m al tyl vl, eval_exprlist ge e le m al tyl vl ->
+    forall k a, nth_error al k = Some a ->
+      exists v0 ty, nth_error tyl k = Some ty /\ eval_expr ge e le m a v0 /\
+                    sem_cast v0 (typeof a) ty m = Some (nth k vl Vundef).
+  Proof.
+    intros ge e le m al tyl vl H. induction H; intros [|k] a0 Hn; cbn in Hn.
+    - discriminate Hn.
+    - discriminate Hn.
+    - injection Hn as <-. cbn. eauto.
+    - exact (IHeval_exprlist k a0 Hn).
+  Qed.
+
   Lemma window_bounds : forall d n,
     store_window_ok d n = true -> 0 < n /\ 0 <= d /\ d + n <= Ptrofs.max_unsigned.
   Proof.
@@ -1890,7 +1952,7 @@ Section CensusLeavesLp.
       eval_expr (lp_ge lp) e le m a v ->
       owin bm n v.
   Proof.
-    intros Q bm SafeB bc e le m n a v HTI Hc Hev b o ->.
+    intros Q bm SafeB bc e le m n a v HTI Hc Hev.
     destruct a as [ | | | | | | | lv aty | | op lv r bty | | a' fld fty | | ];
       try discriminate Hc.
     - (* &m->fld *)
@@ -1899,6 +1961,7 @@ Section CensusLeavesLp.
       destruct (mfield_lv_sound _ _ _ _ _ _ _ _ _ _ _ _ HTI Hm
                   ltac:(eassumption)) as [-> ->].
       destruct (window_bounds _ _ Hc) as (Hn & Hd & Hdn).
+      eexists; split; [ reflexivity | ].
       rewrite Ptrofs.unsigned_repr by lia. auto.
     - (* m->arr + i *)
       destruct op; try discriminate Hc.
@@ -1927,13 +1990,12 @@ Section CensusLeavesLp.
       cbn [typeof] in Hty, Hsem. subst fty.
       unfold sem_binary_operation, sem_add in Hsem. cbn in Hsem.
       unfold sem_add_ptr_int in Hsem.
-      destruct v1; try discriminate Hsem;
-        try (destruct Archi.ptr64; discriminate Hsem).
-      injection Hsem as <- <-.
       apply eval_expr_Efield_load in Hev1 as (loc & ofs & bf & Hlv & Hdr).
-      apply deref_loc_aggregate_eq in Hdr as [-> ->]; [ | left; reflexivity ].
+      apply deref_loc_aggregate_val in Hdr; [ | left; reflexivity ].
+      subst v1. cbn in Hsem.
+      injection Hsem as <-.
       destruct (mfield_lv_sound _ _ _ _ _ _ _ _ _ _ _ _ HTI Hm Hlv) as [-> ->].
-      split; [ reflexivity | ].
+      eexists; split; [ reflexivity | ].
       destruct (window_bounds _ _ Hw) as (Hn & Hd & Hdn).
       unfold ptrofs_of_int, Ptrofs.of_ints, Ptrofs.add, Ptrofs.mul.
       assert (H4 : 4 <= Ptrofs.max_unsigned) by (vm_compute; intro Hcmp; discriminate Hcmp).
@@ -1948,9 +2010,10 @@ Section CensusLeavesLp.
       destruct (mfield_lv (bc_mptr bc) (Efield a' fld (Tarray elt sz att))) as [d|] eqn:Hm;
         [ | discriminate Hc ].
       apply eval_expr_Efield_load in Hev as (loc & ofs & bf & Hlv & Hdr).
-      apply deref_loc_aggregate_eq in Hdr as [-> ->]; [ | left; reflexivity ].
+      apply deref_loc_aggregate_val in Hdr as ->; [ | left; reflexivity ].
       destruct (mfield_lv_sound _ _ _ _ _ _ _ _ _ _ _ _ HTI Hm Hlv) as [-> ->].
       destruct (window_bounds _ _ Hc) as (Hn & Hd & Hdn).
+      eexists; split; [ reflexivity | ].
       rewrite Ptrofs.unsigned_repr by lia. auto.
   Qed.
 
@@ -1958,16 +2021,21 @@ Section CensusLeavesLp.
     forall Q bm SafeB bc e le m al tyargs vargs k n,
       TI_of Q bm SafeB bc e le ->
       eval_exprlist (lp_ge lp) e le m al tyargs vargs ->
+      (forall ty, nth_error tyargs k = Some ty -> exists t ta, ty = Tpointer t ta) ->
       win_ptr_chk (bc_mptr bc) n (nth k al (Econst_int Int.zero tint)) = true ->
       owin bm n (nth k vargs Vundef).
   Proof.
-    intros Q bm SafeB bc e le m al tyargs vargs k n HTI Hel Hc.
-    destruct (exprlist_nth_val _ _ _ _ _ _ _ Hel k) as [E | (a & v0 & ty0 & Hn & Hev & Hcast)].
-    - rewrite E. intros b o Hv. discriminate Hv.
-    - rewrite (nth_error_nth _ _ _ Hn) in Hc.
-      intros b o Hv. rewrite Hv in Hcast.
-      apply sem_cast_ptr_result_inv in Hcast. subst v0.
-      exact (win_ptr_chk_sound _ _ _ _ _ _ _ _ _ _ HTI Hc Hev b o eq_refl).
+    intros Q bm SafeB bc e le m al tyargs vargs k n HTI Hel Hpty Hc.
+    destruct (nth_error al k) as [a |] eqn:Hna.
+    - destruct (exprlist_nth_val2 _ _ _ _ _ _ _ Hel k a Hna)
+        as (v0 & ty0 & Hty0 & Hev & Hcast).
+      rewrite (nth_error_nth _ _ _ Hna) in Hc.
+      destruct (win_ptr_chk_sound _ _ _ _ _ _ _ _ _ _ HTI Hc Hev) as (o & -> & Hw).
+      destruct (Hpty _ Hty0) as (t & ta & ->).
+      apply sem_cast_vptr_ptr in Hcast. rewrite Hcast.
+      exists o. split; [ reflexivity | exact Hw ].
+    - rewrite (nth_overflow _ _ (proj1 (nth_error_None _ _) Hna)) in Hc.
+      discriminate Hc.
   Qed.
 
   Lemma arg_osafe :
@@ -1980,8 +2048,13 @@ Section CensusLeavesLp.
   Proof.
     intros Q bm SafeB bc e le m al tyargs vargs k n HTI Hel Hc.
     apply orb_true_iff in Hc as [Hw | Hs].
-    - intros b o Hv. left.
-      exact (arg_owin _ _ _ _ _ _ _ _ _ _ _ _ HTI Hel Hw b o Hv).
+    - destruct (exprlist_nth_val _ _ _ _ _ _ _ Hel k) as [E | (a & v0 & ty0 & Hn & Hev & Hcast)].
+      + rewrite E. intros b o Hv. discriminate Hv.
+      + rewrite (nth_error_nth _ _ _ Hn) in Hw.
+        intros b o Hv. rewrite Hv in Hcast.
+        apply sem_cast_ptr_result_inv in Hcast. subst v0. left.
+        destruct (win_ptr_chk_sound _ _ _ _ _ _ _ _ _ _ HTI Hw Hev) as (o' & Eo & Hw').
+        injection Eo as -> <-. split; [ reflexivity | exact Hw' ].
     - destruct (exprlist_nth_val _ _ _ _ _ _ _ Hel k) as [E | (a & v0 & ty0 & Hn & Hev & Hcast)].
       + rewrite E. intros b o Hv. discriminate Hv.
       + rewrite (nth_error_nth _ _ _ Hn) in Hs.
@@ -1995,21 +2068,35 @@ Section CensusLeavesLp.
   Qed.
 
   Lemma wargs_chk_sound :
-    forall Q bm SafeB bc e le m ty al tyargs vargs,
+    forall Q bm SafeB bc e le m ty al tyargs tyres cc vargs,
       TI_of Q bm SafeB bc e le ->
+      ty = Tfunction tyargs tyres cc ->
       wargs_chk bc ty al = true ->
       eval_exprlist (lp_ge lp) e le m al tyargs vargs ->
       wgate bm SafeB ty vargs.
   Proof.
-    intros Q bm SafeB bc e le m ty al tyargs vargs HTI Hc Hel.
+    intros Q bm SafeB bc e le m ty al tyargs tyres cc vargs HTI Hty Hc Hel.
     unfold wargs_chk, wgate in *.
-    destruct (type_eq ty T_ffc); [ exact (arg_owin _ _ _ _ _ _ _ _ _ _ _ _ HTI Hel Hc) | ].
-    destruct (type_eq ty T_f32w).
-    { repeat (apply andb_true_iff in Hc; destruct Hc as [Hc ?]).
-      refine (conj _ (conj _ _)); eapply arg_owin; eauto. }
+    (* the gated parameter slots of every writer signature are pointers *)
+    assert (Hp : forall l k, (forall ty0, nth_error l k = Some ty0 ->
+                    match ty0 with Tpointer _ _ => True | _ => False end) ->
+                  forall ty0, nth_error l k = Some ty0 -> exists t ta, ty0 = Tpointer t ta).
+    { intros l k H ty0 E. specialize (H ty0 E).
+      destruct ty0; try contradiction H. eauto. }
+    destruct (type_eq ty T_ffc) as [Ety |].
+    { rewrite Ety in Hty. unfold T_ffc in Hty. injection Hty as <- _ _.
+      eapply arg_owin; [ eauto | eauto | apply Hp; intros ty0 E; cbn in E; injection E as <-; exact I | exact Hc ]. }
+    destruct (type_eq ty T_f32w) as [Ety |].
+    { rewrite Ety in Hty. unfold T_f32w in Hty. injection Hty as <- _ _.
+      repeat (apply andb_true_iff in Hc; destruct Hc as [Hc ?]).
+      refine (conj _ (conj _ _)); (eapply arg_owin;
+        [ eauto | eauto | apply Hp; intros ty0 E; cbn in E; injection E as <-; exact I | eauto ]). }
     destruct (type_eq ty T_v3fcopy); [ eapply arg_osafe; eauto | ].
     destruct (type_eq ty T_v3fset); [ eapply arg_osafe; eauto | ].
     destruct (type_eq ty T_v3scopy); [ eapply arg_osafe; eauto | ].
+    destruct (type_eq ty T_vfc) as [Ety |].
+    { rewrite Ety in Hty. unfold T_vfc in Hty. injection Hty as <- _ _.
+      eapply arg_owin; [ eauto | eauto | apply Hp; intros ty0 E; cbn in E; injection E as <-; exact I | exact Hc ]. }
     exact I.
   Qed.
 
@@ -2038,7 +2125,7 @@ Section CensusLeavesLp.
       - destruct (call_callee_exempt_shape _ HE) as (fid & tl & r & c & -> & _).
         cbn in Hcf |- *. inv Hcf. reflexivity. }
     rewrite Htof, <- Hta.
-    exact (wargs_chk_sound _ _ _ _ _ _ _ _ _ _ _ HTI Hw Hel).
+    exact (wargs_chk_sound _ _ _ _ _ _ _ _ _ _ _ _ _ HTI Hta Hw Hel).
   Qed.
 
   (* ---- Hassign: a censused store preserves valid, action_sat, and --

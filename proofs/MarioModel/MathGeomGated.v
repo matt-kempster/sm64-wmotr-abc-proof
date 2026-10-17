@@ -1,4 +1,4 @@
-(* kept: P1' Unwired pre-stage — the arg-aware, store-target-aware re-statements of the surface_collision frames, consumed at the future fourteen-TU link commit; NOT yet capstone-wired. *)
+(* SPINE (P1' widening, 2026-10-17): the arg-aware, store-target-aware surface_collision frames; consumed by SurfaceBodies.v, which discharges the five lifted rest cases of RestSurface. *)
 
 (* ====================================================================== *)
 (* P1' PRE-REQ P-1 / P-2 (docs/p1prime-atomic-wiring-blueprint.md §4-A, §6). *)
@@ -36,7 +36,7 @@ From compcert Require Import Coqlib Maps AST Integers Values Events Memory
 From SM64.Generated Require surface_collision mario math_util.
 From SM64.Proofs Require Import ActionValueFrame Taint MarioStepSurface RestSurface.
 From SM64.Proofs Require CensusV2 RealFrameValue SymbolicLinking.
-From SM64.Proofs.MarioModel.Unwired Require Import MathGeomBodies.
+From SM64.Proofs Require Import MathGeomBodies.
 
 Import ListNotations.
 
@@ -2085,10 +2085,10 @@ Section GATE.
       Mem.store ch mm bsafe d vv = Some mm' -> MWF mm'.
 
   (* a window-gated out-param: find_floor / find_ceil / f32's exact cells *)
-  Lemma owin_out_cell : forall v b o,
-    CensusV2.owin bm 4 v -> v = Vptr b o -> out_cell not_tainted bm MWF b o.
+  Lemma owin_out_cell : forall v,
+    CensusV2.owin bm 4 v -> exists o, v = Vptr bm o /\ out_cell not_tainted bm MWF bm o.
   Proof.
-    intros v b o Hg Ev. destruct (Hg b o Ev) as [-> Hw].
+    intros v (o & -> & Hw). exists o. split; [ reflexivity | ].
     rewrite <- (Ptrofs.repr_unsigned o).
     apply (out_cell_window bm MWF Hmwf_window); [ exact Hw | ].
     pose proof (Ptrofs.unsigned_range_2 o). lia.

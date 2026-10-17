@@ -1,5 +1,5 @@
 (* spine-root: GOAL-1 POSITIVE CONTROL -- with A pressed, ONE real
-   execute_mario_action frame over the twelve-TU link takes Mario from a
+   execute_mario_action frame over the linked12 link (13 TUs) takes Mario from a
    non-flying action to ACT_FLYING_TRIPLE_JUMP.  So the capstone's step
    relation is not empty and "flying" is reachable by it: the no-fly
    conclusion is not vacuous, and the no-A premise is what does the work. *)
@@ -11,13 +11,14 @@
    concrete memory built by Interp/MemBuild.v.  One vm_compute checks the
    whole run; soundness turns it into an [eval_funcall] derivation.
 
-   The one assumption, [Hworld], is about the functions OUTSIDE the twelve
-   TUs (surface_collision, math_util, audio, anim loading).  CompCert models
+   The one assumption, [Hworld], is about the functions OUTSIDE the
+   thirteen linked TUs (math_util, audio, anim loading).  CompCert models
    those as an abstract [external_functions_sem] with no content, so no
    derivation that calls them can exist without saying what they may do.
-   [flat_world] says: a flat floor at height 0 under Mario, no walls, no
-   ceiling, no water or gas, silent audio, [atan2s] = 0, and the exact C
-   semantics of the math_util helpers the frame touches. *)
+   [flat_world] says: silent audio, [atan2s] = 0, and the exact C semantics
+   of the math_util helpers the frame touches.  Collision is NOT in it: the
+   real surface_collision bodies run, over a static partition holding one
+   flat floor triangle under Mario (built below). *)
 
 From Coq Require Import String List ZArith.
 From compcert Require Import Coqlib Integers Floats Values AST Memory Globalenvs
@@ -79,48 +80,12 @@ Definition approach_i (c t i d : int) : int :=
   else
     let c' := Int.sub c d in if Int.lt c' t then t else c'.
 
-(* The floor object's block (the 6th fresh object after the 2007 globals;
-   checked by the run) and WallCollisionData.numWalls's offset. *)
-Definition BFLOOR : block := 2013%positive.
-Definition NUMWALLS_OFS : Z := 22.
-
 Definition flat_world (ef : external_function) (args : list val) (m : mem)
     : option (trace * val * mem) :=
   match ef with
   | EF_external n _ =>
-      if String.eqb n "find_floor" then
-        match args with
-        | [_; _; _; Vptr pb po] =>
-            match CM.store Mint32 m pb (Ptrofs.unsigned po) (Vptr BFLOOR Ptrofs.zero) with
-            | Some m' => ret (f32 0) m'
-            | None => None
-            end
-        | _ => None
-        end
-      else if String.eqb n "find_ceil" then
-        match args with
-        | [_; _; _; Vptr pb po] =>
-            match CM.store Mint32 m pb (Ptrofs.unsigned po) (Vint Int.zero) with
-            | Some m' => ret (f32 20000) m'
-            | None => None
-            end
-        | _ => None
-        end
-      else if String.eqb n "find_water_level" || String.eqb n "find_poison_gas_level"
-      then ret (f32 (-11000)) m
-      else if String.eqb n "f32_find_wall_collision" || String.eqb n "atan2s"
-              || String.eqb n "load_patchable_table"
+      if String.eqb n "atan2s" || String.eqb n "load_patchable_table"
       then ret (Vint Int.zero) m
-      else if String.eqb n "find_wall_collisions" then
-        match args with
-        | [Vptr pb po] =>
-            match CM.store Mint16signed m pb (Ptrofs.unsigned po + NUMWALLS_OFS)
-                    (Vint Int.zero) with
-            | Some m' => ret (Vint Int.zero) m'
-            | None => None
-            end
-        | _ => None
-        end
       else if String.eqb n "approach_f32" then
         match args with
         | [Vsingle c; Vsingle t; Vsingle i; Vsingle d] => ret (Vsingle (approach_f c t i d)) m
@@ -213,12 +178,13 @@ Definition build (ge : genv) (ast : AST.program (Ctypes.fundef function) type)
   | Some m0 =>
     match sym ge "gMarioStates", sym ge "gMarioState" with
     | Some bm, Some gp =>
-      match fresh_many ge m0 ["Object"; "MarioBodyState"; "Controller"; "Area";
+      match sym ge "gStaticSurfacePartition",
+            fresh_many ge m0 ["Object"; "MarioBodyState"; "Controller"; "Area";
                               "Camera"; "Surface"; "PlayerCameraState";
-                              "DmaHandlerList"; "Animation"] with
-      | Some (m1, [bobj; bbody; bctl; barea; bcam; bfloor; bpcs; bdma; banim]) =>
-        if negb (Pos.eqb bfloor BFLOOR) then None else
-        if negb (Z.eqb (o "WallCollisionData" "numWalls") NUMWALLS_OFS) then None else
+                              "DmaHandlerList"; "Animation"; "SurfaceNode"] with
+      | Some gsp, Some (m1, [bobj; bbody; bctl; barea; bcam; bfloor; bpcs; bdma; banim;
+                             bnode]) =>
+        let V k := o "Surface" k in
         let ws := [ W Mint32 gp 0 (P bm);
                     W Mint32 bm (o M "action") (i32 ACT_DOUBLE_JUMP_LAND);
                     W Mint32 bm (o M "prevAction") (i32 ACT_DOUBLE_JUMP_LAND);
@@ -235,12 +201,24 @@ Definition build (ge : genv) (ast : AST.program (Ctypes.fundef function) type)
                     W Mint32 barea (o "Area" "camera") (P bcam);
                     W Mint16unsigned bctl (o "Controller" "buttonPressed") (i32 A_BUTTON);
                     W Mint16unsigned bctl (o "Controller" "buttonDown") (i32 A_BUTTON);
-                    W Mfloat32 bfloor (o "Surface" "normal" + 4) (f32 1) ] in
+                    (* The floor: Mario (at the origin) lies in cell (8,8);
+                       gStaticSurfacePartition[8][8][SPATIAL_PARTITION_FLOORS]
+                       lists one triangle (0,1000) (1000,-1000) (-1000,-1000)
+                       in (x,z), normal (0,1,0), originOffset 0: height 0. *)
+                    W Mint32 gsp ((8 * 16 + 8) * 3 * ssize ge "SurfaceNode"
+                                  + o "SurfaceNode" "next") (P bnode);
+                    W Mint32 bnode (o "SurfaceNode" "surface") (P bfloor);
+                    W Mint16signed bfloor (V "vertex1" + 4) (i32 1000);
+                    W Mint16signed bfloor (V "vertex2") (i32 1000);
+                    W Mint16signed bfloor (V "vertex2" + 4) (i32 (-1000));
+                    W Mint16signed bfloor (V "vertex3") (i32 (-1000));
+                    W Mint16signed bfloor (V "vertex3" + 4) (i32 (-1000));
+                    W Mfloat32 bfloor (V "normal" + 4) (f32 1) ] in
         match apply_writes m1 ws 0 with
         | inl m2 => Some (m2, bm, bobj)
         | inr _ => None
         end
-      | _ => None
+      | _, _ => None
       end
     | _, _ => None
     end
