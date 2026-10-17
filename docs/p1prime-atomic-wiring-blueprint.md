@@ -415,6 +415,18 @@ each `<> bm` (static-layout, same trust class as the existing entries).
 > Standard CompCert axioms only. Consequence for §3-B: the engine out-param arm must
 > carry "the out-param argument is `&m->fld` with `fld` a window field, or a local",
 > not "arg ≠ bm".
+>
+> 3. *The vec3 writers (#5/#6/#7) had the same false `Hstore` oracle.* Re-proved as
+>    `vec3f_set_body_frame_B`, `vec3f_copy_body_frame_B`, `vec3s_copy_body_frame_B`
+>    with premise `vec_out` (the 3 element cells of the out vector take non-pointer
+>    stores). Discharges: `vec_out_window` (vector inside Mario's window, e.g.
+>    `m->pos`, checked by `pos_vec_in_window`), `vec_out_safeb` (SafeB targets such as
+>    `m->statusForCamera->pos`, `Hmwf_chase` shape), `vec_out_of_blk` (locals).
+> 4. *`atan2s`'s callee premise was phantom-false.* "For ALL envs, a call named
+>    `atan2_lookup` keeps memory": a local shadow can point that name at any
+>    function block. Fixed by `cpure2_walk` (empty env, `Evar` of function type):
+>    `atan2s_memid_pinned` / `atan2s_body_frame_pinned` need only
+>    `resolves_to atan2_lookup`.
 
 - **P-1** Re-state facts #13/#14 (`find_floor_body_frame`, `find_ceil_body_frame`):
   arg-aware `sg_walk` that (a) recognizes the `find_{floor,ceil}_from_list`

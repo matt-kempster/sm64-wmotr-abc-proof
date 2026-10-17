@@ -33,7 +33,7 @@
 From Coq Require Import ZArith List Bool Lia.
 From compcert Require Import Coqlib Maps AST Integers Values Events Memory
   Globalenvs Ctypes Cop Clightdefs Clight ClightBigstep Linking.
-From SM64.Generated Require surface_collision mario.
+From SM64.Generated Require surface_collision mario math_util.
 From SM64.Proofs Require Import ActionValueFrame Taint MarioStepSurface RestSurface.
 From SM64.Proofs Require CensusV2 RealFrameValue SymbolicLinking.
 From SM64.Proofs.MarioModel.Unwired Require Import MathGeomBodies.
@@ -1357,4 +1357,682 @@ Proof.
     intros i Hi. cbn in Hi.
     assert (i = 0 \/ i = 1 \/ i = 2) as [-> | [-> | ->]] by lia;
       (split; [ vm_compute; reflexivity | vm_compute; split; discriminate ]).
+Qed.
+
+(* ====================================================================== *)
+(* 7. The math_util vec3 writers: vec3f_set, vec3f_copy, vec3s_copy.       *)
+(*    Their out-param is a 3-element array; at the censused call sites it  *)
+(*    is m->pos (a Mario window) or a SafeB object field (camera state,    *)
+(*    gfx scale).  Every element store is a float/short cast, so a         *)
+(*    NON-POINTER value: the premise is that the three element cells take  *)
+(*    non-pointer stores (vec_out), which a SafeB block does (Hmwf_chase). *)
+(* ====================================================================== *)
+
+Definition nonptr (v : val) : Prop := forall b o, v <> Vptr b o.
+
+Section NP.
+  Variable Q : int -> Prop.
+  Variable bm : block.
+  Variable MWF : mem -> Prop.
+
+  Definition cell_pres_np (ch : memory_chunk) (b : block) (z : Z) : Prop :=
+    forall v m1 m2, nonptr v -> Mem.store ch m1 b z v = Some m2 ->
+      Mem.valid_block m1 bm -> action_sat Q m1 bm -> MWF m1 ->
+      Mem.valid_block m2 bm /\ action_sat Q m2 bm /\ MWF m2.
+
+  Definition vec_out (ch : memory_chunk) (b : block) (o : ptrofs) : Prop :=
+    forall i, 0 <= i < 3 ->
+      cell_pres_np ch b (Ptrofs.unsigned (Ptrofs.add o (Ptrofs.repr (size_chunk ch * i)))).
+End NP.
+
+Lemma sem_cast_scalar_nonptr : forall v ty m v',
+  (sem_cast v ty tfloat m = Some v' \/ sem_cast v ty tshort m = Some v') -> nonptr v'.
+Proof.
+  intros v ty m v' [H | H]; intros b o E; subst v'; unfold sem_cast in H;
+    destruct ty as [ | [] [] ? | [] ? | [] ? | ? ? | ? ? ? | ? ? ? | ? ? | ? ? ];
+    cbn in H; destruct v; try discriminate H;
+    repeat match goal with
+           | H : match ?x with _ => _ end = Some _ |- _ => destruct x; try discriminate H
+           end;
+    try discriminate H.
+Qed.
+
+(* the element address of `*(p + i)` for a float/short array pointer *)
+Lemma vec_elem_lvalue :
+  forall ge e le m tid T b o ii loc ofs bf,
+    le ! tid = Some (Vptr b o) -> (T = tfloat \/ T = tshort) ->
+    eval_lvalue ge e le m
+      (Ederef (Ebinop Oadd (Etempvar tid (tptr T)) (Econst_int ii tint) (tptr T)) T) loc ofs bf ->
+    loc = b /\ ofs = Ptrofs.add o (Ptrofs.mul (Ptrofs.repr (sizeof ge T)) (Ptrofs.of_ints ii))
+    /\ bf = Full.
+Proof.
+  intros ge e le m tid T b o ii loc ofs bf Htid HT Hlv.
+  inv Hlv.
+  match goal with Hev : eval_expr _ _ _ _ (Ebinop _ _ _ _) _ |- _ => inv Hev end;
+    [ | match goal with Hl : eval_lvalue _ _ _ _ (Ebinop _ _ _ _) _ _ _ |- _ => inv Hl end ].
+  match goal with H1 : eval_expr _ _ _ _ (Etempvar _ _) _ |- _ =>
+    apply RealFrameValue.eval_expr_Etempvar_val in H1; rewrite Htid in H1; injection H1 as <- end.
+  match goal with H2 : eval_expr _ _ _ _ (Econst_int _ _) _ |- _ => inv H2 end;
+    [ | match goal with Hl : eval_lvalue _ _ _ _ (Econst_int _ _) _ _ _ |- _ => inv Hl end ].
+  match goal with Hb : sem_binary_operation _ _ _ _ _ _ _ = Some _ |- _ =>
+    destruct HT as [-> | ->]; cbn in Hb; injection Hb as <- <- end;
+  repeat split.
+Qed.
+
+Lemma vec_shadow_store_B :
+  forall (MWF : mem -> Prop) (Q : int -> Prop) bm b_dest b_out oo T ge e le m t le' m' out,
+    blk_pres Q bm MWF b_dest ->
+    e ! math_util._dest = Some (b_dest, tptr T) ->
+    le ! math_util._dest = Some (Vptr b_out oo) ->
+    True ->
+    exec_stmt function_entry2 ge e le m
+      (Sassign (Evar math_util._dest (tptr T)) (Etempvar math_util._dest (tptr T)))
+      t le' m' out ->
+    Mem.valid_block m bm -> action_sat Q m bm -> MWF m ->
+    Mem.valid_block m' bm /\ action_sat Q m' bm /\ MWF m'
+      /\ Mem.load Mptr m' b_dest 0 = Some (Vptr b_out oo).
+Proof.
+  intros MWF Q bm b_dest b_out oo T ge e le m t le' m' out
+         Hbp Hedest Hledest _ Hexec Hv Hsat Hmwf.
+  inv Hexec.
+  match goal with Hlv : eval_lvalue _ _ _ _ (Evar _ _) _ _ _ |- _ => inv Hlv end;
+    [ | match goal with Hnone : e ! math_util._dest = None |- _ =>
+          rewrite Hedest in Hnone; discriminate Hnone end ].
+  match goal with He : e ! math_util._dest = Some (?loc, _) |- _ =>
+    assert (loc = b_dest) by congruence; subst loc end.
+  match goal with Hev : eval_expr _ _ _ _ (Etempvar _ _) ?v2 |- _ =>
+    apply RealFrameValue.eval_expr_Etempvar_val in Hev;
+    assert (Hv2e : v2 = Vptr b_out oo) by congruence; rewrite Hv2e in * end.
+  match goal with Hc : sem_cast (Vptr b_out oo) _ _ _ = Some ?v |- _ =>
+    assert (Hvv : v = Vptr b_out oo) by (cbn in Hc; congruence); rewrite Hvv in * end.
+  match goal with Hass : assign_loc _ _ _ _ _ Full _ _ |- _ => inv Hass end;
+  [ match goal with Ham : access_mode _ = By_value _ |- _ =>
+      cbn [access_mode typeof] in Ham; injection Ham as Hchunk; subst end
+  | match goal with Ham : access_mode _ = By_copy |- _ =>
+      cbn [access_mode typeof] in Ham; discriminate Ham end ].
+  match goal with Hsv : Mem.storev _ _ _ _ = Some _ |- _ =>
+    unfold Mem.storev in Hsv; rewrite Ptrofs.unsigned_zero in Hsv end.
+  match goal with Hsv : Mem.store Mptr _ b_dest 0 _ = Some m' |- _ =>
+    destruct (Hbp _ _ _ _ _ Hsv Hv Hsat Hmwf) as (Hv' & Hsat' & Hmwf');
+    split; [ exact Hv' | split; [ exact Hsat' | split; [ exact Hmwf' | ] ] ];
+    pose proof (Mem.load_store_same _ _ _ _ _ _ Hsv) as Hls end.
+  replace (Val.load_result Mptr (Vptr b_out oo)) with (Vptr b_out oo) in Hls
+    by (unfold Mptr; reflexivity).
+  exact Hls.
+Qed.
+
+Lemma out_store_avoids_B :
+  forall (MWF : mem -> Prop) (Q : int -> Prop) (bm b_out : block) (o' : ptrofs)
+         (T : type) (chk : memory_chunk) (ge : genv) e le m tid ii rhs t le' m' out,
+    cell_pres_np Q bm MWF chk b_out
+      (Ptrofs.unsigned (Ptrofs.add o' (Ptrofs.mul (Ptrofs.repr (sizeof ge T)) (Ptrofs.of_ints ii)))) ->
+    access_mode T = By_value chk ->
+    le ! tid = Some (Vptr b_out o') ->
+    (T = tfloat \/ T = tshort) ->
+    exec_stmt function_entry2 ge e le m
+      (Sassign
+        (Ederef (Ebinop Oadd (Etempvar tid (tptr T)) (Econst_int ii tint) (tptr T)) T)
+        rhs) t le' m' out ->
+    Mem.valid_block m bm -> action_sat Q m bm -> MWF m ->
+    Mem.valid_block m' bm /\ action_sat Q m' bm /\ MWF m'
+      /\ (forall bx ox, bx <> b_out -> Mem.load Mptr m' bx ox = Mem.load Mptr m bx ox).
+Proof.
+  intros MWF Q bm b_out o' T chk ge e le m tid ii rhs t le' m' out
+         Hcell Hac Htid HT Hexec Hv Hsat Hmwf.
+  inv Hexec.
+  match goal with Hlv : eval_lvalue _ _ _ _ (Ederef _ _) _ _ _ |- _ =>
+    destruct (vec_elem_lvalue _ _ _ _ _ _ _ _ _ _ _ _ Htid HT Hlv) as (-> & -> & ->) end.
+  match goal with Hc : sem_cast _ _ _ _ = Some ?v |- _ =>
+    assert (Hnp : nonptr v)
+      by (eapply sem_cast_scalar_nonptr; cbn [typeof] in Hc;
+          destruct HT as [E | E]; rewrite E in Hc; [ left | right ]; exact Hc) end.
+  match goal with Hass : assign_loc _ _ _ _ _ Full _ _ |- _ => inv Hass end;
+  [ match goal with Ham : access_mode _ = By_value _ |- _ =>
+      cbn [typeof] in Ham; rewrite Hac in Ham; injection Ham as Hchunk; subst end
+  | match goal with Ham : access_mode _ = By_copy |- _ =>
+      cbn [typeof] in Ham; rewrite Hac in Ham; discriminate Ham end ].
+  match goal with Hsv : Mem.storev _ _ _ _ = Some _ |- _ => rename Hsv into Hstv end.
+  unfold Mem.storev in Hstv.
+  destruct (Hcell _ _ _ Hnp Hstv Hv Hsat Hmwf) as (Hv' & Hsat' & Hmwf').
+  split; [ exact Hv' | split; [ exact Hsat' | split; [ exact Hmwf' | ] ] ].
+  intros bx ox Hbx. eapply Mem.load_store_other; [ exact Hstv | left; exact Hbx ].
+Qed.
+
+Lemma vec_block_set_B :
+  forall (MWF : mem -> Prop) (Q : int -> Prop) bm b_dest b_out oo T chk (ge : genv) e le m
+         tid ii rhs t le' m' out,
+    cell_pres_np Q bm MWF chk b_out
+      (Ptrofs.unsigned (Ptrofs.add oo (Ptrofs.mul (Ptrofs.repr (sizeof ge T)) (Ptrofs.of_ints ii)))) ->
+    access_mode T = By_value chk ->
+    e ! math_util._dest = Some (b_dest, tptr T) ->
+    Mem.load Mptr m b_dest 0 = Some (Vptr b_out oo) ->
+    (T = tfloat \/ T = tshort) -> b_out <> b_dest ->
+    exec_stmt function_entry2 ge e le m
+      (Ssequence (Sset tid (Evar math_util._dest (tptr T)))
+        (Sassign
+          (Ederef (Ebinop Oadd (Etempvar tid (tptr T)) (Econst_int ii tint) (tptr T)) T)
+          rhs)) t le' m' out ->
+    Mem.valid_block m bm -> action_sat Q m bm -> MWF m ->
+    Mem.valid_block m' bm /\ action_sat Q m' bm /\ MWF m'
+      /\ Mem.load Mptr m' b_dest 0 = Some (Vptr b_out oo).
+Proof.
+  intros MWF Q bm b_dest b_out oo T chk ge e le m tid ii rhs t le' m' out
+         Hcell Hac Hedest Hload HT Hbdne Hexec Hv Hsat Hmwf.
+  peelseq.
+  match goal with HSset : exec_stmt _ _ _ _ _ (Sset _ _) _ _ _ _ |- _ =>
+    rename HSset into HSset0 end.
+  match goal with HStore : exec_stmt _ _ _ _ _ (Sassign (Ederef _ _) _) _ _ _ _ |- _ =>
+    rename HStore into HStore0 end.
+  destruct (sset_shadow_reads _ _ _ _ _ _ _ _ _ _ _ _ _ Hedest Hload HSset0)
+    as (Em & Hout & Htid).
+  subst.
+  destruct (out_store_avoids_B _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+              Hcell Hac Htid HT HStore0 Hv Hsat Hmwf)
+    as (Hv' & Hsat' & Hmwf' & Hpres).
+  split; [ exact Hv' | split; [ exact Hsat' | split; [ exact Hmwf' | ] ] ].
+  rewrite (Hpres b_dest 0 (not_eq_sym Hbdne)). exact Hload.
+Qed.
+
+Lemma vec_block_copy_B :
+  forall (MWF : mem -> Prop) (Q : int -> Prop) bm b_dest b_out oo T chk (ge : genv) e le m
+         tid1 tid2 srcexpr ii t le' m' out,
+    cell_pres_np Q bm MWF chk b_out
+      (Ptrofs.unsigned (Ptrofs.add oo (Ptrofs.mul (Ptrofs.repr (sizeof ge T)) (Ptrofs.of_ints ii)))) ->
+    access_mode T = By_value chk ->
+    e ! math_util._dest = Some (b_dest, tptr T) ->
+    Mem.load Mptr m b_dest 0 = Some (Vptr b_out oo) ->
+    (T = tfloat \/ T = tshort) -> b_out <> b_dest -> tid1 <> tid2 ->
+    exec_stmt function_entry2 ge e le m
+      (Ssequence (Sset tid1 (Evar math_util._dest (tptr T)))
+        (Ssequence (Sset tid2 srcexpr)
+          (Sassign
+            (Ederef (Ebinop Oadd (Etempvar tid1 (tptr T)) (Econst_int ii tint) (tptr T)) T)
+            (Etempvar tid2 T)))) t le' m' out ->
+    Mem.valid_block m bm -> action_sat Q m bm -> MWF m ->
+    Mem.valid_block m' bm /\ action_sat Q m' bm /\ MWF m'
+      /\ Mem.load Mptr m' b_dest 0 = Some (Vptr b_out oo).
+Proof.
+  intros MWF Q bm b_dest b_out oo T chk ge e le m tid1 tid2 srcexpr ii t le' m' out
+         Hcell Hac Hedest Hload HT Hbdne Htne Hexec Hv Hsat Hmwf.
+  peelseq.
+  match goal with HSset : exec_stmt _ _ _ _ _ (Sset tid1 _) _ _ _ _ |- _ =>
+    rename HSset into HSset0 end.
+  destruct (sset_shadow_reads _ _ _ _ _ _ _ _ _ _ _ _ _ Hedest Hload HSset0)
+    as (Em & Hout & Htid1).
+  subst.
+  peelseq.
+  match goal with HSset2 : exec_stmt _ _ _ _ _ (Sset tid2 _) _ _ _ _ |- _ => inv HSset2 end.
+  match goal with HStore : exec_stmt _ _ _ ?lenv _ (Sassign (Ederef _ _) _) _ _ _ _ |- _ =>
+    rename HStore into HStore0;
+    assert (Htid1' : lenv ! tid1 = Some (Vptr b_out oo))
+      by (rewrite PTree.gso by exact Htne; exact Htid1) end.
+  destruct (out_store_avoids_B _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+              Hcell Hac Htid1' HT HStore0 Hv Hsat Hmwf)
+    as (Hv' & Hsat' & Hmwf' & Hpres).
+  split; [ exact Hv' | split; [ exact Hsat' | split; [ exact Hmwf' | ] ] ].
+  rewrite (Hpres b_dest 0 (not_eq_sym Hbdne)). exact Hload.
+Qed.
+
+(* vec_out's cells are exactly the three element addresses *)
+Lemma vec_out_cell : forall Q bm MWF ch T b o (ge : genv) i,
+  vec_out Q bm MWF ch b o -> sizeof ge T = size_chunk ch -> 0 <= i < 3 ->
+  cell_pres_np Q bm MWF ch b
+    (Ptrofs.unsigned (Ptrofs.add o (Ptrofs.mul (Ptrofs.repr (sizeof ge T)) (Ptrofs.of_ints (Int.repr i))))).
+Proof.
+  intros Q bm MWF ch T b o ge i Hvo Hsz Hi.
+  replace (Ptrofs.mul (Ptrofs.repr (sizeof ge T)) (Ptrofs.of_ints (Int.repr i)))
+    with (Ptrofs.repr (size_chunk ch * i)); [ exact (Hvo i Hi) | ].
+  rewrite Hsz.
+  assert (i = 0 \/ i = 1 \/ i = 2) as [-> | [-> | ->]] by lia;
+    destruct ch; vm_compute; reflexivity.
+Qed.
+
+Lemma vec3f_set_body_frame_B :
+  forall (ge : genv) (MWF : mem -> Prop) (bm b_out : block) (oo : ptrofs),
+    frame_oracles bm MWF ->
+    forall m vargs t m' vres,
+      eval_funcall function_entry2 ge m
+        (Internal math_util.f_vec3f_set) vargs t m' vres ->
+      hd_error vargs = Some (Vptr b_out oo) ->
+      vec_out not_tainted bm MWF Mfloat32 b_out oo -> Mem.valid_block m b_out ->
+      Mem.valid_block m bm -> action_sat not_tainted m bm -> MWF m ->
+      Mem.valid_block m' bm /\ action_sat not_tainted m' bm /\ MWF m'.
+Proof.
+  intros ge MWF bm b_out oo Hor m vargs t m' vres
+         Hevf Hhd Hvo Hbov Hv Hsat Hmwf.
+  destruct Hor as (Halloc & Hfree & HallocB).
+  pose proof (vec_out_cell _ _ _ _ tfloat _ _ ge 0 Hvo eq_refl ltac:(lia)) as Hc0.
+  pose proof (vec_out_cell _ _ _ _ tfloat _ _ ge 1 Hvo eq_refl ltac:(lia)) as Hc1.
+  pose proof (vec_out_cell _ _ _ _ tfloat _ _ ge 2 Hvo eq_refl ltac:(lia)) as Hc2.
+  assert (Hacf : access_mode tfloat = By_value Mfloat32) by reflexivity.
+  unfold math_util.f_vec3f_set in Hevf.
+  inv Hevf.
+  match goal with He : function_entry2 _ _ _ _ _ _ _ |- _ => rename He into Hentry end.
+  match goal with Hx : exec_stmt _ _ _ _ _ _ _ _ _ _ |- _ => rename Hx into Hbody end.
+  match goal with Hf : Mem.free_list _ _ = Some _ |- _ => rename Hf into Hfl end.
+  (* ENTRY: alloc the _dest shadow, bind params *)
+  inv Hentry.
+  match goal with Ha : alloc_variables _ _ _ _ _ _ |- _ => cbn [fn_vars] in Ha; inv Ha end.
+  match goal with Ha : alloc_variables _ _ _ nil _ _ |- _ => inv Ha end.
+  match goal with Halc : Mem.alloc _ _ _ = (_, ?bb) |- _ =>
+    assert (Hbd_bm : bb <> bm)
+      by (intro EE; subst bb; exact (Mem.fresh_block_alloc _ _ _ _ _ Halc Hv));
+    assert (HbdB : blk_pres not_tainted bm MWF bb) by (eapply HallocB; eassumption);
+    assert (Hbd_bo : bb <> b_out)
+      by (intro EE; subst bb; exact (Mem.fresh_block_alloc _ _ _ _ _ Halc Hbov));
+    assert (Hedest : (PTree.set math_util._dest (bb, tptr tfloat) empty_env)
+                       ! math_util._dest = Some (bb, tptr tfloat)) by (apply PTree.gss)
+  end.
+  match goal with Halc : Mem.alloc _ _ _ = (?mm, _) |- _ =>
+    assert (HmwfA : MWF mm) by (eapply Halloc; [ exact Halc | exact Hmwf ]);
+    assert (HvA : Mem.valid_block mm bm)
+      by (eapply Mem.valid_block_alloc; [ exact Halc | exact Hv ]);
+    assert (HsatA : action_sat not_tainted mm bm)
+      by (eapply action_sat_unchanged_on;
+          [ eapply Mem.alloc_unchanged_on; exact Halc | exact Hv | exact Hsat ])
+  end.
+  (* le!_dest = Vptr b_out oo *)
+  destruct vargs as [| a0 vargs1]; cbn [hd_error] in Hhd; [ discriminate Hhd | ].
+  injection Hhd as ->.
+  match goal with Hbp : bind_parameter_temps _ _ _ = Some ?LE |- _ =>
+    cbn [fn_params] in Hbp;
+    assert (Hled : LE ! math_util._dest = Some (Vptr b_out oo))
+      by (eapply bind_parameter_temps_head; [ | exact Hbp ];
+          cbn [var_names map fst]; intros [E|[E|[E|E]]]; try discriminate E; exact E)
+  end.
+  (* WALK: shadow store, then three vec3f_set store blocks, then Sreturn+free *)
+  cbn [fn_body] in Hbody.
+  peelseq.
+  match goal with HA : exec_stmt _ _ _ _ _ (Sassign (Evar _ _) _) _ _ _ _ |- _ =>
+    rename HA into HA0 end.
+  destruct (vec_shadow_store_B _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+              HbdB Hedest Hled I HA0 HvA HsatA HmwfA)
+    as (Hv1 & Hs1 & Hm1 & Hload1).
+  peelseq.
+  match goal with HB : exec_stmt _ _ _ _ _ (Ssequence (Sset _ _) (Sassign (Ederef _ _) _)) _ _ _ _ |- _ =>
+    rename HB into HB0 end.
+  destruct (vec_block_set_B _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+              Hc0 Hacf Hedest Hload1 (or_introl eq_refl) (not_eq_sym Hbd_bo) HB0 Hv1 Hs1 Hm1)
+    as (Hv2 & Hs2 & Hm2 & Hload2).
+  peelseq.
+  match goal with HC : exec_stmt _ _ _ _ _ (Ssequence (Sset _ _) (Sassign (Ederef _ _) _)) _ _ _ _ |- _ =>
+    rename HC into HC0 end.
+  destruct (vec_block_set_B _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+              Hc1 Hacf Hedest Hload2 (or_introl eq_refl) (not_eq_sym Hbd_bo) HC0 Hv2 Hs2 Hm2)
+    as (Hv3 & Hs3 & Hm3 & Hload3).
+  peelseq.
+  match goal with HD : exec_stmt _ _ _ _ _ (Ssequence (Sset _ _) (Sassign (Ederef _ _) _)) _ _ _ _ |- _ =>
+    rename HD into HD0 end.
+  destruct (vec_block_set_B _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+              Hc2 Hacf Hedest Hload3 (or_introl eq_refl) (not_eq_sym Hbd_bo) HD0 Hv3 Hs3 Hm3)
+    as (Hv4 & Hs4 & Hm4 & Hload4).
+  (* Sreturn: memory unchanged *)
+  match goal with HRet : exec_stmt _ _ _ _ _ (Sreturn _) _ _ _ _ |- _ => inv HRet end.
+  (* EXIT: free the sole shadow block (bm-distinct) *)
+  rewrite blocks_of_env_mu_dest in Hfl.
+  match goal with |- _ =>
+    assert (Hforall : Forall (fun blh => let '(b,_,_) := blh in b <> bm)
+                        ((_, 0, sizeof ge (tptr tfloat)) :: nil))
+      by (constructor; [ exact Hbd_bm | constructor ])
+  end.
+  destruct (vfc_free_list_frame not_tainted bm _ _ _ Hforall Hfl Hv4 Hs4) as (Hvf & Hsf).
+  split; [ exact Hvf | split; [ exact Hsf | ] ].
+  eapply Hfree; [ exact Hfl | exact Hm4 ].
+Qed.
+
+Lemma vec3f_copy_body_frame_B :
+  forall (ge : genv) (MWF : mem -> Prop) (bm b_out : block) (oo : ptrofs),
+    frame_oracles bm MWF ->
+    forall m vargs t m' vres,
+      eval_funcall function_entry2 ge m
+        (Internal math_util.f_vec3f_copy) vargs t m' vres ->
+      hd_error vargs = Some (Vptr b_out oo) ->
+      vec_out not_tainted bm MWF Mfloat32 b_out oo -> Mem.valid_block m b_out ->
+      Mem.valid_block m bm -> action_sat not_tainted m bm -> MWF m ->
+      Mem.valid_block m' bm /\ action_sat not_tainted m' bm /\ MWF m'.
+Proof.
+  intros ge MWF bm b_out oo Hor m vargs t m' vres
+         Hevf Hhd Hvo Hbov Hv Hsat Hmwf.
+  destruct Hor as (Halloc & Hfree & HallocB).
+  pose proof (vec_out_cell _ _ _ _ tfloat _ _ ge 0 Hvo eq_refl ltac:(lia)) as Hc0.
+  pose proof (vec_out_cell _ _ _ _ tfloat _ _ ge 1 Hvo eq_refl ltac:(lia)) as Hc1.
+  pose proof (vec_out_cell _ _ _ _ tfloat _ _ ge 2 Hvo eq_refl ltac:(lia)) as Hc2.
+  assert (Hacf : access_mode tfloat = By_value Mfloat32) by reflexivity.
+  assert (Hne56 : math_util._t'5 <> math_util._t'6) by (cbv; discriminate).
+  assert (Hne34 : math_util._t'3 <> math_util._t'4) by (cbv; discriminate).
+  assert (Hne12 : math_util._t'1 <> math_util._t'2) by (cbv; discriminate).
+  unfold math_util.f_vec3f_copy in Hevf.
+  inv Hevf.
+  match goal with He : function_entry2 _ _ _ _ _ _ _ |- _ => rename He into Hentry end.
+  match goal with Hx : exec_stmt _ _ _ _ _ _ _ _ _ _ |- _ => rename Hx into Hbody end.
+  match goal with Hf : Mem.free_list _ _ = Some _ |- _ => rename Hf into Hfl end.
+  inv Hentry.
+  match goal with Ha : alloc_variables _ _ _ _ _ _ |- _ => cbn [fn_vars] in Ha; inv Ha end.
+  match goal with Ha : alloc_variables _ _ _ nil _ _ |- _ => inv Ha end.
+  match goal with Halc : Mem.alloc _ _ _ = (_, ?bb) |- _ =>
+    assert (Hbd_bm : bb <> bm)
+      by (intro EE; subst bb; exact (Mem.fresh_block_alloc _ _ _ _ _ Halc Hv));
+    assert (HbdB : blk_pres not_tainted bm MWF bb) by (eapply HallocB; eassumption);
+    assert (Hbd_bo : bb <> b_out)
+      by (intro EE; subst bb; exact (Mem.fresh_block_alloc _ _ _ _ _ Halc Hbov));
+    assert (Hedest : (PTree.set math_util._dest (bb, tptr tfloat) empty_env)
+                       ! math_util._dest = Some (bb, tptr tfloat)) by (apply PTree.gss)
+  end.
+  match goal with Halc : Mem.alloc _ _ _ = (?mm, _) |- _ =>
+    assert (HmwfA : MWF mm) by (eapply Halloc; [ exact Halc | exact Hmwf ]);
+    assert (HvA : Mem.valid_block mm bm)
+      by (eapply Mem.valid_block_alloc; [ exact Halc | exact Hv ]);
+    assert (HsatA : action_sat not_tainted mm bm)
+      by (eapply action_sat_unchanged_on;
+          [ eapply Mem.alloc_unchanged_on; exact Halc | exact Hv | exact Hsat ])
+  end.
+  destruct vargs as [| a0 vargs1]; cbn [hd_error] in Hhd; [ discriminate Hhd | ].
+  injection Hhd as ->.
+  match goal with Hbp : bind_parameter_temps _ _ _ = Some ?LE |- _ =>
+    cbn [fn_params] in Hbp;
+    assert (Hled : LE ! math_util._dest = Some (Vptr b_out oo))
+      by (eapply bind_parameter_temps_head; [ | exact Hbp ];
+          cbn [var_names map fst]; intros [E|E]; try discriminate E; exact E)
+  end.
+  cbn [fn_body] in Hbody.
+  peelseq.
+  match goal with HA : exec_stmt _ _ _ _ _ (Sassign (Evar _ _) _) _ _ _ _ |- _ =>
+    rename HA into HA0 end.
+  destruct (vec_shadow_store_B _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+              HbdB Hedest Hled I HA0 HvA HsatA HmwfA)
+    as (Hv1 & Hs1 & Hm1 & Hload1).
+  peelseq.
+  match goal with HB : exec_stmt _ _ _ _ _ (Ssequence (Sset _ _) (Ssequence (Sset _ _) (Sassign (Ederef _ _) _))) _ _ _ _ |- _ =>
+    rename HB into HB0 end.
+  destruct (vec_block_copy_B _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+              Hc0 Hacf Hedest Hload1 (or_introl eq_refl) (not_eq_sym Hbd_bo) Hne56 HB0 Hv1 Hs1 Hm1)
+    as (Hv2 & Hs2 & Hm2 & Hload2).
+  peelseq.
+  match goal with HC : exec_stmt _ _ _ _ _ (Ssequence (Sset _ _) (Ssequence (Sset _ _) (Sassign (Ederef _ _) _))) _ _ _ _ |- _ =>
+    rename HC into HC0 end.
+  destruct (vec_block_copy_B _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+              Hc1 Hacf Hedest Hload2 (or_introl eq_refl) (not_eq_sym Hbd_bo) Hne34 HC0 Hv2 Hs2 Hm2)
+    as (Hv3 & Hs3 & Hm3 & Hload3).
+  peelseq.
+  match goal with HD : exec_stmt _ _ _ _ _ (Ssequence (Sset _ _) (Ssequence (Sset _ _) (Sassign (Ederef _ _) _))) _ _ _ _ |- _ =>
+    rename HD into HD0 end.
+  destruct (vec_block_copy_B _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+              Hc2 Hacf Hedest Hload3 (or_introl eq_refl) (not_eq_sym Hbd_bo) Hne12 HD0 Hv3 Hs3 Hm3)
+    as (Hv4 & Hs4 & Hm4 & Hload4).
+  match goal with HRet : exec_stmt _ _ _ _ _ (Sreturn _) _ _ _ _ |- _ => inv HRet end.
+  rewrite blocks_of_env_mu_dest in Hfl.
+  assert (Hforall : Forall (fun blh => let '(b,_,_) := blh in b <> bm)
+                      ((_, 0, sizeof ge (tptr tfloat)) :: nil))
+    by (constructor; [ exact Hbd_bm | constructor ]).
+  destruct (vfc_free_list_frame not_tainted bm _ _ _ Hforall Hfl Hv4 Hs4) as (Hvf & Hsf).
+  split; [ exact Hvf | split; [ exact Hsf | ] ].
+  eapply Hfree; [ exact Hfl | exact Hm4 ].
+Qed.
+
+Lemma vec3s_copy_body_frame_B :
+  forall (ge : genv) (MWF : mem -> Prop) (bm b_out : block) (oo : ptrofs),
+    frame_oracles bm MWF ->
+    forall m vargs t m' vres,
+      eval_funcall function_entry2 ge m
+        (Internal math_util.f_vec3s_copy) vargs t m' vres ->
+      hd_error vargs = Some (Vptr b_out oo) ->
+      vec_out not_tainted bm MWF Mint16signed b_out oo -> Mem.valid_block m b_out ->
+      Mem.valid_block m bm -> action_sat not_tainted m bm -> MWF m ->
+      Mem.valid_block m' bm /\ action_sat not_tainted m' bm /\ MWF m'.
+Proof.
+  intros ge MWF bm b_out oo Hor m vargs t m' vres
+         Hevf Hhd Hvo Hbov Hv Hsat Hmwf.
+  destruct Hor as (Halloc & Hfree & HallocB).
+  pose proof (vec_out_cell _ _ _ _ tshort _ _ ge 0 Hvo eq_refl ltac:(lia)) as Hc0.
+  pose proof (vec_out_cell _ _ _ _ tshort _ _ ge 1 Hvo eq_refl ltac:(lia)) as Hc1.
+  pose proof (vec_out_cell _ _ _ _ tshort _ _ ge 2 Hvo eq_refl ltac:(lia)) as Hc2.
+  assert (Hacs : access_mode tshort = By_value Mint16signed) by reflexivity.
+  assert (Hne56 : math_util._t'5 <> math_util._t'6) by (cbv; discriminate).
+  assert (Hne34 : math_util._t'3 <> math_util._t'4) by (cbv; discriminate).
+  assert (Hne12 : math_util._t'1 <> math_util._t'2) by (cbv; discriminate).
+  unfold math_util.f_vec3s_copy in Hevf.
+  inv Hevf.
+  match goal with He : function_entry2 _ _ _ _ _ _ _ |- _ => rename He into Hentry end.
+  match goal with Hx : exec_stmt _ _ _ _ _ _ _ _ _ _ |- _ => rename Hx into Hbody end.
+  match goal with Hf : Mem.free_list _ _ = Some _ |- _ => rename Hf into Hfl end.
+  inv Hentry.
+  match goal with Ha : alloc_variables _ _ _ _ _ _ |- _ => cbn [fn_vars] in Ha; inv Ha end.
+  match goal with Ha : alloc_variables _ _ _ nil _ _ |- _ => inv Ha end.
+  match goal with Halc : Mem.alloc _ _ _ = (_, ?bb) |- _ =>
+    assert (Hbd_bm : bb <> bm)
+      by (intro EE; subst bb; exact (Mem.fresh_block_alloc _ _ _ _ _ Halc Hv));
+    assert (HbdB : blk_pres not_tainted bm MWF bb) by (eapply HallocB; eassumption);
+    assert (Hbd_bo : bb <> b_out)
+      by (intro EE; subst bb; exact (Mem.fresh_block_alloc _ _ _ _ _ Halc Hbov));
+    assert (Hedest : (PTree.set math_util._dest (bb, tptr tshort) empty_env)
+                       ! math_util._dest = Some (bb, tptr tshort)) by (apply PTree.gss)
+  end.
+  match goal with Halc : Mem.alloc _ _ _ = (?mm, _) |- _ =>
+    assert (HmwfA : MWF mm) by (eapply Halloc; [ exact Halc | exact Hmwf ]);
+    assert (HvA : Mem.valid_block mm bm)
+      by (eapply Mem.valid_block_alloc; [ exact Halc | exact Hv ]);
+    assert (HsatA : action_sat not_tainted mm bm)
+      by (eapply action_sat_unchanged_on;
+          [ eapply Mem.alloc_unchanged_on; exact Halc | exact Hv | exact Hsat ])
+  end.
+  destruct vargs as [| a0 vargs1]; cbn [hd_error] in Hhd; [ discriminate Hhd | ].
+  injection Hhd as ->.
+  match goal with Hbp : bind_parameter_temps _ _ _ = Some ?LE |- _ =>
+    cbn [fn_params] in Hbp;
+    assert (Hled : LE ! math_util._dest = Some (Vptr b_out oo))
+      by (eapply bind_parameter_temps_head; [ | exact Hbp ];
+          cbn [var_names map fst]; intros [E|E]; try discriminate E; exact E)
+  end.
+  cbn [fn_body] in Hbody.
+  peelseq.
+  match goal with HA : exec_stmt _ _ _ _ _ (Sassign (Evar _ _) _) _ _ _ _ |- _ =>
+    rename HA into HA0 end.
+  destruct (vec_shadow_store_B _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+              HbdB Hedest Hled I HA0 HvA HsatA HmwfA)
+    as (Hv1 & Hs1 & Hm1 & Hload1).
+  peelseq.
+  match goal with HB : exec_stmt _ _ _ _ _ (Ssequence (Sset _ _) (Ssequence (Sset _ _) (Sassign (Ederef _ _) _))) _ _ _ _ |- _ =>
+    rename HB into HB0 end.
+  destruct (vec_block_copy_B _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+              Hc0 Hacs Hedest Hload1 (or_intror eq_refl) (not_eq_sym Hbd_bo) Hne56 HB0 Hv1 Hs1 Hm1)
+    as (Hv2 & Hs2 & Hm2 & Hload2).
+  peelseq.
+  match goal with HC : exec_stmt _ _ _ _ _ (Ssequence (Sset _ _) (Ssequence (Sset _ _) (Sassign (Ederef _ _) _))) _ _ _ _ |- _ =>
+    rename HC into HC0 end.
+  destruct (vec_block_copy_B _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+              Hc1 Hacs Hedest Hload2 (or_intror eq_refl) (not_eq_sym Hbd_bo) Hne34 HC0 Hv2 Hs2 Hm2)
+    as (Hv3 & Hs3 & Hm3 & Hload3).
+  peelseq.
+  match goal with HD : exec_stmt _ _ _ _ _ (Ssequence (Sset _ _) (Ssequence (Sset _ _) (Sassign (Ederef _ _) _))) _ _ _ _ |- _ =>
+    rename HD into HD0 end.
+  destruct (vec_block_copy_B _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+              Hc2 Hacs Hedest Hload3 (or_intror eq_refl) (not_eq_sym Hbd_bo) Hne12 HD0 Hv3 Hs3 Hm3)
+    as (Hv4 & Hs4 & Hm4 & Hload4).
+  match goal with HRet : exec_stmt _ _ _ _ _ (Sreturn _) _ _ _ _ |- _ => inv HRet end.
+  rewrite blocks_of_env_mu_dest in Hfl.
+  assert (Hforall : Forall (fun blh => let '(b,_,_) := blh in b <> bm)
+                      ((_, 0, sizeof ge (tptr tshort)) :: nil))
+    by (constructor; [ exact Hbd_bm | constructor ]).
+  destruct (vfc_free_list_frame not_tainted bm _ _ _ Hforall Hfl Hv4 Hs4) as (Hvf & Hsf).
+  split; [ exact Hvf | split; [ exact Hsf | ] ].
+  eapply Hfree; [ exact Hfl | exact Hm4 ].
+Qed.
+
+(* ---- the vec_out premise is dischargeable from the consumer's rows ---- *)
+Section VEC_DISCHARGE.
+  Variable bm : block.
+  Variable MWF : mem -> Prop.
+
+  Lemma vec_out_of_blk : forall ch b o,
+    blk_pres not_tainted bm MWF b -> vec_out not_tainted bm MWF ch b o.
+  Proof. intros ch b o Hbp i _ v m1 m2 _. exact (Hbp ch _ v m1 m2). Qed.
+
+  (* a SafeB chase target: EngineV2Consumer.Hmwf_chase's exact shape *)
+  Variable SafeB : block -> Prop.
+  Hypothesis HSafeNotBm : forall b, SafeB b -> b <> bm.
+  Hypothesis Hmwf_chase : forall mm ch bsafe (d : Z) vv mm',
+      MWF mm -> SafeB bsafe ->
+      (forall bb oo, vv <> Vptr bb oo) ->
+      Mem.store ch mm bsafe d vv = Some mm' -> MWF mm'.
+
+  Lemma vec_out_safeb : forall ch b o, SafeB b -> vec_out not_tainted bm MWF ch b o.
+  Proof.
+    intros ch b o Hs i _ v m1 m2 Hnp Hst Hv Hsat Hmwf.
+    split; [ eauto using Mem.store_valid_block_1 | split ].
+    - eapply action_sat_unchanged_on with (m := m1); [ | exact Hv | exact Hsat ].
+      eapply Mem.store_unchanged_on; [ exact Hst | ].
+      intros i0 _ [Hb _]. exact (HSafeNotBm b Hs Hb).
+    - exact (Hmwf_chase _ _ _ _ _ _ Hmwf Hs Hnp Hst).
+  Qed.
+
+  (* a Mario-field window *)
+  Hypothesis Hmwf_window : forall mm mm' ch (delta : Z) vv,
+      MWF mm -> CensusV2.store_window_ok delta (size_chunk ch) = true ->
+      Mem.store ch mm bm delta vv = Some mm' -> MWF mm'.
+
+  Lemma vec_out_window : forall ch delta,
+    (forall i, 0 <= i < 3 ->
+       CensusV2.store_window_ok (delta + size_chunk ch * i) (size_chunk ch) = true
+       /\ 0 <= delta + size_chunk ch * i <= Ptrofs.max_unsigned) ->
+    0 <= delta <= Ptrofs.max_unsigned ->
+    vec_out not_tainted bm MWF ch bm (Ptrofs.repr delta).
+  Proof.
+    intros ch delta Hcells Hd i Hi v m1 m2 _ Hst Hv Hsat Hmwf.
+    destruct (Hcells i Hi) as (Hwin & Hrng).
+    assert (Hsz : 0 <= size_chunk ch * i <= Ptrofs.max_unsigned).
+    { pose proof (size_chunk_pos ch). split; nia. }
+    rewrite Ptrofs.add_unsigned in Hst.
+    rewrite (Ptrofs.unsigned_repr delta) in Hst by lia.
+    rewrite (Ptrofs.unsigned_repr (size_chunk ch * i)) in Hst by nia.
+    rewrite Ptrofs.unsigned_repr in Hst by nia.
+    split; [ eauto using Mem.store_valid_block_1 | split ].
+    - intros av Hload.
+      rewrite (Mem.load_store_other _ _ _ _ _ _ Hst) in Hload; [ exact (Hsat av Hload) | right ].
+      unfold CensusV2.store_window_ok in Hwin.
+      repeat (apply andb_true_iff in Hwin; destruct Hwin as [Hwin ?]).
+      match goal with
+      | Hb : ((_ + _ <=? 12) || (16 <=? _))%bool = true |- _ =>
+          apply orb_true_iff in Hb as [Hb | Hb]; apply Z.leb_le in Hb;
+          cbn [size_chunk]; lia
+      end.
+    - exact (Hmwf_window _ _ _ _ _ Hmwf Hwin Hst).
+  Qed.
+End VEC_DISCHARGE.
+
+(* the one Mario-window vec3 destination a censused body passes
+   (update_mario_geometry_inputs: vec3f_copy(m->pos, ...)) is a window *)
+Lemma pos_vec_in_window :
+  exists delta, field_offset (prog_comp_env mario.prog) mario._pos SymbolicLinking.mario_state_members
+                  = Errors.OK (delta, Full)
+    /\ (forall i, 0 <= i < 3 ->
+          CensusV2.store_window_ok (delta + size_chunk Mfloat32 * i) (size_chunk Mfloat32) = true
+          /\ 0 <= delta + size_chunk Mfloat32 * i <= Ptrofs.max_unsigned)
+    /\ 0 <= delta <= Ptrofs.max_unsigned.
+Proof.
+  eexists. split; [ vm_compute; reflexivity | split ].
+  - intros i Hi.
+    assert (i = 0 \/ i = 1 \/ i = 2) as [-> | [-> | ->]] by lia;
+      (split; [ vm_compute; reflexivity | vm_compute; split; discriminate ]).
+  - vm_compute; split; discriminate.
+Qed.
+
+(* ====================================================================== *)
+(* 8. atan2s: its callee premise "for ALL envs, a call named atan2_lookup  *)
+(*    keeps memory" was false (a local shadow can point the name at any   *)
+(*    function block).  atan2s has no locals, so the name resolves to the  *)
+(*    global; with the link resolving it to the real atan2_lookup body,    *)
+(*    whose memory identity is proved, nothing is left to assume.          *)
+(* ====================================================================== *)
+
+Definition is_atan2_lookup_gcall (a : expr) : bool :=
+  match a with
+  | Evar id (Tfunction _ _ _) => Pos.eqb id math_util._atan2_lookup
+  | _ => false
+  end.
+
+Fixpoint cpure2_chk (s : statement) : bool :=
+  match s with
+  | Sskip | Sbreak | Scontinue | Sreturn _ => true
+  | Sset _ _ => true
+  | Scall _ a _ => is_atan2_lookup_gcall a
+  | Ssequence s1 s2 => cpure2_chk s1 && cpure2_chk s2
+  | Sifthenelse _ s1 s2 => cpure2_chk s1 && cpure2_chk s2
+  | Sloop s1 s2 => cpure2_chk s1 && cpure2_chk s2
+  | _ => false
+  end.
+
+Lemma atan2s_cpure2_chk : cpure2_chk (fn_body math_util.f_atan2s) = true.
+Proof. vm_compute. reflexivity. Qed.
+
+Lemma cpure2_walk :
+  forall (ge : genv),
+    resolves_to ge math_util._atan2_lookup math_util.f_atan2_lookup ->
+    forall s le m tr le' m' out,
+      exec_stmt function_entry2 ge empty_env le m s tr le' m' out ->
+      cpure2_chk s = true -> m' = m.
+Proof.
+  intros ge Hpin s le m tr le' m' out Hexec.
+  remember empty_env as e0 eqn:He0.
+  induction Hexec; intros Hchk; try reflexivity; try discriminate Hchk;
+    try (match goal with H : ?x = empty_env |- _ => subst x end).
+  - (* Scall *)
+    cbn [cpure2_chk] in Hchk.
+    destruct a; try discriminate Hchk. destruct t0; try discriminate Hchk.
+    apply Pos.eqb_eq in Hchk. subst i.
+    match goal with Hee : eval_expr _ _ _ _ (Evar _ _) ?vf |- _ =>
+      destruct (evar_fun_val _ _ _ _ _ _ _ _ _ Hee (PTree.gempty _ _)) as (lf & Hsy & ->) end.
+    match goal with Hff : Genv.find_funct _ _ = Some _ |- _ =>
+      unfold Genv.find_funct in Hff;
+      destruct (Ptrofs.eq_dec Ptrofs.zero Ptrofs.zero) as [_ | NE]; [ | congruence ] end.
+    match goal with Hfp : Genv.find_funct_ptr _ _ = Some ?f, Hfc : eval_funcall _ _ _ ?f _ _ _ _ |- _ =>
+      rewrite (Hpin _ _ Hsy Hfp) in Hfc; exact (atan2_lookup_memid _ _ _ _ _ _ Hfc) end.
+  - cbn [cpure2_chk] in Hchk. apply andb_prop in Hchk as [H1 H2].
+    rewrite (IHHexec2 eq_refl H2). exact (IHHexec1 eq_refl H1).
+  - cbn [cpure2_chk] in Hchk. apply andb_prop in Hchk as [H1 _].
+    exact (IHHexec eq_refl H1).
+  - cbn [cpure2_chk] in Hchk. apply andb_prop in Hchk as [H1 H2].
+    apply IHHexec; [ reflexivity | destruct b; assumption ].
+  - cbn [cpure2_chk] in Hchk. apply andb_prop in Hchk as [H1 _].
+    exact (IHHexec eq_refl H1).
+  - cbn [cpure2_chk] in Hchk. apply andb_prop in Hchk as [H1 H2].
+    rewrite (IHHexec2 eq_refl H2). exact (IHHexec1 eq_refl H1).
+  - cbn [cpure2_chk] in Hchk.
+    pose proof Hchk as Hchk0.
+    apply andb_prop in Hchk as [H1 H2].
+    rewrite (IHHexec3 eq_refl Hchk0), (IHHexec2 eq_refl H2). exact (IHHexec1 eq_refl H1).
+Qed.
+
+Lemma atan2s_memid_pinned :
+  forall (ge : genv),
+    resolves_to ge math_util._atan2_lookup math_util.f_atan2_lookup ->
+    forall m vargs t m' vres,
+      eval_funcall function_entry2 ge m (Internal math_util.f_atan2s) vargs t m' vres ->
+      m' = m.
+Proof.
+  intros ge Hpin m vargs t m' vres Hevf.
+  unfold math_util.f_atan2s in Hevf.
+  inv Hevf.
+  match goal with He : function_entry2 _ _ _ _ _ _ _ |- _ => rename He into Hentry end.
+  match goal with Hx : exec_stmt _ _ _ _ _ _ _ _ _ _ |- _ => rename Hx into Hbody end.
+  match goal with Hf : Mem.free_list _ _ = Some _ |- _ => rename Hf into Hfree end.
+  inv Hentry.
+  match goal with Ha : alloc_variables _ _ _ _ _ _ |- _ =>
+    cbn [fn_vars] in Ha; inv Ha end.
+  pose proof (cpure2_walk ge Hpin _ _ _ _ _ _ _ Hbody atan2s_cpure2_chk) as Em.
+  subst m1.
+  rewrite (eq_refl : blocks_of_env ge empty_env = nil) in Hfree.
+  cbn [Mem.free_list] in Hfree. injection Hfree as <-. reflexivity.
+Qed.
+
+Lemma atan2s_body_frame_pinned :
+  forall (ge : genv) (MWF : mem -> Prop) (bm : block),
+    resolves_to ge math_util._atan2_lookup math_util.f_atan2_lookup ->
+    forall m vargs t m' vres,
+      eval_funcall function_entry2 ge m (Internal math_util.f_atan2s) vargs t m' vres ->
+      MWF m -> Mem.valid_block m bm -> action_sat not_tainted m bm ->
+      Mem.valid_block m' bm /\ action_sat not_tainted m' bm /\ MWF m'.
+Proof.
+  intros ge MWF bm Hpin m vargs t m' vres Hevf Hmwf Hv Hsat.
+  rewrite (atan2s_memid_pinned ge Hpin m vargs t m' vres Hevf).
+  exact (conj Hv (conj Hsat Hmwf)).
 Qed.
