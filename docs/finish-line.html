@@ -174,10 +174,10 @@ const GAPS = [
    what:"The step is one real Mario call plus four specified flanks (controller poll, platforms, level phase, other objects). Those flanks are specs, not linked code. Finishing means rooting the frame at game_loop_one_iteration.",
    next:"Link platform_displacement, then the WMotR behaviors (about 10 of them).",
    why:"Each flank spec is a claim about code nobody has walked yet. Two were false: an early object-write spec, and (2026-09-28) the level phase on the exit frame, which is why the run is now one WMotR visit."},
-  {id:"ext", label:"External-call rows", est:12, lo:6, hi:20, risk:"low",
+  {id:"ext", label:"External-call rows", est:14, lo:8, hi:24, risk:"med",
    what:"About 35 rows describe code outside the 12 linked TUs: collision, math_util, audio, camera, save file. Shrinking them means linking more TUs (P1′).",
    next:"Generalize the gated-writer channel so that find_floor's pointer out-param can be linked.",
-   why:"Mostly plumbing. The one known trap was premises that can't be satisfied, which made results vacuous."},
+   why:"No longer just plumbing (2026-10-17): the value walk cannot be proved without it. In the capstone's 12-TU link, find_floor, find_ceil, the wall check and math_util are external calls whose behavior is an axiom, so any claim about what they return is a trust row. Linking them (P1') is recorded as blocked on GOAL 1's engine. The one known trap was premises that can't be satisfied, which made results vacuous."},
   {id:"start", label:"Real starting state", est:7, lo:3, hi:12, risk:"med",
    what:"mem_ok_lp is about 10 invented rows. It must become 'any state the game is in when WMotR starts', and all the rows together must be shown satisfiable by a real memory.",
    next:"Check the start rows on recorded WMotR entry frames, then build a satisfying memory.",
@@ -204,7 +204,8 @@ const SNAPSHOTS = [
   {date:"2026-09-28", pct:35, lo:23, hi:46, live:true,  commit:"6a29d8c", note:"Found a false row: entering the cannon (B only) lifts Mario and was in no Move; now the wmotr_cannon case. Label audit clean otherwise; Φ held on about 86k scripted no-A frames including the solid box top."},
   {date:"2026-09-29", pct:36, lo:24, hi:46, live:true,  commit:"6982dca", note:"Three more statement bugs fixed (vel ceiling 128 was not inductive; cut moves' -0.0; NULL floor). The run now carries a concrete WMotR world invariant. Value-walk route chosen (symbolic executor); a Python prototype runs the air step on the real code."},
   {date:"2026-09-29", pct:38, lo:26, hi:47, live:true,  commit:"9eab581", note:"The biggest uncertainty is answered: the whole Mario frame is tractable for symbolic execution (2 to 86 s per start; every height result is a catalog Move). R_noA is concrete. W now pins collided objects: no star (it reached star-dance actions outside R_noA) and no stomp bits; checked on 9,000 more real frames."},
-  {date:"2026-10-16", pct:40, lo:27, hi:48, live:true,  commit:"066b195", note:"The Coq symbolic executor (SymExec2) is proved sound against CompCert's semantics: locals, loops, calls with contracts, world pointers, and joins by anti-unification that keep relations both paths share. It runs the whole real perform_air_step in 22 s (7328 outcomes, 225 after the call-site join), with stand-in contracts so far."}
+  {date:"2026-10-16", pct:40, lo:27, hi:48, live:true,  commit:"066b195", note:"The Coq symbolic executor (SymExec2) is proved sound against CompCert's semantics: locals, loops, calls with contracts, world pointers, and joins by anti-unification that keep relations both paths share. It runs the whole real perform_air_step in 22 s (7328 outcomes, 225 after the call-site join), with stand-in contracts so far."},
+  {date:"2026-10-17", pct:37, lo:24, hi:47, live:true,  commit:"066b195", note:"Revised DOWN. Two reasons: the previous +2 was for building a tool, not closing distance; and the value walk turns out to depend on linking surface_collision and math_util (P1'), because in the 12-TU link find_floor and friends are external calls whose results can only be trusted. P1' was counted as low-risk plumbing and is recorded as blocked on GOAL 1's engine."}
 ];
 const COUNTERS = [
   {n:36, label:"Hypothesis rows on GOAL 1's capstone"},
