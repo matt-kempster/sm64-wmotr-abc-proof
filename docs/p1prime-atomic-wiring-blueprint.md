@@ -389,16 +389,33 @@ each `<> bm` (static-layout, same trust class as the existing entries).
 
 ### The ordered green-in-one-pass recipe
 **PRE-REQ (before the atomic commit — the pre-stage is INCOMPLETE without these):**
-> **STATUS 2026-10-17: P-1 and P-2 DONE** in `proofs/MarioModel/Unwired/MathGeomGated.v`
-> (`kept:` P1' pre-stage). One call-aware walker `cw_walk` (`cw_chk` recognizer:
-> callee = the named global, its out-param arg = an own local's address or the gate
-> temp; named stores = own locals or listed statics) replaces the ∀vargs `Hcall` /
-> ∀env `Hsafe` premises. Results: `find_{floor,ceil}_body_frame_gated`,
-> `find_wall_collisions_body_frame_gated`, `f32_find_wall_collision_body_frame_gated`,
-> plus `_pinned` corollaries whose only premises are the alloc/free/store MWF oracles,
-> "listed statics' symbol blocks <> bm", and "the callee name resolves to the real
-> body". Those premises are exactly what the atomic commit supplies (stored_globals +
-> link resolution). Standard CompCert axioms only.
+> **STATUS 2026-10-17: P-1 and P-2 DONE, and two further false premises found and fixed**
+> in `proofs/MarioModel/Unwired/MathGeomGated.v` (`kept:` P1' pre-stage).
+>
+> 1. *The MWF oracle was false.* Every MathGeomBodies fact assumed "any store to a
+>    block other than bm keeps MWF". `MWF_real` watches the controller block, the
+>    SafeB chase blocks and several globals, so that premise can never be met.
+>    Replaced by `blk_pres` / `cell_pres`: store-safety asked only of the blocks the
+>    body really writes (its out-param target, its fresh locals, its listed statics).
+>    The three `_from_list` frames now need NO MWF premise at all, only a store-safe
+>    out block.
+> 2. *The out-param gate "block ≠ bm" was false at the censused call sites.*
+>    `update_mario_geometry_inputs` calls `find_floor(…, &m->floor)` and
+>    `f32_find_wall_collision(&m->pos[0], &m->pos[1], &m->pos[2], …)`: pointers
+>    INTO Mario's block. Since those bodies write their out-param only by `*p = v`
+>    (≤4 bytes), the gate is now `out_cell` (that one cell is store-safe), the
+>    `exact` mode of the call-aware walker `cw_walk`. `geometry_outparams_in_window`
+>    checks that all four cells are `store_window_ok`, and `out_cell_window`,
+>    `blk_pres_local`, `blk_pres_glob` derive the premises from the consumer's own
+>    rows (`Hmwf_window`, `HMWF_localstore`, `Hmwf_glob`).
+>
+> Results: `find_{floor,ceil}_body_frame_{gated,pinned}`,
+> `find_wall_collisions_body_frame_{gated,pinned}`,
+> `f32_find_wall_collision_body_frame_{gated,pinned}`, `*_from_list_frame_B`.
+> Standard CompCert axioms only. Consequence for §3-B: the engine out-param arm must
+> carry "the out-param argument is `&m->fld` with `fld` a window field, or a local",
+> not "arg ≠ bm".
+
 - **P-1** Re-state facts #13/#14 (`find_floor_body_frame`, `find_ceil_body_frame`):
   arg-aware `sg_walk` that (a) recognizes the `find_{floor,ceil}_from_list`
   internal call, evaluates its 5th arg to the body's own fresh local (`Hb2_bm`

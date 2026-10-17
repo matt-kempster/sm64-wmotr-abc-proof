@@ -1,34 +1,264 @@
-(* kept: P1' Unwired pre-stage — the arg-aware re-statements of the four surface_collision aggregator frames, consumed at the future fourteen-TU link commit; NOT yet capstone-wired. *)
+(* kept: P1' Unwired pre-stage — the arg-aware, store-target-aware re-statements of the surface_collision frames, consumed at the future fourteen-TU link commit; NOT yet capstone-wired. *)
 
 (* ====================================================================== *)
 (* P1' PRE-REQ P-1 / P-2 (docs/p1prime-atomic-wiring-blueprint.md §4-A, §6). *)
 (*                                                                        *)
-(* MathGeomBodies.v proved the frames of find_floor, find_ceil,             *)
-(* find_wall_collisions and f32_find_wall_collision, but each one assumed   *)
-(* a callee oracle "for ALL vargs" and a store oracle "for ALL envs".       *)
-(* Both are FALSE in general (an argument or a local shadow pointing at bm  *)
-(* breaks them), so those lemmas could never be applied.                    *)
+(* MathGeomBodies.v proved frames for find_floor, find_ceil,                *)
+(* find_wall_collisions, f32_find_wall_collision and the three _from_list  *)
+(* helpers, but with premises that can never be met at the real link:     *)
+(*  - a callee oracle for ALL vargs and a store oracle for ALL envs    *)
+(*    (an argument or a local shadow pointing at bm breaks them);          *)
+(*  - an MWF oracle every store to a block other than bm keeps MWF,      *)
+(*    which is FALSE for the real MWF (MWFReal.MWF_real watches the        *)
+(*    controller block, the SafeB chase blocks and several globals);       *)
+(*  - an out-param gate the out pointer's block is not bm, which is      *)
+(*    FALSE at update_mario_geometry_inputs: it passes &m->floor and        *)
+(*    &m->pos[i], pointers INTO Mario's block.                             *)
 (*                                                                        *)
-(* Here the walk sees the concrete call: the callee is the named global    *)
-(* (the body's env has no local of that name), and its out-param argument  *)
-(* is either the address of one of the body's own fresh locals or the      *)
-(* body's own gate pointer -- in both cases a block other than bm.  Stores *)
-(* to named variables go to an own local (fresh, <> bm) or to a listed     *)
-(* static (its symbol block, <> bm by a layout premise).  So the callee    *)
-(* premise only has to hold for arguments that really are bm-free, which   *)
-(* the callee's own gated frame (find_floor_from_list_body_frame etc.)     *)
-(* gives.  The `_pinned` corollaries discharge it that way.                *)
+(* Here every premise is about the stores the body really does:            *)
+(*  - cell_pres / blk_pres: a store to this cell / this block keeps       *)
+(*    valid bm, action_sat and MWF -- asked only of the blocks the body   *)
+(*    stores into (its out-param target, its own fresh locals, its listed  *)
+(*    statics).  At the link these come from the consumer's own MWF rows   *)
+(*    (HMWF_localstore for locals, Hmwf_window for a Mario-field window,   *)
+(*    Hmwf_glob for statics).                                              *)
+(*  - the walk sees the concrete call: the callee is the named global and  *)
+(*    its out-param argument is an own local's address (or the gate temp), *)
+(*    so the callee premise is needed only for a store-safe argument.      *)
+(*  - an out-param written ONLY by `*p = v` (a <=4-byte by-value store at  *)
+(*    exactly the pointer) needs only that one cell to be store-safe: the  *)
+(*    `exact` gate mode.  This is what &m->floor / &m->pos[i] satisfy.     *)
 (* ====================================================================== *)
 
-From Coq Require Import ZArith List Bool.
+From Coq Require Import ZArith List Bool Lia.
 From compcert Require Import Coqlib Maps AST Integers Values Events Memory
   Globalenvs Ctypes Cop Clightdefs Clight ClightBigstep Linking.
-From SM64.Generated Require surface_collision.
+From SM64.Generated Require surface_collision mario.
 From SM64.Proofs Require Import ActionValueFrame Taint MarioStepSurface RestSurface.
-From SM64.Proofs Require CensusV2.
+From SM64.Proofs Require CensusV2 RealFrameValue SymbolicLinking.
 From SM64.Proofs.MarioModel.Unwired Require Import MathGeomBodies.
 
 Import ListNotations.
+
+(* ====================================================================== *)
+(* 0. Store-safety of a cell / a block.                                    *)
+(* ====================================================================== *)
+
+Section PRES.
+  Variable Q : int -> Prop.
+  Variable bm : block.
+  Variable MWF : mem -> Prop.
+
+  Definition cell_pres (ch : memory_chunk) (b : block) (o : Z) : Prop :=
+    forall v m1 m2, Mem.store ch m1 b o v = Some m2 ->
+      Mem.valid_block m1 bm -> action_sat Q m1 bm -> MWF m1 ->
+      Mem.valid_block m2 bm /\ action_sat Q m2 bm /\ MWF m2.
+
+  Definition blk_pres (b : block) : Prop := forall ch o, cell_pres ch b o.
+
+  (* the `exact` out-param gate: every <=4-byte store at the pointer itself *)
+  Definition out_cell (b : block) (o : ptrofs) : Prop :=
+    forall ch, size_chunk ch <= 4 -> cell_pres ch b (Ptrofs.unsigned o).
+End PRES.
+
+(* ====================================================================== *)
+(* 1. The gate walk, store-target-aware (for the three _from_list bodies). *)
+(* ====================================================================== *)
+
+Lemma gate_assign_pres_B :
+  forall (MWF : mem -> Prop) (Q : int -> Prop) (bm b_out : block) (oo : ptrofs)
+    g lv rhs ge e le m t le' m' out,
+    blk_pres Q bm MWF b_out ->
+    CensusV2.chain_root_l lv = Some g ->
+    (match access_mode (typeof lv) with By_value _ => true | _ => false end) = true ->
+    le ! g = Some (Vptr b_out oo) ->
+    exec_stmt function_entry2 ge e le m (Sassign lv rhs) t le' m' out ->
+    Mem.valid_block m bm -> action_sat Q m bm -> MWF m ->
+    Mem.valid_block m' bm /\ action_sat Q m' bm /\ MWF m' /\ le' = le /\ out = Out_normal.
+Proof.
+  intros MWF Q bm b_out oo g lv rhs ge e le m t le' m' out
+         Hbp Hcr Hac Hg Hexec Hv Hsat Hmwf.
+  inv Hexec.
+  match goal with Hlv : eval_lvalue _ _ _ _ lv ?loc _ _ |- _ =>
+    destruct (CensusV2.chain_root_l_block _ _ _ _ _ _ _ _ _ Hcr Hlv) as (o0 & Hleg);
+    assert (Hloc : loc = b_out) by congruence; subst loc end.
+  match goal with Hass : assign_loc _ (typeof lv) _ _ _ _ _ _ |- _ => inv Hass end.
+  - match goal with Hsv : Mem.storev _ _ _ _ = Some m' |- _ =>
+      unfold Mem.storev in Hsv;
+      destruct (Hbp _ _ _ _ _ Hsv Hv Hsat Hmwf) as (Hv' & Hsat' & Hmwf') end.
+    split;[exact Hv'|split;[exact Hsat'|split;[exact Hmwf'|split;reflexivity]]].
+  - match goal with Hco : access_mode (typeof lv) = By_copy |- _ =>
+      rewrite Hco in Hac; discriminate Hac end.
+  - match goal with Hsb : store_bitfield _ _ _ _ _ _ _ _ _ _ |- _ => inv Hsb end.
+    match goal with Hsv : Mem.storev _ _ _ _ = Some m' |- _ =>
+      unfold Mem.storev in Hsv;
+      destruct (Hbp _ _ _ _ _ Hsv Hv Hsat Hmwf) as (Hv' & Hsat' & Hmwf') end.
+    split;[exact Hv'|split;[exact Hsat'|split;[exact Hmwf'|split;reflexivity]]].
+Qed.
+
+Lemma gate_walk_B :
+  forall (MWF : mem -> Prop) (Q : int -> Prop) (bm b_out : block) (oo : ptrofs) (g : ident)
+    (Hbp : blk_pres Q bm MWF b_out)
+    ge e s le m t le' m' out,
+    exec_stmt function_entry2 ge e le m s t le' m' out ->
+    gate_chk g s = true ->
+    le ! g = Some (Vptr b_out oo) ->
+    Mem.valid_block m bm -> action_sat Q m bm -> MWF m ->
+    Mem.valid_block m' bm /\ action_sat Q m' bm /\ MWF m'
+      /\ le' ! g = Some (Vptr b_out oo).
+Proof.
+  intros MWF Q bm b_out oo g Hbp ge e s le m t le' m' out Hexec.
+  induction Hexec; intros Hchk Hg Hv Hsat Hmwf;
+    try discriminate Hchk.
+  - repeat split; assumption.
+  - cbn [gate_chk] in Hchk.
+    destruct (CensusV2.chain_root_l a1) as [t0|] eqn:Hcr; [ | discriminate Hchk ].
+    apply andb_prop in Hchk as [Hpe Hbv].
+    apply Pos.eqb_eq in Hpe; subst t0.
+    assert (HH : exec_stmt function_entry2 ge e le m (Sassign a1 a2) E0 le m' Out_normal)
+      by (eapply exec_Sassign; eassumption).
+    edestruct (gate_assign_pres_B MWF Q bm b_out oo g a1 a2 ge e le m E0 le m' Out_normal
+                 Hbp Hcr Hbv Hg HH Hv Hsat Hmwf)
+      as (Hv' & Hsat' & Hmwf' & _ & _).
+    repeat split; assumption.
+  - cbn [gate_chk] in Hchk.
+    apply negb_true_iff, Pos.eqb_neq in Hchk.
+    repeat split; try assumption.
+    rewrite PTree.gso by (apply not_eq_sym; exact Hchk); exact Hg.
+  - cbn [gate_chk] in Hchk. apply andb_prop in Hchk as [H1 H2].
+    destruct (IHHexec1 H1 Hg Hv Hsat Hmwf) as (Hv1 & Hsat1 & Hmwf1 & Hg1).
+    exact (IHHexec2 H2 Hg1 Hv1 Hsat1 Hmwf1).
+  - cbn [gate_chk] in Hchk. apply andb_prop in Hchk as [H1 _].
+    exact (IHHexec H1 Hg Hv Hsat Hmwf).
+  - cbn [gate_chk] in Hchk. apply andb_prop in Hchk as [H1 H2].
+    apply IHHexec; [ destruct b; assumption | assumption .. ].
+  - repeat split; assumption.
+  - repeat split; assumption.
+  - repeat split; assumption.
+  - repeat split; assumption.
+  - cbn [gate_chk] in Hchk. apply andb_prop in Hchk as [H1 _].
+    exact (IHHexec H1 Hg Hv Hsat Hmwf).
+  - cbn [gate_chk] in Hchk. apply andb_prop in Hchk as [H1 H2].
+    destruct (IHHexec1 H1 Hg Hv Hsat Hmwf) as (Hv1 & Hsat1 & Hmwf1 & Hg1).
+    exact (IHHexec2 H2 Hg1 Hv1 Hsat1 Hmwf1).
+  - cbn [gate_chk] in Hchk.
+    pose proof Hchk as Hchk0.
+    apply andb_prop in Hchk as [H1 H2].
+    destruct (IHHexec1 H1 Hg Hv Hsat Hmwf) as (Hv1 & Hsat1 & Hmwf1 & Hg1).
+    destruct (IHHexec2 H2 Hg1 Hv1 Hsat1 Hmwf1) as (Hv2 & Hsat2 & Hmwf2 & Hg2).
+    exact (IHHexec3 Hchk0 Hg2 Hv2 Hsat2 Hmwf2).
+Qed.
+
+(* the three _from_list helpers: the ONLY premise is that the out-param
+   block is store-safe (no MWF oracle at all -- they store nowhere else) *)
+Lemma find_floor_from_list_frame_B :
+  forall (ge : genv) (MWF : mem -> Prop) (bm b_out : block) (oo : ptrofs),
+    blk_pres not_tainted bm MWF b_out ->
+    forall m vargs t m' vres,
+      eval_funcall function_entry2 ge m
+        (Internal surface_collision.f_find_floor_from_list) vargs t m' vres ->
+      nth_error vargs 4 = Some (Vptr b_out oo) ->
+      Mem.valid_block m bm -> action_sat not_tainted m bm -> MWF m ->
+      Mem.valid_block m' bm /\ action_sat not_tainted m' bm /\ MWF m'.
+Proof.
+  intros ge MWF bm b_out oo Hbp m vargs t m' vres Hevf Hn4 Hv Hsat Hmwf.
+  unfold surface_collision.f_find_floor_from_list in Hevf.
+  match goal with Hevf : eval_funcall _ _ _ _ _ _ _ _ |- _ => inv Hevf end.
+  match goal with He : function_entry2 _ _ _ _ _ _ _ |- _ => inv He end.
+  match goal with Ha : alloc_variables _ _ _ _ _ _ |- _ => cbn [fn_vars] in Ha; inv Ha end.
+  match goal with Hbp : bind_parameter_temps _ ?vargs _ = Some ?LE,
+                  Hn : nth_error ?vargs _ = Some (Vptr _ _) |- _ =>
+    cbn [fn_params fn_temps] in Hbp;
+    destruct vargs as [|a0 [|a1 [|a2 [|a3 [|a4 [|a5 vr]]]]]];
+      try (cbn [bind_parameter_temps] in Hbp; discriminate Hbp);
+      try (cbn [nth_error] in Hn; discriminate Hn);
+    cbn [nth_error] in Hn; injection Hn as ->;
+    assert (Hled : LE ! surface_collision._pheight = Some (Vptr b_out oo)) by (eapply sc_bind_pheight; exact Hbp)
+  end.
+  match goal with Hbody : exec_stmt _ _ _ _ _ _ _ _ _ _ |- _ =>
+    cbn [fn_body] in Hbody;
+    destruct (gate_walk_B MWF not_tainted bm b_out oo surface_collision._pheight Hbp _ _ _ _ _ _ _ _ _ Hbody
+                find_floor_from_list_pheight_chk Hled Hv Hsat Hmwf) as (Hvb & Hsatb & Hmwfb & _)
+  end.
+  match goal with Hfl : Mem.free_list _ _ = Some _ |- _ =>
+    rewrite (eq_refl : blocks_of_env _ empty_env = nil) in Hfl;
+    cbn [Mem.free_list] in Hfl; injection Hfl as <- end.
+  exact (conj Hvb (conj Hsatb Hmwfb)).
+Qed.
+
+Lemma find_ceil_from_list_frame_B :
+  forall (ge : genv) (MWF : mem -> Prop) (bm b_out : block) (oo : ptrofs),
+    blk_pres not_tainted bm MWF b_out ->
+    forall m vargs t m' vres,
+      eval_funcall function_entry2 ge m
+        (Internal surface_collision.f_find_ceil_from_list) vargs t m' vres ->
+      nth_error vargs 4 = Some (Vptr b_out oo) ->
+      Mem.valid_block m bm -> action_sat not_tainted m bm -> MWF m ->
+      Mem.valid_block m' bm /\ action_sat not_tainted m' bm /\ MWF m'.
+Proof.
+  intros ge MWF bm b_out oo Hbp m vargs t m' vres Hevf Hn4 Hv Hsat Hmwf.
+  unfold surface_collision.f_find_ceil_from_list in Hevf.
+  match goal with Hevf : eval_funcall _ _ _ _ _ _ _ _ |- _ => inv Hevf end.
+  match goal with He : function_entry2 _ _ _ _ _ _ _ |- _ => inv He end.
+  match goal with Ha : alloc_variables _ _ _ _ _ _ |- _ => cbn [fn_vars] in Ha; inv Ha end.
+  match goal with Hbp : bind_parameter_temps _ ?vargs _ = Some ?LE,
+                  Hn : nth_error ?vargs _ = Some (Vptr _ _) |- _ =>
+    cbn [fn_params fn_temps] in Hbp;
+    destruct vargs as [|a0 [|a1 [|a2 [|a3 [|a4 [|a5 vr]]]]]];
+      try (cbn [bind_parameter_temps] in Hbp; discriminate Hbp);
+      try (cbn [nth_error] in Hn; discriminate Hn);
+    cbn [nth_error] in Hn; injection Hn as ->;
+    assert (Hled : LE ! surface_collision._pheight = Some (Vptr b_out oo)) by (eapply sc_bind_pheight; exact Hbp)
+  end.
+  match goal with Hbody : exec_stmt _ _ _ _ _ _ _ _ _ _ |- _ =>
+    cbn [fn_body] in Hbody;
+    destruct (gate_walk_B MWF not_tainted bm b_out oo surface_collision._pheight Hbp _ _ _ _ _ _ _ _ _ Hbody
+                find_ceil_from_list_pheight_chk Hled Hv Hsat Hmwf) as (Hvb & Hsatb & Hmwfb & _)
+  end.
+  match goal with Hfl : Mem.free_list _ _ = Some _ |- _ =>
+    rewrite (eq_refl : blocks_of_env _ empty_env = nil) in Hfl;
+    cbn [Mem.free_list] in Hfl; injection Hfl as <- end.
+  exact (conj Hvb (conj Hsatb Hmwfb)).
+Qed.
+
+Lemma find_wall_collisions_from_list_frame_B :
+  forall (ge : genv) (MWF : mem -> Prop) (bm b_out : block) (oo : ptrofs),
+    blk_pres not_tainted bm MWF b_out ->
+    forall m vargs t m' vres,
+      eval_funcall function_entry2 ge m
+        (Internal surface_collision.f_find_wall_collisions_from_list) vargs t m' vres ->
+      nth_error vargs 1 = Some (Vptr b_out oo) ->
+      Mem.valid_block m bm -> action_sat not_tainted m bm -> MWF m ->
+      Mem.valid_block m' bm /\ action_sat not_tainted m' bm /\ MWF m'.
+Proof.
+  intros ge MWF bm b_out oo Hbp m vargs t m' vres Hevf Hn1 Hv Hsat Hmwf.
+  unfold surface_collision.f_find_wall_collisions_from_list in Hevf.
+  match goal with Hevf : eval_funcall _ _ _ _ _ _ _ _ |- _ => inv Hevf end.
+  match goal with He : function_entry2 _ _ _ _ _ _ _ |- _ => inv He end.
+  match goal with Ha : alloc_variables _ _ _ _ _ _ |- _ => cbn [fn_vars] in Ha; inv Ha end.
+  match goal with Hbp : bind_parameter_temps _ ?vargs _ = Some ?LE,
+                  Hn : nth_error ?vargs _ = Some (Vptr _ _) |- _ =>
+    cbn [fn_params fn_temps] in Hbp;
+    destruct vargs as [|a0 [|a1 [|a2 [|a3 [|a4 [|a5 vr]]]]]];
+      try (cbn [bind_parameter_temps] in Hbp; discriminate Hbp);
+      try (cbn [nth_error] in Hn; discriminate Hn);
+    cbn [nth_error] in Hn; injection Hn as ->;
+    assert (Hled : LE ! surface_collision._data = Some (Vptr b_out oo)) by (eapply sc_bind_data; exact Hbp)
+  end.
+  match goal with Hbody : exec_stmt _ _ _ _ _ _ _ _ _ _ |- _ =>
+    cbn [fn_body] in Hbody;
+    destruct (gate_walk_B MWF not_tainted bm b_out oo surface_collision._data Hbp _ _ _ _ _ _ _ _ _ Hbody
+                find_wall_collisions_from_list_data_chk Hled Hv Hsat Hmwf) as (Hvb & Hsatb & Hmwfb & _)
+  end.
+  match goal with Hfl : Mem.free_list _ _ = Some _ |- _ =>
+    rewrite (eq_refl : blocks_of_env _ empty_env = nil) in Hfl;
+    cbn [Mem.free_list] in Hfl; injection Hfl as <- end.
+  exact (conj Hvb (conj Hsatb Hmwfb)).
+Qed.
+
+(* ====================================================================== *)
+(* 2. The call-aware walk.                                                 *)
+(* ====================================================================== *)
 
 Definition is_ptr_ty (t : type) : bool := match t with Tpointer _ _ => true | _ => false end.
 
@@ -40,23 +270,24 @@ Proof.
   apply Pos.eqb_eq in Hxy. subst. exact Hy.
 Qed.
 
-(* an out-param argument the walk can see is bm-free: the address of one of
-   the body's own locals, or the body's gate temp itself *)
-Definition arg_ok (g : ident) (own : list ident) (a : expr) : bool :=
+(* an out-param argument the walk can see is store-safe: the address of one
+   of the body's own locals, or (in full-gate mode) the gate temp itself *)
+Definition arg_ok (ex : bool) (g : ident) (own : list ident) (a : expr) : bool :=
   match a with
   | Eaddrof (Evar x _) t => is_ptr_ty t && in_ids x own
-  | Etempvar t ty => Pos.eqb t g && is_ptr_ty ty
+  | Etempvar t ty => negb ex && Pos.eqb t g && is_ptr_ty ty
   | _ => false
   end.
 
 (* a direct call to the named function, whose k-th argument is arg_ok and
    whose k-th parameter is a pointer *)
-Definition call_ok (g cid : ident) (k : nat) (own : list ident) (a : expr) (al : list expr) : bool :=
+Definition call_ok (ex : bool) (g cid : ident) (k : nat) (own : list ident)
+    (a : expr) (al : list expr) : bool :=
   match a with
   | Evar id (Tfunction targs _ _) =>
       Pos.eqb id cid &&
       (match nth_error al k, nth_error targs k with
-       | Some x, Some tx => arg_ok g own x && is_ptr_ty tx
+       | Some x, Some tx => arg_ok ex g own x && is_ptr_ty tx
        | _, _ => false
        end)
   | _ => false
@@ -75,29 +306,35 @@ Definition sym_ok (own stat : list ident) (lv : expr) : bool :=
   | _ => false
   end.
 
-Fixpoint cw_chk (g cid : ident) (k : nat) (own stat : list ident) (s : statement) : bool :=
+(* `*g = v`, a by-value store of at most 4 bytes at the gate pointer itself *)
+Definition exact_ok (g : ident) (lv : expr) : bool :=
+  match lv with
+  | Ederef (Etempvar t _) ty =>
+      Pos.eqb t g &&
+      (match access_mode ty with By_value ch => (size_chunk ch <=? 4)%Z | _ => false end)
+  | _ => false
+  end.
+
+Fixpoint cw_chk (ex : bool) (g cid : ident) (k : nat) (own stat : list ident) (s : statement) : bool :=
   match s with
   | Sskip | Sbreak | Scontinue | Sreturn _ => true
   | Sset id _ => negb (Pos.eqb id g)
   | Scall optid a al =>
-      call_ok g cid k own a al &&
+      call_ok ex g cid k own a al &&
       (match optid with Some ti => negb (Pos.eqb ti g) | None => true end)
   | Sassign lv _ =>
       match CensusV2.chain_root_l lv with
       | Some t =>
-          Pos.eqb t g &&
-          (match access_mode (typeof lv) with By_value _ => true | _ => false end)
+          if ex then exact_ok g lv
+          else Pos.eqb t g &&
+               (match access_mode (typeof lv) with By_value _ => true | _ => false end)
       | None => sym_ok own stat lv
       end
-  | Ssequence s1 s2 => cw_chk g cid k own stat s1 && cw_chk g cid k own stat s2
-  | Sifthenelse _ s1 s2 => cw_chk g cid k own stat s1 && cw_chk g cid k own stat s2
-  | Sloop s1 s2 => cw_chk g cid k own stat s1 && cw_chk g cid k own stat s2
+  | Ssequence s1 s2 => cw_chk ex g cid k own stat s1 && cw_chk ex g cid k own stat s2
+  | Sifthenelse _ s1 s2 => cw_chk ex g cid k own stat s1 && cw_chk ex g cid k own stat s2
+  | Sloop s1 s2 => cw_chk ex g cid k own stat s1 && cw_chk ex g cid k own stat s2
   | _ => false
   end.
-
-(* ---------------------------------------------------------------------- *)
-(* Expression facts.                                                       *)
-(* ---------------------------------------------------------------------- *)
 
 Lemma cast_ptr_ptr : forall b o t1 t2 m v,
   is_ptr_ty t1 = true -> is_ptr_ty t2 = true ->
@@ -133,42 +370,82 @@ Proof.
   eexists. split; [ eassumption | reflexivity ].
 Qed.
 
+Lemma evar_copy_lvalue : forall ge e le m x ty b ofs,
+  eval_expr ge e le m (Evar x ty) (Vptr b ofs) -> access_mode ty = By_copy ->
+  exists bf, eval_lvalue ge e le m (Evar x ty) b ofs bf.
+Proof.
+  intros ge e le m x ty b ofs H Hac. inv H.
+  match goal with Hd : deref_loc _ _ _ _ _ _ |- _ => inv Hd end;
+    cbn [typeof] in *; try congruence;
+    try (eexists; eassumption);
+    match goal with Hb : load_bitfield _ _ _ _ _ _ _ _ |- _ => inv Hb end.
+Qed.
+
+(* `*g = v` stores exactly at the gate pointer *)
+Lemma exact_assign_pres :
+  forall (MWF : mem -> Prop) (Q : int -> Prop) (bm b_out : block) (oo : ptrofs)
+    g lv rhs ge e le m t le' m' out,
+    out_cell Q bm MWF b_out oo ->
+    exact_ok g lv = true ->
+    le ! g = Some (Vptr b_out oo) ->
+    exec_stmt function_entry2 ge e le m (Sassign lv rhs) t le' m' out ->
+    Mem.valid_block m bm -> action_sat Q m bm -> MWF m ->
+    Mem.valid_block m' bm /\ action_sat Q m' bm /\ MWF m' /\ le' = le /\ out = Out_normal.
+Proof.
+  intros MWF Q bm b_out oo g lv rhs ge e le m t le' m' out
+         Hcell Hok Hg Hexec Hv Hsat Hmwf.
+  destruct lv; try discriminate Hok. destruct lv; try discriminate Hok.
+  cbn [exact_ok] in Hok. apply andb_prop in Hok as [Hid Hsz]. apply Pos.eqb_eq in Hid. subst i.
+  destruct (access_mode t0) as [ch| | |] eqn:Hac; try discriminate Hsz.
+  apply Z.leb_le in Hsz.
+  inv Hexec.
+  match goal with Hlv : eval_lvalue _ _ _ _ (Ederef _ _) _ _ _ |- _ => inv Hlv end.
+  match goal with Hev : eval_expr _ _ _ _ (Etempvar _ _) _ |- _ =>
+    apply RealFrameValue.eval_expr_Etempvar_val in Hev; rewrite Hg in Hev;
+    injection Hev as <- <- end.
+  match goal with Hass : assign_loc _ (typeof _) _ _ _ Full _ _ |- _ =>
+    cbn [typeof] in Hass; inv Hass end;
+  [ | match goal with Hco : access_mode t0 = By_copy |- _ =>
+        rewrite Hac in Hco; discriminate Hco end ].
+  match goal with Hac2 : access_mode t0 = By_value ?c2 |- _ =>
+    rewrite Hac in Hac2; injection Hac2 as <- end.
+  match goal with Hstv : Mem.storev _ _ _ _ = Some _ |- _ =>
+    unfold Mem.storev in Hstv;
+    destruct (Hcell ch Hsz _ _ _ Hstv Hv Hsat Hmwf) as (Hv' & Hsat' & Hmwf') end.
+  split;[exact Hv'|split;[exact Hsat'|split;[exact Hmwf'|split;reflexivity]]].
+Qed.
+
 Section ENV.
   Variable ge : genv.
   Variable e : env.
   Variable bm : block.
+  Variable Q : int -> Prop.
+  Variable MWF : mem -> Prop.
   Variables own stat : list ident.
-  Hypothesis Hown : forall x, In x own -> exists b ty, e ! x = Some (b, ty) /\ b <> bm.
+  Hypothesis Hown : forall x, In x own ->
+    exists b ty, e ! x = Some (b, ty) /\ blk_pres Q bm MWF b.
   Hypothesis Hstat : forall x, In x stat -> e ! x = None.
-  Hypothesis Hsym : forall x bg, In x stat -> Genv.find_symbol ge x = Some bg -> bg <> bm.
+  Hypothesis Hsym : forall x bg, In x stat -> Genv.find_symbol ge x = Some bg ->
+    blk_pres Q bm MWF bg.
 
   Lemma evar_lvalue_blk : forall le m x ty b ofs bf,
     eval_lvalue ge e le m (Evar x ty) b ofs bf ->
-    (in_ids x own || in_ids x stat) = true -> b <> bm.
+    (in_ids x own || in_ids x stat) = true -> blk_pres Q bm MWF b.
   Proof.
     intros le m x ty b ofs bf Hl Hin. apply orb_true_iff in Hin.
     inv Hl.
     - destruct Hin as [Hi | Hi]; apply in_ids_In in Hi.
-      + destruct (Hown x Hi) as (b' & ty' & He & Hb). congruence.
+      + destruct (Hown x Hi) as (b' & ty' & He & Hb).
+        first [ congruence | (assert (b = b') by congruence; subst; exact Hb) ].
       + rewrite (Hstat x Hi) in *. discriminate.
     - destruct Hin as [Hi | Hi]; apply in_ids_In in Hi.
-      + destruct (Hown x Hi) as (b' & ty' & He & Hb). congruence.
+      + destruct (Hown x Hi) as (b' & ty' & He & Hb).
+        first [ congruence | (assert (b = b') by congruence; subst; exact Hb) ].
       + eapply Hsym; eassumption.
   Qed.
 
-  Lemma evar_copy_lvalue : forall le m x ty b ofs,
-    eval_expr ge e le m (Evar x ty) (Vptr b ofs) -> access_mode ty = By_copy ->
-    exists bf, eval_lvalue ge e le m (Evar x ty) b ofs bf.
-  Proof.
-    intros le m x ty b ofs H Hac. inv H.
-    match goal with Hd : deref_loc _ _ _ _ _ _ |- _ => inv Hd end;
-      cbn [typeof] in *; try congruence;
-      try (eexists; eassumption);
-      match goal with Hb : load_bitfield _ _ _ _ _ _ _ _ |- _ => inv Hb end.
-  Qed.
-
   Lemma sym_lvalue_blk : forall le m lv b ofs bf,
-    sym_ok own stat lv = true -> eval_lvalue ge e le m lv b ofs bf -> b <> bm.
+    sym_ok own stat lv = true -> eval_lvalue ge e le m lv b ofs bf -> blk_pres Q bm MWF b.
   Proof.
     intros le m lv b ofs bf Hok Hl.
     destruct lv; try discriminate Hok.
@@ -180,33 +457,32 @@ Section ENV.
       + match goal with
         | Hx : eval_expr _ _ _ _ (Evar _ _) (Vptr _ _), Ht : typeof (Evar _ _) = Tstruct _ _ |- _ =>
             cbn in Ht; subst;
-            destruct (evar_copy_lvalue _ _ _ _ _ _ Hx eq_refl) as (bf' & Hl')
+            destruct (evar_copy_lvalue _ _ _ _ _ _ _ _ Hx eq_refl) as (bf' & Hl')
         end.
         eapply evar_lvalue_blk; eassumption.
       + match goal with
         | Hx : eval_expr _ _ _ _ (Evar _ _) (Vptr _ _), Ht : typeof (Evar _ _) = Tunion _ _ |- _ =>
             cbn in Ht; subst;
-            destruct (evar_copy_lvalue _ _ _ _ _ _ Hx eq_refl) as (bf' & Hl')
+            destruct (evar_copy_lvalue _ _ _ _ _ _ _ _ Hx eq_refl) as (bf' & Hl')
         end.
         eapply evar_lvalue_blk; eassumption.
   Qed.
 
-  (* an out-param argument accepted by arg_ok evaluates to a bm-free pointer *)
-  Lemma arg_ok_val : forall g le m x v b_out oo,
-    arg_ok g own x = true -> eval_expr ge e le m x v ->
-    le ! g = Some (Vptr b_out oo) -> b_out <> bm ->
-    is_ptr_ty (typeof x) = true /\ exists b o, v = Vptr b o /\ b <> bm.
+  (* an out-param argument accepted by arg_ok evaluates to a store-safe pointer *)
+  Lemma arg_ok_val : forall ex g le m x v b_out oo,
+    arg_ok ex g own x = true -> eval_expr ge e le m x v ->
+    le ! g = Some (Vptr b_out oo) -> (ex = false -> blk_pres Q bm MWF b_out) ->
+    is_ptr_ty (typeof x) = true /\ exists b o, v = Vptr b o /\ blk_pres Q bm MWF b.
   Proof.
-    intros g le m x v b_out oo Hok Hev Hg Hb.
+    intros ex g le m x v b_out oo Hok Hev Hg Hb.
     destruct x; try discriminate Hok.
-    - (* Etempvar *)
-      cbn [arg_ok] in Hok. apply andb_prop in Hok as [Hi Hp]. apply Pos.eqb_eq in Hi. subst.
+    - cbn [arg_ok] in Hok. apply andb_prop in Hok as [Hi Hp]. apply andb_prop in Hi as [Hx Hi].
+      apply negb_true_iff in Hx. apply Pos.eqb_eq in Hi. subst.
       split; [ exact Hp | ].
       inv Hev; [ | match goal with Hl : eval_lvalue _ _ _ _ (Etempvar _ _) _ _ _ |- _ => inv Hl end ].
       match goal with Ht : le ! _ = Some v |- _ => rewrite Hg in Ht; injection Ht as <- end.
-      exists b_out, oo. split; [ reflexivity | exact Hb ].
-    - (* Eaddrof *)
-      destruct x; try discriminate Hok.
+      exists b_out, oo. split; [ reflexivity | exact (Hb eq_refl) ].
+    - destruct x; try discriminate Hok.
       cbn [arg_ok] in Hok. apply andb_prop in Hok as [Hp Hi].
       split; [ exact Hp | ].
       inv Hev; [ | match goal with Hl : eval_lvalue _ _ _ _ (Eaddrof _ _) _ _ _ |- _ => inv Hl end ].
@@ -216,17 +492,13 @@ Section ENV.
       end.
   Qed.
 
-  (* a store accepted by sym_ok lands off bm *)
-  Lemma sym_assign_pres :
-    forall (MWF : mem -> Prop) (Q : int -> Prop) lv rhs le m t le' m' out,
-      (forall ch b0 o0 v0 m1 m2,
-          b0 <> bm -> Mem.store ch m1 b0 o0 v0 = Some m2 -> MWF m1 -> MWF m2) ->
+  Lemma sym_assign_pres : forall lv rhs le m t le' m' out,
       sym_ok own stat lv = true ->
       exec_stmt function_entry2 ge e le m (Sassign lv rhs) t le' m' out ->
       Mem.valid_block m bm -> action_sat Q m bm -> MWF m ->
       Mem.valid_block m' bm /\ action_sat Q m' bm /\ MWF m' /\ le' = le /\ out = Out_normal.
   Proof.
-    intros MWF Q lv rhs le m t le' m' out Hstore Hok Hexec Hv Hsat Hmwf.
+    intros lv rhs le m t le' m' out Hok Hexec Hv Hsat Hmwf.
     assert (Hac : match access_mode (typeof lv) with By_value _ => true | _ => false end = true).
     { destruct lv; try discriminate Hok.
       - cbn [sym_ok] in Hok. apply andb_prop in Hok as [H _]. exact H.
@@ -234,43 +506,44 @@ Section ENV.
         exact H. }
     inv Hexec.
     match goal with Hlv : eval_lvalue _ _ _ _ lv ?loc _ _ |- _ =>
-      pose proof (sym_lvalue_blk _ _ _ _ _ _ Hok Hlv) as Hbne end.
+      pose proof (sym_lvalue_blk _ _ _ _ _ _ Hok Hlv) as Hbp end.
     match goal with Hass : assign_loc _ (typeof lv) _ _ _ _ _ _ |- _ => inv Hass end.
     - match goal with Hsv : Mem.storev _ _ _ _ = Some m' |- _ =>
         unfold Mem.storev in Hsv;
-        destruct (store_off_bm_pres MWF Q bm _ _ _ _ m m' Hstore Hbne Hsv Hv Hsat Hmwf)
-          as (Hv' & Hsat' & Hmwf') end.
+        destruct (Hbp _ _ _ _ _ Hsv Hv Hsat Hmwf) as (Hv' & Hsat' & Hmwf') end.
       split;[exact Hv'|split;[exact Hsat'|split;[exact Hmwf'|split;reflexivity]]].
     - match goal with Hco : access_mode (typeof lv) = By_copy |- _ =>
         rewrite Hco in Hac; discriminate Hac end.
     - match goal with Hsb : store_bitfield _ _ _ _ _ _ _ _ _ _ |- _ => inv Hsb end.
       match goal with Hsv : Mem.storev _ _ _ _ = Some m' |- _ =>
         unfold Mem.storev in Hsv;
-        destruct (store_off_bm_pres MWF Q bm _ _ _ _ m m' Hstore Hbne Hsv Hv Hsat Hmwf)
-          as (Hv' & Hsat' & Hmwf') end.
+        destruct (Hbp _ _ _ _ _ Hsv Hv Hsat Hmwf) as (Hv' & Hsat' & Hmwf') end.
       split;[exact Hv'|split;[exact Hsat'|split;[exact Hmwf'|split;reflexivity]]].
   Qed.
 
-  (* a call accepted by call_ok: the callee is the named global, and the
-     callee premise is needed only for a bm-free k-th argument *)
+  Definition callee_frame (cid : ident) (k : nat) : Prop :=
+    forall f m0 vargs t0 m0' vres b o bf,
+      Genv.find_symbol ge cid = Some bf -> Genv.find_funct_ptr ge bf = Some f ->
+      nth_error vargs k = Some (Vptr b o) -> blk_pres Q bm MWF b ->
+      eval_funcall function_entry2 ge m0 f vargs t0 m0' vres ->
+      Mem.valid_block m0 bm -> action_sat Q m0 bm -> MWF m0 ->
+      Mem.valid_block m0' bm /\ action_sat Q m0' bm /\ MWF m0'.
+
+  Definition gate_ok (ex : bool) (b_out : block) (oo : ptrofs) : Prop :=
+    if ex then out_cell Q bm MWF b_out oo else blk_pres Q bm MWF b_out.
+
   Lemma cw_call_pres :
-    forall (MWF : mem -> Prop) (Q : int -> Prop) (b_out : block) (oo : ptrofs) (g cid : ident) (k : nat),
-      e ! cid = None ->
-      (forall f m0 vargs t0 m0' vres b o bf,
-          Genv.find_symbol ge cid = Some bf -> Genv.find_funct_ptr ge bf = Some f ->
-          nth_error vargs k = Some (Vptr b o) -> b <> bm ->
-          eval_funcall function_entry2 ge m0 f vargs t0 m0' vres ->
-          Mem.valid_block m0 bm -> action_sat Q m0 bm -> MWF m0 ->
-          Mem.valid_block m0' bm /\ action_sat Q m0' bm /\ MWF m0') ->
+    forall (b_out : block) (oo : ptrofs) (ex : bool) (g cid : ident) (k : nat),
+      e ! cid = None -> callee_frame cid k -> gate_ok ex b_out oo ->
       forall le m optid a al t le' m' out,
         exec_stmt function_entry2 ge e le m (Scall optid a al) t le' m' out ->
-        call_ok g cid k own a al = true ->
-        le ! g = Some (Vptr b_out oo) -> b_out <> bm ->
+        call_ok ex g cid k own a al = true ->
+        le ! g = Some (Vptr b_out oo) ->
         Mem.valid_block m bm -> action_sat Q m bm -> MWF m ->
         Mem.valid_block m' bm /\ action_sat Q m' bm /\ MWF m' /\ out = Out_normal
           /\ exists v, le' = set_opttemp optid v le.
   Proof.
-    intros MWF Q b_out oo g cid k Hcid Hcall le m optid a al t le' m' out Hexec Hok Hg Hb Hv Hsat Hmwf.
+    intros b_out oo ex g cid k Hcid Hcall HG le m optid a al t le' m' out Hexec Hok Hg Hv Hsat Hmwf.
     destruct a; try discriminate Hok. destruct t0; try discriminate Hok.
     cbn [call_ok] in Hok. apply andb_prop in Hok as [Hid Hnth]. apply Pos.eqb_eq in Hid. subst i.
     inv Hexec.
@@ -285,7 +558,9 @@ Section ENV.
     apply andb_prop in Hnth as [Harg Hpt].
     match goal with Hel : eval_exprlist _ _ _ _ al _ ?vargs |- _ =>
       destruct (exprlist_nth _ _ _ _ _ _ _ Hel k x tx Ex Et) as (v1 & v2 & Hx & Hc & Hvk) end.
-    destruct (arg_ok_val g le m x v1 b_out oo Harg Hx Hg Hb) as (Hpx & b & o & -> & Hbb).
+    assert (Hfull : ex = false -> blk_pres Q bm MWF b_out)
+      by (intro E; unfold gate_ok in HG; rewrite E in HG; exact HG).
+    destruct (arg_ok_val ex g le m x v1 b_out oo Harg Hx Hg Hfull) as (Hpx & b & o & -> & Hbb).
     rewrite (cast_ptr_ptr _ _ _ _ _ _ Hpx Hpt Hc) in Hvk.
     match goal with Hfp : Genv.find_funct_ptr _ _ = Some ?f, Hfc : eval_funcall _ _ _ ?f _ _ _ _ |- _ =>
       destruct (Hcall _ _ _ _ _ _ _ _ _ Hsy Hfp Hvk Hbb Hfc Hv Hsat Hmwf) as (Hv' & Hsat' & Hmwf')
@@ -296,26 +571,17 @@ Section ENV.
 
   (* THE WALK *)
   Lemma cw_walk :
-    forall (MWF : mem -> Prop) (Q : int -> Prop) (b_out : block) (oo : ptrofs) (g cid : ident) (k : nat)
-      (Hstore : forall ch b0 o0 v0 m1 m2,
-          b0 <> bm -> Mem.store ch m1 b0 o0 v0 = Some m2 -> MWF m1 -> MWF m2)
-      (Hbne : b_out <> bm)
-      (Hcid : e ! cid = None)
-      (Hcall : forall f m0 vargs t0 m0' vres b o bf,
-          Genv.find_symbol ge cid = Some bf -> Genv.find_funct_ptr ge bf = Some f ->
-          nth_error vargs k = Some (Vptr b o) -> b <> bm ->
-          eval_funcall function_entry2 ge m0 f vargs t0 m0' vres ->
-          Mem.valid_block m0 bm -> action_sat Q m0 bm -> MWF m0 ->
-          Mem.valid_block m0' bm /\ action_sat Q m0' bm /\ MWF m0')
+    forall (b_out : block) (oo : ptrofs) (ex : bool) (g cid : ident) (k : nat)
+      (HG : gate_ok ex b_out oo) (Hcid : e ! cid = None) (Hcall : callee_frame cid k)
       s le m t le' m' out,
       exec_stmt function_entry2 ge e le m s t le' m' out ->
-      cw_chk g cid k own stat s = true ->
+      cw_chk ex g cid k own stat s = true ->
       le ! g = Some (Vptr b_out oo) ->
       Mem.valid_block m bm -> action_sat Q m bm -> MWF m ->
       Mem.valid_block m' bm /\ action_sat Q m' bm /\ MWF m'
         /\ le' ! g = Some (Vptr b_out oo).
   Proof.
-    intros MWF Q b_out oo g cid k Hstore Hbne Hcid Hcall s le m t le' m' out Hexec.
+    intros b_out oo ex g cid k HG Hcid Hcall s le m t le' m' out Hexec.
     remember e as e0 eqn:He0.
     induction Hexec; intros Hchk Hg Hv Hsat Hmwf; try discriminate Hchk; subst e0.
     - repeat split; assumption.
@@ -324,12 +590,15 @@ Section ENV.
       assert (HH : exec_stmt function_entry2 ge e le m (Sassign a1 a2) E0 le m' Out_normal)
         by (eapply exec_Sassign; eassumption).
       destruct (CensusV2.chain_root_l a1) as [t0|] eqn:Hcr.
-      + apply andb_prop in Hchk as [Hpe Hbv]. apply Pos.eqb_eq in Hpe; subst t0.
-        edestruct (gate_assign_pres MWF Q bm b_out oo g a1 a2 ge e le m E0 le m' Out_normal
-                     Hstore Hcr Hbv Hg Hbne HH Hv Hsat Hmwf)
-          as (Hv' & Hsat' & Hmwf' & _ & _).
-        repeat split; assumption.
-      + edestruct (sym_assign_pres MWF Q a1 a2 le m E0 le m' Out_normal Hstore Hchk HH Hv Hsat Hmwf)
+      + destruct ex.
+        * edestruct (exact_assign_pres MWF Q bm b_out oo g a1 a2 ge e le m E0 le m' Out_normal
+                       HG Hchk Hg HH Hv Hsat Hmwf) as (Hv' & Hsat' & Hmwf' & _ & _).
+          repeat split; assumption.
+        * apply andb_prop in Hchk as [Hpe Hbv]. apply Pos.eqb_eq in Hpe; subst t0.
+          edestruct (gate_assign_pres_B MWF Q bm b_out oo g a1 a2 ge e le m E0 le m' Out_normal
+                       HG Hcr Hbv Hg HH Hv Hsat Hmwf) as (Hv' & Hsat' & Hmwf' & _ & _).
+          repeat split; assumption.
+      + edestruct (sym_assign_pres a1 a2 le m E0 le m' Out_normal Hchk HH Hv Hsat Hmwf)
           as (Hv' & Hsat' & Hmwf' & _ & _).
         repeat split; assumption.
     - (* Sset *)
@@ -341,36 +610,30 @@ Section ENV.
       assert (HH : exec_stmt function_entry2 ge e le m (Scall optid a al) t
                      (set_opttemp optid vres le) m' Out_normal)
         by (eapply exec_Scall; eassumption).
-      destruct (cw_call_pres MWF Q b_out oo g cid k Hcid Hcall le m optid a al t _ m' _ HH Hok Hg Hbne
+      destruct (cw_call_pres b_out oo ex g cid k Hcid Hcall HG le m optid a al t _ m' _ HH Hok Hg
                   Hv Hsat Hmwf) as (Hv' & Hsat' & Hmwf' & _).
       repeat split; try assumption.
       destruct optid as [ti|]; cbn [set_opttemp].
       + apply negb_true_iff, Pos.eqb_neq in Hopt.
         rewrite PTree.gso by (apply not_eq_sym; exact Hopt); exact Hg.
       + exact Hg.
-    - (* Sseq_1 *)
-      cbn [cw_chk] in Hchk. apply andb_prop in Hchk as [H1 H2].
+    - cbn [cw_chk] in Hchk. apply andb_prop in Hchk as [H1 H2].
       destruct (IHHexec1 eq_refl Hown Hstat Hcid H1 Hg Hv Hsat Hmwf) as (Hv1 & Hsat1 & Hmwf1 & Hg1).
       exact (IHHexec2 eq_refl Hown Hstat Hcid H2 Hg1 Hv1 Hsat1 Hmwf1).
-    - (* Sseq_2 *)
-      cbn [cw_chk] in Hchk. apply andb_prop in Hchk as [H1 _].
+    - cbn [cw_chk] in Hchk. apply andb_prop in Hchk as [H1 _].
       exact (IHHexec eq_refl Hown Hstat Hcid H1 Hg Hv Hsat Hmwf).
-    - (* Sifthenelse *)
-      cbn [cw_chk] in Hchk. apply andb_prop in Hchk as [H1 H2].
+    - cbn [cw_chk] in Hchk. apply andb_prop in Hchk as [H1 H2].
       apply IHHexec; [ reflexivity | exact Hown | exact Hstat | exact Hcid | destruct b; assumption | assumption .. ].
     - repeat split; assumption.
     - repeat split; assumption.
     - repeat split; assumption.
     - repeat split; assumption.
-    - (* Sloop_stop1 *)
-      cbn [cw_chk] in Hchk. apply andb_prop in Hchk as [H1 _].
+    - cbn [cw_chk] in Hchk. apply andb_prop in Hchk as [H1 _].
       exact (IHHexec eq_refl Hown Hstat Hcid H1 Hg Hv Hsat Hmwf).
-    - (* Sloop_stop2 *)
-      cbn [cw_chk] in Hchk. apply andb_prop in Hchk as [H1 H2].
+    - cbn [cw_chk] in Hchk. apply andb_prop in Hchk as [H1 H2].
       destruct (IHHexec1 eq_refl Hown Hstat Hcid H1 Hg Hv Hsat Hmwf) as (Hv1 & Hsat1 & Hmwf1 & Hg1).
       exact (IHHexec2 eq_refl Hown Hstat Hcid H2 Hg1 Hv1 Hsat1 Hmwf1).
-    - (* Sloop_loop *)
-      cbn [cw_chk] in Hchk. pose proof Hchk as Hchk0. apply andb_prop in Hchk as [H1 H2].
+    - cbn [cw_chk] in Hchk. pose proof Hchk as Hchk0. apply andb_prop in Hchk as [H1 H2].
       destruct (IHHexec1 eq_refl Hown Hstat Hcid H1 Hg Hv Hsat Hmwf) as (Hv1 & Hsat1 & Hmwf1 & Hg1).
       destruct (IHHexec2 eq_refl Hown Hstat Hcid H2 Hg1 Hv1 Hsat1 Hmwf1) as (Hv2 & Hsat2 & Hmwf2 & Hg2).
       exact (IHHexec3 eq_refl Hown Hstat Hcid Hchk0 Hg2 Hv2 Hsat2 Hmwf2).
@@ -378,7 +641,10 @@ Section ENV.
 End ENV.
 
 (* ====================================================================== *)
-(* find_floor / find_ceil, re-stated.                                      *)
+(* 3. find_floor / find_ceil.                                              *)
+(*    Gate _pfloor/_pceil in EXACT mode (the only stores through it are    *)
+(*    `*pfloor = floor`), own locals _height/_dynamicHeight, statics       *)
+(*    gNumCalls / gNumFindFloorMisses / gFindFloorIncludeSurfaceIntangible. *)
 (* ====================================================================== *)
 
 Definition ff_own : list ident := [surface_collision._height; surface_collision._dynamicHeight].
@@ -388,12 +654,12 @@ Definition ff_stat : list ident :=
 Definition fc_stat : list ident := [surface_collision._gNumCalls].
 
 Lemma find_floor_cw_chk :
-  cw_chk surface_collision._pfloor surface_collision._find_floor_from_list 4 ff_own ff_stat
+  cw_chk true surface_collision._pfloor surface_collision._find_floor_from_list 4 ff_own ff_stat
     (fn_body surface_collision.f_find_floor) = true.
 Proof. vm_compute. reflexivity. Qed.
 
 Lemma find_ceil_cw_chk :
-  cw_chk surface_collision._pceil surface_collision._find_ceil_from_list 4 ff_own fc_stat
+  cw_chk true surface_collision._pceil surface_collision._find_ceil_from_list 4 ff_own fc_stat
     (fn_body surface_collision.f_find_ceil) = true.
 Proof. vm_compute. reflexivity. Qed.
 
@@ -401,14 +667,14 @@ Definition ff_env (b1 b2 : block) : env :=
   PTree.set surface_collision._dynamicHeight (b2, tfloat)
     (PTree.set surface_collision._height (b1, tfloat) empty_env).
 
-Lemma ff_env_facts : forall bm b1 b2, b1 <> bm -> b2 <> bm ->
-  (forall x, In x ff_own -> exists b ty, (ff_env b1 b2) ! x = Some (b, ty) /\ b <> bm)
+Lemma ff_env_facts : forall (P : block -> Prop) b1 b2, P b1 -> P b2 ->
+  (forall x, In x ff_own -> exists b ty, (ff_env b1 b2) ! x = Some (b, ty) /\ P b)
   /\ (forall x, In x ff_stat -> (ff_env b1 b2) ! x = None)
   /\ (forall x, In x fc_stat -> (ff_env b1 b2) ! x = None)
   /\ (ff_env b1 b2) ! surface_collision._find_floor_from_list = None
   /\ (ff_env b1 b2) ! surface_collision._find_ceil_from_list = None.
 Proof.
-  intros bm b1 b2 H1 H2.
+  intros P b1 b2 H1 H2.
   split; [ | split; [ | split; [ | split ] ] ].
   - intros x Hin. destruct Hin as [<- | [<- | []]].
     + exists b1, tfloat. split; [ reflexivity | exact H1 ].
@@ -419,30 +685,30 @@ Proof.
   - reflexivity.
 Qed.
 
+(* the MWF frame premises shared by every body with own locals: alloc and
+   free keep MWF, and a freshly allocated block is store-safe (at the link:
+   it is a local_blk, so HMWF_localstore applies) *)
+Definition frame_oracles (bm : block) (MWF : mem -> Prop) : Prop :=
+  (forall m lo hi m'' b, Mem.alloc m lo hi = (m'', b) -> MWF m -> MWF m'')
+  /\ (forall m2 m3 l, Mem.free_list m2 l = Some m3 -> MWF m2 -> MWF m3)
+  /\ (forall m lo hi m'' b, Mem.alloc m lo hi = (m'', b) -> MWF m ->
+        Mem.valid_block m bm -> blk_pres not_tainted bm MWF b).
+
 Lemma find_floor_body_frame_gated :
   forall (ge : genv) (MWF : mem -> Prop) (bm b_out : block) (oo : ptrofs),
-    (forall m lo hi m'' b, Mem.alloc m lo hi = (m'', b) -> MWF m -> MWF m'') ->
-    (forall m2 m3 l, Mem.free_list m2 l = Some m3 -> MWF m2 -> MWF m3) ->
-    (forall ch b0 o0 v0 m1 m2,
-        b0 <> bm -> Mem.store ch m1 b0 o0 v0 = Some m2 -> MWF m1 -> MWF m2) ->
-    (forall x bg, In x ff_stat -> Genv.find_symbol ge x = Some bg -> bg <> bm) ->
-    (forall f m0 vargs t0 m0' vres b o bf,
-        Genv.find_symbol ge surface_collision._find_floor_from_list = Some bf ->
-        Genv.find_funct_ptr ge bf = Some f ->
-        nth_error vargs 4 = Some (Vptr b o) -> b <> bm ->
-        eval_funcall function_entry2 ge m0 f vargs t0 m0' vres ->
-        Mem.valid_block m0 bm -> action_sat not_tainted m0 bm -> MWF m0 ->
-        Mem.valid_block m0' bm /\ action_sat not_tainted m0' bm /\ MWF m0') ->
+    frame_oracles bm MWF ->
+    (forall x bg, In x ff_stat -> Genv.find_symbol ge x = Some bg ->
+       blk_pres not_tainted bm MWF bg) ->
+    callee_frame ge bm not_tainted MWF surface_collision._find_floor_from_list 4 ->
     forall m vargs t m' vres,
       eval_funcall function_entry2 ge m
         (Internal surface_collision.f_find_floor) vargs t m' vres ->
       nth_error vargs 3 = Some (Vptr b_out oo) ->
-      b_out <> bm ->
+      out_cell not_tainted bm MWF b_out oo ->
       Mem.valid_block m bm -> action_sat not_tainted m bm -> MWF m ->
       Mem.valid_block m' bm /\ action_sat not_tainted m' bm /\ MWF m'.
 Proof.
-  intros ge MWF bm b_out oo Halloc Hfree Hstore Hsym Hcall
-         m vargs t m' vres Hevf Hn3 Hbne Hv Hsat Hmwf.
+  intros ge MWF bm b_out oo Hor Hsym Hcall m vargs t m' vres Hevf Hn3 Hcell Hv Hsat Hmwf.
   unfold surface_collision.f_find_floor in Hevf.
   match goal with Hevf : eval_funcall _ _ _ _ _ _ _ _ |- _ => inv Hevf end.
   match goal with He : function_entry2 _ _ _ _ _ _ _ |- _ => rename He into Hentry end.
@@ -452,11 +718,13 @@ Proof.
   match goal with Ha : alloc_variables _ _ _ _ _ _ |- _ => cbn [fn_vars] in Ha; inv Ha end.
   match goal with Ha : alloc_variables _ _ _ (_ :: nil) _ _ |- _ => inv Ha end.
   match goal with Ha : alloc_variables _ _ _ nil _ _ |- _ => inv Ha end.
+  destruct Hor as (Halloc & Hfree & HallocB).
   match goal with
   | H1 : Mem.alloc ?ma 0 _ = (?mid, ?bb1),
     H2 : Mem.alloc ?mid 0 _ = (?mfin, ?bb2) |- _ =>
       assert (Hb1_bm : bb1 <> bm)
         by (intro EE; subst bb1; exact (Mem.fresh_block_alloc _ _ _ _ _ H1 Hv));
+      assert (Hb1_B : blk_pres not_tainted bm MWF bb1) by (eapply HallocB; eassumption);
       assert (HmwfA1 : MWF mid) by (eapply Halloc; [ exact H1 | exact Hmwf ]);
       assert (HvA1 : Mem.valid_block mid bm)
         by (eapply Mem.valid_block_alloc; [ exact H1 | exact Hv ]);
@@ -465,25 +733,28 @@ Proof.
             [ eapply Mem.alloc_unchanged_on; exact H1 | exact Hv | exact Hsat ]);
       assert (Hb2_bm : bb2 <> bm)
         by (intro EE; subst bb2; exact (Mem.fresh_block_alloc _ _ _ _ _ H2 HvA1));
+      assert (Hb2_B : blk_pres not_tainted bm MWF bb2) by (eapply HallocB; eassumption);
       assert (HmwfA2 : MWF mfin) by (eapply Halloc; [ exact H2 | exact HmwfA1 ]);
       assert (HvA2 : Mem.valid_block mfin bm)
         by (eapply Mem.valid_block_alloc; [ exact H2 | exact HvA1 ]);
       assert (HsatA2 : action_sat not_tainted mfin bm)
         by (eapply action_sat_unchanged_on;
             [ eapply Mem.alloc_unchanged_on; exact H2 | exact HvA1 | exact HsatA1 ]);
-      destruct (ff_env_facts bm bb1 bb2 Hb1_bm Hb2_bm) as (Hown & Hstf & Hstc & Hcf & Hcc)
+      destruct (ff_env_facts (blk_pres not_tainted bm MWF) bb1 bb2 Hb1_B Hb2_B)
+        as (Hown & Hstf & Hstc & Hcf & Hcc)
   end.
   match goal with Hbp : bind_parameter_temps _ vargs _ = Some ?LE |- _ =>
     cbn [fn_params fn_temps] in Hbp;
     destruct vargs as [|a0 [|a1 [|a2 [|a3 [|a4 vr]]]]];
       try (cbn [bind_parameter_temps] in Hbp; discriminate Hbp);
+      try (cbn [nth_error] in Hn3; discriminate Hn3);
     cbn [nth_error] in Hn3; injection Hn3 as ->;
     assert (Hled : LE ! surface_collision._pfloor = Some (Vptr b_out oo)) by (eapply sc_bind_pfloor; exact Hbp)
   end.
   cbn [fn_body] in Hbody.
-  destruct (cw_walk ge _ bm ff_own ff_stat Hown Hstf Hsym MWF not_tainted b_out oo
+  destruct (cw_walk ge _ bm not_tainted MWF ff_own ff_stat Hown Hstf Hsym b_out oo true
               surface_collision._pfloor surface_collision._find_floor_from_list 4
-              Hstore Hbne Hcf Hcall _ _ _ _ _ _ _ Hbody find_floor_cw_chk Hled HvA2 HsatA2 HmwfA2)
+              Hcell Hcf Hcall _ _ _ _ _ _ _ Hbody find_floor_cw_chk Hled HvA2 HsatA2 HmwfA2)
     as (Hvb & Hsatb & Hmwfb & _).
   rewrite blocks_of_env_ff2 in Hfl.
   assert (Hforall : Forall (fun blh => let '(b,_,_) := blh in b <> bm)
@@ -495,28 +766,19 @@ Qed.
 
 Lemma find_ceil_body_frame_gated :
   forall (ge : genv) (MWF : mem -> Prop) (bm b_out : block) (oo : ptrofs),
-    (forall m lo hi m'' b, Mem.alloc m lo hi = (m'', b) -> MWF m -> MWF m'') ->
-    (forall m2 m3 l, Mem.free_list m2 l = Some m3 -> MWF m2 -> MWF m3) ->
-    (forall ch b0 o0 v0 m1 m2,
-        b0 <> bm -> Mem.store ch m1 b0 o0 v0 = Some m2 -> MWF m1 -> MWF m2) ->
-    (forall x bg, In x fc_stat -> Genv.find_symbol ge x = Some bg -> bg <> bm) ->
-    (forall f m0 vargs t0 m0' vres b o bf,
-        Genv.find_symbol ge surface_collision._find_ceil_from_list = Some bf ->
-        Genv.find_funct_ptr ge bf = Some f ->
-        nth_error vargs 4 = Some (Vptr b o) -> b <> bm ->
-        eval_funcall function_entry2 ge m0 f vargs t0 m0' vres ->
-        Mem.valid_block m0 bm -> action_sat not_tainted m0 bm -> MWF m0 ->
-        Mem.valid_block m0' bm /\ action_sat not_tainted m0' bm /\ MWF m0') ->
+    frame_oracles bm MWF ->
+    (forall x bg, In x fc_stat -> Genv.find_symbol ge x = Some bg ->
+       blk_pres not_tainted bm MWF bg) ->
+    callee_frame ge bm not_tainted MWF surface_collision._find_ceil_from_list 4 ->
     forall m vargs t m' vres,
       eval_funcall function_entry2 ge m
         (Internal surface_collision.f_find_ceil) vargs t m' vres ->
       nth_error vargs 3 = Some (Vptr b_out oo) ->
-      b_out <> bm ->
+      out_cell not_tainted bm MWF b_out oo ->
       Mem.valid_block m bm -> action_sat not_tainted m bm -> MWF m ->
       Mem.valid_block m' bm /\ action_sat not_tainted m' bm /\ MWF m'.
 Proof.
-  intros ge MWF bm b_out oo Halloc Hfree Hstore Hsym Hcall
-         m vargs t m' vres Hevf Hn3 Hbne Hv Hsat Hmwf.
+  intros ge MWF bm b_out oo Hor Hsym Hcall m vargs t m' vres Hevf Hn3 Hcell Hv Hsat Hmwf.
   unfold surface_collision.f_find_ceil in Hevf.
   match goal with Hevf : eval_funcall _ _ _ _ _ _ _ _ |- _ => inv Hevf end.
   match goal with He : function_entry2 _ _ _ _ _ _ _ |- _ => rename He into Hentry end.
@@ -526,11 +788,13 @@ Proof.
   match goal with Ha : alloc_variables _ _ _ _ _ _ |- _ => cbn [fn_vars] in Ha; inv Ha end.
   match goal with Ha : alloc_variables _ _ _ (_ :: nil) _ _ |- _ => inv Ha end.
   match goal with Ha : alloc_variables _ _ _ nil _ _ |- _ => inv Ha end.
+  destruct Hor as (Halloc & Hfree & HallocB).
   match goal with
   | H1 : Mem.alloc ?ma 0 _ = (?mid, ?bb1),
     H2 : Mem.alloc ?mid 0 _ = (?mfin, ?bb2) |- _ =>
       assert (Hb1_bm : bb1 <> bm)
         by (intro EE; subst bb1; exact (Mem.fresh_block_alloc _ _ _ _ _ H1 Hv));
+      assert (Hb1_B : blk_pres not_tainted bm MWF bb1) by (eapply HallocB; eassumption);
       assert (HmwfA1 : MWF mid) by (eapply Halloc; [ exact H1 | exact Hmwf ]);
       assert (HvA1 : Mem.valid_block mid bm)
         by (eapply Mem.valid_block_alloc; [ exact H1 | exact Hv ]);
@@ -539,25 +803,28 @@ Proof.
             [ eapply Mem.alloc_unchanged_on; exact H1 | exact Hv | exact Hsat ]);
       assert (Hb2_bm : bb2 <> bm)
         by (intro EE; subst bb2; exact (Mem.fresh_block_alloc _ _ _ _ _ H2 HvA1));
+      assert (Hb2_B : blk_pres not_tainted bm MWF bb2) by (eapply HallocB; eassumption);
       assert (HmwfA2 : MWF mfin) by (eapply Halloc; [ exact H2 | exact HmwfA1 ]);
       assert (HvA2 : Mem.valid_block mfin bm)
         by (eapply Mem.valid_block_alloc; [ exact H2 | exact HvA1 ]);
       assert (HsatA2 : action_sat not_tainted mfin bm)
         by (eapply action_sat_unchanged_on;
             [ eapply Mem.alloc_unchanged_on; exact H2 | exact HvA1 | exact HsatA1 ]);
-      destruct (ff_env_facts bm bb1 bb2 Hb1_bm Hb2_bm) as (Hown & Hstf & Hstc & Hcf & Hcc)
+      destruct (ff_env_facts (blk_pres not_tainted bm MWF) bb1 bb2 Hb1_B Hb2_B)
+        as (Hown & Hstf & Hstc & Hcf & Hcc)
   end.
   match goal with Hbp : bind_parameter_temps _ vargs _ = Some ?LE |- _ =>
     cbn [fn_params fn_temps] in Hbp;
     destruct vargs as [|a0 [|a1 [|a2 [|a3 [|a4 vr]]]]];
       try (cbn [bind_parameter_temps] in Hbp; discriminate Hbp);
+      try (cbn [nth_error] in Hn3; discriminate Hn3);
     cbn [nth_error] in Hn3; injection Hn3 as ->;
     assert (Hled : LE ! surface_collision._pceil = Some (Vptr b_out oo)) by (eapply sc_bind_pceil; exact Hbp)
   end.
   cbn [fn_body] in Hbody.
-  destruct (cw_walk ge _ bm ff_own fc_stat Hown Hstc Hsym MWF not_tainted b_out oo
+  destruct (cw_walk ge _ bm not_tainted MWF ff_own fc_stat Hown Hstc Hsym b_out oo true
               surface_collision._pceil surface_collision._find_ceil_from_list 4
-              Hstore Hbne Hcc Hcall _ _ _ _ _ _ _ Hbody find_ceil_cw_chk Hled HvA2 HsatA2 HmwfA2)
+              Hcell Hcc Hcall _ _ _ _ _ _ _ Hbody find_ceil_cw_chk Hled HvA2 HsatA2 HmwfA2)
     as (Hvb & Hsatb & Hmwfb & _).
   rewrite blocks_of_env_ff2 in Hfl.
   assert (Hforall : Forall (fun blh => let '(b,_,_) := blh in b <> bm)
@@ -567,89 +834,78 @@ Proof.
   split; [ exact Hvf | split; [ exact Hsf | eapply Hfree; [ exact Hfl | exact Hmwfb ] ] ].
 Qed.
 
-(* ---------------------------------------------------------------------- *)
-(* The callee premise is DISCHARGEABLE: when the link resolves the callee  *)
-(* name to the real _from_list body, its own gated frame gives it.         *)
-(* ---------------------------------------------------------------------- *)
+(* the callee premise, discharged: the link resolves the callee name to the
+   real _from_list body, whose own frame needs only a store-safe out block *)
+Definition resolves_to (ge : genv) (id : ident) (fr : Clight.function) : Prop :=
+  forall bf f, Genv.find_symbol ge id = Some bf -> Genv.find_funct_ptr ge bf = Some f ->
+    f = Internal fr.
+
 Lemma find_floor_body_frame_pinned :
   forall (ge : genv) (MWF : mem -> Prop) (bm b_out : block) (oo : ptrofs),
-    (forall m lo hi m'' b, Mem.alloc m lo hi = (m'', b) -> MWF m -> MWF m'') ->
-    (forall m2 m3 l, Mem.free_list m2 l = Some m3 -> MWF m2 -> MWF m3) ->
-    (forall ch b0 o0 v0 m1 m2,
-        b0 <> bm -> Mem.store ch m1 b0 o0 v0 = Some m2 -> MWF m1 -> MWF m2) ->
-    (forall x bg, In x ff_stat -> Genv.find_symbol ge x = Some bg -> bg <> bm) ->
-    (forall bf f, Genv.find_symbol ge surface_collision._find_floor_from_list = Some bf ->
-        Genv.find_funct_ptr ge bf = Some f -> f = Internal surface_collision.f_find_floor_from_list) ->
+    frame_oracles bm MWF ->
+    (forall x bg, In x ff_stat -> Genv.find_symbol ge x = Some bg ->
+       blk_pres not_tainted bm MWF bg) ->
+    resolves_to ge surface_collision._find_floor_from_list surface_collision.f_find_floor_from_list ->
     forall m vargs t m' vres,
       eval_funcall function_entry2 ge m
         (Internal surface_collision.f_find_floor) vargs t m' vres ->
       nth_error vargs 3 = Some (Vptr b_out oo) ->
-      b_out <> bm ->
+      out_cell not_tainted bm MWF b_out oo ->
       Mem.valid_block m bm -> action_sat not_tainted m bm -> MWF m ->
       Mem.valid_block m' bm /\ action_sat not_tainted m' bm /\ MWF m'.
 Proof.
-  intros ge MWF bm b_out oo Halloc Hfree Hstore Hsym Hpin.
-  apply (find_floor_body_frame_gated ge MWF bm b_out oo Halloc Hfree Hstore Hsym).
+  intros ge MWF bm b_out oo Hor Hsym Hpin.
+  apply (find_floor_body_frame_gated ge MWF bm b_out oo Hor Hsym).
   intros f m0 vargs t0 m0' vres b o bf Hs Hf Hn Hb Hfc.
   rewrite (Hpin bf f Hs Hf) in Hfc.
-  exact (find_floor_from_list_body_frame ge MWF bm b o Hstore m0 vargs t0 m0' vres Hfc Hn Hb).
+  exact (find_floor_from_list_frame_B ge MWF bm b o Hb m0 vargs t0 m0' vres Hfc Hn).
 Qed.
 
 Lemma find_ceil_body_frame_pinned :
   forall (ge : genv) (MWF : mem -> Prop) (bm b_out : block) (oo : ptrofs),
-    (forall m lo hi m'' b, Mem.alloc m lo hi = (m'', b) -> MWF m -> MWF m'') ->
-    (forall m2 m3 l, Mem.free_list m2 l = Some m3 -> MWF m2 -> MWF m3) ->
-    (forall ch b0 o0 v0 m1 m2,
-        b0 <> bm -> Mem.store ch m1 b0 o0 v0 = Some m2 -> MWF m1 -> MWF m2) ->
-    (forall x bg, In x fc_stat -> Genv.find_symbol ge x = Some bg -> bg <> bm) ->
-    (forall bf f, Genv.find_symbol ge surface_collision._find_ceil_from_list = Some bf ->
-        Genv.find_funct_ptr ge bf = Some f -> f = Internal surface_collision.f_find_ceil_from_list) ->
+    frame_oracles bm MWF ->
+    (forall x bg, In x fc_stat -> Genv.find_symbol ge x = Some bg ->
+       blk_pres not_tainted bm MWF bg) ->
+    resolves_to ge surface_collision._find_ceil_from_list surface_collision.f_find_ceil_from_list ->
     forall m vargs t m' vres,
       eval_funcall function_entry2 ge m
         (Internal surface_collision.f_find_ceil) vargs t m' vres ->
       nth_error vargs 3 = Some (Vptr b_out oo) ->
-      b_out <> bm ->
+      out_cell not_tainted bm MWF b_out oo ->
       Mem.valid_block m bm -> action_sat not_tainted m bm -> MWF m ->
       Mem.valid_block m' bm /\ action_sat not_tainted m' bm /\ MWF m'.
 Proof.
-  intros ge MWF bm b_out oo Halloc Hfree Hstore Hsym Hpin.
-  apply (find_ceil_body_frame_gated ge MWF bm b_out oo Halloc Hfree Hstore Hsym).
+  intros ge MWF bm b_out oo Hor Hsym Hpin.
+  apply (find_ceil_body_frame_gated ge MWF bm b_out oo Hor Hsym).
   intros f m0 vargs t0 m0' vres b o bf Hs Hf Hn Hb Hfc.
   rewrite (Hpin bf f Hs Hf) in Hfc.
-  exact (find_ceil_from_list_body_frame ge MWF bm b o Hstore m0 vargs t0 m0' vres Hfc Hn Hb).
+  exact (find_ceil_from_list_frame_B ge MWF bm b o Hb m0 vargs t0 m0' vres Hfc Hn).
 Qed.
 
 (* ====================================================================== *)
-(* find_wall_collisions / f32_find_wall_collision, re-stated (P-2).        *)
+(* 4. find_wall_collisions: gate _colData in FULL mode (it is f32's own    *)
+(*    local, and the body stores `colData->numWalls`), static gNumCalls.   *)
 (* ====================================================================== *)
 
 Lemma find_wall_collisions_cw_chk :
-  cw_chk surface_collision._colData surface_collision._find_wall_collisions_from_list 1
+  cw_chk false surface_collision._colData surface_collision._find_wall_collisions_from_list 1
     [] fc_stat (fn_body surface_collision.f_find_wall_collisions) = true.
 Proof. vm_compute. reflexivity. Qed.
 
 Lemma find_wall_collisions_body_frame_gated :
   forall (ge : genv) (MWF : mem -> Prop) (bm b_out : block) (oo : ptrofs),
-    (forall ch b0 o0 v0 m1 m2,
-        b0 <> bm -> Mem.store ch m1 b0 o0 v0 = Some m2 -> MWF m1 -> MWF m2) ->
-    (forall x bg, In x fc_stat -> Genv.find_symbol ge x = Some bg -> bg <> bm) ->
-    (forall f m0 vargs t0 m0' vres b o bf,
-        Genv.find_symbol ge surface_collision._find_wall_collisions_from_list = Some bf ->
-        Genv.find_funct_ptr ge bf = Some f ->
-        nth_error vargs 1 = Some (Vptr b o) -> b <> bm ->
-        eval_funcall function_entry2 ge m0 f vargs t0 m0' vres ->
-        Mem.valid_block m0 bm -> action_sat not_tainted m0 bm -> MWF m0 ->
-        Mem.valid_block m0' bm /\ action_sat not_tainted m0' bm /\ MWF m0') ->
+    (forall x bg, In x fc_stat -> Genv.find_symbol ge x = Some bg ->
+       blk_pres not_tainted bm MWF bg) ->
+    callee_frame ge bm not_tainted MWF surface_collision._find_wall_collisions_from_list 1 ->
     forall m vargs t m' vres,
       eval_funcall function_entry2 ge m
         (Internal surface_collision.f_find_wall_collisions) vargs t m' vres ->
       nth_error vargs 0 = Some (Vptr b_out oo) ->
-      b_out <> bm ->
+      blk_pres not_tainted bm MWF b_out ->
       Mem.valid_block m bm -> action_sat not_tainted m bm -> MWF m ->
       Mem.valid_block m' bm /\ action_sat not_tainted m' bm /\ MWF m'.
 Proof.
-  intros ge MWF bm b_out oo Hstore Hsym Hcall m vargs t m' vres
-         Hevf Hn0 Hbne Hv Hsat Hmwf.
+  intros ge MWF bm b_out oo Hsym Hcall m vargs t m' vres Hevf Hn0 Hbp Hv Hsat Hmwf.
   unfold surface_collision.f_find_wall_collisions in Hevf.
   inv Hevf.
   match goal with He : function_entry2 _ _ _ _ _ _ _ |- _ => rename He into Hentry end.
@@ -667,66 +923,148 @@ Proof.
       by (eapply sc_bind_colData; exact Hbp)
   end.
   cbn [fn_body] in Hbody.
-  destruct (cw_walk ge empty_env bm [] fc_stat (fun x H => match H with end)
-              (fun x _ => PTree.gempty _ x) Hsym MWF not_tainted b_out oo
+  destruct (cw_walk ge empty_env bm not_tainted MWF [] fc_stat (fun x H => match H with end)
+              (fun x _ => PTree.gempty _ x) Hsym b_out oo false
               surface_collision._colData surface_collision._find_wall_collisions_from_list 1
-              Hstore Hbne (PTree.gempty _ _) Hcall _ _ _ _ _ _ _ Hbody
+              Hbp (PTree.gempty _ _) Hcall _ _ _ _ _ _ _ Hbody
               find_wall_collisions_cw_chk Hled Hv Hsat Hmwf)
     as (Hvb & Hsatb & Hmwfb & _).
-  assert (Hben : blocks_of_env ge empty_env = nil) by reflexivity.
-  rewrite Hben in Hfl. cbn [Mem.free_list] in Hfl. injection Hfl as <-.
+  rewrite (eq_refl : blocks_of_env ge empty_env = nil) in Hfl.
+  cbn [Mem.free_list] in Hfl. injection Hfl as <-.
   exact (conj Hvb (conj Hsatb Hmwfb)).
 Qed.
 
 Lemma find_wall_collisions_body_frame_pinned :
   forall (ge : genv) (MWF : mem -> Prop) (bm b_out : block) (oo : ptrofs),
-    (forall ch b0 o0 v0 m1 m2,
-        b0 <> bm -> Mem.store ch m1 b0 o0 v0 = Some m2 -> MWF m1 -> MWF m2) ->
-    (forall x bg, In x fc_stat -> Genv.find_symbol ge x = Some bg -> bg <> bm) ->
-    (forall bf f, Genv.find_symbol ge surface_collision._find_wall_collisions_from_list = Some bf ->
-        Genv.find_funct_ptr ge bf = Some f ->
-        f = Internal surface_collision.f_find_wall_collisions_from_list) ->
+    (forall x bg, In x fc_stat -> Genv.find_symbol ge x = Some bg ->
+       blk_pres not_tainted bm MWF bg) ->
+    resolves_to ge surface_collision._find_wall_collisions_from_list
+      surface_collision.f_find_wall_collisions_from_list ->
     forall m vargs t m' vres,
       eval_funcall function_entry2 ge m
         (Internal surface_collision.f_find_wall_collisions) vargs t m' vres ->
       nth_error vargs 0 = Some (Vptr b_out oo) ->
-      b_out <> bm ->
+      blk_pres not_tainted bm MWF b_out ->
       Mem.valid_block m bm -> action_sat not_tainted m bm -> MWF m ->
       Mem.valid_block m' bm /\ action_sat not_tainted m' bm /\ MWF m'.
 Proof.
-  intros ge MWF bm b_out oo Hstore Hsym Hpin.
-  apply (find_wall_collisions_body_frame_gated ge MWF bm b_out oo Hstore Hsym).
+  intros ge MWF bm b_out oo Hsym Hpin.
+  apply (find_wall_collisions_body_frame_gated ge MWF bm b_out oo Hsym).
   intros f m0 vargs t0 m0' vres b o bf Hs Hf Hn Hb Hfc.
   rewrite (Hpin bf f Hs Hf) in Hfc.
-  exact (find_wall_collisions_from_list_body_frame ge MWF bm b o Hstore m0 vargs t0 m0' vres Hfc Hn Hb).
+  exact (find_wall_collisions_from_list_frame_B ge MWF bm b o Hb m0 vargs t0 m0' vres Hfc Hn).
 Qed.
+
+(* ====================================================================== *)
+(* 5. f32_find_wall_collision: three out-params in EXACT mode (`*xPtr = x` *)
+(*    etc.), own local `collision`, and the find_wall_collisions call with *)
+(*    &collision.  The hand walk of MathGeomBodies, with each store's      *)
+(*    premise narrowed to the cell it writes.                              *)
+(* ====================================================================== *)
+
+Lemma sc_efield_local_store_B :
+  forall (MWF : mem -> Prop) (Q : int -> Prop) bm b_coll sid sattr fld fty ch
+         ge e le m a2 t le' m' out,
+    blk_pres Q bm MWF b_coll ->
+    e ! surface_collision._collision = Some (b_coll, Tstruct sid sattr) ->
+    True ->
+    access_mode fty = By_value ch ->
+    exec_stmt function_entry2 ge e le m
+      (Sassign (Efield (Evar surface_collision._collision (Tstruct sid sattr)) fld fty) a2)
+      t le' m' out ->
+    Mem.valid_block m bm -> action_sat Q m bm -> MWF m ->
+    Mem.valid_block m' bm /\ action_sat Q m' bm /\ MWF m' /\ le' = le /\ out = Out_normal.
+Proof.
+  intros MWF Q bm b_coll sid sattr fld fty ch ge e le m a2 t le' m' out
+         Hbp Hcoll _ Hacc Hexec Hv Hsat Hmwf.
+  inv Hexec.
+  match goal with Hlv : eval_lvalue _ _ _ _ (Efield _ _ _) _ _ _ |- _ =>
+    destruct (RealFrameValue.eval_lvalue_Efield_base _ _ _ _ _ _ _ _ _ _ Hlv) as (o0 & Hbase) end.
+  pose proof (sc_eval_expr_evar_local_struct_block _ _ _ _ _ _ _ _ _ _ _ Hcoll Hbase) as Hloc.
+  subst.
+  match goal with Hass : assign_loc _ (typeof _) _ _ _ _ _ m' |- _ =>
+    cbn [typeof] in Hass; inv Hass end.
+  - match goal with Hstv : Mem.storev _ _ (Vptr _ _) _ = Some m' |- _ =>
+      unfold Mem.storev in Hstv;
+      destruct (Hbp _ _ _ _ _ Hstv Hv Hsat Hmwf) as (Hv' & Hsat' & Hmwf') end.
+    split;[exact Hv'|split;[exact Hsat'|split;[exact Hmwf'|split;reflexivity]]].
+  - match goal with Hco : access_mode fty = By_copy |- _ =>
+      rewrite Hacc in Hco; discriminate Hco end.
+  - match goal with Hsb : store_bitfield _ _ _ _ _ _ (Vptr _ _) _ _ _ |- _ => inv Hsb end.
+    match goal with Hstv : Mem.storev _ _ (Vptr _ _) _ = Some m' |- _ =>
+      unfold Mem.storev in Hstv;
+      destruct (Hbp _ _ _ _ _ Hstv Hv Hsat Hmwf) as (Hv' & Hsat' & Hmwf') end.
+    split;[exact Hv'|split;[exact Hsat'|split;[exact Hmwf'|split;reflexivity]]].
+Qed.
+
+Lemma sc_deref_temp_store_B :
+  forall (MWF : mem -> Prop) (Q : int -> Prop) bm b_out o' T chk
+         ge e le m tid a2 t le' m' out,
+    cell_pres Q bm MWF chk b_out (Ptrofs.unsigned o') ->
+    access_mode T = By_value chk ->
+    le ! tid = Some (Vptr b_out o') ->
+    True ->
+    exec_stmt function_entry2 ge e le m
+      (Sassign (Ederef (Etempvar tid (tptr T)) T) a2) t le' m' out ->
+    Mem.valid_block m bm -> action_sat Q m bm -> MWF m ->
+    Mem.valid_block m' bm /\ action_sat Q m' bm /\ MWF m' /\ le' = le /\ out = Out_normal.
+Proof.
+  intros MWF Q bm b_out o' T chk ge e le m tid a2 t le' m' out
+         Hcell Hacc Htid _ Hexec Hv Hsat Hmwf.
+  inv Hexec.
+  match goal with Hlv : eval_lvalue _ _ _ _ (Ederef _ _) _ _ _ |- _ => inv Hlv end.
+  match goal with Hev : eval_expr _ _ _ _ (Etempvar _ _) _ |- _ =>
+    apply RealFrameValue.eval_expr_Etempvar_val in Hev; rewrite Htid in Hev;
+    injection Hev as <- <- end.
+  match goal with Hass : assign_loc _ (typeof _) _ _ _ Full _ _ |- _ =>
+    cbn [typeof] in Hass; inv Hass end;
+  [ | match goal with Hco : access_mode T = By_copy |- _ =>
+        rewrite Hacc in Hco; discriminate Hco end ].
+  match goal with Hac2 : access_mode T = By_value ?c2 |- _ =>
+    rewrite Hacc in Hac2; injection Hac2 as <- end.
+  match goal with Hstv : Mem.storev _ _ _ _ = Some _ |- _ =>
+    unfold Mem.storev in Hstv;
+    destruct (Hcell _ _ _ Hstv Hv Hsat Hmwf) as (Hv' & Hsat' & Hmwf') end.
+  split;[exact Hv'|split;[exact Hsat'|split;[exact Hmwf'|split;reflexivity]]].
+Qed.
+
+Ltac efstB Hst Hec Hcb Hexec Hac Hv Hs Hm Hv' Hs' Hm' Hr :=
+  let Hle := fresh "Hle" in
+  edestruct (sc_efield_local_store_B _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+    Hst Hec I Hac Hexec Hv Hs Hm) as (Hv' & Hs' & Hm' & Hle & _);
+  rewrite Hle in Hr; clear Hle.
+
+Ltac drstB Hst Hac Hexec Htid Hbne Hv Hs Hm Hv' Hs' Hm' Hr :=
+  let Hle := fresh "Hle" in
+  edestruct (sc_deref_temp_store_B _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+    Hst Hac Htid I Hexec Hv Hs Hm) as (Hv' & Hs' & Hm' & Hle & _);
+  rewrite Hle in Hr; clear Hle.
 
 Lemma f32_find_wall_collision_body_frame_gated :
   forall (ge : genv) (MWF : mem -> Prop)
          (bm b_xout b_yout b_zout : block) (oxo oyo ozo : ptrofs),
-    (forall m lo hi m'' b, Mem.alloc m lo hi = (m'', b) -> MWF m -> MWF m'') ->
-    (forall m2 m3 l, Mem.free_list m2 l = Some m3 -> MWF m2 -> MWF m3) ->
-    (forall c b0 o0 v0 m1 m2,
-        b0 <> bm -> Mem.store c m1 b0 o0 v0 = Some m2 -> MWF m1 -> MWF m2) ->
-    (forall f m0 vargs t0 m0' vres b o bf,
-        Genv.find_symbol ge surface_collision._find_wall_collisions = Some bf ->
-        Genv.find_funct_ptr ge bf = Some f ->
-        nth_error vargs 0 = Some (Vptr b o) -> b <> bm ->
-        eval_funcall function_entry2 ge m0 f vargs t0 m0' vres ->
-        Mem.valid_block m0 bm -> action_sat not_tainted m0 bm -> MWF m0 ->
-        Mem.valid_block m0' bm /\ action_sat not_tainted m0' bm /\ MWF m0') ->
+    frame_oracles bm MWF ->
+    callee_frame ge bm not_tainted MWF surface_collision._find_wall_collisions 0 ->
     forall m vargs t m' vres,
       eval_funcall function_entry2 ge m
         (Internal surface_collision.f_f32_find_wall_collision) vargs t m' vres ->
       nth_error vargs 0 = Some (Vptr b_xout oxo) ->
       nth_error vargs 1 = Some (Vptr b_yout oyo) ->
       nth_error vargs 2 = Some (Vptr b_zout ozo) ->
-      b_xout <> bm -> b_yout <> bm -> b_zout <> bm ->
+      out_cell not_tainted bm MWF b_xout oxo -> out_cell not_tainted bm MWF b_yout oyo ->
+      out_cell not_tainted bm MWF b_zout ozo ->
       Mem.valid_block m bm -> action_sat not_tainted m bm -> MWF m ->
       Mem.valid_block m' bm /\ action_sat not_tainted m' bm /\ MWF m'.
 Proof.
-  intros ge MWF bm b_xout b_yout b_zout oxo oyo ozo Halloc Hfree Hstore Hcall
-         m vargs t m' vres Hevf Hn0 Hn1 Hn2 Hbx Hby Hbz Hv Hsat Hmwf.
+  intros ge MWF bm b_xout b_yout b_zout oxo oyo ozo Hor Hcall
+         m vargs t m' vres Hevf Hn0 Hn1 Hn2 Hcx Hcy Hcz Hv Hsat Hmwf.
+  destruct Hor as (Halloc & Hfree & HallocB).
+  assert (HcxF : cell_pres not_tainted bm MWF Mfloat32 b_xout (Ptrofs.unsigned oxo))
+    by (apply Hcx; cbn; lia).
+  assert (HcyF : cell_pres not_tainted bm MWF Mfloat32 b_yout (Ptrofs.unsigned oyo))
+    by (apply Hcy; cbn; lia).
+  assert (HczF : cell_pres not_tainted bm MWF Mfloat32 b_zout (Ptrofs.unsigned ozo))
+    by (apply Hcz; cbn; lia).
   assert (Hacf : access_mode tfloat = By_value Mfloat32) by reflexivity.
   assert (Hacs : access_mode tshort = By_value Mint16signed) by reflexivity.
   unfold surface_collision.f_f32_find_wall_collision in Hevf.
@@ -741,6 +1079,12 @@ Proof.
   match goal with Halc : Mem.alloc _ _ _ = (_, ?bb) |- _ =>
     assert (Hcoll_bm : bb <> bm)
       by (intro EE; subst bb; exact (Mem.fresh_block_alloc _ _ _ _ _ Halc Hv));
+    assert (HcollB : blk_pres not_tainted bm MWF bb) by (eapply HallocB; eassumption);
+    assert (HownC : forall x, In x [surface_collision._collision] ->
+              exists b ty, (PTree.set surface_collision._collision
+                        (bb, Tstruct surface_collision._WallCollisionData noattr) empty_env) ! x
+                        = Some (b, ty) /\ blk_pres not_tainted bm MWF b)
+      by (intros x [<- | []]; eexists _, _; split; [ apply PTree.gss | exact HcollB ]);
     assert (Hecoll : (PTree.set surface_collision._collision
                         (bb, Tstruct surface_collision._WallCollisionData noattr) empty_env)
                        ! surface_collision._collision
@@ -777,12 +1121,12 @@ Proof.
   peelc R1.
   match goal with H : exec_stmt _ _ _ _ _ (Sassign (Efield _ surface_collision._offsetY _) _) _ _ _ _ |- _ => rename H into HS2 end.
   match goal with H : exec_stmt _ _ _ _ _ (Ssequence (Sassign (Efield _ surface_collision._radius _) _) _) _ _ _ _ |- _ => rename H into R2 end.
-  efst Hstore Hecoll Hcoll_bm HS2 Hacf HvA HsatA HmwfA Hv2 Hs2 Hm2 R2.
+  efstB HcollB Hecoll Hcoll_bm HS2 Hacf HvA HsatA HmwfA Hv2 Hs2 Hm2 R2.
   (* ---- S3: collision.radius = radius ---- *)
   peelc R2.
   match goal with H : exec_stmt _ _ _ _ _ (Sassign (Efield _ surface_collision._radius _) _) _ _ _ _ |- _ => rename H into HS3 end.
   match goal with H : exec_stmt _ _ _ _ _ (Ssequence (Ssequence (Sset surface_collision._t'7 _) _) _) _ _ _ _ |- _ => rename H into R3 end.
-  efst Hstore Hecoll Hcoll_bm HS3 Hacf Hv2 Hs2 Hm2 Hv3 Hs3 Hm3 R3.
+  efstB HcollB Hecoll Hcoll_bm HS3 Hacf Hv2 Hs2 Hm2 Hv3 Hs3 Hm3 R3.
   (* ---- S4: t'7 = *xPtr; collision.x = t'7 ---- *)
   peelc R3.
   match goal with H : exec_stmt _ _ _ _ _ (Ssequence (Sset surface_collision._t'7 _) _) _ _ _ _ |- _ => rename H into B4 end.
@@ -792,7 +1136,7 @@ Proof.
   match goal with H : exec_stmt _ _ _ _ _ (Sassign (Efield _ surface_collision._x _) _) _ _ _ _ |- _ => rename H into HW4 end.
   ssettp HR4 Htp1 Em4 Htp4.
   rewrite Em4 in HW4.
-  efst Hstore Hecoll Hcoll_bm HW4 Hacf Hv3 Hs3 Hm3 Hv4 Hs4 Hm4 R4.
+  efstB HcollB Hecoll Hcoll_bm HW4 Hacf Hv3 Hs3 Hm3 Hv4 Hs4 Hm4 R4.
   (* ---- S5: t'6 = *yPtr; collision.y = t'6 ---- *)
   peelc R4.
   match goal with H : exec_stmt _ _ _ _ _ (Ssequence (Sset surface_collision._t'6 _) _) _ _ _ _ |- _ => rename H into B5 end.
@@ -802,7 +1146,7 @@ Proof.
   match goal with H : exec_stmt _ _ _ _ _ (Sassign (Efield _ surface_collision._y _) _) _ _ _ _ |- _ => rename H into HW5 end.
   ssettp HR5 Htp4 Em5 Htp5.
   rewrite Em5 in HW5.
-  efst Hstore Hecoll Hcoll_bm HW5 Hacf Hv4 Hs4 Hm4 Hv5 Hs5 Hm5 R5.
+  efstB HcollB Hecoll Hcoll_bm HW5 Hacf Hv4 Hs4 Hm4 Hv5 Hs5 Hm5 R5.
   (* ---- S6: t'5 = *zPtr; collision.z = t'5 ---- *)
   peelc R5.
   match goal with H : exec_stmt _ _ _ _ _ (Ssequence (Sset surface_collision._t'5 _) _) _ _ _ _ |- _ => rename H into B6 end.
@@ -812,12 +1156,12 @@ Proof.
   match goal with H : exec_stmt _ _ _ _ _ (Sassign (Efield _ surface_collision._z _) _) _ _ _ _ |- _ => rename H into HW6 end.
   ssettp HR6 Htp5 Em6 Htp6.
   rewrite Em6 in HW6.
-  efst Hstore Hecoll Hcoll_bm HW6 Hacf Hv5 Hs5 Hm5 Hv6 Hs6 Hm6 R6.
+  efstB HcollB Hecoll Hcoll_bm HW6 Hacf Hv5 Hs5 Hm5 Hv6 Hs6 Hm6 R6.
   (* ---- S7: collision.numWalls = 0 (tshort) ---- *)
   peelc R6.
   match goal with H : exec_stmt _ _ _ _ _ (Sassign (Efield _ surface_collision._numWalls _) _) _ _ _ _ |- _ => rename H into HS7 end.
   match goal with H : exec_stmt _ _ _ _ _ (Ssequence (Ssequence (Scall _ _ _) _) _) _ _ _ _ |- _ => rename H into R7 end.
-  efst Hstore Hecoll Hcoll_bm HS7 Hacs Hv6 Hs6 Hm6 Hv7 Hs7 Hm7 R7.
+  efstB HcollB Hecoll Hcoll_bm HS7 Hacs Hv6 Hs6 Hm6 Hv7 Hs7 Hm7 R7.
   (* ---- S8: t'1 = find_wall_collisions(&collision); numCollisions = t'1 ---- *)
   peelc R7.
   match goal with H : exec_stmt _ _ _ _ _ (Ssequence (Scall _ _ _) _) _ _ _ _ |- _ => rename H into B8 end.
@@ -825,14 +1169,11 @@ Proof.
   peelc B8.
   match goal with H : exec_stmt _ _ _ _ _ (Scall _ _ _) _ _ _ _ |- _ => rename H into HC8 end.
   match goal with H : exec_stmt _ _ _ _ _ (Sset surface_collision._numCollisions _) _ _ _ _ |- _ => rename H into HN8 end.
-  (* the call: callee = the global find_wall_collisions, arg 0 = &collision
-     (own fresh block, <> bm) -- the gated callee premise applies *)
   pose proof Htp6 as Htp6x. unfold three_ptr in Htp6x. destruct Htp6x as (Hx6 & _ & _).
-  edestruct (cw_call_pres ge _ bm [surface_collision._collision] []
-               ltac:(intros x [<- | []]; eexists _, _; split; [ exact Hecoll | exact Hcoll_bm ])
-               ltac:(intros x []) ltac:(intros x bg []) MWF not_tainted b_xout oxo
-               surface_collision._xPtr surface_collision._find_wall_collisions 0
-               eq_refl Hcall _ _ _ _ _ _ _ _ _ HC8 ltac:(vm_compute; reflexivity) Hx6 Hbx Hv7 Hs7 Hm7)
+  edestruct (cw_call_pres ge _ bm not_tainted MWF [surface_collision._collision] [] HownC
+               (fun x H => match H with end) (fun x bg H => match H with end)
+               b_xout oxo true surface_collision._xPtr surface_collision._find_wall_collisions 0
+               eq_refl Hcall Hcx _ _ _ _ _ _ _ _ _ HC8 ltac:(vm_compute; reflexivity) Hx6 Hv7 Hs7 Hm7)
     as (Hv8 & Hs8 & Hm8 & _ & (vcall & Hlecall)).
   cbn [set_opttemp] in Hlecall.
   assert (Htpcall : three_ptr (PTree.set surface_collision._t'1 vcall _) b_xout b_yout b_zout oxo oyo ozo)
@@ -850,7 +1191,7 @@ Proof.
   match goal with H : exec_stmt _ _ _ _ _ (Sassign (Ederef (Etempvar surface_collision._xPtr _) _) _) _ _ _ _ |- _ => rename H into HW9 end.
   ssettp HR9 Htp8 Em9 Htp9.
   rewrite Em9 in HW9.
-  drst Hstore Hacf HW9 (three_ptr_x _ _ _ _ _ _ _ Htp9) Hbx Hv8 Hs8 Hm8 Hv9 Hs9 Hm9 R9.
+  drstB HcxF Hacf HW9 (three_ptr_x _ _ _ _ _ _ _ Htp9) I Hv8 Hs8 Hm8 Hv9 Hs9 Hm9 R9.
   (* ---- S10: t'3 = collision.y; *yPtr = t'3 ---- *)
   peelc R9.
   match goal with H : exec_stmt _ _ _ _ _ (Ssequence (Sset surface_collision._t'3 _) _) _ _ _ _ |- _ => rename H into B10 end.
@@ -860,7 +1201,7 @@ Proof.
   match goal with H : exec_stmt _ _ _ _ _ (Sassign (Ederef (Etempvar surface_collision._yPtr _) _) _) _ _ _ _ |- _ => rename H into HW10 end.
   ssettp HR10 Htp9 Em10 Htp10.
   rewrite Em10 in HW10.
-  drst Hstore Hacf HW10 (three_ptr_y _ _ _ _ _ _ _ Htp10) Hby Hv9 Hs9 Hm9 Hv10 Hs10 Hm10 R10.
+  drstB HcyF Hacf HW10 (three_ptr_y _ _ _ _ _ _ _ Htp10) I Hv9 Hs9 Hm9 Hv10 Hs10 Hm10 R10.
   (* ---- S11: t'2 = collision.z; *zPtr = t'2 ---- *)
   peelc R10.
   match goal with H : exec_stmt _ _ _ _ _ (Ssequence (Sset surface_collision._t'2 _) _) _ _ _ _ |- _ => rename H into B11 end.
@@ -870,7 +1211,7 @@ Proof.
   match goal with H : exec_stmt _ _ _ _ _ (Sassign (Ederef (Etempvar surface_collision._zPtr _) _) _) _ _ _ _ |- _ => rename H into HW11 end.
   ssettp HR11 Htp10 Em11 Htp11.
   rewrite Em11 in HW11.
-  drst Hstore Hacf HW11 (three_ptr_z _ _ _ _ _ _ _ Htp11) Hbz Hv10 Hs10 Hm10 Hv11 Hs11 Hm11 HRET.
+  drstB HczF Hacf HW11 (three_ptr_z _ _ _ _ _ _ _ Htp11) I Hv10 Hs10 Hm10 Hv11 Hs11 Hm11 HRET.
   (* ---- S12: return numCollisions (memory unchanged) ---- *)
   inv HRET.
   (* EXIT: free the sole _collision block (bm-distinct) *)
@@ -887,32 +1228,133 @@ Qed.
 Lemma f32_find_wall_collision_body_frame_pinned :
   forall (ge : genv) (MWF : mem -> Prop)
          (bm b_xout b_yout b_zout : block) (oxo oyo ozo : ptrofs),
-    (forall m lo hi m'' b, Mem.alloc m lo hi = (m'', b) -> MWF m -> MWF m'') ->
-    (forall m2 m3 l, Mem.free_list m2 l = Some m3 -> MWF m2 -> MWF m3) ->
-    (forall c b0 o0 v0 m1 m2,
-        b0 <> bm -> Mem.store c m1 b0 o0 v0 = Some m2 -> MWF m1 -> MWF m2) ->
-    (forall x bg, In x fc_stat -> Genv.find_symbol ge x = Some bg -> bg <> bm) ->
-    (forall bf f, Genv.find_symbol ge surface_collision._find_wall_collisions = Some bf ->
-        Genv.find_funct_ptr ge bf = Some f ->
-        f = Internal surface_collision.f_find_wall_collisions) ->
-    (forall bf f, Genv.find_symbol ge surface_collision._find_wall_collisions_from_list = Some bf ->
-        Genv.find_funct_ptr ge bf = Some f ->
-        f = Internal surface_collision.f_find_wall_collisions_from_list) ->
+    frame_oracles bm MWF ->
+    (forall x bg, In x fc_stat -> Genv.find_symbol ge x = Some bg ->
+       blk_pres not_tainted bm MWF bg) ->
+    resolves_to ge surface_collision._find_wall_collisions surface_collision.f_find_wall_collisions ->
+    resolves_to ge surface_collision._find_wall_collisions_from_list
+      surface_collision.f_find_wall_collisions_from_list ->
     forall m vargs t m' vres,
       eval_funcall function_entry2 ge m
         (Internal surface_collision.f_f32_find_wall_collision) vargs t m' vres ->
       nth_error vargs 0 = Some (Vptr b_xout oxo) ->
       nth_error vargs 1 = Some (Vptr b_yout oyo) ->
       nth_error vargs 2 = Some (Vptr b_zout ozo) ->
-      b_xout <> bm -> b_yout <> bm -> b_zout <> bm ->
+      out_cell not_tainted bm MWF b_xout oxo -> out_cell not_tainted bm MWF b_yout oyo ->
+      out_cell not_tainted bm MWF b_zout ozo ->
       Mem.valid_block m bm -> action_sat not_tainted m bm -> MWF m ->
       Mem.valid_block m' bm /\ action_sat not_tainted m' bm /\ MWF m'.
 Proof.
-  intros ge MWF bm b_xout b_yout b_zout oxo oyo ozo Halloc Hfree Hstore Hsym Hpin Hpin2.
-  apply (f32_find_wall_collision_body_frame_gated ge MWF bm b_xout b_yout b_zout oxo oyo ozo
-           Halloc Hfree Hstore).
+  intros ge MWF bm b_xout b_yout b_zout oxo oyo ozo Hor Hsym Hpin Hpin2.
+  apply (f32_find_wall_collision_body_frame_gated ge MWF bm b_xout b_yout b_zout oxo oyo ozo Hor).
   intros f m0 vargs t0 m0' vres b o bf Hs Hf Hn Hb Hfc.
   rewrite (Hpin bf f Hs Hf) in Hfc.
-  exact (find_wall_collisions_body_frame_pinned ge MWF bm b o Hstore Hsym Hpin2
+  exact (find_wall_collisions_body_frame_pinned ge MWF bm b o Hsym Hpin2
            m0 vargs t0 m0' vres Hfc Hn Hb).
+Qed.
+
+(* ====================================================================== *)
+(* 6. The premises are dischargeable from the consumer's own MWF rows.     *)
+(*    (Non-vacuity: each new premise follows from a row shape the spine    *)
+(*    already carries and MWFReal already proves.)                         *)
+(* ====================================================================== *)
+
+Lemma store_window_ok_mono : forall delta sz sz',
+  0 < sz' <= sz -> CensusV2.store_window_ok delta sz = true -> CensusV2.store_window_ok delta sz' = true.
+Proof.
+  intros delta sz sz' Hsz H. unfold CensusV2.store_window_ok in *.
+  repeat (apply andb_true_iff in H; destruct H as [H ?]).
+  repeat match goal with Hb : (_ || _)%bool = true |- _ =>
+    apply orb_true_iff in Hb; destruct Hb as [Hb | Hb] end;
+  repeat match goal with Hb : (_ <=? _) = true |- _ => apply Z.leb_le in Hb end;
+  repeat match goal with Hb : (_ <? _) = true |- _ => apply Z.ltb_lt in Hb end;
+  repeat (apply andb_true_iff; split);
+  try (apply orb_true_iff);
+  first [ apply Z.ltb_lt; lia | apply Z.leb_le; lia
+        | left; apply Z.leb_le; lia | right; apply Z.leb_le; lia ].
+Qed.
+
+Section DISCHARGE.
+  Variable bm : block.
+  Variable MWF : mem -> Prop.
+
+  (* a Mario-field window: EngineV2Consumer.Hmwf_window's exact shape *)
+  Hypothesis Hmwf_window : forall mm mm' ch (delta : Z) vv,
+      MWF mm -> CensusV2.store_window_ok delta (size_chunk ch) = true ->
+      Mem.store ch mm bm delta vv = Some mm' -> MWF mm'.
+
+  Lemma out_cell_window : forall delta,
+    CensusV2.store_window_ok delta 4 = true -> 0 <= delta <= Ptrofs.max_unsigned ->
+    out_cell not_tainted bm MWF bm (Ptrofs.repr delta).
+  Proof.
+    intros delta Hwin Hrng ch Hsz v m1 m2 Hst Hv Hsat Hmwf.
+    rewrite Ptrofs.unsigned_repr in Hst by exact Hrng.
+    assert (Hwin' : CensusV2.store_window_ok delta (size_chunk ch) = true)
+      by (eapply store_window_ok_mono; [ split; [ destruct ch; cbn; lia | exact Hsz ] | exact Hwin ]).
+    split; [ eauto using Mem.store_valid_block_1 | split ].
+    - intros av Hload.
+      rewrite (Mem.load_store_other _ _ _ _ _ _ Hst) in Hload; [ exact (Hsat av Hload) | right ].
+      unfold CensusV2.store_window_ok in Hwin'.
+      repeat (apply andb_true_iff in Hwin'; destruct Hwin' as [Hwin' ?]).
+      match goal with
+      | Hb : ((delta + _ <=? 12) || (16 <=? delta))%bool = true |- _ =>
+          apply orb_true_iff in Hb as [Hb | Hb]; apply Z.leb_le in Hb;
+          cbn [size_chunk]; lia
+      end.
+    - exact (Hmwf_window _ _ _ _ _ Hmwf Hwin' Hst).
+  Qed.
+
+  (* a stack-local block: LocalVarsSurface.HMWF_localstore's shape, over
+     any predicate L of blocks other than bm *)
+  Variable L : block -> Prop.
+  Hypothesis HL_bm : forall b, L b -> b <> bm.
+  Hypothesis HMWF_localstore : forall m ch b d v m',
+      L b -> Mem.store ch m b d v = Some m' -> MWF m -> MWF m'.
+
+  Lemma blk_pres_local : forall b, L b -> blk_pres not_tainted bm MWF b.
+  Proof.
+    intros b HL ch o v m1 m2 Hst Hv Hsat Hmwf.
+    split; [ eauto using Mem.store_valid_block_1 | split ].
+    - eapply action_sat_unchanged_on with (m := m1); [ | exact Hv | exact Hsat ].
+      eapply Mem.store_unchanged_on; [ exact Hst | ].
+      intros i _ [Hb _]. exact (HL_bm b HL Hb).
+    - exact (HMWF_localstore _ _ _ _ _ _ HL Hst Hmwf).
+  Qed.
+
+  Lemma out_cell_local : forall b o, L b -> out_cell not_tainted bm MWF b o.
+  Proof. intros b o HL ch _. exact (blk_pres_local b HL ch _). Qed.
+
+  (* a stored static: EngineV2Consumer.Hmwf_glob's shape *)
+  Lemma blk_pres_glob : forall bg,
+    bg <> bm -> (forall mm mm' ch0 (d : Z) vv, MWF mm -> Mem.store ch0 mm bg d vv = Some mm' -> MWF mm') ->
+    blk_pres not_tainted bm MWF bg.
+  Proof.
+    intros bg Hne Hst' ch o v m1 m2 Hst Hv Hsat Hmwf.
+    split; [ eauto using Mem.store_valid_block_1 | split ].
+    - eapply action_sat_unchanged_on with (m := m1); [ | exact Hv | exact Hsat ].
+      eapply Mem.store_unchanged_on; [ exact Hst | ].
+      intros i _ [Hb _]. exact (Hne Hb).
+    - exact (Hst' _ _ _ _ _ Hmwf Hst).
+  Qed.
+End DISCHARGE.
+
+(* the out-params update_mario_geometry_inputs actually passes are inside
+   Mario's block -- &m->floor, &m->pos[0..2] -- and every one of them is a
+   window cell (checked against mario.prog's own layout) *)
+Lemma geometry_outparams_in_window :
+  forall fld, In fld [mario._floor; mario._pos] ->
+  exists delta, field_offset (prog_comp_env mario.prog) fld SymbolicLinking.mario_state_members
+                  = Errors.OK (delta, Full)
+    /\ forall i, (0 <= i < (if Pos.eqb fld mario._pos then 3 else 1))%Z ->
+         CensusV2.store_window_ok (delta + 4 * i) 4 = true
+         /\ 0 <= delta + 4 * i <= Ptrofs.max_unsigned.
+Proof.
+  intros fld [<- | [<- | []]].
+  - eexists. split; [ vm_compute; reflexivity | ].
+    intros i Hi. cbn in Hi. assert (i = 0) by lia. subst i. split; [ vm_compute; reflexivity | ].
+    vm_compute. split; discriminate.
+  - eexists. split; [ vm_compute; reflexivity | ].
+    intros i Hi. cbn in Hi.
+    assert (i = 0 \/ i = 1 \/ i = 2) as [-> | [-> | ->]] by lia;
+      (split; [ vm_compute; reflexivity | vm_compute; split; discriminate ]).
 Qed.
