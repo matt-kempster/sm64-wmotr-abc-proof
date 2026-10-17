@@ -389,6 +389,16 @@ each `<> bm` (static-layout, same trust class as the existing entries).
 
 ### The ordered green-in-one-pass recipe
 **PRE-REQ (before the atomic commit — the pre-stage is INCOMPLETE without these):**
+> **STATUS 2026-10-17: P-1 and P-2 DONE** in `proofs/MarioModel/Unwired/MathGeomGated.v`
+> (`kept:` P1' pre-stage). One call-aware walker `cw_walk` (`cw_chk` recognizer:
+> callee = the named global, its out-param arg = an own local's address or the gate
+> temp; named stores = own locals or listed statics) replaces the ∀vargs `Hcall` /
+> ∀env `Hsafe` premises. Results: `find_{floor,ceil}_body_frame_gated`,
+> `find_wall_collisions_body_frame_gated`, `f32_find_wall_collision_body_frame_gated`,
+> plus `_pinned` corollaries whose only premises are the alloc/free/store MWF oracles,
+> "listed statics' symbol blocks <> bm", and "the callee name resolves to the real
+> body". Those premises are exactly what the atomic commit supplies (stored_globals +
+> link resolution). Standard CompCert axioms only.
 - **P-1** Re-state facts #13/#14 (`find_floor_body_frame`, `find_ceil_body_frame`):
   arg-aware `sg_walk` that (a) recognizes the `find_{floor,ceil}_from_list`
   internal call, evaluates its 5th arg to the body's own fresh local (`Hb2_bm`

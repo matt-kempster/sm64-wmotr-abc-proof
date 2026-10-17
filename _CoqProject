@@ -173,6 +173,7 @@ proofs/MarioModel/MarioStepSurface.v
 #     surface_collision.find_water_level / find_poison_gas_level; consumed at
 #     the future atomic 14-TU link commit, touches lp nowhere; task #90) ---
 proofs/MarioModel/Unwired/MathGeomBodies.v
+proofs/MarioModel/Unwired/MathGeomGated.v
 
 # --- GOAL 1 / the perform_air_step surface (SPINE: pas_cp DISCHARGES the
 #     capstone's Hcp_pas_real perform_air_step blocker via a loop-tolerant
