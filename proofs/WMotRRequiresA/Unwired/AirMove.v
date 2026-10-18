@@ -17,7 +17,10 @@ From compcert Require Import Coqlib Maps AST Integers Floats Values Memory Ctype
 From Flocq Require Import Raux.
 From SM64.Proofs Require Import Interp.SymExec2 HeightInvariant HeightMoveCatalog WMotRLevel.
 From SM64.Proofs.WMotRRequiresA Require Import HeightFloatSteps.
-From SM64.Proofs.WMotRRequiresA.Unwired Require Import FloorList FloorHeight FloorBound AirMatch.
+From compcert Require Import ClightBigstep.
+From SM64.Generated Require mario_step.
+From SM64.Proofs Require Import Interp.LinkGenv MarioModel.LinkedTwelve.
+From SM64.Proofs.WMotRRequiresA.Unwired Require Import FloorList FloorHeight FloorBound AirMatch AirXc AirRun.
 Import ListNotations.
 Local Open Scope R_scope.
 
@@ -227,3 +230,41 @@ Proof.
   - exact (land_move OK H).
 Qed.
 End AIRMOVE.
+
+(* ---- the real call: any execution of perform_air_step from ACT_FREEFALL
+        is one RangedMove of Phi's cells ---- *)
+Section LPM.
+Variable lp : Clight.program.
+Hypothesis H12 : linked12 lp.
+Local Notation G := (globalenv lp).
+
+Theorem air_step_move : forall m0 gp E t m' vres c,
+  (forall b x, gp b = Some x -> Plt b (Mem.nextblock m0)) ->
+  (forall ch b z v, gp b <> None -> Mem.load ch m0 b z = Some v -> val_old gp v) ->
+  env_ok G NB (R0 G) gtab (kv G) m0 gp E ->
+  (forall f, In f (pc0 G) -> fact_holds G (R0 G) m0 (ufW G m0 gp) E f) ->
+  e_base E RM = Ptrofs.zero -> e_base E RO = Ptrofs.zero ->
+  eval_funcall function_entry2 G m0 (Internal mario_step.f_perform_air_step)
+    [Vptr (e_blk E RM) (Ptrofs.add (e_base E RM) Ptrofs.zero); Vint Int.zero] t m' vres ->
+  read_cells (e_blk E RM) m0 c -> budget_ok c ->
+  floor_data G m0 -> FloorRefreshOK wmotr_floor (R2 (c_posy c)) (R2 (c_floorh c)) ->
+  exists c', read_cells (e_blk E RM) m' c' /\ RM' c c'.
+Proof.
+  intros m0 gp E t m' vres c GPO MC EO PC HbM HbO EV RC Hc FD FRO.
+  destruct (air_step_outcome lp H12 m0 gp E t m' vres GPO MC EO PC EV) as (E' & gs & X & MM & OK).
+  destruct (X RM ltac:(unfold Plt, NB, RM; lia)) as (BM & BaM & _).
+  destruct (X RO ltac:(unfold Plt, NB, RO; lia)) as (BO & BaO & _).
+  rewrite <- BM.
+  destruct RC as (HA & HS & HT & HY & HV & HF & _).
+  (* the walk's known action cell: m->action = ACT_FREEFALL *)
+  assert (Hact : c_action c = ACT_FREEFALL).
+  { destruct EO as (_ & _ & _ & _ & KV & _).
+    destruct (KV RM 12%Z Mint32 (Sconst (Vint (Int.repr 16779404)))) as (_ & _ & L);
+      [cbn [kv]; right; left; reflexivity |].
+    unfold addr in L. rewrite HbM, Ptrofs.unsigned_zero, Z.add_0_l in L.
+    change OFS_ACTION with 12%Z in HA. rewrite HA in L. cbn [den] in L. injection L as ->.
+    reflexivity. }
+  apply (outcome_move G NB (R0 G) gtab (kv G) m0 (ufW G m0 gp) gp GPO E' m' gs RM RO kH MM
+           (ufW_kH G m0 gp)); try (rewrite ?BaM, ?BaO; assumption); rewrite ?BM; assumption.
+Qed.
+End LPM.
