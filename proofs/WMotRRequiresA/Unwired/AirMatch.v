@@ -15,6 +15,7 @@ From compcert Require Import Coqlib Maps AST Integers Floats Values Memory Ctype
 From Flocq Require Import Binary Bits Defs Raux Zaux Generic_fmt FLT.
 From SM64.Proofs Require Import Interp.SymExec2 HeightInvariant.
 From SM64.Proofs.WMotRRequiresA Require Import HeightFloatSteps.
+From SM64.Proofs.WMotRRequiresA.Unwired Require Import FloorList FloorHeight.
 Import ListNotations.
 
 Local Open Scope R_scope.
@@ -260,12 +261,21 @@ Definition aclass_of : option aclass :=
   else None.
 
 (* a landing: pos[1] = gfx.pos[1] := the entry floorHeight cell, or a value
-   find_floor returned (a fresh name) *)
+   find_floor returned (a fresh name), named by find_floor's height fact
+   Fuser kH [height; yPos] (FloorExec.c_ff) with yPos a quarter-step term *)
+Variable kH : positive.
 Definition oF : Z := 112.
+Definition hfact (n : positive) (f : fact) : bool :=
+  match f with
+  | Fuser k [Sfresh n'; ya] =>
+      Pos.eqb k kH && Pos.eqb n' n
+      && match qrec rM oY oV ya with Some (kq, _) => Nat.leb kq 4 | None => false end
+  | _ => false
+  end.
 Definition is_land (a : sval) : bool :=
   match a with
   | Sinit r o Mfloat32 => Pos.eqb r rM && Z.eqb o oF
-  | Sfresh _ => true
+  | Sfresh n => existsb (hfact n) pc
   | _ => false
   end.
 
@@ -288,7 +298,11 @@ Variables (ge : genv) (nbase : positive) (R0 : list (positive * Z)) (gtab : list
   (uf : positive -> list (option val) -> Prop) (gp : meminj).
 Hypothesis gp_old : forall b x, gp b = Some x -> Plt b (Mem.nextblock m0).
 Variables (E : senv) (m : mem) (g : gst) (rM rO : positive) (y v : float32).
+Variable kH : positive.
 Hypothesis MM : MMg ge nbase R0 gtab kv m0 uf gp E m g.
+(* the height fact's meaning (AirRun.ufW) *)
+Hypothesis HUH : forall vs, uf kH vs ->
+  exists h yv, vs = [Some (Vsingle h); Some yv] /\ HPi (Hit_at ge m0) (ycast yv) h.
 Hypothesis HbM : e_base E rM = Ptrofs.zero.
 Hypothesis HbO : e_base E rO = Ptrofs.zero.
 Hypothesis HY : Mem.load Mfloat32 m0 (e_blk E rM) oY = Some (Vsingle y).
@@ -450,12 +464,13 @@ Proof.
   split; [repeat split; apply same_cell_sound; assumption |]. split; [exact K4 |].
   eexists; split; [apply add_zeros_R2 | split; [exact DY | split; [exact DG | exact DV]]].
 Qed.
-Theorem land_sound : land_ok LD IC (g_pc g) rM rO = true ->
+Theorem land_sound : land_ok LD IC (g_pc g) rM rO kH = true ->
   F32 v = true -> Rabs (R2 v) <= 128 ->
   keeps_asT
   /\ Mem.load Mfloat32 m (e_blk E rO) oG = Mem.load Mfloat32 m (e_blk E rM) oY
   /\ (Mem.load Mfloat32 m (e_blk E rM) oY = Mem.load Mfloat32 m0 (e_blk E rM) oF
-      \/ exists n, Mem.load Mfloat32 m (e_blk E rM) oY = e_rho E n)
+      \/ exists h kq jz, Mem.load Mfloat32 m (e_blk E rM) oY = Some (Vsingle h) /\ (kq <= 4)%nat
+           /\ HPi (Hit_at ge m0) (ycast (Vsingle (add_zeros jz (quarter_steps kq y (Float32.div v f4))))) h)
   /\ exists v', Mem.load Mfloat32 m (e_blk E rM) oV = Some (Vsingle v')
        /\ F32 v' = true /\ R2 fm75 <= R2 v' /\ (R2 v' <= R2 (gravity f4 v) \/ v' = fm4).
 Proof.
@@ -478,7 +493,19 @@ Proof.
     + destruct ch; try discriminate. cbn [is_land] in L. apply andb_true_iff in L as (Hr & Ho).
       apply Pos.eqb_eq in Hr. apply Z.eqb_eq in Ho. rewrite Hr, Ho. left.
       cbn [den]. rewrite HbM, Ptrofs.unsigned_zero, Z.add_0_l. reflexivity.
-    + right. exists n. reflexivity.
+    + cbn [is_land] in L. apply existsb_exists in L as (f & If & Hf).
+      destruct f as [| | | k args]; cbn [hfact] in Hf; try discriminate.
+      destruct args as [| a0 [| ya [|]]]; cbn [hfact] in Hf; try discriminate;
+        destruct a0; cbn [hfact] in Hf; try discriminate.
+      repeat rewrite andb_true_iff in Hf. destruct Hf as ((Hk & Hn) & Hq).
+      apply Pos.eqb_eq in Hk. apply Pos.eqb_eq in Hn. subst.
+      destruct (qrec rM oY oV ya) as [[kq jz]|] eqn:Q; [| discriminate]. apply Nat.leb_le in Hq.
+      pose proof MM as (_ & _ & _ & _ & _ & _ & PC & _).
+      destruct (PC _ If) as (_ & FH). cbn [fact_holds map] in FH.
+      rewrite (qrec_den ge m0 E (e_blk E rM) rM oY oV y v eq_refl HbM HY HV ya kq jz Q) in FH.
+      destruct (HUH _ FH) as (h & yv & Evs & HP). cbn [den] in Evs.
+      injection Evs as E1 E2. subst yv.
+      right. exists h, kq, jz. split; [cbn [den]; exact E1 | split; [exact Hq | exact HP]].
   - apply orb_true_iff in VO as [VC | VK].
     + rewrite (vel_cut_den _ VC) in DV. eexists; split; [exact DV |].
       split; [reflexivity |]. split; [rewrite B2R_fm75, B2R_fm4; lra | right; reflexivity].

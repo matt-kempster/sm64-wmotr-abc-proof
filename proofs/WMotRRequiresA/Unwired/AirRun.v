@@ -75,7 +75,7 @@ Definition g0 : gst := mkg nil pc0 NB nil.
 Definition args0 : list sval := [Sptr RM Ptrofs.zero; Sconst (Vint Int.zero)].
 
 Definition ok_c (c : cpath) : bool :=
-  outcome_ok (sload NB R0 kv (fst c)) (init_cell kv) (g_pc (fst c)) RM RO.
+  outcome_ok (sload NB R0 kv (fst c)) (init_cell kv) (g_pc (fst c)) RM RO kH.
 
 (* the consumer facts' meaning: the world fact, and find_floor's height
    (FloorHeight.ff_height, at the frame's entry memory) *)
@@ -86,6 +86,14 @@ Definition ufW (m0 : mem) (gp : meminj) : positive -> list (option val) -> Prop 
          | [Some (Vsingle h); Some yv] => HPi (Hit_at g m0) (ycast yv) h
          | _ => False
          end.
+
+Lemma ufW_kH : forall m0 gp vs, ufW m0 gp kH vs ->
+  exists h yv, vs = [Some (Vsingle h); Some yv] /\ HPi (Hit_at g m0) (ycast yv) h.
+Proof.
+  intros m0 gp vs H. unfold ufW in H. change (Pos.eqb kH kW) with false in H. cbv iota in H.
+  destruct vs as [| [[| | | | h |]|] [| [yv|] [| o3 r]]]; cbv iota in H; try contradiction.
+  exists h, yv. split; [reflexivity | exact H].
+Qed.
 End CFG.
 
 (* THE WALK, computed once on the real link.  The executor call is written
@@ -139,7 +147,7 @@ Theorem air_step_outcome : forall m0 gp E t m' vres,
     [Vptr (e_blk E RM) (Ptrofs.add (e_base E RM) Ptrofs.zero); Vint Int.zero] t m' vres ->
   exists E' gs, Ext E E' NB
     /\ MMg G NB (R0 G) gtab (kv G) m0 (ufW G m0 gp) gp E' m' gs
-    /\ outcome_ok (sload NB (R0 G) (kv G) gs) (init_cell (kv G)) (g_pc gs) RM RO = true.
+    /\ outcome_ok (sload NB (R0 G) (kv G) gs) (init_cell (kv G)) (g_pc gs) RM RO kH = true.
 Proof.
   intros m0 gp E t m' vres GPO MC EO PC EV.
   destruct wcheck_lp as (cs & RUN & W).
