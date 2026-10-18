@@ -473,3 +473,14 @@ offset `384·z + 24·x` (slot 0, `SPATIAL_PARTITION_FLOORS`) of a partition arra
 with 0 ≤ z, x < 16. The proof comes from the body. `ev_cellidx` shows the masked
 cell index is in [0, 16), `ev_part` evaluates the triple-indexed address, and
 `HH_set_sl` records the head as a `floor_head`.
+
+**Done: a reported floor means the height is a hit.** `ff_height` also proves that
+if `*pfloor` comes back non-NULL, the returned height is in `Hit_at` itself, not just
+in HPi, which includes the −11000 start value. The invariant is `FloorHeight.FR`:
+floor and dynamicFloor are NULL, or their height cell holds a hit. It is carried
+through the two list calls, the SURFACE_INTANGIBLE re-search and the
+`dynamicHeight > height` swap, and `*pfloor` is NULL until the final store.
+`c_ff`'s height fact, which only the non-NULL outcome emits, now carries `Hit_at`.
+So a landing on a fresh height is a hit, and `AirMatch.land_height` drops its
+−11000 case. A first attempt used the landing test `yPos ≤ height` instead. That
+fails on 20 of the 852 landings: a join had renamed `pos` on ceiling-cut paths.

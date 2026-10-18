@@ -83,12 +83,12 @@ Definition ufW (m0 : mem) (gp : meminj) : positive -> list (option val) -> Prop 
   fun k vs =>
     if Pos.eqb k kW then Wff g m0 gp (szs mario._Surface) vs
     else match vs with
-         | [Some (Vsingle h); Some yv] => HPi (Hit_at g m0) (ycast yv) h
+         | [Some (Vsingle h); Some yv] => HPi (Hit_at g m0) (ycast yv) h /\ Hit_at g m0 h
          | _ => False
          end.
 
 Lemma ufW_kH : forall m0 gp vs, ufW m0 gp kH vs ->
-  exists h yv, vs = [Some (Vsingle h); Some yv] /\ HPi (Hit_at g m0) (ycast yv) h.
+  exists h yv, vs = [Some (Vsingle h); Some yv] /\ HPi (Hit_at g m0) (ycast yv) h /\ Hit_at g m0 h.
 Proof.
   intros m0 gp vs H. unfold ufW in H. change (Pos.eqb kH kW) with false in H. cbv iota in H.
   destruct vs as [| [[| | | | h |]|] [| [yv|] [| o3 r]]]; cbv iota in H; try contradiction.
@@ -157,7 +157,7 @@ Proof.
   assert (XS := air_xc_sound_link lp (linked12_LO_surf lp H12) (linked12_LO_math lp H12)
                   (linked12_LO_mario lp H12) NB (R0 G) gtab (kv G) m0 (ufW G m0 gp) gp
                   RFI RMISS RCALLS kW kH (szs G mario._Surface) GPO eq_refl eq_refl eq_refl
-                  (fun vs H => H) (fun h yv H => H)).
+                  (fun vs H => H) (fun h yv H1 H2 => conj H1 H2)).
   assert (ARGS : Forall2 (fun a v => den G m0 E a = Some v /\ sok NB (g_nx (g0 G)) a) args0
                    [Vptr (e_blk E RM) (Ptrofs.add (e_base E RM) Ptrofs.zero); Vint Int.zero]).
   { constructor; [| constructor; [| constructor]].

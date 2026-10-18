@@ -213,7 +213,8 @@ Hypothesis HgMS : gfind gtab surface_collision._gNumFindFloorMisses = Some rMS.
 Hypothesis HgCL : gfind gtab surface_collision._gNumCalls = Some rCL.
 Hypothesis HU : forall vs, uf kW vs -> Wff ge m0 gp szS vs.
 (* the height fact's meaning *)
-Hypothesis HUH : forall h yv, HPi (Hit_at ge m0) (ycast yv) h -> uf kH [Some (Vsingle h); Some yv].
+Hypothesis HUH : forall h yv, HPi (Hit_at ge m0) (ycast yv) h -> Hit_at ge m0 h ->
+  uf kH [Some (Vsingle h); Some yv].
 
 (* the consumer's regions are named by the world fact *)
 Lemma r0_rblk : forall E r sz, r0_size R0 r = Some sz ->
@@ -396,7 +397,8 @@ Proof.
     exists hd, (Vptr bs os), x, z. split; [exact FH0 | split; [exact OL0 |]].
     exact (hit_transfer m m0 bs os x z h' (fun ch z' => ld_m0 E m g bs z' ch MMh Ob NR) Ht). }
   match goal with Dy : den E a2 = Some ?yv /\ _ |- _ =>
-    assert (HGT : HPi (Hit_at ge m0) (ycast yv) h) end.
+    assert (HGT : HPi (Hit_at ge m0) (ycast yv) h
+                  /\ forall f, Mem.loadv Mint32 m' (Vptr bpf op) = Some f -> nn f \/ Hit_at ge m0 h) end.
   { match goal with Hx : eval_funcall _ _ _ _ _ _ _ _ |- _ => rename Hx into Hev' end.
     destruct (ff_height ge HC Hpin m _ _ _ bpf op t m' (Vsingle h) Hvm
                 ltac:(intros id b Hin Hs; apply Vm;
@@ -412,9 +414,11 @@ Proof.
                       destruct (WSurf hd s PH0 OL0) as (bs & os & -> & Ob & _ & _ & _);
                       exists bs, os; split; [reflexivity | split; [exact (Vm _ Ob) |]];
                       split; [exact (WNS hd bs os PH0 OL0) | intros E'; apply Hnew; rewrite <- E'; exact Ob])
+                ltac:(intros id b Hin Hs ->; exact (Hnew (statics_old _ _ HW (ex_intro _ id (conj Hin Hs)))))
                 Hev')
-      as (h' & Eh & HP).
-    injection Eh as <-. exact (HPi_mono _ _ _ _ HitM0 HP). }
+      as (h' & Eh & HP & HN).
+    injection Eh as <-. split; [exact (HPi_mono _ _ _ _ HitM0 HP) |].
+    intros f Hl. destruct (HN f Hl) as [N | Hh]; [left; exact N | right; exact (HitM0 _ Hh)]. }
   assert (RD : forall b lo hi, Plt b nb0 -> Mem.range_perm m0 b lo hi Cur Writable ->
             Mem.range_perm m' b lo hi Cur Readable /\ Mem.range_perm m b lo hi Cur Writable).
   { intros b lo hi Hb Hr. split; intros i Hi.
@@ -700,7 +704,10 @@ Proof.
       - cbn [fact_holds map]. rewrite D6.
         match goal with Hd : den E a2 = Some _ /\ sok _ _ a2 |- _ => destruct Hd as (Dy2 & Sy2) end.
         erewrite den_Rx; [| exact RX | eapply sok_nlt; exact Sy2].
-        rewrite Dy2. apply HUH. exact HGT. }
+        rewrite Dy2. apply HUH; [exact (proj1 HGT) |].
+        assert (Lfl : Mem.loadv Mint32 m' (Vptr bpf op) = Some fl) by (cbn [Mem.loadv] in *; exact Hld).
+        destruct (proj2 HGT fl Lfl) as [[N | N] | Hh]; [rewrite Efl in N; discriminate N
+                                                      | rewrite Efl in N; discriminate N | exact Hh]. }
     apply FIN; [| cbn; rewrite Y5; apply LCg; reflexivity | cbn; rewrite X5; exact NXg4].
     eapply (TAIL (Sfresh n4) gS); [exact S5S | exact D5 | exact MA3 | reflexivity | cbn; exact Y5].
 Qed.

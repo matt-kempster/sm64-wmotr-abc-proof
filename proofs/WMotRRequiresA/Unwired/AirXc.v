@@ -71,7 +71,8 @@ Hypothesis HgCL : gfind gtab surface_collision._gNumCalls = Some rCL.
 (* the world fact's meaning *)
 Hypothesis HU : forall vs, uf kW vs -> Wff ge m0 gp szS vs.
 (* the height fact's meaning (proved by c_ff_sound from find_floor's body) *)
-Hypothesis HUH : forall h yv, HPi (Hit_at ge m0) (ycast yv) h -> uf kH [Some (Vsingle h); Some yv].
+Hypothesis HUH : forall h yv, HPi (Hit_at ge m0) (ycast yv) h -> Hit_at ge m0 h ->
+  uf kH [Some (Vsingle h); Some yv].
 
 Lemma lookup_res : forall id f fd, resolves_to ge id f -> sfun_lookup ge id = Some fd -> fd = Internal f.
 Proof.
@@ -183,7 +184,8 @@ Theorem air_xc_sound_link : forall nbase R0 gtab kv m0 uf gp rFI rMS rCL kW kH s
   gfind gtab surface_collision._gNumFindFloorMisses = Some rMS ->
   gfind gtab surface_collision._gNumCalls = Some rCL ->
   (forall vs, uf kW vs -> Wff (globalenv lp) m0 gp szS vs) ->
-  (forall h yv, HPi (Hit_at (globalenv lp) m0) (ycast yv) h -> uf kH [Some (Vsingle h); Some yv]) ->
+  (forall h yv, HPi (Hit_at (globalenv lp) m0) (ycast yv) h -> Hit_at (globalenv lp) m0 h ->
+     uf kH [Some (Vsingle h); Some yv]) ->
   forall id k args g cps fd E m vargs t m' vres,
   air_xc nbase R0 rFI rMS rCL kW kH szS id = Some k -> k args g = Some cps ->
   sfun_lookup (globalenv lp) id = Some fd ->

@@ -291,10 +291,10 @@ Variable ge : genv.
 Variable e : env.
 
 Definition trh (P : temp_env -> mem -> Prop) (s : statement)
-    (Q : temp_env -> mem -> Prop) (R : outcome -> Prop) : Prop :=
+    (Q : temp_env -> mem -> Prop) (R : outcome -> mem -> Prop) : Prop :=
   forall le M t le' M' out, P le M ->
     exec_stmt function_entry2 ge e le M s t le' M' out ->
-    (out = Out_normal /\ Q le' M') \/ (out <> Out_normal /\ R out).
+    (out = Out_normal /\ Q le' M') \/ (out <> Out_normal /\ R out M').
 
 Lemma trh_seq : forall P s1 Q s2 Q' R,
     trh P s1 Q R -> trh Q s2 Q' R -> trh P (Ssequence s1 s2) Q' R.
@@ -320,8 +320,8 @@ Qed.
 Lemma trh_skip : forall P R, trh P Sskip P R.
 Proof. intros P R le M t le' M' out HP H. inv H. left; auto. Qed.
 
-Lemma trh_ret : forall (P : temp_env -> mem -> Prop) a Q (R : outcome -> Prop),
-    (forall le M v, P le M -> eval_expr ge e le M a v -> R (Out_return (Some (v, typeof a)))) ->
+Lemma trh_ret : forall (P : temp_env -> mem -> Prop) a Q (R : outcome -> mem -> Prop),
+    (forall le M v, P le M -> eval_expr ge e le M a v -> R (Out_return (Some (v, typeof a))) M) ->
     trh P (Sreturn (Some a)) Q R.
 Proof.
   intros P a Q R PR le M t le' M' out HP H.
@@ -379,6 +379,7 @@ Hypothesis HHD : bH <> bD.
 Hypothesis HpH : bpf <> bH.
 Hypothesis HpD : bpf <> bD.
 Hypothesis Hgl : forall id b, In id ff_statics -> Genv.find_symbol ge id = Some b -> b <> bH /\ b <> bD.
+Hypothesis Hsp : forall id b, In id ff_statics -> Genv.find_symbol ge id = Some b -> b <> bpf.
 (* the blocks find_floor writes *)
 Definition Wr (b : block) : Prop := b = bH \/ b = bD \/ b = bpf \/ is_static ge b.
 Hypothesis Hpart : forall id bp, In id part_ids -> Genv.find_symbol ge id = Some bp -> ~ Wr bp.
@@ -413,7 +414,7 @@ Definition HH (le : temp_env) (M : mem) : Prop :=
   /\ SLp le
   /\ (forall ch b z, ~ Wr b -> Mem.load ch M b z = Mem.load ch mb b z).
 
-Definition RH (out : outcome) : Prop :=
+Definition RH (out : outcome) (M : mem) : Prop :=
   forall v ty, out = Out_return (Some (v, ty)) ->
     ty = tfloat /\ forall h, v = Vsingle h -> HP h.
 
@@ -852,6 +853,494 @@ Ltac solve_trh :=
 
 Lemma ff_body_trh : trh ge e HH (fn_body surface_collision.f_find_floor) HH RH.
 Proof. cbn [fn_body surface_collision.f_find_floor]. solve_trh. Qed.
+
+(* ---- the floor find_floor reports is NULL, or the height is a hit ---- *)
+
+Definition nn (v : val) : Prop := v = Vundef \/ v = Vint Int.zero.
+Definition HitC (b : block) (M : mem) : Prop :=
+  exists h, Mem.load Mfloat32 M b 0 = Some (Vsingle h) /\ Hit_at ge mb h.
+Definition fr_ids : list ident := [surface_collision._floor; surface_collision._dynamicFloor].
+
+(* floor / dynamicFloor are NULL, or their height cell holds a hit *)
+Definition FR (le : temp_env) (M : mem) : Prop :=
+  (forall v, le ! surface_collision._dynamicFloor = Some v -> nn v \/ HitC bD M)
+  /\ (forall v, le ! surface_collision._floor = Some v -> nn v \/ HitC bH M).
+(* before the final store *pfloor is NULL; after it, NULL or height is a hit *)
+Definition PF0 (M : mem) : Prop :=
+  forall f, Mem.load Mint32 M bpf (Ptrofs.unsigned opf) = Some f -> nn f.
+Definition PF1 (M : mem) : Prop :=
+  forall f, Mem.load Mint32 M bpf (Ptrofs.unsigned opf) = Some f -> nn f \/ HitC bH M.
+Definition HH0 (le : temp_env) (M : mem) : Prop :=
+  HH le M /\ le ! surface_collision._floor = Some Vundef
+  /\ le ! surface_collision._dynamicFloor = Some Vundef.
+Definition HHF (le : temp_env) (M : mem) : Prop := HH le M /\ FR le M /\ PF0 M.
+Definition HH1 (le : temp_env) (M : mem) : Prop := HH le M /\ PF1 M.
+Definition HHk (tk : ident) (bL : block) (le : temp_env) (M : mem) : Prop :=
+  HHF le M /\ forall v, le ! tk = Some v -> nn v \/ HitC bL M.
+Definition RHF (out : outcome) (M : mem) : Prop :=
+  RH out M /\ forall v ty, out = Out_return (Some (v, ty)) ->
+    forall f, Mem.load Mint32 M bpf (Ptrofs.unsigned opf) = Some f ->
+      nn f \/ exists h, v = Vsingle h /\ Hit_at ge mb h.
+
+Definition TT (out : outcome) (M : mem) : Prop := True.
+
+Lemma assign_load_other : forall ty M b ofs bf v M' ch b' z,
+    assign_loc ge ty M b ofs bf v M' -> b' <> b -> Mem.load ch M' b' z = Mem.load ch M b' z.
+Proof.
+  intros ty M b ofs bf v M' ch b' z Ha Hn. inv Ha.
+  - cbn [Mem.storev] in *. eapply Mem.load_store_other; [eassumption | left; exact Hn].
+  - eapply Mem.load_storebytes_other; [eassumption | left; exact Hn].
+  - match goal with Hs : ?T |- _ => lazymatch T with context [store_bitfield] => inv Hs end end.
+    eapply Mem.load_store_other; [eassumption | left; exact Hn].
+Qed.
+
+Lemma HitC_same : forall b M M', Mem.load Mfloat32 M' b 0 = Mem.load Mfloat32 M b 0 ->
+  HitC b M -> HitC b M'.
+Proof. intros b M M' E (h & Hl & Hh). exists h. rewrite E. auto. Qed.
+
+Lemma static_ne : forall b, is_static ge b -> b <> bH /\ b <> bD /\ b <> bpf.
+Proof.
+  intros b (id & Hin & Hs). destruct (Hgl id b Hin Hs) as (N1 & N2).
+  split; [exact N1 | split; [exact N2 | exact (Hsp id b Hin Hs)]].
+Qed.
+
+Lemma normal_set : forall le M x a t le' M' out,
+    exec_stmt function_entry2 ge e le M (Sset x a) t le' M' out -> out = Out_normal.
+Proof. intros. inv H. reflexivity. Qed.
+Lemma normal_assign : forall le M l r t le' M' out,
+    exec_stmt function_entry2 ge e le M (Sassign l r) t le' M' out -> out = Out_normal.
+Proof. intros. inv H. reflexivity. Qed.
+
+(* a temp set (not floor / dynamicFloor) *)
+Lemma lift_set : forall x a R, ~ In x fr_ids ->
+    trh ge e HH (Sset x a) HH TT -> trh ge e HHF (Sset x a) HHF R.
+Proof.
+  intros x a R Hn T le M t le' M' out (HI & (F1 & F2) & P) Hx.
+  destruct (T _ _ _ _ _ _ HI Hx) as [(_ & HQ) | (Hne & _)];
+    [| exfalso; exact (Hne (normal_set _ _ _ _ _ _ _ _ Hx))].
+  inv Hx. left. split; [reflexivity |]. split; [exact HQ |]. split; [| exact P].
+  split; intros w Hl; rewrite PTree.gso in Hl by (intro E; apply Hn; rewrite <- E; inh); eauto.
+Qed.
+
+Lemma lift_set1 : forall x a R,
+    trh ge e HH (Sset x a) HH TT -> trh ge e HH1 (Sset x a) HH1 R.
+Proof.
+  intros x a R T le M t le' M' out (HI & P) Hx.
+  destruct (T _ _ _ _ _ _ HI Hx) as [(_ & HQ) | (Hne & _)];
+    [| exfalso; exact (Hne (normal_set _ _ _ _ _ _ _ _ Hx))].
+  inv Hx. left. split; [reflexivity |]. split; [exact HQ | exact P].
+Qed.
+
+Lemma lift_set0 : forall x a R, ~ In x fr_ids ->
+    trh ge e HH (Sset x a) HH TT -> trh ge e HH0 (Sset x a) HH0 R.
+Proof.
+  intros x a R Hn T le M t le' M' out (HI & F1 & F2) Hx.
+  destruct (T _ _ _ _ _ _ HI Hx) as [(_ & HQ) | (Hne & _)];
+    [| exfalso; exact (Hne (normal_set _ _ _ _ _ _ _ _ Hx))].
+  inv Hx. left. split; [reflexivity |]. split; [exact HQ |].
+  split; rewrite PTree.gso by (intro E; apply Hn; rewrite <- E; inh); assumption.
+Qed.
+
+Lemma lift_assign0 : forall l r R,
+    trh ge e HH (Sassign l r) HH TT -> trh ge e HH0 (Sassign l r) HH0 R.
+Proof.
+  intros l r R T le M t le' M' out (HI & F1 & F2) Hx.
+  destruct (T _ _ _ _ _ _ HI Hx) as [(_ & HQ) | (Hne & _)];
+    [| exfalso; exact (Hne (normal_assign _ _ _ _ _ _ _ _ Hx))].
+  inv Hx. left. split; [reflexivity |]. split; [exact HQ | split; assumption].
+Qed.
+
+(* a store into a static cell *)
+Lemma lift_static : forall lhs rhs R,
+    (forall le M b ofs bf, eval_lvalue ge e le M lhs b ofs bf -> is_static ge b) ->
+    trh ge e HH (Sassign lhs rhs) HH TT ->
+    trh ge e HHF (Sassign lhs rhs) HHF R /\ trh ge e HH1 (Sassign lhs rhs) HH1 R.
+Proof.
+  intros lhs rhs R Hs T. split.
+  - intros le M t le' M' out (HI & (F1 & F2) & P) Hx.
+    destruct (T _ _ _ _ _ _ HI Hx) as [(_ & HQ) | (Hne & _)];
+      [| exfalso; exact (Hne (normal_assign _ _ _ _ _ _ _ _ Hx))].
+    inv Hx. left. split; [reflexivity |].
+    match goal with Hl : eval_lvalue _ _ _ _ _ ?b _ _, Ha : assign_loc _ _ _ _ _ _ _ _ |- _ =>
+      destruct (static_ne b (Hs _ _ _ _ _ Hl)) as (N1 & N2 & N3);
+      pose proof (fun ch b' z Hn => assign_load_other _ _ _ _ _ _ _ ch b' z Ha Hn) as K end.
+    split; [exact HQ |]. split.
+    + split; intros w Hl.
+      * destruct (F1 w Hl) as [? | Hc]; [left; assumption | right].
+        eapply HitC_same; [apply K; congruence | exact Hc].
+      * destruct (F2 w Hl) as [? | Hc]; [left; assumption | right].
+        eapply HitC_same; [apply K; congruence | exact Hc].
+    + intros f Hl. apply P. rewrite <- (K _ _ _ (not_eq_sym N3)). exact Hl.
+  - intros le M t le' M' out (HI & P) Hx.
+    destruct (T _ _ _ _ _ _ HI Hx) as [(_ & HQ) | (Hne & _)];
+      [| exfalso; exact (Hne (normal_assign _ _ _ _ _ _ _ _ Hx))].
+    inv Hx. left. split; [reflexivity |].
+    match goal with Hl : eval_lvalue _ _ _ _ _ ?b _ _, Ha : assign_loc _ _ _ _ _ _ _ _ |- _ =>
+      destruct (static_ne b (Hs _ _ _ _ _ Hl)) as (N1 & N2 & N3);
+      pose proof (fun ch b' z Hn => assign_load_other _ _ _ _ _ _ _ ch b' z Ha Hn) as K end.
+    split; [exact HQ |].
+    intros f Hl. rewrite (K _ _ _ (not_eq_sym N3)) in Hl.
+    destruct (P f Hl) as [? | Hc]; [left; assumption | right].
+    eapply HitC_same; [apply K; congruence | exact Hc].
+Qed.
+
+Lemma lv_st' : forall x ty, In x ff_statics ->
+    forall le M b ofs bf, eval_lvalue ge e le M (Evar x ty) b ofs bf -> is_static ge b.
+Proof.
+  intros x ty Hin le M b ofs bf Hl.
+  destruct (lv_static ge bH bD x le M ty b ofs bf Hin Hl) as (Hs & _ & _).
+  exists x. auto.
+Qed.
+
+Lemma lv_ncf' : forall le M b ofs bf,
+    eval_lvalue ge e le M
+      (Efield (Evar surface_collision._gNumCalls (Tstruct surface_collision._NumTimesCalled noattr))
+         surface_collision._floor tshort) b ofs bf -> is_static ge b.
+Proof.
+  intros le M b ofs bf Hl.
+  destruct (lv_calls_floor ge bH bD HC le M b ofs bf Hl) as (Hs & _ & _).
+  exists surface_collision._gNumCalls. split; [inh | exact Hs].
+Qed.
+
+(* a find_floor_from_list call: NULL, or the height it stores is a hit *)
+Lemma HHF_call : forall tk tres cc loc bL a1 a2 a3 R,
+    ((loc = surface_collision._height /\ bL = bH)
+     \/ (loc = surface_collision._dynamicHeight /\ bL = bD)) ->
+    ~ In tk fr_ids ->
+    trh ge e HH
+      (Scall (Some tk)
+         (Evar surface_collision._find_floor_from_list
+            (Tfunction [tptr (Tstruct surface_collision._SurfaceNode noattr); tint; tint; tint;
+                        tptr tfloat] tres cc))
+         [Etempvar surface_collision._surfaceList
+            (tptr (Tstruct surface_collision._SurfaceNode noattr));
+          a1; a2; a3; Eaddrof (Evar loc tfloat) (tptr tfloat)])
+      HH TT ->
+    trh ge e HHF
+      (Scall (Some tk)
+         (Evar surface_collision._find_floor_from_list
+            (Tfunction [tptr (Tstruct surface_collision._SurfaceNode noattr); tint; tint; tint;
+                        tptr tfloat] tres cc))
+         [Etempvar surface_collision._surfaceList
+            (tptr (Tstruct surface_collision._SurfaceNode noattr));
+          a1; a2; a3; Eaddrof (Evar loc tfloat) (tptr tfloat)])
+      (HHk tk bL) R.
+Proof.
+  intros tk tres cc loc bL a1 a2 a3 R Hloc Hn T le M t le' M' out (HI & (F1 & F2) & P) H.
+  assert (Hne : e ! surface_collision._find_floor_from_list = None) by (apply ffe_other; idne).
+  destruct (T _ _ _ _ _ _ HI H) as [(_ & HQ) | (Hno & _)].
+  2:{ destruct (ffl_call _ _ _ _ _ _ _ _ _ _ _ _ _ HC Hpin Hne H) as (? & ? & ? & ? & ? & ? & _ & Ho & _).
+      contradiction. }
+  destruct (ffl_call _ _ _ _ _ _ _ _ _ _ _ _ _ HC Hpin Hne H)
+    as (node & x & y & z & ph & fl0 & Hargs & -> & -> & Hres).
+  left; split; [reflexivity |].
+  assert (Ntk : forall i, In i fr_ids -> i <> tk) by (intros i Hi E; subst; contradiction).
+  assert (FRset : forall M1, FR le M1 -> FR (PTree.set tk fl0 le) M1).
+  { intros M1 (G1 & G2). split; intros w Hl;
+      rewrite PTree.gso in Hl by (apply Ntk; inh); eauto. }
+  destruct Hres as [(-> & ->) | (Hon & h & Hstv & Hk & Hhit)].
+  { split; [split; [exact HQ | split; [exact (FRset _ (conj F1 F2)) | exact P]] |].
+    intros w Hl. rewrite PTree.gss in Hl. injection Hl as <-. left; right; reflexivity. }
+  pose proof HI as (_ & _ & _ & _ & _ & _ & SL & MF).
+  repeat match goal with Hl : eval_exprlist _ _ _ _ (_ :: _) _ _ |- _ => inv Hl end.
+  match goal with Ht : eval_expr _ _ _ _ (Etempvar surface_collision._surfaceList _) _ |- _ =>
+    inv Ht; [| match goal with Hl : eval_lvalue _ _ _ _ (Etempvar _ _) _ _ _ |- _ => inv Hl end] end.
+  match goal with Hc : sem_cast _ (typeof (Etempvar surface_collision._surfaceList _)) _ _ = Some _ |- _ =>
+    cbn [typeof] in Hc; apply cast_ptr_same in Hc; subst end.
+  match goal with Hx : le ! surface_collision._surfaceList = Some _ |- _ =>
+    destruct (proj1 SL _ Hx) as [-> | FH] end.
+  { inv Hon. }
+  pose proof (floor_head_part _ _ _ FH) as PH.
+  pose proof (ol_transfer _ _ _ (Hwf _ PH) M _ (fun b z Nw => MF Mint32 b z Nw) Hon) as OL.
+  destruct (Hsurf _ _ PH OL) as (bs & os & -> & Nws).
+  pose proof (hit_transfer M mb bs os _ _ _ (fun ch z => MF ch bs z Nws) Hhit) as Hhit'.
+  assert (Ht : Hit_at ge mb h) by (do 4 eexists; split; [exact FH | split; [exact OL | exact Hhit']]).
+  match goal with Ha : eval_expr _ _ _ _ (Eaddrof _ _) _ |- _ =>
+    inv Ha; [| match goal with Hl : eval_lvalue _ _ _ _ (Eaddrof _ _) _ _ _ |- _ => inv Hl end] end.
+  match goal with Hl : eval_lvalue _ _ _ _ (Evar _ _) _ _ _ |- _ => inv Hl end;
+    [| destruct Hloc as [(-> & _) | (-> & _)];
+       [rewrite ffe_H in * | rewrite ffe_D in *]; discriminate].
+  match goal with Hx : (ffe _ _) ! loc = Some (?bb, _) |- _ =>
+    assert (Eb : bb = bL)
+      by (destruct Hloc as [(-> & ->) | (-> & ->)];
+          [rewrite ffe_H in Hx | rewrite ffe_D in Hx]; congruence);
+    subst bb end.
+  match goal with Hc : sem_cast _ (typeof (Eaddrof _ _)) _ _ = Some _ |- _ =>
+    cbn [typeof] in Hc; apply cast_ptr_same in Hc; subst end.
+  cbn [Mem.storev] in Hstv. rewrite Ptrofs.unsigned_zero in Hstv.
+  assert (Cnew : HitC bL M').
+  { exists h. split; [| exact Ht]. rewrite (Mem.load_store_same _ _ _ _ _ _ Hstv). reflexivity. }
+  assert (K : forall ch b zz, b <> bL -> Mem.load ch M' b zz = Mem.load ch M b zz)
+    by (intros ch b zz Hb; eapply Mem.load_store_other; [exact Hstv | left; exact Hb]).
+  assert (Keep : forall b, b = bH \/ b = bD -> HitC b M -> HitC b M').
+  { intros b Hb Hc. destruct (peq b bL) as [-> | Hne'];
+      [exact Cnew | eapply HitC_same; [exact (K _ _ _ Hne') | exact Hc]]. }
+  assert (NpL : bpf <> bL) by (destruct Hloc as [(_ & ->) | (_ & ->)]; assumption).
+  split.
+  - split; [exact HQ |]. split.
+    + apply FRset. split; intros w Hl.
+      * destruct (F1 w Hl) as [? | Hc]; [left; assumption | right; apply Keep; auto].
+      * destruct (F2 w Hl) as [? | Hc]; [left; assumption | right; apply Keep; auto].
+    + intros f Hl. apply P. rewrite <- (K _ _ _ NpL). exact Hl.
+  - intros w Hl. rewrite PTree.gss in Hl. injection Hl as <-. right. exact Cnew.
+Qed.
+
+(* floor / dynamicFloor := the call's result *)
+Lemma HHF_take : forall d tk ty bL R,
+    ((d = surface_collision._dynamicFloor /\ bL = bD) \/ (d = surface_collision._floor /\ bL = bH)) ->
+    trh ge e HH (Sset d (Etempvar tk ty)) HH TT ->
+    trh ge e (HHk tk bL) (Sset d (Etempvar tk ty)) HHF R.
+Proof.
+  intros d tk ty bL R Hd T le M t le' M' out ((HI & (F1 & F2) & P) & Kt) Hx.
+  destruct (T _ _ _ _ _ _ HI Hx) as [(_ & HQ) | (Hne & _)];
+    [| exfalso; exact (Hne (normal_set _ _ _ _ _ _ _ _ Hx))].
+  inv Hx.
+  match goal with Ht : eval_expr _ _ _ _ (Etempvar _ _) _ |- _ =>
+    inv Ht; [| match goal with Hl : eval_lvalue _ _ _ _ (Etempvar _ _) _ _ _ |- _ => inv Hl end] end.
+  left. split; [reflexivity |]. split; [exact HQ |]. split; [| exact P].
+  destruct Hd as [(-> & ->) | (-> & ->)]; split; intros w Hl.
+  - rewrite PTree.gss in Hl. injection Hl as <-. auto.
+  - rewrite PTree.gso in Hl by idne. eauto.
+  - rewrite PTree.gso in Hl by idne. eauto.
+  - rewrite PTree.gss in Hl. injection Hl as <-. auto.
+Qed.
+
+Local Notation SF := (Tstruct surface_collision._Surface noattr).
+
+Lemma ev_height_var : forall le M x b w,
+    (x = surface_collision._height /\ b = bH) \/ (x = surface_collision._dynamicHeight /\ b = bD) ->
+    eval_expr ge e le M (Evar x tfloat) w -> Mem.load Mfloat32 M b 0 = Some w.
+Proof.
+  intros le M x b w Hx H.
+  inv H. match goal with Hl : eval_lvalue _ _ _ _ (Evar _ _) _ _ _ |- _ => inv Hl end.
+  - match goal with Hd : deref_loc _ _ _ _ _ _ |- _ => inv Hd end; cbn in *; try discriminate.
+    match goal with Ha : By_value _ = By_value _ |- _ => inv Ha end.
+    match goal with Hl : Mem.load _ _ _ _ = Some _, He : e ! x = Some _ |- _ =>
+      rewrite Ptrofs.unsigned_zero in Hl; destruct Hx as [(-> & ->) | (-> & ->)];
+      [rewrite ffe_H in He | rewrite ffe_D in He]; inv He; exact Hl end.
+  - destruct Hx as [(-> & _) | (-> & _)]; [rewrite ffe_H in * | rewrite ffe_D in *]; discriminate.
+Qed.
+
+Definition swap_blk (ty1 : type) : statement :=
+  Ssequence (Sset surface_collision._floor (Etempvar surface_collision._dynamicFloor ty1))
+    (Ssequence (Sset surface_collision._t'11 (Evar surface_collision._dynamicHeight tfloat))
+       (Sassign (Evar surface_collision._height tfloat) (Etempvar surface_collision._t'11 tfloat))).
+
+Lemma swap_exec : forall ty1 le M t le' M' out,
+    exec_stmt function_entry2 ge e le M (swap_blk ty1) t le' M' out ->
+    out = Out_normal /\ exists v0 w w',
+      le ! surface_collision._dynamicFloor = Some v0 /\ Mem.load Mfloat32 M bD 0 = Some w
+      /\ sem_cast w tfloat tfloat M = Some w' /\ Mem.store Mfloat32 M bH 0 w' = Some M'
+      /\ le' = PTree.set surface_collision._t'11 w (PTree.set surface_collision._floor v0 le).
+Proof.
+  intros ty1 le M t le' M' out H. unfold swap_blk in H.
+  inv H; [| match goal with H1 : exec_stmt _ _ _ _ _ (Sset _ _) _ _ _ ?o, Hn : ?o <> Out_normal |- _ =>
+             apply normal_set in H1; contradiction end].
+  match goal with H2 : exec_stmt _ _ _ _ _ (Ssequence _ _) _ _ _ _ |- _ =>
+    inv H2; [| match goal with H1 : exec_stmt _ _ _ _ _ (Sset _ _) _ _ _ ?o, Hn : ?o <> Out_normal |- _ =>
+                apply normal_set in H1; contradiction end] end.
+  repeat match goal with Hs : exec_stmt _ _ _ _ _ (Sset _ _) _ _ _ _ |- _ => inv Hs end.
+  match goal with Ha : exec_stmt _ _ _ _ _ (Sassign _ _) _ _ _ _ |- _ => inv Ha end.
+  split; [reflexivity |].
+  match goal with Ht : eval_expr _ _ _ _ (Etempvar surface_collision._dynamicFloor _) ?v0 |- _ =>
+    inv Ht; [| match goal with Hl : eval_lvalue _ _ _ _ (Etempvar _ _) _ _ _ |- _ => inv Hl end] end.
+  match goal with Hd : eval_expr _ _ _ _ (Evar surface_collision._dynamicHeight _) ?w |- _ =>
+    pose proof (ev_height_var _ _ _ _ _ (or_intror (conj eq_refl eq_refl)) Hd) as Lw end.
+  match goal with Ht : eval_expr _ _ _ _ (Etempvar surface_collision._t'11 _) _ |- _ =>
+    inv Ht; [| match goal with Hl : eval_lvalue _ _ _ _ (Etempvar _ _) _ _ _ |- _ => inv Hl end] end.
+  match goal with Hx : (PTree.set _ _ _) ! surface_collision._t'11 = Some _ |- _ =>
+    rewrite PTree.gss in Hx; injection Hx as <- end.
+  match goal with Hl : eval_lvalue _ _ _ _ (Evar surface_collision._height _) _ _ _ |- _ =>
+    inv Hl; [| rewrite ffe_H in *; discriminate] end.
+  match goal with He : e ! surface_collision._height = Some _ |- _ => rewrite ffe_H in He; inv He end.
+  match goal with Ha : assign_loc _ _ _ _ _ _ _ _ |- _ => inv Ha; cbn in *; try discriminate end.
+  match goal with Ha : By_value _ = By_value _ |- _ => inv Ha end.
+  cbn [Mem.storev] in *. rewrite Ptrofs.unsigned_zero in *.
+  do 3 eexists. split; [eassumption | split; [exact Lw | split; [eassumption | split; [eassumption |]]]].
+  reflexivity.
+Qed.
+
+(* if (dynamicHeight > height) { floor = dynamicFloor; height = dynamicHeight; } *)
+Lemma HHF_swap : forall ty1 R,
+    trh ge e HH (swap_blk ty1) HH TT -> trh ge e HHF (swap_blk ty1) HHF R.
+Proof.
+  intros ty1 R T le M t le' M' out (HI & (F1 & F2) & P) H.
+  destruct (swap_exec _ _ _ _ _ _ _ H) as (-> & v0 & w & w' & Hd & Lw & Cw & Sw & ->).
+  destruct (T _ _ _ _ _ _ HI H) as [(_ & HQ) | (Hne & _)]; [| congruence].
+  left. split; [reflexivity |]. split; [exact HQ |].
+  assert (K : forall ch b z, b <> bH -> Mem.load ch M' b z = Mem.load ch M b z)
+    by (intros ch b z Hb; eapply Mem.load_store_other; [exact Sw | left; exact Hb]).
+  split; [split; intros u Hl |].
+  - rewrite PTree.gso in Hl by idne. rewrite PTree.gso in Hl by idne.
+    destruct (F1 u Hl) as [? | Hc]; [left; assumption | right].
+    eapply HitC_same; [exact (K _ _ _ (not_eq_sym HHD)) | exact Hc].
+  - rewrite PTree.gso in Hl by idne. rewrite PTree.gss in Hl. injection Hl as <-.
+    destruct (F1 v0 Hd) as [? | (h & Lh & Hh)]; [left; assumption | right].
+    rewrite Lw in Lh. injection Lh as ->. cbn in Cw. injection Cw as <-.
+    exists h. split; [| exact Hh]. rewrite (Mem.load_store_same _ _ _ _ _ _ Sw). reflexivity.
+  - intros f Hl. apply P. rewrite <- (K _ _ _ HpH). exact Hl.
+Qed.
+
+Definition pf_lhs : expr :=
+  Ederef (Etempvar surface_collision._pfloor (tptr (tptr SF))) (tptr SF).
+
+Lemma pf_exec : forall rhs le M t le' M' out,
+    HH le M -> exec_stmt function_entry2 ge e le M (Sassign pf_lhs rhs) t le' M' out ->
+    out = Out_normal /\ le' = le /\ exists v v', eval_expr ge e le M rhs v
+      /\ sem_cast v (typeof rhs) (tptr SF) M = Some v'
+      /\ Mem.store Mint32 M bpf (Ptrofs.unsigned opf) v' = Some M'.
+Proof.
+  intros rhs le M t le' M' out (_ & _ & _ & _ & _ & Hp & _) H. inv H.
+  split; [reflexivity | split; [reflexivity |]].
+  match goal with Hl : eval_lvalue _ _ _ _ pf_lhs _ _ _ |- _ => unfold pf_lhs in Hl; inv Hl end.
+  match goal with Ht : eval_expr _ _ _ _ (Etempvar _ _) _ |- _ =>
+    inv Ht; [| match goal with Hl : eval_lvalue _ _ _ _ (Etempvar _ _) _ _ _ |- _ => inv Hl end] end.
+  match goal with Hx : _ ! surface_collision._pfloor = Some (Vptr ?l _) |- _ =>
+    lazymatch l with bpf => fail | _ => rewrite Hp in Hx; inv Hx end end.
+  unfold pf_lhs in *. cbn [typeof] in *.
+  match goal with Ha : assign_loc _ _ _ _ _ _ _ _ |- _ => inv Ha; cbn in *; try discriminate end.
+  match goal with Ha : By_value _ = By_value _ |- _ => inv Ha end.
+  do 2 eexists. split; [eassumption | split; [eassumption | eassumption]].
+Qed.
+
+(* *pfloor = NULL, the first store: every later state has *pfloor NULL *)
+Lemma pf_null : forall R,
+    trh ge e HH (Sassign pf_lhs (Ecast (Econst_int (Int.repr 0) tint) (tptr tvoid))) HH TT ->
+    trh ge e HH0 (Sassign pf_lhs (Ecast (Econst_int (Int.repr 0) tint) (tptr tvoid))) HHF R.
+Proof.
+  intros R T le M t le' M' out (HI & U1 & U2) H.
+  destruct (pf_exec _ _ _ _ _ _ _ HI H) as (-> & -> & v & v' & Hev & Hc & Hs).
+  destruct (T _ _ _ _ _ _ HI H) as [(_ & HQ) | (Hne & _)]; [| congruence].
+  left. split; [reflexivity |]. split; [exact HQ |].
+  inv Hev; [| match goal with Hl : eval_lvalue _ _ _ _ (Ecast _ _) _ _ _ |- _ => inv Hl end].
+  match goal with Hk : eval_expr _ _ _ _ (Econst_int _ _) _ |- _ =>
+    inv Hk; [| match goal with Hl : eval_lvalue _ _ _ _ (Econst_int _ _) _ _ _ |- _ => inv Hl end] end.
+  match goal with Hc1 : sem_cast (Vint _) _ _ _ = Some _ |- _ => cbn in Hc1; injection Hc1 as <- end.
+  cbn in Hc. injection Hc as <-.
+  split; [split; intros u Hl; left |].
+  - rewrite U2 in Hl. injection Hl as <-. left; reflexivity.
+  - rewrite U1 in Hl. injection Hl as <-. left; reflexivity.
+  - intros f Hl. rewrite (Mem.load_store_same _ _ _ _ _ _ Hs) in Hl. injection Hl as <-.
+    right. reflexivity.
+Qed.
+
+(* *pfloor = floor, the last store *)
+Lemma pf_floor : forall R,
+    trh ge e HH (Sassign pf_lhs (Etempvar surface_collision._floor (tptr SF))) HH TT ->
+    trh ge e HHF (Sassign pf_lhs (Etempvar surface_collision._floor (tptr SF))) HH1 R.
+Proof.
+  intros R T le M t le' M' out (HI & (F1 & F2) & P) H.
+  destruct (pf_exec _ _ _ _ _ _ _ HI H) as (-> & -> & v & v' & Hev & Hc & Hs).
+  destruct (T _ _ _ _ _ _ HI H) as [(_ & HQ) | (Hne & _)]; [| congruence].
+  left. split; [reflexivity |]. split; [exact HQ |].
+  inv Hev; [| match goal with Hl : eval_lvalue _ _ _ _ (Etempvar _ _) _ _ _ |- _ => inv Hl end].
+  cbn [typeof] in Hc. apply cast_ptr_same in Hc. subst v'.
+  intros f Hl. rewrite (Mem.load_store_same _ _ _ _ _ _ Hs) in Hl. injection Hl as <-.
+  match goal with Hx : le ! surface_collision._floor = Some _ |- _ => destruct (F2 _ Hx) as [N | Hc] end.
+  - left. destruct N as [-> | ->]; [left | right]; reflexivity.
+  - right. eapply HitC_same; [| exact Hc].
+    eapply Mem.load_store_other; [exact Hs | left; exact (not_eq_sym HpH)].
+Qed.
+
+Definition ret_blk (tk : ident) : statement :=
+  Ssequence (Sset tk (Evar surface_collision._height tfloat))
+    (Sreturn (Some (Etempvar tk tfloat))).
+
+Lemma ret_exec : forall tk le M t le' M' out,
+    exec_stmt function_entry2 ge e le M (ret_blk tk) t le' M' out ->
+    M' = M /\ exists v, Mem.load Mfloat32 M bH 0 = Some v /\ out = Out_return (Some (v, tfloat)).
+Proof.
+  intros tk le M t le' M' out H. unfold ret_blk in H.
+  inv H; [| match goal with H1 : exec_stmt _ _ _ _ _ (Sset _ _) _ _ _ ?o, Hn : ?o <> Out_normal |- _ =>
+             apply normal_set in H1; contradiction end].
+  match goal with Hs : exec_stmt _ _ _ _ _ (Sset _ _) _ _ _ _ |- _ => inv Hs end.
+  match goal with Hr : exec_stmt _ _ _ _ _ (Sreturn _) _ _ _ _ |- _ => inv Hr end.
+  match goal with Ht : eval_expr _ _ _ _ (Etempvar _ _) _ |- _ =>
+    inv Ht; [| match goal with Hl : eval_lvalue _ _ _ _ (Etempvar _ _) _ _ _ |- _ => inv Hl end] end.
+  match goal with Hx : (PTree.set _ _ _) ! _ = Some _ |- _ => rewrite PTree.gss in Hx; injection Hx as <- end.
+  split; [reflexivity |].
+  match goal with Hd : eval_expr _ _ _ _ (Evar surface_collision._height _) ?w |- _ =>
+    exists w; split; [exact (ev_height_var _ _ _ _ _ (or_introl (conj eq_refl eq_refl)) Hd) | reflexivity] end.
+Qed.
+
+Lemma ret_F : forall tk Q, trh ge e HH (ret_blk tk) HH RH -> trh ge e HHF (ret_blk tk) Q RHF.
+Proof.
+  intros tk Q T le M t le' M' out (HI & _ & P) H.
+  destruct (ret_exec _ _ _ _ _ _ _ H) as (-> & v & Lv & ->).
+  destruct (T _ _ _ _ _ _ HI H) as [(Ho & _) | (Hne & HR)]; [discriminate Ho |].
+  right. split; [exact Hne |]. split; [exact HR |].
+  intros v' ty E f Hl. left. exact (P f Hl).
+Qed.
+
+Lemma ret_1 : forall tk Q, trh ge e HH (ret_blk tk) HH RH -> trh ge e HH1 (ret_blk tk) Q RHF.
+Proof.
+  intros tk Q T le M t le' M' out (HI & P) H.
+  destruct (ret_exec _ _ _ _ _ _ _ H) as (-> & v & Lv & ->).
+  destruct (T _ _ _ _ _ _ HI H) as [(Ho & _) | (Hne & HR)]; [discriminate Ho |].
+  right. split; [exact Hne |]. split; [exact HR |].
+  intros v' ty E f Hl. injection E as <- <-.
+  destruct (P f Hl) as [N | (h & Lh & Hh)]; [left; exact N | right].
+  rewrite Lv in Lh. injection Lh as ->. exists h. auto.
+Qed.
+
+Lemma lift_staticF : forall lhs rhs R,
+    (forall le M b ofs bf, eval_lvalue ge e le M lhs b ofs bf -> is_static ge b) ->
+    trh ge e HH (Sassign lhs rhs) HH TT -> trh ge e HHF (Sassign lhs rhs) HHF R.
+Proof. intros. apply lift_static; assumption. Qed.
+Lemma lift_static1 : forall lhs rhs R,
+    (forall le M b ofs bf, eval_lvalue ge e le M lhs b ofs bf -> is_static ge b) ->
+    trh ge e HH (Sassign lhs rhs) HH TT -> trh ge e HH1 (Sassign lhs rhs) HH1 R.
+Proof. intros. apply lift_static; assumption. Qed.
+
+Ltac lvF := first [exact lv_ncf' | apply lv_st'; inh].
+
+Ltac solve_1 :=
+  lazymatch goal with
+  | |- trh _ _ _ (Ssequence (Sset ?tk (Evar surface_collision._height _)) (Sreturn _)) _ _ =>
+      apply (ret_1 tk); unfold ret_blk; solve_trh
+  | |- trh _ _ _ (Ssequence _ _) _ _ => eapply (trh_seq _ _ _ _ HH1); [solve_1 | solve_1]
+  | |- trh _ _ _ (Sset _ _) _ _ => apply lift_set1; solve_trh
+  | |- trh _ _ _ (Sassign _ _) _ _ => apply lift_static1; [lvF | solve_trh]
+  end.
+
+Ltac solve_F :=
+  lazymatch goal with
+  | |- trh _ _ _ (Ssequence (Sset surface_collision._floor
+                     (Etempvar surface_collision._dynamicFloor ?t)) _) _ _ =>
+      apply (HHF_swap t); unfold swap_blk; solve_trh
+  | |- trh _ _ _ (Ssequence (Sassign (Ederef (Etempvar surface_collision._pfloor _) _) _) _) _ _ =>
+      eapply (trh_seq _ _ _ _ HH1); [apply pf_floor; unfold pf_lhs; solve_trh | solve_1]
+  | |- trh _ _ _ (Ssequence (Sset ?tk (Evar surface_collision._height _)) (Sreturn _)) _ _ =>
+      apply (ret_F tk); unfold ret_blk; solve_trh
+  | |- trh _ _ _ (Ssequence (Scall (Some _) _ _) (Sset _ _)) _ _ =>
+      eapply trh_seq; [eapply HHF_call; [locok | nin | solve_trh]
+                      | eapply HHF_take; [locok | solve_trh]]
+  | |- trh _ _ _ (Ssequence (Ssequence _ (Scall (Some _) _ _)) (Sset _ _)) _ _ =>
+      eapply trh_seq;
+        [eapply trh_seq; [solve_F | eapply HHF_call; [locok | nin | solve_trh]]
+        | eapply HHF_take; [locok | solve_trh]]
+  | |- trh _ _ _ (Ssequence _ _) _ _ => eapply (trh_seq _ _ _ _ HHF); [solve_F | solve_F]
+  | |- trh _ _ _ (Sifthenelse _ _ _) _ _ => eapply trh_ite; [solve_F | solve_F]
+  | |- trh _ _ _ Sskip _ _ => apply trh_skip
+  | |- trh _ _ _ (Sset _ _) _ _ => apply lift_set; [nin | solve_trh]
+  | |- trh _ _ _ (Sassign _ _) _ _ => apply lift_staticF; [lvF | solve_trh]
+  end.
+
+(* THE BODY, with the floor relation: every return is RHF *)
+Lemma ff_body_trhF : trh ge e HH0 (fn_body surface_collision.f_find_floor) HHF RHF.
+Proof.
+  cbn [fn_body surface_collision.f_find_floor].
+  eapply (trh_seq _ _ _ _ HH0); [apply lift_assign0; solve_trh |].
+  eapply (trh_seq _ _ _ _ HH0); [apply lift_assign0; solve_trh |].
+  do 3 (eapply (trh_seq _ _ _ _ HH0); [apply lift_set0; [nin | solve_trh] |]).
+  eapply (trh_seq _ _ _ _ HHF); [apply pf_null; unfold pf_lhs; solve_trh |].
+  solve_F.
+Qed.
+
+
+
+
+
 End FH.
 
 (* THE VALUE: whatever find_floor returns is in HPi for the s16 cast of its
@@ -866,11 +1355,13 @@ Theorem ff_height : forall (ge : genv), cenv_has ge -> ffl_pinned ge ->
       (forall hd, part_head ge m hd -> wf_list m (fun b => is_static ge b \/ b = bpf) hd) ->
       (forall hd s, part_head ge m hd -> on_list m hd s ->
          exists b o, s = Vptr b o /\ Mem.valid_block m b /\ ~ is_static ge b /\ b <> bpf) ->
+      (forall id b, In id ff_statics -> Genv.find_symbol ge id = Some b -> b <> bpf) ->
       eval_funcall function_entry2 ge m (Internal surface_collision.f_find_floor)
         [xv; yv; zv; Vptr bpf opf] t m' vres ->
-      exists h, vres = Vsingle h /\ HPi (Hit_at ge m) (ycast yv) h.
+      exists h, vres = Vsingle h /\ HPi (Hit_at ge m) (ycast yv) h
+        /\ forall f, Mem.loadv Mint32 m' (Vptr bpf opf) = Some f -> nn f \/ Hit_at ge m h.
 Proof.
-  intros ge HC Hpin m xv yv zv bpf opf t m' vres Hpv Hsv Hpt Hwfm Hsm H.
+  intros ge HC Hpin m xv yv zv bpf opf t m' vres Hpv Hsv Hpt Hwfm Hsm Hsp H.
   inv H.
   match goal with He : function_entry2 _ _ _ _ _ _ _ |- _ => inv He end.
   match goal with Ha : alloc_variables _ _ _ _ _ _ |- _ =>
@@ -962,17 +1453,39 @@ Proof.
                    | intros c v Hc Hl; left; destruct Hc as [-> | ->]; cbv in Hl;
                      injection Hl as <-; reflexivity] |].
     intros; reflexivity. }
+  match goal with Hb : bind_parameter_temps _ _ _ = Some ?L |- _ =>
+    assert (HI0 : HH0 ge bH bD bpf opf mB (ycast yv) L mB);
+    [split; [exact HI |];
+     cbn [bind_parameter_temps surface_collision.f_find_floor fn_params] in Hb; injection Hb as <-;
+     split; reflexivity |]
+  end.
   match goal with Hx : exec_stmt _ _ _ _ _ _ _ _ _ _ |- _ =>
-    destruct (ff_body_trh ge bH bD bpf opf mB HC Hpin HHD HpH HpD Hgl Hpart Hwf Hsurf (ycast yv)
-                _ _ _ _ _ _ HI Hx)
-      as [(-> & _) | (_ & HR)] end.
+    destruct (ff_body_trhF ge bH bD bpf opf mB HC Hpin HHD HpH HpD Hgl Hsp Hpart Hwf Hsurf (ycast yv)
+                _ _ _ _ _ _ HI0 Hx)
+      as [(-> & _) | (_ & HR & HF)] end.
   { match goal with Ho : outcome_result_value _ _ _ _ |- _ => cbn in Ho; contradiction end. }
   match goal with Ho : outcome_result_value _ _ _ _ |- _ =>
     cbn [fn_return surface_collision.f_find_floor] in Ho; rename Ho into HO end.
   destruct out as [| | | [[v ty]|]]; cbn in HO; try contradiction.
   destruct HO as (_ & Hc).
   destruct (HR v ty eq_refl) as (-> & Hv).
+  pose proof (HF _ _ eq_refl) as HF'.
   destruct v; cbn in Hc; try discriminate Hc. injection Hc as <-.
   exists f. split; [reflexivity |].
-  exact (HPi_mono _ _ _ _ Hit_back (Hv f eq_refl)).
+  split; [exact (HPi_mono _ _ _ _ Hit_back (Hv f eq_refl)) |].
+  (* the frees of height / dynamicHeight leave *pfloor alone *)
+  assert (NpH : bpf <> bH) by exact HpH. assert (NpD : bpf <> bD) by exact HpD.
+  match goal with Hf : Mem.free_list ?M _ = Some ?R |- _ =>
+    first [ change (Mem.free_list M [(bH, 0, 4); (bD, 0, 4)] = Some R) in Hf
+          | change (Mem.free_list M [(bD, 0, 4); (bH, 0, 4)] = Some R) in Hf ];
+    cbn [Mem.free_list] in Hf; rename M into M3 end.
+  match goal with Hf : (match Mem.free ?M ?b1 0 4 with Some _ => _ | None => _ end) = Some _ |- _ =>
+    destruct (Mem.free M b1 0 4) as [M4|] eqn:F1; [| discriminate Hf] end.
+  match goal with Hf : (match Mem.free ?M ?b1 0 4 with Some _ => _ | None => _ end) = Some _ |- _ =>
+    destruct (Mem.free M b1 0 4) as [M5|] eqn:F2; [| discriminate Hf]; injection Hf as <- end.
+  intros fl Hl. cbn [Mem.loadv] in Hl.
+  erewrite (Mem.load_free _ _ _ _ _ F2) in Hl by (left; congruence).
+  erewrite (Mem.load_free _ _ _ _ _ F1) in Hl by (left; congruence).
+  destruct (HF' fl Hl) as [N | (h' & Eh & Hh)]; [left; exact N | right].
+  injection Eh as <-. exact (Hit_back _ Hh).
 Qed.

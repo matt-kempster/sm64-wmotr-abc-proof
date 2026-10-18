@@ -302,7 +302,7 @@ Variable kH : positive.
 Hypothesis MM : MMg ge nbase R0 gtab kv m0 uf gp E m g.
 (* the height fact's meaning (AirRun.ufW) *)
 Hypothesis HUH : forall vs, uf kH vs ->
-  exists h yv, vs = [Some (Vsingle h); Some yv] /\ HPi (Hit_at ge m0) (ycast yv) h.
+  exists h yv, vs = [Some (Vsingle h); Some yv] /\ HPi (Hit_at ge m0) (ycast yv) h /\ Hit_at ge m0 h.
 Hypothesis HbM : e_base E rM = Ptrofs.zero.
 Hypothesis HbO : e_base E rO = Ptrofs.zero.
 Hypothesis HY : Mem.load Mfloat32 m0 (e_blk E rM) oY = Some (Vsingle y).
@@ -470,7 +470,8 @@ Theorem land_sound : land_ok LD IC (g_pc g) rM rO kH = true ->
   /\ Mem.load Mfloat32 m (e_blk E rO) oG = Mem.load Mfloat32 m (e_blk E rM) oY
   /\ (Mem.load Mfloat32 m (e_blk E rM) oY = Mem.load Mfloat32 m0 (e_blk E rM) oF
       \/ exists h kq jz, Mem.load Mfloat32 m (e_blk E rM) oY = Some (Vsingle h) /\ (kq <= 4)%nat
-           /\ HPi (Hit_at ge m0) (ycast (Vsingle (add_zeros jz (quarter_steps kq y (Float32.div v f4))))) h)
+           /\ HPi (Hit_at ge m0) (ycast (Vsingle (add_zeros jz (quarter_steps kq y (Float32.div v f4))))) h
+           /\ Hit_at ge m0 h)
   /\ exists v', Mem.load Mfloat32 m (e_blk E rM) oV = Some (Vsingle v')
        /\ F32 v' = true /\ R2 fm75 <= R2 v' /\ (R2 v' <= R2 (gravity f4 v) \/ v' = fm4).
 Proof.
@@ -503,9 +504,9 @@ Proof.
       pose proof MM as (_ & _ & _ & _ & _ & _ & PC & _).
       destruct (PC _ If) as (_ & FH). cbn [fact_holds map] in FH.
       rewrite (qrec_den ge m0 E (e_blk E rM) rM oY oV y v eq_refl HbM HY HV ya kq jz Q) in FH.
-      destruct (HUH _ FH) as (h & yv & Evs & HP). cbn [den] in Evs.
+      destruct (HUH _ FH) as (h & yv & Evs & HP & HT). cbn [den] in Evs.
       injection Evs as E1 E2. subst yv.
-      right. exists h, kq, jz. split; [cbn [den]; exact E1 | split; [exact Hq | exact HP]].
+      right. exists h, kq, jz. split; [cbn [den]; exact E1 | split; [exact Hq | split; [exact HP | exact HT]]].
   - apply orb_true_iff in VO as [VC | VK].
     + rewrite (vel_cut_den _ VC) in DV. eexists; split; [exact DV |].
       split; [reflexivity |]. split; [rewrite B2R_fm75, B2R_fm4; lra | right; reflexivity].
@@ -518,15 +519,16 @@ End CLS_SOUND.
 
 (* ---- the landed height, as a real bound ---- *)
 
-(* what land_sound's HPi fact means for a world whose hits are finite and
-   moderate (FloorBound.HitB): the landed height is -11000, or a hit at most
-   80 above that quarter's yPos, hence at most y + max(v, 0) + 81 *)
+(* what land_sound's facts mean for a world whose hits are finite and
+   moderate (FloorBound.HitB): the landed height is a hit (find_floor
+   reported a floor, so not the -11000 sentinel) at most 80 above that
+   quarter's yPos, hence at most y + max(v, 0) + 81 *)
 Theorem land_height : forall Hit kq jz y v h, HitB Hit -> (kq <= 4)%nat ->
   F32 y = true -> F32 v = true -> Rabs (R2 v) <= 128 -> -9000 <= R2 y <= 15000 ->
-  HPi Hit (ycast (Vsingle (add_zeros jz (quarter_steps kq y (Float32.div v f4))))) h ->
-  h = c11000 \/ (Hit h /\ R2 h <= R2 y + Rmax 0 (R2 v) + 81).
+  HPi Hit (ycast (Vsingle (add_zeros jz (quarter_steps kq y (Float32.div v f4))))) h -> Hit h ->
+  R2 h <= R2 y + Rmax 0 (R2 v) + 81.
 Proof.
-  intros Hit kq jz y v h HB Hk Fy Fv Hv Hy H.
+  intros Hit kq jz y v h HB Hk Fy Fv Hv Hy H Hh.
   destruct (quarter_steps_up kq y v Hk Fy Fv ltac:(apply Rabs_le; lra) Hv) as (Fq & Up & Dn & _).
   destruct (quarter_spec v Fv Hv) as (Fq4 & Hqe & _).
   assert (Hqb : Rabs (R2 (Float32.div v f4)) <= 33).
@@ -547,6 +549,6 @@ Proof.
   assert (Hv' : Rmax 0 (R2 v) <= 128)
     by (apply Rabs_le_inv in Hv; apply Rmax_lub; lra).
   destruct (ff_height_bound Hit f h HB Ff ltac:(pose proof (Rmax_l 0 (R2 v)); lra) H)
-    as [E | (Ht & B)]; [left; exact E | right].
-  split; [exact Ht | lra].
+    as [E | (Ht & B)]; [| lra].
+  subst h. rewrite B2R_c11000. pose proof (Rmax_l 0 (R2 v)). lra.
 Qed.
