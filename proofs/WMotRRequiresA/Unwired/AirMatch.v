@@ -13,7 +13,7 @@
 From Coq Require Import ZArith Reals List Lia Lra.
 From compcert Require Import Coqlib Maps AST Integers Floats Values Memory Ctypes Cop Clight.
 From Flocq Require Import Binary Bits Defs Raux Zaux Generic_fmt FLT.
-From SM64.Proofs Require Import Interp.SymExec2 HeightInvariant.
+From SM64.Proofs Require Import Interp.SymExec2 HeightInvariant HeightBudgetArith WMotRLevel.
 From SM64.Proofs.WMotRRequiresA Require Import HeightFloatSteps.
 From SM64.Proofs.WMotRRequiresA.Unwired Require Import FloorList FloorHeight FloorBound.
 Import ListNotations.
@@ -551,4 +551,27 @@ Proof.
   destruct (ff_height_bound Hit f h HB Ff ltac:(pose proof (Rmax_l 0 (R2 v)); lra) H)
     as [E | (Ht & B)]; [| lra].
   subst h. rewrite B2R_c11000. pose proof (Rmax_l 0 (R2 v)). lra.
+Qed.
+
+(* ---- a landing is an attach to a WMotR floor ---- *)
+
+(* the level data find_floor reads (TRUST 0.8(d), stated over the frame
+   memory): every hit on a floor list of m0 is a finite height of a WMotR
+   floor *)
+Definition floor_data (ge : genv) (m0 : mem) : Prop :=
+  forall h, Hit_at ge m0 h -> F32 h = true /\ Rabs (R2 h) <= 16384 /\ wmotr_floor (R2 h).
+
+(* a landing on a fresh height meets HeightMoveCatalog.AttachOK's floor case *)
+Theorem land_attach : forall ge m0 kq jz y v h, floor_data ge m0 -> (kq <= 4)%nat ->
+  F32 y = true -> F32 v = true -> Rabs (R2 v) <= 128 -> -9000 <= R2 y <= 15000 -> R2 v <= 43 ->
+  HPi (Hit_at ge m0) (ycast (Vsingle (add_zeros jz (quarter_steps kq y (Float32.div v f4))))) h ->
+  Hit_at ge m0 h ->
+  wmotr_floor (R2 h) /\ R2 h <= R2 y + STEP_UP.
+Proof.
+  intros ge m0 kq jz y v h FD Hk Fy Fv Hv Hy H43 HP Hh.
+  assert (HB : HitB (Hit_at ge m0)) by (intros x Hx; destruct (FD x Hx) as (F & B & _); auto).
+  pose proof (land_height _ kq jz y v h HB Hk Fy Fv Hv Hy HP Hh) as Le.
+  split; [exact (proj2 (proj2 (FD h Hh))) |].
+  assert (Rmax 0 (R2 v) <= 43) by (apply Rmax_lub; lra).
+  unfold STEP_UP. lra.
 Qed.
