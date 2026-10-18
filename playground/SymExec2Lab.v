@@ -59,7 +59,9 @@ Definition mergef (id : ident) : bool :=
 Definition pc0 : list fact :=
   [Fuser kW (wargs R0); Fbits (Sinit RM 2 Mint16unsigned) (Int.repr 130);
    Fworld (Sinit RM (fo mario._MarioState mario._floor) Mint32) (szs mario._Surface);
-   Fworld (Sinit RM (fo mario._MarioState mario._area) Mint32) (szs mario._Area)].
+   Fworld (Sinit RM (fo mario._MarioState mario._area) Mint32) (szs mario._Area)]
+  (* the entry floor is a WMotR surface (WMotRWorld.surface_nonnull_ok) *)
+  ++ ffacts (Sinit RM (fo mario._MarioState mario._floor) Mint32).
 
 Definition g0 : gst := mkg nil pc0 NB nil.
 
@@ -124,7 +126,8 @@ Time Eval vm_compute in option_map (@List.length _) (runf mario_step.f_apply_gra
 Time Eval vm_compute in (option_map (@List.length _) (res true true)).
 
 (* the call-site join on the whole step's outcomes (anti-unification joins):
-   7328 raw outcomes; 225 keyed on [jkeys]; 4 keyed on the action cells only *)
+   760 raw outcomes; 43 keyed on [jkeys]; 3 keyed on the action cells only
+   (7328 / 225 / 4 before the surface-type facts, 2026-10-18) *)
 Definition jg (ks : list (positive * Z * memory_chunk)) (cs : list cpath) :=
   match ge12 with Some g => jgroup_c NB (R0x g) (kv g) ks cs | None => None end.
 Definition ka : list (positive * Z * memory_chunk) :=

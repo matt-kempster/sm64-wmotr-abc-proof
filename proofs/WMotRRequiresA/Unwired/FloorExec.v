@@ -24,6 +24,7 @@ From compcert Require Import Coqlib Errors Maps AST Integers Floats Values Memor
   Globalenvs Ctypes Cop Clight ClightBigstep.
 From SM64.Generated Require surface_collision.
 From SM64.Proofs Require Import Interp.SymExec2 WMotRRequiresA.Unwired.FloorList.
+From SM64.Proofs.WMotRRequiresA Require Import WMotRWorld.
 Import ListNotations.
 
 (* the consumer's region addresses, in R0's order *)
@@ -37,6 +38,32 @@ Definition is_fact_W (kW : positive) (wa : list sval) (f : fact) : bool :=
   end.
 
 Definition fresh6 (g : gst) : gst := gfresh (gfresh (gfresh (gfresh (gfresh (gfresh g))))).
+
+(* the type of a world surface is one of WMotR's (WMotRWorld, computed from
+   the generated collision data) *)
+Definition styp (m0 : mem) (b : block) (o : ptrofs) : Prop :=
+  exists t, Mem.load Mint16signed m0 b (Ptrofs.unsigned o) = Some (Vint t)
+    /\ In (Int.signed t) wmotr_surface_types.
+
+(* "surface p's type is not k", in the exact shape the generated code tests
+   it (p->type == k, an s16 field compared as int) *)
+Definition tshort : type := Tint I16 Signed noattr.
+Definition tint32 : type := Tint I32 Signed noattr.
+Definition fty (k : Z) (p : sval) : fact :=
+  Fbool (Sbinop Cop.Oeq (Swld p 0 Mint16signed) tshort (Sconst (Vint (Int.repr k))) tint32) tint32 false.
+(* SURFACE_BURNING (1) and SURFACE_VERTICAL_WIND (56): not WMotR types *)
+Definition ffacts (p : sval) : list fact := [fty 56 p; fty 1 p].
+
+Lemma fty_holds : forall ge R0 m0 uf E p b o k, den ge m0 E p = Some (Vptr b o) ->
+  styp m0 b o -> k = 1 \/ k = 56 -> fact_holds ge R0 m0 uf E (fty k p).
+Proof.
+  intros ge R0 m0 uf E p b o k D (t & L & IN) K. cbn [fact_holds fty den]. rewrite D.
+  rewrite Ptrofs.add_zero, L.
+  rewrite <- (Int.repr_signed t).
+  rewrite wmotr_surface_types_value in IN.
+  destruct IN as [X|[X|[X|[X|[X|[]]]]]]; rewrite <- X; destruct K as [-> | ->];
+    eexists; split; reflexivity.
+Qed.
 
 (* THE CONTRACT.  The pointer argument must be a live local (find_floor's
    callers pass &floor, a local) and the world fact must be present. *)
@@ -63,7 +90,9 @@ Definition c_ff (nbase : positive) (R0 : list (positive * Z)) (rFI rMS rCL kW : 
         match sstore nbase R0 g4 rp (Ptrofs.unsigned op) Mint32 (Sconst (Vint Int.zero)),
               sstore nbase R0 g4 rp (Ptrofs.unsigned op) Mint32 (Sfresh n4) with
         | Some gN, Some gS =>
-            Some [(gN, Sfresh n5); (add_fact gS (Fworld (Sfresh n4) szS), Sfresh n5)]
+            Some [(gN, Sfresh n5);
+                  (add_fact (add_fact (add_fact gS (Fworld (Sfresh n4) szS)) (fty 56 (Sfresh n4)))
+                     (fty 1 (Sfresh n4)), Sfresh n5)]
         | _, _ => None
         end end end end end
       else None
@@ -89,6 +118,7 @@ Definition Wff (ge : genv) (m0 : mem) (gp : meminj) (szS : Z) (vs : list (option
   /\ (forall hd s, part_head ge m0 hd -> on_list m0 hd s ->
         exists b o, s = Vptr b o /\ Plt b (Mem.nextblock m0)
           /\ Ptrofs.unsigned o + szS <= Ptrofs.modulus /\ ~ rblk vs b /\ gp b <> None)
+  /\ (forall hd b o, part_head ge m0 hd -> on_list m0 hd (Vptr b o) -> styp m0 b o)
   /\ 0 <= szS.
 
 (* ---- small facts ---- *)
@@ -305,7 +335,7 @@ Proof.
   (* the world fact *)
   destruct (PC _ IW) as (_ & HW). cbn [fact_holds] in HW. apply HU in HW.
   set (vs := map (den E) (wargs R0)) in *.
-  pose proof HW as (WS & WP & WL & WSurf & Wsz).
+  pose proof HW as (WS & WP & WL & WSurf & WTy & Wsz).
   (* the static blocks *)
   destruct EO as (_ & _ & _ & EG & _ & _).
   destruct (EG _ _ HgFI) as (_ & BFI & SFI).
@@ -369,6 +399,10 @@ Proof.
   { destruct Hfl as [-> | (hd & PH & OL)]; [left; reflexivity | right].
     pose proof (part_head_to_m0 E m g MMh hd HW PH) as PH0.
     exact (WSurf hd fl PH0 (on_list_to_m0 E m g MMh hd fl (WL hd PH0) OL)). }
+  assert (FTy : forall bs os, fl = Vptr bs os -> styp m0 bs os).
+  { intros bs os ->. destruct Hfl as [Hn | (hd & PH & OL)]; [discriminate |].
+    pose proof (part_head_to_m0 E m g MMh hd HW PH) as PH0.
+    exact (WTy hd bs os PH0 (on_list_to_m0 E m g MMh hd _ (WL hd PH0) OL)). }
   assert (Ofl : val_old gp fl) by (destruct FLc as [-> | (bs & os & -> & Hb & _ & _ & G)]; cbn; auto).
   assert (LRfl : Val.load_result Mint32 fl = fl)
     by (destruct FLc as [-> | (bs & os & -> & _)]; reflexivity).
@@ -586,7 +620,8 @@ Proof.
     apply FIN; [| rewrite Y5; apply LCg; reflexivity | rewrite X5; exact NXg4].
     eapply (TAIL (Sconst (Vint Int.zero)) gN gN S5N); [rewrite Efl; reflexivity | exact M5' | reflexivity | exact Y5].
   - (* a world surface: the second outcome *)
-    exists (add_fact gS (Fworld (Sfresh n4) szS), Sfresh n5). split; [right; left; reflexivity |].
+    exists (add_fact (add_fact (add_fact gS (Fworld (Sfresh n4) szS)) (fty 56 (Sfresh n4)))
+              (fty 1 (Sfresh n4)), Sfresh n5). split; [right; left; reflexivity |].
     destruct (sstore_sound ge nbase R0 gtab kv m0 uf gp gp_old E6 m4 g4 rp (Ptrofs.unsigned op) Mint32
                 (Sfresh n4) fl m5 gS M4' S5S
                 ltac:(rewrite NXg4; split; [cbn [nlt]; unfold Plt, n5; lia | exact I]) D5 LRfl
@@ -597,8 +632,16 @@ Proof.
       split; [exact Obs | split; [exact Wsz | split; [exact Ros |]]].
       intros r sz Hsz. left. rewrite BK. intros Eb. apply NRbs. rewrite <- Eb.
       exact (r0_rblk E r sz Hsz). }
+    assert (DF : den E6 (Sfresh n4) = Some (Vptr bs os)) by (rewrite D5, Efl; reflexivity).
+    assert (NF : forall gg, g_nx gg = g_nx gS -> fact_nlt (g_nx gg) (fty 56 (Sfresh n4)) /\
+                   fact_nlt (g_nx gg) (fty 1 (Sfresh n4))).
+    { intros gg Hgg. rewrite Hgg, X5, NXg4. cbn [fact_nlt fty nlt]. unfold Plt, n5. split; split; auto; lia. }
+    assert (MA2 : MM E6 m5 (add_fact (add_fact (add_fact gS (Fworld (Sfresh n4) szS)) (fty 56 (Sfresh n4)))
+                              (fty 1 (Sfresh n4)))).
+    { apply MMg_add_fact; [apply MMg_add_fact; [exact MA | apply (NF _ eq_refl) |] | apply (NF _ eq_refl) |];
+        apply (fty_holds _ _ _ _ _ _ bs os); auto; exact (FTy bs os Efl). }
     apply FIN; [| cbn; rewrite Y5; apply LCg; reflexivity | cbn; rewrite X5; exact NXg4].
-    eapply (TAIL (Sfresh n4) gS); [exact S5S | exact D5 | exact MA | reflexivity | cbn; exact Y5].
+    eapply (TAIL (Sfresh n4) gS); [exact S5S | exact D5 | exact MA2 | reflexivity | cbn; exact Y5].
 Qed.
 
 End FE.

@@ -383,4 +383,22 @@ Proved contracts (2026-10-17, later):
     `closed_by gp m0`, so what is left is carrying `closed_by` through a frame and across
     the run); `Wff` as a frame
     invariant (carried by the GOAL-2 run invariant); and the consumer, which reads
-    the 225 joined outcomes into `MoveChain` facts.
+    the joined outcomes into `MoveChain` facts.
+
+## 10. Surface types prune the walk (2026-10-18)
+
+Of the 94 world-read conditions in the 225 joined outcomes, 92 were type tests on
+surfaces: `== 56` (SURFACE_VERTICAL_WIND, `apply_vertical_wind`) and `== 1`
+(SURFACE_BURNING, the lava checks). WMotR has neither type (`wmotr_surface_types` =
+[5; 10; 21; 55; 0], computed from the generated collision data). These paths are
+phantom-world paths, and they are now cut inside the walk, soundly:
+- `Wff` gains a clause: every surface on a partition list has a WMotR type at m0
+  (`styp`). It is part of the world fact the run must carry, next to the rest of `Wff`.
+- `c_ff` (find_floor) and `c_fwc` (each recorded wall) add the facts
+  `ffacts p` = "p->type != 56" and "p->type != 1", in the exact shape of the generated
+  test. `fty_holds` proves each from `styp`, so `c_ff_sound` / `c_fwc_sound` still hold.
+- The entry floor's two facts go into the walk's start state. They follow from
+  `wmotr_world`'s floor clause, which Φ already carries.
+
+Counts: **7328 → 760 raw outcomes, 225 → 43 joined, 4 → 3 on the action cells.** These
+are the outcomes the move matcher has to map to catalog moves.
