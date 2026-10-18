@@ -216,7 +216,8 @@ Qed.
 
 (* ---- the states along the body ---- *)
 Definition WSi (n : Z) (M : mem) : Prop :=
-  forall i, 0 <= i < n -> exists s, Mem.load Mint32 M bd (o + 24 + 4 * i) = Some s /\ WS s.
+  (forall i, 0 <= i < n -> exists s, Mem.load Mint32 M bd (o + 24 + 4 * i) = Some s /\ WS s)
+  /\ Mem.unchanged_on (fun b i => b = bd /\ o + 24 + 4 * n <= i < o + 40) m M.
 
 Definition G (c : Z) (le : temp_env) (M : mem) : Prop :=
   UOF M
@@ -300,7 +301,9 @@ Proof.
   - apply (UOF_store m M' _ _ _ _ (conj (Mem.unchanged_on_refl _ _) (fun _ _ _ _ _ => iff_refl _)) ST).
     intros i Hi. cbn [size_chunk] in Hi. left. split; [reflexivity | lia].
   - rewrite (Mem.load_store_same _ _ _ _ _ _ ST). reflexivity.
-  - intros i Hi. lia.
+  - split; [intros i Hi; lia |].
+    eapply Mem.store_unchanged_on; [exact ST |].
+    intros i Hi (_ & Hr). cbn [size_chunk] in Hi. lia.
 Qed.
 
 Lemma tri_node : forall pid A R,
@@ -407,6 +410,11 @@ Proof.
   - split; [rewrite PTree.gso by congruence; rewrite PTree.gso by congruence; exact Hd |].
     split; [apply PTree.gss |]. split; [lia |].
     split; [rewrite Hl1; unfold nwof; do 3 f_equal; lia |].
+    destruct HW as (HW & HW2). destruct HW1 as (HW1 & HW12). split; cycle 1.
+    { eapply Mem.unchanged_on_trans.
+      - eapply Mem.unchanged_on_implies; [exact HW2 |]. intros b' i (-> & Hr) _. split; [reflexivity | lia].
+      - eapply Mem.unchanged_on_implies; [exact HW12 |]. intros b' i (-> & Hr) _.
+        split; [reflexivity | unfold nwof; lia]. }
     intros i Hi.
     destruct (Z_lt_ge_dec i (Z.min c 4)) as [Hlt | Hge].
     + destruct (HW i ltac:(lia)) as (s0 & Hls & Hws). exists s0. split; [| exact Hws].
@@ -456,8 +464,11 @@ Proof.
   exists c. split; [| split; [exact Hd | split; [exact Hn | split; [exact Hc | split]]]].
   - apply (UOF_store _ _ _ _ _ _ U ST). intros i Hi. cbn [size_chunk] in Hi. right. auto.
   - rewrite (Mem.load_store_other _ _ _ _ _ _ ST) by (left; congruence). exact Hl.
-  - intros i Hi. destruct (HW i Hi) as (s0 & Hls & Hws). exists s0. split; [| exact Hws].
-    rewrite (Mem.load_store_other _ _ _ _ _ _ ST) by (left; congruence). exact Hls.
+  - destruct HW as (HW & HW2). split.
+    + intros i Hi. destruct (HW i Hi) as (s0 & Hls & Hws). exists s0. split; [| exact Hws].
+      rewrite (Mem.load_store_other _ _ _ _ _ _ ST) by (left; congruence). exact Hls.
+    + eapply Mem.unchanged_on_trans; [exact HW2 |].
+      eapply Mem.store_unchanged_on; [exact ST |]. intros i _ (Eb & _). exact (Hne Eb).
 Qed.
 
 Ltac solve_wf :=
@@ -482,12 +493,68 @@ Lemma fwc_body_tri :
   tri ge e P0 (fn_body surface_collision.f_find_wall_collisions) (fun _ _ => False) Gx.
 Proof. cbv [fn_body surface_collision.f_find_wall_collisions]. solve_wf. Qed.
 
+Lemma pf_rd : forall tid le M fld v d,
+    le ! tid = Some (Vptr bd od) ->
+    field_offset ge fld wcd_members = OK (d, Full) -> 0 <= d < 40 ->
+    eval_expr ge e le M (Efield (Ederef (Etempvar tid (tptr wcd_ty)) wcd_ty) fld tfloat) v ->
+    Mem.load Mfloat32 M bd (o + d) = Some v.
+Proof.
+  intros tid le M fld v d Hd F Hr H.
+  inv H. match goal with Hl : eval_lvalue _ _ _ _ _ _ _ _ |- _ =>
+    destruct (pf_lv _ _ _ _ _ _ _ _ _ Hd F Hl) as (-> & -> & ->) end.
+  match goal with Hx : deref_loc _ _ _ _ _ _ |- _ => inv Hx end; cbn [typeof] in *; try discriminate.
+  match goal with Hm : access_mode tfloat = By_value _ |- _ =>
+    change (access_mode tfloat) with (By_value Mfloat32) in Hm; injection Hm as <- end.
+  cbn [Mem.loadv] in *. rewrite ofs_d' in * by lia. assumption.
+Qed.
+
+(* the body reads colData->x and colData->z from the entry memory, before
+   anything can return *)
+Lemma body_reads : forall le t le' M' out,
+    le ! surface_collision._colData = Some (Vptr bd od) ->
+    exec_stmt function_entry2 ge e le m (fn_body surface_collision.f_find_wall_collisions) t le' M' out ->
+    (exists v, Mem.load Mfloat32 m bd o = Some v) /\ (exists v, Mem.load Mfloat32 m bd (o + 8) = Some v).
+Proof.
+  intros le t le' M' out Hd H.
+  cbv [fn_body surface_collision.f_find_wall_collisions] in H.
+  inv H; [| match goal with Hs : exec_stmt _ _ _ _ _ (Sset _ _) _ _ _ _ |- _ => inv Hs end; congruence].
+  match goal with Hs : exec_stmt _ _ _ _ _ (Sset _ _) _ _ _ _ |- _ => inv Hs end.
+  match goal with H2 : exec_stmt _ _ _ _ _ (Ssequence _ _) _ _ _ _ |- _ => inv H2 end.
+  - (* x read normally; then z *)
+    match goal with H3 : exec_stmt _ _ _ _ _ (Ssequence (Sset surface_collision._t'7 _) _) _ _ _ _ |- _ =>
+      inv H3 end;
+      [| match goal with Hs : exec_stmt _ _ _ _ _ (Sset surface_collision._t'7 _) _ _ _ _ |- _ => inv Hs end; congruence].
+    match goal with Hs : exec_stmt _ _ _ _ _ (Sset surface_collision._t'7 _) _ _ _ _ |- _ => inv Hs end.
+    match goal with Hs : exec_stmt _ _ _ _ _ (Sset surface_collision._x _) _ _ _ _ |- _ => inv Hs end.
+    split.
+    + match goal with Hx : eval_expr _ _ _ _ (Efield _ surface_collision._x _) ?v |- _ =>
+        rename Hx into HX end.
+      eexists. rewrite <- (Z.add_0_r (Ptrofs.unsigned od)).
+      refine (pf_rd _ _ _ surface_collision._x _ 0 _ eq_refl _ HX).
+      * rewrite PTree.gso by idne; exact Hd.
+      * lia.
+    + match goal with H4 : exec_stmt _ _ _ _ _ (Ssequence (Ssequence (Sset surface_collision._t'6 _) _) _) _ _ _ _ |- _ =>
+        inv H4 end;
+      match goal with H5 : exec_stmt _ _ _ _ _ (Ssequence (Sset surface_collision._t'6 _) _) _ _ _ _ |- _ =>
+        inv H5 end;
+      match goal with Hs : exec_stmt _ _ _ _ _ (Sset surface_collision._t'6 _) _ _ _ _ |- _ => inv Hs end;
+      match goal with Hx : eval_expr _ _ _ _ (Efield _ surface_collision._z _) ?v |- _ =>
+        exists v; refine (pf_rd _ _ _ surface_collision._z _ 8 _ eq_refl _ Hx);
+        [repeat rewrite PTree.gso by idne; exact Hd | lia] end.
+  - match goal with H3 : exec_stmt _ _ _ _ _ (Ssequence (Sset surface_collision._t'7 _) _) _ _ _ _ |- _ =>
+      inv H3 end;
+      match goal with Hs : exec_stmt _ _ _ _ _ (Sset surface_collision._t'7 _) _ _ _ _ |- _ => inv Hs end;
+      [match goal with Hs : exec_stmt _ _ _ _ _ (Sset surface_collision._x _) _ _ _ _ |- _ => inv Hs end;
+       congruence | congruence].
+Qed.
+
 Theorem fwc_contract : forall t m' vres,
     eval_funcall function_entry2 ge m (Internal surface_collision.f_find_wall_collisions)
       [Vptr bd od] t m' vres ->
     exists c, 0 <= c /\ vres = Vint (Int.repr c) /\ UOF m'
       /\ Mem.load Mint16signed m' bd (o + 22) = Some (Vint (Int.repr (Z.min c 4)))
-      /\ WSi (Z.min c 4) m'.
+      /\ WSi (Z.min c 4) m'
+      /\ (exists v, Mem.load Mfloat32 m bd o = Some v) /\ (exists v, Mem.load Mfloat32 m bd (o + 8) = Some v).
 Proof.
   intros t m' vres H. inv H.
   match goal with He : function_entry2 _ _ _ _ _ _ _ |- _ => inv He end.
@@ -500,6 +567,7 @@ Proof.
   assert (HP : P0 (PTree.set surface_collision._colData (Vptr bd od)
                      (create_undef_temps (fn_temps surface_collision.f_find_wall_collisions))) m)
     by (split; [reflexivity | apply PTree.gss]).
+  destruct (body_reads _ _ _ _ _ (PTree.gss _ _ _) HB) as (RX & RZ).
   destruct (fwc_body_tri _ _ _ _ _ _ HP HB) as [(_ & F) | (Hno & (c & U & Hd & Hn & Hc & Hl & HW))];
     [destruct F |].
   destruct (rx_out _ _ _ _ _ _ _ _ _ surface_collision._numCollisions HB eq_refl)
@@ -511,7 +579,8 @@ Proof.
     cbn [fn_return surface_collision.f_find_wall_collisions] in Ho; destruct Ho as (_ & Hcs) end.
   unfold sem_cast, classify_cast, Ctypesdefs.tint in Hcs; cbv [Archi.ptr64] in Hcs; cbn in Hcs.
   injection Hcs as <-.
-  exists c. auto.
+  exists c. split; [exact Hc | split; [reflexivity | split; [exact U | split; [exact Hl |
+    split; [exact HW | split; [exact RX | exact RZ]]]]]].
 Qed.
 
 End WF.

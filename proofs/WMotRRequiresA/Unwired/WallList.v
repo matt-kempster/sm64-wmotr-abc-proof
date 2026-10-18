@@ -105,8 +105,9 @@ Definition UOw (M : mem) : Prop :=
 Definition nwof (c : Z) : Z := Z.min (nw0 + c) 4.
 
 Definition WW (n : Z) (M : mem) : Prop :=
-  forall i, nw0 <= i < n -> exists s, Mem.load Mint32 M bd (o + 24 + 4 * i) = Some s
-    /\ on_list m node0 s.
+  (forall i, nw0 <= i < n -> exists s, Mem.load Mint32 M bd (o + 24 + 4 * i) = Some s
+    /\ on_list m node0 s)
+  /\ Mem.unchanged_on (fun b i => b = bd /\ o + 24 + 4 * n <= i < o + 40) m M.
 
 Definition J (c : Z) (le : temp_env) (M : mem) : Prop :=
   UOw M
@@ -227,10 +228,13 @@ Proof.
   split; [split; [| split; [exact Hdt | split; [exact Hn | split; [exact Hc |]]]] | exact Hs].
   - apply (UOw_store _ _ _ _ _ U ST). intros i Hi. cbn in Hi. split; [reflexivity | lia].
   - split; [rewrite (Mem.load_store_other _ _ _ _ _ _ ST) by (right; right; cbn [size_chunk]; lia); exact Hl |].
-    split; [| exact Hcur].
-    intros i Hi. destruct (HW i Hi) as (s & Hls & Hos). exists s.
-    rewrite (Mem.load_store_other _ _ _ _ _ _ ST) by (right; right; cbn [size_chunk]; unfold nwof in Hi; lia).
-    auto.
+    split; [| exact Hcur]. destruct HW as (HW & HW2). split.
+    + intros i Hi. destruct (HW i Hi) as (s & Hls & Hos). exists s.
+      rewrite (Mem.load_store_other _ _ _ _ _ _ ST) by (right; right; cbn [size_chunk]; unfold nwof in Hi; lia).
+      auto.
+    + eapply Mem.unchanged_on_trans; [exact HW2 |].
+      eapply Mem.store_unchanged_on; [exact ST |].
+      intros i Hi (_ & Hr). cbn [size_chunk] in Hi. unfold nwof in Hr. lia.
 Qed.
 
 (* the body's pieces, cut out of the generated AST *)
@@ -420,7 +424,14 @@ Proof.
       rewrite (Mem.load_store_same _ _ _ _ _ _ ST1).
       assert (k = 0 \/ k = 1 \/ k = 2 \/ k = 3) as Hk' by lia.
       destruct Hk' as [-> | [-> | [-> | ->]]]; reflexivity.
-    + rewrite Enw. intros i Hi.
+    + rewrite Enw. destruct HW as (HW & HW2). split; cycle 1.
+      { eapply Mem.unchanged_on_trans; [eapply Mem.unchanged_on_trans |].
+        - eapply Mem.unchanged_on_implies; [exact HW2 |]. intros b' i (-> & Hr) _. split; [reflexivity | lia].
+        - eapply Mem.store_unchanged_on; [exact ST1 |].
+          intros i Hi (_ & Hr). cbn [size_chunk] in Hi. lia.
+        - eapply Mem.store_unchanged_on; [exact ST2 |].
+          intros i Hi (_ & Hr). cbn [size_chunk] in Hi. lia. }
+      intros i Hi.
       destruct (Z.eq_dec i k) as [-> | Hne].
       * exists s. split; [| exact Hos].
         rewrite (Mem.load_store_same _ _ _ _ _ _ ST2). rewrite Hlr. reflexivity.
@@ -590,7 +601,7 @@ Proof.
   assert (E0 : nwof 0 = nw0) by (unfold nwof; lia).
   split; [split; [apply Mem.unchanged_on_refl | tauto] |].
   split; [exact Hd | split; [exact Hn | split; [lia |]]].
-  rewrite E0. split; [exact Hl | split; [intros i Hi; lia |]].
+  rewrite E0. split; [exact Hl | split; [split; [intros i Hi; lia | apply Mem.unchanged_on_refl] |]].
   exists node0. auto.
 Qed.
 
