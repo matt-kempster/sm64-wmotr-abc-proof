@@ -97,7 +97,9 @@ Record gst : Type := mkg {
   g_sm : smem;            (* written cells, by region *)
   g_pc : list fact;       (* path facts *)
   g_nx : positive;        (* next unused name (regions and fresh values) *)
-  g_loc : list positive   (* live local regions *)
+  g_loc : list positive;  (* live local regions *)
+  g_cl : list positive    (* clobbered consumer regions: a contract changed
+                             them, so their unwritten cells are unknown *)
 }.
 
 Inductive sout : Type :=
@@ -203,7 +205,8 @@ Definition init_cell (r : positive) (o : Z) (ch : memory_chunk) : sval :=
 Definition sload (g : gst) (r : positive) (o : Z) (ch : memory_chunk) : option sval :=
   if inb g r o ch then
     match filter (ovl r o ch) (g_sm g) with
-    | nil => if Pos.ltb r nbase then Some (init_cell r o ch) else None
+    | nil => if Pos.ltb r nbase && negb (existsb (Pos.eqb r) (g_cl g))
+             then Some (init_cell r o ch) else None
     | e :: nil => if exact r o ch e then Some (snd e) else None
     | _ => None
     end
@@ -214,7 +217,7 @@ Definition sstore (g : gst) (r : positive) (o : Z) (ch : memory_chunk) (v : sval
   if inb g r o ch then
     if forallb (fun e => negb (ovl r o ch e) || exact r o ch e) (g_sm g)
     then Some (mkg ((r, o, ch, v) :: filter (fun e => negb (ovl r o ch e)) (g_sm g))
-                   (g_pc g) (g_nx g) (g_loc g))
+                   (g_pc g) (g_nx g) (g_loc g) (g_cl g))
     else None
   else None.
 
@@ -357,7 +360,8 @@ Definition decide (pc : list fact) (c : sval) (ty : type) : option bool :=
   | _ => pc_lookup pc c ty
   end.
 
-Definition add_fact (g : gst) (f : fact) : gst := mkg (g_sm g) (f :: g_pc g) (g_nx g) (g_loc g).
+Definition add_fact (g : gst) (f : fact) : gst :=
+  mkg (g_sm g) (f :: g_pc g) (g_nx g) (g_loc g) (g_cl g).
 
 (* ---------------------------------------------------------------- *)
 (* Expressions                                                        *)
@@ -664,6 +668,7 @@ Definition join2 (p1 p2 : spath) : option spath :=
   let '(le1, g1, o1) := p1 in
   let '(le2, g2, o2) := p2 in
   if list_eq_dec Pos.eq_dec (g_loc g1) (g_loc g2) then
+  if list_eq_dec Pos.eq_dec (g_cl g1) (g_cl g2) then
   if list_eq_dec Pos.eq_dec (map fst (PTree.elements le1)) (map fst (PTree.elements le2)) then
     match jout o1 o2 (Pos.max (g_nx g1) (g_nx g2)) nil with
     | Some (o, nx1, mo1) =>
@@ -671,14 +676,14 @@ Definition join2 (p1 p2 : spath) : option spath :=
         | Some (le, nx2, mo2) =>
             match jmem (jkeys_of g1 g2) g1 g2 nx2 mo2 with
             | Some (sm, nx3, mo3) =>
-                Some (le, mkg sm (jfacts (g_pc g1) (g_pc g2) nx3 mo3) nx3 (g_loc g1), o)
+                Some (le, mkg sm (jfacts (g_pc g1) (g_pc g2) nx3 mo3) nx3 (g_loc g1) (g_cl g1), o)
             | None => None
             end
         | None => None
         end
     | None => None
     end
-  else None else None.
+  else None else None else None.
 
 (* the grouping key: paths are joined only when their keys agree *)
 Definition pkey : Type := (nat * list (option sval) * list (ident * sval))%type.
@@ -795,14 +800,14 @@ Fixpoint salloc (vars : list (ident * type)) (se : PTree.t (positive * type)) (g
   | nil => (se, g)
   | (id, ty) :: vars' =>
       salloc vars' (PTree.set id (g_nx g, ty) se)
-             (mkg (g_sm g) (g_pc g) (Pos.succ (g_nx g)) (g_nx g :: g_loc g))
+             (mkg (g_sm g) (g_pc g) (Pos.succ (g_nx g)) (g_nx g :: g_loc g) (g_cl g))
   end.
 
 (* free the callee's locals: keep the caller's live regions [loc] *)
 Definition sfree (loc : list positive) (g : gst) : gst :=
   mkg (filter (fun e : sentry => let '(r, _, _, _) := e in
                                  Pos.ltb r nbase || existsb (Pos.eqb r) loc) (g_sm g))
-      (g_pc g) (g_nx g) loc.
+      (g_pc g) (g_nx g) loc (g_cl g).
 
 Definition sresult (out : sout) (t : type) : option sval :=
   match out, t with
@@ -1082,6 +1087,19 @@ Definition fact_holds (E : senv) (f : fact) : Prop :=
   | Fuser k args => uf k (map (den E) args)
   end.
 
+(* a cell outside region r's whole range (a region without a size
+   constrains nothing, so it counts as outside) *)
+Definition rng_disj (E : senv) (r : positive) (b : block) (z : Z) (ch : memory_chunk) : Prop :=
+  match r0_size r with
+  | Some sz => e_blk E r <> b \/ Ptrofs.unsigned (e_base E r) + sz <= z
+               \/ z + size_chunk ch <= Ptrofs.unsigned (e_base E r)
+  | None => True
+  end.
+
+Lemma rng_disj_eq : forall E E' r b z ch, e_blk E' = e_blk E -> e_base E' = e_base E ->
+  rng_disj E r b z ch -> rng_disj E' r b z ch.
+Proof. intros E E' r b z ch A B. unfold rng_disj. rewrite A, B. auto. Qed.
+
 (* the consumer's regions, the globals table and the known values *)
 Definition env_ok (E : senv) : Prop :=
   (forall r, Plt r nbase -> gp (e_blk E r) <> None)
@@ -1111,6 +1129,7 @@ Definition MMg (E : senv) (m : mem) (g : gst) : Prop :=
         /\ Mem.load ch m (e_blk E r) (addr E r o) = den E sv)
   /\ (forall b z ch, Plt b nb0 ->
         (forall e, In e (g_sm g) -> cell_disj E (skey e) b z ch) ->
+        (forall r, In r (g_cl g) -> rng_disj E r b z ch) ->
         Mem.load ch m b z = Mem.load ch m0 b z)
   /\ vp_old m
   /\ Ple nb0 (Mem.nextblock m)
@@ -1129,6 +1148,16 @@ Proof. intros E n k _. auto. Qed.
 
 Lemma Ext_mono : forall E E' n n', Ext E E' n' -> Ple n n' -> Ext E E' n.
 Proof. intros E E' n n' H L k Hk. apply H. unfold Plt, Ple in *. lia. Qed.
+
+(* clobber regions are consumer regions, so an extension keeps their placement *)
+Lemma rng_disj_Ext : forall E E' n r b z ch, env_ok E -> Ple nbase n -> Ext E E' n ->
+  rng_disj E' r b z ch <-> rng_disj E r b z ch.
+Proof.
+  intros E E' n r b z ch EO L X. unfold rng_disj.
+  destruct (r0_size r) as [sz|] eqn:S; [ | tauto ].
+  destruct EO as (_ & A2 & _). destruct (A2 r sz S) as (P & _).
+  destruct (X r) as (B1 & B2 & _); [ unfold Plt, Ple in *; lia | ]. rewrite B1, B2. tauto.
+Qed.
 
 Lemma Ext_trans : forall E1 E2 E3 n n', Ext E1 E2 n -> Ext E2 E3 n' -> Ple n n' -> Ext E1 E3 n.
 Proof.
@@ -1520,6 +1549,23 @@ Proof.
   - split; [ reflexivity | ]. intros L. split; cbn; exact L.
 Qed.
 
+(* an in-bounds cell of an unclobbered consumer region is outside every
+   other region's range (env_ok's disjointness) *)
+Lemma cl_disj_region : forall E m g r o ch r', MMg E m g ->
+  inb g r o ch = true -> Plt r nbase -> r <> r' ->
+  rng_disj E r' (e_blk E r) (addr E r o) ch.
+Proof.
+  intros E m g r o ch r' MM H L NE. unfold rng_disj.
+  destruct (r0_size r') as [sz'|] eqn:S'; [ | exact I ].
+  pose proof MM as ((A1 & A2 & A3 & _) & _).
+  destruct (inb_spec _ _ _ _ H) as [(_ & sz & S & O1 & O2) | (L' & _)];
+    [ | exfalso; exact (L' L) ].
+  destruct (A3 r sz r' sz' S S' NE) as [B | [B | B]].
+  - left. intro B'. apply B. symmetry. exact B'.
+  - right; right. unfold addr. lia.
+  - right; left. unfold addr. lia.
+Qed.
+
 Lemma sload_sound : forall E m g r o ch sa, MMg E m g ->
   sload g r o ch = Some sa ->
   Mem.load ch m (e_blk E r) (addr E r o) = den E sa /\ sok (g_nx g) sa.
@@ -1528,7 +1574,8 @@ Proof.
   destruct (inb g r o ch) eqn:IB; [ | discriminate ].
   pose proof MM as (EO & NB & ENT & FR & _).
   destruct (filter (ovl r o ch) (g_sm g)) as [|e [|e' l]] eqn:F.
-  - destruct (Pos.ltb_spec r nbase) as [L | L]; [ | discriminate ]. inv H.
+  - destruct (Pos.ltb_spec r nbase) as [L | L]; [ | discriminate ].
+    destruct (existsb (Pos.eqb r) (g_cl g)) eqn:CL; [ discriminate | ]. inv H.
     destruct (init_cell_den E r o ch EO) as [D S].
     split; [ | eapply sok_mono; [ exact (S L) | exact NB ] ].
     rewrite D. apply FR.
@@ -1539,6 +1586,10 @@ Proof.
       apply ovl_false in OV.
       destruct (ENT _ _ _ _ IN) as (IB' & _).
       eapply inb_disj; eauto. destruct OV as [OV | OV]; [ left; auto | right; lia ].
+    + intros r' IN'. apply (cl_disj_region E m g r o ch r' MM IB L).
+      intros <-. assert (C : existsb (Pos.eqb r) (g_cl g) = true)
+        by (apply existsb_exists; exists r; split; [ exact IN' | apply Pos.eqb_refl ]).
+      congruence.
   - destruct (exact r o ch e) eqn:X; [ | discriminate]. inv H.
     destruct e as [[[r' o'] ch'] sv]. apply exact_true in X. destruct X as (-> & -> & ->).
     assert (IN : In (r', o', ch', sv) (g_sm g))
@@ -1634,13 +1685,16 @@ Proof.
       by (unfold Ptrofs.max_unsigned; lia).
     apply Ptrofs.unsigned_repr. unfold Ptrofs.max_unsigned; lia. }
   split.
-  - cbn [den]. rewrite Dq. apply FR; [ exact OLD | ].
+  - cbn [den]. rewrite Dq. apply FR; [ exact OLD | | ].
     intros [[[re oe] che] sve] INe. cbn [skey cell_disj].
     destruct (ENT _ _ _ _ INe) as (IBe & _).
     destruct (inb_spec _ _ _ _ IBe) as [(L & sz & S & O1 & O2) | (L & INl & O1 & O2)].
     + destruct (DJ re sz S) as [D | [D | D]]; [ left; exact D | right | right ];
         unfold addr; rewrite AD; lia.
     + left. intro B. destruct (LOC re INl) as (_ & _ & _ & NO & _). apply NO. rewrite B. exact OLD.
+    + intros r _. unfold rng_disj. destruct (r0_size r) as [sz|] eqn:S; [ | exact I ].
+      destruct (DJ r sz S) as [D | [D | D]]; [ left; exact D | right; left | right; right ];
+        rewrite AD; lia.
   - split; cbn; [ apply Sq | exact Oq ].
 Qed.
 
@@ -2715,6 +2769,7 @@ Lemma join2_side : forall (sd : bool) p1 p2 p, join2 p1 p2 = Some p ->
 Proof.
   intros sd [[le1 g1] o1] [[le2 g2] o2] p J E0 n0 gl tle m out PMs. unfold join2 in J.
   destruct (list_eq_dec Pos.eq_dec (g_loc g1) (g_loc g2)) as [GL | ]; [ | discriminate ].
+  destruct (list_eq_dec Pos.eq_dec (g_cl g1) (g_cl g2)) as [GC | ]; [ | discriminate ].
   destruct (list_eq_dec Pos.eq_dec _ _) as [KE | ]; [ | discriminate ].
   set (nx0 := Pos.max (g_nx g1) (g_nx g2)) in J.
   destruct (jout o1 o2 nx0 nil) as [[[o nx1] mo1]|] eqn:JO; [ | discriminate ].
@@ -2771,7 +2826,9 @@ Proof.
       * destruct (sload_sound _ _ _ _ _ _ _ MM Ss) as [Ld Sd].
         rewrite Hd, BA, (addr_Rx Es E3 nx0 r o' R03). exact Ld.
     + (* frame *)
-      intros b z ch OLD NOV. apply FR; [ exact OLD | ].
+      intros b z ch OLD NOV CLD. apply FR; [ exact OLD | |
+        intros r I; apply (rng_disj_eq E3 Es); [ symmetry; exact BA | symmetry; exact BB | apply CLD;
+          cbn [g_cl]; unfold gs in I; destruct sd; [ exact I | rewrite GC; exact I ] ] ].
       intros e I. assert (IK : In (skey e) (map skey sm)).
       { rewrite K3. apply (jkeys_of_side sd). fold gs. exact I. }
       apply in_map_iff in IK. destruct IK as [e' [Ke I']].
@@ -2967,7 +3024,7 @@ Qed.
 
 Lemma alloc_one_sound : forall E m g se0 e0 id ty m1 b1,
   MMg E m g -> env_match E (g_loc g) se0 e0 -> Mem.alloc m 0 (sizeof ge ty) = (m1, b1) ->
-  let g' := mkg (g_sm g) (g_pc g) (Pos.succ (g_nx g)) (g_nx g :: g_loc g) in
+  let g' := mkg (g_sm g) (g_pc g) (Pos.succ (g_nx g)) (g_nx g :: g_loc g) (g_cl g) in
   let E' := salloc1 E (g_nx g) b1 in
   MMg E' m1 g' /\ env_match E' (g_loc g') (PTree.set id (g_nx g, ty) se0) (PTree.set id (b1, ty) e0).
 Proof.
@@ -2999,8 +3056,11 @@ Proof.
       fold (addr E r o). rewrite L. symmetry. eapply den_ext; [ apply S | exact X ].
     + (* frame *)
       intros b z ch OLD NOV.
+      intros CLD.
       erewrite Mem.load_alloc_unchanged; [ | exact A | unfold Mem.valid_block, Plt, Ple in *; lia ].
-      apply FR; [ exact OLD | ]. intros e I. specialize (NOV e I).
+      apply FR; [ exact OLD | |
+        intros r I; apply (rng_disj_Ext E E' nx); [ exact EO | exact NB | exact X | apply CLD; exact I ] ].
+      intros e I. specialize (NOV e I).
       destruct e as [[[r o] ch'] sv]. destruct (ENT r o ch' sv I) as (IB & _).
       destruct (inb_live _ _ _ _ _ _ MM IB) as [P _].
       assert (LV : Plt r nbase \/ In r (g_loc g)).
@@ -3176,7 +3236,7 @@ Qed.
 (* ---- the simplest sound contract: memory unchanged, an unknown result ---- *)
 
 (* the state after naming one fresh value *)
-Definition gfresh (g : gst) : gst := mkg (g_sm g) (g_pc g) (Pos.succ (g_nx g)) (g_loc g).
+Definition gfresh (g : gst) : gst := mkg (g_sm g) (g_pc g) (Pos.succ (g_nx g)) (g_loc g) (g_cl g).
 
 (* the contract "memory unchanged, some result" (atan2s, ...) *)
 Definition xc_fresh : xcontract := fun _ g => Some [(gfresh g, Sfresh (g_nx g))].
@@ -3746,7 +3806,7 @@ Proof. intros fuel. exact (proj2 (proj2 (sx_sound fuel))). Qed.
 (* the start: no writes, no locals, facts that hold at m0 *)
 Lemma MMg_init : forall E pc nx, env_ok E -> Ple nbase nx ->
   (forall f, In f pc -> fact_nlt nx f /\ fact_holds E f) ->
-  MMg E m0 (mkg nil pc nx nil).
+  MMg E m0 (mkg nil pc nx nil nil).
 Proof.
   intros E pc nx EO L PC. unfold MMg; cbn [g_nx g_loc g_sm g_pc].
   split; [ exact EO | split; [ exact L | split; [ intros r o ch sv [] | split; [ intros; reflexivity | ] ] ] ].

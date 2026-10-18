@@ -53,6 +53,16 @@ Proof.
     destruct (IH _ _ S) as (A' & B' & C'). rewrite A', B', C'. auto.
 Qed.
 
+Lemma sstores_cl : forall l g g', sstores nbase R0 g l = Some g' -> g_cl g' = g_cl g.
+Proof.
+  induction l as [| [[[r o] ch] sv] l IH]; intros g g' S; cbn [sstores] in S.
+  - injection S as <-. auto.
+  - destruct (sstore nbase R0 g r o ch sv) as [g1 |] eqn:S1; [| discriminate].
+    rewrite (IH _ _ S). unfold sstore in S1.
+    destruct (inb nbase R0 g r o ch); [| discriminate].
+    destruct (forallb _ (g_sm g)); [| discriminate]. inv S1. reflexivity.
+Qed.
+
 (* every written cell's key is in the result *)
 Lemma sstore_drop : forall g r o ch sv g' e, sstore nbase R0 g r o ch sv = Some g' ->
   In e (g_sm g) -> In e (g_sm g') \/ skey e = (r, o, ch).
@@ -177,10 +187,11 @@ Proof.
       pose proof (N0 k Ik) as N. destruct k as [[[r1 o1] ch1] sv1]. cbn [skey] in N |- *.
       apply ovl_false in N. destruct N as [N | [N | N]]; [left; exact N | right; right; exact N | right; left; exact N].
   - (* frame *)
-    intros b z ch OLD D.
+    intros b z ch OLD D CLD.
     assert (Vb : Mem.valid_block m b) by (eapply Plt_Ple_trans; [exact OLD | exact NX]).
     rewrite (HD b z ch Vb).
-    + apply FR; [exact OLD |]. intros e Ie.
+    + apply FR; [exact OLD | | intros r I; apply CLD; rewrite (sstores_cl _ _ _ S); exact I].
+      intros e Ie.
       destruct (sstores_drop _ _ _ _ S Ie) as [Ie' | (k & Ik & Ek)]; [exact (D e Ie') |].
       destruct (sstores_key _ _ _ _ S Ik) as (e' & Ie' & Ee'). rewrite <- Ek, <- Ee'. exact (D e' Ie').
     + intros k Ik. destruct (sstores_key _ _ _ _ S Ik) as (e' & Ie' & Ee'). rewrite <- Ee'. exact (D e' Ie').

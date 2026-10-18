@@ -233,7 +233,10 @@ Lemma ld_m0 : forall E m g b z ch, MM E m g -> Plt b nb0 ->
 Proof.
   intros E m g b z ch MMh OLD NR.
   pose proof MMh as (EO & NB & ENT & FR & VP & NX & PC & LOC & LINJ).
-  apply FR; [exact OLD |]. intros [[[r o] ch'] sv] I. cbn [skey cell_disj]. left.
+  apply FR; [exact OLD | |
+    intros r _; unfold rng_disj; destruct (r0_size R0 r) as [sz|] eqn:S; [ | exact I ];
+    left; intros Eb; apply NR; rewrite <- Eb; exact (r0_rblk E r sz S) ].
+  intros [[[r o] ch'] sv] I. cbn [skey cell_disj]. left.
   destruct (ENT r o ch' sv I) as (IB & _).
   destruct (inb_spec _ _ _ _ _ _ IB) as [(_ & sz & S & _) | (_ & Il & _)].
   - intros Eb. apply NR. rewrite <- Eb. exact (r0_rblk E r sz S).

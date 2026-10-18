@@ -70,7 +70,7 @@ Definition pc0 : list fact :=
    Fworld (Sinit RM (fo mario._MarioState mario._area) Mint32) (szs mario._Area)]
   ++ ffacts (Sinit RM (fo mario._MarioState mario._floor) Mint32).
 
-Definition g0 : gst := mkg nil pc0 NB nil.
+Definition g0 : gst := mkg nil pc0 NB nil nil.
 
 (* stepArg = AIR_STEP_CHECK_LEDGE_GRAB (1): act_freefall's call, through
    common_air_action_step *)
