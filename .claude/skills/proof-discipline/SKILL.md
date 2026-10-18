@@ -21,10 +21,13 @@ all in `Unwired/`, and the theorem moved nowhere. See
 
 - **GOAL 1** (no-A ⇒ no-fly): `NoAImpliesNoFly/NoAImpliesNoFlyTwelve.v`,
   `noA_no_spawn_never_flying_linked12`. The step is one real `execute_mario_action` over
-  any link of the 13 TUs (the 12 Mario TUs + `surface_collision`, since 2026-10-17). The
-  open surface is its `Hypothesis` rows (31 as of 2026-10-17, external-call and boundary
-  rows; see `docs/TRUST.md` §4). The collision rows are lemmas now (`SurfaceBodies.v`);
-  `math_util` is the next link (blocked on the `gSineTable` extern-array completion).
+  any link of the 14 TUs (the 12 Mario TUs + `surface_collision` + `math_util`, since
+  2026-10-17). The open surface is its `Hypothesis` rows (23 as of 2026-10-17,
+  external-call and boundary rows; see `docs/TRUST.md` §4). The collision rows
+  (`SurfaceBodies.v`) and the math_util rows (`MathBodies.v`) are lemmas, except
+  `Hscp_mtxf_real`: its callee `vec3f_normalize` reloads its `dest` shadow after the
+  external `sqrtf`, so proving it needs `sqrtf` to leave memory unchanged (a trust
+  decision for the user) or a no-pointers-into-the-frame invariant.
 - **GOAL 2** (WMotR needs A): `WMotRRequiresA/HeightFrame.v`,
   `wmotr_noA_height_bound_linked12`. This is a conditional theorem over ONE WMotR
   visit (frames end with `in_wmotr`), under input with A neither pressed nor held
