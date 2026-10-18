@@ -22,6 +22,7 @@ generated/mario_step.v
 generated/mario_misc.v
 generated/math_util.v
 generated/surface_collision.v
+generated/memory.v
 generated/wmotr_level_data.v
 generated/wmotr_script.v
 generated/macro_special_objects.v

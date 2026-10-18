@@ -53,7 +53,7 @@ From SM64.Generated Require mario mario_actions_stationary
   mario_actions_moving mario_actions_airborne mario_actions_submerged
   mario_actions_cutscene mario_actions_automatic mario_actions_object
   interaction behavior_actions level_update mario_step surface_collision
-  math_util.
+  math_util memory.
 From SM64.Proofs Require Import SymbolicLinking CensusV2 RealFrameLinked
   EngineV2Consumer RestSurface.
 
@@ -82,7 +82,10 @@ Fixpoint link_chain (p : Clight.program) (l : list Clight.program)
    are pinned by LO_math.  It links because pipeline/clightgen.sh's
    extern-array completion table completes every TU's `extern f32
    gSineTable[]` (tarray tfloat 0) to math_util's 5120 entries (TRUST 2.4);
-   Linked12Sat's certificate checks the 14-TU chain. *)
+   Linked12Sat's certificate checks the 14-TU chain.  memory is the third
+   (2026-10-18): load_patchable_table / dma_read run their real bodies,
+   pinned by LO_memory, so set_mario_animation's only externals are the
+   libultra DMA calls. *)
 Definition tu_rest : list Clight.program :=
   [ mario_actions_stationary.prog;
     mario_actions_moving.prog;
@@ -96,7 +99,8 @@ Definition tu_rest : list Clight.program :=
     level_update.prog;
     mario_step.prog;
     surface_collision.prog;
-    math_util.prog ].
+    math_util.prog;
+    memory.prog ].
 
 Definition linked12 (lp : Clight.program) : Prop :=
   link_chain mario.prog tu_rest = Some lp.
@@ -187,6 +191,10 @@ Section Linked12LO.
   Lemma linked12_LO_math : linkorder math_util.prog lp.
   Proof.
     exact (link_chain_linkorder_in _ _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_eq _ _))))))))))))) H12).
+  Qed.
+  Lemma linked12_LO_memory : linkorder memory.prog lp.
+  Proof.
+    exact (link_chain_linkorder_in _ _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_eq _ _)))))))))))))) H12).
   Qed.
 End Linked12LO.
 
@@ -394,6 +402,9 @@ Proof. vm_compute. reflexivity. Qed.
 Lemma no_internal_math :
   no_internal_ids math_util.prog truly_ext_pin_ids = true.
 Proof. vm_compute. reflexivity. Qed.
+Lemma no_internal_memory :
+  no_internal_ids memory.prog truly_ext_pin_ids = true.
+Proof. vm_compute. reflexivity. Qed.
 
 (* resolves_lp -> defmap entry (the genv->defmap bridge, spike-style) *)
 Lemma resolves_defmap :
@@ -429,7 +440,7 @@ Proof.
   destruct (link_chain_internal_origin _ _ _ _ _ H12 Hres)
     as [Hbase | (q & Hq & Hqdm)].
   - exact (no_internal_ids_correct _ _ _ _ no_internal_mario Hmem Hbase).
-  - destruct Hq as [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | []]]]]]]]]]]]]].
+  - destruct Hq as [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | []]]]]]]]]]]]]]].
     + exact (no_internal_ids_correct _ _ _ _ no_internal_sta Hmem Hqdm).
     + exact (no_internal_ids_correct _ _ _ _ no_internal_mov Hmem Hqdm).
     + exact (no_internal_ids_correct _ _ _ _ no_internal_air Hmem Hqdm).
@@ -443,6 +454,7 @@ Proof.
     + exact (no_internal_ids_correct _ _ _ _ no_internal_stp Hmem Hqdm).
     + exact (no_internal_ids_correct _ _ _ _ no_internal_surf Hmem Hqdm).
     + exact (no_internal_ids_correct _ _ _ _ no_internal_math Hmem Hqdm).
+    + exact (no_internal_ids_correct _ _ _ _ no_internal_memory Hmem Hqdm).
 Qed.
 
 (* ---------------------------------------------------------------------- *)

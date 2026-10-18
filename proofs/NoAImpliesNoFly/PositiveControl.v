@@ -45,9 +45,7 @@ Definition flat_world (ef : external_function) (args : list val) (m : mem)
     : option (trace * val * mem) :=
   match ef with
   | EF_external n _ =>
-      if String.eqb n "load_patchable_table"
-      then ret (Vint Int.zero) m
-      else if String.eqb n "sqrtf" then
+      if String.eqb n "sqrtf" then
         match args with [Vsingle x] => ret (Vsingle (Float32.sqrt x)) m | _ => None end
       else if String.eqb n "play_sound" || String.eqb n "play_infinite_stairs_music"
       then ret Vundef m
@@ -96,9 +94,9 @@ Definition build (ge : genv) (ast : AST.program (Ctypes.fundef function) type)
       match sym ge "gStaticSurfacePartition",
             fresh_many ge m0 ["Object"; "MarioBodyState"; "Controller"; "Area";
                               "Camera"; "Surface"; "PlayerCameraState";
-                              "DmaHandlerList"; "Animation"; "SurfaceNode"] with
+                              "DmaHandlerList"; "Animation"; "SurfaceNode"; "DmaTable"] with
       | Some gsp, Some (m1, [bobj; bbody; bctl; barea; bcam; bfloor; bpcs; bdma; banim;
-                             bnode]) =>
+                             bnode; btbl]) =>
         let V k := o "Surface" k in
         let ws := [ W Mint32 gp 0 (P bm);
                     W Mint32 bm (o M "action") (i32 ACT_DOUBLE_JUMP_LAND);
@@ -113,6 +111,10 @@ Definition build (ge : genv) (ast : AST.program (Ctypes.fundef function) type)
                     W Mint16signed bm (o M "health") (i32 2176);
                     W Mint32 bm (o M "animList") (P bdma);
                     W Mint32 bdma (o "DmaHandlerList" "bufTarget") (P banim);
+                    (* the real load_patchable_table (memory.c, linked) runs:
+                       an empty DMA table (count = 0, zero-filled) takes its
+                       index >= count branch, no DMA, returns FALSE *)
+                    W Mint32 bdma (o "DmaHandlerList" "dmaTable") (P btbl);
                     W Mint32 barea (o "Area" "camera") (P bcam);
                     W Mint16unsigned bctl (o "Controller" "buttonPressed") (i32 A_BUTTON);
                     W Mint16unsigned bctl (o "Controller" "buttonDown") (i32 A_BUTTON);
