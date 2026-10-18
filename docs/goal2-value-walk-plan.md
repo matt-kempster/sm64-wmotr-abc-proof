@@ -484,3 +484,18 @@ through the two list calls, the SURFACE_INTANGIBLE re-search and the
 So a landing on a fresh height is a hit, and `AirMatch.land_height` drops its
 −11000 case. A first attempt used the landing test `yPos ≤ height` instead. That
 fails on 20 of the 852 landings: a join had renamed `pos` on ceiling-cut paths.
+
+**Done: a non-landing freefall air step is a RangedMove.** `AirMove.air_move` and
+`AirMove.cut_move` take a Cair / Ccut outcome of the real walk, the entry cells
+(`budget_ok`, action ACT_FREEFALL) and `floor_data`. From these they build the exit
+cells `c'` with `read_cells` at the final memory and `RangedMove c c'`, an S_air or
+S_air_cut step in range. Two facts the walk now checks on every outcome made this
+possible. The first is the non-landing compare
+`!(pos[1] <= floorHeight)` against the entry floorHeight or a find_floor height
+(`AirMatch.aclass_above`). The second is `AirMatch.cells_ok`: marioObj is unchanged
+and floorHeight is the entry value or a find_floor height. Φ's lower bound became
+−11000, plus a finite floorHeight ≥ −11000. The old −8192 was not provable: when
+both find_floor calls in `update_mario_geometry_inputs` miss, floorHeight is −11000,
+and a floorless quarter compares against it. Still open: landings (S_attach),
+`HbO`, env_ok and pc0 from the frame memory, and other air actions (the walk fixes
+ACT_FREEFALL).

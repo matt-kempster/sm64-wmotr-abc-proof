@@ -298,8 +298,18 @@ Definition land_ok : bool :=
      | _, _, _ => false
      end.
 
+(* every outcome: m->marioObj still points at Mario's object, and
+   floorHeight is the entry cell or a find_floor height *)
+Definition oMO : Z := 136.
+Definition cells_ok : bool :=
+  match ld rM oMO Mint32 with
+  | Some (Sptr r o) => Pos.eqb r rO && Ptrofs.eq o Ptrofs.zero
+  | _ => false
+  end
+  && match ld rM oF Mfloat32 with Some a => is_land a | None => false end.
+
 Definition outcome_ok : bool :=
-  match aclass_of with Some _ => true | None => land_ok end.
+  cells_ok && match aclass_of with Some _ => true | None => land_ok end.
 End CLS.
 
 (* ---- what a class says about the outcome's memory ---- *)
@@ -451,7 +461,8 @@ Theorem aclass_cut : forall k, aclass_of LD IC (g_pc g) rM rO kH = Some (Ccut k)
   /\ exists p, R2 p = R2 (quarter_steps k y (Float32.div v f4))
      /\ Mem.load Mfloat32 m (e_blk E rM) oY = Some (Vsingle p)
      /\ Mem.load Mfloat32 m (e_blk E rO) oG = Some (Vsingle p)
-     /\ Mem.load Mfloat32 m (e_blk E rM) oV = Some (Vsingle fm4).
+     /\ Mem.load Mfloat32 m (e_blk E rM) oV = Some (Vsingle fm4)
+     /\ exists j, p = add_zeros j (quarter_steps k y (Float32.div v f4)).
 Proof.
   intros k0 H. unfold aclass_of in H.
   destruct (same_cell LD IC rM oA Mint32) eqn:SA; [| discriminate].
@@ -478,7 +489,7 @@ Proof.
   rewrite addr_M in DY, DV. rewrite addr_O in DG. rewrite QD in DY, DG.
   rewrite (vel_cut_den _ VC) in DV.
   split; [repeat split; apply same_cell_sound; assumption |]. split; [exact K4 |].
-  eexists; split; [apply add_zeros_R2 | split; [exact DY | split; [exact DG | exact DV]]].
+  eexists; split; [apply add_zeros_R2 | split; [exact DY | split; [exact DG | split; [exact DV | eexists; reflexivity]]]].
 Qed.
 Lemma ole_den : forall vp x w,
   sem_binary_operation ge Cop.Ole vp tf (Vsingle x) tf m0 = Some w ->
@@ -562,6 +573,36 @@ Proof.
     destruct k as [|[|[|[|[|k]]]]]; try discriminate; destruct j; try discriminate.
     destruct (above (g_pc g) rM kH py) eqn:AB; [| discriminate].
     right. exact (above_sound py LY AB).
+Qed.
+
+Lemma cells_sound : cells_ok LD (g_pc g) rM rO kH = true ->
+  Mem.load Mint32 m (e_blk E rM) oMO = Some (Vptr (e_blk E rO) Ptrofs.zero)
+  /\ (Mem.load Mfloat32 m (e_blk E rM) oF = Mem.load Mfloat32 m0 (e_blk E rM) oF
+      \/ exists x, Mem.load Mfloat32 m (e_blk E rM) oF = Some (Vsingle x) /\ Hit_at ge m0 x).
+Proof.
+  intros H. unfold cells_ok in H. apply andb_true_iff in H as (H1 & H2).
+  split.
+  - destruct (LD rM oMO Mint32) as [a|] eqn:L; [| discriminate].
+    destruct a as [| r0 i | | | | | | | |]; try discriminate. apply andb_true_iff in H1 as (Hr & Ho).
+    apply Pos.eqb_eq in Hr. subst. pose proof (Ptrofs.eq_spec i Ptrofs.zero) as Ei. rewrite Ho in Ei. subst.
+    pose proof (ld_sound _ _ _ _ L) as D. rewrite addr_M in D. rewrite D. cbn [den].
+    rewrite HbO. reflexivity.
+  - destruct (LD rM oF Mfloat32) as [a|] eqn:L; [| discriminate].
+    pose proof (ld_sound _ _ _ _ L) as D. rewrite addr_M in D. rewrite D.
+    destruct a; try discriminate.
+    + destruct ch; try discriminate. cbn [is_land] in H2. apply andb_true_iff in H2 as (Hr & Ho).
+      apply Pos.eqb_eq in Hr. apply Z.eqb_eq in Ho. subst. left.
+      cbn [den]. rewrite HbM, Ptrofs.unsigned_zero, Z.add_0_l. reflexivity.
+    + cbn [is_land] in H2. apply existsb_exists in H2 as (f & If & Hf).
+      destruct f as [| | | k args]; cbn [hfact] in Hf; try discriminate.
+      destruct args as [| a0 [| ya [|]]]; cbn [hfact] in Hf; try discriminate;
+        destruct a0; cbn [hfact] in Hf; try discriminate.
+      repeat rewrite andb_true_iff in Hf. destruct Hf as ((Hk & Hn) & _).
+      apply Pos.eqb_eq in Hk. apply Pos.eqb_eq in Hn. subst.
+      pose proof MM as (_ & _ & _ & _ & _ & _ & PC & _).
+      destruct (PC _ If) as (_ & FH). cbn [fact_holds map] in FH.
+      destruct (HUH _ FH) as (h & yv & Evs & _ & HT). injection Evs as E1 _.
+      right. exists h. split; [exact E1 | exact HT].
 Qed.
 
 Theorem land_sound : land_ok LD IC (g_pc g) rM rO kH = true ->
