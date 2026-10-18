@@ -1007,3 +1007,84 @@ Section MathRows.
     mr_finish Hfr.
   Qed.
 End MathRows.
+
+(* ====================================================================== *)
+(* THE PURE MATH ROWS (approach_f32 / approach_s32 / atan2s).  Their real   *)
+(* bodies have no locals and no stores (atan2s's one callee, atan2_lookup,  *)
+(* is pinned and store-free too), so a call leaves memory IDENTICAL: the   *)
+(* any-argument row holds for ANY carried facts.                            *)
+(* ====================================================================== *)
+
+Lemma cpure2_funcall_memid :
+  forall (ge : genv) f,
+    fn_vars f = nil -> cpure2_chk (fn_body f) = true ->
+    resolves_to ge math_util._atan2_lookup math_util.f_atan2_lookup ->
+    forall m vargs t m' vres,
+      eval_funcall function_entry2 ge m (Internal f) vargs t m' vres -> m' = m.
+Proof.
+  intros ge f Hfv Hchk Hpin m vargs t m' vres Hevf.
+  inv Hevf.
+  match goal with He : function_entry2 _ _ _ _ _ _ _ |- _ => rename He into Hentry end.
+  match goal with Hx : exec_stmt _ _ _ _ _ _ _ _ _ _ |- _ => rename Hx into Hbody end.
+  match goal with Hf : Mem.free_list _ _ = Some _ |- _ => rename Hf into Hfree end.
+  inv Hentry.
+  match goal with Ha : alloc_variables _ _ _ _ _ _ |- _ => rewrite Hfv in Ha; inv Ha end.
+  pose proof (cpure2_walk ge Hpin _ _ _ _ _ _ _ Hbody Hchk) as Em. subst.
+  rewrite (eq_refl : blocks_of_env ge empty_env = nil) in Hfree.
+  cbn [Mem.free_list] in Hfree. injection Hfree as <-. reflexivity.
+Qed.
+
+Lemma math_defmap_af32 :
+  (prog_defmap math_util.prog) ! mario_actions_airborne._approach_f32
+    = Some (Gfun (Internal math_util.f_approach_f32)).
+Proof. vm_compute. reflexivity. Qed.
+Lemma math_defmap_as32 :
+  (prog_defmap math_util.prog) ! mario_actions_automatic._approach_s32
+    = Some (Gfun (Internal math_util.f_approach_s32)).
+Proof. vm_compute. reflexivity. Qed.
+Lemma af32_pure : cpure2_chk (fn_body math_util.f_approach_f32) = true.
+Proof. vm_compute. reflexivity. Qed.
+Lemma as32_pure : cpure2_chk (fn_body math_util.f_approach_s32) = true.
+Proof. vm_compute. reflexivity. Qed.
+
+Section MathPure.
+  Variable lp : Clight.program.
+  Variable bm : block.
+  Variables NoA MWF : mem -> Prop.
+  Hypothesis LO_math : linkorder math_util.prog lp.
+
+  Lemma mp_resolves : forall id fr,
+      (prog_defmap math_util.prog) ! id = Some (Gfun (Internal fr)) ->
+      resolves_to (lp_ge lp) id fr.
+  Proof.
+    intros id fr Hdm bf f Hs Hf.
+    destruct (linkorder_resolves_funct lp _ id fr LO_math Hdm) as (b' & Hs' & Hf').
+    unfold lp_ge in Hs, Hf.
+    rewrite Hs in Hs'. injection Hs' as <-.
+    rewrite Genv.find_funct_find_funct_ptr in Hf'. congruence.
+  Qed.
+
+  Lemma call_pres_ext_pure : forall fid f,
+      (prog_defmap math_util.prog) ! fid = Some (Gfun (Internal f)) ->
+      fn_vars f = nil -> cpure2_chk (fn_body f) = true ->
+      call_pres_ext lp bm NoA MWF fid.
+  Proof.
+    intros fid f Hdm Hfv Hchk fd m0 vargs0 t0 m1 vres0 Hevf Hres HN HM Hv Hsat.
+    pose proof (resolves_pin_fd lp _ _ _ _ LO_math Hdm Hres) as ->.
+    rewrite (cpure2_funcall_memid _ _ Hfv Hchk (mp_resolves _ _ math_dm_atan2_lookup)
+               _ _ _ _ _ Hevf).
+    exact (conj Hv (conj Hsat (conj HM HN))).
+  Qed.
+
+  Lemma Hcpx_approach_f32_proved :
+    call_pres_ext lp bm NoA MWF mario_actions_airborne._approach_f32.
+  Proof. exact (call_pres_ext_pure _ _ math_defmap_af32 eq_refl af32_pure). Qed.
+
+  Lemma Hcpx_approach_s32_proved :
+    call_pres_ext lp bm NoA MWF mario_actions_automatic._approach_s32.
+  Proof. exact (call_pres_ext_pure _ _ math_defmap_as32 eq_refl as32_pure). Qed.
+
+  Lemma Hcpx_atan2s_proved :
+    call_pres_ext lp bm NoA MWF mario._atan2s.
+  Proof. exact (call_pres_ext_pure _ _ math_defmap_atan2s eq_refl atan2s_cpure2_chk). Qed.
+End MathPure.

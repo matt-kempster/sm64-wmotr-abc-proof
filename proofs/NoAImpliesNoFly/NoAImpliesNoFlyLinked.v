@@ -1053,9 +1053,16 @@ Section NoARealInputMWF.
      they are INTERNAL mario.prog bodies that WRITE Mario state, now WALKED as
      gated call_pres inside MovingLeafSurface (psinf's bare call_pres_ext was
      PHANTOM-FALSE). *)
-  Hypothesis Hpres_mov_ext : forall fid,
+  (* PROVED 2026-10-17: mov_ext_ids is just approach_f32, whose real
+     math_util body (linked, LO_math) has no locals and no stores. *)
+  Lemma Hpres_mov_ext : forall fid,
       mem_id fid MovingLeafSurface.mov_ext_ids = true ->
       call_pres_ext lp bm (NoA_real bm) MWF fid.
+  Proof.
+    intros fid H. unfold mem_id, MovingLeafSurface.mov_ext_ids in H. cbn [existsb] in H.
+    rewrite orb_false_r in H. apply Pos.eqb_eq in H. subst fid.
+    exact (MathBodies.Hcpx_approach_f32_proved lp bm _ MWF LO_math).
+  Qed.
   (* the airborne dispatcher is WALKED (AirborneSurface.airborne_pres):
      its whole-628-line-body residual is PROVED from per-leaf-callee
      residuals keyed by the 43-id census airborne_callee_ids (41 non-T
@@ -1147,9 +1154,12 @@ Section NoARealInputMWF.
      generated TU (Gfun(External ...), no internal body anywhere) -- the same
      honest terminal external-call model boundary as atan2s/sqrtf, and (unlike
      them) not already in obj_ext_ids/floors_ext_ids. *)
-  Hypothesis Hcpx_approach_f32_real :
+  (* PROVED 2026-10-17 from the real math_util body (MathBodies.MathPure):
+     no locals, no stores, so a call leaves memory identical. *)
+  Lemma Hcpx_approach_f32_real :
     call_pres_ext lp bm (NoA_real bm) MWF
       mario_actions_airborne._approach_f32.
+  Proof. exact (MathBodies.Hcpx_approach_f32_proved lp bm _ MWF LO_math). Qed.
   (* the submerged dispatcher is WALKED (SubmergedSurface.submerged_pres
      over the generic DispatchKit; the quicksandDepth store is killed by
      the window census, and the two headAngle chase-pair stores -- the
@@ -1382,9 +1392,41 @@ Section NoARealInputMWF.
      -- all walked).  The discharged trees surface only the object-family
      EXTERNAL rows (obj_ext_ids, the warp_ext_ids model class) and the
      named internal Hcp_pgs blocker below. *)
-  Hypothesis Hpres_obj_ext : forall fid,
+  (* 2026-10-17: atan2s and approach_s32 are linked math_util bodies now,
+     proved (MathBodies.MathPure), so the row covers only the rest of
+     obj_ext_ids (obj_ext_open_ids); Hpres_obj_ext is then a lemma. *)
+  Definition obj_ext_math (i : ident) : bool :=
+    Pos.eqb i mario._atan2s || Pos.eqb i mario_actions_object._approach_s32.
+  Definition obj_ext_open_ids : list ident :=
+    filter (fun i => negb (obj_ext_math i)) obj_ext_ids.
+  Lemma mem_id_filter_split : forall (p : ident -> bool) fid l,
+      mem_id fid l = true ->
+      p fid = true \/ mem_id fid (filter (fun i => negb (p i)) l) = true.
+  Proof.
+    intros p fid l. unfold mem_id. induction l as [|a l IH]; cbn [existsb filter];
+      intros H; [discriminate H|].
+    apply orb_true_iff in H as [H|H].
+    - apply Pos.eqb_eq in H. subst a. destruct (p fid) eqn:E; [left; reflexivity|].
+      right. cbn [negb existsb]. rewrite Pos.eqb_refl. reflexivity.
+    - destruct (IH H) as [Hp|H']; [left; exact Hp|right].
+      destruct (negb (p a)); cbn [existsb];
+        [rewrite H', orb_true_r; reflexivity | exact H'].
+  Qed.
+  Hypothesis Hpres_obj_ext_open : forall fid,
+      mem_id fid obj_ext_open_ids = true ->
+      call_pres_ext lp bm (NoA_real bm) MWF fid.
+  Lemma Hpres_obj_ext : forall fid,
       mem_id fid obj_ext_ids = true ->
       call_pres_ext lp bm (NoA_real bm) MWF fid.
+  Proof.
+    intros fid H.
+    destruct (mem_id_filter_split obj_ext_math fid obj_ext_ids H) as [Hm|Ho];
+      [|exact (Hpres_obj_ext_open fid Ho)].
+    unfold obj_ext_math in Hm. apply orb_true_iff in Hm as [Hm|Hm];
+      apply Pos.eqb_eq in Hm; subst fid.
+    - exact (MathBodies.Hcpx_atan2s_proved lp bm _ MWF LO_math).
+    - exact (MathBodies.Hcpx_approach_s32_proved lp bm _ MWF LO_math).
+  Qed.
   (* SLICE 12 (cutscene dialog cluster): the new cutscene DIALOG / TIME-STOP
      external boundary (CutsceneLeafSurface.cut_ext_ids = create_dialog_inverted_box
      / trigger_cutscene_dialog / enable_time_stop / disable_time_stop).  These
@@ -1484,9 +1526,11 @@ Section NoARealInputMWF.
          arg = the caller's _nextPos stack local; its body directly stores
          nextPos[1], so a marg-only call_pres is phantom-FALSE -- the honest
          residual is the marg-AND-local gate call_pres_mo (Hcp_php_real). *)
-  Hypothesis Hcpx_approach_real :
+  (* PROVED 2026-10-17 from the real math_util body (MathBodies.MathPure). *)
+  Lemma Hcpx_approach_real :
     call_pres_ext lp bm (NoA_real bm) MWF
       mario_actions_automatic._approach_s32.
+  Proof. exact (MathBodies.Hcpx_approach_s32_proved lp bm _ MWF LO_math). Qed.
   (* perform_hanging_step is now WALKED, not assumed: its whole body is
      proved to preserve under the marg-AND-local gate
      (AutomaticLeafSurface.Hcp_php via call_pres_mo_of_body).  The old opaque
