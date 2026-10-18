@@ -295,3 +295,12 @@ Proved contracts (2026-10-17, later):
   `mario_get_terrain_sound_addend`. That body is store-free, but it has an `Sswitch`
   that `cpure2_chk` does not cover, and a `u32` return, so "not a pointer" is not a
   type fact.
+- `FloorList.ff_value_contract` (Unwired) is the memory-level contract of the real
+  `find_floor`. It assumes that the statics and the `*pfloor` cell are in an "avoid" set,
+  and that the partition lists are well formed (`wf_list`: NULL-terminated, through
+  valid blocks outside that set). Under those assumptions, `*pfloor` ends up holding NULL
+  or a surface read from a node of a partition list in the entry memory, and every valid
+  block outside the set is unchanged. The proof is a statement-level triple
+  (`tri`, `solve_tri`) and runs in under a second; brute-force inversion was killed
+  after 15+ minutes. Next: lift it to an executor contract by deriving `wf_list` from a
+  world invariant.

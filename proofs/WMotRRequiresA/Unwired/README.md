@@ -9,3 +9,6 @@ compiled. Mirrors `../../NoAImpliesNoFly/Unwired/`.
   NULL with memory unchanged, or a surface read from a node of the list, with one
   float written through `pheight`. This is the first brick of the executor's
   `find_floor` contract (`docs/goal2-value-walk-plan.md` §9).
+  `ff_value_contract` is the contract of the real `find_floor` built on it.
+  Assuming the partition lists are well formed, `*pfloor` gets NULL or a surface from a
+  partition list, and nothing outside the statics and that cell changes.
