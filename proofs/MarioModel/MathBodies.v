@@ -23,7 +23,8 @@
 From Coq Require Import ZArith List Lia.
 From compcert Require Import Coqlib Maps AST Integers Values Events Memory
   Globalenvs Ctypes Cop Clightdefs Clight ClightBigstep Linking.
-From SM64.Generated Require mario math_util mario_actions_automatic mario_actions_cutscene.
+From SM64.Generated Require mario math_util mario_actions_automatic mario_actions_cutscene
+  surface_collision.
 From SM64.Proofs Require Import SymbolicLinking ActionValueFrame Taint
   RealFrameLinked AGates CensusV2 RestSurface MWFReal SpawnInit MathGeomBodies
   MathGeomGated SurfaceBodies OutParamSurface LocalVarsSurface FloorsSurface.
@@ -1575,6 +1576,61 @@ Section MathPure.
     call_pres_ext lp bm NoA MWF mario._atan2s.
   Proof. exact (call_pres_ext_pure _ _ math_defmap_atan2s eq_refl atan2s_cpure2_chk). Qed.
 End MathPure.
+
+(* a function returning a 16-bit int returns a Vint *)
+Lemma funcall_ret_int16 : forall (ge : genv) f m vargs t m' vres sg a,
+    fn_return f = Tint I16 sg a ->
+    eval_funcall function_entry2 ge m (Internal f) vargs t m' vres ->
+    exists i, vres = Vint i.
+Proof.
+  intros ge f m vargs t m' vres sg a Hr Hevf. inv Hevf.
+  match goal with Ho : outcome_result_value _ _ _ _ |- _ => rename Ho into Hout end.
+  rewrite Hr in Hout.
+  destruct out as [ | | | [[v' t']|]]; cbn in Hout; try contradiction.
+  destruct Hout as (_ & Hc). apply cast_val_is_casted in Hc.
+  inversion Hc; subst; eauto; discriminate.
+Qed.
+
+(* a function returning a float returns a Vsingle *)
+Lemma funcall_ret_f32 : forall (ge : genv) f m vargs t m' vres a,
+    fn_return f = Tfloat F32 a ->
+    eval_funcall function_entry2 ge m (Internal f) vargs t m' vres ->
+    exists x, vres = Vsingle x.
+Proof.
+  intros ge f m vargs t m' vres a Hr Hevf. inv Hevf.
+  match goal with Ho : outcome_result_value _ _ _ _ |- _ => rename Ho into Hout end.
+  rewrite Hr in Hout.
+  destruct out as [ | | | [[v' t']|]]; cbn in Hout; try contradiction.
+  destruct Hout as (_ & Hc). apply cast_val_is_casted in Hc.
+  inversion Hc; subst; eauto; discriminate.
+Qed.
+
+(* THE VALUE CONTRACT of find_water_level (SymExec2.xc_fresh): memory
+   unchanged (MathGeomBodies.find_water_level_memid), a float result.
+   No world fact: the executor learns nothing about the level. *)
+Lemma find_water_level_value_contract : forall (ge : genv) m vargs t m' vres,
+    eval_funcall function_entry2 ge m
+      (Internal surface_collision.f_find_water_level) vargs t m' vres ->
+    m' = m /\ exists x, vres = Vsingle x.
+Proof.
+  intros ge m vargs t m' vres Hevf. split.
+  - exact (find_water_level_memid _ _ _ _ _ _ Hevf).
+  - exact (funcall_ret_f32 _ surface_collision.f_find_water_level _ _ _ _ _ noattr eq_refl Hevf).
+Qed.
+
+(* THE VALUE CONTRACT of atan2s, for the GOAL-2 executor (SymExec2.xc_fresh):
+   the real body leaves memory unchanged and returns an int.  Any genv
+   that pins atan2_lookup to its real body. *)
+Lemma atan2s_value_contract : forall (ge : genv),
+    resolves_to ge math_util._atan2_lookup math_util.f_atan2_lookup ->
+    forall m vargs t m' vres,
+      eval_funcall function_entry2 ge m (Internal math_util.f_atan2s) vargs t m' vres ->
+      m' = m /\ exists i, vres = Vint i.
+Proof.
+  intros ge Hpin m vargs t m' vres Hevf. split.
+  - exact (cpure2_funcall_memid _ math_util.f_atan2s eq_refl atan2s_cpure2_chk Hpin _ _ _ _ _ Hevf).
+  - exact (funcall_ret_int16 _ math_util.f_atan2s _ _ _ _ _ Signed noattr eq_refl Hevf).
+Qed.
 
 (* ====================================================================== *)
 (* anim_spline_init: three direct stores to the math_util spline statics *)

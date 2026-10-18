@@ -117,8 +117,8 @@ Definition c_walls : xcontract := fun args s =>
 Definition xc (id : ident) : option xcontract :=
   if Pos.eqb id mario._find_floor then Some (c_find_surf (Float32.of_int (Int.repr (-11000))) 3)
   else if Pos.eqb id mario._vec3f_find_ceil then Some (c_find_surf (Float32.of_int (Int.repr 20000)) 2)
-  else if Pos.eqb id mario._find_water_level then Some c_water
-  else if Pos.eqb id mario._atan2s then Some c_fresh
+  else if Pos.eqb id mario._find_water_level then Some xc_fresh
+  else if Pos.eqb id mario._atan2s then Some xc_fresh
   else if Pos.eqb id mario._mario_get_terrain_sound_addend then Some c_fresh
   else if Pos.eqb id mario._find_wall_collisions then Some c_walls
   else None.

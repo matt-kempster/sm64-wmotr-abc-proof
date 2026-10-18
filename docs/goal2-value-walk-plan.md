@@ -280,3 +280,18 @@ contract), then port the gravity slice to v2.
   first four are linked now (`surface_collision`), so their value contracts can be
   proved from the generated bodies. In WMotR the world reads go through the static
   surface partition.
+
+Proved contracts (2026-10-17, later):
+- `SymExec2.xc_fresh` is the contract "memory unchanged, an unknown old result".
+  `xc_fresh_sound` proves that any call which leaves memory unchanged and returns
+  an old value is described by it.
+- `MathBodies.atan2s_value_contract` (real body: memory unchanged, returns a `Vint`) and
+  `MathBodies.find_water_level_value_contract` (memory unchanged, returns a `Vsingle`)
+  are the facts that `xc_sound` needs for these two ids. The lab now uses `xc_fresh`
+  for both. The old `c_water` stand-in claimed the constant -11000, a world fact
+  nothing proves. With `xc_fresh` the counts are unchanged: 7328 / 225 / 4.
+- Still stand-ins: `find_floor`, `vec3f_find_ceil` and `find_wall_collisions`, whose
+  results need list facts about the surface partition (the next brick), and
+  `mario_get_terrain_sound_addend`. That body is store-free, but it has an `Sswitch`
+  that `cpure2_chk` does not cover, and a `u32` return, so "not a pointer" is not a
+  type fact.

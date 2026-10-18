@@ -3028,6 +3028,57 @@ Proof.
   - intros f' [<- | I]; auto.
 Qed.
 
+
+(* ---- the simplest sound contract: memory unchanged, an unknown result ---- *)
+
+(* the state after naming one fresh value *)
+Definition gfresh (g : gst) : gst := mkg (g_sm g) (g_pc g) (Pos.succ (g_nx g)) (g_loc g).
+
+(* the contract "memory unchanged, some result" (atan2s, ...) *)
+Definition xc_fresh : xcontract := fun _ g => Some [(gfresh g, Sfresh (g_nx g))].
+
+Lemma fresh_cm : forall E m g v, MMg E m g -> val_old v ->
+  CM E (g_nx g) (g_loc g) m v (gfresh g, Sfresh (g_nx g)).
+Proof.
+  intros E m g v MM O. pose proof MM as (EO & NB & ENT & FR & VP & NX & PC & LOC & LINJ).
+  set (nx := g_nx g) in *.
+  set (E' := upd E nx (Some v)).
+  assert (R : Rx E E' nx) by apply Rx_upd.
+  assert (L1 : Ple nx (Pos.succ nx)) by (apply Ple_succ).
+  exists E'. split; [ apply Rx_Ext; exact R | ].
+  split; [ | split; [ cbn; destruct (Pos.eq_dec nx nx); [ reflexivity | congruence ] | ] ].
+  - unfold MMg, gfresh; cbn [g_nx g_loc g_sm g_pc]. fold nx.
+    split; [ | split; [ | split; [ | split; [ | split; [ exact VP | split; [ exact NX | split; [ | split ] ] ] ] ] ] ].
+    + eapply env_ok_Rx; [ exact EO | exact R | exact NB | ].
+      intros k w H. cbn in H. destruct (Pos.eq_dec k nx); [ inv H; exact O | ].
+      destruct EO as (_ & _ & _ & _ & _ & RO). eapply RO; eauto.
+    + eapply Ple_trans; [ exact NB | exact L1 ].
+    + intros r o ch sv I. destruct (ENT r o ch sv I) as (IB & S & L).
+      split; [ rewrite <- IB; apply inb_loc; reflexivity | ].
+      split; [ eapply sok_mono; eauto | ].
+      rewrite (addr_Rx E E' nx r o R). rewrite (den_Rx E E' nx sv R (sok_nlt _ _ S)). exact L.
+    + intros b z ch P D. apply FR; [ exact P | ].
+      intros e I. rewrite <- (cell_disj_Rx E E' nx _ b z ch R). auto.
+    + intros f I. destruct (PC f I) as (N & H). split; [ eapply fact_nlt_mono; eauto | ].
+      eapply fact_holds_Rx; eauto.
+    + intros r I. destruct (LOC r I) as (A & B & C & D & F).
+      split; [ exact A | split; [ eapply Plt_trans_succ; exact B | ]].
+      split; [ exact C | split; [ exact D | exact F ] ].
+    + exact LINJ.
+  - split; [ split; [ cbn; apply Plt_succ | cbn; exact I ] | ].
+    split; [ exact L1 | reflexivity ].
+Qed.
+
+(* a call that leaves memory unchanged and returns an old value is
+   described by [xc_fresh] *)
+Lemma xc_fresh_sound : forall E m g v args cps,
+  xc_fresh args g = Some cps -> MMg E m g -> val_old v ->
+  exists c, In c cps /\ CM E (g_nx g) (g_loc g) m v c.
+Proof.
+  intros E m g v args cps H MM O. inv H.
+  eexists; split; [ left; reflexivity | apply fresh_cm; auto ].
+Qed.
+
 Lemma temps_ok_set : forall E n tle le id v a, temps_ok E n tle le -> den E a = Some v -> sok n a ->
   temps_ok E n (PTree.set id v tle) (PTree.set id a le).
 Proof.
