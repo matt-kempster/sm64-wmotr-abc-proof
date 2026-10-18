@@ -272,6 +272,9 @@ proofs/WMotRRequiresA/Unwired/WallList.v
 proofs/WMotRRequiresA/Unwired/WallFind.v
 proofs/WMotRRequiresA/Unwired/WallExec.v
 proofs/WMotRRequiresA/Unwired/AirXc.v
+proofs/WMotRRequiresA/Unwired/FpuFloor.v
+proofs/WMotRRequiresA/Unwired/FpWalk.v
+proofs/WMotRRequiresA/Unwired/AirWr.v
 proofs/WMotRRequiresA/Unwired/AirMatch.v
 proofs/WMotRRequiresA/Unwired/AirRun.v
 proofs/WMotRRequiresA/Unwired/AirMove.v

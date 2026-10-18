@@ -3286,18 +3286,18 @@ Qed.
 (* ---- building blocks for contracts that write cells ---- *)
 
 (* naming one fresh value keeps the description *)
-Lemma MMg_fresh : forall E m g v, MMg E m g -> val_old v ->
-  MMg (upd E (g_nx g) (Some v)) m (gfresh g).
+Lemma MMg_fresh_o : forall E m g ov, MMg E m g -> (forall v, ov = Some v -> val_old v) ->
+  MMg (upd E (g_nx g) ov) m (gfresh g).
 Proof.
-  intros E m g v MM O.
+  intros E m g ov MM O.
   pose proof MM as (EO & NB & ENT & FR & VP & NX & PC & LOC & LINJ).
   set (nx := g_nx g) in *.
-  assert (R : Rx E (upd E nx (Some v)) nx) by apply Rx_upd.
+  assert (R : Rx E (upd E nx ov) nx) by apply Rx_upd.
   assert (L1 : Ple nx (Pos.succ nx)) by (apply Ple_succ).
   unfold MMg, gfresh; cbn [g_nx g_loc g_sm g_pc]. fold nx.
   split; [ | split; [ | split; [ | split; [ | split; [ exact VP | split; [ exact NX | split; [ | split ] ] ] ] ] ] ].
   - eapply env_ok_Rx; [ exact EO | exact R | exact NB | ].
-    intros k w H. cbn in H. destruct (Pos.eq_dec k nx); [ inv H; exact O | ].
+    intros k w H. cbn in H. destruct (Pos.eq_dec k nx); [ exact (O w H) | ].
     destruct EO as (_ & _ & _ & _ & _ & RO). eapply RO; eauto.
   - eapply Ple_trans; [ exact NB | exact L1 ].
   - intros r o ch sv I. destruct (ENT r o ch sv I) as (IB & S & L).
@@ -3312,6 +3312,12 @@ Proof.
     split; [ exact A | split; [ eapply Plt_trans_succ; exact B | ]].
     split; [ exact C | split; [ exact D | exact F ] ].
   - exact LINJ.
+Qed.
+
+Lemma MMg_fresh : forall E m g v, MMg E m g -> val_old v ->
+  MMg (upd E (g_nx g) (Some v)) m (gfresh g).
+Proof.
+  intros E m g v MM O. apply MMg_fresh_o; [ exact MM | intros w H; injection H as <-; exact O ].
 Qed.
 
 (* the description carries over to a memory that agrees on every cell it
