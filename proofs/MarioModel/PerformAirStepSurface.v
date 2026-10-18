@@ -94,17 +94,12 @@ Definition pas_call_chk (fid : ident) (fty : type) (al : list expr) : bool :=
          | Etempvar mp tmp :: nil =>
              Pos.eqb mp mario_step._m && proj_sumbool (type_eq tmp tyMSstp)
          | _ => false
-         end)
-  || (Pos.eqb fid mario_step._vec3f_copy
-      && proj_sumbool
-           (type_eq fty
-              (Tfunction (tptr tfloat :: tptr tfloat :: nil) (tptr tvoid)
-                 cc_default)))
-  || (Pos.eqb fid mario_step._vec3s_set
-      && proj_sumbool
-           (type_eq fty
-              (Tfunction (tptr tshort :: tshort :: tshort :: tshort :: nil)
-                 (tptr tvoid) cc_default))).
+         end).
+
+(* the dst-gated writers: reached only as chase-headed units
+   (t := m->marioObj; writer(&t->header.gfx.F, ..)) -- chase_writer_chk *)
+Definition pas_wl : list ident :=
+  mario_step._vec3f_copy :: mario_step._vec3s_set :: nil.
 
 Definition pas_optid_ok (optid : option ident) : bool :=
   match optid with
@@ -116,7 +111,8 @@ Fixpoint pas_chk (s : statement) : bool :=
   match s with
   | Sskip | Sbreak | Scontinue => true
   | Sreturn _ => true
-  | Ssequence s1 s2 => pas_chk s1 && pas_chk s2
+  | Ssequence s1 s2 =>
+      chase_writer_chk pas_wl (Ssequence s1 s2) || (pas_chk s1 && pas_chk s2)
   | Sifthenelse _ s1 s2 => pas_chk s1 && pas_chk s2
   | Sloop s1 s2 => pas_chk s1 && pas_chk s2
   | Sset id _ => pas_optid_ok (Some id)
@@ -196,6 +192,9 @@ Section PasSurface.
       Mem.valid_block m1 bm /\ action_sat not_tainted m1 bm /\
       MWF m1 /\ NoA m1.
 
+  (* chase-root soundness (ActWriterSurface.chase_root_sound_proved) *)
+  Hypothesis Hcrs : chase_root_sound lp bm MWF SafeB.
+
   (* the callee rows *)
   Hypothesis Hcp_paqs :
     call_pres_paqs mario_step._perform_air_quarter_step.
@@ -206,9 +205,9 @@ Section PasSurface.
   Hypothesis Hcp_avw :
     call_pres lp bm NoA MWF mario_step._apply_vertical_wind.
   Hypothesis Hcpx_v3f :
-    call_pres_ext lp bm NoA MWF mario_step._vec3f_copy.
+    OutParamSurface.call_pres_ext_dg lp bm NoA MWF SafeB mario_step._vec3f_copy.
   Hypothesis Hcpx_v3s :
-    call_pres_ext lp bm NoA MWF mario_step._vec3s_set.
+    OutParamSurface.call_pres_ext_dg lp bm NoA MWF SafeB mario_step._vec3s_set.
 
   (* ---- decoders ---- *)
   Lemma pas_assign_decode :
@@ -256,17 +255,9 @@ Section PasSurface.
           al = Etempvar mario_step._m tyMSstp :: nil)
       \/ (fid = mario_step._apply_vertical_wind /\
           fty = Tfunction (tyMSstp :: nil) tvoid cc_default /\
-          al = Etempvar mario_step._m tyMSstp :: nil)
-      \/ (fid = mario_step._vec3f_copy /\
-          fty = Tfunction (tptr tfloat :: tptr tfloat :: nil) (tptr tvoid)
-                  cc_default)
-      \/ (fid = mario_step._vec3s_set /\
-          fty = Tfunction (tptr tshort :: tshort :: tshort :: tshort :: nil)
-                  (tptr tvoid) cc_default).
+          al = Etempvar mario_step._m tyMSstp :: nil).
   Proof.
     intros fid fty al H. unfold pas_call_chk in H.
-    apply orb_true_iff in H as [H | Hv3s].
-    apply orb_true_iff in H as [H | Hv3f].
     apply orb_true_iff in H as [H | Havw].
     apply orb_true_iff in H as [H | Hag].
     apply orb_true_iff in H as [Hpaqs | Hmgtsa].
@@ -327,7 +318,7 @@ Section PasSurface.
       apply Pos.eqb_eq in Hmp; subst mp.
       destruct (type_eq tmp tyMSstp) as [E1 | ]; [ subst tmp | discriminate Htmp ].
       reflexivity.
-    - do 3 right; left.
+    - do 3 right.
       apply andb_true_iff in Havw as [H12 Hal].
       apply andb_true_iff in H12 as [Hfid Hfty].
       apply Pos.eqb_eq in Hfid.
@@ -341,21 +332,6 @@ Section PasSurface.
       apply Pos.eqb_eq in Hmp; subst mp.
       destruct (type_eq tmp tyMSstp) as [E1 | ]; [ subst tmp | discriminate Htmp ].
       reflexivity.
-    - do 4 right; left.
-      apply andb_true_iff in Hv3f as [Hfid Hfty].
-      apply Pos.eqb_eq in Hfid.
-      destruct (type_eq fty
-                  (Tfunction (tptr tfloat :: tptr tfloat :: nil) (tptr tvoid)
-                     cc_default)) as [Efty | ]; [ | discriminate Hfty ].
-      exact (conj Hfid Efty).
-    - do 5 right.
-      apply andb_true_iff in Hv3s as [Hfid Hfty].
-      apply Pos.eqb_eq in Hfid.
-      destruct (type_eq fty
-                  (Tfunction (tptr tshort :: tshort :: tshort :: tshort :: nil)
-                     (tptr tvoid) cc_default)) as [Efty | ];
-        [ | discriminate Hfty ].
-      exact (conj Hfid Efty).
   Qed.
 
   (* ---- the paqs gate at the call site: arg0 = Etempvar _m under the
@@ -538,6 +514,27 @@ Section PasSurface.
 
   (* ==================================================================== *)
   (* THE WALKER (the pgs shape, 6 callees).                               *)
+  Lemma pas_wl_none : forall (e : env),
+      e ! mario_step._vec3f_copy = None -> e ! mario_step._vec3s_set = None ->
+      forall g, mem_id g pas_wl = true -> e ! g = None.
+  Proof.
+    intros e H1 H2 g Hg. cbn [pas_wl mem_id existsb] in Hg.
+    apply orb_true_iff in Hg as [Hg | Hg];
+      [ apply Pos.eqb_eq in Hg; subst g; exact H1 | ].
+    apply orb_true_iff in Hg as [Hg | Hg];
+      [ apply Pos.eqb_eq in Hg; subst g; exact H2 | discriminate Hg ].
+  Qed.
+
+  Lemma pas_wl_rows : forall g, mem_id g pas_wl = true ->
+      OutParamSurface.call_pres_ext_dg lp bm NoA MWF SafeB g.
+  Proof.
+    intros g Hg. cbn [pas_wl mem_id existsb] in Hg.
+    apply orb_true_iff in Hg as [Hg | Hg];
+      [ apply Pos.eqb_eq in Hg; subst g; exact Hcpx_v3f | ].
+    apply orb_true_iff in Hg as [Hg | Hg];
+      [ apply Pos.eqb_eq in Hg; subst g; exact Hcpx_v3s | discriminate Hg ].
+  Qed.
+
   (* ==================================================================== *)
   Lemma pas_walk_pres :
     forall ipb ipty,
@@ -610,8 +607,7 @@ Section PasSurface.
         as [ (Hfeq & Hftyeq & Haleq)
            | [ (Hfeq & Hftyeq & Haleq)
              | [ (Hfeq & Hftyeq & Haleq)
-               | [ (Hfeq & Hftyeq & Haleq)
-                 | [ (Hfeq & Hftyeq) | (Hfeq & Hftyeq) ] ] ] ] ];
+               | (Hfeq & Hftyeq & Haleq) ] ] ];
         subst fid fty.
       + (* perform_air_quarter_step(m, intendedPos, stepArg): the paqs helper *)
         subst al.
@@ -644,31 +640,32 @@ Section PasSurface.
                     tvoid cc_default e le m _ _ m' _
                     Havw Hex Hcp_avw Hm Hc) as (Hc' & _).
         exact (conj Hc' HmL).
-      + (* vec3f_copy: ungated obj_ext external *)
-        destruct Hc as (HV & HS & HM & HN).
-        destruct (kit_scallx_pres lp bm NoA MWF optid mario_step._vec3f_copy
-                    (tptr tfloat :: tptr tfloat :: nil) (tptr tvoid) cc_default
-                    al e le m _ _ m' _ Hv3f Hex Hcpx_v3f HN HM HV HS)
-          as (HV' & HS' & HM' & HN' & _ & _).
-        exact (conj (conj HV' (conj HS' (conj HM' HN'))) HmL).
-      + (* vec3s_set: ungated obj_ext external *)
-        destruct Hc as (HV & HS & HM & HN).
-        destruct (kit_scallx_pres lp bm NoA MWF optid mario_step._vec3s_set
-                    (tptr tshort :: tshort :: tshort :: tshort :: nil)
-                    (tptr tvoid) cc_default
-                    al e le m _ _ m' _ Hv3s Hex Hcpx_v3s HN HM HV HS)
-          as (HV' & HS' & HM' & HN' & _ & _).
-        exact (conj (conj HV' (conj HS' (conj HM' HN'))) HmL).
     - (* Sbuiltin: rejected *)
       cbn [pas_chk] in Hchk. discriminate Hchk.
     - (* Sseq_1 *)
-      cbn [pas_chk] in Hchk. apply andb_true_iff in Hchk as [H1 H2].
-      destruct (IHHexec1 H1 Hpaqs Hmgtsa Hag Havw Hv3f Hv3s Hip Hm Hc)
-        as (Hc1 & Hm1).
-      exact (IHHexec2 H2 Hpaqs Hmgtsa Hag Havw Hv3f Hv3s Hip Hm1 Hc1).
+      cbn [pas_chk] in Hchk. apply orb_true_iff in Hchk as [Hcw | Hchk].
+      + (* the chase-headed dst-gated writer unit *)
+        pose proof (exec_Sseq_1 _ _ _ _ _ _ _ _ _ _ _ _ _ _ Hexec1 Hexec2) as Hex.
+        destruct (chase_writer_chk_pres lp LO_mario bm NoA MWF SafeB pas_wl
+                    _ _ _ _ _ _ _ _ Hcrs (pas_wl_none _ Hv3f Hv3s) pas_wl_rows
+                    Hm Hcw Hex Hc) as (Hc' & _ & Hm').
+        exact (conj Hc' Hm').
+      + apply andb_true_iff in Hchk as [H1 H2].
+        destruct (IHHexec1 H1 Hpaqs Hmgtsa Hag Havw Hv3f Hv3s Hip Hm Hc)
+          as (Hc1 & Hm1).
+        exact (IHHexec2 H2 Hpaqs Hmgtsa Hag Havw Hv3f Hv3s Hip Hm1 Hc1).
     - (* Sseq_2 (s1 aborts) *)
-      cbn [pas_chk] in Hchk. apply andb_true_iff in Hchk as [H1 _].
-      exact (IHHexec H1 Hpaqs Hmgtsa Hag Havw Hv3f Hv3s Hip Hm Hc).
+      cbn [pas_chk] in Hchk. apply orb_true_iff in Hchk as [Hcw | Hchk].
+      + match goal with
+        | Hn : ?o <> Out_normal |- _ =>
+            pose proof (exec_Sseq_2 _ _ _ _ _ _ s2 _ _ _ _ Hexec Hn) as Hex
+        end.
+        destruct (chase_writer_chk_pres lp LO_mario bm NoA MWF SafeB pas_wl
+                    _ _ _ _ _ _ _ _ Hcrs (pas_wl_none _ Hv3f Hv3s) pas_wl_rows
+                    Hm Hcw Hex Hc) as (Hc' & _ & Hm').
+        exact (conj Hc' Hm').
+      + apply andb_true_iff in Hchk as [H1 _].
+        exact (IHHexec H1 Hpaqs Hmgtsa Hag Havw Hv3f Hv3s Hip Hm Hc).
     - (* Sifthenelse *)
       cbn [pas_chk] in Hchk. apply andb_true_iff in Hchk as [H1 H2].
       apply IHHexec; try assumption.
@@ -1133,8 +1130,9 @@ Section PaqsSurface.
 
   (* the callee rows -- the SAME gated externals the pgqs walk consumes
      (resolve / find_floor / vec3f_find_ceil / find_water_level / vec3f_copy
-     window-writer / atan2s), PLUS the entry vec3f_copy under the ol gate
-     (dst+src both local) and check_ledge_grab (internal marg helper). *)
+     window-writer / atan2s), PLUS the entry vec3f_copy under the wl gate
+     (dst local; vec3f_copy writes only through its dst) and
+     check_ledge_grab (internal marg helper). *)
   Hypothesis Hocp_resolve :
     call_pres_ext_ol lp bm NoA MWF SafeB
       mario_step._resolve_and_return_wall_collisions.
@@ -1144,8 +1142,8 @@ Section PaqsSurface.
     call_pres_ext_oc lp bm NoA MWF SafeB mario_step._vec3f_find_ceil.
   Hypothesis Hxcp_fwl :
     call_pres_ext lp bm NoA MWF mario_step._find_water_level.
-  Hypothesis Holcp_v3f :
-    call_pres_ext_ol lp bm NoA MWF SafeB mario_step._vec3f_copy.
+  Hypothesis Hwlcp_v3f :
+    call_pres_ext_wl lp bm NoA MWF SafeB mario_step._vec3f_copy.
   Hypothesis Hw1cp_v3f :
     call_pres_ext_w1 lp bm NoA MWF mario_step._vec3f_copy.
   Hypothesis Hcpx_atan2s :
@@ -1787,35 +1785,26 @@ Section PaqsSurface.
           as (HV' & HS' & HM' & HN' & _ & _).
         exact (conj (conj HV' (conj HS' (conj HM' HN')))
                  (conj (proj1 HmL) (proj2 HmL))).
-      + (* vec3f_copy(nextPos, intendedPos) ENTRY: ol gate, both local *)
+      + (* vec3f_copy(nextPos, intendedPos) ENTRY: wl gate, dst local *)
         subst fid fty al.
         assert (Hgate : forall vargs,
             eval_exprlist (lp_ge lp) e le m
               (Evar mario_step._nextPos (tarray tfloat 3)
                :: Etempvar mario_step._intendedPos (tptr tfloat) :: nil)
               (tptr tfloat :: tptr tfloat :: nil) vargs ->
-            args_all_local lp bm SafeB vargs).
+            arg0_local lp bm SafeB vargs).
         { intros vargs0 Hvl.
           inversion Hvl as [ | a1 bl1 ty1 tyl1 v1a v2a vl1 Hev_a Hsc_a Htl1 ];
             subst; clear Hvl.
-          inversion Htl1 as [ | a2 bl2 ty2 tyl2 v1b v2b vl2 Hev_b Hsc_b Htl2 ];
-            subst; clear Htl1.
-          inversion Htl2; subst; clear Htl2.
           pose proof (eval_Evar_arr_val _ _ _ _ _ _ _ He_np Hev_a) as ->.
-          apply RealFrameValue.eval_expr_Etempvar_val in Hev_b;
-            rewrite Hip in Hev_b; injection Hev_b as <-.
-          intros bb oo Hin; cbn in Hin.
-          destruct Hin as [E | [E | []]]; subst;
-          [ apply RealFrameValue.sem_cast_ptr_result_inv in Hsc_a;
-            injection Hsc_a as <- <-; exact Hnploc
-          | apply RealFrameValue.sem_cast_ptr_result_inv in Hsc_b;
-            injection Hsc_b as <- <-; exact Hiploc ]. }
-        destruct (ol_scall_pres lp bm NoA MWF SafeB optid
+          cbn in Hsc_a; injection Hsc_a as <-.
+          do 3 eexists; split; [ reflexivity | exact Hnploc ]. }
+        destruct (wl_scall_pres lp bm NoA MWF SafeB optid
                     mario_step._vec3f_copy
                     (tptr tfloat :: tptr tfloat :: nil) (tptr tvoid) cc_default
                     (Evar mario_step._nextPos (tarray tfloat 3)
                      :: Etempvar mario_step._intendedPos (tptr tfloat) :: nil)
-                    e le m _ _ m' _ Hvc Holcp_v3f Hgate Hex Hc)
+                    e le m _ _ m' _ Hvc Hwlcp_v3f Hgate Hex Hc)
           as (Hc' & _).
         exact (conj Hc' (conj (proj1 HmL) (proj2 HmL))).
       + (* vec3f_copy(m->pos, nextPos) WINDOW: w1 gate, dst = m->pos window *)

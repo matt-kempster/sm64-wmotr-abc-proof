@@ -3943,7 +3943,7 @@ Section TdaknbSurface.
   Qed.
 
   Lemma tdaknb_xids_rows : forall fid, mem_id fid tdaknb_xids = true ->
-      call_pres_ext lp bm NoA MWF fid.
+      call_pres_ext_x lp bm NoA MWF SafeB fid.
   Proof.
     intros fid H. unfold tdaknb_xids in H. cbn [mem_id existsb] in H.
     apply orb_true_iff in H as [Hm | H];
@@ -6037,7 +6037,7 @@ Section MsHelperSurface.
               (cact_rest ++ nids) = true ->
       (forall fid', mem_id fid' ids = true -> call_pres lp bm NoA MWF fid') ->
       (forall fid', mem_id fid' xids = true ->
-                    call_pres_ext lp bm NoA MWF fid') ->
+                    call_pres_ext_x lp bm NoA MWF SafeB fid') ->
       (forall fid', mem_id fid' sids = true ->
                     call_pres_act lp bm NoA MWF fid') ->
       wwalk_chk' nil nil nil nil nids nil false
@@ -6541,7 +6541,7 @@ Section IoSurface.
       (forall fid', mem_id fid' wids = true ->
                     call_pres_act lp bm NoA MWF fid') ->
       (forall fid', mem_id fid' xids = true ->
-                    call_pres_ext lp bm NoA MWF fid') ->
+                    call_pres_ext_x lp bm NoA MWF SafeB fid') ->
       (forall fid', mem_id fid' sids = true ->
                     call_pres_act lp bm NoA MWF fid') ->
       (forall fid', mem_id fid' tids = true ->
@@ -6694,7 +6694,7 @@ Section IoSurface.
       (forall fid', mem_id fid' ids = true ->
                     call_pres lp bm NoA MWF fid') ->
       (forall fid', mem_id fid' xids = true ->
-                    call_pres_ext lp bm NoA MWF fid') ->
+                    call_pres_ext_x lp bm NoA MWF SafeB fid') ->
       (forall fid', mem_id fid' sids = true ->
                     call_pres_act lp bm NoA MWF fid') ->
     forall s e le m0 tr le' m' out,
@@ -7137,7 +7137,7 @@ Section IoSurface.
       (forall fid', mem_id fid' ids = true ->
                     call_pres lp bm NoA MWF fid') ->
       (forall fid', mem_id fid' xids = true ->
-                    call_pres_ext lp bm NoA MWF fid') ->
+                    call_pres_ext_x lp bm NoA MWF SafeB fid') ->
       (forall fid', mem_id fid' sids = true ->
                     call_pres_act lp bm NoA MWF fid') ->
       (forall fid', mem_id fid' oids = true ->
@@ -7638,7 +7638,7 @@ Section IoSurface.
       (forall fid', mem_id fid' ids = true ->
                     call_pres lp bm NoA MWF fid') ->
       (forall fid', mem_id fid' xids = true ->
-                    call_pres_ext lp bm NoA MWF fid') ->
+                    call_pres_ext_x lp bm NoA MWF SafeB fid') ->
       (forall fid', mem_id fid' sids = true ->
                     call_pres_act lp bm NoA MWF fid') ->
       (forall fid', mem_id fid' oids = true ->
@@ -7720,7 +7720,7 @@ Section IoSurface.
       (forall fid', mem_id fid' ids = true ->
                     call_pres lp bm NoA MWF fid') ->
       (forall fid', mem_id fid' xids = true ->
-                    call_pres_ext lp bm NoA MWF fid') ->
+                    call_pres_ext_x lp bm NoA MWF SafeB fid') ->
       (forall fid', mem_id fid' sids = true ->
                     call_pres_act lp bm NoA MWF fid') ->
       (forall fid', mem_id fid' oids = true ->

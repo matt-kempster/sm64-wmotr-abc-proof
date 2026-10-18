@@ -105,6 +105,8 @@ Definition sgs_ids : list ident :=
     :: mario_step._perform_ground_step :: nil.
 Definition sgs_xids : list ident :=
   mario_step._vec3f_copy :: mario._vec3s_set :: nil.
+(* the writers' dst chases through the _marioObj temp (m->marioObj) *)
+Definition sgs_cact : list ident := mario_step._marioObj :: nil.
 
 (* ccoc (the FIRST leaf): set_water_plunge_action(m) plain, plus two
    drop_and_set_mario_action(m, ACT_CONST, CONST) writer calls *)
@@ -115,19 +117,15 @@ Definition ccoc_sids : list ident :=
 (* the object family's EXTERNAL leaf rows (the warp_ext_ids model class);
    grows as further leaves discharge *)
 Definition obj_ext_ids : list ident :=
-  mario._vec3s_set
-    (* cutscene bbh/squished cluster: vec3f_set writes a caller-provided
-       float window (3 scalar components into &Object->gfx.pos-style
-       arrays), no Mario pointer -- the SAME pure-vector-helper model
-       class as vec3s_set / vec3f_copy above (EF_external in every
-       generated TU, writes no Mario cell). *)
-    :: mario._vec3f_set
-    :: mario._set_camera_mode
+  (* (the four math_util vector writers vec3s_set / vec3f_set / vec3f_copy /
+     vec3s_copy were REMOVED 2026-10-17: they write through arg0, so an
+     any-argument row is FALSE -- they ride the dst-gated dg rows instead) *)
+  mario._set_camera_mode
     :: interaction._segmented_to_virtual
     :: interaction._stop_shell_music
     :: interaction._obj_set_held_state
     :: mario._load_patchable_table
-    :: mario._play_sound :: mario_step._vec3f_copy
+    :: mario._play_sound
     :: mario_actions_object._approach_s32
     :: interaction._atan2s
     :: interaction._virtual_to_segmented
@@ -186,16 +184,12 @@ Definition obj_ext_ids : list ident :=
     :: interaction._save_file_clear_flags
     :: interaction._drop_queued_background_music
     :: interaction._fadeout_level_music
-    (* cutscene credits (act_credits_cutscene): vec3s_copy is the s16-vector
-       copier (writes a caller-provided short window, e.g. marioObj->gfx.angle
-       <- m->faceAngle; no Mario pointer first) -- the SAME pure-vector-helper
-       model class as vec3f_copy above.  override_viewport_and_clip and
+    (* cutscene credits (act_credits_cutscene): override_viewport_and_clip and
        reset_cutscene_msg_fade are pure viewport / message-fade writers (they
        touch only the sEndCutsceneVp viewport union and the msg-fade statics,
        no Mario pointer) -- EF_external in every generated TU, the same honest
        boundary class as set_camera_mode.  All ride Hpres_obj_ext, NO new
        capstone hypothesis. *)
-    :: mario._vec3s_copy
     :: mario_actions_cutscene._override_viewport_and_clip
     :: mario_actions_cutscene._reset_cutscene_msg_fade
     (* cutscene jumbo-star (jumbo_star_cutscene_flying): anim_spline_init /
@@ -207,7 +201,9 @@ Definition obj_ext_ids : list ident :=
        class as the viewport writers above.  Both ride Hpres_obj_ext, NO new
        capstone hypothesis. *)
     :: mario_actions_cutscene._anim_spline_init
-    :: mario_actions_cutscene._anim_spline_poll :: nil.
+    (* (anim_spline_poll REMOVED 2026-10-17: it writes through its result
+       arg, so the any-argument row is FALSE; it rides a dg row) *)
+    :: nil.
 (* NOTE: find_floor was REMOVED from obj_ext_ids.  It is an out-param
    WRITER, so the phantom-false `call_pres_ext find_floor` (which would
    allow &(action cell) as the out-param) is no longer a capstone
@@ -392,8 +388,12 @@ Example sgs_params_ok :
   end = true.
 Proof. vm_compute. reflexivity. Qed.
 Example sgs_walk :
-  wwalk_chk false nil sgs_ids nil nil sgs_xids nil nil
+  wwalk_chk false nil sgs_ids nil sgs_cact sgs_xids nil nil
     (fn_body mario_step.f_stationary_ground_step) = true.
+Proof. vm_compute. reflexivity. Qed.
+Example sgs_nonparam :
+  forallb (fun t' => negb (mem_id t' (map fst (fn_params mario_step.f_stationary_ground_step))))
+    sgs_cact = true.
 Proof. vm_compute. reflexivity. Qed.
 
 Example ccoc_pin :
@@ -1263,9 +1263,9 @@ Section ObjectLeafRows.
   Hypothesis Hcpx_psound :
     call_pres_ext lp bm NoA MWF mario._play_sound.
   Hypothesis Hcpx_v3s :
-    call_pres_ext lp bm NoA MWF mario._vec3s_set.
+    OutParamSurface.call_pres_ext_dg lp bm NoA MWF SafeB mario._vec3s_set.
   Hypothesis Hcpx_v3f :
-    call_pres_ext lp bm NoA MWF mario_step._vec3f_copy.
+    OutParamSurface.call_pres_ext_dg lp bm NoA MWF SafeB mario_step._vec3f_copy.
   Hypothesis Hcpx_scm :
     call_pres_ext lp bm NoA MWF mario._set_camera_mode.
   Hypothesis Hcpx_s2v :
@@ -1591,7 +1591,7 @@ Section ObjectLeafRows.
      curAnim pointer-chase store, and the two pointer-arithmetic stores; the
      one callee is the EXTERNAL load_patchable_table. ---- *)
   Lemma sma_xids_rows : forall fid, mem_id fid sma_xids = true ->
-      call_pres_ext lp bm NoA MWF fid.
+      call_pres_ext_x lp bm NoA MWF SafeB fid.
   Proof.
     intros fid H. unfold sma_xids in H. cbn [mem_id existsb] in H.
     apply orb_true_iff in H as [Hm | H];
@@ -1637,7 +1637,7 @@ Section ObjectLeafRows.
   Qed.
 
   Lemma sgs_xids_rows : forall fid, mem_id fid sgs_xids = true ->
-      call_pres_ext lp bm NoA MWF fid.
+      call_pres_ext_x lp bm NoA MWF SafeB fid.
   Proof.
     intros fid H. unfold sgs_xids in H. cbn [mem_id existsb] in H.
     apply orb_true_iff in H as [Hm | H];
@@ -1650,12 +1650,12 @@ Section ObjectLeafRows.
   Lemma sgs_row :
     call_pres lp bm NoA MWF mario_step._stationary_ground_step.
   Proof.
-    apply (call_pres_of_wwalk lp LO_mario bm NoA MWF HNoA_of_MWF
+    apply (call_pres_of_wwalk_cact lp LO_mario bm NoA MWF HNoA_of_MWF
              HMWF_window HMWF_glob HMWF_act SafeB HSafeNotBm HchaseRoot
              HMWF_chase HMWF_root HMWF_sglob HchaseStep HMWF_chase_safe mario_step.prog
              mario_step._stationary_ground_step
-             mario_step.f_stationary_ground_step sgs_ids nil sgs_xids nil
-             LO_mario_step sgs_pin sgs_vars sgs_params_ok).
+             mario_step.f_stationary_ground_step sgs_ids nil sgs_cact sgs_xids nil
+             LO_mario_step sgs_pin sgs_vars sgs_params_ok sgs_nonparam).
     - exact sgs_ids_rows.
     - intros fid' H. discriminate H.
     - exact sgs_xids_rows.

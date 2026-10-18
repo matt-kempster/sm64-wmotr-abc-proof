@@ -59,12 +59,11 @@ Definition mov_ext_ids : list ident :=
        tfloat args, no Mario pointer -- the SAME honest pure-math model
        boundary as approach_s32 / sqrtf / atan2s. *)
     mario_actions_moving._approach_f32
-    (* mtxf_align_terrain_triangle: EF_external in every TU (align_with_floor's
-       terrain-matrix builtin).  Writes only the SafeB sFloorAlignMatrix global
-       (floats, never a pointer) and reads m->pos -- touches NO bm/MWF-relevant
-       state, so it is the SAME honest terminal-external boundary class.  Its
-       call_pres_ext is consumed by align_with_floor_pres below. *)
-    :: mario_actions_moving._mtxf_align_terrain_triangle :: nil.
+    (* (mtxf_align_terrain_triangle REMOVED 2026-10-17: it writes a 4x4
+       float matrix through arg0, so the any-argument row is FALSE; its one
+       real call site, align_with_floor's &sFloorAlignMatrix[unk00], rides
+       the sc-gated Hscp_mtxf row, the dst checked SafeB at the site.) *)
+    :: nil.
 
 (* set_mario_animation's chase temps + its load_patchable_table external *)
 Definition mov_sma_cact : list ident :=
@@ -679,8 +678,10 @@ Definition mp_sids : list ident := mario._set_mario_action :: nil.
 (* mtxf external), and gchase_assign_pres handles store C.                 *)
 (* ====================================================================== *)
 Definition awf_cact : list ident := mario_actions_moving._t'1 :: nil.
-Definition awf_xids : list ident :=
-  mario_actions_moving._mtxf_align_terrain_triangle :: nil.
+(* (the mtxf_align_terrain_triangle segment is discharged bespoke --
+   awf_mtx_pres, the sc-gated site -- so the generic walk admits no
+   externals) *)
+Definition awf_xids : list ident := nil.
 
 (* the throwMatrix store target lvalue (chain rooted at _t'1 = m->marioObj) *)
 Definition awf_a1 :=
@@ -704,6 +705,17 @@ Definition awf_a2 :=
        (tarray (tarray (tarray tfloat 4) 4) 2))
     (Etempvar mario_actions_moving._t'2 tushort)
     (tptr (tarray (tarray tfloat 4) 4))).
+
+(* the mtxf_align_terrain_triangle dst: &sFloorAlignMatrix[t'3] (as an
+   array-typed lvalue, decayed at the call) *)
+Definition awf_a3 :=
+  (Ebinop Oadd
+    (Evar mario_actions_moving._sFloorAlignMatrix
+       (tarray (tarray (tarray tfloat 4) 4) 2))
+    (Etempvar mario_actions_moving._t'3 tushort)
+    (tptr (tarray (tarray tfloat 4) 4))).
+Definition awf_mtx_a0 :=
+  Ederef awf_a3 (tarray (tarray tfloat 4) 4).
 
 (* act_crawling: the cheapest consumer of align_with_floor.  All callees
    have rows; the ONLY Sassign is the m->intendedMag window store; nids
@@ -1588,6 +1600,11 @@ Section MovingLeafRows.
   Hypothesis Hsfam_safe : forall gb,
       Genv.find_symbol (lp_ge lp) mario_actions_moving._sFloorAlignMatrix
         = Some gb -> SafeB gb.
+  (* mtxf_align_terrain_triangle writes ONLY through arg0 (the matrix); the
+     sc gate: arg0 lands in a SafeB block (here sFloorAlignMatrix). *)
+  Hypothesis Hscp_mtxf :
+    OutParamSurface.call_pres_ext_sc lp bm NoA MWF SafeB
+      mario_actions_moving._mtxf_align_terrain_triangle.
 
   (* obj_ext externals the knockback subtree bottoms out in *)
   Hypothesis Hcpx_sqrtf :
@@ -1608,6 +1625,12 @@ Section MovingLeafRows.
      obj_ext_ids; the capstone supplies its own Hpres_obj_ext verbatim. *)
   Hypothesis Hpres_obj_ext : forall fid,
       mem_id fid obj_ext_ids = true -> call_pres_ext lp bm NoA MWF fid.
+  (* the dst-gated writers (dst = a SafeB chase / a stack local): dg rows,
+     discharged at the capstone from the real bodies *)
+  Hypothesis Hdgp_v3s :
+    OutParamSurface.call_pres_ext_dg lp bm NoA MWF SafeB mario._vec3s_set.
+  Hypothesis Hdgp_v3f :
+    OutParamSurface.call_pres_ext_dg lp bm NoA MWF SafeB M._vec3f_copy.
 
   (* LANDING KEYSTONE kit (clc walk).  An Mint32 load from a knockback_table_ids
      block is an untainted scalar (the LandingAction globals were folded into
@@ -1636,6 +1659,13 @@ Section MovingLeafRows.
       Mem.alloc m lo hi = (m', b) -> MWF m -> MWF m'.
   Hypothesis HMWF_free : forall m l m',
       Mem.free_list m l = Some m' -> MWF m -> MWF m'.
+  (* the frame-validity facts (MWFReal), used to show a fresh stack local
+     is a local_blk (alloc_variables_hlocal) *)
+  Hypothesis HSafeValid :
+    forall m, MWF m -> forall b, SafeB b -> Mem.valid_block m b.
+  Hypothesis HGlobValid :
+    forall m, MWF m -> forall gid bg,
+        Genv.find_symbol (lp_ge lp) gid = Some bg -> Mem.valid_block m bg.
 
   (* the set_mario_action keystone, instantiated once *)
   Let Hsmact : call_pres_act lp bm NoA MWF mario._set_mario_action :=
@@ -1697,7 +1727,7 @@ Section MovingLeafRows.
   Qed.
 
   Lemma mov_sma_xids_rows : forall fid, mem_id fid mov_sma_xids = true ->
-      call_pres_ext lp bm NoA MWF fid.
+      call_pres_ext_x lp bm NoA MWF SafeB fid.
   Proof.
     intros fid H. unfold mov_sma_xids in H. cbn [mem_id existsb] in H.
     apply orb_true_iff in H as [Hm | H];
@@ -1706,7 +1736,7 @@ Section MovingLeafRows.
   Qed.
 
   Lemma mov_asa_xids_rows : forall fid, mem_id fid mov_asa_xids = true ->
-      call_pres_ext lp bm NoA MWF fid.
+      call_pres_ext_x lp bm NoA MWF SafeB fid.
   Proof.
     intros fid H. unfold mov_asa_xids in H. cbn [mem_id existsb] in H.
     apply orb_true_iff in H as [Hm | H];
@@ -1716,7 +1746,7 @@ Section MovingLeafRows.
 
   (* TASK #98: mov_cgka_xids is now nil (pmhlso / psinf moved to mov_cgka_ids) *)
   Lemma mov_cgka_xids_rows : forall fid, mem_id fid mov_cgka_xids = true ->
-      call_pres_ext lp bm NoA MWF fid.
+      call_pres_ext_x lp bm NoA MWF SafeB fid.
   Proof.
     intros fid H. unfold mov_cgka_xids in H. discriminate H.
   Qed.
@@ -1725,7 +1755,7 @@ Section MovingLeafRows.
   (* TASK #98: mov_hard_back_xids = [play_sound]; pmlso moved to mov_hard_back_ids
      (the ids_rows are AFTER mov_cgka_row, which they consume). *)
   Lemma mov_hard_back_xids_rows : forall fid, mem_id fid mov_hard_back_xids = true ->
-      call_pres_ext lp bm NoA MWF fid.
+      call_pres_ext_x lp bm NoA MWF SafeB fid.
   Proof.
     intros fid H. unfold mov_hard_back_xids in H. cbn [mem_id existsb] in H.
     apply orb_true_iff in H as [Hm | H];
@@ -1735,7 +1765,7 @@ Section MovingLeafRows.
 
   (* TASK #98: mov_gbonk_xids is now nil (pmls moved to mov_gbonk_ids) *)
   Lemma mov_gbonk_xids_rows : forall fid, mem_id fid mov_gbonk_xids = true ->
-      call_pres_ext lp bm NoA MWF fid.
+      call_pres_ext_x lp bm NoA MWF SafeB fid.
   Proof.
     intros fid H. unfold mov_gbonk_xids in H. discriminate H.
   Qed.
@@ -2127,7 +2157,7 @@ Section MovingLeafRows.
 
   (* TASK #98: mov_del_xids = [play_sound]; the two audio helpers moved to ids *)
   Lemma mov_del_xids_rows : forall fid, mem_id fid mov_del_xids = true ->
-      call_pres_ext lp bm NoA MWF fid.
+      call_pres_ext_x lp bm NoA MWF SafeB fid.
   Proof.
     intros fid H. unfold mov_del_xids in H. cbn [mem_id existsb] in H.
     apply orb_true_iff in H as [Hm | H];
@@ -2190,7 +2220,7 @@ Section MovingLeafRows.
   (* set_steep_jump_action: marioObj chase store (cact=[_t'10]) + sqrtf/atan2s
      + drop_and_set_mario_action (Hdasma). *)
   Lemma mov_sssja_xids_rows : forall fid, mem_id fid mov_sssja_xids = true ->
-      call_pres_ext lp bm NoA MWF fid.
+      call_pres_ext_x lp bm NoA MWF SafeB fid.
   Proof.
     intros fid H. unfold mov_sssja_xids in H. cbn [mem_id existsb] in H.
     apply orb_true_iff in H as [Hm | H];
@@ -2265,7 +2295,7 @@ Section MovingLeafRows.
   Qed.
 
   Lemma mov_uws_xids_rows : forall fid, mem_id fid mov_uws_xids = true ->
-      call_pres_ext lp bm NoA MWF fid.
+      call_pres_ext_x lp bm NoA MWF SafeB fid.
   Proof.
     intros fid H. unfold mov_uws_xids in H. cbn [mem_id existsb] in H.
     apply orb_true_iff in H as [Hm | H];
@@ -2337,7 +2367,7 @@ Section MovingLeafRows.
 
   (* ---- SLICE M4: check_common_moving_cancels (the common cancel gate) ---- *)
   Lemma mov_swpa_xids_rows : forall fid, mem_id fid mov_swpa_xids = true ->
-      call_pres_ext lp bm NoA MWF fid.
+      call_pres_ext_x lp bm NoA MWF SafeB fid.
   Proof.
     intros fid H. unfold mov_swpa_xids in H. cbn [mem_id existsb] in H.
     apply orb_true_iff in H as [Hm | H];
@@ -2345,7 +2375,7 @@ Section MovingLeafRows.
         exact (Hpres_obj_ext mario._set_camera_mode eq_refl) | ].
     apply orb_true_iff in H as [Hm | H];
       [ apply Pos.eqb_eq in Hm; subst fid;
-        exact (Hpres_obj_ext mario._vec3s_set eq_refl) | ].
+        exact Hdgp_v3s | ].
     discriminate H.
   Qed.
 
@@ -2401,7 +2431,7 @@ Section MovingLeafRows.
   (* ---- SLICE M5: act_hold_walking + the shared anim/audio np3 subtree ---- *)
   (* set_mario_anim_with_accel: the np3 leaf (val0C 3rd arg = float-cast). *)
   Lemma mov_smawa_xids_rows : forall fid, mem_id fid mov_smawa_xids = true ->
-      call_pres_ext lp bm NoA MWF fid.
+      call_pres_ext_x lp bm NoA MWF SafeB fid.
   Proof.
     intros fid H. unfold mov_smawa_xids in H. cbn [mem_id existsb] in H.
     apply orb_true_iff in H as [Hm | H];
@@ -2429,7 +2459,7 @@ Section MovingLeafRows.
 
   (* play_sound_and_spawn_particles: window stores + play_sound external. *)
   Lemma mov_pssp_xids_rows : forall fid, mem_id fid mov_pssp_xids = true ->
-      call_pres_ext lp bm NoA MWF fid.
+      call_pres_ext_x lp bm NoA MWF SafeB fid.
   Proof.
     intros fid H. unfold mov_pssp_xids in H. cbn [mem_id existsb] in H.
     apply orb_true_iff in H as [Hm | H];
@@ -2586,7 +2616,7 @@ Section MovingLeafRows.
   Qed.
 
   Lemma mov_ahw_xids_rows : forall fid, mem_id fid mov_ahw_xids = true ->
-      call_pres_ext lp bm NoA MWF fid.
+      call_pres_ext_x lp bm NoA MWF SafeB fid.
   Proof.
     intros fid H. unfold mov_ahw_xids in H. cbn [mem_id existsb] in H.
     apply orb_true_iff in H as [Hm | H];
@@ -2708,7 +2738,7 @@ Section MovingLeafRows.
   Qed.
 
   Lemma mov_mbr_xids_rows : forall fid, mem_id fid mov_mbr_xids = true ->
-      call_pres_ext lp bm NoA MWF fid.
+      call_pres_ext_x lp bm NoA MWF SafeB fid.
   Proof.
     intros fid H. unfold mov_mbr_xids in H. cbn [mem_id existsb] in H.
     apply orb_true_iff in H as [Hm | H];
@@ -2749,7 +2779,7 @@ Section MovingLeafRows.
   Qed.
 
   Lemma mov_usa_xids_rows : forall fid, mem_id fid mov_usa_xids = true ->
-      call_pres_ext lp bm NoA MWF fid.
+      call_pres_ext_x lp bm NoA MWF SafeB fid.
   Proof.
     intros fid H. unfold mov_usa_xids in H. cbn [mem_id existsb] in H.
     apply orb_true_iff in H as [Hm | H];
@@ -2795,7 +2825,7 @@ Section MovingLeafRows.
   Qed.
 
   Lemma mov_usl_xids_rows : forall fid, mem_id fid mov_usl_xids = true ->
-      call_pres_ext lp bm NoA MWF fid.
+      call_pres_ext_x lp bm NoA MWF SafeB fid.
   Proof.
     intros fid H. unfold mov_usl_xids in H. cbn [mem_id existsb] in H.
     apply orb_true_iff in H as [Hm | H];
@@ -2850,7 +2880,7 @@ Section MovingLeafRows.
   Qed.
 
   Lemma mov_sks_xids_rows : forall fid, mem_id fid mov_sks_xids = true ->
-      call_pres_ext lp bm NoA MWF fid.
+      call_pres_ext_x lp bm NoA MWF SafeB fid.
   Proof.
     intros fid H. unfold mov_sks_xids in H. cbn [mem_id existsb] in H.
     apply orb_true_iff in H as [Hm | H];
@@ -2891,7 +2921,7 @@ Section MovingLeafRows.
   Qed.
 
   Lemma mov_uds_xids_rows : forall fid, mem_id fid mov_uds_xids = true ->
-      call_pres_ext lp bm NoA MWF fid.
+      call_pres_ext_x lp bm NoA MWF SafeB fid.
   Proof.
     intros fid H. unfold mov_uds_xids in H. cbn [mem_id existsb] in H.
     apply orb_true_iff in H as [Hm | H];
@@ -2918,7 +2948,7 @@ Section MovingLeafRows.
   Qed.
 
   Lemma mov_asfs_xids_rows : forall fid, mem_id fid mov_asfs_xids = true ->
-      call_pres_ext lp bm NoA MWF fid.
+      call_pres_ext_x lp bm NoA MWF SafeB fid.
   Proof.
     intros fid H. unfold mov_asfs_xids in H. cbn [mem_id existsb] in H.
     apply orb_true_iff in H as [Hm | H];
@@ -2983,7 +3013,7 @@ Section MovingLeafRows.
   Qed.
 
   Lemma mov_ahd_xids_rows : forall fid, mem_id fid mov_ahd_xids = true ->
-      call_pres_ext lp bm NoA MWF fid.
+      call_pres_ext_x lp bm NoA MWF SafeB fid.
   Proof.
     intros fid H. unfold mov_ahd_xids in H. cbn [mem_id existsb] in H.
     apply orb_true_iff in H as [Hm | H];
@@ -3084,7 +3114,7 @@ Section MovingLeafRows.
   Qed.
 
   Lemma dec_xids_rows : forall fid, mem_id fid dec_xids = true ->
-      call_pres_ext lp bm NoA MWF fid.
+      call_pres_ext_x lp bm NoA MWF SafeB fid.
   Proof.
     intros fid H. unfold dec_xids in H. cbn [mem_id existsb] in H.
     apply orb_true_iff in H as [Hm | H];
@@ -3538,7 +3568,7 @@ Section MovingLeafRows.
   Qed.
 
   Lemma mov_asd_xids_rows : forall fid, mem_id fid mov_asd_xids = true ->
-      call_pres_ext lp bm NoA MWF fid.
+      call_pres_ext_x lp bm NoA MWF SafeB fid.
   Proof.
     intros fid H. unfold mov_asd_xids in H. cbn [mem_id existsb] in H.
     apply orb_true_iff in H as [Hm | H];
@@ -3587,7 +3617,7 @@ Section MovingLeafRows.
 
   (* TASK #98: cla_xids is now nil (pmlso moved to cla_ids) *)
   Lemma cla_xids_rows : forall fid, mem_id fid cla_xids = true ->
-      call_pres_ext lp bm NoA MWF fid.
+      call_pres_ext_x lp bm NoA MWF SafeB fid.
   Proof.
     intros fid H. unfold cla_xids in H. discriminate H.
   Qed.
@@ -4078,7 +4108,7 @@ Section MovingLeafRows.
   Qed.
 
   Lemma abg_xids_rows : forall fid, mem_id fid abg_xids = true ->
-      call_pres_ext lp bm NoA MWF fid.
+      call_pres_ext_x lp bm NoA MWF SafeB fid.
   Proof.
     intros fid H. unfold abg_xids in H. cbn [mem_id existsb] in H.
     apply orb_true_iff in H as [Hm | H];
@@ -4144,7 +4174,7 @@ Section MovingLeafRows.
   Qed.
 
   Lemma bk_xids_rows : forall fid, mem_id fid bk_xids = true ->
-      call_pres_ext lp bm NoA MWF fid.
+      call_pres_ext_x lp bm NoA MWF SafeB fid.
   Proof.
     intros fid H. unfold bk_xids in H. cbn [mem_id existsb] in H.
     apply orb_true_iff in H as [Hm | H];
@@ -4660,6 +4690,199 @@ Section MovingLeafRows.
     all: congruence.
   Qed.
 
+  Lemma awf_a3_block :
+    forall e le m v,
+      e ! mario_actions_moving._sFloorAlignMatrix = None ->
+      eval_expr (lp_ge lp) e le m awf_a3 v ->
+      forall bb oo, v = Vptr bb oo ->
+        Genv.find_symbol (lp_ge lp) mario_actions_moving._sFloorAlignMatrix
+          = Some bb.
+  Proof.
+    intros e le m v He Hev bb oo Evv.
+    unfold awf_a3 in Hev. inv Hev.
+    2:{ match goal with
+        | Hlv : eval_lvalue _ _ _ _ (Ebinop _ _ _ _) _ _ _ |- _ => inv Hlv
+        end. }
+    match goal with
+    | Hs : sem_binary_operation _ _ _ _ _ _ _ = Some _ |- _ =>
+        cbn [typeof] in Hs; rename Hs into Hsem
+    end.
+    match goal with
+    | Hx : eval_expr _ _ _ _ (Evar _ _) _ |- _ => inv Hx
+    end.
+    match goal with
+    | Hd : deref_loc (typeof _) _ _ _ _ _ |- _ =>
+        cbn [typeof] in Hd; rename Hd into Hdl
+    end.
+    match goal with
+    | Hlv : eval_lvalue _ _ _ _ (Evar _ _) _ _ _ |- _ => inv Hlv
+    end.
+    1:{ match goal with
+        | Hl : e ! _ = Some _ |- _ => rewrite He in Hl; discriminate Hl
+        end. }
+    inv Hdl;
+      try (match goal with
+           | Hacc : access_mode _ = _ |- _ =>
+               cbn in Hacc; discriminate Hacc
+           end).
+    unfold sem_binary_operation, sem_add, sem_add_ptr_int in Hsem.
+    cbn in Hsem.
+    match type of Hsem with
+    | match ?vi with _ => _ end = _ => destruct vi; try discriminate Hsem
+    end.
+    all: congruence.
+  Qed.
+
+  (* the mtxf call-site gate: arg0 = &sFloorAlignMatrix[t'3], a SafeB block *)
+  Lemma awf_mtx_gate :
+    forall le m al tyl vargs,
+      eval_exprlist (lp_ge lp) empty_env le m (awf_mtx_a0 :: al)
+        (tptr (tarray tfloat 4) :: tyl) vargs ->
+      arg0_safe SafeB vargs.
+  Proof.
+    intros le m al tyl vargs Hvl.
+    inversion Hvl as [ | a1 bl1 ty1 tyl1 v1 v1c vl1 Hev1 Hsc1 Htl1 ];
+      subst; clear Hvl.
+    unfold awf_mtx_a0 in Hev1.
+    inversion Hev1; subst; clear Hev1.
+    match goal with
+    | Hlv : eval_lvalue _ _ _ _ (Ederef _ _) _ _ _ |- _ => inversion Hlv; subst; clear Hlv
+    end.
+    match goal with
+    | Hd : deref_loc _ _ _ _ _ _ |- _ =>
+        inversion Hd; subst; clear Hd;
+        try (match goal with
+             | Hacc : access_mode _ = _ |- _ => cbn in Hacc; discriminate Hacc
+             end)
+    end.
+    match goal with
+    | Ha : eval_expr _ _ _ _ awf_a3 (Vptr ?b ?o) |- _ =>
+        pose proof (awf_a3_block _ _ _ _ (PTree.gempty _ _) Ha b o eq_refl)
+          as Hsym
+    end.
+    cbn in Hsc1. injection Hsc1 as <-.
+    eexists _, _, _. split; [ reflexivity | ].
+    exact (Hsfam_safe _ Hsym).
+  Qed.
+
+  (* the mtxf segment: t'3 := m->unk00; t'4 := m->faceAngle[1];
+     mtxf_align_terrain_triangle(&sFloorAlignMatrix[t'3], m->pos, t'4, 40) *)
+  Lemma awf_mtx_pres :
+    forall a3 a4 tyl rty cc al le m0 tr le' m' out,
+      exec_stmt function_entry2 (lp_ge lp) empty_env le m0
+        (Ssequence (Sset mario_actions_moving._t'3 a3)
+           (Ssequence (Sset mario_actions_moving._t'4 a4)
+              (Scall None
+                 (Evar mario_actions_moving._mtxf_align_terrain_triangle
+                    (Tfunction (tptr (tarray tfloat 4) :: tyl) rty cc))
+                 (awf_mtx_a0 :: al))))
+        tr le' m' out ->
+      (forall b o, le ! mario_actions_airborne._m = Some (Vptr b o) ->
+                   b = bm /\ o = Ptrofs.zero) ->
+      ActWriterSurface.chase_inv SafeB awf_cact le ->
+      NoA m0 -> MWF m0 -> Mem.valid_block m0 bm ->
+      action_sat not_tainted m0 bm ->
+      Mem.valid_block m' bm /\ action_sat not_tainted m' bm /\ MWF m' /\ NoA m' /\
+      (forall b o, le' ! mario_actions_airborne._m = Some (Vptr b o) ->
+                   b = bm /\ o = Ptrofs.zero) /\
+      ActWriterSurface.chase_inv SafeB awf_cact le'.
+  Proof.
+    intros a3 a4 tyl rty cc al le m0 tr le' m' out Hexec Htat Hch HN HM HV HS.
+    inv Hexec;
+      [ | match goal with
+          | H : exec_stmt _ _ _ _ _ (Sset _ _) _ _ _ ?o, Hn : ?o <> Out_normal |- _ =>
+              inv H; exfalso; apply Hn; reflexivity
+          end ].
+    match goal with H : exec_stmt _ _ _ _ _ (Sset _ _) _ _ _ _ |- _ => inv H end.
+    match goal with
+    | Hx : exec_stmt _ _ _ _ _ (Ssequence (Sset _ _) _) _ _ _ _ |- _ =>
+        inv Hx;
+        [ | match goal with
+            | H : exec_stmt _ _ _ _ _ (Sset _ _) _ _ _ ?o, Hn : ?o <> Out_normal |- _ =>
+                inv H; exfalso; apply Hn; reflexivity
+            end ]
+    end.
+    match goal with H : exec_stmt _ _ _ _ _ (Sset _ _) _ _ _ _ |- _ => inv H end.
+    match goal with
+    | Hx : exec_stmt _ _ _ _ _ (Scall _ _ _) _ _ _ _ |- _ => rename Hx into Hcall
+    end.
+    match type of Hcall with
+    | exec_stmt _ _ _ ?l _ _ _ _ _ _ => set (le2 := l) in *
+    end.
+    assert (Htat2 : forall b o, le2 ! mario_actions_airborne._m = Some (Vptr b o) ->
+                      b = bm /\ o = Ptrofs.zero).
+    { intros b o Hg. unfold le2 in Hg.
+      rewrite PTree.gso in Hg by (vm_compute; discriminate).
+      rewrite PTree.gso in Hg by (vm_compute; discriminate).
+      exact (Htat b o Hg). }
+    assert (Hch2 : ActWriterSurface.chase_inv SafeB awf_cact le2).
+    { intros tc Hmem b o Hg. unfold le2 in Hg.
+      pose proof Hmem as Hmem'.
+      unfold awf_cact, mem_id in Hmem; cbn [existsb] in Hmem.
+      rewrite orb_false_r in Hmem; apply Pos.eqb_eq in Hmem; subst tc.
+      rewrite PTree.gso in Hg by (vm_compute; discriminate).
+      rewrite PTree.gso in Hg by (vm_compute; discriminate).
+      exact (Hch _ Hmem' b o Hg). }
+    assert (Hle : le' = le2) by (inv Hcall; reflexivity).
+    destruct (sc_scall_pres lp bm NoA MWF SafeB None
+                mario_actions_moving._mtxf_align_terrain_triangle
+                _ _ _ _ empty_env le2 m0 _ _ _ _
+                (PTree.gempty _ _) Hscp_mtxf
+                (fun vargs Hvl => awf_mtx_gate le2 m0 al tyl vargs Hvl)
+                Hcall (conj HV (conj HS (conj HM HN))))
+      as ((HV' & HS' & HM' & HN') & _).
+    subst le'.
+    exact (conj HV' (conj HS' (conj HM' (conj HN' (conj Htat2 Hch2))))).
+  Qed.
+
+  Lemma awf_seq2_mtx :
+    forall a3 a4 tyl rty cc al s2 le m0 tr le' m' out,
+      exec_stmt function_entry2 (lp_ge lp) empty_env le m0
+        (Ssequence
+          (Ssequence (Sset mario_actions_moving._t'3 a3)
+             (Ssequence (Sset mario_actions_moving._t'4 a4)
+                (Scall None
+                   (Evar mario_actions_moving._mtxf_align_terrain_triangle
+                      (Tfunction (tptr (tarray tfloat 4) :: tyl) rty cc))
+                   (awf_mtx_a0 :: al))))
+          s2) tr le' m' out ->
+      (forall b o, le ! mario_actions_airborne._m = Some (Vptr b o) ->
+                   b = bm /\ o = Ptrofs.zero) ->
+      ActWriterSurface.chase_inv SafeB awf_cact le ->
+      NoA m0 -> MWF m0 -> Mem.valid_block m0 bm ->
+      action_sat not_tainted m0 bm ->
+      (exists le1 m1 tr1,
+          NoA m1 /\ MWF m1 /\ Mem.valid_block m1 bm /\
+          action_sat not_tainted m1 bm /\
+          (forall b o, le1 ! mario_actions_airborne._m = Some (Vptr b o) ->
+                       b = bm /\ o = Ptrofs.zero) /\
+          ActWriterSurface.chase_inv SafeB awf_cact le1 /\
+          exec_stmt function_entry2 (lp_ge lp) empty_env le1 m1 s2 tr1
+            le' m' out)
+      \/ (Mem.valid_block m' bm /\ action_sat not_tainted m' bm /\ MWF m' /\
+          NoA m').
+  Proof.
+    intros a3 a4 tyl rty cc al s2 le m0 tr le' m' out Hexec Htat Hch HN HM HV HS.
+    inv Hexec.
+    - match goal with
+      | H1 : exec_stmt _ _ _ _ _ (Ssequence _ _) _ ?le1 ?m1 Out_normal,
+        H2 : exec_stmt _ _ _ _ _ s2 ?tr2 _ _ _ |- _ =>
+          destruct (awf_mtx_pres _ _ _ _ _ _ le m0 _ le1 m1 Out_normal H1
+                      Htat Hch HN HM HV HS)
+            as (HV1 & HS1 & HM1 & HN1 & Htat1 & Hch1);
+          left; exists le1, m1, tr2;
+          exact (conj HN1 (conj HM1 (conj HV1 (conj HS1
+                   (conj Htat1 (conj Hch1 H2))))))
+      end.
+    - match goal with
+      | H1 : exec_stmt _ _ _ _ _ (Ssequence _ _) _ _ _ _ |- _ =>
+          destruct (awf_mtx_pres _ _ _ _ _ _ le m0 _ le' m' out H1
+                      Htat Hch HN HM HV HS)
+            as (HV1 & HS1 & HM1 & HN1 & _);
+          right; exact (conj HV1 (conj HS1 (conj HM1 HN1)))
+      end.
+  Qed.
+
   (* store C: storing &sFloorAlignMatrix[t'2] through the censused chase cell
      marioObj->...->throwMatrix preserves the run facts (the stored value is
      SafeB-if-pointer by Hsfam_safe; HMWF_chase_safe absorbs the store). *)
@@ -4741,11 +4964,8 @@ Section MovingLeafRows.
   Proof.
     intros s le m0 tr le' m' out Hexec Hchk Htat Hch HN HM HV HS.
     assert (Hxr : forall fid, mem_id fid awf_xids = true ->
-                  call_pres_ext lp bm NoA MWF fid).
-    { intros fid Hm. unfold awf_xids, mem_id in Hm. cbn [existsb] in Hm.
-      apply orb_true_iff in Hm as [He | Hf]; [ | discriminate Hf ].
-      apply Pos.eqb_eq in He. subst fid.
-      apply Hpres_mov_ext. vm_compute. reflexivity. }
+                  call_pres_ext_x lp bm NoA MWF SafeB fid).
+    { intros fid Hm. discriminate Hm. }
     destruct (wwalk_pres0 lp LO_mario bm NoA MWF HNoA_of_MWF HMWF_window
                 HMWF_glob HMWF_act SafeB HSafeNotBm HchaseRoot HMWF_chase
                 HMWF_root HMWF_sglob HchaseStep HMWF_chase_safe
@@ -4881,8 +5101,8 @@ Section MovingLeafRows.
          | Hfin ];
       [ | exact (conj (proj1 Hfin) (conj (proj1 (proj2 Hfin))
                         (proj1 (proj2 (proj2 Hfin))))) ].
-    destruct (awf_seq2 _ _ _ _ _ _ _ _ HbA
-                ltac:(vm_compute; reflexivity) HtatA HchA HNA HMA HVA HSA)
+    destruct (awf_seq2_mtx _ _ _ _ _ _ _ _ _ _ _ _ _ HbA
+                HtatA HchA HNA HMA HVA HSA)
       as [ (lB & mB & trB & HNB & HMB & HVB & HSB & HtatB & HchB & HbB)
          | Hfin ];
       [ | exact (conj (proj1 Hfin) (conj (proj1 (proj2 Hfin))
@@ -5013,13 +5233,19 @@ Definition csa_sp_chk (fid : ident) (fty : type) (al : list expr) : bool :=
      | _ => false
      end.
 
+(* vec3f_copy(pos, m->pos): dst = the stack local `pos` (call_pres_ext_dg) *)
+Definition csa_lids : list ident := M._pos :: nil.
+Definition csa_dg_chk (fid : ident) (fty : type) (al : list expr) : bool :=
+  Pos.eqb fid M._vec3f_copy
+  && sc_call_chk csa_lids (M._vec3f_copy :: nil) nil fid fty al.
+
 Fixpoint csa_chk (s : statement) : bool :=
   wwalk_chk false csa_wact csa_ids nil nil csa_xids csa_sids nil s
   || match s with
      | Ssequence s1 s2 => csa_chk s1 && csa_chk s2
      | Sifthenelse _ s1 s2 => csa_chk s1 && csa_chk s2
      | Sswitch _ sl => csa_chk_ls sl
-     | Scall None (Evar fid fty) al => csa_sp_chk fid fty al
+     | Scall None (Evar fid fty) al => csa_sp_chk fid fty al || csa_dg_chk fid fty al
      | _ => false
      end
 with csa_chk_ls (sl : labeled_statements) : bool :=
@@ -5081,7 +5307,7 @@ Lemma csa_chk_scall_inv : forall optid a al,
     wwalk_chk false csa_wact csa_ids nil nil csa_xids csa_sids nil
       (Scall optid a al) = true
     \/ (optid = None /\ exists fid fty,
-          a = Evar fid fty /\ csa_sp_chk fid fty al = true).
+          a = Evar fid fty /\ (csa_sp_chk fid fty al || csa_dg_chk fid fty al) = true).
 Proof.
   intros optid a al H. cbn [csa_chk] in H.
   apply orb_true_iff in H as [Hg | Hsp]; [ left; exact Hg | right ].
@@ -5312,11 +5538,11 @@ Proof. vm_compute. reflexivity. Qed.
   Qed.
 
   Lemma csa_xids_rows : forall fid, mem_id fid csa_xids = true ->
-      call_pres_ext lp bm NoA MWF fid.
+      call_pres_ext_x lp bm NoA MWF SafeB fid.
   Proof.
     intros fid H. unfold csa_xids in H. cbn [mem_id existsb] in H.
     apply orb_true_iff in H as [Hm | H];
-      [ apply Pos.eqb_eq in Hm; subst fid; exact (Hpres_obj_ext M._vec3f_copy eq_refl) | ].
+      [ apply Pos.eqb_eq in Hm; subst fid; exact Hdgp_v3f | ].
     apply orb_true_iff in H as [Hm | H];
       [ apply Pos.eqb_eq in Hm; subst fid; exact Hcpx_psound | ].
     apply orb_true_iff in H as [Hm | H];
@@ -5440,6 +5666,9 @@ Proof. vm_compute. reflexivity. Qed.
       (forall g, mem_id g csa_sids = true -> e ! g = None) ->
       e ! M._slide_bonk = None ->
       e ! interaction._gGlobalTimer = None ->
+      (forall lid, mem_id lid csa_lids = true ->
+         exists lblk tyenv, e ! lid = Some (lblk, tyenv) /\
+                            local_blk lp bm SafeB lblk) ->
       csa_chk s = true ->
       (forall b o, le ! mario_actions_airborne._m = Some (Vptr b o) ->
                    b = bm /\ o = Ptrofs.zero) ->
@@ -5453,7 +5682,7 @@ Proof. vm_compute. reflexivity. Qed.
   Proof.
     intros s e le m0 tr le' m' out Hexec.
     induction Hexec;
-      intros Hub_g Hub_i Hub_x Hub_s Hsbn Hubgt Hchk Htat Hact Hch HN HM HV HS.
+      intros Hub_g Hub_i Hub_x Hub_s Hsbn Hubgt Hloc Hchk Htat Hact Hch HN HM HV HS.
     - (* Sskip *)
       exact (conj HV (conj HS (conj HM (conj HN
                (conj Htat (conj Hact Hch)))))).
@@ -5475,6 +5704,33 @@ Proof. vm_compute. reflexivity. Qed.
       { eapply (csa_generic _ _ _ _ _ _ _ _ Hub_g Hub_i Hub_x Hub_s Hubgt
                   Hg Htat Hact Hch HN HM HV HS);
           eapply exec_Scall; eauto. }
+      apply orb_true_iff in Hsp as [Hsp | Hdg].
+      2:{ (* the vec3f_copy(pos, ..) local-dst site *)
+        unfold csa_dg_chk in Hdg. apply andb_prop in Hdg as [Hfid Hsc].
+        apply Pos.eqb_eq in Hfid. subst fid.
+        assert (Hex : exec_stmt function_entry2 (lp_ge lp) e le m
+                        (Scall None (Evar M._vec3f_copy fty) al)
+                        t (set_opttemp None vres le) m' Out_normal)
+          by (eapply exec_Scall; eauto).
+        destruct (sc_call_chk_pres lp LO_mario bm NoA MWF SafeB
+                    csa_lids (M._vec3f_copy :: nil) nil None M._vec3f_copy fty al
+                    e le m t (set_opttemp None vres le) m' Out_normal)
+          as (Hc' & _).
+        - intros g Hg. cbn [mem_id existsb] in Hg. rewrite orb_false_r in Hg.
+          apply Pos.eqb_eq in Hg. subst g. exact Hdgp_v3f.
+        - intros g Hg. apply Hub_x.
+          cbn [mem_id existsb] in Hg. rewrite orb_false_r in Hg.
+          apply Pos.eqb_eq in Hg. subst g. reflexivity.
+        - exact Htat.
+        - exact Hch.
+        - exact Hloc.
+        - exact Hsc.
+        - exact Hex.
+        - exact (conj HV (conj HS (conj HM HN))).
+        - destruct Hc' as (HV' & HS' & HM' & HN').
+          cbn [set_opttemp].
+          exact (conj HV' (conj HS' (conj HM' (conj HN'
+                   (conj Htat (conj Hact Hch)))))). }
       destruct (csa_sp_chk_shape _ _ _ Hsp) as (c2 & t3 & -> & -> & -> & Hc2 & Ht3).
       assert (Hex : exec_stmt function_entry2 (lp_ge lp) e le m
                       (Scall None
@@ -5502,10 +5758,10 @@ Proof. vm_compute. reflexivity. Qed.
                   Hg Htat Hact Hch HN HM HV HS);
           eapply exec_Sseq_1; eauto. }
       apply andb_prop in Hsp as [H1 H2].
-      destruct (IHHexec1 Hub_g Hub_i Hub_x Hub_s Hsbn Hubgt H1 Htat Hact Hch
+      destruct (IHHexec1 Hub_g Hub_i Hub_x Hub_s Hsbn Hubgt Hloc H1 Htat Hact Hch
                   HN HM HV HS)
         as (HV1 & HS1 & HM1 & HN1 & Htat1 & Hact1 & Hch1).
-      exact (IHHexec2 Hub_g Hub_i Hub_x Hub_s Hsbn Hubgt H2 Htat1 Hact1 Hch1
+      exact (IHHexec2 Hub_g Hub_i Hub_x Hub_s Hsbn Hubgt Hloc H2 Htat1 Hact1 Hch1
                HN1 HM1 HV1 HS1).
     - (* Sseq_2 *)
       cbn [csa_chk] in Hchk.
@@ -5514,7 +5770,7 @@ Proof. vm_compute. reflexivity. Qed.
                   Hg Htat Hact Hch HN HM HV HS);
           eapply exec_Sseq_2; eauto. }
       apply andb_prop in Hsp as [H1 _].
-      exact (IHHexec Hub_g Hub_i Hub_x Hub_s Hsbn Hubgt H1 Htat Hact Hch
+      exact (IHHexec Hub_g Hub_i Hub_x Hub_s Hsbn Hubgt Hloc H1 Htat Hact Hch
                HN HM HV HS).
     - (* Sifthenelse *)
       cbn [csa_chk] in Hchk.
@@ -5692,8 +5948,15 @@ Proof. vm_compute. reflexivity. Qed.
                  empty_env _ _ Halloc interaction._gGlobalTimer).
       - apply PTree.gempty.
       - vm_compute. intro HIn. destruct HIn as [HE | []]. discriminate HE. }
+    pose proof (alloc_variables_hlocal lp bm SafeB m0 _ eloc _ csa_lids
+                  Halloc HV (HSafeValid m0 HM) (HGlobValid m0 HM)
+                  ltac:(intros lid Hl; unfold csa_lids, mem_id in Hl;
+                        cbn [existsb] in Hl; rewrite orb_false_r in Hl;
+                        apply Pos.eqb_eq in Hl; subst lid;
+                        vm_compute; left; reflexivity))
+      as Hloc.
     destruct (csa_pres _ _ _ _ _ _ _ _ Hbody
-                Hub_g Hub_i Hub_x Hub_s Hub_sb Hub_gt
+                Hub_g Hub_i Hub_x Hub_s Hub_sb Hub_gt Hloc
                 csa_walk Htat0 Hact0 Hch0 HNa HMa HVa HSa)
       as (HVb & HSb & HMb & HNb & _ & _ & _).
     pose proof (blocks_of_env_bm lp bm m0
@@ -9429,7 +9692,7 @@ Proof. vm_compute. reflexivity. Qed.
   Qed.
   (* TASK #98: dive_xids is now nil (pmlso moved to dive_ids) *)
   Lemma dive_xids_rows : forall fid, mem_id fid dive_xids = true ->
-      call_pres_ext lp bm NoA MWF fid.
+      call_pres_ext_x lp bm NoA MWF SafeB fid.
   Proof.
     intros fid H. unfold dive_xids in H. discriminate H.
   Qed.
@@ -9707,7 +9970,7 @@ Proof. vm_compute. reflexivity. Qed.
   Proof. vm_compute. reflexivity. Qed.
 
   Lemma tbgs_xids_rows : forall fid, mem_id fid tbgs_xids = true ->
-      call_pres_ext lp bm NoA MWF fid.
+      call_pres_ext_x lp bm NoA MWF SafeB fid.
   Proof.
     intros fid H. unfold tbgs_xids in H. cbn [mem_id existsb] in H.
     apply orb_true_iff in H as [Hm | H];
@@ -10055,7 +10318,7 @@ Proof. vm_compute. reflexivity. Qed.
       [ apply Pos.eqb_eq in Hm; subst fid; exact mov_asa_row | discriminate H ].
   Qed.
   Lemma uss_xids_rows : forall fid, mem_id fid uss_xids = true ->
-      call_pres_ext lp bm NoA MWF fid.
+      call_pres_ext_x lp bm NoA MWF SafeB fid.
   Proof.
     intros fid H. unfold uss_xids in H. cbn [mem_id existsb] in H.
     apply orb_true_iff in H as [Hm | H];
@@ -10307,7 +10570,7 @@ Proof. vm_compute. reflexivity. Qed.
     discriminate H.
   Qed.
   Lemma rsg_xids_rows : forall fid, mem_id fid rsg_xids = true ->
-      call_pres_ext lp bm NoA MWF fid.
+      call_pres_ext_x lp bm NoA MWF SafeB fid.
   Proof.
     intros fid H. unfold rsg_xids in H. cbn [mem_id existsb] in H.
     apply orb_true_iff in H as [Hm | H];
@@ -10400,7 +10663,7 @@ Proof. vm_compute. reflexivity. Qed.
   Proof. vm_compute. reflexivity. Qed.
 
   Lemma tbw_xids_rows : forall fid, mem_id fid tbw_xids = true ->
-      call_pres_ext lp bm NoA MWF fid.
+      call_pres_ext_x lp bm NoA MWF SafeB fid.
   Proof.
     intros fid H. unfold tbw_xids in H. cbn [mem_id existsb] in H.
     apply orb_true_iff in H as [Hm | H];
@@ -10484,11 +10747,6 @@ Proof. vm_compute. reflexivity. Qed.
   (*   the existing Hocp_find_floor (NO new trust); while the find_floor_    *)
   (*   slope row is unconsumed scaffolding they do NOT touch the capstone.   *)
   (* ==================================================================== *)
-  Hypothesis HSafeValid :
-    forall m, MWF m -> forall b, SafeB b -> Mem.valid_block m b.
-  Hypothesis HGlobValid :
-    forall m, MWF m -> forall gid bg,
-        Genv.find_symbol (lp_ge lp) gid = Some bg -> Mem.valid_block m bg.
   Hypothesis Hls_real :
     forall m ch b (d : Z) v m',
       local_blk lp bm SafeB b ->
@@ -10503,11 +10761,11 @@ Proof. vm_compute. reflexivity. Qed.
     call_pres_ext_ol lp bm NoA MWF SafeB mario._find_wall_collisions.
   (* vec3f_copy(_startPos, m->pos) in act_walking: dst = local _startPos array,
      src = m->pos window.  vec3f_copy writes ONLY through its dst (arg0), so
-     under args_window_or_local (both args window-or-local) it preserves
-     carried.  EF_external terminal boundary; the honest UNION gate (wol).
-     Discharged at the capstone alongside the other vec3f_copy rows. *)
-  Hypothesis Hwolcp_v3f :
-    call_pres_ext_wol lp bm NoA MWF SafeB mario_actions_automatic._vec3f_copy.
+     the gate is on the dst alone: arg0_local (wl).  (The former wol gate
+     admitted a 4-byte window dst -- FALSE for the 12-byte copy.)
+     Discharged at the capstone from the vec3f_copy dg row. *)
+  Hypothesis Hwlcp_v3f :
+    call_pres_ext_wl lp bm NoA MWF SafeB mario_actions_automatic._vec3f_copy.
 
   (* ---- find_floor_slope: lwalk2 (local _floor + find_floor oc + atan2s) ---- *)
   Definition ffs_lids : list ident := mario._floor :: nil.
@@ -10527,7 +10785,7 @@ Proof. vm_compute. reflexivity. Qed.
   Proof. vm_compute. reflexivity. Qed.
 
   Lemma ffs_xids_rows : forall fid, mem_id fid ffs_xids = true ->
-      call_pres_ext lp bm NoA MWF fid.
+      call_pres_ext_x lp bm NoA MWF SafeB fid.
   Proof.
     intros fid H. unfold ffs_xids in H. cbn [mem_id existsb] in H.
     apply orb_true_iff in H as [Hm | H];
@@ -10676,7 +10934,7 @@ Proof. vm_compute. reflexivity. Qed.
       [ apply Pos.eqb_eq in Hm; subst fid; exact mov_pss_row | discriminate H ].
   Qed.
   Lemma psw_xids_rows : forall fid, mem_id fid psw_xids = true ->
-      call_pres_ext lp bm NoA MWF fid.
+      call_pres_ext_x lp bm NoA MWF SafeB fid.
   Proof.
     intros fid H. unfold psw_xids in H. cbn [mem_id existsb] in H.
     apply orb_true_iff in H as [Hm | H];
@@ -10757,7 +11015,7 @@ Proof. vm_compute. reflexivity. Qed.
       [ apply Pos.eqb_eq in Hm; subst fid; exact mov_tbr_row | discriminate H ].
   Qed.
   Lemma aaw_xids_rows : forall fid, mem_id fid aaw_xids = true ->
-      call_pres_ext lp bm NoA MWF fid.
+      call_pres_ext_x lp bm NoA MWF SafeB fid.
   Proof.
     intros fid H. unfold aaw_xids in H. cbn [mem_id existsb] in H.
     apply orb_true_iff in H as [Hm | H];
@@ -10865,7 +11123,7 @@ Proof. vm_compute. reflexivity. Qed.
       [ apply Pos.eqb_eq in Hm; subst fid; exact mov_sma_row | discriminate H ].
   Qed.
   Lemma clcd_xids_rows : forall fid, mem_id fid clcd_xids = true ->
-      call_pres_ext lp bm NoA MWF fid.
+      call_pres_ext_x lp bm NoA MWF SafeB fid.
   Proof.
     intros fid H. unfold clcd_xids in H. cbn [mem_id existsb] in H.
     apply orb_true_iff in H as [Hm | H];
@@ -11944,29 +12202,18 @@ Proof. vm_compute. reflexivity. Qed.
                    (Tstruct mario._MarioState noattr))
                  mario._pos (tarray tfloat 3) :: nil)
             (tptr tfloat :: tptr tfloat :: nil) vargs ->
-          args_window_or_local lp bm SafeB vargs).
+          arg0_local lp bm SafeB vargs).
       { intros vargs0 Hvl.
         inversion Hvl as [ | a1 bl1 ty1 tyl1 v1a v2a vl1 Hev_a Hsc_a Htl1 ];
           subst; clear Hvl.
-        inversion Htl1 as [ | a2 bl2 ty2 tyl2 v1b v2b vl2 Hev_b Hsc_b Htl2 ];
-          subst; clear Htl1.
-        inversion Htl2; subst; clear Htl2.
-        destruct (aw_pos_window4_val _ _ _ _ Htat Hev_b) as (o2 & Ev2 & Hwin2).
-        subst v1b.
         destruct (eval_Evar_arr_local _ _ _ _ _ _ _ _ _ Hbind Hev_a)
           as (o1 & Ev1). subst v1a.
-        intros bb oo Hin; cbn in Hin.
-        destruct Hin as [E | [E | []]]; subst.
-        - apply RealFrameValue.sem_cast_ptr_result_inv in Hsc_a;
-            injection Hsc_a as <- <-.
-          right. exact Hlb.
-        - apply RealFrameValue.sem_cast_ptr_result_inv in Hsc_b;
-            injection Hsc_b as <- <-.
-          left. exact (conj eq_refl Hwin2). }
+        cbn in Hsc_a; injection Hsc_a as <-.
+        do 3 eexists; split; [ reflexivity | exact Hlb ]. }
       assert (Hc0 : carried bm NoA MWF m)
         by (split; [ exact HV | split; [ exact HS
                    | split; [ exact HM | exact HN ] ] ]).
-      destruct (wol_scall_pres lp bm NoA MWF SafeB None
+      destruct (wl_scall_pres lp bm NoA MWF SafeB None
                   M._vec3f_copy
                   (tptr tfloat :: tptr tfloat :: nil) (tptr tvoid) cc_default
                   (Evar M._startPos (tarray tfloat 3)
@@ -11974,7 +12221,7 @@ Proof. vm_compute. reflexivity. Qed.
                                 (tptr (Tstruct mario._MarioState noattr)))
                           (Tstruct mario._MarioState noattr))
                         mario._pos (tarray tfloat 3) :: nil)
-                  e le m _ _ m' _ Hv3f Hwolcp_v3f Hgate Hex Hc0) as (Hc' & _).
+                  e le m _ _ m' _ Hv3f Hwlcp_v3f Hgate Hex Hc0) as (Hc' & _).
       destruct Hc' as (HV' & HS' & HM' & HN').
       exact (conj HV' (conj HS' (conj HM' (conj HN'
                (conj Htat (conj Hact Hch)))))).
@@ -12270,7 +12517,7 @@ Proof. vm_compute. reflexivity. Qed.
   Qed.
 
   Lemma mov_ata_xids_rows : forall fid, mem_id fid mov_ata_xids = true ->
-      call_pres_ext lp bm NoA MWF fid.
+      call_pres_ext_x lp bm NoA MWF SafeB fid.
   Proof.
     intros fid H. unfold mov_ata_xids in H. cbn [mem_id existsb] in H.
     apply orb_true_iff in H as [Hm | H];

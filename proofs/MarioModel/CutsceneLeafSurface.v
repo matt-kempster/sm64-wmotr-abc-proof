@@ -324,7 +324,9 @@ Definition cred_xids : list ident :=
     :: C._override_viewport_and_clip :: C._reset_cutscene_msg_fade :: nil.
 (* the two chase-store temps: _t'32 <- m->statusForCamera (cameraEvent store),
    _t'4 <- m->marioObj (the deep gfx.angle[1] indexed chase store). *)
-Definition cred_cact : list ident := C._t'32 :: C._t'4 :: nil.
+Definition cred_cact : list ident := C._t'32 :: C._t'4
+  (* the gfx.pos / gfx.angle dst chases of vec3f_copy / vec3s_copy *)
+  :: C._t'26 :: C._t'25 :: nil.
 
 (* get_door_save_file_flag support (the in-section twin of InterSurface's
    gdsff_row -- a STORELESS internal reading the door object through its only
@@ -418,7 +420,9 @@ Definition rs_xids : list ident :=
    level_trigger_warp / play_sound_if_no_flag / stop_and_set_height_to_floor;
    xids = sqrtf / atan2s / play_sound (obj_ext) + vec3f_set (now obj_ext);
    sids = nil (NO set_mario_action). *)
-Definition bbhs_cact : list ident := C._t'18 :: C._t'10 :: nil.
+Definition bbhs_cact : list ident := C._t'18 :: C._t'10
+  (* the gfx.scale dst chase of vec3f_set *)
+  :: C._t'14 :: nil.
 Definition bbhs_ids : list ident :=
   mario._mario_set_forward_vel :: mario._set_mario_animation
     :: mario_step._perform_air_step :: level_update._level_trigger_warp
@@ -492,7 +496,9 @@ Definition sdn_ids  : list ident :=
    marioBodyState->handState = 2 chase store); marioObj LOADED for the
    vec3f_copy / vec3s_set args.  ids = general_star_dance_handler /
    set_mario_animation; xids = vec3f_copy / vec3s_set (obj_ext). *)
-Definition sdw_cact : list ident := C._t'3 :: nil.
+Definition sdw_cact : list ident := C._t'3
+  (* the gfx.pos / gfx.angle dst chases of vec3f_copy / vec3s_set *)
+  :: C._t'8 :: C._t'6 :: nil.
 Definition sdw_ids  : list ident :=
   C._general_star_dance_handler :: mario._set_mario_animation :: nil.
 Definition sdw_xids : list ident :=
@@ -506,6 +512,16 @@ Definition sdw_xids : list ident :=
    ids = perform_ground_step / set_mario_animation / play_sound_if_no_flag /
    stop_and_set_height_to_floor / level_trigger_warp; xids = atan2s / vec3f_set
    (obj_ext); sids = set_mario_action. *)
+(* the gfx.scale dst chases of the two vec3f_set calls *)
+Definition sq_cact : list ident := C._t'37 :: C._t'32 :: nil.
+(* the stationary_ground_step marioObj chase (vec3f_copy / vec3s_set dst) *)
+Definition cut_sgs_cact : list ident := mario_step._marioObj :: nil.
+(* reading_sign's marioObj local (gfx.pos / gfx.angle dst) *)
+Definition rs_cact : list ident := C._marioObj :: nil.
+(* reading_npc_dialog: gfx.pos / gfx.angle / marioBodyState->headAngle dsts *)
+Definition rnd_cact : list ident := C._t'12 :: C._t'10 :: C._t'8 :: nil.
+(* reading_automatic_dialog: marioBodyState->headAngle dst *)
+Definition rad_cact : list ident := C._t'4 :: nil.
 Definition sq_ids : list ident :=
   mario_step._perform_ground_step :: mario._set_mario_animation
     :: mario._play_sound_if_no_flag :: mario_step._stop_and_set_height_to_floor
@@ -1418,8 +1434,8 @@ Section CutsceneLeafRows.
      the floors/warp call_pres_of_body term). *)
   Hypothesis Hcpx_psound : call_pres_ext lp bm NoA MWF mario._play_sound.
   Hypothesis Hcpx_lpt : call_pres_ext lp bm NoA MWF mario._load_patchable_table.
-  Hypothesis Hcpx_v3fc : call_pres_ext lp bm NoA MWF mario._vec3f_copy.
-  Hypothesis Hcpx_v3ss : call_pres_ext lp bm NoA MWF mario._vec3s_set.
+  Hypothesis Hcpx_v3fc : OutParamSurface.call_pres_ext_dg lp bm NoA MWF SafeB mario._vec3f_copy.
+  Hypothesis Hcpx_v3ss : OutParamSurface.call_pres_ext_dg lp bm NoA MWF SafeB mario._vec3s_set.
   Hypothesis Hcp_ltw :
     call_pres lp bm NoA MWF level_update._level_trigger_warp.
   (* perform_air_step: the air step (writes pos/vel, returns the step
@@ -1505,7 +1521,7 @@ Section CutsceneLeafRows.
   Hypothesis Hcpx_sfsf :
     call_pres_ext lp bm NoA MWF interaction._save_file_set_flags.
   Hypothesis Hcpx_sqrtf : call_pres_ext lp bm NoA MWF mario._sqrtf.
-  Hypothesis Hcpx_v3fset : call_pres_ext lp bm NoA MWF mario._vec3f_set.
+  Hypothesis Hcpx_v3fset : OutParamSurface.call_pres_ext_dg lp bm NoA MWF SafeB mario._vec3f_set.
   (* SLICE 14 (act_squished): perform_ground_step, DISCHARGED at the capstone
      (MarioStepSurface) -- supplied here as a section hyp, zero new trust. *)
   Hypothesis Hcp_pgs :
@@ -1542,7 +1558,7 @@ Section CutsceneLeafRows.
   Hypothesis Hcpx_s2v :
     call_pres_ext lp bm NoA MWF interaction._segmented_to_virtual.
   Hypothesis Hscp_geo :
-    OutParamSurface.call_pres_ext_sc lp bm NoA MWF SafeB
+    OutParamSurface.call_pres_ext_geo lp bm NoA MWF SafeB
       mario._geo_update_animation_frame.
   Hypothesis Hocp_rai :
     OutParamSurface.call_pres_ext_oc lp bm NoA MWF SafeB
@@ -1574,7 +1590,7 @@ Section CutsceneLeafRows.
        Object's interior, never bm);
      - override_viewport_and_clip / reset_cutscene_msg_fade: the cutscene HUD/
        viewport EF_external boundaries (write rendering state, never Mario). *)
-  Hypothesis Hcpx_v3sc : call_pres_ext lp bm NoA MWF mario._vec3s_copy.
+  Hypothesis Hcpx_v3sc : OutParamSurface.call_pres_ext_dg lp bm NoA MWF SafeB mario._vec3s_copy.
   Hypothesis Hcpx_ovac :
     call_pres_ext lp bm NoA MWF C._override_viewport_and_clip.
   Hypothesis Hcpx_rcmf :
@@ -1584,7 +1600,9 @@ Section CutsceneLeafRows.
      EF_external terminal boundary, supplied at the capstone by Hpres_obj_ext
      (both now in ObjectLeafSurface.obj_ext_ids).  NO new capstone trust. *)
   Hypothesis Hcpx_asi : call_pres_ext lp bm NoA MWF C._anim_spline_init.
-  Hypothesis Hcpx_asp : call_pres_ext lp bm NoA MWF C._anim_spline_poll.
+  (* anim_spline_poll writes through its result arg: the dst-gated dg row *)
+  Hypothesis Hdgp_asp :
+    OutParamSurface.call_pres_ext_dg lp bm NoA MWF SafeB C._anim_spline_poll.
 
   (* cutscene jumbo-star (falling) input-OR-store keystones (NO new trust:
      both are PROVED MWFReal projections at the capstone).  jumbo_star_cutscene_
@@ -1917,7 +1935,7 @@ Section CutsceneLeafRows.
 
   (* ---- SLICE 4: act_eaten_by_bubba + act_waiting_for_dialog. ---- *)
   Lemma wfd_xids_rows : forall fid, mem_id fid wfd_xids = true ->
-      call_pres_ext lp bm NoA MWF fid.
+      call_pres_ext_x lp bm NoA MWF SafeB fid.
   Proof.
     intros fid H. unfold wfd_xids in H. cbn [mem_id existsb] in H.
     apply orb_true_iff in H as [Hm | H];
@@ -2370,7 +2388,7 @@ Section CutsceneLeafRows.
       [ apply Pos.eqb_eq in Hm; subst fid; exact cut_acs_row | discriminate H ].
   Qed.
   Lemma jop_xids_rows : forall fid, mem_id fid jop_xids = true ->
-      call_pres_ext lp bm NoA MWF fid.
+      call_pres_ext_x lp bm NoA MWF SafeB fid.
   Proof.
     intros fid H. unfold jop_xids in H. cbn [mem_id existsb] in H.
     apply orb_true_iff in H as [Hm | H];
@@ -2441,7 +2459,7 @@ Section CutsceneLeafRows.
       [ apply Pos.eqb_eq in Hm; subst fid; exact cut_acs_row | discriminate H ].
   Qed.
   Lemma pk_xids_rows : forall fid, mem_id fid pk_xids = true ->
-      call_pres_ext lp bm NoA MWF fid.
+      call_pres_ext_x lp bm NoA MWF SafeB fid.
   Proof.
     intros fid H. unfold pk_xids in H. cbn [mem_id existsb] in H.
     apply orb_true_iff in H as [Hm | H];
@@ -2533,7 +2551,7 @@ Section CutsceneLeafRows.
       [ apply Pos.eqb_eq in Hm; subst fid; exact Hcp_sashf | discriminate H ].
   Qed.
   Lemma sh_xids_rows : forall fid, mem_id fid sh_xids = true ->
-      call_pres_ext lp bm NoA MWF fid.
+      call_pres_ext_x lp bm NoA MWF SafeB fid.
   Proof.
     intros fid H. unfold sh_xids in H. cbn [mem_id existsb] in H.
     apply orb_true_iff in H as [Hm | H];
@@ -2685,7 +2703,7 @@ Section CutsceneLeafRows.
       [ apply Pos.eqb_eq in Hm; subst fid; exact Hcp_pmlso | discriminate H ].
   Qed.
   Lemma snsl_xids_rows : forall fid, mem_id fid snsl_xids = true ->
-      call_pres_ext lp bm NoA MWF fid.
+      call_pres_ext_x lp bm NoA MWF SafeB fid.
   Proof.
     intros fid H. unfold snsl_xids in H. cbn [mem_id existsb] in H.
     apply orb_true_iff in H as [Hm | H];
@@ -2834,7 +2852,7 @@ Section CutsceneLeafRows.
       [ apply Pos.eqb_eq in Hm; subst fid; exact Hcp_sma | discriminate H ].
   Qed.
   Lemma ssa_xids_rows : forall fid, mem_id fid ssa_xids = true ->
-      call_pres_ext lp bm NoA MWF fid.
+      call_pres_ext_x lp bm NoA MWF SafeB fid.
   Proof.
     intros fid H. unfold ssa_xids in H. cbn [mem_id existsb] in H.
     apply orb_true_iff in H as [Hm | H];
@@ -2984,7 +3002,7 @@ Section CutsceneLeafRows.
       [ apply Pos.eqb_eq in Hm; subst fid; exact Hcp_sashf | discriminate H ].
   Qed.
   Lemma esd_xids_rows : forall fid, mem_id fid esd_xids = true ->
-      call_pres_ext lp bm NoA MWF fid.
+      call_pres_ext_x lp bm NoA MWF SafeB fid.
   Proof.
     intros fid H. unfold esd_xids in H. cbn [mem_id existsb] in H.
     apply orb_true_iff in H as [Hm | H];
@@ -3071,7 +3089,7 @@ Section CutsceneLeafRows.
       [ apply Pos.eqb_eq in Hm; subst fid; exact Hcp_sma | discriminate H ].
   Qed.
   Lemma rnd_xids_rows : forall fid, mem_id fid rnd_xids = true ->
-      call_pres_ext lp bm NoA MWF fid.
+      call_pres_ext_x lp bm NoA MWF SafeB fid.
   Proof.
     intros fid H. unfold rnd_xids in H. cbn [mem_id existsb] in H.
     apply orb_true_iff in H as [Hm | H];
@@ -3092,14 +3110,14 @@ Section CutsceneLeafRows.
   Proof. vm_compute. reflexivity. Qed.
   Example rnd_nonparam_cact :
     forallb (fun t' => negb (mem_id t' (map fst (fn_params C.f_act_reading_npc_dialog))))
-      (@nil ident) = true.
-  Proof. reflexivity. Qed.
+      rnd_cact = true.
+  Proof. vm_compute. reflexivity. Qed.
   Example rnd_nonparam_wact :
     forallb (fun t' => negb (mem_id t' (map fst (fn_params C.f_act_reading_npc_dialog))))
       rnd_wact = true.
   Proof. vm_compute. reflexivity. Qed.
   Example rnd_walk :
-    wwalk_chk false rnd_wact rnd_ids nil nil rnd_xids tfi_sids nil
+    wwalk_chk false rnd_wact rnd_ids nil rnd_cact rnd_xids tfi_sids nil
       (fn_body C.f_act_reading_npc_dialog) = true.
   Proof. vm_compute. reflexivity. Qed.
   Lemma rnd_pres : body_pres lp NoA MWF bm C.f_act_reading_npc_dialog.
@@ -3107,7 +3125,7 @@ Section CutsceneLeafRows.
     apply (body_pres_of_wwalk_wact lp LO_mario bm NoA MWF HNoA_of_MWF
              HMWF_window HMWF_glob HMWF_act SafeB HSafeNotBm HchaseRoot
              HMWF_chase HMWF_root HMWF_sglob HchaseStep HMWF_chase_safe
-             C.f_act_reading_npc_dialog rnd_wact rnd_ids nil nil rnd_xids
+             C.f_act_reading_npc_dialog rnd_wact rnd_ids nil rnd_cact rnd_xids
              tfi_sids nil
              rnd_vars rnd_pok rnd_nonparam_cact rnd_nonparam_wact).
     - exact rnd_ids_rows.
@@ -3155,7 +3173,7 @@ Section CutsceneLeafRows.
       [ apply Pos.eqb_eq in Hm; subst fid; exact cut_iae_row | discriminate H ].
   Qed.
   Lemma usd_xids_rows : forall fid, mem_id fid usd_xids = true ->
-      call_pres_ext lp bm NoA MWF fid.
+      call_pres_ext_x lp bm NoA MWF SafeB fid.
   Proof.
     intros fid H. unfold usd_xids in H. cbn [mem_id existsb] in H.
     apply orb_true_iff in H as [Hm | H];
@@ -3261,7 +3279,7 @@ Section CutsceneLeafRows.
       [ apply Pos.eqb_eq in Hm; subst fid; exact cut_iae_row | discriminate H ].
   Qed.
   Lemma ukd_xids_rows : forall fid, mem_id fid ukd_xids = true ->
-      call_pres_ext lp bm NoA MWF fid.
+      call_pres_ext_x lp bm NoA MWF SafeB fid.
   Proof.
     intros fid H. unfold ukd_xids in H. cbn [mem_id existsb] in H.
     apply orb_true_iff in H as [Hm | H];
@@ -3315,7 +3333,7 @@ Section CutsceneLeafRows.
       [ apply Pos.eqb_eq in Hm; subst fid; exact Hcp_sma | discriminate H ].
   Qed.
   Lemma rs_xids_rows : forall fid, mem_id fid rs_xids = true ->
-      call_pres_ext lp bm NoA MWF fid.
+      call_pres_ext_x lp bm NoA MWF SafeB fid.
   Proof.
     intros fid H. unfold rs_xids in H. cbn [mem_id existsb] in H.
     apply orb_true_iff in H as [Hm | H];
@@ -3340,17 +3358,21 @@ Section CutsceneLeafRows.
         && negb (mem_id Am (map fst ps))
     | nil => false end = true.
   Proof. vm_compute. reflexivity. Qed.
+  Example rs_nonparam :
+    forallb (fun t' => negb (mem_id t' (map fst (fn_params C.f_act_reading_sign))))
+      rs_cact = true.
+  Proof. vm_compute. reflexivity. Qed.
   Example rs_walk :
-    wwalk_chk false nil rs_ids nil nil rs_xids tfi_sids nil
+    wwalk_chk false nil rs_ids nil rs_cact rs_xids tfi_sids nil
       (fn_body C.f_act_reading_sign) = true.
   Proof. vm_compute. reflexivity. Qed.
   Lemma rs_pres : body_pres lp NoA MWF bm C.f_act_reading_sign.
   Proof.
-    apply (body_pres_of_wwalk lp LO_mario bm NoA MWF HNoA_of_MWF
+    apply (body_pres_of_wwalk_cact lp LO_mario bm NoA MWF HNoA_of_MWF
              HMWF_window HMWF_glob HMWF_act SafeB HSafeNotBm HchaseRoot
              HMWF_chase HMWF_root HMWF_sglob HchaseStep HMWF_chase_safe
-             C.f_act_reading_sign rs_ids nil rs_xids tfi_sids nil
-             rs_vars rs_pok).
+             C.f_act_reading_sign rs_ids nil rs_cact rs_xids tfi_sids nil
+             rs_vars rs_pok rs_nonparam).
     - exact rs_ids_rows.
     - intros fid' H. discriminate H.
     - exact rs_xids_rows.
@@ -3383,7 +3405,7 @@ Section CutsceneLeafRows.
       [ apply Pos.eqb_eq in Hm; subst fid; exact Hcp_sashf | discriminate H ].
   Qed.
   Lemma bbhs_xids_rows : forall fid, mem_id fid bbhs_xids = true ->
-      call_pres_ext lp bm NoA MWF fid.
+      call_pres_ext_x lp bm NoA MWF SafeB fid.
   Proof.
     intros fid H. unfold bbhs_xids in H. cbn [mem_id existsb] in H.
     apply orb_true_iff in H as [Hm | H];
@@ -3439,7 +3461,7 @@ Section CutsceneLeafRows.
       [ apply Pos.eqb_eq in Hm; subst fid; exact Hcp_sma | discriminate H ].
   Qed.
   Lemma rad_xids_rows : forall fid, mem_id fid rad_xids = true ->
-      call_pres_ext lp bm NoA MWF fid.
+      call_pres_ext_x lp bm NoA MWF SafeB fid.
   Proof.
     intros fid H. unfold rad_xids in H. cbn [mem_id existsb] in H.
     apply orb_true_iff in H as [Hm | H];
@@ -3468,14 +3490,14 @@ Section CutsceneLeafRows.
   Proof. vm_compute. reflexivity. Qed.
   Example rad_nonparam_cact :
     forallb (fun t' => negb (mem_id t' (map fst (fn_params C.f_act_reading_automatic_dialog))))
-      nil = true.
+      rad_cact = true.
   Proof. vm_compute. reflexivity. Qed.
   Example rad_nonparam_wact :
     forallb (fun t' => negb (mem_id t' (map fst (fn_params C.f_act_reading_automatic_dialog))))
       rad_wact = true.
   Proof. vm_compute. reflexivity. Qed.
   Example rad_walk :
-    wwalk_chk false rad_wact rad_ids nil nil rad_xids tfi_sids nil
+    wwalk_chk false rad_wact rad_ids nil rad_cact rad_xids tfi_sids nil
       (fn_body C.f_act_reading_automatic_dialog) = true.
   Proof. vm_compute. reflexivity. Qed.
   Lemma rad_pres : body_pres lp NoA MWF bm C.f_act_reading_automatic_dialog.
@@ -3483,7 +3505,7 @@ Section CutsceneLeafRows.
     apply (body_pres_of_wwalk_wact lp LO_mario bm NoA MWF HNoA_of_MWF
              HMWF_window HMWF_glob HMWF_act SafeB HSafeNotBm HchaseRoot
              HMWF_chase HMWF_root HMWF_sglob HchaseStep HMWF_chase_safe
-             C.f_act_reading_automatic_dialog rad_wact rad_ids nil nil rad_xids
+             C.f_act_reading_automatic_dialog rad_wact rad_ids nil rad_cact rad_xids
              tfi_sids nil rad_vars rad_pok rad_nonparam_cact rad_nonparam_wact).
     - exact rad_ids_rows.
     - intros fid' H. discriminate H.
@@ -3522,7 +3544,7 @@ Section CutsceneLeafRows.
       [ apply Pos.eqb_eq in Hm; subst fid; exact Hpmjs | discriminate H ].
   Qed.
   Lemma bbhj_xids_rows : forall fid, mem_id fid bbhj_xids = true ->
-      call_pres_ext lp bm NoA MWF fid.
+      call_pres_ext_x lp bm NoA MWF SafeB fid.
   Proof.
     intros fid H. unfold bbhj_xids in H. cbn [mem_id existsb] in H.
     apply orb_true_iff in H as [Hm | H];
@@ -3603,7 +3625,7 @@ Section CutsceneLeafRows.
       [ apply Pos.eqb_eq in Hm; subst fid; exact gscd_row | discriminate H ].
   Qed.
   Lemma gsdh_xids_rows : forall fid, mem_id fid gsdh_xids = true ->
-      call_pres_ext lp bm NoA MWF fid.
+      call_pres_ext_x lp bm NoA MWF SafeB fid.
   Proof.
     intros fid H. unfold gsdh_xids in H. cbn [mem_id existsb] in H.
     apply orb_true_iff in H as [Hm | H];
@@ -3722,7 +3744,7 @@ Section CutsceneLeafRows.
       [ apply Pos.eqb_eq in Hm; subst fid; exact Hcp_sma | discriminate H ].
   Qed.
   Lemma sdw_xids_rows : forall fid, mem_id fid sdw_xids = true ->
-      call_pres_ext lp bm NoA MWF fid.
+      call_pres_ext_x lp bm NoA MWF SafeB fid.
   Proof.
     intros fid H. unfold sdw_xids in H. cbn [mem_id existsb] in H.
     apply orb_true_iff in H as [Hm | H];
@@ -3779,7 +3801,7 @@ Section CutsceneLeafRows.
       [ apply Pos.eqb_eq in Hm; subst fid; exact Hcp_ltw | discriminate H ].
   Qed.
   Lemma cred_xids_rows : forall fid, mem_id fid cred_xids = true ->
-      call_pres_ext lp bm NoA MWF fid.
+      call_pres_ext_x lp bm NoA MWF SafeB fid.
   Proof.
     intros fid H. unfold cred_xids in H. cbn [mem_id existsb] in H.
     apply orb_true_iff in H as [Hm | H];
@@ -3844,7 +3866,7 @@ Section CutsceneLeafRows.
       [ apply Pos.eqb_eq in Hm; subst fid; exact Hcp_ltw | discriminate H ].
   Qed.
   Lemma sq_xids_rows : forall fid, mem_id fid sq_xids = true ->
-      call_pres_ext lp bm NoA MWF fid.
+      call_pres_ext_x lp bm NoA MWF SafeB fid.
   Proof.
     intros fid H. unfold sq_xids in H. cbn [mem_id existsb] in H.
     apply orb_true_iff in H as [Hm | H];
@@ -3859,17 +3881,21 @@ Section CutsceneLeafRows.
         && negb (mem_id Am (map fst ps))
     | nil => false end = true.
   Proof. vm_compute. reflexivity. Qed.
+  Example sq_nonparam :
+    forallb (fun t' => negb (mem_id t' (map fst (fn_params C.f_act_squished))))
+      sq_cact = true.
+  Proof. vm_compute. reflexivity. Qed.
   Example sq_walk :
-    wwalk_chk false nil sq_ids nil nil sq_xids tfi_sids nil
+    wwalk_chk false nil sq_ids nil sq_cact sq_xids tfi_sids nil
       (fn_body C.f_act_squished) = true.
   Proof. vm_compute. reflexivity. Qed.
   Lemma sq_pres : body_pres lp NoA MWF bm C.f_act_squished.
   Proof.
-    apply (body_pres_of_lwalk lp LO_mario bm NoA MWF HNoA_of_MWF
+    apply (body_pres_of_lwalk_cact lp LO_mario bm NoA MWF HNoA_of_MWF
              HMWF_window HMWF_glob HMWF_act SafeB HSafeNotBm HchaseRoot
              HMWF_chase HMWF_root HMWF_sglob HchaseStep HMWF_chase_safe
              HMWF_alloc HMWF_free
-             C.f_act_squished sq_ids nil sq_xids tfi_sids sq_pok).
+             C.f_act_squished sq_ids nil sq_cact sq_xids tfi_sids sq_pok).
     - intros g Hg HIn. vm_compute in HIn.
       destruct HIn as [E | []]. subst g. vm_compute in Hg. discriminate Hg.
     - intros g Hg HIn. vm_compute in HIn.
@@ -3880,6 +3906,7 @@ Section CutsceneLeafRows.
     - intros g Hg HIn. vm_compute in HIn.
       destruct HIn as [E | []]. subst g. vm_compute in Hg. discriminate Hg.
     - intro HIn. vm_compute in HIn. destruct HIn as [E | []]. discriminate E.
+    - exact sq_nonparam.
     - exact sq_ids_rows.
     - intros fid' H. discriminate H.
     - exact sq_xids_rows.
@@ -3950,7 +3977,7 @@ Section CutsceneLeafRows.
       [ apply Pos.eqb_eq in Hm; subst fid; exact Hcp_pgs | discriminate H ].
   Qed.
   Lemma cut_sgs_xids_rows : forall fid, mem_id fid sgs_xids = true ->
-      call_pres_ext lp bm NoA MWF fid.
+      call_pres_ext_x lp bm NoA MWF SafeB fid.
   Proof.
     intros fid H. unfold sgs_xids in H. cbn [mem_id existsb] in H.
     apply orb_true_iff in H as [Hm | H];
@@ -3958,19 +3985,23 @@ Section CutsceneLeafRows.
     apply orb_true_iff in H as [Hm | H];
       [ apply Pos.eqb_eq in Hm; subst fid; exact Hcpx_v3ss | discriminate H ].
   Qed.
+  Example cut_sgs_nonparam :
+    forallb (fun t' => negb (mem_id t' (map fst (fn_params mario_step.f_stationary_ground_step))))
+      cut_sgs_cact = true.
+  Proof. vm_compute. reflexivity. Qed.
   Example cut_sgs_walk :
-    wwalk_chk false nil sgs_ids nil nil sgs_xids nil nil
+    wwalk_chk false nil sgs_ids nil cut_sgs_cact sgs_xids nil nil
       (fn_body mario_step.f_stationary_ground_step) = true.
   Proof. vm_compute. reflexivity. Qed.
   Lemma cut_sgs_row :
     call_pres lp bm NoA MWF mario_step._stationary_ground_step.
   Proof.
-    apply (call_pres_of_wwalk lp LO_mario bm NoA MWF HNoA_of_MWF
+    apply (call_pres_of_wwalk_cact lp LO_mario bm NoA MWF HNoA_of_MWF
              HMWF_window HMWF_glob HMWF_act SafeB HSafeNotBm HchaseRoot
              HMWF_chase HMWF_root HMWF_sglob HchaseStep HMWF_chase_safe
              mario_step.prog mario_step._stationary_ground_step
-             mario_step.f_stationary_ground_step sgs_ids nil sgs_xids nil
-             LO_stp sgs_pin sgs_vars sgs_pok).
+             mario_step.f_stationary_ground_step sgs_ids nil cut_sgs_cact sgs_xids nil
+             LO_stp sgs_pin sgs_vars sgs_pok cut_sgs_nonparam).
     - exact cut_sgs_ids_rows.
     - intros fid' H. discriminate H.
     - exact cut_sgs_xids_rows.
@@ -3993,7 +4024,7 @@ Section CutsceneLeafRows.
       [ apply Pos.eqb_eq in Hm; subst fid; exact cut_sgs_row | discriminate H ].
   Qed.
   Lemma qsd_xids_rows : forall fid, mem_id fid qsd_xids = true ->
-      call_pres_ext lp bm NoA MWF fid.
+      call_pres_ext_x lp bm NoA MWF SafeB fid.
   Proof.
     intros fid H. unfold qsd_xids in H. cbn [mem_id existsb] in H.
     apply orb_true_iff in H as [Hm | H];
@@ -4033,7 +4064,7 @@ Section CutsceneLeafRows.
   (* cutscene_put_cap_on: 2 m->flags window stores + play_sound, marioObj
      read-only.  Plain call_pres via call_pres_of_wwalk (xids=[play_sound]). *)
   Lemma cpco_xids_rows : forall fid, mem_id fid cpco_xids = true ->
-      call_pres_ext lp bm NoA MWF fid.
+      call_pres_ext_x lp bm NoA MWF SafeB fid.
   Proof.
     intros fid H. unfold cpco_xids in H. cbn [mem_id existsb] in H.
     apply orb_true_iff in H as [Hm | H];
@@ -4067,7 +4098,7 @@ Section CutsceneLeafRows.
       [ apply Pos.eqb_eq in Hm; subst fid; exact cut_sgs_row | discriminate H ].
   Qed.
   Lemma poc_xids_rows : forall fid, mem_id fid poc_xids = true ->
-      call_pres_ext lp bm NoA MWF fid.
+      call_pres_ext_x lp bm NoA MWF SafeB fid.
   Proof.
     intros fid H. unfold poc_xids in H. cbn [mem_id existsb] in H.
     apply orb_true_iff in H as [Hm | H];
@@ -4219,7 +4250,7 @@ Section CutsceneLeafRows.
                        call_pres_act lp bm NoA MWF fid)
       by (intros fid HH; discriminate HH).
     assert (Hcpx_nil : forall fid, mem_id fid (@nil ident) = true ->
-                       call_pres_ext lp bm NoA MWF fid)
+                       call_pres_ext_x lp bm NoA MWF SafeB fid)
       by (intros fid HH; discriminate HH).
     assert (Hcp3_nil : forall fid, mem_id fid (@nil ident) = true ->
                        call_pres_act3 lp bm NoA MWF fid)
@@ -4433,7 +4464,7 @@ Section CutsceneLeafRows.
       [ apply Pos.eqb_eq in Hm; subst fid; exact cut_acs_row | discriminate H ].
   Qed.
   Lemma fall_xids_rows : forall fid, mem_id fid fall_xids = true ->
-      call_pres_ext lp bm NoA MWF fid.
+      call_pres_ext_x lp bm NoA MWF SafeB fid.
   Proof.
     intros fid H. unfold fall_xids in H. cbn [mem_id existsb] in H.
     apply orb_true_iff in H as [Hm | H];
@@ -5129,7 +5160,7 @@ Section CutsceneLeafRows.
       [ apply Pos.eqb_eq in Hm; subst fid; exact cut_acs_row | discriminate H ].
   Qed.
   Lemma tko_xids_rows : forall fid, mem_id fid tko_xids = true ->
-      call_pres_ext lp bm NoA MWF fid.
+      call_pres_ext_x lp bm NoA MWF SafeB fid.
   Proof.
     intros fid H. unfold tko_xids in H. cbn [mem_id existsb] in H.
     apply orb_true_iff in H as [Hm | H];
@@ -5177,8 +5208,11 @@ Section CutsceneLeafRows.
       :: interaction._atan2s :: mario._vec3f_copy :: nil.
   Definition fly_sids : list ident := mario._set_mario_action :: nil.
 
+  (* targetPos: the stack-local anim_spline_poll dst *)
+  Definition fly_lids : list ident := C._targetPos :: nil.
   Example fly_walk_probe :
-    wwalk_chk false nil fly_ids nil fly_cact fly_xids fly_sids nil
+    wwalk_chk' fly_lids nil nil nil nil nil false nil fly_ids nil fly_cact
+      fly_xids fly_sids nil
       (fn_body mario_actions_cutscene.f_jumbo_star_cutscene_flying) = true.
   Proof. vm_compute; reflexivity. Qed.
 
@@ -5192,13 +5226,13 @@ Section CutsceneLeafRows.
       [ apply Pos.eqb_eq in Hm; subst fid; exact Hcp_ltw | discriminate H ].
   Qed.
   Lemma fly_xids_rows : forall fid, mem_id fid fly_xids = true ->
-      call_pres_ext lp bm NoA MWF fid.
+      call_pres_ext_x lp bm NoA MWF SafeB fid.
   Proof.
     intros fid H. unfold fly_xids in H. cbn [mem_id existsb] in H.
     apply orb_true_iff in H as [Hm | H];
       [ apply Pos.eqb_eq in Hm; subst fid; exact Hcpx_asi | ].
     apply orb_true_iff in H as [Hm | H];
-      [ apply Pos.eqb_eq in Hm; subst fid; exact Hcpx_asp | ].
+      [ apply Pos.eqb_eq in Hm; subst fid; exact Hdgp_asp | ].
     apply orb_true_iff in H as [Hm | H];
       [ apply Pos.eqb_eq in Hm; subst fid; exact Hcpx_sqrtf | ].
     apply orb_true_iff in H as [Hm | H];
@@ -5210,12 +5244,12 @@ Section CutsceneLeafRows.
   Lemma flying_body_pres :
     body_pres lp NoA MWF bm C.f_jumbo_star_cutscene_flying.
   Proof.
-    apply (body_pres_of_lwalk_cact lp LO_mario bm NoA MWF HNoA_of_MWF
+    apply (body_pres_of_lwalk3 lp LO_mario bm NoA MWF HNoA_of_MWF
              HMWF_window HMWF_glob HMWF_act SafeB HSafeNotBm HchaseRoot
              HMWF_chase HMWF_root HMWF_sglob HchaseStep HMWF_chase_safe
              HMWF_alloc HMWF_free
              C.f_jumbo_star_cutscene_flying
-             fly_ids nil fly_cact fly_xids fly_sids).
+             fly_ids nil fly_cact fly_xids fly_sids fly_lids).
     - vm_compute; reflexivity.                          (* params shape *)
     - intros g Hg HIn. vm_compute in HIn.               (* stored_globals not in vars *)
       destruct HIn as [E | []]. subst g. vm_compute in Hg. discriminate Hg.
@@ -5229,6 +5263,12 @@ Section CutsceneLeafRows.
     - intro HIn. vm_compute in HIn.                     (* gGlobalTimer not in vars *)
       destruct HIn as [E | []]. discriminate E.
     - vm_compute; reflexivity.                          (* cact not in params *)
+    - intros lid Hl. unfold fly_lids, mem_id in Hl. cbn [existsb] in Hl.
+      rewrite orb_false_r in Hl. apply Pos.eqb_eq in Hl. subst lid.
+      vm_compute. left. reflexivity.                    (* targetPos is a var *)
+    - exact HSafeValid.
+    - exact HGlobValid.
+    - exact Hls_real.
     - exact fly_ids_rows.
     - intros fid' H; discriminate H.                    (* wids rows *)
     - exact fly_xids_rows.
@@ -5412,7 +5452,7 @@ Section CutsceneLeafRows.
       (fn_body level_update.f_fade_into_special_warp) = true.
   Proof. vm_compute. reflexivity. Qed.
   Lemma fiw_xids_rows : forall fid, mem_id fid fiw_xids = true ->
-      call_pres_ext lp bm NoA MWF fid.
+      call_pres_ext_x lp bm NoA MWF SafeB fid.
   Proof.
     intros fid H. unfold fiw_xids in H. cbn [mem_id existsb] in H.
     apply orb_true_iff in H as [Hm | H];
@@ -5461,7 +5501,7 @@ Section CutsceneLeafRows.
       (fn_body C.f_cutscene_take_cap_off) = true.
   Proof. vm_compute. reflexivity. Qed.
   Lemma ctco_xids_rows : forall fid, mem_id fid ctco_xids = true ->
-      call_pres_ext lp bm NoA MWF fid.
+      call_pres_ext_x lp bm NoA MWF SafeB fid.
   Proof.
     intros fid H. unfold ctco_xids in H. cbn [mem_id existsb] in H.
     apply orb_true_iff in H as [Hm | H];
@@ -5521,7 +5561,7 @@ Section CutsceneLeafRows.
       [ apply Pos.eqb_eq in Hm; subst fid; exact gscd_row | discriminate H ].
   Qed.
   Lemma hsm_xids_rows : forall fid, mem_id fid hsm_xids = true ->
-      call_pres_ext lp bm NoA MWF fid.
+      call_pres_ext_x lp bm NoA MWF SafeB fid.
   Proof.
     intros fid H. unfold hsm_xids in H. cbn [mem_id existsb] in H.
     apply orb_true_iff in H as [Hm | H];
@@ -5600,7 +5640,7 @@ Section CutsceneLeafRows.
       [ apply Pos.eqb_eq in Hm; subst fid; exact Hcp_pmlso | discriminate H ].
   Qed.
   Lemma eld_xids_rows : forall fid, mem_id fid eld_xids = true ->
-      call_pres_ext lp bm NoA MWF fid.
+      call_pres_ext_x lp bm NoA MWF SafeB fid.
   Proof.
     intros fid H. unfold eld_xids in H. cbn [mem_id existsb] in H.
     apply orb_true_iff in H as [Hm | H];
@@ -5731,10 +5771,10 @@ Section CutsceneLeafRows.
   (* Hwlcp_v3f (the NEW wl arc) is fresh capstone trust; sc/w1/oc/ol over *)
   (* $"vec3f_copy"/$"vec3s_set"/$"find_floor"/$"resolve_..." are ALREADY  *)
   (* trusted by the automatic/step/inter families (same idents). ---- *)
-  Hypothesis Hscp_v3f :
-    OutParamSurface.call_pres_ext_sc lp bm NoA MWF SafeB mario._vec3f_copy.
-  Hypothesis Hscp_v3s :
-    OutParamSurface.call_pres_ext_sc lp bm NoA MWF SafeB mario._vec3s_set.
+  Hypothesis Hdgp_v3f :
+    OutParamSurface.call_pres_ext_dg lp bm NoA MWF SafeB mario._vec3f_copy.
+  Hypothesis Hdgp_v3s :
+    OutParamSurface.call_pres_ext_dg lp bm NoA MWF SafeB mario._vec3s_set.
   Hypothesis Hw1cp_v3f :
     OutParamSurface.call_pres_ext_w1 lp bm NoA MWF mario._vec3f_copy.
   Hypothesis Hwlcp_v3f :
@@ -5871,13 +5911,13 @@ Section CutsceneLeafRows.
       | discriminate H ].
   Qed.
   Lemma dfm_sc_rows : forall fid, mem_id fid dfm_sc = true ->
-      OutParamSurface.call_pres_ext_sc lp bm NoA MWF SafeB fid.
+      OutParamSurface.call_pres_ext_dg lp bm NoA MWF SafeB fid.
   Proof.
     intros fid H. unfold dfm_sc in H. cbn [mem_id existsb] in H.
     apply orb_true_iff in H as [Hm | H];
-      [ apply Pos.eqb_eq in Hm; subst fid; exact Hscp_v3f | ].
+      [ apply Pos.eqb_eq in Hm; subst fid; exact Hdgp_v3f | ].
     apply orb_true_iff in H as [Hm | H];
-      [ apply Pos.eqb_eq in Hm; subst fid; exact Hscp_v3s | discriminate H ].
+      [ apply Pos.eqb_eq in Hm; subst fid; exact Hdgp_v3s | discriminate H ].
   Qed.
 
   (* whole-array local decay: `Evar pos (tarray tfloat 3)` as an rvalue
@@ -6617,7 +6657,7 @@ Section CutsceneLeafRows.
       [ apply Pos.eqb_eq in Hm; subst fid; exact cut_acs_row | discriminate H ].
   Qed.
   Lemma rzp_xids_rows : forall fid, mem_id fid rzp_xids = true ->
-      call_pres_ext lp bm NoA MWF fid.
+      call_pres_ext_x lp bm NoA MWF SafeB fid.
   Proof.
     intros fid H. unfold rzp_xids in H. cbn [mem_id existsb] in H.
     apply orb_true_iff in H as [Hm | H];
@@ -6967,7 +7007,7 @@ Section CutsceneLeafRows.
       [ apply Pos.eqb_eq in Hm; subst fid; exact Hcp_sashf | discriminate H ].
   Qed.
   Lemma lzp_xids_rows : forall fid, mem_id fid lzp_xids = true ->
-      call_pres_ext lp bm NoA MWF fid.
+      call_pres_ext_x lp bm NoA MWF SafeB fid.
   Proof.
     intros fid H. unfold lzp_xids in H. cbn [mem_id existsb] in H.
     apply orb_true_iff in H as [Hm | H];
@@ -7363,7 +7403,7 @@ Section CutsceneLeafRows.
   Qed.
 
   Lemma eaw_xids_rows : forall fid, mem_id fid eaw_xids = true ->
-      call_pres_ext lp bm NoA MWF fid.
+      call_pres_ext_x lp bm NoA MWF SafeB fid.
   Proof.
     intros fid H. unfold eaw_xids in H. cbn [mem_id existsb] in H.
     apply orb_true_iff in H as [Hm | H];
@@ -7706,7 +7746,9 @@ Section CutsceneLeafRows.
              LO_cut gys_pin gys_vars gys_pok gys_nm).
     - intros fid' H. discriminate H.
     - intros fid' H. discriminate H.
-    - exact gys_xids_rows.
+    - first [ exact gys_xids_rows
+            | intros fid0 Hfid0; apply call_pres_ext_x_of_ext;
+              exact (gys_xids_rows fid0 Hfid0) ].
     - intros fid' H. discriminate H.
     - exact gys_walk.
   Qed.
@@ -7755,9 +7797,9 @@ Section CutsceneLeafRows.
   Qed.
 
   Lemma ep_xids_rows : forall fid, mem_id fid ep_xids = true ->
-      call_pres_ext lp bm NoA MWF fid.
+      call_pres_ext_x lp bm NoA MWF SafeB fid.
   Proof.
-    intros fid H. apply Hcut_ext.
+    intros fid H. apply call_pres_ext_x_of_ext. apply Hcut_ext.
     unfold ep_xids in H. cbn [mem_id existsb] in H.
     repeat (apply orb_true_iff in H as [Hm | H];
       [ apply Pos.eqb_eq in Hm; subst fid; vm_compute; reflexivity | ]).
@@ -9202,11 +9244,11 @@ Section CutsceneLeafRows.
       | discriminate H ].
   Qed.
   Lemma rtp_sc_rows : forall fid, mem_id fid rtp_sc = true ->
-      OutParamSurface.call_pres_ext_sc lp bm NoA MWF SafeB fid.
+      OutParamSurface.call_pres_ext_dg lp bm NoA MWF SafeB fid.
   Proof.
     intros fid H. unfold rtp_sc in H. cbn [mem_id existsb] in H.
     apply orb_true_iff in H as [Hm | H];
-      [ apply Pos.eqb_eq in Hm; subst fid; exact Hscp_v3f | discriminate H ].
+      [ apply Pos.eqb_eq in Hm; subst fid; exact Hdgp_v3f | discriminate H ].
   Qed.
   Example rtp_pin :
     (prog_defmap mario_actions_cutscene.prog)
@@ -9347,7 +9389,7 @@ Section CutsceneLeafRows.
       [ apply Pos.eqb_eq in Hm; subst fid; exact fdo_row | discriminate H ].
   Qed.
   Lemma aepc_xids_rows : forall fid, mem_id fid aepc_xids = true ->
-      call_pres_ext lp bm NoA MWF fid.
+      call_pres_ext_x lp bm NoA MWF SafeB fid.
   Proof.
     intros fid H. unfold aepc_xids in H. cbn [mem_id existsb] in H.
     apply orb_true_iff in H as [Hm | H];

@@ -332,9 +332,14 @@ Example sta_sgs_params_ok :
   | nil => false
   end = true.
 Proof. vm_compute. reflexivity. Qed.
+Definition sta_sgs_cact : list ident := mario_step._marioObj :: nil.
 Example sta_sgs_walk :
-  wwalk_chk false nil sta_sgs_ids nil nil sta_sgs_xids nil nil
+  wwalk_chk false nil sta_sgs_ids nil sta_sgs_cact sta_sgs_xids nil nil
     (fn_body mario_step.f_stationary_ground_step) = true.
+Proof. vm_compute. reflexivity. Qed.
+Example sta_sgs_nonparam :
+  forallb (fun t' => negb (mem_id t' (map fst (fn_params mario_step.f_stationary_ground_step))))
+    sta_sgs_cact = true.
 Proof. vm_compute. reflexivity. Qed.
 
 (* ---- is_anim_at_end (loads only, the at-end twin of is_anim_past_end) ---- *)
@@ -1969,9 +1974,9 @@ Section StationaryLeafRows.
 
   (* the externals these leaves' helper sub-trees bottom out in *)
   Hypothesis Hcpx_v3f :
-    call_pres_ext lp bm NoA MWF mario_step._vec3f_copy.
+    OutParamSurface.call_pres_ext_dg lp bm NoA MWF SafeB mario_step._vec3f_copy.
   Hypothesis Hcpx_v3s :
-    call_pres_ext lp bm NoA MWF mario._vec3s_set.
+    OutParamSurface.call_pres_ext_dg lp bm NoA MWF SafeB mario._vec3s_set.
   Hypothesis Hcpx_lpt :
     call_pres_ext lp bm NoA MWF mario._load_patchable_table.
   (* play_sound: a pure AUDIO external (same model class as the obj_ext rows);
@@ -2124,7 +2129,7 @@ Section StationaryLeafRows.
 
   (* ---- set_mario_animation ---- *)
   Lemma sta_sma_xids_rows : forall fid, mem_id fid sta_sma_xids = true ->
-      call_pres_ext lp bm NoA MWF fid.
+      call_pres_ext_x lp bm NoA MWF SafeB fid.
   Proof.
     intros fid H. unfold sta_sma_xids in H. cbn [mem_id existsb] in H.
     apply orb_true_iff in H as [Hm | H];
@@ -2203,7 +2208,7 @@ Section StationaryLeafRows.
   Qed.
 
   Lemma sta_sgs_xids_rows : forall fid, mem_id fid sta_sgs_xids = true ->
-      call_pres_ext lp bm NoA MWF fid.
+      call_pres_ext_x lp bm NoA MWF SafeB fid.
   Proof.
     intros fid H. unfold sta_sgs_xids in H. cbn [mem_id existsb] in H.
     apply orb_true_iff in H as [Hm | H];
@@ -2216,12 +2221,13 @@ Section StationaryLeafRows.
   Lemma sta_sgs_row :
     call_pres lp bm NoA MWF mario_step._stationary_ground_step.
   Proof.
-    apply (call_pres_of_wwalk lp LO_mario bm NoA MWF HNoA_of_MWF
+    apply (call_pres_of_wwalk_cact lp LO_mario bm NoA MWF HNoA_of_MWF
              HMWF_window HMWF_glob HMWF_act SafeB HSafeNotBm HchaseRoot
              HMWF_chase HMWF_root HMWF_sglob HchaseStep HMWF_chase_safe
              mario_step.prog mario_step._stationary_ground_step
-             mario_step.f_stationary_ground_step sta_sgs_ids nil sta_sgs_xids nil
-             LO_mario_step sta_sgs_pin sta_sgs_vars sta_sgs_params_ok).
+             mario_step.f_stationary_ground_step
+             sta_sgs_ids nil sta_sgs_cact sta_sgs_xids nil
+             LO_mario_step sta_sgs_pin sta_sgs_vars sta_sgs_params_ok sta_sgs_nonparam).
     - exact sta_sgs_ids_rows.
     - intros fid' H. discriminate H.
     - exact sta_sgs_xids_rows.
@@ -2824,7 +2830,7 @@ Section StationaryLeafRows.
       typeof mexpr = tint ->
       (forall fid', mem_id fid' ids = true -> call_pres lp bm NoA MWF fid') ->
       (forall fid', mem_id fid' wids = true -> call_pres_act lp bm NoA MWF fid') ->
-      (forall fid', mem_id fid' xids = true -> call_pres_ext lp bm NoA MWF fid') ->
+      (forall fid', mem_id fid' xids = true -> call_pres_ext_x lp bm NoA MWF SafeB fid') ->
       (forall fid', mem_id fid' sids = true -> call_pres_act lp bm NoA MWF fid') ->
       (forall fid', mem_id fid' tids = true -> call_pres_act3 lp bm NoA MWF fid') ->
       wwalk_chk false nil ids wids nil xids sids tids REST = true ->
@@ -2974,7 +2980,7 @@ Section StationaryLeafRows.
           le ! mario._m = Some (Vptr bm Ptrofs.zero)) ->
       (forall fid', mem_id fid' ids = true -> call_pres lp bm NoA MWF fid') ->
       (forall fid', mem_id fid' wids = true -> call_pres_act lp bm NoA MWF fid') ->
-      (forall fid', mem_id fid' xids = true -> call_pres_ext lp bm NoA MWF fid') ->
+      (forall fid', mem_id fid' xids = true -> call_pres_ext_x lp bm NoA MWF SafeB fid') ->
       (forall fid', mem_id fid' sids = true -> call_pres_act lp bm NoA MWF fid') ->
       (forall fid', mem_id fid' tids = true -> call_pres_act3 lp bm NoA MWF fid') ->
       wwalk_chk false nil ids wids nil xids sids tids REST = true ->
@@ -3410,7 +3416,7 @@ Section StationaryLeafRows.
   Qed.
 
   Lemma sw_xids_rows : forall fid, mem_id fid sw_xids = true ->
-      call_pres_ext lp bm NoA MWF fid.
+      call_pres_ext_x lp bm NoA MWF SafeB fid.
   Proof.
     intros fid H. unfold sw_xids in H. cbn [mem_id existsb] in H.
     apply orb_true_iff in H as [Hm | H];
@@ -3433,10 +3439,63 @@ Section StationaryLeafRows.
 
   (* preserver_walk extended with an xids (call_pres_ext) census -- REST7
      (after the vec3f_set site) calls vec3f_copy / vec3s_set. *)
+  (* the chase-headed segment: `t := m->marioObj (a chase root); s2` --
+     the Sset establishes chase_inv [t] (chase_root_set_sound), so s2 is
+     walked with cact = [t] (the dst recognizer for the dg writers). *)
+  Lemma preserver_walk_x_chase :
+    forall (t : ident) (a : expr) (ids xids sids tids : list ident) (s2 : statement),
+      Pos.eqb t mario_actions_airborne._m = false ->
+      chase_root_chk a = true ->
+      (forall fid', mem_id fid' ids = true -> call_pres lp bm NoA MWF fid') ->
+      (forall fid', mem_id fid' xids = true -> call_pres_ext_x lp bm NoA MWF SafeB fid') ->
+      (forall fid', mem_id fid' sids = true -> call_pres_act lp bm NoA MWF fid') ->
+      (forall fid', mem_id fid' tids = true -> call_pres_act3 lp bm NoA MWF fid') ->
+      wwalk_chk false nil ids nil (t :: nil) xids sids tids s2 = true ->
+      preserver (Ssequence (Sset t a) s2).
+  Proof.
+    intros t a ids xids sids tids s2 Htm Hck Hcp Hcpx Hcps Hcp3t Hchk
+           le m tr le' m' out Htat HN HM HV HS Hex.
+    apply (exec_seq_cases lp) in Hex
+      as [ (tr1 & le1 & m1 & tr2 & Ha & Hb) | (Ha & Hout) ];
+      [ | inv Ha; exfalso; apply Hout; reflexivity ].
+    inv Ha.
+    match goal with
+    | Hev : eval_expr _ _ _ _ a ?v |- _ => rename Hev into Hev_a
+    end.
+    assert (Htat1 : forall b o,
+               (PTree.set t v le) ! mario_actions_airborne._m = Some (Vptr b o) ->
+               b = bm /\ o = Ptrofs.zero).
+    { intros b o Hg. rewrite PTree.gso in Hg.
+      - exact (Htat b o Hg).
+      - intro EE; subst t; rewrite Pos.eqb_refl in Htm; discriminate Htm. }
+    assert (Hact : act_inv nil (PTree.set t v le))
+      by (intros t' Hmem' x Hg'; discriminate Hmem').
+    assert (Hch : chase_inv SafeB (t :: nil) (PTree.set t v le)).
+    { intros t0 Hmem b o Hg.
+      cbn [mem_id existsb] in Hmem. rewrite orb_false_r in Hmem.
+      apply Pos.eqb_eq in Hmem. subst t0.
+      rewrite PTree.gss in Hg. injection Hg as Hg.
+      exact (chase_root_set_sound lp LO_mario bm MWF HMWF_window HMWF_glob
+               HMWF_act SafeB HSafeNotBm HchaseRoot HMWF_root a empty_env le m1 v
+               Hck Htat HM Hev_a b o Hg). }
+    destruct (wwalk_pres0 lp LO_mario bm NoA MWF HNoA_of_MWF HMWF_window
+                HMWF_glob HMWF_act SafeB HSafeNotBm HchaseRoot HMWF_chase
+                HMWF_root HMWF_sglob HchaseStep HMWF_chase_safe
+                false nil ids nil (t :: nil) xids sids tids Hcp
+                ltac:(intros f' H'; discriminate H')
+                Hcpx (fun fid HH => call_pres_act_weaken (Hcps fid HH))
+                Hcp3t _ _ _ _ _ _ _ _ Hb
+                (empty_env_unbound _) (empty_env_unbound _) (empty_env_unbound _)
+                (empty_env_unbound _) (empty_env_unbound _) (empty_env_unbound _)
+                (PTree.gempty _ _) Hchk Htat1 Hact Hch HN HM HV HS)
+      as (HV' & HS' & HM' & HN' & Htat' & _ & _ & _).
+    exact (conj HV' (conj HS' (conj HM' (conj HN' Htat')))).
+  Qed.
+
   Lemma preserver_walk_x :
     forall (ids xids sids tids : list ident) (s : statement),
       (forall fid', mem_id fid' ids = true -> call_pres lp bm NoA MWF fid') ->
-      (forall fid', mem_id fid' xids = true -> call_pres_ext lp bm NoA MWF fid') ->
+      (forall fid', mem_id fid' xids = true -> call_pres_ext_x lp bm NoA MWF SafeB fid') ->
       (forall fid', mem_id fid' sids = true -> call_pres_act lp bm NoA MWF fid') ->
       (forall fid', mem_id fid' tids = true -> call_pres_act3 lp bm NoA MWF fid') ->
       wwalk_chk false nil ids nil nil xids sids tids s = true ->
@@ -3604,7 +3663,28 @@ Section StationaryLeafRows.
         | intros f' H'; discriminate H' | vm_compute; reflexivity ] | ].
     apply preserver_seq.
     - exact sw_vec3f_set_pres.
-    - apply preserver_walk_x with (ids := sw_ids) (xids := sw_xids)
+    - (* REST7: the floor-height if, then the two chase-headed writer
+         segments (t'7 := m->marioObj; vec3f_copy(t'7->gfx.pos, ..)) and
+         (t'5 := m->marioObj; ..; vec3s_set(t'5->gfx.angle, ..)), then the
+         set_mario_animation tail *)
+      apply preserver_seq;
+        [ apply preserver_walk_x with (ids := sw_ids) (xids := sw_xids)
+            (sids := sw_sids) (tids := nil);
+          [ exact sw_ids_rows | exact sw_xids_rows | exact sw_sids_rows
+          | intros f' H'; discriminate H' | vm_compute; reflexivity ] | ].
+      apply preserver_seq;
+        [ apply preserver_walk_x_chase with (ids := sw_ids) (xids := sw_xids)
+            (sids := sw_sids) (tids := nil);
+          [ vm_compute; reflexivity | vm_compute; reflexivity
+          | exact sw_ids_rows | exact sw_xids_rows | exact sw_sids_rows
+          | intros f' H'; discriminate H' | vm_compute; reflexivity ] | ].
+      apply preserver_seq;
+        [ apply preserver_walk_x_chase with (ids := sw_ids) (xids := sw_xids)
+            (sids := sw_sids) (tids := nil);
+          [ vm_compute; reflexivity | vm_compute; reflexivity
+          | exact sw_ids_rows | exact sw_xids_rows | exact sw_sids_rows
+          | intros f' H'; discriminate H' | vm_compute; reflexivity ] | ].
+      apply preserver_walk_x with (ids := sw_ids) (xids := sw_xids)
         (sids := sw_sids) (tids := nil).
       + exact sw_ids_rows.
       + exact sw_xids_rows.
@@ -3759,7 +3839,7 @@ Section StationaryLeafRows.
      m->particleFlags window stores, an actionState Sswitch, the
      chase-temp marioObj loads used only as play_sound's pos arg). *)
   Lemma sta_ashv_xids_rows : forall fid, mem_id fid sta_psound_xids = true ->
-      call_pres_ext lp bm NoA MWF fid.
+      call_pres_ext_x lp bm NoA MWF SafeB fid.
   Proof.
     intros fid H. unfold sta_psound_xids in H. cbn [mem_id existsb] in H.
     apply orb_true_iff in H as [Hm | H];
@@ -3790,7 +3870,7 @@ Section StationaryLeafRows.
      constant action ids (the smact-const channel), an m->actionTimer window
      store, set_mario_animation(m, const), and stationary_ground_step. *)
   Lemma sta_awku_xids_rows : forall fid, mem_id fid sta_waking_xids = true ->
-      call_pres_ext lp bm NoA MWF fid.
+      call_pres_ext_x lp bm NoA MWF SafeB fid.
   Proof.
     intros fid H. unfold sta_waking_xids in H. cbn [mem_id existsb] in H.
     apply orb_true_iff in H as [Hm | H];
@@ -4123,7 +4203,7 @@ Section StationaryLeafRows.
   (* set_steep_jump_action's two math externals (sqrtf/atan2s) and its
      drop_and_set channel. *)
   Lemma sta_sssja_xids_rows : forall fid, mem_id fid sta_sssja_xids = true ->
-      call_pres_ext lp bm NoA MWF fid.
+      call_pres_ext_x lp bm NoA MWF SafeB fid.
   Proof.
     intros fid H. unfold sta_sssja_xids in H. cbn [mem_id existsb] in H.
     apply orb_true_iff in H as [Hm | H];
@@ -4406,7 +4486,7 @@ Section StationaryLeafRows.
      landing_sound / play_sound_if_no_flag moved OFF this external boundary into
      the marg-gated ids arm above. *)
   Lemma sta_sleep_xids_rows : forall fid, mem_id fid sta_sleep_xids = true ->
-      call_pres_ext lp bm NoA MWF fid.
+      call_pres_ext_x lp bm NoA MWF SafeB fid.
   Proof.
     intros fid H. unfold sta_sleep_xids in H. cbn [mem_id existsb] in H.
     apply orb_true_iff in H as [Hm | H];
@@ -4440,7 +4520,7 @@ Section StationaryLeafRows.
 
   (* set_water_plunge_action's externals: set_camera_mode + vec3s_set *)
   Lemma sta_swpa_xids_rows : forall fid, mem_id fid sta_swpa_xids = true ->
-      call_pres_ext lp bm NoA MWF fid.
+      call_pres_ext_x lp bm NoA MWF SafeB fid.
   Proof.
     intros fid H. unfold sta_swpa_xids in H. cbn [mem_id existsb] in H.
     apply orb_true_iff in H as [Hm | H];
@@ -4453,7 +4533,7 @@ Section StationaryLeafRows.
   (* update_mario_sound_and_camera's externals: raise_background_noise
      (sta_ext) + set_camera_mode (obj_ext) *)
   Lemma sta_umsac_xids_rows : forall fid, mem_id fid sta_umsac_xids = true ->
-      call_pres_ext lp bm NoA MWF fid.
+      call_pres_ext_x lp bm NoA MWF SafeB fid.
   Proof.
     intros fid H. unfold sta_umsac_xids in H. cbn [mem_id existsb] in H.
     apply orb_true_iff in H as [Hm | H];
@@ -4574,7 +4654,7 @@ Section StationaryLeafRows.
       (fn_body level_update.f_load_level_init_text) = true.
   Proof. vm_compute. reflexivity. Qed.
   Lemma sta_llit_xids_rows : forall fid, mem_id fid sta_llit_xids = true ->
-      call_pres_ext lp bm NoA MWF fid.
+      call_pres_ext_x lp bm NoA MWF SafeB fid.
   Proof.
     intros fid H. unfold sta_llit_xids in H. cbn [mem_id existsb] in H.
     apply orb_true_iff in H as [Hm | H];
@@ -4605,7 +4685,7 @@ Section StationaryLeafRows.
 
   (* ccss's xids = load_level_init_text -- now WALKED (llit_row), not trusted *)
   Lemma sta_ccss_xids_rows : forall fid, mem_id fid sta_ccss_xids = true ->
-      call_pres_ext lp bm NoA MWF fid.
+      call_pres_ext_x lp bm NoA MWF SafeB fid.
   Proof.
     intros fid H. unfold sta_ccss_xids in H. cbn [mem_id existsb] in H.
     apply orb_true_iff in H as [Hm | H];
@@ -4658,7 +4738,7 @@ Section StationaryLeafRows.
   Qed.
 
   Lemma fp_xids_rows : forall fid, mem_id fid fp_xids = true ->
-      call_pres_ext lp bm NoA MWF fid.
+      call_pres_ext_x lp bm NoA MWF SafeB fid.
   Proof.
     intros fid H. unfold fp_xids in H. cbn [mem_id existsb] in H.
     apply orb_true_iff in H as [Hm | H];
@@ -4782,7 +4862,7 @@ Section StationaryLeafRows.
   Qed.
 
   Lemma sta_s2v_xids_rows : forall fid, mem_id fid sta_s2v_xids = true ->
-      call_pres_ext lp bm NoA MWF fid.
+      call_pres_ext_x lp bm NoA MWF SafeB fid.
   Proof.
     intros fid H. unfold sta_s2v_xids in H. cbn [mem_id existsb] in H.
     apply orb_true_iff in H as [Hm | H];

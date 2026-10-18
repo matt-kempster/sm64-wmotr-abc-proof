@@ -355,9 +355,14 @@ Example ffhrp_walk :
   wwalk_chk' ffhrp_lids ffhrp_oc_pids nil nil nil nil false nil nil nil nil nil nil nil
     (fn_body mario.f_find_floor_height_relative_polar) = true.
 Proof. vm_compute. reflexivity. Qed.
+Definition sasthf_cact : list ident := mario_step._marioObj :: nil.
 Example sasthf_walk :
-  wwalk_chk false nil sasthf_ids nil nil sasthf_xids nil nil
+  wwalk_chk false nil sasthf_ids nil sasthf_cact sasthf_xids nil nil
     (fn_body mario_step.f_stop_and_set_height_to_floor) = true.
+Proof. vm_compute. reflexivity. Qed.
+Example sasthf_nonparam :
+  forallb (fun t' => negb (mem_id t' (map fst (fn_params mario_step.f_stop_and_set_height_to_floor))))
+    sasthf_cact = true.
 Proof. vm_compute. reflexivity. Qed.
 Example alg_walk :
   wwalk_chk false nil alg_ids nil nil nil alg_sids nil
@@ -740,9 +745,14 @@ Example alcd_params_ok :
 Proof. vm_compute. reflexivity. Qed.
 
 (* ---- walks ---- *)
+Definition cul_cact : list ident := mario_actions_automatic._t'1 :: nil.
 Example cul_walk :
-  wwalk_chk false nil cul_ids nil nil cul_xids nil nil
+  wwalk_chk false nil cul_ids nil cul_cact cul_xids nil nil
     (fn_body mario_actions_automatic.f_climb_up_ledge) = true.
+Proof. vm_compute. reflexivity. Qed.
+Example cul_nonparam :
+  forallb (fun t' => negb (mem_id t' (map fst (fn_params mario_actions_automatic.f_climb_up_ledge))))
+    cul_cact = true.
 Proof. vm_compute. reflexivity. Qed.
 Example ulc_walk :
   wwalk_chk false ulc_wact ulc_ids nil nil nil ulc_sids nil
@@ -981,13 +991,13 @@ Section AutomaticLeafRows.
 
   (* ext rows (obj_ext_ids: SHARED with the object family) *)
   Hypothesis Hcpx_v3s :
-    call_pres_ext lp bm NoA MWF mario._vec3s_set.
+    OutParamSurface.call_pres_ext_dg lp bm NoA MWF SafeB mario._vec3s_set.
   Hypothesis Hcpx_scm :
     call_pres_ext lp bm NoA MWF mario._set_camera_mode.
   Hypothesis Hcpx_lpt :
     call_pres_ext lp bm NoA MWF mario._load_patchable_table.
   Hypothesis Hcpx_v3f :
-    call_pres_ext lp bm NoA MWF mario_step._vec3f_copy.
+    OutParamSurface.call_pres_ext_dg lp bm NoA MWF SafeB mario_step._vec3f_copy.
   Hypothesis Hcpx_psound :
     call_pres_ext lp bm NoA MWF mario._play_sound.
   (* find_floor: a genuine external in lp (surface collision, not in any
@@ -1007,15 +1017,15 @@ Section AutomaticLeafRows.
        - f32_find_wall_collision: a WINDOW writer (its collision-data arg targets
          a safe window of bm) -> call_pres_ext_wc;
        - vec3f_copy / vec3s_set: OBJECT writers whose dst chases m->marioObj into
-         the SafeB object pool -> call_pres_ext_sc. *)
+         the SafeB object pool -> call_pres_ext_dg (its SafeB face). *)
   Hypothesis Hocp_find_ceil :
     call_pres_ext_oc lp bm NoA MWF SafeB mario_actions_automatic._vec3f_find_ceil.
   Hypothesis Hwcp_fwc :
     call_pres_ext_wc lp bm NoA MWF mario_actions_automatic._f32_find_wall_collision.
-  Hypothesis Hscp_v3f :
-    call_pres_ext_sc lp bm NoA MWF SafeB mario_actions_automatic._vec3f_copy.
-  Hypothesis Hscp_v3s :
-    call_pres_ext_sc lp bm NoA MWF SafeB mario_actions_automatic._vec3s_set.
+  Hypothesis Hdgp_v3f :
+    call_pres_ext_dg lp bm NoA MWF SafeB mario_actions_automatic._vec3f_copy.
+  Hypothesis Hdgp_v3s :
+    call_pres_ext_dg lp bm NoA MWF SafeB mario_actions_automatic._vec3s_set.
   (* f32_find_wall_collision's SECOND call shape (act_tornado_twirling): all
      three out-ptrs aim at the stack-local _nextPos elems, NOT the m->pos
      window, so the wc (args_all_window) gate above does NOT fit -- the
@@ -1059,7 +1069,7 @@ Section AutomaticLeafRows.
        longer ASSUMED -- it is now PROVED below (Lemma Hcp_spp) by WALKING the
        whole body via call_pres_of_lwalk3 (the lids+cact producer), resting on
        the gated leaf-external residuals Hocp_find_floor / Hocp_find_ceil (oc),
-       Hwcp_fwc (wc), Hscp_v3f / Hscp_v3s (sc) + Hsmact (set_mario_action).
+       Hwcp_fwc (wc), Hdgp_v3f / Hdgp_v3s (dg) + Hsmact (set_mario_action).
        The opaque whole-function residual is decomposed into those precise,
        true-in-model, dischargeable leaf residuals. *)
 
@@ -1086,15 +1096,15 @@ Section AutomaticLeafRows.
      EF_external callees in mario.prog (verified Gfun(External ..)), so the walk
      DECOMPOSES the oc2 internal residual into TWO honest terminal-external
      residuals (segmented_to_virtual reuses the existing Hcpx_stv obj-ext row):
-       - Hscp_geo : geo_update_animation_frame writes THROUGH obj->animInfo
-         (obj = SafeB-if-ptr by the oc2 arg0 gate)  -> call_pres_ext_sc; and
+       - Hscp_geo : geo_update_animation_frame, called with accelAssist =
+         NULL (its only out-param), obj in SafeB   -> call_pres_ext_geo; and
        - Hocp_rai : retrieve_animation_index writes THROUGH &animIndex (this
          helper's own stack-local fn_var)            -> call_pres_ext_oc.
      decompose, not collapse: famft's whole-body residual is replaced by two
      gated leaf-external residuals one call-graph level down -- the SAME shape
-     as the existing Hocp_find_floor / Hscp_v3f leaves. *)
+     as the existing Hocp_find_floor / Hdgp_v3f leaves. *)
   Hypothesis Hscp_geo :
-    call_pres_ext_sc lp bm NoA MWF SafeB mario._geo_update_animation_frame.
+    call_pres_ext_geo lp bm NoA MWF SafeB mario._geo_update_animation_frame.
   Hypothesis Hocp_rai :
     call_pres_ext_oc lp bm NoA MWF SafeB mario._retrieve_animation_index.
 
@@ -1119,7 +1129,7 @@ Section AutomaticLeafRows.
   (* DISCHARGES the Hoc2_famft hypothesis (and capstone Hoc2famft_real) into  *)
   (* THREE honest terminal EXTERNAL residuals (all EF_external in mario.prog):*)
   (*   - geo_update_animation_frame: writes through &obj->..animInfo (obj in  *)
-  (*     SafeB by the gate)            -> call_pres_ext_sc (arg0_safe);        *)
+  (*     SafeB by the gate)            -> call_pres_ext_geo (arg0 SafeB, arg1 NULL) *)
   (*   - retrieve_animation_index: writes through &animIndex (own fn_var      *)
   (*     stack local)                  -> call_pres_ext_oc (last_arg_local);   *)
   (*   - segmented_to_virtual: pure address translation, no Mem write         *)
@@ -1409,23 +1419,16 @@ Section AutomaticLeafRows.
           let Hg := fresh "Hgate_geo" in
           assert (Hg : forall vargs,
                     eval_exprlist (lp_ge lp) E L mc ARGS TYL vargs ->
-                    arg0_safe SafeB vargs);
-          [ intros vargs Hvl; inv Hvl;
-            match goal with
-            | Hexpr : eval_expr _ _ _ _ (Eaddrof _ _) ?v0,
-              Hcast : sem_cast ?v0 _ _ _ = Some ?vh |- arg0_safe _ (?vh :: ?rest) =>
-                destruct (famft_geo_arg0_block lp E L mc v0 Hexpr)
-                  as (gloc & go & goo & Hgv0 & Hgobj);
-                rewrite Hgv0 in Hcast; cbn in Hcast; injection Hcast as Hcast;
-                assert (Hgo : L ! mario._obj = Some v_obj)
-                  by (repeat (rewrite PTree.gso by (vm_compute; discriminate));
-                      apply PTree.gss);
-                rewrite Hgobj in Hgo; injection Hgo as Hgoeq;
-                exists gloc, go, rest; split;
-                  [ rewrite Hcast; reflexivity
-                  | exact (Hcond gloc goo (eq_sym Hgoeq)) ]
-            end
-          | destruct (sc_scall_pres lp bm NoA MWF SafeB _
+                    arg_geo SafeB vargs);
+          [ intros vargs Hvl;
+            refine (famft_geo_gate lp SafeB E L mc vargs _ Hvl);
+            intros gloc goo Hgl;
+            assert (Hgo : L ! mario._obj = Some v_obj)
+              by (repeat (rewrite PTree.gso by (vm_compute; discriminate));
+                  apply PTree.gss);
+            rewrite Hgl in Hgo; injection Hgo as Hgoeq;
+            exact (Hcond gloc goo (eq_sym Hgoeq))
+          | destruct (geo_scall_pres lp bm NoA MWF SafeB _
                         mario._geo_update_animation_frame TYL _ _ ARGS E L mc
                         _ Lo mn _ Hgeo_none Hscp_geo Hg H Hc) as (Hc' & _);
             destruct (call_le_form _ _ _ _ _ _ _ _ _ _ H) as (? & Hle_);
@@ -1798,7 +1801,7 @@ Section AutomaticLeafRows.
                     call_pres_act lp bm NoA MWF fid)
       by (intros fid HH; discriminate HH).
     assert (HcpxN : forall fid, mem_id fid (@nil ident) = true ->
-                    call_pres_ext lp bm NoA MWF fid)
+                    call_pres_ext_x lp bm NoA MWF SafeB fid)
       by (intros fid HH; discriminate HH).
     assert (Hcp3N : forall fid, mem_id fid (@nil ident) = true ->
                     call_pres_act3 lp bm NoA MWF fid)
@@ -1857,7 +1860,7 @@ Section AutomaticLeafRows.
   (* (forwardVel/slideYaw/slideVelX/slideVelZ direct, faceAngle[1] idx16,     *)
   (* vel[0..2] idx), watched-disjoint _nextPos[0..2] local stores, and the    *)
   (* two graphics OBJECT writers vec3f_copy/vec3s_set chasing m->marioObj     *)
-  (* into the SafeB object pool (Hscp_v3f / Hscp_v3s).  Same decompose shape  *)
+  (* into the SafeB object pool (Hdgp_v3f / Hdgp_v3s).  Same decompose shape  *)
   (* as famft / set_pole_position. *)
   (* ====================================================================== *)
   Hypothesis Hcpx_approach :
@@ -3140,13 +3143,13 @@ Section AutomaticLeafRows.
     forall fid,
       mem_id fid (mario_actions_automatic._vec3f_copy
                   :: mario_actions_automatic._vec3s_set :: nil) = true ->
-      call_pres_ext_sc lp bm NoA MWF SafeB fid.
+      call_pres_ext_dg lp bm NoA MWF SafeB fid.
   Proof.
     intros fid H. cbn [mem_id existsb] in H.
     apply orb_true_iff in H as [Hm | H];
-      [ apply Pos.eqb_eq in Hm; subst fid; exact Hscp_v3f | ].
+      [ apply Pos.eqb_eq in Hm; subst fid; exact Hdgp_v3f | ].
     apply orb_true_iff in H as [Hm | H];
-      [ apply Pos.eqb_eq in Hm; subst fid; exact Hscp_v3s | ].
+      [ apply Pos.eqb_eq in Hm; subst fid; exact Hdgp_v3s | ].
     discriminate H.
   Qed.
 
@@ -3302,12 +3305,18 @@ Section AutomaticLeafRows.
           assert (Hc'' : carried bm NoA MWF mc)
             by (split; [ exact HVc | split; [ exact HSc
                        | split; [ exact HMc | exact HNc ] ] ]);
-          destruct (sc_call_chk_pres lp bm NoA MWF SafeB
+          destruct (sc_call_chk_pres lp LO_mario bm NoA MWF SafeB nil
                       (mario_actions_automatic._vec3f_copy
                        :: mario_actions_automatic._vec3s_set :: nil)
                       (mario_actions_automatic._t'5 :: nil)
                       None mario_actions_automatic._vec3f_copy cfty cal
-                      E Le mc _ Lo mn _ uhm_sc_rows Hsc_none Hchinv
+                      E Le mc _ Lo mn _ uhm_sc_rows Hsc_none
+                      ltac:(intros b o Hg;
+                            repeat (rewrite PTree.gso in Hg
+                                      by (vm_compute; discriminate));
+                            exact (Hmarg_fact b o Hg))
+                      Hchinv
+                      ltac:(intros lid Hl; discriminate Hl)
                       ltac:(vm_compute; reflexivity) H Hc'') as (Hc' & _);
           destruct (call_le_form _ _ _ _ _ _ _ _ _ _ H) as (? & Hle_);
           cbn [set_opttemp] in Hle_;
@@ -3343,12 +3352,18 @@ Section AutomaticLeafRows.
           assert (Hc'' : carried bm NoA MWF mc)
             by (split; [ exact HVc | split; [ exact HSc
                        | split; [ exact HMc | exact HNc ] ] ]);
-          destruct (sc_call_chk_pres lp bm NoA MWF SafeB
+          destruct (sc_call_chk_pres lp LO_mario bm NoA MWF SafeB nil
                       (mario_actions_automatic._vec3f_copy
                        :: mario_actions_automatic._vec3s_set :: nil)
                       (mario_actions_automatic._t'3 :: nil)
                       None mario_actions_automatic._vec3s_set cfty cal
-                      E Le mc _ Lo mn _ uhm_sc_rows Hsc_none Hchinv
+                      E Le mc _ Lo mn _ uhm_sc_rows Hsc_none
+                      ltac:(intros b o Hg;
+                            repeat (rewrite PTree.gso in Hg
+                                      by (vm_compute; discriminate));
+                            exact (Hmarg_fact b o Hg))
+                      Hchinv
+                      ltac:(intros lid Hl; discriminate Hl)
                       ltac:(vm_compute; reflexivity) H Hc'') as (Hc' & _);
           destruct (call_le_form _ _ _ _ _ _ _ _ _ _ H) as (? & Hle_);
           cbn [set_opttemp] in Hle_;
@@ -3627,7 +3642,7 @@ Section AutomaticLeafRows.
 
   (* ---- the two NEW helper rows (this file) ---- *)
   Lemma sma_xids_rows :
-    forall fid, mem_id fid sma_xids = true -> call_pres_ext lp bm NoA MWF fid.
+    forall fid, mem_id fid sma_xids = true -> call_pres_ext_x lp bm NoA MWF SafeB fid.
   Proof.
     intros fid H. unfold sma_xids in H. cbn [mem_id existsb] in H.
     apply orb_true_iff in H as [Hm | H];
@@ -3650,7 +3665,7 @@ Section AutomaticLeafRows.
   Qed.
 
   Lemma uhs_xids_rows :
-    forall fid, mem_id fid uhs_xids = true -> call_pres_ext lp bm NoA MWF fid.
+    forall fid, mem_id fid uhs_xids = true -> call_pres_ext_x lp bm NoA MWF SafeB fid.
   Proof.
     intros fid H. unfold uhs_xids in H. cbn [mem_id existsb] in H.
     apply orb_true_iff in H as [Hm | H];
@@ -3713,7 +3728,7 @@ Section AutomaticLeafRows.
     discriminate H.
   Qed.
   Lemma pcs_xids_rows :
-    forall fid, mem_id fid pcs_xids = true -> call_pres_ext lp bm NoA MWF fid.
+    forall fid, mem_id fid pcs_xids = true -> call_pres_ext_x lp bm NoA MWF SafeB fid.
   Proof.
     intros fid H. unfold pcs_xids in H. cbn [mem_id existsb] in H.
     apply orb_true_iff in H as [Hm | H];
@@ -3790,7 +3805,7 @@ Section AutomaticLeafRows.
     discriminate H.
   Qed.
   Lemma grabbed_xids_rows :
-    forall fid, mem_id fid grabbed_xids = true -> call_pres_ext lp bm NoA MWF fid.
+    forall fid, mem_id fid grabbed_xids = true -> call_pres_ext_x lp bm NoA MWF SafeB fid.
   Proof.
     intros fid H. unfold grabbed_xids in H. cbn [mem_id existsb] in H.
     apply orb_true_iff in H as [Hm | H];
@@ -3904,7 +3919,7 @@ Section AutomaticLeafRows.
     discriminate H.
   Qed.
   Lemma sasthf_xids_rows :
-    forall fid, mem_id fid sasthf_xids = true -> call_pres_ext lp bm NoA MWF fid.
+    forall fid, mem_id fid sasthf_xids = true -> call_pres_ext_x lp bm NoA MWF SafeB fid.
   Proof.
     intros fid H. unfold sasthf_xids in H. cbn [mem_id existsb] in H.
     apply orb_true_iff in H as [Hm | H];
@@ -4006,13 +4021,13 @@ Section AutomaticLeafRows.
   Lemma Hsasthf :
     call_pres lp bm NoA MWF mario_step._stop_and_set_height_to_floor.
   Proof.
-    apply (call_pres_of_wwalk lp LO_mario bm NoA MWF HNoA_of_MWF
+    apply (call_pres_of_wwalk_cact lp LO_mario bm NoA MWF HNoA_of_MWF
              HMWF_window HMWF_glob HMWF_act SafeB HSafeNotBm HchaseRoot
              HMWF_chase HMWF_root HMWF_sglob HchaseStep HMWF_chase_safe
              mario_step.prog mario_step._stop_and_set_height_to_floor
              mario_step.f_stop_and_set_height_to_floor
-             sasthf_ids nil sasthf_xids nil
-             LO_mario_step sasthf_pin sasthf_vars sasthf_params_ok).
+             sasthf_ids nil sasthf_cact sasthf_xids nil
+             LO_mario_step sasthf_pin sasthf_vars sasthf_params_ok sasthf_nonparam).
     - exact sasthf_ids_rows.
     - intros fid' H; discriminate H.
     - exact sasthf_xids_rows.
@@ -4022,7 +4037,7 @@ Section AutomaticLeafRows.
 
   (* ---- B10: add_tree_leaf_particles + act_grab_pole_slow (rest-split) ---- *)
   Lemma atlp_xids_rows :
-    forall fid, mem_id fid atlp_xids = true -> call_pres_ext lp bm NoA MWF fid.
+    forall fid, mem_id fid atlp_xids = true -> call_pres_ext_x lp bm NoA MWF SafeB fid.
   Proof.
     intros fid H. unfold atlp_xids in H. cbn [mem_id existsb] in H.
     apply orb_true_iff in H as [Hm | H];
@@ -4078,13 +4093,13 @@ Section AutomaticLeafRows.
   Qed.
   Lemma spp_sc_rows :
     forall fid, mem_id fid spp_sc_pids = true ->
-                call_pres_ext_sc lp bm NoA MWF SafeB fid.
+                call_pres_ext_dg lp bm NoA MWF SafeB fid.
   Proof.
     intros fid H. unfold spp_sc_pids in H. cbn [mem_id existsb] in H.
     apply orb_true_iff in H as [Hm | H];
-      [ apply Pos.eqb_eq in Hm; subst fid; exact Hscp_v3f | ].
+      [ apply Pos.eqb_eq in Hm; subst fid; exact Hdgp_v3f | ].
     apply orb_true_iff in H as [Hm | H];
-      [ apply Pos.eqb_eq in Hm; subst fid; exact Hscp_v3s | ].
+      [ apply Pos.eqb_eq in Hm; subst fid; exact Hdgp_v3s | ].
     discriminate H.
   Qed.
   Lemma spp_sids_rows :
@@ -4171,7 +4186,7 @@ Section AutomaticLeafRows.
     discriminate H.
   Qed.
   Lemma ahp_xids_rows :
-    forall fid, mem_id fid ahp_xids = true -> call_pres_ext lp bm NoA MWF fid.
+    forall fid, mem_id fid ahp_xids = true -> call_pres_ext_x lp bm NoA MWF SafeB fid.
   Proof.
     intros fid H. unfold ahp_xids in H. cbn [mem_id existsb] in H.
     apply orb_true_iff in H as [Hm | H];
@@ -4241,7 +4256,7 @@ Section AutomaticLeafRows.
     discriminate H.
   Qed.
   Lemma acp_xids_rows :
-    forall fid, mem_id fid acp_xids = true -> call_pres_ext lp bm NoA MWF fid.
+    forall fid, mem_id fid acp_xids = true -> call_pres_ext_x lp bm NoA MWF SafeB fid.
   Proof.
     intros fid H. unfold acp_xids in H. cbn [mem_id existsb] in H.
     apply orb_true_iff in H as [Hm | H];
@@ -4352,7 +4367,7 @@ Section AutomaticLeafRows.
     discriminate H.
   Qed.
   Lemma ahm_xids_rows :
-    forall fid, mem_id fid ahm_xids = true -> call_pres_ext lp bm NoA MWF fid.
+    forall fid, mem_id fid ahm_xids = true -> call_pres_ext_x lp bm NoA MWF SafeB fid.
   Proof.
     intros fid H. unfold ahm_xids in H. cbn [mem_id existsb] in H.
     apply orb_true_iff in H as [Hm | H];
@@ -4488,7 +4503,7 @@ Section AutomaticLeafRows.
     discriminate H.
   Qed.
   Lemma cul_xids_rows :
-    forall fid, mem_id fid cul_xids = true -> call_pres_ext lp bm NoA MWF fid.
+    forall fid, mem_id fid cul_xids = true -> call_pres_ext_x lp bm NoA MWF SafeB fid.
   Proof.
     intros fid H. unfold cul_xids in H. cbn [mem_id existsb] in H.
     apply orb_true_iff in H as [Hm | H];
@@ -4497,14 +4512,14 @@ Section AutomaticLeafRows.
   Qed.
   Lemma Hcul : call_pres lp bm NoA MWF mario_actions_automatic._climb_up_ledge.
   Proof.
-    apply (call_pres_of_wwalk lp LO_mario bm NoA MWF HNoA_of_MWF
+    apply (call_pres_of_wwalk_cact lp LO_mario bm NoA MWF HNoA_of_MWF
              HMWF_window HMWF_glob HMWF_act SafeB HSafeNotBm HchaseRoot
              HMWF_chase HMWF_root HMWF_sglob HchaseStep HMWF_chase_safe
              mario_actions_automatic.prog
              mario_actions_automatic._climb_up_ledge
              mario_actions_automatic.f_climb_up_ledge
-             cul_ids nil cul_xids nil
-             LO_aut cul_pin cul_vars cul_params_ok).
+             cul_ids nil cul_cact cul_xids nil
+             LO_aut cul_pin cul_vars cul_params_ok cul_nonparam).
     - exact cul_ids_rows.
     - intros fid' H; discriminate H.
     - exact cul_xids_rows.
@@ -4612,7 +4627,7 @@ Section AutomaticLeafRows.
   (* the sound chain: play_mario_landing_sound -> play_sound_and_spawn_
      particles -> the audio external play_sound *)
   Lemma psasp_xids_rows :
-    forall fid, mem_id fid psasp_xids = true -> call_pres_ext lp bm NoA MWF fid.
+    forall fid, mem_id fid psasp_xids = true -> call_pres_ext_x lp bm NoA MWF SafeB fid.
   Proof.
     intros fid H. unfold psasp_xids in H. cbn [mem_id existsb] in H.
     apply orb_true_iff in H as [Hm | H];
@@ -5043,7 +5058,7 @@ Section AutomaticLeafRows.
     discriminate H.
   Qed.
   Lemma twl_xids_rows :
-    forall fid, mem_id fid twl_xids = true -> call_pres_ext lp bm NoA MWF fid.
+    forall fid, mem_id fid twl_xids = true -> call_pres_ext_x lp bm NoA MWF SafeB fid.
   Proof.
     intros fid H. unfold twl_xids in H. cbn [mem_id existsb] in H.
     apply orb_true_iff in H as [Hm | H];
@@ -5069,13 +5084,13 @@ Section AutomaticLeafRows.
   Qed.
   Lemma twl_sc_rows :
     forall fid, mem_id fid twl_sc = true ->
-                call_pres_ext_sc lp bm NoA MWF SafeB fid.
+                call_pres_ext_dg lp bm NoA MWF SafeB fid.
   Proof.
     intros fid H. unfold twl_sc in H. cbn [mem_id existsb] in H.
     apply orb_true_iff in H as [Hm | H];
-      [ apply Pos.eqb_eq in Hm; subst fid; exact Hscp_v3s | ].
+      [ apply Pos.eqb_eq in Hm; subst fid; exact Hdgp_v3s | ].
     apply orb_true_iff in H as [Hm | H];
-      [ apply Pos.eqb_eq in Hm; subst fid; exact Hscp_v3f | ].
+      [ apply Pos.eqb_eq in Hm; subst fid; exact Hdgp_v3f | ].
     discriminate H.
   Qed.
 
@@ -5923,7 +5938,7 @@ Section AutomaticLeafRows.
     discriminate H.
   Qed.
   Lemma cnn_xids_rows :
-    forall fid, mem_id fid cnn_xids = true -> call_pres_ext lp bm NoA MWF fid.
+    forall fid, mem_id fid cnn_xids = true -> call_pres_ext_x lp bm NoA MWF SafeB fid.
   Proof.
     intros fid H. unfold cnn_xids in H. cbn [mem_id existsb] in H.
     apply orb_true_iff in H as [Hm | H];
@@ -5932,13 +5947,13 @@ Section AutomaticLeafRows.
   Qed.
   Lemma cnn_sc_rows :
     forall fid, mem_id fid cnn_sc = true ->
-                call_pres_ext_sc lp bm NoA MWF SafeB fid.
+                call_pres_ext_dg lp bm NoA MWF SafeB fid.
   Proof.
     intros fid H. unfold cnn_sc in H. cbn [mem_id existsb] in H.
     apply orb_true_iff in H as [Hm | H];
-      [ apply Pos.eqb_eq in Hm; subst fid; exact Hscp_v3s | ].
+      [ apply Pos.eqb_eq in Hm; subst fid; exact Hdgp_v3s | ].
     apply orb_true_iff in H as [Hm | H];
-      [ apply Pos.eqb_eq in Hm; subst fid; exact Hscp_v3f | ].
+      [ apply Pos.eqb_eq in Hm; subst fid; exact Hdgp_v3f | ].
     discriminate H.
   Qed.
 

@@ -27,7 +27,7 @@ From Coq Require Import ZArith Lia List.
 From compcert Require Import Coqlib Maps AST Integers Values Events Memory
   Globalenvs Ctypes Cop Clightdefs Clight ClightBigstep Linking Errors.
 From SM64.Generated Require mario mario_step mario_actions_airborne
-  interaction mario_actions_object.
+  interaction mario_actions_object mario_actions_cutscene.
 From SM64.Proofs Require Import SymbolicLinking Flying Taint
   ActionValueFrame RealFrameValue RealFrameLinked AGates.
 From SM64.Proofs Require Import CensusV2 EngineV2Consumer RestSurface
@@ -1899,28 +1899,106 @@ End WCUnit.
 (* the engine-callable unit it gates on (consuming sc_scall_pres +          *)
 (* fsc_arg0_safe).                                                          *)
 (* ====================================================================== *)
-Definition sc_call_chk (sc_pids cact : list ident) (fid : ident)
+(* ---- the DESTINATION-GATED (dg) dst recognizer (2026-10-17).  The sc arm
+   now admits the three real destination kinds of the math_util vector
+   writers: an Object field chained from a censused chase temp (SafeB), a
+   Mario window field `m->fld` with 12 store-safe bytes, or a stack-local
+   array in lids.  Its rows are call_pres_ext_dg (OutParamSurface). ---- *)
+Definition mwin_dst_chk (a : expr) : bool :=
+  match a with
+  | Efield _ _ (Tarray _ _ _) =>
+      match mfield_lv mario_actions_airborne._m a with
+      | Some d => store_window_ok d 12
+      | None => false
+      end
+  | _ => false
+  end.
+
+Definition dg_dst_chk (lids cact : list ident) (a : expr) : bool :=
+  match a with
+  | Efield a' _ (Tarray _ _ _) =>
+      match chain_root_e a' with Some cid => mem_id cid cact | None => false end
+      || mwin_dst_chk a
+  | Evar x (Tarray _ _ _) => mem_id x lids
+  | _ => false
+  end.
+
+Lemma store_window_ok_range : forall d n,
+    store_window_ok d n = true -> 0 <= d <= Ptrofs.max_unsigned.
+Proof.
+  intros d n H. unfold store_window_ok in H.
+  repeat (apply andb_prop in H as [H ?]).
+  apply Z.ltb_lt in H.
+  match goal with
+  | H1 : (0 <=? d) = true, H2 : (d + n <=? Ptrofs.max_unsigned) = true |- _ =>
+      apply Z.leb_le in H1; apply Z.leb_le in H2
+  end. lia.
+Qed.
+
+Lemma mwin_dst_sound : forall lp, linkorder mario.prog lp ->
+    forall bm e le m a v,
+      (forall b o, le ! mario_actions_airborne._m = Some (Vptr b o) ->
+                   b = bm /\ o = Ptrofs.zero) ->
+      mwin_dst_chk a = true ->
+      eval_expr (lp_ge lp) e le m a v ->
+      exists o, v = Vptr bm o /\ store_window_ok (Ptrofs.unsigned o) 12 = true.
+Proof.
+  intros lp LO bm e le m a v Hm Hc Hev.
+  destruct a as [ | | | | | | | | | | | a' fld fty | | ]; try discriminate Hc.
+  destruct fty as [ | | | | | ety n aattr | | | ]; try discriminate Hc.
+  unfold mwin_dst_chk in Hc.
+  destruct (mfield_lv mario_actions_airborne._m (Efield a' fld (Tarray ety n aattr)))
+    as [d|] eqn:Hmf; [ | discriminate Hc ].
+  destruct (mfield_lv_shape _ _ _ Hmf) as (fld' & fty' & Heq & Hfo).
+  injection Heq as Ha Hf Ht; subst a' fld' fty'.
+  inv Hev.
+  match goal with
+  | Hd : deref_loc (typeof _) _ _ _ _ _ |- _ => cbn [typeof] in Hd
+  end.
+  match goal with
+  | Hd : deref_loc (Tarray _ _ _) _ _ _ _ _ |- _ =>
+      inv Hd;
+      try (match goal with
+           | Hacc : access_mode (Tarray _ _ _) = _ |- _ =>
+               cbn in Hacc; discriminate Hacc
+           end);
+      try (match goal with
+           | Hlb : load_bitfield (Tarray _ _ _) _ _ _ _ _ _ _ |- _ => inv Hlb
+           end)
+  end.
+  match goal with
+  | Hlv : eval_lvalue _ _ _ _ _ _ _ _ |- _ =>
+      pose proof Hlv as Hlv0;
+      apply eval_lvalue_Efield_base in Hlv0 as (o0 & Hb0);
+      apply eval_expr_Ederef_load in Hb0 as (lb & ob & bfb & Hlvb & _);
+      apply eval_lvalue_Ederef_base in Hlvb;
+      apply eval_expr_Etempvar_val in Hlvb;
+      destruct (Hm _ _ Hlvb) as [-> ->];
+      destruct (mfield_lvalue_geom_lp lp LO _ _ _ _ _ _ _ _ _ _ _ _ Hlvb Hfo Hlv)
+        as (-> & -> & _)
+  end.
+  exists (Ptrofs.add Ptrofs.zero (Ptrofs.repr d)). split; [ reflexivity | ].
+  rewrite Ptrofs.add_zero_l, Ptrofs.unsigned_repr; [ exact Hc | ].
+  exact (store_window_ok_range _ _ Hc).
+Qed.
+
+Definition sc_call_chk (lids sc_pids cact : list ident) (fid : ident)
     (fty : type) (al : list expr) : bool :=
   mem_id fid sc_pids
   && match fty, al with
-     | Tfunction (Tpointer _ _ :: _) _ _, Efield a' fld (Tarray _ _ _) :: _ =>
-         match chain_root_e a' with
-         | Some cid => mem_id cid cact
-         | None => false
-         end
+     | Tfunction (Tpointer _ _ :: _) _ _, a0 :: _ => dg_dst_chk lids cact a0
      | _, _ => false
      end.
 
-Lemma sc_call_chk_decode : forall sc_pids cact fid fty al,
-    sc_call_chk sc_pids cact fid fty al = true ->
+Lemma sc_call_chk_decode : forall lids sc_pids cact fid fty al,
+    sc_call_chk lids sc_pids cact fid fty al = true ->
     mem_id fid sc_pids = true /\
-    exists ety2 pattr tyl rty cc a' fld ety n aattr rest cid,
+    exists ety2 pattr tyl rty cc a0 rest,
       fty = Tfunction (Tpointer ety2 pattr :: tyl) rty cc /\
-      al = Efield a' fld (Tarray ety n aattr) :: rest /\
-      chain_root_e a' = Some cid /\
-      mem_id cid cact = true.
+      al = a0 :: rest /\
+      dg_dst_chk lids cact a0 = true.
 Proof.
-  intros sc_pids cact fid fty al H.
+  intros lids sc_pids cact fid fty al H.
   unfold sc_call_chk in H.
   apply andb_true_iff in H as [Hfid H].
   split; [ exact Hfid | ].
@@ -1930,16 +2008,8 @@ Proof.
                   | ar1 ar2 ar3 | pr1 pr2 pr3 | st1 st2 | un1 un2 ];
     try discriminate H.
   destruct al as [| a0 rest]; try discriminate H.
-  destruct a0 as [ i0 t0 | f0 t0 | s0 t0 | l0 t0 | v0 t0 | tv0 t0
-                 | d0 t0 | ad0 t0 | u0 u0' u0'' | bo0 b0 b0' t0 | c0 t0
-                 | a' fld afty | sz0 t0 | al0 t0 ]; try discriminate H.
-  destruct afty as [ | i1 i2 i3 | l1' l2' | r1 r2 | p1 p2
-                   | ety n aattr | params res cc' | st1 st2 | un1 un2 ];
-    try discriminate H.
-  destruct (chain_root_e a') as [cid|] eqn:Hcr; try discriminate H.
-  exists ety2, pattr, tyl', rty, cc, a', fld, ety, n, aattr, rest, cid.
-  split; [ reflexivity | ]. split; [ reflexivity | ].
-  split; [ exact Hcr | exact H ].
+  exists ety2, pattr, tyl', rty, cc, a0, rest.
+  split; [ reflexivity | split; [ reflexivity | exact H ] ].
 Qed.
 
 (* ====================================================================== *)
@@ -2036,6 +2106,82 @@ Definition np3_call_chk (nids np3_ids : list ident) (fid : ident)
    (local_idx_store_chk).  The unprimed wrapper instantiates lids := nil,
    so every existing producer/walk (which writes `wwalk_chk ...`) is
    UNCHANGED: with lids=nil the new disjunct is identically false. *)
+(* ====================================================================== *)
+(* THE DESTINATION-GATED WRITERS in the any-arg (xids) arm (2026-10-17).   *)
+(* The math_util vector writers write ONLY through their first argument.  *)
+(* Their old any-argument call_pres_ext rows were FALSE (dst = &action    *)
+(* cell).  So a writer reached through ANY xids list must pass the dst     *)
+(* recognizer (sc_call_chk over a singleton pid list: SafeB chase / Mario   *)
+(* window field with 12 store-safe bytes / registered stack local), and   *)
+(* its row is the gated call_pres_ext_dg.  Non-writers are unchanged.      *)
+(* ====================================================================== *)
+Definition dg_writer_ids : list ident :=
+  mario._vec3f_copy :: mario._vec3s_set :: mario._vec3f_set
+    :: mario._vec3s_copy
+    (* anim_spline_poll(result): writes the interpolated point through
+       result (plus the math_util spline statics) *)
+    :: mario_actions_cutscene._anim_spline_poll :: nil.
+
+Definition xdg_chk (lids cact : list ident) (fid : ident) (fty : type)
+    (al : list expr) : bool :=
+  if mem_id fid dg_writer_ids
+  then sc_call_chk lids (fid :: nil) cact fid fty al
+  else true.
+
+(* the per-xid row: gated for the writers, the old any-arg row otherwise *)
+Definition call_pres_ext_x (lp : Clight.program) (bm : block)
+    (NoA MWF : mem -> Prop) (SafeB : block -> Prop) (fid : ident) : Prop :=
+  if mem_id fid dg_writer_ids
+  then call_pres_ext_dg lp bm NoA MWF SafeB fid
+  else call_pres_ext lp bm NoA MWF fid.
+
+Lemma call_pres_ext_x_of_ext : forall lp bm NoA MWF SafeB fid,
+    call_pres_ext lp bm NoA MWF fid -> call_pres_ext_x lp bm NoA MWF SafeB fid.
+Proof.
+  intros lp bm NoA MWF SafeB fid H. unfold call_pres_ext_x.
+  destruct (mem_id fid dg_writer_ids); [ | exact H ].
+  intros fd m0 vargs0 t0 m1 vres0 Hev Hres _.
+  exact (H fd m0 vargs0 t0 m1 vres0 Hev Hres).
+Qed.
+
+Lemma call_pres_ext_x_nonwriter : forall lp bm NoA MWF SafeB fid,
+    mem_id fid dg_writer_ids = false ->
+    call_pres_ext_x lp bm NoA MWF SafeB fid -> call_pres_ext lp bm NoA MWF fid.
+Proof.
+  intros lp bm NoA MWF SafeB fid E H. unfold call_pres_ext_x in H.
+  rewrite E in H. exact H.
+Qed.
+
+(* ====================================================================== *)
+(* THE CHASE-HEADED WRITER UNIT (for the bespoke walkers that carry no     *)
+(* chase invariant).  clightgen emits every Object-dst writer call as      *)
+(*   t := m->marioObj; [t2 := <scalar>;] writer(&t->header.gfx.F, ..)     *)
+(* so the Sset right before the call pins t into SafeB                    *)
+(* (chase_root_set_sound) and the writer's dst recognizer runs with       *)
+(* cact = [t].  wl = the writer ids the walker admits (each with a dg row).*)
+(* ====================================================================== *)
+Definition chase_writer_call_chk (wl : list ident) (t : ident) (s : statement) : bool :=
+  match s with
+  | Scall None (Evar fid fty) al =>
+      mem_id fid wl && sc_call_chk nil (fid :: nil) (t :: nil) fid fty al
+  | _ => false
+  end.
+
+Definition chase_writer_chk (wl : list ident) (s : statement) : bool :=
+  match s with
+  | Ssequence (Sset t a) s2 =>
+      negb (Pos.eqb t mario_actions_airborne._m) && chase_root_chk a
+      && (chase_writer_call_chk wl t s2
+          || match s2 with
+             | Ssequence (Sset t2 _) s3 =>
+                 negb (Pos.eqb t2 mario_actions_airborne._m)
+                 && negb (Pos.eqb t2 t)
+                 && chase_writer_call_chk wl t s3
+             | _ => false
+             end)
+  | _ => false
+  end.
+
 Fixpoint wwalk_chk' (lids oc_pids wc_pids sc_pids nids np3_ids : list ident) (rt : bool)
     (wact ids wids cact xids sids tids : list ident)
     (s : statement) : bool :=
@@ -2086,7 +2232,8 @@ Fixpoint wwalk_chk' (lids oc_pids wc_pids sc_pids nids np3_ids : list ident) (rt
                   | Some t => negb (mem_id t wact)
                   | None => true
                   end
-               && is_tfun fty)
+               && is_tfun fty
+               && xdg_chk lids cact fid fty al)
               || ((match optid with
                    | Some t => negb (mem_id t wact)
                    | None => true
@@ -2101,7 +2248,7 @@ Fixpoint wwalk_chk' (lids oc_pids wc_pids sc_pids nids np3_ids : list ident) (rt
                    | Some t => negb (mem_id t wact)
                    | None => true
                    end
-                   && sc_call_chk sc_pids cact fid fty al)
+                   && sc_call_chk lids sc_pids cact fid fty al)
               || match fty, al with
                  | Tfunction nil rty cc, nil =>
                      (* a censused NULLARY call: marg_ok nil is trivial,
@@ -2774,32 +2921,246 @@ Section ActWriterWalk.
   (* the engine-callable sc unit (mirror of wc_call_chk_pres): the dst
      chase root's cact membership + chase_inv feed fsc_arg0_safe to discharge
      the arg0_safe gate; sc_scall_pres then preserves carried. *)
+  (* the dg dst unit: any of the three recognized destination shapes
+     discharges arg0_dg (SafeB object / Mario window / local array). *)
+  Lemma dg_dst_arg0 :
+    forall lids cact e le m a0 args ety2 attr tys vargs,
+      (forall b o, le ! mario_actions_airborne._m = Some (Vptr b o) ->
+                   b = bm /\ o = Ptrofs.zero) ->
+      chase_inv cact le ->
+      (forall lid, mem_id lid lids = true ->
+         exists lblk tyenv, e ! lid = Some (lblk, tyenv) /\ local_blk lp bm SafeB lblk) ->
+      dg_dst_chk lids cact a0 = true ->
+      eval_exprlist (lp_ge lp) e le m (a0 :: args) (Tpointer ety2 attr :: tys) vargs ->
+      arg0_dg lp bm SafeB vargs.
+  Proof.
+    intros lids cact e le m a0 args ety2 attr tys vargs Hm Hch Hloc Hc Hvl.
+    destruct a0 as [ | | | | x xty | | | | | | | a' fld fty | | ]; try discriminate Hc.
+    - (* a stack-local array *)
+      destruct xty as [ | | | | | ety n aattr | | | ]; try discriminate Hc.
+      cbn [dg_dst_chk] in Hc.
+      destruct (Hloc x Hc) as (lblk & tyenv & Hex & Hlb).
+      right; right.
+      inv Hvl.
+      match goal with
+      | Ha : eval_expr _ _ _ _ (Evar _ _) _ |- _ => inv Ha
+      end.
+      match goal with
+      | Hd : deref_loc (typeof _) _ _ _ _ _ |- _ => cbn [typeof] in Hd
+      end.
+      match goal with
+      | Hd : deref_loc (Tarray _ _ _) _ _ _ _ _ |- _ =>
+          inv Hd;
+          try (match goal with
+               | Hacc : access_mode (Tarray _ _ _) = _ |- _ =>
+                   cbn in Hacc; discriminate Hacc
+               end);
+          try (match goal with
+               | Hlb0 : load_bitfield (Tarray _ _ _) _ _ _ _ _ _ _ |- _ => inv Hlb0
+               end)
+      end.
+      match goal with
+      | Hlv : eval_lvalue _ _ _ _ (Evar _ _) _ _ _ |- _ => inv Hlv
+      end.
+      + match goal with
+        | H : e ! x = Some (?b, _) |- _ => rewrite Hex in H; injection H as <- _
+        end.
+        match goal with
+        | Hcast : sem_cast (Vptr _ _) _ _ _ = Some _ |- _ =>
+            cbn in Hcast; injection Hcast as <-
+        end.
+        red. do 3 eexists. split; [ reflexivity | exact Hlb ].
+      + match goal with
+        | H : e ! x = None |- _ => rewrite Hex in H; discriminate H
+        end.
+    - destruct fty as [ | | | | | ety n aattr | | | ]; try discriminate Hc.
+      cbn [dg_dst_chk] in Hc.
+      apply orb_true_iff in Hc as [Hs | Hw].
+      + destruct (chain_root_e a') as [cid|] eqn:Hcr; [ | discriminate Hs ].
+        left. eapply fsc_arg0_safe; eauto.
+      + right; left.
+        inv Hvl.
+        destruct (mwin_dst_sound lp LO_mario bm e le m _ _ Hm Hw ltac:(eassumption))
+          as (o & -> & Hwo).
+        match goal with
+        | Hcast : sem_cast (Vptr _ _) _ _ _ = Some _ |- _ =>
+            cbn in Hcast; injection Hcast as <-
+        end.
+        red. do 2 eexists. split; [ reflexivity | exact Hwo ].
+  Qed.
+
+  (* the engine-callable sc unit: the dst recognizer feeds dg_dst_arg0 to
+     discharge the arg0_dg gate; dg_scall_pres then preserves carried. *)
   Lemma sc_call_chk_pres :
-    forall sc_pids cact optid fid fty al e le0 m0 tr le1 m1 out0,
+    forall lids sc_pids cact optid fid fty al e le0 m0 tr le1 m1 out0,
       (forall g, mem_id g sc_pids = true ->
-                 call_pres_ext_sc lp bm NoA MWF SafeB g) ->
+                 call_pres_ext_dg lp bm NoA MWF SafeB g) ->
       (forall g, mem_id g sc_pids = true -> e ! g = None) ->
+      (forall b o, le0 ! mario_actions_airborne._m = Some (Vptr b o) ->
+                   b = bm /\ o = Ptrofs.zero) ->
       chase_inv cact le0 ->
-      sc_call_chk sc_pids cact fid fty al = true ->
+      (forall lid, mem_id lid lids = true ->
+         exists lblk tyenv, e ! lid = Some (lblk, tyenv) /\ local_blk lp bm SafeB lblk) ->
+      sc_call_chk lids sc_pids cact fid fty al = true ->
       exec_stmt function_entry2 (lp_ge lp) e le0 m0
         (Scall optid (Evar fid fty) al) tr le1 m1 out0 ->
       carried bm NoA MWF m0 ->
       carried bm NoA MWF m1 /\ out0 = Out_normal.
   Proof.
-    intros sc_pids cact optid fid fty al e le0 m0 tr le1 m1 out0
-           Hcp_sc Hnone Hch Hchk Hexec Hc.
-    destruct (sc_call_chk_decode _ _ _ _ _ Hchk)
-      as (Hfid & ety2 & pattr & tyl & rty & cc & a' & fld & ety & n & aattr
-          & rest & cid & Hfty & Hal & Hcr & Hcid).
+    intros lids sc_pids cact optid fid fty al e le0 m0 tr le1 m1 out0
+           Hcp_sc Hnone Hm Hch Hloc Hchk Hexec Hc.
+    destruct (sc_call_chk_decode _ _ _ _ _ _ Hchk)
+      as (Hfid & ety2 & pattr & tyl & rty & cc & a0 & rest & Hfty & Hal & Hdst).
     subst fty al.
-    eapply sc_scall_pres;
+    eapply dg_scall_pres;
       [ exact (Hnone fid Hfid)
       | exact (Hcp_sc fid Hfid)
       | | exact Hexec
       | exact Hc ].
     intros vargs Hvl.
-    eapply fsc_arg0_safe;
-      [ exact Hcid | exact Hcr | exact Hch | exact Hvl ].
+    eapply dg_dst_arg0; eauto.
+  Qed.
+
+  (* the writer call under chase_inv [t] *)
+  Lemma chase_writer_call_pres :
+    forall wl t s e le m tr le' m' out,
+      (forall g, mem_id g wl = true -> e ! g = None) ->
+      (forall g, mem_id g wl = true -> call_pres_ext_dg lp bm NoA MWF SafeB g) ->
+      (forall b o, le ! mario_actions_airborne._m = Some (Vptr b o) ->
+                   b = bm /\ o = Ptrofs.zero) ->
+      chase_inv (t :: nil) le ->
+      chase_writer_call_chk wl t s = true ->
+      exec_stmt function_entry2 (lp_ge lp) e le m s tr le' m' out ->
+      carried bm NoA MWF m ->
+      carried bm NoA MWF m' /\ out = Out_normal /\ le' = le.
+  Proof.
+    intros wl t s e le m tr le' m' out Hnone Hrows Htat Hch Hchk Hex Hc.
+    destruct s as [ | | | optid a al | | | | | | | | | | ]; try discriminate Hchk.
+    destruct optid; try discriminate Hchk.
+    destruct a as [ | | | | fid fty | | | | | | | | | ]; try discriminate Hchk.
+    cbn [chase_writer_call_chk] in Hchk.
+    apply andb_prop in Hchk as [Hw Hsc].
+    destruct (sc_call_chk_pres nil (fid :: nil) (t :: nil) None fid fty al
+                e le m tr le' m' out) as [Hc' Hout].
+    - intros g Hg. cbn [mem_id existsb] in Hg. rewrite orb_false_r in Hg.
+      apply Pos.eqb_eq in Hg. subst g. exact (Hrows fid Hw).
+    - intros g Hg. cbn [mem_id existsb] in Hg. rewrite orb_false_r in Hg.
+      apply Pos.eqb_eq in Hg. subst g. exact (Hnone fid Hw).
+    - exact Htat.
+    - exact Hch.
+    - intros lid Hl; discriminate Hl.
+    - exact Hsc.
+    - exact Hex.
+    - exact Hc.
+    - split; [ exact Hc' | split; [ exact Hout | ] ].
+      inv Hex. reflexivity.
+  Qed.
+
+  (* the chase-root soundness fact, as a premise (chase_root_set_sound is
+     its proof; bespoke walker sections take it as ONE hypothesis) *)
+  Definition chase_root_sound : Prop :=
+    forall aw e le m v,
+      chase_root_chk aw = true ->
+      (forall b o, le ! mario_actions_airborne._m = Some (Vptr b o) ->
+                   b = bm /\ o = Ptrofs.zero) ->
+      MWF m ->
+      eval_expr (lp_ge lp) e le m aw v ->
+      forall b o, v = Vptr b o -> SafeB b.
+
+  Lemma chase_root_sound_proved : chase_root_sound.
+  Proof. exact chase_root_set_sound. Qed.
+
+  Lemma chase_writer_chk_pres :
+    forall wl s e le m tr le' m' out,
+      chase_root_sound ->
+      (forall g, mem_id g wl = true -> e ! g = None) ->
+      (forall g, mem_id g wl = true -> call_pres_ext_dg lp bm NoA MWF SafeB g) ->
+      (forall b o, le ! mario_actions_airborne._m = Some (Vptr b o) ->
+                   b = bm /\ o = Ptrofs.zero) ->
+      chase_writer_chk wl s = true ->
+      exec_stmt function_entry2 (lp_ge lp) e le m s tr le' m' out ->
+      carried bm NoA MWF m ->
+      carried bm NoA MWF m' /\ out = Out_normal /\
+      (forall b o, le' ! mario_actions_airborne._m = Some (Vptr b o) ->
+                   b = bm /\ o = Ptrofs.zero).
+  Proof.
+    intros wl s e le m tr le' m' out Hcrs Hnone Hrows Htat Hchk Hex Hc.
+    destruct s as [ | | | | | s1 s2 | | | | | | | | ]; try discriminate Hchk.
+    destruct s1 as [ | | tw aw | | | | | | | | | | | ]; try discriminate Hchk.
+    cbn [chase_writer_chk] in Hchk.
+    apply andb_prop in Hchk as [Hchk Hrest].
+    apply andb_prop in Hchk as [Htm Hck].
+    apply negb_true_iff in Htm.
+    inv Hex;
+      [ | match goal with
+          | H : exec_stmt _ _ _ _ _ (Sset _ _) _ _ _ ?o, Hn : ?o <> Out_normal |- _ =>
+              inv H; exfalso; apply Hn; reflexivity
+          end ].
+    match goal with
+    | H : exec_stmt _ _ _ _ _ (Sset _ _) _ _ _ _ |- _ => inv H
+    end.
+    match goal with
+    | Hev : eval_expr _ _ _ _ aw ?vv |- _ => rename Hev into Hev_a; rename vv into vw
+    end.
+    destruct Hc as (HV & HS & HM & HN).
+    assert (Htat1 : forall b o,
+               (PTree.set tw vw le) ! mario_actions_airborne._m = Some (Vptr b o) ->
+               b = bm /\ o = Ptrofs.zero).
+    { intros b o Hg. rewrite PTree.gso in Hg; [ exact (Htat b o Hg) | ].
+      intro EE; subst tw; rewrite Pos.eqb_refl in Htm; discriminate Htm. }
+    assert (Hch1 : chase_inv (tw :: nil) (PTree.set tw vw le)).
+    { intros t0 Hmem b o Hg.
+      cbn [mem_id existsb] in Hmem. rewrite orb_false_r in Hmem.
+      apply Pos.eqb_eq in Hmem. subst t0.
+      rewrite PTree.gss in Hg. injection Hg as Hg.
+      exact (Hcrs aw e le _ vw Hck Htat HM Hev_a b o Hg). }
+    apply orb_true_iff in Hrest as [H1 | H2].
+    - match goal with
+      | Hx : exec_stmt _ _ _ _ _ s2 _ _ _ _ |- _ =>
+          destruct (chase_writer_call_pres wl tw s2 e _ _ _ _ _ _
+                      Hnone Hrows Htat1 Hch1 H1 Hx (conj HV (conj HS (conj HM HN))))
+            as (Hc' & Hout & ->)
+      end.
+      exact (conj Hc' (conj Hout Htat1)).
+    - destruct s2 as [ | | | | | sw21 sw3 | | | | | | | | ]; try discriminate H2.
+      destruct sw21 as [ | | tw2 bw2 | | | | | | | | | | | ]; try discriminate H2.
+      apply andb_prop in H2 as [H2 H3].
+      apply andb_prop in H2 as [Ht2m Ht2t].
+      apply negb_true_iff in Ht2m. apply negb_true_iff in Ht2t.
+      match goal with
+      | Hx : exec_stmt _ _ _ _ _ (Ssequence (Sset tw2 bw2) sw3) _ _ _ _ |- _ =>
+          inv Hx;
+          [ | match goal with
+              | H : exec_stmt _ _ _ _ _ (Sset _ _) _ _ _ ?o, Hn : ?o <> Out_normal |- _ =>
+                  inv H; exfalso; apply Hn; reflexivity
+              end ]
+      end.
+      match goal with
+      | H : exec_stmt _ _ _ _ _ (Sset tw2 _) _ _ _ _ |- _ => inv H
+      end.
+      match goal with
+      | Hev : eval_expr _ _ _ _ bw2 ?vv |- _ => rename vv into vw2
+      end.
+      assert (Htat2 : forall b o,
+                 (PTree.set tw2 vw2 (PTree.set tw vw le)) ! mario_actions_airborne._m
+                   = Some (Vptr b o) -> b = bm /\ o = Ptrofs.zero).
+      { intros b o Hg. rewrite PTree.gso in Hg; [ exact (Htat1 b o Hg) | ].
+        intro EE; subst tw2; rewrite Pos.eqb_refl in Ht2m; discriminate Ht2m. }
+      assert (Hch2 : chase_inv (tw :: nil) (PTree.set tw2 vw2 (PTree.set tw vw le))).
+      { intros tq Hmem b o Hg.
+        pose proof Hmem as Hmem'.
+        cbn [mem_id existsb] in Hmem. rewrite orb_false_r in Hmem.
+        apply Pos.eqb_eq in Hmem. subst tq.
+        rewrite PTree.gso in Hg.
+        - exact (Hch1 tw Hmem' b o Hg).
+        - intro EE; subst tw2; rewrite Pos.eqb_refl in Ht2t; discriminate Ht2t. }
+      match goal with
+      | Hx : exec_stmt _ _ _ _ _ sw3 _ _ _ _ |- _ =>
+          destruct (chase_writer_call_pres wl tw sw3 e _ _ _ _ _ _
+                      Hnone Hrows Htat2 Hch2 H3 Hx (conj HV (conj HS (conj HM HN))))
+            as (Hc' & Hout & ->)
+      end.
+      exact (conj Hc' (conj Hout Htat2)).
   Qed.
 
   (* ================================================================== *)
@@ -4650,7 +5011,7 @@ Section ActWriterWalk.
   (* the trivial sc-arm discharger for the nil sc_pids producers (the object
      out-param census; every producer that does NOT call an object writer). *)
   Lemma hcp_sc_nil : forall fid,
-      mem_id fid (@nil ident) = true -> call_pres_ext_sc lp bm NoA MWF SafeB fid.
+      mem_id fid (@nil ident) = true -> call_pres_ext_dg lp bm NoA MWF SafeB fid.
   Proof. intros fid H. discriminate H. Qed.
 
   Lemma hcp_np3_nil : forall fid,
@@ -4761,7 +5122,7 @@ Section ActWriterWalk.
       (forall fid, mem_id fid wids = true ->
                    call_pres_act lp bm NoA MWF fid) ->
       (forall fid, mem_id fid xids = true ->
-                   call_pres_ext lp bm NoA MWF fid) ->
+                   call_pres_ext_x lp bm NoA MWF SafeB fid) ->
       (forall fid, mem_id fid sids = true ->
                    call_pres_act2 lp bm NoA MWF fid) ->
       (forall fid, mem_id fid tids = true ->
@@ -4771,7 +5132,7 @@ Section ActWriterWalk.
       (forall fid, mem_id fid wc_pids = true ->
                    call_pres_ext_wc lp bm NoA MWF fid) ->
       (forall fid, mem_id fid sc_pids = true ->
-                   call_pres_ext_sc lp bm NoA MWF SafeB fid) ->
+                   call_pres_ext_dg lp bm NoA MWF SafeB fid) ->
       (forall fid, mem_id fid np3_ids = true ->
                    call_pres_np3 lp bm NoA MWF fid) ->
       forall s e le m0 tr le' m' out,
@@ -5052,7 +5413,9 @@ Section ActWriterWalk.
       apply andb_prop in Hchk1 as [Hopt Hnc].
       apply orb_true_iff in Hchk.
       destruct Hchk as [Hx | Hchk].
-      { (* the EXTERNAL any-arg censused call: no exprlist analysis *)
+      { (* the EXTERNAL censused call: any-arg for a non-writer; for a
+           dg writer the dst recognizer (xdg_chk) gates its dg row *)
+        apply andb_prop in Hx as [Hx Hxdg].
         apply andb_prop in Hx as [Hx Htf].
         apply andb_prop in Hx as [Hfx How].
         destruct fty as [ | i1 i2 i3 | l1' l2' | r1 r2 | p1 p2
@@ -5064,9 +5427,32 @@ Section ActWriterWalk.
                            al)
                         t (set_opttemp optid vres le) m' Out_normal)
           by (econstructor; eauto).
-        destruct (kit_scallx_pres _ _ _ _ _ _ _ _ _ _ _ _ _ (Hubx _ Hfx) Hex
-                    (Hcpx _ Hfx) HN HM HV HS)
-          as (HV' & HS' & HM' & HN' & _ & _).
+        assert (Hcar : Mem.valid_block m' bm /\ action_sat not_tainted m' bm /\
+                       MWF m' /\ NoA m').
+        { pose proof (Hcpx _ Hfx) as Hrow. unfold call_pres_ext_x, xdg_chk in *.
+          destruct (mem_id cid dg_writer_ids) eqn:Ew.
+          - destruct (sc_call_chk_pres lids (cid :: nil) cact optid cid
+                        (Tfunction params res cc) al e le m t
+                        (set_opttemp optid vres le) m' Out_normal)
+              as [Hc' _].
+            + intros g Hg. cbn [mem_id existsb] in Hg.
+              rewrite orb_false_r in Hg. apply Pos.eqb_eq in Hg. subst g.
+              exact Hrow.
+            + intros g Hg. cbn [mem_id existsb] in Hg.
+              rewrite orb_false_r in Hg. apply Pos.eqb_eq in Hg. subst g.
+              exact (Hubx _ Hfx).
+            + exact Htat.
+            + exact Hch.
+            + exact Hlocal.
+            + exact Hxdg.
+            + exact Hex.
+            + exact (conj HV (conj HS (conj HM HN))).
+            + exact Hc'.
+          - destruct (kit_scallx_pres _ _ _ _ _ _ _ _ _ _ _ _ _ (Hubx _ Hfx) Hex
+                        Hrow HN HM HV HS)
+              as (HV' & HS' & HM' & HN' & _ & _).
+            exact (conj HV' (conj HS' (conj HM' HN'))). }
+        destruct Hcar as (HV' & HS' & HM' & HN').
         refine (conj HV' (conj HS' (conj HM' (conj HN'
                  (conj _ (conj _ (conj _ (conj _ I)))))))).
         { intros b o Hg. destruct optid as [t'|];
@@ -5207,9 +5593,9 @@ Section ActWriterWalk.
                         (Scall optid (Evar cid fty) al)
                         t (set_opttemp optid vres le) m' Out_normal)
           by (econstructor; eauto).
-        destruct (sc_call_chk_pres sc_pids cact optid cid fty al e le m t
+        destruct (sc_call_chk_pres lids sc_pids cact optid cid fty al e le m t
                     (set_opttemp optid vres le) m' Out_normal
-                    Hcp_sc Hsc_none Hch Hsc Hex
+                    Hcp_sc Hsc_none Htat Hch Hlocal Hsc Hex
                     (conj HV (conj HS (conj HM HN))))
           as [(HV' & HS' & HM' & HN') _].
         refine (conj HV' (conj HS' (conj HM' (conj HN'
@@ -5899,7 +6285,7 @@ Section ActWriterWalk.
       (forall fid, mem_id fid wids = true ->
                    call_pres_act lp bm NoA MWF fid) ->
       (forall fid, mem_id fid xids = true ->
-                   call_pres_ext lp bm NoA MWF fid) ->
+                   call_pres_ext_x lp bm NoA MWF SafeB fid) ->
       (forall fid, mem_id fid sids = true ->
                    call_pres_act2 lp bm NoA MWF fid) ->
       (forall fid, mem_id fid tids = true ->
@@ -6390,7 +6776,7 @@ Section ActWriterRows.
       (forall fid', mem_id fid' wids = true ->
                     call_pres_act lp bm NoA MWF fid') ->
       (forall fid', mem_id fid' xids = true ->
-                    call_pres_ext lp bm NoA MWF fid') ->
+                    call_pres_ext_x lp bm NoA MWF SafeB fid') ->
       (forall fid', mem_id fid' sids = true ->
                     call_pres_act lp bm NoA MWF fid') ->
       wwalk_chk false nil ids wids nil xids sids nil (fn_body f) = true ->
@@ -6528,7 +6914,7 @@ Section ActWriterRows.
       (forall fid', mem_id fid' wids = true ->
                     call_pres_act lp bm NoA MWF fid') ->
       (forall fid', mem_id fid' xids = true ->
-                    call_pres_ext lp bm NoA MWF fid') ->
+                    call_pres_ext_x lp bm NoA MWF SafeB fid') ->
       (forall fid', mem_id fid' sids = true ->
                     call_pres_act lp bm NoA MWF fid') ->
       wwalk_chk false nil ids wids nil xids sids nil (fn_body f) = true ->
@@ -6665,7 +7051,7 @@ Section ActWriterRows.
       (forall fid', mem_id fid' wids = true ->
                     call_pres_act lp bm NoA MWF fid') ->
       (forall fid', mem_id fid' xids = true ->
-                    call_pres_ext lp bm NoA MWF fid') ->
+                    call_pres_ext_x lp bm NoA MWF SafeB fid') ->
       (forall fid', mem_id fid' sids = true ->
                     call_pres_act lp bm NoA MWF fid') ->
       wwalk_chk false nil ids wids cact xids sids nil (fn_body f) = true ->
@@ -6777,6 +7163,165 @@ Section ActWriterRows.
     exact (conj HVf (conj HSf HMf)).
   Qed.
 
+  (* ---- body_pres_of_lwalk_cact WITH a local census (lids): the local
+     arrays are written through dst-gated externals (e.g. jumbo_star_
+     cutscene_flying's targetPos, written by anim_spline_poll). ---- *)
+  Lemma body_pres_of_lwalk3 :
+    forall (f : Clight.function) (ids wids cact xids sids lids : list ident),
+      match fn_params f with
+      | (i, ty) :: ps =>
+          Pos.eqb i mario_actions_airborne._m
+          && proj_sumbool (type_eq ty tyMSp)
+          && negb (mem_id mario_actions_airborne._m (map fst ps))
+      | nil => false
+      end = true ->
+      (forall g, mem_id g stored_globals = true ->
+                 ~ In g (map fst (fn_vars f))) ->
+      (forall g, mem_id g ids = true -> ~ In g (map fst (fn_vars f))) ->
+      (forall g, mem_id g wids = true -> ~ In g (map fst (fn_vars f))) ->
+      (forall g, mem_id g xids = true -> ~ In g (map fst (fn_vars f))) ->
+      (forall g, mem_id g sids = true -> ~ In g (map fst (fn_vars f))) ->
+      ~ In interaction._gGlobalTimer (map fst (fn_vars f)) ->
+      forallb (fun t' => negb (mem_id t' (map fst (fn_params f)))) cact = true ->
+      (forall lid, mem_id lid lids = true -> In lid (map fst (fn_vars f))) ->
+      (forall m, MWF m -> forall b, SafeB b -> Mem.valid_block m b) ->
+      (forall m, MWF m -> forall gid bg,
+          Genv.find_symbol (lp_ge lp) gid = Some bg -> Mem.valid_block m bg) ->
+      (forall m ch b d v m', local_blk lp bm SafeB b ->
+          Mem.store ch m b d v = Some m' -> MWF m -> MWF m') ->
+      (forall fid', mem_id fid' ids = true ->
+                    call_pres lp bm NoA MWF fid') ->
+      (forall fid', mem_id fid' wids = true ->
+                    call_pres_act lp bm NoA MWF fid') ->
+      (forall fid', mem_id fid' xids = true ->
+                    call_pres_ext_x lp bm NoA MWF SafeB fid') ->
+      (forall fid', mem_id fid' sids = true ->
+                    call_pres_act lp bm NoA MWF fid') ->
+      wwalk_chk' lids nil nil nil nil nil false nil ids wids cact xids sids nil
+        (fn_body f) = true ->
+      body_pres lp NoA MWF bm f.
+  Proof.
+    intros f ids wids cact xids sids lids Hps
+           Hdg Hdi Hdw Hdx Hds Hdgt Hnpc Hlsub HSafeValid HGlobValid Hls_real
+           Hcp Hcpa Hcpx Hcps Hchk
+           m0 vargs0 t0 mF vres0 Hmargf Hevf HN HM HV HS.
+    inv Hevf.
+    match goal with He : function_entry2 _ _ _ _ _ _ _ |- _ =>
+      rename He into Hentry end.
+    match goal with Hx : exec_stmt _ _ _ _ _ _ _ _ _ _ |- _ =>
+      rename Hx into Hbody end.
+    match goal with Hf : Mem.free_list _ _ = Some _ |- _ =>
+      rename Hf into Hfree end.
+    inv Hentry.
+    match goal with Ha : alloc_variables _ _ _ _ _ _ |- _ =>
+      rename Ha into Halloc end.
+    match goal with Hb : bind_parameter_temps _ _ _ = Some _ |- _ =>
+      rename Hb into Hbind end.
+    match goal with
+    | Hb : exec_stmt _ _ ?E _ _ _ _ _ _ _ |- _ => set (eloc := E) in *
+    end.
+    assert (Hc0 : carried bm NoA MWF m0)
+      by (split; [ exact HV
+         | split; [ exact HS | split; [ exact HM | exact HN ] ] ]).
+    pose proof (alloc_variables_carried bm NoA MWF HMWF_alloc HNoA_of_MWF
+                  _ _ _ _ _ _ Halloc Hc0) as Hca.
+    destruct Hca as (HVa & HSa & HMa & HNa).
+    pose proof (alloc_variables_hlocal lp bm SafeB m0 (fn_vars f) eloc _ lids
+                  Halloc HV (HSafeValid m0 HM) (HGlobValid m0 HM) Hlsub)
+      as Hlocal.
+    destruct (fn_params f) as [| [i ty] ps ] eqn:Eps;
+      [ discriminate Hps | ].
+    apply andb_prop in Hps as [Hps Hnm].
+    apply andb_prop in Hps as [Hi Hty].
+    apply Pos.eqb_eq in Hi. subst i.
+    destruct (type_eq ty tyMSp); [ subst ty | discriminate Hty ].
+    apply negb_true_iff in Hnm.
+    assert (Hmarg : marg_ok bm vargs0).
+    { apply Hmargf. unfold marg_exempt. rewrite Eps. reflexivity. }
+    destruct vargs0 as [| v0 vrest];
+      cbn [bind_parameter_temps] in Hbind; [ discriminate Hbind | ].
+    match goal with
+    | Hbind' : bind_parameter_temps _ _ _ = Some ?le1 |- _ =>
+        assert (Htat0 : forall b o,
+                   le1 ! mario_actions_airborne._m = Some (Vptr b o) ->
+                   b = bm /\ o = Ptrofs.zero)
+          by (intros b o Hg;
+              rewrite (bind_params_other _ _ _ _ _ Hbind' Hnm) in Hg;
+              rewrite PTree.gss in Hg; injection Hg as ->;
+              cbn in Hmarg; exact Hmarg);
+        assert (Hact0 : act_inv nil le1)
+          by (intros t' Hmem' x Hg'; discriminate Hmem');
+        assert (Hch0 : chase_inv SafeB cact le1)
+          by (intros t' Hmem' b o Hg';
+              pose proof (forallb_negb_mem_id _ _ _ Hnpc Hmem') as Hf';
+              unfold mem_id in Hf'; cbn [map fst existsb] in Hf';
+              apply orb_false_iff in Hf' as [Hne_m' Hnps];
+              rewrite (bind_params_other _ _ _ _ _ Hbind' Hnps) in Hg';
+              rewrite PTree.gso in Hg'
+                by (intro EE; rewrite EE, Pos.eqb_refl in Hne_m';
+                    discriminate Hne_m');
+              pose proof (create_undef_temps_val _ _ _ Hg') as EE;
+              discriminate EE)
+    end.
+    assert (Hcpt0 : forall fid', mem_id fid' nil = true ->
+                    call_pres_act3 lp bm NoA MWF fid')
+      by (intros fid' HH; discriminate HH).
+    assert (Hub_g : forall g, mem_id g stored_globals = true ->
+                    eloc ! g = None)
+      by (intros g Hg;
+          rewrite (alloc_variables_unbound (lp_ge lp) m0 (fn_vars f)
+                     empty_env _ _ Halloc g (Hdg g Hg)); apply PTree.gempty).
+    assert (Hub_i : forall g, mem_id g ids = true -> eloc ! g = None)
+      by (intros g Hg;
+          rewrite (alloc_variables_unbound (lp_ge lp) m0 (fn_vars f)
+                     empty_env _ _ Halloc g (Hdi g Hg)); apply PTree.gempty).
+    assert (Hub_w : forall g, mem_id g wids = true -> eloc ! g = None)
+      by (intros g Hg;
+          rewrite (alloc_variables_unbound (lp_ge lp) m0 (fn_vars f)
+                     empty_env _ _ Halloc g (Hdw g Hg)); apply PTree.gempty).
+    assert (Hub_x : forall g, mem_id g xids = true -> eloc ! g = None)
+      by (intros g Hg;
+          rewrite (alloc_variables_unbound (lp_ge lp) m0 (fn_vars f)
+                     empty_env _ _ Halloc g (Hdx g Hg)); apply PTree.gempty).
+    assert (Hub_s : forall g, mem_id g sids = true -> eloc ! g = None)
+      by (intros g Hg;
+          rewrite (alloc_variables_unbound (lp_ge lp) m0 (fn_vars f)
+                     empty_env _ _ Halloc g (Hds g Hg)); apply PTree.gempty).
+    assert (Hub_t : forall g, mem_id g (@nil ident) = true -> eloc ! g = None)
+      by (intros g HH; discriminate HH).
+    assert (Hub_gt : eloc ! interaction._gGlobalTimer = None)
+      by (rewrite (alloc_variables_unbound (lp_ge lp) m0 (fn_vars f)
+                     empty_env _ _ Halloc interaction._gGlobalTimer Hdgt);
+          apply PTree.gempty).
+    assert (Hnil : forall g, mem_id g (@nil ident) = true -> eloc ! g = None)
+      by (intros g HH; discriminate HH).
+    destruct (wwalk_pres lp LO_mario bm NoA MWF HNoA_of_MWF HMWF_window
+                HMWF_glob HMWF_act SafeB HSafeNotBm HchaseRoot HMWF_chase
+                HMWF_root HMWF_sglob HchaseStep HMWF_chase_safe
+                false nil ids wids cact xids sids nil lids nil nil nil
+                nil nil
+                Hcp Hcpa Hcpx (fun fid HH => call_pres_act_weaken (Hcps fid HH)) Hcpt0
+                (fun g HH => match Bool.diff_false_true HH with end)
+                (fun g HH => match Bool.diff_false_true HH with end)
+                (fun g HH => match Bool.diff_false_true HH with end)
+                (fun g HH => match Bool.diff_false_true HH with end)
+                _ _ _ _ _ _ _ _
+                (fun _ => Hls_real) Hlocal Hbody
+                Hub_g Hub_i Hub_w Hub_x Hub_s Hub_t Hnil Hnil Hnil
+                Hnil Hub_gt
+                Hchk Htat0 Hact0 Hch0
+                (fun t HH => match Bool.diff_false_true HH with end)
+                HNa HMa HVa HSa)
+      as (HVb & HSb & HMb & HNb & _ & _ & _ & _ & _).
+    pose proof (blocks_of_env_bm lp bm m0 (fn_vars f) eloc _ Halloc HV)
+      as Hforall.
+    pose proof (free_list_carried_bm bm NoA MWF HMWF_free HNoA_of_MWF
+                  (blocks_of_env (lp_ge lp) eloc) _ mF
+                  Hforall Hfree (conj HVb (conj HSb (conj HMb HNb)))) as Hcf.
+    destruct Hcf as (HVf & HSf & HMf & HNf).
+    exact (conj HVf (conj HSf HMf)).
+  Qed.
+
   (* ---- the TIER-2 producer: a function with stack-local ARRAYS that it
      stores into DIRECTLY (nextPos[i] = ..), e.g. update_hang_moving /
      act_tornado_twirling / perform_water_step.  Identical entry/exit frame
@@ -6821,7 +7366,7 @@ Section ActWriterRows.
       (forall fid', mem_id fid' wids = true ->
                     call_pres_act lp bm NoA MWF fid') ->
       (forall fid', mem_id fid' xids = true ->
-                    call_pres_ext lp bm NoA MWF fid') ->
+                    call_pres_ext_x lp bm NoA MWF SafeB fid') ->
       (forall fid', mem_id fid' sids = true ->
                     call_pres_act lp bm NoA MWF fid') ->
       (forall fid', mem_id fid' oc_pids = true ->
@@ -6829,7 +7374,7 @@ Section ActWriterRows.
       (forall fid', mem_id fid' wc_pids = true ->
                     call_pres_ext_wc lp bm NoA MWF fid') ->
       (forall fid', mem_id fid' sc_pids = true ->
-                    call_pres_ext_sc lp bm NoA MWF SafeB fid') ->
+                    call_pres_ext_dg lp bm NoA MWF SafeB fid') ->
       wwalk_chk' lids oc_pids wc_pids sc_pids nil nil false nil ids wids nil xids sids nil (fn_body f) = true ->
       call_pres lp bm NoA MWF fid.
   Proof.
@@ -6997,7 +7542,7 @@ Section ActWriterRows.
       (forall fid', mem_id fid' wids = true ->
                     call_pres_act lp bm NoA MWF fid') ->
       (forall fid', mem_id fid' xids = true ->
-                    call_pres_ext lp bm NoA MWF fid') ->
+                    call_pres_ext_x lp bm NoA MWF SafeB fid') ->
       (forall fid', mem_id fid' sids = true ->
                     call_pres_act lp bm NoA MWF fid') ->
       (forall fid', mem_id fid' oc_pids = true ->
@@ -7005,7 +7550,7 @@ Section ActWriterRows.
       (forall fid', mem_id fid' wc_pids = true ->
                     call_pres_ext_wc lp bm NoA MWF fid') ->
       (forall fid', mem_id fid' sc_pids = true ->
-                    call_pres_ext_sc lp bm NoA MWF SafeB fid') ->
+                    call_pres_ext_dg lp bm NoA MWF SafeB fid') ->
       (forall fid', mem_id fid' np3_ids = true ->
                     call_pres_np3 lp bm NoA MWF fid') ->
       wwalk_chk' lids oc_pids wc_pids sc_pids nil np3_ids false nil ids wids cact xids sids nil (fn_body f) = true ->
@@ -7162,7 +7707,7 @@ Section ActWriterRows.
       (forall fid', mem_id fid' wids = true ->
                     call_pres_act lp bm NoA MWF fid') ->
       (forall fid', mem_id fid' xids = true ->
-                    call_pres_ext lp bm NoA MWF fid') ->
+                    call_pres_ext_x lp bm NoA MWF SafeB fid') ->
       (forall fid', mem_id fid' sids = true ->
                     call_pres_act lp bm NoA MWF fid') ->
       wwalk_chk false nil ids wids nil xids sids nil (fn_body f) = true ->
@@ -7262,7 +7807,7 @@ Section ActWriterRows.
       (forall fid', mem_id fid' wids = true ->
                     call_pres_act lp bm NoA MWF fid') ->
       (forall fid', mem_id fid' xids = true ->
-                    call_pres_ext lp bm NoA MWF fid') ->
+                    call_pres_ext_x lp bm NoA MWF SafeB fid') ->
       (forall fid', mem_id fid' sids = true ->
                     call_pres_act lp bm NoA MWF fid') ->
       (forall fid', mem_id fid' tids = true ->
@@ -7390,7 +7935,7 @@ Section ActWriterRows.
       (forall fid', mem_id fid' wids = true ->
                     call_pres_act lp bm NoA MWF fid') ->
       (forall fid', mem_id fid' xids = true ->
-                    call_pres_ext lp bm NoA MWF fid') ->
+                    call_pres_ext_x lp bm NoA MWF SafeB fid') ->
       (forall fid', mem_id fid' sids = true ->
                     call_pres_act lp bm NoA MWF fid') ->
       wwalk_chk false nil ids wids cact xids sids nil (fn_body f) = true ->
@@ -7493,7 +8038,7 @@ Section ActWriterRows.
       (forall fid', mem_id fid' wids = true ->
                     call_pres_act lp bm NoA MWF fid') ->
       (forall fid', mem_id fid' xids = true ->
-                    call_pres_ext lp bm NoA MWF fid') ->
+                    call_pres_ext_x lp bm NoA MWF SafeB fid') ->
       (forall fid', mem_id fid' sids = true ->
                     call_pres_act lp bm NoA MWF fid') ->
       wwalk_chk false nil ids wids (p0 :: nil) xids sids nil (fn_body f)
@@ -7597,7 +8142,7 @@ Section ActWriterRows.
       (forall fid', mem_id fid' wids = true ->
                     call_pres_act lp bm NoA MWF fid') ->
       (forall fid', mem_id fid' xids = true ->
-                    call_pres_ext lp bm NoA MWF fid') ->
+                    call_pres_ext_x lp bm NoA MWF SafeB fid') ->
       (forall fid', mem_id fid' sids = true ->
                     call_pres_act lp bm NoA MWF fid') ->
       wwalk_chk false nil ids wids nil xids sids nil (fn_body f)
@@ -7687,7 +8232,7 @@ Section ActWriterRows.
       (forall fid', mem_id fid' wids = true ->
                     call_pres_act lp bm NoA MWF fid') ->
       (forall fid', mem_id fid' xids = true ->
-                    call_pres_ext lp bm NoA MWF fid') ->
+                    call_pres_ext_x lp bm NoA MWF SafeB fid') ->
       (forall fid', mem_id fid' sids = true ->
                     call_pres_act lp bm NoA MWF fid') ->
       wwalk_chk false wact ids wids cact xids sids nil (fn_body f) = true ->
@@ -7791,7 +8336,7 @@ Section ActWriterRows.
       (forall fid', mem_id fid' wids = true ->
                     call_pres_act lp bm NoA MWF fid') ->
       (forall fid', mem_id fid' xids = true ->
-                    call_pres_ext lp bm NoA MWF fid') ->
+                    call_pres_ext_x lp bm NoA MWF SafeB fid') ->
       (forall fid', mem_id fid' sids = true ->
                     call_pres_act lp bm NoA MWF fid') ->
       wwalk_chk false nil ids wids nil xids sids nil (fn_body f) = true ->
@@ -7876,7 +8421,7 @@ Section ActWriterRows.
       (forall fid', mem_id fid' wids = true ->
                     call_pres_act lp bm NoA MWF fid') ->
       (forall fid', mem_id fid' xids = true ->
-                    call_pres_ext lp bm NoA MWF fid') ->
+                    call_pres_ext_x lp bm NoA MWF SafeB fid') ->
       (forall fid', mem_id fid' sids = true ->
                     call_pres_act2 lp bm NoA MWF fid') ->
       (forall fid', mem_id fid' tids = true ->
@@ -7969,7 +8514,7 @@ Section ActWriterRows.
       (forall fid', mem_id fid' wids = true ->
                     call_pres_act lp bm NoA MWF fid') ->
       (forall fid', mem_id fid' xids = true ->
-                    call_pres_ext lp bm NoA MWF fid') ->
+                    call_pres_ext_x lp bm NoA MWF SafeB fid') ->
       (forall fid', mem_id fid' sids = true ->
                     call_pres_act lp bm NoA MWF fid') ->
       (forall fid', mem_id fid' tids = true ->
@@ -8003,7 +8548,7 @@ Section ActWriterRows.
       (forall fid', mem_id fid' wids = true ->
                     call_pres_act lp bm NoA MWF fid') ->
       (forall fid', mem_id fid' xids = true ->
-                    call_pres_ext lp bm NoA MWF fid') ->
+                    call_pres_ext_x lp bm NoA MWF SafeB fid') ->
       (forall fid', mem_id fid' sids = true ->
                     call_pres_act2 lp bm NoA MWF fid') ->
       (forall fid', mem_id fid' tids = true ->
@@ -8106,7 +8651,7 @@ Section ActWriterRows.
       (forall fid', mem_id fid' wids = true ->
                     call_pres_act lp bm NoA MWF fid') ->
       (forall fid', mem_id fid' xids = true ->
-                    call_pres_ext lp bm NoA MWF fid') ->
+                    call_pres_ext_x lp bm NoA MWF SafeB fid') ->
       (forall fid', mem_id fid' sids = true ->
                     call_pres_act lp bm NoA MWF fid') ->
       (forall fid', mem_id fid' tids = true ->
@@ -8149,7 +8694,7 @@ Section ActWriterRows.
       (forall fid', mem_id fid' wids = true ->
                     call_pres_act lp bm NoA MWF fid') ->
       (forall fid', mem_id fid' xids = true ->
-                    call_pres_ext lp bm NoA MWF fid') ->
+                    call_pres_ext_x lp bm NoA MWF SafeB fid') ->
       (forall fid', mem_id fid' sids = true ->
                     call_pres_act lp bm NoA MWF fid') ->
       (forall fid', mem_id fid' tids = true ->
@@ -8259,7 +8804,7 @@ Section ActWriterRows.
       (forall fid', mem_id fid' wids = true ->
                     call_pres_act lp bm NoA MWF fid') ->
       (forall fid', mem_id fid' xids = true ->
-                    call_pres_ext lp bm NoA MWF fid') ->
+                    call_pres_ext_x lp bm NoA MWF SafeB fid') ->
       (forall fid', mem_id fid' sids = true ->
                     call_pres_act lp bm NoA MWF fid') ->
       wwalk_chk true wact ids wids cact xids sids nil (fn_body f) = true ->
@@ -8410,7 +8955,7 @@ Section ActWriterRows.
       (forall fid', mem_id fid' wids = true ->
                     call_pres_act lp bm NoA MWF fid') ->
       (forall fid', mem_id fid' xids = true ->
-                    call_pres_ext lp bm NoA MWF fid') ->
+                    call_pres_ext_x lp bm NoA MWF SafeB fid') ->
       (forall fid', mem_id fid' sids = true ->
                     call_pres_act lp bm NoA MWF fid') ->
       wwalk_chk true wact ids wids cact xids sids nil (fn_body f) = true ->
@@ -8574,7 +9119,7 @@ Section ActWriterRows.
       (forall fid', mem_id fid' wids = true ->
                     call_pres_act lp bm NoA MWF fid') ->
       (forall fid', mem_id fid' xids = true ->
-                    call_pres_ext lp bm NoA MWF fid') ->
+                    call_pres_ext_x lp bm NoA MWF SafeB fid') ->
       (forall fid', mem_id fid' sids = true ->
                     call_pres_act lp bm NoA MWF fid') ->
       wwalk_chk true wact ids wids cact xids sids nil (fn_body f) = true ->
@@ -8728,7 +9273,7 @@ Section ActWriterRows.
       (forall fid', mem_id fid' wids = true ->
                     call_pres_act lp bm NoA MWF fid') ->
       (forall fid', mem_id fid' xids = true ->
-                    call_pres_ext lp bm NoA MWF fid') ->
+                    call_pres_ext_x lp bm NoA MWF SafeB fid') ->
       (forall fid', mem_id fid' sids = true ->
                     call_pres_act lp bm NoA MWF fid') ->
       wwalk_chk true wact ids wids cact xids sids nil (fn_body f) = true ->
@@ -8852,7 +9397,7 @@ Section ActWriterRows.
       (forall fid', mem_id fid' wids = true ->
                     call_pres_act lp bm NoA MWF fid') ->
       (forall fid', mem_id fid' xids = true ->
-                    call_pres_ext lp bm NoA MWF fid') ->
+                    call_pres_ext_x lp bm NoA MWF SafeB fid') ->
       (forall fid', mem_id fid' sids = true ->
                     call_pres_act lp bm NoA MWF fid') ->
       wwalk_chk false wact ids wids cact xids sids nil (fn_body f) = true ->
@@ -8983,7 +9528,7 @@ Section ActWriterRows.
       (forall fid', mem_id fid' wids = true ->
                     call_pres_act lp bm NoA MWF fid') ->
       (forall fid', mem_id fid' xids = true ->
-                    call_pres_ext lp bm NoA MWF fid') ->
+                    call_pres_ext_x lp bm NoA MWF SafeB fid') ->
       (forall fid', mem_id fid' sids = true ->
                     call_pres_act lp bm NoA MWF fid') ->
       wwalk_chk false wact ids wids cact xids sids nil (fn_body f) = true ->
@@ -9107,7 +9652,7 @@ Section ActWriterRows.
       (forall fid', mem_id fid' wids = true ->
                     call_pres_act lp bm NoA MWF fid') ->
       (forall fid', mem_id fid' xids = true ->
-                    call_pres_ext lp bm NoA MWF fid') ->
+                    call_pres_ext_x lp bm NoA MWF SafeB fid') ->
       (forall fid', mem_id fid' sids = true ->
                     call_pres_act lp bm NoA MWF fid') ->
       wwalk_chk false wact ids wids cact xids sids nil (fn_body f) = true ->
@@ -9234,7 +9779,7 @@ Section ActWriterRows.
       (forall fid', mem_id fid' wids = true ->
                     call_pres_act lp bm NoA MWF fid') ->
       (forall fid', mem_id fid' xids = true ->
-                    call_pres_ext lp bm NoA MWF fid') ->
+                    call_pres_ext_x lp bm NoA MWF SafeB fid') ->
       (forall fid', mem_id fid' sids = true ->
                     call_pres_act lp bm NoA MWF fid') ->
       wwalk_chk' nil nil nil nil (mario._accel :: nil) nil false
@@ -9368,7 +9913,7 @@ Section ActWriterRows.
       (forall fid', mem_id fid' wids = true ->
                     call_pres_act lp bm NoA MWF fid') ->
       (forall fid', mem_id fid' xids = true ->
-                    call_pres_ext lp bm NoA MWF fid') ->
+                    call_pres_ext_x lp bm NoA MWF SafeB fid') ->
       (forall fid', mem_id fid' sids = true ->
                     call_pres_act lp bm NoA MWF fid') ->
       (forall fid', mem_id fid' np3_ids = true ->
@@ -9504,7 +10049,7 @@ Section ActWriterRows.
       (forall fid', mem_id fid' wids = true ->
                     call_pres_act lp bm NoA MWF fid') ->
       (forall fid', mem_id fid' xids = true ->
-                    call_pres_ext lp bm NoA MWF fid') ->
+                    call_pres_ext_x lp bm NoA MWF SafeB fid') ->
       (forall fid', mem_id fid' sids = true ->
                     call_pres_act lp bm NoA MWF fid') ->
       (forall fid', mem_id fid' tids = true ->

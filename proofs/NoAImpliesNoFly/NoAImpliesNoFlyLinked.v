@@ -862,21 +862,68 @@ Section NoARealInputMWF.
     call_pres_ext_wol lp bm (NoA_real bm) MWF SafeB
       mario_actions_automatic._f32_find_wall_collision.
   Proof. eapply SurfaceBodies.Hwolcp_fwc_proved; sb_row. Qed.
-  Hypothesis Hscp_v3f :
+  (* chase-root soundness: PROVED (ActWriterSurface.chase_root_sound_proved) *)
+  Lemma Hcrs_real : chase_root_sound lp bm MWF SafeB.
+  Proof.
+    exact (chase_root_sound_proved lp LO_mario bm MWF
+             (mwf_real_window lp bm bc oc0 SafeB Hbc_bm HSafeB_not_bm
+                Hgms_blk Hgtimer_blk Htable_blk Hktab_blk)
+             (mwf_real_glob lp bm bc oc0 SafeB Hbc_bm Hglob_blk)
+             (mwf_real_act_store lp bm bc oc0 SafeB Hbc_bm HSafeB_not_bm
+                Hgms_blk Hgtimer_blk Htable_blk Hktab_blk)
+             SafeB HSafeB_not_bm
+             (mwf_real_chase_root lp bm bc oc0 SafeB)
+             (mwf_real_root_store lp bm bc oc0 SafeB Hbc_bm HSafeB_not_bm
+                Hgms_blk Hgtimer_blk Htable_blk Hktab_blk)).
+  Qed.
+  (* THE DESTINATION-GATED WRITER ROWS (dg, 2026-10-17).  The four math_util
+     vector writers write ONLY through arg0; dg gates arg0 on the three dst
+     kinds every real call site uses (SafeB object chase / 12-store-safe Mario
+     window / caller stack local).  They REPLACE the false any-argument
+     obj_ext entries and the false 4-byte-window wol row; the old sc / w1 / wl
+     rows are now DERIVED below (call_pres_ext_{sc,w1,wl}_of_dg). *)
+  Hypothesis Hdg_v3f_real :
+    call_pres_ext_dg lp bm (NoA_real bm) MWF SafeB
+      mario_actions_automatic._vec3f_copy.
+  Hypothesis Hdg_v3s_real :
+    call_pres_ext_dg lp bm (NoA_real bm) MWF SafeB
+      mario_actions_automatic._vec3s_set.
+  Hypothesis Hdg_v3fset_real :
+    call_pres_ext_dg lp bm (NoA_real bm) MWF SafeB
+      mario_actions_automatic._vec3f_set.
+  Hypothesis Hdg_v3scopy_real :
+    call_pres_ext_dg lp bm (NoA_real bm) MWF SafeB mario._vec3s_copy.
+  (* anim_spline_poll(result) writes through result (jumbo_star_cutscene_
+     flying's stack-local targetPos): the same dg class *)
+  Hypothesis Hdg_spoll_real :
+    call_pres_ext_dg lp bm (NoA_real bm) MWF SafeB
+      mario_actions_cutscene._anim_spline_poll.
+  (* mtxf_align_terrain_triangle(mtx, pos, yaw, radius) writes the 4x4
+     matrix ONLY through mtx: sc-gated (mtx in a SafeB block).  Its one
+     real site passes &sFloorAlignMatrix[unk00] (Hsfam_safe), checked by
+     MovingLeafSurface.awf_mtx_gate.  Replaces the FALSE any-argument
+     mov_ext entry. *)
+  Hypothesis Hscp_mtxf_real :
+    call_pres_ext_sc lp bm (NoA_real bm) MWF SafeB
+      mario_actions_moving._mtxf_align_terrain_triangle.
+  Lemma Hscp_v3f :
     call_pres_ext_sc lp bm (NoA_real bm) MWF SafeB
       mario_actions_automatic._vec3f_copy.
-  Hypothesis Hscp_v3s :
+  Proof. exact (call_pres_ext_sc_of_dg _ _ _ _ _ _ Hdg_v3f_real). Qed.
+  Lemma Hscp_v3s :
     call_pres_ext_sc lp bm (NoA_real bm) MWF SafeB
       mario_actions_automatic._vec3s_set.
+  Proof. exact (call_pres_ext_sc_of_dg _ _ _ _ _ _ Hdg_v3s_real). Qed.
   (* act_debug_free_move's vec3f_copy(pos, m->pos): dst = a STACK-LOCAL array,
      src = m->pos (a bm-window READ).  Neither sc (dst not SafeB), w1 (dst not a
      window), nor ol (src not local) fits; the TIGHT sound boundary is wl --
      arg0 (the written dst) is local, src unconstrained (vec3f_copy writes ONLY
      through arg0).  Distinct from the wol row (whose 4-byte window gate would
      be UNSOUND for vec3f_copy's 12-byte write through a window dst). *)
-  Hypothesis Hwlcp_v3f_real :
+  Lemma Hwlcp_v3f_real :
     call_pres_ext_wl lp bm (NoA_real bm) MWF SafeB
       mario_actions_automatic._vec3f_copy.
+  Proof. exact (call_pres_ext_wl_of_dg _ _ _ _ _ _ Hdg_v3f_real). Qed.
 
   (* ---- the surviving per-symbol residuals, now stated at the CONCRETE
      invariant MWF_real (same shapes as the v2 section's; see the
@@ -1187,9 +1234,10 @@ Section NoARealInputMWF.
      internal body anywhere) -- the same honest terminal external-call-model
      boundary as vec3f_set's m->vel window (Hw1cp_v3fset_real), same w1 gate,
      here for the 6-byte angleVel write. *)
-  Hypothesis Hw1cp_v3sset_real :
+  Lemma Hw1cp_v3sset_real :
     call_pres_ext_w1 lp bm (NoA_real bm) MWF
       mario._vec3s_set.
+  Proof. exact (call_pres_ext_w1_of_dg _ _ _ _ _ _ Hdg_v3s_real). Qed.
   (* SLICE 13 (throw/punch pair): the four swimming helpers + the throw/grab
      helpers are honest INTERNAL residuals (all internal in their TUs),
      dischargeable by walking their bodies later.  The three terminal
@@ -1387,8 +1435,12 @@ Section NoARealInputMWF.
        - retrieve_animation_index: writes through its last arg &animIndex (a
          local stack block)            -> call_pres_ext_oc (last_arg_local).
      decompose, not collapse. *)
-  Hypothesis Hscp_geo_real :
-    call_pres_ext_sc lp bm (NoA_real bm) MWF SafeB
+  (* geo_update_animation_frame(obj, accelAssist) writes ONLY through
+     accelAssist (graph_node.c:797,834).  The old sc row (arg0 SafeB, arg1
+     FREE) was FALSE against the real body; the geo gate pins arg1 = NULL,
+     the one real call site's shape (mario.c:187), checked at the site. *)
+  Hypothesis Hgeo_real :
+    call_pres_ext_geo lp bm (NoA_real bm) MWF SafeB
       mario._geo_update_animation_frame.
   Hypothesis Hocp_rai_real :
     call_pres_ext_oc lp bm (NoA_real bm) MWF SafeB
@@ -1438,37 +1490,32 @@ Section NoARealInputMWF.
     call_pres_ext_ol lp bm (NoA_real bm) MWF SafeB
       mario._find_wall_collisions.
   Proof. eapply SurfaceBodies.Holcp_fwc_proved; sb_row. Qed.
-  Hypothesis Hw1cp_v3f_real :
+  Lemma Hw1cp_v3f_real :
     call_pres_ext_w1 lp bm (NoA_real bm) MWF
       mario_actions_automatic._vec3f_copy.
-  (* vec3f_copy(_startPos, m->pos) in act_walking: dst = arg0 = the caller's
-     _startPos stack-local array, src = arg1 = m->pos (a safe bm-window, action
-     cell @12 clear).  vec3f_copy writes ONLY through its dst (arg0); here the
-     dst is a LOCAL, not a window, so the honest gate is the UNION gate (wol:
-     every ptr arg window-or-local) -- STRICTLY MORE PERMISSIVE than the w1
-     gate Hw1cp_v3f_real above (which only covers a window dst).  Same
-     EF_external-in-every-TU terminal-external boundary as vec3f_copy / vec3f_set
-     above; one extra honest row for the local-dst call shape. *)
-  Hypothesis Hwolcp_v3f_real :
-    call_pres_ext_wol lp bm (NoA_real bm) MWF SafeB
-      mario_actions_automatic._vec3f_copy.
+  Proof. exact (call_pres_ext_w1_of_dg _ _ _ _ _ _ Hdg_v3f_real). Qed.
+  (* (the old wol row for vec3f_copy(_startPos, m->pos) was FALSE -- its
+     4-byte window gate admits a 12-byte copy over the action cell; the
+     act_walking site now rides the local-dst wl row, derived from dg.) *)
   (* vec3f_set(m->vel, 0, 0, 0) -- act_in_cannon's one special store site:
      writes ONLY through its dst = &m->vel, a 12-byte safe bm-window
      (vel @72; action cell @12 clear).  vec3f_set is EF_external in EVERY
      generated TU (no internal body anywhere) -- the same honest terminal
      external-call-model boundary as vec3f_copy above, same w1 gate. *)
-  Hypothesis Hw1cp_v3fset_real :
+  Lemma Hw1cp_v3fset_real :
     call_pres_ext_w1 lp bm (NoA_real bm) MWF
       mario_actions_automatic._vec3f_set.
+  Proof. exact (call_pres_ext_w1_of_dg _ _ _ _ _ _ Hdg_v3fset_real). Qed.
   (* SLICE A29: vec3f_set called with dst = marioObj->header.gfx.pos -- a SafeB
      object-pool CHASE dst -- in act_riding_hoot.  vec3f_set is EF_external in
      EVERY generated TU; the SAME honest terminal external-call-model boundary
      as Hscp_v3f (vec3f_copy) / Hscp_v3s (vec3s_set), gated on its pointer arg
      landing in the SafeB chase pool (the sc class).  Distinct from
      Hw1cp_v3fset_real above (the w1/window class for the m->vel dst). *)
-  Hypothesis Hscp_v3fset_real :
+  Lemma Hscp_v3fset_real :
     call_pres_ext_sc lp bm (NoA_real bm) MWF SafeB
       mario_actions_automatic._vec3f_set.
+  Proof. exact (call_pres_ext_sc_of_dg _ _ _ _ _ _ Hdg_v3fset_real). Qed.
   (* act_tornado_twirling is now WALKED (AutomaticLeafSurface's hybrid twl
      walker: the generic wwalk census + bespoke discharges for its two
      special call sites).  Its vec3f_copy(m->pos, nextPos) site rides the
@@ -1628,8 +1675,9 @@ Section NoARealInputMWF.
                 aut_local_store
                 (Hpres_obj_ext mario._sqrtf eq_refl)
                 (Hpres_obj_ext interaction._atan2s eq_refl))
-             (Hpres_obj_ext mario_step._vec3f_copy eq_refl)
-             (Hpres_obj_ext mario._vec3s_set eq_refl)).
+             Hcrs_real
+             Hdg_v3f_real
+             Hdg_v3s_real).
   Qed.
 
   (* find_floor_slope (mario.prog): the slope reader common_swimming_step calls
@@ -2272,10 +2320,11 @@ Section NoARealInputMWF.
              (mwf_real_safe_valid lp bm bc oc0 SafeB)
              Hglob_valid
              aut_local_store
+             Hcrs_real
              Hcp_pgqs_real
              Hcp_mgtsa_real
-             (Hpres_obj_ext mario_step._vec3f_copy eq_refl)
-             (Hpres_obj_ext mario_step._vec3s_set eq_refl)).
+             Hdg_v3f_real
+             Hdg_v3s_real).
   Qed.
 
   (* apply_vertical_wind, WALKED zero-residual (PerformAirStepSurface.avw_*
@@ -2492,9 +2541,7 @@ Section NoARealInputMWF.
              Hocp_find_floor
              Hocp_find_ceil
              Hxcp_fwl_real
-             (call_pres_ext_ol_of_wol lp bm (NoA_real bm)
-                (MWF_real lp bm bc oc0 SafeB) SafeB
-                mario_actions_automatic._vec3f_copy Hwolcp_v3f_real)
+             Hwlcp_v3f_real
              Hw1cp_v3f_real
              (Hpres_obj_ext mario_step._atan2s eq_refl)
              Hcp_clg_real).
@@ -2519,12 +2566,13 @@ Section NoARealInputMWF.
              (mwf_real_safe_valid lp bm bc oc0 SafeB)
              Hglob_valid
              aut_local_store
+             Hcrs_real
              Hcp_paqs_real
              Hcp_mgtsa_real
              Hcp_ag
              Hcp_avw
-             (Hpres_obj_ext mario_step._vec3f_copy eq_refl)
-             (Hpres_obj_ext mario_step._vec3s_set eq_refl)).
+             Hdg_v3f_real
+             Hdg_v3s_real).
   Qed.
 
   (* THE caas KEYSTONE, PROVED (was Hypothesis Hcp_caas_real): the body of
@@ -2667,8 +2715,8 @@ Section NoARealInputMWF.
                          preservation lemma the cannon umbi arc is built on. *)
                       (mwf_real_umbi lp bm bc oc0 SafeB Hbc_bm HSafeB_not_bm
                          Hgms_blk Hgtimer_blk Htable_blk Hktab_blk)
-                      (Hpres_obj_ext mario_step._vec3f_copy eq_refl)
-                      (Hpres_obj_ext mario._vec3s_set eq_refl)
+                      Hdg_v3f_real
+                      Hdg_v3s_real
                       (Hpres_obj_ext mario._load_patchable_table eq_refl)
                       (Hpres_obj_ext mario._play_sound eq_refl)
                       Hpres_sta_ext
@@ -2782,7 +2830,7 @@ Section NoARealInputMWF.
                          HSafeB_not_bm HSafeB_not_bc Hgms_blk Hgtimer_blk Htable_blk Hktab_blk)
                       (* ALIGN-WITH-FLOOR: sFloorAlignMatrix is SafeB (positive
                          per-symbol reach-closure fact -- act_crawling walked). *)
-                      Hsfam_safe
+                      Hsfam_safe Hscp_mtxf_real
                       (Hpres_obj_ext mario._sqrtf eq_refl)
                       (Hpres_obj_ext mario._play_sound eq_refl)
                       (Hpres_obj_ext mario._load_patchable_table eq_refl)
@@ -2791,6 +2839,8 @@ Section NoARealInputMWF.
                       (* SLICE M3: the obj_ext boundary the set_jumping_action
                          arc reaches (atan2s/approach_s32 + dasma trio). *)
                       Hpres_obj_ext
+                      (* the dst-gated writer rows (dg) *)
+                      Hdg_v3s_real Hdg_v3f_real
                       (* LANDING KEYSTONE: the clc walk's two MWF rows --
                          ktab-load-untainted + input-A-clear (NO new trust). *)
                       (mwf_real_ktab lp bm bc oc0 SafeB)
@@ -2809,13 +2859,13 @@ Section NoARealInputMWF.
                          out-param kit -- HSafeValid / HGlobValid / Hls_real /
                          find_floor (oc) / find_wall_collisions (ol) -- all
                          shared with the automatic family (NO new trust), plus
-                         the ONE new honest vec3f_copy wol row (local dst). *)
+                         the vec3f_copy local-dst wl row (derived from dg). *)
                       (mwf_real_safe_valid lp bm bc oc0 SafeB)
                       Hglob_valid
                       aut_local_store
                       Hocp_find_floor
                       Holcp_fwc_real
-                      Hwolcp_v3f_real
+                      Hwlcp_v3f_real
                       Hpres_mov_rest)
                    Hpres_qsand)
                 (airborne_pres lp LO_mario LO_air bm (NoA_real bm)
@@ -2846,6 +2896,7 @@ Section NoARealInputMWF.
                          HSafeB_not_bm HSafeB_not_bc Hgms_blk Hgtimer_blk Htable_blk Hktab_blk)
                       (Hpres_obj_ext mario._play_sound eq_refl)
                       Hpres_obj_ext
+                      Hdg_v3s_real Hdg_v3f_real
                       Hcp_caas_real
                       (Hpres_obj_ext mario._sqrtf eq_refl)
                       (Hpres_obj_ext mario._atan2s eq_refl)
@@ -2887,8 +2938,7 @@ Section NoARealInputMWF.
                          MWF rows (fn_vars=nil: mwf_real_alloc/free, PROVED
                          terms, no new trust).  airborne_rest_ids is now nil
                          => Hpres_air_rest DISCHARGED (vacuous rest). *)
-                      Hscp_v3s
-                      Hscp_v3fset_real
+                      Hdg_v3fset_real
                       Hw1cp_v3fset_real
                       (mwf_real_alloc lp bm bc oc0 SafeB Hbc_bm)
                       (fun m l m' Hf HM =>
@@ -3044,8 +3094,8 @@ Section NoARealInputMWF.
                          Hcpx_approach_f32_real covers it -- NO Hcpx_af32_real. *)
                       (Hpres_obj_ext mario_actions_submerged._sqrtf eq_refl)
                       (Hpres_obj_ext mario_actions_submerged._atan2s eq_refl)
-                      (Hpres_obj_ext mario_actions_submerged._vec3f_copy eq_refl)
-                      (Hpres_obj_ext mario_actions_submerged._vec3s_set eq_refl)
+                      Hdg_v3f_real
+                      Hdg_v3s_real
                       (* SLICE 12/14 ws walker externals (tstw + cwj bodies):
                          set_camera_mode rides the obj_ext boundary (NO new
                          trust); the angleVel vec3s_set window is the ONE new
@@ -3077,8 +3127,8 @@ Section NoARealInputMWF.
                          HSafeB_not_bc Hgms_blk Hgtimer_blk Htable_blk Hktab_blk)
                       (Hpres_obj_ext mario._play_sound eq_refl)
                       (Hpres_obj_ext mario._load_patchable_table eq_refl)
-                      (Hpres_obj_ext mario._vec3f_copy eq_refl)
-                      (Hpres_obj_ext mario._vec3s_set eq_refl)
+                      Hdg_v3f_real
+                      Hdg_v3s_real
                       (call_pres_of_body lp bm (NoA_real bm)
                          (MWF_real lp bm bc oc0 SafeB)
                          (mwf_real_ctl lp bm bc oc0 SafeB)
@@ -3160,7 +3210,7 @@ Section NoARealInputMWF.
                       (Hpres_obj_ext interaction._save_file_get_flags eq_refl)
                       (Hpres_obj_ext interaction._save_file_set_flags eq_refl)
                       (Hpres_obj_ext mario._sqrtf eq_refl)
-                      (Hpres_obj_ext mario._vec3f_set eq_refl)
+                      Hdg_v3fset_real
                       Hcp_pgs
                       (mwf_real_alloc lp bm bc oc0 SafeB Hbc_bm)
                       (fun m l m' Hf HM =>
@@ -3174,7 +3224,7 @@ Section NoARealInputMWF.
                       Hglob_valid
                       aut_local_store
                       (Hpres_obj_ext interaction._segmented_to_virtual eq_refl)
-                      Hscp_geo_real
+                      Hgeo_real
                       Hocp_rai_real
                       (* SLICE 22 (check_for_instant_quicksand): dasma's two
                          extra externals ride obj_ext_ids; update_mario_sound_
@@ -3219,7 +3269,7 @@ Section NoARealInputMWF.
                       (* SLICE 24 (act_credits_cutscene): vec3s_copy + the two
                          cutscene HUD/viewport externals all ride obj_ext_ids
                          (newly added there) -- NO new capstone hypothesis. *)
-                      (Hpres_obj_ext mario._vec3s_copy eq_refl)
+                      Hdg_v3scopy_real
                       (Hpres_obj_ext mario_actions_cutscene._override_viewport_and_clip
                          eq_refl)
                       (Hpres_obj_ext mario_actions_cutscene._reset_cutscene_msg_fade
@@ -3232,7 +3282,7 @@ Section NoARealInputMWF.
                          the A-clear halfword; mwf_real_input preserves it under an
                          OR-store whose const has bit 2 clear) -- NO new trust. *)
                       (Hpres_obj_ext mario_actions_cutscene._anim_spline_init eq_refl)
-                      (Hpres_obj_ext mario_actions_cutscene._anim_spline_poll eq_refl)
+                      Hdg_spoll_real
                       (mwf_real_inp lp bm bc oc0 SafeB)
                       (mwf_real_input lp bm bc oc0 SafeB Hbc_bm HSafeB_not_bm
                          Hgms_blk Hgtimer_blk Htable_blk Hktab_blk)
@@ -3244,8 +3294,8 @@ Section NoARealInputMWF.
                          resolve_and_return_wall_collisions all-local call (ol,
                          the SHARED walked-resolve body reused from automatic).
                          Only Hwlcp_v3f_real is new trust. *)
-                      Hscp_v3f
-                      Hscp_v3s
+                      Hdg_v3f_real
+                      Hdg_v3s_real
                       Hw1cp_v3f_real
                       Hwlcp_v3f_real
                       Hocp_find_floor
@@ -3300,10 +3350,10 @@ Section NoARealInputMWF.
                          mid-frame fact act_in_cannon's fire-gate kill
                          consumes.  NO new trust. *)
                       (mwf_real_inp lp bm bc oc0 SafeB)
-                      (Hpres_obj_ext mario._vec3s_set eq_refl)
+                      Hdg_v3s_real
                       (Hpres_obj_ext mario._set_camera_mode eq_refl)
                       (Hpres_obj_ext mario._load_patchable_table eq_refl)
-                      (Hpres_obj_ext mario_step._vec3f_copy eq_refl)
+                      Hdg_v3f_real
                       (Hpres_obj_ext mario._play_sound eq_refl)
                       (* ledge cluster: find_floor as a FAITHFUL out-param
                          writer (call_pres_ext_oc, gated on local out-param)
@@ -3317,8 +3367,8 @@ Section NoARealInputMWF.
                       (call_pres_ext_wc_of_wol lp bm (NoA_real bm) MWF SafeB
                          mario_actions_automatic._f32_find_wall_collision
                          Hwolcp_fwc)
-                      Hscp_v3f
-                      Hscp_v3s
+                      Hdg_v3f_real
+                      Hdg_v3s_real
                       (* tornado: f32_find_wall_collision's stack-local
                          (&nextPos[i]) call shape -- the ol gate *)
                       (call_pres_ext_ol_of_wol lp bm (NoA_real bm) MWF SafeB
@@ -3342,7 +3392,7 @@ Section NoARealInputMWF.
                          (famft_body_pres_oc2); its oc2 residual decomposed into
                          these two terminal EXTERNAL writers (geo_update via arg0
                          SafeB, retrieve_animation_index via &animIndex local). *)
-                      Hscp_geo_real
+                      Hgeo_real
                       Hocp_rai_real
                       (* B11: update_hang_moving WALKED; its two honest leaf
                          callees (approach_s32 ext + perform_hanging_step mo).
@@ -3382,8 +3432,8 @@ Section NoARealInputMWF.
                          HSafeB_not_bm HSafeB_not_bc Hgms_blk
                          Hgtimer_blk Htable_blk Hktab_blk)
                       (Hpres_obj_ext mario._play_sound eq_refl)
-                      (Hpres_obj_ext mario._vec3s_set eq_refl)
-                      (Hpres_obj_ext mario_step._vec3f_copy eq_refl)
+                      Hdg_v3s_real
+                      Hdg_v3f_real
                       (Hpres_obj_ext mario._set_camera_mode eq_refl)
                       (Hpres_obj_ext interaction._segmented_to_virtual
                          eq_refl)

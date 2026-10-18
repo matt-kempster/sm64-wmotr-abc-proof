@@ -1680,8 +1680,14 @@ Example air_gp_vars : fn_vars A.f_act_ground_pound = nil.
 Proof. vm_compute. reflexivity. Qed.
 Example air_gp_pok : air_pok A.f_act_ground_pound = true.
 Proof. vm_compute. reflexivity. Qed.
+(* the vec3f_copy(m->marioObj->header.gfx.pos, ..) dst chase temp *)
+Definition air_gp_cact : list ident := A._t'23 :: nil.
+Example air_gp_nonparam :
+  forallb (fun t' => negb (mem_id t' (map fst (fn_params A.f_act_ground_pound))))
+    air_gp_cact = true.
+Proof. vm_compute. reflexivity. Qed.
 Example air_gp_walk :
-  wwalk_chk false nil air_gp_ids nil nil air_gp_xids air_gp_sids nil
+  wwalk_chk false nil air_gp_ids nil air_gp_cact air_gp_xids air_gp_sids nil
     (fn_body A.f_act_ground_pound) = true.
 Proof. vm_compute. reflexivity. Qed.
 
@@ -1756,6 +1762,12 @@ Section AirborneLeafRows.
      The capstone supplies its own Hpres_obj_ext verbatim. *)
   Hypothesis Hpres_obj_ext : forall fid,
       mem_id fid obj_ext_ids = true -> call_pres_ext lp bm NoA MWF fid.
+  (* the dst-gated writers (dst = a SafeB chase / a stack local): dg rows,
+     discharged at the capstone from the real bodies *)
+  Hypothesis Hdgp_v3s :
+    call_pres_ext_dg lp bm NoA MWF SafeB A._vec3s_set.
+  Hypothesis Hdgp_v3f :
+    call_pres_ext_dg lp bm NoA MWF SafeB A._vec3f_copy.
 
   (* ==================================================================== *)
   (* Reused rows.                                                         *)
@@ -1790,7 +1802,7 @@ Section AirborneLeafRows.
   (* set_water_plunge_action (call_pres) row.                             *)
   (* ==================================================================== *)
   Lemma air_swpa_xids_rows : forall fid, mem_id fid air_swpa_xids = true ->
-      call_pres_ext lp bm NoA MWF fid.
+      call_pres_ext_x lp bm NoA MWF SafeB fid.
   Proof.
     intros fid H. unfold air_swpa_xids in H. cbn [mem_id existsb] in H.
     apply orb_true_iff in H as [Hm | H];
@@ -1798,7 +1810,7 @@ Section AirborneLeafRows.
         exact (Hpres_obj_ext mario._set_camera_mode eq_refl) | ].
     apply orb_true_iff in H as [Hm | H];
       [ apply Pos.eqb_eq in Hm; subst fid;
-        exact (Hpres_obj_ext mario._vec3s_set eq_refl) | ].
+        exact Hdgp_v3s | ].
     discriminate H.
   Qed.
 
@@ -1859,7 +1871,7 @@ Section AirborneLeafRows.
   (* play_far_fall_sound (the peak-fall audio cue).                       *)
   (* ==================================================================== *)
   Lemma air_pffs_xids_rows : forall fid, mem_id fid air_pffs_xids = true ->
-      call_pres_ext lp bm NoA MWF fid.
+      call_pres_ext_x lp bm NoA MWF SafeB fid.
   Proof.
     intros fid H. unfold air_pffs_xids in H. cbn [mem_id existsb] in H.
     apply orb_true_iff in H as [Hm | H];
@@ -1949,9 +1961,9 @@ Section AirborneLeafRows.
 
   (* SLICE A29 (act_riding_hoot) scaffold: the OBJECT-writer (sc) +
      window (w1) externals its bespoke hybrid walker consumes.
-     - Hscp_v3s / Hscp_v3fset: vec3s_set / vec3f_set whose dst chases
-       m->marioObj into the SafeB object pool (call_pres_ext_sc, the
-       same honest external boundary as the automatic family's Hscp_v3f
+     - Hdgp_v3s / Hdgp_v3fset: vec3s_set / vec3f_set whose dst chases
+       m->marioObj into the SafeB object pool (call_pres_ext_dg, the
+       same honest external boundary as the automatic family's Hdgp_v3f
        vec3f_copy; capstone supplies Hscp_v3s_real / NEW Hscp_v3fset_real).
      - Hw1cp_v3fset: vec3f_set(m->vel, 0,0,0) -- dst is Mario's OWN vel
        window (call_pres_ext_w1, gated on arg0 landing in bm's safe
@@ -1960,10 +1972,8 @@ Section AirborneLeafRows.
        hoot has fn_vars = nil, so both fire only on the trivial no-fresh-
        block case).  Discharge at the capstone from MWFReal
        (mwf_real_alloc / mwf_real_free) -- PROVED terms, NOT new trust. *)
-  Hypothesis Hscp_v3s :
-    call_pres_ext_sc lp bm NoA MWF SafeB A._vec3s_set.
-  Hypothesis Hscp_v3fset :
-    call_pres_ext_sc lp bm NoA MWF SafeB A._vec3f_set.
+  Hypothesis Hdgp_v3fset :
+    call_pres_ext_dg lp bm NoA MWF SafeB A._vec3f_set.
   Hypothesis Hw1cp_v3fset :
     call_pres_ext_w1 lp bm NoA MWF A._vec3f_set.
   Hypothesis HMWF_alloc : forall m lo hi m' b,
@@ -2100,7 +2110,7 @@ Section AirborneLeafRows.
   Qed.
 
   Lemma air_lj_xids_rows : forall fid, mem_id fid air_lj_xids = true ->
-      call_pres_ext lp bm NoA MWF fid.
+      call_pres_ext_x lp bm NoA MWF SafeB fid.
   Proof.
     intros fid H. unfold air_lj_xids in H. cbn [mem_id existsb] in H.
     apply orb_true_iff in H as [Hm | H];
@@ -2161,7 +2171,7 @@ Section AirborneLeafRows.
   (* SLICE A4: play_flip_sounds cluster (triple_jump / backflip).         *)
   (* ==================================================================== *)
   Lemma air_pfs_xids_rows : forall fid, mem_id fid air_pfs_xids = true ->
-      call_pres_ext lp bm NoA MWF fid.
+      call_pres_ext_x lp bm NoA MWF SafeB fid.
   Proof.
     intros fid H. unfold air_pfs_xids in H. cbn [mem_id existsb] in H.
     apply orb_true_iff in H as [Hm | H];
@@ -2310,7 +2320,7 @@ Section AirborneLeafRows.
   (* ---- set_mario_animation (deep 2-hop chase cact, sole ext lpt) ---- *)
   Lemma air_sma_xids_rows :
     forall fid, mem_id fid StationaryLeafSurface.sta_sma_xids = true ->
-      call_pres_ext lp bm NoA MWF fid.
+      call_pres_ext_x lp bm NoA MWF SafeB fid.
   Proof.
     intros fid H. unfold StationaryLeafSurface.sta_sma_xids in H.
     cbn [mem_id existsb] in H.
@@ -2391,7 +2401,7 @@ Section AirborneLeafRows.
 
   (* ---- check_horizontal_wind (sqrtf + atan2s) ---- *)
   Lemma air_chw_xids_rows : forall fid, mem_id fid air_chw_xids = true ->
-      call_pres_ext lp bm NoA MWF fid.
+      call_pres_ext_x lp bm NoA MWF SafeB fid.
   Proof.
     intros fid H. unfold air_chw_xids in H. cbn [mem_id existsb] in H.
     apply orb_true_iff in H as [Hm | H];
@@ -2426,7 +2436,7 @@ Section AirborneLeafRows.
     discriminate H.
   Qed.
   Lemma air_uawt_xids_rows : forall fid, mem_id fid air_uawt_xids = true ->
-      call_pres_ext lp bm NoA MWF fid.
+      call_pres_ext_x lp bm NoA MWF SafeB fid.
   Proof.
     intros fid H. unfold air_uawt_xids in H. cbn [mem_id existsb] in H.
     apply orb_true_iff in H as [Hm | H];
@@ -2485,7 +2495,7 @@ Section AirborneLeafRows.
     discriminate H.
   Qed.
   Lemma air_lbow_xids_rows : forall fid, mem_id fid air_lbow_xids = true ->
-      call_pres_ext lp bm NoA MWF fid.
+      call_pres_ext_x lp bm NoA MWF SafeB fid.
   Proof.
     intros fid H. unfold air_lbow_xids in H. cbn [mem_id existsb] in H.
     apply orb_true_iff in H as [Hm | H];
@@ -2787,7 +2797,7 @@ Section AirborneLeafRows.
     discriminate H.
   Qed.
   Lemma air_mbr_xids_rows : forall fid, mem_id fid air_mbr_xids = true ->
-      call_pres_ext lp bm NoA MWF fid.
+      call_pres_ext_x lp bm NoA MWF SafeB fid.
   Proof.
     intros fid H. unfold air_mbr_xids in H. cbn [mem_id existsb] in H.
     apply orb_true_iff in H as [Hm | H];
@@ -2867,7 +2877,7 @@ Section AirborneLeafRows.
     discriminate H.
   Qed.
   Lemma air_wj_xids_rows : forall fid, mem_id fid air_wj_xids = true ->
-      call_pres_ext lp bm NoA MWF fid.
+      call_pres_ext_x lp bm NoA MWF SafeB fid.
   Proof.
     intros fid H. unfold air_wj_xids in H. cbn [mem_id existsb] in H.
     apply orb_true_iff in H as [Hm | H];
@@ -2975,7 +2985,7 @@ Section AirborneLeafRows.
      so the old air_tk_ids row is no longer needed.  air_tfw_xids_rows is
      KEPT (act_slide_kick below reuses air_tfw_xids = [atan2s]). *)
   Lemma air_tfw_xids_rows : forall fid, mem_id fid air_tfw_xids = true ->
-      call_pres_ext lp bm NoA MWF fid.
+      call_pres_ext_x lp bm NoA MWF SafeB fid.
   Proof.
     intros fid H. unfold air_tfw_xids in H. cbn [mem_id existsb] in H.
     apply orb_true_iff in H as [Hm | H];
@@ -3158,7 +3168,7 @@ Section AirborneLeafRows.
     discriminate H.
   Qed.
   Lemma air_twl_xids_rows : forall fid, mem_id fid air_twl_xids = true ->
-      call_pres_ext lp bm NoA MWF fid.
+      call_pres_ext_x lp bm NoA MWF SafeB fid.
   Proof.
     intros fid H. unfold air_twl_xids in H. cbn [mem_id existsb] in H.
     apply orb_true_iff in H as [Hm | H];
@@ -3257,7 +3267,7 @@ Section AirborneLeafRows.
     discriminate H.
   Qed.
   Lemma air_cfd_xids_rows : forall fid, mem_id fid air_cfd_xids = true ->
-      call_pres_ext lp bm NoA MWF fid.
+      call_pres_ext_x lp bm NoA MWF SafeB fid.
   Proof.
     intros fid H. unfold air_cfd_xids in H. cbn [mem_id existsb] in H.
     apply orb_true_iff in H as [Hm | H];
@@ -3305,7 +3315,7 @@ Section AirborneLeafRows.
     discriminate H.
   Qed.
   Lemma air_cfdgs_xids_rows : forall fid, mem_id fid air_cfdgs_xids = true ->
-      call_pres_ext lp bm NoA MWF fid.
+      call_pres_ext_x lp bm NoA MWF SafeB fid.
   Proof.
     intros fid H. unfold air_cfdgs_xids in H. cbn [mem_id existsb] in H.
     apply orb_true_iff in H as [Hm | H];
@@ -3759,7 +3769,7 @@ Section AirborneLeafRows.
   Qed.
 
   Lemma cakbs_cons_xids_rows : forall fid, mem_id fid cakbs_cons_xids = true ->
-      call_pres_ext lp bm NoA MWF fid.
+      call_pres_ext_x lp bm NoA MWF SafeB fid.
   Proof.
     intros fid H. unfold cakbs_cons_xids in H. cbn [mem_id existsb] in H.
     apply orb_true_iff in H as [Hm | H];
@@ -4229,7 +4239,7 @@ Section AirborneLeafRows.
     discriminate H.
   Qed.
   Lemma air_dive_xids_rows : forall fid, mem_id fid air_dive_xids = true ->
-      call_pres_ext lp bm NoA MWF fid.
+      call_pres_ext_x lp bm NoA MWF SafeB fid.
   Proof.
     intros fid H. unfold air_dive_xids in H. cbn [mem_id existsb] in H.
     apply orb_true_iff in H as [Hm | H];
@@ -4286,7 +4296,7 @@ Section AirborneLeafRows.
     discriminate H.
   Qed.
   Lemma air_vw_xids_rows : forall fid, mem_id fid air_vw_xids = true ->
-      call_pres_ext lp bm NoA MWF fid.
+      call_pres_ext_x lp bm NoA MWF SafeB fid.
   Proof.
     intros fid H. unfold air_vw_xids in H. cbn [mem_id existsb] in H.
     apply orb_true_iff in H as [Hm | H];
@@ -4362,7 +4372,7 @@ Section AirborneLeafRows.
     discriminate H.
   Qed.
   Lemma air_lb_xids_rows : forall fid, mem_id fid air_lb_xids = true ->
-      call_pres_ext lp bm NoA MWF fid.
+      call_pres_ext_x lp bm NoA MWF SafeB fid.
   Proof.
     intros fid H. unfold air_lb_xids in H. cbn [mem_id existsb] in H.
     apply orb_true_iff in H as [Hm | H];
@@ -4443,12 +4453,12 @@ Section AirborneLeafRows.
     discriminate H.
   Qed.
   Lemma air_gp_xids_rows : forall fid, mem_id fid air_gp_xids = true ->
-      call_pres_ext lp bm NoA MWF fid.
+      call_pres_ext_x lp bm NoA MWF SafeB fid.
   Proof.
     intros fid H. unfold air_gp_xids in H. cbn [mem_id existsb] in H.
     apply orb_true_iff in H as [Hm | H];
       [ apply Pos.eqb_eq in Hm; subst fid;
-        exact (Hpres_obj_ext A._vec3f_copy eq_refl) | ].
+        exact Hdgp_v3f | ].
     apply orb_true_iff in H as [Hm | H];
       [ apply Pos.eqb_eq in Hm; subst fid; exact Hcpx_psound | ].
     apply orb_true_iff in H as [Hm | H];
@@ -4468,12 +4478,12 @@ Section AirborneLeafRows.
   Qed.
   Lemma air_gp_pres : body_pres lp NoA MWF bm A.f_act_ground_pound.
   Proof.
-    apply (body_pres_of_wwalk lp LO_mario bm NoA MWF HNoA_of_MWF
+    apply (body_pres_of_wwalk_cact lp LO_mario bm NoA MWF HNoA_of_MWF
              HMWF_window HMWF_glob HMWF_act SafeB HSafeNotBm HchaseRoot
              HMWF_chase HMWF_root HMWF_sglob HchaseStep HMWF_chase_safe
              A.f_act_ground_pound
-             air_gp_ids nil air_gp_xids air_gp_sids nil
-             air_gp_vars air_gp_pok).
+             air_gp_ids nil air_gp_cact air_gp_xids air_gp_sids nil
+             air_gp_vars air_gp_pok air_gp_nonparam).
     - exact air_gp_ids_rows.
     - intros fid' H. discriminate H.
     - exact air_gp_xids_rows.
@@ -4737,13 +4747,13 @@ Section AirborneLeafRows.
   Qed.
   Lemma rh_sc_rows :
     forall fid, mem_id fid rh_sc = true ->
-                call_pres_ext_sc lp bm NoA MWF SafeB fid.
+                call_pres_ext_dg lp bm NoA MWF SafeB fid.
   Proof.
     intros fid H. unfold rh_sc in H. cbn [mem_id existsb] in H.
     apply orb_true_iff in H as [Hm | H];
-      [ apply Pos.eqb_eq in Hm; subst fid; exact Hscp_v3s | ].
+      [ apply Pos.eqb_eq in Hm; subst fid; exact Hdgp_v3s | ].
     apply orb_true_iff in H as [Hm | H];
-      [ apply Pos.eqb_eq in Hm; subst fid; exact Hscp_v3fset | ].
+      [ apply Pos.eqb_eq in Hm; subst fid; exact Hdgp_v3fset | ].
     discriminate H.
   Qed.
 

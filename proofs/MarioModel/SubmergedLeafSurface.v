@@ -287,7 +287,9 @@ Definition whirl_xids : list ident :=
     :: mario_actions_submerged._vec3f_copy
     :: mario_actions_submerged._vec3s_set :: nil.
 Definition whirl_cact : list ident :=
-  mario_actions_submerged._marioObj :: mario_actions_submerged._whirlpool :: nil.
+  mario_actions_submerged._marioObj :: mario_actions_submerged._whirlpool
+  (* the m->marioObj dst chases of vec3f_copy / vec3s_set(gfx.pos/angle) *)
+  :: mario_actions_submerged._t'8 :: mario_actions_submerged._t'6 :: nil.
 
 (* the WALKED leaves. *)
 Definition sub_walked_ids : list ident :=
@@ -418,8 +420,15 @@ Example sub_sashf_pok :
   | nil => false
   end = true.
 Proof. vm_compute. reflexivity. Qed.
+(* the marioObj chase temp (vec3f_copy / vec3s_set dst) *)
+Definition sub_sashf_cact : list ident := mario_step._marioObj :: nil.
+Example sub_sashf_nonparam :
+  forallb (fun t' => negb (mem_id t'
+    (map fst (fn_params mario_step.f_stop_and_set_height_to_floor))))
+    sub_sashf_cact = true.
+Proof. vm_compute. reflexivity. Qed.
 Example sub_sashf_walk :
-  wwalk_chk false nil sub_sashf_ids nil nil sub_sashf_xids nil nil
+  wwalk_chk false nil sub_sashf_ids nil sub_sashf_cact sub_sashf_xids nil nil
     (fn_body mario_step.f_stop_and_set_height_to_floor) = true.
 Proof. vm_compute. reflexivity. Qed.
 
@@ -2249,9 +2258,9 @@ Section SubmergedLeafRows.
   Hypothesis Hcpx_atan2s :
     call_pres_ext lp bm NoA MWF mario_actions_submerged._atan2s.
   Hypothesis Hcpx_v3fc :
-    call_pres_ext lp bm NoA MWF mario_actions_submerged._vec3f_copy.
+    OutParamSurface.call_pres_ext_dg lp bm NoA MWF SafeB mario_actions_submerged._vec3f_copy.
   Hypothesis Hcpx_v3ss :
-    call_pres_ext lp bm NoA MWF mario_actions_submerged._vec3s_set.
+    OutParamSurface.call_pres_ext_dg lp bm NoA MWF SafeB mario_actions_submerged._vec3s_set.
 
   (* the keystone, instantiated once: set_mario_action is call_pres_act. *)
   Let Hsmact : call_pres_act lp bm NoA MWF mario._set_mario_action :=
@@ -2475,7 +2484,7 @@ Section SubmergedLeafRows.
 
   (* ---- census rows ---- *)
   Lemma swk_xids_rows :
-    forall fid, mem_id fid swk_xids = true -> call_pres_ext lp bm NoA MWF fid.
+    forall fid, mem_id fid swk_xids = true -> call_pres_ext_x lp bm NoA MWF SafeB fid.
   Proof.
     intros fid H. unfold swk_xids in H. cbn [mem_id existsb] in H.
     apply orb_true_iff in H as [Hm | H];
@@ -2858,7 +2867,7 @@ Section SubmergedLeafRows.
      (Hcpx_v3fc/Hcpx_v3ss, already assumed by the whirlpool slice) discharges
      them, NO new trust.  The SAME walk as AutomaticLeafSurface.Hsasthf. *)
   Lemma sub_sashf_xids_rows :
-    forall fid, mem_id fid sub_sashf_xids = true -> call_pres_ext lp bm NoA MWF fid.
+    forall fid, mem_id fid sub_sashf_xids = true -> call_pres_ext_x lp bm NoA MWF SafeB fid.
   Proof.
     intros fid H. unfold sub_sashf_xids in H. cbn [mem_id existsb] in H.
     apply orb_true_iff in H as [Hm | H];
@@ -2878,13 +2887,14 @@ Section SubmergedLeafRows.
   Lemma sub_sashf_row :
     call_pres lp bm NoA MWF mario_step._stop_and_set_height_to_floor.
   Proof.
-    apply (call_pres_of_wwalk lp LO_mario bm NoA MWF HNoA_of_MWF
+    apply (call_pres_of_wwalk_cact lp LO_mario bm NoA MWF HNoA_of_MWF
              HMWF_window HMWF_glob HMWF_act SafeB HSafeNotBm HchaseRoot
              HMWF_chase HMWF_root HMWF_sglob HchaseStep HMWF_chase_safe
              mario_step.prog mario_step._stop_and_set_height_to_floor
              mario_step.f_stop_and_set_height_to_floor
-             sub_sashf_ids nil sub_sashf_xids nil
-             LO_mario_step sub_sashf_pin sub_sashf_vars sub_sashf_pok).
+             sub_sashf_ids nil sub_sashf_cact sub_sashf_xids nil
+             LO_mario_step sub_sashf_pin sub_sashf_vars sub_sashf_pok
+             sub_sashf_nonparam).
     - exact sub_sashf_ids_rows.
     - intros fid' H. discriminate H.
     - exact sub_sashf_xids_rows.
@@ -2906,7 +2916,7 @@ Section SubmergedLeafRows.
   Qed.
 
   Lemma sub_sma_xids_rows : forall fid, mem_id fid sub_sma_xids = true ->
-      call_pres_ext lp bm NoA MWF fid.
+      call_pres_ext_x lp bm NoA MWF SafeB fid.
   Proof.
     intros fid H. unfold sub_sma_xids in H. cbn [mem_id existsb] in H.
     apply orb_true_iff in H as [Hm | H];
@@ -2950,7 +2960,7 @@ Section SubmergedLeafRows.
   (* update_swimming_yaw: window stores + ONE approach_s32 external (xids), which
      reuses the SHARED obj_ext boundary (Hcpx_approach) -- NO new trust. *)
   Lemma sub_usy_xids_rows : forall fid, mem_id fid sub_usy_xids = true ->
-      call_pres_ext lp bm NoA MWF fid.
+      call_pres_ext_x lp bm NoA MWF SafeB fid.
   Proof.
     intros fid H. unfold sub_usy_xids in H. cbn [mem_id existsb] in H.
     apply orb_true_iff in H as [Hm | H];
@@ -3064,7 +3074,7 @@ Section SubmergedLeafRows.
   Qed.
 
   Lemma sub_ssd_xids_rows : forall fid, mem_id fid sub_ssd_xids = true ->
-      call_pres_ext lp bm NoA MWF fid.
+      call_pres_ext_x lp bm NoA MWF SafeB fid.
   Proof.
     intros fid H. unfold sub_ssd_xids in H. cbn [mem_id existsb] in H.
     apply orb_true_iff in H as [Hm | H];
@@ -3095,7 +3105,7 @@ Section SubmergedLeafRows.
   (* play_swimming_noise: NO stores; lone call play_sound (Hcpx_psound, obj_ext)
      -> xids=[play_sound].  No new trust. *)
   Lemma sub_psn_xids_rows : forall fid, mem_id fid sub_psn_xids = true ->
-      call_pres_ext lp bm NoA MWF fid.
+      call_pres_ext_x lp bm NoA MWF SafeB fid.
   Proof.
     intros fid H. unfold sub_psn_xids in H. cbn [mem_id existsb] in H.
     apply orb_true_iff in H as [Hm | H];
@@ -3232,7 +3242,7 @@ Section SubmergedLeafRows.
   Qed.
 
   Lemma sub_css_xids_rows : forall fid, mem_id fid css_xids = true ->
-      call_pres_ext lp bm NoA MWF fid.
+      call_pres_ext_x lp bm NoA MWF SafeB fid.
   Proof.
     intros fid H. unfold css_xids in H. cbn [mem_id existsb] in H.
     apply orb_true_iff in H as [Hm | H];
@@ -3385,7 +3395,7 @@ Section SubmergedLeafRows.
   (* update_metal_water_walking_speed: window stores; xids=[approach_s32]
      (Hcpx_approach).  No new trust. *)
   Lemma sub_umwws_xids_rows : forall fid, mem_id fid sub_umwws_xids = true ->
-      call_pres_ext lp bm NoA MWF fid.
+      call_pres_ext_x lp bm NoA MWF SafeB fid.
   Proof.
     intros fid H. unfold sub_umwws_xids in H. cbn [mem_id existsb] in H.
     apply orb_true_iff in H as [Hm | H];
@@ -3414,7 +3424,7 @@ Section SubmergedLeafRows.
   (* update_metal_water_jump_speed: window stores; xids=[approach_f32]
      (Hcpx_af32).  No new trust. *)
   Lemma sub_umwjs_xids_rows : forall fid, mem_id fid sub_umwjs_xids = true ->
-      call_pres_ext lp bm NoA MWF fid.
+      call_pres_ext_x lp bm NoA MWF SafeB fid.
   Proof.
     intros fid H. unfold sub_umwjs_xids in H. cbn [mem_id existsb] in H.
     apply orb_true_iff in H as [Hm | H];
@@ -3501,7 +3511,7 @@ Section SubmergedLeafRows.
     discriminate H.
   Qed.
   Lemma cis_xids_rows : forall fid, mem_id fid cis_xids = true ->
-      call_pres_ext lp bm NoA MWF fid.
+      call_pres_ext_x lp bm NoA MWF SafeB fid.
   Proof.
     intros fid H. unfold cis_xids in H. cbn [mem_id existsb] in H.
     apply orb_true_iff in H as [Hm | H];
@@ -3635,7 +3645,7 @@ Section SubmergedLeafRows.
   Qed.
 
   Lemma sub_shock_xids_rows : forall fid, mem_id fid sub_shock_xids = true ->
-      call_pres_ext lp bm NoA MWF fid.
+      call_pres_ext_x lp bm NoA MWF SafeB fid.
   Proof.
     intros fid H. unfold sub_shock_xids in H. cbn [mem_id existsb] in H.
     apply orb_true_iff in H as [Hm | H];
@@ -3675,7 +3685,7 @@ Section SubmergedLeafRows.
   Qed.
 
   Lemma sub_ccsc_xids_rows : forall fid, mem_id fid sub_ccsc_xids = true ->
-      call_pres_ext lp bm NoA MWF fid.
+      call_pres_ext_x lp bm NoA MWF SafeB fid.
   Proof.
     intros fid H. unfold sub_ccsc_xids in H. cbn [mem_id existsb] in H.
     apply orb_true_iff in H as [Hm | H];
@@ -4003,7 +4013,7 @@ Section SubmergedLeafRows.
   Qed.
 
   Lemma sub_tp_xids_rows : forall fid, mem_id fid sub_tp_xids = true ->
-      call_pres_ext lp bm NoA MWF fid.
+      call_pres_ext_x lp bm NoA MWF SafeB fid.
   Proof.
     intros fid H. unfold sub_tp_xids in H. cbn [mem_id existsb] in H.
     apply orb_true_iff in H as [Hm | H];
@@ -4223,7 +4233,7 @@ Section SubmergedLeafRows.
   Qed.
 
   Lemma swim_xids_rows : forall fid, mem_id fid swim_xids = true ->
-      call_pres_ext lp bm NoA MWF fid.
+      call_pres_ext_x lp bm NoA MWF SafeB fid.
   Proof.
     intros fid H. unfold swim_xids in H. cbn [mem_id existsb] in H.
     apply orb_true_iff in H as [Hm | H];
@@ -4252,7 +4262,7 @@ Section SubmergedLeafRows.
   Qed.
 
   Lemma wp_xids_rows : forall fid, mem_id fid wp_xids = true ->
-      call_pres_ext lp bm NoA MWF fid.
+      call_pres_ext_x lp bm NoA MWF SafeB fid.
   Proof.
     intros fid H. unfold wp_xids in H. cbn [mem_id existsb] in H.
     apply orb_true_iff in H as [Hm | H];
@@ -4272,7 +4282,7 @@ Section SubmergedLeafRows.
   Qed.
 
   Lemma whirl_xids_rows : forall fid, mem_id fid whirl_xids = true ->
-      call_pres_ext lp bm NoA MWF fid.
+      call_pres_ext_x lp bm NoA MWF SafeB fid.
   Proof.
     intros fid H. unfold whirl_xids in H. cbn [mem_id existsb] in H.
     apply orb_true_iff in H as [Hm | H];

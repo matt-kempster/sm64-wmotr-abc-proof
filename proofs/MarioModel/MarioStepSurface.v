@@ -77,17 +77,12 @@ Definition pgs_call_chk (fid : ident) (fty : type) (al : list expr) : bool :=
          | Etempvar mp tmp :: nil =>
              Pos.eqb mp mario_step._m && proj_sumbool (type_eq tmp tyMSstp)
          | _ => false
-         end)
-  || (Pos.eqb fid mario_step._vec3f_copy
-      && proj_sumbool
-           (type_eq fty
-              (Tfunction (tptr tfloat :: tptr tfloat :: nil) (tptr tvoid)
-                 cc_default)))
-  || (Pos.eqb fid mario_step._vec3s_set
-      && proj_sumbool
-           (type_eq fty
-              (Tfunction (tptr tshort :: tshort :: tshort :: tshort :: nil)
-                 (tptr tvoid) cc_default))).
+         end).
+
+(* the dst-gated writers: reached only as chase-headed units
+   (t := m->marioObj; writer(&t->header.gfx.F, ..)) -- chase_writer_chk *)
+Definition pgs_wl : list ident :=
+  mario_step._vec3f_copy :: mario_step._vec3s_set :: nil.
 
 Definition pgs_optid_ok (optid : option ident) : bool :=
   match optid with
@@ -99,7 +94,8 @@ Fixpoint pgs_chk (s : statement) : bool :=
   match s with
   | Sskip | Sbreak | Scontinue => true
   | Sreturn _ => true
-  | Ssequence s1 s2 => pgs_chk s1 && pgs_chk s2
+  | Ssequence s1 s2 =>
+      chase_writer_chk pgs_wl (Ssequence s1 s2) || (pgs_chk s1 && pgs_chk s2)
   | Sifthenelse _ s1 s2 => pgs_chk s1 && pgs_chk s2
   | Sloop s1 s2 => pgs_chk s1 && pgs_chk s2
   | Sset id _ => pgs_optid_ok (Some id)
@@ -148,15 +144,18 @@ Section PgsSurface.
       local_blk lp bm SafeB b ->
       Mem.store ch m b d v = Some m' -> MWF m -> MWF m'.
 
+  (* chase-root soundness (ActWriterSurface.chase_root_sound_proved) *)
+  Hypothesis Hcrs : chase_root_sound lp bm MWF SafeB.
+
   (* the callee rows *)
   Hypothesis Hcp_pgqs :
     call_pres_mo lp bm NoA MWF SafeB mario_step._perform_ground_quarter_step.
   Hypothesis Hcp_mgtsa :
     call_pres lp bm NoA MWF mario_step._mario_get_terrain_sound_addend.
   Hypothesis Hcpx_v3f :
-    call_pres_ext lp bm NoA MWF mario_step._vec3f_copy.
+    OutParamSurface.call_pres_ext_dg lp bm NoA MWF SafeB mario_step._vec3f_copy.
   Hypothesis Hcpx_v3s :
-    call_pres_ext lp bm NoA MWF mario_step._vec3s_set.
+    OutParamSurface.call_pres_ext_dg lp bm NoA MWF SafeB mario_step._vec3s_set.
 
   (* ---- decoders ---- *)
   Lemma pgs_assign_decode :
@@ -197,17 +196,9 @@ Section PgsSurface.
             :: Evar mario_step._intendedPos (tarray tfloat 3) :: nil)
       \/ (fid = mario_step._mario_get_terrain_sound_addend /\
           fty = Tfunction (tyMSstp :: nil) tuint cc_default /\
-          al = Etempvar mario_step._m tyMSstp :: nil)
-      \/ (fid = mario_step._vec3f_copy /\
-          fty = Tfunction (tptr tfloat :: tptr tfloat :: nil) (tptr tvoid)
-                  cc_default)
-      \/ (fid = mario_step._vec3s_set /\
-          fty = Tfunction (tptr tshort :: tshort :: tshort :: tshort :: nil)
-                  (tptr tvoid) cc_default).
+          al = Etempvar mario_step._m tyMSstp :: nil).
   Proof.
     intros fid fty al H. unfold pgs_call_chk in H.
-    apply orb_true_iff in H as [H | Hv3s].
-    apply orb_true_iff in H as [H | Hv3f].
     apply orb_true_iff in H as [Hpgqs | Hmgtsa].
     - left.
       apply andb_true_iff in Hpgqs as [H12 Hal].
@@ -231,7 +222,7 @@ Section PgsSurface.
       destruct (type_eq tq (tarray tfloat 3)) as [E2 | ];
         [ subst tq | discriminate Htq ].
       reflexivity.
-    - right; left.
+    - right.
       apply andb_true_iff in Hmgtsa as [H12 Hal].
       apply andb_true_iff in H12 as [Hfid Hfty].
       apply Pos.eqb_eq in Hfid.
@@ -245,21 +236,27 @@ Section PgsSurface.
       apply Pos.eqb_eq in Hmp; subst mp.
       destruct (type_eq tmp tyMSstp) as [E1 | ]; [ subst tmp | discriminate Htmp ].
       reflexivity.
-    - do 2 right; left.
-      apply andb_true_iff in Hv3f as [Hfid Hfty].
-      apply Pos.eqb_eq in Hfid.
-      destruct (type_eq fty
-                  (Tfunction (tptr tfloat :: tptr tfloat :: nil) (tptr tvoid)
-                     cc_default)) as [Efty | ]; [ | discriminate Hfty ].
-      exact (conj Hfid Efty).
-    - do 3 right.
-      apply andb_true_iff in Hv3s as [Hfid Hfty].
-      apply Pos.eqb_eq in Hfid.
-      destruct (type_eq fty
-                  (Tfunction (tptr tshort :: tshort :: tshort :: tshort :: nil)
-                     (tptr tvoid) cc_default)) as [Efty | ];
-        [ | discriminate Hfty ].
-      exact (conj Hfid Efty).
+  Qed.
+
+  Lemma pgs_wl_none : forall (e : env),
+      e ! mario_step._vec3f_copy = None -> e ! mario_step._vec3s_set = None ->
+      forall g, mem_id g pgs_wl = true -> e ! g = None.
+  Proof.
+    intros e H1 H2 g Hg. cbn [pgs_wl mem_id existsb] in Hg.
+    apply orb_true_iff in Hg as [Hg | Hg];
+      [ apply Pos.eqb_eq in Hg; subst g; exact H1 | ].
+    apply orb_true_iff in Hg as [Hg | Hg];
+      [ apply Pos.eqb_eq in Hg; subst g; exact H2 | discriminate Hg ].
+  Qed.
+
+  Lemma pgs_wl_rows : forall g, mem_id g pgs_wl = true ->
+      OutParamSurface.call_pres_ext_dg lp bm NoA MWF SafeB g.
+  Proof.
+    intros g Hg. cbn [pgs_wl mem_id existsb] in Hg.
+    apply orb_true_iff in Hg as [Hg | Hg];
+      [ apply Pos.eqb_eq in Hg; subst g; exact Hcpx_v3f | ].
+    apply orb_true_iff in Hg as [Hg | Hg];
+      [ apply Pos.eqb_eq in Hg; subst g; exact Hcpx_v3s | discriminate Hg ].
   Qed.
 
   (* ---- the pgqs gate: arg0 = Etempvar _m under the conditional marg,
@@ -463,9 +460,7 @@ Section PgsSurface.
             rewrite Pos.eqb_refl in Hopt; discriminate Hopt). exact (Hm b o Hg).
         - exact Hm. }
       destruct (pgs_call_decode _ _ _ Hcc)
-        as [ (Hfeq & Hftyeq & Haleq)
-           | [ (Hfeq & Hftyeq & Haleq)
-             | [ (Hfeq & Hftyeq) | (Hfeq & Hftyeq) ] ] ];
+        as [ (Hfeq & Hftyeq & Haleq) | (Hfeq & Hftyeq & Haleq) ];
         subst fid fty.
       + (* perform_ground_quarter_step(m, intendedPos): the mo helper *)
         subst al.
@@ -485,30 +480,31 @@ Section PgsSurface.
                     tuint cc_default e le m _ _ m' _
                     Hmgtsa Hex Hcp_mgtsa Hm Hc) as (Hc' & _).
         exact (conj Hc' HmL).
-      + (* vec3f_copy: ungated obj_ext external *)
-        destruct Hc as (HV & HS & HM & HN).
-        destruct (kit_scallx_pres lp bm NoA MWF optid mario_step._vec3f_copy
-                    (tptr tfloat :: tptr tfloat :: nil) (tptr tvoid) cc_default
-                    al e le m _ _ m' _ Hv3f Hex Hcpx_v3f HN HM HV HS)
-          as (HV' & HS' & HM' & HN' & _ & _).
-        exact (conj (conj HV' (conj HS' (conj HM' HN'))) HmL).
-      + (* vec3s_set: ungated obj_ext external *)
-        destruct Hc as (HV & HS & HM & HN).
-        destruct (kit_scallx_pres lp bm NoA MWF optid mario_step._vec3s_set
-                    (tptr tshort :: tshort :: tshort :: tshort :: nil)
-                    (tptr tvoid) cc_default
-                    al e le m _ _ m' _ Hv3s Hex Hcpx_v3s HN HM HV HS)
-          as (HV' & HS' & HM' & HN' & _ & _).
-        exact (conj (conj HV' (conj HS' (conj HM' HN'))) HmL).
     - (* Sbuiltin: rejected *)
       cbn [pgs_chk] in Hchk. discriminate Hchk.
     - (* Sseq_1 *)
-      cbn [pgs_chk] in Hchk. apply andb_true_iff in Hchk as [H1 H2].
-      destruct (IHHexec1 H1 Hpgqs Hmgtsa Hv3f Hv3s Hip Hm Hc) as (Hc1 & Hm1).
-      exact (IHHexec2 H2 Hpgqs Hmgtsa Hv3f Hv3s Hip Hm1 Hc1).
+      cbn [pgs_chk] in Hchk. apply orb_true_iff in Hchk as [Hcw | Hchk].
+      + (* the chase-headed dst-gated writer unit *)
+        pose proof (exec_Sseq_1 _ _ _ _ _ _ _ _ _ _ _ _ _ _ Hexec1 Hexec2) as Hex.
+        destruct (chase_writer_chk_pres lp LO_mario bm NoA MWF SafeB pgs_wl
+                    _ _ _ _ _ _ _ _ Hcrs (pgs_wl_none _ Hv3f Hv3s) pgs_wl_rows
+                    Hm Hcw Hex Hc) as (Hc' & _ & Hm').
+        exact (conj Hc' Hm').
+      + apply andb_true_iff in Hchk as [H1 H2].
+        destruct (IHHexec1 H1 Hpgqs Hmgtsa Hv3f Hv3s Hip Hm Hc) as (Hc1 & Hm1).
+        exact (IHHexec2 H2 Hpgqs Hmgtsa Hv3f Hv3s Hip Hm1 Hc1).
     - (* Sseq_2 (s1 aborts) *)
-      cbn [pgs_chk] in Hchk. apply andb_true_iff in Hchk as [H1 _].
-      exact (IHHexec H1 Hpgqs Hmgtsa Hv3f Hv3s Hip Hm Hc).
+      cbn [pgs_chk] in Hchk. apply orb_true_iff in Hchk as [Hcw | Hchk].
+      + match goal with
+        | Hn : ?o <> Out_normal |- _ =>
+            pose proof (exec_Sseq_2 _ _ _ _ _ _ s2 _ _ _ _ Hexec Hn) as Hex
+        end.
+        destruct (chase_writer_chk_pres lp LO_mario bm NoA MWF SafeB pgs_wl
+                    _ _ _ _ _ _ _ _ Hcrs (pgs_wl_none _ Hv3f Hv3s) pgs_wl_rows
+                    Hm Hcw Hex Hc) as (Hc' & _ & Hm').
+        exact (conj Hc' Hm').
+      + apply andb_true_iff in Hchk as [H1 _].
+        exact (IHHexec H1 Hpgqs Hmgtsa Hv3f Hv3s Hip Hm Hc).
     - (* Sifthenelse *)
       cbn [pgs_chk] in Hchk. apply andb_true_iff in Hchk as [H1 H2].
       apply IHHexec; try assumption.

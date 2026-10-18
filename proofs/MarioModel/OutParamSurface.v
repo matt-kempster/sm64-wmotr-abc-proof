@@ -1090,6 +1090,155 @@ Section OutParamArc.
   Qed.
 
   (* ====================================================================== *)
+  (* THE DESTINATION-GATED WRITER CLASS (dg, 2026-10-17).  The math_util    *)
+  (* vector writers (vec3f_copy / vec3f_set / vec3s_set / vec3s_copy,       *)
+  (* anim_spline_poll) write ONLY through their first argument.  Every real *)
+  (* call site's destination is one of three kinds: an Object field (SafeB), *)
+  (* a Mario window field with 12 store-safe bytes, or a caller stack local. *)
+  (* dg is the union gate.  It replaces the any-argument call_pres_ext rows *)
+  (* (FALSE: a destination at Mario's action cell breaks action_sat) and the *)
+  (* 4-byte-window wol row for vec3f_copy (FALSE: store_window_ok 8 4 holds *)
+  (* and the 12-byte copy from offset 8 covers the action cell).  The       *)
+  (* sc / w1 / wl rows are its three weakenings.                            *)
+  (* ====================================================================== *)
+  Definition arg0_dg (vargs : list val) : Prop :=
+    arg0_safe vargs \/ arg0_window vargs \/ arg0_local vargs.
+
+  Definition call_pres_ext_dg (fid : ident) : Prop :=
+    forall fd m0 vargs0 t0 m1 vres0,
+      eval_funcall function_entry2 (lp_ge lp) m0 fd vargs0 t0 m1 vres0 ->
+      resolves_lp fid fd ->
+      arg0_dg vargs0 ->
+      NoA m0 -> MWF m0 -> Mem.valid_block m0 bm ->
+      action_sat not_tainted m0 bm ->
+      Mem.valid_block m1 bm /\ action_sat not_tainted m1 bm /\
+      MWF m1 /\ NoA m1.
+
+  Lemma call_pres_ext_sc_of_dg : forall fid,
+      call_pres_ext_dg fid -> call_pres_ext_sc fid.
+  Proof.
+    intros fid H fd m0 vargs0 t0 m1 vres0 Hev Hres Hg.
+    exact (H fd m0 vargs0 t0 m1 vres0 Hev Hres (or_introl Hg)).
+  Qed.
+  Lemma call_pres_ext_w1_of_dg : forall fid,
+      call_pres_ext_dg fid -> call_pres_ext_w1 fid.
+  Proof.
+    intros fid H fd m0 vargs0 t0 m1 vres0 Hev Hres Hg.
+    exact (H fd m0 vargs0 t0 m1 vres0 Hev Hres (or_intror (or_introl Hg))).
+  Qed.
+  Lemma call_pres_ext_wl_of_dg : forall fid,
+      call_pres_ext_dg fid -> call_pres_ext_wl fid.
+  Proof.
+    intros fid H fd m0 vargs0 t0 m1 vres0 Hev Hres Hg.
+    exact (H fd m0 vargs0 t0 m1 vres0 Hev Hres (or_intror (or_intror Hg))).
+  Qed.
+
+  (* THE CALL-SITE BRICK (mirror of sc_scall_pres / wl_scall_pres). *)
+  Lemma dg_scall_pres :
+    forall optid fid tyl rty cc args e le0 m0 tr le1 m1 out0,
+      e ! fid = None ->
+      call_pres_ext_dg fid ->
+      (forall vargs, eval_exprlist (lp_ge lp) e le0 m0 args tyl vargs ->
+                     arg0_dg vargs) ->
+      exec_stmt function_entry2 (lp_ge lp) e le0 m0
+        (Scall optid (Evar fid (Tfunction tyl rty cc)) args)
+        tr le1 m1 out0 ->
+      carried bm NoA MWF m0 ->
+      carried bm NoA MWF m1 /\ out0 = Out_normal.
+  Proof.
+    intros optid fid tyl rty cc args e le0 m0 tr le1 m1 out0
+           He Hdg Hgate Hexec Hc.
+    inv Hexec.
+    match goal with
+    | Hcf : classify_fun _ = fun_case_f _ _ _ |- _ =>
+        cbn in Hcf; injection Hcf as E1 E2 E3; subst
+    end.
+    match goal with
+    | Hv : eval_expr _ _ _ _ (Evar _ _) ?vf |- _ =>
+        destruct (eval_Evar_funct _ _ _ _ _ _ _ _ He Hv) as (bf & Hsym & ->)
+    end.
+    match goal with
+    | Hff : Genv.find_funct _ (Vptr bf Ptrofs.zero) = Some ?fd |- _ =>
+        assert (Hres : resolves_lp fid fd) by (exists bf; split; assumption)
+    end.
+    match goal with
+    | Hvl : eval_exprlist _ _ _ _ _ _ ?vargs |- _ =>
+        pose proof (Hgate vargs Hvl) as Hga
+    end.
+    destruct Hc as (HV & HS & HM & HN).
+    match goal with
+    | Hevf : eval_funcall _ _ _ _ _ _ _ _ |- _ =>
+        destruct (Hdg _ _ _ _ _ _ Hevf Hres Hga HN HM HV HS)
+          as (HV' & HS' & HM' & HN')
+    end.
+    split; [ | reflexivity ].
+    split; [ exact HV' | split; [ exact HS' | split; [ exact HM' | exact HN' ] ] ].
+  Qed.
+
+  (* ====================================================================== *)
+  (* THE GEO GATE (2026-10-17).  geo_update_animation_frame(obj, accelAssist)*)
+  (* writes ONLY through accelAssist (graph_node.c:797,834) -- never through *)
+  (* obj.  The old sc row (arg0_safe alone) left accelAssist free, so it     *)
+  (* admitted accelAssist = &action-cell: FALSE against the real body.  The  *)
+  (* sole real site (mario.c:187) passes NULL, so the faithful gate is      *)
+  (* arg0 in SafeB AND arg1 = NULL (Vint 0 on this 32-bit target); under it *)
+  (* the body is read-only.                                                 *)
+  (* ====================================================================== *)
+  Definition arg_geo (vargs : list val) : Prop :=
+    exists b ofs rest, vargs = Vptr b ofs :: Vint Int.zero :: rest /\ SafeB b.
+
+  Definition call_pres_ext_geo (fid : ident) : Prop :=
+    forall fd m0 vargs0 t0 m1 vres0,
+      eval_funcall function_entry2 (lp_ge lp) m0 fd vargs0 t0 m1 vres0 ->
+      resolves_lp fid fd ->
+      arg_geo vargs0 ->
+      NoA m0 -> MWF m0 -> Mem.valid_block m0 bm ->
+      action_sat not_tainted m0 bm ->
+      Mem.valid_block m1 bm /\ action_sat not_tainted m1 bm /\
+      MWF m1 /\ NoA m1.
+
+  Lemma geo_scall_pres :
+    forall optid fid tyl rty cc args e le0 m0 tr le1 m1 out0,
+      e ! fid = None ->
+      call_pres_ext_geo fid ->
+      (forall vargs, eval_exprlist (lp_ge lp) e le0 m0 args tyl vargs ->
+                     arg_geo vargs) ->
+      exec_stmt function_entry2 (lp_ge lp) e le0 m0
+        (Scall optid (Evar fid (Tfunction tyl rty cc)) args)
+        tr le1 m1 out0 ->
+      carried bm NoA MWF m0 ->
+      carried bm NoA MWF m1 /\ out0 = Out_normal.
+  Proof.
+    intros optid fid tyl rty cc args e le0 m0 tr le1 m1 out0
+           He Hg Hgate Hexec Hc.
+    inv Hexec.
+    match goal with
+    | Hcf : classify_fun _ = fun_case_f _ _ _ |- _ =>
+        cbn in Hcf; injection Hcf as E1 E2 E3; subst
+    end.
+    match goal with
+    | Hv : eval_expr _ _ _ _ (Evar _ _) ?vf |- _ =>
+        destruct (eval_Evar_funct _ _ _ _ _ _ _ _ He Hv) as (bf & Hsym & ->)
+    end.
+    match goal with
+    | Hff : Genv.find_funct _ (Vptr bf Ptrofs.zero) = Some ?fd |- _ =>
+        assert (Hres : resolves_lp fid fd) by (exists bf; split; assumption)
+    end.
+    match goal with
+    | Hvl : eval_exprlist _ _ _ _ _ _ ?vargs |- _ =>
+        pose proof (Hgate vargs Hvl) as Hga
+    end.
+    destruct Hc as (HV & HS & HM & HN).
+    match goal with
+    | Hevf : eval_funcall _ _ _ _ _ _ _ _ |- _ =>
+        destruct (Hg _ _ _ _ _ _ Hevf Hres Hga HN HM HV HS)
+          as (HV' & HS' & HM' & HN')
+    end.
+    split; [ | reflexivity ].
+    split; [ exact HV' | split; [ exact HS' | split; [ exact HM' | exact HN' ] ] ].
+  Qed.
+
+  (* ====================================================================== *)
   (* geo_update_animation_frame's out-param: its dst arg is                  *)
   (* `&obj->header.gfx.animInfo` -- three AGGREGATE Efields over the         *)
   (* Ederef of the _obj temp.  Each aggregate Efield/Ederef hands back the   *)
@@ -1146,6 +1295,56 @@ Section OutParamArc.
     (* HE0 : eval_expr (Etempvar _obj) (Vptr loc o0) -> read its le binding *)
     apply eval_expr_Etempvar_val in HE0.
     do 3 eexists; split; [ reflexivity | exact HE0 ].
+  Qed.
+
+  (* the full geo gate at the real site: arg0 = &obj->..animInfo with _obj
+     SafeB-if-pointer, arg1 = (void* )0 -> arg_geo. *)
+  Lemma famft_geo_gate :
+    forall e le m vargs,
+      (forall b o, le ! mario._obj = Some (Vptr b o) -> SafeB b) ->
+      eval_exprlist (lp_ge lp) e le m
+        (Eaddrof
+          (Efield
+            (Efield
+              (Efield
+                (Ederef
+                  (Etempvar mario._obj (tptr (Tstruct mario._Object noattr)))
+                  (Tstruct mario._Object noattr))
+                mario._header (Tstruct mario._ObjectNode noattr))
+              mario._gfx (Tstruct mario._GraphNodeObject noattr))
+            mario._animInfo (Tstruct mario._AnimInfo noattr))
+          (tptr (Tstruct mario._AnimInfo noattr))
+         :: Ecast (Econst_int (Int.repr 0) tint) (tptr tvoid) :: nil)
+        (tptr (Tstruct mario._AnimInfo noattr) :: tptr tint :: nil) vargs ->
+      arg_geo vargs.
+  Proof.
+    intros e le m vargs Hobj Hvl.
+    inversion Hvl as [ | a1 bl1 ty1 tyl1 v1 v1c vl1 Hev1 Hsc1 Htl1 ];
+      subst; clear Hvl.
+    inversion Htl1 as [ | a2 bl2 ty2 tyl2 v2 v2c vl2 Hev2 Hsc2 Htl2 ];
+      subst; clear Htl1.
+    inversion Htl2; subst; clear Htl2.
+    (* arg1: (void* )0 cast to int* *)
+    inversion Hev2; subst; clear Hev2;
+      [ | match goal with
+          | H : eval_lvalue _ _ _ _ (Ecast _ _) _ _ _ |- _ => inversion H
+          end ].
+    match goal with
+    | Hk : eval_expr _ _ _ _ (Econst_int _ _) _ |- _ =>
+        inversion Hk; subst; clear Hk;
+        [ | match goal with
+            | H : eval_lvalue _ _ _ _ (Econst_int _ _) _ _ _ |- _ => inversion H
+            end ]
+    end.
+    match goal with
+    | Hcs : sem_cast (Vint _) _ (tptr tvoid) _ = Some _ |- _ =>
+        cbn in Hcs; injection Hcs as <-
+    end.
+    cbn in Hsc2. injection Hsc2 as <-.
+    (* arg0: the animInfo address in _obj's block *)
+    destruct (famft_geo_arg0_block e le m v1 Hev1) as (loc & o & oo & -> & Hg).
+    cbn in Hsc1. injection Hsc1 as <-.
+    exists loc, o, nil. split; [ reflexivity | exact (Hobj loc oo Hg) ].
   Qed.
 
   (* ====================================================================== *)

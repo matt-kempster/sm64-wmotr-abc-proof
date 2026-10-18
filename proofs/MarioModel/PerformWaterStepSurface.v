@@ -120,6 +120,10 @@ Definition pws_assign_chk (a1 : expr) : bool :=
      | _ => false
      end.
 
+(* the dst-gated writers: dst = the _marioObj chase (SafeB) or the _step
+   stack local -- recognized by sc_call_chk, rows call_pres_ext_dg *)
+Definition pws_wl : list ident := Sub._vec3f_copy :: Sub._vec3s_set :: nil.
+
 Definition pws_call_chk (fid : ident) (fty : type) (al : list expr) : bool :=
   (Pos.eqb fid Sub._apply_water_current
    && proj_sumbool (type_eq fty
@@ -141,13 +145,16 @@ Definition pws_call_chk (fid : ident) (fty : type) (al : list expr) : bool :=
              && proj_sumbool (type_eq tq (tarray tfloat 3))
          | _ => false
          end)
-  || (Pos.eqb fid Sub._vec3f_copy
-      && proj_sumbool (type_eq fty
-           (Tfunction (tptr tfloat :: tptr tfloat :: nil) (tptr tvoid) cc_default)))
-  || (Pos.eqb fid Sub._vec3s_set
-      && proj_sumbool (type_eq fty
-           (Tfunction (tptr tshort :: tshort :: tshort :: tshort :: nil)
-              (tptr tvoid) cc_default))).
+  || (mem_id fid pws_wl
+      && sc_call_chk (Sub._step :: nil) pws_wl (Sub._marioObj :: nil) fid fty al).
+
+(* the _marioObj chase temp (marioObj := m->marioObj at entry) is never the
+   target of a call result *)
+Definition pws_opt_nc (optid : option ident) : bool :=
+  match optid with
+  | Some id => negb (Pos.eqb id Sub._marioObj)
+  | None => true
+  end.
 
 Definition pws_optid_ok (optid : option ident) : bool :=
   match optid with
@@ -161,9 +168,12 @@ Fixpoint pws_chk (s : statement) : bool :=
   | Sreturn _ => true
   | Ssequence s1 s2 => pws_chk s1 && pws_chk s2
   | Sifthenelse _ s1 s2 => pws_chk s1 && pws_chk s2
-  | Sset id _ => pws_optid_ok (Some id)
+  | Sset id a =>
+      pws_optid_ok (Some id)
+      && (if Pos.eqb id Sub._marioObj then chase_root_chk a else true)
   | Sassign a1 _ => pws_assign_chk a1
-  | Scall optid (Evar fid fty) al => pws_optid_ok optid && pws_call_chk fid fty al
+  | Scall optid (Evar fid fty) al =>
+      pws_optid_ok optid && pws_opt_nc optid && pws_call_chk fid fty al
   | _ => false
   end.
 
@@ -681,10 +691,12 @@ Section WaterStepSurface.
   (* ==================================================================== *)
   Hypothesis Hcp_apw :
     call_pres_paqs lp bm NoA MWF SafeB Sub._apply_water_current.
+  (* chase-root soundness (ActWriterSurface.chase_root_sound_proved) *)
+  Hypothesis Hcrs : chase_root_sound lp bm MWF SafeB.
   Hypothesis Hcpx_v3f :
-    call_pres_ext lp bm NoA MWF Sub._vec3f_copy.
+    OutParamSurface.call_pres_ext_dg lp bm NoA MWF SafeB Sub._vec3f_copy.
   Hypothesis Hcpx_v3s :
-    call_pres_ext lp bm NoA MWF Sub._vec3s_set.
+    OutParamSurface.call_pres_ext_dg lp bm NoA MWF SafeB Sub._vec3s_set.
 
   (* ==================================================================== *)
   (* the paqs gate at a (Etempvar _m :: Evar <fn_var array> :: nil) call   *)
@@ -801,16 +813,12 @@ Section WaterStepSurface.
           fty = Tfunction (tyMSstp :: tptr tfloat :: nil) tuint cc_default /\
           al = Etempvar Sub._m tyMSstp
                :: Evar Sub._nextPos (tarray tfloat 3) :: nil)
-      \/ (fid = Sub._vec3f_copy /\
-          fty = Tfunction (tptr tfloat :: tptr tfloat :: nil) (tptr tvoid)
-                  cc_default)
-      \/ (fid = Sub._vec3s_set /\
-          fty = Tfunction (tptr tshort :: tshort :: tshort :: tshort :: nil)
-                  (tptr tvoid) cc_default).
+      \/ (mem_id fid pws_wl = true /\
+          sc_call_chk (Sub._step :: nil) pws_wl (Sub._marioObj :: nil)
+            fid fty al = true).
   Proof.
     intros fid fty al H. unfold pws_call_chk in H.
-    apply orb_true_iff in H as [H | Hv3s].
-    apply orb_true_iff in H as [H | Hv3f].
+    apply orb_true_iff in H as [H | Hw].
     apply orb_true_iff in H as [Hapw | Hpwfs].
     - (* apply_water_current *)
       left.
@@ -856,21 +864,8 @@ Section WaterStepSurface.
       destruct (type_eq tq (tarray tfloat 3)) as [E2 | ];
         [ subst tq | discriminate Htq ].
       reflexivity.
-    - (* vec3f_copy *)
-      right; right; left.
-      apply andb_true_iff in Hv3f as [Hfid Hfty].
-      apply Pos.eqb_eq in Hfid.
-      destruct (type_eq fty (Tfunction (tptr tfloat :: tptr tfloat :: nil)
-                  (tptr tvoid) cc_default)) as [Efty | ]; [ | discriminate Hfty ].
-      split; [ exact Hfid | exact Efty ].
-    - (* vec3s_set *)
-      right; right; right.
-      apply andb_true_iff in Hv3s as [Hfid Hfty].
-      apply Pos.eqb_eq in Hfid.
-      destruct (type_eq fty (Tfunction
-                  (tptr tshort :: tshort :: tshort :: tshort :: nil)
-                  (tptr tvoid) cc_default)) as [Efty | ]; [ | discriminate Hfty ].
-      split; [ exact Hfid | exact Efty ].
+    - (* the dst-gated writers *)
+      right; right. apply andb_true_iff in Hw. exact Hw.
   Qed.
 
   (* ==================================================================== *)
@@ -893,15 +888,17 @@ Section WaterStepSurface.
         e ! Sub._step = Some (sb, sty) ->
         (forall b o, le ! Sub._m = Some (Vptr b o) ->
                      b = bm /\ o = Ptrofs.zero) ->
+        chase_inv SafeB (Sub._marioObj :: nil) le ->
         carried bm NoA MWF m0 ->
         carried bm NoA MWF m' /\
         (forall b o, le' ! Sub._m = Some (Vptr b o) ->
-                     b = bm /\ o = Ptrofs.zero).
+                     b = bm /\ o = Ptrofs.zero) /\
+        chase_inv SafeB (Sub._marioObj :: nil) le'.
   Proof.
     intros npb npty sb sty Hnploc Hstloc s e le m0 tr le' m' out Hexec.
     induction Hexec;
-      intros Hchk Hapw_n Hpwfs_n Hv3f_n Hv3s_n Hnp Hstep Hm Hc.
-    - (* Sskip *) exact (conj Hc Hm).
+      intros Hchk Hapw_n Hpwfs_n Hv3f_n Hv3s_n Hnp Hstep Hm Hch Hc.
+    - (* Sskip *) exact (conj Hc (conj Hm Hch)).
     - (* Sassign a1 a2 *)
       cbn [pws_chk] in Hchk.
       assert (Hex : exec_stmt function_entry2 (lp_ge lp) e le m
@@ -913,26 +910,40 @@ Section WaterStepSurface.
         destruct (idx_assign_pres lp LO_mario bm MWF HMWF_window
                     a1 a2 _ _ _ _ _ _ _ Hidx Hm Hex HM HV HS)
           as (HV' & HS' & HM' & _ & _).
-        exact (conj (conj HV' (conj HS' (conj HM' (HNoA_of_MWF _ HM')))) Hm).
+        exact (conj (conj HV' (conj HS' (conj HM' (HNoA_of_MWF _ HM')))) (conj Hm Hch)).
       + (* nextPos[i] indexed fn_var local store *)
         destruct (local_idx_assign_pres' lp bm NoA MWF SafeB Hls_real
                     HNoA_of_MWF e Sub._nextPos tfloat 3%Z noattr
                     idxN (tptr tfloat) tfloat a2 le m E0 le m' Out_normal
                     npb npty Mfloat32 Hnp Hnploc eq_refl Hex Hc)
           as (Hc' & _ & _).
-        exact (conj Hc' Hm).
-    - (* Sset id a: id <> _m (pws_optid_ok) *)
+        exact (conj Hc' (conj Hm Hch)).
+    - (* Sset id a: id <> _m (pws_optid_ok); a _marioObj set is a chase root *)
       cbn [pws_chk pws_optid_ok] in Hchk.
+      apply andb_true_iff in Hchk as [Hchk Hcr].
       apply negb_true_iff in Hchk.
-      refine (conj Hc _).
-      intros b o Hg.
-      rewrite PTree.gso in Hg by (intro EE; subst id; rewrite Pos.eqb_refl in Hchk;
-                                  discriminate Hchk).
-      exact (Hm b o Hg).
+      refine (conj Hc (conj _ _)).
+      + intros b o Hg.
+        rewrite PTree.gso in Hg by (intro EE; subst id; rewrite Pos.eqb_refl in Hchk;
+                                    discriminate Hchk).
+        exact (Hm b o Hg).
+      + intros t0 Hmem b o Hg.
+        pose proof Hmem as Hmem'.
+        cbn [mem_id existsb] in Hmem. rewrite orb_false_r in Hmem.
+        apply Pos.eqb_eq in Hmem. subst t0.
+        destruct (Pos.eqb id Sub._marioObj) eqn:Eid.
+        * apply Pos.eqb_eq in Eid. subst id.
+          rewrite PTree.gss in Hg. injection Hg as Hg.
+          exact (Hcrs a e le m v Hcr Hm
+                   (proj1 (proj2 (proj2 Hc))) H b o Hg).
+        * rewrite PTree.gso in Hg
+            by (intro EE; subst id; rewrite Pos.eqb_refl in Eid; discriminate Eid).
+          exact (Hch _ Hmem' b o Hg).
     - (* Scall optid a al *)
       cbn [pws_chk] in Hchk.
       destruct a as [ | | | | fid fty | | | | | | | | | ]; try discriminate Hchk.
       apply andb_true_iff in Hchk as [Hopt Hcc].
+      apply andb_true_iff in Hopt as [Hopt Hnc].
       assert (Hex : exec_stmt function_entry2 (lp_ge lp) e le m
                       (Scall optid (Evar fid fty) al) t (set_opttemp optid vres le)
                       m' Out_normal)
@@ -946,11 +957,23 @@ Section WaterStepSurface.
           intros b o Hg. rewrite PTree.gso in Hg by (intro EE; subst oid;
             rewrite Pos.eqb_refl in Hopt; discriminate Hopt). exact (Hm b o Hg).
         - exact Hm. }
+      assert (HchL : chase_inv SafeB (Sub._marioObj :: nil) (set_opttemp optid vres le)).
+      { cbn [pws_opt_nc] in Hnc.
+        destruct optid as [oid | ]; cbn [set_opttemp].
+        - apply negb_true_iff in Hnc.
+          intros t0 Hmem b o Hg.
+          pose proof Hmem as Hmem'.
+          cbn [mem_id existsb] in Hmem. rewrite orb_false_r in Hmem.
+          apply Pos.eqb_eq in Hmem. subst t0.
+          rewrite PTree.gso in Hg by (intro EE; subst oid;
+            rewrite Pos.eqb_refl in Hnc; discriminate Hnc).
+          exact (Hch _ Hmem' b o Hg).
+        - exact Hch. }
       destruct (pws_call_decode _ _ _ Hcc)
         as [ (Hfeq & Hftyeq & Haleq)
            | [ (Hfeq & Hftyeq & Haleq)
-             | [ (Hfeq & Hftyeq) | (Hfeq & Hftyeq) ] ] ];
-        subst fid fty.
+             | (Hw & Hsc) ] ].
+      1-2: subst fid fty.
       + (* apply_water_current(m, step): the paqs-gated helper (Hcp_apw) *)
         subst al.
         destruct (paqs_scall_pres lp bm NoA MWF SafeB optid
@@ -963,7 +986,7 @@ Section WaterStepSurface.
                           exact (pws_arg2_gate e le m Sub._step sb sty _
                                    Hm Hstep Hstloc Hvl))
                     Hex Hc) as (Hc' & _).
-        exact (conj Hc' HmL).
+        exact (conj Hc' (conj HmL HchL)).
       + (* perform_water_full_step(m, nextPos): pwfs_cp (in-surface) *)
         subst al.
         destruct (paqs_scall_pres lp bm NoA MWF SafeB optid
@@ -976,40 +999,50 @@ Section WaterStepSurface.
                           exact (pws_arg2_gate e le m Sub._nextPos npb npty _
                                    Hm Hnp Hnploc Hvl))
                     Hex Hc) as (Hc' & _).
-        exact (conj Hc' HmL).
-      + (* vec3f_copy: ungated obj_ext external *)
-        destruct Hc as (HV & HS & HM & HN).
-        destruct (kit_scallx_pres lp bm NoA MWF optid Sub._vec3f_copy
-                    (tptr tfloat :: tptr tfloat :: nil) (tptr tvoid) cc_default
-                    al e le m _ _ m' _ Hv3f_n Hex Hcpx_v3f HN HM HV HS)
-          as (HV' & HS' & HM' & HN' & _ & _).
-        exact (conj (conj HV' (conj HS' (conj HM' HN'))) HmL).
-      + (* vec3s_set: ungated obj_ext external *)
-        destruct Hc as (HV & HS & HM & HN).
-        destruct (kit_scallx_pres lp bm NoA MWF optid Sub._vec3s_set
-                    (tptr tshort :: tshort :: tshort :: tshort :: nil)
-                    (tptr tvoid) cc_default
-                    al e le m _ _ m' _ Hv3s_n Hex Hcpx_v3s HN HM HV HS)
-          as (HV' & HS' & HM' & HN' & _ & _).
-        exact (conj (conj HV' (conj HS' (conj HM' HN'))) HmL).
+        exact (conj Hc' (conj HmL HchL)).
+      + (* the dst-gated writers: dst = _marioObj chase (SafeB) or _step local *)
+        destruct (sc_call_chk_pres lp LO_mario bm NoA MWF SafeB
+                    (Sub._step :: nil) pws_wl (Sub._marioObj :: nil)
+                    optid fid fty al e le m t (set_opttemp optid vres le) m'
+                    Out_normal)
+          as (Hc' & _).
+        * intros g Hg. cbn [pws_wl mem_id existsb] in Hg.
+          apply orb_true_iff in Hg as [Hg | Hg];
+            [ apply Pos.eqb_eq in Hg; subst g; exact Hcpx_v3f | ].
+          apply orb_true_iff in Hg as [Hg | Hg];
+            [ apply Pos.eqb_eq in Hg; subst g; exact Hcpx_v3s | discriminate Hg ].
+        * intros g Hg. cbn [pws_wl mem_id existsb] in Hg.
+          apply orb_true_iff in Hg as [Hg | Hg];
+            [ apply Pos.eqb_eq in Hg; subst g; exact Hv3f_n | ].
+          apply orb_true_iff in Hg as [Hg | Hg];
+            [ apply Pos.eqb_eq in Hg; subst g; exact Hv3s_n | discriminate Hg ].
+        * exact Hm.
+        * exact Hch.
+        * intros lid Hl. cbn [mem_id existsb] in Hl. rewrite orb_false_r in Hl.
+          apply Pos.eqb_eq in Hl. subst lid.
+          exists sb, sty. split; [ exact Hstep | exact Hstloc ].
+        * exact Hsc.
+        * exact Hex.
+        * exact Hc.
+        * exact (conj Hc' (conj HmL HchL)).
     - (* Sbuiltin: rejected *)
       cbn [pws_chk] in Hchk. discriminate Hchk.
     - (* Sseq_1 *)
       cbn [pws_chk] in Hchk. apply andb_true_iff in Hchk as [H1 H2].
-      destruct (IHHexec1 H1 Hapw_n Hpwfs_n Hv3f_n Hv3s_n Hnp Hstep Hm Hc)
-        as (Hc1 & Hm1).
-      exact (IHHexec2 H2 Hapw_n Hpwfs_n Hv3f_n Hv3s_n Hnp Hstep Hm1 Hc1).
+      destruct (IHHexec1 H1 Hapw_n Hpwfs_n Hv3f_n Hv3s_n Hnp Hstep Hm Hch Hc)
+        as (Hc1 & Hm1 & Hch1).
+      exact (IHHexec2 H2 Hapw_n Hpwfs_n Hv3f_n Hv3s_n Hnp Hstep Hm1 Hch1 Hc1).
     - (* Sseq_2 (s1 aborts) *)
       cbn [pws_chk] in Hchk. apply andb_true_iff in Hchk as [H1 _].
-      exact (IHHexec H1 Hapw_n Hpwfs_n Hv3f_n Hv3s_n Hnp Hstep Hm Hc).
+      exact (IHHexec H1 Hapw_n Hpwfs_n Hv3f_n Hv3s_n Hnp Hstep Hm Hch Hc).
     - (* Sifthenelse *)
       cbn [pws_chk] in Hchk. apply andb_true_iff in Hchk as [H1 H2].
       apply IHHexec; try assumption.
       destruct b; assumption.
-    - (* Sreturn None *) exact (conj Hc Hm).
-    - (* Sreturn (Some _) *) exact (conj Hc Hm).
-    - (* Sbreak *) exact (conj Hc Hm).
-    - (* Scontinue *) exact (conj Hc Hm).
+    - (* Sreturn None *) exact (conj Hc (conj Hm Hch)).
+    - (* Sreturn (Some _) *) exact (conj Hc (conj Hm Hch)).
+    - (* Sbreak *) exact (conj Hc (conj Hm Hch)).
+    - (* Scontinue *) exact (conj Hc (conj Hm Hch)).
     - (* Sloop stop1: rejected (pws is straight-line) *)
       cbn [pws_chk] in Hchk. discriminate Hchk.
     - (* Sloop stop2: rejected *)
@@ -1107,9 +1140,20 @@ Section WaterStepSurface.
       by (split; [ exact HVe | split; [ exact HSe
                  | split; [ exact HMe | exact HNe ] ] ]).
     (* ---- WALK the body ---- *)
+    assert (Hch0 : chase_inv SafeB (Sub._marioObj :: nil) le1).
+    { intros tc Hmem b o Hg.
+      cbn [mem_id existsb] in Hmem. rewrite orb_false_r in Hmem.
+      apply Pos.eqb_eq in Hmem. subst tc.
+      rewrite <- Hle_init in Hg.
+      rewrite PTree.gso in Hg by (vm_compute; discriminate).
+      repeat first
+        [ rewrite PTree.gss in Hg; discriminate Hg
+        | rewrite PTree.gso in Hg by (vm_compute; discriminate) ].
+      all: first [ rewrite PTree.gempty in Hg; discriminate Hg
+            | pose proof (create_undef_temps_val _ _ _ Hg) as EE; discriminate EE ]. }
     destruct (pws_walk_pres npb npty sb sty Hnploc Hstloc _ _ _ _ _ _ _ _
                 Hbody pws_chk_body Hapw_none Hpwfs_none Hv3f_none Hv3s_none
-                Hnp Hstep Hmcond Hcar)
+                Hnp Hstep Hmcond Hch0 Hcar)
       as (Hcarr & _).
     destruct Hcarr as (HVb & HSb & HMb & HNb).
     pose proof (blocks_of_env_bm lp bm m0 _ eloc _ Halloc HV) as Hforall.
