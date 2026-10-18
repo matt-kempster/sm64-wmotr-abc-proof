@@ -259,6 +259,7 @@ proofs/Interp/SymExec2.v
 # GOAL 2 value-walk slice (UNWIRED): SymExec on the real apply_gravity -> catalog gravity
 proofs/WMotRRequiresA/Unwired/GravitySlice.v
 proofs/WMotRRequiresA/Unwired/FloorList.v
+proofs/WMotRRequiresA/Unwired/FloorHeight.v
 proofs/WMotRRequiresA/Unwired/FloorExec.v
 proofs/WMotRRequiresA/Unwired/CeilList.v
 proofs/WMotRRequiresA/Unwired/CeilExec.v

@@ -435,3 +435,21 @@ On the real walk, 6 joined outcomes are S_air, 28 are S_air_cut and 9 are landin
   - Its "≤ y + 78, finite" half is provable from the body.
   - WMotR's lowest floor triangle has ylo = −8191, so `floor_in` gives h ≥ −8192.
 - **The start state from the frame's memory:** `env_ok`, the facts, and closedness.
+
+### 11.1 find_floor's returned height (`Unwired/FloorHeight.v`)
+
+`ff_height` is proved from the generated Clight body of `find_floor`. Every execution
+returns `Vsingle h` with `HPi (ycast yPos) h`, so h is one of three things:
+- the initial −11000;
+- a height that `find_floor_from_list` stored after its own check
+  `y − (h − 78) < 0` came out false (`FloorList.hok`, with y the s16 cast of yPos);
+- the same check made against the SURFACE_INTANGIBLE re-search's
+  y = (s32)(h0 − 200), where h0 is again in HPi.
+
+`FloorList`'s `ffl_call` now exports that store and the check. The axioms are standard
+only.
+
+**Still open: the real bound.** HPi on its own admits NaN, because NaN passes the
+check. So "h ≤ y + 79" needs h finite and in range. That is TRUST 0.8(d): the heights
+`find_floor_from_list` computes. It has to be stated against the *executed* height, not
+as a ∀ over HPi, which would be a false phantom premise.
