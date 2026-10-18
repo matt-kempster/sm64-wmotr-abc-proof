@@ -76,6 +76,8 @@ proofs/MarioModel/RestSurface.v
 #     linking-metatheory inverse direction; consumed by the linked12
 #     capstone corollary) ---
 proofs/MarioModel/LinkedTwelve.v
+proofs/MarioModel/OsDmaFloor.v
+proofs/MarioModel/LptBody.v
 
 # --- GOAL 1 / linked12 satisfiability (SPINE, P3 slice 3: the NON-VACUITY
 #     certificate -- the twelve TUs actually link; pairwise vm certificate

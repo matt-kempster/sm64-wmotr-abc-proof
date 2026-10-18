@@ -68,6 +68,7 @@ From SM64.Proofs Require Import MWFReal RestSurface FloorsSurface
   FloorsLeafSurface.
 From SM64.Proofs Require Import LinkedTwelve SpawnInit InitMemSat.
 From SM64.Proofs Require Import NoAImpliesNoFlyLinked NoAImpliesNoFlyTwelve.
+From SM64.Proofs Require OsDmaFloor LptBody.
 From SM64.Proofs Require Import HeightInvariant HeightBudgetArith HeightMoveCatalog WMotRLevel
   WMotRWorld NoAActions.
 Import ListNotations.
@@ -365,8 +366,16 @@ Section HeightLinked12.
   Hypothesis Hcsp_scale_real :
     call_pres_ext_cs lp bm (NoA_real bm) MWF SafeB
       mario_actions_cutscene._obj_scale.
-  Hypothesis Hcsp_lpt_real :
+  (* load_patchable_table: PROVED from its real memory.c body and dma_read's
+     (LptBody), down to the libultra DMA calls, whose effect is the
+     hardware/OS floor spec (OsDmaFloor, TRUST 3.5). *)
+  Hypothesis Hdma_floor : OsDmaFloor.os_dma_floor.
+  Lemma Hcsp_lpt_real :
     call_pres_ext_cs lp bm (NoA_real bm) MWF SafeB mario._load_patchable_table.
+  Proof.
+    exact (LptBody.Hcsp_lpt_linked12 lp bm bc oc0 SafeB H12 HSafeB_sym_iff
+             (NoAImpliesNoFlyTwelve.Hspawn lp H12 bm bc oc0 Hbm_sym Hbc_sym Hoc0) Hdma_floor).
+  Qed.
   Hypothesis WL_exempt : forall e le m fid fty vf fd,
       mem_id fid exempt_callees = true ->
       eval_expr (lp_ge lp) e le m (Evar fid fty) vf ->

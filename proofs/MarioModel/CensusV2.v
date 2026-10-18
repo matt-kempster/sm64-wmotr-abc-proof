@@ -37,7 +37,7 @@
 From Coq Require Import ZArith List Lia.
 From compcert Require Import Coqlib Maps AST Integers Values Events Memory
   Globalenvs Ctypes Cop Clightdefs Clight ClightBigstep Linking Errors.
-From SM64.Generated Require surface_collision math_util.
+From SM64.Generated Require surface_collision math_util memory.
 From SM64.Generated Require mario level_update mario_step mario_actions_submerged
   mario_actions_cutscene.
 From SM64.Proofs Require Import SymbolicLinking Flying Taint
@@ -913,7 +913,12 @@ Definition stored_globals : list ident :=
      per Hglob_blk exactly like every entry above. *)
   math_util._gSplineKeyframe ::
   math_util._gSplineKeyframeFraction ::
-  math_util._gSplineState :: nil.
+  math_util._gSplineState ::
+  (* the DMA globals (memory.c's dma_read): the OSIoMesg, the reply queue and
+     the received-message cell.  The Clight code only passes their addresses;
+     the libultra calls write them (OsDmaFloor).  Data symbols, so the same
+     Hglob_blk class keeps them off bm/bc/SafeB. *)
+  memory._gDmaIoMesg :: memory._gDmaMesgQueue :: memory._gMainReceivedMesg :: nil.
 
 (* ---------------------------------------------------------------------- *)
 (* The interaction-handler census (the Hpres_inter arc): the 28 DISTINCT   *)
