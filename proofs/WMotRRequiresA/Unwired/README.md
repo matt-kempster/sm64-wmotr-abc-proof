@@ -1,6 +1,11 @@
 # `WMotRRequiresA/Unwired/` — staging for GOAL 2
 
-Empty for now. As pieces of the WMotR-requires-A argument (see `../README.md`)
-get proved but aren't yet wired into a GOAL 2 capstone, put them here and add
-their paths to `_CoqProject` so they're compiled. Mirrors
-`../../NoAImpliesNoFly/Unwired/`.
+Pieces of the WMotR-requires-A argument (see `../README.md`) that are proved but not
+yet wired into a GOAL 2 capstone. Their paths are in `_CoqProject`, so they are
+compiled. Mirrors `../../NoAImpliesNoFly/Unwired/`.
+
+- `GravitySlice.v`: the first executor slice (apply_gravity), from the symbolic walk.
+- `FloorList.v`: the value contract of the real `find_floor_from_list`. It returns
+  NULL with memory unchanged, or a surface read from a node of the list, with one
+  float written through `pheight`. This is the first brick of the executor's
+  `find_floor` contract (`docs/goal2-value-walk-plan.md` §9).
