@@ -304,3 +304,12 @@ Proved contracts (2026-10-17, later):
   (`tri`, `solve_tri`) and runs in under a second; brute-force inversion was killed
   after 15+ minutes. Next: lift it to an executor contract by deriving `wf_list` from a
   world invariant.
+- (2026-10-18) `ff_value_contract` is now cell-precise. Every cell of the entry
+  memory except `*pfloor` and the three static cells (`ff_cells`:
+  `gFindFloorIncludeSurfaceIntangible`, `gNumFindFloorMisses`, `gNumCalls.floor`)
+  is unchanged, and no permission of the entry memory changes. `SymExec2.vp_old`
+  now records exact permissions of old blocks (it used to record only valid
+  pointers), so a contract can show that a cell readable at `m0` stays readable.
+  The lab's `find_floor` stand-in was false: it left the three statics unchanged.
+  It now writes fresh values to them and returns a fresh height on the NULL path.
+  The counts are unchanged: 7328 / 225 / 4.

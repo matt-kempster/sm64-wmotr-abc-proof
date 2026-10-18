@@ -1030,8 +1030,10 @@ Definition env_ok (E : senv) : Prop :=
         Plt r nbase /\ sok nbase sv /\ Mem.load ch m0 (e_blk E r) (addr E r o) = den E sv)
   /\ (forall n v, e_rho E n = Some v -> val_old v).
 
+(* old blocks keep exactly their m0 permissions (so a cell readable at m0
+   is readable at m) *)
 Definition vp_old (m : mem) : Prop :=
-  forall b o, Plt b nb0 -> Mem.valid_pointer m b o = Mem.valid_pointer m0 b o.
+  forall b o k p, Plt b nb0 -> (Mem.perm m b o k p <-> Mem.perm m0 b o k p).
 
 (* the symbolic global state describes memory m *)
 Definition MMg (E : senv) (m : mem) (g : gst) : Prop :=
@@ -1264,7 +1266,14 @@ Proof.
 Qed.
 
 Lemma vp_old_vpo : forall m, vp_old m -> vpo m m0.
-Proof. unfold vp_old, vpo; auto. Qed.
+Proof.
+  unfold vp_old, vpo; intros m H b o OLD.
+  destruct (Mem.valid_pointer m b o) eqn:E1; destruct (Mem.valid_pointer m0 b o) eqn:E2; auto.
+  - apply Mem.valid_pointer_nonempty_perm in E1. apply (H b o Cur Nonempty OLD) in E1.
+    apply Mem.valid_pointer_nonempty_perm in E1. congruence.
+  - apply Mem.valid_pointer_nonempty_perm in E2. apply (H b o Cur Nonempty OLD) in E2.
+    apply Mem.valid_pointer_nonempty_perm in E2. congruence.
+Qed.
 
 Lemma wvp_valid : forall m b o, Mem.weak_valid_pointer m b o = true -> Mem.valid_block m b.
 Proof.
@@ -1518,7 +1527,8 @@ Proof.
       apply exact_true in X. destruct X as (<- & <- & <-).
       exact (NOV (r, o, ch, sa) (or_introl eq_refl)).
     + apply NOV. right. apply filter_In. split; auto. rewrite OV. reflexivity.
-  - intros b' o' OLD. rewrite (store_vp _ _ _ _ _ _ ST). apply VP. exact OLD.
+  - intros b' o' k p OLD. rewrite <- (VP b' o' k p OLD).
+    split; intro HH; [ eapply Mem.perm_store_2; eauto | eapply Mem.perm_store_1; eauto ].
   - rewrite NXm. exact NX.
   - exact PC.
   - intros r1 IN. destruct (LOC r1 IN) as (A & B & C & D' & F). rewrite NXm. auto.
@@ -2860,8 +2870,9 @@ Proof.
       { destruct (inb_spec _ _ _ _ IB) as [(Lr & _) | (_ & Ir & _)]; auto. }
       destruct (OLDLIVE r P LV) as (B1 & B2 & _).
       cbn [cell_disj skey] in NOV |- *. unfold addr in *. rewrite B1, B2 in NOV. exact NOV.
-    + intros b o OLD. rewrite (alloc_vp_other _ _ _ _ _ _ _ A); [ apply VP; exact OLD | ].
-      intro E0. subst. unfold Plt, Ple in *. lia.
+    + intros b o k p OLD. rewrite <- (VP b o k p OLD).
+      assert (NE : b <> b1) by (intro E0; subst; unfold Plt, Ple in *; lia).
+      split; intro HH; [ eapply Mem.perm_alloc_4; eauto | eapply Mem.perm_alloc_1; eauto ].
     + rewrite NXm. unfold Ple in *. lia.
     + intros f I. cbn [g_pc g'] in I. destruct (PC f I) as [N H]. split.
       * eapply fact_nlt_mono; [ exact N | apply Ple_succ ].
@@ -2925,22 +2936,18 @@ Qed.
 Lemma free_list_other : forall l m m', Mem.free_list m l = Some m' ->
   forall b, (forall lo hi, ~ In (b, lo, hi) l) ->
   (forall ch z, Mem.load ch m' b z = Mem.load ch m b z)
-  /\ (forall z, Mem.valid_pointer m' b z = Mem.valid_pointer m b z)
+  /\ (forall z k p, Mem.perm m' b z k p <-> Mem.perm m b z k p)
   /\ Mem.nextblock m' = Mem.nextblock m.
 Proof.
   induction l as [|[[b0 lo] hi] l IH]; intros m m' F b N; cbn in F.
-  - inv F. auto.
+  - inv F. split; [ auto | split; [ intros; reflexivity | auto ] ].
   - destruct (Mem.free m b0 lo hi) as [m1|] eqn:FR; [ | discriminate ].
     assert (NE : b <> b0) by (intro; subst; apply (N lo hi); left; reflexivity).
     destruct (IH m1 m' F b ltac:(intros lo' hi' I; apply (N lo' hi'); right; exact I)) as (A & B & C).
     split; [ | split ].
     + intros ch z. rewrite A. eapply Mem.load_free; eauto.
-    + intros z. rewrite B.
-      destruct (Mem.valid_pointer m b z) eqn:E1; destruct (Mem.valid_pointer m1 b z) eqn:E2; auto.
-      * apply Mem.valid_pointer_nonempty_perm in E1. eapply Mem.perm_free_1 in E1; eauto.
-        apply Mem.valid_pointer_nonempty_perm in E1. congruence.
-      * apply Mem.valid_pointer_nonempty_perm in E2. eapply Mem.perm_free_3 in E2; eauto.
-        apply Mem.valid_pointer_nonempty_perm in E2. congruence.
+    + intros z k p. rewrite B.
+      split; intro HH; [ eapply Mem.perm_free_3; eauto | eapply Mem.perm_free_1; eauto ].
     + rewrite C. eapply Mem.nextblock_free; eauto.
 Qed.
 
@@ -2992,7 +2999,7 @@ Proof.
       destruct (inb_spec _ _ _ _ IB) as [(Lr & _) | (_ & Ir & _)].
       * apply Pos.ltb_lt in Lr. rewrite Lr in K. discriminate.
       * destruct (LOC r Ir) as (_ & _ & _ & N & _). apply N. rewrite Eb. exact OLD.
-  - intros b o OLD. destruct (free_list_other _ _ _ F _ (OLDNF b OLD)) as (_ & B & _).
+  - intros b o k p OLD. destruct (free_list_other _ _ _ F _ (OLDNF b OLD)) as (_ & B & _).
     rewrite B. apply VP. exact OLD.
   - rewrite NXm. exact NX.
   - intros r I. destruct (LOC r (INC r I)) as (A & B & C & D & G). rewrite NXm. auto.
@@ -3530,7 +3537,7 @@ Lemma MMg_init : forall E pc nx, env_ok E -> Ple nbase nx ->
 Proof.
   intros E pc nx EO L PC. unfold MMg; cbn [g_nx g_loc g_sm g_pc].
   split; [ exact EO | split; [ exact L | split; [ intros r o ch sv [] | split; [ intros; reflexivity | ] ] ] ].
-  split; [ intros b o _; reflexivity | split; [ apply Ple_refl | split; [ exact PC | ] ] ].
+  split; [ intros b o k p _; reflexivity | split; [ apply Ple_refl | split; [ exact PC | ] ] ].
   split; [ intros r [] | intros r r' [] ].
 Qed.
 

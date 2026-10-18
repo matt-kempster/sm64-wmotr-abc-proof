@@ -2,7 +2,7 @@
    The contracts here are STAND-INS for measurement only (not proved). *)
 From Coq Require Import List ZArith String.
 From compcert Require Import Coqlib Maps AST Integers Floats Values Memory Ctypes Clight Errors.
-From SM64.Generated Require mario_step mario.
+From SM64.Generated Require mario_step mario surface_collision.
 From SM64.Proofs Require Import Interp.SymExec2 LinkGenv.
 Import ListNotations.
 Local Notation "'let?' x := a 'in' b" :=
@@ -24,8 +24,16 @@ Definition szs (s : ident) : Z := sizeof g (Tstruct s noattr).
 Definition NB : positive := 10.
 Definition RM : positive := 1.
 Definition RO : positive := 2.
-Definition R0 : list (positive * Z) := [(RM, szs mario._MarioState); (RO, szs mario._Object); (3%positive, 12)].
-Definition gtab : list (ident * positive) := nil.
+(* find_floor's statics: gFindFloorIncludeSurfaceIntangible (short),
+   gNumFindFloorMisses (int), gNumCalls (3 shorts) *)
+Definition RFI : positive := 4.
+Definition RMISS : positive := 5.
+Definition RCALLS : positive := 6.
+Definition R0 : list (positive * Z) := [(RM, szs mario._MarioState); (RO, szs mario._Object); (3%positive, 12);
+  (RFI, 2); (RMISS, 4); (RCALLS, 6)].
+Definition gtab : list (ident * positive) :=
+  [(surface_collision._gFindFloorIncludeSurfaceIntangible, RFI);
+   (surface_collision._gNumFindFloorMisses, RMISS); (surface_collision._gNumCalls, RCALLS)].
 Definition kv : list (positive * Z * memory_chunk * sval) :=
   [ (RM, fo mario._MarioState mario._marioObj, Mint32, Sptr RO Ptrofs.zero);
     (RM, 12, Mint32, Sconst (Vint (Int.repr 16779404))) ].
@@ -71,6 +79,16 @@ Definition c_vec3s_set : xcontract := fun args s =>
   end.
 
 (* height result, surface out-param: NULL + default height, or a world surface *)
+Definition c_find_surf_h (pidx : nat) : xcontract := fun args s =>
+  let? p := nth_error args pidx in
+  let lp := loc_of p in
+  let '(h0, s') := fresh s in
+  let? s0 := stl s' lp Mint32 (Sconst (Vint Int.zero)) in
+  let '(f, s1) := fresh s' in
+  let '(h, s2) := fresh s1 in
+  let? s3 := stl s2 lp Mint32 f in
+  Some [(s0, h0); (addf s3 (Fworld f (szs mario._Surface)), h)].
+
 Definition c_find_surf (dflt : float32) (pidx : nat) : xcontract := fun args s =>
   let? p := nth_error args pidx in
   let lp := loc_of p in
@@ -79,6 +97,18 @@ Definition c_find_surf (dflt : float32) (pidx : nat) : xcontract := fun args s =
   let '(h, s2) := fresh s1 in
   let? s3 := stl s2 lp Mint32 f in
   Some [(s0, Sconst (Vsingle dflt)); (addf s3 (Fworld f (szs mario._Surface)), h)].
+
+(* the real find_floor (FloorList.ff_value_contract): its three statics get
+   some value, *pfloor gets NULL or a surface off a partition list, and the
+   height is some value *)
+Definition c_find_floor : xcontract := fun args s =>
+  let '(a, s1) := fresh s in
+  let '(b, s2) := fresh s1 in
+  let '(c, s3) := fresh s2 in
+  let? s4 := stl s3 (Lreg RFI Ptrofs.zero) Mint16signed a in
+  let? s5 := stl s4 (Lreg RMISS Ptrofs.zero) Mint32 b in
+  let? s6 := stl s5 (Lreg RCALLS Ptrofs.zero) Mint16signed c in
+  c_find_surf_h 3 args s6.
 
 Definition c_water : xcontract := fun args s =>
   Some [(s, Sconst (Vsingle (Float32.of_int (Int.repr (-11000)))))].
@@ -115,7 +145,7 @@ Definition c_walls : xcontract := fun args s =>
    gArctanTable at a symbolic index), but the contract itself -- memory
    unchanged, some result -- is what MathBodies.cpure2_funcall_memid proves. *)
 Definition xc (id : ident) : option xcontract :=
-  if Pos.eqb id mario._find_floor then Some (c_find_surf (Float32.of_int (Int.repr (-11000))) 3)
+  if Pos.eqb id mario._find_floor then Some c_find_floor
   else if Pos.eqb id mario._vec3f_find_ceil then Some (c_find_surf (Float32.of_int (Int.repr 20000)) 2)
   else if Pos.eqb id mario._find_water_level then Some xc_fresh
   else if Pos.eqb id mario._atan2s then Some xc_fresh

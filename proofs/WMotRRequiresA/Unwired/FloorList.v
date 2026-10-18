@@ -562,6 +562,12 @@ Definition ff_statics : list ident :=
 Definition part_ids : list ident :=
   [surface_collision._gStaticSurfacePartition; surface_collision._gDynamicSurfacePartition].
 
+(* the static cells find_floor writes, with their sizes (each at offset 0;
+   gNumCalls.floor is the first field) *)
+Definition ff_cells : list (ident * Z) :=
+  [(surface_collision._gFindFloorIncludeSurfaceIntangible, 2);
+   (surface_collision._gNumFindFloorMisses, 4); (surface_collision._gNumCalls, 2)].
+
 Definition is_static (ge : genv) (b : block) : Prop :=
   exists id, In id ff_statics /\ Genv.find_symbol ge id = Some b.
 
@@ -609,7 +615,43 @@ Hypothesis HnvD : ~ Mem.valid_block m bD.
 
 Local Notation e := (ffe bH bD).
 
-Definition UO (M : mem) : Prop := Mem.unchanged_on (keep m avoid) m M.
+(* the cells find_floor may write: the *pfloor cell and the static cells *)
+Definition wc (b : block) (i : Z) : Prop :=
+  (b = bpf /\ Ptrofs.unsigned opf <= i < Ptrofs.unsigned opf + 4)
+  \/ (exists id sz, In (id, sz) ff_cells /\ Genv.find_symbol ge id = Some b /\ 0 <= i < sz).
+
+Definition kept (b : block) (i : Z) : Prop := Mem.valid_block m b /\ ~ wc b i.
+
+(* every other cell of m is unchanged, and no permission of m changes *)
+Definition UO (M : mem) : Prop :=
+  Mem.unchanged_on kept m M
+  /\ (forall b i k p, Mem.valid_block m b -> (Mem.perm m b i k p <-> Mem.perm M b i k p)).
+
+Lemma avoid_wc : forall b i, wc b i -> avoid b.
+Proof.
+  intros b i [(-> & _) | (id & sz & Hin & Hs & _)]; [exact Hpf_av |].
+  apply Hst. exists id. split; [| exact Hs].
+  cbn in Hin |- *. destruct Hin as [Eq | [Eq | [Eq | []]]]; inv Eq; auto.
+Qed.
+
+Lemma UO_keep : forall M, UO M -> Mem.unchanged_on (keep m avoid) m M.
+Proof.
+  intros M (U & _). eapply Mem.unchanged_on_implies; [exact U |].
+  intros b i (Hv & Hna) _. split; [exact Hv |]. intro Hw. exact (Hna (avoid_wc _ _ Hw)).
+Qed.
+
+(* a store into a block that is new, or into written cells only *)
+Lemma UO_store : forall M M' ch b ofs v,
+    UO M -> Mem.store ch M b ofs v = Some M' ->
+    (~ Mem.valid_block m b \/ forall i, ofs <= i < ofs + size_chunk ch -> wc b i) -> UO M'.
+Proof.
+  intros M M' ch b ofs v (U & P) Hs Hb. split.
+  - eapply Mem.unchanged_on_trans; [exact U |].
+    eapply Mem.store_unchanged_on; [exact Hs |].
+    intros i Hi (Hv & Hn). destruct Hb as [Hb | Hb]; [exact (Hb Hv) | exact (Hn (Hb i Hi))].
+  - intros b' i k p Hv. rewrite (P b' i k p Hv).
+    split; intro HH; [eapply Mem.perm_store_1; eauto | eapply Mem.perm_store_2; eauto].
+Qed.
 Definition PFm (M : mem) : Prop :=
   exists v, FL ge m v /\ Mem.loadv Mint32 M (Vptr bpf opf) = Some (Val.load_result Mint32 v).
 
@@ -627,21 +669,17 @@ Lemma bpf_ne : forall b, ~ Mem.valid_block m b -> b <> bpf.
 Proof. intros b H ->. contradiction. Qed.
 
 (* a step that touches one block outside the kept part, never bpf *)
-Lemma IV_frame : forall pfs sl dyn fl le M M' b,
-    IV pfs sl dyn fl le M -> Mem.unchanged_on (fun b' _ => b' <> b) M M' ->
-    (~ Mem.valid_block m b \/ avoid b) -> b <> bpf ->
+Lemma IV_frame : forall pfs sl dyn fl le M M' ch b ofs v,
+    IV pfs sl dyn fl le M -> Mem.store ch M b ofs v = Some M' ->
+    (~ Mem.valid_block m b \/ forall i, ofs <= i < ofs + size_chunk ch -> wc b i) -> b <> bpf ->
     IV pfs sl dyn fl le M'.
 Proof.
-  intros pfs sl dyn fl le M M' b (U & Hp & PF & SL & DY & FLo) Hu Hb Hne.
+  intros pfs sl dyn fl le M M' ch b ofs v (U & Hp & PF & SL & DY & FLo) Hs Hb Hne.
   split; [| split; [exact Hp | split; [| split; [exact SL | split; [exact DY | exact FLo]]]]].
-  - eapply Mem.unchanged_on_trans; [exact U |].
-    eapply Mem.unchanged_on_implies; [exact Hu |].
-    intros b' ofs (Hv & Hna) _ ->. destruct Hb; contradiction.
-  - intros Ht. destruct (PF Ht) as (v & Hfl & Hl). exists v. split; [exact Hfl |].
-    cbn [Mem.loadv] in *.
-    erewrite Mem.load_unchanged_on_1; [exact Hl | exact Hu | | intros i _; exact (not_eq_sym Hne)].
-    eapply Mem.valid_access_valid_block.
-    eapply Mem.valid_access_implies; [eapply Mem.load_valid_access; eauto | constructor].
+  - exact (UO_store _ _ _ _ _ _ U Hs Hb).
+  - intros Ht. destruct (PF Ht) as (w & Hfl & Hl). exists w. split; [exact Hfl |].
+    cbn [Mem.loadv] in *. erewrite Mem.load_store_other; [exact Hl | exact Hs |].
+    left. exact (not_eq_sym Hne).
 Qed.
 
 Lemma lv_H : forall le M ty b ofs bf,
@@ -655,36 +693,92 @@ Proof.
   intros le M ty b ofs bf H. inv H; rewrite ffe_D in *; congruence.
 Qed.
 Lemma lv_static : forall x le M ty b ofs bf,
-    In x ff_statics -> eval_lvalue ge e le M (Evar x ty) b ofs bf -> is_static ge b.
+    In x ff_statics -> eval_lvalue ge e le M (Evar x ty) b ofs bf ->
+    Genv.find_symbol ge x = Some b /\ ofs = Ptrofs.zero /\ bf = Full.
 Proof.
   intros x le M ty b ofs bf Hin H. inv H.
   - exfalso. cbn in Hin.
     match goal with Hx : (ffe _ _) ! _ = Some _ |- _ =>
       rewrite ffe_other in Hx; [discriminate Hx | |] end;
     destruct Hin as [<- | [<- | [<- | []]]]; idne.
-  - exists x. auto.
+  - auto.
 Qed.
-Lemma lv_static_field : forall x sid fld ty le M b ofs bf,
-    In x ff_statics ->
-    eval_lvalue ge e le M (Efield (Evar x (Tstruct sid noattr)) fld ty) b ofs bf -> is_static ge b.
+
+Lemma ntc_floor_ofs : forall co,
+    (genv_cenv ge) ! surface_collision._NumTimesCalled = Some co ->
+    field_offset ge surface_collision._floor (co_members co) = OK (0, Full).
 Proof.
-  intros x sid fld ty le M b ofs bf Hin H. inv H; cbn [typeof] in *; try discriminate.
+  intros co H.
+  assert (M : match (prog_comp_env SC) ! surface_collision._NumTimesCalled with
+              | Some co => co_members co | None => nil end
+              = [Member_plain surface_collision._floor tshort;
+                 Member_plain surface_collision._ceil tshort;
+                 Member_plain surface_collision._wall tshort]) by (vm_compute; reflexivity).
+  destruct ((prog_comp_env SC) ! surface_collision._NumTimesCalled) as [co0|] eqn:E0;
+    [| discriminate M].
+  rewrite (HC _ _ E0) in H. injection H as <-. rewrite M. reflexivity.
+Qed.
+
+Lemma lv_calls_floor : forall le M b ofs bf,
+    eval_lvalue ge e le M
+      (Efield (Evar surface_collision._gNumCalls (Tstruct surface_collision._NumTimesCalled noattr))
+         surface_collision._floor tshort) b ofs bf ->
+    Genv.find_symbol ge surface_collision._gNumCalls = Some b /\ ofs = Ptrofs.zero /\ bf = Full.
+Proof.
+  intros le M b ofs bf H. inv H; cbn [typeof] in *; try discriminate.
   match goal with Ha : eval_expr _ _ _ _ (Evar _ _) _ |- _ => inv Ha end.
   match goal with Hd : deref_loc _ _ _ _ _ _ |- _ => inv Hd end;
     cbn [access_mode] in *; try discriminate;
     [| match goal with Hb : load_bitfield _ _ _ _ _ _ _ _ |- _ => inv Hb end].
-  eapply lv_static; eauto.
+  match goal with Hl : eval_lvalue _ _ _ _ (Evar _ _) _ _ _ |- _ =>
+    apply lv_static in Hl; [destruct Hl as (Hs & -> & _) | cbn; auto] end.
+  match goal with Ht : Tstruct _ _ = Tstruct _ _ |- _ => injection Ht as <- _ end.
+  match goal with Hc : (genv_cenv ge) ! _ = Some ?co, Hf : field_offset _ _ _ = OK _ |- _ =>
+    rewrite (ntc_floor_ofs _ Hc) in Hf; injection Hf as <- <- end.
+  split; [exact Hs | split; [exact (Ptrofs.add_zero Ptrofs.zero) | reflexivity]].
 Qed.
 
+(* the written lvalue: a new block (any access), or a static cell written
+   by value *)
+Definition wr_ok (ty : type) (b : block) (ofs : ptrofs) (bf : bitfield) : Prop :=
+  b <> bpf /\
+  (~ Mem.valid_block m b
+   \/ (bf = Full /\ exists ch, access_mode ty = By_value ch
+         /\ forall i, Ptrofs.unsigned ofs <= i < Ptrofs.unsigned ofs + size_chunk ch -> wc b i)).
+
 Lemma tri_frame : forall lhs rhs pfs sl dyn fl R,
-    (forall le M b ofs bf, eval_lvalue ge e le M lhs b ofs bf ->
-       (~ Mem.valid_block m b \/ avoid b) /\ b <> bpf) ->
+    (forall le M b ofs bf, eval_lvalue ge e le M lhs b ofs bf -> wr_ok (typeof lhs) b ofs bf) ->
     tri ge e (IV pfs sl dyn fl) (Sassign lhs rhs) (IV pfs sl dyn fl) R.
 Proof.
   intros lhs rhs pfs sl dyn fl R Hl. apply tri_assign.
   intros le M b ofs bf v v' M' HI Hlv _ _ Ha.
-  destruct (Hl _ _ _ _ _ Hlv) as (Hb & Hne).
-  exact (IV_frame _ _ _ _ _ _ _ _ HI (assign_loc_frame _ _ _ _ _ _ _ _ Ha) Hb Hne).
+  destruct (Hl _ _ _ _ _ Hlv) as (Hne & [Hnv | (-> & ch & Ham & Hw)]).
+  - (* a new block: any kind of write keeps UO and the pfloor cell *)
+    destruct HI as (U & Hp & PF & SL & DY & FLo).
+    pose proof (assign_loc_frame _ _ _ _ _ _ _ _ Ha) as Hu.
+    assert (Hperm : forall b' i k p, b' <> b -> (Mem.perm M b' i k p <-> Mem.perm M' b' i k p)).
+    { intros b' i k p Hn. inv Ha.
+      - cbn [Mem.storev] in *. split; intro HH; [eapply Mem.perm_store_1 | eapply Mem.perm_store_2]; eauto.
+      - split; intro HH; [eapply Mem.perm_storebytes_1 | eapply Mem.perm_storebytes_2]; eauto.
+      - match goal with Hb : store_bitfield _ _ _ _ _ _ _ _ _ _ |- _ => inv Hb end.
+        cbn [Mem.storev] in *. split; intro HH; [eapply Mem.perm_store_1 | eapply Mem.perm_store_2]; eauto. }
+    destruct U as (U & P).
+    split; [split |].
+    + eapply Mem.unchanged_on_trans; [exact U |].
+      eapply Mem.unchanged_on_implies; [exact Hu |].
+      intros b' i (Hv & _) _ ->. contradiction.
+    + intros b' i k p Hv. rewrite (P b' i k p Hv). apply Hperm. intros ->. contradiction.
+    + split; [exact Hp | split; [| split; [exact SL | split; [exact DY | exact FLo]]]].
+      intros Ht. destruct (PF Ht) as (w & Hfl & Hld). exists w. split; [exact Hfl |].
+      cbn [Mem.loadv] in *.
+      erewrite Mem.load_unchanged_on_1; [exact Hld | exact Hu | | intros i _; exact (not_eq_sym Hne)].
+      eapply Mem.valid_access_valid_block.
+      eapply Mem.valid_access_implies; [eapply Mem.load_valid_access; eauto | constructor].
+  - inv Ha; try congruence;
+      match goal with Hm : access_mode _ = _ |- _ => rewrite Ham in Hm; try discriminate Hm end.
+    match goal with Hm : By_value _ = By_value _ |- _ => inv Hm end.
+    cbn [Mem.storev] in *.
+    exact (IV_frame _ _ _ _ _ _ _ _ _ _ _ HI ltac:(eassumption) (or_intror Hw) Hne).
 Qed.
 
 Lemma tri_set_un : forall x a pfs sl dyn fl R,
@@ -701,14 +795,15 @@ Proof.
   intros Ht; destruct (FLo Ht) as (w & ? & ?); exists w; rewrite PTree.gso by congruence; auto.
 Qed.
 
-Lemma UO_frame : forall M M' b,
-    UO M -> Mem.unchanged_on (fun b' _ => b' <> b) M M' ->
-    (~ Mem.valid_block m b \/ avoid b) -> UO M'.
+Lemma UO_free : forall M M' b lo hi,
+    UO M -> Mem.free M b lo hi = Some M' -> ~ Mem.valid_block m b -> UO M'.
 Proof.
-  intros M M' b U Hu Hb.
-  eapply Mem.unchanged_on_trans; [exact U |].
-  eapply Mem.unchanged_on_implies; [exact Hu |].
-  intros b' ofs (Hv & Hna) _ ->. destruct Hb; contradiction.
+  intros M M' b lo hi (U & P) Hf Hn. split.
+  - eapply Mem.unchanged_on_trans; [exact U |].
+    eapply Mem.free_unchanged_on; [exact Hf |]. intros i _ (Hv & _). exact (Hn Hv).
+  - intros b' i k p Hv. rewrite (P b' i k p Hv).
+    assert (Hne : b' <> b) by (intros ->; contradiction).
+    split; intro HH; [eapply Mem.perm_free_1; eauto | eapply Mem.perm_free_3; eauto].
 Qed.
 
 Definition untracked (x : ident) : Prop :=
@@ -748,7 +843,8 @@ Proof.
     cbn [access_mode typeof] in *; try discriminate.
   match goal with Hm : access_mode _ = By_value _ |- _ =>
     change (access_mode (tptr surf_t)) with (By_value Mint32) in Hm; inv Hm end.
-  split; [exact (UO_frame _ _ _ U Hu (or_intror Hpf_av)) |].
+  split; [refine (UO_store _ _ _ _ _ _ U ltac:(eassumption) (or_intror _));
+          intros i Hi; left; split; [reflexivity | exact Hi] |].
   split; [exact Hp |].
   split; [| split; [exact SL | split; [exact DY | exact FLo]]].
   intros _. eexists. split; [exact Hfl |].
@@ -780,7 +876,7 @@ Proof.
   split; [intros _; eexists; split; [apply PTree.gss |] |].
   { exists pid, bp, (Ptrofs.add o (Ptrofs.repr SN_NEXT)). split; [exact Hin |]. split; [exact Hs |].
     cbn [Mem.loadv] in *.
-    erewrite <- Mem.load_unchanged_on_1; [exact Hld | exact U | exact Hvb |].
+    erewrite <- Mem.load_unchanged_on_1; [exact Hld | exact (UO_keep _ U) | exact Hvb |].
     intros i _. split; assumption. }
   split; [intros Ht; destruct (DY Ht) as (w & ? & ?); exists w; rewrite PTree.gso by idne; auto |].
   intros Ht; destruct (FLo Ht) as (w & ? & ?); exists w; rewrite PTree.gso by idne; auto.
@@ -836,13 +932,11 @@ Proof.
   + split; [exact (IV_set_un _ _ _ _ _ _ _ _ HI Htk) |].
     eexists; split; [apply PTree.gss | left; reflexivity].
   + cbn [Mem.storev] in Hstv.
-    pose proof (Mem.store_unchanged_on (fun b' _ => b' <> bL) _ _ _ _ _ _ Hstv
-                  (fun i _ Hne => Hne eq_refl)) as Hu.
     split; [exact (IV_set_un _ _ _ _ _ _ _ _
-                     (IV_frame _ _ _ _ _ _ _ _ HI Hu (or_introl HnvL) (bpf_ne _ HnvL)) Htk) |].
+                     (IV_frame _ _ _ _ _ _ _ _ _ _ _ HI Hstv (or_introl HnvL) (bpf_ne _ HnvL)) Htk) |].
     eexists; split; [apply PTree.gss |].
     right. eexists. split; [exact PH |].
-    exact (on_list_back _ _ _ (Hwf _ PH) _ _ U Hon).
+    exact (on_list_back _ _ _ (Hwf _ PH) _ _ (UO_keep _ U) Hon).
 Qed.
 
 Lemma tri_take : forall tk dst Tk pfs dyn fl dyn' fl' R,
@@ -919,14 +1013,25 @@ Ltac locok := first [left; split; reflexivity | right; split; reflexivity].
 Ltac dstok := first [left; split; [reflexivity | split; reflexivity]
                     | right; split; [reflexivity | split; reflexivity]].
 Ltac inlist := cbn; repeat (first [left; reflexivity | right]).
+Ltac wcok Hs :=
+  lazymatch type of Hs with Genv.find_symbol _ ?x = Some ?b =>
+    let Hin := fresh in let Hne := fresh in
+    assert (Hin : In x ff_statics) by inlist;
+    destruct (Hst b (ex_intro _ x (conj Hin Hs))) as (_ & Hne);
+    split; [exact Hne |];
+    right; split; [reflexivity |]; eexists; split; [reflexivity |];
+    let i := fresh in let Hi := fresh in
+    intros i Hi; right; exists x; eexists; split; [inlist | split; [exact Hs |]];
+    rewrite Ptrofs.unsigned_zero in Hi; cbn [size_chunk] in Hi; lia
+  end.
 Ltac lvok :=
   let le := fresh in let M := fresh in let b := fresh in let o := fresh in
   let bf := fresh in let Hl := fresh in
   intros le M b o bf Hl;
-  first [ apply lv_H in Hl; subst b; split; [left; exact HnvH | exact (bpf_ne _ HnvH)]
-        | apply lv_D in Hl; subst b; split; [left; exact HnvD | exact (bpf_ne _ HnvD)]
-        | apply lv_static_field in Hl; [destruct (Hst _ Hl); split; [right |]; assumption | inlist]
-        | apply lv_static in Hl; [destruct (Hst _ Hl); split; [right |]; assumption | inlist] ].
+  first [ apply lv_H in Hl; subst b; split; [exact (bpf_ne _ HnvH) | left; exact HnvH]
+        | apply lv_D in Hl; subst b; split; [exact (bpf_ne _ HnvD) | left; exact HnvD]
+        | apply lv_calls_floor in Hl; destruct Hl as (Hs & -> & ->); wcok Hs
+        | apply lv_static in Hl; [destruct Hl as (Hs & -> & ->); wcok Hs | inlist] ].
 Ltac pfok :=
   let le := fresh in let M := fresh in let v := fresh in let v' := fresh in
   let HI := fresh in let Hev := fresh in let Hc := fresh in
@@ -973,24 +1078,23 @@ Qed.
 
 End FF.
 
-(* freeing a block outside the kept part keeps UO and the pfloor cell *)
-Lemma free_keeps : forall ge avoid m bpf opf M M' b,
-    Mem.valid_block m bpf -> UO avoid m M -> PFm ge m bpf opf M -> ~ Mem.valid_block m b ->
-    Mem.free M b 0 4 = Some M' -> UO avoid m M' /\ PFm ge m bpf opf M'.
+(* freeing a block that is new keeps UO and the pfloor cell *)
+Lemma free_keeps : forall ge m bpf opf M M' b,
+    Mem.valid_block m bpf -> UO ge m bpf opf M -> PFm ge m bpf opf M -> ~ Mem.valid_block m b ->
+    Mem.free M b 0 4 = Some M' -> UO ge m bpf opf M' /\ PFm ge m bpf opf M'.
 Proof.
-  intros ge avoid m bpf opf M M' b Hpv U (v & Hv & Hl) Hn Hf.
-  assert (Hu : Mem.unchanged_on (fun b' _ => b' <> b) M M')
-    by (eapply Mem.free_unchanged_on; [exact Hf | intros i _ HH; exact (HH eq_refl)]).
-  split; [eapply UO_frame; [exact U | exact Hu | left; exact Hn] |].
+  intros ge m bpf opf M M' b Hpv U (v & Hv & Hl) Hn Hf.
+  split; [eapply UO_free; eauto |].
   exists v; split; [exact Hv |].
-  cbn [Mem.loadv] in *. eapply Mem.load_unchanged_on; [exact Hu | | exact Hl].
-  intros i _ ->. contradiction.
+  cbn [Mem.loadv] in *. erewrite Mem.load_free; [exact Hl | exact Hf |].
+  left. intros ->. contradiction.
 Qed.
 
 (* THE CONTRACT: find_floor stores into *pfloor either NULL or a surface
-   read off a partition list (of the entry memory), and keeps every block
-   that is valid and not avoided.  Statics and the pfloor cell are the
-   avoided part; the lists themselves must be well formed. *)
+   read off a partition list (of the entry memory).  Every cell of the entry
+   memory other than *pfloor and the three static cells (ff_cells) is
+   unchanged, and no permission changes.  The statics and the pfloor block
+   must be outside the lists ("avoid"); the lists must be well formed. *)
 Theorem ff_value_contract : forall (ge : genv) avoid,
     cenv_has ge -> ffl_pinned ge ->
     forall m xv yv zv bpf opf t m' vres,
@@ -1003,7 +1107,7 @@ Theorem ff_value_contract : forall (ge : genv) avoid,
         [xv; yv; zv; Vptr bpf opf] t m' vres ->
       exists fl, FL ge m fl
         /\ Mem.loadv Mint32 m' (Vptr bpf opf) = Some (Val.load_result Mint32 fl)
-        /\ Mem.unchanged_on (keep m avoid) m m'.
+        /\ UO ge m bpf opf m'.
 Proof.
   intros ge avoid HC Hpin m xv yv zv bpf opf t m' vres Hav Hpv Hst Hpart Hwf H.
   inv H.
@@ -1019,10 +1123,18 @@ Proof.
   assert (HnvH : ~ Mem.valid_block m bH) by exact (Mem.fresh_block_alloc _ _ _ _ _ HA1).
   assert (HnvD : ~ Mem.valid_block m bD)
     by (intro HH; exact (Mem.fresh_block_alloc _ _ _ _ _ HA2 (Mem.valid_block_alloc _ _ _ _ _ HA1 _ HH))).
-  assert (U2 : UO avoid m mB).
-  { eapply Mem.unchanged_on_trans; eapply Mem.alloc_unchanged_on; eassumption. }
+  assert (U2 : UO ge m bpf opf mB).
+  { split.
+    - eapply Mem.unchanged_on_trans; eapply Mem.alloc_unchanged_on; eassumption.
+    - intros b i k p Hv.
+      assert (N1 : b <> bH) by (intros ->; contradiction).
+      assert (N2 : b <> bD) by (intros ->; contradiction).
+      split; intro HH.
+      + eapply Mem.perm_alloc_1; [exact HA2 |]. eapply Mem.perm_alloc_1; [exact HA1 | exact HH].
+      + eapply Mem.perm_alloc_4; [exact HA1 | | exact N1].
+        eapply Mem.perm_alloc_4; [exact HA2 | exact HH | exact N2]. }
   match goal with Hb : bind_parameter_temps _ _ _ = Some ?L |- _ =>
-    assert (HI : IV ge avoid m bpf opf false false false false L mB)
+    assert (HI : IV ge m bpf opf false false false false L mB)
   end.
   { match goal with Hb : bind_parameter_temps _ _ _ = Some _ |- _ =>
       cbn [bind_parameter_temps surface_collision.f_find_floor fn_params] in Hb;
@@ -1043,7 +1155,7 @@ Proof.
   match goal with Hf : (match Mem.free ?M ?b1 0 4 with Some _ => _ | None => _ end) = Some _ |- _ =>
     destruct (Mem.free M b1 0 4) as [M5|] eqn:F2; [| discriminate Hf]; injection Hf as <-;
     assert (N2 : ~ Mem.valid_block m b1) by assumption end.
-  destruct (free_keeps _ _ _ _ _ _ _ _ Hpv U3 PF3 N1 F1) as (U4 & PF4).
-  destruct (free_keeps _ _ _ _ _ _ _ _ Hpv U4 PF4 N2 F2) as (U5 & (fl & Hfl & Hld)).
+  destruct (free_keeps _ _ _ _ _ _ _ Hpv U3 PF3 N1 F1) as (U4 & PF4).
+  destruct (free_keeps _ _ _ _ _ _ _ Hpv U4 PF4 N2 F2) as (U5 & (fl & Hfl & Hld)).
   exists fl. auto.
 Qed.
