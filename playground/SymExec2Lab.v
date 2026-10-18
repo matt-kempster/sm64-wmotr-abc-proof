@@ -109,10 +109,13 @@ Definition c_walls : xcontract := fun args s =>
   | _ => None
   end.
 
+(* vec3f_copy / vec3s_set: no contract -- math_util is linked (2026-10-17), so
+   the executor inlines their REAL bodies (same 7328 outcomes as the old
+   stand-ins).  atan2s keeps c_fresh: inlining fails (atan2_lookup reads
+   gArctanTable at a symbolic index), but the contract itself -- memory
+   unchanged, some result -- is what MathBodies.cpure2_funcall_memid proves. *)
 Definition xc (id : ident) : option xcontract :=
-  if Pos.eqb id mario._vec3f_copy then Some c_vec3f_copy
-  else if Pos.eqb id mario._vec3s_set then Some c_vec3s_set
-  else if Pos.eqb id mario._find_floor then Some (c_find_surf (Float32.of_int (Int.repr (-11000))) 3)
+  if Pos.eqb id mario._find_floor then Some (c_find_surf (Float32.of_int (Int.repr (-11000))) 3)
   else if Pos.eqb id mario._vec3f_find_ceil then Some (c_find_surf (Float32.of_int (Int.repr 20000)) 2)
   else if Pos.eqb id mario._find_water_level then Some c_water
   else if Pos.eqb id mario._atan2s then Some c_fresh

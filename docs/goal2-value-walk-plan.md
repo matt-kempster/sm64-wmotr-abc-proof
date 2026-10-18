@@ -263,3 +263,20 @@ key cells, and 4 keyed on the action cells alone. In those 4, `pos[1]` is either
 fresh name or a sum of two, so the action-only key is too coarse for the value walk.
 Next: real contracts in place of the lab's stand-ins (`find_floor`'s value row, the wall
 contract), then port the gravity slice to v2.
+
+## 9. math_util in the link (2026-10-17)
+
+`LinkGenv.ge12` follows `LinkedTwelve.tu_rest`, so the executor's genv now includes
+`surface_collision` and `math_util`. That changed the stand-in contracts:
+- `vec3f_copy` and `vec3s_set` need no contract. The executor inlines their real
+  bodies, and `perform_air_step` gives the same counts as with the stand-ins: 7328
+  outcomes, 225 after the call-site join, 4 on the action cells.
+- `atan2s` keeps its contract (memory unchanged, some result). Inlining returns None
+  because `atan2_lookup` reads `gArctanTable` at a symbolic index. The contract itself
+  is what `MathBodies.cpure2_funcall_memid` proves, so its `xc_sound` case is a lemma
+  away, not trust.
+- Stand-ins still to replace with proved contracts: `find_floor`, `vec3f_find_ceil`,
+  `find_wall_collisions`, `find_water_level`, `mario_get_terrain_sound_addend`. The
+  first four are linked now (`surface_collision`), so their value contracts can be
+  proved from the generated bodies. In WMotR the world reads go through the static
+  surface partition.
