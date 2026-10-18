@@ -267,6 +267,7 @@ proofs/WMotRRequiresA/Unwired/WallList.v
 proofs/WMotRRequiresA/Unwired/WallFind.v
 proofs/WMotRRequiresA/Unwired/WallExec.v
 proofs/WMotRRequiresA/Unwired/AirXc.v
+proofs/WMotRRequiresA/Unwired/AirMatch.v
 proofs/Interp/MemBuild.v
 
 # --- GOAL 1 positive control: with A pressed, a real frame reaches flying ---
