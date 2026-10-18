@@ -20,3 +20,9 @@ compiled. Mirrors `../../NoAImpliesNoFly/Unwired/`.
   memory. That is a frame invariant for a later layer to prove, not a TRUST row. The
   lab (`playground/SymExec2Lab.v`) now uses `c_ff`, and the counts are unchanged:
   7328 / 225 / 4.
+- `CeilList.v`: the value contracts of the real `find_ceil_from_list`
+  (`fcl_value_contract`) and `find_ceil` (`fc_value_contract`), built the same way as
+  FloorList and reusing its list predicates. `*pceil` gets NULL or a surface from a
+  partition list. The only static written is `gNumCalls.ceil` (bytes 2..4 of
+  `gNumCalls`). `FloorExec`'s `Wff` now asks for all 6 bytes of `gNumCalls` to be
+  writable, so the ceiling executor contract can reuse it.

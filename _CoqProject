@@ -259,6 +259,7 @@ proofs/Interp/SymExec2.v
 proofs/WMotRRequiresA/Unwired/GravitySlice.v
 proofs/WMotRRequiresA/Unwired/FloorList.v
 proofs/WMotRRequiresA/Unwired/FloorExec.v
+proofs/WMotRRequiresA/Unwired/CeilList.v
 proofs/Interp/MemBuild.v
 
 # --- GOAL 1 positive control: with A pressed, a real frame reaches flying ---

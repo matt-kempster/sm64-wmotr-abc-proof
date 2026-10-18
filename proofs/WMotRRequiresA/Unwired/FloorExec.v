@@ -70,13 +70,18 @@ Definition c_ff (nbase : positive) (R0 : list (positive * Z)) (rFI rMS rCL kW : 
   | _ => None
   end.
 
+(* the statics the surface functions write, with their full sizes *)
+Definition w_cells : list (ident * Z) :=
+  [(surface_collision._gFindFloorIncludeSurfaceIntangible, 2);
+   (surface_collision._gNumFindFloorMisses, 4); (surface_collision._gNumCalls, 6)].
+
 (* region blocks named by the world fact's arguments *)
 Definition rblk (vs : list (option val)) (b : block) : Prop :=
   exists o, In (Some (Vptr b o)) vs.
 
 (* THE WORLD FACT's meaning (about the frame's entry memory m0) *)
 Definition Wff (ge : genv) (m0 : mem) (szS : Z) (vs : list (option val)) : Prop :=
-  (forall id sz, In (id, sz) ff_cells ->
+  (forall id sz, In (id, sz) w_cells ->
      exists b, Genv.find_symbol ge id = Some b /\ Mem.range_perm m0 b 0 sz Cur Writable)
   /\ (forall id bp, In id part_ids -> Genv.find_symbol ge id = Some bp ->
         Plt bp (Mem.nextblock m0) /\ ~ rblk vs bp /\ ~ is_static ge bp)
@@ -236,9 +241,9 @@ End LISTS.
 Lemma statics_old : forall vs b, Wff ge m0 szS vs -> is_static ge b -> Plt b nb0.
 Proof.
   intros vs b (WS & _) (id & Hin & Hs).
-  assert (exists sz, In (id, sz) ff_cells /\ 0 < sz) as (sz & Hc & Hp).
+  assert (exists sz, In (id, sz) w_cells /\ 0 < sz) as (sz & Hc & Hp).
   { cbn in Hin. destruct Hin as [<- | [<- | [<- | []]]];
-      [exists 2 | exists 4 | exists 2]; split; cbn; auto; lia. }
+      [exists 2 | exists 4 | exists 6]; split; cbn; auto; lia. }
   destruct (WS id sz Hc) as (b' & Hs' & Hr). rewrite Hs in Hs'. injection Hs' as <-.
   apply (Mem.perm_valid_block m0 b 0 Cur Writable). apply Hr. lia.
 Qed.
@@ -307,8 +312,8 @@ Proof.
   { destruct (WS surface_collision._gNumFindFloorMisses 4 ltac:(cbn; auto)) as (b & Hs & Hr).
     rewrite SMS in Hs. injection Hs as <-. exact Hr. }
   assert (WCL : Mem.range_perm m0 bCL 0 2 Cur Writable).
-  { destruct (WS surface_collision._gNumCalls 2 ltac:(cbn; auto)) as (b & Hs & Hr).
-    rewrite SCL in Hs. injection Hs as <-. exact Hr. }
+  { destruct (WS surface_collision._gNumCalls 6 ltac:(cbn; auto)) as (b & Hs & Hr).
+    rewrite SCL in Hs. injection Hs as <-. intros i Hi. apply Hr. lia. }
   assert (OFI : Plt bFI nb0) by (eapply statics_old; [exact HW | exists surface_collision._gFindFloorIncludeSurfaceIntangible; split; [cbn; auto | exact SFI]]).
   assert (OMS : Plt bMS nb0) by (eapply statics_old; [exact HW | exists surface_collision._gNumFindFloorMisses; split; [cbn; auto | exact SMS]]).
   assert (OCL : Plt bCL nb0) by (eapply statics_old; [exact HW | exists surface_collision._gNumCalls; split; [cbn; auto | exact SCL]]).
