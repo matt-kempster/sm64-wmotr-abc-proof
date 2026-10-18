@@ -5,7 +5,10 @@
 (*                                                                          *)
 (* The contract (c_ff): the three static cells find_floor writes get some  *)
 (* value, *pfloor gets NULL or a world surface (an Fworld fact), and the   *)
-(* height is some value.                                                   *)
+(* height is some value; when the floor is a surface, a consumer fact      *)
+(* Fuser kH [height; yPos] records FloorHeight.ff_height: the height is in *)
+(* HPi (Hit_at ge m0) (ycast yPos), so it is -11000 or a real surface hit  *)
+(* on m0's partition lists.                                                *)
 (*                                                                          *)
 (* What it needs about the world is a consumer fact in the path condition, *)
 (* Fuser kW [the consumer's regions], whose meaning (Wff) is a property of *)
@@ -13,8 +16,8 @@
 (*   - the three statics are writable;                                     *)
 (*   - the surface partitions are well-formed lists through old blocks     *)
 (*     outside the consumer's regions and the statics;                     *)
-(*   - every surface on them is an old pointer outside the regions with    *)
-(*     room for a Surface.                                                 *)
+(*   - every surface on them is an old pointer outside the regions and    *)
+(*     the statics, with room for a Surface.                               *)
 (* These are facts about the real game's memory: a later layer proves     *)
 (* them as a frame invariant (no TRUST row).                               *)
 (* ====================================================================== *)
@@ -23,7 +26,8 @@ From Coq Require Import ZArith List Lia.
 From compcert Require Import Coqlib Errors Maps AST Integers Floats Values Memory Events
   Globalenvs Ctypes Cop Clight ClightBigstep.
 From SM64.Generated Require surface_collision.
-From SM64.Proofs Require Import Interp.SymExec2 WMotRRequiresA.Unwired.FloorList.
+From SM64.Proofs Require Import Interp.SymExec2 WMotRRequiresA.Unwired.FloorList
+  WMotRRequiresA.Unwired.FloorHeight.
 From SM64.Proofs.WMotRRequiresA Require Import WMotRWorld.
 Import ListNotations.
 
@@ -67,10 +71,10 @@ Qed.
 
 (* THE CONTRACT.  The pointer argument must be a live local (find_floor's
    callers pass &floor, a local) and the world fact must be present. *)
-Definition c_ff (nbase : positive) (R0 : list (positive * Z)) (rFI rMS rCL kW : positive)
+Definition c_ff (nbase : positive) (R0 : list (positive * Z)) (rFI rMS rCL kW kH : positive)
     (szS : Z) : xcontract := fun args g =>
   match args with
-  | [_; _; _; Sptr rp op] =>
+  | [_; ay; _; Sptr rp op] =>
       if existsb (Pos.eqb rp) (g_loc g) && existsb (is_fact_W kW (wargs R0)) (g_pc g) then
         let n0 := g_nx g in
         let n1 := Pos.succ n0 in let n2 := Pos.succ n1 in let n3 := Pos.succ n2 in
@@ -91,8 +95,9 @@ Definition c_ff (nbase : positive) (R0 : list (positive * Z)) (rFI rMS rCL kW : 
               sstore nbase R0 g4 rp (Ptrofs.unsigned op) Mint32 (Sfresh n4) with
         | Some gN, Some gS =>
             Some [(gN, Sfresh n5);
-                  (add_fact (add_fact (add_fact gS (Fworld (Sfresh n4) szS)) (fty 56 (Sfresh n4)))
-                     (fty 1 (Sfresh n4)), Sfresh n5)]
+                  (add_fact (add_fact (add_fact (add_fact gS (Fworld (Sfresh n4) szS))
+                     (fty 56 (Sfresh n4))) (fty 1 (Sfresh n4))) (Fuser kH [Sfresh n5; ay]),
+                   Sfresh n5)]
         | _, _ => None
         end end end end end
       else None
@@ -119,6 +124,7 @@ Definition Wff (ge : genv) (m0 : mem) (gp : meminj) (szS : Z) (vs : list (option
         exists b o, s = Vptr b o /\ Plt b (Mem.nextblock m0)
           /\ Ptrofs.unsigned o + szS <= Ptrofs.modulus /\ ~ rblk vs b /\ gp b <> None)
   /\ (forall hd b o, part_head ge m0 hd -> on_list m0 hd (Vptr b o) -> styp m0 b o)
+  /\ (forall hd b o, part_head ge m0 hd -> on_list m0 hd (Vptr b o) -> ~ is_static ge b)
   /\ 0 <= szS.
 
 (* ---- small facts ---- *)
@@ -193,7 +199,7 @@ Let gp_plt {b} (H : gp b <> None) : Plt b (Mem.nextblock m0) :=
   | Some x => fun G => gp_old b x G
   | None => fun G => False_ind _ (H G)
   end eq_refl.
-Variables rFI rMS rCL kW : positive.
+Variables rFI rMS rCL kW kH : positive.
 Variable szS : Z.
 
 Local Notation MM := (MMg ge nbase R0 gtab kv m0 uf gp).
@@ -206,6 +212,8 @@ Hypothesis HgFI : gfind gtab surface_collision._gFindFloorIncludeSurfaceIntangib
 Hypothesis HgMS : gfind gtab surface_collision._gNumFindFloorMisses = Some rMS.
 Hypothesis HgCL : gfind gtab surface_collision._gNumCalls = Some rCL.
 Hypothesis HU : forall vs, uf kW vs -> Wff ge m0 gp szS vs.
+(* the height fact's meaning *)
+Hypothesis HUH : forall h yv, HPi (Hit_at ge m0) (ycast yv) h -> uf kH [Some (Vsingle h); Some yv].
 
 (* the consumer's regions are named by the world fact *)
 Lemma r0_rblk : forall E r sz, r0_size R0 r = Some sz ->
@@ -289,7 +297,7 @@ Ltac pos_ne := let HH := fresh in intro HH; repeat rewrite <- Pos.add_1_r in HH;
 
 (* THE SOUNDNESS of c_ff against the real find_floor *)
 Theorem c_ff_sound : forall args g cps E m vargs t m' vres,
-  c_ff nbase R0 rFI rMS rCL kW szS args g = Some cps ->
+  c_ff nbase R0 rFI rMS rCL kW kH szS args g = Some cps ->
   MM E m g ->
   Forall2 (fun a v => den E a = Some v /\ sok nbase (g_nx g) a) args vargs ->
   eval_funcall function_entry2 ge m (Internal surface_collision.f_find_floor) vargs t m' vres ->
@@ -335,7 +343,7 @@ Proof.
   (* the world fact *)
   destruct (PC _ IW) as (_ & HW). cbn [fact_holds] in HW. apply HU in HW.
   set (vs := map (den E) (wargs R0)) in *.
-  pose proof HW as (WS & WP & WL & WSurf & WTy & Wsz).
+  pose proof HW as (WS & WP & WL & WSurf & WTy & WNS & Wsz).
   (* the static blocks *)
   destruct EO as (_ & _ & _ & EG & _ & _).
   destruct (EG _ _ HgFI) as (_ & BFI & SFI).
@@ -370,6 +378,34 @@ Proof.
   (* old blocks: valid in m, same perms in m, m0 and m' *)
   assert (Vm : forall b, Plt b nb0 -> Mem.valid_block m b)
     by (intros b Hb; eapply Plt_Ple_trans; [exact Hb | exact NX]).
+  (* the height: -11000 or a real hit on m0's lists (FloorHeight.ff_height) *)
+  assert (HitM0 : forall h', Hit_at ge m h' -> Hit_at ge m0 h').
+  { intros h' (hd & s & x & z & PH & OL & Ht).
+    pose proof (part_head_to_m0 E m g MMh hd HW PH) as PH0.
+    pose proof (on_list_to_m0 E m g MMh hd s (WL hd PH0) OL) as OL0.
+    destruct (WSurf hd s PH0 OL0) as (bs & os & -> & Ob & _ & NR & _).
+    exists hd, (Vptr bs os), x, z. split; [exact PH0 | split; [exact OL0 |]].
+    exact (hit_transfer m m0 bs os x z h' (fun ch z' => ld_m0 E m g bs z' ch MMh Ob NR) Ht). }
+  match goal with Dy : den E a2 = Some ?yv /\ _ |- _ =>
+    assert (HGT : HPi (Hit_at ge m0) (ycast yv) h) end.
+  { match goal with Hx : eval_funcall _ _ _ _ _ _ _ _ |- _ => rename Hx into Hev' end.
+    destruct (ff_height ge HC Hpin m _ _ _ bpf op t m' (Vsingle h) Hvm
+                ltac:(intros id b Hin Hs; apply Vm;
+                      exact (statics_old _ _ HW (ex_intro _ id (conj Hin Hs))))
+                ltac:(intros id bp Hin Hs; destruct (WP id bp Hin Hs) as (Old & _ & NS);
+                      split; [exact (Vm _ Old) | split; [exact NS |]];
+                      intros E'; apply Hnew; rewrite <- E'; exact Old)
+                ltac:(intros hd PH; apply (wf_to_m E m g MMh bpf hd Hnew);
+                      apply WL; exact (part_head_to_m0 E m g MMh hd HW PH))
+                ltac:(intros hd s PH OL;
+                      pose proof (part_head_to_m0 E m g MMh hd HW PH) as PH0;
+                      pose proof (on_list_to_m0 E m g MMh hd s (WL hd PH0) OL) as OL0;
+                      destruct (WSurf hd s PH0 OL0) as (bs & os & -> & Ob & _ & _ & _);
+                      exists bs, os; split; [reflexivity | split; [exact (Vm _ Ob) |]];
+                      split; [exact (WNS hd bs os PH0 OL0) | intros E'; apply Hnew; rewrite <- E'; exact Ob])
+                Hev')
+      as (h' & Eh & HP).
+    injection Eh as <-. exact (HPi_mono _ _ _ _ HitM0 HP). }
   assert (RD : forall b lo hi, Plt b nb0 -> Mem.range_perm m0 b lo hi Cur Writable ->
             Mem.range_perm m' b lo hi Cur Readable /\ Mem.range_perm m b lo hi Cur Writable).
   { intros b lo hi Hb Hr. split; intros i Hi.
@@ -620,8 +656,9 @@ Proof.
     apply FIN; [| rewrite Y5; apply LCg; reflexivity | rewrite X5; exact NXg4].
     eapply (TAIL (Sconst (Vint Int.zero)) gN gN S5N); [rewrite Efl; reflexivity | exact M5' | reflexivity | exact Y5].
   - (* a world surface: the second outcome *)
-    exists (add_fact (add_fact (add_fact gS (Fworld (Sfresh n4) szS)) (fty 56 (Sfresh n4)))
-              (fty 1 (Sfresh n4)), Sfresh n5). split; [right; left; reflexivity |].
+    exists (add_fact (add_fact (add_fact (add_fact gS (Fworld (Sfresh n4) szS)) (fty 56 (Sfresh n4)))
+              (fty 1 (Sfresh n4))) (Fuser kH [Sfresh n5; a2]), Sfresh n5).
+    split; [right; left; reflexivity |].
     destruct (sstore_sound ge nbase R0 gtab kv m0 uf gp gp_old E6 m4 g4 rp (Ptrofs.unsigned op) Mint32
                 (Sfresh n4) fl m5 gS M4' S5S
                 ltac:(rewrite NXg4; split; [cbn [nlt]; unfold Plt, n5; lia | exact I]) D5 LRfl
@@ -640,8 +677,23 @@ Proof.
                               (fty 1 (Sfresh n4)))).
     { apply MMg_add_fact; [apply MMg_add_fact; [exact MA | apply (NF _ eq_refl) |] | apply (NF _ eq_refl) |];
         apply (fty_holds _ _ _ _ _ _ bs os); auto; exact (FTy bs os Efl). }
+    assert (MA3 : MM E6 m5 (add_fact (add_fact (add_fact (add_fact gS (Fworld (Sfresh n4) szS))
+                              (fty 56 (Sfresh n4))) (fty 1 (Sfresh n4))) (Fuser kH [Sfresh n5; a2]))).
+    { apply MMg_add_fact; [exact MA2 | |].
+      - match goal with Dy : den E a2 = Some _ /\ sok _ _ a2 |- _ => destruct Dy as (_ & Sy) end.
+        pose proof (sok_nlt _ _ _ Sy) as Na.
+        unfold fact_nlt.
+        match goal with |- Forall (nlt ?N) _ =>
+          assert (EN : N = Pos.succ n5) by (cbn; rewrite X5, NXg4; reflexivity); rewrite EN end.
+        constructor; [cbn [nlt]; apply Pos.lt_succ_diag_r |].
+        constructor; [| constructor].
+        refine (nlt_mono nbase (fun _ => None) (fun _ => false) uf _ _ _ Na _). unfold Ple, n5, n4, n3, n2, n1, n0; lia.
+      - cbn [fact_holds map]. rewrite D6.
+        match goal with Hd : den E a2 = Some _ /\ sok _ _ a2 |- _ => destruct Hd as (Dy2 & Sy2) end.
+        erewrite den_Rx; [| exact RX | eapply sok_nlt; exact Sy2].
+        rewrite Dy2. apply HUH. exact HGT. }
     apply FIN; [| cbn; rewrite Y5; apply LCg; reflexivity | cbn; rewrite X5; exact NXg4].
-    eapply (TAIL (Sfresh n4) gS); [exact S5S | exact D5 | exact MA2 | reflexivity | cbn; exact Y5].
+    eapply (TAIL (Sfresh n4) gS); [exact S5S | exact D5 | exact MA3 | reflexivity | cbn; exact Y5].
 Qed.
 
 End FE.

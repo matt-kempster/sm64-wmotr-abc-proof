@@ -120,7 +120,7 @@ Proof.
   (* the world fact *)
   destruct (PC _ IW) as (_ & HW). cbn [fact_holds] in HW. apply HU in HW.
   set (vs := map (den E) (wargs R0)) in *.
-  pose proof HW as (WS & WP & WL & WSurf & _ & Wsz).
+  pose proof HW as (WS & WP & WL & WSurf & _ & _ & Wsz).
   (* the static block *)
   destruct EO as (_ & _ & _ & EG & _ & _).
   destruct (EG _ _ HgCL) as (_ & BCL & SCL).

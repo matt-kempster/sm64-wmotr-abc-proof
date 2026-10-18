@@ -13,7 +13,9 @@
 (*                                                                          *)
 (* What is left is plain genv facts (each callee's symbol resolves to its  *)
 (* generated body, the composite env, the gtab entry for gNumCalls) and    *)
-(* the world fact's meaning (HU, a frame invariant to carry). No trust.    *)
+(* the world fact's meaning (HU, a frame invariant to carry) and the       *)
+(* height fact's (HUH: the consumer's uf must accept what ff_height       *)
+(* proves).  No trust.                                                     *)
 (* ====================================================================== *)
 
 From Coq Require Import ZArith List Lia.
@@ -22,7 +24,7 @@ From compcert Require Import Coqlib Errors Maps AST Integers Floats Values Memor
 From SM64.Generated Require mario surface_collision math_util.
 From SM64.Proofs Require Import Interp.SymExec2 MarioModel.MathGeomGated MarioModel.MathBodies
   Generic.SymbolicLinking
-  WMotRRequiresA.Unwired.FloorList WMotRRequiresA.Unwired.FloorExec
+  WMotRRequiresA.Unwired.FloorList WMotRRequiresA.Unwired.FloorHeight WMotRRequiresA.Unwired.FloorExec
   WMotRRequiresA.Unwired.CeilList WMotRRequiresA.Unwired.CeilExec
   WMotRRequiresA.Unwired.WallFind WMotRRequiresA.Unwired.WallExec
   WMotRRequiresA.Unwired.TerrainSound.
@@ -38,12 +40,12 @@ Variable m0 : mem.
 Variable uf : positive -> list (option val) -> Prop.
 Variable gp : meminj.
 Hypothesis gp_old : forall b x, gp b = Some x -> Plt b (Mem.nextblock m0).
-Variables rFI rMS rCL kW : positive.
+Variables rFI rMS rCL kW kH : positive.
 Variable szS : Z.
 
 (* THE TABLE *)
 Definition air_xc (id : ident) : option xcontract :=
-  if Pos.eqb id mario._find_floor then Some (c_ff nbase R0 rFI rMS rCL kW szS)
+  if Pos.eqb id mario._find_floor then Some (c_ff nbase R0 rFI rMS rCL kW kH szS)
   else if Pos.eqb id mario._find_ceil then Some (c_fc nbase R0 rCL kW szS)
   else if Pos.eqb id mario._find_water_level then Some xc_fresh
   else if Pos.eqb id mario._atan2s then Some xc_fresh
@@ -68,6 +70,8 @@ Hypothesis HgMS : gfind gtab surface_collision._gNumFindFloorMisses = Some rMS.
 Hypothesis HgCL : gfind gtab surface_collision._gNumCalls = Some rCL.
 (* the world fact's meaning *)
 Hypothesis HU : forall vs, uf kW vs -> Wff ge m0 gp szS vs.
+(* the height fact's meaning (proved by c_ff_sound from find_floor's body) *)
+Hypothesis HUH : forall h yv, HPi (Hit_at ge m0) (ycast yv) h -> uf kH [Some (Vsingle h); Some yv].
 
 Lemma lookup_res : forall id f fd, resolves_to ge id f -> sfun_lookup ge id = Some fd -> fd = Internal f.
 Proof.
@@ -88,7 +92,7 @@ Proof.
   unfold air_xc in Hx.
   destruct (Pos.eqb_spec id mario._find_floor) as [-> | N1].
   { injection Hx as <-. rewrite (lookup_res _ _ _ Rff Hl) in Hev.
-    exact (c_ff_sound ge nbase R0 gtab kv m0 uf gp gp_old rFI rMS rCL kW szS HC Hffl HgFI HgMS HgCL HU
+    exact (c_ff_sound ge nbase R0 gtab kv m0 uf gp gp_old rFI rMS rCL kW kH szS HC Hffl HgFI HgMS HgCL HU HUH
              _ _ _ _ _ _ _ _ _ Hk MMh HF Hev). }
   destruct (Pos.eqb_spec id mario._find_ceil) as [-> | N2].
   { injection Hx as <-. rewrite (lookup_res _ _ _ Rfc Hl) in Hev.
@@ -173,28 +177,29 @@ Hypothesis LOr : linkorder mario.prog lp.
 
 (* THE TABLE IS SOUND on the real link: only the gtab entries (the consumer's
    own region table) and the world fact's meaning remain *)
-Theorem air_xc_sound_link : forall nbase R0 gtab kv m0 uf gp rFI rMS rCL kW szS,
+Theorem air_xc_sound_link : forall nbase R0 gtab kv m0 uf gp rFI rMS rCL kW kH szS,
   (forall b x, gp b = Some x -> Plt b (Mem.nextblock m0)) ->
   gfind gtab surface_collision._gFindFloorIncludeSurfaceIntangible = Some rFI ->
   gfind gtab surface_collision._gNumFindFloorMisses = Some rMS ->
   gfind gtab surface_collision._gNumCalls = Some rCL ->
   (forall vs, uf kW vs -> Wff (globalenv lp) m0 gp szS vs) ->
+  (forall h yv, HPi (Hit_at (globalenv lp) m0) (ycast yv) h -> uf kH [Some (Vsingle h); Some yv]) ->
   forall id k args g cps fd E m vargs t m' vres,
-  air_xc nbase R0 rFI rMS rCL kW szS id = Some k -> k args g = Some cps ->
+  air_xc nbase R0 rFI rMS rCL kW kH szS id = Some k -> k args g = Some cps ->
   sfun_lookup (globalenv lp) id = Some fd ->
   MMg (globalenv lp) nbase R0 gtab kv m0 uf gp E m g ->
   Forall2 (fun a v => den (globalenv lp) m0 E a = Some v /\ sok nbase (g_nx g) a) args vargs ->
   eval_funcall function_entry2 (globalenv lp) m fd vargs t m' vres ->
   exists c, In c cps /\ CM (globalenv lp) nbase R0 gtab kv m0 uf gp E (g_nx g) (g_loc g) m' vres c.
 Proof.
-  intros nbase R0 gtab kv m0 uf gp rFI rMS rCL kW szS Hgp HgFI HgMS HgCL HU.
-  exact (air_xc_sound (globalenv lp) nbase R0 gtab kv m0 uf gp Hgp rFI rMS rCL kW szS
+  intros nbase R0 gtab kv m0 uf gp rFI rMS rCL kW kH szS Hgp HgFI HgMS HgCL HU HUH.
+  exact (air_xc_sound (globalenv lp) nbase R0 gtab kv m0 uf gp Hgp rFI rMS rCL kW kH szS
            (cenv_has_link lp LOs)
            (res_link lp _ _ _ LOs dm_ffl) (res_link lp _ _ _ LOs dm_fcl) (res_link lp _ _ _ LOs dm_wfl)
            (res_link lp _ _ _ LOm dm_al)
            (res_link lp _ _ _ LOs dm_ff) (res_link lp _ _ _ LOs dm_fc) (res_link lp _ _ _ LOs dm_wl)
            (res_link lp _ _ _ LOm dm_a2) (res_link lp _ _ _ LOr dm_ts) (res_link lp _ _ _ LOs dm_fw)
-           HgFI HgMS HgCL HU).
+           HgFI HgMS HgCL HU HUH).
 Qed.
 
 End LP.

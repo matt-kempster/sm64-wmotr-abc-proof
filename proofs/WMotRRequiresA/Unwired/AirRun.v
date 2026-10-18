@@ -18,7 +18,7 @@ From compcert Require Import Coqlib Maps AST Integers Floats Values Memory Ctype
   ClightBigstep Errors.
 From SM64.Generated Require mario_step mario surface_collision.
 From SM64.Proofs Require Import Interp.SymExec2 Interp.LinkGenv MarioModel.LinkedTwelve.
-From SM64.Proofs.WMotRRequiresA.Unwired Require Import FloorExec AirXc AirMatch.
+From SM64.Proofs.WMotRRequiresA.Unwired Require Import FloorHeight FloorExec AirXc AirMatch.
 Import ListNotations.
 
 Section CFG.
@@ -49,8 +49,9 @@ Definition kv : list (positive * Z * memory_chunk * sval) :=
     (RM, 12, Mint32, Sconst (Vint (Int.repr 16779404))) ].
 
 Definition kW : positive := 1.
+Definition kH : positive := 2.
 Definition xc : ident -> option xcontract :=
-  air_xc NB R0 RFI RMISS RCALLS kW (szs mario._Surface).
+  air_xc NB R0 RFI RMISS RCALLS kW kH (szs mario._Surface).
 
 (* cells joins keep exact: action, actionState, actionTimer, pos[1], vel[1],
    floorHeight, gfx.pos[1] *)
@@ -76,9 +77,15 @@ Definition args0 : list sval := [Sptr RM Ptrofs.zero; Sconst (Vint Int.zero)].
 Definition ok_c (c : cpath) : bool :=
   outcome_ok (sload NB R0 kv (fst c)) (init_cell kv) (g_pc (fst c)) RM RO.
 
-(* the world fact's meaning *)
+(* the consumer facts' meaning: the world fact, and find_floor's height
+   (FloorHeight.ff_height, at the frame's entry memory) *)
 Definition ufW (m0 : mem) (gp : meminj) : positive -> list (option val) -> Prop :=
-  fun _ vs => Wff g m0 gp (szs mario._Surface) vs.
+  fun k vs =>
+    if Pos.eqb k kW then Wff g m0 gp (szs mario._Surface) vs
+    else match vs with
+         | [Some (Vsingle h); Some yv] => HPi (Hit_at g m0) (ycast yv) h
+         | _ => False
+         end.
 End CFG.
 
 (* THE WALK, computed once on the real link.  The executor call is written
@@ -141,8 +148,8 @@ Proof.
     intros f Hf. split; [exact (pc0_nlt f Hf) | exact (PC f Hf)]. }
   assert (XS := air_xc_sound_link lp (linked12_LO_surf lp H12) (linked12_LO_math lp H12)
                   (linked12_LO_mario lp H12) NB (R0 G) gtab (kv G) m0 (ufW G m0 gp) gp
-                  RFI RMISS RCALLS kW (szs G mario._Surface) GPO eq_refl eq_refl eq_refl
-                  (fun vs H => H)).
+                  RFI RMISS RCALLS kW kH (szs G mario._Surface) GPO eq_refl eq_refl eq_refl
+                  (fun vs H => H) (fun h yv H => H)).
   assert (ARGS : Forall2 (fun a v => den G m0 E a = Some v /\ sok NB (g_nx (g0 G)) a) args0
                    [Vptr (e_blk E RM) (Ptrofs.add (e_base E RM) Ptrofs.zero); Vint Int.zero]).
   { constructor; [| constructor; [| constructor]].
