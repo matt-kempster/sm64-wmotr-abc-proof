@@ -34,7 +34,6 @@ Hypothesis MM : MMg ge nbase R0 gtab kv m0 uf gp E m g.
 Hypothesis HUH : forall vs, uf kH vs ->
   exists h yv, vs = [Some (Vsingle h); Some yv] /\ HPi (Hit_at ge m0) (ycast yv) h /\ Hit_at ge m0 h.
 Hypothesis HbM : e_base E rM = Ptrofs.zero.
-Hypothesis HbO : e_base E rO = Ptrofs.zero.
 
 (* the entry cells, read at Mario's state block *)
 Variable c : cells.
@@ -74,12 +73,12 @@ Qed.
 
 (* the new floorHeight is in range *)
 Lemma floorh_new : cells_ok LD (g_pc g) rM rO kH = true ->
-  Mem.load Mint32 m bm oMO = Some (Vptr (e_blk E rO) Ptrofs.zero)
+  Mem.load Mint32 m bm oMO = Some (Vptr (e_blk E rO) (e_base E rO))
   /\ exists fh, Mem.load Mfloat32 m bm oF = Some (Vsingle fh)
      /\ F32 fh = true /\ -11000 <= R2 fh.
 Proof.
   intros H.
-  destruct (cells_sound ge nbase R0 gtab kv m0 uf gp gp_old E m g rM rO kH MM HUH HbM HbO H)
+  destruct (cells_sound ge nbase R0 gtab kv m0 uf gp gp_old E m g rM rO kH MM HUH HbM H)
     as (LMO & [LF | (x & LF & Hx)]); split; [exact LMO | | exact LMO |].
   - rewrite LF, HF. exists (c_floorh c). pose proof entry_ranges as (_ & _ & _ & _ & _ & Ff & Lf).
     auto.
@@ -112,7 +111,7 @@ Proof.
   unfold outcome_ok in OK. apply andb_true_iff in OK as (CO & _).
   destruct entry_ranges as (Fy & Fv & Hy & Hv & Hv43 & Ff & Lf).
   destruct (aclass_air ge nbase R0 gtab kv m0 uf gp gp_old E m g rM rO (c_posy c) (c_vely c) kH
-              MM HbM HbO HY HV H Fv Hv)
+              MM HbM HY HV H Fv Hv)
     as ((KA & KS & KT) & LY & LG & (v' & LV & Fv' & Lo & Hi)).
   destruct (floorh_new CO) as (LMO & fh & LF & Ffh & Lfh).
   destruct (quarter_steps_up 4 (c_posy c) (c_vely c) ltac:(lia) Fy Fv Hy Hv) as (Fp & _).
@@ -124,7 +123,7 @@ Proof.
                      (air_step_y (c_posy c) (c_vely c))).
   all: split; [ unfold read_cells; cbn [c_action c_state c_timer c_posy c_vely c_floorh c_gfxy];
                 rewrite <- HA, <- HS, <- HT; repeat split; try assumption;
-                exists (e_blk E rO), Ptrofs.zero; split; [exact LMO | exact LG] |].
+                exists (e_blk E rO), (e_base E rO); split; [exact LMO | exact LG] |].
   all: split; [ unfold InRange; cbn [c_posy c_vely c_floorh c_gfxy];
                 rewrite B2R_fm75 in Lo; repeat split; try assumption; try lra;
                 try apply Rabs_le_inv in G; lra |].
@@ -142,7 +141,7 @@ Proof.
   unfold outcome_ok in OK. apply andb_true_iff in OK as (CO & _).
   destruct entry_ranges as (Fy & Fv & Hy & Hv & Hv43 & Ff & Lf).
   destruct (aclass_cut ge nbase R0 gtab kv m0 uf gp gp_old E m g rM rO (c_posy c) (c_vely c) kH
-              MM HbM HbO HY HV k H)
+              MM HbM HY HV k H)
     as ((KA & KS & KT) & Hk & (p & Ep & LY & LG & LV & (j & Ej))).
   destruct (floorh_new CO) as (LMO & fh & LF & Ffh & Lfh).
   destruct (quarter_steps_up k (c_posy c) (c_vely c) Hk Fy Fv Hy Hv) as (Fq & _).
@@ -154,7 +153,7 @@ Proof.
   exists (mkCells (c_action c) (c_state c) (c_timer c) p fm4 fh p).
   split; [ unfold read_cells; cbn [c_action c_state c_timer c_posy c_vely c_floorh c_gfxy];
            rewrite <- HA, <- HS, <- HT; repeat split; try assumption;
-           exists (e_blk E rO), Ptrofs.zero; split; [exact LMO | exact LG] |].
+           exists (e_blk E rO), (e_base E rO); split; [exact LMO | exact LG] |].
   split; [ unfold InRange; cbn [c_posy c_vely c_floorh c_gfxy]; rewrite ?B2R_fm4;
            repeat split; try assumption; try lra; reflexivity |].
   apply (S_air_cut _ _ _ c _ k); cbn [c_action c_state c_timer c_posy c_vely c_gfxy];
@@ -184,7 +183,7 @@ Proof.
   pose proof (budget_ok_y c Hc) as Hyhi. unfold PHI_YMAX, PHI_K, PHI_A in Hyhi.
   pose proof Hc as ((_ & _ & _ & Lylo & _) & _).
   destruct (land_sound ge nbase R0 gtab kv m0 uf gp gp_old E m g rM rO (c_posy c) (c_vely c) kH
-              MM HUH HbM HbO HY HV OK Fv Hv)
+              MM HUH HbM HY HV OK Fv Hv)
     as ((KA & KS & KT) & LG & LP & (v' & LV & Fv' & Lo & Hi)).
   destruct (floorh_new CO) as (LMO & fh & LF & Ffh & Lfh).
   (* the landed height: a finite p >= -11000 that AttachOK accepts *)
@@ -207,7 +206,7 @@ Proof.
   exists (mkCells (c_action c) (c_state c) (c_timer c) p v' fh p).
   split; [ unfold read_cells; cbn [c_action c_state c_timer c_posy c_vely c_floorh c_gfxy];
            rewrite <- HA, <- HS, <- HT; repeat split; try assumption;
-           exists (e_blk E rO), Ptrofs.zero; split; [exact LMO | transitivity (Mem.load Mfloat32 m bm oY); [exact LG | exact LY]] |].
+           exists (e_blk E rO), (e_base E rO); split; [exact LMO | transitivity (Mem.load Mfloat32 m bm oY); [exact LG | exact LY]] |].
   split; [ unfold InRange; cbn [c_posy c_vely c_floorh c_gfxy];
            rewrite B2R_fm75 in Lo; repeat split; try assumption; try lra |].
   apply (S_attach _ _ _ c _ (R2 p)); cbn [c_action c_posy c_vely c_gfxy c_floorh].
@@ -243,14 +242,14 @@ Theorem air_step_move : forall m0 gp E t m' vres c,
   (forall ch b z v, gp b <> None -> Mem.load ch m0 b z = Some v -> val_old gp v) ->
   env_ok G NB (R0 G) gtab (kv G) m0 gp E ->
   (forall f, In f (pc0 G) -> fact_holds G (R0 G) m0 (ufW G m0 gp) E f) ->
-  e_base E RM = Ptrofs.zero -> e_base E RO = Ptrofs.zero ->
+  e_base E RM = Ptrofs.zero ->
   eval_funcall function_entry2 G m0 (Internal mario_step.f_perform_air_step)
     [Vptr (e_blk E RM) (Ptrofs.add (e_base E RM) Ptrofs.zero); Vint Int.zero] t m' vres ->
   read_cells (e_blk E RM) m0 c -> budget_ok c ->
   floor_data G m0 -> FloorRefreshOK wmotr_floor (R2 (c_posy c)) (R2 (c_floorh c)) ->
   exists c', read_cells (e_blk E RM) m' c' /\ RM' c c'.
 Proof.
-  intros m0 gp E t m' vres c GPO MC EO PC HbM HbO EV RC Hc FD FRO.
+  intros m0 gp E t m' vres c GPO MC EO PC HbM EV RC Hc FD FRO.
   destruct (air_step_outcome lp H12 m0 gp E t m' vres GPO MC EO PC EV) as (E' & gs & X & MM & OK).
   destruct (X RM ltac:(unfold Plt, NB, RM; lia)) as (BM & BaM & _).
   destruct (X RO ltac:(unfold Plt, NB, RO; lia)) as (BO & BaO & _).

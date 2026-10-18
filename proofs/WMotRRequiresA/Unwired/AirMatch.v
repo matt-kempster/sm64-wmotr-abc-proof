@@ -326,7 +326,6 @@ Hypothesis MM : MMg ge nbase R0 gtab kv m0 uf gp E m g.
 Hypothesis HUH : forall vs, uf kH vs ->
   exists h yv, vs = [Some (Vsingle h); Some yv] /\ HPi (Hit_at ge m0) (ycast yv) h /\ Hit_at ge m0 h.
 Hypothesis HbM : e_base E rM = Ptrofs.zero.
-Hypothesis HbO : e_base E rO = Ptrofs.zero.
 Hypothesis HY : Mem.load Mfloat32 m0 (e_blk E rM) oY = Some (Vsingle y).
 Hypothesis HV : Mem.load Mfloat32 m0 (e_blk E rM) oV = Some (Vsingle v).
 
@@ -343,8 +342,6 @@ Qed.
 
 Lemma addr_M : forall o, addr E rM o = o.
 Proof. intros o. unfold addr. rewrite HbM, Ptrofs.unsigned_zero. lia. Qed.
-Lemma addr_O : forall o, addr E rO o = o.
-Proof. intros o. unfold addr. rewrite HbO, Ptrofs.unsigned_zero. lia. Qed.
 
 Lemma same_cell_sound : forall o ch, same_cell LD IC rM o ch = true ->
   Mem.load ch m (e_blk E rM) o = Mem.load ch m0 (e_blk E rM) o.
@@ -424,7 +421,7 @@ Theorem aclass_air : aclass_of LD IC (g_pc g) rM rO kH = Some Cair ->
   F32 v = true -> Rabs (R2 v) <= 128 ->
   keeps_asT
   /\ Mem.load Mfloat32 m (e_blk E rM) oY = Some (Vsingle (air_step_y y v))
-  /\ Mem.load Mfloat32 m (e_blk E rO) oG = Some (Vsingle (air_step_y y v))
+  /\ Mem.load Mfloat32 m (e_blk E rO) (addr E rO oG) = Some (Vsingle (air_step_y y v))
   /\ exists v', Mem.load Mfloat32 m (e_blk E rM) oV = Some (Vsingle v')
                 /\ F32 v' = true /\ R2 fm75 <= R2 v' <= R2 (gravity f4 v).
 Proof.
@@ -447,7 +444,7 @@ Proof.
   cbn [add_zeros] in QD. rewrite <- air_step_y_quarter_steps in QD.
   pose proof (ld_sound _ _ _ _ LY) as DY. pose proof (ld_sound _ _ _ _ LV) as DV.
   pose proof (ld_sound _ _ _ _ LG) as DG.
-  rewrite addr_M in DY, DV. rewrite addr_O in DG. rewrite QD in DY, DG.
+  rewrite addr_M in DY, DV. rewrite QD in DY, DG.
   split; [repeat split; apply same_cell_sound; assumption |].
   split; [exact DY | split; [exact DG |]].
   destruct (vel_ok_den _ VG) as [(D & C) | D]; rewrite D in DV.
@@ -460,7 +457,7 @@ Theorem aclass_cut : forall k, aclass_of LD IC (g_pc g) rM rO kH = Some (Ccut k)
   keeps_asT /\ (k <= 4)%nat
   /\ exists p, R2 p = R2 (quarter_steps k y (Float32.div v f4))
      /\ Mem.load Mfloat32 m (e_blk E rM) oY = Some (Vsingle p)
-     /\ Mem.load Mfloat32 m (e_blk E rO) oG = Some (Vsingle p)
+     /\ Mem.load Mfloat32 m (e_blk E rO) (addr E rO oG) = Some (Vsingle p)
      /\ Mem.load Mfloat32 m (e_blk E rM) oV = Some (Vsingle fm4)
      /\ exists j, p = add_zeros j (quarter_steps k y (Float32.div v f4)).
 Proof.
@@ -486,7 +483,7 @@ Proof.
   pose proof (qrec_den ge m0 E (e_blk E rM) rM oY oV y v eq_refl HbM HY HV py k j Q) as QD.
   pose proof (ld_sound _ _ _ _ LY) as DY. pose proof (ld_sound _ _ _ _ LV) as DV.
   pose proof (ld_sound _ _ _ _ LG) as DG.
-  rewrite addr_M in DY, DV. rewrite addr_O in DG. rewrite QD in DY, DG.
+  rewrite addr_M in DY, DV. rewrite QD in DY, DG.
   rewrite (vel_cut_den _ VC) in DV.
   split; [repeat split; apply same_cell_sound; assumption |]. split; [exact K4 |].
   eexists; split; [apply add_zeros_R2 | split; [exact DY | split; [exact DG | split; [exact DV | eexists; reflexivity]]]].
@@ -576,7 +573,7 @@ Proof.
 Qed.
 
 Lemma cells_sound : cells_ok LD (g_pc g) rM rO kH = true ->
-  Mem.load Mint32 m (e_blk E rM) oMO = Some (Vptr (e_blk E rO) Ptrofs.zero)
+  Mem.load Mint32 m (e_blk E rM) oMO = Some (Vptr (e_blk E rO) (e_base E rO))
   /\ (Mem.load Mfloat32 m (e_blk E rM) oF = Mem.load Mfloat32 m0 (e_blk E rM) oF
       \/ exists x, Mem.load Mfloat32 m (e_blk E rM) oF = Some (Vsingle x) /\ Hit_at ge m0 x).
 Proof.
@@ -586,7 +583,7 @@ Proof.
     destruct a as [| r0 i | | | | | | | |]; try discriminate. apply andb_true_iff in H1 as (Hr & Ho).
     apply Pos.eqb_eq in Hr. subst. pose proof (Ptrofs.eq_spec i Ptrofs.zero) as Ei. rewrite Ho in Ei. subst.
     pose proof (ld_sound _ _ _ _ L) as D. rewrite addr_M in D. rewrite D. cbn [den].
-    rewrite HbO. reflexivity.
+    rewrite Ptrofs.add_zero. reflexivity.
   - destruct (LD rM oF Mfloat32) as [a|] eqn:L; [| discriminate].
     pose proof (ld_sound _ _ _ _ L) as D. rewrite addr_M in D. rewrite D.
     destruct a; try discriminate.
@@ -608,7 +605,7 @@ Qed.
 Theorem land_sound : land_ok LD IC (g_pc g) rM rO kH = true ->
   F32 v = true -> Rabs (R2 v) <= 128 ->
   keeps_asT
-  /\ Mem.load Mfloat32 m (e_blk E rO) oG = Mem.load Mfloat32 m (e_blk E rM) oY
+  /\ Mem.load Mfloat32 m (e_blk E rO) (addr E rO oG) = Mem.load Mfloat32 m (e_blk E rM) oY
   /\ (Mem.load Mfloat32 m (e_blk E rM) oY = Mem.load Mfloat32 m0 (e_blk E rM) oF
       \/ exists h kq jz, Mem.load Mfloat32 m (e_blk E rM) oY = Some (Vsingle h) /\ (kq <= 4)%nat
            /\ HPi (Hit_at ge m0) (ycast (Vsingle (add_zeros jz (quarter_steps kq y (Float32.div v f4))))) h
@@ -628,7 +625,7 @@ Proof.
   unfold sveqb in GE. destruct (sval_eq gy py) as [->|]; [| discriminate].
   pose proof (ld_sound _ _ _ _ LY) as DY. pose proof (ld_sound _ _ _ _ LV) as DV.
   pose proof (ld_sound _ _ _ _ LG) as DG.
-  rewrite addr_M in DY, DV. rewrite addr_O in DG.
+  rewrite addr_M in DY, DV.
   split; [repeat split; apply same_cell_sound; assumption |].
   split; [congruence |]. split.
   - rewrite DY. destruct py; try discriminate.
