@@ -1,10 +1,10 @@
-(* playground: measure SymExec2 on the real perform_air_step.
-   The contracts here are STAND-INS for measurement only (not proved). *)
+(* playground: measure SymExec2 on the real perform_air_step, with the
+   proved contract table AirXc.air_xc (every contract sound: air_xc_sound). *)
 From Coq Require Import List ZArith String.
 From compcert Require Import Coqlib Maps AST Integers Floats Values Memory Ctypes Clight Errors.
 From SM64.Generated Require mario_step mario surface_collision.
 From SM64.Proofs Require Import Interp.SymExec2 LinkGenv WMotRRequiresA.Unwired.FloorExec
-  WMotRRequiresA.Unwired.CeilExec.
+  WMotRRequiresA.Unwired.CeilExec WMotRRequiresA.Unwired.WallExec WMotRRequiresA.Unwired.AirXc.
 Import ListNotations.
 Local Notation "'let?' x := a 'in' b" :=
   (match a with Some x => b | None => None end)
@@ -39,122 +39,14 @@ Definition kv : list (positive * Z * memory_chunk * sval) :=
   [ (RM, fo mario._MarioState mario._marioObj, Mint32, Sptr RO Ptrofs.zero);
     (RM, 12, Mint32, Sconst (Vint (Int.repr 16779404))) ].
 
-Definition fresh (s : gst) : sval * gst :=
-  (Sfresh (g_nx s), mkg (g_sm s) (g_pc s) (Pos.succ (g_nx s)) (g_loc s)).
-
-Definition ldl (s : gst) (l : sloc) (ch : memory_chunk) : option sval :=
-  match l with
-  | Lreg r o => sload NB R0 kv s r (Ptrofs.unsigned o) ch
-  | Lwld q k => wload s q k ch
-  end.
-Definition stl (s : gst) (l : sloc) (ch : memory_chunk) (v : sval) : option gst :=
-  match l with
-  | Lreg r o => sstore NB R0 s r (Ptrofs.unsigned o) ch v
-  | Lwld _ _ => None
-  end.
-Definition addf (s : gst) (f : fact) : gst := mkg (g_sm s) (f :: g_pc s) (g_nx s) (g_loc s).
-
-Definition c_vec3f_copy : xcontract := fun args s =>
-  match args with
-  | [d; src] =>
-      let ls := loc_of src in let ld := loc_of d in
-      let? a := ldl s ls Mfloat32 in
-      let? b := ldl s (loc_add ls 4) Mfloat32 in
-      let? c := ldl s (loc_add ls 8) Mfloat32 in
-      let? s1 := stl s ld Mfloat32 a in
-      let? s2 := stl s1 (loc_add ld 4) Mfloat32 b in
-      let? s3 := stl s2 (loc_add ld 8) Mfloat32 c in
-      Some [(s3, d)]
-  | _ => None
-  end.
-
-Definition c_vec3s_set : xcontract := fun args s =>
-  match args with
-  | [d; x; y; z] =>
-      let ld := loc_of d in
-      let? s1 := stl s ld Mint16signed (mk_ldres Mint16signed x) in
-      let? s2 := stl s1 (loc_add ld 2) Mint16signed (mk_ldres Mint16signed y) in
-      let? s3 := stl s2 (loc_add ld 4) Mint16signed (mk_ldres Mint16signed z) in
-      Some [(s3, d)]
-  | _ => None
-  end.
-
-(* height result, surface out-param: NULL + default height, or a world surface *)
-Definition c_find_surf_h (pidx : nat) : xcontract := fun args s =>
-  let? p := nth_error args pidx in
-  let lp := loc_of p in
-  let '(h0, s') := fresh s in
-  let? s0 := stl s' lp Mint32 (Sconst (Vint Int.zero)) in
-  let '(f, s1) := fresh s' in
-  let '(h, s2) := fresh s1 in
-  let? s3 := stl s2 lp Mint32 f in
-  Some [(s0, h0); (addf s3 (Fworld f (szs mario._Surface)), h)].
-
-Definition c_find_surf (dflt : float32) (pidx : nat) : xcontract := fun args s =>
-  let? p := nth_error args pidx in
-  let lp := loc_of p in
-  let? s0 := stl s lp Mint32 (Sconst (Vint Int.zero)) in
-  let '(f, s1) := fresh s in
-  let '(h, s2) := fresh s1 in
-  let? s3 := stl s2 lp Mint32 f in
-  Some [(s0, Sconst (Vsingle dflt)); (addf s3 (Fworld f (szs mario._Surface)), h)].
-
-(* the real find_floor (FloorList.ff_value_contract): its three statics get
-   some value, *pfloor gets NULL or a surface off a partition list, and the
-   height is some value *)
-Definition c_find_floor : xcontract := fun args s =>
-  let '(a, s1) := fresh s in
-  let '(b, s2) := fresh s1 in
-  let '(c, s3) := fresh s2 in
-  let? s4 := stl s3 (Lreg RFI Ptrofs.zero) Mint16signed a in
-  let? s5 := stl s4 (Lreg RMISS Ptrofs.zero) Mint32 b in
-  let? s6 := stl s5 (Lreg RCALLS Ptrofs.zero) Mint16signed c in
-  c_find_surf_h 3 args s6.
-
-Definition c_water : xcontract := fun args s =>
-  Some [(s, Sconst (Vsingle (Float32.of_int (Int.repr (-11000)))))].
-
-Definition c_fresh : xcontract := fun args s => let '(h, s1) := fresh s in Some [(s1, h)].
-
-Fixpoint walls_out (n : nat) (lw : sloc) (s : gst) : option gst :=
-  match n with
-  | O => Some s
-  | S n' =>
-      let '(w, s1) := fresh s in
-      let? s2 := stl s1 (loc_add lw (4 * Z.of_nat n')) Mint32 w in
-      walls_out n' lw (addf s2 (Fworld w (szs mario._Surface)))
-  end.
-
-Definition c_walls : xcontract := fun args s =>
-  match args with
-  | [p] =>
-      let l := loc_of p in
-      let '(x, s1) := fresh s in
-      let '(z, s2) := fresh s1 in
-      let? s3 := stl s2 l Mfloat32 x in
-      let? s4 := stl s3 (loc_add l 8) Mfloat32 z in
-      omap (fun n =>
-              let? s5 := stl s4 (loc_add l 22) Mint16signed (Sconst (Vint (Int.repr (Z.of_nat n)))) in
-              let? s6 := walls_out n (loc_add l 24) s5 in
-              Some (s6, Sconst (Vint (Int.repr (Z.of_nat n))))) [0; 1; 2; 3; 4]%nat
-  | _ => None
-  end.
-
-(* vec3f_copy / vec3s_set: no contract -- math_util is linked (2026-10-17), so
-   the executor inlines their REAL bodies (same 7328 outcomes as the old
-   stand-ins).  atan2s keeps c_fresh: inlining fails (atan2_lookup reads
-   gArctanTable at a symbolic index), but the contract itself -- memory
-   unchanged, some result -- is what MathBodies.cpure2_funcall_memid proves. *)
-(* the world fact c_ff needs (FloorExec.Wff over the consumer's regions) *)
+(* vec3f_copy / vec3s_set: no contract -- math_util is linked, so the executor
+   inlines their REAL bodies.  atan2s gets xc_fresh: inlining fails
+   (atan2_lookup reads gArctanTable at a symbolic index). *)
+(* the world fact the surface contracts need (FloorExec.Wff over the consumer's regions) *)
 Definition kW : positive := 1.
-Definition xc (id : ident) : option xcontract :=
-  if Pos.eqb id mario._find_floor then Some (c_ff NB R0 RFI RMISS RCALLS kW (szs mario._Surface))
-  else if Pos.eqb id mario._find_ceil then Some (c_fc NB R0 RCALLS kW (szs mario._Surface))
-  else if Pos.eqb id mario._find_water_level then Some xc_fresh
-  else if Pos.eqb id mario._atan2s then Some xc_fresh
-  else if Pos.eqb id mario._mario_get_terrain_sound_addend then Some xc_fresh
-  else if Pos.eqb id mario._find_wall_collisions then Some c_walls
-  else None.
+(* the PROVED contract table (AirXc.air_xc_sound) *)
+Definition xc : ident -> option xcontract :=
+  air_xc NB R0 RFI RMISS RCALLS kW (szs mario._Surface).
 
 (* key cells: action, actionState, actionTimer, pos[1], vel[1], floorHeight, gfx.pos[1] *)
 Definition jkeys : list (positive * Z * memory_chunk) :=

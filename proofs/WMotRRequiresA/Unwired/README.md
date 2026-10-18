@@ -44,3 +44,23 @@ compiled. Mirrors `../../NoAImpliesNoFly/Unwired/`.
   each recorded wall is a surface on a partition list of the entry memory. Only
   `x`, `z`, `numWalls`, the wall slots and `gNumCalls.wall` change. Proved with a body
   triple (`solve_wf`) and `rx_out`: every return returns `numCollisions`.
+  It also proves that the wall-slot bytes past the final count are untouched and that
+  `x`/`z` are read at entry, so both are readable.
+- `WallExec.v`: the executor's `find_wall_collisions` contract `c_fwc`, proved sound
+  (`c_fwc_sound`) through `fwc_contract`. There are five outcomes, n = min(count, 4):
+  - `x`, `z` and `gNumCalls.wall` get fresh values, `numWalls := n`, and slots 0..n-1
+    get fresh world surfaces (Fworld);
+  - the result is n for n < 4, and a fresh value at n = 4.
+
+  It is built on a reusable tool, `sstores_havoc`. A contract can describe the
+  callee's result memory without replaying its stores on the caller's memory (which
+  needs writability the executor does not track). It needs only the value of each
+  written cell and that every other cell is unchanged. This replaces the lab's false
+  `c_walls` stand-in.
+- `AirXc.v`: the contract table for the value walk of the real `perform_air_step`
+  (`air_xc`), with SymExec2's `xc_sound` proved for it (`air_xc_sound`). It covers
+  `find_floor`/`find_ceil`/`find_wall_collisions` through their executor contracts, and
+  `find_water_level`/`atan2s`/`mario_get_terrain_sound_addend` through `xc_fresh` and
+  their value contracts. What it assumes is only genv facts (each callee resolves to its
+  generated body, `cenv_has`, the `gtab` entries) and the world fact's meaning `HU`.
+  The lab (`playground/SymExec2Lab.v`) now runs on exactly this table.

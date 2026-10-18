@@ -347,3 +347,25 @@ Proved contracts (2026-10-17, later):
   a partition list of the entry memory. Only `x`, `z`, `numWalls`, the wall slots and
   `gNumCalls.wall` change, and no permissions change. Next is the executor contract
   `c_fwc`, which replaces the lab's false `c_walls` stand-in.
+- (2026-10-18) **The value walk's contract table is proved sound.**
+  - `WallExec.c_fwc_sound`: the executor's `find_wall_collisions` contract. It has
+    five outcomes, n = min(count, 4). `x`, `z` and `gNumCalls.wall` get fresh values,
+    `numWalls := n`, slots 0..n-1 get fresh world surfaces, and the result is n
+    (fresh at n = 4). It replaces the false `c_walls` stand-in.
+  - The proof needed two facts the old memory-level contract lacked, both now in
+    `fwc_contract`: the wall-slot bytes past the count are unchanged, and the body
+    reads `x`/`z` at entry, so they are readable.
+  - It also needed a new reusable tool, `sstores_havoc`. A contract can describe the
+    callee's result memory from the written cells' values plus "everything else is
+    unchanged", without replaying stores on the caller's memory (the executor does
+    not track a local's permissions).
+  - `AirXc.air_xc_sound`: SymExec2's `xc_sound` holds for the full table `air_xc`
+    (floor/ceil/walls contracts; `xc_fresh` for water level, atan2s and terrain sound).
+  - `AirXc.air_xc_sound_link`: on any Clight link containing surface_collision,
+    math_util and mario (linkorder, lp abstract), every genv hypothesis is
+    discharged. What remains is the consumer's `gtab` entries (checked by
+    computation) and the world fact's meaning (`Wff` at the frame's entry memory).
+  - The lab now runs on exactly `air_xc`. Counts are unchanged: 7328 / 225 / 4.
+  - Open for a proved walk of `perform_air_step`: `m0_closed`; `Wff` as a frame
+    invariant (carried by the GOAL-2 run invariant); and the consumer, which reads
+    the 225 joined outcomes into `MoveChain` facts.
