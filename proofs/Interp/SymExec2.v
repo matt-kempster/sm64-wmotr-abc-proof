@@ -457,6 +457,22 @@ Fixpoint sx_exprlist (al : list expr) (tyl : list type) : option (list sval) :=
 
 End SEXPR.
 
+(* an expression that must dereference a temp the path knows is a
+   non-pointer constant (a NULL a contract returned): Clight has no
+   evaluation of it, so a statement that evaluates it ends the path *)
+Fixpoint nullx (le : PTree.t sval) (a : expr) : bool :=
+  match a with
+  | Ederef (Etempvar id _) _ =>
+      match le ! id with Some (Sconst (Vint _)) => true | _ => false end
+  | Ederef a1 _ => nullx le a1
+  | Efield a1 _ _ => nullx le a1
+  | Eaddrof a1 _ => nullx le a1
+  | Eunop _ a1 _ => nullx le a1
+  | Ecast a1 _ => nullx le a1
+  | Ebinop _ a1 a2 _ => nullx le a1 || nullx le a2
+  | _ => false
+  end.
+
 
 (* ---------------------------------------------------------------- *)
 (* Joins                                                              *)
@@ -826,7 +842,9 @@ Fixpoint sx_stmt (fuel : nat) (se : PTree.t (positive * type)) (le : PTree.t sva
           Some [(le, g', SOnormal)]
       | _, _ => None
       end
-  | Sset id a => let? v := sx_expr se le g a in Some [(PTree.set id v le, g, SOnormal)]
+  | Sset id a =>
+      if nullx le a then Some [] else
+      let? v := sx_expr se le g a in Some [(PTree.set id v le, g, SOnormal)]
   | Scall optid (Evar id (Tfunction tyargs tyres cconv)) al =>
       match se ! id with
       | Some _ => None
@@ -1943,6 +1961,58 @@ Definition env_match (E : senv) (gl : list positive) (se : PTree.t (positive * t
 
 Definition temps_ok (E : senv) (n : positive) (tle : temp_env) (le : PTree.t sval) : Prop :=
   forall id a, le ! id = Some a -> exists v, tle ! id = Some v /\ den E a = Some v /\ sok n a.
+
+Lemma nullx_sound : forall E n e tle le m, temps_ok E n tle le ->
+  forall a, nullx le a = true ->
+  (forall v, ~ eval_expr ge e tle m a v) /\ (forall b o bf, ~ eval_lvalue ge e tle m a b o bf).
+Proof.
+  intros E n e tle le m TM a.
+  induction a as [ | | | | | id ty | a1 IH1 ty | a1 IH1 ty | op a1 IH1 ty | op a1 IH1 a2 IH2 ty
+                 | a1 IH1 ty | a1 IH1 i ty | ty0 ty | ty0 ty ]; intros H; cbn [nullx] in H;
+    try discriminate.
+  - (* Ederef *)
+    assert (NL : forall b o bf, ~ eval_lvalue ge e tle m (Ederef a1 ty) b o bf).
+    { intros b o bf HL. inversion HL; subst.
+      destruct a1; cbn [nullx] in H;
+        try (apply (proj1 (IH1 H) _ H5)).
+      destruct (le ! i) as [sv|] eqn:L; [| discriminate].
+      destruct sv; try discriminate. destruct v; try discriminate.
+      destruct (TM i _ L) as (v & Tv & Dv & _). cbn [den] in Dv. injection Dv as <-.
+      inversion H5; subst; [congruence | inversion H0]. }
+    split; [| exact NL].
+    intros v HE. inversion HE; subst.
+    (eapply NL; eassumption).
+  - (* Eaddrof *)
+    split; [intros v HE; inversion HE; subst;
+            first [ solve [eapply (proj2 (IH1 H)); eassumption]
+                  | match goal with HL : eval_lvalue _ _ _ _ _ _ _ _ |- _ => solve [inversion HL] end ]
+           | intros b o bf HL; inversion HL].
+  - (* Eunop *)
+    split; [intros v HE; inversion HE; subst;
+            first [ solve [eapply (proj1 (IH1 H)); eassumption]
+                  | match goal with HL : eval_lvalue _ _ _ _ _ _ _ _ |- _ => solve [inversion HL] end ]
+           | intros b o bf HL; inversion HL].
+  - (* Ebinop *)
+    apply orb_true_iff in H.
+    split; [intros v HE; inversion HE; subst;
+            first [ destruct H as [H | H];
+                    [ (eapply (proj1 (IH1 H)); eassumption)
+                    | (eapply (proj1 (IH2 H)); eassumption) ]
+                  | match goal with HL : eval_lvalue _ _ _ _ _ _ _ _ |- _ => solve [inversion HL] end ]
+           | intros b o bf HL; inversion HL].
+  - (* Ecast *)
+    split; [intros v HE; inversion HE; subst;
+            first [ solve [eapply (proj1 (IH1 H)); eassumption]
+                  | match goal with HL : eval_lvalue _ _ _ _ _ _ _ _ |- _ => solve [inversion HL] end ]
+           | intros b o bf HL; inversion HL].
+  - (* Efield *)
+    assert (NL : forall b o bf, ~ eval_lvalue ge e tle m (Efield a1 i ty) b o bf).
+    { intros b o bf HL. inversion HL; subst;
+        (eapply (proj1 (IH1 H)); eassumption). }
+    split; [| exact NL].
+    intros v HE. inversion HE; subst.
+    (eapply NL; eassumption).
+Qed.
 
 Lemma ptrofs_add_repr : forall o x y,
   Ptrofs.add (Ptrofs.add o (Ptrofs.repr x)) (Ptrofs.repr y) = Ptrofs.add o (Ptrofs.repr (x + y)).
@@ -3383,6 +3453,8 @@ Proof.
       exists E. split; [ apply Ext_refl | split; [ exact MM' | split; [ rewrite NX; exact TM | ] ] ].
       split; [ cbn; auto | split; [ rewrite NX; apply Ple_refl | exact LC ] ].
     + (* Sset *)
+      destruct (nullx le e0) eqn:NX0.
+      { exfalso. inv Hx. eapply (proj1 (nullx_sound E _ e _ le _ TM e0 NX0)); eassumption. }
       destruct (sx_expr se le g e0) as [vs|] eqn:Ev; [ | discriminate ]. inv Hs. inv Hx.
       match goal with HE : eval_expr _ _ _ _ e0 _ |- _ =>
         destruct (sx_expr_sound E _ g se le e _ MM EM TM _ _ _ HE Ev) as [D S] end.
