@@ -373,6 +373,12 @@ Section HeightLinked12.
   Hypothesis Hscp_mtxf_real :
     call_pres_ext_sc lp bm (NoA_real bm) MWF SafeB
       mario_actions_moving._mtxf_align_terrain_triangle.
+  Hypothesis Hcsp_omfd_real :
+    call_pres_ext_cs lp bm (NoA_real bm) MWF SafeB
+      mario_actions_cutscene._obj_mark_for_deletion.
+  Hypothesis Hcsp_scale_real :
+    call_pres_ext_cs lp bm (NoA_real bm) MWF SafeB
+      mario_actions_cutscene._obj_scale.
   Hypothesis WL_exempt : forall e le m fid fty vf fd,
       mem_id fid exempt_callees = true ->
       eval_expr (lp_ge lp) e le m (Evar fid fty) vf ->

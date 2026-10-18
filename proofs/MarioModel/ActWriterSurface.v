@@ -2122,10 +2122,22 @@ Definition dg_writer_ids : list ident :=
        result (plus the math_util spline statics) *)
     :: mario_actions_cutscene._anim_spline_poll :: nil.
 
+(* the object-pointer-arg writers (cs class): arg0 must be a chase temp *)
+Definition objw_ids : list ident :=
+  mario_actions_cutscene._obj_scale
+    :: mario_actions_cutscene._obj_mark_for_deletion :: nil.
+Definition objw_call_chk (cact : list ident) (fty : type) (al : list expr) : bool :=
+  match fty, al with
+  | Tfunction (Tpointer _ _ :: _) _ _, Etempvar t (Tpointer _ _) :: _ => mem_id t cact
+  | _, _ => false
+  end.
+
 Definition xdg_chk (lids cact : list ident) (fid : ident) (fty : type)
     (al : list expr) : bool :=
   if mem_id fid dg_writer_ids
   then sc_call_chk lids (fid :: nil) cact fid fty al
+  else if mem_id fid objw_ids
+  then objw_call_chk cact fty al
   else true.
 
 (* the per-xid row: gated for the writers, the old any-arg row otherwise *)
@@ -2133,23 +2145,26 @@ Definition call_pres_ext_x (lp : Clight.program) (bm : block)
     (NoA MWF : mem -> Prop) (SafeB : block -> Prop) (fid : ident) : Prop :=
   if mem_id fid dg_writer_ids
   then call_pres_ext_dg lp bm NoA MWF SafeB fid
+  else if mem_id fid objw_ids
+  then call_pres_ext_cs lp bm NoA MWF SafeB fid
   else call_pres_ext lp bm NoA MWF fid.
 
 Lemma call_pres_ext_x_of_ext : forall lp bm NoA MWF SafeB fid,
     call_pres_ext lp bm NoA MWF fid -> call_pres_ext_x lp bm NoA MWF SafeB fid.
 Proof.
   intros lp bm NoA MWF SafeB fid H. unfold call_pres_ext_x.
-  destruct (mem_id fid dg_writer_ids); [ | exact H ].
-  intros fd m0 vargs0 t0 m1 vres0 Hev Hres _.
-  exact (H fd m0 vargs0 t0 m1 vres0 Hev Hres).
+  destruct (mem_id fid dg_writer_ids);
+    [ | destruct (mem_id fid objw_ids); [ | exact H ] ];
+    intros fd m0 vargs0 t0 m1 vres0 Hev Hres _;
+    exact (H fd m0 vargs0 t0 m1 vres0 Hev Hres).
 Qed.
 
 Lemma call_pres_ext_x_nonwriter : forall lp bm NoA MWF SafeB fid,
-    mem_id fid dg_writer_ids = false ->
+    mem_id fid dg_writer_ids = false -> mem_id fid objw_ids = false ->
     call_pres_ext_x lp bm NoA MWF SafeB fid -> call_pres_ext lp bm NoA MWF fid.
 Proof.
-  intros lp bm NoA MWF SafeB fid E H. unfold call_pres_ext_x in H.
-  rewrite E in H. exact H.
+  intros lp bm NoA MWF SafeB fid E E2 H. unfold call_pres_ext_x in H.
+  rewrite E, E2 in H. exact H.
 Qed.
 
 (* ====================================================================== *)
@@ -5448,10 +5463,42 @@ Section ActWriterWalk.
             + exact Hex.
             + exact (conj HV (conj HS (conj HM HN))).
             + exact Hc'.
-          - destruct (kit_scallx_pres _ _ _ _ _ _ _ _ _ _ _ _ _ (Hubx _ Hfx) Hex
-                        Hrow HN HM HV HS)
-              as (HV' & HS' & HM' & HN' & _ & _).
-            exact (conj HV' (conj HS' (conj HM' HN'))). }
+          - destruct (mem_id cid objw_ids) eqn:Eo.
+            + (* the cs object-arg writer: arg0 a chase temp *)
+              destruct (cs_scall_pres lp bm NoA MWF SafeB optid cid params res cc al
+                          e le m t (set_opttemp optid vres le) m' Out_normal
+                          (Hubx _ Hfx) Hrow) as [Hc' _].
+              * intros vs Hvl. unfold objw_call_chk in Hxdg.
+                destruct params as [ | p0 ps ]; [ discriminate Hxdg | ].
+                destruct p0; try discriminate Hxdg.
+                destruct al as [ | a0 al' ]; [ discriminate Hxdg | ].
+                destruct a0 as [ | | | | | t0 tty | | | | | | | | ];
+                  try discriminate Hxdg.
+                destruct tty; try discriminate Hxdg.
+                inv Hvl.
+                match goal with
+                | Ha : eval_expr _ _ _ _ (Etempvar _ _) _ |- _ =>
+                    inv Ha;
+                    [ | match goal with
+                        | H : eval_lvalue _ _ _ _ (Etempvar _ _) _ _ _ |- _ => inv H
+                        end ]
+                end.
+                cbn [arg0_cond_safe]. intros b ofs Ev. subst.
+                match goal with
+                | Hcast : sem_cast ?v _ _ _ = Some (Vptr _ _),
+                  Hg : le ! t0 = Some ?v |- _ =>
+                    destruct v; cbn in Hcast; try discriminate Hcast;
+                    try (destruct Archi.ptr64; discriminate Hcast);
+                    injection Hcast as <- <-;
+                    exact (Hch _ Hxdg _ _ Hg)
+                end.
+              * exact Hex.
+              * exact (conj HV (conj HS (conj HM HN))).
+              * exact Hc'.
+            + destruct (kit_scallx_pres _ _ _ _ _ _ _ _ _ _ _ _ _ (Hubx _ Hfx) Hex
+                          Hrow HN HM HV HS)
+                as (HV' & HS' & HM' & HN' & _ & _).
+              exact (conj HV' (conj HS' (conj HM' HN'))). }
         destruct Hcar as (HV' & HS' & HM' & HN').
         refine (conj HV' (conj HS' (conj HM' (conj HN'
                  (conj _ (conj _ (conj _ (conj _ I)))))))).

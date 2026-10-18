@@ -1381,6 +1381,62 @@ Section OutParamArc.
     | nil => True
     end.
 
+  (* THE CONDITIONAL-SAFE OBJECT-ARG WRITER CLASS (cs, 2026-10-17): an
+     external that writes ONLY through its object-pointer arg0 (obj_scale /
+     obj_mark_for_deletion -- object_helpers.c:705,1135).  The gate is
+     arg0_cond_safe: a bare chase temp only pins its POINTER values to SafeB,
+     and the Vint case derefs a non-pointer, so no real run exists. *)
+  Definition call_pres_ext_cs (fid : ident) : Prop :=
+    forall fd m0 vargs0 t0 m1 vres0,
+      eval_funcall function_entry2 (lp_ge lp) m0 fd vargs0 t0 m1 vres0 ->
+      resolves_lp fid fd ->
+      arg0_cond_safe vargs0 ->
+      NoA m0 -> MWF m0 -> Mem.valid_block m0 bm ->
+      action_sat not_tainted m0 bm ->
+      Mem.valid_block m1 bm /\ action_sat not_tainted m1 bm /\
+      MWF m1 /\ NoA m1.
+
+  Lemma cs_scall_pres :
+    forall optid fid tyl rty cc args e le0 m0 tr le1 m1 out0,
+      e ! fid = None ->
+      call_pres_ext_cs fid ->
+      (forall vargs, eval_exprlist (lp_ge lp) e le0 m0 args tyl vargs ->
+                     arg0_cond_safe vargs) ->
+      exec_stmt function_entry2 (lp_ge lp) e le0 m0
+        (Scall optid (Evar fid (Tfunction tyl rty cc)) args)
+        tr le1 m1 out0 ->
+      carried bm NoA MWF m0 ->
+      carried bm NoA MWF m1 /\ out0 = Out_normal.
+  Proof.
+    intros optid fid tyl rty cc args e le0 m0 tr le1 m1 out0
+           He Hsc Hsafe Hexec Hc.
+    inv Hexec.
+    match goal with
+    | Hcf : classify_fun _ = fun_case_f _ _ _ |- _ =>
+        cbn in Hcf; injection Hcf as E1 E2 E3; subst
+    end.
+    match goal with
+    | Hv : eval_expr _ _ _ _ (Evar _ _) ?vf |- _ =>
+        destruct (eval_Evar_funct _ _ _ _ _ _ _ _ He Hv) as (bf & Hsym & ->)
+    end.
+    match goal with
+    | Hff : Genv.find_funct _ (Vptr bf Ptrofs.zero) = Some ?fd |- _ =>
+        assert (Hres : resolves_lp fid fd) by (exists bf; split; assumption)
+    end.
+    match goal with
+    | Hvl : eval_exprlist _ _ _ _ _ _ ?vargs |- _ =>
+        pose proof (Hsafe vargs Hvl) as Hsa
+    end.
+    destruct Hc as (HV & HS & HM & HN).
+    match goal with
+    | Hevf : eval_funcall _ _ _ _ _ _ _ _ |- _ =>
+        destruct (Hsc _ _ _ _ _ _ Hevf Hres Hsa HN HM HV HS)
+          as (HV' & HS' & HM' & HN')
+    end.
+    split; [ | reflexivity ].
+    split; [ exact HV' | split; [ exact HS' | split; [ exact HM' | exact HN' ] ] ].
+  Qed.
+
   (* the conjoined multi-pointer gate *)
   Definition oc2_gate (vargs : list val) : Prop :=
     arg0_cond_safe vargs /\ last_arg_local vargs.

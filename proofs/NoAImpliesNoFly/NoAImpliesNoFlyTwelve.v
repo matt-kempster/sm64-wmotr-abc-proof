@@ -132,6 +132,12 @@ Section NoAImpliesNoFlyTwelve.
   Hypothesis Hscp_mtxf_real :
     call_pres_ext_sc lp bm (NoA_real bm) MWF SafeB
       mario_actions_moving._mtxf_align_terrain_triangle.
+  Hypothesis Hcsp_omfd_real :
+    call_pres_ext_cs lp bm (NoA_real bm) MWF SafeB
+      mario_actions_cutscene._obj_mark_for_deletion.
+  Hypothesis Hcsp_scale_real :
+    call_pres_ext_cs lp bm (NoA_real bm) MWF SafeB
+      mario_actions_cutscene._obj_scale.
   Hypothesis WL_exempt : forall e le m fid fty vf fd,
       mem_id fid exempt_callees = true ->
       eval_expr (lp_ge lp) e le m (Evar fid fty) vf ->
@@ -214,7 +220,7 @@ Section NoAImpliesNoFlyTwelve.
              HSafeB_sym_iff Hspawn
              (linked12_LO_surf lp H12)
              Hdg_v3f_real Hdg_v3s_real Hdg_v3fset_real Hdg_v3scopy_real
-             Hdg_spoll_real Hscp_mtxf_real WL_exempt
+             Hdg_spoll_real Hscp_mtxf_real Hcsp_omfd_real Hcsp_scale_real WL_exempt
              (linked12_LO_sta lp H12) (linked12_LO_mov lp H12)
              (linked12_LO_air lp H12) (linked12_LO_sub lp H12)
              (linked12_LO_cut lp H12) (linked12_LO_aut lp H12)
@@ -247,7 +253,7 @@ Section NoAImpliesNoFlyTwelve.
              HSafeB_sym_iff Hspawn
              (linked12_LO_surf lp H12)
              Hdg_v3f_real Hdg_v3s_real Hdg_v3fset_real Hdg_v3scopy_real
-             Hdg_spoll_real Hscp_mtxf_real WL_exempt
+             Hdg_spoll_real Hscp_mtxf_real Hcsp_omfd_real Hcsp_scale_real WL_exempt
              (linked12_LO_sta lp H12) (linked12_LO_mov lp H12)
              (linked12_LO_air lp H12) (linked12_LO_sub lp H12)
              (linked12_LO_cut lp H12) (linked12_LO_aut lp H12)

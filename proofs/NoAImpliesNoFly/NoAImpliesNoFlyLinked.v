@@ -906,6 +906,17 @@ Section NoARealInputMWF.
   Hypothesis Hscp_mtxf_real :
     call_pres_ext_sc lp bm (NoA_real bm) MWF SafeB
       mario_actions_moving._mtxf_align_terrain_triangle.
+  (* obj_scale(obj, s) / obj_mark_for_deletion(obj) write ONLY through obj
+     (object_helpers.c): cs-gated (arg0 SafeB-if-pointer).  Every real site
+     passes a chase temp seeded from a cutscene object global (sIntroWarp-
+     PipeObj / sEnd*Obj), checked by CutsceneLeafSurface's seeded walkers.
+     Replaces the FALSE any-argument cut_ext entries. *)
+  Hypothesis Hcsp_omfd_real :
+    call_pres_ext_cs lp bm (NoA_real bm) MWF SafeB
+      mario_actions_cutscene._obj_mark_for_deletion.
+  Hypothesis Hcsp_scale_real :
+    call_pres_ext_cs lp bm (NoA_real bm) MWF SafeB
+      mario_actions_cutscene._obj_scale.
   Lemma Hscp_v3f :
     call_pres_ext_sc lp bm (NoA_real bm) MWF SafeB
       mario_actions_automatic._vec3f_copy.
@@ -3197,6 +3208,7 @@ Section NoARealInputMWF.
                             HSafeB_not_bm HSafeB_not_bc Hgms_blk Hgtimer_blk Htable_blk Hktab_blk)
                          (Hpres_obj_ext mario._play_sound eq_refl))
                       Hpres_cut_ext
+                      Hcsp_omfd_real Hcsp_scale_real
                       (Hpres_obj_ext interaction._atan2s eq_refl)
                       (* SLICE 20 (act_reading_npc_dialog): approach_s32 rides
                          the SAME dedicated boundary the submerged family uses
