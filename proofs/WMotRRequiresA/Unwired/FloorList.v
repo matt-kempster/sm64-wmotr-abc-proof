@@ -125,6 +125,426 @@ Proof.
            (fun co Hc => proj1 (sn_offsets_ge _ co HC Hc)) eq_refl Hle H).
 Qed.
 
+(* ---- reading a Surface's fields ---- *)
+
+Definition surf_ty : type := Tstruct surface_collision._Surface noattr.
+
+(* the Surface field offsets (vertex1/2/3, normal, originOffset) and the
+   normal's (x, y, z), checked in the TU's composite env and carried to any
+   genv that contains it.  The lemma is generic in the env, so the kernel
+   never unfolds the TU's. *)
+Definition fo_chk (env : composite_env) (sid f : ident) (d : Z) : bool :=
+  match env ! sid with
+  | Some co => complete_members env (co_members co) &&
+      match field_offset env f (co_members co) with
+      | OK (d', Full) => Z.eqb d' d | _ => false end
+  | None => false end.
+
+Lemma fo_chk_ge : forall (env : composite_env) (ge : genv) sid f d,
+    (forall id co, env ! id = Some co -> (genv_cenv ge) ! id = Some co) ->
+    fo_chk env sid f d = true ->
+    forall co, (genv_cenv ge) ! sid = Some co -> field_offset ge f (co_members co) = OK (d, Full).
+Proof.
+  intros env ge sid f d HC K co H. unfold fo_chk in K.
+  destruct (env ! sid) as [co0|] eqn:E0; [| discriminate K].
+  apply andb_true_iff in K as [K1 K2].
+  rewrite (HC _ _ E0) in H. injection H as <-.
+  rewrite (field_offset_stable env ge HC f _ K1).
+  destruct (field_offset env f (co_members co0)) as [[d' []]|]; try discriminate K2.
+  apply Z.eqb_eq in K2. subst. reflexivity.
+Qed.
+
+Definition fo_ok (ge : genv) (sid f : ident) (d : Z) : Prop :=
+  forall co, (genv_cenv ge) ! sid = Some co -> field_offset ge f (co_members co) = OK (d, Full).
+
+Lemma fo_v1 : forall ge, cenv_has ge -> fo_ok ge surface_collision._Surface surface_collision._vertex1 10.
+Proof. intros ge HC. unfold fo_ok. apply (fo_chk_ge _ ge _ _ _ HC). vm_compute. reflexivity. Qed.
+Lemma fo_v2 : forall ge, cenv_has ge -> fo_ok ge surface_collision._Surface surface_collision._vertex2 16.
+Proof. intros ge HC. unfold fo_ok. apply (fo_chk_ge _ ge _ _ _ HC). vm_compute. reflexivity. Qed.
+Lemma fo_v3 : forall ge, cenv_has ge -> fo_ok ge surface_collision._Surface surface_collision._vertex3 22.
+Proof. intros ge HC. unfold fo_ok. apply (fo_chk_ge _ ge _ _ _ HC). vm_compute. reflexivity. Qed.
+Lemma fo_n : forall ge, cenv_has ge -> fo_ok ge surface_collision._Surface surface_collision._normal 28.
+Proof. intros ge HC. unfold fo_ok. apply (fo_chk_ge _ ge _ _ _ HC). vm_compute. reflexivity. Qed.
+Lemma fo_oo : forall ge, cenv_has ge -> fo_ok ge surface_collision._Surface surface_collision._originOffset 40.
+Proof. intros ge HC. unfold fo_ok. apply (fo_chk_ge _ ge _ _ _ HC). vm_compute. reflexivity. Qed.
+Lemma fo_nx : forall ge, cenv_has ge -> fo_ok ge surface_collision.__769 surface_collision._x 0.
+Proof. intros ge HC. unfold fo_ok. apply (fo_chk_ge _ ge _ _ _ HC). vm_compute. reflexivity. Qed.
+Lemma fo_ny : forall ge, cenv_has ge -> fo_ok ge surface_collision.__769 surface_collision._y 4.
+Proof. intros ge HC. unfold fo_ok. apply (fo_chk_ge _ ge _ _ _ HC). vm_compute. reflexivity. Qed.
+Lemma fo_nz : forall ge, cenv_has ge -> fo_ok ge surface_collision.__769 surface_collision._z 8.
+Proof. intros ge HC. unfold fo_ok. apply (fo_chk_ge _ ge _ _ _ HC). vm_compute. reflexivity. Qed.
+
+(* a struct-typed expression evaluates to its address *)
+Lemma ev_deref_struct : forall (ge : genv) e le m A sid v,
+    eval_expr ge e le m (Ederef A (Tstruct sid noattr)) v ->
+    exists l ofs, v = Vptr l ofs /\ eval_expr ge e le m A (Vptr l ofs).
+Proof.
+  intros ge e le m A sid v H. inv H.
+  match goal with Hl : eval_lvalue _ _ _ _ (Ederef _ _) _ _ _ |- _ => inv Hl end.
+  match goal with Hd : deref_loc _ _ _ _ _ _ |- _ => inv Hd end;
+    cbn [access_mode] in *; try discriminate.
+  eauto.
+Qed.
+
+(* reading a field of a struct-typed expression *)
+Lemma ev_field_gen : forall (ge : genv) e le m B sid fld ty v d,
+    typeof B = Tstruct sid noattr ->
+    (forall co, (genv_cenv ge) ! sid = Some co ->
+       field_offset ge fld (co_members co) = OK (d, Full)) ->
+    eval_expr ge e le m (Efield B fld ty) v ->
+    exists l ofs, eval_expr ge e le m B (Vptr l ofs)
+      /\ deref_loc ty m l (Ptrofs.add ofs (Ptrofs.repr d)) Full v.
+Proof.
+  intros ge e le m B sid fld ty v d Ht Hfo H.
+  inv H.
+  match goal with Hl : eval_lvalue _ _ _ _ (Efield _ _ _) _ _ _ |- _ => inv Hl end;
+    rewrite Ht in *; try discriminate.
+  match goal with H5 : Tstruct _ _ = Tstruct _ _ |- _ => inv H5 end.
+  match goal with Hc : (genv_cenv ge) ! _ = Some _, Hf : field_offset _ _ _ = OK _ |- _ =>
+    rewrite (Hfo _ Hc) in Hf; inv Hf end.
+  eauto.
+Qed.
+
+Lemma ev_field : forall (ge : genv) e le m B sid fld ty v d ch,
+    typeof B = Tstruct sid noattr ->
+    (forall co, (genv_cenv ge) ! sid = Some co ->
+       field_offset ge fld (co_members co) = OK (d, Full)) ->
+    access_mode ty = By_value ch ->
+    eval_expr ge e le m (Efield B fld ty) v ->
+    exists l ofs, eval_expr ge e le m B (Vptr l ofs)
+      /\ Mem.loadv ch m (Vptr l (Ptrofs.add ofs (Ptrofs.repr d))) = Some v.
+Proof.
+  intros ge e le m B sid fld ty v d ch Ht Hfo Ham H.
+  destruct (ev_field_gen _ _ _ _ _ _ _ _ _ _ Ht Hfo H) as (l & ofs & HB & Hd).
+  exists l, ofs. split; [exact HB |]. inv Hd; congruence.
+Qed.
+
+Lemma ev_field_ref : forall (ge : genv) e le m B sid fld ty v d,
+    typeof B = Tstruct sid noattr ->
+    (forall co, (genv_cenv ge) ! sid = Some co ->
+       field_offset ge fld (co_members co) = OK (d, Full)) ->
+    access_mode ty = By_reference \/ access_mode ty = By_copy ->
+    eval_expr ge e le m (Efield B fld ty) v ->
+    exists l ofs, eval_expr ge e le m B (Vptr l ofs)
+      /\ v = Vptr l (Ptrofs.add ofs (Ptrofs.repr d)).
+Proof.
+  intros ge e le m B sid fld ty v d Ht Hfo Ham H.
+  destruct (ev_field_gen _ _ _ _ _ _ _ _ _ _ Ht Hfo H) as (l & ofs & HB & Hd).
+  exists l, ofs. split; [exact HB |]. destruct Ham as [Ham | Ham]; inv Hd; congruence.
+Qed.
+
+Definition surf_e : expr :=
+  Ederef (Etempvar surface_collision._surf (tptr surf_ty)) surf_ty.
+
+Lemma ev_surf : forall (ge : genv) e le m v s,
+    le ! surface_collision._surf = Some s -> eval_expr ge e le m surf_e v ->
+    exists l ofs, s = Vptr l ofs /\ v = Vptr l ofs.
+Proof.
+  intros ge e le m v s Hs H. unfold surf_e, surf_ty in H.
+  destruct (ev_deref_struct _ _ _ _ _ _ _ H) as (l & ofs & -> & Ht).
+  inv Ht; [| match goal with Hl : eval_lvalue _ _ _ _ (Etempvar _ _) _ _ _ |- _ => inv Hl end].
+  exists l, ofs. split; [congruence | reflexivity].
+Qed.
+
+(* surf->vertexN[k] *)
+Definition vtx_e (fld : ident) (k : Z) : expr :=
+  Ederef (Ebinop Oadd (Efield surf_e fld (tarray tshort 3)) (Econst_int (Int.repr k) tint)
+            (tptr tshort)) tshort.
+
+Lemma ev_vtx : forall (ge : genv) e le m fld d k v s,
+    (forall co, (genv_cenv ge) ! surface_collision._Surface = Some co ->
+       field_offset ge fld (co_members co) = OK (d, Full)) ->
+    le ! surface_collision._surf = Some s ->
+    eval_expr ge e le m (vtx_e fld k) v ->
+    exists l ofs, s = Vptr l ofs /\
+      Mem.loadv Mint16signed m
+        (Vptr l (Ptrofs.add (Ptrofs.add ofs (Ptrofs.repr d))
+                   (Ptrofs.mul (Ptrofs.repr 2) (Ptrofs.of_ints (Int.repr k))))) = Some v.
+Proof.
+  intros ge e le m fld d k v s Hfo Hs H. unfold vtx_e in H.
+  inv H. match goal with Hl : eval_lvalue _ _ _ _ (Ederef _ _) _ _ _ |- _ => inv Hl end.
+  match goal with Hb : eval_expr _ _ _ _ (Ebinop _ _ _ _) _ |- _ =>
+    inv Hb; [| match goal with Hl : eval_lvalue _ _ _ _ (Ebinop _ _ _ _) _ _ _ |- _ => inv Hl end] end.
+  destruct (ev_field_ref ge e le m surf_e surface_collision._Surface fld (tarray tshort 3) v1 d eq_refl Hfo (or_introl eq_refl) H5) as (l & ofs1 & Hse & ->).
+  destruct (ev_surf _ _ _ _ _ _ Hs Hse) as (l' & ofs' & -> & E). injection E as <- <-.
+  match goal with Hk : eval_expr _ _ _ _ (Econst_int _ _) _ |- _ =>
+    inv Hk; [| match goal with Hl : eval_lvalue _ _ _ _ (Econst_int _ _) _ _ _ |- _ => inv Hl end] end.
+  match goal with Ho : sem_binary_operation _ Oadd _ _ _ _ _ = Some _ |- _ =>
+    cbn in Ho; injection Ho as <- end.
+  exists l, ofs1. split; [reflexivity |]. subst ofs.
+  match goal with Hd : deref_loc _ _ _ _ _ _ |- _ => inv Hd end; cbn in *; try discriminate;
+    try congruence.
+Qed.
+
+(* surf->normal.c and surf->originOffset *)
+Definition nrm_e (c : ident) : expr :=
+  Efield (Efield surf_e surface_collision._normal (Tstruct surface_collision.__769 noattr)) c tfloat.
+Definition oo_e : expr := Efield surf_e surface_collision._originOffset tfloat.
+
+Lemma ev_nrm : forall (ge : genv) e le m c d v s, cenv_has ge ->
+    fo_ok ge surface_collision.__769 c d ->
+    le ! surface_collision._surf = Some s ->
+    eval_expr ge e le m (nrm_e c) v ->
+    exists l ofs, s = Vptr l ofs /\
+      Mem.loadv Mfloat32 m (Vptr l (Ptrofs.add (Ptrofs.add ofs (Ptrofs.repr 28)) (Ptrofs.repr d))) = Some v.
+Proof.
+  intros ge e le m c d v s HC Hfo Hs H. unfold nrm_e in H.
+  destruct (ev_field _ _ _ _ (Efield surf_e surface_collision._normal (Tstruct surface_collision.__769 noattr))
+              surface_collision.__769 c tfloat v d Mfloat32 eq_refl Hfo eq_refl H)
+    as (l & ofs & Hn & Hld).
+  destruct (ev_field_ref _ _ _ _ surf_e surface_collision._Surface surface_collision._normal
+              (Tstruct surface_collision.__769 noattr) _ 28 eq_refl (fo_n ge HC) (or_intror eq_refl) Hn) as (l1 & ofs1 & Hse & E).
+  injection E as -> ->.
+  destruct (ev_surf _ _ _ _ _ _ Hs Hse) as (l' & ofs' & -> & E). injection E as <- <-.
+  eauto.
+Qed.
+
+Lemma ev_oo : forall (ge : genv) e le m v s, cenv_has ge ->
+    le ! surface_collision._surf = Some s ->
+    eval_expr ge e le m oo_e v ->
+    exists l ofs, s = Vptr l ofs /\
+      Mem.loadv Mfloat32 m (Vptr l (Ptrofs.add ofs (Ptrofs.repr 40))) = Some v.
+Proof.
+  intros ge e le m v s HC Hs H. unfold oo_e in H.
+  destruct (ev_field _ _ _ _ surf_e surface_collision._Surface surface_collision._originOffset tfloat v 40 Mfloat32 eq_refl (fo_oo ge HC) eq_refl H)
+    as (l & ofs & Hse & Hld).
+  destruct (ev_surf _ _ _ _ _ _ Hs Hse) as (l' & ofs' & -> & E). injection E as <- <-.
+  eauto.
+Qed.
+
+(* ---- the integer edge tests and the plane height ---- *)
+
+Lemma sub_ii : forall (ge : genv) a b w m,
+    sem_binary_operation ge Osub a tint b tint m = Some w ->
+    exists i j, a = Vint i /\ b = Vint j /\ w = Vint (Int.sub i j).
+Proof.
+  intros ge a b w m H. destruct a; destruct b; cbn in H; try discriminate H;
+    try (destruct Archi.ptr64; discriminate H).
+  injection H as <-. eauto.
+Qed.
+
+Lemma mul_ii : forall (ge : genv) a b w m,
+    sem_binary_operation ge Omul a tint b tint m = Some w ->
+    exists i j, a = Vint i /\ b = Vint j /\ w = Vint (Int.mul i j).
+Proof.
+  intros ge a b w m H. destruct a; destruct b; cbn in H; try discriminate H;
+    try (destruct Archi.ptr64; discriminate H).
+  injection H as <-. eauto.
+Qed.
+
+Lemma lt_ii : forall (ge : genv) a b w m,
+    sem_binary_operation ge Olt a tint b tint m = Some w ->
+    exists i j, a = Vint i /\ b = Vint j /\ w = Val.of_bool (Int.lt i j).
+Proof.
+  intros ge a b w m H.
+  destruct a as [| i | | | |]; destruct b as [| j | | | |];
+    try (cbn in H; first [discriminate H | destruct Archi.ptr64; discriminate H]).
+  exists i, j. split; [reflexivity | split; [reflexivity |]].
+  assert (E : sem_binary_operation ge Olt (Vint i) tint (Vint j) tint m
+              = Some (Val.of_bool (Int.lt i j))) by reflexivity.
+  rewrite E in H. injection H as H. symmetry. exact H.
+Qed.
+
+Definition edge_ok (x z xi zi xj zj : int) : bool :=
+  negb (Int.lt (Int.sub (Int.mul (Int.sub zi z) (Int.sub xj xi))
+                        (Int.mul (Int.sub xi x) (Int.sub zj zi))) Int.zero).
+
+Definition tv (x : ident) : expr := Etempvar x tint.
+Definition edge_e (x z xi zi xj zj : ident) : expr :=
+  Ebinop Olt
+    (Ebinop Osub
+       (Ebinop Omul (Ebinop Osub (tv zi) (tv z) tint) (Ebinop Osub (tv xj) (tv xi) tint) tint)
+       (Ebinop Omul (Ebinop Osub (tv xi) (tv x) tint) (Ebinop Osub (tv zj) (tv zi) tint) tint)
+       tint)
+    (Econst_int (Int.repr 0) tint) tint.
+
+Ltac ev_inv :=
+  repeat match goal with
+         | H : eval_expr _ _ _ _ (Ebinop _ _ _ _) _ |- _ => inv H
+         | H : eval_expr _ _ _ _ (Eunop _ _ _) _ |- _ => inv H
+         | H : eval_expr _ _ _ _ (Etempvar _ _) _ |- _ => inv H
+         | H : eval_expr _ _ _ _ (Econst_int _ _) _ |- _ => inv H
+         | H : eval_expr _ _ _ _ (Econst_single _ _) _ |- _ => inv H
+         | H : eval_lvalue _ _ _ _ _ _ _ _ |- _ => inv H
+         end.
+
+Lemma ev_edge : forall (ge : genv) e le m x z xi zi xj zj vx vz vxi vzi vxj vzj v,
+    le ! x = Some vx -> le ! z = Some vz -> le ! xi = Some vxi -> le ! zi = Some vzi ->
+    le ! xj = Some vxj -> le ! zj = Some vzj ->
+    eval_expr ge e le m (edge_e x z xi zi xj zj) v ->
+    bool_val v tint m = Some false ->
+    exists X Z XI ZI XJ ZJ, vx = Vint X /\ vz = Vint Z /\ vxi = Vint XI /\ vzi = Vint ZI
+      /\ vxj = Vint XJ /\ vzj = Vint ZJ /\ edge_ok X Z XI ZI XJ ZJ = true.
+Proof.
+  intros ge e le m x z xi zi xj zj vx vz vxi vzi vxj vzj v Hx Hz Hxi Hzi Hxj Hzj H Hb.
+  unfold edge_e, tv in H. ev_inv.
+  cbn [typeof] in *.
+  repeat match goal with
+         | Hs : sem_binary_operation _ Osub _ tint _ tint _ = Some _ |- _ =>
+             let E1 := fresh in let E2 := fresh in let E3 := fresh in
+             destruct (sub_ii _ _ _ _ _ Hs) as (? & ? & E1 & E2 & E3); clear Hs; subst
+         | Hs : sem_binary_operation _ Omul _ tint _ tint _ = Some _ |- _ =>
+             let E1 := fresh in let E2 := fresh in let E3 := fresh in
+             destruct (mul_ii _ _ _ _ _ Hs) as (? & ? & E1 & E2 & E3); clear Hs; subst
+         | Hs : sem_binary_operation _ Olt _ tint _ tint _ = Some _ |- _ =>
+             let E1 := fresh in let E2 := fresh in let E3 := fresh in
+             destruct (lt_ii _ _ _ _ _ Hs) as (? & ? & E1 & E2 & E3); clear Hs; subst
+         | Hm : Vint _ = Vint _ |- _ => injection Hm as Hm; subst
+         end.
+  repeat match goal with Hl : le ! ?i = Some ?a, Hl' : le ! ?i = Some ?b |- _ =>
+           rewrite Hl in Hl'; injection Hl' as Hl'; subst; clear Hl' end.
+  do 6 eexists. split; [reflexivity |]. split; [reflexivity |]. split; [reflexivity |].
+  split; [reflexivity |]. split; [reflexivity |]. split; [reflexivity |].
+  unfold edge_ok.
+  match goal with Hb : bool_val (Val.of_bool ?c) _ _ = Some false |- _ =>
+    destruct c eqn:L; [vm_compute in Hb; discriminate Hb |] end.
+  change Int.zero with (Int.repr 0). rewrite L. reflexivity.
+Qed.
+
+(* ---- the plane height and the ny test ---- *)
+
+Lemma mul_is : forall (ge : genv) a b w m,
+    sem_binary_operation ge Omul a tint b tfloat m = Some w ->
+    exists i j, a = Vint i /\ b = Vsingle j /\ w = Vsingle (Float32.mul (Float32.of_int i) j).
+Proof.
+  intros ge a b w m H.
+  destruct a as [| i | | | |]; destruct b as [| | | | j |];
+    try (cbn in H; first [discriminate H | destruct Archi.ptr64; discriminate H]).
+  exists i, j. split; [reflexivity | split; [reflexivity |]].
+  assert (E : sem_binary_operation ge Omul (Vint i) tint (Vsingle j) tfloat m = Some (Vsingle (Float32.mul (Float32.of_int i) j)))
+    by reflexivity.
+  rewrite E in H. injection H as H. symmetry. exact H.
+Qed.
+
+Lemma mul_si : forall (ge : genv) a b w m,
+    sem_binary_operation ge Omul a tfloat b tint m = Some w ->
+    exists i j, a = Vsingle i /\ b = Vint j /\ w = Vsingle (Float32.mul i (Float32.of_int j)).
+Proof.
+  intros ge a b w m H.
+  destruct a as [| | | | i |]; destruct b as [| j | | | |];
+    try (cbn in H; first [discriminate H | destruct Archi.ptr64; discriminate H]).
+  exists i, j. split; [reflexivity | split; [reflexivity |]].
+  assert (E : sem_binary_operation ge Omul (Vsingle i) tfloat (Vint j) tint m = Some (Vsingle (Float32.mul i (Float32.of_int j))))
+    by reflexivity.
+  rewrite E in H. injection H as H. symmetry. exact H.
+Qed.
+
+Lemma add_ss : forall (ge : genv) a b w m,
+    sem_binary_operation ge Oadd a tfloat b tfloat m = Some w ->
+    exists i j, a = Vsingle i /\ b = Vsingle j /\ w = Vsingle (Float32.add i j).
+Proof.
+  intros ge a b w m H.
+  destruct a as [| | | | i |]; destruct b as [| | | | j |];
+    try (cbn in H; first [discriminate H | destruct Archi.ptr64; discriminate H]).
+  exists i, j. split; [reflexivity | split; [reflexivity |]].
+  assert (E : sem_binary_operation ge Oadd (Vsingle i) tfloat (Vsingle j) tfloat m = Some (Vsingle (Float32.add i j)))
+    by reflexivity.
+  rewrite E in H. injection H as H. symmetry. exact H.
+Qed.
+
+Lemma div_ss : forall (ge : genv) a b w m,
+    sem_binary_operation ge Odiv a tfloat b tfloat m = Some w ->
+    exists i j, a = Vsingle i /\ b = Vsingle j /\ w = Vsingle (Float32.div i j).
+Proof.
+  intros ge a b w m H.
+  destruct a as [| | | | i |]; destruct b as [| | | | j |];
+    try (cbn in H; first [discriminate H | destruct Archi.ptr64; discriminate H]).
+  exists i, j. split; [reflexivity | split; [reflexivity |]].
+  assert (E : sem_binary_operation ge Odiv (Vsingle i) tfloat (Vsingle j) tfloat m = Some (Vsingle (Float32.div i j)))
+    by reflexivity.
+  rewrite E in H. injection H as H. symmetry. exact H.
+Qed.
+
+Lemma eq_ss : forall (ge : genv) a b w m,
+    sem_binary_operation ge Oeq a tfloat b tfloat m = Some w ->
+    exists i j, a = Vsingle i /\ b = Vsingle j /\ w = Val.of_bool (Float32.cmp Ceq i j).
+Proof.
+  intros ge a b w m H.
+  destruct a as [| | | | i |]; destruct b as [| | | | j |];
+    try (cbn in H; first [discriminate H | destruct Archi.ptr64; discriminate H]).
+  exists i, j. split; [reflexivity | split; [reflexivity |]].
+  assert (E : sem_binary_operation ge Oeq (Vsingle i) tfloat (Vsingle j) tfloat m = Some (Val.of_bool (Float32.cmp Ceq i j)))
+    by reflexivity.
+  rewrite E in H. injection H as H. symmetry. exact H.
+Qed.
+
+Lemma neg_s : forall a w m,
+    sem_unary_operation Oneg a tfloat m = Some w -> exists f, a = Vsingle f /\ w = Vsingle (Float32.neg f).
+Proof.
+  intros a w m H. destruct a as [| | | | f |];
+    try (cbn in H; first [discriminate H | destruct Archi.ptr64; discriminate H]).
+  exists f. split; [reflexivity |].
+  assert (E : sem_unary_operation Oneg (Vsingle f) tfloat m = Some (Vsingle (Float32.neg f)))
+    by reflexivity.
+  rewrite E in H. injection H as H. symmetry. exact H.
+Qed.
+
+Definition plane_h (x z : int) (nx ny nz oo : float32) : float32 :=
+  Float32.div
+    (Float32.neg (Float32.add (Float32.add (Float32.mul (Float32.of_int x) nx)
+                                           (Float32.mul nz (Float32.of_int z))) oo)) ny.
+
+Definition tf (x : ident) : expr := Etempvar x tfloat.
+Definition h_e : expr :=
+  Ebinop Odiv
+    (Eunop Oneg
+       (Ebinop Oadd
+          (Ebinop Oadd (Ebinop Omul (tv surface_collision._x) (tf surface_collision._nx) tfloat)
+             (Ebinop Omul (tf surface_collision._nz) (tv surface_collision._z) tfloat) tfloat)
+          (tf surface_collision._oo) tfloat) tfloat)
+    (tf surface_collision._ny) tfloat.
+
+Lemma ev_height : forall (ge : genv) e le m vx vz vnx vny vnz voo v,
+    le ! surface_collision._x = Some vx -> le ! surface_collision._z = Some vz ->
+    le ! surface_collision._nx = Some vnx -> le ! surface_collision._ny = Some vny ->
+    le ! surface_collision._nz = Some vnz -> le ! surface_collision._oo = Some voo ->
+    eval_expr ge e le m h_e v ->
+    exists X Z nx ny nz oo, vx = Vint X /\ vz = Vint Z /\ vnx = Vsingle nx /\ vny = Vsingle ny
+      /\ vnz = Vsingle nz /\ voo = Vsingle oo /\ v = Vsingle (plane_h X Z nx ny nz oo).
+Proof.
+  intros ge e le m vx vz vnx vny vnz voo v Hx Hz Hnx Hny Hnz Hoo H.
+  unfold h_e, tv, tf in H. ev_inv. cbn [typeof] in *.
+  repeat match goal with
+         | Hs : sem_binary_operation _ Omul _ tint _ tfloat _ = Some _ |- _ =>
+             let E1 := fresh in let E2 := fresh in let E3 := fresh in
+             destruct (mul_is _ _ _ _ _ Hs) as (? & ? & E1 & E2 & E3); clear Hs; subst
+         | Hs : sem_binary_operation _ Omul _ tfloat _ tint _ = Some _ |- _ =>
+             let E1 := fresh in let E2 := fresh in let E3 := fresh in
+             destruct (mul_si _ _ _ _ _ Hs) as (? & ? & E1 & E2 & E3); clear Hs; subst
+         | Hs : sem_binary_operation _ Oadd _ tfloat _ tfloat _ = Some _ |- _ =>
+             let E1 := fresh in let E2 := fresh in let E3 := fresh in
+             destruct (add_ss _ _ _ _ _ Hs) as (? & ? & E1 & E2 & E3); clear Hs; subst
+         | Hs : sem_binary_operation _ Odiv _ tfloat _ tfloat _ = Some _ |- _ =>
+             let E1 := fresh in let E2 := fresh in let E3 := fresh in
+             destruct (div_ss _ _ _ _ _ Hs) as (? & ? & E1 & E2 & E3); clear Hs; subst
+         | Hs : sem_unary_operation Oneg _ tfloat _ = Some _ |- _ =>
+             let E1 := fresh in let E2 := fresh in
+             destruct (neg_s _ _ _ Hs) as (? & E1 & E2); clear Hs; subst
+         | Hm : Vsingle _ = Vsingle _ |- _ => injection Hm as Hm; subst
+         | Hm : Vint _ = Vint _ |- _ => injection Hm as Hm; subst
+         end.
+  repeat match goal with Hl : le ! ?i = Some ?a, Hl' : le ! ?i = Some ?b |- _ =>
+           rewrite Hl in Hl'; injection Hl' as Hl'; subst; clear Hl' end.
+  do 6 eexists. repeat (split; [reflexivity |]). reflexivity.
+Qed.
+
+Definition ny_e : expr :=
+  Ebinop Oeq (tf surface_collision._ny) (Econst_single (Float32.of_bits (Int.repr 0)) tfloat) tint.
+
+Lemma ev_ny : forall (ge : genv) e le m vny v,
+    le ! surface_collision._ny = Some vny ->
+    eval_expr ge e le m ny_e v -> bool_val v tint m = Some false ->
+    exists ny, vny = Vsingle ny /\ Float32.cmp Ceq ny (Float32.of_bits (Int.repr 0)) = false.
+Proof.
+  intros ge e le m vny v Hny H Hb. unfold ny_e, tf in H. ev_inv. cbn [typeof] in *.
+  match goal with Hs : sem_binary_operation _ Oeq _ tfloat _ tfloat _ = Some _ |- _ =>
+    destruct (eq_ss _ _ _ _ _ Hs) as (a & b & E1 & E2 & ->) end.
+  injection E2 as <-.
+  match goal with Hl : le ! _ = Some _ |- _ => rewrite Hny in Hl; injection Hl as <- end.
+  exists a. split; [exact E1 |].
+  destruct (Float32.cmp Ceq a _) eqn:L; [vm_compute in Hb; discriminate Hb | reflexivity].
+Qed.
+
 (* ---- the height test: y - (height + -78.0f) < 0.0f is false ---- *)
 Definition c78 : float32 := Float32.of_bits (Int.repr 1117519872).   (* 78.0f *)
 
@@ -202,12 +622,50 @@ Proof. reflexivity. Qed.
 
 (* the loop invariant: memory untouched, floor still NULL, the cursor is
    reachable from the head, pheight unchanged *)
-Definition Inv (m : mem) (node0 ph yv : val) (le : temp_env) : Prop :=
+Definition Inv (m : mem) (node0 ph xv yv zv : val) (le : temp_env) : Prop :=
   exists nd, le ! surface_collision._surfaceNode = Some nd
     /\ (forall s, on_list m nd s -> on_list m node0 s)
     /\ le ! surface_collision._floor = Some (Vint Int.zero)
     /\ le ! surface_collision._pheight = Some ph
-    /\ le ! surface_collision._y = Some yv.
+    /\ le ! surface_collision._y = Some yv
+    /\ le ! surface_collision._x = Some xv
+    /\ le ! surface_collision._z = Some zv.
+
+(* what a hit means: the surface's vertices and normal as loaded, the three
+   edge tests passed at (x, z), ny <> 0, and the height is the plane's *)
+Definition ffl_hit (m : mem) (s xv zv : val) (h : float32) : Prop :=
+  exists bs os X Z x1 z1 x2 z2 x3 z3 nx ny nz oo,
+    s = Vptr bs os /\ xv = Vint X /\ zv = Vint Z
+    /\ Mem.loadv Mint16signed m (Vptr bs (Ptrofs.add os (Ptrofs.repr 10))) = Some (Vint x1)
+    /\ Mem.loadv Mint16signed m (Vptr bs (Ptrofs.add os (Ptrofs.repr 14))) = Some (Vint z1)
+    /\ Mem.loadv Mint16signed m (Vptr bs (Ptrofs.add os (Ptrofs.repr 16))) = Some (Vint x2)
+    /\ Mem.loadv Mint16signed m (Vptr bs (Ptrofs.add os (Ptrofs.repr 20))) = Some (Vint z2)
+    /\ Mem.loadv Mint16signed m (Vptr bs (Ptrofs.add os (Ptrofs.repr 22))) = Some (Vint x3)
+    /\ Mem.loadv Mint16signed m (Vptr bs (Ptrofs.add os (Ptrofs.repr 26))) = Some (Vint z3)
+    /\ Mem.loadv Mfloat32 m (Vptr bs (Ptrofs.add os (Ptrofs.repr 28))) = Some (Vsingle nx)
+    /\ Mem.loadv Mfloat32 m (Vptr bs (Ptrofs.add os (Ptrofs.repr 32))) = Some (Vsingle ny)
+    /\ Mem.loadv Mfloat32 m (Vptr bs (Ptrofs.add os (Ptrofs.repr 36))) = Some (Vsingle nz)
+    /\ Mem.loadv Mfloat32 m (Vptr bs (Ptrofs.add os (Ptrofs.repr 40))) = Some (Vsingle oo)
+    /\ edge_ok X Z x1 z1 x2 z2 = true /\ edge_ok X Z x2 z2 x3 z3 = true
+    /\ edge_ok X Z x3 z3 x1 z1 = true
+    /\ Float32.cmp Ceq ny (Float32.of_bits (Int.repr 0)) = false
+    /\ h = plane_h X Z nx ny nz oo.
+
+Lemma ofs_norm : forall o a b e,
+    (Ptrofs.unsigned a + Ptrofs.unsigned b =? e) = true ->
+    Ptrofs.add (Ptrofs.add o a) b = Ptrofs.add o (Ptrofs.repr e).
+Proof.
+  intros o a b e H. rewrite Ptrofs.add_assoc. f_equal. unfold Ptrofs.add at 1.
+  apply Z.eqb_eq in H. rewrite H. reflexivity.
+Qed.
+
+Ltac ofs_fix :=
+  repeat match goal with
+  | Hl : Mem.loadv _ _ (Vptr _ (Ptrofs.add (Ptrofs.add ?o ?a) ?b)) = _ |- _ =>
+      lazymatch a with Ptrofs.repr ?d =>
+        let e := eval vm_compute in (Ptrofs.unsigned a + Ptrofs.unsigned b) in
+        rewrite (ofs_norm o a b e ltac:(vm_compute; reflexivity)) in Hl end
+  end.
 
 Ltac ptg := repeat first [ rewrite PTree.gss
   | rewrite PTree.gso by (let HH := fresh in intro HH; cbv in HH; discriminate HH) ].
@@ -225,17 +683,99 @@ Ltac xinv :=
   | H : ?o <> ?o |- _ => contradiction H; reflexivity
   end.
 
-Lemma ffl_iter : forall ge e m le t le1 m1 out1 node0 ph yv,
+Ltac hit_v HC :=
+  (* the vertices *)
+  repeat match goal with
+  | Hv : eval_expr _ _ ?L ?M (Ederef (Ebinop Oadd (Efield _ ?fld _) (Econst_int (Int.repr ?k) _) _) _) ?v |- _ =>
+      lazymatch L with context [PTree.set surface_collision._surf ?sv _] =>
+        let Hs := fresh in
+        assert (Hs : L ! surface_collision._surf = Some sv) by (ptg; reflexivity);
+        let R := fresh in
+        first [ pose proof (ev_vtx _ _ L M fld 10 k v sv (fo_v1 _ HC) Hs Hv) as R
+              | pose proof (ev_vtx _ _ L M fld 16 k v sv (fo_v2 _ HC) Hs Hv) as R
+              | pose proof (ev_vtx _ _ L M fld 22 k v sv (fo_v3 _ HC) Hs Hv) as R ];
+        clear Hv Hs;
+        let El := fresh in let Ld := fresh "Ld" in
+        destruct R as (? & ? & El & Ld); first [subst sv | injection El as <- <-]
+      end
+  | Hv : eval_expr _ _ ?L ?M (Efield (Efield _ surface_collision._normal _) ?c tfloat) ?v |- _ =>
+      lazymatch L with context [PTree.set surface_collision._surf ?sv _] =>
+        let Hs := fresh in
+        assert (Hs : L ! surface_collision._surf = Some sv) by (ptg; reflexivity);
+        let R := fresh in
+        first [ pose proof (ev_nrm _ _ L M c 0 v sv HC (fo_nx _ HC) Hs Hv) as R
+              | pose proof (ev_nrm _ _ L M c 4 v sv HC (fo_ny _ HC) Hs Hv) as R
+              | pose proof (ev_nrm _ _ L M c 8 v sv HC (fo_nz _ HC) Hs Hv) as R ];
+        clear Hv Hs;
+        let El := fresh in let Ld := fresh "Ld" in
+        destruct R as (? & ? & El & Ld); first [subst sv | injection El as <- <-]
+      end
+  | Hv : eval_expr _ _ ?L ?M (Efield _ surface_collision._originOffset tfloat) ?v |- _ =>
+      lazymatch L with context [PTree.set surface_collision._surf ?sv _] =>
+        let Hs := fresh in
+        assert (Hs : L ! surface_collision._surf = Some sv) by (ptg; reflexivity);
+        let R := fresh in
+        pose proof (ev_oo _ _ L M v sv HC Hs Hv) as R;
+        clear Hv Hs;
+        let El := fresh in let Ld := fresh "Ld" in
+        destruct R as (? & ? & El & Ld); first [subst sv | injection El as <- <-]
+      end
+  | Hp : Vptr _ _ = Vptr _ _ |- _ => injection Hp as Hp; subst
+  end.
+Ltac lkup := ptg; first [reflexivity | eassumption].
+Ltac hit_e :=
+  repeat match goal with
+  | Hv : eval_expr _ _ ?L _ (Ebinop Olt (Ebinop Osub
+            (Ebinop Omul (Ebinop Osub (Etempvar ?zi _) (Etempvar ?z _) _)
+                         (Ebinop Osub (Etempvar ?xj _) (Etempvar ?xi _) _) _)
+            (Ebinop Omul (Ebinop Osub (Etempvar _ _) (Etempvar ?x _) _)
+                         (Ebinop Osub (Etempvar ?zj _) (Etempvar _ _) _) _) _) _ _) ?v,
+    Hb : bool_val ?v _ _ = Some false |- _ =>
+      eapply (ev_edge _ _ L _ x z xi zi xj zj) in Hv;
+      [| lkup | lkup | lkup | lkup | lkup | lkup | exact Hb];
+      clear Hb;
+      let E1 := fresh in let E2 := fresh in let E3 := fresh in let E4 := fresh in
+      let E5 := fresh in let E6 := fresh "Edge" in
+      destruct Hv as (? & ? & ? & ? & ? & ? & E1 & E2 & E3 & E4 & E5 & E6 & ?);
+      subst
+  | Hi : Vint _ = Vint _ |- _ => injection Hi as Hi; subst
+  end.
+Ltac hit_n :=
+  match goal with
+  | Hv : eval_expr _ _ ?L _ (Ebinop Oeq (Etempvar surface_collision._ny _) _ _) ?v,
+    Hb : bool_val ?v _ _ = Some false |- _ =>
+      eapply (ev_ny _ _ L _ _ _) in Hv; [| lkup | exact Hb];
+      clear Hb;
+      let E1 := fresh in let Hny := fresh "Hny" in
+      destruct Hv as (? & E1 & Hny); subst
+  end.
+Ltac hit_h :=
+  match goal with
+  | Hv : eval_expr _ _ ?L _ (Ebinop Odiv _ _ tfloat) (Vsingle ?hh) |- _ =>
+      eapply (ev_height _ _ L _ _ _ _ _ _ _ _) in Hv;
+      [| lkup | lkup | lkup | lkup | lkup | lkup];
+      destruct Hv as (? & ? & ? & ? & ? & ? & ? & ? & ? & ? & ? & ? & ?)
+  end.
+Ltac hit_fin :=
+  repeat match goal with
+  | Hi : Vint _ = Vint _ |- _ => injection Hi as Hi; subst
+  | Hi : Vsingle _ = Vsingle _ |- _ => injection Hi as Hi; subst
+  end;
+  unfold ffl_hit; do 14 eexists;
+  repeat (split; [first [reflexivity | eassumption] |]); first [reflexivity | eassumption].
+
+Lemma ffl_iter : forall ge e m le t le1 m1 out1 node0 ph xv yv zv,
     cenv_has ge ->
     exec_stmt function_entry2 ge e le m ffl_s1 t le1 m1 out1 ->
-    Inv m node0 ph yv le ->
+    Inv m node0 ph xv yv zv le ->
     (out1 = Out_break /\ m1 = m /\ le1 = le)
-    \/ (out1 = Out_continue /\ m1 = m /\ Inv m node0 ph yv le1)
+    \/ (out1 = Out_continue /\ m1 = m /\ Inv m node0 ph xv yv zv le1)
     \/ (out1 = Out_break /\ exists s h, on_list m node0 s
           /\ le1 ! surface_collision._floor = Some s
-          /\ Mem.storev Mfloat32 m ph (Vsingle h) = Some m1 /\ hok yv h).
+          /\ Mem.storev Mfloat32 m ph (Vsingle h) = Some m1 /\ hok yv h
+          /\ ffl_hit m s xv zv h).
 Proof.
-  intros ge e m le t le1 m1 out1 node0 ph yv HC H (nd & Hnd & Hreach & Hfl & Hph & Hy).
+  intros ge e m le t le1 m1 out1 node0 ph xv yv zv HC H (nd & Hnd & Hreach & Hfl & Hph & Hy & Hxx & Hzz).
   cbv [ffl_s1 ffl_loop surface_collision.f_find_floor_from_list fn_body Swhile] in H.
   xinv.
   (* the guard said stop: nothing changed *)
@@ -259,7 +799,7 @@ Proof.
   all: try (right; left; split; [reflexivity | split; [reflexivity |]];
             eexists; split; [ptg; reflexivity |];
             split; [intros s0 Hs0; apply Hreach; eapply ol_next; [exact Ln | exact Hs0] |];
-            split; [ptg; assumption |]; split; ptg; assumption).
+            repeat (split; [ptg; assumption |]); ptg; assumption).
   (* the floor: pheight written, floor := surf *)
   all: repeat match goal with Hl : eval_lvalue _ _ _ _ (Ederef _ _) _ _ _ |- _ => inv Hl end.
   all: repeat match goal with Ht : eval_expr _ _ _ _ (Etempvar _ _) _ |- _ =>
@@ -289,20 +829,27 @@ Proof.
   all: match goal with Hp : _ ! surface_collision._pheight = Some (Vptr _ _) |- _ =>
          rewrite Hph in Hp; inv Hp end.
   all: match goal with Hm : access_mode _ = By_value _ |- _ => cbn in Hm; inv Hm end.
-  all: split; [eassumption | exact Hk].
+  all: split; [eassumption | split; [exact Hk |]].
+  all: hit_v HC.
+  all: ofs_fix.
+  all: hit_e.
+  all: hit_n.
+  all: hit_h.
+  all: hit_fin.
 Qed.
 
-Lemma ffl_loop_spec : forall ge e m le t le' m' out node0 ph yv,
+Lemma ffl_loop_spec : forall ge e m le t le' m' out node0 ph xv yv zv,
     cenv_has ge ->
     exec_stmt function_entry2 ge e le m ffl_loop t le' m' out ->
-    Inv m node0 ph yv le ->
+    Inv m node0 ph xv yv zv le ->
     out = Out_normal
     /\ ((m' = m /\ le' ! surface_collision._floor = Some (Vint Int.zero))
         \/ (exists s h, on_list m node0 s
               /\ le' ! surface_collision._floor = Some s
-              /\ Mem.storev Mfloat32 m ph (Vsingle h) = Some m' /\ hok yv h)).
+              /\ Mem.storev Mfloat32 m ph (Vsingle h) = Some m' /\ hok yv h
+              /\ ffl_hit m s xv zv h)).
 Proof.
-  intros ge e m le t le' m' out node0 ph yv HC H.
+  intros ge e m le t le' m' out node0 ph xv yv zv HC H.
   rewrite ffl_loop_shape in H.
   remember (Sloop ffl_s1 Sskip) as S eqn:ES. revert ES.
   induction H; intros ES HI; try discriminate ES.
@@ -310,12 +857,12 @@ Proof.
     injection ES as -> ->.
     match goal with Hx : exec_stmt _ _ _ _ _ ffl_s1 _ _ _ _,
                     Hb : out_break_or_return _ _ |- _ =>
-      destruct (ffl_iter _ _ _ _ _ _ _ _ _ _ _ HC Hx HI)
-        as [(-> & -> & ->) | [(-> & _ & _) | (-> & s & h & Hs & Hf & Hst & Hk)]];
+      destruct (ffl_iter _ _ _ _ _ _ _ _ _ _ _ _ _ HC Hx HI)
+        as [(-> & -> & ->) | [(-> & _ & _) | (-> & s & h & Hs & Hf & Hst & Hk & Hh)]];
       inv Hb
     end.
     + destruct HI as (nd & _ & _ & Hfl & _). split; [reflexivity | left; split; auto].
-    + split; [reflexivity | right; exists s, h; auto].
+    + split; [reflexivity | right; exists s, h; auto 6].
   - (* the body continued, then Sskip went abrupt: impossible *)
     injection ES as -> ->.
     match goal with Hs : exec_stmt _ _ _ _ _ Sskip _ _ _ _,
@@ -324,7 +871,7 @@ Proof.
     injection ES as -> ->.
     match goal with Hx : exec_stmt _ _ _ _ _ ffl_s1 _ _ _ _,
                     Hn : out_normal_or_continue _ |- _ =>
-      destruct (ffl_iter _ _ _ _ _ _ _ _ _ _ _ HC Hx HI)
+      destruct (ffl_iter _ _ _ _ _ _ _ _ _ _ _ _ _ HC Hx HI)
         as [(-> & _ & _) | [(-> & -> & HI') | (-> & _)]];
       [inv Hn | | inv Hn]
     end.
@@ -342,7 +889,8 @@ Theorem ffl_value_contract : forall (ge : genv),
       eval_funcall function_entry2 ge m
         (Internal surface_collision.f_find_floor_from_list) [node; x; y; z; ph] t m' vres ->
       (m' = m /\ vres = Vint Int.zero)
-      \/ (on_list m node vres /\ exists h, Mem.storev Mfloat32 m ph (Vsingle h) = Some m' /\ hok y h).
+      \/ (on_list m node vres /\ exists h, Mem.storev Mfloat32 m ph (Vsingle h) = Some m' /\ hok y h
+            /\ ffl_hit m vres x z h).
 Proof.
   intros ge HC m node x y z ph t m' vres H.
   inv H.
@@ -363,13 +911,13 @@ Proof.
     change (sem_cast (Vint (Int.repr 0)) (typeof (Econst_int (Int.repr 0) tint)) (tptr tvoid) mm)
       with (Some (Vint (Int.repr 0))) in Hc; injection Hc as <- end.
   match goal with Hx : exec_stmt _ _ _ ?L ?mm (Ssequence ffl_loop _) _ _ _ _ |- _ =>
-    assert (HI : Inv mm node ph y L)
+    assert (HI : Inv mm node ph x y z L)
       by (exists node; split; [ptg; reflexivity |]; split; [auto |];
-          split; [ptg; reflexivity |]; split; ptg; reflexivity)
+          repeat (split; [ptg; reflexivity |]); ptg; reflexivity)
   end.
   match goal with Hx : exec_stmt _ _ _ _ _ (Ssequence _ _) _ _ _ _ |- _ => inv Hx end.
   - match goal with Hl : exec_stmt _ _ _ _ _ ffl_loop _ _ _ _ |- _ =>
-      destruct (ffl_loop_spec _ _ _ _ _ _ _ _ _ _ _ HC Hl HI) as (_ & Hr) end.
+      destruct (ffl_loop_spec _ _ _ _ _ _ _ _ _ _ _ _ _ HC Hl HI) as (_ & Hr) end.
     match goal with Hs : exec_stmt _ _ _ _ _ (Sreturn _) _ _ _ _ |- _ => inv Hs end.
     match goal with Ht : eval_expr _ _ _ _ (Etempvar _ _) _ |- _ =>
       inv Ht; [| match goal with Hl : eval_lvalue _ _ _ _ (Etempvar _ _) _ _ _ |- _ => inv Hl end] end.
@@ -377,12 +925,12 @@ Proof.
     apply cast_surf_ptr in Hc. subst vres.
     match goal with Hf : Mem.free_list _ _ = Some _ |- _ =>
       cbn [blocks_of_env PTree.elements Mem.free_list] in Hf; injection Hf as <- end.
-    destruct Hr as [(-> & Hf) | (s & h & Hs & Hf & Hst & Hk)];
+    destruct Hr as [(-> & Hf) | (s & h & Hs & Hf & Hst & Hk & Hh)];
       match goal with Hg : _ ! surface_collision._floor = Some _ |- _ => rewrite Hf in Hg; inv Hg end.
     + left; auto.
     + right; eauto.
   - match goal with Hl : exec_stmt _ _ _ _ _ ffl_loop _ _ _ _ |- _ =>
-      destruct (ffl_loop_spec _ _ _ _ _ _ _ _ _ _ _ HC Hl HI) as (-> & _) end.
+      destruct (ffl_loop_spec _ _ _ _ _ _ _ _ _ _ _ _ _ HC Hl HI) as (-> & _) end.
     congruence.
 Qed.
 
@@ -517,7 +1065,8 @@ Lemma ffl_call : forall (ge : genv) e le m tid args targs tres cc t le' m' out,
       eval_exprlist ge e le m args targs [node; x; y; z; ph]
       /\ out = Out_normal /\ le' = PTree.set tid fl le
       /\ ((m' = m /\ fl = Vint Int.zero)
-          \/ (on_list m node fl /\ exists h, Mem.storev Mfloat32 m ph (Vsingle h) = Some m' /\ hok y h)).
+          \/ (on_list m node fl /\ exists h, Mem.storev Mfloat32 m ph (Vsingle h) = Some m' /\ hok y h
+                /\ ffl_hit m fl x z h)).
 Proof.
   intros ge e le m tid args targs tres cc t le' m' out HC Hpin He H.
   inv H.
@@ -532,7 +1081,7 @@ Proof.
     rewrite (Hpin _ _ ltac:(eassumption) Hf) in * end.
   match goal with Hev : eval_funcall _ _ _ _ _ _ _ _ |- _ =>
     destruct (ffl_args5 _ _ _ _ _ _ Hev) as (node & x & y & z & ph & ->);
-    destruct (ffl_value_contract _ HC _ _ _ _ _ _ _ _ _ Hev) as [(-> & ->) | (Ho & h & Hst & Hk)] end.
+    destruct (ffl_value_contract _ HC _ _ _ _ _ _ _ _ _ Hev) as [(-> & ->) | (Ho & h & Hst & Hk & Hh)] end.
   - do 6 eexists. split; [eassumption |]. split; [reflexivity |]. split; [reflexivity |]. left; auto.
   - do 6 eexists. split; [eassumption |]. split; [reflexivity |]. split; [reflexivity |]. right; eauto.
 Qed.

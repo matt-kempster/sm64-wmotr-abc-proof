@@ -453,3 +453,14 @@ only.
 check. So "h ≤ y + 79" needs h finite and in range. That is TRUST 0.8(d): the heights
 `find_floor_from_list` computes. It has to be stated against the *executed* height, not
 as a ∀ over HPi, which would be a false phantom premise.
+
+**Done: every stored height is a real hit.** HPi now takes a set `Hit`, and
+`ff_height` proves it with `Hit := Hit_at ge m` for the *entry* memory m. Every
+height `find_floor_from_list` stored is the plane height `−(nx·x + nz·z + oo)/ny`
+(`FloorList.plane_h`) of a surface on a partition list of m, at an (x, z) that passed
+its three edge tests and with ny ≠ 0 (`FloorList.ffl_hit`). The premises are about m
+only: partition, statics and list blocks are distinct and valid, and lists are
+well-formed. That turns 0.8(d) into a fact about level data: every (surface, x, z)
+hit on WMotR's static lists gives a finite height in the floor range. It no longer
+mentions executions, so the next step can state it as a world-data clause of Wff,
+and per-triangle interval reasoning can later discharge it.
