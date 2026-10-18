@@ -15,7 +15,7 @@ From compcert Require Import Coqlib Maps AST Integers Floats Values Memory Ctype
 From Flocq Require Import Binary Bits Defs Raux Zaux Generic_fmt FLT.
 From SM64.Proofs Require Import Interp.SymExec2 HeightInvariant.
 From SM64.Proofs.WMotRRequiresA Require Import HeightFloatSteps.
-From SM64.Proofs.WMotRRequiresA.Unwired Require Import FloorList FloorHeight.
+From SM64.Proofs.WMotRRequiresA.Unwired Require Import FloorList FloorHeight FloorBound.
 Import ListNotations.
 
 Local Open Scope R_scope.
@@ -515,3 +515,38 @@ Proof.
       * eexists; split; [exact DV | split; [exact F32_fm75 | split; [lra | left; apply vel_clamp_le; assumption]]].
 Qed.
 End CLS_SOUND.
+
+(* ---- the landed height, as a real bound ---- *)
+
+(* what land_sound's HPi fact means for a world whose hits are finite and
+   moderate (FloorBound.HitB): the landed height is -11000, or a hit at most
+   80 above that quarter's yPos, hence at most y + max(v, 0) + 81 *)
+Theorem land_height : forall Hit kq jz y v h, HitB Hit -> (kq <= 4)%nat ->
+  F32 y = true -> F32 v = true -> Rabs (R2 v) <= 128 -> -9000 <= R2 y <= 15000 ->
+  HPi Hit (ycast (Vsingle (add_zeros jz (quarter_steps kq y (Float32.div v f4))))) h ->
+  h = c11000 \/ (Hit h /\ R2 h <= R2 y + Rmax 0 (R2 v) + 81).
+Proof.
+  intros Hit kq jz y v h HB Hk Fy Fv Hv Hy H.
+  destruct (quarter_steps_up kq y v Hk Fy Fv ltac:(apply Rabs_le; lra) Hv) as (Fq & Up & Dn & _).
+  destruct (quarter_spec v Fv Hv) as (Fq4 & Hqe & _).
+  assert (Hqb : Rabs (R2 (Float32.div v f4)) <= 33).
+  { apply Rabs_le_inv in Hv, Hqe. apply Rabs_le. lra. }
+  destruct (quarter_steps_spec kq y (Float32.div v f4) Hk Fy Fq4 ltac:(apply Rabs_le; lra) Hqb)
+    as (_ & (Lo & _) & _).
+  assert (Hk4 : INR kq <= 4) by (replace 4 with (INR 4) by (simpl; lra); apply le_INR; exact Hk).
+  pose proof (pos_INR kq) as Hk0.
+  set (f := add_zeros jz (quarter_steps kq y (Float32.div v f4))) in *.
+  assert (Ef : R2 f = R2 (quarter_steps kq y (Float32.div v f4))) by apply add_zeros_R2.
+  assert (Ff : F32 f = true) by (apply add_zeros_F32; exact Fq).
+  apply Rabs_le_inv in Hqb.
+  assert (Hlo : -10000 <= R2 f) by (rewrite Ef; nra).
+  assert (Hup : R2 f <= R2 y + Rmax 0 (R2 v) + / 128).
+  { rewrite Ef. destruct (Rle_or_lt 0 (R2 v)) as [P | N].
+    - rewrite Rmax_right by exact P. exact (Up P).
+    - rewrite Rmax_left by lra. pose proof (Dn ltac:(lra)). lra. }
+  assert (Hv' : Rmax 0 (R2 v) <= 128)
+    by (apply Rabs_le_inv in Hv; apply Rmax_lub; lra).
+  destruct (ff_height_bound Hit f h HB Ff ltac:(pose proof (Rmax_l 0 (R2 v)); lra) H)
+    as [E | (Ht & B)]; [left; exact E | right].
+  split; [exact Ht | lra].
+Qed.
