@@ -43,6 +43,7 @@ proofs/Generic/GlobalSeparation.v
 proofs/Generic/SymbolicLinking.v
 proofs/Generic/RootedLvalue.v
 proofs/Generic/ClightDeterm.v
+proofs/Generic/Unwired/ClosedMem.v
 
 # --- shared: Mario action vocabulary + value engine ---
 proofs/MarioModel/Flying.v
