@@ -302,7 +302,8 @@ Definition credit_of (c : cells) : R := credit (c_action c) (state_of c) (timer_
    watch saw at most 26 at frame end in 86k frames. *)
 Definition InRange (c : cells) : Prop :=
   F32 (c_posy c) = true /\ F32 (c_vely c) = true /\ F32 (c_gfxy c) = true
-  /\ -11000 <= R2 (c_posy c) /\ -11000 <= R2 (c_gfxy c) /\ -11000 <= R2 (c_floorh c)
+  /\ -11000 <= R2 (c_posy c) /\ -11000 <= R2 (c_gfxy c)
+  /\ (F32 (c_floorh c) = true /\ -11000 <= R2 (c_floorh c))
   /\ -75 <= R2 (c_vely c) <= 43.
 
 Definition budget_ok (c : cells) : Prop :=
