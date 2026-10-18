@@ -32,3 +32,9 @@ compiled. Mirrors `../../NoAImpliesNoFly/Unwired/`.
 - `TerrainSound.v`: the real `mario_get_terrain_sound_addend` leaves memory unchanged
   and returns an int, for any genv (`terrain_sound_value_contract`). That is the
   `xc_fresh` shape.
+- `WallList.v`: the value contract of the real `find_wall_collisions_from_list`
+  (`wfl_contract`). For some count c ≥ 0 it returns c. `numWalls` becomes
+  `min(nw0 + c, 4)`, every newly recorded wall is a surface read off the list, and
+  nothing else changes except `data->x`, `data->z`, `numWalls` and the wall slots from
+  `nw0` on. Proved by triples over the loop body (`tri_head`, `tri_push`, `tri_tail`,
+  `solve_w`).
