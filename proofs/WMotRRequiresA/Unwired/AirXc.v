@@ -36,6 +36,8 @@ Variable gtab : list (ident * positive).
 Variable kv : list (positive * Z * memory_chunk * sval).
 Variable m0 : mem.
 Variable uf : positive -> list (option val) -> Prop.
+Variable gp : meminj.
+Hypothesis gp_old : forall b x, gp b = Some x -> Plt b (Mem.nextblock m0).
 Variables rFI rMS rCL kW : positive.
 Variable szS : Z.
 
@@ -65,7 +67,7 @@ Hypothesis HgFI : gfind gtab surface_collision._gFindFloorIncludeSurfaceIntangib
 Hypothesis HgMS : gfind gtab surface_collision._gNumFindFloorMisses = Some rMS.
 Hypothesis HgCL : gfind gtab surface_collision._gNumCalls = Some rCL.
 (* the world fact's meaning *)
-Hypothesis HU : forall vs, uf kW vs -> Wff ge m0 szS vs.
+Hypothesis HU : forall vs, uf kW vs -> Wff ge m0 gp szS vs.
 
 Lemma lookup_res : forall id f fd, resolves_to ge id f -> sfun_lookup ge id = Some fd -> fd = Internal f.
 Proof.
@@ -77,36 +79,36 @@ Qed.
 (* THE SOUNDNESS: SymExec2's xc_sound for this table *)
 Theorem air_xc_sound : forall id k args g cps fd E m vargs t m' vres,
   air_xc id = Some k -> k args g = Some cps -> sfun_lookup ge id = Some fd ->
-  MMg ge nbase R0 gtab kv m0 uf E m g ->
+  MMg ge nbase R0 gtab kv m0 uf gp E m g ->
   Forall2 (fun a v => den ge m0 E a = Some v /\ sok nbase (g_nx g) a) args vargs ->
   eval_funcall function_entry2 ge m fd vargs t m' vres ->
-  exists c, In c cps /\ CM ge nbase R0 gtab kv m0 uf E (g_nx g) (g_loc g) m' vres c.
+  exists c, In c cps /\ CM ge nbase R0 gtab kv m0 uf gp E (g_nx g) (g_loc g) m' vres c.
 Proof.
   intros id k args g cps fd E m vargs t m' vres Hx Hk Hl MMh HF Hev.
   unfold air_xc in Hx.
   destruct (Pos.eqb_spec id mario._find_floor) as [-> | N1].
   { injection Hx as <-. rewrite (lookup_res _ _ _ Rff Hl) in Hev.
-    exact (c_ff_sound ge nbase R0 gtab kv m0 uf rFI rMS rCL kW szS HC Hffl HgFI HgMS HgCL HU
+    exact (c_ff_sound ge nbase R0 gtab kv m0 uf gp gp_old rFI rMS rCL kW szS HC Hffl HgFI HgMS HgCL HU
              _ _ _ _ _ _ _ _ _ Hk MMh HF Hev). }
   destruct (Pos.eqb_spec id mario._find_ceil) as [-> | N2].
   { injection Hx as <-. rewrite (lookup_res _ _ _ Rfc Hl) in Hev.
-    exact (c_fc_sound ge nbase R0 gtab kv m0 uf rCL kW szS HC Hfcl HgCL HU
+    exact (c_fc_sound ge nbase R0 gtab kv m0 uf gp gp_old rCL kW szS HC Hfcl HgCL HU
              _ _ _ _ _ _ _ _ _ Hk MMh HF Hev). }
   destruct (Pos.eqb_spec id mario._find_water_level) as [-> | N3].
   { injection Hx as <-. rewrite (lookup_res _ _ _ Rwl Hl) in Hev.
     destruct (find_water_level_value_contract _ _ _ _ _ _ Hev) as (-> & x & ->).
-    exact (xc_fresh_sound ge nbase R0 gtab kv (fun _ => None) (fun _ => false) m0 uf E m g (Vsingle x) args cps Hk MMh I). }
+    exact (xc_fresh_sound ge nbase R0 gtab kv (fun _ => None) (fun _ => false) m0 uf gp E m g (Vsingle x) args cps Hk MMh I). }
   destruct (Pos.eqb_spec id mario._atan2s) as [-> | N4].
   { injection Hx as <-. rewrite (lookup_res _ _ _ Ra2 Hl) in Hev.
     destruct (atan2s_value_contract _ Hat _ _ _ _ _ Hev) as (-> & i & ->).
-    exact (xc_fresh_sound ge nbase R0 gtab kv (fun _ => None) (fun _ => false) m0 uf E m g (Vint i) args cps Hk MMh I). }
+    exact (xc_fresh_sound ge nbase R0 gtab kv (fun _ => None) (fun _ => false) m0 uf gp E m g (Vint i) args cps Hk MMh I). }
   destruct (Pos.eqb_spec id mario._mario_get_terrain_sound_addend) as [-> | N5].
   { injection Hx as <-. rewrite (lookup_res _ _ _ Rts Hl) in Hev.
     destruct (terrain_sound_value_contract _ _ _ _ _ _ Hev) as (-> & i & ->).
-    exact (xc_fresh_sound ge nbase R0 gtab kv (fun _ => None) (fun _ => false) m0 uf E m g (Vint i) args cps Hk MMh I). }
+    exact (xc_fresh_sound ge nbase R0 gtab kv (fun _ => None) (fun _ => false) m0 uf gp E m g (Vint i) args cps Hk MMh I). }
   destruct (Pos.eqb_spec id mario._find_wall_collisions) as [-> | N6]; [| discriminate Hx].
   injection Hx as <-. rewrite (lookup_res _ _ _ Rfw Hl) in Hev.
-  exact (c_fwc_sound ge nbase R0 gtab kv m0 uf rCL kW szS HC Hwfl HgCL HU
+  exact (c_fwc_sound ge nbase R0 gtab kv m0 uf gp gp_old rCL kW szS HC Hwfl HgCL HU
            _ _ _ _ _ _ _ _ _ Hk MMh HF Hev).
 Qed.
 
@@ -171,21 +173,22 @@ Hypothesis LOr : linkorder mario.prog lp.
 
 (* THE TABLE IS SOUND on the real link: only the gtab entries (the consumer's
    own region table) and the world fact's meaning remain *)
-Theorem air_xc_sound_link : forall nbase R0 gtab kv m0 uf rFI rMS rCL kW szS,
+Theorem air_xc_sound_link : forall nbase R0 gtab kv m0 uf gp rFI rMS rCL kW szS,
+  (forall b x, gp b = Some x -> Plt b (Mem.nextblock m0)) ->
   gfind gtab surface_collision._gFindFloorIncludeSurfaceIntangible = Some rFI ->
   gfind gtab surface_collision._gNumFindFloorMisses = Some rMS ->
   gfind gtab surface_collision._gNumCalls = Some rCL ->
-  (forall vs, uf kW vs -> Wff (globalenv lp) m0 szS vs) ->
+  (forall vs, uf kW vs -> Wff (globalenv lp) m0 gp szS vs) ->
   forall id k args g cps fd E m vargs t m' vres,
   air_xc nbase R0 rFI rMS rCL kW szS id = Some k -> k args g = Some cps ->
   sfun_lookup (globalenv lp) id = Some fd ->
-  MMg (globalenv lp) nbase R0 gtab kv m0 uf E m g ->
+  MMg (globalenv lp) nbase R0 gtab kv m0 uf gp E m g ->
   Forall2 (fun a v => den (globalenv lp) m0 E a = Some v /\ sok nbase (g_nx g) a) args vargs ->
   eval_funcall function_entry2 (globalenv lp) m fd vargs t m' vres ->
-  exists c, In c cps /\ CM (globalenv lp) nbase R0 gtab kv m0 uf E (g_nx g) (g_loc g) m' vres c.
+  exists c, In c cps /\ CM (globalenv lp) nbase R0 gtab kv m0 uf gp E (g_nx g) (g_loc g) m' vres c.
 Proof.
-  intros nbase R0 gtab kv m0 uf rFI rMS rCL kW szS HgFI HgMS HgCL HU.
-  exact (air_xc_sound (globalenv lp) nbase R0 gtab kv m0 uf rFI rMS rCL kW szS
+  intros nbase R0 gtab kv m0 uf gp rFI rMS rCL kW szS Hgp HgFI HgMS HgCL HU.
+  exact (air_xc_sound (globalenv lp) nbase R0 gtab kv m0 uf gp Hgp rFI rMS rCL kW szS
            (cenv_has_link lp LOs)
            (res_link lp _ _ _ LOs dm_ffl) (res_link lp _ _ _ LOs dm_fcl) (res_link lp _ _ _ LOs dm_wfl)
            (res_link lp _ _ _ LOm dm_al)

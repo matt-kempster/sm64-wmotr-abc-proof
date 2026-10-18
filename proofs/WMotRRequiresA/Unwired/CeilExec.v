@@ -58,17 +58,24 @@ Variable gtab : list (ident * positive).
 Variable kv : list (positive * Z * memory_chunk * sval).
 Variable m0 : mem.
 Variable uf : positive -> list (option val) -> Prop.
+Variable gp : meminj.
+Hypothesis gp_old : forall b x, gp b = Some x -> Plt b (Mem.nextblock m0).
+Let gp_plt {b} (H : gp b <> None) : Plt b (Mem.nextblock m0) :=
+  match gp b as o return gp b = o -> Plt b (Mem.nextblock m0) with
+  | Some x => fun G => gp_old b x G
+  | None => fun G => False_ind _ (H G)
+  end eq_refl.
 Variables rCL kW : positive.
 Variable szS : Z.
 
-Local Notation MM := (MMg ge nbase R0 gtab kv m0 uf).
+Local Notation MM := (MMg ge nbase R0 gtab kv m0 uf gp).
 Local Notation nb0 := (Mem.nextblock m0).
 Local Notation den := (den ge m0).
 
 Hypothesis HC : cenv_has ge.
 Hypothesis Hpin : fcl_pinned ge.
 Hypothesis HgCL : gfind gtab surface_collision._gNumCalls = Some rCL.
-Hypothesis HU : forall vs, uf kW vs -> Wff ge m0 szS vs.
+Hypothesis HU : forall vs, uf kW vs -> Wff ge m0 gp szS vs.
 
 (* THE SOUNDNESS of c_fc against the real find_ceil *)
 Theorem c_fc_sound : forall args g cps E m vargs t m' vres,
@@ -76,7 +83,7 @@ Theorem c_fc_sound : forall args g cps E m vargs t m' vres,
   MM E m g ->
   Forall2 (fun a v => den E a = Some v /\ sok nbase (g_nx g) a) args vargs ->
   eval_funcall function_entry2 ge m (Internal surface_collision.f_find_ceil) vargs t m' vres ->
-  exists c, In c cps /\ CM ge nbase R0 gtab kv m0 uf E (g_nx g) (g_loc g) m' vres c.
+  exists c, In c cps /\ CM ge nbase R0 gtab kv m0 uf gp E (g_nx g) (g_loc g) m' vres c.
 Proof.
   intros args g cps E m vargs t m' vres Hc MMh HF Hev.
   unfold c_fc in Hc.
@@ -127,12 +134,12 @@ Proof.
   destruct (fc_value_contract ge avoid HC Hpin m _ _ _ bpf op t m' vres
               (or_intror eq_refl) Hvm
               ltac:(intros b Hs; apply static_c_static in Hs; split; [left; exact Hs |];
-                    intros ->; exact (Hnew (statics_old _ _ _ _ _ HW Hs)))
+                    intros ->; exact (Hnew (statics_old _ _ _ _ _ _ HW Hs)))
               ltac:(intros id bp Hin Hs; destruct (WP id bp Hin Hs) as (Old & NR & NS);
                     split; [eapply Plt_Ple_trans; [exact Old | exact NX] |];
                     intros [H | ->]; [exact (NS H) | exact (Hnew Old)])
-              ltac:(intros hd PH; apply (wf_to_m ge nbase R0 gtab kv m0 uf E m g MMh bpf hd Hnew);
-                    apply WL; exact (part_head_to_m0 ge nbase R0 gtab kv m0 uf szS E m g MMh hd HW PH))
+              ltac:(intros hd PH; apply (wf_to_m ge nbase R0 gtab kv m0 uf gp E m g MMh bpf hd Hnew);
+                    apply WL; exact (part_head_to_m0 ge nbase R0 gtab kv m0 uf gp szS E m g MMh hd HW PH))
               Hev)
     as (fl & Hfl & Hld & (U & UP) & Hwr & (h & ->)).
   (* old blocks: valid in m, same perms in m, m0 and m' *)
@@ -148,24 +155,24 @@ Proof.
   (* the value the static holds in m' *)
   destruct (Mem.valid_access_load m' Mint16signed bCL 2) as (v1 & L1).
   { split; [intros i Hi; apply RCL'; cbn in Hi; lia | exists 1; reflexivity]. }
-  destruct (ld16 _ _ _ _ m0 L1) as (O1 & LR1).
+  destruct (ld16 _ _ _ _ gp L1) as (O1 & LR1).
   (* the ceiling: NULL, or an old world surface *)
   assert (FLc : fl = Vint Int.zero \/
                 exists bs os, fl = Vptr bs os /\ Plt bs nb0
-                  /\ Ptrofs.unsigned os + szS <= Ptrofs.modulus /\ ~ rblk vs bs).
+                  /\ Ptrofs.unsigned os + szS <= Ptrofs.modulus /\ ~ rblk vs bs /\ gp bs <> None).
   { destruct Hfl as [-> | (hd & PH & OL)]; [left; reflexivity | right].
-    pose proof (part_head_to_m0 ge nbase R0 gtab kv m0 uf szS E m g MMh hd HW PH) as PH0.
-    exact (WSurf hd fl PH0 (on_list_to_m0 ge nbase R0 gtab kv m0 uf E m g MMh hd fl (WL hd PH0) OL)). }
-  assert (Ofl : val_old m0 fl) by (destruct FLc as [-> | (bs & os & -> & Hb & _)]; cbn; auto).
+    pose proof (part_head_to_m0 ge nbase R0 gtab kv m0 uf gp szS E m g MMh hd HW PH) as PH0.
+    exact (WSurf hd fl PH0 (on_list_to_m0 ge nbase R0 gtab kv m0 uf gp E m g MMh hd fl (WL hd PH0) OL)). }
+  assert (Ofl : val_old gp fl) by (destruct FLc as [-> | (bs & os & -> & Hb & _ & _ & G)]; cbn; auto).
   assert (LRfl : Val.load_result Mint32 fl = fl)
     by (destruct FLc as [-> | (bs & os & -> & _)]; reflexivity).
   rewrite LRfl in Hld.
   (* the names *)
   set (E1 := upd E n0 (Some v1)). set (E2 := upd E1 n1 (Some fl)).
   set (E3 := upd E2 n2 (Some (Vsingle h))).
-  pose proof (MMg_fresh ge nbase R0 gtab kv (fun _ => None) (fun _ => false) m0 uf E m g v1 MMh O1) as M1.
-  pose proof (MMg_fresh ge nbase R0 gtab kv (fun _ => None) (fun _ => false) m0 uf E1 m _ fl M1 Ofl) as M2.
-  pose proof (MMg_fresh ge nbase R0 gtab kv (fun _ => None) (fun _ => false) m0 uf E2 m _ (Vsingle h) M2 I) as M3.
+  pose proof (MMg_fresh ge nbase R0 gtab kv (fun _ => None) (fun _ => false) m0 uf gp E m g v1 MMh O1) as M1.
+  pose proof (MMg_fresh ge nbase R0 gtab kv (fun _ => None) (fun _ => false) m0 uf gp E1 m _ fl M1 Ofl) as M2.
+  pose proof (MMg_fresh ge nbase R0 gtab kv (fun _ => None) (fun _ => false) m0 uf gp E2 m _ (Vsingle h) M2 I) as M3.
   change (gfresh (gfresh (gfresh g))) with (fresh3 g) in M3.
   assert (NX3 : g_nx (fresh3 g) = Pos.succ n2) by reflexivity.
   assert (RX : Rx E E3 n0).
@@ -189,7 +196,7 @@ Proof.
   { eapply Mem.store_valid_access_1; [eassumption |]. exact Hwr. }
   destruct (Mem.valid_access_store m1 Mint32 bpf (Ptrofs.unsigned op) fl AC5) as (m5 & ST5).
   (* the executor's state follows them *)
-  destruct (sstore_sound ge nbase R0 gtab kv m0 uf E3 m (fresh3 g) rCL 2 Mint16signed (Sfresh n0)
+  destruct (sstore_sound ge nbase R0 gtab kv m0 uf gp gp_old E3 m (fresh3 g) rCL 2 Mint16signed (Sfresh n0)
               v1 m1 g1 M3 S1 (SOK n0 ltac:(unfold Plt, n2, n1; lia)) D1 LR1
               ltac:(rewrite A0 by exact BCL; exact ST1)) as (M1' & X1 & Y1 & Z1).
   assert (NpC : bpf <> bCL) by (intros E'; rewrite E' in Hnew; exact (Hnew OCL)).
@@ -241,7 +248,7 @@ Proof.
       destruct (sstore_in _ _ _ _ _ _ _ _ _ S5 I) as [? | (I4 & N5)]; [auto |].
       destruct (sstore_in _ _ _ _ _ _ _ _ _ S1 I4) as [? | (I0 & N1)]; [auto |].
       do 2 right. auto. }
-    apply (MMg_transfer ge nbase R0 gtab kv m0 uf E3 m5 gF m' MF).
+    apply (MMg_transfer ge nbase R0 gtab kv m0 uf gp E3 m5 gF m' MF).
     - rewrite (Mem.nextblock_store _ _ _ _ _ _ ST5), (Mem.nextblock_store _ _ _ _ _ _ ST1).
       exact (Mem.unchanged_on_nextblock _ _ _ U).
     - intros r o ch sv I. destruct (ENTF r o ch sv I) as (IBo & _ & L5). rewrite L5.
@@ -250,13 +257,13 @@ Proof.
       + rewrite D5'. cbn [Mem.loadv] in Hld. exact Hld.
       + rewrite D1. exact L1.
       + rewrite <- L5. apply DJ.
-        * apply (inb_disj ge nbase R0 gtab kv m0 uf E3 m5 gF _ _ _ _ _ _ MF IB1 IBo).
+        * apply (inb_disj ge nbase R0 gtab kv m0 uf gp gp_old E3 m5 gF _ _ _ _ _ _ MF IB1 IBo).
           apply ovl_false in N1. destruct N1 as [N | [N | N]]; [left; exact N | right; right; exact N | right; left; exact N].
-        * apply (inb_disj ge nbase R0 gtab kv m0 uf E3 m5 gF _ _ _ _ _ _ MF IB5 IBo).
+        * apply (inb_disj ge nbase R0 gtab kv m0 uf gp gp_old E3 m5 gF _ _ _ _ _ _ MF IB5 IBo).
           apply ovl_false in N5. destruct N5 as [N | [N | N]]; [left; exact N | right; right; exact N | right; left; exact N].
         * destruct (ENT r o ch sv I0) as (IBg & _).
           destruct (inb_spec _ _ _ _ _ _ IBg) as [(Lr & _) | (_ & Il' & _)].
-          -- apply Vm. exact (A1 r Lr).
+          -- apply Vm. exact (gp_plt (A1 r Lr)).
           -- destruct (LOC r Il') as (_ & _ & _ & _ & P). exact P.
     - intros b z ch OLD Dall. apply DJ; [| | exact (Vm b OLD)].
       + apply (Dall (rCL, 2, Mint16signed, Sfresh n0)). rewrite SM.
@@ -270,16 +277,16 @@ Proof.
       + do 2 (eapply Mem.perm_store_2; [eassumption |]). exact HH. }
   assert (NXg1 : g_nx g1 = Pos.succ n2) by (rewrite X1; exact NX3).
   assert (FIN : forall gF, MM E3 m' gF -> g_loc gF = g_loc g -> g_nx gF = Pos.succ n2 ->
-            CM ge nbase R0 gtab kv m0 uf E n0 (g_loc g) m' (Vsingle h) (gF, Sfresh n2)).
+            CM ge nbase R0 gtab kv m0 uf gp E n0 (g_loc g) m' (Vsingle h) (gF, Sfresh n2)).
   { intros gF MF LF NF. exists E3. split; [exact (Rx_Ext _ _ _ RX) |].
     split; [exact MF |]. split; [exact D3 |].
     split; [rewrite NF; split; [apply Pos.lt_succ_diag_r | exact I] |].
     split; [rewrite NF; unfold Ple, n2, n1; lia | exact LF]. }
-  destruct FLc as [Efl | (bs & os & Efl & Obs & Ros & NRbs)].
+  destruct FLc as [Efl | (bs & os & Efl & Obs & Ros & NRbs & _)].
   - (* NULL: the first outcome *)
     exists (gN, Sfresh n2). split; [left; reflexivity |].
     rewrite Efl in ST5.
-    destruct (sstore_sound ge nbase R0 gtab kv m0 uf E3 m1 g1 rp (Ptrofs.unsigned op) Mint32
+    destruct (sstore_sound ge nbase R0 gtab kv m0 uf gp gp_old E3 m1 g1 rp (Ptrofs.unsigned op) Mint32
                 (Sconst (Vint Int.zero)) (Vint Int.zero) m5 gN M1' S5N
                 (sok_const _ _ (Vint Int.zero) eq_refl) eq_refl eq_refl
                 ltac:(rewrite BK, A0 by exact Hb0; exact ST5)) as (M5' & X5 & Y5 & _).
@@ -287,7 +294,7 @@ Proof.
     eapply (TAIL (Sconst (Vint Int.zero)) gN gN S5N); [rewrite Efl; reflexivity | exact M5' | reflexivity | exact Y5].
   - (* a world surface: the second outcome *)
     exists (add_fact gS (Fworld (Sfresh n1) szS), Sfresh n2). split; [right; left; reflexivity |].
-    destruct (sstore_sound ge nbase R0 gtab kv m0 uf E3 m1 g1 rp (Ptrofs.unsigned op) Mint32
+    destruct (sstore_sound ge nbase R0 gtab kv m0 uf gp gp_old E3 m1 g1 rp (Ptrofs.unsigned op) Mint32
                 (Sfresh n1) fl m5 gS M1' S5S
                 ltac:(rewrite NXg1; split; [cbn [nlt]; unfold Plt, n2, n1; lia | exact I]) D2 LRfl
                 ltac:(rewrite BK, A0 by exact Hb0; exact ST5)) as (M5' & X5 & Y5 & _).

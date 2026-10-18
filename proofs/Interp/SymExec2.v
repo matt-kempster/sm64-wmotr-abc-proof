@@ -20,10 +20,13 @@
    [m0].  Operators are evaluated at m0.  That is sound because along the
    run every block that is valid in m0 keeps its valid_pointer answers
    ([vp_old]); operators never see a pointer to a block allocated during the
-   run: locals' addresses are refused under operators unless folded, m0's
-   own contents point only at m0 blocks ([m0_closed], a premise), and fresh
+   run: locals' addresses are refused under operators unless folded, and
+   every other value points only at m0's PUBLIC blocks [gp] (a flat partial
+   self-map of m0): the region blocks are public, the contents of public
+   blocks point only at public blocks ([m0_closed], a premise; it is
+   ClosedMem.closed_by gp m0, which external calls preserve), and fresh
    values do too ([rho_old]).  So CompCert's generic injection lemmas, at
-   [flat_inj (Mem.nextblock m0)], transfer each operator from m to m0.
+   gp's flat image, transfer each operator from m to m0.
 
    THE THEOREM ([sx_call_sound]): if the executor returns paths for a call,
    then EVERY big-step execution of that call from a memory matching the
@@ -917,6 +920,15 @@ Variable uf : positive -> list (option val) -> Prop.
 
 Local Notation nb0 := (Mem.nextblock m0).
 
+(* m0's PUBLIC blocks: a flat partial self-map (Generic ClosedMem's
+   closed_by).  Old values point only at public blocks, and only public
+   blocks need pointer-closed contents ([m0_closed] below).  A real memory
+   is closed only this way: an external call may leave blocks it allocated
+   unmapped, with any contents. *)
+Variable gp : meminj.
+Hypothesis gp_flat : forall b b' d, gp b = Some (b', d) -> b' = b /\ d = 0.
+Hypothesis gp_old : forall b x, gp b = Some x -> Plt b nb0.
+
 Record senv : Type := mke {
   e_blk : positive -> block;
   e_base : positive -> ptrofs;
@@ -924,7 +936,15 @@ Record senv : Type := mke {
 }.
 
 Definition val_old (v : val) : Prop :=
-  match v with Vptr b _ => Plt b nb0 | _ => True end.
+  match v with Vptr b _ => gp b <> None | _ => True end.
+
+Lemma pub_plt : forall b, gp b <> None -> Plt b nb0.
+Proof. intros b H. destruct (gp b) as [x|] eqn:G; [ exact (gp_old b x G) | congruence ]. Qed.
+
+Lemma val_old_plt : forall b o, val_old (Vptr b o) -> Plt b nb0.
+Proof.
+  intros b o H. cbn in H. destruct (gp b) as [x|] eqn:G; [ exact (gp_old b x G) | congruence ].
+Qed.
 
 Fixpoint den (E : senv) (a : sval) : option val :=
   match a with
@@ -1017,7 +1037,7 @@ Definition fact_holds (E : senv) (f : fact) : Prop :=
 
 (* the consumer's regions, the globals table and the known values *)
 Definition env_ok (E : senv) : Prop :=
-  (forall r, Plt r nbase -> Plt (e_blk E r) nb0)
+  (forall r, Plt r nbase -> gp (e_blk E r) <> None)
   /\ (forall r sz, r0_size r = Some sz ->
         Plt r nbase /\ 0 <= sz /\ Ptrofs.unsigned (e_base E r) + sz <= Ptrofs.modulus)
   /\ (forall r sz r' sz', r0_size r = Some sz -> r0_size r' = Some sz' -> r <> r' ->
@@ -1134,24 +1154,24 @@ Qed.
 (* Memory independence of the operators (old values)                  *)
 (* ---------------------------------------------------------------- *)
 
-Definition fi : meminj := Mem.flat_inj nb0.
+Definition fi : meminj := fun b => match gp b with Some _ => Some (b, 0) | None => None end.
 
 Lemma fi_old : forall b b' d, fi b = Some (b', d) -> b' = b /\ d = 0 /\ Plt b nb0.
 Proof.
-  unfold fi, Mem.flat_inj; intros b b' d H. destruct (plt b nb0); [ | discriminate ].
-  inv H. auto.
+  unfold fi; intros b b' d H. destruct (gp b) as [x|] eqn:G; [ | discriminate ].
+  injection H as <- <-. split; [ reflexivity | split; [ reflexivity | exact (gp_old b x G) ] ].
 Qed.
 
 Lemma inj_old : forall v, val_old v -> Val.inject fi v v.
 Proof.
   intros [] H; try constructor. econstructor.
-  - unfold fi, Mem.flat_inj. destruct (plt b nb0); [ reflexivity | contradiction ].
+  - unfold fi. cbn in H. destruct (gp b); [ reflexivity | contradiction ].
   - rewrite Ptrofs.add_zero. reflexivity.
 Qed.
 
 Lemma inj_old_l : forall v w, Val.inject fi v w -> val_old v.
 Proof.
-  intros v w H. inv H; cbn; auto. apply fi_old in H0. tauto.
+  intros v w H. inv H; cbn; auto. unfold fi in H0. destruct (gp b1); congruence.
 Qed.
 
 Lemma inj_old_def : forall v w, Val.inject fi v w -> v <> Vundef -> v = w.
@@ -1281,21 +1301,25 @@ Proof.
   destruct W as [W|W]; apply Mem.valid_pointer_nonempty_perm in W; eapply Mem.perm_valid_block; eauto.
 Qed.
 
-(* a defined bool_val at m0 only looks at m0's blocks *)
-Lemma bool_val_m0_old : forall v ty b, bool_val v ty m0 = Some b -> val_old v.
+(* a defined bool_val at m0 only looks at m0's blocks, so it transfers *)
+Lemma bool_val_m0_transfer : forall m v ty b, vpo m0 m ->
+  bool_val v ty m0 = Some b -> bool_val v ty m = Some b.
 Proof.
-  intros v ty b H. destruct v; cbn; auto.
-  unfold bool_val in H. destruct (classify_bool ty); destruct Archi.ptr64 eqn:P; cbn in H;
+  intros m v ty b A H. destruct v as [ | | | | | b0 i ];
+    [ exact H | | | | | ];
+    [ eapply bool_old; [ exact A | exact I | exact H ] .. | ].
+  unfold bool_val in *. destruct (classify_bool ty); destruct Archi.ptr64 eqn:P; cbn in *;
     try discriminate;
     destruct (Mem.weak_valid_pointer m0 b0 (Ptrofs.unsigned i)) eqn:W; try discriminate;
-    eapply wvp_valid; eauto.
+    pose proof (wvp_valid _ _ _ W) as V; unfold Mem.weak_valid_pointer in *;
+    rewrite <- !(A b0 _ V); rewrite W; exact H.
 Qed.
 
 (* ---------------------------------------------------------------- *)
 (* Old values                                                         *)
 (* ---------------------------------------------------------------- *)
 
-Hypothesis m0_closed : forall ch b z v, Mem.load ch m0 b z = Some v -> val_old v.
+Hypothesis m0_closed : forall ch b z v, gp b <> None -> Mem.load ch m0 b z = Some v -> val_old v.
 
 Lemma load_result_old : forall ch v, val_old v -> val_old (Val.load_result ch v).
 Proof.
@@ -1308,8 +1332,9 @@ Proof.
   intros E a. induction a; cbn; intros w EO D H.
   - inv H. destruct w; cbn in *; auto; discriminate.
   - inv H. cbn. destruct EO as (A1 & _). apply A1. exact D.
-  - eapply m0_closed; eauto.
-  - destruct (den E a) as [[]|]; try discriminate. eapply m0_closed; eauto.
+  - eapply m0_closed; [ destruct EO as (A1 & _); exact (A1 _ D) | exact H ].
+  - destruct (den E a) as [[]|]; try discriminate.
+    eapply m0_closed; [ exact (IHa _ EO D eq_refl) | exact H ].
   - destruct (den E a) as [[]|] eqn:Ea; try discriminate. inv H.
     cbn. exact (IHa _ EO D eq_refl).
   - destruct EO as (_ & _ & _ & _ & _ & R). eapply R; eauto.
@@ -1396,8 +1421,8 @@ Proof.
     destruct (inb_spec _ _ _ _ H') as [(L' & sz' & S' & O1' & O2') | (L' & IN' & O1' & O2')].
     + destruct (A3 r sz r' sz' S S' NE) as [B | [B | B]]; [ left; exact B | right | right ];
         unfold addr; lia.
-    + left. intro B. destruct (LOC r' IN') as (_ & _ & _ & N & _). apply N. rewrite <- B. auto.
-    + left. intro B. destruct (LOC r IN) as (_ & _ & _ & N & _). apply N. rewrite B. auto.
+    + left. intro B. destruct (LOC r' IN') as (_ & _ & _ & N & _). apply N. rewrite <- B. eauto using pub_plt.
+    + left. intro B. destruct (LOC r IN) as (_ & _ & _ & N & _). apply N. rewrite B. eauto using pub_plt.
     + left. intro B. apply NE. apply LINJ; auto.
 Qed.
 
@@ -1460,7 +1485,7 @@ Proof.
     destruct (init_cell_den E r o ch EO) as [D S].
     split; [ | eapply sok_mono; [ exact (S L) | exact NB ] ].
     rewrite D. apply FR.
-    + destruct EO as (A1 & _). apply A1. exact L.
+    + destruct EO as (A1 & _). apply pub_plt, A1. exact L.
     + intros [[[r' o'] ch'] sv] IN. cbn [skey].
       assert (OV : ovl r o ch (r', o', ch', sv) = false)
         by (apply (proj1 (filter_nil_iff _ _) F); exact IN).
@@ -1843,7 +1868,7 @@ Proof.
     destruct (sval_eq c0 c); [ subst | discriminate ].
     destruct (type_eq ty0 ty); [ subst | discriminate ].
     destruct (P _ (or_introl eq_refl)) as [v' [D' B']]. rewrite D in D'. inv D'.
-    pose proof (bool_old m0 m v' ty b' (vpo_sym _ _ MM_vpo) (bool_val_m0_old _ _ _ B') B') as B2.
+    pose proof (bool_val_m0_transfer m v' ty b' (vpo_sym _ _ MM_vpo) B') as B2.
     congruence. }
   destruct c; try (apply (L _ MM_pc H)).
   cbn [den] in D. inv D.
@@ -2782,7 +2807,7 @@ Proof.
   intros E m g r o ch MM H.
   pose proof MM as ((A1 & _) & NB & _ & _ & _ & NX & _ & LOC & _).
   destruct (inb_spec _ _ _ _ H) as [(L & _) | (L & IN & _)].
-  - split; [ unfold Plt, Ple in *; lia | ]. specialize (A1 r L). unfold Plt, Ple in *. lia.
+  - split; [ unfold Plt, Ple in *; lia | ]. pose proof (pub_plt _ (A1 r L)) as A1'. unfold Plt, Ple in *. clear A1; lia.
   - destruct (LOC r IN) as (_ & P & _ & _ & B). auto.
 Qed.
 
@@ -2844,7 +2869,7 @@ Proof.
             e_blk E' r = e_blk E r /\ e_base E' r = e_base E r /\ Plt (e_blk E r) (Mem.nextblock m)).
   { intros r P H. destruct (X r P) as (B1 & B2 & _). split; [ exact B1 | split; [ exact B2 | ] ].
     destruct H as [H | H].
-    - destruct EO as (A1 & _). specialize (A1 r H). unfold Plt, Ple in *. lia.
+    - destruct EO as (A1 & _). pose proof (pub_plt _ (A1 r H)) as A1'. unfold Plt, Ple in *. lia.
     - destruct (LOC r H) as (_ & _ & _ & _ & F). exact F. }
   split.
   - split; [ | split; [ cbn; unfold nx, Ple in *; lia | split; [ | split; [ | split; [ | split; [ | split; [ | split ] ] ] ] ] ] ].
@@ -2974,7 +2999,7 @@ Proof.
   assert (KEEPNF : forall r, (Plt r nbase \/ In r loc0) -> forall lo hi, ~ In (e_blk E r, lo, hi) l).
   { intros r H lo hi I. destruct (FB _ lo hi I) as (r' & Ir' & Nr' & Eb).
     destruct H as [H | H].
-    - destruct EO as (A1 & _). specialize (A1 r H). rewrite Eb in A1.
+    - destruct EO as (A1 & _). pose proof (pub_plt _ (A1 r H)) as A1'. rewrite Eb in A1'.
       destruct (LOC r' Ir') as (_ & _ & _ & N & _). contradiction.
     - apply Nr'. rewrite (LINJ r r' (INC r H) Ir' Eb) in H. exact H. }
   unfold sfree. unfold MMg; cbn [g_nx g_loc g_sm g_pc].

@@ -119,8 +119,15 @@ Variable gtab : list (ident * positive).
 Variable kv : list (positive * Z * memory_chunk * sval).
 Variable m0 : mem.
 Variable uf : positive -> list (option val) -> Prop.
+Variable gp : meminj.
+Hypothesis gp_old : forall b x, gp b = Some x -> Plt b (Mem.nextblock m0).
+Let gp_plt {b} (H : gp b <> None) : Plt b (Mem.nextblock m0) :=
+  match gp b as o return gp b = o -> Plt b (Mem.nextblock m0) with
+  | Some x => fun G => gp_old b x G
+  | None => fun G => False_ind _ (H G)
+  end eq_refl.
 
-Local Notation MM := (MMg ge nbase R0 gtab kv m0 uf).
+Local Notation MM := (MMg ge nbase R0 gtab kv m0 uf gp).
 Local Notation nb0 := (Mem.nextblock m0).
 Local Notation den := (den ge m0).
 
@@ -130,7 +137,7 @@ Proof.
   intros E m g r o ch MMh IB.
   pose proof MMh as ((A1 & _) & _ & _ & _ & _ & NX & _ & LOC & _).
   destruct (inb_spec _ _ _ _ _ _ IB) as [(Lr & _) | (_ & Il & _)].
-  - eapply Plt_Ple_trans; [exact (A1 r Lr) | exact NX].
+  - eapply Plt_Ple_trans; [exact (gp_plt (A1 r Lr)) | exact NX].
   - destruct (LOC r Il) as (_ & _ & _ & _ & P). exact P.
 Qed.
 
@@ -156,7 +163,7 @@ Proof.
             cell_disj E (skey k) (e_blk E r) (addr E r o) ch).
   { intros [[[r1 o1] ch1] sv1] r o ch Ik IB D.
     pose proof (sstores_inb _ _ _ _ S Ik) as IB1. cbn [skey] in IB1, D |- *.
-    exact (inb_disj _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ MMh IB1 IB D). }
+    exact (inb_disj ge nbase R0 gtab kv m0 uf gp gp_old _ _ _ _ _ _ _ _ _ MMh IB1 IB D). }
   split; [exact EO | split; [rewrite NXg; exact NB |]].
   split; [| split; [| split; [| split; [| split; [| split; [| let I1 := fresh in let I2 := fresh in intros ? ? I1 I2; rewrite LCg in I1, I2; exact (LINJ _ _ I1 I2)]]]]]].
   - (* entries *)
@@ -207,20 +214,20 @@ Proof.
   cbn [fold_left]. destruct (IH (add_fact g f)) as (A & B). rewrite A, B. split; reflexivity.
 Qed.
 
-Lemma MMg_addfs : forall ge nbase R0 gtab kv m0 uf E m fs g,
-  MMg ge nbase R0 gtab kv m0 uf E m g ->
+Lemma MMg_addfs : forall ge nbase R0 gtab kv m0 uf gp E m fs g,
+  MMg ge nbase R0 gtab kv m0 uf gp E m g ->
   (forall f, In f fs -> fact_nlt (g_nx g) f /\ fact_holds ge R0 m0 uf E f) ->
-  MMg ge nbase R0 gtab kv m0 uf E m (addfs g fs).
+  MMg ge nbase R0 gtab kv m0 uf gp E m (addfs g fs).
 Proof.
-  intros ge nbase R0 gtab kv m0 uf E m fs. induction fs as [| f fs IH]; intros g M F; [exact M |].
+  intros ge nbase R0 gtab kv m0 uf gp E m fs. induction fs as [| f fs IH]; intros g M F; [exact M |].
   cbn [addfs fold_left]. apply IH.
   - destruct (F f (or_introl eq_refl)) as (N & H). eapply MMg_add_fact; eassumption.
   - intros f' I. exact (F f' (or_intror I)).
 Qed.
 
-Lemma ldf_old : forall (m0 : mem) M b z v, Mem.load Mfloat32 M b z = Some v -> val_old m0 v.
+Lemma ldf_old : forall (gp : meminj) M b z v, Mem.load Mfloat32 M b z = Some v -> val_old gp v.
 Proof.
-  intros m0 M b z v H. apply Mem.load_type in H. destruct v; cbn in *; auto. destruct H.
+  intros gp M b z v H. apply Mem.load_type in H. destruct v; cbn in *; auto. all: destruct H.
 Qed.
 
 (* ---- THE CONTRACT ---- *)
@@ -294,17 +301,24 @@ Variable gtab : list (ident * positive).
 Variable kv : list (positive * Z * memory_chunk * sval).
 Variable m0 : mem.
 Variable uf : positive -> list (option val) -> Prop.
+Variable gp : meminj.
+Hypothesis gp_old : forall b x, gp b = Some x -> Plt b (Mem.nextblock m0).
+Let gp_plt {b} (H : gp b <> None) : Plt b (Mem.nextblock m0) :=
+  match gp b as o return gp b = o -> Plt b (Mem.nextblock m0) with
+  | Some x => fun G => gp_old b x G
+  | None => fun G => False_ind _ (H G)
+  end eq_refl.
 Variables rCL kW : positive.
 Variable szS : Z.
 
-Local Notation MM := (MMg ge nbase R0 gtab kv m0 uf).
+Local Notation MM := (MMg ge nbase R0 gtab kv m0 uf gp).
 Local Notation nb0 := (Mem.nextblock m0).
 Local Notation den := (den ge m0).
 
 Hypothesis HC : cenv_has ge.
 Hypothesis Hpin : wfl_pinned ge.
 Hypothesis HgCL : gfind gtab surface_collision._gNumCalls = Some rCL.
-Hypothesis HU : forall vs, uf kW vs -> Wff ge m0 szS vs.
+Hypothesis HU : forall vs, uf kW vs -> Wff ge m0 gp szS vs.
 
 (* THE SOUNDNESS of c_fwc against the real find_wall_collisions *)
 Theorem c_fwc_sound : forall args g cps E m vargs t m' vres,
@@ -312,7 +326,7 @@ Theorem c_fwc_sound : forall args g cps E m vargs t m' vres,
   MM E m g ->
   Forall2 (fun a v => den E a = Some v /\ sok nbase (g_nx g) a) args vargs ->
   eval_funcall function_entry2 ge m (Internal surface_collision.f_find_wall_collisions) vargs t m' vres ->
-  exists c, In c cps /\ CM ge nbase R0 gtab kv m0 uf E (g_nx g) (g_loc g) m' vres c.
+  exists c, In c cps /\ CM ge nbase R0 gtab kv m0 uf gp E (g_nx g) (g_loc g) m' vres c.
 Proof.
   intros args g cps E m vargs t m' vres Hc MMh HF Hev.
   unfold c_fwc in Hc.
@@ -374,8 +388,8 @@ Proof.
               ltac:(intros id bp Hin Hs; destruct (WP id bp Hin Hs) as (Old & NR & NS);
                     split; [eapply Plt_Ple_trans; [exact Old | exact NX] |];
                     intros [H | ->]; [exact (NS H) | exact (Hnew Old)])
-              ltac:(intros hd PH; apply (wf_to_m ge nbase R0 gtab kv m0 uf E m g MMh bpf hd Hnew);
-                    apply WL; exact (part_head_to_m0 ge nbase R0 gtab kv m0 uf szS E m g MMh hd HW PH))
+              ltac:(intros hd PH; apply (wf_to_m ge nbase R0 gtab kv m0 uf gp E m g MMh bpf hd Hnew);
+                    apply WL; exact (part_head_to_m0 ge nbase R0 gtab kv m0 uf gp szS E m g MMh hd HW PH))
               t m' vres Hev)
     as (c & Hc0 & -> & (U & UP) & Hl & (HW1 & HW2) & (vx0 & RX) & (vz0 & RZ)).
   (* old blocks are valid in m *)
@@ -394,37 +408,37 @@ Proof.
     apply (proj1 (UP bCL i Cur Readable (Vm _ OCL))).
     apply (proj2 (VP bCL i Cur Readable OCL)). eapply Mem.perm_implies; [apply WCL; lia | constructor]. }
   destruct (Mem.valid_access_load m' Mint16signed bCL 4 RCL) as (vcl & LCL).
-  destruct (ld16 _ _ _ _ m0 LCL) as (Ocl & _).
-  assert (PICK : forall i, exists w, val_old m0 w /\
+  destruct (ld16 _ _ _ _ gp LCL) as (Ocl & _).
+  assert (PICK : forall i, exists w, val_old gp w /\
             (Z.of_nat i < Z.min c 4 ->
                Mem.load Mint32 m' bpf (Ptrofs.unsigned op + 24 + 4 * Z.of_nat i) = Some w
                /\ exists bs os, w = Vptr bs os /\ Plt bs nb0
                     /\ Ptrofs.unsigned os + szS <= Ptrofs.modulus /\ ~ rblk vs bs)).
   { intros i. destruct (Z_lt_dec (Z.of_nat i) (Z.min c 4)) as [Lt | Ge].
     - destruct (HW1 (Z.of_nat i) ltac:(lia)) as (s & Ls & (hd & PH & OL)).
-      pose proof (part_head_to_m0 ge nbase R0 gtab kv m0 uf szS E m g MMh hd HW PH) as PH0.
-      destruct (WSurf hd s PH0 (on_list_to_m0 ge nbase R0 gtab kv m0 uf E m g MMh hd s (WL hd PH0) OL))
-        as (bs & os & -> & Ob & Ro & NR).
-      exists (Vptr bs os). split; [exact Ob |]. intros _. split; [exact Ls |].
+      pose proof (part_head_to_m0 ge nbase R0 gtab kv m0 uf gp szS E m g MMh hd HW PH) as PH0.
+      destruct (WSurf hd s PH0 (on_list_to_m0 ge nbase R0 gtab kv m0 uf gp E m g MMh hd s (WL hd PH0) OL))
+        as (bs & os & -> & Ob & Ro & NR & G).
+      exists (Vptr bs os). split; [exact G |]. intros _. split; [exact Ls |].
       exists bs, os. auto.
     - exists Vundef. split; [exact I | intros; lia]. }
   destruct (PICK 0%nat) as (w0 & Ow0 & Pw0). destruct (PICK 1%nat) as (w1 & Ow1 & Pw1).
   destruct (PICK 2%nat) as (w2 & Ow2 & Pw2). destruct (PICK 3%nat) as (w3 & Ow3 & Pw3).
   (* the names *)
-  pose proof (MMg_fresh ge nbase R0 gtab kv (fun _ => None) (fun _ => false) m0 uf E m g vx MMh
-                (ldf_old m0 _ _ _ _ LX)) as M1.
-  pose proof (MMg_fresh ge nbase R0 gtab kv (fun _ => None) (fun _ => false) m0 uf _ m _ vz M1
-                (ldf_old m0 _ _ _ _ LZ)) as M2.
-  pose proof (MMg_fresh ge nbase R0 gtab kv (fun _ => None) (fun _ => false) m0 uf _ m _ vcl M2 Ocl) as M3.
-  pose proof (MMg_fresh ge nbase R0 gtab kv (fun _ => None) (fun _ => false) m0 uf _ m _ w0 M3 Ow0) as M4.
-  pose proof (MMg_fresh ge nbase R0 gtab kv (fun _ => None) (fun _ => false) m0 uf _ m _ w1 M4 Ow1) as M5.
-  pose proof (MMg_fresh ge nbase R0 gtab kv (fun _ => None) (fun _ => false) m0 uf _ m _ w2 M5 Ow2) as M6.
-  pose proof (MMg_fresh ge nbase R0 gtab kv (fun _ => None) (fun _ => false) m0 uf _ m _ w3 M6 Ow3) as M7.
-  pose proof (MMg_fresh ge nbase R0 gtab kv (fun _ => None) (fun _ => false) m0 uf _ m _
+  pose proof (MMg_fresh ge nbase R0 gtab kv (fun _ => None) (fun _ => false) m0 uf gp E m g vx MMh
+                (ldf_old gp _ _ _ _ LX)) as M1.
+  pose proof (MMg_fresh ge nbase R0 gtab kv (fun _ => None) (fun _ => false) m0 uf gp _ m _ vz M1
+                (ldf_old gp _ _ _ _ LZ)) as M2.
+  pose proof (MMg_fresh ge nbase R0 gtab kv (fun _ => None) (fun _ => false) m0 uf gp _ m _ vcl M2 Ocl) as M3.
+  pose proof (MMg_fresh ge nbase R0 gtab kv (fun _ => None) (fun _ => false) m0 uf gp _ m _ w0 M3 Ow0) as M4.
+  pose proof (MMg_fresh ge nbase R0 gtab kv (fun _ => None) (fun _ => false) m0 uf gp _ m _ w1 M4 Ow1) as M5.
+  pose proof (MMg_fresh ge nbase R0 gtab kv (fun _ => None) (fun _ => false) m0 uf gp _ m _ w2 M5 Ow2) as M6.
+  pose proof (MMg_fresh ge nbase R0 gtab kv (fun _ => None) (fun _ => false) m0 uf gp _ m _ w3 M6 Ow3) as M7.
+  pose proof (MMg_fresh ge nbase R0 gtab kv (fun _ => None) (fun _ => false) m0 uf gp _ m _
                 (Vint (Int.repr c)) M7 I) as M8.
   change (gfresh (gfresh (gfresh (gfresh (gfresh (gfresh (gfresh (gfresh g))))))))
     with (fresh8 g) in M8.
-  match type of M8 with MMg _ _ _ _ _ _ _ ?EE _ _ => set (E8 := EE) in M8 end.
+  match type of M8 with MMg _ _ _ _ _ _ _ _ ?EE _ _ => set (E8 := EE) in M8 end.
   assert (NX8 : g_nx (fresh8 g) = nm (g_nx g) 8) by reflexivity.
   assert (RX8 : Rx E E8 (g_nx g)).
   { unfold E8. cbn [g_nx gfresh].
@@ -521,7 +535,7 @@ Proof.
         destruct (DW i ltac:(lia)) as (w & Dw & Pw). split; [apply (SK (3 + i)%nat); lia |].
         rewrite Hb0, Ptrofs.unsigned_zero. destruct (Pw ltac:(lia)) as (Lw & _).
         transitivity (Some w); [exact Lw | symmetry; exact Dw]. }
-    destruct (sstores_havoc nbase R0 ge gtab kv m0 uf E8 m (fresh8 g) _ gS m' M8 S HL HD
+    destruct (sstores_havoc nbase R0 ge gtab kv m0 uf gp gp_old E8 m (fresh8 g) _ gS m' M8 S HL HD
                 (Mem.unchanged_on_nextblock _ _ _ U)
                 ltac:(intros b o k p OLD; symmetry; exact (UP b o k p (Vm b OLD))))
       as (MS & NXS & LCS & _).
@@ -540,7 +554,7 @@ Proof.
   (* each outcome is the right one when min(count, 4) is its n *)
   assert (FIN : forall nn cn, Z.of_nat nn = Z.min c 4 ->
             fwc_out nbase R0 rCL rp (Ptrofs.unsigned op) szS g nn = Some cn ->
-            CM ge nbase R0 gtab kv m0 uf E (g_nx g) (g_loc g) m' (Vint (Int.repr c)) cn).
+            CM ge nbase R0 gtab kv m0 uf gp E (g_nx g) (g_loc g) m' (Vint (Int.repr c)) cn).
   { intros nn cn En O. unfold fwc_out in O.
     destruct (sstores nbase R0 (fresh8 g) (fcells rCL rp (Ptrofs.unsigned op) (g_nx g) nn)) as [gS |] eqn:S;
       [| discriminate O].

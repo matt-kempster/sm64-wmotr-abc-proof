@@ -181,3 +181,24 @@ Proof.
   intros b' d ofs' H _ _.
   destruct (Hflat _ _ _ H) as (-> & ->). congruence.
 Qed.
+
+(* ---- what a symbolic walk from m needs (SymExec2's gp premises) ---- *)
+
+Lemma closed_flat : forall g m b b' d, closed_by g m -> g b = Some (b', d) -> b' = b /\ d = 0.
+Proof. intros g m b b' d (Hflat & _) H. exact (Hflat _ _ _ H). Qed.
+
+Lemma closed_old : forall g m b x, closed_by g m -> g b = Some x -> Plt b (Mem.nextblock m).
+Proof. intros g m b [b' d] Hc H. exact (closed_valid_mapped _ _ _ _ _ Hc H). Qed.
+
+(* a load from a mapped block yields a value pointing only at mapped blocks *)
+Lemma closed_load : forall g m ch b z v, closed_by g m -> g b <> None ->
+    Mem.load ch m b z = Some v ->
+    match v with Vptr b' _ => g b' <> None | _ => True end.
+Proof.
+  intros g m ch b z v (Hflat & Hi) Hb Hl.
+  destruct (g b) as [[b1 d]|] eqn:G; [| congruence].
+  destruct (Hflat _ _ _ G) as (-> & ->).
+  destruct (Mem.load_inject _ _ _ _ _ _ _ _ _ Hi Hl G) as (v2 & Hl2 & Hv).
+  rewrite Z.add_0_r, Hl in Hl2. injection Hl2 as <-.
+  destruct v; auto. inv Hv. congruence.
+Qed.

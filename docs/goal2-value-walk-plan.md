@@ -236,9 +236,14 @@ standard axioms.
 - **Fresh symbols** (`Sfresh`) are denoted by an environment that the proof extends.
 - **Joins** (`join2`, `jgroup`, `jgroup_c` at contract-merged call sites) are proved to
   cover both inputs (`join2_sound`, `jgroup_PM`).
-- **Premise of the meaning.** The meaning assumes `m0_closed`: m0's contents point only at
-  m0's blocks. It is a hypothesis of the section, so a consumer must discharge it. For
-  example, the GOAL-2 run invariant must carry it.
+- **Premise of the meaning.** The meaning assumes `m0_closed` over a map `gp` of m0's
+  *public* blocks: the region blocks are public, and the contents of a public block point
+  only at public blocks. It is a hypothesis of the section, so a consumer must discharge it.
+  (2026-10-18) It used to say *all* of m0's contents point into m0. That is not provable
+  for a real memory, because CompCert's axioms let an external call (`sqrtf`) leave a block
+  it allocated with any contents. The public form is exactly `ClosedMem.closed_by gp m0`
+  (`closed_flat`, `closed_old`, `closed_load`), and external calls preserve it
+  (`ext_call_closed`). A consumer still has to carry `closed_by` in the run invariant.
 
 Measured on the real code (`playground/SymExec2Lab.v`, with stand-in contracts):
 - apply_gravity: 18 paths; apply_vertical_wind: 9.
@@ -366,6 +371,8 @@ Proved contracts (2026-10-17, later):
     discharged. What remains is the consumer's `gtab` entries (checked by
     computation) and the world fact's meaning (`Wff` at the frame's entry memory).
   - The lab now runs on exactly `air_xc`. Counts are unchanged: 7328 / 225 / 4.
-  - Open for a proved walk of `perform_air_step`: `m0_closed`; `Wff` as a frame
+  - Open for a proved walk of `perform_air_step`: `m0_closed` (now over public blocks:
+    `closed_by gp m0`, so what is left is carrying `closed_by` through a frame and across
+    the run); `Wff` as a frame
     invariant (carried by the GOAL-2 run invariant); and the consumer, which reads
     the 225 joined outcomes into `MoveChain` facts.
