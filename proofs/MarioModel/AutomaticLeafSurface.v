@@ -995,7 +995,7 @@ Section AutomaticLeafRows.
   Hypothesis Hcpx_scm :
     call_pres_ext lp bm NoA MWF mario._set_camera_mode.
   Hypothesis Hcpx_lpt :
-    call_pres_ext lp bm NoA MWF mario._load_patchable_table.
+    OutParamSurface.call_pres_ext_cs lp bm NoA MWF SafeB mario._load_patchable_table.
   Hypothesis Hcpx_v3f :
     OutParamSurface.call_pres_ext_dg lp bm NoA MWF SafeB mario_step._vec3f_copy.
   Hypothesis Hcpx_psound :

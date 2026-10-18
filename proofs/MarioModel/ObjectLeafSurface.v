@@ -124,7 +124,10 @@ Definition obj_ext_ids : list ident :=
     :: interaction._segmented_to_virtual
     :: interaction._stop_shell_music
     :: interaction._obj_set_held_state
-    :: mario._load_patchable_table
+    (* (load_patchable_table REMOVED 2026-10-18: it writes through arg0
+       (list->currentAddr, the DMA into list->bufTarget), so the any-argument
+       row is FALSE once memory.c is linked; it rides the cs-gated
+       Hcsp_lpt_real row, arg0 a chase temp at both real sites.) *)
     :: mario._play_sound
     :: mario_actions_object._approach_s32
     :: interaction._atan2s
@@ -1275,7 +1278,7 @@ Section ObjectLeafRows.
   Hypothesis Hcpx_oshs :
     call_pres_ext lp bm NoA MWF interaction._obj_set_held_state.
   Hypothesis Hcpx_lpt :
-    call_pres_ext lp bm NoA MWF mario._load_patchable_table.
+    OutParamSurface.call_pres_ext_cs lp bm NoA MWF SafeB mario._load_patchable_table.
   Hypothesis Hcpx_as32 :
     call_pres_ext lp bm NoA MWF mario_actions_object._approach_s32.
   Hypothesis Hcpx_atan2s :

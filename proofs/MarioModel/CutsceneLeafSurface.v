@@ -1436,7 +1436,8 @@ Section CutsceneLeafRows.
      level_trigger_warp is the SHARED warp-trigger body (the capstone supplies
      the floors/warp call_pres_of_body term). *)
   Hypothesis Hcpx_psound : call_pres_ext lp bm NoA MWF mario._play_sound.
-  Hypothesis Hcpx_lpt : call_pres_ext lp bm NoA MWF mario._load_patchable_table.
+  Hypothesis Hcpx_lpt :
+    OutParamSurface.call_pres_ext_cs lp bm NoA MWF SafeB mario._load_patchable_table.
   Hypothesis Hcpx_v3fc : OutParamSurface.call_pres_ext_dg lp bm NoA MWF SafeB mario._vec3f_copy.
   Hypothesis Hcpx_v3ss : OutParamSurface.call_pres_ext_dg lp bm NoA MWF SafeB mario._vec3s_set.
   Hypothesis Hcp_ltw :

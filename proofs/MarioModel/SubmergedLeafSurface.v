@@ -2007,7 +2007,7 @@ Section SubmergedLeafRows.
      animation-table reader, the SAME honest model-boundary class as the
      obj_ext rows (discharged at the capstone via Hpres_obj_ext). *)
   Hypothesis Hcpx_lpt :
-    call_pres_ext lp bm NoA MWF mario._load_patchable_table.
+    OutParamSurface.call_pres_ext_cs lp bm NoA MWF SafeB mario._load_patchable_table.
 
   (* stop_and_set_height_to_floor needs NO hypothesis -- DISCHARGED in-surface
      (sub_sashf_row, the SAME walk as AutomaticLeafSurface.Hsasthf): it writes

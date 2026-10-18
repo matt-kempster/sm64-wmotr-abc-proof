@@ -1612,7 +1612,7 @@ Section MovingLeafRows.
   Hypothesis Hcpx_psound :
     call_pres_ext lp bm NoA MWF mario._play_sound.
   Hypothesis Hcpx_lpt :
-    call_pres_ext lp bm NoA MWF mario._load_patchable_table.
+    OutParamSurface.call_pres_ext_cs lp bm NoA MWF SafeB mario._load_patchable_table.
   (* the moving family's pure audio externals (mov_ext_ids) -- the honest
      model boundary; discharged at the capstone. *)
   Hypothesis Hpres_mov_ext : forall fid,

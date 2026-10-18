@@ -365,6 +365,8 @@ Section HeightLinked12.
   Hypothesis Hcsp_scale_real :
     call_pres_ext_cs lp bm (NoA_real bm) MWF SafeB
       mario_actions_cutscene._obj_scale.
+  Hypothesis Hcsp_lpt_real :
+    call_pres_ext_cs lp bm (NoA_real bm) MWF SafeB mario._load_patchable_table.
   Hypothesis WL_exempt : forall e le m fid fty vf fd,
       mem_id fid exempt_callees = true ->
       eval_expr (lp_ge lp) e le m (Evar fid fty) vf ->

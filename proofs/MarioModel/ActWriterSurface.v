@@ -2122,10 +2122,14 @@ Definition dg_writer_ids : list ident :=
        result (plus the math_util spline statics) *)
     :: mario_actions_cutscene._anim_spline_poll :: nil.
 
-(* the object-pointer-arg writers (cs class): arg0 must be a chase temp *)
+(* the object-pointer-arg writers (cs class): arg0 must be a chase temp.
+   load_patchable_table(list, index) stores list->currentAddr and DMAs into
+   list->bufTarget (memory.c), so it is one too: its any-argument row was
+   false of the real body (arg0 at Mario's action cell). *)
 Definition objw_ids : list ident :=
   mario_actions_cutscene._obj_scale
-    :: mario_actions_cutscene._obj_mark_for_deletion :: nil.
+    :: mario_actions_cutscene._obj_mark_for_deletion
+    :: mario._load_patchable_table :: nil.
 Definition objw_call_chk (cact : list ident) (fty : type) (al : list expr) : bool :=
   match fty, al with
   | Tfunction (Tpointer _ _ :: _) _ _, Etempvar t (Tpointer _ _) :: _ => mem_id t cact

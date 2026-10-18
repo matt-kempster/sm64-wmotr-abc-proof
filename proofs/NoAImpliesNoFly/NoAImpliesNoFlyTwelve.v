@@ -124,6 +124,8 @@ Section NoAImpliesNoFlyTwelve.
   Hypothesis Hcsp_scale_real :
     call_pres_ext_cs lp bm (NoA_real bm) MWF SafeB
       mario_actions_cutscene._obj_scale.
+  Hypothesis Hcsp_lpt_real :
+    call_pres_ext_cs lp bm (NoA_real bm) MWF SafeB mario._load_patchable_table.
   Hypothesis WL_exempt : forall e le m fid fty vf fd,
       mem_id fid exempt_callees = true ->
       eval_expr (lp_ge lp) e le m (Evar fid fty) vf ->
@@ -196,7 +198,7 @@ Section NoAImpliesNoFlyTwelve.
              bm bc oc0 SafeB (fun _ => false)
              HSafeB_sym_iff Hspawn
              (linked12_LO_surf lp H12) (linked12_LO_math lp H12)
-             Hscp_mtxf_real Hcsp_omfd_real Hcsp_scale_real WL_exempt
+             Hscp_mtxf_real Hcsp_omfd_real Hcsp_scale_real Hcsp_lpt_real WL_exempt
              (linked12_LO_sta lp H12) (linked12_LO_mov lp H12)
              (linked12_LO_air lp H12) (linked12_LO_sub lp H12)
              (linked12_LO_cut lp H12) (linked12_LO_aut lp H12)
@@ -228,7 +230,7 @@ Section NoAImpliesNoFlyTwelve.
              bm bc oc0 SafeB
              HSafeB_sym_iff Hspawn
              (linked12_LO_surf lp H12) (linked12_LO_math lp H12)
-             Hscp_mtxf_real Hcsp_omfd_real Hcsp_scale_real WL_exempt
+             Hscp_mtxf_real Hcsp_omfd_real Hcsp_scale_real Hcsp_lpt_real WL_exempt
              (linked12_LO_sta lp H12) (linked12_LO_mov lp H12)
              (linked12_LO_air lp H12) (linked12_LO_sub lp H12)
              (linked12_LO_cut lp H12) (linked12_LO_aut lp H12)

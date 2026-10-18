@@ -1978,7 +1978,7 @@ Section StationaryLeafRows.
   Hypothesis Hcpx_v3s :
     OutParamSurface.call_pres_ext_dg lp bm NoA MWF SafeB mario._vec3s_set.
   Hypothesis Hcpx_lpt :
-    call_pres_ext lp bm NoA MWF mario._load_patchable_table.
+    OutParamSurface.call_pres_ext_cs lp bm NoA MWF SafeB mario._load_patchable_table.
   (* play_sound: a pure AUDIO external (same model class as the obj_ext rows);
      discharged at the capstone via Hpres_obj_ext (play_sound in obj_ext_ids) *)
   Hypothesis Hcpx_psound :

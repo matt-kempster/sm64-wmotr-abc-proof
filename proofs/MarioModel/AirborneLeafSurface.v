@@ -1934,7 +1934,8 @@ Section AirborneLeafRows.
   Hypothesis Hcpx_sqrtf : call_pres_ext lp bm NoA MWF A._sqrtf.
   Hypothesis Hcpx_atan2s : call_pres_ext lp bm NoA MWF A._atan2s.
   Hypothesis Hcpx_approach : call_pres_ext lp bm NoA MWF A._approach_f32.
-  Hypothesis Hcpx_lpt : call_pres_ext lp bm NoA MWF mario._load_patchable_table.
+  Hypothesis Hcpx_lpt :
+    OutParamSurface.call_pres_ext_cs lp bm NoA MWF SafeB mario._load_patchable_table.
   Hypothesis Hcpx_rbn :
     call_pres_ext lp bm NoA MWF mario._raise_background_noise.
   Hypothesis Hcpx_scm : call_pres_ext lp bm NoA MWF mario._set_camera_mode.
