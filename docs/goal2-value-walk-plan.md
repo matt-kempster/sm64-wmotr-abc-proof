@@ -402,3 +402,36 @@ phantom-world paths, and they are now cut inside the walk, soundly:
 
 Counts: **7328 → 760 raw outcomes, 225 → 43 joined, 4 → 3 on the action cells.** These
 are the outcomes the move matcher has to map to catalog moves.
+
+## 11. The walk, run and classified (2026-10-18)
+
+`Unwired/AirRun.v` runs the walk of the real `perform_air_step` once, by vm_compute on
+the twelve-TU link (`wcheck12`, about 28 s). It then proves `air_step_outcome`: every
+execution from a memory the start state describes ends in a memory that one outcome
+describes, and that outcome passes `AirMatch.outcome_ok`. The axioms are CompCert's
+standard ones only. The start state's premises are still explicit: `env_ok`, the start
+facts (the world fact `Wff`, no A bits, entry floor and area), and closedness of the
+entry memory (option C).
+
+`AirMatch.v` reads an outcome's cells through `sload` and proves the following from `MMg`:
+- **`aclass_air`** (S_air): action, state and timer are unchanged. pos = gfx =
+  `air_step_y y v` exactly, and −75 ≤ vel' ≤ `gravity f4 v`. The vel − 4.0f branch must
+  carry the path fact ¬(vel − 4.0f < −75.0f).
+- **`aclass_cut k`** (S_air_cut): k ≤ 4. pos = gfx equals, as a real,
+  `quarter_steps k y (vel/4)`; the extra +0.0f adds don't change the real. vel' = −4.
+- **`land_sound`** (S_attach): pos = gfx is either the entry `floorHeight` or a value
+  `find_floor` returned. vel' is as above.
+
+On the real walk, 6 joined outcomes are S_air, 28 are S_air_cut and 9 are landings.
+
+**What still stands between this and Moves:**
+- **The floor-height fact.** InRange's pos' ≥ −8192 needs a floor height ≥ −8192 for
+  every class, because every path keeps pos' above some floor height. The same fact
+  gives S_attach's `wmotr_floor h ∧ h ≤ y + STEP_UP`.
+  - The entry `floorHeight` comes from the frame's refresh, so it is a premise at
+    perform_air_step's entry.
+  - A fresh height needs `find_floor`'s contract to carry it. This is TRUST 0.8(d), to
+    be stated as an explicit premise of that contract.
+  - Its "≤ y + 78, finite" half is provable from the body.
+  - WMotR's lowest floor triangle has ylo = −8191, so `floor_in` gives h ≥ −8192.
+- **The start state from the frame's memory:** `env_ok`, the facts, and closedness.

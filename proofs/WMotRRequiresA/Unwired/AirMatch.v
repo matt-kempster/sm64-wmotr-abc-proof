@@ -258,6 +258,26 @@ Definition aclass_of : option aclass :=
     | _, _, _ => None
     end
   else None.
+
+(* a landing: pos[1] = gfx.pos[1] := the entry floorHeight cell, or a value
+   find_floor returned (a fresh name) *)
+Definition oF : Z := 112.
+Definition is_land (a : sval) : bool :=
+  match a with
+  | Sinit r o Mfloat32 => Pos.eqb r rM && Z.eqb o oF
+  | Sfresh _ => true
+  | _ => false
+  end.
+
+Definition land_ok : bool :=
+  same_cell oA Mint32 && same_cell oS Mint16unsigned && same_cell oT Mint16unsigned
+  && match ld rM oY Mfloat32, ld rM oV Mfloat32, ld rO oG Mfloat32 with
+     | Some py, Some vy, Some gy => sveqb gy py && is_land py && (vel_cut vy || vel_ok rM pc vy)
+     | _, _, _ => false
+     end.
+
+Definition outcome_ok : bool :=
+  match aclass_of with Some _ => true | None => land_ok end.
 End CLS.
 
 (* ---- what a class says about the outcome's memory ---- *)
@@ -429,5 +449,42 @@ Proof.
   rewrite (vel_cut_den _ VC) in DV.
   split; [repeat split; apply same_cell_sound; assumption |]. split; [exact K4 |].
   eexists; split; [apply add_zeros_R2 | split; [exact DY | split; [exact DG | exact DV]]].
+Qed.
+Theorem land_sound : land_ok LD IC (g_pc g) rM rO = true ->
+  F32 v = true -> Rabs (R2 v) <= 128 ->
+  keeps_asT
+  /\ Mem.load Mfloat32 m (e_blk E rO) oG = Mem.load Mfloat32 m (e_blk E rM) oY
+  /\ (Mem.load Mfloat32 m (e_blk E rM) oY = Mem.load Mfloat32 m0 (e_blk E rM) oF
+      \/ exists n, Mem.load Mfloat32 m (e_blk E rM) oY = e_rho E n)
+  /\ exists v', Mem.load Mfloat32 m (e_blk E rM) oV = Some (Vsingle v')
+       /\ F32 v' = true /\ R2 fm75 <= R2 v' /\ (R2 v' <= R2 (gravity f4 v) \/ v' = fm4).
+Proof.
+  intros H Fv Hv. unfold land_ok in H.
+  destruct (same_cell LD IC rM oA Mint32) eqn:SA; [| discriminate].
+  destruct (same_cell LD IC rM oS Mint16unsigned) eqn:SS; [| discriminate].
+  destruct (same_cell LD IC rM oT Mint16unsigned) eqn:ST; [| discriminate].
+  cbn [andb] in H.
+  destruct (LD rM oY Mfloat32) as [py|] eqn:LY; [| discriminate].
+  destruct (LD rM oV Mfloat32) as [vy|] eqn:LV; [| discriminate].
+  destruct (LD rO oG Mfloat32) as [gy|] eqn:LG; [| discriminate].
+  repeat rewrite andb_true_iff in H. destruct H as ((GE & L) & VO).
+  unfold sveqb in GE. destruct (sval_eq gy py) as [->|]; [| discriminate].
+  pose proof (ld_sound _ _ _ _ LY) as DY. pose proof (ld_sound _ _ _ _ LV) as DV.
+  pose proof (ld_sound _ _ _ _ LG) as DG.
+  rewrite addr_M in DY, DV. rewrite addr_O in DG.
+  split; [repeat split; apply same_cell_sound; assumption |].
+  split; [congruence |]. split.
+  - rewrite DY. destruct py; try discriminate.
+    + destruct ch; try discriminate. cbn [is_land] in L. apply andb_true_iff in L as (Hr & Ho).
+      apply Pos.eqb_eq in Hr. apply Z.eqb_eq in Ho. rewrite Hr, Ho. left.
+      cbn [den]. rewrite HbM, Ptrofs.unsigned_zero, Z.add_0_l. reflexivity.
+    + right. exists n. reflexivity.
+  - apply orb_true_iff in VO as [VC | VK].
+    + rewrite (vel_cut_den _ VC) in DV. eexists; split; [exact DV |].
+      split; [reflexivity |]. split; [rewrite B2R_fm75, B2R_fm4; lra | right; reflexivity].
+    + destruct (vel_ok_den _ VK) as [(D & C) | D]; rewrite D in DV.
+      * destruct (sub_ge_m75 v Fv Hv C) as [L75 F].
+        eexists; split; [exact DV | split; [exact F | split; [exact L75 | left; apply vel_sub_le; assumption]]].
+      * eexists; split; [exact DV | split; [exact F32_fm75 | split; [lra | left; apply vel_clamp_le; assumption]]].
 Qed.
 End CLS_SOUND.
