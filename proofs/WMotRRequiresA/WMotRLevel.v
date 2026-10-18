@@ -347,6 +347,25 @@ Proof.
       apply IZR_le in Ho; rewrite ?plus_IZR in Ho; lra.
 Qed.
 
+(* every floor lies above find_floor's no-floor value -11000 *)
+Definition low_check_static (L : list tri) : bool :=
+  forallb (fun t => negb (is_floor t) || (-10999 <=? tri_ylo t)%Z) L.
+Definition low_check_objects (O : list (Z * Z)) : bool :=
+  forallb (fun '(lo, hi) => (-11000 <=? lo)%Z) O.
+
+Lemma low_generic : forall L O, low_check_static L = true -> low_check_objects O = true ->
+  forall h, floor_in L O h -> -11000 <= h.
+Proof.
+  intros L O Hs Ho h Hf.
+  destruct Hf as [(t & Hin & Hfl & Hlo & Hhi) | (lo & hi & Hin & Hlo & Hhi)].
+  - unfold low_check_static in Hs. rewrite forallb_forall in Hs.
+    specialize (Hs t Hin). rewrite Hfl in Hs. simpl in Hs.
+    apply Z.leb_le in Hs. apply IZR_le in Hs. lra.
+  - unfold low_check_objects in Ho. rewrite forallb_forall in Ho.
+    specialize (Ho (lo, hi) Hin). simpl in Ho.
+    apply Z.leb_le in Ho. apply IZR_le in Ho. lra.
+Qed.
+
 Lemma poles_generic : forall P, pole_check P = true ->
   forall base top, pole_in P base top -> top <= PHI_K \/ PHI_YMAX < base - 160.
 Proof.
@@ -371,6 +390,11 @@ Theorem wmotr_gap_proved : forall h, wmotr_floor h -> ~ (PHI_K < h < PHI_K + GAP
 Proof.
   destruct level_checks as (Hs & Ho & _).
   exact (gap_generic static_tris object_floor_ranges Hs Ho).
+Qed.
+
+Theorem wmotr_floor_low : forall h, wmotr_floor h -> -11000 <= h.
+Proof.
+  apply low_generic; vm_compute; reflexivity.
 Qed.
 
 Theorem wmotr_poles_proved :

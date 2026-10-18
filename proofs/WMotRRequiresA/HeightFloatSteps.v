@@ -526,16 +526,16 @@ Qed.
 
 (* one windup add, pos[1] += yOffset (0 <= yOffset <= 20): rounds by < EPS *)
 Lemma windup_add : forall y o, F32 y = true -> F32 o = true ->
-  0 <= R2 o <= 20 -> -8192 <= R2 y <= 2796 ->
+  0 <= R2 o <= 20 -> -11000 <= R2 y <= 2796 ->
   F32 (Float32.add y o) = true /\ R2 (Float32.add y o) <= R2 y + R2 o + EPS.
 Proof.
   intros y o Fy Fo Ho Hy.
-  assert (B13 : Rabs (R2 y + R2 o) <= bpow radix2 13)
+  assert (B13 : Rabs (R2 y + R2 o) <= bpow radix2 14)
     by (simpl; apply Rabs_le; split; lra).
   destruct (f32_add_val y o Fy Fo) as [Hv Hf].
   { eapply Rle_trans; [ exact B13 | apply bpow_le; lia ]. }
   split; [ exact Hf | rewrite Hv ].
-  pose proof (rnd_err (R2 y + R2 o) 13 ltac:(lia) B13) as He.
-  replace (bpow radix2 (13 - 24)) with (/ 2048) in He by (simpl; lra).
+  pose proof (rnd_err (R2 y + R2 o) 14 ltac:(lia) B13) as He.
+  replace (bpow radix2 (14 - 24)) with (/ 1024) in He by (simpl; lra).
   apply Rabs_le_inv in He. unfold EPS. lra.
 Qed.

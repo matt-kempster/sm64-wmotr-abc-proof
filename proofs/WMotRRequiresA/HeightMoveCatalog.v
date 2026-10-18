@@ -385,8 +385,8 @@ Section Moves.
   Proof.
     intros c c' Hc Hr' Hs.
     pose proof Hc as (Hr & _ & _ & Hsk & _).
-    destruct Hr as (_ & _ & _ & _ & _ & Hv).
-    destruct Hr' as (_ & _ & _ & _ & _ & Hv').
+    destruct Hr as (_ & _ & _ & _ & _ & _ & Hv).
+    destruct Hr' as (_ & _ & _ & _ & _ & _ & Hv').
     rewrite !credit_of_mode.
     assert (B4 : forall a b, a <= b -> rise_credit 4 a <= rise_credit 4 b) by (intros; apply rise_credit_mono; lra).
     pose proof (rise_credit_nonneg 4 (R2 (c_vely c)) ltac:(lra)).
@@ -457,7 +457,7 @@ Section Moves.
   Proof. intros v tm Hv Hc. left. rewrite plus_IZR. destruct Hc; lra. Qed.
 
   Ltac dphi H :=
-    destruct H as ((?Fy & ?Fv & ?Fgy & ?Hylo & ?Hgylo & ?Hvlo & ?Hvhi)
+    destruct H as ((?Fy & ?Fv & ?Fgy & ?Hylo & ?Hgylo & ?Hflo & ?Hvlo & ?Hvhi)
                    & ?Hb & ?Hgb & ?Hsk & ?Hgp & ?Hl).
 
   Lemma y_hi : forall c, budget_ok c -> R2 (c_posy c) <= 2796.
@@ -496,7 +496,7 @@ Section Moves.
     dphi Hc.
     assert (Hy16 : Rabs (R2 (c_posy c)) <= 16000) by (apply Rabs_le; split; lra).
     assert (Hv128 : Rabs (R2 (c_vely c)) <= 128) by (apply Rabs_le; split; lra).
-    pose proof Hr' as (Fy' & Fv' & Fgy' & Hylo' & Hgylo' & Hvlo' & Hvhi').
+    pose proof Hr' as (Fy' & Fv' & Fgy' & Hylo' & Hgylo' & Hflo' & Hvlo' & Hvhi').
     pose proof (tm_nonneg c) as Htm0. pose proof (tm_nonneg c') as Htm0'.
     split; [ exact Hr' | ].
     destruct Hs as

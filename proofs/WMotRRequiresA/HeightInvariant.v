@@ -285,8 +285,14 @@ Definition state_of (c : cells) : Z := Int.unsigned (c_state c).
 Definition timer_of (c : cells) : Z := Int.unsigned (c_timer c).
 Definition credit_of (c : cells) : R := credit (c_action c) (state_of c) (timer_of c) (R2 (c_vely c)).
 
-(* the ranges: finiteness, the death plane (collision.inc.c: -8191, and
-   steps clamp pos to floorHeight), terminal / launch velocity.  The upper
+(* the ranges: finiteness, the floor floor (floorHeight is only ever a
+   find_floor result: -11000, its no-floor value, or a hit; an air step that
+   does not land ends above the floor height it compared against, and a
+   landing or ground step clamps pos to it), terminal / launch velocity.
+   The bound was -8192 (the death plane) until 2026-10-18, but a frame whose
+   two find_floor calls both miss leaves floorHeight = -11000, and an air
+   step then compares against that, so -8192 was not provable from the
+   code. -11000 is.   The upper
    velocity bound is 43, the freefall launch cap, in EVERY mode: with the old
    bound (128) Phi admitted a grounded Mario rising at up to 128, whose
    walk-off (stationary landings keep vel[1]) is in no Move, so
@@ -296,7 +302,7 @@ Definition credit_of (c : cells) : R := credit (c_action c) (state_of c) (timer_
    watch saw at most 26 at frame end in 86k frames. *)
 Definition InRange (c : cells) : Prop :=
   F32 (c_posy c) = true /\ F32 (c_vely c) = true /\ F32 (c_gfxy c) = true
-  /\ -8192 <= R2 (c_posy c) /\ -8192 <= R2 (c_gfxy c)
+  /\ -11000 <= R2 (c_posy c) /\ -11000 <= R2 (c_gfxy c) /\ -11000 <= R2 (c_floorh c)
   /\ -75 <= R2 (c_vely c) <= 43.
 
 Definition budget_ok (c : cells) : Prop :=
