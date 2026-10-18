@@ -313,3 +313,13 @@ Proved contracts (2026-10-17, later):
   The lab's `find_floor` stand-in was false: it left the three statics unchanged.
   It now writes fresh values to them and returns a fresh height on the NULL path.
   The counts are unchanged: 7328 / 225 / 4.
+- (2026-10-18) `FloorExec.c_ff_sound`: the executor's `find_floor` contract is proved
+  sound against the generated body. This is the first non-trivial `xc_sound` case.
+  The new generic lemmas in `SymExec2` (`MMg_fresh`, `MMg_transfer`, `sstore_in`,
+  `sstore_inb`) are reusable for `vec3f_find_ceil` and `find_wall_collisions`.
+  Open obligations for wiring it into a proved walk:
+  (a) the genv facts for the linked program (`cenv_has`, `ffl_pinned`, `gtab` entries,
+      `sfun_lookup find_floor`);
+  (b) `Wff` as a frame invariant;
+  (c) the remaining contracts: `vec3f_find_ceil`, `find_wall_collisions`,
+      `mario_get_terrain_sound_addend`, and `m0_closed`.

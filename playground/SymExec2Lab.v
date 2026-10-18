@@ -3,7 +3,7 @@
 From Coq Require Import List ZArith String.
 From compcert Require Import Coqlib Maps AST Integers Floats Values Memory Ctypes Clight Errors.
 From SM64.Generated Require mario_step mario surface_collision.
-From SM64.Proofs Require Import Interp.SymExec2 LinkGenv.
+From SM64.Proofs Require Import Interp.SymExec2 LinkGenv WMotRRequiresA.Unwired.FloorExec.
 Import ListNotations.
 Local Notation "'let?' x := a 'in' b" :=
   (match a with Some x => b | None => None end)
@@ -144,8 +144,10 @@ Definition c_walls : xcontract := fun args s =>
    stand-ins).  atan2s keeps c_fresh: inlining fails (atan2_lookup reads
    gArctanTable at a symbolic index), but the contract itself -- memory
    unchanged, some result -- is what MathBodies.cpure2_funcall_memid proves. *)
+(* the world fact c_ff needs (FloorExec.Wff over the consumer's regions) *)
+Definition kW : positive := 1.
 Definition xc (id : ident) : option xcontract :=
-  if Pos.eqb id mario._find_floor then Some c_find_floor
+  if Pos.eqb id mario._find_floor then Some (c_ff NB R0 RFI RMISS RCALLS kW (szs mario._Surface))
   else if Pos.eqb id mario._vec3f_find_ceil then Some (c_find_surf (Float32.of_int (Int.repr 20000)) 2)
   else if Pos.eqb id mario._find_water_level then Some xc_fresh
   else if Pos.eqb id mario._atan2s then Some xc_fresh
@@ -162,7 +164,7 @@ Definition mergef (id : ident) : bool :=
   Pos.eqb id mario_step._perform_air_quarter_step || Pos.eqb id mario._resolve_and_return_wall_collisions.
 
 Definition pc0 : list fact :=
-  [Fbits (Sinit RM 2 Mint16unsigned) (Int.repr 130);
+  [Fuser kW (wargs R0); Fbits (Sinit RM 2 Mint16unsigned) (Int.repr 130);
    Fworld (Sinit RM (fo mario._MarioState mario._floor) Mint32) (szs mario._Surface);
    Fworld (Sinit RM (fo mario._MarioState mario._area) Mint32) (szs mario._Area)].
 

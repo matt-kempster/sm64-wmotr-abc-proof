@@ -3086,6 +3086,80 @@ Proof.
   eexists; split; [ left; reflexivity | apply fresh_cm; auto ].
 Qed.
 
+(* ---- building blocks for contracts that write cells ---- *)
+
+(* naming one fresh value keeps the description *)
+Lemma MMg_fresh : forall E m g v, MMg E m g -> val_old v ->
+  MMg (upd E (g_nx g) (Some v)) m (gfresh g).
+Proof.
+  intros E m g v MM O.
+  pose proof MM as (EO & NB & ENT & FR & VP & NX & PC & LOC & LINJ).
+  set (nx := g_nx g) in *.
+  assert (R : Rx E (upd E nx (Some v)) nx) by apply Rx_upd.
+  assert (L1 : Ple nx (Pos.succ nx)) by (apply Ple_succ).
+  unfold MMg, gfresh; cbn [g_nx g_loc g_sm g_pc]. fold nx.
+  split; [ | split; [ | split; [ | split; [ | split; [ exact VP | split; [ exact NX | split; [ | split ] ] ] ] ] ] ].
+  - eapply env_ok_Rx; [ exact EO | exact R | exact NB | ].
+    intros k w H. cbn in H. destruct (Pos.eq_dec k nx); [ inv H; exact O | ].
+    destruct EO as (_ & _ & _ & _ & _ & RO). eapply RO; eauto.
+  - eapply Ple_trans; [ exact NB | exact L1 ].
+  - intros r o ch sv I. destruct (ENT r o ch sv I) as (IB & S & L).
+    split; [ rewrite <- IB; apply inb_loc; reflexivity | ].
+    split; [ eapply sok_mono; eauto | ].
+    rewrite (addr_Rx E _ nx r o R). rewrite (den_Rx E _ nx sv R (sok_nlt _ _ S)). exact L.
+  - intros b z ch P D. apply FR; [ exact P | ].
+    intros e I. rewrite <- (cell_disj_Rx E _ nx _ b z ch R). auto.
+  - intros f I. destruct (PC f I) as (N & H). split; [ eapply fact_nlt_mono; eauto | ].
+    eapply fact_holds_Rx; eauto.
+  - intros r I. destruct (LOC r I) as (A & B & C & D & F).
+    split; [ exact A | split; [ eapply Plt_trans_succ; exact B | ]].
+    split; [ exact C | split; [ exact D | exact F ] ].
+  - exact LINJ.
+Qed.
+
+(* the description carries over to a memory that agrees on every cell it
+   describes, has the same permissions on old blocks, and no fewer blocks *)
+Lemma MMg_transfer : forall E m g m',
+  MMg E m g ->
+  Ple (Mem.nextblock m) (Mem.nextblock m') ->
+  (forall r o ch sv, In (r, o, ch, sv) (g_sm g) ->
+     Mem.load ch m' (e_blk E r) (addr E r o) = Mem.load ch m (e_blk E r) (addr E r o)) ->
+  (forall b z ch, Plt b nb0 -> (forall e, In e (g_sm g) -> cell_disj E (skey e) b z ch) ->
+     Mem.load ch m' b z = Mem.load ch m b z) ->
+  (forall b o k p, Plt b nb0 -> (Mem.perm m' b o k p <-> Mem.perm m b o k p)) ->
+  MMg E m' g.
+Proof.
+  intros E m g m' MM NXm EN FRm P.
+  pose proof MM as (EO & NB & ENT & FR & VP & NX & PC & LOC & LINJ).
+  split; [ exact EO | split; [ exact NB | split; [ | split; [ | split; [ | split; [ | split; [ exact PC | split; [ | exact LINJ ] ] ] ] ] ] ] ].
+  - intros r o ch sv I. destruct (ENT r o ch sv I) as (IB & S & L).
+    rewrite (EN r o ch sv I). auto.
+  - intros b z ch OLD D. rewrite (FRm b z ch OLD D). apply FR; assumption.
+  - intros b o k p OLD. rewrite (P b o k p OLD). apply VP. exact OLD.
+  - eapply Ple_trans; eassumption.
+  - intros r I. destruct (LOC r I) as (A & B & C & D & F).
+    split; [ exact A | split; [ exact B | split; [ exact C | split; [ exact D | ] ] ] ].
+    unfold Plt, Ple in *. lia.
+Qed.
+
+(* what a store keeps: the new entry, and the old entries it does not overlap *)
+Lemma sstore_in : forall g r o ch sa g' e,
+  sstore g r o ch sa = Some g' -> In e (g_sm g') ->
+  e = (r, o, ch, sa) \/ (In e (g_sm g) /\ ovl r o ch e = false).
+Proof.
+  intros g r o ch sa g' e S I. unfold sstore in S.
+  destruct (inb g r o ch); [ | discriminate ].
+  destruct (forallb _ (g_sm g)); [ | discriminate ]. inv S.
+  cbn [g_sm] in I. destruct I as [<- | I]; [ left; reflexivity | right ].
+  apply filter_In in I. destruct I as [I N]. apply negb_true_iff in N. auto.
+Qed.
+
+Lemma sstore_inb : forall g r o ch sa g',
+  sstore g r o ch sa = Some g' -> inb g r o ch = true.
+Proof.
+  intros g r o ch sa g' S. unfold sstore in S. destruct (inb g r o ch); [ reflexivity | discriminate ].
+Qed.
+
 Lemma temps_ok_set : forall E n tle le id v a, temps_ok E n tle le -> den E a = Some v -> sok n a ->
   temps_ok E n (PTree.set id v tle) (PTree.set id a le).
 Proof.

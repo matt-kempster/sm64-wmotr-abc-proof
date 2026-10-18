@@ -652,8 +652,10 @@ Proof.
   - intros b' i k p Hv. rewrite (P b' i k p Hv).
     split; intro HH; [eapply Mem.perm_store_1; eauto | eapply Mem.perm_store_2; eauto].
 Qed.
+(* *pfloor holds a floor; the cell was writable already in m *)
 Definition PFm (M : mem) : Prop :=
-  exists v, FL ge m v /\ Mem.loadv Mint32 M (Vptr bpf opf) = Some (Val.load_result Mint32 v).
+  exists v, (FL ge m v /\ Mem.valid_access m Mint32 bpf (Ptrofs.unsigned opf) Writable)
+    /\ Mem.loadv Mint32 M (Vptr bpf opf) = Some (Val.load_result Mint32 v).
 
 Definition IV (pfs sl dyn fl : bool) (le : temp_env) (M : mem) : Prop :=
   UO M
@@ -847,7 +849,12 @@ Proof.
           intros i Hi; left; split; [reflexivity | exact Hi] |].
   split; [exact Hp |].
   split; [| split; [exact SL | split; [exact DY | exact FLo]]].
-  intros _. eexists. split; [exact Hfl |].
+  intros _. eexists. split; [split; [exact Hfl |] |].
+  { cbn [Mem.storev] in *.
+    match goal with Hs : Mem.store _ _ _ _ _ = Some _ |- _ =>
+      destruct (Mem.store_valid_access_3 _ _ _ _ _ _ Hs) as (Hr & Ha) end.
+    split; [| exact Ha]. intros i Hi.
+    apply (proj2 U bpf i Cur Writable Hpf_v). exact (Hr i Hi). }
   cbn [Mem.loadv Mem.storev] in *.
   erewrite Mem.load_store_same; [reflexivity | eassumption].
 Qed.
@@ -1078,6 +1085,19 @@ Qed.
 
 End FF.
 
+(* a float function returns a single *)
+Lemma orv_single : forall out vres M,
+    outcome_result_value out tfloat vres M -> exists h, vres = Vsingle h.
+Proof.
+  intros out vres M H. destruct out as [| | |[[v ty]|]]; cbn in H; try contradiction.
+  destruct H as (_ & H). unfold sem_cast in H.
+  destruct ty as [| [] [] ? | [] ? | [] ? | | | | |]; destruct v; cbn in H;
+    try discriminate; try (destruct Archi.ptr64; discriminate);
+    try (injection H as <-; eauto).
+  all: try (destruct (Float.to_single _) ; injection H as <-; eauto).
+  all: try (destruct (Mem.weak_valid_pointer _ _ _); discriminate).
+Qed.
+
 (* freeing a block that is new keeps UO and the pfloor cell *)
 Lemma free_keeps : forall ge m bpf opf M M' b,
     Mem.valid_block m bpf -> UO ge m bpf opf M -> PFm ge m bpf opf M -> ~ Mem.valid_block m b ->
@@ -1107,7 +1127,9 @@ Theorem ff_value_contract : forall (ge : genv) avoid,
         [xv; yv; zv; Vptr bpf opf] t m' vres ->
       exists fl, FL ge m fl
         /\ Mem.loadv Mint32 m' (Vptr bpf opf) = Some (Val.load_result Mint32 fl)
-        /\ UO ge m bpf opf m'.
+        /\ UO ge m bpf opf m'
+        /\ Mem.valid_access m Mint32 bpf (Ptrofs.unsigned opf) Writable
+        /\ exists h, vres = Vsingle h.
 Proof.
   intros ge avoid HC Hpin m xv yv zv bpf opf t m' vres Hav Hpv Hst Hpart Hwf H.
   inv H.
@@ -1156,6 +1178,8 @@ Proof.
     destruct (Mem.free M b1 0 4) as [M5|] eqn:F2; [| discriminate Hf]; injection Hf as <-;
     assert (N2 : ~ Mem.valid_block m b1) by assumption end.
   destruct (free_keeps _ _ _ _ _ _ _ Hpv U3 PF3 N1 F1) as (U4 & PF4).
-  destruct (free_keeps _ _ _ _ _ _ _ Hpv U4 PF4 N2 F2) as (U5 & (fl & Hfl & Hld)).
-  exists fl. auto.
+  destruct (free_keeps _ _ _ _ _ _ _ Hpv U4 PF4 N2 F2) as (U5 & (fl & (Hfl & Hwr) & Hld)).
+  exists fl. split; [exact Hfl | split; [exact Hld | split; [exact U5 | split; [exact Hwr |]]]].
+  match goal with Ho : outcome_result_value _ _ _ _ |- _ =>
+    cbn [fn_return surface_collision.f_find_floor] in Ho; exact (orv_single _ _ _ Ho) end.
 Qed.
