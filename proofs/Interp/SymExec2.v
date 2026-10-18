@@ -598,6 +598,18 @@ Definition jout (o1 o2 : sout) (nx : positive) (mo : memo) : option (sout * posi
   | _, _ => None
   end.
 
+(* a list of terms of both paths, through the memo (no new names) *)
+Fixpoint au_args (l1 l2 : list sval) (nx : positive) (mo : memo) : option (list sval) :=
+  match l1, l2 with
+  | nil, nil => Some nil
+  | a1 :: l1', a2 :: l2' =>
+      match au true a1 a2 nx mo, au_args l1' l2' nx mo with
+      | Some (a, _, _), Some l => Some (a :: l)
+      | _, _ => None
+      end
+  | _, _ => None
+  end.
+
 (* a fact of both paths, through the memo (no new names) *)
 Definition au_fact (f1 f2 : fact) (nx : positive) (mo : memo) : option fact :=
   match f1, f2 with
@@ -613,7 +625,10 @@ Definition au_fact (f1 f2 : fact) (nx : positive) (mo : memo) : option fact :=
       if Int.eq_dec k k' then
         match au true t1 t2 nx mo with Some (t, _, _) => Some (Fbits t k) | None => None end
       else None
-  | Fuser _ _, Fuser _ _ => if fact_eq f1 f2 then Some f1 else None
+  | Fuser k1 a1, Fuser k2 a2 =>
+      if Pos.eq_dec k1 k2 then
+        match au_args a1 a2 nx mo with Some a => Some (Fuser k1 a) | None => None end
+      else None
   | _, _ => None
   end.
 
@@ -2554,10 +2569,23 @@ Proof.
     destruct (au true t1 t2 nx mo) as [[[c n'] m']|] eqn:A; [ | discriminate ]. injection J as <-.
     destruct (AU t1 t2 c n' m' A) as [N D]; [ destruct sd; exact FN | ].
     split; [ exact N | ]. cbn. rewrite D. destruct sd; exact FH.
-  - destruct (fact_eq (Fuser u1 a1) (Fuser u2 a2)) as [Q|]; [ | discriminate ]. injection J as <-.
-    assert (FN' : fact_nlt nx0 (Fuser u1 a1)) by (destruct sd; [ exact FN | rewrite Q; exact FN ]).
-    assert (FH' : fact_holds Es (Fuser u1 a1)) by (destruct sd; [ exact FH | rewrite Q; exact FH ]).
-    split; [ eapply fact_nlt_mono; eauto | eapply fact_holds_Rx; eauto ].
+  - destruct (Pos.eq_dec u1 u2); [ subst | discriminate ].
+    destruct (au_args a1 a2 nx mo) as [a|] eqn:A; [ | discriminate ]. injection J as <-.
+    assert (AL : forall l1 l2 l, au_args l1 l2 nx mo = Some l -> Forall (nlt nx0) (if sd then l1 else l2) ->
+                   Forall (nlt nx) l /\ map (den E) l = map (den Es) (if sd then l1 else l2)).
+    { induction l1 as [| c1 l1 IH]; intros [| c2 l2] l H N; cbn [au_args] in H; try discriminate.
+      - injection H as <-. destruct sd; split; constructor.
+      - destruct (au true c1 c2 nx mo) as [[[c n'] m']|] eqn:Ac; [ | discriminate ].
+        destruct (au_args l1 l2 nx mo) as [l'|] eqn:Al; [ | discriminate ]. injection H as <-.
+        assert (N' : nlt nx0 (sel sd c1 c2) /\ Forall (nlt nx0) (if sd then l1 else l2))
+          by (destruct sd; inversion N; subst; split; assumption).
+        destruct N' as (Nc & Nl).
+        destruct (AU c1 c2 c n' m' Ac Nc) as [Nc' Dc].
+        destruct (IH l2 l' Al Nl) as [Nl' Dl].
+        split; [ constructor; assumption | ].
+        destruct sd; cbn [map sel] in *; rewrite Dc, Dl; reflexivity. }
+    destruct (AL a1 a2 a A) as [N D]; [ destruct sd; exact FN | ].
+    split; [ exact N | ]. cbn [fact_holds]. rewrite D. destruct sd; exact FH.
 Qed.
 
 Lemma first_some_in : forall {A B : Type} (f : A -> option B) l y,
