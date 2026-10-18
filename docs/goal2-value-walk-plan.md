@@ -340,3 +340,10 @@ Proved contracts (2026-10-17, later):
     agree; past four walls `numWalls` stays at 4 while the count keeps rising. It
     also skips `gNumCalls.wall`. The proved contract will return `n` for n<4 and a
     fresh int ≥ 4 for n = 4.
+- (2026-10-18) The value contract of the real `find_wall_collisions` is proved
+  (`WallFind.fwc_contract`, standard axioms only). It chains `WallList.wfl_contract`
+  over the dynamic and static partition lists of the queried cell. For some total
+  c ≥ 0 it returns c, `numWalls = min(c, 4)`, and every recorded wall is a surface on
+  a partition list of the entry memory. Only `x`, `z`, `numWalls`, the wall slots and
+  `gNumCalls.wall` change, and no permissions change. Next is the executor contract
+  `c_fwc`, which replaces the lab's false `c_walls` stand-in.

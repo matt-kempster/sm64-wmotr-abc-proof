@@ -38,3 +38,9 @@ compiled. Mirrors `../../NoAImpliesNoFly/Unwired/`.
   nothing else changes except `data->x`, `data->z`, `numWalls` and the wall slots from
   `nw0` on. Proved by triples over the loop body (`tri_head`, `tri_push`, `tri_tail`,
   `solve_w`).
+- `WallFind.v`: the value contract of the real `find_wall_collisions`
+  (`fwc_contract`). It chains `wfl_contract` over the dynamic and static partition
+  lists of the cell. For some total c ≥ 0 it returns c, `numWalls = min(c, 4)`, and
+  each recorded wall is a surface on a partition list of the entry memory. Only
+  `x`, `z`, `numWalls`, the wall slots and `gNumCalls.wall` change. Proved with a body
+  triple (`solve_wf`) and `rx_out`: every return returns `numCollisions`.
