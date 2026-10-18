@@ -243,7 +243,15 @@ standard axioms.
   for a real memory, because CompCert's axioms let an external call (`sqrtf`) leave a block
   it allocated with any contents. The public form is exactly `ClosedMem.closed_by gp m0`
   (`closed_flat`, `closed_old`, `closed_load`), and external calls preserve it
-  (`ext_call_closed`). A consumer still has to carry `closed_by` in the run invariant.
+  (`ext_call_closed`). **Any Clight call preserves it too** (`ClightClosed.funcall_closed`,
+  2026-10-18): from `closed_by g m`, every global mapped, and arguments that are g-values,
+  a big-step `eval_funcall function_entry2` ends closed by some g' ⊇ g, and the result
+  is a g'-value. Locals are made public at allocation, and builtins and externals go
+  through `ext_call_closed`. The only assumptions are CompCert's standard axioms. So a
+  real frame keeps closedness, and so does every point inside it, including the entry
+  to `perform_air_step`. Left: carrying `closed_by` across the run. The flanks (TRUST
+  0.7) are specs, not linked code, so they would have to carry it the way they already
+  carry Φ. That is the same theorem, once a flank is linked.
 
 Measured on the real code (`playground/SymExec2Lab.v`, with stand-in contracts):
 - apply_gravity: 18 paths; apply_vertical_wind: 9.
