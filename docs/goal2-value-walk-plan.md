@@ -323,3 +323,20 @@ Proved contracts (2026-10-17, later):
   (b) `Wff` as a frame invariant;
   (c) the remaining contracts: `vec3f_find_ceil`, `find_wall_collisions`,
       `mario_get_terrain_sound_addend`, and `m0_closed`.
+- (2026-10-18) Ceiling and terrain-sound contracts proved; (c) shrinks to
+  `find_wall_collisions` and `m0_closed`.
+  - `CeilExec.c_fc_sound`: the executor's `find_ceil` contract. One static cell
+    (`gNumCalls.ceil`) gets a fresh value, and `*pceil` gets NULL or a world surface.
+    It reuses `Wff`.
+  - The lab no longer has a `vec3f_find_ceil` stand-in. It inlines the real wrapper
+    and contracts `find_ceil` with `c_fc`.
+  - `TerrainSound.terrain_sound_value_contract`: for any genv, the real
+    `mario_get_terrain_sound_addend` leaves memory unchanged and returns a `Vint`.
+    It has no stores and no calls, and every write of `ret` is an int shift. This is
+    the `xc_fresh` shape, so the lab now uses `xc_fresh`.
+  - Counts unchanged: 7328 / 225 / 4.
+  - The lab's `c_walls` stand-in is false. It returns `numWalls` (0..4), but the real
+    `find_wall_collisions` returns the total collision count. For 0..3 walls the two
+    agree; past four walls `numWalls` stays at 4 while the count keeps rising. It
+    also skips `gNumCalls.wall`. The proved contract will return `n` for n<4 and a
+    fresh int ≥ 4 for n = 4.

@@ -3,7 +3,8 @@
 From Coq Require Import List ZArith String.
 From compcert Require Import Coqlib Maps AST Integers Floats Values Memory Ctypes Clight Errors.
 From SM64.Generated Require mario_step mario surface_collision.
-From SM64.Proofs Require Import Interp.SymExec2 LinkGenv WMotRRequiresA.Unwired.FloorExec.
+From SM64.Proofs Require Import Interp.SymExec2 LinkGenv WMotRRequiresA.Unwired.FloorExec
+  WMotRRequiresA.Unwired.CeilExec.
 Import ListNotations.
 Local Notation "'let?' x := a 'in' b" :=
   (match a with Some x => b | None => None end)
@@ -148,10 +149,10 @@ Definition c_walls : xcontract := fun args s =>
 Definition kW : positive := 1.
 Definition xc (id : ident) : option xcontract :=
   if Pos.eqb id mario._find_floor then Some (c_ff NB R0 RFI RMISS RCALLS kW (szs mario._Surface))
-  else if Pos.eqb id mario._vec3f_find_ceil then Some (c_find_surf (Float32.of_int (Int.repr 20000)) 2)
+  else if Pos.eqb id mario._find_ceil then Some (c_fc NB R0 RCALLS kW (szs mario._Surface))
   else if Pos.eqb id mario._find_water_level then Some xc_fresh
   else if Pos.eqb id mario._atan2s then Some xc_fresh
-  else if Pos.eqb id mario._mario_get_terrain_sound_addend then Some c_fresh
+  else if Pos.eqb id mario._mario_get_terrain_sound_addend then Some xc_fresh
   else if Pos.eqb id mario._find_wall_collisions then Some c_walls
   else None.
 

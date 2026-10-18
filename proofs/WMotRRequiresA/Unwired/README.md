@@ -26,3 +26,9 @@ compiled. Mirrors `../../NoAImpliesNoFly/Unwired/`.
   partition list. The only static written is `gNumCalls.ceil` (bytes 2..4 of
   `gNumCalls`). `FloorExec`'s `Wff` now asks for all 6 bytes of `gNumCalls` to be
   writable, so the ceiling executor contract can reuse it.
+- `CeilExec.v`: the executor's `find_ceil` contract `c_fc`, proved sound (`c_fc_sound`)
+  under the same world fact as `c_ff`. The lab inlines the real `vec3f_find_ceil` and
+  contracts `find_ceil` with it. Counts unchanged.
+- `TerrainSound.v`: the real `mario_get_terrain_sound_addend` leaves memory unchanged
+  and returns an int, for any genv (`terrain_sound_value_contract`). That is the
+  `xc_fresh` shape.
