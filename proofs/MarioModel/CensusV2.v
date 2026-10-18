@@ -37,7 +37,7 @@
 From Coq Require Import ZArith List Lia.
 From compcert Require Import Coqlib Maps AST Integers Values Events Memory
   Globalenvs Ctypes Cop Clightdefs Clight ClightBigstep Linking Errors.
-From SM64.Generated Require surface_collision.
+From SM64.Generated Require surface_collision math_util.
 From SM64.Generated Require mario level_update mario_step mario_actions_submerged
   mario_actions_cutscene.
 From SM64.Proofs Require Import SymbolicLinking Flying Taint
@@ -906,7 +906,14 @@ Definition stored_globals : list ident :=
      Hglob_blk exactly like every entry above. *)
   surface_collision._gNumCalls ::
   surface_collision._gNumFindFloorMisses ::
-  surface_collision._gFindFloorIncludeSurfaceIntangible :: nil.
+  surface_collision._gFindFloorIncludeSurfaceIntangible ::
+  (* the math_util spline statics (P1', math_util linked): anim_spline_init /
+     anim_spline_poll write the keyframe cursor, its fraction and the curve
+     state directly.  Static data symbols of math_util.c, bm/bc/SafeB-disjoint
+     per Hglob_blk exactly like every entry above. *)
+  math_util._gSplineKeyframe ::
+  math_util._gSplineKeyframeFraction ::
+  math_util._gSplineState :: nil.
 
 (* ---------------------------------------------------------------------- *)
 (* The interaction-handler census (the Hpres_inter arc): the 28 DISTINCT   *)

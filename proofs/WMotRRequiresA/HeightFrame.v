@@ -356,9 +356,6 @@ Section HeightLinked12.
      R0 nextblock-bound conjunct via glob_valid_of_nextbound), so it is no
      longer an assumed row here either. *)
   (* the dst-gated writer rows (dg): see NoAImpliesNoFlyLinked *)
-  Hypothesis Hdg_spoll_real :
-    call_pres_ext_dg lp bm (NoA_real bm) MWF SafeB
-      mario_actions_cutscene._anim_spline_poll.
   Hypothesis Hscp_mtxf_real :
     call_pres_ext_sc lp bm (NoA_real bm) MWF SafeB
       mario_actions_moving._mtxf_align_terrain_triangle.

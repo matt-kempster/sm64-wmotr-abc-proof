@@ -23,7 +23,7 @@
 From Coq Require Import ZArith List Lia.
 From compcert Require Import Coqlib Maps AST Integers Values Events Memory
   Globalenvs Ctypes Cop Clightdefs Clight ClightBigstep Linking.
-From SM64.Generated Require mario math_util mario_actions_automatic.
+From SM64.Generated Require mario math_util mario_actions_automatic mario_actions_cutscene.
 From SM64.Proofs Require Import SymbolicLinking ActionValueFrame Taint
   RealFrameLinked AGates CensusV2 RestSurface MWFReal SpawnInit MathGeomBodies
   MathGeomGated SurfaceBodies OutParamSurface LocalVarsSurface FloorsSurface.
@@ -876,6 +876,473 @@ Proof. vm_compute. reflexivity. Qed.
 (* took as Hypotheses are theorems about the real bodies.                  *)
 (* ====================================================================== *)
 
+
+(* ====================================================================== *)
+(* anim_spline_poll (and its callee spline_get_weights).  A small generic  *)
+(* OUT-POINTER walk: one pointer temp g that the body never reassigns,    *)
+(* stores accepted by a per-body store_ok, calls accepted by a per-body   *)
+(* call_ok, and the usual control flow (seq / if / loop / switch).        *)
+(* ====================================================================== *)
+
+Section OW.
+  Variable ge : genv.
+  Variable e : env.
+  Variable bm : block.
+  Variable MWF : mem -> Prop.
+  Variable g : ident.
+  Variables (b_out : block) (oo : ptrofs).
+  Variable store_ok : expr -> bool.
+  Variable call_ok : expr -> list expr -> bool.
+
+  Definition ow_facts (m : mem) : Prop :=
+    Mem.valid_block m bm /\ action_sat not_tainted m bm /\ MWF m.
+
+  Hypothesis Hstore : forall lv rhs le m t le' m' out,
+      store_ok lv = true -> le ! g = Some (Vptr b_out oo) ->
+      exec_stmt function_entry2 ge e le m (Sassign lv rhs) t le' m' out ->
+      ow_facts m -> ow_facts m'.
+  Hypothesis Hcall : forall optid a al le m t le' m' out,
+      call_ok a al = true -> le ! g = Some (Vptr b_out oo) ->
+      exec_stmt function_entry2 ge e le m (Scall optid a al) t le' m' out ->
+      ow_facts m -> ow_facts m'.
+
+  Fixpoint ow_chk (s : statement) : bool :=
+    match s with
+    | Sskip | Sbreak | Scontinue | Sreturn _ => true
+    | Sset id _ => negb (Pos.eqb id g)
+    | Sassign lv _ => store_ok lv
+    | Scall optid a al =>
+        call_ok a al
+        && match optid with Some ti => negb (Pos.eqb ti g) | None => true end
+    | Ssequence s1 s2 => ow_chk s1 && ow_chk s2
+    | Sifthenelse _ s1 s2 => ow_chk s1 && ow_chk s2
+    | Sloop s1 s2 => ow_chk s1 && ow_chk s2
+    | Sswitch _ sl => ow_chk_ls sl
+    | _ => false
+    end
+  with ow_chk_ls (sl : labeled_statements) : bool :=
+    match sl with
+    | LSnil => true
+    | LScons _ s sl' => ow_chk s && ow_chk_ls sl'
+    end.
+
+  Lemma ow_chk_ls_seq : forall sl,
+      ow_chk_ls sl = true -> ow_chk (seq_of_labeled_statement sl) = true.
+  Proof.
+    induction sl as [| o s sl0 IH]; intros H; [reflexivity|].
+    cbn in H. apply andb_prop in H as [H1 H2].
+    cbn. rewrite H1. exact (IH H2).
+  Qed.
+
+  Lemma ow_chk_ls_case : forall n sl sl',
+      ow_chk_ls sl = true -> select_switch_case n sl = Some sl' ->
+      ow_chk_ls sl' = true.
+  Proof.
+    intros n sl; induction sl as [| o s sl0 IH]; intros sl' H Hsel;
+      [discriminate Hsel|].
+    cbn in H. apply andb_prop in H as [H1 H2].
+    destruct o as [c|]; cbn in Hsel.
+    - destruct (zeq c n).
+      + injection Hsel as <-. cbn. rewrite H1, H2. reflexivity.
+      + exact (IH sl' H2 Hsel).
+    - exact (IH sl' H2 Hsel).
+  Qed.
+
+  Lemma ow_chk_ls_default : forall sl,
+      ow_chk_ls sl = true -> ow_chk_ls (select_switch_default sl) = true.
+  Proof.
+    induction sl as [| o s sl0 IH]; intros H; [exact H|].
+    cbn in H. apply andb_prop in H as [H1 H2].
+    destruct o as [c|]; cbn; [exact (IH H2)|rewrite H1, H2; reflexivity].
+  Qed.
+
+  Lemma ow_chk_select : forall n sl,
+      ow_chk_ls sl = true ->
+      ow_chk (seq_of_labeled_statement (select_switch n sl)) = true.
+  Proof.
+    intros n sl H. apply ow_chk_ls_seq. unfold select_switch.
+    destruct (select_switch_case n sl) eqn:E.
+    - exact (ow_chk_ls_case _ _ _ H E).
+    - exact (ow_chk_ls_default _ H).
+  Qed.
+
+  Lemma ow_walk : forall e0 le m s t le' m' out,
+      exec_stmt function_entry2 ge e0 le m s t le' m' out -> e0 = e ->
+      ow_chk s = true -> le ! g = Some (Vptr b_out oo) -> ow_facts m ->
+      ow_facts m' /\ le' ! g = Some (Vptr b_out oo).
+  Proof.
+    intros e0 le m s t le' m' out Hexec.
+    induction Hexec; intros He Hchk Hg Hf; subst; cbn [ow_chk] in Hchk;
+      try discriminate Hchk.
+    - (* Sskip *) split; assumption.
+    - (* Sassign *)
+      split; [|exact Hg].
+      lazymatch goal with Hl : eval_lvalue ?gg ?ee ?ll ?mm a1 _ _ _ |- _ =>
+        assert (Hx : exec_stmt function_entry2 gg ee ll mm (Sassign a1 a2) E0 ll m' Out_normal)
+          by (eapply exec_Sassign; eassumption) end.
+      exact (Hstore _ _ _ _ _ _ _ _ Hchk Hg Hx Hf).
+    - (* Sset *)
+      split; [exact Hf|].
+      rewrite PTree.gso; [exact Hg|].
+      intro E; subst; rewrite Pos.eqb_refl in Hchk; discriminate Hchk.
+    - (* Scall *)
+      apply andb_prop in Hchk as [Hc Ho].
+      lazymatch goal with Hee : eval_expr ?gg ?ee ?ll ?mm a _,
+                          Hfc : eval_funcall _ _ _ _ _ ?tt ?mm' ?vr |- _ =>
+        assert (Hx : exec_stmt function_entry2 gg ee ll mm (Scall optid a al) tt
+                       (set_opttemp optid vr ll) mm' Out_normal)
+          by (eapply exec_Scall; eassumption) end.
+      split; [exact (Hcall _ _ _ _ _ _ _ _ _ Hc Hg Hx Hf)|].
+      destruct optid as [ti|]; cbn [set_opttemp]; [|exact Hg].
+      rewrite PTree.gso; [exact Hg|].
+      intro E; subst; rewrite Pos.eqb_refl in Ho; discriminate Ho.
+    - (* Sseq_1 *)
+      apply andb_prop in Hchk as [H1 H2].
+      destruct (IHHexec1 eq_refl H1 Hg Hf) as [Hf1 Hg1].
+      exact (IHHexec2 eq_refl H2 Hg1 Hf1).
+    - (* Sseq_2 *)
+      apply andb_prop in Hchk as [H1 _].
+      exact (IHHexec eq_refl H1 Hg Hf).
+    - (* Sifthenelse *)
+      apply andb_prop in Hchk as [H1 H2].
+      apply IHHexec; [reflexivity|destruct b; assumption|exact Hg|exact Hf].
+    - split; assumption.
+    - split; assumption.
+    - split; assumption.
+    - split; assumption.
+    - (* Sloop_stop1 *)
+      apply andb_prop in Hchk as [H1 _].
+      exact (IHHexec eq_refl H1 Hg Hf).
+    - (* Sloop_stop2 *)
+      apply andb_prop in Hchk as [H1 H2].
+      destruct (IHHexec1 eq_refl H1 Hg Hf) as [Hf1 Hg1].
+      exact (IHHexec2 eq_refl H2 Hg1 Hf1).
+    - (* Sloop_loop *)
+      pose proof Hchk as Hchk0.
+      apply andb_prop in Hchk as [H1 H2].
+      destruct (IHHexec1 eq_refl H1 Hg Hf) as [Hf1 Hg1].
+      destruct (IHHexec2 eq_refl H2 Hg1 Hf1) as [Hf2 Hg2].
+      exact (IHHexec3 eq_refl Hchk0 Hg2 Hf2).
+    - (* Sswitch *)
+      exact (IHHexec eq_refl (ow_chk_select _ _ Hchk) Hg Hf).
+  Qed.
+End OW.
+
+(* the out-gate store: `*(g + k) = v` through the pointer temp g itself
+   (any by-value store; the gate block is wholly store-safe) *)
+Definition gate_store_ok (g : ident) (lv : expr) : bool :=
+  match CensusV2.chain_root_l lv with
+  | Some t => Pos.eqb t g
+              && match access_mode (typeof lv) with By_value _ => true | _ => false end
+  | None => false
+  end.
+
+(* the 3-cell float out-store: `g[k] = v`, k < 3, exactly the vec3f shape *)
+Definition out3_ok (g : ident) (lv : expr) : bool :=
+  match lv with
+  | Ederef (Ebinop Oadd (Etempvar t pty) (Econst_int ii ity) bty) T =>
+      Pos.eqb t g && proj_sumbool (type_eq pty (tptr tfloat))
+      && proj_sumbool (type_eq ity tint) && proj_sumbool (type_eq bty (tptr tfloat))
+      && proj_sumbool (type_eq T tfloat) && (Int.unsigned ii <? 3)
+  | _ => false
+  end.
+
+Lemma math_defmap_sgw :
+  (prog_defmap math_util.prog) ! math_util._spline_get_weights
+    = Some (Gfun (Internal math_util.f_spline_get_weights)).
+Proof. vm_compute. reflexivity. Qed.
+Lemma math_defmap_asp :
+  (prog_defmap math_util.prog) ! mario_actions_cutscene._anim_spline_poll
+    = Some (Gfun (Internal math_util.f_anim_spline_poll)).
+Proof. vm_compute. reflexivity. Qed.
+
+Lemma sgw_ow_chk :
+  ow_chk math_util._result (gate_store_ok math_util._result) (fun _ _ => false)
+    (fn_body math_util.f_spline_get_weights) = true.
+Proof. vm_compute. reflexivity. Qed.
+
+(* spline_get_weights(result, t, c): stores only through result; with result
+   in a wholly store-safe block the call preserves the carried facts *)
+Lemma sgw_body_frame :
+  forall (ge : genv) (MWF : mem -> Prop) (bm bw : block) (ow : ptrofs),
+    blk_pres not_tainted bm MWF bw ->
+    forall m vargs t m' vres,
+      eval_funcall function_entry2 ge m
+        (Internal math_util.f_spline_get_weights) vargs t m' vres ->
+      hd_error vargs = Some (Vptr bw ow) ->
+      Mem.valid_block m bm -> action_sat not_tainted m bm -> MWF m ->
+      Mem.valid_block m' bm /\ action_sat not_tainted m' bm /\ MWF m'.
+Proof.
+  intros ge MWF bm bw ow Hbp m vargs t m' vres Hevf Hhd Hv Hsat Hmwf.
+  inv Hevf.
+  match goal with He : function_entry2 _ _ _ _ _ _ _ |- _ => rename He into Hentry end.
+  match goal with Hx : exec_stmt _ _ _ _ _ _ _ _ _ _ |- _ => rename Hx into Hbody end.
+  match goal with Hf : Mem.free_list _ _ = Some _ |- _ => rename Hf into Hfree end.
+  inv Hentry.
+  match goal with Ha : alloc_variables _ _ _ _ _ _ |- _ =>
+    change (fn_vars math_util.f_spline_get_weights) with (@nil (ident * type)) in Ha;
+    inv Ha end.
+  destruct vargs as [| a0 vargs1]; cbn [hd_error] in Hhd; [ discriminate Hhd | ].
+  injection Hhd as ->.
+  match goal with Hbp' : bind_parameter_temps _ _ _ = Some ?LE |- _ =>
+    change (fn_params math_util.f_spline_get_weights)
+      with ((math_util._result, tptr tfloat) :: (math_util._t, tfloat)
+            :: (math_util._c, tint) :: nil) in Hbp';
+    assert (Hled : LE ! math_util._result = Some (Vptr bw ow))
+      by (eapply bind_parameter_temps_head; [ | exact Hbp' ];
+          cbn [var_names map fst]; intros [E|[E|E]]; try discriminate E; exact E)
+  end.
+  assert (Hst : forall lv rhs le m0 t0 le' m0' out,
+      gate_store_ok math_util._result lv = true ->
+      le ! math_util._result = Some (Vptr bw ow) ->
+      exec_stmt function_entry2 ge empty_env le m0 (Sassign lv rhs) t0 le' m0' out ->
+      ow_facts bm MWF m0 -> ow_facts bm MWF m0').
+  { intros lv rhs le m0 t0 le' m0' ot Hok Hg Hx (Hv0 & Hs0 & Hm0).
+    unfold gate_store_ok in Hok.
+    destruct (CensusV2.chain_root_l lv) as [tr|] eqn:Hcr; [|discriminate Hok].
+    apply andb_prop in Hok as [Ht Hac]. apply Pos.eqb_eq in Ht. subst tr.
+    destruct (gate_assign_pres_B MWF not_tainted bm bw ow _ lv rhs ge _ le m0 t0 le' m0' ot
+                Hbp Hcr Hac Hg Hx Hv0 Hs0 Hm0) as (Hv1 & Hs1 & Hm1 & _).
+    exact (conj Hv1 (conj Hs1 Hm1)). }
+  assert (Hca : forall optid a al le m0 t0 le' m0' out,
+      (fun (_ : expr) (_ : list expr) => false) a al = true ->
+      le ! math_util._result = Some (Vptr bw ow) ->
+      exec_stmt function_entry2 ge empty_env le m0 (Scall optid a al) t0 le' m0' out ->
+      ow_facts bm MWF m0 -> ow_facts bm MWF m0')
+    by (intros ? ? ? ? ? ? ? ? ? Hno; cbv beta in Hno; discriminate Hno).
+  destruct (ow_walk ge empty_env bm MWF math_util._result bw ow _ _ Hst Hca
+              _ _ _ _ _ _ _ _ Hbody eq_refl sgw_ow_chk Hled (conj Hv (conj Hsat Hmwf)))
+    as ((Hv1 & Hs1 & Hm1) & _).
+  change (blocks_of_env ge empty_env) with (@nil (block * Z * Z)) in Hfree.
+  cbn [Mem.free_list] in Hfree. injection Hfree as <-.
+  exact (conj Hv1 (conj Hs1 Hm1)).
+Qed.
+
+Lemma arr_local_val : forall ge e le m x ty b v,
+    e ! x = Some (b, ty) -> access_mode ty = By_reference ->
+    eval_expr ge e le m (Evar x ty) v -> v = Vptr b Ptrofs.zero.
+Proof.
+  intros ge e le m x ty b v He Ham Hev. inv Hev.
+  match goal with Hl : eval_lvalue _ _ _ _ _ _ _ _ |- _ => inv Hl end; [|congruence].
+  match goal with Hd : deref_loc _ _ _ _ _ _ |- _ => inv Hd end;
+    cbn [typeof] in *; congruence.
+Qed.
+
+Definition asp_store_ok (lv : expr) : bool :=
+  glob_store_chk lv || out3_ok math_util._result lv.
+
+Definition asp_call_ok (a : expr) (al : list expr) : bool :=
+  match a, al with
+  | Evar f (Tfunction (ta :: _) _ _), Etempvar t ty :: _ =>
+      Pos.eqb f math_util._vec3f_copy && Pos.eqb t math_util._result
+      && is_ptr_ty ty && is_ptr_ty ta
+  | Evar f (Tfunction (ta :: _) _ _), Evar w wty :: _ =>
+      Pos.eqb f math_util._spline_get_weights && Pos.eqb w math_util._weights
+      && proj_sumbool (type_eq wty (tarray tfloat 4)) && is_ptr_ty ta
+  | _, _ => false
+  end.
+
+Lemma asp_ow_chk :
+  ow_chk math_util._result asp_store_ok asp_call_ok
+    (fn_body math_util.f_anim_spline_poll) = true.
+Proof. vm_compute. reflexivity. Qed.
+
+Lemma blocks_of_env_weights : forall ge b,
+  blocks_of_env ge (PTree.set math_util._weights (b, tarray tfloat 4) empty_env)
+    = (b, 0, sizeof ge (tarray tfloat 4)) :: nil.
+Proof.
+  intros ge b. unfold blocks_of_env.
+  replace (PTree.elements (PTree.set math_util._weights (b, tarray tfloat 4) empty_env))
+    with ((math_util._weights, (b, tarray tfloat 4)) :: (@nil (positive * (block*type))))
+    by (vm_compute; reflexivity).
+  cbn [map block_of_binding]. reflexivity.
+Qed.
+
+Lemma weights_not_glob : forall gid,
+    mem_id gid stored_globals = true -> gid <> math_util._weights.
+Proof. intros gid H E. subst gid. vm_compute in H. discriminate H. Qed.
+
+Lemma math_resolves : forall lp, linkorder math_util.prog lp ->
+    forall id fr, (prog_defmap math_util.prog) ! id = Some (Gfun (Internal fr)) ->
+    resolves_to (lp_ge lp) id fr.
+Proof.
+  intros lp LO id fr Hdm bf f Hs Hf.
+  destruct (linkorder_resolves_funct lp _ id fr LO Hdm) as (b' & Hs' & Hf').
+  unfold lp_ge in Hs, Hf.
+  rewrite Hs in Hs'. injection Hs' as <-.
+  rewrite Genv.find_funct_find_funct_ptr in Hf'. congruence.
+Qed.
+
+Section ASP.
+  Variable lp : Clight.program.
+  Variable bm : block.
+  Variable MWF : mem -> Prop.
+  Hypothesis Hor : frame_oracles bm MWF.
+  Hypothesis LO_math : linkorder math_util.prog lp.
+  Hypothesis HMWF_glob : forall gid,
+      mem_id gid stored_globals = true ->
+      forall bg, Genv.find_symbol (lp_ge lp) gid = Some bg ->
+      bg <> bm /\
+      (forall mm mm' ch0 (d : Z) vv,
+          MWF mm -> Mem.store ch0 mm bg d vv = Some mm' -> MWF mm').
+
+  Lemma asp_body_frame :
+    forall m vargs t m' vres b_out oo,
+      eval_funcall function_entry2 (lp_ge lp) m
+        (Internal math_util.f_anim_spline_poll) vargs t m' vres ->
+      hd_error vargs = Some (Vptr b_out oo) ->
+      vec_out not_tainted bm MWF Mfloat32 b_out oo ->
+      ow_facts bm MWF m -> ow_facts bm MWF m'.
+  Proof.
+    intros m vargs t m' vres b_out oo Hevf Hhd Hvo (Hv & Hsat & Hmwf).
+    pose proof Hor as Hor0.
+    destruct Hor as (Halloc & Hfree & HallocB).
+    inv Hevf.
+    match goal with He : function_entry2 _ _ _ _ _ _ _ |- _ => rename He into Hentry end.
+    match goal with Hx : exec_stmt _ _ _ _ _ _ _ _ _ _ |- _ => rename Hx into Hbody end.
+    match goal with Hf : Mem.free_list _ _ = Some _ |- _ => rename Hf into Hfl end.
+    inv Hentry.
+    match goal with Ha : alloc_variables _ _ _ _ _ _ |- _ =>
+      change (fn_vars math_util.f_anim_spline_poll)
+        with ((math_util._weights, tarray tfloat 4) :: nil) in Ha;
+      inv Ha end.
+    match goal with Ha : alloc_variables _ _ _ nil _ _ |- _ => inv Ha end.
+    match goal with Halc : Mem.alloc _ _ _ = (?mm, ?bb) |- _ =>
+      assert (Hbw_bm : bb <> bm)
+        by (intro EE; subst bb; exact (Mem.fresh_block_alloc _ _ _ _ _ Halc Hv));
+      assert (HbwB : blk_pres not_tainted bm MWF bb) by (eapply HallocB; eassumption);
+      assert (HmwfA : MWF mm) by (eapply Halloc; [ exact Halc | exact Hmwf ]);
+      assert (HvA : Mem.valid_block mm bm)
+        by (eapply Mem.valid_block_alloc; [ exact Halc | exact Hv ]);
+      assert (HsatA : action_sat not_tainted mm bm)
+        by (eapply action_sat_unchanged_on;
+            [ eapply Mem.alloc_unchanged_on; exact Halc | exact Hv | exact Hsat ]);
+      rename bb into bw
+    end.
+    destruct vargs as [| a0 vargs1]; cbn [hd_error] in Hhd; [ discriminate Hhd | ].
+    injection Hhd as ->.
+    match goal with Hbp' : bind_parameter_temps _ _ _ = Some ?LE |- _ =>
+      change (fn_params math_util.f_anim_spline_poll)
+        with ((math_util._result, tptr tfloat) :: nil) in Hbp';
+      assert (Hled : LE ! math_util._result = Some (Vptr b_out oo))
+        by (eapply bind_parameter_temps_head; [ | exact Hbp' ];
+            cbn [var_names map fst]; intros [])
+    end.
+    set (e := PTree.set math_util._weights (bw, tarray tfloat 4) empty_env) in *.
+    assert (He_glob : forall gid, mem_id gid stored_globals = true -> e ! gid = None).
+    { intros gid Hg. unfold e. rewrite PTree.gso by exact (weights_not_glob gid Hg).
+      apply PTree.gempty. }
+    assert (He_w : e ! math_util._weights = Some (bw, tarray tfloat 4))
+      by (unfold e; apply PTree.gss).
+    assert (He_none : forall f, f <> math_util._weights -> e ! f = None)
+      by (intros f Hf; unfold e; rewrite PTree.gso by exact Hf; apply PTree.gempty).
+    (* the stores *)
+    assert (Hst : forall lv rhs le m0 t0 le' m0' out,
+        asp_store_ok lv = true ->
+        le ! math_util._result = Some (Vptr b_out oo) ->
+        exec_stmt function_entry2 (lp_ge lp) e le m0 (Sassign lv rhs) t0 le' m0' out ->
+        ow_facts bm MWF m0 -> ow_facts bm MWF m0').
+    { intros lv rhs le m0 t0 le' m0' ot Hok Hg Hx (Hv0 & Hs0 & Hm0).
+      unfold asp_store_ok in Hok. apply orb_true_iff in Hok as [Hgs | Ho3].
+      - destruct (glob_assign_pres lp bm MWF HMWF_glob _ _ _ _ _ _ _ _ _ Hgs He_glob
+                    Hx Hm0 Hv0 Hs0) as (Hv1 & Hs1 & Hm1 & _).
+        exact (conj Hv1 (conj Hs1 Hm1)).
+      - destruct lv as [ | | | | | | lv0 T | | | | | | | ]; try discriminate Ho3.
+        destruct lv0 as [ | | | | | | | | | op x1 x2 bty | | | | ]; try discriminate Ho3.
+        destruct op; try discriminate Ho3.
+        destruct x1 as [ | | | | | tid pty | | | | | | | | ]; try discriminate Ho3.
+        destruct x2 as [ ii ity | | | | | | | | | | | | | ]; try discriminate Ho3.
+        cbn [out3_ok] in Ho3.
+        apply andb_prop in Ho3 as [Ho3 Hlt].
+        apply andb_prop in Ho3 as [Ho3 HT].
+        apply andb_prop in Ho3 as [Ho3 Hbty].
+        apply andb_prop in Ho3 as [Ho3 Hity].
+        apply andb_prop in Ho3 as [Ht Hpty].
+        apply Pos.eqb_eq in Ht. subst tid.
+        destruct (type_eq pty (tptr tfloat)); [subst pty | discriminate Hpty].
+        destruct (type_eq ity tint); [subst ity | discriminate Hity].
+        destruct (type_eq bty (tptr tfloat)); [subst bty | discriminate Hbty].
+        destruct (type_eq T tfloat); [subst T | discriminate HT].
+        apply Z.ltb_lt in Hlt.
+        pose proof (vec_out_cell _ _ _ _ tfloat _ _ (lp_ge lp) (Int.unsigned ii) Hvo eq_refl
+                      ltac:(pose proof (Int.unsigned_range ii); lia)) as Hc.
+        rewrite Int.repr_unsigned in Hc.
+        destruct (out_store_avoids_B MWF not_tainted bm b_out oo tfloat Mfloat32 (lp_ge lp)
+                    e le m0 math_util._result ii rhs t0 le' m0' ot
+                    Hc eq_refl Hg (or_introl eq_refl) Hx Hv0 Hs0 Hm0) as (Hv1 & Hs1 & Hm1 & _).
+        exact (conj Hv1 (conj Hs1 Hm1)). }
+    (* the two calls *)
+    assert (Hca : forall optid a al le m0 t0 le' m0' out,
+        asp_call_ok a al = true ->
+        le ! math_util._result = Some (Vptr b_out oo) ->
+        exec_stmt function_entry2 (lp_ge lp) e le m0 (Scall optid a al) t0 le' m0' out ->
+        ow_facts bm MWF m0 -> ow_facts bm MWF m0').
+    { intros optid a al le m0 t0 le' m0' ot Hok Hg Hx (Hv0 & Hs0 & Hm0).
+      destruct a as [ | | | | fid fty | | | | | | | | | ]; try discriminate Hok.
+      destruct fty as [ | | | | | | targs tres tcc | | ]; try discriminate Hok.
+      destruct targs as [| ta tl]; try discriminate Hok.
+      destruct al as [| x al']; try discriminate Hok.
+      assert (Hfid_ne : fid <> math_util._weights).
+      { intro E; subst fid. destruct x; cbn [asp_call_ok] in Hok;
+          try discriminate Hok;
+          repeat (apply andb_prop in Hok as [Hok _]); vm_compute in Hok; discriminate Hok. }
+      inv Hx.
+      match goal with Hcf : classify_fun _ = fun_case_f _ _ _ |- _ =>
+        cbn in Hcf; injection Hcf as <- <- <- end.
+      match goal with Hee : eval_expr _ _ _ _ (Evar _ _) ?vf |- _ =>
+        destruct (evar_fun_val _ _ _ _ _ _ _ _ _ Hee (He_none _ Hfid_ne)) as (lf & Hsy & ->) end.
+      match goal with Hff : Genv.find_funct _ _ = Some _ |- _ =>
+        unfold Genv.find_funct in Hff;
+        destruct (Ptrofs.eq_dec Ptrofs.zero Ptrofs.zero) as [_ | NE]; [ | congruence ] end.
+      match goal with Hel : eval_exprlist _ _ _ _ _ _ ?vargs |- _ =>
+        destruct (exprlist_nth _ _ _ _ _ _ _ Hel 0 x ta eq_refl eq_refl)
+          as (v1 & v2 & Hx1 & Hc1 & Hvk) end.
+      destruct x as [ | | | | w wty | tv ty | | | | | | | | ]; try discriminate Hok;
+        cbn [asp_call_ok] in Hok.
+      + (* spline_get_weights(weights, ...) *)
+        apply andb_prop in Hok as [Hok Hta].
+        apply andb_prop in Hok as [Hok Hwty].
+        apply andb_prop in Hok as [Hf Hw].
+        apply Pos.eqb_eq in Hf. apply Pos.eqb_eq in Hw. subst fid w.
+        destruct (type_eq wty (tarray tfloat 4)); [subst wty | discriminate Hwty].
+        rewrite (arr_local_val _ _ _ _ _ _ _ _ He_w eq_refl Hx1) in Hc1.
+        destruct ta; try discriminate Hta.
+        cbn in Hc1. injection Hc1 as <-.
+        match goal with Hfp : Genv.find_funct_ptr _ _ = Some ?fd |- _ =>
+          pose proof (math_resolves lp LO_math _ _ math_defmap_sgw _ _ Hsy Hfp) as ->
+        end.
+        match goal with Hfc : eval_funcall _ _ _ _ _ _ _ _ |- _ =>
+          exact (sgw_body_frame (lp_ge lp) MWF bm bw Ptrofs.zero HbwB _ _ _ _ _ Hfc Hvk
+                   Hv0 Hs0 Hm0) end.
+      + (* vec3f_copy(result, gVec3fZero) *)
+        apply andb_prop in Hok as [Hok Hta].
+        apply andb_prop in Hok as [Hok Hty].
+        apply andb_prop in Hok as [Hf Ht].
+        apply Pos.eqb_eq in Hf. apply Pos.eqb_eq in Ht. subst fid tv.
+        apply RealFrameValue.eval_expr_Etempvar_val in Hx1. rewrite Hg in Hx1.
+        injection Hx1 as <-.
+        rewrite (cast_ptr_ptr _ _ _ _ _ _ Hty Hta Hc1) in Hvk.
+        match goal with Hfp : Genv.find_funct_ptr _ _ = Some ?fd |- _ =>
+          pose proof (math_resolves lp LO_math _ _ math_defmap_v3fcopy _ _ Hsy Hfp) as ->
+        end.
+        match goal with Hfc : eval_funcall _ _ _ _ _ _ _ _ |- _ =>
+          pose proof (vec_copy_out_valid _ _ _ tfloat _ _ _ _ b_out oo
+                        (or_introl (conj eq_refl eq_refl)) Hfc Hvk) as Hbv;
+          exact (vec3f_copy_body_frame_B (lp_ge lp) MWF bm b_out oo Hor0
+                   _ _ _ _ _ Hfc Hvk Hvo Hbv Hv0 Hs0 Hm0) end. }
+    destruct (ow_walk (lp_ge lp) e bm MWF math_util._result b_out oo _ _ Hst Hca
+                _ _ _ _ _ _ _ _ Hbody eq_refl asp_ow_chk Hled (conj HvA (conj HsatA HmwfA)))
+      as ((Hv1 & Hs1 & Hm1) & _).
+    unfold e in Hfl. rewrite blocks_of_env_weights in Hfl.
+    assert (Hforall : Forall (fun blh => let '(b,_,_) := blh in b <> bm)
+                        ((bw, 0, sizeof (lp_ge lp) (tarray tfloat 4)) :: nil))
+      by (constructor; [ exact Hbw_bm | constructor ]).
+    destruct (vfc_free_list_frame not_tainted bm _ _ _ Hforall Hfl Hv1 Hs1) as (Hvf & Hsf).
+    split; [ exact Hvf | split; [ exact Hsf | ] ].
+    eapply Hfree; [ exact Hfl | exact Hm1 ].
+  Qed.
+End ASP.
+
 Section MathRows.
   Variable lp : Clight.program.
   Variables bm bc : block.
@@ -1006,6 +1473,26 @@ Section MathRows.
                   m0 _ t0 m1 vres0 Hevf eq_refl Hvo Hbv Hv Hsat HM) as Hfr.
     mr_finish Hfr.
   Qed.
+
+  (* anim_spline_poll(result): stores result[0..2] (vec_out), its local
+     weights (via spline_get_weights) and the math_util spline statics
+     (stored_globals); calls vec3f_copy(result, ..) under the same gate. *)
+  Hypothesis Hglob_blk_mr : forall gid bg,
+      mem_id gid stored_globals = true ->
+      Genv.find_symbol (lp_ge lp) gid = Some bg ->
+      bg <> bm /\ bg <> bc /\ ~ SafeB bg.
+  Lemma Hdg_spoll_proved :
+    call_pres_ext_dg lp bm NoA MWF SafeB mario_actions_cutscene._anim_spline_poll.
+  Proof.
+    intros fd m0 vargs0 t0 m1 vres0 Hevf Hres Hdg _ HM Hv Hsat.
+    pose proof (resolves_pin_fd lp _ _ _ _ LO_math math_defmap_asp Hres) as ->.
+    destruct (dg_vec_out Mfloat32 vargs0 ltac:(cbn; lia) Hdg) as (b & o & rest & -> & Hvo).
+    destruct (asp_body_frame lp bm MWF (sb_frame_oracles lp bm bc oc0 SafeB Hbc_bm)
+                LO_math (mwf_real_glob lp bm bc oc0 SafeB Hbc_bm Hglob_blk_mr)
+                m0 _ t0 m1 vres0 b o Hevf eq_refl Hvo (conj Hv (conj Hsat HM)))
+      as (Hv' & Hs' & HM').
+    exact (conj Hv' (conj Hs' (conj HM' (mwf_real_ctl lp bm bc oc0 SafeB _ HM')))).
+  Qed.
 End MathRows.
 
 (* ====================================================================== *)
@@ -1088,3 +1575,92 @@ Section MathPure.
     call_pres_ext lp bm NoA MWF mario._atan2s.
   Proof. exact (call_pres_ext_pure _ _ math_defmap_atan2s eq_refl atan2s_cpure2_chk). Qed.
 End MathPure.
+
+(* ====================================================================== *)
+(* anim_spline_init: three direct stores to the math_util spline statics *)
+(* (gSplineKeyframe / gSplineKeyframeFraction / gSplineState, all in      *)
+(* CensusV2.stored_globals) and nothing else.  The keyframe POINTER it    *)
+(* stores is any argument value: HMWF_glob tolerates any store there, so  *)
+(* the any-argument row is true.                                          *)
+(* ====================================================================== *)
+
+Fixpoint glob_seq_chk (s : statement) : bool :=
+  match s with
+  | Sassign a1 _ => glob_store_chk a1
+  | Ssequence s1 s2 => glob_seq_chk s1 && glob_seq_chk s2
+  | _ => false
+  end.
+
+Lemma glob_seq_pres :
+  forall lp bm (MWF : mem -> Prop),
+    (forall gid, mem_id gid stored_globals = true ->
+       forall bg, Genv.find_symbol (lp_ge lp) gid = Some bg ->
+       bg <> bm /\
+       (forall mm mm' ch0 (d : Z) vv,
+           MWF mm -> Mem.store ch0 mm bg d vv = Some mm' -> MWF mm')) ->
+    forall s e le m0 tr le' m' out,
+      glob_seq_chk s = true ->
+      (forall g, mem_id g stored_globals = true -> e ! g = None) ->
+      exec_stmt function_entry2 (lp_ge lp) e le m0 s tr le' m' out ->
+      MWF m0 -> Mem.valid_block m0 bm -> action_sat not_tainted m0 bm ->
+      Mem.valid_block m' bm /\ action_sat not_tainted m' bm /\ MWF m' /\
+      le' = le /\ out = Out_normal.
+Proof.
+  intros lp bm MWF HMWF_glob s.
+  induction s; intros env0 le m0 tr le' m' out Hc Hu Hx HM Hv Hs;
+    cbn [glob_seq_chk] in Hc; try discriminate Hc.
+  - exact (glob_assign_pres lp bm MWF HMWF_glob _ _ _ _ _ _ _ _ _ Hc Hu Hx HM Hv Hs).
+  - apply andb_prop in Hc as [Hc1 Hc2]. inv Hx.
+    + match goal with
+      | H1 : exec_stmt _ _ _ _ _ s1 _ _ _ _, H2 : exec_stmt _ _ _ _ _ s2 _ _ _ _ |- _ =>
+          destruct (IHs1 _ _ _ _ _ _ _ Hc1 Hu H1 HM Hv Hs) as (Hv1 & Hs1 & HM1 & -> & _);
+          exact (IHs2 _ _ _ _ _ _ _ Hc2 Hu H2 HM1 Hv1 Hs1)
+      end.
+    + match goal with
+      | H1 : exec_stmt _ _ _ _ _ s1 _ _ _ _, Hn : _ <> Out_normal |- _ =>
+          destruct (IHs1 _ _ _ _ _ _ _ Hc1 Hu H1 HM Hv Hs) as (_ & _ & _ & _ & Eo);
+          contradiction
+      end.
+Qed.
+
+Lemma math_defmap_asi :
+  (prog_defmap math_util.prog) ! mario_actions_cutscene._anim_spline_init
+    = Some (Gfun (Internal math_util.f_anim_spline_init)).
+Proof. vm_compute. reflexivity. Qed.
+Lemma asi_glob_seq : glob_seq_chk (fn_body math_util.f_anim_spline_init) = true.
+Proof. vm_compute. reflexivity. Qed.
+
+Section MathSpline.
+  Variable lp : Clight.program.
+  Variable bm : block.
+  Variables NoA MWF : mem -> Prop.
+  Hypothesis LO_math : linkorder math_util.prog lp.
+  Hypothesis HNoA_of_MWF : forall m, MWF m -> NoA m.
+  Hypothesis HMWF_glob : forall gid,
+      mem_id gid stored_globals = true ->
+      forall bg, Genv.find_symbol (lp_ge lp) gid = Some bg ->
+      bg <> bm /\
+      (forall mm mm' ch0 (d : Z) vv,
+          MWF mm -> Mem.store ch0 mm bg d vv = Some mm' -> MWF mm').
+
+  Lemma Hcpx_asi_proved :
+    call_pres_ext lp bm NoA MWF mario_actions_cutscene._anim_spline_init.
+  Proof.
+    intros fd m0 vargs0 t0 m1 vres0 Hevf Hres HN HM Hv Hsat.
+    pose proof (resolves_pin_fd lp _ _ _ _ LO_math math_defmap_asi Hres) as ->.
+    inv Hevf.
+    match goal with He : function_entry2 _ _ _ _ _ _ _ |- _ => rename He into Hentry end.
+    match goal with Hx : exec_stmt _ _ _ _ _ _ _ _ _ _ |- _ => rename Hx into Hbody end.
+    match goal with Hf : Mem.free_list _ _ = Some _ |- _ => rename Hf into Hfree end.
+    inv Hentry.
+    match goal with Ha : alloc_variables _ _ _ _ _ _ |- _ =>
+      change (fn_vars math_util.f_anim_spline_init) with (@nil (ident * type)) in Ha;
+      inv Ha end.
+    destruct (glob_seq_pres lp bm MWF HMWF_glob _ _ _ _ _ _ _ _ asi_glob_seq
+                (fun g _ => PTree.gempty _ g) Hbody HM Hv Hsat)
+      as (Hv1 & Hs1 & HM1 & _ & _).
+    change (blocks_of_env (lp_ge lp) empty_env) with (@nil (block * Z * Z)) in Hfree.
+    cbn [Mem.free_list] in Hfree. injection Hfree as <-.
+    exact (conj Hv1 (conj Hs1 (conj HM1 (HNoA_of_MWF _ HM1)))).
+  Qed.
+End MathSpline.

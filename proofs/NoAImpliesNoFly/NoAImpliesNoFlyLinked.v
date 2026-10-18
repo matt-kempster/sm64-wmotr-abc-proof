@@ -909,9 +909,12 @@ Section NoARealInputMWF.
   Proof. eapply MathBodies.Hdg_v3scopy_proved; sb_row. Qed.
   (* anim_spline_poll(result) writes through result (jumbo_star_cutscene_
      flying's stack-local targetPos): the same dg class *)
-  Hypothesis Hdg_spoll_real :
+  (* PROVED 2026-10-17 from the real anim_spline_poll / spline_get_weights
+     bodies (MathBodies.Hdg_spoll_proved). *)
+  Lemma Hdg_spoll_real :
     call_pres_ext_dg lp bm (NoA_real bm) MWF SafeB
       mario_actions_cutscene._anim_spline_poll.
+  Proof. eapply MathBodies.Hdg_spoll_proved; sb_row. Qed.
   (* mtxf_align_terrain_triangle(mtx, pos, yaw, radius) writes the 4x4
      matrix ONLY through mtx: sc-gated (mtx in a SafeB block).  Its one
      real site passes &sFloorAlignMatrix[unk00] (Hsfam_safe), checked by
@@ -1392,11 +1395,13 @@ Section NoARealInputMWF.
      -- all walked).  The discharged trees surface only the object-family
      EXTERNAL rows (obj_ext_ids, the warp_ext_ids model class) and the
      named internal Hcp_pgs blocker below. *)
-  (* 2026-10-17: atan2s and approach_s32 are linked math_util bodies now,
-     proved (MathBodies.MathPure), so the row covers only the rest of
-     obj_ext_ids (obj_ext_open_ids); Hpres_obj_ext is then a lemma. *)
+  (* 2026-10-17: atan2s, approach_s32 and anim_spline_init are linked
+     math_util bodies now, proved (MathBodies.MathPure / MathSpline), so the
+     row covers only the rest of obj_ext_ids (obj_ext_open_ids);
+     Hpres_obj_ext is then a lemma. *)
   Definition obj_ext_math (i : ident) : bool :=
-    Pos.eqb i mario._atan2s || Pos.eqb i mario_actions_object._approach_s32.
+    Pos.eqb i mario._atan2s || Pos.eqb i mario_actions_object._approach_s32
+    || Pos.eqb i mario_actions_cutscene._anim_spline_init.
   Definition obj_ext_open_ids : list ident :=
     filter (fun i => negb (obj_ext_math i)) obj_ext_ids.
   Lemma mem_id_filter_split : forall (p : ident -> bool) fid l,
@@ -1423,9 +1428,12 @@ Section NoARealInputMWF.
     destruct (mem_id_filter_split obj_ext_math fid obj_ext_ids H) as [Hm|Ho];
       [|exact (Hpres_obj_ext_open fid Ho)].
     unfold obj_ext_math in Hm. apply orb_true_iff in Hm as [Hm|Hm];
-      apply Pos.eqb_eq in Hm; subst fid.
+      [apply orb_true_iff in Hm as [Hm|Hm]|]; apply Pos.eqb_eq in Hm; subst fid.
     - exact (MathBodies.Hcpx_atan2s_proved lp bm _ MWF LO_math).
     - exact (MathBodies.Hcpx_approach_s32_proved lp bm _ MWF LO_math).
+    - exact (MathBodies.Hcpx_asi_proved lp bm _ MWF LO_math
+               (mwf_real_ctl lp bm bc oc0 SafeB)
+               (mwf_real_glob lp bm bc oc0 SafeB Hbc_bm Hglob_blk)).
   Qed.
   (* SLICE 12 (cutscene dialog cluster): the new cutscene DIALOG / TIME-STOP
      external boundary (CutsceneLeafSurface.cut_ext_ids = create_dialog_inverted_box
