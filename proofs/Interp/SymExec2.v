@@ -700,11 +700,25 @@ Fixpoint skel (a : sval) : sval :=
   | _ => a
   end.
 
+(* the consumer facts that name v as their first argument, as their key
+   and the shapes of their other arguments: a join that merges a cell whose
+   facts differ in these would drop them, so they are part of the key *)
+Definition utags (pc : list fact) (v : sval) : list (option sval) :=
+  flat_map (fun f =>
+    match f with
+    | Fuser k (a :: rest) =>
+        if sbeq a v then Some (Sconst (Vint (Int.repr (Zpos k)))) :: map (fun x => Some (skel x)) rest
+        else nil
+    | _ => nil
+    end) pc.
+
 Definition key_of (p : spath) : pkey :=
   let '(le, g, o) := p in
   let '(tag, ov) := out_tag o in
   (tag, option_map skel ov
-          :: map (fun k => let '(r, o, ch) := k in option_map skel (sload g r o ch)) jkeys,
+          :: map (fun k => let '(r, o, ch) := k in option_map skel (sload g r o ch)) jkeys
+          ++ flat_map (fun k => let '(r, o, ch) := k in
+                         match sload g r o ch with Some v => None :: utags (g_pc g) v | None => nil end) jkeys,
    filter (fun x => is_const (snd x)) (PTree.elements le)).
 
 Fixpoint jinsert (p : spath) (k : pkey) (acc : list (pkey * spath)) : list (pkey * spath) :=
