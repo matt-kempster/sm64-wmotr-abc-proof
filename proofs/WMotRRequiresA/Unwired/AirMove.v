@@ -158,4 +158,72 @@ Proof.
     first [ left; exact mode_ff | exact Hk | reflexivity | exact Ep
           | rewrite B2R_fm4; lra | intros E'; exfalso; exact (not_sk E') ].
 Qed.
+
+Lemma not_ledge : c_action c <> ACT_LEDGE_GRAB.
+Proof.
+  rewrite Hact. intros Eq0. apply (f_equal Int.unsigned) in Eq0.
+  unfold ACT_FREEFALL, ACT_LEDGE_GRAB in Eq0. vm_compute in Eq0. discriminate.
+Qed.
+
+(* a landing: an S_attach step.  The frame refreshed floorHeight at this
+   pos[1] just before the action ran (update_mario_geometry_inputs; act_freefall
+   does not move pos[1] before perform_air_step), so the entry floorHeight
+   meets FloorRefreshOK -- a premise the frame-level proof discharges *)
+Hypothesis FRO : FloorRefreshOK wmotr_floor (R2 (c_posy c)) (R2 (c_floorh c)).
+
+Theorem land_move : outcome_ok LD IC (g_pc g) rM rO kH = true ->
+  aclass_of LD IC (g_pc g) rM rO kH = None ->
+  exists c', read_cells bm m c' /\ RM' c c'.
+Proof.
+  intros OK H.
+  unfold outcome_ok in OK. apply andb_true_iff in OK as (CO & OK). rewrite H in OK.
+  destruct entry_ranges as (Fy & Fv & Hy & Hv & Hv43 & Ff & Lf).
+  pose proof (budget_ok_y c Hc) as Hyhi. unfold PHI_YMAX, PHI_K, PHI_A in Hyhi.
+  pose proof Hc as ((_ & _ & _ & Lylo & _) & _).
+  destruct (land_sound ge nbase R0 gtab kv m0 uf gp gp_old E m g rM rO (c_posy c) (c_vely c) kH
+              MM HUH HbM HbO HY HV OK Fv Hv)
+    as ((KA & KS & KT) & LG & LP & (v' & LV & Fv' & Lo & Hi)).
+  destruct (floorh_new CO) as (LMO & fh & LF & Ffh & Lfh).
+  (* the landed height: a finite p >= -11000 that AttachOK accepts *)
+  assert (HP : exists p, Mem.load Mfloat32 m bm oY = Some (Vsingle p) /\ F32 p = true
+                 /\ -11000 <= R2 p /\ AttachOK wmotr_floor wmotr_pole wmotr_cannon c (R2 p)).
+  { destruct LP as [LP | (h & kq & jz & LP & Hk & HPi' & Hh)].
+    - rewrite LP, HF. exists (c_floorh c). split; [reflexivity | split; [exact Ff | split; [exact Lf |]]].
+      destruct FRO as [Es | FW].
+      + right; right; right; right; right. exact Es.
+      + right; left. exact FW.
+    - destruct (FD h Hh) as (Fh & _ & Wh).
+      exists h. split; [exact LP | split; [exact Fh | split; [exact (wmotr_floor_low _ Wh) |]]].
+      right; left. apply (land_attach ge m0 kq jz (c_posy c) (c_vely c) h FD Hk Fy Fv Hv);
+        [split; lra | exact Hv43 | exact HPi' | exact Hh]. }
+  destruct HP as (p & LY & Fp & Lp & Hat).
+  assert (Hv' : R2 v' <= 43).
+  { destruct Hi as [Hi | ->]; [| rewrite B2R_fm4; lra].
+    destruct (gravity_spec2 f4 (c_vely c) F32_f4 Fv (or_intror B2R_f4) Hv) as [(_ & G) | (_ & G)];
+      [lra | rewrite B2R_f4 in G; apply Rabs_le_inv in G; lra]. }
+  exists (mkCells (c_action c) (c_state c) (c_timer c) p v' fh p).
+  split; [ unfold read_cells; cbn [c_action c_state c_timer c_posy c_vely c_floorh c_gfxy];
+           rewrite <- HA, <- HS, <- HT; repeat split; try assumption;
+           exists (e_blk E rO), Ptrofs.zero; split; [exact LMO | transitivity (Mem.load Mfloat32 m bm oY); [exact LG | exact LY]] |].
+  split; [ unfold InRange; cbn [c_posy c_vely c_floorh c_gfxy];
+           rewrite B2R_fm75 in Lo; repeat split; try assumption; try lra |].
+  apply (S_attach _ _ _ c _ (R2 p)); cbn [c_action c_posy c_vely c_gfxy c_floorh].
+  - exact Hat.
+  - apply Rle_refl.
+  - left. reflexivity.
+  - change (mode_of (mkCells (c_action c) (c_state c) (c_timer c) p v' fh p)) with (mode_of c).
+    rewrite mode_ff. exact Hv'.
+  - intros E'. exfalso. exact (not_ledge E').
+Qed.
+
+(* every classified outcome of the real perform_air_step is one RangedMove *)
+Theorem outcome_move : outcome_ok LD IC (g_pc g) rM rO kH = true ->
+  exists c', read_cells bm m c' /\ RM' c c'.
+Proof.
+  intros OK.
+  destruct (aclass_of LD IC (g_pc g) rM rO kH) as [[|k]|] eqn:H.
+  - exact (air_move OK H).
+  - exact (cut_move k OK H).
+  - exact (land_move OK H).
+Qed.
 End AIRMOVE.

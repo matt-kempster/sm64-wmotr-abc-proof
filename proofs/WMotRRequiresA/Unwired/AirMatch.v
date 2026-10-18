@@ -665,7 +665,7 @@ End CLS_SOUND.
    reported a floor, so not the -11000 sentinel) at most 80 above that
    quarter's yPos, hence at most y + max(v, 0) + 81 *)
 Theorem land_height : forall Hit kq jz y v h, HitB Hit -> (kq <= 4)%nat ->
-  F32 y = true -> F32 v = true -> Rabs (R2 v) <= 128 -> -9000 <= R2 y <= 15000 ->
+  F32 y = true -> F32 v = true -> Rabs (R2 v) <= 128 -> -11000 <= R2 y <= 15000 ->
   HPi Hit (ycast (Vsingle (add_zeros jz (quarter_steps kq y (Float32.div v f4))))) h -> Hit h ->
   R2 h <= R2 y + Rmax 0 (R2 v) + 81.
 Proof.
@@ -682,13 +682,15 @@ Proof.
   assert (Ef : R2 f = R2 (quarter_steps kq y (Float32.div v f4))) by apply add_zeros_R2.
   assert (Ff : F32 f = true) by (apply add_zeros_F32; exact Fq).
   apply Rabs_le_inv in Hqb.
-  assert (Hlo : -10000 <= R2 f) by (rewrite Ef; nra).
+  assert (Hlo : -12000 <= R2 f) by (rewrite Ef; nra).
   assert (Hup : R2 f <= R2 y + Rmax 0 (R2 v) + / 128).
   { rewrite Ef. destruct (Rle_or_lt 0 (R2 v)) as [P | N].
     - rewrite Rmax_right by exact P. exact (Up P).
     - rewrite Rmax_left by lra. pose proof (Dn ltac:(lra)). lra. }
   assert (Hv' : Rmax 0 (R2 v) <= 128)
     by (apply Rabs_le_inv in Hv; apply Rmax_lub; lra).
+  assert (HM : Rmax (R2 f) (-11000) <= R2 y + Rmax 0 (R2 v) + 1).
+  { pose proof (Rmax_l 0 (R2 v)). apply Rmax_lub; lra. }
   destruct (ff_height_bound Hit f h HB Ff ltac:(pose proof (Rmax_l 0 (R2 v)); lra) H)
     as [E | (Ht & B)]; [| lra].
   subst h. rewrite B2R_c11000. pose proof (Rmax_l 0 (R2 v)). lra.
@@ -704,7 +706,7 @@ Definition floor_data (ge : genv) (m0 : mem) : Prop :=
 
 (* a landing on a fresh height meets HeightMoveCatalog.AttachOK's floor case *)
 Theorem land_attach : forall ge m0 kq jz y v h, floor_data ge m0 -> (kq <= 4)%nat ->
-  F32 y = true -> F32 v = true -> Rabs (R2 v) <= 128 -> -9000 <= R2 y <= 15000 -> R2 v <= 43 ->
+  F32 y = true -> F32 v = true -> Rabs (R2 v) <= 128 -> -11000 <= R2 y <= 15000 -> R2 v <= 43 ->
   HPi (Hit_at ge m0) (ycast (Vsingle (add_zeros jz (quarter_steps kq y (Float32.div v f4))))) h ->
   Hit_at ge m0 h ->
   wmotr_floor (R2 h) /\ R2 h <= R2 y + STEP_UP.

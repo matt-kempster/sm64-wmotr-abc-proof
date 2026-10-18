@@ -261,7 +261,11 @@ Section Moves.
     \/ (c_action c = ACT_LEDGE_GRAB /\ h <= R2 (c_floorh c))        (* ledge climb *)
     \/ (exists base top, wmotr_pole base top                    (* pole grab / climb *)
           /\ base - 160 <= R2 (c_posy c) /\ h <= top)
-    \/ wmotr_cannon h.                                             (* cannon entry *)
+    \/ wmotr_cannon h                                              (* cannon entry *)
+    (* a floorless air quarter lands at m->floorHeight (mario_step.c:414-416),
+       which is find_floor's no-floor value -11000 when both find_floor calls
+       of update_mario_geometry_inputs missed *)
+    \/ h = -11000.
 
   Definition FloorRefreshOK (y fh : R) : Prop :=
     fh = -11000 \/ (wmotr_floor fh /\ fh <= y + STEP_UP).
@@ -361,7 +365,7 @@ Section Moves.
     pose proof (budget_ok_y c Hc) as Hy.
     destruct Hc as (_ & Hb & _ & _ & _ & Hl).
     rewrite credit_of_mode in Hb.
-    destruct Ha as [[Hk Hh] | [[Hf Hh] | [[Ha Hh] | [(base & top & Hp & Hw & Hh) | Hcn]]]].
+    destruct Ha as [[Hk Hh] | [[Hf Hh] | [[Ha Hh] | [(base & top & Hp & Hw & Hh) | [Hcn | Hs]]]]].
     - rewrite Hk in Hb. simpl in Hb. lra.
     - apply (gap_fact_step h (R2 (c_posy c)) (mode_credit (mode_of c) (timer_of c) (R2 (c_vely c))));
         [ exact Hh | | exact Hb | apply wmotr_gap; exact Hf ].
@@ -369,6 +373,7 @@ Section Moves.
     - specialize (Hl Ha). lra.
     - destruct (wmotr_poles base top Hp); lra.
     - exact (wmotr_cannons h Hcn).
+    - rewrite Hs. unfold PHI_K. lra.
   Qed.
 
   Lemma floor_refresh_ledge : forall c y fh,

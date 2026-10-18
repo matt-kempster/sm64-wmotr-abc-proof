@@ -156,20 +156,27 @@ Qed.
 Definition HitB (Hit : float32 -> Prop) : Prop :=
   forall x, Hit x -> F32 x = true /\ Rabs (R2 x) <= 16384.
 
-(* every height find_floor can return *)
+(* every height find_floor can return: -11000, or a hit at most 79 above
+   the search y (or above -11000, for a re-search from the -11000 start) *)
 Theorem HPi_bound : forall Hit yi h, HitB Hit ->
-  -11000 <= IZR (Int.signed yi) <= 16384 ->
+  -16384 <= IZR (Int.signed yi) <= 16384 ->
   HPi Hit (Vint yi) h ->
-  h = c11000 \/ (Hit h /\ R2 h <= IZR (Int.signed yi) + 79).
+  h = c11000 \/ (Hit h /\ R2 h <= Rmax (IZR (Int.signed yi)) (-11000) + 79).
 Proof.
-  intros Hit yi h HB Hy H. induction H as [| h Hk Ht | h0 y' h H0 IH Ti Hk Ht].
+  intros Hit yi h HB Hy H.
+  pose proof (Rmax_l (IZR (Int.signed yi)) (-11000)) as M1.
+  pose proof (Rmax_r (IZR (Int.signed yi)) (-11000)) as M2.
+  set (M := Rmax (IZR (Int.signed yi)) (-11000)) in *.
+  assert (MB : M <= 16384) by (unfold M; apply Rmax_lub; lra).
+  induction H as [| h Hk Ht | h0 y' h H0 IH Ti Hk Ht].
   - left. reflexivity.
   - right. split; [exact Ht |]. destruct (HB h Ht) as (Fh & Bh).
-    apply (hok_bound yi h Hk Fh); [apply Rabs_le; apply Rabs_le_inv in Bh; lra |].
-    apply Rabs_le. lra.
+    pose proof (hok_bound yi h Hk Fh ltac:(apply Rabs_le; apply Rabs_le_inv in Bh; lra)
+                  ltac:(apply Rabs_le; lra)).
+    lra.
   - right. split; [exact Ht |]. destruct (HB h Ht) as (Fh & Bh).
-    (* the re-search's y: (s32)(h0 - 200), with h0 = -11000 or a hit <= y + 79 *)
-    assert (H0b : F32 h0 = true /\ -16384 <= R2 h0 <= 16384 /\ R2 h0 <= IZR (Int.signed yi) + 79).
+    (* the re-search's y: (s32)(h0 - 200), with h0 = -11000 or a hit <= M + 79 *)
+    assert (H0b : F32 h0 = true /\ -16384 <= R2 h0 <= 16384 /\ R2 h0 <= M + 79).
     { destruct IH as [-> | (Ht0 & B0)].
       - rewrite B2R_c11000, F32_c11000. lra.
       - destruct (HB h0 Ht0) as (F0 & A0). apply Rabs_le_inv in A0.
@@ -192,15 +199,19 @@ Proof.
 Qed.
 
 (* THE LANDING BOUND: a height find_floor returns for a finite yPos in the
-   world's range is -11000 or a hit at most yPos + 80 *)
+   world's range is -11000 or a hit at most max(yPos, -11000) + 80 *)
 Theorem ff_height_bound : forall Hit f h, HitB Hit -> F32 f = true ->
-  -10000 <= R2 f <= 16000 ->
+  -16000 <= R2 f <= 16000 ->
   HPi Hit (ycast (Vsingle f)) h ->
-  h = c11000 \/ (Hit h /\ R2 h <= R2 f + 80).
+  h = c11000 \/ (Hit h /\ R2 h <= Rmax (R2 f) (-11000) + 80).
 Proof.
   intros Hit f h HB Ff Hf H.
   destruct (ycast_val f Ff ltac:(apply Rabs_le; lra)) as (yi & Ey & Y1 & Y2).
   rewrite Ey in H.
   destruct (HPi_bound Hit yi h HB ltac:(lra) H) as [E | (Ht & B)]; [left; exact E | right].
-  split; [exact Ht | lra].
+  split; [exact Ht |].
+  assert (Rmax (IZR (Int.signed yi)) (-11000) <= Rmax (R2 f) (-11000) + 1).
+  { apply Rmax_lub; [| pose proof (Rmax_r (R2 f) (-11000)); lra].
+    pose proof (Rmax_l (R2 f) (-11000)); lra. }
+  lra.
 Qed.
