@@ -2927,7 +2927,7 @@ Definition v_bhv1UpRunningAway := {|
 |}.
 
 Definition v_gSineTable := {|
-  gvar_info := (tarray tfloat 0);
+  gvar_info := (tarray tfloat 5120);
   gvar_init := nil;
   gvar_readonly := false;
   gvar_volatile := false

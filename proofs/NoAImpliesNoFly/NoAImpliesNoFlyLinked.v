@@ -41,8 +41,9 @@ From Coq Require Import List. Import ListNotations.
 From SM64.Generated Require mario mario_actions_stationary
   mario_actions_moving mario_actions_airborne mario_actions_submerged
   mario_actions_cutscene mario_actions_automatic mario_actions_object
-  interaction behavior_actions level_update mario_step surface_collision.
-From SM64.Proofs Require SurfaceBodies.
+  interaction behavior_actions level_update mario_step surface_collision
+  math_util.
+From SM64.Proofs Require SurfaceBodies MathBodies.
 From SM64.Proofs Require Import Flying Taint ActionValue ActionValueFrame ReachableRun
   RealFrameValue RealFrameLinked AGates SymbolicLinking FieldNonInterference.
 From SM64.Proofs Require Import CensusV2 EngineV2Consumer.
@@ -829,6 +830,10 @@ Section NoARealInputMWF.
      rest cases, each PROVED below from the generated Clight
      (SurfaceBodies). *)
   Hypothesis LO_surf : linkorder surface_collision.prog lp.
+  (* the math_util widening: vec3f_set / vec3f_copy / vec3s_copy / atan2s
+     resolve to their REAL bodies -- four more pinned rest cases, PROVED
+     below (MathBodies). *)
+  Hypothesis LO_math : linkorder math_util.prog lp.
   Ltac sb_row := first [ exact Hbc_bm | exact HSafeB_not_bm | exact Hgms_blk
     | exact Hglob_blk | exact Hgtimer_blk | exact Htable_blk | exact Hktab_blk
     | exact LO_surf | exact Hbc_sym | exact LO_mario ].
@@ -2660,6 +2665,28 @@ Section NoARealInputMWF.
   Proof.
     exact (SurfaceBodies.find_poison_gas_level_pres lp bm bc oc0 SafeB Hbc_bm).
   Qed.
+  (* the four lifted math_util bodies at MWF_real (MathBodies) *)
+  Lemma mb_v3fset : body_pres_w lp (MWF_real lp bm bc oc0 SafeB) bm SafeB
+                      math_util.f_vec3f_set.
+  Proof.
+    exact (MathBodies.vec3f_set_pres lp bm bc oc0 SafeB Hbc_bm HSafeB_not_bm
+             HSafeB_not_bc Hgms_blk Hgtimer_blk Htable_blk Hktab_blk).
+  Qed.
+  Lemma mb_v3fcopy : body_pres_w lp (MWF_real lp bm bc oc0 SafeB) bm SafeB
+                       math_util.f_vec3f_copy.
+  Proof.
+    exact (MathBodies.vec3f_copy_pres lp bm bc oc0 SafeB Hbc_bm HSafeB_not_bm
+             HSafeB_not_bc Hgms_blk Hgtimer_blk Htable_blk Hktab_blk).
+  Qed.
+  Lemma mb_v3scopy : body_pres_w lp (MWF_real lp bm bc oc0 SafeB) bm SafeB
+                       math_util.f_vec3s_copy.
+  Proof.
+    exact (MathBodies.vec3s_copy_pres lp bm bc oc0 SafeB Hbc_bm HSafeB_not_bm
+             HSafeB_not_bc Hgms_blk Hgtimer_blk Htable_blk Hktab_blk).
+  Qed.
+  Lemma mb_atan2s : body_pres_w lp (MWF_real lp bm bc oc0 SafeB) bm SafeB
+                      math_util.f_atan2s.
+  Proof. exact (MathBodies.atan2s_pres lp bm bc oc0 SafeB LO_math). Qed.
 
   Lemma frame_ok_real_mwf :
     forall m m',
@@ -2684,7 +2711,7 @@ Section NoARealInputMWF.
              (mwf_real_umbi lp bm bc oc0 SafeB Hbc_bm HSafeB_not_bm Hgms_blk Hgtimer_blk Htable_blk Hktab_blk)
              WL_exempt
              (rest_pres_decompose lp LO_mario LO_sta LO_mov LO_air LO_sub LO_cut
-                LO_aut LO_obj LO_int LO_beh LO_lvl LO_stp LO_surf Hrest_ext_only
+                LO_aut LO_obj LO_int LO_beh LO_lvl LO_stp LO_surf LO_math Hrest_ext_only
                 (NoA_real bm) (MWF_real lp bm bc oc0 SafeB) bm SafeB
                 (stationary_pres lp LO_mario LO_sta LO_stp bm (NoA_real bm)
                    (MWF_real lp bm bc oc0 SafeB)
@@ -3526,7 +3553,8 @@ Section NoARealInputMWF.
                    (mwf_real_alloc lp bm bc oc0 SafeB Hbc_bm)
                    (mwf_real_free lp bm bc oc0 SafeB Hbc_bm)
                    sb_fc)
-                sb_ffwc sb_ff sb_fc sb_fp sb_fw)
+                sb_ffwc sb_ff sb_fc sb_fp sb_fw
+                mb_v3fset mb_v3fcopy mb_v3scopy mb_atan2s)
              Hext_action Hmwf_ext
              (mwf_real_entry lp bm bc oc0 SafeB Hbc_bm)
              (mwf_real_free lp bm bc oc0 SafeB Hbc_bm)

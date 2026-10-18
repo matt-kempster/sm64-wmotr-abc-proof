@@ -52,22 +52,32 @@ sed -i "s/\\\$\"__stringlit_/\\\$\"__stringlit_${TUNAME}_/g" "$TMP"
 # content-only, per-file.  See pipeline/canonicalize_anon.py.
 python3 "$(dirname "$0")/canonicalize_anon.py" "$TMP"
 
-# Extern-incomplete-array completion (documented one-entry table): C's
+# Extern-incomplete-array completion (documented table, TRUST 2.4): C's
 # `extern struct MarioState gMarioStates[];` yields Tarray..0 while the
 # definer (level_update.c) has Tarray..1 -- CompCert's equality-based
 # vardef linker refuses.  Complete the DECL side to the definer's type
 # (exactly what a system linker's symbol resolution does; init stays nil,
 # link_varinit takes the definer's).  Found by the linked12 certificate.
+#   gMarioStates  0 -> 1     (definer: level_update.c, NUM_MARIOS = 1)
+#   gSineTable    0 -> 5120  (definer: math_util.c via trig_tables.inc.c,
+#                             0x1000 + 0x400 f32 entries; found when
+#                             linking math_util, 2026-10-17)
 python3 - "$TMP" <<'PYEOF'
 import re, sys
 path = sys.argv[1]
 s = open(path).read()
-s2 = re.sub(
-    r'(Definition v_gMarioStates := \{\|\s*gvar_info := \(tarray \(Tstruct _MarioState noattr\)) 0\)',
-    r'\1 1)', s)
-if s2 != s:
-    open(path, 'w').write(s2)
-    print(f"extern-array completion: gMarioStates 0 -> 1 in {path}")
+TABLE = [
+    ("gMarioStates", r"\(Tstruct _MarioState noattr\)", 1),
+    ("gSineTable", r"tfloat", 5120),
+]
+for name, elt, n in TABLE:
+    s2 = re.sub(
+        r'(Definition v_' + name + r' := \{\|\s*gvar_info := \(tarray ' + elt + r') 0\)',
+        r'\g<1> ' + str(n) + ')', s)
+    if s2 != s:
+        s = s2
+        open(path, 'w').write(s)
+        print(f"extern-array completion: {name} 0 -> {n} in {path}")
 PYEOF
 
 {

@@ -1,5 +1,5 @@
 (* spine-root: GOAL-1 POSITIVE CONTROL -- with A pressed, ONE real
-   execute_mario_action frame over the linked12 link (13 TUs) takes Mario from a
+   execute_mario_action frame over the linked12 link (14 TUs) takes Mario from a
    non-flying action to ACT_FLYING_TRIPLE_JUMP.  So the capstone's step
    relation is not empty and "flying" is reachable by it: the no-fly
    conclusion is not vacuous, and the no-A premise is what does the work. *)
@@ -12,13 +12,14 @@
    whole run; soundness turns it into an [eval_funcall] derivation.
 
    The one assumption, [Hworld], is about the functions OUTSIDE the
-   thirteen linked TUs (math_util, audio, anim loading).  CompCert models
+   fourteen linked TUs (audio, anim loading, sqrtf).  CompCert models
    those as an abstract [external_functions_sem] with no content, so no
    derivation that calls them can exist without saying what they may do.
-   [flat_world] says: silent audio, [atan2s] = 0, and the exact C semantics
-   of the math_util helpers the frame touches.  Collision is NOT in it: the
-   real surface_collision bodies run, over a static partition holding one
-   flat floor triangle under Mario (built below). *)
+   [flat_world] says: silent audio, a zero patchable-table load, and IEEE
+   sqrtf.  Collision and math_util are NOT in it: the real
+   surface_collision bodies run, over a static partition holding one flat
+   floor triangle under Mario (built below), and the real math_util bodies
+   (vec3*, approach_*, atan2s over the real gArctanTable) run too. *)
 
 From Coq Require Import String List ZArith.
 From compcert Require Import Coqlib Integers Floats Values AST Memory Globalenvs
@@ -40,100 +41,14 @@ Definition f32 (z : Z) : val := Vsingle (Float32.of_int (Int.repr z)).
 Definition i32 (z : Z) : val := Vint (Int.repr z).
 Definition ret (v : val) (m : mem) : option (trace * val * mem) := Some (E0, v, m).
 
-(* math_util.c: vec3{f,s}_copy / vec3{f,s}_set, 3 cells of [sz] bytes. *)
-Definition cp3 (c : memory_chunk) (sz : Z) (m : mem) (bd : block) (od : Z)
-    (bs : block) (os : Z) : option mem :=
-  match CM.load c m bs os, CM.load c m bs (os + sz), CM.load c m bs (os + 2 * sz) with
-  | Some a, Some b, Some d =>
-      match CM.store c m bd od a with
-      | Some m1 =>
-          match CM.store c m1 bd (od + sz) b with
-          | Some m2 => CM.store c m2 bd (od + 2 * sz) d
-          | None => None
-          end
-      | None => None
-      end
-  | _, _, _ => None
-  end.
-
-Definition set3 (c : memory_chunk) (sz : Z) (m : mem) (bd : block) (od : Z)
-    (a b d : val) : option mem :=
-  match CM.store c m bd od a with
-  | Some m1 =>
-      match CM.store c m1 bd (od + sz) b with
-      | Some m2 => CM.store c m2 bd (od + 2 * sz) d
-      | None => None
-      end
-  | None => None
-  end.
-
-(* math_util.c: approach_f32 / approach_s32, exactly. *)
-Definition approach_f (c t i d : float32) : float32 :=
-  if Float32.cmp Clt c t then
-    let c' := Float32.add c i in if Float32.cmp Cgt c' t then t else c'
-  else
-    let c' := Float32.sub c d in if Float32.cmp Clt c' t then t else c'.
-
-Definition approach_i (c t i d : int) : int :=
-  if Int.lt c t then
-    let c' := Int.add c i in if Int.lt t c' then t else c'
-  else
-    let c' := Int.sub c d in if Int.lt c' t then t else c'.
-
 Definition flat_world (ef : external_function) (args : list val) (m : mem)
     : option (trace * val * mem) :=
   match ef with
   | EF_external n _ =>
-      if String.eqb n "atan2s" || String.eqb n "load_patchable_table"
+      if String.eqb n "load_patchable_table"
       then ret (Vint Int.zero) m
-      else if String.eqb n "approach_f32" then
-        match args with
-        | [Vsingle c; Vsingle t; Vsingle i; Vsingle d] => ret (Vsingle (approach_f c t i d)) m
-        | _ => None
-        end
-      else if String.eqb n "approach_s32" then
-        match args with
-        | [Vint c; Vint t; Vint i; Vint d] => ret (Vint (approach_i c t i d)) m
-        | _ => None
-        end
       else if String.eqb n "sqrtf" then
         match args with [Vsingle x] => ret (Vsingle (Float32.sqrt x)) m | _ => None end
-      else if String.eqb n "vec3f_copy" then
-        match args with
-        | [Vptr bd od; Vptr bs os] =>
-            match cp3 Mfloat32 4 m bd (Ptrofs.unsigned od) bs (Ptrofs.unsigned os) with
-            | Some m' => ret (Vptr bd od) m'
-            | None => None
-            end
-        | _ => None
-        end
-      else if String.eqb n "vec3s_copy" then
-        match args with
-        | [Vptr bd od; Vptr bs os] =>
-            match cp3 Mint16signed 2 m bd (Ptrofs.unsigned od) bs (Ptrofs.unsigned os) with
-            | Some m' => ret (Vptr bd od) m'
-            | None => None
-            end
-        | _ => None
-        end
-      else if String.eqb n "vec3f_set" then
-        match args with
-        | [Vptr bd od; a; b; d] =>
-            match set3 Mfloat32 4 m bd (Ptrofs.unsigned od) a b d with
-            | Some m' => ret (Vptr bd od) m'
-            | None => None
-            end
-        | _ => None
-        end
-      else if String.eqb n "vec3s_set" then
-        match args with
-        | [Vptr bd od; a; b; d] =>
-            match set3 Mint16signed 2 m bd (Ptrofs.unsigned od) a b d with
-            | Some m' => ret (Vptr bd od) m'
-            | None => None
-            end
-        | _ => None
-        end
       else if String.eqb n "play_sound" || String.eqb n "play_infinite_stairs_music"
       then ret Vundef m
       else None

@@ -454,7 +454,7 @@ Definition _t'8 : ident := 135%positive.
 Definition _t'9 : ident := 136%positive.
 
 Definition v_gSineTable := {|
-  gvar_info := (tarray tfloat 0);
+  gvar_info := (tarray tfloat 5120);
   gvar_init := nil;
   gvar_readonly := false;
   gvar_volatile := false

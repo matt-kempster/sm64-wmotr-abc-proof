@@ -33,7 +33,8 @@ From compcert Require Import Coqlib Maps AST Integers Values Events Memory
 From SM64.Generated Require mario mario_actions_stationary
   mario_actions_moving mario_actions_airborne mario_actions_submerged
   mario_actions_cutscene mario_actions_automatic mario_actions_object
-  interaction behavior_actions level_update mario_step surface_collision.
+  interaction behavior_actions level_update mario_step surface_collision
+  math_util.
 From SM64.Proofs Require Import SymbolicLinking Flying Taint
   ActionValueFrame RealFrameValue RealFrameLinked AGates.
 From SM64.Proofs Require Import CensusV2 EngineV2Consumer.
@@ -59,9 +60,13 @@ Import ListNotations.
    negative pin too: their lp resolution is PINNED to the real generated
    body (LO_surf) and each is a gated per-body case below, discharged in
    SurfaceBodies.v from the real Clight. *)
+(* THE MATH_UTIL WIDENING (2026-10-17): math_util.prog is the fourteenth
+   member, so the four whitelisted ids it DEFINES -- vec3f_set, vec3f_copy,
+   vec3s_copy, atan2s -- are lifted the same way (LO_math; MathBodies.v). *)
 Definition lifted_ids : list ident :=
   [ mario._vec3f_find_ceil; mario._f32_find_wall_collision; mario._find_floor;
-    mario._find_ceil; mario._find_poison_gas_level; mario._find_water_level ].
+    mario._find_ceil; mario._find_poison_gas_level; mario._find_water_level;
+    mario._vec3f_set; mario._vec3f_copy; mario._vec3s_copy; mario._atan2s ].
 
 Definition exempt_ext_ids : list ident :=
   filter (fun i => negb (mem_id i lifted_ids)) exempt_callees.
@@ -115,6 +120,24 @@ Proof. vm_compute. reflexivity. Qed.
 Lemma surf_defmap_fw :
   (prog_defmap surface_collision.prog) ! mario._find_water_level
     = Some (Gfun (Internal surface_collision.f_find_water_level)).
+Proof. vm_compute. reflexivity. Qed.
+
+(* the real bodies behind the four lifted math_util ids *)
+Lemma math_defmap_v3fset :
+  (prog_defmap math_util.prog) ! mario._vec3f_set
+    = Some (Gfun (Internal math_util.f_vec3f_set)).
+Proof. vm_compute. reflexivity. Qed.
+Lemma math_defmap_v3fcopy :
+  (prog_defmap math_util.prog) ! mario._vec3f_copy
+    = Some (Gfun (Internal math_util.f_vec3f_copy)).
+Proof. vm_compute. reflexivity. Qed.
+Lemma math_defmap_v3scopy :
+  (prog_defmap math_util.prog) ! mario._vec3s_copy
+    = Some (Gfun (Internal math_util.f_vec3s_copy)).
+Proof. vm_compute. reflexivity. Qed.
+Lemma math_defmap_atan2s :
+  (prog_defmap math_util.prog) ! mario._atan2s
+    = Some (Gfun (Internal math_util.f_atan2s)).
 Proof. vm_compute. reflexivity. Qed.
 
 (* the gate at the two signatures vfc_pres needs *)
@@ -200,6 +223,7 @@ Section RestSurface.
   Hypothesis LO_lvl : linkorder level_update.prog lp.
   Hypothesis LO_stp : linkorder mario_step.prog lp.
   Hypothesis LO_surf : linkorder surface_collision.prog lp.
+  Hypothesis LO_math : linkorder math_util.prog lp.
 
   (* ---- the negative pin: whitelisted math/runtime symbols + the music
      helper have NO Internal resolution in lp (they stay External in the
@@ -251,7 +275,11 @@ Section RestSurface.
       f = surface_collision.f_find_floor \/
       f = surface_collision.f_find_ceil \/
       f = surface_collision.f_find_poison_gas_level \/
-      f = surface_collision.f_find_water_level.
+      f = surface_collision.f_find_water_level \/
+      f = math_util.f_vec3f_set \/
+      f = math_util.f_vec3f_copy \/
+      f = math_util.f_vec3s_copy \/
+      f = math_util.f_atan2s.
   Proof.
     intros f (fid & Hmem & Hres).
     destruct Hmem as [Hex | [Hroot | Hmptr]].
@@ -272,8 +300,16 @@ Section RestSurface.
           eapply resolves_pin; [ exact LO_surf | exact surf_defmap_fc | exact Hres ].
         * do 16 right; left.
           eapply resolves_pin; [ exact LO_surf | exact surf_defmap_fp | exact Hres ].
-        * do 17 right.
+        * do 17 right; left.
           eapply resolves_pin; [ exact LO_surf | exact surf_defmap_fw | exact Hres ].
+        * do 18 right; left.
+          eapply resolves_pin; [ exact LO_math | exact math_defmap_v3fset | exact Hres ].
+        * do 19 right; left.
+          eapply resolves_pin; [ exact LO_math | exact math_defmap_v3fcopy | exact Hres ].
+        * do 20 right; left.
+          eapply resolves_pin; [ exact LO_math | exact math_defmap_v3scopy | exact Hres ].
+        * do 21 right.
+          eapply resolves_pin; [ exact LO_math | exact math_defmap_atan2s | exact Hres ].
       + exfalso. exact (Hrest_ext_only fid f (or_introl Hex') Hres).
     - (* the root's residual callees: 10 pinned bodies + the refuted music *)
       unfold mem_id, root_residual_callees in Hroot.
@@ -421,6 +457,10 @@ Section RestSurface.
       body_pres_w MWF bm SafeB surface_collision.f_find_ceil ->
       body_pres_w MWF bm SafeB surface_collision.f_find_poison_gas_level ->
       body_pres_w MWF bm SafeB surface_collision.f_find_water_level ->
+      body_pres_w MWF bm SafeB math_util.f_vec3f_set ->
+      body_pres_w MWF bm SafeB math_util.f_vec3f_copy ->
+      body_pres_w MWF bm SafeB math_util.f_vec3s_copy ->
+      body_pres_w MWF bm SafeB math_util.f_atan2s ->
       forall m f vargs t m' vres,
         rest_fd lp (Internal f) ->
         (marg_exempt (Internal f) = false -> marg_ok bm vargs) ->
@@ -432,11 +472,11 @@ Section RestSurface.
         Mem.valid_block m' bm /\ action_sat not_tainted m' bm /\ MWF m'.
   Proof.
     intros NoA MWF bm SafeB Hsta Hmov Hair Hsub Hcut Haut Hobj Hflo Hint Hwnd Hwrp Hvfc
-           Hffwc Hff Hfc Hfp Hfw
+           Hffwc Hff Hfc Hfp Hfw Hv3fset Hv3fcopy Hv3scopy Hatan2s
            m f vargs t m' vres Hrest Hmarg Hsargs Hgate Hevf Hno Hmwf Hv Hsat.
     destruct (rest_internal_cases f Hrest) as
       [-> | [-> | [-> | [-> | [-> | [-> | [-> | [-> | [-> | [-> | [-> | [-> |
-       [-> | [-> | [-> | [-> | [-> | ->]]]]]]]]]]]]]]]]].
+       [-> | [-> | [-> | [-> | [-> | [-> | [-> | [-> | [-> | ->]]]]]]]]]]]]]]]]]]]]].
     - exact (Hsta m vargs t m' vres Hmarg Hevf Hno Hmwf Hv Hsat).
     - exact (Hmov m vargs t m' vres Hmarg Hevf Hno Hmwf Hv Hsat).
     - exact (Hair m vargs t m' vres Hmarg Hevf Hno Hmwf Hv Hsat).
@@ -456,6 +496,10 @@ Section RestSurface.
     - exact (Hfc m vargs t m' vres Hgate Hevf Hmwf Hv Hsat).
     - exact (Hfp m vargs t m' vres Hgate Hevf Hmwf Hv Hsat).
     - exact (Hfw m vargs t m' vres Hgate Hevf Hmwf Hv Hsat).
+    - exact (Hv3fset m vargs t m' vres Hgate Hevf Hmwf Hv Hsat).
+    - exact (Hv3fcopy m vargs t m' vres Hgate Hevf Hmwf Hv Hsat).
+    - exact (Hv3scopy m vargs t m' vres Hgate Hevf Hmwf Hv Hsat).
+    - exact (Hatan2s m vargs t m' vres Hgate Hevf Hmwf Hv Hsat).
   Qed.
 
   (* resolves_pin, fd-general: under a pin, ANY resolution of the symbol

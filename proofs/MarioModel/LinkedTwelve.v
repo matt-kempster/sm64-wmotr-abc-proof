@@ -52,7 +52,8 @@ From compcert Require Import Coqlib Maps AST Integers Values Events Memory
 From SM64.Generated Require mario mario_actions_stationary
   mario_actions_moving mario_actions_airborne mario_actions_submerged
   mario_actions_cutscene mario_actions_automatic mario_actions_object
-  interaction behavior_actions level_update mario_step surface_collision.
+  interaction behavior_actions level_update mario_step surface_collision
+  math_util.
 From SM64.Proofs Require Import SymbolicLinking CensusV2 RealFrameLinked
   EngineV2Consumer RestSurface.
 
@@ -77,11 +78,11 @@ Fixpoint link_chain (p : Clight.program) (l : list Clight.program)
    the P1' widening (2026-10-17): its find_floor / find_ceil / wall /
    water / poison bodies are now IN the link, pinned by LO_surf.  The name
    linked12 is kept (docs/RENAMING.md) although the chain has 13 TUs.
-   math_util is NOT linked: mario.c and ten other TUs see gSineTable only as
-   `extern f32 gSineTable[]` (clightgen: tarray tfloat 0) while math_util.c
-   defines it as tarray tfloat 5120, and CompCert's Clight linker demands
-   equal variable types -- so a chain with math_util has NO link (the
-   linked12 premise would be unsatisfiable). *)
+   math_util is the second widening (2026-10-17): its vec3/atan2s bodies
+   are pinned by LO_math.  It links because pipeline/clightgen.sh's
+   extern-array completion table completes every TU's `extern f32
+   gSineTable[]` (tarray tfloat 0) to math_util's 5120 entries (TRUST 2.4);
+   Linked12Sat's certificate checks the 14-TU chain. *)
 Definition tu_rest : list Clight.program :=
   [ mario_actions_stationary.prog;
     mario_actions_moving.prog;
@@ -94,7 +95,8 @@ Definition tu_rest : list Clight.program :=
     behavior_actions.prog;
     level_update.prog;
     mario_step.prog;
-    surface_collision.prog ].
+    surface_collision.prog;
+    math_util.prog ].
 
 Definition linked12 (lp : Clight.program) : Prop :=
   link_chain mario.prog tu_rest = Some lp.
@@ -181,6 +183,10 @@ Section Linked12LO.
   Lemma linked12_LO_surf : linkorder surface_collision.prog lp.
   Proof.
     exact (link_chain_linkorder_in _ _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_eq _ _)))))))))))) H12).
+  Qed.
+  Lemma linked12_LO_math : linkorder math_util.prog lp.
+  Proof.
+    exact (link_chain_linkorder_in _ _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_eq _ _))))))))))))) H12).
   Qed.
 End Linked12LO.
 
@@ -385,6 +391,9 @@ Proof. vm_compute. reflexivity. Qed.
 Lemma no_internal_surf :
   no_internal_ids surface_collision.prog truly_ext_pin_ids = true.
 Proof. vm_compute. reflexivity. Qed.
+Lemma no_internal_math :
+  no_internal_ids math_util.prog truly_ext_pin_ids = true.
+Proof. vm_compute. reflexivity. Qed.
 
 (* resolves_lp -> defmap entry (the genv->defmap bridge, spike-style) *)
 Lemma resolves_defmap :
@@ -420,7 +429,7 @@ Proof.
   destruct (link_chain_internal_origin _ _ _ _ _ H12 Hres)
     as [Hbase | (q & Hq & Hqdm)].
   - exact (no_internal_ids_correct _ _ _ _ no_internal_mario Hmem Hbase).
-  - destruct Hq as [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | []]]]]]]]]]]]].
+  - destruct Hq as [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | []]]]]]]]]]]]]].
     + exact (no_internal_ids_correct _ _ _ _ no_internal_sta Hmem Hqdm).
     + exact (no_internal_ids_correct _ _ _ _ no_internal_mov Hmem Hqdm).
     + exact (no_internal_ids_correct _ _ _ _ no_internal_air Hmem Hqdm).
@@ -433,6 +442,7 @@ Proof.
     + exact (no_internal_ids_correct _ _ _ _ no_internal_lvl Hmem Hqdm).
     + exact (no_internal_ids_correct _ _ _ _ no_internal_stp Hmem Hqdm).
     + exact (no_internal_ids_correct _ _ _ _ no_internal_surf Hmem Hqdm).
+    + exact (no_internal_ids_correct _ _ _ _ no_internal_math Hmem Hqdm).
 Qed.
 
 (* ---------------------------------------------------------------------- *)
