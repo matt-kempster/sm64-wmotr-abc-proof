@@ -298,6 +298,15 @@ Definition land_ok : bool :=
      | _, _, _ => false
      end.
 
+(* any find_floor height (a fresh name with a height fact) *)
+Definition is_hf (a : sval) : bool :=
+  match a with
+  | Sfresh n => existsb (fun f => match f with
+                                  | Fuser k [Sfresh n'; _] => Pos.eqb k kH && Pos.eqb n' n
+                                  | _ => false end) pc
+  | _ => false
+  end.
+
 (* every outcome: m->marioObj still points at Mario's object, and
    floorHeight is the entry cell or a find_floor height *)
 Definition oMO : Z := 136.
@@ -306,10 +315,42 @@ Definition cells_ok : bool :=
   | Some (Sptr r o) => Pos.eqb r rO && Ptrofs.eq o Ptrofs.zero
   | _ => false
   end
-  && match ld rM oF Mfloat32 with Some a => is_land a | None => false end.
+  && match ld rM oF Mfloat32 with Some a => is_land a || is_hf a | None => false end.
+
+(* a ledge grab (mario_step.c check_ledge_grab, AIR_STEP_CHECK_LEDGE_GRAB):
+   pos[1] = gfx = find_floor's height searched from nextPos[1] + 160.0f, on a
+   path that passed !(vel[1] > 0) with vel[1] the entry cell (any quarter), or
+   after a ceiling bump zeroed vel[1] (the search y is at most two quarters up) *)
+Definition c160 : float32 := Float32.of_bits (Int.repr 1126170624).   (* 160.0f *)
+Definition lfact (km : nat) (n : positive) (f : fact) : bool :=
+  match f with
+  | Fuser k [Sfresh n'; Sbinop Cop.Oadd q t1 (Sconst c) t2] =>
+      Pos.eqb k kH && Pos.eqb n' n && is_tf t1 && is_tf t2 && is_f c c160
+      && match qrec rM oY oV q with Some (kq, _) => Nat.leb kq km | None => false end
+  | _ => false
+  end.
+Definition ti32 : type := Tint I32 Signed noattr.
+Definition vle0 (f : fact) : bool :=
+  match f with
+  | Fbool (Sbinop Cop.Ogt (Sinit r o Mfloat32) t1 (Sconst (Vint i)) t2) _ false =>
+      Pos.eqb r rM && Z.eqb o oV && is_tf t1 && (if type_eq t2 ti32 then true else false)
+      && Int.eq i Int.zero
+  | _ => false
+  end.
+Definition ledge_ok : bool :=
+  same_cell oA Mint32 && same_cell oS Mint16unsigned && same_cell oT Mint16unsigned
+  && match ld rM oY Mfloat32, ld rM oV Mfloat32, ld rO oG Mfloat32 with
+     | Some py, Some vy, Some gy =>
+         sveqb gy py
+         && match py with
+            | Sfresh n => existsb (lfact (if existsb vle0 pc then 4%nat else 2%nat) n) pc
+            | _ => false end
+         && (vel_cut vy || vel_ok rM pc vy)
+     | _, _, _ => false
+     end.
 
 Definition outcome_ok : bool :=
-  cells_ok && match aclass_of with Some _ => true | None => land_ok end.
+  cells_ok && match aclass_of with Some _ => true | None => land_ok || ledge_ok end.
 End CLS.
 
 (* ---- what a class says about the outcome's memory ---- *)
@@ -586,6 +627,15 @@ Proof.
     rewrite Ptrofs.add_zero. reflexivity.
   - destruct (LD rM oF Mfloat32) as [a|] eqn:L; [| discriminate].
     pose proof (ld_sound _ _ _ _ L) as D. rewrite addr_M in D. rewrite D.
+    apply orb_true_iff in H2 as [H2 | H2].
+    2:{ destruct a; try discriminate. cbn [is_hf] in H2. apply existsb_exists in H2 as (f & If & Hf).
+        destruct f as [| | | k args]; try discriminate.
+        destruct args as [| a0 [| ya [|]]]; try discriminate; destruct a0; try discriminate.
+        apply andb_true_iff in Hf as (Hk & Hn). apply Pos.eqb_eq in Hk. apply Pos.eqb_eq in Hn. subst.
+        pose proof MM as (_ & _ & _ & _ & _ & _ & PC & _).
+        destruct (PC _ If) as (_ & FH). cbn [fact_holds map] in FH.
+        destruct (HUH _ FH) as (h & yv & Evs & _ & HT). injection Evs as E1 _.
+        right. exists h. split; [exact E1 | exact HT]. }
     destruct a; try discriminate.
     + destruct ch; try discriminate. cbn [is_land] in H2. apply andb_true_iff in H2 as (Hr & Ho).
       apply Pos.eqb_eq in Hr. apply Z.eqb_eq in Ho. subst. left.
@@ -645,6 +695,87 @@ Proof.
       destruct (HUH _ FH) as (h & yv & Evs & HP & HT). cbn [den] in Evs.
       injection Evs as E1 E2. subst yv.
       right. exists h, kq, jz. split; [cbn [den]; exact E1 | split; [exact Hq | split; [exact HP | exact HT]]].
+  - apply orb_true_iff in VO as [VC | VK].
+    + rewrite (vel_cut_den _ VC) in DV. eexists; split; [exact DV |].
+      split; [reflexivity |]. split; [rewrite B2R_fm75, B2R_fm4; lra | right; reflexivity].
+    + destruct (vel_ok_den _ VK) as [(D & C) | D]; rewrite D in DV.
+      * destruct (sub_ge_m75 v Fv Hv C) as [L75 F].
+        eexists; split; [exact DV | split; [exact F | split; [exact L75 | left; apply vel_sub_le; assumption]]].
+      * eexists; split; [exact DV | split; [exact F32_fm75 | split; [lra | left; apply vel_clamp_le; assumption]]].
+Qed.
+
+Lemma vle0_sound : forall f, In f (g_pc g) -> vle0 rM f = true ->
+  Float32.cmp Cgt v (Float32.of_int Int.zero) = false.
+Proof.
+  intros f If Hf.
+  pose proof MM as (_ & _ & _ & _ & _ & _ & PC & _). destruct (PC f If) as [_ FH].
+  destruct f as [c ty b | | |]; try discriminate.
+  destruct c as [ | | | | | | | op a1 t1 a2 t2 | | ]; try discriminate.
+  destruct op; try discriminate. destruct a1; try discriminate. destruct ch; try discriminate.
+  destruct a2; try discriminate. destruct v0; try discriminate. destruct b; try discriminate.
+  cbn [vle0] in Hf. repeat rewrite andb_true_iff in Hf.
+  destruct Hf as ((((Hr & Ho) & H1) & H2) & Hi).
+  apply Pos.eqb_eq in Hr. apply Z.eqb_eq in Ho. apply is_tf_eq in H1.
+  destruct (type_eq t2 ti32); [| discriminate]. pose proof (Int.eq_spec i Int.zero) as Ei.
+  rewrite Hi in Ei. subst.
+  cbn [fact_holds] in FH. destruct FH as (w & Dw & Bw).
+  cbn [den] in Dw. rewrite HbM, Ptrofs.unsigned_zero, Z.add_0_l, HV in Dw.
+  cbn in Dw. injection Dw as <-.
+  unfold Float32.cmp, cmp_of_comparison.
+  destruct (Float32.compare v (Float32.of_int Int.zero)) as [[| |]|]; try reflexivity.
+  exfalso. revert Bw. unfold bool_val. destruct (classify_bool ty); cbn;
+    try rewrite (Int.eq_false _ _ Int.one_not_zero); cbn; congruence.
+Qed.
+
+Theorem ledge_sound : ledge_ok LD IC (g_pc g) rM rO kH = true ->
+  F32 v = true -> Rabs (R2 v) <= 128 ->
+  keeps_asT
+  /\ Mem.load Mfloat32 m (e_blk E rO) (addr E rO oG) = Mem.load Mfloat32 m (e_blk E rM) oY
+  /\ (exists h kq jz, Mem.load Mfloat32 m (e_blk E rM) oY = Some (Vsingle h) /\ (kq <= 4)%nat
+       /\ (Float32.cmp Cgt v (Float32.of_int Int.zero) = false \/ (kq <= 2)%nat)
+       /\ HPi (Hit_at ge m0)
+             (ycast (Vsingle (Float32.add (add_zeros jz (quarter_steps kq y (Float32.div v f4))) c160))) h
+       /\ Hit_at ge m0 h)
+  /\ exists v', Mem.load Mfloat32 m (e_blk E rM) oV = Some (Vsingle v')
+       /\ F32 v' = true /\ R2 fm75 <= R2 v' /\ (R2 v' <= R2 (gravity f4 v) \/ v' = fm4).
+Proof.
+  intros H Fv Hv. unfold ledge_ok in H.
+  destruct (same_cell LD IC rM oA Mint32) eqn:SA; [| discriminate].
+  destruct (same_cell LD IC rM oS Mint16unsigned) eqn:SS; [| discriminate].
+  destruct (same_cell LD IC rM oT Mint16unsigned) eqn:ST; [| discriminate].
+  cbn [andb] in H.
+  destruct (LD rM oY Mfloat32) as [py|] eqn:LY; [| discriminate].
+  destruct (LD rM oV Mfloat32) as [vy|] eqn:LV; [| discriminate].
+  destruct (LD rO oG Mfloat32) as [gy|] eqn:LG; [| discriminate].
+  repeat rewrite andb_true_iff in H. destruct H as ((GE & L) & VO).
+  unfold sveqb in GE. destruct (sval_eq gy py) as [->|]; [| discriminate].
+  pose proof (ld_sound _ _ _ _ LY) as DY. pose proof (ld_sound _ _ _ _ LV) as DV.
+  pose proof (ld_sound _ _ _ _ LG) as DG.
+  rewrite addr_M in DY, DV.
+  split; [repeat split; apply same_cell_sound; assumption |].
+  split; [congruence |]. split.
+  - rewrite DY. destruct py; try discriminate.
+    apply existsb_exists in L as (f & If & Hf).
+    destruct f as [| | | k args]; cbn [lfact] in Hf; try discriminate.
+    destruct args as [| a0 [| ya [|]]]; try discriminate; destruct a0; try discriminate;
+      destruct ya as [ | | | | | | | op q t1 c t2 | | ]; try discriminate;
+      destruct op; try discriminate; destruct c; try discriminate.
+    cbn [lfact] in Hf. repeat rewrite andb_true_iff in Hf.
+    destruct Hf as (((((Hk & Hn) & H1) & H2) & Hc) & Hq).
+    apply Pos.eqb_eq in Hk. apply Pos.eqb_eq in Hn. apply is_tf_eq in H1. apply is_tf_eq in H2.
+    apply is_f_eq in Hc. subst.
+    destruct (qrec rM oY oV q) as [[kq jz]|] eqn:Q; [| discriminate]. apply Nat.leb_le in Hq.
+    assert (Hk4 : (kq <= 4)%nat) by (revert Hq; destruct (existsb (vle0 rM) (g_pc g)); lia).
+    assert (Hor : Float32.cmp Cgt v (Float32.of_int Int.zero) = false \/ (kq <= 2)%nat).
+    { revert Hq. destruct (existsb (vle0 rM) (g_pc g)) eqn:VL; intros Hq; [left | right; exact Hq].
+      apply existsb_exists in VL as (f' & If' & Hf'). exact (vle0_sound f' If' Hf'). }
+    pose proof MM as (_ & _ & _ & _ & _ & _ & PC & _).
+    destruct (PC _ If) as (_ & FH). cbn [fact_holds map] in FH.
+    destruct (HUH _ FH) as (h & yv & Evs & HP & HT).
+    cbn [den] in Evs.
+    rewrite (qrec_den ge m0 E (e_blk E rM) rM oY oV y v eq_refl HbM HY HV q kq jz Q) in Evs.
+    cbn in Evs. injection Evs as E1 E2. subst yv.
+    exists h, kq, jz. split; [exact E1 | split; [exact Hk4 | split; [exact Hor | split; [exact HP | exact HT]]]].
   - apply orb_true_iff in VO as [VC | VK].
     + rewrite (vel_cut_den _ VC) in DV. eexists; split; [exact DV |].
       split; [reflexivity |]. split; [rewrite B2R_fm75, B2R_fm4; lra | right; reflexivity].
@@ -737,4 +868,79 @@ Proof.
   - pose proof (cle_false_gt p x Fp Fx C). lra.
   - destruct (FD x Hx) as (Fx & _ & Wx).
     pose proof (cle_false_gt p x Fp Fx C). pose proof (wmotr_floor_low _ Wx). lra.
+Qed.
+
+(* ---- a ledge grab is an attach to a WMotR floor ---- *)
+
+Lemma B2R_c160 : R2 c160 = 160.
+Proof. unfold c160. vm_compute (Float32.of_bits _). unfold Binary.B2R, F2R. simpl. lra. Qed.
+Lemma F32_c160 : F32 c160 = true.  Proof. vm_compute. reflexivity. Qed.
+
+Lemma cgt_false_le : forall v, F32 v = true -> Float32.cmp Cgt v (Float32.of_int Int.zero) = false ->
+  R2 v <= 0.
+Proof.
+  intros v Fv H. assert (Z0 : Float32.of_int Int.zero = Float32.zero) by reflexivity. rewrite Z0 in H.
+  unfold Float32.cmp, Float32.compare in H.
+  rewrite Binary.Bcompare_correct in H by first [exact Fv | reflexivity].
+  destruct (Rcompare_spec (R2 v) (R2 Float32.zero)) as [L | L | L]; simpl in H; try discriminate;
+    replace (R2 Float32.zero) with 0 in L by reflexivity; lra.
+Qed.
+
+(* the ledge height: find_floor's height from nextPos + 160, with vel <= 0
+   (nextPos <= pos) or nextPos at most two quarters up *)
+Theorem ledge_height : forall Hit kq jz y v h, HitB Hit -> (kq <= 4)%nat ->
+  F32 y = true -> F32 v = true -> Rabs (R2 v) <= 128 -> -11000 <= R2 y <= 15000 -> R2 v <= 43 ->
+  (R2 v <= 0 \/ (kq <= 2)%nat) ->
+  HPi Hit (ycast (Vsingle (Float32.add (add_zeros jz (quarter_steps kq y (Float32.div v f4))) c160))) h ->
+  Hit h -> R2 h <= R2 y + Rmax 0 (R2 v) / 2 + STEP_UP.
+Proof.
+  intros Hit kq jz y v h HB Hk Fy Fv Hv Hy H43 Hor H Hh.
+  destruct (quarter_steps_up kq y v Hk Fy Fv ltac:(apply Rabs_le; lra) Hv) as (Fq & _ & Dn & _).
+  destruct (quarter_spec v Fv Hv) as (Fq4 & Hqe & _ & Hqp).
+  pose proof Hv as Hv'. pose proof Hqe as Hqe'. apply Rabs_le_inv in Hv', Hqe'.
+  assert (Hqb : Rabs (R2 (Float32.div v f4)) <= 33) by (apply Rabs_le; lra).
+  destruct (quarter_steps_spec kq y (Float32.div v f4) Hk Fy Fq4 ltac:(apply Rabs_le; lra) Hqb)
+    as (_ & (Lo & Up) & _).
+  assert (Hk4 : INR kq <= 4) by (replace 4 with (INR 4) by (simpl; lra); apply le_INR; exact Hk).
+  pose proof (pos_INR kq) as Hk0.
+  pose proof (Rmax_l 0 (R2 v)) as M0.
+  assert (M43 : Rmax 0 (R2 v) <= 43) by (apply Rmax_lub; lra).
+  set (q := add_zeros jz (quarter_steps kq y (Float32.div v f4))) in *.
+  assert (Eq : R2 q = R2 (quarter_steps kq y (Float32.div v f4))) by apply add_zeros_R2.
+  assert (Fq' : F32 q = true) by (apply add_zeros_F32; exact Fq).
+  pose proof Hqb as Hqb'. apply Rabs_le_inv in Hqb'.
+  assert (Qlo : -12000 <= R2 q) by (rewrite Eq; nra).
+  assert (Qhi : R2 q <= R2 y + Rmax 0 (R2 v) / 2 + 3 / 1024).
+  { rewrite Eq. destruct (Rle_dec (R2 v) 0) as [Hn | Hp].
+    - specialize (Dn Hn). lra.
+    - rewrite Rmax_right by lra. destruct Hor as [Hn | H2]; [lra |].
+      assert (K2 : INR kq <= 2) by (replace 2 with (INR 2) by (simpl; lra); apply le_INR; exact H2).
+      assert (Q0 : 0 <= R2 (Float32.div v f4)) by (apply Hqp; lra).
+      nra. }
+  destruct (f32_add_val q c160 Fq' F32_c160) as (Av & Af).
+  { rewrite B2R_c160. eapply Rle_trans; [| apply (bpow_le radix2 14 100); lia].
+    simpl. apply Rabs_le. lra. }
+  rewrite B2R_c160 in Av.
+  pose proof (rnd_err (R2 q + 160) 14 ltac:(lia) ltac:(simpl; apply Rabs_le; lra)) as Es.
+  replace (bpow radix2 (14 - 24)) with (/ 1024) in Es by (simpl; lra).
+  rewrite <- Av in Es. apply Rabs_le_inv in Es.
+  set (f := Float32.add q c160) in *.
+  destruct (ff_height_bound Hit f h HB Af ltac:(lra) H) as [E | (Ht & B)].
+  - subst h. rewrite B2R_c11000. unfold STEP_UP. lra.
+  - assert (Rmax (R2 f) (-11000) <= R2 y + Rmax 0 (R2 v) / 2 + 161) by (apply Rmax_lub; lra).
+    unfold STEP_UP. lra.
+Qed.
+
+Theorem ledge_attach : forall ge m0 kq jz y v h, floor_data ge m0 -> (kq <= 4)%nat ->
+  F32 y = true -> F32 v = true -> Rabs (R2 v) <= 128 -> -11000 <= R2 y <= 15000 -> R2 v <= 43 ->
+  (R2 v <= 0 \/ (kq <= 2)%nat) ->
+  HPi (Hit_at ge m0)
+    (ycast (Vsingle (Float32.add (add_zeros jz (quarter_steps kq y (Float32.div v f4))) c160))) h ->
+  Hit_at ge m0 h ->
+  wmotr_floor (R2 h) /\ R2 h <= R2 y + Rmax 0 (R2 v) / 2 + STEP_UP.
+Proof.
+  intros ge m0 kq jz y v h FD Hk Fy Fv Hv Hy H43 Hor HP Hh.
+  assert (HB : HitB (Hit_at ge m0)) by (intros x Hx; destruct (FD x Hx) as (F & B & _); auto).
+  split; [exact (proj2 (proj2 (FD h Hh))) |].
+  exact (ledge_height _ kq jz y v h HB Hk Fy Fv Hv Hy H43 Hor HP Hh).
 Qed.

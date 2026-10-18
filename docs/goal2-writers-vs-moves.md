@@ -2,7 +2,7 @@
 
 **Status:** 2026-09-27, research note, no Coq. Takes each writer in
 `docs/goal2-posy-writer-census.md` and says which Move kind covers it: ballistic,
-attach (find_floor return, at most y+239), launch, bounce, switch, GP windup, ground,
+attach (find_floor return, at most y+241), launch, bounce, switch, GP windup, ground,
 lower. Line numbers are `vendor/sm64/src/game/`. The census rows give the matching
 `generated/*.v` lines.
 

@@ -233,7 +233,7 @@ footer{margin-top:64px; padding-top:16px; border-top:1px solid var(--rule); font
       current speed can still buy. A step spends that credit to gain height and never creates any. The same crawl over <code>vel[1]</code> shows
       that without A, no launch sets more than 52 upward speed (a slide kick at most 30), so the credit starts small.</p></div>
     <div><h3>Snaps land on real floors</h3><p>Every <b>snap</b> writes a floor, ledge or pole height taken from the level. The level data
-      proves no floor exists between 2424 and 3046, and a snap only reaches a floor within 239 of where Mario already is. So no snap
+      proves no floor exists between 2424 and 3046, and a snap only reaches a floor within 241 of where Mario already is. So no snap
       carries him across the gap.</p></div>
     <div><h3>What the proof still has to show</h3><p>The list of sites is machine-checked. What each site <i>does</i> is not
       yet: that is the open part <code>Hframe_is_move_chain</code>, which walks the real code and shows each write is the move its bin says.
@@ -553,7 +553,7 @@ footer{margin-top:64px; padding-top:16px; border-top:1px solid var(--rule); font
     [26,'mario.c','init_mario','spawn position','other','level load, the starting state'],
     [27,'mario_step.c','perform_ground_quarter_step','nextPos on the ground','snap','ground step, follows the floor'],
     [28,'mario_step.c','perform_ground_quarter_step','(x, floorHeight, z)','snap',''],
-    [29,'mario_step.c','check_ledge_grab','ledge floor height','snap','a floor at most 239 up'],
+    [29,'mario_step.c','check_ledge_grab','ledge floor height','snap','a floor at most 241 up'],
     [30,'mario_step.c','perform_air_quarter_step','copy of nextPos','climb','the air step'],
     [31,'mario_step.c','perform_air_quarter_step','copy of nextPos','climb','the air step'],
     [32,'mario_actions_submerged.c','perform_water_full_step','swim step','absent','needs water'],

@@ -1,15 +1,16 @@
 (* ====================================================================== *)
-(* AirMove (unwired, GOAL 2): a classified non-landing outcome of the real *)
+(* AirMove (unwired, GOAL 2): every classified outcome of the real         *)
 (* perform_air_step is a HeightMoveCatalog RangedMove of Phi's cells.      *)
 (*                                                                          *)
 (* AirRun.air_step_outcome: every execution of the real perform_air_step   *)
-(* (Mario in ACT_FREEFALL) ends in a memory one outcome describes, and the *)
-(* outcome passes AirMatch.outcome_ok.  Here: when that outcome is an air  *)
-(* class (Cair: four quarters, vel to gravity's; Ccut k: a ceiling cut),   *)
-(* the cells read before and after are an S_air / S_air_cut step, and the *)
-(* new cells are in range (InRange): pos[1] ends above the floor height it  *)
-(* was compared with (AirMatch.above_low), floorHeight is the entry value  *)
-(* or a find_floor hit (a WMotR floor, so >= -11000).                      *)
+(* at act_freefall's call (stepArg AIR_STEP_CHECK_LEDGE_GRAB, Mario in     *)
+(* ACT_FREEFALL) ends in a memory one outcome describes, and the outcome   *)
+(* passes AirMatch.outcome_ok.  Here each class is one step:               *)
+(*   Cair (four quarters)            -> S_air                              *)
+(*   Ccut k (a ceiling cut)          -> S_air_cut                          *)
+(*   a landing                       -> S_attach (needs FloorRefreshOK)    *)
+(*   a ledge grab (check_ledge_grab) -> S_attach                           *)
+(* and the new cells are in range (InRange).                                *)
 (* ====================================================================== *)
 
 From Coq Require Import ZArith Reals List Lia Lra.
@@ -173,12 +174,11 @@ Qed.
    meets FloorRefreshOK -- a premise the frame-level proof discharges *)
 Hypothesis FRO : FloorRefreshOK wmotr_floor (R2 (c_posy c)) (R2 (c_floorh c)).
 
-Theorem land_move : outcome_ok LD IC (g_pc g) rM rO kH = true ->
-  aclass_of LD IC (g_pc g) rM rO kH = None ->
+Theorem land_move : cells_ok LD (g_pc g) rM rO kH = true ->
+  land_ok LD IC (g_pc g) rM rO kH = true ->
   exists c', read_cells bm m c' /\ RM' c c'.
 Proof.
-  intros OK H.
-  unfold outcome_ok in OK. apply andb_true_iff in OK as (CO & OK). rewrite H in OK.
+  intros CO OK.
   destruct entry_ranges as (Fy & Fv & Hy & Hv & Hv43 & Ff & Lf).
   pose proof (budget_ok_y c Hc) as Hyhi. unfold PHI_YMAX, PHI_K, PHI_A in Hyhi.
   pose proof Hc as ((_ & _ & _ & Lylo & _) & _).
@@ -192,7 +192,7 @@ Proof.
   { destruct LP as [LP | (h & kq & jz & LP & Hk & HPi' & Hh)].
     - rewrite LP, HF. exists (c_floorh c). split; [reflexivity | split; [exact Ff | split; [exact Lf |]]].
       destruct FRO as [Es | FW].
-      + right; right; right; right; right. exact Es.
+      + right; right; right; right; right; left. exact Es.
       + right; left. exact FW.
     - destruct (FD h Hh) as (Fh & _ & Wh).
       exists h. split; [exact LP | split; [exact Fh | split; [exact (wmotr_floor_low _ Wh) |]]].
@@ -218,6 +218,46 @@ Proof.
   - intros E'. exfalso. exact (not_ledge E').
 Qed.
 
+(* a ledge grab (check_ledge_grab): an S_attach step onto the WMotR floor
+   find_floor found 160 above nextPos[1] (vel[1] <= 0, or a ceiling bump
+   zeroed it after at most two rising quarters) *)
+Theorem ledge_move : cells_ok LD (g_pc g) rM rO kH = true ->
+  ledge_ok LD IC (g_pc g) rM rO kH = true ->
+  exists c', read_cells bm m c' /\ RM' c c'.
+Proof.
+  intros CO OK.
+  destruct entry_ranges as (Fy & Fv & Hy & Hv & Hv43 & Ff & Lf).
+  pose proof (budget_ok_y c Hc) as Hyhi. unfold PHI_YMAX, PHI_K, PHI_A in Hyhi.
+  pose proof Hc as ((_ & _ & _ & Lylo & _) & _).
+  destruct (ledge_sound ge nbase R0 gtab kv m0 uf gp gp_old E m g rM rO (c_posy c) (c_vely c) kH
+              MM HUH HbM HY HV OK Fv Hv)
+    as ((KA & KS & KT) & LG & (h & kq & jz & LP & Hk & Hor & HPi' & Hh) & (v' & LV & Fv' & Lo & Hi)).
+  destruct (floorh_new CO) as (LMO & fh & LF & Ffh & Lfh).
+  destruct (FD h Hh) as (Fp & _ & Wh).
+  pose proof (wmotr_floor_low _ Wh) as Lp.
+  assert (Hor' : R2 (c_vely c) <= 0 \/ (kq <= 2)%nat)
+    by (destruct Hor as [Cv | K2]; [left; exact (cgt_false_le _ Fv Cv) | right; exact K2]).
+  destruct (ledge_attach ge m0 kq jz (c_posy c) (c_vely c) h FD Hk Fy Fv Hv ltac:(split; lra) Hv43 Hor' HPi' Hh)
+    as (W & Le).
+  assert (Hv' : R2 v' <= 43).
+  { destruct Hi as [Hi | ->]; [| rewrite B2R_fm4; lra].
+    destruct (gravity_spec2 f4 (c_vely c) F32_f4 Fv (or_intror B2R_f4) Hv) as [(_ & G) | (_ & G)];
+      [lra | rewrite B2R_f4 in G; apply Rabs_le_inv in G; lra]. }
+  exists (mkCells (c_action c) (c_state c) (c_timer c) h v' fh h).
+  split; [ unfold read_cells; cbn [c_action c_state c_timer c_posy c_vely c_floorh c_gfxy];
+           rewrite <- HA, <- HS, <- HT; repeat split; try assumption;
+           exists (e_blk E rO), (e_base E rO); split; [exact LMO | transitivity (Mem.load Mfloat32 m bm oY); [exact LG | exact LP]] |].
+  split; [ unfold InRange; cbn [c_posy c_vely c_floorh c_gfxy];
+           rewrite B2R_fm75 in Lo; repeat split; try assumption; try lra |].
+  apply (S_attach _ _ _ c _ (R2 h)); cbn [c_action c_posy c_vely c_gfxy c_floorh].
+  - right; right; right; right; right; right. split; [exact mode_ff | split; assumption].
+  - apply Rle_refl.
+  - left. reflexivity.
+  - change (mode_of (mkCells (c_action c) (c_state c) (c_timer c) h v' fh h)) with (mode_of c).
+    rewrite mode_ff. exact Hv'.
+  - intros E'. exfalso. exact (not_ledge E').
+Qed.
+
 (* every classified outcome of the real perform_air_step is one RangedMove *)
 Theorem outcome_move : outcome_ok LD IC (g_pc g) rM rO kH = true ->
   exists c', read_cells bm m c' /\ RM' c c'.
@@ -226,7 +266,8 @@ Proof.
   destruct (aclass_of LD IC (g_pc g) rM rO kH) as [[|k]|] eqn:H.
   - exact (air_move OK H).
   - exact (cut_move k OK H).
-  - exact (land_move OK H).
+  - unfold outcome_ok in OK. rewrite H in OK. apply andb_true_iff in OK as (CO & OK).
+    apply orb_true_iff in OK as [OK | OK]; [exact (land_move CO OK) | exact (ledge_move CO OK)].
 Qed.
 End AIRMOVE.
 
@@ -244,7 +285,7 @@ Theorem air_step_move : forall m0 gp E t m' vres c,
   (forall f, In f (pc0 G) -> fact_holds G (R0 G) m0 (ufW G m0 gp) E f) ->
   e_base E RM = Ptrofs.zero ->
   eval_funcall function_entry2 G m0 (Internal mario_step.f_perform_air_step)
-    [Vptr (e_blk E RM) (Ptrofs.add (e_base E RM) Ptrofs.zero); Vint Int.zero] t m' vres ->
+    [Vptr (e_blk E RM) (Ptrofs.add (e_base E RM) Ptrofs.zero); Vint Int.one] t m' vres ->
   read_cells (e_blk E RM) m0 c -> budget_ok c ->
   floor_data G m0 -> FloorRefreshOK wmotr_floor (R2 (c_posy c)) (R2 (c_floorh c)) ->
   exists c', read_cells (e_blk E RM) m' c' /\ RM' c c'.

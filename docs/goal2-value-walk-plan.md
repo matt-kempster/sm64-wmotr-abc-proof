@@ -499,3 +499,26 @@ both find_floor calls in `update_mario_geometry_inputs` miss, floorHeight is −
 and a floorless quarter compares against it. Still open: landings (S_attach),
 `HbO`, env_ok and pc0 from the frame memory, and other air actions (the walk fixes
 ACT_FREEFALL).
+
+**Done: every freefall air step is a RangedMove, at its real call.**
+act_freefall reaches `perform_air_step` through `common_air_action_step` with
+`AIR_STEP_CHECK_LEDGE_GRAB` (1). The walk up to 1d15c11 used stepArg 0, so it did not
+cover that call. The walk now uses stepArg 1 and yields 1644 outcomes. To get there,
+SymExec2 drops a path that dereferences a NULL contract result (`nullx`;
+check_ledge_grab reads `ledgeFloor->normal`). There are 184 ledge-grab outcomes, and
+`AirMatch.ledge_ok` classifies them. On a ledge grab, pos[1] = gfx = a find_floor
+height searched from `nextPos[1] + 160.0f`, on a path with `!(vel[1] > 0)`.
+`ledge_height` gives h ≤ y + 241: the hit is ≤ trunc(search y) + 79 by
+`ff_height_bound`, nextPos ≤ y when vel ≤ 0, and the add rounds by ≤ 1/1024. So
+STEP_UP went 239 → 241 (moat 613 < 622). Forty ledge outcomes come after a ceiling
+bump. The bump zeroes vel[1] after at most two rising quarters (mario_step.c:446-452),
+so the search starts up to v/2 above pos[1]. `ledge_ok` accepts kq ≤ 2 there, and
+`HeightMoveCatalog.AttachOK` gained a freefall disjunct for it: a WMotR floor ≤ y +
+max(0,v)/2 + STEP_UP. `attach_le_K` pays the v/2 from freefall's credit
+(`rise_half`: (v+2)²/8 ≥ v/2). `AirMove.ledge_move` makes either case an S_attach
+step. `outcome_move` now covers every class (air, cut, landing, ledge). Landings
+(`land_move`) take `FloorRefreshOK` for the entry floorHeight. Env_ok and pc0 come
+from plain memory facts (`AirStart`). Still open: the
+act_freefall / common_air_action_step layer (it discharges FloorRefreshOK and the
+memory facts from the frame), `floor_data` (TRUST 0.8(d)), the other air actions,
+and frame composition.

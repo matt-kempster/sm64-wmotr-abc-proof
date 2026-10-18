@@ -24,7 +24,7 @@ Heights are relative to the floor the episode launched or bounced from (a floor 
 | ground dive, vel 20 | 60 | 138 |
 | rollout, vel 30 | 128 | 206 |
 | slide-kick launch, vel 12, g 2 | 42 | 120 |
-| walk off a ledge → freefall → GP / ledge grab | 110 | 239 |
+| walk off a ledge → freefall → GP / ledge grab | 110 | 241 |
 | butt-slide-air bounce (g 4) → freefall → GP / ledge grab | **305** | 434 |
 | **slide-kick bounce (g 2) → freefall → GP / ledge grab** | **370.5** | **494** |
 
@@ -131,7 +131,7 @@ a ledge-attach margin of 12.5.
    y ≤ K), bounces (floor ≤ K, |v| ≤ 75), →FREEFALL (reserve), →GP (reserve →
    windup), wall bonks (v zeroed).
 4. **Attach edges** (landing, ledge grab, climb): the new floor is a real
-   WMotR floor ≤ y + 78 (landing) or ≤ y + 239 (ledge). With y ≤ K + A that
+   WMotR floor ≤ y + 78 (landing) or ≤ y + 241 (ledge). With y ≤ K + A that
    means a floor ≤ K + 494 < K + 622, so by the gap fact it is ≤ K. This needs:
    - the **find_floor value contract**: the returned height is a WMotR floor
      height (or −11000);

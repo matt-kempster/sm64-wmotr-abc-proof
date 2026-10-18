@@ -37,7 +37,7 @@ Hseg_action_phi  (one real execute_mario_action keeps Phi)
 | move | what it does | proved by |
 |---|---|---|
 | ballistic | k ≤ 4 quarter steps of `y += v/4` (a ceiling or wall can stop early), then gravity g(action) and the −75 clamp | `ballistic_frame` (Unwired/HeightFloatSteps.v) |
-| attach | y := floorHeight, a find_floor return ≤ y + 239 (landing / ledge) | `gap_fact_step` + `wmotr_gap` |
+| attach | y := floorHeight, a find_floor return ≤ y + 241 (landing / ledge) | `gap_fact_step` + `wmotr_gap` |
 | launch | ground → air action, vel := a table constant, same y | `launch_budget` (Unwired/HeightBudgetArith.v) |
 | bounce | SK / BSA landing, vel := −vel/2, y := the floor | `sk_bounce_budget`, `bsa_bounce_budget` |
 | switch | action edge from E3's table: y unchanged, vel unchanged or ≤ 0 | `sk_bounced_to_freefall`, `freefall_to_gp` |
@@ -90,7 +90,7 @@ generated AST (`docs/goal2-writers-vs-moves.md`).
   - `S_gp_windup` and `S_gp_hold`.
   - `S_switch`: E3's edges. Plain-air targets get v' ≤ v; freefall is entered from
     freefall, butt-slide-air or a slide kick past 30 ticks; freefall → GP.
-  - `S_attach`: anchored at a grounded y, a WMotR floor within 239, the ledge floor, or a
+  - `S_attach`: anchored at a grounded y, a WMotR floor within 241, the ledge floor, or a
     pole, with per-kind launch caps.
   - `S_refresh` and `S_oob`.
 - **Constants changed**, each forced by a move:

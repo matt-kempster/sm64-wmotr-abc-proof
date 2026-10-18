@@ -234,7 +234,7 @@ Theorem air_step_move_mem : forall m0 bm bo oo bfi bmiss bcalls t m' vres c,
   Mem.load Mint32 m0 bm OFS_MARIOOBJ = Some (Vptr bo oo) ->
   (forall f, In f (pc0 G) -> fact_holds G (R0 G) m0 (ufW G m0 (gpv m0)) (E0 bm bo bfi bmiss bcalls oo) f) ->
   eval_funcall function_entry2 G m0 (Internal mario_step.f_perform_air_step)
-    [Vptr bm Ptrofs.zero; Vint Int.zero] t m' vres ->
+    [Vptr bm Ptrofs.zero; Vint Int.one] t m' vres ->
   read_cells bm m0 c -> budget_ok c -> c_action c = ACT_FREEFALL ->
   floor_data G m0 -> FloorRefreshOK wmotr_floor (R2 (c_posy c)) (R2 (c_floorh c)) ->
   exists c', read_cells bm m' c' /\ RM' c c'.
@@ -275,7 +275,7 @@ Theorem air_step_move_mem2 : forall m0 bm bo oo bfi bmiss bcalls t m' vres c fl 
   Mem.load Mint32 m0 bm (fo G mario._MarioState mario._area) = Some ar ->
   wptr m0 bm bo bfi bmiss bcalls ar (szs G mario._Area) ->
   eval_funcall function_entry2 G m0 (Internal mario_step.f_perform_air_step)
-    [Vptr bm Ptrofs.zero; Vint Int.zero] t m' vres ->
+    [Vptr bm Ptrofs.zero; Vint Int.one] t m' vres ->
   read_cells bm m0 c -> budget_ok c -> c_action c = ACT_FREEFALL ->
   floor_data G m0 -> FloorRefreshOK wmotr_floor (R2 (c_posy c)) (R2 (c_floorh c)) ->
   exists c', read_cells bm m' c' /\ RM' c c'.

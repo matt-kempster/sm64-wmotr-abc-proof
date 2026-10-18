@@ -72,7 +72,9 @@ Definition pc0 : list fact :=
 
 Definition g0 : gst := mkg nil pc0 NB nil.
 
-Definition args0 : list sval := [Sptr RM Ptrofs.zero; Sconst (Vint Int.zero)].
+(* stepArg = AIR_STEP_CHECK_LEDGE_GRAB (1): act_freefall's call, through
+   common_air_action_step *)
+Definition args0 : list sval := [Sptr RM Ptrofs.zero; Sconst (Vint Int.one)].
 
 Definition ok_c (c : cpath) : bool :=
   outcome_ok (sload NB R0 kv (fst c)) (init_cell kv) (g_pc (fst c)) RM RO kH.
@@ -144,7 +146,7 @@ Theorem air_step_outcome : forall m0 gp E t m' vres,
   env_ok G NB (R0 G) gtab (kv G) m0 gp E ->
   (forall f, In f (pc0 G) -> fact_holds G (R0 G) m0 (ufW G m0 gp) E f) ->
   eval_funcall function_entry2 G m0 (Internal mario_step.f_perform_air_step)
-    [Vptr (e_blk E RM) (Ptrofs.add (e_base E RM) Ptrofs.zero); Vint Int.zero] t m' vres ->
+    [Vptr (e_blk E RM) (Ptrofs.add (e_base E RM) Ptrofs.zero); Vint Int.one] t m' vres ->
   exists E' gs, Ext E E' NB
     /\ MMg G NB (R0 G) gtab (kv G) m0 (ufW G m0 gp) gp E' m' gs
     /\ outcome_ok (sload NB (R0 G) (kv G) gs) (init_cell (kv G)) (g_pc gs) RM RO kH = true.
@@ -159,7 +161,7 @@ Proof.
                   RFI RMISS RCALLS kW kH (szs G mario._Surface) GPO eq_refl eq_refl eq_refl
                   (fun vs H => H) (fun h yv H1 H2 => conj H1 H2)).
   assert (ARGS : Forall2 (fun a v => den G m0 E a = Some v /\ sok NB (g_nx (g0 G)) a) args0
-                   [Vptr (e_blk E RM) (Ptrofs.add (e_base E RM) Ptrofs.zero); Vint Int.zero]).
+                   [Vptr (e_blk E RM) (Ptrofs.add (e_base E RM) Ptrofs.zero); Vint Int.one]).
   { constructor; [| constructor; [| constructor]].
     - split; [reflexivity |]. cbn [sok nlt g0 g_nx]. split; [unfold Plt, Pos.lt; reflexivity | exact I].
     - split; [reflexivity |]. split; [exact I | reflexivity]. }

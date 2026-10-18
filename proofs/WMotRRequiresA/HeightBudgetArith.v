@@ -8,7 +8,7 @@
 (*   2. bounces (slide kick state 0 -> 1, butt-slide-air) at -75 <= v < 0;  *)
 (*   3. slide kick state 1 -> freefall edge (timer >= 30);                  *)
 (*   4. freefall -> ground pound, and one GP windup frame;                  *)
-(*   5. landing / attach, and the gap-fact step (239 + 372 < 622).          *)
+(*   5. landing / attach, and the gap-fact step (241 + 372 < 622).          *)
 (* Real arithmetic only: the binary32 rounding of these moves is in         *)
 (* HeightFloatSteps / HeightMoveCatalog, and that the generated Clight performs *)
 (* them is HeightFrame's Hframe_is_move_chain row.  Consumed by HeightMoveCatalog.v. *)
@@ -160,9 +160,14 @@ Lemma landing_budget : forall h, h <= PHI_K -> h + PHI_A <= PHI_K + PHI_A.
 Proof. intros. lra. Qed.
 
 Definition GAP : R := 622.
-Definition STEP_UP : R := 239.
+(* the highest an attach lifts pos[1] above the step's start: a ledge grab
+   takes find_floor's height searched from nextPos[1] + 160 (a hit at most
+   79 above the truncated search y, so <= nextPos + 240), with vel <= 0 so
+   nextPos <= pos + binary32 rounding (AirMatch.ledge_height).  239 until
+   2026-10-18, when the real ledge-grab walk needed the rounding slack. *)
+Definition STEP_UP : R := 241.
 
-Lemma gap_margin : STEP_UP + PHI_A < GAP.           (* 611 < 622 *)
+Lemma gap_margin : STEP_UP + PHI_A < GAP.           (* 613 < 622 *)
 Proof. unfold STEP_UP, PHI_A, GAP. lra. Qed.
 
 Lemma gap_fact_step : forall h y c,

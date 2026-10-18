@@ -128,7 +128,7 @@ cannon lids.
   `vel[1] ≤ 0` (:354). It calls `find_floor(ledgeX, nextPos[1] + 160, ledgeZ)`
   (:371), so h ≤ (s16)(nextY+160) + 78 ≤ nextY + 238 (+1 if the argument is
   negative). It then requires h − nextY > 100 (:373). **The ledge window is
-  (nextY+100, nextY+238]**, or 239 with the negative-y truncation. The +239 in
+  (nextY+100, nextY+238]**, or 239 with the negative-y truncation (241 in the proof: binary32 rounding of nextPos + 160, `HeightBudgetArith.STEP_UP`). The +239 in
   goal2-phi.md §3.4 is a correct (slightly loose) bound. With y ≤ K+A = 2744 the
   attached floor is ≤ 2983 < 2994: a margin of **11** against the band's open
   top. The bound only needs to stay below the next floor, which is 4468, so the

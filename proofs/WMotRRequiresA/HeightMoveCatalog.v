@@ -265,7 +265,12 @@ Section Moves.
     (* a floorless air quarter lands at m->floorHeight (mario_step.c:414-416),
        which is find_floor's no-floor value -11000 when both find_floor calls
        of update_mario_geometry_inputs missed *)
-    \/ h = -11000.
+    \/ h = -11000
+    (* a freefall ledge grab after a ceiling bump: the bump zeroes vel[1]
+       after at most two rising quarters (mario_step.c:446-452), so the ledge
+       search starts up to vel/2 above pos[1]; freefall's credit pays the vel/2 *)
+    \/ (mode_of c = M_Freefall /\ wmotr_floor h
+        /\ h <= R2 (c_posy c) + Rmax 0 (R2 (c_vely c)) / 2 + STEP_UP).
 
   Definition FloorRefreshOK (y fh : R) : Prop :=
     fh = -11000 \/ (wmotr_floor fh /\ fh <= y + STEP_UP).
@@ -359,13 +364,22 @@ Section Moves.
   Definition MoveChain : cells -> cells -> Prop := clos_refl_trans cells RangedMove.
 
   (* ---- the proofs ------------------------------------------------------- *)
+  (* freefall's credit covers half a rising vel: (v+2)^2/8 >= v/2 *)
+  Lemma rise_half : forall v, Rmax 0 v / 2 <= rise_credit 4 v + GP_RESERVE.
+  Proof.
+    intros v. unfold rise_credit, energy, GP_RESERVE, EPS.
+    destruct (Rle_dec v 0) as [Hn | Hp].
+    - rewrite Rmax_left by lra. lra.
+    - rewrite Rmax_right by lra. nra.
+  Qed.
+
   Lemma attach_le_K : forall c h, budget_ok c -> AttachOK c h -> h <= PHI_K.
   Proof.
     intros c h Hc Ha.
     pose proof (budget_ok_y c Hc) as Hy.
     destruct Hc as (_ & Hb & _ & _ & _ & Hl).
     rewrite credit_of_mode in Hb.
-    destruct Ha as [[Hk Hh] | [[Hf Hh] | [[Ha Hh] | [(base & top & Hp & Hw & Hh) | [Hcn | Hs]]]]].
+    destruct Ha as [[Hk Hh] | [[Hf Hh] | [[Ha Hh] | [(base & top & Hp & Hw & Hh) | [Hcn | [Hs | (Hm & Hf & Hh)]]]]]].
     - rewrite Hk in Hb. simpl in Hb. lra.
     - apply (gap_fact_step h (R2 (c_posy c)) (mode_credit (mode_of c) (timer_of c) (R2 (c_vely c))));
         [ exact Hh | | exact Hb | apply wmotr_gap; exact Hf ].
@@ -374,6 +388,11 @@ Section Moves.
     - destruct (wmotr_poles base top Hp); lra.
     - exact (wmotr_cannons h Hcn).
     - rewrite Hs. unfold PHI_K. lra.
+    - rewrite Hm in Hb. cbn [mode_credit] in Hb.
+      pose proof (rise_half (R2 (c_vely c))) as Hr.
+      apply (gap_fact_step h (R2 (c_posy c) + Rmax 0 (R2 (c_vely c)) / 2)
+               (rise_credit 4 (R2 (c_vely c)) + GP_RESERVE - Rmax 0 (R2 (c_vely c)) / 2));
+        [ lra | lra | lra | apply wmotr_gap; exact Hf ].
   Qed.
 
   Lemma floor_refresh_ledge : forall c y fh,
