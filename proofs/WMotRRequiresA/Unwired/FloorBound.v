@@ -142,19 +142,6 @@ Proof.
   eexists. reflexivity.
 Qed.
 
-(* the s16 cast is the identity on s16 values *)
-Lemma sext16_small : forall x, (-32768 <= Int.signed x < 32768)%Z -> Int.sign_ext 16 x = x.
-Proof.
-  intros x Hx.
-  destruct (Int.eqmod_sign_ext 16 x ltac:(cbn; lia)) as (k & Ek).
-  pose proof (Int.sign_ext_range 16 x ltac:(cbn; lia)) as R.
-  pose proof (Int.unsigned_signed x) as U.
-  change (two_p 16) with 65536%Z in Ek. change (two_p (16 - 1)) with 32768%Z in R.
-  assert (S : Int.signed (Int.sign_ext 16 x) = Int.signed x).
-  { destruct (Int.lt x Int.zero); rewrite U in Ek; change Int.modulus with 4294967296%Z in Ek; lia. }
-  rewrite <- (Int.repr_signed (Int.sign_ext 16 x)), S. apply Int.repr_signed.
-Qed.
-
 (* find_floor's y: the s16 cast of yPos, within 1 of it *)
 Lemma ycast_val : forall f, F32 f = true -> Rabs (R2 f) <= 30000 ->
   exists yi, ycast (Vsingle f) = Vint yi /\ R2 f - 1 < IZR (Int.signed yi) < R2 f + 1.

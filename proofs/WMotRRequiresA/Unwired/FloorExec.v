@@ -279,6 +279,14 @@ Proof.
   exists id, bp, o. split; [exact Hin | split; [exact Hs |]].
   cbn [Mem.loadv] in *. rewrite <- (ld_m0 E m g _ _ _ MMh Old NR). exact Hl.
 Qed.
+
+Lemma floor_head_to_m0 : forall hd, Wff ge m0 gp szS vs -> floor_head ge m hd -> floor_head ge m0 hd.
+Proof.
+  intros hd (_ & WP & _) (id & bp & z & x & Hin & Hs & Rz & Rx & Hl).
+  destruct (WP id bp Hin Hs) as (Old & NR & _).
+  exists id, bp, z, x. do 4 (split; [assumption |]).
+  cbn [Mem.loadv] in *. rewrite <- (ld_m0 E m g _ _ _ MMh Old NR). exact Hl.
+Qed.
 End LISTS.
 
 
@@ -380,11 +388,12 @@ Proof.
     by (intros b Hb; eapply Plt_Ple_trans; [exact Hb | exact NX]).
   (* the height: -11000 or a real hit on m0's lists (FloorHeight.ff_height) *)
   assert (HitM0 : forall h', Hit_at ge m h' -> Hit_at ge m0 h').
-  { intros h' (hd & s & x & z & PH & OL & Ht).
-    pose proof (part_head_to_m0 E m g MMh hd HW PH) as PH0.
+  { intros h' (hd & s & x & z & FH & OL & Ht).
+    pose proof (floor_head_to_m0 E m g MMh hd HW FH) as FH0.
+    pose proof (floor_head_part _ _ _ FH0) as PH0.
     pose proof (on_list_to_m0 E m g MMh hd s (WL hd PH0) OL) as OL0.
     destruct (WSurf hd s PH0 OL0) as (bs & os & -> & Ob & _ & NR & _).
-    exists hd, (Vptr bs os), x, z. split; [exact PH0 | split; [exact OL0 |]].
+    exists hd, (Vptr bs os), x, z. split; [exact FH0 | split; [exact OL0 |]].
     exact (hit_transfer m m0 bs os x z h' (fun ch z' => ld_m0 E m g bs z' ch MMh Ob NR) Ht). }
   match goal with Dy : den E a2 = Some ?yv /\ _ |- _ =>
     assert (HGT : HPi (Hit_at ge m0) (ycast yv) h) end.

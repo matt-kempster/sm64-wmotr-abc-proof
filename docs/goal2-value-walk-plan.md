@@ -464,3 +464,12 @@ well-formed. That turns 0.8(d) into a fact about level data: every (surface, x, 
 hit on WMotR's static lists gives a finite height in the floor range. It no longer
 mentions executions, so the next step can state it as a world-data clause of Wff,
 and per-triangle interval reasoning can later discharge it.
+
+**Done: the hit is on a FLOOR list.** `part_head` meant any word of either partition
+array, which takes in the ceiling and wall lists too. Their plane heights are not
+floor heights, so a world-data clause over `part_head` would have been a phantom ∀
+(false as stated). `Hit_at` now uses `FloorHeight.floor_head`: the head read at
+offset `384·z + 24·x` (slot 0, `SPATIAL_PARTITION_FLOORS`) of a partition array,
+with 0 ≤ z, x < 16. The proof comes from the body. `ev_cellidx` shows the masked
+cell index is in [0, 16), `ev_part` evaluates the triple-indexed address, and
+`HH_set_sl` records the head as a `floor_head`.
