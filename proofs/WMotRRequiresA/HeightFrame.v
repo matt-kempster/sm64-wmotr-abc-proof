@@ -356,17 +356,6 @@ Section HeightLinked12.
      R0 nextblock-bound conjunct via glob_valid_of_nextbound), so it is no
      longer an assumed row here either. *)
   (* the dst-gated writer rows (dg): see NoAImpliesNoFlyLinked *)
-  Hypothesis Hdg_v3f_real :
-    call_pres_ext_dg lp bm (NoA_real bm) MWF SafeB
-      mario_actions_automatic._vec3f_copy.
-  Hypothesis Hdg_v3s_real :
-    call_pres_ext_dg lp bm (NoA_real bm) MWF SafeB
-      mario_actions_automatic._vec3s_set.
-  Hypothesis Hdg_v3fset_real :
-    call_pres_ext_dg lp bm (NoA_real bm) MWF SafeB
-      mario_actions_automatic._vec3f_set.
-  Hypothesis Hdg_v3scopy_real :
-    call_pres_ext_dg lp bm (NoA_real bm) MWF SafeB mario._vec3s_copy.
   Hypothesis Hdg_spoll_real :
     call_pres_ext_dg lp bm (NoA_real bm) MWF SafeB
       mario_actions_cutscene._anim_spline_poll.

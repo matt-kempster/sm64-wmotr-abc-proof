@@ -836,7 +836,8 @@ Section NoARealInputMWF.
   Hypothesis LO_math : linkorder math_util.prog lp.
   Ltac sb_row := first [ exact Hbc_bm | exact HSafeB_not_bm | exact Hgms_blk
     | exact Hglob_blk | exact Hgtimer_blk | exact Htable_blk | exact Hktab_blk
-    | exact LO_surf | exact Hbc_sym | exact LO_mario ].
+    | exact LO_surf | exact Hbc_sym | exact LO_mario | exact LO_math
+    | exact HSafeB_not_bc ].
   (* PROVED (was a row): find_floor's real body, linked
      (SurfaceBodies.Hocp_find_floor_proved). *)
   Lemma Hocp_find_floor :
@@ -886,18 +887,26 @@ Section NoARealInputMWF.
      kinds every real call site uses (SafeB object chase / 12-store-safe Mario
      window / caller stack local).  They REPLACE the false any-argument
      obj_ext entries and the false 4-byte-window wol row; the old sc / w1 / wl
-     rows are now DERIVED below (call_pres_ext_{sc,w1,wl}_of_dg). *)
-  Hypothesis Hdg_v3f_real :
+     rows are now DERIVED below (call_pres_ext_{sc,w1,wl}_of_dg).
+     PROVED (were rows): math_util is in the link, so each resolves to its
+     real body (LO_math), and MathBodies proves the dg row from that body
+     (a SafeB / window / stack-local destination is store-safe, and the
+     destination cannot be the body's own fresh _dest shadow). *)
+  Lemma Hdg_v3f_real :
     call_pres_ext_dg lp bm (NoA_real bm) MWF SafeB
       mario_actions_automatic._vec3f_copy.
-  Hypothesis Hdg_v3s_real :
+  Proof. eapply MathBodies.Hdg_v3f_proved; sb_row. Qed.
+  Lemma Hdg_v3s_real :
     call_pres_ext_dg lp bm (NoA_real bm) MWF SafeB
       mario_actions_automatic._vec3s_set.
-  Hypothesis Hdg_v3fset_real :
+  Proof. eapply MathBodies.Hdg_v3s_proved; sb_row. Qed.
+  Lemma Hdg_v3fset_real :
     call_pres_ext_dg lp bm (NoA_real bm) MWF SafeB
       mario_actions_automatic._vec3f_set.
-  Hypothesis Hdg_v3scopy_real :
+  Proof. eapply MathBodies.Hdg_v3fset_proved; sb_row. Qed.
+  Lemma Hdg_v3scopy_real :
     call_pres_ext_dg lp bm (NoA_real bm) MWF SafeB mario._vec3s_copy.
+  Proof. eapply MathBodies.Hdg_v3scopy_proved; sb_row. Qed.
   (* anim_spline_poll(result) writes through result (jumbo_star_cutscene_
      flying's stack-local targetPos): the same dg class *)
   Hypothesis Hdg_spoll_real :
