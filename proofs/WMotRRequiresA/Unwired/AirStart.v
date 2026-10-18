@@ -148,6 +148,55 @@ Qed.
 
 End START.
 
+
+(* ---- the walk's start facts (pc0) from plain memory facts ---- *)
+Section PC0.
+Variable G : genv.
+Variables (m0 : mem) (bm bo bfi bmiss bcalls : block) (oo : ptrofs).
+Local Notation E := (E0 bm bo bfi bmiss bcalls oo).
+
+(* a world pointer: a valid block that is none of the walk's regions *)
+Definition wptr (v : val) (n : Z) : Prop :=
+  exists b o, v = Vptr b o /\ Plt b (Mem.nextblock m0) /\ 0 <= n
+    /\ Ptrofs.unsigned o + n <= Ptrofs.modulus
+    /\ b <> bm /\ b <> bo /\ b <> bfi /\ b <> bmiss /\ b <> bcalls.
+
+Lemma wptr_holds : forall p n v, den G m0 E p = Some v -> wptr v n ->
+  fact_holds G (R0 G) m0 (ufW G m0 (gpv m0)) E (Fworld p n).
+Proof.
+  intros p n v D (b & o & -> & Vb & Hn & Ho & D1 & D2 & D3 & D4 & D5).
+  cbn [fact_holds]. exists b, o. repeat split; try assumption.
+  intros r sz _. left. cbn [e_blk E0].
+  destruct (Pos.eqb r RM); [congruence |]. destruct (Pos.eqb r RO); [congruence |].
+  destruct (Pos.eqb r RFI); [congruence |]. destruct (Pos.eqb r RMISS); congruence.
+Qed.
+
+Theorem pc0_mem : forall fl ar inp,
+  Wff G m0 (gpv m0) (szs G mario._Surface)
+    (map (den G m0 E) (wargs (R0 G))) ->
+  Mem.load Mint16unsigned m0 bm 2 = Some (Vint inp) -> Int.and inp (Int.repr 130) = Int.zero ->
+  Mem.load Mint32 m0 bm (fo G mario._MarioState mario._floor) = Some fl ->
+  wptr fl (szs G mario._Surface) ->
+  (exists b o, fl = Vptr b o /\ styp m0 b o) ->
+  Mem.load Mint32 m0 bm (fo G mario._MarioState mario._area) = Some ar ->
+  wptr ar (szs G mario._Area) ->
+  forall f, In f (pc0 G) -> fact_holds G (R0 G) m0 (ufW G m0 (gpv m0)) E f.
+Proof.
+  intros fl ar inp HW Li Ai Lf Wf Tf La Wa f Hf.
+  assert (DI : forall o ch, den G m0 E (Sinit RM o ch) = Mem.load ch m0 bm o).
+  { intros o ch. cbn [den e_blk e_base E0]. unfold RM, RO; cbn [Pos.eqb].
+    rewrite Ptrofs.unsigned_zero, Z.add_0_l. reflexivity. }
+  unfold pc0 in Hf. cbn [app In ffacts] in Hf.
+  destruct Hf as [<- | [<- | [<- | [<- | [<- | [<- | []]]]]]].
+  - cbn [fact_holds]. unfold ufW. rewrite Pos.eqb_refl. exact HW.
+  - cbn [fact_holds]. exists inp. rewrite DI. split; [exact Li | exact Ai].
+  - apply (wptr_holds _ _ fl); [rewrite DI; exact Lf | exact Wf].
+  - apply (wptr_holds _ _ ar); [rewrite DI; exact La | exact Wa].
+  - destruct Tf as (b & o & -> & T). apply (fty_holds G (R0 G) m0 _ E _ b o); [rewrite DI; exact Lf | exact T | auto].
+  - destruct Tf as (b & o & -> & T). apply (fty_holds G (R0 G) m0 _ E _ b o); [rewrite DI; exact Lf | exact T | auto].
+Qed.
+End PC0.
+
 (* ---- the layout facts the start needs, pinned on the real link ---- *)
 Lemma layout12 : match ge12 with
   | Some g => Z.eqb (fo g mario._MarioState mario._marioObj) 136
@@ -200,5 +249,40 @@ Proof.
     - destruct RC as (HA & _). rewrite Hact in HA. exact HA. }
   exact (air_step_move lp H12 m0 (gpv m0) (E0 bm bo bfi bmiss bcalls oo) t m' vres c
            (gpv_old m0) (gpv_closed m0 HC) EO PC eq_refl EV RC Hc FD FRO).
+Qed.
+
+(* the same, with the walk's start facts as plain memory facts too *)
+Theorem air_step_move_mem2 : forall m0 bm bo oo bfi bmiss bcalls t m' vres c fl ar inp,
+  (forall ch b z b' o', Plt b (Mem.nextblock m0) ->
+     Mem.load ch m0 b z = Some (Vptr b' o') -> Plt b' (Mem.nextblock m0)) ->
+  Plt bm (Mem.nextblock m0) -> Plt bo (Mem.nextblock m0) ->
+  Genv.find_symbol G surface_collision._gFindFloorIncludeSurfaceIntangible = Some bfi ->
+  Genv.find_symbol G surface_collision._gNumFindFloorMisses = Some bmiss ->
+  Genv.find_symbol G surface_collision._gNumCalls = Some bcalls ->
+  Plt bfi (Mem.nextblock m0) -> Plt bmiss (Mem.nextblock m0) -> Plt bcalls (Mem.nextblock m0) ->
+  bm <> bo -> (bm <> bfi /\ bm <> bmiss /\ bm <> bcalls) -> (bo <> bfi /\ bo <> bmiss /\ bo <> bcalls) ->
+  Ptrofs.unsigned oo + szs G mario._Object <= Ptrofs.modulus ->
+  Mem.load Mint32 m0 bm OFS_MARIOOBJ = Some (Vptr bo oo) ->
+  (* the world's floor lists (FloorExec.Wff) *)
+  Wff G m0 (gpv m0) (szs G mario._Surface)
+    (map (den G m0 (E0 bm bo bfi bmiss bcalls oo)) (wargs (R0 G))) ->
+  (* no A bits in m->input *)
+  Mem.load Mint16unsigned m0 bm 2 = Some (Vint inp) -> Int.and inp (Int.repr 130) = Int.zero ->
+  (* m->floor and m->area are world objects; the floor has a WMotR type *)
+  Mem.load Mint32 m0 bm (fo G mario._MarioState mario._floor) = Some fl ->
+  wptr m0 bm bo bfi bmiss bcalls fl (szs G mario._Surface) ->
+  (exists b o, fl = Vptr b o /\ styp m0 b o) ->
+  Mem.load Mint32 m0 bm (fo G mario._MarioState mario._area) = Some ar ->
+  wptr m0 bm bo bfi bmiss bcalls ar (szs G mario._Area) ->
+  eval_funcall function_entry2 G m0 (Internal mario_step.f_perform_air_step)
+    [Vptr bm Ptrofs.zero; Vint Int.zero] t m' vres ->
+  read_cells bm m0 c -> budget_ok c -> c_action c = ACT_FREEFALL ->
+  floor_data G m0 -> FloorRefreshOK wmotr_floor (R2 (c_posy c)) (R2 (c_floorh c)) ->
+  exists c', read_cells bm m' c' /\ RM' c c'.
+Proof.
+  intros m0 bm bo oo bfi bmiss bcalls t m' vres c fl ar inp HC Vm Vo Sfi Smiss Scalls Vfi Vmiss Vcalls
+    Dmo Dm Do Szo Kmo HW Li Ai Lf Wf Tf La Wa EV RC Hc Hact FD FRO.
+  apply (air_step_move_mem m0 bm bo oo bfi bmiss bcalls t m' vres c); try assumption.
+  exact (pc0_mem G m0 bm bo bfi bmiss bcalls oo fl ar inp HW Li Ai Lf Wf Tf La Wa).
 Qed.
 End LPS.
