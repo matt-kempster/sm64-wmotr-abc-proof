@@ -669,3 +669,6 @@ proofs/TeleporterArrivalChronology.v
 proofs/TeleporterHeldInitializer.v
 proofs/TeleporterHeldObjectState.v
 proofs/TeleporterWarpClassification.v
+proofs/TeleporterObjectLifetime.v
+proofs/TeleporterBobombUsability.v
+proofs/TeleporterNullRelease.v

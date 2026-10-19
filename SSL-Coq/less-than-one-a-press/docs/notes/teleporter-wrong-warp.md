@@ -7,6 +7,137 @@ separate treatment and preservation until displacement remains unproved. No
 complete classification of successful origins has been established. This note
 does not close the pyramid proof's existing JP spawning-displacement routes.
 
+## Hands-free Bob-ombs, the lower entrance and Goomba-clone knockback
+
+**The wrong-warp transport claim remains open. The ordinary lower entrance
+does not carry an Area-1-owned Bob-omb into Area 2 as the same live object.**
+These are different conclusions. A null Mario `heldObj` alone is insufficient
+to prove that an object has vanished, but an object-side held-state word is
+not protection against area unloading.
+
+There are two stock black Bob-ombs in SSL Area 1, at `(3800,0,6000)` and
+`(1750,0,6450)` (`levels/ssl/areas/1/macro.inc.c:36-37`). Even granting a
+successful hands-free setup and access to the lower doorway, its ordinary
+warp node `0x14` targets SSL Area 2 node `0x0A`. This is a change-area warp:
+`warp_area` calls `unload_mario_area` before loading Area 2 and running
+destination initialization. The area unload loop visits the object lists and
+unloads objects whose `header.gfx.activeAreaIndex` matches the area being
+removed. Neither Mario's `heldObj` nor an object's `oHeldState` exempts it.
+`unload_object` first writes `activeFlags = 0`, then removes the object from
+its live list and returns its pool slot to the free list. Later allocation
+initializes the raw object words again. An address or old held-state bytes
+remaining in a freed slot do not mean that the Bob-omb remains alive or usable.
+This explains the lower-entrance obstruction independently of the later
+Mario-pointer reset. It does not assert that no distinct slot-reuse or
+corrupted-ownership history could ever occur.
+
+A genuine same-area teleport skips the area unload/load interval, so a live
+object may survive it. Its ordinary destination is still in the same area.
+An actual transition into another area, including an instant loading zone,
+has an area-unload obligation to account for. Starting from a normally
+same-area teleporter does not show that a successful wrong warp bypasses
+unloading. For an exceptional wrong-warp history, we still need the actual
+area chronology, the Bob-omb's ownership and live-list membership, and any
+slot reuse. No VC fault/JIT analysis was resumed, and no complete successful
+wrong-warp transport history has been authenticated here.
+
+| Path | Old-area objects | Mario `heldObj` | Consequence for this proposal |
+|---|---|---|---|
+| Ordinary lower pyramid entrance, Area 1 to 2 | Unloaded by area ownership. | Ordinary active initialization clears it. | Hands-free state does not import the same live Bob-omb. |
+| Ordinary same-area fading teleporter | Area-unload branch skipped. | Ordinary active initialization still clears it. | A live orphan object can retain its own held state, subject to scheduling/range. |
+| Instant area transition / loading zone | Old-area unload still runs. | `change_area` bypasses `init_mario`. | A stale nonnull held-slot reference can matter for cloning; it is not survival of the old actor. |
+| Proposed wrong warp into SSL Area 2 | Must be justified by its actual continuation. | Must be justified by that same history. | Neither ordinary same-area behavior nor a null-pointer reset settles transport. |
+
+There are also two different meanings of "usable." A live Bob-omb's own
+`HELD_HELD` state can select its held behavior even when Mario's `heldObj`
+is null. The radius/activation check still matters: a teleported Bob-omb
+outside that check is not guaranteed to follow immediately. Conversely,
+Mario's ordinary drop and throw functions inspect `heldObj`. With a null
+load they skip every object write and every call. A surviving orphan Bob-omb
+would need a real interaction such as regrabbing before those operations
+could release it; object-side held state does not itself perform a clone grab.
+
+**A frozen Goomba clone can still supply the proposed damage knockback.**
+The user intends the clone to knock Mario off the pole without pressing A;
+the clone need not run, chase or jump if its tangible damage hitbox already
+overlaps him and Mario is eligible for that damage. Suitable knockback
+direction still matters. Freezing its behavior does not disable Mario's
+interaction code. Our earlier ordinary-Goomba payoff uses a jump only to
+establish the needed height from the ring: ring floor Y=3942 plus regular height 75 gives
+top Y=4017, below pole-holding Mario at Y=4020. This is an obstacle to that
+specific placement, not an exclusion of a clone released higher. A correctly
+positioned elevated clone remains a legitimate candidate.
+
+The proposed clone need not stand on the ring floor. A suitably elevated
+release beside the pole, or a different Mario contact height/pose followed
+by a successful departure, needs its own reachable trace. The three-unit
+calculation excludes none of those alternatives. In the ordinary Goomba
+script, gravity/floor movement is native behavior rather than either generic
+move flag in `cur_obj_update`; replacing the native loop with the carry
+BREAK script is why a clone can be used as a suspended obstacle. This source
+observation is not a new complete release/placement or collision theorem.
+
+The missing steps are obtaining the usable Bob-omb or another clone handle
+inside Area 2, creating the desired Goomba slot reference, and placing a
+tangible clone at a suitable X/Y/Z. Drop uses HOLP X/Z but Mario's current Y;
+throw uses HOLP Y and a 32-unit horizontal angle offset. A reachable elevated
+HOLP/release history could therefore matter. The complete damage contact,
+direction, pole departure, collision quarters, ring landing and star
+continuation still have to be connected. Neither Bob-omb survival nor frozen
+clone damage alone solves those installation and continuation questions.
+
+The new Coq work is deliberately bounded to actual generated US/JP code:
+
+- `TeleporterObjectLifetime.v` addresses the reached matching-area unload
+  selection and the real unload deactivation checkpoint. It does not replace
+  complete live-list traversal and ownership history with an assumption that
+  all wrong warps unload this Bob-omb.
+- `TeleporterBobombUsability.v` exposes the actual radius branch, held-state
+  dispatch, selected real held-loop call and reached relative-position call.
+  It does not grant scheduling, survival, regrabbing or a clone operation.
+- `TeleporterNullRelease.v` constructs complete terminating drop/throw calls
+  from the null held-pointer load and proves that every such complete call
+  has an empty trace, unchanged whole memory and void return. No callback
+  frame condition is used. The selected callees and the three generated
+  BEGIN/BREAK clone scripts are checked separately.
+
+These results remove the implication "null `heldObj` means no item effect,"
+and identify the ordinary lower-entrance lifetime obstacle. They do not prove
+or disprove survival through every relevant wrong warp. No reachable
+Bob-omb transport, Goomba clone installation or new star route is supplied;
+all 45 route estimates and verdicts remain unchanged.
+
+Source references: `src/game/level_update.c` (`warp_area`),
+`src/game/area.c` (`unload_mario_area`, `unload_area`, `change_area`),
+`src/game/object_list_processor.c` (`unload_objects_from_area`),
+`src/game/spawn_object.c` (`unload_object`, `deallocate_object`,
+`allocate_object`), and `src/game/interaction.c:288-330` (grab/drop/throw).
+Generated stock Clight is the authority for Coq; instrumented C branches are
+not treated as stock execution evidence. The primary explanatory video
+[The Science of Cloning](https://www.youtube.com/watch?v=9xE2otZ-9os) was found
+online, but a complete video/transcript was not available to inspect. The
+mechanical conclusions above come from the source and stated Coq results,
+not an inferred video demonstration of this SSL route.
+
+`MainTheorem.current_hands_free_bobomb_boundary` consumes these three modules,
+the earlier held-state/classifier boundaries and the existing pole-damage
+selection boundary. This connects the new work to the named project entry
+point without granting a transported Bob-omb, a clone installation or a
+complete damage-to-star continuation.
+
+Validation: audit `20261019-160352-v0qgngbb` passes the registered build,
+669-source inventory, proof-hole scan, link checks and integration with zero
+problems. MainTheorem imports 496 of 591 proof modules; 95 remain standalone.
+The four new assumption queries (MainTheorem and the three modules) each
+report seven permitted Coq/CompCert foundations. The three established
+Ink/retry/geometry queries also pass, with nine/seven/four permitted
+foundations respectively. No new project axiom or foundation-allowlist change
+was introduced. The earlier baseline audit `20261019-154937-dvpt18h5` also
+passed. Builds used the verified `sm64-item-proof` switch, Coq 8.16.1,
+CompCert 3.15, the established memory cap and 600/240-second audit limits.
+These mechanical checks validate the stated source and conditional results;
+they do not settle the open gameplay histories described above.
+
 ## HeldObj, hands-free teleporting and the meaning of same-area
 
 The end-to-end held-pointer claim remains **open**. The actual initializer

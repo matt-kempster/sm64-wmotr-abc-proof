@@ -58,7 +58,8 @@ From LessThanOneAPress.Proofs Require Import
   TeleporterDestinationReset TeleporterPlatformResetExecution
   TeleporterSameAreaBoundary TeleporterResetSeparation
   TeleporterInitializerFrame TeleporterTerrainInterval TeleporterArrivalChronology
-  TeleporterHeldInitializer TeleporterHeldObjectState TeleporterWarpClassification.
+  TeleporterHeldInitializer TeleporterHeldObjectState TeleporterWarpClassification
+  TeleporterObjectLifetime TeleporterBobombUsability TeleporterNullRelease.
 
 Import ListNotations.
 Local Open Scope Z_scope.
@@ -132,6 +133,28 @@ Proof.
   split; [exact teleporter_held_initializer_boundary_checked|].
   split; [exact teleporter_held_object_state_boundary_checked|].
   exact teleporter_warp_classification_boundary_checked.
+Qed.
+
+(** Hands-free object follow-up: the real matching-area unload selection and
+    deactivation checkpoint, scheduled Bob-omb behavior receipts, and complete
+    null-pointer release calls. The existing pole-damage boundary keeps the
+    useful knockback payoff visible; freezing a clone does not exclude damage.
+    This does not supply a reachable wrong-warp transport, elevated clone
+    installation, complete area-list traversal or star continuation. *)
+Theorem current_hands_free_bobomb_boundary :
+  (TeleporterHeldObjectStateBoundary /\ TeleporterWarpClassificationBoundary) /\
+  TeleporterObjectLifetimeBoundary /\
+  TeleporterBobombUsabilityBoundary /\
+  TeleporterNullReleaseBoundary /\
+  Rank11HandstandDamageBoundary.
+Proof.
+  split.
+  - split; [exact teleporter_held_object_state_boundary_checked|
+      exact teleporter_warp_classification_boundary_checked].
+  - split; [exact teleporter_object_lifetime_boundary_checked|].
+    split; [exact teleporter_bobomb_usability_boundary_checked|].
+    split; [exact teleporter_null_release_boundary_checked|].
+    exact rank11_handstand_damage_boundary_holds.
 Qed.
 
 (** This capstone is intentionally local to Marbler's proposed mechanism.  It
