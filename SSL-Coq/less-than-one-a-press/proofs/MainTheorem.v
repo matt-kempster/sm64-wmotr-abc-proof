@@ -54,10 +54,64 @@ From LessThanOneAPress.Proofs Require Import
   InkQuicksandBackward InkMovingBackward InkControllerBackward InkBackwardHistory
   PositionSplitCatalog TweesterGap InkConcreteProducerBoundary InkMarioRawCopyCall InkMarioZeroParticleTail InkFlyGuySizeBoundary
   InkBounceLiveReadBoundary InkStockBounceHeight InkFlyGuyCycleHeight InkPokeyLiveScale
-  CompCertRouteScope.
+  CompCertRouteScope TeleporterWrongWarpBoundary TeleporterShindouReset
+  TeleporterDestinationReset TeleporterPlatformResetExecution
+  TeleporterSameAreaBoundary TeleporterResetSeparation
+  TeleporterInitializerFrame TeleporterTerrainInterval TeleporterArrivalChronology.
 
 Import ListNotations.
 Local Open Scope Z_scope.
+
+(** Evidence entry point for the VC Teleporter Wrong Warp investigation.
+    This consumes the generated-source/null-read boundary and the authenticated
+    Shindou instruction certificate. It does not assert the requested gameplay
+    impossibility: VC failed-load semantics, source-ID provenance, destination
+    execution and preservation to first platform apply are still separate. *)
+Theorem current_teleporter_wrong_warp_boundary :
+  tww_generated_us_jp_source_and_null_boundary /\
+  shindou_reset_instruction_boundary.
+Proof.
+  split.
+  - exact tww_generated_us_jp_source_and_null_boundary_checked.
+  - exact shindou_reset_instruction_boundary_checked.
+Qed.
+
+(** Source execution boundary for the general-warp question. This consumes
+    actual initializer/reset executions, the complete same-area load choice,
+    and the necessary platform replacement for an effective later apply.
+    It deliberately does not claim every gameplay warp reaches both resets:
+    same-area coverage, suffix/terrain preservation, and reachable incoming
+    pointer histories are not consequences of these local theorems. *)
+Theorem current_warp_reset_execution_boundary :
+  TeleporterDestinationExecutionBoundary /\
+  TeleporterPlatformResetExecutionBoundary /\
+  TeleporterSameAreaBoundary /\
+  TeleporterResetSeparationBoundary.
+Proof.
+  split; [exact teleporter_destination_execution_boundary_checked|].
+  split; [exact teleporter_platform_reset_execution_boundary_checked|].
+  split; [exact teleporter_same_area_boundary_checked|].
+  exact teleporter_reset_separation_boundary_checked.
+Qed.
+
+(** Pointer-preservation refinement in actual generated executions. The
+    initializer exposes reached stores and real callee effects; terrain and
+    the first scheduled apply share a single scheduler execution. Individual callback
+    and alias conditions remain explicit, and same-area incoming reachability
+    is not supplied by this conjunction. *)
+Theorem current_warp_pointer_preservation_boundary :
+  (TeleporterDestinationExecutionBoundary /\
+    TeleporterPlatformResetExecutionBoundary /\
+    TeleporterSameAreaBoundary /\ TeleporterResetSeparationBoundary) /\
+  TeleporterInitializerFrameBoundary /\
+  TeleporterTerrainIntervalBoundary /\
+  TeleporterArrivalChronologyBoundary.
+Proof.
+  split; [exact current_warp_reset_execution_boundary|].
+  split; [exact teleporter_initializer_frame_boundary_checked|].
+  split; [exact teleporter_terrain_interval_boundary_checked|].
+  exact teleporter_arrival_chronology_boundary_checked.
+Qed.
 
 (** This capstone is intentionally local to Marbler's proposed mechanism.  It
     combines the fully checked US/JP source/arithmetic boundary with the

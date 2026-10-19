@@ -657,3 +657,12 @@ proofs/InkFallbackContact.v
 proofs/InkFailedRetryGuard.v
 proofs/InkFallbackBoundary.v
 proofs/InkPokeyLiveScale.v
+proofs/TeleporterWrongWarpBoundary.v
+proofs/TeleporterShindouReset.v
+proofs/TeleporterDestinationReset.v
+proofs/TeleporterPlatformResetExecution.v
+proofs/TeleporterSameAreaBoundary.v
+proofs/TeleporterResetSeparation.v
+proofs/TeleporterInitializerFrame.v
+proofs/TeleporterTerrainInterval.v
+proofs/TeleporterArrivalChronology.v

@@ -1,0 +1,90 @@
+{
+  "verdict": "authenticated finite Shindou instruction certificate; global VC gameplay claim open",
+  "rom_sha1": "3f319ae697533a255a1003d09202379d78d5a2e0",
+  "rom_sha256": "f8807b5e28f1b1a31c5d3675d23ece73f949ccb553dcbb07972666a1e76adfa2",
+  "rom_entry_point": "0x80249000",
+  "rom_offset_to_va": "0x80248000",
+  "coq_module": "LessThanOneAPress.Proofs.TeleporterShindouReset",
+  "total_checked_words": 637,
+  "ranges": [
+    {
+      "coq_definition": "sh_clear_platform_words",
+      "scope": "complete clear_mario_platform",
+      "start_pc": "0x802B1950",
+      "end_pc_exclusive": "0x802B195C",
+      "rom_offset": "0x69950",
+      "word_count": 3,
+      "sha256": "7b2e1eec8376b1800107e4114ea2612685888b45eab7d95ac75bb604187a5bbd"
+    },
+    {
+      "coq_definition": "sh_apply_platform_words",
+      "scope": "complete apply_mario_platform_displacement",
+      "start_pc": "0x802B1900",
+      "end_pc_exclusive": "0x802B1950",
+      "rom_offset": "0x69900",
+      "word_count": 20,
+      "sha256": "58c8ffd39c3175768c613ceb05386707927934e28162a04bf66dfac3f6eaa2aa"
+    },
+    {
+      "coq_definition": "sh_spawn_objects_words",
+      "scope": "complete spawn_objects_from_info",
+      "start_pc": "0x8028ECF0",
+      "end_pc_exclusive": "0x8028EE9C",
+      "rom_offset": "0x46CF0",
+      "word_count": 107,
+      "sha256": "7dfb74439cf6ea4c93d3e959310c5e0d9979a58aae42dd71b43631beb0850ef6"
+    },
+    {
+      "coq_definition": "sh_load_mario_area_words",
+      "scope": "complete load_mario_area",
+      "start_pc": "0x80273BBC",
+      "end_pc_exclusive": "0x80273C28",
+      "rom_offset": "0x2BBBC",
+      "word_count": 27,
+      "sha256": "02a0b5b36e45dbba8e4ceb4f490c0fc8721e245b9338d73a37650bc2b3f4ecf7"
+    },
+    {
+      "coq_definition": "sh_init_mario_words",
+      "scope": "complete init_mario",
+      "start_pc": "0x80255A48",
+      "end_pc_exclusive": "0x80255D84",
+      "rom_offset": "0xDA48",
+      "word_count": 207,
+      "sha256": "b202c46ed5c0a08a63df9c766141017fb6dfdbdf4bafb76a0b96559c82ed4d14"
+    },
+    {
+      "coq_definition": "sh_init_after_warp_words",
+      "scope": "complete init_mario_after_warp",
+      "start_pc": "0x8024D25C",
+      "end_pc_exclusive": "0x8024D630",
+      "rom_offset": "0x525C",
+      "word_count": 245,
+      "sha256": "9043fd392bc94c58b02826ecdae41d3668e5fab7832dcc4a2c9fb47ddee07ea4"
+    },
+    {
+      "coq_definition": "sh_area_get_warp_node_words",
+      "scope": "complete area_get_warp_node",
+      "start_pc": "0x80273898",
+      "end_pc_exclusive": "0x802738D8",
+      "rom_offset": "0x2B898",
+      "word_count": 16,
+      "sha256": "39c6ad63f61020a5e06a64c8872d7add79f6656c4f156586cd158ca2743195ac"
+    },
+    {
+      "coq_definition": "sh_delayed_warp_suffix_words",
+      "scope": "default delayed-warp suffix through initiate_warp call and delay slot",
+      "start_pc": "0x8024E3FC",
+      "end_pc_exclusive": "0x8024E42C",
+      "rom_offset": "0x63FC",
+      "word_count": 12,
+      "sha256": "1ee50484f8892af899ceb30c3e8b9eb9440913cacd7778865a88f2a4f885db45"
+    }
+  ],
+  "remaining_boundary": [
+    "No execution or authentication of a Wii Virtual Console emulator image.",
+    "No formal failed-load/no-register-write transition is established.",
+    "No complete MIPS execution or end-to-end destination-load theorem is established.",
+    "A latched source ID is not proved equal to the original teleporter ID after pre-latch area change and slot reuse.",
+    "PAL ROM is unavailable locally and is outside this certificate."
+  ]
+}
