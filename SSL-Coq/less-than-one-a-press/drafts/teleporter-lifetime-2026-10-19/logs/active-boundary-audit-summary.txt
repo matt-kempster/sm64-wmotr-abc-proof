@@ -1,0 +1,14 @@
+PASS: source inventory: 676 source files; 0 inventory problems
+PASS: build: exit 0; see build.log
+PASS: proof holes: exit 0; includes untracked source files
+PASS: link hygiene: exit 0; includes untracked source files
+PASS: assumptions LessThanOneAPress.Proofs.MainTheorem.current_bobomb_unload_call_path_boundary: 7 allowed foundations; see assumptions-1.log
+PASS: assumptions LessThanOneAPress.Proofs.TeleporterUnloadCallPaths.teleporter_unload_call_paths_checked: 6 allowed foundations; see assumptions-2.log
+PASS: assumptions LessThanOneAPress.Proofs.TeleporterMixedTraversal.teleporter_mixed_traversal_checked: 7 allowed foundations; see assumptions-3.log
+PASS: assumptions LessThanOneAPress.Proofs.TeleporterAllocationHistory.teleporter_unload_then_allocation_reuses_slot: 7 allowed foundations; see assumptions-4.log
+PASS: assumptions LessThanOneAPress.Proofs.MainTheorem.current_ink_backward_execution_boundary: 9 allowed foundations; see assumptions-5.log
+PASS: assumptions LessThanOneAPress.Proofs.InkRetryQuery.irq_retry_connects_display_to_real_floor_call: 7 allowed foundations; see assumptions-6.log
+PASS: assumptions LessThanOneAPress.Proofs.InkVerticalRetryGeometry.ivr_vertical_retry_geometry_checked: 4 allowed foundations; see assumptions-7.log
+PASS: integration: 503/598 modules in MainTheorem's import closure; 95 standalone-only; 0 problems
+VERDICT: PASS (mechanical checks only; not a completed game proof)
+Mechanical hygiene only. Explicit hypotheses, live reachability, and statement fidelity require review.

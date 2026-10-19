@@ -66,9 +66,29 @@ wrap-up modules. Reachable ownership/list membership, the selected abstract
 audio-call frame, live/free partition, reset/respawner ancestry and usable
 regrab continuation remain unresolved. Area 2 having no stock Bob-ombs does
 not by itself discharge that history. Unverified ownership, whole-scan,
-transport-composition, audio and pool-partition drafts are preserved locally
-under the ignored build/check/transport-wip directory, excluded from the
-proof inventory, commit and published evidence.
+transport-composition, audio and pool-partition drafts now have a tracked
+[recovery archive](../../drafts/teleporter-lifetime-2026-10-19/README.md),
+separate from the active proof inventory and published verified evidence.
+Their original ignored build/check/transport-wip copies remain untouched.
+
+### Draft preservation and resumption
+
+All five draft sources are saved byte for byte as `.v.draft` snapshots outside
+`proofs/` and `generated/`, with SHA-256 hashes, the available historical logs
+and a module-by-module resumption guide. Git now backs them up independently
+of build cleanup. Ownership has a known line-832 proof-script failure;
+WholeScan's current trace changes need a fresh check; TransportCut depends on
+WholeScan and its earlier check stopped at the import. AudioFrame and
+PoolPartition have no compiler evidence. The older WholeScan timing log
+does not validate the changed snapshot, and no historical compiler run
+recorded a source hash. The archive's integrity verifier checks saved bytes,
+not Coq correctness. All five current snapshots remain unverified.
+
+This checkpoint preserves work without resuming proofs or emulator analysis.
+Future completion requires pipeline checks and semantic review, then actual
+integration with the intended boundary. Even making all five modules compile
+would not establish reachable ownership, allocation history or a usable
+surviving Bob-omb. The gameplay verdict and all 45 route estimates are unchanged.
 
 Validation: audit `20261019-180558-o_dr9zdf` passes the registered build, source inventory (676 files), proof-hole, link and integration checks (503/598 modules in MainTheorem's import closure, 95 standalone-only, zero problems). Its seven assumption queries use 7, 6, 7, 7, 9, 7 and 4 permitted foundations respectively; no project axiom or allowlist change was added. The exact prospective committed MainTheorem separately passes pipeline/check.sh as build/check/WrapupCommitValidation.v, excluding unrelated working changes. All checks use the existing pipeline,
 sm64-item-proof, Coq 8.16.1, CompCert 3.15, the established memory cap, and

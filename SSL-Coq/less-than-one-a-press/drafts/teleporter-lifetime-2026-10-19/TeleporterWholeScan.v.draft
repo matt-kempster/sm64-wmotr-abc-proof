@@ -1,0 +1,542 @@
+(** Chronological coverage of the generated unload_objects_from_area call.
+    Each pass contains the actual list-head setup, actual completed inner
+    execution and its TULWalk.  The counter proof supplies all thirteen
+    passes, including list 2; it does not supply list membership or frames
+    across the unload callees. *)
+From Coq Require Import Bool List ZArith Lia.
+From compcert Require Import AST Clight ClightBigstep Clightdefs Cop Coqlib Ctypes
+  Events Globalenvs Integers Maps Memory Values.
+From LessThanOneAPress.Proofs Require Import GameTypes ObjectContactNecessity
+  ObjectContactReadback InkBackwardExecution ContactConsumerExecution
+  SelectedClightTarget TeleporterObjectLifetime TeleporterUnloadTraversal.
+Import ListNotations.
+Local Open Scope Z_scope.
+
+Definition tws_outer_guard := Ebinop Olt (Etempvar TUL._i tint)
+  (Econst_int (Int.repr 13) tint) tint.
+Definition tws_increment := Sset TUL._i
+  (Ebinop Oadd (Etempvar TUL._i tint)
+    (Econst_int Int.one tint) tint).
+Definition tws_heads_read := Evar TUL._gObjectLists
+  (tptr (Tstruct TUL._ObjectNode noattr)).
+Definition tws_head_address := Ebinop Oadd
+  (Etempvar TUL._t'2 (tptr (Tstruct TUL._ObjectNode noattr)))
+  (Etempvar TUL._i tint) (tptr (Tstruct TUL._ObjectNode noattr)).
+Definition tws_head_next := Efield
+  (Ederef (Etempvar TUL._list (tptr (Tstruct TUL._ObjectNode noattr)))
+    (Tstruct TUL._ObjectNode noattr)) TUL._next
+  (tptr (Tstruct TUL._ObjectNode noattr)).
+Definition tws_pass_prefix : list statement :=
+  [Ssequence (Sset TUL._t'2 tws_heads_read)
+     (Sset TUL._list tws_head_address);
+   Sset TUL._node tws_head_next].
+Definition tws_pass version := ocn_prepend tws_pass_prefix (tul_loop version).
+Definition tws_outer_iteration version := Ssequence
+  (Sifthenelse tws_outer_guard Sskip Sbreak) (tws_pass version).
+Definition tws_outer_loop version := Sloop (tws_outer_iteration version) tws_increment.
+Definition tws_initial_prefix version :=
+  ocn_prefix_items 2 (fn_body (tol_scan_function version)).
+
+Lemma tws_generated_whole_scan : forall version,
+  fn_body (tol_scan_function version) =
+    ocn_prepend (tws_initial_prefix version) (tws_outer_loop version) /\
+  forallb ibk_normal (tws_initial_prefix version) = true /\
+  forallb ibk_normal tws_pass_prefix = true /\
+  tul_keeps_temp TUL._i (tws_pass version) = true /\
+  tul_keeps_temp TUL._areaIndex (tws_pass version) = true /\
+  tul_keeps_temp TUL._areaIndex
+    (ocn_prepend (tws_initial_prefix version) Sskip) = true /\
+  fn_vars (tol_scan_function version) = [] /\
+  fn_params (tol_scan_function version) = [(TUL._unused, tint); (TUL._areaIndex, tint)].
+Proof. intros []; repeat split; reflexivity. Qed.
+
+Record TWSPass : Type := {
+  tws_pass_entry : temp_env;
+  tws_pass_before : mem;
+  tws_inner_entry : temp_env;
+  tws_inner_before : mem;
+  tws_setup_trace : trace;
+  tws_inner_trace : trace;
+  tws_pass_last : temp_env;
+  tws_pass_after : mem;
+  tws_inner_visits : list TULVisit
+}.
+
+Fixpoint tws_visits_trace (visits : list TULVisit) : trace :=
+  match visits with
+  | [] => E0
+  | visit :: remaining => tul_trace visit ++ tws_visits_trace remaining
+  end.
+Fixpoint tws_passes_trace (passes : list TWSPass) : trace :=
+  match passes with
+  | [] => E0
+  | pass :: remaining =>
+      (tws_setup_trace pass ++ tws_inner_trace pass) ++ tws_passes_trace remaining
+  end.
+
+(** Record the original inner trace in addition to its endpoint and actual
+    sequential visit receipts. *)
+Lemma tws_completed_inner_loop_has_traced_walk : forall version e le before
+    tr last after out,
+  ocn_exec (Clight.globalenv (selected_clight_target version)) e le before
+    (tul_loop version) tr last after out ->
+  out = Out_normal /\ exists visits,
+    TULWalk version e le before visits last after /\ tr = tws_visits_trace visits.
+Proof.
+  intros version e le before tr last after out Hrun.
+  remember (tul_loop version) as statement eqn:Hstatement.
+  induction Hrun; inversion Hstatement; subst; try discriminate.
+  - destruct (tul_iteration_cases _ _ _ _ _ _ _ _ Hrun)
+      as [(Htest & -> & -> & -> & ->)|(Htest & -> & Hbody)].
+    + inversion H; subst. split; [reflexivity|]. exists [].
+      split; [constructor; assumption|reflexivity].
+    + inversion H.
+  - match goal with Hskip : ClightBigstep.exec_stmt _ _ _ _ _ Sskip _ _ _ _ |- _ =>
+      inversion Hskip; subst end. inversion H0.
+  - destruct (tul_iteration_cases _ _ _ _ _ _ _ _ Hrun1)
+      as [(Htest & -> & -> & -> & ->)|(Htest & -> & Hbody)].
+    + inversion H.
+    + match goal with Hskip : ClightBigstep.exec_stmt _ _ _ _ _ Sskip _ _ _ _ |- _ =>
+        inversion Hskip; subst end.
+      destruct (IHHrun3 eq_refl) as (-> & visits & Hwalk & Htrace).
+      split; [reflexivity|]. eexists. split.
+      * eapply tul_walk_step; eauto.
+      * cbn [tws_visits_trace]. rewrite <- Htrace. rewrite ?app_nil_r. reflexivity.
+Qed.
+
+Definition TWSActualPass version (e : env) (area : int) (pass : TWSPass) : Prop :=
+  ocn_exec (Clight.globalenv (selected_clight_target version)) e
+    (tws_pass_entry pass) (tws_pass_before pass)
+    (ocn_prepend tws_pass_prefix Sskip) (tws_setup_trace pass)
+    (tws_inner_entry pass) (tws_inner_before pass) Out_normal /\
+  ocn_exec (Clight.globalenv (selected_clight_target version)) e
+    (tws_inner_entry pass) (tws_inner_before pass) (tul_loop version)
+    (tws_inner_trace pass) (tws_pass_last pass) (tws_pass_after pass) Out_normal /\
+  TULWalk version e (tws_inner_entry pass) (tws_inner_before pass)
+    (tws_inner_visits pass) (tws_pass_last pass) (tws_pass_after pass) /\
+  (tws_pass_entry pass) ! TUL._areaIndex = Some (Vint area) /\
+  (tws_inner_entry pass) ! TUL._areaIndex = Some (Vint area) /\
+  (tws_inner_entry pass) ! TUL._i = (tws_pass_entry pass) ! TUL._i /\
+  (tws_pass_last pass) ! TUL._i = (tws_pass_entry pass) ! TUL._i /\
+  (tws_pass_last pass) ! TUL._areaIndex = Some (Vint area) /\
+  tws_inner_trace pass = tws_visits_trace (tws_inner_visits pass).
+
+Lemma tws_pass_finishes_normally : forall version e le before tr last after out,
+  ocn_exec (Clight.globalenv (selected_clight_target version)) e le before
+    (tws_pass version) tr last after out -> out = Out_normal.
+Proof.
+  intros version e le before tr last after out Hrun.
+  unfold tws_pass in Hrun.
+  destruct (ibk_split_prefix _ _ tws_pass_prefix (tul_loop version) _ _ _ _ _ _ eq_refl Hrun)
+    as (middle & memory & pre & tail & Htrace & Hprefix & Hinner).
+  exact (proj1 (tul_completed_inner_loop_has_actual_walk _ _ _ _ _ _ _ _ Hinner)).
+Qed.
+
+Lemma tws_completed_pass_has_receipt : forall version e le before tr last after area,
+  le ! TUL._areaIndex = Some (Vint area) ->
+  ocn_exec (Clight.globalenv (selected_clight_target version)) e le before
+    (tws_pass version) tr last after Out_normal ->
+  exists middle memory pre tail visits,
+    tr = pre ++ tail /\
+    TWSActualPass version e area
+      {| tws_pass_entry := le; tws_pass_before := before;
+         tws_inner_entry := middle; tws_inner_before := memory;
+         tws_setup_trace := pre; tws_inner_trace := tail;
+         tws_pass_last := last; tws_pass_after := after;
+         tws_inner_visits := visits |}.
+Proof.
+  intros version e le before tr last after area Harea Hrun.
+  unfold tws_pass in Hrun.
+  destruct (ibk_split_prefix _ _ tws_pass_prefix (tul_loop version) _ _ _ _ _ _ eq_refl Hrun)
+    as (middle & memory & pre & tail & Htrace & Hprefix & Hinner).
+  destruct (tws_completed_inner_loop_has_traced_walk _ _ _ _ _ _ _ _ Hinner)
+    as (_ & visits & Hwalk & Hinnertrace).
+  exists middle, memory, pre, tail, visits. split; [exact Htrace|].
+  unfold TWSActualPass; cbn. repeat split; try assumption.
+  - rewrite (tul_actual_prefix_keeps_temp _ _ _ _ _ _ _ _ _ Hprefix
+      TUL._areaIndex eq_refl). exact Harea.
+  - exact (tul_actual_prefix_keeps_temp _ _ _ _ _ _ _ _ _ Hprefix TUL._i eq_refl).
+  - eapply tul_actual_prefix_keeps_temp; [exact Hrun|]. destruct version; reflexivity.
+  - rewrite (tul_actual_prefix_keeps_temp _ _ _ _ _ _ _ _ _ Hrun
+      TUL._areaIndex ltac:(destruct version; reflexivity)). exact Harea.
+Qed.
+
+Lemma tws_outer_iteration_cases : forall version e le before tr last after out,
+  ocn_exec (Clight.globalenv (selected_clight_target version)) e le before
+    (tws_outer_iteration version) tr last after out ->
+  (ocn_test_value (Clight.globalenv (selected_clight_target version))
+      e le before tws_outer_guard false /\
+    tr = E0 /\ last = le /\ after = before /\ out = Out_break) \/
+  (ocn_test_value (Clight.globalenv (selected_clight_target version))
+      e le before tws_outer_guard true /\ out = Out_normal /\
+    ocn_exec (Clight.globalenv (selected_clight_target version)) e le before
+      (tws_pass version) tr last after Out_normal).
+Proof.
+  intros version e le before tr last after out Hrun.
+  unfold tws_outer_iteration in Hrun. inversion Hrun; subst.
+  - match goal with Hif : ClightBigstep.exec_stmt _ _ _ _ _
+      (Sifthenelse _ _ _) _ _ _ _ |- _ => inversion Hif; subst end.
+    destruct b; cbn beta iota in *.
+    + match goal with Hskip : ClightBigstep.exec_stmt _ _ _ _ _ Sskip _ _ _ _ |- _ =>
+        inversion Hskip; subst end.
+      match goal with Hbody : ClightBigstep.exec_stmt _ _ _ _ _
+          (tws_pass version) _ _ _ ?outcome |- _ =>
+        pose proof (tws_pass_finishes_normally _ _ _ _ _ _ _ _ Hbody) as Hnormal;
+        rewrite Hnormal in Hbody
+      end.
+      right. repeat split; try assumption. eexists; eauto.
+    + match goal with Hbreak : ClightBigstep.exec_stmt _ _ _ _ _ Sbreak _ _ _ _ |- _ =>
+        inversion Hbreak end.
+  - match goal with Hif : ClightBigstep.exec_stmt _ _ _ _ _
+      (Sifthenelse _ _ _) _ _ _ _ |- _ => inversion Hif; subst end.
+    destruct b; cbn beta iota in *.
+    + match goal with Hskip : ClightBigstep.exec_stmt _ _ _ _ _ Sskip _ _ _ _ |- _ =>
+        inversion Hskip; subst end. contradiction.
+    + match goal with Hbreak : ClightBigstep.exec_stmt _ _ _ _ _ Sbreak _ _ _ _ |- _ =>
+        inversion Hbreak; subst end.
+      left. repeat split; try reflexivity. eexists; eauto.
+Qed.
+
+Inductive TWSOuterWalk version (e : env) (area : int) :
+    temp_env -> mem -> list TWSPass -> temp_env -> mem -> Prop :=
+| tws_walk_stop : forall le memory,
+    ocn_test_value (Clight.globalenv (selected_clight_target version))
+      e le memory tws_outer_guard false ->
+    TWSOuterWalk version e area le memory [] le memory
+| tws_walk_step : forall pass next_le passes last after,
+    ocn_test_value (Clight.globalenv (selected_clight_target version)) e
+      (tws_pass_entry pass) (tws_pass_before pass) tws_outer_guard true ->
+    TWSActualPass version e area pass ->
+    ocn_exec (Clight.globalenv (selected_clight_target version)) e
+      (tws_pass_last pass) (tws_pass_after pass) tws_increment E0
+      next_le (tws_pass_after pass) Out_normal ->
+    TWSOuterWalk version e area next_le (tws_pass_after pass) passes last after ->
+    TWSOuterWalk version e area (tws_pass_entry pass) (tws_pass_before pass)
+      (pass :: passes) last after.
+
+Theorem tws_completed_outer_loop_has_actual_walk : forall version e le before
+    tr last after out area,
+  le ! TUL._areaIndex = Some (Vint area) ->
+  ocn_exec (Clight.globalenv (selected_clight_target version)) e le before
+    (tws_outer_loop version) tr last after out ->
+  out = Out_normal /\ exists passes,
+    tr = tws_passes_trace passes /\ TWSOuterWalk version e area le before passes last after.
+Proof.
+  intros version e le before tr last after out area Harea Hrun.
+  revert Harea. remember (tws_outer_loop version) as statement eqn:Hstatement.
+  induction Hrun; intro Harea; inversion Hstatement; subst; try discriminate.
+  - destruct (tws_outer_iteration_cases _ _ _ _ _ _ _ _ Hrun)
+      as [(Htest & -> & -> & -> & ->)|(Htest & -> & Hbody)].
+    + inversion H; subst. split; [reflexivity|]. exists [].
+      split; [reflexivity|constructor; assumption].
+    + inversion H.
+  - unfold tws_increment in Hrun2. inversion Hrun2; subst. inversion H0.
+  - destruct (tws_outer_iteration_cases _ _ _ _ _ _ _ _ Hrun1)
+      as [(Htest & -> & -> & -> & ->)|(Htest & -> & Hbody)].
+    + inversion H.
+    + destruct (tws_completed_pass_has_receipt _ _ _ _ _ _ _ _ Harea Hbody)
+        as (middle & memory & pre & tail & visits & Hpasstrace & Hpass).
+      match type of Hrun2 with
+      | ClightBigstep.exec_stmt _ _ _ _ _ _ _ ?next_le _ _ =>
+        assert (next_le ! TUL._areaIndex = Some (Vint area)) as Hnextarea
+          by (rewrite (tul_actual_prefix_keeps_temp _ _ _ _ _ _ _ _ _ Hrun2
+                TUL._areaIndex eq_refl);
+              exact (proj1 (proj2 (proj2 (proj2 (proj2 (proj2 (proj2 (proj2 Hpass)))))))))
+      end.
+      unfold tws_increment in Hrun2. inversion Hrun2; subst.
+      destruct (IHHrun3 eq_refl Hnextarea) as (-> & passes & Hwalktrace & Hwalk).
+      split; [reflexivity|].
+      exists ({| tws_pass_entry := le; tws_pass_before := m;
+        tws_inner_entry := middle; tws_inner_before := memory;
+        tws_setup_trace := pre; tws_inner_trace := tail;
+        tws_pass_last := le1; tws_pass_after := m2;
+        tws_inner_visits := visits |} :: passes).
+      split.
+      * cbn [tws_passes_trace]. rewrite <- Hpasstrace, <- Hwalktrace.
+        rewrite ?app_nil_r. reflexivity.
+      *
+      eapply tws_walk_step with
+        (pass := {| tws_pass_entry := le; tws_pass_before := m;
+          tws_inner_entry := middle; tws_inner_before := memory;
+          tws_setup_trace := pre; tws_inner_trace := tail;
+          tws_pass_last := le1; tws_pass_after := m2;
+          tws_inner_visits := visits |});
+        [exact Htest|exact Hpass| |exact Hwalk].
+      unfold tws_increment. eapply exec_Sset; eassumption.
+Qed.
+
+Lemma tws_guard_counter_value : forall ge e le memory n answer,
+  0 <= n <= 13 -> le ! TUL._i = Some (Vint (Int.repr n)) ->
+  ocn_test_value ge e le memory tws_outer_guard answer ->
+  answer = if zlt n 13 then true else false.
+Proof.
+  intros ge e le memory n answer Hrange Hi [value [Hread Hbool]].
+  assert (eval_expr ge e le memory tws_outer_guard
+    (Val.of_bool (Int.lt (Int.repr n) (Int.repr 13)))) as Hexpected.
+  { unfold tws_outer_guard. eapply eval_Ebinop;
+      [apply eval_Etempvar; exact Hi|constructor|reflexivity]. }
+  assert (value = Val.of_bool (Int.lt (Int.repr n) (Int.repr 13))) as ->
+    by (eapply ocr_expr_unique; eauto).
+  unfold Int.lt in Hbool.
+  rewrite (Int.signed_repr n) in Hbool by
+    (change (-2147483648 <= n <= 2147483647); lia).
+  rewrite (Int.signed_repr 13) in Hbool by
+    (change (-2147483648 <= 13 <= 2147483647); lia).
+  destruct (zlt n 13).
+  - change (Some true = Some answer) in Hbool. congruence.
+  - change (Some false = Some answer) in Hbool. congruence.
+Qed.
+
+Lemma tws_increment_counter_value : forall ge e le memory tr last after out n,
+  0 <= n <= 13 -> le ! TUL._i = Some (Vint (Int.repr n)) ->
+  ocn_exec ge e le memory tws_increment tr last after out ->
+  last ! TUL._i = Some (Vint (Int.repr (n + 1))).
+Proof.
+  intros ge e le memory tr last after out n Hrange Hi Hrun.
+  unfold tws_increment in Hrun. inversion Hrun; subst.
+  rename after into memory.
+  assert (forall value,
+    eval_expr ge e le memory
+      (Ebinop Oadd (Etempvar TUL._i tint) (Econst_int Int.one tint) tint) value ->
+    value = Vint (Int.add (Int.repr n) Int.one)) as Hunique.
+  { intros value Hread. eapply ocr_expr_unique; [exact Hread|].
+    eapply eval_Ebinop; [apply eval_Etempvar; exact Hi|constructor|reflexivity]. }
+  match goal with Hr : eval_expr _ _ _ _ _ ?value |- _ =>
+    assert (value = Vint (Int.add (Int.repr n) Int.one)) by
+      (apply Hunique; exact Hr); subst value end.
+  rewrite PTree.gss. f_equal. f_equal.
+  unfold Int.add. rewrite Int.unsigned_repr by
+    (change (0 <= n <= 4294967295); lia).
+  reflexivity.
+Qed.
+
+Fixpoint tws_expected_indices (first : Z) (count : nat) : list (option val) :=
+  match count with
+  | O => []
+  | S remaining => Some (Vint (Int.repr first)) :: tws_expected_indices (first + 1) remaining
+  end.
+
+Lemma tws_outer_walk_exact_indices : forall count version e area le memory
+    passes last after first,
+  0 <= first -> first + Z.of_nat count = 13 ->
+  le ! TUL._i = Some (Vint (Int.repr first)) ->
+  TWSOuterWalk version e area le memory passes last after ->
+  map (fun pass => (tws_pass_entry pass) ! TUL._i) passes =
+    tws_expected_indices first count /\
+  last ! TUL._i = Some (Vint (Int.repr 13)).
+Proof.
+  induction count as [|remaining IH]; intros version e area le memory
+    passes last after first Hnonnegative Hcount Hi Hwalk.
+  - assert (first = 13) by (cbn in Hcount; lia). subst first.
+    inversion Hwalk; subst.
+    + split; [reflexivity|exact Hi].
+    + pose proof (tws_guard_counter_value _ _ _ _ 13 _ ltac:(lia) Hi H) as Hbad.
+      discriminate Hbad.
+  - assert (0 <= first <= 12) as Hrange by (rewrite Nat2Z.inj_succ in Hcount; lia).
+    inversion Hwalk; subst.
+    + pose proof (tws_guard_counter_value _ _ _ _ first _ ltac:(lia) Hi H) as Hbad.
+      destruct (zlt first 13); [discriminate|lia].
+    + assert ((tws_pass_last pass) ! TUL._i = Some (Vint (Int.repr first))) as Hlasti.
+      { unfold TWSActualPass in H0. destruct H0 as (_ & _ & _ & _ & _ & _ & Hkeep & _).
+        rewrite Hkeep. exact Hi. }
+      pose proof (tws_increment_counter_value _ _ _ _ _ _ _ _ first ltac:(lia) Hlasti H1) as Hnexti.
+      destruct (IH _ _ _ _ _ _ _ _ (first + 1) ltac:(lia)
+        ltac:(rewrite Nat2Z.inj_succ in Hcount; lia) Hnexti H2) as (Hindices & Hlast).
+      split; [cbn; rewrite Hi, Hindices; reflexivity|exact Hlast].
+Qed.
+
+Lemma tws_outer_walk_actual_passes : forall version e area le memory passes last after,
+  TWSOuterWalk version e area le memory passes last after ->
+  Forall (TWSActualPass version e area) passes.
+Proof. intros version e area le memory passes last after Hwalk. induction Hwalk; constructor; assumption. Qed.
+
+Lemma tws_initial_prefix_exact : forall version,
+  tws_initial_prefix version =
+    [Sassign tws_heads_read
+      (Evar TUL._gObjectListArray (tarray (Tstruct TUL._ObjectNode noattr) 16));
+     Sset TUL._i (Econst_int Int.zero tint)].
+Proof. intros []; reflexivity. Qed.
+
+Lemma tws_initial_prefix_sets_counter : forall version e le before tr last after out,
+  ocn_exec (Clight.globalenv (selected_clight_target version)) e le before
+    (ocn_prepend (tws_initial_prefix version) Sskip) tr last after out ->
+  last ! TUL._i = Some (Vint Int.zero).
+Proof.
+  intros version e le before tr last after out Hrun.
+  rewrite tws_initial_prefix_exact in Hrun. cbn [ocn_prepend] in Hrun.
+  unfold ocn_exec, ClightBigstep.Clight2.exec_stmt in Hrun;
+    cce_unroll_loop_free_exec;
+    repeat match goal with Ha : ClightBigstep.exec_stmt _ _ _ _ _
+        (Sassign _ _) _ _ _ _ |- _ => inversion Ha; subst; clear Ha end;
+    try contradiction;
+    repeat match goal with Hr : eval_expr _ _ _ _ (Econst_int _ _) _ |- _ =>
+      apply ocn_const_int_value in Hr; subst end;
+    apply PTree.gss.
+Qed.
+
+(** This receipt retains the original body's prefix and outer-loop execution,
+    and the chronological walk with precisely those memory endpoints. *)
+Definition TWSBodyPasses version (e : env) (le : temp_env) (before : mem)
+    (tr : trace) (last : temp_env) (after : mem) (area : int)
+    (passes : list TWSPass) : Prop :=
+  exists middle memory pre tail,
+    tr = pre ++ tail /\
+    ocn_exec (Clight.globalenv (selected_clight_target version)) e le before
+      (ocn_prepend (tws_initial_prefix version) Sskip) pre middle memory Out_normal /\
+    ocn_exec (Clight.globalenv (selected_clight_target version)) e middle memory
+      (tws_outer_loop version) tail last after Out_normal /\
+    tail = tws_passes_trace passes /\
+    TWSOuterWalk version e area middle memory passes last after.
+
+Definition TWSWholeBodyThirteenPasses : Prop := forall version e le before tr last after out area,
+  le ! TUL._areaIndex = Some (Vint area) ->
+  ocn_exec (Clight.globalenv (selected_clight_target version)) e le before
+    (fn_body (tol_scan_function version)) tr last after out ->
+  out = Out_normal /\ exists passes,
+    TWSBodyPasses version e le before tr last after area passes /\
+    length passes = 13%nat /\
+    map (fun pass => (tws_pass_entry pass) ! TUL._i) passes = tws_expected_indices 0 13 /\
+    Forall (TWSActualPass version e area) passes.
+
+Theorem tws_complete_scan_body_has_thirteen_passes : TWSWholeBodyThirteenPasses.
+Proof.
+  intros version e le before tr last after out area Harea Hrun.
+  destruct (tws_generated_whole_scan version) as (Hbody & Hnormal & _).
+  rewrite Hbody in Hrun.
+  destruct (ibk_split_prefix _ _ _ _ _ _ _ _ _ _ Hnormal Hrun)
+    as (middle & memory & pre & tail & Htrace & Hprefix & Houter).
+  assert (middle ! TUL._areaIndex = Some (Vint area)) as Hmiddlearea.
+  { rewrite (tul_actual_prefix_keeps_temp _ _ _ _ _ _ _ _ _ Hprefix
+      TUL._areaIndex ltac:(destruct version; reflexivity)). exact Harea. }
+  destruct (tws_completed_outer_loop_has_actual_walk _ _ _ _ _ _ _ _ _ Hmiddlearea Houter)
+    as (-> & passes & Hwalktrace & Hwalk).
+  pose proof (tws_initial_prefix_sets_counter _ _ _ _ _ _ _ _ Hprefix) as Hi.
+  destruct (tws_outer_walk_exact_indices 13 _ _ _ _ _ _ _ _ 0 ltac:(lia) eq_refl Hi Hwalk)
+    as (Hindices & Hlast).
+  split; [reflexivity|]. exists passes. split.
+  - exists middle, memory, pre, tail. repeat split; assumption.
+  - split.
+    + pose proof (f_equal (@length (option val)) Hindices) as Hlength.
+      rewrite map_length in Hlength. exact Hlength.
+    + split; [exact Hindices|]. eapply tws_outer_walk_actual_passes; exact Hwalk.
+Qed.
+
+Lemma tws_complete_scan_call_entry : forall version before unused area tr after result,
+  ClightBigstep.Clight2.eval_funcall
+    (Clight.globalenv (selected_clight_target version)) before
+    (Internal (tol_scan_function version)) [unused; Vint area] tr after result ->
+  exists le last out,
+    le ! TUL._areaIndex = Some (Vint area) /\
+    ocn_exec (Clight.globalenv (selected_clight_target version)) empty_env le before
+      (fn_body (tol_scan_function version)) tr last after out.
+Proof.
+  intros version before unused area tr after result Hcall.
+  destruct (tws_generated_whole_scan version) as (_ & _ & _ & _ & _ & _ & Hvars & Hparams).
+  inversion Hcall; subst.
+  match goal with He : function_entry2 _ _ _ _ _ _ _ |- _ => inversion He; subst; clear He end.
+  match goal with Ha : alloc_variables _ _ _ _ _ _ |- _ =>
+    rewrite Hvars in Ha; inversion Ha; subst; clear Ha end.
+  match goal with Hfree : Mem.free_list ?m (blocks_of_env _ empty_env) = Some ?m' |- _ =>
+    change (Some m = Some m') in Hfree; inversion Hfree; subst end.
+  match goal with Hb : bind_parameter_temps _ _ _ = Some ?temps |- _ =>
+    rewrite Hparams in Hb; cbn [bind_parameter_temps] in Hb; inversion Hb; subst temps end.
+  match goal with Hr : ClightBigstep.exec_stmt _ _ _ ?temps _ _ _ ?last _ ?out |- _ =>
+    exists temps, last, out end.
+  split; [apply PTree.gss|eassumption].
+Qed.
+
+(** The argument list and return result name the original complete call.
+    The extracted body, initial prefix and outer walk use that same call's
+    starting memory, final memory and trace. *)
+Definition TWSCallPasses version (before : mem) (unused : val) (area : int)
+    (tr : trace) (after : mem) (result : val) (passes : list TWSPass) : Prop :=
+  ClightBigstep.Clight2.eval_funcall
+    (Clight.globalenv (selected_clight_target version)) before
+    (Internal (tol_scan_function version)) [unused; Vint area] tr after result /\
+  exists le last,
+    le ! TUL._areaIndex = Some (Vint area) /\
+    ocn_exec (Clight.globalenv (selected_clight_target version)) empty_env le before
+      (fn_body (tol_scan_function version)) tr last after Out_normal /\
+    TWSBodyPasses version empty_env le before tr last after area passes.
+
+Definition TWSWholeCallThirteenPasses : Prop := forall version before unused area tr after result,
+  ClightBigstep.Clight2.eval_funcall
+    (Clight.globalenv (selected_clight_target version)) before
+    (Internal (tol_scan_function version)) [unused; Vint area] tr after result ->
+  exists passes,
+    TWSCallPasses version before unused area tr after result passes /\
+    length passes = 13%nat /\
+    map (fun pass => (tws_pass_entry pass) ! TUL._i) passes = tws_expected_indices 0 13 /\
+    Forall (TWSActualPass version empty_env area) passes.
+
+Theorem tws_complete_scan_call_has_thirteen_passes : TWSWholeCallThirteenPasses.
+Proof.
+  intros version before unused area tr after result Hcall.
+  destruct (tws_complete_scan_call_entry _ _ _ _ _ _ _ Hcall)
+    as (le & last & out & Harea & Hbody).
+  destruct (tws_complete_scan_body_has_thirteen_passes _ _ _ _ _ _ _ _ _ Harea Hbody)
+    as (-> & passes & Hprovenance & Hlength & Hindices & Hactual).
+  exists passes. split.
+  - split; [exact Hcall|]. exists le, last. repeat split; assumption.
+  - auto.
+Qed.
+
+Definition TWSWholeCallBobombPass : Prop := forall version before unused area tr after result,
+  ClightBigstep.Clight2.eval_funcall
+    (Clight.globalenv (selected_clight_target version)) before
+    (Internal (tol_scan_function version)) [unused; Vint area] tr after result ->
+  exists passes pass,
+    TWSCallPasses version before unused area tr after result passes /\
+    nth_error passes 2 = Some pass /\
+    TWSActualPass version empty_env area pass /\
+    (tws_pass_entry pass) ! TUL._i = Some (Vint (Int.repr 2)) /\
+    (tws_inner_entry pass) ! TUL._i = Some (Vint (Int.repr 2)) /\
+    (tws_inner_entry pass) ! TUL._areaIndex = Some (Vint area).
+
+Theorem tws_complete_scan_call_has_bobomb_pass : TWSWholeCallBobombPass.
+Proof.
+  intros version before unused area tr after result Hcall.
+  destruct (tws_complete_scan_call_has_thirteen_passes _ _ _ _ _ _ _ Hcall)
+    as (passes & Hprovenance & Hlength & Hindices & Hactual).
+  pose proof (f_equal (fun xs => nth_error xs 2) Hindices) as Hsecond.
+  cbn beta in Hsecond.
+  rewrite nth_error_map in Hsecond.
+  destruct (nth_error passes 2) as [pass|] eqn:Hnth; [|discriminate].
+  cbn in Hsecond. injection Hsecond as Hi.
+  assert (TWSActualPass version empty_env area pass) as Hpass.
+  { rewrite Forall_forall in Hactual. apply Hactual. eapply nth_error_In; exact Hnth. }
+  exists passes, pass. split; [exact Hprovenance|].
+  split; [exact Hnth|]. split; [exact Hpass|]. split; [exact Hi|].
+  unfold TWSActualPass in Hpass. destruct Hpass as (_ & _ & _ & _ & Harea & Hkeep & _).
+  split; [rewrite Hkeep; exact Hi|exact Harea].
+Qed.
+
+Theorem tws_actual_head_setup_cut : forall version e area pass,
+  TWSActualPass version e area pass ->
+  exists heads head next,
+    eval_expr (Clight.globalenv (selected_clight_target version)) e
+      (tws_pass_entry pass) (tws_pass_before pass) tws_heads_read heads /\
+    eval_expr (Clight.globalenv (selected_clight_target version)) e
+      (PTree.set TUL._t'2 heads (tws_pass_entry pass)) (tws_pass_before pass)
+      tws_head_address head /\
+    eval_expr (Clight.globalenv (selected_clight_target version)) e
+      (PTree.set TUL._list head (PTree.set TUL._t'2 heads (tws_pass_entry pass)))
+      (tws_pass_before pass) tws_head_next next /\
+    tws_inner_entry pass = PTree.set TUL._node next
+      (PTree.set TUL._list head (PTree.set TUL._t'2 heads (tws_pass_entry pass))) /\
+    tws_inner_before pass = tws_pass_before pass.
+Proof.
+  intros version e area pass [Hsetup _].
+  unfold tws_pass_prefix, ocn_prepend in Hsetup.
+  unfold ocn_exec, ClightBigstep.Clight2.exec_stmt in Hsetup.
+  cce_unroll_loop_free_exec. do 3 eexists. repeat split; try eassumption; reflexivity.
+Qed.
+
+Definition TeleporterWholeScanBoundary : Prop :=
+  TWSWholeBodyThirteenPasses /\ TWSWholeCallThirteenPasses /\ TWSWholeCallBobombPass.
+Theorem teleporter_whole_scan_checked : TeleporterWholeScanBoundary.
+Proof.
+  split; [exact tws_complete_scan_body_has_thirteen_passes|].
+  split; [exact tws_complete_scan_call_has_thirteen_passes|].
+  exact tws_complete_scan_call_has_bobomb_pass.
+Qed.

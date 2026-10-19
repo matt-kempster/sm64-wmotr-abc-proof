@@ -1,0 +1,7 @@
+Chars 292 - 328 [From~Coq~Require~Import~List~Z...] 0.672 secs (0.18u,0.203s)
+Chars 329 - 453 [From~compcert~Require~Import~A...] 0.612 secs (0.313u,0.298s)
+Chars 454 - 795 [From~LessThanOneAPress.Proofs~...] 0.018 secs (0.u,0.001s)
+File "./proofs/TeleporterTransportCut.v", line 8, characters 0-341:
+Error: Cannot find a physical path bound to logical path
+TeleporterWholeScan with prefix LessThanOneAPress.Proofs.
+

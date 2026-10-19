@@ -1,0 +1,347 @@
+(** Frames for the actual generated stock sound-stop implementation.  Its
+    five-function closure writes three named audio globals.  A source-root
+    certificate and the actual seqPlayer initialization establish separation
+    from every byte of gObjectPool.  Internal source binding remains explicit:
+    this file does not reinterpret the selected 38-unit external oracle. *)
+From Coq Require Import Bool List Lia ZArith.
+From compcert Require Import AST Clight ClightBigstep Clightdefs Cop Coqlib
+  Ctypes Events Globalenvs Integers Maps Memory Values.
+From LessThanOneAPress.Generated.runtime Require Import us_audio_external jp_audio_external.
+From LessThanOneAPress.Generated Require Import us_spawn_object.
+From LessThanOneAPress.Proofs Require Import GameTypes InkPlatformWriteFrame
+  ObjectContactNecessity InkBackwardExecution SecretContactExecution.
+Import ListNotations.
+Local Open Scope Z_scope.
+Module TAF := us_audio_external.
+
+Inductive TAFFunction := TAFStop | TAFUpdate | TAFBegin | TAFTarget | TAFNormal.
+Definition taf_body version helper := match version,helper with
+| VersionUS,TAFStop => TAF.f_stop_sounds_from_source
+| VersionJP,TAFStop => jp_audio_external.f_stop_sounds_from_source
+| VersionUS,TAFUpdate => TAF.f_update_background_music_after_sound
+| VersionJP,TAFUpdate => jp_audio_external.f_update_background_music_after_sound
+| VersionUS,TAFBegin => TAF.f_begin_background_music_fade
+| VersionJP,TAFBegin => jp_audio_external.f_begin_background_music_fade
+| VersionUS,TAFTarget => TAF.f_seq_player_fade_to_target_volume
+| VersionJP,TAFTarget => jp_audio_external.f_seq_player_fade_to_target_volume
+| VersionUS,TAFNormal => TAF.f_seq_player_fade_to_normal_volume
+| VersionJP,TAFNormal => jp_audio_external.f_seq_player_fade_to_normal_volume end.
+Definition taf_ident helper := match helper with
+| TAFStop => TAF._stop_sounds_from_source
+| TAFUpdate => TAF._update_background_music_after_sound
+| TAFBegin => TAF._begin_background_music_fade
+| TAFTarget => TAF._seq_player_fade_to_target_volume
+| TAFNormal => TAF._seq_player_fade_to_normal_volume end.
+Definition taf_callees helper : list TAFFunction := match helper with
+| TAFStop => [TAFUpdate] | TAFUpdate => [TAFBegin]
+| TAFBegin => [TAFTarget;TAFNormal] | _ => [] end.
+Definition taf_rank helper : nat := match helper with
+| TAFStop => 3 | TAFUpdate => 2 | TAFBegin => 1 | _ => 0 end.
+Definition taf_globals :=
+  [TAF._sSoundBanks;TAF._sSoundBanksThatLowerBackgroundMusic;TAF._gSequencePlayers].
+Definition taf_separate (ge : genv) b := forall id,
+  In id taf_globals -> Genv.find_symbol ge id <> Some b.
+Definition TAFAudioResolution version (ge : genv) := forall helper, exists b,
+  Genv.find_symbol ge (taf_ident helper) = Some b /\
+  Genv.find_funct_ptr ge b = Some (Internal (taf_body version helper)).
+
+Definition taf_call_allowed (callees : list TAFFunction) fn := match fn with
+| Evar id (Tfunction _ _ _) => ipw_member id (map taf_ident callees)
+| _ => false end.
+Definition taf_write temps lhs := match access_mode (typeof lhs), snd (ipw_roots lhs) with
+| By_value _, Some root => ipw_allowed taf_globals temps root
+| _, _ => false end.
+Fixpoint taf_shape temps callees s := match s with
+| Sskip | Sbreak | Scontinue | Sreturn _ => true
+| Sset id _ => negb (ipw_member id temps)
+| Sassign lhs _ => taf_write temps lhs
+| Scall None fn _ => taf_call_allowed callees fn
+| Ssequence first rest | Sifthenelse _ first rest | Sloop first rest =>
+    taf_shape temps callees first && taf_shape temps callees rest
+| _ => false end.
+Definition taf_player_source := Ebinop Oadd
+  (Evar TAF._gSequencePlayers (tarray (Tstruct TAF._SequencePlayer noattr) 3))
+  (Etempvar TAF._player tint) (tptr (Tstruct TAF._SequencePlayer noattr)).
+Definition taf_leaf_tail version helper := match fn_body (taf_body version helper) with
+| Ssequence _ tail => tail | _ => Sskip end.
+
+Lemma taf_generated_no_locals : forall version helper,
+  fn_vars (taf_body version helper) = [].
+Proof. intros [] []; reflexivity. Qed.
+Lemma taf_generated_plain_shape : forall version helper,
+  helper = TAFStop \/ helper = TAFUpdate \/ helper = TAFBegin ->
+  taf_shape [] (taf_callees helper) (fn_body (taf_body version helper)) = true.
+Proof. intros [] [] H; try (destruct H as [H|[H|H]]; discriminate); reflexivity. Qed.
+Lemma taf_generated_leaf_shape : forall version helper,
+  helper = TAFTarget \/ helper = TAFNormal ->
+  fn_body (taf_body version helper) =
+    Ssequence (Sset TAF._seqPlayer taf_player_source) (taf_leaf_tail version helper) /\
+  taf_shape [TAF._seqPlayer] [] (taf_leaf_tail version helper) = true.
+Proof.
+  intros [] [] H; try (destruct H as [H|H]; discriminate); split; reflexivity.
+Qed.
+Lemma taf_real_callees_have_lower_rank : forall caller callee,
+  In callee (taf_callees caller) -> (taf_rank callee < taf_rank caller)%nat.
+Proof.
+  intros [] callee H; cbn in H; repeat destruct H as [<-|H]; try contradiction; cbn; lia.
+Qed.
+
+Lemma taf_global_root_safe : forall ge b le id,
+  taf_separate ge b -> In id taf_globals ->
+  ipw_root_safe ge empty_env le b (IPWvar id).
+Proof.
+  intros ge b le id Hseparate Hin. split; [intros; discriminate|].
+  intros _ target Hfind Heq. subst target. exact (Hseparate id Hin Hfind).
+Qed.
+Lemma taf_context_from_temps : forall ge b le temps,
+  taf_separate ge b ->
+  (forall id, In id temps -> ipw_root_safe ge empty_env le b (IPWtemp id)) ->
+  ipw_context ge empty_env le b taf_globals temps [].
+Proof.
+  intros ge b le temps Hseparate Htemps. split.
+  - intros; eapply taf_global_root_safe; eauto.
+  - split; [exact Htemps|intros id H; contradiction].
+Qed.
+
+Lemma taf_actual_store_frame : forall ge b temps le before lhs rhs trace last after out,
+  ipw_context ge empty_env le b taf_globals temps [] ->
+  taf_write temps lhs = true ->
+  ocn_exec ge empty_env le before (Sassign lhs rhs) trace last after out ->
+  trace = E0 /\ ipw_frame b before after.
+Proof.
+  intros ge b temps le before lhs rhs trace last after out Hcontext Hshape Hrun.
+  unfold taf_write in Hshape.
+  destruct (access_mode (typeof lhs)) eqn:Hmode; try discriminate.
+  destruct (snd (ipw_roots lhs)) as [root|] eqn:Hroot; try discriminate.
+  pose proof (ipw_context_root _ _ _ _ _ _ _ _ Hcontext Hshape) as Hsafe.
+  inversion Hrun; subst. split; [reflexivity|]. intros chunk offset.
+  match goal with Hl : eval_lvalue _ _ _ _ lhs ?loc _ _ |- _ =>
+    assert (loc <> b) as Hother by
+      (eapply (proj2 (ipw_root_sound _ _ _ _)); [exact Hl|exact Hroot|exact Hsafe]) end.
+  match goal with Ha : assign_loc _ _ _ _ _ _ _ _ |- _ => inversion Ha; subst end.
+  - eapply Mem.load_store_other; [eassumption|left; congruence].
+  - congruence.
+  - match goal with Hb : store_bitfield _ _ _ _ _ _ _ _ _ _ |- _ => inversion Hb; subst end.
+    eapply Mem.load_store_other; [eassumption|left; congruence].
+Qed.
+
+(** The induction covers actual completed loops, without assuming sound-bank
+    index bounds, a list invariant, or the frame conclusion as a premise. *)
+Lemma taf_checked_statement_frame : forall ge b temps callees,
+  (forall le before fn args trace last after out,
+    taf_call_allowed callees fn = true ->
+    ocn_exec ge empty_env le before (Scall None fn args) trace last after out ->
+    trace = E0 /\ ipw_frame b before after) ->
+  forall le before s trace last after out,
+  ocn_exec ge empty_env le before s trace last after out ->
+  taf_shape temps callees s = true ->
+  ipw_context ge empty_env le b taf_globals temps [] ->
+  trace = E0 /\ ipw_frame b before after /\
+    ipw_context ge empty_env last b taf_globals temps [].
+Proof.
+  intros ge b temps callees Hcall le before s trace last after out Hrun.
+  unfold ipw_frame in *. induction Hrun; cbn [taf_shape]; intros Hshape Hcontext;
+    try discriminate;
+    try solve [split; [reflexivity|]; split; [intros; reflexivity|exact Hcontext]].
+  - destruct (taf_actual_store_frame _ _ _ _ _ _ _ _ _ _ _ Hcontext Hshape
+      ltac:(econstructor; eauto)) as [Ht Hframe]. auto.
+  - split; [reflexivity|]. split; [intros; reflexivity|].
+    eapply ipw_set_context; [exact Hcontext|]. rewrite app_nil_r.
+    now apply negb_true_iff in Hshape.
+  - destruct optid; try discriminate.
+    destruct (Hcall le m a al t (set_opttemp None vres le) m' Out_normal Hshape
+      ltac:(eapply exec_Scall with (vres := vres); eauto)) as [Ht Hframe]. auto.
+  - apply andb_true_iff in Hshape as [Ha Hb].
+    destruct (IHHrun1 Hcall Ha Hcontext) as (-> & Hfirst & Hmiddle).
+    destruct (IHHrun2 Hcall Hb Hmiddle) as (-> & Hsecond & Hlast).
+    split; [reflexivity|]. split; [intros; rewrite Hsecond, Hfirst; reflexivity|exact Hlast].
+  - apply andb_true_iff in Hshape as [Ha Hb]. eauto.
+  - apply andb_true_iff in Hshape as [Ha Hb]. destruct b0; eauto.
+  - apply andb_true_iff in Hshape as [Ha Hb]. eauto.
+  - apply andb_true_iff in Hshape as [Ha Hb].
+    destruct (IHHrun1 Hcall Ha Hcontext) as (-> & Hfirst & Hmiddle).
+    destruct (IHHrun2 Hcall Hb Hmiddle) as (-> & Hsecond & Hlast).
+    split; [reflexivity|]. split; [intros; rewrite Hsecond, Hfirst; reflexivity|exact Hlast].
+  - apply andb_true_iff in Hshape as [Ha Hb].
+    destruct (IHHrun1 Hcall Ha Hcontext) as (-> & Hfirst & Hmiddle1).
+    destruct (IHHrun2 Hcall Hb Hmiddle1) as (-> & Hsecond & Hmiddle2).
+    destruct (IHHrun3 Hcall (andb_true_intro (conj Ha Hb)) Hmiddle2)
+      as (-> & Hthird & Hlast).
+    split; [reflexivity|]. split;
+      [intros; rewrite Hthird, Hsecond, Hfirst; reflexivity|exact Hlast].
+Qed.
+
+Definition TAFCallFrame version ge b helper : Prop := forall before args trace after result,
+  ClightBigstep.Clight2.eval_funcall ge before (Internal (taf_body version helper))
+    args trace after result -> trace = E0 /\ ipw_frame b before after.
+
+Lemma taf_call_allowed_shape : forall callees fn,
+  taf_call_allowed callees fn = true -> exists helper args ret cc,
+    In helper callees /\ fn = Evar (taf_ident helper) (Tfunction args ret cc).
+Proof.
+  intros callees fn Hshape. destruct fn; try discriminate.
+  destruct t; try discriminate. cbn [taf_call_allowed] in Hshape.
+  apply ipw_member_spec in Hshape. apply in_map_iff in Hshape.
+  destruct Hshape as (helper & Hident & Hin). subst i.
+  exists helper, l, t, c. auto.
+Qed.
+
+Lemma taf_resolved_call_frame : forall version ge b callees,
+  TAFAudioResolution version ge ->
+  (forall helper, In helper callees -> TAFCallFrame version ge b helper) ->
+  forall le before fn args trace last after out,
+  taf_call_allowed callees fn = true ->
+  ocn_exec ge empty_env le before (Scall None fn args) trace last after out ->
+  trace = E0 /\ ipw_frame b before after.
+Proof.
+  intros version ge b callees Hresolution Hcallees le before fn args trace last after out
+    Hshape Hrun.
+  destruct (taf_call_allowed_shape _ _ Hshape) as (helper & types & ret & cc & Hin & ->).
+  destruct (Hresolution helper) as (fb & Hsymbol & Hfunction).
+  inversion Hrun; subst.
+  match goal with Hclass : classify_fun _ = _ |- _ => cbn in Hclass; inversion Hclass; subst end.
+  match goal with Hexpr : eval_expr _ _ _ _ (Evar _ _) ?vf |- _ =>
+    assert (vf = Vptr fb Ptrofs.zero) by
+      (eapply sce_function_name_value; [apply PTree.gempty|exact Hsymbol|exact Hexpr]); subst vf end.
+  match goal with Hfind : Genv.find_funct _ (Vptr _ _) = Some ?fd |- _ =>
+    change (Genv.find_funct_ptr ge fb = Some fd) in Hfind;
+    rewrite Hfunction in Hfind; inversion Hfind; subst fd end.
+  eapply (Hcallees helper Hin); eassumption.
+Qed.
+
+Lemma taf_call_frame_from_body : forall version ge b helper,
+  (forall le before trace last after out,
+    ocn_exec ge empty_env le before (fn_body (taf_body version helper)) trace last after out ->
+    trace = E0 /\ ipw_frame b before after) ->
+  TAFCallFrame version ge b helper.
+Proof.
+  intros version ge b helper Hbody before args trace after result Hcall.
+  inversion Hcall; subst.
+  match goal with He : function_entry2 _ _ _ _ _ _ _ |- _ => inversion He; subst; clear He end.
+  match goal with Ha : alloc_variables _ _ _ _ _ _ |- _ =>
+    rewrite taf_generated_no_locals in Ha; inversion Ha; subst; clear Ha end.
+  match goal with Hfree : Mem.free_list ?memory (blocks_of_env _ empty_env) = Some ?final |- _ =>
+    change (Some memory = Some final) in Hfree; inversion Hfree; subst end.
+  eapply Hbody; eassumption.
+Qed.
+
+Lemma taf_plain_call_frame : forall version ge b helper,
+  taf_separate ge b ->
+  helper = TAFStop \/ helper = TAFUpdate \/ helper = TAFBegin ->
+  TAFAudioResolution version ge ->
+  (forall callee, In callee (taf_callees helper) -> TAFCallFrame version ge b callee) ->
+  TAFCallFrame version ge b helper.
+Proof.
+  intros version ge b helper Hseparate Hplain Hresolution Hcallees.
+  apply taf_call_frame_from_body. intros le before trace last after out Hrun.
+  destruct (taf_checked_statement_frame ge b [] (taf_callees helper)
+    (taf_resolved_call_frame version ge b (taf_callees helper) Hresolution Hcallees)
+    _ _ _ _ _ _ _ Hrun (taf_generated_plain_shape _ _ Hplain)
+    ltac:(apply taf_context_from_temps; [exact Hseparate|intros id Hin; contradiction]))
+    as (Ht & Hframe & _). auto.
+Qed.
+
+Lemma taf_leaf_call_frame : forall version ge b helper,
+  taf_separate ge b -> helper = TAFTarget \/ helper = TAFNormal ->
+  TAFCallFrame version ge b helper.
+Proof.
+  intros version ge b helper Hseparate Hleaf.
+  destruct (taf_generated_leaf_shape _ _ Hleaf) as [Hbody Hshape].
+  apply taf_call_frame_from_body. intros le before trace last after out Hrun.
+  rewrite Hbody in Hrun.
+  destruct (ibk_split_sequence _ _ _ _ _ _ _ _ _ _ eq_refl Hrun)
+    as (middle & memory & pre & tail & Htrace & Hinit & Hrest).
+  inversion Hinit; subst; clear Hinit.
+  match goal with Hread : eval_expr _ _ _ _ taf_player_source ?value |- _ =>
+    assert (ipw_value_safe b value) as Hsafe by
+      (intros target ofs Heq; eapply (proj1 (ipw_root_sound ge empty_env le before));
+       [exact Hread|reflexivity|eapply taf_global_root_safe; [exact Hseparate|cbn; auto]|exact Heq])
+  end.
+  assert (ipw_context ge empty_env middle b taf_globals [TAF._seqPlayer] []) as Hcontext.
+  { apply taf_context_from_temps; [exact Hseparate|]. intros id Hin target ofs Hlookup.
+    destruct Hin as [<-|[]]. rewrite PTree.gss in Hlookup.
+    inversion Hlookup; subst. eapply Hsafe; reflexivity. }
+  destruct (taf_checked_statement_frame ge b [TAF._seqPlayer] []
+    ltac:(intros; discriminate) _ _ _ _ _ _ _ Hrest Hshape Hcontext)
+    as (Ht & Hframe & _).
+  split; [subst; reflexivity|exact Hframe].
+Qed.
+
+Lemma taf_each_call_frame_from_callees : forall version ge b helper,
+  taf_separate ge b -> TAFAudioResolution version ge ->
+  (forall callee, In callee (taf_callees helper) -> TAFCallFrame version ge b callee) ->
+  TAFCallFrame version ge b helper.
+Proof.
+  intros version ge b [] Hseparate Hresolution Hcallees.
+  - eapply taf_plain_call_frame; eauto.
+  - eapply taf_plain_call_frame; eauto.
+  - eapply taf_plain_call_frame; eauto.
+  - eapply taf_leaf_call_frame; eauto.
+  - eapply taf_leaf_call_frame; eauto.
+Qed.
+Lemma taf_ranked_call_frame : forall rank version ge b,
+  taf_separate ge b -> TAFAudioResolution version ge ->
+  forall helper, (taf_rank helper < rank)%nat -> TAFCallFrame version ge b helper.
+Proof.
+  induction rank as [|rank IH]; intros version ge b Hseparate Hresolution helper Hrank;
+    [lia|].
+  eapply taf_each_call_frame_from_callees; [exact Hseparate|exact Hresolution|].
+  intros callee Hin. eapply IH; [exact Hseparate|exact Hresolution|].
+  pose proof (taf_real_callees_have_lower_rank helper callee Hin). lia.
+Qed.
+
+Theorem taf_actual_audio_closure_preserves_other_blocks : forall version ge b helper,
+  taf_separate ge b -> TAFAudioResolution version ge -> TAFCallFrame version ge b helper.
+Proof.
+  intros version ge b helper Hseparate Hresolution.
+  eapply (taf_ranked_call_frame 4); [exact Hseparate|exact Hresolution|].
+  destruct helper; cbn; lia.
+Qed.
+
+Lemma taf_object_pool_is_separate : forall ge b,
+  Genv.find_symbol ge us_spawn_object._gObjectPool = Some b -> taf_separate ge b.
+Proof.
+  intros ge b Hpool id Hin Hsame.
+  assert (us_spawn_object._gObjectPool <> id) as Hnames
+    by (cbn in Hin; repeat destruct Hin as [<-|Hin]; try contradiction; discriminate).
+  assert (b <> b) as Hbad by
+    (eapply Genv.global_addresses_distinct; [exact Hnames|exact Hpool|exact Hsame]).
+  exact (Hbad eq_refl).
+Qed.
+
+Definition TeleporterActualAudioPoolFrame : Prop := forall version ge b before args trace after result,
+  TAFAudioResolution version ge ->
+  Genv.find_symbol ge us_spawn_object._gObjectPool = Some b ->
+  ClightBigstep.Clight2.eval_funcall ge before (Internal (taf_body version TAFStop))
+    args trace after result ->
+  trace = E0 /\ forall chunk offset, Mem.load chunk after b offset = Mem.load chunk before b offset.
+Theorem teleporter_actual_audio_frames_object_pool : TeleporterActualAudioPoolFrame.
+Proof.
+  intros version ge b before args trace after result Hresolution Hpool Hcall.
+  eapply (taf_actual_audio_closure_preserves_other_blocks version ge b TAFStop);
+    [eapply taf_object_pool_is_separate; exact Hpool|exact Hresolution|exact Hcall].
+Qed.
+
+Definition taf_stop_type := Tfunction [tptr tfloat] tvoid cc_default.
+Definition TeleporterResolvedAudioCallPoolFrame : Prop := forall version ge b le before args trace last after out,
+  TAFAudioResolution version ge ->
+  Genv.find_symbol ge us_spawn_object._gObjectPool = Some b ->
+  ocn_exec ge empty_env le before
+    (Scall None (Evar TAF._stop_sounds_from_source taf_stop_type) args) trace last after out ->
+  trace = E0 /\ forall chunk offset, Mem.load chunk after b offset = Mem.load chunk before b offset.
+Theorem teleporter_resolved_audio_call_frames_object_pool : TeleporterResolvedAudioCallPoolFrame.
+Proof.
+  intros version ge b le before args trace last after out Hresolution Hpool Hrun.
+  eapply (taf_resolved_call_frame version ge b [TAFStop]); [exact Hresolution| |reflexivity|exact Hrun].
+  intros helper Hin. destruct Hin as [<-|[]].
+  eapply taf_actual_audio_closure_preserves_other_blocks;
+    [eapply taf_object_pool_is_separate; exact Hpool|exact Hresolution].
+Qed.
+
+Definition TeleporterAudioFrameBoundary : Prop :=
+  TeleporterActualAudioPoolFrame /\ TeleporterResolvedAudioCallPoolFrame.
+Theorem teleporter_audio_frame_checked : TeleporterAudioFrameBoundary.
+Proof.
+  split; [exact teleporter_actual_audio_frames_object_pool|].
+  exact teleporter_resolved_audio_call_frames_object_pool.
+Qed.

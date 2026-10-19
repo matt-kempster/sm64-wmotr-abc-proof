@@ -1,0 +1,91 @@
+{
+  "date": "2026-10-19",
+  "status": "unverified archival checkpoint; not active proof evidence",
+  "proof_repository_base_commit": "233f73d918af5a7d120023a3d193df1648d82487",
+  "source_worktree_clean": false,
+  "proof_work_resumed": false,
+  "vc_analysis_resumed": false,
+  "historical_logs_have_authenticated_source_hashes": false,
+  "entries": [
+    {
+      "file": "TeleporterAudioFrame.v.draft",
+      "original_unit_relative_path": "build/check/transport-wip/TeleporterAudioFrame.v",
+      "kind": "unverified_source",
+      "bytes": 18304,
+      "sha256": "bde74a00b0add4207458c70986f1ef0d3fadf16958bd0a5ab3b4212f1edb7fc6",
+      "status": "Uncompiled; concrete game audio resolution does not yet discharge the selected abstract external audio call."
+    },
+    {
+      "file": "TeleporterPoolPartition.v.draft",
+      "original_unit_relative_path": "build/check/transport-wip/TeleporterPoolPartition.v",
+      "kind": "unverified_source",
+      "bytes": 15012,
+      "sha256": "d3169a6d120fe8c2b5e451dd6d1039a5bc903370427505133de7caa5de6a2d7a",
+      "status": "Uncompiled; proposed local deallocator-store frame, not a global live/free partition invariant."
+    },
+    {
+      "file": "TeleporterSpawnOwnership.v.draft",
+      "original_unit_relative_path": "build/check/transport-wip/TeleporterSpawnOwnership.v",
+      "kind": "unverified_source",
+      "bytes": 66411,
+      "sha256": "e12f9d18c98777f33889b471822eba66544ddf725fe9ee4714da6bbb19ee4e23",
+      "status": "Latest historical full check failed at tso_geo_vector_call_resolves, source line 832: No matching clauses for match. Later proof text unchecked."
+    },
+    {
+      "file": "TeleporterTransportCut.v.draft",
+      "original_unit_relative_path": "build/check/transport-wip/TeleporterTransportCut.v",
+      "kind": "unverified_source",
+      "bytes": 18450,
+      "sha256": "893428e7fe3ca184c6297f241fbcdfb6169cc315bf12d7a3844cef677ee90ee4",
+      "status": "Current text uncompiled; historical check stopped at missing WholeScan import, before checking the body."
+    },
+    {
+      "file": "TeleporterWholeScan.v.draft",
+      "original_unit_relative_path": "build/check/transport-wip/TeleporterWholeScan.v",
+      "kind": "unverified_source",
+      "bytes": 27777,
+      "sha256": "14e3d96a17c8d1291ef6a58f1d36b73a2a2a231ada970c3e5a954bf5f260e969",
+      "status": "Current trace-strengthened text uncompiled; historical timing log reaches final Qed for an earlier source version only."
+    },
+    {
+      "file": "original-README.txt",
+      "original_unit_relative_path": "build/check/transport-wip/README.txt",
+      "kind": "historical_readme",
+      "bytes": 425,
+      "sha256": "b8dcac847ae7bc88da4d0c1bf67a8d3b8cf1f0590f7279b360906ead5bf10e03",
+      "status": "Verbatim original checkpoint note; its exclusion-from-commit wording predates this archival commit."
+    },
+    {
+      "file": "logs/TeleporterSpawnOwnership.log.txt",
+      "original_unit_relative_path": "build/check/TeleporterSpawnOwnership.log",
+      "kind": "historical_compiler_log",
+      "bytes": 32785,
+      "sha256": "0f5cd8949bc561160279b601010e0c30b28c4b0e59c359526152c3a6d75d2fe2",
+      "status": "Failure at line 832; no source hash was recorded by the historical check."
+    },
+    {
+      "file": "logs/TeleporterWholeScan.log.txt",
+      "original_unit_relative_path": "build/check/TeleporterWholeScan.log",
+      "kind": "historical_compiler_log",
+      "bytes": 19220,
+      "sha256": "94a801b38f1de64ee8479c17fb5153e7e58b1e63bc04c84b1a479d12a2cf6d37",
+      "status": "Earlier baseline only; does not validate the archived trace-strengthened source. Historical source hash unavailable."
+    },
+    {
+      "file": "logs/TeleporterTransportCut.log.txt",
+      "original_unit_relative_path": "build/check/TeleporterTransportCut.log",
+      "kind": "historical_compiler_log",
+      "bytes": 417,
+      "sha256": "a526297fe2c72a3802f34f8cb60611dee571193c0b6b831ebdb423b0d1eca68e",
+      "status": "Missing dependency import; body unchecked. Predates archived source; historical source hash unavailable."
+    },
+    {
+      "file": "logs/active-boundary-audit-summary.txt",
+      "original_unit_relative_path": "build/audit/20261019-180558-o_dr9zdf/summary.txt",
+      "kind": "active_boundary_audit",
+      "bytes": 1533,
+      "sha256": "25abc46e3076ac77bc8087d4e8345af72cde980b77b76a9facfc31f1f16fbeff",
+      "status": "Historical PASS for active conditional boundary, NOT any archived draft."
+    }
+  ]
+}

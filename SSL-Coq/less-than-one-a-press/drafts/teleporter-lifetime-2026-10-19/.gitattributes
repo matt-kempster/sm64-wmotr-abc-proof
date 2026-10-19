@@ -1,0 +1,3 @@
+*.v.draft -text
+logs/* -text
+original-README.txt -text
