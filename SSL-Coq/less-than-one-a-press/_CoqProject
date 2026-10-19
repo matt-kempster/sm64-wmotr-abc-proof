@@ -672,3 +672,7 @@ proofs/TeleporterWarpClassification.v
 proofs/TeleporterObjectLifetime.v
 proofs/TeleporterBobombUsability.v
 proofs/TeleporterNullRelease.v
+proofs/TeleporterHeldOwnership.v
+proofs/TeleporterBobombRegrab.v
+proofs/TeleporterUnloadTraversal.v
+proofs/TeleporterEarlierAreaChange.v

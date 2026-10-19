@@ -9,6 +9,109 @@ does not close the pyramid proof's existing JP spawning-displacement routes.
 
 ## Hands-free Bob-ombs, the lower entrance and Goomba-clone knockback
 
+### Lifetime follow-up: what is still required to settle transport
+
+**The universal Bob-omb transport exclusion is not yet proved or disproved.**
+The user knows of no demonstrated successful Teleporter Wrong Warp to SSL
+Area 2. Such a demonstration is **not necessary** for an exclusion: proving
+that every candidate Bob-omb has already been unloaded during the earlier
+area change would settle survival before the final same-area warp. The
+missing work is a game-source lifetime invariant, not a requirement to
+resume VC emulator analysis.
+
+The follow-up extends actual generated US/JP executions in four places:
+
+- `TeleporterHeldOwnership.v` constructs complete `obj_set_held_state`
+  calls for the real holdable-object/carry-script branch, and forces their
+  exact two stores under concrete readable/writable storage and script
+  pointer conditions. Parent pointer offset 104 and held-state word offset
+  292 change; area bytes 24/25 and active flags at 116 are preserved. A
+  completed holding call cannot revive an object whose active flags were
+  zero at that call's entry.
+- `TeleporterBobombRegrab.v` constructs complete `mario_grab_used_object`
+  calls from null `heldObj`, the real `usedObj` pointer and the actual helper
+  inputs. It also determines every completed call under those inputs:
+  Mario's `heldObj` is restored to the same `usedObj`, the parent pointer is
+  set and the object's held-state word becomes 1. The object's area and
+  active flags are preserved. This does not grant the collision, facing,
+  pickup-animation or live-Bob-omb identity needed for the proposed ordinary
+  live regrab. The call itself does not require an active object; a stale
+  writable slot can also satisfy its storage inputs.
+- `TeleporterUnloadTraversal.v` starts from a complete actual **inner**
+  unload-loop execution and an entry-memory forward path to the watched
+  object. Given precise pending owner/next-load frames for earlier actual
+  unload calls, it reaches the watched unload call in that same traversal.
+  The reached call and deactivation checkpoint remain attached to a visit
+  in that execution. The complete watched unload call finishes with the
+  watched slot at the actual free-list head. This final return result does
+  not assume that the earlier audio callback preserves active flags.
+- `TeleporterEarlierAreaChange.v` extracts the real changed/unchanged
+  branches of `change_area`, with unload finishing before load begins in
+  the changed branch. It extracts the first scan call from `unload_area`
+  before the later graph callback and area clearing. Selected callee
+  resolution and complete-call/body cuts preserve the actual intermediate
+  memories. The existing classifier theorem still requires destination
+  level/area to equal the current ones for an ordinary same-area selection.
+
+These local contracts do **not** yet give the requested full lifetime
+theorem. They still need to be joined to reachable history:
+
+1. Establish each candidate live Bob-omb's ownership and membership in the
+   appropriate live list at the earlier area change. A prior change-level
+   entry also needs the complete pool-reset and later creation history.
+   Holding does not retag
+   it, but that local frame does not establish all creation and intervening
+   writer histories. SSL Area 2's checked stock spawn data has no Bob-omb;
+   indirect descendants and respawners need semantic provenance too.
+2. Connect the whole `unload_objects_from_area` outer loop to the watched
+   inner-loop entry and discharge its concrete list/owner frames. The inner
+   theorem currently requires an Area-1-matching prefix; it is not a proof
+   for every mixed-owner list or a derived reachable list invariant.
+3. Preserve removal of that allocation through the remaining unload/load
+   work and later same-area warp. A free-list-head checkpoint at the watched
+   call's return is not an invariant through every subsequent callback,
+   list edit or allocation. That head-store result alone does not establish
+   a well-formed, disjoint live/free-list partition. Reusing its address does not preserve the old
+   Bob-omb, and a newly usable Bob-omb would require its own creation proof.
+
+No assumption here says "the Bob-omb cannot survive." The unresolved
+conditions name actual ownership loads, list links, calls and allocation
+history. None is silently discharged by the clean assumption audit. The
+new entry point `MainTheorem.current_bobomb_lifetime_boundary` consumes the
+four modules and the preceding hands-free/pole-damage boundary; its statement
+retains those local contracts rather than asserting a global exclusion.
+
+The requested exclusion concerns a **live Bob-omb arriving and being
+regrabbed**. Excluding that would reject this particular donor-transport
+proposal, but would not automatically exclude every stale-pointer cloning
+history. A vacant slot or a new Goomba allocation at the same address is a
+different case. The new whole-call grab theorem takes the HOLDABLE branch;
+installing a carry script into a non-HOLDABLE Goomba uses another branch.
+Any broader cloning exclusion must account for `usedObj`/`heldObj` resets,
+their later pointer sources and the actual replacement allocation too.
+
+Two subagent responses during this game-source follow-up were blocked with
+an automated possible-cybersecurity-risk notice. It did not identify an
+offending operation or establish a policy violation. No attempt was made
+to bypass the block or resume the stopped emulator investigation. This
+session uses generated game code, Coq and ordinary repository validation.
+
+Validation of this follow-up: audit `20261019-171505-mkjic2jj` passes the
+registered build, proof-hole and link checks, all eight assumption queries,
+and integration with zero problems. The combined lifetime boundary and its
+four new module boundaries each use seven permitted Coq/CompCert foundations;
+the established Ink, retry and geometry queries use nine, seven and four.
+There is no new project axiom or foundation-allowlist change. The working
+checkout census is 673 sources and 500/595 proof modules in MainTheorem's
+import closure, with 95 standalone-only; unrelated existing working changes
+were retained during that audit. The exact prospective committed MainTheorem
+was separately pipeline-checked in `build/check/LifetimeCommitValidation.v`
+so those unrelated entry-point changes are excluded from this commit.
+Toolchain: `sm64-item-proof`, Coq 8.16.1, CompCert 3.15, established memory
+cap, and 600/240-second audit limits. A clean audit validates the stated
+conditional execution contracts; it does not discharge their reachable
+history obligations or establish the requested universal exclusion.
+
 **The wrong-warp transport claim remains open. The ordinary lower entrance
 does not carry an Area-1-owned Bob-omb into Area 2 as the same live object.**
 These are different conclusions. A null Mario `heldObj` alone is insufficient
@@ -57,6 +160,14 @@ load they skip every object write and every call. A surviving orphan Bob-omb
 would need a real interaction such as regrabbing before those operations
 could release it; object-side held state does not itself perform a clone grab.
 
+The Bob-omb fuse also limits what a regrab receipt means. Its held loop can
+request `DROP_OBJECT` after the fuse threshold. A non-holding Mario action
+can ignore that request, while a later holding action may process it. The
+object-held-state dispatcher can continue selecting the held loop even
+after its action word requests explosion. The new complete grab theorem
+therefore establishes pointer restoration and holding-state stores, not an
+indefinite carry, a release at an arbitrary later time or a completed clone.
+
 **A frozen Goomba clone can still supply the proposed damage knockback.**
 The user intends the clone to knock Mario off the pole without pressing A;
 the clone need not run, chase or jump if its tangible damage hitbox already
@@ -86,7 +197,7 @@ direction, pole departure, collision quarters, ring landing and star
 continuation still have to be connected. Neither Bob-omb survival nor frozen
 clone damage alone solves those installation and continuation questions.
 
-The new Coq work is deliberately bounded to actual generated US/JP code:
+The preceding three-module Coq result was deliberately bounded to actual generated US/JP code:
 
 - `TeleporterObjectLifetime.v` addresses the reached matching-area unload
   selection and the real unload deactivation checkpoint. It does not replace
@@ -125,7 +236,7 @@ selection boundary. This connects the new work to the named project entry
 point without granting a transported Bob-omb, a clone installation or a
 complete damage-to-star continuation.
 
-Validation: audit `20261019-160352-v0qgngbb` passes the registered build,
+Preceding validation: audit `20261019-160352-v0qgngbb` passes the registered build,
 669-source inventory, proof-hole scan, link checks and integration with zero
 problems. MainTheorem imports 496 of 591 proof modules; 95 remain standalone.
 The four new assumption queries (MainTheorem and the three modules) each

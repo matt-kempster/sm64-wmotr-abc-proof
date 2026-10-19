@@ -59,7 +59,8 @@ From LessThanOneAPress.Proofs Require Import
   TeleporterSameAreaBoundary TeleporterResetSeparation
   TeleporterInitializerFrame TeleporterTerrainInterval TeleporterArrivalChronology
   TeleporterHeldInitializer TeleporterHeldObjectState TeleporterWarpClassification
-  TeleporterObjectLifetime TeleporterBobombUsability TeleporterNullRelease.
+  TeleporterObjectLifetime TeleporterBobombUsability TeleporterNullRelease
+  TeleporterHeldOwnership TeleporterBobombRegrab TeleporterUnloadTraversal TeleporterEarlierAreaChange.
 
 Import ListNotations.
 Local Open Scope Z_scope.
@@ -155,6 +156,26 @@ Proof.
     split; [exact teleporter_bobomb_usability_boundary_checked|].
     split; [exact teleporter_null_release_boundary_checked|].
     exact rank11_handstand_damage_boundary_holds.
+Qed.
+
+(** Lifetime refinement: actual whole grab/hold calls, the inner unload
+    traversal with pending-read frames, complete unload return to the free
+    list, and unload-before-load chronology in the earlier area change.
+    Global reachable ownership/list invariants, outer-list coverage and
+    allocation identity across the remaining history are not supplied by
+    these local execution contracts. *)
+Theorem current_bobomb_lifetime_boundary :
+  ((TeleporterHeldObjectStateBoundary /\ TeleporterWarpClassificationBoundary) /\
+    TeleporterObjectLifetimeBoundary /\ TeleporterBobombUsabilityBoundary /\
+    TeleporterNullReleaseBoundary /\ Rank11HandstandDamageBoundary) /\
+  TeleporterHeldOwnershipBoundary /\ TeleporterBobombRegrabBoundary /\
+  TeleporterUnloadTraversalBoundary /\ TeleporterEarlierAreaChangeBoundary.
+Proof.
+  split; [exact current_hands_free_bobomb_boundary|].
+  split; [exact teleporter_held_ownership_boundary_checked|].
+  split; [exact teleporter_bobomb_regrab_boundary_checked|].
+  split; [exact teleporter_unload_traversal_checked|].
+  exact teleporter_earlier_area_change_boundary_checked.
 Qed.
 
 (** This capstone is intentionally local to Marbler's proposed mechanism.  It
