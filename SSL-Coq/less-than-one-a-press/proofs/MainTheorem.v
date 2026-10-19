@@ -60,7 +60,8 @@ From LessThanOneAPress.Proofs Require Import
   TeleporterInitializerFrame TeleporterTerrainInterval TeleporterArrivalChronology
   TeleporterHeldInitializer TeleporterHeldObjectState TeleporterWarpClassification
   TeleporterObjectLifetime TeleporterBobombUsability TeleporterNullRelease
-  TeleporterHeldOwnership TeleporterBobombRegrab TeleporterUnloadTraversal TeleporterEarlierAreaChange.
+  TeleporterHeldOwnership TeleporterBobombRegrab TeleporterUnloadTraversal TeleporterEarlierAreaChange
+  TeleporterMixedTraversal TeleporterAllocationHistory TeleporterUnloadCallPaths.
 
 Import ListNotations.
 Local Open Scope Z_scope.
@@ -176,6 +177,19 @@ Proof.
   split; [exact teleporter_bobomb_regrab_boundary_checked|].
   split; [exact teleporter_unload_traversal_checked|].
   exact teleporter_earlier_area_change_boundary_checked.
+Qed.
+
+(** Bounded wrap-up: the later type-3 warp-area choice skips its unload
+    arm, while an earlier instant warp can call change_area and unload
+    beforehand. Mixed-owner traversal and address-reuse receipts retain
+    their concrete premises. This is not a full Bob-omb lifetime theorem. *)
+Theorem current_bobomb_unload_call_path_boundary :
+  TeleporterUnloadCallPathsBoundary /\ TeleporterMixedTraversalBoundary /\
+  TeleporterUnloadThenAllocationReusesSlot.
+Proof.
+  split; [exact teleporter_unload_call_paths_checked|].
+  split; [exact teleporter_mixed_traversal_checked|].
+  exact teleporter_unload_then_allocation_reuses_slot.
 Qed.
 
 (** This capstone is intentionally local to Marbler's proposed mechanism.  It

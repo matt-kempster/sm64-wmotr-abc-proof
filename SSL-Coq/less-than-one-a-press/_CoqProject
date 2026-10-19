@@ -676,3 +676,6 @@ proofs/TeleporterHeldOwnership.v
 proofs/TeleporterBobombRegrab.v
 proofs/TeleporterUnloadTraversal.v
 proofs/TeleporterEarlierAreaChange.v
+proofs/TeleporterMixedTraversal.v
+proofs/TeleporterAllocationHistory.v
+proofs/TeleporterUnloadCallPaths.v

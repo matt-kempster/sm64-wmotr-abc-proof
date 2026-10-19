@@ -9,112 +9,78 @@ does not close the pyramid proof's existing JP spawning-displacement routes.
 
 ## Hands-free Bob-ombs, the lower entrance and Goomba-clone knockback
 
-### Lifetime follow-up: what is still required to settle transport
+### Wrap-up: which object-clearing function is bypassed?
 
-**The universal Bob-omb transport exclusion is not yet proved or disproved.**
-The user knows of no demonstrated successful Teleporter Wrong Warp to SSL
-Area 2. Such a demonstration is **not necessary** for an exclusion: proving
-that every candidate Bob-omb has already been unloaded during the earlier
-area change would settle survival before the final same-area warp. The
-missing work is a game-source lifetime invariant, not a requirement to
-resume VC emulator analysis.
+**The narrow call-path result is established; the full Bob-omb survival
+claim remains open.** At the user's request, broader ownership, audio and
+allocation-lifetime work has stopped. No surviving transported Bob-omb or
+usable Area-2 regrab has been demonstrated, and no universal exclusion has
+been proved.
 
-The follow-up extends actual generated US/JP executions in four places:
+The actual area-selective clearing routine is
+`unload_objects_from_area`. The stock lower entrance targets SSL Area 2;
+its change-area path in `warp_area` runs the timer call, then
+`unload_mario_area`, then `load_area`. The guarded Mario-area unload calls
+`unload_objects_from_area` with Mario's spawning-area index. That scan tests
+each object's activeAreaIndex; heldObj and the object's held state provide
+no exemption. A matching actual unload deactivates and deallocates it.
 
-- `TeleporterHeldOwnership.v` constructs complete `obj_set_held_state`
-  calls for the real holdable-object/carry-script branch, and forces their
-  exact two stores under concrete readable/writable storage and script
-  pointer conditions. Parent pointer offset 104 and held-state word offset
-  292 change; area bytes 24/25 and active flags at 116 are preserved. A
-  completed holding call cannot revive an object whose active flags were
-  zero at that call's entry.
-- `TeleporterBobombRegrab.v` constructs complete `mario_grab_used_object`
-  calls from null `heldObj`, the real `usedObj` pointer and the actual helper
-  inputs. It also determines every completed call under those inputs:
-  Mario's `heldObj` is restored to the same `usedObj`, the parent pointer is
-  set and the object's held-state word becomes 1. The object's area and
-  active flags are preserved. This does not grant the collision, facing,
-  pickup-animation or live-Bob-omb identity needed for the proposed ordinary
-  live regrab. The call itself does not require an active object; a stale
-  writable slot can also satisfy its storage inputs.
-- `TeleporterUnloadTraversal.v` starts from a complete actual **inner**
-  unload-loop execution and an entry-memory forward path to the watched
-  object. Given precise pending owner/next-load frames for earlier actual
-  unload calls, it reaches the watched unload call in that same traversal.
-  The reached call and deactivation checkpoint remain attached to a visit
-  in that execution. The complete watched unload call finishes with the
-  watched slot at the actual free-list head. This final return result does
-  not assume that the earlier audio callback preserves active flags.
-- `TeleporterEarlierAreaChange.v` extracts the real changed/unchanged
-  branches of `change_area`, with unload finishing before load begins in
-  the changed branch. It extracts the first scan call from `unload_area`
-  before the later graph callback and area clearing. Selected callee
-  resolution and complete-call/body cuts preserve the actual intermediate
-  memories. The existing classifier theorem still requires destination
-  level/area to equal the current ones for an ordinary same-area selection.
+The later ordinary same-area case is different. When the actual type byte
+read into the warp-area choice is 3, its type-2 timer/unload/load arm is
+skipped. `TeleporterUnloadCallPaths.v` extracts that exact US/JP generated
+choice, constructs its terminating execution and proves that every
+execution of that choice has empty trace and unchanged memory. This is a
+local skip theorem, not a successful wrong-warp continuation theorem.
 
-These local contracts do **not** yet give the requested full lifetime
-theorem. They still need to be joined to reachable history:
+**Skipping that later arm does not establish that the earlier area change
+skipped object clearing.** The actual instant-warp checker calls
+`change_area`. Its changed branch calls `unload_area` before `load_area`;
+`unload_area` also calls `unload_objects_from_area`. The existing checked
+chronology retains those actual calls. Therefore, the general statement
+"Teleporter Wrong Warp bypasses the object-clearing function" is not
+established. It may skip the later ordinary unload arm while already having
+traversed an earlier unload path. Reaching that distinction is the agreed
+stopping point; it does not settle Bob-omb survival.
 
-1. Establish each candidate live Bob-omb's ownership and membership in the
-   appropriate live list at the earlier area change. A prior change-level
-   entry also needs the complete pool-reset and later creation history.
-   Holding does not retag
-   it, but that local frame does not establish all creation and intervening
-   writer histories. SSL Area 2's checked stock spawn data has no Bob-omb;
-   indirect descendants and respawners need semantic provenance too.
-2. Connect the whole `unload_objects_from_area` outer loop to the watched
-   inner-loop entry and discharge its concrete list/owner frames. The inner
-   theorem currently requires an Area-1-matching prefix; it is not a proof
-   for every mixed-owner list or a derived reachable list invariant.
-3. Preserve removal of that allocation through the remaining unload/load
-   work and later same-area warp. A free-list-head checkpoint at the watched
-   call's return is not an invariant through every subsequent callback,
-   list edit or allocation. That head-store result alone does not establish
-   a well-formed, disjoint live/free-list partition. Reusing its address does not preserve the old
-   Bob-omb, and a newly usable Bob-omb would require its own creation proof.
+The supplied wiki describes the trigger as an area change during teleporting
+and explicitly marks its account incomplete. Only that gameplay-level
+description was consulted for this wrap-up; emulator execution was not
+investigated. Source: <https://ukikipedia.net/wiki/Teleporter_wrong_warp>.
 
-No assumption here says "the Bob-omb cannot survive." The unresolved
-conditions name actual ownership loads, list links, calls and allocation
-history. None is silently discharged by the clean assumption audit. The
-new entry point `MainTheorem.current_bobomb_lifetime_boundary` consumes the
-four modules and the preceding hands-free/pole-damage boundary; its statement
-retains those local contracts rather than asserting a global exclusion.
+Two additional local source results are retained from this session:
 
-The requested exclusion concerns a **live Bob-omb arriving and being
-regrabbed**. Excluding that would reject this particular donor-transport
-proposal, but would not automatically exclude every stale-pointer cloning
-history. A vacant slot or a new Goomba allocation at the same address is a
-different case. The new whole-call grab theorem takes the HOLDABLE branch;
-installing a carry script into a non-HOLDABLE Goomba uses another branch.
-Any broader cloning exclusion must account for `usedObj`/`heldObj` resets,
-their later pointer sources and the actual replacement allocation too.
+- `TeleporterMixedTraversal.v` removes the earlier all-Area-1-prefix
+  restriction. The actual inner traversal supports any integer scan area
+  and mixed defined-integer prefix owners. Nonmatching visits execute the
+  real memory-preserving skip arm. Matching visits still need the precise
+  pending owner/next-read frames for preceding actual unload calls.
+- `TeleporterAllocationHistory.v` proves that a completed real allocator
+  call returns its entry free-list head. If actual unload is immediately
+  followed by actual try_allocate_object, that second call returns the
+  watched address. This is conditional address reuse, not a surviving old
+  Bob-omb or a reachable gameplay witness.
 
-Two subagent responses during this game-source follow-up were blocked with
-an automated possible-cybersecurity-risk notice. It did not identify an
-offending operation or establish a policy violation. No attempt was made
-to bypass the block or resume the stopped emulator investigation. This
-session uses generated game code, Coq and ordinary repository validation.
+The original `current_bobomb_lifetime_boundary` is unchanged.
+`current_bobomb_unload_call_path_boundary` consumes these three checked
+wrap-up modules. Reachable ownership/list membership, the selected abstract
+audio-call frame, live/free partition, reset/respawner ancestry and usable
+regrab continuation remain unresolved. Area 2 having no stock Bob-ombs does
+not by itself discharge that history. Unverified ownership, whole-scan,
+transport-composition, audio and pool-partition drafts are preserved locally
+under the ignored build/check/transport-wip directory, excluded from the
+proof inventory, commit and published evidence.
 
-Validation of this follow-up: audit `20261019-171505-mkjic2jj` passes the
-registered build, proof-hole and link checks, all eight assumption queries,
-and integration with zero problems. The combined lifetime boundary and its
-four new module boundaries each use seven permitted Coq/CompCert foundations;
-the established Ink, retry and geometry queries use nine, seven and four.
-There is no new project axiom or foundation-allowlist change. The working
-checkout census is 673 sources and 500/595 proof modules in MainTheorem's
-import closure, with 95 standalone-only; unrelated existing working changes
-were retained during that audit. The exact prospective committed MainTheorem
-was separately pipeline-checked in `build/check/LifetimeCommitValidation.v`
-so those unrelated entry-point changes are excluded from this commit.
-Toolchain: `sm64-item-proof`, Coq 8.16.1, CompCert 3.15, established memory
-cap, and 600/240-second audit limits. A clean audit validates the stated
-conditional execution contracts; it does not discharge their reachable
-history obligations or establish the requested universal exclusion.
+Validation: audit `20261019-180558-o_dr9zdf` passes the registered build, source inventory (676 files), proof-hole, link and integration checks (503/598 modules in MainTheorem's import closure, 95 standalone-only, zero problems). Its seven assumption queries use 7, 6, 7, 7, 9, 7 and 4 permitted foundations respectively; no project axiom or allowlist change was added. The exact prospective committed MainTheorem separately passes pipeline/check.sh as build/check/WrapupCommitValidation.v, excluding unrelated working changes. All checks use the existing pipeline,
+sm64-item-proof, Coq 8.16.1, CompCert 3.15, the established memory cap, and
+600/240-second audit limits. A clean audit validates the stated source
+boundaries, not the unresolved gameplay conclusion. The frozen-Goomba
+knockback proposal remains a candidate and all 45 route estimates are
+unchanged.
 
 **The wrong-warp transport claim remains open. The ordinary lower entrance
-does not carry an Area-1-owned Bob-omb into Area 2 as the same live object.**
-These are different conclusions. A null Mario `heldObj` alone is insufficient
+follows the matching-area unload path described below.** The source
+obstruction and the unfinished universal Coq lifetime claim have different
+scopes. A null Mario `heldObj` alone is insufficient
 to prove that an object has vanished, but an object-side held-state word is
 not protection against area unloading.
 
