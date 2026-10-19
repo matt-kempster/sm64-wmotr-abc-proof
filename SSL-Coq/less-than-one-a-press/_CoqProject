@@ -666,3 +666,6 @@ proofs/TeleporterResetSeparation.v
 proofs/TeleporterInitializerFrame.v
 proofs/TeleporterTerrainInterval.v
 proofs/TeleporterArrivalChronology.v
+proofs/TeleporterHeldInitializer.v
+proofs/TeleporterHeldObjectState.v
+proofs/TeleporterWarpClassification.v

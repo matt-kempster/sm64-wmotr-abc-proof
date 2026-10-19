@@ -57,7 +57,8 @@ From LessThanOneAPress.Proofs Require Import
   CompCertRouteScope TeleporterWrongWarpBoundary TeleporterShindouReset
   TeleporterDestinationReset TeleporterPlatformResetExecution
   TeleporterSameAreaBoundary TeleporterResetSeparation
-  TeleporterInitializerFrame TeleporterTerrainInterval TeleporterArrivalChronology.
+  TeleporterInitializerFrame TeleporterTerrainInterval TeleporterArrivalChronology
+  TeleporterHeldInitializer TeleporterHeldObjectState TeleporterWarpClassification.
 
 Import ListNotations.
 Local Open Scope Z_scope.
@@ -111,6 +112,26 @@ Proof.
   split; [exact teleporter_initializer_frame_boundary_checked|].
   split; [exact teleporter_terrain_interval_boundary_checked|].
   exact teleporter_arrival_chronology_boundary_checked.
+Qed.
+
+(** Held-object follow-up: discharge the actual read-only water-query event,
+    separate the real held-pointer reset from object-side held state, and
+    retain the actual ordinary classifier's reached paths. This does not
+    assert null at the end of initialization or a reachable all-warp exclusion.
+    Object lifetime, indirect callbacks, aliasing and exceptional-path coverage
+    remain distinct from the pointer's intermediate null checkpoint. *)
+Theorem current_held_object_warp_boundary :
+  TeleporterDestinationExecutionBoundary /\
+  TeleporterSameAreaBoundary /\
+  TeleporterHeldInitializerBoundary /\
+  TeleporterHeldObjectStateBoundary /\
+  TeleporterWarpClassificationBoundary.
+Proof.
+  split; [exact teleporter_destination_execution_boundary_checked|].
+  split; [exact teleporter_same_area_boundary_checked|].
+  split; [exact teleporter_held_initializer_boundary_checked|].
+  split; [exact teleporter_held_object_state_boundary_checked|].
+  exact teleporter_warp_classification_boundary_checked.
 Qed.
 
 (** This capstone is intentionally local to Marbler's proposed mechanism.  It

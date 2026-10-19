@@ -7,6 +7,85 @@ separate treatment and preservation until displacement remains unproved. No
 complete classification of successful origins has been established. This note
 does not close the pyramid proof's existing JP spawning-displacement routes.
 
+## HeldObj, hands-free teleporting and the meaning of same-area
+
+The end-to-end held-pointer claim remains **open**. The actual initializer
+reset is checked, but neither null preservation to the first displacement
+nor all relevant successful warp continuations have been proved. No reachable
+nonnull-heldObj arrival in SSL Area 2 has been established. In particular,
+the results below must not be labeled a completed no-item theorem.
+
+The user's hands-free objection exposes another necessary distinction.
+[Hands-free teleport](https://www.youtube.com/watch?v=qqmYYIQRSuI) is a documented
+gameplay trick; the [reported object effects](https://www.mariowiki.com/List_of_Super_Mario_64_glitches#Hands-free_teleport)
+include invisible objects and Bob-ombs that can be grabbed again after
+teleporting. This is evidence about ordinary hands-free teleportation, not
+a demonstrated Teleporter Wrong Warp carrying an object into SSL Area 2.
+
+MarioState's `heldObj` and the object's own `oHeldState` are different cells.
+The generated hold helper sets `rawData.asU32[39]` to 1 (`HELD_HELD`). The
+checked layout places this word at object offset 292, or `0x124`; Mario's
+held-pointer field is at MarioState offset 124, or `0x7C`. The new
+`TeleporterHeldObjectState.v` consumes the actual held-pointer reset and
+proves that it preserves this object-state word when the object and
+MarioState occupy distinct blocks. In particular, Mario's pointer becomes
+null while an incoming object held-state value of 1 remains 1 at that same
+reset checkpoint. This is local retention, not a constructed whole-warp run.
+
+The stock Bob-omb dispatcher switches on its own held state. Its held loop
+hides the object and calls `cur_obj_set_pos_relative(gMarioObject, 0, 60, 100)`
+without consulting Mario's `heldObj`. The new source certificate checks its
+held-loop/follow calls and the absence of a `heldObj` reference in that loop;
+it does not execute the complete Bob-omb behavior. Bob-omb behavior normally
+runs in list 2 after scheduled platform displacement. Thus hands-free
+following does not by itself contradict null **at the first apply**, but it
+does show why even a finished pointer theorem would not exclude all later
+item effects. A useful route additionally needs the object's lifetime,
+area activation, behavior and interaction history.
+
+An ordinary **same-area teleporter** and the internal warp type
+`WARP_TYPE_SAME_AREA` must also be distinguished. The generated `initiate_warp`
+chooses change-level for credits nodes or a different level, change-area for
+a different destination area in the same level, and same-area otherwise.
+The comparison is with the current area when classification runs. Merely
+redirecting the destination to another area does not retain the same-area
+classification. A later separate area change is a different execution
+interval; the classifier is not a theorem excluding that change. The
+documented [Teleporter Wrong Warp](https://ukikipedia.net/wiki/Teleporter_wrong_warp)
+starts with an area change during teleportation, so its usual teleporter's
+destination does not authenticate the final internal type or continuation.
+No emulator analysis was resumed to close that separate gap.
+
+Ordinary active type-3 initialization still calls `init_mario`; only area
+loading is skipped. Its `ACT_UNINITIALIZED` alternative skips that call and
+needs its own reachable-state exclusion. Instant warps use `change_area`
+instead and do not call `init_mario`. Stock SSL has an Area-3-to-Area-2 instant
+transition, but there is no checked reachable carried-item origin for it.
+Neither the skipped call nor an arbitrary supplied nonnull pointer is a
+reachable item-carrying counterexample.
+
+The callback follow-up `TeleporterHeldInitializer.v` removes one actual
+post-reset suffix condition: the selected US/JP `find_water_level` callee
+is proved to leave all memory identical, and its real reached event receipt
+therefore supplies its frame. The same proof handles `save_file_get_flags`.
+The other eleven suffix call sites, storage separation and the later
+wrapper/terrain effects remain unproved. Source review finds seven direct
+`heldObj` writers, of which only `mario_grab_used_object` installs a potentially
+nonnull value; its five direct callers are Mario action routines. This is
+a source census, not a proof excluding writes through aliases, behavior
+dispatch or geometry callbacks before the scheduled apply.
+
+The new MainTheorem entry `current_held_object_warp_boundary` consumes the
+destination and same-area boundaries together with all three follow-up
+modules. Selected audit `20261019-153856-fbu5z4on` passes the registered build,
+source inventory, proof-hole, link and integration checks. All four queried
+boundaries use seven permitted Coq/CompCert foundations and no new project
+axiom. The inventory has 666 source files, with 493 of 588 proof modules in
+MainTheorem's import closure and 95 standalone modules. This validates the
+stated local/conditional results; it does not complete the requested
+null-to-first-displacement or no-transported-item theorem. All 45 route
+estimates and verdicts remain unchanged.
+
 ## What the pointer is, and whether it could help
 
 `gMarioPlatform` is a cached **object address**. With a nonnull Mario Object,
