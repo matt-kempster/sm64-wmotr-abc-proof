@@ -1366,22 +1366,27 @@ Section NoARealInputMWF.
      VACUOUS and discharged inline (CutsceneLeafSurface.cut_rest_vacuous) at
      the cutscene_leaf_callees_pres application below -- the capstone no
      longer assumes ANY cutscene-leaf body. *)
-  (* SLICE 27 (act_intro_cutscene WALKED): the glob-obj reach-closure
-     assumption.  The intro warp-pipe / end-peach object pointers (gobj_ids),
-     IF holding a pointer, point into the SafeB object pool -- they are
-     spawn_object'd into the pool by the peach_lakitu subhandler and never
-     aliased to Mario's bm.  Honest, per-symbol, R11-style: SafeB is abstract
-     and there is no per-symbol global-obj membership row in MWFReal, so this
-     is a genuine new model-boundary assumption (a full discharge would thread
-     peach_lakitu's spawn-result SafeB-ness through the gobj cell).  Consumed
-     by the raise_pipe / lower_pipe seed arms (glob_obj_val). *)
-  Hypothesis Hglob_obj_root :
-    forall g gb m b o,
+  (* FOUND FALSE 2026-10-19: Hglob_obj_root ("a pointer loaded from a
+     cutscene object global is SafeB", over EVERY MWF memory).  The five
+     globals were stored_globals, whose contents MWF does not constrain, so a
+     memory with sIntroWarpPipeObj = &gMarioStates is MWF and the row fails
+     there (checked in Coq at the boot image with SafeB_boot): the capstone
+     was vacuous.  REPAIRED: the globals are SafeB blocks (HSafeB_syms (c)),
+     so MWF's load closure R7 is the invariant and the old row is a lemma
+     inside CutsceneLeafSurface; their writers store a
+     spawn_object_abs_with_rot result, SafeB by the sr row below (the same
+     model class as Hcp_spawn_real for spawn_object). *)
+  Lemma Hgobj_safe : forall g gb,
       mem_id g CutsceneLeafSurface.gobj_ids = true ->
-      MWF m ->
-      Genv.find_symbol (lp_ge lp) g = Some gb ->
-      Mem.loadv Mptr m (Vptr gb Ptrofs.zero) = Some (Vptr b o) ->
-      SafeB b.
+      Genv.find_symbol (lp_ge lp) g = Some gb -> SafeB gb.
+  Proof.
+    intros g gb Hg Hfs.
+    assert (E : CutsceneLeafSurface.gobj_ids = gobj_syms) by reflexivity.
+    rewrite E in Hg.
+    exact (proj2 (proj2 HSafeB_syms) g gb Hg Hfs).
+  Qed.
+  Hypothesis Hcp_soawr_real : call_pres_ext_sr lp bm (NoA_real bm) MWF SafeB
+      mario_actions_cutscene._spawn_object_abs_with_rot.
   (* the automatic dispatcher is WALKED (AutomaticSurface.automatic_pres
      over the generic DispatchKit; the quicksandDepth store is killed by
      the window census): PROVED from per-leaf-callee residuals keyed by
@@ -1449,9 +1454,30 @@ Section NoARealInputMWF.
      above: they drive the dialog renderer and the global time-stop flag, take no
      MarioState pointer, and never touch gMarioState->action.  Consumed by
      act_reading_sign (+ growing as the save/spawn dialog leaves discharge). *)
-  Hypothesis Hpres_cut_ext : forall fid,
+  (* 2026-10-19: spawn_object_abs_with_rot's entry is the sr row above, so
+     the any-argument row covers the rest of cut_ext_ids. *)
+  Definition cut_ext_open_ids : list ident :=
+    filter (fun i => negb (Pos.eqb i mario_actions_cutscene._spawn_object_abs_with_rot))
+      CutsceneLeafSurface.cut_ext_ids.
+  Hypothesis Hpres_cut_ext_open : forall fid,
+      mem_id fid cut_ext_open_ids = true ->
+      call_pres_ext lp bm (NoA_real bm) MWF fid.
+  Lemma Hpres_cut_ext : forall fid,
       mem_id fid CutsceneLeafSurface.cut_ext_ids = true ->
       call_pres_ext lp bm (NoA_real bm) MWF fid.
+  Proof.
+    intros fid H.
+    destruct (mem_id_filter_split
+                (fun i => Pos.eqb i mario_actions_cutscene._spawn_object_abs_with_rot)
+                fid _ H) as [E | H'].
+    - apply Pos.eqb_eq in E. subst fid.
+      intros fd m0 vargs0 t0 m1 vres0 Hevf Hres HN HM HV HS.
+      destruct (Hcp_soawr_real fd m0 vargs0 t0 m1 vres0 Hevf Hres
+                  HN HM HV HS) as (HV' & HS' & HM' & _).
+      exact (conj HV' (conj HS' (conj HM'
+               (mwf_real_ctl lp bm bc oc0 SafeB m1 HM')))).
+    - exact (Hpres_cut_ext_open fid H').
+  Qed.
   (* perform_ground_step is now WALKED (MarioStepSurface.pgs_cp, the
      loop-tolerant fn_var walk): the opaque whole-body residual is
      DECOMPOSED into two deeper internal rows (+ the vec3f_copy/vec3s_set
@@ -3372,6 +3398,9 @@ Section NoARealInputMWF.
                          new capstone hypothesis. *)
                       (Hpres_obj_ext interaction._save_file_clear_flags eq_refl)
                       Hcp_spawn_real
+                      (* 2026-10-19: the gobj globals are SafeB; the spawn
+                         call that feeds them is the sr row *)
+                      Hgobj_safe Hcp_soawr_real
                       (* SLICE 24 (act_credits_cutscene): vec3s_copy + the two
                          cutscene HUD/viewport externals all ride obj_ext_ids
                          (newly added there) -- NO new capstone hypothesis. *)
@@ -3416,10 +3445,6 @@ Section NoARealInputMWF.
                          Hglob_valid
                          aut_local_store
                          Holcp_fwc_real)
-                      (* SLICE 27 (act_intro_cutscene): the glob-obj reach-
-                         closure assumption, consumed by raise_pipe/lower_pipe's
-                         seed arms (the new R11-style model boundary). *)
-                      Hglob_obj_root
                       LO_mov
                       (* cut_rest_ids = nil: ALL 50 cutscene act handlers are
                          now walked (act_end_peach_cutscene was the last), so

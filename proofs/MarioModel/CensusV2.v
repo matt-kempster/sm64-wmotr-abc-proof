@@ -859,31 +859,21 @@ Definition stored_globals : list ident :=
   level_update._D_80339EE0 ::
   level_update._sTransitionTimer ::
   level_update._sTransitionUpdate ::
-  (* the intro-cutscene warp-pipe object pointer (act_intro_cutscene's
-     peach_lakitu subhandler SETS sIntroWarpPipeObj = spawn_object_abs_with_rot
-     result; a By_value Mptr store).  A static Object* data symbol in
-     mario_actions_cutscene.c, bm/bc/SafeB-disjoint per Hglob_blk -- the same
-     pointer-global trust class as sDispCreditsEntry above (the rvalue is
-     unconstrained; MWF tolerates any store into this off-Mario cell). *)
-  mario_actions_cutscene._sIntroWarpPipeObj ::
+  (* (sIntroWarpPipeObj and the sEnd*Obj object pointers moved to gobj_syms
+     below on 2026-10-19: they are SafeB blocks, not stored globals.) *)
   (* the end-cutscene object pointers + animation statics (act_end_waving_
-     cutscene / act_end_peach_cutscene): sEndPeachObj/sEndRightToadObj/
-     sEndLeftToadObj are SET to spawn_object_abs_with_rot results (By_value
-     Mptr stores); sEndPeachAnimation is an s16 anim static written directly;
+     cutscene / act_end_peach_cutscene; the sEnd*Obj pointers are in
+     gobj_syms since 2026-10-19): sEndPeachAnimation is an s16 anim static written directly;
      sEndToadAnims is an s16[2] anim array written by direct indexed stores
      (the bare-Evar-array glob_arr_block arm).  All static data symbols in
      mario_actions_cutscene.c, bm/bc/SafeB-disjoint per Hglob_blk -- the same
-     pointer/static-global trust class as sIntroWarpPipeObj / sDispCreditsEntry
-     above (the rvalues are unconstrained; MWF tolerates any store into these
-     off-Mario cells). *)
-  mario_actions_cutscene._sEndPeachObj ::
-  mario_actions_cutscene._sEndRightToadObj ::
-  mario_actions_cutscene._sEndLeftToadObj ::
+     static-global trust class as sDispCreditsEntry above (the rvalues are
+     unconstrained; MWF tolerates any store into these off-Mario cells). *)
   mario_actions_cutscene._sEndPeachAnimation ::
   mario_actions_cutscene._sEndToadAnims ::
   (* act_end_peach_cutscene's additional statics (the 13 end_peach subhandlers
-     + generate_yellow_sparkles): sEndJumboStarObj is a SET object pointer (and
-     a THROUGH-store chase root -- it is ALSO in gobj_ids); gCutsceneFocus is a
+     + generate_yellow_sparkles; sEndJumboStarObj is in gobj_syms since
+     2026-10-19): gCutsceneFocus is a
      SET object pointer (spawn_peach: gCutsceneFocus = sEndPeachObj);
      gPaintingMarioYEntry is an f32 SET by fade_out; D_8032CBE4 / D_8032CBE8 are
      schar dialog-phase statics SET directly; sMarioBlinkOverride is a u8[20]
@@ -892,7 +882,6 @@ Definition stored_globals : list ident :=
      generator angles SET by generate_yellow_sparkles.  All static data symbols
      in mario_actions_cutscene.c, bm/bc/SafeB-disjoint per Hglob_blk -- the same
      static-layout / pointer-global trust class as every entry above. *)
-  mario_actions_cutscene._sEndJumboStarObj ::
   mario_actions_cutscene._gCutsceneFocus ::
   mario_actions_cutscene._gPaintingMarioYEntry ::
   mario_actions_cutscene._D_8032CBE4 ::
@@ -920,6 +909,21 @@ Definition stored_globals : list ident :=
      the libultra calls write them (OsDmaFloor).  Data symbols, so the same
      Hglob_blk class keeps them off bm/bc/SafeB. *)
   memory._gDmaIoMesg :: memory._gDmaMesgQueue :: memory._gMainReceivedMesg :: nil.
+
+(* 2026-10-19: the five cutscene OBJECT-POINTER globals.  They left
+   stored_globals: MWF does not constrain a stored global's contents, so the
+   old capstone row Hglob_obj_root ("a pointer loaded from one is SafeB", over
+   every MWF memory) was FALSE -- a memory with sIntroWarpPipeObj =
+   &gMarioStates is MWF (checked in Coq at the boot image).  They are SafeB
+   blocks now (SpawnInit.SafeB_syms_ok, third conjunct), so MWF's
+   load-closure row R7 is the invariant; their only writers store a
+   spawn_object_abs_with_rot result (a SafeB object, the sr row). *)
+Definition gobj_syms : list ident :=
+  mario_actions_cutscene._sIntroWarpPipeObj
+    :: mario_actions_cutscene._sEndPeachObj
+    :: mario_actions_cutscene._sEndRightToadObj
+    :: mario_actions_cutscene._sEndLeftToadObj
+    :: mario_actions_cutscene._sEndJumboStarObj :: nil.
 
 (* ---------------------------------------------------------------------- *)
 (* The interaction-handler census (the Hpres_inter arc): the 28 DISTINCT   *)

@@ -330,7 +330,11 @@ Definition SafeB_syms_ok (lp : Clight.program) (SafeB : block -> Prop) : Prop :=
      SafeB b -> mem_id id non_safeb_syms = false)
   /\ (forall b,
      Genv.find_symbol (lp_ge lp) mario_actions_moving._sFloorAlignMatrix = Some b ->
-     SafeB b).
+     SafeB b)
+  (* (c) 2026-10-19: the cutscene object-pointer globals are SafeB blocks, so
+     MWF's R7 keeps what they hold SafeB (CensusV2.gobj_syms). *)
+  /\ (forall id b, mem_id id gobj_syms = true ->
+     Genv.find_symbol (lp_ge lp) id = Some b -> SafeB b).
 
 (* the ~SafeB micro-brick: a non_safeb_syms symbol is not SafeB *)
 Lemma safeb_of_nonfam_sym :
@@ -414,7 +418,7 @@ Lemma sfam_safe :
         = Some gb -> SafeB gb.
 Proof.
   intros lp init bm bc oc0 SafeB Hspawn Hsyms gb Hs.
-  exact (proj2 Hsyms gb Hs).
+  exact (proj1 (proj2 Hsyms) gb Hs).
 Qed.
 
 Lemma gms_blk :
@@ -508,9 +512,10 @@ Lemma safeb_wit_sat :
   forall (lp : Clight.program) (objblks : block -> Prop) (symok : ident -> Prop),
     (forall b, objblks b -> Plt (Genv.genv_next (lp_ge lp)) b) ->
     (forall id, symok id -> mem_id id non_safeb_syms = false) ->
+    (forall id, mem_id id gobj_syms = true -> symok id) ->
     SafeB_syms_ok lp (SafeB_wit lp objblks symok).
 Proof.
-  intros lp objblks symok Hfresh Hok. split.
+  intros lp objblks symok Hfresh Hok Hgobj. split; [ | split ].
   - intros id b Hs [Hobj | (id' & Hid' & Hs')].
     + (* objblks b => b >= genv_next, but Hs gives b < genv_next: impossible *)
       exfalso. apply (Plt_strict b).
@@ -519,6 +524,18 @@ Proof.
       subst id'. destruct Hid' as [Hk | ->]; [ exact (Hok _ Hk) | vm_compute; reflexivity ].
   - intros b Hs. right. exists mario_actions_moving._sFloorAlignMatrix.
     split; [ right; reflexivity | exact Hs ].
+  - intros id b Hg Hs. right. exists id.
+    split; [ left; exact (Hgobj id Hg) | exact Hs ].
+Qed.
+
+(* the gobj symbols are permitted SafeB symbols *)
+Lemma gobj_not_nonsafe : forall id,
+    mem_id id gobj_syms = true -> mem_id id non_safeb_syms = false.
+Proof.
+  intros id H. unfold gobj_syms in H. cbn [mem_id existsb] in H.
+  repeat (apply orb_true_iff in H as [E | H];
+          [ apply Pos.eqb_eq in E; subst id; vm_compute; reflexivity | ]).
+  discriminate H.
 Qed.
 
 (* the two symbols init_mario_from_save_file stores into chase roots are

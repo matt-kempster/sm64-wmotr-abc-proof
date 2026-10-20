@@ -746,11 +746,10 @@ Example smti_walk :
     (fn_body mario_actions_cutscene.f_intro_cutscene_set_mario_to_idle) = true.
 Proof. vm_compute. reflexivity. Qed.
 
-(* ---- subhandler #2 peach_lakitu_scene: a GENERIC walk.  The glob-obj SET   *)
-(* store `Sassign (Evar sIntroWarpPipeObj) (Etempvar t'1)` is the generic     *)
-(* glob_store_chk arm now that sIntroWarpPipeObj is in stored_globals -- the  *)
-(* rvalue (the spawn_object_abs_with_rot result) is unconstrained, MWF        *)
-(* tolerates any store into the off-Mario static cell (Hglob_blk).            *)
+(* ---- subhandler #2 peach_lakitu_scene.  The glob-obj SET store            *)
+(* `Sassign (Evar sIntroWarpPipeObj) (Etempvar t'1)` stores the               *)
+(* spawn_object_abs_with_rot result into a SafeB gobj block (2026-10-19:      *)
+(* the epw walker's sr / gobj_set arms; its walk is pk_walk2, in-section).    *)
 (* gCurrentObject is READ-only (Sset t'5, scratch); the m->actionTimer        *)
 (* increment is a Mario window store; advance_cutscene_step is a marg call    *)
 (* (ids); spawn_object_abs_with_rot is a terminal external (xids). ---- *)
@@ -772,10 +771,6 @@ Example pk_pok :
       Pos.eqb i Am && proj_sumbool (type_eq ty tyMSp)
       && negb (mem_id Am (map fst ps))
   | nil => false end = true.
-Proof. vm_compute. reflexivity. Qed.
-Example pk_walk :
-  wwalk_chk false nil pk_ids nil nil pk_xids nil nil
-    (fn_body mario_actions_cutscene.f_intro_cutscene_peach_lakitu_scene) = true.
 Proof. vm_compute. reflexivity. Qed.
 
 (* ---- the dispatcher: act_intro_cutscene is a switch(m->actionArg) over the *)
@@ -1363,6 +1358,92 @@ Proof.
 Qed.
 
 (* ====================================================================== *)
+(* 2026-10-19: the SPAWN-AND-SET sites.  The five cutscene object globals *)
+(* (gobj_ids) are SafeB blocks now (SpawnInit.SafeB_syms_ok (c)); their   *)
+(* only writers are `t = spawn_object_abs_with_rot(..); g = t`.  Two arms: *)
+(* the spawn call puts its (SafeB, by the sr row) result in a chase temp,  *)
+(* and the store of a chase temp into a gobj global is a SafeB-block store *)
+(* of a SafeB-if-pointer value (HMWF_chase_safe).                          *)
+(* ====================================================================== *)
+Definition gobj_set_chk (cact : list ident) (s : statement) : bool :=
+  match s with
+  | Sassign (Evar g (Tpointer _ _)) (Etempvar t (Tpointer _ _)) =>
+      mem_id g gobj_ids && mem_id t cact
+  | _ => false
+  end.
+
+Lemma gobj_set_shape : forall cact s,
+    gobj_set_chk cact s = true ->
+    exists g t1 a1 t t2 a2,
+      s = Sassign (Evar g (Tpointer t1 a1)) (Etempvar t (Tpointer t2 a2))
+      /\ mem_id g gobj_ids = true /\ mem_id t cact = true.
+Proof.
+  intros cact s H.
+  destruct s as [ | a1 a2 | | | | | | | | | | | | ]; try discriminate H.
+  destruct a1 as [ | | | | g gty | | | | | | | | | ]; try discriminate H.
+  destruct gty as [ | | | | t1 at1 | | | | ]; try discriminate H.
+  destruct a2 as [ | | | | | t tty | | | | | | | | ]; try discriminate H.
+  destruct tty as [ | | | | t2 at2 | | | | ]; try discriminate H.
+  cbn [gobj_set_chk] in H. apply andb_prop in H as [Hg Ht].
+  exists g, t1, at1, t, t2, at2. auto.
+Qed.
+
+Definition sr_call_chk (s : statement) : bool :=
+  match s with
+  | Scall (Some t) (Evar fid (Tfunction _ _ _)) _ =>
+      Pos.eqb fid mario_actions_cutscene._spawn_object_abs_with_rot
+      && negb (Pos.eqb t mario_actions_airborne._m)
+  | _ => false
+  end.
+
+Lemma sr_call_shape : forall s,
+    sr_call_chk s = true ->
+    exists t tys rty cc al,
+      s = Scall (Some t) (Evar mario_actions_cutscene._spawn_object_abs_with_rot
+                            (Tfunction tys rty cc)) al
+      /\ t <> mario_actions_airborne._m.
+Proof.
+  intros s H.
+  destruct s as [ | | | o a al | | | | | | | | | | ]; try discriminate H.
+  destruct o as [ t | ]; try discriminate H.
+  destruct a as [ | | | | fid fty | | | | | | | | | ]; try discriminate H.
+  destruct fty as [ | | | | | | tys rty cc | | ]; try discriminate H.
+  cbn [sr_call_chk] in H. apply andb_prop in H as [Hf Ht].
+  apply Pos.eqb_eq in Hf. subst fid.
+  apply negb_true_iff, Pos.eqb_neq in Ht.
+  exists t, tys, rty, cc, al. auto.
+Qed.
+
+Lemma sem_cast_pp_id : forall v2 t1 a1 t2 a2 m v,
+    sem_cast v2 (Tpointer t1 a1) (Tpointer t2 a2) m = Some v -> v = v2.
+Proof.
+  intros v2 t1 a1 t2 a2 m v H. unfold sem_cast, classify_cast in H.
+  destruct v2; try discriminate H;
+    try (destruct Archi.ptr64; try discriminate H);
+    injection H as <-; reflexivity.
+Qed.
+
+Lemma cut_scall_evar_inv : forall ge e le m optid fid fty al t le' m' out,
+  exec_stmt function_entry2 ge e le m (Scall optid (Evar fid fty) al) t le' m' out ->
+  e ! fid = None -> access_mode fty = By_reference ->
+  exists b fd vargs vres,
+    Genv.find_symbol ge fid = Some b
+    /\ Genv.find_funct ge (Vptr b Ptrofs.zero) = Some fd
+    /\ eval_funcall function_entry2 ge m fd vargs t m' vres
+    /\ le' = set_opttemp optid vres le /\ out = Out_normal.
+Proof.
+  intros ge e le m optid fid fty al t le' m' out H En Am.
+  inv H.
+  match goal with Hv : eval_expr _ _ _ _ (Evar _ _) _ |- _ => inv Hv end;
+    try (cbn in *; discriminate).
+  match goal with Hx : eval_lvalue _ _ _ _ (Evar _ _) _ _ _ |- _ => inv Hx end.
+  - congruence.
+  - match goal with Hd : deref_loc _ _ _ _ _ _ |- _ => inv Hd end; cbn in *; try congruence.
+    do 4 eexists. split; [ eassumption | split; [ eassumption | ] ].
+    split; [ eassumption | auto ].
+Qed.
+
+(* ====================================================================== *)
 Section CutsceneLeafRows.
   Variable lp : Clight.program.
   Hypothesis LO_mario : linkorder mario.prog lp.
@@ -1598,6 +1679,85 @@ Section CutsceneLeafRows.
     call_pres_ext lp bm NoA MWF interaction._save_file_clear_flags.
   Hypothesis Hcpx_spawn_sr :
     WindSurface.call_pres_ext_sr lp bm NoA MWF SafeB C._spawn_object.
+
+  (* 2026-10-19: the gobj globals are SafeB blocks (SpawnInit.SafeB_syms_ok
+     (c)), and spawn_object_abs_with_rot returns a SafeB object (the sr form
+     of its row, as spawn_object's Hcpx_spawn_sr).  Together they replace the
+     old HGlobObjRoot row, which was false over MWF memories. *)
+  Hypothesis HGobjSafe : forall g gb, mem_id g gobj_ids = true ->
+      Genv.find_symbol (lp_ge lp) g = Some gb -> SafeB gb.
+  Hypothesis Hcpx_soawr_sr :
+    WindSurface.call_pres_ext_sr lp bm NoA MWF SafeB C._spawn_object_abs_with_rot.
+
+  (* the store arm: g = t, g a gobj global, t a chase temp *)
+  Lemma gobj_set_pres :
+    forall (cact : list ident) s e le m0 tr le' m' out,
+      gobj_set_chk cact s = true ->
+      (forall g, mem_id g gobj_ids = true -> e ! g = None) ->
+      exec_stmt function_entry2 (lp_ge lp) e le m0 s tr le' m' out ->
+      chase_inv SafeB cact le ->
+      MWF m0 -> Mem.valid_block m0 bm -> action_sat not_tainted m0 bm ->
+      Mem.valid_block m' bm /\ action_sat not_tainted m' bm /\ MWF m' /\
+      NoA m' /\ le' = le.
+  Proof.
+    intros cact s e le m0 tr le' m' out Hchk Hub Hx Hch HM HV HS.
+    destruct (gobj_set_shape _ _ Hchk) as (g & t1 & a1 & t & t2 & a2 & -> & Hg & Ht).
+    inv Hx.
+    match goal with Hl : eval_lvalue _ _ _ _ (Evar _ _) _ _ _ |- _ => inv Hl end;
+      [ match goal with He : e ! g = Some _ |- _ => rewrite (Hub g Hg) in He; discriminate He end | ].
+    match goal with Hv : eval_expr _ _ _ _ (Etempvar _ _) _ |- _ => inv Hv end;
+      [ | match goal with Hl : eval_lvalue _ _ _ _ (Etempvar _ _) _ _ _ |- _ => inv Hl end ].
+    match goal with Hc : sem_cast _ _ _ _ = Some _ |- _ =>
+      cbn [typeof] in Hc; apply sem_cast_pp_id in Hc; subst end.
+    match goal with Ha : assign_loc _ _ _ _ _ _ _ _ |- _ => inv Ha end;
+      cbn [typeof access_mode] in *; try discriminate.
+    match goal with Hm : By_value _ = By_value _ |- _ => injection Hm as <- end.
+    match goal with Hs0 : Mem.storev _ _ _ _ = Some _ |- _ => cbn [Mem.storev] in Hs0; pose proof Hs0 as Hst; clear Hs0 end.
+    match goal with Hfs : Genv.find_symbol _ g = Some ?l |- _ =>
+      pose proof (HGobjSafe g l Hg Hfs) as Hsafe end.
+    assert (M' : MWF m').
+    { eapply HMWF_chase_safe; [ exact HM | exact Hsafe | | exact Hst ].
+      intros bb oo E. exact (Hch t Ht bb oo ltac:(congruence)). }
+    split; [ eapply Mem.store_valid_block_1; [ exact Hst | exact HV ] | ].
+    split; [ | split; [ exact M' | split; [ exact (HNoA_of_MWF _ M') | reflexivity ] ] ].
+    intros v0 Hld. apply HS. rewrite <- Hld. symmetry.
+    eapply Mem.load_store_other; [ exact Hst | left ].
+    exact (not_eq_sym (HSafeNotBm _ Hsafe)).
+  Qed.
+
+  (* the call arm: t = spawn_object_abs_with_rot(..), t joins the chase set *)
+  Lemma sr_call_pres :
+    forall (cact : list ident) s e le m0 tr le' m' out,
+      sr_call_chk s = true ->
+      e ! C._spawn_object_abs_with_rot = None ->
+      exec_stmt function_entry2 (lp_ge lp) e le m0 s tr le' m' out ->
+      (forall b o, le ! mario_actions_airborne._m = Some (Vptr b o) ->
+                   b = bm /\ o = Ptrofs.zero) ->
+      chase_inv SafeB cact le ->
+      NoA m0 -> MWF m0 -> Mem.valid_block m0 bm ->
+      action_sat not_tainted m0 bm ->
+      Mem.valid_block m' bm /\ action_sat not_tainted m' bm /\ MWF m' /\
+      NoA m' /\
+      (forall b o, le' ! mario_actions_airborne._m = Some (Vptr b o) ->
+                   b = bm /\ o = Ptrofs.zero) /\
+      chase_inv SafeB cact le'.
+  Proof.
+    intros cact s e le m0 tr le' m' out Hchk He Hx Htat Hch HN HM HV HS.
+    destruct (sr_call_shape _ Hchk) as (t & tys & rty & cc & al & -> & Htm).
+    destruct (cut_scall_evar_inv _ _ _ _ _ _ _ _ _ _ _ _ Hx He eq_refl)
+      as (b & fd & vargs & vres & Hfs & Hff & Hev & -> & _).
+    destruct (Hcpx_soawr_sr fd m0 vargs tr m' vres Hev (ex_intro _ b (conj Hfs Hff))
+                HN HM HV HS) as (HV' & HS' & HM' & Hres).
+    split; [ exact HV' | split; [ exact HS' | split; [ exact HM' |
+      split; [ exact (HNoA_of_MWF _ HM') | split ] ] ] ].
+    - intros bb oo Hb. cbn [set_opttemp] in Hb.
+      rewrite PTree.gso in Hb by (apply not_eq_sym; exact Htm).
+      exact (Htat bb oo Hb).
+    - intros t' Htmem bb oo Hb. cbn [set_opttemp] in Hb.
+      destruct (Pos.eq_dec t' t) as [-> | Hne].
+      + rewrite PTree.gss in Hb. injection Hb as Hb. exact (Hres bb oo Hb).
+      + rewrite PTree.gso in Hb by exact Hne. exact (Hch t' Htmem bb oo Hb).
+  Qed.
   (* SLICE 24 (act_credits_cutscene) externals -- all honest boundaries now in
      obj_ext_ids, fed at the capstone via Hpres_obj_ext (NO new capstone trust):
      - vec3s_copy: the s16-vector copy twin of vec3f_copy / vec3s_set (writes the
@@ -2478,23 +2638,6 @@ Section CutsceneLeafRows.
     intros fid H. unfold pk_xids in H. cbn [mem_id existsb] in H.
     apply orb_true_iff in H as [Hm | H];
       [ apply Pos.eqb_eq in Hm; subst fid; exact Hcpx_soawr | discriminate H ].
-  Qed.
-  Lemma pk_row :
-    call_pres lp bm NoA MWF mario_actions_cutscene._intro_cutscene_peach_lakitu_scene.
-  Proof.
-    apply (call_pres_of_wwalk lp LO_mario bm NoA MWF HNoA_of_MWF
-             HMWF_window HMWF_glob HMWF_act SafeB HSafeNotBm HchaseRoot
-             HMWF_chase HMWF_root HMWF_sglob HchaseStep HMWF_chase_safe
-             mario_actions_cutscene.prog
-             mario_actions_cutscene._intro_cutscene_peach_lakitu_scene
-             mario_actions_cutscene.f_intro_cutscene_peach_lakitu_scene
-             pk_ids nil pk_xids nil
-             LO_cut pk_pin pk_vars pk_pok).
-    - exact pk_ids_rows.
-    - intros fid' H. discriminate H.
-    - exact pk_xids_rows.
-    - intros fid' H. discriminate H.
-    - exact pk_walk.
   Qed.
 
   (* (intro_ids_rows + intro_pres live after lzp_row -- they consume the
@@ -5809,13 +5952,19 @@ Section CutsceneLeafRows.
   (* principle (NOT provable from current MWFReal: SafeB is abstract and    *)
   (* there is no per-symbol global-obj membership row -- this becomes a     *)
   (* new R11-style capstone assumption when consumed). *)
-  Hypothesis HGlobObjRoot :
+  (* 2026-10-19: a LEMMA now (was a hypothesis, false over MWF memories):
+     the gobj blocks are SafeB, so R7's load closure (HchaseStep) gives it. *)
+  Lemma HGlobObjRoot :
     forall g gb m b o,
       mem_id g gobj_ids = true ->
       MWF m ->
       Genv.find_symbol (lp_ge lp) g = Some gb ->
       Mem.loadv Mptr m (Vptr gb Ptrofs.zero) = Some (Vptr b o) ->
       SafeB b.
+  Proof.
+    intros g gb m b o Hg HM Hfs Hld.
+    exact (HchaseStep m gb Ptrofs.zero b o HM (HGobjSafe g gb Hg Hfs) Hld).
+  Qed.
 
   (* the glob-obj SEED recognizer (only the POINTER-ness of the type matters
      -- the load is By_value Mptr regardless of the pointed-to struct). *)
@@ -7337,44 +7486,6 @@ Section CutsceneLeafRows.
              mario_actions_cutscene.prog _ _ LO_cut lzp_pin lzp_pres).
   Qed.
 
-  (* ---- the act_intro_cutscene dispatcher row + body_pres (consumes all 7
-     subhandler rows; placed here so the raise_pipe / lower_pipe rows above
-     are in scope). ---- *)
-  Lemma intro_ids_rows : forall fid, mem_id fid intro_ids = true ->
-      call_pres lp bm NoA MWF fid.
-  Proof.
-    intros fid H. unfold intro_ids in H. cbn [mem_id existsb] in H.
-    apply orb_true_iff in H as [Hm | H];
-      [ apply Pos.eqb_eq in Hm; subst fid; exact hhm_row | ].
-    apply orb_true_iff in H as [Hm | H];
-      [ apply Pos.eqb_eq in Hm; subst fid; exact pk_row | ].
-    apply orb_true_iff in H as [Hm | H];
-      [ apply Pos.eqb_eq in Hm; subst fid; exact rzp_row | ].
-    apply orb_true_iff in H as [Hm | H];
-      [ apply Pos.eqb_eq in Hm; subst fid; exact jop_row | ].
-    apply orb_true_iff in H as [Hm | H];
-      [ apply Pos.eqb_eq in Hm; subst fid; exact lop_row | ].
-    apply orb_true_iff in H as [Hm | H];
-      [ apply Pos.eqb_eq in Hm; subst fid; exact lzp_row | ].
-    apply orb_true_iff in H as [Hm | H];
-      [ apply Pos.eqb_eq in Hm; subst fid; exact smti_row | discriminate H ].
-  Qed.
-  Lemma intro_pres : body_pres lp NoA MWF bm C.f_act_intro_cutscene.
-  Proof.
-    apply (body_pres_of_wwalk_cact lp LO_mario bm NoA MWF HNoA_of_MWF
-             HMWF_window HMWF_glob HMWF_act SafeB HSafeNotBm HchaseRoot
-             HMWF_chase HMWF_root HMWF_sglob HchaseStep HMWF_chase_safe
-             C.f_act_intro_cutscene intro_ids nil nil nil nil nil).
-    - vm_compute; reflexivity.
-    - vm_compute; reflexivity.
-    - vm_compute; reflexivity.
-    - exact intro_ids_rows.
-    - intros fid' H; discriminate H.
-    - intros fid' H; discriminate H.
-    - intros fid' H; discriminate H.
-    - intros fid' H; discriminate H.
-    - exact intro_walk.
-  Qed.
 
   (* ==================================================================== *)
   (* act_end_waving_cutscene: a single body (NOT a dispatcher).  When       *)
@@ -7392,7 +7503,10 @@ Section CutsceneLeafRows.
   (* Closes act_end_waving_cutscene -> cut_rest 2->1.                        *)
   (* ==================================================================== *)
   Definition eaw_cact : list ident :=
-    C._t'19 :: C._t'15 :: C._t'14 :: C._t'13 :: C._t'9 :: C._t'6 :: C._t'5 :: nil.
+    C._t'19 :: C._t'15 :: C._t'14 :: C._t'13 :: C._t'9 :: C._t'6 :: C._t'5
+    (* the three spawn_object_abs_with_rot results (sr arm), stored into
+       sEndPeachObj / sEndRightToadObj / sEndLeftToadObj (gobj_set arm) *)
+    :: C._t'1 :: C._t'2 :: C._t'3 :: nil.
   Definition eaw_gobj_seeds : list ident :=
     C._t'15 :: C._t'14 :: C._t'13 :: nil.
   Definition eaw_ids : list ident :=
@@ -7419,6 +7533,8 @@ Section CutsceneLeafRows.
     || match s with
        | Ssequence s1 s2 => eaw_chk s1 && eaw_chk s2
        | Sifthenelse _ s1 s2 => eaw_chk s1 && eaw_chk s2
+       | Sassign _ _ => gobj_set_chk eaw_cact s
+       | Scall _ _ _ => sr_call_chk s
        | _ => gobj_seed_chk2 eaw_gobj_seeds s
        end.
 
@@ -7533,13 +7649,17 @@ Section CutsceneLeafRows.
       intros Hub_g Hub_i Hub_x Hubgt Hub_gobj Hchk Htat Hch HN HM HV HS.
     - (* Sskip *)
       exact (conj HV (conj HS (conj HM (conj HN (conj Htat Hch))))).
-    - (* Sassign: generic only *)
+    - (* Sassign: generic OR the gobj spawn-set store *)
       cbn [eaw_chk] in Hchk.
-      apply orb_true_iff in Hchk as [Hg | Hsp];
-        [ | cbn [gobj_seed_chk2] in Hsp; discriminate Hsp ].
-      eapply (eaw_generic _ _ _ _ _ _ _ _ Hub_g Hub_i Hub_x Hubgt Hg
-                Htat Hch HN HM HV HS);
-        eapply exec_Sassign; eauto.
+      apply orb_true_iff in Hchk as [Hg | Hsp].
+      { eapply (eaw_generic _ _ _ _ _ _ _ _ Hub_g Hub_i Hub_x Hubgt Hg
+                  Htat Hch HN HM HV HS);
+          eapply exec_Sassign; eauto. }
+      assert (Hx : exec_stmt function_entry2 (lp_ge lp) e le m (Sassign a1 a2)
+                     E0 le m' Out_normal) by (eapply exec_Sassign; eauto).
+      destruct (gobj_set_pres _ _ _ _ _ _ _ _ _ Hsp Hub_gobj Hx Hch HM HV HS)
+        as (HV' & HS' & HM' & HN' & _).
+      exact (conj HV' (conj HS' (conj HM' (conj HN' (conj Htat Hch))))).
     - (* Sset: generic OR the glob-obj seed *)
       cbn [eaw_chk] in Hchk.
       apply orb_true_iff in Hchk as [Hg | Hsp].
@@ -7564,13 +7684,18 @@ Section CutsceneLeafRows.
         * apply Pos.eqb_neq in Et.
           rewrite PTree.gso in Hb by (exact Et).
           exact (Hch t Htmem b o Hb).
-    - (* Scall: generic only *)
+    - (* Scall: generic OR the spawn call into a chase temp *)
       cbn [eaw_chk] in Hchk.
-      apply orb_true_iff in Hchk as [Hg | Hsp];
-        [ | cbn [gobj_seed_chk2] in Hsp; discriminate Hsp ].
-      eapply (eaw_generic _ _ _ _ _ _ _ _ Hub_g Hub_i Hub_x Hubgt Hg
-                Htat Hch HN HM HV HS);
-        eapply exec_Scall; eauto.
+      apply orb_true_iff in Hchk as [Hg | Hsp].
+      { eapply (eaw_generic _ _ _ _ _ _ _ _ Hub_g Hub_i Hub_x Hubgt Hg
+                  Htat Hch HN HM HV HS);
+          eapply exec_Scall; eauto. }
+      assert (Hx : exec_stmt function_entry2 (lp_ge lp) e le m (Scall optid a al) t
+                     (set_opttemp optid vres le) m' Out_normal)
+        by (eapply exec_Scall; eauto).
+      exact (sr_call_pres _ _ _ _ _ _ _ _ _ Hsp
+               (Hub_x C._spawn_object_abs_with_rot ltac:(vm_compute; reflexivity))
+               Hx Htat Hch HN HM HV HS).
     - (* Sbuiltin: rejected by both arms *)
       cbn [eaw_chk] in Hchk.
       apply orb_true_iff in Hchk as [Hg | Hsp];
@@ -8478,7 +8603,8 @@ Section CutsceneLeafRows.
            fall_input_chk cact s
            || (epw_chk cact seeds s1 && epw_chk cact seeds s2)
        | Sifthenelse _ s1 s2 => epw_chk cact seeds s1 && epw_chk cact seeds s2
-       | Scall _ _ _ => eovp_chk cact s
+       | Scall _ _ _ => eovp_chk cact s || sr_call_chk s
+       | Sassign _ _ => gobj_set_chk cact s
        | _ => gobj_seed_chk2 seeds s
        end.
 
@@ -8570,15 +8696,19 @@ Section CutsceneLeafRows.
              HN HM HV HS.
     - (* Sskip *)
       exact (conj HV (conj HS (conj HM (conj HN (conj Htat Hch))))).
-    - (* Sassign: generic only *)
+    - (* Sassign: generic OR the gobj spawn-set store *)
       cbn [epw_chk] in Hchk.
-      apply orb_true_iff in Hchk as [Hgo | Hsp];
-        [ | cbn [gobj_seed_chk2] in Hsp; discriminate Hsp ].
-      apply orb_true_iff in Hgo as [Hg | Hob];
-        [ | cbn [ep_ob_chk] in Hob; discriminate Hob ].
-      eapply (epw_generic _ _ _ _ _ _ _ _ _ Hub_g Hub_i Hub_x Hubgt Hg
-                Htat Hch HN HM HV HS);
-        eapply exec_Sassign; eauto.
+      apply orb_true_iff in Hchk as [Hgo | Hsp].
+      { apply orb_true_iff in Hgo as [Hg | Hob];
+          [ | cbn [ep_ob_chk] in Hob; discriminate Hob ].
+        eapply (epw_generic _ _ _ _ _ _ _ _ _ Hub_g Hub_i Hub_x Hubgt Hg
+                  Htat Hch HN HM HV HS);
+          eapply exec_Sassign; eauto. }
+      assert (Hx : exec_stmt function_entry2 (lp_ge lp) e le m (Sassign a1 a2)
+                     E0 le m' Out_normal) by (eapply exec_Sassign; eauto).
+      destruct (gobj_set_pres _ _ _ _ _ _ _ _ _ Hsp Hub_gobj Hx Hch HM HV HS)
+        as (HV' & HS' & HM' & HN' & _).
+      exact (conj HV' (conj HS' (conj HM' (conj HN' (conj Htat Hch))))).
     - (* Sset: generic OR the glob-obj seed *)
       cbn [epw_chk] in Hchk.
       apply orb_true_iff in Hchk as [Hgo | Hsp].
@@ -8635,7 +8765,14 @@ Section CutsceneLeafRows.
             split; [ exact HN' | split ] ] ] ].
           ** exact Htat.
           ** exact Hch.
-      + (* eovp arm: Scall (Some tret) eovp(Etempvar targ) *)
+      + apply orb_true_iff in Heovp as [Heovp | Hsr].
+        2: { assert (Hx : exec_stmt function_entry2 (lp_ge lp) e le m (Scall optid a al) t
+                            (set_opttemp optid vres le) m' Out_normal)
+               by (eapply exec_Scall; eauto).
+             exact (sr_call_pres _ _ _ _ _ _ _ _ _ Hsr
+                      (Hub_x C._spawn_object_abs_with_rot ltac:(vm_compute; reflexivity))
+                      Hx Htat Hch HN HM HV HS). }
+        (* eovp arm: Scall (Some tret) eovp(Etempvar targ) *)
         unfold eovp_chk in Heovp.
         destruct optid as [ tret | ]; [ | discriminate Heovp ].
         destruct a as [ | | | | f0 fty | | | | | | | | | ];
@@ -8857,6 +8994,72 @@ Section CutsceneLeafRows.
     exact (conj HVb (conj HSb HMb)).
   Qed.
 
+  (* ---- intro_cutscene_peach_lakitu_scene (moved here 2026-10-19): it SETS
+     sIntroWarpPipeObj = spawn_object_abs_with_rot(..), so it rides the epw
+     walker's sr / gobj_set arms (cact = the spawn result t'1). ---- *)
+  Definition pk_cact : list ident := C._t'1 :: nil.
+  Example pk_npc :
+    forallb (fun t' => negb (mem_id t'
+       (map fst (fn_params C.f_intro_cutscene_peach_lakitu_scene))))
+      pk_cact = true.
+  Proof. vm_compute. reflexivity. Qed.
+  Example pk_margex :
+    marg_exempt (Internal C.f_intro_cutscene_peach_lakitu_scene) = false.
+  Proof. vm_compute. reflexivity. Qed.
+  Example pk_walk2 :
+    epw_chk pk_cact nil (fn_body C.f_intro_cutscene_peach_lakitu_scene) = true.
+  Proof. vm_compute. reflexivity. Qed.
+  Lemma pk_pres : body_pres lp NoA MWF bm C.f_intro_cutscene_peach_lakitu_scene.
+  Proof.
+    exact (epw_body_pres _ pk_cact nil pk_vars pk_margex pk_pok pk_npc
+             (fun id H => match Bool.diff_false_true H with end) pk_walk2).
+  Qed.
+  Lemma pk_row :
+    call_pres lp bm NoA MWF mario_actions_cutscene._intro_cutscene_peach_lakitu_scene.
+  Proof.
+    exact (call_pres_of_body lp bm NoA MWF HNoA_of_MWF
+             mario_actions_cutscene.prog _ _ LO_cut pk_pin pk_pres).
+  Qed.
+
+  (* ---- the act_intro_cutscene dispatcher row + body_pres (consumes all 7
+     subhandler rows; placed here so the raise_pipe / lower_pipe rows above
+     are in scope). ---- *)
+  Lemma intro_ids_rows : forall fid, mem_id fid intro_ids = true ->
+      call_pres lp bm NoA MWF fid.
+  Proof.
+    intros fid H. unfold intro_ids in H. cbn [mem_id existsb] in H.
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; exact hhm_row | ].
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; exact pk_row | ].
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; exact rzp_row | ].
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; exact jop_row | ].
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; exact lop_row | ].
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; exact lzp_row | ].
+    apply orb_true_iff in H as [Hm | H];
+      [ apply Pos.eqb_eq in Hm; subst fid; exact smti_row | discriminate H ].
+  Qed.
+  Lemma intro_pres : body_pres lp NoA MWF bm C.f_act_intro_cutscene.
+  Proof.
+    apply (body_pres_of_wwalk_cact lp LO_mario bm NoA MWF HNoA_of_MWF
+             HMWF_window HMWF_glob HMWF_act SafeB HSafeNotBm HchaseRoot
+             HMWF_chase HMWF_root HMWF_sglob HchaseStep HMWF_chase_safe
+             C.f_act_intro_cutscene intro_ids nil nil nil nil nil).
+    - vm_compute; reflexivity.
+    - vm_compute; reflexivity.
+    - vm_compute; reflexivity.
+    - exact intro_ids_rows.
+    - intros fid' H; discriminate H.
+    - intros fid' H; discriminate H.
+    - intros fid' H; discriminate H.
+    - intros fid' H; discriminate H.
+    - exact intro_walk.
+  Qed.
+
   (* ---- summon_jumbo_star: cact = seeds = [t'5] (the one store-through
      into sEndJumboStarObj->rawData.asS32[19]); ob-call to gys; marg
      set_mario_animation / is_anim_past_end / advance_cutscene_step. ---- *)
@@ -8922,7 +9125,9 @@ Section CutsceneLeafRows.
   Definition spw_cact : list ident :=
     C._t'16 :: C._t'15 :: C._t'14 :: C._t'10
     (* t'21 := sEndJumboStarObj, the obj_mark_for_deletion arg *)
-    :: C._t'21 :: nil.
+    :: C._t'21
+    (* the three spawn results stored into the sEnd*Obj globals *)
+    :: C._t'1 :: C._t'2 :: C._t'3 :: nil.
   Definition spw_seeds : list ident :=
     C._t'16 :: C._t'15 :: C._t'14 :: C._t'10 :: C._t'21 :: nil.
   Example spw_vars : fn_vars C.f_end_peach_cutscene_spawn_peach = nil.
@@ -8965,7 +9170,7 @@ Section CutsceneLeafRows.
   (* ---- mario_landing: the seeded walker, cact = seeds = [t'3] (t'3 :=
      sEndJumboStarObj, the obj_scale dst -- SafeB-if-pointer via
      HGlobObjRoot). ---- *)
-  Definition mln_cact : list ident := C._t'3 :: nil.
+  Definition mln_cact : list ident := C._t'3 :: C._t'1 :: nil.
   Example mln_npc :
     forallb (fun t' => negb (mem_id t'
        (map fst (fn_params C.f_end_peach_cutscene_mario_landing))))
@@ -8975,7 +9180,9 @@ Section CutsceneLeafRows.
       mem_id id mln_cact = true -> id <> mario_actions_airborne._m.
   Proof.
     intros id H. unfold mln_cact in H. cbn [mem_id existsb] in H.
-    rewrite orb_false_r in H. apply Pos.eqb_eq in H. subst id. discriminate.
+    repeat (apply orb_true_iff in H as [E | H];
+            [ apply Pos.eqb_eq in E; subst id; discriminate | ]).
+    discriminate H.
   Qed.
   Example mln_margex :
     marg_exempt (Internal C.f_end_peach_cutscene_mario_landing) = false.

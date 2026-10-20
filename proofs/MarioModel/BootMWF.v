@@ -411,7 +411,7 @@ Definition SafeB_boot (lp : Clight.program) : block -> Prop :=
 
 Lemma SafeB_boot_syms_ok : forall lp, SafeB_syms_ok lp (SafeB_boot lp).
 Proof.
-  intros lp. apply safeb_wit_sat; [ intros b [] | intros id H; exact H ].
+  intros lp. apply safeb_wit_sat; [ intros b [] | intros id H; exact H | exact gobj_not_nonsafe ].
 Qed.
 
 Lemma sfam_not_nonsafe :

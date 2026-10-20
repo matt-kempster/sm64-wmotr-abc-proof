@@ -151,18 +151,16 @@ Section NoAImpliesNoFlyTwelve.
   Hypothesis Hpres_sta_ext : forall fid,
       mem_id fid StationaryLeafSurface.sta_ext_ids = true ->
       call_pres_ext lp bm (NoA_real bm) MWF fid.
-  Hypothesis Hglob_obj_root :
-    forall g gb m b o,
-      mem_id g CutsceneLeafSurface.gobj_ids = true ->
-      MWF m ->
-      Genv.find_symbol (lp_ge lp) g = Some gb ->
-      Mem.loadv Mptr m (Vptr gb Ptrofs.zero) = Some (Vptr b o) ->
-      SafeB b.
+  (* 2026-10-19: replaces Hglob_obj_root, found false over MWF memories (see
+     NoAImpliesNoFlyLinked): spawn_object_abs_with_rot returns a SafeB object,
+     the same model class as Hcp_spawn_real. *)
+  Hypothesis Hcp_soawr_real : call_pres_ext_sr lp bm (NoA_real bm) MWF SafeB
+      mario_actions_cutscene._spawn_object_abs_with_rot.
   Hypothesis Hpres_obj_ext_open : forall fid,
       mem_id fid NoAImpliesNoFlyLinked.obj_ext_open_ids = true ->
       call_pres_ext lp bm (NoA_real bm) MWF fid.
-  Hypothesis Hpres_cut_ext : forall fid,
-      mem_id fid CutsceneLeafSurface.cut_ext_ids = true ->
+  Hypothesis Hpres_cut_ext_open : forall fid,
+      mem_id fid NoAImpliesNoFlyLinked.cut_ext_open_ids = true ->
       call_pres_ext lp bm (NoA_real bm) MWF fid.
   Hypothesis Hgeo_real :
     call_pres_ext_geo lp bm (NoA_real bm) MWF SafeB
@@ -224,7 +222,7 @@ Section NoAImpliesNoFlyTwelve.
              (linked12_LO_stp lp H12)
              (linked12_ext_pin lp H12)
              Hpres_sta_ext
-             Hglob_obj_root Hpres_obj_ext_open Hpres_cut_ext
+             Hcp_soawr_real Hpres_obj_ext_open Hpres_cut_ext_open
              Hgeo_real Hocp_rai_real
              Hpres_floors_ext
              Hcp_spawn_real Hcp_savefile_real Hcpx_ibcd_real Hcpx_tbs_real
@@ -256,7 +254,7 @@ Section NoAImpliesNoFlyTwelve.
              (linked12_LO_stp lp H12)
              (linked12_ext_pin lp H12)
              Hpres_sta_ext
-             Hglob_obj_root Hpres_obj_ext_open Hpres_cut_ext
+             Hcp_soawr_real Hpres_obj_ext_open Hpres_cut_ext_open
              Hgeo_real Hocp_rai_real
              Hpres_floors_ext
              Hcp_spawn_real Hcp_savefile_real Hcpx_ibcd_real Hcpx_tbs_real
