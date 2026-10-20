@@ -227,8 +227,8 @@ const SNAPSHOTS = [
   {date:"2026-10-20", pct:46, lo:32, hi:50, live:true,  commit:"74b68d3", note:"Unchanged. A premise sweep found one more false row: set_camera_mode was assumed to keep Mario's memory for any argument, but it writes the camera struct through its first argument, so on memories where that argument points at Mario the assumption fails. It sat both in the object-external list and in the engine's blanket external rows. Repaired: the area pointer is now tracked like Mario's other pointer fields, every walked call site is checked to pass m->area->camera, the capstones take one argument-gated camera row instead (camera stays a labelled deferred premise), and the engine's external rows now carry the same per-call argument gate as internal calls. One more hypothesis on each capstone, all of them now true of the real code as far as we know. Still open: the other ten air cases, the other calls, and Φ at real WMotR entry."},
 ];
 const COUNTERS = [
-  {n:25, label:"Hypothesis rows on GOAL 1's capstone"},
-  {n:37, label:"Hypothesis rows in GOAL 2's HeightFrame.v (finer rows + HW/audio/camera floors)"},
+  {n:23, label:"Hypothesis rows on GOAL 1's capstone"},
+  {n:35, label:"Hypothesis rows in GOAL 2's HeightFrame.v (finer rows + HW/audio/camera floors)"},
   {n:3,  label:"GOAL 2 rows about Mario's frame still open (now incl. the world)"},
   {n:"300/300", label:"recorded real frames matched byte for byte"},
   {n:"94,800", label:"real no-A WMotR frames watched, Φ held on every one"}

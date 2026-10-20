@@ -43,6 +43,7 @@ From SM64.Generated Require mario mario_actions_stationary
   mario_actions_moving mario_actions_airborne mario_actions_submerged
   mario_actions_cutscene mario_actions_automatic mario_actions_object
   interaction behavior_actions level_update mario_step.
+From SM64.Proofs Require BullyBodies.
 From SM64.Proofs Require Import Flying Taint ActionValue ActionValueFrame ReachableRun
   RealFrameValue RealFrameLinked AGates SymbolicLinking FieldNonInterference.
 From SM64.Proofs Require Import CensusV2 EngineV2Consumer.
@@ -214,12 +215,28 @@ Section NoAImpliesNoFlyTwelve.
       behavior_actions._spawn_object.
   Hypothesis Hcp_savefile_real :
     call_pres_ext lp bm (NoA_real bm) MWF interaction._save_file_set_cap_pos.
-  Hypothesis Hcpx_ibcd_real :
+  (* PROVED 2026-10-20 (were rows): init_bully_collision_data and
+     transfer_bully_speed are mario_step.c bodies, in the link; they store
+     only through their pointer parameters, which the gates put in caller
+     stack blocks (BullyBodies.Hcpx_ibcd_proved / Hcpx_tbs_proved). *)
+  Lemma Hcpx_ibcd_real :
     call_pres_ext_wl lp bm (NoA_real bm) MWF SafeB
       interaction._init_bully_collision_data.
-  Hypothesis Hcpx_tbs_real :
+  Proof.
+    destruct Hspawn as (init & Hs).
+    exact (BullyBodies.Hcpx_ibcd_proved lp bm bc oc0 SafeB
+             (spawn_Hbc_bm lp init bm bc oc0 Hs) (linked12_LO_stp lp H12)
+             (spawn_Hbc_sym lp init bm bc oc0 Hs)).
+  Qed.
+  Lemma Hcpx_tbs_real :
     call_pres_ext_ol lp bm (NoA_real bm) MWF SafeB
       interaction._transfer_bully_speed.
+  Proof.
+    destruct Hspawn as (init & Hs).
+    exact (BullyBodies.Hcpx_tbs_proved lp bm bc oc0 SafeB
+             (spawn_Hbc_bm lp init bm bc oc0 Hs) (linked12_LO_stp lp H12)
+             (spawn_Hbc_sym lp init bm bc oc0 Hs)).
+  Qed.
   Hypothesis Hpres_warp_ext : forall fid,
       mem_id fid warp_ext_ids = true ->
       call_pres_ext lp bm (NoA_real bm) MWF fid.

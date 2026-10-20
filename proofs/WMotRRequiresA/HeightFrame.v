@@ -436,12 +436,6 @@ Section HeightLinked12.
       behavior_actions._spawn_object.
   Hypothesis Hcp_savefile_real :
     call_pres_ext lp bm (NoA_real bm) MWF interaction._save_file_set_cap_pos.
-  Hypothesis Hcpx_ibcd_real :
-    call_pres_ext_wl lp bm (NoA_real bm) MWF SafeB
-      interaction._init_bully_collision_data.
-  Hypothesis Hcpx_tbs_real :
-    call_pres_ext_ol lp bm (NoA_real bm) MWF SafeB
-      interaction._transfer_bully_speed.
   Hypothesis Hpres_warp_ext : forall fid,
       mem_id fid warp_ext_ids = true ->
       call_pres_ext lp bm (NoA_real bm) MWF fid.
@@ -565,8 +559,8 @@ Section HeightLinked12.
     exact (frame_call_ok_linked12 lp H12 bm bc oc0 SafeB HSafeB_syms Hbm_sym Hbc_sym Hoc0
              Hscp_mtxf_real Hcsp_omfd_real Hcsp_scale_real Hcsp_osh_real Hcsp_scm_real Hdma_floor WL_exempt
              Hpres_sta_ext Hcp_soawr_real Hpres_obj_ext_open2 Hpres_cut_ext_open Hgeo_real
-             Hocp_rai_real Hpres_floors_ext Hcp_spawn_real Hcp_savefile_real Hcpx_ibcd_real
-             Hcpx_tbs_real Hpres_warp_ext Hext_action Hmwf_ext).
+             Hocp_rai_real Hpres_floors_ext Hcp_spawn_real Hcp_savefile_real
+             Hpres_warp_ext Hext_action Hmwf_ext).
   Qed.
 
   Lemma air_leaves :
