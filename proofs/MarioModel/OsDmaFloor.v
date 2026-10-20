@@ -18,6 +18,8 @@
 (*     range, the OSIoMesg (20 bytes, __423), the OSMesgQueue (24 bytes), *)
 (*     the received-message cell (4 bytes);                               *)
 (*   - no block is allocated or freed, and no permission changes;         *)
+(*   - the destination range lies inside the address space: it does not *)
+(*     wrap past 2^32 (on the N64 every buffer is in RDRAM, far below);   *)
 (*   - the DMA'd destination bytes are data (Byte memvals): a ROM copy    *)
 (*     never produces a CompCert pointer.  osInvalDCache leaves each      *)
 (*     byte of its range either as it was or as data (a discarded dirty   *)
@@ -56,7 +58,8 @@ Definition inval_dcache_spec : Prop :=
       /\ same_perms m m'
       /\ (forall z, Ptrofs.unsigned op <= z < Ptrofs.unsigned op + Int.unsigned n ->
             ZMap.get z (Mem.mem_contents m') !! bp = ZMap.get z (Mem.mem_contents m) !! bp
-            \/ is_data (ZMap.get z (Mem.mem_contents m') !! bp)).
+            \/ is_data (ZMap.get z (Mem.mem_contents m') !! bp))
+      /\ Ptrofs.unsigned op + Int.unsigned n <= Ptrofs.modulus.
 
 (* osPiStartDma(OSIoMesg *mb, s32 pri, s32 dir, u32 devAddr, void *dest,
                 u32 size, OSMesgQueue *mq) *)
@@ -70,7 +73,8 @@ Definition pi_start_dma_spec : Prop :=
                                       /\ outside bq oq SZ_MESGQ b z) m m'
       /\ same_perms m m'
       /\ (forall z, Ptrofs.unsigned od <= z < Ptrofs.unsigned od + Int.unsigned n ->
-            is_data (ZMap.get z (Mem.mem_contents m') !! bd)).
+            is_data (ZMap.get z (Mem.mem_contents m') !! bd))
+      /\ Ptrofs.unsigned od + Int.unsigned n <= Ptrofs.modulus.
 
 (* osRecvMesg(OSMesgQueue *mq, OSMesg *msg, s32 flags) *)
 Definition recv_mesg_spec : Prop :=

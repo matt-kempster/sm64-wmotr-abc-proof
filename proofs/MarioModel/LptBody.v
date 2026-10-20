@@ -577,7 +577,7 @@ Section LptFrame.
     destruct (os_call_ext memory._osInvalDCache "osInvalDCache" _ _ _ _ _ _ _ _ eq_refl os_inval_named H eq_refl)
       as (sg & tyargs & vargs & vres & Hel & Hx).
     destruct Hfloor as (Hinv & _ & _).
-    destruct (Hinv _ _ _ _ _ _ _ Hx) as (bp & op & n & -> & UO & SP & DATA).
+    destruct (Hinv _ _ _ _ _ _ _ Hx) as (bp & op & n & -> & UO & SP & DATA & _).
     inv Hel.
     match goal with Hv : eval_expr _ _ _ _ (Etempvar _ _) _,
                     Hc : sem_cast _ _ _ _ = Some (Vptr bp op) |- _ =>
@@ -602,7 +602,7 @@ Section LptFrame.
       as (sg & tyargs & vargs & vres & Hel & Hx).
     destruct Hfloor as (_ & Hpi & _).
     destruct (Hpi _ _ _ _ _ _ _ Hx)
-      as (bmb & omb & pri & dir & dev & bd & od & n & bq & oq & -> & UO & SP & DATA).
+      as (bmb & omb & pri & dir & dev & bd & od & n & bq & oq & -> & UO & SP & DATA & _).
     inv Hel.
     match goal with Hv : eval_expr _ _ _ _ (Eaddrof (Evar memory._gDmaIoMesg _) _) _,
                     Hc : sem_cast _ _ _ _ = Some (Vptr bmb omb) |- _ =>

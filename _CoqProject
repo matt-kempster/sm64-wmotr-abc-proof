@@ -278,6 +278,7 @@ proofs/WMotRRequiresA/Unwired/FpWalk.v
 proofs/WMotRRequiresA/Unwired/AirWr.v
 proofs/WMotRRequiresA/Unwired/AirMatch.v
 proofs/WMotRRequiresA/Unwired/AirRun.v
+proofs/WMotRRequiresA/Unwired/SmaFoot.v
 proofs/WMotRRequiresA/Unwired/AirMove.v
 proofs/WMotRRequiresA/Unwired/AirStart.v
 proofs/Interp/MemBuild.v
