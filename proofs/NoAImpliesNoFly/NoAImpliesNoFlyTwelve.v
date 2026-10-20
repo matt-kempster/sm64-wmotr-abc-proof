@@ -54,7 +54,7 @@ From SM64.Proofs Require Import LinkedTwelve.
 From SM64.Proofs Require Import SpawnInit.
 From SM64.Proofs Require Import InitMemSat.
 From SM64.Proofs Require Import NoAImpliesNoFlyLinked.
-From SM64.Proofs Require OsDmaFloor LptBody.
+From SM64.Proofs Require OsDmaFloor LptBody BootMWF.
 
 Section NoAImpliesNoFlyTwelve.
   Variable lp : Clight.program.
@@ -261,6 +261,49 @@ Section NoAImpliesNoFlyTwelve.
              Hpres_floors_ext
              Hcp_spawn_real Hcp_savefile_real Hcpx_ibcd_real Hcpx_tbs_real
              Hpres_warp_ext Hext_action Hmwf_ext).
+  Qed.
+
+  (* ==================================================================== *)
+  (* FROM BOOT (2026-10-19, phantom-forall guard): the capstone's start   *)
+  (* premise mem_ok_lp is not just assumed -- it HOLDS of the memory the  *)
+  (* real game builds: the 12-TU boot image (Genv.init_mem lp) followed  *)
+  (* by one real call of init_mario_from_save_file (BootMWF.boot_init_ok, *)
+  (* proved from the generated Clight; every store and the one call in   *)
+  (* its body walked).  SafeB is instantiated to BootMWF.SafeB_boot (all *)
+  (* blocks but the non_safeb_syms globals), which satisfies HSafeB_syms. *)
+  (* The star-count call is the capstone's own object-external row.      *)
+  (* ==================================================================== *)
+  Lemma sfstar_open :
+    mem_id mario._save_file_get_total_star_count
+      NoAImpliesNoFlyLinked.obj_ext_open_ids = true.
+  Proof. vm_compute. reflexivity. Qed.
+
+  Lemma boot_init_mem_ok : SafeB = BootMWF.SafeB_boot lp ->
+    forall m0 fd t m1 vres,
+      Genv.init_mem lp = Some m0 ->
+      eval_funcall function_entry2 (lp_ge lp) m0 fd nil t m1 vres ->
+      resolves_lp lp mario._init_mario_from_save_file fd ->
+      mem_ok_lp bm MWF m1.
+  Proof.
+    intros HSB m0 fd t m1 vres Hinit Hev Hres.
+    pose proof (Hpres_obj_ext_open _ sfstar_open) as Hsf.
+    unfold mem_ok_lp. rewrite Hoc0, HSB in *.
+    exact (BootMWF.boot_init_ok lp H12 m0 bm bc Hinit Hbm_sym Hbc_sym Hsf
+             fd t m1 vres Hev Hres).
+  Qed.
+
+  Theorem noA_never_flying_from_boot : SafeB = BootMWF.SafeB_boot lp ->
+    forall m0 fd t m1 vres (is : list mem) (m : mem),
+      Genv.init_mem lp = Some m0 ->
+      eval_funcall function_entry2 (lp_ge lp) m0 fd nil t m1 vres ->
+      resolves_lp lp mario._init_mario_from_save_file fd ->
+      Forall (fun i => a_pressed_real bm i = false) is ->
+      reachable mem mem (step_real lp) m1 is m ->
+      ~ mem_flying_lp bm m.
+  Proof.
+    intros HSB m0 fd t m1 vres is m Hinit Hev Hres HA Hr.
+    exact (noA_no_spawn_never_flying_linked12 m1 is m
+             (boot_init_mem_ok HSB m0 fd t m1 vres Hinit Hev Hres) HA Hr).
   Qed.
 
 End NoAImpliesNoFlyTwelve.

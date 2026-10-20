@@ -104,6 +104,7 @@ proofs/MarioModel/WarpSurface.v
 # --- GOAL 1 / concrete MWF run invariant (SPINE: MWF_real + all per-leaf
 #     discharges; consumed by the MWF-grounded capstone in NoAImpliesNoFlyLinked) ---
 proofs/MarioModel/MWFReal.v
+proofs/MarioModel/BootMWF.v
 
 # --- GOAL 1 / P5 init grounding (kept: producer for the twelve-TU bucket-B
 #     distinctness rows -- spawn_ok + the CHEAP genv_vars_inj corollaries +
