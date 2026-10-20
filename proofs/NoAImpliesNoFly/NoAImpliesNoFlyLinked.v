@@ -419,6 +419,25 @@ End NoARealInput.
 (*     stability hypotheses: it is a projection of MWF via Hmwf_ctl).      *)
 (* ====================================================================== *)
 
+(* The two store-side facts of GOAL 1's root walk, named so that GOAL 2's
+   frame split (HeightFrame) can reuse them at the root body's own stores. *)
+Definition chase_safe_stmt (bm : block) (SafeB : block -> Prop) (MWF : mem -> Prop) : Prop :=
+  forall delta mm b' o',
+    field_offset (prog_comp_env mario.prog) mario._marioObj mario_state_members
+      = Errors.OK (delta, Full) ->
+    MWF mm ->
+    Mem.loadv Mptr mm (Vptr bm (Ptrofs.repr delta)) = Some (Vptr b' o') ->
+    SafeB b'.
+
+Definition store_safe_stmt (lp : Clight.program) (bm : block) (SafeB : block -> Prop)
+    (MWF : mem -> Prop) : Prop :=
+  forall e le mm a1 a2 tt le' mm' out,
+    NoA_real bm mm -> MWF mm -> RealFrameValue.prov_ok (Sassign a1 a2) ->
+    (forall b o, le ! mario._t'49 = Some (Vptr b o) -> SafeB b) ->
+    (forall b o, le ! mario._t'13 = Some (Vptr b o) -> SafeB b) ->
+    exec_stmt function_entry2 (lp_ge lp) e le mm (Sassign a1 a2) tt le' mm' out ->
+    NoA_real bm mm' /\ MWF mm'.
+
 Section NoARealInputV2.
   Variable lp : Clight.program.
   Hypothesis LO_mario : linkorder mario.prog lp.
@@ -644,6 +663,26 @@ Section NoARealInputV2.
              Hmwf_ctl Hmobj_of_mwf Hgms_of_mwf Hchase_safe Hstore_safe
              (root_call_resolves lp LO_mario)
              root_body_reach_chk (root_body_tcall_chk bm SafeB)).
+  Qed.
+
+  (* the frame export together with its per-call core (GOAL 2's frame split,
+     HeightFrame: each call execute_mario_action makes keeps mem_ok) *)
+  Lemma frame_call_ok_real_v2 :
+    (forall m m', mem_ok_lp bm MWF m -> execute_mario_action_step_lp lp m m' ->
+                  mem_ok_lp bm MWF m')
+    /\ reach_value_preserves_reached_g not_tainted bm (lp_ge lp) (NoA_real bm) MWF
+         (call_gate bm SafeB) (reached_v2 lp)
+    /\ (forall m, MWF m -> gms_cond_lp lp m bm)
+    /\ chase_safe_stmt bm SafeB MWF /\ store_safe_stmt lp bm SafeB MWF.
+  Proof.
+    split; [exact frame_ok_real_v2 |].
+    split; [| exact (conj Hgms_of_mwf (conj Hchase_safe Hstore_safe))].
+    exact (reach_value_preserves_reached_v2 lp LO_mario bm SafeB
+             (NoA_real bm) MWF
+             Hmwf_inp Hmwf_ctl HactVint HPgms HchaseRoot HchaseStep
+             HSafeNotBm Hmwf_window Hmwf_input Hmwf_glob Hmwf_chase
+             Hmwf_umbi WL_exempt Hrest_pres
+             Hext_action Hmwf_ext Hmwf_entry Hmwf_free Hmwf_ctl).
   Qed.
 
 End NoARealInputV2.
@@ -2792,13 +2831,18 @@ Section NoARealInputMWF.
                       math_util.f_atan2s.
   Proof. exact (MathBodies.atan2s_pres lp bm bc oc0 SafeB LO_math). Qed.
 
-  Lemma frame_ok_real_mwf :
-    forall m m',
+  Lemma frame_call_ok_real_mwf :
+    (forall m m',
       mem_ok_lp bm (MWF_real lp bm bc oc0 SafeB) m ->
       execute_mario_action_step_lp lp m m' ->
-      mem_ok_lp bm (MWF_real lp bm bc oc0 SafeB) m'.
+      mem_ok_lp bm (MWF_real lp bm bc oc0 SafeB) m')
+    /\ reach_value_preserves_reached_g not_tainted bm (lp_ge lp) (NoA_real bm)
+         (MWF_real lp bm bc oc0 SafeB) (call_gate bm SafeB) (reached_v2 lp)
+    /\ (forall m, MWF_real lp bm bc oc0 SafeB m -> gms_cond_lp lp m bm)
+    /\ chase_safe_stmt bm SafeB (MWF_real lp bm bc oc0 SafeB)
+    /\ store_safe_stmt lp bm SafeB (MWF_real lp bm bc oc0 SafeB).
   Proof.
-    exact (frame_ok_real_v2 lp LO_mario bm SafeB
+    exact (frame_call_ok_real_v2 lp LO_mario bm SafeB
              (MWF_real lp bm bc oc0 SafeB)
              (mwf_real_inp lp bm bc oc0 SafeB)
              (mwf_real_ctl lp bm bc oc0 SafeB)
@@ -3664,6 +3708,13 @@ Section NoARealInputMWF.
              (fun gb Hgb => proj2 (proj2 (Hgms_blk gb Hgb)))
              Hchase_safe Hstore_safe).
   Qed.
+
+  Lemma frame_ok_real_mwf :
+    forall m m',
+      mem_ok_lp bm (MWF_real lp bm bc oc0 SafeB) m ->
+      execute_mario_action_step_lp lp m m' ->
+      mem_ok_lp bm (MWF_real lp bm bc oc0 SafeB) m'.
+  Proof. exact (proj1 frame_call_ok_real_mwf). Qed.
 
   Theorem noA_no_spawn_never_flying_real_mwf :
     forall (init : mem) (is : list mem) (m : mem),

@@ -266,6 +266,37 @@ Section NoAImpliesNoFlyTwelve.
              Hpres_warp_ext Hext_action Hmwf_ext).
   Qed.
 
+  (* with its per-call core: every reached call keeps mem_ok (GOAL 2's
+     frame split), and MWF pins gMarioState's cell to Mario's block *)
+  Lemma frame_call_ok_linked12 :
+    (forall m m', mem_ok_lp bm MWF m -> execute_mario_action_step_lp lp m m' ->
+                  mem_ok_lp bm MWF m')
+    /\ reach_value_preserves_reached_g not_tainted bm (lp_ge lp) (NoA_real bm) MWF
+         (call_gate bm SafeB) (reached_v2 lp)
+    /\ (forall m, MWF m -> gms_cond_lp lp m bm)
+    /\ chase_safe_stmt bm SafeB MWF /\ store_safe_stmt lp bm SafeB MWF.
+  Proof.
+    exact (frame_call_ok_real_mwf lp
+             (linked12_LO_mario lp H12)
+             bm bc oc0 SafeB
+             HSafeB_syms Hspawn
+             (linked12_LO_surf lp H12) (linked12_LO_math lp H12)
+             Hscp_mtxf_real Hcsp_omfd_real Hcsp_scale_real Hcsp_osh_real Hsma_real Hsmawa_real WL_exempt
+             (linked12_LO_sta lp H12) (linked12_LO_mov lp H12)
+             (linked12_LO_air lp H12) (linked12_LO_sub lp H12)
+             (linked12_LO_cut lp H12) (linked12_LO_aut lp H12)
+             (linked12_LO_obj lp H12) (linked12_LO_int lp H12)
+             (linked12_LO_beh lp H12) (linked12_LO_lvl lp H12)
+             (linked12_LO_stp lp H12)
+             (linked12_ext_pin lp H12)
+             Hpres_sta_ext
+             Hcp_soawr_real Hpres_obj_ext_open Hpres_cut_ext_open
+             Hgeo_real Hocp_rai_real
+             Hpres_floors_ext
+             Hcp_spawn_real Hcp_savefile_real Hcpx_ibcd_real Hcpx_tbs_real
+             Hpres_warp_ext Hext_action Hmwf_ext).
+  Qed.
+
   (* ==================================================================== *)
   (* FROM BOOT (2026-10-19, phantom-forall guard): the capstone's start   *)
   (* premise mem_ok_lp is not just assumed -- it HOLDS of the memory the  *)

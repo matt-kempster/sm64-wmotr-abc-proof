@@ -246,6 +246,8 @@ proofs/WMotRRequiresA/HeightMoveCatalog.v
 proofs/WMotRRequiresA/WMotRLevel.v
 proofs/WMotRRequiresA/WMotRWorld.v
 proofs/WMotRRequiresA/NoAActions.v
+proofs/WMotRRequiresA/FrameCalls.v
+proofs/WMotRRequiresA/FrameSplit.v
 proofs/WMotRRequiresA/HeightFrame.v
 proofs/WMotRRequiresA/YWriterCensus.v
 proofs/WMotRRequiresA/HeldObjCensus.v

@@ -33,7 +33,11 @@ all in `Unwired/`, and the theorem moved nowhere. See
   visit (frames end with `in_wmotr`), under input with A neither pressed nor held
   (`a_used_real`). Φ is concrete
   (`HeightInvariant.v`), `Hphi_y` is proved (YMAX = 2796), the level-data rows are proved (`WMotRLevel.v`), and the crux is the lemma
-  `seg_action_phi`, whose move arithmetic is proved (`HeightMoveCatalog.chain_keeps_budget`). Open rows:
+  `seg_action_phi`, whose move arithmetic is proved (`HeightMoveCatalog.chain_keeps_budget`).
+  Since 2026-10-20 the three frame rows below are LEMMAS of `FrameSplit.frame_split`; the
+  assumed rows are the per-call `Hseg_call` / `Hseg_any` (one per call in the real
+  `execute_mario_action` body; the two store blocks are proved). What each per-call row
+  carries:
   - `Hframe_stays_noA` (ACT_SQUISHED still needs the dynamic-surface geometry fact in the
     find_floor / find_ceil contracts, docs/goal2-value-walk-plan.md §6)
   - `Hframe_keeps_world`: the run carries `PhiW` = Φ ∧ `WMotRWorld.wmotr_world` (surfaces of

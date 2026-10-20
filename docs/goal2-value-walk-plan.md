@@ -601,9 +601,33 @@ cells; `wmotr_world` already carries both.
    facts, the cells after are a `MoveChain` from the cells before. Its
    premises are the DMA floor, the `sqrtf` floor, the audio/camera premises,
    and the start-state facts (still to discharge from the frame invariant).
-4. Frame composition: `execute_mario_action`'s action loop as a sequence of
-   dispatcher calls, so that `Hframe_is_move_chain` splits into per-segment rows
-   and the freefall row becomes a lemma.
+4. **Done (2026-10-20): frame composition** (`FrameCalls.v`, `FrameSplit.v`).
+   `FrameCalls.cl` reads a function body as obligations: `t = gMarioState; f(t)`
+   calls, other calls, and straight-line store blocks; control flow (the action
+   loop, the switches, returns) needs none. `funcall_safe` proves that a body
+   run keeps any memory predicate P when every obligation does. On
+   `execute_mario_action` the list is computed from the generated AST: 17
+   `f(gMarioState)` calls (input update, the 7 dispatchers, the post-action
+   helpers), 5 others (`spawn_wind_particles` ×2, `play_sound` ×2,
+   `play_infinite_stairs_music`) and 2 store blocks. `FrameSplit.frame_split`
+   takes P = "GOAL 1's mem_ok, the frame world `fworld`, and a MoveChain from
+   the frame's start cells". GOAL 1's per-call result gives mem_ok across each
+   call (`frame_call_ok_linked12`). The two store blocks (`gfx.node.flags &=
+   ~0x10`, `oInteractStatus = 0`) are proved: they write only Mario's object,
+   at offsets apart from every cell W and the cells read. The per-call rows
+   `Hseg_call` / `Hseg_any` replace `Hframe_stays_noA`, `Hframe_keeps_world` and
+   `Hframe_is_move_chain`, which are now lemmas in `HeightFrame`.
+   **Finding (fixed):** the frame's `oInteractStatus` store could overwrite a
+   collided pole's `oPosY` / hitbox fields or a surface's type, if those
+   lived in Mario's object block. Nothing in W kept them apart. W gained
+   `mobj_apart`: no wall / ceiling / floor surface is in Mario's object's
+   block, and a collided object is Mario's own or a whole `struct Object`
+   (608 bytes) away, with the object not wrapping the address space.
+   **Next:** the airborne dispatcher is itself a switch of `act_*(m)` calls
+   on `m->action`. Splitting it needs a path-sensitive variant (the case
+   label gives `action = ACT_FREEFALL`, which `ff_move` needs), so that the
+   freefall case of `Hseg_call` for `mario_execute_airborne_action` becomes
+   `ff_move`.
 5. The start-state obligations of `ff_move` from the frame invariant: the
    walk's regions (`env_ok`) from MWF R11–R14 and SafeB, the buffer path fact
    from the anim layout fact, and the floor refresh from

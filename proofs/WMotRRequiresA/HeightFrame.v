@@ -68,6 +68,7 @@ From SM64.Proofs Require Import MWFReal RestSurface FloorsSurface
   FloorsLeafSurface.
 From SM64.Proofs Require Import LinkedTwelve SpawnInit InitMemSat.
 From SM64.Proofs Require Import NoAImpliesNoFlyLinked NoAImpliesNoFlyTwelve.
+From SM64.Proofs Require Import FrameCalls FrameSplit.
 From SM64.Proofs Require OsDmaFloor LptBody.
 From SM64.Proofs Require Import HeightInvariant HeightBudgetArith HeightMoveCatalog WMotRLevel
   WMotRWorld NoAActions.
@@ -465,19 +466,13 @@ Section HeightLinked12.
      buffer is its own main_pool_alloc (game_init.c:627), apart from
      sSurfacePool and gObjectPool.  Without it the two frame rows below were
      FALSE over memories where the buffer aliases those blocks. *)
-  Definition anim_apart (m : mem) : Prop :=
-    forall ab bt ot,
-      Genv.find_symbol (lp_ge lp) mario._gMarioAnimsBuf = Some ab ->
-      Mem.load Mptr m ab 8 = Some (Vptr bt ot) ->
-      (forall off sb so, (off = WALL_OFF \/ off = CEIL_OFF \/ off = FLOOR_OFF) ->
-         Mem.load Mint32 m bm off = Some (Vptr sb so) -> bt <> sb)
-      /\ (forall mb mo i cb co,
-         Mem.load Mint32 m bm MARIOOBJ_OFF = Some (Vptr mb mo) -> 0 <= i < 4 ->
-         Mem.load Mint32 m mb (Ptrofs.unsigned mo + COLL_OFF + 4 * i) = Some (Vptr cb co) ->
-         bt <> cb).
-
+  (* anim_apart now lives in FrameSplit (anim_apart lp bm).  Mario's
+     object stays off the world too (FrameSplit.mobj_apart, 2026-10-20):
+     no surface lives in its block and a collided object is Mario's own or a
+     whole Object away -- needed for the frame's own two stores to Mario's
+     object (gfx flags, oInteractStatus), which FrameSplit PROVES. *)
   Definition PhiW (m : mem) : Prop :=
-    height_invariant bm R_noA m /\ wmotr_world bm m /\ anim_apart m.
+    height_invariant bm R_noA m /\ wmotr_world bm m /\ anim_apart lp bm m /\ mobj_apart bm m.
   Notation Phi := PhiW.
 
   (* LEVEL DATA -- now DEFINED from generated/ and PROVED (WMotRLevel.v):
@@ -489,47 +484,107 @@ Section HeightLinked12.
      surfaces; which behaviors load collision) is TRUST.md 0.8 and lives
      in Hframe_is_move_chain, whose MoveChain mentions them. *)
 
-  (* OPEN (the action arm): one real frame keeps the action in the no-A
-     whitelist.  GOAL 1's engine at Qv := R_noA
-     (execute_mario_action_preserves_real_reached_lp); target list
-     docs/goal2-rnoa-census.md.  The a_down premise is load-bearing: with
-     A held (never pressed) act_punching / act_move_punching enter
-     ACT_JUMP_KICK (mario_actions_object.c:156, _moving.c:845), which is not
-     in the census whitelist, so without it this row would be FALSE. *)
-  Hypothesis Hframe_stays_noA :
+  (* ---- THE FRAME ROWS, split at execute_mario_action's calls (2026-10-20).
+     They used to be three whole-frame rows (Hframe_stays_noA,
+     Hframe_keeps_world, Hframe_is_move_chain).  FrameSplit reads the real
+     body (FrameCalls.cl over generated/mario.v: 17 `f(gMarioState)` calls,
+     5 other calls, 2 stores to Mario's object) and PROVES the frame from:
+       - GOAL 1's per-call mem_ok (frame_call_ok_linked12),
+       - the two stores (gfx flags, oInteractStatus = 0), proved,
+       - one row per call: the call keeps the frame world (FrameSplit.fworld:
+         action in R_noA, the WMotR world, anim_apart, mobj_apart, A not
+         held) and moves Phi's cells by a MoveChain.
+     The rows are what the value walk discharges call by call (the airborne
+     dispatcher first: act_freefall is FfRun.ff_move).
+
+     OPEN (the action arm) inside each row: GOAL 1's engine at Qv := R_noA;
+     target list docs/goal2-rnoa-census.md.  The A-not-held premise is
+     load-bearing: with A held act_punching / act_move_punching enter
+     ACT_JUMP_KICK (mario_actions_object.c:156, _moving.c:845), not in the
+     whitelist.
+     OPEN (the value walk): each call's effect on Phi's cells is a chain of
+     HeightMoveCatalog moves.  Moves NOT modelled, so a row is false if they
+     fire: hanging (A-gated), water, wind, shells, objects that grab or
+     throw (absent in WMotR; E1/E3).
+     OPEN (the world): every surface a call stores into m->wall/ceil/floor
+     comes from WMotR's surfaces; nothing picks up or rides an object; the
+     anim DMA stays in its own buffer.  Tethered by the write watch (TRUST.md
+     5.4). ---- *)
+  Hypothesis Hseg_call : seg_call_rows lp bm MWF.
+  Hypothesis Hseg_any : seg_any_rows lp bm MWF.
+
+  Lemma call_facts :
+    (forall m m', mem_ok_lp bm MWF m -> execute_mario_action_step_lp lp m m' ->
+                  mem_ok_lp bm MWF m')
+    /\ reach_value_preserves_reached_g not_tainted bm (lp_ge lp) (NoA_real bm) MWF
+         (call_gate bm SafeB) (reached_v2 lp)
+    /\ (forall m, MWF m -> gms_cond_lp lp m bm)
+    /\ chase_safe_stmt bm SafeB MWF /\ store_safe_stmt lp bm SafeB MWF.
+  Proof.
+    exact (frame_call_ok_linked12 lp H12 bm bc oc0 SafeB HSafeB_syms Hbm_sym Hbc_sym Hoc0
+             Hscp_mtxf_real Hcsp_omfd_real Hcsp_scale_real Hcsp_osh_real Hdma_floor WL_exempt
+             Hpres_sta_ext Hcp_soawr_real Hpres_obj_ext_open Hpres_cut_ext_open Hgeo_real
+             Hocp_rai_real Hpres_floors_ext Hcp_spawn_real Hcp_savefile_real Hcpx_ibcd_real
+             Hcpx_tbs_real Hpres_warp_ext Hext_action Hmwf_ext).
+  Qed.
+
+  Lemma frame_FS : forall c0 m m',
+    budget_ok c0 -> FS lp bm MWF c0 m -> execute_mario_action_step_lp lp m m' ->
+    FS lp bm MWF c0 m'.
+  Proof.
+    intros c0 m m' Hb HF (b_o & t & res & Hev).
+    destruct call_facts as (_ & Hcall & Hgms & Hchase & Hstore).
+    refine (frame_split lp (linked12_LO_mario lp H12) bm SafeB MWF Hcall Hgms
+              (fun m0 HM => mwf_real_ctl lp bm bc oc0 SafeB m0 HM)
+              Hchase Hstore
+              (safeb_of_nonfam_sym lp SafeB HSafeB_syms _ _ Hbm_sym eq_refl)
+              (fun ab Hab => safeb_of_nonfam_sym lp SafeB HSafeB_syms _ _ Hab eq_refl)
+              _ c0 m _ t m' res Hseg_call Hseg_any Hb HF Hev).
+    intros m0 bc' oc HM Hl.
+    destruct HM as (_ & _ & R2 & _). destruct (R2 _ _ Hl) as [-> _].
+    exact (safeb_of_nonfam_sym lp SafeB HSafeB_syms _ _ Hbc_sym eq_refl).
+  Qed.
+
+  Lemma frame_FS_start : forall m c,
+    mem_ok_lp bm MWF m -> Phi m -> a_down_real bm m = false ->
+    read_cells bm m c -> FS lp bm MWF c m.
+  Proof.
+    intros m c Hok ((Ha & _) & Hw & Han & Hmo) HD Hc.
+    split; [exact Hok |]. split; [exact (conj Ha (conj Hw (conj Han (conj Hmo HD)))) |].
+    exists c. split; [exact Hc | apply Relation_Operators.rt_refl].
+  Qed.
+
+  (* the three old whole-frame rows, now LEMMAS *)
+  Lemma Hframe_stays_noA :
     forall m m', mem_ok_lp bm MWF m -> Phi m -> a_down_real bm m = false ->
                  execute_mario_action_step_lp lp m m' -> action_sat R_noA m' bm.
+  Proof.
+    intros m m' Hok Hphi HD Hst. pose proof Hphi as ((_ & c & Hc & Hb) & _).
+    destruct (frame_FS c m m' Hb (frame_FS_start m c Hok Hphi HD Hc) Hst) as (_ & (Ha & _) & _).
+    exact Ha.
+  Qed.
 
-  (* OPEN (the value walk): what one real execute_mario_action does to
-     Phi's cells is a chain of HeightMoveCatalog moves -- the air step, gravity,
-     windup, the E3 switches, attach, floor refresh, OOB recovery -- each
-     landing in range.  This is a claim about the generated Clight only;
-     all budget arithmetic is in chain_keeps_budget.  Moves NOT modelled, so this
-     row is false if they fire: hanging (A-gated), water, wind, shells,
-     objects that grab or throw (absent in WMotR; E1/E3).  The cannon
-     entry (pos := cannon.y + 350, reachable with B only: the buddy talks
-     on B, cannon_probe.py) was such a move until the attach case
-     wmotr_cannon was added. *)
-  (* OPEN (the world): one real frame keeps the world WMotR's.  Every
-     surface the frame stores into m->wall/ceil/floor comes from find_floor /
-     find_ceil / the wall resolvers over WMotR's static and object surfaces;
-     nothing the no-A frame does picks up or rides an object; the quicksand
-     code only deepens on a quicksand type.  Tethered by the write watch
-     (TRUST.md 5.4); the symbolic walk (docs/goal2-value-walk-plan.md) is
-     meant to discharge it together with the two rows around it.  It also
-     carries anim_apart: the frame stores no pointer into the list's
-     bufTarget cell (load_patchable_table writes only currentAddr) and the
-     surfaces / collided objects it installs are WMotR's, not the buffer. *)
-  Hypothesis Hframe_keeps_world :
+  Lemma Hframe_keeps_world :
     forall m m', mem_ok_lp bm MWF m -> Phi m -> a_down_real bm m = false ->
                  execute_mario_action_step_lp lp m m' ->
-                 wmotr_world bm m' /\ anim_apart m'.
+                 wmotr_world bm m' /\ anim_apart lp bm m' /\ mobj_apart bm m'.
+  Proof.
+    intros m m' Hok Hphi HD Hst. pose proof Hphi as ((_ & c & Hc & Hb) & _).
+    destruct (frame_FS c m m' Hb (frame_FS_start m c Hok Hphi HD Hc) Hst)
+      as (_ & (_ & Hw & Han & Hmo & _) & _).
+    exact (conj Hw (conj Han Hmo)).
+  Qed.
 
-  Hypothesis Hframe_is_move_chain :
+  Lemma Hframe_is_move_chain :
     forall m m' c, mem_ok_lp bm MWF m -> Phi m -> a_down_real bm m = false ->
                    execute_mario_action_step_lp lp m m' ->
                    read_cells bm m c -> budget_ok c ->
                    exists c', read_cells bm m' c' /\ MoveChain wmotr_floor wmotr_pole wmotr_cannon c c'.
+  Proof.
+    intros m m' c Hok Hphi HD Hst Hc Hb.
+    destruct (frame_FS c m m' Hb (frame_FS_start m c Hok Hphi HD Hc) Hst) as (_ & _ & H).
+    exact H.
+  Qed.
 
   (* THE CRUX, now derived *)
   Lemma seg_action_phi :
@@ -554,7 +609,7 @@ Section HeightLinked12.
   Lemma frame_action_linked12 :
     forall m m', mem_ok_lp bm MWF m ->
                  execute_mario_action_step_lp lp m m' -> mem_ok_lp bm MWF m'.
-  Proof. intros m m'. eapply frame_ok_linked12; eassumption. Qed.
+  Proof. exact (proj1 call_facts). Qed.
 
   (* ==================================================================== *)
   (* THE GOAL-2 CAPSTONE (height form): over any link of the twelve TUs,  *)

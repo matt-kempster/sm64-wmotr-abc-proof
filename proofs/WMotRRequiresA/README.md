@@ -28,10 +28,14 @@ Mario segment's preservation of GOAL 1's invariant is the proved
 
 "One real Mario frame preserves Φ" is the lemma `seg_action_phi`. It rests on:
 
-- `Hframe_stays_noA`: the frame keeps the action in `R_noA`. This is GOAL 1's engine at a
-  new predicate. `R_noA` is still a parameter; the census is `docs/goal2-rnoa-census.md`.
-- `Hframe_is_move_chain`: the real frame's effect on Φ's cells is a chain of `HeightMoveCatalog` moves.
-  This is the T3 value walk.
+- `Hseg_call` / `Hseg_any`: one row per call in `execute_mario_action`'s real body
+  (`FrameSplit.v`; the call list is computed from the generated AST by `FrameCalls.cl`).
+  Each says the call keeps the frame world (action in `R_noA`, W, the anim and
+  Mario-object layout facts, A not held) and moves Φ's cells by a `HeightMoveCatalog`
+  chain. The body's two stores to Mario's object are proved, and the old whole-frame
+  rows `Hframe_stays_noA` / `Hframe_keeps_world` / `Hframe_is_move_chain` are lemmas
+  derived from these (`FrameSplit.frame_split`). The value walk discharges them call
+  by call; the airborne dispatcher's freefall case is `Unwired/FfRun.ff_move`.
 - `wmotr_gap`, `wmotr_poles`: WMotR level data, **proved** in `WMotRLevel.v` (`wmotr_gap_proved`, `wmotr_poles_proved`).
 
 Also open:
