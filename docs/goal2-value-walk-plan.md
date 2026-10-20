@@ -560,15 +560,22 @@ outcomes, `set_mario_action(ACT_DIVE)` 6 and `mario_set_forward_vel` 1. The
 cells; `wmotr_world` already carries both.
 
 **Still to build:**
-1. **The `set_mario_animation` contract**, proved from the generated bodies of
-   `set_mario_animation`, `load_patchable_table` and `dma_read` with the DMA floor.
+1. **Done (2026-10-20): the `set_mario_animation` contract** `SmaXc.c_sma`,
+   proved sound (`c_sma_sound`) from the generated bodies of `set_mario_animation`,
+   `load_patchable_table` and `dma_read` with the DMA floor (`SmaFoot.sma_foot`).
    The executor cannot walk it, because the stores through `targetAnim` and the
    loads after the DMA are world cells that the call itself changes. The contract
-   writes fresh values to Mario's object's `animInfo` cells and to
-   `gMarioAnimsBuf.currentAddr`. It clobbers the buffer's block and the three
+   writes fresh values to Mario's object's `animInfo` cells (animID, animYTrans,
+   curAnim, animFrame, animAccel) and to `gMarioAnimsBuf.currentAddr`, named as
+   16-bit halves so no fresh value is a pointer. It clobbers the buffer's block
+   (a whole-block region, so it is another block than the list) and the three
    libultra message globals, and leaves everything else (Mario's state cells,
-   `gfx.pos[1]`, the surfaces) as it was. The buffer block is not a surface or
-   Mario's block by `anim_apart` and MWF R13.
+   `gfx.pos[1]`, the surfaces) as it was. The contract requires
+   `m->animList = &gMarioAnimsBuf`, `m->marioObj` a region address, and the
+   list's `bufTarget` cell to hold a pointer into the buffer region with 24
+   bytes of room. The general tool is `sstores_havoc_cl` (`sstores_havoc` with
+   clobbered regions). Whoever starts the walk must place the buffer region
+   (`anim_apart` and MWF R13 keep it off the surfaces and Mario's block).
 2. The audio/camera contract premises and the strengthened `sqrtf` floor.
 3. The walk run on the real link, with each outcome classified into
    `HeightMoveCatalog` moves (reusing `AirMatch` / `AirMove` for the air-step part).
