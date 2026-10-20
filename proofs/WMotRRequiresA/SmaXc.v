@@ -149,7 +149,7 @@ End HC.
    animFrame(64) animAccel(72..76), and the list's currentAddr (4..8), as
    16-bit halves *)
 Definition ws_obj : wset :=
-  [(56, Mint16signed); (58, Mint16signed); (60, Mint16signed); (62, Mint16signed);
+  [(56, Mint16signed); (58, Mint16signed); (60, Mint32);
    (64, Mint16signed); (72, Mint16signed); (74, Mint16signed)].
 Definition ws_lst : wset := [(4, Mint16signed); (6, Mint16signed)].
 
@@ -191,7 +191,10 @@ Definition c_sma : xcontract :=
             sload nbase R0 kv g rm (Ptrofs.unsigned om + 136) Mint32,
             sload nbase R0 kv g rl 8 Mint32 with
       | Some (Sptr rl' zl), Some (Sptr ro oo), Some s3 =>
+          match sload nbase R0 kv g ro (Ptrofs.unsigned oo + 60) Mint32 with
+          | Some s60 =>
           if sma_static_ok && Pos.eqb rl' rl && Ptrofs.eq zl Ptrofs.zero
+             && negb (loc_ptr nbase s60) && negb (existsb (Pos.eqb ro) (rl :: sma_cls))
              && existsb (is_buf_fact s3) (g_pc g)
              && forallb (fun e => negb (existsb (Pos.eqb (sreg e)) sma_cls)) (g_sm g)
           then
@@ -204,6 +207,8 @@ Definition c_sma : xcontract :=
             | None => None
             end
           else None
+          | None => None
+          end
       | _, _, _ => None
       end
   | _ => None
@@ -242,8 +247,6 @@ Proof.
   rewrite <- (Ptrofs.repr_unsigned p). replace (Ptrofs.unsigned p) with 0 by lia. reflexivity.
 Qed.
 
-Lemma ws_obj_np : forallb (fun c => chunk_np (snd c)) ws_obj = true.
-Proof. reflexivity. Qed.
 Lemma ws_lst_np : forallb (fun c => chunk_np (snd c)) ws_lst = true.
 Proof. reflexivity. Qed.
 Lemma ws_obj_nd : NoDup (map fst ws_obj).
@@ -264,6 +267,7 @@ Variable m0 : mem.
 Variable uf : positive -> list (option val) -> Prop.
 Variable gp : meminj.
 Hypothesis gp_old : forall b x, gp b = Some x -> Plt b (Mem.nextblock m0).
+Hypothesis m0_closed : forall ch b z v, gp b <> None -> Mem.load ch m0 b z = Some v -> val_old gp v.
 Variables rl rbuf riom rmq rrm kB : positive.
 (* the buffer fact's meaning: two pointers into one block, the first with
    24 bytes of room *)
@@ -291,7 +295,9 @@ Proof.
     [| destruct s1, s2; discriminate Hc].
   destruct s1 as [ | rl' zl | | | | | | | | ]; try discriminate Hc.
   destruct s2 as [ | ro oo | | | | | | | | ]; try discriminate Hc.
+  destruct (sload nbase R0 kv g ro (Ptrofs.unsigned oo + 60) Mint32) as [s60 |] eqn:L60; [| discriminate Hc].
   destruct (sma_static_ok R0 gtab rl rbuf riom rmq rrm && Pos.eqb rl' rl && Ptrofs.eq zl Ptrofs.zero
+            && negb (loc_ptr nbase s60) && negb (existsb (Pos.eqb ro) (rl :: sma_cls rbuf riom rmq rrm))
             && existsb (is_buf_fact rbuf kB s3) (g_pc g)
             && forallb (fun e => negb (existsb (Pos.eqb (sreg e)) (sma_cls rbuf riom rmq rrm))) (g_sm g))
     eqn:CK; [| discriminate Hc].
@@ -302,7 +308,9 @@ Proof.
   destruct (sstores nbase R0 g3 l) as [g' |] eqn:S; [| discriminate Hc].
   injection Hc as <-.
   apply andb_true_iff in CK as [CK NCLb]. apply andb_true_iff in CK as [CK Hbf].
+  apply andb_true_iff in CK as [CK NRO]. apply andb_true_iff in CK as [CK NL60].
   apply andb_true_iff in CK as [CK Ezl].
+  apply negb_true_iff in NL60, NRO.
   apply andb_true_iff in CK as [ST Erl].
   apply Pos.eqb_eq in Erl. subst rl'.
   pose proof (Ptrofs.eq_spec zl Ptrofs.zero) as Zl. rewrite Ezl in Zl. subst zl.
@@ -383,8 +391,8 @@ Proof.
       change (size_chunk Mint16signed) with 2 in Ol; lia. }
   (* the object window fits *)
   assert (Iob : In (ro, Ptrofs.unsigned oo + 74, Mint16signed,
-                    Sfresh (Pos.succ (Pos.succ (Pos.succ (Pos.succ (Pos.succ (Pos.succ (g_nx g1)))))))) l).
-  { apply in_or_app. left. do 6 right. left. reflexivity. }
+                    Sfresh (Pos.succ (Pos.succ (Pos.succ (Pos.succ (Pos.succ (g_nx g1))))))) l).
+  { apply in_or_app. left. do 5 right. left. reflexivity. }
   destruct (inb_abs G nbase R0 gtab kv m0 uf gp _ _ _ _ _ _ MMh (IB _ Iob)) as (_ & _ & Q3).
   cbn [fst snd] in Q3. unfold addr in Q3. change (size_chunk Mint16signed) with 2 in Q3.
   assert (UO : Ptrofs.unsigned (Ptrofs.add (e_base E ro) oo) = Ptrofs.unsigned (e_base E ro) + Ptrofs.unsigned oo)
@@ -408,9 +416,57 @@ Proof.
   fold E1 in EB1, EBs1. fold E2 in EB2, EBs2.
   assert (EB : e_blk E2 = e_blk E) by congruence.
   assert (EBs : e_base E2 = e_base E) by congruence.
+  (* curAnim: unchanged (an old value, as the description says), or the
+     buffer pointer the list holds *)
+  assert (OLD60 : forall v, Mem.load Mint32 m' bo (base_o + 60) = Some v -> val_old gp v).
+  { intros v Lv.
+    destruct (sload_sound G nbase R0 gtab kv (fun _ => None) (fun _ => false) m0 uf gp gp_old _ _ _ _ _ _ _ MMh L60)
+      as (LD60 & SK60).
+    destruct FT0 as [(U0 & _ & _) | (_ & EX)].
+    - assert (IB60 := sload_inb _ _ _ _ _ _ _ _ L60).
+      destruct (inb_abs G nbase R0 gtab kv m0 uf gp _ _ _ _ _ _ MMh IB60) as (_ & _ & Q60).
+      unfold addr in Q60. change (size_chunk Mint32) with 4 in Q60.
+      assert (NW : forall i, base_o + 60 <= i < base_o + 60 + size_chunk Mint32 ->
+                 ~ Wl (e_blk E rl) (e_blk E rbuf) (e_blk E riom) (e_blk E rmq) (e_blk E rrm) bo i).
+      { intros i Hi Wi. change (size_chunk Mint32) with 4 in Hi.
+        assert (DJ : forall rc szc, (rc = rl \/ In rc (sma_cls rbuf riom rmq rrm)) -> r0_size R0 rc = Some szc ->
+                  e_base E rc = Ptrofs.zero -> bo <> e_blk E rc \/ szc <= base_o).
+        { intros rc szc Hrc Szc Bz.
+          assert (NE' : ro <> rc).
+          { intros ->. assert (X : existsb (Pos.eqb rc) (rl :: sma_cls rbuf riom rmq rrm) = true)
+              by (apply existsb_exists; exists rc; split; [destruct Hrc as [-> | Hrc]; [left; reflexivity | right; exact Hrc] | apply Pos.eqb_refl]).
+            congruence. }
+          destruct (inb_spec nbase R0 _ _ _ _ IB60) as [(Lo & szo & Szo & O1 & O2) | (NPo & INo & _)].
+          - destruct (A3 _ _ _ _ Szo Szc NE') as [B | [B | B]]; [left; exact B | |];
+              rewrite Bz in B; change (Ptrofs.unsigned Ptrofs.zero) with 0 in B;
+              change (size_chunk Mint32) with 4 in O2; unfold base_o; lia.
+          - left. intros Eb. pose proof MMh as (_ & _ & _ & _ & _ & _ & _ & LOC & _).
+            destruct (LOC ro INo) as (_ & _ & _ & NP & _).
+            destruct (A2 rc szc Szc) as (Lc & _).
+            pose proof (A1 rc Lc) as Gc. destruct (gp (e_blk E rc)) as [x|] eqn:Gx; [| congruence].
+            apply NP. unfold bo in Eb. rewrite Eb. exact (gp_old _ _ Gx). }
+        unfold Wl, Wd, SZ_IOMESG, SZ_MESGQ in Wi.
+        destruct Wi as [[Wi | [Wi | [Wi | Wi]]] | Wi]; destruct Wi as [Eb Wi].
+        - destruct (DJ rbuf _ ltac:(right; left; reflexivity) Sb Bb) as [X | X]; [congruence | lia].
+        - destruct (DJ riom _ ltac:(right; right; left; reflexivity) Si Bi) as [X | X]; [congruence | lia].
+        - destruct (DJ rmq _ ltac:(right; right; right; left; reflexivity) Sq Bq) as [X | X]; [congruence | lia].
+        - destruct (DJ rrm _ ltac:(right; right; right; right; left; reflexivity) Sr Br) as [X | X]; [congruence | lia].
+        - destruct (DJ rl _ ltac:(left; reflexivity) Szl Bl) as [X | X]; [congruence |].
+          change (size_chunk Mint16signed) with 2 in Ol. lia. }
+      rewrite (Mem.load_unchanged_on_1 _ m m' Mint32 bo (base_o + 60) U0) in Lv;
+        [ | exact (inb_valid nbase R0 G gtab kv m0 uf gp gp_old _ _ _ _ _ _ MMh IB60) | exact NW ].
+      unfold addr in LD60. unfold bo, base_o in Lv. rewrite <- Z.add_assoc, LD60 in Lv.
+      eapply den_old; try exact EO; try exact (sok_dold nbase _ _ SK60 NL60); try exact Lv; try exact m0_closed; try exact gp_old.
+    - unfold sma_extra in EX. destruct EX as [EX _]. change Mptr with Mint32 in EX. rewrite UO in EX. fold base_o in EX.
+      unfold bo in Lv. rewrite EX in Lv. injection Lv as <-. cbn.
+      destruct (A2 _ _ Sb) as (Lb & _). exact (A1 _ Lb). }
   assert (M1 : MM E1 m g2).
-  { unfold E1, g2. apply (updw_MM G nbase R0 gtab kv m0 uf gp); [| exact ws_obj_np].
-    exact (MM_gcl G nbase R0 gtab kv m0 uf gp _ _ _ _ MMh). }
+  { unfold E1, g2. apply (updw_MM_old G nbase R0 gtab kv m0 uf gp).
+    - exact (MM_gcl G nbase R0 gtab kv m0 uf gp _ _ _ _ MMh).
+    - intros d ch Iw v Lv.
+      destruct Iw as [E' | [E' | [E' | [E' | [E' | [E' | []]]]]]]; injection E' as <- <-;
+        try (match type of Lv with Mem.load ?c _ _ ?z = Some _ => apply (np_load_old gp c m' bo z v); [reflexivity | exact Lv] end).
+      exact (OLD60 v Lv). }
   assert (M2 : MM E2 m g3).
   { unfold E2, g3. apply (updw_MM G nbase R0 gtab kv m0 uf gp); [exact M1 | exact ws_lst_np]. }
   assert (RX : Rx E E2 (g_nx g)).
@@ -421,11 +477,11 @@ Proof.
             (forall rc, In rc (sma_cls rbuf riom rmq rrm) -> rng_disj R0 E2 rc b z ch) ->
             Mem.load ch m' b z = Mem.load ch m b z).
   { intros b z ch V D C. unfold SZ_IOMESG, SZ_MESGQ in *.
-    assert (KO : forall d, In (d, Mint16signed) ws_obj ->
-              bo <> b \/ base_o + d + 2 <= z \/ z + size_chunk ch <= base_o + d).
-    { intros d Hd. destruct (wentries_has ro (Ptrofs.unsigned oo) ws_obj (g_nx g1) d Mint16signed Hd) as (k & Ik).
+    assert (KO : forall d c, In (d, c) ws_obj ->
+              bo <> b \/ base_o + d + size_chunk c <= z \/ z + size_chunk ch <= base_o + d).
+    { intros d c Hd. destruct (wentries_has ro (Ptrofs.unsigned oo) ws_obj (g_nx g1) d c Hd) as (k & Ik).
       pose proof (D _ (in_or_app _ _ _ (or_introl Ik))) as X. cbn [skey cell_disj] in X.
-      unfold addr in X. rewrite EB, EBs in X. change (size_chunk Mint16signed) with 2 in X.
+      unfold addr in X. rewrite EB, EBs in X.
       unfold bo, base_o. lia. }
     assert (KL : forall d, In (d, Mint16signed) ws_lst ->
               e_blk E rl <> b \/ d + 2 <= z \/ z + size_chunk ch <= d).
@@ -450,13 +506,13 @@ Proof.
       destruct (KL 4 ltac:(left; reflexivity)) as [X | X]; [congruence |].
       destruct (KL 6 ltac:(right; left; reflexivity)) as [Y | Y]; [congruence | lia].
     - destruct Wi as [-> Wi]. rewrite UO in Wi. fold base_o in Wi. unfold bo in KO.
-      destruct (KO 56 ltac:(left; reflexivity)) as [X1 | X1]; [congruence |].
-      destruct (KO 58 ltac:(do 1 right; left; reflexivity)) as [X2 | X2]; [congruence |].
-      destruct (KO 60 ltac:(do 2 right; left; reflexivity)) as [X3 | X3]; [congruence |].
-      destruct (KO 62 ltac:(do 3 right; left; reflexivity)) as [X4 | X4]; [congruence |].
-      destruct (KO 64 ltac:(do 4 right; left; reflexivity)) as [X5 | X5]; [congruence |].
-      destruct (KO 72 ltac:(do 5 right; left; reflexivity)) as [X6 | X6]; [congruence |].
-      destruct (KO 74 ltac:(do 6 right; left; reflexivity)) as [X7 | X7]; [congruence | lia]. }
+      destruct (KO 56 _ ltac:(left; reflexivity)) as [X1 | X1]; [congruence |].
+      destruct (KO 58 _ ltac:(do 1 right; left; reflexivity)) as [X2 | X2]; [congruence |].
+      destruct (KO 60 _ ltac:(do 2 right; left; reflexivity)) as [X3 | X3]; [congruence |].
+      destruct (KO 64 _ ltac:(do 3 right; left; reflexivity)) as [X5 | X5]; [congruence |].
+      destruct (KO 72 _ ltac:(do 4 right; left; reflexivity)) as [X6 | X6]; [congruence |].
+      destruct (KO 74 _ ltac:(do 5 right; left; reflexivity)) as [X7 | X7]; [congruence |].
+      cbn [size_chunk] in X1, X2, X3, X5, X6, X7. lia. }
   (* what each written cell now holds *)
   assert (HL : forall r o ch sv, In (r, o, ch, sv) l ->
             sok nbase (g_nx g3) sv /\ Mem.load ch m' (e_blk E2 r) (addr E2 r o) = den G m0 E2 sv).

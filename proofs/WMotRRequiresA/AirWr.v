@@ -175,6 +175,18 @@ Proof.
   apply (MMg_fresh_o ge nbase R0 gtab kv (fun _ => None) (fun _ => false) m0 uf gp E m g); [exact M |].
   intros v H. exact (np_load_old _ _ _ _ _ F1 H).
 Qed.
+
+(* the same, for cells whose new value is shown old some other way *)
+Lemma updw_MM_old : forall ws E m g, MM E m g ->
+  (forall d ch, In (d, ch) ws -> forall v, Mem.load ch m' bm (base + d) = Some v -> val_old gp v) ->
+  MM (updw E (g_nx g) ws) m (freshn (length ws) g).
+Proof.
+  induction ws as [| [d ch] ws IH]; intros E m g M F; cbn [updw freshn length]; [exact M |].
+  change (Pos.succ (g_nx g)) with (g_nx (gfresh g)).
+  apply IH; [| intros d' ch' I; apply F; right; exact I].
+  apply (MMg_fresh_o ge nbase R0 gtab kv (fun _ => None) (fun _ => false) m0 uf gp E m g); [exact M |].
+  intros v H. exact (F d ch (or_introl eq_refl) v H).
+Qed.
 End WR.
 
 Section WRS.

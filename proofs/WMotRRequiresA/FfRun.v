@@ -190,7 +190,7 @@ Proof.
   - destruct (Pos.eqb_spec id mario._set_mario_animation) as [-> | N1].
     + injection Hx as <-.
       rewrite (sfun_res _ _ _ _ (res_link lp _ _ _ (linked12_LO_mario lp H12) dm_sma) Hl) in EV.
-      exact (c_sma_sound lp H12 Hdma NBF (R0F G) gtabF (kvF G) m0 uf gp GPO RLD RBUF RIOM RMQ RRM kB
+      exact (c_sma_sound lp H12 Hdma NBF (R0F G) gtabF (kvF G) m0 uf gp GPO MC RLD RBUF RIOM RMQ RRM kB
                uf_kB args g cps E m vargs t m' vres Hk MM HA EV).
     + destruct (Pos.eqb_spec id AIR._update_air_without_turn) as [-> | N2].
       * injection Hx as <-.
