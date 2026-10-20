@@ -1,0 +1,77 @@
+{
+  "date": "2026-10-19",
+  "verdict": "PASS: local source boundaries; gameplay survival remains open",
+  "capstone": "LessThanOneAPress.Proofs.MainTheorem.current_bobomb_scan_transport_ownership_boundary",
+  "audit": "20261019-191556-1_gehoma",
+  "baseline_audit": "20261019-184146-iy53rhq4",
+  "toolchain": {
+    "switch": "sm64-item-proof",
+    "coq": "8.16.1",
+    "compcert": "3.15",
+    "memory_cap_kb": 6815744,
+    "build_timeout_seconds": 600,
+    "assumption_timeout_seconds": 240
+  },
+  "checked_sources": {
+    "TeleporterWholeScan": {
+      "source": "proofs/TeleporterWholeScan.v",
+      "source_sha256": "933db46904ded04f4e26cfef79679b45d7a738f45e4407c5e2f1ed0299811c62",
+      "log": "build/check/TeleporterWholeScan.log",
+      "log_sha256": "1a88d22c383e693d3fcc6d27ecb26edf04f6b728555eb3662e834a9640927e09",
+      "pipeline_result": 0,
+      "check_timeout_seconds": 600,
+      "memory_cap_kb": 6815744
+    },
+    "TeleporterTransportCut": {
+      "source": "proofs/TeleporterTransportCut.v",
+      "source_sha256": "893428e7fe3ca184c6297f241fbcdfb6169cc315bf12d7a3844cef677ee90ee4",
+      "log": "build/check/TeleporterTransportCut.log",
+      "log_sha256": "b0edd3240543afc666a0b3cfbcfa3f526f4d62687244e60bf0ee5a60ac79519c",
+      "pipeline_result": 0,
+      "check_timeout_seconds": 600,
+      "memory_cap_kb": 6815744
+    },
+    "TeleporterSpawnOwnership": {
+      "source": "proofs/TeleporterSpawnOwnership.v",
+      "source_sha256": "743bd4e03179dee02bef5425d2f3d8d973250629edadd37b0d15ce238355bd58",
+      "log": "build/check/TeleporterSpawnOwnership.log",
+      "log_sha256": "1320789467f965ec88b32f3b5eb4fc71763daec00cff26b8fea2de3a8805f68f",
+      "pipeline_result": 0,
+      "check_timeout_seconds": 600,
+      "memory_cap_kb": 6815744
+    },
+    "SalvageCommitValidation": {
+      "source": "build/check/SalvageCommitValidation.v",
+      "source_sha256": "f2139491c028c918a921574193c3f6f3e74eee5f9d9f7b656ab28c7bd2471c7f",
+      "log": "build/check/SalvageCommitValidation.log",
+      "log_sha256": "c9b1c7772ac47033578484a3cc96dbbabe08096cf251e6b47699f553035e9330",
+      "pipeline_result": 0,
+      "check_timeout_seconds": 600,
+      "memory_cap_kb": 6815744
+    }
+  },
+  "audit_summary": [
+    "PASS: source inventory: 679 source files; 0 inventory problems",
+    "PASS: build: exit 0; see build.log",
+    "PASS: proof holes: exit 0; includes untracked source files",
+    "PASS: link hygiene: exit 0; includes untracked source files",
+    "PASS: assumptions LessThanOneAPress.Proofs.MainTheorem.current_bobomb_scan_transport_ownership_boundary: 7 allowed foundations; see assumptions-1.log",
+    "PASS: assumptions LessThanOneAPress.Proofs.TeleporterWholeScan.teleporter_whole_scan_checked: 7 allowed foundations; see assumptions-2.log",
+    "PASS: assumptions LessThanOneAPress.Proofs.TeleporterTransportCut.teleporter_transport_cut_checked: 7 allowed foundations; see assumptions-3.log",
+    "PASS: assumptions LessThanOneAPress.Proofs.TeleporterSpawnOwnership.teleporter_complete_spawn_ownership_boundary_checked: 7 allowed foundations; see assumptions-4.log",
+    "PASS: assumptions LessThanOneAPress.Proofs.MainTheorem.current_ink_backward_execution_boundary: 9 allowed foundations; see assumptions-5.log",
+    "PASS: assumptions LessThanOneAPress.Proofs.InkRetryQuery.irq_retry_connects_display_to_real_floor_call: 7 allowed foundations; see assumptions-6.log",
+    "PASS: assumptions LessThanOneAPress.Proofs.InkVerticalRetryGeometry.ivr_vertical_retry_geometry_checked: 4 allowed foundations; see assumptions-7.log",
+    "PASS: integration: 506/601 modules in MainTheorem's import closure; 95 standalone-only; 0 problems",
+    "VERDICT: PASS (mechanical checks only; not a completed game proof)",
+    "Mechanical hygiene only. Explicit hypotheses, live reachability, and statement fidelity require review."
+  ],
+  "emulator_analysis_resumed": false,
+  "gameplay_survival_exclusion_established": false,
+  "reachable_survival_witness_established": false,
+  "remaining_uncompiled_archives": [
+    "TeleporterAudioFrame.v.draft",
+    "TeleporterPoolPartition.v.draft"
+  ],
+  "audit_scope": "Current worktree, retaining pre-existing unrelated sources and edits. Exact prospective committed MainTheorem is separately checked from its candidate source."
+}

@@ -9,7 +9,68 @@ does not close the pyramid proof's existing JP spawning-displacement routes.
 
 ## Hands-free Bob-ombs, the lower entrance and Goomba-clone knockback
 
+### Verified source-draft salvage (19 October 2026)
+
+The three requested drafts are now repaired, pipeline-checked, registered in
+`_CoqProject` and connected through
+`current_bobomb_scan_transport_ownership_boundary`. Their archived source
+snapshots remain byte-identical. AudioFrame and PoolPartition remain uncompiled
+archives. **Bob-omb survival and usable Area-2 regrab remain open.**
+
+- **WholeScan:** a completed generated US/JP
+  `unload_objects_from_area` call supplies exactly thirteen chronological
+  passes, counter values 0 through 12, including the actual third pass with
+  counter 2. Body, inner visits and outer passes retain the original call's
+  traces and memory endpoints. This derives counter/pass coverage; it does
+  not establish the actual head-base pointer's history or watched membership.
+- **TransportCut:** the same third pass belongs to the completed
+  `unload_area` call and changed-area branch before loading. Under the
+  explicit owner-path and pending-read-frame premises, its actual watched
+  visit executes deactivation and returns the slot to the free-list head.
+  This removes a separately assumed reached scan. It does not prove that a
+  candidate is on that path, derive the preceding-call frames, or exclude
+  later allocation and regrab.
+- **SpawnOwnership:** completed SpawnInfo creation reads its source
+  `activeAreaIndex` byte 13 at the reached checkpoint and writes graph
+  owner byte 25. Child creation reads parent `areaIndex` byte 24 at its
+  reached checkpoint, writes child `activeAreaIndex` byte 25 and preserves
+  it through the actual initialization suffix. Callee resolution, scalar
+  stores and vector stores are checked against selected generated bodies.
+  The result does not identify the source owner before the prefix, establish
+  a reachable birth/owner invariant or cover every creator history.
+
+The repairs change proof scripts, not the archived statements or premises:
+WholeScan's consumed trace equality is no longer rewritten after substitution;
+ownership resolves callees explicitly, instantiates generated vector calls,
+checks concrete store ranges and refolds function projections during call
+decomposition. TransportCut required no source change. No new project axiom,
+blanket audio frame or assumed global lifetime invariant was introduced.
+
+The older lifetime and unload-call-path statements are unchanged. The new
+boundary refines actual scan/creation execution contracts, while reachable
+ownership and list provenance, preceding-call framing, the selected abstract
+audio effect, live/free partition, allocation identity, reset/respawner
+ancestry and usable regrab continuation remain separate obligations.
+Completed-execution contracts do not establish global reachability or
+termination. Deactivation at a store and free-list insertion at that unload's
+return do not establish permanent death through later loading/allocation.
+
+Validation: audit `20261019-191556-1_gehoma` passes the registered build, inventory,
+proof-hole, link, assumption and integration checks. It queries the new Main
+entry point, each of the three salvaged module boundaries and the three
+established Ink/backward/retry/geometry entry points. The exact prospective
+committed MainTheorem separately passes `pipeline/check.sh` as
+`build/check/SalvageCommitValidation.v`, excluding unrelated working edits.
+The [machine-readable validation record](teleporter-lifetime-salvage.json)
+contains the exact source/log hashes, audit counts and permitted-foundation
+counts. The archive verifier still passes. Checks retain the established
+toolchain, memory cap and 600/240-second limits. All 45 route estimates and
+verdicts are unchanged. No VC analysis was resumed.
+
 ### Wrap-up: which object-clearing function is bypassed?
+
+This earlier checkpoint records the stopping point before the source-draft
+salvage above resumed the three named modules.
 
 **The narrow call-path result is established; the full Bob-omb survival
 claim remains open.** At the user's request, broader ownership, audio and
@@ -72,6 +133,9 @@ separate from the active proof inventory and published verified evidence.
 Their original ignored build/check/transport-wip copies remain untouched.
 
 ### Draft preservation and resumption
+
+This section records the original archive checkpoint. The verified active
+copies and their current boundaries are described above.
 
 All five draft sources are saved byte for byte as `.v.draft` snapshots outside
 `proofs/` and `generated/`, with SHA-256 hashes, the available historical logs

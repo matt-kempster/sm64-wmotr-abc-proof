@@ -1,0 +1,1164 @@
+(** Ownership provenance at the real allocation writers.  These statements
+    expose the value actually read at the owner-copy checkpoint of a completed
+    generated call.  They do not silently identify that checkpoint with the
+    caller's entry memory, or establish a global Bob-omb birth invariant. *)
+From Coq Require Import Bool Lia List ZArith.
+From compcert Require Import AST Clight ClightBigstep Clightdefs Cop Ctypes
+  Events Floats Globalenvs Integers Maps Memory Values.
+From LessThanOneAPress.Generated Require Import us_object_helpers jp_object_helpers
+  us_graph_node jp_graph_node us_math_util jp_math_util.
+From LessThanOneAPress.Proofs Require Import GameTypes ObjectContactNecessity
+  InkBackwardExecution InkCopyCaller InkBodyResetFrame ContactConsumerExecution
+  InkFloorResetExecution EyerokRank15LiveMovement SelectedClightTarget TeleporterHeldOwnership
+  InkSharedReadings InkCopyEntry SecretContactExecution Area1AllocationSource
+  UpperElevatorQueryResolution CleanedClightPrograms ClightLinkExecution
+  GlobalInterfaceStructural JPSourceSymbolTransport JPWarpLevelEntryResolution
+  LinkedClightPrograms NormalizedClightPrograms SuccessfulMakeProgramResolution
+  USViewportRepairedNamesNorepet USViewportRepairedProgramSelection
+  USWarpLevelRepairReceipt USWarpLevelSourceUnionReceipt USWholeASTTagRepair.
+Import ListNotations.
+Local Open Scope Z_scope.
+Local Opaque selected_clight_target.
+Module TSO := us_graph_node.
+Module TSOH := us_object_helpers.
+
+Definition tso_ge version := Clight.globalenv (selected_clight_target version).
+Definition tso_address oo delta := Ptrofs.unsigned (Ptrofs.add oo (Ptrofs.repr delta)).
+Definition tso_spawn_function version := match version with
+| VersionUS => us_object_helpers.f_spawn_object_at_origin
+| VersionJP => jp_object_helpers.f_spawn_object_at_origin end.
+Definition tso_info_function version := match version with
+| VersionUS => us_graph_node.f_geo_obj_init_spawninfo
+| VersionJP => jp_graph_node.f_geo_obj_init_spawninfo end.
+
+Fixpoint tso_prefix (count : nat) (body : statement) : list statement :=
+  match count, body with
+  | S n, Ssequence first rest => first :: tso_prefix n rest
+  | _, _ => [] end.
+Fixpoint tso_drop (count : nat) (body : statement) : statement :=
+  match count, body with
+  | S n, Ssequence _ rest => tso_drop n rest
+  | _, _ => body end.
+Definition tso_info_before_owner version := tso_prefix 6 (fn_body (tso_info_function version)).
+Definition tso_info_after_owner version := tso_drop 7 (fn_body (tso_info_function version)).
+Definition tso_info_source := ibr_field TSO._spawn TSO._SpawnInfo TSO._activeAreaIndex tschar.
+Definition tso_graph_field field ty := ibr_field TSO._graphNode TSO._GraphNodeObject field ty.
+Definition tso_graph_nested outer tag member ty := Efield
+  (tso_graph_field outer (Tstruct tag noattr)) member ty.
+Definition tso_info_owner_copy := Ssequence (Sset TSO._t'6 tso_info_source)
+  (Sassign (tso_graph_field TSO._activeAreaIndex tschar) (Etempvar TSO._t'6 tschar)).
+
+Theorem tso_info_generated_owner_cut : forall version,
+  fn_vars (tso_info_function version) = [] /\
+  fn_params (tso_info_function version) =
+    [(TSO._graphNode,tptr (Tstruct TSO._GraphNodeObject noattr));
+     (TSO._spawn,tptr (Tstruct TSO._SpawnInfo noattr))] /\
+  fn_body (tso_info_function version) = ocn_prepend (tso_info_before_owner version)
+    (Ssequence tso_info_owner_copy (tso_info_after_owner version)) /\
+  forallb ibk_normal (tso_info_before_owner version) = true /\
+  ifr_keeps_temp TSO._graphNode (ocn_prepend (tso_info_before_owner version) Sskip) = true /\
+  ifr_keeps_temp TSO._spawn (ocn_prepend (tso_info_before_owner version) Sskip) = true.
+Proof. intros []; repeat split; reflexivity. Qed.
+
+Theorem tso_selected_owner_layout : forall version,
+  let ge := tso_ge version in
+  ibcc_field_ok ge TSO._SpawnInfo TSO._activeAreaIndex 13 = true /\
+  ibcc_field_ok ge TSO._GraphNodeObject TSO._activeAreaIndex 25 = true /\
+  ibcc_field_ok ge TSO._GraphNodeObject TSO._sharedChild 20 = true /\
+  ibcc_field_ok ge TSO._GraphNodeObject TSO._unk4C 76 = true /\
+  ibcc_field_ok ge TSO._GraphNodeObject TSO._throwMatrix 80 = true /\
+  ibcc_field_ok ge TSO._GraphNodeObject TSO._animInfo 56 = true /\
+  ibcc_field_ok ge TSO._AnimInfo TSO._curAnim 4 = true /\
+  ibcc_field_ok ge TSO._GraphNodeObject TSO._node 0 = true /\
+  ibcc_field_ok ge TSO._GraphNode TSO._flags 2 = true.
+Proof.
+  intro version. cbn zeta. unfold tso_ge.
+  change (ibcc_field_ok (prog_comp_env (selected_clight_target version)) TSO._SpawnInfo TSO._activeAreaIndex 13 = true /\
+    ibcc_field_ok (prog_comp_env (selected_clight_target version)) TSO._GraphNodeObject TSO._activeAreaIndex 25 = true /\
+    ibcc_field_ok (prog_comp_env (selected_clight_target version)) TSO._GraphNodeObject TSO._sharedChild 20 = true /\
+    ibcc_field_ok (prog_comp_env (selected_clight_target version)) TSO._GraphNodeObject TSO._unk4C 76 = true /\
+    ibcc_field_ok (prog_comp_env (selected_clight_target version)) TSO._GraphNodeObject TSO._throwMatrix 80 = true /\
+    ibcc_field_ok (prog_comp_env (selected_clight_target version)) TSO._GraphNodeObject TSO._animInfo 56 = true /\
+    ibcc_field_ok (prog_comp_env (selected_clight_target version)) TSO._AnimInfo TSO._curAnim 4 = true /\
+    ibcc_field_ok (prog_comp_env (selected_clight_target version)) TSO._GraphNodeObject TSO._node 0 = true /\
+    ibcc_field_ok (prog_comp_env (selected_clight_target version)) TSO._GraphNode TSO._flags 2 = true).
+  rewrite <- rank15_selected_header_environment_exact.
+  destruct version; vm_compute; repeat split; reflexivity.
+Qed.
+
+Lemma tso_direct_field_read_load : forall (ge : genv) e le memory temp tag field ty delta chunk b oo value,
+  le ! temp = Some (Vptr b oo) ->
+  ibcc_field_ok ge tag field delta = true ->
+  access_mode ty = By_value chunk ->
+  eval_expr ge e le memory (ibr_field temp tag field ty) value ->
+  Mem.load chunk memory b (tso_address oo delta) = Some value.
+Proof.
+  intros ge e le memory temp tag field ty delta chunk b oo value Htemp Hlayout Hmode Hread.
+  assert (forall answer, eval_expr ge e le memory (ibr_base temp tag) answer ->
+    answer = Vptr b oo) as Hbase by (intros; eapply ibcc_deref_struct; eauto).
+  inversion Hread; subst.
+  match goal with Hl : eval_lvalue _ _ _ _ _ _ _ _ |- _ =>
+    destruct (ibcc_field_location ge e le memory (ibr_base temp tag) tag field ty b oo delta
+      _ _ _ eq_refl Hbase Hlayout Hl) as (-> & -> & ->) end.
+  match goal with Hd : deref_loc _ ?mem ?loc ?off ?bits ?v |- _ =>
+    change (deref_loc ty mem loc off bits v) in Hd;
+    inversion Hd; subst; try congruence end.
+  match goal with Haccess : access_mode _ = By_value _ |- _ =>
+    rewrite Hmode in Haccess; inversion Haccess; subst end.
+  unfold tso_address.
+  match goal with Hr : Mem.loadv ?loaded_chunk _ _ = Some _ |- _ =>
+    exact Hr end.
+Qed.
+
+Lemma tso_direct_field_assignment_effect : forall (ge : genv) e le memory temp tag field ty delta chunk
+    rhs trace last after out b oo,
+  le ! temp = Some (Vptr b oo) ->
+  ibcc_field_ok ge tag field delta = true -> access_mode ty = By_value chunk ->
+  ocn_exec ge e le memory (Sassign (ibr_field temp tag field ty) rhs) trace last after out ->
+  trace = E0 /\ last = le /\ out = Out_normal /\ exists raw stored,
+    eval_expr ge e le memory rhs raw /\ sem_cast raw (typeof rhs) ty memory = Some stored /\
+    Mem.store chunk memory b (tso_address oo delta) stored = Some after.
+Proof.
+  intros ge e le memory temp tag field ty delta chunk rhs trace last after out b oo
+    Htemp Hlayout Hmode Hrun.
+  inversion Hrun; subst; clear Hrun.
+  rename last into le.
+  assert (forall answer, eval_expr ge e le memory (ibr_base temp tag) answer ->
+    answer = Vptr b oo) as Hbase by (intros; eapply ibcc_deref_struct; eauto).
+  match goal with Hl : eval_lvalue _ _ _ _ _ _ _ _ |- _ =>
+    destruct (ibcc_field_location ge e le memory (ibr_base temp tag) tag field ty b oo delta
+      _ _ _ eq_refl Hbase Hlayout Hl) as (-> & -> & ->) end.
+  match goal with Ha : assign_loc ?g _ ?m ?loc ?offset ?bits ?v ?after |- _ =>
+    change (assign_loc g ty m loc offset bits v after) in Ha;
+    inversion Ha; subst; try congruence end.
+  match goal with Haccess : access_mode _ = By_value _ |- _ =>
+    rewrite Hmode in Haccess; inversion Haccess; subst end.
+  repeat split. do 2 eexists. repeat split; eassumption.
+Qed.
+
+Lemma tso_nested_assignment_store : forall version e le memory outer tag member ty d1 d2 chunk rhs
+    trace last after out b oo,
+  le ! TSO._graphNode = Some (Vptr b oo) ->
+  ibcc_field_ok (tso_ge version) TSO._GraphNodeObject outer d1 = true ->
+  ibcc_field_ok (tso_ge version) tag member d2 = true -> access_mode ty = By_value chunk ->
+  ocn_exec (tso_ge version) e le memory
+    (Sassign (tso_graph_nested outer tag member ty) rhs) trace last after out ->
+  last = le /\ exists stored, Mem.store chunk memory b
+    (Ptrofs.unsigned (Ptrofs.add (Ptrofs.add oo (Ptrofs.repr d1)) (Ptrofs.repr d2))) stored = Some after.
+Proof.
+  intros version e le memory outer tag member ty d1 d2 chunk rhs trace last after out b oo
+    Htemp Houter Hinner Hmode Hrun.
+  inversion Hrun; subst; clear Hrun. rename last into le.
+  assert (forall answer, eval_expr (tso_ge version) e le memory
+      (tso_graph_field outer (Tstruct tag noattr)) answer ->
+      answer = Vptr b (Ptrofs.add oo (Ptrofs.repr d1))) as Hbase.
+  { intros answer Hread. eapply ibcc_aggregate_field; eauto.
+    - reflexivity.
+    - intros; eapply ibcc_deref_struct; eauto.
+    - right. reflexivity. }
+  match goal with Hl : eval_lvalue _ _ _ _ _ _ _ _ |- _ =>
+    destruct (ibcc_field_location (tso_ge version) e le memory
+      (tso_graph_field outer (Tstruct tag noattr)) tag member ty b
+      (Ptrofs.add oo (Ptrofs.repr d1)) d2 _ _ _ eq_refl Hbase Hinner Hl)
+      as (-> & -> & ->) end.
+  match goal with Ha : assign_loc ?g _ ?m ?loc ?offset ?bits ?v ?after |- _ =>
+    change (assign_loc g ty m loc offset bits v after) in Ha;
+    inversion Ha; subst; try congruence end.
+  match goal with Haccess : access_mode _ = By_value _ |- _ =>
+    rewrite Hmode in Haccess; inversion Haccess; subst end.
+  split; [reflexivity|]. eexists. eassumption.
+Qed.
+
+(** The post-owner suffix has no calls.  Its stores target these five concrete
+    fields; preserving the owner byte is then a memory theorem, not a census. *)
+Inductive tso_post_store : expr -> memory_chunk -> Z -> Prop :=
+| tso_shared_store : tso_post_store
+    (tso_graph_field TSO._sharedChild (tptr (Tstruct TSO._GraphNode noattr))) Mint32 20
+| tso_spawn_link_store : tso_post_store
+    (tso_graph_field TSO._unk4C (tptr (Tstruct TSO._SpawnInfo noattr))) Mint32 76
+| tso_matrix_store : tso_post_store
+    (tso_graph_field TSO._throwMatrix (tptr (tarray (tarray tfloat 4) 4))) Mint32 80
+| tso_animation_store : tso_post_store
+    (tso_graph_nested TSO._animInfo TSO._AnimInfo TSO._curAnim
+      (tptr (Tstruct TSO._Animation noattr))) Mint32 60
+| tso_flags_store : tso_post_store
+    (tso_graph_nested TSO._node TSO._GraphNode TSO._flags tshort) Mint16signed 2.
+
+Inductive tso_post_statement : statement -> Prop :=
+| tso_post_readonly : forall s, cce_readonly_keep TSO._graphNode s = true -> tso_post_statement s
+| tso_post_assignment : forall lhs rhs chunk delta,
+    tso_post_store lhs chunk delta -> tso_post_statement (Sassign lhs rhs)
+| tso_post_sequence : forall first rest,
+    tso_post_statement first -> tso_post_statement rest -> tso_post_statement (Ssequence first rest).
+
+Theorem tso_generated_post_owner_classified : forall version,
+  tso_post_statement (tso_info_after_owner version).
+Proof.
+  intros []; cbn [tso_info_after_owner tso_drop tso_info_function fn_body].
+  all: repeat first [apply tso_post_readonly; reflexivity | apply tso_post_sequence |
+    eapply tso_post_assignment; constructor].
+Qed.
+
+Lemma tso_post_store_effect : forall lhs chunk delta,
+  tso_post_store lhs chunk delta -> forall version e le memory rhs trace last after out b oo,
+  le ! TSO._graphNode = Some (Vptr b oo) ->
+  ocn_exec (tso_ge version) e le memory (Sassign lhs rhs) trace last after out ->
+  last = le /\ exists value, Mem.store chunk memory b (tso_address oo delta) value = Some after.
+Proof.
+  intros lhs chunk delta Hspec. destruct Hspec;
+    intros version e le memory rhs trace last after out b oo Htemp Hrun;
+    destruct (tso_selected_owner_layout version)
+      as (Hsource & Howner & Hshared & Hspawn & Hmatrix & Hanim & Hcur & Hnode & Hflags).
+  - destruct (ibr_field_assignment_store _ _ _ _ TSO._graphNode TSO._GraphNodeObject
+      TSO._sharedChild (tptr (Tstruct TSO._GraphNode noattr)) 20 Mint32 _ _ _ _ _ b oo
+      Htemp Hshared eq_refl Hrun) as (_ & -> & _ & value & Hstore).
+    split; [reflexivity|]. eauto.
+  - destruct (ibr_field_assignment_store _ _ _ _ TSO._graphNode TSO._GraphNodeObject
+      TSO._unk4C (tptr (Tstruct TSO._SpawnInfo noattr)) 76 Mint32 _ _ _ _ _ b oo
+      Htemp Hspawn eq_refl Hrun) as (_ & -> & _ & value & Hstore).
+    split; [reflexivity|]. eauto.
+  - destruct (ibr_field_assignment_store _ _ _ _ TSO._graphNode TSO._GraphNodeObject
+      TSO._throwMatrix (tptr (tarray (tarray tfloat 4) 4)) 80 Mint32 _ _ _ _ _ b oo
+      Htemp Hmatrix eq_refl Hrun) as (_ & -> & _ & value & Hstore).
+    split; [reflexivity|]. eauto.
+  - destruct (tso_nested_assignment_store version e le memory TSO._animInfo TSO._AnimInfo
+      TSO._curAnim (tptr (Tstruct TSO._Animation noattr)) 56 4 Mint32 _ _ _ _ _ b oo
+      Htemp Hanim Hcur eq_refl Hrun) as [-> [value Hstore]].
+    split; [reflexivity|]. exists value. rewrite Ptrofs.add_assoc in Hstore. exact Hstore.
+  - destruct (tso_nested_assignment_store version e le memory TSO._node TSO._GraphNode
+      TSO._flags tshort 0 2 Mint16signed _ _ _ _ _ b oo
+      Htemp Hnode Hflags eq_refl Hrun) as [-> [value Hstore]].
+    split; [reflexivity|]. exists value. rewrite Ptrofs.add_zero in Hstore. exact Hstore.
+Qed.
+
+Lemma tso_address_no_wrap : forall oo delta,
+  Ptrofs.unsigned oo + 84 <= Ptrofs.modulus -> 0 <= delta <= 80 ->
+  tso_address oo delta = Ptrofs.unsigned oo + delta.
+Proof.
+  intros oo delta Hspan Hdelta.
+  assert (Ptrofs.unsigned (Ptrofs.repr delta) = delta) as Hd.
+  { apply Ptrofs.unsigned_repr. change (0 <= delta <= Ptrofs.modulus - 1).
+    pose proof (Ptrofs.unsigned_range oo). lia. }
+  unfold tso_address, Ptrofs.add. rewrite Hd. apply Ptrofs.unsigned_repr.
+  change (0 <= Ptrofs.unsigned oo + delta <= Ptrofs.modulus - 1).
+  pose proof (Ptrofs.unsigned_range oo). lia.
+Qed.
+
+Lemma tso_post_store_frames_owner : forall lhs chunk delta,
+  tso_post_store lhs chunk delta -> forall before b oo value after,
+  Ptrofs.unsigned oo + 84 <= Ptrofs.modulus ->
+  Mem.store chunk before b (tso_address oo delta) value = Some after ->
+  Mem.load Mint8signed after b (tso_address oo 25) =
+    Mem.load Mint8signed before b (tso_address oo 25).
+Proof.
+  intros lhs chunk delta Hspec before b oo value after Hspan Hstore.
+  assert (0 <= delta <= 80) as Hdelta by (destruct Hspec; lia).
+  rewrite tso_address_no_wrap in Hstore by assumption.
+  rewrite tso_address_no_wrap by lia.
+  eapply Mem.load_store_other; [exact Hstore|].
+  destruct Hspec; cbn [size_chunk]; (right; left; lia) || (right; right; lia).
+Qed.
+
+Theorem tso_post_owner_preserves_owner : forall statement,
+  tso_post_statement statement -> forall version e le memory trace last after out b oo,
+  le ! TSO._graphNode = Some (Vptr b oo) ->
+  Ptrofs.unsigned oo + 84 <= Ptrofs.modulus ->
+  ocn_exec (tso_ge version) e le memory statement trace last after out ->
+  last ! TSO._graphNode = Some (Vptr b oo) /\
+  Mem.load Mint8signed after b (tso_address oo 25) =
+    Mem.load Mint8signed memory b (tso_address oo 25).
+Proof.
+  intros statement Hshape. induction Hshape;
+    intros version e le memory trace last after out b oo Htemp Hspan Hrun.
+  - destruct (cce_readonly_frame _ _ _ _ _ _ _ _ _ _ Hrun H) as (_ & -> & Hkeep).
+    split; [congruence|reflexivity].
+  - destruct (tso_post_store_effect _ _ _ H version e le memory rhs trace last after out b oo
+      Htemp Hrun) as [-> [value Hstore]].
+    split; [exact Htemp|]. eapply tso_post_store_frames_owner; eauto.
+  - inversion Hrun; subst.
+    + match goal with Hfirst : ClightBigstep.exec_stmt _ _ _ _ _ first _ _ _ _,
+        Hrest : ClightBigstep.exec_stmt _ _ _ _ _ rest _ _ _ _ |- _ =>
+        destruct (IHHshape1 _ _ _ _ _ _ _ _ _ _ Htemp Hspan Hfirst) as [Hmiddle Hframe1];
+        destruct (IHHshape2 _ _ _ _ _ _ _ _ _ _ Hmiddle Hspan Hrest) as [Hlast Hframe2] end.
+      split; [exact Hlast|]. congruence.
+    + eapply IHHshape1; eauto.
+Qed.
+
+(** This is a completed-call attribution, with the actual earlier execution
+    retained.  The source load is at the reached owner-copy checkpoint. *)
+Definition TSOCompletedSpawnInfoOwnership : Prop :=
+  forall version before b oo sb so trace after result,
+  Ptrofs.unsigned oo + 84 <= Ptrofs.modulus ->
+  ClightBigstep.Clight2.eval_funcall (tso_ge version) before
+    (Internal (tso_info_function version)) [Vptr b oo;Vptr sb so] trace after result ->
+  exists checkpoint_le checkpoint pre source stored owner_memory,
+    ocn_exec (tso_ge version) empty_env
+      (PTree.set TSO._spawn (Vptr sb so)
+        (PTree.set TSO._graphNode (Vptr b oo) (create_undef_temps (fn_temps (tso_info_function version)))))
+      before (ocn_prepend (tso_info_before_owner version) Sskip)
+      pre checkpoint_le checkpoint Out_normal /\
+    Mem.load Mint8signed checkpoint sb (tso_address so 13) = Some source /\
+    sem_cast source tschar tschar checkpoint = Some stored /\
+    Mem.store Mint8signed checkpoint b (tso_address oo 25) stored = Some owner_memory /\
+    Mem.load Mint8signed after b (tso_address oo 25) = Some (Val.load_result Mint8signed stored).
+
+Theorem tso_completed_spawninfo_ownership : TSOCompletedSpawnInfoOwnership.
+Proof.
+  intros version before b oo sb so trace after result Hspan Hcall.
+  destruct (tso_info_generated_owner_cut version)
+    as (Hvars & Hparams & Hbody & Hnormal & Hkeepgraph & Hkeepspawn).
+  inversion Hcall; subst.
+  match goal with Hentry : function_entry2 _ _ _ _ _ _ _ |- _ =>
+    inversion Hentry; subst; clear Hentry end.
+  match goal with Halloc : alloc_variables _ _ _ _ _ _ |- _ =>
+    rewrite Hvars in Halloc; inversion Halloc; subst; clear Halloc end.
+  match goal with Hfree : Mem.free_list ?memory (blocks_of_env _ empty_env) = Some ?final |- _ =>
+    change (Some memory = Some final) in Hfree; inversion Hfree; subst end.
+  match goal with Hbind : bind_parameter_temps _ _ _ = Some ?temps |- _ =>
+    rewrite Hparams in Hbind; cbn in Hbind; inversion Hbind; subst temps end.
+  match goal with Hrun : ClightBigstep.exec_stmt _ _ _ _ _ (fn_body _) _ _ _ _ |- _ =>
+    rewrite Hbody in Hrun;
+    destruct (ibk_split_prefix _ _ _ _ _ _ _ _ _ _ Hnormal Hrun)
+      as (cle & checkpoint & pre & tail & Htrace & Hprefix & Hrest) end.
+  assert (cle ! TSO._graphNode = Some (Vptr b oo)) as Hgraph.
+  { rewrite (ifr_execution_keeps_temp _ _ _ _ _ _ _ _ _ _ Hprefix Hkeepgraph).
+    rewrite PTree.gso by discriminate. apply PTree.gss. }
+  assert (cle ! TSO._spawn = Some (Vptr sb so)) as Hspawn.
+  { rewrite (ifr_execution_keeps_temp _ _ _ _ _ _ _ _ _ _ Hprefix Hkeepspawn). apply PTree.gss. }
+  destruct (ibk_split_sequence _ _ _ _ tso_info_owner_copy _ _ _ _ _ eq_refl Hrest)
+    as (ole & owner_memory & ownert & restt & Hresttrace & Hcopy & Hsuffix).
+  destruct (ibk_split_sequence _ _ _ _ (Sset TSO._t'6 tso_info_source) _ _ _ _ _ eq_refl Hcopy)
+    as (readle & readmem & readt & writet & Hcopytrace & Hread & Hwrite).
+  inversion Hread; subst; clear Hread.
+  match goal with Hr : eval_expr _ _ _ _ tso_info_source ?source |- _ =>
+    pose proof (tso_direct_field_read_load _ _ _ _ TSO._spawn TSO._SpawnInfo
+      TSO._activeAreaIndex tschar 13 Mint8signed sb so source Hspawn
+      (proj1 (tso_selected_owner_layout version)) eq_refl Hr) as Hsource end.
+  match type of Hwrite with
+  | ocn_exec ?ge ?env ?temps ?memory ?s ?t ?last ?final ?out =>
+    destruct (tso_direct_field_assignment_effect ge env temps memory TSO._graphNode TSO._GraphNodeObject
+      TSO._activeAreaIndex tschar 25 Mint8signed _ t last final out b oo
+      ltac:(rewrite PTree.gso by discriminate; exact Hgraph)
+      (proj1 (proj2 (tso_selected_owner_layout version))) eq_refl Hwrite)
+      as (_ & -> & _ & raw & stored & Hraw & Hcast & Hstore)
+  end.
+  match goal with Hs : Mem.load Mint8signed ?actual_memory sb _ = Some ?source |- _ =>
+    assert (raw = source) by (eapply ocn_temp_value; [exact Hraw|apply PTree.gss]); subst raw end.
+  assert (Mem.load Mint8signed after b (tso_address oo 25) =
+    Some (Val.load_result Mint8signed stored)) as Hfinal.
+  { match type of Hsuffix with
+    | ocn_exec _ ?env ?temps ?memory _ ?t ?last ?final ?out =>
+      destruct (tso_post_owner_preserves_owner _ (tso_generated_post_owner_classified version)
+        version env temps memory t last final out b oo
+        ltac:(rewrite PTree.gso by discriminate; exact Hgraph) Hspan Hsuffix) as [_ Hframe]
+    end.
+    rewrite Hframe. exact (Mem.load_store_same _ _ _ _ _ _ Hstore). }
+  exists cle, readmem, pre. do 3 eexists. repeat split; eassumption.
+Qed.
+
+Definition tso_object_graphics temp := Efield
+  (Efield (ibr_base temp TSOH._Object) TSOH._header (Tstruct TSOH._ObjectNode noattr))
+  TSOH._gfx (Tstruct TSOH._GraphNodeObject noattr).
+Definition tso_parent_area := Efield (tso_object_graphics TSOH._parent) TSOH._areaIndex tschar.
+Definition tso_child_owner := Efield (tso_object_graphics TSOH._obj) TSOH._activeAreaIndex tschar.
+Definition tso_spawn_owner_copy := Ssequence (Sset TSOH._t'5 tso_parent_area)
+  (Sassign tso_child_owner (Etempvar TSOH._t'5 tschar)).
+Definition tso_spawn_before_owner version := tso_prefix 4 (fn_body (tso_spawn_function version)).
+Definition tso_spawn_after_owner version := tso_drop 5 (fn_body (tso_spawn_function version)).
+
+Theorem tso_spawn_generated_owner_cut : forall version,
+  fn_body (tso_spawn_function version) = ocn_prepend (tso_spawn_before_owner version)
+    (Ssequence tso_spawn_owner_copy (tso_spawn_after_owner version)) /\
+  forallb ibk_normal (tso_spawn_before_owner version) = true /\
+  ifr_keeps_temp TSOH._parent (ocn_prepend (tso_spawn_before_owner version) Sskip) = true /\
+  ifr_keeps_temp TSOH._obj (tso_spawn_after_owner version) = true.
+Proof. intros []; repeat split; reflexivity. Qed.
+
+Lemma tso_object_graphics_value : forall version e le memory temp b oo value,
+  le ! temp = Some (Vptr b oo) ->
+  eval_expr (tso_ge version) e le memory (tso_object_graphics temp) value ->
+  value = Vptr b oo.
+Proof.
+  intros version e le memory temp b oo value Htemp Hread.
+  destruct (tho_selected_protected_layout version) as (Hheader & Hgfx & _).
+  assert (forall answer, eval_expr (tso_ge version) e le memory
+      (ibr_base temp TSOH._Object) answer -> answer = Vptr b oo) as Hbase
+    by (intros; eapply ibcc_deref_struct; eauto).
+  assert (forall answer, eval_expr (tso_ge version) e le memory
+      (Efield (ibr_base temp TSOH._Object) TSOH._header (Tstruct TSOH._ObjectNode noattr)) answer ->
+      answer = Vptr b oo) as Hhead.
+  { intros answer H. pose proof (ibcc_aggregate_field (tso_ge version) e le memory
+      (ibr_base temp TSOH._Object) TSOH._Object TSOH._header
+      (Tstruct TSOH._ObjectNode noattr) b oo 0 answer eq_refl Hbase Hheader
+      (or_intror eq_refl) H) as E. now rewrite Ptrofs.add_zero in E. }
+  unfold tso_object_graphics in Hread.
+  pose proof (ibcc_aggregate_field (tso_ge version) e le memory
+    (Efield (ibr_base temp TSOH._Object) TSOH._header (Tstruct TSOH._ObjectNode noattr))
+    TSOH._ObjectNode TSOH._gfx
+    (Tstruct TSOH._GraphNodeObject noattr) b oo 0 value eq_refl Hhead Hgfx
+    (or_intror eq_refl) Hread) as E. now rewrite Ptrofs.add_zero in E.
+Qed.
+
+Lemma tso_parent_area_read_load : forall version e le memory pb po value,
+  le ! TSOH._parent = Some (Vptr pb po) ->
+  eval_expr (tso_ge version) e le memory tso_parent_area value ->
+  Mem.load Mint8signed memory pb (tso_address po 24) = Some value.
+Proof.
+  intros version e le memory pb po value Hparent Hread.
+  destruct (tho_selected_protected_layout version) as (_ & _ & Harea & _).
+  inversion Hread; subst.
+  match goal with Hl : eval_lvalue _ _ _ _ _ _ _ _ |- _ =>
+    destruct (ibcc_field_location _ _ _ _ (tso_object_graphics TSOH._parent)
+      TSOH._GraphNodeObject TSOH._areaIndex tschar pb po 24 _ _ _ eq_refl
+      ltac:(intros; eapply tso_object_graphics_value; eauto) Harea Hl) as (-> & -> & ->) end.
+  match goal with Hd : deref_loc _ _ _ _ _ _ |- _ => inversion Hd; subst; try discriminate end.
+  match goal with Hmode : access_mode _ = By_value _ |- _ => cbn in Hmode; inversion Hmode; subst end.
+  match goal with Hr : Mem.loadv _ _ _ = Some value |- _ =>
+    change (Mem.load Mint8signed memory pb (tso_address po 24) = Some value) in Hr;
+    exact Hr end.
+Qed.
+
+Lemma tso_child_owner_assignment_effect : forall version e le memory rhs trace last after out b oo,
+  le ! TSOH._obj = Some (Vptr b oo) ->
+  ocn_exec (tso_ge version) e le memory (Sassign tso_child_owner rhs) trace last after out ->
+  trace = E0 /\ last = le /\ out = Out_normal /\ exists raw stored,
+    eval_expr (tso_ge version) e le memory rhs raw /\
+    sem_cast raw (typeof rhs) tschar memory = Some stored /\
+    Mem.store Mint8signed memory b (tso_address oo 25) stored = Some after.
+Proof.
+  intros version e le memory rhs trace last after out b oo Hobj Hrun.
+  destruct (tho_selected_protected_layout version) as (_ & _ & _ & Howner & _).
+  inversion Hrun; subst; clear Hrun. rename last into le.
+  match goal with Hl : eval_lvalue _ _ _ _ _ _ _ _ |- _ =>
+    destruct (ibcc_field_location _ _ _ _ (tso_object_graphics TSOH._obj)
+      TSOH._GraphNodeObject TSOH._activeAreaIndex tschar b oo 25 _ _ _ eq_refl
+      ltac:(intros; eapply tso_object_graphics_value; eauto) Howner Hl) as (-> & -> & ->) end.
+  match goal with Ha : assign_loc _ _ _ _ _ _ _ _ |- _ =>
+    inversion Ha; subst; try discriminate end.
+  match goal with Hmode : access_mode _ = By_value _ |- _ => cbn in Hmode; inversion Hmode; subst end.
+  repeat split. do 2 eexists. repeat split; eassumption.
+Qed.
+
+(** This reached writer establishes the child owner, independently of the
+    parent's activeAreaIndex.  The owner comes from parent.areaIndex.
+    The later geo_obj_init call is deliberately still an exposed continuation. *)
+Definition TSOSpawnOwnerCopyEffect : Prop :=
+  forall version e le before pb po b oo trace last after out,
+  le ! TSOH._parent = Some (Vptr pb po) -> le ! TSOH._obj = Some (Vptr b oo) ->
+  ocn_exec (tso_ge version) e le before tso_spawn_owner_copy trace last after out ->
+  trace = E0 /\ out = Out_normal /\ exists source stored,
+    Mem.load Mint8signed before pb (tso_address po 24) = Some source /\
+    sem_cast source tschar tschar before = Some stored /\
+    Mem.store Mint8signed before b (tso_address oo 25) stored = Some after /\
+    Mem.load Mint8signed after b (tso_address oo 25) = Some (Val.load_result Mint8signed stored).
+
+Theorem tso_spawn_owner_copy_effect : TSOSpawnOwnerCopyEffect.
+Proof.
+  intros version e le before pb po b oo trace last after out Hparent Hobj Hrun.
+  destruct (ibk_split_sequence _ _ _ _ (Sset TSOH._t'5 tso_parent_area) _ _ _ _ _ eq_refl Hrun)
+    as (middle & memory & pre & suf & Htrace & Hread & Hwrite).
+  inversion Hread; subst; clear Hread.
+  match goal with Hr : eval_expr _ _ _ _ tso_parent_area ?source |- _ =>
+    pose proof (tso_parent_area_read_load _ _ _ _ _ _ _ Hparent Hr) as Hsource end.
+  match type of Hwrite with
+  | ocn_exec _ ?env ?temps ?memory ?s ?t ?last ?final ?out =>
+    destruct (tso_child_owner_assignment_effect version env temps memory _ t last final out b oo
+      ltac:(rewrite PTree.gso by discriminate; exact Hobj) Hwrite)
+      as (-> & _ & -> & raw & stored & Hraw & Hcast & Hstore)
+  end.
+  match goal with Hs : Mem.load Mint8signed ?actual_memory pb _ = Some ?source |- _ =>
+    assert (raw = source) by (eapply ocn_temp_value; [exact Hraw|apply PTree.gss]); subst raw end.
+  split; [reflexivity|]. split; [reflexivity|]. do 2 eexists.
+  repeat split; try eassumption. exact (Mem.load_store_same _ _ _ _ _ _ Hstore).
+Qed.
+
+Definition TeleporterSpawnOwnershipBoundary : Prop :=
+  TSOCompletedSpawnInfoOwnership /\ TSOSpawnOwnerCopyEffect.
+Theorem teleporter_spawn_ownership_boundary_checked : TeleporterSpawnOwnershipBoundary.
+Proof. split; [exact tso_completed_spawninfo_ownership|exact tso_spawn_owner_copy_effect]. Qed.
+
+(** The three vector helpers used by geo_obj_init share an exact generated
+    storage pattern: one fresh local pointer cell, three scalar destination
+    writes, and the local free.  Source values are unrestricted. *)
+Inductive TSOVectorKind := TSOFloatCopy | TSOShortCopy | TSOFloatSet.
+Inductive TSOVectorAxis := TSOX | TSOY | TSOZ.
+Module TSOV := us_math_util.
+Definition tso_vector_scalar kind := match kind with TSOShortCopy => tshort | _ => tfloat end.
+Definition tso_vector_chunk kind := match kind with TSOShortCopy => Mint16signed | _ => Mfloat32 end.
+Definition tso_vector_width kind : Z := match kind with TSOShortCopy => 2 | _ => 4 end.
+Definition tso_vector_number axis : Z := match axis with TSOX => 0 | TSOY => 1 | TSOZ => 2 end.
+Definition tso_vector_body version kind := match version,kind with
+| VersionUS,TSOFloatCopy => us_math_util.f_vec3f_copy
+| VersionJP,TSOFloatCopy => jp_math_util.f_vec3f_copy
+| VersionUS,TSOShortCopy => us_math_util.f_vec3s_copy
+| VersionJP,TSOShortCopy => jp_math_util.f_vec3s_copy
+| VersionUS,TSOFloatSet => us_math_util.f_vec3f_set
+| VersionJP,TSOFloatSet => jp_math_util.f_vec3f_set end.
+Definition tso_vector_dest_temp kind axis := match kind,axis with
+| TSOFloatSet,TSOX => TSOV._t'3 | TSOFloatSet,TSOY => TSOV._t'2
+| _,TSOX => TSOV._t'5 | _,TSOY => TSOV._t'3 | _,TSOZ => TSOV._t'1 end.
+Definition tso_vector_value_temp axis := match axis with
+| TSOX => TSOV._t'6 | TSOY => TSOV._t'4 | TSOZ => TSOV._t'2 end.
+Definition tso_vector_arg axis := match axis with TSOX => TSOV._x | TSOY => TSOV._y | TSOZ => TSOV._z end.
+Definition tso_vector_index kind id axis := Ederef
+  (Ebinop Oadd (Etempvar id (tptr (tso_vector_scalar kind)))
+    (Econst_int (Int.repr (tso_vector_number axis)) tint) (tptr (tso_vector_scalar kind)))
+  (tso_vector_scalar kind).
+Definition tso_vector_init kind := Sassign (Evar TSOV._dest (tptr (tso_vector_scalar kind)))
+  (Etempvar TSOV._dest (tptr (tso_vector_scalar kind))).
+Definition tso_vector_stage version kind axis := match
+  tso_drop (S (Z.to_nat (tso_vector_number axis))) (fn_body (tso_vector_body version kind)) with
+| Ssequence stage _ => stage | _ => Sskip end.
+Definition tso_vector_return version kind := tso_drop 4 (fn_body (tso_vector_body version kind)).
+Definition tso_vector_offset kind base axis := Ptrofs.unsigned
+  (Ptrofs.add base (Ptrofs.repr (tso_vector_width kind * tso_vector_number axis))).
+
+Lemma tso_vector_generated_body : forall version kind,
+  fn_vars (tso_vector_body version kind) = [(TSOV._dest,tptr (tso_vector_scalar kind))] /\
+  fn_body (tso_vector_body version kind) = Ssequence (tso_vector_init kind)
+    (Ssequence (tso_vector_stage version kind TSOX)
+      (Ssequence (tso_vector_stage version kind TSOY)
+        (Ssequence (tso_vector_stage version kind TSOZ) (tso_vector_return version kind)))) /\
+  tso_vector_return version kind = Sreturn (Some
+    (Eaddrof (Evar TSOV._dest (tptr (tso_vector_scalar kind)))
+      (tptr (tptr (tso_vector_scalar kind))))) /\
+  forall axis, ibk_normal (tso_vector_stage version kind axis) = true.
+Proof. intros [] []; repeat split; try reflexivity; intros []; reflexivity. Qed.
+
+Lemma tso_vector_generated_stage : forall version kind axis,
+  tso_vector_stage version kind axis = Ssequence
+    (Sset (tso_vector_dest_temp kind axis) (Evar TSOV._dest (tptr (tso_vector_scalar kind))))
+    (match kind with
+     | TSOFloatSet => Sassign (tso_vector_index kind (tso_vector_dest_temp kind axis) axis)
+         (Etempvar (tso_vector_arg axis) tfloat)
+     | _ => Ssequence
+         (Sset (tso_vector_value_temp axis) (tso_vector_index kind TSOV._src axis))
+         (Sassign (tso_vector_index kind (tso_vector_dest_temp kind axis) axis)
+           (Etempvar (tso_vector_value_temp axis) (tso_vector_scalar kind))) end).
+Proof. intros [] [] []; reflexivity. Qed.
+
+Lemma tso_local_pointer_read : forall ge e le memory scalar local target value,
+  e ! TSOV._dest = Some (local,tptr scalar) ->
+  Mem.load Mint32 memory local 0 = Some target ->
+  eval_expr ge e le memory (Evar TSOV._dest (tptr scalar)) value -> value = target.
+Proof.
+  intros ge e le memory scalar local target value Hlocal Hload Hread.
+  inversion Hread; subst.
+  match goal with Hl : eval_lvalue _ _ _ _ _ _ _ _ |- _ =>
+    destruct (ibc_local_location _ _ _ _ _ _ _ _ _ _ Hlocal Hl) as (-> & -> & ->) end.
+  match goal with Hd : deref_loc _ _ _ _ _ _ |- _ => inversion Hd; subst; try discriminate end.
+  match goal with Hmode : access_mode _ = By_value _ |- _ => cbn in Hmode; inversion Hmode; subst end.
+  match goal with Hr : Mem.loadv _ _ _ = Some value |- _ =>
+    change (Mem.load Mint32 memory local 0 = Some value) in Hr; congruence end.
+Qed.
+
+Lemma tso_vector_index_location : forall kind axis ge e le memory id b base loc offset bits,
+  le ! id = Some (Vptr b base) ->
+  eval_lvalue ge e le memory (tso_vector_index kind id axis) loc offset bits ->
+  loc = b /\ offset = Ptrofs.add base
+    (Ptrofs.repr (tso_vector_width kind * tso_vector_number axis)) /\ bits = Full.
+Proof.
+  intros kind axis ge e le memory id b base loc offset bits Htemp Hl.
+  unfold tso_vector_index in Hl. inversion Hl; subst.
+  match goal with Hb : eval_expr _ _ _ _ (Ebinop _ _ _ _) _ |- _ =>
+    inversion Hb; subst; clear Hb end.
+  - match goal with Ht : eval_expr _ _ _ _ (Etempvar _ _) ?value |- _ =>
+      assert (value = Vptr b base) by (eapply ocn_temp_value; eauto); subst value end.
+    match goal with Hn : eval_expr _ _ _ _ (Econst_int _ _) _ |- _ =>
+      apply ocn_const_int_value in Hn; subst end.
+    destruct kind,axis;
+      match goal with Hsem : sem_binary_operation _ _ _ _ _ _ _ = Some _ |- _ =>
+        cbn [tso_vector_scalar tso_vector_number tso_vector_width] in Hsem;
+        inversion Hsem; subst end;
+      repeat split; reflexivity.
+  - match goal with Hbad : eval_lvalue _ _ _ _ (Ebinop _ _ _ _) _ _ _ |- _ => inversion Hbad end.
+Qed.
+
+Lemma tso_vector_stage_store : forall version kind axis ge e le memory local b base tr last after out,
+  e ! TSOV._dest = Some (local,tptr (tso_vector_scalar kind)) ->
+  Mem.load Mint32 memory local 0 = Some (Vptr b base) ->
+  ocn_exec ge e le memory (tso_vector_stage version kind axis) tr last after out ->
+  exists value, Mem.store (tso_vector_chunk kind) memory b
+    (tso_vector_offset kind base axis) value = Some after.
+Proof.
+  intros version kind axis ge e le memory local b base tr last after out Hlocal Hload Hrun.
+  rewrite tso_vector_generated_stage in Hrun.
+  destruct (ibk_split_sequence _ _ _ _
+    (Sset (tso_vector_dest_temp kind axis) (Evar TSOV._dest (tptr (tso_vector_scalar kind))))
+    _ _ _ _ _ eq_refl Hrun)
+    as (middle & firstmemory & pre & tail & Htrace & Hread & Hrest).
+  inversion Hread; subst; clear Hread.
+  match goal with Hr : eval_expr _ _ _ _ (Evar TSOV._dest _) ?value |- _ =>
+    assert (value = Vptr b base) by (eapply tso_local_pointer_read; eauto); subst value end.
+  destruct kind; cbn in Hrest;
+    unfold ocn_exec, ClightBigstep.Clight2.exec_stmt in Hrest;
+    cce_unroll_loop_free_exec.
+  all: match goal with Ha : ClightBigstep.exec_stmt _ _ _ _ _ (Sassign _ _) _ _ _ _ |- _ =>
+    inversion Ha; subst; clear Ha end.
+  all: try contradiction.
+  all: destruct axis.
+  all: match goal with Hl : eval_lvalue ?gen ?env ?temps ?memory
+      (tso_vector_index ?kind ?id ?actual_axis) _ _ _ |- _ =>
+    destruct (tso_vector_index_location kind actual_axis gen env temps memory id b base _ _ _
+      ltac:(repeat rewrite PTree.gso by discriminate; apply PTree.gss) Hl)
+      as (-> & -> & ->) end.
+  all: match goal with Ha : assign_loc _ _ _ _ _ _ _ _ |- _ =>
+    inversion Ha; subst; try discriminate end.
+  all: match goal with Hmode : access_mode _ = By_value _ |- _ =>
+    cbn [tso_vector_scalar] in Hmode; inversion Hmode; subst end.
+  all: eexists; eassumption.
+Qed.
+
+Lemma tso_vector_actual_entry : forall version kind ge before b base args e le entry,
+  function_entry2 ge (tso_vector_body version kind) (Vptr b base :: args) before e le entry ->
+  exists local, Mem.alloc before 0 4 = (entry,local) /\
+    e = PTree.set TSOV._dest (local,tptr (tso_vector_scalar kind)) empty_env /\
+    le ! TSOV._dest = Some (Vptr b base).
+Proof.
+  intros version kind ge before b base args e le entry Hentry.
+  destruct (tso_vector_generated_body version kind) as (Hvars & _).
+  inversion Hentry; subst; clear Hentry.
+  match goal with Ha : alloc_variables _ _ _ _ _ _ |- _ =>
+    rewrite Hvars in Ha; inversion Ha; subst; clear Ha end.
+  match goal with Hnil : alloc_variables _ _ _ [] _ _ |- _ => inversion Hnil; subst; clear Hnil end.
+  eexists. split; [eassumption|]. split; [reflexivity|].
+  match goal with Hb : bind_parameter_temps _ _ _ = Some le |- _ =>
+    destruct kind; destruct version; cbn in Hb;
+    destruct args as [|a [|a2 [|a3 [|a4 remaining]]]];
+    cbn in Hb; try discriminate; inversion Hb; subst le end.
+  all: repeat rewrite PTree.gso by discriminate; apply PTree.gss.
+Qed.
+
+Lemma tso_vector_init_store : forall kind ge e le memory local b base tr last after out,
+  e ! TSOV._dest = Some (local,tptr (tso_vector_scalar kind)) ->
+  le ! TSOV._dest = Some (Vptr b base) ->
+  ocn_exec ge e le memory (tso_vector_init kind) tr last after out ->
+  Mem.store Mint32 memory local 0 (Vptr b base) = Some after /\ last = le.
+Proof.
+  intros kind ge e le memory local b base tr last after out Hlocal Htemp Hrun.
+  unfold tso_vector_init in Hrun. inversion Hrun; subst; clear Hrun.
+  match goal with Hl : eval_lvalue _ _ _ _ _ _ _ _ |- _ =>
+    destruct (ibc_local_location _ _ _ _ _ _ _ _ _ _ Hlocal Hl) as (-> & -> & ->) end.
+  match goal with Hr : eval_expr _ _ _ _ (Etempvar _ _) ?value |- _ =>
+    assert (value = Vptr b base) by (eapply ocn_temp_value; eauto); subst value end.
+  match goal with Hcast : sem_cast _ _ _ _ = Some _ |- _ => cbn in Hcast; inversion Hcast; subst end.
+  match goal with Ha : assign_loc _ _ _ _ _ _ _ _ |- _ => inversion Ha; subst; try discriminate end.
+  match goal with Hmode : access_mode _ = By_value _ |- _ => cbn in Hmode; inversion Hmode; subst end.
+  split; [eassumption|reflexivity].
+Qed.
+
+Theorem tso_complete_vector_call_frame : forall version kind ge before b base args tr after result
+    watched_chunk watched_offset,
+  Mem.valid_block before b ->
+  (forall axis, watched_offset + size_chunk watched_chunk <= tso_vector_offset kind base axis \/
+    tso_vector_offset kind base axis + size_chunk (tso_vector_chunk kind) <= watched_offset) ->
+  ClightBigstep.Clight2.eval_funcall ge before (Internal (tso_vector_body version kind))
+    (Vptr b base :: args) tr after result ->
+  Mem.load watched_chunk after b watched_offset = Mem.load watched_chunk before b watched_offset.
+Proof.
+  intros version kind ge before b base args tr after result watched_chunk watched_offset Hvalid Houtside Hcall.
+  destruct (tso_vector_generated_body version kind) as (_ & Hbody & Hreturn & Hnormal).
+  inversion Hcall; subst.
+  match goal with He : function_entry2 _ _ _ _ _ _ _ |- _ =>
+    destruct (tso_vector_actual_entry _ _ _ _ _ _ _ _ _ _ He)
+      as (local & Halloc & -> & Hdest) end.
+  assert (local <> b) as Hseparate by (intro; subst; eapply Mem.fresh_block_alloc; eauto).
+  match goal with Hr : ClightBigstep.exec_stmt _ _ _ _ _ (fn_body _) _ _ _ _ |- _ =>
+    rewrite Hbody in Hr;
+    destruct (ibk_split_sequence _ _ _ _ (tso_vector_init kind) _ _ _ _ _ eq_refl Hr)
+      as (ile & im & it & remainingt & Htrace & Hinit & Hrest) end.
+  destruct (tso_vector_init_store _ _ _ _ _ _ _ _ _ _ _ _
+    (PTree.gss _ _ _) Hdest Hinit) as [HinitStore ->].
+  destruct (ibk_split_sequence _ _ _ _ _ _ _ _ _ _ (Hnormal TSOX) Hrest)
+    as (xle & xm & xt & yzt & Hxt & Hx & Hyz).
+  destruct (tso_vector_stage_store version kind TSOX _ _ _ _ local b base _ _ _ _
+    (PTree.gss _ _ _) (Mem.load_store_same _ _ _ _ _ _ HinitStore) Hx) as [xvalue Hxs].
+  assert (Mem.load Mint32 xm local 0 = Some (Vptr b base)) as HlocalX.
+  { erewrite Mem.load_store_other; [exact (Mem.load_store_same _ _ _ _ _ _ HinitStore)|exact Hxs|left; congruence]. }
+  destruct (ibk_split_sequence _ _ _ _ _ _ _ _ _ _ (Hnormal TSOY) Hyz)
+    as (yle & ym & yt & zrt & Hyt & Hy & Hzr).
+  destruct (tso_vector_stage_store version kind TSOY _ _ _ _ local b base _ _ _ _
+    (PTree.gss _ _ _) HlocalX Hy) as [yvalue Hys].
+  assert (Mem.load Mint32 ym local 0 = Some (Vptr b base)) as HlocalY.
+  { erewrite Mem.load_store_other; [exact HlocalX|exact Hys|left; congruence]. }
+  destruct (ibk_split_sequence _ _ _ _ _ _ _ _ _ _ (Hnormal TSOZ) Hzr)
+    as (zle & zm & zt & rett & Hzt & Hz & Hret).
+  destruct (tso_vector_stage_store version kind TSOZ _ _ _ _ local b base _ _ _ _
+    (PTree.gss _ _ _) HlocalY Hz) as [zvalue Hzs].
+  rewrite Hreturn in Hret. inversion Hret; subst.
+  match goal with Hfree : Mem.free_list ?last (blocks_of_env _ _) = Some ?final |- _ =>
+    change (Mem.free_list last [(local,0,4)] = Some final) in Hfree;
+    cbn [Mem.free_list] in Hfree;
+    destruct (Mem.free last local 0 4) as [freed|] eqn:HfreeOne; try discriminate;
+    inversion Hfree; subst end.
+  erewrite Mem.load_free; [|exact HfreeOne|left; congruence].
+  erewrite Mem.load_store_other; [|exact Hzs|right; exact (Houtside TSOZ)].
+  erewrite Mem.load_store_other; [|exact Hys|right; exact (Houtside TSOY)].
+  erewrite Mem.load_store_other; [|exact Hxs|right; exact (Houtside TSOX)].
+  erewrite Mem.load_store_other; [|exact HinitStore|left; congruence].
+  eapply Mem.load_alloc_unchanged; eauto.
+Qed.
+
+Inductive TSOCallee := TSOInfoInit | TSOGeoInit | TSOVector (kind : TSOVectorKind).
+Definition tso_callee_body version helper := match helper with
+| TSOInfoInit => tso_info_function version
+| TSOGeoInit => match version with VersionUS => us_graph_node.f_geo_obj_init
+    | VersionJP => jp_graph_node.f_geo_obj_init end
+| TSOVector kind => tso_vector_body version kind end.
+Definition tso_callee_ident helper := match helper with
+| TSOInfoInit => TSO._geo_obj_init_spawninfo | TSOGeoInit => TSO._geo_obj_init
+| TSOVector TSOFloatCopy => TSO._vec3f_copy
+| TSOVector TSOShortCopy => TSO._vec3s_copy
+| TSOVector TSOFloatSet => TSO._vec3f_set end.
+Definition tso_callee_unit helper := match helper with TSOVector _ => 30%nat | _ => 16%nat end.
+Definition tso_callee_us_definitions helper := match helper with
+| TSOVector _ => us_math_util.global_definitions | _ => us_graph_node.global_definitions end.
+
+Lemma tso_callee_us_source : forall helper,
+  nth_error (tso_callee_us_definitions helper)
+    (ueqr_definition_index (tso_callee_ident helper) (tso_callee_us_definitions helper)) =
+  Some (tso_callee_ident helper,Gfun (Internal (tso_callee_body VersionUS helper))).
+Proof. intros [| |[]]; vm_compute; reflexivity. Qed.
+Lemma tso_callee_us_member : forall helper,
+  In (tso_callee_ident helper,Gfun (Internal (tso_callee_body VersionUS helper)))
+    (unit_global_definitions us_units).
+Proof.
+  intro helper.
+  assert (prog_defs (us_nlist_at (tso_callee_unit helper) us_units) =
+    tso_callee_us_definitions helper) as Hunit by (destruct helper; reflexivity).
+  eapply source_unit_definition_enters_source_union with
+    (unit := us_nlist_at (tso_callee_unit helper) us_units).
+  - exact (us_nlist_at_nIn _ (tso_callee_unit helper) us_units).
+  - rewrite Hunit. eapply nth_error_In. exact (tso_callee_us_source helper).
+Qed.
+Lemma tso_callee_us_selection : forall helper,
+  us_normalized_global_definition_map ! (tso_callee_ident helper) =
+    Some (Gfun (Internal (tso_callee_body VersionUS helper))).
+Proof.
+  intro helper. eapply (checked_internal_selection_is_exact
+    (unit_global_definitions us_units) us_normalized_global_definition_map).
+  - exact us_internal_identifiers_are_unique_checked.
+  - exact us_all_internal_identifiers_selected_checked.
+  - exact (normalized_definition_map_has_source_provenance (unit_global_definitions us_units)).
+  - exact (tso_callee_us_member helper).
+Qed.
+Local Opaque normalize_global_definition_map.
+Lemma tso_callee_us_selected_member : forall helper,
+  In (tso_callee_ident helper,Gfun (Internal (tso_callee_body VersionUS helper)))
+    us_viewport_repaired_global_definitions.
+Proof.
+  intro helper. unfold us_viewport_repaired_global_definitions. apply fixed_point_enters_mapped_list.
+  - unfold repair_us_selected_global_definition.
+    assert (us_selected_definition_needs_viewport_repair
+      (tso_callee_ident helper,Gfun (Internal (tso_callee_body VersionUS helper))) = false)
+      as Hrepair by (destruct helper as [| |[]]; vm_compute; reflexivity).
+    rewrite Hrepair. reflexivity.
+  - apply every_selected_internal_body_is_preserved_verbatim. exact (tso_callee_us_selection helper).
+Qed.
+Local Transparent selected_clight_target.
+Theorem tso_selected_callee_resolves : forall version helper, exists b,
+  Genv.find_symbol (tso_ge version) (tso_callee_ident helper) = Some b /\
+  Genv.find_funct_ptr (tso_ge version) b = Some (Internal (tso_callee_body version helper)).
+Proof.
+  intros [] helper.
+  - eapply program_definitions_resolve_internal_globalenv.
+    + exact us_viewport_repaired_program_definitions_checked.
+    + exact us_viewport_repaired_definition_names_norepet.
+    + exact (tso_callee_us_selected_member helper).
+  - eapply (official_link_resolves_internal_globalenv jp_cleaned_units
+      jp_official_cleaned_slice jp_cleaned_units_official_link
+      (nlist_at (tso_callee_unit helper) jp_cleaned_units)).
+    + exact (nlist_at_nIn _ (tso_callee_unit helper) jp_cleaned_units).
+    + destruct helper as [| |[]]; vm_compute; reflexivity.
+Qed.
+Local Opaque selected_clight_target.
+
+Definition tso_geo_vector_member kind := match kind with
+| TSOFloatSet => TSO._scale | TSOFloatCopy => TSO._pos | TSOShortCopy => TSO._angle end.
+Definition tso_geo_vector_delta kind : Z := match kind with
+| TSOFloatSet => 44 | TSOFloatCopy => 32 | TSOShortCopy => 26 end.
+Definition tso_geo_vector_destination kind := tso_graph_field (tso_geo_vector_member kind)
+  (tarray (tso_vector_scalar kind) 3).
+Definition tso_geo_vector_type kind := match kind with
+| TSOFloatSet => Tfunction [tptr tfloat;tfloat;tfloat;tfloat] (tptr tvoid) cc_default
+| _ => Tfunction [tptr (tso_vector_scalar kind);tptr (tso_vector_scalar kind)] (tptr tvoid) cc_default end.
+Definition tso_geo_vector_call kind := Scall None
+  (Evar (tso_callee_ident (TSOVector kind)) (tso_geo_vector_type kind))
+  (tso_geo_vector_destination kind :: match kind with
+  | TSOFloatSet => repeat (Econst_single (Float32.of_bits (Int.repr 1065353216)) tfloat) 3
+  | TSOFloatCopy => [Etempvar TSO._pos (tptr tfloat)]
+  | TSOShortCopy => [Etempvar TSO._angle (tptr tshort)] end).
+
+Lemma tso_selected_vector_destination_layout : forall version kind,
+  ibcc_field_ok (tso_ge version) TSO._GraphNodeObject
+    (tso_geo_vector_member kind) (tso_geo_vector_delta kind) = true.
+Proof.
+  intros version kind. unfold tso_ge.
+  change (ibcc_field_ok (prog_comp_env (selected_clight_target version)) TSO._GraphNodeObject
+    (tso_geo_vector_member kind) (tso_geo_vector_delta kind) = true).
+  rewrite <- rank15_selected_header_environment_exact.
+  destruct version,kind; vm_compute; reflexivity.
+Qed.
+
+Lemma tso_geo_vector_destination_value : forall version kind e le memory b oo value,
+  le ! TSO._graphNode = Some (Vptr b oo) ->
+  eval_expr (tso_ge version) e le memory (tso_geo_vector_destination kind) value ->
+  value = Vptr b (Ptrofs.add oo (Ptrofs.repr (tso_geo_vector_delta kind))).
+Proof.
+  intros version kind e le memory b oo value Htemp Hread.
+  eapply ibcc_aggregate_field with
+    (base := ibr_base TSO._graphNode TSO._GraphNodeObject)
+    (tag := TSO._GraphNodeObject) (field := tso_geo_vector_member kind)
+    (ty := tarray (tso_vector_scalar kind) 3) (delta := tso_geo_vector_delta kind);
+    [reflexivity| |exact (tso_selected_vector_destination_layout version kind)| |exact Hread].
+  - intros; eapply ibcc_deref_struct; eauto.
+  - left. reflexivity.
+Qed.
+
+Lemma tso_geo_vector_call_resolves : forall version kind e le memory trace last after out b oo,
+  e ! (tso_callee_ident (TSOVector kind)) = None ->
+  le ! TSO._graphNode = Some (Vptr b oo) ->
+  ocn_exec (tso_ge version) e le memory (tso_geo_vector_call kind) trace last after out ->
+  last = le /\ exists args result,
+    ClightBigstep.Clight2.eval_funcall (tso_ge version) memory
+      (Internal (tso_vector_body version kind))
+      (Vptr b (Ptrofs.add oo (Ptrofs.repr (tso_geo_vector_delta kind))) :: args) trace after result.
+Proof.
+  intros version kind e le memory trace last after out b oo Hlocal Htemp Hrun.
+  destruct (tso_selected_callee_resolves version (TSOVector kind)) as (fb & Hsymbol & Hfunction).
+  unfold tso_geo_vector_call in Hrun. inversion Hrun; subst.
+  match goal with Hclass : classify_fun _ = _ |- _ =>
+    destruct kind; cbn [tso_geo_vector_type] in Hclass; inversion Hclass; subst end.
+  all: lazymatch goal with Hread : eval_expr ?ge0 ?env0 ?temps0 ?memory0 (Evar ?id _) ?value |- _ =>
+    assert (value = Vptr fb Ptrofs.zero) by
+      (eapply (sce_function_name_value ge0 env0 temps0 memory0 id _ _ _ fb value);
+        [exact Hlocal|exact Hsymbol|exact Hread]); subst value end.
+  all: match goal with Hfind : Genv.find_funct _ (Vptr _ _) = Some ?fd |- _ =>
+    change (Genv.find_funct_ptr (tso_ge version) fb = Some fd) in Hfind;
+    rewrite Hfunction in Hfind; inversion Hfind; subst fd end.
+  all: match goal with Hargs : eval_exprlist _ _ _ _ (_ :: _) _ _ |- _ =>
+    inversion Hargs; subst; clear Hargs end.
+  all: match goal with Hr : eval_expr _ _ _ _ (tso_geo_vector_destination ?kind) ?value |- _ =>
+    assert (value = Vptr b (Ptrofs.add oo (Ptrofs.repr (tso_geo_vector_delta kind))))
+      by (eapply tso_geo_vector_destination_value; eauto); subst value end.
+  all: match goal with Hcast : sem_cast (Vptr _ _) _ _ _ = Some _ |- _ =>
+    cbn in Hcast; inversion Hcast; subst end.
+  all: split; [reflexivity|]; do 2 eexists; eassumption.
+Qed.
+
+Lemma tso_geo_vector_call_frames_owner : forall version kind e le memory trace last after out b oo owner,
+  e ! (tso_callee_ident (TSOVector kind)) = None ->
+  le ! TSO._graphNode = Some (Vptr b oo) ->
+  Ptrofs.unsigned oo + 84 <= Ptrofs.modulus ->
+  Mem.load Mint8signed memory b (tso_address oo 25) = Some owner ->
+  ocn_exec (tso_ge version) e le memory (tso_geo_vector_call kind) trace last after out ->
+  last ! TSO._graphNode = Some (Vptr b oo) /\
+  Mem.load Mint8signed after b (tso_address oo 25) = Some owner.
+Proof.
+  intros version kind e le memory trace last after out b oo owner Hlocal Htemp Hspan Howner Hrun.
+  destruct (tso_geo_vector_call_resolves _ _ _ _ _ _ _ _ _ _ _ Hlocal Htemp Hrun)
+    as [-> [args [result Hcall]]].
+  split; [exact Htemp|]. rewrite <- Howner.
+  eapply tso_complete_vector_call_frame; [eapply ibcc_loaded_block_valid; exact Howner| |exact Hcall].
+  intro axis. unfold tso_vector_offset. rewrite Ptrofs.add_assoc.
+  destruct kind,axis;
+    cbn [tso_geo_vector_delta tso_vector_width tso_vector_number tso_vector_chunk].
+  - change (tso_address oo 25 + 1 <= tso_address oo 32 \/ tso_address oo 32 + 4 <= tso_address oo 25).
+    rewrite !tso_address_no_wrap by lia; left; lia.
+  - change (tso_address oo 25 + 1 <= tso_address oo 36 \/ tso_address oo 36 + 4 <= tso_address oo 25).
+    rewrite !tso_address_no_wrap by lia; left; lia.
+  - change (tso_address oo 25 + 1 <= tso_address oo 40 \/ tso_address oo 40 + 4 <= tso_address oo 25).
+    rewrite !tso_address_no_wrap by lia; left; lia.
+  - change (tso_address oo 25 + 1 <= tso_address oo 26 \/ tso_address oo 26 + 2 <= tso_address oo 25).
+    rewrite !tso_address_no_wrap by lia; left; lia.
+  - change (tso_address oo 25 + 1 <= tso_address oo 28 \/ tso_address oo 28 + 2 <= tso_address oo 25).
+    rewrite !tso_address_no_wrap by lia; left; lia.
+  - change (tso_address oo 25 + 1 <= tso_address oo 30 \/ tso_address oo 30 + 2 <= tso_address oo 25).
+    rewrite !tso_address_no_wrap by lia; left; lia.
+  - change (tso_address oo 25 + 1 <= tso_address oo 44 \/ tso_address oo 44 + 4 <= tso_address oo 25).
+    rewrite !tso_address_no_wrap by lia; left; lia.
+  - change (tso_address oo 25 + 1 <= tso_address oo 48 \/ tso_address oo 48 + 4 <= tso_address oo 25).
+    rewrite !tso_address_no_wrap by lia; left; lia.
+  - change (tso_address oo 25 + 1 <= tso_address oo 52 \/ tso_address oo 52 + 4 <= tso_address oo 25).
+    rewrite !tso_address_no_wrap by lia; left; lia.
+Qed.
+
+Inductive tso_geo_statement : statement -> Prop :=
+| tso_geo_post : forall s, tso_post_statement s -> tso_geo_statement s
+| tso_geo_vector : forall kind, tso_geo_statement (tso_geo_vector_call kind)
+| tso_geo_sequence : forall first rest,
+    tso_geo_statement first -> tso_geo_statement rest -> tso_geo_statement (Ssequence first rest).
+
+Lemma tso_generated_geo_classified : forall version,
+  tso_geo_statement (fn_body (tso_callee_body version TSOGeoInit)).
+Proof.
+  intros []; cbn [tso_callee_body fn_body].
+  all: repeat first [exact (tso_geo_vector TSOFloatSet) |
+    exact (tso_geo_vector TSOFloatCopy) | exact (tso_geo_vector TSOShortCopy) |
+    apply tso_geo_sequence |
+    apply tso_geo_post; apply tso_post_readonly; reflexivity |
+    apply tso_geo_post; eapply tso_post_assignment; constructor].
+Qed.
+
+Lemma tso_geo_body_frames_owner : forall body,
+  tso_geo_statement body -> forall version e le memory trace last after out b oo owner,
+  (forall kind, e ! (tso_callee_ident (TSOVector kind)) = None) ->
+  le ! TSO._graphNode = Some (Vptr b oo) ->
+  Ptrofs.unsigned oo + 84 <= Ptrofs.modulus ->
+  Mem.load Mint8signed memory b (tso_address oo 25) = Some owner ->
+  ocn_exec (tso_ge version) e le memory body trace last after out ->
+  last ! TSO._graphNode = Some (Vptr b oo) /\
+  Mem.load Mint8signed after b (tso_address oo 25) = Some owner.
+Proof.
+  intros body Hshape. induction Hshape;
+    intros version e le memory trace last after out b oo owner Hlocals Htemp Hspan Howner Hrun.
+  - destruct (tso_post_owner_preserves_owner _ H _ _ _ _ _ _ _ _ _ _ Htemp Hspan Hrun)
+      as [Hlast Hframe]. split; [exact Hlast|]. rewrite Hframe. exact Howner.
+  - eapply tso_geo_vector_call_frames_owner; eauto.
+  - inversion Hrun; subst.
+    + match goal with Hfirst : ClightBigstep.exec_stmt _ _ _ _ _ first _ _ _ _,
+        Hrest : ClightBigstep.exec_stmt _ _ _ _ _ rest _ _ _ _ |- _ =>
+        destruct (IHHshape1 _ _ _ _ _ _ _ _ _ _ _ Hlocals Htemp Hspan Howner Hfirst)
+          as [Hmiddle Howner1];
+        eapply IHHshape2; eauto end.
+    + eapply IHHshape1; eauto.
+Qed.
+
+Theorem tso_complete_geo_init_frames_owner : forall version before b oo shared pos angle trace after result owner,
+  Ptrofs.unsigned oo + 84 <= Ptrofs.modulus ->
+  Mem.load Mint8signed before b (tso_address oo 25) = Some owner ->
+  ClightBigstep.Clight2.eval_funcall (tso_ge version) before
+    (Internal (tso_callee_body version TSOGeoInit)) [Vptr b oo;shared;pos;angle] trace after result ->
+  Mem.load Mint8signed after b (tso_address oo 25) = Some owner.
+Proof.
+  intros version before b oo shared pos angle trace after result owner Hspan Howner Hcall.
+  assert (fn_vars (tso_callee_body version TSOGeoInit) = []) as Hvars by (destruct version; reflexivity).
+  assert (fn_params (tso_callee_body version TSOGeoInit) =
+    [(TSO._graphNode,tptr (Tstruct TSO._GraphNodeObject noattr));
+     (TSO._sharedChild,tptr tvoid);(TSO._pos,tptr tfloat);(TSO._angle,tptr tshort)])
+    as Hparams by (destruct version; reflexivity).
+  inversion Hcall; subst.
+  match goal with He : function_entry2 _ _ _ _ _ _ _ |- _ => inversion He; subst; clear He end.
+  match goal with Ha : alloc_variables ?ge0 ?env0 ?memory0 _ ?env1 ?memory1 |- _ =>
+    change (alloc_variables ge0 env0 memory0
+      (fn_vars (tso_callee_body version TSOGeoInit)) env1 memory1) in Ha;
+    rewrite Hvars in Ha; inversion Ha; subst; clear Ha end.
+  match goal with Hfree : Mem.free_list ?m (blocks_of_env _ empty_env) = Some ?final |- _ =>
+    change (Some m = Some final) in Hfree; inversion Hfree; subst end.
+  match goal with Hb : bind_parameter_temps _ ?args ?initial = Some ?temps |- _ =>
+    change (bind_parameter_temps (fn_params (tso_callee_body version TSOGeoInit))
+      args initial = Some temps) in Hb;
+    rewrite Hparams in Hb; cbn [bind_parameter_temps] in Hb; inversion Hb; subst temps end.
+  lazymatch goal with Hr : ClightBigstep.exec_stmt ?entry0 ?ge0 ?env0 ?temps0 ?memory0
+      _ ?trace0 ?temps1 ?memory1 ?out0 |- _ =>
+    change (ClightBigstep.exec_stmt entry0 ge0 env0 temps0 memory0
+      (fn_body (tso_callee_body version TSOGeoInit)) trace0 temps1 memory1 out0) in Hr;
+    exact (proj2 (tso_geo_body_frames_owner _ (tso_generated_geo_classified version)
+      version env0 temps0 memory0 trace0 temps1 memory1 out0 b oo owner
+      ltac:(intro; apply PTree.gempty)
+      ltac:(repeat rewrite PTree.gso by discriminate; apply PTree.gss) Hspan Howner Hr)) end.
+Qed.
+
+Definition tso_child_graph_address := Ecast
+  (Eaddrof (tso_object_graphics TSOH._obj) (tptr (Tstruct TSOH._GraphNodeObject noattr)))
+  (tptr (Tstruct TSOH._GraphNodeObject noattr)).
+Definition tso_spawn_geo_call := Scall None
+  (Evar TSOH._geo_obj_init (Tfunction
+    [tptr (Tstruct TSOH._GraphNodeObject noattr);tptr tvoid;tptr tfloat;tptr tshort] tvoid cc_default))
+  [tso_child_graph_address;Etempvar TSOH._t'4 (tptr (Tstruct TSOH._GraphNode noattr));
+   Evar TSOH._gVec3fZero (tarray tfloat 3);Evar TSOH._gVec3sZero (tarray tshort 3)].
+Definition tso_spawn_geo_loads version := match tso_spawn_after_owner version with
+| Ssequence (Ssequence first (Ssequence second _)) _ => [first;second] | _ => [] end.
+
+Lemma tso_spawn_suffix_generated : forall version,
+  tso_spawn_after_owner version = Ssequence
+    (match tso_spawn_geo_loads version with [first;second] =>
+      Ssequence first (Ssequence second tso_spawn_geo_call) | _ => Sskip end)
+    (Sreturn (Some (Etempvar TSOH._obj (tptr (Tstruct TSOH._Object noattr))))) /\
+  forallb (cce_readonly_keep TSOH._obj) (tso_spawn_geo_loads version) = true.
+Proof. intros []; split; reflexivity. Qed.
+
+Lemma tso_child_graph_address_value : forall version e le memory b oo value,
+  le ! TSOH._obj = Some (Vptr b oo) ->
+  eval_expr (tso_ge version) e le memory tso_child_graph_address value -> value = Vptr b oo.
+Proof.
+  intros version e le memory b oo value Htemp Hread.
+  destruct (tho_selected_protected_layout version) as (Hheader & Hgfx & _).
+  assert (forall answer, eval_expr (tso_ge version) e le memory
+      (Efield (ibr_base TSOH._obj TSOH._Object) TSOH._header (Tstruct TSOH._ObjectNode noattr)) answer ->
+      answer = Vptr b oo) as Hhead.
+  { intros answer Hr. pose proof (ibcc_aggregate_field (tso_ge version) e le memory
+      (ibr_base TSOH._obj TSOH._Object) TSOH._Object TSOH._header
+      (Tstruct TSOH._ObjectNode noattr) b oo 0 answer eq_refl
+      ltac:(intros; eapply ibcc_deref_struct; eauto) Hheader (or_intror eq_refl) Hr) as E.
+    now rewrite Ptrofs.add_zero in E. }
+  unfold tso_child_graph_address in Hread. inversion Hread; subst.
+  all: try solve [match goal with
+    Hl : eval_lvalue _ _ _ _ (Ecast _ _) _ _ _ |- _ => inversion Hl end].
+  match goal with Hr : eval_expr _ _ _ _ (Eaddrof _ _) _ |- _ => inversion Hr; subst end.
+  all: try solve [match goal with
+    Hl : eval_lvalue _ _ _ _ (Eaddrof _ _) _ _ _ |- _ => inversion Hl end].
+  lazymatch goal with Hl : eval_lvalue ?ge0 ?env0 ?temps0 ?memory0 _ ?loc ?offset ?bits |- _ =>
+    change (eval_lvalue ge0 env0 temps0 memory0
+      (tso_object_graphics TSOH._obj) loc offset bits) in Hl;
+    destruct (ibcc_field_location ge0 env0 temps0 memory0
+      (Efield (ibr_base TSOH._obj TSOH._Object) TSOH._header (Tstruct TSOH._ObjectNode noattr))
+      TSOH._ObjectNode TSOH._gfx (Tstruct TSOH._GraphNodeObject noattr) b oo 0 loc offset bits
+      eq_refl Hhead Hgfx Hl) as (Hlocation & Hoffset & Hbits);
+    subst end.
+  rewrite Ptrofs.add_zero in *.
+  match goal with Hcast : sem_cast _ _ _ _ = Some value |- _ => cbn in Hcast; congruence end.
+Qed.
+
+Lemma tso_spawn_geo_call_frames_owner : forall version e le memory trace last after out b oo owner,
+  e ! TSOH._geo_obj_init = None ->
+  le ! TSOH._obj = Some (Vptr b oo) ->
+  Ptrofs.unsigned oo + 84 <= Ptrofs.modulus ->
+  Mem.load Mint8signed memory b (tso_address oo 25) = Some owner ->
+  ocn_exec (tso_ge version) e le memory tso_spawn_geo_call trace last after out ->
+  last = le /\ Mem.load Mint8signed after b (tso_address oo 25) = Some owner.
+Proof.
+  intros version e le memory trace last after out b oo owner Hlocal Htemp Hspan Howner Hrun.
+  unfold tso_spawn_geo_call in Hrun. inversion Hrun; subst.
+  match goal with Hclass : classify_fun _ = _ |- _ => cbn in Hclass; inversion Hclass; subst end.
+  destruct (tso_selected_callee_resolves version TSOGeoInit) as (fb & Hsymbol & Hfunction).
+  match goal with Hr : eval_expr _ _ _ _ (Evar TSOH._geo_obj_init _) ?value |- _ =>
+    assert (value = Vptr fb Ptrofs.zero) by (eapply sce_function_name_value; eauto); subst value end.
+  match goal with Hfind : Genv.find_funct _ (Vptr _ _) = Some ?fd |- _ =>
+    change (Genv.find_funct_ptr (tso_ge version) fb = Some fd) in Hfind;
+    rewrite Hfunction in Hfind; inversion Hfind; subst fd end.
+  repeat match goal with Hargs : eval_exprlist _ _ _ _ _ _ _ |- _ =>
+    inversion Hargs; subst; clear Hargs end.
+  match goal with Hr : eval_expr _ _ _ _ tso_child_graph_address ?value |- _ =>
+    assert (value = Vptr b oo) by (eapply tso_child_graph_address_value; eauto); subst value end.
+  match goal with Hcast : sem_cast (Vptr b oo) _ _ _ = Some _ |- _ =>
+    cbn in Hcast; inversion Hcast; subst end.
+  split; [reflexivity|]. eapply tso_complete_geo_init_frames_owner; eauto.
+Qed.
+
+Lemma tso_spawn_suffix_return : forall version e le memory trace last after out,
+  ocn_exec (tso_ge version) e le memory (tso_spawn_after_owner version) trace last after out ->
+  exists value, le ! TSOH._obj = Some value /\
+    out = Out_return (Some (value,tptr (Tstruct TSOH._Object noattr))).
+Proof.
+  intros version e le memory trace last after out Hrun.
+  destruct (tso_spawn_suffix_generated version) as [Hsource _]. rewrite Hsource in Hrun.
+  destruct version; cbn [tso_spawn_geo_loads tso_spawn_after_owner tso_drop tso_spawn_function] in Hrun;
+    unfold ocn_exec, ClightBigstep.Clight2.exec_stmt in Hrun;
+    cce_unroll_loop_free_exec.
+  all: match goal with Hcall : ClightBigstep.exec_stmt _ _ _ _ _ tso_spawn_geo_call _ _ _ _ |- _ =>
+    inversion Hcall; subst; clear Hcall end.
+  all: try contradiction.
+  all: lazymatch goal with Hr : eval_expr _ _ _ _ (Etempvar TSOH._obj _) ?value |- _ =>
+    assert (le ! TSOH._obj = Some value) as Hobject by
+      (inversion Hr; subst;
+        try solve [match goal with
+          Hl : eval_lvalue _ _ _ _ (Etempvar _ _) _ _ _ |- _ => inversion Hl end];
+        cbn [set_opttemp] in *;
+        repeat rewrite PTree.gso in * by discriminate; assumption);
+    exists value; split; [exact Hobject|reflexivity] end.
+Qed.
+
+Lemma tso_spawn_suffix_frames_owner : forall version e le memory trace last after out b oo owner,
+  e ! TSOH._geo_obj_init = None ->
+  le ! TSOH._obj = Some (Vptr b oo) ->
+  Ptrofs.unsigned oo + 84 <= Ptrofs.modulus ->
+  Mem.load Mint8signed memory b (tso_address oo 25) = Some owner ->
+  ocn_exec (tso_ge version) e le memory (tso_spawn_after_owner version) trace last after out ->
+  Mem.load Mint8signed after b (tso_address oo 25) = Some owner.
+Proof.
+  intros version e le memory trace last after out b oo owner Hlocal Htemp Hspan Howner Hrun.
+  destruct (tso_spawn_suffix_generated version) as [Hsource _]. rewrite Hsource in Hrun.
+  destruct version; cbn [tso_spawn_geo_loads tso_spawn_after_owner tso_drop tso_spawn_function] in Hrun;
+    unfold ocn_exec, ClightBigstep.Clight2.exec_stmt in Hrun;
+    cce_unroll_loop_free_exec.
+  all: lazymatch goal with Hcall : ClightBigstep.exec_stmt _ (tso_ge ?version0)
+      ?env0 ?temps0 ?memory0 tso_spawn_geo_call ?trace0 ?temps1 ?memory1 ?out0 |- _ =>
+    assert (temps0 ! TSOH._obj = Some (Vptr b oo)) as HcallObject by
+      (repeat rewrite PTree.gso by discriminate; exact Htemp);
+    exact (proj2 (tso_spawn_geo_call_frames_owner version0 env0 temps0 memory0
+      trace0 temps1 memory1 out0 b oo owner Hlocal HcallObject Hspan Howner Hcall)) end.
+Qed.
+
+Definition tso_spawn_entry_temps version pb po unused model behavior :=
+  PTree.set TSOH._behavior behavior (PTree.set TSOH._model model
+    (PTree.set TSOH._unusedArg unused (PTree.set TSOH._parent (Vptr pb po)
+      (create_undef_temps (fn_temps (tso_spawn_function version)))))).
+
+Definition TSOCompletedChildSpawnOwnership : Prop :=
+  forall version before pb po unused model behavior b oo trace after,
+  Ptrofs.unsigned oo + 84 <= Ptrofs.modulus ->
+  ClightBigstep.Clight2.eval_funcall (tso_ge version) before
+    (Internal (tso_spawn_function version)) [Vptr pb po;unused;model;behavior]
+    trace after (Vptr b oo) ->
+  exists checkpoint_le checkpoint pre tail last source stored owner_memory,
+    trace = pre ++ tail /\
+    ocn_exec (tso_ge version) empty_env
+      (tso_spawn_entry_temps version pb po unused model behavior)
+      before (ocn_prepend (tso_spawn_before_owner version) Sskip)
+      pre checkpoint_le checkpoint Out_normal /\
+    ocn_exec (tso_ge version) empty_env checkpoint_le checkpoint
+      (Ssequence tso_spawn_owner_copy (tso_spawn_after_owner version))
+      tail last after (Out_return (Some (Vptr b oo,tptr (Tstruct TSOH._Object noattr)))) /\
+    Mem.load Mint8signed checkpoint pb (tso_address po 24) = Some source /\
+    sem_cast source tschar tschar checkpoint = Some stored /\
+    Mem.store Mint8signed checkpoint b (tso_address oo 25) stored = Some owner_memory /\
+    Mem.load Mint8signed after b (tso_address oo 25) = Some (Val.load_result Mint8signed stored).
+
+Theorem tso_completed_child_spawn_ownership : TSOCompletedChildSpawnOwnership.
+Proof.
+  intros version before pb po unused model behavior b oo trace after Hspan Hcall.
+  destruct (tso_spawn_generated_owner_cut version) as (Hbody & Hnormal & Hkeepparent & Hkeepobj).
+  assert (fn_vars (tso_spawn_function version) = []) as Hvars by (destruct version; reflexivity).
+  assert (fn_params (tso_spawn_function version) =
+    [(TSOH._parent,tptr (Tstruct TSOH._Object noattr));(TSOH._unusedArg,tint);
+     (TSOH._model,tuint);(TSOH._behavior,tptr tuint)]) as Hparams by (destruct version; reflexivity).
+  assert (fn_return (tso_spawn_function version) = tptr (Tstruct TSOH._Object noattr))
+    as Hreturn by (destruct version; reflexivity).
+  inversion Hcall; subst.
+  match goal with He : function_entry2 _ _ _ _ _ _ _ |- _ => inversion He; subst; clear He end.
+  match goal with Ha : alloc_variables ?ge0 ?env0 ?memory0 _ ?env1 ?memory1 |- _ =>
+    change (alloc_variables ge0 env0 memory0 (fn_vars (tso_spawn_function version))
+      env1 memory1) in Ha;
+    rewrite Hvars in Ha; inversion Ha; subst; clear Ha end.
+  match goal with Hfree : Mem.free_list ?m (blocks_of_env _ empty_env) = Some ?final |- _ =>
+    change (Some m = Some final) in Hfree; inversion Hfree; subst end.
+  match goal with Hb : bind_parameter_temps _ ?args ?initial = Some ?temps |- _ =>
+    change (bind_parameter_temps (fn_params (tso_spawn_function version))
+      args initial = Some temps) in Hb;
+    rewrite Hparams in Hb; cbn [bind_parameter_temps] in Hb; inversion Hb; subst temps end.
+  match goal with Hr : ClightBigstep.exec_stmt ?entry0 ?ge0 ?env0 ?temps0 ?memory0
+      _ ?trace0 ?temps1 ?memory1 ?out0 |- _ =>
+    change (ClightBigstep.exec_stmt entry0 ge0 env0 temps0 memory0
+      (fn_body (tso_spawn_function version)) trace0 temps1 memory1 out0) in Hr;
+    rewrite Hbody in Hr;
+    destruct (ibk_split_prefix _ _ _ _ _ _ _ _ _ _ Hnormal Hr)
+      as (cle & checkpoint & pre & tail & Htrace & Hprefix & Hrest) end.
+  destruct (ibk_split_sequence _ _ _ _ tso_spawn_owner_copy _ _ _ _ _ eq_refl Hrest)
+    as (ole & owner_memory & ownert & suffixt & Hresttrace & Hcopy & Hsuffix).
+  destruct (tso_spawn_suffix_return _ _ _ _ _ _ _ _ Hsuffix) as [value [Hobj Hout]].
+  subst.
+  lazymatch goal with Ho : outcome_result_value ?out0 _ ?answer ?memory0 |- _ =>
+    change (outcome_result_value out0 (fn_return (tso_spawn_function version))
+      answer memory0) in Ho;
+    rewrite Hreturn in Ho; cbn [outcome_result_value] in Ho; destruct Ho as [_ Hcast];
+    destruct value; cbn in Hcast; try discriminate; inversion Hcast; subst end.
+  assert (cle ! TSOH._parent = Some (Vptr pb po)) as Hparent.
+  { rewrite (ifr_execution_keeps_temp _ _ _ _ _ _ _ _ _ _ Hprefix Hkeepparent).
+    repeat rewrite PTree.gso by discriminate. apply PTree.gss. }
+  assert (cle ! TSOH._obj = Some (Vptr b oo)) as Hchild.
+  { rewrite <- (ifr_execution_keeps_temp _ _ _ _ _ _ _ _ _ TSOH._obj Hcopy eq_refl). exact Hobj. }
+  destruct (tso_spawn_owner_copy_effect _ _ _ _ _ _ _ _ _ _ _ _ Hparent Hchild Hcopy)
+    as (_ & _ & source & stored & Hsource & Hownercast & Hstore & Howner).
+  exists cle,checkpoint,pre. do 5 eexists. repeat split; try eassumption; try reflexivity.
+  eapply (tso_spawn_suffix_frames_owner version empty_env ole owner_memory
+    suffixt le2 after
+    (Out_return (Some (Vptr b oo,tptr (Tstruct TSOH._Object noattr))))
+    b oo (Val.load_result Mint8signed stored));
+    [apply PTree.gempty|exact Hobj|exact Hspan|exact Howner|exact Hsuffix].
+Qed.
+
+Definition TeleporterCompleteSpawnOwnershipBoundary : Prop :=
+  TSOCompletedSpawnInfoOwnership /\ TSOCompletedChildSpawnOwnership.
+Theorem teleporter_complete_spawn_ownership_boundary_checked : TeleporterCompleteSpawnOwnershipBoundary.
+Proof. split; [exact tso_completed_spawninfo_ownership|exact tso_completed_child_spawn_ownership]. Qed.

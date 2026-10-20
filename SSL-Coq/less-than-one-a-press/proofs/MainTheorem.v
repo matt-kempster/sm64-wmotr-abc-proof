@@ -61,7 +61,8 @@ From LessThanOneAPress.Proofs Require Import
   TeleporterHeldInitializer TeleporterHeldObjectState TeleporterWarpClassification
   TeleporterObjectLifetime TeleporterBobombUsability TeleporterNullRelease
   TeleporterHeldOwnership TeleporterBobombRegrab TeleporterUnloadTraversal TeleporterEarlierAreaChange
-  TeleporterMixedTraversal TeleporterAllocationHistory TeleporterUnloadCallPaths.
+  TeleporterMixedTraversal TeleporterAllocationHistory TeleporterUnloadCallPaths TeleporterWholeScan TeleporterTransportCut
+  TeleporterSpawnOwnership.
 
 Import ListNotations.
 Local Open Scope Z_scope.
@@ -190,6 +191,23 @@ Proof.
   split; [exact teleporter_unload_call_paths_checked|].
   split; [exact teleporter_mixed_traversal_checked|].
   exact teleporter_unload_then_allocation_reuses_slot.
+Qed.
+
+(** Source-lifetime refinement: one completed generated scan supplies all
+    thirteen chronological passes and its actual third pass; the changed-area
+    execution uses that same pass before loading. A watched object's unload
+    still requires the concrete owner path and preceding-call read frames.
+    Complete creation calls also supply owner attribution at the reached
+    copy checkpoint and preserve it through their initialization suffix.
+    Head provenance, reachable membership and ownership before the prefix,
+    audio framing and allocation/regrab history remain open. *)
+Theorem current_bobomb_scan_transport_ownership_boundary :
+  TeleporterWholeScanBoundary /\ TeleporterTransportCutBoundary /\
+  TeleporterCompleteSpawnOwnershipBoundary.
+Proof.
+  split; [exact teleporter_whole_scan_checked|].
+  split; [exact teleporter_transport_cut_checked|].
+  exact teleporter_complete_spawn_ownership_boundary_checked.
 Qed.
 
 (** This capstone is intentionally local to Marbler's proposed mechanism.  It

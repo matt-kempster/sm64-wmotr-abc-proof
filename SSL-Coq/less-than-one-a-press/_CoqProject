@@ -679,3 +679,6 @@ proofs/TeleporterEarlierAreaChange.v
 proofs/TeleporterMixedTraversal.v
 proofs/TeleporterAllocationHistory.v
 proofs/TeleporterUnloadCallPaths.v
+proofs/TeleporterWholeScan.v
+proofs/TeleporterTransportCut.v
+proofs/TeleporterSpawnOwnership.v

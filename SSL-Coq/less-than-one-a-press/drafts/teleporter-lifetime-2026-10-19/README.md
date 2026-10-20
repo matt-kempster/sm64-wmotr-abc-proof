@@ -1,5 +1,11 @@
 # Teleporter lifetime drafts: recoverable checkpoint
 
+Follow-up: WholeScan, TransportCut and SpawnOwnership now have repaired,
+verified active copies; see the [current salvage report](../../docs/notes/teleporter-wrong-warp.md#verified-source-draft-salvage-19-october-2026).
+AudioFrame and PoolPartition remain uncompiled. The source snapshots and
+historical statuses below describe the original checkpoint and are retained
+unchanged. Verification applies to the active copies, not these raw drafts.
+
 Saved 19 October 2026. These are **unverified working drafts**, preserved so
 the stopped lifetime work can be resumed without reconstructing it. They are
 not active proof modules, verified evidence, or a completed Bob-omb lifetime
@@ -49,7 +55,11 @@ applies to the existing active conditional boundary, never to these drafts.
 
 From this directory run `node verify-snapshot.cjs`. It checks every saved
 record against the manifest, and, when the original scratch file is still
-present, also checks equality with that original. It does not compile or
+present, also checks equality with that original. New pipeline runs overwrite
+the live compiler logs; the verifier reports those expected replacements
+while still requiring each saved historical log's exact manifest hash.
+Source snapshots and other available original records must remain identical.
+It does not compile or
 validate a proof. A Git checkout can recover these snapshots even if the
 ignored build directory is later removed.
 
