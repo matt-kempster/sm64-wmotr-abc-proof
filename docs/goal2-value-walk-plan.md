@@ -571,14 +571,40 @@ cells; `wmotr_world` already carries both.
    (a whole-block region, so it is another block than the list) and the three
    libultra message globals, and leaves everything else (Mario's state cells,
    `gfx.pos[1]`, the surfaces) as it was. The contract requires
-   `m->animList = &gMarioAnimsBuf`, `m->marioObj` a region address, and the
-   list's `bufTarget` cell to hold a pointer into the buffer region with 24
-   bytes of room. The general tool is `sstores_havoc_cl` (`sstores_havoc` with
-   clobbered regions). Whoever starts the walk must place the buffer region
-   (`anim_apart` and MWF R13 keep it off the surfaces and Mario's block).
-2. The audio/camera contract premises and the strengthened `sqrtf` floor.
-3. The walk run on the real link, with each outcome classified into
-   `HeightMoveCatalog` moves (reusing `AirMatch` / `AirMove` for the air-step part).
+   `m->animList = &gMarioAnimsBuf`, `m->marioObj` a region address, and a
+   path fact `Fuser kB [bufTarget; Sptr rbuf 0]` saying that the list's
+   `bufTarget` cell holds a pointer with 24 bytes of room. **Finding (fixed):**
+   the first version required `bufTarget` to be a known constant
+   `Sptr rbuf ot`. The buffer comes from `main_pool_alloc` and its offset is not
+   pinned, so that could not be justified at the call site; the fact form is
+   what the start state can actually supply. The general tool is
+   `sstores_havoc_cl` (`sstores_havoc` with clobbered regions). Whoever starts
+   the walk must place the buffer region (`anim_apart` and MWF R13 keep it off
+   the surfaces and Mario's block).
+2. **Done (2026-10-20): the external contracts** (`ExtInert.v`). `sqrtf`
+   returns a float and changes no block (the FPU floor, TRUST 3.5);
+   `play_sound` and `set_camera_shake_from_hit` are `audio_inert` /
+   `camera_inert`, labelled open premises (deferred by decision, not TRUST
+   rows). `perform_air_step` became one summarized call (`AirSum.c_pas`, proved
+   sound) whose result fact `MV` is existential: for any cells read before the
+   call there are a step class and new cells with the `AirMove` relation.
+   **Finding (fixed):** the first `MV` said "if the arguments are cells then
+   `PMv`", which no caller could use, since `Mfloat32` loads may be `Vundef`.
+3. **Done (2026-10-20): the walk on the real link** (`FfClass.v`, `FfRun.v`).
+   The real-table walk of `act_freefall` (fuel 3000) gives 348 outcomes in
+   12 shapes: entry switches to DIVE / GROUND_POUND (no step), stay in
+   FREEFALL (cl 0, all seven cells kept), wall switches (cl 0, mode air, speed
+   kept or zero), and attach (cl 1 lands / cl 2 ledge grab, mode ground).
+   `ff_ok` classifies each, proved sound (`ff_sound`), and a `vm_compute`
+   check (`ffcheck12`, ~4 min) shows all 348 pass. `FfRun.ff_move`: from a
+   run of the real `act_freefall` on a state satisfying the walk's start
+   facts, the cells after are a `MoveChain` from the cells before. Its
+   premises are the DMA floor, the `sqrtf` floor, the audio/camera premises,
+   and the start-state facts (still to discharge from the frame invariant).
 4. Frame composition: `execute_mario_action`'s action loop as a sequence of
    dispatcher calls, so that `Hframe_is_move_chain` splits into per-segment rows
    and the freefall row becomes a lemma.
+5. The start-state obligations of `ff_move` from the frame invariant: the
+   walk's regions (`env_ok`) from MWF R11–R14 and SafeB, the buffer path fact
+   from the anim layout fact, and the floor refresh from
+   `update_mario_geometry_inputs`.
