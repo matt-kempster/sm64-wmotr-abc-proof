@@ -330,13 +330,15 @@ Section HeightLinked12.
      spawn condition REPLACE the eight scattered SafeB rows (HSafeB_not_bm,
      HSafeB_not_bc, the five ~SafeB conjuncts of the *_blk rows, Hsfam_safe).
      The real_mwf capstone derives all eight internally (SpawnInit exports).
-     HSafeB_sym_iff: the intersection of SafeB with the linked symbol table is
-     exactly {sFloorAlignMatrix} (the object pool is external/runtime -- see
-     docs/p5-safeb-design.md); non-vacuous via SpawnInit.safeb_wit_sat. *)
-  Hypothesis HSafeB_sym_iff :
-    forall id b,
-      Genv.find_symbol (lp_ge lp) id = Some b ->
-      (SafeB b <-> id = mario_actions_moving._sFloorAlignMatrix).
+     HSafeB_syms (SpawnInit.SafeB_syms_ok): on the linked symbol table SafeB
+     avoids SpawnInit.non_safeb_syms (gMarioStates, gControllers, gMarioState,
+     gGlobalTimer, the handler / knockback tables, the stored globals) and
+     contains sFloorAlignMatrix.  REPAIRED 2026-10-19: it was an iff pinning
+     the symbol part to {sFloorAlignMatrix}, which made MWF false of every real
+     post-init memory (init_mario_from_save_file stores &gMarioAnimsBuf,
+     &gBodyStates[0], &gPlayerCameraState[0] into chase roots; objects point at
+     behavior scripts).  Non-vacuous via SpawnInit.safeb_wit_sat. *)
+  Hypothesis HSafeB_syms : SafeB_syms_ok lp SafeB.
   (* task #92 slice 6: Hspawn is NO LONGER assumed.  The `exists init,
      init_mem lp = Some init` conjunct of spawn_ok is now a THEOREM for every
      twelve-TU link (InitMemSat.linked12_init_mem, the certificate-shaped
@@ -373,7 +375,7 @@ Section HeightLinked12.
   Lemma Hcsp_lpt_real :
     call_pres_ext_cs lp bm (NoA_real bm) MWF SafeB mario._load_patchable_table.
   Proof.
-    exact (LptBody.Hcsp_lpt_linked12 lp bm bc oc0 SafeB H12 HSafeB_sym_iff
+    exact (LptBody.Hcsp_lpt_linked12 lp bm bc oc0 SafeB H12 HSafeB_syms
              (NoAImpliesNoFlyTwelve.Hspawn lp H12 bm bc oc0 Hbm_sym Hbc_sym Hoc0) Hdma_floor).
   Qed.
   Hypothesis WL_exempt : forall e le m fid fty vf fd,

@@ -280,198 +280,250 @@ Proof.
 Qed.
 
 (* ---------------------------------------------------------------------- *)
-(* P5 SLICE 3: the consolidated SafeB honest-boundary characterization.     *)
+(* P5 SLICE 3, REPAIRED 2026-10-19: the consolidated SafeB symbol row.      *)
 (*                                                                          *)
-(* THE FULCRUM FACT (docs/p5-safeb-design.md).  Among the LINKED symbol      *)
-(* blocks, the object-system pointer graph credits exactly ONE --           *)
-(* sFloorAlignMatrix.  Every other SafeB member is a runtime / external      *)
-(* (spawn_object) block, never a mario.prog-family symbol (the object pool   *)
-(* gObjectPool/gObjectLists is ABSENT from the twelve TUs; gMarioObject /    *)
-(* gCurrentObject are null Object* cells; spawn_object is EF_external).      *)
-(* So the intersection of SafeB with the linked symbol table is the         *)
-(* singleton {sFloorAlignMatrix}.  This is the ONE honest-boundary row that  *)
-(* REPLACES the eight scattered capstone SafeB rows -- from it the seven     *)
-(* negative rows and the one positive (Hsfam_safe) are DERIVED below.        *)
+(* WHAT IT SAYS.  On the LINKED symbol table, SafeB (the blocks the pointer *)
+(* chase may reach) (a) never contains one of the `non_safeb_syms` -- the   *)
+(* blocks the proof keeps apart from the chase: Mario's gMarioStates, the   *)
+(* controllers, the gMarioState cell, gGlobalTimer, the interaction-handler *)
+(* table, the knockback / landing tables and every censused stored global   *)
+(* -- and (b) contains sFloorAlignMatrix (align_with_floor stores its        *)
+(* address into marioObj->throwMatrix).  From it the seven negative rows and *)
+(* the one positive row are DERIVED below.                                  *)
 (*                                                                          *)
-(* NON-VACUITY (satisfiability): the row is satisfied by the concrete SafeB  *)
-(* the game realizes -- SafeB_wit lp objblks := objblks-blocks (all runtime  *)
-(* returns, >= genv_next) UNION {the sFloorAlignMatrix symbol block}.  An    *)
-(* objblks block is >= genv_next so is never `find_symbol id` (which is <    *)
-(* genv_next by genv_symb_range); the lone symbol in the set is             *)
-(* sFloorAlignMatrix.  So SafeB CAN hold object blocks while the iff pins    *)
-(* only the symbol part -- the row is NOT the empty predicate and NOT the    *)
-(* conclusion.  See safeb_wit_sat below for the Qed'd certificate.          *)
+(* WHY IT IS ONE-DIRECTIONAL (the repair).  It used to be an IFF pinning    *)
+(* SafeB's symbol part to the singleton {sFloorAlignMatrix}.  That made     *)
+(* MWF_real FALSE of every real gameplay memory: init_mario_from_save_file  *)
+(* (mario.c:1874-1879, linked) stores &gPlayerCameraState[0],               *)
+(* &gBodyStates[0] and &gMarioAnimsBuf into the chase-root cells            *)
+(* statusForCamera / marioBodyState / animList, so R6 forces those symbol   *)
+(* blocks into SafeB; and R7 (load closure) then also forces every symbol   *)
+(* the real object graph points at -- o->behavior (bhvYellowCoin, ...),      *)
+(* collision data, the function pointers inside behavior scripts.  No       *)
+(* fixed finite list is right, and none is needed: the consumers only use   *)
+(* direction (a) and the one positive fact (b).                              *)
+(*                                                                          *)
+(* NON-VACUITY: the SafeB of a real memory is the pointer closure of the    *)
+(* chase roots (plus sFloorAlignMatrix); R6/R7 hold of it by construction,  *)
+(* and (a) is the claim that the closure never reaches a non_safeb_syms     *)
+(* block (nothing in the object graph holds &gMarioStates, &gControllers,   *)
+(* &gGlobalTimer, ... -- gMarioState / gPlayer1Controller hold them, and    *)
+(* neither is itself pointed at).  safeb_wit_sat below is the Qed'd         *)
+(* certificate that the row is satisfiable together with arbitrary runtime  *)
+(* (>= genv_next) object blocks and any set of permitted symbols.           *)
 (* ---------------------------------------------------------------------- *)
 
-(* Standalone (NOT sectioned) so that ALL exports share a UNIFORM explicit
-   telescope (lp init bm bc oc0 SafeB) + Hspawn + Hiff -- a section would drop
-   the variables an individual lemma does not use, giving each a different
-   arity and breaking the capstone's `exact` applications. *)
+Definition non_safeb_syms : list ident :=
+  [ level_update._gMarioStates; mario._gControllers; mario._gMarioState;
+    interaction._gGlobalTimer; interaction._sInteractionHandlers ]
+  ++ stored_globals ++ knockback_table_ids.
 
-Notation SafeB_iff lp SafeB :=
+(* Standalone (NOT sectioned) so that ALL exports share a UNIFORM explicit
+   telescope (lp init bm bc oc0 SafeB) + Hspawn + Hsyms -- a section would
+   drop the variables an individual lemma does not use, giving each a
+   different arity and breaking the capstone's `exact` applications. *)
+
+Definition SafeB_syms_ok (lp : Clight.program) (SafeB : block -> Prop) : Prop :=
   (forall id b,
      Genv.find_symbol (lp_ge lp) id = Some b ->
-     (SafeB b <-> id = mario_actions_moving._sFloorAlignMatrix)).
+     SafeB b -> mem_id id non_safeb_syms = false)
+  /\ (forall b,
+     Genv.find_symbol (lp_ge lp) mario_actions_moving._sFloorAlignMatrix = Some b ->
+     SafeB b).
 
-(* the ~SafeB micro-brick: any symbol whose ident is NOT sFloorAlignMatrix
-   is not SafeB (forward direction of the iff, closed by ident-distinctness). *)
+(* the ~SafeB micro-brick: a non_safeb_syms symbol is not SafeB *)
 Lemma safeb_of_nonfam_sym :
   forall (lp : Clight.program) (SafeB : block -> Prop),
-    SafeB_iff lp SafeB ->
+    SafeB_syms_ok lp SafeB ->
     forall id b,
       Genv.find_symbol (lp_ge lp) id = Some b ->
-      id <> mario_actions_moving._sFloorAlignMatrix ->
+      mem_id id non_safeb_syms = true ->
       ~ SafeB b.
 Proof.
-  intros lp SafeB Hiff id b Hs Hne HS.
-  apply (proj1 (Hiff _ _ Hs)) in HS. contradiction.
+  intros lp SafeB [Hneg _] id b Hs Hin HS.
+  rewrite (Hneg _ _ Hs HS) in Hin. discriminate.
+Qed.
+
+(* the stored globals and the knockback tables are non_safeb_syms *)
+Lemma mem_id_app_l : forall x l1 l2,
+    mem_id x l1 = true -> mem_id x (l1 ++ l2) = true.
+Proof.
+  intros x l1 l2 H. unfold mem_id in *.
+  apply existsb_exists in H. apply existsb_exists.
+  destruct H as (y & Hin & Heq). exists y.
+  split; [ apply in_or_app; left; exact Hin | exact Heq ].
+Qed.
+
+Lemma mem_id_app_r : forall x l1 l2,
+    mem_id x l2 = true -> mem_id x (l1 ++ l2) = true.
+Proof.
+  intros x l1 l2 H. unfold mem_id in *.
+  apply existsb_exists in H. apply existsb_exists.
+  destruct H as (y & Hin & Heq). exists y.
+  split; [ apply in_or_app; right; exact Hin | exact Heq ].
+Qed.
+
+Lemma non_safeb_stored : forall gid,
+    mem_id gid stored_globals = true -> mem_id gid non_safeb_syms = true.
+Proof.
+  intros gid H. unfold non_safeb_syms.
+  apply mem_id_app_r, mem_id_app_l, H.
+Qed.
+
+Lemma non_safeb_ktab : forall gid,
+    mem_id gid knockback_table_ids = true -> mem_id gid non_safeb_syms = true.
+Proof.
+  intros gid H. unfold non_safeb_syms.
+  apply mem_id_app_r, mem_id_app_r, H.
 Qed.
 
 (* ---- the eight rows, each in the EXACT shape of the capstone row it
-   replaces, with a uniform (lp init bm bc oc0 SafeB) + Hspawn + Hiff
+   replaces, with a uniform (lp init bm bc oc0 SafeB) + Hspawn + Hsyms
    telescope. ---- *)
 
 Lemma safeb_not_bm :
   forall (lp : Clight.program) (init : mem) (bm bc : block) (oc0 : ptrofs)
          (SafeB : block -> Prop),
-    spawn_ok lp init bm bc oc0 -> SafeB_iff lp SafeB ->
+    spawn_ok lp init bm bc oc0 -> SafeB_syms_ok lp SafeB ->
     forall b, SafeB b -> b <> bm.
 Proof.
-  intros lp init bm bc oc0 SafeB Hspawn Hiff.
+  intros lp init bm bc oc0 SafeB Hspawn Hsyms.
   destruct Hspawn as (_ & Hbm & _ & _).
   intros b HS Heq. subst b.
-  apply (proj1 (Hiff _ _ Hbm)) in HS.
-  vm_compute in HS; discriminate.
+  exact (safeb_of_nonfam_sym lp SafeB Hsyms _ _ Hbm eq_refl HS).
 Qed.
 
 Lemma safeb_not_bc :
   forall (lp : Clight.program) (init : mem) (bm bc : block) (oc0 : ptrofs)
          (SafeB : block -> Prop),
-    spawn_ok lp init bm bc oc0 -> SafeB_iff lp SafeB ->
+    spawn_ok lp init bm bc oc0 -> SafeB_syms_ok lp SafeB ->
     ~ SafeB bc.
 Proof.
-  intros lp init bm bc oc0 SafeB Hspawn Hiff.
+  intros lp init bm bc oc0 SafeB Hspawn Hsyms.
   destruct Hspawn as (_ & _ & Hbc & _).
-  apply (safeb_of_nonfam_sym lp SafeB Hiff mario._gControllers).
-  - exact Hbc.
-  - vm_compute; discriminate.
+  exact (safeb_of_nonfam_sym lp SafeB Hsyms _ _ Hbc eq_refl).
 Qed.
 
 Lemma sfam_safe :
   forall (lp : Clight.program) (init : mem) (bm bc : block) (oc0 : ptrofs)
          (SafeB : block -> Prop),
-    spawn_ok lp init bm bc oc0 -> SafeB_iff lp SafeB ->
+    spawn_ok lp init bm bc oc0 -> SafeB_syms_ok lp SafeB ->
     forall gb,
       Genv.find_symbol (lp_ge lp) mario_actions_moving._sFloorAlignMatrix
         = Some gb -> SafeB gb.
 Proof.
-  intros lp init bm bc oc0 SafeB Hspawn Hiff gb Hs.
-  apply (proj2 (Hiff _ _ Hs)). reflexivity.
+  intros lp init bm bc oc0 SafeB Hspawn Hsyms gb Hs.
+  exact (proj2 Hsyms gb Hs).
 Qed.
 
 Lemma gms_blk :
   forall (lp : Clight.program) (init : mem) (bm bc : block) (oc0 : ptrofs)
          (SafeB : block -> Prop),
-    spawn_ok lp init bm bc oc0 -> SafeB_iff lp SafeB ->
+    spawn_ok lp init bm bc oc0 -> SafeB_syms_ok lp SafeB ->
     forall gb,
       Genv.find_symbol (lp_ge lp) mario._gMarioState = Some gb ->
       gb <> bm /\ gb <> bc /\ ~ SafeB gb.
 Proof.
-  intros lp init bm bc oc0 SafeB Hspawn Hiff gb Hs.
+  intros lp init bm bc oc0 SafeB Hspawn Hsyms gb Hs.
   destruct (spawn_Hgms_neq lp init bm bc oc0 Hspawn gb Hs) as (Hnbm & Hnbc).
   split; [exact Hnbm | split; [exact Hnbc | ]].
-  eapply safeb_of_nonfam_sym; [ exact Hiff | exact Hs | vm_compute; discriminate ].
+  exact (safeb_of_nonfam_sym lp SafeB Hsyms _ _ Hs eq_refl).
 Qed.
 
 Lemma gtimer_blk :
   forall (lp : Clight.program) (init : mem) (bm bc : block) (oc0 : ptrofs)
          (SafeB : block -> Prop),
-    spawn_ok lp init bm bc oc0 -> SafeB_iff lp SafeB ->
+    spawn_ok lp init bm bc oc0 -> SafeB_syms_ok lp SafeB ->
     forall gb,
       Genv.find_symbol (lp_ge lp) interaction._gGlobalTimer = Some gb ->
       gb <> bm /\ gb <> bc /\ ~ SafeB gb.
 Proof.
-  intros lp init bm bc oc0 SafeB Hspawn Hiff gb Hs.
+  intros lp init bm bc oc0 SafeB Hspawn Hsyms gb Hs.
   destruct (spawn_Hgtimer_neq lp init bm bc oc0 Hspawn gb Hs) as (Hnbm & Hnbc).
   split; [exact Hnbm | split; [exact Hnbc | ]].
-  eapply safeb_of_nonfam_sym; [ exact Hiff | exact Hs | vm_compute; discriminate ].
+  exact (safeb_of_nonfam_sym lp SafeB Hsyms _ _ Hs eq_refl).
 Qed.
 
 Lemma table_blk :
   forall (lp : Clight.program) (init : mem) (bm bc : block) (oc0 : ptrofs)
          (SafeB : block -> Prop),
-    spawn_ok lp init bm bc oc0 -> SafeB_iff lp SafeB ->
+    spawn_ok lp init bm bc oc0 -> SafeB_syms_ok lp SafeB ->
     forall tb,
       Genv.find_symbol (lp_ge lp) interaction._sInteractionHandlers = Some tb ->
       tb <> bm /\ tb <> bc /\ ~ SafeB tb.
 Proof.
-  intros lp init bm bc oc0 SafeB Hspawn Hiff tb Hs.
+  intros lp init bm bc oc0 SafeB Hspawn Hsyms tb Hs.
   destruct (spawn_Htable_neq lp init bm bc oc0 Hspawn tb Hs) as (Hnbm & Hnbc).
   split; [exact Hnbm | split; [exact Hnbc | ]].
-  eapply safeb_of_nonfam_sym; [ exact Hiff | exact Hs | vm_compute; discriminate ].
+  exact (safeb_of_nonfam_sym lp SafeB Hsyms _ _ Hs eq_refl).
 Qed.
 
 Lemma glob_blk :
   forall (lp : Clight.program) (init : mem) (bm bc : block) (oc0 : ptrofs)
          (SafeB : block -> Prop),
-    spawn_ok lp init bm bc oc0 -> SafeB_iff lp SafeB ->
+    spawn_ok lp init bm bc oc0 -> SafeB_syms_ok lp SafeB ->
     forall gid bg,
       mem_id gid stored_globals = true ->
       Genv.find_symbol (lp_ge lp) gid = Some bg ->
       bg <> bm /\ bg <> bc /\ ~ SafeB bg.
 Proof.
-  intros lp init bm bc oc0 SafeB Hspawn Hiff gid bg Hmem Hs.
+  intros lp init bm bc oc0 SafeB Hspawn Hsyms gid bg Hmem Hs.
   destruct (spawn_Hglob_neq lp init bm bc oc0 Hspawn gid bg Hmem Hs)
     as (Hnbm & Hnbc).
   split; [exact Hnbm | split; [exact Hnbc | ]].
-  intro HS. apply (proj1 (Hiff _ _ Hs)) in HS.
-  subst gid. vm_compute in Hmem; discriminate.
+  exact (safeb_of_nonfam_sym lp SafeB Hsyms _ _ Hs (non_safeb_stored _ Hmem)).
 Qed.
 
 Lemma ktab_blk :
   forall (lp : Clight.program) (init : mem) (bm bc : block) (oc0 : ptrofs)
          (SafeB : block -> Prop),
-    spawn_ok lp init bm bc oc0 -> SafeB_iff lp SafeB ->
+    spawn_ok lp init bm bc oc0 -> SafeB_syms_ok lp SafeB ->
     forall gid kb,
       mem_id gid knockback_table_ids = true ->
       Genv.find_symbol (lp_ge lp) gid = Some kb ->
       kb <> bm /\ kb <> bc /\ ~ SafeB kb.
 Proof.
-  intros lp init bm bc oc0 SafeB Hspawn Hiff gid kb Hmem Hs.
+  intros lp init bm bc oc0 SafeB Hspawn Hsyms gid kb Hmem Hs.
   destruct (spawn_Hktab_neq lp init bm bc oc0 Hspawn gid kb Hmem Hs)
     as (Hnbm & Hnbc).
   split; [exact Hnbm | split; [exact Hnbc | ]].
-  intro HS. apply (proj1 (Hiff _ _ Hs)) in HS.
-  subst gid. vm_compute in Hmem; discriminate.
+  exact (safeb_of_nonfam_sym lp SafeB Hsyms _ _ Hs (non_safeb_ktab _ Hmem)).
 Qed.
 
 (* ---------------------------------------------------------------------- *)
-(* NON-VACUITY CERTIFICATE for HSafeB_sym_iff: the concrete SafeB the game   *)
-(* realizes (object graph UNION the sFloorAlignMatrix symbol block)         *)
-(* satisfies the iff.  Witnesses that the row is jointly satisfiable and is  *)
-(* NOT the empty predicate -- objblks blocks (>= genv_next) are held by      *)
-(* SafeB_wit yet the iff pins only the symbol part.                          *)
+(* NON-VACUITY CERTIFICATE for HSafeB_syms: any runtime object blocks       *)
+(* (>= genv_next) plus ANY set of permitted symbols (in particular the      *)
+(* chase closure's: gMarioAnimsBuf, gBodyStates, gPlayerCameraState, the    *)
+(* behavior scripts, ...) plus sFloorAlignMatrix satisfies the row.          *)
 (* ---------------------------------------------------------------------- *)
 
 Definition SafeB_wit (lp : Clight.program) (objblks : block -> Prop)
-  : block -> Prop :=
+  (symok : ident -> Prop) : block -> Prop :=
   fun b => objblks b
-        \/ Genv.find_symbol (lp_ge lp) mario_actions_moving._sFloorAlignMatrix
-             = Some b.
+        \/ exists id, (symok id \/ id = mario_actions_moving._sFloorAlignMatrix)
+                    /\ Genv.find_symbol (lp_ge lp) id = Some b.
 
 Lemma safeb_wit_sat :
-  forall (lp : Clight.program) (objblks : block -> Prop),
+  forall (lp : Clight.program) (objblks : block -> Prop) (symok : ident -> Prop),
     (forall b, objblks b -> Plt (Genv.genv_next (lp_ge lp)) b) ->
-    forall id b,
-      Genv.find_symbol (lp_ge lp) id = Some b ->
-      (SafeB_wit lp objblks b <-> id = mario_actions_moving._sFloorAlignMatrix).
+    (forall id, symok id -> mem_id id non_safeb_syms = false) ->
+    SafeB_syms_ok lp (SafeB_wit lp objblks symok).
 Proof.
-  intros lp objblks Hfresh id b Hs. unfold SafeB_wit. split.
-  - intros [Hobj | Hfam].
+  intros lp objblks symok Hfresh Hok. split.
+  - intros id b Hs [Hobj | (id' & Hid' & Hs')].
     + (* objblks b => b >= genv_next, but Hs gives b < genv_next: impossible *)
       exfalso. apply (Plt_strict b).
       eapply Plt_trans; [ eapply Genv.genv_symb_range; exact Hs | apply Hfresh; exact Hobj ].
-    + (* b is the sFloorAlignMatrix symbol block => id = sFloorAlignMatrix by inj *)
-      eapply Genv.genv_vars_inj; [ exact Hs | exact Hfam ].
-  - intro Hid. subst id. right. exact Hs.
+    + assert (E : id = id') by (eapply Genv.genv_vars_inj; [ exact Hs | exact Hs' ]).
+      subst id'. destruct Hid' as [Hk | ->]; [ exact (Hok _ Hk) | vm_compute; reflexivity ].
+  - intros b Hs. right. exists mario_actions_moving._sFloorAlignMatrix.
+    split; [ right; reflexivity | exact Hs ].
 Qed.
+
+(* the three symbols init_mario_from_save_file stores into chase roots are
+   permitted (the case the old singleton iff got wrong) *)
+Lemma init_mario_syms_permitted :
+  mem_id mario._gMarioAnimsBuf non_safeb_syms = false
+  /\ mem_id mario._gBodyStates non_safeb_syms = false
+  /\ mem_id mario._gPlayerCameraState non_safeb_syms = false.
+Proof. vm_compute. auto. Qed.

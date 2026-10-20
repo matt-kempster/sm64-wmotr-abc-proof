@@ -1,5 +1,29 @@
 # P5 slices 3–5 — SafeB concretization: design scout
 
+> **REPAIRED 2026-10-19 — the fulcrum answer below is WRONG for real states.**
+> `init_mario_from_save_file` (`mario.c:1874–1879`, linked) stores
+> `&gPlayerCameraState[0]`, `&gBodyStates[0]` and `&gMarioAnimsBuf` into the
+> chase-root cells `statusForCamera` / `marioBodyState` / `animList`. These are
+> BSS symbols (defined in `camera.c` / `mario_misc.c` / `game_init.c`, declared
+> `extern` in `mario.c`, so they *are* linked symbols), not runtime pool blocks.
+> R6 forces them into SafeB, and R7 (load closure) then forces in every symbol
+> the real object graph points at: `o->behavior` (`bhvYellowCoin`, …), collision
+> data, and function pointers inside behavior scripts. The iff
+> `SafeB b <-> id = sFloorAlignMatrix` therefore made `MWF_real` false of every
+> real gameplay memory, so both capstones were vacuous for the real game.
+>
+> **The repaired row** (`SpawnInit.SafeB_syms_ok`, capstone hypothesis
+> `HSafeB_syms`) is one-directional. On linked symbols, SafeB **avoids**
+> `non_safeb_syms` (gMarioStates, gControllers, gMarioState, gGlobalTimer,
+> sInteractionHandlers, the knockback/landing tables, every `stored_globals`
+> entry) and **contains** `sFloorAlignMatrix`. The consumers only ever used that
+> direction and that one positive fact, so all eight derived rows are unchanged.
+> The real SafeB is the pointer closure of the chase roots; the claim is that
+> the closure never reaches a `non_safeb_syms` block. `safeb_wit_sat` certifies
+> satisfiability with any permitted symbol set plus runtime blocks.
+> `init_mario_syms_permitted` checks that the three init symbols are permitted.
+
+
 Read-only design memo for task #92 (slices 3–5). **No `.v` was edited.** Answers
 the fulcrum question the slice-3-5 brief opens with (`docs/p5-init-grounding-design.md`
 Director's addendum, 2026-07-09): *where do the object-system blocks `SafeB` denotes

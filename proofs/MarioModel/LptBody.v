@@ -856,7 +856,7 @@ End LptFrame.
    boundary give LptFrame's block facts (SpawnInit) *)
 Theorem Hcsp_lpt_linked12 : forall lp bm bc oc0 SafeB,
     linked12 lp ->
-    SafeB_iff lp SafeB ->
+    SafeB_syms_ok lp SafeB ->
     (exists init, spawn_ok lp init bm bc oc0) ->
     os_dma_floor ->
     OutParamSurface.call_pres_ext_cs lp bm (fun m => ctl_a_clear m bm)

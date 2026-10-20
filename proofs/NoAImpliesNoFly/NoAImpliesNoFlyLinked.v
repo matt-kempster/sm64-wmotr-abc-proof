@@ -708,22 +708,20 @@ Section NoARealInputMWF.
      injectivity) -- see the Lemma just below Hspawn.  No longer assumed. ---- *)
 
   (* ---- P5 SLICE 3: the CONSOLIDATED SafeB honest-boundary row.  ONE row
-     (HSafeB_sym_iff) plus the faithful spawn condition (Hspawn, pinning
-     bm/bc as the gMarioStates/gControllers symbol blocks) REPLACE the eight
-     scattered SafeB rows (HSafeB_not_bm, HSafeB_not_bc, the five ~SafeB
-     conjuncts of the *_blk rows, and Hsfam_safe), which are now DERIVED as
-     the Lemmas below (from the SpawnInit exports).  The consolidation is an honest
-     REFINEMENT, not laundering: HSafeB_sym_iff says the intersection of SafeB
-     with the LINKED symbol table is exactly {sFloorAlignMatrix} -- the object
-     pool being external/runtime and never a mario.prog-family symbol
-     (docs/p5-safeb-design.md) -- and every one of the eight rows follows from
-     it by genv symbol injectivity / range.  Non-vacuity: SpawnInit.safeb_wit_sat
-     exhibits a concrete SafeB (object graph UNION the sFloorAlignMatrix block)
-     satisfying the iff.  See docs/p5-safeb-design.md, section 3. ---- *)
-  Hypothesis HSafeB_sym_iff :
-    forall id b,
-      Genv.find_symbol (lp_ge lp) id = Some b ->
-      (SafeB b <-> id = mario_actions_moving._sFloorAlignMatrix).
+     (HSafeB_syms) plus the faithful spawn condition (Hspawn, pinning bm/bc as
+     the gMarioStates/gControllers symbol blocks) REPLACE the eight scattered
+     SafeB rows (HSafeB_not_bm, HSafeB_not_bc, the five ~SafeB conjuncts of
+     the *_blk rows, and Hsfam_safe), which are DERIVED as the Lemmas below
+     (from the SpawnInit exports).  HSafeB_syms says: on the LINKED symbol
+     table, SafeB avoids SpawnInit.non_safeb_syms and contains
+     sFloorAlignMatrix.  REPAIRED 2026-10-19 from an iff pinning SafeB's
+     symbol part to {sFloorAlignMatrix}: that iff made MWF false of every real
+     post-init memory (init_mario_from_save_file stores &gMarioAnimsBuf,
+     &gBodyStates[0], &gPlayerCameraState[0] into chase roots, and R7 then
+     pulls in every symbol the object graph points at).  The one-directional
+     row is weaker, so the capstone is stronger.  Non-vacuity:
+     SpawnInit.safeb_wit_sat.  See docs/p5-safeb-design.md. ---- *)
+  Hypothesis HSafeB_syms : SafeB_syms_ok lp SafeB.
   Hypothesis Hspawn : exists init, spawn_ok lp init bm bc oc0.
 
   (* task #92 tail: Hbc_bm DERIVED from the faithful spawn condition (was an
@@ -737,19 +735,19 @@ Section NoARealInputMWF.
   Lemma HSafeB_not_bm : forall b, SafeB b -> b <> bm.
   Proof.
     destruct Hspawn as (init & Hs).
-    exact (safeb_not_bm lp init bm bc oc0 SafeB Hs HSafeB_sym_iff).
+    exact (safeb_not_bm lp init bm bc oc0 SafeB Hs HSafeB_syms).
   Qed.
   Lemma HSafeB_not_bc : ~ SafeB bc.
   Proof.
     destruct Hspawn as (init & Hs).
-    exact (safeb_not_bc lp init bm bc oc0 SafeB Hs HSafeB_sym_iff).
+    exact (safeb_not_bc lp init bm bc oc0 SafeB Hs HSafeB_syms).
   Qed.
   Lemma Hgms_blk : forall gb,
       Genv.find_symbol (lp_ge lp) mario._gMarioState = Some gb ->
       gb <> bm /\ gb <> bc /\ ~ SafeB gb.
   Proof.
     destruct Hspawn as (init & Hs).
-    exact (gms_blk lp init bm bc oc0 SafeB Hs HSafeB_sym_iff).
+    exact (gms_blk lp init bm bc oc0 SafeB Hs HSafeB_syms).
   Qed.
   Lemma Hglob_blk : forall gid bg,
       mem_id gid stored_globals = true ->
@@ -757,21 +755,21 @@ Section NoARealInputMWF.
       bg <> bm /\ bg <> bc /\ ~ SafeB bg.
   Proof.
     destruct Hspawn as (init & Hs).
-    exact (glob_blk lp init bm bc oc0 SafeB Hs HSafeB_sym_iff).
+    exact (glob_blk lp init bm bc oc0 SafeB Hs HSafeB_syms).
   Qed.
   Lemma Hgtimer_blk : forall gb,
       Genv.find_symbol (lp_ge lp) interaction._gGlobalTimer = Some gb ->
       gb <> bm /\ gb <> bc /\ ~ SafeB gb.
   Proof.
     destruct Hspawn as (init & Hs).
-    exact (gtimer_blk lp init bm bc oc0 SafeB Hs HSafeB_sym_iff).
+    exact (gtimer_blk lp init bm bc oc0 SafeB Hs HSafeB_syms).
   Qed.
   Lemma Htable_blk : forall tb,
       Genv.find_symbol (lp_ge lp) interaction._sInteractionHandlers = Some tb ->
       tb <> bm /\ tb <> bc /\ ~ SafeB tb.
   Proof.
     destruct Hspawn as (init & Hs).
-    exact (table_blk lp init bm bc oc0 SafeB Hs HSafeB_sym_iff).
+    exact (table_blk lp init bm bc oc0 SafeB Hs HSafeB_syms).
   Qed.
   Lemma Hktab_blk : forall gid kb,
       mem_id gid knockback_table_ids = true ->
@@ -779,14 +777,14 @@ Section NoARealInputMWF.
       kb <> bm /\ kb <> bc /\ ~ SafeB kb.
   Proof.
     destruct Hspawn as (init & Hs).
-    exact (ktab_blk lp init bm bc oc0 SafeB Hs HSafeB_sym_iff).
+    exact (ktab_blk lp init bm bc oc0 SafeB Hs HSafeB_syms).
   Qed.
   Lemma Hsfam_safe : forall gb,
       Genv.find_symbol (lp_ge lp) mario_actions_moving._sFloorAlignMatrix
         = Some gb -> SafeB gb.
   Proof.
     destruct Hspawn as (init & Hs).
-    exact (sfam_safe lp init bm bc oc0 SafeB Hs HSafeB_sym_iff).
+    exact (sfam_safe lp init bm bc oc0 SafeB Hs HSafeB_syms).
   Qed.
 
   (* ---- the OUT-PARAM ARC residuals (find_floor phantom -> honest swap).
