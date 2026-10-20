@@ -17,7 +17,7 @@ From Coq Require Import ZArith Reals List Lia Lra.
 From compcert Require Import Coqlib Maps AST Integers Floats Values Memory Ctypes Clight.
 From Flocq Require Import Raux.
 From SM64.Proofs Require Import Interp.SymExec2 HeightInvariant HeightMoveCatalog WMotRLevel.
-From SM64.Proofs.WMotRRequiresA Require Import HeightFloatSteps.
+From SM64.Proofs.WMotRRequiresA Require Import HeightFloatSteps HeightBudgetArith.
 From compcert Require Import ClightBigstep.
 From SM64.Generated Require mario_step.
 From SM64.Proofs Require Import Interp.LinkGenv MarioModel.LinkedTwelve.
@@ -93,7 +93,7 @@ Lemma pos_low : forall cl p, aclass_of LD IC (g_pc g) rM rO kH = Some cl -> cl <
 Proof.
   intros cl p H N LY Fp.
   destruct (aclass_above ge nbase R0 gtab kv m0 uf gp gp_old E m g rM rO kH MM HUH HbM cl H)
-    as [-> | (p' & x & LY' & C & Hx)]; [congruence |].
+    as [(-> & _) | (p' & x & LY' & C & Hx & _)]; [congruence |].
   rewrite LY in LY'. injection LY' as <-.
   apply (above_low ge m0 p x FD Fp C).
   destruct Hx as [LF | Hx]; [left | right; exact Hx].
@@ -269,6 +269,33 @@ Proof.
   - change (mode_of (mkCells (c_action c) (c_state c) (c_timer c) h v' fh h)) with (mode_of c).
     rewrite mode_ff. exact Hv'.
   - intros E'. exfalso. exact (not_ledge E').
+Qed.
+
+(* a step that did not attach (the four-quarter and cut classes) ends as a
+   floor refresh: pos[1] above the floorHeight it compared against, which
+   is the outcome's own floorHeight (AirMatch.is_above), or nothing moved *)
+Theorem class_fro : forall cl c', aclass_of LD IC (g_pc g) rM rO kH = Some cl ->
+  read_cells bm m c' -> InRange c' ->
+  FloorRefreshOK wmotr_floor (R2 (c_posy c')) (R2 (c_floorh c')).
+Proof using gp_old MM HUH HbM HA HS HT HY HV HF Hc Hact FD FRO.
+  intros cl c' H RC IR.
+  destruct RC as (_ & _ & _ & Y' & _ & F' & _).
+  change OFS_POSY with oY in Y'. change OFS_FLOORH with oF in F'.
+  destruct IR as (Fy' & _ & _ & _ & _ & (Ff' & _) & _).
+  destruct (aclass_above ge nbase R0 gtab kv m0 uf gp gp_old E m g rM rO kH MM HUH HbM cl H)
+    as [(-> & LF) | (p & x & LY & C & Hx & LF)].
+  - destruct (aclass_cut ge nbase R0 gtab kv m0 uf gp gp_old E m g rM rO (c_posy c) (c_vely c) kH
+                MM HbM HY HV 0 H) as (_ & _ & (p & Ep & LY & _)).
+    rewrite Y' in LY. injection LY as <-. cbn [quarter_steps] in Ep.
+    rewrite F', HF in LF. injection LF as LF. rewrite Ep, LF. exact FRO.
+  - rewrite Y' in LY. injection LY as <-. rewrite F' in LF. injection LF as <-.
+    pose proof (cle_false_gt _ _ Fy' Ff' C) as Lt.
+    assert (Hs : R2 (c_floorh c') <= R2 (c_posy c') + STEP_UP) by (unfold STEP_UP; lra).
+    destruct Hx as [LF0 | Hh].
+    + rewrite HF in LF0. injection LF0 as LF0. rewrite <- LF0.
+      destruct FRO as [Es | (Wf & _)]; [left; exact Es | right; split; [exact Wf |]].
+      rewrite LF0. exact Hs.
+    + right. split; [exact (proj2 (proj2 (FD _ Hh))) | exact Hs].
 Qed.
 
 (* every classified outcome of the real perform_air_step is one RangedMove *)

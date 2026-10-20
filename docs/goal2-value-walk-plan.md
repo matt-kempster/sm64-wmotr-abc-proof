@@ -637,6 +637,15 @@ cells; `wmotr_world` already carries both.
    buffer layout, the partition `Wff`, `floor_data`, floor/area world
    pointers, m->input's A bits, the floor refresh), proved to survive the
    frame's own stores; `ff_moves` builds env_ok and the start facts from it
-   and the freefall case's MoveChain is a theorem. **Next:** `ff_keeps`
-   (act_freefall keeps fworld: a footprint walk of the real body, plus
-   ffw's partition / floor refresh after the step), then the other cases.
+   and the freefall case's MoveChain is a theorem.
+6. `ff_keeps`. **Done (2026-10-20, `FfKeepCheck.v` / `FfKeep.v` / `FfRow.ff_row`):**
+   the same walk checks every outcome keeps fworld (action a no-A constant;
+   the cells fworld reads unchanged; m->floor / m->wall the entry cell, NULL
+   or a fresh WMotR surface off the regions; only the DMA regions clobbered),
+   and fworld is rebuilt after the call from that and from
+   `ClightClosed.funcall_closed`. Findings: the floor refresh holds only in
+   freefall; ffw needed injection closedness, wall/ceil/controller off the
+   regions and collided objects in Mario's object block; the find_floor /
+   wall contracts now hand out a surface fact, and the entry floor needs it
+   as a start fact (a join drops a fact one side lacks). **Next:** the
+   other ten cases (`air_case_rest`).

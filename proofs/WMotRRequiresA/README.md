@@ -64,8 +64,10 @@ Prototypes still live in `playground/` (T1 PlatformInert, T2 FloatBrick, T3 Valu
 ## The act_freefall walk (on the spine since 2026-10-20)
 
 `FfWorld.v` is the carried start condition `ffw` (a conjunct of `FrameSplit.fworld` and
-`HeightFrame.PhiW`), and `FfRow.v` builds the walk's start state from it (`ff_moves`): the
-freefall case's MoveChain is proved. The walk's files:
+`HeightFrame.PhiW`), and `FfRow.v` builds the walk's start state from it and proves the whole
+freefall row (`ff_row`): the call keeps the frame world and moves Phi's cells by a MoveChain.
+`FfKeepCheck.v` is the walk's per-outcome check that the frame world is kept and `FfKeep.v` what it
+means; closedness across the call is `Generic/ClightClosed.funcall_closed`. The walk's files:
 
 - `FloorList.v`: the value contract of the real `find_floor_from_list`. It returns
   NULL with memory unchanged, or a surface read from a node of the list, with one

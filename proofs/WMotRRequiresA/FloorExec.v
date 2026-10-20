@@ -71,7 +71,7 @@ Qed.
 
 (* THE CONTRACT.  The pointer argument must be a live local (find_floor's
    callers pass &floor, a local) and the world fact must be present. *)
-Definition c_ff (nbase : positive) (R0 : list (positive * Z)) (rFI rMS rCL kW kH : positive)
+Definition c_ff (nbase : positive) (R0 : list (positive * Z)) (rFI rMS rCL kW kH kS : positive)
     (szS : Z) : xcontract := fun args g =>
   match args with
   | [_; ay; _; Sptr rp op] =>
@@ -95,8 +95,9 @@ Definition c_ff (nbase : positive) (R0 : list (positive * Z)) (rFI rMS rCL kW kH
               sstore nbase R0 g4 rp (Ptrofs.unsigned op) Mint32 (Sfresh n4) with
         | Some gN, Some gS =>
             Some [(gN, Sfresh n5);
-                  (add_fact (add_fact (add_fact (add_fact gS (Fworld (Sfresh n4) szS))
-                     (fty 56 (Sfresh n4))) (fty 1 (Sfresh n4))) (Fuser kH [Sfresh n5; ay]),
+                  (add_fact (add_fact (add_fact (add_fact (add_fact gS (Fworld (Sfresh n4) szS))
+                     (fty 56 (Sfresh n4))) (fty 1 (Sfresh n4))) (Fuser kH [Sfresh n5; ay]))
+                     (Fuser kS (Sfresh n4 :: wargs R0)),
                    Sfresh n5)]
         | _, _ => None
         end end end end end
@@ -112,6 +113,16 @@ Definition w_cells : list (ident * Z) :=
 (* region blocks named by the world fact's arguments *)
 Definition rblk (vs : list (option val)) (b : block) : Prop :=
   exists o, In (Some (Vptr b o)) vs.
+
+(* THE SURFACE FACT Fuser kS (p :: the consumer's regions): p is a WMotR
+   surface of m0 (styp) in a block that is none of the regions -- what a
+   caller needs to keep a stored surface pointer (m->floor, m->wall) a
+   WMotR surface after the call *)
+Definition surf_on (m0 : mem) (vs : list (option val)) : Prop :=
+  match vs with
+  | Some v :: rl => exists b o, v = Vptr b o /\ styp m0 b o /\ ~ rblk rl b
+  | _ => False
+  end.
 
 (* THE WORLD FACT's meaning (about the frame's entry memory m0) *)
 Definition Wff (ge : genv) (m0 : mem) (gp : meminj) (szS : Z) (vs : list (option val)) : Prop :=
@@ -199,7 +210,7 @@ Let gp_plt {b} (H : gp b <> None) : Plt b (Mem.nextblock m0) :=
   | Some x => fun G => gp_old b x G
   | None => fun G => False_ind _ (H G)
   end eq_refl.
-Variables rFI rMS rCL kW kH : positive.
+Variables rFI rMS rCL kW kH kS : positive.
 Variable szS : Z.
 
 Local Notation MM := (MMg ge nbase R0 gtab kv m0 uf gp).
@@ -212,6 +223,8 @@ Hypothesis HgFI : gfind gtab surface_collision._gFindFloorIncludeSurfaceIntangib
 Hypothesis HgMS : gfind gtab surface_collision._gNumFindFloorMisses = Some rMS.
 Hypothesis HgCL : gfind gtab surface_collision._gNumCalls = Some rCL.
 Hypothesis HU : forall vs, uf kW vs -> Wff ge m0 gp szS vs.
+(* the surface fact's meaning *)
+Hypothesis HUS : forall vs, surf_on m0 vs -> uf kS vs.
 (* the height fact's meaning *)
 Hypothesis HUH : forall h yv, HPi (Hit_at ge m0) (ycast yv) h -> Hit_at ge m0 h ->
   uf kH [Some (Vsingle h); Some yv].
@@ -309,7 +322,7 @@ Ltac pos_ne := let HH := fresh in intro HH; repeat rewrite <- Pos.add_1_r in HH;
 
 (* THE SOUNDNESS of c_ff against the real find_floor *)
 Theorem c_ff_sound : forall args g cps E m vargs t m' vres,
-  c_ff nbase R0 rFI rMS rCL kW kH szS args g = Some cps ->
+  c_ff nbase R0 rFI rMS rCL kW kH kS szS args g = Some cps ->
   MM E m g ->
   Forall2 (fun a v => den E a = Some v /\ sok nbase (g_nx g) a) args vargs ->
   eval_funcall function_entry2 ge m (Internal surface_collision.f_find_floor) vargs t m' vres ->
@@ -672,8 +685,8 @@ Proof.
     apply FIN; [| rewrite Y5; apply LCg; reflexivity | rewrite X5; exact NXg4].
     eapply (TAIL (Sconst (Vint Int.zero)) gN gN S5N); [rewrite Efl; reflexivity | exact M5' | reflexivity | exact Y5].
   - (* a world surface: the second outcome *)
-    exists (add_fact (add_fact (add_fact (add_fact gS (Fworld (Sfresh n4) szS)) (fty 56 (Sfresh n4)))
-              (fty 1 (Sfresh n4))) (Fuser kH [Sfresh n5; a2]), Sfresh n5).
+    exists (add_fact (add_fact (add_fact (add_fact (add_fact gS (Fworld (Sfresh n4) szS)) (fty 56 (Sfresh n4)))
+              (fty 1 (Sfresh n4))) (Fuser kH [Sfresh n5; a2])) (Fuser kS (Sfresh n4 :: wargs R0)), Sfresh n5).
     split; [right; left; reflexivity |].
     destruct (sstore_sound ge nbase R0 gtab kv m0 uf gp gp_old E6 m4 g4 rp (Ptrofs.unsigned op) Mint32
                 (Sfresh n4) fl m5 gS M4' S5S
@@ -711,8 +724,24 @@ Proof.
         assert (Lfl : Mem.loadv Mint32 m' (Vptr bpf op) = Some fl) by (cbn [Mem.loadv] in *; exact Hld).
         destruct (proj2 HGT fl Lfl) as [[N | N] | Hh]; [rewrite Efl in N; discriminate N
                                                       | rewrite Efl in N; discriminate N | exact Hh]. }
+    assert (MA4 : MM E6 m5 (add_fact (add_fact (add_fact (add_fact (add_fact gS (Fworld (Sfresh n4) szS))
+                              (fty 56 (Sfresh n4))) (fty 1 (Sfresh n4))) (Fuser kH [Sfresh n5; a2]))
+                              (Fuser kS (Sfresh n4 :: wargs R0)))).
+    { apply MMg_add_fact; [exact MA3 | |].
+      - destruct (PC _ IW) as (NW & _). cbn [fact_nlt] in NW |- *.
+        match goal with |- Forall (nlt ?N) _ =>
+          assert (EN : N = Pos.succ n5) by (cbn; rewrite X5, NXg4; reflexivity); rewrite EN end.
+        constructor; [cbn [nlt]; unfold Plt, n5; lia |].
+        refine (Forall_impl _ _ NW). intros a Na.
+        refine (nlt_mono nbase (fun _ => None) (fun _ => false) uf _ _ _ Na _). unfold Ple, n5, n4, n3, n2, n1, n0; lia.
+      - cbn [fact_holds map]. apply HUS. rewrite D5, Efl.
+        assert (WA : map (den E6) (wargs R0) = vs).
+        { unfold vs, wargs. rewrite !map_map. apply map_ext. intros [r z]. cbn [fst SymExec2.den].
+          rewrite (proj1 RX), (proj1 (proj2 RX)). reflexivity. }
+        cbn [surf_on]. rewrite WA. exists bs, os. split; [reflexivity |].
+        split; [exact (FTy bs os Efl) | exact NRbs]. }
     apply FIN; [| cbn; rewrite Y5; apply LCg; reflexivity | cbn; rewrite X5; exact NXg4].
-    eapply (TAIL (Sfresh n4) gS); [exact S5S | exact D5 | exact MA3 | reflexivity | cbn; exact Y5].
+    eapply (TAIL (Sfresh n4) gS); [exact S5S | exact D5 | exact MA4 | reflexivity | cbn; exact Y5].
 Qed.
 
 End FE.

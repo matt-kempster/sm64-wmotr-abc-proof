@@ -44,8 +44,8 @@ proofs/Generic/GlobalSeparation.v
 proofs/Generic/SymbolicLinking.v
 proofs/Generic/RootedLvalue.v
 proofs/Generic/ClightDeterm.v
-proofs/Generic/Unwired/ClosedMem.v
-proofs/Generic/Unwired/ClightClosed.v
+proofs/Generic/ClosedMem.v
+proofs/Generic/ClightClosed.v
 
 # --- shared: Mario action vocabulary + value engine ---
 proofs/MarioModel/Flying.v
@@ -287,6 +287,8 @@ proofs/WMotRRequiresA/AirMove.v
 proofs/WMotRRequiresA/AirSum.v
 proofs/WMotRRequiresA/ExtInert.v
 proofs/WMotRRequiresA/FfClass.v
+proofs/WMotRRequiresA/FfKeepCheck.v
+proofs/WMotRRequiresA/FfKeep.v
 proofs/WMotRRequiresA/FfRun.v
 proofs/WMotRRequiresA/AirStart.v
 proofs/WMotRRequiresA/FfWorld.v

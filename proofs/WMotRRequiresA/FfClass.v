@@ -293,8 +293,17 @@ Local Notation RMv := (RangedMove wmotr_floor wmotr_pole wmotr_cannon).
 Lemma Inrange_of : forall c c1, RM' c c1 -> InRange c1.
 Proof. intros c c1 [H _]. exact H. Qed.
 
+(* an outcome that stays in freefall is a floor refresh again *)
+Definition fro_ff (c : cells) : Prop :=
+  c_action c = ACT_FREEFALL -> FloorRefreshOK wmotr_floor (R2 (c_posy c)) (R2 (c_floorh c)).
+
+Lemma not_ff_mode : forall a s md, mode_of_action a s = md -> md <> M_Freefall -> a <> ACT_FREEFALL.
+Proof.
+  intros a s md H N ->. apply N. rewrite <- H. unfold mode_of_action. rewrite Int.eq_true. reflexivity.
+Qed.
+
 Theorem ff_sound : ff_ok nbase R0 kv rM rO kM g = true ->
-  exists c2, read_cells bm m c2 /\ MC c0 c2.
+  exists c2, read_cells bm m c2 /\ MC c0 c2 /\ fro_ff c2.
 Proof.
   intros OK. unfold ff_ok in OK.
   destruct (LD rM oMO Mint32) as [smo|] eqn:LMO; [| discriminate OK].
@@ -329,7 +338,7 @@ Proof.
     destruct (skipn 7 rest) as [| a1 [| s1 [| t1 [| y1 [| v1 [| f1 [| g1 [|]]]]]]]] eqn:S7;
       try discriminate OK.
     destruct (step_fact n1 cl r rest a1 s1 t1 y1 v1 f1 g1 If H7 S7)
-      as (c1 & (RM1 & AI & AO) & DA1 & DS1 & DT1 & DY1 & DV1 & DF1 & DG1).
+      as (c1 & (RM1 & AI & AO & FR1) & DA1 & DS1 & DT1 & DY1 & DV1 & DF1 & DG1).
     repeat rewrite andb_true_iff in OK. destruct OK as [[[Ey Ef] Eg] OK].
     apply sveqb_eq in Ey, Ef, Eg. subst sy sf sg.
     rewrite DY1 in MY. rewrite DF1 in MF.
@@ -338,10 +347,11 @@ Proof.
     + (* stay *)
       repeat rewrite andb_true_iff in OK. destruct OK as [[[[Ec Ea] Es] Et] Ev].
       apply sveqb_eq in Ea, Es, Et, Ev. subst sa ss st sv.
-      exists c1. split.
+      exists c1. split; [| split].
       * rewrite DA1 in MA. rewrite DS1 in MS. rewrite DT1 in MT. rewrite DV1 in MV'.
         exact (mk_read c1 g1 LMO MA MS MT MY MV' MF Lg DG1).
       * apply rt_step. exact RM1.
+      * intros _. apply FR1. pose proof (Int.eq_spec cl Int.zero) as X. rewrite Ec in X. exact X.
     + (* wall switch *)
       repeat rewrite andb_true_iff in OK. destruct OK as [[[Ec Ea1] CK] VV].
       apply sveqb_eq in Ea1. subst a1. cbn [SymExec2.den] in DA1. injection DA1 as DA1.
@@ -357,7 +367,7 @@ Proof.
           exact (velpos_sound v1 (c_vely c1) f If' Pf DV1 (proj1 (proj2 IR1))). }
       destruct Hv2 as (v2 & LV & Hv2).
       set (c2 := mkCells a s t (c_posy c1) v2 (c_floorh c1) (c_gfxy c1)).
-      exists c2. split.
+      exists c2. split; [| split; [| intros Ea; exfalso; exact (not_ff_mode _ _ _ Md ltac:(discriminate) Ea)]].
       * exact (mk_read c2 g1 LMO MA MS MT MY LV MF Lg DG1).
       * eapply rt_trans; [apply rt_step; exact RM1 | apply rt_step].
         assert (M1 : mode_of c1 = M_Freefall) by (apply mode_ff_of; symmetry; exact DA1).
@@ -382,7 +392,7 @@ Proof.
       { intros ->. apply orb_true_iff in Ecl as [X | X]; vm_compute in X; discriminate X. }
       destruct (AI NZ) as (h & AOK & Lh & Gh).
       set (c2 := mkCells a s t (c_posy c1) (c_vely c1) (c_floorh c1) (c_gfxy c1)).
-      exists c2. split.
+      exists c2. split; [| split; [| intros Ea; exfalso; exact (not_ff_mode _ _ _ Md ltac:(discriminate) Ea)]].
       * exact (mk_read c2 g1 LMO MA MS MT MY MV' MF Lg DG1).
       * apply rt_step. split; [apply (inrange_same c1 c2 IR1); reflexivity |].
         apply (S_attach _ _ _ c0 c2 h AOK).
@@ -399,7 +409,7 @@ Proof.
     cbn [SymExec2.den] in MA, MS, MT.
     set (c2 := mkCells a s t (c_posy c0) (c_vely c0) (c_floorh c0) (c_gfxy c0)).
     assert (M0 : mode_of c0 = M_Freefall) by exact (mode_ff_of c0 Hact).
-    exists c2. split.
+    exists c2. split; [| split].
     + rewrite DY0 in MY. rewrite DV0 in MV'. rewrite DF0 in MF.
       exact (mk_read c2 _ LMO MA MS MT MY MV' MF Lg DG0).
     + apply rt_step. split; [apply (inrange_same c0 c2 IR0); reflexivity |].
@@ -415,5 +425,8 @@ Proof.
         pose proof (Int.eq_spec s Int.zero) as Y. rewrite Es in Y.
         pose proof (Int.eq_spec t Int.zero) as W. rewrite Et in W.
         subst s t. apply Sw_gp; [exact M0 | exact X | reflexivity | reflexivity].
+    + intros Ea. change (a = ACT_FREEFALL) in Ea. exfalso. unfold entry_sw in SW. apply orb_true_iff in SW as [SW | SW].
+      * apply mode_eqb_eq in SW. exact (not_ff_mode _ _ _ SW ltac:(discriminate) Ea).
+      * subst a. vm_compute in SW. discriminate SW.
 Qed.
 End SOUND.

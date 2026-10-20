@@ -50,8 +50,9 @@ Definition kv : list (positive * Z * memory_chunk * sval) :=
 
 Definition kW : positive := 1.
 Definition kH : positive := 2.
+Definition kS : positive := 5.
 Definition xc : ident -> option xcontract :=
-  air_xc NB R0 RFI RMISS RCALLS kW kH (szs mario._Surface).
+  air_xc NB R0 RFI RMISS RCALLS kW kH kS (szs mario._Surface).
 
 (* cells joins keep exact: action, actionState, actionTimer, pos[1], vel[1],
    floorHeight, gfx.pos[1] *)
@@ -84,6 +85,7 @@ Definition ok_c (c : cpath) : bool :=
 Definition ufW (m0 : mem) (gp : meminj) : positive -> list (option val) -> Prop :=
   fun k vs =>
     if Pos.eqb k kW then Wff g m0 gp (szs mario._Surface) vs
+    else if Pos.eqb k kS then surf_on m0 vs
     else match vs with
          | [Some (Vsingle h); Some yv] => HPi (Hit_at g m0) (ycast yv) h /\ Hit_at g m0 h
          | _ => False
@@ -92,7 +94,8 @@ Definition ufW (m0 : mem) (gp : meminj) : positive -> list (option val) -> Prop 
 Lemma ufW_kH : forall m0 gp vs, ufW m0 gp kH vs ->
   exists h yv, vs = [Some (Vsingle h); Some yv] /\ HPi (Hit_at g m0) (ycast yv) h /\ Hit_at g m0 h.
 Proof.
-  intros m0 gp vs H. unfold ufW in H. change (Pos.eqb kH kW) with false in H. cbv iota in H.
+  intros m0 gp vs H. unfold ufW in H. change (Pos.eqb kH kW) with false in H.
+  change (Pos.eqb kH kS) with false in H. cbv iota in H.
   destruct vs as [| [[| | | | h |]|] [| [yv|] [| o3 r]]]; cbv iota in H; try contradiction.
   exists h, yv. split; [reflexivity | exact H].
 Qed.
@@ -158,8 +161,8 @@ Proof.
     intros f Hf. split; [exact (pc0_nlt f Hf) | exact (PC f Hf)]. }
   assert (XS := air_xc_sound_link lp (linked12_LO_surf lp H12) (linked12_LO_math lp H12)
                   (linked12_LO_mario lp H12) NB (R0 G) gtab (kv G) m0 (ufW G m0 gp) gp
-                  RFI RMISS RCALLS kW kH (szs G mario._Surface) GPO eq_refl eq_refl eq_refl
-                  (fun vs H => H) (fun h yv H1 H2 => conj H1 H2)).
+                  RFI RMISS RCALLS kW kH kS (szs G mario._Surface) GPO eq_refl eq_refl eq_refl
+                  (fun vs H => H) (fun h yv H1 H2 => conj H1 H2) (fun vs H => H)).
   assert (ARGS : Forall2 (fun a v => den G m0 E a = Some v /\ sok NB (g_nx (g0 G)) a) args0
                    [Vptr (e_blk E RM) (Ptrofs.add (e_base E RM) Ptrofs.zero); Vint Int.one]).
   { constructor; [| constructor; [| constructor]].

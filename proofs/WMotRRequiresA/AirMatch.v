@@ -265,12 +265,16 @@ Definition is_land (a : sval) : bool :=
    !(nextPos[1] <= floorHeight) (mario_step.c perform_air_quarter_step),
    with floorHeight the entry m->floorHeight (a floorless quarter) or a
    find_floor height (is_land's two forms); a zero-quarter cut leaves pos *)
-Definition is_above (py : sval) (f : fact) : bool :=
+Definition is_above (py pf : sval) (f : fact) : bool :=
   match f with
-  | Fbool (Sbinop Cop.Ole a t1 x t2) _ false => sveqb a py && is_tf t1 && is_tf t2 && is_land x
+  | Fbool (Sbinop Cop.Ole a t1 x t2) _ false =>
+      sveqb a py && sveqb x pf && is_tf t1 && is_tf t2 && is_land x
   | _ => false
   end.
-Definition above (py : sval) : bool := existsb (is_above py) pc.
+(* the compared height must be the outcome's floorHeight cell: then the
+   step ends with pos[1] above its own floorHeight (a floor refresh) *)
+Definition fcell : sval := match ld rM oF Mfloat32 with Some a => a | None => Sconst Vundef end.
+Definition above (py : sval) : bool := existsb (is_above py fcell) pc.
 
 Definition aclass_of : option aclass :=
   if same_cell oA Mint32 && same_cell oS Mint16unsigned && same_cell oT Mint16unsigned then
@@ -280,7 +284,8 @@ Definition aclass_of : option aclass :=
           match qrec rM oY oV py with
           | Some (k, j) =>
               if vel_cut vy then
-                (if Nat.leb k 4 && (Nat.eqb k 0 || above py) then Some (Ccut k) else None)
+                (if Nat.leb k 4 && ((Nat.eqb k 0 && same_cell oF Mfloat32) || above py)
+                 then Some (Ccut k) else None)
               else if vel_ok rM pc vy then
                 (match k, j with 4%nat, O => if above py then Some Cair else None | _, _ => None end)
               else None
@@ -540,10 +545,11 @@ Qed.
 (* the non-landing fact: pos[1] ended NOT <= the floor height it was
    compared with, the entry floorHeight cell or a find_floor hit *)
 Lemma above_sound : forall py, LD rM oY Mfloat32 = Some py ->
-  above (g_pc g) rM kH py = true ->
+  above LD (g_pc g) rM kH py = true ->
   exists p x, Mem.load Mfloat32 m (e_blk E rM) oY = Some (Vsingle p)
     /\ Float32.cmp Cle p x = false
-    /\ (Mem.load Mfloat32 m0 (e_blk E rM) oF = Some (Vsingle x) \/ Hit_at ge m0 x).
+    /\ (Mem.load Mfloat32 m0 (e_blk E rM) oF = Some (Vsingle x) \/ Hit_at ge m0 x)
+    /\ Mem.load Mfloat32 m (e_blk E rM) oF = Some (Vsingle x).
 Proof.
   intros py LY AB. unfold above in AB. apply existsb_exists in AB as (f & If & Hf).
   pose proof MM as (_ & _ & _ & _ & _ & _ & PC & _).
@@ -552,8 +558,13 @@ Proof.
   destruct c as [ | | | | | | | op a t1 x t2 | | ]; try discriminate.
   destruct op; try discriminate. destruct b; try discriminate.
   cbn [is_above] in Hf. repeat rewrite andb_true_iff in Hf.
-  destruct Hf as (((Ha & H1) & H2) & HL).
+  destruct Hf as ((((Ha & Hx') & H1) & H2) & HL).
   unfold sveqb in Ha. destruct (sval_eq a py) as [->|]; [| discriminate].
+  assert (LFx : LD rM oF Mfloat32 = Some x).
+  { unfold sveqb in Hx'. destruct (sval_eq x (fcell LD rM)) as [Ex|]; [| discriminate].
+    unfold fcell in Ex. destruct (LD rM oF Mfloat32) as [a'|]; [congruence |].
+    subst x. discriminate HL. }
+  pose proof (ld_sound _ _ _ _ LFx) as DF. rewrite addr_M in DF.
   apply is_tf_eq in H1. apply is_tf_eq in H2. subst t1 t2.
   cbn [fact_holds] in FH. destruct FH as (w & Dw & Bw).
   pose proof (ld_sound _ _ _ _ LY) as DY. rewrite addr_M in DY.
@@ -581,17 +592,18 @@ Proof.
   cbn [den] in Dw. rewrite Dx, <- DY in Dw.
   destruct (Mem.load Mfloat32 m (e_blk E rM) oY) as [vp|]; [| discriminate].
   cbn in Dw. destruct (ole_den vp xv w Dw) as (p & -> & ->).
-  exists p, xv. split; [reflexivity | split; [| exact Hx]].
+  exists p, xv. split; [reflexivity | split; [| split; [exact Hx | rewrite DF; exact Dx]]].
   destruct (Float32.cmp Cle p xv); [| reflexivity].
   exfalso. revert Bw. unfold bool_val. destruct (classify_bool ty); cbn;
     try rewrite (Int.eq_false _ _ Int.one_not_zero); cbn; congruence.
 Qed.
 
 Theorem aclass_above : forall c, aclass_of LD IC (g_pc g) rM rO kH = Some c ->
-  c = Ccut 0 \/
+  (c = Ccut 0 /\ Mem.load Mfloat32 m (e_blk E rM) oF = Mem.load Mfloat32 m0 (e_blk E rM) oF) \/
   exists p x, Mem.load Mfloat32 m (e_blk E rM) oY = Some (Vsingle p)
     /\ Float32.cmp Cle p x = false
-    /\ (Mem.load Mfloat32 m0 (e_blk E rM) oF = Some (Vsingle x) \/ Hit_at ge m0 x).
+    /\ (Mem.load Mfloat32 m0 (e_blk E rM) oF = Some (Vsingle x) \/ Hit_at ge m0 x)
+    /\ Mem.load Mfloat32 m (e_blk E rM) oF = Some (Vsingle x).
 Proof.
   intros c H. unfold aclass_of in H.
   destruct (same_cell LD IC rM oA Mint32 && same_cell LD IC rM oS Mint16unsigned
@@ -603,13 +615,14 @@ Proof.
   destruct (qrec rM oY oV py) as [[k j]|]; [| discriminate].
   destruct (vel_cut vy).
   - destruct (Nat.leb k 4); [| discriminate]. cbn [andb] in H.
-    destruct (Nat.eqb k 0) eqn:K0.
-    + injection H as <-. apply Nat.eqb_eq in K0. subst. left. reflexivity.
-    + cbn [orb] in H. destruct (above (g_pc g) rM kH py) eqn:AB; [| discriminate].
-      right. exact (above_sound py LY AB).
+    destruct (above LD (g_pc g) rM kH py) eqn:AB; [right; exact (above_sound py LY AB) |].
+    rewrite orb_false_r in H.
+    destruct (Nat.eqb k 0 && same_cell LD IC rM oF Mfloat32) eqn:K0; [| discriminate].
+    apply andb_true_iff in K0 as (K0 & EF). apply Nat.eqb_eq in K0. subst.
+    injection H as <-. left. split; [reflexivity | exact (same_cell_sound _ _ EF)].
   - destruct (vel_ok rM (g_pc g) vy); [| discriminate].
     destruct k as [|[|[|[|[|k]]]]]; try discriminate; destruct j; try discriminate.
-    destruct (above (g_pc g) rM kH py) eqn:AB; [| discriminate].
+    destruct (above LD (g_pc g) rM kH py) eqn:AB; [| discriminate].
     right. exact (above_sound py LY AB).
 Qed.
 

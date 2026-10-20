@@ -177,7 +177,9 @@ Definition cls_of (g : gst) : option int :=
           && match LD rM oF Mfloat32, LD rM oY Mfloat32 with
              | Some a, Some b => sveqb a b | _, _ => false end
   then Some (Int.repr 2)
-  else if outcome_ok LD IC (g_pc g) rM rO kH then Some Int.zero
+  else if cells_ok LD (g_pc g) rM rO kH
+          && match aclass_of LD IC (g_pc g) rM rO kH with Some _ => true | None => false end
+  then Some Int.zero
   else None.
 
 Definition ic_of (k : positive * Z * memory_chunk) : sval := let '(r, o, ch) := k in init_cell kv r o ch.
@@ -210,7 +212,9 @@ Definition cvals (c : cells) : list val :=
    a landing or ledge grab also says where it attached *)
 Definition PMc (cl : int) (c c1 : cells) : Prop :=
   RM' c c1 /\ (cl <> Int.zero -> AttachInfo c c1)
-  /\ (cl = Int.repr 2 -> AttachOK wmotr_floor wmotr_pole wmotr_cannon c (R2 (c_floorh c1))).
+  /\ (cl = Int.repr 2 -> AttachOK wmotr_floor wmotr_pole wmotr_cannon c (R2 (c_floorh c1)))
+  (* a step that did not attach ends as a floor refresh *)
+  /\ (cl = Int.zero -> FloorRefreshOK wmotr_floor (R2 (c_posy c1)) (R2 (c_floorh c1))).
 
 Definition PMv (cl : int) (c c1 : cells) : Prop :=
   c_action c = ACT_FREEFALL -> budget_ok c ->
@@ -292,41 +296,39 @@ Theorem pmv_of : forall cl c c1, cls_of nbase R0 kv rM rO kH g = Some cl ->
 Proof.
   intros cl c c1 CL HA HS HT HY HV HF AC Hact Hb FRO.
   unfold cls_of in CL.
-  destruct (cells_ok (sload nbase R0 kv g) (g_pc g) rM rO kH) eqn:CO.
-  2:{ unfold outcome_ok in CL. rewrite CO in CL. discriminate CL. }
+  destruct (cells_ok (sload nbase R0 kv g) (g_pc g) rM rO kH) eqn:CO; [| discriminate CL].
   pose proof (proj1 (cells_sound ge nbase R0 gtab kv m0 uf gp gp_old E m g rM rO kH MM HUH HbM CO)) as LMO.
   cbn [andb] in CL.
+  assert (N2 : Int.repr 2 <> Int.zero) by (intros E2; apply (f_equal Int.unsigned) in E2; vm_compute in E2; discriminate E2).
+  assert (N1 : Int.one <> Int.zero) by exact Int.one_not_zero.
   destruct (land_ok (sload nbase R0 kv g) (init_cell kv) (g_pc g) rM rO kH) eqn:LO.
   - injection CL as <-.
     destruct (land_move ge nbase R0 gtab kv m0 uf gp gp_old E m g rM rO kH MM HUH HbM c
                 HA HS HT HY HV HF Hb Hact FD FRO CO LO) as (c' & RC & M & AI).
     rewrite (cells_unique c' c1 LMO RC AC) in M, AI.
-    split; [exact M | split; [intros _; exact AI | intros E2; exfalso]].
+    split; [exact M | split; [intros _; exact AI | split; [intros E2; exfalso | intros E0; exfalso; exact (N1 E0)]]].
     apply (f_equal Int.unsigned) in E2. vm_compute in E2. discriminate E2.
-  - destruct (ledge_ok (sload nbase R0 kv g) (init_cell kv) (g_pc g) rM rO kH) eqn:LE.
-    + destruct (ledge_move ge nbase R0 gtab kv m0 uf gp gp_old E m g rM rO kH MM HUH HbM c
+  - destruct (ledge_ok (sload nbase R0 kv g) (init_cell kv) (g_pc g) rM rO kH
+              && match sload nbase R0 kv g rM oF Mfloat32, sload nbase R0 kv g rM oY Mfloat32 with
+                 | Some a, Some b => sveqb a b | _, _ => false end) eqn:LE.
+    + injection CL as <-. apply andb_true_iff in LE as (LE & Q').
+      destruct (ledge_move ge nbase R0 gtab kv m0 uf gp gp_old E m g rM rO kH MM HUH HbM c
                   HA HS HT HY HV HF Hb Hact FD CO LE) as (c' & RC & M & AI & AO).
       rewrite (cells_unique c' c1 LMO RC AC) in M, AI, AO.
-      destruct (sload nbase R0 kv g rM oF Mfloat32) as [a|] eqn:La;
-        [| destruct (outcome_ok _ _ _ _ _ _) in CL; [injection CL as <- | discriminate CL];
-           split; [exact M | split; [intros N; exfalso; exact (N eq_refl) | intros E2; exfalso]];
-           apply (f_equal Int.unsigned) in E2; vm_compute in E2; discriminate E2].
-      destruct (sload nbase R0 kv g rM oY Mfloat32) as [b|] eqn:Lb;
-        [| destruct (outcome_ok _ _ _ _ _ _) in CL; [injection CL as <- | discriminate CL];
-           split; [exact M | split; [intros N; exfalso; exact (N eq_refl) | intros E2; exfalso]];
-           apply (f_equal Int.unsigned) in E2; vm_compute in E2; discriminate E2].
-      destruct (sveqb a b) eqn:Q.
-      * injection CL as <-.
-        split; [exact M | split; [intros _; exact AI | intros _; exact (AO (ld_eq_load a b La Lb Q))]].
-      * destruct (outcome_ok _ _ _ _ _ _) in CL; [injection CL as <- | discriminate CL].
-        split; [exact M | split; [intros N; exfalso; exact (N eq_refl) | intros E2; exfalso]].
-        apply (f_equal Int.unsigned) in E2. vm_compute in E2. discriminate E2.
-    + destruct (outcome_ok (sload nbase R0 kv g) (init_cell kv) (g_pc g) rM rO kH) eqn:OK;
+      destruct (sload nbase R0 kv g rM oF Mfloat32) as [a|] eqn:La; [| discriminate Q'].
+      destruct (sload nbase R0 kv g rM oY Mfloat32) as [b|] eqn:Lb; [| discriminate Q'].
+      split; [exact M | split; [intros _; exact AI | split; [intros _; exact (AO (ld_eq_load a b La Lb Q')) |]]].
+      intros E0; exfalso; exact (N2 E0).
+    + destruct (aclass_of (sload nbase R0 kv g) (init_cell kv) (g_pc g) rM rO kH) as [ac|] eqn:AC0;
         [injection CL as <- | discriminate CL].
+      assert (OK : outcome_ok (sload nbase R0 kv g) (init_cell kv) (g_pc g) rM rO kH = true)
+        by (unfold outcome_ok; rewrite CO, AC0; reflexivity).
       destruct (outcome_move ge nbase R0 gtab kv m0 uf gp gp_old E m g rM rO kH MM HUH HbM c
                   HA HS HT HY HV HF Hb Hact FD FRO OK) as (c' & RC & M).
-      rewrite (cells_unique c' c1 LMO RC AC) in M.
-      split; [exact M | split; [intros N; exfalso; exact (N eq_refl) | intros E2; exfalso]].
+      pose proof (class_fro ge nbase R0 gtab kv m0 uf gp gp_old E m g rM rO kH MM HUH HbM c
+                    HA HS HT HY HV HF Hb Hact FD FRO ac c' AC0 RC (proj1 M)) as FR1.
+      rewrite (cells_unique c' c1 LMO RC AC) in M, FR1.
+      split; [exact M | split; [intros N; exfalso; exact (N eq_refl) | split; [intros E2; exfalso | intros _; exact FR1]]].
       apply (f_equal Int.unsigned) in E2. vm_compute in E2. discriminate E2.
 Qed.
 

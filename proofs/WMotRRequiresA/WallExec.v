@@ -255,31 +255,32 @@ Definition fcells (rCL rp : positive) (o0 : Z) (n0 : positive) (n : nat) : list 
   :: (rp, o0 + 22, Mint16signed, Sconst (Vint (Int.repr (Z.of_nat n))))
   :: map (wcell rp o0 n0) (seq 0 n).
 
-Definition wfacts (n0 : positive) (szS : Z) (n : nat) : list fact :=
-  flat_map (fun i => Fworld (Sfresh (nm n0 (3 + i))) szS :: ffacts (Sfresh (nm n0 (3 + i)))) (seq 0 n).
+Definition wfacts (kS : positive) (R0 : list (positive * Z)) (n0 : positive) (szS : Z) (n : nat) : list fact :=
+  flat_map (fun i => Fworld (Sfresh (nm n0 (3 + i))) szS :: Fuser kS (Sfresh (nm n0 (3 + i)) :: wargs R0)
+                     :: ffacts (Sfresh (nm n0 (3 + i)))) (seq 0 n).
 
 Definition fresh8 (g : gst) : gst :=
   gfresh (gfresh (gfresh (gfresh (gfresh (gfresh (gfresh (gfresh g))))))).
 
 (* the outcome with n recorded walls (n = min(count, 4)) *)
-Definition fwc_out (nbase : positive) (R0 : list (positive * Z)) (rCL rp : positive) (o0 : Z)
+Definition fwc_out (nbase : positive) (R0 : list (positive * Z)) (rCL kS rp : positive) (o0 : Z)
     (szS : Z) (g : gst) (n : nat) : option (gst * sval) :=
   match sstores nbase R0 (fresh8 g) (fcells rCL rp o0 (g_nx g) n) with
-  | Some gS => Some (addfs gS (wfacts (g_nx g) szS n),
+  | Some gS => Some (addfs gS (wfacts kS R0 (g_nx g) szS n),
                      if Nat.ltb n 4 then Sconst (Vint (Int.repr (Z.of_nat n))) else Sfresh (nm (g_nx g) 7))
   | None => None
   end.
 
-Definition c_fwc (nbase : positive) (R0 : list (positive * Z)) (rCL kW : positive) (szS : Z)
+Definition c_fwc (nbase : positive) (R0 : list (positive * Z)) (rCL kW kS : positive) (szS : Z)
     : xcontract := fun args g =>
   match args with
   | [Sptr rp op] =>
       if existsb (Pos.eqb rp) (g_loc g) && existsb (is_fact_W kW (wargs R0)) (g_pc g) then
-        match fwc_out nbase R0 rCL rp (Ptrofs.unsigned op) szS g 0,
-              fwc_out nbase R0 rCL rp (Ptrofs.unsigned op) szS g 1,
-              fwc_out nbase R0 rCL rp (Ptrofs.unsigned op) szS g 2,
-              fwc_out nbase R0 rCL rp (Ptrofs.unsigned op) szS g 3,
-              fwc_out nbase R0 rCL rp (Ptrofs.unsigned op) szS g 4 with
+        match fwc_out nbase R0 rCL kS rp (Ptrofs.unsigned op) szS g 0,
+              fwc_out nbase R0 rCL kS rp (Ptrofs.unsigned op) szS g 1,
+              fwc_out nbase R0 rCL kS rp (Ptrofs.unsigned op) szS g 2,
+              fwc_out nbase R0 rCL kS rp (Ptrofs.unsigned op) szS g 3,
+              fwc_out nbase R0 rCL kS rp (Ptrofs.unsigned op) szS g 4 with
         | Some c0, Some c1, Some c2, Some c3, Some c4 => Some [c0; c1; c2; c3; c4]
         | _, _, _, _, _ => None
         end
@@ -330,10 +331,12 @@ Hypothesis HC : cenv_has ge.
 Hypothesis Hpin : wfl_pinned ge.
 Hypothesis HgCL : gfind gtab surface_collision._gNumCalls = Some rCL.
 Hypothesis HU : forall vs, uf kW vs -> Wff ge m0 gp szS vs.
+Variable kS : positive.
+Hypothesis HUS : forall vs, surf_on m0 vs -> uf kS vs.
 
 (* THE SOUNDNESS of c_fwc against the real find_wall_collisions *)
 Theorem c_fwc_sound : forall args g cps E m vargs t m' vres,
-  c_fwc nbase R0 rCL kW szS args g = Some cps ->
+  c_fwc nbase R0 rCL kW kS szS args g = Some cps ->
   MM E m g ->
   Forall2 (fun a v => den E a = Some v /\ sok nbase (g_nx g) a) args vargs ->
   eval_funcall function_entry2 ge m (Internal surface_collision.f_find_wall_collisions) vargs t m' vres ->
@@ -351,11 +354,11 @@ Proof.
   destruct fW as [ | | | k wa]; try discriminate EW.
   apply andb_true_iff in EW as [Ek Ewa]. apply Pos.eqb_eq in Ek. subst k.
   destruct (list_eq_dec sval_eq wa (wargs R0)) as [-> | ]; [| discriminate Ewa].
-  destruct (fwc_out nbase R0 rCL rp (Ptrofs.unsigned op) szS g 0) as [c0 |] eqn:O0; [| discriminate Hc].
-  destruct (fwc_out nbase R0 rCL rp (Ptrofs.unsigned op) szS g 1) as [c1 |] eqn:O1; [| discriminate Hc].
-  destruct (fwc_out nbase R0 rCL rp (Ptrofs.unsigned op) szS g 2) as [c2 |] eqn:O2; [| discriminate Hc].
-  destruct (fwc_out nbase R0 rCL rp (Ptrofs.unsigned op) szS g 3) as [c3 |] eqn:O3; [| discriminate Hc].
-  destruct (fwc_out nbase R0 rCL rp (Ptrofs.unsigned op) szS g 4) as [c4 |] eqn:O4; [| discriminate Hc].
+  destruct (fwc_out nbase R0 rCL kS rp (Ptrofs.unsigned op) szS g 0) as [c0 |] eqn:O0; [| discriminate Hc].
+  destruct (fwc_out nbase R0 rCL kS rp (Ptrofs.unsigned op) szS g 1) as [c1 |] eqn:O1; [| discriminate Hc].
+  destruct (fwc_out nbase R0 rCL kS rp (Ptrofs.unsigned op) szS g 2) as [c2 |] eqn:O2; [| discriminate Hc].
+  destruct (fwc_out nbase R0 rCL kS rp (Ptrofs.unsigned op) szS g 3) as [c3 |] eqn:O3; [| discriminate Hc].
+  destruct (fwc_out nbase R0 rCL kS rp (Ptrofs.unsigned op) szS g 4) as [c4 |] eqn:O4; [| discriminate Hc].
   injection Hc as <-.
   (* the argument *)
   inv HF. match goal with H : Forall2 _ _ _ |- _ => inv H end.
@@ -476,7 +479,7 @@ Proof.
   (* THE STATE with nn recorded walls *)
   assert (GEN : forall nn gS, Z.of_nat nn = Z.min c 4 ->
             sstores nbase R0 (fresh8 g) (fcells rCL rp (Ptrofs.unsigned op) (g_nx g) nn) = Some gS ->
-            MM E8 m' (addfs gS (wfacts (g_nx g) szS nn)) /\ g_nx gS = nm (g_nx g) 8
+            MM E8 m' (addfs gS (wfacts kS R0 (g_nx g) szS nn)) /\ g_nx gS = nm (g_nx g) 8
             /\ g_loc gS = g_loc g).
   { intros nn gS En S.
     assert (Hnn : (nn <= 4)%nat) by lia.
@@ -558,9 +561,21 @@ Proof.
     destruct (Pw ltac:(lia)) as (_ & bs & os & -> & Ob & Ro & NR & Ty).
     assert (NLi : Plt (nm (g_nx g) (3 + i)) (g_nx gS)).
     { rewrite NXS, NX8. destruct i as [|[|[|[|i]]]]; [| | | | lia]; cbn [nm Nat.add]; unfold Plt; lia. }
-    destruct If as [<- | [<- | [<- | []]]];
-      [| split; [cbn [fact_nlt fty nlt]; split; [exact NLi | exact Logic.I] |
-                 apply (fty_holds _ _ _ _ _ _ bs os); [exact Dw | exact Ty | auto]] ..].
+    destruct If as [<- | [<- | If]].
+    2:{ split.
+        - destruct (PC _ IW) as (NW & _). cbn [fact_nlt] in NW |- *.
+          constructor; [exact NLi |].
+          refine (Forall_impl _ _ NW). intros a Na.
+          refine (nlt_mono nbase (fun _ => None) (fun _ => false) uf _ _ _ Na _).
+          rewrite NXS, NX8. cbn [nm]. unfold Ple; lia.
+        - cbn [fact_holds map]. apply HUS. rewrite Dw.
+          assert (WA : map (den E8) (wargs R0) = vs).
+          { unfold vs, wargs. rewrite !map_map. apply map_ext. intros [r z]. cbn [fst SymExec2.den].
+            rewrite (proj1 RX8), (proj1 (proj2 RX8)). reflexivity. }
+          cbn [surf_on]. rewrite WA. exists bs, os. split; [reflexivity | split; [exact Ty | exact NR]]. }
+    2:{ destruct If as [<- | [<- | []]];
+        (split; [cbn [fact_nlt fty nlt]; split; [exact NLi | exact Logic.I] |
+                 apply (fty_holds _ _ _ _ _ _ bs os); [exact Dw | exact Ty | auto]]). }
     split.
     - change (Plt (nm (g_nx g) (3 + i)) (g_nx gS)). rewrite NXS, NX8.
       destruct i as [|[|[|[|i]]]]; [| | | | lia]; cbn [nm Nat.add]; unfold Plt; lia.
@@ -570,14 +585,14 @@ Proof.
       exact (r0_rblk ge R0 m0 E r sz Hsz). }
   (* each outcome is the right one when min(count, 4) is its n *)
   assert (FIN : forall nn cn, Z.of_nat nn = Z.min c 4 ->
-            fwc_out nbase R0 rCL rp (Ptrofs.unsigned op) szS g nn = Some cn ->
+            fwc_out nbase R0 rCL kS rp (Ptrofs.unsigned op) szS g nn = Some cn ->
             CM ge nbase R0 gtab kv m0 uf gp E (g_nx g) (g_loc g) m' (Vint (Int.repr c)) cn).
   { intros nn cn En O. unfold fwc_out in O.
     destruct (sstores nbase R0 (fresh8 g) (fcells rCL rp (Ptrofs.unsigned op) (g_nx g) nn)) as [gS |] eqn:S;
       [| discriminate O].
     injection O as <-.
     destruct (GEN nn gS En S) as (MF & NXS & LCS).
-    destruct (addfs_meta (wfacts (g_nx g) szS nn) gS) as (NXF & LCF).
+    destruct (addfs_meta (wfacts kS R0 (g_nx g) szS nn) gS) as (NXF & LCF).
     unfold CM. exists E8. split; [exact (Rx_Ext _ _ _ RX8) |]. split; [exact MF |].
     rewrite NXF, NXS, LCF, LCS.
     destruct (Nat.ltb nn 4) eqn:Lt.

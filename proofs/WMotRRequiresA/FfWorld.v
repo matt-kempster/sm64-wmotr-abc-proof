@@ -8,8 +8,10 @@
 (* animation list gMarioAnimsBuf, its DMA buffer, and memory.c's three DMA  *)
 (* globals.  Everything else it reads is "world": the collision partition, *)
 (* m->floor, m->area and gSineTable.  `ffw` says, of a memory:             *)
-(*   - it is pointer-closed: a pointer loaded from a valid block points to  *)
-(*     a valid block (true of every memory a CompCert run produces);        *)
+(*   - it is closed by a flat injection gp that maps every global symbol  *)
+(*     and Mario's state block (ClosedMem.closed_by: a pointer stored in a   *)
+(*     mapped block points at a mapped block; ClightClosed proves every    *)
+(*     Clight call keeps this);                                             *)
 (*   - Mario's object, the animation list (&gMarioAnimsBuf, as             *)
 (*     init_mario_from_save_file sets it) and its buffer are where the     *)
 (*     walk's regions say, and the object and the buffer are blocks of     *)
@@ -17,11 +19,15 @@
 (*   - the collision partition is well-formed lists of WMotR surfaces, off *)
 (*     the regions (FloorExec.Wff), and every floor height on it is a WMotR *)
 (*     floor (AirMatch.floor_data, TRUST 0.8(d));                          *)
-(*   - m->floor and m->area point at world objects off the regions;         *)
+(*   - m->floor, m->area and m->controller point at world objects off the  *)
+(*     regions, and m->wall and m->ceil, when pointers, at blocks off them; *)
+(*   - every collided object of Mario's is in his object's block (in the   *)
+(*     game: all objects are gObjectPool slots);                           *)
 (*   - m->input has neither INPUT_A_PRESSED nor INPUT_A_DOWN (no-A);        *)
-(*   - Mario's floorHeight is a floor refresh of his y                      *)
+(*   - in ACT_FREEFALL, Mario's floorHeight is a floor refresh of his y    *)
 (*     (HeightMoveCatalog.FloorRefreshOK): -11000, or a WMotR floor at most *)
-(*     STEP_UP above y.                                                     *)
+(*     STEP_UP above y.  (Only freefall: a landing can leave floorHeight a   *)
+(*     quarter step stale, and it always leaves freefall.)                  *)
 (* Offsets and sizes are the generated AST's (pinned in FfRow on the link). *)
 (* ffw survives the frame's two stores into Mario's object (ffw_keep).      *)
 (* ====================================================================== *)
@@ -29,23 +35,23 @@
 From Coq Require Import ZArith List Lia Reals.
 From compcert Require Import Coqlib Maps AST Integers Floats Values Memory Ctypes Clight Globalenvs.
 From SM64.Generated Require mario surface_collision memory.
-From SM64.Proofs Require Import HeightInvariant HeightMoveCatalog WMotRLevel.
+From SM64.Proofs Require Import HeightInvariant HeightMoveCatalog WMotRLevel Generic.ClosedMem.
 From SM64.Proofs.WMotRRequiresA Require Import FloorList FloorHeight FloorExec AirMatch AirStart.
 Import ListNotations.
 
 (* the MarioState fields and struct sizes the walk reads (generated AST) *)
 Definition FFW_OBJ : Z := 136.      (* marioObj *)
+Definition FFW_WALL : Z := 96.      (* wall *)
+Definition FFW_CEIL : Z := 100.     (* ceil *)
 Definition FFW_FLOOR : Z := 104.    (* floor *)
 Definition FFW_AREA : Z := 144.     (* area *)
 Definition FFW_ANIM : Z := 160.     (* animList *)
+Definition FFW_CTL : Z := 156.      (* controller *)
 Definition SZ_OBJECT : Z := 608.
 Definition SZ_SURFACE : Z := 48.
 Definition SZ_AREA : Z := 60.
-
-(* pointer-closed *)
-Definition lclosed (m : mem) : Prop :=
-  forall ch b z b' o', Plt b (Mem.nextblock m) ->
-    Mem.load ch m b z = Some (Vptr b' o') -> Plt b' (Mem.nextblock m).
+Definition SZ_CTL : Z := 18.        (* up to Controller.buttonDown, a u16 at 16 *)
+Definition FFW_COLL : Z := 120.     (* Object.collidedObjs[4] *)
 
 (* the walk's ten regions as pointers, in FfRun.R0F's order *)
 Definition ff_rl (bm bo : block) (oo : ptrofs) (bfi bmiss bcalls ab bt biom bmq brm : block)
@@ -64,10 +70,12 @@ Variable G : genv.
 Variable bm : block.
 
 Definition ffw (m : mem) : Prop :=
-  lclosed m
-  /\ Ple (Genv.genv_next G) (Mem.nextblock m)
-  /\ (exists bfi bmiss bcalls bsin ab biom bmq brm bo oo bt ot fl ar inp,
-      Genv.find_symbol G surface_collision._gFindFloorIncludeSurfaceIntangible = Some bfi
+  Ple (Genv.genv_next G) (Mem.nextblock m)
+  /\ (exists gp bfi bmiss bcalls bsin ab biom bmq brm bo oo bt ot fl ar inp ctl,
+      (* closedness *)
+      closed_by gp m
+      /\ (forall id b, Genv.find_symbol G id = Some b -> gp b <> None) /\ gp bm <> None
+      /\ Genv.find_symbol G surface_collision._gFindFloorIncludeSurfaceIntangible = Some bfi
       /\ Genv.find_symbol G surface_collision._gNumFindFloorMisses = Some bmiss
       /\ Genv.find_symbol G surface_collision._gNumCalls = Some bcalls
       /\ Genv.find_symbol G mario._gSineTable = Some bsin
@@ -84,16 +92,26 @@ Definition ffw (m : mem) : Prop :=
       /\ bo <> bm /\ bt <> bm /\ bt <> bo
       /\ (forall b, In b [bfi; bmiss; bcalls; bsin; ab; biom; bmq; brm] -> b <> bo /\ b <> bt)
       (* the collision partition *)
-      /\ Wff G m (gpv m) SZ_SURFACE (ff_rl bm bo oo bfi bmiss bcalls ab bt biom bmq brm)
+      /\ Wff G m gp SZ_SURFACE (ff_rl bm bo oo bfi bmiss bcalls ab bt biom bmq brm)
       (* m->floor, m->area *)
       /\ Mem.load Mint32 m bm FFW_FLOOR = Some fl
       /\ wblk m (ff_rl bm bo oo bfi bmiss bcalls ab bt biom bmq brm) fl SZ_SURFACE
+      (* m->wall, m->ceil *)
+      /\ (forall off sb so, off = FFW_WALL \/ off = FFW_CEIL -> Mem.load Mint32 m bm off = Some (Vptr sb so) ->
+            ~ rblk (ff_rl bm bo oo bfi bmiss bcalls ab bt biom bmq brm) sb)
       /\ Mem.load Mint32 m bm FFW_AREA = Some ar
       /\ wblk m (ff_rl bm bo oo bfi bmiss bcalls ab bt biom bmq brm) ar SZ_AREA
       (* m->input: INPUT_A_PRESSED | INPUT_A_DOWN clear *)
-      /\ Mem.load Mint16unsigned m bm 2 = Some (Vint inp) /\ Int.and inp (Int.repr 130) = Int.zero)
+      /\ Mem.load Mint16unsigned m bm 2 = Some (Vint inp) /\ Int.and inp (Int.repr 130) = Int.zero
+      (* m->controller *)
+      /\ Mem.load Mint32 m bm FFW_CTL = Some ctl
+      /\ wblk m (ff_rl bm bo oo bfi bmiss bcalls ab bt biom bmq brm) ctl SZ_CTL
+      (* the collided objects *)
+      /\ (forall i cb co, 0 <= i < 4 ->
+            Mem.load Mint32 m bo (Ptrofs.unsigned oo + FFW_COLL + 4 * i) = Some (Vptr cb co) -> cb = bo))
   /\ floor_data G m
-  /\ (forall y fh, Mem.load Mfloat32 m bm OFS_POSY = Some (Vsingle y) ->
+  /\ (forall y fh, Mem.load Mint32 m bm 12 = Some (Vint (Int.repr 16779404)) ->
+        Mem.load Mfloat32 m bm OFS_POSY = Some (Vsingle y) ->
         Mem.load Mfloat32 m bm OFS_FLOORH = Some (Vsingle fh) ->
         FloorRefreshOK wmotr_floor (R2 y) (R2 fh)).
 
@@ -103,29 +121,31 @@ Lemma rl_obj : forall bo oo bfi bmiss bcalls ab bt biom bmq brm,
   rblk (ff_rl bm bo oo bfi bmiss bcalls ab bt biom bmq brm) bo.
 Proof. intros. exists oo. cbn. auto 10. Qed.
 
-Lemma lclosed_store : forall m m' ch b z v,
-  Mem.store ch m b z v = Some m' -> lclosed m ->
-  (forall b' o', v = Vptr b' o' -> ch = Mint16signed \/ Plt b' (Mem.nextblock m)) ->
-  lclosed m'.
+(* a store into a mapped block keeps closedness when the value is closed, or
+   is stored as a 16-bit integer (a pointer's bytes then are Undef) *)
+Lemma store_closed : forall gp m m' ch b z v,
+  Mem.store ch m b z v = Some m' -> closed_by gp m -> gp b = Some (b, 0) ->
+  (ch = Mint16signed \/ forall b' o', v <> Vptr b' o') ->
+  closed_by gp m'.
 Proof.
-  intros m m' ch b z v Hst HC Hv ch' b1 z1 b' o' Hp Hl.
-  rewrite (Mem.nextblock_store _ _ _ _ _ _ Hst) in *.
-  destruct (Mem.load_pointer_store _ _ _ _ _ _ _ _ _ _ _ Hst Hl)
-    as [(-> & Hcp & _ & _) | Hdis].
-  - destruct (Hv b' o' eq_refl) as [-> | Hpl]; [| exact Hpl].
-    destruct ch'; cbn in Hcp; contradiction.
-  - apply (HC ch' b1 z1 b' o' Hp). rewrite <- (Mem.load_store_other _ _ _ _ _ _ Hst); [exact Hl |].
-    destruct Hdis as [Hd | Hd]; [left; congruence | right; exact Hd].
+  intros gp m m' ch b z v Hst HC Hb Hv.
+  destruct v;
+    try (refine (store_mapped_closed _ _ _ _ _ _ _ HC Hb _ Hst); constructor).
+  destruct Hv as [-> | Hv]; [| exfalso; eapply Hv; reflexivity].
+  rewrite (Mem.store_similar_chunks Mint16signed Mint16signed _ Vundef) in Hst
+    by reflexivity.
+  exact (store_mapped_closed _ _ _ _ _ _ _ HC Hb (Val.val_inject_undef _ _) Hst).
 Qed.
 
 Section KEEP.
-Variables (m m' : mem) (bo0 : block).
+Variables (m m' : mem) (bo0 : block) (oo0 : ptrofs).
 Hypothesis Hnb : Mem.nextblock m' = Mem.nextblock m.
 Hypothesis Hperm : forall b ofs k p, Mem.perm m b ofs k p -> Mem.perm m' b ofs k p.
 Hypothesis Hld : forall ch b z, b <> bo0 -> Mem.load ch m' b z = Mem.load ch m b z.
-
-Lemma gpv_same : forall b, gpv m' b = gpv m b.
-Proof. intros b. unfold gpv. rewrite Hnb. reflexivity. Qed.
+(* the collided-object cells of Mario's object *)
+Hypothesis Hldc : forall i, 0 <= i < 4 ->
+  Mem.load Mint32 m' bo0 (Ptrofs.unsigned oo0 + FFW_COLL + 4 * i)
+  = Mem.load Mint32 m bo0 (Ptrofs.unsigned oo0 + FFW_COLL + 4 * i).
 
 Lemma wf_fwd : forall (A : block -> Prop) hd, (forall b, ~ A b -> b <> bo0) ->
   wf_list m A hd -> wf_list m' A hd.
@@ -152,9 +172,9 @@ Proof.
   cbn [Mem.loadv] in *. rewrite Hld in Hl; [exact Hl |]. intros ->. exact (Hp _ _ Hin Hs Ho).
 Qed.
 
-Lemma Wff_keep : forall rl, rblk rl bo0 -> Wff G m (gpv m) SZ_SURFACE rl -> Wff G m' (gpv m') SZ_SURFACE rl.
+Lemma Wff_keep : forall gp rl, rblk rl bo0 -> Wff G m gp SZ_SURFACE rl -> Wff G m' gp SZ_SURFACE rl.
 Proof.
-  intros rl Ho (W1 & W2 & W3 & W4 & W5 & W6 & W7).
+  intros gp rl Ho (W1 & W2 & W3 & W4 & W5 & W6 & W7).
   assert (Hp : forall id bp, In id part_ids -> Genv.find_symbol G id = Some bp -> ~ rblk rl bp)
     by (intros id bp Hi Hs; exact (proj1 (proj2 (W2 id bp Hi Hs)))).
   assert (HA : forall b, ~ (is_static G b \/ rblk rl b) -> b <> bo0)
@@ -170,7 +190,7 @@ Proof.
   - intros hd Hh. exact (wf_fwd _ hd HA (W3 hd (part_back rl hd Hp Ho Hh))).
   - intros hd s Hh Ho'. destruct (OL hd s Hh Ho') as (Hh0 & Ho0).
     destruct (W4 hd s Hh0 Ho0) as (b & o & -> & Hpl & Hsz & Hr & Hg).
-    exists b, o. rewrite Hnb, gpv_same. auto 10.
+    exists b, o. rewrite Hnb. auto 10.
   - intros hd b o Hh Ho'. destruct (OL hd _ Hh Ho') as (Hh0 & Ho0).
     destruct (W5 hd b o Hh0 Ho0) as (t & Hl & Hin). exists t. split; [| exact Hin].
     rewrite Hld; [exact Hl |]. intros ->.
@@ -179,10 +199,10 @@ Proof.
   - exact W7.
 Qed.
 
-Lemma floor_data_keep : forall rl, rblk rl bo0 -> Wff G m (gpv m) SZ_SURFACE rl ->
+Lemma floor_data_keep : forall gp rl, rblk rl bo0 -> Wff G m gp SZ_SURFACE rl ->
   floor_data G m -> floor_data G m'.
 Proof.
-  intros rl Ho (W1 & W2 & W3 & W4 & _) FD h (hd & s & xv & zv & Hh & Hol & Hhit).
+  intros gp rl Ho (W1 & W2 & W3 & W4 & _) FD h (hd & s & xv & zv & Hh & Hol & Hhit).
   assert (Hp : forall id bp, In id part_ids -> Genv.find_symbol G id = Some bp -> ~ rblk rl bp)
     by (intros id bp Hi Hs; exact (proj1 (proj2 (W2 id bp Hi Hs)))).
   pose proof (floor_back rl hd Hp Ho Hh) as Hh0.
@@ -199,29 +219,138 @@ Lemma wblk_keep : forall rl v n, wblk m rl v n -> wblk m' rl v n.
 Proof. intros rl v n (b & o & -> & H). exists b, o. rewrite Hnb. auto. Qed.
 
 (* bo0 is Mario's object: then ffw survives *)
-Theorem ffw_keep : forall oo0,
+Theorem ffw_keep :
   Mem.load Mint32 m bm FFW_OBJ = Some (Vptr bo0 oo0) -> bo0 <> bm ->
   (forall ab, Genv.find_symbol G mario._gMarioAnimsBuf = Some ab -> ab <> bo0) ->
-  lclosed m' -> ffw m -> ffw m'.
+  (forall gp, closed_by gp m -> gp bo0 = Some (bo0, 0) -> closed_by gp m') ->
+  ffw m -> ffw m'.
 Proof.
-  intros oo0 Hmo Hne Hab HC' (_ & Hgn & EX & FD & FRO).
-  destruct EX as (bfi & bmiss & bcalls & bsin & ab & biom & bmq & brm & bo & oo & bt & ot & fl & ar & inp &
-                  S1 & S2 & S3 & S4 & S5 & S6 & S7 & S8 & Lo & Soo & La & Lb & Sot & D1 & D2 & D3 & D4 &
-                  W & Lf & Wf & Lar & War & Li & Ai).
+  intros Hmo Hne Hab HC' (Hgn & EX & FD & FRO).
+  destruct EX as (gp & bfi & bmiss & bcalls & bsin & ab & biom & bmq & brm & bo & oo & bt & ot & fl & ar & inp & ctl &
+                  HC & HS & HM & S1 & S2 & S3 & S4 & S5 & S6 & S7 & S8 & Lo & Soo & La & Lb & Sot & D1 & D2 & D3 & D4 &
+                  W & Lf & Wf & Wc0 & Lar & War & Li & Ai & Lc & Wc & Co).
   rewrite Hmo in Lo. injection Lo as <- <-.
   assert (Ho : rblk (ff_rl bm bo0 oo0 bfi bmiss bcalls ab bt biom bmq brm) bo0) by apply rl_obj.
   pose proof (Hab ab S5) as Hab0.
-  split; [exact HC' |]. split; [rewrite Hnb; exact Hgn |].
+  assert (Gbo : gp bo0 = Some (bo0, 0)).
+  { pose proof (closed_load _ _ _ _ _ _ HC HM Hmo) as P. cbn in P.
+    destruct (gp bo0) as [[b' d]|] eqn:G0; [| congruence].
+    destruct (closed_flat _ _ _ _ _ HC G0) as (-> & ->). reflexivity. }
+  split; [rewrite Hnb; exact Hgn |].
   split; [| split].
-  - exists bfi, bmiss, bcalls, bsin, ab, biom, bmq, brm, bo0, oo0, bt, ot, fl, ar, inp.
+  - exists gp, bfi, bmiss, bcalls, bsin, ab, biom, bmq, brm, bo0, oo0, bt, ot, fl, ar, inp, ctl.
+    split; [exact (HC' gp HC Gbo) |]. split; [exact HS |]. split; [exact HM |].
     rewrite !Hld by congruence.
     repeat (split; [assumption |]).
-    split; [exact (Wff_keep _ Ho W) |].
+    split; [exact (Wff_keep _ _ Ho W) |].
     split; [exact Lf |]. split; [exact (wblk_keep _ _ _ Wf) |].
+    split; [intros off sb so Hoff Hl; rewrite Hld in Hl by congruence; exact (Wc0 off sb so Hoff Hl) |].
     split; [exact Lar |]. split; [exact (wblk_keep _ _ _ War) |].
-    split; [exact Li | exact Ai].
-  - exact (floor_data_keep _ Ho W FD).
-  - intros y fh Hy Hf. rewrite Hld in Hy, Hf by congruence. exact (FRO y fh Hy Hf).
+    split; [exact Li |]. split; [exact Ai |].
+    split; [exact Lc |]. split; [exact (wblk_keep _ _ _ Wc) |].
+    intros i cb co Hi Hl. rewrite Hldc in Hl by exact Hi. exact (Co i cb co Hi Hl).
+  - exact (floor_data_keep _ _ Ho W FD).
+  - intros y fh Ha Hy Hf. rewrite Hld in Ha, Hy, Hf by congruence. exact (FRO y fh Ha Hy Hf).
 Qed.
 End KEEP.
+
+(* ---- transfer: a memory that agrees with m off the regions rl (what a walk
+   of a call over rl leaves: SymExec2.MMg, FfKeep.fk_frame) ---- *)
+
+Lemma ol_transfer_v : forall mb (W : block -> Prop) hd, wf_list mb W hd ->
+    forall M s, (forall b z, ~ W b -> Mem.valid_block mb b -> Mem.load Mint32 M b z = Mem.load Mint32 mb b z) ->
+    on_list M hd s -> on_list mb hd s.
+Proof.
+  intros mb W hd Hw. induction Hw as [| bn on nx Hv Hav Hld Hw IH]; intros M s F OL; inv OL.
+  - apply ol_here. cbn [Mem.loadv] in *. rewrite <- (F _ _ Hav Hv). assumption.
+  - cbn [Mem.loadv] in *.
+    match goal with Hn : Mem.load _ M _ _ = Some ?nx' |- _ =>
+      rewrite (F _ _ Hav Hv) in Hn; rewrite Hld in Hn; injection Hn as <- end.
+    eapply ol_next; [exact Hld | eapply IH; eauto].
+Qed.
+
+Section KEEP2.
+Variables (m m' : mem) (rl : list (option val)).
+Hypothesis Hnb : Ple (Mem.nextblock m) (Mem.nextblock m').
+Hypothesis Hperm : forall b ofs k p, Plt b (Mem.nextblock m) -> Mem.perm m b ofs k p -> Mem.perm m' b ofs k p.
+Hypothesis Hld : forall ch b z, Plt b (Mem.nextblock m) -> ~ rblk rl b -> Mem.load ch m' b z = Mem.load ch m b z.
+
+Lemma plt_fwd : forall b, Plt b (Mem.nextblock m) -> Plt b (Mem.nextblock m').
+Proof. intros b H. exact (Plt_Ple_trans _ _ _ H Hnb). Qed.
+
+Lemma wf_fwd2 : forall (A : block -> Prop) hd, (forall b, ~ A b -> ~ rblk rl b) ->
+  wf_list m A hd -> wf_list m' A hd.
+Proof.
+  intros A hd HA W. induction W as [| bn on nx Hv Hav Hl W IH]; [constructor |].
+  apply wf_cons with nx; [exact (plt_fwd _ Hv) | exact Hav | | exact IH].
+  cbn [Mem.loadv] in *. rewrite (Hld _ _ _ Hv (HA _ Hav)). exact Hl.
+Qed.
+
+Lemma part_back2 : forall hd, (forall id bp, In id part_ids -> Genv.find_symbol G id = Some bp ->
+    Plt bp (Mem.nextblock m) /\ ~ rblk rl bp) ->
+  part_head G m' hd -> part_head G m hd.
+Proof.
+  intros hd Hp (id & bp & o & Hin & Hs & Hl). exists id, bp, o. split; [exact Hin |]. split; [exact Hs |].
+  cbn [Mem.loadv] in *. destruct (Hp _ _ Hin Hs) as (P & R). rewrite Hld in Hl by assumption. exact Hl.
+Qed.
+
+Lemma floor_back2 : forall hd, (forall id bp, In id part_ids -> Genv.find_symbol G id = Some bp ->
+    Plt bp (Mem.nextblock m) /\ ~ rblk rl bp) ->
+  floor_head G m' hd -> floor_head G m hd.
+Proof.
+  intros hd Hp (id & bp & z & x & Hin & Hs & Hz & Hx & Hl). exists id, bp, z, x.
+  split; [exact Hin |]. split; [exact Hs |]. split; [exact Hz |]. split; [exact Hx |].
+  cbn [Mem.loadv] in *. destruct (Hp _ _ Hin Hs) as (P & R). rewrite Hld in Hl by assumption. exact Hl.
+Qed.
+
+Lemma Wff_keep2 : forall gp gp', (forall b, gp b <> None -> gp' b <> None) ->
+  Wff G m gp SZ_SURFACE rl -> Wff G m' gp' SZ_SURFACE rl.
+Proof using Hnb Hperm Hld.
+  intros gp gp' Hg (W1 & W2 & W3 & W4 & W5 & W6 & W7).
+  assert (Hp : forall id bp, In id part_ids -> Genv.find_symbol G id = Some bp ->
+            Plt bp (Mem.nextblock m) /\ ~ rblk rl bp)
+    by (intros id bp Hi Hs; destruct (W2 id bp Hi Hs) as (A & B & _); exact (conj A B)).
+  assert (OL : forall hd s, part_head G m' hd -> on_list m' hd s -> part_head G m hd /\ on_list m hd s).
+  { intros hd s Hh Ho'. pose proof (part_back2 hd Hp Hh) as Hh0. split; [exact Hh0 |].
+    apply (ol_transfer_v m _ hd (W3 hd Hh0) m' s); [| exact Ho'].
+    intros b z Hb Hv. apply Hld; [exact Hv |]. intros Hr. apply Hb. right. exact Hr. }
+  split; [| split; [| split; [| split; [| split; [| split]]]]].
+  - intros id sz Hi. destruct (W1 id sz Hi) as (b & Hs & Hr). exists b. split; [exact Hs |].
+    intros ofs Hofs. apply Hperm; [exact (Mem.perm_valid_block _ _ _ _ _ (Hr ofs Hofs)) | exact (Hr ofs Hofs)].
+  - intros id bp Hi Hs. destruct (W2 id bp Hi Hs) as (A & B & C).
+    split; [exact (plt_fwd _ A) | split; assumption].
+  - intros hd Hh. apply (wf_fwd2 _ hd); [| exact (W3 hd (part_back2 hd Hp Hh))].
+    intros b Hb Hr. apply Hb. right. exact Hr.
+  - intros hd s Hh Ho'. destruct (OL hd s Hh Ho') as (Hh0 & Ho0).
+    destruct (W4 hd s Hh0 Ho0) as (b & o & -> & Hpl & Hsz & Hr & Hgb).
+    exists b, o. split; [reflexivity |]. split; [exact (plt_fwd _ Hpl) |].
+    split; [exact Hsz |]. split; [exact Hr | exact (Hg _ Hgb)].
+  - intros hd b o Hh Ho'. destruct (OL hd _ Hh Ho') as (Hh0 & Ho0).
+    destruct (W5 hd b o Hh0 Ho0) as (t & Hl & Hin). exists t. split; [| exact Hin].
+    destruct (W4 hd _ Hh0 Ho0) as (b' & o' & E & Hpl & _ & Hr & _). injection E as <- <-.
+    rewrite Hld by assumption. exact Hl.
+  - intros hd b o Hh Ho'. destruct (OL hd _ Hh Ho') as (Hh0 & Ho0). exact (W6 hd b o Hh0 Ho0).
+  - exact W7.
+Qed.
+
+Lemma floor_data_keep2 : forall gp, Wff G m gp SZ_SURFACE rl ->
+  floor_data G m -> floor_data G m'.
+Proof using Hnb Hperm Hld.
+  intros gp (W1 & W2 & W3 & W4 & _) FD h (hd & s & xv & zv & Hh & Hol & Hhit).
+  assert (Hp : forall id bp, In id part_ids -> Genv.find_symbol G id = Some bp ->
+            Plt bp (Mem.nextblock m) /\ ~ rblk rl bp)
+    by (intros id bp Hi Hs; destruct (W2 id bp Hi Hs) as (A & B & _); exact (conj A B)).
+  pose proof (floor_back2 hd Hp Hh) as Hh0.
+  assert (Hol0 : on_list m hd s).
+  { apply (ol_transfer_v m _ hd (W3 hd (floor_head_part _ _ _ Hh0)) m' s); [| exact Hol].
+    intros b z Hb Hv. apply Hld; [exact Hv |]. intros Hr. apply Hb. right. exact Hr. }
+  destruct (W4 hd s (floor_head_part _ _ _ Hh0) Hol0) as (b & o & -> & Hpl & _ & Hr & _).
+  apply FD. exists hd, (Vptr b o), xv, zv. split; [exact Hh0 |]. split; [exact Hol0 |].
+  apply (hit_transfer m' m b o xv zv h); [| exact Hhit].
+  intros ch z. apply Hld; assumption.
+Qed.
+
+Lemma wblk_keep2 : forall rl' v n, wblk m rl' v n -> wblk m' rl' v n.
+Proof using Hnb Hperm Hld. intros rl' v n (b & o & -> & P & H). exists b, o. split; [reflexivity |]. split; [exact (plt_fwd _ P) | exact H]. Qed.
+End KEEP2.
 End FFW.

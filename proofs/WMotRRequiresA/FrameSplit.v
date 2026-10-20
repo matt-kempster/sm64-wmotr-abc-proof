@@ -27,6 +27,7 @@ From SM64.Proofs Require Import NoAImpliesNoFlyLinked.
 From SM64.Proofs Require Import HeightInvariant HeightMoveCatalog WMotRLevel WMotRWorld
   NoAActions FrameCalls.
 From SM64.Proofs.WMotRRequiresA Require Import FfWorld.
+From SM64.Proofs Require Import Generic.ClosedMem.
 Import ListNotations.
 
 Definition tyMSp : type := tptr (Tstruct mario._MarioState noattr).
@@ -621,14 +622,16 @@ Section FrameSplit.
     Lemma obj_store_ffw : ffw ge bm m -> ffw ge bm m'.
     Proof.
       intros Hf.
-      assert (HC' : lclosed m').
-      { apply (lclosed_store m m' ch mb lo v Hst (proj1 Hf)).
-        intros b' o' ->. destruct Hlo as [(_ & ->) | (-> & ->)]; [left; reflexivity |].
-        exfalso. destruct Hstat as (s' & Hs' & _).
+      assert (HC' : forall gp, closed_by gp m -> gp mb = Some (mb, 0) -> closed_by gp m').
+      { intros gp HC Hg. apply (store_closed gp m m' ch mb lo v Hst HC Hg).
+        destruct Hlo as [(_ & ->) | (-> & ->)]; [left; reflexivity |].
+        right. intros b' o' ->. destruct Hstat as (s' & Hs' & _).
         rewrite (Mem.load_store_same _ _ _ _ _ _ Hst) in Hs'. cbn in Hs'. discriminate Hs'. }
-      refine (ffw_keep ge bm m m' mb (Mem.nextblock_store _ _ _ _ _ _ Hst)
+      refine (ffw_keep ge bm m m' mb mo (Mem.nextblock_store _ _ _ _ _ _ Hst)
                 (fun b ofs k p => Mem.perm_store_1 _ _ _ _ _ _ Hst b ofs k p)
-                (fun ch' b z Hb => LD ch' b z (or_introl Hb)) mo Hmo Hmb Hab HC' Hf).
+                (fun ch' b z Hb => LD ch' b z (or_introl Hb)) _ Hmo Hmb Hab HC' Hf).
+      intros i Hi. apply LDk; [cbn; lia |].
+      pose proof mo_range. unfold FFW_COLL, O_INTERACT_STATUS, RAW_OFF. lia.
     Qed.
 
     Lemma obj_store_fworld : fworld m -> fworld m'.

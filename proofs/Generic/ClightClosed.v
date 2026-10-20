@@ -14,7 +14,7 @@
 From Coq Require Import ZArith List Classical_Prop.
 From compcert Require Import Coqlib Maps AST Integers Floats Values Memory Events
   Globalenvs Ctypes Cop Clight ClightBigstep.
-From SM64.Proofs Require Import Generic.Unwired.ClosedMem.
+From SM64.Proofs Require Import Generic.ClosedMem.
 Import ListNotations.
 
 Definition vok (g : meminj) (v : val) : Prop := Val.inject g v v.

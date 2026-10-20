@@ -521,12 +521,11 @@ Section HeightLinked12.
      bonk, air-hit-wall, the two rollouts, butt-slide air, ground pound,
      slide kick).  The other 30 cases are dead under action_sat R_noA. *)
   Hypothesis Hair_pro : air_pro_rows lp bm MWF.
-  (* the freefall case (FfRow, 2026-10-20): its MoveChain half is PROVED from
-     the real act_freefall (FfRun.ff_move, started from FfWorld.ffw, which
-     PhiW / fworld now carry).  What stays a row is that act_freefall keeps
-     the frame world (ff_keeps); the other ten cases keep their AirSplit row. *)
+  (* the freefall case (FfRow, 2026-10-20): PROVED from the real
+     act_freefall (FfRow.ff_row: the call keeps the frame world and moves
+     Phi's cells by a MoveChain, from FfWorld.ffw, which PhiW / fworld
+     carry).  The other ten cases keep their AirSplit row. *)
   Hypothesis Hair_case_rest : air_case_rest lp bm MWF.
-  Hypothesis Hff_keeps : ff_keeps lp bm MWF.
   (* the walk's floors: the FPU floor (TRUST 3.5) and the labeled open
      audio / camera premises (deferred; ExtInert) *)
   Hypothesis Hsqrtf : sqrtf_spec.
@@ -537,7 +536,7 @@ Section HeightLinked12.
   Lemma Hair_case : air_case_rows lp bm MWF.
   Proof.
     exact (air_case_rows_ff lp H12 Hdma_floor Hsqrtf Hsqrtf_float Haudio Hcamera bm Hbm_sym MWF
-             Hair_case_rest Hff_keeps).
+             Hair_case_rest).
   Qed.
 
   Lemma call_facts :
