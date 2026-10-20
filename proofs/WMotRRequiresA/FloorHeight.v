@@ -17,7 +17,7 @@ From Coq Require Import ZArith List Lia.
 From compcert Require Import Coqlib Errors Maps AST Integers Floats Values Memory Events
   Globalenvs Ctypes Cop Clightdefs Clight ClightBigstep.
 From SM64.Generated Require surface_collision.
-From SM64.Proofs.WMotRRequiresA.Unwired Require Import FloorList.
+From SM64.Proofs.WMotRRequiresA Require Import FloorList.
 Import ListNotations.
 
 Definition c11000 : float32 := Float32.of_int (Int.neg (Int.repr 11000)).

@@ -26,6 +26,7 @@ From SM64.Proofs Require Import CensusV2 EngineV2Consumer.
 From SM64.Proofs Require Import NoAImpliesNoFlyLinked.
 From SM64.Proofs Require Import HeightInvariant HeightMoveCatalog WMotRLevel WMotRWorld
   NoAActions FrameCalls.
+From SM64.Proofs.WMotRRequiresA Require Import FfWorld.
 Import ListNotations.
 
 Definition tyMSp : type := tptr (Tstruct mario._MarioState noattr).
@@ -222,7 +223,7 @@ Section FrameSplit.
   (* what holds at every call boundary of the frame, besides GOAL 1's mem_ok *)
   Definition fworld (m : mem) : Prop :=
     action_sat R_noA m bm /\ wmotr_world bm m /\ anim_apart m /\ mobj_apart m
-    /\ a_down_real bm m = false.
+    /\ a_down_real bm m = false /\ ffw ge bm m.
 
   Notation MC := (MoveChain wmotr_floor wmotr_pole wmotr_cannon).
 
@@ -616,14 +617,29 @@ Section FrameSplit.
       rewrite LD; [reflexivity | left; exact (Hbc _ _ eq_refl)].
     Qed.
 
+    (* the walk's world (FfWorld.ffw): the store is inside Mario's object *)
+    Lemma obj_store_ffw : ffw ge bm m -> ffw ge bm m'.
+    Proof.
+      intros Hf.
+      assert (HC' : lclosed m').
+      { apply (lclosed_store m m' ch mb lo v Hst (proj1 Hf)).
+        intros b' o' ->. destruct Hlo as [(_ & ->) | (-> & ->)]; [left; reflexivity |].
+        exfalso. destruct Hstat as (s' & Hs' & _).
+        rewrite (Mem.load_store_same _ _ _ _ _ _ Hst) in Hs'. cbn in Hs'. discriminate Hs'. }
+      refine (ffw_keep ge bm m m' mb (Mem.nextblock_store _ _ _ _ _ _ Hst)
+                (fun b ofs k p => Mem.perm_store_1 _ _ _ _ _ _ Hst b ofs k p)
+                (fun ch' b z Hb => LD ch' b z (or_introl Hb)) mo Hmo Hmb Hab HC' Hf).
+    Qed.
+
     Lemma obj_store_fworld : fworld m -> fworld m'.
     Proof.
-      intros (Ha & Hw & Han & Hmob & Hd).
+      intros (Ha & Hw & Han & Hmob & Hd & Hf).
       split; [intros v1 Hl; unfold action_sat in Ha; rewrite LDbm in Hl; exact (Ha v1 Hl) |].
       split; [exact (obj_store_world Hmob Hw) |].
       split; [exact (obj_store_anim Han) |].
       split; [exact (obj_store_mobj Hmob) |].
-      rewrite obj_store_adown. exact Hd.
+      split; [rewrite obj_store_adown; exact Hd |].
+      exact (obj_store_ffw Hf).
     Qed.
 
     Lemma obj_store_cells : forall c, read_cells bm m c -> read_cells bm m' c.

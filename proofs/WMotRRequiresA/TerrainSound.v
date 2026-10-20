@@ -13,7 +13,7 @@ From Coq Require Import ZArith List.
 From compcert Require Import Coqlib Maps AST Integers Values Memory Ctypes Cop Clight
   ClightBigstep.
 From SM64.Generated Require mario.
-From SM64.Proofs Require Import WMotRRequiresA.Unwired.FloorList.
+From SM64.Proofs Require Import WMotRRequiresA.FloorList.
 Import ListNotations.
 
 (* statements that cannot change memory: no stores, no calls, no builtins *)

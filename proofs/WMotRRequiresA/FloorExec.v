@@ -26,8 +26,8 @@ From Coq Require Import ZArith List Lia.
 From compcert Require Import Coqlib Errors Maps AST Integers Floats Values Memory Events
   Globalenvs Ctypes Cop Clight ClightBigstep.
 From SM64.Generated Require surface_collision.
-From SM64.Proofs Require Import Interp.SymExec2 WMotRRequiresA.Unwired.FloorList
-  WMotRRequiresA.Unwired.FloorHeight.
+From SM64.Proofs Require Import Interp.SymExec2 WMotRRequiresA.FloorList
+  WMotRRequiresA.FloorHeight.
 From SM64.Proofs.WMotRRequiresA Require Import WMotRWorld.
 Import ListNotations.
 

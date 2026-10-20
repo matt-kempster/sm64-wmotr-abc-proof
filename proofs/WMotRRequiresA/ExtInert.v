@@ -26,7 +26,7 @@ From Coq Require Import String List ZArith.
 From compcert Require Import Coqlib Maps AST Integers Values Memory Events Globalenvs Ctypes Clight ClightBigstep.
 From SM64.Generated Require mario_actions_airborne.
 From SM64.Proofs Require Import Interp.SymExec2 MarioModel.LinkedTwelve.
-From SM64.Proofs.WMotRRequiresA.Unwired Require Import FpuFloor FpWalk.
+From SM64.Proofs.WMotRRequiresA Require Import FpuFloor FpWalk.
 Import ListNotations.
 
 Definition ext_inert (name : string) : Prop :=

@@ -19,9 +19,9 @@ From Coq Require Import ZArith List Lia String.
 From compcert Require Import Coqlib Errors Maps AST Integers Floats Values Memory Events
   Globalenvs Ctypes Cop Clight ClightBigstep Linking.
 From SM64.Generated Require mario mario_actions_airborne math_util.
-From SM64.Proofs Require Import MarioModel.LinkedTwelve WMotRRequiresA.Unwired.FpuFloor
+From SM64.Proofs Require Import MarioModel.LinkedTwelve WMotRRequiresA.FpuFloor
   MarioModel.MathGeomGated MarioModel.MathBodies MarioModel.RestSurface Interp.LinkGenv
-  WMotRRequiresA.Unwired.AirXc.
+  WMotRRequiresA.AirXc.
 From SM64.Proofs Require MarioModel.CensusV2.
 Import ListNotations.
 Local Open Scope Z_scope.

@@ -14,9 +14,9 @@ From Coq Require Import List ZArith Lia.
 From compcert Require Import Coqlib Maps AST Integers Floats Values Memory Ctypes Clight Globalenvs.
 From SM64.Generated Require mario surface_collision.
 From SM64.Proofs Require Import Interp.SymExec2.
-From SM64.Proofs.WMotRRequiresA.Unwired Require Import FloorExec AirRun.
+From SM64.Proofs.WMotRRequiresA Require Import FloorExec AirRun.
 From SM64.Proofs Require Import HeightInvariant HeightMoveCatalog WMotRLevel.
-From SM64.Proofs.WMotRRequiresA.Unwired Require Import AirMatch AirMove.
+From SM64.Proofs.WMotRRequiresA Require Import AirMatch AirMove.
 From compcert Require Import ClightBigstep.
 From SM64.Generated Require mario_step.
 From SM64.Proofs Require Import Interp.LinkGenv MarioModel.LinkedTwelve.

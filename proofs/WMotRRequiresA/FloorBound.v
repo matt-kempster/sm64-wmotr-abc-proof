@@ -17,7 +17,7 @@ From compcert Require Import Coqlib Floats Integers Values IEEE754_extra.
 From Flocq Require Import Binary Bits Defs Raux Zaux Generic_fmt FLT.
 From SM64.Proofs Require Import HeightInvariant.
 From SM64.Proofs.WMotRRequiresA Require Import HeightFloatSteps.
-From SM64.Proofs.WMotRRequiresA.Unwired Require Import FloorList FloorHeight.
+From SM64.Proofs.WMotRRequiresA Require Import FloorList FloorHeight.
 
 Local Open Scope R_scope.
 Local Transparent Float32.add Float32.sub Float32.neg Float32.cmp Float32.compare

@@ -23,7 +23,7 @@ From Coq Require Import ZArith Reals List Lia.
 From compcert Require Import Coqlib Maps AST Integers Floats Values Memory Events Globalenvs
   Ctypes Cop Clight ClightBigstep.
 From SM64.Proofs Require Import Interp.SymExec2 HeightInvariant HeightMoveCatalog WMotRLevel.
-From SM64.Proofs.WMotRRequiresA.Unwired Require Import FloorHeight AirMatch AirMove WallExec AirWr.
+From SM64.Proofs.WMotRRequiresA Require Import FloorHeight AirMatch AirMove WallExec AirWr.
 Import ListNotations.
 
 (* ---------------------------------------------------------------------- *)

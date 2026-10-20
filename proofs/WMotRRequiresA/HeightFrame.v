@@ -69,6 +69,7 @@ From SM64.Proofs Require Import MWFReal RestSurface FloorsSurface
 From SM64.Proofs Require Import LinkedTwelve SpawnInit InitMemSat.
 From SM64.Proofs Require Import NoAImpliesNoFlyLinked NoAImpliesNoFlyTwelve.
 From SM64.Proofs Require Import FrameCalls FrameSplit AirSplit.
+From SM64.Proofs.WMotRRequiresA Require Import FfWorld FfRow FpuFloor ExtInert.
 From SM64.Proofs Require OsDmaFloor LptBody.
 From SM64.Proofs Require Import HeightInvariant HeightBudgetArith HeightMoveCatalog WMotRLevel
   WMotRWorld NoAActions.
@@ -472,7 +473,8 @@ Section HeightLinked12.
      whole Object away -- needed for the frame's own two stores to Mario's
      object (gfx flags, oInteractStatus), which FrameSplit PROVES. *)
   Definition PhiW (m : mem) : Prop :=
-    height_invariant bm R_noA m /\ wmotr_world bm m /\ anim_apart lp bm m /\ mobj_apart bm m.
+    height_invariant bm R_noA m /\ wmotr_world bm m /\ anim_apart lp bm m /\ mobj_apart bm m
+    /\ ffw (lp_ge lp) bm m.
   Notation Phi := PhiW.
 
   (* LEVEL DATA -- now DEFINED from generated/ and PROVED (WMotRLevel.v):
@@ -519,7 +521,24 @@ Section HeightLinked12.
      bonk, air-hit-wall, the two rollouts, butt-slide air, ground pound,
      slide kick).  The other 30 cases are dead under action_sat R_noA. *)
   Hypothesis Hair_pro : air_pro_rows lp bm MWF.
-  Hypothesis Hair_case : air_case_rows lp bm MWF.
+  (* the freefall case (FfRow, 2026-10-20): its MoveChain half is PROVED from
+     the real act_freefall (FfRun.ff_move, started from FfWorld.ffw, which
+     PhiW / fworld now carry).  What stays a row is that act_freefall keeps
+     the frame world (ff_keeps); the other ten cases keep their AirSplit row. *)
+  Hypothesis Hair_case_rest : air_case_rest lp bm MWF.
+  Hypothesis Hff_keeps : ff_keeps lp bm MWF.
+  (* the walk's floors: the FPU floor (TRUST 3.5) and the labeled open
+     audio / camera premises (deferred; ExtInert) *)
+  Hypothesis Hsqrtf : sqrtf_spec.
+  Hypothesis Hsqrtf_float : sqrtf_float.
+  Hypothesis Haudio : audio_inert.      (* LABELED OPEN PREMISE: audio, deferred *)
+  Hypothesis Hcamera : camera_inert.    (* LABELED OPEN PREMISE: camera, deferred *)
+
+  Lemma Hair_case : air_case_rows lp bm MWF.
+  Proof.
+    exact (air_case_rows_ff lp H12 Hdma_floor Hsqrtf Hsqrtf_float Haudio Hcamera bm Hbm_sym MWF
+             Hair_case_rest Hff_keeps).
+  Qed.
 
   Lemma call_facts :
     (forall m m', mem_ok_lp bm MWF m -> execute_mario_action_step_lp lp m m' ->
@@ -575,8 +594,8 @@ Section HeightLinked12.
     mem_ok_lp bm MWF m -> Phi m -> a_down_real bm m = false ->
     read_cells bm m c -> FS lp bm MWF c m.
   Proof.
-    intros m c Hok ((Ha & _) & Hw & Han & Hmo) HD Hc.
-    split; [exact Hok |]. split; [exact (conj Ha (conj Hw (conj Han (conj Hmo HD)))) |].
+    intros m c Hok ((Ha & _) & Hw & Han & Hmo & Hf) HD Hc.
+    split; [exact Hok |]. split; [exact (conj Ha (conj Hw (conj Han (conj Hmo (conj HD Hf))))) |].
     exists c. split; [exact Hc | apply Relation_Operators.rt_refl].
   Qed.
 
@@ -593,12 +612,13 @@ Section HeightLinked12.
   Lemma Hframe_keeps_world :
     forall m m', mem_ok_lp bm MWF m -> Phi m -> a_down_real bm m = false ->
                  execute_mario_action_step_lp lp m m' ->
-                 wmotr_world bm m' /\ anim_apart lp bm m' /\ mobj_apart bm m'.
+                 wmotr_world bm m' /\ anim_apart lp bm m' /\ mobj_apart bm m'
+                 /\ ffw (lp_ge lp) bm m'.
   Proof.
     intros m m' Hok Hphi HD Hst. pose proof Hphi as ((_ & c & Hc & Hb) & _).
     destruct (frame_FS c m m' Hb (frame_FS_start m c Hok Hphi HD Hc) Hst)
-      as (_ & (_ & Hw & Han & Hmo & _) & _).
-    exact (conj Hw (conj Han Hmo)).
+      as (_ & (_ & Hw & Han & Hmo & _ & Hf) & _).
+    exact (conj Hw (conj Han (conj Hmo Hf))).
   Qed.
 
   Lemma Hframe_is_move_chain :

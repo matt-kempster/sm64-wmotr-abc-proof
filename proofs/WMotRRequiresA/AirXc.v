@@ -24,10 +24,10 @@ From compcert Require Import Coqlib Errors Maps AST Integers Floats Values Memor
 From SM64.Generated Require mario surface_collision math_util.
 From SM64.Proofs Require Import Interp.SymExec2 MarioModel.MathGeomGated MarioModel.MathBodies
   Generic.SymbolicLinking
-  WMotRRequiresA.Unwired.FloorList WMotRRequiresA.Unwired.FloorHeight WMotRRequiresA.Unwired.FloorExec
-  WMotRRequiresA.Unwired.CeilList WMotRRequiresA.Unwired.CeilExec
-  WMotRRequiresA.Unwired.WallFind WMotRRequiresA.Unwired.WallExec
-  WMotRRequiresA.Unwired.TerrainSound.
+  WMotRRequiresA.FloorList WMotRRequiresA.FloorHeight WMotRRequiresA.FloorExec
+  WMotRRequiresA.CeilList WMotRRequiresA.CeilExec
+  WMotRRequiresA.WallFind WMotRRequiresA.WallExec
+  WMotRRequiresA.TerrainSound.
 Import ListNotations.
 
 Section AX.

@@ -45,7 +45,10 @@ all in `Unwired/`, and the theorem moved nowhere. See
     with pole and cannon fields from the level lists, no star, and no stomp bit). Without W the other rows are false
     over phantom worlds; grow W, don't drop it
   - `Hframe_is_move_chain`, the value walk. It is false if an unmodelled move fires, so check the
-    `Step` constructors against any new y/vel writer.
+    `Step` constructors against any new y/vel writer. The airborne dispatcher is split per case
+    (`AirSplit`), and the **freefall case's MoveChain is proved** (`FfRow.ff_moves`, the real
+    `act_freefall` walked by `FfRun`), started from the carried `FfWorld.ffw` (in PhiW / fworld).
+    Left for freefall: `ff_keeps` (the call keeps fworld). Other cases: `Hair_case_rest`.
   - (`wmotr_gap` and `wmotr_poles` are now proved from generated level data, `WMotRLevel.v`)
   - the flank specs (TRUST 0.7)
 

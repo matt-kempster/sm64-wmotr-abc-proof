@@ -23,8 +23,7 @@ From compcert Require Import Coqlib Maps AST Integers Floats Values Memory Event
 From SM64.Generated Require mario_step mario mario_actions_airborne memory surface_collision level_update.
 From SM64.Proofs Require Import Interp.SymExec2 Interp.LinkGenv MarioModel.LinkedTwelve
   MarioModel.OsDmaFloor MarioModel.MathGeomGated HeightInvariant HeightMoveCatalog WMotRLevel.
-From SM64.Proofs.WMotRRequiresA.Unwired Require Import FloorHeight FloorExec AirXc AirRun AirWr
-  WallExec AirMatch AirMove SmaXc AirSum FpuFloor FpWalk ExtInert FfClass AirStart.
+From SM64.Proofs.WMotRRequiresA Require Import FloorHeight FloorExec AirXc AirRun AirWr WallExec AirMatch AirMove SmaXc AirSum FpuFloor FpWalk ExtInert FfClass AirStart.
 Import ListNotations.
 
 Module AIR := mario_actions_airborne.

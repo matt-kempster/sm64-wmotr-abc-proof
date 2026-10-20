@@ -631,7 +631,12 @@ cells; `wmotr_world` already carries both.
    the frame world keeps the action in `R_noA`. GOAL 1's per-handler result
    (`air_leaves_linked12`) gives mem_ok across each call. **Next:** the
    freefall case row from `ff_move` (item 5).
-5. The start-state obligations of `ff_move` from the frame invariant: the
-   walk's regions (`env_ok`) from MWF R11–R14 and SafeB, the buffer path fact
-   from the anim layout fact, and the floor refresh from
-   `update_mario_geometry_inputs`.
+5. The start-state obligations of `ff_move` from the frame invariant.
+   **Done (2026-10-20, `FfWorld.v` / `FfRow.v`):** they are a new carried
+   conjunct `ffw` of fworld / PhiW (closedness, the object / anim-list /
+   buffer layout, the partition `Wff`, `floor_data`, floor/area world
+   pointers, m->input's A bits, the floor refresh), proved to survive the
+   frame's own stores; `ff_moves` builds env_ok and the start facts from it
+   and the freefall case's MoveChain is a theorem. **Next:** `ff_keeps`
+   (act_freefall keeps fworld: a footprint walk of the real body, plus
+   ffw's partition / floor refresh after the step), then the other cases.

@@ -16,8 +16,8 @@
 From Coq Require Import ZArith List Lia.
 From compcert Require Import Coqlib Errors Maps AST Integers Floats Values Memory Events
   Globalenvs Ctypes Cop Clight ClightBigstep.
-From SM64.Proofs Require Import Interp.SymExec2 WMotRRequiresA.Unwired.WallExec
-  WMotRRequiresA.Unwired.FpWalk.
+From SM64.Proofs Require Import Interp.SymExec2 WMotRRequiresA.WallExec
+  WMotRRequiresA.FpWalk.
 Import ListNotations.
 
 Definition wset : Type := list (Z * memory_chunk).
@@ -270,7 +270,7 @@ End WRS.
 (* ---------------------------------------------------------------------- *)
 
 From SM64.Generated Require mario_actions_airborne.
-From SM64.Proofs Require Import MarioModel.LinkedTwelve WMotRRequiresA.Unwired.FpuFloor Interp.LinkGenv.
+From SM64.Proofs Require Import MarioModel.LinkedTwelve WMotRRequiresA.FpuFloor Interp.LinkGenv.
 
 Definition uawt_ws (ge : genv) : wset :=
   [(fo ge AIR._MarioState AIR._forwardVel, Mfloat32);

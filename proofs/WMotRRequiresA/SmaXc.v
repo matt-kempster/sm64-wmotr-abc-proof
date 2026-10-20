@@ -27,8 +27,8 @@ From compcert Require Import Coqlib Errors Maps AST Integers Floats Values Memor
   Globalenvs Ctypes Cop Clight ClightBigstep.
 From SM64.Generated Require mario memory.
 From SM64.Proofs Require Import Interp.SymExec2 MarioModel.LinkedTwelve MarioModel.RealFrameLinked
-  MarioModel.OsDmaFloor WMotRRequiresA.Unwired.WallExec WMotRRequiresA.Unwired.AirWr
-  WMotRRequiresA.Unwired.SmaFoot.
+  MarioModel.OsDmaFloor WMotRRequiresA.WallExec WMotRRequiresA.AirWr
+  WMotRRequiresA.SmaFoot.
 Import ListNotations.
 
 Definition sreg (e : sentry) : positive := fst (fst (fst e)).

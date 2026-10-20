@@ -27,7 +27,11 @@ import sys
 
 PROOFS = "proofs"
 MARKER_RE = re.compile(r"\(\*\s*@?(spine-root|kept)\b\s*:", re.I)
-REQUIRE_RE = re.compile(r"From\s+SM64\.Proofs\s+Require(?:\s+Import)?\s+(.*?)\.", re.S)
+# any `From SM64.Proofs[.<dir>] Require [Import|Export] A B.C ...` statement; the
+# statement ends at a '.' followed by whitespace (dotted module paths stay whole)
+REQUIRE_RE = re.compile(
+    r"From\s+SM64\.Proofs(?:\.[\w.]+)?\s+Require(?:\s+(?:Import|Export))?\s+(.*?)\.(?=\s|$)", re.S)
+COMMENT_RE = re.compile(r"\(\*.*?\*\)", re.S)
 
 
 def innermost_unwired(path):
@@ -65,8 +69,9 @@ def main():
     # proof-only Require edges A -> B
     edges = []
     for b in loc:
-        for m in REQUIRE_RE.finditer(text[b]):
+        for m in REQUIRE_RE.finditer(COMMENT_RE.sub(" ", text[b])):
             for tok in m.group(1).split():
+                tok = tok.split(".")[-1]  # resolve a dotted path by its basename
                 if tok not in ("Import", "Export") and tok in loc:
                     edges.append((b, tok))
 
