@@ -208,15 +208,23 @@ Definition cvals (c : cells) : list val :=
 
 (* from the entry cells c, the air step made the cells c1 by one RangedMove;
    a landing or ledge grab also says where it attached *)
-Definition PMv (cl : int) (c c1 : cells) : Prop :=
-  c_action c = ACT_FREEFALL -> budget_ok c ->
-  FloorRefreshOK wmotr_floor (R2 (c_posy c)) (R2 (c_floorh c)) ->
+Definition PMc (cl : int) (c c1 : cells) : Prop :=
   RM' c c1 /\ (cl <> Int.zero -> AttachInfo c c1)
   /\ (cl = Int.repr 2 -> AttachOK wmotr_floor wmotr_pole wmotr_cannon c (R2 (c_floorh c1))).
 
+Definition PMv (cl : int) (c c1 : cells) : Prop :=
+  c_action c = ACT_FREEFALL -> budget_ok c ->
+  FloorRefreshOK wmotr_floor (R2 (c_posy c)) (R2 (c_floorh c)) -> PMc cl c c1.
+
+(* the fact's arguments: whenever the entry cells are cells c of a
+   freefall state in budget (with a fresh floor), the arguments are the
+   class, the result, c, and the cells c1 the step made, with PMc *)
 Definition MV (vs : list (option val)) : Prop :=
-  forall cl rv c c1, vs = map Some (Vsingle (c_posy c1) :: Vint cl :: rv :: cvals c ++ cvals c1) ->
-  PMv cl c c1.
+  forall c, firstn 7 (skipn 3 vs) = map Some (cvals c) ->
+  c_action c = ACT_FREEFALL -> budget_ok c ->
+  FloorRefreshOK wmotr_floor (R2 (c_posy c)) (R2 (c_floorh c)) ->
+  exists cl rv c1, vs = map Some (Vsingle (c_posy c1) :: Vint cl :: rv :: cvals c ++ cvals c1)
+                   /\ PMc cl c c1.
 
 (* ---------------------------------------------------------------------- *)
 (* Each class proves PMv (AirMove)                                        *)
@@ -320,6 +328,42 @@ Proof.
       rewrite (cells_unique c' c1 LMO RC AC) in M.
       split; [exact M | split; [intros N; exfalso; exact (N eq_refl) | intros E2; exfalso]].
       apply (f_equal Int.unsigned) in E2. vm_compute in E2. discriminate E2.
+Qed.
+
+Lemma cls_outcome : forall cl, cls_of nbase R0 kv rM rO kH g = Some cl ->
+  outcome_ok (sload nbase R0 kv g) (init_cell kv) (g_pc g) rM rO kH = true.
+Proof.
+  intros cl CL. unfold cls_of, outcome_ok in CL. unfold outcome_ok.
+  destruct (cells_ok (sload nbase R0 kv g) (g_pc g) rM rO kH); [| discriminate CL].
+  cbn [andb] in *.
+  destruct (aclass_of (sload nbase R0 kv g) (init_cell kv) (g_pc g) rM rO kH); [reflexivity |].
+  destruct (land_ok (sload nbase R0 kv g) (init_cell kv) (g_pc g) rM rO kH); [reflexivity |].
+  destruct (ledge_ok (sload nbase R0 kv g) (init_cell kv) (g_pc g) rM rO kH); [reflexivity |].
+  cbn [andb] in CL. discriminate CL.
+Qed.
+
+(* the step's cells exist and are read through the regions *)
+Theorem step_cells : forall cl c, cls_of nbase R0 kv rM rO kH g = Some cl ->
+  Mem.load Mint32 m0 bm oA = Some (Vint (c_action c)) ->
+  Mem.load Mint16unsigned m0 bm oS = Some (Vint (c_state c)) ->
+  Mem.load Mint16unsigned m0 bm oT = Some (Vint (c_timer c)) ->
+  Mem.load Mfloat32 m0 bm oY = Some (Vsingle (c_posy c)) ->
+  Mem.load Mfloat32 m0 bm oV = Some (Vsingle (c_vely c)) ->
+  Mem.load Mfloat32 m0 bm oF = Some (Vsingle (c_floorh c)) ->
+  c_action c = ACT_FREEFALL -> budget_ok c ->
+  FloorRefreshOK wmotr_floor (R2 (c_posy c)) (R2 (c_floorh c)) ->
+  exists c1, at_cells m c1.
+Proof.
+  intros cl c CL HA HS HT HY HV HF Hact Hb FRO.
+  pose proof (cls_outcome cl CL) as OK.
+  pose proof OK as OK'. unfold outcome_ok in OK'. apply andb_true_iff in OK' as [CO _].
+  pose proof (proj1 (cells_sound ge nbase R0 gtab kv m0 uf gp gp_old E m g rM rO kH MM HUH HbM CO)) as LMO.
+  destruct (outcome_move ge nbase R0 gtab kv m0 uf gp gp_old E m g rM rO kH MM HUH HbM c
+              HA HS HT HY HV HF Hb Hact FD FRO OK) as (c' & RC & _).
+  exists c'. destruct RC as (A & S & T & Y & V & F & bo & oo & LO & GY).
+  change Mptr with Mint32 in LO. change OFS_MARIOOBJ with oMO in LO. rewrite LMO in LO.
+  injection LO as <- <-.
+  unfold at_cells, addr. repeat split; assumption.
 Qed.
 End PMV.
 
@@ -425,15 +469,19 @@ Proof.
         by (apply Pos2Nat.inj; rewrite Nat2Pos.id by lia; rewrite !Pos2Nat.inj_succ; lia).
       repeat constructor; try assumption; try (apply Hi; assumption);
         try (eapply sok_up; [eassumption | exact NN]).
-    + cbn [fact_holds]. apply HUM. intros cl' rv c c1 Heq.
-      cbn [map pkeys mkeys app fents ic_of sv_of] in Heq.
-      rewrite F1, F2, F3, F4, Da, Ds, Dt, Dr, !DI, DIo in Heq.
-      cbn [SymExec2.den cvals map app] in Heq.
-      injection Heq as Y1 Ecl Erv HA HS HT HY HV HF _ A1 S1 T1 Y1' V1 Fl1 G1.
-      subst cl'.
-      apply (pmv_of ge nbase R0 gtab kv m0 uf gp gp_old E' m' g' rM rO kH MM' HUH HbM FD cl c c1 CL
-               HA HS HT HY HV HF).
-      unfold at_cells. repeat split; assumption.
+    + cbn [fact_holds]. apply HUM. intros c Hent Hact Hb FRO.
+      cbn [map pkeys mkeys app fents ic_of sv_of firstn skipn] in Hent.
+      rewrite !DI, DIo in Hent. cbn [cvals map] in Hent.
+      injection Hent as HA HS HT HY HV HF HG.
+      destruct (step_cells ge nbase R0 gtab kv m0 uf gp gp_old E' m' g' rM rO kH MM' HUH HbM FD cl c CL
+                  HA HS HT HY HV HF Hact Hb FRO) as (c1 & AC).
+      exists cl, v, c1. split.
+      * cbn [map pkeys mkeys app fents ic_of sv_of].
+        rewrite F1, F2, F3, F4, Da, Ds, Dt, Dr, !DI, DIo, HA, HS, HT, HY, HV, HF, HG.
+        destruct AC as (A1 & S1 & T1 & Y1 & V1 & Fl1 & G1).
+        rewrite A1, S1, T1, Y1, V1, Fl1, G1. reflexivity.
+      * exact (pmv_of ge nbase R0 gtab kv m0 uf gp gp_old E' m' g' rM rO kH MM' HUH HbM FD cl c c1 CL
+                 HA HS HT HY HV HF AC Hact Hb FRO).
   - split; [exact Dr |].
     split; [cbn [add_fact g_nx]; split; [eapply nlt_up; [exact (proj1 S) | exact NN] | exact (proj2 S)] |].
     split; [cbn [add_fact g_nx]; eapply Ple_trans; [exact L | exact NN] |].

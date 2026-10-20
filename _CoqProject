@@ -283,6 +283,7 @@ proofs/WMotRRequiresA/Unwired/SmaXc.v
 proofs/WMotRRequiresA/Unwired/AirMove.v
 proofs/WMotRRequiresA/Unwired/AirSum.v
 proofs/WMotRRequiresA/Unwired/ExtInert.v
+proofs/WMotRRequiresA/Unwired/FfClass.v
 proofs/WMotRRequiresA/Unwired/AirStart.v
 proofs/Interp/MemBuild.v
 
