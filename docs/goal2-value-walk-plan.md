@@ -623,11 +623,14 @@ cells; `wmotr_world` already carries both.
    `mobj_apart`: no wall / ceiling / floor surface is in Mario's object's
    block, and a collided object is Mario's own or a whole `struct Object`
    (608 bytes) away, with the object not wrapping the address space.
-   **Next:** the airborne dispatcher is itself a switch of `act_*(m)` calls
-   on `m->action`. Splitting it needs a path-sensitive variant (the case
-   label gives `action = ACT_FREEFALL`, which `ff_move` needs), so that the
-   freefall case of `Hseg_call` for `mario_execute_airborne_action` becomes
-   `ff_move`.
+   **Done (2026-10-20): the airborne dispatcher** (`AirSplit.v`). Its row is
+   proved from its two prologue calls and one row per case whose label is a
+   no-A action (`air_case_list`, computed from the generated switch: 11 of
+   43). Each case row gets the action cell equal to its label (the switch
+   reads that cell right before the call); the other cases are dead because
+   the frame world keeps the action in `R_noA`. GOAL 1's per-handler result
+   (`air_leaves_linked12`) gives mem_ok across each call. **Next:** the
+   freefall case row from `ff_move` (item 5).
 5. The start-state obligations of `ff_move` from the frame invariant: the
    walk's regions (`env_ok`) from MWF R11–R14 and SafeB, the buffer path fact
    from the anim layout fact, and the floor refresh from

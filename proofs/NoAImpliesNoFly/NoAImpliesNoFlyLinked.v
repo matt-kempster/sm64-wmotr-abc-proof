@@ -3709,6 +3709,84 @@ Section NoARealInputMWF.
              Hchase_safe Hstore_safe).
   Qed.
 
+  (* the airborne handlers one by one (GOAL 2's dispatcher split): the same
+     per-leaf term the frame proof above passes to airborne_pres *)
+  Lemma air_leaves_real_mwf :
+    forall fid f, mem_id fid airborne_callee_ids = true ->
+      (prog_defmap mario_actions_airborne.prog) ! fid = Some (Gfun (Internal f)) ->
+      body_pres lp (NoA_real bm) (MWF_real lp bm bc oc0 SafeB) bm f.
+  Proof.
+    exact (airborne_leaf_callees_pres lp LO_mario LO_stp LO_air LO_int bm
+                      (NoA_real bm) (MWF_real lp bm bc oc0 SafeB)
+                      (mwf_real_ctl lp bm bc oc0 SafeB)
+                      (mwf_real_window lp bm bc oc0 SafeB Hbc_bm HSafeB_not_bm
+                         Hgms_blk Hgtimer_blk Htable_blk Hktab_blk)
+                      (mwf_real_glob lp bm bc oc0 SafeB Hbc_bm Hglob_blk)
+                      (mwf_real_act_store lp bm bc oc0 SafeB Hbc_bm
+                         HSafeB_not_bm Hgms_blk Hgtimer_blk Htable_blk Hktab_blk)
+                      SafeB HSafeB_not_bm
+                      (mwf_real_chase_root lp bm bc oc0 SafeB)
+                      (mwf_real_chase lp bm bc oc0 SafeB Hbc_bm
+                         HSafeB_not_bm HSafeB_not_bc Hgms_blk Hgtimer_blk Htable_blk Hktab_blk)
+                      (mwf_real_root_store lp bm bc oc0 SafeB Hbc_bm
+                         HSafeB_not_bm Hgms_blk Hgtimer_blk Htable_blk Hktab_blk)
+                      (mwf_real_sglob lp bm bc oc0 SafeB)
+                      (mwf_real_chase_step lp bm bc oc0 SafeB)
+                      (mwf_real_chase_ptr lp bm bc oc0 SafeB Hbc_bm
+                         HSafeB_not_bm HSafeB_not_bc Hgms_blk Hgtimer_blk Htable_blk Hktab_blk)
+                      (Hpres_obj_ext mario._play_sound eq_refl)
+                      Hpres_obj_ext
+                      Hcsp_osh_real
+                      Hdg_v3s_real Hdg_v3f_real
+                      Hcp_caas_real
+                      (Hpres_obj_ext mario._sqrtf eq_refl)
+                      (Hpres_obj_ext mario._atan2s eq_refl)
+                      Hcpx_approach_f32_real
+                      Hsma_real
+                      (Hpres_floors_ext mario._raise_background_noise eq_refl)
+                      (Hpres_obj_ext mario._set_camera_mode eq_refl)
+                      Hcp_pas
+                      Hcpx_approach_real
+                      (* SLICE A21: act_lava_boost's low-health
+                         level_trigger_warp -- the SHARED warp-trigger body
+                         the floors/warp surfaces already walk (warp_pres
+                         lifted via call_pres_of_body).  NO new trust. *)
+                      (call_pres_of_body lp bm (NoA_real bm)
+                         (MWF_real lp bm bc oc0 SafeB)
+                         (mwf_real_ctl lp bm bc oc0 SafeB)
+                         level_update.prog level_update._level_trigger_warp
+                         level_update.f_level_trigger_warp LO_lvl
+                         floors_warp_internal
+                         (warp_pres lp LO_mario LO_lvl bm (NoA_real bm)
+                            (MWF_real lp bm bc oc0 SafeB)
+                            (mwf_real_ctl lp bm bc oc0 SafeB)
+                            (mwf_real_window lp bm bc oc0 SafeB Hbc_bm
+                               HSafeB_not_bm Hgms_blk Hgtimer_blk Htable_blk Hktab_blk)
+                            (mwf_real_glob lp bm bc oc0 SafeB Hbc_bm Hglob_blk)
+                            Hpres_warp_ext))
+                      (* SLICE A22: act_getting_blown's mario_blow_off_cap --
+                         carried as an internal call_pres residual (spawn arc
+                         pending), the air analogue of Hcp_caas_real. *)
+                      Hcp_mboc_real
+                      (* SLICE A29: act_riding_hoot WALKED (the LAST
+                         airborne_rest leaf) via a bespoke hybrid walker (the
+                         act_in_cannon precedent MINUS the A-gate).  Its
+                         externals: vec3s_set/vec3f_set object writers whose
+                         dst chases marioObj into the SafeB pool (sc:
+                         Hscp_v3s / NEW Hscp_v3fset_real), the
+                         vec3f_set(m->vel,0,0,0) Mario-window writer (w1:
+                         Hw1cp_v3fset_real), and the entry/exit stack-frame
+                         MWF rows (fn_vars=nil: mwf_real_alloc/free, PROVED
+                         terms, no new trust).  airborne_rest_ids is now nil
+                         => Hpres_air_rest DISCHARGED (vacuous rest). *)
+                      Hdg_v3fset_real
+                      Hw1cp_v3fset_real
+                      (mwf_real_alloc lp bm bc oc0 SafeB Hbc_bm)
+                      (fun m l m' Hf HM =>
+                         mwf_real_free lp bm bc oc0 SafeB Hbc_bm m m' l Hf HM)
+                      ltac:(intros fid f H _; vm_compute in H; discriminate H)).
+  Qed.
+
   Lemma frame_ok_real_mwf :
     forall m m',
       mem_ok_lp bm (MWF_real lp bm bc oc0 SafeB) m ->

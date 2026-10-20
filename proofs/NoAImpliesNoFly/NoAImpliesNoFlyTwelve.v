@@ -297,6 +297,20 @@ Section NoAImpliesNoFlyTwelve.
              Hpres_warp_ext Hext_action Hmwf_ext).
   Qed.
 
+  (* the airborne handlers one by one, for GOAL 2's dispatcher split *)
+  Lemma air_leaves_linked12 :
+    forall fid f, mem_id fid AirborneSurface.airborne_callee_ids = true ->
+      (prog_defmap mario_actions_airborne.prog) ! fid = Some (Gfun (Internal f)) ->
+      body_pres lp (NoA_real bm) MWF bm f.
+  Proof.
+    exact (air_leaves_real_mwf lp (linked12_LO_mario lp H12) bm bc oc0 SafeB
+             HSafeB_syms Hspawn (linked12_LO_surf lp H12) (linked12_LO_math lp H12)
+             Hcsp_osh_real Hsma_real (linked12_LO_air lp H12) (linked12_LO_int lp H12)
+             (linked12_LO_lvl lp H12) (linked12_LO_stp lp H12)
+             Hpres_obj_ext_open Hpres_floors_ext Hcp_spawn_real Hcp_savefile_real
+             Hpres_warp_ext).
+  Qed.
+
   (* ==================================================================== *)
   (* FROM BOOT (2026-10-19, phantom-forall guard): the capstone's start   *)
   (* premise mem_ok_lp is not just assumed -- it HOLDS of the memory the  *)

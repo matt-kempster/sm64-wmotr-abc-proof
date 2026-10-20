@@ -68,7 +68,7 @@ From SM64.Proofs Require Import MWFReal RestSurface FloorsSurface
   FloorsLeafSurface.
 From SM64.Proofs Require Import LinkedTwelve SpawnInit InitMemSat.
 From SM64.Proofs Require Import NoAImpliesNoFlyLinked NoAImpliesNoFlyTwelve.
-From SM64.Proofs Require Import FrameCalls FrameSplit.
+From SM64.Proofs Require Import FrameCalls FrameSplit AirSplit.
 From SM64.Proofs Require OsDmaFloor LptBody.
 From SM64.Proofs Require Import HeightInvariant HeightBudgetArith HeightMoveCatalog WMotRLevel
   WMotRWorld NoAActions.
@@ -510,8 +510,16 @@ Section HeightLinked12.
      comes from WMotR's surfaces; nothing picks up or rides an object; the
      anim DMA stays in its own buffer.  Tethered by the write watch (TRUST.md
      5.4). ---- *)
-  Hypothesis Hseg_call : seg_call_rows lp bm MWF.
+  (* the f(gMarioState) calls other than the airborne dispatcher *)
+  Hypothesis Hseg_call_na : seg_call_rows_na lp bm MWF.
   Hypothesis Hseg_any : seg_any_rows lp bm MWF.
+  (* the airborne dispatcher, split per case (AirSplit, 2026-10-20): its two
+     prologue calls, and each no-A action's handler called with the action
+     cell = its label (11 cases: freefall, dive, the two air knockbacks, soft
+     bonk, air-hit-wall, the two rollouts, butt-slide air, ground pound,
+     slide kick).  The other 30 cases are dead under action_sat R_noA. *)
+  Hypothesis Hair_pro : air_pro_rows lp bm MWF.
+  Hypothesis Hair_case : air_case_rows lp bm MWF.
 
   Lemma call_facts :
     (forall m m', mem_ok_lp bm MWF m -> execute_mario_action_step_lp lp m m' ->
@@ -526,6 +534,24 @@ Section HeightLinked12.
              Hpres_sta_ext Hcp_soawr_real Hpres_obj_ext_open Hpres_cut_ext_open Hgeo_real
              Hocp_rai_real Hpres_floors_ext Hcp_spawn_real Hcp_savefile_real Hcpx_ibcd_real
              Hcpx_tbs_real Hpres_warp_ext Hext_action Hmwf_ext).
+  Qed.
+
+  Lemma air_leaves :
+    forall fid f, mem_id fid AirborneSurface.airborne_callee_ids = true ->
+      (prog_defmap mario_actions_airborne.prog) ! fid = Some (Gfun (Internal f)) ->
+      body_pres lp (NoA_real bm) MWF bm f.
+  Proof.
+    exact (air_leaves_linked12 lp H12 bm bc oc0 SafeB HSafeB_syms Hbm_sym Hbc_sym Hoc0
+             Hcsp_osh_real Hdma_floor Hpres_obj_ext_open Hpres_floors_ext Hcp_spawn_real
+             Hcp_savefile_real Hpres_warp_ext).
+  Qed.
+
+  Lemma Hseg_call : seg_call_rows lp bm MWF.
+  Proof.
+    destruct call_facts as (_ & _ & Hgms & _).
+    exact (seg_call_rows_of_air lp (linked12_LO_mario lp H12) (linked12_LO_air lp H12) bm MWF
+             (fun m0 HM => mwf_real_ctl lp bm bc oc0 SafeB m0 HM) air_leaves Hgms
+             Hseg_call_na Hair_pro Hair_case).
   Qed.
 
   Lemma frame_FS : forall c0 m m',
