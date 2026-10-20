@@ -54,7 +54,29 @@ From SM64.Proofs Require Import LinkedTwelve.
 From SM64.Proofs Require Import SpawnInit.
 From SM64.Proofs Require Import InitMemSat.
 From SM64.Proofs Require Import NoAImpliesNoFlyLinked.
-From SM64.Proofs Require OsDmaFloor LptBody BootMWF.
+From SM64.Proofs Require OsDmaFloor LptBody BootMWF MathBodies.
+
+(* The open any-argument object-external list, minus memory.c's two
+   segment converters: those are linked (the 15th TU) and pure, so their
+   entries are PROVED (MathBodies.Hcpx_s2v_proved / _v2s_proved; found
+   2026-10-20 in the premise sweep). *)
+Definition obj_ext_mem (i : ident) : bool :=
+  Pos.eqb i interaction._segmented_to_virtual || Pos.eqb i interaction._virtual_to_segmented.
+Definition obj_ext_open2_ids : list ident :=
+  filter (fun i => negb (obj_ext_mem i)) NoAImpliesNoFlyLinked.obj_ext_open_ids.
+
+Lemma obj_ext_open_of2 : forall lp bm (NoA MWF : mem -> Prop), linked12 lp ->
+    (forall fid, mem_id fid obj_ext_open2_ids = true -> FloorsSurface.call_pres_ext lp bm NoA MWF fid) ->
+    forall fid, mem_id fid NoAImpliesNoFlyLinked.obj_ext_open_ids = true ->
+      FloorsSurface.call_pres_ext lp bm NoA MWF fid.
+Proof.
+  intros lp bm NoA MWF H12 Hrow fid H.
+  destruct (NoAImpliesNoFlyLinked.mem_id_filter_split obj_ext_mem fid _ H) as [Hm | Ho];
+    [ | exact (Hrow fid Ho) ].
+  unfold obj_ext_mem in Hm. apply orb_true_iff in Hm as [Hm | Hm]; apply Pos.eqb_eq in Hm; subst fid.
+  - exact (MathBodies.Hcpx_s2v_proved lp bm NoA MWF (linked12_LO_math lp H12) (linked12_LO_memory lp H12)).
+  - exact (MathBodies.Hcpx_v2s_proved lp bm NoA MWF (linked12_LO_math lp H12) (linked12_LO_memory lp H12)).
+Qed.
 
 Section NoAImpliesNoFlyTwelve.
   Variable lp : Clight.program.
@@ -161,9 +183,13 @@ Section NoAImpliesNoFlyTwelve.
      the same model class as Hcp_spawn_real. *)
   Hypothesis Hcp_soawr_real : call_pres_ext_sr lp bm (NoA_real bm) MWF SafeB
       mario_actions_cutscene._spawn_object_abs_with_rot.
-  Hypothesis Hpres_obj_ext_open : forall fid,
+  Hypothesis Hpres_obj_ext_open2 : forall fid,
+      mem_id fid obj_ext_open2_ids = true ->
+      call_pres_ext lp bm (NoA_real bm) MWF fid.
+  Lemma Hpres_obj_ext_open : forall fid,
       mem_id fid NoAImpliesNoFlyLinked.obj_ext_open_ids = true ->
       call_pres_ext lp bm (NoA_real bm) MWF fid.
+  Proof. exact (obj_ext_open_of2 lp bm _ MWF H12 Hpres_obj_ext_open2). Qed.
   Hypothesis Hpres_cut_ext_open : forall fid,
       mem_id fid NoAImpliesNoFlyLinked.cut_ext_open_ids = true ->
       call_pres_ext lp bm (NoA_real bm) MWF fid.

@@ -24,7 +24,7 @@ From Coq Require Import ZArith List Lia.
 From compcert Require Import Coqlib Maps AST Integers Values Events Memory
   Globalenvs Ctypes Cop Clightdefs Clight ClightBigstep Linking.
 From SM64.Generated Require mario math_util mario_actions_automatic mario_actions_cutscene
-  surface_collision.
+  surface_collision memory interaction.
 From SM64.Proofs Require Import SymbolicLinking ActionValueFrame Taint
   RealFrameLinked AGates CensusV2 RestSurface MWFReal SpawnInit MathGeomBodies
   MathGeomGated SurfaceBodies OutParamSurface LocalVarsSurface FloorsSurface.
@@ -1576,6 +1576,44 @@ Section MathPure.
     call_pres_ext lp bm NoA MWF mario._atan2s.
   Proof. exact (call_pres_ext_pure _ _ math_defmap_atan2s eq_refl atan2s_cpure2_chk). Qed.
 End MathPure.
+
+(* memory.c's two segment-address converters (linked since the 15th TU) are
+   pure too: no locals, no stores, no calls -- they read sSegmentTable and
+   return an address.  So their any-argument obj_ext entries are lemmas,
+   proved from the real bodies (found 2026-10-20 in the premise sweep: they
+   were still listed as trusted externals). *)
+Section MemPure.
+  Variable lp : Clight.program.
+  Variable bm : block.
+  Variables NoA MWF : mem -> Prop.
+  Hypothesis LO_math : linkorder math_util.prog lp.
+  Hypothesis LO_memory : linkorder memory.prog lp.
+
+  Lemma mem_call_pres_ext_pure : forall fid f,
+      (prog_defmap memory.prog) ! fid = Some (Gfun (Internal f)) ->
+      fn_vars f = nil -> cpure2_chk (fn_body f) = true ->
+      call_pres_ext lp bm NoA MWF fid.
+  Proof.
+    intros fid f Hdm Hfv Hchk fd m0 vargs0 t0 m1 vres0 Hevf Hres HN HM Hv Hsat.
+    pose proof (resolves_pin_fd lp _ _ _ _ LO_memory Hdm Hres) as ->.
+    rewrite (cpure2_funcall_memid _ _ Hfv Hchk (mp_resolves lp LO_math _ _ math_dm_atan2_lookup)
+               _ _ _ _ _ Hevf).
+    exact (conj Hv (conj Hsat (conj HM HN))).
+  Qed.
+
+  Lemma Hcpx_s2v_proved :
+    call_pres_ext lp bm NoA MWF interaction._segmented_to_virtual.
+  Proof.
+    exact (mem_call_pres_ext_pure memory._segmented_to_virtual memory.f_segmented_to_virtual
+             ltac:(vm_compute; reflexivity) eq_refl ltac:(vm_compute; reflexivity)).
+  Qed.
+  Lemma Hcpx_v2s_proved :
+    call_pres_ext lp bm NoA MWF interaction._virtual_to_segmented.
+  Proof.
+    exact (mem_call_pres_ext_pure memory._virtual_to_segmented memory.f_virtual_to_segmented
+             ltac:(vm_compute; reflexivity) eq_refl ltac:(vm_compute; reflexivity)).
+  Qed.
+End MemPure.
 
 (* a function returning a 16-bit int returns a Vint *)
 Lemma funcall_ret_int16 : forall (ge : genv) f m vargs t m' vres sg a,

@@ -404,9 +404,14 @@ Section HeightLinked12.
      the same model class as Hcp_spawn_real. *)
   Hypothesis Hcp_soawr_real : call_pres_ext_sr lp bm (NoA_real bm) MWF SafeB
       mario_actions_cutscene._spawn_object_abs_with_rot.
-  Hypothesis Hpres_obj_ext_open : forall fid,
+  (* memory.c's segment converters are PROVED pure (NoAImpliesNoFlyTwelve.obj_ext_open_of2) *)
+  Hypothesis Hpres_obj_ext_open2 : forall fid,
+      mem_id fid NoAImpliesNoFlyTwelve.obj_ext_open2_ids = true ->
+      call_pres_ext lp bm (NoA_real bm) MWF fid.
+  Lemma Hpres_obj_ext_open : forall fid,
       mem_id fid NoAImpliesNoFlyLinked.obj_ext_open_ids = true ->
       call_pres_ext lp bm (NoA_real bm) MWF fid.
+  Proof. exact (NoAImpliesNoFlyTwelve.obj_ext_open_of2 lp bm _ MWF H12 Hpres_obj_ext_open2). Qed.
   Hypothesis Hpres_cut_ext_open : forall fid,
       mem_id fid NoAImpliesNoFlyLinked.cut_ext_open_ids = true ->
       call_pres_ext lp bm (NoA_real bm) MWF fid.
@@ -549,7 +554,7 @@ Section HeightLinked12.
   Proof.
     exact (frame_call_ok_linked12 lp H12 bm bc oc0 SafeB HSafeB_syms Hbm_sym Hbc_sym Hoc0
              Hscp_mtxf_real Hcsp_omfd_real Hcsp_scale_real Hcsp_osh_real Hdma_floor WL_exempt
-             Hpres_sta_ext Hcp_soawr_real Hpres_obj_ext_open Hpres_cut_ext_open Hgeo_real
+             Hpres_sta_ext Hcp_soawr_real Hpres_obj_ext_open2 Hpres_cut_ext_open Hgeo_real
              Hocp_rai_real Hpres_floors_ext Hcp_spawn_real Hcp_savefile_real Hcpx_ibcd_real
              Hcpx_tbs_real Hpres_warp_ext Hext_action Hmwf_ext).
   Qed.
@@ -560,7 +565,7 @@ Section HeightLinked12.
       body_pres lp (NoA_real bm) MWF bm f.
   Proof.
     exact (air_leaves_linked12 lp H12 bm bc oc0 SafeB HSafeB_syms Hbm_sym Hbc_sym Hoc0
-             Hcsp_osh_real Hdma_floor Hpres_obj_ext_open Hpres_floors_ext Hcp_spawn_real
+             Hcsp_osh_real Hdma_floor Hpres_obj_ext_open2 Hpres_floors_ext Hcp_spawn_real
              Hcp_savefile_real Hpres_warp_ext).
   Qed.
 
