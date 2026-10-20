@@ -319,6 +319,10 @@ Definition budget_ok (c : cells) : Prop :=
         \/ R2 (c_vely c) <= -73)
   (* ground pound past the windup falls (state 0 sets vel -50 each frame) *)
   /\ (c_action c = ACT_GROUND_POUND -> state_of c <> 0%Z -> R2 (c_vely c) <= 0)
+  (* the windup ends by actionTimer = loopEnd + 4 <= 32771 (loopEnd is an s16,
+     airborne.c:944), so its u16 timer never wraps (a wrap would restart the
+     rise) *)
+  /\ (c_action c = ACT_GROUND_POUND -> state_of c = 0%Z -> (timer_of c <= 32770)%Z)
   (* a grabbed ledge is a laddered floor *)
   /\ (c_action c = ACT_LEDGE_GRAB -> R2 (c_floorh c) <= PHI_K).
 

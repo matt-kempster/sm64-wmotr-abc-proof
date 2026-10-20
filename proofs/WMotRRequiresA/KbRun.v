@@ -217,9 +217,39 @@ Proof.
     unfold addr in L. rewrite HbM, Ptrofs.unsigned_zero, Z.add_0_l in L.
     destruct RC as (HA & _). change OFS_ACTION with 12%Z in HA. rewrite HA in L. cbn [den] in L.
     injection L as ->. reflexivity. }
-  assert (Hact : air_entry (c_action c0) = true) by (rewrite Hact0; exact Hae).
+  assert (Hact : pas_entry (c_action c0) (state_of c0) = true) by (rewrite Hact0; exact (air_pas _ _ Hae)).
   rewrite <- BM in RC |- *.
   exact (ff_sound G NBF (R0F G) gtabF (kvK acn G) m0 uf gp GPO RM RO kM uf_kM_k_out E' m' gs MM
            ltac:(rewrite BaM; exact HbM) HO0 c0 RC Hact Hb FRO OK).
 Qed.
 End LP.
+
+(* the walk theorem's statement, for any case's handler on the link
+   (KbRow.kb_row takes it; ground pound's is GpRun.gp_kfinal) *)
+Definition kfinal (lp : Clight.program) (acn : Z) (fK : function) : Prop :=
+  forall (m0 : mem) (gp : meminj),
+  (forall b x, gp b = Some x -> Plt b (Mem.nextblock m0)) ->
+  (forall ch b z v, gp b <> None -> Mem.load ch m0 b z = Some v -> val_old gp v) ->
+  floor_data (globalenv lp) m0 ->
+  forall E t m' vres c0,
+  env_ok (globalenv lp) NBF (R0F (globalenv lp)) gtabF (kvK acn (globalenv lp)) m0 gp E ->
+  (forall f, In f (pc0F (globalenv lp)) ->
+     fact_holds (globalenv lp) (R0F (globalenv lp)) m0 (ufF (globalenv lp) m0 gp) E f) ->
+  eval_funcall function_entry2 (globalenv lp) m0 (Internal fK)
+    [Vptr (e_blk E RM) (Ptrofs.add (e_base E RM) Ptrofs.zero)] t m' vres ->
+  read_cells (e_blk E RM) m0 c0 -> budget_ok c0 ->
+  FloorRefreshOK wmotr_floor (R2 (c_posy c0)) (R2 (c_floorh c0)) ->
+  exists E' gs, Ext E E' NBF
+    /\ MMg (globalenv lp) NBF (R0F (globalenv lp)) gtabF (kvK acn (globalenv lp)) m0
+         (ufF (globalenv lp) m0 gp) gp E' m' gs
+    /\ fk_ok NBF (R0F (globalenv lp)) (kvK acn (globalenv lp)) RM RO RLD kS clokF gs = true
+    /\ exists c2, read_cells (e_blk E RM) m' c2 /\ MoveChain wmotr_floor wmotr_pole wmotr_cannon c0 c2
+       /\ fro_ff c2.
+
+Lemma kb_kfinal : forall lp, linked12 lp -> os_dma_floor -> sqrtf_spec -> sqrtf_float ->
+  audio_inert -> camera_inert -> forall acn fK, kb_walk acn fK = true -> air_entry (Int.repr acn) = true ->
+  kfinal lp acn fK.
+Proof.
+  intros lp H12 Hdma Hsq Hsqf Ha Hc acn fK Hw Hae m0 gp GPO MC FD E t m' vres c0 EO PC EV RC Hb FRO.
+  eapply kb_final; eassumption.
+Qed.

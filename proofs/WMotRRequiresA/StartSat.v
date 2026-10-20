@@ -735,6 +735,7 @@ Section Witness.
       split; [ lra | split; [ lra | ] ].
       split; [ intro E; exfalso; revert E; apply int_ne; vm_compute; discriminate | ].
       split; [ intro E; exfalso; revert E; apply int_ne; vm_compute; discriminate | ].
+      split; [ intro E; exfalso; revert E; apply int_ne; vm_compute; discriminate | ].
       intro E; exfalso; revert E; apply int_ne; vm_compute; discriminate.
     Qed.
 

@@ -539,3 +539,15 @@ Proof.
   replace (bpow radix2 (14 - 24)) with (/ 1024) in He by (simpl; lra).
   apply Rabs_le_inv in He. unfold EPS. lra.
 Qed.
+
+(* ... and never lowers pos[1] (rounding is monotone; y is a float) *)
+Lemma windup_add_ge : forall y o, F32 y = true -> F32 o = true ->
+  0 <= R2 o <= 20 -> -11000 <= R2 y <= 2796 -> R2 y <= R2 (Float32.add y o).
+Proof.
+  intros y o Fy Fo Ho Hy.
+  assert (B13 : Rabs (R2 y + R2 o) <= bpow radix2 14)
+    by (simpl; apply Rabs_le; split; lra).
+  destruct (f32_add_val y o Fy Fo) as [Hv _].
+  { eapply Rle_trans; [ exact B13 | apply bpow_le; lia ]. }
+  rewrite Hv, <- (rnd_B2R y) at 1. apply rnd_mono. lra.
+Qed.

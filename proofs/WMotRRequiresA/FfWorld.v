@@ -24,12 +24,13 @@
 (*   - every collided object of Mario's is in his object's block (in the   *)
 (*     game: all objects are gObjectPool slots);                           *)
 (*   - m->input has neither INPUT_A_PRESSED nor INPUT_A_DOWN (no-A);        *)
-(*   - in freefall and the air knockback family (HeightMoveCatalog.        *)
-(*     air_entry: AIR_HIT_WALL, SOFT_BONK, BACKWARD / FORWARD_AIR_KB),     *)
-(*     Mario's floorHeight is a floor refresh of his y (FloorRefreshOK):   *)
-(*     -11000, or a WMotR floor at most STEP_UP above y.  (Only these: a    *)
-(*     landing can leave floorHeight a quarter step stale, and it always   *)
-(*     lands in a ground action.)                                          *)
+(*   - in freefall, the air knockback family (HeightMoveCatalog.          *)
+(*     air_entry: AIR_HIT_WALL, SOFT_BONK, BACKWARD / FORWARD_AIR_KB) and   *)
+(*     ground pound (fro_entry), Mario's floorHeight is a floor refresh of *)
+(*     his y (FloorRefreshOK): -11000, or a WMotR floor at most STEP_UP     *)
+(*     above y.  (Only these: a landing can leave floorHeight a quarter     *)
+(*     step stale, and it always lands in a ground action.  Ground pound's *)
+(*     windup only raises y.)                                              *)
 (* Offsets and sizes are the generated AST's (pinned in FfRow on the link). *)
 (* ffw survives the frame's two stores into Mario's object (ffw_keep).      *)
 (* ====================================================================== *)
@@ -112,7 +113,7 @@ Definition ffw (m : mem) : Prop :=
       /\ (forall i cb co, 0 <= i < 4 ->
             Mem.load Mint32 m bo (Ptrofs.unsigned oo + FFW_COLL + 4 * i) = Some (Vptr cb co) -> cb = bo))
   /\ floor_data G m
-  /\ (forall a y fh, Mem.load Mint32 m bm 12 = Some (Vint a) -> air_entry a = true ->
+  /\ (forall a y fh, Mem.load Mint32 m bm 12 = Some (Vint a) -> fro_entry a = true ->
         Mem.load Mfloat32 m bm OFS_POSY = Some (Vsingle y) ->
         Mem.load Mfloat32 m bm OFS_FLOORH = Some (Vsingle fh) ->
         FloorRefreshOK wmotr_floor (R2 y) (R2 fh)).

@@ -278,7 +278,7 @@ Proof.
     unfold addr in L. rewrite HbM, Ptrofs.unsigned_zero, Z.add_0_l in L.
     destruct RC as (HA & _). change OFS_ACTION with 12%Z in HA. rewrite HA in L. cbn [den] in L.
     injection L as ->. reflexivity. }
-  assert (Hact : air_entry (c_action c0) = true) by (rewrite Hff; reflexivity).
+  assert (Hact : pas_entry (c_action c0) (state_of c0) = true) by (unfold pas_entry; rewrite Hff; reflexivity).
   rewrite <- BM in RC |- *.
   exact (ff_sound G NBF (R0F G) gtabF (kvF G) m0 uf gp GPO RM RO kM uf_kM_out E' m' gs MM
            ltac:(rewrite BaM; exact HbM) HO0 c0 RC Hact Hb FRO OK).

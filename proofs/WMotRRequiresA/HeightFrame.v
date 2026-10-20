@@ -538,9 +538,11 @@ Section HeightLinked12.
      or bonks / knocks back with Phi's cells kept).  The soft-bonk and
      both air-knockback cases (KbRow, 2026-10-20): PROVED from the real
      handlers (common_air_knockback_step: an air step, a landing, or a wall
-     bonk keeping the action).  The other six cases keep their AirSplit
-     row. *)
-  Hypothesis Hair_case_rest : air_case_rest3 lp bm MWF.
+     bonk keeping the action).  The ground-pound case (GpRun, 2026-10-20):
+     PROVED from the real act_ground_pound (the windup rise, or the fall's
+     air step and its landing / wall).  The other five cases keep their
+     AirSplit row. *)
+  Hypothesis Hair_case_rest : air_case_rest4 lp bm MWF.
   (* the walk's floors: the FPU floor (TRUST 3.5) and the labeled open
      audio / camera premises (deferred; ExtInert) *)
   Hypothesis Hsqrtf : sqrtf_spec.
@@ -550,7 +552,7 @@ Section HeightLinked12.
 
   Lemma Hair_case : air_case_rows lp bm MWF.
   Proof.
-    exact (air_case_rows_ff3 lp H12 Hdma_floor Hsqrtf Hsqrtf_float Haudio Hcamera bm Hbm_sym MWF
+    exact (air_case_rows_ff4 lp H12 Hdma_floor Hsqrtf Hsqrtf_float Haudio Hcamera bm Hbm_sym MWF
              Hair_case_rest).
   Qed.
 

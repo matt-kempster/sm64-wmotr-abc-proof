@@ -112,7 +112,26 @@ Proof.
     rewrite Int.eq_true, H2. reflexivity.
 Qed.
 
-Lemma credit_of_mode : forall c, credit_of c = mode_credit (mode_of c) (timer_of c) (R2 (c_vely c)).
+(* the actions whose floorHeight the frame keeps a floor refresh of pos[1]
+   (FfWorld.ffw): the air_entry ones and ground pound (its windup only
+   raises pos[1]; its fall is an air step that does not attach) *)
+Definition fro_entry (a : int) : bool := air_entry a || Int.eq a ACT_GROUND_POUND.
+
+Lemma air_fro : forall a, air_entry a = true -> fro_entry a = true.
+Proof. intros a H. unfold fro_entry. rewrite H. reflexivity. Qed.
+
+Lemma fro_entry_ground : forall a s, fro_entry a = true -> mode_of_action a s <> M_Ground.
+Proof.
+  intros a s H. unfold fro_entry in H. apply Bool.orb_true_iff in H as [H | H].
+  - destruct (air_entry_mode a s H) as [X | X]; rewrite X; discriminate.
+  - apply Int.same_if_eq in H. subst a. unfold mode_of_action.
+    vm_compute (Int.eq ACT_GROUND_POUND ACT_FREEFALL).
+    vm_compute (Int.eq ACT_GROUND_POUND ACT_BUTT_SLIDE_AIR).
+    vm_compute (Int.eq ACT_GROUND_POUND ACT_SLIDE_KICK).
+    rewrite Int.eq_true. destruct (Z.eqb s 0); discriminate.
+Qed.
+
+Lemma credit_of_mode: forall c, credit_of c = mode_credit (mode_of c) (timer_of c) (R2 (c_vely c)).
 Proof. intros. apply credit_by_mode. Qed.
 
 Lemma int_eq_false_neq : forall x y, Int.eq x y = false -> x <> y.
@@ -217,7 +236,7 @@ Definition launch_cap (k : mode) (tm : Z) (v : R) : Prop :=
   | M_SlideKick => v <= 30 /\ tm = 0%Z              (* slide-kick launch 12 *)
   | M_Air => v <= 52
   | M_SlideKickBounced => 0 <= v <= 37.5 /\ tm = 0%Z       (* bounce: -vel/2, vel >= -75 *)
-  | M_PoundWindup => True
+  | M_PoundWindup => (tm <= 32770)%Z
   | M_PoundFall => v <= 0
   | M_Ground => True
   end.
@@ -383,6 +402,8 @@ Section Moves.
       mode_of c = M_PoundWindup -> c_action c' = ACT_GROUND_POUND ->
       c_posy c' = c_posy c -> R2 (c_vely c') = -50 ->
       timer_of c' = (timer_of c + 1)%Z -> c_gfxy c' = c_gfxy c ->
+      (* it stays in the windup only while actionTimer < loopEnd + 4 <= 32771 *)
+      (state_of c' = 0%Z -> (timer_of c' <= 32770)%Z) ->
       Move c c'
   | S_switch :
       c_posy c' = c_posy c -> c_gfxy c' = c_gfxy c -> c_floorh c' = c_floorh c ->
@@ -438,7 +459,7 @@ Section Moves.
   Proof.
     intros c h Hc Ha.
     pose proof (budget_ok_y c Hc) as Hy.
-    destruct Hc as (_ & Hb & _ & _ & _ & Hl).
+    destruct Hc as (_ & Hb & _ & _ & _ & _ & Hl).
     rewrite credit_of_mode in Hb.
     destruct Ha as [[Hk Hh] | [[Hf Hh] | [[Ha Hh] | [(base & top & Hp & Hw & Hh) | [Hcn | [Hs | (Hm & Hf & Hh)]]]]]].
     - rewrite Hk in Hb. simpl in Hb. lra.
@@ -544,7 +565,7 @@ Section Moves.
 
   Ltac dphi H :=
     destruct H as ((?Fy & ?Fv & ?Fgy & ?Hylo & ?Hgylo & ?Hflo & ?Hvlo & ?Hvhi)
-                   & ?Hb & ?Hgb & ?Hsk & ?Hgp & ?Hl).
+                   & ?Hb & ?Hgb & ?Hsk & ?Hgp & ?Hgw & ?Hl).
 
   Lemma y_hi : forall c, budget_ok c -> R2 (c_posy c) <= 2796.
   Proof. intros c H. pose proof (budget_ok_y c H). unfold PHI_YMAX, PHI_K, PHI_A in *. lra. Qed.
@@ -591,7 +612,7 @@ Section Moves.
       | Hk Ha Hst Hy' Hv' Htm' Hgy'
       | n Hk Hn Ha Hst Hv0 Hy' Hv' Htm' Hgy'
       | o Hk Hlt Ha Fo Ho Hy' Hv' Htm' Hgy'
-      | Hk Ha Hy' Hv' Htm' Hgy'
+      | Hk Ha Hy' Hv' Htm' Hgy' Hhw
       | Hy' Hgy' Hfh' Hsw
       | h Han Hyh Hgy' Hcap Hla
       | Ha Hst Htmc Hy' Hv' Hgy' Hrf
@@ -606,7 +627,7 @@ Section Moves.
         by (apply rise_credit_mono; [ destruct Hg4; lra | exact Hv' ]).
       assert (Hcr : R2 (c_posy c') + credit_of c' <= R2 (c_posy c) + credit_of c).
       { rewrite !credit_of_mode, Hk'. rewrite !(mode_credit_rise (mode_of c)) by exact Hk. rewrite <- Hgf. lra. }
-      split; [ lra | split; [ rewrite Hgy'; lra | split; [ | split ] ] ].
+      split; [ lra | split; [ rewrite Hgy'; lra | split; [ | split; [ | split ] ] ] ].
       + intros Ha'. rewrite Ha in Ha'. destruct (Hskp Ha') as [Ht Hvv].
         destruct (mode_slide_kick (c_action c) (state_of c) Ha') as [E | E]; fold (mode_of c) in E;
           [ | exfalso; destruct Hk as [? | [? | ?]]; congruence ].
@@ -614,6 +635,8 @@ Section Moves.
         pose proof (gravity_spec2 gf (c_vely c) Fgf Fv (or_introl Hgf) Hv128) as Hgr.
         rewrite Hgf, <- Hvv in Hgr.
         rewrite Ht. exact (sk_clause_step _ _ _ (Hsk Ha') Hgr).
+      + intros Ha'. exfalso. rewrite Ha in Ha'.
+        apply (not_GP c); [ | | exact Ha' ]; destruct Hk as [? | [? | ?]]; congruence.
       + intros Ha'. exfalso. rewrite Ha in Ha'.
         apply (not_GP c); [ | | exact Ha' ]; destruct Hk as [? | [? | ?]]; congruence.
       + intros Ha'. exfalso. rewrite Ha in Ha'.
@@ -635,10 +658,13 @@ Section Moves.
           assert (Hst0 : state_of c <> 0%Z)
             by (apply (proj1 (proj2 (proj2 (mode_of_action_inv (c_action c) (state_of c))))); right; exact E).
           specialize (Hgp Hga Hst0). specialize (Hdn Hgp). lra. }
-      split; [ lra | split; [ rewrite Hgy'; lra | split; [ | split ] ] ].
+      split; [ lra | split; [ rewrite Hgy'; lra | split; [ | split; [ | split ] ] ] ].
       + intros Ha'. rewrite Ha in Ha'. destruct (Hskp Ha') as (Hv0 & Hv2 & Ht).
         rewrite Ht, Hv2. exact (sk_clause_cut _ _ Hv0 (Hsk Ha')).
       + intros Ha' Hst'. exact Hv'.
+      + intros Ha' Hst'. exfalso. unfold state_of in Hst'. rewrite Hst in Hst'. fold (state_of c) in Hst'.
+        rewrite Ha in Ha'. unfold mode_of in Hk. rewrite Ha', mode_of_action_GP_eq, Hst' in Hk.
+        cbn in Hk. destruct Hk as [? | [? | [? | ?]]]; discriminate.
       + intros Ha'. exfalso. rewrite Ha in Ha'.
         apply (not_ledge_air c); [ | exact Ha' ]; destruct Hk as [? | [? | [? | ?]]]; congruence.
     - (* S_sk_bounced *)
@@ -650,11 +676,12 @@ Section Moves.
         by (rewrite !credit_of_mode, Hk', Hk; simpl; exact Hf).
       assert (Ha0 : c_action c = ACT_SLIDE_KICK)
         by (apply (proj1 (mode_of_action_inv (c_action c) (state_of c))); right; exact Hk).
-      split; [ lra | split; [ rewrite Hgy'; lra | split; [ | split ] ] ].
+      split; [ lra | split; [ rewrite Hgy'; lra | split; [ | split; [ | split ] ] ] ].
       + intros _. rewrite Htm'.
         pose proof (gravity_spec2 f2 (c_vely c) F32_f2 Fv (or_introl B2R_f2) Hv128) as Hgr.
         rewrite B2R_f2, <- Hv' in Hgr.
         exact (sk_clause_step _ _ _ (Hsk Ha0) Hgr).
+      + intros Ha'. exfalso. rewrite Ha, Ha0 in Ha'. discriminate.
       + intros Ha'. exfalso. rewrite Ha, Ha0 in Ha'. discriminate.
       + intros Ha'. exfalso. rewrite Ha, Ha0 in Ha'. discriminate.
     - (* S_sk_bounced_cut *)
@@ -666,8 +693,9 @@ Section Moves.
         by (rewrite !credit_of_mode, Hk', Hk; simpl; rewrite Hv'; exact Hf).
       assert (Ha0 : c_action c = ACT_SLIDE_KICK)
         by (apply (proj1 (mode_of_action_inv (c_action c) (state_of c))); right; exact Hk).
-      split; [ lra | split; [ rewrite Hgy'; lra | split; [ | split ] ] ].
+      split; [ lra | split; [ rewrite Hgy'; lra | split; [ | split; [ | split ] ] ] ].
       + intros _. rewrite Htm', Hv'. exact (sk_clause_cut _ _ Hv0 (Hsk Ha0)).
+      + intros Ha'. exfalso. rewrite Ha, Ha0 in Ha'. discriminate.
       + intros Ha'. exfalso. rewrite Ha, Ha0 in Ha'. discriminate.
       + intros Ha'. exfalso. rewrite Ha, Ha0 in Ha'. discriminate.
     - (* S_gp_windup *)
@@ -682,9 +710,10 @@ Section Moves.
       assert (Hcr : R2 (c_posy c') + credit_of c' <= R2 (c_posy c) + credit_of c).
       { rewrite !credit_of_mode, Hk. unfold mode_of. rewrite Ha, mode_of_action_GP_eq, Htm'. simpl.
         destruct (Z.eqb (state_of c') 0); simpl; lra. }
-      split; [ lra | split; [ rewrite Hgy'; lra | split; [ | split ] ] ].
+      split; [ lra | split; [ rewrite Hgy'; lra | split; [ | split; [ | split ] ] ] ].
       + intros Ha'. rewrite Ha in Ha'. discriminate.
       + intros _ _. lra.
+      + intros _ _. lia.
       + intros Ha'. rewrite Ha in Ha'. discriminate.
     - (* S_gp_hold *)
       pose proof (windup_left_mono (timer_of c) Htm0) as Hwm.
@@ -692,26 +721,27 @@ Section Moves.
       assert (Hcr : credit_of c' <= credit_of c).
       { rewrite !credit_of_mode, Hk. unfold mode_of. rewrite Ha, mode_of_action_GP_eq, Htm'. simpl.
         destruct (Z.eqb (state_of c') 0); simpl; lra. }
-      split; [ rewrite Hy'; lra | split; [ rewrite Hgy'; lra | split; [ | split ] ] ].
+      split; [ rewrite Hy'; lra | split; [ rewrite Hgy'; lra | split; [ | split; [ | split ] ] ] ].
       + intros Ha'. rewrite Ha in Ha'. discriminate.
       + intros _ _. lra.
+      + intros _. exact Hhw.
       + intros Ha'. rewrite Ha in Ha'. discriminate.
     - (* S_switch *)
       pose proof (switch_credit c c' Hc0 Hr' Hsw) as Hcr.
       split; [ rewrite Hy'; lra | split; [ rewrite Hgy'; lra | ] ].
-      destruct Hsw as [_ Hk' _ _ | Hk' _ _ | _ Ha' Hst' _].
+      destruct Hsw as [_ Hk' _ _ | Hk' _ _ | _ Ha' Hst' Htz].
       + destruct (sides_plain c' (or_intror Hk')) as (S1 & S2 & S3).
-        split; [ intros H; destruct (S1 H) | split; [ intros H; destruct (S2 H) | intros H; destruct (S3 H) ] ].
+        split; [ intros H; destruct (S1 H) | split; [ intros H; destruct (S2 H) | split; [ intros H; destruct (S2 H) | intros H; destruct (S3 H) ] ] ].
       + destruct (sides_plain c' (or_introl Hk')) as (S1 & S2 & S3).
-        split; [ intros H; destruct (S1 H) | split; [ intros H; destruct (S2 H) | intros H; destruct (S3 H) ] ].
-      + rewrite Ha'. split; [ intros H; discriminate | split; [ intros _ H; contradiction | intros H; discriminate ] ].
+        split; [ intros H; destruct (S1 H) | split; [ intros H; destruct (S2 H) | split; [ intros H; destruct (S2 H) | intros H; destruct (S3 H) ] ] ].
+      + rewrite Ha'. split; [ intros H; discriminate | split; [ intros _ H; contradiction | split; [ intros _ _; rewrite Htz; lia | intros H; discriminate ] ] ].
     - (* S_attach *)
       pose proof (attach_le_K c h Hc0 Han) as HhK.
       assert (Hca : credit_of c' <= PHI_A)
         by (rewrite credit_of_mode; apply launch_cap_credit; [ exact Hvlo' | exact Htm0' | exact Hcap ]).
       pose proof (credit_nonneg (c_action c') (state_of c') (timer_of c') (R2 (c_vely c'))) as Hc'0.
       fold (credit_of c') in Hc'0.
-      split; [ lra | split; [ | split; [ | split ] ] ].
+      split; [ lra | split; [ | split; [ | split; [ | split ] ] ] ].
       + destruct Hgy' as [-> | [-> Hkg]]; [ lra | ].
         rewrite credit_of_mode, Hkg in Hgb. simpl in Hgb. lra.
       + intros Ha'.
@@ -724,20 +754,28 @@ Section Moves.
         * exfalso. apply Hst'.
           apply (proj1 (proj2 (proj2 (proj2 (mode_of_action_inv (c_action c') (state_of c')))))). right. exact E.
         * rewrite E in Hcap. exact Hcap.
+      + intros Ha' Hst'.
+        destruct (mode_ground_pound (c_action c') (state_of c') Ha') as [E | E]; fold (mode_of c') in E.
+        * rewrite E in Hcap. exact Hcap.
+        * exfalso. unfold mode_of in E. rewrite Ha', mode_of_action_GP_eq, Hst' in E. discriminate E.
       + intros Ha'. exact (attach_le_K c _ Hc0 (Hla Ha')).
     - (* S_refresh *)
       assert (Hcr : credit_of c' = credit_of c) by (unfold credit_of, state_of, timer_of; rewrite Ha, Hst, Htmc, Hv'; reflexivity).
-      split; [ rewrite Hy', Hcr; lra | split; [ rewrite Hgy', Hcr; lra | split; [ | split ] ] ].
+      split; [ rewrite Hy', Hcr; lra | split; [ rewrite Hgy', Hcr; lra | split; [ | split; [ | split ] ] ] ].
       + intros Ha'. unfold timer_of. rewrite Hv', Htmc. rewrite Ha in Ha'. exact (Hsk Ha').
       + intros Ha' Hst'. rewrite Hv'. rewrite Ha in Ha'. unfold state_of in *. rewrite Hst in Hst'.
         exact (Hgp Ha' Hst').
+      + intros Ha' Hst'. unfold timer_of. rewrite Htmc. rewrite Ha in Ha'. unfold state_of in Hst'.
+        rewrite Hst in Hst'. exact (Hgw Ha' Hst').
       + intros _. exact (floor_refresh_ledge c _ _ Hc0 Hb Hrf).
     - (* S_oob *)
       assert (Hcr : credit_of c' = credit_of c) by (unfold credit_of, state_of, timer_of; rewrite Ha, Hst, Htmc, Hv'; reflexivity).
-      split; [ rewrite Hy', Hcr; lra | split; [ rewrite Hgy', Hcr; lra | split; [ | split ] ] ].
+      split; [ rewrite Hy', Hcr; lra | split; [ rewrite Hgy', Hcr; lra | split; [ | split; [ | split ] ] ] ].
       + intros Ha'. unfold timer_of. rewrite Hv', Htmc. rewrite Ha in Ha'. exact (Hsk Ha').
       + intros Ha' Hst'. rewrite Hv'. rewrite Ha in Ha'. unfold state_of in *. rewrite Hst in Hst'.
         exact (Hgp Ha' Hst').
+      + intros Ha' Hst'. unfold timer_of. rewrite Htmc. rewrite Ha in Ha'. unfold state_of in Hst'.
+        rewrite Hst in Hst'. exact (Hgw Ha' Hst').
       + intros _. exact (floor_refresh_ledge c _ _ Hc0 Hgb Hrf).
   Qed.
 

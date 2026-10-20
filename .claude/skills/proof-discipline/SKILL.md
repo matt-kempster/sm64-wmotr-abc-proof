@@ -53,8 +53,12 @@ all in `Unwired/`, and the theorem moved nowhere. See
     walked by `FfRun` keeps fworld and moves the cells by a MoveChain), started from the carried
     `FfWorld.ffw` (in PhiW / fworld). The **air-hit-wall case is proved** too (`AhwRow.ahw_row`,
     walked by `AhwRun`; the A-gated wall kick is pruned), and so are soft bonk and both air
-    knockbacks (`KbRow.kb_row`, generic; walks in `KbRun`). Other six cases: `Hair_case_rest`
-    (`KbRow.air_case_rest3`). ffw's floor refresh holds for `air_entry` actions (TRUST 0.6).
+    knockbacks (`KbRow.kb_row`, generic in the walk theorem `KbRun.kfinal`; walks in `KbRun`),
+    and ground pound (`GpRun.gp_kfinal`: windup via `FfClass.gpw_ok`, fall via `ff_ok`). Other
+    five cases (dive, both rollouts, butt-slide air, slide kick): `Hair_case_rest`
+    (`KbRow.air_case_rest4`). ffw's floor refresh holds for `fro_entry` actions (air_entry +
+    ground pound, TRUST 0.6). Dive and rollouts read `gAudioRandom`, a size-0 extern in the
+    17-TU link (its definition is in audio/data.c), so their walks need that TU linked first.
   - (`wmotr_gap` and `wmotr_poles` are now proved from generated level data, `WMotRLevel.v`)
   - the flank specs (TRUST 0.7)
 
