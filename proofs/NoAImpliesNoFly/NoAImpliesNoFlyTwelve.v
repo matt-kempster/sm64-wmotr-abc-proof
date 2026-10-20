@@ -131,10 +131,16 @@ Section NoAImpliesNoFlyTwelve.
      (LptBody), down to the libultra DMA calls, whose effect is the
      hardware/OS floor spec (OsDmaFloor, TRUST 3.5). *)
   Hypothesis Hdma_floor : OsDmaFloor.os_dma_floor.
-  Lemma Hcsp_lpt_real :
-    call_pres_ext_cs lp bm (NoA_real bm) MWF SafeB mario._load_patchable_table.
+  Lemma Hsma_real :
+    DispatchKit.call_pres lp bm (NoA_real bm) MWF mario._set_mario_animation.
   Proof.
-    exact (LptBody.Hcsp_lpt_linked12 lp bm bc oc0 SafeB H12 HSafeB_syms
+    exact (LptBody.sma_row_linked12 lp bm bc oc0 SafeB H12 HSafeB_syms
+             Hspawn Hdma_floor).
+  Qed.
+  Lemma Hsmawa_real :
+    ActWriterSurface.call_pres_np3 lp bm (NoA_real bm) MWF mario._set_mario_anim_with_accel.
+  Proof.
+    exact (LptBody.smawa_row_linked12 lp bm bc oc0 SafeB H12 HSafeB_syms
              Hspawn Hdma_floor).
   Qed.
   Hypothesis WL_exempt : forall e le m fid fty vf fd,
@@ -209,7 +215,7 @@ Section NoAImpliesNoFlyTwelve.
              bm bc oc0 SafeB (fun _ => false)
              HSafeB_syms Hspawn
              (linked12_LO_surf lp H12) (linked12_LO_math lp H12)
-             Hscp_mtxf_real Hcsp_omfd_real Hcsp_scale_real Hcsp_lpt_real WL_exempt
+             Hscp_mtxf_real Hcsp_omfd_real Hcsp_scale_real Hsma_real Hsmawa_real WL_exempt
              (linked12_LO_sta lp H12) (linked12_LO_mov lp H12)
              (linked12_LO_air lp H12) (linked12_LO_sub lp H12)
              (linked12_LO_cut lp H12) (linked12_LO_aut lp H12)
@@ -241,7 +247,7 @@ Section NoAImpliesNoFlyTwelve.
              bm bc oc0 SafeB
              HSafeB_syms Hspawn
              (linked12_LO_surf lp H12) (linked12_LO_math lp H12)
-             Hscp_mtxf_real Hcsp_omfd_real Hcsp_scale_real Hcsp_lpt_real WL_exempt
+             Hscp_mtxf_real Hcsp_omfd_real Hcsp_scale_real Hsma_real Hsmawa_real WL_exempt
              (linked12_LO_sta lp H12) (linked12_LO_mov lp H12)
              (linked12_LO_air lp H12) (linked12_LO_sub lp H12)
              (linked12_LO_cut lp H12) (linked12_LO_aut lp H12)

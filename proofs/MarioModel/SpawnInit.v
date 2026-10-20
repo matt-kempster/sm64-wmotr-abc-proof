@@ -286,8 +286,8 @@ Qed.
 (* chase may reach) (a) never contains one of the `non_safeb_syms` -- the   *)
 (* blocks the proof keeps apart from the chase: Mario's gMarioStates, the   *)
 (* controllers, the gMarioState cell, gGlobalTimer, the interaction-handler *)
-(* table, the knockback / landing tables and every censused stored global   *)
-(* -- and (b) contains sFloorAlignMatrix (align_with_floor stores its        *)
+(* table, the anim DMA list gMarioAnimsBuf, the knockback / landing tables *)
+(* and every censused stored global -- and (b) contains sFloorAlignMatrix (align_with_floor stores its        *)
 (* address into marioObj->throwMatrix).  From it the seven negative rows and *)
 (* the one positive row are DERIVED below.                                  *)
 (*                                                                          *)
@@ -315,7 +315,8 @@ Qed.
 
 Definition non_safeb_syms : list ident :=
   [ level_update._gMarioStates; mario._gControllers; mario._gMarioState;
-    interaction._gGlobalTimer; interaction._sInteractionHandlers ]
+    interaction._gGlobalTimer; interaction._sInteractionHandlers;
+    mario._gMarioAnimsBuf ]
   ++ stored_globals ++ knockback_table_ids.
 
 (* Standalone (NOT sectioned) so that ALL exports share a UNIFORM explicit
@@ -493,7 +494,7 @@ Qed.
 (* ---------------------------------------------------------------------- *)
 (* NON-VACUITY CERTIFICATE for HSafeB_syms: any runtime object blocks       *)
 (* (>= genv_next) plus ANY set of permitted symbols (in particular the      *)
-(* chase closure's: gMarioAnimsBuf, gBodyStates, gPlayerCameraState, the    *)
+(* chase closure's: gBodyStates, gPlayerCameraState, the                    *)
 (* behavior scripts, ...) plus sFloorAlignMatrix satisfies the row.          *)
 (* ---------------------------------------------------------------------- *)
 
@@ -520,10 +521,13 @@ Proof.
     split; [ right; reflexivity | exact Hs ].
 Qed.
 
-(* the three symbols init_mario_from_save_file stores into chase roots are
-   permitted (the case the old singleton iff got wrong) *)
+(* the two symbols init_mario_from_save_file stores into chase roots are
+   permitted (the case the old singleton iff got wrong).  The third,
+   &gMarioAnimsBuf -> m->animList, is NOT a chase root any more: animList is
+   pinned to gMarioAnimsBuf by MWF_real R11-R14 and gMarioAnimsBuf is kept
+   OUT of SafeB (the anim DMA writes through its bufTarget, and the GOAL-1
+   offset-free SafeB stores must not reach its dmaTable/currentAddr cells) *)
 Lemma init_mario_syms_permitted :
-  mem_id mario._gMarioAnimsBuf non_safeb_syms = false
-  /\ mem_id mario._gBodyStates non_safeb_syms = false
+  mem_id mario._gBodyStates non_safeb_syms = false
   /\ mem_id mario._gPlayerCameraState non_safeb_syms = false.
 Proof. vm_compute. auto. Qed.

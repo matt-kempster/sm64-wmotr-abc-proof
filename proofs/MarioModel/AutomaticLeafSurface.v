@@ -235,10 +235,6 @@ Example ccac_walk :
   wwalk_chk false nil ccac_ids nil nil nil nil nil
     (fn_body mario_actions_automatic.f_check_common_automatic_cancels) = true.
 Proof. vm_compute. reflexivity. Qed.
-Example sma_walk :
-  wwalk_chk false nil nil nil sma_cact sma_xids nil nil
-    (fn_body mario.f_set_mario_animation) = true.
-Proof. vm_compute. reflexivity. Qed.
 Example uhs_walk :
   wwalk_chk false nil nil nil uhs_cact uhs_xids nil nil
     (fn_body mario_actions_automatic.f_update_hang_stationary) = true.
@@ -587,11 +583,6 @@ Proof. vm_compute. reflexivity. Qed.
 Example smawa_cact_anim : mem_id mario._targetAnimID smawa_cact = false.
 Proof. vm_compute. reflexivity. Qed.
 Example smawa_cact_acc : mem_id mario._accel smawa_cact = false.
-Proof. vm_compute. reflexivity. Qed.
-Example smawa_walk :
-  wwalk_chk' nil nil nil nil (mario._accel :: nil) nil false
-    nil nil nil smawa_cact sma_xids nil nil
-    (fn_body mario.f_set_mario_anim_with_accel) = true.
 Proof. vm_compute. reflexivity. Qed.
 
 (* ---- B12 act_climbing_pole ---- *)
@@ -964,7 +955,7 @@ Section AutomaticLeafRows.
       (forall bb oo, vv <> Vptr bb oo) ->
       Mem.store ch mm bsafe d vv = Some mm' -> MWF mm'.
   Hypothesis HMWF_root : forall mm mm' fld (delta : Z) vv,
-      mem_id fld chase_root_fields = true ->
+      mem_id fld chase_root_fields = true -> fld <> mario._marioObj ->
       field_offset (prog_comp_env mario.prog) fld mario_state_members
         = OK (delta, Full) ->
       (forall bb oo, vv = Vptr bb oo -> SafeB bb) ->
@@ -994,8 +985,13 @@ Section AutomaticLeafRows.
     OutParamSurface.call_pres_ext_dg lp bm NoA MWF SafeB mario._vec3s_set.
   Hypothesis Hcpx_scm :
     call_pres_ext lp bm NoA MWF mario._set_camera_mode.
-  Hypothesis Hcpx_lpt :
-    OutParamSurface.call_pres_ext_cs lp bm NoA MWF SafeB mario._load_patchable_table.
+  (* set_mario_animation / set_mario_anim_with_accel: PROVED from their real
+     bodies (LptBody.sma_row_proved / smawa_row_proved: m->animList pinned to
+     gMarioAnimsBuf, load_patchable_table walked down to the DMA floor); the
+     capstone supplies them. *)
+  Hypothesis Hsma_row : call_pres lp bm NoA MWF mario._set_mario_animation.
+  Hypothesis Hsmawa_row :
+    call_pres_np3 lp bm NoA MWF mario._set_mario_anim_with_accel.
   Hypothesis Hcpx_v3f :
     OutParamSurface.call_pres_ext_dg lp bm NoA MWF SafeB mario_step._vec3f_copy.
   Hypothesis Hcpx_psound :
@@ -3641,28 +3637,8 @@ Section AutomaticLeafRows.
       HchaseStep HMWF_chase_safe Hcpx_psound.
 
   (* ---- the two NEW helper rows (this file) ---- *)
-  Lemma sma_xids_rows :
-    forall fid, mem_id fid sma_xids = true -> call_pres_ext_x lp bm NoA MWF SafeB fid.
-  Proof.
-    intros fid H. unfold sma_xids in H. cbn [mem_id existsb] in H.
-    apply orb_true_iff in H as [Hm | H];
-      [ apply Pos.eqb_eq in Hm; subst fid; exact Hcpx_lpt | ].
-    discriminate H.
-  Qed.
   Lemma Hsma : call_pres lp bm NoA MWF mario._set_mario_animation.
-  Proof.
-    apply (call_pres_of_wwalk_cact lp LO_mario bm NoA MWF HNoA_of_MWF
-             HMWF_window HMWF_glob HMWF_act SafeB HSafeNotBm HchaseRoot
-             HMWF_chase HMWF_root HMWF_sglob HchaseStep HMWF_chase_safe
-             mario.prog mario._set_mario_animation mario.f_set_mario_animation
-             nil nil sma_cact sma_xids nil
-             LO_mario sma_pin sma_vars sma_params_ok sma_nonparam).
-    - intros fid' H. discriminate H.
-    - intros fid' H. discriminate H.
-    - exact sma_xids_rows.
-    - intros fid' H. discriminate H.
-    - exact sma_walk.
-  Qed.
+  Proof. exact Hsma_row. Qed.
 
   Lemma uhs_xids_rows :
     forall fid, mem_id fid uhs_xids = true -> call_pres_ext_x lp bm NoA MWF SafeB fid.
@@ -4228,21 +4204,7 @@ Section AutomaticLeafRows.
      automatic_rest_ids 3 -> 2. ---- *)
   Lemma Hsmawa :
     call_pres_np3 lp bm NoA MWF mario._set_mario_anim_with_accel.
-  Proof.
-    apply (call_pres_np3_of_wwalk lp LO_mario bm NoA MWF HNoA_of_MWF
-             HMWF_window HMWF_glob HMWF_act SafeB HSafeNotBm HchaseRoot
-             HMWF_chase HMWF_root HMWF_sglob HchaseStep HMWF_chase_safe
-             mario.prog mario._set_mario_anim_with_accel
-             mario.f_set_mario_anim_with_accel
-             nil nil smawa_cact sma_xids nil
-             LO_mario smawa_pin smawa_vars smawa_params
-             smawa_cact_m smawa_cact_anim smawa_cact_acc).
-    - intros fid' H. discriminate H.
-    - intros fid' H. discriminate H.
-    - exact sma_xids_rows.
-    - intros fid' H. discriminate H.
-    - exact smawa_walk.
-  Qed.
+  Proof. exact Hsmawa_row. Qed.
   Lemma acp_ids_rows :
     forall fid, mem_id fid acp_ids = true -> call_pres lp bm NoA MWF fid.
   Proof.

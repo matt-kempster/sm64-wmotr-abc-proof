@@ -880,9 +880,8 @@ Proof.
                    || (Pos.eqb fld mario._heldObj
                        || (Pos.eqb fld mario._usedObj
                            || (Pos.eqb fld mario._riddenObj
-                               || (Pos.eqb fld mario._animList
-                                   || (Pos.eqb fld mario._interactObj
-                                       || false))))))))%bool
+                               || (Pos.eqb fld mario._interactObj
+                                   || false)))))))%bool
           = true) in Hmem.
   repeat (apply orb_true_iff in Hmem; destruct Hmem as [Hm | Hmem]);
     try discriminate Hmem; apply Pos.eqb_eq in Hm; subst fld.
@@ -892,7 +891,6 @@ Proof.
   - exists 124. vm_compute. reflexivity.
   - exists 128. vm_compute. reflexivity.
   - exists 132. vm_compute. reflexivity.
-  - exists 160. vm_compute. reflexivity.
   - exists 120. vm_compute. reflexivity.
 Qed.
 
@@ -911,9 +909,8 @@ Proof.
                    || (Pos.eqb fld mario._heldObj
                        || (Pos.eqb fld mario._usedObj
                            || (Pos.eqb fld mario._riddenObj
-                               || (Pos.eqb fld mario._animList
-                                   || (Pos.eqb fld mario._interactObj
-                                       || false))))))))%bool
+                               || (Pos.eqb fld mario._interactObj
+                                   || false)))))))%bool
           = true) in Hmem.
   repeat (apply orb_true_iff in Hmem; destruct Hmem as [Hm | Hmem]);
     try discriminate Hmem; apply Pos.eqb_eq in Hm; subst fld.
@@ -939,10 +936,6 @@ Proof.
     rewrite E in Hfo. inv Hfo. lia.
   - assert (E : field_offset (prog_comp_env mario.prog) mario._riddenObj
                   mario_state_members = OK (132, Full))
-      by (vm_compute; reflexivity).
-    rewrite E in Hfo. inv Hfo. lia.
-  - assert (E : field_offset (prog_comp_env mario.prog) mario._animList
-                  mario_state_members = OK (160, Full))
       by (vm_compute; reflexivity).
     rewrite E in Hfo. inv Hfo. lia.
   - assert (E : field_offset (prog_comp_env mario.prog) mario._interactObj
@@ -1071,8 +1064,16 @@ Definition root_rhs_ok (cact : list ident) (a2 : expr) : bool :=
   | _ => false
   end.
 
+(* the root cell is NOT m->marioObj: no frame body writes it, and MWF R13
+   (the anim-layout fact) reads it *)
+Definition root_not_mobj (a : expr) : bool :=
+  match a with
+  | Efield _ fld _ => negb (Pos.eqb fld mario._marioObj)
+  | _ => false
+  end.
+
 Definition root_store_chk (cact : list ident) (a1 a2 : expr) : bool :=
-  chase_root_chk a1 && root_rhs_ok cact a2.
+  chase_root_chk a1 && root_not_mobj a1 && root_rhs_ok cact a2.
 
 (* the chase-STEP Sset source: a POINTER field loaded through a censused
    chase temp (`targetAnim = m->animList->bufTarget`).  The loaded value
@@ -2453,7 +2454,7 @@ Section ActWriterWalk.
       Mem.store ch mm bsafe d vv = Some mm' -> MWF mm'.
   (* the chase-ROOT-cell store row: instantiated by mwf_real_root_store *)
   Hypothesis HMWF_root : forall mm mm' fld (delta : Z) vv,
-      mem_id fld chase_root_fields = true ->
+      mem_id fld chase_root_fields = true -> fld <> mario._marioObj ->
       field_offset (prog_comp_env mario.prog) fld mario_state_members
         = OK (delta, Full) ->
       (forall bb oo, vv = Vptr bb oo -> SafeB bb) ->
@@ -3604,7 +3605,10 @@ Section ActWriterWalk.
   Proof.
     intros cact a1 a2 e le m0 tr le' m' out Hck Htat Hch Hexec HM HV HS.
     apply andb_prop in Hck as [Hcr Hrhs].
+    apply andb_prop in Hcr as [Hcr Hnm].
     destruct (chase_root_chk_shape _ Hcr) as (fld & pt & pa & -> & Hfld).
+    assert (Hnmo : fld <> mario._marioObj).
+    { cbn [root_not_mobj] in Hnm. apply negb_true_iff, Pos.eqb_neq in Hnm. exact Hnm. }
     destruct (chase_root_field_offset _ Hfld) as (delta & Hfo).
     destruct (chase_root_offset_bounds _ _ Hfld Hfo) as [Hlo Hhi].
     inv Hexec.
@@ -3704,7 +3708,7 @@ Section ActWriterWalk.
             [ exact (HS av Hload)
             | right; left; change (size_chunk Mint32) with 4; lia ]
           | split;
-            [ exact (HMWF_root _ _ _ _ _ Hfld Hfo Hsv2 HM Hsv)
+            [ exact (HMWF_root _ _ _ _ _ Hfld Hnmo Hfo Hsv2 HM Hsv)
             | split; reflexivity ] ]
       end.
     - (* By_copy: a pointer type is By_value *)
@@ -6764,7 +6768,7 @@ Section ActWriterRows.
       (forall bb oo, vv <> Vptr bb oo) ->
       Mem.store ch mm bsafe d vv = Some mm' -> MWF mm'.
   Hypothesis HMWF_root : forall mm mm' fld (delta : Z) vv,
-      mem_id fld chase_root_fields = true ->
+      mem_id fld chase_root_fields = true -> fld <> mario._marioObj ->
       field_offset (prog_comp_env mario.prog) fld mario_state_members
         = OK (delta, Full) ->
       (forall bb oo, vv = Vptr bb oo -> SafeB bb) ->

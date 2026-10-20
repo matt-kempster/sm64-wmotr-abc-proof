@@ -1734,7 +1734,7 @@ Section AirborneLeafRows.
       (forall bb oo, vv <> Vptr bb oo) ->
       Mem.store ch mm bsafe d vv = Some mm' -> MWF mm'.
   Hypothesis HMWF_root : forall mm mm' fld (delta : Z) vv,
-      mem_id fld chase_root_fields = true ->
+      mem_id fld chase_root_fields = true -> fld <> mario._marioObj ->
       field_offset (prog_comp_env mario.prog) fld mario_state_members
         = OK (delta, Full) ->
       (forall bb oo, vv = Vptr bb oo -> SafeB bb) ->
@@ -1934,8 +1934,11 @@ Section AirborneLeafRows.
   Hypothesis Hcpx_sqrtf : call_pres_ext lp bm NoA MWF A._sqrtf.
   Hypothesis Hcpx_atan2s : call_pres_ext lp bm NoA MWF A._atan2s.
   Hypothesis Hcpx_approach : call_pres_ext lp bm NoA MWF A._approach_f32.
-  Hypothesis Hcpx_lpt :
-    OutParamSurface.call_pres_ext_cs lp bm NoA MWF SafeB mario._load_patchable_table.
+  (* set_mario_animation / set_mario_anim_with_accel: PROVED from their real
+     bodies (LptBody.sma_row_proved / smawa_row_proved: m->animList pinned to
+     gMarioAnimsBuf, load_patchable_table walked down to the DMA floor); the
+     capstone supplies them. *)
+  Hypothesis Hsma_row : call_pres lp bm NoA MWF mario._set_mario_animation.
   Hypothesis Hcpx_rbn :
     call_pres_ext lp bm NoA MWF mario._raise_background_noise.
   Hypothesis Hcpx_scm : call_pres_ext lp bm NoA MWF mario._set_camera_mode.
@@ -2319,34 +2322,8 @@ Section AirborneLeafRows.
       HMWF_sglob HchaseStep HMWF_chase_safe.
 
   (* ---- set_mario_animation (deep 2-hop chase cact, sole ext lpt) ---- *)
-  Lemma air_sma_xids_rows :
-    forall fid, mem_id fid StationaryLeafSurface.sta_sma_xids = true ->
-      call_pres_ext_x lp bm NoA MWF SafeB fid.
-  Proof.
-    intros fid H. unfold StationaryLeafSurface.sta_sma_xids in H.
-    cbn [mem_id existsb] in H.
-    apply orb_true_iff in H as [Hm | H];
-      [ apply Pos.eqb_eq in Hm; subst fid; exact Hcpx_lpt | ].
-    discriminate H.
-  Qed.
   Lemma air_sma_row : call_pres lp bm NoA MWF mario._set_mario_animation.
-  Proof.
-    apply (call_pres_of_wwalk_cact lp LO_mario bm NoA MWF HNoA_of_MWF
-             HMWF_window HMWF_glob HMWF_act SafeB HSafeNotBm HchaseRoot
-             HMWF_chase HMWF_root HMWF_sglob HchaseStep HMWF_chase_safe
-             mario.prog mario._set_mario_animation mario.f_set_mario_animation
-             nil nil StationaryLeafSurface.sta_sma_cact
-             StationaryLeafSurface.sta_sma_xids nil
-             LO_mario StationaryLeafSurface.sta_sma_pin
-             StationaryLeafSurface.sta_sma_vars
-             StationaryLeafSurface.sta_sma_params_ok
-             StationaryLeafSurface.sta_sma_nonparam).
-    - intros fid' H. discriminate H.
-    - intros fid' H. discriminate H.
-    - exact air_sma_xids_rows.
-    - intros fid' H. discriminate H.
-    - exact StationaryLeafSurface.sta_sma_walk.
-  Qed.
+  Proof. exact Hsma_row. Qed.
 
   (* ---- play_sound_and_spawn_particles -> play_mario_landing_sound ---- *)
   Lemma air_pssp_row :

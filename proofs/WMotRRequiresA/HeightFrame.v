@@ -372,10 +372,16 @@ Section HeightLinked12.
      (LptBody), down to the libultra DMA calls, whose effect is the
      hardware/OS floor spec (OsDmaFloor, TRUST 3.5). *)
   Hypothesis Hdma_floor : OsDmaFloor.os_dma_floor.
-  Lemma Hcsp_lpt_real :
-    call_pres_ext_cs lp bm (NoA_real bm) MWF SafeB mario._load_patchable_table.
+  Lemma Hsma_real :
+    DispatchKit.call_pres lp bm (NoA_real bm) MWF mario._set_mario_animation.
   Proof.
-    exact (LptBody.Hcsp_lpt_linked12 lp bm bc oc0 SafeB H12 HSafeB_syms
+    exact (LptBody.sma_row_linked12 lp bm bc oc0 SafeB H12 HSafeB_syms
+             (NoAImpliesNoFlyTwelve.Hspawn lp H12 bm bc oc0 Hbm_sym Hbc_sym Hoc0) Hdma_floor).
+  Qed.
+  Lemma Hsmawa_real :
+    ActWriterSurface.call_pres_np3 lp bm (NoA_real bm) MWF mario._set_mario_anim_with_accel.
+  Proof.
+    exact (LptBody.smawa_row_linked12 lp bm bc oc0 SafeB H12 HSafeB_syms
              (NoAImpliesNoFlyTwelve.Hspawn lp H12 bm bc oc0 Hbm_sym Hbc_sym Hoc0) Hdma_floor).
   Qed.
   Hypothesis WL_exempt : forall e le m fid fty vf fd,
@@ -445,7 +451,30 @@ Section HeightLinked12.
   (* The run carries the height invariant AND the WMotR world invariant
      (WMotRWorld.v): without the world the rows below are false over
      phantom worlds (a BURNING floor, a quicksand depth, a held object). *)
-  Definition PhiW (m : mem) : Prop := height_invariant bm R_noA m /\ wmotr_world bm m.
+  (* The animation DMA buffer stays off the world (2026-10-19).  Every frame
+     that changes Mario's animation DMAs into gMarioAnimsBuf.bufTarget
+     (set_mario_animation -> load_patchable_table -> dma_read).  GOAL 1's MWF
+     carries the Mario half (R13: the buffer is not the block of m->marioObj,
+     so not gfx.pos[1] -- and in the real game not any object, all of which
+     live in gObjectPool).  This is the world half: the buffer is not the
+     block of the wall / ceiling / floor surface or of a collided object, so
+     the DMA cannot rewrite a surface type or a pole's oPosY.  In the game the
+     buffer is its own main_pool_alloc (game_init.c:627), apart from
+     sSurfacePool and gObjectPool.  Without it the two frame rows below were
+     FALSE over memories where the buffer aliases those blocks. *)
+  Definition anim_apart (m : mem) : Prop :=
+    forall ab bt ot,
+      Genv.find_symbol (lp_ge lp) mario._gMarioAnimsBuf = Some ab ->
+      Mem.load Mptr m ab 8 = Some (Vptr bt ot) ->
+      (forall off sb so, (off = WALL_OFF \/ off = CEIL_OFF \/ off = FLOOR_OFF) ->
+         Mem.load Mint32 m bm off = Some (Vptr sb so) -> bt <> sb)
+      /\ (forall mb mo i cb co,
+         Mem.load Mint32 m bm MARIOOBJ_OFF = Some (Vptr mb mo) -> 0 <= i < 4 ->
+         Mem.load Mint32 m mb (Ptrofs.unsigned mo + COLL_OFF + 4 * i) = Some (Vptr cb co) ->
+         bt <> cb).
+
+  Definition PhiW (m : mem) : Prop :=
+    height_invariant bm R_noA m /\ wmotr_world bm m /\ anim_apart m.
   Notation Phi := PhiW.
 
   (* LEVEL DATA -- now DEFINED from generated/ and PROVED (WMotRLevel.v):
@@ -484,10 +513,14 @@ Section HeightLinked12.
      nothing the no-A frame does picks up or rides an object; the quicksand
      code only deepens on a quicksand type.  Tethered by the write watch
      (TRUST.md 5.4); the symbolic walk (docs/goal2-value-walk-plan.md) is
-     meant to discharge it together with the two rows around it. *)
+     meant to discharge it together with the two rows around it.  It also
+     carries anim_apart: the frame stores no pointer into the list's
+     bufTarget cell (load_patchable_table writes only currentAddr) and the
+     surfaces / collided objects it installs are WMotR's, not the buffer. *)
   Hypothesis Hframe_keeps_world :
     forall m m', mem_ok_lp bm MWF m -> Phi m -> a_down_real bm m = false ->
-                 execute_mario_action_step_lp lp m m' -> wmotr_world bm m'.
+                 execute_mario_action_step_lp lp m m' ->
+                 wmotr_world bm m' /\ anim_apart m'.
 
   Hypothesis Hframe_is_move_chain :
     forall m m' c, mem_ok_lp bm MWF m -> Phi m -> a_down_real bm m = false ->

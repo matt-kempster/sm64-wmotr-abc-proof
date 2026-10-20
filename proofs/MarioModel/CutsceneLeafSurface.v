@@ -1405,7 +1405,7 @@ Section CutsceneLeafRows.
       (forall bb oo, vv <> Vptr bb oo) ->
       Mem.store ch mm bsafe d vv = Some mm' -> MWF mm'.
   Hypothesis HMWF_root : forall mm mm' fld (delta : Z) vv,
-      mem_id fld chase_root_fields = true ->
+      mem_id fld chase_root_fields = true -> fld <> mario._marioObj ->
       field_offset (prog_comp_env mario.prog) fld mario_state_members
         = OK (delta, Full) ->
       (forall bb oo, vv = Vptr bb oo -> SafeB bb) ->
@@ -1436,8 +1436,13 @@ Section CutsceneLeafRows.
      level_trigger_warp is the SHARED warp-trigger body (the capstone supplies
      the floors/warp call_pres_of_body term). *)
   Hypothesis Hcpx_psound : call_pres_ext lp bm NoA MWF mario._play_sound.
-  Hypothesis Hcpx_lpt :
-    OutParamSurface.call_pres_ext_cs lp bm NoA MWF SafeB mario._load_patchable_table.
+  (* set_mario_animation / set_mario_anim_with_accel: PROVED from their real
+     bodies (LptBody.sma_row_proved / smawa_row_proved: m->animList pinned to
+     gMarioAnimsBuf, load_patchable_table walked down to the DMA floor); the
+     capstone supplies them. *)
+  Hypothesis Hsma_row : call_pres lp bm NoA MWF mario._set_mario_animation.
+  Hypothesis Hsmawa_row :
+    call_pres_np3 lp bm NoA MWF mario._set_mario_anim_with_accel.
   Hypothesis Hcpx_v3fc : OutParamSurface.call_pres_ext_dg lp bm NoA MWF SafeB mario._vec3f_copy.
   Hypothesis Hcpx_v3ss : OutParamSurface.call_pres_ext_dg lp bm NoA MWF SafeB mario._vec3s_set.
   Hypothesis Hcp_ltw :
@@ -1637,7 +1642,7 @@ Section CutsceneLeafRows.
   Lemma Hcp_psinf : call_pres lp bm NoA MWF mario._play_sound_if_no_flag.
   Proof. eapply ObjectLeafSurface.psinf_row; eassumption. Qed.
   Lemma Hcp_sma : call_pres lp bm NoA MWF mario._set_mario_animation.
-  Proof. eapply ObjectLeafSurface.sma_row; eassumption. Qed.
+  Proof. exact Hsma_row. Qed.
   (* is_anim_past_end: the loads-only "anim past end?" helper (twin of
      is_anim_at_end), reused from ObjectLeafSurface -- NO new trust. *)
   Lemma Hcp_ipae : call_pres lp bm NoA MWF mario._is_anim_past_end.
@@ -2996,11 +3001,7 @@ Section CutsceneLeafRows.
   (* SLICE 19: act_entering_star_door via the np3 channel. *)
   Lemma esd_smawa_row :
     call_pres_np3 lp bm NoA MWF mario._set_mario_anim_with_accel.
-  Proof.
-    exact (MovingLeafSurface.mov_smawa_row lp LO_mario bm NoA MWF HNoA_of_MWF
-             HMWF_window HMWF_glob HMWF_act SafeB HSafeNotBm HchaseRoot HMWF_chase
-             HMWF_root HMWF_sglob HchaseStep HMWF_chase_safe Hcpx_lpt).
-  Qed.
+  Proof. exact Hsmawa_row. Qed.
   Lemma esd_ids_rows : forall fid, mem_id fid esd_ids = true ->
       call_pres lp bm NoA MWF fid.
   Proof.

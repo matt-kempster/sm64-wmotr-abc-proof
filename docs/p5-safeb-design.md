@@ -18,6 +18,15 @@
 > sInteractionHandlers, the knockback/landing tables, every `stored_globals`
 > entry) and **contains** `sFloorAlignMatrix`. The consumers only ever used that
 > direction and that one positive fact, so all eight derived rows are unchanged.
+>
+> **Second repair, same day: `gMarioAnimsBuf` is NOT in SafeB.** `m->animList`
+> is no longer a chase root; `MWF_real` R11–R14 pin it to `&gMarioAnimsBuf`
+> (offset 0), make the list block's pointers SafeB, keep its DMA buffer off
+> Mario's object, and keep the list block apart from `bm` / `bc` / SafeB
+> (`gMarioAnimsBuf` joined `non_safeb_syms`). Reason: the GOAL-1 SafeB stores
+> are offset-free, so a SafeB list block could have its `bufTarget` cell
+> clobbered, and nothing kept the DMA off Mario. `set_mario_animation` /
+> `set_mario_anim_with_accel` are proved from their bodies (`LptBody`).
 > The real SafeB is the pointer closure of the chase roots; the claim is that
 > the closure never reaches a `non_safeb_syms` block. `safeb_wit_sat` certifies
 > satisfiability with any permitted symbol set plus runtime blocks.

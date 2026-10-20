@@ -932,13 +932,14 @@ Section NoARealInputMWF.
   Hypothesis Hcsp_scale_real :
     call_pres_ext_cs lp bm (NoA_real bm) MWF SafeB
       mario_actions_cutscene._obj_scale.
-  (* load_patchable_table(list, index) writes only through list (memory.c:
-     list->currentAddr, the DMA into list->bufTarget): cs-gated.  Both real
-     sites (set_mario_animation / set_mario_anim_with_accel) pass the chase
-     temp m->animList, checked by the leaf walkers.  Replaces the FALSE
-     any-argument obj_ext entry. *)
-  Hypothesis Hcsp_lpt_real :
-    call_pres_ext_cs lp bm (NoA_real bm) MWF SafeB mario._load_patchable_table.
+  (* set_mario_animation / set_mario_anim_with_accel (and through them
+     load_patchable_table, whose list argument is m->animList, pinned to
+     gMarioAnimsBuf by MWF R11): proved from their real bodies in LptBody,
+     supplied by NoAImpliesNoFlyTwelve. *)
+  Hypothesis Hsma_real :
+    call_pres lp bm (NoA_real bm) MWF mario._set_mario_animation.
+  Hypothesis Hsmawa_real :
+    call_pres_np3 lp bm (NoA_real bm) MWF mario._set_mario_anim_with_accel.
   Lemma Hscp_v3f :
     call_pres_ext_sc lp bm (NoA_real bm) MWF SafeB
       mario_actions_automatic._vec3f_copy.
@@ -2689,7 +2690,7 @@ Section NoARealInputMWF.
              (Hpres_obj_ext mario._sqrtf eq_refl)
              (Hpres_obj_ext mario._atan2s eq_refl)
              Hcpx_approach_f32_real
-             Hcsp_lpt_real
+             Hsma_real
              (Hpres_floors_ext mario._raise_background_noise eq_refl)
              (Hpres_obj_ext mario._set_camera_mode eq_refl)
              Hcp_pas).
@@ -2821,7 +2822,7 @@ Section NoARealInputMWF.
                          Hgms_blk Hgtimer_blk Htable_blk Hktab_blk)
                       Hdg_v3f_real
                       Hdg_v3s_real
-                      Hcsp_lpt_real
+                      Hsma_real
                       (Hpres_obj_ext mario._play_sound eq_refl)
                       Hpres_sta_ext
                       Hcp_pgs
@@ -2937,7 +2938,7 @@ Section NoARealInputMWF.
                       Hsfam_safe Hscp_mtxf_real
                       (Hpres_obj_ext mario._sqrtf eq_refl)
                       (Hpres_obj_ext mario._play_sound eq_refl)
-                      Hcsp_lpt_real
+                      Hsma_real Hsmawa_real
                       Hpres_mov_ext
                       Hcp_pgs
                       (* SLICE M3: the obj_ext boundary the set_jumping_action
@@ -3005,7 +3006,7 @@ Section NoARealInputMWF.
                       (Hpres_obj_ext mario._sqrtf eq_refl)
                       (Hpres_obj_ext mario._atan2s eq_refl)
                       Hcpx_approach_f32_real
-                      Hcsp_lpt_real
+                      Hsma_real
                       (Hpres_floors_ext mario._raise_background_noise eq_refl)
                       (Hpres_obj_ext mario._set_camera_mode eq_refl)
                       Hcp_pas
@@ -3077,7 +3078,7 @@ Section NoARealInputMWF.
                       (mwf_real_chase_step lp bm bc oc0 SafeB)
                       (mwf_real_chase_ptr lp bm bc oc0 SafeB Hbc_bm
                          HSafeB_not_bm HSafeB_not_bc Hgms_blk Hgtimer_blk Htable_blk Hktab_blk)
-                      Hcsp_lpt_real
+                      Hsma_real Hsmawa_real
                       (* stop_and_set_height_to_floor DISCHARGED in-surface
                          (sub_sashf_row) -- NO hyp; vec3f_copy/vec3s_set ride the
                          existing obj_ext boundary, msfv proved inline. *)
@@ -3230,7 +3231,7 @@ Section NoARealInputMWF.
                       (mwf_real_chase_ptr lp bm bc oc0 SafeB Hbc_bm HSafeB_not_bm
                          HSafeB_not_bc Hgms_blk Hgtimer_blk Htable_blk Hktab_blk)
                       (Hpres_obj_ext mario._play_sound eq_refl)
-                      Hcsp_lpt_real
+                      Hsma_real Hsmawa_real
                       Hdg_v3f_real
                       Hdg_v3s_real
                       (call_pres_of_body lp bm (NoA_real bm)
@@ -3457,7 +3458,7 @@ Section NoARealInputMWF.
                       (mwf_real_inp lp bm bc oc0 SafeB)
                       Hdg_v3s_real
                       (Hpres_obj_ext mario._set_camera_mode eq_refl)
-                      Hcsp_lpt_real
+                      Hsma_real Hsmawa_real
                       Hdg_v3f_real
                       (Hpres_obj_ext mario._play_sound eq_refl)
                       (* ledge cluster: find_floor as a FAITHFUL out-param
@@ -3545,7 +3546,7 @@ Section NoARealInputMWF.
                       (Hpres_obj_ext interaction._stop_shell_music eq_refl)
                       (Hpres_obj_ext interaction._obj_set_held_state
                          eq_refl)
-                      Hcsp_lpt_real
+                      Hsma_real
                       (Hpres_obj_ext mario_actions_object._approach_s32
                          eq_refl)
                       (Hpres_obj_ext interaction._atan2s eq_refl)

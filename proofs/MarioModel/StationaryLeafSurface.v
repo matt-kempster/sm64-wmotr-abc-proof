@@ -270,10 +270,6 @@ Example sta_sma_nonparam :
              (map fst (fn_params mario.f_set_mario_animation))))
     sta_sma_cact = true.
 Proof. vm_compute. reflexivity. Qed.
-Example sta_sma_walk :
-  wwalk_chk false nil nil nil sta_sma_cact sta_sma_xids nil nil
-    (fn_body mario.f_set_mario_animation) = true.
-Proof. vm_compute. reflexivity. Qed.
 
 (* ---- mario_update_moving_sand / mario_update_windy_ground (pure) ---- *)
 Example sta_mums_pin :
@@ -1934,7 +1930,7 @@ Section StationaryLeafRows.
       (forall bb oo, vv <> Vptr bb oo) ->
       Mem.store ch mm bsafe d vv = Some mm' -> MWF mm'.
   Hypothesis HMWF_root : forall mm mm' fld (delta : Z) vv,
-      mem_id fld chase_root_fields = true ->
+      mem_id fld chase_root_fields = true -> fld <> mario._marioObj ->
       field_offset (prog_comp_env mario.prog) fld mario_state_members
         = OK (delta, Full) ->
       (forall bb oo, vv = Vptr bb oo -> SafeB bb) ->
@@ -1977,8 +1973,11 @@ Section StationaryLeafRows.
     OutParamSurface.call_pres_ext_dg lp bm NoA MWF SafeB mario_step._vec3f_copy.
   Hypothesis Hcpx_v3s :
     OutParamSurface.call_pres_ext_dg lp bm NoA MWF SafeB mario._vec3s_set.
-  Hypothesis Hcpx_lpt :
-    OutParamSurface.call_pres_ext_cs lp bm NoA MWF SafeB mario._load_patchable_table.
+  (* set_mario_animation / set_mario_anim_with_accel: PROVED from their real
+     bodies (LptBody.sma_row_proved / smawa_row_proved: m->animList pinned to
+     gMarioAnimsBuf, load_patchable_table walked down to the DMA floor); the
+     capstone supplies them. *)
+  Hypothesis Hsma_row : call_pres lp bm NoA MWF mario._set_mario_animation.
   (* play_sound: a pure AUDIO external (same model class as the obj_ext rows);
      discharged at the capstone via Hpres_obj_ext (play_sound in obj_ext_ids) *)
   Hypothesis Hcpx_psound :
@@ -2128,32 +2127,10 @@ Section StationaryLeafRows.
   Qed.
 
   (* ---- set_mario_animation ---- *)
-  Lemma sta_sma_xids_rows : forall fid, mem_id fid sta_sma_xids = true ->
-      call_pres_ext_x lp bm NoA MWF SafeB fid.
-  Proof.
-    intros fid H. unfold sta_sma_xids in H. cbn [mem_id existsb] in H.
-    apply orb_true_iff in H as [Hm | H];
-      [ apply Pos.eqb_eq in Hm; subst fid; exact Hcpx_lpt | ].
-    discriminate H.
-  Qed.
 
   Lemma sta_sma_row :
     call_pres lp bm NoA MWF mario._set_mario_animation.
-  Proof.
-    apply (call_pres_of_wwalk_cact lp LO_mario bm NoA MWF HNoA_of_MWF
-             HMWF_window HMWF_glob HMWF_act SafeB HSafeNotBm HchaseRoot
-             HMWF_chase HMWF_root HMWF_sglob HchaseStep HMWF_chase_safe
-             mario.prog mario._set_mario_animation
-             mario.f_set_mario_animation
-             nil nil sta_sma_cact sta_sma_xids nil
-             LO_mario sta_sma_pin sta_sma_vars sta_sma_params_ok
-             sta_sma_nonparam).
-    - intros fid' H. discriminate H.
-    - intros fid' H. discriminate H.
-    - exact sta_sma_xids_rows.
-    - intros fid' H. discriminate H.
-    - exact sta_sma_walk.
-  Qed.
+  Proof. exact Hsma_row. Qed.
 
   (* ---- the two sand/wind updaters (pure) ---- *)
   Lemma sta_mums_row :

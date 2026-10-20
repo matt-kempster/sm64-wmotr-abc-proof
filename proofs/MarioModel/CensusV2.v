@@ -271,12 +271,15 @@ Definition chain_root_l (a : expr) : option ident :=
 
 (* the canonical chase ROOT loads: the MarioState pointer fields the
    frame-reached bodies chase-store through.  heldObj/usedObj/riddenObj
-   (the held-object trio, interaction.prog) and animList (the anim DMA
-   table, set_mario_animation) joined for the object-family leaves. *)
+   (the held-object trio, interaction.prog) joined for the object-family
+   leaves.  animList is NOT a chase root (2026-10-19): it is pinned to
+   &gMarioAnimsBuf (MWFReal R11), a block kept out of SafeB so that the
+   DMA buffer it names stays put (R13); set_mario_animation /
+   set_mario_anim_with_accel, its only readers, are proved by AnimBody. *)
 Definition chase_root_fields : list ident :=
   mario._marioObj :: mario._marioBodyState :: mario._statusForCamera
     :: mario._heldObj :: mario._usedObj :: mario._riddenObj
-    :: mario._animList :: mario._interactObj :: nil.
+    :: mario._interactObj :: nil.
 
 (* `t = gMarioState` -- a By_value load of the global Mario pointer.  The
    bc_globals membership requirement puts the symbol under TI's env row, so
@@ -382,9 +385,8 @@ Proof.
                    || (Pos.eqb fld mario._heldObj
                        || (Pos.eqb fld mario._usedObj
                            || (Pos.eqb fld mario._riddenObj
-                               || (Pos.eqb fld mario._animList
-                                   || (Pos.eqb fld mario._interactObj
-                                       || false))))))))%bool = true)
+                               || (Pos.eqb fld mario._interactObj
+                                   || false)))))))%bool = true)
     in H.
   repeat (apply orb_true_iff in H; destruct H as [H | H]);
     try discriminate H; apply Pos.eqb_eq in H; subst fld.
@@ -394,7 +396,6 @@ Proof.
   - exists 124. vm_compute. reflexivity.
   - exists 128. vm_compute. reflexivity.
   - exists 132. vm_compute. reflexivity.
-  - exists 160. vm_compute. reflexivity.
   - exists 120. vm_compute. reflexivity.
 Qed.
 
