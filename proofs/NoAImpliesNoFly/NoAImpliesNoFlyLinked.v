@@ -932,6 +932,14 @@ Section NoARealInputMWF.
   Hypothesis Hcsp_scale_real :
     call_pres_ext_cs lp bm (NoA_real bm) MWF SafeB
       mario_actions_cutscene._obj_scale.
+  (* FOUND FALSE 2026-10-19: obj_set_held_state was an any-argument
+     obj_ext_ids row, but it writes through arg0 (obj->parentObj = o,
+     oHeldState, ...; object_helpers.c:267).  Restated arg0-gated (cs); all
+     three real sites (grab/drop/throw) pass the chase temp m->heldObj.  The
+     o = gCurrentObject it stores is SafeB by R7 (HSafeB_syms (c)). *)
+  Hypothesis Hcsp_osh_real :
+    call_pres_ext_cs lp bm (NoA_real bm) MWF SafeB
+      interaction._obj_set_held_state.
   (* set_mario_animation / set_mario_anim_with_accel (and through them
      load_patchable_table, whose list argument is m->animList, pinned to
      gMarioAnimsBuf by MWF R11): proved from their real bodies in LptBody,
@@ -1383,7 +1391,9 @@ Section NoARealInputMWF.
     intros g gb Hg Hfs.
     assert (E : CutsceneLeafSurface.gobj_ids = gobj_syms) by reflexivity.
     rewrite E in Hg.
-    exact (proj2 (proj2 HSafeB_syms) g gb Hg Hfs).
+    assert (Hg' : mem_id g safe_ptr_syms = true)
+      by (unfold safe_ptr_syms, mem_id in *; cbn [existsb]; rewrite Hg; apply orb_true_r).
+    exact (proj2 (proj2 HSafeB_syms) g gb Hg' Hfs).
   Qed.
   Hypothesis Hcp_soawr_real : call_pres_ext_sr lp bm (NoA_real bm) MWF SafeB
       mario_actions_cutscene._spawn_object_abs_with_rot.
@@ -1674,7 +1684,7 @@ Section NoARealInputMWF.
       (Hpres_obj_ext mario._set_camera_mode eq_refl)
       (Hpres_obj_ext interaction._segmented_to_virtual eq_refl)
       (Hpres_obj_ext interaction._stop_shell_music eq_refl)
-      (Hpres_obj_ext interaction._obj_set_held_state eq_refl)
+      Hcsp_osh_real
       (Hpres_floors_ext mario._raise_background_noise eq_refl).
   (* the interactions dispatcher is WALKED (InterSurface.inter_pres -- the
      FIRST indirect-call walk: the sInteractionHandlers function-pointer
@@ -2098,7 +2108,7 @@ Section NoARealInputMWF.
                    HSafeB_not_bc Hgms_blk Hgtimer_blk Htable_blk Hktab_blk)
                 (Hpres_obj_ext interaction._segmented_to_virtual eq_refl)
                 (Hpres_obj_ext interaction._stop_shell_music eq_refl)
-                (Hpres_obj_ext interaction._obj_set_held_state eq_refl))
+                Hcsp_osh_real)
              Hcpra_bkbm_real
              (msrah_row lp LO_mario LO_int bm (NoA_real bm)
                 (MWF_real lp bm bc oc0 SafeB)
@@ -2120,7 +2130,7 @@ Section NoARealInputMWF.
                    HSafeB_not_bc Hgms_blk Hgtimer_blk Htable_blk Hktab_blk)
                 (Hpres_obj_ext interaction._segmented_to_virtual eq_refl)
                 (Hpres_obj_ext interaction._stop_shell_music eq_refl)
-                (Hpres_obj_ext interaction._obj_set_held_state eq_refl))
+                Hcsp_osh_real)
              (smact_pres lp LO_mario LO_stp bm (NoA_real bm)
                 (MWF_real lp bm bc oc0 SafeB)
                 (mwf_real_ctl lp bm bc oc0 SafeB)
@@ -2186,7 +2196,7 @@ Section NoARealInputMWF.
                    HSafeB_not_bc Hgms_blk Hgtimer_blk Htable_blk Hktab_blk)
                 (Hpres_obj_ext interaction._segmented_to_virtual eq_refl)
                 (Hpres_obj_ext interaction._stop_shell_music eq_refl)
-                (Hpres_obj_ext interaction._obj_set_held_state eq_refl))
+                Hcsp_osh_real)
              (Hpres_obj_ext interaction._set_camera_mode eq_refl)
              (Hpres_obj_ext interaction._save_file_get_total_star_count
                 eq_refl)
@@ -2713,6 +2723,7 @@ Section NoARealInputMWF.
                 Hgms_blk Hgtimer_blk Htable_blk Hktab_blk)
              (Hpres_obj_ext mario._play_sound eq_refl)
              Hpres_obj_ext
+             Hcsp_osh_real
              (Hpres_obj_ext mario._sqrtf eq_refl)
              (Hpres_obj_ext mario._atan2s eq_refl)
              Hcpx_approach_f32_real
@@ -2854,7 +2865,7 @@ Section NoARealInputMWF.
                       Hcp_pgs
                       (Hpres_obj_ext interaction._segmented_to_virtual eq_refl)
                       (Hpres_obj_ext interaction._stop_shell_music eq_refl)
-                      (Hpres_obj_ext interaction._obj_set_held_state eq_refl)
+                      Hcsp_osh_real
                       (Hpres_obj_ext interaction._sqrtf eq_refl)
                       (Hpres_obj_ext interaction._atan2s eq_refl)
                       (* SLICE 14: act_idle's find_floor_height_relative_polar
@@ -2970,6 +2981,7 @@ Section NoARealInputMWF.
                       (* SLICE M3: the obj_ext boundary the set_jumping_action
                          arc reaches (atan2s/approach_s32 + dasma trio). *)
                       Hpres_obj_ext
+                      Hcsp_osh_real
                       (* the dst-gated writer rows (dg) *)
                       Hdg_v3s_real Hdg_v3f_real
                       (* LANDING KEYSTONE: the clc walk's two MWF rows --
@@ -3027,6 +3039,7 @@ Section NoARealInputMWF.
                          HSafeB_not_bm HSafeB_not_bc Hgms_blk Hgtimer_blk Htable_blk Hktab_blk)
                       (Hpres_obj_ext mario._play_sound eq_refl)
                       Hpres_obj_ext
+                      Hcsp_osh_real
                       Hdg_v3s_real Hdg_v3f_real
                       Hcp_caas_real
                       (Hpres_obj_ext mario._sqrtf eq_refl)
@@ -3133,7 +3146,7 @@ Section NoARealInputMWF.
                             HSafeB_not_bm HSafeB_not_bc Hgms_blk Hgtimer_blk Htable_blk Hktab_blk)
                          (Hpres_obj_ext interaction._segmented_to_virtual eq_refl)
                          (Hpres_obj_ext interaction._stop_shell_music eq_refl)
-                         (Hpres_obj_ext interaction._obj_set_held_state eq_refl))
+                         Hcsp_osh_real)
                       (* SLICE 5 (metal-water WALKING pair): perform_ground_step
                          is the already-PROVED Hcp_pgs Lemma (NO new trust);
                          set_mario_anim_with_accel is now DISCHARGED in-surface
@@ -3199,7 +3212,7 @@ Section NoARealInputMWF.
                       (Hpres_obj_ext mario_actions_object._approach_s32 eq_refl)
                       (Hpres_obj_ext interaction._segmented_to_virtual eq_refl)
                       (Hpres_obj_ext interaction._play_shell_music eq_refl)
-                      (Hpres_obj_ext interaction._obj_set_held_state eq_refl)
+                      Hcsp_osh_real
                       (* SLICE 14 (the swimming cluster -- 7 leaves): the swim
                          helpers are honest internal residuals; set_mario_action
                          / drop_and_set_mario_action / play_sound /
@@ -3363,7 +3376,7 @@ Section NoARealInputMWF.
                          and_camera reuses the SAME floors-family call_pres
                          built above.  NO new capstone hypothesis. *)
                       (Hpres_obj_ext interaction._stop_shell_music eq_refl)
-                      (Hpres_obj_ext interaction._obj_set_held_state eq_refl)
+                      Hcsp_osh_real
                       (call_pres_of_body lp bm (NoA_real bm)
                          (MWF_real lp bm bc oc0 SafeB)
                          (mwf_real_ctl lp bm bc oc0 SafeB)
@@ -3569,8 +3582,7 @@ Section NoARealInputMWF.
                       (Hpres_obj_ext interaction._segmented_to_virtual
                          eq_refl)
                       (Hpres_obj_ext interaction._stop_shell_music eq_refl)
-                      (Hpres_obj_ext interaction._obj_set_held_state
-                         eq_refl)
+                      Hcsp_osh_real
                       Hsma_real
                       (Hpres_obj_ext mario_actions_object._approach_s32
                          eq_refl)
@@ -3610,8 +3622,7 @@ Section NoARealInputMWF.
                       (Hpres_obj_ext interaction._segmented_to_virtual
                          eq_refl)
                       (Hpres_obj_ext interaction._stop_shell_music eq_refl)
-                      (Hpres_obj_ext interaction._obj_set_held_state
-                         eq_refl)
+                      Hcsp_osh_real
                       (Hpres_floors_ext mario._raise_background_noise
                          eq_refl)
                       (Hpres_floors_ext interaction._spawn_default_star

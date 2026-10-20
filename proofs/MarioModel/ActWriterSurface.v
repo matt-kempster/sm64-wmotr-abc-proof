@@ -2130,7 +2130,11 @@ Definition dg_writer_ids : list ident :=
 Definition objw_ids : list ident :=
   mario_actions_cutscene._obj_scale
     :: mario_actions_cutscene._obj_mark_for_deletion
-    :: mario._load_patchable_table :: nil.
+    :: mario._load_patchable_table
+    (* 2026-10-19: obj_set_held_state writes through arg0 (obj->parentObj,
+       oHeldState, ...; object_helpers.c:267), so its any-argument row was
+       FALSE; all three real sites pass the chase temp m->heldObj *)
+    :: interaction._obj_set_held_state :: nil.
 Definition objw_call_chk (cact : list ident) (fty : type) (al : list expr) : bool :=
   match fty, al with
   | Tfunction (Tpointer _ _ :: _) _ _, Etempvar t (Tpointer _ _) :: _ => mem_id t cact

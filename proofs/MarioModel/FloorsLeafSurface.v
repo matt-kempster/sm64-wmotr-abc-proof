@@ -302,7 +302,7 @@ Section FloorsLeafRows.
   Hypothesis Hcpx_ssm :
     call_pres_ext lp bm NoA MWF interaction._stop_shell_music.
   Hypothesis Hcpx_oshs :
-    call_pres_ext lp bm NoA MWF interaction._obj_set_held_state.
+    OutParamSurface.call_pres_ext_cs lp bm NoA MWF SafeB interaction._obj_set_held_state.
   (* NEW: the floors_ext_ids capstone surface *)
   Hypothesis Hcpx_rbn :
     call_pres_ext lp bm NoA MWF mario._raise_background_noise.

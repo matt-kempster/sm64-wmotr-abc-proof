@@ -1998,7 +1998,7 @@ Section StationaryLeafRows.
   Hypothesis Hcpx_ssm :
     call_pres_ext lp bm NoA MWF interaction._stop_shell_music.
   Hypothesis Hcpx_oshs :
-    call_pres_ext lp bm NoA MWF interaction._obj_set_held_state.
+    OutParamSurface.call_pres_ext_cs lp bm NoA MWF SafeB interaction._obj_set_held_state.
   (* set_steep_jump_action's two math externals (the steep-jump face-angle
      trig): both in obj_ext_ids -- NO new trust, discharged at the capstone
      via Hpres_obj_ext. *)

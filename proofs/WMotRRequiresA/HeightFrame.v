@@ -368,6 +368,11 @@ Section HeightLinked12.
   Hypothesis Hcsp_scale_real :
     call_pres_ext_cs lp bm (NoA_real bm) MWF SafeB
       mario_actions_cutscene._obj_scale.
+  (* 2026-10-19: obj_set_held_state writes through arg0, so its any-argument
+     obj_ext row was false; restated arg0-gated (see NoAImpliesNoFlyLinked). *)
+  Hypothesis Hcsp_osh_real :
+    call_pres_ext_cs lp bm (NoA_real bm) MWF SafeB
+      interaction._obj_set_held_state.
   (* load_patchable_table: PROVED from its real memory.c body and dma_read's
      (LptBody), down to the libultra DMA calls, whose effect is the
      hardware/OS floor spec (OsDmaFloor, TRUST 3.5). *)

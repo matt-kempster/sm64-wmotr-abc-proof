@@ -1621,6 +1621,9 @@ Section MovingLeafRows.
      obj_ext_ids; the capstone supplies its own Hpres_obj_ext verbatim. *)
   Hypothesis Hpres_obj_ext : forall fid,
       mem_id fid obj_ext_ids = true -> call_pres_ext lp bm NoA MWF fid.
+  (* obj_set_held_state writes through arg0: its row is cs-gated (2026-10-19) *)
+  Hypothesis Hcsp_osh :
+    OutParamSurface.call_pres_ext_cs lp bm NoA MWF SafeB interaction._obj_set_held_state.
   (* the dst-gated writers (dst = a SafeB chase / a stack local): dg rows,
      discharged at the capstone from the real bodies *)
   Hypothesis Hdgp_v3s :
@@ -1677,7 +1680,7 @@ Section MovingLeafRows.
       HMWF_chase HMWF_root HMWF_sglob HchaseStep HMWF_chase_safe
       (Hpres_obj_ext interaction._segmented_to_virtual eq_refl)
       (Hpres_obj_ext interaction._stop_shell_music eq_refl)
-      (Hpres_obj_ext interaction._obj_set_held_state eq_refl).
+      Hcsp_osh.
 
   (* play_sound_if_no_flag -- REUSED from ObjectLeafSurface.psinf_row (its
      internal walk routes the only external, mario._play_sound, through
@@ -4544,7 +4547,7 @@ Section MovingLeafRows.
       Hcpx_psound
       (Hpres_obj_ext interaction._segmented_to_virtual eq_refl)
       (Hpres_obj_ext interaction._stop_shell_music eq_refl)
-      (Hpres_obj_ext interaction._obj_set_held_state eq_refl)
+      Hcsp_osh
       Hsma_row
       (Hpres_obj_ext interaction._atan2s eq_refl)
       (Hpres_obj_ext interaction._virtual_to_segmented eq_refl).
@@ -9408,7 +9411,7 @@ Proof. vm_compute. reflexivity. Qed.
     ObjectLeafSurface.mguo_row lp LO_mario LO_int bm NoA MWF HNoA_of_MWF
       HMWF_window HMWF_glob HMWF_act SafeB HSafeNotBm HchaseRoot HMWF_chase
       HMWF_root HMWF_sglob HchaseStep HMWF_chase_safe
-      (Hpres_obj_ext interaction._obj_set_held_state eq_refl).
+      Hcsp_osh.
 
   Let Hmcog : call_pres lp bm NoA MWF interaction._mario_check_object_grab :=
     ObjectLeafSurface.mcog_row lp LO_mario LO_mario_step LO_int bm NoA MWF
@@ -9416,7 +9419,7 @@ Proof. vm_compute. reflexivity. Qed.
       HMWF_chase HMWF_root HMWF_sglob HchaseStep HMWF_chase_safe
       (Hpres_obj_ext interaction._segmented_to_virtual eq_refl)
       (Hpres_obj_ext interaction._stop_shell_music eq_refl)
-      (Hpres_obj_ext interaction._obj_set_held_state eq_refl)
+      Hcsp_osh
       (Hpres_obj_ext interaction._atan2s eq_refl)
       (Hpres_obj_ext interaction._virtual_to_segmented eq_refl).
 
@@ -10593,7 +10596,7 @@ Proof. vm_compute. reflexivity. Qed.
       HMWF_chase HMWF_root HMWF_sglob HchaseStep HMWF_chase_safe
       (Hpres_obj_ext interaction._segmented_to_virtual eq_refl)
       (Hpres_obj_ext interaction._stop_shell_music eq_refl)
-      (Hpres_obj_ext interaction._obj_set_held_state eq_refl).
+      Hcsp_osh.
 
   (* ---- tilt_body_walking: chase-store helper row ---- *)
   Definition tbw_cact : list ident := M._val0C :: nil.

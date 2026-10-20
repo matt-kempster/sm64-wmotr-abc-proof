@@ -85,14 +85,21 @@ Definition msro_cact : list ident := interaction._t'2 :: nil.
 Definition msro_xids : list ident := interaction._stop_shell_music :: nil.
 Definition mdho_cact : list ident :=
   interaction._t'10 :: interaction._t'8 :: interaction._t'5
-    :: interaction._t'3 :: nil.
+    :: interaction._t'3
+    (* t'13 := m->heldObj, the obj_set_held_state arg (objw gate) *)
+    :: interaction._t'13 :: nil.
 Definition mdho_xids : list ident :=
   interaction._segmented_to_virtual :: interaction._obj_set_held_state
     :: interaction._stop_shell_music :: nil.
 Definition mtho_cact : list ident :=
   interaction._t'13 :: interaction._t'10 :: interaction._t'5
-    :: interaction._t'3 :: nil.
-Definition mguo_cact : list ident := interaction._t'3 :: nil.
+    :: interaction._t'3
+    (* t'18 := m->heldObj, the obj_set_held_state arg (objw gate) *)
+    :: interaction._t'18 :: nil.
+Definition mguo_cact : list ident :=
+  interaction._t'3
+    (* t'2 := m->heldObj, the obj_set_held_state arg (objw gate) *)
+    :: interaction._t'2 :: nil.
 Definition mguo_xids : list ident :=
   interaction._obj_set_held_state :: nil.
 
@@ -123,7 +130,8 @@ Definition obj_ext_ids : list ident :=
   mario._set_camera_mode
     :: interaction._segmented_to_virtual
     :: interaction._stop_shell_music
-    :: interaction._obj_set_held_state
+    (* (obj_set_held_state REMOVED 2026-10-19: it writes through arg0, so
+       an any-argument row is FALSE; it rides the cs-gated Hcsp_osh_real.) *)
     (* (load_patchable_table REMOVED 2026-10-18: it writes through arg0
        (list->currentAddr, the DMA into list->bufTarget), so the any-argument
        row is FALSE once memory.c is linked; it rides the cs-gated
@@ -1272,7 +1280,7 @@ Section ObjectLeafRows.
   Hypothesis Hcpx_ssm :
     call_pres_ext lp bm NoA MWF interaction._stop_shell_music.
   Hypothesis Hcpx_oshs :
-    call_pres_ext lp bm NoA MWF interaction._obj_set_held_state.
+    OutParamSurface.call_pres_ext_cs lp bm NoA MWF SafeB interaction._obj_set_held_state.
   (* set_mario_animation / set_mario_anim_with_accel: PROVED from their real
      bodies (LptBody.sma_row_proved / smawa_row_proved: m->animList pinned to
      gMarioAnimsBuf, load_patchable_table walked down to the DMA floor); the

@@ -127,6 +127,11 @@ Section NoAImpliesNoFlyTwelve.
   Hypothesis Hcsp_scale_real :
     call_pres_ext_cs lp bm (NoA_real bm) MWF SafeB
       mario_actions_cutscene._obj_scale.
+  (* 2026-10-19: obj_set_held_state writes through arg0, so its any-argument
+     obj_ext row was false; restated arg0-gated (see NoAImpliesNoFlyLinked). *)
+  Hypothesis Hcsp_osh_real :
+    call_pres_ext_cs lp bm (NoA_real bm) MWF SafeB
+      interaction._obj_set_held_state.
   (* load_patchable_table: PROVED from its real memory.c body and dma_read's
      (LptBody), down to the libultra DMA calls, whose effect is the
      hardware/OS floor spec (OsDmaFloor, TRUST 3.5). *)
@@ -213,7 +218,7 @@ Section NoAImpliesNoFlyTwelve.
              bm bc oc0 SafeB (fun _ => false)
              HSafeB_syms Hspawn
              (linked12_LO_surf lp H12) (linked12_LO_math lp H12)
-             Hscp_mtxf_real Hcsp_omfd_real Hcsp_scale_real Hsma_real Hsmawa_real WL_exempt
+             Hscp_mtxf_real Hcsp_omfd_real Hcsp_scale_real Hcsp_osh_real Hsma_real Hsmawa_real WL_exempt
              (linked12_LO_sta lp H12) (linked12_LO_mov lp H12)
              (linked12_LO_air lp H12) (linked12_LO_sub lp H12)
              (linked12_LO_cut lp H12) (linked12_LO_aut lp H12)
@@ -245,7 +250,7 @@ Section NoAImpliesNoFlyTwelve.
              bm bc oc0 SafeB
              HSafeB_syms Hspawn
              (linked12_LO_surf lp H12) (linked12_LO_math lp H12)
-             Hscp_mtxf_real Hcsp_omfd_real Hcsp_scale_real Hsma_real Hsmawa_real WL_exempt
+             Hscp_mtxf_real Hcsp_omfd_real Hcsp_scale_real Hcsp_osh_real Hsma_real Hsmawa_real WL_exempt
              (linked12_LO_sta lp H12) (linked12_LO_mov lp H12)
              (linked12_LO_air lp H12) (linked12_LO_sub lp H12)
              (linked12_LO_cut lp H12) (linked12_LO_aut lp H12)

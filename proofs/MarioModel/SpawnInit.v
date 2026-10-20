@@ -331,9 +331,10 @@ Definition SafeB_syms_ok (lp : Clight.program) (SafeB : block -> Prop) : Prop :=
   /\ (forall b,
      Genv.find_symbol (lp_ge lp) mario_actions_moving._sFloorAlignMatrix = Some b ->
      SafeB b)
-  (* (c) 2026-10-19: the cutscene object-pointer globals are SafeB blocks, so
-     MWF's R7 keeps what they hold SafeB (CensusV2.gobj_syms). *)
-  /\ (forall id b, mem_id id gobj_syms = true ->
+  (* (c) 2026-10-19: the cutscene object-pointer globals and gCurrentObject
+     are SafeB blocks, so MWF's R7 keeps what they hold SafeB
+     (CensusV2.safe_ptr_syms). *)
+  /\ (forall id b, mem_id id safe_ptr_syms = true ->
      Genv.find_symbol (lp_ge lp) id = Some b -> SafeB b).
 
 (* the ~SafeB micro-brick: a non_safeb_syms symbol is not SafeB *)
@@ -512,7 +513,7 @@ Lemma safeb_wit_sat :
   forall (lp : Clight.program) (objblks : block -> Prop) (symok : ident -> Prop),
     (forall b, objblks b -> Plt (Genv.genv_next (lp_ge lp)) b) ->
     (forall id, symok id -> mem_id id non_safeb_syms = false) ->
-    (forall id, mem_id id gobj_syms = true -> symok id) ->
+    (forall id, mem_id id safe_ptr_syms = true -> symok id) ->
     SafeB_syms_ok lp (SafeB_wit lp objblks symok).
 Proof.
   intros lp objblks symok Hfresh Hok Hgobj. split; [ | split ].
@@ -530,9 +531,9 @@ Qed.
 
 (* the gobj symbols are permitted SafeB symbols *)
 Lemma gobj_not_nonsafe : forall id,
-    mem_id id gobj_syms = true -> mem_id id non_safeb_syms = false.
+    mem_id id safe_ptr_syms = true -> mem_id id non_safeb_syms = false.
 Proof.
-  intros id H. unfold gobj_syms in H. cbn [mem_id existsb] in H.
+  intros id H. unfold safe_ptr_syms, gobj_syms in H. cbn [mem_id existsb] in H.
   repeat (apply orb_true_iff in H as [E | H];
           [ apply Pos.eqb_eq in E; subst id; vm_compute; reflexivity | ]).
   discriminate H.

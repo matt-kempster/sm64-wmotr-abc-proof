@@ -925,6 +925,13 @@ Definition gobj_syms : list ident :=
     :: mario_actions_cutscene._sEndLeftToadObj
     :: mario_actions_cutscene._sEndJumboStarObj :: nil.
 
+(* the SafeB pointer globals: the gobj globals plus gCurrentObject, which no
+   linked code writes and which the object-helper externals read (e.g.
+   obj_set_held_state stores it into obj->parentObj).  As SafeB blocks, R7
+   keeps what they hold SafeB. *)
+Definition safe_ptr_syms : list ident :=
+  mario_actions_cutscene._gCurrentObject :: gobj_syms.
+
 (* ---------------------------------------------------------------------- *)
 (* The interaction-handler census (the Hpres_inter arc): the 28 DISTINCT   *)
 (* functions whose addresses populate the sInteractionHandlers dispatch    *)

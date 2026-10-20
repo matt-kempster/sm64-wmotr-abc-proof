@@ -2160,7 +2160,7 @@ Section SubmergedLeafRows.
      (obj_ext_ids member -> capstone discharges via Hpres_obj_ext, the SAME
      term the dasma_row arg already passes) -- NO new trust. *)
   Hypothesis Hcpx_oshs :
-    call_pres_ext lp bm NoA MWF interaction._obj_set_held_state.
+    OutParamSurface.call_pres_ext_cs lp bm NoA MWF SafeB interaction._obj_set_held_state.
 
   (* SLICE 14 (the swimming cluster): the swim helpers are honest INTERNAL
      residuals (check_water_jump / play_swimming_noise / reset_bob_variables /

@@ -1666,7 +1666,7 @@ Section CutsceneLeafRows.
   Hypothesis Hcpx_ssm :
     call_pres_ext lp bm NoA MWF interaction._stop_shell_music.
   Hypothesis Hcpx_oshs :
-    call_pres_ext lp bm NoA MWF interaction._obj_set_held_state.
+    OutParamSurface.call_pres_ext_cs lp bm NoA MWF SafeB interaction._obj_set_held_state.
   Hypothesis Hcp_umsc :
     call_pres lp bm NoA MWF mario._update_mario_sound_and_camera.
   (* SLICE 23 (act_unlocking_key_door) externals -- both honest boundaries the
