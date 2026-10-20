@@ -227,8 +227,30 @@ Definition world_ok (pc : list fact) (q : sval) (k : Z) (ch : memory_chunk) : bo
                     | _ => false
                     end) pc.
 
+(* p points into the same block as p' (syntactically: equal, or two
+   addresses in one region) *)
+Definition same_blk (p' p : sval) : bool :=
+  sbeq p' p || match p', p with Sptr r1 _, Sptr r2 _ => Pos.eqb r1 r2 | _, _ => false end.
+
+(* p is a world pointer into a whole block that holds no sized region (a
+   fact [Fworld p' n] with n >= the address space, p' in p's block) *)
+Definition wblock_ok (pc : list fact) (p : sval) : bool :=
+  existsb (fun f => match f with
+                    | Fworld p' n => same_blk p' p && (Ptrofs.modulus <=? n)
+                    | _ => false
+                    end) pc.
+
+(* q = p + i, pointer plus integer: an element of such a block (a table
+   indexed by a symbolic value) *)
+Definition widx_ok (pc : list fact) (q : sval) : bool :=
+  match q with
+  | Sbinop Oadd p t1 _ t2 =>
+      wblock_ok pc p && match classify_add t1 t2 with add_case_pi _ _ => true | _ => false end
+  | _ => false
+  end.
+
 Definition wload (g : gst) (q : sval) (k : Z) (ch : memory_chunk) : option sval :=
-  if world_ok (g_pc g) q k ch then Some (Swld q k ch) else None.
+  if world_ok (g_pc g) q k ch || widx_ok (g_pc g) q then Some (Swld q k ch) else None.
 
 Definition loc_of (p : sval) : sloc :=
   match p with
@@ -828,6 +850,45 @@ Definition lexits (rs : list (spath + spath)) : list spath :=
 Definition lbacks (rs : list (spath + spath)) : list spath :=
   flat_map (fun x => match x with inr p => [p] | inl _ => nil end) rs.
 
+(* a symbolic switch: one path per case label (with the fact c == n) and
+   one for the default (with c != n for every label) *)
+Fixpoint sw_labels (sl : labeled_statements) : list Z :=
+  match sl with
+  | LSnil => nil
+  | LScons (Some n) _ sl' => n :: sw_labels sl'
+  | LScons None _ sl' => sw_labels sl'
+  end.
+
+Definition labs_ok (l : list Z) : bool := forallb (fun n => (0 <=? n) && (n <? Int.modulus)) l.
+
+Definition tint32 : type := Tint I32 Signed noattr.
+
+Definition sweq (c : sval) (n : Z) : sval := Sbinop Oeq c tint32 (Sconst (Vint (Int.repr n))) tint32.
+
+Definition add_facts (g : gst) (fs : list fact) : gst := fold_left add_fact fs g.
+
+Definition sw_out (p : spath) : spath := let '(le', g', o) := p in (le', g', sout_switch o).
+
+Definition sw_const (c : sval) : option val := match c with Sconst v => Some v | _ => None end.
+
+(* a call passing an integer temp that still holds Vundef (never set on
+   this path) has no evaluation: the argument cast of Vundef fails *)
+Definition type_is_void (ty : type) : bool := match ty with Tvoid => true | _ => false end.
+
+Definition undef_arg (le : PTree.t sval) (a : expr) (ty : type) : bool :=
+  negb (type_is_void ty) &&
+  match a with
+  | Etempvar id (Tint _ _ _) =>
+      match le ! id with Some (Sconst Vundef) => true | _ => false end
+  | _ => false
+  end.
+
+Fixpoint undef_stuck (le : PTree.t sval) (al : list expr) (tyl : list type) : bool :=
+  match al, tyl with
+  | a :: al', ty :: tyl' => undef_arg le a ty || undef_stuck le al' tyl'
+  | _, _ => false
+  end.
+
 Fixpoint sx_stmt (fuel : nat) (se : PTree.t (positive * type)) (le : PTree.t sval)
     (g : gst) (s : statement) {struct fuel} : option (list spath) :=
   match fuel with
@@ -856,6 +917,7 @@ Fixpoint sx_stmt (fuel : nat) (se : PTree.t (positive * type)) (le : PTree.t sva
       | None =>
           let? fd := sfun_lookup id in
           if type_eq (type_of_fundef fd) (Tfunction tyargs tyres cconv) then
+            if undef_stuck le al tyargs then Some [] else
             let? args := sx_exprlist se le g al tyargs in
             let? cps0 := match xc id with
                          | Some k => k args g
@@ -886,12 +948,21 @@ Fixpoint sx_stmt (fuel : nat) (se : PTree.t (positive * type)) (le : PTree.t sva
   | Sloop s1 s2 => sx_loop fuel' se [(le, g, SOnormal)] s1 s2
   | Sswitch a sl =>
       let? c := sx_expr se le g a in
-      match c with
-      | Sconst v =>
+      match sw_const c with
+      | Some v =>
           let? n := sem_switch_arg v (typeof a) in
           let? ps := sx_stmt fuel' se le g (seq_of_labeled_statement (select_switch n sl)) in
-          Some (map (fun (p : spath) => let '(le', g', o) := p in (le', g', sout_switch o)) ps)
-      | _ => None
+          Some (map sw_out ps)
+      | None =>
+          if is_tint (typeof a) && labs_ok (sw_labels sl) then
+            let? ps1 := oflat (fun n =>
+                          sx_stmt fuel' se le (add_fact g (Fbool (sweq c n) tint32 true))
+                            (seq_of_labeled_statement (select_switch n sl))) (sw_labels sl) in
+            let? ps2 := sx_stmt fuel' se le
+                          (add_facts g (map (fun n => Fbool (sweq c n) tint32 false) (sw_labels sl)))
+                          (seq_of_labeled_statement (select_switch_default sl)) in
+            Some (map sw_out (ps1 ++ ps2))
+          else None
       end
   | Sreturn None => Some [(le, g, SOreturn None)]
   | Sreturn (Some a) =>
@@ -1674,7 +1745,51 @@ Lemma wload_sound : forall E m g q k ch sa b o, MMg E m g ->
   /\ sok (g_nx g) sa.
 Proof.
   intros E m g q k ch sa b o MM H Dq Sq Oq. unfold wload in H.
-  destruct (world_ok (g_pc g) q k ch) eqn:W; [ | discriminate ]. inv H.
+  destruct (world_ok (g_pc g) q k ch) eqn:W; cbn [orb] in H.
+  2:{ (* an element of a whole world block *)
+    destruct (widx_ok (g_pc g) q) eqn:WI; [ | discriminate ]. inv H.
+    pose proof MM as (EO & NB & ENT & FR & VP & NX & PC & LOC & LINJ).
+    pose proof Dq as Dq0.
+    destruct q as [ | | | | | | | op p t1 i t2 | | ]; cbn [widx_ok] in WI; try discriminate.
+    destruct op; try discriminate.
+    assert (DS : den E (Swld (Sbinop Oadd p t1 i t2) k ch)
+                 = Mem.load ch m0 b (Ptrofs.unsigned (Ptrofs.add o (Ptrofs.repr k)))).
+    { change (den E (Swld (Sbinop Oadd p t1 i t2) k ch)) with
+        (match den E (Sbinop Oadd p t1 i t2) with
+         | Some (Vptr b' o') => Mem.load ch m0 b' (Ptrofs.unsigned (Ptrofs.add o' (Ptrofs.repr k)))
+         | _ => None end).
+      rewrite Dq0. reflexivity. }
+    apply andb_true_iff in WI as [WB CA].
+    unfold wblock_ok in WB. apply existsb_exists in WB. destruct WB as [f [INf Hf]].
+    destruct f as [ | p0 n | | ]; try discriminate.
+    apply andb_true_iff in Hf as [Hp Hn]. apply Z.leb_le in Hn.
+    destruct (PC _ INf) as (_ & (bp & op & Dp & OLD & N0 & NM & DJ)).
+    assert (DpB : exists o1, den E p = Some (Vptr bp o1)).
+    { unfold same_blk, sbeq in Hp. destruct (sval_eq p0 p) as [<- | _]; [ eauto | ].
+      cbn [orb] in Hp. destruct p0; try discriminate. destruct p; try discriminate.
+      apply Pos.eqb_eq in Hp. subst. cbn [den] in Dp |- *. injection Dp as <- _. eauto. }
+    destruct DpB as (o1 & Dp1).
+    cbn [den] in Dq. rewrite Dp1 in Dq. destruct (den E i) as [vi|] eqn:Di; [ | discriminate ].
+    cbn [sem_binary_operation] in Dq. unfold sem_add in Dq.
+    destruct (classify_add t1 t2); try discriminate.
+    unfold sem_add_ptr_int in Dq. destruct vi; try discriminate. injection Dq as <- <-.
+    pose proof (Ptrofs.unsigned_range op) as ROP.
+    assert (OP0 : Ptrofs.unsigned op = 0) by lia.
+    split.
+    - rewrite DS. apply FR; [ exact OLD | | ].
+      + intros [[[re oe] che] sve] INe. cbn [skey cell_disj].
+        destruct (ENT _ _ _ _ INe) as (IBe & _).
+        destruct (inb_spec _ _ _ _ IBe) as [(L & sz & S & O1 & O2) | (L & INl & O1 & O2)].
+        * pose proof (Ptrofs.unsigned_range (e_base E re)). pose proof (size_chunk_pos che).
+          destruct (DJ re sz S) as [D | [D | D]]; [ left; exact D | exfalso; lia | exfalso; lia ].
+        * left. intro B. destruct (LOC re INl) as (_ & _ & _ & NO & _). apply NO. rewrite B. exact OLD.
+      + intros r _. unfold rng_disj. destruct (r0_size r) as [sz|] eqn:S; [ | exact I ].
+        pose proof (Ptrofs.unsigned_range (e_base E r)).
+        match goal with |- context [Ptrofs.unsigned ?z] =>
+          match z with Ptrofs.add _ (Ptrofs.repr k) => pose proof (Ptrofs.unsigned_range z) end end.
+        destruct (DJ r sz S) as [D | [D | D]]; [ left; exact D | right; left; lia | exfalso; lia ].
+    - split; cbn; [ apply Sq | exact Oq ]. }
+  inv H.
   destruct (world_ok_spec _ _ _ _ W) as (n & IN & K1 & K2).
   pose proof MM as (EO & NB & ENT & FR & VP & NX & PC & LOC & LINJ).
   destruct (PC _ IN) as (_ & (b' & o' & D' & OLD & N0 & NM & DJ)).
@@ -3283,6 +3398,53 @@ Proof.
   eexists; split; [ left; reflexivity | apply fresh_cm; auto ].
 Qed.
 
+(* ---- a call that leaves every existing block as it was (it may only
+   allocate): the fresh contract describes it too ---- *)
+Lemma load_unch_valid : forall m m' ch b z,
+  Mem.unchanged_on (fun b _ => Mem.valid_block m b) m m' -> Mem.valid_block m b ->
+  Mem.load ch m' b z = Mem.load ch m b z.
+Proof.
+  intros m m' ch b z U V. destruct (Mem.load ch m b z) as [v|] eqn:L.
+  - eapply Mem.load_unchanged_on; [ exact U | | exact L ]. intros. exact V.
+  - destruct (Mem.load ch m' b z) as [v'|] eqn:L'; [ exfalso | reflexivity ].
+    apply Mem.load_valid_access in L'. destruct L' as [RP AL].
+    assert (VA : Mem.valid_access m ch b z Readable).
+    { split; [ | exact AL ]. intros i Hi. eapply Mem.perm_unchanged_on_2; eauto. }
+    destruct (Mem.valid_access_load _ _ _ _ VA) as [v'' Hv]. congruence.
+Qed.
+
+Lemma MMg_unch : forall E m m' g, MMg E m g ->
+  Mem.unchanged_on (fun b _ => Mem.valid_block m b) m m' -> MMg E m' g.
+Proof.
+  intros E m m' g MM U.
+  pose proof MM as (EO & NB & ENT & FR & VP & NX & PC & LOC & LINJ).
+  pose proof (Mem.unchanged_on_nextblock _ _ _ U) as NXU.
+  assert (OV : forall b, Plt b nb0 -> Mem.valid_block m b).
+  { intros b L. unfold Mem.valid_block, Plt, Ple in *. lia. }
+  split; [ exact EO | split; [ exact NB | split; [ | split; [ | split; [ | split; [ | split; [ exact PC | split; [ | exact LINJ ] ] ] ] ] ] ] ].
+  - intros r o ch sv I. destruct (ENT r o ch sv I) as (IB & S & L). split; [ exact IB | split; [ exact S | ] ].
+    rewrite <- L. apply load_unch_valid; [ exact U | ].
+    destruct (inb_spec _ _ _ _ IB) as [(Lr & _) | (Lr & INl & _)].
+    + apply OV. destruct EO as (G & _). apply pub_plt. exact (G r Lr).
+    + destruct (LOC r INl) as (_ & _ & _ & _ & P). exact P.
+  - intros b z ch L D1 D2. rewrite (load_unch_valid m m' ch b z U (OV b L)). exact (FR b z ch L D1 D2).
+  - intros b o k p L. rewrite <- (VP b o k p L). split; intro P.
+    + exact (Mem.perm_unchanged_on_2 _ _ _ _ _ _ _ U (OV b L) (OV b L) P).
+    + exact (Mem.perm_unchanged_on _ _ _ _ _ _ _ U (OV b L) P).
+  - unfold Ple in *. lia.
+  - intros r I. destruct (LOC r I) as (A & B & C & D & F). repeat split; auto.
+    unfold Plt, Ple in *. lia.
+Qed.
+
+Lemma xc_fresh_unch_sound : forall E m m' g v args cps,
+  xc_fresh args g = Some cps -> MMg E m g ->
+  Mem.unchanged_on (fun b _ => Mem.valid_block m b) m m' -> val_old v ->
+  exists c, In c cps /\ CM E (g_nx g) (g_loc g) m' v c.
+Proof.
+  intros E m m' g v args cps H MM U O.
+  exact (xc_fresh_sound E m' g v args cps H (MMg_unch E m m' g MM U) O).
+Qed.
+
 (* ---- building blocks for contracts that write cells ---- *)
 
 (* naming one fresh value keeps the description *)
@@ -3454,6 +3616,94 @@ Proof.
   apply PTree.elements_complete in I. eauto.
 Qed.
 
+(* ---- symbolic switches and stuck calls ---- *)
+
+Lemma sem_cast_undef_int : forall sz sg a ty m, ty <> Tvoid -> sem_cast Vundef (Tint sz sg a) ty m = None.
+Proof.
+  intros sz sg a ty m N. unfold sem_cast, classify_cast.
+  destruct ty; [ congruence | .. ];
+  repeat match goal with
+         | |- context [match ?x with _ => _ end] =>
+             first [ is_var x; destruct x | destruct x eqn:? ]
+         end; try reflexivity;
+  repeat match goal with H : context [match ?x with _ => _ end] |- _ => destruct x end; discriminate.
+Qed.
+
+Lemma undef_stuck_sound : forall E n e tle le m al tyl vl, temps_ok E n tle le ->
+  undef_stuck le al tyl = true -> eval_exprlist ge e tle m al tyl vl -> False.
+Proof.
+  intros E n e tle le m al tyl vl TM US H.
+  induction H as [| a bl ty tyl v1 v2 vl Ha Hc Hl IH]; cbn [undef_stuck] in US; [ discriminate | ].
+  apply orb_true_iff in US as [U | U]; [ | exact (IH U) ].
+  unfold undef_arg in U. apply andb_true_iff in U as [NV U].
+  destruct a; try discriminate. destruct t; try discriminate.
+  destruct (le ! i) as [sv|] eqn:L; [ | discriminate ].
+  destruct sv; try discriminate. destruct v; try discriminate.
+  destruct (TM _ _ L) as (v & Tv & Dv & _). cbn [den] in Dv. injection Dv as <-.
+  assert (V1 : v1 = Vundef).
+  { inv Ha; [ congruence | ].
+    match goal with HL : eval_lvalue _ _ _ _ _ _ _ _ |- _ => inv HL end. }
+  subst v1. cbn [typeof] in Hc. rewrite sem_cast_undef_int in Hc; [ discriminate | ].
+  intro E0. subst ty. discriminate.
+Qed.
+
+Lemma sw_const_some : forall c v, sw_const c = Some v -> c = Sconst v.
+Proof. intros c v H. destruct c; cbn in H; congruence. Qed.
+
+Lemma select_switch_notin : forall n sl, ~ In n (sw_labels sl) ->
+  select_switch n sl = select_switch_default sl.
+Proof.
+  intros n sl N. unfold select_switch.
+  assert (H : select_switch_case n sl = None).
+  { induction sl as [| [c|] s0 sl' IH]; cbn [select_switch_case sw_labels] in *; [ reflexivity | | ].
+    - destruct (zeq c n) as [-> | _]; [ exfalso; apply N; left; reflexivity | ].
+      apply IH. intro I. apply N. right. exact I.
+    - apply IH. exact N. }
+  rewrite H. reflexivity.
+Qed.
+
+Lemma add_facts_nx : forall fs g, g_nx (add_facts g fs) = g_nx g.
+Proof. induction fs as [|f fs IH]; intros g; [ reflexivity | cbn [add_facts fold_left]; apply (IH (add_fact g f)) ]. Qed.
+
+Lemma add_facts_loc : forall fs g, g_loc (add_facts g fs) = g_loc g.
+Proof. induction fs as [|f fs IH]; intros g; [ reflexivity | cbn [add_facts fold_left]; apply (IH (add_fact g f)) ]. Qed.
+
+Lemma MMg_add_facts : forall E m fs g, MMg E m g ->
+  (forall f, In f fs -> fact_nlt (g_nx g) f /\ fact_holds E f) -> MMg E m (add_facts g fs).
+Proof.
+  intros E m fs. induction fs as [|f fs IH]; intros g MM H; [ exact MM | ].
+  cbn [add_facts fold_left]. apply (IH (add_fact g f)).
+  - destruct (H f (or_introl eq_refl)) as [N F]. exact (MMg_add_fact E m g f MM N F).
+  - intros f' I. exact (H f' (or_intror I)).
+Qed.
+
+Lemma sweq_holds : forall E n c i z b, den E c = Some (Vint i) -> sok n c ->
+  0 <= z < Int.modulus -> b = Int.eq i (Int.repr z) ->
+  fact_nlt n (Fbool (sweq c z) tint32 b) /\ fact_holds E (Fbool (sweq c z) tint32 b).
+Proof.
+  intros E n c i z b D S Z ->. split.
+  - cbn. split; [ apply S | exact I ].
+  - exists (Val.of_bool (Int.eq i (Int.repr z))). split.
+    + cbn [den sweq]. rewrite D. reflexivity.
+    + destruct (Int.eq i (Int.repr z)); reflexivity.
+Qed.
+
+Lemma labs_ok_in : forall l z, labs_ok l = true -> In z l -> 0 <= z < Int.modulus.
+Proof.
+  intros l z H I. unfold labs_ok in H. rewrite forallb_forall in H.
+  specialize (H z I). apply andb_true_iff in H as [H1 H2].
+  apply Z.leb_le in H1. apply Z.ltb_lt in H2. lia.
+Qed.
+
+Lemma PM_sw_out : forall E n gl tle m out p, PM E n gl tle m out p ->
+  PM E n gl tle m (outcome_switch out) (sw_out p).
+Proof.
+  intros E n gl tle m out [[le' g'] so] R. cbn [sw_out].
+  destruct R as (E' & X & MM' & T' & O & L & G). exists E'.
+  split; [ exact X | split; [ exact MM' | split; [ exact T' | split; [ | auto ] ] ] ].
+  apply out_match_switch. exact O.
+Qed.
+
 (* the contracts are sound: every execution of a contracted call is
    described by one of the contract's outcomes *)
 Hypothesis xc_sound : forall id k args g cps fd E m vargs t m' vres,
@@ -3533,6 +3783,10 @@ Proof.
       destruct (se ! i) eqn:Si; [ discriminate | ].
       destruct (sfun_lookup i) as [fd|] eqn:Fl; [ | discriminate ].
       destruct (type_eq (type_of_fundef fd) (Tfunction targs tres cc)); [ | discriminate ].
+      destruct (undef_stuck le l targs) eqn:US.
+      { exfalso. inv Hx.
+        match goal with HCF : classify_fun _ = fun_case_f _ _ _ |- _ => cbn in HCF; inv HCF end.
+        refine (undef_stuck_sound _ _ _ _ _ _ _ _ _ TM US _). eassumption. }
       destruct (sx_exprlist se le g l targs) as [sargs|] eqn:Ea; [ | discriminate ].
       destruct (match xc i with Some k => k sargs g | None => sx_call fuel g fd sargs end)
         as [cps0|] eqn:Ec0; [ | discriminate ].
@@ -3639,23 +3893,62 @@ Proof.
       * inv Hs. inv Hx. eexists; split; [ left; reflexivity | ]. pm_here E.
     + (* Sswitch *)
       destruct (sx_expr se le g e0) as [c|] eqn:Ec; [ | discriminate ].
-      destruct c; try discriminate.
-      destruct (sem_switch_arg v (typeof e0)) as [n|] eqn:Sw; [ | discriminate ].
-      destruct (sx_stmt fuel se le g (seq_of_labeled_statement (select_switch n l))) as [ps1|] eqn:P1;
-        [ | discriminate ].
-      inv Hs. inv Hx.
+      inv Hx.
       match goal with
       | HE : eval_expr _ _ _ _ e0 _, HS : sem_switch_arg _ _ = Some _,
         HX : exec_stmt _ _ _ _ _ (seq_of_labeled_statement _) _ _ _ _ |- _ =>
-        destruct (sx_expr_sound E _ g se le e _ MM EM TM _ _ _ HE Ec) as [D _];
-        cbn in D; inv D; rewrite Sw in HS; inv HS;
-        destruct (IHs _ _ _ _ _ _ _ _ _ _ _ _ _ P1 MM EM TM HX) as (p & Hin & R)
+        destruct (sx_expr_sound E _ g se le e _ MM EM TM _ _ _ HE Ec) as [D Sc];
+        rename HS into HS0; rename HX into HX0
       end.
-      destruct p as [[le' g'] so]. exists (le', g', sout_switch so). split.
-      * apply in_map_iff. exists (le', g', so). split; auto.
-      * destruct R as (E' & X & MM' & T' & O & L & G). exists E'.
-        split; [ exact X | split; [ exact MM' | split; [ exact T' | split; [ | auto ] ] ] ].
-        apply out_match_switch. exact O.
+      destruct (sw_const c) as [v'|] eqn:SC.
+      * apply sw_const_some in SC. subst c. cbn [den] in D. injection D as <-.
+        rewrite HS0 in Hs.
+        match type of Hs with
+        | (match ?X with Some _ => _ | None => _ end) = _ => destruct X as [ps1|] eqn:P1; [ | discriminate ]
+        end.
+        inv Hs.
+        destruct (IHs _ _ _ _ _ _ _ _ _ _ _ _ _ P1 MM EM TM HX0) as (p & Hin & R).
+        exists (sw_out p). split; [ apply in_map; exact Hin | apply PM_sw_out; exact R ].
+      * destruct (is_tint (typeof e0) && labs_ok (sw_labels l)) eqn:T; [ | discriminate ].
+        apply andb_true_iff in T as [T1 T2].
+        match type of Hs with
+        | (match oflat ?F _ with Some _ => _ | None => _ end) = _ =>
+            destruct (oflat F (sw_labels l)) as [ps1|] eqn:P1; [ | discriminate ]
+        end.
+        match type of Hs with
+        | (match ?X with Some _ => _ | None => _ end) = _ => destruct X as [ps2|] eqn:P2; [ | discriminate ]
+        end.
+        inv Hs.
+        destruct (typeof e0) eqn:TY; try discriminate T1.
+        match type of HS0 with sem_switch_arg ?v _ = Some ?nn =>
+          destruct v as [ | i0 | | | | ]; try discriminate HS0; cbn in HS0; injection HS0 as <-
+        end.
+        assert (FIN : forall tl mm oo p, In p (ps1 ++ ps2) -> PM E (g_nx g) (g_loc g) tl mm oo p ->
+                  exists q, In q (map sw_out (ps1 ++ ps2))
+                            /\ PM E (g_nx g) (g_loc g) tl mm (outcome_switch oo) q).
+        { intros tl mm oo p I R. exists (sw_out p). split; [ apply in_map; exact I | apply PM_sw_out; exact R ]. }
+        destruct (in_dec Z.eq_dec (Int.unsigned i0) (sw_labels l)) as [IN | NIN].
+        -- destruct (oflat_in _ _ _ _ P1 IN) as (rx & Fx & Inc).
+           destruct (sweq_holds E (g_nx g) c i0 (Int.unsigned i0) true D Sc (labs_ok_in _ _ T2 IN))
+             as [FN FH]; [ rewrite Int.repr_unsigned, Int.eq_true; reflexivity | ].
+           pose proof (MMg_add_fact E _ g _ MM FN FH) as MMb.
+           destruct (IHs _ _ _ _ _ _ _ _ _ _ _ _ _ Fx MMb EM TM HX0) as (p & Hin & R).
+           eapply FIN; [ apply in_or_app; left; apply Inc; exact Hin | exact R ].
+        -- rewrite (select_switch_notin _ _ NIN) in HX0.
+           assert (MMb : MMg E m (add_facts g (map (fun z => Fbool (sweq c z) tint32 false) (sw_labels l)))).
+           { apply MMg_add_facts; [ exact MM | ].
+             intros f If. apply in_map_iff in If. destruct If as (z & <- & Iz).
+             apply (sweq_holds E (g_nx g) c i0 z false D Sc (labs_ok_in _ _ T2 Iz)).
+             symmetry. apply Int.eq_false. intro Eq. apply NIN. subst i0.
+             rewrite Int.unsigned_repr; [ exact Iz | ].
+             pose proof (labs_ok_in _ _ T2 Iz). unfold Int.max_unsigned. lia. }
+           assert (EMb : env_match E (g_loc (add_facts g (map (fun z => Fbool (sweq c z) tint32 false) (sw_labels l)))) se e)
+             by (rewrite add_facts_loc; exact EM).
+           assert (TMb : temps_ok E (g_nx (add_facts g (map (fun z => Fbool (sweq c z) tint32 false) (sw_labels l)))) tle le)
+             by (rewrite add_facts_nx; exact TM).
+           destruct (IHs _ _ _ _ _ _ _ _ _ _ _ _ _ P2 MMb EMb TMb HX0) as (p & Hin & R).
+           rewrite add_facts_nx, add_facts_loc in R.
+           eapply FIN; [ apply in_or_app; right; exact Hin | exact R ].
   (* ============ loops ============ *)
   - intros se st s1 s2 ps E0 n0 gl e tle m t tle' m' out Hl EM LT (p & Ip & Pp) Hx.
     simpl sx_loop in Hl. destruct st as [|p0 st']; [ destruct Ip | ].

@@ -522,3 +522,56 @@ from plain memory facts (`AirStart`). Still open: the
 act_freefall / common_air_action_step layer (it discharges FloorRefreshOK and the
 memory facts from the frame), `floor_data` (TRUST 0.8(d)), the other air actions,
 and frame composition.
+
+## 12. The act_freefall layer (2026-10-20)
+
+The next walk is the real `act_freefall` handler. It calls `common_air_action_step`,
+which calls `update_air_without_turn`, `perform_air_step` (§11),
+`set_mario_animation`, `check_fall_damage_or_get_stuck`, `mario_bonk_reflection`,
+`mario_set_forward_vel` and `set_mario_action`. A first run of `SymExec2` on it
+refused (`None`). Probing each callee on its own found four causes.
+
+**Fixed in the executor (`SymExec2`, soundness re-proved, standard axioms):**
+- **Symbolic `switch`.** `act_freefall` switches on `m->actionArg`, which is
+  symbolic. On an integer scrutinee whose case labels are all in [0, 2³²), the
+  executor now runs one path per label, with the fact `c == n`. It runs one more
+  for the default, with `c != n` for every label (`sw_labels`, `sweq`,
+  `select_switch_notin`).
+- **Calls that cannot evaluate.** On the default path the temp `animation` is
+  never set. Passing it to `common_air_action_step` casts `Vundef`, which has no
+  Clight evaluation, so the path is dropped, not refused (`undef_stuck`,
+  `undef_stuck_sound`).
+- **Table reads at a symbolic index.** `sins(x)` and `coss(x)` are
+  `gSineTable[(u16)x >> 4]` (+0x400 for cos). `gSineTable` is a consumer region
+  with no size. A start fact `Fworld (Sptr RSIN 0) 2³²` says its block holds no
+  sized region. A load at `p + i`, where p points into such a block, now reads
+  m0 (`widx_ok`, `same_blk`). math_util defines the real table (20480 bytes), so
+  the reads are of real data.
+- **Externals that leave every block alone.** `MMg_unch` and
+  `xc_fresh_unch_sound` cover a call that changes no existing block (it may
+  only allocate) and returns a non-pointer. The fresh-value contract describes
+  it. This is the contract shape for `sqrtf` (the FPU floor, strengthened to
+  "returns a float") and for the audio/camera externals `play_sound` and
+  `set_camera_shake_from_hit` (labelled open premises).
+
+With every external stubbed (debug only), `update_air_without_turn` gives 29
+outcomes, `set_mario_action(ACT_DIVE)` 6 and `mario_set_forward_vel` 1. The
+`drop_and_set_mario_action` paths need `heldObj = riddenObj = NULL` as known
+cells; `wmotr_world` already carries both.
+
+**Still to build:**
+1. **The `set_mario_animation` contract**, proved from the generated bodies of
+   `set_mario_animation`, `load_patchable_table` and `dma_read` with the DMA floor.
+   The executor cannot walk it, because the stores through `targetAnim` and the
+   loads after the DMA are world cells that the call itself changes. The contract
+   writes fresh values to Mario's object's `animInfo` cells and to
+   `gMarioAnimsBuf.currentAddr`. It clobbers the buffer's block and the three
+   libultra message globals, and leaves everything else (Mario's state cells,
+   `gfx.pos[1]`, the surfaces) as it was. The buffer block is not a surface or
+   Mario's block by `anim_apart` and MWF R13.
+2. The audio/camera contract premises and the strengthened `sqrtf` floor.
+3. The walk run on the real link, with each outcome classified into
+   `HeightMoveCatalog` moves (reusing `AirMatch` / `AirMove` for the air-step part).
+4. Frame composition: `execute_mario_action`'s action loop as a sequence of
+   dispatcher calls, so that `Hframe_is_move_chain` splits into per-segment rows
+   and the freefall row becomes a lemma.
