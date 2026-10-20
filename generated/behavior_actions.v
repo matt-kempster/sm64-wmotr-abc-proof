@@ -3081,7 +3081,7 @@ Definition v_hmc_seg7_collision_0702B65C := {|
 |}.
 
 Definition v_gDebugInfo := {|
-  gvar_info := (tarray (tarray tshort 8) 0);
+  gvar_info := (tarray (tarray tshort 8) 16);
   gvar_init := nil;
   gvar_readonly := false;
   gvar_volatile := false

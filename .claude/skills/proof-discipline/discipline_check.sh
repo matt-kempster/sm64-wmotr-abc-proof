@@ -53,7 +53,8 @@ if [ "$#" -eq 0 ]; then
          SM64.Proofs.NoAImpliesNoFly.NoAImpliesNoFlyTwelve noA_no_spawn_never_flying_linked12 \
          SM64.Proofs.MarioModel.Linked12Sat linked12_inhabited \
          SM64.Proofs.NoAImpliesNoFly.PositiveControl A_pressed_frame_reaches_flying \
-         SM64.Proofs.WMotRRequiresA.HeightFrame wmotr_noA_height_bound_linked12
+         SM64.Proofs.WMotRRequiresA.HeightFrame wmotr_noA_height_bound_linked12 \
+         SM64.Proofs.WMotRRequiresA.StartSat goal2_start_sat
 fi
 # NOTE: the fifth capstone went LIVE with the #95 repair (2026-07-05): the
 # negative pin now covers only the 16 genuinely-external whitelist ids and

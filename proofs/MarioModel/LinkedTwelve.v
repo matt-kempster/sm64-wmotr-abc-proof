@@ -53,7 +53,7 @@ From SM64.Generated Require mario mario_actions_stationary
   mario_actions_moving mario_actions_airborne mario_actions_submerged
   mario_actions_cutscene mario_actions_automatic mario_actions_object
   interaction behavior_actions level_update mario_step surface_collision
-  math_util memory game_init.
+  math_util memory game_init object_list_processor.
 From SM64.Proofs Require Import SymbolicLinking CensusV2 RealFrameLinked
   EngineV2Consumer RestSurface.
 
@@ -87,7 +87,11 @@ Fixpoint link_chain (p : Clight.program) (l : list Clight.program)
    pinned by LO_memory, so set_mario_animation's only externals are the
    libultra DMA calls.  game_init is the fourth (2026-10-20): it holds the
    real definitions of gMarioAnimsBuf and gControllers, which every other
-   TU only declares, so without it the boot image gives them no storage. *)
+   TU only declares, so without it the boot image gives them no storage.
+   object_list_processor is the fifth (2026-10-20): it holds the real
+   definitions of the counters find_floor / find_wall / find_ceil write
+   (gNumCalls, gNumFindFloorMisses, gFindFloorIncludeSurfaceIntangible);
+   without it those stores have no execution from the boot image. *)
 Definition tu_rest : list Clight.program :=
   [ mario_actions_stationary.prog;
     mario_actions_moving.prog;
@@ -103,7 +107,8 @@ Definition tu_rest : list Clight.program :=
     surface_collision.prog;
     math_util.prog;
     memory.prog;
-    game_init.prog ].
+    game_init.prog;
+    object_list_processor.prog ].
 
 Definition linked12 (lp : Clight.program) : Prop :=
   link_chain mario.prog tu_rest = Some lp.
@@ -411,6 +416,9 @@ Proof. vm_compute. reflexivity. Qed.
 Lemma no_internal_game_init :
   no_internal_ids game_init.prog truly_ext_pin_ids = true.
 Proof. vm_compute. reflexivity. Qed.
+Lemma no_internal_olp :
+  no_internal_ids object_list_processor.prog truly_ext_pin_ids = true.
+Proof. vm_compute. reflexivity. Qed.
 
 (* resolves_lp -> defmap entry (the genv->defmap bridge, spike-style) *)
 Lemma resolves_defmap :
@@ -446,7 +454,7 @@ Proof.
   destruct (link_chain_internal_origin _ _ _ _ _ H12 Hres)
     as [Hbase | (q & Hq & Hqdm)].
   - exact (no_internal_ids_correct _ _ _ _ no_internal_mario Hmem Hbase).
-  - destruct Hq as [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | []]]]]]]]]]]]]]]].
+  - destruct Hq as [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | []]]]]]]]]]]]]]]]].
     + exact (no_internal_ids_correct _ _ _ _ no_internal_sta Hmem Hqdm).
     + exact (no_internal_ids_correct _ _ _ _ no_internal_mov Hmem Hqdm).
     + exact (no_internal_ids_correct _ _ _ _ no_internal_air Hmem Hqdm).
@@ -462,6 +470,7 @@ Proof.
     + exact (no_internal_ids_correct _ _ _ _ no_internal_math Hmem Hqdm).
     + exact (no_internal_ids_correct _ _ _ _ no_internal_memory Hmem Hqdm).
     + exact (no_internal_ids_correct _ _ _ _ no_internal_game_init Hmem Hqdm).
+    + exact (no_internal_ids_correct _ _ _ _ no_internal_olp Hmem Hqdm).
 Qed.
 
 (* ---------------------------------------------------------------------- *)

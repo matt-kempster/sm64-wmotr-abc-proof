@@ -251,6 +251,7 @@ proofs/WMotRRequiresA/FrameCalls.v
 proofs/WMotRRequiresA/FrameSplit.v
 proofs/WMotRRequiresA/AirSplit.v
 proofs/WMotRRequiresA/HeightFrame.v
+proofs/WMotRRequiresA/StartSat.v
 proofs/WMotRRequiresA/YWriterCensus.v
 proofs/WMotRRequiresA/HeldObjCensus.v
 proofs/WMotRRequiresA/BehaviorScripts.v

@@ -872,6 +872,90 @@ Section MWFReal.
         eapply Mem.load_store_other; [ exact Hst | left; congruence ].
   Qed.
 
+  (* ---------------- the bufTarget store ----------------
+     setup_dma_table_list's list->bufTarget = buffer, at (ab, 8), of a
+     SafeB-if-pointer value whose block is not Mario's object.  Not a
+     frame store; used by the GOAL-2 start witness (StartSat). *)
+  Lemma mwf_real_buf_store : forall mm mm' ab vv,
+      MWF_real mm ->
+      Genv.find_symbol (lp_ge lp) mario._gMarioAnimsBuf = Some ab ->
+      (forall b o, vv = Vptr b o -> SafeB b) ->
+      (forall b o mb mo, vv = Vptr b o -> Mem.load Mptr mm bm 136 = Some (Vptr mb mo) -> b <> mb) ->
+      Mem.store Mptr mm ab 8 vv = Some mm' -> MWF_real mm'.
+  Proof.
+    intros mm mm' ab vv M Hfs Hvv Hlay Hst.
+    pose proof M as (_ & _ & _ & _ & _ & _ & _ & R7 & _ & _ & _ & _ & R12 & R13 & R14).
+    destruct (R14 ab Hfs) as (Abm & Abc & Asafe & Aval).
+    assert (Hgms_ne : forall gb,
+        Genv.find_symbol (lp_ge lp) mario._gMarioState = Some gb -> ab <> gb).
+    { intros gb Hfs2 E. subst gb.
+      eapply Genv.global_addresses_distinct; [ | exact Hfs | exact Hfs2 | reflexivity ].
+      vm_compute. discriminate. }
+    assert (Hgt_ne : forall gb,
+        Genv.find_symbol (lp_ge lp) interaction._gGlobalTimer = Some gb -> ab <> gb).
+    { intros gb Hfs2 E. subst gb.
+      eapply Genv.global_addresses_distinct; [ | exact Hfs | exact Hfs2 | reflexivity ].
+      vm_compute. discriminate. }
+    assert (Hitab_ne : forall gb,
+        Genv.find_symbol (lp_ge lp) interaction._sInteractionHandlers = Some gb ->
+        ab <> gb).
+    { intros gb Hfs2 E. subst gb.
+      eapply Genv.global_addresses_distinct; [ | exact Hfs | exact Hfs2 | reflexivity ].
+      vm_compute. discriminate. }
+    assert (Hktab_ne : forall gid2 kb,
+        mem_id gid2 knockback_table_ids = true ->
+        Genv.find_symbol (lp_ge lp) gid2 = Some kb -> ab <> kb).
+    { intros gid2 kb Hg2 Hfs2 E. subst kb.
+      eapply Genv.global_addresses_distinct; [ | exact Hfs | exact Hfs2 | reflexivity ].
+      intro E2. subst gid2. vm_compute in Hg2. discriminate Hg2. }
+    apply (MWF_real_transfer_core mm mm'); [ .. | exact M ].
+    - intros b Hv. eapply Mem.store_valid_block_1; eauto.
+    - intros v Hld. pose proof M as (_ & R1 & _). apply R1.
+      rewrite <- Hld. symmetry.
+      eapply Mem.load_store_other; [ exact Hst | left; congruence ].
+    - intros ch1 b ofs v Hrow Hld.
+      rewrite <- Hld. symmetry.
+      eapply Mem.load_store_other; [ exact Hst | left ].
+      destruct Hrow as [ [Eb _] | [ Eb | [ Hfs2 | [ Hfs2 | [ Hfs2 | Hkt ] ] ] ] ].
+      + subst b. congruence.
+      + subst b. congruence.
+      + intro E. exact (Hgms_ne _ Hfs2 (eq_sym E)).
+      + intro E. exact (Hgt_ne _ Hfs2 (eq_sym E)).
+      + intro E. exact (Hitab_ne _ Hfs2 (eq_sym E)).
+      + destruct Hkt as (gid2 & Hg2 & Hfs2).
+        intro E. exact (Hktab_ne _ _ Hg2 Hfs2 (eq_sym E)).
+    - intros b ofs b' o' Hs Hld.
+      apply (R7 b ofs b' o' Hs).
+      cbn in Hld |- *. rewrite <- Hld. symmetry.
+      eapply Mem.load_store_other; [ exact Hst | left ].
+      intro E. subst b. exact (Asafe Hs).
+    - intros ab' ofs b' o' Hfs' Hld.
+      rewrite Hfs in Hfs'. injection Hfs' as <-.
+      destruct (zeq ofs 8) as [-> | Hne4].
+      + rewrite (Mem.load_store_same _ _ _ _ _ _ Hst) in Hld.
+        injection Hld as Ev.
+        destruct vv; cbn in Ev; try discriminate Ev.
+        injection Ev as <- <-. exact (Hvv _ _ eq_refl).
+      + destruct (zle (ofs + 4) 8) as [Hl | Hl].
+        * apply (R12 ab ofs b' o' Hfs). rewrite <- Hld. symmetry.
+          eapply Mem.load_store_other; [ exact Hst | right; left; exact Hl ].
+        * destruct (zle (8 + 4) ofs) as [Hr | Hr].
+          -- apply (R12 ab ofs b' o' Hfs). rewrite <- Hld. symmetry.
+             eapply Mem.load_store_other; [ exact Hst | right; right; exact Hr ].
+          -- exfalso. apply Mem.load_valid_access in Hld.
+             destruct Hld as [_ Hal]. change (align_chunk Mptr) with 4 in Hal.
+             destruct Hal as [k Hk]. lia.
+    - intros ab' bt ot mb mo Hfs' H1 H2.
+      rewrite Hfs in Hfs'. injection Hfs' as <-.
+      rewrite (Mem.load_store_same _ _ _ _ _ _ Hst) in H1.
+      injection H1 as E.
+      destruct vv; cbn in E; try discriminate E.
+      injection E as <- <-.
+      apply (Hlay _ _ mb mo eq_refl).
+      rewrite <- H2. symmetry.
+      eapply Mem.load_store_other; [ exact Hst | left; congruence ].
+  Qed.
+
   (* ---------------- Hmwf_window ---------------- *)
   Lemma mwf_real_window : forall mm mm' ch (delta : Z) vv,
       MWF_real mm -> store_window_ok delta (size_chunk ch) = true ->
@@ -1363,6 +1447,250 @@ Section MWFReal.
       exact (conj A1 (conj A2 (conj A3 (Mem.store_valid_block_1 _ _ _ _ _ _ Hst _ A4)))).
   Qed.
 
+  (* ---------------- the marioObj store ----------------
+     Not a frame store (no frame body writes m->marioObj; root stores
+     exclude it).  Used by the GOAL-2 start witness (StartSat), which
+     builds a memory with m->marioObj = &gObjectPool[0]: R6 needs the
+     value SafeB, R13 needs it apart from the anim DMA buffer. *)
+  Lemma mwf_real_mobj_store : forall mm mm' delta vv,
+      delta = 136 ->
+      (forall bb oo, vv = Vptr bb oo -> SafeB bb) ->
+      (forall ab bt ot bb oo,
+         Genv.find_symbol (lp_ge lp) mario._gMarioAnimsBuf = Some ab ->
+         Mem.load Mptr mm ab 8 = Some (Vptr bt ot) -> vv = Vptr bb oo -> bt <> bb) ->
+      MWF_real mm ->
+      Mem.store Mptr mm bm delta vv = Some mm' -> MWF_real mm'.
+  Proof.
+    intros mm mm' delta vv Hd Hsafe Hlay M Hst.
+    destruct M as ((Vbm & Vbc & Vgms & Vsafe & Vgt & Vtb & Vkt & Hnb)
+                   & R1 & R2 & R3 & R4 & R5 & R6 & R7 & R8 & R9 & R10
+                   & R11 & R12 & R13 & R14).
+    split; [ | split; [ | split; [ | split; [ | split;
+      [ | split; [ | split; [ | split; [ | split; [ | split;
+      [ | split; [ | split; [ | split; [ | split ]]]]]]]]]]]]].
+    - (* R0: validity is store-stable *)
+      split; [ eapply Mem.store_valid_block_1; eauto | ].
+      split; [ eapply Mem.store_valid_block_1; eauto | ].
+      split; [ | split; [ | split; [ | split; [ | split ] ] ] ].
+      + intros gb Hfs. eapply Mem.store_valid_block_1;
+          [ exact Hst | exact (Vgms _ Hfs) ].
+      + intros b Hb. eapply Mem.store_valid_block_1;
+          [ exact Hst | exact (Vsafe _ Hb) ].
+      + intros gb Hfs. eapply Mem.store_valid_block_1;
+          [ exact Hst | exact (Vgt _ Hfs) ].
+      + intros tb Hfs. eapply Mem.store_valid_block_1;
+          [ exact Hst | exact (Vtb _ Hfs) ].
+      + intros gid kb Hgid Hfs. eapply Mem.store_valid_block_1;
+          [ exact Hst | exact (Vkt _ _ Hgid Hfs) ].
+      + rewrite (Mem.nextblock_store _ _ _ _ _ _ Hst). exact Hnb.
+    - (* R1: [2,4) ends before every root cell *)
+      intros v Hld. apply R1.
+      rewrite <- Hld. symmetry.
+      eapply Mem.load_store_other; [ exact Hst | right; left ].
+      change (size_chunk Mint16unsigned) with 2. lia.
+    - (* R2: [156,160) is 4-separated from every root cell *)
+      intros b' o' Hld. apply R2.
+      rewrite <- Hld. symmetry.
+      eapply Mem.load_store_other; [ exact Hst | right ].
+      change (size_chunk Mptr) with 4. lia.
+    - (* R3: bc is not bm *)
+      intros v Hld. apply R3.
+      rewrite <- Hld. symmetry.
+      eapply Mem.load_store_other; [ exact Hst | left; exact Hbc_bm ].
+    - (* R4: [12,16) ends before every root cell *)
+      intros av Hld. apply R4.
+      rewrite <- Hld. symmetry.
+      eapply Mem.load_store_other; [ exact Hst | right; left ].
+      change (size_chunk Mint32) with 4. lia.
+    - (* R5: the gMarioState block is not bm *)
+      intros gb b o Hfs Hld. eapply R5; [ exact Hfs | ].
+      change (Mem.loadv Mptr mm' (Vptr gb Ptrofs.zero))
+        with (Mem.load Mptr mm' gb 0) in Hld.
+      change (Mem.loadv Mptr mm (Vptr gb Ptrofs.zero))
+        with (Mem.load Mptr mm gb 0).
+      rewrite <- Hld. symmetry.
+      eapply Mem.load_store_other;
+        [ exact Hst | left; exact (proj1 (Hgms_blk _ Hfs)) ].
+    - (* R6: the stored cell via the premise; other roots 4-separated *)
+      intros fld' delta' b' o' Hmem' Hfo' Hld.
+      destruct (chase_root_offsets _ _ Hmem' Hfo')
+        as [E | [E | [E | [E | [E | [E | [E | E]]]]]]]; subst delta'.
+      + change (Mem.loadv Mptr mm'
+                  (Vptr bm (Ptrofs.add Ptrofs.zero (Ptrofs.repr 136))))
+          with (Mem.load Mptr mm' bm 136) in Hld.
+        destruct (Z.eq_dec delta 136) as [-> | Hne].
+        * rewrite (Mem.load_store_same _ _ _ _ _ _ Hst) in Hld.
+          injection Hld as E.
+          destruct vv as [ | vi | vl | vf | vs | bb oo ]; try discriminate E.
+          injection E as E1 E2; subst.
+          exact (Hsafe _ _ eq_refl).
+        * eapply R6; [ exact Hmem' | exact Hfo' | ].
+          change (Mem.loadv Mptr mm
+                    (Vptr bm (Ptrofs.add Ptrofs.zero (Ptrofs.repr 136))))
+            with (Mem.load Mptr mm bm 136).
+          rewrite <- Hld. symmetry.
+          eapply Mem.load_store_other; [ exact Hst | right ].
+          change (size_chunk Mptr) with 4. lia.
+      + change (Mem.loadv Mptr mm'
+                  (Vptr bm (Ptrofs.add Ptrofs.zero (Ptrofs.repr 148))))
+          with (Mem.load Mptr mm' bm 148) in Hld.
+        destruct (Z.eq_dec delta 148) as [-> | Hne].
+        * rewrite (Mem.load_store_same _ _ _ _ _ _ Hst) in Hld.
+          injection Hld as E.
+          destruct vv as [ | vi | vl | vf | vs | bb oo ]; try discriminate E.
+          injection E as E1 E2; subst.
+          exact (Hsafe _ _ eq_refl).
+        * eapply R6; [ exact Hmem' | exact Hfo' | ].
+          change (Mem.loadv Mptr mm
+                    (Vptr bm (Ptrofs.add Ptrofs.zero (Ptrofs.repr 148))))
+            with (Mem.load Mptr mm bm 148).
+          rewrite <- Hld. symmetry.
+          eapply Mem.load_store_other; [ exact Hst | right ].
+          change (size_chunk Mptr) with 4. lia.
+      + change (Mem.loadv Mptr mm'
+                  (Vptr bm (Ptrofs.add Ptrofs.zero (Ptrofs.repr 152))))
+          with (Mem.load Mptr mm' bm 152) in Hld.
+        destruct (Z.eq_dec delta 152) as [-> | Hne].
+        * rewrite (Mem.load_store_same _ _ _ _ _ _ Hst) in Hld.
+          injection Hld as E.
+          destruct vv as [ | vi | vl | vf | vs | bb oo ]; try discriminate E.
+          injection E as E1 E2; subst.
+          exact (Hsafe _ _ eq_refl).
+        * eapply R6; [ exact Hmem' | exact Hfo' | ].
+          change (Mem.loadv Mptr mm
+                    (Vptr bm (Ptrofs.add Ptrofs.zero (Ptrofs.repr 152))))
+            with (Mem.load Mptr mm bm 152).
+          rewrite <- Hld. symmetry.
+          eapply Mem.load_store_other; [ exact Hst | right ].
+          change (size_chunk Mptr) with 4. lia.
+      + change (Mem.loadv Mptr mm'
+                  (Vptr bm (Ptrofs.add Ptrofs.zero (Ptrofs.repr 124))))
+          with (Mem.load Mptr mm' bm 124) in Hld.
+        destruct (Z.eq_dec delta 124) as [-> | Hne].
+        * rewrite (Mem.load_store_same _ _ _ _ _ _ Hst) in Hld.
+          injection Hld as E.
+          destruct vv as [ | vi | vl | vf | vs | bb oo ]; try discriminate E.
+          injection E as E1 E2; subst.
+          exact (Hsafe _ _ eq_refl).
+        * eapply R6; [ exact Hmem' | exact Hfo' | ].
+          change (Mem.loadv Mptr mm
+                    (Vptr bm (Ptrofs.add Ptrofs.zero (Ptrofs.repr 124))))
+            with (Mem.load Mptr mm bm 124).
+          rewrite <- Hld. symmetry.
+          eapply Mem.load_store_other; [ exact Hst | right ].
+          change (size_chunk Mptr) with 4. lia.
+      + change (Mem.loadv Mptr mm'
+                  (Vptr bm (Ptrofs.add Ptrofs.zero (Ptrofs.repr 128))))
+          with (Mem.load Mptr mm' bm 128) in Hld.
+        destruct (Z.eq_dec delta 128) as [-> | Hne].
+        * rewrite (Mem.load_store_same _ _ _ _ _ _ Hst) in Hld.
+          injection Hld as E.
+          destruct vv as [ | vi | vl | vf | vs | bb oo ]; try discriminate E.
+          injection E as E1 E2; subst.
+          exact (Hsafe _ _ eq_refl).
+        * eapply R6; [ exact Hmem' | exact Hfo' | ].
+          change (Mem.loadv Mptr mm
+                    (Vptr bm (Ptrofs.add Ptrofs.zero (Ptrofs.repr 128))))
+            with (Mem.load Mptr mm bm 128).
+          rewrite <- Hld. symmetry.
+          eapply Mem.load_store_other; [ exact Hst | right ].
+          change (size_chunk Mptr) with 4. lia.
+      + change (Mem.loadv Mptr mm'
+                  (Vptr bm (Ptrofs.add Ptrofs.zero (Ptrofs.repr 132))))
+          with (Mem.load Mptr mm' bm 132) in Hld.
+        destruct (Z.eq_dec delta 132) as [-> | Hne].
+        * rewrite (Mem.load_store_same _ _ _ _ _ _ Hst) in Hld.
+          injection Hld as E.
+          destruct vv as [ | vi | vl | vf | vs | bb oo ]; try discriminate E.
+          injection E as E1 E2; subst.
+          exact (Hsafe _ _ eq_refl).
+        * eapply R6; [ exact Hmem' | exact Hfo' | ].
+          change (Mem.loadv Mptr mm
+                    (Vptr bm (Ptrofs.add Ptrofs.zero (Ptrofs.repr 132))))
+            with (Mem.load Mptr mm bm 132).
+          rewrite <- Hld. symmetry.
+          eapply Mem.load_store_other; [ exact Hst | right ].
+          change (size_chunk Mptr) with 4. lia.
+      + change (Mem.loadv Mptr mm'
+                  (Vptr bm (Ptrofs.add Ptrofs.zero (Ptrofs.repr 160))))
+          with (Mem.load Mptr mm' bm 160) in Hld.
+        destruct (Z.eq_dec delta 160) as [-> | Hne].
+        * rewrite (Mem.load_store_same _ _ _ _ _ _ Hst) in Hld.
+          injection Hld as E.
+          destruct vv as [ | vi | vl | vf | vs | bb oo ]; try discriminate E.
+          injection E as E1 E2; subst.
+          exact (Hsafe _ _ eq_refl).
+        * eapply R6; [ exact Hmem' | exact Hfo' | ].
+          change (Mem.loadv Mptr mm
+                    (Vptr bm (Ptrofs.add Ptrofs.zero (Ptrofs.repr 160))))
+            with (Mem.load Mptr mm bm 160).
+          rewrite <- Hld. symmetry.
+          eapply Mem.load_store_other; [ exact Hst | right ].
+          change (size_chunk Mptr) with 4. lia.
+      + change (Mem.loadv Mptr mm'
+                  (Vptr bm (Ptrofs.add Ptrofs.zero (Ptrofs.repr 120))))
+          with (Mem.load Mptr mm' bm 120) in Hld.
+        destruct (Z.eq_dec delta 120) as [-> | Hne].
+        * rewrite (Mem.load_store_same _ _ _ _ _ _ Hst) in Hld.
+          injection Hld as E.
+          destruct vv as [ | vi | vl | vf | vs | bb oo ]; try discriminate E.
+          injection E as E1 E2; subst.
+          exact (Hsafe _ _ eq_refl).
+        * eapply R6; [ exact Hmem' | exact Hfo' | ].
+          change (Mem.loadv Mptr mm
+                    (Vptr bm (Ptrofs.add Ptrofs.zero (Ptrofs.repr 120))))
+            with (Mem.load Mptr mm bm 120).
+          rewrite <- Hld. symmetry.
+          eapply Mem.load_store_other; [ exact Hst | right ].
+          change (size_chunk Mptr) with 4. lia.
+    - (* R7: SafeB blocks are not bm *)
+      intros b ofs b' o' Hs Hld.
+      apply (R7 b ofs b' o' Hs).
+      cbn in Hld |- *. rewrite <- Hld. symmetry.
+      eapply Mem.load_store_other;
+        [ exact Hst | left; exact (HSafeB_not_bm _ Hs) ].
+    - (* R8: the gGlobalTimer block is not bm *)
+      intros gb v Hfs Hld. eapply R8; [ exact Hfs | ].
+      rewrite <- Hld. symmetry.
+      eapply Mem.load_store_other;
+        [ exact Hst | left; exact (proj1 (Hgtimer_blk _ Hfs)) ].
+    - (* R9: the table block is not bm *)
+      intros tb ofs2 b o Hfs Hld.
+      eapply R9; [ exact Hfs | ].
+      rewrite <- Hld. symmetry.
+      eapply Mem.load_store_other;
+        [ exact Hst | left; exact (proj1 (Htable_blk _ Hfs)) ].
+    - (* R10: the knockback-table blocks are not bm *)
+      intros gid kb ofs2 v Hgid Hfs Hld.
+      eapply R10; [ exact Hgid | exact Hfs | ].
+      rewrite <- Hld. symmetry.
+      eapply Mem.load_store_other;
+        [ exact Hst | left; exact (proj1 (Hktab_blk _ _ Hgid Hfs)) ].
+    - (* R11: no store-root cell overlaps the animList cell *)
+      intros ab b o Hfs Hld. apply (R11 _ _ _ Hfs).
+      rewrite <- Hld. symmetry.
+      eapply Mem.load_store_other; [ exact Hst | right ].
+      change (size_chunk Mptr) with 4. lia.
+    - (* R12: the list block is not bm *)
+      intros ab ofs b' o' Hfs Hld. apply (R12 ab ofs b' o' Hfs).
+      rewrite <- Hld. symmetry.
+      eapply Mem.load_store_other;
+        [ exact Hst | left; exact (proj1 (R14 _ Hfs)) ].
+    - (* R13: the stored marioObj is not the buffer's block (premise) *)
+      intros ab bt ot mb mo Hfs H1 H2.
+      assert (H1' : Mem.load Mptr mm ab 8 = Some (Vptr bt ot)).
+      { rewrite <- H1. symmetry.
+        eapply Mem.load_store_other;
+          [ exact Hst | left; exact (proj1 (R14 _ Hfs)) ]. }
+      subst delta. rewrite (Mem.load_store_same _ _ _ _ _ _ Hst) in H2.
+      injection H2 as E.
+      destruct vv as [ | vi | vl | vf | vs | bb oo ]; try discriminate E.
+      injection E as E1 E2; subst.
+      exact (Hlay _ _ _ _ _ Hfs H1' eq_refl).
+    - (* R14: static, plus validity *)
+      intros ab Hfs. destruct (R14 ab Hfs) as (A1 & A2 & A3 & A4).
+      exact (conj A1 (conj A2 (conj A3 (Mem.store_valid_block_1 _ _ _ _ _ _ Hst _ A4)))).
+  Qed.
   (* ---------------- the two PINNED-cell stores ----------------
      init_mario_from_save_file (mario.c:1874-1879) is the only code that
      writes Mario's controller pointer (bm+156) and animation-list pointer

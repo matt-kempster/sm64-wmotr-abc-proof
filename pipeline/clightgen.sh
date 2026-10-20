@@ -62,6 +62,8 @@ python3 "$(dirname "$0")/canonicalize_anon.py" "$TMP"
 #   gSineTable    0 -> 5120  (definer: math_util.c via trig_tables.inc.c,
 #                             0x1000 + 0x400 f32 entries; found when
 #                             linking math_util, 2026-10-17)
+#   gDebugInfo    0 -> 16    (definer: object_list_processor.c, s16[16][8];
+#                             found when linking it, 2026-10-20)
 python3 - "$TMP" <<'PYEOF'
 import re, sys
 path = sys.argv[1]
@@ -69,6 +71,7 @@ s = open(path).read()
 TABLE = [
     ("gMarioStates", r"\(Tstruct _MarioState noattr\)", 1),
     ("gSineTable", r"tfloat", 5120),
+    ("gDebugInfo", r"\(tarray tshort 8\)", 16),
 ]
 for name, elt, n in TABLE:
     s2 = re.sub(

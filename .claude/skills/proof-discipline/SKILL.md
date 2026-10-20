@@ -34,6 +34,9 @@ all in `Unwired/`, and the theorem moved nowhere. See
   (`a_used_real`). Φ is concrete
   (`HeightInvariant.v`), `Hphi_y` is proved (YMAX = 2796), the level-data rows are proved (`WMotRLevel.v`), and the crux is the lemma
   `seg_action_phi`, whose move arithmetic is proved (`HeightMoveCatalog.chain_keeps_budget`).
+  Its start premise is proved satisfiable (`StartSat.goal2_start_sat`, 2026-10-20, in the audit):
+  a memory built from the real boot image of any 17-TU link meets `mem_ok_lp` and `PhiW`. That
+  rules out empty-premise vacuity only; Φ at real WMotR entry stays ASSUMED (TRUST 0.4).
   Since 2026-10-20 the three frame rows below are LEMMAS of `FrameSplit.frame_split`; the
   assumed rows are the per-call `Hseg_call` / `Hseg_any` (one per call in the real
   `execute_mario_action` body; the two store blocks are proved). What each per-call row
