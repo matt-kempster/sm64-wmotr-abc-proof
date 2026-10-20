@@ -7,7 +7,10 @@
 (* c_sma answers set_mario_animation(m, anim) when m->animList is the     *)
 (* list global's address, m->marioObj is a region address, and the       *)
 (* list's bufTarget cell holds a pointer into the whole-block buffer      *)
-(* region.  Afterwards:                                                    *)
+(* region, with 24 bytes of room.  That last one is a path fact           *)
+(* Fuser kB [bufTarget; &buffer region], not a known constant: the real   *)
+(* buffer comes from main_pool_alloc, at an offset nobody pins.          *)
+(* Afterwards:                                                             *)
 (*   - the buffer region and the three DMA globals are clobbered (their   *)
 (*     contents are unknown);                                              *)
 (*   - the object's animation cells (animID .. animFrame, animAccel) and  *)
@@ -155,7 +158,7 @@ Variable nbase : positive.
 Variable R0 : list (positive * Z).
 Variable gtab : list (ident * positive).
 Variable kv : list (positive * Z * memory_chunk * sval).
-Variables rl rbuf riom rmq rrm : positive.
+Variables rl rbuf riom rmq rrm kB : positive.
 
 Definition sma_cls : list positive := [rbuf; riom; rmq; rrm].
 
@@ -170,6 +173,16 @@ Definition sma_static_ok : bool :=
   | _, _, _, _, _, _, _, _ => false
   end.
 
+(* the list's bufTarget value s3 points into the buffer region's block with
+   24 bytes of room: a path fact Fuser kB [s3; &buffer region] (its meaning,
+   [HUB] below, is a premise of the soundness theorem; the walk's start
+   state proves it from the frame memory) *)
+Definition is_buf_fact (s3 : sval) (f : fact) : bool :=
+  match f with
+  | Fuser k [a; Sptr r o] => Pos.eqb k kB && sbeq a s3 && Pos.eqb r rbuf && Ptrofs.eq o Ptrofs.zero
+  | _ => false
+  end.
+
 Definition c_sma : xcontract :=
   fun args g =>
   match args with
@@ -177,9 +190,9 @@ Definition c_sma : xcontract :=
       match sload nbase R0 kv g rm (Ptrofs.unsigned om + 160) Mint32,
             sload nbase R0 kv g rm (Ptrofs.unsigned om + 136) Mint32,
             sload nbase R0 kv g rl 8 Mint32 with
-      | Some (Sptr rl' zl), Some (Sptr ro oo), Some (Sptr rb ot) =>
-          if sma_static_ok && Pos.eqb rl' rl && Ptrofs.eq zl Ptrofs.zero && Pos.eqb rb rbuf
-             && (Ptrofs.unsigned ot + 24 <=? Ptrofs.modulus)
+      | Some (Sptr rl' zl), Some (Sptr ro oo), Some s3 =>
+          if sma_static_ok && Pos.eqb rl' rl && Ptrofs.eq zl Ptrofs.zero
+             && existsb (is_buf_fact s3) (g_pc g)
              && forallb (fun e => negb (existsb (Pos.eqb (sreg e)) sma_cls)) (g_sm g)
           then
             let g1 := gcl sma_cls g in
@@ -251,13 +264,17 @@ Variable m0 : mem.
 Variable uf : positive -> list (option val) -> Prop.
 Variable gp : meminj.
 Hypothesis gp_old : forall b x, gp b = Some x -> Plt b (Mem.nextblock m0).
-Variables rl rbuf riom rmq rrm : positive.
+Variables rl rbuf riom rmq rrm kB : positive.
+(* the buffer fact's meaning: two pointers into one block, the first with
+   24 bytes of room *)
+Hypothesis HUB : forall vs, uf kB vs ->
+  exists b o o2, vs = [Some (Vptr b o); Some (Vptr b o2)] /\ Ptrofs.unsigned o + 24 <= Ptrofs.modulus.
 
 Local Notation MM := (MMg G nbase R0 gtab kv m0 uf gp).
 
 (* THE CONTRACT for set_mario_animation is sound *)
 Theorem c_sma_sound : forall args g cps E m vargs t m' vres,
-  c_sma nbase R0 gtab kv rl rbuf riom rmq rrm args g = Some cps ->
+  c_sma nbase R0 gtab kv rl rbuf riom rmq rrm kB args g = Some cps ->
   MM E m g ->
   Forall2 (fun a v => den G m0 E a = Some v /\ sok nbase (g_nx g) a) args vargs ->
   eval_funcall function_entry2 G m (Internal mario.f_set_mario_animation) vargs t m' vres ->
@@ -274,9 +291,8 @@ Proof.
     [| destruct s1, s2; discriminate Hc].
   destruct s1 as [ | rl' zl | | | | | | | | ]; try discriminate Hc.
   destruct s2 as [ | ro oo | | | | | | | | ]; try discriminate Hc.
-  destruct s3 as [ | rb ot | | | | | | | | ]; try discriminate Hc.
   destruct (sma_static_ok R0 gtab rl rbuf riom rmq rrm && Pos.eqb rl' rl && Ptrofs.eq zl Ptrofs.zero
-            && Pos.eqb rb rbuf && (Ptrofs.unsigned ot + 24 <=? Ptrofs.modulus)
+            && existsb (is_buf_fact rbuf kB s3) (g_pc g)
             && forallb (fun e => negb (existsb (Pos.eqb (sreg e)) (sma_cls rbuf riom rmq rrm))) (g_sm g))
     eqn:CK; [| discriminate Hc].
   set (g1 := gcl (sma_cls rbuf riom rmq rrm) g) in Hc.
@@ -285,11 +301,10 @@ Proof.
   set (l := wentries ro (Ptrofs.unsigned oo) (g_nx g1) ws_obj ++ wentries rl 0 (g_nx g2) ws_lst) in Hc.
   destruct (sstores nbase R0 g3 l) as [g' |] eqn:S; [| discriminate Hc].
   injection Hc as <-.
-  apply andb_true_iff in CK as [CK NCLb]. apply andb_true_iff in CK as [CK Hot].
-  apply andb_true_iff in CK as [CK Erb]. apply andb_true_iff in CK as [CK Ezl].
+  apply andb_true_iff in CK as [CK NCLb]. apply andb_true_iff in CK as [CK Hbf].
+  apply andb_true_iff in CK as [CK Ezl].
   apply andb_true_iff in CK as [ST Erl].
-  apply Pos.eqb_eq in Erl, Erb. subst rl' rb.
-  apply Z.leb_le in Hot.
+  apply Pos.eqb_eq in Erl. subst rl'.
   pose proof (Ptrofs.eq_spec zl Ptrofs.zero) as Zl. rewrite Ezl in Zl. subst zl.
   unfold sma_static_ok in ST.
   destruct (gfind gtab mario._gMarioAnimsBuf) as [a |] eqn:Ga; [| discriminate ST].
@@ -310,6 +325,19 @@ Proof.
   destruct (A4 _ _ Gq) as (_ & Bq & Hmq).
   destruct (A4 _ _ Gr) as (_ & Br & Hrm).
   assert (Bb : e_base E rbuf = Ptrofs.zero) by (apply base_full; exact (proj2 (proj2 (A2 _ _ Sb)))).
+  (* the buffer pointer, from the path fact *)
+  apply existsb_exists in Hbf as (f & If & Hf).
+  destruct f as [ | | | k fargs]; cbn [is_buf_fact] in Hf; try discriminate Hf.
+  destruct fargs as [| a [| sp [| ]]]; try (cbv iota in Hf; discriminate Hf); try (destruct sp; discriminate Hf).
+  destruct sp as [ | rb ob | | | | | | | | ]; try (cbv iota in Hf; discriminate Hf).
+  repeat rewrite andb_true_iff in Hf. destruct Hf as [[[Ek Ea3] Erb] Eob].
+  apply Pos.eqb_eq in Ek, Erb. subst k rb.
+  unfold sbeq in Ea3. destruct (sval_eq a s3) as [-> |]; [| discriminate Ea3].
+  pose proof (Ptrofs.eq_spec ob Ptrofs.zero) as Zob. rewrite Eob in Zob. subst ob.
+  pose proof MMh as (_ & _ & _ & _ & _ & _ & PCh & _).
+  destruct (PCh _ If) as [_ FH]. cbn [fact_holds map] in FH.
+  destruct (HUB _ FH) as (bb & ot & o2 & Evs & Hot).
+  cbn [SymExec2.den] in Evs. injection Evs as Dbuf Ebb _. subst bb.
   (* the arguments *)
   inversion HF as [| a v rest' vrest [Dp _] HF']; subst.
   cbn [SymExec2.den] in Dp. injection Dp as <-.
@@ -345,8 +373,7 @@ Proof.
   { cbn [Mem.loadv]. rewrite uadd_small by lia. rewrite UM.
     cbn [SymExec2.den] in LD2. unfold addr in LD2. rewrite <- LD2. f_equal. lia. }
   assert (Hbuf : Mem.load Mptr m (e_blk E rl) 8 = Some (Vptr (e_blk E rbuf) ot)).
-  { cbn [SymExec2.den] in LD3. rewrite Bb, Ptrofs.add_zero_l in LD3. unfold addr in LD3.
-    rewrite Bl in LD3. exact LD3. }
+  { unfold addr in LD3. rewrite Bl in LD3. rewrite Dbuf in LD3. exact LD3. }
   (* the list region has a size; the buffer is another block *)
   assert (Ilst : In (rl, 0 + 6, Mint16signed, Sfresh (Pos.succ (g_nx g2))) l).
   { apply in_or_app. right. right. left. reflexivity. }
