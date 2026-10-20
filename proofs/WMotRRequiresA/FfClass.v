@@ -348,7 +348,7 @@ Proof.
   rewrite <- (firstn_skipn 7 rest), H7, S7 in FH.
   destruct (FH c0) as (cl' & rv & c1 & Heq & P).
   - rewrite <- entry_vals. reflexivity.
-  - exact Hact.
+  - apply air_pas; exact Hact.
   - exact Hb.
   - exact FRO.
   - cbn [map app pkeys mkeys ic_of cvals] in Heq.

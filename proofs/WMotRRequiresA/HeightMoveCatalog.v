@@ -88,6 +88,30 @@ Proof.
     unfold mode_of_action; vm_compute; auto.
 Qed.
 
+(* the entries perform_air_step's summary covers: an air_entry action, or
+   ground pound past its windup (state <> 0: the fall, act_ground_pound's
+   perform_air_step(m, 0)) *)
+Definition pas_entry (a : int) (s : Z) : bool :=
+  air_entry a || (Int.eq a ACT_GROUND_POUND && negb (Z.eqb s 0)).
+
+Lemma air_pas : forall a s, air_entry a = true -> pas_entry a s = true.
+Proof. intros a s H. unfold pas_entry. rewrite H. reflexivity. Qed.
+
+Lemma pas_entry_mode : forall a s, pas_entry a s = true ->
+  mode_of_action a s = M_Freefall \/ mode_of_action a s = M_Air
+  \/ (a = ACT_GROUND_POUND /\ s <> 0%Z /\ mode_of_action a s = M_PoundFall).
+Proof.
+  intros a s H. unfold pas_entry in H. apply Bool.orb_true_iff in H as [H | H].
+  - destruct (air_entry_mode a s H) as [X | X]; auto.
+  - apply Bool.andb_true_iff in H as [H1 H2]. apply Int.same_if_eq in H1. subst a.
+    apply Bool.negb_true_iff in H2.
+    right; right. split; [reflexivity |]. split; [apply Z.eqb_neq; exact H2 |]. unfold mode_of_action.
+    vm_compute (Int.eq ACT_GROUND_POUND ACT_FREEFALL).
+    vm_compute (Int.eq ACT_GROUND_POUND ACT_BUTT_SLIDE_AIR).
+    vm_compute (Int.eq ACT_GROUND_POUND ACT_SLIDE_KICK).
+    rewrite Int.eq_true, H2. reflexivity.
+Qed.
+
 Lemma credit_of_mode : forall c, credit_of c = mode_credit (mode_of c) (timer_of c) (R2 (c_vely c)).
 Proof. intros. apply credit_by_mode. Qed.
 

@@ -889,6 +889,47 @@ Fixpoint undef_stuck (le : PTree.t sval) (al : list expr) (tyl : list type) : bo
   | _, _ => false
   end.
 
+(* the state after naming one fresh value *)
+Definition gfresh (g : gst) : gst := mkg (g_sm g) (g_pc g) (Pos.succ (g_nx g)) (g_loc g) (g_cl g).
+
+(* a field or dereference read of a cell whose chunk never yields a
+   pointer *)
+Definition opq_ch (ch : memory_chunk) : bool :=
+  match ch with
+  | Mint8signed | Mint8unsigned | Mint16signed | Mint16unsigned | Mfloat32 | Mfloat64 => true
+  | _ => false
+  end.
+(* the read is of a whole cell: a dereference, or a struct field that is
+   not a bitfield *)
+Definition opq_full (a : expr) : bool :=
+  match a with
+  | Ederef _ _ => true
+  | Efield a1 i _ =>
+      match typeof a1 with
+      | Tstruct id _ =>
+          match (genv_cenv ge) ! id with
+          | Some co => match field_offset ge i (co_members co) with OK (_, Full) => true | _ => false end
+          | None => false
+          end
+      | _ => false
+      end
+  | _ => false
+  end.
+Definition opq_ok (a : expr) : bool :=
+  opq_full a &&
+  match a with
+  | Efield _ _ ty | Ederef _ ty =>
+      match access_mode ty with By_value ch => opq_ch ch | _ => false end
+  | _ => false
+  end.
+(* its name: a small int read keeps its load_result, so the term itself
+   says the value is in the chunk's range *)
+Definition opq_term (a : expr) (n : positive) : sval :=
+  match access_mode (typeof a) with
+  | By_value ((Mint8signed | Mint8unsigned | Mint16signed | Mint16unsigned) as ch) => Sldres ch (Sfresh n)
+  | _ => Sfresh n
+  end.
+
 Fixpoint sx_stmt (fuel : nat) (se : PTree.t (positive * type)) (le : PTree.t sval)
     (g : gst) (s : statement) {struct fuel} : option (list spath) :=
   match fuel with
@@ -910,7 +951,14 @@ Fixpoint sx_stmt (fuel : nat) (se : PTree.t (positive * type)) (le : PTree.t sva
       end
   | Sset id a =>
       if nullx le a then Some [] else
-      let? v := sx_expr se le g a in Some [(PTree.set id v le, g, SOnormal)]
+      match sx_expr se le g a with
+      | Some v => Some [(PTree.set id v le, g, SOnormal)]
+      | None =>
+          (* a load the description cannot place (through an unknown
+             pointer) of a non-pointer cell: its value is a fresh name *)
+          if opq_ok a then Some [(PTree.set id (opq_term a (g_nx g)) le, gfresh g, SOnormal)]
+          else None
+      end
   | Scall optid (Evar id (Tfunction tyargs tyres cconv)) al =>
       match se ! id with
       | Some _ => None
@@ -3350,9 +3398,6 @@ Qed.
 
 (* ---- the simplest sound contract: memory unchanged, an unknown result ---- *)
 
-(* the state after naming one fresh value *)
-Definition gfresh (g : gst) : gst := mkg (g_sm g) (g_pc g) (Pos.succ (g_nx g)) (g_loc g) (g_cl g).
-
 (* the contract "memory unchanged, some result" (atan2s, ...) *)
 Definition xc_fresh : xcontract := fun _ g => Some [(gfresh g, Sfresh (g_nx g))].
 
@@ -3712,6 +3757,55 @@ Hypothesis xc_sound : forall id k args g cps fd E m vargs t m' vres,
   eval_funcall function_entry2 ge m fd vargs t m' vres ->
   exists c, In c cps /\ CM E (g_nx g) (g_loc g) m' vres c.
 
+Definition den_opq (v : val) (md : mode) : Prop :=
+  match md with
+  | By_value ((Mint8signed | Mint8unsigned | Mint16signed | Mint16unsigned) as ch) => Val.load_result ch v = v
+  | _ => True
+  end.
+
+(* an opaque read of a non-pointer cell yields no pointer, and its
+   load_result is itself *)
+Lemma opq_val_old : forall e tle m a v, eval_expr ge e tle m a v -> opq_ok a = true ->
+  val_old v /\ den_opq v (access_mode (typeof a)).
+Proof.
+  intros e tle m a v H O. unfold opq_ok in O. apply andb_true_iff in O as [OF O].
+  assert (Hty : exists ch, access_mode (typeof a) = By_value ch /\ opq_ch ch = true /\
+                (match a with Efield _ _ _ | Ederef _ _ => True | _ => False end)).
+  { destruct a; cbn in O |- *; try discriminate O;
+      destruct (access_mode t) eqn:AM; try discriminate O; eauto. }
+  destruct Hty as (ch & AM & CH & SH). rewrite AM. cbn [den_opq].
+  inversion H; subst; try (cbn in SH; contradiction).
+  assert (BF : bf = Full).
+  { destruct a; cbn in SH; try contradiction; match goal with L : eval_lvalue _ _ _ _ _ _ _ _ |- _ => inversion L; subst end;
+      try reflexivity; cbn [opq_full] in OF;
+      match goal with T : typeof _ = _ |- _ => rewrite T in OF end; try discriminate OF;
+      match goal with C : (genv_cenv ge) ! _ = Some _ |- _ => rewrite C in OF end;
+      match goal with F : field_offset _ _ _ = OK _ |- _ => rewrite F in OF end;
+      destruct bf; [reflexivity | discriminate OF]. }
+  subst bf.
+  match goal with D : deref_loc _ _ _ _ _ _ |- _ => inversion D; subst end; try congruence.
+  match goal with A : access_mode _ = By_value _, L : Mem.loadv _ _ _ = Some _ |- _ =>
+    rewrite AM in A; injection A as <-; cbn [Mem.loadv] in L end.
+  split.
+  - destruct v; cbn; auto. exfalso.
+    destruct ch; try discriminate CH;
+      match goal with L : Mem.load _ _ _ _ = Some _ |- _ =>
+        first [ apply Mem.load_cast in L; cbn in L; discriminate L
+              | apply Mem.load_type in L; cbn in L; exact L ] end.
+  - destruct ch; try discriminate CH; try exact I;
+      match goal with L : Mem.load _ _ _ _ = Some _ |- _ => apply Mem.load_cast in L; cbn in L end;
+      destruct v; cbn in *; try reflexivity; try discriminate; congruence.
+Qed.
+
+Lemma opq_term_den : forall E k v md, e_rho E k = Some v -> den_opq v md ->
+  den E (match md with
+         | By_value ((Mint8signed | Mint8unsigned | Mint16signed | Mint16unsigned) as ch) => Sldres ch (Sfresh k)
+         | _ => Sfresh k end) = Some v.
+Proof.
+  intros E k v md R D.
+  destruct md as [[] | | |]; cbn [den den_opq] in D |- *; rewrite R; try reflexivity; rewrite D; reflexivity.
+Qed.
+
 Ltac pm_here E :=
   exists E; split; [ apply Ext_refl | ];
   split; [ assumption | split; [ assumption | split; [ cbn; auto | split; [ apply Ple_refl | reflexivity ] ] ] ].
@@ -3771,12 +3865,28 @@ Proof.
     + (* Sset *)
       destruct (nullx le e0) eqn:NX0.
       { exfalso. inv Hx. eapply (proj1 (nullx_sound E _ e _ le _ TM e0 NX0)); eassumption. }
-      destruct (sx_expr se le g e0) as [vs|] eqn:Ev; [ | discriminate ]. inv Hs. inv Hx.
-      match goal with HE : eval_expr _ _ _ _ e0 _ |- _ =>
-        destruct (sx_expr_sound E _ g se le e _ MM EM TM _ _ _ HE Ev) as [D S] end.
+      destruct (sx_expr se le g e0) as [vs|] eqn:Ev.
+      { inv Hs. inv Hx.
+        match goal with HE : eval_expr _ _ _ _ e0 _ |- _ =>
+          destruct (sx_expr_sound E _ g se le e _ MM EM TM _ _ _ HE Ev) as [D S] end.
+        eexists; split; [ left; reflexivity | ].
+        exists E. split; [ apply Ext_refl | split; [ exact MM | split; [ apply temps_ok_set; auto | ] ] ].
+        split; [ cbn; auto | split; [ apply Ple_refl | reflexivity ] ]. }
+      destruct (opq_ok e0) eqn:OQ; [ | discriminate ]. inv Hs. inv Hx.
+      match goal with HE : eval_expr _ _ _ _ e0 ?v |- _ =>
+        destruct (opq_val_old _ _ _ _ _ HE OQ) as [VO DO]; rename v into vv end.
       eexists; split; [ left; reflexivity | ].
-      exists E. split; [ apply Ext_refl | split; [ exact MM | split; [ apply temps_ok_set; auto | ] ] ].
-      split; [ cbn; auto | split; [ apply Ple_refl | reflexivity ] ].
+      exists (upd E (g_nx g) (Some vv)).
+      unfold gfresh; cbn [g_nx g_loc].
+      split; [ apply Rx_Ext, Rx_upd | ].
+      split; [ apply (MMg_fresh E _ g vv MM VO) | ].
+      split.
+      { apply temps_ok_set.
+        - eapply temps_ok_ext; [ exact TM | apply Rx_Ext, Rx_upd | apply Ple_succ ].
+        - unfold opq_term. apply opq_term_den; [ cbn; destruct (Pos.eq_dec (g_nx g) (g_nx g)); [ reflexivity | congruence ] | exact DO ].
+        - unfold opq_term. destruct (access_mode (typeof e0)) as [[] | | |];
+            split; cbn; try apply Plt_succ; exact I. }
+      split; [ cbn; auto | split; [ apply Ple_succ | reflexivity ] ].
     + (* Scall *)
       destruct e0; try discriminate.
       destruct t0 as [ | | | | | | targs tres cc | | ]; try discriminate.

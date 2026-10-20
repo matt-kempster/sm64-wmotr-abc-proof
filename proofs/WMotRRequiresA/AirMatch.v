@@ -189,6 +189,33 @@ Proof.
     simpl in Hc; try discriminate; lra.
 Qed.
 
+Definition c20 : float32 := Float32.of_bits (Int.repr 1101004800).  (* 0x41A00000 = 20.0f *)
+Definition tI32 : type := Tint I32 Signed noattr.
+Definition tbool : type := Tint IBool Unsigned noattr.
+
+Lemma B2R_c20 : R2 c20 = 20.
+Proof. unfold c20. vm_compute (Float32.of_bits _). unfold Binary.B2R, F2R. simpl. lra. Qed.
+Lemma F32_c20 : F32 c20 = true.  Proof. vm_compute. reflexivity. Qed.
+
+(* the jump-ascent quarter of a vel > 20 is in [-75, gravity's] *)
+Lemma vel_div_ok : forall v, F32 v = true -> Rabs (R2 v) <= 128 -> Float32.cmp Cgt v c20 = true ->
+  F32 (Float32.div v f4) = true /\ R2 fm75 <= R2 (Float32.div v f4)
+  /\ R2 (Float32.div v f4) <= R2 (gravity f4 v).
+Proof.
+  intros v Fv Hv Hc.
+  assert (V20 : 20 < R2 v).
+  { unfold Float32.cmp, Float32.compare in Hc.
+    rewrite Binary.Bcompare_correct in Hc by first [exact Fv | exact F32_c20].
+    rewrite B2R_c20 in Hc.
+    destruct (Rcompare_spec (R2 v) 20) as [H | H | H]; simpl in Hc; try discriminate; lra. }
+  destruct (quarter_spec v Fv Hv) as (Fq & Hq & _ & Hq0).
+  apply Rabs_le_inv in Hq. pose proof (Hq0 ltac:(lra)) as Q0.
+  split; [exact Fq | split; [rewrite B2R_fm75; lra |]].
+  destruct (gravity_spec2 f4 v F32_f4 Fv (or_intror B2R_f4) Hv) as [(L & _) | (_ & G)];
+    rewrite B2R_f4 in *; [lra |].
+  apply Rabs_le_inv in G. lra.
+Qed.
+
 (* ---- classifying one walk outcome ---- *)
 
 Definition fm4 : float32 := Float32.of_bits (Int.repr 3229614080).  (* 0xC0800000 *)
@@ -221,11 +248,30 @@ Definition is_gfact (rM : positive) (f : fact) : bool :=
   | _ => false
   end.
 
-(* vel[1] is the clamp, or vel - 4.0f on a path that did not clamp *)
+(* the jump-ascent branch of apply_gravity (an ACT_FLAG_CONTROL_JUMP_HEIGHT
+   action, A not held, vel[1] > 20.0f: mario_step.c:528,559): vel[1] /= 4.0f.
+   should_strengthen_gravity_for_jump_ascent tests (_Bool)(vel[1] > 20.0f) *)
+Definition is_v20 (rM : positive) (f : fact) : bool :=
+  match f with
+  | Fbool (Scast (Sbinop Cop.Ogt (Sinit r o Mfloat32) t1 (Sconst c) t2) t3 t4) ty true =>
+      Pos.eqb r rM && Z.eqb o oV && is_tf t1 && is_tf t2 && is_f c c20
+      && (if type_eq t3 tI32 then true else false) && (if type_eq t4 tbool then true else false)
+      && (if type_eq ty tI32 then true else false)
+  | _ => false
+  end.
+Definition vel_div (rM : positive) (pc : list fact) (a : sval) : bool :=
+  match a with
+  | Sbinop Cop.Odiv (Sinit r o Mfloat32) t1 (Sconst c) t2 =>
+      Pos.eqb r rM && Z.eqb o oV && is_tf t1 && is_tf t2 && is_f c f4 && existsb (is_v20 rM) pc
+  | _ => false
+  end.
+
+(* vel[1] is the clamp, or vel - 4.0f on a path that did not clamp, or the
+   jump-ascent quarter *)
 Definition vel_ok (rM : positive) (pc : list fact) (a : sval) : bool :=
   match a with
   | Sconst _ => vel_grav rM a
-  | _ => vel_grav rM a && existsb (is_gfact rM) pc
+  | _ => (vel_grav rM a && existsb (is_gfact rM) pc) || vel_div rM pc a
   end.
 
 Definition vel_cut (a : sval) : bool :=
@@ -376,7 +422,10 @@ Hypothesis HY : Mem.load Mfloat32 m0 (e_blk E rM) oY = Some (Vsingle y).
 Hypothesis HV : Mem.load Mfloat32 m0 (e_blk E rM) oV = Some (Vsingle v).
 
 Local Notation LD := (sload nbase R0 kv g).
-Local Notation IC := (init_cell kv).
+(* the entry cells: m0's, except the timer, which may be any term (a
+   caller that ticks actionTimer before the air step) *)
+Variable IC : positive -> Z -> memory_chunk -> sval.
+Hypothesis HIC : forall o ch, o <> oT -> den ge m0 E (IC rM o ch) = Mem.load ch m0 (e_blk E rM) o.
 
 Lemma ld_sound : forall r o ch a, LD r o ch = Some a ->
   Mem.load ch m (e_blk E r) (addr E r o) = den ge m0 E a.
@@ -389,15 +438,28 @@ Qed.
 Lemma addr_M : forall o, addr E rM o = o.
 Proof. intros o. unfold addr. rewrite HbM, Ptrofs.unsigned_zero. lia. Qed.
 
-Lemma same_cell_sound : forall o ch, same_cell LD IC rM o ch = true ->
-  Mem.load ch m (e_blk E rM) o = Mem.load ch m0 (e_blk E rM) o.
+Lemma same_cell_den : forall o ch, same_cell LD IC rM o ch = true ->
+  Mem.load ch m (e_blk E rM) o = den ge m0 E (IC rM o ch).
 Proof.
   intros o ch H. unfold same_cell in H.
   destruct (LD rM o ch) as [a|] eqn:L; [| discriminate].
   unfold sveqb in H. destruct (sval_eq a (IC rM o ch)) as [->|]; [| discriminate].
-  pose proof (ld_sound _ _ _ _ L) as D. rewrite addr_M in D. rewrite D.
-  destruct MM as (EO & _).
-  rewrite (proj1 (init_cell_den ge nbase R0 gtab kv m0 gp E rM o ch EO)), addr_M. reflexivity.
+  pose proof (ld_sound _ _ _ _ L) as D. rewrite addr_M in D. exact D.
+Qed.
+
+Lemma same_cell_sound : forall o ch, o <> oT -> same_cell LD IC rM o ch = true ->
+  Mem.load ch m (e_blk E rM) o = Mem.load ch m0 (e_blk E rM) o.
+Proof. intros o ch N H. rewrite (same_cell_den o ch H). exact (HIC o ch N). Qed.
+
+(* the three integer entry cells, kept *)
+Lemma same3 : same_cell LD IC rM oA Mint32 = true -> same_cell LD IC rM oS Mint16unsigned = true ->
+  same_cell LD IC rM oT Mint16unsigned = true ->
+  Mem.load Mint32 m (e_blk E rM) oA = Mem.load Mint32 m0 (e_blk E rM) oA
+  /\ Mem.load Mint16unsigned m (e_blk E rM) oS = Mem.load Mint16unsigned m0 (e_blk E rM) oS
+  /\ Mem.load Mint16unsigned m (e_blk E rM) oT = den ge m0 E (IC rM oT Mint16unsigned).
+Proof.
+  intros A S T. split; [apply same_cell_sound; [unfold oA, oT; lia | exact A] |].
+  split; [apply same_cell_sound; [unfold oS, oT; lia | exact S] | exact (same_cell_den _ _ T)].
 Qed.
 
 Lemma vel_grav_den : forall a, vel_grav rM a = true ->
@@ -414,21 +476,63 @@ Proof.
     left. cbn [den]. rewrite HbM, Ptrofs.unsigned_zero, Z.add_0_l. rewrite HV. reflexivity.
 Qed.
 
+Lemma vel_div_den : forall a, vel_div rM (g_pc g) a = true ->
+  den ge m0 E a = Some (Vsingle (Float32.div v f4)) /\ Float32.cmp Cgt v c20 = true.
+Proof.
+  intros a H. destruct a; try discriminate.
+  destruct op; try discriminate. destruct a1; try discriminate. destruct ch; try discriminate.
+  destruct a2; try discriminate.
+  cbn [vel_div] in H. repeat rewrite andb_true_iff in H.
+  destruct H as (((((Hr & Ho) & H1) & H2) & Hf) & Hx).
+  apply Pos.eqb_eq in Hr. apply Z.eqb_eq in Ho. apply is_tf_eq in H1. apply is_tf_eq in H2.
+  apply is_f_eq in Hf. rewrite Hr, Ho, H1, H2, Hf.
+  split; [cbn [den]; rewrite HbM, Ptrofs.unsigned_zero, Z.add_0_l, HV; reflexivity |].
+  apply existsb_exists in Hx as (f & Hin & Hf').
+  destruct MM as (_ & _ & _ & _ & _ & _ & PC & _).
+  destruct (PC f Hin) as [_ FH].
+  destruct f as [c ty b | | |]; try discriminate.
+  destruct c; try discriminate. destruct c; try discriminate. destruct op; try discriminate.
+  destruct c1; try discriminate. destruct ch; try discriminate.
+  destruct c2; try discriminate. destruct b; try discriminate.
+  cbn [is_v20] in Hf'. repeat rewrite andb_true_iff in Hf'.
+  destruct Hf' as (((((((Hr' & Ho') & T1) & T2) & Hc) & T3) & T4) & Ty).
+  apply Pos.eqb_eq in Hr'. apply Z.eqb_eq in Ho'. apply is_tf_eq in T1. apply is_tf_eq in T2.
+  apply is_f_eq in Hc.
+  repeat match goal with
+         | Hq : (if type_eq ?x ?y then true else false) = true |- _ =>
+             destruct (type_eq x y) as [-> |]; [clear Hq | discriminate Hq]
+         end.
+  rewrite Hr', Ho', T1, T2, Hc in FH.
+  destruct FH as (w & Dw & Bw).
+  cbn [den] in Dw. rewrite HbM, Ptrofs.unsigned_zero, Z.add_0_l, HV in Dw.
+  destruct (Float32.cmp Cgt v c20) eqn:C; [reflexivity | exfalso].
+  cbn in Dw. unfold Float32.cmp, cmp_of_comparison in C.
+  destruct (Float32.compare v c20) as [[]|]; cbn in Dw, C; try discriminate C;
+    injection Dw as <-; cbn in Bw; discriminate Bw.
+Qed.
+
 Lemma vel_ok_den : forall a, vel_ok rM (g_pc g) a = true ->
   (den ge m0 E a = Some (Vsingle (Float32.sub v f4))
    /\ Float32.cmp Clt (Float32.sub v f4) fm75 = false)
-  \/ den ge m0 E a = Some (Vsingle fm75).
+  \/ den ge m0 E a = Some (Vsingle fm75)
+  \/ (den ge m0 E a = Some (Vsingle (Float32.div v f4)) /\ Float32.cmp Cgt v c20 = true).
 Proof.
   intros a H.
-  assert (G : vel_grav rM a = true) by (destruct a; cbn [vel_ok] in H;
-    first [exact H | apply andb_true_iff in H; apply H]).
-  destruct (vel_grav_den a G) as [D | D]; [left | right; exact D].
+  assert (H' : vel_grav rM a = true
+                 /\ match a with Sconst _ => True | _ => existsb (is_gfact rM) (g_pc g) = true end
+               \/ vel_div rM (g_pc g) a = true).
+  { destruct a; cbn [vel_ok] in H;
+      first [ left; split; [exact H | exact I]
+            | apply orb_true_iff in H as [H | H];
+              [ left; apply andb_true_iff in H as [H1 H2]; split; [exact H1 | exact H2]
+              | right; exact H ] ]. }
+  destruct H' as [(G & GF) | Hd]; [| right; right; exact (vel_div_den a Hd)].
+  destruct (vel_grav_den a G) as [D | D]; [left | right; left; exact D].
   split; [exact D |].
-  destruct a; cbn [vel_ok] in H; try (cbn [vel_grav] in G; discriminate).
+  destruct a; try (cbn [vel_grav] in G; discriminate).
   - cbn [den] in D. injection D as D. cbn [vel_grav] in G. apply is_f_eq in G. rewrite G in D.
     injection D as D. rewrite <- D. vm_compute. reflexivity.
-  -  apply andb_true_iff in H as [_ H].
-    apply existsb_exists in H as (f & Hin & Hf).
+  - apply existsb_exists in GF as (f & Hin & Hf).
     destruct MM as (_ & _ & _ & _ & _ & _ & PC & _).
     destruct (PC f Hin) as [_ FH].
     destruct f as [c ty b | | |]; try discriminate.
@@ -457,11 +561,11 @@ Proof.
   cbn [den]. rewrite H. reflexivity.
 Qed.
 
-(* entry cells unchanged *)
+(* entry cells unchanged (the timer: its entry term's value) *)
 Definition keeps_asT : Prop :=
   Mem.load Mint32 m (e_blk E rM) oA = Mem.load Mint32 m0 (e_blk E rM) oA
   /\ Mem.load Mint16unsigned m (e_blk E rM) oS = Mem.load Mint16unsigned m0 (e_blk E rM) oS
-  /\ Mem.load Mint16unsigned m (e_blk E rM) oT = Mem.load Mint16unsigned m0 (e_blk E rM) oT.
+  /\ Mem.load Mint16unsigned m (e_blk E rM) oT = den ge m0 E (IC rM oT Mint16unsigned).
 
 Theorem aclass_air : aclass_of LD IC (g_pc g) rM rO kH = Some Cair ->
   F32 v = true -> Rabs (R2 v) <= 128 ->
@@ -491,12 +595,14 @@ Proof.
   pose proof (ld_sound _ _ _ _ LY) as DY. pose proof (ld_sound _ _ _ _ LV) as DV.
   pose proof (ld_sound _ _ _ _ LG) as DG.
   rewrite addr_M in DY, DV. rewrite QD in DY, DG.
-  split; [repeat split; apply same_cell_sound; assumption |].
+  split; [exact (same3 SA SS ST) |].
   split; [exact DY | split; [exact DG |]].
-  destruct (vel_ok_den _ VG) as [(D & C) | D]; rewrite D in DV.
+  destruct (vel_ok_den _ VG) as [(D & C) | [D | (D & C)]]; rewrite D in DV.
   - destruct (sub_ge_m75 v Fv Hv C) as [L F].
     eexists; split; [exact DV | split; [exact F | split; [exact L | apply vel_sub_le; assumption]]].
   - eexists; split; [exact DV | split; [exact F32_fm75 | split; [lra | apply vel_clamp_le; assumption]]].
+  - destruct (vel_div_ok v Fv Hv C) as (F & L & U).
+    eexists; split; [exact DV | split; [exact F | split; [exact L | exact U]]].
 Qed.
 
 Theorem aclass_cut : forall k, aclass_of LD IC (g_pc g) rM rO kH = Some (Ccut k) ->
@@ -531,7 +637,7 @@ Proof.
   pose proof (ld_sound _ _ _ _ LG) as DG.
   rewrite addr_M in DY, DV. rewrite QD in DY, DG.
   rewrite (vel_cut_den _ VC) in DV.
-  split; [repeat split; apply same_cell_sound; assumption |]. split; [exact K4 |].
+  split; [exact (same3 SA SS ST) |]. split; [exact K4 |].
   eexists; split; [apply add_zeros_R2 | split; [exact DY | split; [exact DG | split; [exact DV | eexists; reflexivity]]]].
 Qed.
 Lemma ole_den : forall vp x w,
@@ -619,7 +725,7 @@ Proof.
     rewrite orb_false_r in H.
     destruct (Nat.eqb k 0 && same_cell LD IC rM oF Mfloat32) eqn:K0; [| discriminate].
     apply andb_true_iff in K0 as (K0 & EF). apply Nat.eqb_eq in K0. subst.
-    injection H as <-. left. split; [reflexivity | exact (same_cell_sound _ _ EF)].
+    injection H as <-. left. split; [reflexivity | exact (same_cell_sound oF Mfloat32 ltac:(unfold oF, oT; lia) EF)].
   - destruct (vel_ok rM (g_pc g) vy); [| discriminate].
     destruct k as [|[|[|[|[|k]]]]]; try discriminate; destruct j; try discriminate.
     destruct (above LD (g_pc g) rM kH py) eqn:AB; [| discriminate].
@@ -689,7 +795,7 @@ Proof.
   pose proof (ld_sound _ _ _ _ LY) as DY. pose proof (ld_sound _ _ _ _ LV) as DV.
   pose proof (ld_sound _ _ _ _ LG) as DG.
   rewrite addr_M in DY, DV.
-  split; [repeat split; apply same_cell_sound; assumption |].
+  split; [exact (same3 SA SS ST) |].
   split; [congruence |]. split.
   - rewrite DY. destruct py; try discriminate.
     + destruct ch; try discriminate. cbn [is_land] in L. apply andb_true_iff in L as (Hr & Ho).
@@ -711,10 +817,12 @@ Proof.
   - apply orb_true_iff in VO as [VC | VK].
     + rewrite (vel_cut_den _ VC) in DV. eexists; split; [exact DV |].
       split; [reflexivity |]. split; [rewrite B2R_fm75, B2R_fm4; lra | right; reflexivity].
-    + destruct (vel_ok_den _ VK) as [(D & C) | D]; rewrite D in DV.
+    + destruct (vel_ok_den _ VK) as [(D & C) | [D | (D & C)]]; rewrite D in DV.
       * destruct (sub_ge_m75 v Fv Hv C) as [L75 F].
         eexists; split; [exact DV | split; [exact F | split; [exact L75 | left; apply vel_sub_le; assumption]]].
       * eexists; split; [exact DV | split; [exact F32_fm75 | split; [lra | left; apply vel_clamp_le; assumption]]].
+      * destruct (vel_div_ok v Fv Hv C) as (F & L75 & U).
+        eexists; split; [exact DV | split; [exact F | split; [exact L75 | left; exact U]]].
 Qed.
 
 Lemma vle0_sound : forall f, In f (g_pc g) -> vle0 rM f = true ->
@@ -765,7 +873,7 @@ Proof.
   pose proof (ld_sound _ _ _ _ LY) as DY. pose proof (ld_sound _ _ _ _ LV) as DV.
   pose proof (ld_sound _ _ _ _ LG) as DG.
   rewrite addr_M in DY, DV.
-  split; [repeat split; apply same_cell_sound; assumption |].
+  split; [exact (same3 SA SS ST) |].
   split; [congruence |]. split.
   - rewrite DY. destruct py; try discriminate.
     apply existsb_exists in L as (f & If & Hf).
@@ -792,10 +900,12 @@ Proof.
   - apply orb_true_iff in VO as [VC | VK].
     + rewrite (vel_cut_den _ VC) in DV. eexists; split; [exact DV |].
       split; [reflexivity |]. split; [rewrite B2R_fm75, B2R_fm4; lra | right; reflexivity].
-    + destruct (vel_ok_den _ VK) as [(D & C) | D]; rewrite D in DV.
+    + destruct (vel_ok_den _ VK) as [(D & C) | [D | (D & C)]]; rewrite D in DV.
       * destruct (sub_ge_m75 v Fv Hv C) as [L75 F].
         eexists; split; [exact DV | split; [exact F | split; [exact L75 | left; apply vel_sub_le; assumption]]].
       * eexists; split; [exact DV | split; [exact F32_fm75 | split; [lra | left; apply vel_clamp_le; assumption]]].
+      * destruct (vel_div_ok v Fv Hv C) as (F & L75 & U).
+        eexists; split; [exact DV | split; [exact F | split; [exact L75 | left; exact U]]].
 Qed.
 End CLS_SOUND.
 

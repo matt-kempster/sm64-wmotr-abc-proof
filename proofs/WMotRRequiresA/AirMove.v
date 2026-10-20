@@ -41,38 +41,61 @@ Variable c : cells.
 Local Notation bm := (e_blk E rM).
 Hypothesis HA : Mem.load Mint32 m0 bm oA = Some (Vint (c_action c)).
 Hypothesis HS : Mem.load Mint16unsigned m0 bm oS = Some (Vint (c_state c)).
-Hypothesis HT : Mem.load Mint16unsigned m0 bm oT = Some (Vint (c_timer c)).
+(* the entry cells' terms: m0's except the timer (AirMatch.HIC) *)
+Variable IC : positive -> Z -> memory_chunk -> sval.
+Hypothesis HIC : forall o ch, o <> oT -> den ge m0 E (IC rM o ch) = Mem.load ch m0 bm o.
+Hypothesis HT : den ge m0 E (IC rM oT Mint16unsigned) = Some (Vint (c_timer c)).
 Hypothesis HY : Mem.load Mfloat32 m0 bm oY = Some (Vsingle (c_posy c)).
 Hypothesis HV : Mem.load Mfloat32 m0 bm oV = Some (Vsingle (c_vely c)).
 Hypothesis HF : Mem.load Mfloat32 m0 bm oF = Some (Vsingle (c_floorh c)).
 Hypothesis Hc : budget_ok c.
-Hypothesis Hact : air_entry (c_action c) = true.
+Hypothesis Hact : pas_entry (c_action c) (state_of c) = true.
 Hypothesis FD : floor_data ge m0.
 
 Local Notation LD := (sload nbase R0 kv g).
-Local Notation IC := (init_cell kv).
 
-Lemma mode_fa : mode_of c = M_Freefall \/ mode_of c = M_Air.
-Proof. exact (air_entry_mode _ _ Hact). Qed.
+(* the entry is freefall / plain air, or ground pound's fall *)
+Definition is_gpf : Prop := c_action c = ACT_GROUND_POUND /\ state_of c <> 0%Z /\ mode_of c = M_PoundFall.
 
-Lemma grav_fa : R2 f4 = mode_gravity (mode_of c).
-Proof. destruct mode_fa as [X | X]; rewrite X, B2R_f4; reflexivity. Qed.
+Lemma mode_fa : mode_of c = M_Freefall \/ mode_of c = M_Air \/ is_gpf.
+Proof. exact (pas_entry_mode _ _ Hact). Qed.
 
-Lemma air3 : mode_of c = M_Freefall \/ mode_of c = M_SlideKick \/ mode_of c = M_Air.
-Proof. destruct mode_fa as [X | X]; auto. Qed.
+Lemma gpf_v : is_gpf -> R2 (c_vely c) <= 0.
+Proof.
+  intros (Ea & Es & _). destruct Hc as (_ & _ & _ & _ & HG & _). exact (HG Ea Es).
+Qed.
 
 Lemma air4 : mode_of c = M_Freefall \/ mode_of c = M_SlideKick \/ mode_of c = M_Air \/ mode_of c = M_PoundFall.
-Proof. destruct mode_fa as [X | X]; auto. Qed.
+Proof. destruct mode_fa as [X | [X | (_ & _ & X)]]; auto. Qed.
 
-Lemma cap_fa : forall t v, R2 v <= 43 -> launch_cap (mode_of c) t (R2 v).
-Proof. intros t v H. destruct mode_fa as [X | X]; rewrite X; cbn [launch_cap]; lra. Qed.
-
-Lemma not_sk : c_action c <> ACT_SLIDE_KICK.
+(* a velocity the step may end with: launch_cap of the entry mode *)
+Lemma cap_fa : forall t v, R2 v <= 43 -> (is_gpf -> R2 v <= 0) -> launch_cap (mode_of c) t (R2 v).
 Proof.
-  destruct (air_entry_cases _ Hact) as [Ea | [Ea | [Ea | [Ea | Ea]]]]; rewrite Ea; intros Eq0;
-    apply (f_equal Int.unsigned) in Eq0; unfold ACT_FREEFALL, ACT_SLIDE_KICK in Eq0;
+  intros t v H H0. destruct mode_fa as [X | [X | X]];
+    [rewrite X; cbn [launch_cap]; lra | rewrite X; cbn [launch_cap]; lra |].
+  pose proof X as (_ & _ & X'). rewrite X'. cbn [launch_cap]. exact (H0 X).
+Qed.
+
+Lemma gpf_ne : forall a, (a = ACT_FREEFALL \/ a = Int.repr 2215 \/ a = Int.repr 16910518
+  \/ a = Int.repr 16910512 \/ a = Int.repr 16910513 \/ a = ACT_GROUND_POUND) ->
+  a <> ACT_SLIDE_KICK /\ a <> ACT_LEDGE_GRAB.
+Proof.
+  intros a H. destruct H as [Ea | [Ea | [Ea | [Ea | [Ea | Ea]]]]]; rewrite Ea; split; intros Eq0;
+    apply (f_equal Int.unsigned) in Eq0;
+    unfold ACT_FREEFALL, ACT_SLIDE_KICK, ACT_LEDGE_GRAB, ACT_GROUND_POUND in Eq0;
     vm_compute in Eq0; discriminate.
 Qed.
+
+Lemma act_cases : c_action c = ACT_FREEFALL \/ c_action c = Int.repr 2215 \/ c_action c = Int.repr 16910518
+  \/ c_action c = Int.repr 16910512 \/ c_action c = Int.repr 16910513 \/ c_action c = ACT_GROUND_POUND.
+Proof.
+  unfold pas_entry in Hact. apply orb_true_iff in Hact as [H | H].
+  - destruct (air_entry_cases _ H) as [X | [X | [X | [X | X]]]]; auto 6.
+  - apply andb_true_iff in H as [H _]. apply Int.same_if_eq in H. auto 6.
+Qed.
+
+Lemma not_sk : c_action c <> ACT_SLIDE_KICK.
+Proof. exact (proj1 (gpf_ne _ act_cases)). Qed.
 
 (* the entry ranges *)
 Lemma entry_ranges :
@@ -105,7 +128,7 @@ Lemma pos_low : forall cl p, aclass_of LD IC (g_pc g) rM rO kH = Some cl -> cl <
   Mem.load Mfloat32 m bm oY = Some (Vsingle p) -> F32 p = true -> -11000 < R2 p.
 Proof.
   intros cl p H N LY Fp.
-  destruct (aclass_above ge nbase R0 gtab kv m0 uf gp gp_old E m g rM rO kH MM HUH HbM cl H)
+  destruct (aclass_above ge nbase R0 gtab kv m0 uf gp gp_old E m g rM rO kH MM HUH HbM IC HIC cl H)
     as [(-> & _) | (p' & x & LY' & C & Hx & _)]; [congruence |].
   rewrite LY in LY'. injection LY' as <-.
   apply (above_low ge m0 p x FD Fp C).
@@ -131,7 +154,7 @@ Proof.
   unfold outcome_ok in OK. apply andb_true_iff in OK as (CO & _).
   destruct entry_ranges as (Fy & Fv & Hy & Hv & Hv43 & Ff & Lf).
   destruct (aclass_air ge nbase R0 gtab kv m0 uf gp gp_old E m g rM rO (c_posy c) (c_vely c) kH
-              MM HbM HY HV H Fv Hv)
+              MM HbM HY HV IC HIC H Fv Hv)
     as ((KA & KS & KT) & LY & LG & (v' & LV & Fv' & Lo & Hi)).
   destruct (floorh_new CO) as (LMO & fh & LF & Ffh & Lfh).
   destruct (quarter_steps_up 4 (c_posy c) (c_vely c) ltac:(lia) Fy Fv Hy Hv) as (Fp & _).
@@ -147,9 +170,15 @@ Proof.
   all: split; [ unfold InRange; cbn [c_posy c_vely c_floorh c_gfxy];
                 rewrite B2R_fm75 in Lo; repeat split; try assumption; try lra;
                 try apply Rabs_le_inv in G; lra |].
-  all: apply (S_air _ _ _ c _ f4); cbn [c_action c_state c_timer c_posy c_vely c_gfxy];
-         first [ exact air3 | exact F32_f4 | exact grav_fa
+  all: destruct mode_fa as [X | [X | X]].
+  1,2,4,5: apply (S_air _ _ _ c _ f4); cbn [c_action c_state c_timer c_posy c_vely c_gfxy];
+         first [ left; exact X | right; right; exact X | exact F32_f4 | rewrite X, B2R_f4; reflexivity
                | reflexivity | exact Hi | intros E'; exfalso; exact (not_sk E') ].
+  (* ground pound's fall: the same four quarters, as an S_air_cut 4 *)
+  all: apply (S_air_cut _ _ _ c _ 4); cbn [c_action c_state c_timer c_posy c_vely c_gfxy];
+         first [ exact air4 | lia | reflexivity | rewrite air_step_y_quarter_steps; reflexivity
+               | intros E'; exfalso; exact (not_sk E')
+               | pose proof (gpf_v X); try apply Rabs_le_inv in G; lra ].
 Qed.
 
 (* the cut class: an S_air_cut step *)
@@ -161,7 +190,7 @@ Proof.
   unfold outcome_ok in OK. apply andb_true_iff in OK as (CO & _).
   destruct entry_ranges as (Fy & Fv & Hy & Hv & Hv43 & Ff & Lf).
   destruct (aclass_cut ge nbase R0 gtab kv m0 uf gp gp_old E m g rM rO (c_posy c) (c_vely c) kH
-              MM HbM HY HV k H)
+              MM HbM HY HV IC HIC k H)
     as ((KA & KS & KT) & Hk & (p & Ep & LY & LG & LV & (j & Ej))).
   destruct (floorh_new CO) as (LMO & fh & LF & Ffh & Lfh).
   destruct (quarter_steps_up k (c_posy c) (c_vely c) Hk Fy Fv Hy Hv) as (Fq & _).
@@ -182,11 +211,7 @@ Proof.
 Qed.
 
 Lemma not_ledge : c_action c <> ACT_LEDGE_GRAB.
-Proof.
-  destruct (air_entry_cases _ Hact) as [Ea | [Ea | [Ea | [Ea | Ea]]]]; rewrite Ea; intros Eq0;
-    apply (f_equal Int.unsigned) in Eq0; unfold ACT_FREEFALL, ACT_LEDGE_GRAB in Eq0;
-    vm_compute in Eq0; discriminate.
-Qed.
+Proof. exact (proj2 (gpf_ne _ act_cases)). Qed.
 
 (* a landing: an S_attach step.  The frame refreshed floorHeight at this
    pos[1] just before the action ran (update_mario_geometry_inputs; act_freefall
@@ -203,7 +228,7 @@ Proof.
   pose proof (budget_ok_y c Hc) as Hyhi. unfold PHI_YMAX, PHI_K, PHI_A in Hyhi.
   pose proof Hc as ((_ & _ & _ & Lylo & _) & _).
   destruct (land_sound ge nbase R0 gtab kv m0 uf gp gp_old E m g rM rO (c_posy c) (c_vely c) kH
-              MM HUH HbM HY HV OK Fv Hv)
+              MM HUH HbM HY HV IC HIC OK Fv Hv)
     as ((KA & KS & KT) & LG & LP & (v' & LV & Fv' & Lo & Hi)).
   destruct (floorh_new CO) as (LMO & fh & LF & Ffh & Lfh).
   (* the landed height: a finite p >= -11000 that AttachOK accepts *)
@@ -219,10 +244,11 @@ Proof.
       right; left. apply (land_attach ge m0 kq jz (c_posy c) (c_vely c) h FD Hk Fy Fv Hv);
         [split; lra | exact Hv43 | exact HPi' | exact Hh]. }
   destruct HP as (p & LY & Fp & Lp & Hat).
-  assert (Hv' : R2 v' <= 43).
-  { destruct Hi as [Hi | ->]; [| rewrite B2R_fm4; lra].
+  assert (Hv' : R2 v' <= 43 /\ (is_gpf -> R2 v' <= 0)).
+  { destruct Hi as [Hi | ->]; [| rewrite B2R_fm4; split; [lra | intros _; lra]].
     destruct (gravity_spec2 f4 (c_vely c) F32_f4 Fv (or_intror B2R_f4) Hv) as [(_ & G) | (_ & G)];
-      [lra | rewrite B2R_f4 in G; apply Rabs_le_inv in G; lra]. }
+      [split; [lra | intros _; lra] | rewrite B2R_f4 in G; apply Rabs_le_inv in G].
+    split; [lra | intros X; pose proof (gpf_v X); lra]. }
   exists (mkCells (c_action c) (c_state c) (c_timer c) p v' fh p).
   split; [ unfold read_cells; cbn [c_action c_state c_timer c_posy c_vely c_floorh c_gfxy];
            rewrite <- HA, <- HS, <- HT; repeat split; try assumption;
@@ -235,8 +261,20 @@ Proof.
   - apply Rle_refl.
   - left. reflexivity.
   - change (mode_of (mkCells (c_action c) (c_state c) (c_timer c) p v' fh p)) with (mode_of c).
-    exact (cap_fa _ _ Hv').
+    exact (cap_fa _ _ (proj1 Hv') (proj2 Hv')).
   - intros E'. exfalso. exact (not_ledge E').
+Qed.
+
+(* a ledge-grab height: AttachOK's freefall-bump case, or (ground pound's
+   fall, vel <= 0) the plain floor case *)
+Lemma ledge_at : forall h, wmotr_floor h -> h <= R2 (c_posy c) + Rmax 0 (R2 (c_vely c)) / 2 + STEP_UP ->
+  AttachOK wmotr_floor wmotr_pole wmotr_cannon c h.
+Proof.
+  intros h W Le. destruct mode_fa as [X | [X | X]].
+  - right; right; right; right; right; right. split; [left; exact X | split; assumption].
+  - right; right; right; right; right; right. split; [right; exact X | split; assumption].
+  - right; left. split; [exact W |]. pose proof (gpf_v X) as V0.
+    rewrite Rmax_left in Le by lra. lra.
 Qed.
 
 (* a ledge grab (check_ledge_grab): an S_attach step onto the WMotR floor
@@ -253,7 +291,7 @@ Proof.
   pose proof (budget_ok_y c Hc) as Hyhi. unfold PHI_YMAX, PHI_K, PHI_A in Hyhi.
   pose proof Hc as ((_ & _ & _ & Lylo & _) & _).
   destruct (ledge_sound ge nbase R0 gtab kv m0 uf gp gp_old E m g rM rO (c_posy c) (c_vely c) kH
-              MM HUH HbM HY HV OK Fv Hv)
+              MM HUH HbM HY HV IC HIC OK Fv Hv)
     as ((KA & KS & KT) & LG & (h & kq & jz & LP & Hk & Hor & HPi' & Hh) & (v' & LV & Fv' & Lo & Hi)).
   destruct (floorh_new CO) as (LMO & fh & LF & Ffh & Lfh).
   destruct (FD h Hh) as (Fp & _ & Wh).
@@ -262,26 +300,27 @@ Proof.
     by (destruct Hor as [Cv | K2]; [left; exact (cgt_false_le _ Fv Cv) | right; exact K2]).
   destruct (ledge_attach ge m0 kq jz (c_posy c) (c_vely c) h FD Hk Fy Fv Hv ltac:(split; lra) Hv43 Hor' HPi' Hh)
     as (W & Le).
-  assert (Hv' : R2 v' <= 43).
-  { destruct Hi as [Hi | ->]; [| rewrite B2R_fm4; lra].
+  assert (Hv' : R2 v' <= 43 /\ (is_gpf -> R2 v' <= 0)).
+  { destruct Hi as [Hi | ->]; [| rewrite B2R_fm4; split; [lra | intros _; lra]].
     destruct (gravity_spec2 f4 (c_vely c) F32_f4 Fv (or_intror B2R_f4) Hv) as [(_ & G) | (_ & G)];
-      [lra | rewrite B2R_f4 in G; apply Rabs_le_inv in G; lra]. }
+      [split; [lra | intros _; lra] | rewrite B2R_f4 in G; apply Rabs_le_inv in G].
+    split; [lra | intros X; pose proof (gpf_v X); lra]. }
   exists (mkCells (c_action c) (c_state c) (c_timer c) h v' fh h).
   split; [ unfold read_cells; cbn [c_action c_state c_timer c_posy c_vely c_floorh c_gfxy];
            rewrite <- HA, <- HS, <- HT; repeat split; try assumption;
            exists (e_blk E rO), (e_base E rO); split; [exact LMO | transitivity (Mem.load Mfloat32 m bm oY); [exact LG | exact LP]] |].
-  split; [| split; [ exists (R2 h); split; [ right; right; right; right; right; right; split; [exact mode_fa | split; assumption]
+  split; [| split; [ exists (R2 h); split; [ exact (ledge_at _ W Le)
                                        | split; [apply Rle_refl | reflexivity]]
                    | intros EqL; cbn [c_floorh]; rewrite LF, LP in EqL; injection EqL as ->;
-                     right; right; right; right; right; right; split; [exact mode_fa | split; assumption]]].
+                     exact (ledge_at _ W Le)]].
   split; [ unfold InRange; cbn [c_posy c_vely c_floorh c_gfxy];
            rewrite B2R_fm75 in Lo; repeat split; try assumption; try lra |].
   apply (S_attach _ _ _ c _ (R2 h)); cbn [c_action c_posy c_vely c_gfxy c_floorh].
-  - right; right; right; right; right; right. split; [exact mode_fa | split; assumption].
+  - exact (ledge_at _ W Le).
   - apply Rle_refl.
   - left. reflexivity.
   - change (mode_of (mkCells (c_action c) (c_state c) (c_timer c) h v' fh h)) with (mode_of c).
-    exact (cap_fa _ _ Hv').
+    exact (cap_fa _ _ (proj1 Hv') (proj2 Hv')).
   - intros E'. exfalso. exact (not_ledge E').
 Qed.
 
@@ -291,15 +330,15 @@ Qed.
 Theorem class_fro : forall cl c', aclass_of LD IC (g_pc g) rM rO kH = Some cl ->
   read_cells bm m c' -> InRange c' ->
   FloorRefreshOK wmotr_floor (R2 (c_posy c')) (R2 (c_floorh c')).
-Proof using gp_old MM HUH HbM HA HS HT HY HV HF Hc Hact FD FRO.
+Proof using gp_old MM HUH HbM HA HS HIC HT HY HV HF Hc Hact FD FRO.
   intros cl c' H RC IR.
   destruct RC as (_ & _ & _ & Y' & _ & F' & _).
   change OFS_POSY with oY in Y'. change OFS_FLOORH with oF in F'.
   destruct IR as (Fy' & _ & _ & _ & _ & (Ff' & _) & _).
-  destruct (aclass_above ge nbase R0 gtab kv m0 uf gp gp_old E m g rM rO kH MM HUH HbM cl H)
+  destruct (aclass_above ge nbase R0 gtab kv m0 uf gp gp_old E m g rM rO kH MM HUH HbM IC HIC cl H)
     as [(-> & LF) | (p & x & LY & C & Hx & LF)].
   - destruct (aclass_cut ge nbase R0 gtab kv m0 uf gp gp_old E m g rM rO (c_posy c) (c_vely c) kH
-                MM HbM HY HV 0 H) as (_ & _ & (p & Ep & LY & _)).
+                MM HbM HY HV IC HIC 0 H) as (_ & _ & (p & Ep & LY & _)).
     rewrite Y' in LY. injection LY as <-. cbn [quarter_steps] in Ep.
     rewrite F', HF in LF. injection LF as LF. rewrite Ep, LF. exact FRO.
   - rewrite Y' in LY. injection LY as <-. rewrite F' in LF. injection LF as <-.
@@ -359,8 +398,16 @@ Proof.
     unfold addr in L. rewrite HbM, Ptrofs.unsigned_zero, Z.add_0_l in L.
     change OFS_ACTION with 12%Z in HA. rewrite HA in L. cbn [den] in L. injection L as ->.
     reflexivity. }
-  assert (Hact : air_entry (c_action c) = true) by (rewrite Hff; reflexivity).
-  apply (outcome_move G NB (R0 G) gtab (kv G) m0 (ufW G m0 gp) gp GPO E' m' gs RM RO kH MM
-           (ufW_kH G m0 gp)); try (rewrite ?BaM, ?BaO; assumption); rewrite ?BM; assumption.
+  assert (Hact : pas_entry (c_action c) (state_of c) = true) by (rewrite Hff; reflexivity).
+  pose proof MM as (EO' & _).
+  assert (HIC0 : forall o ch,
+            den G m0 E' (init_cell (kv G) RM o ch) = Mem.load ch m0 (e_blk E' RM) o).
+  { intros o ch. rewrite (proj1 (init_cell_den G NB (R0 G) gtab (kv G) m0 gp E' RM o ch EO')).
+    unfold addr. rewrite BaM, HbM, Ptrofs.unsigned_zero. reflexivity. }
+  assert (HT0 : den G m0 E' (init_cell (kv G) RM oT Mint16unsigned) = Some (Vint (c_timer c))).
+  { rewrite HIC0, BM. exact HT. }
+  refine (outcome_move G NB (R0 G) gtab (kv G) m0 (ufW G m0 gp) gp GPO E' m' gs RM RO kH MM
+           (ufW_kH G m0 gp) _ c _ _ (init_cell (kv G)) (fun o ch _ => HIC0 o ch) HT0 _ _ _ Hc Hact FD _ OK);
+    try (rewrite ?BaM, ?BaO; assumption); rewrite ?BM; assumption.
 Qed.
 End LPM.
