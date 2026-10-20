@@ -27,7 +27,7 @@ From compcert Require Import Coqlib Maps AST Integers Values Events Memory
 From SM64.Generated Require mario mario_actions_stationary mario_actions_moving
   mario_actions_airborne mario_actions_submerged mario_actions_cutscene
   mario_actions_automatic mario_actions_object interaction behavior_actions
-  level_update mario_step surface_collision math_util memory.
+  level_update mario_step surface_collision math_util memory game_init.
 From SM64.Proofs Require Import SymbolicLinking ActionValueFrame AGates Taint
   RealFrameLinked RealFrameValue CensusV2 MWFReal OsDmaFloor ActWriterSurface LinkedTwelve.
 From SM64.Proofs Require OutParamSurface RestSurface.
@@ -298,6 +298,8 @@ Lemma os_ni_math : no_internal_ids math_util.prog os_ids = true.
 Proof. vm_compute. reflexivity. Qed.
 Lemma os_ni_memory : no_internal_ids memory.prog os_ids = true.
 Proof. vm_compute. reflexivity. Qed.
+Lemma os_ni_game_init : no_internal_ids game_init.prog os_ids = true.
+Proof. vm_compute. reflexivity. Qed.
 
 Definition ext_named (o : option (globdef Clight.fundef type)) (n : String.string) : bool :=
   match o with
@@ -471,7 +473,7 @@ Section LptFrame.
       destruct (link_chain_internal_origin _ _ _ _ _ Hlink Hdm')
         as [Hbase | (q & Hq & Hqdm)].
       + exact (no_internal_ids_correct _ _ _ _ os_ni_mario Hid Hbase).
-      + destruct Hq as [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | []]]]]]]]]]]]]]].
+      + destruct Hq as [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | []]]]]]]]]]]]]]]].
         * exact (no_internal_ids_correct _ _ _ _ os_ni_sta Hid Hqdm).
         * exact (no_internal_ids_correct _ _ _ _ os_ni_mov Hid Hqdm).
         * exact (no_internal_ids_correct _ _ _ _ os_ni_air Hid Hqdm).
@@ -486,6 +488,7 @@ Section LptFrame.
         * exact (no_internal_ids_correct _ _ _ _ os_ni_surf Hid Hqdm).
         * exact (no_internal_ids_correct _ _ _ _ os_ni_math Hid Hqdm).
         * exact (no_internal_ids_correct _ _ _ _ os_ni_memory Hid Hqdm).
+        * exact (no_internal_ids_correct _ _ _ _ os_ni_game_init Hid Hqdm).
   Qed.
 
   (* the external call a libultra Scall makes *)

@@ -32,7 +32,7 @@
 From Coq Require Import List.
 From compcert Require Import Coqlib Maps AST Integers Values Memory Globalenvs
   Ctypes Clight Linking.
-From SM64.Generated Require mario level_update interaction mario_actions_moving.
+From SM64.Generated Require mario level_update interaction mario_actions_moving game_init.
 From SM64.Proofs Require Import SymbolicLinking RealFrameLinked CensusV2 MWFReal
   LinkedTwelve.
 Import ListNotations.
@@ -316,7 +316,11 @@ Qed.
 Definition non_safeb_syms : list ident :=
   [ level_update._gMarioStates; mario._gControllers; mario._gMarioState;
     interaction._gGlobalTimer; interaction._sInteractionHandlers;
-    mario._gMarioAnimsBuf ]
+    mario._gMarioAnimsBuf;
+    (* 2026-10-20: game_init.c (linked as the 16th TU) initializes these to
+       &gControllers[0..2], so they point at a non-SafeB block. *)
+    game_init._gPlayer1Controller; game_init._gPlayer2Controller;
+    game_init._gPlayer3Controller ]
   ++ stored_globals ++ knockback_table_ids.
 
 (* Standalone (NOT sectioned) so that ALL exports share a UNIFORM explicit

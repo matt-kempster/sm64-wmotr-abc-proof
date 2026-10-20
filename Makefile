@@ -35,7 +35,7 @@ GENERATED := generated/toy.v generated/shadow.v \
   generated/mario_actions_submerged.v generated/mario_actions_stationary.v \
   generated/mario_actions_cutscene.v generated/mario_actions_object.v \
   generated/mario_step.v generated/mario_misc.v \
-  generated/math_util.v generated/surface_collision.v generated/memory.v \
+  generated/math_util.v generated/surface_collision.v generated/memory.v generated/game_init.v \
   generated/wmotr_level_data.v generated/wmotr_script.v \
   generated/macro_special_objects.v generated/behavior_data.v \
   generated/object_helpers.v generated/obj_behaviors.v generated/obj_behaviors_2.v \
@@ -112,6 +112,12 @@ generated/mario_misc.v: $(SM64)/src/game/mario_misc.c pipeline/clightgen.sh pipe
 # bodies, so the only externals under set_mario_animation are the libultra
 # DMA calls (osInvalDCache / osPiStartDma / osRecvMesg).
 generated/memory.v: $(SM64)/src/game/memory.c pipeline/clightgen.sh pipeline/proof_n64.h
+	$(CLIGHTGEN) $< $@ $(SM64_CGP)
+
+# game_init.c (2026-10-20): the real definitions of gMarioAnimsBuf and
+# gControllers (storage in the boot image) and setup_game_memory, which
+# fills the animation list (main_pool_alloc + setup_dma_table_list).
+generated/game_init.v: $(SM64)/src/game/game_init.c pipeline/clightgen.sh pipeline/proof_n64.h
 	$(CLIGHTGEN) $< $@ $(SM64_CGP)
 
 generated/math_util.v: $(SM64)/src/engine/math_util.c pipeline/clightgen.sh pipeline/proof_n64.h
