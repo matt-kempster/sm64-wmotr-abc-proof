@@ -51,7 +51,9 @@ all in `Unwired/`, and the theorem moved nowhere. See
     `Step` constructors against any new y/vel writer. The airborne dispatcher is split per case
     (`AirSplit`), and the **freefall case is proved** (`FfRow.ff_row`: the real `act_freefall`
     walked by `FfRun` keeps fworld and moves the cells by a MoveChain), started from the carried
-    `FfWorld.ffw` (in PhiW / fworld). Other cases: `Hair_case_rest`.
+    `FfWorld.ffw` (in PhiW / fworld). The **air-hit-wall case is proved** too (`AhwRow.ahw_row`,
+    walked by `AhwRun`; the A-gated wall kick is pruned). Other nine cases: `Hair_case_rest`
+    (`AhwRow.air_case_rest2`).
   - (`wmotr_gap` and `wmotr_poles` are now proved from generated level data, `WMotRLevel.v`)
   - the flank specs (TRUST 0.7)
 

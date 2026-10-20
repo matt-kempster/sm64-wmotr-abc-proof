@@ -50,6 +50,36 @@ Definition kmargs (kM : positive) (pc : list fact) : option (list sval) :=
 
 Definition lsveqb (a b : list sval) : bool := if list_eq_dec sval_eq a b then true else false.
 
+(* an air action whose mode does not depend on its state: plain M_Air *)
+Definition air_indep (a : int) : bool :=
+  is_air a && negb (Int.eq a ACT_FREEFALL) && negb (Int.eq a ACT_BUTT_SLIDE_AIR)
+  && negb (Int.eq a ACT_SLIDE_KICK) && negb (Int.eq a ACT_GROUND_POUND).
+
+Lemma air_indep_mode : forall a s, air_indep a = true -> mode_of_action a s = M_Air.
+Proof.
+  intros a s H. unfold air_indep in H. repeat rewrite andb_true_iff in H.
+  destruct H as [[[[Ha Hf] Hb] Hk] Hg]. apply negb_true_iff in Hf, Hb, Hk, Hg.
+  unfold mode_of_action. rewrite Hf, Hb, Hk, Hg, Ha. reflexivity.
+Qed.
+
+(* a term that denotes an int whenever its default does: the default, an int
+   constant, an int-to-int cast, or an int + int *)
+Definition int_cast (t1 t2 : type) : bool :=
+  match classify_cast t1 t2 with
+  | cast_case_i2i _ _ => true
+  | cast_case_pointer => negb Archi.ptr64
+  | _ => false
+  end.
+Definition is_tint (t : type) : bool := match t with Tint _ _ _ => true | _ => false end.
+Fixpoint int_sv (d : sval) (s : sval) : bool :=
+  sveqb s d ||
+  match s with
+  | Sconst (Vint _) => true
+  | Scast a t1 t2 => int_cast t1 t2 && int_sv d a
+  | Sbinop Cop.Oadd a t1 b t2 => is_tint t1 && is_tint t2 && int_sv d a && int_sv d b
+  | _ => false
+  end.
+
 Section CLASS.
 Variables (nbase : positive) (R0 : list (positive * Z)) (kv : list (positive * Z * memory_chunk * sval)).
 Variables (rM rO kM : positive).
@@ -101,6 +131,26 @@ Definition ff_ok (g : gst) : bool :=
       end
   | _, _, _, _, _, _, _, _ => false
   end.
+
+(* act_air_hit_wall (no air step): height, floor and gfx kept, a plain air
+   action, vel[1] kept or zeroed when it was > 0, state and timer ints *)
+Definition ahw_ok (g : gst) : bool :=
+  match LD g rM oMO Mint32, LD g rM oA Mint32, LD g rM oS Mint16unsigned, LD g rM oT Mint16unsigned,
+        LD g rM oY Mfloat32, LD g rM oV Mfloat32, LD g rM oF Mfloat32, LD g rO oG Mfloat32 with
+  | Some (Sptr r0 z0), Some sa, Some ss, Some st, Some sy, Some sv, Some sf, Some sg =>
+      Pos.eqb r0 rO && Ptrofs.eq z0 Ptrofs.zero &&
+      match kmargs kM (g_pc g) with
+      | None => sveqb sy (ic rM oY Mfloat32) && sveqb sf (ic rM oF Mfloat32)
+                && sveqb sg (ic rO oG Mfloat32)
+                && (sveqb sv (ic rM oV Mfloat32)
+                    || (sveqb sv (Sconst (Vsingle Float32.zero))
+                        && existsb (velpos (ic rM oV Mfloat32)) (g_pc g)))
+                && match ci sa with Some a => air_indep a | None => false end
+                && int_sv (ic rM oS Mint16unsigned) ss && int_sv (ic rM oT Mint16unsigned) st
+      | Some _ => false
+      end
+  | _, _, _, _, _, _, _, _ => false
+  end.
 End CLASS.
 
 (* ---------------------------------------------------------------------- *)
@@ -139,6 +189,32 @@ Proof.
 Qed.
 
 Local Opaque Float32.cmp Float32.compare.
+
+Lemma add_int_int : forall (ge : genv) i j sz1 sg1 a1 sz2 sg2 a2 m,
+  exists k, sem_binary_operation ge Cop.Oadd (Vint i) (Tint sz1 sg1 a1) (Vint j) (Tint sz2 sg2 a2) m
+            = Some (Vint k).
+Proof. intros. destruct sz1, sg1, sz2, sg2; cbn; eexists; reflexivity. Qed.
+
+Lemma int_sv_den : forall ge m0 E d i, SymExec2.den ge m0 E d = Some (Vint i) ->
+  forall s, int_sv d s = true -> exists j, SymExec2.den ge m0 E s = Some (Vint j).
+Proof.
+  intros ge m0 E d i Hd s. induction s; intros H; cbn [int_sv] in H;
+    apply orb_true_iff in H as [H | H];
+    try (apply sveqb_eq in H; subst; exists i; exact Hd); try discriminate H.
+  - destruct v; try discriminate H. exists i0. reflexivity.
+  - destruct op; try discriminate H. repeat rewrite andb_true_iff in H.
+    destruct H as [[[T1 T2] H1] H2].
+    destruct (IHs1 H1) as (j1 & D1). destruct (IHs2 H2) as (j2 & D2).
+    destruct t1; try discriminate T1. destruct t2; try discriminate T2.
+    cbn [SymExec2.den]. rewrite D1, D2.
+    exact (add_int_int ge j1 j2 i0 s a i1 s0 a0 m0).
+  - apply andb_true_iff in H as [C H1]. destruct (IHs H1) as (j & D).
+    cbn [SymExec2.den]. rewrite D. unfold sem_cast.
+    unfold int_cast in C. destruct (classify_cast t1 t2); try discriminate C.
+    + destruct Archi.ptr64; [discriminate C |]. exists j. reflexivity.
+    + eexists. reflexivity.
+Qed.
+
 
 Lemma mode_ff_of : forall c, c_action c = ACT_FREEFALL -> mode_of c = M_Freefall.
 Proof. intros c H. unfold mode_of, mode_of_action. rewrite H, Int.eq_true. reflexivity. Qed.
@@ -428,5 +504,63 @@ Proof.
     + intros Ea. change (a = ACT_FREEFALL) in Ea. exfalso. unfold entry_sw in SW. apply orb_true_iff in SW as [SW | SW].
       * apply mode_eqb_eq in SW. exact (not_ff_mode _ _ _ SW ltac:(discriminate) Ea).
       * subst a. vm_compute in SW. discriminate SW.
+Qed.
+
+(* act_air_hit_wall's outcomes, from any plain-air start: one S_switch *)
+Theorem ahw_sound : mode_of c0 = M_Air -> ahw_ok nbase R0 kv rM rO kM g = true ->
+  exists c2, read_cells bm m c2 /\ MC c0 c2 /\ fro_ff c2.
+Proof.
+  intros M0 OK. unfold ahw_ok in OK.
+  destruct (LD rM oMO Mint32) as [smo|] eqn:LMO; [| discriminate OK].
+  destruct smo as [| r0 z0 | | | | | | | |]; try discriminate OK.
+  destruct (LD rM oA Mint32) as [sa|] eqn:La; [| discriminate OK].
+  destruct (LD rM oS Mint16unsigned) as [ss|] eqn:Ls; [| discriminate OK].
+  destruct (LD rM oT Mint16unsigned) as [st|] eqn:Lt; [| discriminate OK].
+  destruct (LD rM oY Mfloat32) as [sy|] eqn:Ly; [| discriminate OK].
+  destruct (LD rM oV Mfloat32) as [sv|] eqn:Lv; [| discriminate OK].
+  destruct (LD rM oF Mfloat32) as [sf|] eqn:Lf; [| discriminate OK].
+  destruct (LD rO oG Mfloat32) as [sg|] eqn:Lg; [| discriminate OK].
+  apply andb_true_iff in OK as [OK0 OK]. apply andb_true_iff in OK0 as [E0 Ez].
+  apply Pos.eqb_eq in E0. subst r0.
+  pose proof (Ptrofs.eq_spec z0 Ptrofs.zero) as Z0. rewrite Ez in Z0. subst z0.
+  pose proof (ld_m _ _ _ La) as MA. pose proof (ld_m _ _ _ Ls) as MS. pose proof (ld_m _ _ _ Lt) as MT.
+  pose proof (ld_m _ _ _ Ly) as MY. pose proof (ld_m _ _ _ Lv) as MV'. pose proof (ld_m _ _ _ Lf) as MF.
+  pose proof Hb as (IR0 & _).
+  pose proof entry_vals as EV. cbn [map pkeys mkeys app ic_of cvals] in EV.
+  injection EV as DA0 DS0 DT0 DY0 DV0 DF0 DG0.
+  destruct (kmargs kM (g_pc g)) as [args|]; [discriminate OK |].
+  repeat rewrite andb_true_iff in OK. destruct OK as [[[[[[Ey Ef] Eg] VV] Ca] Is] It].
+  apply sveqb_eq in Ey, Ef, Eg. subst sy sf sg.
+  destruct (ci sa) as [a|] eqn:Ci; [| discriminate Ca]. apply ci_some in Ci. subst sa.
+  destruct (int_sv_den ge m0 E _ _ DS0 ss Is) as (s & Ds).
+  destruct (int_sv_den ge m0 E _ _ DT0 st It) as (t & Dt).
+  rewrite Ds in MS. rewrite Dt in MT. cbn [SymExec2.den] in MA.
+  assert (Hv2 : exists v2, Mem.load Mfloat32 m bm oV = Some (Vsingle v2)
+                /\ (v2 = c_vely c0 \/ (v2 = Float32.zero /\ 0 < R2 (c_vely c0)))).
+  { apply orb_true_iff in VV as [VV | VV].
+    - apply sveqb_eq in VV. subst sv. exists (c_vely c0). rewrite MV', DV0. auto.
+    - apply andb_true_iff in VV as [VV P]. apply sveqb_eq in VV. subst sv.
+      exists Float32.zero. split; [exact MV' |]. right. split; [reflexivity |].
+      apply existsb_exists in P as (f & If' & Pf).
+      exact (velpos_sound _ (c_vely c0) f If' Pf DV0 (proj1 (proj2 IR0))). }
+  destruct Hv2 as (v2 & LV & Hv2).
+  set (c2 := mkCells a s t (c_posy c0) v2 (c_floorh c0) (c_gfxy c0)).
+  assert (M2 : mode_of c2 = M_Air) by exact (air_indep_mode a _ Ca).
+  exists c2. split; [| split].
+  - rewrite DY0 in MY. rewrite DF0 in MF.
+    exact (mk_read c2 _ LMO MA MS MT MY LV MF Lg DG0).
+  - apply rt_step. split.
+    + destruct Hv2 as [-> | (-> & _)];
+        [ apply (inrange_same c0 c2 IR0); reflexivity
+        | apply (inrange_vel0 c0 c2 IR0); reflexivity ].
+    + apply S_switch; [reflexivity | reflexivity | reflexivity |].
+      apply Sw_plain.
+      * rewrite M0. discriminate.
+      * exact M2.
+      * cbn [c_vely c2]. destruct Hv2 as [-> | (-> & P)]; [apply Rle_refl |].
+        replace (R2 Float32.zero) with 0 by reflexivity. lra.
+      * intros _ N. exfalso. exact (N M0).
+  - intros Ea. exfalso. change (a = ACT_FREEFALL) in Ea. subst a.
+    vm_compute in Ca. discriminate Ca.
 Qed.
 End SOUND.
