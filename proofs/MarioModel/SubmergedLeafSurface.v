@@ -2285,7 +2285,7 @@ Section SubmergedLeafRows.
 
   (* the NEW model-boundary residual + the consumed obj_ext external *)
   Hypothesis Hcpx_scm :
-    call_pres_ext lp bm NoA MWF mario._set_camera_mode.
+    OutParamSurface.call_pres_ext_cs lp bm NoA MWF SafeB mario._set_camera_mode.
   Hypothesis Hw1cp_v3sset :
     OutParamSurface.call_pres_ext_w1 lp bm NoA MWF mario._vec3s_set.
 
@@ -2316,10 +2316,15 @@ Section SubmergedLeafRows.
     end.
 
   Definition swk_xids : list ident := mario._set_camera_mode :: nil.
+  (* the hybrid walker is parametric in its chase-temp census: set_camera_mode's
+     gated arg0 is the m->area / ->camera chase (2026-10-20) *)
+  Section SwkWalk.
+  Variable swk_cact : list ident.
+  Hypothesis swk_cact_nm : mem_id mario._m swk_cact = false.
   Definition swk_sids : list ident := mario._set_mario_action :: nil.
 
   Definition swk_gen (s : statement) : bool :=
-    wwalk_chk' nil nil nil nil nil nil false nil nil nil nil
+    wwalk_chk' nil nil nil nil nil nil false nil nil nil swk_cact
       swk_xids swk_sids nil s.
 
   Fixpoint swk_chk (s : statement) : bool :=
@@ -2511,14 +2516,14 @@ Section SubmergedLeafRows.
       swk_gen s = true ->
       (forall b o, le ! mario._m = Some (Vptr b o) -> b = bm /\ o = Ptrofs.zero) ->
       act_inv nil le ->
-      chase_inv SafeB nil le ->
+      chase_inv SafeB swk_cact le ->
       NoA m0 -> MWF m0 -> Mem.valid_block m0 bm ->
       action_sat not_tainted m0 bm ->
       exec_stmt function_entry2 (lp_ge lp) e le m0 s tr le' m' out ->
       Mem.valid_block m' bm /\ action_sat not_tainted m' bm /\ MWF m' /\
       NoA m' /\
       (forall b o, le' ! mario._m = Some (Vptr b o) -> b = bm /\ o = Ptrofs.zero) /\
-      act_inv nil le' /\ chase_inv SafeB nil le'.
+      act_inv nil le' /\ chase_inv SafeB swk_cact le'.
   Proof.
     intros s e le m0 tr le' m' out Hub_g Hub_x Hub_s Hubgt
            Hchk Htat Hact Hch HN HM HV HS Hexec.
@@ -2526,7 +2531,7 @@ Section SubmergedLeafRows.
     destruct (wwalk_pres lp LO_mario bm NoA MWF HNoA_of_MWF HMWF_window
                 HMWF_glob HMWF_act SafeB HSafeNotBm HchaseRoot HMWF_chase
                 HMWF_root HMWF_sglob HchaseStep HMWF_chase_safe
-                false nil nil nil nil swk_xids swk_sids nil
+                false nil nil nil swk_cact swk_xids swk_sids nil
                 nil nil nil nil nil nil
                 (fun fid HH => match Bool.diff_false_true HH with end)
                 (fun fid HH => match Bool.diff_false_true HH with end)
@@ -2572,13 +2577,13 @@ Section SubmergedLeafRows.
       swk_chk s = true ->
       (forall b o, le ! mario._m = Some (Vptr b o) -> b = bm /\ o = Ptrofs.zero) ->
       act_inv nil le ->
-      chase_inv SafeB nil le ->
+      chase_inv SafeB swk_cact le ->
       NoA m0 -> MWF m0 -> Mem.valid_block m0 bm ->
       action_sat not_tainted m0 bm ->
       Mem.valid_block m' bm /\ action_sat not_tainted m' bm /\ MWF m' /\
       NoA m' /\
       (forall b o, le' ! mario._m = Some (Vptr b o) -> b = bm /\ o = Ptrofs.zero) /\
-      act_inv nil le' /\ chase_inv SafeB nil le'.
+      act_inv nil le' /\ chase_inv SafeB swk_cact le'.
   Proof.
     intros s e le m0 tr le' m' out Hexec.
     induction Hexec;
@@ -2734,24 +2739,6 @@ Section SubmergedLeafRows.
                (swk_chk_select _ _ Hls) Htat Hact Hch HN HM HV HS).
   Qed.
 
-  (* ---- the two helper rows ---- *)
-  Lemma tstw_pin :
-    (prog_defmap mario.prog) ! mario._transition_submerged_to_walking
-    = Some (Gfun (Internal mario.f_transition_submerged_to_walking)).
-  Proof. vm_compute. reflexivity. Qed.
-  Lemma cwj_pin :
-    (prog_defmap mario_actions_submerged.prog)
-      ! mario_actions_submerged._check_water_jump
-    = Some (Gfun (Internal mario_actions_submerged.f_check_water_jump)).
-  Proof. vm_compute. reflexivity. Qed.
-
-  Lemma swk_walk_tstw :
-    swk_chk (fn_body mario.f_transition_submerged_to_walking) = true.
-  Proof. vm_compute. reflexivity. Qed.
-  Lemma swk_walk_cwj :
-    swk_chk (fn_body mario_actions_submerged.f_check_water_jump) = true.
-  Proof. vm_compute. reflexivity. Qed.
-
   (* the fn_vars=nil, single-(_m)-param entry wrapper, over any such f. *)
   Lemma swk_body_of :
     forall (f : Clight.function),
@@ -2791,9 +2778,12 @@ Section SubmergedLeafRows.
     assert (Hact0 : act_inv nil
                (PTree.set mario._m v0 (create_undef_temps (fn_temps f))))
       by (intros t' Hmem' x Hg'; discriminate Hmem').
-    assert (Hch0 : chase_inv SafeB nil
-               (PTree.set mario._m v0 (create_undef_temps (fn_temps f))))
-      by (intros t' Hmem' b o Hg'; discriminate Hmem').
+    assert (Hch0 : chase_inv SafeB swk_cact
+               (PTree.set mario._m v0 (create_undef_temps (fn_temps f)))).
+    { intros t' Hmem' b o Hg'.
+      rewrite PTree.gso in Hg'
+        by (intro EE; subst t'; rewrite swk_cact_nm in Hmem'; discriminate Hmem').
+      pose proof (create_undef_temps_val _ _ _ Hg') as EE; discriminate EE. }
     destruct (swk_pres _ _ _ _ _ _ _ _ Hbody
                 (fun g _ => PTree.gempty _ g)
                 (fun g _ => PTree.gempty _ g)
@@ -2807,6 +2797,29 @@ Section SubmergedLeafRows.
     exact (conj HVb (conj HSb HMb)).
   Qed.
 
+  End SwkWalk.
+
+  (* ---- the two helper rows ---- *)
+  (* transition_submerged_to_walking's m->area / ->camera chase temps *)
+  Definition tstw_cact : list ident :=
+    mario._t'4 :: mario._t'5 :: mario._t'6 :: mario._t'7 :: nil.
+  Lemma tstw_pin :
+    (prog_defmap mario.prog) ! mario._transition_submerged_to_walking
+    = Some (Gfun (Internal mario.f_transition_submerged_to_walking)).
+  Proof. vm_compute. reflexivity. Qed.
+  Lemma cwj_pin :
+    (prog_defmap mario_actions_submerged.prog)
+      ! mario_actions_submerged._check_water_jump
+    = Some (Gfun (Internal mario_actions_submerged.f_check_water_jump)).
+  Proof. vm_compute. reflexivity. Qed.
+
+  Lemma swk_walk_tstw :
+    swk_chk tstw_cact (fn_body mario.f_transition_submerged_to_walking) = true.
+  Proof. vm_compute. reflexivity. Qed.
+  Lemma swk_walk_cwj :
+    swk_chk nil (fn_body mario_actions_submerged.f_check_water_jump) = true.
+  Proof. vm_compute. reflexivity. Qed.
+
   Lemma sub_tstw_row :
     call_pres lp bm NoA MWF mario._transition_submerged_to_walking.
   Proof.
@@ -2814,7 +2827,8 @@ Section SubmergedLeafRows.
              mario._transition_submerged_to_walking
              mario.f_transition_submerged_to_walking
              LO_mario tstw_pin
-             (swk_body_of mario.f_transition_submerged_to_walking
+             (swk_body_of tstw_cact eq_refl
+                mario.f_transition_submerged_to_walking
                 eq_refl eq_refl swk_walk_tstw)).
   Qed.
   Lemma sub_cwj_row :
@@ -2825,7 +2839,8 @@ Section SubmergedLeafRows.
              mario_actions_submerged._check_water_jump
              mario_actions_submerged.f_check_water_jump
              LO_sub cwj_pin
-             (swk_body_of mario_actions_submerged.f_check_water_jump
+             (swk_body_of nil eq_refl
+                mario_actions_submerged.f_check_water_jump
                 eq_refl eq_refl swk_walk_cwj)).
   Qed.
 

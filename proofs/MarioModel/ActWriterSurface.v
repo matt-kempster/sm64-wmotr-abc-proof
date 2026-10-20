@@ -881,7 +881,8 @@ Proof.
                        || (Pos.eqb fld mario._usedObj
                            || (Pos.eqb fld mario._riddenObj
                                || (Pos.eqb fld mario._interactObj
-                                   || false)))))))%bool
+                                   || (Pos.eqb fld mario._area
+                                       || false))))))))%bool
           = true) in Hmem.
   repeat (apply orb_true_iff in Hmem; destruct Hmem as [Hm | Hmem]);
     try discriminate Hmem; apply Pos.eqb_eq in Hm; subst fld.
@@ -892,6 +893,7 @@ Proof.
   - exists 128. vm_compute. reflexivity.
   - exists 132. vm_compute. reflexivity.
   - exists 120. vm_compute. reflexivity.
+  - exists 144. vm_compute. reflexivity.
 Qed.
 
 (* the root offsets sit past the action cell and inside ptrofs range:
@@ -910,7 +912,8 @@ Proof.
                        || (Pos.eqb fld mario._usedObj
                            || (Pos.eqb fld mario._riddenObj
                                || (Pos.eqb fld mario._interactObj
-                                   || false)))))))%bool
+                                   || (Pos.eqb fld mario._area
+                                       || false))))))))%bool
           = true) in Hmem.
   repeat (apply orb_true_iff in Hmem; destruct Hmem as [Hm | Hmem]);
     try discriminate Hmem; apply Pos.eqb_eq in Hm; subst fld.
@@ -940,6 +943,10 @@ Proof.
     rewrite E in Hfo. inv Hfo. lia.
   - assert (E : field_offset (prog_comp_env mario.prog) mario._interactObj
                   mario_state_members = OK (120, Full))
+      by (vm_compute; reflexivity).
+    rewrite E in Hfo. inv Hfo. lia.
+  - assert (E : field_offset (prog_comp_env mario.prog) mario._area
+                  mario_state_members = OK (144, Full))
       by (vm_compute; reflexivity).
     rewrite E in Hfo. inv Hfo. lia.
 Qed.
@@ -2134,7 +2141,10 @@ Definition objw_ids : list ident :=
     (* 2026-10-19: obj_set_held_state writes through arg0 (obj->parentObj,
        oHeldState, ...; object_helpers.c:267), so its any-argument row was
        FALSE; all three real sites pass the chase temp m->heldObj *)
-    :: interaction._obj_set_held_state :: nil.
+    :: interaction._obj_set_held_state
+    (* 2026-10-20: set_camera_mode(c, ..) writes c->mode (camera.c:2854);
+       every real site passes the chase temp m->area->camera *)
+    :: interaction._set_camera_mode :: nil.
 Definition objw_call_chk (cact : list ident) (fty : type) (al : list expr) : bool :=
   match fty, al with
   | Tfunction (Tpointer _ _ :: _) _ _, Etempvar t (Tpointer _ _) :: _ => mem_id t cact

@@ -438,12 +438,12 @@ Section Witness.
 
     (* ---- MWF_real, store by store ---- *)
     Definition SBw : block -> Prop :=
-      SafeB_wit lp (fun b => b = bt) (fun id => mem_id id non_safeb_syms = false).
+      SafeB_wit lp (fun b => b = bt \/ b = bar) (fun id => mem_id id non_safeb_syms = false).
 
     Lemma Sy_w : SafeB_syms_ok lp SBw.
     Proof.
       apply safeb_wit_sat_le;
-        [ intros b ->; rewrite genv_next_eq, bt_eq; apply Ple_refl
+        [ intros b Hb; rewrite genv_next_eq; apply fresh_ge; tauto
         | intros id H; exact H | exact gobj_not_nonsafe ].
     Qed.
 
@@ -475,6 +475,15 @@ Section Witness.
       exact (Mem.valid_new_block _ _ _ _ _ A1).
     Qed.
 
+    Lemma bar_valid3 : Mem.valid_block m3 bar.
+    Proof. exact (Mem.valid_new_block _ _ _ _ _ A3). Qed.
+
+    Lemma bar_noptr3 : forall ofs b' o', Mem.loadv Mptr m3 (Vptr bar ofs) = Some (Vptr b' o') -> False.
+    Proof.
+      intros ofs b' o' Hld. cbn [Mem.loadv] in Hld.
+      pose proof (Mem.load_alloc_same _ _ _ _ _ A3 _ _ _ Hld). discriminate.
+    Qed.
+
     Lemma bt_noptr3 : forall ofs b' o', Mem.loadv Mptr m3 (Vptr bt ofs) = Some (Vptr b' o') -> False.
     Proof.
       intros ofs b' o' Hld. cbn [Mem.loadv] in Hld.
@@ -487,17 +496,17 @@ Section Witness.
 
     Lemma mwf_w3 : MWF_real lp bm bc Ptrofs.zero SBw m3.
     Proof.
-      apply (mwf_real_widen lp bm bc Ptrofs.zero (SafeB_boot lp) SBw (fun b => b = bt) m3 mwf_m3).
+      apply (mwf_real_widen lp bm bc Ptrofs.zero (SafeB_boot lp) SBw (fun b => b = bt \/ b = bar) m3 mwf_m3).
       - intros b [E | H]; [ right; exact E | left; right; exact H ].
       - intros b [[] | H]. right. exact H.
-      - intros b ->. exact bt_valid3.
-      - intros b ofs b' o' -> Hld. exact (bt_noptr3 _ _ _ Hld).
+      - intros b [-> | ->]; [ exact bt_valid3 | exact bar_valid3 ].
+      - intros b ofs b' o' [-> | ->] Hld; [ exact (bt_noptr3 _ _ _ Hld) | exact (bar_noptr3 _ _ _ Hld) ].
       - intros ab' Hab'. exact (safeb_of_nonfam_sym lp SBw Sy_w _ _ Hab' eq_refl).
     Qed.
 
     Lemma bs_not_sbw : ~ SBw bs.
     Proof.
-      intros [E | (id & _ & Hfs)]; [ exact (bt_bs (eq_sym E)) | ].
+      intros [[E | E] | (id & _ & Hfs)]; [ exact (bt_bs (eq_sym E)) | exact (bs_bar E) | ].
       exact (sym_ne_fresh _ _ _ Hfs (or_intror (or_introl eq_refl)) eq_refl).
     Qed.
 
@@ -540,7 +549,9 @@ Section Witness.
       assert (M6 : MWF_real lp bm bc Ptrofs.zero SBw m6).
       { eapply (mwf_real_window lp) with (mm := m5) (mm' := m6); try eassumption. reflexivity. }
       assert (M7 : MWF_real lp bm bc Ptrofs.zero SBw m7).
-      { eapply (mwf_real_window lp) with (mm := m6) (mm' := m7); try eassumption. reflexivity. }
+      { eapply (mwf_real_root_store lp) with (mm := m6) (mm' := m7) (fld := mario._area) (delta := 144);
+          try eassumption; [ reflexivity | discriminate | vm_compute; reflexivity | ].
+        intros bb oo E. injection E as <- _. left. right. reflexivity. }
       assert (M8 : MWF_real lp bm bc Ptrofs.zero SBw m8).
       { eapply (mwf_real_pin_store lp) with (mm := m7) (mm' := m8); try eassumption. left. split; reflexivity. }
       assert (M9 : MWF_real lp bm bc Ptrofs.zero SBw m9).
@@ -557,7 +568,7 @@ Section Witness.
           eapply boot_bss_noptr with (id := mario._gMarioAnimsBuf) (b := ab) (chunk := Mint32) (ofs := 8);
             first [ exact H12 | exact Hinit | reflexivity | exact Hab | exact Hld ]. }
       eapply (mwf_real_buf_store lp) with (mm := m10) (mm' := m11) (ab := ab); try eassumption.
-      - intros b o E. injection E as <- _. left. reflexivity.
+      - intros b o E. injection E as <- _. left. left. reflexivity.
       - intros b o mb mo E Hl. injection E as <- _.
         change (Mem.load Mint32 m10 bm 136 = Some (Vptr mb mo)) in Hl.
         rewrite mobj_m10 in Hl. injection Hl as <- _. exact bt_bo.
@@ -1056,7 +1067,7 @@ End Steps.
     destruct (store_ex m10 Mint32 ab 8 (Vptr bt Ptrofs.zero)) as (m11 & S8).
     { intros x Hx. cbn [size_chunk] in Hx. fwd. apply Pab. lia. }
     { exists 2. reflexivity. }
-    exists (SBw bt), m11.
+    exists (SBw bt bar), m11.
     eapply witness_ok; eassumption.
   Qed.
 End Witness.

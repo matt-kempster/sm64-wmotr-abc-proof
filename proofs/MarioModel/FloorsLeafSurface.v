@@ -69,6 +69,10 @@ Definition floors_leaf_sids : list ident :=
 
 Definition umsc_xids : list ident :=
   mario._raise_background_noise :: mario._set_camera_mode :: nil.
+(* the m->area / ->camera chase temps: set_camera_mode's gated arg0 *)
+Definition umsc_cact : list ident :=
+  mario._t'10 :: mario._t'11 :: mario._t'7 :: mario._t'8
+    :: mario._t'2 :: mario._t'3 :: mario._t'4 :: mario._t'5 :: nil.
 
 (* the floors family's NEW external rows (capstone surface): only the two
    ids not already in obj_ext_ids *)
@@ -211,7 +215,7 @@ Example clb_walk :
     (fn_body interaction.f_check_lava_boost) = true.
 Proof. vm_compute. reflexivity. Qed.
 Example umsc_walk :
-  wwalk_chk false nil nil nil nil umsc_xids nil nil
+  wwalk_chk false nil nil nil umsc_cact umsc_xids nil nil
     (fn_body mario.f_update_mario_sound_and_camera) = true.
 Proof. vm_compute. reflexivity. Qed.
 (* lct has NO Mario pointer anywhere: the plain (marg-free) walker, with
@@ -296,7 +300,7 @@ Section FloorsLeafRows.
   Hypothesis Hcpx_psound :
     call_pres_ext lp bm NoA MWF mario._play_sound.
   Hypothesis Hcpx_scm :
-    call_pres_ext lp bm NoA MWF mario._set_camera_mode.
+    OutParamSurface.call_pres_ext_cs lp bm NoA MWF SafeB mario._set_camera_mode.
   Hypothesis Hcpx_s2v :
     call_pres_ext lp bm NoA MWF interaction._segmented_to_virtual.
   Hypothesis Hcpx_ssm :
@@ -410,12 +414,12 @@ Section FloorsLeafRows.
   Lemma umsc_pres :
     body_pres lp NoA MWF bm mario.f_update_mario_sound_and_camera.
   Proof.
-    apply (body_pres_of_wwalk lp LO_mario bm NoA MWF HNoA_of_MWF
+    apply (body_pres_of_wwalk_cact lp LO_mario bm NoA MWF HNoA_of_MWF
              HMWF_window HMWF_glob HMWF_act SafeB HSafeNotBm HchaseRoot
              HMWF_chase HMWF_root HMWF_sglob HchaseStep HMWF_chase_safe
              mario.f_update_mario_sound_and_camera
-             nil nil umsc_xids nil nil
-             umsc_vars umsc_params_ok).
+             nil nil umsc_cact umsc_xids nil nil
+             umsc_vars umsc_params_ok ltac:(vm_compute; reflexivity)).
     - intros fid' H. discriminate H.
     - intros fid' H. discriminate H.
     - intros fid' H. unfold umsc_xids in H. cbn [mem_id existsb] in H.

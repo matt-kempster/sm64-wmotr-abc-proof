@@ -5522,6 +5522,9 @@ Proof. vm_compute. reflexivity. Qed.
 (* ---- reset_mario_pitch: plain (m) row; its only callee is the
    set_camera_mode camera external (already in obj_ext_ids). ---- *)
 Definition rmp_xids : list ident := interaction._set_camera_mode :: nil.
+(* the m->area / ->camera chase temps: set_camera_mode's gated arg0 *)
+Definition rmp_cact : list ident :=
+  interaction._t'3 :: interaction._t'4 :: interaction._t'5 :: interaction._t'6 :: nil.
 Lemma rmp_pin :
   (prog_defmap interaction.prog) ! interaction._reset_mario_pitch
   = Some (Gfun (Internal interaction.f_reset_mario_pitch)).
@@ -5538,7 +5541,7 @@ Lemma rmp_params_ok :
   end = true.
 Proof. vm_compute. reflexivity. Qed.
 Lemma rmp_walk :
-  wwalk_chk false nil nil nil nil rmp_xids nil nil
+  wwalk_chk false nil nil nil rmp_cact rmp_xids nil nil
     (fn_body interaction.f_reset_mario_pitch) = true.
 Proof. vm_compute. reflexivity. Qed.
 
@@ -6439,7 +6442,7 @@ Section IoSurface.
      (rmp's only callee; already in obj_ext_ids) and the save-file
      total-star-count reader. *)
   Hypothesis Hcpx_scm :
-    call_pres_ext lp bm NoA MWF interaction._set_camera_mode.
+    OutParamSurface.call_pres_ext_cs lp bm NoA MWF SafeB interaction._set_camera_mode.
   Hypothesis Hcpx_sfgtsc :
     call_pres_ext lp bm NoA MWF
       interaction._save_file_get_total_star_count.
@@ -8395,13 +8398,14 @@ Section IoSurface.
   Lemma rmp_row :
     call_pres lp bm NoA MWF interaction._reset_mario_pitch.
   Proof.
-    apply (call_pres_of_wwalk lp LO_mario bm NoA MWF HNoA_of_MWF
+    apply (call_pres_of_wwalk_cact lp LO_mario bm NoA MWF HNoA_of_MWF
              HMWF_window HMWF_glob HMWF_act SafeB HSafeNotBm HchaseRoot
              HMWF_chase HMWF_root HMWF_sglob HchaseStep HMWF_chase_safe
              interaction.prog interaction._reset_mario_pitch
              interaction.f_reset_mario_pitch
-             nil nil rmp_xids nil
-             LO_int rmp_pin rmp_vars rmp_params_ok).
+             nil nil rmp_cact rmp_xids nil
+             LO_int rmp_pin rmp_vars rmp_params_ok
+             ltac:(vm_compute; reflexivity)).
     - intros fid' H. discriminate H.
     - intros fid' H. discriminate H.
     - intros fid' H. unfold rmp_xids in H. cbn [mem_id existsb] in H.

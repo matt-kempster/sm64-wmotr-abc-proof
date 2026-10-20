@@ -279,7 +279,10 @@ Definition chain_root_l (a : expr) : option ident :=
 Definition chase_root_fields : list ident :=
   mario._marioObj :: mario._marioBodyState :: mario._statusForCamera
     :: mario._heldObj :: mario._usedObj :: mario._riddenObj
-    :: mario._interactObj :: nil.
+    :: mario._interactObj
+    (* 2026-10-20: m->area, so the camera every set_camera_mode call site
+       passes (m->area->camera) is a SafeB chase value *)
+    :: mario._area :: nil.
 
 (* `t = gMarioState` -- a By_value load of the global Mario pointer.  The
    bc_globals membership requirement puts the symbol under TI's env row, so
@@ -386,7 +389,8 @@ Proof.
                        || (Pos.eqb fld mario._usedObj
                            || (Pos.eqb fld mario._riddenObj
                                || (Pos.eqb fld mario._interactObj
-                                   || false)))))))%bool = true)
+                                   || (Pos.eqb fld mario._area
+                                       || false))))))))%bool = true)
     in H.
   repeat (apply orb_true_iff in H; destruct H as [H | H]);
     try discriminate H; apply Pos.eqb_eq in H; subst fld.
@@ -397,6 +401,7 @@ Proof.
   - exists 128. vm_compute. reflexivity.
   - exists 132. vm_compute. reflexivity.
   - exists 120. vm_compute. reflexivity.
+  - exists 144. vm_compute. reflexivity.
 Qed.
 
 Lemma is_ptr_ty_access :
@@ -690,12 +695,13 @@ Qed.
 (*   [128,132) m->usedObj         (chase root)                             *)
 (*   [132,136) m->riddenObj       (chase root)                             *)
 (*   [136,140) m->marioObj        (chase root)                             *)
+(*   [144,148) m->area            (chase root, 2026-10-20)                  *)
 (*   [148,152) m->statusForCamera (chase root)                             *)
 (*   [152,156) m->marioBodyState  (chase root)                             *)
 (*   [156,160) m->controller      (ctl_a_clear's chase root)               *)
 (*   [160,164) m->animList        (chase root)                             *)
 (* heldObj..marioObj are contiguous: one [124,140) window conjunct;        *)
-(* statusForCamera..animList likewise: one [148,164) window conjunct.      *)
+(* area..animList likewise: one [144,164) window conjunct.                *)
 (* The offset is computed in mario.prog's OWN cenv (cheap, concrete) and   *)
 (* transferred to lp by linkorder (linkorder_field_offset_agree).  The     *)
 (* bounds conjunct makes Ptrofs.unsigned (Ptrofs.repr delta) = delta.      *)
@@ -709,7 +715,7 @@ Definition store_window_ok (delta sz : Z) : bool :=
   && ((delta + sz <=? 2) || (4 <=? delta))
   && ((delta + sz <=? 12) || (16 <=? delta))
   && ((delta + sz <=? 120) || (140 <=? delta))
-  && ((delta + sz <=? 148) || (164 <=? delta)).
+  && ((delta + sz <=? 144) || (164 <=? delta)).
 
 (* the per-field geometry check, isolated so its soundness lemma has
    stable binder names. *)
@@ -1063,6 +1069,11 @@ Definition T_v3scopy : type :=
 Definition T_vfc : type :=
   Tfunction (tptr tfloat :: tfloat :: tySurfPP :: nil) tfloat cc_default.
 
+(* set_camera_mode(struct Camera *c, s16 mode, s16 frames): writes c->mode
+   (camera.c:2854), so its camera argument is gated (2026-10-20). *)
+Definition T_scm : type :=
+  Tfunction (tptr (Tstruct mario._Camera noattr) :: tshort :: tshort :: nil) tvoid cc_default.
+
 (* a pointer argument lands n window bytes into Mario's block.  It IS a
    pointer: every accepted argument shape evaluates to one, and a cast to a
    pointer parameter keeps it (sem_cast_vptr_ptr), so the body's out-param
@@ -1085,6 +1096,9 @@ Definition wgate (bm : block) (SafeB : block -> Prop) (ty : type)
   else if type_eq ty T_v3fset then osafe bm SafeB 12 (nth 0 vargs Vundef)
   else if type_eq ty T_v3scopy then osafe bm SafeB 6 (nth 0 vargs Vundef)
   else if type_eq ty T_vfc then owin bm 4 (nth 2 vargs Vundef)
+  (* osafe at size 0: no window is 0-store-safe, so this says "a SafeB
+     block, if a pointer" *)
+  else if type_eq ty T_scm then osafe bm SafeB 0 (nth 0 vargs Vundef)
   else True.
 
 (* m->fld (the lvalue), at its mario.prog field offset *)
@@ -1144,6 +1158,7 @@ Definition wargs_chk (bc : body_census) (ty : type) (al : list expr) : bool :=
   else if type_eq ty T_v3scopy then
     win_ptr_chk (bc_mptr bc) 6 (arg 0%nat) || safe_ptr_chk bc (arg 0%nat)
   else if type_eq ty T_vfc then win_ptr_chk (bc_mptr bc) 4 (arg 2%nat)
+  else if type_eq ty T_scm then safe_ptr_chk bc (arg 0%nat)
   else true.
 
 (* the writer signatures, as a decidable test: a call of any OTHER function
@@ -1151,7 +1166,8 @@ Definition wargs_chk (bc : body_census) (ty : type) (al : list expr) : bool :=
 Definition is_wty (ty : type) : bool :=
   proj_sumbool (type_eq ty T_ffc) || proj_sumbool (type_eq ty T_f32w)
   || proj_sumbool (type_eq ty T_v3fcopy) || proj_sumbool (type_eq ty T_v3fset)
-  || proj_sumbool (type_eq ty T_v3scopy) || proj_sumbool (type_eq ty T_vfc).
+  || proj_sumbool (type_eq ty T_v3scopy) || proj_sumbool (type_eq ty T_vfc)
+  || proj_sumbool (type_eq ty T_scm).
 
 (* a cast to a pointer type keeps a pointer unchanged (32-bit target) *)
 Lemma sem_cast_vptr_ptr : forall b o ty1 t ta m v,
@@ -1194,6 +1210,7 @@ Proof.
   destruct (type_eq ty T_v3fset); [ discriminate H | ].
   destruct (type_eq ty T_v3scopy); [ discriminate H | ].
   destruct (type_eq ty T_vfc); [ discriminate H | ].
+  destruct (type_eq ty T_scm); [ discriminate H | ].
   exact I.
 Qed.
 
@@ -2121,6 +2138,8 @@ Section CensusLeavesLp.
     destruct (type_eq ty T_vfc) as [Ety |].
     { rewrite Ety in Hty. unfold T_vfc in Hty. injection Hty as <- _ _.
       eapply arg_owin; [ eauto | eauto | apply Hp; intros ty0 E; cbn in E; injection E as <-; exact I | exact Hc ]. }
+    destruct (type_eq ty T_scm).
+    { eapply arg_osafe; [ eauto | eauto | apply orb_true_iff; right; exact Hc ]. }
     exact I.
   Qed.
 
@@ -2638,8 +2657,18 @@ Lemma chk_update_and_return_cap_flags :
   chk bc_m0 (fn_body mario.f_update_and_return_cap_flags) = true.
 Proof. vm_compute. reflexivity. Qed.
 
+(* set_submerged_cam_preset_and_spawn_bubbles passes m->area->camera to
+   set_camera_mode, whose arg0 is gated SafeB (it writes c->mode): the
+   m->area / ->camera load temps are tabled as chase rows (2026-10-20). *)
+Definition bc_sscp : body_census :=
+  {| bc_mptr := mario._m; bc_gates := nil; bc_disp := nil;
+     bc_globals := nil; bc_gms := nil;
+     bc_chase := mario._t'11 :: mario._t'12 :: mario._t'13 :: mario._t'14
+                 :: mario._t'15 :: mario._t'16 :: mario._t'17 :: mario._t'18
+                 :: nil |}.
+
 Lemma chk_set_submerged_cam_preset_and_spawn_bubbles :
-  chk bc_m0 (fn_body mario.f_set_submerged_cam_preset_and_spawn_bubbles) = true.
+  chk bc_sscp (fn_body mario.f_set_submerged_cam_preset_and_spawn_bubbles) = true.
 Proof. vm_compute. reflexivity. Qed.
 
 Lemma chk_update_mario_health :
@@ -2662,7 +2691,7 @@ Proof. reflexivity. Qed.
 
 Lemma params_set_submerged_cam_preset_and_spawn_bubbles :
   fn_params mario.f_set_submerged_cam_preset_and_spawn_bubbles
-  = (bc_mptr bc_m0, tptr tyMS) :: nil.
+  = (bc_mptr bc_sscp, tptr tyMS) :: nil.
 Proof. reflexivity. Qed.
 
 Lemma params_update_mario_health :
@@ -2767,16 +2796,16 @@ Lemma body_TI_C_set_submerged_cam_preset_and_spawn_bubbles :
     function_entry2 ge mario.f_set_submerged_cam_preset_and_spawn_bubbles
       vargs m e le m1 ->
     marg_ok bm vargs ->
-    TI_of Q bm SafeB bc_m0 e le /\
-    chk bc_m0 (fn_body mario.f_set_submerged_cam_preset_and_spawn_bubbles)
+    TI_of Q bm SafeB bc_sscp e le /\
+    chk bc_sscp (fn_body mario.f_set_submerged_cam_preset_and_spawn_bubbles)
       = true.
 Proof.
   intros Q bm SafeB ge vargs m e le m1 Hentry Hmarg.
   split.
-  - exact (entry_TI_v2 Q bm SafeB bc_m0 ge _ vargs m e le m1 Hentry
+  - exact (entry_TI_v2 Q bm SafeB bc_sscp ge _ vargs m e le m1 Hentry
              params_set_submerged_cam_preset_and_spawn_bubbles
-             bc_m0_gates_disjoint bc_m0_disp_disjoint eq_refl eq_refl
-             (nil_globals_novars bc_m0 _ eq_refl) Hmarg).
+             eq_refl eq_refl eq_refl eq_refl
+             (nil_globals_novars bc_sscp _ eq_refl) Hmarg).
   - exact chk_set_submerged_cam_preset_and_spawn_bubbles.
 Qed.
 
@@ -3071,7 +3100,7 @@ Proof.
     exact (body_TI_C_debug_print_speed_action_normal Q bm SafeB ge vargs m e le m1 Hentry Hmarg).
   - exists bc_m0.
     exact (body_TI_C_update_and_return_cap_flags Q bm SafeB ge vargs m e le m1 Hentry Hmarg).
-  - exists bc_m0.
+  - exists bc_sscp.
     exact (body_TI_C_set_submerged_cam_preset_and_spawn_bubbles Q bm SafeB ge vargs m e le m1 Hentry Hmarg).
   - exists bc_m0.
     exact (body_TI_C_update_mario_health Q bm SafeB ge vargs m e le m1 Hentry Hmarg).

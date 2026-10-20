@@ -65,6 +65,9 @@ Definition pmjs_xids : list ident := mario._play_sound :: nil.
 (* swpa: vec3s_set(m->angleVel,0,0,0) + set_camera_mode(m->area->camera..) *)
 Definition swpa_xids : list ident :=
   mario._vec3s_set :: mario._set_camera_mode :: nil.
+(* the m->area / ->camera chase temps: set_camera_mode's gated arg0 *)
+Definition swpa_cact : list ident :=
+  mario._t'2 :: mario._t'3 :: mario._t'5 :: mario._t'6 :: nil.
 
 (* dasma: _t'1 := set_mario_action(m, _action, _actionArg); return _t'1 *)
 Definition dasma_wact : list ident := mario._action :: mario._t'1 :: nil.
@@ -127,8 +130,10 @@ Definition obj_ext_ids : list ident :=
   (* (the four math_util vector writers vec3s_set / vec3f_set / vec3f_copy /
      vec3s_copy were REMOVED 2026-10-17: they write through arg0, so an
      any-argument row is FALSE -- they ride the dst-gated dg rows instead) *)
-  mario._set_camera_mode
-    :: interaction._segmented_to_virtual
+  (* (set_camera_mode REMOVED 2026-10-20: it writes c->mode through arg0,
+     camera.c:2854, so an any-argument row is FALSE; it rides the cs-gated
+     Hcsp_scm_real -- every real site passes the chase temp m->area->camera.) *)
+  interaction._segmented_to_virtual
     :: interaction._stop_shell_music
     (* (obj_set_held_state REMOVED 2026-10-19: it writes through arg0, so
        an any-argument row is FALSE; it rides the cs-gated Hcsp_osh_real.) *)
@@ -322,7 +327,7 @@ Example swpa_params_ok :
   end = true.
 Proof. vm_compute. reflexivity. Qed.
 Example swpa_walk :
-  wwalk_chk false nil nil nil nil swpa_xids obj_sids nil
+  wwalk_chk false nil nil nil swpa_cact swpa_xids obj_sids nil
     (fn_body mario.f_set_water_plunge_action) = true.
 Proof. vm_compute. reflexivity. Qed.
 
@@ -1274,7 +1279,7 @@ Section ObjectLeafRows.
   Hypothesis Hcpx_v3f :
     OutParamSurface.call_pres_ext_dg lp bm NoA MWF SafeB mario_step._vec3f_copy.
   Hypothesis Hcpx_scm :
-    call_pres_ext lp bm NoA MWF mario._set_camera_mode.
+    OutParamSurface.call_pres_ext_cs lp bm NoA MWF SafeB mario._set_camera_mode.
   Hypothesis Hcpx_s2v :
     call_pres_ext lp bm NoA MWF interaction._segmented_to_virtual.
   Hypothesis Hcpx_ssm :
@@ -1383,11 +1388,11 @@ Section ObjectLeafRows.
   Lemma swpa_row :
     call_pres lp bm NoA MWF mario._set_water_plunge_action.
   Proof.
-    apply (call_pres_of_wwalk lp LO_mario bm NoA MWF HNoA_of_MWF
+    apply (call_pres_of_wwalk_cact lp LO_mario bm NoA MWF HNoA_of_MWF
              HMWF_window HMWF_glob HMWF_act SafeB HSafeNotBm HchaseRoot
              HMWF_chase HMWF_root HMWF_sglob HchaseStep HMWF_chase_safe mario.prog mario._set_water_plunge_action
-             mario.f_set_water_plunge_action nil nil swpa_xids obj_sids
-             LO_mario swpa_pin swpa_vars swpa_params_ok).
+             mario.f_set_water_plunge_action nil nil swpa_cact swpa_xids obj_sids
+             LO_mario swpa_pin swpa_vars swpa_params_ok ltac:(vm_compute; reflexivity)).
     - intros fid' H. discriminate H.
     - intros fid' H. discriminate H.
     - intros fid' H. unfold swpa_xids in H. cbn [mem_id existsb] in H.

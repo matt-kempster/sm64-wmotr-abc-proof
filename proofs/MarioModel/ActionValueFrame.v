@@ -1816,12 +1816,17 @@ Theorem exec_funcall_reach_value_v2 :
        rest-symbol resolution. The previous forall-ef forms were FALSE for
        the real program (EF_memcpy writes any writable cell, including
        Mario's action cell). *)
+    (* 2026-10-20: they also get the per-call argument gate G, like the
+       internal leaves: an any-argument external row is false of a real
+       external that writes through a pointer argument (set_camera_mode). *)
     (forall ef targs tres cc vargs m t vres m',
        Reached_fd (External ef targs tres cc) ->
+       G (External ef targs tres cc) vargs ->
        external_call ef ge vargs m t vres m' ->
        Mem.unchanged_on (action_cell bm) m m') ->
     (forall ef targs tres cc vargs m t vres m',
        Reached_fd (External ef targs tres cc) ->
+       G (External ef targs tres cc) vargs ->
        external_call ef ge vargs m t vres m' ->
        Mem.valid_block m bm -> MWF m -> MWF m') ->
     (* Hmwf_entry / Hmwf_free: MWF crosses function entry and exit by the
@@ -2027,13 +2032,13 @@ Proof.
             [ eapply action_sat_unchanged_on; [ exact Ufree_ac | exact Hv2 | exact Hsat2 ]
             | eapply Hmwf_free; [ exact Hfree | exact HMWF2 ] ] ].
     - (* eval_funcall_external: the only external_call site -- reached-gated *)
-      intros m ef targs tres cconv vargs t vres m' Hec Hreached HnoA HMWF Hv Hsat Hmarg _ _ _.
+      intros m ef targs tres cconv vargs t vres m' Hec Hreached HnoA HMWF Hv Hsat Hmarg _ _ Hg.
       split;
       [ eapply external_call_valid_block; [ exact Hec | exact Hv ]
       | split;
         [ eapply action_sat_unchanged_on;
-            [ eapply Hext; [ exact Hreached | exact Hec ] | exact Hv | exact Hsat ]
-        | eapply Hmwf_ext; [ exact Hreached | exact Hec | exact Hv | exact HMWF ] ] ]. }
+            [ eapply Hext; [ exact Hreached | exact Hg | exact Hec ] | exact Hv | exact Hsat ]
+        | eapply Hmwf_ext; [ exact Hreached | exact Hg | exact Hec | exact Hv | exact HMWF ] ] ]. }
   intros m fd vargs t m' vres Hreached HnoA HMWF Hmarg Hwargs Hsargs Hgate Hev Hv Hsat.
   exact (proj2 MAIN m fd vargs t m' vres Hev Hreached HnoA HMWF Hv Hsat Hmarg Hwargs Hsargs Hgate).
 Qed.

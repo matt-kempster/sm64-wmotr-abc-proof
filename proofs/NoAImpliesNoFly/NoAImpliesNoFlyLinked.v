@@ -545,10 +545,12 @@ Section NoARealInputV2.
      (EF_memcpy / EF_vload counterexamples). *)
   Hypothesis Hext_action : forall ef targs tres cc vargs m t vres m',
       reached_v2 lp (External ef targs tres cc) ->
+      wgate bm SafeB (type_of_fundef (External ef targs tres cc)) vargs ->
       external_call ef (lp_ge lp) vargs m t vres m' ->
       Mem.unchanged_on (action_cell bm) m m'.
   Hypothesis Hmwf_ext : forall ef targs tres cc vargs m t vres m',
       reached_v2 lp (External ef targs tres cc) ->
+      wgate bm SafeB (type_of_fundef (External ef targs tres cc)) vargs ->
       external_call ef (lp_ge lp) vargs m t vres m' ->
       Mem.valid_block m bm -> MWF m -> MWF m'.
   (* MWF crosses function entry/exit by the PRECISE operations there:
@@ -979,6 +981,14 @@ Section NoARealInputMWF.
   Hypothesis Hcsp_osh_real :
     call_pres_ext_cs lp bm (NoA_real bm) MWF SafeB
       interaction._obj_set_held_state.
+  (* set_camera_mode(c, mode, frames) writes c->mode (and, through the mode
+     transition, more of *c) via arg0 (camera.c:2854), so the any-argument
+     obj_ext row was FALSE (found 2026-10-20).  Restated arg0-gated (cs):
+     every real site passes the chase m->area->camera.  The camera stays a
+     labeled deferred premise (docs/TRUST.md 4.1). *)
+  Hypothesis Hcsp_scm_real :
+    call_pres_ext_cs lp bm (NoA_real bm) MWF SafeB
+      interaction._set_camera_mode.
   (* set_mario_animation / set_mario_anim_with_accel (and through them
      load_patchable_table, whose list argument is m->animList, pinned to
      gMarioAnimsBuf by MWF R11): proved from their real bodies in LptBody,
@@ -1720,7 +1730,7 @@ Section NoARealInputMWF.
       (mwf_real_chase_step lp bm bc oc0 SafeB)
       (mwf_real_chase_ptr lp bm bc oc0 SafeB Hbc_bm HSafeB_not_bm
          HSafeB_not_bc Hgms_blk Hgtimer_blk Htable_blk Hktab_blk)
-      (Hpres_obj_ext mario._set_camera_mode eq_refl)
+      Hcsp_scm_real
       (Hpres_obj_ext interaction._segmented_to_virtual eq_refl)
       (Hpres_obj_ext interaction._stop_shell_music eq_refl)
       Hcsp_osh_real
@@ -2124,7 +2134,7 @@ Section NoARealInputMWF.
                    (mwf_real_chase_step lp bm bc oc0 SafeB)
                    (mwf_real_chase_ptr lp bm bc oc0 SafeB Hbc_bm HSafeB_not_bm
                       HSafeB_not_bc Hgms_blk Hgtimer_blk Htable_blk Hktab_blk)
-                   (Hpres_obj_ext mario._set_camera_mode eq_refl)
+                   Hcsp_scm_real
                    (Hpres_floors_ext mario._raise_background_noise eq_refl)))
              (Hpres_obj_ext interaction._play_sound eq_refl)
              (dasma_row lp LO_mario LO_stp LO_int bm (NoA_real bm)
@@ -2236,7 +2246,7 @@ Section NoARealInputMWF.
                 (Hpres_obj_ext interaction._segmented_to_virtual eq_refl)
                 (Hpres_obj_ext interaction._stop_shell_music eq_refl)
                 Hcsp_osh_real)
-             (Hpres_obj_ext interaction._set_camera_mode eq_refl)
+             Hcsp_scm_real
              (Hpres_obj_ext interaction._save_file_get_total_star_count
                 eq_refl)
              (mwf_real_input lp bm bc oc0 SafeB Hbc_bm HSafeB_not_bm
@@ -2382,10 +2392,12 @@ Section NoARealInputMWF.
      (EF_memcpy / EF_vload counterexamples). *)
   Hypothesis Hext_action : forall ef targs tres cc vargs m t vres m',
       reached_v2 lp (External ef targs tres cc) ->
+      wgate bm SafeB (type_of_fundef (External ef targs tres cc)) vargs ->
       external_call ef (lp_ge lp) vargs m t vres m' ->
       Mem.unchanged_on (action_cell bm) m m'.
   Hypothesis Hmwf_ext : forall ef targs tres cc vargs m t vres m',
       reached_v2 lp (External ef targs tres cc) ->
+      wgate bm SafeB (type_of_fundef (External ef targs tres cc)) vargs ->
       external_call ef (lp_ge lp) vargs m t vres m' ->
       Mem.valid_block m bm -> MWF m -> MWF m'.
   (* the chase-root row of MWF at the marioObj cell: its value, if a
@@ -2763,12 +2775,12 @@ Section NoARealInputMWF.
              (Hpres_obj_ext mario._play_sound eq_refl)
              Hpres_obj_ext
              Hcsp_osh_real
+             Hcsp_scm_real
              (Hpres_obj_ext mario._sqrtf eq_refl)
              (Hpres_obj_ext mario._atan2s eq_refl)
              Hcpx_approach_f32_real
              Hsma_real
              (Hpres_floors_ext mario._raise_background_noise eq_refl)
-             (Hpres_obj_ext mario._set_camera_mode eq_refl)
              Hcp_pas).
   Qed.
 
@@ -2946,7 +2958,7 @@ Section NoARealInputMWF.
                          external check_common_stationary_cancels's two helpers
                          (set_water_plunge_action / update_mario_sound_and_camera)
                          call.  Discharged via the obj_ext boundary. *)
-                      (Hpres_obj_ext mario._set_camera_mode eq_refl)
+                      Hcsp_scm_real
                       (* SLICE 21: act_first_person's level_trigger_warp -- the
                          SHARED warp-trigger body the floors family already
                          walks (WarpSurface.warp_pres), lifted to a call_pres
@@ -3025,7 +3037,7 @@ Section NoARealInputMWF.
                       (* SLICE M3: the obj_ext boundary the set_jumping_action
                          arc reaches (atan2s/approach_s32 + dasma trio). *)
                       Hpres_obj_ext
-                      Hcsp_osh_real
+                      Hcsp_osh_real Hcsp_scm_real
                       (* the dst-gated writer rows (dg) *)
                       Hdg_v3s_real Hdg_v3f_real
                       (* LANDING KEYSTONE: the clc walk's two MWF rows --
@@ -3083,7 +3095,7 @@ Section NoARealInputMWF.
                          HSafeB_not_bm HSafeB_not_bc Hgms_blk Hgtimer_blk Htable_blk Hktab_blk)
                       (Hpres_obj_ext mario._play_sound eq_refl)
                       Hpres_obj_ext
-                      Hcsp_osh_real
+                      Hcsp_osh_real Hcsp_scm_real
                       Hdg_v3s_real Hdg_v3f_real
                       Hcp_caas_real
                       (Hpres_obj_ext mario._sqrtf eq_refl)
@@ -3091,7 +3103,6 @@ Section NoARealInputMWF.
                       Hcpx_approach_f32_real
                       Hsma_real
                       (Hpres_floors_ext mario._raise_background_noise eq_refl)
-                      (Hpres_obj_ext mario._set_camera_mode eq_refl)
                       Hcp_pas
                       Hcpx_approach_real
                       (* SLICE A21: act_lava_boost's low-health
@@ -3288,7 +3299,7 @@ Section NoARealInputMWF.
                          set_camera_mode rides the obj_ext boundary (NO new
                          trust); the angleVel vec3s_set window is the ONE new
                          terminal-external boundary row (Hw1cp_v3sset_real). *)
-                      (Hpres_obj_ext mario._set_camera_mode eq_refl)
+                      Hcsp_scm_real
                       Hw1cp_v3sset_real))
                 (cutscene_pres lp LO_mario LO_cut bm (NoA_real bm)
                    (MWF_real lp bm bc oc0 SafeB)
@@ -3331,7 +3342,7 @@ Section NoARealInputMWF.
                             (mwf_real_glob lp bm bc oc0 SafeB Hbc_bm Hglob_blk)
                             Hpres_warp_ext))
                       Hcp_pas
-                      (Hpres_obj_ext mario._set_camera_mode eq_refl)
+                      Hcsp_scm_real
                       (Hpres_obj_ext interaction._set_camera_shake_from_hit eq_refl)
                       (* TASK #96: the cutscene save-dialog leaf's
                          load_level_init_text callee is now the WALKED
@@ -3445,7 +3456,7 @@ Section NoARealInputMWF.
                             (mwf_real_chase_step lp bm bc oc0 SafeB)
                             (mwf_real_chase_ptr lp bm bc oc0 SafeB Hbc_bm HSafeB_not_bm
                                HSafeB_not_bc Hgms_blk Hgtimer_blk Htable_blk Hktab_blk)
-                            (Hpres_obj_ext mario._set_camera_mode eq_refl)
+                            Hcsp_scm_real
                             (Hpres_floors_ext mario._raise_background_noise eq_refl)))
                       (* SLICE 23 (act_unlocking_key_door): save_file_clear_flags
                          rides obj_ext_ids (newly added there, the WRITER twin of
@@ -3539,7 +3550,7 @@ Section NoARealInputMWF.
                          consumes.  NO new trust. *)
                       (mwf_real_inp lp bm bc oc0 SafeB)
                       Hdg_v3s_real
-                      (Hpres_obj_ext mario._set_camera_mode eq_refl)
+                      Hcsp_scm_real
                       Hsma_real Hsmawa_real
                       Hdg_v3f_real
                       (Hpres_obj_ext mario._play_sound eq_refl)
@@ -3622,7 +3633,7 @@ Section NoARealInputMWF.
                       (Hpres_obj_ext mario._play_sound eq_refl)
                       Hdg_v3s_real
                       Hdg_v3f_real
-                      (Hpres_obj_ext mario._set_camera_mode eq_refl)
+                      Hcsp_scm_real
                       (Hpres_obj_ext interaction._segmented_to_virtual
                          eq_refl)
                       (Hpres_obj_ext interaction._stop_shell_music eq_refl)
@@ -3662,7 +3673,7 @@ Section NoARealInputMWF.
                          HSafeB_not_bm HSafeB_not_bc Hgms_blk
                          Hgtimer_blk Htable_blk Hktab_blk)
                       (Hpres_obj_ext mario._play_sound eq_refl)
-                      (Hpres_obj_ext mario._set_camera_mode eq_refl)
+                      Hcsp_scm_real
                       (Hpres_obj_ext interaction._segmented_to_virtual
                          eq_refl)
                       (Hpres_obj_ext interaction._stop_shell_music eq_refl)
@@ -3736,7 +3747,7 @@ Section NoARealInputMWF.
                          HSafeB_not_bm HSafeB_not_bc Hgms_blk Hgtimer_blk Htable_blk Hktab_blk)
                       (Hpres_obj_ext mario._play_sound eq_refl)
                       Hpres_obj_ext
-                      Hcsp_osh_real
+                      Hcsp_osh_real Hcsp_scm_real
                       Hdg_v3s_real Hdg_v3f_real
                       Hcp_caas_real
                       (Hpres_obj_ext mario._sqrtf eq_refl)
@@ -3744,7 +3755,6 @@ Section NoARealInputMWF.
                       Hcpx_approach_f32_real
                       Hsma_real
                       (Hpres_floors_ext mario._raise_background_noise eq_refl)
-                      (Hpres_obj_ext mario._set_camera_mode eq_refl)
                       Hcp_pas
                       Hcpx_approach_real
                       (* SLICE A21: act_lava_boost's low-health

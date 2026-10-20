@@ -1130,8 +1130,11 @@ Example mov_swpa_vars : fn_vars mario.f_set_water_plunge_action = nil.
 Proof. vm_compute. reflexivity. Qed.
 Example mov_swpa_pok : mov_pok mario.f_set_water_plunge_action = true.
 Proof. vm_compute. reflexivity. Qed.
+(* the m->area / ->camera chase temps: set_camera_mode's gated arg0 *)
+Definition mov_swpa_cact : list ident :=
+  mario._t'2 :: mario._t'3 :: mario._t'5 :: mario._t'6 :: nil.
 Example mov_swpa_walk :
-  wwalk_chk false nil nil nil nil mov_swpa_xids mov_sids nil
+  wwalk_chk false nil nil nil mov_swpa_cact mov_swpa_xids mov_sids nil
     (fn_body mario.f_set_water_plunge_action) = true.
 Proof. vm_compute. reflexivity. Qed.
 
@@ -1624,6 +1627,10 @@ Section MovingLeafRows.
   (* obj_set_held_state writes through arg0: its row is cs-gated (2026-10-19) *)
   Hypothesis Hcsp_osh :
     OutParamSurface.call_pres_ext_cs lp bm NoA MWF SafeB interaction._obj_set_held_state.
+  (* set_camera_mode writes c->mode through arg0 (camera.c): its row is
+     cs-gated -- every real site passes m->area->camera (2026-10-20) *)
+  Hypothesis Hcpx_scm :
+    OutParamSurface.call_pres_ext_cs lp bm NoA MWF SafeB mario._set_camera_mode.
   (* the dst-gated writers (dst = a SafeB chase / a stack local): dg rows,
      discharged at the capstone from the real bodies *)
   Hypothesis Hdgp_v3s :
@@ -2351,7 +2358,7 @@ Section MovingLeafRows.
     intros fid H. unfold mov_swpa_xids in H. cbn [mem_id existsb] in H.
     apply orb_true_iff in H as [Hm | H];
       [ apply Pos.eqb_eq in Hm; subst fid;
-        exact (Hpres_obj_ext mario._set_camera_mode eq_refl) | ].
+        exact Hcpx_scm | ].
     apply orb_true_iff in H as [Hm | H];
       [ apply Pos.eqb_eq in Hm; subst fid;
         exact Hdgp_v3s | ].
@@ -2360,12 +2367,13 @@ Section MovingLeafRows.
 
   Lemma mov_swpa_row : call_pres lp bm NoA MWF mario._set_water_plunge_action.
   Proof.
-    apply (call_pres_of_wwalk lp LO_mario bm NoA MWF HNoA_of_MWF
+    apply (call_pres_of_wwalk_cact lp LO_mario bm NoA MWF HNoA_of_MWF
              HMWF_window HMWF_glob HMWF_act SafeB HSafeNotBm HchaseRoot
              HMWF_chase HMWF_root HMWF_sglob HchaseStep HMWF_chase_safe
              mario.prog mario._set_water_plunge_action mario.f_set_water_plunge_action
-             nil nil mov_swpa_xids mov_sids
-             LO_mario mov_swpa_pin mov_swpa_vars mov_swpa_pok).
+             nil nil mov_swpa_cact mov_swpa_xids mov_sids
+             LO_mario mov_swpa_pin mov_swpa_vars mov_swpa_pok
+             ltac:(vm_compute; reflexivity)).
     - intros fid' H. discriminate H.
     - intros fid' H. discriminate H.
     - exact mov_swpa_xids_rows.

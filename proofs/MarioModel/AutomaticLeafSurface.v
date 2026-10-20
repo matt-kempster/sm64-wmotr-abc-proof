@@ -984,7 +984,7 @@ Section AutomaticLeafRows.
   Hypothesis Hcpx_v3s :
     OutParamSurface.call_pres_ext_dg lp bm NoA MWF SafeB mario._vec3s_set.
   Hypothesis Hcpx_scm :
-    call_pres_ext lp bm NoA MWF mario._set_camera_mode.
+    OutParamSurface.call_pres_ext_cs lp bm NoA MWF SafeB mario._set_camera_mode.
   (* set_mario_animation / set_mario_anim_with_accel: PROVED from their real
      bodies (LptBody.sma_row_proved / smawa_row_proved: m->animList pinned to
      gMarioAnimsBuf, load_patchable_table walked down to the DMA floor); the

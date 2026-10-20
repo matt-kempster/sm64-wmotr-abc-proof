@@ -375,6 +375,14 @@ Section HeightLinked12.
   Hypothesis Hcsp_osh_real :
     call_pres_ext_cs lp bm (NoA_real bm) MWF SafeB
       interaction._obj_set_held_state.
+  (* set_camera_mode(c, mode, frames) writes c->mode (and, through the mode
+     transition, more of *c) via arg0 (camera.c:2854), so the any-argument
+     obj_ext row was FALSE (found 2026-10-20).  Restated arg0-gated (cs):
+     every real site passes the chase m->area->camera.  The camera stays a
+     labeled deferred premise (docs/TRUST.md 4.1). *)
+  Hypothesis Hcsp_scm_real :
+    call_pres_ext_cs lp bm (NoA_real bm) MWF SafeB
+      interaction._set_camera_mode.
   (* load_patchable_table: PROVED from its real memory.c body and dma_read's
      (LptBody), down to the libultra DMA calls, whose effect is the
      hardware/OS floor spec (OsDmaFloor, TRUST 3.5). *)
@@ -442,10 +450,12 @@ Section HeightLinked12.
      NoAImpliesNoFlyLinked). *)
   Hypothesis Hext_action : forall ef targs tres cc vargs m t vres m',
       reached_v2 lp (External ef targs tres cc) ->
+      wgate bm SafeB (type_of_fundef (External ef targs tres cc)) vargs ->
       external_call ef (lp_ge lp) vargs m t vres m' ->
       Mem.unchanged_on (action_cell bm) m m'.
   Hypothesis Hmwf_ext : forall ef targs tres cc vargs m t vres m',
       reached_v2 lp (External ef targs tres cc) ->
+      wgate bm SafeB (type_of_fundef (External ef targs tres cc)) vargs ->
       external_call ef (lp_ge lp) vargs m t vres m' ->
       Mem.valid_block m bm -> MWF m -> MWF m'.
 
@@ -553,7 +563,7 @@ Section HeightLinked12.
     /\ chase_safe_stmt bm SafeB MWF /\ store_safe_stmt lp bm SafeB MWF.
   Proof.
     exact (frame_call_ok_linked12 lp H12 bm bc oc0 SafeB HSafeB_syms Hbm_sym Hbc_sym Hoc0
-             Hscp_mtxf_real Hcsp_omfd_real Hcsp_scale_real Hcsp_osh_real Hdma_floor WL_exempt
+             Hscp_mtxf_real Hcsp_omfd_real Hcsp_scale_real Hcsp_osh_real Hcsp_scm_real Hdma_floor WL_exempt
              Hpres_sta_ext Hcp_soawr_real Hpres_obj_ext_open2 Hpres_cut_ext_open Hgeo_real
              Hocp_rai_real Hpres_floors_ext Hcp_spawn_real Hcp_savefile_real Hcpx_ibcd_real
              Hcpx_tbs_real Hpres_warp_ext Hext_action Hmwf_ext).
@@ -565,7 +575,7 @@ Section HeightLinked12.
       body_pres lp (NoA_real bm) MWF bm f.
   Proof.
     exact (air_leaves_linked12 lp H12 bm bc oc0 SafeB HSafeB_syms Hbm_sym Hbc_sym Hoc0
-             Hcsp_osh_real Hdma_floor Hpres_obj_ext_open2 Hpres_floors_ext Hcp_spawn_real
+             Hcsp_osh_real Hcsp_scm_real Hdma_floor Hpres_obj_ext_open2 Hpres_floors_ext Hcp_spawn_real
              Hcp_savefile_real Hpres_warp_ext).
   Qed.
 

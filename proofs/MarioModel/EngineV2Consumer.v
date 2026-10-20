@@ -219,13 +219,18 @@ Section V2Consumer.
      ef in lp -- a per-symbol model-boundary surface (EF_external rows for
      play_sound, the math helpers, ...). The previous forall-ef rows
      (including the now-DELETED Hret_ext) were FALSE for the real program:
-     EF_memcpy writes any writable cell, EF_vload can return Vptr bm 0. *)
+     EF_memcpy writes any writable cell, EF_vload can return Vptr bm 0.
+     2026-10-20: the rows also get the census's per-call argument gate
+     (wgate, keyed on the external's type): an any-argument row was FALSE
+     for set_camera_mode, which writes c->mode through arg0. *)
   Hypothesis Hext_action : forall ef targs tres cc vargs m t vres m',
       reached_v2 (External ef targs tres cc) ->
+      wgate bm SafeB (type_of_fundef (External ef targs tres cc)) vargs ->
       external_call ef (lp_ge lp) vargs m t vres m' ->
       Mem.unchanged_on (action_cell bm) m m'.
   Hypothesis Hmwf_ext : forall ef targs tres cc vargs m t vres m',
       reached_v2 (External ef targs tres cc) ->
+      wgate bm SafeB (type_of_fundef (External ef targs tres cc)) vargs ->
       external_call ef (lp_ge lp) vargs m t vres m' ->
       Mem.valid_block m bm -> MWF m -> MWF m'.
   (* MWF crosses function entry/exit by the PRECISE operations there:

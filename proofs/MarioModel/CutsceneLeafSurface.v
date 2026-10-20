@@ -149,6 +149,8 @@ Definition tfi_ids : list ident :=
   mario._play_sound_if_no_flag :: mario._set_mario_animation
     :: mario_step._stop_and_set_height_to_floor :: nil.
 Definition tfi_xids : list ident := mario._set_camera_mode :: nil.
+(* the m->area / ->camera chase temps: set_camera_mode's gated arg0 *)
+Definition tfi_cact : list ident := C._t'4 :: C._t'5 :: C._t'7 :: C._t'8 :: nil.
 Definition tfi_sids : list ident := mario._set_mario_action :: nil.
 (* act_spawn_spin_landing + act_spawn_no_spin_landing: body_pres_of_wwalk
    leaves gated on the is_anim_at_end "anim done?" check (walked in-file,
@@ -326,7 +328,9 @@ Definition cred_xids : list ident :=
    _t'4 <- m->marioObj (the deep gfx.angle[1] indexed chase store). *)
 Definition cred_cact : list ident := C._t'32 :: C._t'4
   (* the gfx.pos / gfx.angle dst chases of vec3f_copy / vec3s_copy *)
-  :: C._t'26 :: C._t'25 :: nil.
+  :: C._t'26 :: C._t'25
+  (* the m->area / ->camera chases: set_camera_mode's gated arg0 *)
+  :: C._t'27 :: C._t'28 :: C._t'30 :: C._t'31 :: nil.
 
 (* get_door_save_file_flag support (the in-section twin of InterSurface's
    gdsff_row -- a STORELESS internal reading the door object through its only
@@ -1546,7 +1550,7 @@ Section CutsceneLeafRows.
      capstone feeds (Hpres_obj_ext mario._set_camera_mode eq_refl) -- NO new
      trust.  Consumed only by set_water_plunge_action's row (swpa). *)
   Hypothesis Hcpx_scm :
-    call_pres_ext lp bm NoA MWF mario._set_camera_mode.
+    OutParamSurface.call_pres_ext_cs lp bm NoA MWF SafeB mario._set_camera_mode.
   (* set_camera_shake_from_hit: a terminal obj_ext external (in obj_ext_ids;
      the capstone already feeds it elsewhere); writes camera state, never bm.
      Consumed only by act_shocked. *)
@@ -2777,16 +2781,16 @@ Section CutsceneLeafRows.
     | nil => false end = true.
   Proof. vm_compute. reflexivity. Qed.
   Example tfi_walk :
-    wwalk_chk false nil tfi_ids nil nil tfi_xids tfi_sids nil
+    wwalk_chk false nil tfi_ids nil tfi_cact tfi_xids tfi_sids nil
       (fn_body C.f_act_teleport_fade_in) = true.
   Proof. vm_compute. reflexivity. Qed.
   Lemma tfi_pres : body_pres lp NoA MWF bm C.f_act_teleport_fade_in.
   Proof.
-    apply (body_pres_of_wwalk lp LO_mario bm NoA MWF HNoA_of_MWF
+    apply (body_pres_of_wwalk_cact lp LO_mario bm NoA MWF HNoA_of_MWF
              HMWF_window HMWF_glob HMWF_act SafeB HSafeNotBm HchaseRoot
              HMWF_chase HMWF_root HMWF_sglob HchaseStep HMWF_chase_safe
-             C.f_act_teleport_fade_in tfi_ids nil tfi_xids tfi_sids nil
-             tfi_vars tfi_pok).
+             C.f_act_teleport_fade_in tfi_ids nil tfi_cact tfi_xids tfi_sids nil
+             tfi_vars tfi_pok ltac:(vm_compute; reflexivity)).
     - exact tfi_ids_rows.
     - intros fid' H. discriminate H.
     - intros fid' H. unfold tfi_xids in H. cbn [mem_id existsb] in H.

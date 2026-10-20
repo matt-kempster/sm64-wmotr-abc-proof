@@ -1337,8 +1337,11 @@ Example sta_swpa_params_ok :
   | nil => false
   end = true.
 Proof. vm_compute. reflexivity. Qed.
+(* the m->area / ->camera chase temps: set_camera_mode's gated arg0 *)
+Definition sta_swpa_cact : list ident :=
+  mario._t'2 :: mario._t'3 :: mario._t'5 :: mario._t'6 :: nil.
 Example sta_swpa_walk :
-  wwalk_chk false nil nil nil nil sta_swpa_xids sta_sids nil
+  wwalk_chk false nil nil nil sta_swpa_cact sta_swpa_xids sta_sids nil
     (fn_body mario.f_set_water_plunge_action) = true.
 Proof. vm_compute. reflexivity. Qed.
 
@@ -1357,8 +1360,11 @@ Example sta_umsac_params_ok :
   | nil => false
   end = true.
 Proof. vm_compute. reflexivity. Qed.
+(* the m->area / ->camera chase temps: set_camera_mode's gated arg0 *)
+Definition sta_umsac_cact : list ident :=
+  mario._t'10 :: mario._t'11 :: mario._t'7 :: mario._t'8 :: mario._t'2 :: mario._t'3 :: mario._t'4 :: mario._t'5 :: nil.
 Example sta_umsac_walk :
-  wwalk_chk false nil nil nil nil sta_umsac_xids nil nil
+  wwalk_chk false nil nil nil sta_umsac_cact sta_umsac_xids nil nil
     (fn_body mario.f_update_mario_sound_and_camera) = true.
 Proof. vm_compute. reflexivity. Qed.
 
@@ -1815,8 +1821,11 @@ Example sta_fp_params_ok :
   | nil => false
   end = true.
 Proof. vm_compute. reflexivity. Qed.
+(* the m->area / ->camera chase temps: set_camera_mode's gated arg0 *)
+Definition fp_cact : list ident :=
+  mario_actions_stationary._t'18 :: mario_actions_stationary._t'19 :: mario_actions_stationary._t'15 :: mario_actions_stationary._t'16 :: nil.
 Example sta_fp_walk :
-  wwalk_chk false nil fp_ids nil nil fp_xids sta_sids nil
+  wwalk_chk false nil fp_ids nil fp_cact fp_xids sta_sids nil
     (fn_body mario_actions_stationary.f_act_first_person) = true.
 Proof. vm_compute. reflexivity. Qed.
 
@@ -2016,7 +2025,7 @@ Section StationaryLeafRows.
      In obj_ext_ids (write no Mario state); discharged at the capstone via
      Hpres_obj_ext.  NO new distinct trust class. *)
   Hypothesis Hcpx_scm :
-    call_pres_ext lp bm NoA MWF mario._set_camera_mode.
+    OutParamSurface.call_pres_ext_cs lp bm NoA MWF SafeB mario._set_camera_mode.
 
   (* SLICE 21: act_first_person's two extra capstone-supplied rows.
      level_trigger_warp is the SHARED warp-trigger body the floors family
@@ -4526,13 +4535,14 @@ Section StationaryLeafRows.
   Lemma sta_swpa_row :
     call_pres lp bm NoA MWF mario._set_water_plunge_action.
   Proof.
-    apply (call_pres_of_wwalk lp LO_mario bm NoA MWF HNoA_of_MWF
+    apply (call_pres_of_wwalk_cact lp LO_mario bm NoA MWF HNoA_of_MWF
              HMWF_window HMWF_glob HMWF_act SafeB HSafeNotBm HchaseRoot
              HMWF_chase HMWF_root HMWF_sglob HchaseStep HMWF_chase_safe
              mario.prog mario._set_water_plunge_action
              mario.f_set_water_plunge_action
-             nil nil sta_swpa_xids sta_sids
-             LO_mario sta_swpa_pin sta_swpa_vars sta_swpa_params_ok).
+             nil nil sta_swpa_cact sta_swpa_xids sta_sids
+             LO_mario sta_swpa_pin sta_swpa_vars sta_swpa_params_ok
+             ltac:(vm_compute; reflexivity)).
     - intros fid' H. discriminate H.
     - intros fid' H. discriminate H.
     - exact sta_swpa_xids_rows.
@@ -4545,13 +4555,14 @@ Section StationaryLeafRows.
   Lemma sta_umsac_row :
     call_pres lp bm NoA MWF mario._update_mario_sound_and_camera.
   Proof.
-    apply (call_pres_of_wwalk lp LO_mario bm NoA MWF HNoA_of_MWF
+    apply (call_pres_of_wwalk_cact lp LO_mario bm NoA MWF HNoA_of_MWF
              HMWF_window HMWF_glob HMWF_act SafeB HSafeNotBm HchaseRoot
              HMWF_chase HMWF_root HMWF_sglob HchaseStep HMWF_chase_safe
              mario.prog mario._update_mario_sound_and_camera
              mario.f_update_mario_sound_and_camera
-             nil nil sta_umsac_xids nil
-             LO_mario sta_umsac_pin sta_umsac_vars sta_umsac_params_ok).
+             nil nil sta_umsac_cact sta_umsac_xids nil
+             LO_mario sta_umsac_pin sta_umsac_vars sta_umsac_params_ok
+             ltac:(vm_compute; reflexivity)).
     - intros fid' H. discriminate H.
     - intros fid' H. discriminate H.
     - exact sta_umsac_xids_rows.
@@ -4734,12 +4745,13 @@ Section StationaryLeafRows.
   Lemma act_first_person_pres :
     body_pres lp NoA MWF bm mario_actions_stationary.f_act_first_person.
   Proof.
-    apply (body_pres_of_wwalk lp LO_mario bm NoA MWF HNoA_of_MWF
+    apply (body_pres_of_wwalk_cact lp LO_mario bm NoA MWF HNoA_of_MWF
              HMWF_window HMWF_glob HMWF_act SafeB HSafeNotBm HchaseRoot
              HMWF_chase HMWF_root HMWF_sglob HchaseStep HMWF_chase_safe
              mario_actions_stationary.f_act_first_person
-             fp_ids nil fp_xids sta_sids nil
-             sta_fp_vars sta_fp_params_ok).
+             fp_ids nil fp_cact fp_xids sta_sids nil
+             sta_fp_vars sta_fp_params_ok
+             ltac:(vm_compute; reflexivity)).
     - exact fp_ids_rows.
     - intros fid' H. discriminate H.
     - exact fp_xids_rows.

@@ -82,8 +82,11 @@ Example air_swpa_vars : fn_vars mario.f_set_water_plunge_action = nil.
 Proof. vm_compute. reflexivity. Qed.
 Example air_swpa_pok : air_pok mario.f_set_water_plunge_action = true.
 Proof. vm_compute. reflexivity. Qed.
+(* the m->area / ->camera chase temps: set_camera_mode's gated arg0 *)
+Definition air_swpa_cact : list ident :=
+  mario._t'2 :: mario._t'3 :: mario._t'5 :: mario._t'6 :: nil.
 Example air_swpa_walk :
-  wwalk_chk false nil nil nil nil air_swpa_xids air_sids nil
+  wwalk_chk false nil nil nil air_swpa_cact air_swpa_xids air_sids nil
     (fn_body mario.f_set_water_plunge_action) = true.
 Proof. vm_compute. reflexivity. Qed.
 
@@ -555,8 +558,12 @@ Example air_umsc_vars : fn_vars mario.f_update_mario_sound_and_camera = nil.
 Proof. vm_compute. reflexivity. Qed.
 Example air_umsc_pok : air_pok mario.f_update_mario_sound_and_camera = true.
 Proof. vm_compute. reflexivity. Qed.
+(* the m->area / ->camera chase temps: set_camera_mode's gated arg0 *)
+Definition air_umsc_cact : list ident :=
+  mario._t'10 :: mario._t'11 :: mario._t'7 :: mario._t'8
+    :: mario._t'2 :: mario._t'3 :: mario._t'4 :: mario._t'5 :: nil.
 Example air_umsc_walk :
-  wwalk_chk false nil nil nil nil air_umsc_xids nil nil
+  wwalk_chk false nil nil nil air_umsc_cact air_umsc_xids nil nil
     (fn_body mario.f_update_mario_sound_and_camera) = true.
 Proof. vm_compute. reflexivity. Qed.
 
@@ -768,8 +775,11 @@ Example air_wj_vars : fn_vars A.f_act_water_jump = nil.
 Proof. vm_compute. reflexivity. Qed.
 Example air_wj_pok : air_pok A.f_act_water_jump = true.
 Proof. vm_compute. reflexivity. Qed.
+(* the m->area / ->camera chase temps: set_camera_mode's gated arg0 *)
+Definition air_wj_cact : list ident :=
+  mario_actions_airborne._t'7 :: mario_actions_airborne._t'8 :: mario_actions_airborne._t'9 :: mario_actions_airborne._t'10 :: mario_actions_airborne._t'2 :: mario_actions_airborne._t'3 :: mario_actions_airborne._t'4 :: mario_actions_airborne._t'5 :: nil.
 Example air_wj_walk :
-  wwalk_chk false nil air_wj_ids nil nil air_wj_xids air_sids nil
+  wwalk_chk false nil air_wj_ids nil air_wj_cact air_wj_xids air_sids nil
     (fn_body A.f_act_water_jump) = true.
 Proof. vm_compute. reflexivity. Qed.
 
@@ -781,8 +791,12 @@ Example air_hwj_vars : fn_vars A.f_act_hold_water_jump = nil.
 Proof. vm_compute. reflexivity. Qed.
 Example air_hwj_pok : air_pok A.f_act_hold_water_jump = true.
 Proof. vm_compute. reflexivity. Qed.
+(* the m->area / ->camera chase temps: set_camera_mode's gated arg0 *)
+Definition air_hwj_cact : list ident :=
+  mario_actions_airborne._t'3 :: mario_actions_airborne._t'4
+    :: mario_actions_airborne._t'5 :: mario_actions_airborne._t'6 :: nil.
 Example air_hwj_walk :
-  wwalk_chk false nil air_wj_ids nil nil air_wj_xids air_ajc_sids nil
+  wwalk_chk false nil air_wj_ids nil air_hwj_cact air_wj_xids air_ajc_sids nil
     (fn_body A.f_act_hold_water_jump) = true.
 Proof. vm_compute. reflexivity. Qed.
 
@@ -1765,6 +1779,9 @@ Section AirborneLeafRows.
   (* obj_set_held_state writes through arg0: its row is cs-gated (2026-10-19) *)
   Hypothesis Hcsp_osh :
     OutParamSurface.call_pres_ext_cs lp bm NoA MWF SafeB interaction._obj_set_held_state.
+  (* set_camera_mode writes c->mode through arg0 (camera.c): its row is
+     cs-gated -- every real site passes m->area->camera (2026-10-20) *)
+  Hypothesis Hcpx_scm : OutParamSurface.call_pres_ext_cs lp bm NoA MWF SafeB mario._set_camera_mode.
   (* the dst-gated writers (dst = a SafeB chase / a stack local): dg rows,
      discharged at the capstone from the real bodies *)
   Hypothesis Hdgp_v3s :
@@ -1810,7 +1827,7 @@ Section AirborneLeafRows.
     intros fid H. unfold air_swpa_xids in H. cbn [mem_id existsb] in H.
     apply orb_true_iff in H as [Hm | H];
       [ apply Pos.eqb_eq in Hm; subst fid;
-        exact (Hpres_obj_ext mario._set_camera_mode eq_refl) | ].
+        exact Hcpx_scm | ].
     apply orb_true_iff in H as [Hm | H];
       [ apply Pos.eqb_eq in Hm; subst fid;
         exact Hdgp_v3s | ].
@@ -1819,13 +1836,14 @@ Section AirborneLeafRows.
 
   Lemma air_swpa_row : call_pres lp bm NoA MWF mario._set_water_plunge_action.
   Proof.
-    apply (call_pres_of_wwalk lp LO_mario bm NoA MWF HNoA_of_MWF
+    apply (call_pres_of_wwalk_cact lp LO_mario bm NoA MWF HNoA_of_MWF
              HMWF_window HMWF_glob HMWF_act SafeB HSafeNotBm HchaseRoot
              HMWF_chase HMWF_root HMWF_sglob HchaseStep HMWF_chase_safe
              mario.prog mario._set_water_plunge_action
              mario.f_set_water_plunge_action
-             nil nil air_swpa_xids air_sids
-             LO_mario air_swpa_pin air_swpa_vars air_swpa_pok).
+             nil nil air_swpa_cact air_swpa_xids air_sids
+             LO_mario air_swpa_pin air_swpa_vars air_swpa_pok
+             ltac:(vm_compute; reflexivity)).
     - intros fid' H. discriminate H.
     - intros fid' H. discriminate H.
     - exact air_swpa_xids_rows.
@@ -1944,7 +1962,6 @@ Section AirborneLeafRows.
   Hypothesis Hsma_row : call_pres lp bm NoA MWF mario._set_mario_animation.
   Hypothesis Hcpx_rbn :
     call_pres_ext lp bm NoA MWF mario._raise_background_noise.
-  Hypothesis Hcpx_scm : call_pres_ext lp bm NoA MWF mario._set_camera_mode.
   Hypothesis Hcp_pas : call_pres lp bm NoA MWF A._perform_air_step.
   (* approach_s32: the integer asymptotic-approach math helper.  EF_external in
      EVERY TU = honest terminal boundary (same $"approach_s32" positive as the
@@ -2444,11 +2461,12 @@ Section AirborneLeafRows.
   Lemma air_umsc_pres :
     body_pres lp NoA MWF bm mario.f_update_mario_sound_and_camera.
   Proof.
-    apply (body_pres_of_wwalk lp LO_mario bm NoA MWF HNoA_of_MWF
+    apply (body_pres_of_wwalk_cact lp LO_mario bm NoA MWF HNoA_of_MWF
              HMWF_window HMWF_glob HMWF_act SafeB HSafeNotBm HchaseRoot
              HMWF_chase HMWF_root HMWF_sglob HchaseStep HMWF_chase_safe
              mario.f_update_mario_sound_and_camera
-             nil nil air_umsc_xids nil nil air_umsc_vars air_umsc_pok).
+             nil nil air_umsc_cact air_umsc_xids nil nil air_umsc_vars air_umsc_pok
+             ltac:(vm_compute; reflexivity)).
     - intros fid' H. discriminate H.
     - intros fid' H. discriminate H.
     - intros fid' H. unfold air_umsc_xids in H. cbn [mem_id existsb] in H.
@@ -2867,12 +2885,13 @@ Section AirborneLeafRows.
   Qed.
   Lemma air_wj_pres : body_pres lp NoA MWF bm A.f_act_water_jump.
   Proof.
-    apply (body_pres_of_wwalk lp LO_mario bm NoA MWF HNoA_of_MWF
+    apply (body_pres_of_wwalk_cact lp LO_mario bm NoA MWF HNoA_of_MWF
              HMWF_window HMWF_glob HMWF_act SafeB HSafeNotBm HchaseRoot
              HMWF_chase HMWF_root HMWF_sglob HchaseStep HMWF_chase_safe
              A.f_act_water_jump
-             air_wj_ids nil air_wj_xids air_sids nil
-             air_wj_vars air_wj_pok).
+             air_wj_ids nil air_wj_cact air_wj_xids air_sids nil
+             air_wj_vars air_wj_pok
+             ltac:(vm_compute; reflexivity)).
     - exact air_wj_ids_rows.
     - intros fid' H. discriminate H.
     - exact air_wj_xids_rows.
@@ -2882,12 +2901,12 @@ Section AirborneLeafRows.
   Qed.
   Lemma air_hwj_pres : body_pres lp NoA MWF bm A.f_act_hold_water_jump.
   Proof.
-    apply (body_pres_of_wwalk_s2 lp LO_mario bm NoA MWF HNoA_of_MWF
+    apply (body_pres_of_wwalk_cact_s2 lp LO_mario bm NoA MWF HNoA_of_MWF
              HMWF_window HMWF_glob HMWF_act SafeB HSafeNotBm HchaseRoot
              HMWF_chase HMWF_root HMWF_sglob HchaseStep HMWF_chase_safe
              A.f_act_hold_water_jump
-             air_wj_ids nil air_wj_xids air_ajc_sids nil
-             air_hwj_vars air_hwj_pok).
+             air_wj_ids nil air_hwj_cact air_wj_xids air_ajc_sids nil
+             air_hwj_vars air_hwj_pok ltac:(vm_compute; reflexivity)).
     - exact air_wj_ids_rows.
     - intros fid' H. discriminate H.
     - exact air_wj_xids_rows.
