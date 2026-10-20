@@ -1,0 +1,77 @@
+{
+  "date": "2026-10-19",
+  "verdict": "PASS: concrete audio and deallocator source frames; gameplay survival remains open",
+  "capstone": "LessThanOneAPress.Proofs.MainTheorem.current_bobomb_source_memory_boundary",
+  "audit": "20261019-195109-ejtup7r4",
+  "baseline_audit": "20261019-193311-k18sstcm",
+  "preceding_salvage_record": "teleporter-lifetime-salvage.json",
+  "toolchain": {
+    "switch": "sm64-item-proof",
+    "coq": "8.16.1",
+    "compcert": "3.15",
+    "memory_cap_kb": 6815744,
+    "build_timeout_seconds": 600,
+    "assumption_timeout_seconds": 240
+  },
+  "checked_sources": {
+    "TeleporterAudioFrame": {
+      "source": "proofs/TeleporterAudioFrame.v",
+      "source_sha256": "9c6b9ba9230b9d8342fc2ca894396b437d19874c411158cd60c0ac3b0ec4046e",
+      "log": "build/check/TeleporterAudioFrame.log",
+      "log_sha256": "f8ff2fa635d158bf8cbceb2aed5db9ca8042d733cda0d6129c39762f75c9efb8",
+      "pipeline_result": 0,
+      "check_timeout_seconds": 600,
+      "memory_cap_kb": 6815744
+    },
+    "TeleporterPoolPartition": {
+      "source": "proofs/TeleporterPoolPartition.v",
+      "source_sha256": "5ead274a0b710e3937c9747972a8a422d5f4d2f845295c9f8dc900244a3f0c10",
+      "log": "build/check/TeleporterPoolPartition.log",
+      "log_sha256": "b5c61f107fd3c5b75778f9cc6a3c3c4f4980a2afecc9a614cdc3474272f2eb84",
+      "pipeline_result": 0,
+      "check_timeout_seconds": 600,
+      "memory_cap_kb": 6815744
+    },
+    "AudioPoolCommitValidation": {
+      "source": "build/check/AudioPoolCommitValidation.v",
+      "source_sha256": "82f04c3bcc8b10fa1d90048de6341788909462c2e19a621d357e205c0dd431f7",
+      "log": "build/check/AudioPoolCommitValidation.log",
+      "log_sha256": "dd22a335ce57b048b39a3f17eab1e34dc3cf861acca86f1f08c27784411b1ffa",
+      "pipeline_result": 0,
+      "check_timeout_seconds": 600,
+      "memory_cap_kb": 6815744
+    }
+  },
+  "audit_summary": [
+    "PASS: source inventory: 681 source files; 0 inventory problems",
+    "PASS: build: exit 0; see build.log",
+    "PASS: proof holes: exit 0; includes untracked source files",
+    "PASS: link hygiene: exit 0; includes untracked source files",
+    "PASS: assumptions LessThanOneAPress.Proofs.MainTheorem.current_bobomb_source_memory_boundary: 7 allowed foundations; see assumptions-1.log",
+    "PASS: assumptions LessThanOneAPress.Proofs.TeleporterAudioFrame.teleporter_audio_frame_checked: 6 allowed foundations; see assumptions-2.log",
+    "PASS: assumptions LessThanOneAPress.Proofs.TeleporterPoolPartition.teleporter_pool_partition_checked: 7 allowed foundations; see assumptions-3.log",
+    "PASS: assumptions LessThanOneAPress.Proofs.TeleporterPoolPartition.tpp_deallocation_stores_preserve_cell: 4 allowed foundations; see assumptions-4.log",
+    "PASS: assumptions LessThanOneAPress.Proofs.MainTheorem.current_ink_backward_execution_boundary: 9 allowed foundations; see assumptions-5.log",
+    "PASS: assumptions LessThanOneAPress.Proofs.InkRetryQuery.irq_retry_connects_display_to_real_floor_call: 7 allowed foundations; see assumptions-6.log",
+    "PASS: assumptions LessThanOneAPress.Proofs.InkVerticalRetryGeometry.ivr_vertical_retry_geometry_checked: 4 allowed foundations; see assumptions-7.log",
+    "PASS: integration: 508/603 modules in MainTheorem's import closure; 95 standalone-only; 0 problems",
+    "VERDICT: PASS (mechanical checks only; not a completed game proof)",
+    "Mechanical hygiene only. Explicit hypotheses, live reachability, and statement fidelity require review."
+  ],
+  "definitions_and_logical_premises_preserved": true,
+  "statement_text_change": "AudioFrame taf_object_pool_is_separate adds an explicit ge : genv binder annotation for elaboration",
+  "verified_archive_modules": [
+    "TeleporterWholeScan",
+    "TeleporterTransportCut",
+    "TeleporterSpawnOwnership",
+    "TeleporterAudioFrame",
+    "TeleporterPoolPartition"
+  ],
+  "remaining_uncompiled_archives": [],
+  "audio_scope": "Completed concrete generated five-function internal closure and resolved named Scall preserve every gObjectPool load under exact internal-resolution premises; selected abstract external audio binding remains open",
+  "deallocator_scope": "Completed generated deallocate_object yields four chronological Mptr stores under entry-read separation; a cell separated from all four destinations retains its load; no global live/free partition or allocation history",
+  "emulator_analysis_resumed": false,
+  "gameplay_survival_exclusion_established": false,
+  "reachable_survival_witness_established": false,
+  "audit_scope": "Current worktree, retaining pre-existing unrelated sources and edits. Exact prospective committed MainTheorem separately checked from its candidate source."
+}

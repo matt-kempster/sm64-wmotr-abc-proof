@@ -1,5 +1,5 @@
 From Coq Require Import Lia List ZArith.
-From compcert Require Import AST Clight ClightBigstep Clightdefs Ctypes Events Floats Integers Maps Values.
+From compcert Require Import AST Clight ClightBigstep Clightdefs Ctypes Events Floats Integers Maps Memory Values.
 From LessThanOneAPress.Proofs Require Import
   GameTypes InputSemantics CleanEntry ObjectProvenance StarCollection
   CollisionRegions AreaTransitions HiddenStar LowerEntrance UpperEntrance
@@ -62,7 +62,7 @@ From LessThanOneAPress.Proofs Require Import
   TeleporterObjectLifetime TeleporterBobombUsability TeleporterNullRelease
   TeleporterHeldOwnership TeleporterBobombRegrab TeleporterUnloadTraversal TeleporterEarlierAreaChange
   TeleporterMixedTraversal TeleporterAllocationHistory TeleporterUnloadCallPaths TeleporterWholeScan TeleporterTransportCut
-  TeleporterSpawnOwnership.
+  TeleporterSpawnOwnership TeleporterAudioFrame TeleporterPoolPartition.
 
 Import ListNotations.
 Local Open Scope Z_scope.
@@ -208,6 +208,32 @@ Proof.
   split; [exact teleporter_whole_scan_checked|].
   split; [exact teleporter_transport_cut_checked|].
   exact teleporter_complete_spawn_ownership_boundary_checked.
+Qed.
+
+(** Recovered concrete source-memory contracts, alongside the checked scan,
+    changed-area transport cut and reached creator ownership. Audio preservation
+    requires exact internal resolution of the generated five-function closure;
+    the selected abstract external audio call is not discharged. Deallocation
+    gives four chronological pointer stores and preserves a cell separated from
+    every destination. This is not a global live/free partition, allocation
+    identity invariant, transport-survival exclusion or usable regrab proof. *)
+Theorem current_bobomb_source_memory_boundary :
+  (TeleporterWholeScanBoundary /\ TeleporterTransportCutBoundary /\
+    TeleporterCompleteSpawnOwnershipBoundary) /\
+  TeleporterAudioFrameBoundary /\ TeleporterPoolPartitionBoundary /\
+  forall before after free obj prev next old_free reader delta chunk,
+    TPPDeallocationStores before after free obj prev next old_free ->
+    TPPCellSeparate reader delta chunk next 100 ->
+    TPPCellSeparate reader delta chunk prev 96 ->
+    TPPCellSeparate reader delta chunk obj 96 ->
+    TPPCellSeparate reader delta chunk free 96 ->
+    Mem.load chunk after (fst reader) (tpp_address reader delta) =
+      Mem.load chunk before (fst reader) (tpp_address reader delta).
+Proof.
+  split; [exact current_bobomb_scan_transport_ownership_boundary|].
+  split; [exact teleporter_audio_frame_checked|].
+  split; [exact teleporter_pool_partition_checked|].
+  exact tpp_deallocation_stores_preserve_cell.
 Qed.
 
 (** This capstone is intentionally local to Marbler's proposed mechanism.  It

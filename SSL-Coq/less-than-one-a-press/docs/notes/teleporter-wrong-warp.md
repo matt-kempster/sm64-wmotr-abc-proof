@@ -9,13 +9,73 @@ does not close the pyramid proof's existing JP spawning-displacement routes.
 
 ## Hands-free Bob-ombs, the lower entrance and Goomba-clone knockback
 
-### Verified source-draft salvage (19 October 2026)
+### Verified audio and deallocator salvage (19 October 2026)
 
-The three requested drafts are now repaired, pipeline-checked, registered in
+**All five archived drafts now have verified active copies. Bob-omb survival
+and usable SSL Area-2 regrab remain open.** AudioFrame and PoolPartition are
+repaired, pipeline-checked, registered in `_CoqProject` and consumed by
+`current_bobomb_source_memory_boundary`, alongside the earlier scan,
+transport and ownership boundary. The raw archive is unchanged. This is a
+recovery of the proposed local source contracts, not completion of the global
+lifetime proof.
+
+- **AudioFrame:** completed calls to the actual generated US/JP five-function
+  sound-stop closure preserve every CompCert load from the distinct
+  `gObjectPool` block and have empty trace in the Clight2 source semantics.
+  The same frame holds for the named sound-stop statement when resolved to
+  that closure. `TAFAudioResolution` explicitly requires the five exact
+  internal generated-function bindings. Source-root and initialized
+  `seqPlayer` checks establish separation from the three audio globals;
+  the heap-frame conclusion is not assumed. **This does not bind or discharge
+  the selected unload target's abstract external audio call.** No termination,
+  reachable invocation or full linked-audio execution is established.
+- **PoolPartition:** despite the historical filename, the checked result is
+  local deallocator store extraction and framing. A completed generated
+  `deallocate_object` call performs, in order, `next.prev = prev`,
+  `prev.next = next`, `obj.next = old_free` and `free.next = obj`.
+  The entry loads and explicit storage separations preserve the original
+  neighbor and free-head reads used by that sequence. A cell separated from
+  all four actual write destinations retains its load; Main explicitly
+  consumes this frame as well as the four-store contract. **No global
+  live/free partition, valid-list membership, allocation episode, surviving
+  actor identity or regrab history is proved by this module.**
+
+Changes from the snapshots are proof scripts and one explicit `ge : genv`
+binder annotation in `taf_object_pool_is_separate`, needed for elaboration.
+Definitions and logical premises are preserved; all remaining text is identical
+after removing Proof/Qed bodies. Repairs retain the
+fixed empty local environment through audio execution induction, make source
+version arguments explicit, handle generic pointer casts, fix field-layout
+projections and instantiate actual reached temporary maps. No project axiom, blanket audio
+frame or global lifetime assumption was added. Independent statement review
+found no contradictory premise; the deallocator conditions admit ordinary
+separated list nodes, while remaining weaker than a list/partition invariant.
+
+The sharper local effects can support later lifetime composition. The
+selected abstract audio binding, reached owner/head provenance, live-list
+membership, preceding-call frames, global live/free and allocation-identity
+history, reset/respawner ancestry and usable regrab continuation remain open.
+The later same-area skip still does not erase an earlier area-unload call.
+Neither a deallocation store nor address reuse alone settles survival.
+
+Validation: audit `20261019-195109-ejtup7r4` passes build, source inventory, proof-hole,
+link, seven assumption queries and integration checks. Queries cover the new
+Main boundary, both module boundaries, the separated-cell frame and the three
+established Ink/backward/retry/geometry entry points. The exact prospective
+committed MainTheorem separately passes `pipeline/check.sh` as
+`build/check/AudioPoolCommitValidation.v`, excluding unrelated working edits.
+The [validation record](teleporter-audio-pool-salvage.json) binds source/log
+hashes and audit counts. The archive integrity check passes. The established
+toolchain, 6815744-KB cap and 600/240-second limits are retained. All 45 route
+estimates and verdicts are unchanged. No VC analysis was resumed.
+
+### Earlier scan and ownership salvage (19 October 2026)
+
+At this earlier checkpoint, the three requested drafts were repaired, pipeline-checked, registered in
 `_CoqProject` and connected through
 `current_bobomb_scan_transport_ownership_boundary`. Their archived source
-snapshots remain byte-identical. AudioFrame and PoolPartition remain uncompiled
-archives. **Bob-omb survival and usable Area-2 regrab remain open.**
+snapshots remained byte-identical. AudioFrame and PoolPartition were still uncompiled
+archives at that checkpoint; the follow-up above supersedes that status. **Bob-omb survival and usable Area-2 regrab remain open.**
 
 - **WholeScan:** a completed generated US/JP
   `unload_objects_from_area` call supplies exactly thirteen chronological

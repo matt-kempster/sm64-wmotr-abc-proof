@@ -682,3 +682,5 @@ proofs/TeleporterUnloadCallPaths.v
 proofs/TeleporterWholeScan.v
 proofs/TeleporterTransportCut.v
 proofs/TeleporterSpawnOwnership.v
+proofs/TeleporterAudioFrame.v
+proofs/TeleporterPoolPartition.v

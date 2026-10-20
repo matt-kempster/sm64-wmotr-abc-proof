@@ -1,10 +1,13 @@
 # Teleporter lifetime drafts: recoverable checkpoint
 
-Follow-up: WholeScan, TransportCut and SpawnOwnership now have repaired,
-verified active copies; see the [current salvage report](../../docs/notes/teleporter-wrong-warp.md#verified-source-draft-salvage-19-october-2026).
-AudioFrame and PoolPartition remain uncompiled. The source snapshots and
-historical statuses below describe the original checkpoint and are retained
-unchanged. Verification applies to the active copies, not these raw drafts.
+Follow-up: all five snapshots now have repaired, verified active copies; see
+the [current salvage report](../../docs/notes/teleporter-wrong-warp.md#verified-audio-and-deallocator-salvage-19-october-2026).
+No archived draft remains awaiting salvage. AudioFrame retains its exact
+internal-resolution premises; PoolPartition supplies local deallocator stores
+and separated-cell framing, not a global partition. The full lifetime/regrab
+question remains open. The source snapshots and historical statuses below
+describe the original checkpoint and are retained unchanged. Verification
+applies to the active copies, not these raw drafts.
 
 Saved 19 October 2026. These are **unverified working drafts**, preserved so
 the stopped lifetime work can be resumed without reconstructing it. They are
@@ -13,7 +16,8 @@ theorem. No proof or VC emulator analysis was resumed to make this archive.
 
 The full question remains open: no surviving transported Bob-omb with a usable
 SSL Area-2 regrab, and no universal exclusion of that possibility, is established.
-The checked conditional unload call-path results remain the stopping point.
+The original checkpoint stopped at the checked conditional unload call-path
+results; the follow-up above records the later local source contracts.
 See [the project report](../../docs/notes/teleporter-wrong-warp.md).
 
 ## What was saved
