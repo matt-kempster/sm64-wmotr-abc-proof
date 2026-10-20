@@ -103,6 +103,12 @@ Qed.
 
 Definition RM' := RangedMove wmotr_floor wmotr_pole wmotr_cannon.
 
+(* what an attach outcome says beyond the move: the height it snapped to,
+   which a following action switch (landing, ledge grab) reuses *)
+Definition AttachInfo (c c' : cells) : Prop :=
+  exists h, AttachOK wmotr_floor wmotr_pole wmotr_cannon c h /\ R2 (c_posy c') <= h
+            /\ c_gfxy c' = c_posy c'.
+
 (* the four-quarter class: an S_air step *)
 Theorem air_move : outcome_ok LD IC (g_pc g) rM rO kH = true ->
   aclass_of LD IC (g_pc g) rM rO kH = Some Cair ->
@@ -176,7 +182,7 @@ Hypothesis FRO : FloorRefreshOK wmotr_floor (R2 (c_posy c)) (R2 (c_floorh c)).
 
 Theorem land_move : cells_ok LD (g_pc g) rM rO kH = true ->
   land_ok LD IC (g_pc g) rM rO kH = true ->
-  exists c', read_cells bm m c' /\ RM' c c'.
+  exists c', read_cells bm m c' /\ RM' c c' /\ AttachInfo c c'.
 Proof.
   intros CO OK.
   destruct entry_ranges as (Fy & Fv & Hy & Hv & Hv43 & Ff & Lf).
@@ -207,6 +213,7 @@ Proof.
   split; [ unfold read_cells; cbn [c_action c_state c_timer c_posy c_vely c_floorh c_gfxy];
            rewrite <- HA, <- HS, <- HT; repeat split; try assumption;
            exists (e_blk E rO), (e_base E rO); split; [exact LMO | transitivity (Mem.load Mfloat32 m bm oY); [exact LG | exact LY]] |].
+  split; [| exists (R2 p); split; [exact Hat | split; [apply Rle_refl | reflexivity]]].
   split; [ unfold InRange; cbn [c_posy c_vely c_floorh c_gfxy];
            rewrite B2R_fm75 in Lo; repeat split; try assumption; try lra |].
   apply (S_attach _ _ _ c _ (R2 p)); cbn [c_action c_posy c_vely c_gfxy c_floorh].
@@ -223,7 +230,9 @@ Qed.
    zeroed it after at most two rising quarters) *)
 Theorem ledge_move : cells_ok LD (g_pc g) rM rO kH = true ->
   ledge_ok LD IC (g_pc g) rM rO kH = true ->
-  exists c', read_cells bm m c' /\ RM' c c'.
+  exists c', read_cells bm m c' /\ RM' c c' /\ AttachInfo c c'
+             /\ (Mem.load Mfloat32 m bm oF = Mem.load Mfloat32 m bm oY ->
+                 AttachOK wmotr_floor wmotr_pole wmotr_cannon c (R2 (c_floorh c'))).
 Proof.
   intros CO OK.
   destruct entry_ranges as (Fy & Fv & Hy & Hv & Hv43 & Ff & Lf).
@@ -247,6 +256,10 @@ Proof.
   split; [ unfold read_cells; cbn [c_action c_state c_timer c_posy c_vely c_floorh c_gfxy];
            rewrite <- HA, <- HS, <- HT; repeat split; try assumption;
            exists (e_blk E rO), (e_base E rO); split; [exact LMO | transitivity (Mem.load Mfloat32 m bm oY); [exact LG | exact LP]] |].
+  split; [| split; [ exists (R2 h); split; [ right; right; right; right; right; right; split; [exact mode_ff | split; assumption]
+                                       | split; [apply Rle_refl | reflexivity]]
+                   | intros EqL; cbn [c_floorh]; rewrite LF, LP in EqL; injection EqL as ->;
+                     right; right; right; right; right; right; split; [exact mode_ff | split; assumption]]].
   split; [ unfold InRange; cbn [c_posy c_vely c_floorh c_gfxy];
            rewrite B2R_fm75 in Lo; repeat split; try assumption; try lra |].
   apply (S_attach _ _ _ c _ (R2 h)); cbn [c_action c_posy c_vely c_gfxy c_floorh].
@@ -267,7 +280,8 @@ Proof.
   - exact (air_move OK H).
   - exact (cut_move k OK H).
   - unfold outcome_ok in OK. rewrite H in OK. apply andb_true_iff in OK as (CO & OK).
-    apply orb_true_iff in OK as [OK | OK]; [exact (land_move CO OK) | exact (ledge_move CO OK)].
+    apply orb_true_iff in OK as [OK | OK];
+      [destruct (land_move CO OK) as (c' & R & M & _) | destruct (ledge_move CO OK) as (c' & R & M & _)]; eauto.
 Qed.
 End AIRMOVE.
 
