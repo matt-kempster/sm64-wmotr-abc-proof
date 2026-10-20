@@ -60,6 +60,34 @@ Qed.
 
 Definition mode_of (c : cells) : mode := mode_of_action (c_action c) (state_of c).
 
+(* the air actions whose handlers run perform_air_step from a fresh floor:
+   freefall and the knockback family (AIR_HIT_WALL, SOFT_BONK, BACKWARD /
+   FORWARD_AIR_KB).  The frame refreshes floorHeight at pos[1] before the
+   action runs (update_mario_geometry_inputs), and these are entered only
+   from air steps that did not attach, from switches that keep pos[1] and
+   floorHeight, or from a pole (set_pole_position moves pos[1] by far less
+   than STEP_UP below the refreshed floor). *)
+Definition air_entry (a : int) : bool :=
+  Int.eq a ACT_FREEFALL || Int.eq a (Int.repr 2215) || Int.eq a (Int.repr 16910518)
+  || Int.eq a (Int.repr 16910512) || Int.eq a (Int.repr 16910513).
+
+Lemma air_entry_cases : forall a, air_entry a = true ->
+  a = ACT_FREEFALL \/ a = Int.repr 2215 \/ a = Int.repr 16910518
+  \/ a = Int.repr 16910512 \/ a = Int.repr 16910513.
+Proof.
+  intros a H. unfold air_entry in H.
+  repeat rewrite Bool.orb_true_iff in H.
+  destruct H as [[[[H | H] | H] | H] | H]; apply Int.same_if_eq in H; auto 6.
+Qed.
+
+Lemma air_entry_mode : forall a s, air_entry a = true ->
+  mode_of_action a s = M_Freefall \/ mode_of_action a s = M_Air.
+Proof.
+  intros a s H.
+  destruct (air_entry_cases a H) as [-> | [-> | [-> | [-> | ->]]]];
+    unfold mode_of_action; vm_compute; auto.
+Qed.
+
 Lemma credit_of_mode : forall c, credit_of c = mode_credit (mode_of c) (timer_of c) (R2 (c_vely c)).
 Proof. intros. apply credit_by_mode. Qed.
 
@@ -269,7 +297,7 @@ Section Moves.
     (* a freefall ledge grab after a ceiling bump: the bump zeroes vel[1]
        after at most two rising quarters (mario_step.c:446-452), so the ledge
        search starts up to vel/2 above pos[1]; freefall's credit pays the vel/2 *)
-    \/ (mode_of c = M_Freefall /\ wmotr_floor h
+    \/ ((mode_of c = M_Freefall \/ mode_of c = M_Air) /\ wmotr_floor h
         /\ h <= R2 (c_posy c) + Rmax 0 (R2 (c_vely c)) / 2 + STEP_UP).
 
   Definition FloorRefreshOK (y fh : R) : Prop :=
@@ -373,6 +401,15 @@ Section Moves.
     - rewrite Rmax_right by lra. nra.
   Qed.
 
+  (* the plain air credit already covers it: (v+2)^2/8 >= v/2 *)
+  Lemma rise_half4 : forall v, Rmax 0 v / 2 <= rise_credit 4 v.
+  Proof.
+    intros v. unfold rise_credit, energy, EPS.
+    destruct (Rle_dec v 0) as [Hn | Hp].
+    - rewrite Rmax_left by lra. lra.
+    - rewrite Rmax_right by lra. nra.
+  Qed.
+
   Lemma attach_le_K : forall c h, budget_ok c -> AttachOK c h -> h <= PHI_K.
   Proof.
     intros c h Hc Ha.
@@ -388,10 +425,11 @@ Section Moves.
     - destruct (wmotr_poles base top Hp); lra.
     - exact (wmotr_cannons h Hcn).
     - rewrite Hs. unfold PHI_K. lra.
-    - rewrite Hm in Hb. cbn [mode_credit] in Hb.
-      pose proof (rise_half (R2 (c_vely c))) as Hr.
+    - assert (Hr : Rmax 0 (R2 (c_vely c)) / 2 <= mode_credit (mode_of c) (timer_of c) (R2 (c_vely c))).
+      { pose proof (rise_half4 (R2 (c_vely c))) as H4.
+        destruct Hm as [Hm | Hm]; rewrite Hm; cbn [mode_credit]; unfold GP_RESERVE; lra. }
       apply (gap_fact_step h (R2 (c_posy c) + Rmax 0 (R2 (c_vely c)) / 2)
-               (rise_credit 4 (R2 (c_vely c)) + GP_RESERVE - Rmax 0 (R2 (c_vely c)) / 2));
+               (mode_credit (mode_of c) (timer_of c) (R2 (c_vely c)) - Rmax 0 (R2 (c_vely c)) / 2));
         [ lra | lra | lra | apply wmotr_gap; exact Hf ].
   Qed.
 

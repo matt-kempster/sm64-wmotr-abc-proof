@@ -52,8 +52,9 @@ all in `Unwired/`, and the theorem moved nowhere. See
     (`AirSplit`), and the **freefall case is proved** (`FfRow.ff_row`: the real `act_freefall`
     walked by `FfRun` keeps fworld and moves the cells by a MoveChain), started from the carried
     `FfWorld.ffw` (in PhiW / fworld). The **air-hit-wall case is proved** too (`AhwRow.ahw_row`,
-    walked by `AhwRun`; the A-gated wall kick is pruned). Other nine cases: `Hair_case_rest`
-    (`AhwRow.air_case_rest2`).
+    walked by `AhwRun`; the A-gated wall kick is pruned), and so are soft bonk and both air
+    knockbacks (`KbRow.kb_row`, generic; walks in `KbRun`). Other six cases: `Hair_case_rest`
+    (`KbRow.air_case_rest3`). ffw's floor refresh holds for `air_entry` actions (TRUST 0.6).
   - (`wmotr_gap` and `wmotr_poles` are now proved from generated level data, `WMotRLevel.v`)
   - the flank specs (TRUST 0.7)
 

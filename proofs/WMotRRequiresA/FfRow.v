@@ -303,7 +303,7 @@ Proof.
         [rewrite DI, FF; exact Lf | exists ft; split; assumption | left; reflexivity]. }
   (* the floor refresh *)
   assert (FRO0 : FloorRefreshOK wmotr_floor (R2 (c_posy c0)) (R2 (c_floorh c0))).
-  { destruct RC as (_ & _ & _ & Hy & _ & Hf & _). exact (FRO _ _ Hact Hy Hf). }
+  { destruct RC as (_ & _ & _ & Hy & _ & Hf & _). exact (FRO _ _ _ Hact eq_refl Hy Hf). }
   assert (EV' : eval_funcall function_entry2 G m (Internal AIR.f_act_freefall)
                   [Vptr (e_blk E RM) (Ptrofs.add (e_base E RM) Ptrofs.zero)] t m' vres).
   { unfold E; cbn [Eff e_blk e_base]; cbn [Pos.eqb RM RO RFI RMISS RCALLS RSIN RLD RBUF RIOM RMQ RRM]. rewrite Ptrofs.add_zero. exact EV. }
@@ -541,11 +541,11 @@ Proof.
       intros i cb co Hi Hl2. change FFW_COLL with COLL_OFF in Hl2. rewrite COLL in Hl2 by exact Hi.
       exact (Co i cb co Hi Hl2).
     + exact (floor_data_keep2 G m m' RL0 NBm Hperm OFF gp W FD).
-    + intros y fh Ha' Hy Hf. change (e_blk E RM) with bm in RC2.
+    + intros a y fh Ha' Hae Hy Hf. change (e_blk E RM) with bm in RC2.
       destruct RC2 as (A2 & _ & _ & Y2 & _ & F2 & _).
       change OFS_ACTION with 12 in A2. rewrite Ha' in A2. injection A2 as A2.
       rewrite Hy in Y2. injection Y2 as Ey. subst y. rewrite Hf in F2. injection F2 as Ef. subst fh.
-      exact (FF2 (eq_sym A2)).
+      apply FF2. rewrite <- A2. exact Hae.
 Qed.
 
 (* ---- the airborne cases, with freefall's row proved ---- *)

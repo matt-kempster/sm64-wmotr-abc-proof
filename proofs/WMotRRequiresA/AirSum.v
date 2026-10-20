@@ -217,15 +217,15 @@ Definition PMc (cl : int) (c c1 : cells) : Prop :=
   /\ (cl = Int.zero -> FloorRefreshOK wmotr_floor (R2 (c_posy c1)) (R2 (c_floorh c1))).
 
 Definition PMv (cl : int) (c c1 : cells) : Prop :=
-  c_action c = ACT_FREEFALL -> budget_ok c ->
+  air_entry (c_action c) = true -> budget_ok c ->
   FloorRefreshOK wmotr_floor (R2 (c_posy c)) (R2 (c_floorh c)) -> PMc cl c c1.
 
 (* the fact's arguments: whenever the entry cells are cells c of a
-   freefall state in budget (with a fresh floor), the arguments are the
+   freefall or knockback-family state (air_entry) in budget (with a fresh floor), the arguments are the
    class, the result, c, and the cells c1 the step made, with PMc *)
 Definition MV (vs : list (option val)) : Prop :=
   forall c, firstn 7 (skipn 3 vs) = map Some (cvals c) ->
-  c_action c = ACT_FREEFALL -> budget_ok c ->
+  air_entry (c_action c) = true -> budget_ok c ->
   FloorRefreshOK wmotr_floor (R2 (c_posy c)) (R2 (c_floorh c)) ->
   exists cl rv c1, vs = map Some (Vsingle (c_posy c1) :: Vint cl :: rv :: cvals c ++ cvals c1)
                    /\ PMc cl c c1.
@@ -352,7 +352,7 @@ Theorem step_cells : forall cl c, cls_of nbase R0 kv rM rO kH g = Some cl ->
   Mem.load Mfloat32 m0 bm oY = Some (Vsingle (c_posy c)) ->
   Mem.load Mfloat32 m0 bm oV = Some (Vsingle (c_vely c)) ->
   Mem.load Mfloat32 m0 bm oF = Some (Vsingle (c_floorh c)) ->
-  c_action c = ACT_FREEFALL -> budget_ok c ->
+  air_entry (c_action c) = true -> budget_ok c ->
   FloorRefreshOK wmotr_floor (R2 (c_posy c)) (R2 (c_floorh c)) ->
   exists c1, at_cells m c1.
 Proof.

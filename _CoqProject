@@ -294,10 +294,12 @@ proofs/WMotRRequiresA/FfKeepCheck.v
 proofs/WMotRRequiresA/FfKeep.v
 proofs/WMotRRequiresA/FfRun.v
 proofs/WMotRRequiresA/AhwRun.v
+proofs/WMotRRequiresA/KbRun.v
 proofs/WMotRRequiresA/AirStart.v
 proofs/WMotRRequiresA/FfWorld.v
 proofs/WMotRRequiresA/FfRow.v
 proofs/WMotRRequiresA/AhwRow.v
+proofs/WMotRRequiresA/KbRow.v
 proofs/Interp/MemBuild.v
 
 # --- GOAL 1 positive control: with A pressed, a real frame reaches flying ---

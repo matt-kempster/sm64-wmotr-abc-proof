@@ -46,19 +46,32 @@ Hypothesis HY : Mem.load Mfloat32 m0 bm oY = Some (Vsingle (c_posy c)).
 Hypothesis HV : Mem.load Mfloat32 m0 bm oV = Some (Vsingle (c_vely c)).
 Hypothesis HF : Mem.load Mfloat32 m0 bm oF = Some (Vsingle (c_floorh c)).
 Hypothesis Hc : budget_ok c.
-Hypothesis Hact : c_action c = ACT_FREEFALL.
+Hypothesis Hact : air_entry (c_action c) = true.
 Hypothesis FD : floor_data ge m0.
 
 Local Notation LD := (sload nbase R0 kv g).
 Local Notation IC := (init_cell kv).
 
-Lemma mode_ff : mode_of c = M_Freefall.
-Proof. unfold mode_of, mode_of_action. rewrite Hact, Int.eq_true. reflexivity. Qed.
+Lemma mode_fa : mode_of c = M_Freefall \/ mode_of c = M_Air.
+Proof. exact (air_entry_mode _ _ Hact). Qed.
+
+Lemma grav_fa : R2 f4 = mode_gravity (mode_of c).
+Proof. destruct mode_fa as [X | X]; rewrite X, B2R_f4; reflexivity. Qed.
+
+Lemma air3 : mode_of c = M_Freefall \/ mode_of c = M_SlideKick \/ mode_of c = M_Air.
+Proof. destruct mode_fa as [X | X]; auto. Qed.
+
+Lemma air4 : mode_of c = M_Freefall \/ mode_of c = M_SlideKick \/ mode_of c = M_Air \/ mode_of c = M_PoundFall.
+Proof. destruct mode_fa as [X | X]; auto. Qed.
+
+Lemma cap_fa : forall t v, R2 v <= 43 -> launch_cap (mode_of c) t (R2 v).
+Proof. intros t v H. destruct mode_fa as [X | X]; rewrite X; cbn [launch_cap]; lra. Qed.
 
 Lemma not_sk : c_action c <> ACT_SLIDE_KICK.
 Proof.
-  rewrite Hact. intros Eq0. apply (f_equal Int.unsigned) in Eq0.
-  unfold ACT_FREEFALL, ACT_SLIDE_KICK in Eq0. vm_compute in Eq0. discriminate.
+  destruct (air_entry_cases _ Hact) as [Ea | [Ea | [Ea | [Ea | Ea]]]]; rewrite Ea; intros Eq0;
+    apply (f_equal Int.unsigned) in Eq0; unfold ACT_FREEFALL, ACT_SLIDE_KICK in Eq0;
+    vm_compute in Eq0; discriminate.
 Qed.
 
 (* the entry ranges *)
@@ -135,7 +148,7 @@ Proof.
                 rewrite B2R_fm75 in Lo; repeat split; try assumption; try lra;
                 try apply Rabs_le_inv in G; lra |].
   all: apply (S_air _ _ _ c _ f4); cbn [c_action c_state c_timer c_posy c_vely c_gfxy];
-         first [ left; exact mode_ff | exact F32_f4 | rewrite mode_ff, B2R_f4; reflexivity
+         first [ exact air3 | exact F32_f4 | exact grav_fa
                | reflexivity | exact Hi | intros E'; exfalso; exact (not_sk E') ].
 Qed.
 
@@ -164,14 +177,15 @@ Proof.
   split; [ unfold InRange; cbn [c_posy c_vely c_floorh c_gfxy]; rewrite ?B2R_fm4;
            repeat split; try assumption; try lra; reflexivity |].
   apply (S_air_cut _ _ _ c _ k); cbn [c_action c_state c_timer c_posy c_vely c_gfxy];
-    first [ left; exact mode_ff | exact Hk | reflexivity | exact Ep
+    first [ exact air4 | exact Hk | reflexivity | exact Ep
           | rewrite B2R_fm4; lra | intros E'; exfalso; exact (not_sk E') ].
 Qed.
 
 Lemma not_ledge : c_action c <> ACT_LEDGE_GRAB.
 Proof.
-  rewrite Hact. intros Eq0. apply (f_equal Int.unsigned) in Eq0.
-  unfold ACT_FREEFALL, ACT_LEDGE_GRAB in Eq0. vm_compute in Eq0. discriminate.
+  destruct (air_entry_cases _ Hact) as [Ea | [Ea | [Ea | [Ea | Ea]]]]; rewrite Ea; intros Eq0;
+    apply (f_equal Int.unsigned) in Eq0; unfold ACT_FREEFALL, ACT_LEDGE_GRAB in Eq0;
+    vm_compute in Eq0; discriminate.
 Qed.
 
 (* a landing: an S_attach step.  The frame refreshed floorHeight at this
@@ -221,7 +235,7 @@ Proof.
   - apply Rle_refl.
   - left. reflexivity.
   - change (mode_of (mkCells (c_action c) (c_state c) (c_timer c) p v' fh p)) with (mode_of c).
-    rewrite mode_ff. exact Hv'.
+    exact (cap_fa _ _ Hv').
   - intros E'. exfalso. exact (not_ledge E').
 Qed.
 
@@ -256,18 +270,18 @@ Proof.
   split; [ unfold read_cells; cbn [c_action c_state c_timer c_posy c_vely c_floorh c_gfxy];
            rewrite <- HA, <- HS, <- HT; repeat split; try assumption;
            exists (e_blk E rO), (e_base E rO); split; [exact LMO | transitivity (Mem.load Mfloat32 m bm oY); [exact LG | exact LP]] |].
-  split; [| split; [ exists (R2 h); split; [ right; right; right; right; right; right; split; [exact mode_ff | split; assumption]
+  split; [| split; [ exists (R2 h); split; [ right; right; right; right; right; right; split; [exact mode_fa | split; assumption]
                                        | split; [apply Rle_refl | reflexivity]]
                    | intros EqL; cbn [c_floorh]; rewrite LF, LP in EqL; injection EqL as ->;
-                     right; right; right; right; right; right; split; [exact mode_ff | split; assumption]]].
+                     right; right; right; right; right; right; split; [exact mode_fa | split; assumption]]].
   split; [ unfold InRange; cbn [c_posy c_vely c_floorh c_gfxy];
            rewrite B2R_fm75 in Lo; repeat split; try assumption; try lra |].
   apply (S_attach _ _ _ c _ (R2 h)); cbn [c_action c_posy c_vely c_gfxy c_floorh].
-  - right; right; right; right; right; right. split; [exact mode_ff | split; assumption].
+  - right; right; right; right; right; right. split; [exact mode_fa | split; assumption].
   - apply Rle_refl.
   - left. reflexivity.
   - change (mode_of (mkCells (c_action c) (c_state c) (c_timer c) h v' fh h)) with (mode_of c).
-    rewrite mode_ff. exact Hv'.
+    exact (cap_fa _ _ Hv').
   - intros E'. exfalso. exact (not_ledge E').
 Qed.
 
@@ -338,13 +352,14 @@ Proof.
   rewrite <- BM.
   destruct RC as (HA & HS & HT & HY & HV & HF & _).
   (* the walk's known action cell: m->action = ACT_FREEFALL *)
-  assert (Hact : c_action c = ACT_FREEFALL).
+  assert (Hff : c_action c = ACT_FREEFALL).
   { destruct EO as (_ & _ & _ & _ & KV & _).
     destruct (KV RM 12%Z Mint32 (Sconst (Vint (Int.repr 16779404)))) as (_ & _ & L);
       [cbn [kv]; right; left; reflexivity |].
     unfold addr in L. rewrite HbM, Ptrofs.unsigned_zero, Z.add_0_l in L.
     change OFS_ACTION with 12%Z in HA. rewrite HA in L. cbn [den] in L. injection L as ->.
     reflexivity. }
+  assert (Hact : air_entry (c_action c) = true) by (rewrite Hff; reflexivity).
   apply (outcome_move G NB (R0 G) gtab (kv G) m0 (ufW G m0 gp) gp GPO E' m' gs RM RO kH MM
            (ufW_kH G m0 gp)); try (rewrite ?BaM, ?BaO; assumption); rewrite ?BM; assumption.
 Qed.

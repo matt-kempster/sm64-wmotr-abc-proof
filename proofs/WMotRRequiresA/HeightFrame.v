@@ -69,7 +69,7 @@ From SM64.Proofs Require Import MWFReal RestSurface FloorsSurface
 From SM64.Proofs Require Import LinkedTwelve SpawnInit InitMemSat.
 From SM64.Proofs Require Import NoAImpliesNoFlyLinked NoAImpliesNoFlyTwelve.
 From SM64.Proofs Require Import FrameCalls FrameSplit AirSplit.
-From SM64.Proofs.WMotRRequiresA Require Import FfWorld FfRow AhwRow FpuFloor ExtInert.
+From SM64.Proofs.WMotRRequiresA Require Import FfWorld FfRow AhwRow KbRow FpuFloor ExtInert.
 From SM64.Proofs Require OsDmaFloor LptBody.
 From SM64.Proofs Require Import HeightInvariant HeightBudgetArith HeightMoveCatalog WMotRLevel
   WMotRWorld NoAActions.
@@ -535,9 +535,12 @@ Section HeightLinked12.
      Phi's cells by a MoveChain, from FfWorld.ffw, which PhiW / fworld
      carry).  The air-hit-wall case (AhwRow, 2026-10-20): PROVED from the
      real act_air_hit_wall (AhwRow.ahw_row: no A, so no wall kick; it stays,
-     or bonks / knocks back with Phi's cells kept).  The other nine cases
-     keep their AirSplit row. *)
-  Hypothesis Hair_case_rest : air_case_rest2 lp bm MWF.
+     or bonks / knocks back with Phi's cells kept).  The soft-bonk and
+     both air-knockback cases (KbRow, 2026-10-20): PROVED from the real
+     handlers (common_air_knockback_step: an air step, a landing, or a wall
+     bonk keeping the action).  The other six cases keep their AirSplit
+     row. *)
+  Hypothesis Hair_case_rest : air_case_rest3 lp bm MWF.
   (* the walk's floors: the FPU floor (TRUST 3.5) and the labeled open
      audio / camera premises (deferred; ExtInert) *)
   Hypothesis Hsqrtf : sqrtf_spec.
@@ -547,7 +550,7 @@ Section HeightLinked12.
 
   Lemma Hair_case : air_case_rows lp bm MWF.
   Proof.
-    exact (air_case_rows_ff2 lp H12 Hdma_floor Hsqrtf Hsqrtf_float Haudio Hcamera bm Hbm_sym MWF
+    exact (air_case_rows_ff3 lp H12 Hdma_floor Hsqrtf Hsqrtf_float Haudio Hcamera bm Hbm_sym MWF
              Hair_case_rest).
   Qed.
 

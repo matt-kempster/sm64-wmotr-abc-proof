@@ -184,12 +184,13 @@ Theorem ahw_final : forall E t m' vres c0,
   eval_funcall function_entry2 G m0 (Internal AIR.f_act_air_hit_wall)
     [Vptr (e_blk E RM) (Ptrofs.add (e_base E RM) Ptrofs.zero)] t m' vres ->
   read_cells (e_blk E RM) m0 c0 -> budget_ok c0 ->
+  FloorRefreshOK wmotr_floor (R2 (c_posy c0)) (R2 (c_floorh c0)) ->
   exists E' gs, Ext E E' NBF /\ MMg G NBF (R0F G) gtabF (kvH G) m0 uf gp E' m' gs
     /\ fk_ok NBF (R0F G) (kvH G) RM RO RLD kS clokF gs = true
     /\ exists c2, read_cells (e_blk E RM) m' c2 /\ MoveChain wmotr_floor wmotr_pole wmotr_cannon c0 c2
        /\ fro_ff c2.
 Proof.
-  intros E t m' vres c0 EO PC EV RC Hb.
+  intros E t m' vres c0 EO PC EV RC Hb FRO.
   destruct ahwcheck_lp as (cs & RUN & W).
   assert (MM0 : MMg G NBF (R0F G) gtabF (kvH G) m0 uf gp E m0 (g0F G)).
   { apply MMg_init; [exact EO | apply Ple_refl |].
@@ -223,6 +224,6 @@ Proof.
   assert (M0 : mode_of c0 = M_Air) by (unfold mode_of; rewrite Hact; vm_compute; reflexivity).
   rewrite <- BM in RC |- *.
   exact (ahw_sound G NBF (R0F G) gtabF (kvH G) m0 uf gp GPO RM RO kM E' m' gs MM
-           ltac:(rewrite BaM; exact HbM) HO0 c0 RC Hb M0 OK).
+           ltac:(rewrite BaM; exact HbM) HO0 c0 RC Hb FRO M0 OK).
 Qed.
 End LP.

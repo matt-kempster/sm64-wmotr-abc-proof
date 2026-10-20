@@ -93,8 +93,17 @@ Definition consts_ok (sa ss st : sval) (P : mode -> int -> int -> int -> bool) :
   | _, _, _ => false
   end.
 
+(* the walk's known entry action (from kv) is freefall: only freefall's
+   entry may switch to GROUND_POUND *)
+Definition entry_ff : bool :=
+  match ci (ic rM oA Mint32) with Some a0 => Int.eq a0 ACT_FREEFALL | None => false end.
+
 Definition entry_sw (md : mode) (a s t : int) : bool :=
-  mode_eqb md M_Air || (Int.eq a ACT_GROUND_POUND && Int.eq s Int.zero && Int.eq t Int.zero).
+  mode_eqb md M_Air
+  || (entry_ff && Int.eq a ACT_GROUND_POUND && Int.eq s Int.zero && Int.eq t Int.zero).
+
+(* a constant action of the knockback family / freefall *)
+Definition is_ae (a1 : sval) : bool := match ci a1 with Some a => air_entry a | None => false end.
 
 Definition step_ok (pc : list fact) (sa ss st sy sv sf sg : sval) (args : list sval) : bool :=
   match args with
@@ -106,9 +115,12 @@ Definition step_ok (pc : list fact) (sa ss st sy sv sf sg : sval) (args : list s
           ( (* stay *)
             (Int.eq cl Int.zero && sveqb sa a1 && sveqb ss s1 && sveqb st t1 && sveqb sv v1)
           || (* wall switch *)
-            (Int.eq cl Int.zero && sveqb a1 (Sconst (Vint ACT_FREEFALL))
+            (Int.eq cl Int.zero && is_ae a1
              && consts_ok sa ss st (fun md _ _ _ => mode_eqb md M_Air)
              && (sveqb sv v1 || (sveqb sv (Sconst (Vsingle Float32.zero)) && existsb (velpos v1) pc)))
+          || (* wall hit that keeps the action: vel[1] zeroed when it was > 0 *)
+            (Int.eq cl Int.zero && is_ae a1 && sveqb sa a1 && sveqb ss s1 && sveqb st t1
+             && sveqb sv (Sconst (Vsingle Float32.zero)) && existsb (velpos v1) pc)
           || (* attach *)
             ((Int.eq cl Int.one || Int.eq cl (Int.repr 2)) && sveqb sv v1
              && consts_ok sa ss st (fun md a _ _ => mode_eqb md M_Ground
@@ -238,7 +250,7 @@ Local Notation bm := (e_blk E rM).
 Hypothesis HO0 : Mem.load Mint32 m0 bm oMO = Some (Vptr (e_blk E rO) (e_base E rO)).
 Variable c0 : cells.
 Hypothesis RC0 : read_cells bm m0 c0.
-Hypothesis Hact : c_action c0 = ACT_FREEFALL.
+Hypothesis Hact : air_entry (c_action c0) = true.
 Hypothesis Hb : budget_ok c0.
 Hypothesis FRO : FloorRefreshOK wmotr_floor (R2 (c_posy c0)) (R2 (c_floorh c0)).
 
@@ -371,12 +383,21 @@ Proof. intros c c1 [H _]. exact H. Qed.
 
 (* an outcome that stays in freefall is a floor refresh again *)
 Definition fro_ff (c : cells) : Prop :=
-  c_action c = ACT_FREEFALL -> FloorRefreshOK wmotr_floor (R2 (c_posy c)) (R2 (c_floorh c)).
+  air_entry (c_action c) = true -> FloorRefreshOK wmotr_floor (R2 (c_posy c)) (R2 (c_floorh c)).
 
-Lemma not_ff_mode : forall a s md, mode_of_action a s = md -> md <> M_Freefall -> a <> ACT_FREEFALL.
+Lemma not_ae_ground : forall a s, mode_of_action a s = M_Ground -> air_entry a = true -> False.
 Proof.
-  intros a s md H N ->. apply N. rewrite <- H. unfold mode_of_action. rewrite Int.eq_true. reflexivity.
+  intros a s H A. destruct (air_entry_mode a s A) as [X | X]; rewrite H in X; discriminate X.
 Qed.
+
+Lemma is_ae_sound : forall a1 x, is_ae a1 = true -> den a1 = Some (Vint x) -> air_entry x = true.
+Proof.
+  intros a1 x H D. unfold is_ae in H. destruct (ci a1) as [a|] eqn:C; [| discriminate H].
+  apply ci_some in C. subst a1. cbn [SymExec2.den] in D. injection D as <-. exact H.
+Qed.
+
+Lemma mode_c0 : mode_of c0 = M_Freefall \/ mode_of c0 = M_Air.
+Proof. exact (air_entry_mode _ _ Hact). Qed.
 
 Theorem ff_sound : ff_ok nbase R0 kv rM rO kM g = true ->
   exists c2, read_cells bm m c2 /\ MC c0 c2 /\ fro_ff c2.
@@ -419,7 +440,8 @@ Proof.
     apply sveqb_eq in Ey, Ef, Eg. subst sy sf sg.
     rewrite DY1 in MY. rewrite DF1 in MF.
     pose proof (Inrange_of _ _ RM1) as IR1.
-    apply orb_true_iff in OK as [OK | OK]; [apply orb_true_iff in OK as [OK | OK] |].
+    apply orb_true_iff in OK as [OK | OK];
+      [apply orb_true_iff in OK as [OK | OK]; [apply orb_true_iff in OK as [OK | OK] |] |].
     + (* stay *)
       repeat rewrite andb_true_iff in OK. destruct OK as [[[[Ec Ea] Es] Et] Ev].
       apply sveqb_eq in Ea, Es, Et, Ev. subst sa ss st sv.
@@ -430,7 +452,7 @@ Proof.
       * intros _. apply FR1. pose proof (Int.eq_spec cl Int.zero) as X. rewrite Ec in X. exact X.
     + (* wall switch *)
       repeat rewrite andb_true_iff in OK. destruct OK as [[[Ec Ea1] CK] VV].
-      apply sveqb_eq in Ea1. subst a1. cbn [SymExec2.den] in DA1. injection DA1 as DA1.
+      pose proof (is_ae_sound a1 _ Ea1 DA1) as AE1.
       destruct (consts_ok_inv _ _ _ _ CK) as (a & s & t & -> & -> & -> & Md).
       apply mode_eqb_eq in Md. cbn [SymExec2.den] in MA, MS, MT.
       assert (Hv2 : exists v2, Mem.load Mfloat32 m bm oV = Some (Vsingle v2)
@@ -443,21 +465,46 @@ Proof.
           exact (velpos_sound v1 (c_vely c1) f If' Pf DV1 (proj1 (proj2 IR1))). }
       destruct Hv2 as (v2 & LV & Hv2).
       set (c2 := mkCells a s t (c_posy c1) v2 (c_floorh c1) (c_gfxy c1)).
-      exists c2. split; [| split; [| intros Ea; exfalso; exact (not_ff_mode _ _ _ Md ltac:(discriminate) Ea)]].
+      exists c2. split; [| split; [| intros _; apply FR1; pose proof (Int.eq_spec cl Int.zero) as X;
+                                    rewrite Ec in X; exact X]].
       * exact (mk_read c2 g1 LMO MA MS MT MY LV MF Lg DG1).
       * eapply rt_trans; [apply rt_step; exact RM1 | apply rt_step].
-        assert (M1 : mode_of c1 = M_Freefall) by (apply mode_ff_of; symmetry; exact DA1).
+        assert (M1 : mode_of c1 = M_Freefall \/ mode_of c1 = M_Air) by exact (air_entry_mode _ _ AE1).
         split.
         -- destruct Hv2 as [-> | (-> & _)];
              [ apply (inrange_same c1 c2 IR1); reflexivity
              | apply (inrange_vel0 c1 c2 IR1); reflexivity ].
         -- apply S_switch; [reflexivity | reflexivity | reflexivity |].
            apply Sw_plain.
-           ++ rewrite M1. discriminate.
+           ++ destruct M1 as [X | X]; rewrite X; discriminate.
            ++ exact Md.
            ++ cbn [c_vely c2]. destruct Hv2 as [-> | (-> & P)]; [apply Rle_refl |].
               replace (R2 Float32.zero) with 0 by reflexivity. lra.
-           ++ intros N. exfalso. exact (N M1).
+           ++ intros N1 N2. exfalso. destruct M1; contradiction.
+    + (* wall hit keeping the action, vel[1] zeroed *)
+      repeat rewrite andb_true_iff in OK. destruct OK as [[[[[[Ec Ae] Ea] Es] Et] Ev] P].
+      apply sveqb_eq in Ea, Es, Et, Ev. subst sa ss st sv.
+      pose proof (is_ae_sound a1 _ Ae DA1) as AE1.
+      assert (M1 : mode_of c1 = M_Freefall \/ mode_of c1 = M_Air) by exact (air_entry_mode _ _ AE1).
+      assert (P1 : 0 < R2 (c_vely c1)).
+      { apply existsb_exists in P as (f & If' & Pf).
+        exact (velpos_sound v1 (c_vely c1) f If' Pf DV1 (proj1 (proj2 IR1))). }
+      set (c2 := mkCells (c_action c1) (c_state c1) (c_timer c1) (c_posy c1) Float32.zero
+                         (c_floorh c1) (c_gfxy c1)).
+      exists c2. split; [| split].
+      * rewrite DA1 in MA. rewrite DS1 in MS. rewrite DT1 in MT. cbn [SymExec2.den] in MV'.
+        exact (mk_read c2 g1 LMO MA MS MT MY MV' MF Lg DG1).
+      * eapply rt_trans; [apply rt_step; exact RM1 | apply rt_step].
+        split; [apply (inrange_vel0 c1 c2 IR1); reflexivity |].
+        apply S_switch; [reflexivity | reflexivity | reflexivity |].
+        assert (M2 : mode_of c2 = mode_of c1) by reflexivity.
+        assert (V2 : R2 (c_vely c2) <= R2 (c_vely c1))
+          by (cbn [c_vely c2]; replace (R2 Float32.zero) with 0 by reflexivity; lra).
+        destruct M1 as [M1 | M1].
+        -- apply Sw_freefall; [rewrite M2; exact M1 | exact V2 | left; exact M1].
+        -- apply Sw_plain; [rewrite M1; discriminate | rewrite M2; exact M1 | exact V2 |].
+           intros _ N. exfalso. exact (N M1).
+      * intros _. apply FR1. pose proof (Int.eq_spec cl Int.zero) as X. rewrite Ec in X. exact X.
     + (* attach *)
       repeat rewrite andb_true_iff in OK. destruct OK as [[Ecl Ev] CK].
       apply sveqb_eq in Ev. subst sv. rewrite DV1 in MV'.
@@ -468,7 +515,7 @@ Proof.
       { intros ->. apply orb_true_iff in Ecl as [X | X]; vm_compute in X; discriminate X. }
       destruct (AI NZ) as (h & AOK & Lh & Gh).
       set (c2 := mkCells a s t (c_posy c1) (c_vely c1) (c_floorh c1) (c_gfxy c1)).
-      exists c2. split; [| split; [| intros Ea; exfalso; exact (not_ff_mode _ _ _ Md ltac:(discriminate) Ea)]].
+      exists c2. split; [| split; [| intros Ea; exfalso; exact (not_ae_ground _ _ Md Ea)]].
       * exact (mk_read c2 g1 LMO MA MS MT MY MV' MF Lg DG1).
       * apply rt_step. split; [apply (inrange_same c1 c2 IR1); reflexivity |].
         apply (S_attach _ _ _ c0 c2 h AOK).
@@ -484,7 +531,7 @@ Proof.
     destruct (consts_ok_inv _ _ _ _ CK) as (a & s & t & -> & -> & -> & SW).
     cbn [SymExec2.den] in MA, MS, MT.
     set (c2 := mkCells a s t (c_posy c0) (c_vely c0) (c_floorh c0) (c_gfxy c0)).
-    assert (M0 : mode_of c0 = M_Freefall) by exact (mode_ff_of c0 Hact).
+    pose proof mode_c0 as M0'.
     exists c2. split; [| split].
     + rewrite DY0 in MY. rewrite DV0 in MV'. rewrite DF0 in MF.
       exact (mk_read c2 _ LMO MA MS MT MY MV' MF Lg DG0).
@@ -492,18 +539,21 @@ Proof.
       apply S_switch; [reflexivity | reflexivity | reflexivity |].
       unfold entry_sw in SW. apply orb_true_iff in SW as [SW | SW].
       * apply mode_eqb_eq in SW. apply Sw_plain.
-        -- rewrite M0. discriminate.
+        -- destruct M0' as [X | X]; rewrite X; discriminate.
         -- exact SW.
         -- apply Rle_refl.
-        -- intros N. exfalso. exact (N M0).
-      * repeat rewrite andb_true_iff in SW. destruct SW as [[Ea Es] Et].
+        -- intros N1 N2. exfalso. destruct M0'; contradiction.
+      * repeat rewrite andb_true_iff in SW. destruct SW as [[[Eff Ea] Es] Et].
+        assert (M0 : mode_of c0 = M_Freefall).
+        { apply mode_ff_of. unfold entry_ff in Eff.
+          destruct (ci (init_cell kv rM oA Mint32)) as [a0|] eqn:C; [| discriminate Eff].
+          apply ci_some in C. rewrite C in DA0. cbn [SymExec2.den] in DA0. injection DA0 as <-.
+          pose proof (Int.eq_spec a0 ACT_FREEFALL) as X. rewrite Eff in X. exact X. }
         pose proof (Int.eq_spec a ACT_GROUND_POUND) as X. rewrite Ea in X.
         pose proof (Int.eq_spec s Int.zero) as Y. rewrite Es in Y.
         pose proof (Int.eq_spec t Int.zero) as W. rewrite Et in W.
         subst s t. apply Sw_gp; [exact M0 | exact X | reflexivity | reflexivity].
-    + intros Ea. change (a = ACT_FREEFALL) in Ea. exfalso. unfold entry_sw in SW. apply orb_true_iff in SW as [SW | SW].
-      * apply mode_eqb_eq in SW. exact (not_ff_mode _ _ _ SW ltac:(discriminate) Ea).
-      * subst a. vm_compute in SW. discriminate SW.
+    + intros _. exact FRO.
 Qed.
 
 (* act_air_hit_wall's outcomes, from any plain-air start: one S_switch *)
@@ -560,7 +610,6 @@ Proof.
       * cbn [c_vely c2]. destruct Hv2 as [-> | (-> & P)]; [apply Rle_refl |].
         replace (R2 Float32.zero) with 0 by reflexivity. lra.
       * intros _ N. exfalso. exact (N M0).
-  - intros Ea. exfalso. change (a = ACT_FREEFALL) in Ea. subst a.
-    vm_compute in Ca. discriminate Ca.
+  - intros _. exact FRO.
 Qed.
 End SOUND.

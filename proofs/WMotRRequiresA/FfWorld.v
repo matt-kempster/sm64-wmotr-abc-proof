@@ -24,10 +24,12 @@
 (*   - every collided object of Mario's is in his object's block (in the   *)
 (*     game: all objects are gObjectPool slots);                           *)
 (*   - m->input has neither INPUT_A_PRESSED nor INPUT_A_DOWN (no-A);        *)
-(*   - in ACT_FREEFALL, Mario's floorHeight is a floor refresh of his y    *)
-(*     (HeightMoveCatalog.FloorRefreshOK): -11000, or a WMotR floor at most *)
-(*     STEP_UP above y.  (Only freefall: a landing can leave floorHeight a   *)
-(*     quarter step stale, and it always leaves freefall.)                  *)
+(*   - in freefall and the air knockback family (HeightMoveCatalog.        *)
+(*     air_entry: AIR_HIT_WALL, SOFT_BONK, BACKWARD / FORWARD_AIR_KB),     *)
+(*     Mario's floorHeight is a floor refresh of his y (FloorRefreshOK):   *)
+(*     -11000, or a WMotR floor at most STEP_UP above y.  (Only these: a    *)
+(*     landing can leave floorHeight a quarter step stale, and it always   *)
+(*     lands in a ground action.)                                          *)
 (* Offsets and sizes are the generated AST's (pinned in FfRow on the link). *)
 (* ffw survives the frame's two stores into Mario's object (ffw_keep).      *)
 (* ====================================================================== *)
@@ -110,7 +112,7 @@ Definition ffw (m : mem) : Prop :=
       /\ (forall i cb co, 0 <= i < 4 ->
             Mem.load Mint32 m bo (Ptrofs.unsigned oo + FFW_COLL + 4 * i) = Some (Vptr cb co) -> cb = bo))
   /\ floor_data G m
-  /\ (forall y fh, Mem.load Mint32 m bm 12 = Some (Vint (Int.repr 16779404)) ->
+  /\ (forall a y fh, Mem.load Mint32 m bm 12 = Some (Vint a) -> air_entry a = true ->
         Mem.load Mfloat32 m bm OFS_POSY = Some (Vsingle y) ->
         Mem.load Mfloat32 m bm OFS_FLOORH = Some (Vsingle fh) ->
         FloorRefreshOK wmotr_floor (R2 y) (R2 fh)).
@@ -250,7 +252,7 @@ Proof.
     split; [exact Lc |]. split; [exact (wblk_keep _ _ _ Wc) |].
     intros i cb co Hi Hl. rewrite Hldc in Hl by exact Hi. exact (Co i cb co Hi Hl).
   - exact (floor_data_keep _ _ Ho W FD).
-  - intros y fh Ha Hy Hf. rewrite Hld in Ha, Hy, Hf by congruence. exact (FRO y fh Ha Hy Hf).
+  - intros a y fh Ha Hae Hy Hf. rewrite Hld in Ha, Hy, Hf by congruence. exact (FRO a y fh Ha Hae Hy Hf).
 Qed.
 End KEEP.
 

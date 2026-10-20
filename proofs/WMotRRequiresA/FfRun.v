@@ -272,12 +272,13 @@ Proof.
     rewrite BM, BaO, BO. rewrite (proj1 (layout_lp lp H12)) in L.
     unfold addr in L. rewrite HbM, Ptrofs.unsigned_zero, Z.add_0_l in L.
     cbn [SymExec2.den] in L. rewrite Ptrofs.add_zero in L. exact L. }
-  assert (Hact : c_action c0 = ACT_FREEFALL).
+  assert (Hff : c_action c0 = ACT_FREEFALL).
   { destruct (KV RM 12%Z Mint32 (Sconst (Vint (Int.repr 16779404)))) as (_ & _ & L);
       [cbn [kvF]; right; left; reflexivity |].
     unfold addr in L. rewrite HbM, Ptrofs.unsigned_zero, Z.add_0_l in L.
     destruct RC as (HA & _). change OFS_ACTION with 12%Z in HA. rewrite HA in L. cbn [den] in L.
     injection L as ->. reflexivity. }
+  assert (Hact : air_entry (c_action c0) = true) by (rewrite Hff; reflexivity).
   rewrite <- BM in RC |- *.
   exact (ff_sound G NBF (R0F G) gtabF (kvF G) m0 uf gp GPO RM RO kM uf_kM_out E' m' gs MM
            ltac:(rewrite BaM; exact HbM) HO0 c0 RC Hact Hb FRO OK).
