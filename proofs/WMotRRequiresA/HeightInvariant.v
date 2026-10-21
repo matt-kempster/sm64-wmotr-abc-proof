@@ -121,6 +121,15 @@ Definition ACT_SLIDE_KICK     : int := Int.repr 25168042.   (* 0x018008AA *)
 Definition ACT_GROUND_POUND   : int := Int.repr 8390825.    (* 0x008008A9 *)
 Definition ACT_SPAWN_NO_SPIN_AIRBORNE : int := Int.repr 6450. (* 0x00001932 *)
 Definition ACT_LEDGE_GRAB     : int := Int.repr 134218571.  (* 0x0800034B *)
+Definition ACT_FORWARD_ROLLOUT  : int := Int.repr 16779430.  (* 0x010008A6 *)
+Definition ACT_BACKWARD_ROLLOUT : int := Int.repr 16779437.  (* 0x010008AD *)
+
+(* a rollout before its handler's first run: act_forward_rollout /
+   act_backward_rollout state 0 sets vel[1] := 30 (airborne.c:1354-1356,
+   1395-1397).  The entry (dive slide / stomach slide, moving.c:1494-1562)
+   does not set vel[1] itself. *)
+Definition roll_prep (a : int) (st : Z) : bool :=
+  (Int.eq a ACT_FORWARD_ROLLOUT || Int.eq a ACT_BACKWARD_ROLLOUT) && Z.eqb st 0.
 
 Lemma freefall_dispatch :
   switch_target (fn_body mario_actions_airborne.f_mario_execute_airborne_action)
@@ -213,6 +222,10 @@ Definition credit (a : int) (st tm : Z) (v : R) : R :=
          (if Z.eqb st 0 then rise_credit 2 v + GP_RESERVE else sk_bounced_credit v)
   else if Int.eq a ACT_GROUND_POUND then
          (if Z.eqb st 0 then windup_left tm else 0)
+  (* a rollout at state 0 has its launch to come: charge vel[1] = 30 now
+     (found 2026-10-20: charging the current vel let a state-0 rollout high
+     up and slow pass Phi, and the handler's launch then broke it) *)
+  else if roll_prep a st then rise_credit 4 (Rmax v 30)
   else if is_air a then rise_credit 4 v
   else PHI_A.                      (* grounded / anchored: y <= K *)
 
@@ -262,6 +275,7 @@ Proof.
   destruct (Int.eq a ACT_BUTT_SLIDE_AIR); [ lra | ].
   destruct (Int.eq a ACT_SLIDE_KICK); [ destruct (Z.eqb st 0); lra | ].
   destruct (Int.eq a ACT_GROUND_POUND); [ destruct (Z.eqb st 0); lra | ].
+  destruct (roll_prep a st); [ pose proof (rise_credit_nonneg 4 (Rmax v 30) ltac:(lra)); lra | ].
   destruct (is_air a); lra.
 Qed.
 

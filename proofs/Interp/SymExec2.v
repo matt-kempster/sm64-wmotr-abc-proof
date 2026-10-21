@@ -393,7 +393,13 @@ Definition sderef (ty : type) (g : gst) (l : sloc) : option sval :=
   match access_mode ty with
   | By_value ch =>
       match l with
-      | Lreg r o => sload g r (Ptrofs.unsigned o) ch
+      | Lreg r o =>
+          match sload g r (Ptrofs.unsigned o) ch with
+          | Some v => Some v
+          (* a scalar global with no sized region (gtab only) read as
+             world memory, when a fact [Fworld] places it *)
+          | None => if Pos.ltb r nbase then wload g (Sptr r o) 0 ch else None
+          end
       | Lwld q k => wload g q k ch
       end
   | By_reference | By_copy => Some (addr_of l)
@@ -2293,10 +2299,16 @@ Proof.
   intros E m g ty l b o v sa MM D K H DL. unfold sderef in H.
   inversion DL as [ch v' AM LD | AM | AM | ]; subst; rewrite AM in H.
   - destruct l as [r o' | q k]; cbn in D.
-    + inv D. assert (IB : inb g r (Ptrofs.unsigned o') ch = true)
-        by (unfold sload in H; destruct (inb _ _ _ _); [ reflexivity | discriminate ]).
-      destruct (sload_sound _ _ _ _ _ _ _ MM H) as [L S]. split; [ | exact S ].
-      cbn in LD. rewrite (addr_ptrofs _ _ _ _ _ _ MM IB) in LD. congruence.
+    + inv D. destruct (sload g r (Ptrofs.unsigned o') ch) as [sv|] eqn:SL.
+      * inv H. assert (IB : inb g r (Ptrofs.unsigned o') ch = true)
+          by (unfold sload in SL; destruct (inb _ _ _ _); [ reflexivity | discriminate ]).
+        destruct (sload_sound _ _ _ _ _ _ _ MM SL) as [L S]. split; [ | exact S ].
+        cbn in LD. rewrite (addr_ptrofs _ _ _ _ _ _ MM IB) in LD. congruence.
+      * destruct (Pos.ltb r nbase) eqn:Lb; [ | discriminate H ].
+        apply Pos.ltb_lt in Lb.
+        destruct (wload_sound E m g (Sptr r o') 0 ch sa (e_blk E r) (Ptrofs.add (e_base E r) o')
+                    MM H eq_refl (conj K I) Lb) as [L S].
+        split; [ | exact S ]. rewrite Ptrofs.add_zero in L. cbn in LD. congruence.
     + destruct (den E q) as [[]|] eqn:Dq; try discriminate. inv D. destruct K as [K1 K2].
       assert (Sq : sok (g_nx g) q) by (split; [ exact K1 | destruct q; auto ]).
       destruct (wload_sound _ _ _ _ _ _ _ _ _ MM H Dq Sq K2) as [L S].

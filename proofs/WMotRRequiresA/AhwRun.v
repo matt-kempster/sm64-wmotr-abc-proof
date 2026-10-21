@@ -56,7 +56,7 @@ Lemma ahwcheck12 : match ge12 with
               | Some cs => forallb (ahk_ok g) cs
               | None => false end
   | None => false end = true.
-Proof. vm_compute. reflexivity. Qed.
+Proof. vm_cast_no_check (eq_refl true). Qed.  (* computed once, by the kernel *)
 
 Lemma dm_pas_h : (prog_defmap mario_step.prog) ! mario_step._perform_air_step
   = Some (Gfun (Internal mario_step.f_perform_air_step)).

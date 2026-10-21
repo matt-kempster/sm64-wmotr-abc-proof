@@ -174,7 +174,7 @@ Qed.
 Theorem pc0_mem : forall fl ar inp,
   Wff G m0 (gpv m0) (szs G mario._Surface)
     (map (den G m0 E) (wargs (R0 G))) ->
-  Mem.load Mint16unsigned m0 bm 2 = Some (Vint inp) -> Int.and inp (Int.repr 130) = Int.zero ->
+  Mem.load Mint16unsigned m0 bm 2 = Some (Vint inp) -> Int.and inp (Int.repr 2178) = Int.zero ->
   Mem.load Mint32 m0 bm (fo G mario._MarioState mario._floor) = Some fl ->
   wptr fl (szs G mario._Surface) ->
   (exists b o, fl = Vptr b o /\ styp m0 b o) ->
@@ -267,7 +267,7 @@ Theorem air_step_move_mem2 : forall m0 bm bo oo bfi bmiss bcalls t m' vres c fl 
   Wff G m0 (gpv m0) (szs G mario._Surface)
     (map (den G m0 (E0 bm bo bfi bmiss bcalls oo)) (wargs (R0 G))) ->
   (* no A bits in m->input *)
-  Mem.load Mint16unsigned m0 bm 2 = Some (Vint inp) -> Int.and inp (Int.repr 130) = Int.zero ->
+  Mem.load Mint16unsigned m0 bm 2 = Some (Vint inp) -> Int.and inp (Int.repr 2178) = Int.zero ->
   (* m->floor and m->area are world objects; the floor has a WMotR type *)
   Mem.load Mint32 m0 bm (fo G mario._MarioState mario._floor) = Some fl ->
   wptr m0 bm bo bfi bmiss bcalls fl (szs G mario._Surface) ->

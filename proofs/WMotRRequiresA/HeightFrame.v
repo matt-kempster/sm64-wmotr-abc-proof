@@ -540,9 +540,11 @@ Section HeightLinked12.
      handlers (common_air_knockback_step: an air step, a landing, or a wall
      bonk keeping the action).  The ground-pound case (GpRun, 2026-10-20):
      PROVED from the real act_ground_pound (the windup rise, or the fall's
-     air step and its landing / wall).  The other five cases keep their
+     air step and its landing / wall).  The dive case (KbDv, 2026-10-20):
+     PROVED from the real act_dive (the same air-step summary).  The other
+     four cases (both rollouts, butt-slide air, slide kick) keep their
      AirSplit row. *)
-  Hypothesis Hair_case_rest : air_case_rest4 lp bm MWF.
+  Hypothesis Hair_case_rest : air_case_rest5 lp bm MWF.
   (* the walk's floors: the FPU floor (TRUST 3.5) and the labeled open
      audio / camera premises (deferred; ExtInert) *)
   Hypothesis Hsqrtf : sqrtf_spec.
@@ -552,7 +554,7 @@ Section HeightLinked12.
 
   Lemma Hair_case : air_case_rows lp bm MWF.
   Proof.
-    exact (air_case_rows_ff4 lp H12 Hdma_floor Hsqrtf Hsqrtf_float Haudio Hcamera bm Hbm_sym MWF
+    exact (air_case_rows_ff5 lp H12 Hdma_floor Hsqrtf Hsqrtf_float Haudio Hcamera bm Hbm_sym MWF
              Hair_case_rest).
   Qed.
 

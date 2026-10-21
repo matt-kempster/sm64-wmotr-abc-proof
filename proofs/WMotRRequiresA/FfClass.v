@@ -59,16 +59,19 @@ Definition kmargs (kM : positive) (pc : list fact) : option (list sval) :=
 
 Definition lsveqb (a b : list sval) : bool := if list_eq_dec sval_eq a b then true else false.
 
-(* an air action whose mode does not depend on its state: plain M_Air *)
+(* an air action whose mode does not depend on its state: plain M_Air
+   (not the rollouts: at state 0 they are M_RollPrep) *)
 Definition air_indep (a : int) : bool :=
   is_air a && negb (Int.eq a ACT_FREEFALL) && negb (Int.eq a ACT_BUTT_SLIDE_AIR)
-  && negb (Int.eq a ACT_SLIDE_KICK) && negb (Int.eq a ACT_GROUND_POUND).
+  && negb (Int.eq a ACT_SLIDE_KICK) && negb (Int.eq a ACT_GROUND_POUND)
+  && negb (Int.eq a ACT_FORWARD_ROLLOUT) && negb (Int.eq a ACT_BACKWARD_ROLLOUT).
 
 Lemma air_indep_mode : forall a s, air_indep a = true -> mode_of_action a s = M_Air.
 Proof.
   intros a s H. unfold air_indep in H. repeat rewrite andb_true_iff in H.
-  destruct H as [[[[Ha Hf] Hb] Hk] Hg]. apply negb_true_iff in Hf, Hb, Hk, Hg.
-  unfold mode_of_action. rewrite Hf, Hb, Hk, Hg, Ha. reflexivity.
+  destruct H as [[[[[[Ha Hf] Hb] Hk] Hg] Hr1] Hr2]. apply negb_true_iff in Hf, Hb, Hk, Hg, Hr1, Hr2.
+  assert (Hr : roll_prep a s = false) by (unfold roll_prep; rewrite Hr1, Hr2; reflexivity).
+  unfold mode_of_action. rewrite Hf, Hb, Hk, Hg, Hr, Ha. reflexivity.
 Qed.
 
 (* a term that denotes an int whenever its default does: the default, an int

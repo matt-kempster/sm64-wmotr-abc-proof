@@ -18,7 +18,7 @@ From compcert Require Import Coqlib Maps AST Integers Floats Values Memory Event
 From SM64.Generated Require mario_step mario mario_actions_airborne memory surface_collision level_update.
 From SM64.Proofs Require Import Interp.SymExec2 Interp.LinkGenv MarioModel.LinkedTwelve
   MarioModel.OsDmaFloor MarioModel.MathGeomGated HeightInvariant HeightMoveCatalog WMotRLevel.
-From SM64.Proofs.WMotRRequiresA Require Import FloorHeight FloorExec AirXc AirRun AirWr WallExec AirMatch AirMove SmaXc AirSum FpuFloor FpWalk ExtInert FfClass AirStart FfKeepCheck FfRun AhwRun.
+From SM64.Proofs.WMotRRequiresA Require Import FloorHeight FloorExec AirXc AirRun AirWr WallExec AirMatch AirMove SmaXc AirSum FpuFloor FpWalk ExtInert FfClass AirStart FfKeepCheck FfRun AhwRun WithGe.
 Import ListNotations.
 
 Module AIR := mario_actions_airborne.
@@ -52,21 +52,24 @@ End CFG.
 Definition kbk_ok (acn : Z) (g : genv) (c : cpath) : bool :=
   ff_ok NBF (R0F g) (kvK acn g) RM RO kM (fst c) && fk_ok NBF (R0F g) (kvK acn g) RM RO RLD kS clokF (fst c).
 
-Definition kb_walk (acn : Z) (f : function) : bool :=
-  match ge12 with
-  | Some g => match sx_call g NBF (R0F g) gtabF (kvK acn g) (xcK acn g) jkeys mergeF true 3000 (g0F g)
-                      (Internal f) argsF with
-              | Some cs => forallb (kbk_ok acn g) cs
-              | None => false end
-  | None => false end.
+(* the landing's two helpers are merged too (should_get_stuck_in_ground,
+   check_fall_damage): soft bonk's walk then takes 315 s instead of 578 s;
+   and play_mario_sound, whose flag and terrain tests split dive's walk 44
+   ways before the air step (merged, the whole dive walk takes 90 s) *)
+Definition mergeK (id : ident) : bool :=
+  mergeF id || Pos.eqb id AIR._should_get_stuck_in_ground || Pos.eqb id AIR._check_fall_damage
+  || Pos.eqb id AIR._play_mario_sound.
 
-(* THE WALKS, computed once each on the real link *)
-Lemma sbcheck12 : kb_walk 16910518 AIR.f_act_soft_bonk = true.
-Proof. vm_compute. reflexivity. Qed.
-Lemma bkbcheck12 : kb_walk 16910512 AIR.f_act_backward_air_kb = true.
-Proof. vm_compute. reflexivity. Qed.
-Lemma fkbcheck12 : kb_walk 16910513 AIR.f_act_forward_air_kb = true.
-Proof. vm_compute. reflexivity. Qed.
+Definition kb_walk (acn : Z) (f : function) : bool :=
+  with_ge ge12 false (fun g =>
+    match sx_call g NBF (R0F g) gtabF (kvK acn g) (xcK acn g) jkeys mergeK true 3000 (g0F g)
+            (Internal f) argsF with
+    | Some cs => forallb (kbk_ok acn g) cs
+    | None => false end).
+
+(* THE WALKS, each in its own file so they build in parallel: KbSb, KbBkb,
+   KbFkb, KbDv (vm_cast_no_check: the kernel computes each walk once, at
+   Qed, instead of the tactic and then the kernel) *)
 
 Section LP.
 Variable lp : Clight.program.
@@ -157,11 +160,11 @@ Proof.
 Qed.
 
 Lemma kbcheck_lp : exists cs,
-  sx_call G NBF (R0F G) gtabF (kvK acn G) (xcK acn G) jkeys mergeF true 3000 (g0F G)
+  sx_call G NBF (R0F G) gtabF (kvK acn G) (xcK acn G) jkeys mergeK true 3000 (g0F G)
     (Internal fK) argsF = Some cs
   /\ forall c, In c cs -> kbk_ok acn G c = true.
 Proof.
-  pose proof Hwalk as W. unfold kb_walk in W. rewrite (ge12_ok lp H12) in W.
+  pose proof Hwalk as W. unfold kb_walk, with_ge in W. rewrite (ge12_ok lp H12) in W.
   exact (consume _ (kbk_ok acn G) W).
 Qed.
 
@@ -195,7 +198,7 @@ Proof.
                    [Vptr (e_blk E RM) (Ptrofs.add (e_base E RM) Ptrofs.zero)]).
   { constructor; [| constructor].
     split; [reflexivity |]. cbn [sok nlt g0F g_nx]. split; [unfold Plt, Pos.lt; reflexivity | exact Logic.I]. }
-  destruct (sx_call_sound G NBF (R0F G) gtabF (kvK acn G) (xcK acn G) jkeys mergeF true m0 uf gp
+  destruct (sx_call_sound G NBF (R0F G) gtabF (kvK acn G) (xcK acn G) jkeys mergeK true m0 uf gp
               GPO MC xcK_sound 3000 (g0F G) _ argsF cs E m0 _ t m' vres RUN MM0 ARGS EV) as (c & Hin & CMc).
   destruct c as [gs r]. destruct CMc as (E' & X & MM & _).
   pose proof (W _ Hin) as OK. unfold kbk_ok in OK. cbn [fst] in OK.
@@ -250,6 +253,8 @@ Lemma kb_kfinal : forall lp, linked12 lp -> os_dma_floor -> sqrtf_spec -> sqrtf_
   audio_inert -> camera_inert -> forall acn fK, kb_walk acn fK = true -> air_entry (Int.repr acn) = true ->
   kfinal lp acn fK.
 Proof.
-  intros lp H12 Hdma Hsq Hsqf Ha Hc acn fK Hw Hae m0 gp GPO MC FD E t m' vres c0 EO PC EV RC Hb FRO.
-  eapply kb_final; eassumption.
+  (* explicit: eassumption would unify kb_walk with the other hypotheses,
+     unfolding the walk onto the whole link (it ran > 10 min) *)
+  intros lp H12 Hdma Hsq Hsqf Ha Hc acn fK Hw Hae m0 gp GPO MC FD.
+  exact (kb_final lp H12 Hdma Hsq Hsqf Ha Hc acn fK Hw Hae m0 gp GPO MC FD).
 Qed.

@@ -66,7 +66,7 @@ Definition mergef (id : ident) : bool :=
 (* the start facts: the world, no A bits in m->input (mask 0x82), the entry
    floor and area are world objects, the floor's type is a WMotR one *)
 Definition pc0 : list fact :=
-  [Fuser kW (wargs R0); Fbits (Sinit RM 2 Mint16unsigned) (Int.repr 130);
+  [Fuser kW (wargs R0); Fbits (Sinit RM 2 Mint16unsigned) (Int.repr 2178);
    Fworld (Sinit RM (fo mario._MarioState mario._floor) Mint32) (szs mario._Surface);
    Fworld (Sinit RM (fo mario._MarioState mario._area) Mint32) (szs mario._Area)]
   ++ ffacts (Sinit RM (fo mario._MarioState mario._floor) Mint32).
@@ -110,7 +110,7 @@ Lemma wcheck12 : match ge12 with
                       (Internal mario_step.f_perform_air_step) args0 with
               | Some cs => forallb (ok_c g) cs | None => false end
   | None => false end = true.
-Proof. vm_compute. reflexivity. Qed.
+Proof. vm_cast_no_check (eq_refl true). Qed.  (* computed once, by the kernel *)
 
 Lemma consume : forall (o : option (list cpath)) (P : cpath -> bool),
   match o with Some cs => forallb P cs | None => false end = true ->

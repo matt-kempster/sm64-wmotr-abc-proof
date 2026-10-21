@@ -23,7 +23,9 @@
 (*     regions, and m->wall and m->ceil, when pointers, at blocks off them; *)
 (*   - every collided object of Mario's is in his object's block (in the   *)
 (*     game: all objects are gObjectPool slots);                           *)
-(*   - m->input has neither INPUT_A_PRESSED nor INPUT_A_DOWN (no-A);        *)
+(*   - m->input has neither INPUT_A_PRESSED nor INPUT_A_DOWN (no-A), nor   *)
+(*     INPUT_INTERACT_OBJ_GRABBABLE (only interact_grabbable sets it,      *)
+(*     interaction.c:1657, and WMotR has nothing grabbable: WMotRWorld);  *)
 (*   - in freefall, the air knockback family (HeightMoveCatalog.          *)
 (*     air_entry: AIR_HIT_WALL, SOFT_BONK, BACKWARD / FORWARD_AIR_KB) and   *)
 (*     ground pound (fro_entry), Mario's floorHeight is a floor refresh of *)
@@ -93,7 +95,9 @@ Definition ffw (m : mem) : Prop :=
       /\ Mem.load Mint32 m ab 8 = Some (Vptr bt ot) /\ Ptrofs.unsigned ot + 24 <= Ptrofs.modulus
       (* the object and the buffer are blocks of their own *)
       /\ bo <> bm /\ bt <> bm /\ bt <> bo
-      /\ (forall b, In b [bfi; bmiss; bcalls; bsin; ab; biom; bmq; brm] -> b <> bo /\ b <> bt)
+      (* (gAudioRandom too: play_mario_jump_sound reads it, a world cell) *)
+      /\ (forall b, In b [bfi; bmiss; bcalls; bsin; ab; biom; bmq; brm]
+                    \/ Genv.find_symbol G mario._gAudioRandom = Some b -> b <> bo /\ b <> bt)
       (* the collision partition *)
       /\ Wff G m gp SZ_SURFACE (ff_rl bm bo oo bfi bmiss bcalls ab bt biom bmq brm)
       (* m->floor, m->area *)
@@ -104,8 +108,8 @@ Definition ffw (m : mem) : Prop :=
             ~ rblk (ff_rl bm bo oo bfi bmiss bcalls ab bt biom bmq brm) sb)
       /\ Mem.load Mint32 m bm FFW_AREA = Some ar
       /\ wblk m (ff_rl bm bo oo bfi bmiss bcalls ab bt biom bmq brm) ar SZ_AREA
-      (* m->input: INPUT_A_PRESSED | INPUT_A_DOWN clear *)
-      /\ Mem.load Mint16unsigned m bm 2 = Some (Vint inp) /\ Int.and inp (Int.repr 130) = Int.zero
+      (* m->input: INPUT_A_PRESSED | INPUT_A_DOWN | INPUT_INTERACT_OBJ_GRABBABLE clear *)
+      /\ Mem.load Mint16unsigned m bm 2 = Some (Vint inp) /\ Int.and inp (Int.repr 2178) = Int.zero
       (* m->controller *)
       /\ Mem.load Mint32 m bm FFW_CTL = Some ctl
       /\ wblk m (ff_rl bm bo oo bfi bmiss bcalls ab bt biom bmq brm) ctl SZ_CTL

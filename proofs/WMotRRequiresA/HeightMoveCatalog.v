@@ -31,13 +31,15 @@ Local Open Scope R_scope.
 (* -----------------------------------------------------------------------  *)
 (* 1. The credit, by mode.                                                  *)
 (* -----------------------------------------------------------------------  *)
-Inductive mode := M_Freefall | M_SlideKick | M_Air | M_SlideKickBounced | M_PoundWindup | M_PoundFall | M_Ground.
+Inductive mode := M_Freefall | M_SlideKick | M_Air | M_SlideKickBounced | M_PoundWindup | M_PoundFall | M_Ground
+  | M_RollPrep.   (* a rollout at state 0, its launch to come *)
 
 Definition mode_of_action (a : int) (st : Z) : mode :=
   if Int.eq a ACT_FREEFALL then M_Freefall
   else if Int.eq a ACT_BUTT_SLIDE_AIR then M_Freefall
   else if Int.eq a ACT_SLIDE_KICK then (if Z.eqb st 0 then M_SlideKick else M_SlideKickBounced)
   else if Int.eq a ACT_GROUND_POUND then (if Z.eqb st 0 then M_PoundWindup else M_PoundFall)
+  else if roll_prep a st then M_RollPrep
   else if is_air a then M_Air else M_Ground.
 
 Definition mode_credit (k : mode) (tm : Z) (v : R) : R :=
@@ -49,6 +51,7 @@ Definition mode_credit (k : mode) (tm : Z) (v : R) : R :=
   | M_PoundWindup => windup_left tm
   | M_PoundFall => 0
   | M_Ground => PHI_A
+  | M_RollPrep => rise_credit 4 (Rmax v 30)
   end.
 
 Lemma credit_by_mode : forall a st tm v, credit a st tm v = mode_credit (mode_of_action a st) tm v.
@@ -61,30 +64,31 @@ Qed.
 Definition mode_of (c : cells) : mode := mode_of_action (c_action c) (state_of c).
 
 (* the air actions whose handlers run perform_air_step from a fresh floor:
-   freefall and the knockback family (AIR_HIT_WALL, SOFT_BONK, BACKWARD /
-   FORWARD_AIR_KB).  The frame refreshes floorHeight at pos[1] before the
+   freefall, the knockback family (AIR_HIT_WALL, SOFT_BONK, BACKWARD /
+   FORWARD_AIR_KB) and dive.  The frame refreshes floorHeight at pos[1] before the
    action runs (update_mario_geometry_inputs), and these are entered only
    from air steps that did not attach, from switches that keep pos[1] and
    floorHeight, or from a pole (set_pole_position moves pos[1] by far less
    than STEP_UP below the refreshed floor). *)
 Definition air_entry (a : int) : bool :=
   Int.eq a ACT_FREEFALL || Int.eq a (Int.repr 2215) || Int.eq a (Int.repr 16910518)
-  || Int.eq a (Int.repr 16910512) || Int.eq a (Int.repr 16910513).
+  || Int.eq a (Int.repr 16910512) || Int.eq a (Int.repr 16910513)
+  || Int.eq a (Int.repr 25692298).   (* ACT_DIVE, 0x0188088A *)
 
 Lemma air_entry_cases : forall a, air_entry a = true ->
   a = ACT_FREEFALL \/ a = Int.repr 2215 \/ a = Int.repr 16910518
-  \/ a = Int.repr 16910512 \/ a = Int.repr 16910513.
+  \/ a = Int.repr 16910512 \/ a = Int.repr 16910513 \/ a = Int.repr 25692298.
 Proof.
   intros a H. unfold air_entry in H.
   repeat rewrite Bool.orb_true_iff in H.
-  destruct H as [[[[H | H] | H] | H] | H]; apply Int.same_if_eq in H; auto 6.
+  destruct H as [[[[[H | H] | H] | H] | H] | H]; apply Int.same_if_eq in H; auto 7.
 Qed.
 
 Lemma air_entry_mode : forall a s, air_entry a = true ->
   mode_of_action a s = M_Freefall \/ mode_of_action a s = M_Air.
 Proof.
   intros a s H.
-  destruct (air_entry_cases a H) as [-> | [-> | [-> | [-> | ->]]]];
+  destruct (air_entry_cases a H) as [-> | [-> | [-> | [-> | [-> | ->]]]]];
     unfold mode_of_action; vm_compute; auto.
 Qed.
 
@@ -159,6 +163,9 @@ Proof.
     + apply Int.same_if_eq in E4. subst.
       destruct (Z.eqb_spec st 0); vm_compute; intuition congruence.
     + apply int_eq_false_neq in E4.
+      destruct (roll_prep a st) eqn:E6.
+      { repeat split; intros; try (intuition congruence).
+        subst. vm_compute in E6. discriminate. }
       destruct (is_air a) eqn:E5.
       * repeat split; intros; try (intuition congruence).
         subst. vm_compute in E5. discriminate.
@@ -239,6 +246,7 @@ Definition launch_cap (k : mode) (tm : Z) (v : R) : Prop :=
   | M_PoundWindup => (tm <= 32770)%Z
   | M_PoundFall => v <= 0
   | M_Ground => True
+  | M_RollPrep => v <= 52
   end.
 
 Lemma windup_left_le : forall tm, (0 <= tm)%Z -> windup_left tm <= windup_left 0.
@@ -277,6 +285,24 @@ Proof.
   - pose proof (windup_left_le tm Htm). rewrite windup_left_0 in *. lra.
   - lra.
   - lra.
+  - unfold rise_credit. destruct (Rle_dec (Rmax v 30) 0); [ lra | ].
+    pose proof (Rmax_l v 30). pose proof (Rmax_r v 30).
+    assert (Rmax v 30 <= 52) by (apply Rmax_lub; lra).
+    unfold energy, EPS. assert ((Rmax v 30 + 4 / 2) ^ 2 <= 2916) by nra. lra.
+Qed.
+
+Lemma mode_rollprep : forall a st, mode_of_action a st = M_RollPrep ->
+  (a = ACT_FORWARD_ROLLOUT \/ a = ACT_BACKWARD_ROLLOUT) /\ st = 0%Z.
+Proof.
+  intros a st H. unfold mode_of_action in H.
+  destruct (Int.eq a ACT_FREEFALL); [ discriminate | ].
+  destruct (Int.eq a ACT_BUTT_SLIDE_AIR); [ discriminate | ].
+  destruct (Int.eq a ACT_SLIDE_KICK); [ destruct (Z.eqb st 0); discriminate | ].
+  destruct (Int.eq a ACT_GROUND_POUND); [ destruct (Z.eqb st 0); discriminate | ].
+  destruct (roll_prep a st) eqn:E; [ | destruct (is_air a); discriminate ].
+  unfold roll_prep in E. apply Bool.andb_true_iff in E as [E1 E2]. apply Z.eqb_eq in E2.
+  split; [ | exact E2 ].
+  apply Bool.orb_true_iff in E1 as [E1 | E1]; apply Int.same_if_eq in E1; auto.
 Qed.
 
 (* -----------------------------------------------------------------------  *)
@@ -426,6 +452,13 @@ Section Moves.
       c_posy c' = c_posy c -> c_vely c' = c_vely c -> c_gfxy c' = c_gfxy c ->
       FloorRefreshOK (R2 (c_posy c)) (R2 (c_floorh c')) ->
       Move c c'
+  (* a rollout's first handler run (airborne.c:1354-1356, 1395-1397):
+     vel[1] := 30, state 1; pos[1], gfx.pos[1], floorHeight untouched *)
+  | S_roll_launch :
+      mode_of c = M_RollPrep -> c_action c' = c_action c -> state_of c' = 1%Z ->
+      R2 (c_vely c') = 30 ->
+      c_posy c' = c_posy c -> c_gfxy c' = c_gfxy c -> c_floorh c' = c_floorh c ->
+      Move c c'
   (* OOB recovery: pos := gfx.pos, then find_floor again (mario.c:1327-1329) *)
   | S_oob :
       c_action c' = c_action c -> c_state c' = c_state c -> c_timer c' = c_timer c ->
@@ -500,6 +533,7 @@ Section Moves.
     pose proof (rise_credit_nonneg 2 (R2 (c_vely c)) ltac:(lra)).
     pose proof (sk_bounced_credit_nonneg (R2 (c_vely c))).
     pose proof (windup_left_nonneg (timer_of c)).
+    pose proof (rise_credit_nonneg 4 (Rmax (R2 (c_vely c)) 30) ltac:(lra)).
     unfold GP_RESERVE, PHI_A in *.
     destruct Hs as [Hk Hk' Hle Hz | Hk' Hle Hsrc | Hk Ha' Hst' Htm'].
     - rewrite Hk'. simpl.
@@ -616,6 +650,7 @@ Section Moves.
       | Hy' Hgy' Hfh' Hsw
       | h Han Hyh Hgy' Hcap Hla
       | Ha Hst Htmc Hy' Hv' Hgy' Hrf
+      | Hk Ha Hst' Hv' Hy' Hgy' Hfh'
       | Ha Hst Htmc Hv' Hy' Hgy' Hrf ].
     - (* S_air *)
       assert (Hk' : mode_of c' = mode_of c) by (apply mode_of_same; auto).
@@ -768,6 +803,19 @@ Section Moves.
       + intros Ha' Hst'. unfold timer_of. rewrite Htmc. rewrite Ha in Ha'. unfold state_of in Hst'.
         rewrite Hst in Hst'. exact (Hgw Ha' Hst').
       + intros _. exact (floor_refresh_ledge c _ _ Hc0 Hb Hrf).
+    - (* S_roll_launch: the launch was already charged at state 0 *)
+      destruct (mode_rollprep _ _ Hk) as [Hra _].
+      assert (Hk' : mode_of c' = M_Air).
+      { unfold mode_of. rewrite Ha, Hst'. destruct Hra as [E | E]; rewrite E; vm_compute; reflexivity. }
+      assert (Hcr : credit_of c' <= credit_of c).
+      { rewrite !credit_of_mode, Hk, Hk'. simpl. rewrite Hv'.
+        apply rise_credit_mono; [ lra | apply Rmax_r ]. }
+      destruct (sides_plain c' (or_intror Hk')) as (S1 & S2 & S3).
+      split; [ rewrite Hy'; lra | split; [ rewrite Hgy'; lra | ] ].
+      split; [ intros X; destruct (S1 X) | ].
+      split; [ intros X; destruct (S2 X) | ].
+      split; [ intros X; destruct (S2 X) | ].
+      intros X; destruct (S3 X).
     - (* S_oob *)
       assert (Hcr : credit_of c' = credit_of c) by (unfold credit_of, state_of, timer_of; rewrite Ha, Hst, Htmc, Hv'; reflexivity).
       split; [ rewrite Hy', Hcr; lra | split; [ rewrite Hgy', Hcr; lra | split; [ | split; [ | split ] ] ] ].

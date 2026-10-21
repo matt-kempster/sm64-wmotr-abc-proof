@@ -24,6 +24,7 @@ From SM64.Generated Require mario_step mario mario_actions_airborne memory surfa
 From SM64.Proofs Require Import Interp.SymExec2 Interp.LinkGenv MarioModel.LinkedTwelve
   MarioModel.OsDmaFloor MarioModel.MathGeomGated HeightInvariant HeightMoveCatalog WMotRLevel.
 From SM64.Proofs.WMotRRequiresA Require Import FloorHeight FloorExec AirXc AirRun AirWr WallExec AirMatch AirMove SmaXc AirSum FpuFloor FpWalk ExtInert FfClass AirStart FfKeepCheck.
+From SM64.Proofs Require Generic.SymbolicLinking.
 Import ListNotations.
 
 Module AIR := mario_actions_airborne.
@@ -35,6 +36,7 @@ Definition RBUF : positive := 9.
 Definition RIOM : positive := 10.
 Definition RMQ : positive := 11.
 Definition RRM : positive := 12.
+Definition RAR : positive := 13.   (* gAudioRandom, a world cell *)
 Definition kM : positive := 3.
 Definition kB : positive := 4.
 
@@ -48,7 +50,8 @@ Definition gtabF : list (ident * positive) :=
   [(surface_collision._gFindFloorIncludeSurfaceIntangible, RFI);
    (surface_collision._gNumFindFloorMisses, RMISS); (surface_collision._gNumCalls, RCALLS);
    (mario._gSineTable, RSIN); (level_update._gMarioStates, RM); (mario._gMarioAnimsBuf, RLD);
-   (memory._gDmaIoMesg, RIOM); (memory._gDmaMesgQueue, RMQ); (memory._gMainReceivedMesg, RRM)].
+   (memory._gDmaIoMesg, RIOM); (memory._gDmaMesgQueue, RMQ); (memory._gMainReceivedMesg, RRM);
+   (mario._gAudioRandom, RAR)].
 (* known cells: marioObj, action = ACT_FREEFALL, heldObj = riddenObj = NULL,
    animList = &gMarioAnimsBuf *)
 Definition kvF : list (positive * Z * memory_chunk * sval) :=
@@ -60,10 +63,13 @@ Definition kvF : list (positive * Z * memory_chunk * sval) :=
 (* the start facts: AirRun's, the sine table's block, the anim buffer, and
    the entry floor is a WMotR surface off the regions *)
 Definition pc0F : list fact :=
-  [Fuser kW (wargs R0F); Fbits (Sinit RM 2 Mint16unsigned) (Int.repr 130);
+  [Fuser kW (wargs R0F); Fbits (Sinit RM 2 Mint16unsigned) (Int.repr 2178);
    Fworld (Sinit RM (AirRun.fo g mario._MarioState mario._floor) Mint32) (szs g mario._Surface);
    Fworld (Sinit RM (AirRun.fo g mario._MarioState mario._area) Mint32) (szs g mario._Area);
    Fworld (Sptr RSIN Ptrofs.zero) Ptrofs.modulus;
+   (* play_mario_jump_sound's `gAudioRandom % 3` (dive, rollouts): a read
+      of world memory, which nothing the walk runs writes *)
+   Fworld (Sptr RAR Ptrofs.zero) 4;
    Fuser kB [Sinit RLD 8 Mint32; Sptr RBUF Ptrofs.zero];
    Fuser kS (Sinit RM (AirRun.fo g mario._MarioState mario._floor) Mint32 :: wargs R0F)]
   ++ ffacts (Sinit RM (AirRun.fo g mario._MarioState mario._floor) Mint32).
@@ -112,7 +118,7 @@ Lemma ffcheck12 : match ge12 with
               | Some cs => forallb (ffk_ok g) cs
               | None => false end
   | None => false end = true.
-Proof. vm_compute. reflexivity. Qed.
+Proof. vm_cast_no_check (eq_refl true). Qed.  (* computed once, by the kernel *)
 
 Lemma dm_pas : (prog_defmap mario_step.prog) ! mario_step._perform_air_step
   = Some (Gfun (Internal mario_step.f_perform_air_step)).
@@ -123,6 +129,15 @@ Proof. vm_compute. reflexivity. Qed.
 Lemma dm_uawt : (prog_defmap AIR.prog) ! AIR._update_air_without_turn
   = Some (Gfun (Internal AIR.f_update_air_without_turn)).
 Proof. vm_compute. reflexivity. Qed.
+(* gAudioRandom (declared in mario.c, defined in audio/data.c) has a block *)
+Lemma dm_aud : (prog_defmap mario.prog) ! mario._gAudioRandom = Some (Gvar mario.v_gAudioRandom).
+Proof. vm_compute. reflexivity. Qed.
+Lemma aud_sym : forall lp, linked12 lp ->
+  exists b, Genv.find_symbol (globalenv lp) mario._gAudioRandom = Some b.
+Proof.
+  intros lp H12. exact (SymbolicLinking.linkorder_resolves_symbol lp mario.prog _ _ (linked12_LO_mario lp H12) dm_aud).
+Qed.
+
 Lemma sqrtf_named_air : ext_named ((prog_defmap AIR.prog) ! AIR._sqrtf) "sqrtf" = true.
 Proof. vm_compute. reflexivity. Qed.
 

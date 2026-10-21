@@ -33,6 +33,7 @@ generated/obj_behaviors.v
 generated/obj_behaviors_2.v
 generated/spawn_object.v
 generated/object_list_processor.v
+generated/audio_data.v
 generated/object_collision.v
 
 # --- shared infrastructure (used by GOAL 1; reusable) ---
@@ -294,7 +295,12 @@ proofs/WMotRRequiresA/FfKeepCheck.v
 proofs/WMotRRequiresA/FfKeep.v
 proofs/WMotRRequiresA/FfRun.v
 proofs/WMotRRequiresA/AhwRun.v
+proofs/WMotRRequiresA/WithGe.v
 proofs/WMotRRequiresA/KbRun.v
+proofs/WMotRRequiresA/KbSb.v
+proofs/WMotRRequiresA/KbBkb.v
+proofs/WMotRRequiresA/KbFkb.v
+proofs/WMotRRequiresA/KbDv.v
 proofs/WMotRRequiresA/GpRun.v
 proofs/WMotRRequiresA/AirStart.v
 proofs/WMotRRequiresA/FfWorld.v

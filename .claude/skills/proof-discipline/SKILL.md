@@ -35,7 +35,7 @@ all in `Unwired/`, and the theorem moved nowhere. See
   (`HeightInvariant.v`), `Hphi_y` is proved (YMAX = 2796), the level-data rows are proved (`WMotRLevel.v`), and the crux is the lemma
   `seg_action_phi`, whose move arithmetic is proved (`HeightMoveCatalog.chain_keeps_budget`).
   Its start premise is proved satisfiable (`StartSat.goal2_start_sat`, 2026-10-20, in the audit):
-  a memory built from the real boot image of any 17-TU link meets `mem_ok_lp` and `PhiW`. That
+  a memory built from the real boot image of any 18-TU link meets `mem_ok_lp` and `PhiW`. That
   rules out empty-premise vacuity only; Φ at real WMotR entry stays ASSUMED (TRUST 0.4).
   Since 2026-10-20 the three frame rows below are LEMMAS of `FrameSplit.frame_split`; the
   assumed rows are the per-call `Hseg_call` / `Hseg_any` (one per call in the real
@@ -54,11 +54,14 @@ all in `Unwired/`, and the theorem moved nowhere. See
     `FfWorld.ffw` (in PhiW / fworld). The **air-hit-wall case is proved** too (`AhwRow.ahw_row`,
     walked by `AhwRun`; the A-gated wall kick is pruned), and so are soft bonk and both air
     knockbacks (`KbRow.kb_row`, generic in the walk theorem `KbRun.kfinal`; walks in `KbRun`),
-    and ground pound (`GpRun.gp_kfinal`: windup via `FfClass.gpw_ok`, fall via `ff_ok`). Other
-    five cases (dive, both rollouts, butt-slide air, slide kick): `Hair_case_rest`
-    (`KbRow.air_case_rest4`). ffw's floor refresh holds for `fro_entry` actions (air_entry +
-    ground pound, TRUST 0.6). Dive and rollouts read `gAudioRandom`, a size-0 extern in the
-    17-TU link (its definition is in audio/data.c), so their walks need that TU linked first.
+    and ground pound (`GpRun.gp_kfinal`: windup via `FfClass.gpw_ok`, fall via `ff_ok`), and
+    dive (`KbDv`, an air_entry). Other four cases (both rollouts, butt-slide air, slide kick):
+    `Hair_case_rest` (`KbRow.air_case_rest5`). ffw's floor refresh holds for `fro_entry` actions
+    (air_entry + ground pound, TRUST 0.6). Walk files: one walk each (KbSb/KbBkb/KbFkb/KbDv),
+    `WithGe.with_ge` not `match ge12`, `vm_cast_no_check`, never `eassumption` near a walk. Dive and rollouts read `gAudioRandom`; audio/data.c (its only
+    definer) is linked as the 18th TU so those paths have executions. Squish: WMotR's dynamic
+    surfaces never come within 150 of a floor/ceiling (`tools/goal2_squish_scan.py`, min gap 276),
+    so INPUT_SQUISHED can join the carried input mask when the dispatcher is walked.
   - (`wmotr_gap` and `wmotr_poles` are now proved from generated level data, `WMotRLevel.v`)
   - the flank specs (TRUST 0.7)
 

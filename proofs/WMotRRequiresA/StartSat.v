@@ -728,6 +728,7 @@ Section Witness.
       replace (Int.eq ACT_IDLE_I ACT_BUTT_SLIDE_AIR) with false by reflexivity.
       replace (Int.eq ACT_IDLE_I ACT_SLIDE_KICK) with false by reflexivity.
       replace (Int.eq ACT_IDLE_I ACT_GROUND_POUND) with false by reflexivity.
+      replace (roll_prep ACT_IDLE_I _) with false by reflexivity.
       replace (is_air ACT_IDLE_I) with false by reflexivity.
       unfold PHI_K, PHI_A.
       split; [ split; [ reflexivity | split; [ reflexivity | split; [ reflexivity | ] ] ] | ].
@@ -957,8 +958,9 @@ Section Witness.
       split; [ exact bo_bm | ].
       split; [ intro E; exact (sym_ne_fresh _ _ _ Hbm (or_introl eq_refl) (eq_sym E)) | ].
       split; [ exact bt_bo | ].
-      split; [ intros b Hin; cbn [In] in Hin;
-               repeat (destruct Hin as [<- | Hin]; [ split; neq | ]); destruct Hin | ].
+      split; [ intros b [Hin | Hin];
+               [ cbn [In] in Hin; repeat (destruct Hin as [<- | Hin]; [ split; neq | ]); destruct Hin
+               | split; neq ] | ].
       split; [ exact wff11 | ].
       split; [ exact L_floor | ].
       split.

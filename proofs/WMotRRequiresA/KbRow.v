@@ -8,8 +8,8 @@
 (* start state on any twelve-TU link, then the walk theorem (a MoveChain   *)
 (* per outcome) and FfKeepCheck.fk_ok (the world is kept).  The soft bonk  *)
 (* and both air knockbacks (KbRun.kb_kfinal) and ground pound             *)
-(* (GpRun.gp_kfinal) are cases; air_case_rows_ff4 leaves five cases to     *)
-(* AirSplit's row.                                                         *)
+(* (GpRun.gp_kfinal) and dive (KbDv) are cases; air_case_rows_ff5 leaves  *)
+(* four cases to AirSplit's row.                                          *)
 (*                                                                        *)
 (* Premises beyond the link: as FfRow (DMA floor, FPU floor, the labeled   *)
 (* open audio / camera premises).                                          *)
@@ -23,7 +23,7 @@ From SM64.Proofs Require Import Interp.SymExec2 Interp.LinkGenv MarioModel.Linke
   MarioModel.OsDmaFloor HeightInvariant HeightMoveCatalog WMotRLevel WMotRWorld.
 From SM64.Proofs Require Import RealFrameLinked AirborneSurface NoAImpliesNoFlyLinked.
 From SM64.Proofs.WMotRRequiresA Require Import FloorList FloorExec AirRun AirStart AirMatch
-  FpuFloor ExtInert FfRun FfWorld FrameSplit AirSplit FfKeepCheck FfKeep FfClass AhwRun KbRun GpRun.
+  FpuFloor ExtInert FfRun FfWorld FrameSplit AirSplit FfKeepCheck FfKeep FfClass AhwRun KbRun KbSb KbBkb KbFkb KbDv GpRun.
 From SM64.Proofs.WMotRRequiresA Require FfRow AhwRow.
 From SM64.Proofs Require Import Generic.ClosedMem Generic.ClightClosed.
 Import ListNotations.
@@ -82,6 +82,17 @@ Qed.
 Lemma dm_gp : (prog_defmap AIR.prog) ! AIR._act_ground_pound = Some (Gfun (Internal AIR.f_act_ground_pound)).
 Proof. vm_compute. reflexivity. Qed.
 
+Lemma dv_label_b : forallb (fun x => if Pos.eqb (snd x) AIR._act_dive then Z.eqb (fst x) 25692298 else true)
+  air_case_list = true.
+Proof. vm_compute. reflexivity. Qed.
+Lemma dv_label : forall n, In (n, AIR._act_dive) air_case_list -> n = 25692298.
+Proof.
+  intros n H. pose proof (proj1 (forallb_forall _ _) dv_label_b _ H) as X.
+  cbn [fst snd] in X. rewrite Pos.eqb_refl in X. apply Z.eqb_eq in X. exact X.
+Qed.
+Lemma dm_dv : (prog_defmap AIR.prog) ! AIR._act_dive = Some (Gfun (Internal AIR.f_act_dive)).
+Proof. vm_compute. reflexivity. Qed.
+
 Lemma dm_sb : (prog_defmap AIR.prog) ! AIR._act_soft_bonk = Some (Gfun (Internal AIR.f_act_soft_bonk)).
 Proof. vm_compute. reflexivity. Qed.
 Lemma dm_bkb : (prog_defmap AIR.prog) ! AIR._act_backward_air_kb = Some (Gfun (Internal AIR.f_act_backward_air_kb)).
@@ -127,13 +138,13 @@ Proof.
 Qed.
 
 (* the walk's environment *)
-Definition Eff (bo bfi bmiss bcalls bsin ab bt biom bmq brm : block) (oo : ptrofs) : senv :=
+Definition Eff (bo bfi bmiss bcalls bsin ab bt biom bmq brm bau : block) (oo : ptrofs) : senv :=
   mke (fun r => if Pos.eqb r RM then bm else if Pos.eqb r RO then bo
                 else if Pos.eqb r RFI then bfi else if Pos.eqb r RMISS then bmiss
                 else if Pos.eqb r RCALLS then bcalls else if Pos.eqb r RSIN then bsin
                 else if Pos.eqb r RLD then ab else if Pos.eqb r RBUF then bt
                 else if Pos.eqb r RIOM then biom else if Pos.eqb r RMQ then bmq
-                else if Pos.eqb r RRM then brm else bm)
+                else if Pos.eqb r RRM then brm else if Pos.eqb r RAR then bau else bm)
       (fun r => if Pos.eqb r RO then oo else Ptrofs.zero)
       (fun _ => None).
 
@@ -168,13 +179,13 @@ Proof.
   destruct (Pos.eqb RRM r) eqn:E10; [apply Pos.eqb_eq in E10; injection H as <-; auto 20 | discriminate].
 Qed.
 
-Lemma ff_sizes : forall bo bfi bmiss bcalls bsin ab bt biom bmq brm oo,
+Lemma ff_sizes : forall bo bfi bmiss bcalls bsin ab bt biom bmq brm bau oo,
   Ptrofs.unsigned oo + SZ_OBJECT <= Ptrofs.modulus ->
   forall r sz, r0_size (R0F G) r = Some sz ->
     Plt r NBF /\ 0 <= sz
-    /\ Ptrofs.unsigned (e_base (Eff bo bfi bmiss bcalls bsin ab bt biom bmq brm oo) r) + sz <= Ptrofs.modulus.
+    /\ Ptrofs.unsigned (e_base (Eff bo bfi bmiss bcalls bsin ab bt biom bmq brm bau oo) r) + sz <= Ptrofs.modulus.
 Proof.
-  intros bo bfi bmiss bcalls bsin ab bt biom bmq brm oo Soo r sz H.
+  intros bo bfi bmiss bcalls bsin ab bt biom bmq brm bau oo Soo r sz H.
   destruct ff_layout as (_ & _ & _ & _ & _ & _ & ZO & _ & _ & ZM & ZD).
   pose proof (Ptrofs.unsigned_range oo) as Ro.
   assert (Mod : Ptrofs.modulus = 4294967296) by reflexivity.
@@ -185,7 +196,7 @@ Proof.
   unfold SZ_OBJECT in ZO, Soo.
   destruct (r0f_size r sz H) as
     [(-> & ->) | [(-> & ->) | [(-> & ->) | [(-> & ->) | [(-> & ->) | [(-> & ->) | [(-> & ->) | [(-> & ->) | [(-> & ->) | (-> & ->)]]]]]]]]];
-    cbn [Eff e_base]; cbn [Pos.eqb RM RO RFI RMISS RCALLS RSIN RLD RBUF RIOM RMQ RRM];
+    cbn [Eff e_base]; cbn [Pos.eqb RM RO RFI RMISS RCALLS RSIN RLD RBUF RIOM RMQ RRM RAR];
     rewrite ?Ptrofs.unsigned_zero, ?ZO; unfold Plt, NBF; repeat split; lia.
 Qed.
 
@@ -207,7 +218,8 @@ Proof.
                   HC & HS & HM & S1 & S2 & S3 & S4 & S5 & S6 & S7 & S8 & Lo & Soo & La & Lb & Sot & D1 & D2 & D3 & D4 &
                   W & Lf & Wf & Wc0 & Lar & War & Li & Ai & Lc & Wc & Co).
   destruct ff_layout as (FO & FA & FF & FAr & FH & FR & ZO & ZS & ZA & ZM & ZD).
-  set (E := Eff bo bfi bmiss bcalls bsin ab bt biom bmq brm oo).
+  destruct (aud_sym lp H12) as (bau & S9).
+  set (E := Eff bo bfi bmiss bcalls bsin ab bt biom bmq brm bau oo).
   (* validity *)
   assert (GPO : forall b x, gp b = Some x -> Plt b (Mem.nextblock m))
     by (intros b x H; exact (closed_old gp m b x HC H)).
@@ -249,14 +261,21 @@ Proof.
   pose proof (DS _ _ _ _ S5 S8 eq_refl) as N58.
   pose proof (DS _ _ _ _ S6 S7 eq_refl) as N67. pose proof (DS _ _ _ _ S6 S8 eq_refl) as N68.
   pose proof (DS _ _ _ _ S7 S8 eq_refl) as N78.
-  destruct (D4 bfi ltac:(cbn; auto 10)) as (O1 & T1). destruct (D4 bmiss ltac:(cbn; auto 10)) as (O2 & T2).
-  destruct (D4 bcalls ltac:(cbn; auto 10)) as (O3 & T3). destruct (D4 bsin ltac:(cbn; auto 10)) as (O4 & T4).
-  destruct (D4 ab ltac:(cbn; auto 10)) as (O5 & T5). destruct (D4 biom ltac:(cbn; auto 10)) as (O6 & T6).
-  destruct (D4 bmq ltac:(cbn; auto 10)) as (O7 & T7). destruct (D4 brm ltac:(cbn; auto 10)) as (O8 & T8).
+  pose proof (sym_valid m _ _ Hgn S9) as V9.
+  pose proof (DS _ _ _ _ S9 Hbm eq_refl) as N90. pose proof (DS _ _ _ _ S9 S1 eq_refl) as N91.
+  pose proof (DS _ _ _ _ S9 S2 eq_refl) as N92. pose proof (DS _ _ _ _ S9 S3 eq_refl) as N93.
+  pose proof (DS _ _ _ _ S9 S4 eq_refl) as N94. pose proof (DS _ _ _ _ S9 S5 eq_refl) as N95.
+  pose proof (DS _ _ _ _ S9 S6 eq_refl) as N96. pose proof (DS _ _ _ _ S9 S7 eq_refl) as N97.
+  pose proof (DS _ _ _ _ S9 S8 eq_refl) as N98.
+  destruct (D4 bau (or_intror S9)) as (O9 & T9).
+  destruct (D4 bfi ltac:(left; cbn; auto 10)) as (O1 & T1). destruct (D4 bmiss ltac:(left; cbn; auto 10)) as (O2 & T2).
+  destruct (D4 bcalls ltac:(left; cbn; auto 10)) as (O3 & T3). destruct (D4 bsin ltac:(left; cbn; auto 10)) as (O4 & T4).
+  destruct (D4 ab ltac:(left; cbn; auto 10)) as (O5 & T5). destruct (D4 biom ltac:(left; cbn; auto 10)) as (O6 & T6).
+  destruct (D4 bmq ltac:(left; cbn; auto 10)) as (O7 & T7). destruct (D4 brm ltac:(left; cbn; auto 10)) as (O8 & T8).
   clear DS.
   (* the region pointer list is ffw's *)
   assert (RL : map (den G m E) (wargs (R0F G)) = ff_rl bm bo oo bfi bmiss bcalls ab bt biom bmq brm).
-  { unfold wargs, R0F, ff_rl. cbn [map fst den]. unfold E; cbn [Eff e_blk e_base]. cbn [Pos.eqb RM RO RFI RMISS RCALLS RSIN RLD RBUF RIOM RMQ RRM].
+  { unfold wargs, R0F, ff_rl. cbn [map fst den]. unfold E; cbn [Eff e_blk e_base]. cbn [Pos.eqb RM RO RFI RMISS RCALLS RSIN RLD RBUF RIOM RMQ RRM RAR].
     rewrite !Ptrofs.add_zero. reflexivity. }
   (* each region's block is on the list *)
   assert (INR : forall r sz, r0_size (R0F G) r = Some sz ->
@@ -271,7 +290,7 @@ Proof.
     repeat split; try assumption. intros r sz Hs. left. intros Eb. apply Hr.
     exists (e_base E r). rewrite <- Eb. exact (INR r sz Hs). }
   assert (DI : forall o ch, den G m E (Sinit RM o ch) = Mem.load ch m bm o).
-  { intros o ch. unfold E; cbn [den Eff e_blk e_base]. cbn [Pos.eqb RM RO RFI RMISS RCALLS RSIN RLD RBUF RIOM RMQ RRM].
+  { intros o ch. unfold E; cbn [den Eff e_blk e_base]. cbn [Pos.eqb RM RO RFI RMISS RCALLS RSIN RLD RBUF RIOM RMQ RRM RAR].
     rewrite Ptrofs.unsigned_zero, Z.add_0_l. reflexivity. }
   (* env_ok *)
   assert (EO : env_ok G NBF (R0F G) gtabF (kvK acn G) m gp E).
@@ -280,36 +299,36 @@ Proof.
       repeat match goal with |- context [if Pos.eqb ?a ?b then _ else _] =>
         destruct (Pos.eqb a b) end;
       first [exact HM | exact Gbo | exact Gab | exact Gbt | exact (HS _ _ S1) | exact (HS _ _ S2)
-            | exact (HS _ _ S3) | exact (HS _ _ S4) | exact (HS _ _ S6) | exact (HS _ _ S7) | exact (HS _ _ S8)].
-    - exact (ff_sizes bo bfi bmiss bcalls bsin ab bt biom bmq brm oo Soo).
+            | exact (HS _ _ S3) | exact (HS _ _ S4) | exact (HS _ _ S6) | exact (HS _ _ S7) | exact (HS _ _ S8) | exact (HS _ _ S9)].
+    - exact (ff_sizes bo bfi bmiss bcalls bsin ab bt biom bmq brm bau oo Soo).
     - intros r sz r' sz' H H' N. left.
       destruct (r0f_size r sz H) as
         [(-> & _) | [(-> & _) | [(-> & _) | [(-> & _) | [(-> & _) | [(-> & _) | [(-> & _) | [(-> & _) | [(-> & _) | (-> & _)]]]]]]]]];
       destruct (r0f_size r' sz' H') as
         [(-> & _) | [(-> & _) | [(-> & _) | [(-> & _) | [(-> & _) | [(-> & _) | [(-> & _) | [(-> & _) | [(-> & _) | (-> & _)]]]]]]]]];
-        unfold E; cbn [Eff e_blk]; cbn [Pos.eqb RM RO RFI RMISS RCALLS RSIN RLD RBUF RIOM RMQ RRM]; congruence.
+        unfold E; cbn [Eff e_blk]; cbn [Pos.eqb RM RO RFI RMISS RCALLS RSIN RLD RBUF RIOM RMQ RRM RAR]; congruence.
     - intros id r H. unfold gfind, gtabF in H. cbn [find fst] in H.
       repeat (let Ei := fresh "Ei" in
         match type of H with context [Pos.eqb ?i id] =>
           destruct (Pos.eqb i id) eqn:Ei;
           [ apply Pos.eqb_eq in Ei; subst id; injection H as <-;
-            unfold E; cbn [Eff e_blk e_base]; cbn [Pos.eqb RM RO RFI RMISS RCALLS RSIN RLD RBUF RIOM RMQ RRM];
+            unfold E; cbn [Eff e_blk e_base]; cbn [Pos.eqb RM RO RFI RMISS RCALLS RSIN RLD RBUF RIOM RMQ RRM RAR];
             refine (conj _ (conj eq_refl _)); [unfold Plt, NBF; reflexivity | assumption]
           | ] end).
       cbn in H. discriminate H.
     - intros r o ch sv H. unfold kvK in H.
       destruct H as [H | [H | [H | [H | [H | []]]]]]; injection H as <- <- <- <-;
         (split; [unfold Plt, NBF, RM; reflexivity |]); unfold addr; unfold E; cbn [Eff e_blk e_base];
-        cbn [Pos.eqb RM RO RFI RMISS RCALLS RSIN RLD RBUF RIOM RMQ RRM]; rewrite ?Ptrofs.unsigned_zero, ?Z.add_0_l.
+        cbn [Pos.eqb RM RO RFI RMISS RCALLS RSIN RLD RBUF RIOM RMQ RRM RAR]; rewrite ?Ptrofs.unsigned_zero, ?Z.add_0_l.
       + split; [cbn [sok nlt]; split; [cbn [nlt]; unfold Plt, NBF, RO; reflexivity | exact I] |].
-        unfold E; cbn [den Eff e_blk e_base]; cbn [Pos.eqb RM RO RFI RMISS RCALLS RSIN RLD RBUF RIOM RMQ RRM]. rewrite Ptrofs.add_zero, FO. exact Lo.
+        unfold E; cbn [den Eff e_blk e_base]; cbn [Pos.eqb RM RO RFI RMISS RCALLS RSIN RLD RBUF RIOM RMQ RRM RAR]. rewrite Ptrofs.add_zero, FO. exact Lo.
       + split; [cbn [sok]; split; [cbn [nlt]; exact I | cbn [dold]; cbn; auto] |]. exact Hact.
       + split; [cbn [sok]; split; [cbn [nlt]; exact I | cbn [dold]; cbn; auto] |].
         rewrite FH. destruct HW as (_ & _ & _ & HH & _). exact HH.
       + split; [cbn [sok]; split; [cbn [nlt]; exact I | cbn [dold]; cbn; auto] |].
         rewrite FR. destruct HW as (_ & _ & _ & _ & HR & _). exact HR.
       + split; [cbn [sok nlt]; split; [cbn [nlt]; unfold Plt, NBF, RLD; reflexivity | exact I] |].
-        unfold E; cbn [den Eff e_blk e_base]; cbn [Pos.eqb RM RO RFI RMISS RCALLS RSIN RLD RBUF RIOM RMQ RRM].
+        unfold E; cbn [den Eff e_blk e_base]; cbn [Pos.eqb RM RO RFI RMISS RCALLS RSIN RLD RBUF RIOM RMQ RRM RAR].
         rewrite Ptrofs.add_zero, FA. exact La.
     - intros n v H. discriminate H. }
   (* the start facts *)
@@ -317,20 +336,26 @@ Proof.
   { intros f Hf. unfold pc0F in Hf. cbn [app In ffacts] in Hf.
     destruct HW as (_ & _ & HFl & _).
     specialize (HFl _ Lf). destruct HFl as (fb & fo' & ft & -> & Lt & Int).
-    destruct Hf as [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | []]]]]]]]]].
+    destruct Hf as [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | []]]]]]]]]]].
     - cbn [fact_holds]. rewrite RL. unfold ufF. rewrite ?Pos.eqb_refl. rewrite ZS. exact W.
     - cbn [fact_holds]. exists inp. rewrite DI. split; [exact Li | exact Ai].
     - apply (WW _ (Vptr fb fo')); [rewrite DI, FF; exact Lf | rewrite ZS; exact Wf].
     - apply (WW _ ar); [rewrite DI, FAr; exact Lar | rewrite ZA; exact War].
     - apply (WW _ (Vptr bsin Ptrofs.zero)).
-      + unfold E; cbn [den Eff e_blk e_base]; cbn [Pos.eqb RM RO RFI RMISS RCALLS RSIN RLD RBUF RIOM RMQ RRM]. rewrite Ptrofs.add_zero. reflexivity.
+      + unfold E; cbn [den Eff e_blk e_base]; cbn [Pos.eqb RM RO RFI RMISS RCALLS RSIN RLD RBUF RIOM RMQ RRM RAR]. rewrite Ptrofs.add_zero. reflexivity.
       + exists bsin, Ptrofs.zero. split; [reflexivity |]. split; [exact V4 |].
         split; [clear; pose proof Ptrofs.modulus_pos; lia |]. split; [rewrite Ptrofs.unsigned_zero; clear; lia |].
         intros (o & Hin). cbn in Hin.
         repeat (destruct Hin as [Hin | Hin]; [injection Hin as Hin _; congruence |]). exact Hin.
+    - apply (WW _ (Vptr bau Ptrofs.zero)).
+      + unfold E; cbn [den Eff e_blk e_base]; cbn [Pos.eqb RM RO RFI RMISS RCALLS RSIN RLD RBUF RIOM RMQ RRM RAR]. rewrite Ptrofs.add_zero. reflexivity.
+      + exists bau, Ptrofs.zero. split; [reflexivity |]. split; [exact V9 |].
+        split; [clear; lia |]. split; [vm_compute; discriminate |].
+        intros (o & Hin). cbn in Hin.
+        repeat (destruct Hin as [Hin | Hin]; [injection Hin as Hin _; congruence |]). exact Hin.
     - cbn [fact_holds map]. unfold ufF. cbn [Pos.eqb kB kW kH kM kS].
       exists bt, ot, Ptrofs.zero. split; [| exact Sot].
-      unfold E; cbn [den Eff e_blk e_base]; cbn [Pos.eqb RM RO RFI RMISS RCALLS RSIN RLD RBUF RIOM RMQ RRM].
+      unfold E; cbn [den Eff e_blk e_base]; cbn [Pos.eqb RM RO RFI RMISS RCALLS RSIN RLD RBUF RIOM RMQ RRM RAR].
       rewrite Ptrofs.unsigned_zero, Z.add_0_l, Ptrofs.add_zero, Lb. reflexivity.
     - cbn [fact_holds map]. unfold ufF. cbn [Pos.eqb kB kW kH kM kS].
       rewrite RL, DI, FF, Lf. exists fb, fo'. split; [reflexivity |]. split; [exists ft; split; assumption |].
@@ -344,7 +369,7 @@ Proof.
   { destruct RC as (_ & _ & _ & Hy & _ & Hf & _). exact (FRO _ _ _ Hact Hae Hy Hf). }
   assert (EV' : eval_funcall function_entry2 G m (Internal fK)
                   [Vptr (e_blk E RM) (Ptrofs.add (e_base E RM) Ptrofs.zero)] t m' vres).
-  { unfold E; cbn [Eff e_blk e_base]; cbn [Pos.eqb RM RO RFI RMISS RCALLS RSIN RLD RBUF RIOM RMQ RRM]. rewrite Ptrofs.add_zero. exact EV. }
+  { unfold E; cbn [Eff e_blk e_base]; cbn [Pos.eqb RM RO RFI RMISS RCALLS RSIN RLD RBUF RIOM RMQ RRM RAR]. rewrite Ptrofs.add_zero. exact EV. }
   destruct (Hfin m gp GPO MCg FD E t m' vres c0 EO PC EV' ltac:(exact RC) Hbud FRO0)
     as (E' & gs & X & MM & FK & c2 & RC2 & MV & FF2).
   split; [| exists c2; exact (conj RC2 MV)].
@@ -385,16 +410,16 @@ Proof.
   (* the frame *)
   assert (OFF : forall ch b z, Plt b (Mem.nextblock m) -> ~ rblk RL0 b -> Mem.load ch m' b z = Mem.load ch m b z).
   { intros ch b z Hp Hr. apply KR; [exact Hp |]. intros r sz Hs. left.
-    destruct (XB r (proj1 (ff_sizes bo bfi bmiss bcalls bsin ab bt biom bmq brm oo Soo r sz Hs))) as (B1 & _).
+    destruct (XB r (proj1 (ff_sizes bo bfi bmiss bcalls bsin ab bt biom bmq brm bau oo Soo r sz Hs))) as (B1 & _).
     rewrite B1. intros Eb. apply Hr. exists (e_base E r). rewrite <- Eb. exact (INR r sz Hs). }
   assert (OBJ : forall ch z, z + size_chunk ch <= Ptrofs.unsigned oo \/ Ptrofs.unsigned oo + SZ_OBJECT <= z ->
              Mem.load ch m' bo z = Mem.load ch m bo z).
   { intros ch z Hz. apply KR; [exact Vo |]. intros r sz Hs.
-    destruct (XB r (proj1 (ff_sizes bo bfi bmiss bcalls bsin ab bt biom bmq brm oo Soo r sz Hs))) as (B1 & B2).
+    destruct (XB r (proj1 (ff_sizes bo bfi bmiss bcalls bsin ab bt biom bmq brm bau oo Soo r sz Hs))) as (B1 & B2).
     rewrite B1, B2. clear -Hs Hz D1 D3 O1 O2 O3 O5 O6 O7 O8 ZO.
     destruct (r0f_size r sz Hs) as
       [(-> & _) | [(-> & ->) | [(-> & _) | [(-> & _) | [(-> & _) | [(-> & _) | [(-> & _) | [(-> & _) | [(-> & _) | (-> & _)]]]]]]]]];
-      unfold E; cbn [Eff e_blk e_base]; cbn [Pos.eqb RM RO RFI RMISS RCALLS RSIN RLD RBUF RIOM RMQ RRM];
+      unfold E; cbn [Eff e_blk e_base]; cbn [Pos.eqb RM RO RFI RMISS RCALLS RSIN RLD RBUF RIOM RMQ RRM RAR];
       first [left; congruence | right; rewrite ZO; lia]. }
   (* the region list, through E' *)
   assert (RL' : map (den G m E') (wargs (R0F G)) = RL0).
@@ -661,5 +686,29 @@ Proof.
     exact (kb_row lp H12 bm Hbm _ _ (gp_kfinal lp H12 Hdma Hsq Hsqf Haudio Hcamera) eq_refl
              m t m' vr c Vm Hw Hc Hb Hact Hev). }
   exact (Hrest n f fd v Hin Hne Hne1 Hne2 Hne3 Hne4 Hne5 Hr).
+Qed.
+
+(* the other four no-A cases (both rollouts, butt-slide air, slide kick)
+   keep their AirSplit row *)
+Definition air_case_rest5 : Prop :=
+  forall n f fd v, In (n, f) air_case_list -> f <> AIR._act_freefall -> f <> AIR._act_air_hit_wall ->
+    f <> AIR._act_soft_bonk -> f <> AIR._act_backward_air_kb -> f <> AIR._act_forward_air_kb ->
+    f <> AIR._act_ground_pound -> f <> AIR._act_dive ->
+    resolves lp f fd ->
+    seg_ok lp bm MWF fd [v]
+      (fun m => v = Vptr bm Ptrofs.zero /\ Mem.load Mint32 m bm 12 = Some (Vint (Int.repr n))).
+
+Theorem air_case_rows_ff5 : air_case_rest5 -> air_case_rows lp bm MWF.
+Proof.
+  intros Hrest. apply air_case_rows_ff4.
+  intros n f fd v Hin Hne Hne1 Hne2 Hne3 Hne4 Hne5 Hr.
+  destruct (Pos.eq_dec f AIR._act_dive) as [-> | Hne6].
+  { pose proof (dv_label n Hin) as ->.
+    pose proof (resolve_pin_fd lp _ _ _ _ (linked12_LO_air lp H12) dm_dv Hr) as ->.
+    intros m t m' vr c Hok Hw (-> & Hact) Hok' Hc Hb Hev.
+    destruct Hok as (Vm & _).
+    exact (kb_row lp H12 bm Hbm _ _ (kb_kfinal lp H12 Hdma Hsq Hsqf Haudio Hcamera _ _ dvcheck12 eq_refl) eq_refl
+             m t m' vr c Vm Hw Hc Hb Hact Hev). }
+  exact (Hrest n f fd v Hin Hne Hne1 Hne2 Hne3 Hne4 Hne5 Hne6 Hr).
 Qed.
 End KBCASES.

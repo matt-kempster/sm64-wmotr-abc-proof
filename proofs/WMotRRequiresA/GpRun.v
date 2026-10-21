@@ -20,7 +20,7 @@ From compcert Require Import Coqlib Maps AST Integers Floats Values Memory Event
 From SM64.Generated Require mario_step mario mario_actions_airborne memory surface_collision level_update.
 From SM64.Proofs Require Import Interp.SymExec2 Interp.LinkGenv MarioModel.LinkedTwelve
   MarioModel.OsDmaFloor MarioModel.MathGeomGated HeightInvariant HeightMoveCatalog WMotRLevel.
-From SM64.Proofs.WMotRRequiresA Require Import FloorHeight FloorExec AirXc AirRun AirWr WallExec AirMatch AirMove SmaXc AirSum FpuFloor FpWalk ExtInert FfClass AirStart FfKeepCheck FfRun KbRun.
+From SM64.Proofs.WMotRRequiresA Require Import FloorHeight FloorExec AirXc AirRun AirWr WallExec AirMatch AirMove SmaXc AirSum FpuFloor FpWalk ExtInert FfClass AirStart FfKeepCheck FfRun WithGe KbRun.
 Import ListNotations.
 
 Module AIR := mario_actions_airborne.
@@ -37,16 +37,15 @@ Definition gpk_ok (g : genv) (c : cpath) : bool :=
   && fk_ok NBF (R0F g) (kvK GPN g) RM RO RLD kS clokF (fst c).
 
 Definition gp_walk : bool :=
-  match ge12 with
-  | Some g => match sx_call g NBF (R0F g) gtabF (kvK GPN g) (xcK GPN g) jkeys mergeG true 3000 (g0F g)
-                      (Internal AIR.f_act_ground_pound) argsF with
-              | Some cs => forallb (gpk_ok g) cs
-              | None => false end
-  | None => false end.
+  with_ge ge12 false (fun g =>
+    match sx_call g NBF (R0F g) gtabF (kvK GPN g) (xcK GPN g) jkeys mergeG true 3000 (g0F g)
+            (Internal AIR.f_act_ground_pound) argsF with
+    | Some cs => forallb (gpk_ok g) cs
+    | None => false end).
 
 (* THE WALK, computed once on the real link *)
 Lemma gpcheck12 : gp_walk = true.
-Proof. vm_compute. reflexivity. Qed.
+Proof. vm_cast_no_check (eq_refl true). Qed.
 
 Section LP.
 Variable lp : Clight.program.
@@ -63,7 +62,7 @@ Lemma gpcheck_lp : exists cs,
     (Internal AIR.f_act_ground_pound) argsF = Some cs
   /\ forall c, In c cs -> gpk_ok G c = true.
 Proof.
-  pose proof gpcheck12 as W. unfold gp_walk in W. rewrite (ge12_ok lp H12) in W.
+  pose proof gpcheck12 as W. unfold gp_walk, with_ge in W. rewrite (ge12_ok lp H12) in W.
   exact (consume _ (gpk_ok G) W).
 Qed.
 

@@ -39,7 +39,7 @@ GENERATED := generated/toy.v generated/shadow.v \
   generated/wmotr_level_data.v generated/wmotr_script.v \
   generated/macro_special_objects.v generated/behavior_data.v \
   generated/object_helpers.v generated/obj_behaviors.v generated/obj_behaviors_2.v \
-  generated/spawn_object.v generated/object_list_processor.v generated/object_collision.v
+  generated/spawn_object.v generated/object_list_processor.v generated/audio_data.v generated/object_collision.v
 
 .PHONY: all generated proofs regen clean oracle-extract
 
@@ -188,6 +188,12 @@ generated/spawn_object.v: $(SM64)/src/game/spawn_object.c pipeline/clightgen.sh 
 	$(CLIGHTGEN) $< $@ $(SM64_CGP)
 
 generated/object_list_processor.v: $(SM64)/src/game/object_list_processor.c pipeline/clightgen.sh pipeline/proof_n64.h
+	$(CLIGHTGEN) $< $@ $(SM64_CGP)
+
+# audio/data.c (2026-10-20): the real definition of gAudioRandom, which
+# play_mario_jump_sound reads (mario.c:254); without it the boot image gives it
+# no storage and dive / rollout have no execution that plays a jump sound.
+generated/audio_data.v: $(SM64)/src/audio/data.c pipeline/clightgen.sh pipeline/proof_n64.h
 	$(CLIGHTGEN) $< $@ $(SM64_CGP)
 
 # Object-object collision (detect_object_hitbox_overlap): the rule that decides
