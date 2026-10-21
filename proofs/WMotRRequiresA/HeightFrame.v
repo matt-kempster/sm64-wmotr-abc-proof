@@ -429,8 +429,8 @@ Section HeightLinked12.
       call_pres_ext lp bm (NoA_real bm) MWF fid.
   Hypothesis Hcp_spawn_real : call_pres_ext_sr lp bm (NoA_real bm) MWF SafeB
       behavior_actions._spawn_object.
-  Hypothesis Hcp_savefile_real :
-    call_pres_ext lp bm (NoA_real bm) MWF interaction._save_file_set_cap_pos.
+  (* Hcp_savefile_real: PROVED inside NoAImpliesNoFlyTwelve from the real
+     save_file.c body (SaveFileBody), no longer a row. *)
   Hypothesis Hpres_warp_ext : forall fid,
       mem_id fid warp_ext_ids = true ->
       call_pres_ext lp bm (NoA_real bm) MWF fid.
@@ -570,7 +570,7 @@ Section HeightLinked12.
     exact (frame_call_ok_linked12 lp H12 bm bc oc0 SafeB HSafeB_syms Hbm_sym Hbc_sym Hoc0
              Hsqrtf Hcsp_omfd_real Hcsp_scale_real Hcsp_osh_real Hcsp_scm_real Hdma_floor WL_exempt
              Hpres_sta_ext Hcp_soawr_real Hpres_obj_ext_open2 Hpres_cut_ext_open
-             Hpres_floors_ext Hcp_spawn_real Hcp_savefile_real
+             Hpres_floors_ext Hcp_spawn_real
              Hpres_warp_ext Hext_action Hmwf_ext).
   Qed.
 
@@ -581,7 +581,7 @@ Section HeightLinked12.
   Proof.
     exact (air_leaves_linked12 lp H12 bm bc oc0 SafeB HSafeB_syms Hbm_sym Hbc_sym Hoc0
              Hcsp_osh_real Hcsp_scm_real Hdma_floor Hpres_obj_ext_open2 Hpres_floors_ext Hcp_spawn_real
-             Hcp_savefile_real Hpres_warp_ext).
+             Hpres_warp_ext).
   Qed.
 
   Lemma Hseg_call : seg_call_rows lp bm MWF.

@@ -1714,7 +1714,7 @@ Definition v_gSpecialTripleJump := {|
 |}.
 
 Definition v_gLevelToCourseNumTable := {|
-  gvar_info := (tarray tschar 0);
+  gvar_info := (tarray tschar 38);
   gvar_init := nil;
   gvar_readonly := false;
   gvar_volatile := false

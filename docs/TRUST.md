@@ -406,7 +406,7 @@ without pressing A".*
 | 2.1 | The decomp C is the game: compiled with IDO 5.3 it reproduces the US ROM byte-for-byte | **Checked** (2026-09-26): `vendor/sm64` @ 9921382 built with `make VERSION=us COMPARE=1` has sha1 `9bef1128…6ce`, which equals the US baserom (`experiments/oracle/README.md`). Covers the *default* preprocessing only; see 2.2. |
 | 2.2 | **We verify a different preprocessing of that C.** The ROM is IDO-compiled vendor C. The proof's C adds `-DNON_MATCHING=1 -DAVOID_UB=1` and force-includes `pipeline/proof_n64.h` (every TU except `shadow.c`) | **Itemized: every site is in the register below.** `tools/ub_sites.py` preprocesses every generated TU both ways (ROM: `-D__sgi`, as IDO predefines it; proof: our flags) with clightgen's own preprocessor, and diffs them. Its output is committed as `docs/ub-sites.txt`. A new site cannot enter silently: regenerate that file and the diff shows it. |
 | 2.3 | `clightgen` (CompCert's *unverified* front end: parser, elaborator, `-normalize`) translates that C faithfully | ASSUMED, **TETHERED on sampled paths**. 267 real frames over 15 actions run through the generated Clight and reproduce the game's memory byte for byte (§5.1). This is evidence for the translation of the code those frames exercise, not proof. |
-| 2.4 | Our post-processing of the generated `.v` is semantics-preserving: stringlit renaming, anonymous-composite renaming (`canonicalize_anon.py`), completing extern incomplete arrays | ASSUMED. Each is a documented rename or type completion. (2026-10-20: `gDebugInfo` joined the extern-array completion table, `s16 gDebugInfo[][8]` → `[16][8]`, its size in `object_list_processor.c`, the 17th TU; `behavior_actions.v` and `object_helpers.v` regenerated, two-line diffs.) Could be proved (rename = alpha-equivalence) or regenerated and diffed. |
+| 2.4 | Our post-processing of the generated `.v` is semantics-preserving: stringlit renaming, anonymous-composite renaming (`canonicalize_anon.py`), completing extern incomplete arrays | ASSUMED. Each is a documented rename or type completion. (2026-10-20: `gDebugInfo` joined the extern-array completion table, `s16 gDebugInfo[][8]` → `[16][8]`, its size in `object_list_processor.c`, the 17th TU; `behavior_actions.v` and `object_helpers.v` regenerated, two-line diffs. 2026-10-21: four more, found linking `save_file.c` and `buffers.c` (TUs 20 and 21): `gDecompressionHeap` 0 → 53248 and `gGfxSPTaskStack` / `gGfxSPTaskYieldBuffer` 0 → 1024 / 3072 (`u8`, sized in `buffers.c`; declared in `memory.c` / `game_init.c`), `gLevelToCourseNumTable` 0 → 38 (`s8[LEVEL_COUNT - 1]`, sized in `save_file.c`; declared in `level_update.c`); `memory.v`, `game_init.v`, `level_update.v` regenerated, diffs exactly those four `gvar_info` lines.) Could be proved (rename = alpha-equivalence) or regenerated and diffed. |
 | 2.6 | `object_helpers.c` is clightgen'd with `-flongdouble` (a `1.0l` literal in a debug function) | Equivalence: IDO's o32 ABI makes `long double` a 64-bit double, as `-flongdouble` does. |
 | 2.5 | The target configuration (ppc32 eabi: 32-bit, big-endian) gives the same struct layout, sizes and alignment as IDO/MIPS | Partly TETHERED: offsets cited in proofs (action@12, controller@156, buttonPressed@18) match the decomp's `/*0x..*/` layout comments. Should be checked for every struct in scope, mechanically, against the built ROM's symbol/debug info. |
 
@@ -696,6 +696,20 @@ link grows.
   `Hocp_rai_proved`). `Hgeo_real` and `Hocp_rai_real` are lemmas in `NoAImpliesNoFlyTwelve`, and
   `HeightFrame` no longer takes them. `Linked12Sat`'s certificate checks the 19-TU chain. Two fewer
   hypotheses on each capstone.
+- **Premise sweep (2026-10-21): `game/save_file.c` and `buffers/buffers.c` are linked (TUs 20 and
+  21), and `Hcp_savefile_real` is a lemma** (`SaveFileBody.Hcp_savefile_proved`). `buffers.c` holds
+  the real storage of `gSaveBuffer` (without it the buffer is a size-0 block and every save-file
+  store a phantom path). Linking needed four extern-array completions (2.4). The real
+  `save_file_set_cap_pos` stores `capLevel` / `capArea` through `saveFile =
+  &gSaveBuffer.files[gCurrSaveFileNum - 1][0]`, which is an address chain from the global (no load),
+  so a pointer into `gSaveBuffer`'s block whatever the file number. It then calls the real
+  `vec3s_set(saveFile->capPos, ..)` (the shadow-dest walk, `MtxfBody.sw_body_frame_T`, at `s16`)
+  and the real `save_file_set_flags`, which stores that file's `flags` and `gSaveFileModified`.
+  New model claim, on the existing stored-globals class: `gSaveBuffer` and `gSaveFileModified`
+  joined `CensusV2.stored_globals`, so (via `SpawnInit.non_safeb_syms`) SafeB avoids both blocks:
+  nothing in the object graph points into the save buffer or at the modified flag. MWF says
+  nothing about a stored global's contents, so any store there keeps it (`mwf_real_glob`). One
+  fewer hypothesis on each capstone.
 
 
 ## 5. Tethers: evidence the model is the game (NOT proof)

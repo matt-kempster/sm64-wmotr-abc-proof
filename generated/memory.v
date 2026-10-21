@@ -457,7 +457,7 @@ Definition v_gGfxPoolEnd := {|
 |}.
 
 Definition v_gDecompressionHeap := {|
-  gvar_info := (tarray tuchar 0);
+  gvar_info := (tarray tuchar 53248);
   gvar_init := nil;
   gvar_readonly := false;
   gvar_volatile := false
