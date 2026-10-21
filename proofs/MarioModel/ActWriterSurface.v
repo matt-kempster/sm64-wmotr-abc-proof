@@ -2145,19 +2145,58 @@ Definition objw_ids : list ident :=
     (* 2026-10-20: set_camera_mode(c, ..) writes c->mode (camera.c:2854);
        every real site passes the chase temp m->area->camera *)
     :: interaction._set_camera_mode :: nil.
-Definition objw_call_chk (cact : list ident) (fty : type) (al : list expr) : bool :=
+(* obj_set_held_state's arg1 (OutParamSurface.cs_gate, 2026-10-21): one of
+   the three bhv_held_syms globals, named directly (Evar of the script
+   array).  It must also be in the walk's xids, whose premise says no local
+   shadows it, so it evaluates to the global's own block. *)
+Definition held_arg_chk (xids : list ident) (fid : ident) (al : list expr) : bool :=
+  if Pos.eqb fid interaction._obj_set_held_state
+  then match al with
+       | _ :: Evar g (Tarray _ _ _) :: _ => mem_id g bhv_held_syms && mem_id g xids
+       | _ => false
+       end
+  else true.
+
+Definition objw_call_chk (xids cact : list ident) (fid : ident) (fty : type)
+    (al : list expr) : bool :=
   match fty, al with
-  | Tfunction (Tpointer _ _ :: _) _ _, Etempvar t (Tpointer _ _) :: _ => mem_id t cact
+  | Tfunction (Tpointer _ _ :: _) _ _, Etempvar t (Tpointer _ _) :: _ =>
+      mem_id t cact && held_arg_chk xids fid al
   | _, _ => false
   end.
 
-Definition xdg_chk (lids cact : list ident) (fid : ident) (fty : type)
+Definition xdg_chk (lids cact xids : list ident) (fid : ident) (fty : type)
     (al : list expr) : bool :=
   if mem_id fid dg_writer_ids
   then sc_call_chk lids (fid :: nil) cact fid fty al
   else if mem_id fid objw_ids
-  then objw_call_chk cact fty al
+  then objw_call_chk xids cact fid fty al
   else true.
+
+Lemma held_arg_sound : forall lp e le m xids cid a0 al' ps vl v0,
+    (forall g, mem_id g xids = true -> e ! g = None) ->
+    held_arg_chk xids cid (a0 :: al') = true ->
+    eval_exprlist (lp_ge lp) e le m al' ps vl ->
+    if Pos.eqb cid interaction._obj_set_held_state
+    then arg1_bhv_held lp (v0 :: vl) else True.
+Proof.
+  intros lp e le m xids cid a0 al' ps vl v0 Hub Hchk Hvl.
+  unfold held_arg_chk in Hchk.
+  destruct (Pos.eqb cid interaction._obj_set_held_state); [ | exact I ].
+  destruct al' as [ | a1 al'' ]; [ discriminate Hchk | ].
+  destruct a1 as [ | | | | g gty | | | | | | | | | ]; try discriminate Hchk.
+  destruct gty; try discriminate Hchk.
+  apply andb_prop in Hchk as [Hb Hx].
+  inv Hvl. cbn [arg1_bhv_held]. intros b o Ev. subst.
+  match goal with Hc : sem_cast _ _ _ _ = Some (Vptr _ _) |- _ =>
+    apply sem_cast_vptr_inv in Hc; subst end.
+  match goal with Hev : eval_expr _ _ _ _ (Evar _ _) _ |- _ => inv Hev end.
+  match goal with Hl : eval_lvalue _ _ _ _ (Evar _ _) _ _ _ |- _ => inv Hl end.
+  - match goal with Hz : e ! g = Some _ |- _ => rewrite (Hub g Hx) in Hz; discriminate Hz end.
+  - match goal with Hd : deref_loc _ _ _ _ _ _ |- _ => inv Hd end;
+      try match goal with Ha : access_mode _ = _ |- _ => discriminate Ha end.
+    exists g. split; [ exact Hb | assumption ].
+Qed.
 
 (* the per-xid row: gated for the writers, the old any-arg row otherwise *)
 Definition call_pres_ext_x (lp : Clight.program) (bm : block)
@@ -2176,6 +2215,34 @@ Proof.
     [ | destruct (mem_id fid objw_ids); [ | exact H ] ];
     intros fd m0 vargs0 t0 m1 vres0 Hev Hres _;
     exact (H fd m0 vargs0 t0 m1 vres0 Hev Hres).
+Qed.
+
+(* A global VARIABLE has no function body, so no call resolves to it and
+   its call row holds outright.  Used to list obj_set_held_state's
+   behavior-script argument in a walk's xids, whose premise says no local
+   shadows it (held_arg_chk); nothing calls it. *)
+Lemma call_pres_ext_gvar : forall (lp q : Clight.program) bm NoA MWF g gv,
+    linkorder q lp -> (prog_defmap q) ! g = Some (Gvar gv) ->
+    call_pres_ext lp bm NoA MWF g.
+Proof.
+  intros lp q bm NoA MWF g gv LO Hdm fd m0 vargs0 t0 m1 vres0 _ (b & Hsym & Hff).
+  exfalso.
+  Local Transparent Linker_program.
+  unfold linkorder, Linker_program, linkorder_program in LO.
+  destruct LO as [LOast _].
+  destruct (prog_defmap_linkorder _ _ _ _ LOast Hdm) as (gd' & Hdm' & Hlo).
+  inv Hlo.
+  apply (proj1 (Genv.find_def_symbol _ _ _)) in Hdm'.
+  destruct Hdm' as (b' & Hs' & Hd').
+  unfold lp_ge in Hsym, Hff.
+  change (Genv.find_symbol (Genv.globalenv lp) g = Some b) in Hsym.
+  rewrite Hsym in Hs'. injection Hs' as Eb. subst b'.
+  unfold Genv.find_funct in Hff.
+  destruct (Ptrofs.eq_dec Ptrofs.zero Ptrofs.zero) as [_ | Hne];
+    [ | discriminate Hff ].
+  apply (proj1 (Genv.find_funct_ptr_iff _ _ _)) in Hff.
+  change (Genv.find_def (Genv.globalenv lp) b = Some (Gfun fd)) in Hff.
+  congruence.
 Qed.
 
 Lemma call_pres_ext_x_nonwriter : forall lp bm NoA MWF SafeB fid,
@@ -2267,7 +2334,7 @@ Fixpoint wwalk_chk' (lids oc_pids wc_pids sc_pids nids np3_ids : list ident) (rt
                   | None => true
                   end
                && is_tfun fty
-               && xdg_chk lids cact fid fty al)
+               && xdg_chk lids cact xids fid fty al)
               || ((match optid with
                    | Some t => negb (mem_id t wact)
                    | None => true
@@ -5497,7 +5564,14 @@ Section ActWriterWalk.
                 destruct a0 as [ | | | | | t0 tty | | | | | | | | ];
                   try discriminate Hxdg.
                 destruct tty; try discriminate Hxdg.
+                apply andb_prop in Hxdg as [Hxdg Hheld].
                 inv Hvl.
+                split.
+                2:{ match goal with
+                    | Htl : eval_exprlist _ _ _ _ al' _ ?vl |- _ =>
+                        exact (held_arg_sound lp e le m xids cid _ al' _ vl _
+                                 Hubx Hheld Htl)
+                    end. }
                 match goal with
                 | Ha : eval_expr _ _ _ _ (Etempvar _ _) _ |- _ =>
                     inv Ha;

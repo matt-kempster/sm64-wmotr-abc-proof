@@ -91,9 +91,14 @@ Definition mdho_cact : list ident :=
     :: interaction._t'3
     (* t'13 := m->heldObj, the obj_set_held_state arg (objw gate) *)
     :: interaction._t'13 :: nil.
+(* 2026-10-21 (NO_SEGMENTED_MEMORY): obj_set_held_state's behavior-script
+   argument is gated (OutParamSurface.cs_gate); listing the two scripts here
+   gives the walk's "no local shadows it" premise.  They are variables, so
+   nothing calls them (ActWriterSurface.call_pres_ext_gvar). *)
 Definition mdho_xids : list ident :=
   interaction._segmented_to_virtual :: interaction._obj_set_held_state
-    :: interaction._stop_shell_music :: nil.
+    :: interaction._stop_shell_music
+    :: interaction._bhvCarrySomething4 :: interaction._bhvCarrySomething5 :: nil.
 Definition mtho_cact : list ident :=
   interaction._t'13 :: interaction._t'10 :: interaction._t'5
     :: interaction._t'3
@@ -104,7 +109,7 @@ Definition mguo_cact : list ident :=
     (* t'2 := m->heldObj, the obj_set_held_state arg (objw gate) *)
     :: interaction._t'2 :: nil.
 Definition mguo_xids : list ident :=
-  interaction._obj_set_held_state :: nil.
+  interaction._obj_set_held_state :: interaction._bhvCarrySomething3 :: nil.
 
 (* sgs: msfv + the two sand/wind updaters + perform_ground_step, plus the
    two math-util externals copying gfx pos/angle through chase pointers *)
@@ -546,6 +551,16 @@ Proof. vm_compute. reflexivity. Qed.
 Example mtho_walk :
   wwalk_chk false nil nil nil mtho_cact mdho_xids nil nil
     (fn_body interaction.f_mario_throw_held_object) = true.
+Proof. vm_compute. reflexivity. Qed.
+
+Lemma bhv3_dm : (prog_defmap interaction.prog) ! interaction._bhvCarrySomething3
+  = Some (Gvar interaction.v_bhvCarrySomething3).
+Proof. vm_compute. reflexivity. Qed.
+Lemma bhv4_dm : (prog_defmap interaction.prog) ! interaction._bhvCarrySomething4
+  = Some (Gvar interaction.v_bhvCarrySomething4).
+Proof. vm_compute. reflexivity. Qed.
+Lemma bhv5_dm : (prog_defmap interaction.prog) ! interaction._bhvCarrySomething5
+  = Some (Gvar interaction.v_bhvCarrySomething5).
 Proof. vm_compute. reflexivity. Qed.
 
 Example mguo_pin :
@@ -1447,6 +1462,25 @@ Section ObjectLeafRows.
      they DELETE the Hcp_msrah residual.
      ================================================================== *)
 
+  Lemma Hcpx_bhv3 :
+    call_pres_ext_x lp bm NoA MWF SafeB interaction._bhvCarrySomething3.
+  Proof.
+    apply call_pres_ext_x_of_ext.
+    exact (call_pres_ext_gvar lp interaction.prog bm NoA MWF _ _ LO_int bhv3_dm).
+  Qed.
+  Lemma Hcpx_bhv4 :
+    call_pres_ext_x lp bm NoA MWF SafeB interaction._bhvCarrySomething4.
+  Proof.
+    apply call_pres_ext_x_of_ext.
+    exact (call_pres_ext_gvar lp interaction.prog bm NoA MWF _ _ LO_int bhv4_dm).
+  Qed.
+  Lemma Hcpx_bhv5 :
+    call_pres_ext_x lp bm NoA MWF SafeB interaction._bhvCarrySomething5.
+  Proof.
+    apply call_pres_ext_x_of_ext.
+    exact (call_pres_ext_gvar lp interaction.prog bm NoA MWF _ _ LO_int bhv5_dm).
+  Qed.
+
   Lemma mdho_row :
     call_pres lp bm NoA MWF interaction._mario_drop_held_object.
   Proof.
@@ -1466,6 +1500,10 @@ Section ObjectLeafRows.
         [ apply Pos.eqb_eq in Hm; subst fid'; exact Hcpx_oshs | ].
       apply orb_true_iff in H as [Hm | H];
         [ apply Pos.eqb_eq in Hm; subst fid'; exact Hcpx_ssm | ].
+      apply orb_true_iff in H as [Hm | H];
+        [ apply Pos.eqb_eq in Hm; subst fid'; exact Hcpx_bhv4 | ].
+      apply orb_true_iff in H as [Hm | H];
+        [ apply Pos.eqb_eq in Hm; subst fid'; exact Hcpx_bhv5 | ].
       discriminate H.
     - intros fid' H. discriminate H.
     - exact mdho_walk.
@@ -1490,6 +1528,10 @@ Section ObjectLeafRows.
         [ apply Pos.eqb_eq in Hm; subst fid'; exact Hcpx_oshs | ].
       apply orb_true_iff in H as [Hm | H];
         [ apply Pos.eqb_eq in Hm; subst fid'; exact Hcpx_ssm | ].
+      apply orb_true_iff in H as [Hm | H];
+        [ apply Pos.eqb_eq in Hm; subst fid'; exact Hcpx_bhv4 | ].
+      apply orb_true_iff in H as [Hm | H];
+        [ apply Pos.eqb_eq in Hm; subst fid'; exact Hcpx_bhv5 | ].
       discriminate H.
     - intros fid' H. discriminate H.
     - exact mtho_walk.
@@ -1530,6 +1572,8 @@ Section ObjectLeafRows.
     - intros fid' H. unfold mguo_xids in H. cbn [mem_id existsb] in H.
       apply orb_true_iff in H as [Hm | H];
         [ apply Pos.eqb_eq in Hm; subst fid'; exact Hcpx_oshs | ].
+      apply orb_true_iff in H as [Hm | H];
+        [ apply Pos.eqb_eq in Hm; subst fid'; exact Hcpx_bhv3 | ].
       discriminate H.
     - intros fid' H. discriminate H.
     - exact mguo_walk.

@@ -25,4 +25,27 @@
 #undef VIRTUAL_TO_PHYSICAL
 #define VIRTUAL_TO_PHYSICAL(addr) ((uintptr_t)((unsigned char *)(addr) - 0x80000000U))
 
+/* segmented_to_virtual / virtual_to_segmented (memory.c only: the Makefile
+   passes -DPROOF_MEMORY_C=1 to that one recipe).  The ROM bodies shift and
+   mask the pointer ((uintptr_t)addr >> 24, & 0x00FFFFFF, & 0x1FFFFFFF):
+   undefined on a pointer in CompCert, so EVERY real call on &bhvXxx (or any
+   pointer) had no execution.  We take the decomp's own NO_SEGMENTED_MEMORY
+   bodies (memory.c:98-105, verbatim), for these two functions ONLY:
+   NO_SEGMENTED_MEMORY itself is not defined, so load_segment & co.,
+   move_segment_table_to_dmem, macros.h and segment_symbols.h are unchanged.
+   The ROM bodies stay in the TU, renamed rom_*; nothing calls them.
+   Why identity is the game's behavior: TRUST.md 2.2 register. */
+#ifdef PROOF_MEMORY_C
+#include <PR/ultratypes.h>
+void *segmented_to_virtual(const void *addr) {
+    return (void *) addr;
+}
+
+void *virtual_to_segmented(u32 segment, const void *addr) {
+    return (void *) addr;
+}
+#define segmented_to_virtual rom_segmented_to_virtual
+#define virtual_to_segmented rom_virtual_to_segmented
+#endif
+
 #endif
