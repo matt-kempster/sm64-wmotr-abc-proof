@@ -543,15 +543,13 @@ Section HeightLinked12.
      the real act_butt_slide_air at ANY state (the bounce's stale
      floorHeight is refreshed by update_mario_inputs before the next
      dispatch; the case gets the fresh floor from frame_stage).  Slide kick
-     at state 0 (SkRun, 2026-10-21): PROVED from the real act_slide_kick
+     (SkRun, 2026-10-21): PROVED from the real act_slide_kick at ANY state
      (the timer tick, then the FREEFALL gate or the air step at gravity 2:
-     a landing, the bounce, a wall).  Every proved case also returns FALSE
-     or leaves y / floorHeight untouched (RetOk.ret_ok, checked on each
-     walk), so the floor stays fresh.  No other no-A case is left
-     (KbRow.air_case_fns_in, computed).  Slide kick past its bounce
-     (state <> 0) keeps a row (sk1_row, now with the fresh floor in and the
-     fresh-or-FALSE post out; the walk's classifier covers state 0 only). *)
-  Hypothesis Hsk1 : sk1_row lp bm MWF.
+     a landing, the bounce, a wall; past the bounce the step is
+     S_sk_bounced, its vel gravity's exactly, AirMatch.vel_exc).  Every
+     proved case also returns FALSE or leaves y / floorHeight untouched
+     (RetOk.ret_ok, checked on each walk), so the floor stays fresh.  No
+     other no-A case is left (KbRow.air_case_fns_in, computed). *)
   (* the walk's floors: the FPU floor (TRUST 3.5) and the labeled open
      audio / camera premises (deferred; ExtInert) *)
   Hypothesis Hsqrtf : sqrtf_spec.
@@ -561,8 +559,7 @@ Section HeightLinked12.
 
   Lemma Hair_case : air_case_rows lp bm MWF.
   Proof.
-    exact (air_case_rows_ff8 lp H12 Hdma_floor Hsqrtf Hsqrtf_float Haudio Hcamera bm Hbm_sym MWF
-             Hsk1).
+    exact (air_case_rows_ff8 lp H12 Hdma_floor Hsqrtf Hsqrtf_float Haudio Hcamera bm Hbm_sym MWF).
   Qed.
 
   Lemma call_facts :

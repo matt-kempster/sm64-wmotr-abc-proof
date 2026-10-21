@@ -4,17 +4,16 @@
 (*                                                                        *)
 (* The same construction as FfRow / AhwRow, generic in the case (kb_row:  *)
 (* the action constant acn, its handler fK, its walk theorem              *)
-(* (KbRun.kfinal), and acn in walk_entry at the entry state): from the    *)
+(* (KbRun.kfinal), at any entry state): from the                          *)
 (* frame world and the dispatch's floor refresh (FfWorld.fresh, carried   *)
 (* to the case by FrameSplit.frame_stage / AirSplit.air_seg), the walk's  *)
 (* start state on any twelve-TU link, then the walk theorem (a MoveChain   *)
 (* per outcome, and RetOk.RET: FALSE or y/floorHeight untouched) and      *)
 (* FfKeepCheck.fk_ok (the world is kept).  The soft bonk and both air     *)
 (* knockbacks (KbRun.kb_kfinal), ground pound (GpRun.gp_kfinal), dive     *)
-(* (KbDv), both rollouts (RlRun), butt-slide air at any state (BsRun) and *)
-(* slide kick at state 0 (SkRun) are cases: every no-A case               *)
-(* (air_case_rows_ff8) but slide kick at state <> 0, which keeps a row    *)
-(* (sk1_row).                                                              *)
+(* (KbDv), both rollouts (RlRun), butt-slide air (BsRun) and slide kick   *)
+(* (SkRun), both at any state, are cases: every no-A case                 *)
+(* (air_case_rows_ff8); no row is left.                                   *)
 (*                                                                        *)
 (* Premises beyond the link: as FfRow (DMA floor, FPU floor, the labeled   *)
 (* open audio / camera premises).                                          *)
@@ -163,9 +162,6 @@ Proof. vm_compute. reflexivity. Qed.
 Lemma kb_reshape : forall A B C : Prop, (A /\ B) /\ C -> A /\ B /\ C.
 Proof. tauto. Qed.
 
-Lemma walk_entry_nsk : forall a s, Int.eq a ACT_SLIDE_KICK = false -> walk_entry a s = true.
-Proof. intros a s H. unfold walk_entry. rewrite H. reflexivity. Qed.
-
 Section KBROW.
 Variable lp : Clight.program.
 Hypothesis H12 : linked12 lp.
@@ -273,13 +269,13 @@ Ltac mem_tac := unfold fk_same; repeat (first [left; reflexivity | right]).
    returns FALSE or leaves the floor fresh *)
 Theorem kb_row : forall m t m' vres c0,
   Plt bm (Mem.nextblock m) -> fworld lp bm m ->
-  read_cells bm m c0 -> budget_ok c0 -> walk_entry (Int.repr acn) (state_of c0) = true ->
+  read_cells bm m c0 -> budget_ok c0 ->
   Mem.load Mint32 m bm 12 = Some (Vint (Int.repr acn)) -> fresh bm m ->
   eval_funcall function_entry2 G m (Internal fK) [Vptr bm Ptrofs.zero] t m' vres ->
   (fworld lp bm m' /\ exists c2, read_cells bm m' c2 /\ MoveChain wmotr_floor wmotr_pole wmotr_cannon c0 c2)
   /\ (vres = Vint Int.zero \/ fresh bm m').
 Proof.
-  intros m t m' vres c0 Vm (Ha & HW & Han & Hmob & Hd & FW) RC Hbud Hae Hact Hfr EV.
+  intros m t m' vres c0 Vm (Ha & HW & Han & Hmob & Hd & FW) RC Hbud Hact Hfr EV.
   destruct FW as (Hgn & EX & FD & FRO).
   destruct EX as (gp & bfi & bmiss & bcalls & bsin & ab & biom & bmq & brm & bo & oo & bt & ot & fl & ar & inp & ctl &
                   HC & HS & HM & S1 & S2 & S3 & S4 & S5 & S6 & S7 & S8 & Lo & Soo & La & Lb & Sot & D1 & D2 & D3 & D4 &
@@ -437,7 +433,7 @@ Proof.
   assert (EV' : eval_funcall function_entry2 G m (Internal fK)
                   [Vptr (e_blk E RM) (Ptrofs.add (e_base E RM) Ptrofs.zero)] t m' vres).
   { unfold E; cbn [Eff e_blk e_base]; cbn [Pos.eqb RM RO RFI RMISS RCALLS RSIN RLD RBUF RIOM RMQ RRM RAR]. rewrite Ptrofs.add_zero. exact EV. }
-  destruct (Hfin m gp GPO MCg FD E t m' vres c0 EO PC EV' ltac:(exact RC) Hbud Hae FRO0)
+  destruct (Hfin m gp GPO MCg FD E t m' vres c0 EO PC EV' ltac:(exact RC) Hbud FRO0)
     as (E' & gs & X & MM & FK & RT & c2 & RC2 & MV & FF2).
   split; [| change (e_blk E RM) with bm in RT; exact (fresh_ret bm m m' vres Hfr RT)].
   split; [| exists c2; exact (conj RC2 MV)].
@@ -715,25 +711,22 @@ Proof.
     pose proof (resolve_pin_fd lp _ _ _ _ (linked12_LO_air lp H12) dm_sb Hr) as ->.
     intros m t m' vr c Hok Hw (-> & Hact & Hfr) Hok' Hc Hb Hev.
     destruct Hok as (Vm & _).
-    refine (kb_reshape _ _ _ (kb_row lp H12 bm Hbm _ _ (kb_kfinal lp H12 Hdma Hsq Hsqf Haudio Hcamera _ _ sbcheck12 eq_refl)
-             m t m' vr c Vm Hw Hc Hb _ Hact Hfr Hev)).
-    apply walk_entry_nsk. vm_compute. reflexivity. }
+    exact (kb_reshape _ _ _ (kb_row lp H12 bm Hbm _ _ (kb_kfinal lp H12 Hdma Hsq Hsqf Haudio Hcamera _ _ sbcheck12 eq_refl)
+             m t m' vr c Vm Hw Hc Hb Hact Hfr Hev)). }
   destruct (Pos.eq_dec f AIR._act_backward_air_kb) as [-> | Hne3].
   { pose proof (bkb_label n Hin) as ->.
     pose proof (resolve_pin_fd lp _ _ _ _ (linked12_LO_air lp H12) dm_bkb Hr) as ->.
     intros m t m' vr c Hok Hw (-> & Hact & Hfr) Hok' Hc Hb Hev.
     destruct Hok as (Vm & _).
-    refine (kb_reshape _ _ _ (kb_row lp H12 bm Hbm _ _ (kb_kfinal lp H12 Hdma Hsq Hsqf Haudio Hcamera _ _ bkbcheck12 eq_refl)
-             m t m' vr c Vm Hw Hc Hb _ Hact Hfr Hev)).
-    apply walk_entry_nsk. vm_compute. reflexivity. }
+    exact (kb_reshape _ _ _ (kb_row lp H12 bm Hbm _ _ (kb_kfinal lp H12 Hdma Hsq Hsqf Haudio Hcamera _ _ bkbcheck12 eq_refl)
+             m t m' vr c Vm Hw Hc Hb Hact Hfr Hev)). }
   destruct (Pos.eq_dec f AIR._act_forward_air_kb) as [-> | Hne4].
   { pose proof (fkb_label n Hin) as ->.
     pose proof (resolve_pin_fd lp _ _ _ _ (linked12_LO_air lp H12) dm_fkb Hr) as ->.
     intros m t m' vr c Hok Hw (-> & Hact & Hfr) Hok' Hc Hb Hev.
     destruct Hok as (Vm & _).
-    refine (kb_reshape _ _ _ (kb_row lp H12 bm Hbm _ _ (kb_kfinal lp H12 Hdma Hsq Hsqf Haudio Hcamera _ _ fkbcheck12 eq_refl)
-             m t m' vr c Vm Hw Hc Hb _ Hact Hfr Hev)).
-    apply walk_entry_nsk. vm_compute. reflexivity. }
+    exact (kb_reshape _ _ _ (kb_row lp H12 bm Hbm _ _ (kb_kfinal lp H12 Hdma Hsq Hsqf Haudio Hcamera _ _ fkbcheck12 eq_refl)
+             m t m' vr c Vm Hw Hc Hb Hact Hfr Hev)). }
   exact (Hrest n f fd v Hin Hne Hne1 Hne2 Hne3 Hne4 Hr).
 Qed.
 
@@ -757,9 +750,8 @@ Proof.
     pose proof (resolve_pin_fd lp _ _ _ _ (linked12_LO_air lp H12) dm_gp Hr) as ->.
     intros m t m' vr c Hok Hw (-> & Hact & Hfr) Hok' Hc Hb Hev.
     destruct Hok as (Vm & _).
-    refine (kb_reshape _ _ _ (kb_row lp H12 bm Hbm _ _ (gp_kfinal lp H12 Hdma Hsq Hsqf Haudio Hcamera)
-             m t m' vr c Vm Hw Hc Hb _ Hact Hfr Hev)).
-    apply walk_entry_nsk. vm_compute. reflexivity. }
+    exact (kb_reshape _ _ _ (kb_row lp H12 bm Hbm _ _ (gp_kfinal lp H12 Hdma Hsq Hsqf Haudio Hcamera)
+             m t m' vr c Vm Hw Hc Hb Hact Hfr Hev)). }
   exact (Hrest n f fd v Hin Hne Hne1 Hne2 Hne3 Hne4 Hne5 Hr).
 Qed.
 
@@ -783,9 +775,8 @@ Proof.
     pose proof (resolve_pin_fd lp _ _ _ _ (linked12_LO_air lp H12) dm_dv Hr) as ->.
     intros m t m' vr c Hok Hw (-> & Hact & Hfr) Hok' Hc Hb Hev.
     destruct Hok as (Vm & _).
-    refine (kb_reshape _ _ _ (kb_row lp H12 bm Hbm _ _ (kb_kfinal lp H12 Hdma Hsq Hsqf Haudio Hcamera _ _ dvcheck12 eq_refl)
-             m t m' vr c Vm Hw Hc Hb _ Hact Hfr Hev)).
-    apply walk_entry_nsk. vm_compute. reflexivity. }
+    exact (kb_reshape _ _ _ (kb_row lp H12 bm Hbm _ _ (kb_kfinal lp H12 Hdma Hsq Hsqf Haudio Hcamera _ _ dvcheck12 eq_refl)
+             m t m' vr c Vm Hw Hc Hb Hact Hfr Hev)). }
   exact (Hrest n f fd v Hin Hne Hne1 Hne2 Hne3 Hne4 Hne5 Hne6 Hr).
 Qed.
 (* the other two no-A cases (butt-slide air, slide kick) keep their
@@ -809,17 +800,15 @@ Proof.
     pose proof (resolve_pin_fd lp _ _ _ _ (linked12_LO_air lp H12) dm_fr Hr) as ->.
     intros m t m' vr c Hok Hw (-> & Hact & Hfr) Hok' Hc Hb Hev.
     destruct Hok as (Vm & _).
-    refine (kb_reshape _ _ _ (kb_row lp H12 bm Hbm _ _ (rl_kfinal_all lp H12 Hdma Hsq Hsqf Haudio Hcamera _ _ rlfcheck12)
-             m t m' vr c Vm Hw Hc Hb _ Hact Hfr Hev)).
-    apply walk_entry_nsk. vm_compute. reflexivity. }
+    exact (kb_reshape _ _ _ (kb_row lp H12 bm Hbm _ _ (rl_kfinal_all lp H12 Hdma Hsq Hsqf Haudio Hcamera _ _ rlfcheck12)
+             m t m' vr c Vm Hw Hc Hb Hact Hfr Hev)). }
   destruct (Pos.eq_dec f AIR._act_backward_rollout) as [-> | Hne8].
   { pose proof (br_label n Hin) as ->.
     pose proof (resolve_pin_fd lp _ _ _ _ (linked12_LO_air lp H12) dm_br Hr) as ->.
     intros m t m' vr c Hok Hw (-> & Hact & Hfr) Hok' Hc Hb Hev.
     destruct Hok as (Vm & _).
-    refine (kb_reshape _ _ _ (kb_row lp H12 bm Hbm _ _ (rl_kfinal_all lp H12 Hdma Hsq Hsqf Haudio Hcamera _ _ rlbcheck12)
-             m t m' vr c Vm Hw Hc Hb _ Hact Hfr Hev)).
-    apply walk_entry_nsk. vm_compute. reflexivity. }
+    exact (kb_reshape _ _ _ (kb_row lp H12 bm Hbm _ _ (rl_kfinal_all lp H12 Hdma Hsq Hsqf Haudio Hcamera _ _ rlbcheck12)
+             m t m' vr c Vm Hw Hc Hb Hact Hfr Hev)). }
   exact (Hrest n f fd v Hin Hne Hne1 Hne2 Hne3 Hne4 Hne5 Hne6 Hne7 Hne8 Hr).
 Qed.
 
@@ -846,42 +835,25 @@ Proof.
     pose proof (resolve_pin_fd lp _ _ _ _ (linked12_LO_air lp H12) dm_bsa Hr) as ->.
     intros m t m' vr c Hok Hw (-> & Hact & Hfr) Hok' Hc Hb Hev.
     destruct Hok as (Vm & _).
-    refine (kb_reshape _ _ _ (kb_row lp H12 bm Hbm _ _ (bs_kfinal_all lp H12 Hdma Hsq Hsqf Haudio Hcamera _ bscheck12)
-             m t m' vr c Vm Hw Hc Hb _ Hact Hfr Hev)).
-    apply walk_entry_nsk. vm_compute. reflexivity. }
+    exact (kb_reshape _ _ _ (kb_row lp H12 bm Hbm _ _ (bs_kfinal_all lp H12 Hdma Hsq Hsqf Haudio Hcamera _ bscheck12)
+             m t m' vr c Vm Hw Hc Hb Hact Hfr Hev)). }
   exact (Hrest n f fd v Hin Hne Hne1 Hne2 Hne3 Hne4 Hne5 Hne6 Hne7 Hne8 Hne9 Hr).
 Qed.
 
-(* slide kick past its bounce (state <> 0), from the dispatch's floor
-   refresh: the walk's classifier covers state 0 only (SkRun); this row
-   stays open *)
-Definition sk1_row : Prop :=
-  forall fd v, resolves lp AIR._act_slide_kick fd ->
-    seg_okR lp bm MWF fd [v]
-      (fun m => v = Vptr bm Ptrofs.zero /\ Mem.load Mint32 m bm 12 = Some (Vint (Int.repr 25168042))
-                /\ Mem.load Mint16unsigned m bm 24 <> Some (Vint Int.zero) /\ fresh bm m)
-      (fun m' vr => vr = Vint Int.zero \/ fresh bm m').
-
-(* every no-A case: slide kick at state 0 (SkRun) is the last; no case is
-   left over (air_case_fns_in) *)
-Theorem air_case_rows_ff8 : sk1_row -> air_case_rows lp bm MWF.
+(* every no-A case: slide kick, at any state (SkRun: past its bounce the
+   step is S_sk_bounced, from the dispatch's floor refresh), is the last; no
+   case is left over (air_case_fns_in) *)
+Theorem air_case_rows_ff8 : air_case_rows lp bm MWF.
 Proof.
-  intros Hsk1. apply air_case_rows_ff7.
+  apply air_case_rows_ff7.
   intros n f fd v Hin Hne Hne1 Hne2 Hne3 Hne4 Hne5 Hne6 Hne7 Hne8 Hne9 Hr.
   destruct (Pos.eq_dec f AIR._act_slide_kick) as [-> | Hne10].
   { pose proof (sk_label n Hin) as ->.
+    pose proof (resolve_pin_fd lp _ _ _ _ (linked12_LO_air lp H12) dm_sk Hr) as ->.
     intros m t m' vr c Hok Hw (-> & Hact & Hfr) Hok' Hc Hb Hev.
-    destruct (Int.eq_dec (c_state c) Int.zero) as [S0 | S1].
-    - pose proof (resolve_pin_fd lp _ _ _ _ (linked12_LO_air lp H12) dm_sk Hr) as ->.
-      destruct Hok as (Vm & _).
-      assert (Hwe : walk_entry (Int.repr 25168042) (state_of c) = true)
-        by (unfold state_of; rewrite S0; vm_compute; reflexivity).
-      exact (kb_reshape _ _ _ (kb_row lp H12 bm Hbm _ _ (sk_kfinal_all lp H12 Hdma Hsq Hsqf Haudio Hcamera _ skcheck12)
-               m t m' vr c Vm Hw Hc Hb Hwe Hact Hfr Hev)).
-    - refine (Hsk1 fd _ Hr m t m' vr c Hok Hw _ Hok' Hc Hb Hev).
-      split; [reflexivity | split; [exact Hact |]]. split; [| exact Hfr].
-      destruct Hc as (_ & Hs & _). change OFS_ASTATE with 24 in Hs. rewrite Hs.
-      intros E. injection E as E. exact (S1 E). }
+    destruct Hok as (Vm & _).
+    exact (kb_reshape _ _ _ (kb_row lp H12 bm Hbm _ _ (sk_kfinal_all lp H12 Hdma Hsq Hsqf Haudio Hcamera _ skcheck12)
+             m t m' vr c Vm Hw Hc Hb Hact Hfr Hev)). }
   exfalso. pose proof (air_case_fns_in n f Hin) as I. unfold air_case_fns in I.
   repeat (destruct I as [I | I]; [symmetry in I; contradiction |]). exact I.
 Qed.

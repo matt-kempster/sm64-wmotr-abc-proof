@@ -386,12 +386,14 @@ Proof.
 Qed.
 End AIRMOVE.
 
-(* ---- slide kick (act_slide_kick, airborne.c:1580): its step runs at the
-        TICKED cells c (++actionTimer, airborne.c:1586, u16), and the move is
-        from the pre-tick cells cp: one S_air / S_air_cut (gravity 2.0f,
-        mario_step.c:543) whose slide-kick clause folds the tick ---- *)
+(* ---- slide kick (act_slide_kick, airborne.c:1580), at any state: its step
+        runs at the TICKED cells c (++actionTimer, airborne.c:1586, u16), and
+        the move is from the pre-tick cells cp: at state 0 one S_air /
+        S_air_cut (gravity 2.0f, mario_step.c:543) whose slide-kick clause
+        folds the tick; past the bounce (state <> 0) one S_sk_bounced /
+        S_sk_bounced_cut, whose vel is gravity's exactly (AirMatch.vel_exc) ---- *)
 Definition sk_pre (cp c : cells) : Prop :=
-  c_action cp = ACT_SLIDE_KICK /\ state_of cp = 0%Z
+  c_action cp = ACT_SLIDE_KICK
   /\ c_action c = c_action cp /\ c_state c = c_state cp
   /\ timer_of c = ((timer_of cp + 1) mod 65536)%Z
   /\ c_posy c = c_posy cp /\ c_vely c = c_vely cp /\ c_floorh c = c_floorh cp /\ c_gfxy c = c_gfxy cp.
@@ -440,7 +442,7 @@ Local Notation LD := (sload nbase R0 kv g).
 
 Lemma sk_HA : den ge m0 E (IC rM oA Mint32) = Some (Vint (c_action c)).
 Proof.
-  rewrite HAc. cbn [den]. destruct Hpre as (A0 & _ & A1 & _). rewrite A1, A0. reflexivity.
+  rewrite HAc. cbn [den]. destruct Hpre as (A0 & A1 & _). rewrite A1, A0. reflexivity.
 Qed.
 
 Lemma gk2 : gk_of (IC rM oA Mint32) = f2.
@@ -449,15 +451,21 @@ Proof. rewrite HAc. unfold gk_of. rewrite Int.eq_true. reflexivity. Qed.
 Lemma skt : is_skt (IC rM oA Mint32) = true.
 Proof. rewrite HAc. unfold is_skt. apply Int.eq_true. Qed.
 
-Lemma sk_mode : mode_of cp = M_SlideKick.
+Lemma sk_mode : state_of cp = 0%Z -> mode_of cp = M_SlideKick.
 Proof.
-  destruct Hpre as (A0 & S0 & _). unfold mode_of. rewrite A0, S0. reflexivity.
+  intros S0. destruct Hpre as (A0 & _). unfold mode_of. rewrite A0, S0. reflexivity.
+Qed.
+
+Lemma sk_mode1 : state_of cp <> 0%Z -> mode_of cp = M_SlideKickBounced.
+Proof.
+  intros S1. destruct Hpre as (A0 & _). unfold mode_of. rewrite A0, mode_of_action_SK_eq.
+  apply Z.eqb_neq in S1. rewrite S1. reflexivity.
 Qed.
 
 Lemma sk_eqs : c_posy c = c_posy cp /\ c_vely c = c_vely cp /\ c_floorh c = c_floorh cp
   /\ c_action c = c_action cp /\ c_state c = c_state cp
   /\ timer_of c = ((timer_of cp + 1) mod 65536)%Z.
-Proof. destruct Hpre as (_ & _ & A & S & T & Y & V & F & _). repeat split; assumption. Qed.
+Proof. destruct Hpre as (_ & A & S & T & Y & V & F & _). repeat split; assumption. Qed.
 
 Lemma sk_ranges :
   F32 (c_posy c) = true /\ F32 (c_vely c) = true /\ Rabs (R2 (c_posy c)) <= 16000
@@ -498,12 +506,14 @@ Proof.
   pose proof sk_ranges as (_ & _ & _ & _ & _ & Ff & Lf & _). auto.
 Qed.
 
-(* the four-quarter class: S_air from cp with gravity 2.0f *)
+(* the four-quarter class: S_air from cp with gravity 2.0f at state 0;
+   past the bounce S_sk_bounced, whose vel the outcome's vel_exc pins *)
 Theorem sk_air_move : outcome_ok LD IC (g_pc g) rM rO kH = true ->
   aclass_of LD IC (g_pc g) rM rO kH = Some Cair ->
+  (state_of cp <> 0%Z -> vel_exc LD IC (g_pc g) rM = true) ->
   exists c', read_cells bm m c' /\ RM' cp c'.
 Proof using All.
-  intros OK H.
+  intros OK H VX.
   unfold outcome_ok in OK. apply andb_true_iff in OK as (CO & _).
   destruct sk_ranges as (Fy & Fv & Hy & Hv & Hv43 & Ff & Lf & _).
   destruct sk_eqs as (Ey & Ev & Ef & Ea & Es & Et).
@@ -525,11 +535,20 @@ Proof using All.
   all: split; [ unfold InRange; cbn [c_posy c_vely c_floorh c_gfxy];
                 rewrite B2R_fm75 in Lo; repeat split; try assumption; try lra;
                 try apply Rabs_le_inv in G; lra |].
-  all: apply (S_air _ _ _ cp _ f2); cbn [c_action c_state c_timer c_posy c_vely c_gfxy];
-         first [ right; left; exact sk_mode | exact F32_f2 | rewrite sk_mode, B2R_f2; reflexivity
+  all: destruct (Z.eq_dec (state_of cp) 0) as [S0 | S1].
+  1,3: apply (S_air _ _ _ cp _ f2); cbn [c_action c_state c_timer c_posy c_vely c_gfxy];
+         first [ right; left; exact (sk_mode S0) | exact F32_f2 | rewrite (sk_mode S0), B2R_f2; reflexivity
                | exact Ea | exact Es | rewrite <- Ey, <- Ev; reflexivity
                | rewrite <- Ev; exact Hi | reflexivity
                | intros _; unfold timer_of at 1; cbn [c_timer]; exact Et ].
+  (* past the bounce: gravity's vel exactly *)
+  all: pose proof (aclass_air_ex ge nbase R0 gtab kv m0 uf gp gp_old E m g rM rO (c_vely c) kH
+                     MM HbM IC HV H (VX S1)) as LX;
+       rewrite gk2, LV in LX; injection LX as Vx.
+  all: apply (S_sk_bounced _ _ _ cp); cbn [c_action c_state c_timer c_posy c_vely c_gfxy];
+         first [ exact (sk_mode1 S1) | exact Ea | exact Es | rewrite <- Ey, <- Ev; reflexivity
+               | rewrite Vx, <- Ev; reflexivity | reflexivity
+               | unfold timer_of at 1; cbn [c_timer]; exact Et ].
 Qed.
 
 (* the cut class: S_air_cut from cp; the cut's vel[1] >= 0 fact gives the
@@ -559,16 +578,28 @@ Proof using All.
            exists (e_blk E rO), (e_base E rO); split; [exact LMO | exact LG] |].
   split; [ unfold InRange; cbn [c_posy c_vely c_floorh c_gfxy]; rewrite ?B2R_cutv2;
            repeat split; try assumption; try lra; reflexivity |].
-  apply (S_air_cut _ _ _ cp _ k); cbn [c_action c_state c_timer c_posy c_vely c_gfxy].
-  - right; left. exact sk_mode.
-  - exact Hk.
-  - exact Ea.
-  - exact Es.
-  - rewrite Ep, Ey, Ev. reflexivity.
-  - rewrite B2R_cutv2. lra.
-  - reflexivity.
-  - intros _. split; [rewrite <- Ev; exact V0 | split; [exact B2R_cutv2 |]].
-    unfold timer_of at 1. cbn [c_timer]. exact Et.
+  destruct (Z.eq_dec (state_of cp) 0) as [S0 | S1].
+  - apply (S_air_cut _ _ _ cp _ k); cbn [c_action c_state c_timer c_posy c_vely c_gfxy].
+    + right; left. exact (sk_mode S0).
+    + exact Hk.
+    + exact Ea.
+    + exact Es.
+    + rewrite Ep, Ey, Ev. reflexivity.
+    + rewrite B2R_cutv2. lra.
+    + reflexivity.
+    + intros _. split; [rewrite <- Ev; exact V0 | split; [exact B2R_cutv2 |]].
+      unfold timer_of at 1. cbn [c_timer]. exact Et.
+  - (* past the bounce: S_sk_bounced_cut *)
+    apply (S_sk_bounced_cut _ _ _ cp _ k); cbn [c_action c_state c_timer c_posy c_vely c_gfxy].
+    + exact (sk_mode1 S1).
+    + exact Hk.
+    + exact Ea.
+    + exact Es.
+    + rewrite <- Ev. exact V0.
+    + rewrite Ep, Ey, Ev. reflexivity.
+    + exact B2R_cutv2.
+    + unfold timer_of at 1. cbn [c_timer]. exact Et.
+    + reflexivity.
 Qed.
 
 (* a landing: the attach height (AttachInfo from cp), the cells in range *)
@@ -625,9 +656,10 @@ Qed.
 (* every class-0 outcome at slide kick is one RangedMove from cp *)
 Theorem sk_outcome_move : outcome_ok LD IC (g_pc g) rM rO kH = true ->
   forall ac, aclass_of LD IC (g_pc g) rM rO kH = Some ac ->
+  (state_of cp <> 0%Z -> vel_exc LD IC (g_pc g) rM = true) ->
   exists c', read_cells bm m c' /\ RM' cp c'.
 Proof using All.
-  intros OK [|k] H; [exact (sk_air_move OK H) | exact (sk_cut_move k OK H)].
+  intros OK [|k] H VX; [exact (sk_air_move OK H VX) | exact (sk_cut_move k OK H)].
 Qed.
 End AIRMOVE_SK.
 

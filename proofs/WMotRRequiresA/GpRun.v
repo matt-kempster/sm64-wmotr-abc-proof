@@ -71,7 +71,7 @@ Qed.
    the start state describes is a MoveChain of Phi's cells *)
 Theorem gp_kfinal : kfinal lp GPN AIR.f_act_ground_pound.
 Proof.
-  intros m0 gp GPO MC FD E t m' vres c0 EO PC EV RC Hb _ FRO.
+  intros m0 gp GPO MC FD E t m' vres c0 EO PC EV RC Hb FRO.
   destruct gpcheck_lp as (cs & RUN & W).
   assert (MM0 : MMg G NBF (R0F G) gtabF (kvK GPN G) m0 (ufF G m0 gp) gp E m0 (g0F G)).
   { apply MMg_init; [exact EO | apply Ple_refl |].

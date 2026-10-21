@@ -190,8 +190,8 @@ without pressing A".*
   air-step summary from the ticked cells, read as one move from the pre-tick cells
   (`AirMove.sk_pre`, `AirSum.pre_ok`) at slide kick's gravity vel − 2: a landing into
   SLIDE_KICK_SLIDE, the bounce off vel[1] < 0 (`S_attach` to state 1, timer 0, vel[1] := −vel[1]
-  / 2 ≥ 0), or a wall into BACKWARD_AIR_KB. Slide kick past its bounce (state ≠ 0) is an open row
-  (`KbRow.sk1_row`). **The dispatch's floor refresh is threaded through the frame (2026-10-21,
+  / 2 ≥ 0), or a wall into BACKWARD_AIR_KB. Slide kick past its bounce (state ≠ 0) was an open
+  row (`KbRow.sk1_row`; proved the same day, below). **The dispatch's floor refresh is threaded through the frame (2026-10-21,
   `FrameSplit.frame_stage`, now the spine's split; `HeightFrame.frame_FS`).** The body is read
   off the generated AST in order (`ema_split`, `body_shape`, computed): flags, reset_bodystate,
   `update_mario_inputs`, `mario_handle_special_floors`, `mario_process_interactions`, the
@@ -219,6 +219,25 @@ without pressing A".*
   (find_floor's floorHeight was ≤ y_old + 78) but not derivable from the frame world, which
   carries no floor fact at a ledge grab. ffw's own `fro_st` clause makes the same claim and is
   unchanged (still read by the freefall and air-hit-wall rows). No assumption added.
+  **Slide kick at state ≠ 0 is proved (2026-10-21; `sk1_row` and `HeightFrame.Hsk1` removed,
+  28 → 27 hypotheses).** The same walk (`SkW.skcheck12`) now classifies every outcome at any
+  state (`FfClass.sk_ok` is `ff_okE` from the ticked cells; it used to accept the state ≠ 0
+  path unchecked), `AirMove.sk_pre` drops its state-0 conjunct, and past the bounce the air
+  step is the catalog's `S_sk_bounced` (four quarters) or `S_sk_bounced_cut` (a ceiling cut,
+  vel ≥ 0 → −2); a landing there is SLIDE_KICK_SLIDE (`S_attach`), a wall BACKWARD_AIR_KB, and
+  the timer gate FREEFALL (`Sw_freefall`, whose credit step was already proved for the bounced
+  mode). `KbRun.kfinal` and `KbRow.kb_row` lose their `walk_entry` premise
+  (`HeightMoveCatalog.walk_entry` is gone): every airborne walk now covers every state, and
+  `KbRow.air_case_rows_ff8` is unconditional. **Found on the way:** `S_sk_bounced` pins vel' to
+  gravity(vel) exactly (the post-bounce credit is the signed energy, which a lower vel would
+  raise), but the air-step classifier only gave fm75 ≤ vel' ≤ gravity(vel): its `vel_ok`
+  accepts the constant −75 on any path, and the jump-ascent quarter. Relaxing the catalog
+  instead would be false (a phantom vel' = −75 from vel = 30 breaks the budget). So the
+  classifier is sharpened: at a constant SLIDE_KICK action, a non-attach outcome's vel must
+  pass `AirMatch.vel_exc` (the cut's −2, or `vel_ex`: −75 only on a path with the clamp fact
+  `vel − 2 < −75`, or vel − 2 on a path with the no-clamp fact), checked in `AirSum.cls_core`
+  inside the step summary; `AirMatch.aclass_air_ex` turns it into vel' = gravity(vel). Every
+  walk was re-run with the sharper summary. No assumption added.
   **Found on the way (2026-10-21, slide kick):** (1) the
   catalog's slide-kick timer clauses (`S_air`, `S_air_cut`, `S_sk_bounced`, `S_sk_bounced_cut`)
   said timer' = timer + 1 in Z, which is false at the u16 wrap 65535 → 0 (`budget_ok` bounds

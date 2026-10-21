@@ -71,14 +71,17 @@ all in `Unwired/`, and the theorem moved nowhere. See
     dive (`KbDv`, an air_entry), and both rollouts (`RlF` / `RlB` through `RlRun.rl_kfinal`;
     the air-step summary's entry is the caller's cell terms at the call, `AirSum.icE`).
     and butt-slide air at state 0 (`BsW` through `BsRun.bs_kfinal`: S_tick, then the step from
-    the ticked cells `FfClass.ent_bs`; the bounce is an S_attach), and slide kick at state 0
+    the ticked cells `FfClass.ent_bs`; the bounce is an S_attach), and slide kick
     (`SkW` through `SkRun.sk_kfinal`: the step from the ticked cells is one move from the
     pre-tick cells, `AirMove.sk_pre`; gravity 2 via `AirMatch.gk_of`). Every no-A case is
-    covered (`KbRow.air_case_rows_ff8`, `air_case_fns_in`). Butt-slide air is proved at ANY
-    state (2026-10-21: the entry floor is the dispatch's fresh floor, `kb_row` takes
-    `FfWorld.fresh`; every walk also checks `RetOk.ret_ok`: FALSE or y/floorHeight untouched).
-    Open: slide kick at state <> 0 (`Hsk1` / `KbRow.sk1_row`, now fresh-in / fresh-or-FALSE-out;
-    needs a state-1 classifier, `S_sk_bounced` relaxed). ffw's floor refresh still holds for
+    covered, unconditionally (`KbRow.air_case_rows_ff8`, `air_case_fns_in`). Butt-slide air
+    and slide kick are proved at ANY state (2026-10-21: the entry floor is the dispatch's
+    fresh floor, `kb_row` takes `FfWorld.fresh`; every walk also checks `RetOk.ret_ok`: FALSE
+    or y/floorHeight untouched; `kfinal` has no `walk_entry` premise any more). Past slide
+    kick's bounce the step is `S_sk_bounced`, which needs vel' = gravity(vel) exactly: the
+    step summary checks `AirMatch.vel_exc` at a constant SLIDE_KICK action (`AirSum.cls_core`;
+    −75 only with the clamp fact), turned into the equation by `AirMatch.aclass_air_ex`. Do
+    not relax `S_sk_bounced` to a ≤ bound: the signed-energy credit makes that false. ffw's floor refresh still holds for
     `fro_st` (air_entry + ground pound + rollouts, and butt-slide air and slide kick at state 0;
     TRUST 0.6); the ff / ahw rows still read it. Phantom-∀ caveat (pre-existing): the
     open rows claim FRO after let_go_of_ledge -> SOFT_BONK, true in the game (find_floor's +78
