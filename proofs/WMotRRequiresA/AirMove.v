@@ -93,7 +93,7 @@ Lemma act_cases : c_action c = ACT_FREEFALL \/ c_action c = Int.repr 2215 \/ c_a
   \/ c_action c = ACT_BUTT_SLIDE_AIR.
 Proof.
   unfold pas_entry in Hact. apply orb_true_iff in Hact as [H | H];
-    [| apply andb_true_iff in H as [H _]; apply Int.same_if_eq in H; auto 10].
+    [| apply Int.same_if_eq in H; auto 10].
   apply orb_true_iff in H as [H | H]; [apply orb_true_iff in H as [H | H] |].
   - destruct (air_entry_cases _ H) as [X | [X | [X | [X | [X | X]]]]]; auto 10.
   - apply andb_true_iff in H as [H _]. apply Int.same_if_eq in H. auto 10.

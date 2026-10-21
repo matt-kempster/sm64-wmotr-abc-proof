@@ -23,7 +23,7 @@ From compcert Require Import Coqlib Maps AST Integers Floats Values Memory Event
 From SM64.Generated Require mario_step mario mario_actions_airborne memory surface_collision level_update.
 From SM64.Proofs Require Import Interp.SymExec2 Interp.LinkGenv MarioModel.LinkedTwelve
   MarioModel.OsDmaFloor MarioModel.MathGeomGated HeightInvariant HeightMoveCatalog WMotRLevel.
-From SM64.Proofs.WMotRRequiresA Require Import FloorHeight FloorExec AirXc AirRun AirWr WallExec AirMatch AirMove SmaXc AirSum FpuFloor FpWalk ExtInert FfClass AirStart FfKeepCheck.
+From SM64.Proofs.WMotRRequiresA Require Import FloorHeight FloorExec AirXc AirRun AirWr WallExec AirMatch AirMove SmaXc AirSum FpuFloor FpWalk ExtInert FfClass AirStart FfKeepCheck RetOk.
 From SM64.Proofs Require Generic.SymbolicLinking.
 Import ListNotations.
 
@@ -109,7 +109,8 @@ End CFG.
 (* both checks of an outcome: the MoveChain class and the kept world *)
 Definition clokF : list positive := [RBUF; RIOM; RMQ; RRM].
 Definition ffk_ok (g : genv) (c : cpath) : bool :=
-  ff_ok NBF (R0F g) (kvF g) RM RO kM (fst c) && fk_ok NBF (R0F g) (kvF g) RM RO RLD kS clokF (fst c).
+  ff_ok NBF (R0F g) (kvF g) RM RO kM (fst c) && fk_ok NBF (R0F g) (kvF g) RM RO RLD kS clokF (fst c)
+  && ret_ok NBF (R0F g) (kvF g) RM c.
 
 (* THE WALK, computed once on the real link *)
 Lemma ffcheck12 : match ge12 with
@@ -258,6 +259,7 @@ Theorem ff_final : forall E t m' vres c0,
   FloorRefreshOK wmotr_floor (R2 (c_posy c0)) (R2 (c_floorh c0)) ->
   exists E' gs, Ext E E' NBF /\ MMg G NBF (R0F G) gtabF (kvF G) m0 uf gp E' m' gs
     /\ fk_ok NBF (R0F G) (kvF G) RM RO RLD kS clokF gs = true
+    /\ RET (e_blk E RM) m0 m' vres
     /\ exists c2, read_cells (e_blk E RM) m' c2 /\ MoveChain wmotr_floor wmotr_pole wmotr_cannon c0 c2
        /\ fro_ff c2.
 Proof.
@@ -272,9 +274,9 @@ Proof.
     split; [reflexivity |]. cbn [sok nlt g0F g_nx]. split; [unfold Plt, Pos.lt; reflexivity | exact Logic.I]. }
   destruct (sx_call_sound G NBF (R0F G) gtabF (kvF G) (xcF G) jkeys mergeF true m0 uf gp
               GPO MC xcF_sound 3000 (g0F G) _ argsF cs E m0 _ t m' vres RUN MM0 ARGS EV) as (c & Hin & CMc).
-  destruct c as [gs r]. destruct CMc as (E' & X & MM & _).
+  destruct c as [gs r]. destruct CMc as (E' & X & MM & DR & _).
   pose proof (W _ Hin) as OK. unfold ffk_ok in OK. cbn [fst] in OK.
-  apply andb_true_iff in OK as [OK FK].
+  apply andb_true_iff in OK as [OK RT]. apply andb_true_iff in OK as [OK FK].
   exists E', gs. split; [exact X | split; [exact MM | split; [exact FK |]]].
   (* the entry, through E' *)
   destruct EO as (_ & _ & _ & GT & KV & _).
@@ -294,6 +296,8 @@ Proof.
     destruct RC as (HA & _). change OFS_ACTION with 12%Z in HA. rewrite HA in L. cbn [den] in L.
     injection L as ->. reflexivity. }
   assert (Hact : pas_entry (c_action c0) (state_of c0) = true) by (unfold pas_entry; rewrite Hff; reflexivity).
+  split; [rewrite <- BM; exact (ret_sound G NBF (R0F G) gtabF (kvF G) m0 uf gp GPO RM E' m' gs MM
+                                 ltac:(rewrite BaM; exact HbM) r vres DR RT) |].
   rewrite <- BM in RC |- *.
   exact (ff_sound G NBF (R0F G) gtabF (kvF G) m0 uf gp GPO RM RO kM uf_kM_out E' m' gs MM
            ltac:(rewrite BaM; exact HbM) HO0 c0 RC Hact Hb FRO OK).
@@ -310,6 +314,6 @@ Theorem ff_move : forall E t m' vres c0,
     /\ fro_ff c2.
 Proof.
   intros E t m' vres c0 EO PC EV RC Hb FRO.
-  destruct (ff_final E t m' vres c0 EO PC EV RC Hb FRO) as (_ & _ & _ & _ & _ & H). exact H.
+  destruct (ff_final E t m' vres c0 EO PC EV RC Hb FRO) as (_ & _ & _ & _ & _ & _ & H). exact H.
 Qed.
 End LP.

@@ -46,8 +46,12 @@ all in `Unwired/`, and the theorem moved nowhere. See
   Its start premise is proved satisfiable (`StartSat.goal2_start_sat`, 2026-10-20, in the audit):
   a memory built from the real boot image of any 19-TU link meets `mem_ok_lp` and `PhiW`. That
   rules out empty-premise vacuity only; Φ at real WMotR entry stays ASSUMED (TRUST 0.4).
-  Since 2026-10-20 the three frame rows below are LEMMAS of `FrameSplit.frame_split`; the
-  assumed rows are the per-call `Hseg_call` / `Hseg_any` (one per call in the real
+  Since 2026-10-20 the three frame rows below are LEMMAS of the frame split (since 2026-10-21
+  the STAGED `FrameSplit.frame_stage`, which threads the dispatch's floor refresh
+  `FfWorld.fresh` / `fresh_at` through the body in order and over the real dispatch loop); the
+  assumed rows are the per-call `Hseg_call_na` (`seg_call_rows_naF`, with `pre_of` / `post_of`:
+  update_mario_inputs leaves the floor fresh, handle_special_floors / process_interactions keep
+  it, each dispatcher returns 0 or leaves fresh_at) / `Hseg_any` (one per call in the real
   `execute_mario_action` body; the two store blocks are proved). What each per-call row
   carries:
   - `Hframe_stays_noA` (ACT_SQUISHED still needs the dynamic-surface geometry fact in the
@@ -70,10 +74,15 @@ all in `Unwired/`, and the theorem moved nowhere. See
     the ticked cells `FfClass.ent_bs`; the bounce is an S_attach), and slide kick at state 0
     (`SkW` through `SkRun.sk_kfinal`: the step from the ticked cells is one move from the
     pre-tick cells, `AirMove.sk_pre`; gravity 2 via `AirMatch.gk_of`). Every no-A case is
-    covered (`KbRow.air_case_rows_ff8`, `air_case_fns_in`). Open: butt-slide air and slide
-    kick at state <> 0 (`Hbsa1` / `KbRow.bsa1_row`, `Hsk1` / `KbRow.sk1_row`: the bounce can
-    leave floorHeight stale). ffw's floor refresh holds for `fro_st` (air_entry + ground
-    pound + rollouts, and butt-slide air and slide kick at state 0; TRUST 0.6). Walk files: one walk each (KbSb/KbBkb/KbFkb/KbDv),
+    covered (`KbRow.air_case_rows_ff8`, `air_case_fns_in`). Butt-slide air is proved at ANY
+    state (2026-10-21: the entry floor is the dispatch's fresh floor, `kb_row` takes
+    `FfWorld.fresh`; every walk also checks `RetOk.ret_ok`: FALSE or y/floorHeight untouched).
+    Open: slide kick at state <> 0 (`Hsk1` / `KbRow.sk1_row`, now fresh-in / fresh-or-FALSE-out;
+    needs a state-1 classifier, `S_sk_bounced` relaxed). ffw's floor refresh still holds for
+    `fro_st` (air_entry + ground pound + rollouts, and butt-slide air and slide kick at state 0;
+    TRUST 0.6); the ff / ahw rows still read it. Phantom-∀ caveat (pre-existing): the
+    open rows claim FRO after let_go_of_ledge -> SOFT_BONK, true in the game (find_floor's +78
+    bound, y drops <= 100) but not derivable from fworld. Walk files: one walk each (KbSb/KbBkb/KbFkb/KbDv),
     `WithGe.with_ge` not `match ge12`, `vm_cast_no_check`, never `eassumption` near a walk. Dive and rollouts read `gAudioRandom`; audio/data.c (its only
     definer) is linked as the 18th TU so those paths have executions. Squish: WMotR's dynamic
     surfaces never come within 150 of a floor/ceiling (`tools/goal2_squish_scan.py`, min gap 276),

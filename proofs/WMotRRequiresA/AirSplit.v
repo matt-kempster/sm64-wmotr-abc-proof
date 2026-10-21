@@ -13,6 +13,13 @@
 (* and the switch reads that cell.  GOAL 1's per-handler result            *)
 (* (air_leaves_linked12) gives mem_ok across each call.  The freefall case *)
 (* is what FfRun.ff_move discharges next.                                  *)
+(*                                                                         *)
+(* The dispatch's floor refresh (2026-10-21): the row is FrameSplit's      *)
+(* staged one, entered with FfWorld.fresh_at (fresh when the action is     *)
+(* airborne).  The prologue keeps fresh_at (air_pro_rows); a case's        *)
+(* handler is entered fresh (its label is airborne, air_case_air) and      *)
+(* returns FALSE or leaves the floor fresh (air_case_rows); so the         *)
+(* dispatcher returns 0 or leaves fresh_at (air_seg).                      *)
 (* ======================================================================= *)
 
 From Coq Require Import ZArith List Lia Relations.
@@ -25,6 +32,7 @@ From SM64.Proofs Require Import CensusV2 EngineV2Consumer RestSurface AirborneSu
 From SM64.Proofs Require Import NoAImpliesNoFlyLinked.
 From SM64.Proofs Require Import HeightInvariant HeightMoveCatalog WMotRLevel WMotRWorld
   NoAActions FrameCalls FrameSplit.
+From SM64.Proofs.WMotRRequiresA Require Import FfWorld.
 Import ListNotations.
 
 Module AIR := mario_actions_airborne.
@@ -245,26 +253,34 @@ Section AirSplitS.
       (prog_defmap mario_actions_airborne.prog) ! fid = Some (Gfun (Internal f)) ->
       body_pres lp (NoA_real bm) MWF bm f.
 
+
   (* ---- THE ROWS: the two prologue calls, and each no-A case's handler,
-     called with the action cell = its label ---- *)
+     called with the action cell = its label.  The dispatch's floor
+     refresh (FfWorld.fresh_at: fresh when the action is airborne) holds at
+     the call (FrameStage); the prologue keeps it, a case's handler gets
+     it (its label is airborne) and returns FALSE or leaves it fresh ---- *)
   Definition air_pro_rows : Prop :=
     forall f fd v, (f = AIR._check_common_airborne_cancels \/ f = AIR._play_far_fall_sound) ->
-      resolves lp f fd -> seg_ok lp bm MWF fd [v] (fun _ => marg_ok bm [v]).
+      resolves lp f fd ->
+      seg_okR lp bm MWF fd [v] (fun m => marg_ok bm [v] /\ fresh_at bm m) (fun m' _ => fresh_at bm m').
 
   Definition air_case_rows : Prop :=
     forall n f fd v, In (n, f) air_case_list -> resolves lp f fd ->
-      seg_ok lp bm MWF fd [v]
-        (fun m => v = Vptr bm Ptrofs.zero /\ Mem.load Mint32 m bm 12 = Some (Vint (Int.repr n))).
+      seg_okR lp bm MWF fd [v]
+        (fun m => v = Vptr bm Ptrofs.zero /\ Mem.load Mint32 m bm 12 = Some (Vint (Int.repr n))
+                  /\ fresh bm m)
+        (fun m' vr => vr = Vint Int.zero \/ fresh bm m').
 
-  Lemma call_step : forall c0 v le m f rt cc optid t le' m' out (pre : mem -> Prop),
+  Lemma call_step : forall c0 v le m f rt cc optid t le' m' out (pre : mem -> Prop)
+      (post : mem -> val -> Prop),
     budget_ok c0 -> FSc c0 m -> le ! AIR._m = Some v -> marg_ok bm [v] -> pre m ->
     mem_id f airborne_callee_ids = true ->
-    (forall fd, resolves lp f fd -> seg_ok lp bm MWF fd [v] pre) ->
+    (forall fd, resolves lp f fd -> seg_okR lp bm MWF fd [v] pre post) ->
     exec_stmt function_entry2 ge empty_env le m
       (Scall optid (Evar f (Tfunction [tyMSp] rt cc)) [Etempvar AIR._m tyMSp]) t le' m' out ->
-    FSc c0 m' /\ out = Out_normal /\ exists vr, le' = set_opttemp optid vr le.
+    FSc c0 m' /\ out = Out_normal /\ exists vr, le' = set_opttemp optid vr le /\ post m' vr.
   Proof.
-    intros c0 v le m f rt cc optid t le' m' out pre Hb HF Hle Hmarg Hpre Hmem Hrow H.
+    intros c0 v le m f rt cc optid t le' m' out pre post Hb HF Hle Hmarg Hpre Hmem Hrow H.
     inv H.
     match goal with Hc : classify_fun _ = _ |- _ => cbn in Hc; injection Hc as <- <- <- end.
     match goal with He : eval_expr _ _ _ _ (Evar _ _) _ |- _ =>
@@ -282,12 +298,14 @@ Section AirSplitS.
     destruct Hok as (Hv & Hnt & HM).
     destruct (tabled_call_pres lp LO_air bm (NoA_real bm) MWF Hnoa Hleaves f _ m [v] _ _ _ Hev Hmem
                 (ex_intro _ b (conj Hs Hff0)) Hmarg (Hnoa m HM) HM Hv Hnt) as (Hv' & Hnt' & HM' & _).
-    split; [| split; [reflexivity | eexists; reflexivity]].
-    apply (chain_step lp bm MWF c0 m _); [ | exact Hb | exact (conj (conj Hv (conj Hnt HM)) (conj Hw Hcells)) |
-                                           exact (conj Hv' (conj Hnt' HM')) ].
-    intros c Hrc Hbc.
-    exact (Hrow _ (ex_intro _ b (conj Hs Hff0)) m _ _ _ c (conj Hv (conj Hnt HM)) Hw Hpre
-             (conj Hv' (conj Hnt' HM')) Hrc Hbc Hev).
+    destruct Hcells as (c1 & Hrc & Hmc).
+    pose proof (chain_keeps_budget wmotr_floor wmotr_gap_proved wmotr_pole wmotr_poles_proved
+                  wmotr_cannon wmotr_cannons_proved c0 c1 Hb Hmc) as Hb1.
+    destruct (Hrow _ (ex_intro _ b (conj Hs Hff0)) m _ _ _ c1 (conj Hv (conj Hnt HM)) Hw Hpre
+                (conj Hv' (conj Hnt' HM')) Hrc Hb1 Hev) as (Hw' & (c2 & Hrc2 & Hmc2) & Hpost).
+    split; [| split; [reflexivity | eexists; split; [reflexivity | exact Hpost]]].
+    refine (conj (conj Hv' (conj Hnt' HM')) (conj Hw' (ex_intro _ c2 (conj Hrc2 _)))).
+    exact (rt_trans _ _ _ _ _ Hmc Hmc2).
   Qed.
 
   (* the switch scrutinee: the action cell *)
@@ -309,22 +327,33 @@ Section AirSplitS.
     assumption.
   Qed.
 
+  (* every case label is an airborne action (group 0x080) *)
+  Lemma air_case_grp :
+    forallb (fun kf => Int.eq (Int.and (Int.repr (fst kf)) (Int.repr 448)) (Int.repr 128)) air_case_list = true.
+  Proof. vm_compute. reflexivity. Qed.
 
+  Lemma air_case_air : forall n f, In (n, f) air_case_list ->
+    Int.and (Int.repr n) (Int.repr 448) = Int.repr 128.
+  Proof.
+    intros n f H. pose proof air_case_grp as R. rewrite forallb_forall in R.
+    exact (Int.same_if_eq _ _ (R (n, f) H)).
+  Qed.
 
   Lemma sw_part : forall c v le m t le' m' out,
-    air_case_rows -> budget_ok c -> FSc c m -> le ! AIR._m = Some v -> marg_ok bm [v] ->
+    air_case_rows -> budget_ok c -> FSc c m -> fresh_at bm m -> le ! AIR._m = Some v -> marg_ok bm [v] ->
     exec_stmt function_entry2 ge empty_env le m
       (Ssequence (Sset AIR._t'46 (Efield (Ederef (Etempvar AIR._m tyMSp) tyMS) AIR._action tuint))
                  (Sswitch (Etempvar AIR._t'46 tuint) air_ls)) t le' m' out ->
-    FSc c m'.
+    FSc c m' /\ (fresh_at bm m' \/ (out = Out_normal /\ le' ! AIR._cancel = Some (Vint Int.zero))).
   Proof.
-    intros c v le m t le' m' out Hcase Hb HF Hle Hmarg H.
+    intros c v le m t le' m' out Hcase Hb HF HFr Hle Hmarg H.
     destruct (seq_inv _ _ _ _ _ _ _ _ _ _ H) as [(t1 & le1 & m1 & t2 & K1 & K2) | (t1 & K1 & Hn)].
     2: { inv K1. congruence. }
     inv K1.
     match goal with He : eval_expr _ _ _ _ (Efield _ _ _) _ |- _ => rename He into Ea end.
     destruct (air_action_load _ _ _ _ Hle Hmarg Ea) as (-> & Hld).
     inv K2.
+    match type of Hld with Mem.load _ ?M _ _ = _ => rename M into mF end.
     match goal with He : eval_expr _ _ _ _ (Etempvar _ _) _ |- _ =>
       apply eval_expr_Etempvar_val in He; rewrite PTree.gss in He; injection He as <- end.
     match goal with Hs : sem_switch_arg _ _ = Some _ |- _ => rename Hs into Hsw end.
@@ -337,30 +366,57 @@ Section AirSplitS.
     destruct (air_cases_select air_ls air_case_list _ air_cases_eq Hex)
       as [Hnone | (s & rest & f & Hsel & Hcc & Hin)].
     - unfold select_switch in Kx. rewrite Hnone, (air_cases_default air_ls _ air_cases_eq) in Kx.
-      cbn in Kx. inv Kx. exact HF.
+      cbn in Kx. inv Kx. exact (conj HF (or_introl HFr)).
     - unfold select_switch in Kx. rewrite Hsel in Kx. cbn [seq_of_labeled_statement] in Kx.
       destruct (case_call_shape s f Hcc) as (t0 & c' & rt & cc & ty' & -> & ->).
-      destruct (seq_inv _ _ _ _ _ _ _ _ _ _ Kx) as [(t3 & le3 & m3 & t4 & K3 & _) | (t3 & K3 & _)].
-      { exfalso. exact (seq_break_abnormal _ _ _ _ _ _ _ _ _ K3 eq_refl). }
-      destruct (seq_pure_r _ _ _ _ _ _ _ _ _ _ K3 eq_refl) as (t5 & le5 & out5 & K5).
-      destruct (seq_pure_r _ _ _ _ _ _ _ _ _ _ K5 eq_refl) as (t6 & le6 & out6 & K6).
       assert (Hle1 : (PTree.set AIR._t'46 (Vint i) le) ! AIR._m = Some (Vptr bm Ptrofs.zero))
         by (rewrite PTree.gso by (apply Pos.eqb_neq; vm_compute; reflexivity); exact Hle).
-      refine (proj1 (call_step c (Vptr bm Ptrofs.zero) _ _ f rt cc _ _ _ _ _
-                (fun m0 => Vptr bm Ptrofs.zero = Vptr bm Ptrofs.zero
-                           /\ Mem.load Mint32 m0 bm 12 = Some (Vint (Int.repr (Int.unsigned i))))
-                Hb HF Hle1 Hmarg _ (air_case_mem _ _ Hin)
-                (fun fd Hr => Hcase _ f fd _ Hin Hr) K6)).
-      split; [reflexivity |]. rewrite Int.repr_unsigned. exact Hld.
+      assert (Hfr : fresh bm mF).
+      { apply (HFr i Hld). rewrite <- (Int.repr_unsigned i). exact (air_case_air _ _ Hin). }
+      assert (Hrow : forall fd, resolves lp f fd ->
+                seg_okR lp bm MWF fd [Vptr bm Ptrofs.zero]
+                  (fun m0 => Vptr bm Ptrofs.zero = Vptr bm Ptrofs.zero
+                             /\ Mem.load Mint32 m0 bm 12 = Some (Vint (Int.repr (Int.unsigned i)))
+                             /\ fresh bm m0)
+                  (fun m' vr => vr = Vint Int.zero \/ fresh bm m'))
+        by (intros fd Hr'; exact (Hcase _ f fd _ Hin Hr')).
+      assert (Hpre : Vptr bm Ptrofs.zero = Vptr bm Ptrofs.zero
+                     /\ Mem.load Mint32 mF bm 12 = Some (Vint (Int.repr (Int.unsigned i))) /\ fresh bm mF)
+        by (rewrite Int.repr_unsigned; exact (conj eq_refl (conj Hld Hfr))).
+      destruct (seq_inv _ _ _ _ _ _ _ _ _ _ Kx) as [(t3 & le3 & m3 & t4 & K3 & _) | (t3 & K3 & _)].
+      { exfalso. exact (seq_break_abnormal _ _ _ _ _ _ _ _ _ K3 eq_refl). }
+      destruct (seq_inv _ _ _ _ _ _ _ _ _ _ K3) as [(t5 & le5 & m5 & t6 & K5 & K6) | (t5 & K5 & Hn5)].
+      + inv K6.
+        destruct (seq_inv _ _ _ _ _ _ _ _ _ _ K5) as [(t7 & le7 & m7 & t8 & K7 & K8) | (t7 & K7 & Hn7)].
+        * destruct (call_step c (Vptr bm Ptrofs.zero) _ _ f rt cc _ _ _ _ _ _ _
+                      Hb HF Hle1 Hmarg Hpre (air_case_mem _ _ Hin) Hrow K7)
+            as (HF7 & _ & vr & -> & Hpost).
+          inv K8.
+          match goal with He : eval_expr _ _ _ _ (Etempvar _ _) _ |- _ =>
+            apply eval_expr_Etempvar_val in He; cbn [set_opttemp] in He;
+            rewrite PTree.gss in He; injection He as -> end.
+          split; [exact HF7 |].
+          destruct Hpost as [-> | Hf7]; [right | left; exact (fresh_at_of _ _ Hf7)].
+          split; [reflexivity | apply PTree.gss].
+        * congruence.
+      + destruct (seq_inv _ _ _ _ _ _ _ _ _ _ K5) as [(t7 & le7 & m7 & t8 & K7 & K8) | (t7 & K7 & Hn7)].
+        * inv K8. congruence.
+        * destruct (call_step c (Vptr bm Ptrofs.zero) _ _ f rt cc _ _ _ _ _ _ _
+                      Hb HF Hle1 Hmarg Hpre (air_case_mem _ _ Hin) Hrow K7) as (_ & -> & _).
+          congruence.
   Qed.
 
+  (* THE AIRBORNE DISPATCHER'S ROW: from the rows above, with the
+     dispatch's floor refresh in and, when it returns nonzero, out *)
   Theorem air_seg : forall v,
     air_pro_rows -> air_case_rows -> marg_ok bm [v] ->
-    seg_ok lp bm MWF (Internal f_air) [v] (fun _ => True).
+    seg_okR lp bm MWF (Internal f_air) [v] (fun m => fresh_at bm m)
+      (fun m' vr => vr = Vint Int.zero \/ fresh_at bm m').
   Proof.
-    intros v Hpro Hcase Hmarg m t m' vr c Hok Hw _ Hok' Hc Hb Hev.
+    intros v Hpro Hcase Hmarg m t m' vr c Hok Hw Hfr Hok' Hc Hb Hev.
     assert (HF0 : FSc c m) by exact (conj Hok (conj Hw (ex_intro _ c (conj Hc (rt_refl _ _ c))))).
-    enough (HF : FSc c m') by (destruct HF as (_ & Hw' & HC); exact (conj Hw' HC)).
+    enough (HF : FSc c m' /\ (vr = Vint Int.zero \/ fresh_at bm m'))
+      by (destruct HF as ((_ & Hw' & HC) & HP); exact (conj Hw' (conj HC HP))).
     inv Hev.
     match goal with Hfe : function_entry2 _ _ _ _ _ _ _ |- _ => inv Hfe end.
     match goal with Hav : alloc_variables _ _ _ _ _ _ |- _ =>
@@ -370,70 +426,85 @@ Section AirSplitS.
     match goal with Hbind : bind_parameter_temps _ _ _ = Some _ |- _ =>
       change (fn_params AIR.f_mario_execute_airborne_action) with [(AIR._m, tyMSp)] in Hbind;
       cbn in Hbind; injection Hbind as <- end.
+    match goal with Hr : outcome_result_value _ _ _ _ |- _ => rename Hr into Hres end.
     match goal with Hx : exec_stmt _ _ _ _ _ (fn_body _) _ _ _ _ |- _ =>
       rewrite air_body in Hx; rename Hx into HB end.
     set (le0 := PTree.set AIR._m v _) in HB.
     assert (Hle0 : le0 ! AIR._m = Some v) by apply PTree.gss.
     clearbody le0.
     assert (Hpro1 : forall f, (f = AIR._check_common_airborne_cancels \/ f = AIR._play_far_fall_sound) ->
-              forall fd, resolves lp f fd -> seg_ok lp bm MWF fd [v] (fun _ => marg_ok bm [v]))
+              forall fd, resolves lp f fd ->
+                seg_okR lp bm MWF fd [v] (fun m => marg_ok bm [v] /\ fresh_at bm m) (fun m' _ => fresh_at bm m'))
       by (intros f Hf fd Hr; exact (Hpro f fd v Hf Hr)).
+    (* the body ends with fresh_at, or returns `cancel` = 0 *)
+    match goal with |- FSc c ?M /\ _ => match type of Hres with outcome_result_value ?O _ _ _ =>
+    enough (HB' : FSc c M /\ (fresh_at bm M \/ O = Out_return (Some (Vint Int.zero, tuint)))) end end.
+    { destruct HB' as (HF & [Hf | ->]); [exact (conj HF (or_intror Hf)) |].
+      split; [exact HF | left]. destruct Hres as [_ Hc0]. cbn in Hc0. injection Hc0 as <-. reflexivity. }
     (* prologue 1: cancels; if it says cancel, return *)
     destruct (seq_inv _ _ _ _ _ _ _ _ _ _ HB) as [(t1 & le1 & mm1 & t2 & J1 & J2) | (t1 & J1 & Hout)].
     2: { destruct (seq_inv _ _ _ _ _ _ _ _ _ _ J1) as [(ta & lea & ma & tb & Ha & Hb') | (ta & Ha & Hout')].
-         - destruct (call_step c v le0 _ AIR._check_common_airborne_cancels _ _ _ _ _ _ _ _ Hb HF0 Hle0 Hmarg Hmarg eq_refl
-                       (Hpro1 _ (or_introl eq_refl)) Ha) as (HFa & _ & _).
-           destruct (noset_le _ _ _ _ _ _ _ _ _ Hb' eq_refl) as [_ ->]. exact HFa.
-         - destruct (call_step c v le0 _ AIR._check_common_airborne_cancels _ _ _ _ _ _ _ _ Hb HF0 Hle0 Hmarg Hmarg eq_refl
-                       (Hpro1 _ (or_introl eq_refl)) Ha) as (_ & -> & _).
+         - destruct (call_step c v le0 _ AIR._check_common_airborne_cancels _ _ _ _ _ _ _ _ _ Hb HF0 Hle0 Hmarg
+                       (conj Hmarg Hfr) eq_refl (Hpro1 _ (or_introl eq_refl)) Ha) as (HFa & _ & _ & _ & Hfa).
+           destruct (noset_le _ _ _ _ _ _ _ _ _ Hb' eq_refl) as [_ ->]. exact (conj HFa (or_introl Hfa)).
+         - destruct (call_step c v le0 _ AIR._check_common_airborne_cancels _ _ _ _ _ _ _ _ _ Hb HF0 Hle0 Hmarg
+                       (conj Hmarg Hfr) eq_refl (Hpro1 _ (or_introl eq_refl)) Ha) as (_ & -> & _).
            congruence. }
     destruct (seq_inv _ _ _ _ _ _ _ _ _ _ J1) as [(ta & lea & ma & tb & Ha & Hb') | (ta & Ha & Hout')].
     2: { congruence. }
-    destruct (call_step c v le0 _ AIR._check_common_airborne_cancels _ _ _ _ _ _ _ _ Hb HF0 Hle0 Hmarg Hmarg eq_refl
-                (Hpro1 _ (or_introl eq_refl)) Ha) as (HFa & _ & vr1 & ->).
+    destruct (call_step c v le0 _ AIR._check_common_airborne_cancels _ _ _ _ _ _ _ _ _ Hb HF0 Hle0 Hmarg
+                (conj Hmarg Hfr) eq_refl (Hpro1 _ (or_introl eq_refl)) Ha) as (HFa & _ & vr1 & -> & Hfa).
     destruct (noset_le _ _ _ _ _ _ _ _ _ Hb' eq_refl) as [-> ->].
     assert (Hle1 : (set_opttemp (Some AIR._t'1) vr1 le0) ! AIR._m = Some v)
       by (cbn; rewrite PTree.gso by (apply Pos.eqb_neq; vm_compute; reflexivity); exact Hle0).
     clear HB J1 Ha Hb'.
     (* prologue 2: play_far_fall_sound *)
     destruct (seq_inv _ _ _ _ _ _ _ _ _ _ J2) as [(t3 & le3 & m3 & t4 & J3 & J4) | (t3 & J3 & Hout)].
-    2: { destruct (call_step c v _ _ AIR._play_far_fall_sound _ _ _ _ _ _ _ _ Hb HFa Hle1 Hmarg Hmarg eq_refl
-                     (Hpro1 _ (or_intror eq_refl)) J3) as (_ & -> & _). congruence. }
-    destruct (call_step c v _ _ AIR._play_far_fall_sound _ _ _ _ _ _ _ _ Hb HFa Hle1 Hmarg Hmarg eq_refl
-                (Hpro1 _ (or_intror eq_refl)) J3) as (HF3 & _ & vr3 & ->).
+    2: { destruct (call_step c v _ _ AIR._play_far_fall_sound _ _ _ _ _ _ _ _ _ Hb HFa Hle1 Hmarg
+                     (conj Hmarg Hfa) eq_refl (Hpro1 _ (or_intror eq_refl)) J3) as (_ & -> & _). congruence. }
+    destruct (call_step c v _ _ AIR._play_far_fall_sound _ _ _ _ _ _ _ _ _ Hb HFa Hle1 Hmarg
+                (conj Hmarg Hfa) eq_refl (Hpro1 _ (or_intror eq_refl)) J3) as (HF3 & _ & vr3 & -> & Hf3).
     cbn [set_opttemp] in J4.
     clear J2 J3.
     (* the switch, then return *)
     destruct (seq_inv _ _ _ _ _ _ _ _ _ _ J4) as [(t5 & le5 & m5 & t6 & J5 & J6) | (t5 & J5 & Hout)].
-    - destruct (noset_le _ _ _ _ _ _ _ _ _ J6 eq_refl) as [_ ->].
-      exact (sw_part c v _ _ _ _ _ _ Hcase Hb HF3 Hle1 Hmarg J5).
-    - exact (sw_part c v _ _ _ _ _ _ Hcase Hb HF3 Hle1 Hmarg J5).
+    - destruct (sw_part c v _ _ _ _ _ _ Hcase Hb HF3 Hf3 Hle1 Hmarg J5) as (HF5 & [Hf5 | (_ & Hc5)]).
+      + destruct (noset_le _ _ _ _ _ _ _ _ _ J6 eq_refl) as [_ ->]. exact (conj HF5 (or_introl Hf5)).
+      + inv J6. split; [exact HF5 | right].
+        match goal with He : eval_expr _ _ _ _ (Etempvar _ _) _ |- _ =>
+          apply eval_expr_Etempvar_val in He; rewrite Hc5 in He; injection He as <- end.
+        reflexivity.
+    - destruct (sw_part c v _ _ _ _ _ _ Hcase Hb HF3 Hf3 Hle1 Hmarg J5) as (HF5 & [Hf5 | (-> & _)]);
+        [exact (conj HF5 (or_introl Hf5)) | congruence].
   Qed.
-
-  (* ---- into FrameSplit's call rows: the airborne dispatcher's row is
-     now a theorem of the rows above ---- *)
-  Hypothesis Hgms : forall m, MWF m -> gms_cond_lp lp m bm.
-
-  Definition seg_call_rows_na : Prop :=
-    forall f fd v, In (OCall f) ema_obls -> f <> mario._mario_execute_airborne_action ->
-      resolves lp f fd -> seg_ok lp bm MWF fd [v] (gms_val lp v).
 
   Lemma air_defmap :
     (prog_defmap mario_actions_airborne.prog) ! mario._mario_execute_airborne_action
       = Some (Gfun (Internal f_air)).
   Proof. vm_compute. reflexivity. Qed.
 
+  Hypothesis Hgms : forall m, MWF m -> gms_cond_lp lp m bm.
+
+  (* the airborne dispatcher's pre/post in FrameSplit's staged rows *)
+  Lemma air_is : is_umi mario._mario_execute_airborne_action = false
+    /\ is_fk mario._mario_execute_airborne_action = false
+    /\ is_disp mario._mario_execute_airborne_action = true.
+  Proof. vm_compute. repeat split; reflexivity. Qed.
+
   Theorem seg_call_rows_of_air :
-    seg_call_rows_na -> air_pro_rows -> air_case_rows -> seg_call_rows lp bm MWF.
+    seg_call_rows_naF lp bm MWF -> air_pro_rows -> air_case_rows -> seg_call_rows_fr lp bm MWF.
   Proof.
     intros Hna Hpro Hcase f fd v Hin Hr.
     destruct (Pos.eq_dec f mario._mario_execute_airborne_action) as [-> | Hne];
       [| exact (Hna f fd v Hin Hne Hr)].
     pose proof (resolve_pin_fd lp _ _ _ _ LO_air air_defmap Hr) as ->.
-    intros m t m' vr c Hok Hw Hgv Hok' Hc Hb Hev.
+    destruct air_is as (Iu & Ik & Id).
+    intros m t m' vr c Hok Hw (Hgv & Hx) Hok' Hc Hb Hev.
+    unfold xpre in Hx. rewrite Ik, Id in Hx.
     assert (Hmarg : marg_ok bm [v]).
     { destruct v; cbn; try exact I. destruct Hgv as (gb & Hg & Hl).
       exact (Hgms m (proj2 (proj2 Hok)) gb b i Hg Hl). }
-    exact (air_seg v Hpro Hcase Hmarg m t m' vr c Hok Hw I Hok' Hc Hb Hev).
+    unfold post_of. rewrite Iu, Ik, Id. cbn [orb].
+    exact (air_seg v Hpro Hcase Hmarg m t m' vr c Hok Hw Hx Hok' Hc Hb Hev).
   Qed.
 End AirSplitS.

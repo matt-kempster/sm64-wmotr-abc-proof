@@ -14,6 +14,18 @@
 (*   the two stores       proved here (flags, oInteractStatus = 0)          *)
 (* The per-call rows are what later walks discharge one by one (the        *)
 (* airborne dispatcher first: act_freefall is FfRun.ff_move).              *)
+(*                                                                         *)
+(* THE STAGED SPLIT (frame_stage, 2026-10-21; the spine uses it).  The     *)
+(* body is read off the generated AST in order (ema_split, body_shape):    *)
+(* flags, reset_bodystate, update_mario_inputs, handle_special_floors,     *)
+(* process_interactions, the floor-NULL return, the dispatch loop, the     *)
+(* post-action calls.  The rows (seg_call_rows_fr) carry the dispatch's    *)
+(* floor refresh (FfWorld.fresh / fresh_at): update_mario_inputs leaves it *)
+(* fresh, the two calls after it keep it, and each dispatcher, entered     *)
+(* fresh-when-airborne, returns 0 (inLoop = 0: the loop ends) or leaves it *)
+(* fresh-when-airborne (the loop goes on, with no new refresh).  The loop  *)
+(* invariant J is proved over the real `while (inLoop) switch ...`.        *)
+(* frame_split (the unstaged version) is kept for comparison only.         *)
 (* ======================================================================= *)
 
 From Coq Require Import ZArith List Lia Relations.
@@ -172,6 +184,156 @@ Lemma mario_offsets :
   /\ mario_ufo mario.__764 mario._asS32 = Some (0, Full).
 Proof. vm_compute. repeat split. Qed.
 
+
+(* ======================================================================= *)
+(* THE STAGED BODY (for the dispatch's floor refresh).  The body is, in    *)
+(* order: the flags block, mario_reset_bodystate, update_mario_inputs      *)
+(* (the floor refresh), mario_handle_special_floors,                       *)
+(* mario_process_interactions, the floor-NULL return, the dispatch loop    *)
+(* `while (inLoop) switch (action & 0x1C0) { case k: inLoop = disp_k(m);   *)
+(* break; ... }`, and the post-action calls.  The pieces are read off the  *)
+(* generated body (ema_split); body_shape checks the split by computation. *)
+(* ======================================================================= *)
+Record ema_pieces : Type := mkPieces {
+  p_a0 : statement; p_s8 : statement; p_s9 : statement; p_e9 : expr;
+  p_fl : statement; p_rs : statement; p_u : statement; p_h : statement; p_mp : statement;
+  p_fc : statement; p_ei : expr; p_lb : statement; p_suf : statement; p_r0 : statement }.
+
+Definition ema_split (s : statement) : option ema_pieces :=
+  match s with
+  | Ssequence a0 (Ssequence (Ssequence s8 (Ssequence s9 (Sifthenelse e9
+      (Ssequence fl (Ssequence rs (Ssequence u (Ssequence h (Ssequence mp (Ssequence fc
+         (Ssequence (Sloop (Ssequence (Sifthenelse ei Sskip Sbreak) lb) Sskip) suf)))))))
+      Sskip))) r0) => Some (mkPieces a0 s8 s9 e9 fl rs u h mp fc ei lb suf r0)
+  | _ => None
+  end.
+
+Definition EP : ema_pieces :=
+  match ema_split (fn_body mario.f_execute_mario_action) with
+  | Some p => p
+  | None => mkPieces Sskip Sskip Sskip (Etempvar 1%positive tint) Sskip Sskip Sskip Sskip Sskip Sskip
+              (Etempvar 1%positive tint) Sskip Sskip Sskip
+  end.
+
+Lemma body_shape : fn_body mario.f_execute_mario_action =
+  Ssequence (p_a0 EP) (Ssequence (Ssequence (p_s8 EP) (Ssequence (p_s9 EP) (Sifthenelse (p_e9 EP)
+    (Ssequence (p_fl EP) (Ssequence (p_rs EP) (Ssequence (p_u EP) (Ssequence (p_h EP)
+      (Ssequence (p_mp EP) (Ssequence (p_fc EP)
+         (Ssequence (Sloop (Ssequence (Sifthenelse (p_ei EP) Sskip Sbreak) (p_lb EP)) Sskip) (p_suf EP))))))))
+    Sskip))) (p_r0 EP)).
+Proof. vm_compute. reflexivity. Qed.
+
+(* statements that touch no memory *)
+Fixpoint fs_pure (s : statement) : bool :=
+  match s with
+  | Sskip | Sset _ _ | Sreturn _ | Sbreak | Scontinue => true
+  | Ssequence a b | Sifthenelse _ a b => fs_pure a && fs_pure b
+  | _ => false
+  end.
+
+Lemma fs_pure_mem : forall ge e le m s t le' m' out,
+  exec_stmt function_entry2 ge e le m s t le' m' out -> fs_pure s = true -> m' = m.
+Proof.
+  intros ge e le m s t le' m' out H. induction H; intros Hp; cbn [fs_pure] in Hp;
+    try discriminate Hp; try reflexivity;
+    repeat match goal with Hq : _ && _ = true |- _ => apply andb_prop in Hq as [?Ha ?Hb] end.
+  all: first [ rewrite IHexec_stmt2 by assumption; apply IHexec_stmt1; assumption
+             | apply IHexec_stmt; assumption
+             | match goal with b : bool |- _ => destruct b; cbn in IHexec_stmt; auto end ].
+Qed.
+
+Lemma pieces_pure : fs_pure (p_a0 EP) && fs_pure (p_s8 EP) && fs_pure (p_s9 EP) && fs_pure (p_fc EP)
+                    && fs_pure (p_r0 EP) = true.
+Proof. vm_compute. reflexivity. Qed.
+
+Lemma pieces_calls :
+  gms_call mario._gMarioState tyMSp (p_u EP) = Some mario._update_mario_inputs
+  /\ gms_call mario._gMarioState tyMSp (p_h EP) = Some mario._mario_handle_special_floors
+  /\ gms_call mario._gMarioState tyMSp (p_mp EP) = Some mario._mario_process_interactions.
+Proof. vm_compute. repeat split; try reflexivity. Qed.
+
+Lemma pieces_test : p_ei EP = Etempvar mario._inLoop tint.
+Proof. vm_compute. reflexivity. Qed.
+
+(* a dispatch case `t = gMarioState; y = disp(t); inLoop = y; break;` *)
+Definition disp_case (s : statement) : option ident :=
+  match s with
+  | Ssequence (Ssequence (Ssequence (Sset tv a) (Scall (Some y') fe al)) (Sset x (Etempvar y _))) Sbreak =>
+      if Pos.eqb x mario._inLoop && Pos.eqb y y'
+      then gms_call mario._gMarioState tyMSp (Ssequence (Sset tv a) (Scall (Some y') fe al))
+      else None
+  | _ => None
+  end.
+
+Fixpoint disp_ls (ls : labeled_statements) : option (list ident) :=
+  match ls with
+  | LSnil => Some []
+  | LScons None _ _ => None
+  | LScons (Some _) s rest =>
+      match disp_case s, disp_ls rest with
+      | Some f, Some l => Some (f :: l)
+      | _, _ => None
+      end
+  end.
+
+(* the loop body: two temps (not inLoop), then the switch of dispatch cases *)
+Definition lb_disps (s : statement) : option (list ident) :=
+  match s with
+  | Ssequence (Sset x1 _) (Ssequence (Sset x2 _) (Sswitch _ ls)) =>
+      if negb (Pos.eqb x1 mario._inLoop) && negb (Pos.eqb x2 mario._inLoop) then disp_ls ls else None
+  | _ => None
+  end.
+
+Definition disps : list ident :=
+  match lb_disps (p_lb EP) with Some l => l | None => [] end.
+
+Lemma lb_disps_eq : lb_disps (p_lb EP) = Some disps.
+Proof. vm_compute. reflexivity. Qed.
+
+Lemma disps_eq : disps = [mario._mario_execute_stationary_action; mario._mario_execute_moving_action;
+  mario._mario_execute_airborne_action; mario._mario_execute_submerged_action;
+  mario._mario_execute_cutscene_action; mario._mario_execute_automatic_action;
+  mario._mario_execute_object_action].
+Proof. vm_compute. reflexivity. Qed.
+
+(* the calls whose rows carry the floor refresh *)
+Definition is_umi (f : ident) : bool := Pos.eqb f mario._update_mario_inputs.
+Definition is_fk (f : ident) : bool :=
+  Pos.eqb f mario._mario_handle_special_floors || Pos.eqb f mario._mario_process_interactions.
+Definition is_disp (f : ident) : bool := existsb (Pos.eqb f) disps.
+
+Definition nonspecial (o : obl) : bool :=
+  match o with OCall f => negb (is_umi f || is_fk f || is_disp f) | _ => true end.
+
+Definition obls_of (s : statement) : list obl :=
+  match cl mario._gMarioState tyMSp s with Some l => l | None => [] end.
+
+(* the obligations, piece by piece *)
+Lemma ema_obls_split : ema_obls =
+  obls_of (p_fl EP) ++ obls_of (p_rs EP)
+  ++ [OCall mario._update_mario_inputs; OCall mario._mario_handle_special_floors;
+      OCall mario._mario_process_interactions]
+  ++ map OCall disps ++ obls_of (p_suf EP).
+Proof. vm_compute. reflexivity. Qed.
+
+Lemma pieces_cl : cl mario._gMarioState tyMSp (p_fl EP) = Some (obls_of (p_fl EP))
+  /\ cl mario._gMarioState tyMSp (p_rs EP) = Some (obls_of (p_rs EP))
+  /\ cl mario._gMarioState tyMSp (p_suf EP) = Some (obls_of (p_suf EP)).
+Proof. vm_compute. repeat split; try reflexivity. Qed.
+
+Lemma pieces_nonspecial :
+  forallb nonspecial (obls_of (p_fl EP) ++ obls_of (p_rs EP) ++ obls_of (p_suf EP)) = true.
+Proof. vm_compute. reflexivity. Qed.
+
+Lemma specials_distinct : is_umi mario._mario_handle_special_floors = false
+  /\ is_umi mario._mario_process_interactions = false
+  /\ forallb (fun f => negb (is_umi f || is_fk f)) disps = true
+  /\ is_disp mario._update_mario_inputs = false
+  /\ is_fk mario._update_mario_inputs = false
+  /\ is_disp mario._mario_handle_special_floors = false
+  /\ is_disp mario._mario_process_interactions = false.
+Proof. vm_compute. repeat split; try reflexivity. Qed.
+
 Section FrameSplit.
   Variable lp : Clight.program.
   Hypothesis LO_mario : linkorder mario.prog lp.
@@ -240,6 +402,22 @@ Section FrameSplit.
       read_cells bm m c -> budget_ok c ->
       eval_funcall function_entry2 ge m fd vargs t m' vr ->
       fworld m' /\ exists c', read_cells bm m' c' /\ MC c c'.
+
+  (* the row shape with a postcondition on the memory after and the
+     returned value (FrameStage: the dispatch's floor refresh) *)
+  Definition seg_okR (fd : Clight.fundef) (vargs : list val) (pre : mem -> Prop)
+      (post : mem -> val -> Prop) : Prop :=
+    forall m t m' vr c,
+      mem_ok m -> fworld m -> pre m -> mem_ok m' ->
+      read_cells bm m c -> budget_ok c ->
+      eval_funcall function_entry2 ge m fd vargs t m' vr ->
+      fworld m' /\ (exists c', read_cells bm m' c' /\ MC c c') /\ post m' vr.
+
+  Lemma seg_okR_ok : forall fd vargs pre post, seg_okR fd vargs pre post -> seg_ok fd vargs pre.
+  Proof.
+    intros fd vargs pre post H m t m' vr c A B C D E F G.
+    destruct (H m t m' vr c A B C D E F G) as (X & Y & _). exact (conj X Y).
+  Qed.
 
   (* the argument of an `f(gMarioState)` call is the global's value *)
   Definition gms_val (v : val) (m : mem) : Prop :=
@@ -919,6 +1097,460 @@ Section FrameSplit.
       rewrite ema_blks_eq in Hs. destruct Hs as [<- | [<- | []]].
       + exact (oblk_flags_ok c0 Hb).
       + exact (oblk_status_ok c0 Hb).
+  Qed.
+
+
+  (* ======================================================================= *)
+  (* THE STAGED SPLIT: the dispatch's floor refresh.  update_mario_inputs    *)
+  (* leaves Mario's floorHeight a floor refresh of his height (fresh);       *)
+  (* mario_handle_special_floors and mario_process_interactions keep it;    *)
+  (* each dispatch case gets it when its action is airborne (fresh_at) and, *)
+  (* when it returns nonzero (the loop goes on), leaves it so again.  The   *)
+  (* loop's invariant: inLoop = 0, or fresh_at.                              *)
+  (* ======================================================================= *)
+
+  (* the extra precondition and the postcondition of each call's row *)
+  Definition xpre (f : ident) (m : mem) : Prop :=
+    if is_fk f then fresh bm m else if is_disp f then fresh_at bm m else True.
+  Definition post_of (f : ident) (m' : mem) (vr : val) : Prop :=
+    if is_umi f || is_fk f then fresh bm m'
+    else if is_disp f then (vr = Vint Int.zero \/ fresh_at bm m') else True.
+  Definition pre_of (f : ident) (v : val) (m : mem) : Prop := gms_val v m /\ xpre f m.
+
+  (* THE ROWS: every `f(gMarioState)` call of the body *)
+  Definition seg_call_rows_fr : Prop :=
+    forall f fd v, In (OCall f) ema_obls -> resolves f fd -> seg_okR fd [v] (pre_of f v) (post_of f).
+
+  (* ... the airborne dispatcher's apart (AirSplit.air_seg proves it) *)
+  Definition seg_call_rows_naF : Prop :=
+    forall f fd v, In (OCall f) ema_obls -> f <> mario._mario_execute_airborne_action ->
+      resolves f fd -> seg_okR fd [v] (pre_of f v) (post_of f).
+
+  Lemma seg_ok_pre : forall fd vargs (pre pre' : mem -> Prop),
+    (forall m, pre' m -> pre m) -> seg_ok fd vargs pre -> seg_ok fd vargs pre'.
+  Proof.
+    intros fd vargs pre pre' Hp H m t m' vr c A B C D E F G. exact (H m t m' vr c A B (Hp m C) D E F G).
+  Qed.
+
+  (* the plain calls' obligations *)
+  Lemma obl_FS : forall c0 o, seg_call_rows_fr -> seg_any_rows -> budget_ok c0 ->
+    In o ema_obls -> nonspecial o = true ->
+    obl_ok ge mario._gMarioState tyMSp (FS c0) o.
+  Proof.
+    intros c0 [f | f fty al | st] Hrc Hra Hb Hin Hns.
+    - apply (ocall_ok c0 f Hb Hin). intros fd v Hr.
+      apply (seg_ok_pre fd [v] (pre_of f v)); [| exact (seg_okR_ok _ _ _ _ (Hrc f fd v Hin Hr))].
+      intros m Hg. split; [exact Hg |]. unfold xpre. cbn [nonspecial] in Hns.
+      apply negb_true_iff in Hns. apply orb_false_iff in Hns as [Hns Hd].
+      apply orb_false_iff in Hns as [_ Hf]. rewrite Hf, Hd. exact I.
+    - exact (oany_ok c0 f fty al Hb Hin (fun fd vargs' Hr => Hra f fty al fd vargs' Hin Hr)).
+    - assert (Hs : In st ema_blks).
+      { unfold ema_blks. apply in_flat_map. exists (OBlk st). split; [exact Hin | left; reflexivity]. }
+      rewrite ema_blks_eq in Hs. destruct Hs as [<- | [<- | []]].
+      + exact (oblk_flags_ok c0 Hb).
+      + exact (oblk_status_ok c0 Hb).
+  Qed.
+
+  (* memory-only stages *)
+  Definition hs (P Q : mem -> Prop) (s : statement) : Prop :=
+    forall le m t le' m' out, P m -> exec_stmt function_entry2 ge empty_env le m s t le' m' out -> Q m'.
+
+  Lemma hs_seq : forall (P Q R : mem -> Prop) s1 s2,
+    hs P Q s1 -> hs Q R s2 -> (forall m, Q m -> R m) -> hs P R (Ssequence s1 s2).
+  Proof.
+    intros P Q R s1 s2 H1 H2 HQR le m t le' m' out HP H. inv H.
+    - match goal with E1 : exec_stmt _ _ _ _ _ s1 _ _ _ _, E2 : exec_stmt _ _ _ _ _ s2 _ _ _ _ |- _ =>
+        exact (H2 _ _ _ _ _ _ (H1 _ _ _ _ _ _ HP E1) E2) end.
+    - match goal with E1 : exec_stmt _ _ _ _ _ s1 _ _ _ _ |- _ => exact (HQR _ (H1 _ _ _ _ _ _ HP E1)) end.
+  Qed.
+
+  Lemma hs_if : forall (P Q : mem -> Prop) a s1 s2, hs P Q s1 -> hs P Q s2 -> hs P Q (Sifthenelse a s1 s2).
+  Proof.
+    intros P Q a s1 s2 H1 H2 le m t le' m' out HP H. inv H.
+    match goal with E : exec_stmt _ _ _ _ _ (if ?b then _ else _) _ _ _ _ |- _ =>
+      destruct b; [exact (H1 _ _ _ _ _ _ HP E) | exact (H2 _ _ _ _ _ _ HP E)] end.
+  Qed.
+
+  Lemma hs_pure : forall (P Q : mem -> Prop) s, fs_pure s = true -> (forall m, P m -> Q m) -> hs P Q s.
+  Proof.
+    intros P Q s Hp HPQ le m t le' m' out HP H. rewrite (fs_pure_mem _ _ _ _ _ _ _ _ _ H Hp). exact (HPQ _ HP).
+  Qed.
+
+  Lemma hs_cl : forall c0 s, seg_call_rows_fr -> seg_any_rows -> budget_ok c0 ->
+    cl mario._gMarioState tyMSp s = Some (obls_of s) ->
+    (forall o, In o (obls_of s) -> In o ema_obls) ->
+    forallb nonspecial (obls_of s) = true ->
+    hs (FS c0) (FS c0) s.
+  Proof.
+    intros c0 s Hrc Hra Hb Hcl Hin Hns le m t le' m' out HP H.
+    refine (cl_sound ge mario._gMarioState tyMSp (FS c0) s (obls_of s) Hcl _ le m t le' m' out HP H).
+    apply Forall_forall. intros o Ho.
+    rewrite forallb_forall in Hns.
+    exact (obl_FS c0 o Hrc Hra Hb (Hin o Ho) (Hns o Ho)).
+  Qed.
+
+  (* one `t = gMarioState; f(t)` call, with its row's pre and post *)
+  Lemma ocall_stepR : forall c0 s f le m t le' m' out,
+    budget_ok c0 -> gms_call mario._gMarioState tyMSp s = Some f -> In (OCall f) ema_obls ->
+    (forall fd v, resolves f fd -> seg_okR fd [v] (pre_of f v) (post_of f)) ->
+    FS c0 m -> xpre f m ->
+    exec_stmt function_entry2 ge empty_env le m s t le' m' out ->
+    FS c0 m' /\ out = Out_normal
+    /\ exists tv o rt cc v vr,
+         s = Ssequence (Sset tv (Evar mario._gMarioState tyMSp))
+               (Scall o (Evar f (Tfunction [tyMSp] rt cc)) [Etempvar tv tyMSp])
+         /\ le' = set_opttemp o vr (PTree.set tv v le) /\ post_of f m' vr.
+  Proof.
+    intros c0 s f le m t le' m' out Hb Eg Hin Hrow HF Hx H.
+    destruct (gms_call_spec mario._gMarioState tyMSp s f Eg) as (tv & o & rt & cc & ->).
+    inv H; [| match goal with E2 : exec_stmt _ _ _ _ _ (Sset _ _) _ _ _ _ |- _ => inv E2 end;
+              congruence].
+    match goal with E1 : exec_stmt _ _ _ _ _ (Sset _ _) _ _ _ _ |- _ => inv E1 end.
+    match goal with E2 : exec_stmt _ _ _ _ _ (Scall _ _ _) _ _ _ _ |- _ => inv E2 end.
+    match goal with Hv : eval_expr _ _ _ _ (Evar f _) _ |- _ =>
+      destruct (eval_Evar_fun _ _ _ _ _ _ _ _ Hv) as (bf & Hbf & ->) end.
+    match goal with Hl : eval_exprlist _ _ _ _ (_ :: _) _ _ |- _ => inv Hl end.
+    match goal with Hl : eval_exprlist _ _ _ _ nil _ _ |- _ => inv Hl end.
+    match goal with Ht : eval_expr _ _ _ _ (Etempvar _ _) _ |- _ => inv Ht end.
+    2: match goal with Hl : eval_lvalue _ _ _ _ (Etempvar _ _) _ _ _ |- _ => inv Hl end.
+    match goal with Hg : (PTree.set _ _ _) ! _ = Some _ |- _ =>
+      rewrite PTree.gss in Hg; injection Hg as <- end.
+    match goal with Hc : classify_fun _ = fun_case_f _ _ _ |- _ =>
+      cbn in Hc; injection Hc as <- <- <- end.
+    match goal with Hc : sem_cast _ _ _ _ = Some _ |- _ => cbn [typeof] in Hc; rename Hc into Hcast end.
+    match goal with Hev : eval_expr _ _ _ _ (Evar mario._gMarioState tyMSp) ?v |- _ =>
+      rename Hev into Hgv0; rename v into v0 end.
+    match goal with Hf : eval_funcall _ _ _ ?fd _ _ _ _, Hff : Genv.find_funct _ _ = Some ?fd,
+                    Ht' : type_of_fundef ?fd = _ |- _ =>
+      rename Hf into Hev; rename Hff into Hff0; rename Ht' into Hty end.
+    match type of Hcast with sem_cast _ _ _ _ = Some ?v' =>
+      assert (v' = v0) as -> by (unfold tyMSp, tptr, sem_cast in Hcast; cbn in Hcast;
+        destruct v0; try discriminate Hcast; injection Hcast as <-; reflexivity) end.
+    pose proof (eval_gms _ _ _ Hgv0) as Hgv.
+    destruct HF as (Hok & Hw & c1 & Hrc & Hmc).
+    assert (Hok' : mem_ok m').
+    { eapply (mem_ok_call f _ _ _ _ _ [v0] [tyMSp] rt cc (in_calls f Hin)
+                (ex_intro _ bf (conj Hbf Hff0)) Hty (is_wty_ms rt cc)); [ | | exact Hok | exact Hev ].
+      - intros _. destruct v0; cbn; try exact I.
+        destruct Hgv as (gb & Hg & Hl).
+        exact (Hgms _ (proj2 (proj2 Hok)) gb b i Hg Hl).
+      - unfold sargs_ok, sig_sub32. rewrite Hty. cbn. discriminate. }
+    pose proof (chain_keeps_budget wmotr_floor wmotr_gap_proved wmotr_pole wmotr_poles_proved
+                  wmotr_cannon wmotr_cannons_proved c0 c1 Hb Hmc) as Hb1.
+    destruct (Hrow _ v0 (ex_intro _ bf (conj Hbf Hff0)) _ _ _ _ c1 Hok Hw (conj Hgv Hx) Hok' Hrc Hb1 Hev)
+      as (Hw' & (c2 & Hrc2 & Hmc2) & Hpost).
+    split; [exact (conj Hok' (conj Hw' (ex_intro _ c2 (conj Hrc2 (rt_trans _ _ _ _ _ Hmc Hmc2))))) |].
+    split; [reflexivity |].
+    do 6 eexists. split; [reflexivity |]. split; [reflexivity | exact Hpost].
+  Qed.
+
+  Lemma hs_call : forall c0 s f (Q : mem -> Prop) (P : mem -> Prop),
+    budget_ok c0 -> gms_call mario._gMarioState tyMSp s = Some f -> In (OCall f) ema_obls ->
+    seg_call_rows_fr -> (forall m, P m -> FS c0 m /\ xpre f m) ->
+    (forall m vr, FS c0 m -> post_of f m vr -> Q m) ->
+    hs P Q s.
+  Proof.
+    intros c0 s f Q P Hb Eg Hin Hrc HP HQ le m t le' m' out Hp H.
+    destruct (HP m Hp) as (HF & Hx).
+    destruct (ocall_stepR c0 s f le m t le' m' out Hb Eg Hin (fun fd v Hr => Hrc f fd v Hin Hr) HF Hx H)
+      as (HF' & _ & _ & _ & _ & _ & _ & vr & _ & _ & Hpost).
+    exact (HQ m' vr HF' Hpost).
+  Qed.
+
+  (* ---- the dispatch loop ---- *)
+  Definition J (c0 : cells) (le : temp_env) (m : mem) : Prop :=
+    FS c0 m /\ (le ! mario._inLoop = Some (Vint Int.zero) \/ fresh_at bm m).
+
+  Lemma disp_case_spec : forall s f, disp_case s = Some f ->
+    exists tv o rt cc y ty,
+      s = Ssequence (Ssequence (Ssequence (Sset tv (Evar mario._gMarioState tyMSp))
+                                  (Scall o (Evar f (Tfunction [tyMSp] rt cc)) [Etempvar tv tyMSp]))
+                               (Sset mario._inLoop (Etempvar y ty))) Sbreak
+      /\ o = Some y
+      /\ gms_call mario._gMarioState tyMSp (Ssequence (Sset tv (Evar mario._gMarioState tyMSp))
+                                  (Scall o (Evar f (Tfunction [tyMSp] rt cc)) [Etempvar tv tyMSp])) = Some f.
+  Proof.
+    intros s f H. unfold disp_case in H.
+    repeat match type of H with
+    | match ?x with _ => _ end = _ =>
+        lazymatch x with
+        | (_ && _) => fail
+        | _ => destruct x; try discriminate H
+        end
+    end.
+    match type of H with (if ?b then _ else _) = _ => destruct b eqn:Eb; [| discriminate H] end.
+    apply andb_true_iff in Eb as [E1 E2]. apply Pos.eqb_eq in E1, E2. subst.
+    destruct (gms_call_spec mario._gMarioState tyMSp _ f H) as (tv' & o & rt & cc & Eq).
+    injection Eq; intros; subst.
+    do 6 eexists. split; [reflexivity |]. split; [reflexivity | exact H].
+  Qed.
+
+  Lemma disp_ls_in : forall ls l, disp_ls ls = Some l ->
+    select_switch_default ls = LSnil
+    /\ forall n s rest, select_switch_case n ls = Some (LScons (Some n) s rest) ->
+         exists f, disp_case s = Some f /\ In f l.
+  Proof.
+    induction ls as [| [k|] s ls IH]; intros l H; cbn [disp_ls] in H.
+    - split; [reflexivity |]. intros n s rest E. discriminate E.
+    - destruct (disp_case s) as [f|] eqn:Ef; [| discriminate H].
+      destruct (disp_ls ls) as [l'|] eqn:El; [| discriminate H]. injection H as <-.
+      destruct (IH l' eq_refl) as (D & C). split; [exact D |].
+      intros n s' rest E. cbn [select_switch_case] in E.
+      destruct (zeq k n) as [<- | Hne].
+      + injection E as <- <-. exists f. split; [exact Ef | left; reflexivity].
+      + destruct (C n s' rest E) as (f' & E' & I'). exists f'. split; [exact E' | right; exact I'].
+    - discriminate H.
+  Qed.
+
+  Lemma select_case_shape : forall n ls l', select_switch_case n ls = Some l' ->
+    exists s rest, l' = LScons (Some n) s rest.
+  Proof.
+    induction ls as [| [k|] s ls IH]; intros l' E; cbn [select_switch_case] in E; [discriminate E | |].
+    - destruct (zeq k n) as [<- | _]; [injection E as <-; eauto | exact (IH _ E)].
+    - exact (IH _ E).
+  Qed.
+
+  Lemma in_disp_obls : forall f, In f disps -> In (OCall f) ema_obls.
+  Proof.
+    intros f H. rewrite ema_obls_split. apply in_or_app. right. apply in_or_app. right.
+    apply in_or_app. right. apply in_or_app. left. apply in_map. exact H.
+  Qed.
+
+  Lemma disp_post : forall f m vr, In f disps -> post_of f m vr -> vr = Vint Int.zero \/ fresh_at bm m.
+  Proof.
+    intros f m vr H P. unfold post_of in P.
+    pose proof (proj1 (proj2 (proj2 specials_distinct))) as D. rewrite forallb_forall in D.
+    pose proof (D f H) as Df. apply negb_true_iff in Df. rewrite Df in P.
+    assert (Hd : is_disp f = true) by (unfold is_disp; apply existsb_exists; exists f; split; [exact H | apply Pos.eqb_refl]).
+    rewrite Hd in P. exact P.
+  Qed.
+
+  Lemma disp_xpre : forall f m, In f disps -> fresh_at bm m -> xpre f m.
+  Proof.
+    intros f m H F. unfold xpre.
+    pose proof (proj1 (proj2 (proj2 specials_distinct))) as D. rewrite forallb_forall in D.
+    pose proof (D f H) as Df. apply negb_true_iff, orb_false_iff in Df as [_ Df]. rewrite Df.
+    assert (Hd : is_disp f = true) by (unfold is_disp; apply existsb_exists; exists f; split; [exact H | apply Pos.eqb_refl]).
+    rewrite Hd. exact F.
+  Qed.
+
+  (* one case of the dispatch *)
+  Lemma case_J : forall c0 s f le m t le' m' out,
+    budget_ok c0 -> seg_call_rows_fr -> disp_case s = Some f -> In f disps ->
+    FS c0 m -> fresh_at bm m ->
+    exec_stmt function_entry2 ge empty_env le m s t le' m' out -> J c0 le' m'.
+  Proof.
+    intros c0 s f le m t le' m' out Hb Hrc Hd Hf HF Hfr H.
+    destruct (disp_case_spec s f Hd) as (tv & o & rt & cc & y & ty & -> & -> & Eg).
+    assert (HcS : forall le1 m1 t1 le2 m2 out1,
+              exec_stmt function_entry2 ge empty_env le1 m1
+                (Ssequence (Sset tv (Evar mario._gMarioState tyMSp))
+                   (Scall (Some y) (Evar f (Tfunction [tyMSp] rt cc)) [Etempvar tv tyMSp])) t1 le2 m2 out1 ->
+              m1 = m ->
+              FS c0 m2 /\ out1 = Out_normal
+              /\ exists vr, le2 ! y = Some vr /\ (vr = Vint Int.zero \/ fresh_at bm m2)).
+    { intros le1 m1 t1 le2 m2 out1 H1 ->.
+      destruct (ocall_stepR c0 _ f le1 m t1 le2 m2 out1 Hb Eg (in_disp_obls f Hf)
+                  (fun fd v Hr => Hrc f fd v (in_disp_obls f Hf) Hr) HF (disp_xpre f m Hf Hfr) H1)
+        as (HF2 & Ho & tv' & o' & rt' & cc' & v & vr & Eq & -> & Hpost).
+      injection Eq as _ <- _ _. split; [exact HF2 |]. split; [exact Ho |].
+      exists vr. split; [cbn [set_opttemp]; apply PTree.gss | exact (disp_post f m2 vr Hf Hpost)]. }
+    inv H.
+    - (* the first two pieces normal: then Sbreak *)
+      match goal with Hbk : exec_stmt _ _ _ _ _ Sbreak _ _ _ _ |- _ => inv Hbk end.
+      match goal with H2 : exec_stmt _ _ _ _ _ (Ssequence (Ssequence _ _) (Sset _ _)) _ _ _ _ |- _ => inv H2 end.
+      + match goal with Hc : exec_stmt _ _ _ _ _ (Ssequence (Sset _ _) (Scall _ _ _)) _ _ _ _ |- _ =>
+          destruct (HcS _ _ _ _ _ _ Hc eq_refl) as (HF2 & _ & vr & Hy & Hpost) end.
+        match goal with Hs : exec_stmt _ _ _ _ _ (Sset _ _) _ _ _ _ |- _ => inv Hs end.
+        match goal with He : eval_expr _ _ _ _ (Etempvar _ _) _ |- _ =>
+          apply eval_expr_Etempvar_val in He; rewrite Hy in He; injection He as <- end.
+        split; [exact HF2 |]. rewrite PTree.gss.
+        destruct Hpost as [-> | Hp]; [left; reflexivity | right; exact Hp].
+      + match goal with Hc : exec_stmt _ _ _ _ _ (Ssequence (Sset _ _) (Scall _ _ _)) _ _ _ _ |- _ =>
+          destruct (HcS _ _ _ _ _ _ Hc eq_refl) as (_ & Ho & _) end.
+        congruence.
+    - match goal with H2 : exec_stmt _ _ _ _ _ (Ssequence (Ssequence _ _) (Sset _ _)) _ _ _ _ |- _ => inv H2 end.
+      + match goal with Hs : exec_stmt _ _ _ _ _ (Sset _ _) _ _ _ _ |- _ => inv Hs end. congruence.
+      + match goal with Hc : exec_stmt _ _ _ _ _ (Ssequence (Sset _ _) (Scall _ _ _)) _ _ _ _ |- _ =>
+          destruct (HcS _ _ _ _ _ _ Hc eq_refl) as (_ & Ho & _) end.
+        congruence.
+  Qed.
+
+  Lemma set_J : forall c0 le m x v, x <> mario._inLoop -> J c0 le m -> J c0 (PTree.set x v le) m.
+  Proof. intros c0 le m x v Hx (HF & H). split; [exact HF |]. rewrite PTree.gso by (intros E; apply Hx; symmetry; exact E). exact H. Qed.
+
+  (* one iteration: the test, then the loop body *)
+  Lemma lb_shape : exists x1 e1 x2 e2 esw ls,
+    p_lb EP = Ssequence (Sset x1 e1) (Ssequence (Sset x2 e2) (Sswitch esw ls))
+    /\ x1 <> mario._inLoop /\ x2 <> mario._inLoop /\ disp_ls ls = Some disps.
+  Proof.
+    pose proof lb_disps_eq as Ed. unfold lb_disps in Ed.
+    destruct (p_lb EP) as [| | | | | a1 b1 | | | | | | | | ]; try discriminate Ed.
+    destruct a1 as [| | x1 e1 | | | | | | | | | | | ]; try discriminate Ed.
+    destruct b1 as [| | | | | a2 b2 | | | | | | | | ]; try discriminate Ed.
+    destruct a2 as [| | x2 e2 | | | | | | | | | | | ]; try discriminate Ed.
+    destruct b2 as [| | | | | | | | | | | esw ls | | ]; try discriminate Ed.
+    destruct (negb (Pos.eqb x1 mario._inLoop) && negb (Pos.eqb x2 mario._inLoop)) eqn:Ex; [| discriminate Ed].
+    apply andb_true_iff in Ex as [Ex1 Ex2]. apply negb_true_iff, Pos.eqb_neq in Ex1, Ex2.
+    exists x1, e1, x2, e2, esw, ls. auto.
+  Qed.
+
+  Lemma iter_J : forall c0 le m t le' m' out,
+    budget_ok c0 -> seg_call_rows_fr -> J c0 le m ->
+    exec_stmt function_entry2 ge empty_env le m
+      (Ssequence (Sifthenelse (Etempvar mario._inLoop tint) Sskip Sbreak) (p_lb EP)) t le' m' out ->
+    J c0 le' m'.
+  Proof.
+    intros c0 le m t le' m' out Hb Hrc HJ H.
+    inv H.
+    2: { match goal with Hi : exec_stmt _ _ _ _ _ (Sifthenelse _ _ _) _ _ _ _ |- _ => inv Hi end.
+         match goal with Hx : exec_stmt _ _ _ _ _ (if ?b then _ else _) _ _ _ _ |- _ =>
+           destruct b; inv Hx; exact HJ end. }
+    match goal with Hi : exec_stmt _ _ _ _ _ (Sifthenelse _ _ _) _ _ _ _ |- _ => inv Hi end.
+    match goal with Hx : exec_stmt _ _ _ _ _ (if ?b then _ else _) _ _ _ _,
+                    Hbv : bool_val _ _ _ = Some ?b |- _ =>
+      destruct b; inv Hx; rename Hbv into Hbool end.
+    match goal with He : eval_expr _ _ _ _ (Etempvar _ _) _ |- _ =>
+      apply eval_expr_Etempvar_val in He; rename He into Hil end.
+    match goal with HJ0 : J c0 _ ?M |- _ => assert (Hfr : fresh_at bm M) end.
+    { destruct HJ as (_ & [Hz | Hf]); [| exact Hf]. rewrite Hz in Hil. injection Hil as <-.
+      cbn in Hbool. discriminate Hbool. }
+    pose proof (proj1 HJ) as HF.
+    destruct lb_shape as (x1 & e1 & x2 & e2 & esw & ls & Elb & Ex1 & Ex2 & Ed).
+    match goal with Hl : exec_stmt _ _ _ _ _ ?S _ _ _ _ |- _ =>
+      assert (ES : S = p_lb EP) by reflexivity; rewrite ES, Elb in Hl; clear ES end.
+    destruct (disp_ls_in ls disps Ed) as (Ddef & Dcase).
+    match goal with Hl : exec_stmt _ _ _ _ _ (Ssequence (Sset _ _) _) _ _ _ _ |- _ => rename Hl into Hb1 end.
+    inv Hb1; [| match goal with Hs : exec_stmt _ _ _ _ _ (Sset _ _) _ _ _ _ |- _ => inv Hs end;
+                 match goal with Hs : Out_normal <> Out_normal |- _ => congruence end].
+    match goal with Hs : exec_stmt _ _ _ _ _ (Sset x1 _) _ _ _ _ |- _ => inv Hs end.
+    match goal with Hl : exec_stmt _ _ _ _ _ (Ssequence (Sset _ _) _) _ _ _ _ |- _ => rename Hl into Hb2 end.
+    inv Hb2; [| match goal with Hs : exec_stmt _ _ _ _ _ (Sset _ _) _ _ _ _ |- _ => inv Hs end;
+                 match goal with Hs : Out_normal <> Out_normal |- _ => congruence end].
+    match goal with Hs : exec_stmt _ _ _ _ _ (Sset x2 _) _ _ _ _ |- _ => inv Hs end.
+    match goal with Hs : exec_stmt _ _ _ _ _ (Sswitch _ _) _ _ _ _ |- _ => inv Hs end.
+    match goal with Hx : exec_stmt _ _ _ _ _ (seq_of_labeled_statement _) _ _ _ _ |- _ => rename Hx into Kx end.
+    match goal with |- J c0 _ _ => idtac end.
+    unfold select_switch in Kx.
+    destruct (select_switch_case _ ls) as [l'|] eqn:Esc.
+    - destruct (select_case_shape _ _ _ Esc) as (s & rest & ->).
+      destruct (Dcase _ s rest Esc) as (f & Ef & If).
+      cbn [seq_of_labeled_statement] in Kx.
+      inv Kx.
+      + exfalso.
+        destruct (disp_case_spec s f Ef) as (tv & o & rt & cc & y & ty & -> & _).
+        match goal with Hs : exec_stmt _ _ _ _ _ (Ssequence (Ssequence _ _) Sbreak) _ _ _ Out_normal |- _ =>
+          inv Hs end;
+          [match goal with Hbk : exec_stmt _ _ _ _ _ Sbreak _ _ _ Out_normal |- _ => inv Hbk end |
+           match goal with Hn : Out_normal <> Out_normal |- _ => congruence end].
+      + match goal with Hs : exec_stmt _ _ _ _ _ s _ _ _ _ |- _ =>
+          exact (case_J c0 s f _ _ _ _ _ _ Hb Hrc Ef If HF Hfr Hs) end.
+    - rewrite Ddef in Kx. cbn in Kx. inv Kx.
+      apply set_J; [exact Ex2 |]. apply set_J; [exact Ex1 | exact HJ].
+  Qed.
+
+  Lemma loop_J : forall c0 s1 s2 le m t le' m' out,
+    budget_ok c0 -> seg_call_rows_fr ->
+    s1 = Ssequence (Sifthenelse (Etempvar mario._inLoop tint) Sskip Sbreak) (p_lb EP) -> s2 = Sskip ->
+    J c0 le m -> exec_stmt function_entry2 ge empty_env le m (Sloop s1 s2) t le' m' out -> J c0 le' m'.
+  Proof.
+    intros c0 s1 s2 le m t le' m' out Hb Hrc E1 E2 HJ H. subst s1 s2.
+    match type of H with exec_stmt _ _ _ _ _ ?L _ _ _ _ => remember L as S eqn:ES end.
+    remember empty_env as e0 eqn:Ee.
+    revert HJ. induction H; intros HJ; try discriminate ES; injection ES as -> ->; subst e.
+    - match goal with X1 : exec_stmt _ _ _ _ _ (Ssequence _ _) _ _ _ _ |- _ =>
+        exact (iter_J c0 _ _ _ _ _ _ Hb Hrc HJ X1) end.
+    - match goal with X1 : exec_stmt _ _ _ _ _ (Ssequence _ _) _ _ _ _, X2 : exec_stmt _ _ _ _ _ Sskip _ _ _ _ |- _ =>
+        pose proof (iter_J c0 _ _ _ _ _ _ Hb Hrc HJ X1) as HJ1; inv X2; exact HJ1 end.
+    - match goal with
+      | X1 : exec_stmt _ _ _ _ _ (Ssequence _ _) _ _ _ _, X2 : exec_stmt _ _ _ _ _ Sskip _ _ _ _,
+        IH : Sloop _ _ = Sloop _ _ -> empty_env = empty_env -> J c0 _ _ -> J c0 _ _ |- _ =>
+          pose proof (iter_J c0 _ _ _ _ _ _ Hb Hrc HJ X1) as HJ1; inv X2; exact (IH eq_refl eq_refl HJ1)
+      end.
+  Qed.
+
+  Definition FSf (c0 : cells) (m : mem) : Prop := FS c0 m /\ fresh bm m.
+
+  (* THE STAGED SPLIT: one real execute_mario_action keeps the frame state,
+     with the dispatch's floor refresh carried from update_mario_inputs to
+     each dispatch case *)
+  Theorem frame_stage : forall c0 m vargs t m' vr,
+    seg_call_rows_fr -> seg_any_rows ->
+    budget_ok c0 -> FS c0 m ->
+    eval_funcall function_entry2 ge m (Internal mario.f_execute_mario_action) vargs t m' vr ->
+    FS c0 m'.
+  Proof.
+    intros c0 m vargs t m' vr Hrc Hra Hb HF Hev.
+    pose proof pieces_pure as PP. repeat rewrite andb_true_iff in PP.
+    destruct PP as ((((Pa0 & Ps8) & Ps9) & Pfc) & Pr0).
+    destruct pieces_calls as (Cu & Ch & Cmp).
+    destruct pieces_cl as (Lfl & Lrs & Lsuf).
+    pose proof pieces_nonspecial as NS. rewrite !forallb_app in NS.
+    apply andb_true_iff in NS as [NSfl NS]. apply andb_true_iff in NS as [NSrs NSsuf].
+    assert (Ifl : forall o, In o (obls_of (p_fl EP)) -> In o ema_obls)
+      by (intros o Ho; rewrite ema_obls_split; apply in_or_app; left; exact Ho).
+    assert (Irs : forall o, In o (obls_of (p_rs EP)) -> In o ema_obls)
+      by (intros o Ho; rewrite ema_obls_split; apply in_or_app; right; apply in_or_app; left; exact Ho).
+    assert (Isuf : forall o, In o (obls_of (p_suf EP)) -> In o ema_obls)
+      by (intros o Ho; rewrite ema_obls_split; do 4 (apply in_or_app; right); exact Ho).
+    assert (Iu : In (OCall mario._update_mario_inputs) ema_obls)
+      by (rewrite ema_obls_split; apply in_or_app; right; apply in_or_app; right; apply in_or_app; left; left; reflexivity).
+    assert (Ih : In (OCall mario._mario_handle_special_floors) ema_obls)
+      by (rewrite ema_obls_split; apply in_or_app; right; apply in_or_app; right; apply in_or_app; left; right; left; reflexivity).
+    assert (Imp : In (OCall mario._mario_process_interactions) ema_obls)
+      by (rewrite ema_obls_split; apply in_or_app; right; apply in_or_app; right; apply in_or_app; left; right; right; left; reflexivity).
+    pose proof specials_distinct as (D1 & D2 & _ & D4 & D5 & D6 & D7).
+    (* the stages *)
+    assert (Sfl : hs (FS c0) (FS c0) (p_fl EP)) by exact (hs_cl c0 _ Hrc Hra Hb Lfl Ifl NSfl).
+    assert (Srs : hs (FS c0) (FS c0) (p_rs EP)) by exact (hs_cl c0 _ Hrc Hra Hb Lrs Irs NSrs).
+    assert (Ssuf : hs (FS c0) (FS c0) (p_suf EP)) by exact (hs_cl c0 _ Hrc Hra Hb Lsuf Isuf NSsuf).
+    assert (Su : hs (FS c0) (FSf c0) (p_u EP)).
+    { apply (hs_call c0 _ _ _ _ Hb Cu Iu Hrc).
+      - intros m0 H0. split; [exact H0 |]. unfold xpre. rewrite D5, D4. exact I.
+      - intros m0 vr0 H0 Hp. unfold post_of in Hp. unfold is_umi in Hp. rewrite Pos.eqb_refl in Hp.
+        exact (conj H0 Hp). }
+    assert (Sh : hs (FSf c0) (FSf c0) (p_h EP)).
+    { apply (hs_call c0 _ _ _ _ Hb Ch Ih Hrc).
+      - intros m0 (H0 & H1). split; [exact H0 |]. unfold xpre, is_fk. rewrite Pos.eqb_refl. exact H1.
+      - intros m0 vr0 H0 Hp. unfold post_of, is_fk in Hp. rewrite Pos.eqb_refl, orb_true_r in Hp.
+        exact (conj H0 Hp). }
+    assert (Smp : hs (FSf c0) (FSf c0) (p_mp EP)).
+    { apply (hs_call c0 _ _ _ _ Hb Cmp Imp Hrc).
+      - intros m0 (H0 & H1). split; [exact H0 |]. unfold xpre, is_fk. rewrite Pos.eqb_refl, orb_true_r. exact H1.
+      - intros m0 vr0 H0 Hp. unfold post_of, is_fk in Hp. rewrite Pos.eqb_refl, !orb_true_r in Hp.
+        exact (conj H0 Hp). }
+    assert (Sloop' : hs (FSf c0) (FS c0)
+                       (Sloop (Ssequence (Sifthenelse (p_ei EP) Sskip Sbreak) (p_lb EP)) Sskip)).
+    { intros le m0 t0 le' m1 out H0 Hx. rewrite pieces_test in Hx.
+      destruct H0 as (HF0 & Hf0).
+      exact (proj1 (loop_J c0 _ _ le m0 t0 le' m1 out Hb Hrc eq_refl eq_refl
+                      (conj HF0 (or_intror (fresh_at_of _ _ Hf0))) Hx)). }
+    assert (Ithen : hs (FS c0) (FS c0)
+      (Ssequence (p_fl EP) (Ssequence (p_rs EP) (Ssequence (p_u EP) (Ssequence (p_h EP)
+        (Ssequence (p_mp EP) (Ssequence (p_fc EP)
+           (Ssequence (Sloop (Ssequence (Sifthenelse (p_ei EP) Sskip Sbreak) (p_lb EP)) Sskip) (p_suf EP))))))))).
+    { apply (hs_seq _ (FS c0)); [exact Sfl | | intros; assumption].
+      apply (hs_seq _ (FS c0)); [exact Srs | | intros; assumption].
+      apply (hs_seq _ (FSf c0)); [exact Su | | intros m0 H0; exact (proj1 H0)].
+      apply (hs_seq _ (FSf c0)); [exact Sh | | intros m0 H0; exact (proj1 H0)].
+      apply (hs_seq _ (FSf c0)); [exact Smp | | intros m0 H0; exact (proj1 H0)].
+      apply (hs_seq _ (FSf c0)); [exact (hs_pure _ _ _ Pfc (fun m0 H0 => H0)) | | intros m0 H0; exact (proj1 H0)].
+      apply (hs_seq _ (FS c0)); [exact Sloop' | exact Ssuf | intros; assumption]. }
+    assert (Hbody : hs (FS c0) (FS c0) (fn_body mario.f_execute_mario_action)).
+    { rewrite body_shape.
+      apply (hs_seq _ (FS c0)); [exact (hs_pure _ _ _ Pa0 (fun m0 H0 => H0)) | | intros; assumption].
+      apply (hs_seq _ (FS c0)); [| exact (hs_pure _ _ _ Pr0 (fun m0 H0 => H0)) | intros; assumption].
+      apply (hs_seq _ (FS c0)); [exact (hs_pure _ _ _ Ps8 (fun m0 H0 => H0)) | | intros; assumption].
+      apply (hs_seq _ (FS c0)); [exact (hs_pure _ _ _ Ps9 (fun m0 H0 => H0)) | | intros; assumption].
+      apply hs_if; [exact Ithen | exact (hs_pure _ _ Sskip eq_refl (fun m0 H0 => H0))]. }
+    inv Hev.
+    match goal with Hfe : function_entry2 _ _ _ _ _ _ _ |- _ => inv Hfe end.
+    match goal with Hav : alloc_variables _ _ _ _ _ _ |- _ =>
+      change (fn_vars mario.f_execute_mario_action) with (@nil (ident * type)) in Hav; inv Hav end.
+    match goal with Hfree : Mem.free_list _ _ = Some _ |- _ =>
+      cbn in Hfree; injection Hfree as <- end.
+    match goal with Hx : exec_stmt _ _ _ _ _ (fn_body _) _ _ _ _ |- _ =>
+      exact (Hbody _ _ _ _ _ _ HF Hx) end.
   Qed.
 
 End FrameSplit.

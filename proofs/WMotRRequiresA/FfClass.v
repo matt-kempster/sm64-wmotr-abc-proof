@@ -1486,7 +1486,7 @@ Qed.
 Definition tick_cells (c : cells) (t : int) : cells :=
   mkCells (c_action c) (c_state c) t (c_posy c) (c_vely c) (c_floorh c) (c_gfxy c).
 
-(* every outcome of butt-slide air at state 0 that bs_ok accepts is a
+(* every outcome of butt-slide air (at any state) that bs_ok accepts is a
    MoveChain from the entry cells: S_tick to the ticked cells, then
    ff_soundE from them *)
 Theorem bs_sound : forall ge nbase Rz gtab kv m0 uf gp
@@ -1494,7 +1494,7 @@ Theorem bs_sound : forall ge nbase Rz gtab kv m0 uf gp
   rM rO kM (HUM : forall vs, uf kM vs -> MV vs) E m g
   (MM : MMg ge nbase Rz gtab kv m0 uf gp E m g) (HbM : e_base E rM = Ptrofs.zero)
   (HO0 : Mem.load Mint32 m0 (e_blk E rM) oMO = Some (Vptr (e_blk E rO) (e_base E rO)))
-  c0 (RC0 : read_cells (e_blk E rM) m0 c0) (Hs0 : state_of c0 = 0%Z) (Hb : budget_ok c0)
+  c0 (RC0 : read_cells (e_blk E rM) m0 c0) (Hb : budget_ok c0)
   (FRO : FloorRefreshOK wmotr_floor (R2 (c_posy c0)) (R2 (c_floorh c0))),
   bs_ok nbase Rz kv rM rO kM g = true ->
   exists c2, read_cells (e_blk E rM) m c2 /\ MoveChain wmotr_floor wmotr_pole wmotr_cannon c0 c2
@@ -1525,7 +1525,8 @@ Proof.
   pose proof (move_keeps_budget wmotr_floor wmotr_gap_proved wmotr_pole wmotr_poles_proved
                 wmotr_cannon wmotr_cannons_proved c0 ct Hb IR1 Mv) as Hb1.
   assert (Hact1 : pas_entry (c_action ct) (state_of ct) = true).
-  { change (pas_entry (c_action c0) (state_of c0) = true). rewrite A0, Hs0. vm_compute. reflexivity. }
+  { change (pas_entry (c_action c0) (state_of c0) = true). unfold pas_entry. rewrite A0, Int.eq_true.
+    apply orb_true_r. }
   destruct (ff_soundE ge nbase Rz gtab kv m0 uf gp gp_old rM rO kM HUM E m g MM HbM ct
               Hb1 FRO _ _ EV1 (or_introl (conj eq_refl Hact1)) OK) as (c2 & RC2 & MC2 & F2).
   exists c2. split; [exact RC2 | split; [| exact F2]].

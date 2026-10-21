@@ -11,8 +11,9 @@
 (* vel[1] := -vel[1] / 2, airborne.c:1603-1606), else SLIDE_KICK_SLIDE; a *)
 (* wall (BACKWARD_AIR_KB); nothing.  FfClass.sk_ok.  Each outcome also     *)
 (* passes FfKeepCheck.fk_ok (the world is kept).  sk_kfinal is            *)
-(* KbRun.kfinal for the case at state 0 (the frame world's fresh-floor    *)
-(* claim, FfWorld.ffw, covers slide kick at state 0 only; state <> 0 is   *)
+(* KbRun.kfinal for the case at state 0 (walk_entry: the classifier       *)
+(* FfClass.sk_ok reads the state-0 code path only; the entry floor        *)
+(* refresh is the dispatch's, FrameSplit.frame_stage; state <> 0 is       *)
 (* KbRow.sk1_row).  The walk is SkW.                                      *)
 (* ====================================================================== *)
 
@@ -22,7 +23,7 @@ From compcert Require Import Coqlib Maps AST Integers Floats Values Memory Event
 From SM64.Generated Require mario_step mario mario_actions_airborne memory surface_collision level_update.
 From SM64.Proofs Require Import Interp.SymExec2 Interp.LinkGenv MarioModel.LinkedTwelve
   MarioModel.OsDmaFloor MarioModel.MathGeomGated HeightInvariant HeightMoveCatalog WMotRLevel.
-From SM64.Proofs.WMotRRequiresA Require Import FloorHeight FloorExec AirXc AirRun AirWr WallExec AirMatch AirMove SmaXc AirSum FpuFloor FpWalk ExtInert FfClass AirStart FfKeepCheck FfRun WithGe KbRun.
+From SM64.Proofs.WMotRRequiresA Require Import FloorHeight FloorExec AirXc AirRun AirWr WallExec AirMatch AirMove SmaXc AirSum FpuFloor FpWalk ExtInert FfClass AirStart FfKeepCheck RetOk FfRun WithGe KbRun.
 Import ListNotations.
 
 Module AIR := mario_actions_airborne.
@@ -32,7 +33,8 @@ Definition SKN : Z := 25168042.   (* ACT_SLIDE_KICK, 0x018008AA *)
 (* both checks of an outcome: the MoveChain class and the kept world *)
 Definition skk_ok (g : genv) (c : cpath) : bool :=
   sk_ok NBF (R0F g) (kvK SKN g) RM RO kM (fst c)
-  && fk_ok NBF (R0F g) (kvK SKN g) RM RO RLD kS clokF (fst c).
+  && fk_ok NBF (R0F g) (kvK SKN g) RM RO RLD kS clokF (fst c)
+  && ret_ok NBF (R0F g) (kvK SKN g) RM c.
 
 Definition sk_walk (fK : function) : bool :=
   with_ge ge12 false (fun g =>
@@ -63,14 +65,12 @@ Proof.
   exact (consume _ (skk_ok G) W).
 Qed.
 
-(* slide kick in fro_st is at state 0 *)
-Lemma sk_st0 : forall s, fro_st (Int.repr SKN) s = true -> s = 0%Z.
+(* slide kick in walk_entry is at state 0 *)
+Lemma sk_st0 : forall s, walk_entry (Int.repr SKN) s = true -> s = 0%Z.
 Proof.
-  intros s H. unfold fro_st, bsa0, sk0 in H.
-  replace (fro_entry (Int.repr SKN)) with false in H by (vm_compute; reflexivity).
-  replace (Int.eq (Int.repr SKN) ACT_BUTT_SLIDE_AIR) with false in H by (vm_compute; reflexivity).
+  intros s H. unfold walk_entry in H.
   replace (Int.eq (Int.repr SKN) ACT_SLIDE_KICK) with true in H by (vm_compute; reflexivity).
-  cbn [orb andb] in H. apply Z.eqb_eq. exact H.
+  cbn [negb orb] in H. apply Z.eqb_eq. exact H.
 Qed.
 
 Theorem sk_kfinal : kfinal lp SKN fK.
@@ -87,9 +87,9 @@ Proof.
   destruct (sx_call_sound G NBF (R0F G) gtabF (kvK SKN G) (xcK SKN G) jkeys mergeK true m0 (ufF G m0 gp) gp
               GPO MC (xcK_sound lp H12 Hdma Hsq Hsqf Haudio Hcamera SKN m0 gp GPO MC FD)
               3000 (g0F G) _ argsF cs E m0 _ t m' vres RUN MM0 ARGS EV) as (c & Hin & CMc).
-  destruct c as [gs r]. destruct CMc as (E' & X & MM & _).
+  destruct c as [gs r]. destruct CMc as (E' & X & MM & DR & _).
   pose proof (W _ Hin) as OK. unfold skk_ok in OK. cbn [fst] in OK.
-  apply andb_true_iff in OK as [OK FK].
+  apply andb_true_iff in OK as [OK RT]. apply andb_true_iff in OK as [OK FK].
   exists E', gs. split; [exact X | split; [exact MM | split; [exact FK |]]].
   destruct EO as (_ & _ & _ & GT & KV & _).
   destruct (GT level_update._gMarioStates RM eq_refl) as (_ & HbM & _).
@@ -101,6 +101,8 @@ Proof.
     rewrite BM, BaO, BO. rewrite (proj1 (layout_lp lp H12)) in L.
     unfold addr in L. rewrite HbM, Ptrofs.unsigned_zero, Z.add_0_l in L.
     cbn [SymExec2.den] in L. rewrite Ptrofs.add_zero in L. exact L. }
+  split; [rewrite <- BM; exact (ret_sound G NBF (R0F G) gtabF (kvK SKN G) m0 (ufF G m0 gp) gp GPO RM E' m' gs MM
+                                 ltac:(rewrite BaM; exact HbM) r vres DR RT) |].
   rewrite <- BM in RC |- *.
   exact (sk_sound G NBF (R0F G) gtabF (kvK SKN G) m0 (ufF G m0 gp) gp GPO RM RO kM (uf_kM_k_out lp m0 gp)
            E' m' gs MM ltac:(rewrite BaM; exact HbM) HO0 c0 RC (sk_st0 _ Hst) Hb FRO OK).

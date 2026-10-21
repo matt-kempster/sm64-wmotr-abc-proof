@@ -16,7 +16,7 @@ From compcert Require Import Coqlib Maps AST Integers Floats Values Memory Event
 From SM64.Generated Require mario_step mario mario_actions_airborne memory surface_collision level_update.
 From SM64.Proofs Require Import Interp.SymExec2 Interp.LinkGenv MarioModel.LinkedTwelve
   MarioModel.OsDmaFloor MarioModel.MathGeomGated HeightInvariant HeightMoveCatalog WMotRLevel.
-From SM64.Proofs.WMotRRequiresA Require Import FloorHeight FloorExec AirXc AirRun AirWr WallExec AirMatch AirMove SmaXc AirSum FpuFloor FpWalk ExtInert FfClass AirStart FfKeepCheck FfRun.
+From SM64.Proofs.WMotRRequiresA Require Import FloorHeight FloorExec AirXc AirRun AirWr WallExec AirMatch AirMove SmaXc AirSum FpuFloor FpWalk ExtInert FfClass AirStart FfKeepCheck RetOk FfRun.
 Import ListNotations.
 
 Module AIR := mario_actions_airborne.
@@ -47,7 +47,8 @@ End CFG.
 
 (* both checks of an outcome: the MoveChain class and the kept world *)
 Definition ahk_ok (g : genv) (c : cpath) : bool :=
-  ahw_ok NBF (R0F g) (kvH g) RM RO kM (fst c) && fk_ok NBF (R0F g) (kvH g) RM RO RLD kS clokF (fst c).
+  ahw_ok NBF (R0F g) (kvH g) RM RO kM (fst c) && fk_ok NBF (R0F g) (kvH g) RM RO RLD kS clokF (fst c)
+  && ret_ok NBF (R0F g) (kvH g) RM c.
 
 (* THE WALK of act_air_hit_wall, computed once on the real link *)
 Lemma ahwcheck12 : match ge12 with
@@ -187,6 +188,7 @@ Theorem ahw_final : forall E t m' vres c0,
   FloorRefreshOK wmotr_floor (R2 (c_posy c0)) (R2 (c_floorh c0)) ->
   exists E' gs, Ext E E' NBF /\ MMg G NBF (R0F G) gtabF (kvH G) m0 uf gp E' m' gs
     /\ fk_ok NBF (R0F G) (kvH G) RM RO RLD kS clokF gs = true
+    /\ RET (e_blk E RM) m0 m' vres
     /\ exists c2, read_cells (e_blk E RM) m' c2 /\ MoveChain wmotr_floor wmotr_pole wmotr_cannon c0 c2
        /\ fro_ff c2.
 Proof.
@@ -201,9 +203,9 @@ Proof.
     split; [reflexivity |]. cbn [sok nlt g0F g_nx]. split; [unfold Plt, Pos.lt; reflexivity | exact Logic.I]. }
   destruct (sx_call_sound G NBF (R0F G) gtabF (kvH G) (xcH G) jkeys mergeF true m0 uf gp
               GPO MC xcH_sound 3000 (g0F G) _ argsF cs E m0 _ t m' vres RUN MM0 ARGS EV) as (c & Hin & CMc).
-  destruct c as [gs r]. destruct CMc as (E' & X & MM & _).
+  destruct c as [gs r]. destruct CMc as (E' & X & MM & DR & _).
   pose proof (W _ Hin) as OK. unfold ahk_ok in OK. cbn [fst] in OK.
-  apply andb_true_iff in OK as [OK FK].
+  apply andb_true_iff in OK as [OK RT]. apply andb_true_iff in OK as [OK FK].
   exists E', gs. split; [exact X | split; [exact MM | split; [exact FK |]]].
   destruct EO as (_ & _ & _ & GT & KV & _).
   destruct (GT level_update._gMarioStates RM eq_refl) as (_ & HbM & _).
@@ -222,6 +224,8 @@ Proof.
     destruct RC as (HA & _). change OFS_ACTION with 12%Z in HA. rewrite HA in L. cbn [den] in L.
     injection L as ->. reflexivity. }
   assert (M0 : mode_of c0 = M_Air) by (unfold mode_of; rewrite Hact; vm_compute; reflexivity).
+  split; [rewrite <- BM; exact (ret_sound G NBF (R0F G) gtabF (kvH G) m0 uf gp GPO RM E' m' gs MM
+                                 ltac:(rewrite BaM; exact HbM) r vres DR RT) |].
   rewrite <- BM in RC |- *.
   exact (ahw_sound G NBF (R0F G) gtabF (kvH G) m0 uf gp GPO RM RO kM E' m' gs MM
            ltac:(rewrite BaM; exact HbM) HO0 c0 RC Hb FRO M0 OK).
