@@ -308,6 +308,8 @@ proofs/WMotRRequiresA/GpRun.v
 proofs/WMotRRequiresA/RlRun.v
 proofs/WMotRRequiresA/RlF.v
 proofs/WMotRRequiresA/RlB.v
+proofs/WMotRRequiresA/BsRun.v
+proofs/WMotRRequiresA/BsW.v
 proofs/WMotRRequiresA/AirStart.v
 proofs/WMotRRequiresA/FfWorld.v
 proofs/WMotRRequiresA/FfRow.v

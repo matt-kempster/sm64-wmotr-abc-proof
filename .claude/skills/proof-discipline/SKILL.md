@@ -59,8 +59,11 @@ all in `Unwired/`, and the theorem moved nowhere. See
     and ground pound (`GpRun.gp_kfinal`: windup via `FfClass.gpw_ok`, fall via `ff_ok`), and
     dive (`KbDv`, an air_entry), and both rollouts (`RlF` / `RlB` through `RlRun.rl_kfinal`;
     the air-step summary's entry is the caller's cell terms at the call, `AirSum.icE`).
-    Other two cases (butt-slide air, slide kick): `Hair_case_rest` (`KbRow.air_case_rest6`). ffw's floor refresh holds for `fro_entry` actions
-    (air_entry + ground pound, TRUST 0.6). Walk files: one walk each (KbSb/KbBkb/KbFkb/KbDv),
+    and butt-slide air at state 0 (`BsW` through `BsRun.bs_kfinal`: S_tick, then the step from
+    the ticked cells `FfClass.ent_bs`; the bounce is an S_attach). Open: slide kick
+    (`Hair_case_rest`, `KbRow.air_case_rest7`) and butt-slide air at state <> 0 (`Hbsa1`,
+    `KbRow.bsa1_row`: the bounce can leave floorHeight stale). ffw's floor refresh holds for
+    `fro_st` (air_entry + ground pound + rollouts, and butt-slide air at state 0; TRUST 0.6). Walk files: one walk each (KbSb/KbBkb/KbFkb/KbDv),
     `WithGe.with_ge` not `match ge12`, `vm_cast_no_check`, never `eassumption` near a walk. Dive and rollouts read `gAudioRandom`; audio/data.c (its only
     definer) is linked as the 18th TU so those paths have executions. Squish: WMotR's dynamic
     surfaces never come within 150 of a floor/ceiling (`tools/goal2_squish_scan.py`, min gap 276),

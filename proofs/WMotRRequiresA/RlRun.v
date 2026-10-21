@@ -69,7 +69,7 @@ Qed.
    the start state describes is a MoveChain of Phi's cells *)
 Theorem rl_kfinal : kfinal lp acn fK.
 Proof.
-  intros m0 gp GPO MC FD E t m' vres c0 EO PC EV RC Hb FRO.
+  intros m0 gp GPO MC FD E t m' vres c0 EO PC EV RC Hb _ FRO.
   destruct rlcheck_lp as (cs & RUN & W).
   assert (MM0 : MMg G NBF (R0F G) gtabF (kvK acn G) m0 (ufF G m0 gp) gp E m0 (g0F G)).
   { apply MMg_init; [exact EO | apply Ple_refl |].

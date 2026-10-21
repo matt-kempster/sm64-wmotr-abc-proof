@@ -942,7 +942,7 @@ Section Witness.
       { rewrite genv_next_eq, nb11, nb3. unfold Ple. lia. }
       split.
       2: split; [ exact floor_data11 | ].
-      2: { intros a y fh Hl Hae. rewrite L_act in Hl. injection Hl as <-. exfalso.
+      2: { intros a s y fh Hl _ Hae. rewrite L_act in Hl. injection Hl as <-. exfalso.
            vm_compute in Hae. discriminate Hae. }
       exists (Mem.flat_inj thr), bfi, bmiss, bcalls, bsin, ab, biom, bmq, brm, bo, Ptrofs.zero,
         bt, Ptrofs.zero, (Vptr bs Ptrofs.zero), (Vptr bar Ptrofs.zero), Int.zero, (Vptr bc Ptrofs.zero).

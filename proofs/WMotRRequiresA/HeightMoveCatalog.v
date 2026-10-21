@@ -104,11 +104,20 @@ Lemma roll_mode : forall a s, is_roll a = true ->
   mode_of_action a s = (if Z.eqb s 0 then M_RollPrep else M_Air).
 Proof. intros a s H. destruct (is_roll_cases a H) as [-> | ->]; vm_compute; reflexivity. Qed.
 
+(* butt-slide air at state 0.  Its bounce (state 1) is not an entry: the
+   bounce is a landing, and a landing on a pedro spot (ceil - floor <= 160)
+   sets pos[1] := floorHeight without updating m->floorHeight
+   (mario_step.c perform_air_quarter_step), so at the frame boundary its
+   floorHeight need not be a refresh of pos[1]. *)
+Definition bsa0 (a : int) (s : Z) : bool := Int.eq a ACT_BUTT_SLIDE_AIR && Z.eqb s 0.
+
 (* the entries perform_air_step's summary covers: an air_entry action, or
    ground pound past its windup (state <> 0: the fall, act_ground_pound's
-   perform_air_step(m, 0)), or a rollout past its launch (state <> 0) *)
+   perform_air_step(m, 0)), or a rollout past its launch (state <> 0), or
+   butt-slide air at state 0 *)
 Definition pas_entry (a : int) (s : Z) : bool :=
-  air_entry a || (Int.eq a ACT_GROUND_POUND && negb (Z.eqb s 0)) || (is_roll a && negb (Z.eqb s 0)).
+  air_entry a || (Int.eq a ACT_GROUND_POUND && negb (Z.eqb s 0)) || (is_roll a && negb (Z.eqb s 0))
+  || bsa0 a s.
 
 Lemma air_pas : forall a s, air_entry a = true -> pas_entry a s = true.
 Proof. intros a s H. unfold pas_entry. rewrite H. reflexivity. Qed.
@@ -118,6 +127,9 @@ Lemma pas_entry_mode : forall a s, pas_entry a s = true ->
   \/ (a = ACT_GROUND_POUND /\ s <> 0%Z /\ mode_of_action a s = M_PoundFall).
 Proof.
   intros a s H. unfold pas_entry in H. apply Bool.orb_true_iff in H as [H | H];
+    [| apply Bool.andb_true_iff in H as [H _]; apply Int.same_if_eq in H; subst a;
+       left; reflexivity].
+  apply Bool.orb_true_iff in H as [H | H];
     [apply Bool.orb_true_iff in H as [H | H] |].
   - destruct (air_entry_mode a s H) as [X | X]; auto.
   - apply Bool.andb_true_iff in H as [H1 H2]. apply Int.same_if_eq in H1. subst a.
@@ -150,6 +162,21 @@ Proof.
     vm_compute (Int.eq ACT_GROUND_POUND ACT_SLIDE_KICK).
     rewrite Int.eq_true. destruct (Z.eqb s 0); discriminate.
   - rewrite (roll_mode a s H). destruct (Z.eqb s 0); discriminate.
+Qed.
+
+(* the frame-boundary floor-refresh claim (FfWorld.ffw): fro_entry actions,
+   and butt-slide air at state 0 *)
+Definition fro_st (a : int) (s : Z) : bool := fro_entry a || bsa0 a s.
+
+Lemma fro_st_entry : forall a s, fro_entry a = true -> fro_st a s = true.
+Proof. intros a s H. unfold fro_st. rewrite H. reflexivity. Qed.
+
+Lemma fro_st_ground : forall a s, fro_st a s = true -> mode_of_action a s <> M_Ground.
+Proof.
+  intros a s H. unfold fro_st in H. apply Bool.orb_true_iff in H as [H | H];
+    [exact (fro_entry_ground a s H) |].
+  apply Bool.andb_true_iff in H as [H _]. apply Int.same_if_eq in H. subst a.
+  vm_compute. discriminate.
 Qed.
 
 Lemma credit_of_mode: forall c, credit_of c = mode_credit (mode_of c) (timer_of c) (R2 (c_vely c)).

@@ -188,14 +188,14 @@ Theorem kb_final : forall E t m' vres c0,
   (forall f, In f (pc0F G) -> fact_holds G (R0F G) m0 uf E f) ->
   eval_funcall function_entry2 G m0 (Internal fK)
     [Vptr (e_blk E RM) (Ptrofs.add (e_base E RM) Ptrofs.zero)] t m' vres ->
-  read_cells (e_blk E RM) m0 c0 -> budget_ok c0 ->
+  read_cells (e_blk E RM) m0 c0 -> budget_ok c0 -> fro_st (Int.repr acn) (state_of c0) = true ->
   FloorRefreshOK wmotr_floor (R2 (c_posy c0)) (R2 (c_floorh c0)) ->
   exists E' gs, Ext E E' NBF /\ MMg G NBF (R0F G) gtabF (kvK acn G) m0 uf gp E' m' gs
     /\ fk_ok NBF (R0F G) (kvK acn G) RM RO RLD kS clokF gs = true
     /\ exists c2, read_cells (e_blk E RM) m' c2 /\ MoveChain wmotr_floor wmotr_pole wmotr_cannon c0 c2
        /\ fro_ff c2.
 Proof.
-  intros E t m' vres c0 EO PC EV RC Hb FRO.
+  intros E t m' vres c0 EO PC EV RC Hb _ FRO.
   destruct kbcheck_lp as (cs & RUN & W).
   assert (MM0 : MMg G NBF (R0F G) gtabF (kvK acn G) m0 uf gp E m0 (g0F G)).
   { apply MMg_init; [exact EO | apply Ple_refl |].
@@ -246,7 +246,7 @@ Definition kfinal (lp : Clight.program) (acn : Z) (fK : function) : Prop :=
      fact_holds (globalenv lp) (R0F (globalenv lp)) m0 (ufF (globalenv lp) m0 gp) E f) ->
   eval_funcall function_entry2 (globalenv lp) m0 (Internal fK)
     [Vptr (e_blk E RM) (Ptrofs.add (e_base E RM) Ptrofs.zero)] t m' vres ->
-  read_cells (e_blk E RM) m0 c0 -> budget_ok c0 ->
+  read_cells (e_blk E RM) m0 c0 -> budget_ok c0 -> fro_st (Int.repr acn) (state_of c0) = true ->
   FloorRefreshOK wmotr_floor (R2 (c_posy c0)) (R2 (c_floorh c0)) ->
   exists E' gs, Ext E E' NBF
     /\ MMg (globalenv lp) NBF (R0F (globalenv lp)) gtabF (kvK acn (globalenv lp)) m0

@@ -176,7 +176,19 @@ without pressing A".*
   (2026-10-20, `RlRun.rl_kfinal` through `kb_row`; walks `RlF.rlfcheck12` / `RlB.rlbcheck12`, both
   states: the launch `S_roll_launch` then the air step from the launched cells, and past the launch
   the air step from the entry cells); two cases remain (`KbRow.air_case_rest6`: butt-slide air,
-  slide kick).** **Found on the way (2026-10-20):** the air-step summary (`AirSum.c_pas`) took its
+  slide kick).** **Butt-slide air at state 0 is proved (2026-10-21, `BsRun.bs_kfinal` through
+  `kb_row`; walk `BsW.bscheck12`): the handler's `actionTimer++` is `S_tick` to the ticked cells,
+  then the FREEFALL gate, or the air-step summary from the ticked cells (`FfClass.ent_bs`) and a
+  landing into BUTT_SLIDE, the bounce (`S_attach` to state 1 with vel[1] := −vel[1] / 2, in
+  [−21.5, 37.5]), or a wall into BACKWARD_AIR_KB. Slide kick keeps its AirSplit row
+  (`KbRow.air_case_rest7`), and butt-slide air past its bounce (state ≠ 0) is a new open row
+  (`KbRow.bsa1_row`).** **Found on the way (2026-10-21):** the bounce is a landing, and a landing
+  can leave floorHeight a quarter step stale, so ffw's floor-refresh claim cannot cover butt-slide
+  air at state 1. It is now state-aware (`HeightMoveCatalog.fro_st` = fro_entry, or butt-slide air
+  at state 0, which is entered by leaving the ground through a ground step that sets floorHeight).
+  `pas_entry` admits butt-slide air at state 0 only. This is a stronger carried fact, true of the
+  game for the same reasons; state 1 stays a row until the frame threads the refresh.
+  **Found on the way (2026-10-20):** the air-step summary (`AirSum.c_pas`) took its
   entry to be m0's cells except the timer, so after a rollout's launch (state := 1, vel[1] := 30
   before the step) no outcome classified and the walk could not pass. The summary's entry is now the
   caller's terms at the call for action, state, timer, pos[1], vel[1] and floorHeight (`AirSum.icE`;
@@ -201,7 +213,8 @@ without pressing A".*
   The walk covers both states: the windup (`FfClass.gpw_ok`: `S_gp_windup` or `S_gp_hold`) and the
   fall (the air-step summary from a ground-pound fall, then a landing, a wall bonk into
   BACKWARD_AIR_KB with vel[1] ≤ 0, or nothing). ffw's floor-refresh clause now covers ground pound
-  too (`HeightMoveCatalog.fro_entry` = air_entry ∨ GROUND_POUND). Its windup only raises pos[1]
+  too (`HeightMoveCatalog.fro_entry` = air_entry ∨ GROUND_POUND; since 2026-10-21 the clause is
+  `fro_st`, which adds butt-slide air at state 0). Its windup only raises pos[1]
   (`HeightFloatSteps.windup_add_ge`) and its fall is a non-attaching air step. As before, this is a
   stronger carried fact, true of the game for the same reasons.
 - **Found (2026-10-20):** a ground pound in its windup (actionState 0) with actionTimer 65535 wraps

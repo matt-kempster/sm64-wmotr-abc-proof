@@ -536,10 +536,16 @@ Section HeightLinked12.
      bonk keeping the action).  The ground-pound case (GpRun, 2026-10-20):
      PROVED from the real act_ground_pound (the windup rise, or the fall's
      air step and its landing / wall).  The dive case (KbDv, 2026-10-20):
-     PROVED from the real act_dive (the same air-step summary).  The other
-     four cases (both rollouts, butt-slide air, slide kick) keep their
-     AirSplit row. *)
-  Hypothesis Hair_case_rest : air_case_rest6 lp bm MWF.
+     PROVED from the real act_dive (the same air-step summary).  Both
+     rollouts (RlRun, 2026-10-20): PROVED from the real handlers (the launch,
+     then the air step).  Butt-slide air at state 0 (BsRun, 2026-10-21):
+     PROVED from the real act_butt_slide_air (the timer tick, then the
+     FREEFALL gate or the air step: a landing, the bounce, a wall).  Past
+     its bounce (state <> 0) butt-slide air keeps a row (bsa1_row: its
+     floorHeight may be a quarter step stale there), and slide kick keeps
+     its AirSplit row. *)
+  Hypothesis Hbsa1 : bsa1_row lp bm MWF.
+  Hypothesis Hair_case_rest : air_case_rest7 lp bm MWF.
   (* the walk's floors: the FPU floor (TRUST 3.5) and the labeled open
      audio / camera premises (deferred; ExtInert) *)
   Hypothesis Hsqrtf : sqrtf_spec.
@@ -549,8 +555,8 @@ Section HeightLinked12.
 
   Lemma Hair_case : air_case_rows lp bm MWF.
   Proof.
-    exact (air_case_rows_ff6 lp H12 Hdma_floor Hsqrtf Hsqrtf_float Haudio Hcamera bm Hbm_sym MWF
-             Hair_case_rest).
+    exact (air_case_rows_ff7 lp H12 Hdma_floor Hsqrtf Hsqrtf_float Haudio Hcamera bm Hbm_sym MWF
+             Hbsa1 Hair_case_rest).
   Qed.
 
   Lemma call_facts :

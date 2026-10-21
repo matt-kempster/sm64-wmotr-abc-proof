@@ -28,11 +28,12 @@
 (*     interaction.c:1657, and WMotR has nothing grabbable: WMotRWorld);  *)
 (*   - in freefall, the air knockback family (HeightMoveCatalog.          *)
 (*     air_entry: AIR_HIT_WALL, SOFT_BONK, BACKWARD / FORWARD_AIR_KB) and   *)
-(*     ground pound (fro_entry), Mario's floorHeight is a floor refresh of *)
-(*     his y (FloorRefreshOK): -11000, or a WMotR floor at most STEP_UP     *)
-(*     above y.  (Only these: a landing can leave floorHeight a quarter     *)
-(*     step stale, and it always lands in a ground action.  Ground pound's *)
-(*     windup only raises y.)                                              *)
+(*     ground pound (fro_entry), and butt-slide air at state 0 (fro_st),  *)
+(*     Mario's floorHeight is a floor refresh of his y (FloorRefreshOK):  *)
+(*     -11000, or a WMotR floor at most STEP_UP above y.  (Only these: a   *)
+(*     landing can leave floorHeight a quarter step stale, and it lands in *)
+(*     a ground action, or bounces butt-slide air to state 1.  Ground     *)
+(*     pound's windup only raises y.)                                      *)
 (* Offsets and sizes are the generated AST's (pinned in FfRow on the link). *)
 (* ffw survives the frame's two stores into Mario's object (ffw_keep).      *)
 (* ====================================================================== *)
@@ -117,7 +118,8 @@ Definition ffw (m : mem) : Prop :=
       /\ (forall i cb co, 0 <= i < 4 ->
             Mem.load Mint32 m bo (Ptrofs.unsigned oo + FFW_COLL + 4 * i) = Some (Vptr cb co) -> cb = bo))
   /\ floor_data G m
-  /\ (forall a y fh, Mem.load Mint32 m bm 12 = Some (Vint a) -> fro_entry a = true ->
+  /\ (forall a s y fh, Mem.load Mint32 m bm 12 = Some (Vint a) ->
+        Mem.load Mint16unsigned m bm 24 = Some (Vint s) -> fro_st a (Int.unsigned s) = true ->
         Mem.load Mfloat32 m bm OFS_POSY = Some (Vsingle y) ->
         Mem.load Mfloat32 m bm OFS_FLOORH = Some (Vsingle fh) ->
         FloorRefreshOK wmotr_floor (R2 y) (R2 fh)).
@@ -257,7 +259,8 @@ Proof.
     split; [exact Lc |]. split; [exact (wblk_keep _ _ _ Wc) |].
     intros i cb co Hi Hl. rewrite Hldc in Hl by exact Hi. exact (Co i cb co Hi Hl).
   - exact (floor_data_keep _ _ Ho W FD).
-  - intros a y fh Ha Hae Hy Hf. rewrite Hld in Ha, Hy, Hf by congruence. exact (FRO a y fh Ha Hae Hy Hf).
+  - intros a s y fh Ha Hs Hae Hy Hf. rewrite Hld in Ha, Hs, Hy, Hf by congruence.
+    exact (FRO a s y fh Ha Hs Hae Hy Hf).
 Qed.
 End KEEP.
 
