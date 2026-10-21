@@ -30,6 +30,10 @@ all in `Unwired/`, and the theorem moved nowhere. See
   The two animation rows `Hgeo_real` / `Hocp_rai_real` are lemmas since 2026-10-20
   (`GraphNodeBodies.v`; `graph_node.c` is the 19th TU): their real bodies store only through a
   pointer parameter that the gate pins NULL / puts in a caller stack local.
+  The three arg0-gated object-helper rows `Hcsp_omfd_real` / `Hcsp_scale_real` /
+  `Hcsp_osh_real` are lemmas since 2026-10-21 (`ObjHelpersBodies.v`; `object_helpers.c` is
+  the 20th TU): every store goes through the SafeB `obj`, and the two pointer stores hold
+  `gCurrentObject`'s (SafeB) value or `segmented_to_virtual`'s (integer) result.
 - **GOAL 2** (WMotR needs A): `WMotRRequiresA/HeightFrame.v`,
   `wmotr_noA_height_bound_linked12`. This is a conditional theorem over ONE WMotR
   visit (frames end with `in_wmotr`), under input with A neither pressed nor held

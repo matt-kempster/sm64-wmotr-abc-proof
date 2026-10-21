@@ -53,7 +53,8 @@ From SM64.Generated Require mario mario_actions_stationary
   mario_actions_moving mario_actions_airborne mario_actions_submerged
   mario_actions_cutscene mario_actions_automatic mario_actions_object
   interaction behavior_actions level_update mario_step surface_collision
-  math_util memory game_init object_list_processor audio_data graph_node.
+  math_util memory game_init object_list_processor audio_data graph_node
+  object_helpers.
 From SM64.Proofs Require Import SymbolicLinking CensusV2 RealFrameLinked
   EngineV2Consumer RestSurface.
 
@@ -96,7 +97,10 @@ Fixpoint link_chain (p : Clight.program) (l : list Clight.program)
    definition of gAudioRandom, which play_mario_jump_sound reads.
    graph_node (engine/graph_node.c) is the seventh (2026-10-21): the real
    bodies of geo_update_animation_frame and retrieve_animation_index, which
-   GOAL 1's capstone took as rows. *)
+   GOAL 1's capstone took as rows.
+   object_helpers (game/object_helpers.c) is the eighth (2026-10-21): the
+   real bodies of obj_mark_for_deletion, obj_scale and obj_set_held_state,
+   which both capstones took as rows (ObjHelpersBodies). *)
 Definition tu_rest : list Clight.program :=
   [ mario_actions_stationary.prog;
     mario_actions_moving.prog;
@@ -115,7 +119,8 @@ Definition tu_rest : list Clight.program :=
     game_init.prog;
     object_list_processor.prog;
     audio_data.prog;
-    graph_node.prog ].
+    graph_node.prog;
+    object_helpers.prog ].
 
 Definition linked12 (lp : Clight.program) : Prop :=
   link_chain mario.prog tu_rest = Some lp.
@@ -214,6 +219,10 @@ Section Linked12LO.
   Lemma linked12_LO_graph_node : linkorder graph_node.prog lp.
   Proof.
     exact (link_chain_linkorder_in _ _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_eq _ _)))))))))))))))))) H12).
+  Qed.
+  Lemma linked12_LO_object_helpers : linkorder object_helpers.prog lp.
+  Proof.
+    exact (link_chain_linkorder_in _ _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_eq _ _))))))))))))))))))) H12).
   Qed.
 End Linked12LO.
 
@@ -436,6 +445,9 @@ Proof. vm_compute. reflexivity. Qed.
 Lemma no_internal_graph_node :
   no_internal_ids graph_node.prog truly_ext_pin_ids = true.
 Proof. vm_compute. reflexivity. Qed.
+Lemma no_internal_object_helpers :
+  no_internal_ids object_helpers.prog truly_ext_pin_ids = true.
+Proof. vm_compute. reflexivity. Qed.
 
 (* resolves_lp -> defmap entry (the genv->defmap bridge, spike-style) *)
 Lemma resolves_defmap :
@@ -471,7 +483,7 @@ Proof.
   destruct (link_chain_internal_origin _ _ _ _ _ H12 Hres)
     as [Hbase | (q & Hq & Hqdm)].
   - exact (no_internal_ids_correct _ _ _ _ no_internal_mario Hmem Hbase).
-  - destruct Hq as [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | []]]]]]]]]]]]]]]]]]].
+  - destruct Hq as [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | []]]]]]]]]]]]]]]]]]]].
     + exact (no_internal_ids_correct _ _ _ _ no_internal_sta Hmem Hqdm).
     + exact (no_internal_ids_correct _ _ _ _ no_internal_mov Hmem Hqdm).
     + exact (no_internal_ids_correct _ _ _ _ no_internal_air Hmem Hqdm).
@@ -490,6 +502,7 @@ Proof.
     + exact (no_internal_ids_correct _ _ _ _ no_internal_olp Hmem Hqdm).
     + exact (no_internal_ids_correct _ _ _ _ no_internal_audio_data Hmem Hqdm).
     + exact (no_internal_ids_correct _ _ _ _ no_internal_graph_node Hmem Hqdm).
+    + exact (no_internal_ids_correct _ _ _ _ no_internal_object_helpers Hmem Hqdm).
 Qed.
 
 (* ---------------------------------------------------------------------- *)

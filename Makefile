@@ -174,7 +174,8 @@ generated/behavior_data.v: $(SM64)/data/behavior_data.c pipeline/clightgen.sh
 # The object layer around the behaviors (GOAL 2 object census: what WMotR's
 # objects can spawn, BehaviorScripts.v).  object_helpers.c has a `1.0l`
 # literal in a debug function; -flongdouble maps long double to double, as
-# IDO's o32 ABI does (TRUST.md 2).
+# IDO's o32 ABI does (TRUST.md 2).  Linked as the 20th TU since 2026-10-21
+# (the real obj_mark_for_deletion / obj_scale / obj_set_held_state bodies).
 generated/object_helpers.v: $(SM64)/src/game/object_helpers.c pipeline/clightgen.sh pipeline/proof_n64.h
 	$(CLIGHTGEN) $< $@ -flongdouble $(SM64_CGP)
 
