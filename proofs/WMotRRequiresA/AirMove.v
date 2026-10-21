@@ -77,22 +77,25 @@ Proof.
 Qed.
 
 Lemma gpf_ne : forall a, (a = ACT_FREEFALL \/ a = Int.repr 2215 \/ a = Int.repr 16910518
-  \/ a = Int.repr 16910512 \/ a = Int.repr 16910513 \/ a = Int.repr 25692298 \/ a = ACT_GROUND_POUND) ->
+  \/ a = Int.repr 16910512 \/ a = Int.repr 16910513 \/ a = Int.repr 25692298 \/ a = ACT_GROUND_POUND
+  \/ a = ACT_FORWARD_ROLLOUT \/ a = ACT_BACKWARD_ROLLOUT) ->
   a <> ACT_SLIDE_KICK /\ a <> ACT_LEDGE_GRAB.
 Proof.
-  intros a H. destruct H as [Ea | [Ea | [Ea | [Ea | [Ea | [Ea | Ea]]]]]]; rewrite Ea; split; intros Eq0;
-    apply (f_equal Int.unsigned) in Eq0;
-    unfold ACT_FREEFALL, ACT_SLIDE_KICK, ACT_LEDGE_GRAB, ACT_GROUND_POUND in Eq0;
+  intros a H. destruct H as [Ea | [Ea | [Ea | [Ea | [Ea | [Ea | [Ea | [Ea | Ea]]]]]]]]; rewrite Ea; split;
+    intros Eq0; apply (f_equal Int.unsigned) in Eq0;
+    unfold ACT_FREEFALL, ACT_SLIDE_KICK, ACT_LEDGE_GRAB, ACT_GROUND_POUND,
+      ACT_FORWARD_ROLLOUT, ACT_BACKWARD_ROLLOUT in Eq0;
     vm_compute in Eq0; discriminate.
 Qed.
 
 Lemma act_cases : c_action c = ACT_FREEFALL \/ c_action c = Int.repr 2215 \/ c_action c = Int.repr 16910518
   \/ c_action c = Int.repr 16910512 \/ c_action c = Int.repr 16910513 \/ c_action c = Int.repr 25692298
-  \/ c_action c = ACT_GROUND_POUND.
+  \/ c_action c = ACT_GROUND_POUND \/ c_action c = ACT_FORWARD_ROLLOUT \/ c_action c = ACT_BACKWARD_ROLLOUT.
 Proof.
-  unfold pas_entry in Hact. apply orb_true_iff in Hact as [H | H].
-  - destruct (air_entry_cases _ H) as [X | [X | [X | [X | [X | X]]]]]; auto 7.
-  - apply andb_true_iff in H as [H _]. apply Int.same_if_eq in H. auto 7.
+  unfold pas_entry in Hact. apply orb_true_iff in Hact as [H | H]; [apply orb_true_iff in H as [H | H] |].
+  - destruct (air_entry_cases _ H) as [X | [X | [X | [X | [X | X]]]]]; auto 9.
+  - apply andb_true_iff in H as [H _]. apply Int.same_if_eq in H. auto 9.
+  - apply andb_true_iff in H as [H _]. destruct (is_roll_cases _ H) as [X | X]; auto 9.
 Qed.
 
 Lemma not_sk : c_action c <> ACT_SLIDE_KICK.

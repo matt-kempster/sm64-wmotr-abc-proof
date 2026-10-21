@@ -92,11 +92,23 @@ Proof.
     unfold mode_of_action; vm_compute; auto.
 Qed.
 
+(* the rollouts (state 0 is the launch prefix, M_RollPrep; after it plain air) *)
+Definition is_roll (a : int) : bool := Int.eq a ACT_FORWARD_ROLLOUT || Int.eq a ACT_BACKWARD_ROLLOUT.
+
+Lemma is_roll_cases : forall a, is_roll a = true -> a = ACT_FORWARD_ROLLOUT \/ a = ACT_BACKWARD_ROLLOUT.
+Proof.
+  intros a H. unfold is_roll in H. apply Bool.orb_true_iff in H as [H | H]; apply Int.same_if_eq in H; auto.
+Qed.
+
+Lemma roll_mode : forall a s, is_roll a = true ->
+  mode_of_action a s = (if Z.eqb s 0 then M_RollPrep else M_Air).
+Proof. intros a s H. destruct (is_roll_cases a H) as [-> | ->]; vm_compute; reflexivity. Qed.
+
 (* the entries perform_air_step's summary covers: an air_entry action, or
    ground pound past its windup (state <> 0: the fall, act_ground_pound's
-   perform_air_step(m, 0)) *)
+   perform_air_step(m, 0)), or a rollout past its launch (state <> 0) *)
 Definition pas_entry (a : int) (s : Z) : bool :=
-  air_entry a || (Int.eq a ACT_GROUND_POUND && negb (Z.eqb s 0)).
+  air_entry a || (Int.eq a ACT_GROUND_POUND && negb (Z.eqb s 0)) || (is_roll a && negb (Z.eqb s 0)).
 
 Lemma air_pas : forall a s, air_entry a = true -> pas_entry a s = true.
 Proof. intros a s H. unfold pas_entry. rewrite H. reflexivity. Qed.
@@ -105,7 +117,8 @@ Lemma pas_entry_mode : forall a s, pas_entry a s = true ->
   mode_of_action a s = M_Freefall \/ mode_of_action a s = M_Air
   \/ (a = ACT_GROUND_POUND /\ s <> 0%Z /\ mode_of_action a s = M_PoundFall).
 Proof.
-  intros a s H. unfold pas_entry in H. apply Bool.orb_true_iff in H as [H | H].
+  intros a s H. unfold pas_entry in H. apply Bool.orb_true_iff in H as [H | H];
+    [apply Bool.orb_true_iff in H as [H | H] |].
   - destruct (air_entry_mode a s H) as [X | X]; auto.
   - apply Bool.andb_true_iff in H as [H1 H2]. apply Int.same_if_eq in H1. subst a.
     apply Bool.negb_true_iff in H2.
@@ -114,25 +127,29 @@ Proof.
     vm_compute (Int.eq ACT_GROUND_POUND ACT_BUTT_SLIDE_AIR).
     vm_compute (Int.eq ACT_GROUND_POUND ACT_SLIDE_KICK).
     rewrite Int.eq_true, H2. reflexivity.
+  - apply Bool.andb_true_iff in H as [H1 H2]. apply Bool.negb_true_iff in H2.
+    right; left. rewrite (roll_mode a s H1), H2. reflexivity.
 Qed.
 
 (* the actions whose floorHeight the frame keeps a floor refresh of pos[1]
    (FfWorld.ffw): the air_entry ones and ground pound (its windup only
    raises pos[1]; its fall is an air step that does not attach) *)
-Definition fro_entry (a : int) : bool := air_entry a || Int.eq a ACT_GROUND_POUND.
+Definition fro_entry (a : int) : bool := air_entry a || Int.eq a ACT_GROUND_POUND || is_roll a.
 
 Lemma air_fro : forall a, air_entry a = true -> fro_entry a = true.
 Proof. intros a H. unfold fro_entry. rewrite H. reflexivity. Qed.
 
 Lemma fro_entry_ground : forall a s, fro_entry a = true -> mode_of_action a s <> M_Ground.
 Proof.
-  intros a s H. unfold fro_entry in H. apply Bool.orb_true_iff in H as [H | H].
+  intros a s H. unfold fro_entry in H. apply Bool.orb_true_iff in H as [H | H];
+    [apply Bool.orb_true_iff in H as [H | H] |].
   - destruct (air_entry_mode a s H) as [X | X]; rewrite X; discriminate.
   - apply Int.same_if_eq in H. subst a. unfold mode_of_action.
     vm_compute (Int.eq ACT_GROUND_POUND ACT_FREEFALL).
     vm_compute (Int.eq ACT_GROUND_POUND ACT_BUTT_SLIDE_AIR).
     vm_compute (Int.eq ACT_GROUND_POUND ACT_SLIDE_KICK).
     rewrite Int.eq_true. destruct (Z.eqb s 0); discriminate.
+  - rewrite (roll_mode a s H). destruct (Z.eqb s 0); discriminate.
 Qed.
 
 Lemma credit_of_mode: forall c, credit_of c = mode_credit (mode_of c) (timer_of c) (R2 (c_vely c)).
@@ -459,6 +476,14 @@ Section Moves.
       R2 (c_vely c') = 30 ->
       c_posy c' = c_posy c -> c_gfxy c' = c_gfxy c -> c_floorh c' = c_floorh c ->
       Move c c'
+  (* an action's own actionTimer++ before its air step (act_butt_slide_air,
+     airborne.c:1436): only the timer moves.  Slide kick and ground pound,
+     whose budget reads the timer, are excluded *)
+  | S_tick :
+      c_action c' = c_action c -> c_state c' = c_state c ->
+      c_action c <> ACT_SLIDE_KICK -> c_action c <> ACT_GROUND_POUND ->
+      c_posy c' = c_posy c -> c_vely c' = c_vely c -> c_gfxy c' = c_gfxy c -> c_floorh c' = c_floorh c ->
+      Move c c'
   (* OOB recovery: pos := gfx.pos, then find_floor again (mario.c:1327-1329) *)
   | S_oob :
       c_action c' = c_action c -> c_state c' = c_state c -> c_timer c' = c_timer c ->
@@ -651,6 +676,7 @@ Section Moves.
       | h Han Hyh Hgy' Hcap Hla
       | Ha Hst Htmc Hy' Hv' Hgy' Hrf
       | Hk Ha Hst' Hv' Hy' Hgy' Hfh'
+      | Ha Hst Hnsk Hngp Hy' Hv' Hgy' Hfh'
       | Ha Hst Htmc Hv' Hy' Hgy' Hrf ].
     - (* S_air *)
       assert (Hk' : mode_of c' = mode_of c) by (apply mode_of_same; auto).
@@ -816,6 +842,17 @@ Section Moves.
       split; [ intros X; destruct (S2 X) | ].
       split; [ intros X; destruct (S2 X) | ].
       intros X; destruct (S3 X).
+    - (* S_tick: the credit reads the timer only in ground pound *)
+      assert (Hcr : credit_of c' = credit_of c).
+      { unfold credit_of, state_of, timer_of, credit. rewrite Ha, Hst, Hv'.
+        replace (Int.eq (c_action c) ACT_GROUND_POUND) with false
+          by (symmetry; apply Int.eq_false; exact Hngp).
+        reflexivity. }
+      split; [ rewrite Hy', Hcr; lra | split; [ rewrite Hgy', Hcr; lra | split; [ | split; [ | split ] ] ] ].
+      + intros Ha'. rewrite Ha in Ha'. contradiction.
+      + intros Ha'. rewrite Ha in Ha'. contradiction.
+      + intros Ha'. rewrite Ha in Ha'. contradiction.
+      + intros Ha'. rewrite Hfh'. rewrite Ha in Ha'. exact (Hl Ha').
     - (* S_oob *)
       assert (Hcr : credit_of c' = credit_of c) by (unfold credit_of, state_of, timer_of; rewrite Ha, Hst, Htmc, Hv'; reflexivity).
       split; [ rewrite Hy', Hcr; lra | split; [ rewrite Hgy', Hcr; lra | split; [ | split; [ | split ] ] ] ].

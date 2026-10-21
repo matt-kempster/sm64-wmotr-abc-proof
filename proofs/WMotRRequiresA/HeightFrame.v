@@ -361,9 +361,8 @@ Section HeightLinked12.
      R0 nextblock-bound conjunct via glob_valid_of_nextbound), so it is no
      longer an assumed row here either. *)
   (* the dst-gated writer rows (dg): see NoAImpliesNoFlyLinked *)
-  Hypothesis Hscp_mtxf_real :
-    call_pres_ext_sc lp bm (NoA_real bm) MWF SafeB
-      mario_actions_moving._mtxf_align_terrain_triangle.
+  (* Hscp_mtxf_real: PROVED inside NoAImpliesNoFlyTwelve from the real
+     mtxf_align_terrain_triangle body (MtxfBody), on Hsqrtf below. *)
   Hypothesis Hcsp_omfd_real :
     call_pres_ext_cs lp bm (NoA_real bm) MWF SafeB
       mario_actions_cutscene._obj_mark_for_deletion.
@@ -423,12 +422,8 @@ Section HeightLinked12.
   Hypothesis Hpres_cut_ext_open : forall fid,
       mem_id fid NoAImpliesNoFlyLinked.cut_ext_open_ids = true ->
       call_pres_ext lp bm (NoA_real bm) MWF fid.
-  Hypothesis Hgeo_real :
-    call_pres_ext_geo lp bm (NoA_real bm) MWF SafeB
-      mario._geo_update_animation_frame.
-  Hypothesis Hocp_rai_real :
-    call_pres_ext_oc lp bm (NoA_real bm) MWF SafeB
-      mario._retrieve_animation_index.
+  (* Hgeo_real / Hocp_rai_real: PROVED inside NoAImpliesNoFlyTwelve from the
+     real graph_node.c bodies (GraphNodeBodies), no longer rows. *)
   Hypothesis Hpres_floors_ext : forall fid,
       mem_id fid floors_ext_ids = true ->
       call_pres_ext lp bm (NoA_real bm) MWF fid.
@@ -567,9 +562,9 @@ Section HeightLinked12.
     /\ chase_safe_stmt bm SafeB MWF /\ store_safe_stmt lp bm SafeB MWF.
   Proof.
     exact (frame_call_ok_linked12 lp H12 bm bc oc0 SafeB HSafeB_syms Hbm_sym Hbc_sym Hoc0
-             Hscp_mtxf_real Hcsp_omfd_real Hcsp_scale_real Hcsp_osh_real Hcsp_scm_real Hdma_floor WL_exempt
-             Hpres_sta_ext Hcp_soawr_real Hpres_obj_ext_open2 Hpres_cut_ext_open Hgeo_real
-             Hocp_rai_real Hpres_floors_ext Hcp_spawn_real Hcp_savefile_real
+             Hsqrtf Hcsp_omfd_real Hcsp_scale_real Hcsp_osh_real Hcsp_scm_real Hdma_floor WL_exempt
+             Hpres_sta_ext Hcp_soawr_real Hpres_obj_ext_open2 Hpres_cut_ext_open
+             Hpres_floors_ext Hcp_spawn_real Hcp_savefile_real
              Hpres_warp_ext Hext_action Hmwf_ext).
   Qed.
 

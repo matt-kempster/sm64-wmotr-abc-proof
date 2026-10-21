@@ -41,6 +41,7 @@ Definition xcK (id : ident) : option xcontract :=
   | None =>
     if Pos.eqb id mario._set_mario_animation then Some (c_sma NBF (R0F g) gtabF kvK RLD RBUF RIOM RMQ RRM kB) else
     if Pos.eqb id AIR._update_air_without_turn then Some (c_wr NBF (R0F g) (uawt_ws g)) else
+    if Pos.eqb id AIR._update_air_with_turn then Some (c_wr NBF (R0F g) (uawith_ws g)) else
     if Pos.eqb id mario_step._perform_air_step then
       Some (c_pas g NBF (R0F g) gtabF kvK (xcI g) (jkI g) mergef 400 (Internal mario_step.f_perform_air_step) RM RO kH kM)
     else if existsb (Pos.eqb id) ext_ids then Some xc_fresh else None
@@ -140,7 +141,12 @@ Proof.
         rewrite (sfun_res_h _ _ _ _ (res_link lp _ _ _ (linked12_LO_air lp H12) dm_uawt_h) Hl) in EV.
         exact (c_uawt_sound lp H12 Hsq NBF (R0F G) gtabF (kvK acn G) m0 uf gp GPO
                  args g cps E m vargs t m' vres Hk MM HA EV).
-      * destruct (Pos.eqb_spec id mario_step._perform_air_step) as [-> | N3].
+      * destruct (Pos.eqb_spec id AIR._update_air_with_turn) as [-> | N2'].
+        { injection Hx as <-.
+          rewrite (sfun_res_h _ _ _ _ (res_link lp _ _ _ (linked12_LO_air lp H12) dm_uawith) Hl) in EV.
+          exact (c_uawith_sound lp H12 Hsq NBF (R0F G) gtabF (kvK acn G) m0 uf gp GPO
+                   args g cps E m vargs t m' vres Hk MM HA EV). }
+        destruct (Pos.eqb_spec id mario_step._perform_air_step) as [-> | N3].
         -- injection Hx as <-.
            rewrite (sfun_res_h _ _ _ _ (res_link lp _ _ _ (linked12_LO_stp lp H12) dm_pas_h) Hl) in EV.
            exact (c_pas_sound G NBF (R0F G) gtabF (kvK acn G) (xcI G) (jkI G) mergef 400

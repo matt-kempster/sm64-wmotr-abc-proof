@@ -292,6 +292,12 @@ Definition uawt_ws (ge : genv) : wset :=
    (fo ge AIR._MarioState AIR._vel + 8, Mfloat32);
    (fo ge AIR._MarioState AIR._slideYaw, Mint16signed)].
 
+Definition uawith_ws (ge : genv) : wset :=
+  uawt_ws ge ++ [(fo ge AIR._MarioState AIR._faceAngle + 2, Mint16signed)].
+
+Lemma uawith_ws_sizes : forall ge, wsizes (uawith_ws ge) = uawith_cells ge.
+Proof. reflexivity. Qed.
+
 Lemma uawt_ws_sizes : forall ge, wsizes (uawt_ws ge) = uawt_cells ge.
 Proof. reflexivity. Qed.
 
@@ -309,6 +315,10 @@ Qed.
 
 Lemma uawt_nodup12 : match ge12 with
   | Some ge => znodup (map fst (uawt_ws ge)) | None => false end = true.
+Proof. vm_compute. reflexivity. Qed.
+
+Lemma uawith_nodup12 : match ge12 with
+  | Some ge => znodup (map fst (uawith_ws ge)) | None => false end = true.
 Proof. vm_compute. reflexivity. Qed.
 
 (* a one-parameter function is called with exactly one argument *)
@@ -361,5 +371,22 @@ Proof.
   intros bm om rest ->.
   rewrite (funcall_one_arg _ AIR.f_update_air_without_turn _ _ _ _ _ _ _ _ eq_refl Hev) in Hev.
   rewrite uawt_ws_sizes. exact (uawt_fp lp H12 Hsq _ _ _ _ _ _ Hev).
+Qed.
+
+(* THE CONTRACT for update_air_with_turn is sound *)
+Theorem c_uawith_sound : forall args g cps E m vargs t m' vres,
+  c_wr nbase R0 (uawith_ws G) args g = Some cps ->
+  MMg G nbase R0 gtab kv m0 uf gp E m g ->
+  Forall2 (fun a v => den G m0 E a = Some v /\ sok nbase (g_nx g) a) args vargs ->
+  eval_funcall function_entry2 G m (Internal AIR.f_update_air_with_turn) vargs t m' vres ->
+  exists c, In c cps /\ CM G nbase R0 gtab kv m0 uf gp E (g_nx g) (g_loc g) m' vres c.
+Proof.
+  intros args g cps E m vargs t m' vres Hc MMh HF Hev.
+  pose proof uawith_nodup12 as ND. rewrite (ge12_ok lp H12) in ND.
+  eapply (c_wr_sound G nbase R0 gtab kv m0 uf gp gp_old); [exact Hc | exact (znodup_ok _ ND) | exact MMh
+    | exact HF | | exact (funcall_void _ AIR.f_update_air_with_turn _ _ _ _ _ eq_refl Hev)].
+  intros bm om rest ->.
+  rewrite (funcall_one_arg _ AIR.f_update_air_with_turn _ _ _ _ _ _ _ _ eq_refl Hev) in Hev.
+  rewrite uawith_ws_sizes. exact (uawith_fp lp H12 Hsq _ _ _ _ _ _ Hev).
 Qed.
 End UAWT.

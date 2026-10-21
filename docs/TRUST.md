@@ -22,16 +22,354 @@ without pressing A".*
 
 | # | Item | Status / notes |
 |---|---|---|
-| 0.1 | The definition of "no A": **A is neither pressed nor held.** GOAL 2's capstone requires, after every controller poll, both `buttonPressed & A_BUTTON` and `buttonDown & A_BUTTON` clear (`AGates.a_used_real`; `buttonDown` @16 pinned against the generated `Controller`). GOAL 1's capstone needs only the pressed bit, so it is the stronger statement. | Needs a reader check. Holding A counts as using it (ABC's "0.5x" press, `game_init.c:544`). The held bit is load-bearing: with A held and never pressed, `act_punching`/`act_move_punching` enter `ACT_JUMP_KICK` (not in the no-A whitelist) and the wing cap flutters (`mario_step.c:566`). **When the run starts at power-on** (long term), "held" follows from "never pressed": `buttonDown` is zero-initialized and the poll (`game_init.c:542-545`) sets `buttonPressed = raw & (raw ^ buttonDown)`, `buttonDown = raw`, so A can only become down on a poll that reports it pressed. The premise should then be stated on the raw pad data, since title-screen demos (`run_demo_inputs`) inject A. |
+| 0.1 | The definition of "no A": **A is neither pressed nor held.** GOAL 2's capstone requires, after every controller poll, both `buttonPressed & A_BUTTON` and `buttonDown & A_BUTTON` clear (`AGates.a_used_real`; `buttonDown` @16 pinned against the generated `Controller`). GOAL 1's capstone needs only the pressed bit, so it is the stronger statement. | Needs a reader check. Holding A counts as using it (ABC's "0.5x" press, `game_init.c:544`). The held bit is load-bearing: with A held and never pressed, `act_punching`/`act_move_punching` enter `ACT_JUMP_KICK` (not in the no-A whitelist) and the wing cap flutters (`mario_step.c:566`). Details: [row 0.1 in detail](#row-01-in-detail). |
 | 0.2 | The definition of "flying" (`Flying.v`: `ACT_FLYING`, `ACT_FLYING_TRIPLE_JUMP`; the invariant set also has `ACT_SHOT_FROM_CANNON`) | Constants read from the generated AST. |
-| 0.3 | "Collect the star" = the red-coin star spawns and is touched. The GOAL-2 height bound must imply you can't | **Height form stated** (`WMotRRequiresA/HeightFrame.v`, `wmotr_noA_height_bound_linked12`): a no-A run keeps `pos[1] ≤ 2796` (`PHI_YMAX` = K + A, `HeightInvariant.v`; K = H* = 2424, the wing-cap box top 2320 + 2·52 (the box is scaled ×2), with the level facts it needs proved from generated level data in `WMotRLevel.v` (0.8); A = 372 from `tools/goal2_budget.py` plus the binary32 rounding allowance). A wrong K or A would make the crux row false, not the capstone unsound. **The collision step is machine-checked** (`WMotRRequiresA/CoinLink.v`, `overlap_no_contact` / `mario_coin2_no_contact`, over the generated body of `detect_object_hitbox_overlap`): if a's hitbox top + 1 ≤ b's bottom (binary32, fields finite and |·| ≤ 8192), every execution returns with memory unchanged, so nothing is written to `collidedObjs`/`collidedObjInteractTypes`. For Mario (a; always the first argument, from `check_player_object_collision`) and coin #2 (b) this holds whenever y ≤ 2796, Mario's hitbox height ≤ 160 and both down offsets are 0. That theorem's own assumptions: the body's one call, `sqrtf` (resolved through the global symbol), leaves memory unchanged (a 4.1 row); the linked composite env contains `object_collision.c`'s composites verbatim (dischargeable by `SymbolicLinking.linkorder_comp_env_extends`); and Clight expression evaluation is deterministic (`Generic/ClightDeterm.v`, proved). Still missing: composing it into the capstone (Mario's hitbox fields at collision time, coin #2's field values, and "no contact registered ⇒ coin not collected ⇒ no star"). That step also silently assumes **coin #2 never moves**. The one way Mario code moves another object is dropping or throwing a held object (`mario_drop_held_object` sets `heldObj->oPosY = m->pos[1]`, `interaction.c:307`; this is how cloning works). **Machine-checked so far** (`HeldObjCensus.v`, over all 16 generated code TUs): every `heldObj` store is NULL except `mario_grab_used_object`'s, which stores `usedObj`; `&heldObj` is never taken; its callers are `act_dive`, `act_dive_slide`, `check_water_grab`, `act_picking_up`, `act_picking_up_bowser`; only `interact_grabbable` sets `INPUT_INTERACT_OBJ_GRABBABLE`. **Still open:** each caller runs only after a grab check or on a collided `INTERACT_GRABBABLE` object (true by reading; the only value occurrences of `ACT_PICKING_UP`/`ACT_PICKING_UP_BOWSER` in 21 generated TUs, code and data, are in `mario_check_object_grab`: `HeldObjCensus.pickup_entry_sites`; still open is a copy of `m->action`/`prevAction` or an arithmetic construction carrying those values), and WMotR spawns no grabbable object (**now machine-checked over generated code**, `BehaviorScripts.no_grabbable_in_wmotr`, TRUST 0.10). Informal argument: `init_mario` clears `heldObj`/`usedObj`, grabs need `INPUT_INTERACT_OBJ_GRABBABLE` (set only by `interact_grabbable`), and WMotR spawns no grabbable object. So `heldObj` stays NULL and the coin stays at 3140. Also assumed: no object code writes a red coin's position, Mario's hitbox is at most 160, the Mario object's y equals `pos[1]` at collision time, and the star counter starts at 8 − (red coins loaded). |
-| 0.6 | GOAL 2's height invariant `Phi` and the Mario-frame rows | **Defined** (`HeightInvariant.height_invariant`, design `docs/goal2-phi.md`): `R_noA` action whitelist ∧ `budget_ok` over the cells action, actionState, actionTimer, pos[1], vel[1], floorHeight and `marioObj->gfx.pos[1]` (what OOB recovery restores). The cells are ranges (−75 ≤ vel ≤ 43, y and gfx.y ≥ −11000, floorHeight finite and ≥ −11000 (and, 2026-10-18, `AttachOK` accepts a landing at −11000, which a floorless air quarter makes when the frame's find_floor calls both missed): until 2026-10-18 the y bound was −8192, the death plane, which the code does not give: when both `find_floor` calls in `update_mario_geometry_inputs` miss, floorHeight is −11000 and an air step compares against it; −11000 is what every non-landing air-step path proves, per a symbolic probe of the real `perform_air_step`; the upper bound was 128 until 2026-09-28, which let Φ admit a grounded Mario rising at up to 128 whose walk-off no Move covers: `Hframe_is_move_chain` was false over Φ. 43 is the freefall launch cap; real no-A launches are ≤ 37.5), the budget y + credit ≤ 2424 + 372 at pos and at gfx.pos, and the slide-kick, ground-pound and ledge clauses. Offsets and action constants are pinned against the generated AST, and `Hphi_y` is proved. **The old crux row `Hseg_action_phi` is now a lemma** (`HeightFrame.seg_action_phi`). The budget arithmetic of every move a frame can make (binary32 air step, cut step, slide-kick signed-energy step, ground-pound windup, E3 switches, attach, floor refresh, OOB) is proved (`HeightMoveCatalog.chain_keeps_budget`). **The run carries `PhiW` = Φ ∧ `wmotr_world`** (`WMotRWorld.v`, 2026-09-29): Mario's wall/ceil are NULL or surfaces of WMotR's own types, and his floor is never NULL and of those types (computed from the generated collision data: DEFAULT, HANGABLE, DEATH_PLANE, NOT_SLIPPERY, HARD_NOT_SLIPPERY), nothing held or ridden, quicksandDepth 0. Without it both frame rows were false over phantom worlds (a BURNING floor → ACT_LAVA_BOOST; a quicksand depth lowers gfx). **Object collisions are in W** (`wmotr_objects`, 2026-09-29, from the whole-frame symbolic walk, `docs/goal2-value-walk-plan.md` §6). Mario's object carries no stomp bit (`oInteractStatus & 0x13`). Otherwise SHOCKED / SHOCKWAVE_BOUNCE, outside R_noA, are reachable. At most 4 objects are collided. Each has an interact type in WMotR's set {0, COIN, CAP, POLE, BREAKABLE, CANNON_BASE, TEXT}. That set is a **hand census** (`goal2-wmotr-behavior-census.md`), not computed from generated data. A collided pole's oPosY / hitboxDownOffset / hitboxHeight and a collided cannon base's oPosY are a `WMotRLevel` list entry; those are the only object fields Φ depends on. **Excluding the red-coin star is load-bearing:** collecting it reaches STAR_DANCE_* / FALL_AFTER_STAR_GRAB, outside R_noA, and its absence rests on 0.3 (the star needs coin #2, which needs y ≥ 2980). ACT_SQUISHED is not excluded by W. It needs a DYNAMIC floor or ceiling with ceil − floor ≤ 150 at the new position, which is a geometry fact for the find_floor / find_ceil value contracts (open, part of `Hframe_stays_noA`). **Open rows, split per call (2026-10-20):** the three whole-frame rows `Hframe_keeps_world`, `Hframe_stays_noA` and `Hframe_is_move_chain` are now **lemmas** (`HeightFrame`), derived by `FrameSplit.frame_split` from the real `execute_mario_action` body. `FrameCalls.cl` reads the generated body as 17 `f(gMarioState)` calls, 5 other calls (`spawn_wind_particles` ×2, `play_sound` ×2, `play_infinite_stairs_music`) and 2 store blocks; the two stores into Mario's object (`gfx.node.flags`, `oInteractStatus = 0`) are **proved** to keep W, the cells and GOAL 1's `mem_ok`; GOAL 1's per-call `mem_ok` (`frame_call_ok_linked12`) is proved. What is assumed is one row shape per call, `Hseg_call_na` / `Hseg_any` (`FrameSplit.seg_ok`); the airborne dispatcher's row is itself proved (`AirSplit.air_seg`) from its two prologue calls and one row per no-A case (11 of its 43 cases; the rest are dead under `R_noA`), each handler called with the action cell equal to its label (`Hair_pro` / `Hair_case`): the call keeps the frame world (`fworld`: action in `R_noA`, W, `anim_apart`, `mobj_apart`, A not held) and moves the cells by a MoveChain. Inside these rows: keeping W (tethered: 11,379 write-watch frames); keeping the action in `R_noA`; the call's effect on the cells is a chain of those moves, each in range (the T3 value walk; false if an unmodelled mechanism fires, listed in the rows' comment). The per-call shape is stronger than the old whole-frame rows (each call's own effect must be a chain), which is what lets the value walk discharge them one call at a time. **Added to W (2026-10-20): `mobj_apart`**: no wall/ceiling/floor surface lives in Mario's object block, a collided object is Mario's own or a whole `struct Object` (608 bytes) away, and the object does not wrap the address space. In the game surfaces are in `sSurfacePool` and objects are distinct `gObjectPool` slots. Without it the frame's own `oInteractStatus` store could overwrite a collided pole's fields. **The freefall case is proved (2026-10-20, `FfRow.ff_row`), both halves:** the real `act_freefall`, with `perform_air_step`, `set_mario_animation` (down to the DMA floor 3.5) and `update_air_without_turn` (FPU floor) run by the `FfRun` walk on the link, moves Phi's cells by a MoveChain **and keeps the frame world** (every `fworld` conjunct is rebuilt after the call from the walk's outcome check `FfKeepCheck.fk_ok`, whose meaning is `FfKeep`, and from `ClightClosed.funcall_closed`). Its start state is built from a new carried conjunct of PhiW / `fworld`, **`FfWorld.ffw`**: memory is closed by a flat injection that maps every global and Mario's state block (`ClosedMem.closed_by`: a pointer stored in a mapped block points at a mapped block; every Clight call keeps it, `ClightClosed.funcall_closed`, proved from CompCert's semantics and its external-call axioms); `m->marioObj`, `m->animList = &gMarioAnimsBuf` and the list's `bufTarget` are pointers, and the object and the buffer are blocks of their own (a `gObjectPool` slot; a `main_pool` allocation — the pool's addresses are integers in the C, so the model takes each allocation as its own block); the collision partition is well-formed lists of WMotR-typed surfaces off those regions (`FloorExec.Wff`), and every floor-list height is a WMotR floor (`floor_data`, 0.8(d)); `m->floor` / `m->area` / `m->controller` are world objects off the regions, and `m->wall` / `m->ceil`, when pointers, are off them too; every collided object of Mario's is in his object's block (in the game all objects are `gObjectPool` slots); `m->input` has neither A bit (0x82); and floorHeight is a floor refresh of y (`FloorRefreshOK`: −11000, or a WMotR floor ≤ y + 241). ffw is **proved** to survive the frame's two object stores (`FrameSplit.obj_store_ffw`); every other call carries it in its row, and the flanks carry it in their spec (0.7). The freefall row is gone (`Hff_keeps` removed from HeightFrame); the other ten cases keep their AirSplit row (`air_case_rest`). **The air-hit-wall case is proved too (2026-10-20, `AhwRow.ahw_row`):** the real `act_air_hit_wall`, walked by `AhwRun` (A unpressed prunes the wall kick), either stays (timer +1) or switches to BACKWARD_AIR_KB / SOFT_BONK with state and timer 0, keeping Phi's cells otherwise; nine cases remain (`AhwRow.air_case_rest2`). **The soft-bonk and both air-knockback cases are proved (2026-10-20, `KbRow.kb_row`, generic in the case; walks `KbRun.sbcheck12` / `bkbcheck12` / `fkbcheck12`); six cases remain (`KbRow.air_case_rest3`).** **Ground pound is proved (2026-10-20, `GpRun.gp_kfinal` through `kb_row`, which is now generic in the walk theorem `KbRun.kfinal`); five cases remain (`KbRow.air_case_rest4`: dive, both rollouts, butt-slide air, slide kick).** **Dive is proved (2026-10-20, `KbDv.dvcheck12` through `kb_kfinal`; dive is now an `air_entry`); four cases remain (`KbRow.air_case_rest5`: both rollouts, butt-slide air, slide kick).** **Found on the way to the rollouts (2026-10-20):** Φ charged a rollout at state 0 the credit of its current vel[1], but its handler's first run sets vel[1] := 30 (airborne.c:1354-1356, 1395-1397) before the air step, and the entry (dive slide / stomach slide) does not set vel[1]. So a state-0 rollout that was high up and slow passed Φ, and its launch then broke it. The credit now charges `rise_credit 4 (Rmax v 30)` at state 0 (`HeightInvariant.roll_prep`, mode `M_RollPrep`). Two real-state findings came with it: dive's jump-sound path reads `gAudioRandom`, which was a size-0 extern until audio/data.c was linked (18th TU), so those paths had no execution and the walk was vacuous on them (the walk now reads it as world memory: a gtab entry plus an `Fworld` start fact, with ffw saying its block is neither Mario's object nor the DMA buffer, proved at boot); and dive's object-grab path is cut by the carried input mask, which now also clears INPUT_INTERACT_OBJ_GRABBABLE (only interact_grabbable sets it, and WMotR has nothing grabbable). The walk covers both states: the windup (`FfClass.gpw_ok`: `S_gp_windup` or `S_gp_hold`) and the fall (the air-step summary from a ground-pound fall, then a landing, a wall bonk into BACKWARD_AIR_KB with vel[1] ≤ 0, or nothing). ffw's floor-refresh clause now covers ground pound too (`HeightMoveCatalog.fro_entry` = air_entry ∨ GROUND_POUND). Its windup only raises pos[1] (`HeightFloatSteps.windup_add_ge`) and its fall is a non-attaching air step. As before, this is a stronger carried fact, true of the game for the same reasons. **Found (2026-10-20):** a ground pound in its windup (actionState 0) with actionTimer 65535 wraps `m->actionTimer++` to 0, and the windup rises again. No Move covers that, so the ground-pound row was false over such phantom cells. `budget_ok` now also says a windup's actionTimer is ≤ 32770. The windup ends once actionTimer ≥ loopEnd + 4, and loopEnd is an s16. `S_gp_hold` carries the bound (the walk proves it from that loopEnd test), and `launch_cap` gives it to an attach into the windup, so `chain_keeps_budget` still holds. To reuse the air-step summary for them, its premise "the entry action is ACT_FREEFALL" became `HeightMoveCatalog.air_entry` (freefall, AIR_HIT_WALL, SOFT_BONK, BACKWARD / FORWARD_AIR_KB), and ffw's floor-refresh clause now holds in all five (was: freefall only). That is a **stronger carried fact**, and so a stronger claim in the open per-call rows that carry ffw. It is true of the game because the frame refreshes floorHeight at pos[1] before the action runs, these actions are entered from non-attaching air steps, from switches that keep pos[1] and floorHeight, or from a pole (which moves pos[1] far less than STEP_UP = 241 below the refreshed floor), and no WMotR interaction moves pos[1] while setting one. AttachOK's ledge-after-ceiling-bump clause now also admits M_Air (the plain air credit already pays the vel/2: `rise_half4`). **Found on the way (2026-10-20):** an unconditional "floorHeight is a refresh of y" is not kept by `act_freefall` (a landing under a low ceiling can leave floorHeight a quarter step stale), so ffw states it only in ACT_FREEFALL, which such a landing always leaves; load-level pointer-closedness does not survive a call in any provable way, so ffw now carries injection closedness instead; ffw lacked that m->wall / m->ceil / m->controller are off the walk's regions, which keeping W and the A reading needs. The two former level-data rows are **proved** (`WMotRLevel.wmotr_gap_proved`: no floor height in (2424, 3046); `wmotr_poles_proved`: every pole low or out of reach; `wmotr_cannons_proved`: both cannon seats ≤ K; see 0.8). **Found 2026-09-28:** entering the cannon (`pos := cannon.y + 350`) is reachable without A (the buddy opens it on B) and was in no Move, so `Hframe_is_move_chain` was false as stated. It is now the `wmotr_cannon` attach case. `R_noA` is **concrete** since 2026-09-29 (`NoAActions.v`: the census's 73-action closure, `docs/goal2-rnoa-census.md`; proved disjoint from GOAL 1's taint set; every one of the 36 actions seen in the no-A write-watch frames is in it). The census is a tool result, so an edge it missed would make `Hframe_stays_noA` false. Tethered: `budget_ok` holds on all 68,423 no-A write-watch frames that carry the full cell set (`ywatch.py`), and on the 620 recorded states (`experiments/oracle/phi_check.py`) except 4 `ACT_JUMP` states at vel 44. Those recordings press A, so they are outside the premise. |
-| 0.8 | GOAL 2's level data: `wmotr_floor` / `wmotr_pole` / `wmotr_cannon` are WMotR's floors, poles and cannon seats | **Defined from generated/, rows proved** (`WMotRLevel.v`). Data: `generated/wmotr_level_data.v` (clightgen of `pipeline/tu/wmotr_level_data.c`, which `#include`s the vendor terrain, macro list and the two object meshes verbatim; the real build puts them in other TUs), `generated/wmotr_script.v` (the real `levels/wmotr/script.c`; `level_wmotr_entry` is shown to load these arrays), `generated/macro_special_objects.v` (the real preset → behavior table). **Trusted:** (a) the Coq decoders mirror `load_area_terrain`/`load_static_surfaces`, `spawn_macro_objects` and the OBJECT command layout (cross-checked: 1352 triangles / 778 floors, as `tools/goal2_ladder.py`; the 6 poles; 26 macro objects); (b) the census that of WMotR's behaviors only `bhvExclamationBox` (scale 2, `exclamation_box.inc.c:176`) and `bhvCannonClosed` load collision, from `behavior_data.c` (not generated), and that those objects stay at their spawn height with no x/z tilt; (c) pole top = base + 10·bparam2 (`pole.inc.c:20-21`); (c') a cannon seats Mario at lid y + 10: the cannon base spawns at its lid's home (`cannon_door.inc.c:9-11`, un-generated), its script drops it 340 before `SET_HOME` (pinned from `generated/behavior_data.v`, `bhvCannon_drop_then_home`), and `act_in_cannon` adds 350; and a cannon has not moved from home when Mario enters it (it moves only after firing, which is A-gated). Seats 837 and −2730, both ≤ K (`wmotr_cannons_proved`); (d) floor heights `find_floor` returns lie within ±1 of a static floor triangle's y-range (binary32 plane evaluation overshoot ≤ 0.001, `tools/goal2_gapfact_check.py`), or exactly on an object's flat top. (d) is a claim about the real frame and is part of `Hframe_is_move_chain`. **Since 2026-10-20 it is load-bearing as `floor_data` inside the carried `FfWorld.ffw` (0.6)**, used by the proved freefall MoveChain. Toward discharging it: `FloorHeight.ff_height` proves from `find_floor`'s body that the returned height is −11000 or `FloorList.plane_h` of a surface on the frame-entry partition lists, at an (x, z) that passed that surface's three edge tests, and `FloorExec.c_ff` hands this to the air-step walk as a fact. The surface is on a FLOOR list (slot 0 of a valid partition cell, `FloorHeight.floor_head`), and when `*pfloor` comes back non-NULL the height is such a hit, never the −11000 start value. What would remain is a fact about level data: the per-triangle binary32 bound. **Found by this step:** the box's ×2 scale. The ladder had used +52, so K was 2372 and is now 2424. |
-| 0.9 | GOAL 2's pos[1] writer census is complete (`YWriterCensus.v`) | **Machine-checked list, trusted edges.** Coq scans every function body of the 12 generated Mario TUs and proves: 31 direct `pos[1]` stores and 21 write-escapes (16 whole-vector arg-0 passes to `vec3f_copy`/`vec3f_set`/`vec3s_to_vec3f`, 5 `&pos[1]` passes to `f32_find_wall_collision`), 52 in all; `pos`'s address never reaches a temp, memory, a condition or a return, and no struct copy covers it. **Trusted:** (a) the callee write semantics: the three vector helpers write their arg 0 and `f32_find_wall_collision` writes back the same y; `vec3f_find_ceil` and `mtxf_align_terrain_triangle` only read the arg they get; (b) nothing reaches `pos` by pointer arithmetic on a `MarioState` other than the field access; (c) code outside the 12 TUs that gets a `MarioState` pointer (objects, level scripts: rows 0.5/0.7) does not write `pos[1]`. What each site writes is `Hframe_is_move_chain` (0.6). |
-| 0.10 | GOAL 2's object census: what objects can exist in WMotR and their interaction types (`BehaviorScripts.v`) | **Machine-checked over generated code, frontier trusted.** `generated/behavior_data.v` (clightgen of `data/behavior_data.c`) gives every behavior script as data; a fail-closed decoder mirrors the command layouts. WMotR places 11 behaviors (macro presets + level-script OBJECTs + MARIO). A closure follows every symbol their scripts, data tables and C bodies mention, over 21 generated TUs (now including `object_helpers`, `obj_behaviors`, `obj_behaviors_2`, `spawn_object`, `object_list_processor`), except a behavior whose value only reaches comparisons or lookups (a taint analysis whose sink table is proved a fixpoint, `sinks_stable`). Result: the reached behaviors are pinned (`reached_bhvs_value`), and **none can carry `INTERACT_GRABBABLE`** (`no_grabbable_in_wmotr`): every interaction type set by a script, an `ObjectHitbox` table or a C store is a constant without bit 1. **Trusted:** (a) the analysis is a computation, not a semantic theorem: its soundness (behavior values move only through args, temps, stores and returns; `segmented_to_virtual` is pure) is argued, not proved; (b) the frontier (`frontier_value`: audio, camera, dialog, save file, graph nodes, RNG, `load_object_collision_model`, `try_do_mario_debug_object_spawn`) neither spawns objects nor writes `oInteractType` (the debug spawner is off in retail); (c) the level-phase code outside the placed objects' closure (area load, warps, `script_func_global_*`) spawns nothing else; (d) behavior scripts' `CALL`/`GOTO` are followed as references, and the script interpreter (`behavior_script.c`, not generated) runs them as written. |
-| 0.7 | GOAL 2's flank segments (`HeightFrame.v`: controller poll, platform displacement, level/warp phase, non-Mario objects) do what their specs say: y / action loads as the censuses found them, and each carries GOAL 1's `MWF_real` and Φ (since 2026-09-29 Φ here is `PhiW`, so each flank also keeps the WMotR world: object updates reload only WMotR's surfaces and never hand Mario an object to hold or ride; collision detection registers only WMotR-kind objects, with poles and cannon bases at their level positions and no star while coin #2 stands (0.3); no object sets a stomp bit on Mario's object) (the poll only when A is not pressed); platform displacement also leaves the held-A reading unchanged (it writes no controller) | **ASSUMED, labeled.** Specs, not proofs: none of that code is linked. Since 2026-10-20 Φ here also contains `FfWorld.ffw` (0.6), so each flank also keeps memory closed by an injection mapping the globals and Mario's state block (a fact of the semantics for any Clight code, `ClightClosed.funcall_closed`, so it becomes a lemma when the flank is linked), keeps `m->wall` / `m->ceil` / `m->controller` off the walk's regions and Mario's collided objects in his object's block, leaves `m->animList` / `bufTarget` / `marioObj` and the collision partition as ffw says (object updates reload WMotR's surfaces), keeps m->input's A bits clear, and keeps floorHeight a refresh of y (no WMotR flank moves Mario). The censuses behind the load clauses: `docs/goal2-frame-boundary-scout.md`, `goal2-wmotr-behavior-census.md`, `playground/PlatformInert.v`. The carries are stated *inside* the specs because as separate ∀-rows over every memory matching the load clauses they would be false. |
-| 0.4 | The starting states the theorem quantifies over (`mem_ok_lp`: Mario's block valid, his action untainted, `MWF_real`) | **GOAL 1: proved satisfiable by the real boot path** (2026-10-19, `BootMWF.boot_init_ok`, used by `NoAImpliesNoFlyTwelve.noA_never_flying_from_boot`). The memory `Genv.init_mem lp` of any linked-TU (now 17) link, followed by one real call of the generated `init_mario_from_save_file`, satisfies `mem_ok_lp` with `SafeB := SafeB_boot` (every block except the `non_safeb_syms` globals; it satisfies `HSafeB_syms`). The boot half is a vm-checked pass over every global's initializer in all 17 TUs: no pointer to Mario's block, the controllers or a non-SafeB global sits in a chase-root or table window, and the `.bss` cells MWF reads are zero. The init half walks every statement of the real body; each store is classified against the generated AST (`init_chk`), and its one call (`save_file_get_total_star_count`) is the capstone's own `Hpres_obj_ext_open` row. So `mem_ok_lp` is not a phantom ∀: the capstone applies to a state the real init code builds. **Still a modelling gap:** the boot image is the 17-TU `init_mem`. Globals defined outside those TUs are size-0 externs there. (2026-10-20: `game_init.c` is now linked as the 16th TU, so `gControllers` and `gMarioAnimsBuf` have their real storage. Its initializers `gPlayer{1,2,3}Controller = &gControllers[i]` made the boot check fail, so those three globals joined `non_safeb_syms`.) The code that runs between boot and `init_mario_from_save_file` (`main`, `thread5_game_loop`, level script load, `clear_objects`, `init_mario`'s other writers) is not run. **Consequence, found 2026-10-20:** `setup_game_memory` is not run, so `gMarioAnimsBuf` is still all zeros at boot (`dmaTable = NULL`). The first frame that calls `set_mario_animation` loads through that NULL table and **has no execution**. So `noA_never_flying_from_boot` is a satisfiability witness for the start premise (its purpose: `mem_ok_lp` is not a phantom ∀). As a statement about multi-frame runs from boot it is nearly vacuous: almost every real run stops having a model execution at its first animation frame. The general capstone (every `mem_ok_lp` state, every run) is unaffected. Closing this means running `setup_game_memory`'s `memory.c` calls (`main_pool_alloc`, `dynamic_dma_read`, `setup_dma_table_list`) in the boot path. Those calls allocate from the main pool. `alloc_pool` hands `main_pool_init` the integer addresses `SEG_POOL_START`/`SEG_POOL_END`, and CompCert has no memory there, so running them needs a stated model of the pool region as a block (open decision: a new hardware-level row). (2026-10-20: the user approved that hardware row, at low priority; it will be added when the from-boot path takes on level loading, which a real from-boot run needs anyway.) **Also found 2026-10-20:** `gNumCalls`, `gNumFindFloorMisses` and `gFindFloorIncludeSurfaceIntangible` (written by `find_floor`) are defined only in `object_list_processor.c`, so in the 16-TU boot image they were size-0 externs and a `find_floor` call had no execution from boot. **Repaired** by linking `object_list_processor.c` as the 17th TU (`LinkedTwelve.tu_rest`); no new assumption. **GOAL 2:** its start premise is now **proved satisfiable** (2026-10-20, `StartSat.goal2_start_sat`, in the discipline audit). For every 17-TU link there is a memory meeting the capstone's whole start premise (`HSafeB_syms`, the symbol pins, `mem_ok_lp` with `MWF_real`, and `PhiW`: the height invariant, the WMotR world, the anim layout, Mario's object apart, closedness, the collision partition, the controller). It is built from the link's real boot image `Genv.init_mem lp` by three fresh blocks and eight stores, each `MWF_real` step a proved store brick, so `wmotr_noA_height_bound_linked12` is not vacuous. **Still ASSUMED:** that the memory the real game reaches at WMotR entry satisfies Φ. Level loading is not modelled, and it must be checked on recorded states (§5). |
-| 0.5 | The step relation = what one real frame does | GOAL 1: **only `execute_mario_action`**. GOAL 2's `frame_step` composes that real call with four *specified* flanks (0.7): controller poll, platform, level phase, objects. The flanks are specs, not linked code. This is the largest scope gap. **GOAL 2's run is one WMotR visit:** a frame is a step only if it ends with `gCurrLevelNum = LEVEL_WMOTR` (`HeightFrame.in_wmotr`; 31, pinned from the level's own self-warp node, `WMotRLevel.level_wmotr_self_warp`). This is forced by the real game: falling off sends Mario to the castle grounds, where `init_mario` puts him at y = 4500 (5.4), so "y ≤ 2796 forever" is false across a level exit. The coin argument must therefore be per visit: re-entry reloads the red coins and the star counter (0.3). |
+| 0.3 | "Collect the star" = the red-coin star spawns and is touched. The GOAL-2 height bound must imply you can't | **Height form stated** (`WMotRRequiresA/HeightFrame.v`, `wmotr_noA_height_bound_linked12`): a no-A run keeps `pos[1] ≤ 2796` (`PHI_YMAX` = K + A, `HeightInvariant.v`; K = H* = 2424, the wing-cap box top 2320 + 2·52 (the box is scaled ×2), with the level facts it needs proved from generated level data in `WMotRLevel.v` (0.8); A = 372 from `tools/goal2_budget.py` plus the binary32 rounding allowance). A wrong K or A would make the crux row false, not the capstone unsound. Details: [row 0.3 in detail](#row-03-in-detail). |
+| 0.6 | GOAL 2's height invariant `Phi` and the Mario-frame rows | **Defined** (`HeightInvariant.height_invariant`, design `docs/goal2-phi.md`): `R_noA` action whitelist ∧ `budget_ok` over the cells action, actionState, actionTimer, pos[1], vel[1], floorHeight and `marioObj->gfx.pos[1]` (what OOB recovery restores). Details: [row 0.6 in detail](#row-06-in-detail). |
+| 0.8 | GOAL 2's level data: `wmotr_floor` / `wmotr_pole` / `wmotr_cannon` are WMotR's floors, poles and cannon seats | **Defined from generated/, rows proved** (`WMotRLevel.v`). Data: `generated/wmotr_level_data.v` (clightgen of `pipeline/tu/wmotr_level_data.c`, which `#include`s the vendor terrain, macro list and the two object meshes verbatim; the real build puts them in other TUs), `generated/wmotr_script.v` (the real `levels/wmotr/script.c`; `level_wmotr_entry` is shown to load these arrays), `generated/macro_special_objects.v` (the real preset → behavior table). Details: [row 0.8 in detail](#row-08-in-detail). |
+| 0.9 | GOAL 2's pos[1] writer census is complete (`YWriterCensus.v`) | **Machine-checked list, trusted edges.** Coq scans every function body of the 12 generated Mario TUs and proves: 31 direct `pos[1]` stores and 21 write-escapes (16 whole-vector arg-0 passes to `vec3f_copy`/`vec3f_set`/`vec3s_to_vec3f`, 5 `&pos[1]` passes to `f32_find_wall_collision`), 52 in all; `pos`'s address never reaches a temp, memory, a condition or a return, and no struct copy covers it. Details: [row 0.9 in detail](#row-09-in-detail). |
+| 0.10 | GOAL 2's object census: what objects can exist in WMotR and their interaction types (`BehaviorScripts.v`) | **Machine-checked over generated code, frontier trusted.** `generated/behavior_data.v` (clightgen of `data/behavior_data.c`) gives every behavior script as data; a fail-closed decoder mirrors the command layouts. Details: [row 0.10 in detail](#row-010-in-detail). |
+| 0.7 | GOAL 2's flank segments (`HeightFrame.v`: controller poll, platform displacement, level/warp phase, non-Mario objects) do what their specs say: y / action loads as the censuses found them, and each carries GOAL 1's `MWF_real` and Φ (since 2026-09-29 Φ here is `PhiW`, so each flank also keeps the WMotR world: object updates reload only WMotR's surfaces and never hand Mario an object to hold or ride; collision detection registers only WMotR-kind objects, with poles and cannon bases at their level positions and no star while coin #2 stands (0.3); no object sets a stomp bit on Mario's object) (the poll only when A is not pressed); platform displacement also leaves the held-A reading unchanged (it writes no controller) | **ASSUMED, labeled.** Specs, not proofs: none of that code is linked. Details: [row 0.7 in detail](#row-07-in-detail). Details: [row 0.7 in detail](#row-07-in-detail). |
+| 0.4 | The starting states the theorem quantifies over (`mem_ok_lp`: Mario's block valid, his action untainted, `MWF_real`) | **GOAL 1: proved satisfiable by the real boot path** (2026-10-19, `BootMWF.boot_init_ok`, used by `NoAImpliesNoFlyTwelve.noA_never_flying_from_boot`). Details: [row 0.4 in detail](#row-04-in-detail). |
+| 0.5 | The step relation = what one real frame does | GOAL 1: Details: [row 0.5 in detail](#row-05-in-detail). |
+
+### Row 0.1 in detail
+
+- Needs a reader check. Holding A counts as using it (ABC's "0.5x" press, `game_init.c:544`). The
+  held bit is load-bearing: with A held and never pressed, `act_punching`/`act_move_punching` enter
+  `ACT_JUMP_KICK` (not in the no-A whitelist) and the wing cap flutters (`mario_step.c:566`).
+- **When the run starts at power-on** (long term), "held" follows from "never pressed": `buttonDown`
+  is zero-initialized and the poll (`game_init.c:542-545`) sets `buttonPressed = raw & (raw ^
+  buttonDown)`, `buttonDown = raw`, so A can only become down on a poll that reports it pressed. The
+  premise should then be stated on the raw pad data, since title-screen demos (`run_demo_inputs`)
+  inject A.
+
+### Row 0.9 in detail
+
+- **Machine-checked list, trusted edges.** Coq scans every function body of the 12 generated Mario
+  TUs and proves: 31 direct `pos[1]` stores and 21 write-escapes (16 whole-vector arg-0 passes to
+  `vec3f_copy`/`vec3f_set`/`vec3s_to_vec3f`, 5 `&pos[1]` passes to `f32_find_wall_collision`), 52 in
+  all; `pos`'s address never reaches a temp, memory, a condition or a return, and no struct copy
+  covers it.
+- **Trusted:** (a) the callee write semantics: the three vector helpers write their arg 0 and
+  `f32_find_wall_collision` writes back the same y; `vec3f_find_ceil` and
+  `mtxf_align_terrain_triangle` only read the arg they get; (b) nothing reaches `pos` by pointer
+  arithmetic on a `MarioState` other than the field access; (c) code outside the 12 TUs that gets a
+  `MarioState` pointer (objects, level scripts: rows 0.5/0.7) does not write `pos[1]`. What each
+  site writes is `Hframe_is_move_chain` (0.6).
+
+### Row 0.7 in detail
+
+- **ASSUMED, labeled.** Specs, not proofs: none of that code is linked. Details: [row 0.7 in
+  detail](#row-07-in-detail).
+
+### Row 0.5 in detail
+
+- GOAL 1:
+- **only `execute_mario_action`**. GOAL 2's `frame_step` composes that real call with four
+  *specified* flanks (0.7): controller poll, platform, level phase, objects. The flanks are specs,
+  not linked code. This is the largest scope gap.
+- **GOAL 2's run is one WMotR visit:** a frame is a step only if it ends with `gCurrLevelNum =
+  LEVEL_WMOTR` (`HeightFrame.in_wmotr`; 31, pinned from the level's own self-warp node,
+  `WMotRLevel.level_wmotr_self_warp`). This is forced by the real game: falling off sends Mario to
+  the castle grounds, where `init_mario` puts him at y = 4500 (5.4), so "y ≤ 2796 forever" is false
+  across a level exit. The coin argument must therefore be per visit: re-entry reloads the red coins
+  and the star counter (0.3).
+
+
+### Row 0.3 in detail
+
+- **Height form stated** (`WMotRRequiresA/HeightFrame.v`, `wmotr_noA_height_bound_linked12`): a no-A
+  run keeps `pos[1] ≤ 2796` (`PHI_YMAX` = K + A, `HeightInvariant.v`; K = H* = 2424, the wing-cap
+  box top 2320 + 2·52 (the box is scaled ×2), with the level facts it needs proved from generated
+  level data in `WMotRLevel.v` (0.8); A = 372 from `tools/goal2_budget.py` plus the binary32
+  rounding allowance). A wrong K or A would make the crux row false, not the capstone unsound.
+- **The collision step is machine-checked** (`WMotRRequiresA/CoinLink.v`, `overlap_no_contact` /
+  `mario_coin2_no_contact`, over the generated body of `detect_object_hitbox_overlap`): if a's
+  hitbox top + 1 ≤ b's bottom (binary32, fields finite and |·| ≤ 8192), every execution returns with
+  memory unchanged, so nothing is written to `collidedObjs`/`collidedObjInteractTypes`. For Mario
+  (a; always the first argument, from `check_player_object_collision`) and coin #2 (b) this holds
+  whenever y ≤ 2796, Mario's hitbox height ≤ 160 and both down offsets are 0. That theorem's own
+  assumptions: the body's one call, `sqrtf` (resolved through the global symbol), leaves memory
+  unchanged (a 4.1 row); the linked composite env contains `object_collision.c`'s composites
+  verbatim (dischargeable by `SymbolicLinking.linkorder_comp_env_extends`); and Clight expression
+  evaluation is deterministic (`Generic/ClightDeterm.v`, proved). Still missing: composing it into
+  the capstone (Mario's hitbox fields at collision time, coin #2's field values, and "no contact
+  registered ⇒ coin not collected ⇒ no star"). That step also silently assumes **coin #2 never
+  moves**. The one way Mario code moves another object is dropping or throwing a held object
+  (`mario_drop_held_object` sets `heldObj->oPosY = m->pos[1]`, `interaction.c:307`; this is how
+  cloning works).
+- **Machine-checked so far** (`HeldObjCensus.v`, over all 16 generated code TUs): every `heldObj`
+  store is NULL except `mario_grab_used_object`'s, which stores `usedObj`; `&heldObj` is never
+  taken; its callers are `act_dive`, `act_dive_slide`, `check_water_grab`, `act_picking_up`,
+  `act_picking_up_bowser`; only `interact_grabbable` sets `INPUT_INTERACT_OBJ_GRABBABLE`.
+- **Still open:** each caller runs only after a grab check or on a collided `INTERACT_GRABBABLE`
+  object (true by reading; the only value occurrences of `ACT_PICKING_UP`/`ACT_PICKING_UP_BOWSER` in
+  21 generated TUs, code and data, are in `mario_check_object_grab`:
+  `HeldObjCensus.pickup_entry_sites`; still open is a copy of `m->action`/`prevAction` or an
+  arithmetic construction carrying those values), and WMotR spawns no grabbable object (**now
+  machine-checked over generated code**, `BehaviorScripts.no_grabbable_in_wmotr`, TRUST 0.10).
+  Informal argument: `init_mario` clears `heldObj`/`usedObj`, grabs need
+  `INPUT_INTERACT_OBJ_GRABBABLE` (set only by `interact_grabbable`), and WMotR spawns no grabbable
+  object. So `heldObj` stays NULL and the coin stays at 3140. Also assumed: no object code writes a
+  red coin's position, Mario's hitbox is at most 160, the Mario object's y equals `pos[1]` at
+  collision time, and the star counter starts at 8 − (red coins loaded).
+
+### Row 0.6 in detail
+
+- **Defined** (`HeightInvariant.height_invariant`, design `docs/goal2-phi.md`): `R_noA` action
+  whitelist ∧ `budget_ok` over the cells action, actionState, actionTimer, pos[1], vel[1],
+  floorHeight and `marioObj->gfx.pos[1]` (what OOB recovery restores). The cells are ranges (−75 ≤
+  vel ≤ 43, y and gfx.y ≥ −11000, floorHeight finite and ≥ −11000 (and, 2026-10-18, `AttachOK`
+  accepts a landing at −11000, which a floorless air quarter makes when the frame's find_floor calls
+  both missed): until 2026-10-18 the y bound was −8192, the death plane, which the code does not
+  give: when both `find_floor` calls in `update_mario_geometry_inputs` miss, floorHeight is −11000
+  and an air step compares against it; −11000 is what every non-landing air-step path proves, per a
+  symbolic probe of the real `perform_air_step`; the upper bound was 128 until 2026-09-28, which let
+  Φ admit a grounded Mario rising at up to 128 whose walk-off no Move covers: `Hframe_is_move_chain`
+  was false over Φ. 43 is the freefall launch cap; real no-A launches are ≤ 37.5), the budget y +
+  credit ≤ 2424 + 372 at pos and at gfx.pos, and the slide-kick, ground-pound and ledge clauses.
+  Offsets and action constants are pinned against the generated AST, and `Hphi_y` is proved.
+- **The old crux row `Hseg_action_phi` is now a lemma** (`HeightFrame.seg_action_phi`). The budget
+  arithmetic of every move a frame can make (binary32 air step, cut step, slide-kick signed-energy
+  step, ground-pound windup, E3 switches, attach, floor refresh, OOB) is proved
+  (`HeightMoveCatalog.chain_keeps_budget`).
+- **The run carries `PhiW` = Φ ∧ `wmotr_world`** (`WMotRWorld.v`, 2026-09-29): Mario's wall/ceil are
+  NULL or surfaces of WMotR's own types, and his floor is never NULL and of those types (computed
+  from the generated collision data: DEFAULT, HANGABLE, DEATH_PLANE, NOT_SLIPPERY,
+  HARD_NOT_SLIPPERY), nothing held or ridden, quicksandDepth 0. Without it both frame rows were
+  false over phantom worlds (a BURNING floor → ACT_LAVA_BOOST; a quicksand depth lowers gfx).
+- **Object collisions are in W** (`wmotr_objects`, 2026-09-29, from the whole-frame symbolic walk,
+  `docs/goal2-value-walk-plan.md` §6). Mario's object carries no stomp bit (`oInteractStatus &
+  0x13`). Otherwise SHOCKED / SHOCKWAVE_BOUNCE, outside R_noA, are reachable. At most 4 objects are
+  collided. Each has an interact type in WMotR's set {0, COIN, CAP, POLE, BREAKABLE, CANNON_BASE,
+  TEXT}. That set is a **hand census** (`goal2-wmotr-behavior-census.md`), not computed from
+  generated data. A collided pole's oPosY / hitboxDownOffset / hitboxHeight and a collided cannon
+  base's oPosY are a `WMotRLevel` list entry; those are the only object fields Φ depends on.
+- **Excluding the red-coin star is load-bearing:** collecting it reaches STAR_DANCE_* /
+  FALL_AFTER_STAR_GRAB, outside R_noA, and its absence rests on 0.3 (the star needs coin #2, which
+  needs y ≥ 2980). ACT_SQUISHED is not excluded by W. It needs a DYNAMIC floor or ceiling with ceil
+  − floor ≤ 150 at the new position, which is a geometry fact for the find_floor / find_ceil value
+  contracts (open, part of `Hframe_stays_noA`).
+- **Open rows, split per call (2026-10-20):** the three whole-frame rows `Hframe_keeps_world`,
+  `Hframe_stays_noA` and `Hframe_is_move_chain` are now **lemmas** (`HeightFrame`), derived by
+  `FrameSplit.frame_split` from the real `execute_mario_action` body. `FrameCalls.cl` reads the
+  generated body as 17 `f(gMarioState)` calls, 5 other calls (`spawn_wind_particles` ×2,
+  `play_sound` ×2, `play_infinite_stairs_music`) and 2 store blocks; the two stores into Mario's
+  object (`gfx.node.flags`, `oInteractStatus = 0`) are **proved** to keep W, the cells and GOAL 1's
+  `mem_ok`; GOAL 1's per-call `mem_ok` (`frame_call_ok_linked12`) is proved. What is assumed is one
+  row shape per call, `Hseg_call_na` / `Hseg_any` (`FrameSplit.seg_ok`); the airborne dispatcher's
+  row is itself proved (`AirSplit.air_seg`) from its two prologue calls and one row per no-A case
+  (11 of its 43 cases; the rest are dead under `R_noA`), each handler called with the action cell
+  equal to its label (`Hair_pro` / `Hair_case`): the call keeps the frame world (`fworld`: action in
+  `R_noA`, W, `anim_apart`, `mobj_apart`, A not held) and moves the cells by a MoveChain. Inside
+  these rows: keeping W (tethered: 11,379 write-watch frames); keeping the action in `R_noA`; the
+  call's effect on the cells is a chain of those moves, each in range (the T3 value walk; false if
+  an unmodelled mechanism fires, listed in the rows' comment). The per-call shape is stronger than
+  the old whole-frame rows (each call's own effect must be a chain), which is what lets the value
+  walk discharge them one call at a time.
+- **Added to W (2026-10-20): `mobj_apart`**: no wall/ceiling/floor surface lives in Mario's object
+  block, a collided object is Mario's own or a whole `struct Object` (608 bytes) away, and the
+  object does not wrap the address space. In the game surfaces are in `sSurfacePool` and objects are
+  distinct `gObjectPool` slots. Without it the frame's own `oInteractStatus` store could overwrite a
+  collided pole's fields.
+- **The freefall case is proved (2026-10-20, `FfRow.ff_row`), both halves:** the real
+  `act_freefall`, with `perform_air_step`, `set_mario_animation` (down to the DMA floor 3.5) and
+  `update_air_without_turn` (FPU floor) run by the `FfRun` walk on the link, moves Phi's cells by a
+  MoveChain **and keeps the frame world** (every `fworld` conjunct is rebuilt after the call from
+  the walk's outcome check `FfKeepCheck.fk_ok`, whose meaning is `FfKeep`, and from
+  `ClightClosed.funcall_closed`). Its start state is built from a new carried conjunct of PhiW /
+  `fworld`, **`FfWorld.ffw`**: memory is closed by a flat injection that maps every global and
+  Mario's state block (`ClosedMem.closed_by`: a pointer stored in a mapped block points at a mapped
+  block; every Clight call keeps it, `ClightClosed.funcall_closed`, proved from CompCert's semantics
+  and its external-call axioms); `m->marioObj`, `m->animList = &gMarioAnimsBuf` and the list's
+  `bufTarget` are pointers, and the object and the buffer are blocks of their own (a `gObjectPool`
+  slot; a `main_pool` allocation — the pool's addresses are integers in the C, so the model takes
+  each allocation as its own block); the collision partition is well-formed lists of WMotR-typed
+  surfaces off those regions (`FloorExec.Wff`), and every floor-list height is a WMotR floor
+  (`floor_data`, 0.8(d)); `m->floor` / `m->area` / `m->controller` are world objects off the
+  regions, and `m->wall` / `m->ceil`, when pointers, are off them too; every collided object of
+  Mario's is in his object's block (in the game all objects are `gObjectPool` slots); `m->input` has
+  neither A bit (0x82); and floorHeight is a floor refresh of y (`FloorRefreshOK`: −11000, or a
+  WMotR floor ≤ y + 241). ffw is **proved** to survive the frame's two object stores
+  (`FrameSplit.obj_store_ffw`); every other call carries it in its row, and the flanks carry it in
+  their spec (0.7). The freefall row is gone (`Hff_keeps` removed from HeightFrame); the other ten
+  cases keep their AirSplit row (`air_case_rest`).
+- **The air-hit-wall case is proved too (2026-10-20, `AhwRow.ahw_row`):** the real
+  `act_air_hit_wall`, walked by `AhwRun` (A unpressed prunes the wall kick), either stays (timer +1)
+  or switches to BACKWARD_AIR_KB / SOFT_BONK with state and timer 0, keeping Phi's cells otherwise;
+  nine cases remain (`AhwRow.air_case_rest2`).
+- **The soft-bonk and both air-knockback cases are proved (2026-10-20, `KbRow.kb_row`, generic in
+  the case; walks `KbRun.sbcheck12` / `bkbcheck12` / `fkbcheck12`); six cases remain
+  (`KbRow.air_case_rest3`).** **Ground pound is proved (2026-10-20, `GpRun.gp_kfinal` through
+  `kb_row`, which is now generic in the walk theorem `KbRun.kfinal`); five cases remain
+  (`KbRow.air_case_rest4`: dive, both rollouts, butt-slide air, slide kick).** **Dive is proved
+  (2026-10-20, `KbDv.dvcheck12` through `kb_kfinal`; dive is now an `air_entry`); four cases remain
+  (`KbRow.air_case_rest5`: both rollouts, butt-slide air, slide kick).** **Found on the way to the
+  rollouts (2026-10-20):** Φ charged a rollout at state 0 the credit of its current vel[1], but its
+  handler's first run sets vel[1] := 30 (airborne.c:1354-1356, 1395-1397) before the air step, and
+  the entry (dive slide / stomach slide) does not set vel[1]. So a state-0 rollout that was high up
+  and slow passed Φ, and its launch then broke it. The credit now charges `rise_credit 4 (Rmax v
+  30)` at state 0 (`HeightInvariant.roll_prep`, mode `M_RollPrep`). Two real-state findings came
+  with it: dive's jump-sound path reads `gAudioRandom`, which was a size-0 extern until audio/data.c
+  was linked (18th TU), so those paths had no execution and the walk was vacuous on them (the walk
+  now reads it as world memory: a gtab entry plus an `Fworld` start fact, with ffw saying its block
+  is neither Mario's object nor the DMA buffer, proved at boot); and dive's object-grab path is cut
+  by the carried input mask, which now also clears INPUT_INTERACT_OBJ_GRABBABLE (only
+  interact_grabbable sets it, and WMotR has nothing grabbable). The walk covers both states: the
+  windup (`FfClass.gpw_ok`: `S_gp_windup` or `S_gp_hold`) and the fall (the air-step summary from a
+  ground-pound fall, then a landing, a wall bonk into BACKWARD_AIR_KB with vel[1] ≤ 0, or nothing).
+  ffw's floor-refresh clause now covers ground pound too (`HeightMoveCatalog.fro_entry` = air_entry
+  ∨ GROUND_POUND). Its windup only raises pos[1] (`HeightFloatSteps.windup_add_ge`) and its fall is
+  a non-attaching air step. As before, this is a stronger carried fact, true of the game for the
+  same reasons.
+- **Found (2026-10-20):** a ground pound in its windup (actionState 0) with actionTimer 65535 wraps
+  `m->actionTimer++` to 0, and the windup rises again. No Move covers that, so the ground-pound row
+  was false over such phantom cells. `budget_ok` now also says a windup's actionTimer is ≤ 32770.
+  The windup ends once actionTimer ≥ loopEnd + 4, and loopEnd is an s16. `S_gp_hold` carries the
+  bound (the walk proves it from that loopEnd test), and `launch_cap` gives it to an attach into the
+  windup, so `chain_keeps_budget` still holds. To reuse the air-step summary for them, its premise
+  "the entry action is ACT_FREEFALL" became `HeightMoveCatalog.air_entry` (freefall, AIR_HIT_WALL,
+  SOFT_BONK, BACKWARD / FORWARD_AIR_KB), and ffw's floor-refresh clause now holds in all five (was:
+  freefall only). That is a **stronger carried fact**, and so a stronger claim in the open per-call
+  rows that carry ffw. It is true of the game because the frame refreshes floorHeight at pos[1]
+  before the action runs, these actions are entered from non-attaching air steps, from switches that
+  keep pos[1] and floorHeight, or from a pole (which moves pos[1] far less than STEP_UP = 241 below
+  the refreshed floor), and no WMotR interaction moves pos[1] while setting one. AttachOK's
+  ledge-after-ceiling-bump clause now also admits M_Air (the plain air credit already pays the
+  vel/2: `rise_half4`).
+- **Found on the way (2026-10-20):** an unconditional "floorHeight is a refresh of y" is not kept by
+  `act_freefall` (a landing under a low ceiling can leave floorHeight a quarter step stale), so ffw
+  states it only in ACT_FREEFALL, which such a landing always leaves; load-level pointer-closedness
+  does not survive a call in any provable way, so ffw now carries injection closedness instead; ffw
+  lacked that m->wall / m->ceil / m->controller are off the walk's regions, which keeping W and the
+  A reading needs. The two former level-data rows are **proved** (`WMotRLevel.wmotr_gap_proved`: no
+  floor height in (2424, 3046); `wmotr_poles_proved`: every pole low or out of reach;
+  `wmotr_cannons_proved`: both cannon seats ≤ K; see 0.8).
+- **Found 2026-09-28:** entering the cannon (`pos := cannon.y + 350`) is reachable without A (the
+  buddy opens it on B) and was in no Move, so `Hframe_is_move_chain` was false as stated. It is now
+  the `wmotr_cannon` attach case. `R_noA` is **concrete** since 2026-09-29 (`NoAActions.v`: the
+  census's 73-action closure, `docs/goal2-rnoa-census.md`; proved disjoint from GOAL 1's taint set;
+  every one of the 36 actions seen in the no-A write-watch frames is in it). The census is a tool
+  result, so an edge it missed would make `Hframe_stays_noA` false. Tethered: `budget_ok` holds on
+  all 68,423 no-A write-watch frames that carry the full cell set (`ywatch.py`), and on the 620
+  recorded states (`experiments/oracle/phi_check.py`) except 4 `ACT_JUMP` states at vel 44. Those
+  recordings press A, so they are outside the premise.
+
+### Row 0.8 in detail
+
+- **Defined from generated/, rows proved** (`WMotRLevel.v`). Data: `generated/wmotr_level_data.v`
+  (clightgen of `pipeline/tu/wmotr_level_data.c`, which `#include`s the vendor terrain, macro list
+  and the two object meshes verbatim; the real build puts them in other TUs),
+  `generated/wmotr_script.v` (the real `levels/wmotr/script.c`; `level_wmotr_entry` is shown to load
+  these arrays), `generated/macro_special_objects.v` (the real preset → behavior table).
+- **Trusted:** (a) the Coq decoders mirror `load_area_terrain`/`load_static_surfaces`,
+  `spawn_macro_objects` and the OBJECT command layout (cross-checked: 1352 triangles / 778 floors,
+  as `tools/goal2_ladder.py`; the 6 poles; 26 macro objects); (b) the census that of WMotR's
+  behaviors only `bhvExclamationBox` (scale 2, `exclamation_box.inc.c:176`) and `bhvCannonClosed`
+  load collision, from `behavior_data.c` (not generated), and that those objects stay at their spawn
+  height with no x/z tilt; (c) pole top = base + 10·bparam2 (`pole.inc.c:20-21`); (c') a cannon
+  seats Mario at lid y + 10: the cannon base spawns at its lid's home (`cannon_door.inc.c:9-11`,
+  un-generated), its script drops it 340 before `SET_HOME` (pinned from `generated/behavior_data.v`,
+  `bhvCannon_drop_then_home`), and `act_in_cannon` adds 350; and a cannon has not moved from home
+  when Mario enters it (it moves only after firing, which is A-gated). Seats 837 and −2730, both ≤ K
+  (`wmotr_cannons_proved`); (d) floor heights `find_floor` returns lie within ±1 of a static floor
+  triangle's y-range (binary32 plane evaluation overshoot ≤ 0.001, `tools/goal2_gapfact_check.py`),
+  or exactly on an object's flat top. (d) is a claim about the real frame and is part of
+  `Hframe_is_move_chain`.
+- **Since 2026-10-20 it is load-bearing as `floor_data` inside the carried `FfWorld.ffw` (0.6)**,
+  used by the proved freefall MoveChain. Toward discharging it: `FloorHeight.ff_height` proves from
+  `find_floor`'s body that the returned height is −11000 or `FloorList.plane_h` of a surface on the
+  frame-entry partition lists, at an (x, z) that passed that surface's three edge tests, and
+  `FloorExec.c_ff` hands this to the air-step walk as a fact. The surface is on a FLOOR list (slot 0
+  of a valid partition cell, `FloorHeight.floor_head`), and when `*pfloor` comes back non-NULL the
+  height is such a hit, never the −11000 start value. What would remain is a fact about level data:
+  the per-triangle binary32 bound.
+- **Found by this step:** the box's ×2 scale. The ladder had used +52, so K was 2372 and is now
+  2424.
+
+### Row 0.10 in detail
+
+- **Machine-checked over generated code, frontier trusted.** `generated/behavior_data.v` (clightgen
+  of `data/behavior_data.c`) gives every behavior script as data; a fail-closed decoder mirrors the
+  command layouts. WMotR places 11 behaviors (macro presets + level-script OBJECTs + MARIO). A
+  closure follows every symbol their scripts, data tables and C bodies mention, over 21 generated
+  TUs (now including `object_helpers`, `obj_behaviors`, `obj_behaviors_2`, `spawn_object`,
+  `object_list_processor`), except a behavior whose value only reaches comparisons or lookups (a
+  taint analysis whose sink table is proved a fixpoint, `sinks_stable`). Result: the reached
+  behaviors are pinned (`reached_bhvs_value`), and **none can carry `INTERACT_GRABBABLE`**
+  (`no_grabbable_in_wmotr`): every interaction type set by a script, an `ObjectHitbox` table or a C
+  store is a constant without bit 1.
+- **Trusted:** (a) the analysis is a computation, not a semantic theorem: its soundness (behavior
+  values move only through args, temps, stores and returns; `segmented_to_virtual` is pure) is
+  argued, not proved; (b) the frontier (`frontier_value`: audio, camera, dialog, save file, graph
+  nodes, RNG, `load_object_collision_model`, `try_do_mario_debug_object_spawn`) neither spawns
+  objects nor writes `oInteractType` (the debug spawner is off in retail); (c) the level-phase code
+  outside the placed objects' closure (area load, warps, `script_func_global_*`) spawns nothing
+  else; (d) behavior scripts' `CALL`/`GOTO` are followed as references, and the script interpreter
+  (`behavior_script.c`, not generated) runs them as written.
+
+### Row 0.7 in detail
+
+- **ASSUMED, labeled.** Specs, not proofs: none of that code is linked. Since 2026-10-20 Φ here also
+  contains `FfWorld.ffw` (0.6), so each flank also keeps memory closed by an injection mapping the
+  globals and Mario's state block (a fact of the semantics for any Clight code,
+  `ClightClosed.funcall_closed`, so it becomes a lemma when the flank is linked), keeps `m->wall` /
+  `m->ceil` / `m->controller` off the walk's regions and Mario's collided objects in his object's
+  block, leaves `m->animList` / `bufTarget` / `marioObj` and the collision partition as ffw says
+  (object updates reload WMotR's surfaces), keeps m->input's A bits clear, and keeps floorHeight a
+  refresh of y (no WMotR flank moves Mario). The censuses behind the load clauses:
+  `docs/goal2-frame-boundary-scout.md`, `goal2-wmotr-behavior-census.md`,
+  `playground/PlatformInert.v`. The carries are stated *inside* the specs because as separate ∀-rows
+  over every memory matching the load clauses they would be false.
+
+### Row 0.4 in detail
+
+- **GOAL 1: proved satisfiable by the real boot path** (2026-10-19, `BootMWF.boot_init_ok`, used by
+  `NoAImpliesNoFlyTwelve.noA_never_flying_from_boot`). The memory `Genv.init_mem lp` of any
+  linked-TU (now 17) link, followed by one real call of the generated `init_mario_from_save_file`,
+  satisfies `mem_ok_lp` with `SafeB := SafeB_boot` (every block except the `non_safeb_syms` globals;
+  it satisfies `HSafeB_syms`). The boot half is a vm-checked pass over every global's initializer in
+  all 17 TUs: no pointer to Mario's block, the controllers or a non-SafeB global sits in a
+  chase-root or table window, and the `.bss` cells MWF reads are zero. The init half walks every
+  statement of the real body; each store is classified against the generated AST (`init_chk`), and
+  its one call (`save_file_get_total_star_count`) is the capstone's own `Hpres_obj_ext_open` row. So
+  `mem_ok_lp` is not a phantom ∀: the capstone applies to a state the real init code builds.
+- **Still a modelling gap:** the boot image is the 17-TU `init_mem`. Globals defined outside those
+  TUs are size-0 externs there. (2026-10-20: `game_init.c` is now linked as the 16th TU, so
+  `gControllers` and `gMarioAnimsBuf` have their real storage. Its initializers
+  `gPlayer{1,2,3}Controller = &gControllers[i]` made the boot check fail, so those three globals
+  joined `non_safeb_syms`.) The code that runs between boot and `init_mario_from_save_file` (`main`,
+  `thread5_game_loop`, level script load, `clear_objects`, `init_mario`'s other writers) is not run.
+- **Consequence, found 2026-10-20:** `setup_game_memory` is not run, so `gMarioAnimsBuf` is still
+  all zeros at boot (`dmaTable = NULL`). The first frame that calls `set_mario_animation` loads
+  through that NULL table and **has no execution**. So `noA_never_flying_from_boot` is a
+  satisfiability witness for the start premise (its purpose: `mem_ok_lp` is not a phantom ∀). As a
+  statement about multi-frame runs from boot it is nearly vacuous: almost every real run stops
+  having a model execution at its first animation frame. The general capstone (every `mem_ok_lp`
+  state, every run) is unaffected. Closing this means running `setup_game_memory`'s `memory.c` calls
+  (`main_pool_alloc`, `dynamic_dma_read`, `setup_dma_table_list`) in the boot path. Those calls
+  allocate from the main pool. `alloc_pool` hands `main_pool_init` the integer addresses
+  `SEG_POOL_START`/`SEG_POOL_END`, and CompCert has no memory there, so running them needs a stated
+  model of the pool region as a block (open decision: a new hardware-level row). (2026-10-20: the
+  user approved that hardware row, at low priority; it will be added when the from-boot path takes
+  on level loading, which a real from-boot run needs anyway.)
+- **Also found 2026-10-20:** `gNumCalls`, `gNumFindFloorMisses` and
+  `gFindFloorIncludeSurfaceIntangible` (written by `find_floor`) are defined only in
+  `object_list_processor.c`, so in the 16-TU boot image they were size-0 externs and a `find_floor`
+  call had no execution from boot.
+- **Repaired** by linking `object_list_processor.c` as the 17th TU (`LinkedTwelve.tu_rest`); no new
+  assumption.
+- **GOAL 2:** its start premise is now **proved satisfiable** (2026-10-20,
+  `StartSat.goal2_start_sat`, in the discipline audit). For every 17-TU link there is a memory
+  meeting the capstone's whole start premise (`HSafeB_syms`, the symbol pins, `mem_ok_lp` with
+  `MWF_real`, and `PhiW`: the height invariant, the WMotR world, the anim layout, Mario's object
+  apart, closedness, the collision partition, the controller). It is built from the link's real boot
+  image `Genv.init_mem lp` by three fresh blocks and eight stores, each `MWF_real` step a proved
+  store brick, so `wmotr_noA_height_bound_linked12` is not vacuous.
+- **Still ASSUMED:** that the memory the real game reaches at WMotR entry satisfies Φ. Level loading
+  is not modelled, and it must be checked on recorded states (§5).
+
 
 ## 1. Foundations (irreducible; every formal proof has these)
 
@@ -70,29 +408,301 @@ link grows.
 | `BAD_RETURN` declarations: `CameraEvent` (`camera.h:346`), `mem_pool_free` (`memory.h:78`, and its definition `memory.c:492` since memory.c is linked), `save_file_copy` (`save_file.h:130`), `cur_obj_reverse_animation` / `cur_obj_extend_animation_if_at_end` (`object_helpers.h:143`), `init_bully_collision_data` (`mario_step.h:25`, `.c:74`), `update_water_pitch` (`mario_actions_submerged.c:197`) | declared to return `s32`/`s16`/`u32` but returns nothing (garbage `v0`) | declared `void` | equivalence (typing) | The proof's C type-checks with `void`, so no caller in it reads the value. The ROM callers are the same C, so they don't read the garbage either. |
 | `geo_switch_anim_state`, `geo_switch_area` declarations (`object_helpers.h:69`) | 2 parameters | 3 parameters (`void *context`) | equivalence (unused) | Declarations only. These are graph-node callbacks, not called from the linked code. |
 | `chuckya_act_0` `sp3C` (`behaviors/chuckya.inc.c:108`) | possibly-uninitialized local | `sp3C = 0` | **picked value: must become any-value** | Stack garbage in the ROM. Outside the GOAL-1 step (an object behavior, not reached from `execute_mario_action`). If it is ever needed: replace with an "any u32" external. |
-| Census-only TUs (`obj_behaviors`, `obj_behaviors_2`, `object_helpers`; used by `BehaviorScripts.v`'s static object census, never executed by the proof): uninitialized locals set to 0 (`bowling_ball.inc.c:84,118`, `manta_ray.inc.c:47`, `mips.inc.c:118`, `snowman.inc.c:58`, `camera_lakitu.inc.c:65`), `wiggler.inc.c:154` `oHealth = 4`, `obj_perform_position_op` `u32`→`void` (`obj_behaviors_2.c:127`), and the definitions matching the `object_helpers.h` rows (`object_helpers.c:136,170,957,963`) | as in the ROM | as in the proof | **picked value: must become any-value** (the zero-inits, `oHealth`); equivalence (typing) for the rest | Stack garbage / an unset field in the ROM. The census reads these bodies only for which behaviors they spawn and which interaction types they store; none of these lines does either, so the census result is the same under any value. If this code is ever executed by a proof, replace them with any-value externals. |
+| Census-only TUs (`obj_behaviors`, `obj_behaviors_2`, `object_helpers`; used by `BehaviorScripts.v`'s static object census, never executed by the proof): uninitialized locals set to 0 (`bowling_ball.inc.c:84,118`, `manta_ray.inc.c:47`, `mips.inc.c:118`, `snowman.inc.c:58`, `camera_lakitu.inc.c:65`), `wiggler.inc.c:154` `oHealth = 4`, `obj_perform_position_op` `u32`→`void` (`obj_behaviors_2.c:127`), and the definitions matching the `object_helpers.h` rows (`object_helpers.c:136,170,957,963`) | as in the ROM | as in the proof | **picked value: must become any-value** (the zero-inits, `oHealth`); equivalence (typing) for the rest | Stack garbage / an unset field in the ROM. The census reads these bodies only for which behaviors they spawn and which interaction types they store; none of these lines does either, so the census result is the same under any value. If this code is ever executed by a proof, replace them with any-value externals. Details: [row Census-only TUs (`obj_behaviors`, `obj_behaviors_2`, `object_helpers`; used by `BehaviorScripts.v`'s static object census, never executed by the proof): uninitialized locals set to 0 (`bowling_ball.inc.c:84,118`, `manta_ray.inc.c:47`, `mips.inc.c:118`, `snowman.inc.c:58`, `camera_lakitu.inc.c:65`), `wiggler.inc.c:154` `oHealth = 4`, `obj_perform_position_op` `u32`→`void` (`obj_behaviors_2.c:127`), and the definitions matching the `object_helpers.h` rows (`object_helpers.c:136,170,957,963`) in detail](#row-Census-only TUs (`obj_behaviors`, `obj_behaviors_2`, `object_helpers`; used by `BehaviorScriptsv`'s static object census, never executed by the proof): uninitialized locals set to 0 (`bowling_ballincc:84,118`, `manta_rayincc:47`, `mipsincc:118`, `snowmanincc:58`, `camera_lakituincc:65`), `wigglerincc:154` `oHealth = 4`, `obj_perform_position_op` `u32`→`void` (`obj_behaviors_2c:127`), and the definitions matching the `object_helpersh` rows (`object_helpersc:136,170,957,963`)-in-detail). |
 | `shadow.c:191` missing return | falls off the end | `return waterLevel` | not yet checked | `shadow.c` is not linked. Assembly check needed before it is used. |
-| `detect_object_hitbox_overlap` / `detect_object_hurtbox_overlap` fall off the end when the objects miss horizontally (`object_collision.c:61,96`, `//! no return value`) | returns whatever is in the return register | `return 0;` | **any-value by statement**: `overlap_no_contact` leaves the returned value unspecified | Used by `CoinLink.v`, whose conclusion is "returns, memory unchanged" with the value existentially quantified, so it holds for any value the ROM returns. Contact is registered only on the `return 1` path, which the theorem excludes. Whoever consumes the result must also allow any value: in the ROM, a non-zero garbage return makes `check_collision_in_list` call `detect_object_hurtbox_overlap`, whose only store is `b->oInteractionSubtype` (the invincibility-delay bit), and that registers no contact. |
+| `detect_object_hitbox_overlap` / `detect_object_hurtbox_overlap` fall off the end when the objects miss horizontally (`object_collision.c:61,96`, `//! no return value`) | returns whatever is in the return register | `return 0;` | **any-value by statement**: `overlap_no_contact` leaves the returned value unspecified | Used by `CoinLink.v`, whose conclusion is "returns, memory unchanged" with the value existentially quantified, so it holds for any value the ROM returns. Details: [row `detect_object_hitbox_overlap` / `detect_object_hurtbox_overlap` fall off the end when the objects miss horizontally (`object_collision.c:61,96`, `//! no return value`) in detail](#row-`detect_object_hitbox_overlap` / `detect_object_hurtbox_overlap` fall off the end when the objects miss horizontally (`object_collisionc:61,96`, `//! no return value`)-in-detail). |
 | `mtxf_to_mtx` (`math_util.c:577`) | register/fixed-point implementation | portable C | not yet checked | `math_util` is not in the link (its callers go through the external-call rows, 4.1). Needs an equivalence check before linking. |
+
+### Row Census-only TUs (`obj_behaviors`, `obj_behaviors_2`, `object_helpers`; used by `BehaviorScripts.v`'s static object census, never executed by the proof): uninitialized locals set to 0 (`bowling_ball.inc.c:84,118`, `manta_ray.inc.c:47`, `mips.inc.c:118`, `snowman.inc.c:58`, `camera_lakitu.inc.c:65`), `wiggler.inc.c:154` `oHealth = 4`, `obj_perform_position_op` `u32`→`void` (`obj_behaviors_2.c:127`), and the definitions matching the `object_helpers.h` rows (`object_helpers.c:136,170,957,963`) in detail
+
+- Stack garbage / an unset field in the ROM. The census reads these bodies only for which behaviors
+  they spawn and which interaction types they store; none of these lines does either, so the census
+  result is the same under any value. If this code is ever executed by a proof, replace them with
+  any-value externals.
+
+### Row `detect_object_hitbox_overlap` / `detect_object_hurtbox_overlap` fall off the end when the objects miss horizontally (`object_collision.c:61,96`, `//! no return value`) in detail
+
+- Used by `CoinLink.v`, whose conclusion is "returns, memory unchanged" with the value existentially
+  quantified, so it holds for any value the ROM returns. Contact is registered only on the `return
+  1` path, which the theorem excludes. Whoever consumes the result must also allow any value: in the
+  ROM, a non-zero garbage return makes `check_collision_in_list` call
+  `detect_object_hurtbox_overlap`, whose only store is `b->oInteractionSubtype` (the
+  invincibility-delay bit), and that registers no contact.
+
 
 ## 3. C semantics versus what the N64 actually does
 
 | # | Item | Status / notes |
 |---|---|---|
 | 3.1 | CompCert's C semantics agrees with IDO-compiled MIPS on the code in scope: evaluation order, integer promotions, float rounding (single vs double), float→int casts | ASSUMED, **TETHERED on sampled paths**. Across 267 completed real frames, 0 differ in memory and 0 diverge in external calls or arguments, including float arguments passed bit-exact to `find_floor`, `atan2s` and others (§5.1). |
-| 3.2 | **Undefined behavior means "no execution" in CompCert.** If a real frame hits UB (uninitialized read, out-of-range float→s16), the model has *no* derivation for it, and a "for all executions" theorem says **nothing** about that frame | **Closed for the one measured site; open in general.** §5.1 measured 33 of 300 real WMotR frames (11%) with no CompCert execution, all from `VIRTUAL_TO_PHYSICAL(ptr)` (`macros.h:64`, `(uintptr_t)ptr & 0x1FFFFFFF`) in `set_mario_animation` / `set_mario_anim_with_accel`. Worse, the spine did not merely miss those frames: its walker had a *dead-mask* arm (`dead_mask_chk`/`dead_mask_dead`) that discharged those stores **by contradiction**, using the UB itself as a proof step. Fixed by the 2.2 rewrite (`pipeline/proof_n64.h`, pointer subtraction). The stores now execute, and the walker proves them with a real arm (`chase_arith_store_chk`/`chase_arith_assign_pres`: pointer arithmetic on a chase temp stays in a SafeB block). The dead-mask arm is deleted. After the fix: **300/300 MATCH, 0 STUCK**. The general hole (a UB site that no recorded frame hits) remains; §5.1's STUCK count is the regression gate, and 2.2's register lists every site that differs from the ROM's C. |
+| 3.2 | **Undefined behavior means "no execution" in CompCert.** If a real frame hits UB (uninitialized read, out-of-range float→s16), the model has *no* derivation for it, and a "for all executions" theorem says **nothing** about that frame | **Closed for the one measured site; open in general.** §5.1 measured 33 of 300 real WMotR frames (11%) with no CompCert execution, all from `VIRTUAL_TO_PHYSICAL(ptr)` (`macros.h:64`, `(uintptr_t)ptr & 0x1FFFFFFF`) in `set_mario_animation` / `set_mario_anim_with_accel`. Details: [row 3.2 in detail](#row-32-in-detail). |
 | 3.3 | Concurrency: the game thread is the only writer of the state we reason about, and frames don't interleave with other threads' writes (audio, VI/PI interrupts, controller reads via `osContGetReadData`) | ASSUMED. The input buffer is written by the controller path. **Observed** (§5.1 recordings): during a single `execute_mario_action` call, the PI manager thread, DMA into `gMarioAnimsBuf` (Mario's animation data), thread save areas and `gZBuffer` all change. So Mario's *animation buffer* is filled by DMA mid-call. Needs an argument (likely: those threads write only buffers the game thread copies at a fixed point). |
-| 3.5 | **The libultra DMA floor** (`OsDmaFloor.os_dma_floor`, a premise of the Twelve and HeightFrame capstones). For `osInvalDCache`, `osPiStartDma`, `osRecvMesg`: the arguments are pointers where the C passes addresses (other shapes: no execution, as 3.2); nothing changes outside the argument ranges (the DMA destination range, the 20-byte OSIoMesg, the 24-byte OSMesgQueue, the 4-byte received-message cell); the DMA destination range does not wrap past the top of the address space (on the N64 every DMA buffer is in RDRAM; added 2026-10-20, used by the `set_mario_animation` footprint `SmaFoot.sma_foot`); no block is allocated or freed and no permission changes; DMA'd bytes are data (`Byte` memvals), and `osInvalDCache` leaves each byte of its range as it was or as data. The whole transfer is attributed to `osPiStartDma`: between it and the blocking `osRecvMesg` the game thread reads nothing. | ASSUMED, **the floor: there is no C below it.** `osRecvMesg` yields the thread (`__osEnqueueAndYield`, asm); the PI manager thread starts the transfer by writing PI registers; the bytes arrive by hardware DMA. The OS thread structs and the queue's message buffer (`main.c`'s `gDmaMesgBuf`) are not declared by any linked TU, so they are outside the modeled memory; the spec is about the modeled memory only. Writes by other threads while the game thread blocks are 3.3 (among modeled globals, the audio thread's `gAudioRandom`). Consumer: `LptBody` (the GOAL-1 `load_patchable_table` row). **The FPU floor (load-bearing since 2026-10-20: `HeightFrame` premises `Hsqrtf` / `Hsqrtf_float`, consumed by the proved freefall MoveChain `FfRow.ff_moves`):** `FpuFloor.sqrtf_spec`, a call of `sqrtf` leaves memory unchanged (on the N64 it is the VR4300 `sqrt.s` instruction; no claim about the value), and `ExtInert.sqrtf_float` (added 2026-10-20), its result is not a pointer (the instruction writes an FPU register). The act_freefall walk's external contract (`ExtInert.ext_fresh_sound`) uses both. The same walk takes `play_sound` and `set_camera_shake_from_hit` as labelled open premises (`ExtInert.audio_inert` / `camera_inert`: no modeled block changes, non-pointer result; their writes go to audio and camera globals that no linked TU declares). Those are deferred audio/camera, not floors; since 2026-10-20 they are labeled premises `Haudio` / `Hcamera` of the GOAL-2 capstone. Used only by the Unwired GOAL-2 footprint walker (`FpWalk.uawt_fp`: `update_air_without_turn` writes only forwardVel, slideVelX/Z, vel[0], vel[2], slideYaw, proved from its generated body and `check_horizontal_wind`'s). It is the same fact `CoinLink` and `Hscp_mtxf_real` assume about `sqrtf`; it joins this row when it goes on the spine. |
+| 3.5 | **The libultra DMA floor** (`OsDmaFloor.os_dma_floor`, a premise of the Twelve and HeightFrame capstones). For `osInvalDCache`, `osPiStartDma`, `osRecvMesg`: the arguments are pointers where the C passes addresses (other shapes: no execution, as 3.2); nothing changes outside the argument ranges (the DMA destination range, the 20-byte OSIoMesg, the 24-byte OSMesgQueue, the 4-byte received-message cell); the DMA destination range does not wrap past the top of the address space (on the N64 every DMA buffer is in RDRAM; added 2026-10-20, used by the `set_mario_animation` footprint `SmaFoot.sma_foot`); no block is allocated or freed and no permission changes; DMA'd bytes are data (`Byte` memvals), and `osInvalDCache` leaves each byte of its range as it was or as data. The whole transfer is attributed to `osPiStartDma`: between it and the blocking `osRecvMesg` the game thread reads nothing. | ASSUMED, **the floor: there is no C below it.** `osRecvMesg` yields the thread (`__osEnqueueAndYield`, asm); the PI manager thread starts the transfer by writing PI registers; the bytes arrive by hardware DMA. Details: [row 3.5 in detail](#row-35-in-detail). Details: [row 3.5 in detail](#row-35-in-detail). |
 | 3.4 | Lag frames and frame pacing don't matter (the theorem is per *game-logic* frame) | ASSUMED, probably easy. |
+
+### Row 3.2 in detail
+
+- **Closed for the one measured site; open in general.** §5.1 measured 33 of 300 real WMotR frames
+  (11%) with no CompCert execution, all from `VIRTUAL_TO_PHYSICAL(ptr)` (`macros.h:64`,
+  `(uintptr_t)ptr & 0x1FFFFFFF`) in `set_mario_animation` / `set_mario_anim_with_accel`. Worse, the
+  spine did not merely miss those frames: its walker had a *dead-mask* arm
+  (`dead_mask_chk`/`dead_mask_dead`) that discharged those stores **by contradiction**, using the UB
+  itself as a proof step. Fixed by the 2.2 rewrite (`pipeline/proof_n64.h`, pointer subtraction).
+  The stores now execute, and the walker proves them with a real arm
+  (`chase_arith_store_chk`/`chase_arith_assign_pres`: pointer arithmetic on a chase temp stays in a
+  SafeB block). The dead-mask arm is deleted. After the fix:
+- **300/300 MATCH, 0 STUCK**. The general hole (a UB site that no recorded frame hits) remains;
+  §5.1's STUCK count is the regression gate, and 2.2's register lists every site that differs from
+  the ROM's C.
+
+### Row 3.5 in detail
+
+- ASSUMED, **the floor: there is no C below it.** `osRecvMesg` yields the thread
+  (`__osEnqueueAndYield`, asm); the PI manager thread starts the transfer by writing PI registers;
+  the bytes arrive by hardware DMA. Details: [row 3.5 in detail](#row-35-in-detail).
+
+
+### Row 3.5 in detail
+
+- ASSUMED, **the floor: there is no C below it.** `osRecvMesg` yields the thread
+  (`__osEnqueueAndYield`, asm); the PI manager thread starts the transfer by writing PI registers;
+  the bytes arrive by hardware DMA. The OS thread structs and the queue's message buffer (`main.c`'s
+  `gDmaMesgBuf`) are not declared by any linked TU, so they are outside the modeled memory; the spec
+  is about the modeled memory only. Writes by other threads while the game thread blocks are 3.3
+  (among modeled globals, the audio thread's `gAudioRandom`). Consumer: `LptBody` (the GOAL-1
+  `load_patchable_table` row).
+- **The FPU floor (load-bearing since 2026-10-20: `HeightFrame` premises `Hsqrtf` / `Hsqrtf_float`,
+  consumed by the proved freefall MoveChain `FfRow.ff_moves`):** `FpuFloor.sqrtf_spec`, a call of
+  `sqrtf` leaves memory unchanged (on the N64 it is the VR4300 `sqrt.s` instruction; no claim about
+  the value), and `ExtInert.sqrtf_float` (added 2026-10-20), its result is not a pointer (the
+  instruction writes an FPU register). The act_freefall walk's external contract
+  (`ExtInert.ext_fresh_sound`) uses both. The same walk takes `play_sound` and
+  `set_camera_shake_from_hit` as labelled open premises (`ExtInert.audio_inert` / `camera_inert`: no
+  modeled block changes, non-pointer result; their writes go to audio and camera globals that no
+  linked TU declares). Those are deferred audio/camera, not floors; since 2026-10-20 they are
+  labeled premises `Haudio` / `Hcamera` of the GOAL-2 capstone. Used only by the Unwired GOAL-2
+  footprint walker (`FpWalk.uawt_fp`: `update_air_without_turn` writes only forwardVel, slideVelX/Z,
+  vel[0], vel[2], slideYaw, proved from its generated body and `check_horizontal_wind`'s). It is the
+  same fact `CoinLink` assumes about `sqrtf`. **On the spine since 2026-10-21 in both capstones:**
+  the GOAL-1 capstone takes it as `Hsq`, in place of the old `Hscp_mtxf_real` row (see 4.1), and
+  GOAL 2's `Hsqrtf` fills that slot.
+
 
 ## 4. Scope: code and data outside what is linked
 
 | # | Item | Status / notes |
 |---|---|---|
-| 4.1 | Functions outside the 18 linked files (audio, camera, save file, object spawning) behave as the capstone's rows say (`Hocp_*`, `Hpres_*`, `Hext_*`, …) | **ASSUMED, the ~30 project rows.** Shrinks by linking more files until only truly external things remain. **`audio/data.c` is linked** (2026-10-20, the 18th TU, `generated/audio_data.v`): it is the only definer of `gAudioRandom`, which `play_mario_jump_sound` reads (mario.c:254). Before, it was a size-0 extern in the boot image, so every path of dive and the rollouts that plays a jump sound had no execution, and a theorem about those handlers would have said nothing about them (a phantom-path finding, fixed before those walks were written). Its value is still whatever the audio thread left (3.3); the walks read it as unknown. **Collision is linked** (2026-10-17, `LinkedTwelve.tu_rest`): `find_floor`, `find_ceil`, `f32_find_wall_collision`, `find_wall_collisions`, `find_water_level` and `find_poison_gas_level` run their real generated bodies, and their rows are now lemmas (`SurfaceBodies.v`; the GOAL-1 capstone went from 36 to 31 hypotheses, `vec3f_find_ceil` included via `RestSurface.vfc_walk`). **`math_util` is linked** (2026-10-17, the 14th TU). 11 TUs declared `extern f32 gSineTable[]` (`tarray tfloat 0`) against `math_util`'s 5120 entries, so `pipeline/clightgen.sh`'s extern-array completion table gained a `gSineTable 0 -> 5120` entry (an instance of 2.4, like `gMarioStates`). `Linked12Sat`'s certificate checks the 14-TU chain. The four engine-whitelisted ids `math_util` defines (`vec3f_set`, `vec3f_copy`, `vec3s_copy`, `atan2s`) now resolve to their real bodies, pinned by `LO_math`, and each is a proved rest case (`MathBodies.v`). **Four math_util rows are now lemmas** (`MathBodies.Hdg_*_proved`): `Hdg_v3f_real`, `Hdg_v3fset_real`, `Hdg_v3scopy_real` and `Hdg_v3s_real` are proved from the real `vec3f_copy` / `vec3f_set` / `vec3s_copy` / `vec3s_set` bodies. Each gate case (SafeB, 12-byte-safe Mario window, stack local) makes the destination store-safe. The destination is also always a block that was valid at the call: it cannot be the body's own fresh `_dest` shadow, because the first element store would clobber the saved pointer and the next reload-and-dereference would fail (`vec_*_out_valid`). The GOAL-1 capstone goes from 31 to 27 hypotheses. **The pure math rows are lemmas too** (`MathBodies.MathPure`): the real `approach_f32` / `approach_s32` bodies have no locals and no stores, and `atan2s` stores nothing either (its one callee `atan2_lookup` is pinned and store-free), so a call leaves memory identical. `Hpres_mov_ext` (its list is just `approach_f32`), `Hcpx_approach_f32_real` and `Hcpx_approach_real` are lemmas. `Hpres_obj_ext` is a lemma over the narrower row `Hpres_obj_ext_open` (`obj_ext_ids` minus `atan2s` / `approach_s32`). The capstone goes from 27 to 24 hypotheses. **The spline pair is proved too.** `anim_spline_init` stores only the three `math_util` spline statics (`gSplineKeyframe`, `gSplineKeyframeFraction`, `gSplineState`), which are now in `CensusV2.stored_globals`. They are static data symbols, disjoint from `bm`/`bc`/SafeB by the same proved `glob_blk` argument as the other stored globals. So its `obj_ext_ids` entry is a lemma (`MathBodies.Hcpx_asi_proved`). `Hdg_spoll_real` is a lemma (`MathBodies.Hdg_spoll_proved`): `anim_spline_poll` is walked by a small out-pointer walker (`ow_walk`). It stores `result[0..2]` (the `dg` gate's 12 store-safe bytes) and the spline statics, and it calls `vec3f_copy(result, ..)` (the real body, same gate) and `spline_get_weights(weights, ..)` (its real body, walked; it stores only into the caller's fresh local `weights`). The capstone goes from 24 to 23 hypotheses. Still a row on math_util: `Hscp_mtxf_real` (`mtxf_align_terrain_triangle`). Its callee `vec3f_normalize` calls the external `sqrtf` and then reloads its `dest` shadow, so proving it needs `sqrtf` to leave memory unchanged (the row CoinLink already assumes). **Found false (2026-10-17):** `Hpres_obj_ext` and `Hpres_mov_ext` are ungated `call_pres_ext` rows (any arguments), and their id lists include math_util writers: `vec3f_copy`, `vec3f_set`, `vec3s_set`, `vec3s_copy`, `anim_spline_poll` and `mtxf_align_terrain_triangle`. Each of these writes through a pointer argument, so with that argument pointing at Mario's action cell or the controller the row is false of the real code. Linking math_util would make the capstone's hypothesis set unsatisfiable. Those entries must be restated as per-call-site gated rows (the `sc`/`w1`/`wl` forms that already exist) before math_util is linked. **Also false (found the same day):** `Hwolcp_v3f_real` (`call_pres_ext_wol vec3f_copy`). Its gate accepts any pointer argument that is a 4-byte-safe Mario window cell. `store_window_ok 8 4` holds (`particleFlags`), but `vec3f_copy` writes 12 bytes from there, covering the action cell at 12. The real call sites it serves all have a stack-local destination (`act_walking`'s `startPos`, `perform_air_step`'s `nextPos`), so it can be restated as a local-destination row. **Restated (2026-10-17):** the writer entries are gone from `obj_ext_ids` / `mov_ext_ids` and `Hwolcp_v3f_real` is deleted. In their place are five destination-gated `call_pres_ext_dg` rows (`Hdg_v3f_real`, `Hdg_v3s_real`, `Hdg_v3fset_real`, `Hdg_v3scopy_real`, `Hdg_spoll_real`). Each says: if arg0 is a SafeB object block, a 12-store-safe Mario window, or a caller stack local, the call preserves the carried facts. There is also one sc-gated `Hscp_mtxf_real` (arg0 SafeB; the 64-byte matrix write rules out the window case). The walkers check the gate at every real call site against the generated AST: dst chase temps (`chase_root_sound_proved`), census locals, `&sFloorAlignMatrix[..]` (`awf_mtx_gate`). The old `sc`/`w1`/`wl` writer rows are now lemmas derived from `dg`. **Also found false and restated:** `Hscp_geo_real`. `geo_update_animation_frame(obj, accelAssist)` writes only through `accelAssist` (`graph_node.c:797,834`), and the `sc` row left that argument free. It is now `Hgeo_real : call_pres_ext_geo`, which pins `accelAssist = NULL`, the shape of the one real site (`mario.c:187`), checked at that site. Net: the GOAL-1 capstone goes from 31 to 29 hypotheses (9 writer rows out; 5 `dg` + `mtxf` + `geo` in), and each restated row is now true of the real bodies as far as we know. **Also found false and restated (2026-10-17):** `cut_ext_ids` contained `obj_scale` and `obj_mark_for_deletion` as ungated `call_pres_ext` rows, and both write through their object argument (`object_helpers.c:705,1135`). They are out of `cut_ext_ids`. In their place are two arg0-gated `call_pres_ext_cs` rows (`Hcsp_omfd_real`, `Hcsp_scale_real`): if arg0 is a pointer, it points into a SafeB block. Every real site (`intro_cutscene_lower_pipe`, `end_peach_cutscene_*`) passes a chase temp loaded from a cutscene object global (`sIntroWarpPipeObj` / `sEnd*Obj`, SafeB via `Hglob_obj_root`). The seeded walkers check this against the generated AST. Net: the GOAL-1 capstone goes from 29 to 31 hypotheses (the `cut_ext` row stays; two true `cs` rows are added). **Also found false and restated (2026-10-18):** `load_patchable_table` was an ungated `obj_ext_ids` entry, but its body (`memory.c:567`) stores `list->currentAddr` and DMAs into `list->bufTarget`, both through arg0. With arg0 at Mario's action cell the row is false, so linking `memory.c` (needed to see Mario's cells survive `set_mario_animation` in GOAL 2) would make the capstone's hypotheses unsatisfiable. It is out of `obj_ext_ids` and in `objw_ids`. In its place is one arg0-gated row, `Hcsp_lpt_real : call_pres_ext_cs`. Both real sites (`set_mario_animation`, `set_mario_anim_with_accel`) pass the chase temp `m->animList`, and the leaf walkers check this against the generated AST. The capstone goes from 31 to 32 hypotheses. The row is true of the real body as far as we know. **`memory.c` is linked** (2026-10-18, the 15th TU; `LinkedTwelve.tu_rest`, `linked12_LO_memory`, and Linked12Sat's certificate checks the chain). `load_patchable_table` and `dma_read` run their real bodies. The only externals under `set_mario_animation` are now the libultra DMA calls `osInvalDCache` / `osPiStartDma` / `osRecvMesg`. **`Hcsp_lpt_real` is now a lemma** (2026-10-18, `LptBody.Hcsp_lpt_linked12`), proved from the real `load_patchable_table` and `dma_read` bodies (a chase walk: every pointer the bodies hold is loaded through the SafeB list, so R7 keeps it SafeB; the one store, `list->currentAddr = addr`, stores such a pointer into the list; `dma_read`'s loop is walked). It now rests on the hardware/OS floor 3.5 instead of being a row. The three DMA globals joined `CensusV2.stored_globals`, so the proved `glob_blk` keeps their blocks off `bm`/`bc`/SafeB. **Found false (2026-10-19): `HSafeB_sym_iff`, the SafeB symbol row of both capstones.** It said SafeB meets the linked symbol table in exactly `{sFloorAlignMatrix}`. `init_mario_from_save_file` (`mario.c:1874–1879`) stores `&gMarioAnimsBuf`, `&gBodyStates[0]` and `&gPlayerCameraState[0]` (linked BSS symbols, not runtime pool blocks) into chase-root cells, so `MWF_real` R6 forced them into SafeB, and R7 forces every symbol the object graph points at (`o->behavior`, collision data). So `MWF_real` was false of every real gameplay memory and both capstones were vacuous for the real game. **Restated** as `HSafeB_syms : SpawnInit.SafeB_syms_ok`: SafeB avoids `non_safeb_syms` (Mario's block, the controllers, `gMarioState`, the timer, the handler/knockback tables, the stored globals) and contains `sFloorAlignMatrix`. It is one-directional, so it is weaker and the capstones are stronger. The real SafeB is the pointer closure of the chase roots, and the row says that closure never reaches those blocks (`docs/p5-safeb-design.md`). **Also found (2026-10-19): the animation list as a SafeB chase root.** Putting `gMarioAnimsBuf` in SafeB (the first repair) would let the GOAL-1 SafeB chase stores, which are offset-free, reach the list's `dmaTable` / `currentAddr` / `bufTarget` cells, and nothing kept the DMA buffer `list->bufTarget` off Mario's object, so GOAL 2's `Hframe_*` rows were false (a DMA into `marioObj` would rewrite `gfx.pos[1]`). **Repaired:** `m->animList` is no longer a chase root. `MWF_real` gained R11–R14: `animList`, if a pointer, is `&gMarioAnimsBuf` (offset 0); every pointer loaded from the list block is SafeB; the DMA buffer is not the block of `m->marioObj`; the list block is valid and apart from `bm`, `bc` and SafeB. `gMarioAnimsBuf` joined `non_safeb_syms`. Root-cell stores now exclude `m->marioObj` (no frame body writes it). `Hcsp_lpt_real` is gone. In its place `set_mario_animation` and `set_mario_anim_with_accel` are **proved** from their real bodies (`LptBody.sma_row_linked12` / `smawa_row_linked12`), with `load_patchable_table` walked under the pinned list down to the DMA floor 3.5. The Twelve and HeightFrame capstones' assumed surfaces are unchanged: the two rows are lemmas there (the intermediate `NoAImpliesNoFlyLinked` section takes them as two hypotheses in place of the one lpt row). **Found false (2026-10-19): `Hglob_obj_root`** (all three capstones). It said a pointer loaded from one of the five cutscene object globals (`sIntroWarpPipeObj`, `sEndPeachObj`, `sEndRightToadObj`, `sEndLeftToadObj`, `sEndJumboStarObj`) is SafeB, in every MWF memory. Those globals were in `stored_globals`, and MWF does not constrain a stored global's contents. So a memory with `sIntroWarpPipeObj = &gMarioStates` is MWF, and the row fails there. This was checked in Coq: at the boot image with `SafeB_boot`, the row implies `False`. The capstones were therefore vacuous, including the new from-boot theorem. **Repaired:** the five globals are SafeB blocks (`SpawnInit.SafeB_syms_ok` (c), `CensusV2.gobj_syms`). MWF's load-closure row R7 is now the invariant, and the old row is a lemma (`CutsceneLeafSurface.HGlobObjRoot`). Their only writers are `g = spawn_object_abs_with_rot(..)` (`intro_cutscene_peach_lakitu_scene`, `end_peach_cutscene_mario_landing` / `_spawn_peach`, `act_end_waving_cutscene`). These are walked by two new arms: the spawn call puts its result in a chase temp, and the store of a chase temp into a SafeB global is a `chase_ptr` store. The spawn result is SafeB by a new sr-form row `Hcp_soawr_real : call_pres_ext_sr spawn_object_abs_with_rot`, the same model class as the existing `Hcp_spawn_real` for `spawn_object`. Its plain entry left `cut_ext_ids` (`Hpres_cut_ext_open`). Net: the hypothesis count is unchanged (one false memory row out, one external-contract row in), and the replacement is true of the real code as far as we know: spawned objects come from `gObjectPool`. **Found false (2026-10-20): `obj_set_held_state` in `obj_ext_ids`** (all three capstones). That entry said the call preserves Mario's cells for any argument, but its body (`object_helpers.c:267`) stores `obj->parentObj = o` and `obj->oHeldState` through arg0. With arg0 at Mario's cells the row is false, so the hypotheses were unsatisfiable on such memories. **Repaired:** it left `obj_ext_ids` (and is in `objw_ids`). In its place is one arg0-gated row, `Hcsp_osh_real : call_pres_ext_cs` (same class as `Hcsp_omfd_real`). All three real sites (`mario_grab_used_object`, `mario_drop_held_object`, `mario_throw_held_object`) pass a chase temp loaded from `m->heldObj`, checked against the generated AST by the leaf walkers. The stored value is `gCurrentObject`, so `gCurrentObject` is now a SafeB block too (`CensusV2.safe_ptr_syms`; no linked code stores it, and `BootMWF` re-proves the boot state with it). Net: one more hypothesis (a true `cs` row), and the any-argument list loses one entry. **`game_init.c` (16th TU) and `object_list_processor.c` (17th TU) are linked** (2026-10-20), so `gControllers`, `gMarioAnimsBuf`, `gObjectPool`, `gDebugInfo` and `find_floor`'s counters have their real storage. No capstone row changed; `LinkedTwelve.linked12_ext_pin` and `LptBody.os_resolve` gained the two cases (neither TU defines a pinned external). **Premise sweep (2026-10-20):** `segmented_to_virtual` and `virtual_to_segmented` were still entries of the any-argument object-external row although `memory.c` (linked since 2026-10-18) defines them. Their real bodies have no locals, stores or calls, so their entries are now lemmas (`MathBodies.Hcpx_s2v_proved` / `_v2s_proved`); both capstones' row is the narrower `Hpres_obj_ext_open2` (`NoAImpliesNoFlyTwelve.obj_ext_open2_ids`). **Found false (2026-10-20): `set_camera_mode` as an any-argument row** (all three capstones, two places). `set_camera_mode(c, mode, frames)` stores `c->mode` (and, through the mode-transition callbacks, more of `*c`) via arg0 (`camera.c:2854`), yet it sat in `obj_ext_ids` (the leaf walkers' `Hcpx_scm` rows) and in `CensusV2.exempt_callees`, whose external rows `Hext_action` / `Hmwf_ext` held for any arguments. With arg0 at Mario's cells those rows are false, so the hypotheses were unsatisfiable on such memories. **Repaired:** it left `obj_ext_ids` (and is in `objw_ids`); in its place is one arg0-gated row `Hcsp_scm_real : call_pres_ext_cs` (camera stays a labeled deferred premise). Every real site (`update_mario_sound_and_camera`, `set_water_plunge_action`, `transition_submerged_to_walking`, `set_submerged_cam_preset_and_spawn_bubbles`, `act_water_jump`, `act_hold_water_jump`, `act_first_person`, `act_teleport_fade_in`, `act_credits_cutscene`, `reset_mario_pitch`; also `act_flying`, `act_flying_triple_jump`, `act_shot_from_cannon`, which are not walked yet) passes `m->area->camera`; to check that against the generated AST, `m->area` is now a chase root (`CensusV2.chase_root_fields`, offset 144; `StartSat` shows the init store `m->area = gCurrentArea` keeps MWF), and the walkers table the `->area` / `->camera` load temps as chase temps. The engine's external rows `Hext_action` / `Hmwf_ext` now take the census's per-call argument gate (`wgate`, with a new `T_scm` arm: arg0 SafeB), so they too are true of the real code as far as we know. Net: one more hypothesis (a true `cs` row); the any-argument list loses one entry and the engine external rows are narrower. **Premise sweep (2026-10-20): the bully rows are lemmas.** `init_bully_collision_data` and `transfer_bully_speed` are `mario_step.c` bodies, in the link since GOAL 1, yet both capstones took them as rows (`Hcpx_ibcd_real`, `Hcpx_tbs_real`). Their real bodies have no locals and no calls, and every store goes through a pointer parameter that the rows' gates put in a caller stack block, so both are proved (`BullyBodies.Hcpx_ibcd_proved` / `_tbs_proved`, a frozen-pointer-temps walk over the generated AST). Two fewer hypotheses on each capstone. |
+| 4.1 | Functions outside the 19 linked files (audio, camera, save file, object spawning) behave as the capstone's rows say (`Hocp_*`, `Hpres_*`, `Hext_*`, …) | **ASSUMED, the ~30 project rows.** Shrinks by linking more files until only truly external things remain. Details: [row 4.1 in detail](#row-41-in-detail). |
 | 4.2 | CompCert's `external_functions_sem` is an abstract Parameter. Anything left external is constrained *only* by our rows | Permanent for whatever stays external. The goal is that nothing game-logic stays external. |
 | 4.3 | Level data (WMotR collision triangles, object placements, the red-coin positions) is what the ROM contains | Not yet in scope at all. Can be clightgen'd like code (`levels/wmotr/*.inc.c`). |
 | 4.4 | The proof's internal vocabulary (`MWF_real`, `SafeB`, `call_pres_ext_*`) appears in the *statement's* hypotheses | Anti-goal: a reader shouldn't have to understand proof internals to know what's assumed. Rows must eventually be about the game, or be gone. |
+
+### Row 4.1 in detail
+
+- **ASSUMED, the ~30 project rows.** Shrinks by linking more files until only truly external things
+  remain.
+- **`audio/data.c` is linked** (2026-10-20, the 18th TU, `generated/audio_data.v`): it is the only
+  definer of `gAudioRandom`, which `play_mario_jump_sound` reads (mario.c:254). Before, it was a
+  size-0 extern in the boot image, so every path of dive and the rollouts that plays a jump sound
+  had no execution, and a theorem about those handlers would have said nothing about them (a
+  phantom-path finding, fixed before those walks were written). Its value is still whatever the
+  audio thread left (3.3); the walks read it as unknown.
+- **Collision is linked** (2026-10-17, `LinkedTwelve.tu_rest`): `find_floor`, `find_ceil`,
+  `f32_find_wall_collision`, `find_wall_collisions`, `find_water_level` and `find_poison_gas_level`
+  run their real generated bodies, and their rows are now lemmas (`SurfaceBodies.v`; the GOAL-1
+  capstone went from 36 to 31 hypotheses, `vec3f_find_ceil` included via `RestSurface.vfc_walk`).
+- **`math_util` is linked** (2026-10-17, the 14th TU). 11 TUs declared `extern f32 gSineTable[]`
+  (`tarray tfloat 0`) against `math_util`'s 5120 entries, so `pipeline/clightgen.sh`'s extern-array
+  completion table gained a `gSineTable 0 -> 5120` entry (an instance of 2.4, like `gMarioStates`).
+  `Linked12Sat`'s certificate checks the 14-TU chain. The four engine-whitelisted ids `math_util`
+  defines (`vec3f_set`, `vec3f_copy`, `vec3s_copy`, `atan2s`) now resolve to their real bodies,
+  pinned by `LO_math`, and each is a proved rest case (`MathBodies.v`).
+- **Four math_util rows are now lemmas** (`MathBodies.Hdg_*_proved`): `Hdg_v3f_real`,
+  `Hdg_v3fset_real`, `Hdg_v3scopy_real` and `Hdg_v3s_real` are proved from the real `vec3f_copy` /
+  `vec3f_set` / `vec3s_copy` / `vec3s_set` bodies. Each gate case (SafeB, 12-byte-safe Mario window,
+  stack local) makes the destination store-safe. The destination is also always a block that was
+  valid at the call: it cannot be the body's own fresh `_dest` shadow, because the first element
+  store would clobber the saved pointer and the next reload-and-dereference would fail
+  (`vec_*_out_valid`). The GOAL-1 capstone goes from 31 to 27 hypotheses.
+- **The pure math rows are lemmas too** (`MathBodies.MathPure`): the real `approach_f32` /
+  `approach_s32` bodies have no locals and no stores, and `atan2s` stores nothing either (its one
+  callee `atan2_lookup` is pinned and store-free), so a call leaves memory identical.
+  `Hpres_mov_ext` (its list is just `approach_f32`), `Hcpx_approach_f32_real` and
+  `Hcpx_approach_real` are lemmas. `Hpres_obj_ext` is a lemma over the narrower row
+  `Hpres_obj_ext_open` (`obj_ext_ids` minus `atan2s` / `approach_s32`). The capstone goes from 27 to
+  24 hypotheses.
+- **The spline pair is proved too.** `anim_spline_init` stores only the three `math_util` spline
+  statics (`gSplineKeyframe`, `gSplineKeyframeFraction`, `gSplineState`), which are now in
+  `CensusV2.stored_globals`. They are static data symbols, disjoint from `bm`/`bc`/SafeB by the same
+  proved `glob_blk` argument as the other stored globals. So its `obj_ext_ids` entry is a lemma
+  (`MathBodies.Hcpx_asi_proved`). `Hdg_spoll_real` is a lemma (`MathBodies.Hdg_spoll_proved`):
+  `anim_spline_poll` is walked by a small out-pointer walker (`ow_walk`). It stores `result[0..2]`
+  (the `dg` gate's 12 store-safe bytes) and the spline statics, and it calls `vec3f_copy(result,
+  ..)` (the real body, same gate) and `spline_get_weights(weights, ..)` (its real body, walked; it
+  stores only into the caller's fresh local `weights`). The capstone goes from 24 to 23 hypotheses.
+  `Hscp_mtxf_real` (`mtxf_align_terrain_triangle`) was the last math_util row. **It is a lemma
+  since 2026-10-21** (`MtxfBody.Hscp_mtxf_proved`), proved from the real body: it stores floats
+  only through its never-reassigned arg0 (the gate's SafeB matrix) and into its own stack arrays,
+  and every callee is a real body with a stack-local destination (`find_floor` with `&sp74`;
+  `vec3f_set`, `find_vector_perpendicular_to_plane`, `vec3f_normalize`, `vec3f_cross`).
+  `vec3f_normalize` reloads its saved `dest` after the external `sqrtf`, so the proof rests on
+  the FPU floor `sqrtf_spec` (3.5): a model row is swapped for a hardware floor already on the
+  ledger.
+- **Found false (2026-10-17):** `Hpres_obj_ext` and `Hpres_mov_ext` are ungated `call_pres_ext` rows
+  (any arguments), and their id lists include math_util writers: `vec3f_copy`, `vec3f_set`,
+  `vec3s_set`, `vec3s_copy`, `anim_spline_poll` and `mtxf_align_terrain_triangle`. Each of these
+  writes through a pointer argument, so with that argument pointing at Mario's action cell or the
+  controller the row is false of the real code. Linking math_util would make the capstone's
+  hypothesis set unsatisfiable. Those entries must be restated as per-call-site gated rows (the
+  `sc`/`w1`/`wl` forms that already exist) before math_util is linked.
+- **Also false (found the same day):** `Hwolcp_v3f_real` (`call_pres_ext_wol vec3f_copy`). Its gate
+  accepts any pointer argument that is a 4-byte-safe Mario window cell. `store_window_ok 8 4` holds
+  (`particleFlags`), but `vec3f_copy` writes 12 bytes from there, covering the action cell at 12.
+  The real call sites it serves all have a stack-local destination (`act_walking`'s `startPos`,
+  `perform_air_step`'s `nextPos`), so it can be restated as a local-destination row.
+- **Restated (2026-10-17):** the writer entries are gone from `obj_ext_ids` / `mov_ext_ids` and
+  `Hwolcp_v3f_real` is deleted. In their place are five destination-gated `call_pres_ext_dg` rows
+  (`Hdg_v3f_real`, `Hdg_v3s_real`, `Hdg_v3fset_real`, `Hdg_v3scopy_real`, `Hdg_spoll_real`). Each
+  says: if arg0 is a SafeB object block, a 12-store-safe Mario window, or a caller stack local, the
+  call preserves the carried facts. There is also one sc-gated `Hscp_mtxf_real` (arg0 SafeB; the
+  64-byte matrix write rules out the window case). The walkers check the gate at every real call
+  site against the generated AST: dst chase temps (`chase_root_sound_proved`), census locals,
+  `&sFloorAlignMatrix[..]` (`awf_mtx_gate`). The old `sc`/`w1`/`wl` writer rows are now lemmas
+  derived from `dg`.
+- **Also found false and restated:** `Hscp_geo_real`. `geo_update_animation_frame(obj, accelAssist)`
+  writes only through `accelAssist` (`graph_node.c:797,834`), and the `sc` row left that argument
+  free. It is now `Hgeo_real : call_pres_ext_geo`, which pins `accelAssist = NULL`, the shape of the
+  one real site (`mario.c:187`), checked at that site. Net: the GOAL-1 capstone goes from 31 to 29
+  hypotheses (9 writer rows out; 5 `dg` + `mtxf` + `geo` in), and each restated row is now true of
+  the real bodies as far as we know.
+- **Also found false and restated (2026-10-17):** `cut_ext_ids` contained `obj_scale` and
+  `obj_mark_for_deletion` as ungated `call_pres_ext` rows, and both write through their object
+  argument (`object_helpers.c:705,1135`). They are out of `cut_ext_ids`. In their place are two
+  arg0-gated `call_pres_ext_cs` rows (`Hcsp_omfd_real`, `Hcsp_scale_real`): if arg0 is a pointer, it
+  points into a SafeB block. Every real site (`intro_cutscene_lower_pipe`, `end_peach_cutscene_*`)
+  passes a chase temp loaded from a cutscene object global (`sIntroWarpPipeObj` / `sEnd*Obj`, SafeB
+  via `Hglob_obj_root`). The seeded walkers check this against the generated AST. Net: the GOAL-1
+  capstone goes from 29 to 31 hypotheses (the `cut_ext` row stays; two true `cs` rows are added).
+- **Also found false and restated (2026-10-18):** `load_patchable_table` was an ungated
+  `obj_ext_ids` entry, but its body (`memory.c:567`) stores `list->currentAddr` and DMAs into
+  `list->bufTarget`, both through arg0. With arg0 at Mario's action cell the row is false, so
+  linking `memory.c` (needed to see Mario's cells survive `set_mario_animation` in GOAL 2) would
+  make the capstone's hypotheses unsatisfiable. It is out of `obj_ext_ids` and in `objw_ids`. In its
+  place is one arg0-gated row, `Hcsp_lpt_real : call_pres_ext_cs`. Both real sites
+  (`set_mario_animation`, `set_mario_anim_with_accel`) pass the chase temp `m->animList`, and the
+  leaf walkers check this against the generated AST. The capstone goes from 31 to 32 hypotheses. The
+  row is true of the real body as far as we know.
+- **`memory.c` is linked** (2026-10-18, the 15th TU; `LinkedTwelve.tu_rest`, `linked12_LO_memory`,
+  and Linked12Sat's certificate checks the chain). `load_patchable_table` and `dma_read` run their
+  real bodies. The only externals under `set_mario_animation` are now the libultra DMA calls
+  `osInvalDCache` / `osPiStartDma` / `osRecvMesg`.
+- **`Hcsp_lpt_real` is now a lemma** (2026-10-18, `LptBody.Hcsp_lpt_linked12`), proved from the real
+  `load_patchable_table` and `dma_read` bodies (a chase walk: every pointer the bodies hold is
+  loaded through the SafeB list, so R7 keeps it SafeB; the one store, `list->currentAddr = addr`,
+  stores such a pointer into the list; `dma_read`'s loop is walked). It now rests on the hardware/OS
+  floor 3.5 instead of being a row. The three DMA globals joined `CensusV2.stored_globals`, so the
+  proved `glob_blk` keeps their blocks off `bm`/`bc`/SafeB.
+- **Found false (2026-10-19): `HSafeB_sym_iff`, the SafeB symbol row of both capstones.** It said
+  SafeB meets the linked symbol table in exactly `{sFloorAlignMatrix}`. `init_mario_from_save_file`
+  (`mario.c:1874–1879`) stores `&gMarioAnimsBuf`, `&gBodyStates[0]` and `&gPlayerCameraState[0]`
+  (linked BSS symbols, not runtime pool blocks) into chase-root cells, so `MWF_real` R6 forced them
+  into SafeB, and R7 forces every symbol the object graph points at (`o->behavior`, collision data).
+  So `MWF_real` was false of every real gameplay memory and both capstones were vacuous for the real
+  game.
+- **Restated** as `HSafeB_syms : SpawnInit.SafeB_syms_ok`: SafeB avoids `non_safeb_syms` (Mario's
+  block, the controllers, `gMarioState`, the timer, the handler/knockback tables, the stored
+  globals) and contains `sFloorAlignMatrix`. It is one-directional, so it is weaker and the
+  capstones are stronger. The real SafeB is the pointer closure of the chase roots, and the row says
+  that closure never reaches those blocks (`docs/p5-safeb-design.md`).
+- **Also found (2026-10-19): the animation list as a SafeB chase root.** Putting `gMarioAnimsBuf` in
+  SafeB (the first repair) would let the GOAL-1 SafeB chase stores, which are offset-free, reach the
+  list's `dmaTable` / `currentAddr` / `bufTarget` cells, and nothing kept the DMA buffer
+  `list->bufTarget` off Mario's object, so GOAL 2's `Hframe_*` rows were false (a DMA into
+  `marioObj` would rewrite `gfx.pos[1]`).
+- **Repaired:** `m->animList` is no longer a chase root. `MWF_real` gained R11–R14: `animList`, if a
+  pointer, is `&gMarioAnimsBuf` (offset 0); every pointer loaded from the list block is SafeB; the
+  DMA buffer is not the block of `m->marioObj`; the list block is valid and apart from `bm`, `bc`
+  and SafeB. `gMarioAnimsBuf` joined `non_safeb_syms`. Root-cell stores now exclude `m->marioObj`
+  (no frame body writes it). `Hcsp_lpt_real` is gone. In its place `set_mario_animation` and
+  `set_mario_anim_with_accel` are **proved** from their real bodies (`LptBody.sma_row_linked12` /
+  `smawa_row_linked12`), with `load_patchable_table` walked under the pinned list down to the DMA
+  floor 3.5. The Twelve and HeightFrame capstones' assumed surfaces are unchanged: the two rows are
+  lemmas there (the intermediate `NoAImpliesNoFlyLinked` section takes them as two hypotheses in
+  place of the one lpt row).
+- **Found false (2026-10-19): `Hglob_obj_root`** (all three capstones). It said a pointer loaded
+  from one of the five cutscene object globals (`sIntroWarpPipeObj`, `sEndPeachObj`,
+  `sEndRightToadObj`, `sEndLeftToadObj`, `sEndJumboStarObj`) is SafeB, in every MWF memory. Those
+  globals were in `stored_globals`, and MWF does not constrain a stored global's contents. So a
+  memory with `sIntroWarpPipeObj = &gMarioStates` is MWF, and the row fails there. This was checked
+  in Coq: at the boot image with `SafeB_boot`, the row implies `False`. The capstones were therefore
+  vacuous, including the new from-boot theorem.
+- **Repaired:** the five globals are SafeB blocks (`SpawnInit.SafeB_syms_ok` (c),
+  `CensusV2.gobj_syms`). MWF's load-closure row R7 is now the invariant, and the old row is a lemma
+  (`CutsceneLeafSurface.HGlobObjRoot`). Their only writers are `g = spawn_object_abs_with_rot(..)`
+  (`intro_cutscene_peach_lakitu_scene`, `end_peach_cutscene_mario_landing` / `_spawn_peach`,
+  `act_end_waving_cutscene`). These are walked by two new arms: the spawn call puts its result in a
+  chase temp, and the store of a chase temp into a SafeB global is a `chase_ptr` store. The spawn
+  result is SafeB by a new sr-form row `Hcp_soawr_real : call_pres_ext_sr
+  spawn_object_abs_with_rot`, the same model class as the existing `Hcp_spawn_real` for
+  `spawn_object`. Its plain entry left `cut_ext_ids` (`Hpres_cut_ext_open`). Net: the hypothesis
+  count is unchanged (one false memory row out, one external-contract row in), and the replacement
+  is true of the real code as far as we know: spawned objects come from `gObjectPool`.
+- **Found false (2026-10-20): `obj_set_held_state` in `obj_ext_ids`** (all three capstones). That
+  entry said the call preserves Mario's cells for any argument, but its body
+  (`object_helpers.c:267`) stores `obj->parentObj = o` and `obj->oHeldState` through arg0. With arg0
+  at Mario's cells the row is false, so the hypotheses were unsatisfiable on such memories.
+- **Repaired:** it left `obj_ext_ids` (and is in `objw_ids`). In its place is one arg0-gated row,
+  `Hcsp_osh_real : call_pres_ext_cs` (same class as `Hcsp_omfd_real`). All three real sites
+  (`mario_grab_used_object`, `mario_drop_held_object`, `mario_throw_held_object`) pass a chase temp
+  loaded from `m->heldObj`, checked against the generated AST by the leaf walkers. The stored value
+  is `gCurrentObject`, so `gCurrentObject` is now a SafeB block too (`CensusV2.safe_ptr_syms`; no
+  linked code stores it, and `BootMWF` re-proves the boot state with it). Net: one more hypothesis
+  (a true `cs` row), and the any-argument list loses one entry.
+- **`game_init.c` (16th TU) and `object_list_processor.c` (17th TU) are linked** (2026-10-20), so
+  `gControllers`, `gMarioAnimsBuf`, `gObjectPool`, `gDebugInfo` and `find_floor`'s counters have
+  their real storage. No capstone row changed; `LinkedTwelve.linked12_ext_pin` and
+  `LptBody.os_resolve` gained the two cases (neither TU defines a pinned external).
+- **Premise sweep (2026-10-20):** `segmented_to_virtual` and `virtual_to_segmented` were still
+  entries of the any-argument object-external row although `memory.c` (linked since 2026-10-18)
+  defines them. Their real bodies have no locals, stores or calls, so their entries are now lemmas
+  (`MathBodies.Hcpx_s2v_proved` / `_v2s_proved`); both capstones' row is the narrower
+  `Hpres_obj_ext_open2` (`NoAImpliesNoFlyTwelve.obj_ext_open2_ids`).
+- **Found false (2026-10-20): `set_camera_mode` as an any-argument row** (all three capstones, two
+  places). `set_camera_mode(c, mode, frames)` stores `c->mode` (and, through the mode-transition
+  callbacks, more of `*c`) via arg0 (`camera.c:2854`), yet it sat in `obj_ext_ids` (the leaf
+  walkers' `Hcpx_scm` rows) and in `CensusV2.exempt_callees`, whose external rows `Hext_action` /
+  `Hmwf_ext` held for any arguments. With arg0 at Mario's cells those rows are false, so the
+  hypotheses were unsatisfiable on such memories.
+- **Repaired:** it left `obj_ext_ids` (and is in `objw_ids`); in its place is one arg0-gated row
+  `Hcsp_scm_real : call_pres_ext_cs` (camera stays a labeled deferred premise). Every real site
+  (`update_mario_sound_and_camera`, `set_water_plunge_action`, `transition_submerged_to_walking`,
+  `set_submerged_cam_preset_and_spawn_bubbles`, `act_water_jump`, `act_hold_water_jump`,
+  `act_first_person`, `act_teleport_fade_in`, `act_credits_cutscene`, `reset_mario_pitch`; also
+  `act_flying`, `act_flying_triple_jump`, `act_shot_from_cannon`, which are not walked yet) passes
+  `m->area->camera`; to check that against the generated AST, `m->area` is now a chase root
+  (`CensusV2.chase_root_fields`, offset 144; `StartSat` shows the init store `m->area =
+  gCurrentArea` keeps MWF), and the walkers table the `->area` / `->camera` load temps as chase
+  temps. The engine's external rows `Hext_action` / `Hmwf_ext` now take the census's per-call
+  argument gate (`wgate`, with a new `T_scm` arm: arg0 SafeB), so they too are true of the real code
+  as far as we know. Net: one more hypothesis (a true `cs` row); the any-argument list loses one
+  entry and the engine external rows are narrower.
+- **Premise sweep (2026-10-20): the bully rows are lemmas.** `init_bully_collision_data` and
+  `transfer_bully_speed` are `mario_step.c` bodies, in the link since GOAL 1, yet both capstones
+  took them as rows (`Hcpx_ibcd_real`, `Hcpx_tbs_real`). Their real bodies have no locals and no
+  calls, and every store goes through a pointer parameter that the rows' gates put in a caller stack
+  block, so both are proved (`BullyBodies.Hcpx_ibcd_proved` / `_tbs_proved`, a frozen-pointer-temps
+  walk over the generated AST). Two fewer hypotheses on each capstone.
+- **Premise sweep (2026-10-20): `engine/graph_node.c` is linked (the 19th TU,
+  `generated/graph_node.v`), and the two animation rows are lemmas.**
+  `retrieve_animation_index(frame, attributes)` stores only `*attributes += 2`, through its last
+  parameter, which the `oc` gate puts in a caller stack block. `geo_update_animation_frame(obj,
+  accelAssist)` stores only `*accelAssist`, each store under `accelAssist != NULL`, and the `geo`
+  gate pins `accelAssist = NULL`, so neither store can run. Both bodies have no locals and no calls,
+  and both are proved by the frozen-pointer-temps walk (`GraphNodeBodies.Hgeo_proved` /
+  `Hocp_rai_proved`). `Hgeo_real` and `Hocp_rai_real` are lemmas in `NoAImpliesNoFlyTwelve`, and
+  `HeightFrame` no longer takes them. `Linked12Sat`'s certificate checks the 19-TU chain. Two fewer
+  hypotheses on each capstone.
+
 
 ## 5. Tethers: evidence the model is the game (NOT proof)
 
@@ -102,10 +712,66 @@ false about the game").
 
 | # | Tether | What it checks | Status |
 |---|---|---|---|
-| 5.1 | **Recorded-RAM differential testing.** Headless emulator (Mupen64Plus in WSL) running the matching ROM, RDRAM dumped each frame, translated into CompCert memory, one frame run by the proved-sound interpreter (`proofs/Interp/`), compared to the emulator's next frame | 2.2–2.5, 3.1, **3.2** (a stuck run on a real frame = the UB hole is live), 4.1 (do the real externals satisfy our rows on real states?), 0.4 (do real WMotR states satisfy the starting conditions?) | **Working** (`experiments/oracle/`, README has the method). 300 random-input WMotR frames give 267 MATCH (byte-identical over about 80 KB of globals and typed heap objects), 0 DIFF, 0 DIVERGE and 33 STUCK (all from the 3.2 UB) before the `VIRTUAL_TO_PHYSICAL` rewrite, and **300 MATCH** after it. External calls are *replayed* from the game, so this checks the linked C, not the ~30 rows of 4.1. Checking those rows on the recorded real calls is the next use. Trusts: the emulator (cached interpreter) on sampled frames; the harness's RAM→memory translation (map, `.mdebug` statics, type-directed pointer rebuilding); and OCaml extraction of the interpreter. A mistake there shows up as a false STUCK/DIFF, or as a false MATCH only if it errs identically in the model and the comparison. |
-| 5.2 | Positive control: with A pressed, the model can fly (`PositiveControl.A_pressed_frame_reaches_flying`) | The theorem isn't true for a trivial reason: the step relation is non-empty and flying is reachable | **PROVED**, over a hand-built (non-real) memory and an oracle for the functions outside the link (`flat_world`: silent audio, IEEE `sqrtf`). `load_patchable_table` is no longer in the oracle (2026-10-18, memory.c linked): its real body runs over an empty DMA table (`count = 0`) and returns FALSE without DMA. Collision and `math_util` are *not* in the oracle any more: the real `surface_collision` bodies run over a static partition holding one flat triangle under Mario, and the real `math_util` bodies run (vec3*, `approach_*`, `atan2s` over the real `gArctanTable`). Should be redone from a *recorded* WMotR state (5.1). |
-| 5.4 | **Height-cell write watch** (`experiments/oracle/ywatch.py`): memory write-watchpoints on every cell Φ reads (action, actionState/Timer, pos[1], vel[1], floorHeight, gfx.pos[1]) over whole real frames, under input that never presses or holds A. Each store is logged with its PC, function, caller, and whether it ran inside `execute_mario_action` | 0.6 (`Hframe_is_move_chain`: does a writer outside the Move catalog fire?), 0.7 (do the flanks leave pos[1] alone?), 0.5 | **Working, 2026-09-28.** About 18,000 WMotR frames (random B/Z/stick from the spawn cloud, and from the K = 2424 wing-cap box top by a pos poke): inside WMotR, every value-changing height write came from a catalogued writer, and no pos[1] write outside `execute_mario_action` changed it. Max y 2530 (a ground-pound windup off the box). The only flags were the level exit (falling off → castle grounds, y := 4500), which led to the per-visit scoping in 0.5. **Extended 2026-09-28:** scripted no-A sequences (runs, slide kicks, dive + B rollout, ground pounds, ledge grabs) and Φ's numeric part checked at every frame end. That is about 68,000 more WMotR frames, including about 36,000 from the **solid** K = 2424 and 2064 box tops (wing-cap save flag set; without it the boxes are intangible and the earlier box runs never stood on one). Φ held on every frame and there were no uncovered writers. Slack was 0 standing at K. A slide kick from the box top peaked at 2466 = K + 42, as the catalog says, and the highest y was 2540 (ground-pound windup). **Objects, 2026-09-29:** W's object clause is checked at every `execute_mario_action` entry (`objs_bad`). Over 9,000 frames (new `pole` and `buddy` spots, and box2424w), there were 2,122 collisions: pole 2,037 (the low pole, oPosY −2739, height 820, exactly its list entry), TEXT 58, COIN 23, 0 ×3, BREAKABLE 1. There were 0 violations and 0 Φ failures. A collided cannon base is not exercised here. **Limits:** starts are poked (pos, and the save flag), not reached; poles above the moat and the hangable ceiling are not exercised; the cannon was found by a separate probe (`cannon_probe.py`), not by this watch. |
+| 5.1 | **Recorded-RAM differential testing.** Headless emulator (Mupen64Plus in WSL) running the matching ROM, RDRAM dumped each frame, translated into CompCert memory, one frame run by the proved-sound interpreter (`proofs/Interp/`), compared to the emulator's next frame | 2.2–2.5, 3.1, **3.2** (a stuck run on a real frame = the UB hole is live), 4.1 (do the real externals satisfy our rows on real states?), 0.4 (do real WMotR states satisfy the starting conditions?) | **Working** (`experiments/oracle/`, README has the method). Details: [row 5.1 in detail](#row-51-in-detail). |
+| 5.2 | Positive control: with A pressed, the model can fly (`PositiveControl.A_pressed_frame_reaches_flying`) | The theorem isn't true for a trivial reason: the step relation is non-empty and flying is reachable | **PROVED**, over a hand-built (non-real) memory and an oracle for the functions outside the link (`flat_world`: silent audio, IEEE `sqrtf`). Details: [row 5.2 in detail](#row-52-in-detail). |
+| 5.4 | **Height-cell write watch** (`experiments/oracle/ywatch.py`): memory write-watchpoints on every cell Φ reads (action, actionState/Timer, pos[1], vel[1], floorHeight, gfx.pos[1]) over whole real frames, under input that never presses or holds A. Each store is logged with its PC, function, caller, and whether it ran inside `execute_mario_action` | 0.6 (`Hframe_is_move_chain`: does a writer outside the Move catalog fire?), 0.7 (do the flanks leave pos[1] alone?), 0.5 | **Working, 2026-09-28.** About 18,000 WMotR frames (random B/Z/stick from the spawn cloud, and from the K = 2424 wing-cap box top by a pos poke): inside WMotR, every value-changing height write came from a catalogued writer, and no pos[1] write outside `execute_mario_action` changed it. Details: [row 5.4 in detail](#row-54-in-detail). |
 | 5.3 | ESBMC model checking on the vendor C (`experiments/esbmc/`) | Candidate GOAL-2 invariants against the real C before Coq effort | A scout. Trusts ESBMC plus stub contracts; nothing in `proofs/` rests on it. |
+
+### Row 5.1 in detail
+
+- **Working** (`experiments/oracle/`, README has the method). 300 random-input WMotR frames give 267
+  MATCH (byte-identical over about 80 KB of globals and typed heap objects), 0 DIFF, 0 DIVERGE and
+  33 STUCK (all from the 3.2 UB) before the `VIRTUAL_TO_PHYSICAL` rewrite, and **300 MATCH** after
+  it. External calls are *replayed* from the game, so this checks the linked C, not the ~30 rows of
+  4.1. Checking those rows on the recorded real calls is the next use. Trusts: the emulator (cached
+  interpreter) on sampled frames; the harness's RAM→memory translation (map, `.mdebug` statics,
+  type-directed pointer rebuilding); and OCaml extraction of the interpreter. A mistake there shows
+  up as a false STUCK/DIFF, or as a false MATCH only if it errs identically in the model and the
+  comparison.
+
+### Row 5.2 in detail
+
+- **PROVED**, over a hand-built (non-real) memory and an oracle for the functions outside the link
+  (`flat_world`: silent audio, IEEE `sqrtf`). `load_patchable_table` is no longer in the oracle
+  (2026-10-18, memory.c linked): its real body runs over an empty DMA table (`count = 0`) and
+  returns FALSE without DMA. Collision and `math_util` are *not* in the oracle any more: the real
+  `surface_collision` bodies run over a static partition holding one flat triangle under Mario, and
+  the real `math_util` bodies run (vec3*, `approach_*`, `atan2s` over the real `gArctanTable`).
+  Should be redone from a *recorded* WMotR state (5.1).
+
+### Row 5.4 in detail
+
+- **Working, 2026-09-28.** About 18,000 WMotR frames (random B/Z/stick from the spawn cloud, and
+  from the K = 2424 wing-cap box top by a pos poke): inside WMotR, every value-changing height write
+  came from a catalogued writer, and no pos[1] write outside `execute_mario_action` changed it. Max
+  y 2530 (a ground-pound windup off the box). The only flags were the level exit (falling off →
+  castle grounds, y := 4500), which led to the per-visit scoping in 0.5. Details: [row 5.4 in
+  detail](#row-54-in-detail).
+
+
+### Row 5.4 in detail
+
+- **Working, 2026-09-28.** About 18,000 WMotR frames (random B/Z/stick from the spawn cloud, and
+  from the K = 2424 wing-cap box top by a pos poke): inside WMotR, every value-changing height write
+  came from a catalogued writer, and no pos[1] write outside `execute_mario_action` changed it. Max
+  y 2530 (a ground-pound windup off the box). The only flags were the level exit (falling off →
+  castle grounds, y := 4500), which led to the per-visit scoping in 0.5.
+- **Extended 2026-09-28:** scripted no-A sequences (runs, slide kicks, dive + B rollout, ground
+  pounds, ledge grabs) and Φ's numeric part checked at every frame end. That is about 68,000 more
+  WMotR frames, including about 36,000 from the **solid** K = 2424 and 2064 box tops (wing-cap save
+  flag set; without it the boxes are intangible and the earlier box runs never stood on one). Φ held
+  on every frame and there were no uncovered writers. Slack was 0 standing at K. A slide kick from
+  the box top peaked at 2466 = K + 42, as the catalog says, and the highest y was 2540 (ground-pound
+  windup).
+- **Objects, 2026-09-29:** W's object clause is checked at every `execute_mario_action` entry
+  (`objs_bad`). Over 9,000 frames (new `pole` and `buddy` spots, and box2424w), there were 2,122
+  collisions: pole 2,037 (the low pole, oPosY −2739, height 820, exactly its list entry), TEXT 58,
+  COIN 23, 0 ×3, BREAKABLE 1. There were 0 violations and 0 Φ failures. A collided cannon base is
+  not exercised here.
+- **Limits:** starts are poked (pos, and the save flag), not reached; poles above the moat and the
+  hangable ceiling are not exercised; the cannon was found by a separate probe (`cannon_probe.py`),
+  not by this watch.
+
 
 ## 6. Tools we use but do not trust
 

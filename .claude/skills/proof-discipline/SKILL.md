@@ -24,10 +24,12 @@ all in `Unwired/`, and the theorem moved nowhere. See
   any link of the 14 TUs (the 12 Mario TUs + `surface_collision` + `math_util`, since
   2026-10-17). The open surface is its `Hypothesis` rows (23 as of 2026-10-17,
   external-call and boundary rows; see `docs/TRUST.md` §4). The collision rows
-  (`SurfaceBodies.v`) and the math_util rows (`MathBodies.v`) are lemmas, except
-  `Hscp_mtxf_real`: its callee `vec3f_normalize` reloads its `dest` shadow after the
-  external `sqrtf`, so proving it needs `sqrtf` to leave memory unchanged (a trust
-  decision for the user) or a no-pointers-into-the-frame invariant.
+  (`SurfaceBodies.v`) and the math_util rows (`MathBodies.v`) are lemmas, and so is
+  `Hscp_mtxf_real` since 2026-10-21 (`MtxfBody.v`). Because `vec3f_normalize` reloads its
+  `dest` after `sqrtf`, the capstone takes the FPU floor `Hsq : sqrtf_spec` (TRUST 3.5) in its place.
+  The two animation rows `Hgeo_real` / `Hocp_rai_real` are lemmas since 2026-10-20
+  (`GraphNodeBodies.v`; `graph_node.c` is the 19th TU): their real bodies store only through a
+  pointer parameter that the gate pins NULL / puts in a caller stack local.
 - **GOAL 2** (WMotR needs A): `WMotRRequiresA/HeightFrame.v`,
   `wmotr_noA_height_bound_linked12`. This is a conditional theorem over ONE WMotR
   visit (frames end with `in_wmotr`), under input with A neither pressed nor held
@@ -35,7 +37,7 @@ all in `Unwired/`, and the theorem moved nowhere. See
   (`HeightInvariant.v`), `Hphi_y` is proved (YMAX = 2796), the level-data rows are proved (`WMotRLevel.v`), and the crux is the lemma
   `seg_action_phi`, whose move arithmetic is proved (`HeightMoveCatalog.chain_keeps_budget`).
   Its start premise is proved satisfiable (`StartSat.goal2_start_sat`, 2026-10-20, in the audit):
-  a memory built from the real boot image of any 18-TU link meets `mem_ok_lp` and `PhiW`. That
+  a memory built from the real boot image of any 19-TU link meets `mem_ok_lp` and `PhiW`. That
   rules out empty-premise vacuity only; Φ at real WMotR entry stays ASSUMED (TRUST 0.4).
   Since 2026-10-20 the three frame rows below are LEMMAS of `FrameSplit.frame_split`; the
   assumed rows are the per-call `Hseg_call` / `Hseg_any` (one per call in the real

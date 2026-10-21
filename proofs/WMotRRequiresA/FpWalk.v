@@ -450,6 +450,15 @@ Lemma uawt_chk12 : match ge12 with
   | None => false end = true.
 Proof. vm_compute. reflexivity. Qed.
 
+(* update_air_with_turn: the same cells, and faceAngle[1] (the turn) *)
+Definition uawith_cells (ge : genv) : list (Z * Z) :=
+  uawt_cells ge ++ [(fo ge AIR._MarioState AIR._faceAngle + 2, 2)].
+
+Lemma uawith_chk12 : match ge12 with
+  | Some ge => fp_chk ge AIR._m (uawith_cells ge) uawt_call_ok (fn_body AIR.f_update_air_with_turn)
+  | None => false end = true.
+Proof. vm_compute. reflexivity. Qed.
+
 Lemma is_call_inv : forall ids a, is_call ids a = true ->
   exists fid targs tres cc, a = Evar fid (Tfunction targs tres cc) /\ In fid ids.
 Proof.
@@ -466,6 +475,9 @@ Lemma dm_chw : (prog_defmap AIR.prog) ! AIR._check_horizontal_wind
 Proof. vm_compute. reflexivity. Qed.
 Lemma dm_uawt : (prog_defmap AIR.prog) ! AIR._update_air_without_turn
   = Some (Gfun (Internal AIR.f_update_air_without_turn)).
+Proof. vm_compute. reflexivity. Qed.
+Lemma dm_uawith : (prog_defmap AIR.prog) ! AIR._update_air_with_turn
+  = Some (Gfun (Internal AIR.f_update_air_with_turn)).
 Proof. vm_compute. reflexivity. Qed.
 Lemma dm_atan2s_air : (prog_defmap math_util.prog) ! AIR._atan2s
   = Some (Gfun (Internal math_util.f_atan2s)).
@@ -547,5 +559,39 @@ Proof.
     rewrite Hg in *. match goal with H : Some _ = Some _ |- _ => injection H as <- end.
     match goal with H : sem_cast _ _ _ _ = Some _ |- _ => cbn in H; injection H as <- end.
     exact (chw_fp _ _ _ _ _ _ Hev').
+Qed.
+
+(* update_air_with_turn writes only uawith_cells *)
+Theorem uawith_fp : forall bm om m t m' vres,
+  eval_funcall function_entry2 G m (Internal AIR.f_update_air_with_turn) [Vptr bm om] t m' vres ->
+  fp bm om (uawith_cells G) m m'.
+Proof.
+  intros bm om m t m' vres Hev.
+  pose proof uawith_chk12 as W. rewrite (ge12_ok lp H12) in W.
+  eapply (fp_funcall G AIR._m _ bm om (uawith_cells G) _ AIR.f_update_air_with_turn); [reflexivity | reflexivity | | exact W | exact Hev].
+  intros optid a al le m0 t0 le' m0' out Hok Hg Hx.
+  unfold uawt_call_ok in Hok. apply orb_true_iff in Hok as [Hok | Hok].
+  - destruct (is_call_inv _ _ Hok) as (fid & targs & tres & cc & -> & [<- | []]).
+    assert (I' : In AIR._approach_f32 [AIR._sqrtf; AIR._atan2s; AIR._approach_f32]) by (cbn; auto).
+    rewrite (call_memid _ _ _ _ _ _ _ _ _ _ _ _ I' Hx). apply fp_refl.
+  - apply andb_true_iff in Hok as [Hc Ha].
+    destruct (is_call_inv _ _ Hc) as (fid & targs & tres & cc & -> & [<- | []]).
+    cbn beta iota in Ha.
+    repeat (match type of Ha with context [match ?x with _ => _ end] =>
+              destruct x; cbn beta iota in Ha; try discriminate Ha end).
+    match goal with Hx : exec_stmt _ _ _ _ _ (Scall _ _ [Etempvar ?xx _]) _ _ _ _ |- _ =>
+      rename xx into x end.
+    apply andb_true_iff in Ha as [Ha Hs2]. apply andb_true_iff in Ha as [Hx1 Hs1].
+    apply Pos.eqb_eq in Hx1, Hs1, Hs2. subst.
+    destruct (scall_evar_inv2 _ _ _ _ _ _ _ _ _ _ _ _ Hx (PTree.gempty _ _) eq_refl)
+      as (b & fd & tyargs & tyres & cc' & vargs & vres' & Hs & Hf & Hcl & Hel & Hev').
+    rewrite (find_funct_res _ _ _ _ _ (res_link lp _ _ _ LOair dm_chw) Hs Hf) in Hev'.
+    cbn in Hcl. injection Hcl as <- <- <-.
+    inv Hel. match goal with H : eval_exprlist _ _ _ _ [] _ _ |- _ => inv H end.
+    match goal with H : eval_expr _ _ _ _ (Etempvar _ _) _ |- _ => inv H end;
+      [| match goal with H : eval_lvalue _ _ _ _ (Etempvar _ _) _ _ _ |- _ => inv H end].
+    rewrite Hg in *. match goal with H : Some _ = Some _ |- _ => injection H as <- end.
+    match goal with H : sem_cast _ _ _ _ = Some _ |- _ => cbn in H; injection H as <- end.
+    exact (fp_mono _ _ _ _ _ _ (incl_appl _ (incl_refl _)) (chw_fp _ _ _ _ _ _ Hev')).
 Qed.
 End LP.

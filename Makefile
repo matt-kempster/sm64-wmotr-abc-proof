@@ -39,7 +39,7 @@ GENERATED := generated/toy.v generated/shadow.v \
   generated/wmotr_level_data.v generated/wmotr_script.v \
   generated/macro_special_objects.v generated/behavior_data.v \
   generated/object_helpers.v generated/obj_behaviors.v generated/obj_behaviors_2.v \
-  generated/spawn_object.v generated/object_list_processor.v generated/audio_data.v generated/object_collision.v
+  generated/spawn_object.v generated/object_list_processor.v generated/audio_data.v generated/graph_node.v generated/buffers.v generated/save_file.v generated/object_collision.v
 
 .PHONY: all generated proofs regen clean oracle-extract
 
@@ -194,6 +194,22 @@ generated/object_list_processor.v: $(SM64)/src/game/object_list_processor.c pipe
 # play_mario_jump_sound reads (mario.c:254); without it the boot image gives it
 # no storage and dive / rollout have no execution that plays a jump sound.
 generated/audio_data.v: $(SM64)/src/audio/data.c pipeline/clightgen.sh pipeline/proof_n64.h
+	$(CLIGHTGEN) $< $@ $(SM64_CGP)
+
+# engine/graph_node.c (2026-10-21): the real bodies of
+# geo_update_animation_frame and retrieve_animation_index, which GOAL 1's
+# capstone took as rows (Hgeo_real, Hocp_rai_real).
+generated/graph_node.v: $(SM64)/src/engine/graph_node.c pipeline/clightgen.sh pipeline/proof_n64.h
+	$(CLIGHTGEN) $< $@ $(SM64_CGP)
+
+# game/save_file.c + buffers/buffers.c (2026-10-21): the real body of
+# save_file_set_cap_pos (GOAL 1's Hcp_savefile_real row) and the real storage of
+# gSaveBuffer, which save_file.c only declares extern (a size-0 block without
+# buffers.c, so every save-file store would have no execution).
+generated/save_file.v: $(SM64)/src/game/save_file.c pipeline/clightgen.sh pipeline/proof_n64.h
+	$(CLIGHTGEN) $< $@ $(SM64_CGP)
+
+generated/buffers.v: $(SM64)/src/buffers/buffers.c pipeline/clightgen.sh pipeline/proof_n64.h
 	$(CLIGHTGEN) $< $@ $(SM64_CGP)
 
 # Object-object collision (detect_object_hitbox_overlap): the rule that decides

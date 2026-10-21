@@ -28,7 +28,7 @@ From SM64.Generated Require mario mario_actions_stationary mario_actions_moving
   mario_actions_airborne mario_actions_submerged mario_actions_cutscene
   mario_actions_automatic mario_actions_object interaction behavior_actions
   level_update mario_step surface_collision math_util memory game_init
-  object_list_processor audio_data.
+  object_list_processor audio_data graph_node.
 From SM64.Proofs Require Import SymbolicLinking ActionValueFrame AGates Taint
   RealFrameLinked RealFrameValue CensusV2 MWFReal OsDmaFloor ActWriterSurface LinkedTwelve.
 From SM64.Proofs Require OutParamSurface RestSurface.
@@ -305,6 +305,8 @@ Lemma os_ni_olp : no_internal_ids object_list_processor.prog os_ids = true.
 Proof. vm_compute. reflexivity. Qed.
 Lemma os_ni_audio_data : no_internal_ids audio_data.prog os_ids = true.
 Proof. vm_compute. reflexivity. Qed.
+Lemma os_ni_graph_node : no_internal_ids graph_node.prog os_ids = true.
+Proof. vm_compute. reflexivity. Qed.
 
 Definition ext_named (o : option (globdef Clight.fundef type)) (n : String.string) : bool :=
   match o with
@@ -478,7 +480,7 @@ Section LptFrame.
       destruct (link_chain_internal_origin _ _ _ _ _ Hlink Hdm')
         as [Hbase | (q & Hq & Hqdm)].
       + exact (no_internal_ids_correct _ _ _ _ os_ni_mario Hid Hbase).
-      + destruct Hq as [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | []]]]]]]]]]]]]]]]]].
+      + destruct Hq as [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | []]]]]]]]]]]]]]]]]]].
         * exact (no_internal_ids_correct _ _ _ _ os_ni_sta Hid Hqdm).
         * exact (no_internal_ids_correct _ _ _ _ os_ni_mov Hid Hqdm).
         * exact (no_internal_ids_correct _ _ _ _ os_ni_air Hid Hqdm).
@@ -496,6 +498,7 @@ Section LptFrame.
         * exact (no_internal_ids_correct _ _ _ _ os_ni_game_init Hid Hqdm).
         * exact (no_internal_ids_correct _ _ _ _ os_ni_olp Hid Hqdm).
         * exact (no_internal_ids_correct _ _ _ _ os_ni_audio_data Hid Hqdm).
+        * exact (no_internal_ids_correct _ _ _ _ os_ni_graph_node Hid Hqdm).
   Qed.
 
   (* the external call a libultra Scall makes *)

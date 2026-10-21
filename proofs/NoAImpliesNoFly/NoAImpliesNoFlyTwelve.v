@@ -55,7 +55,7 @@ From SM64.Proofs Require Import LinkedTwelve.
 From SM64.Proofs Require Import SpawnInit.
 From SM64.Proofs Require Import InitMemSat.
 From SM64.Proofs Require Import NoAImpliesNoFlyLinked.
-From SM64.Proofs Require OsDmaFloor LptBody BootMWF MathBodies.
+From SM64.Proofs Require GraphNodeBodies MtxfBody FpuFloor OsDmaFloor LptBody BootMWF MathBodies.
 
 (* The open any-argument object-external list, minus memory.c's two
    segment converters: those are linked (the 15th TU) and pure, so their
@@ -141,9 +141,19 @@ Section NoAImpliesNoFlyTwelve.
      R0 nextblock-bound conjunct via glob_valid_of_nextbound), so it is no
      longer an assumed row here either. *)
   (* the dst-gated writer rows (dg): see NoAImpliesNoFlyLinked *)
-  Hypothesis Hscp_mtxf_real :
+  (* PROVED 2026-10-21 (was a row): mtxf_align_terrain_triangle is walked from
+     its real math_util body (MtxfBody): it stores floats through its never-
+     reassigned arg0 (the gate's SafeB matrix) and into its own stack arrays,
+     and its callees (find_floor with &sp74, vec3f_set / _normalize / _cross,
+     find_vector_perpendicular_to_plane) are real bodies with stack-local
+     destinations.  vec3f_normalize re-reads its saved dest after the external
+     sqrtf, so the proof rests on the FPU floor sqrtf_spec (TRUST 3.5), which
+     takes the row's place. *)
+  Hypothesis Hsq : FpuFloor.sqrtf_spec.
+  Lemma Hscp_mtxf_real :
     call_pres_ext_sc lp bm (NoA_real bm) MWF SafeB
       mario_actions_moving._mtxf_align_terrain_triangle.
+  Proof. exact (MtxfBody.Hscp_mtxf_proved lp H12 bm bc oc0 SafeB HSafeB_syms Hspawn Hsq). Qed.
   Hypothesis Hcsp_omfd_real :
     call_pres_ext_cs lp bm (NoA_real bm) MWF SafeB
       mario_actions_cutscene._obj_mark_for_deletion.
@@ -202,12 +212,26 @@ Section NoAImpliesNoFlyTwelve.
   Hypothesis Hpres_cut_ext_open : forall fid,
       mem_id fid NoAImpliesNoFlyLinked.cut_ext_open_ids = true ->
       call_pres_ext lp bm (NoA_real bm) MWF fid.
-  Hypothesis Hgeo_real :
+  (* PROVED 2026-10-20 (were rows): graph_node.c is linked (the 19th TU), so
+     both animation externals are real bodies.  geo_update_animation_frame
+     stores only through accelAssist, which the gate pins NULL;
+     retrieve_animation_index stores only through its last parameter, which
+     the gate puts in a caller stack block (GraphNodeBodies). *)
+  Lemma Hgeo_real :
     call_pres_ext_geo lp bm (NoA_real bm) MWF SafeB
       mario._geo_update_animation_frame.
-  Hypothesis Hocp_rai_real :
+  Proof.
+    exact (GraphNodeBodies.Hgeo_proved lp bm bc oc0 SafeB (linked12_LO_graph_node lp H12)).
+  Qed.
+  Lemma Hocp_rai_real :
     call_pres_ext_oc lp bm (NoA_real bm) MWF SafeB
       mario._retrieve_animation_index.
+  Proof.
+    destruct Hspawn as (init & Hs).
+    exact (GraphNodeBodies.Hocp_rai_proved lp bm bc oc0 SafeB
+             (spawn_Hbc_bm lp init bm bc oc0 Hs) (linked12_LO_graph_node lp H12)
+             (spawn_Hbc_sym lp init bm bc oc0 Hs)).
+  Qed.
   Hypothesis Hpres_floors_ext : forall fid,
       mem_id fid floors_ext_ids = true ->
       call_pres_ext lp bm (NoA_real bm) MWF fid.
