@@ -33,6 +33,10 @@ all in `Unwired/`, and the theorem moved nowhere. See
   `Hcp_savefile_real` is a lemma since 2026-10-21 (`SaveFileBody.v`; `save_file.c` and
   `buffers.c` are TUs 20 and 21): every store lands in `gSaveBuffer` / `gSaveFileModified`,
   both stored globals (TRUST 4.1).
+  The three arg0-gated object-helper rows `Hcsp_omfd_real` / `Hcsp_scale_real` /
+  `Hcsp_osh_real` are lemmas since 2026-10-21 (`ObjHelpersBodies.v`; `object_helpers.c` is
+  the 22nd TU): every store goes through the SafeB `obj`, and the two pointer stores hold
+  `gCurrentObject`'s (SafeB) value or `segmented_to_virtual`'s (integer) result.
 - **GOAL 2** (WMotR needs A): `WMotRRequiresA/HeightFrame.v`,
   `wmotr_noA_height_bound_linked12`. This is a conditional theorem over ONE WMotR
   visit (frames end with `in_wmotr`), under input with A neither pressed nor held

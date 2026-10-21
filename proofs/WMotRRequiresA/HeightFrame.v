@@ -363,17 +363,9 @@ Section HeightLinked12.
   (* the dst-gated writer rows (dg): see NoAImpliesNoFlyLinked *)
   (* Hscp_mtxf_real: PROVED inside NoAImpliesNoFlyTwelve from the real
      mtxf_align_terrain_triangle body (MtxfBody), on Hsqrtf below. *)
-  Hypothesis Hcsp_omfd_real :
-    call_pres_ext_cs lp bm (NoA_real bm) MWF SafeB
-      mario_actions_cutscene._obj_mark_for_deletion.
-  Hypothesis Hcsp_scale_real :
-    call_pres_ext_cs lp bm (NoA_real bm) MWF SafeB
-      mario_actions_cutscene._obj_scale.
-  (* 2026-10-19: obj_set_held_state writes through arg0, so its any-argument
-     obj_ext row was false; restated arg0-gated (see NoAImpliesNoFlyLinked). *)
-  Hypothesis Hcsp_osh_real :
-    call_pres_ext_cs lp bm (NoA_real bm) MWF SafeB
-      interaction._obj_set_held_state.
+  (* Hcsp_omfd_real / Hcsp_scale_real / Hcsp_osh_real: PROVED inside
+     NoAImpliesNoFlyTwelve from the real object_helpers.c bodies
+     (ObjHelpersBodies), no longer rows. *)
   (* set_camera_mode(c, mode, frames) writes c->mode (and, through the mode
      transition, more of *c) via arg0 (camera.c:2854), so the any-argument
      obj_ext row was FALSE (found 2026-10-20).  Restated arg0-gated (cs):
@@ -568,7 +560,7 @@ Section HeightLinked12.
     /\ chase_safe_stmt bm SafeB MWF /\ store_safe_stmt lp bm SafeB MWF.
   Proof.
     exact (frame_call_ok_linked12 lp H12 bm bc oc0 SafeB HSafeB_syms Hbm_sym Hbc_sym Hoc0
-             Hsqrtf Hcsp_omfd_real Hcsp_scale_real Hcsp_osh_real Hcsp_scm_real Hdma_floor WL_exempt
+             Hsqrtf Hcsp_scm_real Hdma_floor WL_exempt
              Hpres_sta_ext Hcp_soawr_real Hpres_obj_ext_open2 Hpres_cut_ext_open
              Hpres_floors_ext Hcp_spawn_real
              Hpres_warp_ext Hext_action Hmwf_ext).
@@ -580,7 +572,7 @@ Section HeightLinked12.
       body_pres lp (NoA_real bm) MWF bm f.
   Proof.
     exact (air_leaves_linked12 lp H12 bm bc oc0 SafeB HSafeB_syms Hbm_sym Hbc_sym Hoc0
-             Hcsp_osh_real Hcsp_scm_real Hdma_floor Hpres_obj_ext_open2 Hpres_floors_ext Hcp_spawn_real
+             Hcsp_scm_real Hdma_floor Hpres_obj_ext_open2 Hpres_floors_ext Hcp_spawn_real
              Hpres_warp_ext).
   Qed.
 

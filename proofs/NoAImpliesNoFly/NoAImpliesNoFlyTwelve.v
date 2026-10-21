@@ -55,8 +55,8 @@ From SM64.Proofs Require Import LinkedTwelve.
 From SM64.Proofs Require Import SpawnInit.
 From SM64.Proofs Require Import InitMemSat.
 From SM64.Proofs Require Import NoAImpliesNoFlyLinked.
-From SM64.Proofs Require GraphNodeBodies MtxfBody SaveFileBody FpuFloor OsDmaFloor LptBody BootMWF
-  MathBodies.
+From SM64.Proofs Require GraphNodeBodies MtxfBody SaveFileBody ObjHelpersBodies FpuFloor OsDmaFloor
+  LptBody BootMWF MathBodies.
 
 (* The open any-argument object-external list, minus memory.c's two
    segment converters: those are linked (the 15th TU) and pure, so their
@@ -155,17 +155,26 @@ Section NoAImpliesNoFlyTwelve.
     call_pres_ext_sc lp bm (NoA_real bm) MWF SafeB
       mario_actions_moving._mtxf_align_terrain_triangle.
   Proof. exact (MtxfBody.Hscp_mtxf_proved lp H12 bm bc oc0 SafeB HSafeB_syms Hspawn Hsq). Qed.
-  Hypothesis Hcsp_omfd_real :
+  (* PROVED 2026-10-21 (were rows): object_helpers.c is linked (the 20th TU),
+     so obj_mark_for_deletion, obj_scale and obj_set_held_state are walked
+     from their real bodies (ObjHelpersBodies).  Every store goes through
+     arg0, a SafeB block under the cs gate; obj_set_held_state's two pointer
+     stores write gCurrentObject's value (a SafeB symbol, so SafeB by MWF's
+     load closure) and segmented_to_virtual's result (an integer OR, never a
+     pointer).  2026-10-19: obj_set_held_state writes through arg0, so its
+     any-argument obj_ext row was false; it was restated arg0-gated. *)
+  Lemma Hcsp_omfd_real :
     call_pres_ext_cs lp bm (NoA_real bm) MWF SafeB
       mario_actions_cutscene._obj_mark_for_deletion.
-  Hypothesis Hcsp_scale_real :
+  Proof. exact (ObjHelpersBodies.Hcsp_omfd_proved lp H12 bm bc oc0 SafeB HSafeB_syms Hspawn). Qed.
+  Lemma Hcsp_scale_real :
     call_pres_ext_cs lp bm (NoA_real bm) MWF SafeB
       mario_actions_cutscene._obj_scale.
-  (* 2026-10-19: obj_set_held_state writes through arg0, so its any-argument
-     obj_ext row was false; restated arg0-gated (see NoAImpliesNoFlyLinked). *)
-  Hypothesis Hcsp_osh_real :
+  Proof. exact (ObjHelpersBodies.Hcsp_scale_proved lp H12 bm bc oc0 SafeB HSafeB_syms Hspawn). Qed.
+  Lemma Hcsp_osh_real :
     call_pres_ext_cs lp bm (NoA_real bm) MWF SafeB
       interaction._obj_set_held_state.
+  Proof. exact (ObjHelpersBodies.Hcsp_osh_proved lp H12 bm bc oc0 SafeB HSafeB_syms Hspawn). Qed.
   (* set_camera_mode(c, mode, frames) writes c->mode (and, through the mode
      transition, more of *c) via arg0 (camera.c:2854), so the any-argument
      obj_ext row was FALSE (found 2026-10-20).  Restated arg0-gated (cs):
