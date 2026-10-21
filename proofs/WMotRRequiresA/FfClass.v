@@ -170,7 +170,8 @@ Definition step_ok (ent : list sval) (pc : list fact) (sa ss st sy sv sf sg : sv
                                       && (negb (Int.eq a ACT_LEDGE_GRAB) || Int.eq cl (Int.repr 2))))
           || (* a rollout's state 1 -> 2 after the step (airborne.c:1389, 1430) *)
             (Int.eq cl Int.zero && is_rl a1 && sveqb sa a1 && sveqb st t1 && sveqb sv v1
-             && has_fact pc (f_eq1 s1) && sveqb ss (Sconst (Vint (Int.repr 2)))))
+             && (has_fact pc (f_eq1 s1) || sveqb s1 (Sconst (Vint Int.one)))
+             && sveqb ss (Sconst (Vint (Int.repr 2)))))
       | _ => false
       end
   | _ => false
@@ -750,11 +751,15 @@ Proof.
     + (* a rollout's state 1 -> 2 *)
       repeat rewrite andb_true_iff in OK. destruct OK as [[[[[[Ec Ar] Ea] Et] Ev] F1] Es].
       apply sveqb_eq in Ea, Et, Ev, Es. subst sa st sv ss.
-      destruct (fbool_in _ _ _ F1) as (w & D & B).
-      cbn [SymExec2.den] in D. rewrite DS1 in D. cbv beta iota in D. rewrite cop_eq_i in D.
-      injection D as <-.
-      destruct (Int.eq (c_state c1) Int.one) eqn:Q; cbn in B; [| discriminate B].
-      apply Int.same_if_eq in Q.
+      (* state 1: a path fact, or the launch's constant (the walker folded the test) *)
+      assert (Q : c_state c1 = Int.one).
+      { apply orb_true_iff in F1 as [F1 | F1].
+        - destruct (fbool_in _ _ _ F1) as (w & D & B).
+          cbn [SymExec2.den] in D. rewrite DS1 in D. cbv beta iota in D. rewrite cop_eq_i in D.
+          injection D as <-.
+          destruct (Int.eq (c_state c1) Int.one) eqn:Q; cbn in B; [| discriminate B].
+          exact (Int.same_if_eq _ _ Q).
+        - apply sveqb_eq in F1. subst s1. cbn [SymExec2.den] in DS1. injection DS1 as Q. exact (eq_sym Q). }
       unfold is_rl in Ar. destruct (ci a1) as [a|] eqn:C; [| discriminate Ar].
       apply ci_some in C. subst a1. cbn [SymExec2.den] in DA1. injection DA1 as A1.
       assert (M1 : mode_of c1 = M_Air).

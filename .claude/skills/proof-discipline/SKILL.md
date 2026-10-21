@@ -57,8 +57,9 @@ all in `Unwired/`, and the theorem moved nowhere. See
     walked by `AhwRun`; the A-gated wall kick is pruned), and so are soft bonk and both air
     knockbacks (`KbRow.kb_row`, generic in the walk theorem `KbRun.kfinal`; walks in `KbRun`),
     and ground pound (`GpRun.gp_kfinal`: windup via `FfClass.gpw_ok`, fall via `ff_ok`), and
-    dive (`KbDv`, an air_entry). Other four cases (both rollouts, butt-slide air, slide kick):
-    `Hair_case_rest` (`KbRow.air_case_rest5`). ffw's floor refresh holds for `fro_entry` actions
+    dive (`KbDv`, an air_entry), and both rollouts (`RlF` / `RlB` through `RlRun.rl_kfinal`;
+    the air-step summary's entry is the caller's cell terms at the call, `AirSum.icE`).
+    Other two cases (butt-slide air, slide kick): `Hair_case_rest` (`KbRow.air_case_rest6`). ffw's floor refresh holds for `fro_entry` actions
     (air_entry + ground pound, TRUST 0.6). Walk files: one walk each (KbSb/KbBkb/KbFkb/KbDv),
     `WithGe.with_ge` not `match ge12`, `vm_cast_no_check`, never `eassumption` near a walk. Dive and rollouts read `gAudioRandom`; audio/data.c (its only
     definer) is linked as the 18th TU so those paths have executions. Squish: WMotR's dynamic
