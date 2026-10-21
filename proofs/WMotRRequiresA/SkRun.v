@@ -2,19 +2,18 @@
 (* SkRun (GOAL 2): act_slide_kick, walked on the link.                    *)
 (*                                                                        *)
 (* The same walker and contract table as KbRun (KbRun.xcK at the case's   *)
-(* constant), its landing helpers merged (KbRun.mergeK).  At state 0 the  *)
-(* handler ticks actionTimer, then either the timer gate to FREEFALL      *)
+(* constant), its landing helpers merged (KbRun.mergeK).  At any state    *)
+(* the handler ticks actionTimer, then either the timer gate to FREEFALL  *)
 (* (airborne.c:1586-1588, from the pre-tick cells: actionTimer >= 30) or  *)
 (* the air step from the ticked cells (FfClass.ent_bs), which the catalog *)
 (* reads as one move from the pre-tick cells (AirMove.sk_pre; its gravity *)
-(* is vel - 2.0f): a landing with vel[1] < 0 bounces (state 1, timer 0,   *)
-(* vel[1] := -vel[1] / 2, airborne.c:1603-1606), else SLIDE_KICK_SLIDE; a *)
-(* wall (BACKWARD_AIR_KB); nothing.  FfClass.sk_ok.  Each outcome also     *)
-(* passes FfKeepCheck.fk_ok (the world is kept).  sk_kfinal is            *)
-(* KbRun.kfinal for the case at state 0 (walk_entry: the classifier       *)
-(* FfClass.sk_ok reads the state-0 code path only; the entry floor        *)
-(* refresh is the dispatch's, FrameSplit.frame_stage; state <> 0 is       *)
-(* KbRow.sk1_row).  The walk is SkW.                                      *)
+(* is vel - 2.0f; past the bounce S_sk_bounced, vel exactly gravity's,    *)
+(* AirMatch.vel_exc): at state 0 a landing with vel[1] < 0 bounces        *)
+(* (state 1, timer 0, vel[1] := -vel[1] / 2, airborne.c:1603-1606), else  *)
+(* SLIDE_KICK_SLIDE; a wall (BACKWARD_AIR_KB); nothing.  FfClass.sk_ok.   *)
+(* Each outcome also passes FfKeepCheck.fk_ok (the world is kept).        *)
+(* sk_kfinal is KbRun.kfinal for the case at any state (the entry floor   *)
+(* refresh is the dispatch's, FrameSplit.frame_stage).  The walk is SkW.  *)
 (* ====================================================================== *)
 
 From Coq Require Import List ZArith Reals.
@@ -65,17 +64,9 @@ Proof.
   exact (consume _ (skk_ok G) W).
 Qed.
 
-(* slide kick in walk_entry is at state 0 *)
-Lemma sk_st0 : forall s, walk_entry (Int.repr SKN) s = true -> s = 0%Z.
-Proof.
-  intros s H. unfold walk_entry in H.
-  replace (Int.eq (Int.repr SKN) ACT_SLIDE_KICK) with true in H by (vm_compute; reflexivity).
-  cbn [negb orb] in H. apply Z.eqb_eq. exact H.
-Qed.
-
 Theorem sk_kfinal : kfinal lp SKN fK.
 Proof.
-  intros m0 gp GPO MC FD E t m' vres c0 EO PC EV RC Hb Hst FRO.
+  intros m0 gp GPO MC FD E t m' vres c0 EO PC EV RC Hb FRO.
   destruct skcheck_lp as (cs & RUN & W).
   assert (MM0 : MMg G NBF (R0F G) gtabF (kvK SKN G) m0 (ufF G m0 gp) gp E m0 (g0F G)).
   { apply MMg_init; [exact EO | apply Ple_refl |].
@@ -105,7 +96,7 @@ Proof.
                                  ltac:(rewrite BaM; exact HbM) r vres DR RT) |].
   rewrite <- BM in RC |- *.
   exact (sk_sound G NBF (R0F G) gtabF (kvK SKN G) m0 (ufF G m0 gp) gp GPO RM RO kM (uf_kM_k_out lp m0 gp)
-           E' m' gs MM ltac:(rewrite BaM; exact HbM) HO0 c0 RC (sk_st0 _ Hst) Hb FRO OK).
+           E' m' gs MM ltac:(rewrite BaM; exact HbM) HO0 c0 RC Hb FRO OK).
 Qed.
 End LP.
 

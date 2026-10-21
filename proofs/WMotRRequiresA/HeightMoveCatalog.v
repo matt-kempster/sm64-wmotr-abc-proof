@@ -172,10 +172,6 @@ Definition sk0 (a : int) (s : Z) : bool := Int.eq a ACT_SLIDE_KICK && Z.eqb s 0.
    butt-slide air at state 0, and slide kick at state 0 *)
 Definition fro_st (a : int) (s : Z) : bool := fro_entry a || bsa0 a s || sk0 a s.
 
-(* the entries the airborne walks take (KbRun.kfinal): all but slide kick
-   past its bounce (state <> 0, M_SlideKickBounced: no walk class yet) *)
-Definition walk_entry (a : int) (s : Z) : bool := negb (Int.eq a ACT_SLIDE_KICK) || Z.eqb s 0.
-
 Lemma fro_st_entry : forall a s, fro_entry a = true -> fro_st a s = true.
 Proof. intros a s H. unfold fro_st. rewrite H. reflexivity. Qed.
 

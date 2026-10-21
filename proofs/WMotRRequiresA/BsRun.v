@@ -65,7 +65,7 @@ Qed.
 
 Theorem bs_kfinal : kfinal lp BSN fK.
 Proof.
-  intros m0 gp GPO MC FD E t m' vres c0 EO PC EV RC Hb _ FRO.
+  intros m0 gp GPO MC FD E t m' vres c0 EO PC EV RC Hb FRO.
   destruct bscheck_lp as (cs & RUN & W).
   assert (MM0 : MMg G NBF (R0F G) gtabF (kvK BSN G) m0 (ufF G m0 gp) gp E m0 (g0F G)).
   { apply MMg_init; [exact EO | apply Ple_refl |].
