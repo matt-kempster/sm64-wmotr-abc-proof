@@ -1,0 +1,2 @@
+# Keep the patched Bash checker executable under WSL with core.autocrlf=true.
+pipeline/check-link-hygiene.sh text eol=lf

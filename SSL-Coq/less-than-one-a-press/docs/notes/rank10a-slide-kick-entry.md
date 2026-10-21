@@ -111,6 +111,25 @@ crouch sliding through every subsequent frame. The useful next predecessor
 is still a concrete event after launch that lets Mario fall much farther,
 changes the selected support, or changes his action while he is confined.
 
+## Post-bounce execution bridge (2026-10-21)
+
+The [upstream-transfer check](rank10a-post-bounce-transfer.md) strengthens
+this boundary with actual generated execution after the bounce. The new
+proof constructs the complete US/JP slide-kick gravity call for any action
+state, deriving the exact binary32 subtraction and clamp and preserving
+all disjoint memory loads. For a certified post-bounce sample with matching
+input memory, its velocity result is exactly the existing vertical model's
+next velocity. A separate proof executes the real handler suffix after an
+`AIR_STEP_NONE` result and a nonzero action state: it returns zero without
+changing memory.
+
+These are local execution pieces. Composing them through the real movement
+quarters, wind and display updates still requires one consistent live-memory
+history. The finite samples have not become a complete flight proof, and
+upstream's WMotR floor and height-budget premises are not assumed for SSL.
+A controller-reachable hard-fall setup and useful sideways departure remain
+open; the Rank 10A estimate is unchanged.
+
 ## Validation
 
 The 2026-09-13 SSL pipeline audit in

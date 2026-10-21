@@ -2553,6 +2553,18 @@ check-rank10a-entry: $(COQMAKEFILE)
 	bash pipeline/assumptions.sh LessThanOneAPress.Proofs.MainTheorem current_rank10a_ground_pound_moving_geometry_boundary
 	bash pipeline/assumptions.sh LessThanOneAPress.Proofs.MainTheorem conditional_less_than_one_a_press_impossibility
 
+.PHONY: check-rank10a-post-bounce
+check-rank10a-post-bounce: $(COQMAKEFILE)
+	$(MAKE) -f $(COQMAKEFILE) proofs/MainTheorem.vo
+	bash pipeline/check-no-admitted.sh
+	bash pipeline/check-link-hygiene.sh
+	bash pipeline/assumptions.sh LessThanOneAPress.Proofs.Area2SlideKickGravityCore skp_exact_gravity_call_in
+	bash pipeline/assumptions.sh LessThanOneAPress.Proofs.Area2SlideKickPostBounce skp_exact_gravity_call
+	bash pipeline/assumptions.sh LessThanOneAPress.Proofs.Area2SlideKickPostBounce skp_post_bounce_call_matches_model
+	bash pipeline/assumptions.sh LessThanOneAPress.Proofs.Area2SlideKickPostBounce skp_post_bounce_no_collision_suffix
+	bash pipeline/assumptions.sh LessThanOneAPress.Proofs.MainTheorem current_rank10a_ground_pound_moving_geometry_boundary
+	bash pipeline/assumptions.sh LessThanOneAPress.Proofs.MainTheorem conditional_less_than_one_a_press_impossibility
+
 clean:
 	-$(MAKE) -f $(COQMAKEFILE) clean
 	rm -f $(COQMAKEFILE) $(COQMAKEFILE).conf .*.aux

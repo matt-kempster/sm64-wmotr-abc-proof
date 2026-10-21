@@ -568,6 +568,8 @@ proofs/Area2RolloutDispatch.v
 proofs/Area2SlideKickEntry.v
 proofs/Area2SlideKickEnvelope.v
 proofs/Area2SlideKickInitializer.v
+proofs/Area2SlideKickGravityCore.v
+proofs/Area2SlideKickPostBounce.v
 proofs/Area2Rank10ABlockedStep.v
 proofs/Area2Rank10ACeilingReject.v
 proofs/Area2Rank10AStallSources.v

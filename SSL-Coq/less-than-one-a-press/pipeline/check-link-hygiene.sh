@@ -124,11 +124,15 @@ for version in ("us", "jp"):
     )
 PY
 
+# Use a real file so the same comparison works without /dev/fd (for example
+# in a restricted proof runner), and so generator failures propagate.
+coverage_output="$(mktemp)"
+trap 'rm -f "$coverage_output"' EXIT
 for version in us jp; do
   manifest="$PROJECT_ROOT/docs/notes/linked-symbol-coverage-${version}.txt"
-  diff -u "$manifest" \
-    <(python3 "$PROJECT_ROOT/pipeline/link-coverage-manifest.py" \
-      "$PROJECT_ROOT/generated" "$version")
+  python3 "$PROJECT_ROOT/pipeline/link-coverage-manifest.py" \
+    "$PROJECT_ROOT/generated" "$version" > "$coverage_output"
+  diff -u "$manifest" "$coverage_output"
 done
 
 echo "linked external-constructor and extern/tentative-variable manifests reproduce"

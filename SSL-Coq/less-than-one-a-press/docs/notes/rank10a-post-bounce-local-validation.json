@@ -1,0 +1,217 @@
+{
+  "date": "2026-10-21",
+  "branch": "codex/ssl-pyramid-item-proof",
+  "repository_head_before_application": "1a670ba4614717936583c152ceb5064f5f37b15b",
+  "state": "The verified Rank 10A patch, LF repair and reporting updates are recorded in the containing commit; unrelated working-tree changes are excluded.",
+  "patch": "rank10a-post-bounce.patch",
+  "patch_sha256": "e562986f6ab8d7a2a792f502e33eead4e395a86870b6c4a00b54ff94f7e2f812",
+  "supplied_commit_ids": [
+    "da41eaba70a8fc612400b51bc2600156797a4c47",
+    "19e10a1c5d0f4027dfd8c44530ceb2ae52bdc7e4"
+  ],
+  "local_audit": "20261021-135002-8exmu8bz",
+  "first_audit": "20261021-134443-qjyu9zg1",
+  "first_audit_status": "FAIL: the patched shell checker had CRLF endings and Bash rejected set -euo pipefail. Its build and six assumption queries passed; this was not a passing full audit.",
+  "application_repair": "Restore LF endings in pipeline/check-link-hygiene.sh and add a path-specific text/eol=lf attribute. No Coq proof or generated code changed from the supplied patch.",
+  "toolchain": {
+    "switch": "sm64-item-proof",
+    "coq": "8.16.1",
+    "compcert": "3.15"
+  },
+  "limits": {
+    "build_timeout_seconds": 600,
+    "assumption_timeout_seconds": 240,
+    "memory_cap_kb": 6815744
+  },
+  "local_checks": [
+    {
+      "name": "source inventory",
+      "status": "PASS",
+      "detail": "683 source files; 0 inventory problems",
+      "problems": []
+    },
+    {
+      "name": "build",
+      "status": "PASS",
+      "detail": "exit 0; see build.log"
+    },
+    {
+      "name": "proof holes",
+      "status": "PASS",
+      "detail": "exit 0; includes untracked source files"
+    },
+    {
+      "name": "link hygiene",
+      "status": "PASS",
+      "detail": "exit 0; includes untracked source files"
+    },
+    {
+      "name": "assumptions LessThanOneAPress.Proofs.Area2SlideKickGravityCore.skp_exact_gravity_call_in",
+      "status": "PASS",
+      "detail": "6 allowed foundations; see assumptions-1.log",
+      "axioms": [
+        "ClassicalDedekindReals.sig_forall_dec",
+        "ClassicalDedekindReals.sig_not_dec",
+        "Classical_Prop.classic",
+        "Events.external_functions_sem",
+        "Events.inline_assembly_sem",
+        "FunctionalExtensionality.functional_extensionality_dep"
+      ]
+    },
+    {
+      "name": "assumptions LessThanOneAPress.Proofs.Area2SlideKickPostBounce.skp_exact_gravity_call",
+      "status": "PASS",
+      "detail": "7 allowed foundations; see assumptions-2.log",
+      "axioms": [
+        "Axioms.proof_irr",
+        "ClassicalDedekindReals.sig_forall_dec",
+        "ClassicalDedekindReals.sig_not_dec",
+        "Classical_Prop.classic",
+        "Events.external_functions_sem",
+        "Events.inline_assembly_sem",
+        "FunctionalExtensionality.functional_extensionality_dep"
+      ]
+    },
+    {
+      "name": "assumptions LessThanOneAPress.Proofs.Area2SlideKickPostBounce.skp_post_bounce_call_matches_model",
+      "status": "PASS",
+      "detail": "7 allowed foundations; see assumptions-3.log",
+      "axioms": [
+        "Axioms.proof_irr",
+        "ClassicalDedekindReals.sig_forall_dec",
+        "ClassicalDedekindReals.sig_not_dec",
+        "Classical_Prop.classic",
+        "Events.external_functions_sem",
+        "Events.inline_assembly_sem",
+        "FunctionalExtensionality.functional_extensionality_dep"
+      ]
+    },
+    {
+      "name": "assumptions LessThanOneAPress.Proofs.Area2SlideKickPostBounce.skp_post_bounce_no_collision_suffix",
+      "status": "PASS",
+      "detail": "7 allowed foundations; see assumptions-4.log",
+      "axioms": [
+        "Axioms.proof_irr",
+        "ClassicalDedekindReals.sig_forall_dec",
+        "ClassicalDedekindReals.sig_not_dec",
+        "Classical_Prop.classic",
+        "Events.external_functions_sem",
+        "Events.inline_assembly_sem",
+        "FunctionalExtensionality.functional_extensionality_dep"
+      ]
+    },
+    {
+      "name": "assumptions LessThanOneAPress.Proofs.MainTheorem.current_rank10a_ground_pound_moving_geometry_boundary",
+      "status": "PASS",
+      "detail": "7 allowed foundations; see assumptions-5.log",
+      "axioms": [
+        "Axioms.proof_irr",
+        "ClassicalDedekindReals.sig_forall_dec",
+        "ClassicalDedekindReals.sig_not_dec",
+        "Classical_Prop.classic",
+        "Events.external_functions_sem",
+        "Events.inline_assembly_sem",
+        "FunctionalExtensionality.functional_extensionality_dep"
+      ]
+    },
+    {
+      "name": "assumptions LessThanOneAPress.Proofs.MainTheorem.conditional_less_than_one_a_press_impossibility",
+      "status": "PASS",
+      "detail": "6 allowed foundations; see assumptions-6.log",
+      "axioms": [
+        "ClassicalDedekindReals.sig_forall_dec",
+        "ClassicalDedekindReals.sig_not_dec",
+        "Classical_Prop.classic",
+        "Events.external_functions_sem",
+        "Events.inline_assembly_sem",
+        "FunctionalExtensionality.functional_extensionality_dep"
+      ]
+    },
+    {
+      "name": "integration",
+      "status": "PASS",
+      "detail": "510/605 modules in MainTheorem's import closure; 95 standalone-only; 0 problems",
+      "problems": []
+    }
+  ],
+  "local_audit_summary": [
+    "PASS: source inventory: 683 source files; 0 inventory problems",
+    "PASS: build: exit 0; see build.log",
+    "PASS: proof holes: exit 0; includes untracked source files",
+    "PASS: link hygiene: exit 0; includes untracked source files",
+    "PASS: assumptions LessThanOneAPress.Proofs.Area2SlideKickGravityCore.skp_exact_gravity_call_in: 6 allowed foundations; see assumptions-1.log",
+    "PASS: assumptions LessThanOneAPress.Proofs.Area2SlideKickPostBounce.skp_exact_gravity_call: 7 allowed foundations; see assumptions-2.log",
+    "PASS: assumptions LessThanOneAPress.Proofs.Area2SlideKickPostBounce.skp_post_bounce_call_matches_model: 7 allowed foundations; see assumptions-3.log",
+    "PASS: assumptions LessThanOneAPress.Proofs.Area2SlideKickPostBounce.skp_post_bounce_no_collision_suffix: 7 allowed foundations; see assumptions-4.log",
+    "PASS: assumptions LessThanOneAPress.Proofs.MainTheorem.current_rank10a_ground_pound_moving_geometry_boundary: 7 allowed foundations; see assumptions-5.log",
+    "PASS: assumptions LessThanOneAPress.Proofs.MainTheorem.conditional_less_than_one_a_press_impossibility: 6 allowed foundations; see assumptions-6.log",
+    "PASS: integration: 510/605 modules in MainTheorem's import closure; 95 standalone-only; 0 problems",
+    "VERDICT: PASS (mechanical checks only; not a completed game proof)",
+    "Mechanical hygiene only. Explicit hypotheses, live reachability, and statement fidelity require review."
+  ],
+  "proof_lf_sha256": {
+    "proofs/Area2SlideKickGravityCore.v": "e64b6706a416c73cf72611d70dcf8de75d7672106a2a447907ae28436cf47929",
+    "proofs/Area2SlideKickPostBounce.v": "4c87bfb68ba916c7ccc3efd2f358edbc12c559ca81672e7388abaf084eba5e6b"
+  },
+  "proof_bytes_sha256": {
+    "proofs/Area2SlideKickGravityCore.v": "86851fb5ba490ac57739efb033be3edbb28852123337be8e53e3cd7842df6d93",
+    "proofs/Area2SlideKickPostBounce.v": "fccad474e50efd16f3bed36b91e6afb918a1e9e21be689d0eb97a4d8a53136c6"
+  },
+  "source_sha256": {
+    "proofs/MainTheorem.v": "ca52b12e3d906b8d2f46827ca776e1cd2afac7a03550b57d747ec4b85f66e0b0",
+    "_CoqProject": "4555209d72dec526a32639deb82a23f452c71e95f3b96fce8035ddd2c194e942",
+    "pipeline/check-link-hygiene.sh": "e10840649f320d6fb5ec7584e55f24fa3e9f776ba461f42e191f4fca433b003e",
+    ".gitattributes": "aa0311bc32d89d2be513f9322c0ee921130ba12b3c1f1f193ddc1f569d1f295b"
+  },
+  "review": "The new statements construct exact generated gravity calls and a separate AIR_STEP_NONE suffix. No blocking statement-fidelity issue found. Whole-handler composition, iteration and controller reachability remain open; the Rank 10A subjective 2–5% estimate is unchanged.",
+  "supplied_validation": "The Coq 8.18.0 run 20261021-151648-1oc7w6z1 is retained as supplied evidence, distinct from the local Coq 8.16.1 rerun.",
+  "initial_application_state": "Applied to the working tree; pre-existing changes preserved; not committed by this application task.",
+  "source_sha256_scope": "The original full audit used the preserved working tree. Its MainTheorem and project hashes include pre-existing unrelated edits. The selectively committed versions are recorded below.",
+  "commit_scope": {
+    "staged_source_sha256": {
+      "SSL-Coq/less-than-one-a-press/proofs/MainTheorem.v": "cc1ba88a9916a417c708547868bd2c2b1a2393ec9787438a29d23e07a06fe6f6",
+      "SSL-Coq/less-than-one-a-press/_CoqProject": "1f30b59db5c87151865c2ecb8d2738538a3cd4ae1f8aee463f3752e1b9c45244"
+    },
+    "staged_main_check": {
+      "source": "build/check/Rank10ACommitMain.v",
+      "source_sha256": "cc1ba88a9916a417c708547868bd2c2b1a2393ec9787438a29d23e07a06fe6f6",
+      "log_sha256": "b1363546125b8f9ba8a8a0fb04da37baaa0050107050f3860b7f37633873bf99",
+      "pipeline": "CHECK_TIMEOUT=600 bash pipeline/check.sh build/check/Rank10ACommitMain.v -Q build/check CommitCheck",
+      "exit_status": 0
+    },
+    "staged_main_assumptions": {
+      "source": "build/check/Rank10ACommitAssumptions.v",
+      "log_sha256": "ff57c27096059f2c2806c7765d103f0da7ada3845bb5abf4191c377e0d38247d",
+      "pipeline": "CHECK_TIMEOUT=240 bash pipeline/check.sh build/check/Rank10ACommitAssumptions.v -Q build/check CommitCheck",
+      "exit_status": 0,
+      "axioms": [
+        [
+          "ClassicalDedekindReals.sig_not_dec",
+          "ClassicalDedekindReals.sig_forall_dec",
+          "Axioms.proof_irr",
+          "Events.inline_assembly_sem",
+          "FunctionalExtensionality.functional_extensionality_dep",
+          "Events.external_functions_sem",
+          "Classical_Prop.classic"
+        ],
+        [
+          "ClassicalDedekindReals.sig_not_dec",
+          "ClassicalDedekindReals.sig_forall_dec",
+          "Events.inline_assembly_sem",
+          "FunctionalExtensionality.functional_extensionality_dep",
+          "Events.external_functions_sem",
+          "Classical_Prop.classic"
+        ]
+      ]
+    },
+    "preserved_working_file_sha256": {
+      "CLAUDE.md": "ceb39808b7c241955f7ba0bfbed0ccf8e41d346ecca4526678d2761d1963cbc0",
+      "SSL-Coq/less-than-one-a-press/pipeline/discipline-kept.json": "e52aaf9f781f53ac9cbb607895985dc10846ee8a75e41a03f8d321c456b44dbb",
+      "SSL-Coq/less-than-one-a-press/proofs/ContactCreditExecution.v": "62e8ff0d173ef2eeccfe63ebabe8afb1fd5517efaef802cd446f00e076d5aca1",
+      "SSL-Coq/less-than-one-a-press/proofs/MainTheorem.v": "ca52b12e3d906b8d2f46827ca776e1cd2afac7a03550b57d747ec4b85f66e0b0",
+      "SSL-Coq/less-than-one-a-press/_CoqProject": "4555209d72dec526a32639deb82a23f452c71e95f3b96fce8035ddd2c194e942"
+    },
+    "proof_boundaries_changed_after_audit": false,
+    "note": "The checked candidate is byte-identical to the staged MainTheorem. Its two queried boundaries retain seven and six allowed foundations. The new proof modules are unchanged from the passing six-query full audit."
+  }
+}
