@@ -984,8 +984,18 @@ Definition gobj_syms : list ident :=
    linked code writes and which the object-helper externals read (e.g.
    obj_set_held_state stores it into obj->parentObj).  As SafeB blocks, R7
    keeps what they hold SafeB. *)
+(* 2026-10-21 (NO_SEGMENTED_MEMORY, TRUST 2.2): obj_set_held_state stores
+   segmented_to_virtual(heldBehavior), now heldBehavior itself, into
+   obj->curBhvCommand.  The three behavior scripts the real sites pass
+   (interaction.c:291,301,322) are SafeB blocks, so R7 holds after the
+   store.  (Their storage is a size-0 extern block until behavior_data.c is
+   linked: no load from it succeeds, so R7 is trivially closed there.) *)
+Definition bhv_held_syms : list ident :=
+  interaction._bhvCarrySomething3 :: interaction._bhvCarrySomething4
+    :: interaction._bhvCarrySomething5 :: nil.
+
 Definition safe_ptr_syms : list ident :=
-  mario_actions_cutscene._gCurrentObject :: gobj_syms.
+  mario_actions_cutscene._gCurrentObject :: gobj_syms ++ bhv_held_syms.
 
 (* ---------------------------------------------------------------------- *)
 (* The interaction-handler census (the Hpres_inter arc): the 28 DISTINCT   *)

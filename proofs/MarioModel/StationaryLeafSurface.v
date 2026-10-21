@@ -767,7 +767,11 @@ Proof. vm_compute. reflexivity. Qed.
    Hcpx_ssm / Hcpx_oshs (ZERO new trust). *)
 Definition mtho_xids : list ident :=
   interaction._segmented_to_virtual :: interaction._stop_shell_music
-    :: interaction._obj_set_held_state :: nil.
+    :: interaction._obj_set_held_state
+    (* the obj_set_held_state arg1 gate (cs_gate, TRUST 2.2 NO_SEGMENTED_MEMORY):
+       the walker checks arg1 is a bhv_held_syms symbol listed here; as
+       variables their call rows are vacuous (call_pres_ext_gvar). *)
+    :: interaction._bhvCarrySomething4 :: interaction._bhvCarrySomething5 :: nil.
 Definition mtho_cact : list ident :=
   interaction._t'2 :: interaction._t'3 :: interaction._t'5 :: interaction._t'6
    :: interaction._t'10 :: interaction._t'11 :: interaction._t'13
@@ -4111,6 +4115,12 @@ Section StationaryLeafRows.
         [ apply Pos.eqb_eq in Hm; subst fid'; exact Hcpx_ssm | ].
       apply orb_true_iff in H as [Hm | H];
         [ apply Pos.eqb_eq in Hm; subst fid'; exact Hcpx_oshs | ].
+      apply orb_true_iff in H as [Hm | H];
+        [ apply Pos.eqb_eq in Hm; subst fid';
+          exact (call_pres_ext_gvar lp interaction.prog bm NoA MWF _ _ LO_int bhv4_dm) | ].
+      apply orb_true_iff in H as [Hm | H];
+        [ apply Pos.eqb_eq in Hm; subst fid';
+          exact (call_pres_ext_gvar lp interaction.prog bm NoA MWF _ _ LO_int bhv5_dm) | ].
       discriminate H.
     - intros fid' H. discriminate H.
     - exact mtho_walk.

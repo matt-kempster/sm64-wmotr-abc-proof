@@ -37,7 +37,17 @@ all in `Unwired/`, and the theorem moved nowhere. See
   The three arg0-gated object-helper rows `Hcsp_omfd_real` / `Hcsp_scale_real` /
   `Hcsp_osh_real` are lemmas since 2026-10-21 (`ObjHelpersBodies.v`; `object_helpers.c` is
   the 22nd TU): every store goes through the SafeB `obj`, and the two pointer stores hold
-  `gCurrentObject`'s (SafeB) value or `segmented_to_virtual`'s (integer) result.
+  `gCurrentObject`'s (SafeB) value or `segmented_to_virtual(arg1)`.
+  Since 2026-10-21 `segmented_to_virtual` / `virtual_to_segmented` are the decomp's
+  `NO_SEGMENTED_MEMORY` identity (`memory.c` only, `-DPROOF_MEMORY_C=1` + `proof_n64.h`; TRUST
+  2.2 register, tethered). Before, they had NO execution on any pointer. FOUND FALSE then:
+  `Hcsp_osh_real` for any arg1 (`heldBehavior` lands in `curBhvCommand`, R7). Restated:
+  `OutParamSurface.cs_gate` also gates osh's arg1 to `bhv_held_syms`; walkers check it
+  (`held_arg_chk`, the bhv symbols listed in xids). Still stuck: every compare with or read of a
+  `bhv*` script (size-0 blocks until behavior_data.c is linked; `WMotREntry.cmp_size0_stuck`).
+  Spawn pair (`Hcp_spawn_real` / `Hcp_soawr_real`): still any-argument and likely FALSE. Fixing
+  them needs spawn_object.c walked (create/allocate/unload/geo_obj_init) and a parent gate.
+  Non-vacuity also needs behavior_data.c (TRUST 4.1).
   The two any-argument list rows shrank on 2026-10-21 (`ObjExtBodies.v`): the seven linked
   save_file.c / `bhv_spawn_star_no_level_exit` entries leave `obj_ext_open2_ids` and the time-stop
   pair leaves `cut_ext_open2_ids` (`Hpres_cut_ext_open2`); their writes needed six more stored
@@ -70,7 +80,7 @@ all in `Unwired/`, and the theorem moved nowhere. See
   stored by the REAL generated `initiate_warp` + `warp_level` head (`EntryWarp.v`), each store an
   `MWF_real` brick. Still from source: the castle painting node, the level script between them,
   the rest of `warp_level`, and the spawn-type lookup (read off area.v data; it has no CompCert
-  execution until `NO_SEGMENTED_MEMORY` + behavior_data.c). Next: `gCurrCourseNum`,
+  execution until behavior_data.c is linked; `NO_SEGMENTED_MEMORY` is in since 2026-10-21). Next: `gCurrCourseNum`,
   surface_load.c (the witness's collision partition is still empty). FOUND FALSE + repaired
   when linking area.c: any-argument `override_viewport_and_clip` (in `obj_ext_ids`) stores its
   pointer args into `D_8032CE74/78`; those joined `stored_globals`. Linking a TU turns every

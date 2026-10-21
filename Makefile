@@ -127,8 +127,11 @@ generated/mario_misc.v: $(SM64)/src/game/mario_misc.c pipeline/clightgen.sh pipe
 # memory.c (2026-10-18): load_patchable_table / dma_read run their real
 # bodies, so the only externals under set_mario_animation are the libultra
 # DMA calls (osInvalDCache / osPiStartDma / osRecvMesg).
+# PROOF_MEMORY_C (2026-10-21, TRUST 2.2): proof_n64.h swaps in the decomp's
+# NO_SEGMENTED_MEMORY bodies of segmented_to_virtual / virtual_to_segmented
+# (identity) for this TU only.
 generated/memory.v: $(SM64)/src/game/memory.c pipeline/clightgen.sh pipeline/proof_n64.h
-	$(CLIGHTGEN) $< $@ $(SM64_CGP)
+	$(CLIGHTGEN) $< $@ $(SM64_CGP) -DPROOF_MEMORY_C=1
 
 # game_init.c (2026-10-20): the real definitions of gMarioAnimsBuf and
 # gControllers (storage in the boot image) and setup_game_memory, which

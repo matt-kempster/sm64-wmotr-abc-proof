@@ -1,3 +1,10 @@
+== ./pipeline/proof_n64.h:40   [1 TU: memory]
+   PROOF void *segmented_to_virtual(const void *addr) {
+   PROOF return (void *) addr;
+   PROOF }
+   PROOF void *virtual_to_segmented(u32 segment, const void *addr) {
+   PROOF return (void *) addr;
+   PROOF }
 == vendor/sm64/include/trig_tables.inc.c:259   [1 TU: math_util]
    ROM   };
    ROM   f32 gCosineTable[0x1000] = {
@@ -28,7 +35,7 @@
    PROOF followStatus = 0;
 == vendor/sm64/src/game/behaviors/wiggler.inc.c:154   [1 TU: obj_behaviors_2]
    PROOF gCurrentObject->rawData.asS32[0x3F] = 4;
-== vendor/sm64/src/game/camera.h:346   [20 TU: behavior_actions, behavior_data, interaction, level_update, mario, mario_actions_airborne, mario_actions_automatic, mario_actions_cutscene, mario_actions_moving, mario_actions_stationary, mario_actions_submerged, mario_misc, obj_behaviors, obj_behaviors_2, object_collision, object_helpers, object_list_processor, shadow, spawn_object, surface_collision]
+== vendor/sm64/src/game/camera.h:346   [21 TU: behavior_actions, behavior_data, interaction, level_update, mario, mario_actions_airborne, mario_actions_automatic, mario_actions_cutscene, mario_actions_moving, mario_actions_stationary, mario_actions_submerged, mario_misc, memory, obj_behaviors, obj_behaviors_2, object_collision, object_helpers, object_list_processor, shadow, spawn_object, surface_collision]
    ROM   typedef s32 (*CameraEvent)(struct Camera *c);
    PROOF typedef void (*CameraEvent)(struct Camera *c);
 == vendor/sm64/src/game/mario_actions_airborne.c:1341   [1 TU: mario_actions_airborne]
@@ -50,7 +57,21 @@
 == vendor/sm64/src/game/mario_step.h:25   [11 TU: behavior_actions, interaction, mario, mario_actions_airborne, mario_actions_automatic, mario_actions_cutscene, mario_actions_moving, mario_actions_object, mario_actions_stationary, mario_actions_submerged, mario_step]
    ROM   s32 init_bully_collision_data(struct BullyCollisionData *data, f32 posX, f32 posZ,
    PROOF void init_bully_collision_data(struct BullyCollisionData *data, f32 posX, f32 posZ,
-== vendor/sm64/src/game/memory.h:78   [22 TU: behavior_actions, behavior_data, interaction, level_update, mario, mario_actions_airborne, mario_actions_automatic, mario_actions_cutscene, mario_actions_moving, mario_actions_stationary, mario_actions_submerged, mario_misc, mario_step, math_util, obj_behaviors, obj_behaviors_2, object_collision, object_helpers, object_list_processor, shadow, spawn_object, surface_collision]
+== vendor/sm64/src/game/memory.c:78   [1 TU: memory]
+   ROM   void *segmented_to_virtual(const void *addr) {
+   PROOF void *rom_segmented_to_virtual(const void *addr) {
+== vendor/sm64/src/game/memory.c:85   [1 TU: memory]
+   ROM   void *virtual_to_segmented(u32 segment, const void *addr) {
+   PROOF void *rom_virtual_to_segmented(u32 segment, const void *addr) {
+== vendor/sm64/src/game/memory.c:492   [1 TU: memory]
+   ROM   s32 mem_pool_free(struct MemoryPool *pool, void *addr) {
+   PROOF void mem_pool_free(struct MemoryPool *pool, void *addr) {
+== vendor/sm64/src/game/memory.h:46   [1 TU: memory]
+   ROM   void *segmented_to_virtual(const void *addr);
+   ROM   void *virtual_to_segmented(u32 segment, const void *addr);
+   PROOF void *rom_segmented_to_virtual(const void *addr);
+   PROOF void *rom_virtual_to_segmented(u32 segment, const void *addr);
+== vendor/sm64/src/game/memory.h:78   [23 TU: behavior_actions, behavior_data, interaction, level_update, mario, mario_actions_airborne, mario_actions_automatic, mario_actions_cutscene, mario_actions_moving, mario_actions_stationary, mario_actions_submerged, mario_misc, mario_step, math_util, memory, obj_behaviors, obj_behaviors_2, object_collision, object_helpers, object_list_processor, shadow, spawn_object, surface_collision]
    ROM   s32 mem_pool_free(struct MemoryPool *pool, void *addr);
    PROOF void mem_pool_free(struct MemoryPool *pool, void *addr);
 == vendor/sm64/src/game/obj_behaviors_2.c:127   [1 TU: obj_behaviors_2]
@@ -82,10 +103,10 @@
    ROM   s32 cur_obj_extend_animation_if_at_end(void);
    PROOF void cur_obj_reverse_animation(void);
    PROOF void cur_obj_extend_animation_if_at_end(void);
-== vendor/sm64/src/game/save_file.h:130   [12 TU: behavior_actions, interaction, level_update, mario, mario_actions_airborne, mario_actions_automatic, mario_actions_cutscene, mario_actions_stationary, mario_actions_submerged, mario_misc, obj_behaviors, obj_behaviors_2]
+== vendor/sm64/src/game/save_file.h:130   [13 TU: behavior_actions, interaction, level_update, mario, mario_actions_airborne, mario_actions_automatic, mario_actions_cutscene, mario_actions_stationary, mario_actions_submerged, mario_misc, memory, obj_behaviors, obj_behaviors_2]
    ROM   s32 save_file_copy(s32 srcFileIndex, s32 destFileIndex);
    PROOF void save_file_copy(s32 srcFileIndex, s32 destFileIndex);
 == vendor/sm64/src/game/shadow.c:191   [1 TU: shadow]
    PROOF return waterLevel;
 
-238 changed sites: cosine-alias 206, unclassified 30, v2p-subtraction (proof_n64.h) 2
+243 changed sites: cosine-alias 206, unclassified 35, v2p-subtraction (proof_n64.h) 2

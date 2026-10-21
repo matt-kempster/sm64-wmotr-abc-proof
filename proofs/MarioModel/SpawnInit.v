@@ -537,7 +537,8 @@ Qed.
 Lemma gobj_not_nonsafe : forall id,
     mem_id id safe_ptr_syms = true -> mem_id id non_safeb_syms = false.
 Proof.
-  intros id H. unfold safe_ptr_syms, gobj_syms in H. cbn [mem_id existsb] in H.
+  intros id H. unfold safe_ptr_syms, gobj_syms, bhv_held_syms in H.
+  cbn [mem_id existsb app] in H.
   repeat (apply orb_true_iff in H as [E | H];
           [ apply Pos.eqb_eq in E; subst id; vm_compute; reflexivity | ]).
   discriminate H.

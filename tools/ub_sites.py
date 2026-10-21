@@ -25,6 +25,7 @@ COMMON = ["-nostdinc", f"-I{SM64}/include", f"-I{SM64}/build/us", f"-I{SM64}/bui
 PROOF = ["-DNON_MATCHING=1", "-DAVOID_UB=1"]
 SHIM = ["-include", "pipeline/proof_n64.h"]
 NO_SHIM = {"shadow", "behavior_data"}   # mirrors the Makefile (SM64_CG vs SM64_CGP)
+PER_TU = {"memory": ["-DPROOF_MEMORY_C=1"]}   # mirrors the Makefile's per-recipe extras
 ROM = ["-D__sgi=1"]   # IDO predefines __sgi (macros.h: matching build, GLOBAL_ASM live)
 TUS = ("mario mario_actions_airborne mario_actions_moving mario_actions_stationary "
        "mario_actions_submerged mario_actions_cutscene mario_actions_automatic "
@@ -60,7 +61,8 @@ def preprocess(src, flags):
 def sites(tu, proof_extra=()):
     src = src_of(tu)
     rom = preprocess(src, ROM)
-    prf = preprocess(src, PROOF + ([] if tu in NO_SHIM else SHIM) + list(proof_extra))
+    prf = preprocess(src, PROOF + ([] if tu in NO_SHIM else SHIM) + PER_TU.get(tu, [])
+                     + list(proof_extra))
     sm = difflib.SequenceMatcher(a=[t for _, _, t in rom], b=[t for _, _, t in prf], autojunk=False)
     out = []
     for op, i1, i2, j1, j2 in sm.get_opcodes():
