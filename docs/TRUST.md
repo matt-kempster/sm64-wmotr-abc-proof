@@ -180,9 +180,30 @@ without pressing A".*
   `kb_row`; walk `BsW.bscheck12`): the handler's `actionTimer++` is `S_tick` to the ticked cells,
   then the FREEFALL gate, or the air-step summary from the ticked cells (`FfClass.ent_bs`) and a
   landing into BUTT_SLIDE, the bounce (`S_attach` to state 1 with vel[1] := −vel[1] / 2, in
-  [−21.5, 37.5]), or a wall into BACKWARD_AIR_KB. Slide kick keeps its AirSplit row
-  (`KbRow.air_case_rest7`), and butt-slide air past its bounce (state ≠ 0) is a new open row
-  (`KbRow.bsa1_row`).** **Found on the way (2026-10-21):** the bounce is a landing, and a landing
+  [−21.5, 37.5]), or a wall into BACKWARD_AIR_KB. Butt-slide air past its bounce (state ≠ 0)
+  is a new open row (`KbRow.bsa1_row`).** **Slide kick at state 0 is proved (2026-10-21,
+  `SkRun.sk_kfinal` through `kb_row`; walk `SkW.skcheck12`), the last no-A case: no case is left
+  over (`KbRow.air_case_fns_in`, computed from the generated switch), so `air_case_rest7` is
+  discharged (`KbRow.air_case_rows_ff8`).** The handler ticks actionTimer, then the timer gate
+  into FREEFALL (`Sw_freefall`, timer ≥ 30, from the gate's `++actionTimer > 30` fact), or the
+  air-step summary from the ticked cells, read as one move from the pre-tick cells
+  (`AirMove.sk_pre`, `AirSum.pre_ok`) at slide kick's gravity vel − 2: a landing into
+  SLIDE_KICK_SLIDE, the bounce off vel[1] < 0 (`S_attach` to state 1, timer 0, vel[1] := −vel[1]
+  / 2 ≥ 0), or a wall into BACKWARD_AIR_KB. Slide kick past its bounce (state ≠ 0) is an open row
+  (`KbRow.sk1_row`), like `bsa1_row`. **Found on the way (2026-10-21, slide kick):** (1) the
+  catalog's slide-kick timer clauses (`S_air`, `S_air_cut`, `S_sk_bounced`, `S_sk_bounced_cut`)
+  said timer' = timer + 1 in Z, which is false at the u16 wrap 65535 → 0 (`budget_ok` bounds
+  the slide-kick timer only while vel > −73); they now say (timer + 1) mod 65536, and
+  `move_keeps_budget` is re-proved. (2) `S_air`'s slide-kick clause also pinned vel' to exactly
+  gravity(vel), more than the air-step classifier establishes (it gives the ≤ bound, as for
+  every other air action); only the ≤ bound is used, and the conjunct is dropped. (3) The `AirMatch` recognizers assumed gravity 4;
+  they are now parametric in the gravity constant (`gk_of`: 2 at a constant SLIDE_KICK action),
+  and a ceiling cut at slide kick needs vel ≥ 0 (`vge0`), as the C does. (4) `AirSum.cls_of`
+  now needs a constant action term, and there are no ledge-grab classes at slide kick. (5)
+  `AirSum.PMc` asks the catalog move only for the no-attach class, plus `InRange` for every
+  class. ffw's floor-refresh clause now also covers slide kick at state 0 (`fro_st` adds
+  `sk0`): a stronger carried fact, of the same kind as butt-slide air's, which the open ground
+  rows must now give. No assumption added. **Found on the way (2026-10-21):** the bounce is a landing, and a landing
   can leave floorHeight a quarter step stale, so ffw's floor-refresh claim cannot cover butt-slide
   air at state 1. It is now state-aware (`HeightMoveCatalog.fro_st` = fro_entry, or butt-slide air
   at state 0, which is entered by leaving the ground through a ground step that sets floorHeight).
@@ -214,7 +235,7 @@ without pressing A".*
   fall (the air-step summary from a ground-pound fall, then a landing, a wall bonk into
   BACKWARD_AIR_KB with vel[1] ≤ 0, or nothing). ffw's floor-refresh clause now covers ground pound
   too (`HeightMoveCatalog.fro_entry` = air_entry ∨ GROUND_POUND; since 2026-10-21 the clause is
-  `fro_st`, which adds butt-slide air at state 0). Its windup only raises pos[1]
+  `fro_st`, which adds butt-slide air and slide kick at state 0). Its windup only raises pos[1]
   (`HeightFloatSteps.windup_add_ge`) and its fall is a non-attaching air step. As before, this is a
   stronger carried fact, true of the game for the same reasons.
 - **Found (2026-10-20):** a ground pound in its windup (actionState 0) with actionTimer 65535 wraps

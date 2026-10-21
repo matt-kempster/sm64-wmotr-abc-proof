@@ -164,9 +164,12 @@ Proof.
   - rewrite (roll_mode a s H). destruct (Z.eqb s 0); discriminate.
 Qed.
 
+(* slide kick at state 0 (before its bounce, which is a landing: see bsa0) *)
+Definition sk0 (a : int) (s : Z) : bool := Int.eq a ACT_SLIDE_KICK && Z.eqb s 0.
+
 (* the frame-boundary floor-refresh claim (FfWorld.ffw): fro_entry actions,
-   and butt-slide air at state 0 *)
-Definition fro_st (a : int) (s : Z) : bool := fro_entry a || bsa0 a s.
+   butt-slide air at state 0, and slide kick at state 0 *)
+Definition fro_st (a : int) (s : Z) : bool := fro_entry a || bsa0 a s || sk0 a s.
 
 Lemma fro_st_entry : forall a s, fro_entry a = true -> fro_st a s = true.
 Proof. intros a s H. unfold fro_st. rewrite H. reflexivity. Qed.
@@ -174,9 +177,11 @@ Proof. intros a s H. unfold fro_st. rewrite H. reflexivity. Qed.
 Lemma fro_st_ground : forall a s, fro_st a s = true -> mode_of_action a s <> M_Ground.
 Proof.
   intros a s H. unfold fro_st in H. apply Bool.orb_true_iff in H as [H | H];
-    [exact (fro_entry_ground a s H) |].
-  apply Bool.andb_true_iff in H as [H _]. apply Int.same_if_eq in H. subst a.
-  vm_compute. discriminate.
+    [apply Bool.orb_true_iff in H as [H | H]; [exact (fro_entry_ground a s H) |] |].
+  - apply Bool.andb_true_iff in H as [H _]. apply Int.same_if_eq in H. subst a.
+    vm_compute. discriminate.
+  - apply Bool.andb_true_iff in H as [H H2]. apply Int.same_if_eq in H. subst a.
+    apply Z.eqb_eq in H2. subst s. vm_compute. discriminate.
 Qed.
 
 Lemma credit_of_mode: forall c, credit_of c = mode_credit (mode_of c) (timer_of c) (R2 (c_vely c)).
@@ -427,8 +432,8 @@ Section Moves.
       c_posy c' = air_step_y (c_posy c) (c_vely c) ->
       R2 (c_vely c') <= R2 (gravity gf (c_vely c)) ->
       c_gfxy c' = c_posy c' ->
-      (c_action c = ACT_SLIDE_KICK ->
-         timer_of c' = (timer_of c + 1)%Z /\ c_vely c' = gravity gf (c_vely c)) ->
+      (* the u16 actionTimer++ wraps at 65535 *)
+      (c_action c = ACT_SLIDE_KICK -> timer_of c' = ((timer_of c + 1) mod 65536)%Z) ->
       Move c c'
   (* the same step cut by a ceiling (vel >= 0 zeroed, mario_step.c:446-452;
      the remaining quarters add 0) or any GP-state-1 fall; vel ends <= 0.
@@ -442,21 +447,21 @@ Section Moves.
       R2 (c_vely c') <= 0 ->
       c_gfxy c' = c_posy c' ->
       (c_action c = ACT_SLIDE_KICK ->
-         0 <= R2 (c_vely c) /\ R2 (c_vely c') = -2 /\ timer_of c' = (timer_of c + 1)%Z) ->
+         0 <= R2 (c_vely c) /\ R2 (c_vely c') = -2 /\ timer_of c' = ((timer_of c + 1) mod 65536)%Z) ->
       Move c c'
   (* post-bounce slide kick air step (g = 2), exact *)
   | S_sk_bounced :
       mode_of c = M_SlideKickBounced ->
       c_action c' = c_action c -> c_state c' = c_state c ->
       c_posy c' = air_step_y (c_posy c) (c_vely c) -> c_vely c' = gravity f2 (c_vely c) ->
-      timer_of c' = (timer_of c + 1)%Z -> c_gfxy c' = c_posy c' ->
+      timer_of c' = ((timer_of c + 1) mod 65536)%Z -> c_gfxy c' = c_posy c' ->
       Move c c'
   | S_sk_bounced_cut : forall n,
       mode_of c = M_SlideKickBounced -> (n <= 4)%nat ->
       c_action c' = c_action c -> c_state c' = c_state c ->
       0 <= R2 (c_vely c) ->
       R2 (c_posy c') = R2 (quarter_steps n (c_posy c) (Float32.div (c_vely c) f4)) -> R2 (c_vely c') = -2 ->
-      timer_of c' = (timer_of c + 1)%Z -> c_gfxy c' = c_posy c' ->
+      timer_of c' = ((timer_of c + 1) mod 65536)%Z -> c_gfxy c' = c_posy c' ->
       Move c c'
   (* act_ground_pound state 0, timer < 10 (airborne.c:925-938):
      pos[1] += 20 - 2*timer; vel := -50; timer++ (state may turn 1) *)
@@ -649,6 +654,42 @@ Section Moves.
     -2 + 2 * IZR (tm + 1) <= 37.5 + IZR (tm + 1) / 1024 \/ -2 <= -73.
   Proof. intros v tm Hv Hc. left. rewrite plus_IZR. destruct Hc; lra. Qed.
 
+  (* the clause only weakens as the timer drops *)
+  Lemma sk_clause_le : forall v t t', (0 <= t' <= t)%Z ->
+    (v + 2 * IZR t <= 37.5 + IZR t / 1024 \/ v <= -73) ->
+    v + 2 * IZR t' <= 37.5 + IZR t' / 1024 \/ v <= -73.
+  Proof.
+    intros v t t' [Ht1 Ht2] Hc. apply IZR_le in Ht1. apply IZR_le in Ht2.
+    destruct Hc; [ left | right ]; lra.
+  Qed.
+
+  Lemma tick_mod_le : forall t, (0 <= t)%Z -> (0 <= (t + 1) mod 65536 <= t + 1)%Z.
+  Proof.
+    intros t Ht. split; [ apply Z.mod_pos_bound; lia | apply Z.mod_le; lia ].
+  Qed.
+
+  (* a slide-kick air step under gravity 2, vel at most gravity's, u16 tick *)
+  Lemma sk_clause_mod : forall v v' g tm, (0 <= tm)%Z -> v' <= g ->
+    (v + 2 * IZR tm <= 37.5 + IZR tm / 1024 \/ v <= -73) ->
+    ((v - 2 < -75 /\ g = -75) \/ (-75 <= g /\ Rabs (g - (v - 2)) <= / 65536)) ->
+    v' + 2 * IZR ((tm + 1) mod 65536) <= 37.5 + IZR ((tm + 1) mod 65536) / 1024 \/ v' <= -73.
+  Proof.
+    intros v v' g tm Htm Hle Hc Hg.
+    apply (sk_clause_le v' (tm + 1)); [ apply tick_mod_le; exact Htm | ].
+    rewrite plus_IZR.
+    destruct Hg as [[_ ->] | [_ Hd]]; [ right; lra | ].
+    apply Rabs_le_inv in Hd. destruct Hc; [ left | right ]; lra.
+  Qed.
+
+  Lemma sk_clause_cut_mod : forall v tm, (0 <= tm)%Z -> 0 <= v ->
+    (v + 2 * IZR tm <= 37.5 + IZR tm / 1024 \/ v <= -73) ->
+    -2 + 2 * IZR ((tm + 1) mod 65536) <= 37.5 + IZR ((tm + 1) mod 65536) / 1024 \/ -2 <= -73.
+  Proof.
+    intros v tm Htm Hv Hc.
+    apply (sk_clause_le (-2) (tm + 1)); [ apply tick_mod_le; exact Htm | ].
+    exact (sk_clause_cut v tm Hv Hc).
+  Qed.
+
   Ltac dphi H :=
     destruct H as ((?Fy & ?Fv & ?Fgy & ?Hylo & ?Hgylo & ?Hflo & ?Hvlo & ?Hvhi)
                    & ?Hb & ?Hgb & ?Hsk & ?Hgp & ?Hgw & ?Hl).
@@ -716,13 +757,13 @@ Section Moves.
       assert (Hcr : R2 (c_posy c') + credit_of c' <= R2 (c_posy c) + credit_of c).
       { rewrite !credit_of_mode, Hk'. rewrite !(mode_credit_rise (mode_of c)) by exact Hk. rewrite <- Hgf. lra. }
       split; [ lra | split; [ rewrite Hgy'; lra | split; [ | split; [ | split ] ] ] ].
-      + intros Ha'. rewrite Ha in Ha'. destruct (Hskp Ha') as [Ht Hvv].
+      + intros Ha'. rewrite Ha in Ha'. pose proof (Hskp Ha') as Ht.
         destruct (mode_slide_kick (c_action c) (state_of c) Ha') as [E | E]; fold (mode_of c) in E;
           [ | exfalso; destruct Hk as [? | [? | ?]]; congruence ].
         rewrite E in Hgf. simpl in Hgf.
         pose proof (gravity_spec2 gf (c_vely c) Fgf Fv (or_introl Hgf) Hv128) as Hgr.
-        rewrite Hgf, <- Hvv in Hgr.
-        rewrite Ht. exact (sk_clause_step _ _ _ (Hsk Ha') Hgr).
+        rewrite Hgf in Hgr.
+        rewrite Ht. exact (sk_clause_mod _ _ _ _ Htm0 Hv' (Hsk Ha') Hgr).
       + intros Ha'. exfalso. rewrite Ha in Ha'.
         apply (not_GP c); [ | | exact Ha' ]; destruct Hk as [? | [? | ?]]; congruence.
       + intros Ha'. exfalso. rewrite Ha in Ha'.
@@ -748,7 +789,7 @@ Section Moves.
           specialize (Hgp Hga Hst0). specialize (Hdn Hgp). lra. }
       split; [ lra | split; [ rewrite Hgy'; lra | split; [ | split; [ | split ] ] ] ].
       + intros Ha'. rewrite Ha in Ha'. destruct (Hskp Ha') as (Hv0 & Hv2 & Ht).
-        rewrite Ht, Hv2. exact (sk_clause_cut _ _ Hv0 (Hsk Ha')).
+        rewrite Ht, Hv2. exact (sk_clause_cut_mod _ _ Htm0 Hv0 (Hsk Ha')).
       + intros Ha' Hst'. exact Hv'.
       + intros Ha' Hst'. exfalso. unfold state_of in Hst'. rewrite Hst in Hst'. fold (state_of c) in Hst'.
         rewrite Ha in Ha'. unfold mode_of in Hk. rewrite Ha', mode_of_action_GP_eq, Hst' in Hk.
@@ -767,8 +808,8 @@ Section Moves.
       split; [ lra | split; [ rewrite Hgy'; lra | split; [ | split; [ | split ] ] ] ].
       + intros _. rewrite Htm'.
         pose proof (gravity_spec2 f2 (c_vely c) F32_f2 Fv (or_introl B2R_f2) Hv128) as Hgr.
-        rewrite B2R_f2, <- Hv' in Hgr.
-        exact (sk_clause_step _ _ _ (Hsk Ha0) Hgr).
+        rewrite B2R_f2 in Hgr.
+        exact (sk_clause_mod _ _ _ _ Htm0 (Req_le _ _ (f_equal R2 Hv')) (Hsk Ha0) Hgr).
       + intros Ha'. exfalso. rewrite Ha, Ha0 in Ha'. discriminate.
       + intros Ha'. exfalso. rewrite Ha, Ha0 in Ha'. discriminate.
       + intros Ha'. exfalso. rewrite Ha, Ha0 in Ha'. discriminate.
@@ -782,7 +823,7 @@ Section Moves.
       assert (Ha0 : c_action c = ACT_SLIDE_KICK)
         by (apply (proj1 (mode_of_action_inv (c_action c) (state_of c))); right; exact Hk).
       split; [ lra | split; [ rewrite Hgy'; lra | split; [ | split; [ | split ] ] ] ].
-      + intros _. rewrite Htm', Hv'. exact (sk_clause_cut _ _ Hv0 (Hsk Ha0)).
+      + intros _. rewrite Htm', Hv'. exact (sk_clause_cut_mod _ _ Htm0 Hv0 (Hsk Ha0)).
       + intros Ha'. exfalso. rewrite Ha, Ha0 in Ha'. discriminate.
       + intros Ha'. exfalso. rewrite Ha, Ha0 in Ha'. discriminate.
       + intros Ha'. exfalso. rewrite Ha, Ha0 in Ha'. discriminate.

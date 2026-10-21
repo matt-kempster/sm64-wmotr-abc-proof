@@ -201,13 +201,15 @@ Variables (nbase : positive) (R0 : list (positive * Z)) (kv : list (positive * Z
 Variables (rM rO kH kM : positive).
 Variables (tA tS tT tY tV tF : sval).
 
-(* the class: 1 a landing, 2 a ledge grab at pos[1] = floorHeight, 0 any
-   other classified outcome; None for an unclassified one *)
-Definition cls_of (g : gst) : option int :=
+(* the class: 1 a landing, 2 a ledge grab at pos[1] = floorHeight (not at
+   slide kick, whose step does not check ledges), 0 any other classified
+   outcome; None for an unclassified one, or an entry action that is not a
+   constant (the classes read the gravity off it) *)
+Definition cls_core (g : gst) : option int :=
   let LD := sload nbase R0 kv g in
   let IC := icE kv rM tA tS tT tY tV tF in
   if cells_ok LD IC (g_pc g) rM rO kH && land_ok LD IC (g_pc g) rM rO kH then Some Int.one
-  else if cells_ok LD IC (g_pc g) rM rO kH && ledge_ok LD IC (g_pc g) rM rO kH
+  else if cells_ok LD IC (g_pc g) rM rO kH && negb (is_skt tA) && ledge_ok LD IC (g_pc g) rM rO kH
           && match LD rM oF Mfloat32, LD rM oY Mfloat32 with
              | Some a, Some b => sveqb a b | _, _ => false end
   then Some (Int.repr 2)
@@ -215,6 +217,16 @@ Definition cls_of (g : gst) : option int :=
           && match aclass_of LD IC (g_pc g) rM rO kH with Some _ => true | None => false end
   then Some Int.zero
   else None.
+
+Definition cls_of (g : gst) : option int :=
+  match tA with Sconst (Vint _) => cls_core g | _ => None end.
+
+Lemma cls_of_core : forall g cl, cls_of g = Some cl -> cls_core g = Some cl /\ exists a, tA = Sconst (Vint a).
+Proof.
+  intros g cl H. unfold cls_of in H.
+  destruct tA as [[| a | | | |] | | | | | | | | |]; try discriminate H.
+  split; [exact H | eexists; reflexivity].
+Qed.
 
 Definition ic_of (k : positive * Z * memory_chunk) : sval := let '(r, o, ch) := k in init_cell kv r o ch.
 
@@ -248,24 +260,27 @@ Definition cvals (c : cells) : list val :=
 (* from the entry cells c, the air step made the cells c1 by one RangedMove;
    a landing or ledge grab also says where it attached *)
 Definition PMc (cl : int) (c c1 : cells) : Prop :=
-  RM' c c1 /\ (cl <> Int.zero -> AttachInfo c c1)
+  InRange c1 /\ (cl = Int.zero -> RM' c c1) /\ (cl <> Int.zero -> AttachInfo c c1)
   /\ (cl = Int.repr 2 -> AttachOK wmotr_floor wmotr_pole wmotr_cannon c (R2 (c_floorh c1)))
   (* a step that did not attach ends as a floor refresh *)
   /\ (cl = Int.zero -> FloorRefreshOK wmotr_floor (R2 (c_posy c1)) (R2 (c_floorh c1))).
 
+(* the step's entry cells c; the handler's entry cells cp: c itself (an
+   air-step entry), or slide kick's before its timer tick (AirMove.pre_ok) *)
 Definition PMv (cl : int) (c c1 : cells) : Prop :=
-  pas_entry (c_action c) (state_of c) = true -> budget_ok c ->
-  FloorRefreshOK wmotr_floor (R2 (c_posy c)) (R2 (c_floorh c)) -> PMc cl c c1.
+  forall cp, pre_ok cp c -> budget_ok cp ->
+  FloorRefreshOK wmotr_floor (R2 (c_posy cp)) (R2 (c_floorh cp)) -> PMc cl cp c1.
 
-(* the fact's arguments: whenever the entry cells are cells c of a
-   freefall or knockback-family state (air_entry) in budget (with a fresh floor), the arguments are the
-   class, the result, c, and the cells c1 the step made, with PMc *)
+(* the fact's arguments: whenever the entry cells are cells c of an air-step
+   entry (pas_entry), or slide kick's ticked cells, whose handler entry cp is
+   in budget (with a fresh floor), the arguments are the class, the result,
+   c, and the cells c1 the step made, with PMc from cp *)
 Definition MV (vs : list (option val)) : Prop :=
   forall c, firstn 7 (skipn 3 vs) = map Some (cvals c) ->
-  pas_entry (c_action c) (state_of c) = true -> budget_ok c ->
-  FloorRefreshOK wmotr_floor (R2 (c_posy c)) (R2 (c_floorh c)) ->
+  forall cp, pre_ok cp c -> budget_ok cp ->
+  FloorRefreshOK wmotr_floor (R2 (c_posy cp)) (R2 (c_floorh cp)) ->
   exists cl rv c1, vs = map Some (Vsingle (c_posy c1) :: Vint cl :: rv :: cvals c ++ cvals c1)
-                   /\ PMc cl c c1.
+                   /\ PMc cl cp c1.
 
 (* ---------------------------------------------------------------------- *)
 (* Each class proves PMv (AirMove)                                        *)
@@ -325,6 +340,32 @@ Qed.
 
 Local Notation IC := (icE kv rM tA tS tT tY tV tF).
 
+(* at slide kick's tick the action term is the constant ACT_SLIDE_KICK *)
+Lemma tA_sk : forall a c cp, tA = Sconst (Vint a) -> den ge m0 E tA = Some (Vint (c_action c)) ->
+  sk_pre cp c -> tA = Sconst (Vint ACT_SLIDE_KICK).
+Proof.
+  intros a c cp ETA HA (A0 & _ & A1 & _). rewrite ETA in HA |- *. cbn [den] in HA.
+  injection HA as ->. rewrite A1, A0. reflexivity.
+Qed.
+
+(* ... where the class is a landing or a non-attach class *)
+Lemma cls_sk : forall cl, cls_core nbase R0 kv rM rO kH tA tS tT tY tV tF g = Some cl ->
+  tA = Sconst (Vint ACT_SLIDE_KICK) ->
+  cells_ok (sload nbase R0 kv g) IC (g_pc g) rM rO kH = true
+  /\ ((cl = Int.one /\ land_ok (sload nbase R0 kv g) IC (g_pc g) rM rO kH = true)
+      \/ (cl = Int.zero /\ exists ac, aclass_of (sload nbase R0 kv g) IC (g_pc g) rM rO kH = Some ac)).
+Proof.
+  intros cl CL ETA. unfold cls_core in CL.
+  destruct (cells_ok (sload nbase R0 kv g) IC (g_pc g) rM rO kH) eqn:CO; [| discriminate CL].
+  cbn [andb] in CL. split; [reflexivity |].
+  destruct (land_ok (sload nbase R0 kv g) IC (g_pc g) rM rO kH) eqn:LO;
+    [left; injection CL as <-; auto |].
+  assert (NS : negb (is_skt tA) = false) by (rewrite ETA; reflexivity).
+  rewrite NS in CL. cbn [andb] in CL.
+  destruct (aclass_of (sload nbase R0 kv g) IC (g_pc g) rM rO kH) as [ac|] eqn:AC0;
+    cbv beta iota in CL; [right; injection CL as <-; eauto | discriminate CL].
+Qed.
+
 Theorem pmv_of : forall cl c c1, cls_of nbase R0 kv rM rO kH tA tS tT tY tV tF g = Some cl ->
   den ge m0 E tA = Some (Vint (c_action c)) ->
   den ge m0 E tS = Some (Vint (c_state c)) ->
@@ -334,34 +375,57 @@ Theorem pmv_of : forall cl c c1, cls_of nbase R0 kv rM rO kH tA tS tT tY tV tF g
   den ge m0 E tF = Some (Vsingle (c_floorh c)) ->
   at_cells m c1 -> PMv cl c c1.
 Proof.
-  intros cl c c1 CL HA HS HT0 HY HV HF AC Hact Hb FRO.
+  intros cl c c1 CL HA HS HT0 HY HV HF AC cp Hpre Hb FRO.
+  apply cls_of_core in CL as (CL & a & ETA).
+  pose proof HA as HA0.
   rewrite <- (icE_A kv rM tA tS tT tY tV tF) in HA. rewrite <- (icE_S kv rM tA tS tT tY tV tF) in HS.
   rewrite <- (icE_T kv rM tA tS tT tY tV tF) in HT0. rename HT0 into HT.
   rewrite <- (icE_Y kv rM tA tS tT tY tV tF) in HY. rewrite <- (icE_V kv rM tA tS tT tY tV tF) in HV.
   rewrite <- (icE_F kv rM tA tS tT tY tV tF) in HF.
-  unfold cls_of in CL.
+  assert (N2 : Int.repr 2 <> Int.zero) by (intros E2; apply (f_equal Int.unsigned) in E2; vm_compute in E2; discriminate E2).
+  assert (N1 : Int.one <> Int.zero) by exact Int.one_not_zero.
+  destruct Hpre as [(-> & Hact) | Hsk].
+  2:{ (* slide kick: the move is from the pre-tick cells cp *)
+    pose proof (tA_sk a c cp ETA HA0 Hsk) as ETA'.
+    assert (HAc : IC rM oA Mint32 = Sconst (Vint ACT_SLIDE_KICK))
+      by (rewrite (icE_A kv rM tA tS tT tY tV tF); exact ETA').
+    destruct (cls_sk cl CL ETA') as (CO & [(-> & LO) | (-> & ac & AC0)]).
+    all: pose proof (proj1 (cells_sound ge nbase R0 gtab kv m0 uf gp gp_old E m g rM rO kH MM HUH HbM IC CO)) as LMO.
+    - destruct (sk_land_move ge nbase R0 gtab kv m0 uf gp gp_old E m g rM rO kH MM HUH HbM cp c
+                  IC HAc HS HT HY HV HF Hsk Hb FD FRO CO LO) as (c' & RC & IR & AI).
+      rewrite (cells_unique c' c1 LMO RC AC) in IR, AI.
+      split; [exact IR | split; [intros E0; exfalso; exact (N1 E0) | split; [intros _; exact AI | split; [intros E2; exfalso | intros E0; exfalso; exact (N1 E0)]]]].
+      apply (f_equal Int.unsigned) in E2. vm_compute in E2. discriminate E2.
+    - assert (OK : outcome_ok (sload nbase R0 kv g) IC (g_pc g) rM rO kH = true)
+        by (unfold outcome_ok; rewrite CO, AC0; reflexivity).
+      destruct (sk_outcome_move ge nbase R0 gtab kv m0 uf gp gp_old E m g rM rO kH MM HUH HbM cp c
+                  IC HAc HS HT HY HV HF Hsk Hb FD FRO OK ac AC0) as (c' & RC & M).
+      pose proof (sk_class_fro ge nbase R0 gtab kv m0 uf gp gp_old E m g rM rO kH MM HUH HbM cp c
+                    IC HAc HS HT HY HV HF Hsk Hb FD FRO ac c' AC0 RC (proj1 M)) as FR1.
+      rewrite (cells_unique c' c1 LMO RC AC) in M, FR1.
+      split; [exact (proj1 M) | split; [intros _; exact M | split; [intros N; exfalso; exact (N eq_refl) | split; [intros E2; exfalso | intros _; exact FR1]]]].
+      apply (f_equal Int.unsigned) in E2. vm_compute in E2. discriminate E2. }
+  unfold cls_core in CL.
   destruct (cells_ok (sload nbase R0 kv g) IC (g_pc g) rM rO kH) eqn:CO; [| discriminate CL].
   pose proof (proj1 (cells_sound ge nbase R0 gtab kv m0 uf gp gp_old E m g rM rO kH MM HUH HbM IC CO)) as LMO.
   cbn [andb] in CL.
-  assert (N2 : Int.repr 2 <> Int.zero) by (intros E2; apply (f_equal Int.unsigned) in E2; vm_compute in E2; discriminate E2).
-  assert (N1 : Int.one <> Int.zero) by exact Int.one_not_zero.
   destruct (land_ok (sload nbase R0 kv g) IC (g_pc g) rM rO kH) eqn:LO.
   - injection CL as <-.
     destruct (land_move ge nbase R0 gtab kv m0 uf gp gp_old E m g rM rO kH MM HUH HbM c
                 IC HA HS HT HY HV HF Hb Hact FD FRO CO LO) as (c' & RC & M & AI).
     rewrite (cells_unique c' c1 LMO RC AC) in M, AI.
-    split; [exact M | split; [intros _; exact AI | split; [intros E2; exfalso | intros E0; exfalso; exact (N1 E0)]]].
+    split; [exact (proj1 M) | split; [intros E0; exfalso; exact (N1 E0) | split; [intros _; exact AI | split; [intros E2; exfalso | intros E0; exfalso; exact (N1 E0)]]]].
     apply (f_equal Int.unsigned) in E2. vm_compute in E2. discriminate E2.
-  - destruct (ledge_ok (sload nbase R0 kv g) IC (g_pc g) rM rO kH
+  - destruct (negb (is_skt tA) && ledge_ok (sload nbase R0 kv g) IC (g_pc g) rM rO kH
               && match sload nbase R0 kv g rM oF Mfloat32, sload nbase R0 kv g rM oY Mfloat32 with
                  | Some a, Some b => sveqb a b | _, _ => false end) eqn:LE.
-    + injection CL as <-. apply andb_true_iff in LE as (LE & Q').
+    + injection CL as <-. apply andb_true_iff in LE as (LE & Q'). apply andb_true_iff in LE as (_ & LE).
       destruct (ledge_move ge nbase R0 gtab kv m0 uf gp gp_old E m g rM rO kH MM HUH HbM c
                   IC HA HS HT HY HV HF Hb Hact FD CO LE) as (c' & RC & M & AI & AO).
       rewrite (cells_unique c' c1 LMO RC AC) in M, AI, AO.
-      destruct (sload nbase R0 kv g rM oF Mfloat32) as [a|] eqn:La; [| discriminate Q'].
+      destruct (sload nbase R0 kv g rM oF Mfloat32) as [a0|] eqn:La; [| discriminate Q'].
       destruct (sload nbase R0 kv g rM oY Mfloat32) as [b|] eqn:Lb; [| discriminate Q'].
-      split; [exact M | split; [intros _; exact AI | split; [intros _; exact (AO (ld_eq_load a b La Lb Q')) |]]].
+      split; [exact (proj1 M) | split; [intros E0; exfalso; exact (N2 E0) | split; [intros _; exact AI | split; [intros _; exact (AO (ld_eq_load a0 b La Lb Q')) |]]]].
       intros E0; exfalso; exact (N2 E0).
     + destruct (aclass_of (sload nbase R0 kv g) IC (g_pc g) rM rO kH) as [ac|] eqn:AC0;
         [injection CL as <- | discriminate CL].
@@ -370,22 +434,22 @@ Proof.
       destruct (outcome_move ge nbase R0 gtab kv m0 uf gp gp_old E m g rM rO kH MM HUH HbM c
                   IC HA HS HT HY HV HF Hb Hact FD FRO OK) as (c' & RC & M).
       pose proof (class_fro ge nbase R0 gtab kv m0 uf gp gp_old E m g rM rO kH MM HUH HbM c
-                    IC HA HS HT HY HV HF Hb Hact FD FRO ac c' AC0 RC (proj1 M)) as FR1.
+                    IC HY HV HF FD FRO ac c' AC0 RC (proj1 M)) as FR1.
       rewrite (cells_unique c' c1 LMO RC AC) in M, FR1.
-      split; [exact M | split; [intros N; exfalso; exact (N eq_refl) | split; [intros E2; exfalso | intros _; exact FR1]]].
+      split; [exact (proj1 M) | split; [intros _; exact M | split; [intros N; exfalso; exact (N eq_refl) | split; [intros E2; exfalso | intros _; exact FR1]]]].
       apply (f_equal Int.unsigned) in E2. vm_compute in E2. discriminate E2.
 Qed.
 
-Lemma cls_outcome : forall cl, cls_of nbase R0 kv rM rO kH tA tS tT tY tV tF g = Some cl ->
+Lemma cls_outcome : forall cl, cls_core nbase R0 kv rM rO kH tA tS tT tY tV tF g = Some cl ->
   outcome_ok (sload nbase R0 kv g) IC (g_pc g) rM rO kH = true.
 Proof.
-  intros cl CL. unfold cls_of, outcome_ok in CL. unfold outcome_ok.
+  intros cl CL. unfold cls_core, outcome_ok in CL. unfold outcome_ok.
   destruct (cells_ok (sload nbase R0 kv g) IC (g_pc g) rM rO kH); [| discriminate CL].
   cbn [andb] in *.
   destruct (aclass_of (sload nbase R0 kv g) IC (g_pc g) rM rO kH); [reflexivity |].
   destruct (land_ok (sload nbase R0 kv g) IC (g_pc g) rM rO kH); [reflexivity |].
   destruct (ledge_ok (sload nbase R0 kv g) IC (g_pc g) rM rO kH); [reflexivity |].
-  cbn [andb] in CL. discriminate CL.
+  rewrite ?andb_false_r in CL. cbn [andb] in CL. discriminate CL.
 Qed.
 
 (* the step's cells exist and are read through the regions *)
@@ -396,11 +460,13 @@ Theorem step_cells : forall cl c, cls_of nbase R0 kv rM rO kH tA tS tT tY tV tF 
   den ge m0 E tY = Some (Vsingle (c_posy c)) ->
   den ge m0 E tV = Some (Vsingle (c_vely c)) ->
   den ge m0 E tF = Some (Vsingle (c_floorh c)) ->
-  pas_entry (c_action c) (state_of c) = true -> budget_ok c ->
-  FloorRefreshOK wmotr_floor (R2 (c_posy c)) (R2 (c_floorh c)) ->
+  forall cp, pre_ok cp c -> budget_ok cp ->
+  FloorRefreshOK wmotr_floor (R2 (c_posy cp)) (R2 (c_floorh cp)) ->
   exists c1, at_cells m c1.
 Proof.
-  intros cl c CL HA HS HT0 HY HV HF Hact Hb FRO.
+  intros cl c CL HA HS HT0 HY HV HF cp Hpre Hb FRO.
+  apply cls_of_core in CL as (CL & a & ETA).
+  pose proof HA as HA0.
   rewrite <- (icE_A kv rM tA tS tT tY tV tF) in HA. rewrite <- (icE_S kv rM tA tS tT tY tV tF) in HS.
   rewrite <- (icE_T kv rM tA tS tT tY tV tF) in HT0. rename HT0 into HT.
   rewrite <- (icE_Y kv rM tA tS tT tY tV tF) in HY. rewrite <- (icE_V kv rM tA tS tT tY tV tF) in HV.
@@ -408,8 +474,22 @@ Proof.
   pose proof (cls_outcome cl CL) as OK.
   pose proof OK as OK'. unfold outcome_ok in OK'. apply andb_true_iff in OK' as [CO _].
   pose proof (proj1 (cells_sound ge nbase R0 gtab kv m0 uf gp gp_old E m g rM rO kH MM HUH HbM IC CO)) as LMO.
-  destruct (outcome_move ge nbase R0 gtab kv m0 uf gp gp_old E m g rM rO kH MM HUH HbM c
-              IC HA HS HT HY HV HF Hb Hact FD FRO OK) as (c' & RC & _).
+  assert (RCx : exists c', read_cells bm m c').
+  { destruct Hpre as [(-> & Hact) | Hsk].
+    - destruct (outcome_move ge nbase R0 gtab kv m0 uf gp gp_old E m g rM rO kH MM HUH HbM c
+                  IC HA HS HT HY HV HF Hb Hact FD FRO OK) as (c' & RC & _).
+      exists c'. exact RC.
+    - pose proof (tA_sk a c cp ETA HA0 Hsk) as ETA'.
+      assert (HAc : IC rM oA Mint32 = Sconst (Vint ACT_SLIDE_KICK))
+        by (rewrite (icE_A kv rM tA tS tT tY tV tF); exact ETA').
+      destruct (cls_sk cl CL ETA') as (_ & [(_ & LO) | (_ & ac & AC0)]).
+      + destruct (sk_land_move ge nbase R0 gtab kv m0 uf gp gp_old E m g rM rO kH MM HUH HbM cp c
+                    IC HAc HS HT HY HV HF Hsk Hb FD FRO CO LO) as (c' & RC & _).
+        exists c'. exact RC.
+      + destruct (sk_outcome_move ge nbase R0 gtab kv m0 uf gp gp_old E m g rM rO kH MM HUH HbM cp c
+                    IC HAc HS HT HY HV HF Hsk Hb FD FRO OK ac AC0) as (c' & RC & _).
+        exists c'. exact RC. }
+  destruct RCx as (c' & RC).
   exists c'. destruct RC as (A & S & T & Y & V & F & bo & oo & LO & GY).
   change Mptr with Mint32 in LO. change OFS_MARIOOBJ with oMO in LO. rewrite LMO in LO.
   injection LO as <- <-.
@@ -530,7 +610,7 @@ Proof.
       assert (NFF : nlt (g_nx g'') tF) by (exact (nlt_up tF n (g_nx g'') NF NN)).
       repeat constructor; try assumption; try (apply Hi; assumption);
         try (eapply sok_up; [eassumption | exact NN]).
-    + cbn [fact_holds]. apply HUM. intros c Hent Hact Hb FRO.
+    + cbn [fact_holds]. apply HUM. intros c Hent cp Hpre Hb FRO.
       cbn [ents map pkeys mkeys app fents sv_of firstn skipn] in Hent.
       rewrite DIo in Hent. cbn [cvals map] in Hent.
       injection Hent as HA HS HT HY HV HF HG.
@@ -547,14 +627,14 @@ Proof.
       assert (HF' : den E' tF = Some (Vsingle (c_floorh c)))
         by (rewrite <- (den_Rx ge m0 E' E'' n tF RX NF); exact HF).
       destruct (step_cells ge nbase R0 gtab kv m0 uf gp gp_old E' m' g' rM rO kH tA tS tT tY tV tF MM' HUH HbM FD
-                  cl c CL HA' HS' HT' HY' HV' HF' Hact Hb FRO) as (c1 & AC).
+                  cl c CL HA' HS' HT' HY' HV' HF' cp Hpre Hb FRO) as (c1 & AC).
       exists cl, v, c1. split.
       * cbn [ents map pkeys mkeys app fents sv_of].
         rewrite F1, F2, F3, F4, Da, Ds, Dt, Dr, DIo, HA, HS, HT, HY, HV, HF, HG.
         destruct AC as (A1 & S1 & T1 & Y1 & V1 & Fl1 & G1).
         rewrite A1, S1, T1, Y1, V1, Fl1, G1. reflexivity.
       * exact (pmv_of ge nbase R0 gtab kv m0 uf gp gp_old E' m' g' rM rO kH tA tS tT tY tV tF MM' HUH HbM FD
-                 cl c c1 CL HA' HS' HT' HY' HV' HF' AC Hact Hb FRO).
+                 cl c c1 CL HA' HS' HT' HY' HV' HF' AC cp Hpre Hb FRO).
   - split; [exact Dr |].
     split; [cbn [add_fact g_nx]; split; [eapply nlt_up; [exact (proj1 S) | exact NN] | exact (proj2 S)] |].
     split; [cbn [add_fact g_nx]; eapply Ple_trans; [exact L | exact NN] |].

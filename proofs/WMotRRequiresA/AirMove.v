@@ -103,6 +103,17 @@ Qed.
 Lemma not_sk : c_action c <> ACT_SLIDE_KICK.
 Proof. exact (proj1 (gpf_ne _ act_cases)). Qed.
 
+(* the classes read gravity 4.0f: the entry action is not slide kick *)
+Lemma gk4 : gk_of (IC rM oA Mint32) = f4.
+Proof.
+  apply gk_nskt. unfold is_skt.
+  destruct (IC rM oA Mint32) as [w | | | | | | | | |] eqn:EA; try reflexivity.
+  destruct w; try reflexivity. pose proof HA as HA'. cbn [den] in HA'.
+  injection HA' as ->.
+  destruct (Int.eq (c_action c) ACT_SLIDE_KICK) eqn:Q; [| reflexivity].
+  exfalso. apply not_sk. exact (Int.same_if_eq _ _ Q).
+Qed.
+
 (* the entry ranges *)
 Lemma entry_ranges :
   F32 (c_posy c) = true /\ F32 (c_vely c) = true /\ Rabs (R2 (c_posy c)) <= 16000
@@ -162,6 +173,7 @@ Proof.
   destruct (aclass_air ge nbase R0 gtab kv m0 uf gp gp_old E m g rM rO (c_posy c) (c_vely c) kH
               MM HbM IC HY HV H Fv Hv)
     as ((KA & KS & KT) & LY & LG & (v' & LV & Fv' & Lo & Hi)).
+  rewrite gk4 in Hi.
   destruct (floorh_new CO) as (LMO & fh & LF & Ffh & Lfh).
   destruct (quarter_steps_up 4 (c_posy c) (c_vely c) ltac:(lia) Fy Fv Hy Hv) as (Fp & _).
   rewrite <- air_step_y_quarter_steps in Fp.
@@ -197,7 +209,8 @@ Proof.
   destruct entry_ranges as (Fy & Fv & Hy & Hv & Hv43 & Ff & Lf).
   destruct (aclass_cut ge nbase R0 gtab kv m0 uf gp gp_old E m g rM rO (c_posy c) (c_vely c) kH
               MM HbM IC HY HV k H)
-    as ((KA & KS & KT) & Hk & (p & Ep & LY & LG & LV & (j & Ej))).
+    as ((KA & KS & KT) & Hk & _ & (p & Ep & LY & LG & LV & (j & Ej))).
+  rewrite gk4 in LV.
   destruct (floorh_new CO) as (LMO & fh & LF & Ffh & Lfh).
   destruct (quarter_steps_up k (c_posy c) (c_vely c) Hk Fy Fv Hy Hv) as (Fq & _).
   assert (Fp : F32 p = true) by (rewrite Ej; apply add_zeros_F32; exact Fq).
@@ -205,15 +218,15 @@ Proof.
   { destruct k as [| k'].
     - rewrite Ep. cbn [quarter_steps]. destruct Hc as ((_ & _ & _ & Ly & _) & _). exact Ly.
     - pose proof (pos_low (Ccut (S k')) p H ltac:(discriminate) LY Fp). lra. }
-  exists (mkCells (c_action c) (c_state c) (c_timer c) p fm4 fh p).
+  exists (mkCells (c_action c) (c_state c) (c_timer c) p (cutv f4) fh p).
   split; [ unfold read_cells; cbn [c_action c_state c_timer c_posy c_vely c_floorh c_gfxy];
            rewrite <- HA, <- HS, <- HT; repeat split; try assumption;
            exists (e_blk E rO), (e_base E rO); split; [exact LMO | exact LG] |].
-  split; [ unfold InRange; cbn [c_posy c_vely c_floorh c_gfxy]; rewrite ?B2R_fm4;
+  split; [ unfold InRange; cbn [c_posy c_vely c_floorh c_gfxy]; rewrite ?B2R_cutv4;
            repeat split; try assumption; try lra; reflexivity |].
   apply (S_air_cut _ _ _ c _ k); cbn [c_action c_state c_timer c_posy c_vely c_gfxy];
     first [ exact air4 | exact Hk | reflexivity | exact Ep
-          | rewrite B2R_fm4; lra | intros E'; exfalso; exact (not_sk E') ].
+          | rewrite B2R_cutv4; lra | intros E'; exfalso; exact (not_sk E') ].
 Qed.
 
 Lemma not_ledge : c_action c <> ACT_LEDGE_GRAB.
@@ -236,6 +249,7 @@ Proof.
   destruct (land_sound ge nbase R0 gtab kv m0 uf gp gp_old E m g rM rO (c_posy c) (c_vely c) kH
               MM HUH HbM IC HY HV OK Fv Hv)
     as ((KA & KS & KT) & LG & LP & (v' & LV & Fv' & Lo & Hi)).
+  rewrite gk4 in Hi.
   destruct (floorh_new CO) as (LMO & fh & LF & Ffh & Lfh).
   (* the landed height: a finite p >= -11000 that AttachOK accepts *)
   assert (HP : exists p, Mem.load Mfloat32 m bm oY = Some (Vsingle p) /\ F32 p = true
@@ -251,7 +265,7 @@ Proof.
         [split; lra | exact Hv43 | exact HPi' | exact Hh]. }
   destruct HP as (p & LY & Fp & Lp & Hat).
   assert (Hv' : R2 v' <= 43 /\ (is_gpf -> R2 v' <= 0)).
-  { destruct Hi as [Hi | ->]; [| rewrite B2R_fm4; split; [lra | intros _; lra]].
+  { destruct Hi as [Hi | ->]; [| rewrite B2R_cutv4; split; [lra | intros _; lra]].
     destruct (gravity_spec2 f4 (c_vely c) F32_f4 Fv (or_intror B2R_f4) Hv) as [(_ & G) | (_ & G)];
       [split; [lra | intros _; lra] | rewrite B2R_f4 in G; apply Rabs_le_inv in G].
     split; [lra | intros X; pose proof (gpf_v X); lra]. }
@@ -299,6 +313,7 @@ Proof.
   destruct (ledge_sound ge nbase R0 gtab kv m0 uf gp gp_old E m g rM rO (c_posy c) (c_vely c) kH
               MM HUH HbM IC HY HV OK Fv Hv)
     as ((KA & KS & KT) & LG & (h & kq & jz & LP & Hk & Hor & HPi' & Hh) & (v' & LV & Fv' & Lo & Hi)).
+  rewrite gk4 in Hi.
   destruct (floorh_new CO) as (LMO & fh & LF & Ffh & Lfh).
   destruct (FD h Hh) as (Fp & _ & Wh).
   pose proof (wmotr_floor_low _ Wh) as Lp.
@@ -307,7 +322,7 @@ Proof.
   destruct (ledge_attach ge m0 kq jz (c_posy c) (c_vely c) h FD Hk Fy Fv Hv ltac:(split; lra) Hv43 Hor' HPi' Hh)
     as (W & Le).
   assert (Hv' : R2 v' <= 43 /\ (is_gpf -> R2 v' <= 0)).
-  { destruct Hi as [Hi | ->]; [| rewrite B2R_fm4; split; [lra | intros _; lra]].
+  { destruct Hi as [Hi | ->]; [| rewrite B2R_cutv4; split; [lra | intros _; lra]].
     destruct (gravity_spec2 f4 (c_vely c) F32_f4 Fv (or_intror B2R_f4) Hv) as [(_ & G) | (_ & G)];
       [split; [lra | intros _; lra] | rewrite B2R_f4 in G; apply Rabs_le_inv in G].
     split; [lra | intros X; pose proof (gpf_v X); lra]. }
@@ -336,7 +351,7 @@ Qed.
 Theorem class_fro : forall cl c', aclass_of LD IC (g_pc g) rM rO kH = Some cl ->
   read_cells bm m c' -> InRange c' ->
   FloorRefreshOK wmotr_floor (R2 (c_posy c')) (R2 (c_floorh c')).
-Proof using gp_old MM HUH HbM HA HS HT HY HV HF Hc Hact FD FRO.
+Proof using gp_old MM HUH HbM HY HV HF FD FRO.
   intros cl c' H RC IR.
   destruct RC as (_ & _ & _ & Y' & _ & F' & _).
   change OFS_POSY with oY in Y'. change OFS_FLOORH with oF in F'.
@@ -344,7 +359,7 @@ Proof using gp_old MM HUH HbM HA HS HT HY HV HF Hc Hact FD FRO.
   destruct (aclass_above ge nbase R0 gtab kv m0 uf gp gp_old E m g rM rO kH MM HUH HbM IC cl H)
     as [(-> & LF) | (p & x & LY & C & Hx & LF)].
   - destruct (aclass_cut ge nbase R0 gtab kv m0 uf gp gp_old E m g rM rO (c_posy c) (c_vely c) kH
-                MM HbM IC HY HV 0 H) as (_ & _ & (p & Ep & LY & _)).
+                MM HbM IC HY HV 0 H) as (_ & _ & _ & (p & Ep & LY & _)).
     rewrite Y' in LY. injection LY as <-. cbn [quarter_steps] in Ep.
     rewrite F', HF in LF. injection LF as LF. rewrite Ep, LF. exact FRO.
   - rewrite Y' in LY. injection LY as <-. rewrite F' in LF. injection LF as <-.
@@ -370,6 +385,251 @@ Proof.
       [destruct (land_move CO OK) as (c' & R & M & _) | destruct (ledge_move CO OK) as (c' & R & M & _)]; eauto.
 Qed.
 End AIRMOVE.
+
+(* ---- slide kick (act_slide_kick, airborne.c:1580): its step runs at the
+        TICKED cells c (++actionTimer, airborne.c:1586, u16), and the move is
+        from the pre-tick cells cp: one S_air / S_air_cut (gravity 2.0f,
+        mario_step.c:543) whose slide-kick clause folds the tick ---- *)
+Definition sk_pre (cp c : cells) : Prop :=
+  c_action cp = ACT_SLIDE_KICK /\ state_of cp = 0%Z
+  /\ c_action c = c_action cp /\ c_state c = c_state cp
+  /\ timer_of c = ((timer_of cp + 1) mod 65536)%Z
+  /\ c_posy c = c_posy cp /\ c_vely c = c_vely cp /\ c_floorh c = c_floorh cp /\ c_gfxy c = c_gfxy cp.
+
+(* the step's entry c, from the handler's entry cp: the same cells (an air
+   step entry), or slide kick's tick *)
+Definition pre_ok (cp c : cells) : Prop :=
+  (cp = c /\ pas_entry (c_action c) (state_of c) = true) \/ sk_pre cp c.
+
+Local Transparent Float32.cmp Float32.compare.
+Lemma cge0_R : forall v, F32 v = true -> Float32.cmp Cge v Float32.zero = true -> 0 <= R2 v.
+Proof.
+  intros v Fv H. unfold Float32.cmp, Float32.compare in H.
+  rewrite Binary.Bcompare_correct in H by first [exact Fv | reflexivity].
+  destruct (Rcompare_spec (R2 v) (R2 Float32.zero)) as [L | L | L]; simpl in H; try discriminate;
+    replace (R2 Float32.zero) with 0 in L by reflexivity; lra.
+Qed.
+Local Opaque Float32.cmp Float32.compare.
+
+Section AIRMOVE_SK.
+Variables (ge : genv) (nbase : positive) (R0 : list (positive * Z)) (gtab : list (ident * positive))
+  (kv : list (positive * Z * memory_chunk * sval)) (m0 : mem)
+  (uf : positive -> list (option val) -> Prop) (gp : meminj).
+Hypothesis gp_old : forall b x, gp b = Some x -> Plt b (Mem.nextblock m0).
+Variables (E : senv) (m : mem) (g : gst) (rM rO kH : positive).
+Hypothesis MM : MMg ge nbase R0 gtab kv m0 uf gp E m g.
+Hypothesis HUH : forall vs, uf kH vs ->
+  exists h yv, vs = [Some (Vsingle h); Some yv] /\ HPi (Hit_at ge m0) (ycast yv) h /\ Hit_at ge m0 h.
+Hypothesis HbM : e_base E rM = Ptrofs.zero.
+Variables (cp c : cells).
+Local Notation bm := (e_blk E rM).
+Variable IC : positive -> Z -> memory_chunk -> sval.
+(* the action term is the constant ACT_SLIDE_KICK *)
+Hypothesis HAc : IC rM oA Mint32 = Sconst (Vint ACT_SLIDE_KICK).
+Hypothesis HS : den ge m0 E (IC rM oS Mint16unsigned) = Some (Vint (c_state c)).
+Hypothesis HT : den ge m0 E (IC rM oT Mint16unsigned) = Some (Vint (c_timer c)).
+Hypothesis HY : den ge m0 E (IC rM oY Mfloat32) = Some (Vsingle (c_posy c)).
+Hypothesis HV : den ge m0 E (IC rM oV Mfloat32) = Some (Vsingle (c_vely c)).
+Hypothesis HF : den ge m0 E (IC rM oF Mfloat32) = Some (Vsingle (c_floorh c)).
+Hypothesis Hpre : sk_pre cp c.
+Hypothesis Hc : budget_ok cp.
+Hypothesis FD : floor_data ge m0.
+Hypothesis FRO : FloorRefreshOK wmotr_floor (R2 (c_posy cp)) (R2 (c_floorh cp)).
+
+Local Notation LD := (sload nbase R0 kv g).
+
+Lemma sk_HA : den ge m0 E (IC rM oA Mint32) = Some (Vint (c_action c)).
+Proof.
+  rewrite HAc. cbn [den]. destruct Hpre as (A0 & _ & A1 & _). rewrite A1, A0. reflexivity.
+Qed.
+
+Lemma gk2 : gk_of (IC rM oA Mint32) = f2.
+Proof. rewrite HAc. unfold gk_of. rewrite Int.eq_true. reflexivity. Qed.
+
+Lemma skt : is_skt (IC rM oA Mint32) = true.
+Proof. rewrite HAc. unfold is_skt. apply Int.eq_true. Qed.
+
+Lemma sk_mode : mode_of cp = M_SlideKick.
+Proof.
+  destruct Hpre as (A0 & S0 & _). unfold mode_of. rewrite A0, S0. reflexivity.
+Qed.
+
+Lemma sk_eqs : c_posy c = c_posy cp /\ c_vely c = c_vely cp /\ c_floorh c = c_floorh cp
+  /\ c_action c = c_action cp /\ c_state c = c_state cp
+  /\ timer_of c = ((timer_of cp + 1) mod 65536)%Z.
+Proof. destruct Hpre as (_ & _ & A & S & T & Y & V & F & _). repeat split; assumption. Qed.
+
+Lemma sk_ranges :
+  F32 (c_posy c) = true /\ F32 (c_vely c) = true /\ Rabs (R2 (c_posy c)) <= 16000
+  /\ Rabs (R2 (c_vely c)) <= 128 /\ R2 (c_vely c) <= 43
+  /\ F32 (c_floorh c) = true /\ -11000 <= R2 (c_floorh c) /\ -11000 <= R2 (c_posy c)
+  /\ R2 (c_posy c) <= 15000.
+Proof.
+  destruct sk_eqs as (Ey & Ev & Ef & _). rewrite Ey, Ev, Ef.
+  pose proof (budget_ok_y cp Hc) as Hy. unfold PHI_YMAX, PHI_K, PHI_A in Hy.
+  destruct Hc as ((Fy & Fv & _ & Ly & _ & (Ff & Lf) & Lv & Hv) & _).
+  repeat split; try assumption; try lra; apply Rabs_le; split; lra.
+Qed.
+
+Lemma sk_floorh_new : cells_ok LD IC (g_pc g) rM rO kH = true ->
+  Mem.load Mint32 m bm oMO = Some (Vptr (e_blk E rO) (e_base E rO))
+  /\ exists fh, Mem.load Mfloat32 m bm oF = Some (Vsingle fh)
+     /\ F32 fh = true /\ -11000 <= R2 fh.
+Proof.
+  intros H.
+  destruct (cells_sound ge nbase R0 gtab kv m0 uf gp gp_old E m g rM rO kH MM HUH HbM IC H)
+    as (LMO & [LF | (x & LF & Hx)]); split; [exact LMO | | exact LMO |].
+  - rewrite LF, HF. exists (c_floorh c). pose proof sk_ranges as (_ & _ & _ & _ & _ & Ff & Lf & _).
+    auto.
+  - destruct (FD x Hx) as (Fx & _ & Wx). exists x. split; [exact LF |].
+    split; [exact Fx | exact (wmotr_floor_low _ Wx)].
+Qed.
+
+Lemma sk_pos_low : forall cl p, aclass_of LD IC (g_pc g) rM rO kH = Some cl -> cl <> Ccut 0 ->
+  Mem.load Mfloat32 m bm oY = Some (Vsingle p) -> F32 p = true -> -11000 < R2 p.
+Proof.
+  intros cl p H N LY Fp.
+  destruct (aclass_above ge nbase R0 gtab kv m0 uf gp gp_old E m g rM rO kH MM HUH HbM IC cl H)
+    as [(-> & _) | (p' & x & LY' & C & Hx & _)]; [congruence |].
+  rewrite LY in LY'. injection LY' as <-.
+  apply (above_low ge m0 p x FD Fp C).
+  destruct Hx as [LF | Hx]; [left | right; exact Hx].
+  rewrite HF in LF. injection LF as <-.
+  pose proof sk_ranges as (_ & _ & _ & _ & _ & Ff & Lf & _). auto.
+Qed.
+
+(* the four-quarter class: S_air from cp with gravity 2.0f *)
+Theorem sk_air_move : outcome_ok LD IC (g_pc g) rM rO kH = true ->
+  aclass_of LD IC (g_pc g) rM rO kH = Some Cair ->
+  exists c', read_cells bm m c' /\ RM' cp c'.
+Proof using All.
+  intros OK H.
+  unfold outcome_ok in OK. apply andb_true_iff in OK as (CO & _).
+  destruct sk_ranges as (Fy & Fv & Hy & Hv & Hv43 & Ff & Lf & _).
+  destruct sk_eqs as (Ey & Ev & Ef & Ea & Es & Et).
+  destruct (aclass_air ge nbase R0 gtab kv m0 uf gp gp_old E m g rM rO (c_posy c) (c_vely c) kH
+              MM HbM IC HY HV H Fv Hv)
+    as ((KA & KS & KT) & LY & LG & (v' & LV & Fv' & Lo & Hi)).
+  rewrite gk2 in Hi.
+  destruct (sk_floorh_new CO) as (LMO & fh & LF & Ffh & Lfh).
+  destruct (quarter_steps_up 4 (c_posy c) (c_vely c) ltac:(lia) Fy Fv Hy Hv) as (Fp & _).
+  rewrite <- air_step_y_quarter_steps in Fp.
+  pose proof (sk_pos_low Cair _ H ltac:(discriminate) LY Fp) as Lp.
+  destruct (gravity_spec2 f2 (c_vely c) F32_f2 Fv (or_introl B2R_f2) Hv) as [(_ & G) | (_ & G)];
+    try rewrite B2R_f2 in G.
+  all: exists (mkCells (c_action c) (c_state c) (c_timer c) (air_step_y (c_posy c) (c_vely c)) v' fh
+                     (air_step_y (c_posy c) (c_vely c))).
+  all: split; [ unfold read_cells; cbn [c_action c_state c_timer c_posy c_vely c_floorh c_gfxy];
+                rewrite <- sk_HA, <- HS, <- HT; repeat split; try assumption;
+                exists (e_blk E rO), (e_base E rO); split; [exact LMO | exact LG] |].
+  all: split; [ unfold InRange; cbn [c_posy c_vely c_floorh c_gfxy];
+                rewrite B2R_fm75 in Lo; repeat split; try assumption; try lra;
+                try apply Rabs_le_inv in G; lra |].
+  all: apply (S_air _ _ _ cp _ f2); cbn [c_action c_state c_timer c_posy c_vely c_gfxy];
+         first [ right; left; exact sk_mode | exact F32_f2 | rewrite sk_mode, B2R_f2; reflexivity
+               | exact Ea | exact Es | rewrite <- Ey, <- Ev; reflexivity
+               | rewrite <- Ev; exact Hi | reflexivity
+               | intros _; unfold timer_of at 1; cbn [c_timer]; exact Et ].
+Qed.
+
+(* the cut class: S_air_cut from cp; the cut's vel[1] >= 0 fact gives the
+   catalog clause's 0 <= vel *)
+Theorem sk_cut_move : forall k, outcome_ok LD IC (g_pc g) rM rO kH = true ->
+  aclass_of LD IC (g_pc g) rM rO kH = Some (Ccut k) ->
+  exists c', read_cells bm m c' /\ RM' cp c'.
+Proof using All.
+  intros k OK H.
+  unfold outcome_ok in OK. apply andb_true_iff in OK as (CO & _).
+  destruct sk_ranges as (Fy & Fv & Hy & Hv & Hv43 & Ff & Lf & Lylo & _).
+  destruct sk_eqs as (Ey & Ev & Ef & Ea & Es & Et).
+  destruct (aclass_cut ge nbase R0 gtab kv m0 uf gp gp_old E m g rM rO (c_posy c) (c_vely c) kH
+              MM HbM IC HY HV k H)
+    as ((KA & KS & KT) & Hk & Hge & (p & Ep & LY & LG & LV & (j & Ej))).
+  rewrite gk2 in LV. pose proof (cge0_R _ Fv (Hge skt)) as V0.
+  destruct (sk_floorh_new CO) as (LMO & fh & LF & Ffh & Lfh).
+  destruct (quarter_steps_up k (c_posy c) (c_vely c) Hk Fy Fv Hy Hv) as (Fq & _).
+  assert (Fp : F32 p = true) by (rewrite Ej; apply add_zeros_F32; exact Fq).
+  assert (Lp : -11000 <= R2 p).
+  { destruct k as [| k'].
+    - rewrite Ep. cbn [quarter_steps]. exact Lylo.
+    - pose proof (sk_pos_low (Ccut (S k')) p H ltac:(discriminate) LY Fp). lra. }
+  exists (mkCells (c_action c) (c_state c) (c_timer c) p (cutv f2) fh p).
+  split; [ unfold read_cells; cbn [c_action c_state c_timer c_posy c_vely c_floorh c_gfxy];
+           rewrite <- sk_HA, <- HS, <- HT; repeat split; try assumption;
+           exists (e_blk E rO), (e_base E rO); split; [exact LMO | exact LG] |].
+  split; [ unfold InRange; cbn [c_posy c_vely c_floorh c_gfxy]; rewrite ?B2R_cutv2;
+           repeat split; try assumption; try lra; reflexivity |].
+  apply (S_air_cut _ _ _ cp _ k); cbn [c_action c_state c_timer c_posy c_vely c_gfxy].
+  - right; left. exact sk_mode.
+  - exact Hk.
+  - exact Ea.
+  - exact Es.
+  - rewrite Ep, Ey, Ev. reflexivity.
+  - rewrite B2R_cutv2. lra.
+  - reflexivity.
+  - intros _. split; [rewrite <- Ev; exact V0 | split; [exact B2R_cutv2 |]].
+    unfold timer_of at 1. cbn [c_timer]. exact Et.
+Qed.
+
+(* a landing: the attach height (AttachInfo from cp), the cells in range *)
+Theorem sk_land_move : cells_ok LD IC (g_pc g) rM rO kH = true ->
+  land_ok LD IC (g_pc g) rM rO kH = true ->
+  exists c', read_cells bm m c' /\ InRange c' /\ AttachInfo cp c'.
+Proof using All.
+  intros CO OK.
+  destruct sk_ranges as (Fy & Fv & Hy & Hv & Hv43 & Ff & Lf & Lylo & Hyhi).
+  destruct sk_eqs as (Ey & Ev & Ef & Ea & Es & Et).
+  destruct (land_sound ge nbase R0 gtab kv m0 uf gp gp_old E m g rM rO (c_posy c) (c_vely c) kH
+              MM HUH HbM IC HY HV OK Fv Hv)
+    as ((KA & KS & KT) & LG & LP & (v' & LV & Fv' & Lo & Hi)).
+  rewrite gk2 in Hi.
+  destruct (sk_floorh_new CO) as (LMO & fh & LF & Ffh & Lfh).
+  assert (HP : exists p, Mem.load Mfloat32 m bm oY = Some (Vsingle p) /\ F32 p = true
+                 /\ -11000 <= R2 p /\ AttachOK wmotr_floor wmotr_pole wmotr_cannon cp (R2 p)).
+  { destruct LP as [LP | (h & kq & jz & LP & Hk & HPi' & Hh)].
+    - rewrite LP, HF. exists (c_floorh c). split; [reflexivity | split; [exact Ff | split; [exact Lf |]]].
+      rewrite Ef. destruct FRO as [Es0 | FW].
+      + right; right; right; right; right; left. exact Es0.
+      + right; left. exact FW.
+    - destruct (FD h Hh) as (Fh & _ & Wh).
+      exists h. split; [exact LP | split; [exact Fh | split; [exact (wmotr_floor_low _ Wh) |]]].
+      right; left. rewrite <- Ey. apply (land_attach ge m0 kq jz (c_posy c) (c_vely c) h FD Hk Fy Fv Hv);
+        [split; lra | exact Hv43 | exact HPi' | exact Hh]. }
+  destruct HP as (p & LY & Fp & Lp & Hat).
+  assert (Hv' : R2 v' <= 43).
+  { destruct Hi as [Hi | ->]; [| rewrite B2R_cutv2; lra].
+    destruct (gravity_spec2 f2 (c_vely c) F32_f2 Fv (or_introl B2R_f2) Hv) as [(_ & G) | (_ & G)];
+      [lra | rewrite B2R_f2 in G; apply Rabs_le_inv in G; lra]. }
+  exists (mkCells (c_action c) (c_state c) (c_timer c) p v' fh p).
+  split; [ unfold read_cells; cbn [c_action c_state c_timer c_posy c_vely c_floorh c_gfxy];
+           rewrite <- sk_HA, <- HS, <- HT; repeat split; try assumption;
+           exists (e_blk E rO), (e_base E rO); split; [exact LMO | transitivity (Mem.load Mfloat32 m bm oY); [exact LG | exact LY]] |].
+  split; [| exists (R2 p); split; [exact Hat | split; [apply Rle_refl | reflexivity]]].
+  unfold InRange; cbn [c_posy c_vely c_floorh c_gfxy].
+  rewrite B2R_fm75 in Lo; repeat split; try assumption; try lra.
+Qed.
+
+(* a step that did not attach ends as a floor refresh (AIRMOVE.class_fro at
+   the ticked cells, whose pos[1] and floorHeight are cp's) *)
+Theorem sk_class_fro : forall cl c', aclass_of LD IC (g_pc g) rM rO kH = Some cl ->
+  read_cells bm m c' -> InRange c' ->
+  FloorRefreshOK wmotr_floor (R2 (c_posy c')) (R2 (c_floorh c')).
+Proof using All.
+  intros cl c' H RC IR.
+  destruct sk_eqs as (Ey & _ & Ef & _).
+  assert (FRO' : FloorRefreshOK wmotr_floor (R2 (c_posy c)) (R2 (c_floorh c))) by (rewrite Ey, Ef; exact FRO).
+  exact (class_fro ge nbase R0 gtab kv m0 uf gp gp_old E m g rM rO kH MM HUH HbM c IC HY HV HF FD FRO'
+           cl c' H RC IR).
+Qed.
+
+(* every class-0 outcome at slide kick is one RangedMove from cp *)
+Theorem sk_outcome_move : outcome_ok LD IC (g_pc g) rM rO kH = true ->
+  forall ac, aclass_of LD IC (g_pc g) rM rO kH = Some ac ->
+  exists c', read_cells bm m c' /\ RM' cp c'.
+Proof using All.
+  intros OK [|k] H; [exact (sk_air_move OK H) | exact (sk_cut_move k OK H)].
+Qed.
+End AIRMOVE_SK.
 
 (* ---- the real call: any execution of perform_air_step from ACT_FREEFALL
         is one RangedMove of Phi's cells ---- *)

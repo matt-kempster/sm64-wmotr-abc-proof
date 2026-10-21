@@ -540,12 +540,15 @@ Section HeightLinked12.
      rollouts (RlRun, 2026-10-20): PROVED from the real handlers (the launch,
      then the air step).  Butt-slide air at state 0 (BsRun, 2026-10-21):
      PROVED from the real act_butt_slide_air (the timer tick, then the
-     FREEFALL gate or the air step: a landing, the bounce, a wall).  Past
-     its bounce (state <> 0) butt-slide air keeps a row (bsa1_row: its
-     floorHeight may be a quarter step stale there), and slide kick keeps
-     its AirSplit row. *)
+     FREEFALL gate or the air step: a landing, the bounce, a wall).  Slide
+     kick at state 0 (SkRun, 2026-10-21): PROVED from the real
+     act_slide_kick (the timer tick, then the FREEFALL gate or the air step
+     at gravity 2: a landing, the bounce, a wall).  No other no-A case is
+     left (KbRow.air_case_fns_in, computed).  Past their bounce (state <> 0)
+     butt-slide air and slide kick keep a row each (bsa1_row, sk1_row: their
+     floorHeight may be a quarter step stale there). *)
   Hypothesis Hbsa1 : bsa1_row lp bm MWF.
-  Hypothesis Hair_case_rest : air_case_rest7 lp bm MWF.
+  Hypothesis Hsk1 : sk1_row lp bm MWF.
   (* the walk's floors: the FPU floor (TRUST 3.5) and the labeled open
      audio / camera premises (deferred; ExtInert) *)
   Hypothesis Hsqrtf : sqrtf_spec.
@@ -555,8 +558,8 @@ Section HeightLinked12.
 
   Lemma Hair_case : air_case_rows lp bm MWF.
   Proof.
-    exact (air_case_rows_ff7 lp H12 Hdma_floor Hsqrtf Hsqrtf_float Haudio Hcamera bm Hbm_sym MWF
-             Hbsa1 Hair_case_rest).
+    exact (air_case_rows_ff8 lp H12 Hdma_floor Hsqrtf Hsqrtf_float Haudio Hcamera bm Hbm_sym MWF
+             Hbsa1 Hsk1).
   Qed.
 
   Lemma call_facts :
