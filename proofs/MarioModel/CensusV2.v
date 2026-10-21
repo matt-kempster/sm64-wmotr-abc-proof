@@ -37,7 +37,7 @@
 From Coq Require Import ZArith List Lia.
 From compcert Require Import Coqlib Maps AST Integers Values Events Memory
   Globalenvs Ctypes Cop Clightdefs Clight ClightBigstep Linking Errors.
-From SM64.Generated Require surface_collision math_util memory save_file.
+From SM64.Generated Require surface_collision math_util memory save_file area.
 From SM64.Generated Require mario level_update mario_step mario_actions_submerged
   mario_actions_cutscene.
 From SM64.Proofs Require Import SymbolicLinking Flying Taint
@@ -923,7 +923,17 @@ Definition stored_globals : list ident :=
      the same Hglob_blk class keeps them off bm/bc/SafeB: the claim, via
      SpawnInit.non_safeb_syms, is that nothing in the object graph points
      into the save buffer or at the modified flag. *)
-  save_file._gSaveBuffer :: save_file._gSaveFileModified :: nil.
+  save_file._gSaveBuffer :: save_file._gSaveFileModified ::
+  (* the area.c viewport-override pointers (2026-10-21, area.c linked):
+     override_viewport_and_clip(a, b, ..) stores its two pointer ARGUMENTS
+     into D_8032CE74 / D_8032CE78 (area.c:93-94), and only render_game reads
+     them back (never the walked code).  As SafeB blocks they made the
+     any-argument row Hcpx_ovac FALSE of the real body (a = &gMarioStates
+     would break MWF's load-closure row R7); as stored globals MWF does not
+     constrain their contents, which is what the code needs.  The claim, via
+     SpawnInit.non_safeb_syms, is that nothing in the object graph points
+     at these two cells. *)
+  area._D_8032CE74 :: area._D_8032CE78 :: nil.
 
 (* 2026-10-19: the five cutscene OBJECT-POINTER globals.  They left
    stored_globals: MWF does not constrain a stored global's contents, so the

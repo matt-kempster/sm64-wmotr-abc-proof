@@ -30,7 +30,7 @@ without pressing A".*
 | 0.9 | GOAL 2's pos[1] writer census is complete (`YWriterCensus.v`) | **Machine-checked list, trusted edges.** Coq scans every function body of the 12 generated Mario TUs and proves: 31 direct `pos[1]` stores and 21 write-escapes (16 whole-vector arg-0 passes to `vec3f_copy`/`vec3f_set`/`vec3s_to_vec3f`, 5 `&pos[1]` passes to `f32_find_wall_collision`), 52 in all; `pos`'s address never reaches a temp, memory, a condition or a return, and no struct copy covers it. Details: [row 0.9 in detail](#row-09-in-detail). |
 | 0.10 | GOAL 2's object census: what objects can exist in WMotR and their interaction types (`BehaviorScripts.v`) | **Machine-checked over generated code, frontier trusted.** `generated/behavior_data.v` (clightgen of `data/behavior_data.c`) gives every behavior script as data; a fail-closed decoder mirrors the command layouts. Details: [row 0.10 in detail](#row-010-in-detail). |
 | 0.7 | GOAL 2's flank segments (`HeightFrame.v`: controller poll, platform displacement, level/warp phase, non-Mario objects) do what their specs say: y / action loads as the censuses found them, and each carries GOAL 1's `MWF_real` and Φ (since 2026-09-29 Φ here is `PhiW`, so each flank also keeps the WMotR world: object updates reload only WMotR's surfaces and never hand Mario an object to hold or ride; collision detection registers only WMotR-kind objects, with poles and cannon bases at their level positions and no star while coin #2 stands (0.3); no object sets a stomp bit on Mario's object) (the poll only when A is not pressed); platform displacement also leaves the held-A reading unchanged (it writes no controller) | **ASSUMED, labeled.** Specs, not proofs: none of that code is linked. Details: [row 0.7 in detail](#row-07-in-detail). |
-| 0.4 | The starting states the theorem quantifies over (`mem_ok_lp`: Mario's block valid, his action untainted, `MWF_real`) | **GOAL 1: proved satisfiable by the real boot path** (2026-10-19, `BootMWF.boot_init_ok`, used by `NoAImpliesNoFlyTwelve.noA_never_flying_from_boot`). Details: [row 0.4 in detail](#row-04-in-detail). |
+| 0.4 | The starting states the theorem quantifies over (`mem_ok_lp`: Mario's block valid, his action untainted, `MWF_real`) | **GOAL 1: proved satisfiable by the real boot path** (2026-10-19, `BootMWF.boot_init_ok`, used by `NoAImpliesNoFlyTwelve.noA_never_flying_from_boot`). **GOAL 2: the witness is in WMotR by real code** (2026-10-21: `area.c` linked as the 23rd TU; `gCurrLevelNum = LEVEL_WMOTR` is stored by the generated `initiate_warp` + `warp_level`, `EntryWarp.v`). Details: [row 0.4 in detail](#row-04-in-detail). |
 | 0.5 | The step relation = what one real frame does | GOAL 1: **only `execute_mario_action`**. GOAL 2's `frame_step` composes that real call with four *specified* flanks (0.7): controller poll, platform, level phase, objects. The flanks are specs, not linked code. This is the largest scope gap. Details: [row 0.5 in detail](#row-05-in-detail). |
 
 ### Row 0.1 in detail
@@ -457,10 +457,37 @@ without pressing A".*
   below `PHI_YMAX` = 2796 (`entry_budget`, `entry_margin`). `StartSat`'s witness now stores exactly
   these cells (`read_cells bm m (entry_cells 0)`); before, it was `ACT_IDLE` at y = 0. The Φ height
   clause is therefore **true at the real entry values**, not just satisfiable somewhere.
-  - One link in that chain is still a table, not a call: `sWarpBhvSpawnTable` (bhvAirborneWarp ↦
-    MARIO_SPAWN_AIRBORNE) lives in `area.c`, which is not linked, so `get_mario_spawn_type` is an
-    external and the 0x12 is read from the C source, not executed.
-- **Exact gap, found 2026-10-21: `area.c` (and the level loader) is not linked.** `gCurrLevelNum`,
+  - One link in that chain is still a table, not a call. Since 2026-10-21 the table is read off the
+    generated `area.c`, not the C source: `get_mario_spawn_type`'s body is a loop over
+    `sWarpBhvSpawnTable[0..20)` returning `sSpawnTypeFromWarpBhv[i]` (`WMotREntry.spawn_lookup_shape`),
+    the only entry naming `bhvAirborneWarp` is i = 7 (`airborne_warp_index`), and
+    `sSpawnTypeFromWarpBhv[7] = 0x12` (`spawn_type_at_7`). The lookup is not **executed**: it has
+    no CompCert execution on a real object. Its first step, `virtual_to_segmented`, computes
+    `(uintptr_t) addr & 0x1FFFFFFF` (`memory.c:86`), and Cop's `&` on a pointer is undefined
+    (`WMotREntry.and_ptr_stuck`); the `bhv*` scripts it compares against are also size-0 blocks
+    (`behavior_data.c` not linked), where pointer equality is undefined too. Running it needs the
+    `NO_SEGMENTED_MEMORY` change to `memory.c` (in progress separately) and `behavior_data.c` linked.
+- **Repaired 2026-10-21: `area.c` is linked (the 23rd TU, `generated/area.v`), and `in_wmotr` holds
+  on the GOAL 2 witness by real code** (`EntryWarp.v`, used by `StartSat.goal2_start_sat`).
+  - `gCurrLevelNum`, `gCurrCourseNum`, `gCurrentArea`, `gMarioSpawnInfo`, `gPlayerSpawnInfos` (its
+    extern array completed, 2.4) and `gCurrSaveFileNum` now have real storage. Boot value of
+    `gCurrLevelNum` is 1 (`EntryWarp.boot_levelnum`, from `area.v`'s initializer).
+  - The warp destination is decoded from the generated WMotR level script: its warp node 0x0A goes
+    to (LEVEL_WMOTR = 31, area 1, node 0x0A) (`EntryWarp.wmotr_warp_node_0A`).
+  - `EntryWarp.initiate_warp_runs`: one real call of the generated `initiate_warp(31, 1, 0x0A, 0)`
+    (level_update.c) from the boot image stores `sWarpDest` = {type 1, level 31, area 1, node 0x0A,
+    arg 0}. `EntryWarp.warp_level_head_runs`: the first statement of the generated `warp_level`
+    loads `sWarpDest.levelNum` and stores it into `gCurrLevelNum`.
+  - `StartSat`'s witness memory now starts from that memory (six real-code stores before the three
+    allocations), each one an `MWF_real` store brick; `goal2_start_sat` concludes `in_wmotr lp m`,
+    and exhibits the boot memory, the `initiate_warp` run and the `warp_level` head run whose
+    `gCurrLevelNum` cell the witness carries.
+  - **Still read from source, not run:** (a) the castle painting's warp node that leads to WMotR
+    (`castle_inside` is not generated; WMotR's own node 0x0A, the level's self-entry, is decoded
+    instead); (b) the level script that runs between `initiate_warp` and `warp_level`; (c) the rest of
+    `warp_level` (`gCurrCourseNum`, `load_area` → `load_area_terrain`, `init_mario_after_warp`);
+    (d) the spawn-type lookup (above).
+- **Gap as found 2026-10-21 (before the repair): `area.c` (and the level loader) is not linked.** `gCurrLevelNum`,
   `gCurrCourseNum`, `gCurrentArea`, `gMarioSpawnInfo`, `gPlayerSpawnInfos` and `gCurrSaveFileNum`
   have no storage in any linked TU (size-0 externs in the boot image). Consequences:
   - `HeightFrame.in_wmotr` (a load of `gCurrLevelNum`) is false on every memory real code reaches
@@ -478,8 +505,11 @@ without pressing A".*
     `update_mario_geometry_inputs` refreshes them before any read). `m->input` is the last castle
     frame's; `ffw`'s input clause needs A neither pressed nor held then. Mario's object is fresh, so
     `numCollidedObjs = 0` and `oInteractStatus = 0` do hold.
-  - Fix path: link `area.c` (and later `surface_load.c`) as further TUs. That reruns every walk over
-    `LinkedTwelve`, so it was not done in this sweep.
+  - Fix path: link `area.c` (done, above) and later `surface_load.c` as further TUs. Remaining from
+    this list: `gCurrCourseNum` is still 0 on the witness, and the collision partition is still empty
+    (`surface_load.c`; its scope: `alloc_surface_pools`, `load_area_terrain`, `load_object_collision_model`,
+    the `sSurfacePool` / `gStaticSurfacePartition` storage, and it reads the level's collision data,
+    which is the unlinked `levels/wmotr/areas/1/collision.inc.c`, 4.3).
 - **Still ASSUMED:** that the memory the real game reaches at WMotR entry satisfies the rest of Φ
   (world, anim layout, partition, controller). Level loading is not modelled, and it must be checked
   on recorded states (§5).
@@ -512,7 +542,7 @@ without pressing A".*
 | 2.1 | The decomp C is the game: compiled with IDO 5.3 it reproduces the US ROM byte-for-byte | **Checked** (2026-09-26): `vendor/sm64` @ 9921382 built with `make VERSION=us COMPARE=1` has sha1 `9bef1128…6ce`, which equals the US baserom (`experiments/oracle/README.md`). Covers the *default* preprocessing only; see 2.2. |
 | 2.2 | **We verify a different preprocessing of that C.** The ROM is IDO-compiled vendor C. The proof's C adds `-DNON_MATCHING=1 -DAVOID_UB=1` and force-includes `pipeline/proof_n64.h` (every TU except `shadow.c`) | **Itemized: every site is in the register below.** `tools/ub_sites.py` preprocesses every generated TU both ways (ROM: `-D__sgi`, as IDO predefines it; proof: our flags) with clightgen's own preprocessor, and diffs them. Its output is committed as `docs/ub-sites.txt`. A new site cannot enter silently: regenerate that file and the diff shows it. |
 | 2.3 | `clightgen` (CompCert's *unverified* front end: parser, elaborator, `-normalize`) translates that C faithfully | ASSUMED, **TETHERED on sampled paths**. 267 real frames over 15 actions run through the generated Clight and reproduce the game's memory byte for byte (§5.1). This is evidence for the translation of the code those frames exercise, not proof. |
-| 2.4 | Our post-processing of the generated `.v` is semantics-preserving: stringlit renaming, anonymous-composite renaming (`canonicalize_anon.py`), completing extern incomplete arrays | ASSUMED. Each is a documented rename or type completion. (2026-10-20: `gDebugInfo` joined the extern-array completion table, `s16 gDebugInfo[][8]` → `[16][8]`, its size in `object_list_processor.c`, the 17th TU; `behavior_actions.v` and `object_helpers.v` regenerated, two-line diffs. 2026-10-21: four more, found linking `save_file.c` and `buffers.c` (TUs 20 and 21): `gDecompressionHeap` 0 → 53248 and `gGfxSPTaskStack` / `gGfxSPTaskYieldBuffer` 0 → 1024 / 3072 (`u8`, sized in `buffers.c`; declared in `memory.c` / `game_init.c`), `gLevelToCourseNumTable` 0 → 38 (`s8[LEVEL_COUNT - 1]`, sized in `save_file.c`; declared in `level_update.c`); `memory.v`, `game_init.v`, `level_update.v` regenerated, diffs exactly those four `gvar_info` lines.) Could be proved (rename = alpha-equivalence) or regenerated and diffed. |
+| 2.4 | Our post-processing of the generated `.v` is semantics-preserving: stringlit renaming, anonymous-composite renaming (`canonicalize_anon.py`), completing extern incomplete arrays | ASSUMED. Each is a documented rename or type completion. (2026-10-20: `gDebugInfo` joined the extern-array completion table, `s16 gDebugInfo[][8]` → `[16][8]`, its size in `object_list_processor.c`, the 17th TU; `behavior_actions.v` and `object_helpers.v` regenerated, two-line diffs. 2026-10-21: four more, found linking `save_file.c` and `buffers.c` (TUs 20 and 21): `gDecompressionHeap` 0 → 53248 and `gGfxSPTaskStack` / `gGfxSPTaskYieldBuffer` 0 → 1024 / 3072 (`u8`, sized in `buffers.c`; declared in `memory.c` / `game_init.c`), `gLevelToCourseNumTable` 0 → 38 (`s8[LEVEL_COUNT - 1]`, sized in `save_file.c`; declared in `level_update.c`); `memory.v`, `game_init.v`, `level_update.v` regenerated, diffs exactly those four `gvar_info` lines. 2026-10-21, linking `area.c` (the 23rd TU): `gPlayerSpawnInfos` 0 → 1 (`struct SpawnInfo[1]`, sized in `area.c`; declared in `mario.c` / `level_update.c`); `mario.v`, `level_update.v` regenerated, diffs exactly that `gvar_info` line.) Could be proved (rename = alpha-equivalence) or regenerated and diffed. |
 | 2.6 | `object_helpers.c` is clightgen'd with `-flongdouble` (a `1.0l` literal in a debug function) | Equivalence: IDO's o32 ABI makes `long double` a 64-bit double, as `-flongdouble` does. |
 | 2.5 | The target configuration (ppc32 eabi: 32-bit, big-endian) gives the same struct layout, sizes and alignment as IDO/MIPS | Partly TETHERED: offsets cited in proofs (action@12, controller@156, buttonPressed@18) match the decomp's `/*0x..*/` layout comments. Should be checked for every struct in scope, mechanically, against the built ROM's symbol/debug info. |
 
@@ -593,7 +623,7 @@ link grows.
 
 | # | Item | Status / notes |
 |---|---|---|
-| 4.1 | Functions outside the 19 linked files (audio, camera, save file, object spawning) behave as the capstone's rows say (`Hocp_*`, `Hpres_*`, `Hext_*`, …) | **ASSUMED, the ~30 project rows.** Shrinks by linking more files until only truly external things remain. Details: [row 4.1 in detail](#row-41-in-detail). |
+| 4.1 | Functions outside the 23 linked files (audio, camera, save file, object spawning) behave as the capstone's rows say (`Hocp_*`, `Hpres_*`, `Hext_*`, …) | **ASSUMED, the ~30 project rows.** Shrinks by linking more files until only truly external things remain. Details: [row 4.1 in detail](#row-41-in-detail). |
 | 4.2 | CompCert's `external_functions_sem` is an abstract Parameter. Anything left external is constrained *only* by our rows | Permanent for whatever stays external. The goal is that nothing game-logic stays external. |
 | 4.3 | Level data (WMotR collision triangles, object placements, the red-coin positions) is what the ROM contains | Not yet in scope at all. Can be clightgen'd like code (`levels/wmotr/*.inc.c`). |
 | 4.4 | The proof's internal vocabulary (`MWF_real`, `SafeB`, `call_pres_ext_*`) appears in the *statement's* hypotheses | Anti-goal: a reader shouldn't have to understand proof internals to know what's assumed. Rows must eventually be about the game, or be gone. |
@@ -848,6 +878,24 @@ link grows.
     into the new object, so "preserves MWF for any argument" fails when `parent` is a non-SafeB
     pointer. The fix is an arg-gated row like `Hcsp_osh_real`; being reworked separately with the
     `spawn_object` / `segmented_to_virtual` work.
+- **`game/area.c` is linked** (2026-10-21, the 23rd TU, `generated/area.v`; reason in 0.4). Rows
+  that became claims about its real bodies:
+  - **Found FALSE and repaired:** `override_viewport_and_clip` is an any-argument entry of
+    `Hpres_obj_ext` (`ObjectLeafSurface.obj_ext_ids`, used by `CutsceneLeafSurface.Hcpx_ovac` for
+    the credits cutscene). Its real body stores its two pointer arguments into the globals
+    `D_8032CE74` / `D_8032CE78`. With those blocks SafeB (`SafeB_boot`), a call with
+    `a = &gMarioStates[0]` puts a pointer to Mario's block in a SafeB block, breaking `MWF_real`'s
+    load closure (R7): the row was false about the real code. Repair, on the existing stored-globals
+    class: `D_8032CE74` / `D_8032CE78` joined `CensusV2.stored_globals`, so SafeB avoids their
+    blocks and `mwf_real_glob` keeps MWF over any store into them. The body's third store
+    (`gFBSetColor`, an integer) is a non-pointer store. The row is now true; it is not yet a lemma
+    (dischargeable with `SaveFileBody.nl_body_frame`; it sits inside the shared `obj_ext_ids` ∀,
+    which the save-file row discharge is reworking).
+  - `play_transition` (in `warp_ext_ids` and the cutscene `ep_xids`): stores only integers, into
+    `gWarpTransition`'s fields, and through the linked `set_warp_transition_rgb` into
+    `gWarpTransRed/Green/Blue` and `gWarpTransFBSetColor`, so every
+    store is a non-pointer store; true, not yet a lemma.
+  - `area_get_warp_node` (`warp_ext_ids`): stores nothing; true, not yet a lemma.
 
 
 ## 5. Tethers: evidence the model is the game (NOT proof)

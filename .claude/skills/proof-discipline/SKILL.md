@@ -44,13 +44,20 @@ all in `Unwired/`, and the theorem moved nowhere. See
   (`HeightInvariant.v`), `Hphi_y` is proved (YMAX = 2796), the level-data rows are proved (`WMotRLevel.v`), and the crux is the lemma
   `seg_action_phi`, whose move arithmetic is proved (`HeightMoveCatalog.chain_keeps_budget`).
   Its start premise is proved satisfiable (`StartSat.goal2_start_sat`, 2026-10-20, in the audit):
-  a memory built from the real boot image of any 19-TU link meets `mem_ok_lp` and `PhiW`. Since
+  a memory built from the real boot image of any 23-TU link meets `mem_ok_lp` and `PhiW`. Since
   2026-10-21 that witness carries the REAL entry's height cells (`WMotREntry.v`, read off the
   generated level script / level_update.c: bhvAirborneWarp at y = 2669,
   ACT_SPAWN_NO_SPIN_AIRBORNE, vy = 0, margin 127), so the Φ budget clause is true at entry. The
-  rest of Φ at real WMotR entry stays ASSUMED (TRUST 0.4). OPEN GAP: `area.c` is unlinked, so
-  `gCurrLevelNum` has no storage and `in_wmotr` is unreachable from boot by real code (no
-  boot-derived run takes a `frame_step`); linking area.c / surface_load.c is the fix.
+  rest of Φ at real WMotR entry stays ASSUMED (TRUST 0.4). Since 2026-10-21 `area.c` is linked
+  (23rd TU) and `goal2_start_sat` concludes `in_wmotr`: `gCurrLevelNum = 31` on the witness is
+  stored by the REAL generated `initiate_warp` + `warp_level` head (`EntryWarp.v`), each store an
+  `MWF_real` brick. Still from source: the castle painting node, the level script between them,
+  the rest of `warp_level`, and the spawn-type lookup (read off area.v data; it has no CompCert
+  execution until `NO_SEGMENTED_MEMORY` + behavior_data.c). Next: `gCurrCourseNum`,
+  surface_load.c (the witness's collision partition is still empty). FOUND FALSE + repaired
+  when linking area.c: any-argument `override_viewport_and_clip` (in `obj_ext_ids`) stores its
+  pointer args into `D_8032CE74/78`; those joined `stored_globals`. Linking a TU turns every
+  any-argument row naming its functions into a claim about real code: re-audit them.
   Since 2026-10-20 the three frame rows below are LEMMAS of the frame split (since 2026-10-21
   the STAGED `FrameSplit.frame_stage`, which threads the dispatch's floor refresh
   `FfWorld.fresh` / `fresh_at` through the body in order and over the real dispatch loop); the
