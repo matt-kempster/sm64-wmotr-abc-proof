@@ -9,6 +9,32 @@ does not close the pyramid proof's existing JP spawning-displacement routes.
 
 ## Hands-free Bob-ombs, the lower entrance and Goomba-clone knockback
 
+### Assumption-query timeout follow-up (21 October 2026)
+
+**The complete seven-query audit now passes with unchanged proofs, pipeline
+and limits.** Audit `20261021-123046-fj501o0r` rechecks the two exact MainTheorem
+entry points, the AudioFrame and PoolPartition boundaries, the separated-cell
+frame, InkRetryQuery and InkVerticalRetryGeometry. Each selected query retains its original
+240-second limit; build retains 600 seconds and memory retains 6815744 KB.
+The earlier failed audit `20261021-102643-rswo_fez` remains historical evidence.
+
+A separate timed diagnostic through `pipeline/check.sh` loads MainTheorem in
+49.562 seconds, then prints assumptions for the exact source-memory and
+Ink/backward theorems in 5.113 and 20.567 seconds. Both commands
+complete in one bounded run: 84.82 seconds wall time, peak RSS 5336748 KB.
+The normal audit independently passes the unchanged original assumption driver.
+The former timeouts did not reproduce. Their cause is undetermined; no permanent
+performance repair, caching change or proof simplification is claimed. No code
+fix was justified by the measurements, so only this verification record and
+reporting clarification are committed. Unrelated working changes are preserved.
+
+The [rerun record](teleporter-assumption-timeout-rerun.json) retains source/log hashes, scope, limits and all seven
+query outcomes. Build, inventory, proof-hole, link-hygiene and integration checks
+also pass. This resolves the current validation blocker, while leaving every
+theorem premise and the selected external-audio applicability gap unchanged.
+No VC analysis was resumed; all 45 route estimates and gameplay verdicts stay
+unchanged.
+
 ### Audio proof accuracy clarification (21 October 2026)
 
 The [pinned-source accuracy review](teleporter-audio-accuracy-review.md) confirms that AudioFrame is a valid

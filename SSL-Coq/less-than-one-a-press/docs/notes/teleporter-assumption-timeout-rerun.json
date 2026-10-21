@@ -1,0 +1,110 @@
+{
+  "date": "2026-10-21",
+  "reviewed_repository_head": "b17274afa81567706b659c6dd800aec167126943",
+  "previous_failed_audit": "20261021-102643-rswo_fez",
+  "full_seven_query_audit": "20261021-123046-fj501o0r",
+  "full_seven_query_audit_pass": true,
+  "scope": "MainTheorem and requested module dependencies",
+  "limits": {
+    "build_timeout_seconds": 600,
+    "assumption_timeout_seconds": 240,
+    "memory_cap_kb": 6815744
+  },
+  "toolchain": {
+    "switch": "sm64-item-proof",
+    "coq": "8.16.1",
+    "compcert": "3.15"
+  },
+  "resolution": "Both previously timed-out exact MainTheorem queries pass unchanged in the normal full audit; the earlier timeouts did not reproduce. No causal performance fix is claimed.",
+  "cause": "Undetermined: the previous timeout logs do not identify loading versus query traversal or retain CPU/memory timing.",
+  "proof_sources_changed": false,
+  "theorem_statements_changed": false,
+  "pipeline_changed": false,
+  "axiom_allowlist_changed": false,
+  "resource_limits_changed": false,
+  "vc_analysis_resumed": false,
+  "profile": {
+    "source": "build/check/AssumptionTimeoutProfile.v",
+    "source_sha256": "2ef36be9db0c1eb434549434958770c92fb3dafce50d5993d4629adedbc4fde4",
+    "source_commands": [
+      "Require Import LessThanOneAPress.Proofs.MainTheorem.",
+      "Print Assumptions LessThanOneAPress.Proofs.MainTheorem.current_bobomb_source_memory_boundary.",
+      "Print Assumptions LessThanOneAPress.Proofs.MainTheorem.current_ink_backward_execution_boundary."
+    ],
+    "log": "build/check/AssumptionTimeoutProfile.log",
+    "log_sha256": "f26b259596b4a46d5154778ac25df477fb0f633c363cf95c2f18ee102dc514a7",
+    "stats": "build/check/AssumptionTimeoutProfile.stats",
+    "stats_sha256": "417d1ea782021864dca01bea24d98244fa737868d71a1994c002b63bff928bf4",
+    "exit_status": 0,
+    "combined_wall_seconds": 84.82,
+    "require_main_seconds": 49.562,
+    "bobomb_query_seconds": 5.113,
+    "ink_query_seconds": 20.567,
+    "max_rss_kb": 5336748,
+    "method": "Existing pipeline/check.sh with CHECK_TIMEOUT=240 and -time; actual independent audit queries use the unchanged pipeline/assumptions.sh."
+  },
+  "source_sha256": {
+    "proofs/MainTheorem.v": "ea9cabbd6d238b34e0cdd6cf61204bce57f8d1fb6aa45f4c282c609c76fb9998",
+    "_CoqProject": "2bf4184d94180d5bca504421ab1162b90cdac7814a83393256a53fd2b5266d32",
+    "pipeline/assumptions.sh": "1289ececd8697fdbbe87aecc6a40dcdd1b2df39aa149dfbbead4d67f14ab6a30",
+    "pipeline/discipline-check.sh": "927f0fdac185b8049d2425bc27f2c63f251cd38805305105eae8182b718d8ef7",
+    "pipeline/discipline_audit.py": "b3cf5a327134144937686ee3b7d9b95a62c5fd5ad7704d03b1d8956d96558041",
+    "pipeline/env.sh": "a504d348c63b82d9f0e96a1eb944f0db1d9ac139f2061a01384ea70903a166e6",
+    "pipeline/check.sh": "6c764a3aa6eba656a9518b64888a003822494a2321d3ae2d5b3451f27ecb15c1",
+    "pipeline/build.sh": "45e008608144c9840476ffb1edaabdcab2840a5269abd085fca83ced152eeffe",
+    "proofs/TeleporterAudioFrame.v": "9c6b9ba9230b9d8342fc2ca894396b437d19874c411158cd60c0ac3b0ec4046e",
+    "proofs/TeleporterPoolPartition.v": "5ead274a0b710e3937c9747972a8a422d5f4d2f845295c9f8dc900244a3f0c10"
+  },
+  "audit_summary": [
+    "PASS: source inventory: 681 source files; 0 inventory problems",
+    "PASS: build: exit 0; see build.log",
+    "PASS: proof holes: exit 0; includes untracked source files",
+    "PASS: link hygiene: exit 0; includes untracked source files",
+    "PASS: assumptions LessThanOneAPress.Proofs.MainTheorem.current_bobomb_source_memory_boundary: 7 allowed foundations; see assumptions-1.log",
+    "PASS: assumptions LessThanOneAPress.Proofs.TeleporterAudioFrame.teleporter_audio_frame_checked: 6 allowed foundations; see assumptions-2.log",
+    "PASS: assumptions LessThanOneAPress.Proofs.TeleporterPoolPartition.teleporter_pool_partition_checked: 7 allowed foundations; see assumptions-3.log",
+    "PASS: assumptions LessThanOneAPress.Proofs.TeleporterPoolPartition.tpp_deallocation_stores_preserve_cell: 4 allowed foundations; see assumptions-4.log",
+    "PASS: assumptions LessThanOneAPress.Proofs.MainTheorem.current_ink_backward_execution_boundary: 9 allowed foundations; see assumptions-5.log",
+    "PASS: assumptions LessThanOneAPress.Proofs.InkRetryQuery.irq_retry_connects_display_to_real_floor_call: 7 allowed foundations; see assumptions-6.log",
+    "PASS: assumptions LessThanOneAPress.Proofs.InkVerticalRetryGeometry.ivr_vertical_retry_geometry_checked: 4 allowed foundations; see assumptions-7.log",
+    "PASS: integration: 508/603 modules in MainTheorem's import closure; 95 standalone-only; 0 problems",
+    "VERDICT: PASS (mechanical checks only; not a completed game proof)",
+    "Mechanical hygiene only. Explicit hypotheses, live reachability, and statement fidelity require review."
+  ],
+  "boundary": "The concrete internal audio closure remains conditional; its selected External binding gap is not discharged. No gameplay or source-proof boundary change.",
+  "theorems": [
+    [
+      "LessThanOneAPress.Proofs.MainTheorem",
+      "current_bobomb_source_memory_boundary"
+    ],
+    [
+      "LessThanOneAPress.Proofs.TeleporterAudioFrame",
+      "teleporter_audio_frame_checked"
+    ],
+    [
+      "LessThanOneAPress.Proofs.TeleporterPoolPartition",
+      "teleporter_pool_partition_checked"
+    ],
+    [
+      "LessThanOneAPress.Proofs.TeleporterPoolPartition",
+      "tpp_deallocation_stores_preserve_cell"
+    ],
+    [
+      "LessThanOneAPress.Proofs.MainTheorem",
+      "current_ink_backward_execution_boundary"
+    ],
+    [
+      "LessThanOneAPress.Proofs.InkRetryQuery",
+      "irq_retry_connects_display_to_real_floor_call"
+    ],
+    [
+      "LessThanOneAPress.Proofs.InkVerticalRetryGeometry",
+      "ivr_vertical_retry_geometry_checked"
+    ]
+  ],
+  "full_audit_wall_seconds": 244.38,
+  "full_audit_max_rss_kb": 5228784,
+  "full_audit_stats": "build/check/AssumptionTimeoutFullAudit.stats",
+  "full_audit_stats_sha256": "7c1899afb7a1f4017c4272137ac9c7b3eb8412931af2483caf66c9b6211f2e82",
+  "audit_scope": "Current worktree with pre-existing unrelated MainTheorem/_CoqProject edits and two registered untracked modules retained; no proof or pipeline source edits in this follow-up. Exact source hashes recorded above."
+}

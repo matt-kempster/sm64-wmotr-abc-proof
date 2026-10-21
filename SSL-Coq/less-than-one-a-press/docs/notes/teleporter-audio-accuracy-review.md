@@ -1,5 +1,9 @@
 # Audio proof accuracy review — 21 October 2026
 
+Follow-up: the [subsequent seven-query rerun](teleporter-wrong-warp.md#assumption-query-timeout-follow-up-21-october-2026)
+passes without proof, pipeline or limit changes. The initial failed audit below
+remains a historical result; its timeout cause was not identified.
+
 The reviewed proof source is commit `a1ff8b162e1d9816ac2b102e395047349358ed81`.
 The external-call analysis is substantially correct: it identifies an
 applicability gap, not an invalid Coq proof. No proof file or selected program
