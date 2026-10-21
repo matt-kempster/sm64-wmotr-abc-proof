@@ -18,8 +18,13 @@
 (*    sets pos := startPos (vec3s_to_vec3f), vel := 0, actionTimer := 0,  *)
 (*    gfx.pos := pos (mario.c:1794-1855), and then                           *)
 (*    set_mario_initial_action(m, spawnType, arg);                          *)
-(*  - spawnType for bhvAirborneWarp is MARIO_SPAWN_AIRBORNE = 0x12 (area.c   *)
-(*    sWarpBhvSpawnTable; area.c is NOT linked or generated: cited);        *)
+(*  - spawnType for bhvAirborneWarp is MARIO_SPAWN_AIRBORNE = 0x12, read    *)
+(*    off the generated area.c (linked since 2026-10-21): get_mario_spawn_  *)
+(*    type's loop compares o->behavior with sWarpBhvSpawnTable[i], i < 20,  *)
+(*    and returns sSpawnTypeFromWarpBhv[i] (spawn_lookup_shape); the only   *)
+(*    entry naming bhvAirborneWarp is i = 7 (airborne_warp_index) and       *)
+(*    sSpawnTypeFromWarpBhv[7] = 0x12 (spawn_type_at_7).  The lookup is NOT *)
+(*    executed: in CompCert's semantics it is stuck (see below);            *)
 (*  - the generated set_mario_initial_action's case 0x12 is                 *)
 (*    set_mario_action(m, 6450, 0) = ACT_SPAWN_NO_SPIN_AIRBORNE, which       *)
 (*    zeroes actionState / actionTimer (mario.c set_mario_action).           *)
@@ -31,17 +36,23 @@
 (* every real entry and the capstone vacuous for the real game.             *)
 (*                                                                          *)
 (* NOT proved here (TRUST.md 0.4): that the real code produces these cells *)
-(* in the linked model -- area.c (get_mario_spawn_type, area_get_warp_node, *)
-(* load_mario_area, and the storage of gCurrLevelNum / gCurrCourseNum /     *)
-(* gMarioSpawnInfo / gCurrentArea) is not linked, so set_mario_initial_     *)
-(* action (which reads gCurrCourseNum) has no execution from the linked     *)
-(* boot image.                                                              *)
+(* in the linked model.  area.c is linked (2026-10-21), so gCurrLevelNum,  *)
+(* gCurrCourseNum, gMarioSpawnInfo, gCurrentArea have storage, and         *)
+(* EntryWarp runs the stores that set gCurrLevelNum = LEVEL_WMOTR.  Still  *)
+(* not run: init_mario_after_warp itself (it needs the level's objects,    *)
+(* spawned by the unlinked level-script / spawn_object path) and           *)
+(* get_mario_spawn_type, which has no CompCert execution on a real object: *)
+(* virtual_to_segmented masks the pointer o->behavior with 0x1FFFFFFF      *)
+(* (memory.c:86), and Cop's integer & on a Vptr is undefined              *)
+(* (and_ptr_stuck); the bhv* scripts it compares against are also size-0 *)
+(* blocks (behavior_data.c not linked), where pointer comparison is        *)
+(* undefined too.                                                           *)
 (* ======================================================================= *)
 
 From Coq Require Import ZArith List Reals Lra Lia.
 From Flocq Require Import Binary.
-From compcert Require Import Coqlib Integers Floats AST Ctypes Clight IEEE754_extra.
-From SM64.Generated Require level_update wmotr_script mario.
+From compcert Require Import Coqlib Integers Floats AST Values Ctypes Cop Clightdefs Clight IEEE754_extra.
+From SM64.Generated Require level_update wmotr_script mario area.
 From SM64.Proofs Require Import HeightInvariant WMotRLevel NoAActions.
 Import ListNotations.
 
@@ -134,6 +145,70 @@ Lemma initial_action_airborne :
   action_arg (switch_call (fn_body level_update.f_set_mario_initial_action) MARIO_SPAWN_AIRBORNE)
   = Some (level_update._set_mario_action, Int.unsigned ACT_SPAWN_NO_SPIN_AIRBORNE, 0).
 Proof. vm_compute. reflexivity. Qed.
+
+(* ----------------------------------------------------------------------- *)
+(* 2b. The spawn-type lookup, read off the generated area.c.               *)
+(* ----------------------------------------------------------------------- *)
+(* every index whose initializer is &id *)
+Fixpoint addr_idx (l : list init_data) (id : ident) (k : nat) : list nat :=
+  match l with
+  | nil => nil
+  | Init_addrof i _ :: r => if Pos.eqb i id then k :: addr_idx r id (S k) else addr_idx r id (S k)
+  | _ :: r => addr_idx r id (S k)
+  end.
+
+Lemma airborne_warp_index :
+  addr_idx (gvar_init area.v_sWarpBhvSpawnTable) area._bhvAirborneWarp 0 = [7%nat]
+  /\ length (gvar_init area.v_sWarpBhvSpawnTable) = 20%nat.
+Proof. split; vm_compute; reflexivity. Qed.
+
+Lemma spawn_type_at_7 :
+  nth_error (gvar_init area.v_sSpawnTypeFromWarpBhv) 7
+  = Some (Init_int8 (Int.repr MARIO_SPAWN_AIRBORNE))
+  /\ length (gvar_init area.v_sSpawnTypeFromWarpBhv) = 20%nat.
+Proof. split; vm_compute; reflexivity. Qed.
+
+(* get_mario_spawn_type's body: behavior := virtual_to_segmented(0x13,
+   o->behavior); for (i = 0; i < n; i++) if (behavior == tbl[i]) return
+   typ[i]; return 0 -- this matcher returns (tbl, typ, n) *)
+Definition loop_lookup (s : statement) : option (ident * ident * Z) :=
+  match s with
+  | Ssequence _
+      (Ssequence
+         (Ssequence (Sset i0 (Econst_int z _))
+            (Sloop
+               (Ssequence
+                  (Sifthenelse (Ebinop Olt (Etempvar i1 _) (Econst_int n _) _) Sskip Sbreak)
+                  (Ssequence
+                     (Sset t2 (Ederef (Ebinop Oadd (Evar tbl _) (Etempvar i2 _) _) _))
+                     (Sifthenelse (Ebinop Oeq (Etempvar bh _) (Etempvar t2' _) _)
+                        (Ssequence
+                           (Sset t3 (Ederef (Ebinop Oadd (Evar typ _) (Etempvar i3 _) _) _))
+                           (Sreturn (Some (Etempvar t3' _))))
+                        Sskip)))
+               _))
+         (Sreturn (Some (Econst_int r _)))) =>
+      if Pos.eqb i0 i1 && Pos.eqb i1 i2 && Pos.eqb i2 i3 && Pos.eqb t2 t2'
+         && Pos.eqb t3 t3' && Pos.eqb bh area._behavior
+         && Int.eq z Int.zero && Int.eq r Int.zero
+      then Some (tbl, typ, Int.unsigned n) else None
+  | _ => None
+  end.
+
+Lemma spawn_lookup_shape :
+  loop_lookup (fn_body area.f_get_mario_spawn_type)
+  = Some (area._sWarpBhvSpawnTable, area._sSpawnTypeFromWarpBhv, 20).
+Proof. vm_compute. reflexivity. Qed.
+
+(* why the lookup cannot be RUN: virtual_to_segmented's first operation is
+   ((uintptr_t) addr) & 0x1FFFFFFF at types tuint / tint (generated
+   memory.c), and CompCert's & on a pointer has no value *)
+Lemma and_ptr_stuck : forall ce b o m,
+    sem_binary_operation ce Oand (Vptr b o) tuint (Vint (Int.repr 536870911)) tint m = None.
+Proof.
+  intros ce b o m. unfold sem_binary_operation, sem_and, sem_binarith, sem_cast, classify_cast.
+  cbn. destruct Archi.ptr64; reflexivity.
+Qed.
 
 (* every direct call in a body, in order *)
 Fixpoint calls_of (s : statement) : list ident :=

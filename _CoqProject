@@ -38,6 +38,7 @@ generated/graph_node.v
 generated/save_file.v
 generated/buffers.v
 generated/object_collision.v
+generated/area.v
 
 # --- shared infrastructure (used by GOAL 1; reusable) ---
 proofs/Generic/Frame.v
@@ -262,6 +263,7 @@ proofs/WMotRRequiresA/FrameSplit.v
 proofs/WMotRRequiresA/AirSplit.v
 proofs/WMotRRequiresA/HeightFrame.v
 proofs/WMotRRequiresA/WMotREntry.v
+proofs/WMotRRequiresA/EntryWarp.v
 proofs/WMotRRequiresA/StartSat.v
 proofs/WMotRRequiresA/YWriterCensus.v
 proofs/WMotRRequiresA/HeldObjCensus.v

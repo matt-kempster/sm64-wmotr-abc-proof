@@ -726,7 +726,7 @@ Definition v_gCameraMovementFlags := {|
 |}.
 
 Definition v_gPlayerSpawnInfos := {|
-  gvar_info := (tarray (Tstruct _SpawnInfo noattr) 0);
+  gvar_info := (tarray (Tstruct _SpawnInfo noattr) 1);
   gvar_init := nil;
   gvar_readonly := false;
   gvar_volatile := false
