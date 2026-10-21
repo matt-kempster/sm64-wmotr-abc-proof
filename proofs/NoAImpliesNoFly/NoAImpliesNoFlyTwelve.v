@@ -260,9 +260,13 @@ Section NoAImpliesNoFlyTwelve.
      from their real bodies (ObjHelpersBodies).  Every store goes through
      arg0, a SafeB block under the cs gate; obj_set_held_state's two pointer
      stores write gCurrentObject's value (a SafeB symbol, so SafeB by MWF's
-     load closure) and segmented_to_virtual's result (an integer OR, never a
-     pointer).  2026-10-19: obj_set_held_state writes through arg0, so its
-     any-argument obj_ext row was false; it was restated arg0-gated. *)
+     load closure) and segmented_to_virtual(arg1).  2026-10-19: obj_set_held_state
+     writes through arg0, so its any-argument obj_ext row was false; it was
+     restated arg0-gated.  2026-10-21: segmented_to_virtual is now the decomp's
+     NO_SEGMENTED_MEMORY identity (TRUST 2.2), so heldBehavior's value is arg1
+     itself; an arbitrary arg1 would break R7 (SafeB load-closed), so the row
+     was FALSE as stated.  Restated (cs_gate): arg1 is one of the
+     bhvCarrySomething3/4/5 symbols, which every real call site passes. *)
   Lemma Hcsp_omfd_real :
     call_pres_ext_cs lp bm (NoA_real bm) MWF SafeB
       mario_actions_cutscene._obj_mark_for_deletion.

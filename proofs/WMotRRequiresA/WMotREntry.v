@@ -42,16 +42,16 @@
 (* not run: init_mario_after_warp itself (it needs the level's objects,    *)
 (* spawned by the unlinked level-script / spawn_object path) and           *)
 (* get_mario_spawn_type, which has no CompCert execution on a real object: *)
-(* virtual_to_segmented masks the pointer o->behavior with 0x1FFFFFFF      *)
-(* (memory.c:86), and Cop's integer & on a Vptr is undefined              *)
-(* (and_ptr_stuck); the bhv* scripts it compares against are also size-0 *)
-(* blocks (behavior_data.c not linked), where pointer comparison is        *)
-(* undefined too.                                                           *)
+(* the bhv* scripts in sWarpBhvSpawnTable are size-0 extern blocks         *)
+(* (behavior_data.c not linked), and CompCert's pointer == needs a valid   *)
+(* pointer on both sides (cmp_size0_stuck).  (Until 2026-10-21 the first   *)
+(* obstacle was virtual_to_segmented's & 0x1FFFFFFF on a pointer; it is    *)
+(* now the decomp's NO_SEGMENTED_MEMORY identity, TRUST 2.2 register.)     *)
 (* ======================================================================= *)
 
 From Coq Require Import ZArith List Reals Lra Lia.
 From Flocq Require Import Binary.
-From compcert Require Import Coqlib Integers Floats AST Values Ctypes Cop Clightdefs Clight IEEE754_extra.
+From compcert Require Import Coqlib Integers Floats AST Values Memory Ctypes Cop Clightdefs Clight IEEE754_extra.
 From SM64.Generated Require level_update wmotr_script mario area.
 From SM64.Proofs Require Import HeightInvariant WMotRLevel NoAActions.
 Import ListNotations.
@@ -200,14 +200,20 @@ Lemma spawn_lookup_shape :
   = Some (area._sWarpBhvSpawnTable, area._sSpawnTypeFromWarpBhv, 20).
 Proof. vm_compute. reflexivity. Qed.
 
-(* why the lookup cannot be RUN: virtual_to_segmented's first operation is
-   ((uintptr_t) addr) & 0x1FFFFFFF at types tuint / tint (generated
-   memory.c), and CompCert's & on a pointer has no value *)
-Lemma and_ptr_stuck : forall ce b o m,
-    sem_binary_operation ce Oand (Vptr b o) tuint (Vint (Int.repr 536870911)) tint m = None.
+(* why the lookup cannot be RUN yet: virtual_to_segmented is the identity
+   (TRUST 2.2, NO_SEGMENTED_MEMORY), but each table entry points into a
+   bhv* block that has no valid offset (a size-0 extern: behavior_data.c is
+   not linked), and CompCert's pointer == has no value unless both sides
+   are (weakly) valid pointers -- whichever block o->behavior is in *)
+Lemma cmp_size0_stuck : forall ce m b1 o1 b o t1 a1 t2 a2,
+    (forall z, Mem.valid_pointer m b z = false) ->
+    sem_binary_operation ce Oeq (Vptr b1 o1) (Tpointer t1 a1)
+      (Vptr b o) (Tpointer t2 a2) m = None.
 Proof.
-  intros ce b o m. unfold sem_binary_operation, sem_and, sem_binarith, sem_cast, classify_cast.
-  cbn. destruct Archi.ptr64; reflexivity.
+  intros ce m b1 o1 b o t1 a1 t2 a2 H0.
+  unfold sem_binary_operation, sem_cmp, cmp_ptr. cbn.
+  unfold Val.cmpu_bool, Mem.weak_valid_pointer. rewrite !H0. cbn.
+  destruct (eq_block b1 b); rewrite ?andb_false_r; reflexivity.
 Qed.
 
 (* every direct call in a body, in order *)

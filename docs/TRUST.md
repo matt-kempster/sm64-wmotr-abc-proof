@@ -463,11 +463,15 @@ without pressing A".*
     `sWarpBhvSpawnTable[0..20)` returning `sSpawnTypeFromWarpBhv[i]` (`WMotREntry.spawn_lookup_shape`),
     the only entry naming `bhvAirborneWarp` is i = 7 (`airborne_warp_index`), and
     `sSpawnTypeFromWarpBhv[7] = 0x12` (`spawn_type_at_7`). The lookup is not **executed**: it has
-    no CompCert execution on a real object. Its first step, `virtual_to_segmented`, computes
-    `(uintptr_t) addr & 0x1FFFFFFF` (`memory.c:86`), and Cop's `&` on a pointer is undefined
-    (`WMotREntry.and_ptr_stuck`); the `bhv*` scripts it compares against are also size-0 blocks
-    (`behavior_data.c` not linked), where pointer equality is undefined too. Running it needs the
-    `NO_SEGMENTED_MEMORY` change to `memory.c` (in progress separately) and `behavior_data.c` linked.
+    no CompCert execution on a real object.
+    - Since 2026-10-21 its first step, `virtual_to_segmented`, is the identity (2.2 register,
+      `NO_SEGMENTED_MEMORY`). Before, it computed `addr & 0x1FFFFFFF`, which has no value on a
+      pointer.
+    - The remaining obstacle: the `bhv*` scripts in the table are size-0 extern blocks
+      (`behavior_data.c` is not linked). CompCert's pointer `==` needs valid pointers on both
+      sides, so the first compare is stuck (`WMotREntry.cmp_size0_stuck`).
+    - Running it needs `behavior_data.c` linked, with each `bhv*` extern array completed to its
+      real length (2.4).
 - **Repaired 2026-10-21: `area.c` is linked (the 23rd TU, `generated/area.v`), and `in_wmotr` holds
   on the GOAL 2 witness by real code** (`EntryWarp.v`, used by `StartSat.goal2_start_sat`).
   - `gCurrLevelNum`, `gCurrCourseNum`, `gCurrentArea`, `gMarioSpawnInfo`, `gPlayerSpawnInfos` (its
@@ -569,6 +573,7 @@ link grows.
 | `shadow.c:191` missing return | falls off the end | `return waterLevel` | not yet checked | `shadow.c` is not linked. Assembly check needed before it is used. |
 | `detect_object_hitbox_overlap` / `detect_object_hurtbox_overlap` fall off the end when the objects miss horizontally (`object_collision.c:61,96`, `//! no return value`) | returns whatever is in the return register | `return 0;` | **any-value by statement**: `overlap_no_contact` leaves the returned value unspecified | Used by `CoinLink.v`, whose conclusion is "returns, memory unchanged" with the value existentially quantified, so it holds for any value the ROM returns. Contact is registered only on the `return 1` path, which the theorem excludes. Whoever consumes the result must also allow any value: in the ROM, a non-zero garbage return makes `check_collision_in_list` call `detect_object_hurtbox_overlap`, whose only store is `b->oInteractionSubtype` (the invincibility-delay bit), and that registers no contact. |
 | `__osThreadTail` (`lib/src/libultra_internal.h:11`; used by the linked libultra TU `osCreateMesgQueue.c:4,5`; found 2026-10-21 by running `tools/ub_sites.py`'s ROM/proof diff on the six libultra TUs, the only hunk) | `extern OSThread *__osThreadTail;` (and four more separate externs); `mq->mtqueue = (OSThread *) &__osThreadTail` | `extern OSThread_ListHead __osThreadTail_fix;` with the five names `#define`d to its fields; `&__osThreadTail_fix.next` | equivalence (layout) | `__osThreadTail_fix.next` is at offset 0, and the asm aliases the symbol (`__osExceptionPreamble.s:21`, `.set __osThreadTail, __osThreadTail_fix`), so the stored address is the same. The walk (`SaveDoSaveBody`) does not depend on the value: the store lands in `gOsSiMessageQueue`, a stored global. |
+| `segmented_to_virtual` / `virtual_to_segmented` (`memory.c:78,85`; `pipeline/proof_n64.h`, active only for `memory.c` via `-DPROOF_MEMORY_C=1`; 2026-10-21) | `sSegmentTable[seg] + (addr & 0xFFFFFF)` with a KSEG0 OR, and the inverse | the decomp's own `NO_SEGMENTED_MEMORY` bodies (`memory.c:98-105`): `return (void *) addr;`. The ROM bodies stay in the TU, renamed `rom_*`, and nothing calls them | equivalence (address model), **tethered, not proved** | **Tether:** on the N64 the argument is a segmented address (0x13… for behavior scripts). `sSegmentTable` maps it to the loaded copy of that same data. The model has one block per C object, so the linked object's own address is what the game then compares and dereferences. `virtual_to_segmented(0x13, o->behavior) == bhvXxx` agrees in both models. **Relied on by:** every `segmented_to_virtual(bhvXxx)` / `virtual_to_segmented(0x13, ..)` site in the 2.2 bullet of 4.1 (pole/tree, held-object checks, `object_helpers.c`, `area.c:139`, `interaction.c:881,889` warp-pipe collision), and `obj_set_held_state`'s `curBhvCommand` store, the one site the capstone walks. **Caveat:** segment 0 (`mario.c:188-189`, `graph_node.c:737-738,752-753,853-854`, Mario's DMA'd animation) is not the identity on the N64. There the model has no execution: an under-approximation (4.1). `game_init.c:666` and `object_list_processor.c:477` (level scripts) are not walked. |
 | `mtxf_to_mtx` (`math_util.c:577`) | register/fixed-point implementation | portable C | not yet checked | `math_util` is not in the link (its callers go through the external-call rows, 4.1). Needs an equivalence check before linking. |
 
 ## 3. C semantics versus what the N64 actually does
@@ -894,7 +899,9 @@ link grows.
   `parentObj` gets the value loaded from `gCurrentObject`, a SafeB block (`SafeB_syms_ok` (c)), so
   R7 makes it SafeB; `curBhvCommand` gets `segmented_to_virtual`'s result, which its real
   `memory.c` body computes as an integer OR, so it is never a pointer (`s2v_ret_nonptr`), and that
-  body stores nothing. No row was found false; no new premise. `Linked12Sat`, `InitMemSat`,
+  body stores nothing. No row was found false; no new premise. (Superseded 2026-10-21 by the
+  `NO_SEGMENTED_MEMORY` bullet below: `s2v_ret_nonptr` was an artifact of the shift having no
+  pointer semantics, and the osh row was then found false.) `Linked12Sat`, `InitMemSat`,
   `BootMWF` and `StartSat`'s per-TU certificates cover the 22-TU chain, and
   `LinkedTwelve.linked12_ext_pin` / `LptBody.os_resolve` gained the case (object_helpers defines no
   pinned external). Three fewer hypotheses on each capstone.
@@ -912,6 +919,58 @@ link grows.
     into the new object, so "preserves MWF for any argument" fails when `parent` is a non-SafeB
     pointer. The fix is an arg-gated row like `Hcsp_osh_real`; being reworked separately with the
     `spawn_object` / `segmented_to_virtual` work.
+  - Status after `NO_SEGMENTED_MEMORY` (2026-10-21): still open, and now more clearly false. The
+    first step, `segmented_to_virtual(behavior)`, returns its argument, so for a behavior pointer
+    into a block with data, `create_object` runs (it is external while `spawn_object.c` is not
+    linked) and the `parent` store follows. Proving a `parent`-gated row needs `spawn_object.c`
+    linked and walked: `create_object`, `allocate_object` (free list, and `unload_object` when it
+    is empty) and `geo_obj_init`. The branch commit c68a1eb5 proved these rows only vacuously,
+    from `s2v_ptr_noexec`, which is no longer true. A real call also still has no execution: each
+    one passes `&bhvXxx`, a size-0 block, and `create_object` first reads `bhvScript[0]`. Showing
+    non-vacuity therefore also needs `behavior_data.c` linked (see the bullet below).
+- **`segmented_to_virtual` / `virtual_to_segmented` are the decomp's `NO_SEGMENTED_MEMORY`
+  identity (2026-10-21; 2.2 register).** Before, they had no CompCert execution on any pointer:
+  shifts and masks have no meaning on a `Vptr`. So every row and walk that passed through them held
+  vacuously on real pointers.
+  - **Found FALSE and repaired: `Hcsp_osh_real` (`obj_set_held_state`, the `cs` row).** It stores
+    `segmented_to_virtual(heldBehavior)` into `obj->curBhvCommand`. Under the identity that value
+    is `heldBehavior` itself, so an arbitrary pointer there breaks MWF's load closure (R7).
+  - Restated: `OutParamSurface.cs_gate` = the arg0 gate plus, for `obj_set_held_state` only,
+    "arg1 is `bhvCarrySomething3`, `4` or `5`" (`CensusV2.bhv_held_syms`). Every linked call site
+    passes one of these (`interaction.c` `mario_grab_used_object`, `mario_drop_held_object`,
+    `mario_throw_held_object`).
+  - The walkers check it syntactically (`ActWriterSurface.held_arg_chk`): arg1 is `Evar g` with `g`
+    one of those symbols, listed in the walk's xids. As variables, not functions, their call rows
+    hold vacuously (`call_pres_ext_gvar`).
+  - The three symbols joined `CensusV2.safe_ptr_syms`, so they are SafeB blocks. R7 holds trivially
+    for them: they are size-0 extern blocks, with nothing to load.
+  - `ObjHelpersBodies` is re-proved honestly (`s2v_ret_arg`: the result is the argument).
+  - Net: no new hypothesis. One capstone row is narrower, and now true as far as we know.
+  - **Still no execution (open, step to `behavior_data.c`).** Every `== segmented_to_virtual(bhvXxx)`
+    compare and every read through a `bhv*` script is stuck, because those blocks are size-0 extern
+    arrays and CompCert's pointer `==` needs valid pointers (`WMotREntry.cmp_size0_stuck`). Sites:
+    - pole / tree: `mario_actions_automatic.c:31,45,144,164`;
+    - held-object checks: `interaction.c:138,297,318,423,1637`, `mario_actions_moving.c:876`,
+      `mario_actions_submerged.c:853`, `mario_actions_stationary.c:440`, `mario.c:1690`;
+    - `object_helpers.c` compares (`107,1088,1469,1477`) and every spawn;
+    - `area.c:139` (`get_mario_spawn_type`).
+  - Making these run needs `behavior_data.c` linked, with every `bhv*` extern array completed to
+    its real length (2.4).
+  - **Segment-0 animation caveat (under-approximation, not a wrong value).**
+    - `set_mario_animation` stores `VIRTUAL_TO_PHYSICAL(anim)`, which the proof's C computes as
+      `p - 0x80000000` (2.2 register).
+    - `mario.c:188-189` and `graph_node.c:853-854` then pass the stored `index` / `values` to
+      `segmented_to_virtual`.
+    - In the ROM, segment 0 maps a physical address back to `phys | 0x80000000`, the same object.
+      The identity returns the shifted pointer instead, so the following loads are out of bounds
+      and those paths have no execution.
+    - The model loses executions there; it gains none.
+  - Spine sweep for proofs that relied on the old no-execution:
+    - `ObjHelpersBodies` (`s2v_ret_nonptr`): re-proved, see above.
+    - `WMotREntry.and_ptr_stuck`: replaced by `cmp_size0_stuck`, with the comment updated.
+    - `MathBodies.Hcpx_s2v_proved` / `_v2s_proved` still hold: both bodies are pure.
+    - `MovingLeafSurface`'s `Hv2sp` reasons from the argument's provenance, so the identity keeps it.
+    - The other leaf walkers only use the rows' write-freeness, which the identity keeps.
 - **`game/area.c` is linked** (2026-10-21, the 23rd TU, `generated/area.v`; reason in 0.4). Rows
   that became claims about its real bodies:
   - **Found FALSE and repaired:** `override_viewport_and_clip` is an any-argument entry of

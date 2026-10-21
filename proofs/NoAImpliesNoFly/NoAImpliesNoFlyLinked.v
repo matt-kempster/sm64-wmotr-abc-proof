@@ -1441,8 +1441,9 @@ Section NoARealInputMWF.
     assert (E : CutsceneLeafSurface.gobj_ids = gobj_syms) by reflexivity.
     rewrite E in Hg.
     assert (Hg' : mem_id g safe_ptr_syms = true)
-      by (unfold safe_ptr_syms, mem_id in *; cbn [existsb]; rewrite existsb_app, Hg;
-          rewrite orb_true_l; apply orb_true_r).
+      by (unfold safe_ptr_syms, mem_id in *; cbn [existsb];
+          apply orb_true_intro; right; rewrite existsb_app;
+          apply orb_true_intro; left; exact Hg).
     exact (proj2 (proj2 HSafeB_syms) g gb Hg' Hfs).
   Qed.
   Hypothesis Hcp_soawr_real : call_pres_ext_sr lp bm (NoA_real bm) MWF SafeB
