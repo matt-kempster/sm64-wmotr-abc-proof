@@ -54,7 +54,9 @@ From SM64.Generated Require mario mario_actions_stationary
   mario_actions_cutscene mario_actions_automatic mario_actions_object
   interaction behavior_actions level_update mario_step surface_collision
   math_util memory game_init object_list_processor audio_data graph_node
-  save_file buffers object_helpers area.
+  save_file buffers object_helpers area
+  libultra_osEepromLongWrite libultra_osEepromWrite libultra_osSiCreateAccessQueue
+  libultra_osCreateMesgQueue libultra_osContInit libultra_osInitialize.
 From SM64.Proofs Require Import SymbolicLinking CensusV2 RealFrameLinked
   EngineV2Consumer RestSurface.
 
@@ -109,7 +111,13 @@ Fixpoint link_chain (p : Clight.program) (l : list Clight.program)
    gCurrLevelNum, gCurrCourseNum, gCurrentArea, gMarioSpawnInfo,
    gPlayerSpawnInfos and gCurrSaveFileNum, which every other TU only
    declares (size-0 blocks without it, so HeightFrame.in_wmotr was false on
-   every memory reached from boot), and the real get_mario_spawn_type. *)
+   every memory reached from boot), and the real get_mario_spawn_type.
+   The six libultra TUs are the 12th-17th (2026-10-21, TRUST 3.5 / 4.1):
+   the real C below save_file_do_save (osEepromLongWrite, osEepromWrite +
+   __osPackEepWriteData / __osEepStatus, the SI access queue,
+   osCreateMesgQueue) and the storage it touches (osContInit.c's
+   __osContLastCmd and EEPROM timer / queue / buffer, osInitialize.c's
+   osClockRate).  Below them is the OS / hardware floor (OsDmaFloor). *)
 Definition tu_rest : list Clight.program :=
   [ mario_actions_stationary.prog;
     mario_actions_moving.prog;
@@ -132,7 +140,13 @@ Definition tu_rest : list Clight.program :=
     save_file.prog;
     buffers.prog;
     object_helpers.prog;
-    area.prog ].
+    area.prog;
+    libultra_osEepromLongWrite.prog;
+    libultra_osEepromWrite.prog;
+    libultra_osSiCreateAccessQueue.prog;
+    libultra_osCreateMesgQueue.prog;
+    libultra_osContInit.prog;
+    libultra_osInitialize.prog ].
 
 Definition linked12 (lp : Clight.program) : Prop :=
   link_chain mario.prog tu_rest = Some lp.
@@ -247,6 +261,30 @@ Section Linked12LO.
   Lemma linked12_LO_area : linkorder area.prog lp.
   Proof.
     exact (link_chain_linkorder_in _ _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_eq _ _)))))))))))))))))))))) H12).
+  Qed.
+  Lemma linked12_LO_ultra_elw : linkorder libultra_osEepromLongWrite.prog lp.
+  Proof.
+    exact (link_chain_linkorder_in _ _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_eq _ _))))))))))))))))))))))) H12).
+  Qed.
+  Lemma linked12_LO_ultra_ew : linkorder libultra_osEepromWrite.prog lp.
+  Proof.
+    exact (link_chain_linkorder_in _ _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_eq _ _)))))))))))))))))))))))) H12).
+  Qed.
+  Lemma linked12_LO_ultra_si : linkorder libultra_osSiCreateAccessQueue.prog lp.
+  Proof.
+    exact (link_chain_linkorder_in _ _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_eq _ _))))))))))))))))))))))))) H12).
+  Qed.
+  Lemma linked12_LO_ultra_cmq : linkorder libultra_osCreateMesgQueue.prog lp.
+  Proof.
+    exact (link_chain_linkorder_in _ _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_eq _ _)))))))))))))))))))))))))) H12).
+  Qed.
+  Lemma linked12_LO_ultra_ci : linkorder libultra_osContInit.prog lp.
+  Proof.
+    exact (link_chain_linkorder_in _ _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_eq _ _))))))))))))))))))))))))))) H12).
+  Qed.
+  Lemma linked12_LO_ultra_init : linkorder libultra_osInitialize.prog lp.
+  Proof.
+    exact (link_chain_linkorder_in _ _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_eq _ _)))))))))))))))))))))))))))) H12).
   Qed.
 End Linked12LO.
 
@@ -481,6 +519,24 @@ Proof. vm_compute. reflexivity. Qed.
 Lemma no_internal_area :
   no_internal_ids area.prog truly_ext_pin_ids = true.
 Proof. vm_compute. reflexivity. Qed.
+Lemma no_internal_ultra_elw :
+  no_internal_ids libultra_osEepromLongWrite.prog truly_ext_pin_ids = true.
+Proof. vm_compute. reflexivity. Qed.
+Lemma no_internal_ultra_ew :
+  no_internal_ids libultra_osEepromWrite.prog truly_ext_pin_ids = true.
+Proof. vm_compute. reflexivity. Qed.
+Lemma no_internal_ultra_si :
+  no_internal_ids libultra_osSiCreateAccessQueue.prog truly_ext_pin_ids = true.
+Proof. vm_compute. reflexivity. Qed.
+Lemma no_internal_ultra_cmq :
+  no_internal_ids libultra_osCreateMesgQueue.prog truly_ext_pin_ids = true.
+Proof. vm_compute. reflexivity. Qed.
+Lemma no_internal_ultra_ci :
+  no_internal_ids libultra_osContInit.prog truly_ext_pin_ids = true.
+Proof. vm_compute. reflexivity. Qed.
+Lemma no_internal_ultra_init :
+  no_internal_ids libultra_osInitialize.prog truly_ext_pin_ids = true.
+Proof. vm_compute. reflexivity. Qed.
 
 (* resolves_lp -> defmap entry (the genv->defmap bridge, spike-style) *)
 Lemma resolves_defmap :
@@ -516,7 +572,7 @@ Proof.
   destruct (link_chain_internal_origin _ _ _ _ _ H12 Hres)
     as [Hbase | (q & Hq & Hqdm)].
   - exact (no_internal_ids_correct _ _ _ _ no_internal_mario Hmem Hbase).
-  - destruct Hq as [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | []]]]]]]]]]]]]]]]]]]]]]].
+  - destruct Hq as [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | []]]]]]]]]]]]]]]]]]]]]]]]]]]]].
     + exact (no_internal_ids_correct _ _ _ _ no_internal_sta Hmem Hqdm).
     + exact (no_internal_ids_correct _ _ _ _ no_internal_mov Hmem Hqdm).
     + exact (no_internal_ids_correct _ _ _ _ no_internal_air Hmem Hqdm).
@@ -539,6 +595,12 @@ Proof.
     + exact (no_internal_ids_correct _ _ _ _ no_internal_buffers Hmem Hqdm).
     + exact (no_internal_ids_correct _ _ _ _ no_internal_object_helpers Hmem Hqdm).
     + exact (no_internal_ids_correct _ _ _ _ no_internal_area Hmem Hqdm).
+    + exact (no_internal_ids_correct _ _ _ _ no_internal_ultra_elw Hmem Hqdm).
+    + exact (no_internal_ids_correct _ _ _ _ no_internal_ultra_ew Hmem Hqdm).
+    + exact (no_internal_ids_correct _ _ _ _ no_internal_ultra_si Hmem Hqdm).
+    + exact (no_internal_ids_correct _ _ _ _ no_internal_ultra_cmq Hmem Hqdm).
+    + exact (no_internal_ids_correct _ _ _ _ no_internal_ultra_ci Hmem Hqdm).
+    + exact (no_internal_ids_correct _ _ _ _ no_internal_ultra_init Hmem Hqdm).
 Qed.
 
 (* ---------------------------------------------------------------------- *)

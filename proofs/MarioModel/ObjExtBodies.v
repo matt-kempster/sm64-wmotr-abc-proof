@@ -37,9 +37,9 @@
 (* gTimeStopState) were NOT, so the rows rested on unstated facts about  *)
 (* those blocks.  They joined CensusV2.stored_globals (the Hglob_blk /   *)
 (* SafeB_syms_ok class: nothing in the object graph points at them).     *)
-(* save_file_do_save is NOT proved: it calls the unlinked libultra       *)
-(* bcopy and osEepromLongWrite (via write_eeprom_data), which have no     *)
-(* floor on the ledger, so its entry stays a row.                         *)
+(* save_file_do_save is proved in SaveDoSaveBody.v (2026-10-21), through *)
+(* the linked libultra EEPROM C down to the OS / hardware floor (TRUST   *)
+(* 3.5).                                                                 *)
 (* ====================================================================== *)
 
 From Coq Require Import ZArith List Lia.

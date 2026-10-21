@@ -26,6 +26,20 @@ SM64_CG := -nostdinc -fstruct-passing \
 # Not applied to shadow.c: it includes PR/gbi.h BEFORE macros.h, so pulling macros.h in
 # early would change its Gfx composite (gbi.h:1743 reads platform_info.h); it has no site.
 SM64_CGP := $(SM64_CG) -include pipeline/proof_n64.h
+# Canonical clightgen recipe for a libultra C file (vendor/sm64/lib/src/*.c).
+# The real build compiles lib/src with the game's TARGET_CFLAGS +
+# DEF_INC_CFLAGS (only OPT_FLAGS / MIPSISET differ, vendor/sm64/Makefile:745),
+# so the flag set is SM64_CG; proof_n64.h is NOT applied (its rewrites are
+# game-code UB sites, TRUST 2.2; no libultra file is on its list).
+ULTRA_CG := $(SM64_CG)
+ULTRA   := $(SM64)/lib/src
+# The libultra C under save_file_do_save (2026-10-21, TRUST 3.5 / 4.1):
+# the EEPROM write path, the SI access queue, osCreateMesgQueue, and the two
+# TUs that hold the storage it touches (osContInit.c: __osContLastCmd and the
+# EEPROM timer / queue / message buffer; osInitialize.c: osClockRate).
+ULTRA_GENERATED := generated/libultra_osEepromLongWrite.v generated/libultra_osEepromWrite.v \
+  generated/libultra_osSiCreateAccessQueue.v generated/libultra_osCreateMesgQueue.v \
+  generated/libultra_osContInit.v generated/libultra_osInitialize.v
 
 GENERATED := generated/toy.v generated/shadow.v \
   generated/mario.v generated/mario_actions_airborne.v \
@@ -40,7 +54,8 @@ GENERATED := generated/toy.v generated/shadow.v \
   generated/macro_special_objects.v generated/behavior_data.v \
   generated/object_helpers.v generated/obj_behaviors.v generated/obj_behaviors_2.v \
   generated/spawn_object.v generated/object_list_processor.v generated/audio_data.v generated/graph_node.v generated/buffers.v generated/save_file.v generated/object_collision.v \
-  generated/area.v
+  generated/area.v \
+  $(ULTRA_GENERATED)
 
 .PHONY: all generated proofs regen clean oracle-extract
 
@@ -225,3 +240,22 @@ generated/object_collision.v: $(SM64)/src/game/object_collision.c pipeline/cligh
 # real get_mario_spawn_type / sWarpBhvSpawnTable lookup.
 generated/area.v: $(SM64)/src/game/area.c pipeline/clightgen.sh pipeline/proof_n64.h
 	$(CLIGHTGEN) $< $@ $(SM64_CGP)
+
+# libultra (2026-10-21): see ULTRA_CG above.
+generated/libultra_osEepromLongWrite.v: $(ULTRA)/osEepromLongWrite.c pipeline/clightgen.sh
+	$(CLIGHTGEN) $< $@ $(ULTRA_CG)
+
+generated/libultra_osEepromWrite.v: $(ULTRA)/osEepromWrite.c pipeline/clightgen.sh
+	$(CLIGHTGEN) $< $@ $(ULTRA_CG)
+
+generated/libultra_osSiCreateAccessQueue.v: $(ULTRA)/__osSiCreateAccessQueue.c pipeline/clightgen.sh
+	$(CLIGHTGEN) $< $@ $(ULTRA_CG)
+
+generated/libultra_osCreateMesgQueue.v: $(ULTRA)/osCreateMesgQueue.c pipeline/clightgen.sh
+	$(CLIGHTGEN) $< $@ $(ULTRA_CG)
+
+generated/libultra_osContInit.v: $(ULTRA)/osContInit.c pipeline/clightgen.sh
+	$(CLIGHTGEN) $< $@ $(ULTRA_CG)
+
+generated/libultra_osInitialize.v: $(ULTRA)/osInitialize.c pipeline/clightgen.sh
+	$(CLIGHTGEN) $< $@ $(ULTRA_CG)

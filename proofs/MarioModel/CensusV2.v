@@ -37,7 +37,8 @@
 From Coq Require Import ZArith List Lia.
 From compcert Require Import Coqlib Maps AST Integers Values Events Memory
   Globalenvs Ctypes Cop Clightdefs Clight ClightBigstep Linking Errors.
-From SM64.Generated Require surface_collision math_util memory save_file area.
+From SM64.Generated Require surface_collision math_util memory save_file area
+  libultra_osSiCreateAccessQueue libultra_osContInit libultra_osEepromWrite.
 From SM64.Generated Require mario level_update mario_step mario_actions_submerged
   mario_actions_cutscene behavior_actions.
 From SM64.Proofs Require Import SymbolicLinking Flying Taint
@@ -945,7 +946,24 @@ Definition stored_globals : list ident :=
      constrain their contents, which is what the code needs.  The claim, via
      SpawnInit.non_safeb_syms, is that nothing in the object graph points
      at these two cells. *)
-  area._D_8032CE74 :: area._D_8032CE78 :: nil.
+  area._D_8032CE74 :: area._D_8032CE78 ::
+  (* the libultra state under save_file_do_save (2026-10-21, the six
+     libultra TUs linked, SaveDoSaveBody): the SI event queue the EEPROM
+     calls wait on (main.c's, a size-0 extern block: main.c is not linked),
+     the SI access queue, its message buffer and created-flag
+     (__osSiCreateAccessQueue.c), the EEPROM timer, its queue and message
+     buffer and the last-command byte (osContInit.c), and the PIF RAM image
+     (osEepromWrite.c).  Only libultra and the OS floor (OsDmaFloor) write
+     them; the game's object graph never points at them.  As stored globals
+     MWF does not constrain their contents (the OS keeps thread pointers in
+     the queues), which is what the code needs. *)
+  save_file._gSIEventMesgQueue ::
+  libultra_osSiCreateAccessQueue._gOsSiMessageQueue ::
+  libultra_osSiCreateAccessQueue._osSiMesgBuff ::
+  libultra_osSiCreateAccessQueue._gOsSiAccessQueueCreated ::
+  libultra_osContInit.___osEepromTimer :: libultra_osContInit.___osEepromTimerQ ::
+  libultra_osContInit.___osEepromTimerMsg :: libultra_osContInit.___osContLastCmd ::
+  libultra_osEepromWrite.___osEepPifRam :: nil.
 
 (* 2026-10-19: the five cutscene OBJECT-POINTER globals.  They left
    stored_globals: MWF does not constrain a stored global's contents, so the

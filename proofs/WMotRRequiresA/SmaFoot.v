@@ -396,19 +396,25 @@ Proof.
   intros m0 le m t le' m' out tl tr cc g1t g1t' g2t g2t' x2 H F.
   destruct (os_call_ext lp Hlink memory._osRecvMesg "osRecvMesg" _ _ _ _ _ _ _ _ eq_refl
               os_recv_named H eq_refl) as (sg & tyargs & vargs & vres & Hel & Hx).
-  destruct Hfloor as (_ & _ & Hrv).
-  destruct (Hrv _ _ _ _ _ _ _ Hx) as (bq & oq & bmsg & omsg & fl & -> & UO & SP).
+  destruct Hfloor as (_ & _ & Hrv & _).
+  destruct (Hrv _ _ _ _ _ _ _ Hx) as (bq & oq & cell & fl & -> & _ & SP & UOq).
   inv Hel.
   match goal with Hv : eval_expr _ _ _ _ (Eaddrof (Evar memory._gDmaMesgQueue _) _) _,
                   Hc : sem_cast _ _ _ _ = Some (Vptr bq oq) |- _ =>
     destruct (glob_arg _ _ _ _ _ _ _ _ _ _ Hmq Hv Hc) as [-> ->] end.
+  (* the DMA queue's row of q_side: nothing besides the queue and the cell *)
+  pose proof (UOq memory._gDmaMesgQueue [] eq_refl Hmq) as UO.
   repeat match goal with H : eval_exprlist _ _ _ _ (_ :: _) _ _ |- _ => inv H end.
-  match goal with Hv : eval_expr _ _ _ _ (Eaddrof (Evar memory._gMainReceivedMesg _) _) _,
-                  Hc : sem_cast _ _ _ _ = Some (Vptr bmsg omsg) |- _ =>
-    destruct (glob_arg _ _ _ _ _ _ _ _ _ _ Hrm Hv Hc) as [-> ->] end.
+  assert (Gm : forall bk ok, cell = Vptr bk ok -> bk = brm /\ ok = Ptrofs.zero).
+  { intros bk ok ->.
+    match goal with Hv : eval_expr _ _ _ _ (Eaddrof (Evar memory._gMainReceivedMesg _) _) _,
+                    Hc : sem_cast _ _ _ _ = Some (Vptr bk ok) |- _ =>
+      exact (glob_arg _ _ _ _ _ _ _ _ _ _ Hrm Hv Hc) end. }
   eapply foot_step; [ exact F | | exact SP ].
   eapply Mem.unchanged_on_implies; [ exact UO | ]. intros b z N _.
-  split; [ exact (out_rng _ _ _ _ _ rng_mq N) | exact (out_rng _ _ _ _ _ rng_rm N) ].
+  split; [ exact (out_rng _ _ _ _ _ rng_mq N) | split; [ | intros s [] ] ].
+  destruct cell as [ | | | | | bk ok ]; try exact I.
+  destruct (Gm _ _ eq_refl) as [-> ->]. exact (out_rng _ _ _ _ _ rng_rm N).
 Qed.
 
 (* ---- dma_read: its real body ---- *)
