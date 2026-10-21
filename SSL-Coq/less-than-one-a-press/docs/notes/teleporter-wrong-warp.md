@@ -9,6 +9,18 @@ does not close the pyramid proof's existing JP spawning-displacement routes.
 
 ## Hands-free Bob-ombs, the lower entrance and Goomba-clone knockback
 
+### Audio proof accuracy clarification (21 October 2026)
+
+The [pinned-source accuracy review](teleporter-audio-accuracy-review.md) confirms that AudioFrame is a valid
+conditional internal-closure theorem. Its exact-internal-resolution premise is
+incompatible with the current selected external binding, so importing it into
+Main does not discharge the selected external call. CompCert's generic external
+properties and an empty trace do not force pool-memory preservation. The 679
+pinned-source count and the earlier 681-source worktree audit are consistent.
+The fresh audit `20261021-102643-rswo_fez` retains each actual check result, including timeouts;
+it must not be confused with the historical October 19 PASS. No proof or semantic
+change, bridge discharge, new countermodel theorem or gameplay finding is claimed.
+
 ### Verified audio and deallocator salvage (19 October 2026)
 
 **All five archived drafts now have verified active copies. Bob-omb survival
@@ -48,8 +60,10 @@ fixed empty local environment through audio execution induction, make source
 version arguments explicit, handle generic pointer casts, fix field-layout
 projections and instantiate actual reached temporary maps. No project axiom, blanket audio
 frame or global lifetime assumption was added. Independent statement review
-found no contradictory premise; the deallocator conditions admit ordinary
-separated list nodes, while remaining weaker than a list/partition invariant.
+found no contradictory premise in the general internal-binding contract;
+this does not establish its premise for the selected program. The deallocator
+conditions admit ordinary separated list nodes, while remaining weaker than
+a list/partition invariant.
 
 The sharper local effects can support later lifetime composition. The
 selected abstract audio binding, reached owner/head provenance, live-list

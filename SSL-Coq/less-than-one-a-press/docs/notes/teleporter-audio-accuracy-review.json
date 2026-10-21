@@ -1,0 +1,71 @@
+{
+  "date": "2026-10-21",
+  "reviewed_proof_commit": "a1ff8b162e1d9816ac2b102e395047349358ed81",
+  "review_scope": "Proof accuracy and selected audio-call applicability; no gameplay-survival investigation",
+  "review_kind": "Pinned-source census and installed CompCert 3.15 semantics review; existing seven-query audit rerun, no new bridge or countermodel theorem",
+  "verdict": "Conditional AudioFrame theorem remains sound; its internal-resolution premise is incompatible with the current selected external binding",
+  "selected_census": {
+    "us": {
+      "selected_units": 38,
+      "global_definition_counts": {
+        "stop_sounds_from_source": 1,
+        "update_background_music_after_sound": 0,
+        "begin_background_music_fade": 0,
+        "seq_player_fade_to_target_volume": 0,
+        "seq_player_fade_to_normal_volume": 0,
+        "sSoundBanks": 0,
+        "sSoundBanksThatLowerBackgroundMusic": 0,
+        "gSequencePlayers": 0
+      },
+      "stop_external_definitions": 1
+    },
+    "jp": {
+      "selected_units": 38,
+      "global_definition_counts": {
+        "stop_sounds_from_source": 1,
+        "update_background_music_after_sound": 0,
+        "begin_background_music_fade": 0,
+        "seq_player_fade_to_target_volume": 0,
+        "seq_player_fade_to_normal_volume": 0,
+        "sSoundBanks": 0,
+        "sSoundBanksThatLowerBackgroundMusic": 0,
+        "gSequencePlayers": 0
+      },
+      "stop_external_definitions": 1
+    }
+  },
+  "checked_source_sha256": {
+    "TeleporterAudioFrame": "9c6b9ba9230b9d8342fc2ca894396b437d19874c411158cd60c0ac3b0ec4046e",
+    "TeleporterPoolPartition": "5ead274a0b710e3937c9747972a8a422d5f4d2f845295c9f8dc900244a3f0c10"
+  },
+  "current_worktree_audit": "20261021-102643-rswo_fez",
+  "current_worktree_audit_summary": [
+    "PASS: source inventory: 681 source files; 0 inventory problems",
+    "PASS: build: exit 0; see build.log",
+    "PASS: proof holes: exit 0; includes untracked source files",
+    "PASS: link hygiene: exit 0; includes untracked source files",
+    "FAIL: assumptions LessThanOneAPress.Proofs.MainTheorem.current_bobomb_source_memory_boundary: exit 124; see assumptions-1.log",
+    "PASS: assumptions LessThanOneAPress.Proofs.TeleporterAudioFrame.teleporter_audio_frame_checked: 6 allowed foundations; see assumptions-2.log",
+    "PASS: assumptions LessThanOneAPress.Proofs.TeleporterPoolPartition.teleporter_pool_partition_checked: 7 allowed foundations; see assumptions-3.log",
+    "PASS: assumptions LessThanOneAPress.Proofs.TeleporterPoolPartition.tpp_deallocation_stores_preserve_cell: 4 allowed foundations; see assumptions-4.log",
+    "FAIL: assumptions LessThanOneAPress.Proofs.MainTheorem.current_ink_backward_execution_boundary: exit 124; see assumptions-5.log",
+    "PASS: assumptions LessThanOneAPress.Proofs.InkRetryQuery.irq_retry_connects_display_to_real_floor_call: 7 allowed foundations; see assumptions-6.log",
+    "PASS: assumptions LessThanOneAPress.Proofs.InkVerticalRetryGeometry.ivr_vertical_retry_geometry_checked: 4 allowed foundations; see assumptions-7.log",
+    "PASS: integration: 508/603 modules in MainTheorem's import closure; 95 standalone-only; 0 problems",
+    "VERDICT: FAIL (see logs and report.json)",
+    "Mechanical hygiene only. Explicit hypotheses, live reachability, and statement fidelity require review."
+  ],
+  "pinned_source_inventory": 679,
+  "historical_october_19_worktree_inventory": 681,
+  "inventory_difference": "Two pre-existing untracked working-tree modules, excluded from committed a1ff8b1",
+  "compcert_source": "CompCert 3.15 common/Events.v: extcall_free_sem, extcall_free_ok, external_functions_sem/properties and external_call",
+  "external_countermodel_scope": "Generic external properties plus E0 do not imply object-pool load preservation; the free interpretation requires a pool-resident pointer, readable size header and freeable interval; no claim about actual audio behavior or a reachable unload state",
+  "proof_sources_changed": false,
+  "selected_semantics_changed": false,
+  "external_effect_premise_discharged": false,
+  "vc_analysis_resumed": false,
+  "route_estimates_changed": false,
+  "current_worktree_audit_complete_pass": false,
+  "validation_note": "The fresh full audit is not a PASS: MainTheorem assumption queries that time out at the established 240-second limit are recorded as failures. The salvaged AudioFrame, PoolPartition and separated-cell assumption queries pass; the complete October 19 PASS remains historical evidence, not a fresh result.",
+  "historical_full_pass": "20261019-195109-ejtup7r4"
+}
