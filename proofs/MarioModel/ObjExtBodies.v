@@ -45,7 +45,7 @@
 From Coq Require Import ZArith List Lia.
 From compcert Require Import Coqlib Maps AST Integers Values Events Memory
   Globalenvs Ctypes Cop Clightdefs Clight ClightBigstep Linking.
-From SM64.Generated Require mario memory math_util object_helpers save_file
+From SM64.Generated Require mario memory math_util object_helpers save_file area
   behavior_actions interaction level_update mario_actions_cutscene.
 From SM64.Proofs Require Import SymbolicLinking ActionValueFrame Taint
   RealFrameLinked RealFrameValue AGates CensusV2 RestSurface MWFReal SpawnInit
@@ -300,6 +300,84 @@ Proof.
     + rewrite PTree.gss in Ht. injection Ht as <-. exact Hv0.
     + rewrite PTree.gso in Ht by exact Hne. exact (Hte _ _ Ht).
 Qed.
+
+(* ---------------------------------------------------------------------- *)
+(* 3b. area.c (the 23rd TU, 2026-10-21): override_viewport_and_clip,       *)
+(*     play_transition (-> set_warp_transition_rgb), area_get_warp_node.   *)
+(* ---------------------------------------------------------------------- *)
+
+(* the blocks MWF_real READS besides SafeB (its transfer rows): Mario's
+   state, the controllers, the gMarioState cell, the timer, the handler
+   table, the animation list, the knockback / landing tables *)
+Definition mwf_syms : list ident :=
+  [level_update._gMarioStates; mario._gControllers; mario._gMarioState;
+   interaction._gGlobalTimer; interaction._sInteractionHandlers;
+   mario._gMarioAnimsBuf] ++ knockback_table_ids.
+
+(* a by-value store into a global-rooted chain whose root is either a
+   stored global (any value), or any global MWF does not read, with a value
+   that cannot be a pointer: a small-int / float lvalue type, or a
+   never-pointer binop on the right *)
+Definition ast_ok (lv rhs : expr) : bool :=
+  match groot_l lv with
+  | Some g =>
+      MtxfBody.is_byval (typeof lv)
+      && (mem_id g stored_globals
+          || (negb (mem_id g mwf_syms)
+              && (nonptr_scalar (typeof lv) || ActWriterSurface.nonptr_binop_head rhs)))
+  | None => false
+  end.
+
+Definition a_call_ok (ids : list ident) (optid : option ident) (a : expr)
+    (al : list expr) : bool := gcall_ok ids a al.
+
+Lemma dm_ovac :
+  (prog_defmap area.prog) ! area._override_viewport_and_clip
+    = Some (Gfun (Internal area.f_override_viewport_and_clip)).
+Proof. vm_compute. reflexivity. Qed.
+Lemma dm_swtr :
+  (prog_defmap area.prog) ! area._set_warp_transition_rgb
+    = Some (Gfun (Internal area.f_set_warp_transition_rgb)).
+Proof. vm_compute. reflexivity. Qed.
+Lemma dm_ptr :
+  (prog_defmap area.prog) ! area._play_transition
+    = Some (Gfun (Internal area.f_play_transition)).
+Proof. vm_compute. reflexivity. Qed.
+Lemma dm_agwn :
+  (prog_defmap area.prog) ! area._area_get_warp_node
+    = Some (Gfun (Internal area.f_area_get_warp_node)).
+Proof. vm_compute. reflexivity. Qed.
+
+Definition ids_ptr : list ident := [area._set_warp_transition_rgb].
+
+(* NON-VACUITY: the recognizers accept the REAL generated bodies *)
+Lemma chk_ovac :
+  tw_chk (fun _ _ => true) ast_ok (a_call_ok nil)
+    (fn_body area.f_override_viewport_and_clip) = true.
+Proof. vm_compute. reflexivity. Qed.
+Lemma chk_swtr :
+  tw_chk (fun _ _ => true) ast_ok (a_call_ok nil)
+    (fn_body area.f_set_warp_transition_rgb) = true.
+Proof. vm_compute. reflexivity. Qed.
+Lemma chk_ptr :
+  tw_chk (fun _ _ => true) ast_ok (a_call_ok ids_ptr)
+    (fn_body area.f_play_transition) = true.
+Proof. vm_compute. reflexivity. Qed.
+Lemma chk_agwn :
+  owf_chk nil gstore_ok (gcall_ok nil) (fn_body area.f_area_get_warp_node) = true.
+Proof. vm_compute. reflexivity. Qed.
+(* and the class is not vacuous: without the non-pointer clause the
+   gFBSetColor store (a u32, not a stored global) is rejected *)
+Example chk_ovac_needs_np :
+  tw_chk (fun _ _ => true)
+    (fun lv _ => match groot_l lv with
+                 | Some g => MtxfBody.is_byval (typeof lv) && mem_id g stored_globals
+                 | None => false end)
+    (a_call_ok nil) (fn_body area.f_override_viewport_and_clip) = false.
+Proof. vm_compute. reflexivity. Qed.
+
+Lemma mem_id_app : forall g l1 l2, mem_id g (l1 ++ l2) = mem_id g l1 || mem_id g l2.
+Proof. intros g l1 l2. unfold mem_id. apply existsb_app. Qed.
 
 (* ---------------------------------------------------------------------- *)
 (* 4. The rows, at the concrete MWF_real.                                   *)
@@ -743,4 +821,158 @@ Section ObjExtRows.
   Lemma Hpx_bs :
     call_pres_ext lp bm NoA MWF interaction._bhv_spawn_star_no_level_exit.
   Proof. exact (row_of_sym _ sp_bs). Qed.
+
+  (* ---- 4f. area.c: the viewport override, the warp transition, the
+     warp-node lookup ---- *)
+
+  (* a global MWF does not read is apart from every block it does read *)
+  Lemma np_ne : forall g bg id b,
+      mem_id g mwf_syms = false -> Genv.find_symbol (lp_ge lp) g = Some bg ->
+      mem_id id mwf_syms = true -> Genv.find_symbol (lp_ge lp) id = Some b ->
+      bg <> b.
+  Proof.
+    intros g bg id b Hg Hfs Hid Hfs2.
+    eapply Genv.global_addresses_distinct; [ | exact Hfs | exact Hfs2 ].
+    intro E. subst id. rewrite Hg in Hid. discriminate Hid.
+  Qed.
+
+  (* a NON-pointer store into such a global keeps the carried facts: no
+     transfer row reads the block, and R7 cannot gain a pointer *)
+  Lemma np_store_pres : forall g bg ch z v m1 m2,
+      mem_id g mwf_syms = false -> Genv.find_symbol (lp_ge lp) g = Some bg ->
+      (forall bb oo, v <> Vptr bb oo) ->
+      Mem.store ch m1 bg z v = Some m2 ->
+      ow_facts bm MWF m1 -> ow_facts bm MWF m2.
+  Proof.
+    intros g bg ch z v m1 m2 Hg Hfs Hnp Hst (Hvb & Hsat & HM).
+    pose proof Hspawn as (init & _ & Hbm & Hbc & _).
+    assert (Hne : forall id b, mem_id id mwf_syms = true ->
+                 Genv.find_symbol (lp_ge lp) id = Some b -> bg <> b)
+      by (intros id b; exact (np_ne g bg id b Hg Hfs)).
+    assert (Hnbm : bg <> bm) by exact (Hne level_update._gMarioStates bm eq_refl Hbm).
+    split; [ eauto using Mem.store_valid_block_1 | split ].
+    - eapply action_sat_unchanged_on with (m := m1); [ | exact Hvb | exact Hsat ].
+      eapply Mem.store_unchanged_on; [ exact Hst | ].
+      intros i _ [Hb _]. exact (Hnbm Hb).
+    - apply (MWF_real_transfer lp bm bc oc0 SafeB ox_Hbc_bm m1 m2); [ .. | exact HM ].
+      + intros b Hv. eapply Mem.store_valid_block_1; eauto.
+      + intros v0 Hld. pose proof HM as (_ & R1 & _). apply R1.
+        rewrite <- Hld. symmetry.
+        eapply Mem.load_store_other; [ exact Hst | left; congruence ].
+      + intros ch1 b ofs v0 Hrow Hld.
+        rewrite <- Hld. symmetry.
+        eapply Mem.load_store_other; [ exact Hst | left ].
+        intro E. subst b.
+        destruct Hrow as [ [Eb _] | [ Eb | [ Hfs2 | [ Hfs2 | [ Hfs2 | [ Hkt | Hab ] ] ] ] ] ].
+        * exact (Hnbm Eb).
+        * exact (Hne mario._gControllers bc eq_refl Hbc Eb).
+        * exact (Hne mario._gMarioState bg eq_refl Hfs2 eq_refl).
+        * exact (Hne interaction._gGlobalTimer bg eq_refl Hfs2 eq_refl).
+        * exact (Hne interaction._sInteractionHandlers bg eq_refl Hfs2 eq_refl).
+        * destruct Hkt as (gid2 & Hg2 & Hfs2).
+          refine (Hne gid2 bg _ Hfs2 eq_refl).
+          unfold mwf_syms. rewrite mem_id_app, Hg2. apply orb_true_r.
+        * exact (Hne mario._gMarioAnimsBuf bg eq_refl Hab eq_refl).
+      + intros b ofs b' o' Hs Hld.
+        pose proof HM as (_ & _ & _ & _ & _ & _ & _ & R7 & _).
+        cbn in Hld.
+        destruct (Mem.load_pointer_store _ _ _ _ _ _ _ _ _ _ _ Hst Hld)
+          as [ (Evv & _) | Hdis ].
+        * exfalso. exact (Hnp _ _ Evv).
+        * apply (R7 b ofs b' o' Hs). cbn.
+          rewrite <- Hld. symmetry.
+          eapply Mem.load_store_other; [ exact Hst | exact Hdis ].
+  Qed.
+
+  Lemma ast_store_pres : forall lv rhs le m t le' m' out,
+      ast_ok lv rhs = true ->
+      exec_stmt function_entry2 (lp_ge lp) empty_env le m (Sassign lv rhs) t le' m' out ->
+      ow_facts bm MWF m -> ow_facts bm MWF m'.
+  Proof.
+    intros lv rhs le m0 t0 le' m0' out Hok Hx Hf0.
+    unfold ast_ok in Hok.
+    destruct (groot_l lv) as [g|] eqn:Hg; [ | discriminate Hok ].
+    apply andb_prop in Hok as [Hbv Hor].
+    apply orb_true_iff in Hor as [Hsg | Hnp].
+    - (* a stored global *)
+      refine (gstore_pres lv rhs le m0 t0 le' m0' out _ Hx Hf0).
+      unfold gstore_ok. rewrite Hg, Hsg. exact Hbv.
+    - (* a global MWF does not read, non-pointer value *)
+      apply andb_prop in Hnp as [Hng Hval]. apply negb_true_iff in Hng.
+      inv Hx.
+      match goal with Hl : eval_lvalue _ _ _ _ lv ?loc _ _ |- _ =>
+        pose proof (groot_l_blk _ _ _ _ _ _ _ _ Hg Hl) as Hfs end.
+      match goal with
+      | Hr : eval_expr _ _ _ _ rhs ?v2, Hc : sem_cast ?v2 _ _ _ = Some ?v |- _ =>
+        assert (Hvnp : forall bb oo, v <> Vptr bb oo);
+        [ apply orb_true_iff in Hval as [Hsc | Hbo];
+          [ exact (sem_cast_to_nonptr_scalar _ _ _ _ _ Hsc Hc)
+          | destruct rhs as [ | | | | | | | | | op r1 r2 rty | | | | ]; try discriminate Hbo;
+            exact (ActWriterSurface.sem_cast_nonptr_pres _ _ _ _ _ Hc
+                     (ActWriterSurface.eval_nonptr_binop_head _ _ _ _ _ _ _ _ _ Hbo Hr)) ]
+        | ]
+      end.
+      match goal with Ha : assign_loc _ _ _ _ _ _ _ _ |- _ => inv Ha end.
+      + match goal with Hst : Mem.storev _ _ _ _ = Some _ |- _ =>
+          unfold Mem.storev in Hst; exact (np_store_pres _ _ _ _ _ _ _ Hng Hfs Hvnp Hst Hf0) end.
+      + unfold MtxfBody.is_byval in Hbv.
+        match goal with Hc : access_mode _ = By_copy |- _ => rewrite Hc in Hbv; discriminate Hbv end.
+      + match goal with Hb : store_bitfield _ _ _ _ _ _ _ _ _ _ |- _ => inv Hb end.
+        match goal with Hst : Mem.storev _ _ _ _ = Some _ |- _ =>
+          unfold Mem.storev in Hst;
+          refine (np_store_pres _ _ _ _ _ _ _ Hng Hfs _ Hst Hf0); intros bb oo E; discriminate E end.
+  Qed.
+
+  Lemma abody_pres : forall ids f,
+      fn_vars f = nil ->
+      tw_chk (fun _ _ => true) ast_ok (a_call_ok ids) (fn_body f) = true ->
+      (forall g, mem_id g ids = true -> sym_pres g) ->
+      forall m vargs t m' vres,
+        eval_funcall function_entry2 (lp_ge lp) m (Internal f) vargs t m' vres ->
+        ow_facts bm MWF m -> ow_facts bm MWF m'.
+  Proof.
+    intros ids f Hv Hchk Hids m vargs t m' vres Hevf Hf.
+    refine (tw_body_frame (lp_ge lp) MWF bm f (fun _ => True) (fun _ _ => true) ast_ok
+              (a_call_ok ids) Hv Hchk _ _ _ _ _ _ _ _ Hevf _ Hf).
+    - intros; exact I.
+    - intros lv rhs le m0 t0 le' m0' out Hok _ Hx Hf0.
+      exact (ast_store_pres lv rhs le m0 t0 le' m0' out Hok Hx Hf0).
+    - intros optid a al le m0 t0 le' m0' out Hok _ Hx Hf0.
+      split; [ | exact I ].
+      exact (gcall_pres ids Hids optid a al le m0 t0 le' m0' out Hok Hx Hf0).
+    - intros; exact I.
+  Qed.
+
+  Lemma sp_ovac : sym_pres area._override_viewport_and_clip.
+  Proof.
+    apply (sym_pres_of_body area.prog _ _ (linked12_LO_area lp H12) dm_ovac).
+    apply (abody_pres nil); [ reflexivity | exact chk_ovac | ids_pres ].
+  Qed.
+  Lemma sp_swtr : sym_pres area._set_warp_transition_rgb.
+  Proof.
+    apply (sym_pres_of_body area.prog _ _ (linked12_LO_area lp H12) dm_swtr).
+    apply (abody_pres nil); [ reflexivity | exact chk_swtr | ids_pres ].
+  Qed.
+  Lemma sp_ptr : sym_pres area._play_transition.
+  Proof.
+    pose proof sp_swtr.
+    apply (sym_pres_of_body area.prog _ _ (linked12_LO_area lp H12) dm_ptr).
+    apply (abody_pres ids_ptr); [ reflexivity | exact chk_ptr | ].
+    intros g Hg. cbn [mem_id existsb ids_ptr] in Hg.
+    apply orb_true_iff in Hg as [Hg | Hg]; [ | discriminate Hg ].
+    apply Pos.eqb_eq in Hg. subst g. assumption.
+  Qed.
+  Lemma sp_agwn : sym_pres area._area_get_warp_node.
+  Proof.
+    apply (sym_pres_of_body area.prog _ _ (linked12_LO_area lp H12) dm_agwn).
+    apply (gbody_pres nil); [ reflexivity | exact chk_agwn | ids_pres ].
+  Qed.
+
+  Lemma Hpx_ovac :
+    call_pres_ext lp bm NoA MWF mario_actions_cutscene._override_viewport_and_clip.
+  Proof. exact (row_of_sym _ sp_ovac). Qed.
+  Lemma Hpx_ptr : call_pres_ext lp bm NoA MWF level_update._play_transition.
+  Proof. exact (row_of_sym _ sp_ptr). Qed.
+  Lemma Hpx_agwn : call_pres_ext lp bm NoA MWF level_update._area_get_warp_node.
+  Proof. exact (row_of_sym _ sp_agwn). Qed.
 End ObjExtRows.

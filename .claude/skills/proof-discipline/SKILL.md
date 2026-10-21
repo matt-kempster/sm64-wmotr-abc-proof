@@ -41,7 +41,15 @@ all in `Unwired/`, and the theorem moved nowhere. See
   The two any-argument list rows shrank on 2026-10-21 (`ObjExtBodies.v`): the seven linked
   save_file.c / `bhv_spawn_star_no_level_exit` entries leave `obj_ext_open2_ids` and the time-stop
   pair leaves `cut_ext_open2_ids` (`Hpres_cut_ext_open2`); their writes needed six more stored
-  globals (TRUST 4.1). `save_file_do_save` stays a row (unlinked bcopy / EEPROM, no floor).
+  globals (TRUST 4.1). `save_file_do_save` stays a row (unlinked bcopy / EEPROM, no floor;
+  closing it is several libultra TUs + 3-4 floor rows, scoped in TRUST 4.1).
+  The three area.c entries are lemmas since 2026-10-21 (`ObjExtBodies.Hpx_ovac` / `Hpx_ptr` /
+  `Hpx_agwn`): `override_viewport_and_clip` leaves `obj_ext_open2_ids`, `play_transition` leaves
+  `cut_ext_open2_ids`, and both capstones take `Hpres_warp_ext_open` (`warp_ext_open_ids`, minus
+  `play_transition` / `area_get_warp_node`). No new claim: a non-pointer store into a global
+  MWF does not read keeps MWF (`np_store_pres`), so `gWarpTransition` & co. did not have to join
+  `stored_globals`. Still-linked any-argument entries: `save_file_do_save` and the spawn pair.
+  Counts unchanged (GOAL 1 18; HeightFrame 27 incl. its 3 section rows).
 - **GOAL 2** (WMotR needs A): `WMotRRequiresA/HeightFrame.v`,
   `wmotr_noA_height_bound_linked12`. This is a conditional theorem over ONE WMotR
   visit (frames end with `in_wmotr`), under input with A neither pressed nor held

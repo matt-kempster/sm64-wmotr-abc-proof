@@ -422,8 +422,10 @@ Section HeightLinked12.
       behavior_actions._spawn_object.
   (* Hcp_savefile_real: PROVED inside NoAImpliesNoFlyTwelve from the real
      save_file.c body (SaveFileBody), no longer a row. *)
-  Hypothesis Hpres_warp_ext : forall fid,
-      mem_id fid warp_ext_ids = true ->
+  (* area_get_warp_node / play_transition are PROVED
+     (NoAImpliesNoFlyTwelve.warp_ext_of_open) *)
+  Hypothesis Hpres_warp_ext_open : forall fid,
+      mem_id fid NoAImpliesNoFlyTwelve.warp_ext_open_ids = true ->
       call_pres_ext lp bm (NoA_real bm) MWF fid.
   (* Hret_unsafe REMOVED (task #99): the v2 engine no longer consumes any
      return-value row (it was dead plumbing / a latent vacuity -- see
@@ -573,7 +575,7 @@ Section HeightLinked12.
              Hsqrtf Hcsp_scm_real Hdma_floor WL_exempt
              Hpres_sta_ext Hcp_soawr_real Hpres_obj_ext_open2 Hpres_cut_ext_open2
              Hpres_floors_ext Hcp_spawn_real
-             Hpres_warp_ext Hext_action Hmwf_ext).
+             Hpres_warp_ext_open Hext_action Hmwf_ext).
   Qed.
 
   Lemma air_leaves :
@@ -583,7 +585,7 @@ Section HeightLinked12.
   Proof.
     exact (air_leaves_linked12 lp H12 bm bc oc0 SafeB HSafeB_syms Hbm_sym Hbc_sym Hoc0
              Hcsp_scm_real Hdma_floor Hpres_obj_ext_open2 Hpres_floors_ext Hcp_spawn_real
-             Hpres_warp_ext).
+             Hpres_warp_ext_open).
   Qed.
 
   Lemma Hseg_call : seg_call_rows_fr lp bm MWF.
