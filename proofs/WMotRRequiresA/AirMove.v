@@ -36,18 +36,17 @@ Hypothesis HUH : forall vs, uf kH vs ->
   exists h yv, vs = [Some (Vsingle h); Some yv] /\ HPi (Hit_at ge m0) (ycast yv) h /\ Hit_at ge m0 h.
 Hypothesis HbM : e_base E rM = Ptrofs.zero.
 
-(* the entry cells, read at Mario's state block *)
+(* the entry cells: their terms at the call (AirMatch.IC; m0's cells for
+   a caller that changed none), denoting Phi's cells c *)
 Variable c : cells.
 Local Notation bm := (e_blk E rM).
-Hypothesis HA : Mem.load Mint32 m0 bm oA = Some (Vint (c_action c)).
-Hypothesis HS : Mem.load Mint16unsigned m0 bm oS = Some (Vint (c_state c)).
-(* the entry cells' terms: m0's except the timer (AirMatch.HIC) *)
 Variable IC : positive -> Z -> memory_chunk -> sval.
-Hypothesis HIC : forall o ch, o <> oT -> den ge m0 E (IC rM o ch) = Mem.load ch m0 bm o.
+Hypothesis HA : den ge m0 E (IC rM oA Mint32) = Some (Vint (c_action c)).
+Hypothesis HS : den ge m0 E (IC rM oS Mint16unsigned) = Some (Vint (c_state c)).
 Hypothesis HT : den ge m0 E (IC rM oT Mint16unsigned) = Some (Vint (c_timer c)).
-Hypothesis HY : Mem.load Mfloat32 m0 bm oY = Some (Vsingle (c_posy c)).
-Hypothesis HV : Mem.load Mfloat32 m0 bm oV = Some (Vsingle (c_vely c)).
-Hypothesis HF : Mem.load Mfloat32 m0 bm oF = Some (Vsingle (c_floorh c)).
+Hypothesis HY : den ge m0 E (IC rM oY Mfloat32) = Some (Vsingle (c_posy c)).
+Hypothesis HV : den ge m0 E (IC rM oV Mfloat32) = Some (Vsingle (c_vely c)).
+Hypothesis HF : den ge m0 E (IC rM oF Mfloat32) = Some (Vsingle (c_floorh c)).
 Hypothesis Hc : budget_ok c.
 Hypothesis Hact : pas_entry (c_action c) (state_of c) = true.
 Hypothesis FD : floor_data ge m0.
@@ -77,22 +76,25 @@ Proof.
 Qed.
 
 Lemma gpf_ne : forall a, (a = ACT_FREEFALL \/ a = Int.repr 2215 \/ a = Int.repr 16910518
-  \/ a = Int.repr 16910512 \/ a = Int.repr 16910513 \/ a = Int.repr 25692298 \/ a = ACT_GROUND_POUND) ->
+  \/ a = Int.repr 16910512 \/ a = Int.repr 16910513 \/ a = Int.repr 25692298 \/ a = ACT_GROUND_POUND
+  \/ a = ACT_FORWARD_ROLLOUT \/ a = ACT_BACKWARD_ROLLOUT) ->
   a <> ACT_SLIDE_KICK /\ a <> ACT_LEDGE_GRAB.
 Proof.
-  intros a H. destruct H as [Ea | [Ea | [Ea | [Ea | [Ea | [Ea | Ea]]]]]]; rewrite Ea; split; intros Eq0;
-    apply (f_equal Int.unsigned) in Eq0;
-    unfold ACT_FREEFALL, ACT_SLIDE_KICK, ACT_LEDGE_GRAB, ACT_GROUND_POUND in Eq0;
+  intros a H. destruct H as [Ea | [Ea | [Ea | [Ea | [Ea | [Ea | [Ea | [Ea | Ea]]]]]]]]; rewrite Ea; split;
+    intros Eq0; apply (f_equal Int.unsigned) in Eq0;
+    unfold ACT_FREEFALL, ACT_SLIDE_KICK, ACT_LEDGE_GRAB, ACT_GROUND_POUND,
+      ACT_FORWARD_ROLLOUT, ACT_BACKWARD_ROLLOUT in Eq0;
     vm_compute in Eq0; discriminate.
 Qed.
 
 Lemma act_cases : c_action c = ACT_FREEFALL \/ c_action c = Int.repr 2215 \/ c_action c = Int.repr 16910518
   \/ c_action c = Int.repr 16910512 \/ c_action c = Int.repr 16910513 \/ c_action c = Int.repr 25692298
-  \/ c_action c = ACT_GROUND_POUND.
+  \/ c_action c = ACT_GROUND_POUND \/ c_action c = ACT_FORWARD_ROLLOUT \/ c_action c = ACT_BACKWARD_ROLLOUT.
 Proof.
-  unfold pas_entry in Hact. apply orb_true_iff in Hact as [H | H].
-  - destruct (air_entry_cases _ H) as [X | [X | [X | [X | [X | X]]]]]; auto 7.
-  - apply andb_true_iff in H as [H _]. apply Int.same_if_eq in H. auto 7.
+  unfold pas_entry in Hact. apply orb_true_iff in Hact as [H | H]; [apply orb_true_iff in H as [H | H] |].
+  - destruct (air_entry_cases _ H) as [X | [X | [X | [X | [X | X]]]]]; auto 9.
+  - apply andb_true_iff in H as [H _]. apply Int.same_if_eq in H. auto 9.
+  - apply andb_true_iff in H as [H _]. destruct (is_roll_cases _ H) as [X | X]; auto 9.
 Qed.
 
 Lemma not_sk : c_action c <> ACT_SLIDE_KICK.
@@ -110,13 +112,13 @@ Proof.
 Qed.
 
 (* the new floorHeight is in range *)
-Lemma floorh_new : cells_ok LD (g_pc g) rM rO kH = true ->
+Lemma floorh_new : cells_ok LD IC (g_pc g) rM rO kH = true ->
   Mem.load Mint32 m bm oMO = Some (Vptr (e_blk E rO) (e_base E rO))
   /\ exists fh, Mem.load Mfloat32 m bm oF = Some (Vsingle fh)
      /\ F32 fh = true /\ -11000 <= R2 fh.
 Proof.
   intros H.
-  destruct (cells_sound ge nbase R0 gtab kv m0 uf gp gp_old E m g rM rO kH MM HUH HbM H)
+  destruct (cells_sound ge nbase R0 gtab kv m0 uf gp gp_old E m g rM rO kH MM HUH HbM IC H)
     as (LMO & [LF | (x & LF & Hx)]); split; [exact LMO | | exact LMO |].
   - rewrite LF, HF. exists (c_floorh c). pose proof entry_ranges as (_ & _ & _ & _ & _ & Ff & Lf).
     auto.
@@ -129,7 +131,7 @@ Lemma pos_low : forall cl p, aclass_of LD IC (g_pc g) rM rO kH = Some cl -> cl <
   Mem.load Mfloat32 m bm oY = Some (Vsingle p) -> F32 p = true -> -11000 < R2 p.
 Proof.
   intros cl p H N LY Fp.
-  destruct (aclass_above ge nbase R0 gtab kv m0 uf gp gp_old E m g rM rO kH MM HUH HbM IC HIC cl H)
+  destruct (aclass_above ge nbase R0 gtab kv m0 uf gp gp_old E m g rM rO kH MM HUH HbM IC cl H)
     as [(-> & _) | (p' & x & LY' & C & Hx & _)]; [congruence |].
   rewrite LY in LY'. injection LY' as <-.
   apply (above_low ge m0 p x FD Fp C).
@@ -155,7 +157,7 @@ Proof.
   unfold outcome_ok in OK. apply andb_true_iff in OK as (CO & _).
   destruct entry_ranges as (Fy & Fv & Hy & Hv & Hv43 & Ff & Lf).
   destruct (aclass_air ge nbase R0 gtab kv m0 uf gp gp_old E m g rM rO (c_posy c) (c_vely c) kH
-              MM HbM HY HV IC HIC H Fv Hv)
+              MM HbM IC HY HV H Fv Hv)
     as ((KA & KS & KT) & LY & LG & (v' & LV & Fv' & Lo & Hi)).
   destruct (floorh_new CO) as (LMO & fh & LF & Ffh & Lfh).
   destruct (quarter_steps_up 4 (c_posy c) (c_vely c) ltac:(lia) Fy Fv Hy Hv) as (Fp & _).
@@ -191,7 +193,7 @@ Proof.
   unfold outcome_ok in OK. apply andb_true_iff in OK as (CO & _).
   destruct entry_ranges as (Fy & Fv & Hy & Hv & Hv43 & Ff & Lf).
   destruct (aclass_cut ge nbase R0 gtab kv m0 uf gp gp_old E m g rM rO (c_posy c) (c_vely c) kH
-              MM HbM HY HV IC HIC k H)
+              MM HbM IC HY HV k H)
     as ((KA & KS & KT) & Hk & (p & Ep & LY & LG & LV & (j & Ej))).
   destruct (floorh_new CO) as (LMO & fh & LF & Ffh & Lfh).
   destruct (quarter_steps_up k (c_posy c) (c_vely c) Hk Fy Fv Hy Hv) as (Fq & _).
@@ -220,7 +222,7 @@ Proof. exact (proj2 (gpf_ne _ act_cases)). Qed.
    meets FloorRefreshOK -- a premise the frame-level proof discharges *)
 Hypothesis FRO : FloorRefreshOK wmotr_floor (R2 (c_posy c)) (R2 (c_floorh c)).
 
-Theorem land_move : cells_ok LD (g_pc g) rM rO kH = true ->
+Theorem land_move : cells_ok LD IC (g_pc g) rM rO kH = true ->
   land_ok LD IC (g_pc g) rM rO kH = true ->
   exists c', read_cells bm m c' /\ RM' c c' /\ AttachInfo c c'.
 Proof.
@@ -229,7 +231,7 @@ Proof.
   pose proof (budget_ok_y c Hc) as Hyhi. unfold PHI_YMAX, PHI_K, PHI_A in Hyhi.
   pose proof Hc as ((_ & _ & _ & Lylo & _) & _).
   destruct (land_sound ge nbase R0 gtab kv m0 uf gp gp_old E m g rM rO (c_posy c) (c_vely c) kH
-              MM HUH HbM HY HV IC HIC OK Fv Hv)
+              MM HUH HbM IC HY HV OK Fv Hv)
     as ((KA & KS & KT) & LG & LP & (v' & LV & Fv' & Lo & Hi)).
   destruct (floorh_new CO) as (LMO & fh & LF & Ffh & Lfh).
   (* the landed height: a finite p >= -11000 that AttachOK accepts *)
@@ -281,7 +283,7 @@ Qed.
 (* a ledge grab (check_ledge_grab): an S_attach step onto the WMotR floor
    find_floor found 160 above nextPos[1] (vel[1] <= 0, or a ceiling bump
    zeroed it after at most two rising quarters) *)
-Theorem ledge_move : cells_ok LD (g_pc g) rM rO kH = true ->
+Theorem ledge_move : cells_ok LD IC (g_pc g) rM rO kH = true ->
   ledge_ok LD IC (g_pc g) rM rO kH = true ->
   exists c', read_cells bm m c' /\ RM' c c' /\ AttachInfo c c'
              /\ (Mem.load Mfloat32 m bm oF = Mem.load Mfloat32 m bm oY ->
@@ -292,7 +294,7 @@ Proof.
   pose proof (budget_ok_y c Hc) as Hyhi. unfold PHI_YMAX, PHI_K, PHI_A in Hyhi.
   pose proof Hc as ((_ & _ & _ & Lylo & _) & _).
   destruct (ledge_sound ge nbase R0 gtab kv m0 uf gp gp_old E m g rM rO (c_posy c) (c_vely c) kH
-              MM HUH HbM HY HV IC HIC OK Fv Hv)
+              MM HUH HbM IC HY HV OK Fv Hv)
     as ((KA & KS & KT) & LG & (h & kq & jz & LP & Hk & Hor & HPi' & Hh) & (v' & LV & Fv' & Lo & Hi)).
   destruct (floorh_new CO) as (LMO & fh & LF & Ffh & Lfh).
   destruct (FD h Hh) as (Fp & _ & Wh).
@@ -331,15 +333,15 @@ Qed.
 Theorem class_fro : forall cl c', aclass_of LD IC (g_pc g) rM rO kH = Some cl ->
   read_cells bm m c' -> InRange c' ->
   FloorRefreshOK wmotr_floor (R2 (c_posy c')) (R2 (c_floorh c')).
-Proof using gp_old MM HUH HbM HA HS HIC HT HY HV HF Hc Hact FD FRO.
+Proof using gp_old MM HUH HbM HA HS HT HY HV HF Hc Hact FD FRO.
   intros cl c' H RC IR.
   destruct RC as (_ & _ & _ & Y' & _ & F' & _).
   change OFS_POSY with oY in Y'. change OFS_FLOORH with oF in F'.
   destruct IR as (Fy' & _ & _ & _ & _ & (Ff' & _) & _).
-  destruct (aclass_above ge nbase R0 gtab kv m0 uf gp gp_old E m g rM rO kH MM HUH HbM IC HIC cl H)
+  destruct (aclass_above ge nbase R0 gtab kv m0 uf gp gp_old E m g rM rO kH MM HUH HbM IC cl H)
     as [(-> & LF) | (p & x & LY & C & Hx & LF)].
   - destruct (aclass_cut ge nbase R0 gtab kv m0 uf gp gp_old E m g rM rO (c_posy c) (c_vely c) kH
-                MM HbM HY HV IC HIC 0 H) as (_ & _ & (p & Ep & LY & _)).
+                MM HbM IC HY HV 0 H) as (_ & _ & (p & Ep & LY & _)).
     rewrite Y' in LY. injection LY as <-. cbn [quarter_steps] in Ep.
     rewrite F', HF in LF. injection LF as LF. rewrite Ep, LF. exact FRO.
   - rewrite Y' in LY. injection LY as <-. rewrite F' in LF. injection LF as <-.
@@ -405,10 +407,12 @@ Proof.
             den G m0 E' (init_cell (kv G) RM o ch) = Mem.load ch m0 (e_blk E' RM) o).
   { intros o ch. rewrite (proj1 (init_cell_den G NB (R0 G) gtab (kv G) m0 gp E' RM o ch EO')).
     unfold addr. rewrite BaM, HbM, Ptrofs.unsigned_zero. reflexivity. }
-  assert (HT0 : den G m0 E' (init_cell (kv G) RM oT Mint16unsigned) = Some (Vint (c_timer c))).
-  { rewrite HIC0, BM. exact HT. }
+  assert (HD : forall o ch w, Mem.load ch m0 (e_blk E RM) o = Some w ->
+            den G m0 E' (init_cell (kv G) RM o ch) = Some w).
+  { intros o ch w L. rewrite HIC0, BM. exact L. }
   refine (outcome_move G NB (R0 G) gtab (kv G) m0 (ufW G m0 gp) gp GPO E' m' gs RM RO kH MM
-           (ufW_kH G m0 gp) _ c _ _ (init_cell (kv G)) (fun o ch _ => HIC0 o ch) HT0 _ _ _ Hc Hact FD _ OK);
+           (ufW_kH G m0 gp) _ c (init_cell (kv G)) (HD _ _ _ HA) (HD _ _ _ HS) (HD _ _ _ HT)
+           (HD _ _ _ HY) (HD _ _ _ HV) (HD _ _ _ HF) Hc Hact FD _ OK);
     try (rewrite ?BaM, ?BaO; assumption); rewrite ?BM; assumption.
 Qed.
 End LPM.

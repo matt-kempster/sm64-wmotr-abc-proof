@@ -302,6 +302,9 @@ proofs/WMotRRequiresA/KbBkb.v
 proofs/WMotRRequiresA/KbFkb.v
 proofs/WMotRRequiresA/KbDv.v
 proofs/WMotRRequiresA/GpRun.v
+proofs/WMotRRequiresA/RlRun.v
+proofs/WMotRRequiresA/RlF.v
+proofs/WMotRRequiresA/RlB.v
 proofs/WMotRRequiresA/AirStart.v
 proofs/WMotRRequiresA/FfWorld.v
 proofs/WMotRRequiresA/FfRow.v

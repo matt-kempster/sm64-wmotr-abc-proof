@@ -8,8 +8,8 @@
 (* start state on any twelve-TU link, then the walk theorem (a MoveChain   *)
 (* per outcome) and FfKeepCheck.fk_ok (the world is kept).  The soft bonk  *)
 (* and both air knockbacks (KbRun.kb_kfinal) and ground pound             *)
-(* (GpRun.gp_kfinal) and dive (KbDv) are cases; air_case_rows_ff5 leaves  *)
-(* four cases to AirSplit's row.                                          *)
+(* (GpRun.gp_kfinal), dive (KbDv) and both rollouts (RlRun) are cases;   *)
+(* air_case_rows_ff6 leaves two cases to AirSplit's row.                 *)
 (*                                                                        *)
 (* Premises beyond the link: as FfRow (DMA floor, FPU floor, the labeled   *)
 (* open audio / camera premises).                                          *)
@@ -23,7 +23,7 @@ From SM64.Proofs Require Import Interp.SymExec2 Interp.LinkGenv MarioModel.Linke
   MarioModel.OsDmaFloor HeightInvariant HeightMoveCatalog WMotRLevel WMotRWorld.
 From SM64.Proofs Require Import RealFrameLinked AirborneSurface NoAImpliesNoFlyLinked.
 From SM64.Proofs.WMotRRequiresA Require Import FloorList FloorExec AirRun AirStart AirMatch
-  FpuFloor ExtInert FfRun FfWorld FrameSplit AirSplit FfKeepCheck FfKeep FfClass AhwRun KbRun KbSb KbBkb KbFkb KbDv GpRun.
+  FpuFloor ExtInert FfRun FfWorld FrameSplit AirSplit FfKeepCheck FfKeep FfClass AhwRun KbRun KbSb KbBkb KbFkb KbDv GpRun RlRun RlF RlB.
 From SM64.Proofs.WMotRRequiresA Require FfRow AhwRow.
 From SM64.Proofs Require Import Generic.ClosedMem Generic.ClightClosed.
 Import ListNotations.
@@ -91,6 +91,27 @@ Proof.
   cbn [fst snd] in X. rewrite Pos.eqb_refl in X. apply Z.eqb_eq in X. exact X.
 Qed.
 Lemma dm_dv : (prog_defmap AIR.prog) ! AIR._act_dive = Some (Gfun (Internal AIR.f_act_dive)).
+Proof. vm_compute. reflexivity. Qed.
+
+Lemma fr_label_b : forallb (fun x => if Pos.eqb (snd x) AIR._act_forward_rollout then Z.eqb (fst x) 16779430 else true)
+  air_case_list = true.
+Proof. vm_compute. reflexivity. Qed.
+Lemma fr_label : forall n, In (n, AIR._act_forward_rollout) air_case_list -> n = 16779430.
+Proof.
+  intros n H. pose proof (proj1 (forallb_forall _ _) fr_label_b _ H) as X.
+  cbn [fst snd] in X. rewrite Pos.eqb_refl in X. apply Z.eqb_eq in X. exact X.
+Qed.
+Lemma dm_fr : (prog_defmap AIR.prog) ! AIR._act_forward_rollout = Some (Gfun (Internal AIR.f_act_forward_rollout)).
+Proof. vm_compute. reflexivity. Qed.
+Lemma br_label_b : forallb (fun x => if Pos.eqb (snd x) AIR._act_backward_rollout then Z.eqb (fst x) 16779437 else true)
+  air_case_list = true.
+Proof. vm_compute. reflexivity. Qed.
+Lemma br_label : forall n, In (n, AIR._act_backward_rollout) air_case_list -> n = 16779437.
+Proof.
+  intros n H. pose proof (proj1 (forallb_forall _ _) br_label_b _ H) as X.
+  cbn [fst snd] in X. rewrite Pos.eqb_refl in X. apply Z.eqb_eq in X. exact X.
+Qed.
+Lemma dm_br : (prog_defmap AIR.prog) ! AIR._act_backward_rollout = Some (Gfun (Internal AIR.f_act_backward_rollout)).
 Proof. vm_compute. reflexivity. Qed.
 
 Lemma dm_sb : (prog_defmap AIR.prog) ! AIR._act_soft_bonk = Some (Gfun (Internal AIR.f_act_soft_bonk)).
@@ -710,5 +731,36 @@ Proof.
     exact (kb_row lp H12 bm Hbm _ _ (kb_kfinal lp H12 Hdma Hsq Hsqf Haudio Hcamera _ _ dvcheck12 eq_refl) eq_refl
              m t m' vr c Vm Hw Hc Hb Hact Hev). }
   exact (Hrest n f fd v Hin Hne Hne1 Hne2 Hne3 Hne4 Hne5 Hne6 Hr).
+Qed.
+(* the other two no-A cases (butt-slide air, slide kick) keep their
+   AirSplit row *)
+Definition air_case_rest6 : Prop :=
+  forall n f fd v, In (n, f) air_case_list -> f <> AIR._act_freefall -> f <> AIR._act_air_hit_wall ->
+    f <> AIR._act_soft_bonk -> f <> AIR._act_backward_air_kb -> f <> AIR._act_forward_air_kb ->
+    f <> AIR._act_ground_pound -> f <> AIR._act_dive ->
+    f <> AIR._act_forward_rollout -> f <> AIR._act_backward_rollout ->
+    resolves lp f fd ->
+    seg_ok lp bm MWF fd [v]
+      (fun m => v = Vptr bm Ptrofs.zero /\ Mem.load Mint32 m bm 12 = Some (Vint (Int.repr n))).
+
+Theorem air_case_rows_ff6 : air_case_rest6 -> air_case_rows lp bm MWF.
+Proof.
+  intros Hrest. apply air_case_rows_ff5.
+  intros n f fd v Hin Hne Hne1 Hne2 Hne3 Hne4 Hne5 Hne6 Hr.
+  destruct (Pos.eq_dec f AIR._act_forward_rollout) as [-> | Hne7].
+  { pose proof (fr_label n Hin) as ->.
+    pose proof (resolve_pin_fd lp _ _ _ _ (linked12_LO_air lp H12) dm_fr Hr) as ->.
+    intros m t m' vr c Hok Hw (-> & Hact) Hok' Hc Hb Hev.
+    destruct Hok as (Vm & _).
+    exact (kb_row lp H12 bm Hbm _ _ (rl_kfinal_all lp H12 Hdma Hsq Hsqf Haudio Hcamera _ _ rlfcheck12) eq_refl
+             m t m' vr c Vm Hw Hc Hb Hact Hev). }
+  destruct (Pos.eq_dec f AIR._act_backward_rollout) as [-> | Hne8].
+  { pose proof (br_label n Hin) as ->.
+    pose proof (resolve_pin_fd lp _ _ _ _ (linked12_LO_air lp H12) dm_br Hr) as ->.
+    intros m t m' vr c Hok Hw (-> & Hact) Hok' Hc Hb Hev.
+    destruct Hok as (Vm & _).
+    exact (kb_row lp H12 bm Hbm _ _ (rl_kfinal_all lp H12 Hdma Hsq Hsqf Haudio Hcamera _ _ rlbcheck12) eq_refl
+             m t m' vr c Vm Hw Hc Hb Hact Hev). }
+  exact (Hrest n f fd v Hin Hne Hne1 Hne2 Hne3 Hne4 Hne5 Hne6 Hne7 Hne8 Hr).
 Qed.
 End KBCASES.

@@ -544,7 +544,7 @@ Section HeightLinked12.
      PROVED from the real act_dive (the same air-step summary).  The other
      four cases (both rollouts, butt-slide air, slide kick) keep their
      AirSplit row. *)
-  Hypothesis Hair_case_rest : air_case_rest5 lp bm MWF.
+  Hypothesis Hair_case_rest : air_case_rest6 lp bm MWF.
   (* the walk's floors: the FPU floor (TRUST 3.5) and the labeled open
      audio / camera premises (deferred; ExtInert) *)
   Hypothesis Hsqrtf : sqrtf_spec.
@@ -554,7 +554,7 @@ Section HeightLinked12.
 
   Lemma Hair_case : air_case_rows lp bm MWF.
   Proof.
-    exact (air_case_rows_ff5 lp H12 Hdma_floor Hsqrtf Hsqrtf_float Haudio Hcamera bm Hbm_sym MWF
+    exact (air_case_rows_ff6 lp H12 Hdma_floor Hsqrtf Hsqrtf_float Haudio Hcamera bm Hbm_sym MWF
              Hair_case_rest).
   Qed.
 
