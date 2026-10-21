@@ -56,7 +56,7 @@ From SM64.Proofs Require Import SpawnInit.
 From SM64.Proofs Require Import InitMemSat.
 From SM64.Proofs Require Import NoAImpliesNoFlyLinked.
 From SM64.Proofs Require GraphNodeBodies MtxfBody SaveFileBody ObjHelpersBodies FpuFloor OsDmaFloor
-  LptBody BootMWF MathBodies.
+  LptBody BootMWF MathBodies ObjExtBodies.
 
 (* The open any-argument object-external list, minus memory.c's two
    segment converters: those are linked (the 15th TU) and pure, so their
@@ -64,20 +64,76 @@ From SM64.Proofs Require GraphNodeBodies MtxfBody SaveFileBody ObjHelpersBodies 
    2026-10-20 in the premise sweep). *)
 Definition obj_ext_mem (i : ident) : bool :=
   Pos.eqb i interaction._segmented_to_virtual || Pos.eqb i interaction._virtual_to_segmented.
+(* PROVED 2026-10-21 (premise sweep): the seven entries whose bodies are
+   linked -- the six save_file.c readers / flag writers and behavior_actions'
+   bhv_spawn_star_no_level_exit -- are walked from their real bodies
+   (ObjExtBodies).  Every store is a global-rooted chain into a stored global,
+   or (bhv_spawn_star) an integer store through spawn_object's SafeB result,
+   which is the capstone's own sr row Hcp_spawn_real. *)
+Definition obj_ext_body (i : ident) : bool :=
+  Pos.eqb i interaction._save_file_get_flags
+  || Pos.eqb i level_update._save_file_get_star_flags
+  || Pos.eqb i interaction._save_file_get_total_star_count
+  || Pos.eqb i interaction._save_file_collect_star_or_key
+  || Pos.eqb i interaction._save_file_set_flags
+  || Pos.eqb i interaction._save_file_clear_flags
+  || Pos.eqb i interaction._bhv_spawn_star_no_level_exit.
 Definition obj_ext_open2_ids : list ident :=
-  filter (fun i => negb (obj_ext_mem i)) NoAImpliesNoFlyLinked.obj_ext_open_ids.
+  filter (fun i => negb (obj_ext_mem i || obj_ext_body i))
+    NoAImpliesNoFlyLinked.obj_ext_open_ids.
 
-Lemma obj_ext_open_of2 : forall lp bm (NoA MWF : mem -> Prop), linked12 lp ->
-    (forall fid, mem_id fid obj_ext_open2_ids = true -> FloorsSurface.call_pres_ext lp bm NoA MWF fid) ->
+Lemma obj_ext_open_of2 : forall lp bm bc oc0 SafeB, linked12 lp ->
+    SafeB_syms_ok lp SafeB -> (exists init, spawn_ok lp init bm bc oc0) ->
+    call_pres_ext_sr lp bm (NoA_real bm) (MWF_real lp bm bc oc0 SafeB) SafeB
+      behavior_actions._spawn_object ->
+    (forall fid, mem_id fid obj_ext_open2_ids = true ->
+       FloorsSurface.call_pres_ext lp bm (NoA_real bm) (MWF_real lp bm bc oc0 SafeB) fid) ->
     forall fid, mem_id fid NoAImpliesNoFlyLinked.obj_ext_open_ids = true ->
-      FloorsSurface.call_pres_ext lp bm NoA MWF fid.
+      FloorsSurface.call_pres_ext lp bm (NoA_real bm) (MWF_real lp bm bc oc0 SafeB) fid.
 Proof.
-  intros lp bm NoA MWF H12 Hrow fid H.
-  destruct (NoAImpliesNoFlyLinked.mem_id_filter_split obj_ext_mem fid _ H) as [Hm | Ho];
+  intros lp bm bc oc0 SafeB H12 Hsy Hsp Hspn Hrow fid H.
+  destruct (NoAImpliesNoFlyLinked.mem_id_filter_split
+              (fun i => obj_ext_mem i || obj_ext_body i) fid _ H) as [Hm | Ho];
     [ | exact (Hrow fid Ho) ].
-  unfold obj_ext_mem in Hm. apply orb_true_iff in Hm as [Hm | Hm]; apply Pos.eqb_eq in Hm; subst fid.
-  - exact (MathBodies.Hcpx_s2v_proved lp bm NoA MWF (linked12_LO_math lp H12) (linked12_LO_memory lp H12)).
-  - exact (MathBodies.Hcpx_v2s_proved lp bm NoA MWF (linked12_LO_math lp H12) (linked12_LO_memory lp H12)).
+  apply orb_true_iff in Hm as [Hm | Hb].
+  - unfold obj_ext_mem in Hm.
+    apply orb_true_iff in Hm as [Hm | Hm]; apply Pos.eqb_eq in Hm; subst fid.
+    + exact (MathBodies.Hcpx_s2v_proved lp bm _ _ (linked12_LO_math lp H12) (linked12_LO_memory lp H12)).
+    + exact (MathBodies.Hcpx_v2s_proved lp bm _ _ (linked12_LO_math lp H12) (linked12_LO_memory lp H12)).
+  - unfold obj_ext_body in Hb.
+    repeat (apply orb_true_iff in Hb as [Hb | Hb]); apply Pos.eqb_eq in Hb; subst fid.
+    + exact (ObjExtBodies.Hpx_get_flags lp H12 bm bc oc0 SafeB Hsy Hsp).
+    + exact (ObjExtBodies.Hpx_get_star_flags lp H12 bm bc oc0 SafeB Hsy Hsp).
+    + exact (ObjExtBodies.Hpx_total_star_count lp H12 bm bc oc0 SafeB Hsy Hsp).
+    + exact (ObjExtBodies.Hpx_collect lp H12 bm bc oc0 SafeB Hsy Hsp).
+    + exact (ObjExtBodies.Hpx_set_flags lp H12 bm bc oc0 SafeB Hsy Hsp).
+    + exact (ObjExtBodies.Hpx_clear_flags lp H12 bm bc oc0 SafeB Hsy Hsp).
+    + exact (ObjExtBodies.Hpx_bs lp H12 bm bc oc0 SafeB Hsy Hsp Hspn).
+Qed.
+
+(* PROVED 2026-10-21: the time-stop pair of the any-argument cutscene list
+   (object_helpers.c bodies: one read-modify-write of the stored global
+   gTimeStopState each). *)
+Definition cut_ext_body (i : ident) : bool :=
+  Pos.eqb i mario_actions_cutscene._enable_time_stop
+  || Pos.eqb i mario_actions_cutscene._disable_time_stop.
+Definition cut_ext_open2_ids : list ident :=
+  filter (fun i => negb (cut_ext_body i)) NoAImpliesNoFlyLinked.cut_ext_open_ids.
+
+Lemma cut_ext_open_of2 : forall lp bm bc oc0 SafeB, linked12 lp ->
+    SafeB_syms_ok lp SafeB -> (exists init, spawn_ok lp init bm bc oc0) ->
+    (forall fid, mem_id fid cut_ext_open2_ids = true ->
+       FloorsSurface.call_pres_ext lp bm (NoA_real bm) (MWF_real lp bm bc oc0 SafeB) fid) ->
+    forall fid, mem_id fid NoAImpliesNoFlyLinked.cut_ext_open_ids = true ->
+      FloorsSurface.call_pres_ext lp bm (NoA_real bm) (MWF_real lp bm bc oc0 SafeB) fid.
+Proof.
+  intros lp bm bc oc0 SafeB H12 Hsy Hsp Hrow fid H.
+  destruct (NoAImpliesNoFlyLinked.mem_id_filter_split cut_ext_body fid _ H) as [Hm | Ho];
+    [ | exact (Hrow fid Ho) ].
+  unfold cut_ext_body in Hm.
+  apply orb_true_iff in Hm as [Hm | Hm]; apply Pos.eqb_eq in Hm; subst fid.
+  - exact (ObjExtBodies.Hpx_ets lp H12 bm bc oc0 SafeB Hsy Hsp).
+  - exact (ObjExtBodies.Hpx_dts lp H12 bm bc oc0 SafeB Hsy Hsp).
 Qed.
 
 Section NoAImpliesNoFlyTwelve.
@@ -212,16 +268,21 @@ Section NoAImpliesNoFlyTwelve.
      the same model class as Hcp_spawn_real. *)
   Hypothesis Hcp_soawr_real : call_pres_ext_sr lp bm (NoA_real bm) MWF SafeB
       mario_actions_cutscene._spawn_object_abs_with_rot.
+  (* the any-argument object externals still unlinked (obj_ext_open2_ids:
+     the linked entries are proved, obj_ext_open_of2) *)
   Hypothesis Hpres_obj_ext_open2 : forall fid,
       mem_id fid obj_ext_open2_ids = true ->
       call_pres_ext lp bm (NoA_real bm) MWF fid.
-  Lemma Hpres_obj_ext_open : forall fid,
-      mem_id fid NoAImpliesNoFlyLinked.obj_ext_open_ids = true ->
+  (* the any-argument cutscene externals minus the proved time-stop pair
+     (cut_ext_open_of2); save_file_do_save stays here: it calls the unlinked
+     libultra bcopy / osEepromLongWrite, which have no floor on the ledger *)
+  Hypothesis Hpres_cut_ext_open2 : forall fid,
+      mem_id fid cut_ext_open2_ids = true ->
       call_pres_ext lp bm (NoA_real bm) MWF fid.
-  Proof. exact (obj_ext_open_of2 lp bm _ MWF H12 Hpres_obj_ext_open2). Qed.
-  Hypothesis Hpres_cut_ext_open : forall fid,
+  Lemma Hpres_cut_ext_open : forall fid,
       mem_id fid NoAImpliesNoFlyLinked.cut_ext_open_ids = true ->
       call_pres_ext lp bm (NoA_real bm) MWF fid.
+  Proof. exact (cut_ext_open_of2 lp bm bc oc0 SafeB H12 HSafeB_syms Hspawn Hpres_cut_ext_open2). Qed.
   (* PROVED 2026-10-20 (were rows): graph_node.c is linked (the 19th TU), so
      both animation externals are real bodies.  geo_update_animation_frame
      stores only through accelAssist, which the gate pins NULL;
@@ -247,6 +308,13 @@ Section NoAImpliesNoFlyTwelve.
       call_pres_ext lp bm (NoA_real bm) MWF fid.
   Hypothesis Hcp_spawn_real : call_pres_ext_sr lp bm (NoA_real bm) MWF SafeB
       behavior_actions._spawn_object.
+  Lemma Hpres_obj_ext_open : forall fid,
+      mem_id fid NoAImpliesNoFlyLinked.obj_ext_open_ids = true ->
+      call_pres_ext lp bm (NoA_real bm) MWF fid.
+  Proof.
+    exact (obj_ext_open_of2 lp bm bc oc0 SafeB H12 HSafeB_syms Hspawn Hcp_spawn_real
+             Hpres_obj_ext_open2).
+  Qed.
   (* PROVED 2026-10-21 (was a row): save_file.c and buffers.c are linked
      (TUs 20 and 21).  save_file_set_cap_pos stores capLevel / capArea through
      saveFile = &gSaveBuffer.files[gCurrSaveFileNum - 1][0] (a pointer into
@@ -414,13 +482,9 @@ Section NoAImpliesNoFlyTwelve.
   (* proved from the generated Clight; every store and the one call in   *)
   (* its body walked).  SafeB is instantiated to BootMWF.SafeB_boot (all *)
   (* blocks but the non_safeb_syms globals), which satisfies HSafeB_syms. *)
-  (* The star-count call is the capstone's own object-external row.      *)
+  (* The star-count call is the real save_file.c reader, proved          *)
+  (* (ObjExtBodies.Hpx_total_star_count, 2026-10-21).                    *)
   (* ==================================================================== *)
-  Lemma sfstar_open :
-    mem_id mario._save_file_get_total_star_count
-      NoAImpliesNoFlyLinked.obj_ext_open_ids = true.
-  Proof. vm_compute. reflexivity. Qed.
-
   Lemma boot_init_mem_ok : SafeB = BootMWF.SafeB_boot lp ->
     forall m0 fd t m1 vres,
       Genv.init_mem lp = Some m0 ->
@@ -429,7 +493,8 @@ Section NoAImpliesNoFlyTwelve.
       mem_ok_lp bm MWF m1.
   Proof.
     intros HSB m0 fd t m1 vres Hinit Hev Hres.
-    pose proof (Hpres_obj_ext_open _ sfstar_open) as Hsf.
+    pose proof (ObjExtBodies.Hpx_total_star_count lp H12 bm bc oc0 SafeB HSafeB_syms Hspawn)
+      as Hsf.
     unfold mem_ok_lp. rewrite Hoc0, HSB in *.
     exact (BootMWF.boot_init_ok lp H12 m0 bm bc Hinit Hbm_sym Hbc_sym Hsf
              fd t m1 vres Hev Hres).

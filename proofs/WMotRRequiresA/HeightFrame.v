@@ -403,16 +403,15 @@ Section HeightLinked12.
      the same model class as Hcp_spawn_real. *)
   Hypothesis Hcp_soawr_real : call_pres_ext_sr lp bm (NoA_real bm) MWF SafeB
       mario_actions_cutscene._spawn_object_abs_with_rot.
-  (* memory.c's segment converters are PROVED pure (NoAImpliesNoFlyTwelve.obj_ext_open_of2) *)
+  (* memory.c's segment converters and the seven linked save_file.c /
+     bhv_spawn_star entries are PROVED (NoAImpliesNoFlyTwelve.obj_ext_open_of2) *)
   Hypothesis Hpres_obj_ext_open2 : forall fid,
       mem_id fid NoAImpliesNoFlyTwelve.obj_ext_open2_ids = true ->
       call_pres_ext lp bm (NoA_real bm) MWF fid.
-  Lemma Hpres_obj_ext_open : forall fid,
-      mem_id fid NoAImpliesNoFlyLinked.obj_ext_open_ids = true ->
-      call_pres_ext lp bm (NoA_real bm) MWF fid.
-  Proof. exact (NoAImpliesNoFlyTwelve.obj_ext_open_of2 lp bm _ MWF H12 Hpres_obj_ext_open2). Qed.
-  Hypothesis Hpres_cut_ext_open : forall fid,
-      mem_id fid NoAImpliesNoFlyLinked.cut_ext_open_ids = true ->
+  (* enable_time_stop / disable_time_stop are PROVED
+     (NoAImpliesNoFlyTwelve.cut_ext_open_of2) *)
+  Hypothesis Hpres_cut_ext_open2 : forall fid,
+      mem_id fid NoAImpliesNoFlyTwelve.cut_ext_open2_ids = true ->
       call_pres_ext lp bm (NoA_real bm) MWF fid.
   (* Hgeo_real / Hocp_rai_real: PROVED inside NoAImpliesNoFlyTwelve from the
      real graph_node.c bodies (GraphNodeBodies), no longer rows. *)
@@ -572,7 +571,7 @@ Section HeightLinked12.
   Proof.
     exact (frame_call_ok_linked12 lp H12 bm bc oc0 SafeB HSafeB_syms Hbm_sym Hbc_sym Hoc0
              Hsqrtf Hcsp_scm_real Hdma_floor WL_exempt
-             Hpres_sta_ext Hcp_soawr_real Hpres_obj_ext_open2 Hpres_cut_ext_open
+             Hpres_sta_ext Hcp_soawr_real Hpres_obj_ext_open2 Hpres_cut_ext_open2
              Hpres_floors_ext Hcp_spawn_real
              Hpres_warp_ext Hext_action Hmwf_ext).
   Qed.

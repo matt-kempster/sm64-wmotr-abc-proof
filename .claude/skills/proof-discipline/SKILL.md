@@ -22,8 +22,9 @@ all in `Unwired/`, and the theorem moved nowhere. See
 - **GOAL 1** (no-A ⇒ no-fly): `NoAImpliesNoFly/NoAImpliesNoFlyTwelve.v`,
   `noA_no_spawn_never_flying_linked12`. The step is one real `execute_mario_action` over
   any link of the 14 TUs (the 12 Mario TUs + `surface_collision` + `math_util`, since
-  2026-10-17). The open surface is its `Hypothesis` rows (23 as of 2026-10-17,
-  external-call and boundary rows; see `docs/TRUST.md` §4). The collision rows
+  2026-10-17). The open surface is its `Hypothesis` rows (18 as of 2026-10-21, counting
+  the structural pins; GOAL 2's `HeightLinked12` section has 24; external-call and boundary rows,
+  see `docs/TRUST.md` §4). The collision rows
   (`SurfaceBodies.v`) and the math_util rows (`MathBodies.v`) are lemmas, and so is
   `Hscp_mtxf_real` since 2026-10-21 (`MtxfBody.v`). Because `vec3f_normalize` reloads its
   `dest` after `sqrtf`, the capstone takes the FPU floor `Hsq : sqrtf_spec` (TRUST 3.5) in its place.
@@ -37,6 +38,10 @@ all in `Unwired/`, and the theorem moved nowhere. See
   `Hcsp_osh_real` are lemmas since 2026-10-21 (`ObjHelpersBodies.v`; `object_helpers.c` is
   the 22nd TU): every store goes through the SafeB `obj`, and the two pointer stores hold
   `gCurrentObject`'s (SafeB) value or `segmented_to_virtual`'s (integer) result.
+  The two any-argument list rows shrank on 2026-10-21 (`ObjExtBodies.v`): the seven linked
+  save_file.c / `bhv_spawn_star_no_level_exit` entries leave `obj_ext_open2_ids` and the time-stop
+  pair leaves `cut_ext_open2_ids` (`Hpres_cut_ext_open2`); their writes needed six more stored
+  globals (TRUST 4.1). `save_file_do_save` stays a row (unlinked bcopy / EEPROM, no floor).
 - **GOAL 2** (WMotR needs A): `WMotRRequiresA/HeightFrame.v`,
   `wmotr_noA_height_bound_linked12`. This is a conditional theorem over ONE WMotR
   visit (frames end with `in_wmotr`), under input with A neither pressed nor held

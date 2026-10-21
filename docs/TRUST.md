@@ -410,7 +410,8 @@ without pressing A".*
   all 17 TUs: no pointer to Mario's block, the controllers or a non-SafeB global sits in a
   chase-root or table window, and the `.bss` cells MWF reads are zero. The init half walks every
   statement of the real body; each store is classified against the generated AST (`init_chk`), and
-  its one call (`save_file_get_total_star_count`) is the capstone's own `Hpres_obj_ext_open` row. So
+  its one call (`save_file_get_total_star_count`) is the real save_file.c body, proved
+  (`ObjExtBodies.Hpx_total_star_count`, 2026-10-21; before, the capstone's own `Hpres_obj_ext_open` row). So
   `mem_ok_lp` is not a phantom ∀: the capstone applies to a state the real init code builds.
 - **Still a modelling gap:** the boot image is the 17-TU `init_mem`. Globals defined outside those
   TUs are size-0 externs there. (2026-10-20: `game_init.c` is now linked as the 16th TU, so
@@ -837,17 +838,46 @@ link grows.
   about real code, provable or refutable, not an external contract):
   - `obj_ext_open2_ids`: `bhv_spawn_star_no_level_exit`, `save_file_get_flags`,
     `save_file_get_star_flags`, `save_file_get_total_star_count`, `save_file_collect_star_or_key`,
-    `save_file_set_flags`, `save_file_clear_flags`. The save-file getters / flag setters store only
-    into `gSaveBuffer` / `gSaveFileModified` (stored globals), so they look dischargeable with the
-    `SaveFileBody` machinery (`save_file_set_flags` is already `flags_frame`); not done in this
-    sweep (it re-runs the walks over `NoAImpliesNoFlyTwelve`).
-  - `cut_ext_open_ids`: `enable_time_stop` / `disable_time_stop` (store `gTimeStopState`, not yet a
-    stored global), `save_file_do_save`, and `spawn_object`.
+    `save_file_set_flags`, `save_file_clear_flags` (all proved since, see the next bullet).
+  - `cut_ext_open_ids`: `enable_time_stop` / `disable_time_stop` (proved since), `save_file_do_save`,
+    and `spawn_object`.
   - **Likely false (open):** `spawn_object` as an any-argument entry of `Hpres_cut_ext_open` (and
     the sr row `Hcp_spawn_real`). Its real body (`object_helpers.c`) stores the `parent` argument
     into the new object, so "preserves MWF for any argument" fails when `parent` is a non-SafeB
     pointer. The fix is an arg-gated row like `Hcsp_osh_real`; being reworked separately with the
     `spawn_object` / `segmented_to_virtual` work.
+
+- **Premise sweep (2026-10-21): nine linked any-argument entries are lemmas** (`ObjExtBodies.v`).
+  Walked over the generated bodies: the save_file.c readers `save_file_get_flags`,
+  `save_file_get_star_flags`, `save_file_get_total_star_count` (through the real
+  `save_file_get_course_star_count`), the flag writers `save_file_set_flags` /
+  `save_file_clear_flags`, `save_file_collect_star_or_key` (through the real `get_flags`,
+  `get_max_coin_score`, `get_course_coin_score`, `touch_coin_score_age` -> `get/set_coin_score_age`,
+  `set_flags`, `get_star_flags`, `set_star_flags`), object_helpers.c's `enable_time_stop` /
+  `disable_time_stop`, and `bhv_spawn_star_no_level_exit`. Every save/time-stop store is an address
+  chain from a global (no load), so it lands in that global's block for any argument and any
+  `gCurrSaveFileNum` / `gCurrCourseNum`. `bhv_spawn_star_no_level_exit` stores two integers through
+  `spawn_object(gCurrentObject, ..)`'s result (SafeB by the existing sr row `Hcp_spawn_real`, which
+  it now consumes instead of being a separate row) and calls the real `obj_set_angle` (integer
+  stores through its SafeB arg0). The rows are `NoAImpliesNoFlyTwelve.obj_ext_open_of2` /
+  `cut_ext_open_of2`; both capstones now take the narrower `Hpres_obj_ext_open2` (7 fewer ids) and
+  `Hpres_cut_ext_open2` (`cut_ext_open2_ids`, 2 fewer ids). Hypothesis counts are unchanged (the
+  rows are lists; they shrank).
+- **Finding (same sweep):** the "for any argument" claims are true of these bodies only because
+  every global they write is a stored global, and six were not: `gLastCompletedCourseNum`,
+  `gLastCompletedStarNum`, `sUnusedGotGlobalCoinHiScore`, `gGotFileCoinHiScore` (written by
+  `collect_star_or_key`), `gMainMenuDataModified` (by `touch_coin_score_age`) and `gTimeStopState`
+  (by the time-stop pair; it has storage, `object_list_processor.c` is linked). The old rows
+  silently assumed a store there keeps MWF, i.e. that those blocks are not Mario's, the controller's
+  or a SafeB block. They joined `CensusV2.stored_globals`: new model claim on the existing class
+  (via `SpawnInit.non_safeb_syms`, `HSafeB_syms` now also says nothing in the object graph points
+  at them; they are plain integer data, and `BootMWF` / `StartSat` re-prove the boot state with
+  them). No row was false.
+- **Still open:** `save_file_do_save` (in `cut_ext_open2_ids`) is linked, but it calls `bcopy` and,
+  through `write_eeprom_data`, `osEepromLongWrite`, both unlinked libultra externals with no floor on
+  this ledger; proving it would need a new bcopy / EEPROM floor row (not added). GOAL 1's
+  from-boot lemma no longer uses the open row for its one call: `boot_init_mem_ok` takes the proved
+  `Hpx_total_star_count`.
 
 
 ## 5. Tethers: evidence the model is the game (NOT proof)

@@ -39,7 +39,7 @@ From compcert Require Import Coqlib Maps AST Integers Values Events Memory
   Globalenvs Ctypes Cop Clightdefs Clight ClightBigstep Linking Errors.
 From SM64.Generated Require surface_collision math_util memory save_file.
 From SM64.Generated Require mario level_update mario_step mario_actions_submerged
-  mario_actions_cutscene.
+  mario_actions_cutscene behavior_actions.
 From SM64.Proofs Require Import SymbolicLinking Flying Taint
   ActionValueFrame RealFrameValue RealFrameLinked AGates.
 
@@ -923,7 +923,19 @@ Definition stored_globals : list ident :=
      the same Hglob_blk class keeps them off bm/bc/SafeB: the claim, via
      SpawnInit.non_safeb_syms, is that nothing in the object graph points
      into the save buffer or at the modified flag. *)
-  save_file._gSaveBuffer :: save_file._gSaveFileModified :: nil.
+  save_file._gSaveBuffer :: save_file._gSaveFileModified ::
+  (* the rest of the save_file.c / time-stop writers' globals (2026-10-21,
+     the any-argument obj_ext / cut_ext rows proved from their bodies,
+     ObjExtBodies): save_file_collect_star_or_key stores the last-completed
+     course / star bytes and the two coin-high-score flags, and its callee
+     touch_coin_score_age stores gMainMenuDataModified; enable_time_stop /
+     disable_time_stop (object_helpers.c) read-modify-write gTimeStopState,
+     the u32 flag word object_list_processor.c (linked) defines.  All
+     plain integer data symbols, so the same Hglob_blk class keeps them off
+     bm/bc/SafeB: nothing in the object graph points at them. *)
+  save_file._gLastCompletedCourseNum :: save_file._gLastCompletedStarNum ::
+  save_file._sUnusedGotGlobalCoinHiScore :: save_file._gGotFileCoinHiScore ::
+  save_file._gMainMenuDataModified :: behavior_actions._gTimeStopState :: nil.
 
 (* 2026-10-19: the five cutscene OBJECT-POINTER globals.  They left
    stored_globals: MWF does not constrain a stored global's contents, so the
