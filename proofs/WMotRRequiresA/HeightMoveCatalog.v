@@ -114,10 +114,12 @@ Definition bsa0 (a : int) (s : Z) : bool := Int.eq a ACT_BUTT_SLIDE_AIR && Z.eqb
 (* the entries perform_air_step's summary covers: an air_entry action, or
    ground pound past its windup (state <> 0: the fall, act_ground_pound's
    perform_air_step(m, 0)), or a rollout past its launch (state <> 0), or
-   butt-slide air at state 0 *)
+   butt-slide air at any state (its mode is M_Freefall at every state; the
+   summary needs a floor refresh at the entry, which execute_mario_action's
+   update_mario_inputs gives at the dispatch: FrameStage) *)
 Definition pas_entry (a : int) (s : Z) : bool :=
   air_entry a || (Int.eq a ACT_GROUND_POUND && negb (Z.eqb s 0)) || (is_roll a && negb (Z.eqb s 0))
-  || bsa0 a s.
+  || Int.eq a ACT_BUTT_SLIDE_AIR.
 
 Lemma air_pas : forall a s, air_entry a = true -> pas_entry a s = true.
 Proof. intros a s H. unfold pas_entry. rewrite H. reflexivity. Qed.
@@ -127,8 +129,7 @@ Lemma pas_entry_mode : forall a s, pas_entry a s = true ->
   \/ (a = ACT_GROUND_POUND /\ s <> 0%Z /\ mode_of_action a s = M_PoundFall).
 Proof.
   intros a s H. unfold pas_entry in H. apply Bool.orb_true_iff in H as [H | H];
-    [| apply Bool.andb_true_iff in H as [H _]; apply Int.same_if_eq in H; subst a;
-       left; reflexivity].
+    [| apply Int.same_if_eq in H; subst a; left; reflexivity].
   apply Bool.orb_true_iff in H as [H | H];
     [apply Bool.orb_true_iff in H as [H | H] |].
   - destruct (air_entry_mode a s H) as [X | X]; auto.
@@ -170,6 +171,10 @@ Definition sk0 (a : int) (s : Z) : bool := Int.eq a ACT_SLIDE_KICK && Z.eqb s 0.
 (* the frame-boundary floor-refresh claim (FfWorld.ffw): fro_entry actions,
    butt-slide air at state 0, and slide kick at state 0 *)
 Definition fro_st (a : int) (s : Z) : bool := fro_entry a || bsa0 a s || sk0 a s.
+
+(* the entries the airborne walks take (KbRun.kfinal): all but slide kick
+   past its bounce (state <> 0, M_SlideKickBounced: no walk class yet) *)
+Definition walk_entry (a : int) (s : Z) : bool := negb (Int.eq a ACT_SLIDE_KICK) || Z.eqb s 0.
 
 Lemma fro_st_entry : forall a s, fro_entry a = true -> fro_st a s = true.
 Proof. intros a s H. unfold fro_st. rewrite H. reflexivity. Qed.

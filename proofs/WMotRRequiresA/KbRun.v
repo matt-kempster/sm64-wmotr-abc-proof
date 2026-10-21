@@ -18,7 +18,7 @@ From compcert Require Import Coqlib Maps AST Integers Floats Values Memory Event
 From SM64.Generated Require mario_step mario mario_actions_airborne memory surface_collision level_update.
 From SM64.Proofs Require Import Interp.SymExec2 Interp.LinkGenv MarioModel.LinkedTwelve
   MarioModel.OsDmaFloor MarioModel.MathGeomGated HeightInvariant HeightMoveCatalog WMotRLevel.
-From SM64.Proofs.WMotRRequiresA Require Import FloorHeight FloorExec AirXc AirRun AirWr WallExec AirMatch AirMove SmaXc AirSum FpuFloor FpWalk ExtInert FfClass AirStart FfKeepCheck FfRun AhwRun WithGe.
+From SM64.Proofs.WMotRRequiresA Require Import FloorHeight FloorExec AirXc AirRun AirWr WallExec AirMatch AirMove SmaXc AirSum FpuFloor FpWalk ExtInert FfClass AirStart FfKeepCheck RetOk FfRun AhwRun WithGe.
 Import ListNotations.
 
 Module AIR := mario_actions_airborne.
@@ -51,7 +51,8 @@ End CFG.
 
 (* both checks of an outcome: the MoveChain class and the kept world *)
 Definition kbk_ok (acn : Z) (g : genv) (c : cpath) : bool :=
-  ff_ok NBF (R0F g) (kvK acn g) RM RO kM (fst c) && fk_ok NBF (R0F g) (kvK acn g) RM RO RLD kS clokF (fst c).
+  ff_ok NBF (R0F g) (kvK acn g) RM RO kM (fst c) && fk_ok NBF (R0F g) (kvK acn g) RM RO RLD kS clokF (fst c)
+  && ret_ok NBF (R0F g) (kvK acn g) RM c.
 
 (* the landing's two helpers are merged too (should_get_stuck_in_ground,
    check_fall_damage): soft bonk's walk then takes 315 s instead of 578 s;
@@ -188,10 +189,11 @@ Theorem kb_final : forall E t m' vres c0,
   (forall f, In f (pc0F G) -> fact_holds G (R0F G) m0 uf E f) ->
   eval_funcall function_entry2 G m0 (Internal fK)
     [Vptr (e_blk E RM) (Ptrofs.add (e_base E RM) Ptrofs.zero)] t m' vres ->
-  read_cells (e_blk E RM) m0 c0 -> budget_ok c0 -> fro_st (Int.repr acn) (state_of c0) = true ->
+  read_cells (e_blk E RM) m0 c0 -> budget_ok c0 -> walk_entry (Int.repr acn) (state_of c0) = true ->
   FloorRefreshOK wmotr_floor (R2 (c_posy c0)) (R2 (c_floorh c0)) ->
   exists E' gs, Ext E E' NBF /\ MMg G NBF (R0F G) gtabF (kvK acn G) m0 uf gp E' m' gs
     /\ fk_ok NBF (R0F G) (kvK acn G) RM RO RLD kS clokF gs = true
+    /\ RET (e_blk E RM) m0 m' vres
     /\ exists c2, read_cells (e_blk E RM) m' c2 /\ MoveChain wmotr_floor wmotr_pole wmotr_cannon c0 c2
        /\ fro_ff c2.
 Proof.
@@ -206,9 +208,9 @@ Proof.
     split; [reflexivity |]. cbn [sok nlt g0F g_nx]. split; [unfold Plt, Pos.lt; reflexivity | exact Logic.I]. }
   destruct (sx_call_sound G NBF (R0F G) gtabF (kvK acn G) (xcK acn G) jkeys mergeK true m0 uf gp
               GPO MC xcK_sound 3000 (g0F G) _ argsF cs E m0 _ t m' vres RUN MM0 ARGS EV) as (c & Hin & CMc).
-  destruct c as [gs r]. destruct CMc as (E' & X & MM & _).
+  destruct c as [gs r]. destruct CMc as (E' & X & MM & DR & _).
   pose proof (W _ Hin) as OK. unfold kbk_ok in OK. cbn [fst] in OK.
-  apply andb_true_iff in OK as [OK FK].
+  apply andb_true_iff in OK as [OK RT]. apply andb_true_iff in OK as [OK FK].
   exists E', gs. split; [exact X | split; [exact MM | split; [exact FK |]]].
   destruct EO as (_ & _ & _ & GT & KV & _).
   destruct (GT level_update._gMarioStates RM eq_refl) as (_ & HbM & _).
@@ -227,6 +229,8 @@ Proof.
     destruct RC as (HA & _). change OFS_ACTION with 12%Z in HA. rewrite HA in L. cbn [den] in L.
     injection L as ->. reflexivity. }
   assert (Hact : pas_entry (c_action c0) (state_of c0) = true) by (rewrite Hact0; exact (air_pas _ _ Hae)).
+  split; [rewrite <- BM; exact (ret_sound G NBF (R0F G) gtabF (kvK acn G) m0 uf gp GPO RM E' m' gs MM
+                                 ltac:(rewrite BaM; exact HbM) r vres DR RT) |].
   rewrite <- BM in RC |- *.
   exact (ff_sound G NBF (R0F G) gtabF (kvK acn G) m0 uf gp GPO RM RO kM uf_kM_k_out E' m' gs MM
            ltac:(rewrite BaM; exact HbM) HO0 c0 RC Hact Hb FRO OK).
@@ -246,12 +250,13 @@ Definition kfinal (lp : Clight.program) (acn : Z) (fK : function) : Prop :=
      fact_holds (globalenv lp) (R0F (globalenv lp)) m0 (ufF (globalenv lp) m0 gp) E f) ->
   eval_funcall function_entry2 (globalenv lp) m0 (Internal fK)
     [Vptr (e_blk E RM) (Ptrofs.add (e_base E RM) Ptrofs.zero)] t m' vres ->
-  read_cells (e_blk E RM) m0 c0 -> budget_ok c0 -> fro_st (Int.repr acn) (state_of c0) = true ->
+  read_cells (e_blk E RM) m0 c0 -> budget_ok c0 -> walk_entry (Int.repr acn) (state_of c0) = true ->
   FloorRefreshOK wmotr_floor (R2 (c_posy c0)) (R2 (c_floorh c0)) ->
   exists E' gs, Ext E E' NBF
     /\ MMg (globalenv lp) NBF (R0F (globalenv lp)) gtabF (kvK acn (globalenv lp)) m0
          (ufF (globalenv lp) m0 gp) gp E' m' gs
     /\ fk_ok NBF (R0F (globalenv lp)) (kvK acn (globalenv lp)) RM RO RLD kS clokF gs = true
+    /\ RET (e_blk E RM) m0 m' vres
     /\ exists c2, read_cells (e_blk E RM) m' c2 /\ MoveChain wmotr_floor wmotr_pole wmotr_cannon c0 c2
        /\ fro_ff c2.
 

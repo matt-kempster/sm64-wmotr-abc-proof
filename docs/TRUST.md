@@ -120,7 +120,8 @@ without pressing A".*
   contracts (open, part of `Hframe_stays_noA`).
 - **Open rows, split per call (2026-10-20):** the three whole-frame rows `Hframe_keeps_world`,
   `Hframe_stays_noA` and `Hframe_is_move_chain` are now **lemmas** (`HeightFrame`), derived by
-  `FrameSplit.frame_split` from the real `execute_mario_action` body. `FrameCalls.cl` reads the
+  `FrameSplit.frame_split` from the real `execute_mario_action` body (since 2026-10-21 by its
+  staged version `FrameSplit.frame_stage`, below). `FrameCalls.cl` reads the
   generated body as 17 `f(gMarioState)` calls, 5 other calls (`spawn_wind_particles` ×2,
   `play_sound` ×2, `play_infinite_stairs_music`) and 2 store blocks; the two stores into Mario's
   object (`gfx.node.flags`, `oInteractStatus = 0`) are **proved** to keep W, the cells and GOAL 1's
@@ -181,7 +182,7 @@ without pressing A".*
   then the FREEFALL gate, or the air-step summary from the ticked cells (`FfClass.ent_bs`) and a
   landing into BUTT_SLIDE, the bounce (`S_attach` to state 1 with vel[1] := −vel[1] / 2, in
   [−21.5, 37.5]), or a wall into BACKWARD_AIR_KB. Butt-slide air past its bounce (state ≠ 0)
-  is a new open row (`KbRow.bsa1_row`).** **Slide kick at state 0 is proved (2026-10-21,
+  was a new open row (`KbRow.bsa1_row`; proved the same day by the staged split, below).** **Slide kick at state 0 is proved (2026-10-21,
   `SkRun.sk_kfinal` through `kb_row`; walk `SkW.skcheck12`), the last no-A case: no case is left
   over (`KbRow.air_case_fns_in`, computed from the generated switch), so `air_case_rest7` is
   discharged (`KbRow.air_case_rows_ff8`).** The handler ticks actionTimer, then the timer gate
@@ -190,7 +191,35 @@ without pressing A".*
   (`AirMove.sk_pre`, `AirSum.pre_ok`) at slide kick's gravity vel − 2: a landing into
   SLIDE_KICK_SLIDE, the bounce off vel[1] < 0 (`S_attach` to state 1, timer 0, vel[1] := −vel[1]
   / 2 ≥ 0), or a wall into BACKWARD_AIR_KB. Slide kick past its bounce (state ≠ 0) is an open row
-  (`KbRow.sk1_row`), like `bsa1_row`. **Found on the way (2026-10-21, slide kick):** (1) the
+  (`KbRow.sk1_row`). **The dispatch's floor refresh is threaded through the frame (2026-10-21,
+  `FrameSplit.frame_stage`, now the spine's split; `HeightFrame.frame_FS`).** The body is read
+  off the generated AST in order (`ema_split`, `body_shape`, computed): flags, reset_bodystate,
+  `update_mario_inputs`, `mario_handle_special_floors`, `mario_process_interactions`, the
+  floor-NULL return, the real `while (inLoop) switch (action & 0x1C0)` loop, the post-action
+  calls. The loop invariant (`J`: inLoop = 0, or the floor is fresh when the action is airborne,
+  `FfWorld.fresh_at`) is proved over the loop's big-step semantics. **Butt-slide air at state ≠ 0
+  is proved** (`bsa1_row` and `Hbsa1` removed): its walk enters with the dispatch's fresh floor
+  (`KbRow.kb_row` takes `FfWorld.fresh`, not ffw's `fro_st` clause), whatever the state.
+  **New and strengthened claims in the open rows** (`seg_call_rows_naF`: `pre_of` / `post_of`):
+  (a) `update_mario_inputs` leaves the floor fresh (`fresh`: floorHeight is −11000 or a WMotR
+  floor ≤ y + 241; it refreshes floorHeight with find_floor at Mario's position, which returns a
+  floor at most 78 above y); (b) `mario_handle_special_floors` and `mario_process_interactions`
+  keep it (they do not lower y without a refresh: `bounce_off_object` only raises y,
+  `push_mario_out_of_object` moves x/z only); (c) each of the six non-airborne dispatchers,
+  entered with `fresh_at`, returns 0 or leaves `fresh_at` (a handler that returns TRUE into an
+  airborne action has refreshed or not moved the floor); (d) the airborne prologue rows
+  (`AirSplit.air_pro_rows`) take and keep `fresh_at`; (e) `sk1_row` is restated: slide kick at
+  state ≠ 0, entered fresh, keeps the frame world and returns FALSE or leaves the floor fresh.
+  **Proved, not assumed:** the airborne dispatcher's staged row (`AirSplit.air_seg`: a case is
+  entered fresh because its label is airborne, `air_case_air`), and every proved case's
+  return: FALSE, or y and floorHeight untouched (`RetOk.ret_ok`, checked on each walk's
+  outcomes; `RetOk.ret_sound`), so the loop's TRUE path keeps the floor fresh. **Caveat
+  (pre-existing, phantom ∀):** after `let_go_of_ledge` (→ SOFT_BONK, y lowered by ≤ 100 with
+  floorHeight not refreshed) the open rows claim the floor is fresh; that is true in the game
+  (find_floor's floorHeight was ≤ y_old + 78) but not derivable from the frame world, which
+  carries no floor fact at a ledge grab. ffw's own `fro_st` clause makes the same claim and is
+  unchanged (still read by the freefall and air-hit-wall rows). No assumption added.
+  **Found on the way (2026-10-21, slide kick):** (1) the
   catalog's slide-kick timer clauses (`S_air`, `S_air_cut`, `S_sk_bounced`, `S_sk_bounced_cut`)
   said timer' = timer + 1 in Z, which is false at the u16 wrap 65535 → 0 (`budget_ok` bounds
   the slide-kick timer only while vel > −73); they now say (timer + 1) mod 65536, and

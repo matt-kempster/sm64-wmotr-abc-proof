@@ -155,15 +155,18 @@ Qed.
 Ltac mem_tac := unfold fk_same; repeat (first [left; reflexivity | right]).
 
 (* THE FREEFALL ROW: from the frame world, the real act_freefall keeps the
-   frame world and moves Phi's cells by a MoveChain *)
+   frame world and moves Phi's cells by a MoveChain; it returns FALSE or
+   leaves Mario's y and floorHeight as they were (so the dispatch's floor
+   refresh, FfWorld.fresh, survives a TRUE return) *)
 Theorem ff_row : forall m t m' vres c0,
   Plt bm (Mem.nextblock m) -> fworld lp bm m ->
   read_cells bm m c0 -> budget_ok c0 ->
-  Mem.load Mint32 m bm 12 = Some (Vint (Int.repr 16779404)) ->
+  Mem.load Mint32 m bm 12 = Some (Vint (Int.repr 16779404)) -> fresh bm m ->
   eval_funcall function_entry2 G m (Internal AIR.f_act_freefall) [Vptr bm Ptrofs.zero] t m' vres ->
-  fworld lp bm m' /\ exists c2, read_cells bm m' c2 /\ MoveChain wmotr_floor wmotr_pole wmotr_cannon c0 c2.
+  (fworld lp bm m' /\ exists c2, read_cells bm m' c2 /\ MoveChain wmotr_floor wmotr_pole wmotr_cannon c0 c2)
+  /\ (vres = Vint Int.zero \/ fresh bm m').
 Proof.
-  intros m t m' vres c0 Vm (Ha & HW & Han & Hmob & Hd & FW) RC Hbud Hact EV.
+  intros m t m' vres c0 Vm (Ha & HW & Han & Hmob & Hd & FW) RC Hbud Hact Hfr EV.
   destruct FW as (Hgn & EX & FD & FRO).
   destruct EX as (gp & bfi & bmiss & bcalls & bsin & ab & biom & bmq & brm & bo & oo & bt & ot & fl & ar & inp & ctl &
                   HC & HS & HM & S1 & S2 & S3 & S4 & S5 & S6 & S7 & S8 & Lo & Soo & La & Lb & Sot & D1 & D2 & D3 & D4 &
@@ -324,7 +327,8 @@ Proof.
   { unfold E; cbn [Eff e_blk e_base]; cbn [Pos.eqb RM RO RFI RMISS RCALLS RSIN RLD RBUF RIOM RMQ RRM RAR]. rewrite Ptrofs.add_zero. exact EV. }
   destruct (ff_final lp H12 Hdma Hsq Hsqf Haudio Hcamera m gp GPO MCg FD
               E t m' vres c0 EO PC EV' ltac:(exact RC) Hbud FRO0)
-    as (E' & gs & X & MM & FK & c2 & RC2 & MV & FF2).
+    as (E' & gs & X & MM & FK & RT & c2 & RC2 & MV & FF2).
+  split; [| change (e_blk E RM) with bm in RT; exact (fresh_ret bm m m' vres Hfr RT)].
   split; [| exists c2; exact (conj RC2 MV)].
   (* ---- the walk's outcome, in terms of the blocks ---- *)
   set (RL0 := ff_rl bm bo oo bfi bmiss bcalls ab bt biom bmq brm) in *.
@@ -570,8 +574,9 @@ Variable MWF : mem -> Prop.
 (* the other ten no-A cases keep their AirSplit row *)
 Definition air_case_rest : Prop :=
   forall n f fd v, In (n, f) air_case_list -> f <> AIR._act_freefall -> resolves lp f fd ->
-    seg_ok lp bm MWF fd [v]
-      (fun m => v = Vptr bm Ptrofs.zero /\ Mem.load Mint32 m bm 12 = Some (Vint (Int.repr n))).
+    seg_okR lp bm MWF fd [v]
+      (fun m => v = Vptr bm Ptrofs.zero /\ Mem.load Mint32 m bm 12 = Some (Vint (Int.repr n)) /\ fresh bm m)
+      (fun m' vr => vr = Vint Int.zero \/ fresh bm m').
 
 Theorem air_case_rows_ff : air_case_rest -> air_case_rows lp bm MWF.
 Proof.
@@ -579,9 +584,10 @@ Proof.
   destruct (Pos.eq_dec f AIR._act_freefall) as [-> | Hne]; [| exact (Hrest n f fd v Hin Hne Hr)].
   pose proof (ff_label n Hin) as ->.
   pose proof (resolve_pin_fd lp _ _ _ _ (linked12_LO_air lp H12) dm_ff Hr) as ->.
-  intros m t m' vr c Hok Hw (-> & Hact) Hok' Hc Hb Hev.
+  intros m t m' vr c Hok Hw (-> & Hact & Hfr) Hok' Hc Hb Hev.
   destruct Hok as (Vm & _).
-  exact (ff_row m t m' vr c Vm Hw Hc Hb Hact Hev).
+  destruct (ff_row m t m' vr c Vm Hw Hc Hb Hact Hfr Hev) as ((Hw' & HC) & HP).
+  exact (conj Hw' (conj HC HP)).
 Qed.
 
 End FFROW.

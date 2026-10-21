@@ -291,6 +291,7 @@ proofs/WMotRRequiresA/FpuFloor.v
 proofs/WMotRRequiresA/FpWalk.v
 proofs/WMotRRequiresA/AirWr.v
 proofs/WMotRRequiresA/AirMatch.v
+proofs/WMotRRequiresA/RetOk.v
 proofs/WMotRRequiresA/AirRun.v
 proofs/WMotRRequiresA/SmaFoot.v
 proofs/WMotRRequiresA/SmaXc.v

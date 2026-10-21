@@ -508,14 +508,23 @@ Section HeightLinked12.
      comes from WMotR's surfaces; nothing picks up or rides an object; the
      anim DMA stays in its own buffer.  Tethered by the write watch (TRUST.md
      5.4). ---- *)
-  (* the f(gMarioState) calls other than the airborne dispatcher *)
-  Hypothesis Hseg_call_na : seg_call_rows_na lp bm MWF.
+  (* the f(gMarioState) calls other than the airborne dispatcher, STAGED
+     (2026-10-21, FrameSplit.frame_stage): the dispatch's floor refresh is
+     threaded through the body in order.  update_mario_inputs leaves the
+     floor fresh (FfWorld.fresh: floorHeight is -11000 or a WMotR floor
+     height within 241 of Mario's y); mario_handle_special_floors and
+     mario_process_interactions keep it; each dispatcher, called with the
+     floor fresh when the action is airborne (fresh_at), returns 0 (the
+     loop ends) or leaves it fresh-when-airborne (the loop goes on with no
+     new refresh).  These are claims of the rows (pre_of / post_of). *)
+  Hypothesis Hseg_call_na : seg_call_rows_naF lp bm MWF.
   Hypothesis Hseg_any : seg_any_rows lp bm MWF.
   (* the airborne dispatcher, split per case (AirSplit, 2026-10-20): its two
      prologue calls, and each no-A action's handler called with the action
      cell = its label (11 cases: freefall, dive, the two air knockbacks, soft
      bonk, air-hit-wall, the two rollouts, butt-slide air, ground pound,
      slide kick).  The other 30 cases are dead under action_sat R_noA. *)
+  (* the prologue keeps fresh_at (AirSplit.air_pro_rows) *)
   Hypothesis Hair_pro : air_pro_rows lp bm MWF.
   (* the freefall case (FfRow, 2026-10-20): PROVED from the real
      act_freefall (FfRow.ff_row: the call keeps the frame world and moves
@@ -530,16 +539,18 @@ Section HeightLinked12.
      air step and its landing / wall).  The dive case (KbDv, 2026-10-20):
      PROVED from the real act_dive (the same air-step summary).  Both
      rollouts (RlRun, 2026-10-20): PROVED from the real handlers (the launch,
-     then the air step).  Butt-slide air at state 0 (BsRun, 2026-10-21):
-     PROVED from the real act_butt_slide_air (the timer tick, then the
-     FREEFALL gate or the air step: a landing, the bounce, a wall).  Slide
-     kick at state 0 (SkRun, 2026-10-21): PROVED from the real
-     act_slide_kick (the timer tick, then the FREEFALL gate or the air step
-     at gravity 2: a landing, the bounce, a wall).  No other no-A case is
-     left (KbRow.air_case_fns_in, computed).  Past their bounce (state <> 0)
-     butt-slide air and slide kick keep a row each (bsa1_row, sk1_row: their
-     floorHeight may be a quarter step stale there). *)
-  Hypothesis Hbsa1 : bsa1_row lp bm MWF.
+     then the air step).  Butt-slide air (BsRun, 2026-10-21): PROVED from
+     the real act_butt_slide_air at ANY state (the bounce's stale
+     floorHeight is refreshed by update_mario_inputs before the next
+     dispatch; the case gets the fresh floor from frame_stage).  Slide kick
+     at state 0 (SkRun, 2026-10-21): PROVED from the real act_slide_kick
+     (the timer tick, then the FREEFALL gate or the air step at gravity 2:
+     a landing, the bounce, a wall).  Every proved case also returns FALSE
+     or leaves y / floorHeight untouched (RetOk.ret_ok, checked on each
+     walk), so the floor stays fresh.  No other no-A case is left
+     (KbRow.air_case_fns_in, computed).  Slide kick past its bounce
+     (state <> 0) keeps a row (sk1_row, now with the fresh floor in and the
+     fresh-or-FALSE post out; the walk's classifier covers state 0 only). *)
   Hypothesis Hsk1 : sk1_row lp bm MWF.
   (* the walk's floors: the FPU floor (TRUST 3.5) and the labeled open
      audio / camera premises (deferred; ExtInert) *)
@@ -551,7 +562,7 @@ Section HeightLinked12.
   Lemma Hair_case : air_case_rows lp bm MWF.
   Proof.
     exact (air_case_rows_ff8 lp H12 Hdma_floor Hsqrtf Hsqrtf_float Haudio Hcamera bm Hbm_sym MWF
-             Hbsa1 Hsk1).
+             Hsk1).
   Qed.
 
   Lemma call_facts :
@@ -579,7 +590,7 @@ Section HeightLinked12.
              Hpres_warp_ext).
   Qed.
 
-  Lemma Hseg_call : seg_call_rows lp bm MWF.
+  Lemma Hseg_call : seg_call_rows_fr lp bm MWF.
   Proof.
     destruct call_facts as (_ & _ & Hgms & _).
     exact (seg_call_rows_of_air lp (linked12_LO_mario lp H12) (linked12_LO_air lp H12) bm MWF
@@ -593,7 +604,7 @@ Section HeightLinked12.
   Proof.
     intros c0 m m' Hb HF (b_o & t & res & Hev).
     destruct call_facts as (_ & Hcall & Hgms & Hchase & Hstore).
-    refine (frame_split lp (linked12_LO_mario lp H12) bm SafeB MWF Hcall Hgms
+    refine (frame_stage lp (linked12_LO_mario lp H12) bm SafeB MWF Hcall Hgms
               (fun m0 HM => mwf_real_ctl lp bm bc oc0 SafeB m0 HM)
               Hchase Hstore
               (safeb_of_nonfam_sym lp SafeB HSafeB_syms _ _ Hbm_sym eq_refl)

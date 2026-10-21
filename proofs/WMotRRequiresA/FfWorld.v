@@ -42,7 +42,7 @@ From Coq Require Import ZArith List Lia Reals.
 From compcert Require Import Coqlib Maps AST Integers Floats Values Memory Ctypes Clight Globalenvs.
 From SM64.Generated Require mario surface_collision memory.
 From SM64.Proofs Require Import HeightInvariant HeightMoveCatalog WMotRLevel Generic.ClosedMem.
-From SM64.Proofs.WMotRRequiresA Require Import FloorList FloorHeight FloorExec AirMatch AirStart.
+From SM64.Proofs.WMotRRequiresA Require Import FloorList FloorHeight FloorExec AirMatch AirStart RetOk.
 Import ListNotations.
 
 (* the MarioState fields and struct sizes the walk reads (generated AST) *)
@@ -364,3 +364,30 @@ Lemma wblk_keep2 : forall rl' v n, wblk m rl' v n -> wblk m' rl' v n.
 Proof using Hnb Hperm Hld. intros rl' v n (b & o & -> & P & H). exists b, o. split; [reflexivity |]. split; [exact (plt_fwd _ P) | exact H]. Qed.
 End KEEP2.
 End FFW.
+
+(* ---- the dispatch's floor refresh (FrameStage) ------------------------- *)
+(* Mario's floorHeight is a floor refresh of his height: what
+   update_mario_inputs leaves (update_mario_geometry_inputs's find_floor),
+   and what an airborne handler's walk needs at its entry *)
+Definition fresh (bm : block) (m : mem) : Prop :=
+  forall y fh, Mem.load Mfloat32 m bm OFS_POSY = Some (Vsingle y) ->
+    Mem.load Mfloat32 m bm OFS_FLOORH = Some (Vsingle fh) ->
+    FloorRefreshOK wmotr_floor (R2 y) (R2 fh).
+
+(* ... when the action is an airborne one ((action & ACT_GROUP_MASK) ==
+   ACT_GROUP_AIRBORNE): the case of execute_mario_action's dispatch that
+   needs it *)
+Definition fresh_at (bm : block) (m : mem) : Prop :=
+  forall a, Mem.load Mint32 m bm 12 = Some (Vint a) ->
+    Int.and a (Int.repr 448) = Int.repr 128 -> fresh bm m.
+
+Lemma fresh_at_of : forall bm m, fresh bm m -> fresh_at bm m.
+Proof. intros bm m H a _ _. exact H. Qed.
+
+(* a handler that returned FALSE or kept the two cells (RetOk.RET) *)
+Lemma fresh_ret : forall bm m0 m' vres, fresh bm m0 -> RET bm m0 m' vres ->
+  vres = Vint Int.zero \/ fresh bm m'.
+Proof.
+  intros bm m0 m' vres F [Z | (Y & H)]; [left; exact Z | right].
+  intros y fh Ly Lf. rewrite Y in Ly. rewrite H in Lf. exact (F y fh Ly Lf).
+Qed.
