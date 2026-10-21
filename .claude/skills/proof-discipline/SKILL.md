@@ -67,10 +67,13 @@ all in `Unwired/`, and the theorem moved nowhere. See
     dive (`KbDv`, an air_entry), and both rollouts (`RlF` / `RlB` through `RlRun.rl_kfinal`;
     the air-step summary's entry is the caller's cell terms at the call, `AirSum.icE`).
     and butt-slide air at state 0 (`BsW` through `BsRun.bs_kfinal`: S_tick, then the step from
-    the ticked cells `FfClass.ent_bs`; the bounce is an S_attach). Open: slide kick
-    (`Hair_case_rest`, `KbRow.air_case_rest7`) and butt-slide air at state <> 0 (`Hbsa1`,
-    `KbRow.bsa1_row`: the bounce can leave floorHeight stale). ffw's floor refresh holds for
-    `fro_st` (air_entry + ground pound + rollouts, and butt-slide air at state 0; TRUST 0.6). Walk files: one walk each (KbSb/KbBkb/KbFkb/KbDv),
+    the ticked cells `FfClass.ent_bs`; the bounce is an S_attach), and slide kick at state 0
+    (`SkW` through `SkRun.sk_kfinal`: the step from the ticked cells is one move from the
+    pre-tick cells, `AirMove.sk_pre`; gravity 2 via `AirMatch.gk_of`). Every no-A case is
+    covered (`KbRow.air_case_rows_ff8`, `air_case_fns_in`). Open: butt-slide air and slide
+    kick at state <> 0 (`Hbsa1` / `KbRow.bsa1_row`, `Hsk1` / `KbRow.sk1_row`: the bounce can
+    leave floorHeight stale). ffw's floor refresh holds for `fro_st` (air_entry + ground
+    pound + rollouts, and butt-slide air and slide kick at state 0; TRUST 0.6). Walk files: one walk each (KbSb/KbBkb/KbFkb/KbDv),
     `WithGe.with_ge` not `match ge12`, `vm_cast_no_check`, never `eassumption` near a walk. Dive and rollouts read `gAudioRandom`; audio/data.c (its only
     definer) is linked as the 18th TU so those paths have executions. Squish: WMotR's dynamic
     surfaces never come within 150 of a floor/ceiling (`tools/goal2_squish_scan.py`, min gap 276),

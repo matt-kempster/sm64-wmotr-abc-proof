@@ -10,8 +10,9 @@
 (* per outcome) and FfKeepCheck.fk_ok (the world is kept).  The soft bonk  *)
 (* and both air knockbacks (KbRun.kb_kfinal) and ground pound             *)
 (* (GpRun.gp_kfinal), dive (KbDv), both rollouts (RlRun) and butt-slide  *)
-(* air at state 0 (BsRun) are cases; air_case_rows_ff7 leaves slide kick  *)
-(* to AirSplit's row and butt-slide air at state <> 0 to bsa1_row.        *)
+(* air and slide kick at state 0 (BsRun, SkRun) are cases: every no-A    *)
+(* case (air_case_rows_ff8) but butt-slide air and slide kick at state    *)
+(* <> 0, which keep a row each (bsa1_row, sk1_row).                       *)
 (*                                                                        *)
 (* Premises beyond the link: as FfRow (DMA floor, FPU floor, the labeled   *)
 (* open audio / camera premises).                                          *)
@@ -25,7 +26,7 @@ From SM64.Proofs Require Import Interp.SymExec2 Interp.LinkGenv MarioModel.Linke
   MarioModel.OsDmaFloor HeightInvariant HeightMoveCatalog WMotRLevel WMotRWorld.
 From SM64.Proofs Require Import RealFrameLinked AirborneSurface NoAImpliesNoFlyLinked.
 From SM64.Proofs.WMotRRequiresA Require Import FloorList FloorExec AirRun AirStart AirMatch
-  FpuFloor ExtInert FfRun FfWorld FrameSplit AirSplit FfKeepCheck FfKeep FfClass AhwRun KbRun KbSb KbBkb KbFkb KbDv GpRun RlRun RlF RlB BsRun BsW.
+  FpuFloor ExtInert FfRun FfWorld FrameSplit AirSplit FfKeepCheck FfKeep FfClass AhwRun KbRun KbSb KbBkb KbFkb KbDv GpRun RlRun RlF RlB BsRun BsW SkRun SkW.
 From SM64.Proofs.WMotRRequiresA Require FfRow AhwRow.
 From SM64.Proofs Require Import Generic.ClosedMem Generic.ClightClosed.
 Import ListNotations.
@@ -125,6 +126,30 @@ Proof.
 Qed.
 Lemma dm_bsa : (prog_defmap AIR.prog) ! AIR._act_butt_slide_air = Some (Gfun (Internal AIR.f_act_butt_slide_air)).
 Proof. vm_compute. reflexivity. Qed.
+Lemma sk_label_b : forallb (fun x => if Pos.eqb (snd x) AIR._act_slide_kick then Z.eqb (fst x) 25168042 else true)
+  air_case_list = true.
+Proof. vm_compute. reflexivity. Qed.
+Lemma sk_label : forall n, In (n, AIR._act_slide_kick) air_case_list -> n = 25168042.
+Proof.
+  intros n H. pose proof (proj1 (forallb_forall _ _) sk_label_b _ H) as X.
+  cbn [fst snd] in X. rewrite Pos.eqb_refl in X. apply Z.eqb_eq in X. exact X.
+Qed.
+Lemma dm_sk : (prog_defmap AIR.prog) ! AIR._act_slide_kick = Some (Gfun (Internal AIR.f_act_slide_kick)).
+Proof. vm_compute. reflexivity. Qed.
+
+(* the switch's no-A cases are these eleven handlers, computed from the
+   generated air_case_list *)
+Definition air_case_fns : list ident :=
+  [AIR._act_freefall; AIR._act_air_hit_wall; AIR._act_soft_bonk; AIR._act_backward_air_kb;
+   AIR._act_forward_air_kb; AIR._act_ground_pound; AIR._act_dive; AIR._act_forward_rollout;
+   AIR._act_backward_rollout; AIR._act_butt_slide_air; AIR._act_slide_kick].
+Lemma air_case_fns_b : forallb (fun x => existsb (Pos.eqb (snd x)) air_case_fns) air_case_list = true.
+Proof. vm_compute. reflexivity. Qed.
+Lemma air_case_fns_in : forall n f, In (n, f) air_case_list -> In f air_case_fns.
+Proof.
+  intros n f H. pose proof (proj1 (forallb_forall _ _) air_case_fns_b _ H) as X.
+  cbn [snd] in X. apply existsb_exists in X as (f' & I & E). apply Pos.eqb_eq in E. subst f'. exact I.
+Qed.
 
 Lemma dm_sb : (prog_defmap AIR.prog) ! AIR._act_soft_bonk = Some (Gfun (Internal AIR.f_act_soft_bonk)).
 Proof. vm_compute. reflexivity. Qed.
@@ -822,5 +847,37 @@ Proof.
       destruct Hc as (_ & Hs & _). change OFS_ASTATE with 24 in Hs. rewrite Hs.
       intros E. injection E as E. exact (S1 E). }
   exact (Hrest n f fd v Hin Hne Hne1 Hne2 Hne3 Hne4 Hne5 Hne6 Hne7 Hne8 Hne9 Hr).
+Qed.
+(* slide kick past its bounce (state <> 0): the bounce lands, pos[1] :=
+   floorHeight, without the refresh, so the frame world's fresh-floor claim
+   does not cover it (as bsa1_row); this row stays open *)
+Definition sk1_row : Prop :=
+  forall fd v, resolves lp AIR._act_slide_kick fd ->
+    seg_ok lp bm MWF fd [v]
+      (fun m => v = Vptr bm Ptrofs.zero /\ Mem.load Mint32 m bm 12 = Some (Vint (Int.repr 25168042))
+                /\ Mem.load Mint16unsigned m bm 24 <> Some (Vint Int.zero)).
+
+(* every no-A case: slide kick at state 0 (SkRun) is the last; no case is
+   left over (air_case_fns_in) *)
+Theorem air_case_rows_ff8 : bsa1_row -> sk1_row -> air_case_rows lp bm MWF.
+Proof.
+  intros Hbs1 Hsk1. apply air_case_rows_ff7; [exact Hbs1 |].
+  intros n f fd v Hin Hne Hne1 Hne2 Hne3 Hne4 Hne5 Hne6 Hne7 Hne8 Hne9 Hr.
+  destruct (Pos.eq_dec f AIR._act_slide_kick) as [-> | Hne10].
+  { pose proof (sk_label n Hin) as ->.
+    intros m t m' vr c Hok Hw (-> & Hact) Hok' Hc Hb Hev.
+    destruct (Int.eq_dec (c_state c) Int.zero) as [S0 | S1].
+    - pose proof (resolve_pin_fd lp _ _ _ _ (linked12_LO_air lp H12) dm_sk Hr) as ->.
+      destruct Hok as (Vm & _).
+      assert (Hfro : fro_st (Int.repr 25168042) (state_of c) = true)
+        by (unfold state_of; rewrite S0; vm_compute; reflexivity).
+      exact (kb_row lp H12 bm Hbm _ _ (sk_kfinal_all lp H12 Hdma Hsq Hsqf Haudio Hcamera _ skcheck12)
+               m t m' vr c Vm Hw Hc Hb Hfro Hact Hev).
+    - refine (Hsk1 fd _ Hr m t m' vr c Hok Hw _ Hok' Hc Hb Hev).
+      split; [reflexivity | split; [exact Hact |]].
+      destruct Hc as (_ & Hs & _). change OFS_ASTATE with 24 in Hs. rewrite Hs.
+      intros E. injection E as E. exact (S1 E). }
+  exfalso. pose proof (air_case_fns_in n f Hin) as I. unfold air_case_fns in I.
+  repeat (destruct I as [I | I]; [symmetry in I; contradiction |]). exact I.
 Qed.
 End KBCASES.

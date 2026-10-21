@@ -64,10 +64,11 @@ Qed.
 (* butt-slide air in fro_st is at state 0 *)
 Lemma bs_st0 : forall s, fro_st (Int.repr BSN) s = true -> s = 0%Z.
 Proof.
-  intros s H. unfold fro_st, bsa0 in H.
+  intros s H. unfold fro_st, bsa0, sk0 in H.
   replace (fro_entry (Int.repr BSN)) with false in H by (vm_compute; reflexivity).
   replace (Int.eq (Int.repr BSN) ACT_BUTT_SLIDE_AIR) with true in H by (vm_compute; reflexivity).
-  cbn [orb andb] in H. apply Z.eqb_eq. exact H.
+  replace (Int.eq (Int.repr BSN) ACT_SLIDE_KICK) with false in H by (vm_compute; reflexivity).
+  cbn [orb andb] in H. rewrite Bool.orb_false_r in H. apply Z.eqb_eq. exact H.
 Qed.
 
 Theorem bs_kfinal : kfinal lp BSN fK.

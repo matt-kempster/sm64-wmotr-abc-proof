@@ -18,7 +18,7 @@
 (* it into read_cells + MoveChain, using the step's fact (AirSum.MV).     *)
 (* ====================================================================== *)
 
-From Coq Require Import ZArith Reals List Lia Lra Bool Relations.
+From Coq Require Import ZArith Znumtheory Reals List Lia Lra Bool Relations.
 From compcert Require Import Coqlib Maps AST Integers Floats Values Memory Ctypes Cop Clight.
 From Flocq Require Import Raux.
 From SM64.Proofs Require Import Interp.SymExec2 HeightInvariant HeightMoveCatalog WMotRLevel HeightFloatSteps.
@@ -47,6 +47,16 @@ Definition velnp (v1 : sval) (f : fact) : bool :=
   match f with
   | Fbool (Sbinop Ogt a t1 (Sconst (Vsingle z)) t2) ty false =>
       sveqb a v1 && is_tf t1 && is_tf t2 && (if Float32.eq_dec z Float32.zero then true else false)
+      && (if type_eq ty ti32 then true else false)
+  | _ => false
+  end.
+
+(* the path fact "(_Bool)(v1 < 0.0f)" *)
+Definition velneg (v1 : sval) (f : fact) : bool :=
+  match f with
+  | Fbool (Scast (Sbinop Olt a t1 (Sconst (Vsingle z)) t2) t3 t4) ty true =>
+      sveqb a v1 && is_tf t1 && is_tf t2 && (if Float32.eq_dec z Float32.zero then true else false)
+      && (if type_eq t3 ti32 then true else false) && (if type_eq t4 tbool then true else false)
       && (if type_eq ty ti32 then true else false)
   | _ => false
   end.
@@ -120,6 +130,11 @@ Definition entry_nogp (ea : sval) : bool :=
 Definition entry_bsa (ea : sval) : bool :=
   match ci ea with Some a0 => Int.eq a0 ACT_BUTT_SLIDE_AIR | None => false end.
 
+(* the walk's known entry action is slide kick: its timer gate
+   (airborne.c:1586-1588) switches to FREEFALL after the tick, vel[1] kept *)
+Definition entry_sk (ea : sval) : bool :=
+  match ci ea with Some a0 => Int.eq a0 ACT_SLIDE_KICK | None => false end.
+
 Definition entry_sw (ea : sval) (md : mode) (a s t : int) : bool :=
   mode_eqb md M_Air
   || (entry_ff ea && Int.eq a ACT_GROUND_POUND && Int.eq s Int.zero && Int.eq t Int.zero)
@@ -137,18 +152,32 @@ Definition f_eq1 (x : sval) : fact :=
 (* a constant rollout action *)
 Definition is_rl (a1 : sval) : bool := match ci a1 with Some a => is_roll a | None => false end.
 
+(* m->actionTimer++ *)
+Definition t_tick : sval :=
+  Scast (Sbinop Cop.Oadd (ic rM oT Mint16unsigned) tu16 (Sconst (Vint Int.one)) ti32) ti32 tu16.
+(* (u16)(++m->actionTimer), as the walker reads it back *)
+Definition t_tick16 : sval := Scast t_tick tu16 tu16.
+(* slide kick's gate fact "++actionTimer > 30" (airborne.c:1586) *)
+Definition f_gt30 : fact :=
+  Fbool (Sbinop Cop.Ogt t_tick tu16 (Sconst (Vint (Int.repr 30))) ti32) ti32 true.
+
 (* the handler's entry cells, as the walk's terms *)
 Definition ent0 : list sval := map (ic_of kv) (pkeys rM rO).
 
 (* a constant action of the knockback family / freefall *)
 Definition is_ae (a1 : sval) : bool := match ci a1 with Some a => air_entry a | None => false end.
-(* ... or ground pound, a rollout, or butt-slide air (a wall switch needs only
-   an airborne mode at the step) *)
+(* ... or ground pound, a rollout, butt-slide air or slide kick (a wall
+   switch needs only an airborne mode at the step) *)
 Definition is_pe (a1 : sval) : bool :=
-  match ci a1 with Some a => fro_entry a || Int.eq a ACT_BUTT_SLIDE_AIR | None => false end.
+  match ci a1 with
+  | Some a => fro_entry a || Int.eq a ACT_BUTT_SLIDE_AIR || Int.eq a ACT_SLIDE_KICK
+  | None => false
+  end.
 
 (* a constant butt-slide-air action *)
 Definition is_bsa (a1 : sval) : bool := match ci a1 with Some a => Int.eq a ACT_BUTT_SLIDE_AIR | None => false end.
+(* a constant slide-kick action *)
+Definition is_skc (a1 : sval) : bool := match ci a1 with Some a => Int.eq a ACT_SLIDE_KICK | None => false end.
 (* butt-slide air's bounce, vel[1] := -vel[1] / 2.0f (airborne.c:1445) *)
 Definition bounce_t (v1 : sval) : sval :=
   Sbinop Cop.Odiv (Sunop Cop.Oneg v1 AirMatch.tf) AirMatch.tf (Sconst (Vsingle f2)) AirMatch.tf.
@@ -182,7 +211,11 @@ Definition step_ok (ent : list sval) (pc : list fact) (sa ss st sy sv sf sg : sv
              && sveqb ss (Sconst (Vint (Int.repr 2))))
           || (* butt-slide air's bounce: state := 1, vel[1] := -vel[1] / 2 (airborne.c:1443-1446) *)
             (Int.eq cl Int.one && is_bsa a1 && sveqb sa a1 && sveqb st t1
-             && sveqb ss (Sconst (Vint Int.one)) && sveqb sv (bounce_t v1)))
+             && sveqb ss (Sconst (Vint Int.one)) && sveqb sv (bounce_t v1))
+          || (* slide kick's bounce, a landing with vel[1] < 0: state := 1, timer := 0,
+                vel[1] := -vel[1] / 2 (airborne.c:1603-1606) *)
+            (Int.eq cl Int.one && is_skc a1 && sveqb sa a1 && sveqb ss (Sconst (Vint Int.one))
+             && sveqb st (Sconst (Vint Int.zero)) && sveqb sv (bounce_t v1) && existsb (velneg v1) pc))
       | _ => false
       end
   | _ => false
@@ -190,14 +223,17 @@ Definition step_ok (ent : list sval) (pc : list fact) (sa ss st sy sv sf sg : sv
 
 Definition ff_okE (ent : list sval) (g : gst) : bool :=
   match ent with
-  | [ea; _; _; ey; ev; ef; eg] =>
+  | [ea; _; et; ey; ev; ef; eg] =>
   match LD g rM oMO Mint32, LD g rM oA Mint32, LD g rM oS Mint16unsigned, LD g rM oT Mint16unsigned,
         LD g rM oY Mfloat32, LD g rM oV Mfloat32, LD g rM oF Mfloat32, LD g rO oG Mfloat32 with
   | Some (Sptr r0 z0), Some sa, Some ss, Some st, Some sy, Some sv, Some sf, Some sg =>
       Pos.eqb r0 rO && Ptrofs.eq z0 Ptrofs.zero &&
       match kmargs kM (g_pc g) with
       | None => sveqb sy ey && sveqb sv ev && sveqb sf ef && sveqb sg eg
-                && entry_nogp ea && consts_ok sa ss st (entry_sw ea)
+                && ((entry_nogp ea && negb (entry_sk ea) && consts_ok sa ss st (entry_sw ea))
+                    || (* slide kick's gate, at the ticked entry *)
+                    (entry_sk ea && sveqb et t_tick16 && has_fact (g_pc g) f_gt30
+                     && consts_ok sa ss st (fun md _ _ _ => mode_eqb md M_Freefall)))
       | Some args => step_ok ent (g_pc g) sa ss st sy sv sf sg args
       end
   | _, _, _, _, _, _, _, _ => false
@@ -234,9 +270,6 @@ Definition f_st0 (b : bool) : fact :=
   Fbool (Sbinop Cop.Oeq (ic rM oS Mint16unsigned) tu16 (Sconst (Vint Int.zero)) ti32) ti32 b.
 Definition f_lt10 : fact :=
   Fbool (Sbinop Cop.Olt (ic rM oT Mint16unsigned) tu16 (Sconst (Vint (Int.repr 10))) ti32) ti32 true.
-(* m->actionTimer++ *)
-Definition t_tick : sval :=
-  Scast (Sbinop Cop.Oadd (ic rM oT Mint16unsigned) tu16 (Sconst (Vint Int.one)) ti32) ti32 tu16.
 (* m->pos[1] += 20 - 2 * m->actionTimer *)
 Definition t_rise : sval :=
   Sbinop Cop.Oadd (ic rM oY Mfloat32) tf
@@ -306,8 +339,6 @@ Definition rl_ok (g : gst) : bool :=
       || (has_fact (g_pc g) (f_st0 true) && ff_okE ent_roll g)).
 
 (* ---- butt-slide air (act_butt_slide_air) ------------------------------ *)
-(* (u16)(++m->actionTimer), as the walker reads it back *)
-Definition t_tick16 : sval := Scast t_tick tu16 tu16.
 
 (* the ticked entry: actionTimer + 1 (airborne.c:1436) *)
 Definition ent_bs : list sval :=
@@ -320,6 +351,14 @@ Definition ent_bs : list sval :=
    outcome of the air step from the ticked cells (or the timer gate) *)
 Definition bs_ok (g : gst) : bool :=
   is_bsa (ic rM oA Mint32) && int_sv (ic rM oT Mint16unsigned) t_tick16 && ff_okE ent_bs g.
+
+(* ---- slide kick (act_slide_kick) -------------------------------------- *)
+(* each outcome at state 0: an outcome of the air step from the ticked
+   cells (ent_bs), whose move is from the pre-tick cells (AirMove.sk_pre),
+   or the timer gate; an outcome on the state <> 0 path is not this case's *)
+Definition sk_ok (g : gst) : bool :=
+  sveqb (ic rM oA Mint32) (Sconst (Vint ACT_SLIDE_KICK))
+  && (has_fact (g_pc g) (f_st0 false) || ff_okE ent_bs g).
 End CLASS.
 
 (* the Cop steps of those terms *)
@@ -348,6 +387,11 @@ Lemma cop_add_f : forall (ge : genv) a b m,
   sem_binary_operation ge Cop.Oadd (Vsingle a) tf (Vsingle b) tf m = Some (Vsingle (Float32.add a b)).
 Proof. reflexivity. Qed.
 Lemma cast_u16 : forall x m, sem_cast (Vint x) ti32 tu16 m = Some (Vint (Int.zero_ext 16 x)).
+Proof. reflexivity. Qed.
+Lemma cast_u16u16 : forall x m, sem_cast (Vint x) tu16 tu16 m = Some (Vint (Int.zero_ext 16 x)).
+Proof. reflexivity. Qed.
+Lemma cop_gt_i : forall (ge : genv) s k m,
+  sem_binary_operation ge Cop.Ogt (Vint s) tu16 (Vint k) ti32 m = Some (Val.of_bool (Int.lt k s)).
 Proof. reflexivity. Qed.
 Lemma cast_i2f : forall n m, sem_cast (Vint n) ti32 tf m = Some (Vsingle (Float32.of_int n)).
 Proof. reflexivity. Qed.
@@ -388,6 +432,14 @@ Proof.
 Qed.
 
 Lemma cgt_false_np : forall v, F32 v = true -> Float32.cmp Cgt v Float32.zero = false -> R2 v <= 0.
+Proof.
+  intros v Fv H. unfold Float32.cmp, Float32.compare in H.
+  rewrite Binary.Bcompare_correct in H by first [exact Fv | reflexivity].
+  destruct (Rcompare_spec (R2 v) (R2 Float32.zero)) as [L | L | L]; simpl in H; try discriminate;
+    replace (R2 Float32.zero) with 0 in L by reflexivity; lra.
+Qed.
+
+Lemma clt_true_neg : forall v, F32 v = true -> Float32.cmp Clt v Float32.zero = true -> R2 v < 0.
 Proof.
   intros v Fv H. unfold Float32.cmp, Float32.compare in H.
   rewrite Binary.Bcompare_correct in H by first [exact Fv | reflexivity].
@@ -460,6 +512,18 @@ Proof.
   split; [exact Fd |]. rewrite Rd, Rn, B2R_f2. split.
   - rewrite <- R215, <- (rnd_B2R fm215). apply rnd_mono. rewrite R215. lra.
   - rewrite <- R375, <- (rnd_B2R f375). apply rnd_mono. rewrite R375. lra.
+Qed.
+(* slide kick bounces only off a falling vel[1] < 0: the new vel is >= 0 *)
+Lemma bounce_nonneg : forall v, F32 v = true -> -75 <= R2 v <= 43 -> R2 v < 0 ->
+  0 <= R2 (Float32.div (Float32.neg v) f2).
+Proof.
+  intros v Fv [Hl Hh] Hn.
+  assert (Rn : R2 (Float32.neg v) = - R2 v) by (unfold Float32.neg; apply Binary.B2R_Bopp).
+  assert (Fn : F32 (Float32.neg v) = F32 v) by (unfold Float32.neg; apply Binary.is_finite_Bopp).
+  assert (H2 : R2 f2 <> 0) by (rewrite B2R_f2; lra).
+  destruct (f32_div_val (Float32.neg v) f2 ltac:(rewrite Fn; exact Fv) H2) as [Rd Fd].
+  { rewrite Rn, B2R_f2. apply small_le_bpow100. apply Rabs_le. simpl. lra. }
+  rewrite Rd, Rn, B2R_f2. rewrite <- rnd_0. apply rnd_mono. lra.
 Qed.
 Local Opaque Float32.neg.
 
@@ -561,8 +625,8 @@ Proof.
 Qed.
 
 (* the step's fact, at the entry cells *)
-Lemma step_fact : forall ea es et ey ev ef eg,
-  map den [ea; es; et; ey; ev; ef; eg] = map Some (cvals c0) ->
+Lemma step_fact : forall ce ea es et ey ev ef eg,
+  map den [ea; es; et; ey; ev; ef; eg] = map Some (cvals ce) -> pre_ok c0 ce ->
   forall n1 cl r rest a1 s1 t1 y1 v1 f1 g1,
   In (Fuser kM (n1 :: Sconst (Vint cl) :: r :: rest)) (g_pc g) ->
   firstn 7 rest = [ea; es; et; ey; ev; ef; eg] -> skipn 7 rest = [a1; s1; t1; y1; v1; f1; g1] ->
@@ -572,15 +636,14 @@ Lemma step_fact : forall ea es et ey ev ef eg,
     /\ den v1 = Some (Vsingle (c_vely c1)) /\ den f1 = Some (Vsingle (c_floorh c1))
     /\ den g1 = Some (Vsingle (c_gfxy c1)).
 Proof.
-  intros ea es et ey ev ef eg EVe n1 cl r rest a1 s1 t1 y1 v1 f1 g1 I H7 S7.
+  intros ce ea es et ey ev ef eg EVe Hpre n1 cl r rest a1 s1 t1 y1 v1 f1 g1 I H7 S7.
   destruct MM as (_ & _ & _ & _ & _ & _ & PC & _).
   destruct (PC _ I) as [_ FH]. cbn [fact_holds] in FH. apply HUM in FH.
   rewrite <- (firstn_skipn 7 rest), H7, S7 in FH.
-  destruct (FH c0) as (cl' & rv & c1 & Heq & P).
-  - rewrite <- EVe. reflexivity.
-  - exact Hact.
-  - exact Hb.
-  - exact FRO.
+  assert (X7 : firstn 7 (skipn 3 (map (den) (n1 :: Sconst (Vint cl) :: r :: [ea; es; et; ey; ev; ef; eg]
+                 ++ [a1; s1; t1; y1; v1; f1; g1]))) = map Some (cvals ce))
+    by (rewrite <- EVe; reflexivity).
+  destruct (FH ce X7 c0 Hpre Hb FRO) as (cl' & rv & c1 & Heq & P).
   - cbn [map app pkeys mkeys ic_of cvals] in Heq.
     injection Heq as _ Ecl _ _ _ _ _ _ _ _ A S T Y V F G. subst cl'.
     exists c1. auto 10.
@@ -624,6 +687,66 @@ Proof.
   exact (cgt_false_np x Fx C).
 Qed.
 
+Lemma fbool_in0 : forall c ty b, has_fact (g_pc g) (Fbool c ty b) = true ->
+  exists w, den c = Some w /\ bool_val w ty m0 = Some b.
+Proof.
+  intros c ty b H. unfold has_fact in H. apply existsb_exists in H as (f & I & Hf).
+  destruct (fact_eq f (Fbool c ty b)) as [-> |]; [| discriminate Hf].
+  destruct MM as (_ & _ & _ & _ & _ & _ & PC & _). destruct (PC _ I) as [_ FH]. exact FH.
+Qed.
+
+Lemma velneg_sound : forall v1 x f, In f (g_pc g) -> velneg v1 f = true ->
+  den v1 = Some (Vsingle x) -> F32 x = true -> R2 x < 0.
+Proof.
+  intros v1 x f I H D Fx.
+  destruct f as [c ty b | | |]; try discriminate H.
+  destruct c as [| | | | | | | | c t3 t4 |]; try discriminate H.
+  destruct c as [| | | | | | | op a t1 c2 t2 | |]; try discriminate H.
+  destruct op; try discriminate H.
+  destruct c2 as [w | | | | | | | | |]; try discriminate H.
+  destruct w as [| | | | z |]; try discriminate H.
+  destruct b; [| discriminate H].
+  cbn [velneg] in H. repeat rewrite andb_true_iff in H.
+  destruct H as ((((((Ea & T1) & T2) & Z) & T3) & T4) & Ty).
+  apply sveqb_eq in Ea. subst a. apply is_tf_eq in T1. apply is_tf_eq in T2. subst t1 t2.
+  destruct (Float32.eq_dec z Float32.zero) as [-> |]; [| discriminate Z].
+  repeat match goal with
+         | Hq : (if type_eq ?x ?y then true else false) = true |- _ =>
+             destruct (type_eq x y) as [-> |]; [clear Hq | discriminate Hq]
+         end.
+  destruct MM as (_ & _ & _ & _ & _ & _ & PC & _).
+  destruct (PC _ I) as [_ (w & Dw & Bw)].
+  cbn [SymExec2.den] in Dw. rewrite D in Dw. cbn in Dw.
+  destruct (Float32.cmp Clt x Float32.zero) eqn:C; [exact (clt_true_neg x Fx C) |].
+  exfalso. cbn in Dw. injection Dw as <-. cbn in Bw. discriminate Bw.
+Qed.
+
+(* the gate's "++actionTimer > 30" fact, with the ticked timer term *)
+Lemma gt30_sound : forall t, den (t_tick16 kv rM) = Some (Vint t) ->
+  has_fact (g_pc g) (f_gt30 kv rM) = true -> (30 < Int.unsigned t)%Z.
+Proof.
+  intros t D F.
+  destruct (fbool_in0 _ _ _ F) as (w & Dw & Bw).
+  unfold t_tick16 in D. unfold f_gt30 in Dw.
+  cbn [SymExec2.den] in D, Dw.
+  destruct (den (t_tick kv rM)) as [v|] eqn:Dt; [| discriminate D].
+  unfold t_tick in Dt. cbn [SymExec2.den] in Dt.
+  match type of Dt with
+  | (match ?x with Some _ => _ | None => _ end) = _ => destruct x as [u|]; [| discriminate Dt]
+  end.
+  destruct u; try discriminate Dt. rewrite cast_u16 in Dt. injection Dt as <-.
+  cbv beta iota in D. rewrite cast_u16u16 in D. injection D as <-.
+  cbv beta iota in Dw. rewrite cop_gt_i in Dw. injection Dw as <-.
+  destruct (Int.lt (Int.repr 30) (Int.zero_ext 16 i)) eqn:L; cbn in Bw; [| discriminate Bw].
+  rewrite Int.zero_ext_idem by lia.
+  pose proof (Int.zero_ext_mod 16 i ltac:(cbn; lia)) as Zm. change (two_p 16) with 65536%Z in Zm.
+  pose proof (Z.mod_pos_bound (Int.unsigned i) 65536 ltac:(lia)) as Rb.
+  unfold Int.lt in L. destruct (zlt _ _) as [Z1 |]; [| discriminate L].
+  change (Int.signed (Int.repr 30)) with 30%Z in Z1.
+  rewrite (Int.signed_eq_unsigned (Int.zero_ext 16 i)) in Z1 by (rewrite Zm; change Int.max_signed with 2147483647%Z; lia).
+  lia.
+Qed.
+
 Local Notation MC := (MoveChain wmotr_floor wmotr_pole wmotr_cannon).
 Local Notation RMv := (RangedMove wmotr_floor wmotr_pole wmotr_cannon).
 
@@ -649,8 +772,9 @@ Lemma is_pe_sound : forall a1 x, is_pe a1 = true -> den a1 = Some (Vint x) ->
 Proof.
   intros a1 x H D s. unfold is_pe in H. destruct (ci a1) as [a|] eqn:C; [| discriminate H].
   apply ci_some in C. subst a1. cbn [SymExec2.den] in D. injection D as <-.
-  apply orb_true_iff in H as [H | H]; [exact (fro_entry_ground a s H) |].
-  apply Int.same_if_eq in H. subst a. vm_compute. discriminate.
+  apply orb_true_iff in H as [H | H]; [apply orb_true_iff in H as [H | H]; [exact (fro_entry_ground a s H) |] |].
+  - apply Int.same_if_eq in H. subst a. vm_compute. discriminate.
+  - apply Int.same_if_eq in H. subst a. rewrite mode_of_action_SK_eq. destruct (Z.eqb s 0); discriminate.
 Qed.
 
 Lemma mode_c0 : c_action c0 <> ACT_GROUND_POUND -> mode_of c0 = M_Freefall \/ mode_of c0 = M_Air.
@@ -667,11 +791,13 @@ Proof.
 Qed.
 
 (* ff_okE at any entry list the entry cells c0 denote *)
-Theorem ff_soundE : forall ent, map den ent = map Some (cvals c0) ->
+(* ff_okE at an entry list denoting the step's entry cells ce, from the
+   handler's entry c0 (pre_ok: ce itself, or slide kick's ticked cells) *)
+Theorem ff_soundE : forall ent ce, map den ent = map Some (cvals ce) -> pre_ok c0 ce ->
   ff_okE nbase R0 kv rM rO kM ent g = true ->
   exists c2, read_cells bm m c2 /\ MC c0 c2 /\ fro_ff c2.
 Proof.
-  intros ent EVe OK. unfold ff_okE in OK.
+  intros ent ce EVe Hpre OK. unfold ff_okE in OK.
   destruct ent as [| ea [| es [| et [| ey [| ev [| ef [| eg [|]]]]]]]]; try discriminate OK.
   destruct (LD rM oMO Mint32) as [smo|] eqn:LMO; [| discriminate OK].
   destruct smo as [| r0 z0 | | | | | | | |]; try discriminate OK.
@@ -704,26 +830,28 @@ Proof.
     apply andb_true_iff in OK as [H7 OK]. apply lsveqb_eq in H7.
     destruct (skipn 7 rest) as [| a1 [| s1 [| t1 [| y1 [| v1 [| f1 [| g1 [|]]]]]]]] eqn:S7;
       try discriminate OK.
-    destruct (step_fact ea es et ey ev ef eg EVe n1 cl r rest a1 s1 t1 y1 v1 f1 g1 If H7 S7)
-      as (c1 & (RM1 & AI & AO & FR1) & DA1 & DS1 & DT1 & DY1 & DV1 & DF1 & DG1).
+    destruct (step_fact ce ea es et ey ev ef eg EVe Hpre n1 cl r rest a1 s1 t1 y1 v1 f1 g1 If H7 S7)
+      as (c1 & (IR1 & RM1 & AI & AO & FR1) & DA1 & DS1 & DT1 & DY1 & DV1 & DF1 & DG1).
     repeat rewrite andb_true_iff in OK. destruct OK as [[[Ey Ef] Eg] OK].
     apply sveqb_eq in Ey, Ef, Eg. subst sy sf sg.
     rewrite DY1 in MY. rewrite DF1 in MF.
-    pose proof (Inrange_of _ _ RM1) as IR1.
     apply orb_true_iff in OK as [OK | OK];
       [apply orb_true_iff in OK as [OK | OK];
         [apply orb_true_iff in OK as [OK | OK];
-          [apply orb_true_iff in OK as [OK | OK]; [apply orb_true_iff in OK as [OK | OK] |] |] |] |].
+          [apply orb_true_iff in OK as [OK | OK];
+            [apply orb_true_iff in OK as [OK | OK]; [apply orb_true_iff in OK as [OK | OK] |] |] |] |] |].
     + (* stay *)
       repeat rewrite andb_true_iff in OK. destruct OK as [[[[Ec Ea] Es] Et] Ev].
       apply sveqb_eq in Ea, Es, Et, Ev. subst sa ss st sv.
+      pose proof (Int.eq_spec cl Int.zero) as Ecl0. rewrite Ec in Ecl0.
       exists c1. split; [| split].
       * rewrite DA1 in MA. rewrite DS1 in MS. rewrite DT1 in MT. rewrite DV1 in MV'.
         exact (mk_read c1 g1 LMO MA MS MT MY MV' MF Lg DG1).
-      * apply rt_step. exact RM1.
+      * apply rt_step. exact (RM1 Ecl0).
       * intros _. apply FR1. pose proof (Int.eq_spec cl Int.zero) as X. rewrite Ec in X. exact X.
     + (* wall switch *)
       repeat rewrite andb_true_iff in OK. destruct OK as [[[Ec Ea1] CK] VV].
+      pose proof (Int.eq_spec cl Int.zero) as Ecl0. rewrite Ec in Ecl0.
       pose proof (is_pe_sound a1 _ Ea1 DA1) as AE1.
       destruct (consts_ok_inv _ _ _ _ CK) as (a & s & t & -> & -> & -> & Md).
       apply mode_eqb_eq in Md. cbn [SymExec2.den] in MA, MS, MT.
@@ -745,7 +873,7 @@ Proof.
       exists c2. split; [| split; [| intros _; apply FR1; pose proof (Int.eq_spec cl Int.zero) as X;
                                     rewrite Ec in X; exact X]].
       * exact (mk_read c2 g1 LMO MA MS MT MY LV MF Lg DG1).
-      * eapply rt_trans; [apply rt_step; exact RM1 | apply rt_step].
+      * eapply rt_trans; [apply rt_step; exact (RM1 Ecl0) | apply rt_step].
         assert (M1 : mode_of c1 <> M_Ground) by exact (AE1 _).
         split.
         -- destruct Hv2 as [(-> & _) | (-> & _)];
@@ -765,6 +893,7 @@ Proof.
     + (* wall hit keeping the action, vel[1] zeroed *)
       repeat rewrite andb_true_iff in OK. destruct OK as [[[[[[Ec Ae] Ea] Es] Et] Ev] P].
       apply sveqb_eq in Ea, Es, Et, Ev. subst sa ss st sv.
+      pose proof (Int.eq_spec cl Int.zero) as Ecl0. rewrite Ec in Ecl0.
       pose proof (is_ae_sound a1 _ Ae DA1) as AE1.
       assert (M1 : mode_of c1 = M_Freefall \/ mode_of c1 = M_Air) by exact (air_entry_mode _ _ AE1).
       assert (P1 : 0 < R2 (c_vely c1)).
@@ -775,7 +904,7 @@ Proof.
       exists c2. split; [| split].
       * rewrite DA1 in MA. rewrite DS1 in MS. rewrite DT1 in MT. cbn [SymExec2.den] in MV'.
         exact (mk_read c2 g1 LMO MA MS MT MY MV' MF Lg DG1).
-      * eapply rt_trans; [apply rt_step; exact RM1 | apply rt_step].
+      * eapply rt_trans; [apply rt_step; exact (RM1 Ecl0) | apply rt_step].
         split; [apply (inrange_vel0 c1 c2 IR1); reflexivity |].
         apply S_switch; [reflexivity | reflexivity | reflexivity |].
         assert (M2 : mode_of c2 = mode_of c1) by reflexivity.
@@ -809,6 +938,7 @@ Proof.
     + (* a rollout's state 1 -> 2 *)
       repeat rewrite andb_true_iff in OK. destruct OK as [[[[[[Ec Ar] Ea] Et] Ev] F1] Es].
       apply sveqb_eq in Ea, Et, Ev, Es. subst sa st sv ss.
+      pose proof (Int.eq_spec cl Int.zero) as Ecl0. rewrite Ec in Ecl0.
       (* state 1: a path fact, or the launch's constant (the walker folded the test) *)
       assert (Q : c_state c1 = Int.one).
       { apply orb_true_iff in F1 as [F1 | F1].
@@ -827,7 +957,7 @@ Proof.
       exists c2. split; [| split].
       * cbn [SymExec2.den] in MA, MS. rewrite A1 in MA. rewrite DT1 in MT. rewrite DV1 in MV'.
         exact (mk_read c2 g1 LMO MA MS MT MY MV' MF Lg DG1).
-      * eapply rt_trans; [apply rt_step; exact RM1 | apply rt_step].
+      * eapply rt_trans; [apply rt_step; exact (RM1 Ecl0) | apply rt_step].
         split; [apply (inrange_same c1 c2 IR1); reflexivity |].
         apply S_switch; [reflexivity | reflexivity | reflexivity |].
         apply Sw_plain.
@@ -866,16 +996,86 @@ Proof.
            ++ rewrite M2. cbn [launch_cap c2 c_vely]. lra.
            ++ cbn [c2 c_action]. rewrite X1. intros EL. exfalso.
               apply (f_equal Int.unsigned) in EL. vm_compute in EL. discriminate EL.
-      * intros F. exfalso. unfold fro_st, bsa0, state_of in F. cbn [c2 c_action c_state] in F.
+      * intros F. exfalso. unfold fro_st, bsa0, sk0, state_of in F. cbn [c2 c_action c_state] in F.
         rewrite X1 in F. vm_compute in F. discriminate F.
+    + (* slide kick's bounce: a landing (S_attach) to state 1, timer 0, vel -vel/2 >= 0 *)
+      repeat rewrite andb_true_iff in OK. destruct OK as [[[[[[Ecl Ak] Ea] Es] Et] Ev] Pn].
+      apply sveqb_eq in Ea, Es, Et, Ev. subst sa ss st sv.
+      unfold is_skc in Ak. destruct (ci a1) as [a|] eqn:C; [| discriminate Ak].
+      apply ci_some in C. subst a1. cbn [SymExec2.den] in DA1. injection DA1 as A1.
+      pose proof (Int.eq_spec a ACT_SLIDE_KICK) as X. rewrite Ak in X. subst a. rewrite X in MA.
+      assert (NZ : cl <> Int.zero) by (intros ->; vm_compute in Ecl; discriminate Ecl).
+      destruct (AI NZ) as (h & AOK & Lh & Gh).
+      pose proof IR1 as (Fy1 & Fv1 & Fg1 & Hy1 & Hg1 & Hf1 & Hv1).
+      assert (Vn : R2 (c_vely c1) < 0).
+      { apply existsb_exists in Pn as (f & If' & Pf).
+        exact (velneg_sound v1 (c_vely c1) f If' Pf DV1 Fv1). }
+      destruct (bounce_val (c_vely c1) Fv1 Hv1) as (Fb & Bb).
+      pose proof (bounce_nonneg (c_vely c1) Fv1 Hv1 Vn) as B0.
+      set (vb := Float32.div (Float32.neg (c_vely c1)) f2) in *.
+      set (c2 := mkCells ACT_SLIDE_KICK Int.one Int.zero (c_posy c1) vb (c_floorh c1) (c_gfxy c1)).
+      assert (M2 : mode_of c2 = M_SlideKickBounced)
+        by (unfold mode_of, state_of; cbn [c2 c_action c_state]; vm_compute; reflexivity).
+      exists c2. split; [| split].
+      * cbn [SymExec2.den] in MA, MS, MT.
+        assert (MV2 : Mem.load Mfloat32 m bm oV = Some (Vsingle vb)).
+        { rewrite MV'. unfold bounce_t. cbn [SymExec2.den]. rewrite DV1. reflexivity. }
+        exact (mk_read c2 g1 LMO MA MS MT MY MV2 MF Lg DG1).
+      * apply rt_step. split.
+        -- unfold InRange. cbn [c2 c_posy c_vely c_gfxy c_floorh].
+           repeat split; try assumption; try apply Hf1; lra.
+        -- apply (S_attach _ _ _ c0 c2 h AOK).
+           ++ exact Lh.
+           ++ left. exact Gh.
+           ++ rewrite M2. cbn [launch_cap c2 c_vely].
+              split; [split; lra | unfold timer_of; cbn [c2 c_timer]; reflexivity].
+           ++ cbn [c2 c_action]. intros EL. exfalso.
+              apply (f_equal Int.unsigned) in EL. vm_compute in EL. discriminate EL.
+      * intros F. exfalso. unfold fro_st, bsa0, sk0, state_of in F. cbn [c2 c_action c_state] in F.
+        vm_compute in F. discriminate F.
   - (* B / Z before the air step *)
-    repeat rewrite andb_true_iff in OK. destruct OK as [[[[[Ey Ev] Ef] Eg] NG] CK].
+    repeat rewrite andb_true_iff in OK. destruct OK as [[[[Ey Ev] Ef] Eg] OK].
     apply sveqb_eq in Ey, Ev, Ef, Eg. subst sy sv sf sg.
+    apply orb_true_iff in OK as [OK | OK].
+    2:{ (* slide kick's timer gate: FREEFALL from the pre-tick cells, timer >= 30 *)
+      repeat rewrite andb_true_iff in OK. destruct OK as [[[Esk Et16] Gt] CK].
+      apply sveqb_eq in Et16. subst et.
+      destruct (consts_ok_inv _ _ _ _ CK) as (a & s & t & -> & -> & -> & Md). apply mode_eqb_eq in Md.
+      cbn [SymExec2.den] in MA, MS, MT.
+      assert (Hsk : sk_pre c0 ce).
+      { destruct Hpre as [(<- & Ha) | Hsk]; [exfalso | exact Hsk].
+        unfold entry_sk in Esk. destruct (ci ea) as [a0|] eqn:C; [| discriminate Esk].
+        apply ci_some in C. rewrite C in DA0. cbn [SymExec2.den] in DA0. injection DA0 as DA0.
+        pose proof (Int.eq_spec a0 ACT_SLIDE_KICK) as X. rewrite Esk in X. rewrite X in DA0.
+        rewrite <- DA0 in Ha. vm_compute in Ha. discriminate Ha. }
+      destruct Hsk as (A0 & S0 & A1 & S1 & T1 & Y1 & V1 & F1 & G1).
+      assert (T30 : (30 <= timer_of c0)%Z).
+      { pose proof (gt30_sound _ DT0 Gt) as G30. fold (timer_of ce) in G30. rewrite T1 in G30.
+        pose proof (tm_nonneg c0) as T0.
+        pose proof (Z.mod_le (timer_of c0 + 1) 65536 ltac:(lia) ltac:(lia)). lia. }
+      set (c2 := mkCells a s t (c_posy c0) (c_vely c0) (c_floorh c0) (c_gfxy c0)).
+      exists c2. split; [| split].
+      + rewrite DY0, Y1 in MY. rewrite DV0, V1 in MV'. rewrite DF0, F1 in MF. rewrite G1 in DG0.
+        exact (mk_read c2 _ LMO MA MS MT MY MV' MF Lg DG0).
+      + apply rt_step. split; [apply (inrange_same c0 c2 IR0); reflexivity |].
+        apply S_switch; [reflexivity | reflexivity | reflexivity |].
+        apply Sw_freefall; [exact Md | apply Rle_refl | right; split; [exact A0 | exact T30]].
+      + intros _. exact FRO. }
+    repeat rewrite andb_true_iff in OK. destruct OK as [[NG NS] CK].
+    (* not slide kick: the step entry is the handler's *)
+    assert (Ece : ce = c0 /\ pas_entry (c_action c0) (state_of c0) = true).
+    { destruct Hpre as [(<- & Ha) | (A0 & _ & A1 & _)]; [split; [reflexivity | exact Ha] |].
+      exfalso. unfold entry_sk in NS. unfold entry_nogp in NG. destruct (ci ea) as [a0|] eqn:C; [| discriminate NG].
+      apply ci_some in C. rewrite C in DA0. cbn [SymExec2.den] in DA0. injection DA0 as DA0.
+      rewrite A1, A0 in DA0. subst a0. rewrite Int.eq_true in NS. discriminate NS. }
+    destruct Ece as [-> Hact0].
     destruct (consts_ok_inv _ _ _ _ CK) as (a & s & t & -> & -> & -> & SW).
     cbn [SymExec2.den] in MA, MS, MT.
     set (c2 := mkCells a s t (c_posy c0) (c_vely c0) (c_floorh c0) (c_gfxy c0)).
     assert (M0' : mode_of c0 = M_Freefall \/ mode_of c0 = M_Air).
-    { apply mode_c0. unfold entry_nogp in NG.
+    { cut (c_action c0 <> ACT_GROUND_POUND).
+      { intros N. destruct (pas_entry_mode _ _ Hact0) as [X | [X | (X & _)]]; auto. contradiction. }
+      unfold entry_nogp in NG.
       destruct (ci ea) as [a0|] eqn:C; [| discriminate NG].
       apply ci_some in C. rewrite C in DA0. cbn [SymExec2.den] in DA0. injection DA0 as <-.
       intros X. rewrite X, Int.eq_true in NG. discriminate NG. }
@@ -912,7 +1112,7 @@ Qed.
 
 Theorem ff_sound : ff_ok nbase R0 kv rM rO kM g = true ->
   exists c2, read_cells bm m c2 /\ MC c0 c2 /\ fro_ff c2.
-Proof. intros OK. exact (ff_soundE _ entry_vals OK). Qed.
+Proof. intros OK. exact (ff_soundE _ _ entry_vals (or_introl (conj eq_refl Hact)) OK). Qed.
 
 (* act_air_hit_wall's outcomes, from any plain-air start: one S_switch *)
 Theorem ahw_sound : mode_of c0 = M_Air -> ahw_ok nbase R0 kv rM rO kM g = true ->
@@ -1012,6 +1212,21 @@ Proof.
   unfold Int.add. rewrite Int.unsigned_one.
   rewrite Int.unsigned_repr by (unfold Int.max_unsigned, Int.modulus; cbn; lia).
   apply Z.mod_small. change (two_p 16) with 65536%Z. lia.
+Qed.
+
+(* (u16)(++actionTimer), with the u16 wrap *)
+Lemma tick16_den : exists tk, den (t_tick16 kv rM) = Some (Vint tk)
+  /\ Int.unsigned tk = ((timer_of c0 + 1) mod 65536)%Z.
+Proof.
+  pose proof entry_vals as EV. cbn [map pkeys mkeys app ic_of cvals] in EV.
+  injection EV as _ _ DT0 _ _ _ _.
+  unfold t_tick16, t_tick. cbn [SymExec2.den]. rewrite DT0. cbv beta iota. rewrite cop_add_u16.
+  cbv beta iota. rewrite cast_u16. cbv beta iota. rewrite cast_u16u16.
+  eexists. split; [reflexivity |].
+  rewrite Int.zero_ext_idem by lia. rewrite Int.zero_ext_mod by (cbn; lia).
+  rewrite Int.add_unsigned, Int.unsigned_one, Int.unsigned_repr_eq.
+  unfold timer_of. change (two_p 16) with 65536%Z.
+  symmetry. apply Zmod_div_mod; [lia | reflexivity | exists 65536%Z; reflexivity].
 Qed.
 
 Local Transparent Float32.of_int.
@@ -1262,7 +1477,7 @@ Proof.
     { unfold pas_entry. apply orb_true_iff. left. apply orb_true_iff. right.
       cbn [launch c_action]. rewrite Ra. reflexivity. }
     destruct (ff_soundE ge nbase Rz gtab kv m0 uf gp gp_old rM rO kM HUM E m g MM HbM (launch c0)
-                Hact1 Hb1 FRO _ EV1 OK) as (c2 & RC2 & MC2 & F2).
+                Hb1 FRO _ _ EV1 (or_introl (conj eq_refl Hact1)) OK) as (c2 & RC2 & MC2 & F2).
     exists c2. split; [exact RC2 | split; [| exact F2]].
     eapply rt_trans; [apply rt_step; split; [exact IR1 | exact Mv] | exact MC2].
 Qed.
@@ -1312,7 +1527,51 @@ Proof.
   assert (Hact1 : pas_entry (c_action ct) (state_of ct) = true).
   { change (pas_entry (c_action c0) (state_of c0) = true). rewrite A0, Hs0. vm_compute. reflexivity. }
   destruct (ff_soundE ge nbase Rz gtab kv m0 uf gp gp_old rM rO kM HUM E m g MM HbM ct
-              Hact1 Hb1 FRO _ EV1 OK) as (c2 & RC2 & MC2 & F2).
+              Hb1 FRO _ _ EV1 (or_introl (conj eq_refl Hact1)) OK) as (c2 & RC2 & MC2 & F2).
   exists c2. split; [exact RC2 | split; [| exact F2]].
   eapply rt_trans; [apply rt_step; split; [exact IR1 | exact Mv] | exact MC2].
+Qed.
+
+(* every outcome of slide kick at state 0 that sk_ok accepts is a MoveChain
+   from the entry cells: the air step from the ticked cells is one move from
+   the pre-tick cells (the catalog's slide-kick clauses fold the u16 tick),
+   or the timer gate's FREEFALL switch *)
+Theorem sk_sound : forall ge nbase Rz gtab kv m0 uf gp
+  (gp_old : forall b x, gp b = Some x -> Plt b (Mem.nextblock m0))
+  rM rO kM (HUM : forall vs, uf kM vs -> MV vs) E m g
+  (MM : MMg ge nbase Rz gtab kv m0 uf gp E m g) (HbM : e_base E rM = Ptrofs.zero)
+  (HO0 : Mem.load Mint32 m0 (e_blk E rM) oMO = Some (Vptr (e_blk E rO) (e_base E rO)))
+  c0 (RC0 : read_cells (e_blk E rM) m0 c0) (Hs0 : state_of c0 = 0%Z) (Hb : budget_ok c0)
+  (FRO : FloorRefreshOK wmotr_floor (R2 (c_posy c0)) (R2 (c_floorh c0))),
+  sk_ok nbase Rz kv rM rO kM g = true ->
+  exists c2, read_cells (e_blk E rM) m c2 /\ MoveChain wmotr_floor wmotr_pole wmotr_cannon c0 c2
+    /\ fro_ff c2.
+Proof.
+  intros. unfold sk_ok in H. apply andb_true_iff in H as [EA H].
+  assert (A0 : c_action c0 = ACT_SLIDE_KICK) by (eapply entry_act; eassumption).
+  apply orb_true_iff in H as [S | OK].
+  - assert (S0 : Int.eq (c_state c0) Int.zero = false) by (eapply st0_sound; eassumption).
+    exfalso. unfold state_of in Hs0. rewrite <- (Int.repr_unsigned (c_state c0)), Hs0 in S0.
+    discriminate S0.
+  - assert (EV : map (SymExec2.den ge m0 E) (map (ic_of kv) (pkeys rM rO)) = map Some (cvals c0))
+      by (eapply entry_vals; eassumption).
+    pose proof EV as EV'. cbn [map pkeys mkeys app ic_of cvals] in EV'.
+    injection EV' as DA0 DS0 DT0 DY0 DV0 DF0 DG0.
+    assert (TK : exists tk, SymExec2.den ge m0 E (t_tick16 kv rM) = Some (Vint tk)
+                   /\ Int.unsigned tk = ((timer_of c0 + 1) mod 65536)%Z)
+      by (eapply tick16_den; eassumption).
+    destruct TK as (tk & Dk & Tk).
+    set (ct := tick_cells c0 tk).
+    assert (EV1 : map (SymExec2.den ge m0 E) (ent_bs kv rM rO) = map Some (cvals ct)).
+    { unfold ent_bs, ent0. cbn [map pkeys mkeys app ic_of cvals].
+      unfold ct, tick_cells. cbn [c_action c_state c_timer c_posy c_vely c_floorh c_gfxy].
+      rewrite DA0, DS0, Dk, DY0, DV0, DF0, DG0. reflexivity. }
+    assert (Hpre : pre_ok c0 ct).
+    { right. unfold sk_pre, ct, tick_cells. cbn [c_action c_state c_timer c_posy c_vely c_floorh c_gfxy].
+      split; [exact A0 | split; [exact Hs0 | split; [reflexivity | split; [reflexivity | split]]]].
+      - unfold timer_of at 1. cbn [c_timer]. exact Tk.
+      - repeat split; reflexivity. }
+    destruct (ff_soundE ge nbase Rz gtab kv m0 uf gp gp_old rM rO kM HUM E m g MM HbM c0
+                Hb FRO _ ct EV1 Hpre OK) as (c2 & RC2 & MC2 & F2).
+    exists c2. split; [exact RC2 | split; [exact MC2 | exact F2]].
 Qed.
