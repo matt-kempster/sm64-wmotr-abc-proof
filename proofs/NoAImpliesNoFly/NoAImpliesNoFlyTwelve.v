@@ -55,7 +55,8 @@ From SM64.Proofs Require Import LinkedTwelve.
 From SM64.Proofs Require Import SpawnInit.
 From SM64.Proofs Require Import InitMemSat.
 From SM64.Proofs Require Import NoAImpliesNoFlyLinked.
-From SM64.Proofs Require GraphNodeBodies MtxfBody FpuFloor OsDmaFloor LptBody BootMWF MathBodies.
+From SM64.Proofs Require GraphNodeBodies MtxfBody SaveFileBody FpuFloor OsDmaFloor LptBody BootMWF
+  MathBodies.
 
 (* The open any-argument object-external list, minus memory.c's two
    segment converters: those are linked (the 15th TU) and pure, so their
@@ -237,8 +238,16 @@ Section NoAImpliesNoFlyTwelve.
       call_pres_ext lp bm (NoA_real bm) MWF fid.
   Hypothesis Hcp_spawn_real : call_pres_ext_sr lp bm (NoA_real bm) MWF SafeB
       behavior_actions._spawn_object.
-  Hypothesis Hcp_savefile_real :
+  (* PROVED 2026-10-21 (was a row): save_file.c and buffers.c are linked
+     (TUs 20 and 21).  save_file_set_cap_pos stores capLevel / capArea through
+     saveFile = &gSaveBuffer.files[gCurrSaveFileNum - 1][0] (a pointer into
+     gSaveBuffer's block, whatever the file number), then calls the real
+     vec3s_set on saveFile->capPos and the real save_file_set_flags, which
+     stores the file's flags and gSaveFileModified.  Both globals are
+     CensusV2.stored_globals, so every store keeps MWF (SaveFileBody). *)
+  Lemma Hcp_savefile_real :
     call_pres_ext lp bm (NoA_real bm) MWF interaction._save_file_set_cap_pos.
+  Proof. exact (SaveFileBody.Hcp_savefile_proved lp H12 bm bc oc0 SafeB HSafeB_syms Hspawn). Qed.
   (* PROVED 2026-10-20 (were rows): init_bully_collision_data and
      transfer_bully_speed are mario_step.c bodies, in the link; they store
      only through their pointer parameters, which the gates put in caller

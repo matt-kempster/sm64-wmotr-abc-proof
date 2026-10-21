@@ -30,6 +30,9 @@ all in `Unwired/`, and the theorem moved nowhere. See
   The two animation rows `Hgeo_real` / `Hocp_rai_real` are lemmas since 2026-10-20
   (`GraphNodeBodies.v`; `graph_node.c` is the 19th TU): their real bodies store only through a
   pointer parameter that the gate pins NULL / puts in a caller stack local.
+  `Hcp_savefile_real` is a lemma since 2026-10-21 (`SaveFileBody.v`; `save_file.c` and
+  `buffers.c` are TUs 20 and 21): every store lands in `gSaveBuffer` / `gSaveFileModified`,
+  both stored globals (TRUST 4.1).
 - **GOAL 2** (WMotR needs A): `WMotRRequiresA/HeightFrame.v`,
   `wmotr_noA_height_bound_linked12`. This is a conditional theorem over ONE WMotR
   visit (frames end with `in_wmotr`), under input with A neither pressed nor held

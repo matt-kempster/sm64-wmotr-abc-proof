@@ -37,7 +37,7 @@
 From Coq Require Import ZArith List Lia.
 From compcert Require Import Coqlib Maps AST Integers Values Events Memory
   Globalenvs Ctypes Cop Clightdefs Clight ClightBigstep Linking Errors.
-From SM64.Generated Require surface_collision math_util memory.
+From SM64.Generated Require surface_collision math_util memory save_file.
 From SM64.Generated Require mario level_update mario_step mario_actions_submerged
   mario_actions_cutscene.
 From SM64.Proofs Require Import SymbolicLinking Flying Taint
@@ -914,7 +914,16 @@ Definition stored_globals : list ident :=
      the received-message cell.  The Clight code only passes their addresses;
      the libultra calls write them (OsDmaFloor).  Data symbols, so the same
      Hglob_blk class keeps them off bm/bc/SafeB. *)
-  memory._gDmaIoMesg :: memory._gDmaMesgQueue :: memory._gMainReceivedMesg :: nil.
+  memory._gDmaIoMesg :: memory._gDmaMesgQueue :: memory._gMainReceivedMesg ::
+  (* the save-file globals (2026-10-21, save_file.c + buffers.c linked):
+     save_file_set_cap_pos stores capLevel / capArea / capPos[0..2] into
+     gSaveBuffer.files[gCurrSaveFileNum - 1][0], and save_file_set_flags
+     stores that file's flags and gSaveFileModified = TRUE.  Data symbols
+     (gSaveBuffer is buffers.c's BSS, gSaveFileModified save_file.c's), so
+     the same Hglob_blk class keeps them off bm/bc/SafeB: the claim, via
+     SpawnInit.non_safeb_syms, is that nothing in the object graph points
+     into the save buffer or at the modified flag. *)
+  save_file._gSaveBuffer :: save_file._gSaveFileModified :: nil.
 
 (* 2026-10-19: the five cutscene OBJECT-POINTER globals.  They left
    stored_globals: MWF does not constrain a stored global's contents, so the

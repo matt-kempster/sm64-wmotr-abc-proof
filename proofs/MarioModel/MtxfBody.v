@@ -313,8 +313,9 @@ Section SW.
   Variables (bd b_out : block) (oo : ptrofs).
   Variable dts : list ident.     (* the temps reloaded from the shadow *)
   Variable call_ok : expr -> list expr -> bool.
+  Variable T : type.             (* dest's pointee type (tfloat, tshort, ..) *)
 
-  Hypothesis He_dest : e ! math_util._dest = Some (bd, tptr tfloat).
+  Hypothesis He_dest : e ! math_util._dest = Some (bd, tptr T).
   Hypothesis Hbo : blk_pres not_tainted bm MWF b_out.
   Hypothesis Hne : b_out <> bd.
   Hypothesis Hcall : forall optid a al le m t le' m' out,
@@ -328,7 +329,7 @@ Section SW.
   Definition sw_set_ok (id : ident) (a : expr) : bool :=
     negb (mem_id id dts) ||
     match a with
-    | Evar x ty => Pos.eqb x math_util._dest && proj_sumbool (type_eq ty (tptr tfloat))
+    | Evar x ty => Pos.eqb x math_util._dest && proj_sumbool (type_eq ty (tptr T))
     | _ => false
     end.
 
@@ -378,9 +379,9 @@ Section SW.
       + rewrite Ht0 in Hchk. cbn [negb orb] in Hchk.
         destruct a as [ | | | | x ty | | | | | | | | | ]; try discriminate Hchk.
         apply andb_prop in Hchk as [Hx Hty]. apply Pos.eqb_eq in Hx. subst x.
-        destruct (type_eq ty (tptr tfloat)); [ subst ty | discriminate Hty ].
+        destruct (type_eq ty (tptr T)); [ subst ty | discriminate Hty ].
         assert (Hx : exec_stmt function_entry2 ge e le m
-                       (Sset id (Evar math_util._dest (tptr tfloat))) E0
+                       (Sset id (Evar math_util._dest (tptr T))) E0
                        (PTree.set id v le) m Out_normal)
           by (eapply exec_Sset; eassumption).
         destruct (sset_shadow_reads _ _ _ _ _ _ _ _ _ _ _ _ _ He_dest Hsh Hx)
@@ -422,20 +423,21 @@ Proof.
 Qed.
 
 (* the body frame of a shadow-dest writer whose destination is a wholly
-   store-safe block that was valid at the call *)
-Lemma sw_body_frame :
+   store-safe block that was valid at the call.  Generic in dest's pointee
+   type T (tfloat for the vec3f writers, tshort for vec3s_set). *)
+Lemma sw_body_frame_T :
   forall (ge : genv) (MWF : mem -> Prop) (bm b_out : block) (oo : ptrofs)
-         (f : Clight.function) ps rest dts call_ok,
+         (T : type) (f : Clight.function) ps rest dts call_ok,
     frame_oracles bm MWF ->
-    fn_vars f = (math_util._dest, tptr tfloat) :: nil ->
-    fn_params f = (math_util._dest, tptr tfloat) :: ps ->
+    fn_vars f = (math_util._dest, tptr T) :: nil ->
+    fn_params f = (math_util._dest, tptr T) :: ps ->
     ~ In math_util._dest (var_names ps) ->
     forallb (fun t => negb (mem_id t (var_names (fn_params f)))) dts = true ->
-    fn_body f = Ssequence (Sassign (Evar math_util._dest (tptr tfloat))
-                                   (Etempvar math_util._dest (tptr tfloat))) rest ->
-    sw_chk dts call_ok rest = true ->
+    fn_body f = Ssequence (Sassign (Evar math_util._dest (tptr T))
+                                   (Etempvar math_util._dest (tptr T))) rest ->
+    sw_chk dts call_ok T rest = true ->
     (forall bd optid a al le m t le' m' out, call_ok a al = true ->
-       exec_stmt function_entry2 ge (PTree.set math_util._dest (bd, tptr tfloat) empty_env)
+       exec_stmt function_entry2 ge (PTree.set math_util._dest (bd, tptr T) empty_env)
          le m (Scall optid a al) t le' m' out -> m' = m) ->
     blk_pres not_tainted bm MWF b_out ->
     forall m vargs t m' vres,
@@ -443,7 +445,7 @@ Lemma sw_body_frame :
       hd_error vargs = Some (Vptr b_out oo) -> Mem.valid_block m b_out ->
       ow_facts bm MWF m -> ow_facts bm MWF m'.
 Proof.
-  intros ge MWF bm b_out oo f ps rest dts call_ok Hor Hvars Hpar Hni Hdts Hbody Hchk
+  intros ge MWF bm b_out oo T f ps rest dts call_ok Hor Hvars Hpar Hni Hdts Hbody Hchk
          Hcall Hbo m vargs t m' vres Hevf Hhd Hbov (Hv & Hsat & Hmwf).
   pose proof (dts_ok_spec _ _ Hdts) as Hdts'.
   destruct Hor as (Halloc & Hfree & HallocB).
@@ -494,16 +496,19 @@ Proof.
     intros t0 b o Ht0 Hle.
     rewrite (bind_parameter_temps_gso _ _ _ _ _ Hbpt (Hdts' _ Ht0)) in Hle.
     apply create_undef_temps_get in Hle. discriminate Hle. }
-  destruct (sw_walk ge _ bm MWF bd b_out oo dts call_ok (PTree.gss _ _ _) Hbo Hbd_bo
+  destruct (sw_walk ge _ bm MWF bd b_out oo dts call_ok T (PTree.gss _ _ _) Hbo Hbd_bo
               (Hcall bd) _ _ _ _ _ _ _ _ HRest eq_refl Hchk Hi0) as ((Hv2 & Hs2 & Hm2) & _ & _).
   rewrite blocks_of_env_mu_dest in Hfl.
   assert (Hforall : Forall (fun blh => let '(b,_,_) := blh in b <> bm)
-                      ((bd, 0, sizeof ge (tptr tfloat)) :: nil))
+                      ((bd, 0, sizeof ge (tptr T)) :: nil))
     by (constructor; [ exact Hbd_bm | constructor ]).
   destruct (vfc_free_list_frame not_tainted bm _ _ _ Hforall Hfl Hv2 Hs2) as (Hvf & Hsf).
   split; [ exact Hvf | split; [ exact Hsf | ] ].
   eapply Hfree; [ exact Hfl | exact Hm2 ].
 Qed.
+
+(* the float instance (the vec3f writers below) *)
+Definition sw_body_frame := fun ge MWF bm b_out oo => sw_body_frame_T ge MWF bm b_out oo tfloat.
 
 (* the three walked writers *)
 Definition sw_rest (f : Clight.function) : statement :=
@@ -521,11 +526,11 @@ Definition sq_call_ok (a : expr) (_ : list expr) : bool :=
   end.
 
 Lemma fvptp_chk :
-  sw_chk fvptp_dts no_call (sw_rest math_util.f_find_vector_perpendicular_to_plane) = true.
+  sw_chk fvptp_dts no_call tfloat (sw_rest math_util.f_find_vector_perpendicular_to_plane) = true.
 Proof. vm_compute. reflexivity. Qed.
-Lemma cross_chk : sw_chk cross_dts no_call (sw_rest math_util.f_vec3f_cross) = true.
+Lemma cross_chk : sw_chk cross_dts no_call tfloat (sw_rest math_util.f_vec3f_cross) = true.
 Proof. vm_compute. reflexivity. Qed.
-Lemma norm_chk : sw_chk norm_dts sq_call_ok (sw_rest math_util.f_vec3f_normalize) = true.
+Lemma norm_chk : sw_chk norm_dts sq_call_ok tfloat (sw_rest math_util.f_vec3f_normalize) = true.
 Proof. vm_compute. reflexivity. Qed.
 
 Lemma nth0_hd : forall (l : list val) v, nth_error l 0 = Some v -> hd_error l = Some v.

@@ -64,6 +64,14 @@ python3 "$(dirname "$0")/canonicalize_anon.py" "$TMP"
 #                             linking math_util, 2026-10-17)
 #   gDebugInfo    0 -> 16    (definer: object_list_processor.c, s16[16][8];
 #                             found when linking it, 2026-10-20)
+#   gDecompressionHeap     0 -> 53248  (definer: buffers.c, u8[0xD000];
+#                                       declared in memory.c)
+#   gGfxSPTaskStack        0 -> 1024   (definer: buffers.c; declared in game_init.c)
+#   gGfxSPTaskYieldBuffer  0 -> 3072   (definer: buffers.c; declared in game_init.c)
+#   gLevelToCourseNumTable 0 -> 38     (definer: save_file.c, s8[LEVEL_COUNT - 1];
+#                                       declared in level_update.c)
+#                             all four found when linking buffers.c and
+#                             save_file.c, 2026-10-21
 python3 - "$TMP" <<'PYEOF'
 import re, sys
 path = sys.argv[1]
@@ -72,6 +80,10 @@ TABLE = [
     ("gMarioStates", r"\(Tstruct _MarioState noattr\)", 1),
     ("gSineTable", r"tfloat", 5120),
     ("gDebugInfo", r"\(tarray tshort 8\)", 16),
+    ("gDecompressionHeap", r"tuchar", 53248),
+    ("gGfxSPTaskStack", r"tuchar", 1024),
+    ("gGfxSPTaskYieldBuffer", r"tuchar", 3072),
+    ("gLevelToCourseNumTable", r"tschar", 38),
 ]
 for name, elt, n in TABLE:
     s2 = re.sub(

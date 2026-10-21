@@ -579,14 +579,14 @@ Definition v_gDemoInputs := {|
 |}.
 
 Definition v_gGfxSPTaskYieldBuffer := {|
-  gvar_info := (tarray tuchar 0);
+  gvar_info := (tarray tuchar 3072);
   gvar_init := nil;
   gvar_readonly := false;
   gvar_volatile := false
 |}.
 
 Definition v_gGfxSPTaskStack := {|
-  gvar_info := (tarray tuchar 0);
+  gvar_info := (tarray tuchar 1024);
   gvar_init := nil;
   gvar_readonly := false;
   gvar_volatile := false
