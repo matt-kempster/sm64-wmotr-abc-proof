@@ -56,7 +56,7 @@ From SM64.Proofs Require Import SpawnInit.
 From SM64.Proofs Require Import InitMemSat.
 From SM64.Proofs Require Import NoAImpliesNoFlyLinked.
 From SM64.Proofs Require GraphNodeBodies MtxfBody SaveFileBody ObjHelpersBodies FpuFloor OsDmaFloor
-  LptBody BootMWF MathBodies ObjExtBodies.
+  LptBody BootMWF MathBodies ObjExtBodies SaveDoSaveBody.
 
 (* The open any-argument object-external list, minus memory.c's two
    segment converters: those are linked (the 15th TU) and pure, so their
@@ -125,18 +125,27 @@ Definition cut_ext_body (i : ident) : bool :=
   (* 2026-10-21: area.c's play_transition stores only non-pointers into
      gWarpTransition / gWarpTrans{Red,Green,Blue,FBSetColor}, globals MWF
      does not read (through the real set_warp_transition_rgb) *)
-  || Pos.eqb i level_update._play_transition.
+  || Pos.eqb i level_update._play_transition
+  (* 2026-10-21: save_file_do_save, walked from its real body through the
+     linked libultra EEPROM C (osEepromLongWrite / osEepromWrite /
+     __osEepStatus / __osPackEepWriteData / the SI access queue /
+     osCreateMesgQueue) down to the hardware/OS floor (bcopy,
+     __osSiRawStartDma, osRecvMesg / osSendMesg, osSetTimer: TRUST 3.5).
+     Every store lands in a block MWF and action_sat never read
+     (SaveDoSaveBody) *)
+  || Pos.eqb i mario_actions_cutscene._save_file_do_save.
 Definition cut_ext_open2_ids : list ident :=
   filter (fun i => negb (cut_ext_body i)) NoAImpliesNoFlyLinked.cut_ext_open_ids.
 
 Lemma cut_ext_open_of2 : forall lp bm bc oc0 SafeB, linked12 lp ->
     SafeB_syms_ok lp SafeB -> (exists init, spawn_ok lp init bm bc oc0) ->
+    OsDmaFloor.os_dma_floor ->
     (forall fid, mem_id fid cut_ext_open2_ids = true ->
        FloorsSurface.call_pres_ext lp bm (NoA_real bm) (MWF_real lp bm bc oc0 SafeB) fid) ->
     forall fid, mem_id fid NoAImpliesNoFlyLinked.cut_ext_open_ids = true ->
       FloorsSurface.call_pres_ext lp bm (NoA_real bm) (MWF_real lp bm bc oc0 SafeB) fid.
 Proof.
-  intros lp bm bc oc0 SafeB H12 Hsy Hsp Hrow fid H.
+  intros lp bm bc oc0 SafeB H12 Hsy Hsp Hfl Hrow fid H.
   destruct (NoAImpliesNoFlyLinked.mem_id_filter_split cut_ext_body fid _ H) as [Hm | Ho];
     [ | exact (Hrow fid Ho) ].
   unfold cut_ext_body in Hm.
@@ -144,6 +153,7 @@ Proof.
   - exact (ObjExtBodies.Hpx_ets lp H12 bm bc oc0 SafeB Hsy Hsp).
   - exact (ObjExtBodies.Hpx_dts lp H12 bm bc oc0 SafeB Hsy Hsp).
   - exact (ObjExtBodies.Hpx_ptr lp H12 bm bc oc0 SafeB Hsy Hsp).
+  - exact (SaveDoSaveBody.Hpx_sfds lp H12 bm bc oc0 SafeB Hsy Hsp Hfl).
 Qed.
 
 (* PROVED 2026-10-21: the two warp-trigger entries whose bodies are linked
@@ -307,16 +317,19 @@ Section NoAImpliesNoFlyTwelve.
   Hypothesis Hpres_obj_ext_open2 : forall fid,
       mem_id fid obj_ext_open2_ids = true ->
       call_pres_ext lp bm (NoA_real bm) MWF fid.
-  (* the any-argument cutscene externals minus the proved time-stop pair
-     (cut_ext_open_of2); save_file_do_save stays here: it calls the unlinked
-     libultra bcopy / osEepromLongWrite, which have no floor on the ledger *)
+  (* the any-argument cutscene externals minus the proved entries
+     (cut_ext_open_of2: the time-stop pair, play_transition, and
+     save_file_do_save, the last down to the libultra floor Hdma_floor) *)
   Hypothesis Hpres_cut_ext_open2 : forall fid,
       mem_id fid cut_ext_open2_ids = true ->
       call_pres_ext lp bm (NoA_real bm) MWF fid.
   Lemma Hpres_cut_ext_open : forall fid,
       mem_id fid NoAImpliesNoFlyLinked.cut_ext_open_ids = true ->
       call_pres_ext lp bm (NoA_real bm) MWF fid.
-  Proof. exact (cut_ext_open_of2 lp bm bc oc0 SafeB H12 HSafeB_syms Hspawn Hpres_cut_ext_open2). Qed.
+  Proof.
+    exact (cut_ext_open_of2 lp bm bc oc0 SafeB H12 HSafeB_syms Hspawn Hdma_floor
+             Hpres_cut_ext_open2).
+  Qed.
   (* PROVED 2026-10-20 (were rows): graph_node.c is linked (the 19th TU), so
      both animation externals are real bodies.  geo_update_animation_frame
      stores only through accelAssist, which the gate pins NULL;

@@ -541,7 +541,7 @@ without pressing A".*
 | # | Item | Status / notes |
 |---|---|---|
 | 2.1 | The decomp C is the game: compiled with IDO 5.3 it reproduces the US ROM byte-for-byte | **Checked** (2026-09-26): `vendor/sm64` @ 9921382 built with `make VERSION=us COMPARE=1` has sha1 `9bef1128…6ce`, which equals the US baserom (`experiments/oracle/README.md`). Covers the *default* preprocessing only; see 2.2. |
-| 2.2 | **We verify a different preprocessing of that C.** The ROM is IDO-compiled vendor C. The proof's C adds `-DNON_MATCHING=1 -DAVOID_UB=1` and force-includes `pipeline/proof_n64.h` (every TU except `shadow.c`) | **Itemized: every site is in the register below.** `tools/ub_sites.py` preprocesses every generated TU both ways (ROM: `-D__sgi`, as IDO predefines it; proof: our flags) with clightgen's own preprocessor, and diffs them. Its output is committed as `docs/ub-sites.txt`. A new site cannot enter silently: regenerate that file and the diff shows it. |
+| 2.2 | **We verify a different preprocessing of that C.** The ROM is IDO-compiled vendor C. The proof's C adds `-DNON_MATCHING=1 -DAVOID_UB=1` and force-includes `pipeline/proof_n64.h` (every game TU except `shadow.c`; not the six libultra TUs, whose recipe `ULTRA_CG` is the game's own `lib/src` flag set, 2026-10-21) | **Itemized: every site is in the register below.** `tools/ub_sites.py` preprocesses every generated TU both ways (ROM: `-D__sgi`, as IDO predefines it; proof: our flags) with clightgen's own preprocessor, and diffs them. Its output is committed as `docs/ub-sites.txt`. A new site cannot enter silently: regenerate that file and the diff shows it. |
 | 2.3 | `clightgen` (CompCert's *unverified* front end: parser, elaborator, `-normalize`) translates that C faithfully | ASSUMED, **TETHERED on sampled paths**. 267 real frames over 15 actions run through the generated Clight and reproduce the game's memory byte for byte (§5.1). This is evidence for the translation of the code those frames exercise, not proof. |
 | 2.4 | Our post-processing of the generated `.v` is semantics-preserving: stringlit renaming, anonymous-composite renaming (`canonicalize_anon.py`), completing extern incomplete arrays | ASSUMED. Each is a documented rename or type completion. (2026-10-20: `gDebugInfo` joined the extern-array completion table, `s16 gDebugInfo[][8]` → `[16][8]`, its size in `object_list_processor.c`, the 17th TU; `behavior_actions.v` and `object_helpers.v` regenerated, two-line diffs. 2026-10-21: four more, found linking `save_file.c` and `buffers.c` (TUs 20 and 21): `gDecompressionHeap` 0 → 53248 and `gGfxSPTaskStack` / `gGfxSPTaskYieldBuffer` 0 → 1024 / 3072 (`u8`, sized in `buffers.c`; declared in `memory.c` / `game_init.c`), `gLevelToCourseNumTable` 0 → 38 (`s8[LEVEL_COUNT - 1]`, sized in `save_file.c`; declared in `level_update.c`); `memory.v`, `game_init.v`, `level_update.v` regenerated, diffs exactly those four `gvar_info` lines. 2026-10-21, linking `area.c` (the 23rd TU): `gPlayerSpawnInfos` 0 → 1 (`struct SpawnInfo[1]`, sized in `area.c`; declared in `mario.c` / `level_update.c`); `mario.v`, `level_update.v` regenerated, diffs exactly that `gvar_info` line.) Could be proved (rename = alpha-equivalence) or regenerated and diffed. |
 | 2.6 | `object_helpers.c` is clightgen'd with `-flongdouble` (a `1.0l` literal in a debug function) | Equivalence: IDO's o32 ABI makes `long double` a 64-bit double, as `-flongdouble` does. |
@@ -568,6 +568,7 @@ link grows.
 | Census-only TUs (`obj_behaviors`, `obj_behaviors_2`, `object_helpers`; used by `BehaviorScripts.v`'s static object census, never executed by the proof. 2026-10-21: `object_helpers` is now linked, the 22nd TU; its entries in this row are only the typing equivalences at `object_helpers.c:136,170,957,963`, none of them picked values): uninitialized locals set to 0 (`bowling_ball.inc.c:84,118`, `manta_ray.inc.c:47`, `mips.inc.c:118`, `snowman.inc.c:58`, `camera_lakitu.inc.c:65`), `wiggler.inc.c:154` `oHealth = 4`, `obj_perform_position_op` `u32`→`void` (`obj_behaviors_2.c:127`), and the definitions matching the `object_helpers.h` rows (`object_helpers.c:136,170,957,963`) | as in the ROM | as in the proof | **picked value: must become any-value** (the zero-inits, `oHealth`); equivalence (typing) for the rest | Stack garbage / an unset field in the ROM. The census reads these bodies only for which behaviors they spawn and which interaction types they store; none of these lines does either, so the census result is the same under any value. If this code is ever executed by a proof, replace them with any-value externals. |
 | `shadow.c:191` missing return | falls off the end | `return waterLevel` | not yet checked | `shadow.c` is not linked. Assembly check needed before it is used. |
 | `detect_object_hitbox_overlap` / `detect_object_hurtbox_overlap` fall off the end when the objects miss horizontally (`object_collision.c:61,96`, `//! no return value`) | returns whatever is in the return register | `return 0;` | **any-value by statement**: `overlap_no_contact` leaves the returned value unspecified | Used by `CoinLink.v`, whose conclusion is "returns, memory unchanged" with the value existentially quantified, so it holds for any value the ROM returns. Contact is registered only on the `return 1` path, which the theorem excludes. Whoever consumes the result must also allow any value: in the ROM, a non-zero garbage return makes `check_collision_in_list` call `detect_object_hurtbox_overlap`, whose only store is `b->oInteractionSubtype` (the invincibility-delay bit), and that registers no contact. |
+| `__osThreadTail` (`lib/src/libultra_internal.h:11`; used by the linked libultra TU `osCreateMesgQueue.c:4,5`; found 2026-10-21 by running `tools/ub_sites.py`'s ROM/proof diff on the six libultra TUs, the only hunk) | `extern OSThread *__osThreadTail;` (and four more separate externs); `mq->mtqueue = (OSThread *) &__osThreadTail` | `extern OSThread_ListHead __osThreadTail_fix;` with the five names `#define`d to its fields; `&__osThreadTail_fix.next` | equivalence (layout) | `__osThreadTail_fix.next` is at offset 0, and the asm aliases the symbol (`__osExceptionPreamble.s:21`, `.set __osThreadTail, __osThreadTail_fix`), so the stored address is the same. The walk (`SaveDoSaveBody`) does not depend on the value: the store lands in `gOsSiMessageQueue`, a stored global. |
 | `mtxf_to_mtx` (`math_util.c:577`) | register/fixed-point implementation | portable C | not yet checked | `math_util` is not in the link (its callers go through the external-call rows, 4.1). Needs an equivalence check before linking. |
 
 ## 3. C semantics versus what the N64 actually does
@@ -577,7 +578,7 @@ link grows.
 | 3.1 | CompCert's C semantics agrees with IDO-compiled MIPS on the code in scope: evaluation order, integer promotions, float rounding (single vs double), float→int casts | ASSUMED, **TETHERED on sampled paths**. Across 267 completed real frames, 0 differ in memory and 0 diverge in external calls or arguments, including float arguments passed bit-exact to `find_floor`, `atan2s` and others (§5.1). |
 | 3.2 | **Undefined behavior means "no execution" in CompCert.** If a real frame hits UB (uninitialized read, out-of-range float→s16), the model has *no* derivation for it, and a "for all executions" theorem says **nothing** about that frame | **Closed for the one measured site; open in general.** §5.1 measured 33 of 300 real WMotR frames (11%) with no CompCert execution, all from `VIRTUAL_TO_PHYSICAL(ptr)` (`macros.h:64`, `(uintptr_t)ptr & 0x1FFFFFFF`) in `set_mario_animation` / `set_mario_anim_with_accel`. Details: [row 3.2 in detail](#row-32-in-detail). |
 | 3.3 | Concurrency: the game thread is the only writer of the state we reason about, and frames don't interleave with other threads' writes (audio, VI/PI interrupts, controller reads via `osContGetReadData`) | ASSUMED. The input buffer is written by the controller path. **Observed** (§5.1 recordings): during a single `execute_mario_action` call, the PI manager thread, DMA into `gMarioAnimsBuf` (Mario's animation data), thread save areas and `gZBuffer` all change. So Mario's *animation buffer* is filled by DMA mid-call. Needs an argument (likely: those threads write only buffers the game thread copies at a fixed point). |
-| 3.5 | **The libultra DMA floor** (`OsDmaFloor.os_dma_floor`, a premise of the Twelve and HeightFrame capstones). For `osInvalDCache`, `osPiStartDma`, `osRecvMesg`: the arguments are pointers where the C passes addresses (other shapes: no execution, as 3.2); nothing changes outside the argument ranges (the DMA destination range, the 20-byte OSIoMesg, the 24-byte OSMesgQueue, the 4-byte received-message cell); the DMA destination range does not wrap past the top of the address space (on the N64 every DMA buffer is in RDRAM; added 2026-10-20, used by the `set_mario_animation` footprint `SmaFoot.sma_foot`); no block is allocated or freed and no permission changes; DMA'd bytes are data (`Byte` memvals), and `osInvalDCache` leaves each byte of its range as it was or as data. The whole transfer is attributed to `osPiStartDma`: between it and the blocking `osRecvMesg` the game thread reads nothing. | ASSUMED, **the floor: there is no C below it.** `osRecvMesg` yields the thread (`__osEnqueueAndYield`, asm); the PI manager thread starts the transfer by writing PI registers; the bytes arrive by hardware DMA. Details: [row 3.5 in detail](#row-35-in-detail). |
+| 3.5 | **The libultra OS / hardware floor** (`OsDmaFloor.os_dma_floor`, a premise of the Twelve and HeightFrame capstones; widened 2026-10-21 from the DMA floor). Seven external calls, each bounding every execution (other argument shapes: no execution, as 3.2; no block allocated or freed, no permission change, in every clause). `osInvalDCache(p, n)`: nothing outside the n bytes at p changes, each of them stays or becomes data (`Byte` memvals), and p + n does not wrap. `osPiStartDma(mb, pri, dir, dev, dst, n, mq)`: nothing outside the n bytes at dst, the 20-byte OSIoMesg and the 24-byte queue changes; the n bytes become data; dst + n does not wrap (on the N64 every DMA buffer is in RDRAM; added 2026-10-20, used by `SmaFoot.sma_foot`). The whole PI transfer is attributed to `osPiStartDma`: between it and the blocking `osRecvMesg` the game thread reads nothing. `osRecvMesg(mq, cell, fl)` (cell NULL or a pointer): **per queue** (`q_side`): for `gDmaMesgQueue` / `gSIEventMesgQueue` nothing outside the queue and the 4-byte cell changes; for `gOsSiMessageQueue` also `osSiMesgBuff`; for `__osEepromTimerQ` also `__osEepromTimerMsg` and `__osEepromTimer`; other queues unconstrained. `osSendMesg(mq, msg, fl)`: the same per-queue bound without the cell. `osSetTimer(t, ...)`: for `t = &__osEepromTimer`, nothing outside its 32 bytes. `__osSiRawStartDma(dir, p)`: nothing outside the 64 bytes at p changes, each stays or becomes data. `bcopy(src, dst, n)`: nothing outside the n bytes at dst changes, and they then hold the n bytes src held. | ASSUMED, **the floor: there is no C below it**, except `osSetTimer`, a **coarser floor** (its C, `osSetTimer.c` / `osTimer.c`, walks the OS timer list through libultra's own pointers and is not linked). Below the rest: asm (`bcopy.s`, `__osEnqueueAndYield` and the thread queues: `osRecvMesg` / `osSendMesg` yield the thread), the PI manager thread and SI / PI register writes, and the bytes arriving by hardware DMA. Details: [row 3.5 in detail](#row-35-in-detail). |
 | 3.4 | Lag frames and frame pacing don't matter (the theorem is per *game-logic* frame) | ASSUMED, probably easy. |
 
 ### Row 3.2 in detail
@@ -603,6 +604,41 @@ link grows.
   is about the modeled memory only. Writes by other threads while the game thread blocks are 3.3
   (among modeled globals, the audio thread's `gAudioRandom`). Consumer: `LptBody` (the GOAL-1
   `load_patchable_table` row).
+- **Widened 2026-10-21 for `save_file_do_save`** (consumer `SaveDoSaveBody`, both capstones through
+  `cut_ext_open_of2`). The libultra C of the EEPROM write path is now linked (six TUs, 4.1), so the
+  floor moved to where that C stops:
+  - `bcopy` (`lib/asm/bcopy.s`, asm): stores the n bytes it read at src to dst and nothing else;
+    an overlapping copy behaves as memmove. A libultra floor, not a hardware one.
+  - `__osSiRawStartDma` (C, but not linkable as an execution: its body is `IO_WRITE`s to the SI
+    registers, stores to integer addresses that have no CompCert execution, plus the asm cache
+    ops `osWritebackDCache` / `osInvalDCache`): the SI DMA moves the 64-byte PIF RAM image at
+    addr (`__osEepPifRam`), so only those bytes change, to data or not at all. The read
+    transfer is attributed to the call, as `osPiStartDma`'s is.
+  - `osRecvMesg` / `osSendMesg`: their C reads and writes the thread queues
+    (`__osThreadTail_fix`, defined in asm, size 0 in the model) and yields
+    (`__osEnqueueAndYield`, asm), so they stay below the floor. The bound is per queue (`q_side`)
+    and lists the linked memory a wait or send on that queue changes: the queue, the cell, the
+    queue's own message buffer when it is linked (`osSiMesgBuff`, `__osEepromTimerMsg`), and for
+    `__osEepromTimerQ` the timer that the timer interrupt (`osTimer.c`, unlinked) unlinks while
+    the game thread waits.
+  - `osSetTimer`: **a coarser floor than the C allows.** `__osInsertTimer` rewrites the active
+    timer list through pointers libultra keeps in it, which no invariant here describes, so
+    `osSetTimer.c` is not linked. The stated bound (only the 32 bytes of `__osEepromTimer` change
+    in linked memory) relies on the list holding no other linked OSTimer: every `osSetTimer`
+    caller in the decomp (`osContInit.c`'s stack timer, `osEepromLongRead`, `osEepromLongWrite`)
+    blocks on the timer's queue until it fires and is unlinked, so at the call the list holds
+    only `__osBaseTimer` (`osTimer.c`, outside the modeled memory).
+- **FOUND 2026-10-21 (false claim, repaired):** the old `osRecvMesg` clause was universal
+  ("nothing outside the queue and the cell changes", for every queue). That is false for
+  `game_init.c`'s `gGameVblankQueue`: its buffer `gGameMesgBuf` is linked memory, and the VI
+  handler writes it while the game thread waits. The clause is now per queue, listing each
+  queue's linked side buffers, and says nothing about unlisted queues (none of them is called by
+  a walked body). The old clause also required the cell to be a pointer, so the EEPROM calls
+  (`osRecvMesg(mq, NULL, 1)`) had no execution: a row resting on it would have been vacuous for
+  them. The cell may now be NULL.
+- **The storage the path touches is linked**, or the path would have no execution (a phantom):
+  `osContInit.c` (`__osContLastCmd`, `__osEepromTimer` / `__osEepromTimerQ` /
+  `__osEepromTimerMsg`) and `osInitialize.c` (`osClockRate`) are TUs 28 and 29.
 - **The FPU floor (load-bearing since 2026-10-20: `HeightFrame` premises `Hsqrtf` / `Hsqrtf_float`,
   consumed by the proved freefall MoveChain `FfRow.ff_moves`):** `FpuFloor.sqrtf_spec`, a call of
   `sqrtf` leaves memory unchanged (on the N64 it is the VR4300 `sqrt.s` instruction; no claim about
@@ -624,7 +660,7 @@ link grows.
 
 | # | Item | Status / notes |
 |---|---|---|
-| 4.1 | Functions outside the 23 linked files (audio, camera, save file, object spawning) behave as the capstone's rows say (`Hocp_*`, `Hpres_*`, `Hext_*`, …) | **ASSUMED, the ~30 project rows.** Shrinks by linking more files until only truly external things remain. Details: [row 4.1 in detail](#row-41-in-detail). |
+| 4.1 | Functions outside the 29 linked files (23 game TUs + 6 libultra TUs; audio, camera, object spawning) behave as the capstone's rows say (`Hocp_*`, `Hpres_*`, `Hext_*`, …) | **ASSUMED, the ~30 project rows.** Shrinks by linking more files until only truly external things remain. Details: [row 4.1 in detail](#row-41-in-detail). |
 | 4.2 | CompCert's `external_functions_sem` is an abstract Parameter. Anything left external is constrained *only* by our rows | Permanent for whatever stays external. The goal is that nothing game-logic stays external. |
 | 4.3 | Level data (WMotR collision triangles, object placements, the red-coin positions) is what the ROM contains | Not yet in scope at all. Can be clightgen'd like code (`levels/wmotr/*.inc.c`). |
 | 4.4 | The proof's internal vocabulary (`MWF_real`, `SafeB`, `call_pres_ext_*`) appears in the *statement's* hypotheses | Anti-goal: a reader shouldn't have to understand proof internals to know what's assumed. Rows must eventually be about the game, or be gone. |
@@ -945,33 +981,28 @@ link grows.
   (via `SpawnInit.non_safeb_syms`, `HSafeB_syms` now also says nothing in the object graph points
   at them; they are plain integer data, and `BootMWF` / `StartSat` re-prove the boot state with
   them). No row was false.
-- **Still open:** `save_file_do_save` (in `cut_ext_open2_ids`) is linked, but it calls `bcopy` and,
-  through `write_eeprom_data`, `osEepromLongWrite`, both unlinked libultra externals with no floor on
-  this ledger; proving it would need a new bcopy / EEPROM floor row (not added). GOAL 1's
-  from-boot lemma no longer uses the open row for its one call: `boot_init_mem_ok` takes the proved
-  `Hpx_total_star_count`.
-- **Scope of closing it (surveyed 2026-10-21, not started).** Under the user's rule (link the real
-  C, stop at a hardware spec), the chain below `save_file_do_save` is:
-  - in `save_file.c` (linked): `add_save_block_signature` (stores through its `buffer` parameter,
-    a pointer into `gSaveBuffer`, so the walk must track parameter provenance, not just global
-    chains), `save_main_menu_data`, and `write_eeprom_data` (reads `gEepromProbe`, passes
-    `&gSIEventMesgQueue`, computes `offset` by pointer subtraction within `gSaveBuffer`, then loops
-    `osEepromLongWrite` up to 4 times);
-  - `bcopy` is assembly (`lib/asm/bcopy.s`): the first floor, "`bcopy(src, dst, n)` stores the n
-    bytes read at src to dst and changes nothing else" (a libultra floor like 3.5, not a
-    hardware one);
-  - libultra C to link as new TUs, each needing its own clightgen recipe (libultra's flags and
-    headers, not the game's): `osEepromLongWrite.c` (calls `osEepromWrite`, `osSetTimer`,
-    `osRecvMesg`); `osEepromWrite.c` (`__osPackEepWriteData`, `__osEepStatus`,
-    `__osEepPifRam`, `__osSiRawStartDma`, `osRecvMesg`); `__osSiCreateAccessQueue.c`
-    (`__osSiGetAccess` / `__osSiRelAccess`: `osCreateMesgQueue`, `osSendMesg`, `osRecvMesg`);
-    `osSetTimer.c` (`__osInsertTimer`, `__osSetTimerIntr`, the timer list);
-  - the hardware floor sits at `__osSiRawStartDma` (its `IO_WRITE`s to the SI registers are stores
-    to integer addresses, which have no CompCert execution) plus `osWritebackDCache` /
-    `osInvalDCache` (asm) and the PIF reply; and the OS floor needs `osRecvMesg` widened past
-    3.5's DMA use, plus `osSendMesg` and the timer interrupt (asm `__osDisableInt` etc.).
-  So it is several new TUs and three or four new floor rows (bcopy, SI DMA / PIF, message queues,
-  timer).
+- **PROVED 2026-10-21: `save_file_do_save`** (was the last linked entry of `cut_ext_open2_ids`; now
+  `SaveDoSaveBody.Hpx_sfds`, discharged in `NoAImpliesNoFlyTwelve.cut_ext_open_of2` for both
+  capstones). Its call tree is walked from the generated bodies: `save_file.c`'s
+  `save_file_do_save`, `add_save_block_signature`, `calc_checksum`, `save_main_menu_data`,
+  `write_eeprom_data`, and six new libultra TUs (recipe `ULTRA_CG`, see 2.2):
+  `osEepromLongWrite.c`, `osEepromWrite.c` (`osEepromWrite`, `__osEepStatus`,
+  `__osPackEepWriteData`), `__osSiCreateAccessQueue.c` (`__osSiCreateAccessQueue`,
+  `__osSiGetAccess`, `__osSiRelAccess`), `osCreateMesgQueue.c`, and the storage TUs `osContInit.c` /
+  `osInitialize.c` (`LinkedTwelve.tu_rest` indices 22 to 27; `Linked12Sat`, `InitMemSat`, `BootMWF`
+  re-checked for 29 TUs). It stops at the floor 3.5 (widened): `bcopy`, `__osSiRawStartDma`,
+  `osRecvMesg` / `osSendMesg`, `osSetTimer` (coarser). The argument: every byte the tree writes is
+  in a block that `MWF_real` and `action_sat` never read (not Mario's, not the controller's, not
+  SafeB, not a watched symbol), whatever the value: stored globals, fresh stack locals
+  (`eepromformat`, `sdata`, `requestformat`, `sp1c`), or pointers derived from those, tracked by a
+  checked value class through temps and parameters (the queue arguments also carry their
+  `q_side` queue). For any argument: `fileIndex` only offsets the `gSaveBuffer` pointer.
+  New stored globals (`CensusV2.stored_globals`, same class as the rest: plain data nothing in the
+  object graph points at): `gSIEventMesgQueue` (main.c, extern), `gOsSiMessageQueue`,
+  `osSiMesgBuff`, `gOsSiAccessQueueCreated`, `__osEepromTimer`, `__osEepromTimerQ`,
+  `__osEepromTimerMsg`, `__osContLastCmd`, `__osEepPifRam`. No row was false; the floor's recv
+  clause was (3.5). GOAL 1's from-boot lemma `boot_init_mem_ok` still takes the proved
+  `Hpx_total_star_count` for its one call.
 - **Reachability (checked 2026-10-21): the row cannot be gated away in GOAL 1.** The walked call
   sites are `handle_save_menu` (from `act_exit_land_save_dialog`) and
   `general_star_dance_handler` (from `act_star_dance` / `act_star_dance_water`); the

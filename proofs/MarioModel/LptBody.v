@@ -28,7 +28,9 @@ From SM64.Generated Require mario mario_actions_stationary mario_actions_moving
   mario_actions_airborne mario_actions_submerged mario_actions_cutscene
   mario_actions_automatic mario_actions_object interaction behavior_actions
   level_update mario_step surface_collision math_util memory game_init
-  object_list_processor audio_data graph_node save_file buffers object_helpers area.
+  object_list_processor audio_data graph_node save_file buffers object_helpers area
+  libultra_osEepromLongWrite libultra_osEepromWrite libultra_osSiCreateAccessQueue
+  libultra_osCreateMesgQueue libultra_osContInit libultra_osInitialize.
 From SM64.Proofs Require Import SymbolicLinking ActionValueFrame AGates Taint
   RealFrameLinked RealFrameValue CensusV2 MWFReal OsDmaFloor ActWriterSurface LinkedTwelve.
 From SM64.Proofs Require OutParamSurface RestSurface.
@@ -315,6 +317,18 @@ Lemma os_ni_object_helpers : no_internal_ids object_helpers.prog os_ids = true.
 Proof. vm_compute. reflexivity. Qed.
 Lemma os_ni_area : no_internal_ids area.prog os_ids = true.
 Proof. vm_compute. reflexivity. Qed.
+Lemma os_ni_ultra_elw : no_internal_ids libultra_osEepromLongWrite.prog os_ids = true.
+Proof. vm_compute. reflexivity. Qed.
+Lemma os_ni_ultra_ew : no_internal_ids libultra_osEepromWrite.prog os_ids = true.
+Proof. vm_compute. reflexivity. Qed.
+Lemma os_ni_ultra_si : no_internal_ids libultra_osSiCreateAccessQueue.prog os_ids = true.
+Proof. vm_compute. reflexivity. Qed.
+Lemma os_ni_ultra_cmq : no_internal_ids libultra_osCreateMesgQueue.prog os_ids = true.
+Proof. vm_compute. reflexivity. Qed.
+Lemma os_ni_ultra_ci : no_internal_ids libultra_osContInit.prog os_ids = true.
+Proof. vm_compute. reflexivity. Qed.
+Lemma os_ni_ultra_init : no_internal_ids libultra_osInitialize.prog os_ids = true.
+Proof. vm_compute. reflexivity. Qed.
 
 Definition ext_named (o : option (globdef Clight.fundef type)) (n : String.string) : bool :=
   match o with
@@ -488,7 +502,7 @@ Section LptFrame.
       destruct (link_chain_internal_origin _ _ _ _ _ Hlink Hdm')
         as [Hbase | (q & Hq & Hqdm)].
       + exact (no_internal_ids_correct _ _ _ _ os_ni_mario Hid Hbase).
-      + destruct Hq as [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | []]]]]]]]]]]]]]]]]]]]]]].
+      + destruct Hq as [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | []]]]]]]]]]]]]]]]]]]]]]]]]]]]].
         * exact (no_internal_ids_correct _ _ _ _ os_ni_sta Hid Hqdm).
         * exact (no_internal_ids_correct _ _ _ _ os_ni_mov Hid Hqdm).
         * exact (no_internal_ids_correct _ _ _ _ os_ni_air Hid Hqdm).
@@ -511,6 +525,12 @@ Section LptFrame.
         * exact (no_internal_ids_correct _ _ _ _ os_ni_buffers Hid Hqdm).
         * exact (no_internal_ids_correct _ _ _ _ os_ni_object_helpers Hid Hqdm).
         * exact (no_internal_ids_correct _ _ _ _ os_ni_area Hid Hqdm).
+        * exact (no_internal_ids_correct _ _ _ _ os_ni_ultra_elw Hid Hqdm).
+        * exact (no_internal_ids_correct _ _ _ _ os_ni_ultra_ew Hid Hqdm).
+        * exact (no_internal_ids_correct _ _ _ _ os_ni_ultra_si Hid Hqdm).
+        * exact (no_internal_ids_correct _ _ _ _ os_ni_ultra_cmq Hid Hqdm).
+        * exact (no_internal_ids_correct _ _ _ _ os_ni_ultra_ci Hid Hqdm).
+        * exact (no_internal_ids_correct _ _ _ _ os_ni_ultra_init Hid Hqdm).
   Qed.
 
   (* the external call a libultra Scall makes *)
@@ -664,24 +684,34 @@ Section LptFrame.
     intros le m t le' m' out tl tr cc g1t g1t' g2t g2t' x2 H Hf.
     destruct (os_call_ext memory._osRecvMesg "osRecvMesg" _ _ _ _ _ _ _ _ eq_refl os_recv_named H eq_refl)
       as (sg & tyargs & vargs & vres & Hel & Hx).
-    destruct Hfloor as (_ & _ & Hrv).
-    destruct (Hrv _ _ _ _ _ _ _ Hx) as (bq & oq & bmsg & omsg & fl & -> & UO & SP).
+    destruct Hfloor as (_ & _ & Hrv & _).
+    destruct (Hrv _ _ _ _ _ _ _ Hx) as (bq & oq & cell & fl & -> & _ & SP & UOq).
     inv Hel.
     match goal with Hv : eval_expr _ _ _ _ (Eaddrof (Evar memory._gDmaMesgQueue _) _) _,
                     Hc : sem_cast _ _ _ _ = Some (Vptr bq oq) |- _ =>
-      pose proof (arg_glob _ _ memory._gDmaMesgQueue _ _ _ _ _ _ eq_refl Hv Hc) as Gq end.
+      pose proof (arg_glob _ _ memory._gDmaMesgQueue _ _ _ _ _ _ eq_refl Hv Hc) as Gq;
+      apply (sem_cast_vptr_inv _ _ _ _ _ _) in Hc; subst;
+      destruct (addrof_glob_val _ _ _ _ _ _ Hv) as (bq' & Hsq & Eq);
+      injection Eq as <- _ end.
+    (* the DMA queue's row of q_side: nothing besides the queue and the cell *)
+    pose proof (UOq memory._gDmaMesgQueue [] eq_refl Hsq) as UO.
     repeat match goal with H : eval_exprlist _ _ _ _ (_ :: _) _ _ |- _ => inv H end.
-    match goal with Hv : eval_expr _ _ _ _ (Eaddrof (Evar memory._gMainReceivedMesg _) _) _,
-                    Hc : sem_cast _ _ _ _ = Some (Vptr bmsg omsg) |- _ =>
-      pose proof (arg_glob _ _ memory._gMainReceivedMesg _ _ _ _ _ _ eq_refl Hv Hc) as Gm end.
+    assert (Gm : forall bk ok, cell = Vptr bk ok -> is_sglob bk).
+    { intros bk ok ->.
+      match goal with Hv : eval_expr _ _ _ _ (Eaddrof (Evar memory._gMainReceivedMesg _) _) _,
+                      Hc : sem_cast _ _ _ _ = Some (Vptr bk ok) |- _ =>
+        exact (arg_glob _ _ memory._gMainReceivedMesg _ _ _ _ _ _ eq_refl Hv Hc) end. }
     apply (os_change_facts (fun b z => ~ (outside bq oq SZ_MESGQ b z
-                                          /\ outside bmsg omsg 4 b z)) m m' Hf);
+                                          /\ cell_out cell b z
+                                          /\ not_side (Genv.to_senv (lp_ge lp)) [] b)) m m' Hf);
       [ exact (unch_nn _ _ _ UO) | exact SP | ].
     intros b z Hw. right.
     destruct (classic (outside bq oq SZ_MESGQ b z)) as [O1 | O1].
-    - destruct (classic (outside bmsg omsg 4 b z)) as [O2 | O2];
-        [ exfalso; exact (Hw (conj O1 O2)) | ].
-      destruct (not_outside _ _ _ _ _ O2) as [-> _]. exact Gm.
+    - destruct cell as [ | | | | | bk ok ];
+        try (exfalso; apply Hw; split; [ exact O1 | split; [ exact I | intros s [] ] ]).
+      destruct (classic (outside bk ok 4 b z)) as [O2 | O2];
+        [ exfalso; apply Hw; split; [ exact O1 | split; [ exact O2 | intros s [] ] ] | ].
+      destruct (not_outside _ _ _ _ _ O2) as [-> _]. exact (Gm _ _ eq_refl).
     - destruct (not_outside _ _ _ _ _ O1) as [-> _]. exact Gq.
   Qed.
 

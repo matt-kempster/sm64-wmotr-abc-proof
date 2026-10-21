@@ -1,5 +1,5 @@
 (* ====================================================================== *)
-(* OsDmaFloor.v -- the hardware/OS floor under load_patchable_table      *)
+(* OsDmaFloor.v -- the hardware/OS floor under the linked libultra C      *)
 (*                                                                        *)
 (* memory.c's dma_read is the game's only path to ROM data, and it ends   *)
 (* in three libultra calls: osInvalDCache, osPiStartDma, osRecvMesg.      *)
@@ -28,10 +28,46 @@
 (* blocking osRecvMesg the game thread only returns and makes the call,   *)
 (* reading nothing, so that order describes every interleaving the game  *)
 (* thread can observe.  Other threads' writes are TRUST 3.3.              *)
+(*                                                                        *)
+(* WIDENED 2026-10-21 (save_file_do_save; the libultra EEPROM C is now    *)
+(* linked: osEepromLongWrite / osEepromWrite / __osEepStatus /            *)
+(* __osPackEepWriteData / the SI access queue / osCreateMesgQueue).  The  *)
+(* floor is where that C stops:                                           *)
+(*   - bcopy (lib/asm/bcopy.s): stores the n bytes it read at src to dst, *)
+(*     and nothing else (an overlapping copy behaves as memmove);         *)
+(*   - __osSiRawStartDma: its body is SI register IO_WRITEs (stores to    *)
+(*     integer addresses: no CompCert execution) and the cache ops; the   *)
+(*     SI DMA moves the 64-byte PIF RAM image at addr, so only those 64   *)
+(*     bytes change, to data bytes or not at all (the read transfer is    *)
+(*     attributed to the call, as osPiStartDma's is above);               *)
+(*   - osRecvMesg / osSendMesg: their C reads and writes the thread       *)
+(*     queues (__osThreadTail_fix / __osRunningThread, defined in asm)    *)
+(*     and yields (__osEnqueueAndYield, asm), so they stay below the      *)
+(*     floor.  osRecvMesg's message-cell argument may be NULL (the        *)
+(*     EEPROM calls pass NULL; the old spec gave such calls no            *)
+(*     execution).  What a wait / send changes is stated per queue, for   *)
+(*     the queues the walked code uses (q_side): the queue, the cell,     *)
+(*     and the queue's own message buffer when that buffer is linked      *)
+(*     memory; for __osEepromTimerQ also the EEPROM timer, which the      *)
+(*     timer interrupt unlinks while the game thread waits on it.  Calls  *)
+(*     on any other queue are not constrained.  FOUND 2026-10-21: the old *)
+(*     universal form was false for game_init.c's gGameVblankQueue,       *)
+(*     whose buffer gGameMesgBuf is linked memory that the VI handler     *)
+(*     writes during the wait;                                            *)
+(*   - osSetTimer: its callee __osInsertTimer walks and rewrites the OS   *)
+(*     timer list through the pointers libultra keeps in it (osTimer.c,   *)
+(*     not linked; the timer interrupt, asm, drives it), which no         *)
+(*     invariant here describes.  A COARSER floor than the C allows:      *)
+(*     setting the EEPROM timer changes only its 32 bytes in the linked   *)
+(*     memory (its list neighbour is __osBaseTimer, in osTimer.c).        *)
+(* Every clause is about modeled memory only; writes by other threads are *)
+(* TRUST 3.3.                                                             *)
 (* ====================================================================== *)
 
 From Coq Require Import ZArith List String.
-From compcert Require Import Coqlib Maps AST Integers Values Memory Events.
+From compcert Require Import Coqlib Maps AST Integers Values Memory Events Globalenvs.
+From SM64.Generated Require memory save_file libultra_osSiCreateAccessQueue
+  libultra_osContInit.
 Import ListNotations.
 Local Open Scope Z_scope.
 
@@ -76,15 +112,95 @@ Definition pi_start_dma_spec : Prop :=
             is_data (ZMap.get z (Mem.mem_contents m') !! bd))
       /\ Ptrofs.unsigned od + Int.unsigned n <= Ptrofs.modulus.
 
+(* ---- the message queues the walked code waits on / sends to, and what
+   else a wait or a send on each one changes in the linked memory: the
+   queue's message buffer when it is linked (the array the program creates
+   the queue with), and for the EEPROM timer queue the timer the interrupt
+   fires.  gDmaMesgQueue / gSIEventMesgQueue: main.c's gDmaMesgBuf /
+   gSIEventMesgBuf, not linked.  gOsSiMessageQueue: osSiMesgBuff
+   (__osSiCreateAccessQueue.c).  __osEepromTimerQ: __osEepromTimerMsg
+   (osContInit.c creates the queue on it) and __osEepromTimer. ---- *)
+Definition q_side (q : ident) : option (list ident) :=
+  if Pos.eqb q memory._gDmaMesgQueue then Some []
+  else if Pos.eqb q save_file._gSIEventMesgQueue then Some []
+  else if Pos.eqb q libultra_osSiCreateAccessQueue._gOsSiMessageQueue
+  then Some [libultra_osSiCreateAccessQueue._osSiMesgBuff]
+  else if Pos.eqb q libultra_osContInit.___osEepromTimerQ
+  then Some [libultra_osContInit.___osEepromTimerMsg; libultra_osContInit.___osEepromTimer]
+  else None.
+
+(* b is none of the listed symbols' blocks *)
+Definition not_side (ge : Senv.t) (l : list ident) (b : block) : Prop :=
+  forall s, In s l -> Senv.find_symbol ge s <> Some b.
+
+(* outside the 4-byte message cell, when there is one *)
+Definition cell_out (cell : val) (b : block) (z : Z) : Prop :=
+  match cell with
+  | Vptr bc oc => outside bc oc 4 b z
+  | _ => True
+  end.
+
 (* osRecvMesg(OSMesgQueue *mq, OSMesg *msg, s32 flags) *)
 Definition recv_mesg_spec : Prop :=
   forall sg ge vargs m t vres m',
     external_functions_sem "osRecvMesg" sg ge vargs m t vres m' ->
-    exists bq oq bmsg omsg fl,
-      vargs = [Vptr bq oq; Vptr bmsg omsg; Vint fl]
-      /\ Mem.unchanged_on (fun b z => outside bq oq SZ_MESGQ b z
-                                      /\ outside bmsg omsg 4 b z) m m'
-      /\ same_perms m m'.
+    exists bq oq cell fl,
+      vargs = [Vptr bq oq; cell; Vint fl]
+      /\ (cell = Vint Int.zero \/ exists bc oc, cell = Vptr bc oc)
+      /\ same_perms m m'
+      /\ (forall q side, q_side q = Some side -> Senv.find_symbol ge q = Some bq ->
+            Mem.unchanged_on (fun b z => outside bq oq SZ_MESGQ b z
+                                         /\ cell_out cell b z
+                                         /\ not_side ge side b) m m').
 
+(* osSendMesg(OSMesgQueue *mq, OSMesg msg, s32 flags) *)
+Definition send_mesg_spec : Prop :=
+  forall sg ge vargs m t vres m',
+    external_functions_sem "osSendMesg" sg ge vargs m t vres m' ->
+    exists bq oq msg fl,
+      vargs = [Vptr bq oq; msg; Vint fl]
+      /\ same_perms m m'
+      /\ (forall q side, q_side q = Some side -> Senv.find_symbol ge q = Some bq ->
+            Mem.unchanged_on (fun b z => outside bq oq SZ_MESGQ b z
+                                         /\ not_side ge side b) m m').
+
+(* osSetTimer(OSTimer *t, OSTime countdown, OSTime interval, OSMesgQueue *mq,
+              OSMesg msg); sizeof(OSTimer) = 32 (pinned: SaveDoSaveBody) *)
+Definition SZ_OSTIMER : Z := 32.
+Definition set_timer_spec : Prop :=
+  forall sg ge vargs m t vres m',
+    external_functions_sem "osSetTimer" sg ge vargs m t vres m' ->
+    exists bt ot rest,
+      vargs = Vptr bt ot :: rest
+      /\ same_perms m m'
+      /\ (Senv.find_symbol ge libultra_osContInit.___osEepromTimer = Some bt ->
+            Mem.unchanged_on (outside bt ot SZ_OSTIMER) m m').
+
+(* __osSiRawStartDma(s32 dir, void *addr): the 64-byte PIF RAM image *)
+Definition SZ_PIFRAM : Z := 64.
+Definition si_raw_dma_spec : Prop :=
+  forall sg ge vargs m t vres m',
+    external_functions_sem "__osSiRawStartDma" sg ge vargs m t vres m' ->
+    exists dir bp op,
+      vargs = [Vint dir; Vptr bp op]
+      /\ Mem.unchanged_on (outside bp op SZ_PIFRAM) m m'
+      /\ same_perms m m'
+      /\ (forall z, Ptrofs.unsigned op <= z < Ptrofs.unsigned op + SZ_PIFRAM ->
+            ZMap.get z (Mem.mem_contents m') !! bp = ZMap.get z (Mem.mem_contents m) !! bp
+            \/ is_data (ZMap.get z (Mem.mem_contents m') !! bp)).
+
+(* bcopy(const void *src, void *dst, size_t n) *)
+Definition bcopy_spec : Prop :=
+  forall sg ge vargs m t vres m',
+    external_functions_sem "bcopy" sg ge vargs m t vres m' ->
+    exists bs os bd od n,
+      vargs = [Vptr bs os; Vptr bd od; Vint n]
+      /\ Mem.unchanged_on (outside bd od (Int.unsigned n)) m m'
+      /\ same_perms m m'
+      /\ Mem.loadbytes m' bd (Ptrofs.unsigned od) (Int.unsigned n)
+         = Mem.loadbytes m bs (Ptrofs.unsigned os) (Int.unsigned n).
+
+(* the libultra OS / hardware floor (TRUST 3.5) *)
 Definition os_dma_floor : Prop :=
-  inval_dcache_spec /\ pi_start_dma_spec /\ recv_mesg_spec.
+  inval_dcache_spec /\ pi_start_dma_spec /\ recv_mesg_spec
+  /\ send_mesg_spec /\ set_timer_spec /\ si_raw_dma_spec /\ bcopy_spec.
