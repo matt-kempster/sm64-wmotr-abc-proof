@@ -971,8 +971,18 @@ link grows.
     `osInvalDCache` (asm) and the PIF reply; and the OS floor needs `osRecvMesg` widened past
     3.5's DMA use, plus `osSendMesg` and the timer interrupt (asm `__osDisableInt` etc.).
   So it is several new TUs and three or four new floor rows (bcopy, SI DMA / PIF, message queues,
-  timer). The cheaper alternative is to check whether any no-A WMotR frame reaches the call (it is
-  the star-dance save, after a star is collected) before linking that much.
+  timer).
+- **Reachability (checked 2026-10-21): the row cannot be gated away in GOAL 1.** The walked call
+  sites are `handle_save_menu` (from `act_exit_land_save_dialog`) and
+  `general_star_dance_handler` (from `act_star_dance` / `act_star_dance_water`); the
+  `save_file_erase` / `save_file_copy` callers are never called by linked code. Both live paths
+  are reachable without A:
+  - a no-exit star, then the save dialog, which confirms on B (`ingame_menu.c:2030`), then YES;
+  - an exiting star, then the course-complete menu, which accepts START or Z, then save.
+  GOAL 1's invariant has no action gate, so it must cover them. In GOAL 2 none of these actions
+  is in `R_noA`, but HeightFrame takes the row through GOAL 1's any-action engine
+  (`frame_call_ok_linked12`). Gating it there means running that engine at `Qv := R_noA` (the
+  open "action arm" in HeightFrame.v).
 
 
 ## 5. Tethers: evidence the model is the game (NOT proof)
