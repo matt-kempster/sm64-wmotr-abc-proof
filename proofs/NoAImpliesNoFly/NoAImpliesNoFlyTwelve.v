@@ -77,7 +77,11 @@ Definition obj_ext_body (i : ident) : bool :=
   || Pos.eqb i interaction._save_file_collect_star_or_key
   || Pos.eqb i interaction._save_file_set_flags
   || Pos.eqb i interaction._save_file_clear_flags
-  || Pos.eqb i interaction._bhv_spawn_star_no_level_exit.
+  || Pos.eqb i interaction._bhv_spawn_star_no_level_exit
+  (* 2026-10-21: area.c is linked (the 23rd TU); override_viewport_and_clip
+     stores gFBSetColor (an integer, a global MWF does not read) and its two
+     pointer args into the stored globals D_8032CE74 / D_8032CE78 *)
+  || Pos.eqb i mario_actions_cutscene._override_viewport_and_clip.
 Definition obj_ext_open2_ids : list ident :=
   filter (fun i => negb (obj_ext_mem i || obj_ext_body i))
     NoAImpliesNoFlyLinked.obj_ext_open_ids.
@@ -109,6 +113,7 @@ Proof.
     + exact (ObjExtBodies.Hpx_set_flags lp H12 bm bc oc0 SafeB Hsy Hsp).
     + exact (ObjExtBodies.Hpx_clear_flags lp H12 bm bc oc0 SafeB Hsy Hsp).
     + exact (ObjExtBodies.Hpx_bs lp H12 bm bc oc0 SafeB Hsy Hsp Hspn).
+    + exact (ObjExtBodies.Hpx_ovac lp H12 bm bc oc0 SafeB Hsy Hsp).
 Qed.
 
 (* PROVED 2026-10-21: the time-stop pair of the any-argument cutscene list
@@ -116,7 +121,11 @@ Qed.
    gTimeStopState each). *)
 Definition cut_ext_body (i : ident) : bool :=
   Pos.eqb i mario_actions_cutscene._enable_time_stop
-  || Pos.eqb i mario_actions_cutscene._disable_time_stop.
+  || Pos.eqb i mario_actions_cutscene._disable_time_stop
+  (* 2026-10-21: area.c's play_transition stores only non-pointers into
+     gWarpTransition / gWarpTrans{Red,Green,Blue,FBSetColor}, globals MWF
+     does not read (through the real set_warp_transition_rgb) *)
+  || Pos.eqb i level_update._play_transition.
 Definition cut_ext_open2_ids : list ident :=
   filter (fun i => negb (cut_ext_body i)) NoAImpliesNoFlyLinked.cut_ext_open_ids.
 
@@ -131,9 +140,34 @@ Proof.
   destruct (NoAImpliesNoFlyLinked.mem_id_filter_split cut_ext_body fid _ H) as [Hm | Ho];
     [ | exact (Hrow fid Ho) ].
   unfold cut_ext_body in Hm.
-  apply orb_true_iff in Hm as [Hm | Hm]; apply Pos.eqb_eq in Hm; subst fid.
+  repeat (apply orb_true_iff in Hm as [Hm | Hm]); apply Pos.eqb_eq in Hm; subst fid.
   - exact (ObjExtBodies.Hpx_ets lp H12 bm bc oc0 SafeB Hsy Hsp).
   - exact (ObjExtBodies.Hpx_dts lp H12 bm bc oc0 SafeB Hsy Hsp).
+  - exact (ObjExtBodies.Hpx_ptr lp H12 bm bc oc0 SafeB Hsy Hsp).
+Qed.
+
+(* PROVED 2026-10-21: the two warp-trigger entries whose bodies are linked
+   area.c bodies (area_get_warp_node: a load-only list walk; play_transition:
+   non-pointer stores into globals MWF does not read). *)
+Definition warp_ext_body (i : ident) : bool :=
+  Pos.eqb i level_update._area_get_warp_node || Pos.eqb i level_update._play_transition.
+Definition warp_ext_open_ids : list ident :=
+  filter (fun i => negb (warp_ext_body i)) warp_ext_ids.
+
+Lemma warp_ext_of_open : forall lp bm bc oc0 SafeB, linked12 lp ->
+    SafeB_syms_ok lp SafeB -> (exists init, spawn_ok lp init bm bc oc0) ->
+    (forall fid, mem_id fid warp_ext_open_ids = true ->
+       FloorsSurface.call_pres_ext lp bm (NoA_real bm) (MWF_real lp bm bc oc0 SafeB) fid) ->
+    forall fid, mem_id fid warp_ext_ids = true ->
+      FloorsSurface.call_pres_ext lp bm (NoA_real bm) (MWF_real lp bm bc oc0 SafeB) fid.
+Proof.
+  intros lp bm bc oc0 SafeB H12 Hsy Hsp Hrow fid H.
+  destruct (NoAImpliesNoFlyLinked.mem_id_filter_split warp_ext_body fid _ H) as [Hm | Ho];
+    [ | exact (Hrow fid Ho) ].
+  unfold warp_ext_body in Hm.
+  apply orb_true_iff in Hm as [Hm | Hm]; apply Pos.eqb_eq in Hm; subst fid.
+  - exact (ObjExtBodies.Hpx_agwn lp H12 bm bc oc0 SafeB Hsy Hsp).
+  - exact (ObjExtBodies.Hpx_ptr lp H12 bm bc oc0 SafeB Hsy Hsp).
 Qed.
 
 Section NoAImpliesNoFlyTwelve.
@@ -347,9 +381,15 @@ Section NoAImpliesNoFlyTwelve.
              (spawn_Hbc_bm lp init bm bc oc0 Hs) (linked12_LO_stp lp H12)
              (spawn_Hbc_sym lp init bm bc oc0 Hs)).
   Qed.
-  Hypothesis Hpres_warp_ext : forall fid,
+  (* the warp-trigger externals minus the two linked area.c entries
+     (warp_ext_of_open) *)
+  Hypothesis Hpres_warp_ext_open : forall fid,
+      mem_id fid warp_ext_open_ids = true ->
+      call_pres_ext lp bm (NoA_real bm) MWF fid.
+  Lemma Hpres_warp_ext : forall fid,
       mem_id fid warp_ext_ids = true ->
       call_pres_ext lp bm (NoA_real bm) MWF fid.
+  Proof. exact (warp_ext_of_open lp bm bc oc0 SafeB H12 HSafeB_syms Hspawn Hpres_warp_ext_open). Qed.
   (* Hret_unsafe REMOVED (task #99): the v2 engine no longer consumes any
      return-value row (it was dead plumbing / a latent vacuity -- see
      NoAImpliesNoFlyLinked). *)

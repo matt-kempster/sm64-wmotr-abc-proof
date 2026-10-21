@@ -886,14 +886,38 @@ link grows.
     load closure (R7): the row was false about the real code. Repair, on the existing stored-globals
     class: `D_8032CE74` / `D_8032CE78` joined `CensusV2.stored_globals`, so SafeB avoids their
     blocks and `mwf_real_glob` keeps MWF over any store into them. The body's third store
-    (`gFBSetColor`, an integer) is a non-pointer store. The row is now true; it is not yet a lemma
-    (dischargeable with `SaveFileBody.nl_body_frame`; it sits inside the shared `obj_ext_ids` ∀,
-    which the save-file row discharge is reworking).
+    (`gFBSetColor`, an integer) is a non-pointer store. The row is now true, and a lemma since
+    2026-10-21 (next bullet but one).
   - `play_transition` (in `warp_ext_ids` and the cutscene `ep_xids`): stores only integers, into
     `gWarpTransition`'s fields, and through the linked `set_warp_transition_rgb` into
     `gWarpTransRed/Green/Blue` and `gWarpTransFBSetColor`, so every
-    store is a non-pointer store; true, not yet a lemma.
-  - `area_get_warp_node` (`warp_ext_ids`): stores nothing; true, not yet a lemma.
+    store is a non-pointer store; true, and a lemma since 2026-10-21 (below).
+  - `area_get_warp_node` (`warp_ext_ids`): stores nothing; true, and a lemma since 2026-10-21 (below).
+- **Premise sweep (2026-10-21): the three area.c entries are lemmas** (`ObjExtBodies.Hpx_ovac`,
+  `Hpx_ptr`, `Hpx_agwn`, walked over the generated `area.v` bodies). `override_viewport_and_clip`
+  leaves `obj_ext_open2_ids`; `play_transition` leaves `cut_ext_open2_ids` and `warp_ext_ids`;
+  `area_get_warp_node` leaves `warp_ext_ids`. Both capstones now take `Hpres_warp_ext_open`
+  (`NoAImpliesNoFlyTwelve.warp_ext_open_ids`, 2 fewer ids) in place of `Hpres_warp_ext`, which is a
+  lemma (`warp_ext_of_open`). Hypothesis counts are unchanged (the rows are lists; they shrank).
+  - `area_get_warp_node(id)` only loads (`gCurrentArea->warpNodes`, then a `next`-chain loop) and
+    returns; its body has no store and no call.
+  - `play_transition` and its one callee, the real `set_warp_transition_rgb`, store into
+    `gWarpTransition`'s fields and `gWarpTransRed/Green/Blue` / `gWarpTransFBSetColor`.
+    `override_viewport_and_clip` stores `gFBSetColor` and the stored globals `D_8032CE74/78`.
+  - **No new claim.** `gWarpTransition`, `gWarpTrans*` and `gFBSetColor` did NOT join
+    `stored_globals`. Every store into them is provably a non-pointer: the lvalue type is `u8` /
+    `s16`, or the right side is a bitwise `|` (`ObjExtBodies.ast_ok`, checked against the generated
+    AST). A non-pointer store into any global that `MWF_real` does not read (not Mario's block, the
+    controllers, `gMarioState`, the timer, the handler table, the animation list or the knockback
+    tables; `ObjExtBodies.mwf_syms`) keeps `MWF_real` whether or not the block is SafeB, because
+    R7 (SafeB is load-closed) only constrains pointer values (`ObjExtBodies.np_store_pres`, from
+    `MWF_real_transfer`). Positive control: without the non-pointer clause the recognizer rejects
+    the real `override_viewport_and_clip` body (`chk_ovac_needs_np`).
+  - Not swept here (owned by the concurrent spawn work): `spawn_object` (cut_ext, likely false as
+    an any-argument entry, above) and `spawn_object_abs_with_rot`, whose body is linked too
+    (`object_helpers.c`) but which is the sr row `Hcp_soawr_real`, not an any-argument entry.
+    After this sweep, the any-argument lists' linked entries are exactly those two spawn entries
+    and `save_file_do_save`.
 
 - **Premise sweep (2026-10-21): nine linked any-argument entries are lemmas** (`ObjExtBodies.v`).
   Walked over the generated bodies: the save_file.c readers `save_file_get_flags`,
@@ -926,6 +950,29 @@ link grows.
   this ledger; proving it would need a new bcopy / EEPROM floor row (not added). GOAL 1's
   from-boot lemma no longer uses the open row for its one call: `boot_init_mem_ok` takes the proved
   `Hpx_total_star_count`.
+- **Scope of closing it (surveyed 2026-10-21, not started).** Under the user's rule (link the real
+  C, stop at a hardware spec), the chain below `save_file_do_save` is:
+  - in `save_file.c` (linked): `add_save_block_signature` (stores through its `buffer` parameter,
+    a pointer into `gSaveBuffer`, so the walk must track parameter provenance, not just global
+    chains), `save_main_menu_data`, and `write_eeprom_data` (reads `gEepromProbe`, passes
+    `&gSIEventMesgQueue`, computes `offset` by pointer subtraction within `gSaveBuffer`, then loops
+    `osEepromLongWrite` up to 4 times);
+  - `bcopy` is assembly (`lib/asm/bcopy.s`): the first floor, "`bcopy(src, dst, n)` stores the n
+    bytes read at src to dst and changes nothing else" (a libultra floor like 3.5, not a
+    hardware one);
+  - libultra C to link as new TUs, each needing its own clightgen recipe (libultra's flags and
+    headers, not the game's): `osEepromLongWrite.c` (calls `osEepromWrite`, `osSetTimer`,
+    `osRecvMesg`); `osEepromWrite.c` (`__osPackEepWriteData`, `__osEepStatus`,
+    `__osEepPifRam`, `__osSiRawStartDma`, `osRecvMesg`); `__osSiCreateAccessQueue.c`
+    (`__osSiGetAccess` / `__osSiRelAccess`: `osCreateMesgQueue`, `osSendMesg`, `osRecvMesg`);
+    `osSetTimer.c` (`__osInsertTimer`, `__osSetTimerIntr`, the timer list);
+  - the hardware floor sits at `__osSiRawStartDma` (its `IO_WRITE`s to the SI registers are stores
+    to integer addresses, which have no CompCert execution) plus `osWritebackDCache` /
+    `osInvalDCache` (asm) and the PIF reply; and the OS floor needs `osRecvMesg` widened past
+    3.5's DMA use, plus `osSendMesg` and the timer interrupt (asm `__osDisableInt` etc.).
+  So it is several new TUs and three or four new floor rows (bcopy, SI DMA / PIF, message queues,
+  timer). The cheaper alternative is to check whether any no-A WMotR frame reaches the call (it is
+  the star-dance save, after a star is collected) before linking that much.
 
 
 ## 5. Tethers: evidence the model is the game (NOT proof)
