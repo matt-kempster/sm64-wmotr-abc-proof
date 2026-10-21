@@ -444,8 +444,45 @@ without pressing A".*
   apart, closedness, the collision partition, the controller). It is built from the link's real boot
   image `Genv.init_mem lp` by three fresh blocks and eight stores, each `MWF_real` step a proved
   store brick, so `wmotr_noA_height_bound_linked12` is not vacuous.
-- **Still ASSUMED:** that the memory the real game reaches at WMotR entry satisfies Φ. Level loading
-  is not modelled, and it must be checked on recorded states (§5).
+- **GOAL 2, the witness is now the real entry's height cells** (2026-10-21, `WMotREntry.v`, used by
+  `StartSat`). Read off the generated code, not hand-written:
+  - `wmotr_script`'s only warp-node-0x0A object is a `bhvAirborneWarp` at (-67, 2669, -16)
+    (`entry_warp_object`).
+  - `init_mario_after_warp` calls `get_mario_spawn_type`, `init_mario`, `set_mario_initial_action`
+    (`after_warp_calls`); case `MARIO_SPAWN_AIRBORNE` (0x12) of the last is
+    `set_mario_action(m, ACT_SPAWN_NO_SPIN_AIRBORNE, 0)` (`initial_action_airborne`), and that
+    action is in `R_noA`.
+  - `init_mario` sets `pos := startPos`, `vel := 0`, `gfx.pos := pos`, `actionTimer := 0`.
+  So Mario enters at y = 2669 in an airborne action with vy = 0: rise credit 0, budget margin 127
+  below `PHI_YMAX` = 2796 (`entry_budget`, `entry_margin`). `StartSat`'s witness now stores exactly
+  these cells (`read_cells bm m (entry_cells 0)`); before, it was `ACT_IDLE` at y = 0. The Φ height
+  clause is therefore **true at the real entry values**, not just satisfiable somewhere.
+  - One link in that chain is still a table, not a call: `sWarpBhvSpawnTable` (bhvAirborneWarp ↦
+    MARIO_SPAWN_AIRBORNE) lives in `area.c`, which is not linked, so `get_mario_spawn_type` is an
+    external and the 0x12 is read from the C source, not executed.
+- **Exact gap, found 2026-10-21: `area.c` (and the level loader) is not linked.** `gCurrLevelNum`,
+  `gCurrCourseNum`, `gCurrentArea`, `gMarioSpawnInfo`, `gPlayerSpawnInfos` and `gCurrSaveFileNum`
+  have no storage in any linked TU (size-0 externs in the boot image). Consequences:
+  - `HeightFrame.in_wmotr` (a load of `gCurrLevelNum`) is false on every memory real code reaches
+    from the boot image. A size-0 block never gains permissions, so no boot-derived run takes a
+    `frame_step`; only the flank specs (relations over arbitrary memories) produce one. The GOAL 2
+    capstone is still about every start state meeting the premise, but no from-boot run instantiates
+    it yet.
+  - `set_mario_initial_cap_powerup` and `mario_get_terrain_sound_addend` read `gCurrCourseNum` /
+    `gCurrLevelNum`, so they have no execution from the boot image either.
+  - `surface_load.c` (`alloc_surface_pools`, `load_area_terrain`) is not run, so the witness's
+    collision partition is empty and `m->floor` is a fresh one-surface block, not WMotR's terrain.
+  - Seen at the literal entry memory (not proved, for the §5 check): `m->ceil` / `m->wall` are stale
+    castle pointers into the reallocated surface pool, and `wmotr_world`'s ceil/wall clauses hold
+    there only if that pool slot carries a WMotR surface type (the first frame's
+    `update_mario_geometry_inputs` refreshes them before any read). `m->input` is the last castle
+    frame's; `ffw`'s input clause needs A neither pressed nor held then. Mario's object is fresh, so
+    `numCollidedObjs = 0` and `oInteractStatus = 0` do hold.
+  - Fix path: link `area.c` (and later `surface_load.c`) as further TUs. That reruns every walk over
+    `LinkedTwelve`, so it was not done in this sweep.
+- **Still ASSUMED:** that the memory the real game reaches at WMotR entry satisfies the rest of Φ
+  (world, anim layout, partition, controller). Level loading is not modelled, and it must be checked
+  on recorded states (§5).
 
 ### Row 0.5 in detail
 
@@ -794,6 +831,23 @@ link grows.
   `BootMWF` and `StartSat`'s per-TU certificates cover the 22-TU chain, and
   `LinkedTwelve.linked12_ext_pin` / `LptBody.os_resolve` gained the case (object_helpers defines no
   pinned external). Three fewer hypotheses on each capstone.
+- **Premise sweep (2026-10-21, GOAL 2's any-argument rows): which entries now have linked bodies.**
+  Of the any-argument lists HeightFrame takes, `sta_ext_ids`, `floors_ext_ids` and `warp_ext_ids`
+  are still all unlinked externals. Entries that are now LINKED (so a row about them is a claim
+  about real code, provable or refutable, not an external contract):
+  - `obj_ext_open2_ids`: `bhv_spawn_star_no_level_exit`, `save_file_get_flags`,
+    `save_file_get_star_flags`, `save_file_get_total_star_count`, `save_file_collect_star_or_key`,
+    `save_file_set_flags`, `save_file_clear_flags`. The save-file getters / flag setters store only
+    into `gSaveBuffer` / `gSaveFileModified` (stored globals), so they look dischargeable with the
+    `SaveFileBody` machinery (`save_file_set_flags` is already `flags_frame`); not done in this
+    sweep (it re-runs the walks over `NoAImpliesNoFlyTwelve`).
+  - `cut_ext_open_ids`: `enable_time_stop` / `disable_time_stop` (store `gTimeStopState`, not yet a
+    stored global), `save_file_do_save`, and `spawn_object`.
+  - **Likely false (open):** `spawn_object` as an any-argument entry of `Hpres_cut_ext_open` (and
+    the sr row `Hcp_spawn_real`). Its real body (`object_helpers.c`) stores the `parent` argument
+    into the new object, so "preserves MWF for any argument" fails when `parent` is a non-SafeB
+    pointer. The fix is an arg-gated row like `Hcsp_osh_real`; being reworked separately with the
+    `spawn_object` / `segmented_to_virtual` work.
 
 
 ## 5. Tethers: evidence the model is the game (NOT proof)

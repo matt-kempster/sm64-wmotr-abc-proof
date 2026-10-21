@@ -44,8 +44,13 @@ all in `Unwired/`, and the theorem moved nowhere. See
   (`HeightInvariant.v`), `Hphi_y` is proved (YMAX = 2796), the level-data rows are proved (`WMotRLevel.v`), and the crux is the lemma
   `seg_action_phi`, whose move arithmetic is proved (`HeightMoveCatalog.chain_keeps_budget`).
   Its start premise is proved satisfiable (`StartSat.goal2_start_sat`, 2026-10-20, in the audit):
-  a memory built from the real boot image of any 19-TU link meets `mem_ok_lp` and `PhiW`. That
-  rules out empty-premise vacuity only; Φ at real WMotR entry stays ASSUMED (TRUST 0.4).
+  a memory built from the real boot image of any 19-TU link meets `mem_ok_lp` and `PhiW`. Since
+  2026-10-21 that witness carries the REAL entry's height cells (`WMotREntry.v`, read off the
+  generated level script / level_update.c: bhvAirborneWarp at y = 2669,
+  ACT_SPAWN_NO_SPIN_AIRBORNE, vy = 0, margin 127), so the Φ budget clause is true at entry. The
+  rest of Φ at real WMotR entry stays ASSUMED (TRUST 0.4). OPEN GAP: `area.c` is unlinked, so
+  `gCurrLevelNum` has no storage and `in_wmotr` is unreachable from boot by real code (no
+  boot-derived run takes a `frame_step`); linking area.c / surface_load.c is the fix.
   Since 2026-10-20 the three frame rows below are LEMMAS of the frame split (since 2026-10-21
   the STAGED `FrameSplit.frame_stage`, which threads the dispatch's floor refresh
   `FfWorld.fresh` / `fresh_at` through the body in order and over the real dispatch loop); the
