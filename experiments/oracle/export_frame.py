@@ -8,8 +8,10 @@ OUTDIR/calls.txt   the external-call log:
                      C name ra sp a0 a1 a2 a3 f12 f14 s0..s7 v0 v1 f0 ndiff npost
                      D addr hexbytes          (ndiff lines: bytes the call changed)
                      P addr hexbytes          (npost lines: 64 bytes behind a pointer arg, at return)
-OUTDIR/addrs.txt   where the twelve-TU link's globals live in the real RAM:
+OUTDIR/addrs.txt   where the linked TUs' globals live in the real RAM:
                      A name address sizehint  (sizehint: map distance to next symbol)
+                     R name romaddr extent    (link symbols that live in ROM, not RDRAM,
+                                               e.g. gMarioAnims: the DMA source)
 OUTDIR/frame.txt   F a0 keys frame
 """
 import os
@@ -25,9 +27,22 @@ from mdebug_statics import all_statics
 
 DECOMP = os.path.expanduser("~/sm64-oracle/decomp")
 MAP = f"{DECOMP}/build/us/sm64.us.map"
-TUS = ("mario mario_actions_airborne mario_actions_moving mario_actions_stationary "
-       "mario_actions_submerged mario_actions_cutscene mario_actions_automatic "
-       "mario_actions_object interaction behavior_actions level_update mario_step").split()
+# The object file of every linked TU (proofs/MarioModel/LinkedTwelve.v tu_rest),
+# for its .mdebug statics.  wmotr_level_data is a wrapper (pipeline/tu/) around
+# leveldata.c and actor collision arrays: all non-static, so they come from the map.
+_GAME = ("mario mario_actions_stationary mario_actions_moving mario_actions_airborne "
+         "mario_actions_submerged mario_actions_cutscene mario_actions_automatic "
+         "mario_actions_object interaction behavior_actions level_update mario_step "
+         "memory game_init object_list_processor save_file object_helpers area "
+         "spawn_object macro_special_objects camera").split()
+_ENGINE = "surface_collision math_util graph_node surface_load".split()
+_ULTRA = ("osEepromLongWrite osEepromWrite __osSiCreateAccessQueue osCreateMesgQueue "
+          "osContInit osInitialize").split()
+OBJS = ([f"build/us/src/game/{t}.o" for t in _GAME]
+        + [f"build/us/src/engine/{t}.o" for t in _ENGINE]
+        + [f"build/us/lib/src/{t}.o" for t in _ULTRA]
+        + ["build/us/src/audio/data.o", "build/us/src/buffers/buffers.o",
+           "build/us/data/behavior_data.o"])
 
 
 def full_map(path=MAP):
@@ -69,7 +84,7 @@ def resolve_addresses(entry, names):
         k = kseg0(a)
         if k is not None:
             placed[n] = k
-    statics = all_statics([f"build/us/src/game/{t}.o" for t in TUS])
+    statics = all_statics(OBJS)
     bare = {}
     for k, (a, _sec, _o) in statics.items():
         bare.setdefault(k.split(".")[-1], []).append(a)
@@ -86,6 +101,19 @@ def resolve_addresses(entry, names):
 
     return {n: (a, min(nxt.get(a, 1 << 40), sec_end(a)) - a)
             for n, a in placed.items() if n in names}
+
+
+def rom_symbols(names):
+    """{name: (ROM address, extent)} for link symbols the map puts in ROM space
+    (below 0x01000000, at or above RDRAM's 4 MB, so never confused with a physical
+    RAM address): e.g. gMarioAnims, which the game holds as an integer DMA source
+    and the model as a pointer to the (size-0) gMarioAnims block.  Extent: distance
+    to the next ROM-space map symbol."""
+    raw = full_map()
+    rom = sorted({a for a in raw.values() if 0x400000 <= a < 0x01000000})
+    nxt = {a: b for a, b in zip(rom, rom[1:])}
+    return {n: (a, nxt.get(a, a + 0x100000) - a) for n, a in raw.items()
+            if n in names and 0x400000 <= a < 0x01000000}
 
 
 def section_extents(mapfile=MAP):
@@ -126,6 +154,8 @@ def main(src, out):
     with open(f"{out}/addrs.txt", "w") as f:
         for n, (a, sz) in sorted(resolve_addresses(entry, names).items()):
             f.write(f"A {n} {a} {sz}\n")
+        for n, (a, sz) in sorted(rom_symbols(names).items()):
+            f.write(f"R {n} {a} {sz}\n")
     with open(f"{out}/frame.txt", "w") as f:
         f.write(f"F {r['a0']} {r['keys']} {r['frame']}\n")
 
