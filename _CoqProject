@@ -353,6 +353,8 @@ proofs/WMotRRequiresA/PoleSlow.v
 proofs/WMotRRequiresA/PoleFast.v
 proofs/WMotRRequiresA/PoleRow.v
 proofs/Interp/MemBuild.v
+proofs/Interp/InterpFrame.v
+proofs/Interp/InitMemC.v
 
 # --- GOAL 1 positive control: with A pressed, a real frame reaches flying ---
 proofs/NoAImpliesNoFly/PositiveControl.v
