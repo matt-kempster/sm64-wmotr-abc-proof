@@ -607,8 +607,10 @@ without pressing A".*
   node's `startPos` (-67, 2669, -16), and an empty Mario-animation DMA table. Real code run: the
   terrain loader on WMotR's collision, `init_mario`, and `set_mario_initial_action(m,
   MARIO_SPAWN_AIRBORNE, 0)`. Then ONE FULL real no-A frame runs in `ACT_SPAWN_NO_SPIN_AIRBORNE`,
-  and it leaves `gPlayerCameraState[0].action = 6450`. Conditional on `world_ok`: `sqrtf` is the
-  IEEE sqrt, and four audio / menu externals return without touching memory.
+  and it leaves `gPlayerCameraState[0].action = 6450`. Conditional only on the FPU value clause
+  (`sqrtf_value`, 3.5) and the labeled audio premise `BootRun.audio_ret` (`play_sound`,
+  `play_infinite_stairs_music`, `set_sound_moving_speed` can return with linked memory unchanged;
+  4.1). `reset_red_coins_collected` runs its real body (`ingame_menu.c` is linked, the 36th TU).
 - **FOUND 2026-10-22, REPAIRED the same day: GOAL 2's `StartSat` witness had no frame execution.**
   It was built from `init_mem` without `init_mario_from_save_file`, so `marioBodyState` /
   `statusForCamera` were NULL; `mario_reset_bodystate`'s first store was stuck (checked by running
@@ -625,6 +627,14 @@ without pressing A".*
   out of scope, 3.x); `gAreaData[1].terrainType` = `TERRAIN_SNOW` (2), tethered to WMotR's level
   script by `StartTerrain.wmotr_terrain_type` (the `TERRAIN_TYPE(TERRAIN_SNOW)` command word,
   `script.c:61`, is in the generated `level_wmotr_entry`).
+- **`gCurrCourseNum` on the GOAL 2 witness (2026-10-22, `CourseRun` + `StartSat.course_set`).** The
+  witness was 0 there; it is now 23 (`COURSE_WMOTR`). Real path: each level load runs the menu
+  segment's `level_main_menu_entry_2` (`levels/scripts.c:118`), whose first command is
+  `CALL(0, lvl_set_current_level)` (`levels/menu/script.c:61`) with the level number. `CourseRun.course_runs`
+  RUNS the generated `lvl_set_current_level(0, 31)` from `Genv.init_mem` with no external answered
+  (unconditional) and reads `gCurrCourseNum = 23` after it; `goal2_start_sat` concludes
+  `course_set`: the witness carries that value. Its other stores (`gSavedCourseNum`,
+  `gCurrCourseStarFlags`, ...) are not on the witness; no frame row reads them.
 - **GOAL 1: proved satisfiable by the real boot path** (2026-10-19, `BootMWF.boot_init_ok`, used by
   `NoAImpliesNoFlyTwelve.noA_never_flying_from_boot`). The memory `Genv.init_mem lp` of any
   linked-TU (now 17) link, followed by one real call of the generated `init_mario_from_save_file`,
@@ -758,19 +768,13 @@ without pressing A".*
     resulting memory, `floor_data` holds and every floor-list surface is, field for field, a floor
     triangle of the decoder's `static_tris` (`static_agree`). Both are proved by a checked walk of
     both partitions (`TerrainBound.tri_chk`, below).
-  - **What the run rests on** (a hypothesis of the theorem, `world_ok`, not a trust row): the
-    interpreter answers `sqrtf` with the IEEE single-precision square root, and
-    `reset_red_coins_collected` (`ingame_menu.c`, unlinked) with no memory change. `floor_data` and
-    `static_agree` of the memory are unconditional. Only "this memory is what the loader computes"
-    needs `world_ok`. Since 2026-10-22 it is split (`TerrainRun.world_ok_of`): `sqrtf`'s memory
-    half is the existing FPU floor `sqrtf_spec` (3.5); what 3.5 cannot give (it makes no value claim
-    and asserts no behavior exists) is `sqrtf_ieee` (a call returning `Float32.sqrt x` IS a sqrtf
-    behavior), and `rrc_inert`. Both stay labeled antecedents of the tether implication in
-    `goal2_start_sat` (`terrain_loaded`), not premises of any capstone. `rrc_inert`: the real body
-    is `gRedCoinsCollected = 0;` (`ingame_menu.c:2421`); checked on the link, `gRedCoinsCollected`
-    is not in the 34-TU program at all (only the external `reset_red_coins_collected`), so the
-    write lands outside the modelled memory. Proving it from the body needs `ingame_menu.c`
-    (3468 lines) linked; not done. A value floor row for `sqrtf` needs user approval; not added.
+  - **What the run rests on (2026-10-22):** only the FPU value clause (`FpuValue.sqrtf_value`, 3.5):
+    the interpreter answers `sqrtf` (at its decomp signature, on +-0 / positive normals) with the IEEE
+    root. `reset_red_coins_collected` is no longer answered: `ingame_menu.c` is linked (the 36th
+    TU), so its real body runs (`gRedCoinsCollected = 0;`, `ingame_menu.c:2421`, into the now-real
+    `gRedCoinsCollected`). `floor_data` and `static_agree` of the memory are unconditional. History:
+    before, the run rested on `world_ok` (split into `sqrtf_spec`, `sqrtf_ieee`, `rrc_inert`), and
+    `sqrtf_ieee` was FALSE (any-signature form, see 3.5 detail), so the tether was vacuous.
   - **Not run:** `main_pool_init`. It has no CompCert execution (3.6 detail), so its post-state is
     constructed. Not run either: macro-object spawning (`macroObjects = NULL`; the boxes and
     cannons stay 0.8(b)). The special object is `special_null_start`, so the spawn path runs only
@@ -865,7 +869,7 @@ link grows.
 | 3.1 | CompCert's C semantics agrees with IDO-compiled MIPS on the code in scope: evaluation order, integer promotions, float rounding (single vs double), float→int casts | ASSUMED, **TETHERED on sampled paths**. Across 267 completed real frames, 0 differ in memory and 0 diverge in external calls or arguments, including float arguments passed bit-exact to `find_floor`, `atan2s` and others (§5.1). |
 | 3.2 | **Undefined behavior means "no execution" in CompCert.** If a real frame hits UB (uninitialized read, out-of-range float→s16), the model has *no* derivation for it, and a "for all executions" theorem says **nothing** about that frame | **Closed for the one measured site; open in general.** §5.1 measured 33 of 300 real WMotR frames (11%) with no CompCert execution, all from `VIRTUAL_TO_PHYSICAL(ptr)` (`macros.h:64`, `(uintptr_t)ptr & 0x1FFFFFFF`) in `set_mario_animation` / `set_mario_anim_with_accel`. 2026-10-22: the anim *read* path had no execution either (fixed; 2.2 register). Details: [row 3.2 in detail](#row-32-in-detail). |
 | 3.3 | Concurrency: the game thread is the only writer of the state we reason about, and frames don't interleave with other threads' writes (audio, VI/PI interrupts, controller reads via `osContGetReadData`) | ASSUMED. The input buffer is written by the controller path. **Observed** (§5.1 recordings): during a single `execute_mario_action` call, the PI manager thread, DMA into `gMarioAnimsBuf` (Mario's animation data), thread save areas and `gZBuffer` all change. So Mario's *animation buffer* is filled by DMA mid-call. Needs an argument (likely: those threads write only buffers the game thread copies at a fixed point). |
-| 3.5 | **The libultra OS / hardware floor** (`OsDmaFloor.os_dma_floor`, a premise of the Twelve and HeightFrame capstones; widened 2026-10-21 from the DMA floor). Seven external calls, each bounding every execution (other argument shapes: no execution, as 3.2; no block allocated or freed, no permission change, in every clause). `osInvalDCache(p, n)`: nothing outside the n bytes at p changes, each of them stays or becomes data (`Byte` memvals), and p + n does not wrap. `osPiStartDma(mb, pri, dir, dev, dst, n, mq)`: nothing outside the n bytes at dst, the 20-byte OSIoMesg and the 24-byte queue changes; the n bytes become data; dst + n does not wrap (on the N64 every DMA buffer is in RDRAM; added 2026-10-20, used by `SmaFoot.sma_foot`). The whole PI transfer is attributed to `osPiStartDma`: between it and the blocking `osRecvMesg` the game thread reads nothing. `osRecvMesg(mq, cell, fl)` (cell NULL or a pointer): **per queue** (`q_side`): for `gDmaMesgQueue` / `gSIEventMesgQueue` nothing outside the queue and the 4-byte cell changes; for `gOsSiMessageQueue` also `osSiMesgBuff`; for `__osEepromTimerQ` also `__osEepromTimerMsg` and `__osEepromTimer`; other queues unconstrained. `osSendMesg(mq, msg, fl)`: the same per-queue bound without the cell. `osSetTimer(t, ...)`: for `t = &__osEepromTimer`, nothing outside its 32 bytes. `__osSiRawStartDma(dir, p)`: nothing outside the 64 bytes at p changes, each stays or becomes data. `bcopy(src, dst, n)`: nothing outside the n bytes at dst changes, and they then hold the n bytes src held. | ASSUMED, **the floor: there is no C below it**, except `osSetTimer`, a **coarser floor** (its C, `osSetTimer.c` / `osTimer.c`, walks the OS timer list through libultra's own pointers and is not linked). Below the rest: asm (`bcopy.s`, `__osEnqueueAndYield` and the thread queues: `osRecvMesg` / `osSendMesg` yield the thread), the PI manager thread and SI / PI register writes, and the bytes arriving by hardware DMA. Details: [row 3.5 in detail](#row-35-in-detail). |
+| 3.5 | **The libultra OS / hardware floor** (`OsDmaFloor.os_dma_floor`, a premise of the Twelve and HeightFrame capstones; widened 2026-10-21 from the DMA floor). Seven external calls, each bounding every execution (other argument shapes: no execution, as 3.2; no block allocated or freed, no permission change, in every clause). `osInvalDCache(p, n)`: nothing outside the n bytes at p changes, each of them stays or becomes data (`Byte` memvals), and p + n does not wrap. `osPiStartDma(mb, pri, dir, dev, dst, n, mq)`: nothing outside the n bytes at dst, the 20-byte OSIoMesg and the 24-byte queue changes; the n bytes become data; dst + n does not wrap (on the N64 every DMA buffer is in RDRAM; added 2026-10-20, used by `SmaFoot.sma_foot`). The whole PI transfer is attributed to `osPiStartDma`: between it and the blocking `osRecvMesg` the game thread reads nothing. `osRecvMesg(mq, cell, fl)` (cell NULL or a pointer): **per queue** (`q_side`): for `gDmaMesgQueue` / `gSIEventMesgQueue` nothing outside the queue and the 4-byte cell changes; for `gOsSiMessageQueue` also `osSiMesgBuff`; for `__osEepromTimerQ` also `__osEepromTimerMsg` and `__osEepromTimer`; other queues unconstrained. `osSendMesg(mq, msg, fl)`: the same per-queue bound without the cell. `osSetTimer(t, ...)`: for `t = &__osEepromTimer`, nothing outside its 32 bytes. `__osSiRawStartDma(dir, p)`: nothing outside the 64 bytes at p changes, each stays or becomes data. `bcopy(src, dst, n)`: nothing outside the n bytes at dst changes, and they then hold the n bytes src held. **FPU value clause** (2026-10-22, user-approved, `FpuValue.sqrtf_value`): `sqrtf` at the decomp's signature `float(float)`, on +-0 or a positive normal binary32, can return `Float32.sqrt x` with memory unchanged (the VR4300 `sqrt.s`). | ASSUMED, **the floor: there is no C below it**, except `osSetTimer`, a **coarser floor** (its C, `osSetTimer.c` / `osTimer.c`, walks the OS timer list through libultra's own pointers and is not linked). Below the rest: asm (`bcopy.s`, `__osEnqueueAndYield` and the thread queues: `osRecvMesg` / `osSendMesg` yield the thread), the PI manager thread and SI / PI register writes, and the bytes arriving by hardware DMA. Details: [row 3.5 in detail](#row-35-in-detail). |
 | 3.4 | Lag frames and frame pacing don't matter (the theorem is per *game-logic* frame) | ASSUMED, probably easy. |
 | 3.6 | **The main pool is one block** (hardware floor, user-approved 2026-10-20, added 2026-10-22). The `SEG_POOL_START..SEG_POOL_END` main-pool region (`main.c` `alloc_pool`) is one ordinary writable block. `main_pool_init` / `main_pool_alloc` / `alloc_only_pool_*` (`memory.c`) address it by pointer arithmetic from its two ends only. | ASSUMED, the floor. Used by: `TerrainRun` (the witness's pool block). Details: [row 3.6 in detail](#row-36-in-detail). |
 
@@ -948,6 +952,23 @@ link grows.
   footprint walker (`FpWalk.uawt_fp`: `update_air_without_turn` writes only forwardVel, slideVelX/Z,
   vel[0], vel[2], slideYaw, proved from its generated body and `check_horizontal_wind`'s). It is the
   same fact `CoinLink` assumes about `sqrtf`.
+- **The FPU value clause (2026-10-22, user-approved; `FpuValue.sqrtf_value`).** A call of `sqrtf`
+  at signature `float(float)` on x = +-0 or a positive normal binary32 (`sqrt_in`) can return
+  `Float32.sqrt x` (IEEE-754 correctly rounded) with memory unchanged. Tether: the decomp's `sqrtf`
+  is `lib/asm/sqrtf.s` (`jr $ra` / `sqrt.s $f0, $f12`; declared in `include/libc/math.h`).
+  `osInitialize.c:80` sets FCSR to `FPCSR_FS | FPCSR_EV`: round to nearest, flush denormal results,
+  trap on invalid operation. That is why the domain is restricted: a negative x or a NaN traps, and a
+  denormal input is an unimplemented operation on this FPU. The root of a normal is normal, so the
+  flush never applies. Infinity is left out. Consumers: `TerrainRun.world_ok_of` and
+  `BootRun.world_ok_of` (the interpreter's sqrtf answer), so `terrain_runs`, `boot_frames_run` and
+  `StartSat`'s `terrain_loaded` / `frame_runs` / `ifs_tether` rest on it.
+- **FOUND FALSE 2026-10-22 (repaired): the old `sqrtf` value antecedent was refutable.** It said
+  the IEEE return is a behavior at ANY signature. CompCert's own axiom
+  `external_functions_properties` (`ec_well_typed`) makes a `Vsingle` result impossible at an
+  int-returning signature, so that statement is false (`FpuValue.sqrtf_any_sig_false`). Both old
+  `world_ok`s implied it, so `TerrainRun.terrain_runs`'s tether, `BootRun.boot_frames_run` and
+  `StartSat`'s `terrain_loaded` / `frame_runs` / `ifs_tether` held vacuously. Now the clause and both
+  interpreter worlds name the signature (and the domain), and the runs check it.
 - **On the spine since 2026-10-21 in both capstones:** the GOAL-1 capstone takes it as `Hsq`, in
   place of the old `Hscp_mtxf_real` row (see 4.1), and GOAL 2's `Hsqrtf` fills that slot.
 
@@ -992,7 +1013,7 @@ link grows.
 
 | # | Item | Status / notes |
 |---|---|---|
-| 4.1 | Functions outside the 35 linked files (27 game TUs incl. `camera.c` + `behavior_data.c` + WMotR's level data + 6 libultra TUs; audio, rendering) behave as the capstone's rows say (`Hocp_*`, `Hpres_*`, `Hext_*`, …) | **ASSUMED, the ~30 project rows.** Shrinks by linking more files until only truly external things remain. Details: [row 4.1 in detail](#row-41-in-detail). |
+| 4.1 | Functions outside the 36 linked files (28 game TUs incl. `camera.c` and `ingame_menu.c` + `behavior_data.c` + WMotR's level data + 6 libultra TUs; audio, rendering) behave as the capstone's rows say (`Hocp_*`, `Hpres_*`, `Hext_*`, …) | **ASSUMED, the ~30 project rows.** Shrinks by linking more files until only truly external things remain. Details: [row 4.1 in detail](#row-41-in-detail). |
 | 4.2 | CompCert's `external_functions_sem` is an abstract Parameter. Anything left external is constrained *only* by our rows | Permanent for whatever stays external. The goal is that nothing game-logic stays external. |
 | 4.3 | Level data (WMotR collision triangles, object placements, the red-coin positions) is what the ROM contains | **Collision and macro data in the link (2026-10-22, TU 34).** `pipeline/tu/wmotr_level_data.c` includes the vendor `levels/wmotr/areas/1/collision.inc.c` / `macro.inc.c` verbatim, under `leveldata.c`'s `make_const_nonconst.h`. So the data is the decomp's, but that the decomp's `.inc.c` matches the ROM bytes is the decomp's build check (2.1), not ours. Object placements beyond collision (`script.c`) and the red-coin positions are not yet in. |
 | 4.4 | The proof's internal vocabulary (`MWF_real`, `SafeB`, `call_pres_ext_*`) appears in the *statement's* hypotheses | Anti-goal: a reader shouldn't have to understand proof internals to know what's assumed. Rows must eventually be about the game, or be gone. |
@@ -1027,6 +1048,27 @@ link grows.
     `camera_inert`, `csh_named`, `csh_ni` are deleted; no camera premise is left in the GOAL-2
     capstone (`HeightFrame`), and the rows (`FfRow`, `AhwRow`, `KbRow`, `PoleRow`, `LedgeRow`) and
     `StartSat` provide the new region from the link's symbol table.
+- **`ingame_menu.c` is linked** (2026-10-22, the 36th TU, `generated/ingame_menu.v`). Reason: the
+  terrain loader calls `reset_red_coins_collected`, whose real body writes `gRedCoinsCollected`,
+  which had no storage in the link, so the GOAL 2 runs needed a labeled premise for it (`rrc_inert`).
+  Now it runs. Its menu strings come from `build/us/include/text_strings.h`, made by the decomp's own
+  tool (`tools/textconv` over the preprocessed `charmap.txt`, vendor `Makefile` "Encode in-game text
+  strings"; our `Makefile` runs the same recipe, like `mario_anim_data.c`, 0.8(f)). Rows: no capstone
+  row or pin changes. The cutscene list rows that name its functions (`create_dialog_box`,
+  `create_dialog_box_with_var`, `create_dialog_inverted_box`, `create_dialog_box_with_response`,
+  `get_dialog_id`, `set_menu_mode`, `set_cutscene_message`, `reset_cutscene_msg_fade`, in
+  `cut_ext_ids` / `obj_ext_ids`) are now claims about real code. Re-audited by reading the bodies
+  (`ingame_menu.c:1075-1106, 2156-2164, 2228-2238`): each only loads and stores integers in
+  ingame_menu.c globals (SafeB, not Mario's block, not a stored global, no calls), so each row
+  (`call_pres_ext`: Mario's block valid and untainted, MWF, NoA kept) is true. They are still assumed
+  (a walk would make them lemmas). The 2.4 common for `gDialogResponse` now merges with its real
+  definition. New externals it declares (`gu*`, `play_*`, `seq_player_*`, `alloc_display_list` is
+  linked) are reached only from its menu / dialog rendering code, which no run or row reaches.
+- **Labeled open AUDIO premise `BootRun.audio_ret` (2026-10-22).** `play_sound`,
+  `play_infinite_stairs_music` (`sound_init.c`) and `set_sound_moving_speed` (`audio/external.c`)
+  can return `Vundef` with linked memory unchanged; their writes go to audio state no linked TU
+  declares. It replaces the audio half of the old `BootRun.world_ok`. A premise of
+  `boot_frames_run` and of `StartSat`'s `frame_runs` / `ifs_tether`, not of any capstone.
 - **`audio/data.c` is linked** (2026-10-20, the 18th TU, `generated/audio_data.v`): it is the only
   definer of `gAudioRandom`, which `play_mario_jump_sound` reads (mario.c:254). Before, it was a
   size-0 extern in the boot image, so every path of dive and the rollouts that plays a jump sound

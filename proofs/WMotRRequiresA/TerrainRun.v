@@ -27,12 +27,11 @@
 (*       ranges are wmotr_floor's (TRUST 0.8(a) for this memory).          *)
 (*                                                                          *)
 (* floor_data M and the agreement are unconditional facts about M.  That  *)
-(* M is what the generated loader computes rests on the interpreter's two *)
-(* external answers, stated as the hypothesis [world_ok], not as a trust  *)
-(* row: sqrtf returns the IEEE single-precision square root (the VR4300   *)
-(* sqrt.s; TRUST 3.5 makes no claim about its value), and                 *)
-(* reset_red_coins_collected (ingame_menu.c, not linked) returns without  *)
-(* changing memory.                                                         *)
+(* M is what the generated loader computes rests only on the FPU floor's  *)
+(* value clause (FpuValue.sqrtf_value, TRUST 3.5): sqrtf on +-0 or a      *)
+(* positive normal returns the IEEE single-precision root (the VR4300     *)
+(* sqrt.s).  reset_red_coins_collected runs its real body (ingame_menu.c  *)
+(* is linked since 2026-10-22, the 36th TU).                                *)
 (*                                                                          *)
 (* Not yet: this memory is not StartSat's witness (that one is built from *)
 (* Genv.init_mem plus the entry stores and has an empty partition).        *)
@@ -44,59 +43,47 @@ From compcert Require Import Coqlib Integers Floats Values AST Memory Globalenvs
 From SM64.Proofs Require Import Interp.ClightInterp Interp.LinkGenv Interp.MemBuild.
 From SM64.Proofs Require Interp.CMem.
 From SM64.Proofs Require Import LinkedTwelve HeightInvariant WMotRLevel.
-From SM64.Proofs.WMotRRequiresA Require Import FloorList FloorHeight AirMatch TerrainBound FpuFloor.
+From SM64.Proofs.WMotRRequiresA Require Import FloorList FloorHeight AirMatch TerrainBound FpuFloor
+  FpuValue.
 Require SM64.Generated.surface_load.
 Import ListNotations.
 Module CM := SM64.Proofs.Interp.CMem.
 Local Open Scope string_scope.
 
 (* ---------------------------------------------------------------------- *)
-(* The interpreter's external answers.                                     *)
+(* The interpreter's external answer: sqrtf, at the decomp's signature,   *)
+(* on the floor's domain (FpuValue.sqrt_in).  Every other external is     *)
+(* unanswered: a run reaching one gets stuck, so the check fails.          *)
 (* ---------------------------------------------------------------------- *)
 Definition world (ef : external_function) (args : list val) (m : mem)
     : option (trace * val * mem) :=
   match ef, args with
-  | EF_external n _, [Vsingle x] =>
-      if String.eqb n "sqrtf" then Some (E0, Vsingle (Float32.sqrt x), m) else None
-  | EF_external n _, [] =>
-      if String.eqb n "reset_red_coins_collected" then Some (E0, Vundef, m) else None
+  | EF_external n sg, [Vsingle x] =>
+      if String.eqb n "sqrtf" && (if signature_eq sg sqrtf_sig then true else false) && sqrt_in x
+      then Some (E0, Vsingle (Float32.sqrt x), m) else None
   | _, _ => None
   end.
 
-(* what the run assumes of the two externals *)
+(* what the run assumes of the externals *)
 Definition world_ok (ge : genv) : Prop :=
   forall ef args m t v m', world ef args m = Some (t, v, m') -> external_call ef ge args m t v m'.
 
-(* world_ok, split.  Its memory half for sqrtf is the existing FPU floor
-   (FpuFloor.sqrtf_spec, TRUST 3.5: every sqrtf behavior leaves memory
-   alone).  What the floor does NOT give -- by design, it makes no value
-   claim and asserts no behavior exists -- is that a call returning the IEEE
-   single-precision root IS one of sqrtf's behaviors (sqrtf_ieee: the VR4300
-   sqrt.s result).  reset_red_coins_collected's real body (ingame_menu.c:2421)
-   is gRedCoinsCollected = 0; ingame_menu.c is not linked and
-   gRedCoinsCollected has no storage in the link, so "returns, memory
-   unchanged" (rrc_inert) is a labeled premise, not a proved fact. *)
-Definition sqrtf_ieee : Prop :=
-  forall sg (ge : Senv.t) x m, exists m',
-    external_functions_sem "sqrtf" sg ge [Vsingle x] m E0 (Vsingle (Float32.sqrt x)) m'.
-
-Definition rrc_inert : Prop :=
-  forall sg (ge : Senv.t) m,
-    external_functions_sem "reset_red_coins_collected" sg ge [] m E0 Vundef m.
-
-Lemma world_ok_of : forall ge, sqrtf_spec -> sqrtf_ieee -> rrc_inert -> world_ok ge.
+(* world_ok is the FPU floor's value clause (TRUST 3.5).  FOUND 2026-10-22:
+   its earlier form answered sqrtf at ANY signature, and the antecedent
+   sqrtf_ieee it was split into was refutable (FpuValue.sqrtf_any_sig_false),
+   so the tether implications resting on it were vacuous.  The other old
+   antecedent, rrc_inert, is gone: reset_red_coins_collected is linked. *)
+Lemma world_ok_of : forall ge, sqrtf_value -> world_ok ge.
 Proof.
-  intros ge Hs Hi Hr ef args m t v m' W. unfold world in W.
+  intros ge Hv ef args m t v m' W. unfold world in W.
   destruct ef; try discriminate W.
   destruct args as [| a [| a2 args]]; try discriminate W.
-  - destruct (String.eqb name "reset_red_coins_collected") eqn:E; [ | discriminate W ].
-    injection W as <- <- <-. apply String.eqb_eq in E. subst name. exact (Hr sg ge m).
-  - destruct a; try discriminate W.
-    destruct (String.eqb name "sqrtf") eqn:E; [ | discriminate W ].
-    injection W as <- <- <-. apply String.eqb_eq in E. subst name.
-    destruct (Hi sg ge f m) as (m'' & H).
-    pose proof (Hs _ _ _ _ _ _ _ H) as ->. exact H.
-  - destruct a; discriminate W.
+  destruct a; try discriminate W.
+  destruct (String.eqb name "sqrtf") eqn:E; [ | discriminate W ].
+  destruct (signature_eq sg sqrtf_sig) as [-> | ]; [ | discriminate W ].
+  destruct (sqrt_in f) eqn:I; [ | discriminate W ].
+  injection W as <- <- <-. apply String.eqb_eq in E. subst name.
+  exact (Hv ge f m I).
 Qed.
 
 Definition externs (i : ident) : option Z := None.
@@ -390,7 +377,7 @@ Lemma check_gen_sound : forall fuel (ge : genv) m, check_gen fuel ge m = true ->
     /\ Genv.find_symbol ge (id "gSurfacesAllocated") = Some bn
     /\ floor_data ge m2 /\ static_agree ge m2
     /\ Mem.load Mint32 m2 bn 0 = Some (Vint n) /\ Int.signed n = NSURF
-    /\ (world_ok ge ->
+    /\ (sqrtf_value ->
         exists t1 v1 t2 v2,
           eval_funcall function_entry2 ge m
             (Internal SM64.Generated.surface_load.f_alloc_surface_pools) [] t1 m1 v1
@@ -411,12 +398,12 @@ Proof.
   exists m1, m2, bc, bn, n.
   refine (conj eq_refl (conj eq_refl (conj (parts_ok_floor_data _ _ _ P)
             (conj (parts_ok_agree _ _ _ P) (conj Hn (conj N _)))))).
-  intros W. exists t1, v1, t2, v2. split.
+  intros Hv. pose proof (world_ok_of ge Hv) as W. exists t1, v1, t2, v2. split.
   - exact (ex_call_sound ge world W _ _ _ _ _ _ _ R1).
   - exact (ex_call_sound ge world W _ _ _ _ _ _ _ R2).
 Qed.
 
-(* THE RUN: over every 34-TU link, the real alloc_surface_pools +
+(* THE RUN: over every 36-TU link, the real alloc_surface_pools +
    load_area_terrain on WMotR's collision data produce a memory whose
    collision partition satisfies floor_data and agrees with the decoder,
    with NSURF surfaces allocated. *)
@@ -427,7 +414,7 @@ Theorem terrain_runs : forall lp, linked12 lp ->
     /\ floor_data (globalenv lp) m2
     /\ static_agree (globalenv lp) m2
     /\ Mem.load Mint32 m2 bn 0 = Some (Vint n) /\ Int.signed n = NSURF
-    /\ (world_ok (globalenv lp) ->
+    /\ (sqrtf_value ->
         exists t1 v1 t2 v2,
           eval_funcall function_entry2 (globalenv lp) m
             (Internal SM64.Generated.surface_load.f_alloc_surface_pools) [] t1 m1 v1

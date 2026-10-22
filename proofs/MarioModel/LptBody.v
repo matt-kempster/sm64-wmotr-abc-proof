@@ -32,7 +32,7 @@ From SM64.Generated Require mario mario_actions_stationary mario_actions_moving
   libultra_osEepromLongWrite libultra_osEepromWrite libultra_osSiCreateAccessQueue
   libultra_osCreateMesgQueue libultra_osContInit libultra_osInitialize
   behavior_data spawn_object surface_load macro_special_objects wmotr_level_data
-  camera.
+  camera ingame_menu.
 From SM64.Proofs Require Import SymbolicLinking ActionValueFrame AGates Taint
   RealFrameLinked RealFrameValue CensusV2 MWFReal OsDmaFloor ActWriterSurface LinkedTwelve.
 From SM64.Proofs Require OutParamSurface RestSurface.
@@ -343,6 +343,8 @@ Lemma os_ni_wmotr_level_data : no_internal_ids wmotr_level_data.prog os_ids = tr
 Proof. vm_compute. reflexivity. Qed.
 Lemma os_ni_camera : no_internal_ids camera.prog os_ids = true.
 Proof. vm_compute. reflexivity. Qed.
+Lemma os_ni_ingame_menu : no_internal_ids ingame_menu.prog os_ids = true.
+Proof. vm_compute. reflexivity. Qed.
 
 Definition ext_named (o : option (globdef Clight.fundef type)) (n : String.string) : bool :=
   match o with
@@ -516,7 +518,7 @@ Section LptFrame.
       destruct (link_chain_internal_origin _ _ _ _ _ Hlink Hdm')
         as [Hbase | (q & Hq & Hqdm)].
       + exact (no_internal_ids_correct _ _ _ _ os_ni_mario Hid Hbase).
-      + destruct Hq as [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | []]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]].
+      + destruct Hq as [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | []]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]].
         * exact (no_internal_ids_correct _ _ _ _ os_ni_sta Hid Hqdm).
         * exact (no_internal_ids_correct _ _ _ _ os_ni_mov Hid Hqdm).
         * exact (no_internal_ids_correct _ _ _ _ os_ni_air Hid Hqdm).
@@ -551,6 +553,7 @@ Section LptFrame.
         * exact (no_internal_ids_correct _ _ _ _ os_ni_macro_special_objects Hid Hqdm).
         * exact (no_internal_ids_correct _ _ _ _ os_ni_wmotr_level_data Hid Hqdm).
         * exact (no_internal_ids_correct _ _ _ _ os_ni_camera Hid Hqdm).
+        * exact (no_internal_ids_correct _ _ _ _ os_ni_ingame_menu Hid Hqdm).
   Qed.
 
   (* the external call a libultra Scall makes *)

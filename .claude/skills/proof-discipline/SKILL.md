@@ -109,18 +109,24 @@ all in `Unwired/`, and the theorem moved nowhere. See
   `macro_special_objects.c` and WMotR's level data are TUs 33-34. TRUST 3.6 (main pool = one
   block) was added. `TerrainRun.terrain_runs` RUNS the real `alloc_surface_pools` +
   `load_area_terrain` (1352 surfaces) and proves `floor_data` + decoder agreement on the result
-  (`TerrainBound.tri_chk_sound`: per-triangle binary32 bound). This is conditional only on
-  `world_ok` (sqrtf = IEEE sqrt, `reset_red_coins_collected` inert) for "this is the loader's
-  output". `main_pool_init` has no CompCert execution (ALIGN16 on a pointer).
+  (`TerrainBound.tri_chk_sound`: per-triangle binary32 bound). "This is the loader's output" is
+  conditional only on the FPU value clause `sqrtf_value` (since 2026-10-22, see below). `main_pool_init` has no CompCert execution (ALIGN16 on a pointer).
   2026-10-22, later: the GOAL 2 start witness CARRIES that terrain (`StartTerrain`): the loader
   runs on the `init_mem` image (`InitMemC.init_mem_c`, computable init_mem) in the real order
   (warp stores, pool post-state, alloc_surface_pools, load_area_terrain, init_mario cells);
   footprint / pointer / list checks + `InterpFrame.ex_call_keep` re-prove `MWF_real` (SafeB + pool
   block), neutrality and `Wff` across the load; `goal2_start_sat` concludes `floor_data`,
-  `static_agree`, 1352 surfaces and `terrain_loaded` (replaces `part_ready`). `world_ok` split:
-  memory half of sqrtf = `sqrtf_spec`; `sqrtf_ieee` + `rrc_inert` stay labeled antecedents of
-  the tether implication (`gRedCoinsCollected` is not in the link). Next: `gCurrCourseNum`; ask
-  about an FPU value row for `sqrtf` and the `memory.c:120,122` ALIGN16 rewrite (TRUST 3.6). FOUND FALSE + repaired
+  `static_agree`, 1352 surfaces and `terrain_loaded` (replaces `part_ready`).
+  2026-10-22, later: FOUND FALSE + repaired: the `sqrtf` antecedent `sqrtf_ieee` (and so both
+  interpreter `world_ok`s) was refutable from CompCert's `ec_well_typed` (any-signature form,
+  `FpuValue.sqrtf_any_sig_false`): `terrain_loaded` / `frame_runs` / `ifs_tether` /
+  `boot_frames_run` were vacuous. Now the FPU floor has a user-approved VALUE clause
+  (`FpuValue.sqrtf_value`: decomp signature, +-0 / positive normals, `lib/asm/sqrtf.s`), and the
+  terrain tether rests only on it. `ingame_menu.c` linked (36th TU): `reset_red_coins_collected`
+  runs its real body, `rrc_inert` deleted. Frame / ifs runs: `sqrtf_value` + labeled audio
+  premise `BootRun.audio_ret` (3 audio externals). `gCurrCourseNum` = 23 on the witness, tethered
+  by RUNNING the real `lvl_set_current_level(0, 31)` (`CourseRun`, unconditional; `course_set`).
+  Next: the `memory.c:120,122` ALIGN16 rewrite (TRUST 3.6). FOUND FALSE + repaired
   when linking area.c: any-argument `override_viewport_and_clip` (in `obj_ext_ids`) stores its
   pointer args into `D_8032CE74/78`; those joined `stored_globals`. Linking a TU turns every
   any-argument row naming its functions into a claim about real code: re-audit them.

@@ -26,6 +26,7 @@ generated/memory.v
 generated/game_init.v
 generated/wmotr_level_data.v
 generated/camera.v
+generated/ingame_menu.v
 generated/wmotr_script.v
 generated/macro_special_objects.v
 generated/behavior_data.v
@@ -311,6 +312,8 @@ proofs/WMotRRequiresA/WallFind.v
 proofs/WMotRRequiresA/WallExec.v
 proofs/WMotRRequiresA/AirXc.v
 proofs/WMotRRequiresA/FpuFloor.v
+proofs/WMotRRequiresA/FpuValue.v
+proofs/WMotRRequiresA/CourseRun.v
 proofs/WMotRRequiresA/FpWalk.v
 proofs/WMotRRequiresA/AirWr.v
 proofs/WMotRRequiresA/AirMatch.v
