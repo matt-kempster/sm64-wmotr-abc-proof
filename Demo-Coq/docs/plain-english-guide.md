@@ -39,6 +39,15 @@ pause. A later instant area change could conditionally cancel that fade;
 the selected demos have no direct instant-warp declarations and no normal
 instance was identified. These source observations do not close a proof item.
 
+The [shared-script/callback follow-up](notes/demo-instant-warp-installation-source-audit.md)
+finds no hidden instant-warp installer: the seven entries and their 33 named
+helpers contain no such command, and no callback names the sole opcode handler
+or re-enters its interpreter. Ordinary entry resets all eight area slots;
+no named prior-level table-copy route was found. Shared geometry or an
+instant-warp floor alone does not populate the required table. This strengthens
+the source case against that particular pause route, while linked runtime
+ownership and memory preservation remain unproved. No Coq result changed.
+
 The [primary gameplay specification is partially formalized](notes/gameplay-observation-status.md).
 Coq now observes an actual controller-field read in generated gameplay code
 and conditionally connects a demo record's emitted value to a real camera read.

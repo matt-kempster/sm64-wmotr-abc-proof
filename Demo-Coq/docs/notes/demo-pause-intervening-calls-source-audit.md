@@ -192,6 +192,13 @@ resources was identified. In the first shape a valid preexisting ordinary
 destination is an additional unresolved prerequisite. An instant warp alone
 does not clear an already-pending Demo Next.
 
+The [shared-script/callback follow-up](demo-instant-warp-installation-source-audit.md)
+extends this beyond direct declarations: all 40 named root/helper arrays lack
+the installer command, no callback names the only installer/re-enters its
+interpreter, and ordinary level entry clears all eight tables. No inherited
+table-copy mechanism was found. This supplies additional source evidence
+against these conditional routes, without a linked runtime preservation proof.
+
 ## Pause rendering and Exit Course are downstream
 
 The only named explicit transition into PAUSED is

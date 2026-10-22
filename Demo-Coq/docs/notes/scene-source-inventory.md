@@ -18,3 +18,9 @@ actual command operands and all 18 US/JP geometry/terrain pairs (nine per versio
 For example, CCM area2 geometry is US234882552 versus JP234882536.
 This establishes finite source/native-word metadata; runtime active images,
 processed roots and construction/ownership are still unproved.
+
+The October 22 [shared-script/callback source review](demo-instant-warp-installation-source-audit.md)
+separately follows all 40 named selected root/helper arrays and reviews instant
+table writers and area lifetime. It finds no hidden installer or inherited
+table route. This is source evidence outside the Coq inventory; helper
+execution and runtime ownership/preservation remain unproved.

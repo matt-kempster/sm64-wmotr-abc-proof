@@ -167,6 +167,10 @@ authentic runtime activation. See [its precise scope](notes/native-scalar-read-c
   actual helper's shift is undefined on an unrefined symbolic `Vptr`.
 - [ ] Prove construction and preservation of absent painting/instant-warp
   tables for loaded demo areas; the local opcode census alone is insufficient.
+  The October 22 [source-only follow-up](notes/demo-instant-warp-installation-source-audit.md)
+  found no instant-warp installer in the 40 named root/helper arrays, callbacks
+  or prior-level table copies. Runtime ownership and memory preservation remain
+  unproved; this item stays unchecked and proof work remains stopped.
 - [ ] Cover every reached level-changing path and its debug, pause, credits
   and ordinary-play guards under the chosen start conditions.
 - [ ] Establish/preserve zero ordinary warp destination: it takes priority

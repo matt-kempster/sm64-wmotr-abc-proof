@@ -31,6 +31,12 @@ initialization starts a replacement fade; a later instant-area cancellation is
 conditional on unestablished selected-demo scene/state resources. This is source
 evidence, not a new gameplay or memory-preservation theorem.
 
+The [shared-script/callback installation review](notes/demo-instant-warp-installation-source-audit.md)
+extends the named source census to all 40 selected root/helper arrays and the
+area lifecycle. It identifies no hidden installer or prior-level table
+inheritance mechanism. This is not a transitive callback/store-preservation
+proof and does not change the OPEN verdict.
+
 The [primary specification status](notes/gameplay-observation-status.md)
 records partial actual-read/history and input-origin formalization. The capstone
 now consumes a conditional connection to a real generated camera read and
