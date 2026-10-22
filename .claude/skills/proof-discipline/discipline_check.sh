@@ -55,6 +55,7 @@ if [ "$#" -eq 0 ]; then
          SM64.Proofs.NoAImpliesNoFly.PositiveControl A_pressed_frame_reaches_flying \
          SM64.Proofs.NoAImpliesNoFly.PoleControl noA_pole_frames_run \
          SM64.Proofs.WMotRRequiresA.SpawnTypeRun spawn_type_runs \
+         SM64.Proofs.WMotRRequiresA.TerrainRun terrain_runs \
          SM64.Proofs.WMotRRequiresA.HeightFrame wmotr_noA_height_bound_linked12 \
          SM64.Proofs.WMotRRequiresA.StartSat goal2_start_sat
 fi

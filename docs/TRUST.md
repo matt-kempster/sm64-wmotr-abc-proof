@@ -26,7 +26,7 @@ without pressing A".*
 | 0.2 | The definition of "flying" (`Flying.v`: `ACT_FLYING`, `ACT_FLYING_TRIPLE_JUMP`; the invariant set also has `ACT_SHOT_FROM_CANNON`) | Constants read from the generated AST. |
 | 0.3 | "Collect the star" = the red-coin star spawns and is touched. The GOAL-2 height bound must imply you can't | **Height form stated** (`WMotRRequiresA/HeightFrame.v`, `wmotr_noA_height_bound_linked12`): a no-A run keeps `pos[1] ≤ 2796` (`PHI_YMAX` = K + A, `HeightInvariant.v`; K = H* = 2424, the wing-cap box top 2320 + 2·52 (the box is scaled ×2), with the level facts it needs proved from generated level data in `WMotRLevel.v` (0.8); A = 372 from `tools/goal2_budget.py` plus the binary32 rounding allowance). Details: [row 0.3 in detail](#row-03-in-detail). |
 | 0.6 | GOAL 2's height invariant `Phi` and the Mario-frame rows | **Defined** (`HeightInvariant.height_invariant`, design `docs/goal2-phi.md`): `R_noA` action whitelist ∧ `budget_ok` over the cells action, actionState, actionTimer, pos[1], vel[1], floorHeight and `marioObj->gfx.pos[1]` (what OOB recovery restores). Details: [row 0.6 in detail](#row-06-in-detail). |
-| 0.8 | GOAL 2's level data: `wmotr_floor` / `wmotr_pole` / `wmotr_cannon` are WMotR's floors, poles and cannon seats | **Defined from generated/, rows proved** (`WMotRLevel.v`). Details: [row 0.8 in detail](#row-08-in-detail). |
+| 0.8 | GOAL 2's level data: `wmotr_floor` / `wmotr_pole` / `wmotr_cannon` are WMotR's floors, poles and cannon seats | **Defined from generated/, rows proved** (`WMotRLevel.v`). 2026-10-22: `floor_data` (d) and decoder agreement (a) are PROVED on the memory the real `load_area_terrain` builds (`TerrainRun`, 1352 surfaces); the GOAL 2 witness does not carry that memory yet. Details: [row 0.8 in detail](#row-08-in-detail). |
 | 0.9 | GOAL 2's pos[1] writer census is complete (`YWriterCensus.v`) | **Machine-checked list, trusted edges.** Coq scans every function body of the 12 generated Mario TUs and proves: 31 direct `pos[1]` stores and 21 write-escapes (16 whole-vector arg-0 passes to `vec3f_copy`/`vec3f_set`/`vec3s_to_vec3f`, 5 `&pos[1]` passes to `f32_find_wall_collision`), 52 in all; `pos`'s address never reaches a temp, memory, a condition or a return, and no struct copy covers it. Details: [row 0.9 in detail](#row-09-in-detail). |
 | 0.10 | GOAL 2's object census: what objects can exist in WMotR and their interaction types (`BehaviorScripts.v`) | **Machine-checked over generated code, frontier trusted.** `generated/behavior_data.v` (clightgen of `data/behavior_data.c`) gives every behavior script as data; a fail-closed decoder mirrors the command layouts. Details: [row 0.10 in detail](#row-010-in-detail). |
 | 0.7 | GOAL 2's flank segments (`HeightFrame.v`: controller poll, platform displacement, level/warp phase, non-Mario objects) do what their specs say: y / action loads as the censuses found them, and each carries GOAL 1's `MWF_real` and Φ (since 2026-09-29 Φ here is `PhiW`, so each flank also keeps the WMotR world: object updates reload only WMotR's surfaces and never hand Mario an object to hold or ride; collision detection registers only WMotR-kind objects, with poles and cannon bases at their level positions and no star while coin #2 stands (0.3); no object sets a stomp bit on Mario's object) (the poll only when A is not pressed); platform displacement also leaves the held-A reading unchanged (it writes no controller) | **ASSUMED, labeled.** Specs, not proofs: none of that code is linked. Details: [row 0.7 in detail](#row-07-in-detail). |
@@ -420,6 +420,18 @@ without pressing A".*
     locals `x = (s16) xPos`, `z = (s16) zPos`, and `ff_height` now proves it (`HH_set_xz`,
     `xz_arg_ok`). At |x|, |z| ≤ 32768 with WMotR's vertices the edge tests cannot overflow, so a
     hit is a point of the closed triangle. No consumer changed: they all read `floor_data`.
+- **Checked on the real loaded terrain (2026-10-22, `TerrainRun` + `TerrainBound`):** the
+  repaired `floor_data` holds on the memory that the generated `load_area_terrain` builds from
+  WMotR's collision data (1352 surfaces, conditional only on `world_ok`, see 0.4). Each floor-list
+  surface is one of `static_tris`' floors with the same type and nine coordinates, which is (a)
+  for this memory. Each passes a per-triangle binary32 check, `tri_chk`, proved sound
+  (`tri_chk_sound`):
+  - at s16 (x, z) the int32 edge tests cannot wrap, given the triangle's coordinate range;
+  - a point passing them is a convex combination of the vertices;
+  - the exact plane value there lies between its values at the vertices;
+  - the five roundings move it by at most E, which is at most 0.0085 on WMotR.
+  So (d) is now PROVED for the static partition of that memory. The worst margin to ±1 is
+  0.991. What stays open is that the memory at real WMotR entry is this one (0.4).
 
 ### Row 0.9 in detail
 
@@ -597,12 +609,27 @@ without pressing A".*
     boot. No row was false: the proofs are partial-correctness walks over any memory.
   - **Repaired on the witness:** `StartSat.goal2_start_sat` now also concludes `part_ready`: both
     partitions have the definer's 6144 bytes, and every list head loads as NULL (`part_heads`).
-  - **Still not run:** `alloc_surface_pools` / `load_area_terrain`. The witness's partition is
-    empty, not WMotR's terrain. Running the loader needs: the main pool (`main_pool_init` on the
-    `SEG_POOL_START..SEG_POOL_END` region, a hardware-floor row the user approved but not yet added,
-    since nothing runs it); `spawn_special_objects` (`macro_special_objects.c`, unlinked; WMotR's
-    terrain has one `COL_SPECIAL_INIT`); and the level data (`wmotr_level_data`, not in the link).
-    Then `floor_data` / `Wff` must be shown of the loaded partition.
+  - **RUN (2026-10-22, `TerrainRun.terrain_runs`):** with `macro_special_objects.c` (TU 33) and
+    WMotR's level data (TU 34) linked, and the main pool as one block (row 3.6), the generated
+    `alloc_surface_pools` and then `load_area_terrain(1, wmotr_seg7_collision, NULL, NULL)` run to
+    completion in the sound interpreter over every 34-TU link and allocate 1352 surfaces. On the
+    resulting memory, `floor_data` holds and every floor-list surface is, field for field, a floor
+    triangle of the decoder's `static_tris` (`static_agree`). Both are proved by a checked walk of
+    both partitions (`TerrainBound.tri_chk`, below).
+  - **What the run rests on** (a hypothesis of the theorem, `world_ok`, not a trust row): the
+    interpreter answers `sqrtf` with the IEEE single-precision square root, and
+    `reset_red_coins_collected` (`ingame_menu.c`, unlinked) with no memory change. `floor_data` and
+    `static_agree` of the memory are unconditional. Only "this memory is what the loader computes"
+    needs `world_ok`. 3.5 says nothing about `sqrtf`'s value, so this is not yet a floor row; ask
+    before adding one.
+  - **Not run:** `main_pool_init`. It has no CompCert execution (3.6 detail), so its post-state is
+    constructed. Not run either: macro-object spawning (`macroObjects = NULL`; the boxes and
+    cannons stay 0.8(b)). The special object is `special_null_start`, so the spawn path runs only
+    over a NULL behavior.
+  - **Not yet on the witness:** `StartSat`'s memory is built from `Genv.init_mem`, `TerrainRun`'s
+    from `MemBuild.alloc_globs` (same blocks and data, different permissions on read-only and
+    function blocks). So the GOAL 2 witness's partition is still empty. Joining the two (run the
+    loader on the `init_mem`-based witness, keep `MWF_real` across it) is the next step.
   - No capstone row names a `surface_load.c` function (checked: the open id lists, `exempt_callees`,
     the GOAL 2 per-call rows), so no row became a lemma. Its callers in the link
     (`update_objects` → `clear_dynamic_surfaces`, `load_area` → `load_area_terrain`, the

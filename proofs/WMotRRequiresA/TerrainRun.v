@@ -114,11 +114,11 @@ Definition ldf (m : mem) (bs : block) (os : ptrofs) (k : Z) : option float32 :=
   | _ => None
   end.
 
-Definition vtx_is (v : vtx) (x y z : int) : bool :=
+Definition vtx_is (v : WMotRLevel.vtx) (x y z : int) : bool :=
   let '(a, b, c) := v in
   Z.eqb a (Int.signed x) && Z.eqb b (Int.signed y) && Z.eqb c (Int.signed z).
 
-Definition tri_is (ty x1 y1 z1 x2 y2 z2 x3 y3 z3 : int) (t : tri) : bool :=
+Definition tri_is (ty x1 y1 z1 x2 y2 z2 x3 y3 z3 : int) (t : WMotRLevel.tri) : bool :=
   Z.eqb (t_type t) (Int.signed ty) && vtx_is (t_v1 t) x1 y1 z1 && vtx_is (t_v2 t) x2 y2 z2
   && vtx_is (t_v3 t) x3 y3 z3 && is_floor t.
 
@@ -192,11 +192,10 @@ Proof. intros. unfold ldf. rewrite CM.load_eq. simpl in H. rewrite H. reflexivit
 
 Lemma tri_is_floor : forall ty x1 y1 z1 x2 y2 z2 x3 y3 z3 t,
   tri_is ty x1 y1 z1 x2 y2 z2 x3 y3 z3 t = true -> is_floor t = true.
-Proof. intros. unfold tri_is in H. repeat (apply andb_prop in H as [? H]); auto.
-  apply andb_prop in H as [_ H]; exact H. Qed.
+Proof. intros. unfold tri_is in H. apply andb_prop in H as [_ H]. exact H. Qed.
 
 Lemma surf_ok_sound : forall m s, surf_ok m s = true ->
-  forall xv zv h, ffl_hit16 m s xv zv h -> F32 h = true /\ Rabs (R2 h) <= 16384 /\ wmotr_floor (R2 h).
+  forall xv zv h, ffl_hit16 m s xv zv h -> F32 h = true /\ (Rabs (R2 h) <= 16384)%R /\ wmotr_floor (R2 h).
 Proof.
   intros m s S xv zv h ((bs & os & X & Z & x1 & z1 & x2 & z2 & x3 & z3 & nx & ny & nz & oo &
                           -> & -> & -> & L1 & L2 & L3 & L4 & L5 & L6 & F1 & F2 & F3 & F4 &
@@ -230,10 +229,7 @@ Qed.
 
 Lemma in_z16 : forall z, (0 <= z < 16)%Z -> In z z16.
 Proof.
-  intros z Hz. unfold z16.
-  assert (z = 0 \/ z = 1 \/ z = 2 \/ z = 3 \/ z = 4 \/ z = 5 \/ z = 6 \/ z = 7 \/ z = 8 \/ z = 9
-          \/ z = 10 \/ z = 11 \/ z = 12 \/ z = 13 \/ z = 14 \/ z = 15)%Z as E by lia.
-  simpl. tauto.
+  intros z Hz. unfold z16. simpl. lia.
 Qed.
 
 Theorem parts_ok_floor_data : forall fuel ge m, parts_ok fuel ge m = true -> floor_data ge m.
@@ -243,13 +239,13 @@ Proof.
   unfold parts_ok in P. rewrite forallb_forall in P. specialize (P id Hin). rewrite Hs in P.
   unfold cells_ok in P. rewrite forallb_forall in P. specialize (P z (in_z16 z Hz)).
   rewrite forallb_forall in P. specialize (P x (in_z16 x Hx)).
-  rewrite CM.load_eq in P. simpl in Hl. rewrite Hl in P.
+  rewrite CM.load_eq in P. unfold Mem.loadv in Hl. rewrite Hl in P.
   exact (surf_ok_sound m s (walk_sound _ _ _ _ P OL) xv zv h HH).
 Qed.
 
 (* decoder agreement: every surface on a floor list is one of the decoder's floor
    triangles, field for field *)
-Definition surf_is (m : mem) (s : val) (t : tri) : Prop :=
+Definition surf_is (m : mem) (s : val) (t : WMotRLevel.tri) : Prop :=
   exists bs os, s = Vptr bs os /\
     let '(x1, y1, z1) := t_v1 t in let '(x2, y2, z2) := t_v2 t in let '(x3, y3, z3) := t_v3 t in
     forall k c, In (k, c) [(0, t_type t); (10, x1); (12, y1); (14, z1); (16, x2); (18, y2);
@@ -291,13 +287,12 @@ Proof.
   exists t. split; [ exact Hin | split; [ exact (tri_is_floor _ _ _ _ _ _ _ _ _ _ _ Ht) | ] ].
   exists bs, os. split; [ reflexivity | ].
   unfold tri_is, vtx_is in Ht.
-  destruct t as [tt [[a1 b1] c1] [[a2 b2] c2] [[a3 b3] c3]]. cbn [t_type t_v1 t_v2 t_v3] in *.
-  repeat match type of Ht with
-         | (_ && _) = true => apply andb_prop in Ht as [Ht ?]
-         end.
+  destruct t as [tt [[a1 b1] c1] [[a2 b2] c2] [[a3 b3] c3]]. cbn [t_type t_v1 t_v2 t_v3] in Ht |- *. cbv beta iota zeta in Ht |- *.
+  repeat match goal with H : (_ && _) = true |- _ => apply andb_prop in H as [? ?] end.
   repeat match goal with H : Z.eqb _ _ = true |- _ => apply Z.eqb_eq in H end.
-  intros k c Hk. simpl in Hk.
-  repeat destruct Hk as [Hk|Hk]; try contradiction; injection Hk as <- <-;
+  intros k c Hk. cbn [In] in Hk.
+  destruct Hk as [Hk|[Hk|[Hk|[Hk|[Hk|[Hk|[Hk|[Hk|[Hk|[Hk|[]]]]]]]]]]];
+    injection Hk as <- <-;
     eexists; (split; [ apply ldi_back; eassumption | congruence ]).
 Qed.
 
@@ -308,7 +303,7 @@ Proof.
   unfold parts_ok in P. rewrite forallb_forall in P. specialize (P id Hin). rewrite Hs in P.
   unfold cells_ok in P. rewrite forallb_forall in P. specialize (P z (in_z16 z Hz)).
   rewrite forallb_forall in P. specialize (P x (in_z16 x Hx)).
-  rewrite CM.load_eq in P. simpl in Hl. rewrite Hl in P.
+  rewrite CM.load_eq in P. unfold Mem.loadv in Hl. rewrite Hl in P.
   exact (surf_ok_agree m s (walk_sound _ _ _ _ P OL)).
 Qed.
 
@@ -383,7 +378,7 @@ Proof.
   apply Z.eqb_eq in N.
   exists m1, m2, bc, bn, n.
   refine (conj eq_refl (conj eq_refl (conj (parts_ok_floor_data _ _ _ P)
-            (conj (parts_ok_agree _ _ _ P) (conj eq_refl (conj N _)))))).
+            (conj (parts_ok_agree _ _ _ P) (conj Hn (conj N _)))))).
   intros W. exists t1, v1, t2, v2. split.
   - exact (ex_call_sound ge world W _ _ _ _ _ _ _ R1).
   - exact (ex_call_sound ge world W _ _ _ _ _ _ _ R2).
