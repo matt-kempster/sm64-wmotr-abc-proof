@@ -81,24 +81,35 @@ Proof.
   intros p l lp H. rewrite (parts_chain_ok _ _ _ H). apply genv_of_parts_ok.
 Qed.
 
-(* Specialised to the twelve-TU link of the GOAL-1 capstone. *)
-Definition ge12 : option genv :=
-  match parts_chain (parts_of SM64.Generated.mario.prog) tu_rest with
+(* The computable genv / AST of ANY chain.  ge12 / ast12 below are these
+   applied to the capstone's link.  Do NOT inline the match into ge12: with the
+   35-TU tu_rest, elaborating `match parts_chain (parts_of mario.prog) tu_rest
+   with ..` directly ran over an hour (2026-10-22); through this abstraction
+   the whole file checks in ~2 s. *)
+Definition ge_of_chain (p : Clight.program) (l : list Clight.program) : option genv :=
+  match parts_chain (parts_of p) l with
   | Some x => genv_of_parts x
   | None => None
   end.
+
+Definition ast_of_chain (p : Clight.program) (l : list Clight.program)
+  : option (AST.program fundef type) :=
+  match parts_chain (parts_of p) l with
+  | Some x => Some (fst x)
+  | None => None
+  end.
+
+(* Specialised to the link of the capstones (LinkedTwelve.tu_rest). *)
+Definition ge12 : option genv := ge_of_chain SM64.Generated.mario.prog tu_rest.
 
 Theorem ge12_ok : forall lp, linked12 lp -> ge12 = Some (globalenv lp).
 Proof. intros lp H. exact (chain_genv _ _ _ H). Qed.
 
 (* The linked AST program itself (for building memories / init_mem). *)
 Definition ast12 : option (AST.program fundef type) :=
-  match parts_chain (parts_of SM64.Generated.mario.prog) tu_rest with
-  | Some x => Some (fst x)
-  | None => None
-  end.
+  ast_of_chain SM64.Generated.mario.prog tu_rest.
 
 Theorem ast12_ok : forall lp, linked12 lp -> ast12 = Some (program_of_program lp).
 Proof.
-  intros lp H. unfold ast12. rewrite (parts_chain_ok _ _ _ H). reflexivity.
+  intros lp H. unfold ast12, ast_of_chain. rewrite (parts_chain_ok _ _ _ H). reflexivity.
 Qed.
