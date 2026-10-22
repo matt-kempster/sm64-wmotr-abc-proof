@@ -1,5 +1,5 @@
 From Coq Require Import Lia List ZArith.
-From compcert Require Import AST Clight ClightBigstep Clightdefs Ctypes Events Floats Integers Maps Memory Values.
+From compcert Require Import AST Clight ClightBigstep Clightdefs Ctypes Events Floats Globalenvs Integers Maps Memory Values.
 From LessThanOneAPress.Proofs Require Import
   GameTypes InputSemantics CleanEntry ObjectProvenance StarCollection
   CollisionRegions AreaTransitions HiddenStar LowerEntrance UpperEntrance
@@ -49,6 +49,7 @@ From LessThanOneAPress.Proofs Require Import
   Area2Rank10AStallSources Area2Rank10AGroundHold
   ObjectContactNecessity ObjectContactReadback ObjectContactPhaseReadback
   ContactConsumerSource ContactConsumerExecution ContactCreditExecution
+  JPContactDispatchExecution
   SecretContactExecution
   InkBackwardSource InkBackwardExecution InkCopyCaller InkFloorResetCopy InkRawCopyHeight
   InkQuicksandBackward InkMovingBackward InkControllerBackward InkBackwardHistory
@@ -60,8 +61,9 @@ From LessThanOneAPress.Proofs Require Import
   TeleporterInitializerFrame TeleporterTerrainInterval TeleporterArrivalChronology
   TeleporterHeldInitializer TeleporterHeldObjectState TeleporterWarpClassification
   TeleporterObjectLifetime TeleporterBobombUsability TeleporterNullRelease
-  TeleporterHeldOwnership TeleporterBobombRegrab TeleporterUnloadTraversal TeleporterEarlierAreaChange
-  TeleporterMixedTraversal TeleporterAllocationHistory TeleporterUnloadCallPaths TeleporterWholeScan TeleporterTransportCut
+  TeleporterHeldOwnership TeleporterBobombRegrab TeleporterUnloadTraversal
+  TeleporterEarlierAreaChange TeleporterMixedTraversal TeleporterAllocationHistory
+  TeleporterUnloadCallPaths TeleporterWholeScan TeleporterTransportCut
   TeleporterSpawnOwnership TeleporterAudioFrame TeleporterPoolPartition.
 
 Import ListNotations.
@@ -1237,6 +1239,35 @@ Theorem current_contact_search_calls_preserve_memory :
     (Internal (ccs_body version consumer)) args trace final_memory result ->
   trace = E0 /\ final_memory = memory.
 Proof. exact cce_search_call_preserves_memory. Qed.
+
+(** Local C1 slice of the generated JP dispatch branch.  The search and
+    indirect handler belong to one execution; the intervening mask store's
+    actual memory is retained.  Embedding every reached branch, identifying
+    the live award handler and tracing first save-bit writes remain open. *)
+Theorem current_jp_contact_dispatch_identity : forall le m t le' m' out,
+  ocn_exec jcd_ge empty_env le m jcd_branch t le' m' out ->
+  exists mario kind candidate status_le status_m,
+    le ! CCI._m = Some mario /\ le ! CCI._interactType = Some kind /\
+    ClightBigstep.Clight2.eval_funcall jcd_ge m
+      (Internal (ccs_body VersionJP CCStarSearch)) [mario; kind] E0 m candidate /\
+    jcd_search_readback mario kind candidate m /\
+    ocn_exec jcd_ge empty_env le m jcd_before_status E0 status_le status_m Out_normal /\
+    status_le ! CCI._m = Some mario /\
+    status_le ! CCI._interactType = Some kind /\
+    status_le ! CCI._object = Some candidate /\
+    ((ocn_test_value jcd_ge empty_env status_le status_m jcd_status_guard false /\
+       t = E0 /\ m' = status_m /\ out = Out_normal) \/
+     (ocn_test_value jcd_ge empty_env status_le status_m jcd_status_guard true /\
+       exists handler_le vf fd result,
+         ocn_exec jcd_ge empty_env status_le status_m jcd_handler_read
+           E0 handler_le status_m Out_normal /\
+         eval_expr jcd_ge empty_env handler_le status_m
+           (Etempvar CCI._t'16 (tptr jcd_handler_type)) vf /\
+         Genv.find_funct jcd_ge vf = Some fd /\
+         type_of_fundef fd = jcd_handler_type /\
+         ClightBigstep.Clight2.eval_funcall jcd_ge status_m fd
+           [mario; kind; candidate] t m' result)).
+Proof. exact jcd_branch_search_to_handler_identity. Qed.
 
 (** Unlike a granted query subexpression, this starts at a full invocation
     of the actual secret callback and derives its entry reads and successful

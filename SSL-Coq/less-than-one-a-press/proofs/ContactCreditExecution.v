@@ -6,7 +6,7 @@ From compcert Require Import AST Clight ClightBigstep Clightdefs Cop Coqlib
   Ctypes Events Globalenvs Integers Maps Memory Values.
 From LessThanOneAPress.Proofs Require Import GameTypes ContactConsumerSource
   ContactConsumerExecution ObjectContactNecessity Area2Rank12BContact
-  Area2Rank9AStarSource SelectedClightTarget.
+  Area2Rank9AStarSource SelectedClightTarget InkPlatformWriteFrame.
 Import ListNotations.
 Import Clightdefs.ClightNotations.
 Local Open Scope Z_scope.
@@ -143,4 +143,61 @@ Proof.
   destruct (ccr_pair_return_is_boolean _ _ _ _ _ _ _ _ _ _ Hbody)
     as [Hty [Hz | Ho]]; subst;
     destruct Hresult as [_ Hvalue]; cbn in Hvalue; inversion Hvalue; auto.
+Qed.
+
+(** A returned Object pointer is the pointer actually read by the star
+    consumer in the input memory. Function entry binds the real Mario and
+    interaction-type arguments; the return cast cannot invent or replace a
+    pointer. This establishes cached-list consumption, not fresh collision
+    registration, object lifetime, or target-star provenance. *)
+Theorem ccr_star_call_reads_returned_object :
+  forall version mario requested_kind target offset m t m',
+  ClightBigstep.Clight2.eval_funcall
+    (Clight.globalenv (selected_clight_target version)) m
+    (Internal (ccs_body version CCStarSearch)) [mario; requested_kind]
+    t m' (Vptr target offset) ->
+  t = E0 /\ m' = m /\ exists il first_owner count second_owner kind,
+    il ! CCI._m = Some mario /\
+    il ! CCI._interactType = Some requested_kind /\
+    eval_expr (Clight.globalenv (selected_clight_target version)) empty_env il m
+      cce_star_owner_expression first_owner /\
+    eval_expr (Clight.globalenv (selected_clight_target version)) empty_env
+      (PTree.set CCI._t'3 first_owner il) m cce_star_count_expression count /\
+    ocn_test_value (Clight.globalenv (selected_clight_target version)) empty_env
+      (cce_star_count_locals il first_owner count) m cce_star_count_guard true /\
+    eval_expr (Clight.globalenv (selected_clight_target version)) empty_env
+      (cce_star_count_locals il first_owner count) m
+      cce_star_owner_expression second_owner /\
+    eval_expr (Clight.globalenv (selected_clight_target version)) empty_env
+      (cce_star_entry_locals il first_owner count second_owner) m
+      cce_star_entry_expression (Vptr target offset) /\
+    eval_expr (Clight.globalenv (selected_clight_target version)) empty_env
+      (PTree.set CCI._object (Vptr target offset)
+        (cce_star_entry_locals il first_owner count second_owner)) m
+      (cce_star_type_expression version) kind /\
+    ocn_test_value (Clight.globalenv (selected_clight_target version)) empty_env
+      (cce_star_match_locals il first_owner count second_owner (Vptr target offset) kind)
+      m cce_star_match_guard true.
+Proof.
+  intros version mario requested_kind target offset m t m' Hcall.
+  pose proof (cce_search_call_preserves_memory _ _ _ _ _ _ _
+    (or_intror eq_refl) Hcall) as [Ht Hm].
+  split; [exact Ht |]. split; [exact Hm |].
+  destruct (ccr_search_call_body _ _ _ _ _ _ _ (or_intror eq_refl) Hcall)
+    as (le & le' & out & Hbind & Hbody & Hresult).
+  assert (fn_return (ccs_body version CCStarSearch) = cce_star_object_type) as Hreturn
+    by (destruct version; reflexivity).
+  rewrite Hreturn in Hresult. destruct out; try contradiction.
+  destruct o as [[value ty] |]; try contradiction.
+  cbn [outcome_result_value] in Hresult. destruct Hresult as [_ Hcast].
+  apply ipw_cast_keeps_block in Hcast. subst value.
+  assert (le ! CCI._m = Some mario /\
+    le ! CCI._interactType = Some requested_kind) as [Hmario Hkind].
+  { destruct version; cbn in Hbind; inversion Hbind; subst;
+      split; reflexivity. }
+  destruct (cce_successful_star_search_reads_returned_object
+    _ _ _ _ _ _ _ _ _ _ Hbody)
+    as (_ & _ & il & first_owner & count & second_owner & kind & Hreads).
+  exists il, first_owner, count, second_owner, kind.
+  rewrite <- Hmario, <- Hkind. exact Hreads.
 Qed.

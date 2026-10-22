@@ -659,9 +659,11 @@ proofs/InkFallbackContact.v
 proofs/InkFailedRetryGuard.v
 proofs/InkFallbackBoundary.v
 proofs/InkPokeyLiveScale.v
+proofs/JPContactDispatchExecution.v
 proofs/TeleporterWrongWarpBoundary.v
 proofs/TeleporterShindouReset.v
 proofs/TeleporterDestinationReset.v
+proofs/TeleporterVcFailedLoad.v
 proofs/TeleporterPlatformResetExecution.v
 proofs/TeleporterSameAreaBoundary.v
 proofs/TeleporterResetSeparation.v

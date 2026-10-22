@@ -1,4 +1,5 @@
 {
   "LessThanOneAPress.Proofs.JPEyerokStaleHandOrdinary": "Standalone conditional payload certificate documented in docs/notes/jp-eyerok-stale-hand.md; not a clean reachability theorem or a MainTheorem dependency.",
-  "LessThanOneAPress.Proofs.JPInstallTimerWindow": "Standalone arithmetic classification of the recorded timer sweep, documented in docs/notes/route-exhaustiveness.md; the live timing refinement remains separate."
+  "LessThanOneAPress.Proofs.JPInstallTimerWindow": "Standalone arithmetic classification of the recorded timer sweep, documented in docs/notes/route-exhaustiveness.md; the live timing refinement remains separate.",
+  "LessThanOneAPress.Proofs.TeleporterVcFailedLoad": "Standalone local PowerPC instruction-execution certificate from the supplied VC images, documented in docs/notes/teleporter-wrong-warp.md. Retained as staging after the user's pivot to general warp behavior; no complete emulator continuation or gameplay exclusion follows. Its standard CompCert assembly relocation parameters are recorded separately, without broadening the active audit allowlist."
 }

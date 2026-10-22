@@ -1,0 +1,3251 @@
+{
+  "schema": "teleporter-vc-na-source-evidence-v1",
+  "source_url": "https://github.com/nim-ka/vc64-decomp",
+  "commit": "e28658f6e520c01c6fca8c0aebe24902d9f82505",
+  "declared_target": "SM64 North American Wii Virtual Console 00000001.app",
+  "upstream_expected_app_sha1": "e0c57e067725c662fd603eb1ff8d777421e69b03",
+  "binary_authenticated": false,
+  "pal_shindou_equivalence_established": false,
+  "scope": "Pinned public disassembly text and decoded finite instruction facts only",
+  "instruction_count": 493,
+  "files": {
+    "asm/src/code_80007020/func_8000C560.s": {
+      "git_blob": "02ac4afc231932708174e7f27114f8a53cb3b8f6",
+      "sha256_lf": "6ed5824c7c93a588c111db3a97052f08a0c93bdcd2b2487c338ff8e37ba670c7",
+      "url": "https://github.com/nim-ka/vc64-decomp/blob/e28658f6e520c01c6fca8c0aebe24902d9f82505/asm/src/code_80007020/func_8000C560.s"
+    },
+    "asm/src/code_80007020/func_8000C5A0.s": {
+      "git_blob": "748db49f0f079d0abcc5fda6452aa03aeae587e7",
+      "sha256_lf": "10d551175edabedb52ece509f0f0732e2b9a825b72da3a36983c68194029957e",
+      "url": "https://github.com/nim-ka/vc64-decomp/blob/e28658f6e520c01c6fca8c0aebe24902d9f82505/asm/src/code_80007020/func_8000C5A0.s"
+    },
+    "asm/src/code_80007020/func_8000C5E0.s": {
+      "git_blob": "ea696dac828c7e5cd659f315709d8c2d9bd60d91",
+      "sha256_lf": "5a5f692058894a2a2df5516b880af2dadcfcb596a5d2f87bc81746ab6968692e",
+      "url": "https://github.com/nim-ka/vc64-decomp/blob/e28658f6e520c01c6fca8c0aebe24902d9f82505/asm/src/code_80007020/func_8000C5E0.s"
+    },
+    "asm/src/code_8000CB6C/func_8000D0C0.s": {
+      "git_blob": "ed5ba1993edf22b72cb492979076f69f3c8f5188",
+      "sha256_lf": "5d7315a76097fa8aa9232493eae546f1dddd41b7c1cb65f1be3c067d8007254a",
+      "url": "https://github.com/nim-ka/vc64-decomp/blob/e28658f6e520c01c6fca8c0aebe24902d9f82505/asm/src/code_8000CB6C/func_8000D0C0.s"
+    },
+    "asm/src/code_80033914/func_8003D750.s": {
+      "git_blob": "c48e20dd9d0ad112a556d8c104b5fcfec9980812",
+      "sha256_lf": "1ecd5d4493ca4a51a291ebef56ab0f087d9094c4198baaeee37811d276eb0c15",
+      "url": "https://github.com/nim-ka/vc64-decomp/blob/e28658f6e520c01c6fca8c0aebe24902d9f82505/asm/src/code_80033914/func_8003D750.s"
+    },
+    "asm/src/code_80033914/func_8003DEA4.s": {
+      "git_blob": "27ff58f873ab67eb03e4aa747b6262159c769de7",
+      "sha256_lf": "8b39a3eda80994db87d0ebbc6df309d31ebba7b2ed3db9b4db677b4013a65373",
+      "url": "https://github.com/nim-ka/vc64-decomp/blob/e28658f6e520c01c6fca8c0aebe24902d9f82505/asm/src/code_80033914/func_8003DEA4.s"
+    },
+    "asm/src/code_80033914/func_800365CC.s": {
+      "git_blob": "4db2cc3146876029d2a7b56f8e01264316e95bc0",
+      "sha256_lf": "e4caaaa58bb98cd48975e482271a217a7b35114217c0170a418f17922f2a7558",
+      "url": "https://github.com/nim-ka/vc64-decomp/blob/e28658f6e520c01c6fca8c0aebe24902d9f82505/asm/src/code_80033914/func_800365CC.s"
+    },
+    "asm/src/code_80033914/func_8003ACB0.s": {
+      "git_blob": "fa84e78e0bddbfd391702d329ed55a0fcb722f29",
+      "sha256_lf": "78fbeead05c89c63dc55f0a7679e6c8e555c9fd011a6dc29ee0d6ca6e0a27fae",
+      "url": "https://github.com/nim-ka/vc64-decomp/blob/e28658f6e520c01c6fca8c0aebe24902d9f82505/asm/src/code_80033914/func_8003ACB0.s"
+    },
+    "asm/src/code_80033914/func_8003C774.s": {
+      "git_blob": "d6b1971e335d106aeb5e80214c31247b0deaaeff",
+      "sha256_lf": "1ed98086d237445304baf86908059cc62d8bfa0258d8895fcbd090e4e8c50780",
+      "url": "https://github.com/nim-ka/vc64-decomp/blob/e28658f6e520c01c6fca8c0aebe24902d9f82505/asm/src/code_80033914/func_8003C774.s"
+    },
+    "asm/src/code_8000CB6C/func_80010760.s": {
+      "git_blob": "966395fb3f7e3ea6a8062e9199c1e3f5972d131a",
+      "sha256_lf": "dcc0aca044e44113ced1db84c6956582ae98d362871155e3de3a53d5029308a7",
+      "url": "https://github.com/nim-ka/vc64-decomp/blob/e28658f6e520c01c6fca8c0aebe24902d9f82505/asm/src/code_8000CB6C/func_80010760.s"
+    },
+    "asm/src/code_80033914/func_80033914.s": {
+      "git_blob": "bc6499c4407a54fc4df3784e1ab5e594119526a7",
+      "sha256_lf": "9ee2c27c4d9cf540c29f1e337c2da70d3534d53a4e976ac8472e3d2ee74a5f74",
+      "url": "https://github.com/nim-ka/vc64-decomp/blob/e28658f6e520c01c6fca8c0aebe24902d9f82505/asm/src/code_80033914/func_80033914.s"
+    },
+    "asm/src/code_80033914/func_8003C540.s": {
+      "git_blob": "d8a4a3480f723f3153cc5319c52b9153a4ccf484",
+      "sha256_lf": "fdec13eaa8de35b6f6476452ffe9279fa248a5fe07c1552f50969ef27d3a3c4b",
+      "url": "https://github.com/nim-ka/vc64-decomp/blob/e28658f6e520c01c6fca8c0aebe24902d9f82505/asm/src/code_80033914/func_8003C540.s"
+    },
+    "asm/src/code_80007020/func_8000A244.s": {
+      "git_blob": "c17a19c30370b403b3f974208f50c62314d1385d",
+      "sha256_lf": "963919e594d3fcdde0c92a300499183ef633f08c0ff7f1db576d0725965aab8e",
+      "url": "https://github.com/nim-ka/vc64-decomp/blob/e28658f6e520c01c6fca8c0aebe24902d9f82505/asm/src/code_80007020/func_8000A244.s"
+    },
+    "asm/src/code_80033914/func_8003D2D8.s": {
+      "git_blob": "ba904af7007d9bad1a9427da5fb18624d3121804",
+      "sha256_lf": "c3d63848a33c2dfa88a273e1a044542657d3229cb2997dd19bc6b26e6fc7c92d",
+      "url": "https://github.com/nim-ka/vc64-decomp/blob/e28658f6e520c01c6fca8c0aebe24902d9f82505/asm/src/code_80033914/func_8003D2D8.s"
+    }
+  },
+  "fragments": [
+    {
+      "name": "system_default_read8",
+      "path": "asm/src/code_80007020/func_8000C560.s",
+      "start": 2147534176,
+      "end_exclusive": 2147534240,
+      "instructions": [
+        {
+          "pc": 2147534176,
+          "word": 2485256176,
+          "line": 4,
+          "assembly": "stwu r1, -0x10(r1)"
+        },
+        {
+          "pc": 2147534180,
+          "word": 2080899750,
+          "line": 5,
+          "assembly": "mflr r0"
+        },
+        {
+          "pc": 2147534184,
+          "word": 952107008,
+          "line": 6,
+          "assembly": "li r6, 0"
+        },
+        {
+          "pc": 2147534188,
+          "word": 2415984660,
+          "line": 7,
+          "assembly": "stw r0, 0x14(r1)"
+        },
+        {
+          "pc": 2147534192,
+          "word": 939524096,
+          "line": 8,
+          "assembly": "li r0, 0"
+        },
+        {
+          "pc": 2147534196,
+          "word": 947978248,
+          "line": 9,
+          "assembly": "addi r4, r1, 8"
+        },
+        {
+          "pc": 2147534200,
+          "word": 2550464512,
+          "line": 10,
+          "assembly": "stb r0, 0(r5)"
+        },
+        {
+          "pc": 2147534204,
+          "word": 950009856,
+          "line": 11,
+          "assembly": "li r5, 0"
+        },
+        {
+          "pc": 2147534208,
+          "word": 2154662280,
+          "line": 12,
+          "assembly": "lwz r3, lbl_8025B448-_SDA_BASE_(r13)"
+        },
+        {
+          "pc": 2147534212,
+          "word": 2153971728,
+          "line": 13,
+          "assembly": "lwz r3, 0x10(r3)"
+        },
+        {
+          "pc": 2147534216,
+          "word": 1208162589,
+          "line": 14,
+          "assembly": "bl func_8003DEA4"
+        },
+        {
+          "pc": 2147534220,
+          "word": 2147549204,
+          "line": 15,
+          "assembly": "lwz r0, 0x14(r1)"
+        },
+        {
+          "pc": 2147534224,
+          "word": 945815552,
+          "line": 16,
+          "assembly": "li r3, 0"
+        },
+        {
+          "pc": 2147534228,
+          "word": 2080900006,
+          "line": 17,
+          "assembly": "mtlr r0"
+        },
+        {
+          "pc": 2147534232,
+          "word": 941686800,
+          "line": 18,
+          "assembly": "addi r1, r1, 0x10"
+        },
+        {
+          "pc": 2147534236,
+          "word": 1317011488,
+          "line": 19,
+          "assembly": "blr "
+        }
+      ]
+    },
+    {
+      "name": "system_default_read16",
+      "path": "asm/src/code_80007020/func_8000C5A0.s",
+      "start": 2147534240,
+      "end_exclusive": 2147534304,
+      "instructions": [
+        {
+          "pc": 2147534240,
+          "word": 2485256176,
+          "line": 4,
+          "assembly": "stwu r1, -0x10(r1)"
+        },
+        {
+          "pc": 2147534244,
+          "word": 2080899750,
+          "line": 5,
+          "assembly": "mflr r0"
+        },
+        {
+          "pc": 2147534248,
+          "word": 952107008,
+          "line": 6,
+          "assembly": "li r6, 0"
+        },
+        {
+          "pc": 2147534252,
+          "word": 2415984660,
+          "line": 7,
+          "assembly": "stw r0, 0x14(r1)"
+        },
+        {
+          "pc": 2147534256,
+          "word": 939524096,
+          "line": 8,
+          "assembly": "li r0, 0"
+        },
+        {
+          "pc": 2147534260,
+          "word": 947978248,
+          "line": 9,
+          "assembly": "addi r4, r1, 8"
+        },
+        {
+          "pc": 2147534264,
+          "word": 2953117696,
+          "line": 10,
+          "assembly": "sth r0, 0(r5)"
+        },
+        {
+          "pc": 2147534268,
+          "word": 950009856,
+          "line": 11,
+          "assembly": "li r5, 0"
+        },
+        {
+          "pc": 2147534272,
+          "word": 2154662280,
+          "line": 12,
+          "assembly": "lwz r3, lbl_8025B448-_SDA_BASE_(r13)"
+        },
+        {
+          "pc": 2147534276,
+          "word": 2153971728,
+          "line": 13,
+          "assembly": "lwz r3, 0x10(r3)"
+        },
+        {
+          "pc": 2147534280,
+          "word": 1208162525,
+          "line": 14,
+          "assembly": "bl func_8003DEA4"
+        },
+        {
+          "pc": 2147534284,
+          "word": 2147549204,
+          "line": 15,
+          "assembly": "lwz r0, 0x14(r1)"
+        },
+        {
+          "pc": 2147534288,
+          "word": 945815552,
+          "line": 16,
+          "assembly": "li r3, 0"
+        },
+        {
+          "pc": 2147534292,
+          "word": 2080900006,
+          "line": 17,
+          "assembly": "mtlr r0"
+        },
+        {
+          "pc": 2147534296,
+          "word": 941686800,
+          "line": 18,
+          "assembly": "addi r1, r1, 0x10"
+        },
+        {
+          "pc": 2147534300,
+          "word": 1317011488,
+          "line": 19,
+          "assembly": "blr "
+        }
+      ]
+    },
+    {
+      "name": "system_default_read32",
+      "path": "asm/src/code_80007020/func_8000C5E0.s",
+      "start": 2147534304,
+      "end_exclusive": 2147534368,
+      "instructions": [
+        {
+          "pc": 2147534304,
+          "word": 2485256176,
+          "line": 4,
+          "assembly": "stwu r1, -0x10(r1)"
+        },
+        {
+          "pc": 2147534308,
+          "word": 2080899750,
+          "line": 5,
+          "assembly": "mflr r0"
+        },
+        {
+          "pc": 2147534312,
+          "word": 952107008,
+          "line": 6,
+          "assembly": "li r6, 0"
+        },
+        {
+          "pc": 2147534316,
+          "word": 2415984660,
+          "line": 7,
+          "assembly": "stw r0, 0x14(r1)"
+        },
+        {
+          "pc": 2147534320,
+          "word": 939524096,
+          "line": 8,
+          "assembly": "li r0, 0"
+        },
+        {
+          "pc": 2147534324,
+          "word": 947978248,
+          "line": 9,
+          "assembly": "addi r4, r1, 8"
+        },
+        {
+          "pc": 2147534328,
+          "word": 2416246784,
+          "line": 10,
+          "assembly": "stw r0, 0(r5)"
+        },
+        {
+          "pc": 2147534332,
+          "word": 950009856,
+          "line": 11,
+          "assembly": "li r5, 0"
+        },
+        {
+          "pc": 2147534336,
+          "word": 2154662280,
+          "line": 12,
+          "assembly": "lwz r3, lbl_8025B448-_SDA_BASE_(r13)"
+        },
+        {
+          "pc": 2147534340,
+          "word": 2153971728,
+          "line": 13,
+          "assembly": "lwz r3, 0x10(r3)"
+        },
+        {
+          "pc": 2147534344,
+          "word": 1208162461,
+          "line": 14,
+          "assembly": "bl func_8003DEA4"
+        },
+        {
+          "pc": 2147534348,
+          "word": 2147549204,
+          "line": 15,
+          "assembly": "lwz r0, 0x14(r1)"
+        },
+        {
+          "pc": 2147534352,
+          "word": 945815552,
+          "line": 16,
+          "assembly": "li r3, 0"
+        },
+        {
+          "pc": 2147534356,
+          "word": 2080900006,
+          "line": 17,
+          "assembly": "mtlr r0"
+        },
+        {
+          "pc": 2147534360,
+          "word": 941686800,
+          "line": 18,
+          "assembly": "addi r1, r1, 0x10"
+        },
+        {
+          "pc": 2147534364,
+          "word": 1317011488,
+          "line": 19,
+          "assembly": "blr "
+        }
+      ]
+    },
+    {
+      "name": "system_register_read_callbacks",
+      "path": "asm/src/code_8000CB6C/func_8000D0C0.s",
+      "start": 2147537648,
+      "end_exclusive": 2147537696,
+      "instructions": [
+        {
+          "pc": 2147537648,
+          "word": 2154662280,
+          "line": 159,
+          "assembly": "lwz r3, lbl_8025B448-_SDA_BASE_(r13)"
+        },
+        {
+          "pc": 2147537652,
+          "word": 1017151489,
+          "line": 160,
+          "assembly": "lis r5, func_8000C560@ha"
+        },
+        {
+          "pc": 2147537656,
+          "word": 1019248641,
+          "line": 161,
+          "assembly": "lis r6, func_8000C5A0@ha"
+        },
+        {
+          "pc": 2147537660,
+          "word": 1021345793,
+          "line": 162,
+          "assembly": "lis r7, func_8000C5E0@ha"
+        },
+        {
+          "pc": 2147537664,
+          "word": 1023442945,
+          "line": 163,
+          "assembly": "lis r8, func_8000C620@ha"
+        },
+        {
+          "pc": 2147537668,
+          "word": 2153971728,
+          "line": 164,
+          "assembly": "lwz r3, 0x10(r3)"
+        },
+        {
+          "pc": 2147537672,
+          "word": 2141514616,
+          "line": 165,
+          "assembly": "mr r4, r29"
+        },
+        {
+          "pc": 2147537676,
+          "word": 950388064,
+          "line": 166,
+          "assembly": "addi r5, r5, func_8000C560@l"
+        },
+        {
+          "pc": 2147537680,
+          "word": 952550816,
+          "line": 167,
+          "assembly": "addi r6, r6, func_8000C5A0@l"
+        },
+        {
+          "pc": 2147537684,
+          "word": 954713568,
+          "line": 168,
+          "assembly": "addi r7, r7, func_8000C5E0@l"
+        },
+        {
+          "pc": 2147537688,
+          "word": 956876320,
+          "line": 169,
+          "assembly": "addi r8, r8, func_8000C620@l"
+        },
+        {
+          "pc": 2147537692,
+          "word": 1208157237,
+          "line": 170,
+          "assembly": "bl func_8003D750"
+        }
+      ]
+    },
+    {
+      "name": "cpu_set_device_get",
+      "path": "asm/src/code_80033914/func_8003D750.s",
+      "start": 2147735376,
+      "end_exclusive": 2147735400,
+      "instructions": [
+        {
+          "pc": 2147735376,
+          "word": 2426667020,
+          "line": 4,
+          "assembly": "stw r5, 0xc(r4)"
+        },
+        {
+          "pc": 2147735380,
+          "word": 945815553,
+          "line": 5,
+          "assembly": "li r3, 1"
+        },
+        {
+          "pc": 2147735384,
+          "word": 2428764176,
+          "line": 6,
+          "assembly": "stw r6, 0x10(r4)"
+        },
+        {
+          "pc": 2147735388,
+          "word": 2430861332,
+          "line": 7,
+          "assembly": "stw r7, 0x14(r4)"
+        },
+        {
+          "pc": 2147735392,
+          "word": 2432958488,
+          "line": 8,
+          "assembly": "stw r8, 0x18(r4)"
+        },
+        {
+          "pc": 2147735396,
+          "word": 1317011488,
+          "line": 9,
+          "assembly": "blr "
+        }
+      ]
+    },
+    {
+      "name": "cpu_get_xpc",
+      "path": "asm/src/code_80033914/func_8003DEA4.s",
+      "start": 2147737252,
+      "end_exclusive": 2147737432,
+      "instructions": [
+        {
+          "pc": 2147737252,
+          "word": 2485256160,
+          "line": 4,
+          "assembly": "stwu r1, -0x20(r1)"
+        },
+        {
+          "pc": 2147737256,
+          "word": 2080899750,
+          "line": 5,
+          "assembly": "mflr r0"
+        },
+        {
+          "pc": 2147737260,
+          "word": 1021345815,
+          "line": 6,
+          "assembly": "lis r7, lbl_8016E7F0@ha"
+        },
+        {
+          "pc": 2147737264,
+          "word": 2415984676,
+          "line": 7,
+          "assembly": "stw r0, 0x24(r1)"
+        },
+        {
+          "pc": 2147737268,
+          "word": 2480996380,
+          "line": 8,
+          "assembly": "stw r31, 0x1c(r1)"
+        },
+        {
+          "pc": 2147737272,
+          "word": 2095002488,
+          "line": 9,
+          "assembly": "mr r31, r6"
+        },
+        {
+          "pc": 2147737276,
+          "word": 2478899224,
+          "line": 10,
+          "assembly": "stw r30, 0x18(r1)"
+        },
+        {
+          "pc": 2147737280,
+          "word": 2092837752,
+          "line": 11,
+          "assembly": "mr r30, r5"
+        },
+        {
+          "pc": 2147737284,
+          "word": 2476802068,
+          "line": 12,
+          "assembly": "stw r29, 0x14(r1)"
+        },
+        {
+          "pc": 2147737288,
+          "word": 2090673016,
+          "line": 13,
+          "assembly": "mr r29, r4"
+        },
+        {
+          "pc": 2147737292,
+          "word": 948430832,
+          "line": 14,
+          "assembly": "addi r4, r7, lbl_8016E7F0@l"
+        },
+        {
+          "pc": 2147737296,
+          "word": 2474704912,
+          "line": 15,
+          "assembly": "stw r28, 0x10(r1)"
+        },
+        {
+          "pc": 2147737300,
+          "word": 2088508280,
+          "line": 16,
+          "assembly": "mr r28, r3"
+        },
+        {
+          "pc": 2147737304,
+          "word": 1274854313,
+          "line": 17,
+          "assembly": "bl func_80009A80"
+        },
+        {
+          "pc": 2147737308,
+          "word": 738394112,
+          "line": 18,
+          "assembly": "cmpwi r3, 0"
+        },
+        {
+          "pc": 2147737312,
+          "word": 1082261516,
+          "line": 19,
+          "assembly": "bne lbl_8003DEEC"
+        },
+        {
+          "pc": 2147737316,
+          "word": 945815552,
+          "line": 20,
+          "assembly": "li r3, 0"
+        },
+        {
+          "pc": 2147737320,
+          "word": 1207959632,
+          "line": 21,
+          "assembly": "b lbl_8003DF38"
+        },
+        {
+          "pc": 2147737324,
+          "word": 740098048,
+          "line": 23,
+          "assembly": "cmpwi r29, 0"
+        },
+        {
+          "pc": 2147737328,
+          "word": 1099038740,
+          "line": 24,
+          "assembly": "beq lbl_8003DF04"
+        },
+        {
+          "pc": 2147737332,
+          "word": 2155610144,
+          "line": 25,
+          "assembly": "lwz r3, 0x20(r28)"
+        },
+        {
+          "pc": 2147737336,
+          "word": 939524096,
+          "line": 26,
+          "assembly": "li r0, 0"
+        },
+        {
+          "pc": 2147737340,
+          "word": 2424111108,
+          "line": 27,
+          "assembly": "stw r3, 4(r29)"
+        },
+        {
+          "pc": 2147737344,
+          "word": 2417819648,
+          "line": 28,
+          "assembly": "stw r0, 0(r29)"
+        },
+        {
+          "pc": 2147737348,
+          "word": 740163584,
+          "line": 30,
+          "assembly": "cmpwi r30, 0"
+        },
+        {
+          "pc": 2147737352,
+          "word": 1099038740,
+          "line": 31,
+          "assembly": "beq lbl_8003DF1C"
+        },
+        {
+          "pc": 2147737356,
+          "word": 2149318664,
+          "line": 32,
+          "assembly": "lwz r0, 8(r28)"
+        },
+        {
+          "pc": 2147737360,
+          "word": 2155610124,
+          "line": 33,
+          "assembly": "lwz r3, 0xc(r28)"
+        },
+        {
+          "pc": 2147737364,
+          "word": 2424176644,
+          "line": 34,
+          "assembly": "stw r3, 4(r30)"
+        },
+        {
+          "pc": 2147737368,
+          "word": 2417885184,
+          "line": 35,
+          "assembly": "stw r0, 0(r30)"
+        },
+        {
+          "pc": 2147737372,
+          "word": 740229120,
+          "line": 37,
+          "assembly": "cmpwi r31, 0"
+        },
+        {
+          "pc": 2147737376,
+          "word": 1099038740,
+          "line": 38,
+          "assembly": "beq lbl_8003DF34"
+        },
+        {
+          "pc": 2147737380,
+          "word": 2149318672,
+          "line": 39,
+          "assembly": "lwz r0, 0x10(r28)"
+        },
+        {
+          "pc": 2147737384,
+          "word": 2155610132,
+          "line": 40,
+          "assembly": "lwz r3, 0x14(r28)"
+        },
+        {
+          "pc": 2147737388,
+          "word": 2424242180,
+          "line": 41,
+          "assembly": "stw r3, 4(r31)"
+        },
+        {
+          "pc": 2147737392,
+          "word": 2417950720,
+          "line": 42,
+          "assembly": "stw r0, 0(r31)"
+        },
+        {
+          "pc": 2147737396,
+          "word": 945815553,
+          "line": 44,
+          "assembly": "li r3, 1"
+        },
+        {
+          "pc": 2147737400,
+          "word": 2147549220,
+          "line": 46,
+          "assembly": "lwz r0, 0x24(r1)"
+        },
+        {
+          "pc": 2147737404,
+          "word": 2212560924,
+          "line": 47,
+          "assembly": "lwz r31, 0x1c(r1)"
+        },
+        {
+          "pc": 2147737408,
+          "word": 2210463768,
+          "line": 48,
+          "assembly": "lwz r30, 0x18(r1)"
+        },
+        {
+          "pc": 2147737412,
+          "word": 2208366612,
+          "line": 49,
+          "assembly": "lwz r29, 0x14(r1)"
+        },
+        {
+          "pc": 2147737416,
+          "word": 2206269456,
+          "line": 50,
+          "assembly": "lwz r28, 0x10(r1)"
+        },
+        {
+          "pc": 2147737420,
+          "word": 2080900006,
+          "line": 51,
+          "assembly": "mtlr r0"
+        },
+        {
+          "pc": 2147737424,
+          "word": 941686816,
+          "line": 52,
+          "assembly": "addi r1, r1, 0x20"
+        },
+        {
+          "pc": 2147737428,
+          "word": 1317011488,
+          "line": 53,
+          "assembly": "blr "
+        }
+      ]
+    },
+    {
+      "name": "interpreter_pc_before_dispatch",
+      "path": "asm/src/code_80033914/func_800365CC.s",
+      "start": 2147706444,
+      "end_exclusive": 2147706528,
+      "instructions": [
+        {
+          "pc": 2147706444,
+          "word": 2155937816,
+          "line": 38,
+          "assembly": "lwz r4, 0x18(r1)"
+        },
+        {
+          "pc": 2147706448,
+          "word": 947191812,
+          "line": 39,
+          "assembly": "addi r3, r21, 4"
+        },
+        {
+          "pc": 2147706452,
+          "word": 2193883136,
+          "line": 40,
+          "assembly": "lwz r22, 0(r4)"
+        },
+        {
+          "pc": 2147706456,
+          "word": 1008096065,
+          "line": 41,
+          "assembly": "addis r0, r22, 0x5341"
+        },
+        {
+          "pc": 2147706460,
+          "word": 2423914528,
+          "line": 42,
+          "assembly": "stw r3, 0x20(r26)"
+        },
+        {
+          "pc": 2147706464,
+          "word": 671088924,
+          "line": 43,
+          "assembly": "cmplwi r0, 0x11c"
+        },
+        {
+          "pc": 2147706468,
+          "word": 1082261528,
+          "line": 44,
+          "assembly": "bne lbl_8003667C"
+        },
+        {
+          "pc": 2147706472,
+          "word": 2212102468,
+          "line": 45,
+          "assembly": "lwz r30, 0x144(r26)"
+        },
+        {
+          "pc": 2147706476,
+          "word": 1000341505,
+          "line": 46,
+          "assembly": "li r29, 1"
+        },
+        {
+          "pc": 2147706480,
+          "word": 2149187632,
+          "line": 47,
+          "assembly": "lwz r0, 0x30(r26)"
+        },
+        {
+          "pc": 2147706484,
+          "word": 2214199616,
+          "line": 48,
+          "assembly": "lwz r31, 0x140(r26)"
+        },
+        {
+          "pc": 2147706488,
+          "word": 2417623364,
+          "line": 49,
+          "assembly": "stw r0, 0x144(r26)"
+        },
+        {
+          "pc": 2147706492,
+          "word": 1455437502,
+          "line": 51,
+          "assembly": "srwi r0, r22, 0x1a"
+        },
+        {
+          "pc": 2147706496,
+          "word": 671088703,
+          "line": 52,
+          "assembly": "cmplwi r0, 0x3f"
+        },
+        {
+          "pc": 2147706500,
+          "word": 1098990096,
+          "line": 53,
+          "assembly": "bgt lbl_8003A894"
+        },
+        {
+          "pc": 2147706504,
+          "word": 1012957207,
+          "line": 54,
+          "assembly": "lis r3, lbl_8016E684@ha"
+        },
+        {
+          "pc": 2147706508,
+          "word": 1409290298,
+          "line": 55,
+          "assembly": "slwi r0, r0, 2"
+        },
+        {
+          "pc": 2147706512,
+          "word": 946071172,
+          "line": 56,
+          "assembly": "addi r3, r3, lbl_8016E684@l"
+        },
+        {
+          "pc": 2147706516,
+          "word": 2086862894,
+          "line": 57,
+          "assembly": "lwzx r3, r3, r0"
+        },
+        {
+          "pc": 2147706520,
+          "word": 2087256998,
+          "line": 58,
+          "assembly": "mtctr r3"
+        },
+        {
+          "pc": 2147706524,
+          "word": 1317012512,
+          "line": 59,
+          "assembly": "bctr "
+        }
+      ]
+    },
+    {
+      "name": "interpreter_lbu",
+      "path": "asm/src/code_80033914/func_800365CC.s",
+      "start": 2147721204,
+      "end_exclusive": 2147721300,
+      "instructions": [
+        {
+          "pc": 2147721204,
+          "word": 1455453752,
+          "line": 3833,
+          "assembly": "rlwinm r0, r22, 0xe, 0x18, 0x1c"
+        },
+        {
+          "pc": 2147721208,
+          "word": 1455686718,
+          "line": 3834,
+          "assembly": "clrlwi r4, r22, 0x10"
+        },
+        {
+          "pc": 2147721212,
+          "word": 2088370708,
+          "line": 3835,
+          "assembly": "add r3, r26, r0"
+        },
+        {
+          "pc": 2147721216,
+          "word": 950075404,
+          "line": 3836,
+          "assembly": "addi r5, r1, 0xc"
+        },
+        {
+          "pc": 2147721220,
+          "word": 2147680332,
+          "line": 3837,
+          "assembly": "lwz r0, 0x4c(r3)"
+        },
+        {
+          "pc": 2147721224,
+          "word": 2088961844,
+          "line": 3838,
+          "assembly": "extsh r3, r4"
+        },
+        {
+          "pc": 2147721228,
+          "word": 2088960532,
+          "line": 3839,
+          "assembly": "add r4, r3, r0"
+        },
+        {
+          "pc": 2147721232,
+          "word": 1417708606,
+          "line": 3840,
+          "assembly": "srwi r0, r4, 0x10"
+        },
+        {
+          "pc": 2147721236,
+          "word": 2082144430,
+          "line": 3841,
+          "assembly": "lbzx r0, r27, r0"
+        },
+        {
+          "pc": 2147721240,
+          "word": 1409290298,
+          "line": 3842,
+          "assembly": "slwi r0, r0, 2"
+        },
+        {
+          "pc": 2147721244,
+          "word": 2088501294,
+          "line": 3843,
+          "assembly": "lwzx r3, r28, r0"
+        },
+        {
+          "pc": 2147721248,
+          "word": 2147680264,
+          "line": 3844,
+          "assembly": "lwz r0, 8(r3)"
+        },
+        {
+          "pc": 2147721252,
+          "word": 2172846092,
+          "line": 3845,
+          "assembly": "lwz r12, 0xc(r3)"
+        },
+        {
+          "pc": 2147721256,
+          "word": 2089026068,
+          "line": 3846,
+          "assembly": "add r4, r4, r0"
+        },
+        {
+          "pc": 2147721260,
+          "word": 2153971716,
+          "line": 3847,
+          "assembly": "lwz r3, 4(r3)"
+        },
+        {
+          "pc": 2147721264,
+          "word": 2106131366,
+          "line": 3848,
+          "assembly": "mtctr r12"
+        },
+        {
+          "pc": 2147721268,
+          "word": 1317012513,
+          "line": 3849,
+          "assembly": "bctrl "
+        },
+        {
+          "pc": 2147721272,
+          "word": 738394112,
+          "line": 3850,
+          "assembly": "cmpwi r3, 0"
+        },
+        {
+          "pc": 2147721276,
+          "word": 1099040856,
+          "line": 3851,
+          "assembly": "beq lbl_8003A894"
+        },
+        {
+          "pc": 2147721280,
+          "word": 1455463992,
+          "line": 3852,
+          "assembly": "rlwinm r0, r22, 0x13, 0x18, 0x1c"
+        },
+        {
+          "pc": 2147721284,
+          "word": 2290155532,
+          "line": 3853,
+          "assembly": "lbz r4, 0xc(r1)"
+        },
+        {
+          "pc": 2147721288,
+          "word": 2088370708,
+          "line": 3854,
+          "assembly": "add r3, r26, r0"
+        },
+        {
+          "pc": 2147721292,
+          "word": 2424504396,
+          "line": 3855,
+          "assembly": "stw r4, 0x4c(r3)"
+        },
+        {
+          "pc": 2147721296,
+          "word": 1207961668,
+          "line": 3856,
+          "assembly": "b lbl_8003A894"
+        }
+      ]
+    },
+    {
+      "name": "interpreter_jal",
+      "path": "asm/src/code_80033914/func_800365CC.s",
+      "start": 2147710180,
+      "end_exclusive": 2147710224,
+      "instructions": [
+        {
+          "pc": 2147710180,
+          "word": 2161770528,
+          "line": 980,
+          "assembly": "lwz r6, 0x20(r26)"
+        },
+        {
+          "pc": 2147710184,
+          "word": 1455690042,
+          "line": 981,
+          "assembly": "rlwinm r4, r22, 2, 4, 0x1d"
+        },
+        {
+          "pc": 2147710188,
+          "word": 2135151480,
+          "line": 982,
+          "assembly": "mr r3, r26"
+        },
+        {
+          "pc": 2147710192,
+          "word": 950075408,
+          "line": 983,
+          "assembly": "addi r5, r1, 0x10"
+        },
+        {
+          "pc": 2147710196,
+          "word": 1355022342,
+          "line": 984,
+          "assembly": "rlwimi r4, r6, 0, 0, 3"
+        },
+        {
+          "pc": 2147710200,
+          "word": 939917316,
+          "line": 985,
+          "assembly": "addi r0, r6, 4"
+        },
+        {
+          "pc": 2147710204,
+          "word": 2417623364,
+          "line": 986,
+          "assembly": "stw r0, 0x144(r26)"
+        },
+        {
+          "pc": 2147710208,
+          "word": 2426011688,
+          "line": 987,
+          "assembly": "stw r4, 0x28(r26)"
+        },
+        {
+          "pc": 2147710212,
+          "word": 2426011684,
+          "line": 988,
+          "assembly": "stw r4, 0x24(r26)"
+        },
+        {
+          "pc": 2147710216,
+          "word": 1207990029,
+          "line": 989,
+          "assembly": "bl func_8003EC14"
+        },
+        {
+          "pc": 2147710220,
+          "word": 1207972744,
+          "line": 990,
+          "assembly": "b lbl_8003A894"
+        }
+      ]
+    },
+    {
+      "name": "interpreter_tail",
+      "path": "asm/src/code_80033914/func_800365CC.s",
+      "start": 2147723412,
+      "end_exclusive": 2147723504,
+      "instructions": [
+        {
+          "pc": 2147723412,
+          "word": 2135151480,
+          "line": 4396,
+          "assembly": "mr r3, r26"
+        },
+        {
+          "pc": 2147723416,
+          "word": 947978248,
+          "line": 4397,
+          "assembly": "addi r4, r1, 8"
+        },
+        {
+          "pc": 2147723420,
+          "word": 951582721,
+          "line": 4398,
+          "assembly": "addi r5, r24, 1"
+        },
+        {
+          "pc": 2147723424,
+          "word": 1275039861,
+          "line": 4399,
+          "assembly": "bl func_80033914"
+        },
+        {
+          "pc": 2147723428,
+          "word": 738394112,
+          "line": 4400,
+          "assembly": "cmpwi r3, 0"
+        },
+        {
+          "pc": 2147723432,
+          "word": 1082261516,
+          "line": 4401,
+          "assembly": "bne lbl_8003A8B4"
+        },
+        {
+          "pc": 2147723436,
+          "word": 945815552,
+          "line": 4402,
+          "assembly": "li r3, 0"
+        },
+        {
+          "pc": 2147723440,
+          "word": 1207959592,
+          "line": 4403,
+          "assembly": "b lbl_8003A8D8"
+        },
+        {
+          "pc": 2147723444,
+          "word": 740098048,
+          "line": 4405,
+          "assembly": "cmpwi r29, 0"
+        },
+        {
+          "pc": 2147723448,
+          "word": 1099038732,
+          "line": 4406,
+          "assembly": "beq lbl_8003A8C4"
+        },
+        {
+          "pc": 2147723452,
+          "word": 2480537924,
+          "line": 4407,
+          "assembly": "stw r30, 0x144(r26)"
+        },
+        {
+          "pc": 2147723456,
+          "word": 2482635072,
+          "line": 4408,
+          "assembly": "stw r31, 0x140(r26)"
+        },
+        {
+          "pc": 2147723460,
+          "word": 939589631,
+          "line": 4410,
+          "assembly": "li r0, -1"
+        },
+        {
+          "pc": 2147723464,
+          "word": 2417623076,
+          "line": 4411,
+          "assembly": "stw r0, 0x24(r26)"
+        },
+        {
+          "pc": 2147723468,
+          "word": 1208310153,
+          "line": 4412,
+          "assembly": "bl func_80090254"
+        },
+        {
+          "pc": 2147723472,
+          "word": 2423914552,
+          "line": 4413,
+          "assembly": "stw r3, 0x38(r26)"
+        },
+        {
+          "pc": 2147723476,
+          "word": 2153840648,
+          "line": 4414,
+          "assembly": "lwz r3, 8(r1)"
+        },
+        {
+          "pc": 2147723480,
+          "word": 962658416,
+          "line": 4416,
+          "assembly": "addi r11, r1, 0x70"
+        },
+        {
+          "pc": 2147723484,
+          "word": 1209094445,
+          "line": 4417,
+          "assembly": "bl func_8014FA08"
+        },
+        {
+          "pc": 2147723488,
+          "word": 2147549300,
+          "line": 4418,
+          "assembly": "lwz r0, 0x74(r1)"
+        },
+        {
+          "pc": 2147723492,
+          "word": 2080900006,
+          "line": 4419,
+          "assembly": "mtlr r0"
+        },
+        {
+          "pc": 2147723496,
+          "word": 941686896,
+          "line": 4420,
+          "assembly": "addi r1, r1, 0x70"
+        },
+        {
+          "pc": 2147723500,
+          "word": 1317011488,
+          "line": 4421,
+          "assembly": "blr "
+        }
+      ]
+    },
+    {
+      "name": "jit_specializer_address_guard",
+      "path": "asm/src/code_80033914/func_8003ACB0.s",
+      "start": 2147724632,
+      "end_exclusive": 2147724664,
+      "instructions": [
+        {
+          "pc": 2147724632,
+          "word": 1424303934,
+          "line": 48,
+          "assembly": "srwi r5, r7, 0x1c"
+        },
+        {
+          "pc": 2147724636,
+          "word": 671416328,
+          "line": 49,
+          "assembly": "cmplwi r5, 8"
+        },
+        {
+          "pc": 2147724640,
+          "word": 1082130440,
+          "line": 50,
+          "assembly": "bge lbl_8003AD68"
+        },
+        {
+          "pc": 2147724644,
+          "word": 1000341505,
+          "line": 51,
+          "assembly": "li r29, 1"
+        },
+        {
+          "pc": 2147724648,
+          "word": 740098048,
+          "line": 53,
+          "assembly": "cmpwi r29, 0"
+        },
+        {
+          "pc": 2147724652,
+          "word": 1082264228,
+          "line": 54,
+          "assembly": "bne lbl_8003B810"
+        },
+        {
+          "pc": 2147724656,
+          "word": 671481984,
+          "line": 55,
+          "assembly": "cmplwi r6, 0x80"
+        },
+        {
+          "pc": 2147724660,
+          "word": 1098910364,
+          "line": 56,
+          "assembly": "blt lbl_8003B810"
+        }
+      ]
+    },
+    {
+      "name": "jit_specializer_interpreter_fallback",
+      "path": "asm/src/code_80033914/func_8003ACB0.s",
+      "start": 2147727376,
+      "end_exclusive": 2147727436,
+      "instructions": [
+        {
+          "pc": 2147727376,
+          "word": 1457751102,
+          "line": 769,
+          "assembly": "srwi r3, r23, 0x10"
+        },
+        {
+          "pc": 2147727380,
+          "word": 1457521726,
+          "line": 770,
+          "assembly": "clrlwi r0, r23, 0x10"
+        },
+        {
+          "pc": 2147727384,
+          "word": 1684225184,
+          "line": 771,
+          "assembly": "oris r3, r3, 0x3ca0"
+        },
+        {
+          "pc": 2147727388,
+          "word": 1000341505,
+          "line": 772,
+          "assembly": "li r29, 1"
+        },
+        {
+          "pc": 2147727392,
+          "word": 2423848960,
+          "line": 773,
+          "assembly": "stw r3, 0(r25)"
+        },
+        {
+          "pc": 2147727396,
+          "word": 1677746341,
+          "line": 774,
+          "assembly": "oris r0, r0, 0x60a5"
+        },
+        {
+          "pc": 2147727400,
+          "word": 947453960,
+          "line": 775,
+          "assembly": "addi r3, r25, 8"
+        },
+        {
+          "pc": 2147727404,
+          "word": 1004535811,
+          "line": 776,
+          "assembly": "li r31, 3"
+        },
+        {
+          "pc": 2147727408,
+          "word": 2417557508,
+          "line": 777,
+          "assembly": "stw r0, 4(r25)"
+        },
+        {
+          "pc": 2147727412,
+          "word": 2149059400,
+          "line": 778,
+          "assembly": "lwz r0, 0xb48(r24)"
+        },
+        {
+          "pc": 2147727416,
+          "word": 2080571472,
+          "line": 779,
+          "assembly": "subf r0, r3, r0"
+        },
+        {
+          "pc": 2147727420,
+          "word": 1409286586,
+          "line": 780,
+          "assembly": "rlwinm r0, r0, 0, 6, 0x1d"
+        },
+        {
+          "pc": 2147727424,
+          "word": 1677740032,
+          "line": 781,
+          "assembly": "oris r0, r0, 0x4800"
+        },
+        {
+          "pc": 2147727428,
+          "word": 1610612737,
+          "line": 782,
+          "assembly": "ori r0, r0, 1"
+        },
+        {
+          "pc": 2147727432,
+          "word": 2417557512,
+          "line": 783,
+          "assembly": "stw r0, 8(r25)"
+        }
+      ]
+    },
+    {
+      "name": "jit_interpreter_link_initialization",
+      "path": "asm/src/code_80033914/func_8003C774.s",
+      "start": 2147731364,
+      "end_exclusive": 2147731384,
+      "instructions": [
+        {
+          "pc": 2147731364,
+          "word": 1017151491,
+          "line": 17,
+          "assembly": "lis r5, func_800365CC@ha"
+        },
+        {
+          "pc": 2147731368,
+          "word": 2145647480,
+          "line": 18,
+          "assembly": "mr r3, r31"
+        },
+        {
+          "pc": 2147731372,
+          "word": 949947208,
+          "line": 19,
+          "assembly": "addi r4, r31, 0xb48"
+        },
+        {
+          "pc": 2147731376,
+          "word": 950363596,
+          "line": 20,
+          "assembly": "addi r5, r5, func_800365CC@l"
+        },
+        {
+          "pc": 2147731380,
+          "word": 1275067789,
+          "line": 21,
+          "assembly": "bl func_8003C540"
+        }
+      ]
+    },
+    {
+      "name": "jit_specializer_link_initialization",
+      "path": "asm/src/code_80033914/func_8003C774.s",
+      "start": 2147731508,
+      "end_exclusive": 2147731528,
+      "instructions": [
+        {
+          "pc": 2147731508,
+          "word": 1017151492,
+          "line": 57,
+          "assembly": "lis r5, func_8003ACB0@ha"
+        },
+        {
+          "pc": 2147731512,
+          "word": 2145647480,
+          "line": 58,
+          "assembly": "mr r3, r31"
+        },
+        {
+          "pc": 2147731516,
+          "word": 949947224,
+          "line": 59,
+          "assembly": "addi r4, r31, 0xb58"
+        },
+        {
+          "pc": 2147731520,
+          "word": 950381744,
+          "line": 60,
+          "assembly": "addi r5, r5, func_8003ACB0@l"
+        },
+        {
+          "pc": 2147731524,
+          "word": 1275067645,
+          "line": 61,
+          "assembly": "bl func_8003C540"
+        }
+      ]
+    },
+    {
+      "name": "jit_lbu_ram_specializer_call",
+      "path": "asm/src/code_8000CB6C/func_80010760.s",
+      "start": 2147658780,
+      "end_exclusive": 2147658848,
+      "instructions": [
+        {
+          "pc": 2147658780,
+          "word": 740098048,
+          "line": 29764,
+          "assembly": "cmpwi r29, 0"
+        },
+        {
+          "pc": 2147658784,
+          "word": 1099038772,
+          "line": 29765,
+          "assembly": "beq lbl_8002AC54"
+        },
+        {
+          "pc": 2147658788,
+          "word": 2155937816,
+          "line": 29766,
+          "assembly": "lwz r4, 0x18(r1)"
+        },
+        {
+          "pc": 2147658792,
+          "word": 2155481944,
+          "line": 29767,
+          "assembly": "lwz r3, 0xb58(r26)"
+        },
+        {
+          "pc": 2147658796,
+          "word": 1418006586,
+          "line": 29768,
+          "assembly": "slwi r5, r4, 2"
+        },
+        {
+          "pc": 2147658800,
+          "word": 939786241,
+          "line": 29769,
+          "assembly": "addi r0, r4, 1"
+        },
+        {
+          "pc": 2147658804,
+          "word": 2090674708,
+          "line": 29770,
+          "assembly": "add r4, r29, r5"
+        },
+        {
+          "pc": 2147658808,
+          "word": 2086934608,
+          "line": 29771,
+          "assembly": "subf r3, r4, r3"
+        },
+        {
+          "pc": 2147658812,
+          "word": 1415774650,
+          "line": 29772,
+          "assembly": "rlwinm r3, r3, 0, 6, 0x1d"
+        },
+        {
+          "pc": 2147658816,
+          "word": 1684228096,
+          "line": 29773,
+          "assembly": "oris r3, r3, 0x4800"
+        },
+        {
+          "pc": 2147658820,
+          "word": 1617100801,
+          "line": 29774,
+          "assembly": "ori r3, r3, 1"
+        },
+        {
+          "pc": 2147658824,
+          "word": 2088577326,
+          "line": 29775,
+          "assembly": "stwx r3, r29, r5"
+        },
+        {
+          "pc": 2147658828,
+          "word": 2415984664,
+          "line": 29776,
+          "assembly": "stw r0, 0x18(r1)"
+        },
+        {
+          "pc": 2147658832,
+          "word": 1207959568,
+          "line": 29777,
+          "assembly": "b lbl_8002AC60"
+        },
+        {
+          "pc": 2147658836,
+          "word": 2153840664,
+          "line": 29779,
+          "assembly": "lwz r3, 0x18(r1)"
+        },
+        {
+          "pc": 2147658840,
+          "word": 939720705,
+          "line": 29780,
+          "assembly": "addi r0, r3, 1"
+        },
+        {
+          "pc": 2147658844,
+          "word": 2415984664,
+          "line": 29781,
+          "assembly": "stw r0, 0x18(r1)"
+        }
+      ]
+    },
+    {
+      "name": "interpreter_delay_marker_mode",
+      "path": "asm/src/code_80033914/func_800365CC.s",
+      "start": 2147706368,
+      "end_exclusive": 2147706412,
+      "instructions": [
+        {
+          "pc": 2147706368,
+          "word": 2149187620,
+          "line": 17,
+          "assembly": "lwz r0, 0x24(r26)"
+        },
+        {
+          "pc": 2147706372,
+          "word": 2088246136,
+          "line": 18,
+          "assembly": "mr r24, r3"
+        },
+        {
+          "pc": 2147706376,
+          "word": 738197504,
+          "line": 19,
+          "assembly": "cmpwi r0, 0"
+        },
+        {
+          "pc": 2147706380,
+          "word": 1099038740,
+          "line": 20,
+          "assembly": "beq lbl_80036620"
+        },
+        {
+          "pc": 2147706384,
+          "word": 2149187584,
+          "line": 21,
+          "assembly": "lwz r0, 0(r26)"
+        },
+        {
+          "pc": 2147706388,
+          "word": 1610612744,
+          "line": 22,
+          "assembly": "ori r0, r0, 8"
+        },
+        {
+          "pc": 2147706392,
+          "word": 2417623040,
+          "line": 23,
+          "assembly": "stw r0, 0(r26)"
+        },
+        {
+          "pc": 2147706396,
+          "word": 1207959568,
+          "line": 24,
+          "assembly": "b lbl_8003662C"
+        },
+        {
+          "pc": 2147706400,
+          "word": 2149187584,
+          "line": 26,
+          "assembly": "lwz r0, 0(r26)"
+        },
+        {
+          "pc": 2147706404,
+          "word": 1409288054,
+          "line": 27,
+          "assembly": "rlwinm r0, r0, 0, 0x1d, 0x1b"
+        },
+        {
+          "pc": 2147706408,
+          "word": 2417623040,
+          "line": 28,
+          "assembly": "stw r0, 0(r26)"
+        }
+      ]
+    },
+    {
+      "name": "cpu_update_interrupt_and_pc_gate",
+      "path": "asm/src/code_80033914/func_80033914.s",
+      "start": 2147695556,
+      "end_exclusive": 2147695680,
+      "instructions": [
+        {
+          "pc": 2147695556,
+          "word": 1421870905,
+          "line": 194,
+          "assembly": "rlwinm. r0, r6, 0, 0x1c, 0x1c"
+        },
+        {
+          "pc": 2147695560,
+          "word": 2424048276,
+          "line": 195,
+          "assembly": "stw r3, 0xa94(r28)"
+        },
+        {
+          "pc": 2147695564,
+          "word": 2080710932,
+          "line": 196,
+          "assembly": "adde r0, r5, r4"
+        },
+        {
+          "pc": 2147695568,
+          "word": 2417756816,
+          "line": 197,
+          "assembly": "stw r0, 0xa90(r28)"
+        },
+        {
+          "pc": 2147695572,
+          "word": 1099038768,
+          "line": 198,
+          "assembly": "beq lbl_80033C04"
+        },
+        {
+          "pc": 2147695576,
+          "word": 1421870971,
+          "line": 199,
+          "assembly": "rlwinm. r0, r6, 0, 0x1d, 0x1d"
+        },
+        {
+          "pc": 2147695580,
+          "word": 1082261544,
+          "line": 200,
+          "assembly": "bne lbl_80033C04"
+        },
+        {
+          "pc": 2147695584,
+          "word": 2154662280,
+          "line": 201,
+          "assembly": "lwz r3, lbl_8025B448-_SDA_BASE_(r13)"
+        },
+        {
+          "pc": 2147695588,
+          "word": 2147680256,
+          "line": 202,
+          "assembly": "lwz r0, 0(r3)"
+        },
+        {
+          "pc": 2147695592,
+          "word": 738197504,
+          "line": 203,
+          "assembly": "cmpwi r0, 0"
+        },
+        {
+          "pc": 2147695596,
+          "word": 1099038744,
+          "line": 204,
+          "assembly": "beq lbl_80033C04"
+        },
+        {
+          "pc": 2147695600,
+          "word": 1274909505,
+          "line": 205,
+          "assembly": "bl func_8000CF30"
+        },
+        {
+          "pc": 2147695604,
+          "word": 738394112,
+          "line": 206,
+          "assembly": "cmpwi r3, 0"
+        },
+        {
+          "pc": 2147695608,
+          "word": 1082261516,
+          "line": 207,
+          "assembly": "bne lbl_80033C04"
+        },
+        {
+          "pc": 2147695612,
+          "word": 945815552,
+          "line": 208,
+          "assembly": "li r3, 0"
+        },
+        {
+          "pc": 2147695616,
+          "word": 1207959616,
+          "line": 209,
+          "assembly": "b lbl_80033C40"
+        },
+        {
+          "pc": 2147695620,
+          "word": 2155610112,
+          "line": 211,
+          "assembly": "lwz r3, 0(r28)"
+        },
+        {
+          "pc": 2147695624,
+          "word": 1415579515,
+          "line": 212,
+          "assembly": "rlwinm. r0, r3, 0, 0x1d, 0x1d"
+        },
+        {
+          "pc": 2147695628,
+          "word": 1099038768,
+          "line": 213,
+          "assembly": "beq lbl_80033C3C"
+        },
+        {
+          "pc": 2147695632,
+          "word": 939589499,
+          "line": 214,
+          "assembly": "li r0, -133"
+        },
+        {
+          "pc": 2147695636,
+          "word": 2157707296,
+          "line": 215,
+          "assembly": "lwz r4, 0x20(r28)"
+        },
+        {
+          "pc": 2147695640,
+          "word": 2086666296,
+          "line": 216,
+          "assembly": "and r0, r3, r0"
+        },
+        {
+          "pc": 2147695644,
+          "word": 2139349880,
+          "line": 217,
+          "assembly": "mr r3, r28"
+        },
+        {
+          "pc": 2147695648,
+          "word": 2417754112,
+          "line": 218,
+          "assembly": "stw r0, 0(r28)"
+        },
+        {
+          "pc": 2147695652,
+          "word": 2141580152,
+          "line": 219,
+          "assembly": "mr r5, r29"
+        },
+        {
+          "pc": 2147695656,
+          "word": 1275065245,
+          "line": 220,
+          "assembly": "bl func_80032FC4"
+        },
+        {
+          "pc": 2147695660,
+          "word": 738394112,
+          "line": 221,
+          "assembly": "cmpwi r3, 0"
+        },
+        {
+          "pc": 2147695664,
+          "word": 1082261516,
+          "line": 222,
+          "assembly": "bne lbl_80033C3C"
+        },
+        {
+          "pc": 2147695668,
+          "word": 945815552,
+          "line": 223,
+          "assembly": "li r3, 0"
+        },
+        {
+          "pc": 2147695672,
+          "word": 1207959560,
+          "line": 224,
+          "assembly": "b lbl_80033C40"
+        },
+        {
+          "pc": 2147695676,
+          "word": 945815553,
+          "line": 226,
+          "assembly": "li r3, 1"
+        }
+      ]
+    },
+    {
+      "name": "wrapper_argument_spill_codegen",
+      "path": "asm/src/code_80033914/func_8003C540.s",
+      "start": 2147730876,
+      "end_exclusive": 2147730928,
+      "instructions": [
+        {
+          "pc": 2147730876,
+          "word": 2160525312,
+          "line": 37,
+          "assembly": "lwz r6, 0(r7)"
+        },
+        {
+          "pc": 2147730880,
+          "word": 1421870575,
+          "line": 38,
+          "assembly": "rlwinm. r0, r6, 0, 0x17, 0x17"
+        },
+        {
+          "pc": 2147730884,
+          "word": 1082261536,
+          "line": 39,
+          "assembly": "bne lbl_8003C5E4"
+        },
+        {
+          "pc": 2147730888,
+          "word": 2090680400,
+          "line": 40,
+          "assembly": "subf r4, r29, r8"
+        },
+        {
+          "pc": 2147730892,
+          "word": 1421912084,
+          "line": 41,
+          "assembly": "slwi r0, r6, 0x15"
+        },
+        {
+          "pc": 2147730896,
+          "word": 948174852,
+          "line": 42,
+          "assembly": "addi r4, r4, 4"
+        },
+        {
+          "pc": 2147730900,
+          "word": 1677758467,
+          "line": 43,
+          "assembly": "oris r0, r0, 0x9003"
+        },
+        {
+          "pc": 2147730904,
+          "word": 2088764280,
+          "line": 44,
+          "assembly": "or r0, r4, r0"
+        },
+        {
+          "pc": 2147730908,
+          "word": 2416246784,
+          "line": 45,
+          "assembly": "stw r0, 0(r5)"
+        },
+        {
+          "pc": 2147730912,
+          "word": 950337540,
+          "line": 46,
+          "assembly": "addi r5, r5, 4"
+        },
+        {
+          "pc": 2147730916,
+          "word": 954662916,
+          "line": 48,
+          "assembly": "addi r7, r7, 4"
+        },
+        {
+          "pc": 2147730920,
+          "word": 956825608,
+          "line": 49,
+          "assembly": "addi r8, r8, 8"
+        },
+        {
+          "pc": 2147730924,
+          "word": 1107361744,
+          "line": 50,
+          "assembly": "bdnz lbl_8003C5BC"
+        }
+      ]
+    },
+    {
+      "name": "wrapper_call_and_return_codegen",
+      "path": "asm/src/code_80033914/func_8003C540.s",
+      "start": 2147730928,
+      "end_exclusive": 2147731012,
+      "instructions": [
+        {
+          "pc": 2147730928,
+          "word": 2080766032,
+          "line": 51,
+          "assembly": "subf r0, r5, r31"
+        },
+        {
+          "pc": 2147730932,
+          "word": 1015053416,
+          "line": 52,
+          "assembly": "lis r4, 0x7C6803A6@ha"
+        },
+        {
+          "pc": 2147730936,
+          "word": 1409286586,
+          "line": 53,
+          "assembly": "rlwinm r0, r0, 0, 6, 0x1d"
+        },
+        {
+          "pc": 2147730940,
+          "word": 1470596158,
+          "line": 54,
+          "assembly": "srwi r7, r29, 0x10"
+        },
+        {
+          "pc": 2147730944,
+          "word": 1678264320,
+          "line": 55,
+          "assembly": "oris r8, r0, 0x4800"
+        },
+        {
+          "pc": 2147730948,
+          "word": 1470497854,
+          "line": 56,
+          "assembly": "clrlwi r6, r29, 0x10"
+        },
+        {
+          "pc": 2147730952,
+          "word": 1627914241,
+          "line": 57,
+          "assembly": "ori r8, r8, 1"
+        },
+        {
+          "pc": 2147730956,
+          "word": 958661542,
+          "line": 58,
+          "assembly": "addi r9, r4, 0x7C6803A6@l"
+        },
+        {
+          "pc": 2147730960,
+          "word": 2433024000,
+          "line": 59,
+          "assembly": "stw r8, 0(r5)"
+        },
+        {
+          "pc": 2147730964,
+          "word": 941424692,
+          "line": 60,
+          "assembly": "addi r0, r29, 0x34"
+        },
+        {
+          "pc": 2147730968,
+          "word": 2090664016,
+          "line": 61,
+          "assembly": "subf r4, r29, r0"
+        },
+        {
+          "pc": 2147730972,
+          "word": 1692875872,
+          "line": 62,
+          "assembly": "oris r7, r7, 0x3c60"
+        },
+        {
+          "pc": 2147730976,
+          "word": 2435121156,
+          "line": 63,
+          "assembly": "stw r9, 4(r5)"
+        },
+        {
+          "pc": 2147730980,
+          "word": 1006928003,
+          "line": 64,
+          "assembly": "addis r0, r4, 0x8083"
+        },
+        {
+          "pc": 2147730984,
+          "word": 1690722403,
+          "line": 65,
+          "assembly": "oris r6, r6, 0x6063"
+        },
+        {
+          "pc": 2147730988,
+          "word": 956629012,
+          "line": 66,
+          "assembly": "addi r8, r5, 0x14"
+        },
+        {
+          "pc": 2147730992,
+          "word": 2430926856,
+          "line": 67,
+          "assembly": "stw r7, 8(r5)"
+        },
+        {
+          "pc": 2147730996,
+          "word": 954728452,
+          "line": 68,
+          "assembly": "addi r7, r8, 4"
+        },
+        {
+          "pc": 2147731000,
+          "word": 1016922113,
+          "line": 69,
+          "assembly": "addis r4, r29, 1"
+        },
+        {
+          "pc": 2147731004,
+          "word": 2428829708,
+          "line": 70,
+          "assembly": "stw r6, 0xc(r5)"
+        },
+        {
+          "pc": 2147731008,
+          "word": 2416246800,
+          "line": 71,
+          "assembly": "stw r0, 0x10(r5)"
+        }
+      ]
+    },
+    {
+      "name": "wrapper_argument_reload_codegen",
+      "path": "asm/src/code_80033914/func_8003C540.s",
+      "start": 2147731188,
+      "end_exclusive": 2147731256,
+      "instructions": [
+        {
+          "pc": 2147731188,
+          "word": 2160525312,
+          "line": 119,
+          "assembly": "lwz r6, 0(r7)"
+        },
+        {
+          "pc": 2147731192,
+          "word": 1421870575,
+          "line": 120,
+          "assembly": "rlwinm. r0, r6, 0, 0x17, 0x17"
+        },
+        {
+          "pc": 2147731196,
+          "word": 1082261536,
+          "line": 121,
+          "assembly": "bne lbl_8003C71C"
+        },
+        {
+          "pc": 2147731200,
+          "word": 2090670160,
+          "line": 122,
+          "assembly": "subf r4, r29, r3"
+        },
+        {
+          "pc": 2147731204,
+          "word": 1421912084,
+          "line": 123,
+          "assembly": "slwi r0, r6, 0x15"
+        },
+        {
+          "pc": 2147731208,
+          "word": 948174852,
+          "line": 124,
+          "assembly": "addi r4, r4, 4"
+        },
+        {
+          "pc": 2147731212,
+          "word": 1677754371,
+          "line": 125,
+          "assembly": "oris r0, r0, 0x8003"
+        },
+        {
+          "pc": 2147731216,
+          "word": 2088764280,
+          "line": 126,
+          "assembly": "or r0, r4, r0"
+        },
+        {
+          "pc": 2147731220,
+          "word": 2416246784,
+          "line": 127,
+          "assembly": "stw r0, 0(r5)"
+        },
+        {
+          "pc": 2147731224,
+          "word": 950337540,
+          "line": 128,
+          "assembly": "addi r5, r5, 4"
+        },
+        {
+          "pc": 2147731228,
+          "word": 954662916,
+          "line": 130,
+          "assembly": "addi r7, r7, 4"
+        },
+        {
+          "pc": 2147731232,
+          "word": 946012168,
+          "line": 131,
+          "assembly": "addi r3, r3, 8"
+        },
+        {
+          "pc": 2147731236,
+          "word": 1107361744,
+          "line": 132,
+          "assembly": "bdnz lbl_8003C6F4"
+        },
+        {
+          "pc": 2147731240,
+          "word": 1012944512,
+          "line": 133,
+          "assembly": "lis r3, 0x4E800020@ha"
+        },
+        {
+          "pc": 2147731244,
+          "word": 947913216,
+          "line": 134,
+          "assembly": "li r4, 0x200"
+        },
+        {
+          "pc": 2147731248,
+          "word": 939720736,
+          "line": 135,
+          "assembly": "addi r0, r3, 0x4E800020@l"
+        },
+        {
+          "pc": 2147731252,
+          "word": 2416246784,
+          "line": 136,
+          "assembly": "stw r0, 0(r5)"
+        }
+      ]
+    },
+    {
+      "name": "jit_delay_marker_before_ram_call",
+      "path": "asm/src/code_8000CB6C/func_80010760.s",
+      "start": 2147658564,
+      "end_exclusive": 2147658676,
+      "instructions": [
+        {
+          "pc": 2147658564,
+          "word": 739508224,
+          "line": 29702,
+          "assembly": "cmpwi r20, 0"
+        },
+        {
+          "pc": 2147658568,
+          "word": 1099038828,
+          "line": 29703,
+          "assembly": "beq lbl_8002ABB4"
+        },
+        {
+          "pc": 2147658572,
+          "word": 740098048,
+          "line": 29704,
+          "assembly": "cmpwi r29, 0"
+        },
+        {
+          "pc": 2147658576,
+          "word": 1099038752,
+          "line": 29705,
+          "assembly": "beq lbl_8002AB70"
+        },
+        {
+          "pc": 2147658580,
+          "word": 2153840664,
+          "line": 29706,
+          "assembly": "lwz r3, 0x18(r1)"
+        },
+        {
+          "pc": 2147658584,
+          "word": 1015036096,
+          "line": 29707,
+          "assembly": "lis r4, 0x38c0"
+        },
+        {
+          "pc": 2147658588,
+          "word": 1415581754,
+          "line": 29708,
+          "assembly": "slwi r0, r3, 2"
+        },
+        {
+          "pc": 2147658592,
+          "word": 946012161,
+          "line": 29709,
+          "assembly": "addi r3, r3, 1"
+        },
+        {
+          "pc": 2147658596,
+          "word": 2090664238,
+          "line": 29710,
+          "assembly": "stwx r4, r29, r0"
+        },
+        {
+          "pc": 2147658600,
+          "word": 2422276120,
+          "line": 29711,
+          "assembly": "stw r3, 0x18(r1)"
+        },
+        {
+          "pc": 2147658604,
+          "word": 1207959568,
+          "line": 29712,
+          "assembly": "b lbl_8002AB7C"
+        },
+        {
+          "pc": 2147658608,
+          "word": 2153840664,
+          "line": 29714,
+          "assembly": "lwz r3, 0x18(r1)"
+        },
+        {
+          "pc": 2147658612,
+          "word": 939720705,
+          "line": 29715,
+          "assembly": "addi r0, r3, 1"
+        },
+        {
+          "pc": 2147658616,
+          "word": 2415984664,
+          "line": 29716,
+          "assembly": "stw r0, 0x18(r1)"
+        },
+        {
+          "pc": 2147658620,
+          "word": 740098048,
+          "line": 29718,
+          "assembly": "cmpwi r29, 0"
+        },
+        {
+          "pc": 2147658624,
+          "word": 1099038760,
+          "line": 29719,
+          "assembly": "beq lbl_8002ABA8"
+        },
+        {
+          "pc": 2147658628,
+          "word": 941228068,
+          "line": 29720,
+          "assembly": "addi r0, r26, 0x24"
+        },
+        {
+          "pc": 2147658632,
+          "word": 2153840664,
+          "line": 29721,
+          "assembly": "lwz r3, 0x18(r1)"
+        },
+        {
+          "pc": 2147658636,
+          "word": 2090467408,
+          "line": 29722,
+          "assembly": "subf r4, r26, r0"
+        },
+        {
+          "pc": 2147658640,
+          "word": 1015320771,
+          "line": 29723,
+          "assembly": "addis r4, r4, 0x90c3"
+        },
+        {
+          "pc": 2147658644,
+          "word": 1415581754,
+          "line": 29724,
+          "assembly": "slwi r0, r3, 2"
+        },
+        {
+          "pc": 2147658648,
+          "word": 2090664238,
+          "line": 29725,
+          "assembly": "stwx r4, r29, r0"
+        },
+        {
+          "pc": 2147658652,
+          "word": 939720705,
+          "line": 29726,
+          "assembly": "addi r0, r3, 1"
+        },
+        {
+          "pc": 2147658656,
+          "word": 2415984664,
+          "line": 29727,
+          "assembly": "stw r0, 0x18(r1)"
+        },
+        {
+          "pc": 2147658660,
+          "word": 1207959568,
+          "line": 29728,
+          "assembly": "b lbl_8002ABB4"
+        },
+        {
+          "pc": 2147658664,
+          "word": 2153840664,
+          "line": 29730,
+          "assembly": "lwz r3, 0x18(r1)"
+        },
+        {
+          "pc": 2147658668,
+          "word": 939720705,
+          "line": 29731,
+          "assembly": "addi r0, r3, 1"
+        },
+        {
+          "pc": 2147658672,
+          "word": 2415984664,
+          "line": 29732,
+          "assembly": "stw r0, 0x18(r1)"
+        }
+      ]
+    },
+    {
+      "name": "jit_delay_marker_after_ram_call",
+      "path": "asm/src/code_8000CB6C/func_80010760.s",
+      "start": 2147658900,
+      "end_exclusive": 2147659020,
+      "instructions": [
+        {
+          "pc": 2147658900,
+          "word": 739508224,
+          "line": 29798,
+          "assembly": "cmpwi r20, 0"
+        },
+        {
+          "pc": 2147658904,
+          "word": 1099040200,
+          "line": 29799,
+          "assembly": "beq lbl_8002B260"
+        },
+        {
+          "pc": 2147658908,
+          "word": 740098048,
+          "line": 29800,
+          "assembly": "cmpwi r29, 0"
+        },
+        {
+          "pc": 2147658912,
+          "word": 1099038756,
+          "line": 29801,
+          "assembly": "beq lbl_8002ACC4"
+        },
+        {
+          "pc": 2147658916,
+          "word": 2153840664,
+          "line": 29802,
+          "assembly": "lwz r3, 0x18(r1)"
+        },
+        {
+          "pc": 2147658920,
+          "word": 1015036097,
+          "line": 29803,
+          "assembly": "lis r4, 0x38C0FFFF@ha"
+        },
+        {
+          "pc": 2147658924,
+          "word": 948240383,
+          "line": 29804,
+          "assembly": "addi r4, r4, 0x38C0FFFF@l"
+        },
+        {
+          "pc": 2147658928,
+          "word": 1415581754,
+          "line": 29805,
+          "assembly": "slwi r0, r3, 2"
+        },
+        {
+          "pc": 2147658932,
+          "word": 946012161,
+          "line": 29806,
+          "assembly": "addi r3, r3, 1"
+        },
+        {
+          "pc": 2147658936,
+          "word": 2090664238,
+          "line": 29807,
+          "assembly": "stwx r4, r29, r0"
+        },
+        {
+          "pc": 2147658940,
+          "word": 2422276120,
+          "line": 29808,
+          "assembly": "stw r3, 0x18(r1)"
+        },
+        {
+          "pc": 2147658944,
+          "word": 1207959568,
+          "line": 29809,
+          "assembly": "b lbl_8002ACD0"
+        },
+        {
+          "pc": 2147658948,
+          "word": 2153840664,
+          "line": 29811,
+          "assembly": "lwz r3, 0x18(r1)"
+        },
+        {
+          "pc": 2147658952,
+          "word": 939720705,
+          "line": 29812,
+          "assembly": "addi r0, r3, 1"
+        },
+        {
+          "pc": 2147658956,
+          "word": 2415984664,
+          "line": 29813,
+          "assembly": "stw r0, 0x18(r1)"
+        },
+        {
+          "pc": 2147658960,
+          "word": 740098048,
+          "line": 29815,
+          "assembly": "cmpwi r29, 0"
+        },
+        {
+          "pc": 2147658964,
+          "word": 1099038760,
+          "line": 29816,
+          "assembly": "beq lbl_8002ACFC"
+        },
+        {
+          "pc": 2147658968,
+          "word": 941228068,
+          "line": 29817,
+          "assembly": "addi r0, r26, 0x24"
+        },
+        {
+          "pc": 2147658972,
+          "word": 2153840664,
+          "line": 29818,
+          "assembly": "lwz r3, 0x18(r1)"
+        },
+        {
+          "pc": 2147658976,
+          "word": 2090467408,
+          "line": 29819,
+          "assembly": "subf r4, r26, r0"
+        },
+        {
+          "pc": 2147658980,
+          "word": 1015320771,
+          "line": 29820,
+          "assembly": "addis r4, r4, 0x90c3"
+        },
+        {
+          "pc": 2147658984,
+          "word": 1415581754,
+          "line": 29821,
+          "assembly": "slwi r0, r3, 2"
+        },
+        {
+          "pc": 2147658988,
+          "word": 2090664238,
+          "line": 29822,
+          "assembly": "stwx r4, r29, r0"
+        },
+        {
+          "pc": 2147658992,
+          "word": 939720705,
+          "line": 29823,
+          "assembly": "addi r0, r3, 1"
+        },
+        {
+          "pc": 2147658996,
+          "word": 2415984664,
+          "line": 29824,
+          "assembly": "stw r0, 0x18(r1)"
+        },
+        {
+          "pc": 2147659000,
+          "word": 1207960936,
+          "line": 29825,
+          "assembly": "b lbl_8002B260"
+        },
+        {
+          "pc": 2147659004,
+          "word": 2153840664,
+          "line": 29827,
+          "assembly": "lwz r3, 0x18(r1)"
+        },
+        {
+          "pc": 2147659008,
+          "word": 939720705,
+          "line": 29828,
+          "assembly": "addi r0, r3, 1"
+        },
+        {
+          "pc": 2147659012,
+          "word": 2415984664,
+          "line": 29829,
+          "assembly": "stw r0, 0x18(r1)"
+        },
+        {
+          "pc": 2147659016,
+          "word": 1207960920,
+          "line": 29830,
+          "assembly": "b lbl_8002B260"
+        }
+      ]
+    },
+    {
+      "name": "jit_jal_compiles_delay_first",
+      "path": "asm/src/code_8000CB6C/func_80010760.s",
+      "start": 2147596920,
+      "end_exclusive": 2147596988,
+      "instructions": [
+        {
+          "pc": 2147596920,
+          "word": 739639296,
+          "line": 12657,
+          "assembly": "cmpwi r22, 0"
+        },
+        {
+          "pc": 2147596924,
+          "word": 1443828026,
+          "line": 12658,
+          "assembly": "rlwinm r15, r16, 2, 4, 0x1d"
+        },
+        {
+          "pc": 2147596928,
+          "word": 1099038780,
+          "line": 12659,
+          "assembly": "beq lbl_8001BABC"
+        },
+        {
+          "pc": 2147596932,
+          "word": 2135151480,
+          "line": 12660,
+          "assembly": "mr r3, r26"
+        },
+        {
+          "pc": 2147596936,
+          "word": 2137316216,
+          "line": 12661,
+          "assembly": "mr r4, r27"
+        },
+        {
+          "pc": 2147596940,
+          "word": 2139480952,
+          "line": 12662,
+          "assembly": "mr r5, r28"
+        },
+        {
+          "pc": 2147596944,
+          "word": 2141645688,
+          "line": 12663,
+          "assembly": "mr r6, r29"
+        },
+        {
+          "pc": 2147596948,
+          "word": 954269720,
+          "line": 12664,
+          "assembly": "addi r7, r1, 0x18"
+        },
+        {
+          "pc": 2147596952,
+          "word": 956301313,
+          "line": 12665,
+          "assembly": "li r8, 1"
+        },
+        {
+          "pc": 2147596956,
+          "word": 1275022533,
+          "line": 12666,
+          "assembly": "bl func_80010760"
+        },
+        {
+          "pc": 2147596960,
+          "word": 738394112,
+          "line": 12667,
+          "assembly": "cmpwi r3, 0"
+        },
+        {
+          "pc": 2147596964,
+          "word": 1082261516,
+          "line": 12668,
+          "assembly": "bne lbl_8001BAB0"
+        },
+        {
+          "pc": 2147596968,
+          "word": 945815552,
+          "line": 12669,
+          "assembly": "li r3, 0"
+        },
+        {
+          "pc": 2147596972,
+          "word": 1208053836,
+          "line": 12670,
+          "assembly": "b lbl_80032AF8"
+        },
+        {
+          "pc": 2147596976,
+          "word": 2155544576,
+          "line": 12672,
+          "assembly": "lwz r3, 0(r27)"
+        },
+        {
+          "pc": 2147596980,
+          "word": 939786236,
+          "line": 12673,
+          "assembly": "addi r0, r3, -4"
+        },
+        {
+          "pc": 2147596984,
+          "word": 2417688576,
+          "line": 12674,
+          "assembly": "stw r0, 0(r27)"
+        }
+      ]
+    },
+    {
+      "name": "wrapper_gpr_map_setup",
+      "path": "asm/src/code_80033914/func_8003C540.s",
+      "start": 2147730820,
+      "end_exclusive": 2147730876,
+      "instructions": [
+        {
+          "pc": 2147730820,
+          "word": 2147549192,
+          "line": 22,
+          "assembly": "lwz r0, 8(r1)"
+        },
+        {
+          "pc": 2147730824,
+          "word": 1017150664,
+          "line": 23,
+          "assembly": "lis r5, 0x7CC802A6@ha"
+        },
+        {
+          "pc": 2147730828,
+          "word": 1015054359,
+          "line": 24,
+          "assembly": "lis r4, lbl_8016D410@ha"
+        },
+        {
+          "pc": 2147730832,
+          "word": 947716176,
+          "line": 25,
+          "assembly": "addi r3, r29, 0x50"
+        },
+        {
+          "pc": 2147730836,
+          "word": 2417885184,
+          "line": 26,
+          "assembly": "stw r0, 0(r30)"
+        },
+        {
+          "pc": 2147730840,
+          "word": 952435366,
+          "line": 27,
+          "assembly": "addi r6, r5, 0x7CC802A6@l"
+        },
+        {
+          "pc": 2147730844,
+          "word": 948229136,
+          "line": 28,
+          "assembly": "addi r4, r4, lbl_8016D410@l"
+        },
+        {
+          "pc": 2147730848,
+          "word": 939524127,
+          "line": 29,
+          "assembly": "li r0, 0x1f"
+        },
+        {
+          "pc": 2147730852,
+          "word": 2158034952,
+          "line": 30,
+          "assembly": "lwz r5, 8(r1)"
+        },
+        {
+          "pc": 2147730856,
+          "word": 2087197560,
+          "line": 31,
+          "assembly": "mr r8, r3"
+        },
+        {
+          "pc": 2147730860,
+          "word": 954466308,
+          "line": 32,
+          "assembly": "addi r7, r4, 4"
+        },
+        {
+          "pc": 2147730864,
+          "word": 2428829696,
+          "line": 33,
+          "assembly": "stw r6, 0(r5)"
+        },
+        {
+          "pc": 2147730868,
+          "word": 950337540,
+          "line": 34,
+          "assembly": "addi r5, r5, 4"
+        },
+        {
+          "pc": 2147730872,
+          "word": 2080965542,
+          "line": 35,
+          "assembly": "mtctr r0"
+        }
+      ]
+    },
+    {
+      "name": "system_device_table_setup",
+      "path": "asm/src/code_80007020/func_8000A244.s",
+      "start": 2147525208,
+      "end_exclusive": 2147525236,
+      "instructions": [
+        {
+          "pc": 2147525208,
+          "word": 939524096,
+          "line": 9,
+          "assembly": "li r0, 0"
+        },
+        {
+          "pc": 2147525212,
+          "word": 1071677463,
+          "line": 10,
+          "assembly": "lis r31, lbl_8016C658@ha"
+        },
+        {
+          "pc": 2147525216,
+          "word": 2416115728,
+          "line": 11,
+          "assembly": "stw r0, 0x10(r3)"
+        },
+        {
+          "pc": 2147525220,
+          "word": 2088246136,
+          "line": 12,
+          "assembly": "mr r24, r3"
+        },
+        {
+          "pc": 2147525224,
+          "word": 2090410872,
+          "line": 13,
+          "assembly": "mr r25, r4"
+        },
+        {
+          "pc": 2147525228,
+          "word": 1006618200,
+          "line": 14,
+          "assembly": "addi r31, r31, lbl_8016C658@l"
+        },
+        {
+          "pc": 2147525232,
+          "word": 2416115732,
+          "line": 15,
+          "assembly": "stw r0, 0x14(r3)"
+        }
+      ]
+    },
+    {
+      "name": "cpu_default_page_table_install",
+      "path": "asm/src/code_80033914/func_8003D2D8.s",
+      "start": 2147734252,
+      "end_exclusive": 2147734508,
+      "instructions": [
+        {
+          "pc": 2147734252,
+          "word": 738525184,
+          "line": 9,
+          "assembly": "cmpwi r5, 0"
+        },
+        {
+          "pc": 2147734256,
+          "word": 2088442744,
+          "line": 10,
+          "assembly": "mr r27, r3"
+        },
+        {
+          "pc": 2147734260,
+          "word": 2090607480,
+          "line": 11,
+          "assembly": "mr r28, r4"
+        },
+        {
+          "pc": 2147734264,
+          "word": 2092772216,
+          "line": 12,
+          "assembly": "mr r29, r5"
+        },
+        {
+          "pc": 2147734268,
+          "word": 2094936952,
+          "line": 13,
+          "assembly": "mr r30, r6"
+        },
+        {
+          "pc": 2147734272,
+          "word": 2097101688,
+          "line": 14,
+          "assembly": "mr r31, r7"
+        },
+        {
+          "pc": 2147734276,
+          "word": 1082261736,
+          "line": 15,
+          "assembly": "bne lbl_8003D3EC"
+        },
+        {
+          "pc": 2147734280,
+          "word": 1007026177,
+          "line": 16,
+          "assembly": "addis r0, r6, 1"
+        },
+        {
+          "pc": 2147734284,
+          "word": 671154175,
+          "line": 17,
+          "assembly": "cmplwi r0, 0xffff"
+        },
+        {
+          "pc": 2147734288,
+          "word": 1082261724,
+          "line": 18,
+          "assembly": "bne lbl_8003D3EC"
+        },
+        {
+          "pc": 2147734292,
+          "word": 2139480952,
+          "line": 19,
+          "assembly": "mr r5, r28"
+        },
+        {
+          "pc": 2147734296,
+          "word": 2141711224,
+          "line": 20,
+          "assembly": "mr r7, r29"
+        },
+        {
+          "pc": 2147734300,
+          "word": 2143875960,
+          "line": 21,
+          "assembly": "mr r8, r30"
+        },
+        {
+          "pc": 2147734304,
+          "word": 2146040696,
+          "line": 22,
+          "assembly": "mr r9, r31"
+        },
+        {
+          "pc": 2147734308,
+          "word": 947978248,
+          "line": 23,
+          "assembly": "addi r4, r1, 8"
+        },
+        {
+          "pc": 2147734312,
+          "word": 952107008,
+          "line": 24,
+          "assembly": "li r6, 0"
+        },
+        {
+          "pc": 2147734316,
+          "word": 1274880249,
+          "line": 25,
+          "assembly": "bl func_8000F424"
+        },
+        {
+          "pc": 2147734320,
+          "word": 738394112,
+          "line": 26,
+          "assembly": "cmpwi r3, 0"
+        },
+        {
+          "pc": 2147734324,
+          "word": 1082261516,
+          "line": 27,
+          "assembly": "bne lbl_8003D340"
+        },
+        {
+          "pc": 2147734328,
+          "word": 945815552,
+          "line": 28,
+          "assembly": "li r3, 0"
+        },
+        {
+          "pc": 2147734332,
+          "word": 1207960452,
+          "line": 29,
+          "assembly": "b lbl_8003D6C0"
+        },
+        {
+          "pc": 2147734336,
+          "word": 2153840648,
+          "line": 31,
+          "assembly": "lwz r3, 8(r1)"
+        },
+        {
+          "pc": 2147734340,
+          "word": 939528192,
+          "line": 32,
+          "assembly": "li r0, 0x1000"
+        },
+        {
+          "pc": 2147734344,
+          "word": 947912704,
+          "line": 33,
+          "assembly": "li r4, 0"
+        },
+        {
+          "pc": 2147734348,
+          "word": 2423980060,
+          "line": 34,
+          "assembly": "stw r3, 0x1c(r27)"
+        },
+        {
+          "pc": 2147734352,
+          "word": 2080965542,
+          "line": 35,
+          "assembly": "mtctr r0"
+        },
+        {
+          "pc": 2147734356,
+          "word": 2147549192,
+          "line": 37,
+          "assembly": "lwz r0, 8(r1)"
+        },
+        {
+          "pc": 2147734360,
+          "word": 2088444436,
+          "line": 38,
+          "assembly": "add r3, r27, r4"
+        },
+        {
+          "pc": 2147734364,
+          "word": 948174856,
+          "line": 39,
+          "assembly": "addi r4, r4, 8"
+        },
+        {
+          "pc": 2147734368,
+          "word": 2550337376,
+          "line": 40,
+          "assembly": "stb r0, 0xf60(r3)"
+        },
+        {
+          "pc": 2147734372,
+          "word": 2147549192,
+          "line": 41,
+          "assembly": "lwz r0, 8(r1)"
+        },
+        {
+          "pc": 2147734376,
+          "word": 2550337377,
+          "line": 42,
+          "assembly": "stb r0, 0xf61(r3)"
+        },
+        {
+          "pc": 2147734380,
+          "word": 2147549192,
+          "line": 43,
+          "assembly": "lwz r0, 8(r1)"
+        },
+        {
+          "pc": 2147734384,
+          "word": 2550337378,
+          "line": 44,
+          "assembly": "stb r0, 0xf62(r3)"
+        },
+        {
+          "pc": 2147734388,
+          "word": 2147549192,
+          "line": 45,
+          "assembly": "lwz r0, 8(r1)"
+        },
+        {
+          "pc": 2147734392,
+          "word": 2550337379,
+          "line": 46,
+          "assembly": "stb r0, 0xf63(r3)"
+        },
+        {
+          "pc": 2147734396,
+          "word": 2147549192,
+          "line": 47,
+          "assembly": "lwz r0, 8(r1)"
+        },
+        {
+          "pc": 2147734400,
+          "word": 2550337380,
+          "line": 48,
+          "assembly": "stb r0, 0xf64(r3)"
+        },
+        {
+          "pc": 2147734404,
+          "word": 2147549192,
+          "line": 49,
+          "assembly": "lwz r0, 8(r1)"
+        },
+        {
+          "pc": 2147734408,
+          "word": 2550337381,
+          "line": 50,
+          "assembly": "stb r0, 0xf65(r3)"
+        },
+        {
+          "pc": 2147734412,
+          "word": 2147549192,
+          "line": 51,
+          "assembly": "lwz r0, 8(r1)"
+        },
+        {
+          "pc": 2147734416,
+          "word": 2550337382,
+          "line": 52,
+          "assembly": "stb r0, 0xf66(r3)"
+        },
+        {
+          "pc": 2147734420,
+          "word": 2147549192,
+          "line": 53,
+          "assembly": "lwz r0, 8(r1)"
+        },
+        {
+          "pc": 2147734424,
+          "word": 2550337383,
+          "line": 54,
+          "assembly": "stb r0, 0xf67(r3)"
+        },
+        {
+          "pc": 2147734428,
+          "word": 2088444436,
+          "line": 55,
+          "assembly": "add r3, r27, r4"
+        },
+        {
+          "pc": 2147734432,
+          "word": 948174856,
+          "line": 56,
+          "assembly": "addi r4, r4, 8"
+        },
+        {
+          "pc": 2147734436,
+          "word": 2147549192,
+          "line": 57,
+          "assembly": "lwz r0, 8(r1)"
+        },
+        {
+          "pc": 2147734440,
+          "word": 2550337376,
+          "line": 58,
+          "assembly": "stb r0, 0xf60(r3)"
+        },
+        {
+          "pc": 2147734444,
+          "word": 2147549192,
+          "line": 59,
+          "assembly": "lwz r0, 8(r1)"
+        },
+        {
+          "pc": 2147734448,
+          "word": 2550337377,
+          "line": 60,
+          "assembly": "stb r0, 0xf61(r3)"
+        },
+        {
+          "pc": 2147734452,
+          "word": 2147549192,
+          "line": 61,
+          "assembly": "lwz r0, 8(r1)"
+        },
+        {
+          "pc": 2147734456,
+          "word": 2550337378,
+          "line": 62,
+          "assembly": "stb r0, 0xf62(r3)"
+        },
+        {
+          "pc": 2147734460,
+          "word": 2147549192,
+          "line": 63,
+          "assembly": "lwz r0, 8(r1)"
+        },
+        {
+          "pc": 2147734464,
+          "word": 2550337379,
+          "line": 64,
+          "assembly": "stb r0, 0xf63(r3)"
+        },
+        {
+          "pc": 2147734468,
+          "word": 2147549192,
+          "line": 65,
+          "assembly": "lwz r0, 8(r1)"
+        },
+        {
+          "pc": 2147734472,
+          "word": 2550337380,
+          "line": 66,
+          "assembly": "stb r0, 0xf64(r3)"
+        },
+        {
+          "pc": 2147734476,
+          "word": 2147549192,
+          "line": 67,
+          "assembly": "lwz r0, 8(r1)"
+        },
+        {
+          "pc": 2147734480,
+          "word": 2550337381,
+          "line": 68,
+          "assembly": "stb r0, 0xf65(r3)"
+        },
+        {
+          "pc": 2147734484,
+          "word": 2147549192,
+          "line": 69,
+          "assembly": "lwz r0, 8(r1)"
+        },
+        {
+          "pc": 2147734488,
+          "word": 2550337382,
+          "line": 70,
+          "assembly": "stb r0, 0xf66(r3)"
+        },
+        {
+          "pc": 2147734492,
+          "word": 2147549192,
+          "line": 71,
+          "assembly": "lwz r0, 8(r1)"
+        },
+        {
+          "pc": 2147734496,
+          "word": 2550337383,
+          "line": 72,
+          "assembly": "stb r0, 0xf67(r3)"
+        },
+        {
+          "pc": 2147734500,
+          "word": 1107361648,
+          "line": 73,
+          "assembly": "bdnz lbl_8003D354"
+        },
+        {
+          "pc": 2147734504,
+          "word": 1207960276,
+          "line": 74,
+          "assembly": "b lbl_8003D6BC"
+        }
+      ]
+    }
+  ]
+}

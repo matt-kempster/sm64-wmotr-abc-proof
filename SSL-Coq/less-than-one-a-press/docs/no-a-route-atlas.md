@@ -148,6 +148,8 @@ the table link, section anchor, and return link together when a rank changes.
 
 Every verdict must also respect the [CompCert execution-scope boundary](compcert-execution-scope.md): defined in-bounds aliases, known-function retargets, ordinary scheduler/collision/lifecycle behavior, and explicitly modeled calls remain legitimate proof targets; unresolved external effects first need a concrete specification; successful out-of-bounds accesses, invalid-pointer calls, arbitrary code execution, post-undefined-behavior MIPS continuations, DMA, and interrupts are outside the current Clight runs and must be labeled **outside the current execution model**, never “disproved in the retail game.”
 
+The [22 October Daybreak/TAS methodology note](notes/daybreak-tas-methodology.md) distinguishes unconfirmed eligibility for reduced-refusal cybersecurity access from legitimate contained game research, and outlines original-ROM instrumentation, bounded input search and candidate validation. The limitation is the current Clight semantics, not Coq itself. This tooling clarification adds no proof, gameplay witness, route exclusion or estimate change; ACE and invalid-access retail continuations retain the scope verdict above.
+
 The two targets are:
 
 - **Act 3, “Inside the Ancient Pyramid”** — source star index `2`;

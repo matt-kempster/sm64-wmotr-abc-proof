@@ -1,0 +1,214 @@
+{
+  "schema": "teleporter-vc-wad-content-check-v1",
+  "input_archive_name": "Super Mario 64 (Japan) (N64) (Virtual Console).zip",
+  "archive_size": 21096778,
+  "archive_hashes": {
+    "sha1": "ce065623a5dd5b62bdddd1236109543b963f5021",
+    "sha256": "fd72a5ec07d0e92e6345a8792558f72a3d23db2391e3b3201aafdc9bf8d5338d"
+  },
+  "wad_member": "Super Mario 64 (Japan) (N64) (Virtual Console).wad",
+  "wad_size": 21133632,
+  "wad_hashes": {
+    "sha1": "1676e7f7daab9e1b7b1adeca0db76818e2276c16",
+    "sha256": "afc602dc4d130cac162e4a7da967e4d50fb9bcfab7c7406654135a144944c430"
+  },
+  "title_id": "000100014e41414a",
+  "wad_type": 18803,
+  "wad_version": 0,
+  "ticket_declared_common_key_index": 203,
+  "decryption_common_key_index_used": 0,
+  "ticket_key_index_canonical": false,
+  "signature_chain_checked": false,
+  "all_tmd_content_sha1_verified": true,
+  "ticket_hashes": {
+    "sha1": "5b4b922f75e72846cd92e1c46054e1f709c4d798",
+    "sha256": "9198da7feda4ba1ac129130dcc9ce06be58b202dfb7484806a893bc82a08fb3d"
+  },
+  "tmd_hashes": {
+    "sha1": "f9be74e4306a8f9f119c8fec5ce41f8322a32642",
+    "sha256": "aafac77e2af4f8db11ae15784ab3b37a03575b37bd3b17d8b9a5f68722d917e3"
+  },
+  "contents": [
+    {
+      "content_id": 0,
+      "index": 0,
+      "type": 1,
+      "size": 218112,
+      "tmd_sha1_verified": true,
+      "sha1": "b6384eb4ecb6d4a8cded0c43fbcf4bea20a6c25a",
+      "sha256": "dc2ff6a90ee44e51b4f2f04e2433a696a6c1d484d0d5382563015f7fe0ac4c7b",
+      "path": "/mnt/c/Users/tariq/OneDrive/Documents/sm64 - the item-grab proof/reference-sm64-wmotr-abc-proof/build/research/vc-images/000100014e41414a/00000000.app",
+      "dol_sections": [],
+      "embedded_uncompressed_roms": []
+    },
+    {
+      "content_id": 1,
+      "index": 1,
+      "type": 1,
+      "size": 1683264,
+      "tmd_sha1_verified": true,
+      "sha1": "0e59d95268ecdf213807f7126d7c7a24875cfb1b",
+      "sha256": "691beac0386ba835cc1b07c2bba02d039a34566f39dadd0dc11d81ef3efed5b8",
+      "path": "/mnt/c/Users/tariq/OneDrive/Documents/sm64 - the item-grab proof/reference-sm64-wmotr-abc-proof/build/research/vc-images/000100014e41414a/00000001.app",
+      "dol_sections": [
+        {
+          "kind": "text",
+          "index": 0,
+          "file_offset": 256,
+          "address": 2147500032,
+          "size": 9440
+        },
+        {
+          "kind": "text",
+          "index": 1,
+          "file_offset": 9696,
+          "address": 2147512352,
+          "size": 1442240
+        },
+        {
+          "kind": "data",
+          "index": 7,
+          "file_offset": 1451936,
+          "address": 2147509472,
+          "size": 1216
+        },
+        {
+          "kind": "data",
+          "index": 8,
+          "file_offset": 1453152,
+          "address": 2147510688,
+          "size": 1664
+        },
+        {
+          "kind": "data",
+          "index": 9,
+          "file_offset": 1454816,
+          "address": 2148954592,
+          "size": 96
+        },
+        {
+          "kind": "data",
+          "index": 10,
+          "file_offset": 1454912,
+          "address": 2148954688,
+          "size": 32
+        },
+        {
+          "kind": "data",
+          "index": 11,
+          "file_offset": 1454944,
+          "address": 2148954720,
+          "size": 20544
+        },
+        {
+          "kind": "data",
+          "index": 12,
+          "file_offset": 1475488,
+          "address": 2148975264,
+          "size": 200768
+        },
+        {
+          "kind": "data",
+          "index": 13,
+          "file_offset": 1676256,
+          "address": 2149951872,
+          "size": 2336
+        },
+        {
+          "kind": "data",
+          "index": 14,
+          "file_offset": 1678592,
+          "address": 2149957632,
+          "size": 4672
+        }
+      ],
+      "embedded_uncompressed_roms": []
+    },
+    {
+      "content_id": 2,
+      "index": 2,
+      "type": 32769,
+      "size": 4559887,
+      "tmd_sha1_verified": true,
+      "sha1": "f5dd17b3200dd4d6be2b25b577c99e5f941b7324",
+      "sha256": "c030993bcf61dd2726cfc09cae69a004827464b51d6bd1e295e62e45f212622d",
+      "path": "/mnt/c/Users/tariq/OneDrive/Documents/sm64 - the item-grab proof/reference-sm64-wmotr-abc-proof/build/research/vc-images/000100014e41414a/00000002.app",
+      "dol_sections": [],
+      "embedded_uncompressed_roms": []
+    },
+    {
+      "content_id": 3,
+      "index": 3,
+      "type": 32769,
+      "size": 2669044,
+      "tmd_sha1_verified": true,
+      "sha1": "32b339cbbb507d502779259a7866995d030b1d88",
+      "sha256": "411781fd519fc10cf16197a4f93c6c29d14a8862d17e5a1beacb0272dec3b0f8",
+      "path": "/mnt/c/Users/tariq/OneDrive/Documents/sm64 - the item-grab proof/reference-sm64-wmotr-abc-proof/build/research/vc-images/000100014e41414a/00000003.app",
+      "dol_sections": [],
+      "embedded_uncompressed_roms": []
+    },
+    {
+      "content_id": 4,
+      "index": 4,
+      "type": 32769,
+      "size": 2156800,
+      "tmd_sha1_verified": true,
+      "sha1": "3644384b0cfc920ef620120e8721bf53c85bda27",
+      "sha256": "9ff4609878d5eb752ef75a5bfa74ed72628b99871ce58a7172a1c9fb3277859f",
+      "path": "/mnt/c/Users/tariq/OneDrive/Documents/sm64 - the item-grab proof/reference-sm64-wmotr-abc-proof/build/research/vc-images/000100014e41414a/00000004.app",
+      "dol_sections": [],
+      "embedded_uncompressed_roms": []
+    },
+    {
+      "content_id": 5,
+      "index": 5,
+      "type": 1,
+      "size": 9360832,
+      "tmd_sha1_verified": true,
+      "sha1": "1254bef6cca071b2109d4af9e58cfa9ccaab2037",
+      "sha256": "d33ea70bff1928d290afa60b4daf675d06c9f5dd5e9903c34f7a86101fbe9a46",
+      "path": "/mnt/c/Users/tariq/OneDrive/Documents/sm64 - the item-grab proof/reference-sm64-wmotr-abc-proof/build/research/vc-images/000100014e41414a/00000005.app",
+      "dol_sections": [],
+      "embedded_uncompressed_roms": [
+        {
+          "offset": 928096,
+          "length": 8388608,
+          "name": "SUPERMARIO64",
+          "country_byte": 74,
+          "revision_byte": 3,
+          "sha1": "3f319ae697533a255a1003d09202379d78d5a2e0",
+          "sha256": "f8807b5e28f1b1a31c5d3675d23ece73f949ccb553dcbb07972666a1e76adfa2",
+          "path": "/mnt/c/Users/tariq/OneDrive/Documents/sm64 - the item-grab proof/reference-sm64-wmotr-abc-proof/build/research/vc-images/000100014e41414a/rom-content-5-offset-928096.z64"
+        }
+      ]
+    },
+    {
+      "content_id": 6,
+      "index": 6,
+      "type": 1,
+      "size": 263424,
+      "tmd_sha1_verified": true,
+      "sha1": "fb7825a1a661115d67be6c6b760076b90868a985",
+      "sha256": "319fce7412bbdd5e6c9efc661d1f0e723aa18cc158de37af5b2f692dbbe78081",
+      "path": "/mnt/c/Users/tariq/OneDrive/Documents/sm64 - the item-grab proof/reference-sm64-wmotr-abc-proof/build/research/vc-images/000100014e41414a/00000006.app",
+      "dol_sections": [
+        {
+          "kind": "text",
+          "index": 0,
+          "file_offset": 256,
+          "address": 2147496960,
+          "size": 1024
+        },
+        {
+          "kind": "data",
+          "index": 7,
+          "file_offset": 1280,
+          "address": 2167603200,
+          "size": 262144
+        }
+      ],
+      "embedded_uncompressed_roms": []
+    }
+  ]
+}
