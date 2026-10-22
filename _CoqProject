@@ -294,6 +294,8 @@ proofs/WMotRRequiresA/Unwired/GravitySlice.v
 proofs/WMotRRequiresA/FloorList.v
 proofs/WMotRRequiresA/FloorHeight.v
 proofs/WMotRRequiresA/FloorBound.v
+proofs/WMotRRequiresA/TerrainBound.v
+proofs/WMotRRequiresA/TerrainRun.v
 proofs/WMotRRequiresA/FloorExec.v
 proofs/WMotRRequiresA/CeilList.v
 proofs/WMotRRequiresA/CeilExec.v

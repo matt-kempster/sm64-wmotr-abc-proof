@@ -57,7 +57,7 @@ From SM64.Generated Require mario mario_actions_stationary
   save_file buffers object_helpers area
   libultra_osEepromLongWrite libultra_osEepromWrite libultra_osSiCreateAccessQueue
   libultra_osCreateMesgQueue libultra_osContInit libultra_osInitialize
-  behavior_data spawn_object surface_load.
+  behavior_data spawn_object surface_load macro_special_objects wmotr_level_data.
 From SM64.Proofs Require Import SymbolicLinking CensusV2 RealFrameLinked
   EngineV2Consumer RestSurface.
 
@@ -137,7 +137,14 @@ Fixpoint link_chain (p : Clight.program) (l : list Clight.program)
    no bytes and no find_floor / find_ceil / find_wall_collisions from boot
    had an execution) and of sSurfacePool / sSurfaceNodePool, plus the real
    loaders (alloc_surface_pools, load_area_terrain, clear_dynamic_surfaces,
-   load_object_collision_model). *)
+   load_object_collision_model).
+   macro_special_objects (game/macro_special_objects.c) and wmotr_level_data
+   (pipeline/tu/wmotr_level_data.c: WMotR's terrain, macro list and the two
+   object meshes, the vendor .inc.c files verbatim) are the 33rd and 34th
+   (2026-10-22): load_area_terrain calls spawn_special_objects /
+   spawn_macro_objects, and reads the level's collision data, which must be
+   in memory.  behavior_data's two mesh declarations are completed to the
+   definer's (TRUST 2.4). *)
 Definition tu_rest : list Clight.program :=
   [ mario_actions_stationary.prog;
     mario_actions_moving.prog;
@@ -169,7 +176,9 @@ Definition tu_rest : list Clight.program :=
     libultra_osInitialize.prog;
     behavior_data.prog;
     spawn_object.prog;
-    surface_load.prog ].
+    surface_load.prog;
+    macro_special_objects.prog;
+    wmotr_level_data.prog ].
 
 Definition linked12 (lp : Clight.program) : Prop :=
   link_chain mario.prog tu_rest = Some lp.
@@ -316,6 +325,14 @@ Section Linked12LO.
   Lemma linked12_LO_surface_load : linkorder surface_load.prog lp.
   Proof.
     exact (link_chain_linkorder_in _ _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_eq _ _))))))))))))))))))))))))))))))) H12).
+  Qed.
+  Lemma linked12_LO_macro_special_objects : linkorder macro_special_objects.prog lp.
+  Proof.
+    exact (link_chain_linkorder_in _ _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_eq _ _)))))))))))))))))))))))))))))))) H12).
+  Qed.
+  Lemma linked12_LO_wmotr_level_data : linkorder wmotr_level_data.prog lp.
+  Proof.
+    exact (link_chain_linkorder_in _ _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_eq _ _))))))))))))))))))))))))))))))))) H12).
   Qed.
   Lemma linked12_LO_behavior_data : linkorder behavior_data.prog lp.
   Proof.
@@ -581,6 +598,12 @@ Proof. vm_compute. reflexivity. Qed.
 Lemma no_internal_surface_load :
   no_internal_ids surface_load.prog truly_ext_pin_ids = true.
 Proof. vm_compute. reflexivity. Qed.
+Lemma no_internal_macro_special_objects :
+  no_internal_ids macro_special_objects.prog truly_ext_pin_ids = true.
+Proof. vm_compute. reflexivity. Qed.
+Lemma no_internal_wmotr_level_data :
+  no_internal_ids wmotr_level_data.prog truly_ext_pin_ids = true.
+Proof. vm_compute. reflexivity. Qed.
 
 (* resolves_lp -> defmap entry (the genv->defmap bridge, spike-style) *)
 Lemma resolves_defmap :
@@ -616,7 +639,7 @@ Proof.
   destruct (link_chain_internal_origin _ _ _ _ _ H12 Hres)
     as [Hbase | (q & Hq & Hqdm)].
   - exact (no_internal_ids_correct _ _ _ _ no_internal_mario Hmem Hbase).
-  - destruct Hq as [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | []]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]].
+  - destruct Hq as [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | []]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]].
     + exact (no_internal_ids_correct _ _ _ _ no_internal_sta Hmem Hqdm).
     + exact (no_internal_ids_correct _ _ _ _ no_internal_mov Hmem Hqdm).
     + exact (no_internal_ids_correct _ _ _ _ no_internal_air Hmem Hqdm).
@@ -648,6 +671,8 @@ Proof.
     + exact (no_internal_ids_correct _ _ _ _ no_internal_behavior_data Hmem Hqdm).
     + exact (no_internal_ids_correct _ _ _ _ no_internal_spawn_object Hmem Hqdm).
     + exact (no_internal_ids_correct _ _ _ _ no_internal_surface_load Hmem Hqdm).
+    + exact (no_internal_ids_correct _ _ _ _ no_internal_macro_special_objects Hmem Hqdm).
+    + exact (no_internal_ids_correct _ _ _ _ no_internal_wmotr_level_data Hmem Hqdm).
 Qed.
 
 (* ---------------------------------------------------------------------- *)
