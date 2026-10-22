@@ -196,7 +196,10 @@ generated/behavior_data.v: $(SM64)/data/behavior_data.c pipeline/clightgen.sh pi
 
 # The behavior-script completion in pipeline/clightgen.sh (TRUST 2.4) reads the
 # script lengths off generated/behavior_data.v, so every other TU depends on it.
-$(filter-out generated/behavior_data.v generated/toy.v $(ULTRA_GENERATED),$(GENERATED)): generated/behavior_data.v
+$(filter-out generated/behavior_data.v generated/wmotr_level_data.v generated/toy.v $(ULTRA_GENERATED),$(GENERATED)): generated/behavior_data.v
+# The level-data completion reads the mesh lengths off generated/wmotr_level_data.v
+# (it holds no bhv* reference, so it is generated first).
+$(filter-out generated/wmotr_level_data.v generated/toy.v $(ULTRA_GENERATED),$(GENERATED)): generated/wmotr_level_data.v
 
 # The object layer around the behaviors (GOAL 2 object census: what WMotR's
 # objects can spawn, BehaviorScripts.v).  object_helpers.c has a `1.0l`

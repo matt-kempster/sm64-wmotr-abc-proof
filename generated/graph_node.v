@@ -506,49 +506,49 @@ Definition _t'9 : ident := 136%positive.
 
 Definition v_gCurGraphNodeRoot := {|
   gvar_info := (tptr (Tstruct _GraphNodeRoot noattr));
-  gvar_init := nil;
+  gvar_init := (Init_space 4 :: nil);
   gvar_readonly := false;
   gvar_volatile := false
 |}.
 
 Definition v_gCurGraphNodeMasterList := {|
   gvar_info := (tptr (Tstruct _GraphNodeMasterList noattr));
-  gvar_init := nil;
+  gvar_init := (Init_space 4 :: nil);
   gvar_readonly := false;
   gvar_volatile := false
 |}.
 
 Definition v_gCurGraphNodeCamFrustum := {|
   gvar_info := (tptr (Tstruct _GraphNodePerspective noattr));
-  gvar_init := nil;
+  gvar_init := (Init_space 4 :: nil);
   gvar_readonly := false;
   gvar_volatile := false
 |}.
 
 Definition v_gCurGraphNodeCamera := {|
   gvar_info := (tptr (Tstruct _GraphNodeCamera noattr));
-  gvar_init := nil;
+  gvar_init := (Init_space 4 :: nil);
   gvar_readonly := false;
   gvar_volatile := false
 |}.
 
 Definition v_gCurGraphNodeObject := {|
   gvar_info := (tptr (Tstruct _GraphNodeObject noattr));
-  gvar_init := nil;
+  gvar_init := (Init_space 4 :: nil);
   gvar_readonly := false;
   gvar_volatile := false
 |}.
 
 Definition v_gAreaUpdateCounter := {|
   gvar_info := tushort;
-  gvar_init := nil;
+  gvar_init := (Init_space 2 :: nil);
   gvar_readonly := false;
   gvar_volatile := false
 |}.
 
 Definition v_gObjParentGraphNode := {|
   gvar_info := (Tstruct _GraphNode noattr);
-  gvar_init := nil;
+  gvar_init := (Init_space 20 :: nil);
   gvar_readonly := false;
   gvar_volatile := false
 |}.

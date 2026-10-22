@@ -285,7 +285,7 @@ Definition _t'9 : ident := 136%positive.
 
 Definition v_gObjParentGraphNode := {|
   gvar_info := (Tstruct _GraphNode noattr);
-  gvar_init := nil;
+  gvar_init := (Init_space 20 :: nil);
   gvar_readonly := false;
   gvar_volatile := false
 |}.

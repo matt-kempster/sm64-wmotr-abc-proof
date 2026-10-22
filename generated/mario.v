@@ -713,14 +713,14 @@ Definition v___stringlit_1 := {|
 
 Definition v_gPlayerCameraState := {|
   gvar_info := (tarray (Tstruct _PlayerCameraState noattr) 2);
-  gvar_init := nil;
+  gvar_init := (Init_space 72 :: nil);
   gvar_readonly := false;
   gvar_volatile := false
 |}.
 
 Definition v_gCameraMovementFlags := {|
   gvar_info := tshort;
-  gvar_init := nil;
+  gvar_init := (Init_space 2 :: nil);
   gvar_readonly := false;
   gvar_volatile := false
 |}.
@@ -762,7 +762,7 @@ Definition v_gCurrLevelNum := {|
 
 Definition v_gGlobalSoundSource := {|
   gvar_info := (tarray tfloat 3);
-  gvar_init := nil;
+  gvar_init := (Init_space 12 :: nil);
   gvar_readonly := false;
   gvar_volatile := false
 |}.
@@ -825,21 +825,21 @@ Definition v_gHudDisplay := {|
 
 Definition v_gDebugLevelSelect := {|
   gvar_info := tschar;
-  gvar_init := nil;
+  gvar_init := (Init_space 1 :: nil);
   gvar_readonly := false;
   gvar_volatile := false
 |}.
 
 Definition v_gShowDebugText := {|
   gvar_info := tschar;
-  gvar_init := nil;
+  gvar_init := (Init_space 1 :: nil);
   gvar_readonly := false;
   gvar_volatile := false
 |}.
 
 Definition v_gBodyStates := {|
   gvar_info := (tarray (Tstruct _MarioBodyState noattr) 2);
-  gvar_init := nil;
+  gvar_init := (Init_space 80 :: nil);
   gvar_readonly := false;
   gvar_volatile := false
 |}.

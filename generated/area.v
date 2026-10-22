@@ -569,7 +569,7 @@ Definition v___stringlit_1 := {|
 
 Definition v_gObjParentGraphNode := {|
   gvar_info := (Tstruct _GraphNode noattr);
-  gvar_init := nil;
+  gvar_init := (Init_space 20 :: nil);
   gvar_readonly := false;
   gvar_volatile := false
 |}.
@@ -744,7 +744,7 @@ Definition v_gMarioObject := {|
 
 Definition v_gAreaUpdateCounter := {|
   gvar_info := tushort;
-  gvar_init := nil;
+  gvar_init := (Init_space 2 :: nil);
   gvar_readonly := false;
   gvar_volatile := false
 |}.

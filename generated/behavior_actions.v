@@ -2081,7 +2081,7 @@ Definition v_cyan_fish_seg6_anims_0600E264 := {|
 
 Definition v_gPlayerCameraState := {|
   gvar_info := (tarray (Tstruct _PlayerCameraState noattr) 2);
-  gvar_init := nil;
+  gvar_init := (Init_space 72 :: nil);
   gvar_readonly := false;
   gvar_volatile := false
 |}.
@@ -2095,7 +2095,7 @@ Definition v_gObjCutsceneDone := {|
 
 Definition v_gCamera := {|
   gvar_info := (tptr (Tstruct _Camera noattr));
-  gvar_init := nil;
+  gvar_init := (Init_space 4 :: nil);
   gvar_readonly := false;
   gvar_volatile := false
 |}.
@@ -2137,7 +2137,7 @@ Definition v_gCurrLevelNum := {|
 
 Definition v_gGlobalSoundSource := {|
   gvar_info := (tarray tfloat 3);
-  gvar_init := nil;
+  gvar_init := (Init_space 12 :: nil);
   gvar_readonly := false;
   gvar_volatile := false
 |}.
@@ -2949,7 +2949,7 @@ Definition v_gGlobalTimer := {|
 
 Definition v_gDialogResponse := {|
   gvar_info := tint;
-  gvar_init := nil;
+  gvar_init := (Init_space 4 :: nil);
   gvar_readonly := false;
   gvar_volatile := false
 |}.
@@ -3201,14 +3201,14 @@ Definition v_gMarioOnMerryGoRound := {|
 
 Definition v_gCurGraphNodeCamera := {|
   gvar_info := (tptr (Tstruct _GraphNodeCamera noattr));
-  gvar_init := nil;
+  gvar_init := (Init_space 4 :: nil);
   gvar_readonly := false;
   gvar_volatile := false
 |}.
 
 Definition v_gCurGraphNodeObject := {|
   gvar_info := (tptr (Tstruct _GraphNodeObject noattr));
-  gvar_init := nil;
+  gvar_init := (Init_space 4 :: nil);
   gvar_readonly := false;
   gvar_volatile := false
 |}.

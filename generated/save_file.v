@@ -375,7 +375,7 @@ Definition v_gCurrDemoInput := {|
 
 Definition v_gSIEventMesgQueue := {|
   gvar_info := (Tstruct _OSMesgQueue_s noattr);
-  gvar_init := nil;
+  gvar_init := (Init_space 24 :: nil);
   gvar_readonly := false;
   gvar_volatile := false
 |}.

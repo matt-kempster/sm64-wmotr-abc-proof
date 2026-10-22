@@ -147,6 +147,17 @@ done
 # 4. HOOKED IN (structure) -----------------------------------------------
 line; echo "[4/4] HOOKED IN (firewall + no orphans)"
 if python3 pipeline/check_unwired.py | sed 's/^/  /'; then :; else fail=1; fi
+# no size-0 global that reached code touches (tools/size0_globals.py, 2026-10-22):
+# a global every linked TU only declares has a size-0 block in Genv.init_mem, so
+# every load / store through it has no execution and the capstones hold
+# vacuously on that code.
+if s0=$(python3 tools/size0_globals.py); then
+  echo "  OK -- $(echo "$s0" | head -1)"
+else
+  echo "  FAIL -- a reached global has a size-0 block (give it storage, TRUST 2.4):"
+  echo "$s0" | grep -A1 '^(a)' | sed 's/^/    /'
+  fail=1
+fi
 
 # INFO: residual-hypothesis surface (assumed, not proved -- the discharge targets)
 line; echo "[info] RESIDUAL HYPOTHESES still ASSUMED (discharge these; don't pile onto them):"

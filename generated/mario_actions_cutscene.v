@@ -824,28 +824,28 @@ Definition _t'9 : ident := 136%positive.
 
 Definition v_gAreaUpdateCounter := {|
   gvar_info := tushort;
-  gvar_init := nil;
+  gvar_init := (Init_space 2 :: nil);
   gvar_readonly := false;
   gvar_volatile := false
 |}.
 
 Definition v_gCameraMovementFlags := {|
   gvar_info := tshort;
-  gvar_init := nil;
+  gvar_init := (Init_space 2 :: nil);
   gvar_readonly := false;
   gvar_volatile := false
 |}.
 
 Definition v_gCamera := {|
   gvar_info := (tptr (Tstruct _Camera noattr));
-  gvar_init := nil;
+  gvar_init := (Init_space 4 :: nil);
   gvar_readonly := false;
   gvar_volatile := false
 |}.
 
 Definition v_gCutsceneFocus := {|
   gvar_info := (tptr (Tstruct _Object noattr));
-  gvar_init := nil;
+  gvar_init := (Init_space 4 :: nil);
   gvar_readonly := false;
   gvar_volatile := false
 |}.
@@ -880,7 +880,7 @@ Definition v_gCurrLevelNum := {|
 
 Definition v_gGlobalSoundSource := {|
   gvar_info := (tarray tfloat 3);
-  gvar_init := nil;
+  gvar_init := (Init_space 12 :: nil);
   gvar_readonly := false;
   gvar_volatile := false
 |}.
@@ -964,7 +964,7 @@ Definition v_gPlayer1Controller := {|
 
 Definition v_gDialogResponse := {|
   gvar_info := tint;
-  gvar_init := nil;
+  gvar_init := (Init_space 4 :: nil);
   gvar_readonly := false;
   gvar_volatile := false
 |}.
@@ -999,7 +999,7 @@ Definition v_gNeverEnteredCastle := {|
 
 Definition v_gPaintingMarioYEntry := {|
   gvar_info := tfloat;
-  gvar_init := nil;
+  gvar_init := (Init_space 4 :: nil);
   gvar_readonly := false;
   gvar_volatile := false
 |}.
