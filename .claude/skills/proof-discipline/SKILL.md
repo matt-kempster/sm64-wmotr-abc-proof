@@ -153,9 +153,10 @@ all in `Unwired/`, and the theorem moved nowhere. See
     −75 only with the clamp fact), turned into the equation by `AirMatch.aclass_air_ex`. Do
     not relax `S_sk_bounced` to a ≤ bound: the signed-energy credit makes that false. ffw's floor refresh still holds for
     `fro_st` (air_entry + ground pound + rollouts, and butt-slide air and slide kick at state 0;
-    TRUST 0.6); the ff / ahw rows still read it. Phantom-∀ caveat (pre-existing): the
-    open rows claim FRO after let_go_of_ledge -> SOFT_BONK, true in the game (find_floor's +78
-    bound, y drops <= 100) but not derivable from fworld. Walk files: one walk each (KbSb/KbBkb/KbFkb/KbDv),
+    TRUST 0.6); the ff / ahw rows still read it. The let_go_of_ledge -> SOFT_BONK
+    stale floor is REPAIRED (2026-10-22, TRUST (l)): `fresh` carries the slack `action = SB ∨
+    fh = -11000 ∨ fh <= y + 140`; use `fresh_fro` / `fresh_ret_ns`, and SB's FALSE comes from
+    `SbRet0.kb_kret0`. Walk files: one walk each (KbSb/KbBkb/KbFkb/KbDv),
     `WithGe.with_ge` not `match ge12`, `vm_cast_no_check`, never `eassumption` near a walk. Dive and rollouts read `gAudioRandom`; audio/data.c (its only
     definer) is linked as the 18th TU so those paths have executions. Squish: WMotR's dynamic
     surfaces never come within 150 of a floor/ceiling (`tools/goal2_squish_scan.py`, min gap 276),
@@ -181,7 +182,14 @@ all in `Unwired/`, and the theorem moved nowhere. See
     other 10 cases. A new labeled open premise, `Hceil : PoleXc.find_ceil_height`, is next to
     discharge (27 → 28). Pole kit: `PoleRun` (usedObj region RU, `pk_ok`), `PoleClass`
     (classifier), `PoleSound`, and `PoleKeep` (`fkp_ok`, `no_reg`, `fkp_frame_except`).
-    Next: HOLDING_POLE / CLIMBING_POLE (anim data), then the ledge cases and IN_CANNON.
+    LEDGE_GRAB / LEDGE_CLIMB_DOWN are PROVED (2026-10-22, `LedgeRow`, TRUST (l));
+    `Hauto_rest : LedgeRow.aut_case_rest_ledge` holds 8. Ledge kit: `LedgeRun` (xcL,
+    `ufL` with kL), `LedgeClass` (ledge_ok / letgo_ok and their soundness).
+    BLOCKED: CLIMB_SLOW_1/2, CLIMB_FAST and IN_CANNON store through `m->statusForCamera`
+    = the size-0 `gPlayerCameraState` (camera.c unlinked). That same store is in every
+    frame's update_mario_info_for_cam, so the frame capstones are VACUOUS for the real game
+    until camera.c's storage is linked (TRUST (l)). Fix that first.
+    Next: HOLDING_POLE / CLIMBING_POLE (anim data).
     The FELL_OFF → FREEFALL path sets y := base and does not refresh floorHeight. `fresh`
     carries only fh <= y_entry + 241, while y_entry may be up to about base + 16, so it is
     not enough. That path needs a carried pole fact (y = oPosY + polePos, within float

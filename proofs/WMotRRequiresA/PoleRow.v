@@ -361,7 +361,7 @@ Proof.
   assert (IR0 : InRange c0) by exact (proj1 Hbud).
   destruct (Hfin m gp GPO MCg FD E t m' vres c0 EO PC EV' ltac:(exact RC) IR0)
     as (E' & gs & X & MM & FK & NR & RT & c2 & RC2 & RM2 & Hout & Hv & Hk).
-  split; [| change (e_blk E RM) with bm in RT; exact (fresh_ret bm m m' vres Hfr RT)].
+  split; [| change (e_blk E RM) with bm in RT; exact (fresh_ret_ns bm m m' vres acn Hact ltac:(destruct Hpa as [E0 | [E0 | []]]; rewrite <- E0; reflexivity) Hfr RT)].
   split; [| exists c2; split; [exact RC2 | apply Relation_Operators.rt_step; exact RM2]].
   (* ---- the walk's outcome, in terms of the blocks ---- *)
   assert (XB : forall r, Plt r NBP -> e_blk E' r = e_blk E r /\ e_base E' r = e_base E r)

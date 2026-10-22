@@ -214,11 +214,14 @@ without pressing A".*
   entered fresh because its label is airborne, `air_case_air`), and every proved case's
   return: FALSE, or y and floorHeight untouched (`RetOk.ret_ok`, checked on each walk's
   outcomes; `RetOk.ret_sound`), so the loop's TRUE path keeps the floor fresh. **Caveat
-  (pre-existing, phantom ∀):** after `let_go_of_ledge` (→ SOFT_BONK, y lowered by ≤ 100 with
-  floorHeight not refreshed) the open rows claim the floor is fresh; that is true in the game
-  (find_floor's floorHeight was ≤ y_old + 78) but not derivable from the frame world, which
-  carries no floor fact at a ledge grab. ffw's own `fro_st` clause makes the same claim and is
-  unchanged (still read by the freefall and air-hit-wall rows). No assumption added.
+  (pre-existing, phantom ∀; REPAIRED 2026-10-22, audit (l)):** after `let_go_of_ledge`
+  (→ SOFT_BONK, y lowered by ≤ 100 with floorHeight not refreshed) the open rows claimed the
+  floor is fresh, which `fresh`'s `fh ≤ y + 241` alone does not give. `FfWorld.fresh` now also
+  carries the slack `action = SOFT_BONK ∨ fh = −11000 ∨ fh ≤ y + 140`, which the let-go keeps
+  (y drops by ≤ 101 into SOFT_BONK, `LedgeRun.letgo_fresh`), and SOFT_BONK's handler returns
+  FALSE (`SbRet0.kb_kret0`, a rewalk of the real act_soft_bonk), so the loop never re-dispatches
+  on the stale floor. ffw's own `fro_st` clause is unchanged (still read by the freefall and
+  air-hit-wall rows). No assumption added.
   **Automatic-dispatcher audit (2026-10-21; pole paths now execute).** Three statement bugs
   were found in what `Hseg_call_na` claimed for `mario_execute_automatic_action`, and all three
   are repaired. No assumption was added; the row is still open.
@@ -293,6 +296,32 @@ without pressing A".*
     `PoleClass.pole_keep` on every POLE_ACTS3 outcome.
   - The walk merges `set_pole_position`'s branches, so facts the merge loses are re-derived
     per outcome by `PoleClass.pole_ok` (sound by `PoleSound.pole_sound`).
+  (l) **LEDGE_GRAB / LEDGE_CLIMB_DOWN proved (2026-10-22, `LedgeRow.ledge_row`,
+  `aut_case_rest_pole_ledge`).** `Hauto_rest` is now `LedgeRow.aut_case_rest_ledge`: 8 cases
+  (the four pole cases needing anim data, LEDGE_CLIMB_SLOW_1 / 2, LEDGE_CLIMB_FAST, IN_CANNON).
+  Still 28 hypotheses; the new one is strictly narrower. The walks (`LedgeGrab` / `LedgeDown`)
+  run the real handlers with find_floor's height fact (PoleXc.c_ff2), and every outcome passes
+  `LedgeClass.ledge_ok` (a RangedMove: the switch into a climb or SOFT_BONK keeps y, the snap
+  `stop_and_set_height_to_floor` puts y on floorHeight, the let-go lowers y by ≤ 101 or onto a
+  floor behind Mario) and either `RetOk.ret_ok` or `LedgeClass.letgo_ok`.
+  - **Statement strengthened (true in the game, no new trust):** `FfWorld.fresh` gains the slack
+    clause above. The open rows that produce or keep `fresh` (update_mario_inputs' refresh and
+    the other open dispatcher rows) now claim a little more: right after find_floor
+    (floorHeight ≤ y + 78, `ff_height_bound`) the slack holds; SOFT_BONK returns FALSE without
+    A (`SbRet0`). KbRow takes the SB case's FALSE return as a section premise (`Hsb`), discharged
+    by the rewalk `SbRet0Walk.sb0check12`.
+  - **FINDING (vacuity, not repaired here): `gPlayerCameraState` is a size-0 block in the
+    link.** It is defined in camera.c, which is not linked; mario_misc.v's declaration has
+    `gvar_init nil`. `init_mario_from_save_file` sets `m->statusForCamera =
+    &gPlayerCameraState[0]`, and `update_mario_info_for_cam` stores through it on every
+    `execute_mario_action` frame. A store into a size-0 block has no CompCert execution, so no
+    frame from real boot memory executes, and the frame rows' `eval_funcall` premise can never
+    hold: the GOAL-2 capstone (and any capstone resting on executed frames) is vacuous for the
+    real game until camera.c's storage is linked (or a definer TU added). The same store blocks
+    LEDGE_CLIMB_SLOW_1 / 2 and LEDGE_CLIMB_FAST (`update_ledge_climb_camera`) and IN_CANNON's
+    state 0. The frame world carries no `statusForCamera` fact, so those cases cannot be walked
+    yet. IN_CANNON is reachable in WMotR without A (2 cannons; `interact_cannon_base`).
+  - `PoleXc.v` uses `hit16_transfer` (Hit_at is now ffl_hit16, after the terrain merge).
   **Slide kick at state ≠ 0 is proved (2026-10-21; `sk1_row` and `HeightFrame.Hsk1` removed,
   28 → 27 hypotheses).** The same walk (`SkW.skcheck12`) now classifies every outcome at any
   state (`FfClass.sk_ok` is `ff_okE` from the ticked cells; it used to accept the state ≠ 0

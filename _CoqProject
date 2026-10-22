@@ -326,6 +326,8 @@ proofs/WMotRRequiresA/AhwRun.v
 proofs/WMotRRequiresA/WithGe.v
 proofs/WMotRRequiresA/KbRun.v
 proofs/WMotRRequiresA/KbSb.v
+proofs/WMotRRequiresA/SbRet0.v
+proofs/WMotRRequiresA/SbRet0Walk.v
 proofs/WMotRRequiresA/KbBkb.v
 proofs/WMotRRequiresA/KbFkb.v
 proofs/WMotRRequiresA/KbDv.v
@@ -352,6 +354,11 @@ proofs/WMotRRequiresA/PoleRun.v
 proofs/WMotRRequiresA/PoleSlow.v
 proofs/WMotRRequiresA/PoleFast.v
 proofs/WMotRRequiresA/PoleRow.v
+proofs/WMotRRequiresA/LedgeClass.v
+proofs/WMotRRequiresA/LedgeRun.v
+proofs/WMotRRequiresA/LedgeGrab.v
+proofs/WMotRRequiresA/LedgeDown.v
+proofs/WMotRRequiresA/LedgeRow.v
 proofs/Interp/MemBuild.v
 
 # --- GOAL 1 positive control: with A pressed, a real frame reaches flying ---
