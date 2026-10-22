@@ -156,13 +156,12 @@ all in `Unwired/`, and the theorem moved nowhere. See
     - 5 ledge: LEDGE_GRAB, CLIMB_SLOW_1/2, CLIMB_DOWN, CLIMB_FAST;
     - IN_CANNON.
     Dead: the hang actions, GRABBED, TORNADO_TWIRLING.
-    Next, the pole walks. They need:
-    - a usedObj region in the walker (SymExec2 allows two regions in one block if their
-      ranges are disjoint; `used_apart` gives that);
-    - the `oMarioPolePos` cells;
-    - a `set_pole_position` summary;
-    - an outcome classifier for pole moves (`S_attach` pole clause, `h <= top + POLE_UP`);
-    - `FfKeepCheck` extended to keep `used_ok` (today it rejects `used_acts`).
+    GRAB_POLE_SLOW/FAST are PROVED (2026-10-22, `PoleRow.aut_case_rows_pole`, TRUST (k)).
+    `Hauto_case` is now a lemma, and `HeightFrame.Hauto_rest : aut_case_rest_pole` holds the
+    other 10 cases. A new labeled open premise, `Hceil : PoleXc.find_ceil_height`, is next to
+    discharge (27 → 28). Pole kit: `PoleRun` (usedObj region RU, `pk_ok`), `PoleClass`
+    (classifier), `PoleSound`, and `PoleKeep` (`fkp_ok`, `no_reg`, `fkp_frame_except`).
+    Next: HOLDING_POLE / CLIMBING_POLE (anim data), then the ledge cases and IN_CANNON.
     The FELL_OFF → FREEFALL path sets y := base and does not refresh floorHeight. `fresh`
     carries only fh <= y_entry + 241, while y_entry may be up to about base + 16, so it is
     not enough. That path needs a carried pole fact (y = oPosY + polePos, within float

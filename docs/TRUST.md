@@ -276,6 +276,21 @@ without pressing A".*
   values (ROM data DMA'd into `gMarioAnimsBuf`; not in `generated/`) and a model of the DMA
   buffer's contents. So the top-of-pole cases still need that data linked, and POLE_UP = 160
   stays the hand-read constant of (f).
+  (k) **GRAB_POLE_SLOW / GRAB_POLE_FAST proved (2026-10-22, `PoleRow.pole_row`,
+  `aut_case_rows_pole`).** `Hauto_case` is now a lemma. What stays assumed is
+  `HeightFrame.Hauto_rest : PoleRow.aut_case_rest_pole`: the 10 other live cases
+  (HOLDING_POLE, CLIMBING_POLE, TOP_OF_POLE_TRANSITION and TOP_OF_POLE need the anim data;
+  plus the 5 ledge cases and IN_CANNON). The walks (`PoleSlow`/`PoleFast`) run the real
+  handlers with usedObj as its own region (`PoleRun.RU`) in Mario's object block.
+  - **NEW LABELED OPEN PREMISE `HeightFrame.Hceil : PoleXc.find_ceil_height`:** the real
+    `find_ceil` returns 20000 or a height not below (int)y − 78. It is used by
+    `set_pole_position`'s ceiling check and can be discharged like `FloorHeight`'s find_floor.
+    27 → 28 hypotheses; `Hauto_rest` is strictly narrower than `Hauto_case`.
+  - `WMotRWorld.used_ok` now also carries `pole_pos_ok`: usedObj's slot fits, and
+    `oMarioPolePos` is a finite float ≥ −1000. The grabs' outcomes keep it: the walk checks
+    `PoleClass.pole_keep` on every POLE_ACTS3 outcome.
+  - The walk merges `set_pole_position`'s branches, so facts the merge loses are re-derived
+    per outcome by `PoleClass.pole_ok` (sound by `PoleSound.pole_sound`).
   **Slide kick at state ≠ 0 is proved (2026-10-21; `sk1_row` and `HeightFrame.Hsk1` removed,
   28 → 27 hypotheses).** The same walk (`SkW.skcheck12`) now classifies every outcome at any
   state (`FfClass.sk_ok` is `ff_okE` from the ticked cells; it used to accept the state ≠ 0

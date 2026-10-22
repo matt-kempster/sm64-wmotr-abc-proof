@@ -42,6 +42,11 @@ Definition fkp_ok (g : gst) : bool :=
   && forallb (fun r => existsb (Pos.eqb r) clok) (g_cl g).
 End FKP.
 
+(* the walk wrote no cell of region rx *)
+Definition no_reg (rx : positive) (g : gst) : bool :=
+  forallb (fun e : positive * Z * memory_chunk * sval => let '(r, _, _, _) := e in negb (Pos.eqb r rx))
+    (g_sm g).
+
 Section FKPS.
 Variables (ge : genv) (nbase : positive) (R0 : list (positive * Z)) (gtab : list (ident * positive))
   (kv : list (positive * Z * memory_chunk * sval)) (m0 : mem)
@@ -183,5 +188,37 @@ Proof using gp_old MM HUS OK.
       destruct (LOC r Hr') as (_ & _ & _ & Nold & _). intros Eq. rewrite <- Eq in Hb. exact (Nold Hb).
   - intros r _. unfold rng_disj. destruct (r0_size R0 r) as [sz|] eqn:S; [| exact I].
     exact (Hout r sz S).
+Qed.
+
+(* the same frame without region rx's range, when the walk wrote no cell
+   of rx and rx is no clobber region *)
+Theorem fkp_frame_except : forall rx, no_reg rx g = true -> ~ In rx clok ->
+  forall b z ch, Plt b (Mem.nextblock m0) ->
+  (forall r sz, r <> rx -> r0_size R0 r = Some sz ->
+     e_blk E r <> b \/ Ptrofs.unsigned (e_base E r) + sz <= z
+     \/ z + size_chunk ch <= Ptrofs.unsigned (e_base E r)) ->
+  Mem.load ch m b z = Mem.load ch m0 b z.
+Proof using gp_old MM HUS OK.
+  intros rx NR NC b z ch Hb Hout.
+  destruct fkp_parts as (_ & _ & _ & _ & CL).
+  pose proof MM as (_ & _ & ENT & FR & _ & _ & _ & LOC & _).
+  apply FR; [exact Hb | |].
+  - intros [[[r o] ch'] sv] IN. cbn [skey cell_disj].
+    assert (Nr : r <> rx).
+    { unfold no_reg in NR. rewrite forallb_forall in NR. specialize (NR _ IN). cbn in NR.
+      intros ->. rewrite Pos.eqb_refl in NR. discriminate NR. }
+    destruct (ENT _ _ _ _ IN) as (IB & _). unfold inb in IB.
+    destruct (Pos.ltb r nbase) eqn:Lt.
+    + destruct (r0_size R0 r) as [sz|] eqn:S; [| discriminate IB].
+      apply andb_true_iff in IB as [I1 I2]. apply Z.leb_le in I1. apply Z.leb_le in I2.
+      unfold addr. destruct (Hout r sz Nr S) as [N | [N | N]]; [left; exact N | right; left; lia | right; right; lia].
+    + left. apply andb_true_iff in IB as [IB _]. apply andb_true_iff in IB as [IB _].
+      apply existsb_exists in IB as (r' & Hr' & Er). apply Pos.eqb_eq in Er. subst r'.
+      destruct (LOC r Hr') as (_ & _ & _ & Nold & _). intros Eq. rewrite <- Eq in Hb. exact (Nold Hb).
+  - intros r Hr. unfold rng_disj. destruct (r0_size R0 r) as [sz|] eqn:S; [| exact I].
+    assert (Nr : r <> rx).
+    { intros ->. apply NC. rewrite forallb_forall in CL. specialize (CL _ Hr).
+      apply existsb_exists in CL as (x & Hx & Ex). apply Pos.eqb_eq in Ex. subst. exact Hx. }
+    exact (Hout r sz Nr S).
 Qed.
 End FKPS.

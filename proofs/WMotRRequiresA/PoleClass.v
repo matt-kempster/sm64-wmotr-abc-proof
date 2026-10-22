@@ -80,7 +80,7 @@ Definition plus80 (y : sval) : sval :=
 Definition cb (pc : list fact) (s : sval) : bool :=
   match s with
   | Sbinop Osub c t1 k160 t2 =>
-      is_tf t1 && is_tf t2 && cfin k160 160 160
+      is_tf t1 && is_tf t2 && sveqb k160 (Sconst (Vsingle c160))
       && existsb (fun f => match f with
            | Fbool (Sbinop Ogt y t3 x t4) ty true =>
                sveqb x s && is_tf t3 && is_tf t4 && tyeqb ty ti32 && tb pc y
@@ -117,6 +117,18 @@ Definition ppb (pc : list fact) (s : sval) : bool :=
 
 Definition zin (z : Z) (l : list Z) : bool := existsb (Z.eqb z) l.
 
+(* in a pole action: usedObj and the pole kept, oMarioPolePos bounded *)
+Definition pole_keep (g : gst) : bool :=
+  let LD := sload nbase R0 kv g in
+  match LD rM USED_OFF Mint32 with
+  | Some u => sveqb u (ic rM USED_OFF Mint32) | None => false end
+  && match LD rU O_POSY Mfloat32 with Some a1 => sveqb a1 (ic rU O_POSY Mfloat32) | None => false end
+  && match LD rU HITBOX_DOWN_OFF Mfloat32 with
+     | Some a2 => sveqb a2 (ic rU HITBOX_DOWN_OFF Mfloat32) | None => false end
+  && match LD rU HITBOX_H_OFF Mfloat32 with
+     | Some a3 => sveqb a3 (ic rU HITBOX_H_OFF Mfloat32) | None => false end
+  && match LD rO POLEPOS_OFF Mfloat32 with Some p => ppb (g_pc g) p | None => false end.
+
 Definition pole_ok (g : gst) : bool :=
   let LD := sload nbase R0 kv g in
   match LD rM oMO Mint32, LD rM oA Mint32, LD rM oS Mint16unsigned, LD rM oT Mint16unsigned,
@@ -127,16 +139,7 @@ Definition pole_ok (g : gst) : bool :=
       && int_sv (ic rM oS Mint16unsigned) ss && int_sv (ic rM oT Mint16unsigned) st
       && sveqb sv (ic rM oV Mfloat32) && sveqb sf (ic rM oF Mfloat32) && sveqb sg sy
       && posb (g_pc g) sy
-      && (negb (zin (Int.unsigned a) POLE_ACTS3)
-          || (match LD rM USED_OFF Mint32 with
-              | Some u => sveqb u (ic rM USED_OFF Mint32) | None => false end
-              && match LD rU O_POSY Mfloat32, LD rU HITBOX_DOWN_OFF Mfloat32, LD rU HITBOX_H_OFF Mfloat32 with
-                 | Some a1, Some a2, Some a3 =>
-                     sveqb a1 (ic rU O_POSY Mfloat32) && sveqb a2 (ic rU HITBOX_DOWN_OFF Mfloat32)
-                     && sveqb a3 (ic rU HITBOX_H_OFF Mfloat32)
-                 | _, _, _ => false end
-              && match LD rO POLEPOS_OFF Mfloat32 with
-                 | Some p => ppb (g_pc g) p | None => false end))
+      && (negb (zin (Int.unsigned a) POLE_ACTS3) || pole_keep g)
   | _, _, _, _, _, _, _, _ => false
   end.
 End CLS.

@@ -336,6 +336,16 @@ proofs/WMotRRequiresA/FfWorld.v
 proofs/WMotRRequiresA/FfRow.v
 proofs/WMotRRequiresA/AhwRow.v
 proofs/WMotRRequiresA/KbRow.v
+# GOAL 2 pole cases of the automatic dispatcher (grab_pole_slow / _fast)
+proofs/WMotRRequiresA/PoleXc.v
+proofs/WMotRRequiresA/PoleFloat.v
+proofs/WMotRRequiresA/PoleClass.v
+proofs/WMotRRequiresA/PoleKeep.v
+proofs/WMotRRequiresA/PoleSound.v
+proofs/WMotRRequiresA/PoleRun.v
+proofs/WMotRRequiresA/PoleSlow.v
+proofs/WMotRRequiresA/PoleFast.v
+proofs/WMotRRequiresA/PoleRow.v
 proofs/Interp/MemBuild.v
 
 # --- GOAL 1 positive control: with A pressed, a real frame reaches flying ---
