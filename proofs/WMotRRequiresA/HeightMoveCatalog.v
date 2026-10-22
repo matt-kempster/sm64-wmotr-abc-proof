@@ -387,14 +387,17 @@ Section Moves.
      (tools/goal2_gapfact_check.py over the sloped triangles). *)
   Variable wmotr_floor : R -> Prop.
   Hypothesis wmotr_gap : forall h, wmotr_floor h -> ~ (PHI_K < h < PHI_K + GAP).
-  (* wmotr_pole base top: a WMotR pole whose grab window starts at base - 160
-     (mario_actions_automatic.c / interaction.c, docs/goal2-pole-window.md)
-     and on which set_pole_position never puts Mario above top.  Every pole
-     is either low (top <= K; WMotR's reachable pole tops at -1919) or out
-     of reach (its window starts above YMAX; pole 4 at 2994). *)
+  (* wmotr_pole base top: a WMotR pole (oPosY base, hitbox top top) whose
+     grab window starts at base - 160 (mario_actions_automatic.c /
+     interaction.c, docs/goal2-pole-window.md) and on which
+     set_pole_position never puts Mario above top + POLE_UP (the handstand
+     and a floor snap, HeightBudgetArith.POLE_UP; until 2026-10-21 it said
+     top, FALSE for the real handstand).  Every pole is either low
+     (top + POLE_UP <= K; WMotR's reachable pole tops at -1919) or out of
+     reach (its window starts above YMAX; pole 4 at 2994). *)
   Variable wmotr_pole : R -> R -> Prop.
   Hypothesis wmotr_poles :
-    forall base top, wmotr_pole base top -> top <= PHI_K \/ PHI_YMAX < base - 160.
+    forall base top, wmotr_pole base top -> top + POLE_UP <= PHI_K \/ PHI_YMAX < base - 160.
   (* wmotr_cannon h: entering a WMotR cannon puts Mario at h (act_in_cannon
      state 0, pos[1] := cannon.y + 350; no input gate, only firing reads A).
      WMotR's two cannons seat Mario at 837 and -2730. *)
@@ -406,8 +409,9 @@ Section Moves.
     (mode_of c = M_Ground /\ h <= R2 (c_posy c))                    (* grounded: y <= K *)
     \/ (wmotr_floor h /\ h <= R2 (c_posy c) + STEP_UP)             (* landing, ledge grab *)
     \/ (c_action c = ACT_LEDGE_GRAB /\ h <= R2 (c_floorh c))        (* ledge climb *)
+    (* set_pole_position, on a pole grabbed in its window or a low one *)
     \/ (exists base top, wmotr_pole base top                    (* pole grab / climb *)
-          /\ base - 160 <= R2 (c_posy c) /\ h <= top)
+          /\ (base - 160 <= R2 (c_posy c) \/ top + POLE_UP <= PHI_K) /\ h <= top + POLE_UP)
     \/ wmotr_cannon h                                              (* cannon entry *)
     (* a floorless air quarter lands at m->floorHeight (mario_step.c:414-416),
        which is find_floor's no-floor value -11000 when both find_floor calls
@@ -558,7 +562,7 @@ Section Moves.
         [ exact Hh | | exact Hb | apply wmotr_gap; exact Hf ].
       rewrite <- credit_of_mode. apply credit_nonneg.
     - specialize (Hl Ha). lra.
-    - destruct (wmotr_poles base top Hp); lra.
+    - destruct Hw as [Hw | Hw]; [destruct (wmotr_poles base top Hp) |]; lra.
     - exact (wmotr_cannons h Hcn).
     - rewrite Hs. unfold PHI_K. lra.
     - assert (Hr : Rmax 0 (R2 (c_vely c)) / 2 <= mode_credit (mode_of c) (timer_of c) (R2 (c_vely c))).

@@ -3,7 +3,8 @@
 (*                                                                        *)
 (* For an outcome g of a walk from m0 whose final memory m matches it     *)
 (* (SymExec2.MMg), fk_ok g = true gives                                    *)
-(*   - fk_action: the action cell holds a constant on the no-A list;       *)
+(*   - fk_action: the action cell holds a constant on the no-A list, not  *)
+(*     a pole action or ACT_IN_CANNON (WMotRWorld.used_acts);             *)
 (*   - fk_cell:   each fk_same cell of m is m0's;                          *)
 (*   - fk_floor / fk_wall: m->floor (m->wall) is m0's, (NULL,) or a WMotR  *)
 (*     surface of m0 in a world block off the regions;                     *)
@@ -14,7 +15,7 @@
 From Coq Require Import ZArith List Bool Lia.
 From compcert Require Import Coqlib Maps AST Integers Values Memory Globalenvs Ctypes Clight.
 From SM64.Proofs Require Import Interp.SymExec2.
-From SM64.Proofs.WMotRRequiresA Require Import FloorExec AirMatch NoAActions FfKeepCheck.
+From SM64.Proofs.WMotRRequiresA Require Import FloorExec AirMatch NoAActions WMotRWorld FfKeepCheck.
 Import ListNotations.
 
 Section FKS.
@@ -56,6 +57,7 @@ Qed.
 Lemma fk_parts :
   match LD rM 12 Mint32 with
   | Some (Sconst (Vint a)) => existsb (Z.eqb (Int.unsigned a)) R_noA_list
+                              && negb (existsb (Z.eqb (Int.unsigned a)) used_acts)
   | _ => false
   end = true
   /\ forallb (fun k => let '(r, o, ch) := k in
@@ -79,13 +81,17 @@ Qed.
 
 (* the action *)
 Theorem fk_action : exists a, Mem.load Mint32 m (e_blk E rM) (addr E rM 12) = Some (Vint a)
-  /\ In (Int.unsigned a) R_noA_list.
+  /\ In (Int.unsigned a) R_noA_list /\ ~ In (Int.unsigned a) used_acts.
 Proof using gp_old MM HUS OK.
   destruct fk_parts as (H & _).
   destruct (LD rM 12 Mint32) as [s|] eqn:L; [| discriminate H].
   destruct s as [v | | | | | | | | |]; try discriminate H. destruct v; try discriminate H.
   exists i. split; [rewrite (fk_ld _ _ _ _ L); reflexivity |].
-  apply existsb_exists in H as (x & Hx & Hz). apply Z.eqb_eq in Hz. rewrite Hz. exact Hx.
+  apply andb_true_iff in H as [H Hn]. apply negb_true_iff in Hn. split.
+  - apply existsb_exists in H as (x & Hx & Hz). apply Z.eqb_eq in Hz. rewrite Hz. exact Hx.
+  - intros Hin. assert (Hx : existsb (Z.eqb (Int.unsigned i)) used_acts = true)
+      by (apply existsb_exists; exists (Int.unsigned i); split; [exact Hin | apply Z.eqb_refl]).
+    congruence.
 Qed.
 
 (* the kept cells *)

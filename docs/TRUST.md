@@ -219,6 +219,30 @@ without pressing A".*
   (find_floor's floorHeight was ≤ y_old + 78) but not derivable from the frame world, which
   carries no floor fact at a ledge grab. ffw's own `fro_st` clause makes the same claim and is
   unchanged (still read by the freefall and air-hit-wall rows). No assumption added.
+  **Automatic-dispatcher audit (2026-10-21; pole paths now execute).** Three statement bugs
+  were found in what `Hseg_call_na` claimed for `mario_execute_automatic_action`, and all three
+  are repaired. No assumption was added; the row is still open.
+  (f) The catalog's pole attach `h ≤ top` was **false**. The real handstand anims
+  (`TOP_OF_POLE_TRANSITION` / `TOP_OF_POLE`) raise Mario 174 units: 74 above the top, and up to
+  153 with a floor snap. These are tool-read values (`tools/goal2_pole_anim.py`). `AttachOK` now
+  allows `h ≤ top + POLE_UP` with `HeightBudgetArith.POLE_UP = 160`, and
+  `WMotRLevel.wmotr_poles_proved` re-proves that every WMotR pole is low by that margin or out of
+  reach. The anim data is DMA-loaded ROM data that no AST reaches, so the 160 is a hand-read
+  number. It is not trusted by any proof today, because the top-of-pole cases sit inside the
+  open row, but it is the constant a future proof of those cases must justify.
+  (g) **Phantom ∀ on `m->usedObj`:** the frame world did not constrain it. A `HOLDING_POLE`
+  memory whose usedObj is a high pole (base ≥ 3154) met every premise, and `set_pole_position`
+  would put y above YMAX. The same gap held for `IN_CANNON`'s seat (usedObj y + 350). The frame
+  world (`FrameSplit.fworld`, `HeightFrame.PhiW`) now carries `WMotRWorld.used_ok`:
+  - in a pole action, usedObj is a low WMotR pole apart from Mario's object, and vel[1] ≤ 0;
+  - in `IN_CANNON`, usedObj is a cannon base;
+  - elsewhere it says nothing.
+  It is proved at the boot witness and across the frame's own stores. Each proved walk keeps it
+  because its outcomes avoid those actions (`FfKeepCheck` rejects `used_acts`).
+  (h) `fresh_at` gave no floor fact at the entry of an automatic action, yet handlers return
+  TRUE into airborne actions (pole Z / low health → SOFT_BONK, `let_go_of_ledge`). The row was
+  therefore false over stale floors. `fresh_at` now covers the automatic group (0x140) as well;
+  the dispatch is entered with update_mario_inputs' refreshed floor.
   **Slide kick at state ≠ 0 is proved (2026-10-21; `sk1_row` and `HeightFrame.Hsk1` removed,
   28 → 27 hypotheses).** The same walk (`SkW.skcheck12`) now classifies every outcome at any
   state (`FfClass.sk_ok` is `ff_okE` from the ticked cells; it used to accept the state ≠ 0

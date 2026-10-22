@@ -374,15 +374,29 @@ Definition fresh (bm : block) (m : mem) : Prop :=
     Mem.load Mfloat32 m bm OFS_FLOORH = Some (Vsingle fh) ->
     FloorRefreshOK wmotr_floor (R2 y) (R2 fh).
 
-(* ... when the action is an airborne one ((action & ACT_GROUP_MASK) ==
-   ACT_GROUP_AIRBORNE): the case of execute_mario_action's dispatch that
-   needs it *)
+(* ... when the action is an airborne or an automatic one ((action &
+   ACT_GROUP_MASK) == ACT_GROUP_AIRBORNE (0x080) or ACT_GROUP_AUTOMATIC
+   (0x140)): the cases of execute_mario_action's dispatch that need it.
+   AUTOMATIC since 2026-10-21.  FOUND: with the airborne group only, the
+   automatic dispatcher's row was FALSE over stale floors: its handlers
+   return TRUE into airborne actions (a pole's Z / low-health SOFT_BONK,
+   let_go_of_ledge's SOFT_BONK, start_hanging's FREEFALL), and the row then
+   owes fresh_at, i.e. a fresh floor, which nothing gave it at the entry of
+   a non-airborne action.  In the game the dispatch is entered with the
+   floor update_mario_inputs refreshed, and every handler that returns TRUE
+   leaves it fresh. *)
 Definition fresh_at (bm : block) (m : mem) : Prop :=
   forall a, Mem.load Mint32 m bm 12 = Some (Vint a) ->
-    Int.and a (Int.repr 448) = Int.repr 128 -> fresh bm m.
+    (Int.and a (Int.repr 448) = Int.repr 128 \/ Int.and a (Int.repr 448) = Int.repr 320) ->
+    fresh bm m.
 
 Lemma fresh_at_of : forall bm m, fresh bm m -> fresh_at bm m.
 Proof. intros bm m H a _ _. exact H. Qed.
+
+(* the airborne half *)
+Lemma fresh_at_air : forall bm m a, fresh_at bm m -> Mem.load Mint32 m bm 12 = Some (Vint a) ->
+  Int.and a (Int.repr 448) = Int.repr 128 -> fresh bm m.
+Proof. intros bm m a H L E. exact (H a L (or_introl E)). Qed.
 
 (* a handler that returned FALSE or kept the two cells (RetOk.RET) *)
 Lemma fresh_ret : forall bm m0 m' vres, fresh bm m0 -> RET bm m0 m' vres ->

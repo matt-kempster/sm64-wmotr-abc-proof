@@ -167,6 +167,17 @@ Definition GAP : R := 622.
    2026-10-18, when the real ledge-grab walk needed the rounding slack. *)
 Definition STEP_UP : R := 241.
 
+(* the highest set_pole_position puts Mario above a pole's hitbox top
+   (oPosY + hitboxHeight; mario_actions_automatic.c:58-111): the pole
+   position is clamped to hitboxHeight - 100, the handstand actions
+   (ACT_TOP_OF_POLE / _TRANSITION) add the animation's y translation, at
+   most 174, and a floor find_floor finds there (< 79 above) snaps him up to
+   it: -100 + 174 + 79 = 153 (tools/goal2_pole_anim.py reads the three
+   handstand animations from vendor/sm64/assets/anims).  FOUND 2026-10-21:
+   the catalog used to allow only the hitbox top, but the real handstand
+   stands 74 above it. *)
+Definition POLE_UP : R := 160.
+
 Lemma gap_margin : STEP_UP + PHI_A < GAP.           (* 613 < 622 *)
 Proof. unfold STEP_UP, PHI_A, GAP. lra. Qed.
 
