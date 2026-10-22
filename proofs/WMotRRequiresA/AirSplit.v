@@ -372,7 +372,7 @@ Section AirSplitS.
       assert (Hle1 : (PTree.set AIR._t'46 (Vint i) le) ! AIR._m = Some (Vptr bm Ptrofs.zero))
         by (rewrite PTree.gso by (apply Pos.eqb_neq; vm_compute; reflexivity); exact Hle).
       assert (Hfr : fresh bm mF).
-      { apply (HFr i Hld). rewrite <- (Int.repr_unsigned i). exact (air_case_air _ _ Hin). }
+      { apply (fresh_at_air bm mF i HFr Hld). rewrite <- (Int.repr_unsigned i). exact (air_case_air _ _ Hin). }
       assert (Hrow : forall fd, resolves lp f fd ->
                 seg_okR lp bm MWF fd [Vptr bm Ptrofs.zero]
                   (fun m0 => Vptr bm Ptrofs.zero = Vptr bm Ptrofs.zero

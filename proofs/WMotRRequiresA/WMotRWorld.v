@@ -20,11 +20,12 @@
 (* once the symbolic walk says what the frame reads from them.              *)
 (* ======================================================================= *)
 
-From Coq Require Import ZArith List Bool.
+From Coq Require Import ZArith List Bool Reals.
 From compcert Require Import Coqlib Errors Maps Integers Floats AST Values Memory Ctypes.
 From SM64.Generated Require mario.
 From SM64.Proofs Require Import Generic.SymbolicLinking.
 From SM64.Proofs.WMotRRequiresA Require Import WMotRLevel.
+From SM64.Proofs Require Import HeightInvariant.
 Import ListNotations.
 
 Local Open Scope Z_scope.
@@ -190,3 +191,96 @@ Definition wmotr_world (bm : block) (m : mem) : Prop :=
   /\ Mem.load Mint32 m bm RIDDEN_OFF = Some Vnullptr
   /\ Mem.load Mfloat32 m bm QSD_OFF = Some (Vsingle Float32.zero)
   /\ wmotr_objects bm m.
+
+(* ---- Mario's usedObj, in the actions whose handlers read it (2026-10-21).
+   FOUND: the frame rows were FALSE over memories the game never produces.
+   The six pole actions run set_pole_position on m->usedObj (pos[1] :=
+   usedObj->oPosY + oMarioPolePos + offsetY, mario_actions_automatic.c:75),
+   and ACT_IN_CANNON seats Mario at usedObj->oPosY + 350; nothing above
+   said what usedObj is, so a memory in ACT_HOLDING_POLE whose usedObj is
+   one of WMotR's HIGH poles (oPosY 3154..4048) met every premise of the
+   rows, and one real frame puts Mario at that pole (> YMAX).  In the game
+   usedObj is the object interact_pole / interact_cannon_base stored along
+   with the action (interaction.c), and Mario only reaches the LOW pole: a
+   high pole's grab window starts at base - 160 >= 2994 > YMAX (WMotRLevel
+   §5).  interact_pole also zeroes vel[1], and nothing on the pole writes
+   it.  So:
+     - in a pole action, usedObj is a low WMotR pole object (oPosY,
+       hitboxDownOffset 0 and hitboxHeight from the level script, and
+       top + POLE_UP (160) <= K), a whole Object away from Mario's object,
+       and vel[1] <= 0;
+     - in ACT_IN_CANNON, usedObj is a WMotR cannon base (cannon_obj_ok), a
+       whole Object away from Mario's object. ---- *)
+Definition USED_OFF : Z := 128.
+
+Lemma used_field_offset :
+  field_offset (prog_comp_env mario.prog) mario._usedObj mario_state_members = OK (USED_OFF, Full).
+Proof. vm_compute. reflexivity. Qed.
+
+(* ACT_GRAB_POLE_SLOW, _FAST, CLIMBING_POLE, TOP_OF_POLE_TRANSITION,
+   TOP_OF_POLE, HOLDING_POLE (sm64.h; pinned to the automatic dispatcher's
+   switch in AutoSplit) *)
+Definition pole_acts : list Z := [1049409; 1049410; 1049411; 1049412; 1049413; 135267136].
+Definition ACT_IN_CANNON_Z : Z := 4977.
+Definition used_acts : list Z := ACT_IN_CANNON_Z :: pole_acts.
+
+Definition OBJ_SPAN : Z := 608.   (* sizeof(struct Object) = FrameSplit.OBJ_SIZE *)
+
+(* a whole Object away from Mario's object (m->marioObj) *)
+Definition used_apart (bm : block) (m : mem) (ub : block) (uo : ptrofs) : Prop :=
+  forall mb mo, Mem.load Mint32 m bm MARIOOBJ_OFF = Some (Vptr mb mo) ->
+    ub <> mb \/ Ptrofs.unsigned uo + OBJ_SPAN <= Ptrofs.unsigned mo
+    \/ Ptrofs.unsigned mo + OBJ_SPAN <= Ptrofs.unsigned uo.
+
+(* a low pole of the level script: top + POLE_UP <= K (WMotRLevel.POLE_UP_val) *)
+Definition low_pole_obj (m : mem) (b : block) (o : Z) : Prop :=
+  exists base top, In (base, top) wmotr_pole_list /\ top + 160 <= 2424
+    /\ Mem.load Mfloat32 m b (o + O_POSY) = Some (f32z base)
+    /\ Mem.load Mfloat32 m b (o + HITBOX_DOWN_OFF) = Some (Vsingle Float32.zero)
+    /\ Mem.load Mfloat32 m b (o + HITBOX_H_OFF) = Some (f32z (top - base)).
+
+Definition used_ok (bm : block) (m : mem) : Prop :=
+  forall a, Mem.load Mint32 m bm 12 = Some (Vint a) ->
+    (In (Int.unsigned a) pole_acts ->
+       exists ub uo, Mem.load Mint32 m bm USED_OFF = Some (Vptr ub uo)
+         /\ low_pole_obj m ub (Ptrofs.unsigned uo) /\ used_apart bm m ub uo
+         /\ forall v, Mem.load Mfloat32 m bm OFS_VELY = Some (Vsingle v) -> (R2 v <= 0)%R)
+    /\ (Int.unsigned a = ACT_IN_CANNON_Z ->
+       exists ub uo, Mem.load Mint32 m bm USED_OFF = Some (Vptr ub uo)
+         /\ cannon_obj_ok m ub (Ptrofs.unsigned uo) /\ used_apart bm m ub uo).
+
+(* outside those actions it says nothing *)
+Lemma used_ok_other : forall bm m a, Mem.load Mint32 m bm 12 = Some (Vint a) ->
+  ~ In (Int.unsigned a) used_acts -> used_ok bm m.
+Proof.
+  intros bm m a Hl Hn a' Hl'. rewrite Hl in Hl'. injection Hl' as <-.
+  split; intros H; exfalso; apply Hn; [right; exact H | left; symmetry; exact H].
+Qed.
+
+(* it survives a memory change that keeps Mario's action, usedObj, vel[1]
+   and marioObj cells, and the used object's oPosY / hitbox cells *)
+Lemma used_ok_keep : forall bm m m',
+  (forall o ch, In (o, ch) [(12, Mint32); (USED_OFF, Mint32); (OFS_VELY, Mfloat32); (MARIOOBJ_OFF, Mint32)] ->
+     Mem.load ch m' bm o = Mem.load ch m bm o) ->
+  (forall ub uo, Mem.load Mint32 m bm USED_OFF = Some (Vptr ub uo) -> used_apart bm m ub uo ->
+     forall z, z = O_POSY \/ z = HITBOX_DOWN_OFF \/ z = HITBOX_H_OFF ->
+     Mem.load Mfloat32 m' ub (Ptrofs.unsigned uo + z) = Mem.load Mfloat32 m ub (Ptrofs.unsigned uo + z)) ->
+  used_ok bm m -> used_ok bm m'.
+Proof.
+  intros bm m m' Hc Hu U a La.
+  rewrite (Hc 12 Mint32) in La by (cbn; auto).
+  destruct (U a La) as (U1 & U2).
+  assert (Ap : forall ub uo, used_apart bm m ub uo -> used_apart bm m' ub uo).
+  { intros ub uo A mb mo Hl. rewrite (Hc MARIOOBJ_OFF Mint32) in Hl by (cbn; auto 6). exact (A mb mo Hl). }
+  split.
+  - intros Hp. destruct (U1 Hp) as (ub & uo & Lu & (base & top & Hin & Ht & P1 & P2 & P3) & A & V).
+    exists ub, uo. split; [rewrite (Hc USED_OFF Mint32) by (cbn; auto); exact Lu |].
+    split; [| split; [exact (Ap ub uo A) |]].
+    + exists base, top. split; [exact Hin |]. split; [exact Ht |].
+      rewrite !(Hu ub uo Lu A) by auto. auto.
+    + intros v Lv. rewrite (Hc OFS_VELY Mfloat32) in Lv by (cbn; auto 6). exact (V v Lv).
+  - intros Hcn. destruct (U2 Hcn) as (ub & uo & Lu & (y & Hin & P1) & A).
+    exists ub, uo. split; [rewrite (Hc USED_OFF Mint32) by (cbn; auto); exact Lu |].
+    split; [| exact (Ap ub uo A)].
+    exists y. split; [exact Hin |]. rewrite (Hu ub uo Lu A) by auto. exact P1.
+Qed.

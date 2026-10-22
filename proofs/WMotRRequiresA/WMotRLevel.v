@@ -13,7 +13,7 @@
 (*   wmotr_pole b t  a bhvPoleGrabbing OBJECT of WMotR's level script,      *)
 (*                   base b, top t = b + hitboxHeight (= 10 * bparam2).     *)
 (*   wmotr_gap_proved    no floor height in (K, K + GAP).                   *)
-(*   wmotr_poles_proved  every pole is low (top <= K) or out of reach       *)
+(*   wmotr_poles_proved  every pole is low (top + POLE_UP <= K) or out of reach *)
 (*                       (YMAX < base - 160).                               *)
 (*                                                                          *)
 (* Data: generated/wmotr_level_data.v (terrain, macro list, the two object  *)
@@ -327,10 +327,11 @@ Definition gap_check_static (L : list tri) : bool :=
 Definition gap_check_objects (O : list (Z * Z)) : bool :=
   forallb (fun '(lo, hi) => (hi <=? 2424)%Z || (2424 + 622 <=? lo)%Z) O.
 Definition pole_check (P : list (Z * Z)) : bool :=
-  forallb (fun '(b, t) => (t <=? 2424)%Z || (2796 <? b - 160)%Z) P.
+  forallb (fun '(b, t) => (t + 160 <=? 2424)%Z || (2796 <? b - 160)%Z) P.
 
 Lemma K_val : PHI_K = 2424. Proof. reflexivity. Qed.
 Lemma YMAX_val : PHI_YMAX = 2796. Proof. unfold PHI_YMAX, PHI_K, PHI_A. lra. Qed.
+Lemma POLE_UP_val : POLE_UP = 160. Proof. reflexivity. Qed.
 
 Lemma gap_generic : forall L O, gap_check_static L = true -> gap_check_objects O = true ->
   forall h, floor_in L O h -> ~ (PHI_K < h < PHI_K + GAP).
@@ -367,13 +368,13 @@ Proof.
 Qed.
 
 Lemma poles_generic : forall P, pole_check P = true ->
-  forall base top, pole_in P base top -> top <= PHI_K \/ PHI_YMAX < base - 160.
+  forall base top, pole_in P base top -> top + POLE_UP <= PHI_K \/ PHI_YMAX < base - 160.
 Proof.
-  intros P Hp base top (b & t & Hin & -> & ->). rewrite K_val, YMAX_val.
+  intros P Hp base top (b & t & Hin & -> & ->). rewrite K_val, YMAX_val, POLE_UP_val.
   unfold pole_check in Hp. rewrite forallb_forall in Hp.
   specialize (Hp (b, t) Hin). simpl in Hp.
   apply orb_true_iff in Hp as [Hp | Hp].
-  - apply Z.leb_le in Hp. left. apply IZR_le in Hp. exact Hp.
+  - apply Z.leb_le in Hp. left. apply IZR_le in Hp. rewrite plus_IZR in Hp. lra.
   - apply Z.ltb_lt in Hp. right. apply IZR_lt in Hp. rewrite ?minus_IZR in Hp. lra.
 Qed.
 
@@ -398,7 +399,7 @@ Proof.
 Qed.
 
 Theorem wmotr_poles_proved :
-  forall base top, wmotr_pole base top -> top <= PHI_K \/ PHI_YMAX < base - 160.
+  forall base top, wmotr_pole base top -> top + POLE_UP <= PHI_K \/ PHI_YMAX < base - 160.
 Proof.
   destruct level_checks as (_ & _ & Hp).
   exact (poles_generic wmotr_pole_list Hp).

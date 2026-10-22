@@ -5,7 +5,9 @@
 (* FfKeep proves what it means.                                           *)
 (*                                                                        *)
 (* An outcome passes when                                                 *)
-(*   - the action is a constant on GOAL 2's no-A list (NoAActions);       *)
+(*   - the action is a constant on GOAL 2's no-A list (NoAActions), and   *)
+(*     not a pole action or ACT_IN_CANNON (WMotRWorld.used_acts: those    *)
+(*     need usedObj facts the walks do not track);                        *)
 (*   - the cells the frame world reads and the walk must not touch are    *)
 (*     their entry cells: m->input, ceil, heldObj, riddenObj, marioObj,    *)
 (*     area, controller, animList, quicksandDepth; the anim list's buffer *)
@@ -51,6 +53,7 @@ Definition fk_ok (g : gst) : bool :=
   let surf (p : sval) := has (g_pc g) (Fuser kS (p :: wargs R0)) in
   match LD rM 12 Mint32 with
   | Some (Sconst (Vint a)) => existsb (Z.eqb (Int.unsigned a)) R_noA_list
+                              && negb (existsb (Z.eqb (Int.unsigned a)) used_acts)
   | _ => false
   end
   && forallb same fk_same

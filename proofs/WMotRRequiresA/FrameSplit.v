@@ -386,7 +386,7 @@ Section FrameSplit.
   (* what holds at every call boundary of the frame, besides GOAL 1's mem_ok *)
   Definition fworld (m : mem) : Prop :=
     action_sat R_noA m bm /\ wmotr_world bm m /\ anim_apart m /\ mobj_apart m
-    /\ a_down_real bm m = false /\ ffw ge bm m.
+    /\ a_down_real bm m = false /\ ffw ge bm m /\ used_ok bm m.
 
   Notation MC := (MoveChain wmotr_floor wmotr_pole wmotr_cannon).
 
@@ -812,15 +812,29 @@ Section FrameSplit.
       pose proof mo_range. unfold FFW_COLL, O_INTERACT_STATUS, RAW_OFF. lia.
     Qed.
 
+    (* the used object (WMotRWorld.used_ok) lies apart from Mario's object *)
+    Lemma obj_store_used : used_ok bm m -> used_ok bm m'.
+    Proof.
+      apply used_ok_keep.
+      - intros o ch' _. apply LDbm.
+      - intros ub uo _ A z Hz. apply LD.
+        pose proof mo_range as Rmo. pose proof (Ptrofs.unsigned_range uo) as Ruo.
+        destruct (A mb mo Hmo) as [Hne | [Ha | Ha]]; [left; exact Hne | |]; right;
+          unfold OBJ_SPAN, O_POSY, HITBOX_DOWN_OFF, HITBOX_H_OFF, RAW_OFF in *;
+          destruct Hlo as [[-> ->] | [-> ->]]; cbn [size_chunk];
+          unfold O_INTERACT_STATUS, RAW_OFF; lia.
+    Qed.
+
     Lemma obj_store_fworld : fworld m -> fworld m'.
     Proof.
-      intros (Ha & Hw & Han & Hmob & Hd & Hf).
+      intros (Ha & Hw & Han & Hmob & Hd & Hf & Hu).
       split; [intros v1 Hl; unfold action_sat in Ha; rewrite LDbm in Hl; exact (Ha v1 Hl) |].
       split; [exact (obj_store_world Hmob Hw) |].
       split; [exact (obj_store_anim Han) |].
       split; [exact (obj_store_mobj Hmob) |].
       split; [rewrite obj_store_adown; exact Hd |].
-      exact (obj_store_ffw Hf).
+      split; [exact (obj_store_ffw Hf) |].
+      exact (obj_store_used Hu).
     Qed.
 
     Lemma obj_store_cells : forall c, read_cells bm m c -> read_cells bm m' c.

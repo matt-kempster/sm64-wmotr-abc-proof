@@ -1139,7 +1139,9 @@ Section Witness.
       - split; [ exact (mwf_real_valid lp bm bc Ptrofs.zero SBw m11 mwf_w11) | ].
         split; [ | exact mwf_w11 ].
         intros v Hl. rewrite L_act in Hl. injection Hl as <-. reflexivity.
-      - split; [ exact (conj hinv (conj world (conj anim_ok (conj mobj_ok ffw11)))) | ].
+      - assert (Hu : used_ok bm m11).
+        { apply (used_ok_other bm m11 _ L_act). vm_compute. intuition discriminate. }
+        split; [ exact (conj hinv (conj world (conj anim_ok (conj mobj_ok (conj ffw11 Hu))))) | ].
         split; [ exact read_c0 | split; [ exact in_wmotr11 | ] ].
         destruct entry_runs as (R1 & R2).
         exists bL, e5, e6, (PTree.set level_update._t'2 (Vint (Int.repr LEVEL_WMOTR)) (PTree.empty val)). split; [ exact HbL | split; [ exact R1 | split; [ exact (R2 _) | ] ] ].
