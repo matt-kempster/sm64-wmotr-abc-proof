@@ -270,6 +270,7 @@ proofs/WMotRRequiresA/FrameSplit.v
 proofs/WMotRRequiresA/AirSplit.v
 proofs/WMotRRequiresA/HeightFrame.v
 proofs/WMotRRequiresA/WMotREntry.v
+proofs/WMotRRequiresA/SpawnTypeRun.v
 proofs/WMotRRequiresA/EntryWarp.v
 proofs/WMotRRequiresA/StartSat.v
 proofs/WMotRRequiresA/YWriterCensus.v
@@ -337,6 +338,7 @@ proofs/Interp/MemBuild.v
 
 # --- GOAL 1 positive control: with A pressed, a real frame reaches flying ---
 proofs/NoAImpliesNoFly/PositiveControl.v
+proofs/NoAImpliesNoFly/PoleControl.v
 
 # --- GOAL 1 / the superseded VACUOUS mario_ge capstone (kept for history) ---
 proofs/NoAImpliesNoFly/Unwired/NoAImpliesNoFlyVacuous.v
