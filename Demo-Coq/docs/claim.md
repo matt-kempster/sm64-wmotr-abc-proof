@@ -25,6 +25,12 @@ finds no normal mismatched invocation. It traces the single call site's startup
 header flow and distinguishes conditional ordinary-warp/debug re-entry routes.
 It does not change the formal proof snapshot or the OPEN gameplay verdict.
 
+The [intervening-call source audit](notes/demo-pause-intervening-calls-source-audit.md)
+also finds no normal cancellation-to-pause route. An operation clear by warp
+initialization starts a replacement fade; a later instant-area cancellation is
+conditional on unestablished selected-demo scene/state resources. This is source
+evidence, not a new gameplay or memory-preservation theorem.
+
 The [primary specification status](notes/gameplay-observation-status.md)
 records partial actual-read/history and input-origin formalization. The capstone
 now consumes a conditional connection to a real generated camera read and

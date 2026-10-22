@@ -104,6 +104,13 @@ destination (`DemoGameplayBoundary.v:476–509`); an ordinary nonzero
 destination takes priority. This review does not establish that such a
 destination can normally arise during a demo, or that it cannot.
 
+The later [source-only intervening-call audit](demo-pause-intervening-calls-source-audit.md)
+narrows the pause concern: warp initialization clears a delayed operation but
+immediately starts another fade, so that clear alone does not open pause.
+An eligible instant area change can conditionally erase the fade; no normal
+selected-demo instance was identified. This adds source control/state evidence
+without changing the checked theorems or closing their preservation premises.
+
 Selected preobjects and postcamera intervals compose real internal callees,
 but omit the intervening object/HUD/camera effects. Separate timer cases are
 not twenty consecutive full frames. The Normal Start prefix still assumes the

@@ -31,6 +31,14 @@ initializes that flag false and has no live assignment enabling it. These are
 source observations, not new Coq results or a reachable counterexample. Proof
 work remains stopped and the gameplay verdict remains OPEN.
 
+The [pause/intervening-call source audit](notes/demo-pause-intervening-calls-source-audit.md)
+finds no normal Demo Next cancellation that permits Pause then Exit Course.
+Named object/HUD/camera calls do not clear a pending operation. Warp
+initialization can clear it, but starts a replacement fade that also blocks
+pause. A later instant area change could conditionally cancel that fade;
+the selected demos have no direct instant-warp declarations and no normal
+instance was identified. These source observations do not close a proof item.
+
 The [primary gameplay specification is partially formalized](notes/gameplay-observation-status.md).
 Coq now observes an actual controller-field read in generated gameplay code
 and conditionally connects a demo record's emitted value to a real camera read.

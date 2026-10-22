@@ -121,10 +121,13 @@ The five named calls to `initiate_warp` are all in
 does not apply. Normal active-demo Start/END handling is at `:963–970`;
 `pressed_pause` tests transition/delayed state at `:205–214`.
 
-The pause and zero-ordinary-destination arguments must be maintained together:
-a preexisting ordinary destination consumed by `warp_area` can change the
-delayed-warp state before the pause test. Assuming either global invariant
-would skip this remaining work.
+The [follow-up intervening-call audit](demo-pause-intervening-calls-source-audit.md)
+finds an additional pause blocker: consuming a preexisting destination in
+`warp_area` clears the delayed operation but immediately starts a new fade.
+Clearing the operation alone therefore does not permit pause. An eligible
+instant area change can conditionally remove that fade, with no normal
+selected-demo instance identified. Operation, transition and area-lifetime
+conditions still require preservation; neither audit proves the global result.
 
 The earlier [ordinary-destination audit](demo-ordinary-destination-source-audit.md)
 records the direct writer census. `initiate_warp` is the sole named nonzero

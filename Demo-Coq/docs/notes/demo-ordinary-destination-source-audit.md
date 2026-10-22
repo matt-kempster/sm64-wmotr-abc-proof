@@ -66,11 +66,15 @@ the active pointer throughout a gameplay episode.
 
 Given startup `type == 0`, a persistent active-demo pointer, absent painting
 tables for the loaded demo-owned area, and pause exclusion, the direct source
-census has no producer of an ordinary destination. Pause exclusion and zero
-ordinary destination are a mutual invariant: normal demo Start/END_DEMO
-scheduling makes the delayed operation nonzero before `pressed_pause`; a
-preexisting ordinary destination could otherwise make `warp_area` clear that
-operation. Treating either invariant as already established would be circular.
+census has no producer of an ordinary destination. The follow-up
+[intervening-call audit](demo-pause-intervening-calls-source-audit.md) sharpens
+the pause argument: `warp_area` can clear the delayed operation through warp
+initialization, but that initializer immediately starts a fresh fade, which
+also blocks pause. A later eligible instant area change can conditionally
+clear the fade; no normal selected-demo route to that state was identified.
+The operation, transition and area-lifetime conditions must be tracked together.
+An operation clear alone does not establish a pause opening. Zero ordinary
+destination remains separately necessary to exclude its priority over demo exits.
 
 Only `clear_areas` (`area.c:200-201`) and the actual level-interpreter table
 builders (`level_script.c:490-491,525-526`) directly assign the painting or
