@@ -7,7 +7,7 @@
 (* ====================================================================== *)
 
 From Coq Require Import ZArith List.
-From compcert Require Import Coqlib Maps AST Integers Floats Values Memory Ctypes Cop Clight
+From compcert Require Import Coqlib Maps AST Integers Floats Values Memory Globalenvs Ctypes Cop Clight
   ClightBigstep.
 From SM64.Generated Require mario surface_collision.
 From SM64.Proofs Require Import Interp.SymExec2 WMotRRequiresA.FloorList WMotRRequiresA.TerrainSound
@@ -116,6 +116,115 @@ Proof.
   match goal with Hs : sem_binary_operation _ _ _ _ _ _ _ = Some _ |- _ =>
     cbn [sem_binary_operation] in Hs; destruct (sem_cmp_int _ _ _ _ _ _ _ Hs) as (i & ->) end.
   cbn in Hc. injection Hc as <-. cbn. eexists. reflexivity.
+Qed.
+
+(* ---------------------------------------------------------------------- *)
+(* is_anim_past_frame (mario.c): no stores, no calls, and the value it     *)
+(* returns (isPastFrame) is only ever a bool cast, 0 or a comparison, so a *)
+(* call leaves memory IDENTICAL and returns an int (SymExec2.xc_fresh).    *)
+(* ---------------------------------------------------------------------- *)
+Lemma past_frame_nc : nc_chk (fn_body mario.f_is_anim_past_frame) = true.
+Proof. vm_compute. reflexivity. Qed.
+
+Definition ipf_ts : list ident := [mario._isPastFrame; mario._t'1; mario._t'2].
+Definition iv (v : val) : Prop := v = Vundef \/ exists i, v = Vint i.
+Definition IPF (le : temp_env) (M : mem) : Prop := forall x v, In x ipf_ts -> le ! x = Some v -> iv v.
+Definition RPF (out : outcome) (M : mem) : Prop :=
+  forall v ty, out = Out_return (Some (v, ty)) -> iv v /\ ty = Ctypes.Tint I32 Signed noattr.
+
+Lemma cast_bool_int : forall v sz sg a1 s a m v',
+  sem_cast v (Tint sz sg a1) (Tint IBool s a) m = Some v' -> exists i, v' = Vint i.
+Proof.
+  intros v sz sg a1 s a m v' H.
+  assert (OB : forall b, exists i, Val.of_bool b = Vint i)
+    by (intros []; [exists Int.one | exists Int.zero]; reflexivity).
+  unfold sem_cast in H. cbn [classify_cast] in H.
+  repeat match type of H with
+         | context [match ?x with _ => _ end] => destruct x
+         end;
+    try discriminate H; injection H as <-;
+    first [ eexists; reflexivity | eauto | idtac ].
+  all: match goal with H : ?T |- ?G => fail 0 "UNSOLVED" T "|-" G end.
+Qed.
+
+Ltac ipf_ev :=
+  match goal with
+  | Hev : eval_expr _ _ _ _ (Ecast _ _) _ |- _ =>
+      inv Hev; [| match goal with Hl : eval_lvalue _ _ _ _ _ _ _ _ |- _ => inv Hl end];
+      match goal with Hc : sem_cast _ _ _ _ = Some _ |- _ =>
+        right; exact (cast_bool_int _ _ _ _ _ _ _ _ Hc) end
+  | Hev : eval_expr _ _ _ _ (Econst_int _ _) _ |- _ =>
+      inv Hev; [right; eexists; reflexivity | match goal with Hl : eval_lvalue _ _ _ _ _ _ _ _ |- _ => inv Hl end]
+  | Hev : eval_expr _ _ _ _ (Ebinop _ _ _ _) _ |- _ =>
+      inv Hev; [| match goal with Hl : eval_lvalue _ _ _ _ _ _ _ _ |- _ => inv Hl end];
+      match goal with Hs : sem_binary_operation _ _ _ _ _ _ _ = Some _ |- _ =>
+        cbn [sem_binary_operation] in Hs; right; exact (sem_cmp_int _ _ _ _ _ _ _ Hs) end
+  | Hev : eval_expr _ _ _ _ (Etempvar ?y _) _, HI : IPF _ _ |- _ =>
+      inv Hev; [| match goal with Hl : eval_lvalue _ _ _ _ _ _ _ _ |- _ => inv Hl end];
+      match goal with Hl : _ ! y = Some _ |- _ => exact (HI y _ ltac:(cbv; tauto) Hl) end
+  end.
+
+Lemma ipf_set : forall (ge : genv) e x a R,
+  (In x ipf_ts -> forall le M v, IPF le M -> eval_expr ge e le M a v -> iv v) ->
+  trh ge e IPF (Sset x a) IPF R.
+Proof.
+  intros ge e x a R H. apply trh_set. intros le M v HI Hev y w Hy Hl.
+  destruct (peq y x) as [-> | N].
+  - rewrite PTree.gss in Hl. injection Hl as <-. exact (H Hy le M v HI Hev).
+  - rewrite PTree.gso in Hl by exact N. exact (HI y w Hy Hl).
+Qed.
+
+Ltac solve_ipf :=
+  lazymatch goal with
+  | |- trh _ _ _ (Ssequence _ _) _ _ => eapply (trh_seq _ _ _ _ IPF); [solve_ipf | solve_ipf]
+  | |- trh _ _ _ (Sifthenelse _ _ _) _ _ => eapply trh_ite; [solve_ipf | solve_ipf]
+  | |- trh _ _ _ Sskip _ _ => apply trh_skip
+  | |- trh _ _ _ (Sreturn (Some (Etempvar _ _))) _ _ =>
+      apply trh_ret; intros le M v HI Hev v' ty Ho; injection Ho as <- <-;
+      split; [| reflexivity]; inv Hev; [| match goal with Hl : eval_lvalue _ _ _ _ _ _ _ _ |- _ => inv Hl end];
+      match goal with Hl : _ ! ?y = Some _ |- _ => exact (HI y _ ltac:(cbv; tauto) Hl) end
+  | |- trh _ _ _ (Sset _ _) _ _ =>
+      apply ipf_set; let Hin := fresh in intros Hin le M v HI Hev;
+      first [ exfalso; cbv in Hin; repeat (destruct Hin as [Hin | Hin]; [discriminate Hin |]); exact Hin
+            | ipf_ev ]
+  end.
+
+Lemma past_frame_trh : forall (ge : genv) e,
+  trh ge e IPF (fn_body mario.f_is_anim_past_frame) IPF RPF.
+Proof. intros ge e. cbn [fn_body mario.f_is_anim_past_frame]. solve_ipf. Qed.
+
+(* THE VALUE CONTRACT of is_anim_past_frame: memory unchanged, an int result *)
+Theorem past_frame_value_contract : forall (ge : genv) m vargs t m' vres,
+    eval_funcall function_entry2 ge m (Internal mario.f_is_anim_past_frame) vargs t m' vres ->
+    m' = m /\ exists i, vres = Vint i.
+Proof.
+  intros ge m vargs t m' vres Hevf. inv Hevf.
+  match goal with He : function_entry2 _ _ _ _ _ _ _ |- _ => inv He end.
+  match goal with Ha : alloc_variables _ _ _ _ _ _ |- _ =>
+    cbn [mario.f_is_anim_past_frame fn_vars] in Ha; inv Ha end.
+  match goal with Hx : exec_stmt _ _ _ _ _ _ _ _ _ _ |- _ =>
+    pose proof (nc_walk _ _ _ _ _ _ _ _ _ Hx past_frame_nc) as -> end.
+  match goal with Hf : Mem.free_list _ _ = Some _ |- _ =>
+    rewrite (eq_refl : blocks_of_env ge empty_env = nil) in Hf;
+    cbn [Mem.free_list] in Hf; injection Hf as <- end.
+  split; [reflexivity |].
+  match goal with Hb : bind_parameter_temps _ _ _ = Some ?L |- _ =>
+    assert (HI : forall M, IPF L M);
+    [ destruct vargs as [| v1 [| v2 [| v3 r]]];
+      cbn [bind_parameter_temps mario.f_is_anim_past_frame fn_params] in Hb;
+      try discriminate Hb; injection Hb as <-;
+      intros M x v Hin Hl; left; cbv in Hin;
+      repeat (destruct Hin as [<- | Hin]; [cbv in Hl; injection Hl as <-; reflexivity |]); contradiction
+    | ] end.
+  match goal with Hx : exec_stmt _ _ _ _ _ _ _ _ _ _ |- _ =>
+    destruct (past_frame_trh ge empty_env _ _ _ _ _ _ (HI _) Hx) as [(-> & _) | (_ & HR)] end.
+  { match goal with Ho : outcome_result_value _ _ _ _ |- _ => cbn in Ho; destruct Ho; discriminate end. }
+  match goal with Ho : outcome_result_value _ _ _ _ |- _ =>
+    cbn [fn_return mario.f_is_anim_past_frame] in Ho; rename Ho into HO end.
+  destruct out as [| | | [[v ty]|]]; cbn in HO; try contradiction.
+  destruct HO as (_ & Hc).
+  destruct (HR v ty eq_refl) as [[-> | (i & ->)] ->]; unfold sem_cast in Hc; cbn in Hc; [discriminate Hc |].
+  injection Hc as <-. eexists. reflexivity.
 Qed.
 
 (* ---------------------------------------------------------------------- *)
@@ -311,7 +420,7 @@ Proof.
     by (intros b Hb; eapply Plt_Ple_trans; [exact Hb | exact NX]).
   do 5 eexists. split; [rewrite Hb0; reflexivity |]. split; [exact Hvm |].
   intros b Hs. apply Vm.
-  exact (statics_old _ _ HW (ex_intro _ surface_collision._gNumCalls (conj ltac:(cbn; auto) Hs))).
+  exact (statics_old _ _ HW (ex_intro _ surface_collision._gNumCalls (conj (or_intror (or_intror (or_introl eq_refl))) Hs))).
 Qed.
 
 Theorem c_fc2_sound : forall args g cps E m vargs t m' vres,

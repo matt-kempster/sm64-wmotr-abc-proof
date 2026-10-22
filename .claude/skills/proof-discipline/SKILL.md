@@ -178,10 +178,21 @@ all in `Unwired/`, and the theorem moved nowhere. See
     Dead: the hang actions, GRABBED, TORNADO_TWIRLING.
     GRAB_POLE_SLOW/FAST are PROVED (2026-10-22, `PoleRow.aut_case_rows_pole`, TRUST (k)).
     `Hauto_case` is now a lemma, and `HeightFrame.Hauto_rest : aut_case_rest_pole` holds the
-    other 10 cases. A new labeled open premise, `Hceil : PoleXc.find_ceil_height`, is next to
-    discharge (27 → 28). Pole kit: `PoleRun` (usedObj region RU, `pk_ok`), `PoleClass`
-    (classifier), `PoleSound`, and `PoleKeep` (`fkp_ok`, `no_reg`, `fkp_frame_except`).
-    Next: HOLDING_POLE / CLIMBING_POLE (anim data), then the ledge cases and IN_CANNON.
+    other 10 cases. `Hceil` was FALSE as stated (a dangling `pceil`); it is restated and
+    PROVED by `CeilHeight.fc_height` and removed (28 → 27). Pole kit: `PoleRun` (usedObj
+    region RU, `pk_ok`), `PoleClass` (classifier), `PoleSound`, and `PoleKeep` (`fkp_ok`,
+    `no_reg`, `fkp_frame_except`). Ready contracts: `SmaXc.c_smawa` (set_mario_anim_with_accel)
+    and `PoleXc.past_frame_value_contract` (is_anim_past_frame).
+    Blockers for the remaining pole cases:
+    - HOLDING_POLE calls `set_sound_moving_speed`, an unlinked audio external that
+      `Haudio` does not cover. It needs a new premise, so it waits for the user.
+    - CLIMBING_POLE reads `m->area->camera->yaw`. ffw has no camera fact, and the StartSat
+      witness area is a fresh, all-Vundef block. The fix is to carry a `wblk` camera fact in
+      ffw (extend the witness; preserve it in each row), then walk the case with `c_smawa`
+      and `is_anim_past_frame`.
+    - TOP_OF_POLE*: need the DMA row (approved), gMarioAnims linked (it is a size-0 extern),
+      and animFrame ≥ −1.
+    Next: the ledge cases and IN_CANNON.
     The FELL_OFF → FREEFALL path sets y := base and does not refresh floorHeight. `fresh`
     carries only fh <= y_entry + 241, while y_entry may be up to about base + 16, so it is
     not enough. That path needs a carried pole fact (y = oPosY + polePos, within float
