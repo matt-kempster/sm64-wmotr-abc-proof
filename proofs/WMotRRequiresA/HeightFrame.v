@@ -69,7 +69,7 @@ From SM64.Proofs Require Import MWFReal RestSurface FloorsSurface
 From SM64.Proofs Require Import LinkedTwelve SpawnInit InitMemSat.
 From SM64.Proofs Require SpawnBodies.
 From SM64.Proofs Require Import NoAImpliesNoFlyLinked NoAImpliesNoFlyTwelve.
-From SM64.Proofs Require Import FrameCalls FrameSplit AirSplit.
+From SM64.Proofs Require Import FrameCalls FrameSplit AirSplit AutoSplit.
 From SM64.Proofs.WMotRRequiresA Require Import FfWorld FfRow AhwRow KbRow FpuFloor ExtInert.
 From SM64.Proofs Require OsDmaFloor LptBody.
 From SM64.Proofs Require Import HeightInvariant HeightBudgetArith HeightMoveCatalog WMotRLevel
@@ -522,16 +522,36 @@ Section HeightLinked12.
      mario_process_interactions keep it; each dispatcher, called with the
      floor fresh when the action is airborne (fresh_at), returns 0 (the
      loop ends) or leaves it fresh-when-airborne (the loop goes on with no
-     new refresh).  These are claims of the rows (pre_of / post_of). *)
-  Hypothesis Hseg_call_na : seg_call_rows_naF lp bm MWF.
+     new refresh).  These are claims of the rows (pre_of / post_of).
+     Since 2026-10-21 BOTH dispatchers are apart (AutoSplit.
+     seg_call_rows_naFA): the automatic dispatcher's row is PROVED
+     (AutoSplit.aut_seg) from its prologue (Hair_pro), the store
+     m->quicksandDepth = 0 (proved to keep mem_ok, the frame world, Phi's
+     cells and fresh_at) and the per-case rows Hauto_case below. *)
+  Hypothesis Hseg_call_na : seg_call_rows_naFA lp bm MWF.
   Hypothesis Hseg_any : seg_any_rows lp bm MWF.
   (* the airborne dispatcher, split per case (AirSplit, 2026-10-20): its two
      prologue calls, and each no-A action's handler called with the action
      cell = its label (11 cases: freefall, dive, the two air knockbacks, soft
      bonk, air-hit-wall, the two rollouts, butt-slide air, ground pound,
      slide kick).  The other 30 cases are dead under action_sat R_noA. *)
-  (* the prologue keeps fresh_at (AirSplit.air_pro_rows) *)
+  (* the prologue keeps fresh_at (AirSplit.air_pro_rows); since 2026-10-21
+     it also covers the automatic dispatcher's prologue call,
+     check_common_automatic_cancels (same shape of claim) *)
   Hypothesis Hair_pro : air_pro_rows lp bm MWF.
+  (* the automatic dispatcher, split per case (AutoSplit, 2026-10-21): each
+     no-A action's handler called with the action cell = its label and the
+     floor fresh, returning FALSE or leaving the floor fresh.  12 live cases
+     (computed, AutoSplit.aut_case_list_eq): the six pole actions
+     (GRAB_POLE_SLOW / FAST, CLIMBING_POLE, TOP_OF_POLE_TRANSITION,
+     TOP_OF_POLE, HOLDING_POLE), the five ledge cases (LEDGE_GRAB,
+     LEDGE_CLIMB_SLOW_1 / 2, LEDGE_CLIMB_DOWN, LEDGE_CLIMB_FAST) and
+     IN_CANNON.  The other 5 cases (3 hangs, GRABBED, TORNADO_TWIRLING) are
+     dead under action_sat R_noA.  A NEW hypothesis (27 -> 28) that is
+     strictly narrower than what it replaces: the automatic dispatcher's
+     whole row used to sit inside Hseg_call_na; now its prologue and store
+     are proved and only these 12 handler calls stay assumed. *)
+  Hypothesis Hauto_case : aut_case_rows lp bm MWF.
   (* the freefall case (FfRow, 2026-10-20): PROVED from the real
      act_freefall (FfRow.ff_row: the call keeps the frame world and moves
      Phi's cells by a MoveChain, from FfWorld.ffw, which PhiW / fworld
@@ -593,12 +613,31 @@ Section HeightLinked12.
              Hpres_warp_ext_open).
   Qed.
 
+  Lemma auto_leaves :
+    forall fid f, mem_id fid AutomaticSurface.automatic_callee_ids = true ->
+      (prog_defmap mario_actions_automatic.prog) ! fid = Some (Gfun (Internal f)) ->
+      body_pres lp (NoA_real bm) MWF bm f.
+  Proof.
+    exact (auto_leaves_linked12 lp H12 bm bc oc0 SafeB HSafeB_syms Hbm_sym Hbc_sym Hoc0
+             Hcsp_scm_real Hdma_floor Hpres_obj_ext_open2 Hcp_spawn_real).
+  Qed.
+
+  (* the automatic dispatcher's row, from AutoSplit *)
+  Lemma Hseg_call_naF : seg_call_rows_naF lp bm MWF.
+  Proof.
+    destruct call_facts as (_ & _ & Hgms & _).
+    exact (seg_call_rows_naF_of_auto lp (linked12_LO_mario lp H12) (linked12_LO_aut lp H12) bm MWF
+             (fun m0 HM => mwf_real_ctl lp bm bc oc0 SafeB m0 HM)
+             (mwf_window_linked12 lp H12 bm bc oc0 SafeB HSafeB_syms Hbm_sym Hbc_sym Hoc0)
+             auto_leaves Hgms Hseg_call_na Hair_pro Hauto_case).
+  Qed.
+
   Lemma Hseg_call : seg_call_rows_fr lp bm MWF.
   Proof.
     destruct call_facts as (_ & _ & Hgms & _).
     exact (seg_call_rows_of_air lp (linked12_LO_mario lp H12) (linked12_LO_air lp H12) bm MWF
              (fun m0 HM => mwf_real_ctl lp bm bc oc0 SafeB m0 HM) air_leaves Hgms
-             Hseg_call_na Hair_pro Hair_case).
+             Hseg_call_naF Hair_pro Hair_case).
   Qed.
 
   Lemma frame_FS : forall c0 m m',

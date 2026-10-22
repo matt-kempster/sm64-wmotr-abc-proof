@@ -25,7 +25,7 @@
 From Coq Require Import ZArith List Lia Relations.
 From compcert Require Import Coqlib Maps AST Integers Floats Values Events Memory
   Globalenvs Ctypes Ctypesdefs Cop Clight ClightBigstep Linking.
-From SM64.Generated Require mario mario_actions_airborne.
+From SM64.Generated Require mario mario_actions_airborne mario_actions_automatic.
 From SM64.Proofs Require Import Flying Taint ActionValue ActionValueFrame
   RealFrameValue RealFrameLinked AGates SymbolicLinking.
 From SM64.Proofs Require Import CensusV2 EngineV2Consumer RestSurface AirborneSurface.
@@ -258,9 +258,13 @@ Section AirSplitS.
      called with the action cell = its label.  The dispatch's floor
      refresh (FfWorld.fresh_at: fresh when the action is airborne) holds at
      the call (FrameStage); the prologue keeps it, a case's handler gets
-     it (its label is airborne) and returns FALSE or leaves it fresh ---- *)
+     it (its label is airborne) and returns FALSE or leaves it fresh.
+     Since 2026-10-21 the prologue row also covers the automatic
+     dispatcher's prologue call, check_common_automatic_cancels
+     (AutoSplit), the same shape of claim ---- *)
   Definition air_pro_rows : Prop :=
-    forall f fd v, (f = AIR._check_common_airborne_cancels \/ f = AIR._play_far_fall_sound) ->
+    forall f fd v, (f = AIR._check_common_airborne_cancels \/ f = AIR._play_far_fall_sound
+                    \/ f = mario_actions_automatic._check_common_automatic_cancels) ->
       resolves lp f fd ->
       seg_okR lp bm MWF fd [v] (fun m => marg_ok bm [v] /\ fresh_at bm m) (fun m' _ => fresh_at bm m').
 
@@ -435,7 +439,7 @@ Section AirSplitS.
     assert (Hpro1 : forall f, (f = AIR._check_common_airborne_cancels \/ f = AIR._play_far_fall_sound) ->
               forall fd, resolves lp f fd ->
                 seg_okR lp bm MWF fd [v] (fun m => marg_ok bm [v] /\ fresh_at bm m) (fun m' _ => fresh_at bm m'))
-      by (intros f Hf fd Hr; exact (Hpro f fd v Hf Hr)).
+      by (intros f Hf fd Hr; apply (Hpro f fd v); [destruct Hf as [Hf | Hf]; auto | exact Hr]).
     (* the body ends with fresh_at, or returns `cancel` = 0 *)
     match goal with |- FSc c ?M /\ _ => match type of Hres with outcome_result_value ?O _ _ _ =>
     enough (HB' : FSc c M /\ (fresh_at bm M \/ O = Out_return (Some (Vint Int.zero, tuint)))) end end.
