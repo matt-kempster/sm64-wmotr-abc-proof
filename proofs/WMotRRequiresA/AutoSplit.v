@@ -260,7 +260,7 @@ Section AutSplitS.
           Mem.load Mint32 m bm off = Some (Vptr sb so) -> sb <> bm)
     /\ (forall bc oc, Mem.load Mint32 m bm FFW_CTL = Some (Vptr bc oc) -> bc <> bm).
   Proof.
-    intros m (_ & EX & _ & _).
+    intros m (_ & EX & _).
     destruct EX as (gp & bfi & bmiss & bcalls & bsin & ab & biom & bmq & brm & bo & oo & bt & ot & fl & ar & inp & ctl &
                     HC & HS & HM & S1 & S2 & S3 & S4 & S5 & S6 & S7 & S8 & Lo & Soo & La & Lb & Sot & D1 & D2 & D3 & D4 &
                     W & Lf & Wf & Wc0 & Lar & War & Li & Ai & Lc & Wc & Co).
@@ -326,7 +326,7 @@ Section AutSplitS.
 
     Lemma qsd_ffw : ffw ge bm m -> ffw ge bm m'.
     Proof.
-      intros (Hgn & EX & FD & FRO).
+      intros (Hgn & EX & FD).
       destruct EX as (gp & bfi & bmiss & bcalls & bsin & ab & biom & bmq & brm & bo & oo & bt & ot & fl & ar & inp & ctl &
                       HC & HS & HM & S1 & S2 & S3 & S4 & S5 & S6 & S7 & S8 & Lo & Soo & La & Lb & Sot & D1 & D2 & D3 & D4 &
                       W & Lf & Wf & Wc0 & Lar & War & Li & Ai & Lc & Wc & Co).
@@ -341,7 +341,7 @@ Section AutSplitS.
       { destruct (gp bm) as [[b' d]|] eqn:G0; [| congruence].
         destruct (closed_flat _ _ _ _ _ HC G0) as (-> & ->). reflexivity. }
       split; [rewrite qsd_nb; exact Hgn |].
-      split; [| split].
+      split.
       - exists gp, bfi, bmiss, bcalls, bsin, ab, biom, bmq, brm, bo, oo, bt, ot, fl, ar, inp, ctl.
         split; [refine (store_closed gp m m' Mfloat32 bm QSD_OFF (Vsingle Float32.zero) Hst HC Gbm _);
                 right; intros b' o' E; discriminate E |].
@@ -361,9 +361,6 @@ Section AutSplitS.
         split; [lqm; exact Lc |]. split; [exact (wblk_keep2 m m' rl Hnb Hperm Hld _ _ _ Wc) |].
         intros i cb co Hi Hl. rewrite LQb in Hl by exact D1. exact (Co i cb co Hi Hl).
       - exact (floor_data_keep2 ge m m' rl Hnb Hperm Hld gp W FD).
-      - intros a s y fh Ha Hs Hae Hy Hf.
-        lqm_in Ha. lqm_in Hs. lqm_in Hy. lqm_in Hf.
-        exact (FRO a s y fh Ha Hs Hae Hy Hf).
     Qed.
 
     Lemma qsd_coll : forall v, (forall b o, v = Vptr b o -> b <> bm) -> coll_obj_ok m v -> coll_obj_ok m' v.
@@ -381,7 +378,7 @@ Section AutSplitS.
     Lemma qsd_world : ffw ge bm m -> wmotr_world bm m -> wmotr_world bm m'.
     Proof.
       intros Hf (Hw & Hc & Hfl & Hh & Hr & Hq & Ho).
-      pose proof Hf as (_ & EX & _ & _).
+      pose proof Hf as (_ & EX & _).
       destruct EX as (gp & bfi & bmiss & bcalls & bsin & ab & biom & bmq & brm & bo & oo & bt & ot & fl & ar & inp & ctl &
                       HC & HS & HM & S1 & S2 & S3 & S4 & S5 & S6 & S7 & S8 & Lo & Soo & La & Lb & Sot & D1 & D2 & D3 & D4 &
                       W & Lf & Wf & Wc0 & Lar & War & Li & Ai & Lc & Wc & Co).
@@ -451,12 +448,14 @@ Section AutSplitS.
       rewrite LQb; [reflexivity | exact (Ac _ _ E)].
     Qed.
 
-    Lemma qsd_used : used_ok bm m -> used_ok bm m'.
+    Lemma qsd_used : ffw ge bm m -> used_ok bm m -> used_ok bm m'.
     Proof.
+      intros Hf. destruct (ffw_apart m Hf) as (Hmbm & _ & _).
       apply used_ok_keep.
       - intros o ch Hin. apply LQm. cbn [In] in Hin.
         destruct Hin as [E | [E | [E | [E | []]]]]; injection E as <- <-; qside.
       - intros ub uo _ A z _. exact (LQb _ _ _ (proj1 A)).
+      - intros mb mo Hl. apply LQb. exact (Hmbm mb mo Hl).
     Qed.
 
     Lemma qsd_fworld : fworld lp bm m -> fworld lp bm m'.
@@ -467,7 +466,7 @@ Section AutSplitS.
       split; [exact (qsd_anim Hf Han) |].
       split; [exact (qsd_mobj Hf Hmo) |].
       split; [rewrite (qsd_adown Hf); exact Hd |].
-      split; [exact (qsd_ffw Hf) | exact (qsd_used Hu)].
+      split; [exact (qsd_ffw Hf) | exact (qsd_used Hf Hu)].
     Qed.
 
     Lemma qsd_mem_ok : mem_ok m -> mem_ok m'.

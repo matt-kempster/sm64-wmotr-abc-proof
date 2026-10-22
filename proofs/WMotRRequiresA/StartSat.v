@@ -1035,9 +1035,7 @@ Section Witness.
       split.
       { rewrite genv_next_eq, nb11, nb3. unfold Ple. lia. }
       split.
-      2: split; [ exact floor_data11 | ].
-      2: { intros a s y fh Hl _ Hae. rewrite L_act in Hl. injection Hl as <-. exfalso.
-           vm_compute in Hae. discriminate Hae. }
+      2: exact floor_data11.
       exists (Mem.flat_inj thr), bfi, bmiss, bcalls, bsin, ab, biom, bmq, brm, bo, Ptrofs.zero,
         bt, Ptrofs.zero, (Vptr bs Ptrofs.zero), (Vptr bar Ptrofs.zero), Int.zero, (Vptr bc Ptrofs.zero).
       split; [ exact closed11 | ].
@@ -1052,9 +1050,9 @@ Section Witness.
       split; [ exact bo_bm | ].
       split; [ intro E; exact (sym_ne_fresh _ _ _ Hbm (or_introl eq_refl) (eq_sym E)) | ].
       split; [ exact bt_bo | ].
-      split; [ intros b [Hin | Hin];
+      split; [ intros b [Hin | [Hin | Hin]];
                [ cbn [In] in Hin; repeat (destruct Hin as [<- | Hin]; [ split; neq | ]); destruct Hin
-               | split; neq ] | ].
+               | split; neq | split; neq ] | ].
       split; [ exact wff11 | ].
       split; [ exact L_floor | ].
       split.
