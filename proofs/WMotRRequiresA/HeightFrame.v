@@ -71,6 +71,7 @@ From SM64.Proofs Require SpawnBodies.
 From SM64.Proofs Require Import NoAImpliesNoFlyLinked NoAImpliesNoFlyTwelve.
 From SM64.Proofs Require Import FrameCalls FrameSplit AirSplit AutoSplit.
 From SM64.Proofs.WMotRRequiresA Require Import FfWorld FfRow AhwRow KbRow FpuFloor ExtInert.
+From SM64.Proofs.WMotRRequiresA Require PoleXc PoleRow.
 From SM64.Proofs Require OsDmaFloor LptBody.
 From SM64.Proofs Require Import HeightInvariant HeightBudgetArith HeightMoveCatalog WMotRLevel
   WMotRWorld NoAActions.
@@ -550,8 +551,19 @@ Section HeightLinked12.
      dead under action_sat R_noA.  A NEW hypothesis (27 -> 28) that is
      strictly narrower than what it replaces: the automatic dispatcher's
      whole row used to sit inside Hseg_call_na; now its prologue and store
-     are proved and only these 12 handler calls stay assumed. *)
-  Hypothesis Hauto_case : aut_case_rows lp bm MWF.
+     are proved and only these 12 handler calls stay assumed.
+     Since 2026-10-22 GRAB_POLE_SLOW and GRAB_POLE_FAST are PROVED (PoleRow.
+     pole_row: the real act_grab_pole_slow / _fast walked on the link,
+     every outcome a RangedMove keeping the frame world and usedObj's pole
+     facts); 10 cases stay assumed, below. *)
+  (* the ten cases still assumed: HOLDING_POLE, CLIMBING_POLE,
+     TOP_OF_POLE_TRANSITION, TOP_OF_POLE (their walks need Mario's
+     animation data linked: open), the five ledge cases (open) and
+     IN_CANNON (open) *)
+  Hypothesis Hauto_rest : PoleRow.aut_case_rest_pole lp bm MWF.
+  (* LABELED OPEN PREMISE: find_ceil's result is 20000 (none) or not below (int)y - 78
+     (PoleXc.find_ceil_height; to discharge like FloorHeight's find_floor) *)
+  Hypothesis Hceil : PoleXc.find_ceil_height (globalenv lp).
   (* the freefall case (FfRow, 2026-10-20): PROVED from the real
      act_freefall (FfRow.ff_row: the call keeps the frame world and moves
      Phi's cells by a MoveChain, from FfWorld.ffw, which PhiW / fworld
@@ -582,6 +594,12 @@ Section HeightLinked12.
   Hypothesis Hsqrtf_float : sqrtf_float.
   Hypothesis Haudio : audio_inert.      (* LABELED OPEN PREMISE: audio, deferred *)
   Hypothesis Hcamera : camera_inert.    (* LABELED OPEN PREMISE: camera, deferred *)
+
+  (* the automatic dispatcher's cases: the two grabs proved, the rest assumed *)
+  Lemma Hauto_case : aut_case_rows lp bm MWF.
+  Proof.
+    exact (PoleRow.aut_case_rows_pole lp H12 Hdma_floor Haudio Hceil bm Hbm_sym MWF Hauto_rest).
+  Qed.
 
   Lemma Hair_case : air_case_rows lp bm MWF.
   Proof.

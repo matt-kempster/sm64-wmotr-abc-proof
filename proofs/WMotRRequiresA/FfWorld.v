@@ -26,14 +26,11 @@
 (*   - m->input has neither INPUT_A_PRESSED nor INPUT_A_DOWN (no-A), nor   *)
 (*     INPUT_INTERACT_OBJ_GRABBABLE (only interact_grabbable sets it,      *)
 (*     interaction.c:1657, and WMotR has nothing grabbable: WMotRWorld);  *)
-(*   - in freefall, the air knockback family (HeightMoveCatalog.          *)
-(*     air_entry: AIR_HIT_WALL, SOFT_BONK, BACKWARD / FORWARD_AIR_KB) and   *)
-(*     ground pound (fro_entry), and butt-slide air and slide kick at     *)
-(*     state 0 (fro_st), Mario's floorHeight is a floor refresh of his y  *)
-(*     (FloorRefreshOK): -11000, or a WMotR floor at most STEP_UP above y. *)
-(*     (Only these: a landing can leave floorHeight a quarter step stale, *)
-(*     and it lands in a ground action, or bounces butt-slide air or slide *)
-(*     kick to state 1.  Ground pound's windup only raises y.)             *)
+(*   (2026-10-22: the conjunct that in an air action floorHeight is a      *)
+(*   floor refresh of y was DROPPED: every row that read it already has the *)
+(*   dispatch's FfWorld.fresh as its precondition, and a pole frame that  *)
+(*   drops Mario to FREEFALL at the pole base cannot re-establish it from *)
+(*   the code alone.)                                                      *)
 (* Offsets and sizes are the generated AST's (pinned in FfRow on the link). *)
 (* ffw survives the frame's two stores into Mario's object (ffw_keep).      *)
 (* ====================================================================== *)
@@ -98,7 +95,9 @@ Definition ffw (m : mem) : Prop :=
       /\ bo <> bm /\ bt <> bm /\ bt <> bo
       (* (gAudioRandom too: play_mario_jump_sound reads it, a world cell) *)
       /\ (forall b, In b [bfi; bmiss; bcalls; bsin; ab; biom; bmq; brm]
-                    \/ Genv.find_symbol G mario._gAudioRandom = Some b -> b <> bo /\ b <> bt)
+                    \/ Genv.find_symbol G mario._gAudioRandom = Some b
+                    (* gCurrLevelNum: add_tree_leaf_particles reads it (the pole walks) *)
+                    \/ Genv.find_symbol G mario._gCurrLevelNum = Some b -> b <> bo /\ b <> bt)
       (* the collision partition *)
       /\ Wff G m gp SZ_SURFACE (ff_rl bm bo oo bfi bmiss bcalls ab bt biom bmq brm)
       (* m->floor, m->area *)
@@ -117,12 +116,7 @@ Definition ffw (m : mem) : Prop :=
       (* the collided objects *)
       /\ (forall i cb co, 0 <= i < 4 ->
             Mem.load Mint32 m bo (Ptrofs.unsigned oo + FFW_COLL + 4 * i) = Some (Vptr cb co) -> cb = bo))
-  /\ floor_data G m
-  /\ (forall a s y fh, Mem.load Mint32 m bm 12 = Some (Vint a) ->
-        Mem.load Mint16unsigned m bm 24 = Some (Vint s) -> fro_st a (Int.unsigned s) = true ->
-        Mem.load Mfloat32 m bm OFS_POSY = Some (Vsingle y) ->
-        Mem.load Mfloat32 m bm OFS_FLOORH = Some (Vsingle fh) ->
-        FloorRefreshOK wmotr_floor (R2 y) (R2 fh)).
+  /\ floor_data G m.
 
 (* ---- transfer: a memory that differs from m only inside Mario's object ---- *)
 
@@ -234,7 +228,7 @@ Theorem ffw_keep :
   (forall gp, closed_by gp m -> gp bo0 = Some (bo0, 0) -> closed_by gp m') ->
   ffw m -> ffw m'.
 Proof.
-  intros Hmo Hne Hab HC' (Hgn & EX & FD & FRO).
+  intros Hmo Hne Hab HC' (Hgn & EX & FD).
   destruct EX as (gp & bfi & bmiss & bcalls & bsin & ab & biom & bmq & brm & bo & oo & bt & ot & fl & ar & inp & ctl &
                   HC & HS & HM & S1 & S2 & S3 & S4 & S5 & S6 & S7 & S8 & Lo & Soo & La & Lb & Sot & D1 & D2 & D3 & D4 &
                   W & Lf & Wf & Wc0 & Lar & War & Li & Ai & Lc & Wc & Co).
@@ -246,7 +240,7 @@ Proof.
     destruct (gp bo0) as [[b' d]|] eqn:G0; [| congruence].
     destruct (closed_flat _ _ _ _ _ HC G0) as (-> & ->). reflexivity. }
   split; [rewrite Hnb; exact Hgn |].
-  split; [| split].
+  split.
   - exists gp, bfi, bmiss, bcalls, bsin, ab, biom, bmq, brm, bo0, oo0, bt, ot, fl, ar, inp, ctl.
     split; [exact (HC' gp HC Gbo) |]. split; [exact HS |]. split; [exact HM |].
     rewrite !Hld by congruence.
@@ -259,8 +253,6 @@ Proof.
     split; [exact Lc |]. split; [exact (wblk_keep _ _ _ Wc) |].
     intros i cb co Hi Hl. rewrite Hldc in Hl by exact Hi. exact (Co i cb co Hi Hl).
   - exact (floor_data_keep _ _ Ho W FD).
-  - intros a s y fh Ha Hs Hae Hy Hf. rewrite Hld in Ha, Hs, Hy, Hf by congruence.
-    exact (FRO a s y fh Ha Hs Hae Hy Hf).
 Qed.
 End KEEP.
 

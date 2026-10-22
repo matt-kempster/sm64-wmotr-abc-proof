@@ -245,11 +245,29 @@ Definition low_pole_obj (m : mem) (b : block) (o : Z) : Prop :=
     /\ Mem.load Mfloat32 m b (o + HITBOX_DOWN_OFF) = Some (Vsingle Float32.zero)
     /\ Mem.load Mfloat32 m b (o + HITBOX_H_OFF) = Some (f32z (top - base)).
 
+(* Mario's object's oMarioPolePos (object_fields.h: OBJECT_FIELD_F32(0x22)) *)
+Definition POLEPOS_OFF : Z := RAW_OFF + 4 * 34.   (* 0x110 *)
+
+(* the pole facts set_pole_position's height needs (2026-10-22, the pole
+   walks): the used pole lies in Mario's object's block (both are
+   gObjectPool slots) and fits in it, and Mario's oMarioPolePos is a finite
+   float >= -1000.  In the game interact_pole sets it to pos[1] - oPosY with
+   Mario's hitbox (160 high) overlapping the pole's, so >= -160, and every
+   pole frame that keeps a pole action leaves it >= 0 (set_pole_position
+   drops Mario off the pole below 0).  -1000 keeps the s16 casts of
+   find_ceil / find_floor away from their wrap. *)
+Definition pole_pos_ok (bm : block) (m : mem) (ub : block) (uo : ptrofs) : Prop :=
+  Ptrofs.unsigned uo + OBJ_SPAN <= Ptrofs.modulus
+  /\ forall mb mo, Mem.load Mint32 m bm MARIOOBJ_OFF = Some (Vptr mb mo) ->
+       ub = mb /\ exists p, Mem.load Mfloat32 m mb (Ptrofs.unsigned mo + POLEPOS_OFF) = Some (Vsingle p)
+                    /\ F32 p = true /\ (-1000 <= R2 p)%R.
+
 Definition used_ok (bm : block) (m : mem) : Prop :=
   forall a, Mem.load Mint32 m bm 12 = Some (Vint a) ->
     (In (Int.unsigned a) pole_acts ->
        exists ub uo, Mem.load Mint32 m bm USED_OFF = Some (Vptr ub uo)
          /\ low_pole_obj m ub (Ptrofs.unsigned uo) /\ used_apart bm m ub uo
+         /\ pole_pos_ok bm m ub uo
          /\ forall v, Mem.load Mfloat32 m bm OFS_VELY = Some (Vsingle v) -> (R2 v <= 0)%R)
     /\ (Int.unsigned a = ACT_IN_CANNON_Z ->
        exists ub uo, Mem.load Mint32 m bm USED_OFF = Some (Vptr ub uo)
@@ -271,20 +289,26 @@ Lemma used_ok_keep : forall bm m m',
   (forall ub uo, Mem.load Mint32 m bm USED_OFF = Some (Vptr ub uo) -> used_apart bm m ub uo ->
      forall z, z = O_POSY \/ z = HITBOX_DOWN_OFF \/ z = HITBOX_H_OFF ->
      Mem.load Mfloat32 m' ub (Ptrofs.unsigned uo + z) = Mem.load Mfloat32 m ub (Ptrofs.unsigned uo + z)) ->
+  (forall mb mo, Mem.load Mint32 m bm MARIOOBJ_OFF = Some (Vptr mb mo) ->
+     Mem.load Mfloat32 m' mb (Ptrofs.unsigned mo + POLEPOS_OFF)
+     = Mem.load Mfloat32 m mb (Ptrofs.unsigned mo + POLEPOS_OFF)) ->
   used_ok bm m -> used_ok bm m'.
 Proof.
-  intros bm m m' Hc Hu U a La.
+  intros bm m m' Hc Hu Hpp U a La.
   rewrite (Hc 12 Mint32) in La by (cbn; auto).
   destruct (U a La) as (U1 & U2).
   assert (Ap : forall ub uo, used_apart bm m ub uo -> used_apart bm m' ub uo).
   { intros ub uo A. split; [exact (proj1 A) |]. intros mb mo Hl.
     rewrite (Hc MARIOOBJ_OFF Mint32) in Hl by (cbn; auto 6). exact (proj2 A mb mo Hl). }
   split.
-  - intros Hp. destruct (U1 Hp) as (ub & uo & Lu & (base & top & Hin & Ht & P1 & P2 & P3) & A & V).
+  - intros Hp. destruct (U1 Hp) as (ub & uo & Lu & (base & top & Hin & Ht & P1 & P2 & P3) & A & (S & PP) & V).
     exists ub, uo. split; [rewrite (Hc USED_OFF Mint32) by (cbn; auto); exact Lu |].
-    split; [| split; [exact (Ap ub uo A) |]].
+    split; [| split; [exact (Ap ub uo A) | split]].
     + exists base, top. split; [exact Hin |]. split; [exact Ht |].
       rewrite !(Hu ub uo Lu A) by auto. auto.
+    + split; [exact S |]. intros mb mo Hl.
+      rewrite (Hc MARIOOBJ_OFF Mint32) in Hl by (cbn; auto 6).
+      rewrite (Hpp mb mo Hl). exact (PP mb mo Hl).
     + intros v Lv. rewrite (Hc OFS_VELY Mfloat32) in Lv by (cbn; auto 6). exact (V v Lv).
   - intros Hcn. destruct (U2 Hcn) as (ub & uo & Lu & (y & Hin & P1) & A).
     exists ub, uo. split; [rewrite (Hc USED_OFF Mint32) by (cbn; auto); exact Lu |].
