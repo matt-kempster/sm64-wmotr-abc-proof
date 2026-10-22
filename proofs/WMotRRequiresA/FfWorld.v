@@ -360,11 +360,33 @@ End FFW.
 (* ---- the dispatch's floor refresh (FrameStage) ------------------------- *)
 (* Mario's floorHeight is a floor refresh of his height: what
    update_mario_inputs leaves (update_mario_geometry_inputs's find_floor),
-   and what an airborne handler's walk needs at its entry *)
+   and what an airborne handler's walk needs at its entry; and, unless the
+   action is ACT_SOFT_BONK (0x010208B6), with 101 units of slack:
+   floorHeight is -11000 or at most pos[1] + 140.
+   FOUND 2026-10-22 (the ledge walks): let_go_of_ledge (mario_actions_
+   automatic.c:490) moves pos[1] down by 100 (or to the floor below, when
+   that is higher), does NOT refresh floorHeight, and returns
+   set_mario_action(SOFT_BONK) = TRUE; the dispatch loop then runs
+   act_soft_bonk on the stale floor.  `fh <= y + 241` alone is not kept by
+   that drop; the slack is.  In the game update_mario_inputs' find_floor
+   gives at most pos[1] + 80 (FloorBound.ff_height_bound), and soft bonk
+   without A returns FALSE (its one TRUE is the A-gated wall kick:
+   SbRet0), so the stale floor goes no further than act_soft_bonk. *)
+Definition SB_ACT : Z := 16910518.
+Definition FRESH_SLACK : R := 140.
+
 Definition fresh (bm : block) (m : mem) : Prop :=
   forall y fh, Mem.load Mfloat32 m bm OFS_POSY = Some (Vsingle y) ->
     Mem.load Mfloat32 m bm OFS_FLOORH = Some (Vsingle fh) ->
-    FloorRefreshOK wmotr_floor (R2 y) (R2 fh).
+    FloorRefreshOK wmotr_floor (R2 y) (R2 fh)
+    /\ (Mem.load Mint32 m bm 12 = Some (Vint (Int.repr SB_ACT))
+        \/ (R2 fh = -11000)%R \/ (R2 fh <= R2 y + FRESH_SLACK)%R).
+
+Lemma fresh_fro : forall bm m y fh, fresh bm m ->
+  Mem.load Mfloat32 m bm OFS_POSY = Some (Vsingle y) ->
+  Mem.load Mfloat32 m bm OFS_FLOORH = Some (Vsingle fh) ->
+  FloorRefreshOK wmotr_floor (R2 y) (R2 fh).
+Proof. intros bm m y fh H Ly Lf. exact (proj1 (H y fh Ly Lf)). Qed.
 
 (* ... when the action is an airborne or an automatic one ((action &
    ACT_GROUP_MASK) == ACT_GROUP_AIRBORNE (0x080) or ACT_GROUP_AUTOMATIC
@@ -390,10 +412,26 @@ Lemma fresh_at_air : forall bm m a, fresh_at bm m -> Mem.load Mint32 m bm 12 = S
   Int.and a (Int.repr 448) = Int.repr 128 -> fresh bm m.
 Proof. intros bm m a H L E. exact (H a L (or_introl E)). Qed.
 
-(* a handler that returned FALSE or kept the two cells (RetOk.RET) *)
+(* a handler that returned FALSE or kept the two cells (RetOk.RET), and
+   that returns FALSE when entered in SOFT_BONK *)
 Lemma fresh_ret : forall bm m0 m' vres, fresh bm m0 -> RET bm m0 m' vres ->
+  (Mem.load Mint32 m0 bm 12 = Some (Vint (Int.repr SB_ACT)) -> vres = Vint Int.zero) ->
   vres = Vint Int.zero \/ fresh bm m'.
 Proof.
-  intros bm m0 m' vres F [Z | (Y & H)]; [left; exact Z | right].
-  intros y fh Ly Lf. rewrite Y in Ly. rewrite H in Lf. exact (F y fh Ly Lf).
+  intros bm m0 m' vres F [Z | (Y & H)] S; [left; exact Z |].
+  destruct (Val.eq vres (Vint Int.zero)) as [Z | NZ]; [left; exact Z | right].
+  intros y fh Ly Lf. rewrite Y in Ly. rewrite H in Lf.
+  destruct (F y fh Ly Lf) as (A & [B | B]); [exfalso; exact (NZ (S B)) |].
+  split; [exact A | right; exact B].
+Qed.
+
+(* ... for a handler entered in a constant action other than SOFT_BONK *)
+Lemma fresh_ret_ns : forall bm m0 m' vres n,
+  Mem.load Mint32 m0 bm 12 = Some (Vint (Int.repr n)) ->
+  Int.eq (Int.repr n) (Int.repr SB_ACT) = false ->
+  fresh bm m0 -> RET bm m0 m' vres -> vres = Vint Int.zero \/ fresh bm m'.
+Proof.
+  intros bm m0 m' vres n L N F R. apply (fresh_ret bm m0 m' vres F R).
+  intros L'. rewrite L in L'. assert (E : Int.repr n = Int.repr SB_ACT) by congruence.
+  rewrite E, Int.eq_true in N. discriminate N.
 Qed.

@@ -313,7 +313,8 @@ Section AutSplitS.
 
     Lemma qsd_fresh : fresh bm m -> fresh bm m'.
     Proof.
-      intros H y fh Ly Lf. lqm_in Ly. lqm_in Lf. exact (H y fh Ly Lf).
+      intros H y fh Ly Lf. lqm_in Ly. lqm_in Lf.
+      destruct (H y fh Ly Lf) as (A & [B | B]); (split; [exact A |]); [left; lqm; exact B | right; exact B].
     Qed.
 
     Lemma qsd_fresh_at : fresh_at bm m -> fresh_at bm m'.

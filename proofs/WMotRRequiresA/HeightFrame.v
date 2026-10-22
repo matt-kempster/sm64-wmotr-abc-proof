@@ -71,7 +71,7 @@ From SM64.Proofs Require SpawnBodies.
 From SM64.Proofs Require Import NoAImpliesNoFlyLinked NoAImpliesNoFlyTwelve.
 From SM64.Proofs Require Import FrameCalls FrameSplit AirSplit AutoSplit.
 From SM64.Proofs.WMotRRequiresA Require Import FfWorld FfRow AhwRow KbRow FpuFloor ExtInert.
-From SM64.Proofs.WMotRRequiresA Require PoleXc PoleRow.
+From SM64.Proofs.WMotRRequiresA Require PoleXc PoleRow LedgeRow.
 From SM64.Proofs Require OsDmaFloor LptBody.
 From SM64.Proofs Require Import HeightInvariant HeightBudgetArith HeightMoveCatalog WMotRLevel
   WMotRWorld NoAActions.
@@ -555,12 +555,19 @@ Section HeightLinked12.
      Since 2026-10-22 GRAB_POLE_SLOW and GRAB_POLE_FAST are PROVED (PoleRow.
      pole_row: the real act_grab_pole_slow / _fast walked on the link,
      every outcome a RangedMove keeping the frame world and usedObj's pole
-     facts); 10 cases stay assumed, below. *)
-  (* the ten cases still assumed: HOLDING_POLE, CLIMBING_POLE,
+     facts); LEDGE_GRAB and LEDGE_CLIMB_DOWN are PROVED (LedgeRow.
+     ledge_row: the real act_ledge_grab / _climb_down walked on the link,
+     every outcome a RangedMove keeping the frame world, returning FALSE
+     with the cells kept or letting go of the ledge into SOFT_BONK with
+     the floor still fresh, FfWorld.fresh's slack); 8 cases stay assumed,
+     below. *)
+  (* the eight cases still assumed: HOLDING_POLE, CLIMBING_POLE,
      TOP_OF_POLE_TRANSITION, TOP_OF_POLE (their walks need Mario's
-     animation data linked: open), the five ledge cases (open) and
-     IN_CANNON (open) *)
-  Hypothesis Hauto_rest : PoleRow.aut_case_rest_pole lp bm MWF.
+     animation data linked: open), LEDGE_CLIMB_SLOW_1 / 2 and
+     LEDGE_CLIMB_FAST (update_ledge_climb_camera stores through
+     m->statusForCamera, the size-0 gPlayerCameraState of this link:
+     TRUST audit (l)) and IN_CANNON (the same store in its state 0) *)
+  Hypothesis Hauto_rest : LedgeRow.aut_case_rest_ledge lp bm MWF.
   (* LABELED OPEN PREMISE: find_ceil's result is 20000 (none) or not below (int)y - 78
      (PoleXc.find_ceil_height; to discharge like FloorHeight's find_floor) *)
   Hypothesis Hceil : PoleXc.find_ceil_height (globalenv lp).
@@ -595,10 +602,11 @@ Section HeightLinked12.
   Hypothesis Haudio : audio_inert.      (* LABELED OPEN PREMISE: audio, deferred *)
   Hypothesis Hcamera : camera_inert.    (* LABELED OPEN PREMISE: camera, deferred *)
 
-  (* the automatic dispatcher's cases: the two grabs proved, the rest assumed *)
+  (* the automatic dispatcher's cases: the two grabs and two ledge cases proved, the rest assumed *)
   Lemma Hauto_case : aut_case_rows lp bm MWF.
   Proof.
-    exact (PoleRow.aut_case_rows_pole lp H12 Hdma_floor Haudio Hceil bm Hbm_sym MWF Hauto_rest).
+    exact (PoleRow.aut_case_rows_pole lp H12 Hdma_floor Haudio Hceil bm Hbm_sym MWF
+             (LedgeRow.aut_case_rest_pole_ledge lp H12 Hdma_floor Haudio bm Hbm_sym MWF Hauto_rest)).
   Qed.
 
   Lemma Hair_case : air_case_rows lp bm MWF.
