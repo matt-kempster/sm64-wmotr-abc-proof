@@ -31,8 +31,15 @@ Local Open Scope R_scope.
 Definition c100 : float32 := Float32.of_bits (Int.repr 1120403456).   (* 100.0f *)
 Definition SB_A : Z := 16910518.
 (* the actions an outcome may end in: LEDGE_GRAB, LEDGE_CLIMB_SLOW_1,
-   LEDGE_CLIMB_DOWN, LEDGE_CLIMB_FAST, SOFT_BONK *)
-Definition LEDGE_OUT : list Z := [134218571; 1356; 1358; 1359; 16910518]%Z.
+   LEDGE_CLIMB_DOWN, LEDGE_CLIMB_FAST, SOFT_BONK; and (the climbs,
+   2026-10-22) LEDGE_CLIMB_SLOW_2, update_ledge_climb's ACT_IDLE, and
+   check_common_action_exits' no-A exits ACT_WALKING, ACT_BEGIN_SLIDING
+   (set_mario_action makes it BUTT_SLIDE / STOMACH_SLIDE) and ACT_FREEFALL *)
+Definition LEDGE_OUT : list Z :=
+  [134218571; 1356; 1358; 1359; 16910518; 1357; 205521409; 67109952; 8651858; 9176147; 16779404]%Z.
+(* the ledge handlers walked: LEDGE_GRAB, LEDGE_CLIMB_DOWN,
+   LEDGE_CLIMB_SLOW_1 / _2 (one handler), LEDGE_CLIMB_FAST *)
+Definition LEDGE_IN : list Z := [134218571; 1358; 1356; 1357; 1359]%Z.
 
 Section CLS.
 Variables (nbase : positive) (R0 : list (positive * Z)) (kv : list (positive * Z * memory_chunk * sval)).
@@ -70,7 +77,8 @@ Definition ledge_ok (g : gst) : bool :=
       && sveqb sf (ic rM oF Mfloat32)
       && ((sveqb sy sY && sveqb sg (ic rO oG Mfloat32) && sveqb sv (ic rM oV Mfloat32))
           || (sveqb sy (ic rM oF Mfloat32) && sveqb sg sy && is_pz sv)
-          || (sveqb sg (ic rO oG Mfloat32) && is_pz sv && lgy (g_pc g) sy))
+          || (sveqb sg (ic rO oG Mfloat32) && is_pz sv && lgy (g_pc g) sy)
+          || (sveqb sy sY && sveqb sg sY && sveqb sv (ic rM oV Mfloat32)))
   | _, _, _, _, _, _, _, _ => false
   end.
 
@@ -209,10 +217,12 @@ Proof.
   destruct H.
 Qed.
 
-Lemma ledge_in_ground : forall a st, a = Int.repr 134218571 \/ a = Int.repr 1358 ->
+Lemma ledge_in_ground : forall a st, (exists z, In z LEDGE_IN /\ a = Int.repr z) ->
   mode_of_action a st = M_Ground.
 Proof.
-  intros a st [-> | ->]; unfold mode_of_action, roll_prep; vm_compute; reflexivity.
+  intros a st (z & Hz & ->). unfold LEDGE_IN in Hz.
+  repeat (destruct Hz as [<- | Hz]; [unfold mode_of_action, roll_prep; vm_compute; reflexivity |]).
+  destruct Hz.
 Qed.
 
 (* the entry's floor refresh is an attach height *)
@@ -301,7 +311,7 @@ Proof.
   split; [rewrite <- Ea, Int.repr_unsigned; exact LA | exact Low].
 Qed.
 
-Hypothesis Hacn : c_action c0 = Int.repr 134218571 \/ c_action c0 = Int.repr 1358.
+Hypothesis Hacn : exists z, In z LEDGE_IN /\ c_action c0 = Int.repr z.
 Hypothesis FRO0 : FloorRefreshOK wmotr_floor (R2 (c_posy c0)) (R2 (c_floorh c0)).
 (* Mario's object is the walk's region rO *)
 Hypothesis HO0 : Mem.load Mint32 m0 bm oMO = Some (Vptr (e_blk E rO) (e_base E rO)).
@@ -386,7 +396,7 @@ Proof.
   assert (Hin : In (Int.unsigned i) LEDGE_OUT) by exact (zin_in _ _ Zin).
   assert (MG0 : mode_of c0 = M_Ground) by (unfold mode_of; exact (ledge_in_ground _ _ Hacn)).
   pose proof gfx0 as G0.
-  apply orb_true_iff in SH as [SH | SH]; [apply orb_true_iff in SH as [SH | SH] |].
+  apply orb_true_iff in SH as [SH | SH4]; [apply orb_true_iff in SH as [SH | SH]; [apply orb_true_iff in SH as [SH | SH] |] |].
   - (* switch: pos[1], gfx.pos[1], vel[1] kept; attach at h = pos[1] (grounded) *)
     repeat rewrite andb_true_iff in SH. destruct SH as ((Ey & Eg) & Ev).
     apply sveqb_eq in Ey, Eg, Ev. subst.
@@ -421,6 +431,15 @@ Proof.
     + apply (ledge_finish i js jt y' z (c_gfxy c0) (R2 y')
                LA LS LT LY LV LF LM LG Hin Fy' Fz FG0 Ly' LG0 ltac:(lra)); [| lra | right; reflexivity].
       right; left. split; [exact W | exact Hc].
+  - (* climb_up_ledge: pos[1] kept, gfx.pos := pos, vel[1] kept; attach at
+       h = pos[1] (grounded) *)
+    repeat rewrite andb_true_iff in SH4. destruct SH4 as ((Ey & Eg) & Ev).
+    apply sveqb_eq in Ey, Eg, Ev. subst.
+    rewrite Dy0 in LY, LG.
+    rewrite lic, lAM in LV. change OFS_VELY with oV in V0. rewrite V0 in LV.
+    apply (ledge_finish i js jt (c_posy c0) (c_vely c0) (c_posy c0) (R2 (c_posy c0))
+             LA LS LT LY LV LF LM LG Hin FY0 FV0 FY0 LY0 LY0 VR0); [| lra | left; reflexivity].
+    left. split; [exact MG0 | lra].
 Qed.
 End LC2.
 

@@ -42,6 +42,8 @@ Definition RMQ : positive := 11.
 Definition RRM : positive := 12.
 Definition RAR : positive := 13.   (* gAudioRandom, a world cell *)
 Definition RLK : positive := 3.    (* gLakituState (camera.c): set_camera_shake_from_hit's writes *)
+Definition RPC : positive := 14.   (* gPlayerCameraState (camera.c): m->statusForCamera's target *)
+Definition SZ_PCS : Z := 36.       (* sizeof(struct PlayerCameraState), gPlayerCameraState[0] *)
 Definition kM : positive := 3.
 Definition kB : positive := 4.
 
@@ -51,13 +53,13 @@ Variable g : genv.
 Definition R0F : list (positive * Z) :=
   [(RM, szs g mario._MarioState); (RO, szs g mario._Object); (RFI, 2); (RMISS, 4); (RCALLS, 6);
    (RLD, szs g mario._DmaHandlerList); (RBUF, Ptrofs.modulus); (RIOM, 20); (RMQ, 24); (RRM, 4);
-   (RLK, szs g camera._LakituState)].
+   (RLK, szs g camera._LakituState); (RPC, SZ_PCS)].
 Definition gtabF : list (ident * positive) :=
   [(surface_collision._gFindFloorIncludeSurfaceIntangible, RFI);
    (surface_collision._gNumFindFloorMisses, RMISS); (surface_collision._gNumCalls, RCALLS);
    (mario._gSineTable, RSIN); (level_update._gMarioStates, RM); (mario._gMarioAnimsBuf, RLD);
    (memory._gDmaIoMesg, RIOM); (memory._gDmaMesgQueue, RMQ); (memory._gMainReceivedMesg, RRM);
-   (mario._gAudioRandom, RAR); (camera._gLakituState, RLK)].
+   (mario._gAudioRandom, RAR); (camera._gLakituState, RLK); (camera._gPlayerCameraState, RPC)].
 (* known cells: marioObj, action = ACT_FREEFALL, heldObj = riddenObj = NULL,
    animList = &gMarioAnimsBuf *)
 Definition kvF : list (positive * Z * memory_chunk * sval) :=
@@ -151,6 +153,14 @@ Lemma lak_sym : forall lp, linked12 lp ->
   exists b, Genv.find_symbol (globalenv lp) camera._gLakituState = Some b.
 Proof.
   intros lp H12. exact (SymbolicLinking.linkorder_resolves_symbol lp camera.prog _ _ (linked12_LO_camera lp H12) dm_lak).
+Qed.
+(* gPlayerCameraState (camera.c, linked) has a block *)
+Lemma dm_pcs : (prog_defmap camera.prog) ! camera._gPlayerCameraState = Some (Gvar camera.v_gPlayerCameraState).
+Proof. vm_compute. reflexivity. Qed.
+Lemma pcs_sym : forall lp, linked12 lp ->
+  exists b, Genv.find_symbol (globalenv lp) camera._gPlayerCameraState = Some b.
+Proof.
+  intros lp H12. exact (SymbolicLinking.linkorder_resolves_symbol lp camera.prog _ _ (linked12_LO_camera lp H12) dm_pcs).
 Qed.
 Lemma lak_size12 : match ge12 with
   | Some g => Z.leb 0 (szs g camera._LakituState) && Z.leb (szs g camera._LakituState) 4096

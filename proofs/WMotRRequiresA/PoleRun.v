@@ -34,8 +34,8 @@ Import ListNotations.
 Module AUT := mario_actions_automatic.
 
 Definition NBP : positive := 24.
-Definition RU : positive := 14.    (* usedObj, the pole *)
-Definition RBT : positive := 15.   (* bhvTree *)
+Definition RU : positive := 19.    (* usedObj, the pole *)
+Definition RBT : positive := 20.   (* bhvTree *)
 Definition RGP : positive := 17.   (* bhvGiantPole *)
 Definition RLV : positive := 18.   (* gCurrLevelNum *)
 Definition kC : positive := 6.

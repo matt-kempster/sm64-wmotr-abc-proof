@@ -342,6 +342,34 @@ without pressing A".*
     it changes no modeled block and returns no pointer. The handler calls it every frame.
   - The frame world's controller fact (`Fworld m->controller`, `FfWorld`) is now also seeded
     into the pole walks (the handler reads `stickMag` / `stickY`).
+  (n) **LEDGE_CLIMB_SLOW_1 / _2 and LEDGE_CLIMB_FAST proved (2026-10-22,
+  `LedgeRow.aut_case_rest_ledge_climb`).** `Hauto_rest` is now `LedgeRow.aut_case_rest_climb`:
+  4 cases (CLIMBING_POLE, TOP_OF_POLE_TRANSITION, TOP_OF_POLE, IN_CANNON). Still 28 hypotheses;
+  the new one is strictly narrower. No new trust.
+  - **statusForCamera is a frame-world fact.** camera.c is linked, so `gPlayerCameraState` is
+    real storage. `FfWorld.ffw` gains `m->statusForCamera = &gPlayerCameraState[0]` (offset 148)
+    and the block in the region list (`FfRun.RPC`, 36 bytes, in `R0F` / `gtabF` / `ff_rl`;
+    the pole regions renumber to RU = 19, RBT = 20). StartSat proves it on the witness (the
+    witness already runs init_mario_from_save_file's store, `L_pcs`). Every row keeps it:
+    `fk_same` now includes the cell, and `KbRun.kvK` makes it a known cell, so every
+    kvK-based walk (soft bonk, knockbacks, ledge, rollouts, butt-slide air, ground pound,
+    slide kick, poles) re-checked with it.
+  - The walks (`LedgeClimbSlow1` / `Slow2` / `Fast`; act_ledge_climb_slow is walked once per
+    label) run the real handlers. `update_ledge_climb_camera` stores into RPC.
+    `stop_and_set_height_to_floor`, `climb_up_ledge` (x / z only, then `gfx.pos := pos`) and
+    `let_go_of_ledge` set the height. animFrame (17 / 8) is only read, so the anim data is not
+    needed. `LedgeClass.ledge_ok` gains the climb_up_ledge shape (y kept, gfx.y := y, vel
+    kept: an attach at y from a ground action). `LEDGE_OUT` gains SLOW_2, IDLE and
+    check_common_action_exits' no-A exits: WALKING, BEGIN_SLIDING (set_mario_action remaps it
+    to BUTT_SLIDE / STOMACH_SLIDE) and FREEFALL. All of these are on `R_noA_list`.
+    `LedgeRun.ledge_final` takes any `LEDGE_IN` entry action.
+  - Remaining: CLIMBING_POLE's walk returns None even with the area->camera world fact
+    supplied by hand (probe, not committed). That fact would also need an ffw conjunct and a
+    StartSat witness store (the witness area is a fresh, all-Vundef block). IN_CANNON's
+    state 0 stores `usedObj->oInteractStatus`. `used_ok`'s cannon clause gives neither
+    usedObj = Mario's object block (the pole clause's `pole_pos_ok`) nor apartness from the
+    collided objects, so the usedObj region cannot be placed among the walk's regions without
+    strengthening that claim. The interaction rows still assumed carry it.
   **Slide kick at state ≠ 0 is proved (2026-10-21; `sk1_row` and `HeightFrame.Hsk1` removed,
   28 → 27 hypotheses).** The same walk (`SkW.skcheck12`) now classifies every outcome at any
   state (`FfClass.sk_ok` is `ff_okE` from the ticked cells; it used to accept the state ≠ 0
