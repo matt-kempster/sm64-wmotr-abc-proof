@@ -24,11 +24,13 @@
 (*    retrieve_animation_index) RUNS on a memory whose anim has values /    *)
 (*    index of exactly that relocated shape, and returns the y sample / 4.  *)
 (*    No external call is made (empty oracle, no world hypothesis).         *)
+(*    Control (2026-10-22, scratch run, not kept): the same memory with     *)
+(*    values / index shifted by -2^31 (the old macro's store) gets Stuck.   *)
 (* ======================================================================= *)
 
 From Coq Require Import String List ZArith.
 From compcert Require Import Coqlib Integers Values AST Memory Globalenvs
-  Ctypes Cop Clight ClightBigstep Events Maps.
+  Ctypes Cop Clight Clightdefs ClightBigstep Events Maps.
 From SM64.Proofs Require Import Interp.ClightInterp Interp.LinkGenv Interp.MemBuild.
 From SM64.Proofs Require Interp.CMem.
 From SM64.Proofs Require Import LinkedTwelve.
@@ -93,16 +95,17 @@ Proof.
   intros ge e le m t ty b o off v Hta Ht (ty' & a & ->) Hv.
   assert (Hev : eval_expr ge e le m (reloc_rhs t (Tpointer ty' a))
                   (Vptr b (Ptrofs.add o (Ptrofs.of_intu off)))).
-  { unfold reloc_rhs.
-    econstructor; [ econstructor | ].
-    - econstructor.
-      + econstructor; [ econstructor; exact Hta | reflexivity ].
-      + econstructor; [ econstructor; exact Ht | reflexivity ].
-      + cbn. unfold sem_add, classify_add. cbn.
-        f_equal. f_equal. f_equal.
-        rewrite Ptrofs.mul_commut. apply Ptrofs.mul_one.
-    - reflexivity.
-    - reflexivity. }
+  { set (V := Vptr b (Ptrofs.add o (Ptrofs.of_intu off))).
+    assert (Hadd : sem_binary_operation (genv_cenv ge) Oadd (Vptr b o) (tptr tuchar)
+                     (Vint off) tuint m = Some V).
+    { cbn. unfold V. do 3 f_equal.
+      rewrite Ptrofs.mul_commut. apply Ptrofs.mul_one. }
+    unfold reloc_rhs.
+    apply eval_Ecast with (v1 := V); [ | reflexivity ].
+    apply eval_Ecast with (v1 := V); [ | reflexivity ].
+    eapply eval_Ebinop; [ | | exact Hadd ].
+    - apply eval_Ecast with (v1 := Vptr b o); [ apply eval_Etempvar; exact Hta | reflexivity ].
+    - apply eval_Ecast with (v1 := Vint off); [ apply eval_Etempvar; exact Ht | reflexivity ]. }
   exact (ClightDeterm.eval_expr_determ ge e le m _ _ _ Hv Hev).
 Qed.
 
