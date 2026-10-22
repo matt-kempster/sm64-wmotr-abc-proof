@@ -30,7 +30,7 @@ without pressing A".*
 | 0.9 | GOAL 2's pos[1] writer census is complete (`YWriterCensus.v`) | **Machine-checked list, trusted edges.** Coq scans every function body of the 12 generated Mario TUs and proves: 31 direct `pos[1]` stores and 21 write-escapes (16 whole-vector arg-0 passes to `vec3f_copy`/`vec3f_set`/`vec3s_to_vec3f`, 5 `&pos[1]` passes to `f32_find_wall_collision`), 52 in all; `pos`'s address never reaches a temp, memory, a condition or a return, and no struct copy covers it. Details: [row 0.9 in detail](#row-09-in-detail). |
 | 0.10 | GOAL 2's object census: what objects can exist in WMotR and their interaction types (`BehaviorScripts.v`) | **Machine-checked over generated code, frontier trusted.** `generated/behavior_data.v` (clightgen of `data/behavior_data.c`) gives every behavior script as data; a fail-closed decoder mirrors the command layouts. Details: [row 0.10 in detail](#row-010-in-detail). |
 | 0.7 | GOAL 2's flank segments (`HeightFrame.v`: controller poll, platform displacement, level/warp phase, non-Mario objects) do what their specs say: y / action loads as the censuses found them, and each carries GOAL 1's `MWF_real` and Φ (since 2026-09-29 Φ here is `PhiW`, so each flank also keeps the WMotR world: object updates reload only WMotR's surfaces and never hand Mario an object to hold or ride; collision detection registers only WMotR-kind objects, with poles and cannon bases at their level positions and no star while coin #2 stands (0.3); no object sets a stomp bit on Mario's object) (the poll only when A is not pressed); platform displacement also leaves the held-A reading unchanged (it writes no controller) | **ASSUMED, labeled.** Specs, not proofs: none of that code is linked. Details: [row 0.7 in detail](#row-07-in-detail). |
-| 0.4 | The starting states the theorem quantifies over (`mem_ok_lp`: Mario's block valid, his action untainted, `MWF_real`) | **GOAL 1: proved satisfiable by the real boot path** (2026-10-19, `BootMWF.boot_init_ok`, used by `NoAImpliesNoFlyTwelve.noA_never_flying_from_boot`). **GOAL 2: the witness is in WMotR by real code** (2026-10-21: `area.c` linked as the 23rd TU; `gCurrLevelNum = LEVEL_WMOTR` is stored by the generated `initiate_warp` + `warp_level`, `EntryWarp.v`). Details: [row 0.4 in detail](#row-04-in-detail). |
+| 0.4 | The starting states the theorem quantifies over (`mem_ok_lp`: Mario's block valid, his action untainted, `MWF_real`) | **GOAL 1: proved satisfiable by the real boot path** (2026-10-19, `BootMWF.boot_init_ok`, used by `NoAImpliesNoFlyTwelve.noA_never_flying_from_boot`). **GOAL 2: the witness is in WMotR by real code** (2026-10-21: `area.c` linked as the 23rd TU; `gCurrLevelNum = LEVEL_WMOTR` is stored by the generated `initiate_warp` + `warp_level`, `EntryWarp.v`; 2026-10-22: one real no-A frame runs from the witness, `frame_runs`, and its `init_mario_from_save_file` cells are tethered to the real body, `ifs_tether`). Details: [row 0.4 in detail](#row-04-in-detail). |
 | 0.5 | The step relation = what one real frame does | GOAL 1: **only `execute_mario_action`**. GOAL 2's `frame_step` composes that real call with four *specified* flanks (0.7): controller poll, platform, level phase, objects. The flanks are specs, not linked code. This is the largest scope gap. Details: [row 0.5 in detail](#row-05-in-detail). |
 
 ### Row 0.1 in detail
@@ -540,6 +540,12 @@ without pressing A".*
   outside the placed objects' closure (area load, warps, `script_func_global_*`) spawns nothing
   else; (d) behavior scripts' `CALL`/`GOTO` are followed as references, and the script interpreter
   (`behavior_script.c`, not generated) runs them as written.
+- **2026-10-22, camera.c linked (35th TU):** `camera.global_definitions` joined `all_tus`, so
+  the eight camera entries the frontier used to trust (`set_camera_shake_from_hit`,
+  `set_camera_mode`, `cutscene_object`, `cutscene_object_with_dialog`,
+  `trigger_cutscene_dialog`, `camera_approach_f32_symmetric`, `gObjCutsceneDone`,
+  `gRecentCutscene`) are now ANALYZED from the generated bodies, not trusted. The census result
+  is unchanged (no new behavior, no new interaction type), so (b) shrank and nothing else moved.
 
 ### Row 0.7 in detail
 
@@ -583,11 +589,22 @@ without pressing A".*
   MARIO_SPAWN_AIRBORNE, 0)`. Then ONE FULL real no-A frame runs in `ACT_SPAWN_NO_SPIN_AIRBORNE`,
   and it leaves `gPlayerCameraState[0].action = 6450`. Conditional on `world_ok`: `sqrtf` is the
   IEEE sqrt, and four audio / menu externals return without touching memory.
-- **FOUND 2026-10-22, open: GOAL 2's `StartSat` witness has no frame execution.** It is built from
-  `init_mem` without `init_mario_from_save_file`, so `marioBodyState` / `statusForCamera` are
-  NULL; `mario_reset_bodystate`'s first store is stuck (checked by running it). Its
-  `gMarioAnimsBuf.dmaTable` is NULL too. The premise is satisfiable, but no run leaves the
-  witness. Fix: give it `init_mario_from_save_file`'s stores (or `BootRun`'s entry memory).
+- **FOUND 2026-10-22, REPAIRED the same day: GOAL 2's `StartSat` witness had no frame execution.**
+  It was built from `init_mem` without `init_mario_from_save_file`, so `marioBodyState` /
+  `statusForCamera` were NULL; `mario_reset_bodystate`'s first store was stuck (checked by running
+  it), and `gMarioAnimsBuf.dmaTable` was NULL too. The premise was satisfiable, but no run left the
+  witness. Now `goal2_start_sat` also concludes `frame_runs lp bm m`: ONE FULL real no-A
+  `execute_mario_action` runs from the witness memory itself (`a_pressed_real` false, ends in
+  `ACT_SPAWN_NO_SPIN_AIRBORNE` = 6450), and `ifs_tether lp m_boot bm bc`: the REAL generated
+  `init_mario_from_save_file`, run from the boot memory, performs exactly the nine stores the
+  witness makes (`spawnInfo`, `statusForCamera`, `marioBodyState`, `controller`, `animList`,
+  `numLives` 4, `health` 0x880, `unkB0` 0xBD, `gHudDisplay.wedges` 8) and allocates nothing
+  (`StartTerrain.ifs_ok_sound`, by the sound interpreter). Stand-ins the witness still chooses
+  (an `∃`, not trust): `gMarioAnimsBuf.dmaTable` points at a fresh 16-byte DMA table with count 0,
+  and the 24-byte animation header it reads is zeroed (the real one is loaded by DMA from the ROM;
+  out of scope, 3.x); `gAreaData[1].terrainType` = `TERRAIN_SNOW` (2), tethered to WMotR's level
+  script by `StartTerrain.wmotr_terrain_type` (the `TERRAIN_TYPE(TERRAIN_SNOW)` command word,
+  `script.c:61`, is in the generated `level_wmotr_entry`).
 - **GOAL 1: proved satisfiable by the real boot path** (2026-10-19, `BootMWF.boot_init_ok`, used by
   `NoAImpliesNoFlyTwelve.noA_never_flying_from_boot`). The memory `Genv.init_mem lp` of any
   linked-TU (now 17) link, followed by one real call of the generated `init_mario_from_save_file`,
@@ -905,7 +922,8 @@ link grows.
   `set_camera_shake_from_hit` as labelled open premises (`ExtInert.audio_inert` / `camera_inert`: no
   modeled block changes, non-pointer result; their writes go to audio and camera globals that no
   linked TU declares). Those are deferred audio/camera, not floors; since 2026-10-20 they are
-  labeled premises `Haudio` / `Hcamera` of the GOAL-2 capstone. Used only by the Unwired GOAL-2
+  labeled premises `Haudio` / `Hcamera` of the GOAL-2 capstone. (2026-10-22: `Hcamera` is gone;
+  camera.c is linked and the walks run `set_camera_shake_from_hit`'s real body, see 4.1.) Used only by the Unwired GOAL-2
   footprint walker (`FpWalk.uawt_fp`: `update_air_without_turn` writes only forwardVel, slideVelX/Z,
   vel[0], vel[2], slideYaw, proved from its generated body and `check_horizontal_wind`'s). It is the
   same fact `CoinLink` assumes about `sqrtf`.
@@ -977,12 +995,17 @@ link grows.
     vacuous). Still LABELED OPEN (camera).
   - The engine rows `Hext_action` / `Hmwf_ext` range over External resolutions; their `T_scm` arm
     no longer applies to anything (set_camera_mode is Internal). Harmless (fewer obligations).
-  - **BLOCKER, GOAL 2:** `ExtInert.camera_inert` (`Hcamera`) said the external
-    `set_camera_shake_from_hit` changes no block. With camera.c linked it names nothing
-    (`csh_ni` is false), and restated over the real body it is FALSE (the body writes
-    `gLakituState`, camera.c:497-507, 4602-4630). The act_freefall / air_hit_wall / knockback walks
-    (`FfRun`, `AhwRun`, `KbRun`) need a walk frame (`SymExec2.MMg`) in which `gLakituState` is a
-    region, so the real body can be walked. Not done; see the 2026-10-22 hand-off.
+  - **`Hcamera` is GONE (2026-10-22, proved, not restated).** `ExtInert.camera_inert` said the
+    external `set_camera_shake_from_hit` changes no block. With camera.c linked it named nothing
+    (`csh_ni` was false), and restated over the real body it would be FALSE (the body writes
+    `gLakituState`, camera.c:497-507, 4602-4630). Now `gLakituState` is a walk region
+    (`FfRun.RLK`, in `R0F` / `gtabF`; `FfWorld.ffw` carries its block and `ff_rl` its pointer;
+    `lak_size` bounds its size), so the walks that reach it (act_freefall's fall damage, air_hit_wall,
+    the knockbacks) run the REAL `set_camera_shake_from_hit` body (its FALL_DAMAGE / GROUND_POUND paths call `set_camera_pitch_shake` /
+    `set_camera_roll_shake`, also real) and the region frame shows they write only `gLakituState`.
+    `camera_inert`, `csh_named`, `csh_ni` are deleted; no camera premise is left in the GOAL-2
+    capstone (`HeightFrame`), and the rows (`FfRow`, `AhwRow`, `KbRow`, `PoleRow`, `LedgeRow`) and
+    `StartSat` provide the new region from the link's symbol table.
 - **`audio/data.c` is linked** (2026-10-20, the 18th TU, `generated/audio_data.v`): it is the only
   definer of `gAudioRandom`, which `play_mario_jump_sound` reads (mario.c:254). Before, it was a
   size-0 extern in the boot image, so every path of dive and the rollouts that plays a jump sound

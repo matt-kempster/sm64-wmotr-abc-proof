@@ -36,7 +36,8 @@ Definition ext_inert (name : string) : Prop :=
 
 (* the labeled open premises *)
 Definition audio_inert : Prop := ext_inert "play_sound".
-Definition camera_inert : Prop := ext_inert "set_camera_shake_from_hit".
+(* (camera_inert, the set_camera_shake_from_hit premise, is gone since
+   2026-10-22: camera.c is linked and the walks run its real body.) *)
 
 (* the FPU floor's second half *)
 Definition sqrtf_float : Prop :=
@@ -54,11 +55,6 @@ Module AIR := mario_actions_airborne.
 Lemma ps_named : ext_named ((prog_defmap AIR.prog) ! AIR._play_sound) "play_sound" = true.
 Proof. vm_compute. reflexivity. Qed.
 Lemma ps_ni : no_internal_all [AIR._play_sound] = true.
-Proof. vm_compute. reflexivity. Qed.
-Lemma csh_named : ext_named ((prog_defmap AIR.prog) ! AIR._set_camera_shake_from_hit)
-  "set_camera_shake_from_hit" = true.
-Proof. vm_compute. reflexivity. Qed.
-Lemma csh_ni : no_internal_all [AIR._set_camera_shake_from_hit] = true.
 Proof. vm_compute. reflexivity. Qed.
 
 Section LP.

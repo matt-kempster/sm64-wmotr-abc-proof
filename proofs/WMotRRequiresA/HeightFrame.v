@@ -606,7 +606,6 @@ Section HeightLinked12.
   Hypothesis Hsqrtf : sqrtf_spec.
   Hypothesis Hsqrtf_float : sqrtf_float.
   Hypothesis Haudio : audio_inert.      (* LABELED OPEN PREMISE: audio, deferred *)
-  Hypothesis Hcamera : camera_inert.    (* LABELED OPEN PREMISE: camera, deferred *)
 
   (* the automatic dispatcher's cases: the two grabs and two ledge cases proved, the rest assumed *)
   Lemma Hauto_case : aut_case_rows lp bm MWF.
@@ -617,7 +616,7 @@ Section HeightLinked12.
 
   Lemma Hair_case : air_case_rows lp bm MWF.
   Proof.
-    exact (air_case_rows_ff8 lp H12 Hdma_floor Hsqrtf Hsqrtf_float Haudio Hcamera bm Hbm_sym MWF).
+    exact (air_case_rows_ff8 lp H12 Hdma_floor Hsqrtf Hsqrtf_float Haudio bm Hbm_sym MWF).
   Qed.
 
   Lemma call_facts :
