@@ -31,7 +31,8 @@ TUS = ("mario mario_actions_airborne mario_actions_moving mario_actions_stationa
        "mario_actions_submerged mario_actions_cutscene mario_actions_automatic "
        "mario_actions_object interaction behavior_actions level_update mario_step "
        "mario_misc math_util surface_collision memory shadow object_helpers obj_behaviors "
-       "obj_behaviors_2 spawn_object object_list_processor behavior_data object_collision").split()   # every generated SM64 TU
+       "obj_behaviors_2 spawn_object object_list_processor behavior_data object_collision "
+       "game_init area").split()   # every generated SM64 TU
 
 
 def src_of(tu):
@@ -76,9 +77,10 @@ def sites(tu, proof_extra=()):
 # Known mechanical classes of hunk: (name, rom->proof text rewrite that explains it)
 CLASSES = [
     ("cosine-alias", lambda t: t.replace("gCosineTable", "(gSineTable + 0x400)")),
-    ("v2p-subtraction (proof_n64.h)", lambda t: re.sub(
-        r"\(\(uintptr_t\)\((.*?)\) & 0x1FFFFFFF\)",
-        r"((uintptr_t)((unsigned char *)(\1) - 0x80000000U))", t)),
+    # NO_SEGMENTED_MEMORY macro family (macros.h:73-75, proof_n64.h; 2026-10-22)
+    ("no-segmented-memory macros (proof_n64.h)", lambda t: re.sub(
+        r"\(\(u8 \*\)\((.*?)\) - 0x80000000U\)", r"((void *)(\1))", re.sub(
+        r"\(\(uintptr_t\)\((.*?)\) (?:& 0x1FFFFFFF|\| 0x80000000)\)", r"((uintptr_t)(\1))", t))),
 ]
 
 

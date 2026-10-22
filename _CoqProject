@@ -275,6 +275,7 @@ proofs/WMotRRequiresA/AutoSplit.v
 proofs/WMotRRequiresA/HeightFrame.v
 proofs/WMotRRequiresA/WMotREntry.v
 proofs/WMotRRequiresA/SpawnTypeRun.v
+proofs/WMotRRequiresA/AnimRoundTrip.v
 proofs/WMotRRequiresA/EntryWarp.v
 proofs/WMotRRequiresA/StartSat.v
 proofs/WMotRRequiresA/YWriterCensus.v
