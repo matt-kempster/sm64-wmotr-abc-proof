@@ -504,11 +504,7 @@ Section NoARealInputV2.
 
   (* per-symbol: the whitelisted callee symbols resolve to marg-exempt
      definitions (their first param is not a MarioState ptr) *)
-  Hypothesis WL_exempt : forall e le m fid fty vf fd,
-      mem_id fid exempt_callees = true ->
-      eval_expr (lp_ge lp) e le m (Evar fid fty) vf ->
-      Genv.find_funct (lp_ge lp) vf = Some fd ->
-      marg_exempt fd = true.
+  Hypothesis WL_exempt : wl_exempt_ok lp.
 
   (* per-symbol: the rest surface preserves the carried facts -- ONLY
      where lp resolves the symbol to an INTERNAL body (a rest symbol lp
@@ -1019,11 +1015,7 @@ Section NoARealInputMWF.
   (* ---- the surviving per-symbol residuals, now stated at the CONCRETE
      invariant MWF_real (same shapes as the v2 section's; see the
      comments there). ---- *)
-  Hypothesis WL_exempt : forall e le m fid fty vf fd,
-      mem_id fid exempt_callees = true ->
-      eval_expr (lp_ge lp) e le m (Evar fid fty) vf ->
-      Genv.find_funct (lp_ge lp) vf = Some fd ->
-      marg_exempt fd = true.
+  Hypothesis WL_exempt : wl_exempt_ok lp.
   (* ---- the rest surface, decomposed PER SYMBOL (RestSurface.v).
      ELEVEN per-TU linkorder pins (LO_mario's class, link-time facts)
      + the negative pin (the exempt whitelist + the music helper stay

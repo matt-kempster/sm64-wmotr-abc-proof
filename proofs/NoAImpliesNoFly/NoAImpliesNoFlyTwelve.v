@@ -30,7 +30,8 @@
 (* The per-TU linkorder pins and the negative pin are DERIVED from        *)
 (* linked12 (LinkedTwelve.v).  The remaining rows are the runtime-layout  *)
 (* facts (SafeB), the external-call model boundary (Hocp_/Hpres_/...),    *)
-(* WL_exempt (env hygiene), and the Hext_action / Hmwf_ext engine rows.   *)
+(* and the Hext_action / Hmwf_ext engine rows (WL_exempt is a lemma since  *)
+(* 2026-10-22; as an assumed row it was FALSE, WLExempt.v).               *)
 (* The spawn-exclusion input of the underlying real_mwf capstone is       *)
 (* instantiated to "never" here: that theorem holds for EVERY choice of   *)
 (* it, so the premise was decorative and dropping it loses nothing.       *)
@@ -55,6 +56,7 @@ From SM64.Proofs Require Import LinkedTwelve.
 From SM64.Proofs Require Import SpawnInit.
 From SM64.Proofs Require Import InitMemSat.
 From SM64.Proofs Require Import NoAImpliesNoFlyLinked.
+From SM64.Proofs Require WLExempt CameraBodies FpuFloor.
 From SM64.Proofs Require GraphNodeBodies MtxfBody SaveFileBody ObjHelpersBodies FpuFloor OsDmaFloor
   LptBody BootMWF MathBodies ObjExtBodies SaveDoSaveBody.
 
@@ -82,12 +84,23 @@ Definition obj_ext_body (i : ident) : bool :=
      stores gFBSetColor (an integer, a global MWF does not read) and its two
      pointer args into the stored globals D_8032CE74 / D_8032CE78 *)
   || Pos.eqb i mario_actions_cutscene._override_viewport_and_clip.
+(* PROVED 2026-10-22 (premise sweep): sqrtf, from the FPU floor the
+   capstone already takes (Hsq : sqrtf_spec: the call leaves memory as it
+   was); set_camera_shake_from_hit, walked from its real camera.c body (the
+   35th TU; CameraBodies: s16 / f32 stores into gLakituState / sFOVState).
+   Its SHAKE_SHOCK arm calls random_float (engine/behavior_script.c, not
+   linked), whose any-argument row takes its place below: a void-argument
+   RNG instead of the whole shake dispatcher. *)
+Definition obj_ext_cam (i : ident) : bool :=
+  Pos.eqb i mario._sqrtf || Pos.eqb i interaction._set_camera_shake_from_hit.
 Definition obj_ext_open2_ids : list ident :=
-  filter (fun i => negb (obj_ext_mem i || obj_ext_body i))
+  camera._random_float ::
+  filter (fun i => negb (obj_ext_mem i || obj_ext_body i || obj_ext_cam i))
     NoAImpliesNoFlyLinked.obj_ext_open_ids.
 
 Lemma obj_ext_open_of2 : forall lp bm bc oc0 SafeB, linked12 lp ->
     SafeB_syms_ok lp SafeB -> (exists init, spawn_ok lp init bm bc oc0) ->
+    FpuFloor.sqrtf_spec ->
     call_pres_ext_sg lp bm (NoA_real bm) (MWF_real lp bm bc oc0 SafeB) SafeB
       behavior_actions._spawn_object ->
     (forall fid, mem_id fid obj_ext_open2_ids = true ->
@@ -95,10 +108,19 @@ Lemma obj_ext_open_of2 : forall lp bm bc oc0 SafeB, linked12 lp ->
     forall fid, mem_id fid NoAImpliesNoFlyLinked.obj_ext_open_ids = true ->
       FloorsSurface.call_pres_ext lp bm (NoA_real bm) (MWF_real lp bm bc oc0 SafeB) fid.
 Proof.
-  intros lp bm bc oc0 SafeB H12 Hsy Hsp Hspn Hrow fid H.
+  intros lp bm bc oc0 SafeB H12 Hsy Hsp Hsq Hspn Hrow fid H.
+  assert (Hrf : FloorsSurface.call_pres_ext lp bm (NoA_real bm) (MWF_real lp bm bc oc0 SafeB)
+                  camera._random_float)
+    by (apply Hrow; cbn [obj_ext_open2_ids mem_id existsb]; rewrite Pos.eqb_refl; reflexivity).
   destruct (NoAImpliesNoFlyLinked.mem_id_filter_split
-              (fun i => obj_ext_mem i || obj_ext_body i) fid _ H) as [Hm | Ho];
-    [ | exact (Hrow fid Ho) ].
+              (fun i => obj_ext_mem i || obj_ext_body i || obj_ext_cam i) fid _ H) as [Hm | Ho];
+    [ | apply Hrow; cbn [obj_ext_open2_ids mem_id existsb];
+        apply orb_true_iff; right; exact Ho ].
+  apply orb_true_iff in Hm as [Hm | Hc];
+    [ | unfold obj_ext_cam in Hc;
+        apply orb_true_iff in Hc as [Hc | Hc]; apply Pos.eqb_eq in Hc; subst fid;
+        [ exact (CameraBodies.Hpx_sqrtf lp H12 bm bc oc0 SafeB Hsq)
+        | exact (CameraBodies.Hpx_csh lp H12 bm bc oc0 SafeB Hsy Hsp Hrf) ] ].
   apply orb_true_iff in Hm as [Hm | Hb].
   - unfold obj_ext_mem in Hm.
     apply orb_true_iff in Hm as [Hm | Hm]; apply Pos.eqb_eq in Hm; subst fid.
@@ -133,7 +155,13 @@ Definition cut_ext_body (i : ident) : bool :=
      __osSiRawStartDma, osRecvMesg / osSendMesg, osSetTimer: TRUST 3.5).
      Every store lands in a block MWF and action_sat never read
      (SaveDoSaveBody) *)
-  || Pos.eqb i mario_actions_cutscene._save_file_do_save.
+  || Pos.eqb i mario_actions_cutscene._save_file_do_save
+  (* 2026-10-22: camera.c is linked (the 35th TU): camera_approach_f32_symmetric
+     is pure float arithmetic, and trigger_cutscene_dialog's only store path
+     (start_object_cutscene_without_focus) writes two bytes of camera.c
+     statics MWF does not read (CameraBodies) *)
+  || Pos.eqb i mario_actions_cutscene._camera_approach_f32_symmetric
+  || Pos.eqb i mario_actions_cutscene._trigger_cutscene_dialog.
 Definition cut_ext_open2_ids : list ident :=
   filter (fun i => negb (cut_ext_body i)) NoAImpliesNoFlyLinked.cut_ext_open_ids.
 
@@ -154,6 +182,8 @@ Proof.
   - exact (ObjExtBodies.Hpx_dts lp H12 bm bc oc0 SafeB Hsy Hsp).
   - exact (ObjExtBodies.Hpx_ptr lp H12 bm bc oc0 SafeB Hsy Hsp).
   - exact (SaveDoSaveBody.Hpx_sfds lp H12 bm bc oc0 SafeB Hsy Hsp Hfl).
+  - exact (CameraBodies.Hpx_cafs lp H12 bm bc oc0 SafeB Hsy Hsp).
+  - exact (CameraBodies.Hpx_tcd lp H12 bm bc oc0 SafeB Hsy Hsp).
 Qed.
 
 (* PROVED 2026-10-21: the two warp-trigger entries whose bodies are linked
@@ -284,9 +314,6 @@ Section NoAImpliesNoFlyTwelve.
      obj_ext row was FALSE (found 2026-10-20).  Restated arg0-gated (cs):
      every real site passes the chase m->area->camera.  The camera stays a
      labeled deferred premise (docs/TRUST.md 4.1). *)
-  Hypothesis Hcsp_scm_real :
-    call_pres_ext_cs lp bm (NoA_real bm) MWF SafeB
-      interaction._set_camera_mode.
   (* THE CAMERA LINK (2026-10-22): camera.c is the 35th TU, so the call
      above now resolves to the REAL camera.c body (the row is about that
      body, not an external).  The rest-surface twin: set_camera_mode reached
@@ -295,6 +322,50 @@ Section NoAImpliesNoFlyTwelve.
      deferred; docs/TRUST.md 4.1). *)
   Hypothesis Hscm_body_real :
     RestSurface.body_pres_w lp MWF bm SafeB camera.f_set_camera_mode.
+  (* Hcsp_scm_real is no longer a row (2026-10-22): the call resolves to
+     the real camera.c body (camera_defmap_scm, LO_camera), cs_gate's
+     arg0_cond_safe IS wgate's T_scm arm (osafe at size 0), and NoA after
+     the call is read off MWF (mwf_real_ctl).  So the arg0-gated call row is
+     DERIVED from the single gated body row Hscm_body_real. *)
+  Lemma wgate_scm : forall vargs,
+    arg0_cond_safe SafeB vargs ->
+    wgate bm SafeB (type_of_fundef (Internal camera.f_set_camera_mode)) vargs.
+  Proof.
+    intros vargs Ha. rewrite camera_scm_type. unfold wgate.
+    destruct (type_eq T_scm T_ffc) as [E | _];
+      [ exfalso; assert (B0 : proj_sumbool (type_eq T_scm T_ffc) = false) by (vm_compute; reflexivity);
+        rewrite E in B0; destruct (type_eq T_ffc T_ffc) as [Ee | N]; [ discriminate B0 | exact (N eq_refl) ] | ].
+    destruct (type_eq T_scm T_f32w) as [E | _];
+      [ exfalso; assert (B0 : proj_sumbool (type_eq T_scm T_f32w) = false) by (vm_compute; reflexivity);
+        rewrite E in B0; destruct (type_eq T_f32w T_f32w) as [Ee | N]; [ discriminate B0 | exact (N eq_refl) ] | ].
+    destruct (type_eq T_scm T_v3fcopy) as [E | _];
+      [ exfalso; assert (B0 : proj_sumbool (type_eq T_scm T_v3fcopy) = false) by (vm_compute; reflexivity);
+        rewrite E in B0; destruct (type_eq T_v3fcopy T_v3fcopy) as [Ee | N]; [ discriminate B0 | exact (N eq_refl) ] | ].
+    destruct (type_eq T_scm T_v3fset) as [E | _];
+      [ exfalso; assert (B0 : proj_sumbool (type_eq T_scm T_v3fset) = false) by (vm_compute; reflexivity);
+        rewrite E in B0; destruct (type_eq T_v3fset T_v3fset) as [Ee | N]; [ discriminate B0 | exact (N eq_refl) ] | ].
+    destruct (type_eq T_scm T_v3scopy) as [E | _];
+      [ exfalso; assert (B0 : proj_sumbool (type_eq T_scm T_v3scopy) = false) by (vm_compute; reflexivity);
+        rewrite E in B0; destruct (type_eq T_v3scopy T_v3scopy) as [Ee | N]; [ discriminate B0 | exact (N eq_refl) ] | ].
+    destruct (type_eq T_scm T_vfc) as [E | _];
+      [ exfalso; assert (B0 : proj_sumbool (type_eq T_scm T_vfc) = false) by (vm_compute; reflexivity);
+        rewrite E in B0; destruct (type_eq T_vfc T_vfc) as [Ee | N]; [ discriminate B0 | exact (N eq_refl) ] | ].
+    destruct (type_eq T_scm T_scm) as [_ | N]; [ | exfalso; exact (N eq_refl) ].
+    intros b o Hv. right.
+    destruct vargs as [ | v0 vargs ]; [ discriminate Hv | ].
+    exact (Ha b o Hv).
+  Qed.
+  Lemma Hcsp_scm_real :
+    call_pres_ext_cs lp bm (NoA_real bm) MWF SafeB
+      interaction._set_camera_mode.
+  Proof.
+    intros fd m0 vargs0 t0 m1 vres0 Hevf Hres Harg _ HM Hv Hsat.
+    rewrite (resolves_pin_fd lp _ _ _ _ (linked12_LO_camera lp H12) camera_defmap_scm Hres)
+      in Hevf.
+    destruct (Hscm_body_real _ _ _ _ _ (wgate_scm _ (proj1 Harg)) Hevf HM Hv Hsat)
+      as (Hv' & Hs' & HM').
+    exact (conj Hv' (conj Hs' (conj HM' (mwf_real_ctl lp bm bc oc0 SafeB _ HM')))).
+  Qed.
   (* load_patchable_table: PROVED from its real memory.c body and dma_read's
      (LptBody), down to the libultra DMA calls, whose effect is the
      hardware/OS floor spec (OsDmaFloor, TRUST 3.5). *)
@@ -311,11 +382,14 @@ Section NoAImpliesNoFlyTwelve.
     exact (LptBody.smawa_row_linked12 lp bm bc oc0 SafeB H12 HSafeB_syms
              Hspawn Hdma_floor).
   Qed.
-  Hypothesis WL_exempt : forall e le m fid fty vf fd,
-      mem_id fid exempt_callees = true ->
-      eval_expr (lp_ge lp) e le m (Evar fid fty) vf ->
-      Genv.find_funct (lp_ge lp) vf = Some fd ->
-      marg_exempt fd = true.
+  (* PROVED 2026-10-22 (was a row, and FALSE as stated): the old row
+     quantified over every environment e and type fty, and an env binding
+     `sqrtf` to set_mario_action's block refutes it for every twelve-TU link
+     (WLExempt.wl_exempt_old_refuted), so this capstone was VACUOUS.  Restated
+     at the censused bodies' empty_env and a function-typed Evar (its only
+     consumer, CensusV2.chk_call_marg), it is a theorem of the link. *)
+  Lemma WL_exempt : wl_exempt_ok lp.
+  Proof. exact (WLExempt.wl_exempt_linked12 lp H12). Qed.
   Hypothesis Hpres_sta_ext : forall fid,
       mem_id fid StationaryLeafSurface.sta_ext_ids = true ->
       call_pres_ext lp bm (NoA_real bm) MWF fid.
@@ -389,7 +463,7 @@ Section NoAImpliesNoFlyTwelve.
       mem_id fid NoAImpliesNoFlyLinked.obj_ext_open_ids = true ->
       call_pres_ext lp bm (NoA_real bm) MWF fid.
   Proof.
-    exact (obj_ext_open_of2 lp bm bc oc0 SafeB H12 HSafeB_syms Hspawn Hcp_spawn_real
+    exact (obj_ext_open_of2 lp bm bc oc0 SafeB H12 HSafeB_syms Hspawn Hsq Hcp_spawn_real
              Hpres_obj_ext_open2).
   Qed.
   (* PROVED 2026-10-21 (was a row): save_file.c and buffers.c are linked
@@ -436,16 +510,43 @@ Section NoAImpliesNoFlyTwelve.
   (* Hret_unsafe REMOVED (task #99): the v2 engine no longer consumes any
      return-value row (it was dead plumbing / a latent vacuity -- see
      NoAImpliesNoFlyLinked). *)
-  Hypothesis Hext_action : forall ef targs tres cc vargs m t vres m',
+  (* 2026-10-22: both engine rows exclude sqrtf, whose call is the FPU
+     floor sqrtf_spec (memory unchanged); they now name only the audio /
+     print.c externals of the exempt whitelist *)
+  Hypothesis Hext_action_ns : forall ef targs tres cc vargs m t vres m',
+      reached_v2 lp (External ef targs tres cc) ->
+      ~ CameraBodies.is_sqrtf_ef ef ->
+      wgate bm SafeB (type_of_fundef (External ef targs tres cc)) vargs ->
+      external_call ef (lp_ge lp) vargs m t vres m' ->
+      Mem.unchanged_on (action_cell bm) m m'.
+  Hypothesis Hmwf_ext_ns : forall ef targs tres cc vargs m t vres m',
+      reached_v2 lp (External ef targs tres cc) ->
+      ~ CameraBodies.is_sqrtf_ef ef ->
+      wgate bm SafeB (type_of_fundef (External ef targs tres cc)) vargs ->
+      external_call ef (lp_ge lp) vargs m t vres m' ->
+      Mem.valid_block m bm -> MWF m -> MWF m'.
+  Lemma Hext_action : forall ef targs tres cc vargs m t vres m',
       reached_v2 lp (External ef targs tres cc) ->
       wgate bm SafeB (type_of_fundef (External ef targs tres cc)) vargs ->
       external_call ef (lp_ge lp) vargs m t vres m' ->
       Mem.unchanged_on (action_cell bm) m m'.
-  Hypothesis Hmwf_ext : forall ef targs tres cc vargs m t vres m',
+  Proof.
+    intros ef targs tres cc vargs m t vres m' Hr Hg Hx.
+    destruct (CameraBodies.ef_sqrtf_dec ef) as [(sg & ->) | Hne].
+    - rewrite (Hsq _ _ _ _ _ _ _ Hx). apply Mem.unchanged_on_refl.
+    - exact (Hext_action_ns ef targs tres cc vargs m t vres m' Hr Hne Hg Hx).
+  Qed.
+  Lemma Hmwf_ext : forall ef targs tres cc vargs m t vres m',
       reached_v2 lp (External ef targs tres cc) ->
       wgate bm SafeB (type_of_fundef (External ef targs tres cc)) vargs ->
       external_call ef (lp_ge lp) vargs m t vres m' ->
       Mem.valid_block m bm -> MWF m -> MWF m'.
+  Proof.
+    intros ef targs tres cc vargs m t vres m' Hr Hg Hx.
+    destruct (CameraBodies.ef_sqrtf_dec ef) as [(sg & ->) | Hne].
+    - rewrite (Hsq _ _ _ _ _ _ _ Hx). tauto.
+    - exact (Hmwf_ext_ns ef targs tres cc vargs m t vres m' Hr Hne Hg Hx).
+  Qed.
 
   (* ==================================================================== *)
   (* THE TWELVE-TU THEOREM: the real_mwf capstone instantiated with the   *)

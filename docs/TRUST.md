@@ -1038,10 +1038,33 @@ link grows.
     OPEN, camera): `body_pres_w` over the real `camera.f_set_camera_mode`, gated by `wgate`'s
     `T_scm` arm (Camera* is a SafeB block; `RestSurface.camera_scm_type` checks the body has that
     signature).
-  - `Hcsp_scm_real` (`call_pres_ext_cs ... set_camera_mode`) and the `call_pres_ext` rows naming
-    `set_camera_shake_from_hit` / `camera_approach_f32_symmetric` quantify over whatever the link
-    resolves the symbol to, so they are now statements about the real camera.c bodies (not
-    vacuous). Still LABELED OPEN (camera).
+  - `Hcsp_scm_real` (`call_pres_ext_cs ... set_camera_mode`) is **DERIVED, no longer a row**
+    (2026-10-22, `NoAImpliesNoFlyTwelve.Hcsp_scm_real`): the call resolves to the real camera.c
+    body (`camera_defmap_scm`, `LO_camera`), `cs_gate`'s `arg0_cond_safe` implies `wgate`'s
+    `T_scm` arm (`wgate_scm`), so `Hscm_body_real` gives MWF after the call and NoA follows from
+    MWF (`mwf_real_ctl`). `Hscm_body_real` stays LABELED OPEN (camera). What a proof needs (GOAL 1 premise sweep, 2026-10-22): the body
+    calls `sModeTransitions[newMode](c, end->focus, end->pos)` through a WRITABLE function-pointer
+    table (camera.c:465, entry 0 is NULL) that MWF says nothing about, so the callee is any
+    function of the link with type `(Camera*, f32*, f32*) -> s32` (enumerable per TU); the 14
+    transitions reach ~48 camera.c functions with stack arrays, float out-params into
+    `sModeInfo` / locals, `sMarioCamState->` stores (needs `sMarioCamState` in
+    `CensusV2.safe_ptr_syms`), and math_util / surface_collision callees
+    (`vec3f_get_dist_and_angle`, `vec3f_set_dist_and_angle`, `find_floor` with a local out cell).
+    No store in that tree has a pointer type (scanned from `generated/camera.v`), so a
+    "non-pointer store into a SafeB or local block" walk should close it.
+  - **PROVED 2026-10-22 (`CameraBodies.v`)**: the any-argument entries
+    `camera_approach_f32_symmetric` (pure), `trigger_cutscene_dialog` (->
+    `start_object_cutscene_without_focus`: byte stores into `sObjectCutscene` /
+    `sCutsceneDialogResponse`) and `set_camera_shake_from_hit` (s16 / f32 stores into
+    `gLakituState` / `sFOVState` through the real `set_camera_{pitch,yaw,roll}_shake` /
+    `set_fov_shake`). Each store is a non-pointer store into a global no MWF row reads
+    (`ObjExtBodies.ast_ok`), whatever the arguments: no row was false. The shake dispatcher's
+    SHAKE_SHOCK arm (reached: `act_shocked`, `act_water_shocked`) calls `random_float`
+    (engine/behavior_script.c, NOT linked), so `set_camera_shake_from_hit` left
+    `obj_ext_open2_ids` and `random_float` joined it: a narrower claim (a void-argument RNG
+    that writes `gRandomSeed16`) in place of the whole dispatcher. Linking behavior_script.c
+    would discharge it. Also the `sqrtf` entry of `obj_ext_open2_ids` is proved from the FPU floor
+    `sqrtf_spec` (3.5) the capstone already takes.
   - The engine rows `Hext_action` / `Hmwf_ext` range over External resolutions; their `T_scm` arm
     no longer applies to anything (set_camera_mode is Internal). Harmless (fewer obligations).
   - **`Hcamera` is GONE (2026-10-22, proved, not restated).** `ExtInert.camera_inert` said the
@@ -1055,6 +1078,18 @@ link grows.
     `camera_inert`, `csh_named`, `csh_ni` are deleted; no camera premise is left in the GOAL-2
     capstone (`HeightFrame`), and the rows (`FfRow`, `AhwRow`, `KbRow`, `PoleRow`, `LedgeRow`) and
     `StartSat` provide the new region from the link's symbol table.
+- **FOUND FALSE + PROVED (2026-10-22): `WL_exempt`** (every GOAL 1 capstone, and GOAL 2's
+  `HeightFrame` section, which copied it). The row said every exempt-whitelist callee evaluates
+  to a function whose first parameter is not a MarioState pointer, for ANY environment `e` and
+  ANY type: an env binding `sqrtf` to `set_mario_action`'s function block refutes it for every
+  link (`WLExempt.wl_exempt_old_refuted`), so the capstones that took it were VACUOUS (phantom
+  forall over environments; `LinkedTwelve.v` had flagged the forall but not that it is
+  refutable). Its only consumer (`CensusV2.chk_call_marg`) uses it at a censused body, whose env
+  is `empty_env`, and at a function-typed Evar. Restated there (`CensusV2.wl_exempt_ok`), it is
+  a theorem of the link (`WLExempt.wl_exempt_linked12`: each id resolves to an External or one
+  of the eleven lifted real bodies). It is no longer a row of the twelve-TU capstone or of
+  `HeightFrame`; the older abstract-`lp` capstones in `NoAImpliesNoFlyLinked.v` keep the
+  restated (true) form as a premise.
 - **`audio/data.c` is linked** (2026-10-20, the 18th TU, `generated/audio_data.v`): it is the only
   definer of `gAudioRandom`, which `play_mario_jump_sound` reads (mario.c:254). Before, it was a
   size-0 extern in the boot image, so every path of dive and the rollouts that plays a jump sound
@@ -1423,11 +1458,15 @@ link grows.
     reaches the hold actions; its pole frames go through the assumed per-call row of the automatic
     dispatcher (`Hseg_call_na`), which was vacuous on these sub-paths and is now a real claim (still
     assumed; the pole moves are `pole_obj_ok`-bounded `set_pole_position` writes).
-  - **Still no execution:** `interaction.c:881,889` compare `o->collisionData` with
-    `warp_pipe_seg3_collision_03009AC8`, collision data that no linked TU defines (size 0; WMotR
-    has no warp pipe). The segment-0 animation caveat below was repaired 2026-10-22. Spawns: `create_object`
-    was in `spawn_object.c`, then unlinked (linked since 2026-10-21; the spawn rows are lemmas,
-    see the spawn bullet above).
+  - **`interaction.c:881,889` now execute (2026-10-22).** They compare `o->collisionData` with
+    `warp_pipe_seg3_collision_03009AC8`, which had a size-0 block (no linked TU defined it). WMotR's
+    level data (TU 34, `generated/wmotr_level_data.v`) defines the mesh (264 shorts) and the 2.4 RULE
+    completes interaction.c's declaration to that length, so both operands are in-bounds pointers of
+    real blocks and the compare has an execution. Re-audit: the newly live path (`play_sound`, then
+    `mario_stop_riding_object` and the warp action) calls only functions the GOAL 1 walks already
+    cover (they are path-insensitive store walks over every statement), so no row became false.
+    Spawns: `create_object` was in `spawn_object.c`, then unlinked (linked since 2026-10-21; the
+    spawn rows are lemmas, see the spawn bullet above).
   - **Segment-0 animation caveat: REPAIRED 2026-10-22 (it was a vacuity, not only a caveat).**
     - `set_mario_animation` stored `VIRTUAL_TO_PHYSICAL(anim)` = `p - 0x80000000`.
     - `mario.c:188-189` and `graph_node.c:853-854` pass the stored `index` / `values` to

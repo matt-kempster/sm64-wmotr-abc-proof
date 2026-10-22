@@ -1565,6 +1565,24 @@ Proof.
     inv H; reflexivity.
 Qed.
 
+(* The exempt-callee whitelist residual, RESTATED 2026-10-22.  It was
+   `forall e le m fid fty vf fd, ... eval_expr (lp_ge lp) e le m (Evar fid fty)
+   vf -> ...`: over ANY environment e and ANY type fty.  That is FALSE for
+   every twelve-TU link (WLExempt.wl_exempt_old_refuted): an env that maps
+   `sqrtf` to set_mario_action's function block evaluates the Evar to that
+   function, whose first parameter IS a MarioState pointer.  So every
+   capstone that assumed it was VACUOUS.  The only consumer (chk_call_marg)
+   uses it at a censused body, whose env is empty_env (fn_vars = nil, the
+   engine's TI carries e = empty_env), and at a FUNCTION-typed Evar
+   (call_callee_exempt).  Stated there, it is a theorem of the link
+   (WLExempt.wl_exempt_linked12). *)
+Definition wl_exempt_ok (lp : Clight.program) : Prop :=
+  forall le m fid tyl rty cc vf fd,
+    mem_id fid exempt_callees = true ->
+    eval_expr (lp_ge lp) empty_env le m (Evar fid (Tfunction tyl rty cc)) vf ->
+    Genv.find_funct (lp_ge lp) vf = Some fd ->
+    marg_exempt fd = true.
+
 Section CensusLeavesLp.
   Variable lp : Clight.program.
   Hypothesis LO_mario : linkorder mario.prog lp.
@@ -1574,12 +1592,7 @@ Section CensusLeavesLp.
      pointer.  Per symbol: provable from linkorder for mario.prog
      internals; from the callee TU's generated AST for cross-TU symbols,
      once that TU enters the pipeline. *)
-  Hypothesis WL_exempt :
-    forall e le m fid fty vf fd,
-      mem_id fid exempt_callees = true ->
-      eval_expr (lp_ge lp) e le m (Evar fid fty) vf ->
-      Genv.find_funct (lp_ge lp) vf = Some fd ->
-      marg_exempt fd = true.
+  Hypothesis WL_exempt : wl_exempt_ok lp.
 
   (* ---- HCseq2: the tail census, given the head actually completed
      Out_normal -- a break-ended head refutes the premise. ---- *)
@@ -1950,7 +1963,7 @@ Section CensusLeavesLp.
      says the callee IS exempt, contradicting the premise. ---- *)
   Lemma chk_call_marg :
     forall Q bm SafeB bc e le m optid a al tyargs vargs vf fd,
-      TI_of Q bm SafeB bc e le ->
+      TI_of Q bm SafeB bc e le -> e = empty_env ->
       chk bc (Scall optid a al) = true ->
       eval_expr (lp_ge lp) e le m a vf ->
       Genv.find_funct (lp_ge lp) vf = Some fd ->
@@ -1959,7 +1972,7 @@ Section CensusLeavesLp.
       marg_ok bm vargs.
   Proof.
     intros Q bm SafeB bc e le m optid a al tyargs vargs vf fd
-           HTI HC Hevf Hff Hnex Hargs.
+           HTI He HC Hevf Hff Hnex Hargs.
     change ((call_optid_ok bc optid
              && (call_head_is_mptr bc al && callee_in_mptr a
                  || call_callee_exempt a)
@@ -1989,7 +2002,8 @@ Section CensusLeavesLp.
       unfold call_callee_exempt in HE.
       destruct a; try discriminate HE.
       destruct t; try discriminate HE.
-      rewrite (WL_exempt _ _ _ _ _ _ _ HE Hevf Hff) in Hnex.
+      subst e.
+      rewrite (WL_exempt _ _ _ _ _ _ _ _ HE Hevf Hff) in Hnex.
       discriminate Hnex.
   Qed.
 
