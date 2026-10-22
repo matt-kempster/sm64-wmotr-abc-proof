@@ -787,10 +787,10 @@ Section Witness.
         0 <= i < 768 -> Mem.load Mint32 m11 bp (8 * i) = Some (Vint Int.zero).
     Proof.
       intros id bp i Hid Hfs Hi.
-      assert (A1 : 0 <= 8 * i) by lia.
-      assert (A2 : 8 * i + size_chunk Mint32 <= 6144) by (cbn [size_chunk]; lia).
-      assert (A3 : (align_chunk Mint32 | 8 * i)) by (exists (2 * i); cbn [align_chunk]; lia).
-      destruct (valid_ex Mint32 bp (8 * i) 0 6144 (part_perm id bp Hid Hfs) A1 A2 A3) as (v & Hv).
+      assert (P1 : 0 <= 8 * i) by lia.
+      assert (P2 : 8 * i + size_chunk Mint32 <= 6144) by (cbn [size_chunk]; lia).
+      assert (P3 : (align_chunk Mint32 | 8 * i)) by (exists (2 * i); cbn [align_chunk]; lia).
+      destruct (valid_ex Mint32 bp (8 * i) 0 6144 (part_perm id bp Hid Hfs) P1 P2 P3) as (v & Hv).
       assert (U : untouched Mint32 bp (8 * i)).
       { split; [ intro E; subst bp; exact (sym_ne_fresh _ _ _ Hfs (or_intror (or_introl eq_refl)) eq_refl) | ].
         split; [ | split; [ | split; [ | split ] ] ];
