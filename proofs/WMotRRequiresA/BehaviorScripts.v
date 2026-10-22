@@ -517,17 +517,16 @@ Proof. vm_compute. reflexivity. Qed.
    audio, camera, dialog, save file, graph nodes, RNG, collision loading,
    the debug spawner.  The census is complete only if none of these spawns
    an object or writes oInteractType. *)
+(* 2026-10-22: the globals given their unlinked definer's zero storage by the
+   2.4 completion in pipeline/clightgen.sh (gCamera, gDialogResponse, ...) now
+   carry an initializer, so they count as defined data, not frontier. *)
 Lemma frontier_value : map string_of_ident frontier = [
-     "gAudioRandom"; "gAreas"; "gObjCutsceneDone"; "gObjParentGraphNode";
-     "gGlobalSoundSource"; "gGlobalTimer"; "gCameraMovementFlags"; "gCamera";
-     "gCutsceneFocus"; "gCurrAreaIndex"; "gCurrCourseNum"; "gCurrCreditsEntry";
+     "gAudioRandom"; "gAreas"; "gObjCutsceneDone";  "gGlobalTimer";  "gCurrAreaIndex"; "gCurrCourseNum"; "gCurrCreditsEntry";
      "gCurrSaveFileNum"; "gCurrentArea"; "gCurrDemoInput"; "gCurrLevelNum";
-     "gSaveOptSelectIndex"; "gSavedCourseNum"; "gShowDebugText"; "gSpecialTripleJump";
+     "gSaveOptSelectIndex"; "gSavedCourseNum";  "gSpecialTripleJump";
      "gStaticSurfacePartition"; "geo_obj_init_animation"; "geo_obj_init"; "geo_add_child";
      "geo_update_animation_frame"; "geo_remove_child"; "get_current_background_music";
-     "get_dialog_id"; "gVec3sZero"; "gVec3fZero"; "gRecentCutscene"; "gRedCoinsCollected";
-     "gPaintingMarioYEntry"; "gPlayer1Controller"; "gDynamicSurfacePartition";
-     "gDialogResponse"; "gDebugLevelSelect"; "gLoadedGraphNodes";
+     "get_dialog_id"; "gVec3sZero"; "gVec3fZero"; "gRecentCutscene"; "gRedCoinsCollected";  "gPlayer1Controller"; "gDynamicSurfacePartition";  "gLoadedGraphNodes";
      "gLastCompletedCourseNum"; "gLastCompletedStarNum"; "override_viewport_and_clip";
      "camera_approach_f32_symmetric"; "cutscene_object_with_dialog"; "cutscene_object";
      "cur_obj_play_sound_2"; "cur_obj_play_sound_1"; "create_sound_spawner";

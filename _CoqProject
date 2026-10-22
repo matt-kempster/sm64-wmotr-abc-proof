@@ -353,10 +353,12 @@ proofs/WMotRRequiresA/PoleSlow.v
 proofs/WMotRRequiresA/PoleFast.v
 proofs/WMotRRequiresA/PoleRow.v
 proofs/Interp/MemBuild.v
+proofs/Interp/InitMemC.v
 
 # --- GOAL 1 positive control: with A pressed, a real frame reaches flying ---
 proofs/NoAImpliesNoFly/PositiveControl.v
 proofs/NoAImpliesNoFly/PoleControl.v
+proofs/NoAImpliesNoFly/BootRun.v
 
 # --- GOAL 1 / the superseded VACUOUS mario_ge capstone (kept for history) ---
 proofs/NoAImpliesNoFly/Unwired/NoAImpliesNoFlyVacuous.v
