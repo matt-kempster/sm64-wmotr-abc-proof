@@ -137,7 +137,6 @@ Hypothesis H12 : linked12 lp.
 Local Notation G := (globalenv lp).
 Hypothesis Hdma : os_dma_floor.
 Hypothesis Haudio : audio_inert.      (* LABELED OPEN PREMISE: audio, deferred *)
-Hypothesis Hceil : find_ceil_height G.  (* LABELED OPEN PREMISE: find_ceil's returned height *)
 
 Variable acn : Z.
 Variable fK : function.
@@ -224,7 +223,7 @@ Proof.
       exact (c_fc2_sound G NBP (R0P G) gtabP (kvP acn G) m0 uf gp GPO RCALLS kW kC
                (szs G mario._Surface) (cenv_has_link lp (linked12_LO_surf lp H12))
                (res_link lp _ _ _ (linked12_LO_surf lp H12) dm_fcl) eq_refl
-               ufP_kW ufP_kC_in Hceil args g cps E m vargs t m' vres Hk MM HA EV). }
+               ufP_kW ufP_kC_in args g cps E m vargs t m' vres Hk MM HA EV). }
     exact (XSI id k0 args g cps fd E m vargs t m' vres Xi Hk Hl MM HA EV).
   - destruct (Pos.eqb_spec id mario._set_mario_animation) as [-> | N1].
     + injection Hx as <-.
@@ -354,9 +353,8 @@ Definition pfinal (lp : Clight.program) (acn : Z) (fK : function) : Prop :=
                   /\ F32 p = true /\ (-1000 <= R2 p)%R).
 
 Lemma pole_pfinal : forall lp, linked12 lp -> os_dma_floor -> audio_inert ->
-  find_ceil_height (globalenv lp) ->
   forall acn fK, pole_walk acn fK = true -> pfinal lp acn fK.
 Proof.
-  intros lp H12 Hdma Ha Hc acn fK Hw m0 gp GPO MC FD.
-  exact (pole_final lp H12 Hdma Ha Hc acn fK Hw m0 gp GPO MC FD).
+  intros lp H12 Hdma Ha acn fK Hw m0 gp GPO MC FD.
+  exact (pole_final lp H12 Hdma Ha acn fK Hw m0 gp GPO MC FD).
 Qed.

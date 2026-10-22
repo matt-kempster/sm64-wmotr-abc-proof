@@ -12,6 +12,7 @@ From compcert Require Import Coqlib Maps AST Integers Floats Values Memory Ctype
 From SM64.Generated Require mario surface_collision.
 From SM64.Proofs Require Import Interp.SymExec2 WMotRRequiresA.FloorList WMotRRequiresA.TerrainSound
   WMotRRequiresA.FloorHeight WMotRRequiresA.FloorExec WMotRRequiresA.CeilExec.
+From SM64.Proofs.WMotRRequiresA Require CeilList CeilHeight.
 Import ListNotations.
 
 (* ---------------------------------------------------------------------- *)
@@ -43,21 +44,32 @@ Definition c_fc2 (nbase : positive) (R0 : list (positive * Z)) (rCL kW kC : posi
 
 (* find_ceil's height test, on the s16 y it computes from yPos *)
 Definition c20000 : float32 := Float32.of_int (Int.repr 20000).
+(* (the s16 cast of yPos is always defined: Clight's float->short cast is
+   partial, so an execution that gets past it has one) *)
 Definition ceil_ok (yv : val) (h : float32) : Prop :=
-  h = c20000
-  \/ exists yi, ycast yv = Vint yi
-       /\ Float32.cmp Cgt (Float32.sub (Float32.of_int yi) (Float32.sub h (Float32.neg c78)))
-            Float32.zero = false.
+  exists yi, ycast yv = Vint yi
+    /\ (h = c20000
+        \/ Float32.cmp Cgt (Float32.sub (Float32.of_int yi) (Float32.sub h (Float32.neg c78)))
+             Float32.zero = false).
 
-(* LABELED OPEN PREMISE (pole walks): the real find_ceil returns 20000 or a
-   height that passed find_ceil_from_list's test.  A statement about the
-   generated Clight of find_ceil / find_ceil_from_list (CeilList proves
-   their memory effect; this is their returned value), to be discharged
-   like FloorHeight.ff_height. *)
-Definition find_ceil_height (ge : genv) : Prop :=
-  forall m xv yv zv pc t m' vres,
-    eval_funcall function_entry2 ge m (Internal surface_collision.f_find_ceil) [xv; yv; zv; pc] t m' vres ->
+(* find_ceil's returned height.  Formerly the LABELED OPEN PREMISE
+   find_ceil_height, which quantified over EVERY *pceil and was FALSE (a
+   dangling pceil can name find_ceil's own `height` block; CeilHeight's
+   header has the counterexample).  Now PROVED (CeilHeight.fc_height) for
+   a *pceil and a gNumCalls in blocks of the entry memory, which
+   c_fc2_sound gets from the walker state. *)
+Lemma fc_ceil_ok : forall (ge : genv), CeilList.fcl_pinned ge ->
+  forall m xv yv zv bpf opf t m' vres,
+    Mem.valid_block m bpf ->
+    (forall b, Genv.find_symbol ge surface_collision._gNumCalls = Some b -> Mem.valid_block m b) ->
+    eval_funcall function_entry2 ge m (Internal surface_collision.f_find_ceil)
+      [xv; yv; zv; Vptr bpf opf] t m' vres ->
     exists h, vres = Vsingle h /\ ceil_ok yv h.
+Proof.
+  intros ge Hp m xv yv zv bpf opf t m' vres V S H.
+  destruct (CeilHeight.fc_height ge Hp m xv yv zv bpf opf t m' vres V S H) as (h & yi & -> & Ey & Hh).
+  exists h. split; [reflexivity |]. exists yi. split; [exact Ey | exact Hh].
+Qed.
 
 Lemma anim_end_nc : nc_chk (fn_body mario.f_is_anim_at_end) = true.
 Proof. vm_compute. reflexivity. Qed.
@@ -263,15 +275,53 @@ Proof.
 Qed.
 
 (* THE SOUNDNESS of c_fc2 against the real find_ceil, given its height
-   (the labeled open premise find_ceil_height) *)
-Theorem c_fc2_sound : find_ceil_height ge -> forall args g cps E m vargs t m' vres,
+   (its height from CeilHeight.fc_height, via c_fc_height) *)
+Lemma c_fc_height : forall args g cps E m vargs t m' vres,
+  c_fc nbase R0 rCL kW szS args g = Some cps ->
+  MM E m g ->
+  Forall2 (fun a v => den E a = Some v /\ sok nbase (g_nx g) a) args vargs ->
+  eval_funcall function_entry2 ge m (Internal surface_collision.f_find_ceil) vargs t m' vres ->
+  exists xv yv zv bpf opf, vargs = [xv; yv; zv; Vptr bpf opf]
+    /\ Mem.valid_block m bpf
+    /\ (forall b, Genv.find_symbol ge surface_collision._gNumCalls = Some b -> Mem.valid_block m b).
+Proof.
+  intros args g cps E m vargs t m' vres Hc MMh HF Hev.
+  unfold c_fc in Hc.
+  destruct args as [|a1 [|a2 [|a3 [|a4 [|a5 l]]]]]; try discriminate Hc;
+    [| destruct a4; discriminate Hc].
+  destruct a4 as [ | rp op | | | | | | | | ]; try discriminate Hc.
+  destruct (existsb (Pos.eqb rp) (g_loc g) && existsb (is_fact_W kW (wargs R0)) (g_pc g)) eqn:CK;
+    [| discriminate Hc].
+  apply andb_true_iff in CK as [CL CW].
+  apply existsb_exists in CL as (rp' & Il & Erp). apply Pos.eqb_eq in Erp. subst rp'.
+  apply existsb_exists in CW as (fW & IW & EW).
+  destruct fW as [ | | | k wa]; try discriminate EW.
+  apply andb_true_iff in EW as [Ek Ewa]. apply Pos.eqb_eq in Ek. subst k.
+  destruct (list_eq_dec sval_eq wa (wargs R0)) as [-> | ]; [| discriminate Ewa].
+  inv HF. match goal with H : Forall2 _ _ _ |- _ => inv H end.
+  match goal with H : Forall2 _ _ _ |- _ => inv H end.
+  match goal with H : Forall2 _ _ _ |- _ => inv H end.
+  match goal with H : Forall2 _ _ _ |- _ => inv H end.
+  match goal with H : den E (Sptr rp op) = Some _ /\ _ |- _ => destruct H as (Dp & _) end.
+  cbn [SymExec2.den] in Dp. injection Dp as <-.
+  pose proof MMh as (EO & NB & ENT & FR & VP & NX & PC & LOC & LINJ).
+  destruct (LOC rp Il) as (_ & _ & Hb0 & Hnew & Hvm).
+  destruct (PC _ IW) as (_ & HW). cbn [fact_holds] in HW. apply HU in HW.
+  assert (Vm : forall b, Plt b nb0 -> Mem.valid_block m b)
+    by (intros b Hb; eapply Plt_Ple_trans; [exact Hb | exact NX]).
+  do 5 eexists. split; [rewrite Hb0; reflexivity |]. split; [exact Hvm |].
+  intros b Hs. apply Vm.
+  exact (statics_old _ _ HW (ex_intro _ surface_collision._gNumCalls (conj ltac:(cbn; auto) Hs))).
+Qed.
+
+Theorem c_fc2_sound : forall args g cps E m vargs t m' vres,
   c_fc2 nbase R0 rCL kW kC szS args g = Some cps ->
   MM E m g ->
   Forall2 (fun a v => den E a = Some v /\ sok nbase (g_nx g) a) args vargs ->
   eval_funcall function_entry2 ge m (Internal surface_collision.f_find_ceil) vargs t m' vres ->
   exists c, In c cps /\ CM ge nbase R0 gtab kv m0 uf gp E (g_nx g) (g_loc g) m' vres c.
 Proof.
-  intros FCH args g cps E m vargs t m' vres Hc MMh HF Hev.
+  intros args g cps E m vargs t m' vres Hc MMh HF Hev.
   unfold c_fc2 in Hc.
   destruct args as [|a1 [|a2 [|a3 [|a4 [|a5 l]]]]]; try discriminate Hc.
   destruct (c_fc nbase R0 rCL kW szS [a1; a2; a3; a4] g) as [cps0|] eqn:C0; [| discriminate Hc].
@@ -279,12 +329,14 @@ Proof.
   injection Hc as <-.
   destruct (c_fc_sound ge nbase R0 gtab kv m0 uf gp gp_old rCL kW szS HC Hcpin HgCL HU
               _ _ _ E m vargs t m' vres C0 MMh HF Hev) as (c & Hin & CMc).
+  destruct (c_fc_height _ _ _ E m vargs t m' vres C0 MMh HF Hev)
+    as (xv & yv0 & zv & bpf & opf & -> & Vb & Sv).
+  destruct (fc_ceil_ok ge Hcpin _ _ _ _ _ _ _ _ _ Vb Sv Hev) as (h & -> & Hok).
   inv HF. match goal with H : Forall2 _ _ _ |- _ => inv H end.
   match goal with H : Forall2 _ _ _ |- _ => inv H end.
   match goal with H : Forall2 _ _ _ |- _ => inv H end.
   match goal with H : Forall2 _ _ _ |- _ => inv H end.
   match goal with H : den E a2 = Some ?yv /\ _ |- _ => destruct H as (Dy & Sy) end.
-  destruct (FCH _ _ _ _ _ _ _ _ Hev) as (h & -> & Hok).
   assert (Na : nlt (g_nx g) a2) by (eapply sok_nlt; exact Sy).
   destruct Hin as [<- | [<- | []]].
   - eexists. split; [left; reflexivity |].

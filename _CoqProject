@@ -301,6 +301,7 @@ proofs/WMotRRequiresA/TerrainBound.v
 proofs/WMotRRequiresA/TerrainRun.v
 proofs/WMotRRequiresA/FloorExec.v
 proofs/WMotRRequiresA/CeilList.v
+proofs/WMotRRequiresA/CeilHeight.v
 proofs/WMotRRequiresA/CeilExec.v
 proofs/WMotRRequiresA/TerrainSound.v
 proofs/WMotRRequiresA/WallList.v

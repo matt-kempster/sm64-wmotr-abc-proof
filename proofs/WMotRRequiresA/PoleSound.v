@@ -206,7 +206,7 @@ Proof.
   assert (Ds : den (Sbinop Osub s1 tf (Sconst (Vsingle c160)) tf) = Some (Vsingle (Float32.sub C c160))).
   { cbn [SymExec2.den]. rewrite DC. reflexivity. }
   pose proof (fbool_cmp _ _ Y _ Ogt Cgt true I DY Ds (or_introl (conj eq_refl eq_refl))) as G.
-  destruct CO as [-> | (yi & Ey & Hc)].
+  destruct CO as (yi & Ey & [-> | Hc]).
   - rewrite (c20000_gt Y FY ltac:(lra)) in G. discriminate G.
   - destruct (plus80_cast Y FY RY) as (yi' & Ey' & Byi). rewrite Ey' in Ey. injection Ey as <-.
     destruct (ceil_clamp Y C yi' FY ltac:(lra) ltac:(lia) Hc G) as (Fs & B1 & B2).
