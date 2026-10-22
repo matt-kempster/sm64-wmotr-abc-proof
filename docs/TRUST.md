@@ -287,10 +287,14 @@ without pressing A".*
   (HOLDING_POLE, CLIMBING_POLE, TOP_OF_POLE_TRANSITION and TOP_OF_POLE need the anim data;
   plus the 5 ledge cases and IN_CANNON). The walks (`PoleSlow`/`PoleFast`) run the real
   handlers with usedObj as its own region (`PoleRun.RU`) in Mario's object block.
-  - **NEW LABELED OPEN PREMISE `HeightFrame.Hceil : PoleXc.find_ceil_height`:** the real
-    `find_ceil` returns 20000 or a height not below (int)y − 78. It is used by
-    `set_pole_position`'s ceiling check and can be discharged like `FloorHeight`'s find_floor.
-    27 → 28 hypotheses; `Hauto_rest` is strictly narrower than `Hauto_case`.
+  - **`HeightFrame.Hceil` (added here, 27 → 28) was FALSE as stated, and is now PROVED and
+    removed (2026-10-22, 28 → 27).** It said: the real `find_ceil` returns 20000 or a height
+    not below (int)y − 78, for every call. Counterexample: let `pceil` dangle into the
+    `height` block itself, with posX ≥ 8192 and posY = 1000. Then `find_ceil` returns 0.0f.
+    The restated fact needs only what the call site has: a valid `pceil` block and a valid
+    `gNumCalls`. `CeilHeight.fc_height` proves it against the generated Clight. Its
+    consumer `PoleXc.c_fc_height` gets both validities from the walker's state, so
+    `c_fc2_sound` has no premise left. `Hauto_rest` is strictly narrower than `Hauto_case`.
   - `WMotRWorld.used_ok` now also carries `pole_pos_ok`: usedObj's slot fits, and
     `oMarioPolePos` is a finite float ≥ −1000. The grabs' outcomes keep it: the walk checks
     `PoleClass.pole_keep` on every POLE_ACTS3 outcome.

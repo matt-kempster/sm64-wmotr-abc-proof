@@ -10,7 +10,7 @@
 (* used_ok included.                                                       *)
 (*                                                                        *)
 (* Premises beyond the link: as KbRow (DMA floor, the labeled open audio   *)
-(* premise) and PoleXc.find_ceil_height (LABELED OPEN PREMISE).            *)
+(* premise).  find_ceil's height is proved (CeilHeight.fc_height).         *)
 (* ====================================================================== *)
 
 From Coq Require Import List ZArith Lia Reals Lra.
@@ -652,7 +652,6 @@ Hypothesis H12 : linked12 lp.
 Local Notation G := (globalenv lp).
 Hypothesis Hdma : os_dma_floor.
 Hypothesis Haudio : audio_inert.               (* LABELED OPEN PREMISE: audio, deferred *)
-Hypothesis Hceil : find_ceil_height G.         (* LABELED OPEN PREMISE: find_ceil's result (PoleXc) *)
 Variable bm : block.
 Hypothesis Hbm : Genv.find_symbol G level_update._gMarioStates = Some bm.
 Variable MWF : mem -> Prop.
@@ -677,7 +676,7 @@ Proof.
     intros m t m' vr c Hok Hw (-> & Hact & Hfr) Hok' Hc Hb Hev.
     destruct Hok as (Vm & _).
     exact (KbRow.kb_reshape _ _ _ (pole_row lp H12 bm Hbm _ _
-             (pole_pfinal lp H12 Hdma Haudio Hceil _ _ slowcheck12) ltac:(left; reflexivity)
+             (pole_pfinal lp H12 Hdma Haudio _ _ slowcheck12) ltac:(left; reflexivity)
              m t m' vr c Vm Hw Hc Hb Hact Hfr Hev)). }
   destruct (Pos.eq_dec f AUT._act_grab_pole_fast) as [-> | Hne2].
   { pose proof (gpf_label n Hin) as ->.
@@ -685,7 +684,7 @@ Proof.
     intros m t m' vr c Hok Hw (-> & Hact & Hfr) Hok' Hc Hb Hev.
     destruct Hok as (Vm & _).
     exact (KbRow.kb_reshape _ _ _ (pole_row lp H12 bm Hbm _ _
-             (pole_pfinal lp H12 Hdma Haudio Hceil _ _ fastcheck12) ltac:(right; left; reflexivity)
+             (pole_pfinal lp H12 Hdma Haudio _ _ fastcheck12) ltac:(right; left; reflexivity)
              m t m' vr c Vm Hw Hc Hb Hact Hfr Hev)). }
   exact (Hrest n f fd v Hin Hne1 Hne2 Hr).
 Qed.

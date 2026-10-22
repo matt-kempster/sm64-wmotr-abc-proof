@@ -568,9 +568,9 @@ Section HeightLinked12.
      m->statusForCamera, the size-0 gPlayerCameraState of this link:
      TRUST audit (l)) and IN_CANNON (the same store in its state 0) *)
   Hypothesis Hauto_rest : LedgeRow.aut_case_rest_ledge lp bm MWF.
-  (* LABELED OPEN PREMISE: find_ceil's result is 20000 (none) or not below (int)y - 78
-     (PoleXc.find_ceil_height; to discharge like FloorHeight's find_floor) *)
-  Hypothesis Hceil : PoleXc.find_ceil_height (globalenv lp).
+  (* (find_ceil's height: formerly the open premise Hceil, which was FALSE
+     as stated -- it allowed a dangling *pceil; now PROVED,
+     CeilHeight.fc_height, from the walker's live-local pceil) *)
   (* the freefall case (FfRow, 2026-10-20): PROVED from the real
      act_freefall (FfRow.ff_row: the call keeps the frame world and moves
      Phi's cells by a MoveChain, from FfWorld.ffw, which PhiW / fworld
@@ -605,7 +605,7 @@ Section HeightLinked12.
   (* the automatic dispatcher's cases: the two grabs and two ledge cases proved, the rest assumed *)
   Lemma Hauto_case : aut_case_rows lp bm MWF.
   Proof.
-    exact (PoleRow.aut_case_rows_pole lp H12 Hdma_floor Haudio Hceil bm Hbm_sym MWF
+    exact (PoleRow.aut_case_rows_pole lp H12 Hdma_floor Haudio bm Hbm_sym MWF
              (LedgeRow.aut_case_rest_pole_ledge lp H12 Hdma_floor Haudio bm Hbm_sym MWF Hauto_rest)).
   Qed.
 
