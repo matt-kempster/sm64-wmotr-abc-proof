@@ -44,7 +44,7 @@ From compcert Require Import Coqlib Integers Floats Values AST Memory Globalenvs
 From SM64.Proofs Require Import Interp.ClightInterp Interp.LinkGenv Interp.MemBuild.
 From SM64.Proofs Require Interp.CMem.
 From SM64.Proofs Require Import LinkedTwelve HeightInvariant WMotRLevel.
-From SM64.Proofs.WMotRRequiresA Require Import FloorList FloorHeight AirMatch TerrainBound.
+From SM64.Proofs.WMotRRequiresA Require Import FloorList FloorHeight AirMatch TerrainBound FpuFloor.
 Require SM64.Generated.surface_load.
 Import ListNotations.
 Module CM := SM64.Proofs.Interp.CMem.
@@ -66,6 +66,38 @@ Definition world (ef : external_function) (args : list val) (m : mem)
 (* what the run assumes of the two externals *)
 Definition world_ok (ge : genv) : Prop :=
   forall ef args m t v m', world ef args m = Some (t, v, m') -> external_call ef ge args m t v m'.
+
+(* world_ok, split.  Its memory half for sqrtf is the existing FPU floor
+   (FpuFloor.sqrtf_spec, TRUST 3.5: every sqrtf behavior leaves memory
+   alone).  What the floor does NOT give -- by design, it makes no value
+   claim and asserts no behavior exists -- is that a call returning the IEEE
+   single-precision root IS one of sqrtf's behaviors (sqrtf_ieee: the VR4300
+   sqrt.s result).  reset_red_coins_collected's real body (ingame_menu.c:2421)
+   is gRedCoinsCollected = 0; ingame_menu.c is not linked and
+   gRedCoinsCollected has no storage in the link, so "returns, memory
+   unchanged" (rrc_inert) is a labeled premise, not a proved fact. *)
+Definition sqrtf_ieee : Prop :=
+  forall sg (ge : Senv.t) x m, exists m',
+    external_functions_sem "sqrtf" sg ge [Vsingle x] m E0 (Vsingle (Float32.sqrt x)) m'.
+
+Definition rrc_inert : Prop :=
+  forall sg (ge : Senv.t) m,
+    external_functions_sem "reset_red_coins_collected" sg ge [] m E0 Vundef m.
+
+Lemma world_ok_of : forall ge, sqrtf_spec -> sqrtf_ieee -> rrc_inert -> world_ok ge.
+Proof.
+  intros ge Hs Hi Hr ef args m t v m' W. unfold world in W.
+  destruct ef; try discriminate W.
+  destruct args as [| a [| a2 args]]; try discriminate W.
+  - destruct (String.eqb name "reset_red_coins_collected") eqn:E; [ | discriminate W ].
+    injection W as <- <- <-. apply String.eqb_eq in E. subst name. exact (Hr sg ge m).
+  - destruct a; try discriminate W.
+    destruct (String.eqb name "sqrtf") eqn:E; [ | discriminate W ].
+    injection W as <- <- <-. apply String.eqb_eq in E. subst name.
+    destruct (Hi sg ge f m) as (m'' & H).
+    pose proof (Hs _ _ _ _ _ _ _ H) as ->. exact H.
+  - destruct a; discriminate W.
+Qed.
 
 Definition externs (i : ident) : option Z := None.
 

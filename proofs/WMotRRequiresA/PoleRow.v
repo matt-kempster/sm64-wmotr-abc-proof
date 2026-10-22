@@ -10,7 +10,7 @@
 (* used_ok included.                                                       *)
 (*                                                                        *)
 (* Premises beyond the link: as KbRow (DMA floor, the labeled open audio   *)
-(* premise) and PoleXc.find_ceil_height (LABELED OPEN PREMISE).            *)
+(* premise).  find_ceil's height is proved (CeilHeight.fc_height).         *)
 (* ====================================================================== *)
 
 From Coq Require Import List ZArith Lia Reals Lra.
@@ -361,7 +361,7 @@ Proof.
   assert (IR0 : InRange c0) by exact (proj1 Hbud).
   destruct (Hfin m gp GPO MCg FD E t m' vres c0 EO PC EV' ltac:(exact RC) IR0)
     as (E' & gs & X & MM & FK & NR & RT & c2 & RC2 & RM2 & Hout & Hv & Hk).
-  split; [| change (e_blk E RM) with bm in RT; exact (fresh_ret bm m m' vres Hfr RT)].
+  split; [| change (e_blk E RM) with bm in RT; exact (fresh_ret_ns bm m m' vres acn Hact ltac:(destruct Hpa as [E0 | [E0 | []]]; rewrite <- E0; reflexivity) Hfr RT)].
   split; [| exists c2; split; [exact RC2 | apply Relation_Operators.rt_step; exact RM2]].
   (* ---- the walk's outcome, in terms of the blocks ---- *)
   assert (XB : forall r, Plt r NBP -> e_blk E' r = e_blk E r /\ e_base E' r = e_base E r)
@@ -652,7 +652,6 @@ Hypothesis H12 : linked12 lp.
 Local Notation G := (globalenv lp).
 Hypothesis Hdma : os_dma_floor.
 Hypothesis Haudio : audio_inert.               (* LABELED OPEN PREMISE: audio, deferred *)
-Hypothesis Hceil : find_ceil_height G.         (* LABELED OPEN PREMISE: find_ceil's result (PoleXc) *)
 Variable bm : block.
 Hypothesis Hbm : Genv.find_symbol G level_update._gMarioStates = Some bm.
 Variable MWF : mem -> Prop.
@@ -677,7 +676,7 @@ Proof.
     intros m t m' vr c Hok Hw (-> & Hact & Hfr) Hok' Hc Hb Hev.
     destruct Hok as (Vm & _).
     exact (KbRow.kb_reshape _ _ _ (pole_row lp H12 bm Hbm _ _
-             (pole_pfinal lp H12 Hdma Haudio Hceil _ _ slowcheck12) ltac:(left; reflexivity)
+             (pole_pfinal lp H12 Hdma Haudio _ _ slowcheck12) ltac:(left; reflexivity)
              m t m' vr c Vm Hw Hc Hb Hact Hfr Hev)). }
   destruct (Pos.eq_dec f AUT._act_grab_pole_fast) as [-> | Hne2].
   { pose proof (gpf_label n Hin) as ->.
@@ -685,7 +684,7 @@ Proof.
     intros m t m' vr c Hok Hw (-> & Hact & Hfr) Hok' Hc Hb Hev.
     destruct Hok as (Vm & _).
     exact (KbRow.kb_reshape _ _ _ (pole_row lp H12 bm Hbm _ _
-             (pole_pfinal lp H12 Hdma Haudio Hceil _ _ fastcheck12) ltac:(right; left; reflexivity)
+             (pole_pfinal lp H12 Hdma Haudio _ _ fastcheck12) ltac:(right; left; reflexivity)
              m t m' vr c Vm Hw Hc Hb Hact Hfr Hev)). }
   exact (Hrest n f fd v Hin Hne1 Hne2 Hr).
 Qed.

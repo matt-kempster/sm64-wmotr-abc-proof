@@ -26,7 +26,7 @@ without pressing A".*
 | 0.2 | The definition of "flying" (`Flying.v`: `ACT_FLYING`, `ACT_FLYING_TRIPLE_JUMP`; the invariant set also has `ACT_SHOT_FROM_CANNON`) | Constants read from the generated AST. |
 | 0.3 | "Collect the star" = the red-coin star spawns and is touched. The GOAL-2 height bound must imply you can't | **Height form stated** (`WMotRRequiresA/HeightFrame.v`, `wmotr_noA_height_bound_linked12`): a no-A run keeps `pos[1] ≤ 2796` (`PHI_YMAX` = K + A, `HeightInvariant.v`; K = H* = 2424, the wing-cap box top 2320 + 2·52 (the box is scaled ×2), with the level facts it needs proved from generated level data in `WMotRLevel.v` (0.8); A = 372 from `tools/goal2_budget.py` plus the binary32 rounding allowance). Details: [row 0.3 in detail](#row-03-in-detail). |
 | 0.6 | GOAL 2's height invariant `Phi` and the Mario-frame rows | **Defined** (`HeightInvariant.height_invariant`, design `docs/goal2-phi.md`): `R_noA` action whitelist ∧ `budget_ok` over the cells action, actionState, actionTimer, pos[1], vel[1], floorHeight and `marioObj->gfx.pos[1]` (what OOB recovery restores). Details: [row 0.6 in detail](#row-06-in-detail). |
-| 0.8 | GOAL 2's level data: `wmotr_floor` / `wmotr_pole` / `wmotr_cannon` are WMotR's floors, poles and cannon seats | **Defined from generated/, rows proved** (`WMotRLevel.v`). 2026-10-22: `floor_data` (d) and decoder agreement (a) are PROVED on the memory the real `load_area_terrain` builds (`TerrainRun`, 1352 surfaces); the GOAL 2 witness does not carry that memory yet. Details: [row 0.8 in detail](#row-08-in-detail). |
+| 0.8 | GOAL 2's level data: `wmotr_floor` / `wmotr_pole` / `wmotr_cannon` are WMotR's floors, poles and cannon seats | **Defined from generated/, rows proved** (`WMotRLevel.v`). 2026-10-22: `floor_data` (d) and decoder agreement (a) are PROVED on the memory the real `load_area_terrain` builds (`TerrainRun`, 1352 surfaces); since later that day the GOAL 2 start witness carries it (`StartTerrain`: the loader runs on the `init_mem` image in the real boot order, and `goal2_start_sat` concludes `floor_data` + `static_agree`). Details: [row 0.8 in detail](#row-08-in-detail). |
 | 0.9 | GOAL 2's pos[1] writer census is complete (`YWriterCensus.v`) | **Machine-checked list, trusted edges.** Coq scans every function body of the 12 generated Mario TUs and proves: 31 direct `pos[1]` stores and 21 write-escapes (16 whole-vector arg-0 passes to `vec3f_copy`/`vec3f_set`/`vec3s_to_vec3f`, 5 `&pos[1]` passes to `f32_find_wall_collision`), 52 in all; `pos`'s address never reaches a temp, memory, a condition or a return, and no struct copy covers it. Details: [row 0.9 in detail](#row-09-in-detail). |
 | 0.10 | GOAL 2's object census: what objects can exist in WMotR and their interaction types (`BehaviorScripts.v`) | **Machine-checked over generated code, frontier trusted.** `generated/behavior_data.v` (clightgen of `data/behavior_data.c`) gives every behavior script as data; a fail-closed decoder mirrors the command layouts. Details: [row 0.10 in detail](#row-010-in-detail). |
 | 0.7 | GOAL 2's flank segments (`HeightFrame.v`: controller poll, platform displacement, level/warp phase, non-Mario objects) do what their specs say: y / action loads as the censuses found them, and each carries GOAL 1's `MWF_real` and Φ (since 2026-09-29 Φ here is `PhiW`, so each flank also keeps the WMotR world: object updates reload only WMotR's surfaces and never hand Mario an object to hold or ride; collision detection registers only WMotR-kind objects, with poles and cannon bases at their level positions and no star while coin #2 stands (0.3); no object sets a stomp bit on Mario's object) (the poll only when A is not pressed); platform displacement also leaves the held-A reading unchanged (it writes no controller) | **ASSUMED, labeled.** Specs, not proofs: none of that code is linked. Details: [row 0.7 in detail](#row-07-in-detail). |
@@ -214,11 +214,14 @@ without pressing A".*
   entered fresh because its label is airborne, `air_case_air`), and every proved case's
   return: FALSE, or y and floorHeight untouched (`RetOk.ret_ok`, checked on each walk's
   outcomes; `RetOk.ret_sound`), so the loop's TRUE path keeps the floor fresh. **Caveat
-  (pre-existing, phantom ∀):** after `let_go_of_ledge` (→ SOFT_BONK, y lowered by ≤ 100 with
-  floorHeight not refreshed) the open rows claim the floor is fresh; that is true in the game
-  (find_floor's floorHeight was ≤ y_old + 78) but not derivable from the frame world, which
-  carries no floor fact at a ledge grab. ffw's own `fro_st` clause makes the same claim and is
-  unchanged (still read by the freefall and air-hit-wall rows). No assumption added.
+  (pre-existing, phantom ∀; REPAIRED 2026-10-22, audit (l)):** after `let_go_of_ledge`
+  (→ SOFT_BONK, y lowered by ≤ 100 with floorHeight not refreshed) the open rows claimed the
+  floor is fresh, which `fresh`'s `fh ≤ y + 241` alone does not give. `FfWorld.fresh` now also
+  carries the slack `action = SOFT_BONK ∨ fh = −11000 ∨ fh ≤ y + 140`, which the let-go keeps
+  (y drops by ≤ 101 into SOFT_BONK, `LedgeRun.letgo_fresh`), and SOFT_BONK's handler returns
+  FALSE (`SbRet0.kb_kret0`, a rewalk of the real act_soft_bonk), so the loop never re-dispatches
+  on the stale floor. ffw's own `fro_st` clause is unchanged (still read by the freefall and
+  air-hit-wall rows). No assumption added.
   **Automatic-dispatcher audit (2026-10-21; pole paths now execute).** Three statement bugs
   were found in what `Hseg_call_na` claimed for `mario_execute_automatic_action`, and all three
   are repaired. No assumption was added; the row is still open.
@@ -284,15 +287,45 @@ without pressing A".*
   (HOLDING_POLE, CLIMBING_POLE, TOP_OF_POLE_TRANSITION and TOP_OF_POLE need the anim data;
   plus the 5 ledge cases and IN_CANNON). The walks (`PoleSlow`/`PoleFast`) run the real
   handlers with usedObj as its own region (`PoleRun.RU`) in Mario's object block.
-  - **NEW LABELED OPEN PREMISE `HeightFrame.Hceil : PoleXc.find_ceil_height`:** the real
-    `find_ceil` returns 20000 or a height not below (int)y − 78. It is used by
-    `set_pole_position`'s ceiling check and can be discharged like `FloorHeight`'s find_floor.
-    27 → 28 hypotheses; `Hauto_rest` is strictly narrower than `Hauto_case`.
+  - **`HeightFrame.Hceil` (added here, 27 → 28) was FALSE as stated, and is now PROVED and
+    removed (2026-10-22, 28 → 27).** It said: the real `find_ceil` returns 20000 or a height
+    not below (int)y − 78, for every call. Counterexample: let `pceil` dangle into the
+    `height` block itself, with posX ≥ 8192 and posY = 1000. Then `find_ceil` returns 0.0f.
+    The restated fact needs only what the call site has: a valid `pceil` block and a valid
+    `gNumCalls`. `CeilHeight.fc_height` proves it against the generated Clight. Its
+    consumer `PoleXc.c_fc_height` gets both validities from the walker's state, so
+    `c_fc2_sound` has no premise left. `Hauto_rest` is strictly narrower than `Hauto_case`.
   - `WMotRWorld.used_ok` now also carries `pole_pos_ok`: usedObj's slot fits, and
     `oMarioPolePos` is a finite float ≥ −1000. The grabs' outcomes keep it: the walk checks
     `PoleClass.pole_keep` on every POLE_ACTS3 outcome.
   - The walk merges `set_pole_position`'s branches, so facts the merge loses are re-derived
     per outcome by `PoleClass.pole_ok` (sound by `PoleSound.pole_sound`).
+  (l) **LEDGE_GRAB / LEDGE_CLIMB_DOWN proved (2026-10-22, `LedgeRow.ledge_row`,
+  `aut_case_rest_pole_ledge`).** `Hauto_rest` is now `LedgeRow.aut_case_rest_ledge`: 8 cases
+  (the four pole cases needing anim data, LEDGE_CLIMB_SLOW_1 / 2, LEDGE_CLIMB_FAST, IN_CANNON).
+  Still 28 hypotheses; the new one is strictly narrower. The walks (`LedgeGrab` / `LedgeDown`)
+  run the real handlers with find_floor's height fact (PoleXc.c_ff2), and every outcome passes
+  `LedgeClass.ledge_ok` (a RangedMove: the switch into a climb or SOFT_BONK keeps y, the snap
+  `stop_and_set_height_to_floor` puts y on floorHeight, the let-go lowers y by ≤ 101 or onto a
+  floor behind Mario) and either `RetOk.ret_ok` or `LedgeClass.letgo_ok`.
+  - **Statement strengthened (true in the game, no new trust):** `FfWorld.fresh` gains the slack
+    clause above. The open rows that produce or keep `fresh` (update_mario_inputs' refresh and
+    the other open dispatcher rows) now claim a little more: right after find_floor
+    (floorHeight ≤ y + 78, `ff_height_bound`) the slack holds; SOFT_BONK returns FALSE without
+    A (`SbRet0`). KbRow takes the SB case's FALSE return as a section premise (`Hsb`), discharged
+    by the rewalk `SbRet0Walk.sb0check12`.
+  - **FINDING (vacuity, not repaired here): `gPlayerCameraState` is a size-0 block in the
+    link.** It is defined in camera.c, which is not linked; mario_misc.v's declaration has
+    `gvar_init nil`. `init_mario_from_save_file` sets `m->statusForCamera =
+    &gPlayerCameraState[0]`, and `update_mario_info_for_cam` stores through it on every
+    `execute_mario_action` frame. A store into a size-0 block has no CompCert execution, so no
+    frame from real boot memory executes, and the frame rows' `eval_funcall` premise can never
+    hold: the GOAL-2 capstone (and any capstone resting on executed frames) is vacuous for the
+    real game until camera.c's storage is linked (or a definer TU added). The same store blocks
+    LEDGE_CLIMB_SLOW_1 / 2 and LEDGE_CLIMB_FAST (`update_ledge_climb_camera`) and IN_CANNON's
+    state 0. The frame world carries no `statusForCamera` fact, so those cases cannot be walked
+    yet. IN_CANNON is reachable in WMotR without A (2 cannons; `interact_cannon_base`).
+  - `PoleXc.v` uses `hit16_transfer` (Hit_at is now ffl_hit16, after the terrain merge).
   **Slide kick at state ≠ 0 is proved (2026-10-21; `sk1_row` and `HeightFrame.Hsk1` removed,
   28 → 27 hypotheses).** The same walk (`SkW.skcheck12`) now classifies every outcome at any
   state (`FfClass.sk_ok` is `ff_okE` from the ticked cells; it used to accept the state ≠ 0
@@ -647,8 +680,9 @@ without pressing A".*
     witness included) gave them an execution. Every frame with a nonzero action runs
     `update_mario_geometry_inputs`, so no such frame at an in-bounds position had an execution from
     boot. No row was false: the proofs are partial-correctness walks over any memory.
-  - **Repaired on the witness:** `StartSat.goal2_start_sat` now also concludes `part_ready`: both
-    partitions have the definer's 6144 bytes, and every list head loads as NULL (`part_heads`).
+  - **Repaired on the witness:** `StartSat.goal2_start_sat` concluded `part_ready` (both
+    partitions have the definer's 6144 bytes, every list head loads as NULL). Superseded the same
+    day by the loaded witness below.
   - **RUN (2026-10-22, `TerrainRun.terrain_runs`):** with `macro_special_objects.c` (TU 33) and
     WMotR's level data (TU 34) linked, and the main pool as one block (row 3.6), the generated
     `alloc_surface_pools` and then `load_area_terrain(1, wmotr_seg7_collision, NULL, NULL)` run to
@@ -660,16 +694,36 @@ without pressing A".*
     interpreter answers `sqrtf` with the IEEE single-precision square root, and
     `reset_red_coins_collected` (`ingame_menu.c`, unlinked) with no memory change. `floor_data` and
     `static_agree` of the memory are unconditional. Only "this memory is what the loader computes"
-    needs `world_ok`. 3.5 says nothing about `sqrtf`'s value, so this is not yet a floor row; ask
-    before adding one.
+    needs `world_ok`. Since 2026-10-22 it is split (`TerrainRun.world_ok_of`): `sqrtf`'s memory
+    half is the existing FPU floor `sqrtf_spec` (3.5); what 3.5 cannot give (it makes no value claim
+    and asserts no behavior exists) is `sqrtf_ieee` (a call returning `Float32.sqrt x` IS a sqrtf
+    behavior), and `rrc_inert`. Both stay labeled antecedents of the tether implication in
+    `goal2_start_sat` (`terrain_loaded`), not premises of any capstone. `rrc_inert`: the real body
+    is `gRedCoinsCollected = 0;` (`ingame_menu.c:2421`); checked on the link, `gRedCoinsCollected`
+    is not in the 34-TU program at all (only the external `reset_red_coins_collected`), so the
+    write lands outside the modelled memory. Proving it from the body needs `ingame_menu.c`
+    (3468 lines) linked; not done. A value floor row for `sqrtf` needs user approval; not added.
   - **Not run:** `main_pool_init`. It has no CompCert execution (3.6 detail), so its post-state is
     constructed. Not run either: macro-object spawning (`macroObjects = NULL`; the boxes and
     cannons stay 0.8(b)). The special object is `special_null_start`, so the spawn path runs only
     over a NULL behavior.
-  - **Not yet on the witness:** `StartSat`'s memory is built from `Genv.init_mem`, `TerrainRun`'s
-    from `MemBuild.alloc_globs` (same blocks and data, different permissions on read-only and
-    function blocks). So the GOAL 2 witness's partition is still empty. Joining the two (run the
-    loader on the `init_mem`-based witness, keep `MWF_real` across it) is the next step.
+  - **On the witness (2026-10-22, `StartTerrain` + `StartSat`):** the loader now runs on the GOAL 2
+    witness itself. `InitMemC.init_mem_c` makes `Genv.init_mem` computable (Leibniz-equal memory,
+    permissions included), and one `vm_compute` over every 34-TU link runs, from that boot image:
+    `initiate_warp` / `warp_level`'s stores (`EntryWarp`), the main pool block in
+    `main_pool_init`'s post-state (3.6), `alloc_surface_pools`, `load_area_terrain`, then
+    `init_mario`'s cells. That is the game's order (warp, then the level script's
+    `FREE_LEVEL_POOL` / `LOAD_AREA`, then `init_mario`), except that the game runs
+    `main_pool_init` once at boot, before the warp; the pool block is disjoint from every cell the
+    warp writes, so the order does not change a load. Checks on the result, each with a soundness
+    lemma: the old blocks outside 14 loader globals (`f_ids`) keep their bytes (`old_ok`), and
+    with `InterpFrame.ex_call_keep` (an interpreter run keeps every old block's permissions) their
+    loads; every pointer in those globals or the pool aims at the pool or a SafeB symbol
+    (`frag_ok`); every word of both partitions is NULL or a list living in the pool block, every
+    surface of a WMotR type (`wff_parts`). From these `MWF_real` (SafeB widened by the pool
+    block), `inject_neutral`, `Wff`'s partition clauses, and `floor_data` / `static_agree` are
+    proved on the witness; `goal2_start_sat` concludes them plus `terrain_loaded` (the
+    partitions and pool equal the loader's output) and 1352 surfaces allocated.
   - No capstone row names a `surface_load.c` function (checked: the open id lists, `exempt_callees`,
     the GOAL 2 per-call rows), so no row became a lemma. Its callers in the link
     (`update_objects` → `clear_dynamic_surfaces`, `load_area` → `load_area_terrain`, the
@@ -848,7 +902,20 @@ link grows.
 - **Tether.** In the real game the pool spans `_framebuffersSegmentNoloadEnd` to `RDRAM_END`, one
   contiguous range. Its exact size does not matter here: the witness only needs room for the
   surface pools and the static surfaces.
-- **Used by:** `TerrainRun` (the GOAL 2 witness's pool block).
+- **What would make `main_pool_init` run (not done; a new assumption, needs approval).** The
+  decomp has no pointer-free alternative: `memory.c` computes `sPoolStart = (u8 *)
+  ALIGN16((uintptr_t) start) + 16` and `sPoolEnd = (u8 *) ALIGN16((uintptr_t) end - 15) - 16`
+  in every version (the `VERSION_CN` branch only changes where `start` comes from,
+  `&gZBufferEnd`). Under CompCert's 32-bit Cop the `+ 0xF` on a `Vptr` is defined but the
+  `& ~0xF` is `Vundef`. The minimal preprocessing rewrite is an `AVOID_UB`-style edit of just
+  those two lines (`memory.c:120,122`) for the proof build: `sPoolStart = (u8 *) start + 16;`
+  and `sPoolEnd = (u8 *) end - 16;`. A global `#define ALIGN16(val) (val)` would be wrong: the
+  other `ALIGN16` uses round integer sizes (`main_pool_alloc`'s `size`, the DMA lengths). The
+  rewrite is sound only given that `start` and `end` are 16-aligned (`SEG_POOL_START` /
+  `SEG_POOL_END` are, in the linker script). That
+  alignment fact would be the new trust; with it, `main_pool_init` would run and the
+  constructed post-state would become a proved one.
+- **Used by:** `TerrainRun` and `StartTerrain` / `StartSat` (the GOAL 2 witness's pool block).
 
 
 ## 4. Scope: code and data outside what is linked

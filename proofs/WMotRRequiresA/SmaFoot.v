@@ -972,4 +972,190 @@ Qed.
 
 End SMA.
 
+(* ---------------------------------------------------------------------- *)
+(* set_mario_anim_with_accel: the same, plus animFrameAccelAssist (68) on  *)
+(* a change, and animAccel (72) written on EVERY call                      *)
+(* ---------------------------------------------------------------------- *)
+
+(* the whole animInfo window animID .. animAccel *)
+Definition AIc2 (bo : block) (oo : ptrofs) (b : block) (z : Z) : Prop :=
+  b = bo /\ Ptrofs.unsigned oo + 56 <= z < Ptrofs.unsigned oo + 76.
+Definition Wa2 (bo : block) (oo : ptrofs) (b : block) (z : Z) : Prop := Wl b z \/ AIc2 bo oo b z.
+(* the animAccel cell alone *)
+Definition A72 (bo : block) (oo : ptrofs) (b : block) (z : Z) : Prop :=
+  b = bo /\ Ptrofs.unsigned oo + 72 <= z < Ptrofs.unsigned oo + 76.
+Definition Wl72 (bo : block) (oo : ptrofs) (b : block) (z : Z) : Prop := Wl b z \/ A72 bo oo b z.
+
+Section SMAA.
+Variables (m : mem) (bM : block) (oM : ptrofs) (bo : block) (oo : ptrofs).
+Hypothesis Hal : Mem.loadv Mptr m (Vptr bM (Ptrofs.add oM (Ptrofs.repr 160))) = Some (Vptr ab Ptrofs.zero).
+Hypothesis Hmo : Mem.loadv Mptr m (Vptr bM (Ptrofs.add oM (Ptrofs.repr 136))) = Some (Vptr bo oo).
+Hypothesis Hbuf : Mem.load Mptr m ab 8 = Some (Vptr bt ot).
+Hypothesis Hbt_ab : bt <> ab.
+Hypothesis Hot : Ptrofs.unsigned ot + 24 <= Ptrofs.modulus.
+Hypothesis Hoo : Ptrofs.unsigned oo + 76 <= Ptrofs.modulus.
+
+Definition smaa_extra (m' : mem) : Prop :=
+  Mem.load Mptr m' bo (Ptrofs.unsigned oo + 60) = Some (Vptr bt ot).
+
+Ltac lk H x v Hn := match type of H with exec_stmt _ _ _ ?le _ _ _ _ _ _ =>
+  assert (Hn : le ! x = Some v) by reflexivity end.
+
+Lemma rest2_cells : forall d ch i, In (d, ch) [(58, Mint16signed); (68, Mint32); (64, Mint16signed)] ->
+  Ptrofs.unsigned (Ptrofs.add oo (Ptrofs.repr d)) <= i
+    < Ptrofs.unsigned (Ptrofs.add oo (Ptrofs.repr d)) + size_chunk ch -> Wa2 bo oo bo i.
+Proof.
+  intros d ch i I R. pose proof (Ptrofs.unsigned_range oo).
+  destruct I as [E | [E | [E | []]]]; injection E as <- <-; rewrite uadd in R by lia; cbn [size_chunk] in R;
+    right; split; [ reflexivity | lia | reflexivity | lia | reflexivity | lia ].
+Qed.
+
+Lemma rest2_extra : forall d ch m1 v m2, In (d, ch) [(58, Mint16signed); (68, Mint32); (64, Mint16signed)] ->
+  Mem.store ch m1 bo (Ptrofs.unsigned (Ptrofs.add oo (Ptrofs.repr d))) v = Some m2 ->
+  smaa_extra m1 -> smaa_extra m2.
+Proof.
+  intros d ch m1 v m2 I S X1. pose proof (Ptrofs.unsigned_range oo).
+  destruct I as [E | [E | [E | []]]]; injection E as <- <-; rewrite uadd in S by lia;
+    unfold smaa_extra; rewrite (Mem.load_store_other _ _ _ _ _ _ S)
+      by (right; cbn [size_chunk]; change (size_chunk Mptr) with 4; lia); exact X1.
+Qed.
+
+Ltac pl Hv q LO p d ch Hle L :=
+  match type of Hv with eval_expr _ _ _ _ ?a _ =>
+    pose proof (path_load q a p d ch _ _ _ _ _ LO eq_refl eq_refl Hle Hv) as L end.
+
+Ltac sset H := inv H;
+  match goal with Hx : eval_expr _ _ _ _ _ _ |- _ => rename Hx into Hv end.
+
+Theorem smaa_foot : forall v2 v3 t m' vres,
+  eval_funcall function_entry2 (lp_ge lp) m (Internal mario.f_set_mario_anim_with_accel)
+    [Vptr bM oM; v2; v3] t m' vres ->
+  (forall b o, vres <> Vptr b o)
+  /\ (foot (Wl72 bo oo) m m' \/ (foot (Wa2 bo oo) m m' /\ smaa_extra m')).
+Proof.
+  intros v2 v3 t m' vres Hev.
+  inv Hev.
+  match goal with He : function_entry2 _ _ _ _ _ _ _ |- _ => inv He end.
+  match goal with Ha : alloc_variables _ _ _ _ _ _ |- _ =>
+    change (fn_vars mario.f_set_mario_anim_with_accel) with (@nil (ident * type)) in Ha; inv Ha end.
+  match goal with Hb : bind_parameter_temps _ _ _ = Some _ |- _ => rename Hb into Hbind end.
+  match goal with Hx : exec_stmt _ _ _ _ _ (fn_body _) _ _ _ _ |- _ => rename Hx into Hbody end.
+  match goal with Hfr : Mem.free_list _ _ = Some _ |- _ => rename Hfr into Hfree end.
+  match goal with Hr : outcome_result_value _ _ _ _ |- _ => rename Hr into Hres end.
+  change (blocks_of_env (lp_ge lp) empty_env) with (@nil (block * Z * Z)) in Hfree.
+  inv Hfree.
+  cbn [bind_parameter_temps mario.f_set_mario_anim_with_accel fn_params] in Hbind.
+  injection Hbind as <-.
+  assert (Hm : (PTree.set mario._accel v3 (PTree.set mario._targetAnimID v2 (PTree.set mario._m (Vptr bM oM)
+                 (create_undef_temps (fn_temps mario.f_set_mario_anim_with_accel))))) ! mario._m
+               = Some (Vptr bM oM)) by reflexivity.
+  (* o = m->marioObj *)
+  destruct (seq_plain _ _ _ _ _ _ _ _ _ _ Hbody eq_refl) as (?tA & ?leA & ?mA & ?tB & HA & HB).
+  sset HA.
+  pl Hv mario.prog LO_mario mario._m 136 Mptr Hm L.
+  rewrite Hmo in L. injection L as <-. clear Hv.
+  (* t'14 = m->animList; targetAnim = t'14->bufTarget *)
+  destruct (seq_plain _ _ _ _ _ _ _ _ _ _ HB eq_refl) as (?tA & ?leA & ?mA & ?tB & HC & HD).
+  destruct (seq_plain _ _ _ _ _ _ _ _ _ _ HC eq_refl) as (?tA & ?leA & ?mA & ?tB & HC1 & HC2).
+  lk HC1 mario._m (Vptr bM oM) Hm1.
+  sset HC1. pl Hv mario.prog LO_mario mario._m 160 Mptr Hm1 L. rewrite Hal in L. injection L as <-. clear Hv.
+  lk HC2 mario._t'14 (Vptr ab Ptrofs.zero) H14.
+  sset HC2. pl Hv mario.prog LO_mario mario._t'14 8 Mptr H14 L.
+  match type of L with Mem.loadv Mptr ?mm _ = _ =>
+    change (Mem.loadv Mptr mm (Vptr ab (Ptrofs.add Ptrofs.zero (Ptrofs.repr 8)))) with (Mem.load Mptr mm ab 8) in L end.
+  rewrite Hbuf in L. injection L as <-. clear Hv.
+  (* the call load_patchable_table(m->animList, id) *)
+  destruct (seq_plain _ _ _ _ _ _ _ _ _ _ HD eq_refl) as (?tA & ?leA & ?mA & ?tB & HE & HF).
+  destruct (seq_plain _ _ _ _ _ _ _ _ _ _ HE eq_refl) as (?tA & ?leA & ?mA & ?tB & HG & HH).
+  destruct (seq_plain _ _ _ _ _ _ _ _ _ _ HG eq_refl) as (?tA & ?leA & ?mA & ?tB & HG1 & HG2).
+  lk HG1 mario._m (Vptr bM oM) Hm2.
+  sset HG1. pl Hv mario.prog LO_mario mario._m 160 Mptr Hm2 L. rewrite Hal in L. injection L as <-. clear Hv.
+  lk HG2 mario._t'13 (Vptr ab Ptrofs.zero) H13.
+  destruct (scall_evar_inv_opt _ _ _ _ _ _ _ _ _ _ _ _ HG2 (PTree.gempty _ _) eq_refl)
+    as (bl & fd & tyargs & tyres & cc & vargs & vres1 & Hs & Hfd & _ & Hel & Hevl & -> & _).
+  assert (Efd : fd = Internal memory.f_load_patchable_table).
+  { eapply RestSurface.resolves_pin_fd;
+      [ exact LO_memory | exact memory_defmap_lpt | exists bl; split; eassumption ]. }
+  subst fd.
+  assert (FC := lpt_foot _ Hbuf Hbt_ab _ _ _ _ _ Hevl).
+  assert (HD0 : forall b o, hd_error vargs = Some (Vptr b o) -> b = ab /\ o = Ptrofs.zero).
+  { intros b0 o0 Hhd. inv Hel. cbn in Hhd. injection Hhd as ->.
+    match goal with Hv : eval_expr _ _ _ _ (Etempvar _ _) _, Hc : sem_cast _ _ _ _ = Some (Vptr b0 o0) |- _ =>
+      apply (sem_cast_vptr_inv _ _ _ _ _ _) in Hc; subst;
+      apply eval_expr_Etempvar_val in Hv; rewrite H13 in Hv; injection Hv as -> ->; auto end. }
+  specialize (FC HD0 (foot_refl _ _)). clear HD0 Hel.
+  (* if (t'1) { targetAnim->values = ..; targetAnim->index = ..; } *)
+  lk HH mario._targetAnim (Vptr bt ot) Htg.
+  lk HH mario._o (Vptr bo oo) Ho0.
+  destruct (pw_walk Wl _ mario._targetAnim bt ot [(12, Mptr); (16, Mptr)] (fun _ => True)
+              [(mario._o, Vptr bo oo)] (vals_cells Hbt_ab Hot) (fun _ _ _ _ _ _ _ X => X) _ _ _ _ _ _ _ HH eq_refl
+              (conj Htg (keep1 _ _ _ Ho0))
+              (conj FC I)) as [[FP1 _] [HtgP HkP]].
+  pose proof (HkP mario._o (Vptr bo oo) (or_introl eq_refl)) as HoP.
+  clear HkP FC.
+  pose proof (Ptrofs.unsigned_range oo) as Ro.
+  (* t'3 = o->animInfo.animID; if (t'3 != id) { ... } *)
+  destruct (seq_plain _ _ _ _ _ _ _ _ _ _ HF eq_refl) as (?tA & ?leA & ?mA & ?tB & HI & HJ).
+  destruct (seq_plain _ _ _ _ _ _ _ _ _ _ HI eq_refl) as (?tA & ?leA & ?mA & ?tB & HI1 & HI2).
+  sset HI1. clear Hv.
+  inv HI2.
+  match goal with Hx : exec_stmt _ _ _ _ _ (if ?b then _ else _) _ _ _ _ |- _ => rename Hx into HK; destruct b end.
+  - (* the animation changed: animID, curAnim, then animYTrans / accelAssist / animFrame *)
+    destruct (seq_plain _ _ _ _ _ _ _ _ _ _ HK eq_refl) as (?tA & ?leA & ?mA & ?tB & HK1 & HK2).
+    assert (Ho1 : (PTree.set mario._t'3 v leA) ! mario._o = Some (Vptr bo oo))
+      by (rewrite PTree.gso by discriminate; exact HoP).
+    assert (Ht1 : (PTree.set mario._t'3 v leA) ! mario._targetAnim = Some (Vptr bt ot))
+      by (rewrite PTree.gso by discriminate; exact HtgP).
+    match type of HK1 with exec_stmt _ _ _ _ _ (Sassign ?a1 _) _ _ _ _ =>
+      destruct (path_store mario.prog a1 _ _ _ _ _ _ _ mario._o 56 Mint16signed bo oo LO_mario
+                  eq_refl eq_refl Ho1 HK1) as (w1 & w1' & _ & _ & S1 & -> & _) end.
+    destruct (seq_plain _ _ _ _ _ _ _ _ _ _ HK2 eq_refl) as (?tA & ?leA & ?mA & ?tB & HK3 & HK6).
+    match type of HK3 with exec_stmt _ _ _ _ _ (Sassign ?a1 _) _ _ _ _ =>
+      destruct (path_store mario.prog a1 _ _ _ _ _ _ _ mario._o 60 Mptr bo oo LO_mario
+                  eq_refl eq_refl Ho1 HK3) as (w2 & w2' & Hw2 & Hc2 & S2 & -> & _) end.
+    apply eval_expr_Etempvar_val in Hw2. rewrite Ht1 in Hw2. injection Hw2 as <-.
+    apply cast_ptr_ptr in Hc2. subst w2'.
+    rewrite uadd in S1, S2 by lia.
+    match type of S2 with Mem.store _ _ _ _ _ = Some ?m3 => match type of FP1 with foot _ ?m0 _ =>
+      assert (F3 : foot (Wa2 bo oo) m0 m3); [ | assert (X3 : smaa_extra m3) ] end end.
+    { refine (store_foot _ _ _ _ _ _ _ _ S2 _ _);
+        [ intros i R; change (size_chunk Mptr) with 4 in R; right; split; [ reflexivity | lia ] | ].
+      refine (store_foot _ _ _ _ _ _ _ _ S1 _ _);
+        [ intros i R; cbn [size_chunk] in R; right; split; [ reflexivity | lia ] | ].
+      apply (foot_mono Wl); [intros b z Hw; left; exact Hw | exact FP1]. }
+    { unfold smaa_extra. rewrite (Mem.load_store_same _ _ _ _ _ _ S2). reflexivity. }
+    destruct (pw_walk (Wa2 bo oo) _ mario._o bo oo [(58, Mint16signed); (68, Mint32); (64, Mint16signed)]
+                smaa_extra [] rest2_cells rest2_extra _ _ _ _ _ _ _ HK6 eq_refl
+                (conj Ho1 (fun x w (I : In (x, w) []) => match I with end)) (conj F3 X3))
+      as [[FB XB] [HoB _]].
+    (* animAccel = accel; return animFrame *)
+    destruct (seq_plain _ _ _ _ _ _ _ _ _ _ HJ eq_refl) as (?tA & ?leA & ?mA & ?tB & HL1 & HL2).
+    match type of HL1 with exec_stmt _ _ _ _ _ (Sassign ?a1 _) _ _ _ _ =>
+      destruct (path_store mario.prog a1 _ _ _ _ _ _ _ mario._o 72 Mint32 bo oo LO_mario
+                  eq_refl eq_refl HoB HL1) as (w3 & w3' & _ & _ & S3 & -> & _) end.
+    rewrite uadd in S3 by lia.
+    destruct (ret_short _ _ _ _ _ _ _ _ _ _ _ HL2 Hres) as [-> NP].
+    split; [ exact NP | right; split ].
+    + refine (store_foot _ _ _ _ _ _ _ _ S3 _ FB).
+      intros i R; cbn [size_chunk] in R; right; split; [ reflexivity | lia ].
+    + unfold smaa_extra in *. rewrite (Mem.load_store_other _ _ _ _ _ _ S3)
+        by (right; left; change (size_chunk Mptr) with 4; lia). exact XB.
+  - (* unchanged: only animAccel = accel *)
+    inv HK.
+    assert (Ho1 : (PTree.set mario._t'3 v leA) ! mario._o = Some (Vptr bo oo))
+      by (rewrite PTree.gso by discriminate; exact HoP).
+    destruct (seq_plain _ _ _ _ _ _ _ _ _ _ HJ eq_refl) as (?tA & ?leA & ?mA & ?tB & HL1 & HL2).
+    match type of HL1 with exec_stmt _ _ _ _ _ (Sassign ?a1 _) _ _ _ _ =>
+      destruct (path_store mario.prog a1 _ _ _ _ _ _ _ mario._o 72 Mint32 bo oo LO_mario
+                  eq_refl eq_refl Ho1 HL1) as (w3 & w3' & _ & _ & S3 & -> & _) end.
+    rewrite uadd in S3 by lia.
+    destruct (ret_short _ _ _ _ _ _ _ _ _ _ _ HL2 Hres) as [-> NP].
+    split; [ exact NP | left ].
+    refine (store_foot _ _ _ _ _ _ _ _ S3 _ _).
+    + intros i R; cbn [size_chunk] in R; right; split; [ reflexivity | lia ].
+    + apply (foot_mono Wl); [intros b z Hw; left; exact Hw | exact FP1].
+Qed.
+
+End SMAA.
+
 End SF.
