@@ -57,7 +57,7 @@ From SM64.Generated Require mario mario_actions_stationary
   save_file buffers object_helpers area
   libultra_osEepromLongWrite libultra_osEepromWrite libultra_osSiCreateAccessQueue
   libultra_osCreateMesgQueue libultra_osContInit libultra_osInitialize
-  behavior_data spawn_object.
+  behavior_data spawn_object surface_load.
 From SM64.Proofs Require Import SymbolicLinking CensusV2 RealFrameLinked
   EngineV2Consumer RestSurface.
 
@@ -130,7 +130,14 @@ Fixpoint link_chain (p : Clight.program) (l : list Clight.program)
    create_object / allocate_object / try_allocate_object / unload_object
    that object_helpers.c's spawn_object_at_origin calls, so the spawn rows
    are proved from real code (SpawnBodies).  Its gObjectPool declaration is
-   completed to the definer's 240 slots (TRUST 2.4). *)
+   completed to the definer's 240 slots (TRUST 2.4).
+   surface_load (engine/surface_load.c) is the 20th (2026-10-22): the real
+   storage of gStaticSurfacePartition / gDynamicSurfacePartition (size-0
+   extern blocks without it, so the boot image gave the collision partitions
+   no bytes and no find_floor / find_ceil / find_wall_collisions from boot
+   had an execution) and of sSurfacePool / sSurfaceNodePool, plus the real
+   loaders (alloc_surface_pools, load_area_terrain, clear_dynamic_surfaces,
+   load_object_collision_model). *)
 Definition tu_rest : list Clight.program :=
   [ mario_actions_stationary.prog;
     mario_actions_moving.prog;
@@ -161,7 +168,8 @@ Definition tu_rest : list Clight.program :=
     libultra_osContInit.prog;
     libultra_osInitialize.prog;
     behavior_data.prog;
-    spawn_object.prog ].
+    spawn_object.prog;
+    surface_load.prog ].
 
 Definition linked12 (lp : Clight.program) : Prop :=
   link_chain mario.prog tu_rest = Some lp.
@@ -304,6 +312,10 @@ Section Linked12LO.
   Lemma linked12_LO_spawn_object : linkorder spawn_object.prog lp.
   Proof.
     exact (link_chain_linkorder_in _ _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_eq _ _)))))))))))))))))))))))))))))) H12).
+  Qed.
+  Lemma linked12_LO_surface_load : linkorder surface_load.prog lp.
+  Proof.
+    exact (link_chain_linkorder_in _ _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_eq _ _))))))))))))))))))))))))))))))) H12).
   Qed.
   Lemma linked12_LO_behavior_data : linkorder behavior_data.prog lp.
   Proof.
@@ -566,6 +578,9 @@ Proof. vm_compute. reflexivity. Qed.
 Lemma no_internal_spawn_object :
   no_internal_ids spawn_object.prog truly_ext_pin_ids = true.
 Proof. vm_compute. reflexivity. Qed.
+Lemma no_internal_surface_load :
+  no_internal_ids surface_load.prog truly_ext_pin_ids = true.
+Proof. vm_compute. reflexivity. Qed.
 
 (* resolves_lp -> defmap entry (the genv->defmap bridge, spike-style) *)
 Lemma resolves_defmap :
@@ -601,7 +616,7 @@ Proof.
   destruct (link_chain_internal_origin _ _ _ _ _ H12 Hres)
     as [Hbase | (q & Hq & Hqdm)].
   - exact (no_internal_ids_correct _ _ _ _ no_internal_mario Hmem Hbase).
-  - destruct Hq as [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | []]]]]]]]]]]]]]]]]]]]]]]]]]]]]]].
+  - destruct Hq as [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | []]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]].
     + exact (no_internal_ids_correct _ _ _ _ no_internal_sta Hmem Hqdm).
     + exact (no_internal_ids_correct _ _ _ _ no_internal_mov Hmem Hqdm).
     + exact (no_internal_ids_correct _ _ _ _ no_internal_air Hmem Hqdm).
@@ -632,6 +647,7 @@ Proof.
     + exact (no_internal_ids_correct _ _ _ _ no_internal_ultra_init Hmem Hqdm).
     + exact (no_internal_ids_correct _ _ _ _ no_internal_behavior_data Hmem Hqdm).
     + exact (no_internal_ids_correct _ _ _ _ no_internal_spawn_object Hmem Hqdm).
+    + exact (no_internal_ids_correct _ _ _ _ no_internal_surface_load Hmem Hqdm).
 Qed.
 
 (* ---------------------------------------------------------------------- *)

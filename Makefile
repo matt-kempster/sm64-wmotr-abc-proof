@@ -54,7 +54,7 @@ GENERATED := generated/toy.v generated/shadow.v \
   generated/macro_special_objects.v generated/behavior_data.v \
   generated/object_helpers.v generated/obj_behaviors.v generated/obj_behaviors_2.v \
   generated/spawn_object.v generated/object_list_processor.v generated/audio_data.v generated/graph_node.v generated/buffers.v generated/save_file.v generated/object_collision.v \
-  generated/area.v \
+  generated/area.v generated/surface_load.v \
   $(ULTRA_GENERATED)
 
 .PHONY: all generated proofs regen clean oracle-extract
@@ -250,6 +250,15 @@ generated/object_collision.v: $(SM64)/src/game/object_collision.c pipeline/cligh
 # externs without it, so no run from boot could read or write them) and the
 # real get_mario_spawn_type / sWarpBhvSpawnTable lookup.
 generated/area.v: $(SM64)/src/game/area.c pipeline/clightgen.sh pipeline/proof_n64.h
+	$(CLIGHTGEN) $< $@ $(SM64_CGP)
+
+# engine/surface_load.c (2026-10-22): the real storage of
+# gStaticSurfacePartition / gDynamicSurfacePartition / sSurfacePool /
+# sSurfaceNodePool (size-0 externs without it: the boot image gave the
+# partitions no bytes, so no find_floor from boot had an execution) and the
+# real level / object collision loaders (alloc_surface_pools,
+# load_area_terrain, clear_dynamic_surfaces, load_object_collision_model).
+generated/surface_load.v: $(SM64)/src/engine/surface_load.c pipeline/clightgen.sh pipeline/proof_n64.h
 	$(CLIGHTGEN) $< $@ $(SM64_CGP)
 
 # libultra (2026-10-21): see ULTRA_CG above.
