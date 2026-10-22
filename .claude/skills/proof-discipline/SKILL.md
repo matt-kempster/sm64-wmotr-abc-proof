@@ -43,11 +43,17 @@ all in `Unwired/`, and the theorem moved nowhere. See
   2.2 register, tethered). Before, they had NO execution on any pointer. FOUND FALSE then:
   `Hcsp_osh_real` for any arg1 (`heldBehavior` lands in `curBhvCommand`, R7). Restated:
   `OutParamSurface.cs_gate` also gates osh's arg1 to `bhv_held_syms`; walkers check it
-  (`held_arg_chk`, the bhv symbols listed in xids). Still stuck: every compare with or read of a
-  `bhv*` script (size-0 blocks until behavior_data.c is linked; `WMotREntry.cmp_size0_stuck`).
+  (`held_arg_chk`, the bhv symbols listed in xids). Since 2026-10-21 `data/behavior_data.c` is
+  linked (30th TU, data only; every `bhv*` declaration completed to the definer's length and
+  readonly bit by a 2.4 RULE in `pipeline/clightgen.sh`), so bhv compares and script reads have
+  executions. `PoleControl.noA_pole_frames_run` RUNS no-A pole frames through all four
+  `mario_actions_automatic.c` compares; `SpawnTypeRun.spawn_type_runs` runs `get_mario_spawn_type`
+  (0x12). FOUND: every `act_hold_walking` / `act_hold_idle` frame had NO execution before (its first
+  statement is a bhv compare); no row became false. Still stuck: `interaction.c:881,889`
+  (warp-pipe collision data, unlinked).
   Spawn pair (`Hcp_spawn_real` / `Hcp_soawr_real`): still any-argument and likely FALSE. Fixing
   them needs spawn_object.c walked (create/allocate/unload/geo_obj_init) and a parent gate.
-  Non-vacuity also needs behavior_data.c (TRUST 4.1).
+  behavior_data.c is linked now, but `create_object` (spawn_object.c) is still external (TRUST 4.1).
   The two any-argument list rows shrank on 2026-10-21 (`ObjExtBodies.v`): the seven linked
   save_file.c / `bhv_spawn_star_no_level_exit` entries leave `obj_ext_open2_ids` and the time-stop
   pair leaves `cut_ext_open2_ids` (`Hpres_cut_ext_open2`); their writes needed six more stored
@@ -79,8 +85,8 @@ all in `Unwired/`, and the theorem moved nowhere. See
   (23rd TU) and `goal2_start_sat` concludes `in_wmotr`: `gCurrLevelNum = 31` on the witness is
   stored by the REAL generated `initiate_warp` + `warp_level` head (`EntryWarp.v`), each store an
   `MWF_real` brick. Still from source: the castle painting node, the level script between them,
-  the rest of `warp_level`, and the spawn-type lookup (read off area.v data; it has no CompCert
-  execution until behavior_data.c is linked; `NO_SEGMENTED_MEMORY` is in since 2026-10-21). Next: `gCurrCourseNum`,
+  the rest of `warp_level`, and the spawn-type lookup (read off area.v data, and since 2026-10-21 also
+  RUN by `SpawnTypeRun`, but on a built object, not the level script's). Next: `gCurrCourseNum`,
   surface_load.c (the witness's collision partition is still empty). FOUND FALSE + repaired
   when linking area.c: any-argument `override_viewport_and_clip` (in `obj_ext_ids`) stores its
   pointer args into `D_8032CE74/78`; those joined `stored_globals`. Linking a TU turns every

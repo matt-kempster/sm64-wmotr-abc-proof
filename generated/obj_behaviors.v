@@ -1444,422 +1444,422 @@ Definition v_gGlobalSoundSource := {|
 |}.
 
 Definition v_bhvWaterAirBubble := {|
-  gvar_info := (tarray tuint 0);
+  gvar_info := (tarray tuint 17);
   gvar_init := nil;
-  gvar_readonly := true;
+  gvar_readonly := false;
   gvar_volatile := false
 |}.
 
 Definition v_bhvCannon := {|
-  gvar_info := (tarray tuint 0);
+  gvar_info := (tarray tuint 15);
   gvar_init := nil;
-  gvar_readonly := true;
+  gvar_readonly := false;
   gvar_volatile := false
 |}.
 
 Definition v_bhvGoldenCoinSparkles := {|
-  gvar_info := (tarray tuint 0);
+  gvar_info := (tarray tuint 8);
   gvar_init := nil;
-  gvar_readonly := true;
+  gvar_readonly := false;
   gvar_volatile := false
 |}.
 
 Definition v_bhvLLLTumblingBridge := {|
-  gvar_info := (tarray tuint 0);
+  gvar_info := (tarray tuint 8);
   gvar_init := nil;
-  gvar_readonly := true;
+  gvar_readonly := false;
   gvar_volatile := false
 |}.
 
 Definition v_bhvSparkleSpawn := {|
-  gvar_info := (tarray tuint 0);
+  gvar_info := (tarray tuint 6);
   gvar_init := nil;
-  gvar_readonly := true;
+  gvar_readonly := false;
   gvar_volatile := false
 |}.
 
 Definition v_bhvBubbleSplash := {|
-  gvar_info := (tarray tuint 0);
+  gvar_info := (tarray tuint 12);
   gvar_init := nil;
-  gvar_readonly := true;
+  gvar_readonly := false;
   gvar_volatile := false
 |}.
 
 Definition v_bhvObjectWaterSplash := {|
-  gvar_info := (tarray tuint 0);
+  gvar_info := (tarray tuint 10);
   gvar_init := nil;
-  gvar_readonly := true;
+  gvar_readonly := false;
   gvar_volatile := false
 |}.
 
 Definition v_bhvShallowWaterSplash := {|
-  gvar_info := (tarray tuint 0);
+  gvar_info := (tarray tuint 13);
   gvar_init := nil;
-  gvar_readonly := true;
+  gvar_readonly := false;
   gvar_volatile := false
 |}.
 
 Definition v_bhvMovingYellowCoin := {|
-  gvar_info := (tarray tuint 0);
+  gvar_info := (tarray tuint 15);
   gvar_init := nil;
-  gvar_readonly := true;
+  gvar_readonly := false;
   gvar_volatile := false
 |}.
 
 Definition v_bhvSeaweed := {|
-  gvar_info := (tarray tuint 0);
+  gvar_info := (tarray tuint 9);
   gvar_init := nil;
-  gvar_readonly := true;
+  gvar_readonly := false;
   gvar_volatile := false
 |}.
 
 Definition v_bhvBobomb := {|
-  gvar_info := (tarray tuint 0);
+  gvar_info := (tarray tuint 14);
   gvar_init := nil;
-  gvar_readonly := true;
+  gvar_readonly := false;
   gvar_volatile := false
 |}.
 
 Definition v_bhvBobombFuseSmoke := {|
-  gvar_info := (tarray tuint 0);
+  gvar_info := (tarray tuint 12);
   gvar_init := nil;
-  gvar_readonly := true;
+  gvar_readonly := false;
   gvar_volatile := false
 |}.
 
 Definition v_bhvCannonClosed := {|
-  gvar_info := (tarray tuint 0);
+  gvar_info := (tarray tuint 13);
   gvar_init := nil;
-  gvar_readonly := true;
+  gvar_readonly := false;
   gvar_volatile := false
 |}.
 
 Definition v_bhvObjectBubble := {|
-  gvar_info := (tarray tuint 0);
+  gvar_info := (tarray tuint 16);
   gvar_init := nil;
-  gvar_readonly := true;
+  gvar_readonly := false;
   gvar_volatile := false
 |}.
 
 Definition v_bhvObjectWaterWave := {|
-  gvar_info := (tarray tuint 0);
+  gvar_info := (tarray tuint 19);
   gvar_init := nil;
-  gvar_readonly := true;
+  gvar_readonly := false;
   gvar_volatile := false
 |}.
 
 Definition v_bhvExplosion := {|
-  gvar_info := (tarray tuint 0);
+  gvar_info := (tarray tuint 18);
   gvar_init := nil;
-  gvar_readonly := true;
+  gvar_readonly := false;
   gvar_volatile := false
 |}.
 
 Definition v_bhvBobombBullyDeathSmoke := {|
-  gvar_info := (tarray tuint 0);
+  gvar_info := (tarray tuint 12);
   gvar_init := nil;
-  gvar_readonly := true;
+  gvar_readonly := false;
   gvar_volatile := false
 |}.
 
 Definition v_bhvSmoke := {|
-  gvar_info := (tarray tuint 0);
+  gvar_info := (tarray tuint 10);
   gvar_init := nil;
-  gvar_readonly := true;
+  gvar_readonly := false;
   gvar_volatile := false
 |}.
 
 Definition v_bhvBobombExplosionBubble := {|
-  gvar_info := (tarray tuint 0);
+  gvar_info := (tarray tuint 20);
   gvar_init := nil;
-  gvar_readonly := true;
+  gvar_readonly := false;
   gvar_volatile := false
 |}.
 
 Definition v_bhvRespawner := {|
-  gvar_info := (tarray tuint 0);
+  gvar_info := (tarray tuint 6);
   gvar_init := nil;
-  gvar_readonly := true;
+  gvar_readonly := false;
   gvar_volatile := false
 |}.
 
 Definition v_bhvSmallBully := {|
-  gvar_info := (tarray tuint 0);
+  gvar_info := (tarray tuint 13);
   gvar_init := nil;
-  gvar_readonly := true;
+  gvar_readonly := false;
   gvar_volatile := false
 |}.
 
 Definition v_bhvJetStreamWaterRing := {|
-  gvar_info := (tarray tuint 0);
+  gvar_info := (tarray tuint 18);
   gvar_init := nil;
-  gvar_readonly := true;
+  gvar_readonly := false;
   gvar_volatile := false
 |}.
 
 Definition v_bhvMantaRayWaterRing := {|
-  gvar_info := (tarray tuint 0);
+  gvar_info := (tarray tuint 18);
   gvar_init := nil;
-  gvar_readonly := true;
+  gvar_readonly := false;
   gvar_volatile := false
 |}.
 
 Definition v_bhvMantaRayRingManager := {|
-  gvar_info := (tarray tuint 0);
+  gvar_info := (tarray tuint 3);
   gvar_init := nil;
-  gvar_readonly := true;
+  gvar_readonly := false;
   gvar_volatile := false
 |}.
 
 Definition v_bhvBowserBombExplosion := {|
-  gvar_info := (tarray tuint 0);
+  gvar_info := (tarray tuint 9);
   gvar_init := nil;
-  gvar_readonly := true;
+  gvar_readonly := false;
   gvar_volatile := false
 |}.
 
 Definition v_bhvBowserBombSmoke := {|
-  gvar_info := (tarray tuint 0);
+  gvar_info := (tarray tuint 10);
   gvar_init := nil;
-  gvar_readonly := true;
+  gvar_readonly := false;
   gvar_volatile := false
 |}.
 
 Definition v_bhvCelebrationStarSparkle := {|
-  gvar_info := (tarray tuint 0);
+  gvar_info := (tarray tuint 10);
   gvar_init := nil;
-  gvar_readonly := true;
+  gvar_readonly := false;
   gvar_volatile := false
 |}.
 
 Definition v_bhvLLLDrawbridge := {|
-  gvar_info := (tarray tuint 0);
+  gvar_info := (tarray tuint 10);
   gvar_init := nil;
-  gvar_readonly := true;
+  gvar_readonly := false;
   gvar_volatile := false
 |}.
 
 Definition v_bhvMoneybag := {|
-  gvar_info := (tarray tuint 0);
+  gvar_info := (tarray tuint 13);
   gvar_init := nil;
-  gvar_readonly := true;
+  gvar_readonly := false;
   gvar_volatile := false
 |}.
 
 Definition v_bhvMoneybagHidden := {|
-  gvar_info := (tarray tuint 0);
+  gvar_info := (tarray tuint 13);
   gvar_init := nil;
-  gvar_readonly := true;
+  gvar_readonly := false;
   gvar_volatile := false
 |}.
 
 Definition v_bhvBowlingBall := {|
-  gvar_info := (tarray tuint 0);
+  gvar_info := (tarray tuint 10);
   gvar_init := nil;
-  gvar_readonly := true;
+  gvar_readonly := false;
   gvar_volatile := false
 |}.
 
 Definition v_bhvPyramidElevator := {|
-  gvar_info := (tarray tuint 0);
+  gvar_info := (tarray tuint 14);
   gvar_init := nil;
-  gvar_readonly := true;
+  gvar_readonly := false;
   gvar_volatile := false
 |}.
 
 Definition v_bhvPyramidElevatorTrajectoryMarkerBall := {|
-  gvar_info := (tarray tuint 0);
+  gvar_info := (tarray tuint 7);
   gvar_init := nil;
-  gvar_readonly := true;
+  gvar_readonly := false;
   gvar_volatile := false
 |}.
 
 Definition v_bhvPyramidTopFragment := {|
-  gvar_info := (tarray tuint 0);
+  gvar_info := (tarray tuint 8);
   gvar_init := nil;
-  gvar_readonly := true;
+  gvar_readonly := false;
   gvar_volatile := false
 |}.
 
 Definition v_bhvPyramidPillarTouchDetector := {|
-  gvar_info := (tarray tuint 0);
+  gvar_info := (tarray tuint 9);
   gvar_init := nil;
-  gvar_readonly := true;
+  gvar_readonly := false;
   gvar_volatile := false
 |}.
 
 Definition v_bhvSnowmansBottom := {|
-  gvar_info := (tarray tuint 0);
+  gvar_info := (tarray tuint 10);
   gvar_init := nil;
-  gvar_readonly := true;
+  gvar_readonly := false;
   gvar_volatile := false
 |}.
 
 Definition v_bhvSnowmansHead := {|
-  gvar_info := (tarray tuint 0);
+  gvar_info := (tarray tuint 10);
   gvar_init := nil;
-  gvar_readonly := true;
+  gvar_readonly := false;
   gvar_volatile := false
 |}.
 
 Definition v_bhvSnowmansBodyCheckpoint := {|
-  gvar_info := (tarray tuint 0);
+  gvar_info := (tarray tuint 6);
   gvar_init := nil;
-  gvar_readonly := true;
+  gvar_readonly := false;
   gvar_volatile := false
 |}.
 
 Definition v_bhvBigSnowmanWhole := {|
-  gvar_info := (tarray tuint 0);
+  gvar_info := (tarray tuint 10);
   gvar_init := nil;
-  gvar_readonly := true;
+  gvar_readonly := false;
   gvar_volatile := false
 |}.
 
 Definition v_bhvBigBoulder := {|
-  gvar_info := (tarray tuint 0);
+  gvar_info := (tarray tuint 11);
   gvar_init := nil;
-  gvar_readonly := true;
+  gvar_readonly := false;
   gvar_volatile := false
 |}.
 
 Definition v_bhvStar := {|
-  gvar_info := (tarray tuint 0);
+  gvar_info := (tarray tuint 10);
   gvar_init := nil;
-  gvar_readonly := true;
+  gvar_readonly := false;
   gvar_volatile := false
 |}.
 
 Definition v_bhvStarSpawnCoordinates := {|
-  gvar_info := (tarray tuint 0);
+  gvar_info := (tarray tuint 10);
   gvar_init := nil;
-  gvar_readonly := true;
+  gvar_readonly := false;
   gvar_volatile := false
 |}.
 
 Definition v_bhvHiddenRedCoinStar := {|
-  gvar_info := (tarray tuint 0);
+  gvar_info := (tarray tuint 8);
   gvar_init := nil;
-  gvar_readonly := true;
+  gvar_readonly := false;
   gvar_volatile := false
 |}.
 
 Definition v_bhvRedCoin := {|
-  gvar_info := (tarray tuint 0);
+  gvar_info := (tarray tuint 14);
   gvar_init := nil;
-  gvar_readonly := true;
+  gvar_readonly := false;
   gvar_volatile := false
 |}.
 
 Definition v_bhvBowserCourseRedCoinStar := {|
-  gvar_info := (tarray tuint 0);
+  gvar_info := (tarray tuint 6);
   gvar_init := nil;
-  gvar_readonly := true;
+  gvar_readonly := false;
   gvar_volatile := false
 |}.
 
 Definition v_bhvHiddenStar := {|
-  gvar_info := (tarray tuint 0);
+  gvar_info := (tarray tuint 8);
   gvar_init := nil;
-  gvar_readonly := true;
+  gvar_readonly := false;
   gvar_volatile := false
 |}.
 
 Definition v_bhvHiddenStarTrigger := {|
-  gvar_info := (tarray tuint 0);
+  gvar_info := (tarray tuint 9);
   gvar_init := nil;
-  gvar_readonly := true;
+  gvar_readonly := false;
   gvar_volatile := false
 |}.
 
 Definition v_bhvHidden1Up := {|
-  gvar_info := (tarray tuint 0);
+  gvar_info := (tarray tuint 14);
   gvar_init := nil;
-  gvar_readonly := true;
+  gvar_readonly := false;
   gvar_volatile := false
 |}.
 
 Definition v_bhvHidden1UpInPole := {|
-  gvar_info := (tarray tuint 0);
+  gvar_info := (tarray tuint 14);
   gvar_init := nil;
-  gvar_readonly := true;
+  gvar_readonly := false;
   gvar_volatile := false
 |}.
 
 Definition v_bhvHidden1UpInPoleTrigger := {|
-  gvar_info := (tarray tuint 0);
+  gvar_info := (tarray tuint 9);
   gvar_init := nil;
-  gvar_readonly := true;
+  gvar_readonly := false;
   gvar_volatile := false
 |}.
 
 Definition v_bhvControllablePlatform := {|
-  gvar_info := (tarray tuint 0);
+  gvar_info := (tarray tuint 13);
   gvar_init := nil;
-  gvar_readonly := true;
+  gvar_readonly := false;
   gvar_volatile := false
 |}.
 
 Definition v_bhvControllablePlatformSub := {|
-  gvar_info := (tarray tuint 0);
+  gvar_info := (tarray tuint 10);
   gvar_init := nil;
-  gvar_readonly := true;
+  gvar_readonly := false;
   gvar_volatile := false
 |}.
 
 Definition v_bhvBreakableBoxSmall := {|
-  gvar_info := (tarray tuint 0);
+  gvar_info := (tarray tuint 11);
   gvar_init := nil;
-  gvar_readonly := true;
+  gvar_readonly := false;
   gvar_volatile := false
 |}.
 
 Definition v_bhvSlidingSnowMound := {|
-  gvar_info := (tarray tuint 0);
+  gvar_info := (tarray tuint 11);
   gvar_init := nil;
-  gvar_readonly := true;
+  gvar_readonly := false;
   gvar_volatile := false
 |}.
 
 Definition v_bhvOrangeNumber := {|
-  gvar_info := (tarray tuint 0);
+  gvar_info := (tarray tuint 10);
   gvar_init := nil;
-  gvar_readonly := true;
+  gvar_readonly := false;
   gvar_volatile := false
 |}.
 
 Definition v_bhvFallingPillarHitbox := {|
-  gvar_info := (tarray tuint 0);
+  gvar_info := (tarray tuint 7);
   gvar_init := nil;
-  gvar_readonly := true;
+  gvar_readonly := false;
   gvar_volatile := false
 |}.
 
 Definition v_bhvTreasureChestBottom := {|
-  gvar_info := (tarray tuint 0);
+  gvar_info := (tarray tuint 10);
   gvar_init := nil;
-  gvar_readonly := true;
+  gvar_readonly := false;
   gvar_volatile := false
 |}.
 
 Definition v_bhvTreasureChestTop := {|
-  gvar_info := (tarray tuint 0);
+  gvar_info := (tarray tuint 7);
   gvar_init := nil;
-  gvar_readonly := true;
+  gvar_readonly := false;
   gvar_volatile := false
 |}.
 
 Definition v_bhvYoshi := {|
-  gvar_info := (tarray tuint 0);
+  gvar_info := (tarray tuint 18);
   gvar_init := nil;
-  gvar_readonly := true;
+  gvar_readonly := false;
   gvar_volatile := false
 |}.
 
 Definition v_bhvRedCoinStarMarker := {|
-  gvar_info := (tarray tuint 0);
+  gvar_info := (tarray tuint 11);
   gvar_init := nil;
-  gvar_readonly := true;
+  gvar_readonly := false;
   gvar_volatile := false
 |}.
 

@@ -638,9 +638,9 @@ Definition v_gWaterSurfacePseudoFloor := {|
 |}.
 
 Definition v_bhvJumpingBox := {|
-  gvar_info := (tarray tuint 0);
+  gvar_info := (tarray tuint 11);
   gvar_init := nil;
-  gvar_readonly := true;
+  gvar_readonly := false;
   gvar_volatile := false
 |}.
 
