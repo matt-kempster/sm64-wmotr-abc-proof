@@ -559,11 +559,13 @@ Section HeightLinked12.
      ledge_row: the real act_ledge_grab / _climb_down walked on the link,
      every outcome a RangedMove keeping the frame world, returning FALSE
      with the cells kept or letting go of the ledge into SOFT_BONK with
-     the floor still fresh, FfWorld.fresh's slack); 8 cases stay assumed,
-     below. *)
-  (* the eight cases still assumed: HOLDING_POLE, CLIMBING_POLE,
-     TOP_OF_POLE_TRANSITION, TOP_OF_POLE (their walks need Mario's
-     animation data linked: open), LEDGE_CLIMB_SLOW_1 / 2 and
+     the floor still fresh, FfWorld.fresh's slack); HOLDING_POLE is
+     PROVED (PoleHold.holdcheck12, with set_sound_moving_speed in the
+     labeled audio premise Haudio); 7 cases stay assumed, below. *)
+  (* the seven cases still assumed: CLIMBING_POLE (reads
+     m->area->camera->yaw: no camera frame fact), TOP_OF_POLE_TRANSITION,
+     TOP_OF_POLE (the anim frame >= -1 is advanced by the unlinked
+     rendering code: TRUST 0.8(f)(3)), LEDGE_CLIMB_SLOW_1 / 2 and
      LEDGE_CLIMB_FAST (update_ledge_climb_camera stores through
      m->statusForCamera, the size-0 gPlayerCameraState of this link:
      TRUST audit (l)) and IN_CANNON (the same store in its state 0) *)

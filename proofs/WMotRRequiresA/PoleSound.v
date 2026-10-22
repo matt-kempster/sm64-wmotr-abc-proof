@@ -4,9 +4,10 @@
 (* From the path facts (Fbool comparisons, and the consumer facts kP:     *)
 (* oMarioPolePos finite >= -1000, kC: a find_ceil height, kH / kL: a      *)
 (* find_floor height HPi) and floor_data:                                  *)
-(*   tb   -> a finite float in [-3741, -2018]  (oPosY + polePos + 0)       *)
-(*   cb   -> a finite float in [-3902, -2018]  (ceilHeight - 160)          *)
-(*   db   -> a finite float in [-3902, -1938]  (a floor above pos[1])      *)
+(*   ppt  -> a finite float in [-1016, 720]    (polePos, maybe slid)      *)
+(*   tb   -> a finite float in [-3757, -2018]  (oPosY + polePos + 0)       *)
+(*   cb   -> a finite float in [-3918, -2018]  (ceilHeight - 160)          *)
+(*   db   -> a finite float in [-3918, -1938]  (a floor above pos[1])      *)
 (*   posb -> a finite float in [-11000, -1759]                             *)
 (*   ppb  -> a finite float >= -1000            (oMarioPolePos after)      *)
 (* ====================================================================== *)
@@ -127,29 +128,116 @@ Proof.
   destruct (HUP _ U) as (p & E1 & F & L). injection E1 as E1. exists p. auto.
 Qed.
 
-Lemma le720_sound : forall p, den sP = Some (Vsingle p) -> F32 p = true -> le720 kv rO pc = true -> R2 p <= 720.
+Lemma le720_cmp : forall a x, den a = Some (Vsingle x) -> le720 pc a = true ->
+  exists k, F32 k = true /\ R2 k <= 720 /\ Float32.cmp Cgt x k = false.
 Proof.
-  intros p D F H. unfold le720 in H. apply existsb_exists in H as (f & I & H).
+  intros a x D H. unfold le720 in H. apply existsb_exists in H as (f & I & H).
   crush H. band H. destruct H as ((((Ea & T1) & T2) & K) & Ty).
   apply sveqb_eq in Ea. apply is_tf_eq in T1. apply is_tf_eq in T2. apply tyeqb_eq in Ty. subst.
   destruct (cfin_sound _ (-100000) 720 ltac:(lia) ltac:(lia) ltac:(lia) K) as (k & -> & Fk & Rk).
-  pose proof (fbool_cmp _ _ p k Ogt Cgt false I D eq_refl (or_introl (conj eq_refl eq_refl))) as G.
+  exists k. split; [exact Fk |]. split; [lra |].
+  exact (fbool_cmp _ _ x k Ogt Cgt false I D eq_refl (or_introl (conj eq_refl eq_refl))).
+Qed.
+
+Lemma le720_sound : forall a p, den a = Some (Vsingle p) -> F32 p = true -> le720 pc a = true -> R2 p <= 720.
+Proof.
+  intros a p D F H. destruct (le720_cmp a p D H) as (k & Fk & Rk & G).
   pose proof (cmp_gt_false _ _ F Fk G). lra.
+Qed.
+
+Lemma quot256_bound : forall z, (-2147483648 <= z <= 4096)%Z ->
+  (-8388608 <= Z.quot z 256 <= 16)%Z.
+Proof.
+  intros z Hz. pose proof (Z.quot_rem' z 256) as Eq.
+  pose proof (Z.rem_bound_abs z 256 ltac:(lia)) as B.
+  destruct (Z.abs_spec (Z.rem z 256)) as [(_ & A) | (_ & A)]; rewrite A in B; lia.
+Qed.
+
+Lemma int_gt_den : forall i j m,
+  sem_binary_operation ge Ogt (Vint i) ti32 (Vint j) ti32 m = Some (Val.of_bool (Int.lt j i)).
+Proof. intros i j m. reflexivity. Qed.
+
+Lemma bool_val_false : forall b m, bool_val (Val.of_bool b) ti32 m = Some false -> b = false.
+Proof. intros [] m H; [vm_compute in H; discriminate H | reflexivity]. Qed.
+
+Lemma cast_ii : forall i m, sem_cast (Vint i) ti32 ti32 m = Some (Vint i).
+Proof. intros i m. vm_compute. reflexivity. Qed.
+
+Lemma div256_den : forall i m,
+  sem_binary_operation ge Odiv (Vint i) ti32 (Vint (Int.repr 256)) ti32 m
+  = Some (Vint (Int.divs i (Int.repr 256))).
+Proof.
+  intros i m. unfold sem_binary_operation, sem_div, sem_binarith.
+  change (classify_binarith ti32 ti32) with (bin_case_i Signed).
+  change (binarith_type (bin_case_i Signed)) with ti32.
+  rewrite !cast_ii.
+  destruct (Int.eq i (Int.repr Int.min_signed)); reflexivity.
+Qed.
+
+(* the slide amount yawVel / 0x100 (yawVel <= 0x1000), or a folded constant *)
+Lemma dec_ok_sound : forall d, dec_ok pc d = true ->
+  exists q, den d = Some (Vint q) /\ (-8388608 <= Int.signed q <= 16)%Z.
+Proof.
+  intros d H. unfold dec_ok in H. destruct d as [v | | | | | | | op a1 t1 a2 t2 | |]; try discriminate H.
+  - destruct v; try discriminate H. band H. destruct H as (A & B).
+    apply Z.leb_le in A. apply Z.leb_le in B. exists i. split; [reflexivity | lia].
+  - destruct op; try discriminate H. band H. destruct H as (((T1 & T2) & K) & EX).
+    apply tyeqb_eq in T1. apply tyeqb_eq in T2. subst t1 t2.
+    unfold cint in K. destruct a2; try discriminate K. destruct v; try discriminate K.
+    apply Z.eqb_eq in K. assert (Ei : i = Int.repr 256) by (rewrite <- K; symmetry; apply Int.repr_signed).
+    subst i. apply existsb_exists in EX as (f & I & Hm). crush Hm. band Hm.
+    destruct Hm as ((((Ey & T3) & T4) & K') & Ty).
+    apply sveqb_eq in Ey. apply tyeqb_eq in T3. apply tyeqb_eq in T4. apply tyeqb_eq in Ty. subst.
+    unfold cint in K'. crush K'. apply Z.eqb_eq in K'.
+    match type of K' with Int.signed ?j = _ =>
+      assert (Ei : j = Int.repr 4096) by (rewrite <- K'; symmetry; apply Int.repr_signed); subst j end.
+    pose proof (PC _ I) as (v & D & B). cbn [SymExec2.den] in D.
+    match type of D with context [SymExec2.den _ _ _ ?y] =>
+      destruct (den y) as [vy |] eqn:Dy; [| discriminate D] end.
+    destruct vy as [| i | | | | ]; try (cbn in D; discriminate D).
+    rewrite int_gt_den in D. injection D as <-. apply bool_val_false in B. rename B into Lt.
+    unfold Int.lt in Lt. rewrite Int.signed_repr in Lt by (cbn; lia).
+    destruct (zlt 4096 (Int.signed i)) as [_ | Le]; [discriminate Lt |].
+    exists (Int.divs i (Int.repr 256)). split.
+    + cbn [SymExec2.den]. rewrite Dy. exact (div256_den i m0).
+    + unfold Int.divs. rewrite (Int.signed_repr 256) by (cbn; lia).
+      pose proof (Int.signed_range i) as Ri. unfold Int.min_signed, Int.max_signed in Ri. cbn in Ri.
+      pose proof (quot256_bound (Int.signed i) ltac:(lia)) as Q.
+      rewrite Int.signed_repr by (unfold Int.min_signed, Int.max_signed; cbn; lia). exact Q.
+Qed.
+
+(* oMarioPolePos before set_pole_position: the entry's, or slid *)
+Lemma ppt_sound : forall a, hasf pc (Fuser kP [sP]) = true -> ppt kv rO pc a = true -> le720 pc a = true ->
+  exists p, den a = Some (Vsingle p) /\ F32 p = true /\ -1016 <= R2 p <= 720.
+Proof.
+  intros a HP H L. destruct (kP_sound HP) as (p & Dp & Fp & Lp).
+  unfold ppt in H. apply orb_true_iff in H as [E0 | H].
+  - apply sveqb_eq in E0. subst a. exists p. split; [exact Dp |]. split; [exact Fp |].
+    pose proof (le720_sound _ p Dp Fp L). lra.
+  - destruct a; try discriminate H. destruct op; try discriminate H. band H.
+    destruct H as (((E0 & T1) & T2) & DO). apply sveqb_eq in E0. apply is_tf_eq in T1.
+    apply tyeqb_eq in T2. subst.
+    destruct (dec_ok_sound _ DO) as (q & Dq & Bq).
+    assert (Ds : den (Sbinop Osub sP tf a2 ti32) = Some (Vsingle (Float32.sub p (Float32.of_int q)))).
+    { cbn [SymExec2.den]. rewrite Dp, Dq. reflexivity. }
+    destruct (le720_cmp _ _ Ds L) as (k & Fk & Rk & G).
+    destruct (dec_val p q k Fp Lp Bq Fk Rk G) as (F & R).
+    exists (Float32.sub p (Float32.of_int q)). split; [exact Ds |]. split; [exact F | exact R].
 Qed.
 
 (* tight: oPosY + polePos + 0.0f *)
 Lemma tb_sound : forall s, tb kv rO kP pc s = true ->
-  exists y, den s = Some (Vsingle y) /\ F32 y = true /\ -3741 <= R2 y <= -2018.
+  exists y, den s = Some (Vsingle y) /\ F32 y = true /\ -3757 <= R2 y <= -2018.
 Proof.
   intros s H. unfold tb in H. apply orb_true_iff in H as [C | H].
-  - destruct (cfin_sound s (-3741) (-2018) ltac:(lia) ltac:(lia) ltac:(lia) C) as (k & -> & Fk & Rk).
+  - destruct (cfin_sound s (-3757) (-2018) ltac:(lia) ltac:(lia) ltac:(lia) C) as (k & -> & Fk & Rk).
     exists k. split; [reflexivity |]. split; [exact Fk | exact Rk].
   - crush H. norm.
     match goal with Ka : cfin _ _ _ = true |- _ =>
       destruct (cfin_sound _ (-2739) (-2739) ltac:(lia) ltac:(lia) ltac:(lia) Ka) as (ka & -> & Fa & Ra) end.
     match goal with Kz : is_pz _ = true |- _ => destruct (is_pz_sound _ Kz) as (z & -> & Fz & Rz) end.
-    match goal with HP : hasf _ _ = true |- _ => destruct (kP_sound HP) as (p & Dp & Fp & Lp) end.
-    match goal with L7 : le720 _ _ _ = true |- _ => pose proof (le720_sound p Dp Fp L7) as Up end.
+    match goal with HP : hasf _ _ = true, PP : ppt _ _ _ _ = true, L7 : le720 _ _ = true |- _ =>
+      destruct (ppt_sound _ HP PP L7) as (p & Dp & Fp & Lp) end.
     destruct (y0_bound ka p z Fa ltac:(lra) Fp ltac:(lra) Fz Rz) as (F & B).
     exists (Float32.add (Float32.add ka p) z). split; [| exact (conj F B)].
     cbn [SymExec2.den]. rewrite Dp. reflexivity.
@@ -162,20 +250,20 @@ Proof.
   all: cbn [plus80 SymExec2.den] in D |- *; first [discriminate D | rewrite D; reflexivity].
 Qed.
 
-Lemma plus80_cast : forall Y, F32 Y = true -> -3741 <= R2 Y <= -2018 ->
-  exists yi, ycast (Vsingle (Float32.add Y f80)) = Vint yi /\ (-3662 <= Int.signed yi <= -1)%Z.
+Lemma plus80_cast : forall Y, F32 Y = true -> -3757 <= R2 Y <= -2018 ->
+  exists yi, ycast (Vsingle (Float32.add Y f80)) = Vint yi /\ (-3678 <= Int.signed yi <= -1)%Z.
 Proof.
   intros Y FY RY.
   destruct (f32_add_val Y f80 FY F32_f80) as (A & F).
   { rewrite B2R_f80. eapply Rle_trans; [| apply (bpow_le radix2 12 100); lia]. simpl. apply Rabs_le. lra. }
   rewrite B2R_f80 in A.
-  assert (L1 : -3661 <= R2 (Float32.add Y f80)).
-  { rewrite A. apply (rnd_ge_int _ (-3661)); [lia | lra]. }
+  assert (L1 : -3677 <= R2 (Float32.add Y f80)).
+  { rewrite A. apply (rnd_ge_int _ (-3677)); [lia | lra]. }
   assert (L2 : R2 (Float32.add Y f80) <= -1938).
   { rewrite A. apply (rnd_le_int _ (-1938)); [lia | lra]. }
   destruct (ycast_val _ F ltac:(apply Rabs_le; lra)) as (yi & Ey & B1 & B2).
   exists yi. split; [exact Ey |].
-  assert (Q1 : IZR (-3663) < IZR (Int.signed yi)) by lra.
+  assert (Q1 : IZR (-3679) < IZR (Int.signed yi)) by lra.
   assert (Q2 : IZR (Int.signed yi) < IZR 0) by lra.
   apply lt_IZR in Q1, Q2. lia.
 Qed.
@@ -193,7 +281,7 @@ Qed.
 
 (* below a ceiling: ceilHeight - 160 *)
 Lemma cb_sound : forall s, cb kv rO kP kC pc s = true ->
-  exists y, den s = Some (Vsingle y) /\ F32 y = true /\ -3902 <= R2 y <= -2018.
+  exists y, den s = Some (Vsingle y) /\ F32 y = true /\ -3918 <= R2 y <= -2018.
 Proof.
   intros s H. unfold cb in H. crush H. norm.
   match goal with H : existsb _ _ = true |- _ => apply existsb_exists in H as (f & I & Hm) end.
@@ -211,11 +299,11 @@ Proof.
   - destruct (plus80_cast Y FY RY) as (yi' & Ey' & Byi). rewrite Ey' in Ey. injection Ey as <-.
     destruct (ceil_clamp Y C yi' FY ltac:(lra) ltac:(lia) Hc G) as (Fs & B1 & B2).
     exists (Float32.sub C c160). split; [exact Ds |]. split; [exact Fs |].
-    pose proof (IZR_le (-3662) (Int.signed yi') ltac:(lia)). lra.
+    pose proof (IZR_le (-3678) (Int.signed yi') ltac:(lia)). lra.
 Qed.
 
 Lemma yb_sound : forall y, tb kv rO kP pc y || cb kv rO kP kC pc y = true ->
-  exists Y, den y = Some (Vsingle Y) /\ F32 Y = true /\ -3902 <= R2 Y <= -2018.
+  exists Y, den y = Some (Vsingle Y) /\ F32 Y = true /\ -3918 <= R2 Y <= -2018.
 Proof.
   intros y H. apply orb_true_iff in H as [H | H];
     [destruct (tb_sound _ H) as (Y & D & F & R) | destruct (cb_sound _ H) as (Y & D & F & R)];
@@ -236,7 +324,7 @@ Proof. intros x H. destruct (FD x H) as (A & B & _). exact (conj A B). Qed.
 
 (* a floor above pos[1], found by find_floor at pos[1] *)
 Lemma db_sound : forall s, db kv rO kP kC kH kL pc s = true ->
-  exists y, den s = Some (Vsingle y) /\ F32 y = true /\ -3902 <= R2 y <= -1938.
+  exists y, den s = Some (Vsingle y) /\ F32 y = true /\ -3918 <= R2 y <= -1938.
 Proof.
   intros s H. unfold db in H. apply existsb_exists in H as (f & I & Hm). crush Hm. norm.
   match goal with Hy : tb _ _ _ _ _ || cb _ _ _ _ _ _ = true |- _ =>
@@ -268,8 +356,15 @@ Qed.
 Theorem ppb_sound : forall s, ppb kv rO kP kC pc s = true ->
   exists p, den s = Some (Vsingle p) /\ F32 p = true /\ -1000 <= R2 p.
 Proof.
-  intros s H. unfold ppb in H. repeat rewrite orb_true_iff in H. destruct H as [[H | H] | H].
+  intros s H. unfold ppb in H. repeat rewrite orb_true_iff in H. destruct H as [[[H | H] | H] | H].
   - apply andb_true_iff in H as [E1 H]. apply sveqb_eq in E1. subst s. exact (kP_sound H).
+  - band H. destruct H as (((PP & HP) & L7) & NN).
+    destruct (ppt_sound _ HP PP L7) as (p & Dp & Fp & Rp).
+    unfold nneg in NN. apply existsb_exists in NN as (f & I & Hm). crush Hm. norm.
+    match goal with Kz : is_pz _ = true |- _ => destruct (is_pz_sound _ Kz) as (z & -> & Fz & Rz) end.
+    pose proof (fbool_cmp _ _ p z Olt Clt false I Dp eq_refl (or_intror (conj eq_refl eq_refl))) as G.
+    pose proof (cmp_lt_false _ _ Fp Fz G).
+    exists p. split; [exact Dp |]. split; [exact Fp | lra].
   - destruct (cfin_sound s (-1000) 100000 ltac:(lia) ltac:(lia) ltac:(lia) H) as (k & -> & F & R).
     exists k. split; [reflexivity |]. split; [exact F | lra].
   - crush H. norm.
@@ -312,6 +407,13 @@ Lemma pole_out_not_ledge : forall a, In (Int.unsigned a) POLE_OUT -> a <> ACT_LE
 Proof.
   intros a H ->. unfold POLE_OUT, POLE_ACTS3 in H. vm_compute in H.
   repeat (destruct H as [H | H]; [discriminate H |]). exact H.
+Qed.
+
+Lemma acts3_ground : forall a st, In (Int.unsigned a) POLE_ACTS3 -> mode_of_action a st = M_Ground.
+Proof.
+  intros a st H. rewrite <- (Int.repr_unsigned a). unfold POLE_ACTS3 in H.
+  repeat (destruct H as [H | H]; [rewrite <- H; unfold mode_of_action, roll_prep; vm_compute; reflexivity |]).
+  destruct H.
 Qed.
 
 Lemma zin_in : forall z l, zin z l = true -> In z l.
@@ -410,9 +512,9 @@ Proof.
   end.
   subst.
   repeat rewrite andb_true_iff in OK.
-  destruct OK as (((((((((R1 & Z0) & Zin) & IS) & IT) & EV) & EF) & EG) & PB) & KP).
+  destruct OK as ((((((((R1 & Z0) & Zin) & IS) & IT) & EV) & EF) & YB) & KP).
   apply Pos.eqb_eq in R1. subst. apply Ptrofs.same_if_eq in Z0. subst.
-  apply sveqb_eq in EV, EF, EG. subst.
+  apply sveqb_eq in EV, EF. subst.
   destruct RC0 as (A0 & S0 & T0 & Y0 & V0 & F0 & bo0 & oo0 & LO0 & GY0).
   assert (DS0 : den (init_cell kv rM oS Mint16unsigned) = Some (Vint (c_state c0)))
     by (rewrite pic, pAM; exact S0).
@@ -423,12 +525,6 @@ Proof.
   match goal with H : int_sv _ ?s = true, H' : LD rM oT _ = Some ?s |- _ =>
     destruct (int_sv_den ge m0 E _ _ DT0 s H) as (jt & Dt); pose proof (pld _ _ _ _ H') as LT end.
   rewrite pAM, Ds in LS. rewrite pAM, Dt in LT.
-  match goal with H' : LD rM oY _ = Some ?s |- _ =>
-    destruct (posb_sound ge R0 m0 uf E kv rO kP kC kH kL (g_pc g) ppc HUP HUC HUH HUL FD s PB)
-      as (y & Dy & Fy & Ry); pose proof (pld _ _ _ _ H') as LY end.
-  rewrite pAM, Dy in LY.
-  match goal with H' : LD rO oG _ = Some _ |- _ => pose proof (pld _ _ _ _ H') as LG end.
-  rewrite Dy in LG.
   match goal with H' : LD rM oV _ = Some _ |- _ => pose proof (pld _ _ _ _ H') as LV end.
   rewrite pAM, pic, pAM in LV.
   match goal with H' : LD rM oF _ = Some _ |- _ => pose proof (pld _ _ _ _ H') as LF end.
@@ -437,30 +533,74 @@ Proof.
   rewrite pAM in LA. cbn [SymExec2.den] in LA.
   match goal with H' : LD rM oMO _ = Some _ |- _ => pose proof (pld _ _ _ _ H') as LM end.
   rewrite pAM in LM. cbn [SymExec2.den] in LM. rewrite Ptrofs.add_zero in LM.
-  set (c2 := mkCells i js jt y (c_vely c0) (c_floorh c0) y).
-  exists c2.
   assert (Hin : In (Int.unsigned i) POLE_OUT) by exact (zin_in _ _ Zin).
+  match goal with H' : LD rM oY _ = Some ?s |- _ => pose proof (pld _ _ _ _ H') as LY end.
+  match goal with H' : LD rO oG _ = Some _ |- _ => pose proof (pld _ _ _ _ H') as LG end.
+  rewrite pAM in LY.
+  (* the two shapes of pos[1]: set_pole_position's, or untouched *)
+  assert (MV : exists y gy, Mem.load Mfloat32 m bm oY = Some (Vsingle y)
+             /\ Mem.load Mfloat32 m (e_blk E rO) (addr E rO oG) = Some (Vsingle gy)
+             /\ F32 y = true /\ F32 gy = true /\ -11000 <= R2 y /\ -11000 <= R2 gy
+             /\ forall c2, c_posy c2 = y -> c_gfxy c2 = gy -> c_action c2 = i -> c_vely c2 = c_vely c0 ->
+                  c_floorh c2 = c_floorh c0 -> Move wmotr_floor wmotr_pole wmotr_cannon c0 c2).
+  { destruct IR0 as (FY0 & FV0 & FG0 & LY0 & LG0 & (FF0 & LF0) & VR0).
+    apply orb_true_iff in YB as [YB | YB].
+    - apply andb_true_iff in YB as [EG PB]. apply sveqb_eq in EG. subst.
+      destruct (posb_sound ge R0 m0 uf E kv rO kP kC kH kL (g_pc g) ppc HUP HUC HUH HUL FD _ PB)
+        as (y & Dy & Fy & Ry & Ry2).
+      rewrite Dy in LY, LG. exists y, y.
+      split; [exact LY |]. split; [exact LG |]. split; [exact Fy |]. split; [exact Fy |]. split; [lra |]. split; [lra |].
+      intros c2 E1 E2 E3 E4 E5.
+      apply S_attach with (h := -1759).
+      + exact (low_pole_attach c0).
+      + rewrite E1. lra.
+      + left. congruence.
+      + unfold mode_of. rewrite E3, E4. apply pole_out_cap; [exact Hin | lra].
+      + intros H. exfalso. rewrite E3 in H. exact (pole_out_not_ledge _ Hin H).
+    - apply andb_true_iff in YB as [YB G0]. apply andb_true_iff in YB as [EY EG].
+      apply sveqb_eq in EY, EG. subst.
+      unfold ground0 in G0. apply andb_true_iff in G0 as [GA GM]. apply sveqb_eq in GM.
+      destruct (init_cell kv rM oA Mint32) as [[| a0 | | | |] | | | | | | | | |] eqn:IA;
+        try discriminate GA.
+      assert (DA : den (init_cell kv rM oA Mint32) = Mem.load Mint32 m0 bm oA) by (rewrite pic, pAM; reflexivity).
+      rewrite IA in DA. cbn [SymExec2.den] in DA. change OFS_ACTION with oA in A0.
+      rewrite A0 in DA. injection DA as Ea0.
+      assert (MG : mode_of c0 = M_Ground).
+      { unfold mode_of. rewrite <- Ea0. exact (acts3_ground _ _ (zin_in _ _ GA)). }
+      assert (DM : den (init_cell kv rM oMO Mint32) = Mem.load Mint32 m0 bm oMO) by (rewrite pic, pAM; reflexivity).
+      rewrite GM in DM. cbn [SymExec2.den] in DM. rewrite Ptrofs.add_zero in DM.
+      change Mptr with Mint32 in LO0. change OFS_MARIOOBJ with oMO in LO0.
+      rewrite LO0 in DM. injection DM as <- <-.
+      rewrite pic, pAM in LY. change OFS_POSY with oY in Y0. rewrite Y0 in LY.
+      rewrite pic in LG. unfold addr in LG. change OFS_GFXY with oG in GY0. rewrite GY0 in LG.
+      exists (c_posy c0), (c_gfxy c0).
+      refine (conj LY (conj LG (conj FY0 (conj FG0 (conj LY0 (conj LG0 _)))))).
+      intros c2 E1 E2 E3 E4 E5.
+      apply S_attach with (h := R2 (c_posy c0)).
+      + left. split; [exact MG | lra].
+      + rewrite E1. lra.
+      + right. split; [exact E2 | exact MG].
+      + unfold mode_of. rewrite E3, E4. apply pole_out_cap; [exact Hin | lra].
+      + intros H. exfalso. rewrite E3 in H. exact (pole_out_not_ledge _ Hin H). }
+  destruct MV as (y & gy & LY' & LG' & Fy & Fg & Ry & Rg & MV).
+  set (c2 := mkCells i js jt y (c_vely c0) (c_floorh c0) gy).
+  exists c2.
   split.
   { unfold read_cells. cbn [c2 c_action c_state c_timer c_posy c_vely c_floorh c_gfxy].
     change OFS_ACTION with oA. change OFS_ASTATE with oS. change OFS_ATIMER with oT.
     change OFS_POSY with oY. change OFS_VELY with oV. change OFS_FLOORH with oF.
     change OFS_VELY with oV in V0. change OFS_FLOORH with oF in F0.
-    refine (conj LA (conj LS (conj LT (conj LY (conj _ (conj _ _)))))).
+    refine (conj LA (conj LS (conj LT (conj LY' (conj _ (conj _ _)))))).
     - rewrite LV. exact V0.
     - rewrite LF. exact F0.
     - exists (e_blk E rO), (e_base E rO). change Mptr with Mint32. change OFS_MARIOOBJ with oMO.
-      split; [exact LM |]. unfold addr in LG. change OFS_GFXY with oG. exact LG. }
+      split; [exact LM |]. unfold addr in LG'. change OFS_GFXY with oG. exact LG'. }
   split.
   { destruct IR0 as (FY0 & FV0 & FG0 & LY0 & LG0 & (FF0 & LF0) & VR0).
     split.
     - unfold InRange. cbn [c2 c_posy c_vely c_gfxy c_floorh].
       repeat split; try assumption; lra.
-    - apply S_attach with (h := -1759).
-      + exact (low_pole_attach c0).
-      + cbn [c2 c_posy]. lra.
-      + left. reflexivity.
-      + unfold mode_of. cbn [c2 c_action c_vely]. apply pole_out_cap; [exact Hin | lra].
-      + intros H. exfalso. exact (pole_out_not_ledge _ Hin H). }
+    - apply MV; reflexivity. }
   split; [exact Hin |]. split; [reflexivity |].
   intros H3. cbn [c2 c_action] in H3.
   apply orb_true_iff in KP as [N | K]; [| exact K].

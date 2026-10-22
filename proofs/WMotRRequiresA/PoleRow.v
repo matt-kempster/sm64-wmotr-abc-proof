@@ -84,10 +84,10 @@ Hypothesis Hbm : Genv.find_symbol G level_update._gMarioStates = Some bm.
 Variable acn : Z.
 Variable fK : function.
 Hypothesis Hfin : pfinal lp acn fK.
-Hypothesis Hpa : In acn [1049409; 1049410]%Z.
+Hypothesis Hpa : In acn [1049409; 1049410; 135267136]%Z.
 
 Lemma acn_pole : In (Int.unsigned (Int.repr acn)) pole_acts.
-Proof. destruct Hpa as [<- | [<- | []]]; cbn; auto 6. Qed.
+Proof. destruct Hpa as [<- | [<- | [<- | []]]]; cbn; auto 7. Qed.
 
 (* the walk's environment *)
 Definition Epl (bo bfi bmiss bcalls bsin ab bt biom bmq brm bau bbt bgp blv : block) (oo uo : ptrofs) : senv :=
@@ -317,7 +317,7 @@ Proof.
   { intros f Hf. unfold pc0P in Hf. cbn [app In ffacts] in Hf.
     destruct HW as (_ & _ & HFl & _).
     specialize (HFl _ Lf). destruct HFl as (fb & fo' & ft & -> & Lt & Int).
-    destruct Hf as [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | []]]]]]]]]]]]].
+    destruct Hf as [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | []]]]]]]]]]]]]].
     - cbn [fact_holds]. rewrite RL. unfold ufP. rewrite ?Pos.eqb_refl. rewrite ZS.
       exact (Wff_rblk G m gp _ RL0 _ RLe W).
     - cbn [fact_holds]. exists inp. rewrite DI. split; [exact Li | exact Ai].
@@ -351,6 +351,8 @@ Proof.
       rewrite RL, DI, FF, Lf. exists fb, fo'. split; [reflexivity |]. split; [exists ft; split; assumption |].
       destruct Wf as (b & o & E1 & _ & _ & _ & Hr). injection E1 as <- <-.
       intros H. exact (Hr (RLe _ H)).
+    - (* m->controller *)
+      apply (WW _ ctl); [rewrite DI; exact Lc | exact Wc].
     - refine (fty_holds G (R0P G) m (ufP G m gp) E (Sinit RM (AirRun.fo G mario._MarioState mario._floor) Mint32) fb fo' 56 _ _ _);
         [rewrite DI, FF; exact Lf | exists ft; split; assumption | right; reflexivity].
     - refine (fty_holds G (R0P G) m (ufP G m gp) E (Sinit RM (AirRun.fo G mario._MarioState mario._floor) Mint32) fb fo' 1 _ _ _);
@@ -361,7 +363,7 @@ Proof.
   assert (IR0 : InRange c0) by exact (proj1 Hbud).
   destruct (Hfin m gp GPO MCg FD E t m' vres c0 EO PC EV' ltac:(exact RC) IR0)
     as (E' & gs & X & MM & FK & NR & RT & c2 & RC2 & RM2 & Hout & Hv & Hk).
-  split; [| change (e_blk E RM) with bm in RT; exact (fresh_ret_ns bm m m' vres acn Hact ltac:(destruct Hpa as [E0 | [E0 | []]]; rewrite <- E0; reflexivity) Hfr RT)].
+  split; [| change (e_blk E RM) with bm in RT; exact (fresh_ret_ns bm m m' vres acn Hact ltac:(destruct Hpa as [E0 | [E0 | [E0 | []]]]; rewrite <- E0; reflexivity) Hfr RT)].
   split; [| exists c2; split; [exact RC2 | apply Relation_Operators.rt_step; exact RM2]].
   (* ---- the walk's outcome, in terms of the blocks ---- *)
   assert (XB : forall r, Plt r NBP -> e_blk E' r = e_blk E r /\ e_base E' r = e_base E r)
@@ -622,12 +624,23 @@ Qed.
 End POLEROW.
 
 (* ---- the automatic dispatcher's two grab cases ---- *)
-From SM64.Proofs.WMotRRequiresA Require Import AutoSplit PoleSlow PoleFast.
+From SM64.Proofs.WMotRRequiresA Require Import AutoSplit PoleSlow PoleFast PoleHold.
 
 Lemma dm_gps : (prog_defmap AUT.prog) ! AUT._act_grab_pole_slow = Some (Gfun (Internal AUT.f_act_grab_pole_slow)).
 Proof. vm_compute. reflexivity. Qed.
 Lemma dm_gpf : (prog_defmap AUT.prog) ! AUT._act_grab_pole_fast = Some (Gfun (Internal AUT.f_act_grab_pole_fast)).
 Proof. vm_compute. reflexivity. Qed.
+
+Lemma dm_hp : (prog_defmap AUT.prog) ! AUT._act_holding_pole = Some (Gfun (Internal AUT.f_act_holding_pole)).
+Proof. vm_compute. reflexivity. Qed.
+Lemma hp_label_b : forallb (fun x => if Pos.eqb (snd x) AUT._act_holding_pole then Z.eqb (fst x) 135267136 else true)
+  aut_case_list = true.
+Proof. vm_compute. reflexivity. Qed.
+Lemma hp_label : forall n, In (n, AUT._act_holding_pole) aut_case_list -> n = 135267136.
+Proof.
+  intros n H. pose proof (proj1 (forallb_forall _ _) hp_label_b _ H) as X.
+  cbn [fst snd] in X. rewrite Pos.eqb_refl in X. apply Z.eqb_eq in X. exact X.
+Qed.
 
 Lemma gps_label_b : forallb (fun x => if Pos.eqb (snd x) AUT._act_grab_pole_slow then Z.eqb (fst x) 1049409 else true)
   aut_case_list = true.
@@ -656,12 +669,12 @@ Variable bm : block.
 Hypothesis Hbm : Genv.find_symbol G level_update._gMarioStates = Some bm.
 Variable MWF : mem -> Prop.
 
-(* the cases still assumed: HOLDING_POLE, CLIMBING_POLE, TOP_OF_POLE_TRANSITION,
-   TOP_OF_POLE (their walks need Mario's animation data linked), the five
-   ledge cases, and IN_CANNON *)
+(* the cases still assumed: CLIMBING_POLE (it reads the camera's yaw),
+   TOP_OF_POLE_TRANSITION, TOP_OF_POLE (their walks need Mario's animation
+   data tied to the DMA buffer), the five ledge cases, and IN_CANNON *)
 Definition aut_case_rest_pole : Prop :=
   forall n f fd v, In (n, f) aut_case_list ->
-    f <> AUT._act_grab_pole_slow -> f <> AUT._act_grab_pole_fast ->
+    f <> AUT._act_grab_pole_slow -> f <> AUT._act_grab_pole_fast -> f <> AUT._act_holding_pole ->
     resolves lp f fd ->
     seg_okR lp bm MWF fd [v]
       (fun m => v = Vptr bm Ptrofs.zero /\ Mem.load Mint32 m bm 12 = Some (Vint (Int.repr n)) /\ fresh bm m)
@@ -686,6 +699,14 @@ Proof.
     exact (KbRow.kb_reshape _ _ _ (pole_row lp H12 bm Hbm _ _
              (pole_pfinal lp H12 Hdma Haudio _ _ fastcheck12) ltac:(right; left; reflexivity)
              m t m' vr c Vm Hw Hc Hb Hact Hfr Hev)). }
-  exact (Hrest n f fd v Hin Hne1 Hne2 Hr).
+  destruct (Pos.eq_dec f AUT._act_holding_pole) as [-> | Hne3].
+  { pose proof (hp_label n Hin) as ->.
+    pose proof (resolve_pin_fd lp _ _ _ _ (linked12_LO_aut lp H12) dm_hp Hr) as ->.
+    intros m t m' vr c Hok Hw (-> & Hact & Hfr) Hok' Hc Hb Hev.
+    destruct Hok as (Vm & _).
+    exact (KbRow.kb_reshape _ _ _ (pole_row lp H12 bm Hbm _ _
+             (pole_pfinal lp H12 Hdma Haudio _ _ holdcheck12) ltac:(right; right; left; reflexivity)
+             m t m' vr c Vm Hw Hc Hb Hact Hfr Hev)). }
+  exact (Hrest n f fd v Hin Hne1 Hne2 Hne3 Hr).
 Qed.
 End POLECASES.

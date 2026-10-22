@@ -34,10 +34,13 @@ Definition cfin (s : sval) (lo hi : Z) : bool :=
 Definition is_pz (s : sval) : bool :=
   match s with Sconst (Vsingle k) => Float32.cmp Ceq k Float32.zero | _ => false end.
 
-Definition POLE_ACTS3 : list Z := [1049409; 1049410; 135267136].
-(* the actions an outcome may end in: the two grabs, HOLDING_POLE, and
-   set_pole_position's ACT_IDLE / ACT_FREEFALL / ACT_SOFT_BONK *)
+(* the two grabs, HOLDING_POLE, and (act_holding_pole's switches, 2026-10-22)
+   CLIMBING_POLE and TOP_OF_POLE_TRANSITION: all pole actions, ground mode *)
+Definition POLE_ACTS3 : list Z := [1049409; 1049410; 135267136; 1049411; 1049412].
+(* the actions an outcome may end in: those, and set_pole_position's (or
+   act_holding_pole's Z / low-health) ACT_IDLE / ACT_FREEFALL / ACT_SOFT_BONK *)
 Definition POLE_OUT : list Z := POLE_ACTS3 ++ [205521409; 16779404; 16910518].
+Definition zin (z : Z) (l : list Z) : bool := existsb (Z.eqb z) l.
 
 Section CLS.
 Variables (nbase : positive) (R0 : list (positive * Z)) (kv : list (positive * Z * memory_chunk * sval)).
@@ -49,21 +52,49 @@ Definition sP : sval := ic rO POLEPOS_OFF Mfloat32.
 
 Definition hasf (pc : list fact) (f : fact) : bool := existsb (fbeq f) pc.
 
-(* the fact "!(P > k)", k a constant <= 720 *)
-Definition le720 (pc : list fact) : bool :=
+(* the fact "!(x > k)", k a constant <= 720 *)
+Definition le720 (pc : list fact) (x : sval) : bool :=
   existsb (fun f => match f with
     | Fbool (Sbinop Ogt a t1 k t2) ty false =>
-        sveqb a sP && is_tf t1 && is_tf t2 && cfin k (-100000) 720 && tyeqb ty ti32
+        sveqb a x && is_tf t1 && is_tf t2 && cfin k (-100000) 720 && tyeqb ty ti32
     | _ => false end) pc.
 
-(* tight: in [-3741, -2018] *)
+(* an int constant *)
+Definition cint (s : sval) (z : Z) : bool :=
+  match s with Sconst (Vint i) => Z.eqb (Int.signed i) z | _ => false end.
+
+(* act_holding_pole's slide amount oMarioPoleYawVel / 0x100, after the
+   clamp `if (yawVel > 0x1000) yawVel = 0x1000`: the folded constant, or
+   y / 256 with the fact !(y > 4096); so in [-2^23, 16] *)
+Definition dec_ok (pc : list fact) (d : sval) : bool :=
+  match d with
+  | Sconst (Vint i) => Z.leb (-8388608) (Int.signed i) && Z.leb (Int.signed i) 16
+  | Sbinop Odiv y t1 k t2 =>
+      tyeqb t1 ti32 && tyeqb t2 ti32 && cint k 256
+      && existsb (fun f => match f with
+           | Fbool (Sbinop Ogt y' t3 k' t4) ty false =>
+               sveqb y' y && tyeqb t3 ti32 && tyeqb t4 ti32 && cint k' 4096 && tyeqb ty ti32
+           | _ => false end) pc
+  | _ => false
+  end.
+
+(* oMarioPolePos before set_pole_position: the entry's, or (holding pole)
+   the entry's minus the slide amount *)
+Definition ppt (pc : list fact) (a : sval) : bool :=
+  sveqb a sP
+  || match a with
+     | Sbinop Osub p t1 d t2 => sveqb p sP && is_tf t1 && tyeqb t2 ti32 && dec_ok pc d
+     | _ => false
+     end.
+
+(* tight: in [-3757, -2018] *)
 Definition tb (pc : list fact) (s : sval) : bool :=
-  cfin s (-3741) (-2018)
+  cfin s (-3757) (-2018)
   || match s with
      | Sbinop Oadd (Sbinop Oadd ka t1 a t2) t3 kz t4 =>
-         cfin ka (-2739) (-2739) && sveqb a sP && is_pz kz
+         cfin ka (-2739) (-2739) && ppt pc a && is_pz kz
          && is_tf t1 && is_tf t2 && is_tf t3 && is_tf t4
-         && hasf pc (Fuser kP [sP]) && le720 pc
+         && hasf pc (Fuser kP [sP]) && le720 pc a
      | _ => false
      end.
 
@@ -100,10 +131,19 @@ Definition db (pc : list fact) (s : sval) : bool :=
 Definition posb (pc : list fact) (s : sval) : bool :=
   cfin s (-11000) (-1759) || tb pc s || cb pc s || db pc s.
 
-(* oMarioPolePos after the frame: the entry's, a constant >= -1000, or
-   (C - 160) - oPosY with the fact !(that < 0) *)
+(* the fact "!(s < 0)" *)
+Definition nneg (pc : list fact) (s : sval) : bool :=
+  existsb (fun f => match f with
+    | Fbool (Sbinop Olt a t3 z t4) ty false =>
+        sveqb a s && is_tf t3 && is_tf t4 && is_pz z && tyeqb ty ti32
+    | _ => false end) pc.
+
+(* oMarioPolePos after the frame: the entry's, a constant >= -1000,
+   (C - 160) - oPosY with the fact !(that < 0), or the slid entry's
+   (holding pole) with the facts !(that > 720) and !(that < 0) *)
 Definition ppb (pc : list fact) (s : sval) : bool :=
   (sveqb s sP && hasf pc (Fuser kP [sP]))
+  || (ppt pc s && hasf pc (Fuser kP [sP]) && le720 pc s && nneg pc s)
   || cfin s (-1000) 100000
   || match s with
      | Sbinop Osub x t1 k t2 =>
@@ -114,8 +154,6 @@ Definition ppb (pc : list fact) (s : sval) : bool :=
               | _ => false end) pc
      | _ => false
      end.
-
-Definition zin (z : Z) (l : list Z) : bool := existsb (Z.eqb z) l.
 
 (* in a pole action: usedObj and the pole kept, oMarioPolePos bounded *)
 Definition pole_keep (g : gst) : bool :=
@@ -129,6 +167,11 @@ Definition pole_keep (g : gst) : bool :=
      | Some a3 => sveqb a3 (ic rU HITBOX_H_OFF Mfloat32) | None => false end
   && match LD rO POLEPOS_OFF Mfloat32 with Some p => ppb (g_pc g) p | None => false end.
 
+(* the entry action is a pole action (so Mario is in ground mode) *)
+Definition ground0 : bool :=
+  match ic rM oA Mint32 with Sconst (Vint a0) => zin (Int.unsigned a0) POLE_ACTS3 | _ => false end
+  && sveqb (ic rM oMO Mint32) (Sptr rO Ptrofs.zero).
+
 Definition pole_ok (g : gst) : bool :=
   let LD := sload nbase R0 kv g in
   match LD rM oMO Mint32, LD rM oA Mint32, LD rM oS Mint16unsigned, LD rM oT Mint16unsigned,
@@ -137,8 +180,11 @@ Definition pole_ok (g : gst) : bool :=
       Pos.eqb r0 rO && Ptrofs.eq z0 Ptrofs.zero
       && zin (Int.unsigned a) POLE_OUT
       && int_sv (ic rM oS Mint16unsigned) ss && int_sv (ic rM oT Mint16unsigned) st
-      && sveqb sv (ic rM oV Mfloat32) && sveqb sf (ic rM oF Mfloat32) && sveqb sg sy
-      && posb (g_pc g) sy
+      && sveqb sv (ic rM oV Mfloat32) && sveqb sf (ic rM oF Mfloat32)
+      && ((sveqb sg sy && posb (g_pc g) sy)
+          (* act_holding_pole's early switches: pos[1] and gfx.pos[1] untouched,
+             from a pole action (ground mode) *)
+          || (sveqb sy (ic rM oY Mfloat32) && sveqb sg (ic rO oG Mfloat32) && ground0))
       && (negb (zin (Int.unsigned a) POLE_ACTS3) || pole_keep g)
   | _, _, _, _, _, _, _, _ => false
   end.

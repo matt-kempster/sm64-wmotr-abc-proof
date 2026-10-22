@@ -153,7 +153,7 @@ Proof.
            injection Hx as <-.
            apply existsb_exists in Ex as (x & Ix & Ex). apply Pos.eqb_eq in Ex. subst x.
            destruct Ix as [<- | [<- | [<- | []]]].
-           ++ exact (ext_fresh_sound lp H12 _ _ ps_named ps_ni Haudio NBF (R0F G) gtabF (kvH G) m0 uf gp GPO
+           ++ exact (ext_fresh_sound lp H12 _ _ ps_named ps_ni (audio_ps Haudio) NBF (R0F G) gtabF (kvH G) m0 uf gp GPO
                        args g cps fd E m vargs t m' vres Hk Hl MM EV).
            ++ exact (ext_fresh_sound lp H12 _ _ sqrtf_named_air_h sqrtf_ni (sqrtf_inert Hsq Hsqf)
                        NBF (R0F G) gtabF (kvH G) m0 uf gp GPO args g cps fd E m vargs t m' vres Hk Hl MM EV).

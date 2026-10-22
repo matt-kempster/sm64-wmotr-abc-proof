@@ -3,8 +3,10 @@
 (* (mario_actions_automatic.c), for the pole walks' classifier PoleClass. *)
 (*                                                                        *)
 (*   y0_bound    pos[1] = oPosY + oMarioPolePos + 0.0f on the low pole     *)
-(*               (oPosY = -2739, polePos in [-1000, 720]) is in            *)
-(*               [-3741, -2018].                                           *)
+(*               (oPosY = -2739, polePos in [-1016, 720]) is in            *)
+(*               [-3757, -2018].                                           *)
+(*   dec_val     act_holding_pole's slide polePos - (yawVel / 0x100),      *)
+(*               yawVel <= 0x1000, is finite and >= -1016.                 *)
 (*   ceil_clamp  pos[1] = ceilHeight - 160.0f, taken only when it is below *)
 (*               the old pos[1], with ceilHeight a height find_ceil can    *)
 (*               return (PoleXc.ceil_ok: 20000 or one that passed          *)
@@ -16,7 +18,7 @@
 
 From Coq Require Import ZArith Reals Lra Lia.
 From compcert Require Import Coqlib Floats Integers Values IEEE754_extra.
-From Flocq Require Import Binary Bits Defs Raux Zaux Generic_fmt FLT.
+From Flocq Require Import Binary Bits Defs Raux Zaux Generic_fmt FLT Float_prop.
 From SM64.Proofs Require Import HeightInvariant.
 From SM64.Proofs.WMotRRequiresA Require Import HeightFloatSteps FloorList FloorHeight FloorBound AirMatch PoleXc.
 
@@ -124,10 +126,10 @@ Proof.
 Qed.
 
 (* ---- the low pole's start height ---- *)
-Lemma y0_bound : forall ka P z, F32 ka = true -> R2 ka = -2739 -> F32 P = true -> -1000 <= R2 P <= 720 ->
+Lemma y0_bound : forall ka P z, F32 ka = true -> R2 ka = -2739 -> F32 P = true -> -1016 <= R2 P <= 720 ->
   F32 z = true -> R2 z = 0 ->
   F32 (Float32.add (Float32.add ka P) z) = true
-  /\ -3741 <= R2 (Float32.add (Float32.add ka P) z) <= -2018.
+  /\ -3757 <= R2 (Float32.add (Float32.add ka P) z) <= -2018.
 Proof.
   intros ka P z Fk Rk FP RP Fz Rz.
   destruct (f32_add_val ka P Fk FP) as (A1 & F1).
@@ -141,6 +143,57 @@ Proof.
   { rewrite Rz. eapply Rle_trans; [| apply (bpow_le radix2 12 100); lia]. simpl. apply Rabs_le. lra. }
   rewrite Rz, Rplus_0_r, rnd_B2R in A2.
   split; [exact F2 | rewrite A2; lra].
+Qed.
+
+(* ---- act_holding_pole's slide: oMarioPolePos - (yawVel / 0x100) ---- *)
+Lemma cmp_pinf_fin : forall k, F32 k = true -> Float32.cmp Cgt (Binary.B754_infinity 24 128 false) k = true.
+Proof. intros [s|s|s pl Hpl|s mm e He] H; try discriminate H; destruct s; reflexivity. Qed.
+
+Lemma pos_sign : forall p, F32 p = true -> 0 < R2 p -> Binary.Bsign 24 128 p = false.
+Proof.
+  intros [s|s|s pl Hpl|s mm e He] F H; try discriminate F.
+  - cbn in H. lra.
+  - destruct s; [exfalso | reflexivity]. cbn in H.
+    assert (F2R (Float radix2 (Z.neg mm) e) < 0) by (apply F2R_lt_0; cbn; lia).
+    unfold F2R in *. cbn in *. lra.
+Qed.
+
+Lemma dec_val : forall p q k, F32 p = true -> -1000 <= R2 p ->
+  (-8388608 <= Int.signed q <= 16)%Z -> F32 k = true -> R2 k <= 720 ->
+  Float32.cmp Cgt (Float32.sub p (Float32.of_int q)) k = false ->
+  F32 (Float32.sub p (Float32.of_int q)) = true
+  /\ -1016 <= R2 (Float32.sub p (Float32.of_int q)) <= 720.
+Proof.
+  intros p q k Fp Rp Hq Fk Rk G.
+  pose proof (IZR_le (-8388608) (Int.signed q) ltac:(lia)) as Q1.
+  pose proof (IZR_le (Int.signed q) 16 ltac:(lia)) as Q2.
+  destruct (of_int_val q) as (Iv & If); [apply Rabs_le; split; lra |].
+  destruct (of_int_val (Int.repr 16777216)) as (Cv & Cf);
+    [rewrite Int.signed_repr by (cbn; lia); apply Rabs_le; split; lra |].
+  rewrite Int.signed_repr in Cv by (cbn; lia).
+  destruct (Rle_or_lt (R2 p) 8000000) as [Small | Big].
+  - destruct (f32_sub_dom p (Float32.of_int q) (Float32.of_int (Int.repr 16777216)) Fp If) as (Sv & Sf).
+    { rewrite Iv, Cv. rewrite (Rabs_right (IZR 16777216)) by (apply Rle_ge; apply IZR_le; lia).
+      apply Rabs_le. split; lra. }
+    split; [exact Sf |]. split.
+    + rewrite Sv, Iv. apply (rnd_ge_int _ (-1016)); [lia | lra].
+    + pose proof (cmp_gt_false _ _ Sf Fk G). lra.
+  - exfalso.
+    unfold Float32.sub in G.
+    match type of G with context[Binary.Bminus ?p0 ?e0 ?g1 ?g2 ?nan ?md p (Float32.of_int q)] =>
+      pose proof (Binary.Bminus_correct p0 e0 g1 g2 nan md p (Float32.of_int q) Fp If) as HB end.
+    destruct (Rlt_bool _ _).
+    + destruct HB as (Hv & Hf & _).
+      pose proof (cmp_gt_false _ _ Hf Fk G) as L. rewrite Hv in L.
+      assert (rnd (R2 p - R2 (Float32.of_int q)) >= 7999984) by
+        (apply Rle_ge; apply (rnd_ge_int _ 7999984); [lia | rewrite Iv; lra]).
+      lra.
+    + destruct HB as (Ho & _).
+      rewrite (pos_sign p Fp ltac:(lra)) in Ho.
+      match type of G with context[Binary.Bminus ?p0 ?e0 ?g1 ?g2 ?nan ?md p ?y] =>
+        destruct (Binary.Bminus p0 e0 g1 g2 nan md p y) as [s|s|s pl Hpl|s mm e He] eqn:Z end;
+        cbn in Ho; try discriminate Ho.
+      injection Ho as ->. try rewrite Z in G. rewrite (cmp_pinf_fin k Fk) in G. discriminate G.
 Qed.
 
 (* ---- the ceiling clamp ---- *)

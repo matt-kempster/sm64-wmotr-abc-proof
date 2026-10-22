@@ -202,7 +202,7 @@ Proof.
                  E m g (Vint i) args cps Hk MM I).
       * destruct (Pos.eqb_spec id AUT._play_sound) as [-> | N3]; [| discriminate Hx].
         injection Hx as <-. rewrite ps_aut in Hl.
-        exact (ext_fresh_sound lp H12 _ _ ps_named ps_ni Haudio NBF (R0F G) gtabF (kvK acn G) m0 uf gp GPO
+        exact (ext_fresh_sound lp H12 _ _ ps_named ps_ni (audio_ps Haudio) NBF (R0F G) gtabF (kvK acn G) m0 uf gp GPO
                  args g cps fd E m vargs t m' vres Hk Hl MM EV).
 Qed.
 
