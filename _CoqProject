@@ -32,6 +32,7 @@ generated/object_helpers.v
 generated/obj_behaviors.v
 generated/obj_behaviors_2.v
 generated/spawn_object.v
+generated/surface_load.v
 generated/object_list_processor.v
 generated/audio_data.v
 generated/graph_node.v
@@ -39,6 +40,7 @@ generated/save_file.v
 generated/buffers.v
 generated/object_collision.v
 generated/area.v
+generated/mario_anim_data.v
 generated/libultra_osEepromLongWrite.v
 generated/libultra_osEepromWrite.v
 generated/libultra_osSiCreateAccessQueue.v
@@ -264,6 +266,7 @@ proofs/WMotRRequiresA/HeightFloatSteps.v
 proofs/WMotRRequiresA/HeightBudgetArith.v
 proofs/WMotRRequiresA/HeightMoveCatalog.v
 proofs/WMotRRequiresA/WMotRLevel.v
+proofs/WMotRRequiresA/PoleAnim.v
 proofs/WMotRRequiresA/WMotRWorld.v
 proofs/WMotRRequiresA/NoAActions.v
 proofs/WMotRRequiresA/FrameCalls.v
@@ -273,6 +276,7 @@ proofs/WMotRRequiresA/AutoSplit.v
 proofs/WMotRRequiresA/HeightFrame.v
 proofs/WMotRRequiresA/WMotREntry.v
 proofs/WMotRRequiresA/SpawnTypeRun.v
+proofs/WMotRRequiresA/AnimRoundTrip.v
 proofs/WMotRRequiresA/EntryWarp.v
 proofs/WMotRRequiresA/StartSat.v
 proofs/WMotRRequiresA/YWriterCensus.v
@@ -293,6 +297,8 @@ proofs/WMotRRequiresA/Unwired/GravitySlice.v
 proofs/WMotRRequiresA/FloorList.v
 proofs/WMotRRequiresA/FloorHeight.v
 proofs/WMotRRequiresA/FloorBound.v
+proofs/WMotRRequiresA/TerrainBound.v
+proofs/WMotRRequiresA/TerrainRun.v
 proofs/WMotRRequiresA/FloorExec.v
 proofs/WMotRRequiresA/CeilList.v
 proofs/WMotRRequiresA/CeilExec.v
@@ -336,6 +342,16 @@ proofs/WMotRRequiresA/FfWorld.v
 proofs/WMotRRequiresA/FfRow.v
 proofs/WMotRRequiresA/AhwRow.v
 proofs/WMotRRequiresA/KbRow.v
+# GOAL 2 pole cases of the automatic dispatcher (grab_pole_slow / _fast)
+proofs/WMotRRequiresA/PoleXc.v
+proofs/WMotRRequiresA/PoleFloat.v
+proofs/WMotRRequiresA/PoleClass.v
+proofs/WMotRRequiresA/PoleKeep.v
+proofs/WMotRRequiresA/PoleSound.v
+proofs/WMotRRequiresA/PoleRun.v
+proofs/WMotRRequiresA/PoleSlow.v
+proofs/WMotRRequiresA/PoleFast.v
+proofs/WMotRRequiresA/PoleRow.v
 proofs/Interp/MemBuild.v
 
 # --- GOAL 1 positive control: with A pressed, a real frame reaches flying ---

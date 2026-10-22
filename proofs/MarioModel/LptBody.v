@@ -31,7 +31,7 @@ From SM64.Generated Require mario mario_actions_stationary mario_actions_moving
   object_list_processor audio_data graph_node save_file buffers object_helpers area
   libultra_osEepromLongWrite libultra_osEepromWrite libultra_osSiCreateAccessQueue
   libultra_osCreateMesgQueue libultra_osContInit libultra_osInitialize
-  behavior_data spawn_object.
+  behavior_data spawn_object surface_load macro_special_objects wmotr_level_data.
 From SM64.Proofs Require Import SymbolicLinking ActionValueFrame AGates Taint
   RealFrameLinked RealFrameValue CensusV2 MWFReal OsDmaFloor ActWriterSurface LinkedTwelve.
 From SM64.Proofs Require OutParamSurface RestSurface.
@@ -334,6 +334,12 @@ Lemma os_ni_behavior_data : no_internal_ids behavior_data.prog os_ids = true.
 Proof. vm_compute. reflexivity. Qed.
 Lemma os_ni_spawn_object : no_internal_ids spawn_object.prog os_ids = true.
 Proof. vm_compute. reflexivity. Qed.
+Lemma os_ni_surface_load : no_internal_ids surface_load.prog os_ids = true.
+Proof. vm_compute. reflexivity. Qed.
+Lemma os_ni_macro_special_objects : no_internal_ids macro_special_objects.prog os_ids = true.
+Proof. vm_compute. reflexivity. Qed.
+Lemma os_ni_wmotr_level_data : no_internal_ids wmotr_level_data.prog os_ids = true.
+Proof. vm_compute. reflexivity. Qed.
 
 Definition ext_named (o : option (globdef Clight.fundef type)) (n : String.string) : bool :=
   match o with
@@ -507,7 +513,7 @@ Section LptFrame.
       destruct (link_chain_internal_origin _ _ _ _ _ Hlink Hdm')
         as [Hbase | (q & Hq & Hqdm)].
       + exact (no_internal_ids_correct _ _ _ _ os_ni_mario Hid Hbase).
-      + destruct Hq as [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | []]]]]]]]]]]]]]]]]]]]]]]]]]]]]]].
+      + destruct Hq as [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | []]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]].
         * exact (no_internal_ids_correct _ _ _ _ os_ni_sta Hid Hqdm).
         * exact (no_internal_ids_correct _ _ _ _ os_ni_mov Hid Hqdm).
         * exact (no_internal_ids_correct _ _ _ _ os_ni_air Hid Hqdm).
@@ -538,6 +544,9 @@ Section LptFrame.
         * exact (no_internal_ids_correct _ _ _ _ os_ni_ultra_init Hid Hqdm).
         * exact (no_internal_ids_correct _ _ _ _ os_ni_behavior_data Hid Hqdm).
         * exact (no_internal_ids_correct _ _ _ _ os_ni_spawn_object Hid Hqdm).
+        * exact (no_internal_ids_correct _ _ _ _ os_ni_surface_load Hid Hqdm).
+        * exact (no_internal_ids_correct _ _ _ _ os_ni_macro_special_objects Hid Hqdm).
+        * exact (no_internal_ids_correct _ _ _ _ os_ni_wmotr_level_data Hid Hqdm).
   Qed.
 
   (* the external call a libultra Scall makes *)

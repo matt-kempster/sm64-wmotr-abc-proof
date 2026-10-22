@@ -911,9 +911,7 @@ Definition f_geo_draw_mario_head_goddard := {|
                       ((Etempvar _t'4 tuint) :: nil)))
                   (Sset _gfx
                     (Ecast
-                      (Ebinop Oor
-                        (Ecast (Etempvar _t'2 (tptr (Tunion __549 noattr)))
-                          tuint) (Econst_int (Int.repr (-2147483648)) tuint)
+                      (Ecast (Etempvar _t'2 (tptr (Tunion __549 noattr)))
                         tuint) (tptr (Tunion __549 noattr)))))
                 (Ssequence
                   (Sassign

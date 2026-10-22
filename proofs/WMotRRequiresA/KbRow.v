@@ -276,7 +276,7 @@ Theorem kb_row : forall m t m' vres c0,
   /\ (vres = Vint Int.zero \/ fresh bm m').
 Proof.
   intros m t m' vres c0 Vm (Ha & HW & Han & Hmob & Hd & FW & _) RC Hbud Hact Hfr EV.
-  destruct FW as (Hgn & EX & FD & FRO).
+  destruct FW as (Hgn & EX & FD).
   destruct EX as (gp & bfi & bmiss & bcalls & bsin & ab & biom & bmq & brm & bo & oo & bt & ot & fl & ar & inp & ctl &
                   HC & HS & HM & S1 & S2 & S3 & S4 & S5 & S6 & S7 & S8 & Lo & Soo & La & Lb & Sot & D1 & D2 & D3 & D4 &
                   W & Lf & Wf & Wc0 & Lar & War & Li & Ai & Lc & Wc & Co).
@@ -330,7 +330,7 @@ Proof.
   pose proof (DS _ _ _ _ S9 S4 eq_refl) as N94. pose proof (DS _ _ _ _ S9 S5 eq_refl) as N95.
   pose proof (DS _ _ _ _ S9 S6 eq_refl) as N96. pose proof (DS _ _ _ _ S9 S7 eq_refl) as N97.
   pose proof (DS _ _ _ _ S9 S8 eq_refl) as N98.
-  destruct (D4 bau (or_intror S9)) as (O9 & T9).
+  destruct (D4 bau (or_intror (or_introl S9))) as (O9 & T9).
   destruct (D4 bfi ltac:(left; cbn; auto 10)) as (O1 & T1). destruct (D4 bmiss ltac:(left; cbn; auto 10)) as (O2 & T2).
   destruct (D4 bcalls ltac:(left; cbn; auto 10)) as (O3 & T3). destruct (D4 bsin ltac:(left; cbn; auto 10)) as (O4 & T4).
   destruct (D4 ab ltac:(left; cbn; auto 10)) as (O5 & T5). destruct (D4 biom ltac:(left; cbn; auto 10)) as (O6 & T6).
@@ -646,7 +646,7 @@ Proof.
     assert (Hperm : forall b ofs k p, Plt b (Mem.nextblock m) -> Mem.perm m b ofs k p -> Mem.perm m' b ofs k p)
       by (intros b ofs k p Hp Hq; exact (proj2 (VP b ofs k p Hp) Hq)).
     split; [exact (Ple_trans _ _ _ Hgn NBm) |].
-    split; [| split].
+    split.
     + exists gp', bfi, bmiss, bcalls, bsin, ab, biom, bmq, brm, bo, oo, bt, ot, fl', ar, inp, ctl.
       split; [exact HC' |]. split; [exact HS' |]. split; [exact (Hinc _ HM) |].
       do 8 (split; [assumption |]).
@@ -669,12 +669,6 @@ Proof.
       intros i cb co Hi Hl2. change FFW_COLL with COLL_OFF in Hl2. rewrite COLL in Hl2 by exact Hi.
       exact (Co i cb co Hi Hl2).
     + exact (floor_data_keep2 G m m' RL0 NBm Hperm OFF gp W FD).
-    + intros a s y fh Ha' Hs' Hae2 Hy Hf. change (e_blk E RM) with bm in RC2.
-      destruct RC2 as (A2 & SS2 & _ & Y2 & _ & F2 & _).
-      change OFS_ACTION with 12 in A2. rewrite Ha' in A2. injection A2 as A2.
-      change OFS_ASTATE with 24 in SS2. rewrite Hs' in SS2. injection SS2 as SS2.
-      rewrite Hy in Y2. injection Y2 as Ey. subst y. rewrite Hf in F2. injection F2 as Ef. subst fh.
-      apply FF2. unfold state_of. rewrite <- A2, <- SS2. exact Hae2.
 Qed.
 
 

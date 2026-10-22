@@ -823,6 +823,10 @@ Section FrameSplit.
           unfold OBJ_SPAN, O_POSY, HITBOX_DOWN_OFF, HITBOX_H_OFF, RAW_OFF in *;
           destruct Hlo as [[-> ->] | [-> ->]]; cbn [size_chunk];
           unfold O_INTERACT_STATUS, RAW_OFF; lia.
+      - intros mb' mo' Hl. rewrite Hmo in Hl. injection Hl as <- <-.
+        apply LD. right. pose proof mo_range.
+        unfold POLEPOS_OFF, O_INTERACT_STATUS, RAW_OFF in *.
+        destruct Hlo as [[-> ->] | [-> ->]]; cbn [size_chunk]; lia.
     Qed.
 
     Lemma obj_store_fworld : fworld m -> fworld m'.

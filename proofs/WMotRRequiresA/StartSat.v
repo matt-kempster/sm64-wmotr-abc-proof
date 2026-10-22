@@ -29,6 +29,10 @@
 (* in the 17-TU link, so in_wmotr is unreachable from boot by real code  *)
 (* (TRUST.md 0.4).  It rules out the empty-premise form of vacuity and   *)
 (* pins the height cells to the real entry values.                        *)
+(* (Since then area.c is linked, so in_wmotr holds by real code, and,     *)
+(* 2026-10-22, surface_load.c: the collision partitions have their real   *)
+(* storage, so the witness's list heads load (part_ready, all NULL).  The *)
+(* loader itself is not run: the partition is empty, not WMotR's.)        *)
 (* ====================================================================== *)
 
 From Coq Require Import ZArith List Lia Reals Lra.
@@ -36,7 +40,7 @@ From Flocq Require Import Binary.
 From compcert Require Import Coqlib Maps AST Integers Floats Values Memory
   Globalenvs Ctypes Clight ClightBigstep Events Linking.
 From SM64.Generated Require mario level_update interaction mario_actions_moving
-  surface_collision memory game_init object_list_processor area.
+  surface_collision memory game_init object_list_processor area surface_load.
 From SM64.Proofs Require Import RealFrameLinked ActionValueFrame Taint CensusV2 MWFReal SpawnInit
   LinkedTwelve InitMemSat BootMWF NoAImpliesNoFlyLinked ClosedMem.
 From SM64.Proofs.WMotRRequiresA Require Import HeightInvariant NoAActions WMotRWorld
@@ -199,6 +203,13 @@ Proof.
   intros ->. rewrite Pos.eqb_refl in E. discriminate.
 Qed.
 
+(* every list head of both collision partitions loads, as NULL (an empty
+   partition, with storage): the partition reads of find_floor / find_ceil /
+   find_wall_collisions succeed *)
+Definition part_ready (lp : Clight.program) (m : mem) : Prop :=
+  forall id, In id part_ids -> exists bp, Genv.find_symbol (lp_ge lp) id = Some bp
+    /\ forall i, 0 <= i < 768 -> Mem.load Mint32 m bp (8 * i) = Some (Vint Int.zero).
+
 Section Witness.
   Variable lp : Clight.program.
   Hypothesis H12 : linked12 lp.
@@ -263,6 +274,18 @@ Section Witness.
   Lemma dm_rm : (prog_defmap memory.prog) ! memory._gMainReceivedMesg
                 = Some (Gvar memory.v_gMainReceivedMesg).
   Proof. dm. Qed.
+
+  (* the collision partitions' definer, surface_load.c (linked 2026-10-22):
+     6144 bytes each (16 x 16 cells x 3 lists x one 8-byte SurfaceNode) *)
+  Lemma dm_spart : (prog_defmap surface_load.prog) ! surface_collision._gStaticSurfacePartition
+                   = Some (Gvar surface_load.v_gStaticSurfacePartition).
+  Proof. dm. Qed.
+  Lemma dm_dpart : (prog_defmap surface_load.prog) ! surface_collision._gDynamicSurfacePartition
+                   = Some (Gvar surface_load.v_gDynamicSurfacePartition).
+  Proof. dm. Qed.
+  Lemma part_size : init_data_list_size (gvar_init surface_load.v_gStaticSurfacePartition) = 6144
+                    /\ init_data_list_size (gvar_init surface_load.v_gDynamicSurfacePartition) = 6144.
+  Proof. split; reflexivity. Qed.
 
   Lemma ex_sym : forall q id gd, linkorder q lp -> (prog_defmap q) ! id = Some gd ->
       exists b, Genv.find_symbol (lp_ge lp) id = Some b.
@@ -743,6 +766,56 @@ Section Witness.
       rewrite (z_part _ _ _ _ _ Hid Hfs Hl). reflexivity.
     Qed.
 
+    (* The partitions have their real storage (surface_load.c, linked
+       2026-10-22): every list head of both 6144-byte partitions LOADS, as
+       NULL.  Before the link they were size-0 extern blocks, so this load --
+       the first partition read of find_floor / find_ceil /
+       find_wall_collisions, right after their level-boundary check -- had
+       no execution on any memory built from the boot image, this witness
+       included. *)
+    Lemma part_perm : forall id bp, In id part_ids -> Genv.find_symbol (lp_ge lp) id = Some bp ->
+        Mem.range_perm m0 bp 0 6144 Cur Writable.
+    Proof.
+      intros id bp Hid Hfs.
+      pose proof (linked12_LO_surface_load lp H12) as LO.
+      destruct part_size as (Z1 & Z2).
+      destruct Hid as [<- | [<- | []]].
+      - rewrite <- Z1. exact (wr_sym _ _ _ bp LO dm_spart eq_refl eq_refl ltac:(cbn; discriminate) Hfs).
+      - rewrite <- Z2. exact (wr_sym _ _ _ bp LO dm_dpart eq_refl eq_refl ltac:(cbn; discriminate) Hfs).
+    Qed.
+    Lemma part_heads : forall id bp i, In id part_ids -> Genv.find_symbol (lp_ge lp) id = Some bp ->
+        0 <= i < 768 -> Mem.load Mint32 m11 bp (8 * i) = Some (Vint Int.zero).
+    Proof.
+      intros id bp i Hid Hfs Hi.
+      assert (P1 : 0 <= 8 * i) by lia.
+      assert (P2 : 8 * i + size_chunk Mint32 <= 6144) by (cbn [size_chunk]; lia).
+      assert (P3 : (align_chunk Mint32 | 8 * i)) by (exists (2 * i); cbn [align_chunk]; lia).
+      destruct (valid_ex Mint32 bp (8 * i) 0 6144 (part_perm id bp Hid Hfs) P1 P2 P3) as (v & Hv).
+      assert (U : untouched Mint32 bp (8 * i)).
+      { split; [ intro E; subst bp; exact (sym_ne_fresh _ _ _ Hfs (or_intror (or_introl eq_refl)) eq_refl) | ].
+        split; [ | split; [ | split; [ | split ] ] ];
+          [ intros E; exfalso; subst bp .. | | ];
+          destruct Hid as [<- | [<- | []]];
+          first [ exact (symne lp _ _ _ _ Hfs Hbm eq_refl eq_refl)
+                | exact (symne lp _ _ _ _ Hfs Hab eq_refl eq_refl)
+                | exact (symne lp _ _ _ _ Hfs Hbo eq_refl eq_refl)
+                | exact (symne lp _ _ _ _ Hfs Hbw eq_refl)
+                | exact (symne lp _ _ _ _ Hfs HbL eq_refl) ]. }
+      rewrite (ld_back Mint32 bp (8 * i) (Genv.find_symbol_not_fresh _ _ Hinit Hfs) U), Hv.
+      assert (Hz : In id zero_ids) by (destruct Hid as [<- | [<- | []]]; cbn; tauto).
+      rewrite (boot_zero lp m0 _ bp Mint32 (8 * i) v H12 Hinit Hz Hfs Hv). reflexivity.
+    Qed.
+    Lemma part_ready11 : part_ready lp m11.
+    Proof.
+      intros id Hid.
+      assert (E : exists gd, (prog_defmap surface_load.prog) ! id = Some gd).
+      { destruct Hid as [<- | [<- | []]]; eexists; [ exact dm_spart | exact dm_dpart ]. }
+      destruct E as (gd & Hd).
+      destruct (ex_sym _ id gd (linked12_LO_surface_load lp H12) Hd) as (bp & Hfs).
+      exists bp. split; [ exact Hfs | ].
+      intros i Hi. exact (part_heads id bp i Hid Hfs Hi).
+    Qed.
+
     Ltac peel S := rewrite (Mem.load_store_other _ _ _ _ _ _ S)
       by (first [ left; congruence | right; cbn [size_chunk]; lia ]).
 
@@ -1035,9 +1108,7 @@ Section Witness.
       split.
       { rewrite genv_next_eq, nb11, nb3. unfold Ple. lia. }
       split.
-      2: split; [ exact floor_data11 | ].
-      2: { intros a s y fh Hl _ Hae. rewrite L_act in Hl. injection Hl as <-. exfalso.
-           vm_compute in Hae. discriminate Hae. }
+      2: exact floor_data11.
       exists (Mem.flat_inj thr), bfi, bmiss, bcalls, bsin, ab, biom, bmq, brm, bo, Ptrofs.zero,
         bt, Ptrofs.zero, (Vptr bs Ptrofs.zero), (Vptr bar Ptrofs.zero), Int.zero, (Vptr bc Ptrofs.zero).
       split; [ exact closed11 | ].
@@ -1052,9 +1123,9 @@ Section Witness.
       split; [ exact bo_bm | ].
       split; [ intro E; exact (sym_ne_fresh _ _ _ Hbm (or_introl eq_refl) (eq_sym E)) | ].
       split; [ exact bt_bo | ].
-      split; [ intros b [Hin | Hin];
+      split; [ intros b [Hin | [Hin | Hin]];
                [ cbn [In] in Hin; repeat (destruct Hin as [<- | Hin]; [ split; neq | ]); destruct Hin
-               | split; neq ] | ].
+               | split; neq | split; neq ] | ].
       split; [ exact wff11 | ].
       split; [ exact L_floor | ].
       split.
@@ -1126,6 +1197,7 @@ Section Witness.
       /\ PhiW lp bm m11
       /\ read_cells bm m11 (entry_cells Float32.zero)
       /\ in_wmotr lp m11
+      /\ part_ready lp m11
       /\ exists bL' m_iw m_ent le',
            Genv.find_symbol (lp_ge lp) level_update._gCurrLevelNum = Some bL'
            /\ eval_funcall function_entry2 (lp_ge lp) m0
@@ -1142,7 +1214,7 @@ Section Witness.
       - assert (Hu : used_ok bm m11).
         { apply (used_ok_other bm m11 _ L_act). vm_compute. intuition discriminate. }
         split; [ exact (conj hinv (conj world (conj anim_ok (conj mobj_ok (conj ffw11 Hu))))) | ].
-        split; [ exact read_c0 | split; [ exact in_wmotr11 | ] ].
+        split; [ exact read_c0 | split; [ exact in_wmotr11 | split; [ exact part_ready11 | ] ] ].
         destruct entry_runs as (R1 & R2).
         exists bL, e5, e6, (PTree.set level_update._t'2 (Vint (Int.repr LEVEL_WMOTR)) (PTree.empty val)). split; [ exact HbL | split; [ exact R1 | split; [ exact (R2 _) | ] ] ].
         rewrite L_lvl, (Mem.load_store_same _ _ _ _ _ _ E6). reflexivity.
@@ -1169,6 +1241,7 @@ End Steps.
       /\ mem_ok_lp bm (MWF_real lp bm bc Ptrofs.zero SafeB) m /\ PhiW lp bm m
       /\ read_cells bm m (entry_cells Float32.zero)
       /\ in_wmotr lp m
+      /\ part_ready lp m
       /\ exists bL m_iw m_ent le',
            Genv.find_symbol (lp_ge lp) level_update._gCurrLevelNum = Some bL
            /\ eval_funcall function_entry2 (lp_ge lp) m0
@@ -1283,6 +1356,9 @@ Theorem goal2_start_sat : forall lp, linked12 lp ->
        stored: initiate_warp(LEVEL_WMOTR, 1, 0x0A, 0) from the boot image,
        then warp_level's gCurrLevelNum = sWarpDest.levelNum *)
     /\ in_wmotr lp m
+    (* both collision partitions have their real storage (surface_load.c,
+       linked 2026-10-22): every list head loads, as NULL *)
+    /\ part_ready lp m
     /\ exists m_boot bL m_iw m_ent le',
          Genv.init_mem lp = Some m_boot
          /\ Genv.find_symbol (lp_ge lp) level_update._gCurrLevelNum = Some bL
@@ -1296,8 +1372,8 @@ Proof.
   destruct (linked12_init_mem lp H12) as (m0 & Hinit).
   destruct (spawn_symbols_resolve lp H12) as (bm & bc & Hbm & Hbc).
   destruct (start_sat_lp lp H12 m0 Hinit bm bc Hbm Hbc)
-    as (SafeB & m & Hs & Hok & Hphi & Hrc & Hw & (bL & m_iw & m_ent & le' & HbL & Hiw & Hwl & Hld)).
+    as (SafeB & m & Hs & Hok & Hphi & Hrc & Hw & Hpr & (bL & m_iw & m_ent & le' & HbL & Hiw & Hwl & Hld)).
   exists m, bm, bc, SafeB.
-  refine (conj Hbm (conj Hbc (conj Hs (conj Hok (conj Hphi (conj Hrc (conj Hw _))))))).
+  refine (conj Hbm (conj Hbc (conj Hs (conj Hok (conj Hphi (conj Hrc (conj Hw (conj Hpr _)))))))).
   exists m0, bL, m_iw, m_ent, le'. exact (conj Hinit (conj HbL (conj Hiw (conj Hwl Hld)))).
 Qed.

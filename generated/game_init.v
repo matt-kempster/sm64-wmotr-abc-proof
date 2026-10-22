@@ -5780,10 +5780,7 @@ Definition f_draw_reset_bars := {|
                 (Ebinop Oadd (Evar _gPhysicalFramebuffers (tarray tuint 3))
                   (Etempvar _fbNum tint) (tptr tuint)) tuint))
             (Sset _fbPtr
-              (Ecast
-                (Ebinop Oor (Ecast (Etempvar _t'4 tuint) tuint)
-                  (Econst_int (Int.repr (-2147483648)) tuint) tuint)
-                (tptr tulong))))
+              (Ecast (Ecast (Etempvar _t'4 tuint) tuint) (tptr tulong))))
           (Ssequence
             (Ssequence
               (Ssequence
@@ -6116,10 +6113,8 @@ Definition f_display_and_vsync := {|
                   (Scall None
                     (Evar _osViSwapBuffer (Tfunction ((tptr tvoid) :: nil)
                                             tvoid cc_default))
-                    ((Ecast
-                       (Ebinop Oor (Ecast (Etempvar _t'7 tuint) tuint)
-                         (Econst_int (Int.repr (-2147483648)) tuint) tuint)
-                       (tptr tvoid)) :: nil))))
+                    ((Ecast (Ecast (Etempvar _t'7 tuint) tuint) (tptr tvoid)) ::
+                     nil))))
               (Ssequence
                 (Scall None
                   (Evar _profiler_log_thread5_time (Tfunction (tint :: nil)
@@ -7353,41 +7348,30 @@ Definition f_setup_game_memory := {|
              (Esizeof (tptr tvoid) tuint) tuint) tint) :: nil))
       (Ssequence
         (Sassign (Evar _gPhysicalZBuffer tuint)
-          (Ecast
-            (Ebinop Osub
-              (Ecast (Evar _gZBuffer (tarray tushort 76800)) (tptr tuchar))
-              (Econst_int (Int.repr (-2147483648)) tuint) (tptr tuchar))
-            tuint))
+          (Ecast (Evar _gZBuffer (tarray tushort 76800)) tuint))
         (Ssequence
           (Sassign
             (Ederef
               (Ebinop Oadd (Evar _gPhysicalFramebuffers (tarray tuint 3))
                 (Econst_int (Int.repr 0) tint) (tptr tuint)) tuint)
             (Ecast
-              (Ebinop Osub
-                (Ecast
-                  (Ederef
-                    (Ebinop Oadd
-                      (Evar _gFramebuffers (tarray (tarray tushort 76800) 3))
-                      (Econst_int (Int.repr 0) tint)
-                      (tptr (tarray tushort 76800))) (tarray tushort 76800))
-                  (tptr tuchar)) (Econst_int (Int.repr (-2147483648)) tuint)
-                (tptr tuchar)) tuint))
+              (Ederef
+                (Ebinop Oadd
+                  (Evar _gFramebuffers (tarray (tarray tushort 76800) 3))
+                  (Econst_int (Int.repr 0) tint)
+                  (tptr (tarray tushort 76800))) (tarray tushort 76800))
+              tuint))
           (Ssequence
             (Sassign
               (Ederef
                 (Ebinop Oadd (Evar _gPhysicalFramebuffers (tarray tuint 3))
                   (Econst_int (Int.repr 1) tint) (tptr tuint)) tuint)
               (Ecast
-                (Ebinop Osub
-                  (Ecast
-                    (Ederef
-                      (Ebinop Oadd
-                        (Evar _gFramebuffers (tarray (tarray tushort 76800) 3))
-                        (Econst_int (Int.repr 1) tint)
-                        (tptr (tarray tushort 76800)))
-                      (tarray tushort 76800)) (tptr tuchar))
-                  (Econst_int (Int.repr (-2147483648)) tuint) (tptr tuchar))
+                (Ederef
+                  (Ebinop Oadd
+                    (Evar _gFramebuffers (tarray (tarray tushort 76800) 3))
+                    (Econst_int (Int.repr 1) tint)
+                    (tptr (tarray tushort 76800))) (tarray tushort 76800))
                 tuint))
             (Ssequence
               (Sassign
@@ -7395,16 +7379,12 @@ Definition f_setup_game_memory := {|
                   (Ebinop Oadd (Evar _gPhysicalFramebuffers (tarray tuint 3))
                     (Econst_int (Int.repr 2) tint) (tptr tuint)) tuint)
                 (Ecast
-                  (Ebinop Osub
-                    (Ecast
-                      (Ederef
-                        (Ebinop Oadd
-                          (Evar _gFramebuffers (tarray (tarray tushort 76800) 3))
-                          (Econst_int (Int.repr 2) tint)
-                          (tptr (tarray tushort 76800)))
-                        (tarray tushort 76800)) (tptr tuchar))
-                    (Econst_int (Int.repr (-2147483648)) tuint)
-                    (tptr tuchar)) tuint))
+                  (Ederef
+                    (Ebinop Oadd
+                      (Evar _gFramebuffers (tarray (tarray tushort 76800) 3))
+                      (Econst_int (Int.repr 2) tint)
+                      (tptr (tarray tushort 76800))) (tarray tushort 76800))
+                  tuint))
               (Ssequence
                 (Ssequence
                   (Scall (Some _t'1)
