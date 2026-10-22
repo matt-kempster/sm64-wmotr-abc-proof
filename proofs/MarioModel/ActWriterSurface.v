@@ -1132,8 +1132,9 @@ Fixpoint ptr_arith_e (cact : list ident) (a : expr) : bool :=
   | _ => false
   end.
 
-(* the N64 physical-address store (proof_n64.h's VIRTUAL_TO_PHYSICAL):
-   `anim->values = (void * )((u8 * )anim + (u32)anim->values - 0x80000000)`
+(* the anim relocation store (proof_n64.h's VIRTUAL_TO_PHYSICAL, the
+   NO_SEGMENTED_MEMORY identity since 2026-10-22, TRUST 2.2):
+   `anim->values = (void * )((u8 * )anim + (u32)anim->values)`
    in set_mario_animation / set_mario_anim_with_accel.  A pointer store
    through a chased lvalue whose value is pointer arithmetic on the same
    chase temp: SafeB-if-a-pointer, absorbed by the MWF chase-ptr row.

@@ -40,7 +40,9 @@ all in `Unwired/`, and the theorem moved nowhere. See
   `gCurrentObject`'s (SafeB) value or `segmented_to_virtual(arg1)`.
   Since 2026-10-21 `segmented_to_virtual` / `virtual_to_segmented` are the decomp's
   `NO_SEGMENTED_MEMORY` identity (`memory.c` only, `-DPROOF_MEMORY_C=1` + `proof_n64.h`; TRUST
-  2.2 register, tethered). Before, they had NO execution on any pointer. FOUND FALSE then:
+  2.2 register, tethered). Before, they had NO execution on any pointer. Since 2026-10-22
+  `VIRTUAL_TO_PHYSICAL` / `PHYSICAL_TO_VIRTUAL` are that identity too (all game TUs): mixing the
+  N64 V2P with the identity s2v had left every anim-sample read out of bounds (a vacuity). FOUND FALSE then:
   `Hcsp_osh_real` for any arg1 (`heldBehavior` lands in `curBhvCommand`, R7). Restated:
   `OutParamSurface.cs_gate` also gates osh's arg1 to `bhv_held_syms`; walkers check it
   (`held_arg_chk`, the bhv symbols listed in xids). Since 2026-10-21 `data/behavior_data.c` is
@@ -173,8 +175,9 @@ all in `Unwired/`, and the theorem moved nowhere. See
     only) and `PoleAnim.pole_up_covers_handstand` proves the 174 / POLE_UP = 160 from it
     (`kept`, not load-bearing). Still missing for a walk (TRUST 0.8(f), each a NEW trust item):
     a DMA content spec (ROM bytes), the boot-built dmaTable as a frame-world fact, animFrame
-    ≥ −1 (rendering unlinked), and segment 0: in the model every real top-of-pole frame has NO
-    execution (V2P subtracts 2^31, the identity segmented_to_virtual does not add it back).
+    ≥ −1 (rendering unlinked). (Segment 0 was the fourth: every real top-of-pole frame had NO
+    execution, V2P subtracting 2^31 that the identity segmented_to_virtual never added back.
+    REPAIRED 2026-10-22: the whole NO_SEGMENTED_MEMORY macro family, `AnimRoundTrip.anim_y_runs`.)
   - (`wmotr_gap` and `wmotr_poles` are now proved from generated level data, `WMotRLevel.v`)
   - the flank specs (TRUST 0.7)
 

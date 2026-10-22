@@ -603,9 +603,10 @@ Proof. vm_compute. reflexivity. Qed.
    _o, the animList roots _t'13/_t'12, and the chase-STEP temp
    _targetAnim = t'13->bufTarget), plus the EXTERNAL
    load_patchable_table callee.  Its two VIRTUAL_TO_PHYSICAL stores
-   (`anim->values = anim + off - 0x80000000`, pipeline/proof_n64.h) are
-   pointer arithmetic on _targetAnim: the chase-arithmetic walker arm
-   shows the stored pointer stays in a SafeB block. ---- *)
+   (`anim->values = anim + off`, the NO_SEGMENTED_MEMORY identity of
+   pipeline/proof_n64.h, TRUST 2.2) are pointer arithmetic on _targetAnim:
+   the chase-arithmetic walker arm shows the stored pointer stays in a
+   SafeB block. ---- *)
 Definition sma_cact : list ident :=
   mario._o :: mario._t'13 :: mario._t'12 :: mario._targetAnim :: nil.
 Definition sma_xids : list ident :=
