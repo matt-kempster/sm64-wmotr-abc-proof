@@ -531,6 +531,24 @@ Section NoAImpliesNoFlyTwelve.
              Hpres_warp_ext).
   Qed.
 
+  (* GOAL 2's AutoSplit: the automatic handlers one by one, and the
+     window store (quicksandDepth = 0) *)
+  Lemma auto_leaves_linked12 :
+    forall fid f, mem_id fid AutomaticSurface.automatic_callee_ids = true ->
+      (prog_defmap mario_actions_automatic.prog) ! fid = Some (Gfun (Internal f)) ->
+      body_pres lp (NoA_real bm) MWF bm f.
+  Proof.
+    exact (auto_leaves_real_mwf lp (linked12_LO_mario lp H12) bm bc oc0 SafeB
+             HSafeB_syms Hspawn (linked12_LO_surf lp H12) (linked12_LO_math lp H12)
+             Hcsp_scm_real Hsma_real Hsmawa_real (linked12_LO_aut lp H12)
+             (linked12_LO_stp lp H12) Hpres_obj_ext_open Hgeo_real Hocp_rai_real).
+  Qed.
+
+  Lemma mwf_window_linked12 : forall mm mm' ch (delta : Z) vv,
+      MWF mm -> store_window_ok delta (size_chunk ch) = true ->
+      Mem.store ch mm bm delta vv = Some mm' -> MWF mm'.
+  Proof. exact (mwf_window_real_mwf lp bm bc oc0 SafeB HSafeB_syms Hspawn). Qed.
+
   (* ==================================================================== *)
   (* FROM BOOT (2026-10-19, phantom-forall guard): the capstone's start   *)
   (* premise mem_ok_lp is not just assumed -- it HOLDS of the memory the  *)

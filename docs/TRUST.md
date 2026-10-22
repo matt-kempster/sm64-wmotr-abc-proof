@@ -243,6 +243,39 @@ without pressing A".*
   TRUE into airborne actions (pole Z / low health → SOFT_BONK, `let_go_of_ledge`). The row was
   therefore false over stale floors. `fresh_at` now covers the automatic group (0x140) as well;
   the dispatch is entered with update_mario_inputs' refreshed floor.
+  **The automatic dispatcher is split per case (2026-10-21, `AutoSplit`; 27 → 28 hypotheses,
+  each strictly narrower).** `Hseg_call_na` is now `AutoSplit.seg_call_rows_naFA`: both
+  dispatchers are excluded. The automatic dispatcher's staged row is **proved**
+  (`AutoSplit.aut_seg`, `seg_call_rows_naF_of_auto`) from the generated body, using these
+  pieces:
+  - its prologue `check_common_automatic_cancels`, which joins `Hair_pro` (same claim shape:
+    keeps `fresh_at`);
+  - the store `m->quicksandDepth = 0.0f`, **proved** to keep GOAL 1's `mem_ok` (MWF's window,
+    the new GOAL 1 export `NoAImpliesNoFlyTwelve.mwf_window_linked12`), every `fworld`
+    conjunct (incl. `ffw`, re-proved through `FfWorld`'s KEEP2 lemmas), Phi's cells and
+    `fresh_at`;
+  - GOAL 1's `mem_ok` across each handler (new export `auto_leaves_linked12`);
+  - one row per live case, the new `HeightFrame.Hauto_case : AutoSplit.aut_case_rows`. Each
+    handler is entered with the action cell equal to its label and the floor fresh (every
+    label is in group 0x140, `aut_case_auto`), and returns FALSE or leaves the floor fresh.
+  The live cases are computed from the generated switch (`aut_case_list_eq`). There are 12:
+  the six pole actions, LEDGE_GRAB, LEDGE_CLIMB_SLOW_1/2, LEDGE_CLIMB_DOWN, LEDGE_CLIMB_FAST
+  and IN_CANNON. The other 5 of the 17 cases are dead under `R_noA`. The new hypothesis
+  replaces what was a part of `Hseg_call_na`, and the prologue and store are now theorems.
+  (i) **Phantom ∀ in `used_ok` (found while proving the store):** `used_apart` allowed
+  `usedObj` inside Mario's own state block. With usedObj = bm + 28, the pole's `oPosY` sat
+  at bm + 192, which is `quicksandDepth`. Such a memory met `used_ok` before the
+  dispatcher's store and failed it after. `WMotRWorld.used_apart` now also says
+  `ub <> bm`; in the game usedObj is a `gObjectPool` slot. At the boot witness `used_ok`
+  is vacuous (not a pole or cannon action), and the frame's stores keep the new conjunct.
+  (j) **POLE_UP cannot be loosened to a generated-code bound.** In the generated
+  `find_mario_anim_flags_and_translation`, `translation[1]` is an s16 animation value / 4,
+  so the code alone bounds it by 8191. That gives POLE_UP ≈ −100 + 8191 + 78 = 8169. The
+  low pole (top −1919) then fails `pole_check`, because −1919 + 8169 > K = 2424. The
+  loosest POLE_UP that passes is 4343. Any bound under it needs the handstand animations'
+  values (ROM data DMA'd into `gMarioAnimsBuf`; not in `generated/`) and a model of the DMA
+  buffer's contents. So the top-of-pole cases still need that data linked, and POLE_UP = 160
+  stays the hand-read constant of (f).
   **Slide kick at state ≠ 0 is proved (2026-10-21; `sk1_row` and `HeightFrame.Hsk1` removed,
   28 → 27 hypotheses).** The same walk (`SkW.skcheck12`) now classifies every outcome at any
   state (`FfClass.sk_ok` is `ff_okE` from the ticked cells; it used to accept the state ≠ 0

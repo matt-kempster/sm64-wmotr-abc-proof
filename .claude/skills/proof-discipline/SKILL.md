@@ -135,9 +135,14 @@ all in `Unwired/`, and the theorem moved nowhere. See
     definer) is linked as the 18th TU so those paths have executions. Squish: WMotR's dynamic
     surfaces never come within 150 of a floor/ceiling (`tools/goal2_squish_scan.py`, min gap 276),
     so INPUT_SQUISHED can join the carried input mask when the dispatcher is walked.
-  - The **automatic dispatcher** (`mario_execute_automatic_action`) is still inside
-    `Hseg_call_na`. Its audit on 2026-10-21 (TRUST (f)-(h)) found and repaired three false
-    claims. The pole attach now reaches top + `POLE_UP` (160, the handstand anim). The frame
+  - The **automatic dispatcher** (`mario_execute_automatic_action`) is SPLIT (2026-10-21,
+    `AutoSplit.aut_seg`, TRUST (i)-(j)). `Hseg_call_na` is now `seg_call_rows_naFA`, which
+    excludes both dispatchers. The prologue call is in `Hair_pro`. The
+    `quicksandDepth = 0` store is proved (the `qsd_*` lemmas). What stays assumed is the
+    12 handler calls, `HeightFrame.Hauto_case : aut_case_rows` (27 → 28 hypotheses).
+    Shrink it per case as walks land, as `air_case_rest*` did. Its audit on 2026-10-21
+    (TRUST (f)-(h)) found and repaired three false claims; the split found a fourth
+    (`used_apart` now says usedObj is not in Mario's block). The pole attach now reaches top + `POLE_UP` (160, the handstand anim). The frame
     world now carries `WMotRWorld.used_ok` (usedObj is a low pole or cannon base in the pole /
     cannon actions). `fresh_at` now covers the automatic group.
     Live no-A cases (12):
@@ -146,11 +151,20 @@ all in `Unwired/`, and the theorem moved nowhere. See
     - 5 ledge: LEDGE_GRAB, CLIMB_SLOW_1/2, CLIMB_DOWN, CLIMB_FAST;
     - IN_CANNON.
     Dead: the hang actions, GRABBED, TORNADO_TWIRLING.
-    Next, an `AutoSplit` like `AirSplit`. It needs two GOAL 1 exports, the automatic-leaf
-    `body_pres` and `mwf_real_window` for the `quicksandDepth = 0` store. Pole walks also need
-    a usedObj region in the walker, the `oMarioPolePos` cells, a `set_pole_position` summary,
-    and the anim translation (ROM data) for the top-of-pole cases. After a pole frame ends in
-    SOFT_BONK, ffw's `fro_st` would need a carried y ~ base + polePos fact.
+    Next, the pole walks. They need:
+    - a usedObj region in the walker (SymExec2 allows two regions in one block if their
+      ranges are disjoint; `used_apart` gives that);
+    - the `oMarioPolePos` cells;
+    - a `set_pole_position` summary;
+    - an outcome classifier for pole moves (`S_attach` pole clause, `h <= top + POLE_UP`);
+    - `FfKeepCheck` extended to keep `used_ok` (today it rejects `used_acts`).
+    The FELL_OFF → FREEFALL path sets y := base and does not refresh floorHeight. `fresh`
+    carries only fh <= y_entry + 241, while y_entry may be up to about base + 16, so it is
+    not enough. That path needs a carried pole fact (y = oPosY + polePos, within float
+    slack) together with find_floor's +78 bound.
+    The top-of-pole cases need the handstand anim data linked: a generated-code bound alone
+    (s16 / 4 ≤ 8191) fails `pole_check`, and the loosest POLE_UP that passes is 4343
+    (TRUST (j)).
   - (`wmotr_gap` and `wmotr_poles` are now proved from generated level data, `WMotRLevel.v`)
   - the flank specs (TRUST 0.7)
 

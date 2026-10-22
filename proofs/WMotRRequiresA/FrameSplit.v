@@ -819,7 +819,7 @@ Section FrameSplit.
       - intros o ch' _. apply LDbm.
       - intros ub uo _ A z Hz. apply LD.
         pose proof mo_range as Rmo. pose proof (Ptrofs.unsigned_range uo) as Ruo.
-        destruct (A mb mo Hmo) as [Hne | [Ha | Ha]]; [left; exact Hne | |]; right;
+        destruct (proj2 A mb mo Hmo) as [Hne | [Ha | Ha]]; [left; exact Hne | |]; right;
           unfold OBJ_SPAN, O_POSY, HITBOX_DOWN_OFF, HITBOX_H_OFF, RAW_OFF in *;
           destruct Hlo as [[-> ->] | [-> ->]]; cbn [size_chunk];
           unfold O_INTERACT_STATUS, RAW_OFF; lia.
