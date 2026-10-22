@@ -111,8 +111,15 @@ all in `Unwired/`, and the theorem moved nowhere. See
   (`TerrainBound.tri_chk_sound`: per-triangle binary32 bound). This is conditional only on
   `world_ok` (sqrtf = IEEE sqrt, `reset_red_coins_collected` inert) for "this is the loader's
   output". `main_pool_init` has no CompCert execution (ALIGN16 on a pointer).
-  Next: move that memory into `StartSat`'s `init_mem` witness (keep `MWF_real` across the load);
-  `gCurrCourseNum`; ask about an FPU-floor row for `sqrtf`'s value. FOUND FALSE + repaired
+  2026-10-22, later: the GOAL 2 start witness CARRIES that terrain (`StartTerrain`): the loader
+  runs on the `init_mem` image (`InitMemC.init_mem_c`, computable init_mem) in the real order
+  (warp stores, pool post-state, alloc_surface_pools, load_area_terrain, init_mario cells);
+  footprint / pointer / list checks + `InterpFrame.ex_call_keep` re-prove `MWF_real` (SafeB + pool
+  block), neutrality and `Wff` across the load; `goal2_start_sat` concludes `floor_data`,
+  `static_agree`, 1352 surfaces and `terrain_loaded` (replaces `part_ready`). `world_ok` split:
+  memory half of sqrtf = `sqrtf_spec`; `sqrtf_ieee` + `rrc_inert` stay labeled antecedents of
+  the tether implication (`gRedCoinsCollected` is not in the link). Next: `gCurrCourseNum`; ask
+  about an FPU value row for `sqrtf` and the `memory.c:120,122` ALIGN16 rewrite (TRUST 3.6). FOUND FALSE + repaired
   when linking area.c: any-argument `override_viewport_and_clip` (in `obj_ext_ids`) stores its
   pointer args into `D_8032CE74/78`; those joined `stored_globals`. Linking a TU turns every
   any-argument row naming its functions into a claim about real code: re-audit them.
