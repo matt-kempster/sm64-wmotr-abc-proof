@@ -462,16 +462,18 @@ without pressing A".*
     generated `area.c`, not the C source: `get_mario_spawn_type`'s body is a loop over
     `sWarpBhvSpawnTable[0..20)` returning `sSpawnTypeFromWarpBhv[i]` (`WMotREntry.spawn_lookup_shape`),
     the only entry naming `bhvAirborneWarp` is i = 7 (`airborne_warp_index`), and
-    `sSpawnTypeFromWarpBhv[7] = 0x12` (`spawn_type_at_7`). The lookup is not **executed**: it has
-    no CompCert execution on a real object.
+    `sSpawnTypeFromWarpBhv[7] = 0x12` (`spawn_type_at_7`). Since 2026-10-21 the lookup is also
+    **executed**: `SpawnTypeRun.spawn_type_runs` runs the real body over every 30-TU link on an
+    object whose behavior is `&bhvAirborneWarp` and gets `0x12`. (The object itself is built for the
+    run; the level script that spawns it is not run.) Before, it had no CompCert execution:
     - Since 2026-10-21 its first step, `virtual_to_segmented`, is the identity (2.2 register,
       `NO_SEGMENTED_MEMORY`). Before, it computed `addr & 0x1FFFFFFF`, which has no value on a
       pointer.
-    - The remaining obstacle: the `bhv*` scripts in the table are size-0 extern blocks
-      (`behavior_data.c` is not linked). CompCert's pointer `==` needs valid pointers on both
-      sides, so the first compare is stuck (`WMotREntry.cmp_size0_stuck`).
-    - Running it needs `behavior_data.c` linked, with each `bhv*` extern array completed to its
-      real length (2.4).
+    - The remaining obstacle was: the `bhv*` scripts in the table were size-0 extern blocks
+      (`behavior_data.c` was not linked). CompCert's pointer `==` needs valid pointers on both
+      sides, so the first compare was stuck (`WMotREntry.cmp_size0_stuck`).
+    - Running it needed `behavior_data.c` linked, with each `bhv*` extern array completed to its
+      real length (2.4); done 2026-10-21 (4.1).
 - **Repaired 2026-10-21: `area.c` is linked (the 23rd TU, `generated/area.v`), and `in_wmotr` holds
   on the GOAL 2 witness by real code** (`EntryWarp.v`, used by `StartSat.goal2_start_sat`).
   - `gCurrLevelNum`, `gCurrCourseNum`, `gCurrentArea`, `gMarioSpawnInfo`, `gPlayerSpawnInfos` (its
@@ -547,7 +549,7 @@ without pressing A".*
 | 2.1 | The decomp C is the game: compiled with IDO 5.3 it reproduces the US ROM byte-for-byte | **Checked** (2026-09-26): `vendor/sm64` @ 9921382 built with `make VERSION=us COMPARE=1` has sha1 `9bef1128…6ce`, which equals the US baserom (`experiments/oracle/README.md`). Covers the *default* preprocessing only; see 2.2. |
 | 2.2 | **We verify a different preprocessing of that C.** The ROM is IDO-compiled vendor C. The proof's C adds `-DNON_MATCHING=1 -DAVOID_UB=1` and force-includes `pipeline/proof_n64.h` (every game TU except `shadow.c`; not the six libultra TUs, whose recipe `ULTRA_CG` is the game's own `lib/src` flag set, 2026-10-21) | **Itemized: every site is in the register below.** `tools/ub_sites.py` preprocesses every generated TU both ways (ROM: `-D__sgi`, as IDO predefines it; proof: our flags) with clightgen's own preprocessor, and diffs them. Its output is committed as `docs/ub-sites.txt`. A new site cannot enter silently: regenerate that file and the diff shows it. |
 | 2.3 | `clightgen` (CompCert's *unverified* front end: parser, elaborator, `-normalize`) translates that C faithfully | ASSUMED, **TETHERED on sampled paths**. 267 real frames over 15 actions run through the generated Clight and reproduce the game's memory byte for byte (§5.1). This is evidence for the translation of the code those frames exercise, not proof. |
-| 2.4 | Our post-processing of the generated `.v` is semantics-preserving: stringlit renaming, anonymous-composite renaming (`canonicalize_anon.py`), completing extern incomplete arrays | ASSUMED. Each is a documented rename or type completion. (2026-10-20: `gDebugInfo` joined the extern-array completion table, `s16 gDebugInfo[][8]` → `[16][8]`, its size in `object_list_processor.c`, the 17th TU; `behavior_actions.v` and `object_helpers.v` regenerated, two-line diffs. 2026-10-21: four more, found linking `save_file.c` and `buffers.c` (TUs 20 and 21): `gDecompressionHeap` 0 → 53248 and `gGfxSPTaskStack` / `gGfxSPTaskYieldBuffer` 0 → 1024 / 3072 (`u8`, sized in `buffers.c`; declared in `memory.c` / `game_init.c`), `gLevelToCourseNumTable` 0 → 38 (`s8[LEVEL_COUNT - 1]`, sized in `save_file.c`; declared in `level_update.c`); `memory.v`, `game_init.v`, `level_update.v` regenerated, diffs exactly those four `gvar_info` lines. 2026-10-21, linking `area.c` (the 23rd TU): `gPlayerSpawnInfos` 0 → 1 (`struct SpawnInfo[1]`, sized in `area.c`; declared in `mario.c` / `level_update.c`); `mario.v`, `level_update.v` regenerated, diffs exactly that `gvar_info` line.) Could be proved (rename = alpha-equivalence) or regenerated and diffed. |
+| 2.4 | Our post-processing of the generated `.v` is semantics-preserving: stringlit renaming, anonymous-composite renaming (`canonicalize_anon.py`), completing extern incomplete arrays | ASSUMED. Each is a documented rename or type completion. (2026-10-20: `gDebugInfo` joined the extern-array completion table, `s16 gDebugInfo[][8]` → `[16][8]`, its size in `object_list_processor.c`, the 17th TU; `behavior_actions.v` and `object_helpers.v` regenerated, two-line diffs. 2026-10-21: four more, found linking `save_file.c` and `buffers.c` (TUs 20 and 21): `gDecompressionHeap` 0 → 53248 and `gGfxSPTaskStack` / `gGfxSPTaskYieldBuffer` 0 → 1024 / 3072 (`u8`, sized in `buffers.c`; declared in `memory.c` / `game_init.c`), `gLevelToCourseNumTable` 0 → 38 (`s8[LEVEL_COUNT - 1]`, sized in `save_file.c`; declared in `level_update.c`); `memory.v`, `game_init.v`, `level_update.v` regenerated, diffs exactly those four `gvar_info` lines. 2026-10-21, linking `area.c` (the 23rd TU): `gPlayerSpawnInfos` 0 → 1 (`struct SpawnInfo[1]`, sized in `area.c`; declared in `mario.c` / `level_update.c`); `mario.v`, `level_update.v` regenerated, diffs exactly that `gvar_info` line. 2026-10-21, linking `data/behavior_data.c` (the 30th TU): every `bhv*` behavior-script declaration, by RULE rather than by table (433 declarations of ~170 scripts across 16 generated files): `extern const BehaviorScript bhvXxx[]` is `(tarray tuint 0)`, readonly, while the definition is `(tarray tuint N)`, not readonly (CompCert's elaborator drops the `const` when it sizes the array from its initializer). CompCert's vardef linker needs both fields equal, so the declaration takes the definer's `(gvar_info, gvar_readonly)`, with N read off `generated/behavior_data.v`, i.e. the script's real length in the decomp. The readonly bit is new for this class, but it is the same kind of rewrite: init stays nil and the linked program takes the definer's vardef, so a run sees exactly the definition. Its effect is that the scripts are writable blocks: more executions (a store into a script would succeed rather than be stuck), never fewer. Regenerated files diff only in those `gvar_info` / `gvar_readonly` lines.) Could be proved (rename = alpha-equivalence) or regenerated and diffed. |
 | 2.6 | `object_helpers.c` is clightgen'd with `-flongdouble` (a `1.0l` literal in a debug function) | Equivalence: IDO's o32 ABI makes `long double` a 64-bit double, as `-flongdouble` does. |
 | 2.5 | The target configuration (ppc32 eabi: 32-bit, big-endian) gives the same struct layout, sizes and alignment as IDO/MIPS | Partly TETHERED: offsets cited in proofs (action@12, controller@156, buttonPressed@18) match the decomp's `/*0x..*/` layout comments. Should be checked for every struct in scope, mechanically, against the built ROM's symbol/debug info. |
 
@@ -665,7 +667,7 @@ link grows.
 
 | # | Item | Status / notes |
 |---|---|---|
-| 4.1 | Functions outside the 29 linked files (23 game TUs + 6 libultra TUs; audio, camera, object spawning) behave as the capstone's rows say (`Hocp_*`, `Hpres_*`, `Hext_*`, …) | **ASSUMED, the ~30 project rows.** Shrinks by linking more files until only truly external things remain. Details: [row 4.1 in detail](#row-41-in-detail). |
+| 4.1 | Functions outside the 30 linked files (23 game TUs + `behavior_data.c` + 6 libultra TUs; audio, camera, object spawning) behave as the capstone's rows say (`Hocp_*`, `Hpres_*`, `Hext_*`, …) | **ASSUMED, the ~30 project rows.** Shrinks by linking more files until only truly external things remain. Details: [row 4.1 in detail](#row-41-in-detail). |
 | 4.2 | CompCert's `external_functions_sem` is an abstract Parameter. Anything left external is constrained *only* by our rows | Permanent for whatever stays external. The goal is that nothing game-logic stays external. |
 | 4.3 | Level data (WMotR collision triangles, object placements, the red-coin positions) is what the ROM contains | Not yet in scope at all. Can be clightgen'd like code (`levels/wmotr/*.inc.c`). |
 | 4.4 | The proof's internal vocabulary (`MWF_real`, `SafeB`, `call_pres_ext_*`) appears in the *statement's* hypotheses | Anti-goal: a reader shouldn't have to understand proof internals to know what's assumed. Rows must eventually be about the game, or be gone. |
@@ -942,20 +944,61 @@ link grows.
   - The walkers check it syntactically (`ActWriterSurface.held_arg_chk`): arg1 is `Evar g` with `g`
     one of those symbols, listed in the walk's xids. As variables, not functions, their call rows
     hold vacuously (`call_pres_ext_gvar`).
-  - The three symbols joined `CensusV2.safe_ptr_syms`, so they are SafeB blocks. R7 holds trivially
-    for them: they are size-0 extern blocks, with nothing to load.
+  - The three symbols joined `CensusV2.safe_ptr_syms`, so they are SafeB blocks. R7 held trivially
+    for them while they were size-0 extern blocks. Since `behavior_data.c` is linked (below) they hold
+    their real script words: integers and addresses of behavior functions and other symbols, none in
+    `non_safeb_syms` (checked at boot by `BootMWF.boot_gvar_ok`'s certificate).
   - `ObjHelpersBodies` is re-proved honestly (`s2v_ret_arg`: the result is the argument).
   - Net: no new hypothesis. One capstone row is narrower, and now true as far as we know.
-  - **Still no execution (open, step to `behavior_data.c`).** Every `== segmented_to_virtual(bhvXxx)`
-    compare and every read through a `bhv*` script is stuck, because those blocks are size-0 extern
-    arrays and CompCert's pointer `==` needs valid pointers (`WMotREntry.cmp_size0_stuck`). Sites:
+  - **No execution until 2026-10-21 (closed by linking `behavior_data.c`, next bullet).** Every
+    `== segmented_to_virtual(bhvXxx)` compare and every read through a `bhv*` script was stuck,
+    because those blocks were size-0 extern arrays and CompCert's pointer `==` needs valid pointers
+    (`WMotREntry.cmp_size0_stuck`). Sites:
     - pole / tree: `mario_actions_automatic.c:31,45,144,164`;
     - held-object checks: `interaction.c:138,297,318,423,1637`, `mario_actions_moving.c:876`,
       `mario_actions_submerged.c:853`, `mario_actions_stationary.c:440`, `mario.c:1690`;
     - `object_helpers.c` compares (`107,1088,1469,1477`) and every spawn;
     - `area.c:139` (`get_mario_spawn_type`).
-  - Making these run needs `behavior_data.c` linked, with every `bhv*` extern array completed to
-    its real length (2.4).
+  - Making these run needed `behavior_data.c` linked, with every `bhv*` extern array completed to
+    its real length (2.4). Done, see the next bullet.
+- **`data/behavior_data.c` is linked (2026-10-21, the 30th TU, `LinkedTwelve.tu_rest`'s last
+  entry).** Scope first: completion rows alone cannot help. A declaration's block size is its
+  initializer's size, and a declaration's initializer is nil, so a `bhv*` block has bytes only if
+  the definer is in the link. The definer is a data-only TU (687 globals, no functions), so linking
+  it costs little: `Linked12Sat`, `InitMemSat`, `BootMWF` and `StartSat`'s certificates went
+  through unchanged, and the pairwise link probe is 2.4 s. The only link obstruction was the 183
+  `bhv*` declaration / definition pairs, closed by the 2.4 rule. proof_n64.h changes nothing in
+  `behavior_data.c` (only the header line differs); it now takes `SM64_CGP` like every game TU.
+  - **Now executes** (each compare is between two blocks with their real sizes):
+    - the pole / tree compares, `mario_actions_automatic.c:31,45,144,164`. Witness:
+      `PoleControl.noA_pole_frames_run` RUNS three real `execute_mario_action` frames over every
+      30-TU link, A not pressed, Mario holding WMotR's low pole (the level script's
+      `bhvPoleGrabbing` object, `oPosY` -2739, height 820): stick down (lines 164 and 45, stays on
+      the pole, yaw velocity 128), Z (line 31, soft bonk), stick up at the top (line 144, reaches
+      `ACT_TOP_OF_POLE` in the frame). Same method and world as `PositiveControl` (plus a silent
+      `set_sound_moving_speed`).
+    - `area.c:139`: `SpawnTypeRun.spawn_type_runs` RUNS the real `get_mario_spawn_type` on an
+      object whose behavior is `&bhvAirborneWarp`: seven false pointer compares, then the eighth
+      true, returning `0x12` (MARIO_SPAWN_AIRBORNE), with no external call (0.4).
+    - the held-object checks (`interaction.c:297,318`, `mario_actions_moving.c:876`,
+      `mario_actions_stationary.c:440`, `mario_actions_submerged.c:853`), the `virtual_to_segmented`
+      script compares (`interaction.c:138,423,1637`), and the `object_helpers.c` compares.
+  - **Found (vacuity, now closed): every `act_hold_walking` and `act_hold_idle` frame had NO
+    execution.** Their first statement is the `heldObj->behavior == bhvJumpingBox` compare
+    (`mario_actions_moving.c:876`, `mario_actions_stationary.c:440`), so before this link GOAL 1's
+    capstone said nothing about Mario walking or standing while holding an object; likewise the
+    pole frames with the stick pushed or Z pressed, and the underwater pick-up's last state. GOAL 1's
+    rows are path-insensitive store-frame walks over every statement, so no proof leaned on the
+    stuck compares, and re-reading the rows found none that becomes false: the newly live paths
+    call only functions those walks already cover. GOAL 2's world (`wmotr_world`: nothing held) never
+    reaches the hold actions; its pole frames go through the assumed per-call row of the automatic
+    dispatcher (`Hseg_call_na`), which was vacuous on these sub-paths and is now a real claim (still
+    assumed; the pole moves are `pole_obj_ok`-bounded `set_pole_position` writes).
+  - **Still no execution:** `interaction.c:881,889` compare `o->collisionData` with
+    `warp_pipe_seg3_collision_03009AC8`, collision data that no linked TU defines (size 0; WMotR
+    has no warp pipe). The segment-0 animation caveat below is unchanged. Spawns: `create_object`
+    is in `spawn_object.c`, still unlinked, so a spawn's script read still happens in an external;
+    the parent-gated spawn rows remain open (above).
   - **Segment-0 animation caveat (under-approximation, not a wrong value).**
     - `set_mario_animation` stores `VIRTUAL_TO_PHYSICAL(anim)`, which the proof's C computes as
       `p - 0x80000000` (2.2 register).

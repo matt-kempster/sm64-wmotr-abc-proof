@@ -713,9 +713,9 @@ Definition v_gCurrSaveFileNum := {|
 |}.
 
 Definition v_bhvSparkleSpawn := {|
-  gvar_info := (tarray tuint 0);
+  gvar_info := (tarray tuint 6);
   gvar_init := nil;
-  gvar_readonly := true;
+  gvar_readonly := false;
   gvar_volatile := false
 |}.
 
