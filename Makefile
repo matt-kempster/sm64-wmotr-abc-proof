@@ -187,8 +187,16 @@ clean:
 # Every behavior script (data/behavior_data.c) as data: the object census of
 # GOAL 2 (which behaviors WMotR spawns, their interaction types, which load
 # collision) is decoded from it (WMotRRequiresA/BehaviorScripts.v).
-generated/behavior_data.v: $(SM64)/data/behavior_data.c pipeline/clightgen.sh
-	$(CLIGHTGEN) $< $@ $(SM64_CG)
+# Linked since 2026-10-21 (the 30th TU): the real storage of every bhv* script,
+# so `o->behavior == segmented_to_virtual(bhvXxx)` compares and script reads
+# have CompCert executions.  proof_n64.h changes nothing in it (only the
+# header line differs); it takes SM64_CGP like every game TU.
+generated/behavior_data.v: $(SM64)/data/behavior_data.c pipeline/clightgen.sh pipeline/proof_n64.h
+	$(CLIGHTGEN) $< $@ $(SM64_CGP)
+
+# The behavior-script completion in pipeline/clightgen.sh (TRUST 2.4) reads the
+# script lengths off generated/behavior_data.v, so every other TU depends on it.
+$(filter-out generated/behavior_data.v generated/toy.v $(ULTRA_GENERATED),$(GENERATED)): generated/behavior_data.v
 
 # The object layer around the behaviors (GOAL 2 object census: what WMotR's
 # objects can spawn, BehaviorScripts.v).  object_helpers.c has a `1.0l`

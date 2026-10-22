@@ -157,30 +157,30 @@ Definition _wmotr_seg7_collision : ident := $"wmotr_seg7_collision".
 Definition _wmotr_seg7_macro_objs : ident := $"wmotr_seg7_macro_objs".
 
 Definition v_bhvPoleGrabbing := {|
-  gvar_info := (tarray tuint 0);
+  gvar_info := (tarray tuint 12);
   gvar_init := nil;
-  gvar_readonly := true;
+  gvar_readonly := false;
   gvar_volatile := false
 |}.
 
 Definition v_bhvMario := {|
-  gvar_info := (tarray tuint 0);
+  gvar_info := (tarray tuint 14);
   gvar_init := nil;
-  gvar_readonly := true;
+  gvar_readonly := false;
   gvar_volatile := false
 |}.
 
 Definition v_bhvAirborneWarp := {|
-  gvar_info := (tarray tuint 0);
+  gvar_info := (tarray tuint 1);
   gvar_init := nil;
-  gvar_readonly := true;
+  gvar_readonly := false;
   gvar_volatile := false
 |}.
 
 Definition v_bhvHiddenRedCoinStar := {|
-  gvar_info := (tarray tuint 0);
+  gvar_info := (tarray tuint 8);
   gvar_init := nil;
-  gvar_readonly := true;
+  gvar_readonly := false;
   gvar_volatile := false
 |}.
 

@@ -99,6 +99,49 @@ for name, elt, n in TABLE:
         print(f"extern-array completion: {name} 0 -> {n} in {path}")
 PYEOF
 
+# Behavior-script completion (TRUST 2.4, 2026-10-21; same class as the table
+# above, applied by RULE rather than by hand because there are ~170 of them).
+# data/behavior_data.c defines every behavior script
+#   const BehaviorScript bhvXxx[] = { ... };
+# and the game TUs declare them via include/behavior_data.h
+#   extern const BehaviorScript bhvXxx[];
+# clightgen gives the declaration (tarray tuint 0), readonly true, and the
+# definition (tarray tuint N), readonly false (CompCert's elaborator drops the
+# const when it completes the array type from the initializer).  CompCert's
+# vardef linker needs both fields equal, so the DECL side is completed to the
+# definer's (gvar_info, gvar_readonly) -- N read off generated/behavior_data.v,
+# i.e. the real script length in the decomp.  init stays nil; the linked
+# program takes the definer's vardef (link_varinit), so nothing a run can see
+# changes.  Without this behavior_data.c cannot be linked, and every bhv*
+# block is size 0: every `o->behavior == segmented_to_virtual(bhvXxx)` compare
+# and every script read has no CompCert execution (WMotREntry.cmp_size0_stuck).
+BHV_DEF="$(dirname "$0")/../generated/behavior_data.v"
+if [ "$TUNAME" != "behavior_data" ] && [ -f "$BHV_DEF" ]; then
+python3 - "$TMP" "$BHV_DEF" <<'PYEOF'
+import re, sys
+path, bhv = sys.argv[1], sys.argv[2]
+defs = {}
+for m in re.finditer(r'Definition v_(bhv\w+) := \{\|\s*gvar_info := \(tarray tuint (\d+)\);'
+                     r'\s*gvar_init := (.*?);\s*gvar_readonly := false;', open(bhv).read(), re.S):
+    if m.group(3).strip() != 'nil' and int(m.group(2)) > 0:
+        defs[m.group(1)] = int(m.group(2))
+s = open(path).read()
+done = []
+def sub(m):
+    n = m.group(2)
+    if n not in defs:
+        return m.group(0)
+    done.append(n)
+    return (m.group(1) + '(tarray tuint ' + str(defs[n]) + ')' + m.group(3)
+            + 'nil;' + m.group(4) + 'false;')
+s2 = re.sub(r'(Definition v_(bhv\w+) := \{\|\s*gvar_info := )\(tarray tuint 0\)'
+            r'(;\s*gvar_init := )nil;(\s*gvar_readonly := )true;', sub, s)
+if done:
+    open(path, 'w').write(s2)
+    print(f"behavior-script completion: {len(done)} bhv* decls in {path}")
+PYEOF
+fi
+
 {
   echo "(* ======================================================================"
   echo "   GENERATED FILE -- DO NOT EDIT."

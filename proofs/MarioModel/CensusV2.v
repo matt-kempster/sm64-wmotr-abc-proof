@@ -988,8 +988,10 @@ Definition gobj_syms : list ident :=
    segmented_to_virtual(heldBehavior), now heldBehavior itself, into
    obj->curBhvCommand.  The three behavior scripts the real sites pass
    (interaction.c:291,301,322) are SafeB blocks, so R7 holds after the
-   store.  (Their storage is a size-0 extern block until behavior_data.c is
-   linked: no load from it succeeds, so R7 is trivially closed there.) *)
+   store.  (Since 2026-10-21 behavior_data.c is linked and the scripts hold
+   their real words: integers and addresses of behavior functions / other
+   symbols, none in non_safeb_syms, which BootMWF's boot_gvar_ok certificate
+   checks; before, they were size-0 blocks and R7 was trivially closed.) *)
 Definition bhv_held_syms : list ident :=
   interaction._bhvCarrySomething3 :: interaction._bhvCarrySomething4
     :: interaction._bhvCarrySomething5 :: nil.

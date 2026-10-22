@@ -40,13 +40,13 @@
 (* gCurrCourseNum, gMarioSpawnInfo, gCurrentArea have storage, and         *)
 (* EntryWarp runs the stores that set gCurrLevelNum = LEVEL_WMOTR.  Still  *)
 (* not run: init_mario_after_warp itself (it needs the level's objects,    *)
-(* spawned by the unlinked level-script / spawn_object path) and           *)
-(* get_mario_spawn_type, which has no CompCert execution on a real object: *)
-(* the bhv* scripts in sWarpBhvSpawnTable are size-0 extern blocks         *)
-(* (behavior_data.c not linked), and CompCert's pointer == needs a valid   *)
-(* pointer on both sides (cmp_size0_stuck).  (Until 2026-10-21 the first   *)
-(* obstacle was virtual_to_segmented's & 0x1FFFFFFF on a pointer; it is    *)
-(* now the decomp's NO_SEGMENTED_MEMORY identity, TRUST 2.2 register.)     *)
+(* spawned by the unlinked level-script / spawn_object path).  The       *)
+(* spawn-type lookup get_mario_spawn_type is RUN since 2026-10-21          *)
+(* (SpawnTypeRun.spawn_type_runs: behavior_data.c is linked, so the bhv*   *)
+(* scripts in sWarpBhvSpawnTable are blocks with their real lengths).      *)
+(* Before, it had no CompCert execution: those scripts were size-0 extern  *)
+(* blocks and CompCert's pointer == needs a valid pointer on both sides    *)
+(* (cmp_size0_stuck); earlier still, virtual_to_segmented's & 0x1FFFFFFF.  *)
 (* ======================================================================= *)
 
 From Coq Require Import ZArith List Reals Lra Lia.
@@ -200,11 +200,13 @@ Lemma spawn_lookup_shape :
   = Some (area._sWarpBhvSpawnTable, area._sSpawnTypeFromWarpBhv, 20).
 Proof. vm_compute. reflexivity. Qed.
 
-(* why the lookup cannot be RUN yet: virtual_to_segmented is the identity
-   (TRUST 2.2, NO_SEGMENTED_MEMORY), but each table entry points into a
-   bhv* block that has no valid offset (a size-0 extern: behavior_data.c is
-   not linked), and CompCert's pointer == has no value unless both sides
-   are (weakly) valid pointers -- whichever block o->behavior is in *)
+(* why the lookup could not be RUN before behavior_data.c was linked
+   (2026-10-21; now SpawnTypeRun runs it): each table entry pointed into a
+   bhv* block with no valid offset (a size-0 extern), and CompCert's pointer
+   == has no value unless both sides are (weakly) valid pointers --
+   whichever block o->behavior is in.  The lemma still describes any
+   size-0 block, e.g. the collision data warp_pipe_seg3_collision_03009AC8
+   that interaction.c:881,889 compares with (not linked). *)
 Lemma cmp_size0_stuck : forall ce m b1 o1 b o t1 a1 t2 a2,
     (forall z, Mem.valid_pointer m b z = false) ->
     sem_binary_operation ce Oeq (Vptr b1 o1) (Tpointer t1 a1)

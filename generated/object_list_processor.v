@@ -549,128 +549,128 @@ Definition v_gCurrAreaIndex := {|
 |}.
 
 Definition v_bhvBubbleParticleSpawner := {|
-  gvar_info := (tarray tuint 0);
+  gvar_info := (tarray tuint 11);
   gvar_init := nil;
-  gvar_readonly := true;
+  gvar_readonly := false;
   gvar_volatile := false
 |}.
 
 Definition v_bhvPlungeBubble := {|
-  gvar_info := (tarray tuint 0);
+  gvar_info := (tarray tuint 7);
   gvar_init := nil;
-  gvar_readonly := true;
+  gvar_readonly := false;
   gvar_volatile := false
 |}.
 
 Definition v_bhvVertStarParticleSpawner := {|
-  gvar_info := (tarray tuint 0);
+  gvar_info := (tarray tuint 9);
   gvar_init := nil;
-  gvar_readonly := true;
+  gvar_readonly := false;
   gvar_volatile := false
 |}.
 
 Definition v_bhvHorStarParticleSpawner := {|
-  gvar_info := (tarray tuint 0);
+  gvar_info := (tarray tuint 9);
   gvar_init := nil;
-  gvar_readonly := true;
+  gvar_readonly := false;
   gvar_volatile := false
 |}.
 
 Definition v_bhvTriangleParticleSpawner := {|
-  gvar_info := (tarray tuint 0);
+  gvar_info := (tarray tuint 9);
   gvar_init := nil;
-  gvar_readonly := true;
+  gvar_readonly := false;
   gvar_volatile := false
 |}.
 
 Definition v_bhvBreathParticleSpawner := {|
-  gvar_info := (tarray tuint 0);
+  gvar_info := (tarray tuint 7);
   gvar_init := nil;
-  gvar_readonly := true;
+  gvar_readonly := false;
   gvar_volatile := false
 |}.
 
 Definition v_bhvMistCircParticleSpawner := {|
-  gvar_info := (tarray tuint 0);
+  gvar_info := (tarray tuint 6);
   gvar_init := nil;
-  gvar_readonly := true;
+  gvar_readonly := false;
   gvar_volatile := false
 |}.
 
 Definition v_bhvDirtParticleSpawner := {|
-  gvar_info := (tarray tuint 0);
+  gvar_info := (tarray tuint 7);
   gvar_init := nil;
-  gvar_readonly := true;
+  gvar_readonly := false;
   gvar_volatile := false
 |}.
 
 Definition v_bhvSnowParticleSpawner := {|
-  gvar_info := (tarray tuint 0);
+  gvar_info := (tarray tuint 6);
   gvar_init := nil;
-  gvar_readonly := true;
+  gvar_readonly := false;
   gvar_volatile := false
 |}.
 
 Definition v_bhvFireParticleSpawner := {|
-  gvar_info := (tarray tuint 0);
+  gvar_info := (tarray tuint 10);
   gvar_init := nil;
-  gvar_readonly := true;
+  gvar_readonly := false;
   gvar_volatile := false
 |}.
 
 Definition v_bhvLeafParticleSpawner := {|
-  gvar_info := (tarray tuint 0);
+  gvar_info := (tarray tuint 6);
   gvar_init := nil;
-  gvar_readonly := true;
+  gvar_readonly := false;
   gvar_volatile := false
 |}.
 
 Definition v_bhvMistParticleSpawner := {|
-  gvar_info := (tarray tuint 0);
+  gvar_info := (tarray tuint 12);
   gvar_init := nil;
-  gvar_readonly := true;
+  gvar_readonly := false;
   gvar_volatile := false
 |}.
 
 Definition v_bhvSparkleParticleSpawner := {|
-  gvar_info := (tarray tuint 0);
+  gvar_info := (tarray tuint 21);
   gvar_init := nil;
-  gvar_readonly := true;
+  gvar_readonly := false;
   gvar_volatile := false
 |}.
 
 Definition v_bhvWaterSplash := {|
-  gvar_info := (tarray tuint 0);
+  gvar_info := (tarray tuint 19);
   gvar_init := nil;
-  gvar_readonly := true;
+  gvar_readonly := false;
   gvar_volatile := false
 |}.
 
 Definition v_bhvIdleWaterWave := {|
-  gvar_info := (tarray tuint 0);
+  gvar_info := (tarray tuint 18);
   gvar_init := nil;
-  gvar_readonly := true;
+  gvar_readonly := false;
   gvar_volatile := false
 |}.
 
 Definition v_bhvShallowWaterWave := {|
-  gvar_info := (tarray tuint 0);
+  gvar_info := (tarray tuint 11);
   gvar_init := nil;
-  gvar_readonly := true;
+  gvar_readonly := false;
   gvar_volatile := false
 |}.
 
 Definition v_bhvShallowWaterSplash := {|
-  gvar_info := (tarray tuint 0);
+  gvar_info := (tarray tuint 13);
   gvar_init := nil;
-  gvar_readonly := true;
+  gvar_readonly := false;
   gvar_volatile := false
 |}.
 
 Definition v_bhvWaveTrail := {|
-  gvar_info := (tarray tuint 0);
+  gvar_info := (tarray tuint 17);
   gvar_init := nil;
-  gvar_readonly := true;
+  gvar_readonly := false;
   gvar_volatile := false
 |}.
 

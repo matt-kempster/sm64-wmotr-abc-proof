@@ -56,7 +56,8 @@ From SM64.Generated Require mario mario_actions_stationary
   math_util memory game_init object_list_processor audio_data graph_node
   save_file buffers object_helpers area
   libultra_osEepromLongWrite libultra_osEepromWrite libultra_osSiCreateAccessQueue
-  libultra_osCreateMesgQueue libultra_osContInit libultra_osInitialize.
+  libultra_osCreateMesgQueue libultra_osContInit libultra_osInitialize
+  behavior_data.
 From SM64.Proofs Require Import SymbolicLinking CensusV2 RealFrameLinked
   EngineV2Consumer RestSurface.
 
@@ -117,7 +118,14 @@ Fixpoint link_chain (p : Clight.program) (l : list Clight.program)
    __osPackEepWriteData / __osEepStatus, the SI access queue,
    osCreateMesgQueue) and the storage it touches (osContInit.c's
    __osContLastCmd and EEPROM timer / queue / buffer, osInitialize.c's
-   osClockRate).  Below them is the OS / hardware floor (OsDmaFloor). *)
+   osClockRate).  Below them is the OS / hardware floor (OsDmaFloor).
+   behavior_data (data/behavior_data.c) is the 18th (2026-10-21): the real
+   storage of every bhv* behavior script.  Without it each bhv* is a size-0
+   extern block, so every `o->behavior == segmented_to_virtual(bhvXxx)`
+   compare (pole / tree grabs, held-object checks, get_mario_spawn_type) and
+   every script read has no CompCert execution (pointer == needs valid
+   pointers, WMotREntry.cmp_size0_stuck).  The other TUs' extern declarations
+   are completed to the scripts' real lengths (TRUST 2.4). *)
 Definition tu_rest : list Clight.program :=
   [ mario_actions_stationary.prog;
     mario_actions_moving.prog;
@@ -146,7 +154,8 @@ Definition tu_rest : list Clight.program :=
     libultra_osSiCreateAccessQueue.prog;
     libultra_osCreateMesgQueue.prog;
     libultra_osContInit.prog;
-    libultra_osInitialize.prog ].
+    libultra_osInitialize.prog;
+    behavior_data.prog ].
 
 Definition linked12 (lp : Clight.program) : Prop :=
   link_chain mario.prog tu_rest = Some lp.
@@ -285,6 +294,10 @@ Section Linked12LO.
   Lemma linked12_LO_ultra_init : linkorder libultra_osInitialize.prog lp.
   Proof.
     exact (link_chain_linkorder_in _ _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_eq _ _)))))))))))))))))))))))))))) H12).
+  Qed.
+  Lemma linked12_LO_behavior_data : linkorder behavior_data.prog lp.
+  Proof.
+    exact (link_chain_linkorder_in _ _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_eq _ _))))))))))))))))))))))))))))) H12).
   Qed.
 End Linked12LO.
 
@@ -537,6 +550,9 @@ Proof. vm_compute. reflexivity. Qed.
 Lemma no_internal_ultra_init :
   no_internal_ids libultra_osInitialize.prog truly_ext_pin_ids = true.
 Proof. vm_compute. reflexivity. Qed.
+Lemma no_internal_behavior_data :
+  no_internal_ids behavior_data.prog truly_ext_pin_ids = true.
+Proof. vm_compute. reflexivity. Qed.
 
 (* resolves_lp -> defmap entry (the genv->defmap bridge, spike-style) *)
 Lemma resolves_defmap :
@@ -572,7 +588,7 @@ Proof.
   destruct (link_chain_internal_origin _ _ _ _ _ H12 Hres)
     as [Hbase | (q & Hq & Hqdm)].
   - exact (no_internal_ids_correct _ _ _ _ no_internal_mario Hmem Hbase).
-  - destruct Hq as [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | []]]]]]]]]]]]]]]]]]]]]]]]]]]]].
+  - destruct Hq as [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | []]]]]]]]]]]]]]]]]]]]]]]]]]]]]].
     + exact (no_internal_ids_correct _ _ _ _ no_internal_sta Hmem Hqdm).
     + exact (no_internal_ids_correct _ _ _ _ no_internal_mov Hmem Hqdm).
     + exact (no_internal_ids_correct _ _ _ _ no_internal_air Hmem Hqdm).
@@ -601,6 +617,7 @@ Proof.
     + exact (no_internal_ids_correct _ _ _ _ no_internal_ultra_cmq Hmem Hqdm).
     + exact (no_internal_ids_correct _ _ _ _ no_internal_ultra_ci Hmem Hqdm).
     + exact (no_internal_ids_correct _ _ _ _ no_internal_ultra_init Hmem Hqdm).
+    + exact (no_internal_ids_correct _ _ _ _ no_internal_behavior_data Hmem Hqdm).
 Qed.
 
 (* ---------------------------------------------------------------------- *)

@@ -1178,65 +1178,65 @@ Definition v_gCurrLevelNum := {|
 |}.
 
 Definition v_bhvWhitePuffExplosion := {|
-  gvar_info := (tarray tuint 0);
+  gvar_info := (tarray tuint 7);
   gvar_init := nil;
-  gvar_readonly := true;
+  gvar_readonly := false;
   gvar_volatile := false
 |}.
 
 Definition v_bhvSpawnedStarNoLevelExit := {|
-  gvar_info := (tarray tuint 0);
+  gvar_info := (tarray tuint 9);
   gvar_init := nil;
-  gvar_readonly := true;
+  gvar_readonly := false;
   gvar_volatile := false
 |}.
 
 Definition v_bhvSpawnedBlueCoin := {|
-  gvar_info := (tarray tuint 0);
+  gvar_info := (tarray tuint 22);
   gvar_init := nil;
-  gvar_readonly := true;
+  gvar_readonly := false;
   gvar_volatile := false
 |}.
 
 Definition v_bhvSingleCoinGetsSpawned := {|
-  gvar_info := (tarray tuint 0);
+  gvar_info := (tarray tuint 15);
   gvar_init := nil;
-  gvar_readonly := true;
+  gvar_readonly := false;
   gvar_volatile := false
 |}.
 
 Definition v_bhvBowser := {|
-  gvar_info := (tarray tuint 0);
+  gvar_info := (tarray tuint 31);
   gvar_init := nil;
-  gvar_readonly := true;
+  gvar_readonly := false;
   gvar_volatile := false
 |}.
 
 Definition v_bhvBlueCoinJumping := {|
-  gvar_info := (tarray tuint 0);
+  gvar_info := (tarray tuint 12);
   gvar_init := nil;
-  gvar_readonly := true;
+  gvar_readonly := false;
   gvar_volatile := false
 |}.
 
 Definition v_bhvCarrySomething3 := {|
-  gvar_info := (tarray tuint 0);
+  gvar_info := (tarray tuint 2);
   gvar_init := nil;
-  gvar_readonly := true;
+  gvar_readonly := false;
   gvar_volatile := false
 |}.
 
 Definition v_bhvCarrySomething4 := {|
-  gvar_info := (tarray tuint 0);
+  gvar_info := (tarray tuint 2);
   gvar_init := nil;
-  gvar_readonly := true;
+  gvar_readonly := false;
   gvar_volatile := false
 |}.
 
 Definition v_bhvCarrySomething5 := {|
-  gvar_info := (tarray tuint 0);
+  gvar_info := (tarray tuint 2);
   gvar_init := nil;
-  gvar_readonly := true;
+  gvar_readonly := false;
   gvar_volatile := false
 |}.
 

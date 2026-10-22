@@ -775,9 +775,9 @@ Definition v_gAudioRandom := {|
 |}.
 
 Definition v_bhvNormalCap := {|
-  gvar_info := (tarray tuint 0);
+  gvar_info := (tarray tuint 9);
   gvar_init := nil;
-  gvar_readonly := true;
+  gvar_readonly := false;
   gvar_volatile := false
 |}.
 

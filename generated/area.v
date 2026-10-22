@@ -575,142 +575,142 @@ Definition v_gObjParentGraphNode := {|
 |}.
 
 Definition v_bhvExitPodiumWarp := {|
-  gvar_info := (tarray tuint 0);
+  gvar_info := (tarray tuint 15);
   gvar_init := nil;
-  gvar_readonly := true;
+  gvar_readonly := false;
   gvar_volatile := false
 |}.
 
 Definition v_bhvFadingWarp := {|
-  gvar_info := (tarray tuint 0);
+  gvar_info := (tarray tuint 9);
   gvar_init := nil;
-  gvar_readonly := true;
+  gvar_readonly := false;
   gvar_volatile := false
 |}.
 
 Definition v_bhvWarp := {|
-  gvar_info := (tarray tuint 0);
+  gvar_info := (tarray tuint 8);
   gvar_init := nil;
-  gvar_readonly := true;
+  gvar_readonly := false;
   gvar_volatile := false
 |}.
 
 Definition v_bhvWarpPipe := {|
-  gvar_info := (tarray tuint 0);
+  gvar_info := (tarray tuint 15);
   gvar_init := nil;
-  gvar_readonly := true;
+  gvar_readonly := false;
   gvar_volatile := false
 |}.
 
 Definition v_bhvDoorWarp := {|
-  gvar_info := (tarray tuint 0);
+  gvar_info := (tarray tuint 4);
   gvar_init := nil;
-  gvar_readonly := true;
+  gvar_readonly := false;
   gvar_volatile := false
 |}.
 
 Definition v_bhvInstantActiveWarp := {|
-  gvar_info := (tarray tuint 0);
+  gvar_info := (tarray tuint 1);
   gvar_init := nil;
-  gvar_readonly := true;
+  gvar_readonly := false;
   gvar_volatile := false
 |}.
 
 Definition v_bhvAirborneWarp := {|
-  gvar_info := (tarray tuint 0);
+  gvar_info := (tarray tuint 1);
   gvar_init := nil;
-  gvar_readonly := true;
+  gvar_readonly := false;
   gvar_volatile := false
 |}.
 
 Definition v_bhvHardAirKnockBackWarp := {|
-  gvar_info := (tarray tuint 0);
+  gvar_info := (tarray tuint 1);
   gvar_init := nil;
-  gvar_readonly := true;
+  gvar_readonly := false;
   gvar_volatile := false
 |}.
 
 Definition v_bhvSpinAirborneCircleWarp := {|
-  gvar_info := (tarray tuint 0);
+  gvar_info := (tarray tuint 1);
   gvar_init := nil;
-  gvar_readonly := true;
+  gvar_readonly := false;
   gvar_volatile := false
 |}.
 
 Definition v_bhvDeathWarp := {|
-  gvar_info := (tarray tuint 0);
+  gvar_info := (tarray tuint 1);
   gvar_init := nil;
-  gvar_readonly := true;
+  gvar_readonly := false;
   gvar_volatile := false
 |}.
 
 Definition v_bhvSpinAirborneWarp := {|
-  gvar_info := (tarray tuint 0);
+  gvar_info := (tarray tuint 1);
   gvar_init := nil;
-  gvar_readonly := true;
+  gvar_readonly := false;
   gvar_volatile := false
 |}.
 
 Definition v_bhvFlyingWarp := {|
-  gvar_info := (tarray tuint 0);
+  gvar_info := (tarray tuint 1);
   gvar_init := nil;
-  gvar_readonly := true;
+  gvar_readonly := false;
   gvar_volatile := false
 |}.
 
 Definition v_bhvPaintingStarCollectWarp := {|
-  gvar_info := (tarray tuint 0);
+  gvar_info := (tarray tuint 1);
   gvar_init := nil;
-  gvar_readonly := true;
+  gvar_readonly := false;
   gvar_volatile := false
 |}.
 
 Definition v_bhvPaintingDeathWarp := {|
-  gvar_info := (tarray tuint 0);
+  gvar_info := (tarray tuint 1);
   gvar_init := nil;
-  gvar_readonly := true;
+  gvar_readonly := false;
   gvar_volatile := false
 |}.
 
 Definition v_bhvAirborneDeathWarp := {|
-  gvar_info := (tarray tuint 0);
+  gvar_info := (tarray tuint 1);
   gvar_init := nil;
-  gvar_readonly := true;
+  gvar_readonly := false;
   gvar_volatile := false
 |}.
 
 Definition v_bhvAirborneStarCollectWarp := {|
-  gvar_info := (tarray tuint 0);
+  gvar_info := (tarray tuint 1);
   gvar_init := nil;
-  gvar_readonly := true;
+  gvar_readonly := false;
   gvar_volatile := false
 |}.
 
 Definition v_bhvLaunchStarCollectWarp := {|
-  gvar_info := (tarray tuint 0);
+  gvar_info := (tarray tuint 1);
   gvar_init := nil;
-  gvar_readonly := true;
+  gvar_readonly := false;
   gvar_volatile := false
 |}.
 
 Definition v_bhvLaunchDeathWarp := {|
-  gvar_info := (tarray tuint 0);
+  gvar_info := (tarray tuint 1);
   gvar_init := nil;
-  gvar_readonly := true;
+  gvar_readonly := false;
   gvar_volatile := false
 |}.
 
 Definition v_bhvSwimmingWarp := {|
-  gvar_info := (tarray tuint 0);
+  gvar_info := (tarray tuint 1);
   gvar_init := nil;
-  gvar_readonly := true;
+  gvar_readonly := false;
   gvar_volatile := false
 |}.
 
 Definition v_bhvStar := {|
-  gvar_info := (tarray tuint 0);
+  gvar_info := (tarray tuint 10);
   gvar_init := nil;
-  gvar_readonly := true;
+  gvar_readonly := false;
   gvar_volatile := false
 |}.
 
