@@ -172,7 +172,11 @@ proofs: $(COQMAKEFILE)
 
 # OCaml extraction of the interpreter + twelve-TU link for the recorded-RAM
 # differential tester (experiments/oracle, TRUST.md 5.1). Not part of `all`.
-oracle-extract: proofs
+# Needs only the interpreter and the link's .vo files, not the whole proof tree.
+ORACLE_VO := proofs/Interp/ClightInterp.vo proofs/Interp/LinkGenv.vo \
+             proofs/Interp/MemBuild.vo proofs/Interp/CMem.vo
+oracle-extract: $(COQMAKEFILE)
+	$(MAKE) -f $(COQMAKEFILE) $(ORACLE_VO)
 	mkdir -p experiments/oracle/extract/ml
 	coqc -R generated SM64.Generated -R proofs SM64.Proofs experiments/oracle/extract/Extract.v
 

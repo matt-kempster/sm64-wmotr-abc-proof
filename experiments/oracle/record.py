@@ -5,8 +5,8 @@ every call of execute_mario_action, store:
 
   entry      all of RDRAM at function entry
   exit_diff  the bytes changed by the time it returns (return site in bhv_mario_update)
-  calls      every call the frame makes to a function OUTSIDE the twelve-TU link
-             (extract/boundary.txt), outermost only: its argument registers, stack
+  calls      every call the frame makes to a function OUTSIDE the link
+             (extract/boundary.txt), outermost only, game thread only: its argument registers, stack
              args, return registers, the bytes it changed, and the 64 bytes behind
              each pointer argument at return
 
@@ -50,7 +50,7 @@ for line in open(f"{HERE}/extract/boundary.txt"):
     if f[0] == "extfun" and f[1] in S:
         EXT[S[f[1]]] = f[1]
 rng = random.Random(SEED)
-st = {"loaded": False, "cur": None, "call": None, "n": 0, "hold": 0, "keys": 0}
+st = {"sp0": 0, "loaded": False, "cur": None, "call": None, "n": 0, "hold": 0, "keys": 0}
 
 
 def diff(a, b, gap=16):
@@ -73,6 +73,7 @@ def on_entry(e, pc):
     st["cur"] = {"frame": e.frame, "keys": st["keys"], "a0": e.reg(4), "entry": e.dump(),
                  "calls": []}
     st["call"] = None
+    st["sp0"] = e.reg(SP)
     e.stepping = True
 
 
@@ -80,8 +81,11 @@ def on_step(e, pc):
     c = st["call"]
     if c is None:
         name = EXT.get(pc)
-        if name is not None:
-            sp = e.reg(SP)
+        sp = e.reg(SP)
+        # only the game thread's calls: other threads (PI manager, audio, the
+        # scheduler) run while it blocks, e.g. in osRecvMesg after a DMA, and
+        # some of their functions (libultra) are externals of the link too
+        if name is not None and st["sp0"] - 0x4000 < sp <= st["sp0"]:
             st["call"] = {
                 "name": name, "ra": e.reg(RA), "sp": sp,
                 "a": [e.reg(i) for i in (4, 5, 6, 7)],
