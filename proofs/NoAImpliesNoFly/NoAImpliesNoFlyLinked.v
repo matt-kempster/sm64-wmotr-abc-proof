@@ -1431,23 +1431,63 @@ Section NoARealInputMWF.
      was vacuous.  REPAIRED: the globals are SafeB blocks (HSafeB_syms (c)),
      so MWF's load closure R7 is the invariant and the old row is a lemma
      inside CutsceneLeafSurface; their writers store a
-     spawn_object_abs_with_rot result, SafeB by the sr row below (the same
-     model class as Hcp_spawn_real for spawn_object). *)
+     spawn_object_abs_with_rot result, SafeB by its row below.  2026-10-21:
+     gCurrentObject joined gobj_ids (the cutscene spawn sites' parent). *)
   Lemma Hgobj_safe : forall g gb,
       mem_id g CutsceneLeafSurface.gobj_ids = true ->
       Genv.find_symbol (lp_ge lp) g = Some gb -> SafeB gb.
   Proof.
     intros g gb Hg Hfs.
-    assert (E : CutsceneLeafSurface.gobj_ids = gobj_syms) by reflexivity.
+    assert (E : CutsceneLeafSurface.gobj_ids
+                = mario_actions_cutscene._gCurrentObject :: gobj_syms)
+      by reflexivity.
     rewrite E in Hg.
-    assert (Hg' : mem_id g safe_ptr_syms = true)
-      by (unfold safe_ptr_syms, mem_id in *; cbn [existsb];
-          apply orb_true_intro; right; rewrite existsb_app;
-          apply orb_true_intro; left; exact Hg).
+    assert (Hg' : mem_id g safe_ptr_syms = true).
+    { unfold safe_ptr_syms, mem_id in *; cbn [existsb] in *.
+      apply orb_true_iff in Hg as [Hg | Hg];
+        [ rewrite Hg; reflexivity | ].
+      apply orb_true_intro; right; rewrite existsb_app;
+        apply orb_true_intro; left; exact Hg. }
     exact (proj2 (proj2 HSafeB_syms) g gb Hg' Hfs).
   Qed.
-  Hypothesis Hcp_soawr_real : call_pres_ext_sr lp bm (NoA_real bm) MWF SafeB
+  (* the marioObj cell's pointer is SafeB (MWF's chase-root row): the spawn
+     helpers' parent m->marioObj *)
+  Lemma Hmobj_safe_real : forall m b' o', MWF m ->
+      Mem.loadv Mptr m (Vptr bm (Ptrofs.repr 136)) = Some (Vptr b' o') ->
+      SafeB b'.
+  Proof.
+    intros m b' o' HM Hld.
+    exact (mwf_real_chase_safe lp bm bc oc0 SafeB 136 m b' o'
+             marioObj_offset_mario HM Hld).
+  Qed.
+  (* FOUND FALSE 2026-10-21 (spawn_object.c linked, SpawnBodies.v): the
+     spawn pair's any-argument rows.  spawn_object stores parent into
+     obj->parentObj and behavior into obj->behavior / curBhvCommand of a
+     SafeB pool object, so an arbitrary pointer argument (e.g. Mario's own
+     block) breaks MWF's load closure R7.  Restated all-argument gated
+     (call_pres_ext_sg: every argument a SafeB pointer, a spawn_bhv_syms
+     script, or a non-pointer); every walker checks its real call sites
+     (CensusV2.spawn_args_ok).  Discharged at the twelve-TU capstone from
+     the real bodies (SpawnBodies.Hcp_soawr_sg / Hcp_spawn_sg). *)
+  Hypothesis Hcp_soawr_real : call_pres_ext_sg lp bm (NoA_real bm) MWF SafeB
       mario_actions_cutscene._spawn_object_abs_with_rot.
+  (* the engine's cs class (ActWriterSurface.objw_ids): the spawn branch of
+     OutParamSurface.cs_gate is the same all-argument gate *)
+  Lemma cs_of_sg_real : forall fid, mem_id fid spawn_fids = true ->
+      Pos.eqb fid interaction._obj_set_held_state = false ->
+      call_pres_ext_sg lp bm (NoA_real bm) MWF SafeB fid ->
+      call_pres_ext_cs lp bm (NoA_real bm) MWF SafeB fid.
+  Proof.
+    intros fid Hsp Hosh Hs fd m0 vargs0 t0 m1 vres0 Hev Hres (_ & Hg) HN HM HV HA.
+    rewrite Hosh, Hsp in Hg.
+    destruct (Hs fd m0 vargs0 t0 m1 vres0 Hev Hres Hg HN HM HV HA)
+      as (HV' & HA' & HM' & _).
+    exact (conj HV' (conj HA' (conj HM' (mwf_real_ctl lp bm bc oc0 SafeB m1 HM')))).
+  Qed.
+  Lemma Hcs_soawr_real :
+    call_pres_ext_cs lp bm (NoA_real bm) MWF SafeB
+      mario_actions_cutscene._spawn_object_abs_with_rot.
+  Proof. exact (cs_of_sg_real mario_actions_cutscene._spawn_object_abs_with_rot eq_refl eq_refl Hcp_soawr_real). Qed.
   (* the automatic dispatcher is WALKED (AutomaticSurface.automatic_pres
      over the generic DispatchKit; the quicksandDepth store is killed by
      the window census): PROVED from per-leaf-callee residuals keyed by
@@ -1515,8 +1555,8 @@ Section NoARealInputMWF.
      above: they drive the dialog renderer and the global time-stop flag, take no
      MarioState pointer, and never touch gMarioState->action.  Consumed by
      act_reading_sign (+ growing as the save/spawn dialog leaves discharge). *)
-  (* 2026-10-19: spawn_object_abs_with_rot's entry is the sr row above, so
-     the any-argument row covers the rest of cut_ext_ids. *)
+  (* 2026-10-21: the spawn pair left cut_ext_ids (gated rows above), so the
+     filter below is the identity; kept for the downstream split. *)
   Definition cut_ext_open_ids : list ident :=
     filter (fun i => negb (Pos.eqb i mario_actions_cutscene._spawn_object_abs_with_rot))
       CutsceneLeafSurface.cut_ext_ids.
@@ -1531,12 +1571,7 @@ Section NoARealInputMWF.
     destruct (mem_id_filter_split
                 (fun i => Pos.eqb i mario_actions_cutscene._spawn_object_abs_with_rot)
                 fid _ H) as [E | H'].
-    - apply Pos.eqb_eq in E. subst fid.
-      intros fd m0 vargs0 t0 m1 vres0 Hevf Hres HN HM HV HS.
-      destruct (Hcp_soawr_real fd m0 vargs0 t0 m1 vres0 Hevf Hres
-                  HN HM HV HS) as (HV' & HS' & HM' & _).
-      exact (conj HV' (conj HS' (conj HM'
-               (mwf_real_ctl lp bm bc oc0 SafeB m1 HM')))).
+    - apply Pos.eqb_eq in E. subst fid. vm_compute in H. discriminate H.
     - exact (Hpres_cut_ext_open fid H').
   Qed.
   (* perform_ground_step is now WALKED (MarioStepSurface.pgs_cp, the
@@ -1951,19 +1986,14 @@ Section NoARealInputMWF.
      anyway: the spawned object is chase-reachable from the SafeB object
      lists).  Declared BEFORE the io block: star_or_key consumes it via
      the plain-ext weakening below. *)
-  Hypothesis Hcp_spawn_real : call_pres_ext_sr lp bm (NoA_real bm) MWF SafeB
+  (* 2026-10-21: all-argument gated (see Hcp_soawr_real: the any-argument
+     form was FALSE of the real spawn_object.c body) *)
+  Hypothesis Hcp_spawn_real : call_pres_ext_sg lp bm (NoA_real bm) MWF SafeB
       behavior_actions._spawn_object.
-  (* the plain-ext weakening (forget the SafeB-return claim; NoA from the
-     MWF grounding) -- star_or_key's xids row, ZERO new trust. *)
+  (* its cs form (the engine's objw class) -- star_or_key's xids row *)
   Lemma Hcpx_so_real :
-    call_pres_ext lp bm (NoA_real bm) MWF interaction._spawn_object.
-  Proof.
-    intros fd m0 vargs0 t0 m1 vres0 Hevf Hres HN HM HV HS.
-    destruct (Hcp_spawn_real fd m0 vargs0 t0 m1 vres0 Hevf Hres
-                HN HM HV HS) as (HV' & HS' & HM' & _).
-    exact (conj HV' (conj HS' (conj HM'
-             (mwf_real_ctl lp bm bc oc0 SafeB m1 HM')))).
-  Qed.
+    call_pres_ext_cs lp bm (NoA_real bm) MWF SafeB interaction._spawn_object.
+  Proof. exact (cs_of_sg_real interaction._spawn_object eq_refl eq_refl Hcp_spawn_real). Qed.
 
   (* save_file_set_cap_pos: an EF_external save-file boundary in EVERY
      generated TU (scalar f32 args, void return, no Mario pointer) -- the
@@ -1994,7 +2024,7 @@ Section NoARealInputMWF.
                 mwf_real_window lp bm bc oc0 SafeB Hbc_bm HSafeB_not_bm
                   Hgms_blk Hgtimer_blk Htable_blk Hktab_blk mm mm' Mint32 4 vv
                   HM eq_refl Hst)
-             Hcp_spawn_real
+             Hcp_spawn_real Hmobj_safe_real
              Hcp_savefile_real).
   Qed.
 
@@ -2366,7 +2396,12 @@ Section NoARealInputMWF.
       HSafeB_not_bm
       (mwf_real_chase lp bm bc oc0 SafeB Hbc_bm HSafeB_not_bm
          HSafeB_not_bc Hgms_blk Hgtimer_blk Htable_blk Hktab_blk)
-      Hcp_spawn_real.
+      Hcp_spawn_real
+      (* the parent gCurrentObject: a SafeB symbol (HSafeB_syms (c)), and
+         MWF's load closure R7 *)
+      (fun b Hb => proj2 (proj2 HSafeB_syms) behavior_actions._gCurrentObject
+                     b eq_refl Hb)
+      (mwf_real_chase_step lp bm bc oc0 SafeB).
   (* the warp trigger is WALKED (WarpSurface.warp_pres: its 33 stores are
      all window- or stored_globals-class; its one internal callee,
      music_changed_through_warp, is store-free and walked too): what
@@ -3398,14 +3433,14 @@ Section NoARealInputMWF.
                             HSafeB_not_bm HSafeB_not_bc Hgms_blk Hgtimer_blk Htable_blk Hktab_blk)
                          (Hpres_obj_ext mario._play_sound eq_refl))
                       Hpres_cut_ext
-                      Hcsp_omfd_real Hcsp_scale_real
+                      Hcsp_omfd_real Hcsp_scale_real Hcs_soawr_real
                       (Hpres_obj_ext interaction._atan2s eq_refl)
                       (* SLICE 20 (act_reading_npc_dialog): approach_s32 rides
                          the SAME dedicated boundary the submerged family uses
                          -- NO new trust. *)
                       Hcpx_approach_real
                       (* SLICE 21 (act_unlocking_star_door): spawn_object rides
-                         the standing Hcp_spawn_real (plain-ext weakening); the
+                         its gated row (the cs form of Hcp_spawn_real); the
                          two save-buffer externals ride obj_ext_ids (save_file_
                          set_flags newly added there).  NO new capstone hyp. *)
                       Hcpx_so_real
@@ -3467,9 +3502,9 @@ Section NoARealInputMWF.
                          spawn_obj_at_mario_rel_yaw helper (SpawnObjSurface).  NO
                          new capstone hypothesis. *)
                       (Hpres_obj_ext interaction._save_file_clear_flags eq_refl)
-                      Hcp_spawn_real
+                      Hcp_spawn_real Hmobj_safe_real
                       (* 2026-10-19: the gobj globals are SafeB; the spawn
-                         call that feeds them is the sr row *)
+                         call that feeds them is the gated row *)
                       Hgobj_safe Hcp_soawr_real
                       (* SLICE 24 (act_credits_cutscene): vec3s_copy + the two
                          cutscene HUD/viewport externals all ride obj_ext_ids

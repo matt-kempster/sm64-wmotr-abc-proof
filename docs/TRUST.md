@@ -573,7 +573,7 @@ without pressing A".*
 | 2.1 | The decomp C is the game: compiled with IDO 5.3 it reproduces the US ROM byte-for-byte | **Checked** (2026-09-26): `vendor/sm64` @ 9921382 built with `make VERSION=us COMPARE=1` has sha1 `9bef1128…6ce`, which equals the US baserom (`experiments/oracle/README.md`). Covers the *default* preprocessing only; see 2.2. |
 | 2.2 | **We verify a different preprocessing of that C.** The ROM is IDO-compiled vendor C. The proof's C adds `-DNON_MATCHING=1 -DAVOID_UB=1` and force-includes `pipeline/proof_n64.h` (every game TU except `shadow.c`; not the six libultra TUs, whose recipe `ULTRA_CG` is the game's own `lib/src` flag set, 2026-10-21) | **Itemized: every site is in the register below.** `tools/ub_sites.py` preprocesses every generated TU both ways (ROM: `-D__sgi`, as IDO predefines it; proof: our flags) with clightgen's own preprocessor, and diffs them. Its output is committed as `docs/ub-sites.txt`. A new site cannot enter silently: regenerate that file and the diff shows it. |
 | 2.3 | `clightgen` (CompCert's *unverified* front end: parser, elaborator, `-normalize`) translates that C faithfully | ASSUMED, **TETHERED on sampled paths**. 267 real frames over 15 actions run through the generated Clight and reproduce the game's memory byte for byte (§5.1). This is evidence for the translation of the code those frames exercise, not proof. |
-| 2.4 | Our post-processing of the generated `.v` is semantics-preserving: stringlit renaming, anonymous-composite renaming (`canonicalize_anon.py`), completing extern incomplete arrays | ASSUMED. Each is a documented rename or type completion. (2026-10-20: `gDebugInfo` joined the extern-array completion table, `s16 gDebugInfo[][8]` → `[16][8]`, its size in `object_list_processor.c`, the 17th TU; `behavior_actions.v` and `object_helpers.v` regenerated, two-line diffs. 2026-10-21: four more, found linking `save_file.c` and `buffers.c` (TUs 20 and 21): `gDecompressionHeap` 0 → 53248 and `gGfxSPTaskStack` / `gGfxSPTaskYieldBuffer` 0 → 1024 / 3072 (`u8`, sized in `buffers.c`; declared in `memory.c` / `game_init.c`), `gLevelToCourseNumTable` 0 → 38 (`s8[LEVEL_COUNT - 1]`, sized in `save_file.c`; declared in `level_update.c`); `memory.v`, `game_init.v`, `level_update.v` regenerated, diffs exactly those four `gvar_info` lines. 2026-10-21, linking `area.c` (the 23rd TU): `gPlayerSpawnInfos` 0 → 1 (`struct SpawnInfo[1]`, sized in `area.c`; declared in `mario.c` / `level_update.c`); `mario.v`, `level_update.v` regenerated, diffs exactly that `gvar_info` line. 2026-10-21, linking `data/behavior_data.c` (the 30th TU): every `bhv*` behavior-script declaration, by RULE rather than by table (433 declarations of ~170 scripts across 16 generated files): `extern const BehaviorScript bhvXxx[]` is `(tarray tuint 0)`, readonly, while the definition is `(tarray tuint N)`, not readonly (CompCert's elaborator drops the `const` when it sizes the array from its initializer). CompCert's vardef linker needs both fields equal, so the declaration takes the definer's `(gvar_info, gvar_readonly)`, with N read off `generated/behavior_data.v`, i.e. the script's real length in the decomp. The readonly bit is new for this class, but it is the same kind of rewrite: init stays nil and the linked program takes the definer's vardef, so a run sees exactly the definition. Its effect is that the scripts are writable blocks: more executions (a store into a script would succeed rather than be stuck), never fewer. Regenerated files diff only in those `gvar_info` / `gvar_readonly` lines.) Could be proved (rename = alpha-equivalence) or regenerated and diffed. |
+| 2.4 | Our post-processing of the generated `.v` is semantics-preserving: stringlit renaming, anonymous-composite renaming (`canonicalize_anon.py`), completing extern incomplete arrays | ASSUMED. Each is a documented rename or type completion. (2026-10-20: `gDebugInfo` joined the extern-array completion table, `s16 gDebugInfo[][8]` → `[16][8]`, its size in `object_list_processor.c`, the 17th TU; `behavior_actions.v` and `object_helpers.v` regenerated, two-line diffs. 2026-10-21: four more, found linking `save_file.c` and `buffers.c` (TUs 20 and 21): `gDecompressionHeap` 0 → 53248 and `gGfxSPTaskStack` / `gGfxSPTaskYieldBuffer` 0 → 1024 / 3072 (`u8`, sized in `buffers.c`; declared in `memory.c` / `game_init.c`), `gLevelToCourseNumTable` 0 → 38 (`s8[LEVEL_COUNT - 1]`, sized in `save_file.c`; declared in `level_update.c`); `memory.v`, `game_init.v`, `level_update.v` regenerated, diffs exactly those four `gvar_info` lines. 2026-10-21, linking `area.c` (the 23rd TU): `gPlayerSpawnInfos` 0 → 1 (`struct SpawnInfo[1]`, sized in `area.c`; declared in `mario.c` / `level_update.c`); `mario.v`, `level_update.v` regenerated, diffs exactly that `gvar_info` line. 2026-10-21, linking `data/behavior_data.c` (the 30th TU): every `bhv*` behavior-script declaration, by RULE rather than by table (433 declarations of ~170 scripts across 16 generated files): `extern const BehaviorScript bhvXxx[]` is `(tarray tuint 0)`, readonly, while the definition is `(tarray tuint N)`, not readonly (CompCert's elaborator drops the `const` when it sizes the array from its initializer). CompCert's vardef linker needs both fields equal, so the declaration takes the definer's `(gvar_info, gvar_readonly)`, with N read off `generated/behavior_data.v`, i.e. the script's real length in the decomp. The readonly bit is new for this class, but it is the same kind of rewrite: init stays nil and the linked program takes the definer's vardef, so a run sees exactly the definition. Its effect is that the scripts are writable blocks: more executions (a store into a script would succeed rather than be stuck), never fewer. Regenerated files diff only in those `gvar_info` / `gvar_readonly` lines. 2026-10-21, linking `spawn_object.c` (the 31st TU): `gObjectPool` 0 → 240 (`struct Object[OBJECT_POOL_CAPACITY]`, sized in `object_list_processor.c`; declared in `spawn_object.c`); `spawn_object.v` regenerated, diff exactly that `gvar_info` line.) Could be proved (rename = alpha-equivalence) or regenerated and diffed. |
 | 2.6 | `object_helpers.c` is clightgen'd with `-flongdouble` (a `1.0l` literal in a debug function) | Equivalence: IDO's o32 ABI makes `long double` a 64-bit double, as `-flongdouble` does. |
 | 2.5 | The target configuration (ppc32 eabi: 32-bit, big-endian) gives the same struct layout, sizes and alignment as IDO/MIPS | Partly TETHERED: offsets cited in proofs (action@12, controller@156, buttonPressed@18) match the decomp's `/*0x..*/` layout comments. Should be checked for every struct in scope, mechanically, against the built ROM's symbol/debug info. |
 
@@ -691,7 +691,7 @@ link grows.
 
 | # | Item | Status / notes |
 |---|---|---|
-| 4.1 | Functions outside the 30 linked files (23 game TUs + `behavior_data.c` + 6 libultra TUs; audio, camera, object spawning) behave as the capstone's rows say (`Hocp_*`, `Hpres_*`, `Hext_*`, …) | **ASSUMED, the ~30 project rows.** Shrinks by linking more files until only truly external things remain. Details: [row 4.1 in detail](#row-41-in-detail). |
+| 4.1 | Functions outside the 31 linked files (24 game TUs + `behavior_data.c` + 6 libultra TUs; audio, camera) behave as the capstone's rows say (`Hocp_*`, `Hpres_*`, `Hext_*`, …) | **ASSUMED, the ~30 project rows.** Shrinks by linking more files until only truly external things remain. Details: [row 4.1 in detail](#row-41-in-detail). |
 | 4.2 | CompCert's `external_functions_sem` is an abstract Parameter. Anything left external is constrained *only* by our rows | Permanent for whatever stays external. The goal is that nothing game-logic stays external. |
 | 4.3 | Level data (WMotR collision triangles, object placements, the red-coin positions) is what the ROM contains | Not yet in scope at all. Can be clightgen'd like code (`levels/wmotr/*.inc.c`). |
 | 4.4 | The proof's internal vocabulary (`MWF_real`, `SafeB`, `call_pres_ext_*`) appears in the *statement's* hypotheses | Anti-goal: a reader shouldn't have to understand proof internals to know what's assumed. Rows must eventually be about the game, or be gone. |
@@ -940,7 +940,8 @@ link grows.
     `save_file_set_flags`, `save_file_clear_flags` (all proved since, see the next bullet).
   - `cut_ext_open_ids`: `enable_time_stop` / `disable_time_stop` (proved since), `save_file_do_save`,
     and `spawn_object`.
-  - **Likely false (open):** `spawn_object` as an any-argument entry of `Hpres_cut_ext_open` (and
+  - **Found false, repaired 2026-10-21 (see the spawn bullet below).** Was: likely false (open):
+    `spawn_object` as an any-argument entry of `Hpres_cut_ext_open` (and
     the sr row `Hcp_spawn_real`). Its real body (`object_helpers.c`) stores the `parent` argument
     into the new object, so "preserves MWF for any argument" fails when `parent` is a non-SafeB
     pointer. The fix is an arg-gated row like `Hcsp_osh_real`; being reworked separately with the
@@ -954,6 +955,50 @@ link grows.
     from `s2v_ptr_noexec`, which is no longer true. A real call also still has no execution: each
     one passes `&bhvXxx`, a size-0 block, and `create_object` first reads `bhvScript[0]`. Showing
     non-vacuity therefore also needs `behavior_data.c` linked (see the bullet below).
+- **`spawn_object.c` is linked (2026-10-21, the 31st TU) and the spawn pair is proved from its
+  real bodies (`SpawnBodies.v`).** `spawn_object` / `spawn_object_abs_with_rot` (object_helpers.c)
+  are walked through `spawn_object_at_origin`, `create_object`, `allocate_object`,
+  `try_allocate_object`, `unload_object`, `deallocate_object`, `snap_object_to_floor`
+  (spawn_object.c), `geo_obj_init` / `geo_add_child` / `geo_remove_child` (graph_node.c), the
+  object_helpers copy/set helpers, `find_unimportant_object`, math_util's `mtxf_identity` /
+  `vec3f_set` / `vec3f_copy` / `vec3s_copy`, and `find_floor`. `allocate_object`'s pool-exhausted
+  `while (TRUE) {}` has no terminating execution. The c68a1eb5 proofs (vacuous via
+  `s2v_ptr_noexec`) were not reused.
+  - **Found false: the any-argument rows `Hcp_spawn_real` / `Hcp_soawr_real`** (and `spawn_object`
+    / `spawn_object_abs_with_rot` as `cut_ext_ids` entries, and `spawn_obj_at_mario_rel_yaw`'s
+    any-argument row inside `CutsceneLeafSurface`, which forwards `behavior`). The real body stores
+    `parent` into `obj->parentObj` and `behavior` into `obj->behavior` / `curBhvCommand` of a SafeB
+    pool object. With `parent` = Mario's own block, the pointer lands in a SafeB block and MWF's
+    load closure R7 fails, so "preserves MWF for any argument" is false.
+  - **Restated, all-argument gated** (`WindSurface.call_pres_ext_sg`; the engine's cs class
+    `OutParamSurface.cs_gate` for `CensusV2.spawn_fids`; `ActWriterSurface.call_pres_ext_sob` for
+    the in-TU helper, arg0 = Mario): every argument is SafeB-if-pointer or one of the
+    `CensusV2.spawn_bhv_syms` behavior scripts (SafeB symbols). Every walker checks every real
+    call site (`CensusV2.spawn_args_ok`: a chase temp, a sub-32-bit value, a literal, or a named
+    script listed in the walk's xids so no local shadows it). The sites: Wind (`gCurrentObject`
+    parent: a SafeB symbol + R7), `mario_blow_off_cap` and `spawn_obj_at_mario_rel_yaw`
+    (`m->marioObj`, MWF's chase root, `mwf_real_chase_safe`), interaction's star/key spawn,
+    `bhv_spawn_star_no_level_exit`, and the cutscene sites (`act_unlocking_star_door`,
+    `general_star_dance_handler`: `m->marioObj`; the intro / end-peach / end-waving sites and
+    `generate_yellow_sparkles`: `gCurrentObject`, which joined `CutsceneLeafSurface.gobj_ids` as a
+    glob-obj seed; `generate_yellow_sparkles` became a hybrid walk). `spawn_obj_at_mario_rel_yaw`
+    moved from ids to xids in `act_unlocking_key_door` / `act_exit_land_save_dialog`. Both spawn
+    entries left `cut_ext_ids`.
+  - **New SafeB symbols** (`SpawnInit.SafeB_syms_ok` (c), `CensusV2.safe_ptr_syms`):
+    `gCurrentObject`, the spawn_object.c / graph_node.c / object_helpers.c globals the tree
+    dereferences (`gFreeObjectList`, `gObjectLists`, `gObjParentGraphNode`, `gLoadedGraphNodes`,
+    `gVec3fZero`, `gVec3sZero`: `spawn_safe_syms`) and the twelve `bhv*` scripts the walked sites
+    pass (`spawn_bhv_syms`). `SpawnInit.gobj_not_nonsafe` re-checks that none is a
+    `non_safeb_syms` global.
+  - **New labeled open audio premise `Hsss : SpawnBodies.sss_inert`** (both capstones; audio is
+    deferred): `stop_sounds_from_source` (audio/external.c, not linked; called by
+    `unload_object`) changes no valid block and returns no pointer. Same shape as
+    `ExtInert.audio_inert`.
+  - **Non-vacuity.** The gate is met by every real call site (each walker's `vm_compute` acceptance
+    re-checks them against the generated code). Since `behavior_data.c` is linked (30th TU), the
+    scripts the sites pass are real-length blocks, so `create_object`'s `bhvScript[0]` read has an
+    execution.
+  - **Net:** GOAL 1 18 → 17 hypotheses (two spawn rows out, `Hsss` in); HeightFrame 27 → 26.
 - **`segmented_to_virtual` / `virtual_to_segmented` are the decomp's `NO_SEGMENTED_MEMORY`
   identity (2026-10-21; 2.2 register).** Before, they had no CompCert execution on any pointer:
   shifts and masks have no meaning on a `Vptr`. So every row and walk that passed through them held
@@ -1021,8 +1066,8 @@ link grows.
   - **Still no execution:** `interaction.c:881,889` compare `o->collisionData` with
     `warp_pipe_seg3_collision_03009AC8`, collision data that no linked TU defines (size 0; WMotR
     has no warp pipe). The segment-0 animation caveat below is unchanged. Spawns: `create_object`
-    is in `spawn_object.c`, still unlinked, so a spawn's script read still happens in an external;
-    the parent-gated spawn rows remain open (above).
+    was in `spawn_object.c`, then unlinked (linked since 2026-10-21; the spawn rows are lemmas,
+    see the spawn bullet above).
   - **Segment-0 animation caveat (under-approximation, not a wrong value).**
     - `set_mario_animation` stores `VIRTUAL_TO_PHYSICAL(anim)`, which the proof's C computes as
       `p - 0x80000000` (2.2 register).
@@ -1079,7 +1124,8 @@ link grows.
     an any-argument entry, above) and `spawn_object_abs_with_rot`, whose body is linked too
     (`object_helpers.c`) but which is the sr row `Hcp_soawr_real`, not an any-argument entry.
     After this sweep, the any-argument lists' linked entries are exactly those two spawn entries
-    and `save_file_do_save`.
+    and `save_file_do_save`. (2026-10-21: both spawn entries found false and repaired, see the
+    spawn bullet above; `save_file_do_save` is a lemma.)
 
 - **Premise sweep (2026-10-21): nine linked any-argument entries are lemmas** (`ObjExtBodies.v`).
   Walked over the generated bodies: the save_file.c readers `save_file_get_flags`,

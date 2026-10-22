@@ -201,6 +201,7 @@ proofs/MarioModel/SaveFileBody.v
 proofs/MarioModel/ObjHelpersBodies.v
 proofs/MarioModel/ObjExtBodies.v
 proofs/MarioModel/SaveDoSaveBody.v
+proofs/MarioModel/SpawnBodies.v
 
 # --- GOAL 1 / the perform_air_step surface (SPINE: pas_cp DISCHARGES the
 #     capstone's Hcp_pas_real perform_air_step blocker via a loop-tolerant

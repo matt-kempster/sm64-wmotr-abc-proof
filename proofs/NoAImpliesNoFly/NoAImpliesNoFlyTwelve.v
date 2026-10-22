@@ -43,7 +43,7 @@ From SM64.Generated Require mario mario_actions_stationary
   mario_actions_moving mario_actions_airborne mario_actions_submerged
   mario_actions_cutscene mario_actions_automatic mario_actions_object
   interaction behavior_actions level_update mario_step.
-From SM64.Proofs Require BullyBodies.
+From SM64.Proofs Require BullyBodies SpawnBodies.
 From SM64.Proofs Require Import Flying Taint ActionValue ActionValueFrame ReachableRun
   RealFrameValue RealFrameLinked AGates SymbolicLinking FieldNonInterference.
 From SM64.Proofs Require Import CensusV2 EngineV2Consumer.
@@ -68,8 +68,8 @@ Definition obj_ext_mem (i : ident) : bool :=
    linked -- the six save_file.c readers / flag writers and behavior_actions'
    bhv_spawn_star_no_level_exit -- are walked from their real bodies
    (ObjExtBodies).  Every store is a global-rooted chain into a stored global,
-   or (bhv_spawn_star) an integer store through spawn_object's SafeB result,
-   which is the capstone's own sr row Hcp_spawn_real. *)
+   or (bhv_spawn_star) an integer store through spawn_object's SafeB result
+   (its gated row, SpawnBodies.Hcp_spawn_sg). *)
 Definition obj_ext_body (i : ident) : bool :=
   Pos.eqb i interaction._save_file_get_flags
   || Pos.eqb i level_update._save_file_get_star_flags
@@ -88,7 +88,7 @@ Definition obj_ext_open2_ids : list ident :=
 
 Lemma obj_ext_open_of2 : forall lp bm bc oc0 SafeB, linked12 lp ->
     SafeB_syms_ok lp SafeB -> (exists init, spawn_ok lp init bm bc oc0) ->
-    call_pres_ext_sr lp bm (NoA_real bm) (MWF_real lp bm bc oc0 SafeB) SafeB
+    call_pres_ext_sg lp bm (NoA_real bm) (MWF_real lp bm bc oc0 SafeB) SafeB
       behavior_actions._spawn_object ->
     (forall fid, mem_id fid obj_ext_open2_ids = true ->
        FloorsSurface.call_pres_ext lp bm (NoA_real bm) (MWF_real lp bm bc oc0 SafeB) fid) ->
@@ -311,11 +311,25 @@ Section NoAImpliesNoFlyTwelve.
   Hypothesis Hpres_sta_ext : forall fid,
       mem_id fid StationaryLeafSurface.sta_ext_ids = true ->
       call_pres_ext lp bm (NoA_real bm) MWF fid.
-  (* 2026-10-19: replaces Hglob_obj_root, found false over MWF memories (see
-     NoAImpliesNoFlyLinked): spawn_object_abs_with_rot returns a SafeB object,
-     the same model class as Hcp_spawn_real. *)
-  Hypothesis Hcp_soawr_real : call_pres_ext_sr lp bm (NoA_real bm) MWF SafeB
+  (* PROVED 2026-10-21 (were rows): spawn_object.c is linked (the 31st TU),
+     so spawn_object and spawn_object_abs_with_rot are walked from their
+     real bodies (SpawnBodies: create_object / allocate_object /
+     try_allocate_object / unload_object / geo_obj_init and the
+     object_helpers / math_util / graph_node callees).  FOUND FALSE: their
+     any-argument rows (spawn_object stores parent and behavior into a SafeB
+     pool object, so an arbitrary pointer argument breaks MWF's load closure
+     R7).  Restated all-argument gated (call_pres_ext_sg); every walker
+     checks its real call sites.  The walk bottoms out in one unlinked audio
+     external, stop_sounds_from_source (unload_object), whose effect is the
+     LABELED OPEN AUDIO PREMISE Hsss (audio is deferred; TRUST 4.1): it
+     changes no valid block and returns no pointer. *)
+  Hypothesis Hsss : SpawnBodies.sss_inert.
+  Lemma Hcp_soawr_real : call_pres_ext_sg lp bm (NoA_real bm) MWF SafeB
       mario_actions_cutscene._spawn_object_abs_with_rot.
+  Proof.
+    exact (SpawnBodies.Hcp_soawr_sg lp H12 bm bc oc0 SafeB HSafeB_syms Hspawn Hsss
+             (NoA_real bm)).
+  Qed.
   (* the any-argument object externals still unlinked (obj_ext_open2_ids:
      the linked entries are proved, obj_ext_open_of2) *)
   Hypothesis Hpres_obj_ext_open2 : forall fid,
@@ -357,8 +371,12 @@ Section NoAImpliesNoFlyTwelve.
   Hypothesis Hpres_floors_ext : forall fid,
       mem_id fid floors_ext_ids = true ->
       call_pres_ext lp bm (NoA_real bm) MWF fid.
-  Hypothesis Hcp_spawn_real : call_pres_ext_sr lp bm (NoA_real bm) MWF SafeB
+  Lemma Hcp_spawn_real : call_pres_ext_sg lp bm (NoA_real bm) MWF SafeB
       behavior_actions._spawn_object.
+  Proof.
+    exact (SpawnBodies.Hcp_spawn_sg lp H12 bm bc oc0 SafeB HSafeB_syms Hspawn Hsss
+             (NoA_real bm)).
+  Qed.
   Lemma Hpres_obj_ext_open : forall fid,
       mem_id fid NoAImpliesNoFlyLinked.obj_ext_open_ids = true ->
       call_pres_ext lp bm (NoA_real bm) MWF fid.

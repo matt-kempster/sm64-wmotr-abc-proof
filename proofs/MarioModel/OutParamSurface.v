@@ -1401,10 +1401,19 @@ Section OutParamArc.
                   /\ Genv.find_symbol (lp_ge lp) g = Some b
     | _ => True
     end.
+  (* spawn_object / spawn_object_abs_with_rot (2026-10-21, spawn_object.c
+     linked): the real bodies store `parent` into obj->parentObj and
+     `behavior` into obj->behavior / curBhvCommand of a SafeB pool object,
+     so EVERY argument must be SafeB-if-pointer (SpawnBodies.v; a
+     spawn_bhv_syms script is SafeB at the capstone); the old any-argument
+     rows were FALSE. *)
+  Definition all_cond_safe (vargs : list val) : Prop :=
+    Forall (spawn_argv lp SafeB) vargs.
   Definition cs_gate (fid : ident) (vargs : list val) : Prop :=
     arg0_cond_safe vargs
     /\ (if Pos.eqb fid interaction._obj_set_held_state
-        then arg1_bhv_held vargs else True).
+        then arg1_bhv_held vargs
+        else if mem_id fid spawn_fids then all_cond_safe vargs else True).
 
   Definition call_pres_ext_cs (fid : ident) : Prop :=
     forall fd m0 vargs0 t0 m1 vres0,

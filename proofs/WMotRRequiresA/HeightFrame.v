@@ -67,6 +67,7 @@ From SM64.Proofs Require Import MWFReal RestSurface FloorsSurface
   ObjectLeafSurface CutsceneLeafSurface WindSurface WarpSurface
   FloorsLeafSurface.
 From SM64.Proofs Require Import LinkedTwelve SpawnInit InitMemSat.
+From SM64.Proofs Require SpawnBodies.
 From SM64.Proofs Require Import NoAImpliesNoFlyLinked NoAImpliesNoFlyTwelve.
 From SM64.Proofs Require Import FrameCalls FrameSplit AirSplit.
 From SM64.Proofs.WMotRRequiresA Require Import FfWorld FfRow AhwRow KbRow FpuFloor ExtInert.
@@ -398,11 +399,11 @@ Section HeightLinked12.
   Hypothesis Hpres_sta_ext : forall fid,
       mem_id fid StationaryLeafSurface.sta_ext_ids = true ->
       call_pres_ext lp bm (NoA_real bm) MWF fid.
-  (* 2026-10-19: replaces Hglob_obj_root, found false over MWF memories (see
-     NoAImpliesNoFlyLinked): spawn_object_abs_with_rot returns a SafeB object,
-     the same model class as Hcp_spawn_real. *)
-  Hypothesis Hcp_soawr_real : call_pres_ext_sr lp bm (NoA_real bm) MWF SafeB
-      mario_actions_cutscene._spawn_object_abs_with_rot.
+  (* 2026-10-21: the spawn pair's rows are PROVED from the linked
+     spawn_object.c bodies (SpawnBodies; their any-argument forms were
+     FALSE and are restated all-argument gated), resting on the labeled
+     open audio premise for stop_sounds_from_source (TRUST 4.1). *)
+  Hypothesis Hsss : SpawnBodies.sss_inert.
   (* memory.c's segment converters and the seven linked save_file.c /
      bhv_spawn_star entries are PROVED (NoAImpliesNoFlyTwelve.obj_ext_open_of2) *)
   Hypothesis Hpres_obj_ext_open2 : forall fid,
@@ -418,8 +419,6 @@ Section HeightLinked12.
   Hypothesis Hpres_floors_ext : forall fid,
       mem_id fid floors_ext_ids = true ->
       call_pres_ext lp bm (NoA_real bm) MWF fid.
-  Hypothesis Hcp_spawn_real : call_pres_ext_sr lp bm (NoA_real bm) MWF SafeB
-      behavior_actions._spawn_object.
   (* Hcp_savefile_real: PROVED inside NoAImpliesNoFlyTwelve from the real
      save_file.c body (SaveFileBody), no longer a row. *)
   (* area_get_warp_node / play_transition are PROVED
@@ -579,8 +578,8 @@ Section HeightLinked12.
   Proof.
     exact (frame_call_ok_linked12 lp H12 bm bc oc0 SafeB HSafeB_syms Hbm_sym Hbc_sym Hoc0
              Hsqrtf Hcsp_scm_real Hdma_floor WL_exempt
-             Hpres_sta_ext Hcp_soawr_real Hpres_obj_ext_open2 Hpres_cut_ext_open2
-             Hpres_floors_ext Hcp_spawn_real
+             Hpres_sta_ext Hsss Hpres_obj_ext_open2 Hpres_cut_ext_open2
+             Hpres_floors_ext
              Hpres_warp_ext_open Hext_action Hmwf_ext).
   Qed.
 
@@ -590,7 +589,7 @@ Section HeightLinked12.
       body_pres lp (NoA_real bm) MWF bm f.
   Proof.
     exact (air_leaves_linked12 lp H12 bm bc oc0 SafeB HSafeB_syms Hbm_sym Hbc_sym Hoc0
-             Hcsp_scm_real Hdma_floor Hpres_obj_ext_open2 Hpres_floors_ext Hcp_spawn_real
+             Hcsp_scm_real Hdma_floor Hsss Hpres_obj_ext_open2 Hpres_floors_ext
              Hpres_warp_ext_open).
   Qed.
 

@@ -29,7 +29,7 @@
 From Coq Require Import ZArith List.
 From compcert Require Import Coqlib Maps AST Integers Values Events Memory
   Globalenvs Ctypes Cop Clightdefs Clight ClightBigstep Linking Errors.
-From SM64.Generated Require behavior_actions.
+From SM64.Generated Require behavior_actions mario.
 From SM64.Proofs Require Import SymbolicLinking Flying Taint
   ActionValueFrame RealFrameValue RealFrameLinked.
 From SM64.Proofs Require Import CensusV2 EngineV2Consumer RestSurface
@@ -52,6 +52,85 @@ Definition call_pres_ext_sr (lp : Clight.program) (bm : block)
     action_sat not_tainted m0 bm ->
     Mem.valid_block m1 bm /\ action_sat not_tainted m1 bm /\ MWF m1 /\
     (forall b o, vres0 = Vptr b o -> SafeB b).
+
+(* The HONEST spawn row (2026-10-21, SpawnBodies.v): call_pres_ext_sr for
+   ANY arguments is FALSE for the real spawn_object -- spawn_object_at_origin
+   stores `parent` into obj->parentObj and create_object stores `behavior`
+   into obj->behavior / curBhvCommand, both inside a SafeB pool object, so a
+   non-SafeB pointer argument breaks MWF's R7 load closure.  The gate: every
+   argument, if a pointer, is SafeB or a spawn_bhv_syms script
+   (CensusV2.spawn_argv).  Proved from the real bodies
+   (SpawnBodies.Hcp_spawn_sg / Hcp_soawr_sg). *)
+Definition call_pres_ext_sg (lp : Clight.program) (bm : block)
+    (NoA MWF : mem -> Prop) (SafeB : block -> Prop) (fid : ident) : Prop :=
+  forall fd m0 vargs0 t0 m1 vres0,
+    eval_funcall function_entry2 (lp_ge lp) m0 fd vargs0 t0 m1 vres0 ->
+    (exists b, Genv.find_symbol (lp_ge lp) fid = Some b /\
+               Genv.find_funct (lp_ge lp) (Vptr b Ptrofs.zero) = Some fd) ->
+    Forall (spawn_argv lp SafeB) vargs0 ->
+    NoA m0 -> MWF m0 -> Mem.valid_block m0 bm ->
+    action_sat not_tainted m0 bm ->
+    Mem.valid_block m1 bm /\ action_sat not_tainted m1 bm /\ MWF m1 /\
+    (forall b o, vres0 = Vptr b o -> SafeB b).
+
+(* the spawn parent `m->marioObj` (mario_blow_off_cap,
+   spawn_obj_at_mario_rel_yaw): a load of Mario's marioObj cell, SafeB by
+   MWF's chase-root row (MWFReal.mwf_real_chase_safe at the capstone). *)
+Definition is_m_temp (mid : ident) (c : expr) : bool :=
+  match c with
+  | Etempvar s ty1 =>
+      Pos.eqb s mid && proj_sumbool (type_eq ty1 (tptr (Tstruct mario._MarioState noattr)))
+  | _ => false
+  end.
+Definition is_mobj_base (mid : ident) (b : expr) : bool :=
+  match b with
+  | Ederef c ty2 =>
+      proj_sumbool (type_eq ty2 (Tstruct mario._MarioState noattr)) && is_m_temp mid c
+  | _ => false
+  end.
+Definition is_mobj_load (mid : ident) (a : expr) : bool :=
+  match a with
+  | Efield b f ty3 =>
+      Pos.eqb f mario._marioObj
+      && proj_sumbool (type_eq ty3 (tptr (Tstruct mario._Object noattr)))
+      && is_mobj_base mid b
+  | _ => false
+  end.
+
+Lemma is_mobj_load_eq : forall mid a, is_mobj_load mid a = true ->
+    a = Efield (Ederef (Etempvar mid (tptr (Tstruct mario._MarioState noattr)))
+                  (Tstruct mario._MarioState noattr))
+          mario._marioObj (tptr (Tstruct mario._Object noattr)).
+Proof.
+  intros mid a H.
+  destruct a as [ | | | | | | | | | | | b f ty3 | | ]; try discriminate H.
+  cbn [is_mobj_load] in H.
+  apply andb_prop in H as [H Hb]. apply andb_prop in H as [Hf Ht3].
+  apply Pos.eqb_eq in Hf. subst f.
+  destruct (type_eq ty3 (tptr (Tstruct mario._Object noattr))); [ subst ty3 | discriminate Ht3 ].
+  destruct b as [ | | | | | | c ty2 | | | | | | | ]; try discriminate Hb.
+  cbn [is_mobj_base] in Hb. apply andb_prop in Hb as [Ht2 Hc].
+  destruct (type_eq ty2 (Tstruct mario._MarioState noattr)); [ subst ty2 | discriminate Ht2 ].
+  destruct c as [ | | | | | s ty1 | | | | | | | | ]; try discriminate Hc.
+  cbn [is_m_temp] in Hc. apply andb_prop in Hc as [Hs Ht1].
+  apply Pos.eqb_eq in Hs. subst s.
+  destruct (type_eq ty1 (tptr (Tstruct mario._MarioState noattr))); [ subst ty1 | discriminate Ht1 ].
+  reflexivity.
+Qed.
+
+Lemma mobj_load_safe : forall lp, linkorder mario.prog lp ->
+    forall (SafeB : block -> Prop) (MWF : mem -> Prop) bm mid a e le m v,
+    (forall m b' o', MWF m ->
+       Mem.loadv Mptr m (Vptr bm (Ptrofs.repr 136)) = Some (Vptr b' o') -> SafeB b') ->
+    is_mobj_load mid a = true ->
+    (forall b o, le ! mid = Some (Vptr b o) -> b = bm /\ o = Ptrofs.zero) ->
+    MWF m -> eval_expr (lp_ge lp) e le m a v ->
+    forall b o, v = Vptr b o -> SafeB b.
+Proof.
+  intros lp LO SafeB MWF bm mid a e le m v Hmobj Ha Hmid HM Hev b o ->.
+  apply is_mobj_load_eq in Ha. subst a.
+  exact (Hmobj _ _ _ HM (eval_marioObj_load_lp lp LO mid e le m bm b o Hmid Hev)).
+Qed.
 
 (* ====================================================================== *)
 (* The recognizer (top-level: no lp).  Accepts Sloop -- the walker's      *)
@@ -81,7 +160,9 @@ Definition wnd_set_chk (id : ident) (a : expr) : bool :=
   | Econst_int _ _ => Pos.eqb id behavior_actions._i
   | Ebinop Oadd b1 b2 _ =>
       Pos.eqb id behavior_actions._i && is_i_temp b1 && is_const_int b2
-  | Evar _ _ => Pos.eqb id behavior_actions._t'2
+  | Evar g (Tpointer _ _) =>
+      Pos.eqb id behavior_actions._t'2
+      && Pos.eqb g behavior_actions._gCurrentObject
   | Etempvar s _ =>
       Pos.eqb id behavior_actions._wind && Pos.eqb s behavior_actions._t'1
   | _ => false
@@ -139,18 +220,20 @@ Definition wnd_assign_chk (a1 a2 : expr) : bool :=
   | _ => false
   end.
 
-Definition is_spawn_fn (a : expr) : bool :=
+Definition is_spawn_fn (a : expr) (al : list expr) : bool :=
   match a with
-  | Evar fid (Tfunction _ _ _) =>
+  | Evar fid (Tfunction ps _ _) =>
       Pos.eqb fid behavior_actions._spawn_object
+      && spawn_args_ok spawn_bhv_syms (behavior_actions._t'2 :: nil) ps al
   | _ => false
   end.
 
-(* the one call: _t'1 = spawn_object(...).  Arguments unconstrained (the
-   row has no argument premise). *)
-Definition wnd_call_chk (optid : option ident) (a : expr) : bool :=
+(* the one call: _t'1 = spawn_object(gCurrentObject, MODEL_NONE, bhvWind).
+   The gated row's premise: _t'2 (the gCurrentObject load), a literal, and
+   the bhvWind script (CensusV2.spawn_args_ok). *)
+Definition wnd_call_chk (optid : option ident) (a : expr) (al : list expr) : bool :=
   match optid with
-  | Some t => Pos.eqb t behavior_actions._t'1 && is_spawn_fn a
+  | Some t => Pos.eqb t behavior_actions._t'1 && is_spawn_fn a al
   | None => false
   end.
 
@@ -159,7 +242,7 @@ Fixpoint wnd_chk (s : statement) : bool :=
   | Sskip | Sbreak => true
   | Sset id a => wnd_set_chk id a
   | Sassign a1 a2 => wnd_assign_chk a1 a2
-  | Scall optid a _ => wnd_call_chk optid a
+  | Scall optid a al => wnd_call_chk optid a al
   | Ssequence s1 s2 => wnd_chk s1 && wnd_chk s2
   | Sloop s1 s2 => wnd_chk s1 && wnd_chk s2
   | Sifthenelse _ s1 s2 => wnd_chk s1 && wnd_chk s2
@@ -185,9 +268,16 @@ Section WindSurface.
       MWF mm -> SafeB bsafe ->
       (forall bb oo, vv <> Vptr bb oo) ->
       Mem.store ch mm bsafe d vv = Some mm' -> MWF mm'.
-  (* THE residual this walk emits: the spawn_object model-boundary row. *)
-  Hypothesis Hcp_spawn : call_pres_ext_sr lp bm NoA MWF SafeB
+  (* spawn_object's gated row (SpawnBodies.Hcp_spawn_sg at the capstone). *)
+  Hypothesis Hcp_spawn : call_pres_ext_sg lp bm NoA MWF SafeB
       behavior_actions._spawn_object.
+  (* the parent argument: gCurrentObject is a SafeB symbol
+     (SpawnInit.SafeB_syms_ok (c)) and MWF's load closure R7 keeps the
+     pointer it holds SafeB (MWFReal.mwf_real_chase_step). *)
+  Hypothesis Hgco_safe : forall b,
+      Genv.find_symbol (lp_ge lp) behavior_actions._gCurrentObject = Some b -> SafeB b.
+  Hypothesis HR7 : forall m b ofs b' o', MWF m -> SafeB b ->
+      Mem.loadv Mint32 m (Vptr b ofs) = Some (Vptr b' o') -> SafeB b'.
 
   (* the threaded temp facts: yaw/pitch stay the entry Vints (no Sset in
      the body writes them); _t'1/_wind hold SafeB pointers IF pointers at
@@ -197,7 +287,8 @@ Section WindSurface.
     (exists n, le ! behavior_actions._yaw = Some (Vint n)) /\
     (exists n, le ! behavior_actions._pitch = Some (Vint n)) /\
     (forall b o, le ! behavior_actions._t'1 = Some (Vptr b o) -> SafeB b) /\
-    (forall b o, le ! behavior_actions._wind = Some (Vptr b o) -> SafeB b).
+    (forall b o, le ! behavior_actions._wind = Some (Vptr b o) -> SafeB b) /\
+    (forall b o, le ! behavior_actions._t'2 = Some (Vptr b o) -> SafeB b).
 
   Lemma wle_set_other :
     forall le id v,
@@ -205,10 +296,11 @@ Section WindSurface.
       Pos.eqb id behavior_actions._pitch = false ->
       Pos.eqb id behavior_actions._t'1 = false ->
       Pos.eqb id behavior_actions._wind = false ->
+      Pos.eqb id behavior_actions._t'2 = false ->
       wle le -> wle (PTree.set id v le).
   Proof.
-    intros le id v Hy Hp H1 Hw (Wy & Wp & W1 & Ww).
-    refine (conj _ (conj _ (conj _ _))).
+    intros le id v Hy Hp H1 Hw H2 (Wy & Wp & W1 & Ww & W2).
+    refine (conj _ (conj _ (conj _ (conj _ _)))).
     - destruct Wy as (n & Hn). exists n.
       rewrite PTree.gso; [ exact Hn | ].
       intro E. subst id. rewrite Pos.eqb_refl in Hy. discriminate Hy.
@@ -223,6 +315,10 @@ Section WindSurface.
       rewrite PTree.gso in Hg;
         [ exact (Ww b o Hg)
         | intro E; subst id; rewrite Pos.eqb_refl in Hw; discriminate Hw ].
+    - intros b o Hg.
+      rewrite PTree.gso in Hg;
+        [ exact (W2 b o Hg)
+        | intro E; subst id; rewrite Pos.eqb_refl in H2; discriminate H2 ].
   Qed.
 
   (* ================================================================== *)
@@ -312,7 +408,7 @@ Section WindSurface.
                   (or_intror eq_refl) HdS) as [E5 E6]; subst.
       apply eval_lvalue_Ederef_base in HlvS.
       apply eval_expr_Etempvar_val in HlvS.
-      pose proof Hwle as (Wy & Wp & W1 & Ww).
+      pose proof Hwle as (Wy & Wp & W1 & Ww & W2).
       pose proof (Ww _ _ HlvS) as Hsafe.
       (* the rvalue: the Vint-pinned scalar param; its cast stays non-ptr *)
       assert (Hsrcv : exists n, le ! src = Some (Vint n)).
@@ -364,11 +460,43 @@ Section WindSurface.
       + (* _i = const *)
         apply Pos.eqb_eq in Hchk. subst id.
         apply wle_set_other;
-          [ reflexivity | reflexivity | reflexivity | reflexivity | exact Hwle ].
-      + (* _t'2 = gCurrentObject *)
-        apply Pos.eqb_eq in Hchk. subst id.
-        apply wle_set_other;
-          [ reflexivity | reflexivity | reflexivity | reflexivity | exact Hwle ].
+          [ reflexivity | reflexivity | reflexivity | reflexivity | reflexivity
+          | exact Hwle ].
+      + (* _t'2 = gCurrentObject: a SafeB symbol's cell, R7 *)
+        destruct gty as [ | | | | pt pa | | | | ]; try discriminate Hchk.
+        apply andb_true_iff in Hchk. destruct Hchk as [Hid Hg].
+        apply Pos.eqb_eq in Hid. apply Pos.eqb_eq in Hg. subst id g.
+        destruct Hwle as (Wy & Wp & W1 & Ww & W2).
+        refine (conj _ (conj _ (conj _ (conj _ _)))).
+        * destruct Wy as (n & Hn). exists n.
+          rewrite PTree.gso; [ exact Hn | discriminate ].
+        * destruct Wp as (n & Hn). exists n.
+          rewrite PTree.gso; [ exact Hn | discriminate ].
+        * intros b o Hgt.
+          rewrite PTree.gso in Hgt; [ exact (W1 b o Hgt) | discriminate ].
+        * intros b o Hgt.
+          rewrite PTree.gso in Hgt; [ exact (Ww b o Hgt) | discriminate ].
+        * intros b o Hgt.
+          rewrite PTree.gss in Hgt. injection Hgt as ->.
+          destruct Hc as (_ & _ & HM & _).
+          subst e.
+          match goal with Hev : eval_expr _ _ _ _ (Evar _ _) _ |- _ =>
+            inversion Hev; subst end.
+          match goal with Hl : eval_lvalue _ _ _ _ (Evar _ _) _ _ _ |- _ =>
+            inversion Hl; subst end.
+          -- match goal with Hz : empty_env ! _ = Some _ |- _ =>
+               rewrite PTree.gempty in Hz; discriminate Hz end.
+          -- match goal with Hd : deref_loc _ _ _ _ _ _ |- _ => inversion Hd; subst end;
+               try match goal with Ha : access_mode _ = _ |- _ =>
+                 cbn in Ha; discriminate Ha end.
+             match goal with
+             | Ha : access_mode _ = By_value _ |- _ => cbn in Ha; injection Ha as <-
+             end.
+             match goal with
+             | Hs : Genv.find_symbol _ _ = Some ?l,
+               Hld : Mem.loadv _ _ _ = Some (Vptr b o) |- _ =>
+                 exact (HR7 _ _ _ _ _ HM (Hgco_safe _ Hs) Hld)
+             end.
       + (* the TRANSFER: _wind = _t'1 *)
         apply andb_true_iff in Hchk. destruct Hchk as [Hid Hs0].
         apply Pos.eqb_eq in Hid. apply Pos.eqb_eq in Hs0. subst id s0.
@@ -376,8 +504,8 @@ Section WindSurface.
         | Hev : eval_expr _ _ _ _ (Etempvar _ _) _ |- _ =>
             apply eval_expr_Etempvar_val in Hev
         end.
-        destruct Hwle as (Wy & Wp & W1 & Ww).
-        refine (conj _ (conj _ (conj _ _))).
+        destruct Hwle as (Wy & Wp & W1 & Ww & W2).
+        refine (conj _ (conj _ (conj _ (conj _ _)))).
         * destruct Wy as (n & Hn). exists n.
           rewrite PTree.gso; [ exact Hn | discriminate ].
         * destruct Wp as (n & Hn). exists n.
@@ -390,13 +518,16 @@ Section WindSurface.
           | Hev : le ! behavior_actions._t'1 = Some (Vptr _ _) |- _ =>
               exact (W1 _ _ Hev)
           end.
+        * intros b o Hg.
+          rewrite PTree.gso in Hg; [ exact (W2 b o Hg) | discriminate ].
       + (* _i = _i + 1 *)
         destruct bop; try discriminate Hchk.
         apply andb_true_iff in Hchk. destruct Hchk as [Hchk _].
         apply andb_true_iff in Hchk. destruct Hchk as [Hid _].
         apply Pos.eqb_eq in Hid. subst id.
         apply wle_set_other;
-          [ reflexivity | reflexivity | reflexivity | reflexivity | exact Hwle ].
+          [ reflexivity | reflexivity | reflexivity | reflexivity | reflexivity
+          | exact Hwle ].
     - (* Scall: spawn_object through the carried+SafeB-return row *)
       cbn [wnd_chk] in Hchk. unfold wnd_call_chk in Hchk.
       destruct Hc as (HV & HS & HM & HN).
@@ -406,6 +537,7 @@ Section WindSurface.
       unfold is_spawn_fn in Hfid.
       destruct a as [ | | | | fid fty | | | | | | | | | ]; try discriminate Hfid.
       destruct fty as [ | | | | | | tyl rty cc1 | | ]; try discriminate Hfid.
+      apply andb_true_iff in Hfid. destruct Hfid as [Hfid Hsa].
       apply Pos.eqb_eq in Hfid. subst fid.
       subst e.
       match goal with
@@ -413,18 +545,29 @@ Section WindSurface.
           apply (eval_Evar_funct_empty lp) in Hvf;
           destruct Hvf as (bf0 & Hsym & ->)
       end.
+      match goal with Hcf : classify_fun _ = fun_case_f _ _ _ |- _ =>
+        cbn in Hcf; injection Hcf as E1 E2 E3; subst end.
+      pose proof Hwle as (_ & _ & _ & _ & W2a).
+      match goal with Hel : eval_exprlist _ _ _ _ _ _ _ |- _ =>
+        pose proof (spawn_args_sound lp SafeB empty_env le m spawn_bhv_syms
+                      (behavior_actions._t'2 :: nil) _ _ _
+                      (fun g _ => PTree.gempty _ g)
+                      (fun t Ht b o Hg => ltac:(
+                         cbn [mem_id existsb] in Ht; rewrite orb_false_r in Ht;
+                         apply Pos.eqb_eq in Ht; subst t; exact (W2a b o Hg)))
+                      Hsa Hel) as Hva end.
       match goal with
       | Hff : Genv.find_funct _ (Vptr bf0 Ptrofs.zero) = Some _,
         Hevf : eval_funcall _ _ _ _ _ _ _ _ |- _ =>
           destruct (Hcp_spawn _ _ _ _ _ _ Hevf
-                      (ex_intro _ bf0 (conj Hsym Hff))
+                      (ex_intro _ bf0 (conj Hsym Hff)) Hva
                       HN HM HV HS) as (HV' & HS' & HM' & Hret)
       end.
       split.
       { exact (conj HV' (conj HS' (conj HM' (HNoA_of_MWF _ HM')))). }
-      destruct Hwle as (Wy & Wp & W1 & Ww).
+      destruct Hwle as (Wy & Wp & W1 & Ww & W2).
       cbn [set_opttemp].
-      refine (conj _ (conj _ (conj _ _))).
+      refine (conj _ (conj _ (conj _ (conj _ _)))).
       + destruct Wy as (n & Hn). exists n.
         rewrite PTree.gso; [ exact Hn | discriminate ].
       + destruct Wp as (n & Hn). exists n.
@@ -434,6 +577,8 @@ Section WindSurface.
         exact (Hret _ _ Hg).
       + intros b o Hg.
         rewrite PTree.gso in Hg; [ exact (Ww b o Hg) | discriminate ].
+      + intros b o Hg.
+        rewrite PTree.gso in Hg; [ exact (W2 b o Hg) | discriminate ].
     - (* Sbuiltin: rejected *)
       cbn [wnd_chk] in Hchk. discriminate Hchk.
     - (* Sseq_1 *)
@@ -526,10 +671,14 @@ Section WindSurface.
                           (PTree.set behavior_actions._pitch (Vint n1)
                              (create_undef_temps
                                 (fn_temps behavior_actions.f_spawn_wind_particles))))).
-    { refine (conj _ (conj _ (conj _ _))).
+    { refine (conj _ (conj _ (conj _ (conj _ _)))).
       - exists n2. apply PTree.gss.
       - exists n1.
         rewrite PTree.gso; [ apply PTree.gss | discriminate ].
+      - intros b o Hg.
+        rewrite PTree.gso in Hg; [ | discriminate ].
+        rewrite PTree.gso in Hg; [ | discriminate ].
+        vm_compute in Hg. discriminate Hg.
       - intros b o Hg.
         rewrite PTree.gso in Hg; [ | discriminate ].
         rewrite PTree.gso in Hg; [ | discriminate ].
