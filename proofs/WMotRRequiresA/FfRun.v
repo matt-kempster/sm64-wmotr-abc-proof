@@ -9,18 +9,22 @@
 (*   perform_air_step                              AirSum.c_pas           *)
 (*   set_mario_animation                           SmaXc.c_sma (DMA floor)*)
 (*   update_air_without_turn                       AirWr (FPU floor)      *)
-(*   play_sound / set_camera_shake_from_hit / sqrtf  ExtInert             *)
+(*   play_sound / sqrtf                            ExtInert             *)
+(*   set_camera_shake_from_hit: WALKED, its real camera.c body (region    *)
+(*     RLK = gLakituState, the only block its FALL_DAMAGE / GROUND_POUND   *)
+(*     paths write)                                                       *)
 (* and every one of the walk's outcomes passes FfClass.ff_ok.             *)
 (*                                                                        *)
 (* Premises: the start state (env_ok + the start facts, to be proved from *)
 (* the frame memory), the floor data and floor refresh of AirMove, the    *)
-(* hardware floors (DMA, FPU), and the labeled audio/camera premises.     *)
+(* hardware floors (DMA, FPU), and the labeled audio premise.             *)
 (* ====================================================================== *)
 
-From Coq Require Import List ZArith Reals.
+From Coq Require Import List ZArith Reals Lia.
 From compcert Require Import Coqlib Maps AST Integers Floats Values Memory Events Globalenvs
   Ctypes Clight ClightBigstep.
-From SM64.Generated Require mario_step mario mario_actions_airborne memory surface_collision level_update.
+From SM64.Generated Require mario_step mario mario_actions_airborne memory surface_collision level_update
+  camera.
 From SM64.Proofs Require Import Interp.SymExec2 Interp.LinkGenv MarioModel.LinkedTwelve
   MarioModel.OsDmaFloor MarioModel.MathGeomGated HeightInvariant HeightMoveCatalog WMotRLevel.
 From SM64.Proofs.WMotRRequiresA Require Import FloorHeight FloorExec AirXc AirRun AirWr WallExec AirMatch AirMove SmaXc AirSum FpuFloor FpWalk ExtInert FfClass AirStart FfKeepCheck RetOk.
@@ -37,6 +41,7 @@ Definition RIOM : positive := 10.
 Definition RMQ : positive := 11.
 Definition RRM : positive := 12.
 Definition RAR : positive := 13.   (* gAudioRandom, a world cell *)
+Definition RLK : positive := 3.    (* gLakituState (camera.c): set_camera_shake_from_hit's writes *)
 Definition kM : positive := 3.
 Definition kB : positive := 4.
 
@@ -45,13 +50,14 @@ Variable g : genv.
 
 Definition R0F : list (positive * Z) :=
   [(RM, szs g mario._MarioState); (RO, szs g mario._Object); (RFI, 2); (RMISS, 4); (RCALLS, 6);
-   (RLD, szs g mario._DmaHandlerList); (RBUF, Ptrofs.modulus); (RIOM, 20); (RMQ, 24); (RRM, 4)].
+   (RLD, szs g mario._DmaHandlerList); (RBUF, Ptrofs.modulus); (RIOM, 20); (RMQ, 24); (RRM, 4);
+   (RLK, szs g camera._LakituState)].
 Definition gtabF : list (ident * positive) :=
   [(surface_collision._gFindFloorIncludeSurfaceIntangible, RFI);
    (surface_collision._gNumFindFloorMisses, RMISS); (surface_collision._gNumCalls, RCALLS);
    (mario._gSineTable, RSIN); (level_update._gMarioStates, RM); (mario._gMarioAnimsBuf, RLD);
    (memory._gDmaIoMesg, RIOM); (memory._gDmaMesgQueue, RMQ); (memory._gMainReceivedMesg, RRM);
-   (mario._gAudioRandom, RAR)].
+   (mario._gAudioRandom, RAR); (camera._gLakituState, RLK)].
 (* known cells: marioObj, action = ACT_FREEFALL, heldObj = riddenObj = NULL,
    animList = &gMarioAnimsBuf *)
 Definition kvF : list (positive * Z * memory_chunk * sval) :=
@@ -75,7 +81,7 @@ Definition pc0F : list fact :=
   ++ ffacts (Sinit RM (AirRun.fo g mario._MarioState mario._floor) Mint32).
 Definition xcI : ident -> option xcontract := air_xc NBF R0F RFI RMISS RCALLS kW kH kS (szs g mario._Surface).
 Definition jkI : list (positive * Z * memory_chunk) := jkeys ++ [(RM, AirRun.fo g mario._MarioState mario._wall, Mint32)].
-Definition ext_ids : list ident := [AIR._play_sound; AIR._sqrtf; AIR._set_camera_shake_from_hit].
+Definition ext_ids : list ident := [AIR._play_sound; AIR._sqrtf].
 Definition xcF (id : ident) : option xcontract :=
   match xcI id with
   | Some k => Some k
@@ -138,6 +144,23 @@ Lemma aud_sym : forall lp, linked12 lp ->
 Proof.
   intros lp H12. exact (SymbolicLinking.linkorder_resolves_symbol lp mario.prog _ _ (linked12_LO_mario lp H12) dm_aud).
 Qed.
+(* gLakituState (camera.c, linked) has a block *)
+Lemma dm_lak : (prog_defmap camera.prog) ! camera._gLakituState = Some (Gvar camera.v_gLakituState).
+Proof. vm_compute. reflexivity. Qed.
+Lemma lak_sym : forall lp, linked12 lp ->
+  exists b, Genv.find_symbol (globalenv lp) camera._gLakituState = Some b.
+Proof.
+  intros lp H12. exact (SymbolicLinking.linkorder_resolves_symbol lp camera.prog _ _ (linked12_LO_camera lp H12) dm_lak).
+Qed.
+Lemma lak_size12 : match ge12 with
+  | Some g => Z.leb 0 (szs g camera._LakituState) && Z.leb (szs g camera._LakituState) 4096
+  | None => false end = true.
+Proof. vm_compute. reflexivity. Qed.
+Lemma lak_size : forall lp, linked12 lp -> 0 <= szs (globalenv lp) camera._LakituState <= 4096.
+Proof.
+  intros lp H12. pose proof lak_size12 as L. rewrite (ge12_ok lp H12) in L.
+  apply andb_true_iff in L as [A B]. apply Z.leb_le in A, B. lia.
+Qed.
 
 Lemma sqrtf_named_air : ext_named ((prog_defmap AIR.prog) ! AIR._sqrtf) "sqrtf" = true.
 Proof. vm_compute. reflexivity. Qed.
@@ -157,7 +180,6 @@ Hypothesis Hdma : os_dma_floor.
 Hypothesis Hsq : sqrtf_spec.
 Hypothesis Hsqf : sqrtf_float.
 Hypothesis Haudio : audio_inert.      (* LABELED OPEN PREMISE: audio, deferred *)
-Hypothesis Hcamera : camera_inert.    (* LABELED OPEN PREMISE: camera, deferred *)
 
 Variables (m0 : mem) (gp : meminj).
 Hypothesis GPO : forall b x, gp b = Some x -> Plt b (Mem.nextblock m0).
@@ -223,13 +245,11 @@ Proof.
         -- destruct (existsb (Pos.eqb id) (ext_ids)) eqn:Ex; [| discriminate Hx].
            injection Hx as <-.
            apply existsb_exists in Ex as (x & Ix & Ex). apply Pos.eqb_eq in Ex. subst x.
-           destruct Ix as [<- | [<- | [<- | []]]].
+           destruct Ix as [<- | [<- | []]].
            ++ exact (ext_fresh_sound lp H12 _ _ ps_named ps_ni (audio_ps Haudio) NBF (R0F G) gtabF (kvF G) m0 uf gp GPO
                        args g cps fd E m vargs t m' vres Hk Hl MM EV).
            ++ exact (ext_fresh_sound lp H12 _ _ sqrtf_named_air sqrtf_ni (sqrtf_inert Hsq Hsqf)
                        NBF (R0F G) gtabF (kvF G) m0 uf gp GPO args g cps fd E m vargs t m' vres Hk Hl MM EV).
-           ++ exact (ext_fresh_sound lp H12 _ _ csh_named csh_ni Hcamera NBF (R0F G) gtabF (kvF G) m0 uf gp GPO
-                       args g cps fd E m vargs t m' vres Hk Hl MM EV).
 Qed.
 
 Lemma ffcheck_lp : exists cs,

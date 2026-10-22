@@ -58,7 +58,7 @@ From compcert Require Import Coqlib Maps AST Integers Floats Values Events Memor
 From SM64.Generated Require mario mario_actions_stationary
   mario_actions_moving mario_actions_airborne mario_actions_submerged
   mario_actions_cutscene mario_actions_automatic mario_actions_object
-  interaction behavior_actions level_update mario_step.
+  interaction behavior_actions level_update mario_step camera.
 From SM64.Proofs Require Import Flying Taint ActionValue ActionValueFrame ReachableRun
   RealFrameValue RealFrameLinked AGates SymbolicLinking FieldNonInterference.
 From SM64.Proofs Require Import CensusV2 EngineV2Consumer.
@@ -376,6 +376,12 @@ Section HeightLinked12.
   Hypothesis Hcsp_scm_real :
     call_pres_ext_cs lp bm (NoA_real bm) MWF SafeB
       interaction._set_camera_mode.
+  (* camera.c is linked (2026-10-22): the row above is about the REAL
+     camera.c body, and set_camera_mode reached from mario.c is a pinned rest
+     case owing this gated residual over that body (LABELED OPEN PREMISE:
+     camera, deferred; GOAL 1's Hscm_body_real, docs/TRUST.md 4.1). *)
+  Hypothesis Hscm_body_real :
+    RestSurface.body_pres_w lp MWF bm SafeB camera.f_set_camera_mode.
   (* load_patchable_table: PROVED from its real memory.c body and dma_read's
      (LptBody), down to the libultra DMA calls, whose effect is the
      hardware/OS floor spec (OsDmaFloor, TRUST 3.5). *)
@@ -602,7 +608,6 @@ Section HeightLinked12.
   Hypothesis Hsqrtf : sqrtf_spec.
   Hypothesis Hsqrtf_float : sqrtf_float.
   Hypothesis Haudio : audio_inert.      (* LABELED OPEN PREMISE: audio, deferred *)
-  Hypothesis Hcamera : camera_inert.    (* LABELED OPEN PREMISE: camera, deferred *)
 
   (* the automatic dispatcher's cases: the two grabs and two ledge cases proved, the rest assumed *)
   Lemma Hauto_case : aut_case_rows lp bm MWF.
@@ -613,7 +618,7 @@ Section HeightLinked12.
 
   Lemma Hair_case : air_case_rows lp bm MWF.
   Proof.
-    exact (air_case_rows_ff8 lp H12 Hdma_floor Hsqrtf Hsqrtf_float Haudio Hcamera bm Hbm_sym MWF).
+    exact (air_case_rows_ff8 lp H12 Hdma_floor Hsqrtf Hsqrtf_float Haudio bm Hbm_sym MWF).
   Qed.
 
   Lemma call_facts :
@@ -625,7 +630,7 @@ Section HeightLinked12.
     /\ chase_safe_stmt bm SafeB MWF /\ store_safe_stmt lp bm SafeB MWF.
   Proof.
     exact (frame_call_ok_linked12 lp H12 bm bc oc0 SafeB HSafeB_syms Hbm_sym Hbc_sym Hoc0
-             Hsqrtf Hcsp_scm_real Hdma_floor WL_exempt
+             Hsqrtf Hcsp_scm_real Hscm_body_real Hdma_floor WL_exempt
              Hpres_sta_ext Hsss Hpres_obj_ext_open2 Hpres_cut_ext_open2
              Hpres_floors_ext
              Hpres_warp_ext_open Hext_action Hmwf_ext).

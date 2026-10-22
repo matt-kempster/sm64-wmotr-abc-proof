@@ -629,14 +629,14 @@ Definition v_level_script_entry := {|
 
 Definition v_gMainReceivedMesg := {|
   gvar_info := (tptr tvoid);
-  gvar_init := nil;
+  gvar_init := (Init_space 4 :: nil);
   gvar_readonly := false;
   gvar_volatile := false
 |}.
 
 Definition v_gSIEventMesgQueue := {|
   gvar_info := (Tstruct _OSMesgQueue_s noattr);
-  gvar_init := nil;
+  gvar_init := (Init_space 24 :: nil);
   gvar_readonly := false;
   gvar_volatile := false
 |}.
@@ -664,7 +664,7 @@ Definition v_gShowProfiler := {|
 
 Definition v_gShowDebugText := {|
   gvar_info := tschar;
-  gvar_init := nil;
+  gvar_init := (Init_space 1 :: nil);
   gvar_readonly := false;
   gvar_volatile := false
 |}.

@@ -77,6 +77,7 @@ all in `Unwired/`, and the theorem moved nowhere. See
   MWF does not read keeps MWF (`np_store_pres`), so `gWarpTransition` & co. did not have to join
   `stored_globals`. Still-linked any-argument entries: none (the spawn pair left `cut_ext_ids`).
   Counts: GOAL 1 17; HeightFrame 26 incl. its 3 section rows (2026-10-21, spawn: −2 rows, +Hsss).
+  2026-10-22: HeightFrame's section has 27 `Hypothesis` lines (28 → 27: `Hcamera` proved away).
   `surface_load.c` linked 2026-10-22 (32nd TU), then `macro_special_objects.c` + WMotR level data
   (TUs 33-34): counts unchanged (no row names their functions).
 - **GOAL 2** (WMotR needs A): `WMotRRequiresA/HeightFrame.v`,
@@ -193,10 +194,14 @@ all in `Unwired/`, and the theorem moved nowhere. See
     HOLDING_POLE is PROVED (2026-10-22, `PoleHold`, TRUST (m); `Haudio` now also covers
     `set_sound_moving_speed`). `Hauto_rest : LedgeRow.aut_case_rest_ledge` holds 7. Ledge kit: `LedgeRun` (xcL,
     `ufL` with kL), `LedgeClass` (ledge_ok / letgo_ok and their soundness).
-    BLOCKED: CLIMB_SLOW_1/2, CLIMB_FAST and IN_CANNON store through `m->statusForCamera`
-    = the size-0 `gPlayerCameraState` (camera.c unlinked). That same store is in every
-    frame's update_mario_info_for_cam, so the frame capstones are VACUOUS for the real game
-    until camera.c's storage is linked (TRUST (l)). Fix that first.
+    camera.c is LINKED (35th TU, 2026-10-22): `gPlayerCameraState` is real storage, and
+    gLakituState is a walk region (`FfRun.RLK`, in ffw / ff_rl), so the REAL
+    set_camera_shake_from_hit body is walked and `Hcamera` is GONE (proved, not restated).
+    The StartSat witness now runs init_mario_from_save_file's stores (tethered to the real
+    body, `ifs_tether`) and `goal2_start_sat` concludes `frame_runs`: one real no-A frame
+    runs from the witness (before, it had NO frame: statusForCamera / marioBodyState NULL).
+    CLIMB_SLOW_1/2, CLIMB_FAST, IN_CANNON can now be attempted (their statusForCamera store
+    has storage).
     Ready contracts: `SmaXc.c_smawa` (set_mario_anim_with_accel)
     and `PoleXc.past_frame_value_contract` (is_anim_past_frame).
     Blockers for the remaining pole cases:

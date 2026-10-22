@@ -17,7 +17,7 @@ From Coq Require Import List ZArith Lia Reals Lra.
 From compcert Require Import Coqlib Maps AST Integers Floats Values Memory Events Globalenvs
   Ctypes Clight ClightBigstep Linking.
 From SM64.Generated Require mario_step mario mario_actions_airborne mario_actions_automatic memory
-  surface_collision level_update.
+  surface_collision level_update camera.
 From SM64.Proofs Require Import Interp.SymExec2 Interp.LinkGenv MarioModel.LinkedTwelve
   MarioModel.OsDmaFloor HeightInvariant HeightMoveCatalog WMotRLevel WMotRWorld.
 From SM64.Proofs Require Import RealFrameLinked AirborneSurface NoAImpliesNoFlyLinked.
@@ -90,13 +90,14 @@ Lemma acn_pole : In (Int.unsigned (Int.repr acn)) pole_acts.
 Proof. destruct Hpa as [<- | [<- | [<- | []]]]; cbn; auto 7. Qed.
 
 (* the walk's environment *)
-Definition Epl (bo bfi bmiss bcalls bsin ab bt biom bmq brm bau bbt bgp blv : block) (oo uo : ptrofs) : senv :=
+Definition Epl (bo bfi bmiss bcalls bsin ab bt biom bmq brm bau blk bbt bgp blv : block) (oo uo : ptrofs) : senv :=
   mke (fun r => if Pos.eqb r RM then bm else if Pos.eqb r RO then bo
                 else if Pos.eqb r RFI then bfi else if Pos.eqb r RMISS then bmiss
                 else if Pos.eqb r RCALLS then bcalls else if Pos.eqb r RSIN then bsin
                 else if Pos.eqb r RLD then ab else if Pos.eqb r RBUF then bt
                 else if Pos.eqb r RIOM then biom else if Pos.eqb r RMQ then bmq
                 else if Pos.eqb r RRM then brm else if Pos.eqb r RAR then bau
+                else if Pos.eqb r RLK then blk
                 else if Pos.eqb r RU then bo else if Pos.eqb r RBT then bbt
                 else if Pos.eqb r RGP then bgp else if Pos.eqb r RLV then blv else bm)
       (fun r => if Pos.eqb r RO then oo else if Pos.eqb r RU then uo else Ptrofs.zero)
@@ -107,7 +108,7 @@ Lemma r0p_size : forall r sz, r0_size (R0P G) r = Some sz ->
   \/ (r = RFI /\ sz = 2) \/ (r = RMISS /\ sz = 4) \/ (r = RCALLS /\ sz = 6)
   \/ (r = RLD /\ sz = szs G mario._DmaHandlerList) \/ (r = RBUF /\ sz = Ptrofs.modulus)
   \/ (r = RIOM /\ sz = 20) \/ (r = RMQ /\ sz = 24) \/ (r = RRM /\ sz = 4)
-  \/ (r = RU /\ sz = szs G mario._Object).
+  \/ (r = RLK /\ sz = szs G camera._LakituState) \/ (r = RU /\ sz = szs G mario._Object).
 Proof.
   intros r sz H. unfold r0_size, R0P, R0F in H. cbn [app find fst] in H.
   destruct (Pos.eqb RM r) eqn:E1; [apply Pos.eqb_eq in E1; injection H as <-; auto |].
@@ -120,32 +121,34 @@ Proof.
   destruct (Pos.eqb RIOM r) eqn:E8; [apply Pos.eqb_eq in E8; injection H as <-; auto 16 |].
   destruct (Pos.eqb RMQ r) eqn:E9; [apply Pos.eqb_eq in E9; injection H as <-; auto 18 |].
   destruct (Pos.eqb RRM r) eqn:E10; [apply Pos.eqb_eq in E10; injection H as <-; auto 20 |].
-  destruct (Pos.eqb RU r) eqn:E11; [apply Pos.eqb_eq in E11; injection H as <-; auto 22 | discriminate].
+  destruct (Pos.eqb RLK r) eqn:E12; [apply Pos.eqb_eq in E12; injection H as <-; auto 22 |].
+  destruct (Pos.eqb RU r) eqn:E11; [apply Pos.eqb_eq in E11; injection H as <-; auto 24 | discriminate].
 Qed.
 
 Ltac r0p_cases H :=
   destruct (r0p_size _ _ H) as
     [(-> & ?) | [(-> & ?) | [(-> & ?) | [(-> & ?) | [(-> & ?) | [(-> & ?) | [(-> & ?) | [(-> & ?)
-    | [(-> & ?) | [(-> & ?) | (-> & ?)]]]]]]]]]].
+    | [(-> & ?) | [(-> & ?) | [(-> & ?) | (-> & ?)]]]]]]]]]]].
 
 Ltac epl := cbn [Epl e_blk e_base];
-  cbn [Pos.eqb RM RO RFI RMISS RCALLS RSIN RLD RBUF RIOM RMQ RRM RAR RU RBT RGP RLV].
+  cbn [Pos.eqb RM RO RFI RMISS RCALLS RSIN RLD RBUF RIOM RMQ RRM RAR RLK RU RBT RGP RLV].
 Ltac epl_in H := cbn [Epl e_blk e_base] in H;
-  cbn [Pos.eqb RM RO RFI RMISS RCALLS RSIN RLD RBUF RIOM RMQ RRM RAR RU RBT RGP RLV] in H.
+  cbn [Pos.eqb RM RO RFI RMISS RCALLS RSIN RLD RBUF RIOM RMQ RRM RAR RLK RU RBT RGP RLV] in H.
 
-Lemma pl_sizes : forall bo bfi bmiss bcalls bsin ab bt biom bmq brm bau bbt bgp blv oo uo,
+Lemma pl_sizes : forall bo bfi bmiss bcalls bsin ab bt biom bmq brm bau blk bbt bgp blv oo uo,
   Ptrofs.unsigned oo + SZ_OBJECT <= Ptrofs.modulus -> Ptrofs.unsigned uo + SZ_OBJECT <= Ptrofs.modulus ->
   forall r sz, r0_size (R0P G) r = Some sz ->
     Plt r NBP /\ 0 <= sz
-    /\ Ptrofs.unsigned (e_base (Epl bo bfi bmiss bcalls bsin ab bt biom bmq brm bau bbt bgp blv oo uo) r) + sz
+    /\ Ptrofs.unsigned (e_base (Epl bo bfi bmiss bcalls bsin ab bt biom bmq brm bau blk bbt bgp blv oo uo) r) + sz
        <= Ptrofs.modulus.
 Proof.
-  intros bo bfi bmiss bcalls bsin ab bt biom bmq brm bau bbt bgp blv oo uo Soo Suo r sz H.
+  intros bo bfi bmiss bcalls bsin ab bt biom bmq brm bau blk bbt bgp blv oo uo Soo Suo r sz H.
   destruct (KbRow.ff_layout lp H12) as (_ & _ & _ & _ & _ & _ & ZO & _ & _ & ZM & ZD).
   pose proof (Ptrofs.unsigned_range oo) as Ro.
   assert (Mod : Ptrofs.modulus = 4294967296) by reflexivity.
   assert (P1 : 0 <= szs G mario._MarioState)
     by (unfold szs; pose proof (sizeof_pos G (Tstruct mario._MarioState noattr)); lia).
+  pose proof (lak_size lp H12) as ZL.
   assert (P2 : 0 <= szs G mario._DmaHandlerList)
     by (unfold szs; pose proof (sizeof_pos G (Tstruct mario._DmaHandlerList noattr)); lia).
   unfold SZ_OBJECT in ZO, Soo, Suo.
@@ -168,8 +171,8 @@ Theorem pole_row : forall m t m' vres c0,
 Proof.
   intros m t m' vres c0 Vm (Ha & HW & Han & Hmob & Hd & FW & UO) RC Hbud Hact Hfr EV.
   destruct FW as (Hgn & EX & FD).
-  destruct EX as (gp & bfi & bmiss & bcalls & bsin & ab & biom & bmq & brm & bo & oo & bt & ot & fl & ar & inp & ctl &
-                  HC & HS & HM & S1 & S2 & S3 & S4 & S5 & S6 & S7 & S8 & Lo & Soo & La & Lb & Sot & D1 & D2 & D3 & D4 &
+  destruct EX as (gp & bfi & bmiss & bcalls & bsin & ab & biom & bmq & brm & blk & bo & oo & bt & ot & fl & ar & inp & ctl &
+                  HC & HS & HM & S1 & S2 & S3 & S4 & S5 & S6 & S7 & S8 & SL & Lo & Soo & La & Lb & Sot & D1 & D2 & D3 & D4 &
                   W & Lf & Wf & Wc0 & Lar & War & Li & Ai & Lc & Wc & Co).
   destruct (KbRow.ff_layout lp H12) as (FO & FA & FF & FAr & FH & FR & ZO & ZS & ZA & ZM & ZD).
   destruct (aud_sym lp H12) as (bau & S9).
@@ -189,7 +192,7 @@ Proof.
   destruct LP as (base & top & Hpl & Ht & P1 & P2 & P3).
   destruct (pole_low base top Hpl Ht) as (-> & ->).
   unfold OBJ_SPAN in Suo, Dis.
-  set (E := Epl bo bfi bmiss bcalls bsin ab bt biom bmq brm bau bbt bgp blv oo uo).
+  set (E := Epl bo bfi bmiss bcalls bsin ab bt biom bmq brm bau blk bbt bgp blv oo uo).
   (* validity *)
   assert (GPO : forall b x, gp b = Some x -> Plt b (Mem.nextblock m))
     by (intros b x H; exact (closed_old gp m b x HC H)).
@@ -245,12 +248,21 @@ Proof.
   assert (Slv' : Genv.find_symbol G mario._gCurrLevelNum = Some blv) by exact Slv.
   destruct (D4 blv (or_intror (or_intror Slv'))) as (OL & TL).
   destruct (D4 bau (or_intror (or_introl S9))) as (O9 & T9).
+  pose proof (KbRow.sym_valid lp m _ _ Hgn SL) as VK.
+  pose proof (DS _ _ _ _ SL Hbm eq_refl) as NK0. pose proof (DS _ _ _ _ SL S1 eq_refl) as NK1.
+  pose proof (DS _ _ _ _ SL S2 eq_refl) as NK2. pose proof (DS _ _ _ _ SL S3 eq_refl) as NK3.
+  pose proof (DS _ _ _ _ SL S4 eq_refl) as NK4. pose proof (DS _ _ _ _ SL S5 eq_refl) as NK5.
+  pose proof (DS _ _ _ _ SL S6 eq_refl) as NK6. pose proof (DS _ _ _ _ SL S7 eq_refl) as NK7.
+  pose proof (DS _ _ _ _ SL S8 eq_refl) as NK8. pose proof (DS _ _ _ _ SL S9 eq_refl) as NK9.
+  pose proof (DS _ _ _ _ SL Slv eq_refl) as NKL. pose proof (DS _ _ _ _ SL Sbt eq_refl) as NKT.
+  pose proof (DS _ _ _ _ SL Sgp eq_refl) as NKG.
+  destruct (D4 blk ltac:(left; cbn; auto 12)) as (OK & TK).
   destruct (D4 bfi ltac:(left; cbn; auto 10)) as (O1 & T1). destruct (D4 bmiss ltac:(left; cbn; auto 10)) as (O2 & T2).
   destruct (D4 bcalls ltac:(left; cbn; auto 10)) as (O3 & T3). destruct (D4 bsin ltac:(left; cbn; auto 10)) as (O4 & T4).
   destruct (D4 ab ltac:(left; cbn; auto 10)) as (O5 & T5). destruct (D4 biom ltac:(left; cbn; auto 10)) as (O6 & T6).
   destruct (D4 bmq ltac:(left; cbn; auto 10)) as (O7 & T7). destruct (D4 brm ltac:(left; cbn; auto 10)) as (O8 & T8).
   clear DS.
-  set (RL0 := ff_rl bm bo oo bfi bmiss bcalls ab bt biom bmq brm) in *.
+  set (RL0 := ff_rl bm bo oo bfi bmiss bcalls ab bt biom bmq brm blk) in *.
   assert (Rbo : rblk RL0 bo) by (exists oo; unfold RL0, ff_rl; cbn; auto 12).
   assert (Rbt : rblk RL0 bt) by (exists Ptrofs.zero; unfold RL0, ff_rl; cbn; auto 12).
   (* the region pointer list: ffw's, and the pole *)
@@ -278,8 +290,8 @@ Proof.
         destruct (Pos.eqb a b) end;
       first [exact HM | exact Gbo | exact Gab | exact Gbt | exact (HS _ _ S1) | exact (HS _ _ S2)
             | exact (HS _ _ S3) | exact (HS _ _ S4) | exact (HS _ _ S6) | exact (HS _ _ S7) | exact (HS _ _ S8)
-            | exact (HS _ _ S9) | exact (HS _ _ Sbt) | exact (HS _ _ Sgp) | exact (HS _ _ Slv)].
-    - exact (pl_sizes bo bfi bmiss bcalls bsin ab bt biom bmq brm bau bbt bgp blv oo uo Soo
+            | exact (HS _ _ S9) | exact (HS _ _ Sbt) | exact (HS _ _ Sgp) | exact (HS _ _ Slv) | exact (HS _ _ SL)].
+    - exact (pl_sizes bo bfi bmiss bcalls bsin ab bt biom bmq brm bau blk bbt bgp blv oo uo Soo
                ltac:(unfold SZ_OBJECT; lia)).
     - intros r sz r' sz' H H' N.
       r0p_cases H; r0p_cases H'; subst sz sz'; unfold E; epl;
@@ -402,15 +414,15 @@ Proof.
   (* the frame *)
   assert (OFF : forall ch b z, Plt b (Mem.nextblock m) -> ~ rblk RL0 b -> Mem.load ch m' b z = Mem.load ch m b z).
   { intros ch b z Hp Hr. apply KR; [exact Hp |]. intros r sz Hs. left.
-    destruct (XB r (proj1 (pl_sizes bo bfi bmiss bcalls bsin ab bt biom bmq brm bau bbt bgp blv oo uo Soo
+    destruct (XB r (proj1 (pl_sizes bo bfi bmiss bcalls bsin ab bt biom bmq brm bau blk bbt bgp blv oo uo Soo
                              ltac:(unfold SZ_OBJECT; lia) r sz Hs))) as (B1 & _).
     rewrite B1. intros Eb. apply Hr. rewrite <- Eb. exact (INR r sz Hs). }
   assert (OBJ : forall ch z, z + size_chunk ch <= Ptrofs.unsigned oo \/ Ptrofs.unsigned oo + SZ_OBJECT <= z ->
              Mem.load ch m' bo z = Mem.load ch m bo z).
   { intros ch z Hz. apply KRX; [exact Vo |]. intros r sz Nr Hs.
-    destruct (XB r (proj1 (pl_sizes bo bfi bmiss bcalls bsin ab bt biom bmq brm bau bbt bgp blv oo uo Soo
+    destruct (XB r (proj1 (pl_sizes bo bfi bmiss bcalls bsin ab bt biom bmq brm bau blk bbt bgp blv oo uo Soo
                              ltac:(unfold SZ_OBJECT; lia) r sz Hs))) as (B1 & B2).
-    rewrite B1, B2. clear -Hs Hz D1 D3 O1 O2 O3 O5 O6 O7 O8 ZO Nr.
+    rewrite B1, B2. clear -Hs Hz D1 D3 O1 O2 O3 O5 O6 O7 O8 OL OK ZO Nr.
     r0p_cases Hs; subst sz; unfold E; epl;
       first [left; congruence | right; rewrite ?ZO; unfold SZ_OBJECT in *; lia | congruence]. }
   (* the region list, through E' *)
@@ -598,9 +610,9 @@ Proof.
       by (intros b ofs k p Hp Hq; exact (proj2 (VP b ofs k p Hp) Hq)).
     split; [exact (Ple_trans _ _ _ Hgn NBm) |].
     split.
-    + exists gp', bfi, bmiss, bcalls, bsin, ab, biom, bmq, brm, bo, oo, bt, ot, fl', ar, inp, ctl.
+    + exists gp', bfi, bmiss, bcalls, bsin, ab, biom, bmq, brm, blk, bo, oo, bt, ot, fl', ar, inp, ctl.
       split; [exact HC' |]. split; [exact HS' |]. split; [exact (Hinc _ HM) |].
-      do 8 (split; [assumption |]).
+      do 9 (split; [assumption |]).
       split; [exact Lo' |]. split; [exact Soo |].
       split; [rewrite CM by mem_tac; exact La |].
       split; [rewrite CL by mem_tac; exact Lb |].

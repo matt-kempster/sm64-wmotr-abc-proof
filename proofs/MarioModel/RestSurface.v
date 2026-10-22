@@ -34,7 +34,7 @@ From SM64.Generated Require mario mario_actions_stationary
   mario_actions_moving mario_actions_airborne mario_actions_submerged
   mario_actions_cutscene mario_actions_automatic mario_actions_object
   interaction behavior_actions level_update mario_step surface_collision
-  math_util.
+  math_util camera.
 From SM64.Proofs Require Import SymbolicLinking Flying Taint
   ActionValueFrame RealFrameValue RealFrameLinked AGates.
 From SM64.Proofs Require Import CensusV2 EngineV2Consumer.
@@ -66,7 +66,8 @@ Import ListNotations.
 Definition lifted_ids : list ident :=
   [ mario._vec3f_find_ceil; mario._f32_find_wall_collision; mario._find_floor;
     mario._find_ceil; mario._find_poison_gas_level; mario._find_water_level;
-    mario._vec3f_set; mario._vec3f_copy; mario._vec3s_copy; mario._atan2s ].
+    mario._vec3f_set; mario._vec3f_copy; mario._vec3s_copy; mario._atan2s;
+    mario._set_camera_mode ].
 
 Definition exempt_ext_ids : list ident :=
   filter (fun i => negb (mem_id i lifted_ids)) exempt_callees.
@@ -139,6 +140,20 @@ Lemma math_defmap_atan2s :
   (prog_defmap math_util.prog) ! mario._atan2s
     = Some (Gfun (Internal math_util.f_atan2s)).
 Proof. vm_compute. reflexivity. Qed.
+
+(* THE CAMERA LINK (2026-10-22): camera.c is the 35th TU, so set_camera_mode
+   leaves the negative pin (its old place there would now be FALSE for the
+   intended link) and is pinned to its real camera.c body (LO_camera).  Its
+   residual is a gated body_pres_w over that body: wgate's T_scm arm asks
+   the Camera* argument to be a SafeB block, which every real call site
+   (mario.c's m->area->camera) passes.  camera_scm_type checks the body has
+   exactly that signature, so the gate is the one the engine discharges. *)
+Lemma camera_defmap_scm :
+  (prog_defmap camera.prog) ! mario._set_camera_mode
+    = Some (Gfun (Internal camera.f_set_camera_mode)).
+Proof. vm_compute. reflexivity. Qed.
+Lemma camera_scm_type : type_of_fundef (Internal camera.f_set_camera_mode) = T_scm.
+Proof. reflexivity. Qed.
 
 (* the gate at the two signatures vfc_pres needs *)
 Lemma find_ceil_type : type_of_fundef (Internal surface_collision.f_find_ceil) = T_ffc.
@@ -224,6 +239,7 @@ Section RestSurface.
   Hypothesis LO_stp : linkorder mario_step.prog lp.
   Hypothesis LO_surf : linkorder surface_collision.prog lp.
   Hypothesis LO_math : linkorder math_util.prog lp.
+  Hypothesis LO_camera : linkorder camera.prog lp.
 
   (* ---- the negative pin: whitelisted math/runtime symbols + the music
      helper have NO Internal resolution in lp (they stay External in the
@@ -279,7 +295,8 @@ Section RestSurface.
       f = math_util.f_vec3f_set \/
       f = math_util.f_vec3f_copy \/
       f = math_util.f_vec3s_copy \/
-      f = math_util.f_atan2s.
+      f = math_util.f_atan2s \/
+      f = camera.f_set_camera_mode.
   Proof.
     intros f (fid & Hmem & Hres).
     destruct Hmem as [Hex | [Hroot | Hmptr]].
@@ -308,8 +325,10 @@ Section RestSurface.
           eapply resolves_pin; [ exact LO_math | exact math_defmap_v3fcopy | exact Hres ].
         * do 20 right; left.
           eapply resolves_pin; [ exact LO_math | exact math_defmap_v3scopy | exact Hres ].
-        * do 21 right.
+        * do 21 right; left.
           eapply resolves_pin; [ exact LO_math | exact math_defmap_atan2s | exact Hres ].
+        * do 22 right.
+          eapply resolves_pin; [ exact LO_camera | exact camera_defmap_scm | exact Hres ].
       + exfalso. exact (Hrest_ext_only fid f (or_introl Hex') Hres).
     - (* the root's residual callees: 10 pinned bodies + the refuted music *)
       unfold mem_id, root_residual_callees in Hroot.
@@ -461,6 +480,7 @@ Section RestSurface.
       body_pres_w MWF bm SafeB math_util.f_vec3f_copy ->
       body_pres_w MWF bm SafeB math_util.f_vec3s_copy ->
       body_pres_w MWF bm SafeB math_util.f_atan2s ->
+      body_pres_w MWF bm SafeB camera.f_set_camera_mode ->
       forall m f vargs t m' vres,
         rest_fd lp (Internal f) ->
         (marg_exempt (Internal f) = false -> marg_ok bm vargs) ->
@@ -472,11 +492,11 @@ Section RestSurface.
         Mem.valid_block m' bm /\ action_sat not_tainted m' bm /\ MWF m'.
   Proof.
     intros NoA MWF bm SafeB Hsta Hmov Hair Hsub Hcut Haut Hobj Hflo Hint Hwnd Hwrp Hvfc
-           Hffwc Hff Hfc Hfp Hfw Hv3fset Hv3fcopy Hv3scopy Hatan2s
+           Hffwc Hff Hfc Hfp Hfw Hv3fset Hv3fcopy Hv3scopy Hatan2s Hscm
            m f vargs t m' vres Hrest Hmarg Hsargs Hgate Hevf Hno Hmwf Hv Hsat.
     destruct (rest_internal_cases f Hrest) as
       [-> | [-> | [-> | [-> | [-> | [-> | [-> | [-> | [-> | [-> | [-> | [-> |
-       [-> | [-> | [-> | [-> | [-> | [-> | [-> | [-> | [-> | ->]]]]]]]]]]]]]]]]]]]]].
+       [-> | [-> | [-> | [-> | [-> | [-> | [-> | [-> | [-> | [-> | ->]]]]]]]]]]]]]]]]]]]]]].
     - exact (Hsta m vargs t m' vres Hmarg Hevf Hno Hmwf Hv Hsat).
     - exact (Hmov m vargs t m' vres Hmarg Hevf Hno Hmwf Hv Hsat).
     - exact (Hair m vargs t m' vres Hmarg Hevf Hno Hmwf Hv Hsat).
@@ -500,6 +520,7 @@ Section RestSurface.
     - exact (Hv3fcopy m vargs t m' vres Hgate Hevf Hmwf Hv Hsat).
     - exact (Hv3scopy m vargs t m' vres Hgate Hevf Hmwf Hv Hsat).
     - exact (Hatan2s m vargs t m' vres Hgate Hevf Hmwf Hv Hsat).
+    - exact (Hscm m vargs t m' vres Hgate Hevf Hmwf Hv Hsat).
   Qed.
 
   (* resolves_pin, fd-general: under a pin, ANY resolution of the symbol

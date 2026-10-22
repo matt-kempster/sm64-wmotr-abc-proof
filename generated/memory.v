@@ -487,21 +487,21 @@ Definition v_gDecompressionHeap := {|
 
 Definition v_gDmaIoMesg := {|
   gvar_info := (Tstruct __430 noattr);
-  gvar_init := nil;
+  gvar_init := (Init_space 20 :: nil);
   gvar_readonly := false;
   gvar_volatile := false
 |}.
 
 Definition v_gMainReceivedMesg := {|
   gvar_info := (tptr tvoid);
-  gvar_init := nil;
+  gvar_init := (Init_space 4 :: nil);
   gvar_readonly := false;
   gvar_volatile := false
 |}.
 
 Definition v_gDmaMesgQueue := {|
   gvar_info := (Tstruct _OSMesgQueue_s noattr);
-  gvar_init := nil;
+  gvar_init := (Init_space 24 :: nil);
   gvar_readonly := false;
   gvar_volatile := false
 |}.

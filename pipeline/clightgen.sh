@@ -104,6 +104,64 @@ for name, elt, n in TABLE:
         print(f"extern-array completion: {name} 0 -> {n} in {path}")
 PYEOF
 
+# Unlinked-definer storage completion (TRUST 2.4, 2026-10-22; the same class
+# as the table above).  These globals are DECLARED (complete type, `extern`)
+# by linked TUs and DEFINED only in a TU outside the link.  With every
+# declaration's init nil, the linked program keeps nil and Genv.init_mem gives
+# them a SIZE-0 block, so every load / store through them has no CompCert
+# execution (tools/size0_globals.py lists them).  Each real definition is
+# zero-initialised (BSS, or an explicit 0 / NULL / 0.0f / FALSE /
+# DIALOG_RESPONSE_NONE initializer, all-zero bytes), so the DECL side gets
+# the definer's storage as a common definition `Init_space sizeof`: CompCert's
+# link_varinit merges equal-size commons, and links one with the real
+# definition if that TU ever joins.  Sizes are sizeof of the declared type
+# (ppc32 layout); BootRun.completed_sizes re-checks each against the linked
+# composite env.  (camera.c's globals -- gPlayerCameraState, gCamera,
+# gCameraMovementFlags, gCutsceneFocus -- are not here: camera.c is linked.)
+# Defining file:line, in vendor/sm64:
+#   gBodyStates            80  src/game/mario_misc.c:73  [2] x 40
+#   gCurGraphNodeRoot       4  src/game/rendering_graph_node.c:120  = NULL
+#   gCurGraphNodeMasterList 4  src/game/rendering_graph_node.c:121  = NULL
+#   gCurGraphNodeCamFrustum 4  src/game/rendering_graph_node.c:122  = NULL
+#   gCurGraphNodeCamera     4  src/game/rendering_graph_node.c:123  = NULL
+#   gCurGraphNodeObject     4  src/game/rendering_graph_node.c:124  = NULL
+#   gAreaUpdateCounter      2  src/game/rendering_graph_node.c:126  = 0
+#   gDmaIoMesg             20  src/game/main.c:29
+#   gMainReceivedMesg       4  src/game/main.c:30
+#   gDmaMesgQueue          24  src/game/main.c:32
+#   gSIEventMesgQueue      24  src/game/main.c:33
+#   gDebugLevelSelect       1  src/game/main.c:55        = FALSE
+#   gShowDebugText          1  src/game/main.c:59        = FALSE
+#   gDialogResponse         4  src/game/ingame_menu.c:131 = DIALOG_RESPONSE_NONE (0)
+#   gPaintingMarioYEntry    4  src/game/moving_texture.c:118 = 0.0f
+#   gObjParentGraphNode    20  src/engine/geo_layout.c:47
+#   gGlobalSoundSource     12  src/audio/external.c:344  = { 0.0f, 0.0f, 0.0f }
+python3 - "$TMP" <<'PYEOF'
+import re, sys
+path = sys.argv[1]
+s = open(path).read()
+BSS = [
+    ("gBodyStates", 80),
+    ("gCurGraphNodeRoot", 4), ("gCurGraphNodeMasterList", 4),
+    ("gCurGraphNodeCamFrustum", 4), ("gCurGraphNodeCamera", 4),
+    ("gCurGraphNodeObject", 4), ("gAreaUpdateCounter", 2),
+    ("gDmaIoMesg", 20), ("gMainReceivedMesg", 4), ("gDmaMesgQueue", 24),
+    ("gSIEventMesgQueue", 24), ("gDebugLevelSelect", 1), ("gShowDebugText", 1),
+    ("gDialogResponse", 4), ("gPaintingMarioYEntry", 4),
+    ("gObjParentGraphNode", 20), ("gGlobalSoundSource", 12),
+]
+done = []
+for name, n in BSS:
+    s2 = re.sub(r'(Definition v_' + name + r' := \{\|\s*gvar_info := [^;]*;\s*gvar_init := )nil;',
+                r'\g<1>(Init_space ' + str(n) + r' :: nil);', s)
+    if s2 != s:
+        s = s2
+        done.append(name)
+if done:
+    open(path, 'w').write(s)
+    print(f"unlinked-definer storage: {', '.join(done)} in {path}")
+PYEOF
+
 # Behavior-script completion (TRUST 2.4, 2026-10-21; same class as the table
 # above, applied by RULE rather than by hand because there are ~170 of them).
 # data/behavior_data.c defines every behavior script

@@ -487,7 +487,7 @@ Definition v_gEnvironmentRegions := {|
 
 Definition v_gCurGraphNodeObject := {|
   gvar_info := (tptr (Tstruct _GraphNodeObject noattr));
-  gvar_init := nil;
+  gvar_init := (Init_space 4 :: nil);
   gvar_readonly := false;
   gvar_volatile := false
 |}.

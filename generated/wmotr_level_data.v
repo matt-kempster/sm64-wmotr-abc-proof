@@ -125,6 +125,7 @@ Definition ___compcert_va_int64 : ident := $"__compcert_va_int64".
 Definition _cannon_lid_seg8_collision_08004950 : ident := $"cannon_lid_seg8_collision_08004950".
 Definition _exclamation_box_outline_seg8_collision_08025F78 : ident := $"exclamation_box_outline_seg8_collision_08025F78".
 Definition _main : ident := $"main".
+Definition _warp_pipe_seg3_collision_03009AC8 : ident := $"warp_pipe_seg3_collision_03009AC8".
 Definition _wmotr_seg7_collision : ident := $"wmotr_seg7_collision".
 Definition _wmotr_seg7_macro_objs : ident := $"wmotr_seg7_macro_objs".
 
@@ -3864,6 +3865,145 @@ Definition v_cannon_lid_seg8_collision_08004950 := {|
   gvar_volatile := false
 |}.
 
+Definition v_warp_pipe_seg3_collision_03009AC8 := {|
+  gvar_info := (tarray tshort 264);
+  gvar_init := (Init_int16 (Int.repr 64) :: Init_int16 (Int.repr 36) ::
+                Init_int16 (Int.repr (-101)) :: Init_int16 (Int.repr 0) ::
+                Init_int16 (Int.repr 102) :: Init_int16 (Int.repr 102) ::
+                Init_int16 (Int.repr 0) :: Init_int16 (Int.repr (-101)) ::
+                Init_int16 (Int.repr (-101)) :: Init_int16 (Int.repr 0) ::
+                Init_int16 (Int.repr (-101)) :: Init_int16 (Int.repr 102) ::
+                Init_int16 (Int.repr 0) :: Init_int16 (Int.repr 102) ::
+                Init_int16 (Int.repr 0) :: Init_int16 (Int.repr 0) ::
+                Init_int16 (Int.repr 154) :: Init_int16 (Int.repr (-108)) ::
+                Init_int16 (Int.repr 205) :: Init_int16 (Int.repr 109) ::
+                Init_int16 (Int.repr (-108)) :: Init_int16 (Int.repr 0) ::
+                Init_int16 (Int.repr 109) :: Init_int16 (Int.repr 0) ::
+                Init_int16 (Int.repr 205) :: Init_int16 (Int.repr 154) ::
+                Init_int16 (Int.repr (-153)) :: Init_int16 (Int.repr 205) ::
+                Init_int16 (Int.repr 0) :: Init_int16 (Int.repr 0) ::
+                Init_int16 (Int.repr 205) :: Init_int16 (Int.repr 102) ::
+                Init_int16 (Int.repr (-71)) :: Init_int16 (Int.repr 205) ::
+                Init_int16 (Int.repr 72) :: Init_int16 (Int.repr 0) ::
+                Init_int16 (Int.repr 0) :: Init_int16 (Int.repr 102) ::
+                Init_int16 (Int.repr 72) :: Init_int16 (Int.repr 205) ::
+                Init_int16 (Int.repr 72) :: Init_int16 (Int.repr (-71)) ::
+                Init_int16 (Int.repr 0) :: Init_int16 (Int.repr 72) ::
+                Init_int16 (Int.repr 109) :: Init_int16 (Int.repr 205) ::
+                Init_int16 (Int.repr 109) :: Init_int16 (Int.repr (-101)) ::
+                Init_int16 (Int.repr 0) :: Init_int16 (Int.repr 0) ::
+                Init_int16 (Int.repr (-101)) :: Init_int16 (Int.repr 205) ::
+                Init_int16 (Int.repr 0) :: Init_int16 (Int.repr 109) ::
+                Init_int16 (Int.repr 0) :: Init_int16 (Int.repr 109) ::
+                Init_int16 (Int.repr (-153)) :: Init_int16 (Int.repr 0) ::
+                Init_int16 (Int.repr 0) :: Init_int16 (Int.repr (-108)) ::
+                Init_int16 (Int.repr 205) :: Init_int16 (Int.repr (-108)) ::
+                Init_int16 (Int.repr (-71)) :: Init_int16 (Int.repr 0) ::
+                Init_int16 (Int.repr (-71)) ::
+                Init_int16 (Int.repr (-108)) :: Init_int16 (Int.repr 0) ::
+                Init_int16 (Int.repr (-108)) :: Init_int16 (Int.repr 0) ::
+                Init_int16 (Int.repr 205) :: Init_int16 (Int.repr (-153)) ::
+                Init_int16 (Int.repr 0) :: Init_int16 (Int.repr 0) ::
+                Init_int16 (Int.repr (-101)) :: Init_int16 (Int.repr 0) ::
+                Init_int16 (Int.repr 0) :: Init_int16 (Int.repr (-153)) ::
+                Init_int16 (Int.repr 109) :: Init_int16 (Int.repr 205) ::
+                Init_int16 (Int.repr (-108)) :: Init_int16 (Int.repr 72) ::
+                Init_int16 (Int.repr 0) :: Init_int16 (Int.repr (-71)) ::
+                Init_int16 (Int.repr 109) :: Init_int16 (Int.repr 0) ::
+                Init_int16 (Int.repr (-108)) :: Init_int16 (Int.repr 154) ::
+                Init_int16 (Int.repr 205) :: Init_int16 (Int.repr 0) ::
+                Init_int16 (Int.repr 102) :: Init_int16 (Int.repr 0) ::
+                Init_int16 (Int.repr 0) :: Init_int16 (Int.repr 154) ::
+                Init_int16 (Int.repr 0) :: Init_int16 (Int.repr 0) ::
+                Init_int16 (Int.repr 72) :: Init_int16 (Int.repr 0) ::
+                Init_int16 (Int.repr 72) :: Init_int16 (Int.repr (-71)) ::
+                Init_int16 (Int.repr 205) :: Init_int16 (Int.repr (-71)) ::
+                Init_int16 (Int.repr 0) :: Init_int16 (Int.repr 205) ::
+                Init_int16 (Int.repr (-101)) :: Init_int16 (Int.repr 72) ::
+                Init_int16 (Int.repr 205) :: Init_int16 (Int.repr (-71)) ::
+                Init_int16 (Int.repr 102) :: Init_int16 (Int.repr 205) ::
+                Init_int16 (Int.repr 0) :: Init_int16 (Int.repr 40) ::
+                Init_int16 (Int.repr 50) :: Init_int16 (Int.repr 14) ::
+                Init_int16 (Int.repr 12) :: Init_int16 (Int.repr 9) ::
+                Init_int16 (Int.repr 0) :: Init_int16 (Int.repr 1) ::
+                Init_int16 (Int.repr 2) :: Init_int16 (Int.repr 0) ::
+                Init_int16 (Int.repr 3) :: Init_int16 (Int.repr 1) ::
+                Init_int16 (Int.repr 4) :: Init_int16 (Int.repr 5) ::
+                Init_int16 (Int.repr 6) :: Init_int16 (Int.repr 4) ::
+                Init_int16 (Int.repr 7) :: Init_int16 (Int.repr 5) ::
+                Init_int16 (Int.repr 6) :: Init_int16 (Int.repr 5) ::
+                Init_int16 (Int.repr 8) :: Init_int16 (Int.repr 5) ::
+                Init_int16 (Int.repr 9) :: Init_int16 (Int.repr 10) ::
+                Init_int16 (Int.repr 5) :: Init_int16 (Int.repr 7) ::
+                Init_int16 (Int.repr 9) :: Init_int16 (Int.repr 8) ::
+                Init_int16 (Int.repr 5) :: Init_int16 (Int.repr 10) ::
+                Init_int16 (Int.repr 11) :: Init_int16 (Int.repr 9) ::
+                Init_int16 (Int.repr 12) :: Init_int16 (Int.repr 13) ::
+                Init_int16 (Int.repr 9) :: Init_int16 (Int.repr 11) ::
+                Init_int16 (Int.repr 13) :: Init_int16 (Int.repr 10) ::
+                Init_int16 (Int.repr 9) :: Init_int16 (Int.repr 14) ::
+                Init_int16 (Int.repr 9) :: Init_int16 (Int.repr 7) ::
+                Init_int16 (Int.repr 19) :: Init_int16 (Int.repr 16) ::
+                Init_int16 (Int.repr 32) :: Init_int16 (Int.repr 15) ::
+                Init_int16 (Int.repr 16) :: Init_int16 (Int.repr 10) ::
+                Init_int16 (Int.repr 8) :: Init_int16 (Int.repr 10) ::
+                Init_int16 (Int.repr 16) :: Init_int16 (Int.repr 15) ::
+                Init_int16 (Int.repr 10) :: Init_int16 (Int.repr 13) ::
+                Init_int16 (Int.repr 17) :: Init_int16 (Int.repr 7) ::
+                Init_int16 (Int.repr 4) :: Init_int16 (Int.repr 17) ::
+                Init_int16 (Int.repr 14) :: Init_int16 (Int.repr 7) ::
+                Init_int16 (Int.repr 6) :: Init_int16 (Int.repr 8) ::
+                Init_int16 (Int.repr 18) :: Init_int16 (Int.repr 18) ::
+                Init_int16 (Int.repr 8) :: Init_int16 (Int.repr 19) ::
+                Init_int16 (Int.repr 19) :: Init_int16 (Int.repr 8) ::
+                Init_int16 (Int.repr 16) :: Init_int16 (Int.repr 20) ::
+                Init_int16 (Int.repr 16) :: Init_int16 (Int.repr 15) ::
+                Init_int16 (Int.repr 20) :: Init_int16 (Int.repr 32) ::
+                Init_int16 (Int.repr 16) :: Init_int16 (Int.repr 28) ::
+                Init_int16 (Int.repr 25) :: Init_int16 (Int.repr 34) ::
+                Init_int16 (Int.repr 21) :: Init_int16 (Int.repr 19) ::
+                Init_int16 (Int.repr 22) :: Init_int16 (Int.repr 18) ::
+                Init_int16 (Int.repr 19) :: Init_int16 (Int.repr 21) ::
+                Init_int16 (Int.repr 22) :: Init_int16 (Int.repr 19) ::
+                Init_int16 (Int.repr 32) :: Init_int16 (Int.repr 23) ::
+                Init_int16 (Int.repr 32) :: Init_int16 (Int.repr 20) ::
+                Init_int16 (Int.repr 23) :: Init_int16 (Int.repr 33) ::
+                Init_int16 (Int.repr 32) :: Init_int16 (Int.repr 22) ::
+                Init_int16 (Int.repr 32) :: Init_int16 (Int.repr 33) ::
+                Init_int16 (Int.repr 24) :: Init_int16 (Int.repr 22) ::
+                Init_int16 (Int.repr 25) :: Init_int16 (Int.repr 21) ::
+                Init_int16 (Int.repr 22) :: Init_int16 (Int.repr 24) ::
+                Init_int16 (Int.repr 25) :: Init_int16 (Int.repr 22) ::
+                Init_int16 (Int.repr 33) :: Init_int16 (Int.repr 26) ::
+                Init_int16 (Int.repr 34) :: Init_int16 (Int.repr 33) ::
+                Init_int16 (Int.repr 26) :: Init_int16 (Int.repr 33) ::
+                Init_int16 (Int.repr 23) :: Init_int16 (Int.repr 25) ::
+                Init_int16 (Int.repr 33) :: Init_int16 (Int.repr 34) ::
+                Init_int16 (Int.repr 24) :: Init_int16 (Int.repr 25) ::
+                Init_int16 (Int.repr 27) :: Init_int16 (Int.repr 27) ::
+                Init_int16 (Int.repr 25) :: Init_int16 (Int.repr 28) ::
+                Init_int16 (Int.repr 30) :: Init_int16 (Int.repr 14) ::
+                Init_int16 (Int.repr 17) :: Init_int16 (Int.repr 29) ::
+                Init_int16 (Int.repr 34) :: Init_int16 (Int.repr 26) ::
+                Init_int16 (Int.repr 29) :: Init_int16 (Int.repr 35) ::
+                Init_int16 (Int.repr 34) :: Init_int16 (Int.repr 28) ::
+                Init_int16 (Int.repr 34) :: Init_int16 (Int.repr 35) ::
+                Init_int16 (Int.repr 30) :: Init_int16 (Int.repr 28) ::
+                Init_int16 (Int.repr 14) :: Init_int16 (Int.repr 27) ::
+                Init_int16 (Int.repr 28) :: Init_int16 (Int.repr 30) ::
+                Init_int16 (Int.repr 28) :: Init_int16 (Int.repr 12) ::
+                Init_int16 (Int.repr 14) :: Init_int16 (Int.repr 28) ::
+                Init_int16 (Int.repr 35) :: Init_int16 (Int.repr 12) ::
+                Init_int16 (Int.repr 31) :: Init_int16 (Int.repr 12) ::
+                Init_int16 (Int.repr 35) :: Init_int16 (Int.repr 31) ::
+                Init_int16 (Int.repr 35) :: Init_int16 (Int.repr 29) ::
+                Init_int16 (Int.repr 11) :: Init_int16 (Int.repr 12) ::
+                Init_int16 (Int.repr 31) :: Init_int16 (Int.repr 65) ::
+                Init_int16 (Int.repr 66) :: nil);
+  gvar_readonly := false;
+  gvar_volatile := false
+|}.
+
 Definition composites : list composite_definition :=
 nil.
 
@@ -4298,10 +4438,11 @@ Definition global_definitions : list (ident * globdef fundef type) :=
  (_wmotr_seg7_macro_objs, Gvar v_wmotr_seg7_macro_objs) ::
  (_exclamation_box_outline_seg8_collision_08025F78, Gvar v_exclamation_box_outline_seg8_collision_08025F78) ::
  (_cannon_lid_seg8_collision_08004950, Gvar v_cannon_lid_seg8_collision_08004950) ::
+ (_warp_pipe_seg3_collision_03009AC8, Gvar v_warp_pipe_seg3_collision_03009AC8) ::
  nil).
 
 Definition public_idents : list ident :=
-(_cannon_lid_seg8_collision_08004950 ::
+(_warp_pipe_seg3_collision_03009AC8 :: _cannon_lid_seg8_collision_08004950 ::
  _exclamation_box_outline_seg8_collision_08025F78 ::
  _wmotr_seg7_macro_objs :: _wmotr_seg7_collision :: ___builtin_debug ::
  ___builtin_sync_fetch_and_add :: ___builtin_atomic_compare_exchange ::
