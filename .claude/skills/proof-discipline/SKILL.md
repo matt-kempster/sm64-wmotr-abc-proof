@@ -135,6 +135,22 @@ all in `Unwired/`, and the theorem moved nowhere. See
     definer) is linked as the 18th TU so those paths have executions. Squish: WMotR's dynamic
     surfaces never come within 150 of a floor/ceiling (`tools/goal2_squish_scan.py`, min gap 276),
     so INPUT_SQUISHED can join the carried input mask when the dispatcher is walked.
+  - The **automatic dispatcher** (`mario_execute_automatic_action`) is still inside
+    `Hseg_call_na`. Its audit on 2026-10-21 (TRUST (f)-(h)) found and repaired three false
+    claims. The pole attach now reaches top + `POLE_UP` (160, the handstand anim). The frame
+    world now carries `WMotRWorld.used_ok` (usedObj is a low pole or cannon base in the pole /
+    cannon actions). `fresh_at` now covers the automatic group.
+    Live no-A cases (12):
+    - 6 pole: GRAB_POLE_SLOW/FAST, CLIMBING_POLE, TOP_OF_POLE_TRANSITION, TOP_OF_POLE,
+      HOLDING_POLE;
+    - 5 ledge: LEDGE_GRAB, CLIMB_SLOW_1/2, CLIMB_DOWN, CLIMB_FAST;
+    - IN_CANNON.
+    Dead: the hang actions, GRABBED, TORNADO_TWIRLING.
+    Next, an `AutoSplit` like `AirSplit`. It needs two GOAL 1 exports, the automatic-leaf
+    `body_pres` and `mwf_real_window` for the `quicksandDepth = 0` store. Pole walks also need
+    a usedObj region in the walker, the `oMarioPolePos` cells, a `set_pole_position` summary,
+    and the anim translation (ROM data) for the top-of-pole cases. After a pole frame ends in
+    SOFT_BONK, ffw's `fro_st` would need a carried y ~ base + polePos fact.
   - (`wmotr_gap` and `wmotr_poles` are now proved from generated level data, `WMotRLevel.v`)
   - the flank specs (TRUST 0.7)
 

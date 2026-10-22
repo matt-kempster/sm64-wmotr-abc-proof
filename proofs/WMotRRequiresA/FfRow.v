@@ -166,7 +166,7 @@ Theorem ff_row : forall m t m' vres c0,
   (fworld lp bm m' /\ exists c2, read_cells bm m' c2 /\ MoveChain wmotr_floor wmotr_pole wmotr_cannon c0 c2)
   /\ (vres = Vint Int.zero \/ fresh bm m').
 Proof.
-  intros m t m' vres c0 Vm (Ha & HW & Han & Hmob & Hd & FW) RC Hbud Hact Hfr EV.
+  intros m t m' vres c0 Vm (Ha & HW & Han & Hmob & Hd & FW & _) RC Hbud Hact Hfr EV.
   destruct FW as (Hgn & EX & FD & FRO).
   destruct EX as (gp & bfi & bmiss & bcalls & bsin & ab & biom & bmq & brm & bo & oo & bt & ot & fl & ar & inp & ctl &
                   HC & HS & HM & S1 & S2 & S3 & S4 & S5 & S6 & S7 & S8 & Lo & Soo & La & Lb & Sot & D1 & D2 & D3 & D4 &
@@ -476,9 +476,11 @@ Proof.
       split; [exact Hsz | exact Hr]. }
   destruct FLR as (fl' & Lf' & Wf' & Sf').
   (* ---- the frame world at m' ---- *)
-  split; [| split; [| split; [| split; [| split]]]].
+  assert (UO : WMotRWorld.used_ok bm m')
+    by (destruct KA as (a & La' & _ & Nu); exact (WMotRWorld.used_ok_other bm m' a La' Nu)).
+  split; [| split; [| split; [| split; [| split; [| split; [| exact UO]]]]]].
   - (* the action *)
-    destruct KA as (a & La' & Ina). intros v Hl. rewrite La' in Hl. injection Hl as <-. exact Ina.
+    destruct KA as (a & La' & Ina & _). intros v Hl. rewrite La' in Hl. injection Hl as <-. exact Ina.
   - (* W *)
     destruct HW as (Hw & Hc & Hf & Hh & Hr & Hq & Ho).
     split; [| split; [| split; [| split; [| split; [| split]]]]].

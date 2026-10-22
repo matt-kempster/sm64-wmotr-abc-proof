@@ -468,10 +468,16 @@ Section HeightLinked12.
      object stays off the world too (FrameSplit.mobj_apart, 2026-10-20):
      no surface lives in its block and a collided object is Mario's own or a
      whole Object away -- needed for the frame's own two stores to Mario's
-     object (gfx flags, oInteractStatus), which FrameSplit PROVES. *)
+     object (gfx flags, oInteractStatus), which FrameSplit PROVES.
+     FOUND 2026-10-21: m->usedObj was unconstrained, so a HOLDING_POLE
+     memory whose usedObj is a HIGH pole met every premise and
+     set_pole_position put Mario above YMAX (same for IN_CANNON's seat).
+     used_ok (WMotRWorld) carries: in a pole action usedObj is a low WMotR
+     pole apart from Mario's object and vel[1] <= 0; in IN_CANNON it is a
+     cannon base.  Outside those actions it says nothing. *)
   Definition PhiW (m : mem) : Prop :=
     height_invariant bm R_noA m /\ wmotr_world bm m /\ anim_apart lp bm m /\ mobj_apart bm m
-    /\ ffw (lp_ge lp) bm m.
+    /\ ffw (lp_ge lp) bm m /\ used_ok bm m.
   Notation Phi := PhiW.
 
   (* LEVEL DATA -- now DEFINED from generated/ and PROVED (WMotRLevel.v):
@@ -617,8 +623,9 @@ Section HeightLinked12.
     mem_ok_lp bm MWF m -> Phi m -> a_down_real bm m = false ->
     read_cells bm m c -> FS lp bm MWF c m.
   Proof.
-    intros m c Hok ((Ha & _) & Hw & Han & Hmo & Hf) HD Hc.
-    split; [exact Hok |]. split; [exact (conj Ha (conj Hw (conj Han (conj Hmo (conj HD Hf))))) |].
+    intros m c Hok ((Ha & _) & Hw & Han & Hmo & Hf & Hu) HD Hc.
+    split; [exact Hok |].
+    split; [exact (conj Ha (conj Hw (conj Han (conj Hmo (conj HD (conj Hf Hu)))))) |].
     exists c. split; [exact Hc | apply Relation_Operators.rt_refl].
   Qed.
 
@@ -636,12 +643,12 @@ Section HeightLinked12.
     forall m m', mem_ok_lp bm MWF m -> Phi m -> a_down_real bm m = false ->
                  execute_mario_action_step_lp lp m m' ->
                  wmotr_world bm m' /\ anim_apart lp bm m' /\ mobj_apart bm m'
-                 /\ ffw (lp_ge lp) bm m'.
+                 /\ ffw (lp_ge lp) bm m' /\ used_ok bm m'.
   Proof.
     intros m m' Hok Hphi HD Hst. pose proof Hphi as ((_ & c & Hc & Hb) & _).
     destruct (frame_FS c m m' Hb (frame_FS_start m c Hok Hphi HD Hc) Hst)
-      as (_ & (_ & Hw & Han & Hmo & _ & Hf) & _).
-    exact (conj Hw (conj Han (conj Hmo Hf))).
+      as (_ & (_ & Hw & Han & Hmo & _ & Hf & Hu) & _).
+    exact (conj Hw (conj Han (conj Hmo (conj Hf Hu)))).
   Qed.
 
   Lemma Hframe_is_move_chain :
