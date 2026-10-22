@@ -326,6 +326,22 @@ without pressing A".*
     state 0. The frame world carries no `statusForCamera` fact, so those cases cannot be walked
     yet. IN_CANNON is reachable in WMotR without A (2 cannons; `interact_cannon_base`).
   - `PoleXc.v` uses `hit16_transfer` (Hit_at is now ffl_hit16, after the terrain merge).
+  (m) **HOLDING_POLE proved (2026-10-22, `PoleHold.holdcheck12`, `PoleRow.aut_case_rows_pole`).**
+  `Hauto_rest` is now 7 cases: CLIMBING_POLE (reads `m->area->camera->yaw`; the camera is not
+  a frame-world fact), TOP_OF_POLE_TRANSITION / TOP_OF_POLE (the anim frame, 0.8(f)(3)),
+  LEDGE_CLIMB_SLOW_1 / 2, LEDGE_CLIMB_FAST, IN_CANNON. Still 27 hypotheses.
+  - The walk runs the real `act_holding_pole` (62924 outcomes). Its slide
+    `oMarioPolePos -= yawVel / 0x100` is bounded by the clamp `yawVel <= 0x1000` the handler
+    itself makes, and the path's `!(polePos > top)` test: `PoleFloat.dec_val`,
+    `PoleSound.ppt_sound`. So polePos may dip to −1016 inside the frame, and set_pole_position's
+    y is in [−3757, −2018]. The classifier's early-switch branch (`PoleClass.ground0`: a POLE_ACTS3
+    action, y and gfx unchanged, usedObj kept) covers the CLIMBING / TOP_TRANS / SOFT_BONK
+    switches that return before the move.
+  - **Audio premise widened (labeled, user-approved 2026-10-22):** `ExtInert.audio_inert` now also
+    covers `set_sound_moving_speed` (audio/external.c, not linked). Same shape as `play_sound`:
+    it changes no modeled block and returns no pointer. The handler calls it every frame.
+  - The frame world's controller fact (`Fworld m->controller`, `FfWorld`) is now also seeded
+    into the pole walks (the handler reads `stickMag` / `stickY`).
   **Slide kick at state ≠ 0 is proved (2026-10-21; `sk1_row` and `HeightFrame.Hsk1` removed,
   28 → 27 hypotheses).** The same walk (`SkW.skcheck12`) now classifies every outcome at any
   state (`FfClass.sk_ok` is `ff_okE` from the ticked cells; it used to accept the state ≠ 0
@@ -504,7 +520,11 @@ without pressing A".*
   built by `setup_dma_table_list` at boot, which is not run (the pool hardware row, 4.x boot gap);
   (3) the frame ≥ −1: `animFrame` is advanced by `geo_set_animation_globals` in the unlinked
   rendering code, so the frame world leaves it free (a phantom ∀ over frames < −1 reads other
-  channels: up to 8191); (4) ~~segment 0~~ **repaired 2026-10-22:** the model stored `VIRTUAL_TO_PHYSICAL(p)` = p − 0x80000000 and the identity `segmented_to_virtual` did not add it back, so the sample load was 2^31 bytes out of bounds and every real top-of-pole frame had no CompCert execution. The macro is now the `NO_SEGMENTED_MEMORY` identity (2.2 register), and `AnimRoundTrip.anim_y_runs` runs the real `return_mario_anim_y_translation`. Each of (1)–(3) is a new or changed trust assumption, so none was added.
+  channels: up to 8191). **2026-10-22: stopped here.** The advance is
+  `geo_update_animation_frame` (rendering_graph_node.c, not linked: a graphics-thread routine), so
+  bounding the frame needs either that code linked and run per frame or a new assumption; neither
+  was added, so TOP_OF_POLE_TRANSITION / TOP_OF_POLE stay in `Hauto_rest`, and the approved
+  DMA-content row for (1) was not added (it would not be load-bearing without the walks); (4) ~~segment 0~~ **repaired 2026-10-22:** the model stored `VIRTUAL_TO_PHYSICAL(p)` = p − 0x80000000 and the identity `segmented_to_virtual` did not add it back, so the sample load was 2^31 bytes out of bounds and every real top-of-pole frame had no CompCert execution. The macro is now the `NO_SEGMENTED_MEMORY` identity (2.2 register), and `AnimRoundTrip.anim_y_runs` runs the real `return_mario_anim_y_translation`. Each of (1)–(3) is a new or changed trust assumption, so none was added.
 
 ### Row 0.9 in detail
 
@@ -870,7 +890,8 @@ link grows.
   `sqrtf` leaves memory unchanged (on the N64 it is the VR4300 `sqrt.s` instruction; no claim about
   the value), and `ExtInert.sqrtf_float` (added 2026-10-20), its result is not a pointer (the
   instruction writes an FPU register). The act_freefall walk's external contract
-  (`ExtInert.ext_fresh_sound`) uses both. The same walk takes `play_sound` and
+  (`ExtInert.ext_fresh_sound`) uses both. The same walk takes `play_sound` (and, since
+  2026-10-22, `set_sound_moving_speed`, called by `act_holding_pole`) and
   `set_camera_shake_from_hit` as labelled open premises (`ExtInert.audio_inert` / `camera_inert`: no
   modeled block changes, non-pointer result; their writes go to audio and camera globals that no
   linked TU declares). Those are deferred audio/camera, not floors; since 2026-10-20 they are

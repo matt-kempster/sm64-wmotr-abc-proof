@@ -28,7 +28,7 @@ From SM64.Proofs Require Import Interp.SymExec2 Interp.LinkGenv MarioModel.Linke
   MarioModel.OsDmaFloor MarioModel.MathGeomGated HeightInvariant HeightMoveCatalog WMotRLevel WMotRWorld.
 From SM64.Proofs.WMotRRequiresA Require Import FloorHeight FloorExec AirXc AirRun AirMatch SmaXc
   ExtInert FfClass AirStart FfKeepCheck RetOk FfRun AhwRun KbRun WithGe
-  PoleXc PoleClass PoleKeep PoleSound.
+  PoleXc PoleClass PoleKeep PoleSound FfWorld FpWalk.
 Import ListNotations.
 
 Module AUT := mario_actions_automatic.
@@ -67,7 +67,8 @@ Definition xcP (id : ident) : option xcontract :=
   | None =>
     if Pos.eqb id mario._set_mario_animation then Some (c_sma NBP R0P gtabP kvP RLD RBUF RIOM RMQ RRM kB) else
     if Pos.eqb id mario._is_anim_at_end then Some xc_fresh else
-    if Pos.eqb id AUT._play_sound then Some xc_fresh else None
+    if Pos.eqb id AUT._play_sound then Some xc_fresh else
+    if Pos.eqb id AUT._set_sound_moving_speed then Some xc_fresh else None
   end.
 Definition pc0P : list fact :=
   [Fuser kW (wargs R0P); Fbits (Sinit RM 2 Mint16unsigned) (Int.repr 2178);
@@ -78,7 +79,9 @@ Definition pc0P : list fact :=
    Fworld (Sptr RLV Ptrofs.zero) 2;
    Fuser kB [Sinit RLD 8 Mint32; Sptr RBUF Ptrofs.zero];
    Fuser kP [init_cell kvP RO POLEPOS_OFF Mfloat32];
-   Fuser kS (Sinit RM (AirRun.fo g mario._MarioState mario._floor) Mint32 :: wargs R0P)]
+   Fuser kS (Sinit RM (AirRun.fo g mario._MarioState mario._floor) Mint32 :: wargs R0P);
+   (* m->controller: a world object (act_holding_pole reads its stick) *)
+   Fworld (Sinit RM FFW_CTL Mint32) SZ_CTL]
   ++ ffacts (Sinit RM (AirRun.fo g mario._MarioState mario._floor) Mint32).
 Definition g0P : gst := mkg nil pc0P NBP nil nil.
 
@@ -118,9 +121,14 @@ Definition pk_ok (c : cpath) : bool :=
   && ret_ok NBP R0P kvP RM c.
 End CFG.
 
+(* the leaf-particle and climbing-sound helpers write particleFlags or
+   call play_sound only: merged *)
+Definition mergeP (id : ident) : bool :=
+  mergeK id || Pos.eqb id AUT._add_tree_leaf_particles || Pos.eqb id AUT._play_climbing_sounds.
+
 Definition pole_walk (acn : Z) (f : function) : bool :=
   with_ge ge12 false (fun g =>
-    match sx_call g NBP (R0P g) gtabP (kvP acn g) (xcP acn g) jkeys mergeK true 3000 (g0P acn g)
+    match sx_call g NBP (R0P g) gtabP (kvP acn g) (xcP acn g) jkeys mergeP true 3000 (g0P acn g)
             (Internal f) argsF with
     | Some cs => forallb (pk_ok acn g) cs
     | None => false end).
@@ -130,6 +138,10 @@ Lemma dm_iae : (prog_defmap mario.prog) ! mario._is_anim_at_end
 Proof. vm_compute. reflexivity. Qed.
 Lemma ps_aut : AUT._play_sound = AIR._play_sound.
 Proof. reflexivity. Qed.
+Lemma ssms_named : ext_named ((prog_defmap AUT.prog) ! AUT._set_sound_moving_speed) "set_sound_moving_speed" = true.
+Proof. vm_compute. reflexivity. Qed.
+Lemma ssms_ni : no_internal_all [AUT._set_sound_moving_speed] = true.
+Proof. vm_compute. reflexivity. Qed.
 
 Section LP.
 Variable lp : Clight.program.
@@ -236,14 +248,18 @@ Proof.
         destruct (anim_end_value_contract _ _ _ _ _ _ EV) as (-> & i & ->).
         exact (xc_fresh_sound G NBP (R0P G) gtabP (kvP acn G) (fun _ => None) (fun _ => false) m0 uf gp
                  E m g (Vint i) args cps Hk MM I).
-      * destruct (Pos.eqb_spec id AUT._play_sound) as [-> | N3]; [| discriminate Hx].
-        injection Hx as <-. rewrite ps_aut in Hl.
-        exact (ext_fresh_sound lp H12 _ _ ps_named ps_ni Haudio NBP (R0P G) gtabP (kvP acn G) m0 uf gp GPO
-                 args g cps fd E m vargs t m' vres Hk Hl MM EV).
+      * destruct (Pos.eqb_spec id AUT._play_sound) as [-> | N3].
+        { injection Hx as <-. rewrite ps_aut in Hl.
+          exact (ext_fresh_sound lp H12 _ _ ps_named ps_ni (audio_ps Haudio) NBP (R0P G) gtabP (kvP acn G) m0 uf gp GPO
+                   args g cps fd E m vargs t m' vres Hk Hl MM EV). }
+        destruct (Pos.eqb_spec id AUT._set_sound_moving_speed) as [-> | N4]; [| discriminate Hx].
+        injection Hx as <-.
+        exact (ext_fresh_sound_q lp H12 AUT.prog (linked12_LO_aut lp H12) _ _ ssms_named ssms_ni (audio_ssms Haudio)
+                 NBP (R0P G) gtabP (kvP acn G) m0 uf gp GPO args g cps fd E m vargs t m' vres Hk Hl MM EV).
 Qed.
 
 Lemma polecheck_lp : exists cs,
-  sx_call G NBP (R0P G) gtabP (kvP acn G) (xcP acn G) jkeys mergeK true 3000 (g0P acn G)
+  sx_call G NBP (R0P G) gtabP (kvP acn G) (xcP acn G) jkeys mergeP true 3000 (g0P acn G)
     (Internal fK) argsF = Some cs
   /\ forall c, In c cs -> pk_ok acn G c = true.
 Proof.
@@ -292,7 +308,7 @@ Proof.
                    [Vptr (e_blk E RM) (Ptrofs.add (e_base E RM) Ptrofs.zero)]).
   { constructor; [| constructor].
     split; [reflexivity |]. cbn [sok nlt g0P g_nx]. split; [unfold Plt, Pos.lt; reflexivity | exact Logic.I]. }
-  destruct (sx_call_sound G NBP (R0P G) gtabP (kvP acn G) (xcP acn G) jkeys mergeK true m0 uf gp
+  destruct (sx_call_sound G NBP (R0P G) gtabP (kvP acn G) (xcP acn G) jkeys mergeP true m0 uf gp
               GPO MC xcP_sound 3000 (g0P acn G) _ argsF cs E m0 _ t m' vres RUN MM0 ARGS EV) as (c & Hin & CMc).
   destruct c as [gs r]. destruct CMc as (E' & X & MM & DR & _).
   pose proof (W _ Hin) as OK. unfold pk_ok in OK. cbn [fst] in OK.
