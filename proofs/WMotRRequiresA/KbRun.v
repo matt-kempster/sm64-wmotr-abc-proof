@@ -28,13 +28,15 @@ Variable acn : Z.
 Variable g : genv.
 
 (* known cells: marioObj, action = the case's constant, heldObj = riddenObj
-   = NULL, animList = &gMarioAnimsBuf *)
+   = NULL, animList = &gMarioAnimsBuf, statusForCamera =
+   &gPlayerCameraState[0] (FfWorld.ffw's last conjunct) *)
 Definition kvK : list (positive * Z * memory_chunk * sval) :=
   [ (RM, AirRun.fo g mario._MarioState mario._marioObj, Mint32, Sptr RO Ptrofs.zero);
     (RM, 12, Mint32, Sconst (Vint (Int.repr acn)));
     (RM, AirRun.fo g mario._MarioState mario._heldObj, Mint32, Sconst (Vint Int.zero));
     (RM, AirRun.fo g mario._MarioState mario._riddenObj, Mint32, Sconst (Vint Int.zero));
-    (RM, AirRun.fo g mario._MarioState mario._animList, Mint32, Sptr RLD Ptrofs.zero) ].
+    (RM, AirRun.fo g mario._MarioState mario._animList, Mint32, Sptr RLD Ptrofs.zero);
+    (RM, 148, Mint32, Sptr RPC Ptrofs.zero) ].
 Definition xcK (id : ident) : option xcontract :=
   match xcI g id with
   | Some k => Some k

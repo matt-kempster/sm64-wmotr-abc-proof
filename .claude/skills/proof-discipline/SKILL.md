@@ -200,13 +200,19 @@ all in `Unwired/`, and the theorem moved nowhere. See
     The StartSat witness now runs init_mario_from_save_file's stores (tethered to the real
     body, `ifs_tether`) and `goal2_start_sat` concludes `frame_runs`: one real no-A frame
     runs from the witness (before, it had NO frame: statusForCamera / marioBodyState NULL).
-    CLIMB_SLOW_1/2, CLIMB_FAST, IN_CANNON can now be attempted (their statusForCamera store
-    has storage).
+    CLIMB_SLOW_1/2 and CLIMB_FAST are PROVED (2026-10-22, TRUST (n)): ffw carries
+    statusForCamera = &gPlayerCameraState[0] (region `FfRun.RPC`, a `kvK` known cell), and
+    `Hauto_rest : LedgeRow.aut_case_rest_climb` holds 4 (CLIMBING_POLE, TOP_OF_POLE_TRANSITION,
+    TOP_OF_POLE, IN_CANNON). IN_CANNON: its state-0 store into usedObj needs used_ok's cannon
+    clause to place usedObj (like `pole_pos_ok`'s ub = Mario's object block) and keep it apart
+    from the collided objects; walk it with `fkp_ok` (its outcome stays in used_acts).
     Ready contracts: `SmaXc.c_smawa` (set_mario_anim_with_accel)
     and `PoleXc.past_frame_value_contract` (is_anim_past_frame).
     Blockers for the remaining pole cases:
     - CLIMBING_POLE reads `m->area->camera->yaw`. ffw has no camera fact, and the StartSat
-      witness area is a fresh, all-Vundef block. The fix is to carry a `wblk` camera fact in
+      witness area is a fresh, all-Vundef block. Probe (2026-10-22): even with the camera
+      `Fworld` fact supplied by hand and `c_smawa` in the table, `sx_call` on
+      act_climbing_pole returns None; localize the stuck statement first. The fix is to carry a `wblk` camera fact in
       ffw (extend the witness; preserve it in each row), then walk the case with `c_smawa`
       and `is_anim_past_frame`.
     - TOP_OF_POLE*: need the DMA row (approved, not yet added), gMarioAnims linked (it is a

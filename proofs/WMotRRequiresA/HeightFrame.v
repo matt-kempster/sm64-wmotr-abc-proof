@@ -567,15 +567,17 @@ Section HeightLinked12.
      with the cells kept or letting go of the ledge into SOFT_BONK with
      the floor still fresh, FfWorld.fresh's slack); HOLDING_POLE is
      PROVED (PoleHold.holdcheck12, with set_sound_moving_speed in the
-     labeled audio premise Haudio); 7 cases stay assumed, below. *)
-  (* the seven cases still assumed: CLIMBING_POLE (reads
+     labeled audio premise Haudio).  Since 2026-10-22 LEDGE_CLIMB_SLOW_1 /
+     _2 and LEDGE_CLIMB_FAST are PROVED (LedgeRow.aut_case_rest_ledge_climb:
+     the real act_ledge_climb_slow / _fast walked on the link; their
+     update_ledge_climb_camera stores land in the now-real
+     gPlayerCameraState, the frame world's statusForCamera conjunct);
+     4 cases stay assumed, below. *)
+  (* the four cases still assumed: CLIMBING_POLE (reads
      m->area->camera->yaw: no camera frame fact), TOP_OF_POLE_TRANSITION,
      TOP_OF_POLE (the anim frame >= -1 is advanced by the unlinked
-     rendering code: TRUST 0.8(f)(3)), LEDGE_CLIMB_SLOW_1 / 2 and
-     LEDGE_CLIMB_FAST (update_ledge_climb_camera stores through
-     m->statusForCamera, the size-0 gPlayerCameraState of this link:
-     TRUST audit (l)) and IN_CANNON (the same store in its state 0) *)
-  Hypothesis Hauto_rest : LedgeRow.aut_case_rest_ledge lp bm MWF.
+     rendering code: TRUST 0.8(f)(3)) and IN_CANNON *)
+  Hypothesis Hauto_rest : LedgeRow.aut_case_rest_climb lp bm MWF.
   (* (find_ceil's height: formerly the open premise Hceil, which was FALSE
      as stated -- it allowed a dangling *pceil; now PROVED,
      CeilHeight.fc_height, from the walker's live-local pceil) *)
@@ -613,7 +615,8 @@ Section HeightLinked12.
   Lemma Hauto_case : aut_case_rows lp bm MWF.
   Proof.
     exact (PoleRow.aut_case_rows_pole lp H12 Hdma_floor Haudio bm Hbm_sym MWF
-             (LedgeRow.aut_case_rest_pole_ledge lp H12 Hdma_floor Haudio bm Hbm_sym MWF Hauto_rest)).
+             (LedgeRow.aut_case_rest_pole_ledge lp H12 Hdma_floor Haudio bm Hbm_sym MWF
+                (LedgeRow.aut_case_rest_ledge_climb lp H12 Hdma_floor Haudio bm Hbm_sym MWF Hauto_rest))).
   Qed.
 
   Lemma Hair_case : air_case_rows lp bm MWF.

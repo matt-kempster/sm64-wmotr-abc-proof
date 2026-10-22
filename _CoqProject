@@ -362,6 +362,9 @@ proofs/WMotRRequiresA/LedgeClass.v
 proofs/WMotRRequiresA/LedgeRun.v
 proofs/WMotRRequiresA/LedgeGrab.v
 proofs/WMotRRequiresA/LedgeDown.v
+proofs/WMotRRequiresA/LedgeClimbSlow1.v
+proofs/WMotRRequiresA/LedgeClimbSlow2.v
+proofs/WMotRRequiresA/LedgeClimbFast.v
 proofs/WMotRRequiresA/LedgeRow.v
 proofs/Interp/MemBuild.v
 proofs/Interp/InterpFrame.v

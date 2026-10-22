@@ -129,7 +129,7 @@ Hypothesis Haudio : audio_inert.      (* LABELED OPEN PREMISE: audio, deferred *
 Variable acn : Z.
 Variable fK : function.
 Hypothesis Hwalk : ledge_walk acn fK = true.
-Hypothesis Hacn : acn = 134218571 \/ acn = 1358.
+Hypothesis Hacn : In acn LEDGE_IN.
 
 Variables (m0 : mem) (gp : meminj).
 Hypothesis GPO : forall b x, gp b = Some x -> Plt b (Mem.nextblock m0).
@@ -266,8 +266,8 @@ Proof.
     unfold addr in L. rewrite HbM, Ptrofs.unsigned_zero, Z.add_0_l in L.
     destruct RC as (HA & _). change OFS_ACTION with 12%Z in HA. rewrite HA in L. cbn [den] in L.
     injection L as ->. reflexivity. }
-  assert (Hacn0 : c_action c0 = Int.repr 134218571 \/ c_action c0 = Int.repr 1358)
-    by (rewrite Hact0; destruct Hacn as [-> | ->]; [left | right]; reflexivity).
+  assert (Hacn0 : exists z, In z LEDGE_IN /\ c_action c0 = Int.repr z)
+    by (exists acn; split; [exact Hacn | exact Hact0]).
   rewrite <- BM in RC |- *.
   split.
   - apply orb_true_iff in RT as [RT | RT].
@@ -285,8 +285,13 @@ Qed.
 End LP.
 
 Lemma ledge_lfinal : forall lp, linked12 lp -> os_dma_floor -> audio_inert ->
-  forall acn fK, ledge_walk acn fK = true -> acn = 134218571 \/ acn = 1358 -> lfinal lp acn fK.
+  forall acn fK, ledge_walk acn fK = true -> In acn LEDGE_IN -> lfinal lp acn fK.
 Proof.
   intros lp H12 Hdma Ha acn fK Hw Hacn m0 gp GPO MC FD.
   exact (ledge_final lp H12 Hdma Ha acn fK Hw Hacn m0 gp GPO MC FD).
+Qed.
+
+Lemma in_ledge_in : forall z, existsb (Z.eqb z) LEDGE_IN = true -> In z LEDGE_IN.
+Proof.
+  intros z H. apply existsb_exists in H as (x & Hx & E). apply Z.eqb_eq in E. subst. exact Hx.
 Qed.
