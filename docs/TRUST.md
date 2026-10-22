@@ -574,6 +574,26 @@ without pressing A".*
     (`surface_load.c`; its scope: `alloc_surface_pools`, `load_area_terrain`, `load_object_collision_model`,
     the `sSurfacePool` / `gStaticSurfacePartition` storage, and it reads the level's collision data,
     which is the unlinked `levels/wmotr/areas/1/collision.inc.c`, 4.3).
+- **`surface_load.c` is linked (2026-10-22, the 32nd TU).** It is the only definer of
+  `gStaticSurfacePartition` / `gDynamicSurfacePartition` (and `sSurfacePool`, `sSurfaceNodePool`).
+  - **Found:** before, both partitions were size-0 extern blocks in the boot image. `find_floor`,
+    `find_ceil` and `find_wall_collisions` read a partition list head right after their
+    level-boundary check, so at any in-bounds (x, z) no memory built from the boot image (the GOAL 2
+    witness included) gave them an execution. Every frame with a nonzero action runs
+    `update_mario_geometry_inputs`, so no such frame at an in-bounds position had an execution from
+    boot. No row was false: the proofs are partial-correctness walks over any memory.
+  - **Repaired on the witness:** `StartSat.goal2_start_sat` now also concludes `part_ready`: both
+    partitions have the definer's 6144 bytes, and every list head loads as NULL (`part_heads`).
+  - **Still not run:** `alloc_surface_pools` / `load_area_terrain`. The witness's partition is
+    empty, not WMotR's terrain. Running the loader needs: the main pool (`main_pool_init` on the
+    `SEG_POOL_START..SEG_POOL_END` region, a hardware-floor row the user approved but not yet added,
+    since nothing runs it); `spawn_special_objects` (`macro_special_objects.c`, unlinked; WMotR's
+    terrain has one `COL_SPECIAL_INIT`); and the level data (`wmotr_level_data`, not in the link).
+    Then `floor_data` / `Wff` must be shown of the loaded partition.
+  - No capstone row names a `surface_load.c` function (checked: the open id lists, `exempt_callees`,
+    the GOAL 2 per-call rows), so no row became a lemma. Its callers in the link
+    (`update_objects` → `clear_dynamic_surfaces`, `load_area` → `load_area_terrain`, the
+    `load_object_collision_model` behavior command) are outside the Mario frame (0.7 flanks).
 - **Still ASSUMED:** that the memory the real game reaches at WMotR entry satisfies the rest of Φ
   (world, anim layout, partition, controller). Level loading is not modelled, and it must be checked
   on recorded states (§5).
@@ -724,7 +744,7 @@ link grows.
 
 | # | Item | Status / notes |
 |---|---|---|
-| 4.1 | Functions outside the 31 linked files (24 game TUs + `behavior_data.c` + 6 libultra TUs; audio, camera) behave as the capstone's rows say (`Hocp_*`, `Hpres_*`, `Hext_*`, …) | **ASSUMED, the ~30 project rows.** Shrinks by linking more files until only truly external things remain. Details: [row 4.1 in detail](#row-41-in-detail). |
+| 4.1 | Functions outside the 32 linked files (25 game TUs + `behavior_data.c` + 6 libultra TUs; audio, camera) behave as the capstone's rows say (`Hocp_*`, `Hpres_*`, `Hext_*`, …) | **ASSUMED, the ~30 project rows.** Shrinks by linking more files until only truly external things remain. Details: [row 4.1 in detail](#row-41-in-detail). |
 | 4.2 | CompCert's `external_functions_sem` is an abstract Parameter. Anything left external is constrained *only* by our rows | Permanent for whatever stays external. The goal is that nothing game-logic stays external. |
 | 4.3 | Level data (WMotR collision triangles, object placements, the red-coin positions) is what the ROM contains | Not yet in scope at all. Can be clightgen'd like code (`levels/wmotr/*.inc.c`). |
 | 4.4 | The proof's internal vocabulary (`MWF_real`, `SafeB`, `call_pres_ext_*`) appears in the *statement's* hypotheses | Anti-goal: a reader shouldn't have to understand proof internals to know what's assumed. Rows must eventually be about the game, or be gone. |
@@ -988,6 +1008,11 @@ link grows.
     from `s2v_ptr_noexec`, which is no longer true. A real call also still has no execution: each
     one passes `&bhvXxx`, a size-0 block, and `create_object` first reads `bhvScript[0]`. Showing
     non-vacuity therefore also needs `behavior_data.c` linked (see the bullet below).
+- **`surface_load.c` is linked (2026-10-22, the 32nd TU)**: the storage of both collision
+  partitions and the surface pools, and the real level / object collision loaders. Before, the
+  partitions were size-0 blocks at boot, so no boot-derived memory gave `find_floor` an execution
+  at an in-bounds position.
+  No extern completion was needed. No row named its functions. Details in row 0.4.
 - **`spawn_object.c` is linked (2026-10-21, the 31st TU) and the spawn pair is proved from its
   real bodies (`SpawnBodies.v`).** `spawn_object` / `spawn_object_abs_with_rot` (object_helpers.c)
   are walked through `spawn_object_at_origin`, `create_object`, `allocate_object`,

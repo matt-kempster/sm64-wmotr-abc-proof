@@ -75,6 +75,7 @@ all in `Unwired/`, and the theorem moved nowhere. See
   MWF does not read keeps MWF (`np_store_pres`), so `gWarpTransition` & co. did not have to join
   `stored_globals`. Still-linked any-argument entries: none (the spawn pair left `cut_ext_ids`).
   Counts: GOAL 1 17; HeightFrame 26 incl. its 3 section rows (2026-10-21, spawn: −2 rows, +Hsss).
+  `surface_load.c` linked 2026-10-22 (32nd TU): counts unchanged (no row names its functions).
 - **GOAL 2** (WMotR needs A): `WMotRRequiresA/HeightFrame.v`,
   `wmotr_noA_height_bound_linked12`. This is a conditional theorem over ONE WMotR
   visit (frames end with `in_wmotr`), under input with A neither pressed nor held
@@ -91,8 +92,15 @@ all in `Unwired/`, and the theorem moved nowhere. See
   stored by the REAL generated `initiate_warp` + `warp_level` head (`EntryWarp.v`), each store an
   `MWF_real` brick. Still from source: the castle painting node, the level script between them,
   the rest of `warp_level`, and the spawn-type lookup (read off area.v data, and since 2026-10-21 also
-  RUN by `SpawnTypeRun`, but on a built object, not the level script's). Next: `gCurrCourseNum`,
-  surface_load.c (the witness's collision partition is still empty). FOUND FALSE + repaired
+  RUN by `SpawnTypeRun`, but on a built object, not the level script's). Since 2026-10-22
+  `surface_load.c` is linked (32nd TU). FOUND: both collision partitions were size-0 blocks at
+  boot, so at any in-bounds (x, z) `find_floor` / `find_ceil` / `find_wall_collisions` had no
+  execution from boot, and so no nonzero-action frame there did either (no row false: walks are
+  partial correctness). `goal2_start_sat` now concludes `part_ready` (every list head loads,
+  NULL). No capstone row names a surface_load function, so 0 rows discharged. Next:
+  `gCurrCourseNum`; RUN `load_area_terrain` on the witness (needs the approved main-pool hardware
+  row, `spawn_special_objects` linked, `wmotr_level_data` in the link, then `floor_data` / `Wff`
+  of the loaded partition). FOUND FALSE + repaired
   when linking area.c: any-argument `override_viewport_and_clip` (in `obj_ext_ids`) stores its
   pointer args into `D_8032CE74/78`; those joined `stored_globals`. Linking a TU turns every
   any-argument row naming its functions into a claim about real code: re-audit them.
