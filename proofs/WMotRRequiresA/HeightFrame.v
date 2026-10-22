@@ -619,7 +619,7 @@ Section HeightLinked12.
       body_pres lp (NoA_real bm) MWF bm f.
   Proof.
     exact (auto_leaves_linked12 lp H12 bm bc oc0 SafeB HSafeB_syms Hbm_sym Hbc_sym Hoc0
-             Hcsp_scm_real Hdma_floor Hpres_obj_ext_open2 Hcp_spawn_real).
+             Hcsp_scm_real Hdma_floor Hsss Hpres_obj_ext_open2).
   Qed.
 
   (* the automatic dispatcher's row, from AutoSplit *)
