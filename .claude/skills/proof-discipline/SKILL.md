@@ -111,8 +111,15 @@ all in `Unwired/`, and the theorem moved nowhere. See
   (`TerrainBound.tri_chk_sound`: per-triangle binary32 bound). This is conditional only on
   `world_ok` (sqrtf = IEEE sqrt, `reset_red_coins_collected` inert) for "this is the loader's
   output". `main_pool_init` has no CompCert execution (ALIGN16 on a pointer).
-  Next: move that memory into `StartSat`'s `init_mem` witness (keep `MWF_real` across the load);
-  `gCurrCourseNum`; ask about an FPU-floor row for `sqrtf`'s value. FOUND FALSE + repaired
+  2026-10-22, later: the GOAL 2 start witness CARRIES that terrain (`StartTerrain`): the loader
+  runs on the `init_mem` image (`InitMemC.init_mem_c`, computable init_mem) in the real order
+  (warp stores, pool post-state, alloc_surface_pools, load_area_terrain, init_mario cells);
+  footprint / pointer / list checks + `InterpFrame.ex_call_keep` re-prove `MWF_real` (SafeB + pool
+  block), neutrality and `Wff` across the load; `goal2_start_sat` concludes `floor_data`,
+  `static_agree`, 1352 surfaces and `terrain_loaded` (replaces `part_ready`). `world_ok` split:
+  memory half of sqrtf = `sqrtf_spec`; `sqrtf_ieee` + `rrc_inert` stay labeled antecedents of
+  the tether implication (`gRedCoinsCollected` is not in the link). Next: `gCurrCourseNum`; ask
+  about an FPU value row for `sqrtf` and the `memory.c:120,122` ALIGN16 rewrite (TRUST 3.6). FOUND FALSE + repaired
   when linking area.c: any-argument `override_viewport_and_clip` (in `obj_ext_ids`) stores its
   pointer args into `D_8032CE74/78`; those joined `stored_globals`. Linking a TU turns every
   any-argument row naming its functions into a claim about real code: re-audit them.
@@ -153,9 +160,10 @@ all in `Unwired/`, and the theorem moved nowhere. See
     −75 only with the clamp fact), turned into the equation by `AirMatch.aclass_air_ex`. Do
     not relax `S_sk_bounced` to a ≤ bound: the signed-energy credit makes that false. ffw's floor refresh still holds for
     `fro_st` (air_entry + ground pound + rollouts, and butt-slide air and slide kick at state 0;
-    TRUST 0.6); the ff / ahw rows still read it. Phantom-∀ caveat (pre-existing): the
-    open rows claim FRO after let_go_of_ledge -> SOFT_BONK, true in the game (find_floor's +78
-    bound, y drops <= 100) but not derivable from fworld. Walk files: one walk each (KbSb/KbBkb/KbFkb/KbDv),
+    TRUST 0.6); the ff / ahw rows still read it. The let_go_of_ledge -> SOFT_BONK
+    stale floor is REPAIRED (2026-10-22, TRUST (l)): `fresh` carries the slack `action = SB ∨
+    fh = -11000 ∨ fh <= y + 140`; use `fresh_fro` / `fresh_ret_ns`, and SB's FALSE comes from
+    `SbRet0.kb_kret0`. Walk files: one walk each (KbSb/KbBkb/KbFkb/KbDv),
     `WithGe.with_ge` not `match ge12`, `vm_cast_no_check`, never `eassumption` near a walk. Dive and rollouts read `gAudioRandom`; audio/data.c (its only
     definer) is linked as the 18th TU so those paths have executions. Squish: WMotR's dynamic
     surfaces never come within 150 of a floor/ceiling (`tools/goal2_squish_scan.py`, min gap 276),
@@ -178,10 +186,27 @@ all in `Unwired/`, and the theorem moved nowhere. See
     Dead: the hang actions, GRABBED, TORNADO_TWIRLING.
     GRAB_POLE_SLOW/FAST are PROVED (2026-10-22, `PoleRow.aut_case_rows_pole`, TRUST (k)).
     `Hauto_case` is now a lemma, and `HeightFrame.Hauto_rest : aut_case_rest_pole` holds the
-    other 10 cases. A new labeled open premise, `Hceil : PoleXc.find_ceil_height`, is next to
-    discharge (27 → 28). Pole kit: `PoleRun` (usedObj region RU, `pk_ok`), `PoleClass`
+    other 10 cases. `Hceil` was FALSE as stated (a dangling `pceil`); it is restated and
+    PROVED by `CeilHeight.fc_height` and removed. Pole kit: `PoleRun` (usedObj region RU, `pk_ok`), `PoleClass`
     (classifier), `PoleSound`, and `PoleKeep` (`fkp_ok`, `no_reg`, `fkp_frame_except`).
-    Next: HOLDING_POLE / CLIMBING_POLE (anim data), then the ledge cases and IN_CANNON.
+    LEDGE_GRAB / LEDGE_CLIMB_DOWN are PROVED (2026-10-22, `LedgeRow`, TRUST (l));
+    `Hauto_rest : LedgeRow.aut_case_rest_ledge` holds 8. Ledge kit: `LedgeRun` (xcL,
+    `ufL` with kL), `LedgeClass` (ledge_ok / letgo_ok and their soundness).
+    BLOCKED: CLIMB_SLOW_1/2, CLIMB_FAST and IN_CANNON store through `m->statusForCamera`
+    = the size-0 `gPlayerCameraState` (camera.c unlinked). That same store is in every
+    frame's update_mario_info_for_cam, so the frame capstones are VACUOUS for the real game
+    until camera.c's storage is linked (TRUST (l)). Fix that first.
+    Ready contracts: `SmaXc.c_smawa` (set_mario_anim_with_accel)
+    and `PoleXc.past_frame_value_contract` (is_anim_past_frame).
+    Blockers for the remaining pole cases:
+    - HOLDING_POLE calls `set_sound_moving_speed`, an unlinked audio external that
+      `Haudio` does not cover. It needs a new premise, so it waits for the user.
+    - CLIMBING_POLE reads `m->area->camera->yaw`. ffw has no camera fact, and the StartSat
+      witness area is a fresh, all-Vundef block. The fix is to carry a `wblk` camera fact in
+      ffw (extend the witness; preserve it in each row), then walk the case with `c_smawa`
+      and `is_anim_past_frame`.
+    - TOP_OF_POLE*: need the DMA row (approved), gMarioAnims linked (it is a size-0 extern),
+      and animFrame ≥ −1.
     The FELL_OFF → FREEFALL path sets y := base and does not refresh floorHeight. `fresh`
     carries only fh <= y_entry + 241, while y_entry may be up to about base + 16, so it is
     not enough. That path needs a carried pole fact (y = oPosY + polePos, within float

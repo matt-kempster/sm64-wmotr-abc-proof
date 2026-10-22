@@ -300,8 +300,10 @@ proofs/WMotRRequiresA/FloorHeight.v
 proofs/WMotRRequiresA/FloorBound.v
 proofs/WMotRRequiresA/TerrainBound.v
 proofs/WMotRRequiresA/TerrainRun.v
+proofs/WMotRRequiresA/StartTerrain.v
 proofs/WMotRRequiresA/FloorExec.v
 proofs/WMotRRequiresA/CeilList.v
+proofs/WMotRRequiresA/CeilHeight.v
 proofs/WMotRRequiresA/CeilExec.v
 proofs/WMotRRequiresA/TerrainSound.v
 proofs/WMotRRequiresA/WallList.v
@@ -327,6 +329,8 @@ proofs/WMotRRequiresA/AhwRun.v
 proofs/WMotRRequiresA/WithGe.v
 proofs/WMotRRequiresA/KbRun.v
 proofs/WMotRRequiresA/KbSb.v
+proofs/WMotRRequiresA/SbRet0.v
+proofs/WMotRRequiresA/SbRet0Walk.v
 proofs/WMotRRequiresA/KbBkb.v
 proofs/WMotRRequiresA/KbFkb.v
 proofs/WMotRRequiresA/KbDv.v
@@ -353,8 +357,15 @@ proofs/WMotRRequiresA/PoleRun.v
 proofs/WMotRRequiresA/PoleSlow.v
 proofs/WMotRRequiresA/PoleFast.v
 proofs/WMotRRequiresA/PoleRow.v
+proofs/WMotRRequiresA/LedgeClass.v
+proofs/WMotRRequiresA/LedgeRun.v
+proofs/WMotRRequiresA/LedgeGrab.v
+proofs/WMotRRequiresA/LedgeDown.v
+proofs/WMotRRequiresA/LedgeRow.v
 proofs/Interp/MemBuild.v
+proofs/Interp/InterpFrame.v
 proofs/Interp/InitMemC.v
+proofs/Interp/InitMemEq.v
 
 # --- GOAL 1 positive control: with A pressed, a real frame reaches flying ---
 proofs/NoAImpliesNoFly/PositiveControl.v

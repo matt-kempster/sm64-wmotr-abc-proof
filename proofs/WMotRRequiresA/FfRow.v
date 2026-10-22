@@ -320,14 +320,14 @@ Proof.
         [rewrite DI, FF; exact Lf | exists ft; split; assumption | left; reflexivity]. }
   (* the floor refresh *)
   assert (FRO0 : FloorRefreshOK wmotr_floor (R2 (c_posy c0)) (R2 (c_floorh c0))).
-  { destruct RC as (_ & _ & _ & Hy & _ & Hf & _). exact (Hfr _ _ Hy Hf). }
+  { destruct RC as (_ & _ & _ & Hy & _ & Hf & _). exact (fresh_fro bm m _ _ Hfr Hy Hf). }
   assert (EV' : eval_funcall function_entry2 G m (Internal AIR.f_act_freefall)
                   [Vptr (e_blk E RM) (Ptrofs.add (e_base E RM) Ptrofs.zero)] t m' vres).
   { unfold E; cbn [Eff e_blk e_base]; cbn [Pos.eqb RM RO RFI RMISS RCALLS RSIN RLD RBUF RIOM RMQ RRM RAR]. rewrite Ptrofs.add_zero. exact EV. }
   destruct (ff_final lp H12 Hdma Hsq Hsqf Haudio Hcamera m gp GPO MCg FD
               E t m' vres c0 EO PC EV' ltac:(exact RC) Hbud FRO0)
     as (E' & gs & X & MM & FK & RT & c2 & RC2 & MV & FF2).
-  split; [| change (e_blk E RM) with bm in RT; exact (fresh_ret bm m m' vres Hfr RT)].
+  split; [| change (e_blk E RM) with bm in RT; exact (fresh_ret_ns bm m m' vres _ Hact eq_refl Hfr RT)].
   split; [| exists c2; exact (conj RC2 MV)].
   (* ---- the walk's outcome, in terms of the blocks ---- *)
   set (RL0 := ff_rl bm bo oo bfi bmiss bcalls ab bt biom bmq brm) in *.

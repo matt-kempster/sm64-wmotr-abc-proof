@@ -22,7 +22,7 @@
 
    What runs (the sound interpreter, Interp/ClightInterp.v, over the
    computable genv Interp/LinkGenv.v and the computable init_mem
-   Interp/InitMemC.v, each proved equal to CompCert's):
+   Interp/InitMemEq.v, each proved equal to CompCert's):
    1. m0 = Genv.init_mem lp; the function the link resolves
       init_mario_from_save_file to runs: m1.  From m1 one execute_mario_action
       frame runs (the action init leaves is 0, so the frame does nothing; this
@@ -58,7 +58,7 @@ From Coq Require Import String List ZArith.
 From compcert Require Import Coqlib Maps Integers Floats Values AST Memory Globalenvs
   Ctypes Clight ClightBigstep Events.
 From SM64.Proofs Require Import Interp.ClightInterp Interp.LinkGenv Interp.MemBuild
-  Interp.InitMemC.
+  Interp.InitMemEq.
 From SM64.Proofs Require Interp.CMem.
 From SM64.Proofs Require Import LinkedTwelve RealFrameLinked AGates EngineV2Consumer.
 Require SM64.Generated.mario SM64.Generated.surface_load SM64.Generated.level_update.

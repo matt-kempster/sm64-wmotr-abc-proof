@@ -27,7 +27,8 @@ From SM64.Proofs Require Import Interp.SymExec2 Interp.LinkGenv MarioModel.Linke
   MarioModel.OsDmaFloor HeightInvariant HeightMoveCatalog WMotRLevel WMotRWorld.
 From SM64.Proofs Require Import RealFrameLinked AirborneSurface NoAImpliesNoFlyLinked.
 From SM64.Proofs.WMotRRequiresA Require Import FloorList FloorExec AirRun AirStart AirMatch
-  FpuFloor ExtInert FfRun FfWorld FrameSplit AirSplit FfKeepCheck FfKeep FfClass AhwRun KbRun KbSb KbBkb KbFkb KbDv GpRun RlRun RlF RlB BsRun BsW SkRun SkW.
+  FpuFloor ExtInert FfRun FfWorld FrameSplit AirSplit FfKeepCheck FfKeep FfClass AhwRun KbRun KbSb KbBkb KbFkb KbDv GpRun RlRun RlF RlB BsRun BsW SkRun SkW
+  SbRet0 SbRet0Walk.
 From SM64.Proofs.WMotRRequiresA Require FfRow AhwRow.
 From SM64.Proofs Require Import Generic.ClosedMem Generic.ClightClosed.
 Import ListNotations.
@@ -180,6 +181,9 @@ Hypothesis Hbm : Genv.find_symbol G level_update._gMarioStates = Some bm.
 Variable acn : Z.
 Variable fK : function.
 Hypothesis Hfin : kfinal lp acn fK.
+(* the case is not SOFT_BONK, or its handler returns 0 (SbRet0): what
+   FfWorld.fresh's slack needs at a TRUE return *)
+Hypothesis Hsb : Int.eq (Int.repr acn) (Int.repr SB_ACT) = false \/ kret0 lp acn fK.
 
 Lemma ff_layout : AirRun.fo G mario._MarioState mario._marioObj = FFW_OBJ
   /\ AirRun.fo G mario._MarioState mario._animList = FFW_ANIM
@@ -429,13 +433,17 @@ Proof.
         [rewrite DI, FF; exact Lf | exists ft; split; assumption | left; reflexivity]. }
   (* the floor refresh *)
   assert (FRO0 : FloorRefreshOK wmotr_floor (R2 (c_posy c0)) (R2 (c_floorh c0))).
-  { destruct RC as (_ & _ & _ & Hy & _ & Hf & _). exact (Hfr _ _ Hy Hf). }
+  { destruct RC as (_ & _ & _ & Hy & _ & Hf & _). exact (fresh_fro bm m _ _ Hfr Hy Hf). }
   assert (EV' : eval_funcall function_entry2 G m (Internal fK)
                   [Vptr (e_blk E RM) (Ptrofs.add (e_base E RM) Ptrofs.zero)] t m' vres).
   { unfold E; cbn [Eff e_blk e_base]; cbn [Pos.eqb RM RO RFI RMISS RCALLS RSIN RLD RBUF RIOM RMQ RRM RAR]. rewrite Ptrofs.add_zero. exact EV. }
   destruct (Hfin m gp GPO MCg FD E t m' vres c0 EO PC EV' ltac:(exact RC) Hbud FRO0)
     as (E' & gs & X & MM & FK & RT & c2 & RC2 & MV & FF2).
-  split; [| change (e_blk E RM) with bm in RT; exact (fresh_ret bm m m' vres Hfr RT)].
+  split.
+  2:{ change (e_blk E RM) with bm in RT. apply (fresh_ret bm m m' vres Hfr RT). intros Lsb.
+      destruct Hsb as [N | K].
+      - rewrite Hact in Lsb. assert (Eq : Int.repr acn = Int.repr SB_ACT) by congruence. rewrite Eq, Int.eq_true in N. discriminate N.
+      - exact (K m gp GPO MCg FD E t m' vres EO PC EV'). }
   split; [| exists c2; exact (conj RC2 MV)].
   (* ---- the walk's outcome, in terms of the blocks ---- *)
   set (RL0 := ff_rl bm bo oo bfi bmiss bcalls ab bt biom bmq brm) in *.
@@ -708,21 +716,21 @@ Proof.
     intros m t m' vr c Hok Hw (-> & Hact & Hfr) Hok' Hc Hb Hev.
     destruct Hok as (Vm & _).
     exact (kb_reshape _ _ _ (kb_row lp H12 bm Hbm _ _ (kb_kfinal lp H12 Hdma Hsq Hsqf Haudio Hcamera _ _ sbcheck12 eq_refl)
-             m t m' vr c Vm Hw Hc Hb Hact Hfr Hev)). }
+             (or_intror (kb_kret0 lp H12 Hdma Hsq Hsqf Haudio Hcamera _ _ sb0check12)) m t m' vr c Vm Hw Hc Hb Hact Hfr Hev)). }
   destruct (Pos.eq_dec f AIR._act_backward_air_kb) as [-> | Hne3].
   { pose proof (bkb_label n Hin) as ->.
     pose proof (resolve_pin_fd lp _ _ _ _ (linked12_LO_air lp H12) dm_bkb Hr) as ->.
     intros m t m' vr c Hok Hw (-> & Hact & Hfr) Hok' Hc Hb Hev.
     destruct Hok as (Vm & _).
     exact (kb_reshape _ _ _ (kb_row lp H12 bm Hbm _ _ (kb_kfinal lp H12 Hdma Hsq Hsqf Haudio Hcamera _ _ bkbcheck12 eq_refl)
-             m t m' vr c Vm Hw Hc Hb Hact Hfr Hev)). }
+             (or_introl eq_refl) m t m' vr c Vm Hw Hc Hb Hact Hfr Hev)). }
   destruct (Pos.eq_dec f AIR._act_forward_air_kb) as [-> | Hne4].
   { pose proof (fkb_label n Hin) as ->.
     pose proof (resolve_pin_fd lp _ _ _ _ (linked12_LO_air lp H12) dm_fkb Hr) as ->.
     intros m t m' vr c Hok Hw (-> & Hact & Hfr) Hok' Hc Hb Hev.
     destruct Hok as (Vm & _).
     exact (kb_reshape _ _ _ (kb_row lp H12 bm Hbm _ _ (kb_kfinal lp H12 Hdma Hsq Hsqf Haudio Hcamera _ _ fkbcheck12 eq_refl)
-             m t m' vr c Vm Hw Hc Hb Hact Hfr Hev)). }
+             (or_introl eq_refl) m t m' vr c Vm Hw Hc Hb Hact Hfr Hev)). }
   exact (Hrest n f fd v Hin Hne Hne1 Hne2 Hne3 Hne4 Hr).
 Qed.
 
@@ -747,7 +755,7 @@ Proof.
     intros m t m' vr c Hok Hw (-> & Hact & Hfr) Hok' Hc Hb Hev.
     destruct Hok as (Vm & _).
     exact (kb_reshape _ _ _ (kb_row lp H12 bm Hbm _ _ (gp_kfinal lp H12 Hdma Hsq Hsqf Haudio Hcamera)
-             m t m' vr c Vm Hw Hc Hb Hact Hfr Hev)). }
+             (or_introl eq_refl) m t m' vr c Vm Hw Hc Hb Hact Hfr Hev)). }
   exact (Hrest n f fd v Hin Hne Hne1 Hne2 Hne3 Hne4 Hne5 Hr).
 Qed.
 
@@ -772,7 +780,7 @@ Proof.
     intros m t m' vr c Hok Hw (-> & Hact & Hfr) Hok' Hc Hb Hev.
     destruct Hok as (Vm & _).
     exact (kb_reshape _ _ _ (kb_row lp H12 bm Hbm _ _ (kb_kfinal lp H12 Hdma Hsq Hsqf Haudio Hcamera _ _ dvcheck12 eq_refl)
-             m t m' vr c Vm Hw Hc Hb Hact Hfr Hev)). }
+             (or_introl eq_refl) m t m' vr c Vm Hw Hc Hb Hact Hfr Hev)). }
   exact (Hrest n f fd v Hin Hne Hne1 Hne2 Hne3 Hne4 Hne5 Hne6 Hr).
 Qed.
 (* the other two no-A cases (butt-slide air, slide kick) keep their
@@ -797,14 +805,14 @@ Proof.
     intros m t m' vr c Hok Hw (-> & Hact & Hfr) Hok' Hc Hb Hev.
     destruct Hok as (Vm & _).
     exact (kb_reshape _ _ _ (kb_row lp H12 bm Hbm _ _ (rl_kfinal_all lp H12 Hdma Hsq Hsqf Haudio Hcamera _ _ rlfcheck12)
-             m t m' vr c Vm Hw Hc Hb Hact Hfr Hev)). }
+             (or_introl eq_refl) m t m' vr c Vm Hw Hc Hb Hact Hfr Hev)). }
   destruct (Pos.eq_dec f AIR._act_backward_rollout) as [-> | Hne8].
   { pose proof (br_label n Hin) as ->.
     pose proof (resolve_pin_fd lp _ _ _ _ (linked12_LO_air lp H12) dm_br Hr) as ->.
     intros m t m' vr c Hok Hw (-> & Hact & Hfr) Hok' Hc Hb Hev.
     destruct Hok as (Vm & _).
     exact (kb_reshape _ _ _ (kb_row lp H12 bm Hbm _ _ (rl_kfinal_all lp H12 Hdma Hsq Hsqf Haudio Hcamera _ _ rlbcheck12)
-             m t m' vr c Vm Hw Hc Hb Hact Hfr Hev)). }
+             (or_introl eq_refl) m t m' vr c Vm Hw Hc Hb Hact Hfr Hev)). }
   exact (Hrest n f fd v Hin Hne Hne1 Hne2 Hne3 Hne4 Hne5 Hne6 Hne7 Hne8 Hr).
 Qed.
 
@@ -832,7 +840,7 @@ Proof.
     intros m t m' vr c Hok Hw (-> & Hact & Hfr) Hok' Hc Hb Hev.
     destruct Hok as (Vm & _).
     exact (kb_reshape _ _ _ (kb_row lp H12 bm Hbm _ _ (bs_kfinal_all lp H12 Hdma Hsq Hsqf Haudio Hcamera _ bscheck12)
-             m t m' vr c Vm Hw Hc Hb Hact Hfr Hev)). }
+             (or_introl eq_refl) m t m' vr c Vm Hw Hc Hb Hact Hfr Hev)). }
   exact (Hrest n f fd v Hin Hne Hne1 Hne2 Hne3 Hne4 Hne5 Hne6 Hne7 Hne8 Hne9 Hr).
 Qed.
 
@@ -849,7 +857,7 @@ Proof.
     intros m t m' vr c Hok Hw (-> & Hact & Hfr) Hok' Hc Hb Hev.
     destruct Hok as (Vm & _).
     exact (kb_reshape _ _ _ (kb_row lp H12 bm Hbm _ _ (sk_kfinal_all lp H12 Hdma Hsq Hsqf Haudio Hcamera _ skcheck12)
-             m t m' vr c Vm Hw Hc Hb Hact Hfr Hev)). }
+             (or_introl eq_refl) m t m' vr c Vm Hw Hc Hb Hact Hfr Hev)). }
   exfalso. pose proof (air_case_fns_in n f Hin) as I. unfold air_case_fns in I.
   repeat (destruct I as [I | I]; [symmetry in I; contradiction |]). exact I.
 Qed.
