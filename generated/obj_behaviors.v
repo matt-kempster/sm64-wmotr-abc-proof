@@ -1375,7 +1375,7 @@ Definition _t'99 : ident := 226%positive.
 
 Definition v_gPlayerCameraState := {|
   gvar_info := (tarray (Tstruct _PlayerCameraState noattr) 2);
-  gvar_init := (Init_space 72 :: nil);
+  gvar_init := nil;
   gvar_readonly := false;
   gvar_volatile := false
 |}.
@@ -1396,7 +1396,7 @@ Definition v_gObjCutsceneDone := {|
 
 Definition v_gCamera := {|
   gvar_info := (tptr (Tstruct _Camera noattr));
-  gvar_init := (Init_space 4 :: nil);
+  gvar_init := nil;
   gvar_readonly := false;
   gvar_volatile := false
 |}.

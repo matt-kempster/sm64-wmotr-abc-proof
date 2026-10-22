@@ -831,21 +831,21 @@ Definition v_gAreaUpdateCounter := {|
 
 Definition v_gCameraMovementFlags := {|
   gvar_info := tshort;
-  gvar_init := (Init_space 2 :: nil);
+  gvar_init := nil;
   gvar_readonly := false;
   gvar_volatile := false
 |}.
 
 Definition v_gCamera := {|
   gvar_info := (tptr (Tstruct _Camera noattr));
-  gvar_init := (Init_space 4 :: nil);
+  gvar_init := nil;
   gvar_readonly := false;
   gvar_volatile := false
 |}.
 
 Definition v_gCutsceneFocus := {|
   gvar_info := (tptr (Tstruct _Object noattr));
-  gvar_init := (Init_space 4 :: nil);
+  gvar_init := nil;
   gvar_readonly := false;
   gvar_volatile := false
 |}.

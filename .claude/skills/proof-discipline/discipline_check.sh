@@ -57,7 +57,8 @@ if [ "$#" -eq 0 ]; then
          SM64.Proofs.WMotRRequiresA.SpawnTypeRun spawn_type_runs \
          SM64.Proofs.WMotRRequiresA.TerrainRun terrain_runs \
          SM64.Proofs.WMotRRequiresA.HeightFrame wmotr_noA_height_bound_linked12 \
-         SM64.Proofs.WMotRRequiresA.StartSat goal2_start_sat
+         SM64.Proofs.WMotRRequiresA.StartSat goal2_start_sat \
+         SM64.Proofs.NoAImpliesNoFly.BootRun boot_frames_run
 fi
 # NOTE: the fifth capstone went LIVE with the #95 repair (2026-07-05): the
 # negative pin now covers only the 16 genuinely-external whitelist ids and

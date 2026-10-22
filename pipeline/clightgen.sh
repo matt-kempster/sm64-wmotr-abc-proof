@@ -115,12 +115,10 @@ PYEOF
 # the definer's storage as a common definition `Init_space sizeof`: CompCert's
 # link_varinit merges equal-size commons, and links one with the real
 # definition if that TU ever joins.  Sizes are sizeof of the declared type
-# (ppc32 layout); proofs/Interp/BootRun.v re-checks each against the linked
-# composite env.  Defining file:line, in vendor/sm64:
-#   gPlayerCameraState     72  src/game/camera.c:91      [2] x 36
-#   gCamera                 4  src/game/camera.c:179
-#   gCameraMovementFlags    2  src/game/camera.c:238
-#   gCutsceneFocus          4  src/game/camera.c:392     = NULL
+# (ppc32 layout); BootRun.completed_sizes re-checks each against the linked
+# composite env.  (camera.c's globals -- gPlayerCameraState, gCamera,
+# gCameraMovementFlags, gCutsceneFocus -- are not here: camera.c is linked.)
+# Defining file:line, in vendor/sm64:
 #   gBodyStates            80  src/game/mario_misc.c:73  [2] x 40
 #   gCurGraphNodeRoot       4  src/game/rendering_graph_node.c:120  = NULL
 #   gCurGraphNodeMasterList 4  src/game/rendering_graph_node.c:121  = NULL
@@ -143,8 +141,7 @@ import re, sys
 path = sys.argv[1]
 s = open(path).read()
 BSS = [
-    ("gPlayerCameraState", 72), ("gCamera", 4), ("gCameraMovementFlags", 2),
-    ("gCutsceneFocus", 4), ("gBodyStates", 80),
+    ("gBodyStates", 80),
     ("gCurGraphNodeRoot", 4), ("gCurGraphNodeMasterList", 4),
     ("gCurGraphNodeCamFrustum", 4), ("gCurGraphNodeCamera", 4),
     ("gCurGraphNodeObject", 4), ("gAreaUpdateCounter", 2),

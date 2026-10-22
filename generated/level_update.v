@@ -1617,7 +1617,7 @@ Definition v_gSineTable := {|
 
 Definition v_gCameraMovementFlags := {|
   gvar_info := tshort;
-  gvar_init := (Init_space 2 :: nil);
+  gvar_init := nil;
   gvar_readonly := false;
   gvar_volatile := false
 |}.

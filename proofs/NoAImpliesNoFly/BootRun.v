@@ -1,20 +1,24 @@
 (* spine-root: NON-VACUITY WITNESS from the REAL boot image -- over every
-   34-TU link, Genv.init_mem itself (not a memory built to look like it),
+   35-TU link, Genv.init_mem itself (not a memory built to look like it),
    then the real init_mario_from_save_file, then (i) one execute_mario_action
    frame, and (ii) WMotR's entry: the real terrain loader, the real
    init_mario and set_mario_initial_action, and one FULL real no-A frame
    that stores into gPlayerCameraState / gBodyStates. *)
 
 (* Why (found 2026-10-22, tools/size0_globals.py): gPlayerCameraState and
-   gBodyStates were declared, never defined, in the link (camera.c and
-   mario_misc.c are not linked), so Genv.init_mem gave them SIZE-0 blocks.
+   gBodyStates were declared, never defined, in the then 34-TU link
+   (camera.c and mario_misc.c were not linked), so Genv.init_mem gave them
+   SIZE-0 blocks.
    init_mario_from_save_file stores their addresses into
    m->statusForCamera / m->marioBodyState, and every execute_mario_action
    frame with a nonzero action stores through both (mario_reset_bodystate,
    update_mario_info_for_cam): no such frame from the real boot image had a
    CompCert execution, so the from-boot capstones held vacuously past the
-   action-0 frames.  The 2.4 storage completion in pipeline/clightgen.sh
-   (21 globals) repaired it; this file is the guard that it stays repaired.
+   action-0 frames.  Repaired by linking camera.c (the 35th TU, which
+   defines gPlayerCameraState, gCamera, gCameraMovementFlags,
+   gCutsceneFocus) and, for the 17 other reached globals whose definer is
+   still unlinked (gBodyStates among them), the 2.4 storage completion in
+   pipeline/clightgen.sh.  This file is the guard that it stays repaired.
 
    What runs (the sound interpreter, Interp/ClightInterp.v, over the
    computable genv Interp/LinkGenv.v and the computable init_mem
@@ -51,7 +55,7 @@
    not linked) return without changing memory. *)
 
 From Coq Require Import String List ZArith.
-From compcert Require Import Coqlib Integers Floats Values AST Memory Globalenvs
+From compcert Require Import Coqlib Maps Integers Floats Values AST Memory Globalenvs
   Ctypes Clight ClightBigstep Events.
 From SM64.Proofs Require Import Interp.ClightInterp Interp.LinkGenv Interp.MemBuild
   Interp.InitMemC.
@@ -361,8 +365,8 @@ Proof. reflexivity. Qed.
      terrain loader, init_mario, set_mario_initial_action) reaches
      ACT_SPAWN_NO_SPIN_AIRBORNE with A not pressed, and one full real frame
      executes, ending with gPlayerCameraState[0].action = 6450: the store
-     through m->statusForCamera that had no execution before the 2.4
-     storage completion. *)
+     through m->statusForCamera that had no execution before camera.c was
+     linked. *)
 Theorem boot_frames_run : forall lp, linked12 lp -> world_ok (globalenv lp) ->
     exists m0 fd t1 m1 v1 bm bpcs,
       Genv.init_mem lp = Some m0
@@ -389,3 +393,36 @@ Proof.
   destruct Ent as ((t & m' & v & E) & _).
   exists m'. exists bm, t, v. exact E.
 Qed.
+
+(* ---------------------------------------------------------------------- *)
+(* The reached globals that had size-0 blocks now have storage: the four *)
+(* camera.c defines (linked) and the 17 the 2.4 completion gives          *)
+(* (pipeline/clightgen.sh).  In the linked program each one's initializer *)
+(* is exactly sizeof its declared type in the linked composite env, and   *)
+(* nonzero.                                                                *)
+(* ---------------------------------------------------------------------- *)
+
+Definition completed : list string :=
+  [ "gPlayerCameraState"; "gCamera"; "gCameraMovementFlags"; "gCutsceneFocus"; "gBodyStates";
+    "gCurGraphNodeRoot"; "gCurGraphNodeMasterList"; "gCurGraphNodeCamFrustum";
+    "gCurGraphNodeCamera"; "gCurGraphNodeObject"; "gAreaUpdateCounter"; "gDmaIoMesg";
+    "gMainReceivedMesg"; "gDmaMesgQueue"; "gSIEventMesgQueue"; "gDebugLevelSelect";
+    "gShowDebugText"; "gDialogResponse"; "gPaintingMarioYEntry"; "gObjParentGraphNode";
+    "gGlobalSoundSource" ].
+
+Definition sizes_gen (oge : option genv)
+    (oast : option (AST.program (Ctypes.fundef function) type)) : bool :=
+  match oge, oast with
+  | Some ge, Some ast =>
+      let dm := prog_defmap ast in
+      forallb (fun s => match PTree.get (id s) dm with
+                        | Some (Gvar v) =>
+                            Z.eqb (sizeof ge (gvar_info v)) (init_data_list_size (gvar_init v))
+                            && negb (Z.eqb (init_data_list_size (gvar_init v)) 0)
+                        | _ => false
+                        end) completed
+  | _, _ => false
+  end.
+
+Lemma completed_sizes : sizes_gen ge12 ast12 = true.
+Proof. vm_compute. reflexivity. Qed.

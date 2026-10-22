@@ -42,7 +42,7 @@ From Coq Require Import List. Import ListNotations.
 From SM64.Generated Require mario mario_actions_stationary
   mario_actions_moving mario_actions_airborne mario_actions_submerged
   mario_actions_cutscene mario_actions_automatic mario_actions_object
-  interaction behavior_actions level_update mario_step.
+  interaction behavior_actions level_update mario_step camera.
 From SM64.Proofs Require BullyBodies SpawnBodies.
 From SM64.Proofs Require Import Flying Taint ActionValue ActionValueFrame ReachableRun
   RealFrameValue RealFrameLinked AGates SymbolicLinking FieldNonInterference.
@@ -287,6 +287,14 @@ Section NoAImpliesNoFlyTwelve.
   Hypothesis Hcsp_scm_real :
     call_pres_ext_cs lp bm (NoA_real bm) MWF SafeB
       interaction._set_camera_mode.
+  (* THE CAMERA LINK (2026-10-22): camera.c is the 35th TU, so the call
+     above now resolves to the REAL camera.c body (the row is about that
+     body, not an external).  The rest-surface twin: set_camera_mode reached
+     from mario.c is a pinned rest case (RestSurface, LO_camera) owing this
+     gated residual over the same real body.  LABELED OPEN PREMISE (camera,
+     deferred; docs/TRUST.md 4.1). *)
+  Hypothesis Hscm_body_real :
+    RestSurface.body_pres_w lp MWF bm SafeB camera.f_set_camera_mode.
   (* load_patchable_table: PROVED from its real memory.c body and dma_read's
      (LptBody), down to the libultra DMA calls, whose effect is the
      hardware/OS floor spec (OsDmaFloor, TRUST 3.5). *)
@@ -463,7 +471,7 @@ Section NoAImpliesNoFlyTwelve.
              (linked12_LO_obj lp H12) (linked12_LO_int lp H12)
              (linked12_LO_beh lp H12) (linked12_LO_lvl lp H12)
              (linked12_LO_stp lp H12)
-             (linked12_ext_pin lp H12)
+             (linked12_ext_pin lp H12) (linked12_LO_camera lp H12) Hscm_body_real
              Hpres_sta_ext
              Hcp_soawr_real Hpres_obj_ext_open Hpres_cut_ext_open
              Hgeo_real Hocp_rai_real
@@ -495,7 +503,7 @@ Section NoAImpliesNoFlyTwelve.
              (linked12_LO_obj lp H12) (linked12_LO_int lp H12)
              (linked12_LO_beh lp H12) (linked12_LO_lvl lp H12)
              (linked12_LO_stp lp H12)
-             (linked12_ext_pin lp H12)
+             (linked12_ext_pin lp H12) (linked12_LO_camera lp H12) Hscm_body_real
              Hpres_sta_ext
              Hcp_soawr_real Hpres_obj_ext_open Hpres_cut_ext_open
              Hgeo_real Hocp_rai_real
@@ -526,7 +534,7 @@ Section NoAImpliesNoFlyTwelve.
              (linked12_LO_obj lp H12) (linked12_LO_int lp H12)
              (linked12_LO_beh lp H12) (linked12_LO_lvl lp H12)
              (linked12_LO_stp lp H12)
-             (linked12_ext_pin lp H12)
+             (linked12_ext_pin lp H12) (linked12_LO_camera lp H12) Hscm_body_real
              Hpres_sta_ext
              Hcp_soawr_real Hpres_obj_ext_open Hpres_cut_ext_open
              Hgeo_real Hocp_rai_real

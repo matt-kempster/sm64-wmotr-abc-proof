@@ -693,7 +693,7 @@ Definition v_gVec3fOne := {|
 
 Definition v_gPlayerCameraState := {|
   gvar_info := (tarray (Tstruct _PlayerCameraState noattr) 2);
-  gvar_init := (Init_space 72 :: nil);
+  gvar_init := nil;
   gvar_readonly := false;
   gvar_volatile := false
 |}.

@@ -54,7 +54,7 @@ GENERATED := generated/toy.v generated/shadow.v \
   generated/macro_special_objects.v generated/behavior_data.v \
   generated/object_helpers.v generated/obj_behaviors.v generated/obj_behaviors_2.v \
   generated/spawn_object.v generated/object_list_processor.v generated/audio_data.v generated/graph_node.v generated/buffers.v generated/save_file.v generated/object_collision.v \
-  generated/area.v generated/surface_load.v generated/mario_anim_data.v \
+  generated/area.v generated/surface_load.v generated/mario_anim_data.v generated/camera.v \
   $(ULTRA_GENERATED)
 
 .PHONY: all generated proofs regen clean oracle-extract
@@ -261,6 +261,13 @@ generated/area.v: $(SM64)/src/game/area.c pipeline/clightgen.sh pipeline/proof_n
 # partitions no bytes, so no find_floor from boot had an execution) and the
 # real level / object collision loaders (alloc_surface_pools,
 # load_area_terrain, clear_dynamic_surfaces, load_object_collision_model).
+# game/camera.c (2026-10-22): the camera is part of the ABC argument (HOLP), and
+# it holds the real storage of gPlayerCameraState, which init_mario_from_save_file
+# points m->statusForCamera at and every nonzero-action frame stores through
+# (a size-0 block without it: no such frame from boot had an execution).
+generated/camera.v: $(SM64)/src/game/camera.c pipeline/clightgen.sh pipeline/proof_n64.h
+	$(CLIGHTGEN) $< $@ $(SM64_CGP)
+
 generated/surface_load.v: $(SM64)/src/engine/surface_load.c pipeline/clightgen.sh pipeline/proof_n64.h
 	$(CLIGHTGEN) $< $@ $(SM64_CGP)
 
