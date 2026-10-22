@@ -3834,6 +3834,106 @@ Section NoARealInputMWF.
                       ltac:(intros fid f H _; vm_compute in H; discriminate H)).
   Qed.
 
+  (* the automatic handlers one by one (GOAL 2's AutoSplit): the same
+     per-leaf term the frame proof above passes to automatic_pres *)
+  Lemma auto_leaves_real_mwf :
+    forall fid f, mem_id fid automatic_callee_ids = true ->
+      (prog_defmap mario_actions_automatic.prog) ! fid = Some (Gfun (Internal f)) ->
+      body_pres lp (NoA_real bm) (MWF_real lp bm bc oc0 SafeB) bm f.
+  Proof.
+    exact
+                   (automatic_leaf_callees_pres lp LO_mario LO_stp LO_aut bm
+                      (NoA_real bm)
+                      (MWF_real lp bm bc oc0 SafeB)
+                      (mwf_real_ctl lp bm bc oc0 SafeB)
+                      (mwf_real_window lp bm bc oc0 SafeB Hbc_bm
+                         HSafeB_not_bm Hgms_blk Hgtimer_blk Htable_blk Hktab_blk)
+                      (mwf_real_glob lp bm bc oc0 SafeB Hbc_bm Hglob_blk)
+                      (mwf_real_act_store lp bm bc oc0 SafeB Hbc_bm
+                         HSafeB_not_bm Hgms_blk Hgtimer_blk Htable_blk Hktab_blk)
+                      SafeB HSafeB_not_bm
+                      (mwf_real_chase_root lp bm bc oc0 SafeB)
+                      (mwf_real_chase lp bm bc oc0 SafeB Hbc_bm
+                         HSafeB_not_bm HSafeB_not_bc Hgms_blk Hgtimer_blk Htable_blk Hktab_blk)
+                      (mwf_real_root_store lp bm bc oc0 SafeB Hbc_bm
+                         HSafeB_not_bm Hgms_blk Hgtimer_blk Htable_blk Hktab_blk)
+                      (mwf_real_sglob lp bm bc oc0 SafeB)
+                      (mwf_real_chase_step lp bm bc oc0 SafeB)
+                      (mwf_real_chase_ptr lp bm bc oc0 SafeB Hbc_bm
+                         HSafeB_not_bm HSafeB_not_bc Hgms_blk Hgtimer_blk Htable_blk Hktab_blk)
+                      (* B14 cannon kill: the carried MWF_real pins Mario's
+                         input halfword A-clear (mwf_real_inp) -- the
+                         mid-frame fact act_in_cannon's fire-gate kill
+                         consumes.  NO new trust. *)
+                      (mwf_real_inp lp bm bc oc0 SafeB)
+                      Hdg_v3s_real
+                      Hcsp_scm_real
+                      Hsma_real Hsmawa_real
+                      Hdg_v3f_real
+                      (Hpres_obj_ext mario._play_sound eq_refl)
+                      (* ledge cluster: find_floor as a FAITHFUL out-param
+                         writer (call_pres_ext_oc, gated on local out-param)
+                         + the local-vars-arc stack-frame MWF bricks
+                         (alloc/free/local-store preserve MWF_real, and the
+                         SafeB/global validity projections) *)
+                      Hocp_find_floor
+                      (* the four SHARED gated leaf-external residuals that
+                         set_pole_position's WALK reduces to (oc/wc/sc) *)
+                      Hocp_find_ceil
+                      (call_pres_ext_wc_of_wol lp bm (NoA_real bm) MWF SafeB
+                         mario_actions_automatic._f32_find_wall_collision
+                         Hwolcp_fwc)
+                      Hdg_v3f_real
+                      Hdg_v3s_real
+                      (* tornado: f32_find_wall_collision's stack-local
+                         (&nextPos[i]) call shape -- the ol gate *)
+                      (call_pres_ext_ol_of_wol lp bm (NoA_real bm) MWF SafeB
+                         mario_actions_automatic._f32_find_wall_collision
+                         Hwolcp_fwc)
+                      (mwf_real_alloc lp bm bc oc0 SafeB Hbc_bm)
+                      (fun m l m' Hf HM =>
+                         mwf_real_free lp bm bc oc0 SafeB Hbc_bm m m' l Hf HM)
+                      (mwf_real_safe_valid lp bm bc oc0 SafeB)
+                      Hglob_valid
+                      aut_local_store
+                      (* B10 pole scaffold: segmented_to_virtual (obj_ext).
+                         set_pole_position is now WALKED, not assumed. *)
+                      (Hpres_obj_ext interaction._segmented_to_virtual eq_refl)
+                      (* act_holding_pole externals (now WALKED, not in rest):
+                         set_sound_moving_speed + virtual_to_segmented, both
+                         obj_ext_ids audio/translation externals. *)
+                      (Hpres_obj_ext mario._set_sound_moving_speed eq_refl)
+                      (Hpres_obj_ext interaction._virtual_to_segmented eq_refl)
+                      (* B11: find_mario_anim_flags_and_translation is now WALKED
+                         (famft_body_pres_oc2); its oc2 residual decomposed into
+                         these two terminal EXTERNAL writers (geo_update via arg0
+                         SafeB, retrieve_animation_index via &animIndex local). *)
+                      Hgeo_real
+                      Hocp_rai_real
+                      (* B11: update_hang_moving WALKED; its two honest leaf
+                         callees (approach_s32 ext + perform_hanging_step mo).
+                         perform_hanging_step is itself now WALKED, and so is
+                         its resolve_and_return_wall_collisions leaf -- what
+                         remains here is resolve's SOLE terminal external
+                         find_wall_collisions (ol) + vec3f_copy (w1). *)
+                      Hcpx_approach_real
+                      Holcp_fwc_real
+                      Hw1cp_v3f_real
+                      (* B14: act_in_cannon's vec3f_set(m->vel,0,0,0) site --
+                         the w1 dst-window terminal external *)
+                      Hw1cp_v3fset_real).
+  Qed.
+
+  (* a store through Mario's block outside MWF's watched cells keeps MWF
+     (GOAL 2's AutoSplit: the dispatcher's quicksandDepth = 0 store) *)
+  Lemma mwf_window_real_mwf : forall mm mm' ch (delta : Z) vv,
+      MWF_real lp bm bc oc0 SafeB mm -> store_window_ok delta (size_chunk ch) = true ->
+      Mem.store ch mm bm delta vv = Some mm' -> MWF_real lp bm bc oc0 SafeB mm'.
+  Proof.
+    exact (mwf_real_window lp bm bc oc0 SafeB Hbc_bm HSafeB_not_bm
+             Hgms_blk Hgtimer_blk Htable_blk Hktab_blk).
+  Qed.
+
   Lemma frame_ok_real_mwf :
     forall m m',
       mem_ok_lp bm (MWF_real lp bm bc oc0 SafeB) m ->

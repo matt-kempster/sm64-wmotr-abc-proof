@@ -226,9 +226,15 @@ Definition used_acts : list Z := ACT_IN_CANNON_Z :: pole_acts.
 
 Definition OBJ_SPAN : Z := 608.   (* sizeof(struct Object) = FrameSplit.OBJ_SIZE *)
 
-(* a whole Object away from Mario's object (m->marioObj) *)
+(* not in Mario's state block, and a whole Object away from Mario's object
+   (m->marioObj).  In the game usedObj is a gObjectPool slot.  The first
+   conjunct was added 2026-10-21 (AutoSplit): the automatic dispatcher stores
+   m->quicksandDepth = 0 before every case, and without it a phantom usedObj
+   overlapping that cell (usedObj = bm + 28, so oPosY at bm + 192) met
+   used_ok before the store and failed it after. *)
 Definition used_apart (bm : block) (m : mem) (ub : block) (uo : ptrofs) : Prop :=
-  forall mb mo, Mem.load Mint32 m bm MARIOOBJ_OFF = Some (Vptr mb mo) ->
+  ub <> bm
+  /\ forall mb mo, Mem.load Mint32 m bm MARIOOBJ_OFF = Some (Vptr mb mo) ->
     ub <> mb \/ Ptrofs.unsigned uo + OBJ_SPAN <= Ptrofs.unsigned mo
     \/ Ptrofs.unsigned mo + OBJ_SPAN <= Ptrofs.unsigned uo.
 
@@ -271,7 +277,8 @@ Proof.
   rewrite (Hc 12 Mint32) in La by (cbn; auto).
   destruct (U a La) as (U1 & U2).
   assert (Ap : forall ub uo, used_apart bm m ub uo -> used_apart bm m' ub uo).
-  { intros ub uo A mb mo Hl. rewrite (Hc MARIOOBJ_OFF Mint32) in Hl by (cbn; auto 6). exact (A mb mo Hl). }
+  { intros ub uo A. split; [exact (proj1 A) |]. intros mb mo Hl.
+    rewrite (Hc MARIOOBJ_OFF Mint32) in Hl by (cbn; auto 6). exact (proj2 A mb mo Hl). }
   split.
   - intros Hp. destruct (U1 Hp) as (ub & uo & Lu & (base & top & Hin & Ht & P1 & P2 & P3) & A & V).
     exists ub, uo. split; [rewrite (Hc USED_OFF Mint32) by (cbn; auto); exact Lu |].
