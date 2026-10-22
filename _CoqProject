@@ -355,6 +355,7 @@ proofs/WMotRRequiresA/PoleSound.v
 proofs/WMotRRequiresA/PoleRun.v
 proofs/WMotRRequiresA/PoleSlow.v
 proofs/WMotRRequiresA/PoleFast.v
+proofs/WMotRRequiresA/PoleHold.v
 proofs/WMotRRequiresA/PoleRow.v
 proofs/WMotRRequiresA/LedgeClass.v
 proofs/WMotRRequiresA/LedgeRun.v

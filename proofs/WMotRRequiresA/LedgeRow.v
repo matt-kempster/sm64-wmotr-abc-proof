@@ -581,7 +581,7 @@ Variable MWF : mem -> Prop.
    LEDGE_CLIMB_DOWN *)
 Definition aut_case_rest_ledge : Prop :=
   forall n f fd v, In (n, f) aut_case_list ->
-    f <> AUT._act_grab_pole_slow -> f <> AUT._act_grab_pole_fast ->
+    f <> AUT._act_grab_pole_slow -> f <> AUT._act_grab_pole_fast -> f <> AUT._act_holding_pole ->
     f <> AUT._act_ledge_grab -> f <> AUT._act_ledge_climb_down ->
     resolves lp f fd ->
     seg_okR lp bm MWF fd [v]
@@ -590,7 +590,7 @@ Definition aut_case_rest_ledge : Prop :=
 
 Theorem aut_case_rest_pole_ledge : aut_case_rest_ledge -> PoleRow.aut_case_rest_pole lp bm MWF.
 Proof.
-  intros Hrest n f fd v Hin Hne1 Hne2 Hr.
+  intros Hrest n f fd v Hin Hne1 Hne2 Hne0 Hr.
   destruct (Pos.eq_dec f AUT._act_ledge_grab) as [-> | Hne3].
   { pose proof (lg_label n Hin) as ->.
     pose proof (resolve_pin_fd lp _ _ _ _ (linked12_LO_aut lp H12) dm_lg Hr) as ->.
@@ -607,6 +607,6 @@ Proof.
     exact (KbRow.kb_reshape _ _ _ (ledge_row lp H12 bm Hbm _ _
              (ledge_lfinal lp H12 Hdma Haudio _ _ lcdcheck12 ltac:(right; reflexivity)) eq_refl
              m t m' vr c Vm Hw Hc Hb Hact Hfr Hev)). }
-  exact (Hrest n f fd v Hin Hne1 Hne2 Hne3 Hne4 Hr).
+  exact (Hrest n f fd v Hin Hne1 Hne2 Hne0 Hne3 Hne4 Hr).
 Qed.
 End LEDGECASES.
