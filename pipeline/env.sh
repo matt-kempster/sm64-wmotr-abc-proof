@@ -14,6 +14,13 @@ if ! opam switch list --short 2>/dev/null | grep -qx "$SM64_PROOF_SWITCH"; then
 fi
 
 eval "$(opam env --switch "$SM64_PROOF_SWITCH" --set-switch)"
+
+# generated/mario_anim_data.v is one ~210k-element initializer list; coqc
+# overflows the default stack on it, and on Print Assumptions over terms that
+# mention it ("Error: Stack overflow").  Raise the system stack and OCaml 5's
+# stack limit (in words) for every pipeline driver (all source this file).
+ulimit -S -s unlimited 2>/dev/null || ulimit -S -s "$(ulimit -H -s)" 2>/dev/null || true
+export OCAMLRUNPARAM="${OCAMLRUNPARAM:-l=1000000000}"
 echo "Activated opam switch '$SM64_PROOF_SWITCH'."
 command -v clightgen >/dev/null && echo "  clightgen: $(command -v clightgen)"
 command -v coqc      >/dev/null && echo "  coqc:      $(coqc --version | head -1)"

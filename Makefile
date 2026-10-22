@@ -54,7 +54,7 @@ GENERATED := generated/toy.v generated/shadow.v \
   generated/macro_special_objects.v generated/behavior_data.v \
   generated/object_helpers.v generated/obj_behaviors.v generated/obj_behaviors_2.v \
   generated/spawn_object.v generated/object_list_processor.v generated/audio_data.v generated/graph_node.v generated/buffers.v generated/save_file.v generated/object_collision.v \
-  generated/area.v \
+  generated/area.v generated/mario_anim_data.v \
   $(ULTRA_GENERATED)
 
 .PHONY: all generated proofs regen clean oracle-extract
@@ -251,6 +251,21 @@ generated/object_collision.v: $(SM64)/src/game/object_collision.c pipeline/cligh
 # real get_mario_spawn_type / sWarpBhvSpawnTable lookup.
 generated/area.v: $(SM64)/src/game/area.c pipeline/clightgen.sh pipeline/proof_n64.h
 	$(CLIGHTGEN) $< $@ $(SM64_CGP)
+
+# Mario's animation data (2026-10-22; TRUST 0.8(f)).  The real build makes
+# BUILD_DIR/assets/mario_anim_data.c from assets/anims/*.inc.c with the
+# vendor's own tools/mario_anims_converter.py (vendor/sm64/Makefile:667) and
+# links its .data into the ROM's `assets` segment (sm64.ld:1334), the source
+# of the DMA table gMarioAnims.  We run that same converter, into the same
+# path, and clightgen its output.  Data only: not linked into the program
+# (the game reaches it only by DMA from ROM); PoleAnim.v reads it.
+ANIM_C := $(SM64)/build/us/assets/mario_anim_data.c
+$(ANIM_C): $(wildcard $(SM64)/assets/anims/*.inc.c)
+	mkdir -p $(dir $@)
+	cd $(SM64) && python3 tools/mario_anims_converter.py > build/us/assets/mario_anim_data.c
+
+generated/mario_anim_data.v: $(ANIM_C) pipeline/clightgen.sh
+	$(CLIGHTGEN) $< $@ $(SM64_CG)
 
 # libultra (2026-10-21): see ULTRA_CG above.
 generated/libultra_osEepromLongWrite.v: $(ULTRA)/osEepromLongWrite.c pipeline/clightgen.sh

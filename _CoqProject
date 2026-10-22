@@ -39,6 +39,7 @@ generated/save_file.v
 generated/buffers.v
 generated/object_collision.v
 generated/area.v
+generated/mario_anim_data.v
 generated/libultra_osEepromLongWrite.v
 generated/libultra_osEepromWrite.v
 generated/libultra_osSiCreateAccessQueue.v
@@ -264,6 +265,7 @@ proofs/WMotRRequiresA/HeightFloatSteps.v
 proofs/WMotRRequiresA/HeightBudgetArith.v
 proofs/WMotRRequiresA/HeightMoveCatalog.v
 proofs/WMotRRequiresA/WMotRLevel.v
+proofs/WMotRRequiresA/PoleAnim.v
 proofs/WMotRRequiresA/WMotRWorld.v
 proofs/WMotRRequiresA/NoAActions.v
 proofs/WMotRRequiresA/FrameCalls.v

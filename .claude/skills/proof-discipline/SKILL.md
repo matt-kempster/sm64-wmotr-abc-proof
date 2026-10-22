@@ -169,7 +169,12 @@ all in `Unwired/`, and the theorem moved nowhere. See
     slack) together with find_floor's +78 bound.
     The top-of-pole cases need the handstand anim data linked: a generated-code bound alone
     (s16 / 4 ≤ 8191) fails `pole_check`, and the loosest POLE_UP that passes is 4343
-    (TRUST (j)).
+    (TRUST (j)). Since 2026-10-22 the data is clightgen'd (`generated/mario_anim_data.v`, data
+    only) and `PoleAnim.pole_up_covers_handstand` proves the 174 / POLE_UP = 160 from it
+    (`kept`, not load-bearing). Still missing for a walk (TRUST 0.8(f), each a NEW trust item):
+    a DMA content spec (ROM bytes), the boot-built dmaTable as a frame-world fact, animFrame
+    ≥ −1 (rendering unlinked), and segment 0: in the model every real top-of-pole frame has NO
+    execution (V2P subtracts 2^31, the identity segmented_to_virtual does not add it back).
   - (`wmotr_gap` and `wmotr_poles` are now proved from generated level data, `WMotRLevel.v`)
   - the flank specs (TRUST 0.7)
 

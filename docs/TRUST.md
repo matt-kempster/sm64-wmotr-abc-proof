@@ -227,8 +227,9 @@ without pressing A".*
   153 with a floor snap. These are tool-read values (`tools/goal2_pole_anim.py`). `AttachOK` now
   allows `h ≤ top + POLE_UP` with `HeightBudgetArith.POLE_UP = 160`, and
   `WMotRLevel.wmotr_poles_proved` re-proves that every WMotR pole is low by that margin or out of
-  reach. The anim data is DMA-loaded ROM data that no AST reaches, so the 160 is a hand-read
-  number. It is not trusted by any proof today, because the top-of-pole cases sit inside the
+  reach. The anim data is DMA-loaded ROM data that no linked AST reaches; since 2026-10-22 the
+  174 is **proved from the generated anim data** (`PoleAnim.handstand_y_bound`,
+  `pole_up_covers_handstand`; row 0.8(f)) for frames ≥ −1, not yet tied to the DMA buffer. It is not trusted by any proof today, because the top-of-pole cases sit inside the
   open row, but it is the constant a future proof of those cases must justify.
   (g) **Phantom ∀ on `m->usedObj`:** the frame world did not constrain it. A `HOLDING_POLE`
   memory whose usedObj is a high pole (base ≥ 3154) met every premise, and `set_pole_position`
@@ -274,8 +275,9 @@ without pressing A".*
   low pole (top −1919) then fails `pole_check`, because −1919 + 8169 > K = 2424. The
   loosest POLE_UP that passes is 4343. Any bound under it needs the handstand animations'
   values (ROM data DMA'd into `gMarioAnimsBuf`; not in `generated/`) and a model of the DMA
-  buffer's contents. So the top-of-pole cases still need that data linked, and POLE_UP = 160
-  stays the hand-read constant of (f).
+  buffer's contents. So the top-of-pole cases still need that data tied to the buffer
+  (2026-10-22: the data is clightgen'd and the 174 proved from it; 0.8(f) lists the four missing
+  pieces). POLE_UP = 160 stays.
   **Slide kick at state ≠ 0 is proved (2026-10-21; `sk1_row` and `HeightFrame.Hsk1` removed,
   28 → 27 hypotheses).** The same walk (`SkW.skcheck12`) now classifies every outcome at any
   state (`FfClass.sk_ok` is `ff_okE` from the ticked cells; it used to accept the state ≠ 0
@@ -407,6 +409,33 @@ without pressing A".*
   the per-triangle binary32 bound.
 - **Found by this step:** the box's ×2 scale. The ladder had used +52, so K was 2372 and is now
   2424.
+- **(f) Mario's animation data (2026-10-22, `PoleAnim.v`).** `generated/mario_anim_data.v` is the
+  clightgen of `mario_anim_data.c`, which the vendor's own `tools/mario_anims_converter.py` makes from
+  `assets/anims/*.inc.c` (the real build's rule, vendor `Makefile:667`, into the same
+  `build/us/assets/` path; our `Makefile` runs it). It is the ROM `assets` segment's `gMarioAnims`
+  (`sm64.ld:1334`), the DMA source of `load_patchable_table`. Data only: it is **not linked** into the
+  program (the game reaches it only by DMA from ROM). `PoleAnim.handstand_y_bound` proves from it
+  that for the three anims the top-of-pole handlers pass to `set_mario_animation` (9, 11, 12, read off
+  the generated bodies: `top_of_pole_anim_ids`), every y-channel sample a frame ≥ −1 selects (entries →
+  header → index pair 1 → values, with `retrieve_animation_index`'s clamp, inside the DMA'd range) is
+  in [−4, 696]. So `translation[1]` ≤ 174 and `pole_up_covers_handstand` gives −100 + 174 + 79 ≤
+  `POLE_UP` = 160. This replaces the tool-read 174 of the GOAL-2 audit (f). The anim data **does**
+  move `m->pos[1]`: `set_pole_position(m, return_mario_anim_y_translation(m))`.
+  **Trusted:** the decoder mirrors that path (field offsets are checked against CompCert's layout of
+  the generated composites, `anim_layout`), and the ROM bytes are the IDO (MIPS, big-endian) layout of
+  the same C, which CompCert's (PPC, big-endian) layout matches for this struct. **Not yet
+  load-bearing** (no proof consumes the bound; the top-of-pole cases are inside `Hauto_case`). Using
+  it in a top-of-pole walk needs, beyond what is on this ledger: (1) a DMA content spec: 3.5 says the
+  DMA'd bytes are "data", not the ROM's bytes, and the ROM is not modelled; (2) the DMA table
+  `gMarioAnimsBuf.dmaTable` (count, srcAddr, entries) and `bufTarget` as a frame-world fact: they are
+  built by `setup_dma_table_list` at boot, which is not run (the pool hardware row, 4.x boot gap);
+  (3) the frame ≥ −1: `animFrame` is advanced by `geo_set_animation_globals` in the unlinked
+  rendering code, so the frame world leaves it free (a phantom ∀ over frames < −1 reads other
+  channels: up to 8191); (4) segment 0 (2.2 register caveat): in the model `set_mario_animation`
+  stores `VIRTUAL_TO_PHYSICAL(p)` = p − 0x80000000 and the identity `segmented_to_virtual` does not
+  add it back, so `find_mario_anim_flags_and_translation`'s sample load lands 2^31 bytes past the buffer (out of bounds for any block under 2 GiB; the real one is 0x4000) and **every
+  real top-of-pole frame has no CompCert execution today**. Each of (1)–(4) is a new or changed
+  trust assumption, so none was added.
 
 ### Row 0.9 in detail
 
