@@ -210,7 +210,7 @@ Proof.
     pose proof (on_list_to_m0 E m g MMh hd s (WL hd PH0) OL) as OL0.
     destruct (WSurf hd s PH0 OL0) as (bs & os & -> & Ob & _ & NR & _).
     exists hd, (Vptr bs os), x, z. split; [exact FH0 | split; [exact OL0 |]].
-    exact (hit_transfer m m0 bs os x z h' (fun ch z' => ld_m0 E m g bs z' ch MMh Ob NR) Ht). }
+    exact (hit16_transfer m m0 bs os x z h' (fun ch z' => ld_m0 E m g bs z' ch MMh Ob NR) Ht). }
   match goal with H : den E a2 = Some ?yv /\ _ |- _ => destruct H as (Dy & _); exists a2, yv end.
   destruct (ff_height ge HC Hpin m _ _ _ bpf op t m' vres Hvm
               ltac:(intros id b Hin Hs; apply Vm;
