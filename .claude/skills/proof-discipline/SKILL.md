@@ -76,7 +76,21 @@ all in `Unwired/`, and the theorem moved nowhere. See
   `play_transition` / `area_get_warp_node`). No new claim: a non-pointer store into a global
   MWF does not read keeps MWF (`np_store_pres`), so `gWarpTransition` & co. did not have to join
   `stored_globals`. Still-linked any-argument entries: none (the spawn pair left `cut_ext_ids`).
-  Counts: GOAL 1 17; HeightFrame 26 incl. its 3 section rows (2026-10-21, spawn: −2 rows, +Hsss).
+  Counts: GOAL 1 15 (was 17 before the 2026-10-22 sweep, below); HeightFrame 26 incl. its 3 section rows (2026-10-21, spawn: −2 rows, +Hsss).
+  2026-10-22 GOAL 1 premise sweep: FOUND FALSE `WL_exempt` (forall e: an env binding `sqrtf` to
+  set_mario_action's block refutes it, `WLExempt.wl_exempt_old_refuted`; every capstone that took
+  it was VACUOUS). Restated at empty_env + function-typed Evar (`CensusV2.wl_exempt_ok`) and PROVED
+  for every link (`wl_exempt_linked12`): GOAL 1 17 -> 16 rows, HeightFrame -1. `CameraBodies.v`:
+  `camera_approach_f32_symmetric` / `trigger_cutscene_dialog` left `cut_ext_open2_ids`;
+  `sqrtf` (from `Hsq`) and `set_camera_shake_from_hit` left `obj_ext_open2_ids`, `random_float`
+  (behavior_script.c, unlinked; the shake's SHAKE_SHOCK arm) joined it. `Hext_action` /
+  `Hmwf_ext` are lemmas over `Hext_action_ns` / `Hmwf_ext_ns` (sqrtf excluded, from `Hsq`).
+  `Hcsp_scm_real` DERIVED from `Hscm_body_real` (cs_gate arg0 = wgate T_scm arm; NoA from MWF):
+  GOAL 1 16 -> 15, HeightFrame -1 more.
+  Still open camera row `Hscm_body_real`: set_camera_mode calls through the
+  WRITABLE table `sModeTransitions` (enumerate link functions of type (Camera*, f32*, f32*)->s32),
+  ~48 camera.c functions, no pointer-typed store in the tree; needs `sMarioCamState` in
+  `safe_ptr_syms` (TRUST 4.1).
   2026-10-22: HeightFrame's section has 27 `Hypothesis` lines (28 → 27: `Hcamera` proved away).
   `surface_load.c` linked 2026-10-22 (32nd TU), then `macro_special_objects.c` + WMotR level data
   (TUs 33-34): counts unchanged (no row names their functions).

@@ -67,7 +67,7 @@ From SM64.Proofs Require Import MWFReal RestSurface FloorsSurface
   ObjectLeafSurface CutsceneLeafSurface WindSurface WarpSurface
   FloorsLeafSurface.
 From SM64.Proofs Require Import LinkedTwelve SpawnInit InitMemSat.
-From SM64.Proofs Require SpawnBodies.
+From SM64.Proofs Require SpawnBodies CameraBodies.
 From SM64.Proofs Require Import NoAImpliesNoFlyLinked NoAImpliesNoFlyTwelve.
 From SM64.Proofs Require Import FrameCalls FrameSplit AirSplit AutoSplit.
 From SM64.Proofs.WMotRRequiresA Require Import FfWorld FfRow AhwRow KbRow FpuFloor ExtInert.
@@ -368,17 +368,12 @@ Section HeightLinked12.
   (* Hcsp_omfd_real / Hcsp_scale_real / Hcsp_osh_real: PROVED inside
      NoAImpliesNoFlyTwelve from the real object_helpers.c bodies
      (ObjHelpersBodies), no longer rows. *)
-  (* set_camera_mode(c, mode, frames) writes c->mode (and, through the mode
-     transition, more of *c) via arg0 (camera.c:2854), so the any-argument
-     obj_ext row was FALSE (found 2026-10-20).  Restated arg0-gated (cs):
-     every real site passes the chase m->area->camera.  The camera stays a
-     labeled deferred premise (docs/TRUST.md 4.1). *)
-  Hypothesis Hcsp_scm_real :
-    call_pres_ext_cs lp bm (NoA_real bm) MWF SafeB
-      interaction._set_camera_mode.
-  (* camera.c is linked (2026-10-22): the row above is about the REAL
-     camera.c body, and set_camera_mode reached from mario.c is a pinned rest
-     case owing this gated residual over that body (LABELED OPEN PREMISE:
+  (* Hcsp_scm_real (set_camera_mode's arg0-gated call row) is DERIVED in
+     NoAImpliesNoFlyTwelve from Hscm_body_real (2026-10-22): the call
+     resolves to the real camera.c body and cs_gate's arg0 gate is wgate's
+     T_scm arm.  No longer a row here.
+     set_camera_mode reached from mario.c is a pinned rest case owing this
+     gated residual over the real camera.c body (LABELED OPEN PREMISE:
      camera, deferred; GOAL 1's Hscm_body_real, docs/TRUST.md 4.1). *)
   Hypothesis Hscm_body_real :
     RestSurface.body_pres_w lp MWF bm SafeB camera.f_set_camera_mode.
@@ -398,11 +393,8 @@ Section HeightLinked12.
     exact (LptBody.smawa_row_linked12 lp bm bc oc0 SafeB H12 HSafeB_syms
              (NoAImpliesNoFlyTwelve.Hspawn lp H12 bm bc oc0 Hbm_sym Hbc_sym Hoc0) Hdma_floor).
   Qed.
-  Hypothesis WL_exempt : forall e le m fid fty vf fd,
-      mem_id fid exempt_callees = true ->
-      eval_expr (lp_ge lp) e le m (Evar fid fty) vf ->
-      Genv.find_funct (lp_ge lp) vf = Some fd ->
-      marg_exempt fd = true.
+  (* WL_exempt: PROVED 2026-10-22 (was a row, FALSE as stated: GOAL 1's
+     WLExempt.wl_exempt_old_refuted); GOAL 1's export no longer takes it. *)
   Hypothesis Hpres_sta_ext : forall fid,
       mem_id fid StationaryLeafSurface.sta_ext_ids = true ->
       call_pres_ext lp bm (NoA_real bm) MWF fid.
@@ -436,13 +428,18 @@ Section HeightLinked12.
   (* Hret_unsafe REMOVED (task #99): the v2 engine no longer consumes any
      return-value row (it was dead plumbing / a latent vacuity -- see
      NoAImpliesNoFlyLinked). *)
-  Hypothesis Hext_action : forall ef targs tres cc vargs m t vres m',
+  (* 2026-10-22: both engine rows exclude sqrtf, whose call is the FPU
+     floor sqrtf_spec (memory unchanged); they now name only the audio /
+     print.c externals of the exempt whitelist *)
+  Hypothesis Hext_action_ns : forall ef targs tres cc vargs m t vres m',
       reached_v2 lp (External ef targs tres cc) ->
+      ~ CameraBodies.is_sqrtf_ef ef ->
       wgate bm SafeB (type_of_fundef (External ef targs tres cc)) vargs ->
       external_call ef (lp_ge lp) vargs m t vres m' ->
       Mem.unchanged_on (action_cell bm) m m'.
-  Hypothesis Hmwf_ext : forall ef targs tres cc vargs m t vres m',
+  Hypothesis Hmwf_ext_ns : forall ef targs tres cc vargs m t vres m',
       reached_v2 lp (External ef targs tres cc) ->
+      ~ CameraBodies.is_sqrtf_ef ef ->
       wgate bm SafeB (type_of_fundef (External ef targs tres cc)) vargs ->
       external_call ef (lp_ge lp) vargs m t vres m' ->
       Mem.valid_block m bm -> MWF m -> MWF m'.
@@ -630,10 +627,10 @@ Section HeightLinked12.
     /\ chase_safe_stmt bm SafeB MWF /\ store_safe_stmt lp bm SafeB MWF.
   Proof.
     exact (frame_call_ok_linked12 lp H12 bm bc oc0 SafeB HSafeB_syms Hbm_sym Hbc_sym Hoc0
-             Hsqrtf Hcsp_scm_real Hscm_body_real Hdma_floor WL_exempt
+             Hsqrtf Hscm_body_real Hdma_floor
              Hpres_sta_ext Hsss Hpres_obj_ext_open2 Hpres_cut_ext_open2
              Hpres_floors_ext
-             Hpres_warp_ext_open Hext_action Hmwf_ext).
+             Hpres_warp_ext_open Hext_action_ns Hmwf_ext_ns).
   Qed.
 
   Lemma air_leaves :
@@ -642,7 +639,7 @@ Section HeightLinked12.
       body_pres lp (NoA_real bm) MWF bm f.
   Proof.
     exact (air_leaves_linked12 lp H12 bm bc oc0 SafeB HSafeB_syms Hbm_sym Hbc_sym Hoc0
-             Hcsp_scm_real Hdma_floor Hsss Hpres_obj_ext_open2 Hpres_floors_ext
+             Hsqrtf Hscm_body_real Hdma_floor Hsss Hpres_obj_ext_open2 Hpres_floors_ext
              Hpres_warp_ext_open).
   Qed.
 
@@ -652,7 +649,7 @@ Section HeightLinked12.
       body_pres lp (NoA_real bm) MWF bm f.
   Proof.
     exact (auto_leaves_linked12 lp H12 bm bc oc0 SafeB HSafeB_syms Hbm_sym Hbc_sym Hoc0
-             Hcsp_scm_real Hdma_floor Hsss Hpres_obj_ext_open2).
+             Hsqrtf Hscm_body_real Hdma_floor Hsss Hpres_obj_ext_open2).
   Qed.
 
   (* the automatic dispatcher's row, from AutoSplit *)

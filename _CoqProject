@@ -91,6 +91,7 @@ proofs/MarioModel/RestSurface.v
 #     linking-metatheory inverse direction; consumed by the linked12
 #     capstone corollary) ---
 proofs/MarioModel/LinkedTwelve.v
+proofs/MarioModel/WLExempt.v
 proofs/MarioModel/OsDmaFloor.v
 proofs/MarioModel/LptBody.v
 
@@ -203,6 +204,7 @@ proofs/MarioModel/MtxfBody.v
 proofs/MarioModel/SaveFileBody.v
 proofs/MarioModel/ObjHelpersBodies.v
 proofs/MarioModel/ObjExtBodies.v
+proofs/MarioModel/CameraBodies.v
 proofs/MarioModel/SaveDoSaveBody.v
 proofs/MarioModel/SpawnBodies.v
 
