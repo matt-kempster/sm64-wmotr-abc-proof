@@ -1013,7 +1013,7 @@ link grows.
 
 | # | Item | Status / notes |
 |---|---|---|
-| 4.1 | Functions outside the 36 linked files (28 game TUs incl. `camera.c` and `ingame_menu.c` + `behavior_data.c` + WMotR's level data + 6 libultra TUs; audio, rendering) behave as the capstone's rows say (`Hocp_*`, `Hpres_*`, `Hext_*`, …) | **ASSUMED, the ~30 project rows.** Shrinks by linking more files until only truly external things remain. Details: [row 4.1 in detail](#row-41-in-detail). |
+| 4.1 | Functions outside the 37 linked files (29 game TUs incl. `camera.c`, `ingame_menu.c`, `debug_course.c` + `behavior_data.c` + WMotR's level data + 6 libultra TUs; audio, rendering) behave as the capstone's rows say (`Hocp_*`, `Hpres_*`, `Hext_*`, …) | **ASSUMED, the ~30 project rows.** Shrinks by linking more files until only truly external things remain. Details: [row 4.1 in detail](#row-41-in-detail). |
 | 4.2 | CompCert's `external_functions_sem` is an abstract Parameter. Anything left external is constrained *only* by our rows | Permanent for whatever stays external. The goal is that nothing game-logic stays external. |
 | 4.3 | Level data (WMotR collision triangles, object placements, the red-coin positions) is what the ROM contains | **Collision and macro data in the link (2026-10-22, TU 34).** `pipeline/tu/wmotr_level_data.c` includes the vendor `levels/wmotr/areas/1/collision.inc.c` / `macro.inc.c` verbatim, under `leveldata.c`'s `make_const_nonconst.h`. So the data is the decomp's, but that the decomp's `.inc.c` matches the ROM bytes is the decomp's build check (2.1), not ours. Object placements beyond collision (`script.c`) and the red-coin positions are not yet in. |
 | 4.4 | The proof's internal vocabulary (`MWF_real`, `SafeB`, `call_pres_ext_*`) appears in the *statement's* hypotheses | Anti-goal: a reader shouldn't have to understand proof internals to know what's assumed. Rows must eventually be about the game, or be gone. |
@@ -1064,6 +1064,9 @@ link grows.
   (a walk would make them lemmas). The 2.4 common for `gDialogResponse` now merges with its real
   definition. New externals it declares (`gu*`, `play_*`, `seq_player_*`, `alloc_display_list` is
   linked) are reached only from its menu / dialog rendering code, which no run or row reaches.
+- **`debug_course.c` is linked** (2026-10-22, the 37th TU): its only function is the empty
+  `nop_change_course`, which the real `lvl_set_current_level` calls on a course change, so
+  `CourseRun` runs that function with no external answered. No row names it.
 - **Labeled open AUDIO premise `BootRun.audio_ret` (2026-10-22).** `play_sound`,
   `play_infinite_stairs_music` (`sound_init.c`) and `set_sound_moving_speed` (`audio/external.c`)
   can return `Vundef` with linked memory unchanged; their writes go to audio state no linked TU

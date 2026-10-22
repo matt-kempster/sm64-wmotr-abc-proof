@@ -12,7 +12,8 @@
 (* Here: over every linked12 link, from Genv.init_mem itself, the generated *)
 (* lvl_set_current_level(0, 31) runs to completion in the sound            *)
 (* interpreter with NO external answered (every callee it reaches is       *)
-(* linked: save_file_get_star_flags, disable_warp_checkpoint, ...), so     *)
+(* linked: save_file_get_star_flags, disable_warp_checkpoint, and the    *)
+(* empty nop_change_course of debug_course.c, the 37th TU), so            *)
 (* the run is unconditional, and afterwards gCurrCourseNum = 23            *)
 (* (COURSE_WMOTR, levels/course_defines.h: "(23) Wing Mario over the       *)
 (* Rainbow").  StartSat's witness carries that value (course_tether).      *)
@@ -47,12 +48,12 @@ Definition course_gen (oge : option genv)
       | Some m0, Some bC =>
           match ex_call ge no_world FUEL m0
                   (Internal SM64.Generated.level_update.f_lvl_set_current_level) lscl_args with
-          | Done (_, m', _) =>
+          | Done _ (_, m', _) =>
               match CM.load Mint16signed m' bC 0 with
               | Some (Vint i) => Int.eq i (Int.repr COURSE_WMOTR)
               | _ => false
               end
-          | Stuck _ _ _ => false
+          | Stuck _ _ _ _ => false
           end
       | _, _ => false
       end

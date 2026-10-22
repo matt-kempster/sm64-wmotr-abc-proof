@@ -297,8 +297,7 @@ Lemma world_keep : forall ef vargs m t v m', world ef vargs m = Some (t, v, m') 
 Proof.
   intros ef vargs m t v m' H. unfold world in H.
   destruct ef; try discriminate H.
-  destruct vargs as [| a [| a2 args]]; try discriminate H.
-  destruct a; try discriminate H.
+  destruct vargs as [| a [| a2 args]]; try discriminate H; destruct a; try discriminate H.
   destruct (_ && _ && _); [ injection H as _ _ <-; apply acc_keep_refl | discriminate H ].
 Qed.
 

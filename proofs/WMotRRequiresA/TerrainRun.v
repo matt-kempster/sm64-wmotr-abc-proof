@@ -77,8 +77,7 @@ Lemma world_ok_of : forall ge, sqrtf_value -> world_ok ge.
 Proof.
   intros ge Hv ef args m t v m' W. unfold world in W.
   destruct ef; try discriminate W.
-  destruct args as [| a [| a2 args]]; try discriminate W.
-  destruct a; try discriminate W.
+  destruct args as [| a [| a2 args]]; try discriminate W; destruct a; try discriminate W.
   destruct (String.eqb name "sqrtf") eqn:E; [ | discriminate W ].
   destruct (signature_eq sg sqrtf_sig) as [-> | ]; [ | discriminate W ].
   destruct (sqrt_in f) eqn:I; [ | discriminate W ].
@@ -403,7 +402,7 @@ Proof.
   - exact (ex_call_sound ge world W _ _ _ _ _ _ _ R2).
 Qed.
 
-(* THE RUN: over every 36-TU link, the real alloc_surface_pools +
+(* THE RUN: over every 37-TU link, the real alloc_surface_pools +
    load_area_terrain on WMotR's collision data produce a memory whose
    collision partition satisfies floor_data and agrees with the decoder,
    with NSURF surfaces allocated. *)

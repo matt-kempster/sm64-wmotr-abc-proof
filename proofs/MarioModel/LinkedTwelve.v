@@ -58,7 +58,7 @@ From SM64.Generated Require mario mario_actions_stationary
   libultra_osEepromLongWrite libultra_osEepromWrite libultra_osSiCreateAccessQueue
   libultra_osCreateMesgQueue libultra_osContInit libultra_osInitialize
   behavior_data spawn_object surface_load macro_special_objects wmotr_level_data
-  camera ingame_menu.
+  camera ingame_menu debug_course.
 From SM64.Proofs Require Import SymbolicLinking CensusV2 RealFrameLinked
   EngineV2Consumer RestSurface.
 
@@ -157,7 +157,9 @@ Fixpoint link_chain (p : Clight.program) (l : list Clight.program)
    reset_red_coins_collected, which load_area_terrain calls, and the storage
    of gRedCoinsCollected it writes; the dialog / menu-mode calls of the
    cutscene actions (create_dialog_box, set_menu_mode, ...) resolve to their
-   real bodies. *)
+   real bodies.
+   debug_course (game/debug_course.c) is the 37th (2026-10-22): the empty
+   nop_change_course, which the real lvl_set_current_level calls. *)
 Definition tu_rest : list Clight.program :=
   [ mario_actions_stationary.prog;
     mario_actions_moving.prog;
@@ -193,7 +195,8 @@ Definition tu_rest : list Clight.program :=
     macro_special_objects.prog;
     wmotr_level_data.prog;
     camera.prog;
-    ingame_menu.prog ].
+    ingame_menu.prog;
+    debug_course.prog ].
 
 Definition linked12 (lp : Clight.program) : Prop :=
   link_chain mario.prog tu_rest = Some lp.
@@ -356,6 +359,10 @@ Section Linked12LO.
   Lemma linked12_LO_ingame_menu : linkorder ingame_menu.prog lp.
   Proof.
     exact (link_chain_linkorder_in _ _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_eq _ _))))))))))))))))))))))))))))))))))) H12).
+  Qed.
+  Lemma linked12_LO_debug_course : linkorder debug_course.prog lp.
+  Proof.
+    exact (link_chain_linkorder_in _ _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_eq _ _)))))))))))))))))))))))))))))))))))) H12).
   Qed.
   Lemma linked12_LO_behavior_data : linkorder behavior_data.prog lp.
   Proof.
@@ -633,6 +640,9 @@ Proof. vm_compute. reflexivity. Qed.
 Lemma no_internal_ingame_menu :
   no_internal_ids ingame_menu.prog truly_ext_pin_ids = true.
 Proof. vm_compute. reflexivity. Qed.
+Lemma no_internal_debug_course :
+  no_internal_ids debug_course.prog truly_ext_pin_ids = true.
+Proof. vm_compute. reflexivity. Qed.
 
 (* resolves_lp -> defmap entry (the genv->defmap bridge, spike-style) *)
 Lemma resolves_defmap :
@@ -668,7 +678,7 @@ Proof.
   destruct (link_chain_internal_origin _ _ _ _ _ H12 Hres)
     as [Hbase | (q & Hq & Hqdm)].
   - exact (no_internal_ids_correct _ _ _ _ no_internal_mario Hmem Hbase).
-  - destruct Hq as [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | []]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]].
+  - destruct Hq as [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | []]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]].
     + exact (no_internal_ids_correct _ _ _ _ no_internal_sta Hmem Hqdm).
     + exact (no_internal_ids_correct _ _ _ _ no_internal_mov Hmem Hqdm).
     + exact (no_internal_ids_correct _ _ _ _ no_internal_air Hmem Hqdm).
@@ -704,6 +714,7 @@ Proof.
     + exact (no_internal_ids_correct _ _ _ _ no_internal_wmotr_level_data Hmem Hqdm).
     + exact (no_internal_ids_correct _ _ _ _ no_internal_camera Hmem Hqdm).
     + exact (no_internal_ids_correct _ _ _ _ no_internal_ingame_menu Hmem Hqdm).
+    + exact (no_internal_ids_correct _ _ _ _ no_internal_debug_course Hmem Hqdm).
 Qed.
 
 (* ---------------------------------------------------------------------- *)

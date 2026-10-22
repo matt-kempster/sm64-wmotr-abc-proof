@@ -116,8 +116,7 @@ Proof.
   intros ge Hv Ha ef args m t v m' W. unfold world in W.
   destruct ef; try discriminate W.
   destruct (String.eqb name "sqrtf") eqn:E.
-  - destruct args as [| a [| a2 args]]; try discriminate W.
-    destruct a; try discriminate W.
+  - destruct args as [| a [| a2 args]]; try discriminate W; destruct a; try discriminate W.
     destruct (signature_eq sg sqrtf_sig) as [-> | ]; [ | discriminate W ].
     destruct (sqrt_in f) eqn:I; [ | discriminate W ].
     injection W as <- <- <-. apply String.eqb_eq in E. subst name.
@@ -398,7 +397,7 @@ End Sound.
 Lemma id_ifs : id "init_mario_from_save_file" = mario._init_mario_from_save_file.
 Proof. reflexivity. Qed.
 
-(* Over every 36-TU link, given only the FPU floor's value clause for sqrtf
+(* Over every 37-TU link, given only the FPU floor's value clause for sqrtf
    and the labeled audio premise for the three audio externals:
    - the from-boot capstone's premises are jointly met with a real step:
      Genv.init_mem lp, the function the link resolves

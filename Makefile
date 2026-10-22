@@ -54,7 +54,7 @@ GENERATED := generated/toy.v generated/shadow.v \
   generated/macro_special_objects.v generated/behavior_data.v \
   generated/object_helpers.v generated/obj_behaviors.v generated/obj_behaviors_2.v \
   generated/spawn_object.v generated/object_list_processor.v generated/audio_data.v generated/graph_node.v generated/buffers.v generated/save_file.v generated/object_collision.v \
-  generated/area.v generated/surface_load.v generated/mario_anim_data.v generated/camera.v generated/ingame_menu.v \
+  generated/area.v generated/surface_load.v generated/mario_anim_data.v generated/camera.v generated/ingame_menu.v generated/debug_course.v \
   $(ULTRA_GENERATED)
 
 .PHONY: all generated proofs regen clean oracle-extract
@@ -280,6 +280,11 @@ $(TEXT_H): $(SM64)/include/text_strings.h.in $(SM64)/include/text_menu_strings.h
 	cpp -P -Wno-trigraphs -D_LANGUAGE_ASSEMBLY -DVERSION_US=1 -DBUILD_DIR=build/us -o $(SM64)/build/us/charmap.txt $(SM64)/charmap.txt
 	cd $(SM64) && tools/textconv charmap_menu.txt include/text_menu_strings.h.in build/us/include/text_menu_strings.h
 	cd $(SM64) && tools/textconv build/us/charmap.txt include/text_strings.h.in build/us/include/text_strings.h
+
+# game/debug_course.c (2026-10-22): nop_change_course, which the real
+# lvl_set_current_level calls on every course change (CourseRun runs it).
+generated/debug_course.v: $(SM64)/src/game/debug_course.c pipeline/clightgen.sh pipeline/proof_n64.h
+	$(CLIGHTGEN) $< $@ $(SM64_CGP)
 
 generated/ingame_menu.v: $(SM64)/src/game/ingame_menu.c pipeline/clightgen.sh pipeline/proof_n64.h $(TEXT_H)
 	$(CLIGHTGEN) $< $@ $(SM64_CGP)
