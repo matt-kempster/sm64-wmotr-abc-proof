@@ -27,8 +27,9 @@
 (*    in that global's block, whatever the arguments or the file / course *)
 (*    numbers;                                                             *)
 (*  - bhv_spawn_star_no_level_exit(starIndex): star =                     *)
-(*    spawn_object(gCurrentObject, ..) (the capstone's own sr row          *)
-(*    Hcp_spawn_real: a SafeB object if a pointer), two integer stores    *)
+(*    spawn_object(gCurrentObject, ..) (its gated row Hcp_spawn_real,     *)
+(*    SpawnBodies.Hcp_spawn_sg: a SafeB object if a pointer; the parent   *)
+(*    and behavior arguments pass spawn_args_ok), two integer stores      *)
 (*    through star, and the real obj_set_angle(star, 0, 0, 0), whose four *)
 (*    stores go through its SafeB arg0 with integer values.               *)
 (* FINDING: the "for any argument" claim is TRUE of each of these bodies, *)
@@ -132,8 +133,9 @@ Definition ox_store_ok (sp : list ident) (lv rhs : expr) : bool :=
 Definition ox_call_ok (sp : list ident) (optid : option ident) (a : expr)
     (al : list expr) : bool :=
   match a with
-  | Evar f (Tfunction _ _ _) =>
-      Pos.eqb f behavior_actions._spawn_object
+  | Evar f (Tfunction ps _ _) =>
+      (Pos.eqb f behavior_actions._spawn_object
+       && spawn_args_ok spawn_bhv_syms sp ps al)
       || (Pos.eqb f behavior_actions._obj_set_angle && forallb (val_ok sp) al
           && match optid with None => true | Some _ => false end)
   | _ => false
@@ -732,9 +734,10 @@ Section ObjExtRows.
       apply MtxfBody.create_undef_temps_get in Ht1. discriminate Ht1.
   Qed.
 
-  (* the capstone's own spawn_object row (any arguments, SafeB result) *)
+  (* spawn_object's gated row (SpawnBodies.Hcp_spawn_sg at the capstone):
+     every argument SafeB-if-pointer or a spawn_bhv_syms script *)
   Hypothesis Hcp_spawn :
-    call_pres_ext_sr lp bm NoA MWF SafeB behavior_actions._spawn_object.
+    call_pres_ext_sg lp bm NoA MWF SafeB behavior_actions._spawn_object.
 
   Lemma ox_call : forall sp optid a al le m t le' m' out,
       ox_call_ok sp optid a al = true -> sp_P sp le ->
@@ -749,12 +752,18 @@ Section ObjExtRows.
     match goal with Hee : eval_expr _ _ _ _ (Evar _ _) ?vf |- _ =>
       destruct (evar_fun_val _ _ _ _ _ _ _ _ _ Hee (PTree.gempty _ _)) as (lf & Hsy & ->) end.
     apply orb_true_iff in Hok as [Hsp | Hosa].
-    - (* spawn_object: the sr row *)
+    - (* spawn_object: the gated sg row *)
+      apply andb_prop in Hsp as [Hsp Hsa].
       apply Pos.eqb_eq in Hsp. subst fid.
       destruct Hf as (Hv & Hs & HM).
+      match goal with Hcf : classify_fun _ = fun_case_f _ _ _ |- _ => cbn in Hcf; injection Hcf as E1 E2 E3; subst end.
+      match goal with Hel : eval_exprlist _ _ _ _ _ _ _ |- _ =>
+        pose proof (spawn_args_sound lp SafeB empty_env le m spawn_bhv_syms sp _ _ _
+                      (fun g _ => PTree.gempty _ g)
+                      (fun t Ht b o Hg => HP t b o Ht Hg) Hsa Hel) as Hva end.
       match goal with Hff : Genv.find_funct _ _ = Some ?fd,
                       Hfc : eval_funcall _ _ _ ?fd _ _ _ ?vr |- _ =>
-        destruct (Hcp_spawn _ _ _ _ _ _ Hfc (ex_intro _ lf (conj Hsy Hff))
+        destruct (Hcp_spawn _ _ _ _ _ _ Hfc (ex_intro _ lf (conj Hsy Hff)) Hva
                     (mwf_real_ctl lp bm bc oc0 SafeB _ HM) HM Hv Hs)
           as (Hv' & Hs' & HM' & Hr)
       end.

@@ -5759,7 +5759,15 @@ Definition io_sok_xids : list ident :=
   :: interaction._save_file_collect_star_or_key
   :: interaction._drop_queued_background_music
   :: interaction._fadeout_level_music
-  :: interaction._spawn_object :: nil.
+  :: interaction._spawn_object
+  (* spawn_object's behavior argument (the objw spawn gate,
+     ActWriterSurface.spawn_gate_chk): a variable, so its call row is
+     vacuous (call_pres_ext_gvar) *)
+  :: interaction._bhvStarKeyCollectionPuffSpawner :: nil.
+Lemma sokpuff_dm :
+  (prog_defmap interaction.prog) ! interaction._bhvStarKeyCollectionPuffSpawner
+  = Some (Gvar interaction.v_bhvStarKeyCollectionPuffSpawner).
+Proof. vm_compute. reflexivity. Qed.
 Lemma io_sok_pin :
   (prog_defmap interaction.prog) ! interaction._interact_star_or_key
   = Some (Gfun (Internal interaction.f_interact_star_or_key)).
@@ -6462,9 +6470,8 @@ Section IoSurface.
       Mem.free_list m l = Some m' -> MWF m -> MWF m'.
   (* slice-5 (star_or_key): three music/save model-boundary externals
      (same classes as play_sound / sfgtsc -- obj_ext rows at the
-     capstone) + spawn_object as a PLAIN ext row (the capstone
-     discharges it by WEAKENING the existing call_pres_ext_sr
-     spawn_object row -- zero new trust). *)
+     capstone) + spawn_object (2026-10-21: its all-argument gated cs
+     row, the cs form of the capstone's Hcp_spawn_real). *)
   Hypothesis Hcpx_sfcsok :
     call_pres_ext lp bm NoA MWF
       interaction._save_file_collect_star_or_key.
@@ -6473,8 +6480,11 @@ Section IoSurface.
       interaction._drop_queued_background_music.
   Hypothesis Hcpx_flm :
     call_pres_ext lp bm NoA MWF interaction._fadeout_level_music.
+  (* spawn_object: the all-argument gated cs row (SpawnBodies.Hcs_spawn at
+     the capstone); the any-argument row was FALSE (spawn_object.c stores
+     parent / behavior into the SafeB pool object). *)
   Hypothesis Hcpx_so :
-    call_pres_ext lp bm NoA MWF interaction._spawn_object.
+    OutParamSurface.call_pres_ext_cs lp bm NoA MWF SafeB interaction._spawn_object.
 
   Let Hcp_tdfio :
     call_pres lp bm NoA MWF interaction._take_damage_from_interact_object
@@ -8795,8 +8805,12 @@ Section IoSurface.
         [ apply Pos.eqb_eq in Eg; subst fid'; exact Hcpx_dqbm | ].
       apply Bool.orb_true_iff in H as [Eg | H];
         [ apply Pos.eqb_eq in Eg; subst fid'; exact Hcpx_flm | ].
+      apply Bool.orb_true_iff in H as [Eg | H];
+        [ apply Pos.eqb_eq in Eg; subst fid'; exact Hcpx_so | ].
       apply Bool.orb_true_iff in H as [Eg | F];
-        [ apply Pos.eqb_eq in Eg; subst fid'; exact Hcpx_so
+        [ apply Pos.eqb_eq in Eg; subst fid';
+          apply call_pres_ext_x_of_ext;
+          exact (call_pres_ext_gvar lp interaction.prog bm NoA MWF _ _ LO_int sokpuff_dm)
         | discriminate F ].
     - intros fid' H. unfold mem_id in H; cbn [existsb] in H.
       apply Bool.orb_true_iff in H as [Eg | F];

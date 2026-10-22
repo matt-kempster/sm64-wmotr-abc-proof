@@ -51,6 +51,7 @@ Definition is_t1_temp (a : expr) : bool :=
 (* the capObject <- t'1 TRANSFER, or any OTHER temp (gso-safe). *)
 Definition mbc_set_chk (id : ident) (a : expr) : bool :=
   if Pos.eqb id _capObject then is_t1_temp a
+  else if Pos.eqb id _t'9 then is_mobj_load _m a
   else negb (Pos.eqb id _m) && negb (Pos.eqb id _t'1).
 
 (* ---- flags store: m->flags = <int> ---- *)
@@ -114,15 +115,18 @@ Definition mbc_assign_chk (a1 a2 : expr) : bool :=
   | _ => false
   end.
 
-Definition mbc_call_chk (optid : option ident) (a : expr) : bool :=
+Definition mbc_call_chk (optid : option ident) (a : expr) (al : list expr) : bool :=
   match a with
-  | Evar fid (Tfunction _ _ _) =>
+  | Evar fid (Tfunction ps _ _) =>
       if Pos.eqb fid _does_mario_have_normal_cap_on_head
       then match optid with Some t => Pos.eqb t _t'3 | None => false end
       else if Pos.eqb fid _save_file_set_cap_pos
       then match optid with None => true | _ => false end
       else if Pos.eqb fid _spawn_object
-      then match optid with Some t => Pos.eqb t _t'1 | None => false end
+      then match optid with
+           | Some t => Pos.eqb t _t'1
+                       && spawn_args_ok spawn_bhv_syms (_t'9 :: nil) ps al
+           | None => false end
       else false
   | _ => false
   end.
@@ -132,7 +136,7 @@ Fixpoint mbc_chk (s : statement) : bool :=
   | Sskip => true
   | Sset id a => mbc_set_chk id a
   | Sassign a1 a2 => mbc_assign_chk a1 a2
-  | Scall optid a _ => mbc_call_chk optid a
+  | Scall optid a al => mbc_call_chk optid a al
   | Ssequence s1 s2 => mbc_chk s1 && mbc_chk s2
   | Sifthenelse _ s1 s2 => mbc_chk s1 && mbc_chk s2
   | _ => false
@@ -238,7 +242,11 @@ Section MboCSurface.
   Hypothesis HMWF_flags : forall mm mm' vv,
       MWF mm -> Mem.store Mint32 mm bm 4 vv = Some mm' -> MWF mm'.
   (* spawn_object: the SafeB-return external boundary (Hcp_spawn_real). *)
-  Hypothesis Hcp_spawn : call_pres_ext_sr lp bm NoA MWF SafeB _spawn_object.
+  Hypothesis Hcp_spawn : call_pres_ext_sg lp bm NoA MWF SafeB _spawn_object.
+  (* the spawn parent m->marioObj: MWF's chase-root row at the marioObj
+     cell (MWFReal.mwf_real_chase_safe at the capstone). *)
+  Hypothesis HmobjSafe : forall m b' o', MWF m ->
+      Mem.loadv Mptr m (Vptr bm (Ptrofs.repr 136)) = Some (Vptr b' o') -> SafeB b'.
   (* save_file_set_cap_pos: a scalar-arg, void, save-file external
      boundary (the honest terminal external-call model class). *)
   Hypothesis Hcp_savefile : call_pres_ext lp bm NoA MWF _save_file_set_cap_pos.
@@ -315,17 +323,19 @@ Section MboCSurface.
   Definition mle (le : temp_env) : Prop :=
     (forall b o, le ! _m = Some (Vptr b o) -> b = bm /\ o = Ptrofs.zero) /\
     (forall b o, le ! _t'1 = Some (Vptr b o) -> SafeB b) /\
-    (forall b o, le ! _capObject = Some (Vptr b o) -> SafeB b).
+    (forall b o, le ! _capObject = Some (Vptr b o) -> SafeB b) /\
+    (forall b o, le ! _t'9 = Some (Vptr b o) -> SafeB b).
 
   Lemma mle_set_other :
     forall le id v,
       Pos.eqb id _m = false ->
       Pos.eqb id _t'1 = false ->
       Pos.eqb id _capObject = false ->
+      Pos.eqb id _t'9 = false ->
       mle le -> mle (PTree.set id v le).
   Proof.
-    intros le id v Hm Ht1 Hco (Wm & W1 & Wc).
-    refine (conj _ (conj _ _)); intros b o Hg.
+    intros le id v Hm Ht1 Hco Ht9 (Wm & W1 & Wc & W9).
+    refine (conj _ (conj _ (conj _ _))); intros b o Hg.
     - rewrite PTree.gso in Hg;
         [ exact (Wm b o Hg)
         | intro E; subst id; rewrite Pos.eqb_refl in Hm; discriminate Hm ].
@@ -335,6 +345,9 @@ Section MboCSurface.
     - rewrite PTree.gso in Hg;
         [ exact (Wc b o Hg)
         | intro E; subst id; rewrite Pos.eqb_refl in Hco; discriminate Hco ].
+    - rewrite PTree.gso in Hg;
+        [ exact (W9 b o Hg)
+        | intro E; subst id; rewrite Pos.eqb_refl in Ht9; discriminate Ht9 ].
   Qed.
 
   (* ================================================================== *)
@@ -361,7 +374,7 @@ Section MboCSurface.
         try discriminate Hchk.
       + (* ---- a chase store: capObject->rawData.{asF32|asS32}[i] = .. ---- *)
         apply andb_true_iff in Hchk. destruct Hchk as [Haddr Hsrc].
-        destruct Hmle as (Wm & W1 & Wc).
+        destruct Hmle as (Wm & W1 & Wc & W9).
         (* decode the address chain, pinning the block to le!_capObject *)
         unfold is_chase_addr in Haddr.
         destruct aBP as [ | | | | | | | | | op cF cI tyB | | | | ];
@@ -499,7 +512,7 @@ Section MboCSurface.
         | Hsv : Mem.storev _ _ (Vptr _ _) _ = Some m' |- _ =>
             unfold Mem.storev in Hsv; rename Hsv into Hst
         end.
-        split; [ | exact (conj Wm (conj W1 Wc)) ].
+        split; [ | exact (conj Wm (conj W1 (conj Wc W9))) ].
         refine (conj _ (conj _ (conj _ _))).
         * eapply Mem.store_valid_block_1; eauto.
         * intros av Hload.
@@ -510,7 +523,7 @@ Section MboCSurface.
         * exact (HNoA_of_MWF _ (HMWF_chase _ _ _ _ _ _ HM Hsafe Hnoptr Hst)).
       + (* ---- the flags store: m->flags = <int> into bm at offset 4 ---- *)
         destruct (is_flags_lval_shape _ _ _ Hchk) as (-> & -> & Hfty).
-        destruct Hmle as (Wm & W1 & Wc).
+        destruct Hmle as (Wm & W1 & Wc & W9).
         (* pin the lvalue: Mario's block at the flags offset 4 *)
         match goal with
         | Hlv0 : eval_lvalue _ _ _ _ (Efield _ _ _) _ _ _ |- _ =>
@@ -556,7 +569,7 @@ Section MboCSurface.
             change (Ptrofs.unsigned (Ptrofs.repr 4)) with 4 in Hsv;
             rename Hsv into Hst
         end.
-        split; [ | exact (conj Wm (conj W1 Wc)) ].
+        split; [ | exact (conj Wm (conj W1 (conj Wc W9))) ].
         refine (conj _ (conj _ (conj _ _))).
         * eapply Mem.store_valid_block_1; eauto.
         * intros av Hload.
@@ -579,18 +592,32 @@ Section MboCSurface.
         | Hev : eval_expr _ _ _ _ (Etempvar _ _) _ |- _ =>
             apply eval_expr_Etempvar_val in Hev
         end.
-        destruct Hmle as (Wm & W1 & Wc).
-        refine (conj _ (conj _ _)); intros b o Hg.
+        destruct Hmle as (Wm & W1 & Wc & W9).
+        refine (conj _ (conj _ (conj _ _))); intros b o Hg.
         * rewrite PTree.gso in Hg; [ exact (Wm b o Hg) | discriminate ].
         * rewrite PTree.gso in Hg; [ exact (W1 b o Hg) | discriminate ].
         * rewrite PTree.gss in Hg. injection Hg as ->.
           match goal with
           | Hev : le ! _t'1 = Some (Vptr _ _) |- _ => exact (W1 _ _ Hev)
           end.
-      + (* another temp: gso-safe on all three clauses *)
-        apply andb_true_iff in Hchk. destruct Hchk as [Hnm Hn1].
-        apply negb_true_iff in Hnm. apply negb_true_iff in Hn1.
-        exact (mle_set_other le id v Hnm Hn1 Eco Hmle).
+        * rewrite PTree.gso in Hg; [ exact (W9 b o Hg) | discriminate ].
+      + destruct (Pos.eqb id _t'9) eqn:E9.
+        * (* the spawn parent: t'9 = m->marioObj (chase root) *)
+          apply Pos.eqb_eq in E9. subst id.
+          destruct Hmle as (Wm & W1 & Wc & W9).
+          refine (conj _ (conj _ (conj _ _))); intros b o Hg.
+          -- rewrite PTree.gso in Hg; [ exact (Wm b o Hg) | discriminate ].
+          -- rewrite PTree.gso in Hg; [ exact (W1 b o Hg) | discriminate ].
+          -- rewrite PTree.gso in Hg; [ exact (Wc b o Hg) | discriminate ].
+          -- rewrite PTree.gss in Hg. injection Hg as ->.
+             destruct Hc as (_ & _ & HM & _).
+             match goal with Hev : eval_expr _ _ _ _ a _ |- _ =>
+               exact (mobj_load_safe lp LO_mario SafeB MWF bm _m a _ _ _ _
+                        HmobjSafe Hchk Wm HM Hev b o eq_refl) end.
+        * (* another temp: gso-safe on all four clauses *)
+          apply andb_true_iff in Hchk. destruct Hchk as [Hnm Hn1].
+          apply negb_true_iff in Hnm. apply negb_true_iff in Hn1.
+          exact (mle_set_other le id v Hnm Hn1 Eco E9 Hmle).
     - (* Scall: does_mario (pure) / save_file (ext) / spawn (ext+SafeB) *)
       cbn [mbc_chk] in Hchk. unfold mbc_call_chk in Hchk.
       destruct Hc as (HV & HS & HM & HN).
@@ -642,22 +669,34 @@ Section MboCSurface.
           (* spawn_object: external + SafeB-return *)
           apply Pos.eqb_eq in Esp. subst fid.
           destruct optid as [ t1 | ]; [ | discriminate Hchk ].
+          apply andb_true_iff in Hchk. destruct Hchk as [Hchk Hsa].
           apply Pos.eqb_eq in Hchk. subst t1.
-          destruct Hmle as (Wm & W1 & Wc).
+          destruct Hmle as (Wm & W1 & Wc & W9).
+          match goal with Hcf : classify_fun _ = fun_case_f _ _ _ |- _ =>
+            cbn in Hcf; injection Hcf as E1 E2 E3; subst end.
+          match goal with Hel : eval_exprlist _ _ _ _ _ _ _ |- _ =>
+            pose proof (spawn_args_sound lp SafeB empty_env le m spawn_bhv_syms
+                          (_t'9 :: nil) _ _ _
+                          (fun g _ => PTree.gempty _ g)
+                          (fun t Ht b o Hg => ltac:(
+                             cbn [mem_id existsb] in Ht; rewrite orb_false_r in Ht;
+                             apply Pos.eqb_eq in Ht; subst t; exact (W9 b o Hg)))
+                          Hsa Hel) as Hva end.
           match goal with
           | Hevf : eval_funcall _ _ _ _ _ _ _ _ |- _ =>
               destruct (Hcp_spawn _ _ _ _ _ _ Hevf
-                          (ex_intro _ bf0 (conj Hsym Hfind))
+                          (ex_intro _ bf0 (conj Hsym Hfind)) Hva
                           HN HM HV HS) as (HV' & HS' & HM' & Hret)
           end.
           split.
           { exact (conj HV' (conj HS' (conj HM' (HNoA_of_MWF _ HM')))). }
           cbn [set_opttemp].
-          refine (conj _ (conj _ _)); intros b o Hg.
+          refine (conj _ (conj _ (conj _ _))); intros b o Hg.
           -- rewrite PTree.gso in Hg; [ exact (Wm b o Hg) | discriminate ].
           -- rewrite PTree.gss in Hg. injection Hg as Hg.
              exact (Hret _ _ Hg).
           -- rewrite PTree.gso in Hg; [ exact (Wc b o Hg) | discriminate ].
+          -- rewrite PTree.gso in Hg; [ exact (W9 b o Hg) | discriminate ].
     - (* Sbuiltin: rejected *)
       cbn [mbc_chk] in Hchk. discriminate Hchk.
     - (* Sseq_1 *)
@@ -728,10 +767,13 @@ Section MboCSurface.
                           (PTree.set _m v1
                              (create_undef_temps
                                 (fn_temps f_mario_blow_off_cap))))).
-    { refine (conj _ (conj _ _)); intros b o Hg.
+    { refine (conj _ (conj _ (conj _ _))); intros b o Hg.
       - rewrite PTree.gso in Hg; [ | discriminate ].
         rewrite PTree.gss in Hg. injection Hg as Hv1. subst v1.
         cbn in Hmarg. destruct Hmarg as [-> ->]. auto.
+      - rewrite PTree.gso in Hg; [ | discriminate ].
+        rewrite PTree.gso in Hg; [ | discriminate ].
+        vm_compute in Hg. discriminate Hg.
       - rewrite PTree.gso in Hg; [ | discriminate ].
         rewrite PTree.gso in Hg; [ | discriminate ].
         vm_compute in Hg. discriminate Hg.

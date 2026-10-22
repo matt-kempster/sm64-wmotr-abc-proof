@@ -298,7 +298,7 @@ Definition v_gCurrLevelNum := {|
 |}.
 
 Definition v_gObjectPool := {|
-  gvar_info := (tarray (Tstruct _Object noattr) 0);
+  gvar_info := (tarray (Tstruct _Object noattr) 240);
   gvar_init := nil;
   gvar_readonly := false;
   gvar_volatile := false

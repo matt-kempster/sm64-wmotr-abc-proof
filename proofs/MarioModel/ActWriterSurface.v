@@ -2144,7 +2144,12 @@ Definition objw_ids : list ident :=
     :: interaction._obj_set_held_state
     (* 2026-10-20: set_camera_mode(c, ..) writes c->mode (camera.c:2854);
        every real site passes the chase temp m->area->camera *)
-    :: interaction._set_camera_mode :: nil.
+    :: interaction._set_camera_mode
+    (* 2026-10-21 (spawn_object.c linked, SpawnBodies.v): the spawn pair
+       stores parent / behavior into a SafeB pool object, so EVERY argument
+       is gated (spawn_gate_chk below); the any-argument rows were FALSE *)
+    :: interaction._spawn_object
+    :: mario_actions_cutscene._spawn_object_abs_with_rot :: nil.
 (* obj_set_held_state's arg1 (OutParamSurface.cs_gate, 2026-10-21): one of
    the three bhv_held_syms globals, named directly (Evar of the script
    array).  It must also be in the walk's xids, whose premise says no local
@@ -2157,13 +2162,103 @@ Definition held_arg_chk (xids : list ident) (fid : ident) (al : list expr) : boo
        end
   else true.
 
+(* the spawn pair's gate: every argument passes spawn_args_ok (a sub-32-bit
+   parameter, a chase temp, a literal, or a spawn_bhv_syms script listed in
+   xids, so no local shadows it) *)
+Definition spawn_gate_chk (xids cact : list ident) (fid : ident) (ps : list type)
+    (al : list expr) : bool :=
+  if mem_id fid spawn_fids then spawn_args_ok xids cact ps al else true.
+
 Definition objw_call_chk (xids cact : list ident) (fid : ident) (fty : type)
     (al : list expr) : bool :=
   match fty, al with
-  | Tfunction (Tpointer _ _ :: _) _ _, Etempvar t (Tpointer _ _) :: _ =>
-      mem_id t cact && held_arg_chk xids fid al
+  | Tfunction ((Tpointer _ _ :: _) as ps) _ _, Etempvar t (Tpointer _ _) :: _ =>
+      mem_id t cact && held_arg_chk xids fid al && spawn_gate_chk xids cact fid ps al
   | _, _ => false
   end.
+
+(* spawn_obj_at_mario_rel_yaw(m, model, behavior, relYaw) (2026-10-21):
+   it hands model and behavior to spawn_object(m->marioObj, ..), whose
+   row is all-argument gated (SpawnBodies.v), so its own any-argument
+   row was FALSE too.  Gate: arg0 is Mario (marg) and model / behavior are
+   spawn arguments (CensusV2.spawn_argv).  The engine walks it as an xid
+   whose call passes the m temp, then two spawn_arg_ok arguments. *)
+Definition sob_gate (lp : Clight.program) (bm : block) (SafeB : block -> Prop)
+    (vargs : list val) : Prop :=
+  marg_ok bm vargs
+  /\ match vargs with
+     | _ :: v1 :: v2 :: _ => spawn_argv lp SafeB v1 /\ spawn_argv lp SafeB v2
+     | _ => True
+     end.
+
+Definition call_pres_ext_sob (lp : Clight.program) (bm : block)
+    (NoA MWF : mem -> Prop) (SafeB : block -> Prop) (fid : ident) : Prop :=
+  forall fd m0 vargs0 t0 m1 vres0,
+    eval_funcall function_entry2 (lp_ge lp) m0 fd vargs0 t0 m1 vres0 ->
+    resolves_lp lp fid fd ->
+    sob_gate lp bm SafeB vargs0 ->
+    NoA m0 -> MWF m0 -> Mem.valid_block m0 bm ->
+    action_sat not_tainted m0 bm ->
+    Mem.valid_block m1 bm /\ action_sat not_tainted m1 bm /\
+    MWF m1 /\ NoA m1.
+
+Definition sob_rest_chk (xids : list ident) (ps : list type) (al : list expr) : bool :=
+  match ps, al with
+  | p1 :: p2 :: _, a1 :: a2 :: _ =>
+      (sub32i p1 || spawn_arg_ok xids nil a1) && (sub32i p2 || spawn_arg_ok xids nil a2)
+  | _, _ => false
+  end.
+
+Definition sob_call_chk (xids : list ident) (fty : type) (al : list expr) : bool :=
+  match fty with
+  | Tfunction (_ :: ps) _ _ =>
+      match al with
+      | Etempvar t _ :: al' =>
+          Pos.eqb t mario_actions_airborne._m && sob_rest_chk xids ps al'
+      | _ => false
+      end
+  | _ => false
+  end.
+
+Lemma sob_gate_sound : forall lp bm SafeB e le m xids p0 ps rty cc al vargs,
+    (forall g, mem_id g xids = true -> e ! g = None) ->
+    (forall b o, le ! mario_actions_airborne._m = Some (Vptr b o) ->
+                 b = bm /\ o = Ptrofs.zero) ->
+    sob_call_chk xids (Tfunction (p0 :: ps) rty cc) al = true ->
+    eval_exprlist (lp_ge lp) e le m al (p0 :: ps) vargs ->
+    sob_gate lp bm SafeB vargs.
+Proof.
+  intros lp bm SafeB e le m xids p0 ps rty cc al vargs Hub Htat Hchk Hel.
+  cbn [sob_call_chk] in Hchk.
+  destruct al as [ | a0 al' ]; [ discriminate Hchk | ].
+  destruct a0 as [ | | | | | t tty | | | | | | | | ]; try discriminate Hchk.
+  apply andb_prop in Hchk as [Ht Hrest]. apply Pos.eqb_eq in Ht. subst t.
+  inversion Hel as [ | ? ? ? ? v0 v0' vl Hev0 Hc0 Hel' ]; subst.
+  split.
+  - cbn [marg_ok]. destruct v0' as [ | | | | | b o ]; try exact I.
+    pose proof (sem_cast_vptr_inv _ _ _ _ _ _ Hc0) as ->.
+    inversion Hev0; subst;
+      [ | match goal with Hl : eval_lvalue _ _ _ _ (Etempvar _ _) _ _ _ |- _ =>
+            inversion Hl end ].
+    match goal with Hg : le ! _ = Some (Vptr b o) |- _ => exact (Htat b o Hg) end.
+  - unfold sob_rest_chk in Hrest.
+    destruct ps as [ | p1 [ | p2 ps' ] ]; try discriminate Hrest.
+    destruct al' as [ | a1 [ | a2 al'' ] ]; try discriminate Hrest.
+    apply andb_prop in Hrest as [H1 H2].
+    inversion Hel' as [ | ? ? ? ? v1 v1' vl1 Hev1 Hc1 Hel1 ]; subst.
+    inversion Hel1 as [ | ? ? ? ? v2 v2' vl2 Hev2 Hc2 Hel2 ]; subst.
+    assert (S1 : Forall (spawn_argv lp SafeB) (v1' :: nil)).
+    { refine (spawn_args_sound lp SafeB e le m xids nil (p1 :: nil) (a1 :: nil) _
+                Hub (fun t Ht => match Bool.diff_false_true Ht with end) _ _).
+      - cbn [spawn_args_ok]. rewrite H1. reflexivity.
+      - econstructor; [ exact Hev1 | exact Hc1 | constructor ]. }
+    assert (S2 : Forall (spawn_argv lp SafeB) (v2' :: nil)).
+    { refine (spawn_args_sound lp SafeB e le m xids nil (p2 :: nil) (a2 :: nil) _
+                Hub (fun t Ht => match Bool.diff_false_true Ht with end) _ _).
+      - cbn [spawn_args_ok]. rewrite H2. reflexivity.
+      - econstructor; [ exact Hev2 | exact Hc2 | constructor ]. }
+    inversion S1; inversion S2; subst. split; assumption.
+Qed.
 
 Definition xdg_chk (lids cact xids : list ident) (fid : ident) (fty : type)
     (al : list expr) : bool :=
@@ -2171,6 +2266,8 @@ Definition xdg_chk (lids cact xids : list ident) (fid : ident) (fty : type)
   then sc_call_chk lids (fid :: nil) cact fid fty al
   else if mem_id fid objw_ids
   then objw_call_chk xids cact fid fty al
+  else if Pos.eqb fid mario_actions_cutscene._spawn_obj_at_mario_rel_yaw
+  then sob_call_chk xids fty al
   else true.
 
 Lemma held_arg_sound : forall lp e le m xids cid a0 al' ps vl v0,
@@ -2205,6 +2302,8 @@ Definition call_pres_ext_x (lp : Clight.program) (bm : block)
   then call_pres_ext_dg lp bm NoA MWF SafeB fid
   else if mem_id fid objw_ids
   then call_pres_ext_cs lp bm NoA MWF SafeB fid
+  else if Pos.eqb fid mario_actions_cutscene._spawn_obj_at_mario_rel_yaw
+  then call_pres_ext_sob lp bm NoA MWF SafeB fid
   else call_pres_ext lp bm NoA MWF fid.
 
 Lemma call_pres_ext_x_of_ext : forall lp bm NoA MWF SafeB fid,
@@ -2212,7 +2311,9 @@ Lemma call_pres_ext_x_of_ext : forall lp bm NoA MWF SafeB fid,
 Proof.
   intros lp bm NoA MWF SafeB fid H. unfold call_pres_ext_x.
   destruct (mem_id fid dg_writer_ids);
-    [ | destruct (mem_id fid objw_ids); [ | exact H ] ];
+    [ | destruct (mem_id fid objw_ids);
+        [ | destruct (Pos.eqb fid mario_actions_cutscene._spawn_obj_at_mario_rel_yaw);
+            [ | exact H ] ] ];
     intros fd m0 vargs0 t0 m1 vres0 Hev Hres _;
     exact (H fd m0 vargs0 t0 m1 vres0 Hev Hres).
 Qed.
@@ -2247,10 +2348,11 @@ Qed.
 
 Lemma call_pres_ext_x_nonwriter : forall lp bm NoA MWF SafeB fid,
     mem_id fid dg_writer_ids = false -> mem_id fid objw_ids = false ->
+    Pos.eqb fid mario_actions_cutscene._spawn_obj_at_mario_rel_yaw = false ->
     call_pres_ext_x lp bm NoA MWF SafeB fid -> call_pres_ext lp bm NoA MWF fid.
 Proof.
-  intros lp bm NoA MWF SafeB fid E E2 H. unfold call_pres_ext_x in H.
-  rewrite E, E2 in H. exact H.
+  intros lp bm NoA MWF SafeB fid E E2 E3 H. unfold call_pres_ext_x in H.
+  rewrite E, E2, E3 in H. exact H.
 Qed.
 
 (* ====================================================================== *)
@@ -4529,6 +4631,49 @@ Section ActWriterWalk.
     eexists; reflexivity.
   Qed.
 
+  (* the same with an argument gate G the caller's exprlist establishes *)
+  Lemma kit_scallg_pres :
+    forall (G : list val -> Prop) optid fid targs tres tcc al e le0 m0 tr le1 m1 out0,
+      e ! fid = None ->
+      exec_stmt function_entry2 (lp_ge lp) e le0 m0
+        (Scall optid (Evar fid (Tfunction targs tres tcc)) al)
+        tr le1 m1 out0 ->
+      (forall fd m0 vargs0 t0 m1 vres0,
+         eval_funcall function_entry2 (lp_ge lp) m0 fd vargs0 t0 m1 vres0 ->
+         resolves_lp lp fid fd -> G vargs0 ->
+         NoA m0 -> MWF m0 -> Mem.valid_block m0 bm ->
+         action_sat not_tainted m0 bm ->
+         Mem.valid_block m1 bm /\ action_sat not_tainted m1 bm /\
+         MWF m1 /\ NoA m1) ->
+      (forall vargs, eval_exprlist (lp_ge lp) e le0 m0 al targs vargs -> G vargs) ->
+      NoA m0 -> MWF m0 -> Mem.valid_block m0 bm ->
+      action_sat not_tainted m0 bm ->
+      Mem.valid_block m1 bm /\ action_sat not_tainted m1 bm /\
+      MWF m1 /\ NoA m1.
+  Proof.
+    intros G optid fid targs tres tcc al e le0 m0 tr le1 m1 out0 He_fid Hexec Hrow
+           Hgate HN HM HV HS.
+    inv Hexec.
+    match goal with
+    | Hc : classify_fun _ = fun_case_f _ _ _ |- _ =>
+        cbn in Hc; injection Hc as Hc1 Hc2 Hc3; subst
+    end.
+    match goal with
+    | Hv : eval_expr _ _ _ _ (Evar _ _) _ |- _ =>
+        apply (eval_Evar_funct _ _ _ _ _ _ _ _ He_fid) in Hv;
+        destruct Hv as (b & Hsym & ->)
+    end.
+    match goal with
+    | Hff : Genv.find_funct _ (Vptr b Ptrofs.zero) = Some ?fd |- _ =>
+        assert (Hres : resolves_lp lp fid fd) by (exists b; split; assumption)
+    end.
+    match goal with
+    | Hvl : eval_exprlist _ _ _ _ _ _ ?vargs,
+      Hevf : eval_funcall _ _ _ _ _ _ _ _ |- _ =>
+        exact (Hrow _ _ _ _ _ _ Hevf Hres (Hgate _ Hvl) HN HM HV HS)
+    end.
+  Qed.
+
   (* the act-writer call with a CONSTANT action argument: the leaf
      pattern `set_mario_action(m, ACT_X, 0)`.  The vm-checked constant
      itself meets the row's untainted-scalar premise; the result (if
@@ -5564,14 +5709,24 @@ Section ActWriterWalk.
                 destruct a0 as [ | | | | | t0 tty | | | | | | | | ];
                   try discriminate Hxdg.
                 destruct tty; try discriminate Hxdg.
+                apply andb_prop in Hxdg as [Hxdg Hspg].
                 apply andb_prop in Hxdg as [Hxdg Hheld].
+                assert (Hall : if mem_id cid spawn_fids
+                               then all_cond_safe lp SafeB vs else True).
+                { unfold spawn_gate_chk in Hspg.
+                  destruct (mem_id cid spawn_fids); [ | exact I ].
+                  exact (spawn_args_sound lp SafeB e le m xids cact _ _ vs
+                           Hubx Hch Hspg Hvl). }
                 inv Hvl.
                 split.
-                2:{ match goal with
+                2:{ destruct (Pos.eqb cid interaction._obj_set_held_state) eqn:Eosh;
+                    [ | exact Hall ].
+                    lazymatch goal with
                     | Htl : eval_exprlist _ _ _ _ al' _ ?vl |- _ =>
-                        exact (held_arg_sound lp e le m xids cid _ al' _ vl _
-                                 Hubx Hheld Htl)
-                    end. }
+                        epose proof (held_arg_sound lp e le m xids cid _ al' _ vl _
+                                 Hubx Hheld Htl) as Hh
+                    end.
+                    rewrite Eosh in Hh. exact Hh. }
                 match goal with
                 | Ha : eval_expr _ _ _ _ (Etempvar _ _) _ |- _ =>
                     inv Ha;
@@ -5591,10 +5746,19 @@ Section ActWriterWalk.
               * exact Hex.
               * exact (conj HV (conj HS (conj HM HN))).
               * exact Hc'.
-            + destruct (kit_scallx_pres _ _ _ _ _ _ _ _ _ _ _ _ _ (Hubx _ Hfx) Hex
+            + destruct (Pos.eqb cid mario_actions_cutscene._spawn_obj_at_mario_rel_yaw)
+                eqn:Esob.
+              * (* spawn_obj_at_mario_rel_yaw: marg + spawn-argument gate *)
+                destruct params as [ | p0 ps ]; [ discriminate Hxdg | ].
+                exact (kit_scallg_pres (sob_gate lp bm SafeB) _ _ _ _ _ _ _ _ _ _ _ _ _
+                         (Hubx _ Hfx) Hex Hrow
+                         (fun vs Hvl => sob_gate_sound lp bm SafeB e le m xids p0 ps
+                                          res cc al vs Hubx Htat Hxdg Hvl)
+                         HN HM HV HS).
+              * destruct (kit_scallx_pres _ _ _ _ _ _ _ _ _ _ _ _ _ (Hubx _ Hfx) Hex
                           Hrow HN HM HV HS)
-                as (HV' & HS' & HM' & HN' & _ & _).
-              exact (conj HV' (conj HS' (conj HM' HN'))). }
+                  as (HV' & HS' & HM' & HN' & _ & _).
+                exact (conj HV' (conj HS' (conj HM' HN'))). }
         destruct Hcar as (HV' & HS' & HM' & HN').
         refine (conj HV' (conj HS' (conj HM' (conj HN'
                  (conj _ (conj _ (conj _ (conj _ I)))))))).

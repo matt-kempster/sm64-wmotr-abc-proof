@@ -75,6 +75,10 @@ python3 "$(dirname "$0")/canonicalize_anon.py" "$TMP"
 #   gPlayerSpawnInfos      0 -> 1      (definer: area.c, struct SpawnInfo[1];
 #                                       declared in mario.c, level_update.c;
 #                                       found when linking area.c, 2026-10-21)
+#   gObjectPool            0 -> 240    (definer: object_list_processor.c,
+#                                       struct Object[OBJECT_POOL_CAPACITY];
+#                                       declared in spawn_object.c; found when
+#                                       linking it, 2026-10-21)
 python3 - "$TMP" <<'PYEOF'
 import re, sys
 path = sys.argv[1]
@@ -88,6 +92,7 @@ TABLE = [
     ("gGfxSPTaskYieldBuffer", r"tuchar", 3072),
     ("gLevelToCourseNumTable", r"tschar", 38),
     ("gPlayerSpawnInfos", r"\(Tstruct _SpawnInfo noattr\)", 1),
+    ("gObjectPool", r"\(Tstruct _Object noattr\)", 240),
 ]
 for name, elt, n in TABLE:
     s2 = re.sub(

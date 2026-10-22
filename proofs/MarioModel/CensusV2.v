@@ -40,7 +40,8 @@ From compcert Require Import Coqlib Maps AST Integers Values Events Memory
 From SM64.Generated Require surface_collision math_util memory save_file area
   libultra_osSiCreateAccessQueue libultra_osContInit libultra_osEepromWrite.
 From SM64.Generated Require mario level_update mario_step mario_actions_submerged
-  mario_actions_cutscene behavior_actions.
+  mario_actions_cutscene behavior_actions interaction graph_node spawn_object
+  object_helpers.
 From SM64.Proofs Require Import SymbolicLinking Flying Taint
   ActionValueFrame RealFrameValue RealFrameLinked AGates.
 
@@ -996,8 +997,45 @@ Definition bhv_held_syms : list ident :=
   interaction._bhvCarrySomething3 :: interaction._bhvCarrySomething4
     :: interaction._bhvCarrySomething5 :: nil.
 
+(* 2026-10-21 (spawn_object.c linked, SpawnBodies.v): the spawn tree's own
+   pointer globals.  try_allocate_object / deallocate_object relink the
+   free list through &gFreeObjectList, geo_add_child stores the object node
+   into gObjParentGraphNode's children, create_object reads gObjectLists
+   (-> gObjectListArray), spawn_object_at_origin reads gLoadedGraphNodes[model]
+   into obj->header.gfx.sharedChild, and geo_obj_init copies gVec3fZero /
+   gVec3sZero.  Every one of them is outside non_safeb_syms (nothing the
+   GOAL-1 facts watch points at them, BootMWF's certificate), so they are
+   SafeB blocks and R7 keeps what they hold SafeB. *)
+Definition spawn_safe_syms : list ident :=
+  graph_node._gObjParentGraphNode :: spawn_object._gFreeObjectList
+    :: spawn_object._gObjectLists :: object_helpers._gLoadedGraphNodes
+    :: object_helpers._gVec3fZero :: object_helpers._gVec3sZero :: nil.
+
+(* the behavior scripts the walked spawn sites pass (create_object stores
+   the script into obj->curBhvCommand / obj->behavior):
+   interaction.c:356,805; mario_actions_cutscene.c:595,786,831,1106,1679,
+   1966,1974,2026,2078-2085,2643-2649; behaviors/wind.inc.c:6;
+   behaviors/sparkle_spawn_star.inc.c (bhv_spawn_star_no_level_exit). *)
+Definition spawn_bhv_syms : list ident :=
+  interaction._bhvNormalCap :: interaction._bhvStarKeyCollectionPuffSpawner
+    :: behavior_actions._bhvWind :: behavior_actions._bhvSpawnedStarNoLevelExit
+    :: mario_actions_cutscene._bhvCelebrationStar
+    :: mario_actions_cutscene._bhvUnlockDoorStar
+    :: mario_actions_cutscene._bhvBowserKeyUnlockDoor
+    :: mario_actions_cutscene._bhvBowserKeyCourseExit
+    :: mario_actions_cutscene._bhvSparkleSpawn
+    :: mario_actions_cutscene._bhvStaticObject
+    :: mario_actions_cutscene._bhvEndPeach
+    :: mario_actions_cutscene._bhvEndToad :: nil.
+
 Definition safe_ptr_syms : list ident :=
-  mario_actions_cutscene._gCurrentObject :: gobj_syms ++ bhv_held_syms.
+  mario_actions_cutscene._gCurrentObject :: gobj_syms ++ bhv_held_syms
+    ++ spawn_safe_syms ++ spawn_bhv_syms.
+
+(* the two spawn entry points whose rows are argument-gated (2026-10-21,
+   SpawnBodies.v): every argument SafeB-if-pointer *)
+Definition spawn_fids : list ident :=
+  interaction._spawn_object :: mario_actions_cutscene._spawn_object_abs_with_rot :: nil.
 
 (* ---------------------------------------------------------------------- *)
 (* The interaction-handler census (the Hpres_inter arc): the 28 DISTINCT   *)
@@ -3201,3 +3239,83 @@ Qed.
 (* funcall-leaf interfaces (Hbridged/Hexempt -> Hrest_pres -> body_pres_s *)
 (* for spawn_wind_particles) carry Vint-pinned args instead of the        *)
 (* forall-vargs phantom.                                                  *)
+
+(* ====================================================================== *)
+(* The spawn-argument gate (2026-10-21, spawn_object.c linked).            *)
+(* spawn_object / spawn_object_abs_with_rot store `parent` into           *)
+(* obj->parentObj and `behavior` into obj->behavior / curBhvCommand of a   *)
+(* SafeB pool object (SpawnBodies.v), so their rows are gated: every       *)
+(* argument, IF a pointer, is SafeB or one of the behavior scripts the     *)
+(* real sites pass (spawn_bhv_syms; SafeB at the capstone by               *)
+(* SpawnInit.SafeB_syms_ok (c)).  The recognizer: a sub-32-bit parameter   *)
+(* (its cast never yields a pointer), a chase temp, an integer literal, or *)
+(* a spawn_bhv_syms script named directly and not shadowed by a local.     *)
+(* ====================================================================== *)
+Definition spawn_argv (lp : Clight.program) (SafeB : block -> Prop) (v : val) : Prop :=
+  forall b o, v = Vptr b o ->
+    SafeB b \/ exists g, mem_id g spawn_bhv_syms = true
+                         /\ Genv.find_symbol (lp_ge lp) g = Some b.
+
+Definition spawn_arg_ok (gl cact : list ident) (a : expr) : bool :=
+  match a with
+  | Etempvar t _ => mem_id t cact
+  | Econst_int _ _ => true
+  | Evar g (Tarray _ _ _) => mem_id g spawn_bhv_syms && mem_id g gl
+  | _ => false
+  end.
+
+Fixpoint spawn_args_ok (gl cact : list ident) (ps : list type) (al : list expr) : bool :=
+  match ps, al with
+  | p :: ps', a :: al' =>
+      (sub32i p || spawn_arg_ok gl cact a) && spawn_args_ok gl cact ps' al'
+  | nil, nil => true
+  | _, _ => false
+  end.
+
+Lemma spawn_args_sound : forall lp SafeB e le m gl cact ps al vl,
+    (forall g, mem_id g gl = true -> e ! g = None) ->
+    (forall t, mem_id t cact = true -> forall b o, le ! t = Some (Vptr b o) -> SafeB b) ->
+    spawn_args_ok gl cact ps al = true ->
+    eval_exprlist (lp_ge lp) e le m al ps vl ->
+    Forall (spawn_argv lp SafeB) vl.
+Proof.
+  intros lp SafeB e le m gl cact ps al vl Hub Hch Hok Hel.
+  revert Hok. induction Hel as [ | a bl ty tyl v1 v2 vl Hev Hc Hel IH ]; intros Hok.
+  - constructor.
+  - cbn [spawn_args_ok] in Hok. apply andb_prop in Hok as [H1 H2].
+    constructor; [ | exact (IH H2) ].
+    intros b o ->.
+    apply orb_prop in H1 as [Hs | Ha].
+    + destruct (sem_cast_sub32i_vint _ _ _ _ _ Hs Hc) as (n & En). discriminate En.
+    + pose proof (sem_cast_vptr_inv _ _ _ _ _ _ Hc) as ->.
+      destruct a as [ ci cty | | | | g gty | t tty | | | | | | | | ]; try discriminate Ha.
+      * inversion Hev; subst;
+          match goal with Hl : eval_lvalue _ _ _ _ (Econst_int _ _) _ _ _ |- _ =>
+            inversion Hl end.
+      * destruct gty; try discriminate Ha.
+        apply andb_prop in Ha as [Hb Hg]. right. exists g. split; [ exact Hb | ].
+        inversion Hev; subst.
+        match goal with Hl : eval_lvalue _ _ _ _ (Evar _ _) _ _ _ |- _ =>
+          inversion Hl; subst end.
+        -- match goal with Hz : e ! g = Some _ |- _ =>
+             rewrite (Hub g Hg) in Hz; discriminate Hz end.
+        -- match goal with Hd : deref_loc _ _ _ _ _ _ |- _ => inversion Hd; subst end;
+             try match goal with Ha2 : access_mode _ = _ |- _ =>
+               cbn in Ha2; discriminate Ha2 end.
+           assumption.
+      * left. cbn [spawn_arg_ok] in Ha.
+        inversion Hev; subst;
+          [ | match goal with Hl : eval_lvalue _ _ _ _ (Etempvar _ _) _ _ _ |- _ =>
+                inversion Hl end ].
+        match goal with Hg : le ! t = Some (Vptr b o) |- _ => exact (Hch t Ha b o Hg) end.
+Qed.
+
+(* the spawn behavior scripts are permitted SafeB symbols *)
+Lemma spawn_bhv_in_safe : forall g,
+    mem_id g spawn_bhv_syms = true -> mem_id g safe_ptr_syms = true.
+Proof.
+  intros g H. unfold spawn_bhv_syms in H. cbn [mem_id existsb] in H.
+  repeat (apply orb_true_iff in H as [E | H];
+          [ apply Pos.eqb_eq in E; subst g; vm_compute; reflexivity | ]).
+  discriminate H.
+Qed.

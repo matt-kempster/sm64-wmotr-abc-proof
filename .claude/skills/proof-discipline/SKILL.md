@@ -22,8 +22,8 @@ all in `Unwired/`, and the theorem moved nowhere. See
 - **GOAL 1** (no-A ⇒ no-fly): `NoAImpliesNoFly/NoAImpliesNoFlyTwelve.v`,
   `noA_no_spawn_never_flying_linked12`. The step is one real `execute_mario_action` over
   any link of the 14 TUs (the 12 Mario TUs + `surface_collision` + `math_util`, since
-  2026-10-17). The open surface is its `Hypothesis` rows (18 as of 2026-10-21, counting
-  the structural pins; GOAL 2's `HeightLinked12` section has 24; external-call and boundary rows,
+  2026-10-17). The open surface is its `Hypothesis` rows (17 as of 2026-10-21, counting
+  the structural pins; GOAL 2's `HeightLinked12` section has 23; external-call and boundary rows,
   see `docs/TRUST.md` §4). The collision rows
   (`SurfaceBodies.v`) and the math_util rows (`MathBodies.v`) are lemmas, and so is
   `Hscp_mtxf_real` since 2026-10-21 (`MtxfBody.v`). Because `vec3f_normalize` reloads its
@@ -51,9 +51,14 @@ all in `Unwired/`, and the theorem moved nowhere. See
   (0x12). FOUND: every `act_hold_walking` / `act_hold_idle` frame had NO execution before (its first
   statement is a bhv compare); no row became false. Still stuck: `interaction.c:881,889`
   (warp-pipe collision data, unlinked).
-  Spawn pair (`Hcp_spawn_real` / `Hcp_soawr_real`): still any-argument and likely FALSE. Fixing
-  them needs spawn_object.c walked (create/allocate/unload/geo_obj_init) and a parent gate.
-  behavior_data.c is linked now, but `create_object` (spawn_object.c) is still external (TRUST 4.1).
+  Spawn pair (`Hcp_spawn_real` / `Hcp_soawr_real`) are lemmas since 2026-10-21
+  (`SpawnBodies.v`; `spawn_object.c` is the 31st TU, the whole create/allocate/unload/
+  geo_obj_init tree walked). FOUND FALSE: their any-argument forms (`parent` / `behavior` land in
+  a SafeB pool object, R7), and `spawn_obj_at_mario_rel_yaw`'s. Restated all-argument gated
+  (`call_pres_ext_sg`; engine cs class via `spawn_gate_chk`; `call_pres_ext_sob`); every walker
+  checks its real sites (`CensusV2.spawn_args_ok`; `gCurrentObject` joined the cutscene gobj seeds,
+  `generate_yellow_sparkles` is a hybrid walk). New labeled open audio premise
+  `Hsss : SpawnBodies.sss_inert` (`stop_sounds_from_source`, via `unload_object`; TRUST 4.1).
   The two any-argument list rows shrank on 2026-10-21 (`ObjExtBodies.v`): the seven linked
   save_file.c / `bhv_spawn_star_no_level_exit` entries leave `obj_ext_open2_ids` and the time-stop
   pair leaves `cut_ext_open2_ids` (`Hpres_cut_ext_open2`); their writes needed six more stored
@@ -68,8 +73,8 @@ all in `Unwired/`, and the theorem moved nowhere. See
   `cut_ext_open2_ids`, and both capstones take `Hpres_warp_ext_open` (`warp_ext_open_ids`, minus
   `play_transition` / `area_get_warp_node`). No new claim: a non-pointer store into a global
   MWF does not read keeps MWF (`np_store_pres`), so `gWarpTransition` & co. did not have to join
-  `stored_globals`. Still-linked any-argument entries: the spawn pair.
-  Counts unchanged (GOAL 1 18; HeightFrame 27 incl. its 3 section rows).
+  `stored_globals`. Still-linked any-argument entries: none (the spawn pair left `cut_ext_ids`).
+  Counts: GOAL 1 17; HeightFrame 26 incl. its 3 section rows (2026-10-21, spawn: −2 rows, +Hsss).
 - **GOAL 2** (WMotR needs A): `WMotRRequiresA/HeightFrame.v`,
   `wmotr_noA_height_bound_linked12`. This is a conditional theorem over ONE WMotR
   visit (frames end with `in_wmotr`), under input with A neither pressed nor held
