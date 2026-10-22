@@ -20,6 +20,11 @@ consumed-input observation boundary, along with a precise external-system
 contract. It is **OPEN** in this project. No reachable desync counterexample
 has been established.
 
+The [October 22 setter-caller source audit](notes/level-setter-callers-source-audit.md)
+finds no normal mismatched invocation. It traces the single call site's startup
+header flow and distinguishes conditional ordinary-warp/debug re-entry routes.
+It does not change the formal proof snapshot or the OPEN gameplay verdict.
+
 The [primary specification status](notes/gameplay-observation-status.md)
 records partial actual-read/history and input-origin formalization. The capstone
 now consumes a conditional connection to a real generated camera read and

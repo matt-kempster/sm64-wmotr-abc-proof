@@ -21,6 +21,16 @@ are factual or modeling support, not full gameplay safety. The level setter's
 proof accepts its supplied level without checking a relation to the demo header.
 The capstone collects components; it does not compose an authentic normal run.
 
+The October 22 [source-only caller audit](notes/level-setter-callers-source-audit.md)
+finds one setter call site, fed by the interpreter register. Normal demo startup
+carries the selected buffer's header to it. Later main-loop iterations can
+instead carry an ordinary warp destination; no normal active-demo producer of
+a mismatched destination was identified. An already-enabled debug flag exposes
+a separate selector route that does not clear the demo, but production source
+initializes that flag false and has no live assignment enabling it. These are
+source observations, not new Coq results or a reachable counterexample. Proof
+work remains stopped and the gameplay verdict remains OPEN.
+
 The [primary gameplay specification is partially formalized](notes/gameplay-observation-status.md).
 Coq now observes an actual controller-field read in generated gameplay code
 and conditionally connects a demo record's emitted value to a real camera read.

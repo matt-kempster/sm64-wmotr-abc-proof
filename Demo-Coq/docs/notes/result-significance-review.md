@@ -75,6 +75,13 @@ argument while preserving the active demo pointer. This establishes no
 header-match guard. It also supplies no normally reachable call with a
 different level, so it is not a counterexample.
 
+The later [source-only caller audit](level-setter-callers-source-audit.md)
+traces the sole setter command's register input. The normal first-demo route
+retains its own header. Later positive ordinary-warp returns and an
+already-enabled-debug selector are conditional alternative sources; no normal
+mismatched invocation was identified. This adds source evidence, not a new
+Coq theorem or discharge of the runtime preservation obligations.
+
 Numeric jumps assume the numeric target cell and segment base
 (`DemoNumericDispatchExecution.v:14–45`). The following ordinary-Clight
 numeric-pointer dereference remains blocked. Correct local forwarding is

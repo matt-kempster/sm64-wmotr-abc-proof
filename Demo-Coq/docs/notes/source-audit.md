@@ -81,6 +81,12 @@ discharge them.
 
 ## How the selected level reaches gameplay
 
+The October 22 [setter-caller audit](level-setter-callers-source-audit.md)
+checks the sole named call site and its register inputs in detail. It separates
+first demo entry from later positive warp-return loop iterations and the
+already-enabled-debug bypass. No normal mismatched invocation was identified;
+this is a source-review finding, with no new proof or emulator execution.
+
 `levels/intro/script.c` receives the return from `lvl_intro_update` through
 `CALL_LOOP`. Values 100 and 101 select file/level menus; an ordinary demo
 level instead takes `script_intro_L4` and exits into
