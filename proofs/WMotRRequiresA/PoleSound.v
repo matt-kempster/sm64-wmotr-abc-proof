@@ -274,7 +274,7 @@ Proof.
   intros Y FY RY.
   assert (F : F32 (Float32.sub c20000 c160) = true) by (vm_compute; reflexivity).
   assert (R : R2 (Float32.sub c20000 c160) = 19840).
-  { unfold c20000, c160. vm_compute (Float32.sub _ _). unfold Binary.B2R, F2R. simpl. lra. }
+  { change (Float32.sub c20000 c160) with ltac:(let x := eval vm_compute in (Float32.sub c20000 c160) in exact x). unfold Binary.B2R, F2R. simpl. lra. }
   destruct (Float32.cmp Cgt Y (Float32.sub c20000 c160)) eqn:G; [| reflexivity].
   pose proof (cmp_gt_true _ _ FY F G). lra.
 Qed.
