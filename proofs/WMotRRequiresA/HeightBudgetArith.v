@@ -173,7 +173,9 @@ Definition STEP_UP : R := 241.
    (ACT_TOP_OF_POLE / _TRANSITION) add the animation's y translation, at
    most 174, and a floor find_floor finds there (< 79 above) snaps him up to
    it: -100 + 174 + 79 = 153 (tools/goal2_pole_anim.py reads the three
-   handstand animations from vendor/sm64/assets/anims).  FOUND 2026-10-21:
+   handstand animations from vendor/sm64/assets/anims; since 2026-10-22
+   PoleAnim.pole_up_covers_handstand proves it from the clightgen'd
+   anim data, for frames >= -1).  FOUND 2026-10-21:
    the catalog used to allow only the hitbox top, but the real handstand
    stands 74 above it. *)
 Definition POLE_UP : R := 160.

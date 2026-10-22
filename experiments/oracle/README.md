@@ -91,6 +91,14 @@ defines it. Completed frames change about 31 bytes of placed globals, and about
 19 of those are computed by the model. **STUCK must stay 0**: it is the
 regression gate for UB sites.
 
+**Superseded 2026-10-22 (not re-run since).** The subtraction left the anim
+*read* path with no execution once `segmented_to_virtual` became the
+`NO_SEGMENTED_MEMORY` identity (TRUST.md 2.2). `VIRTUAL_TO_PHYSICAL` is now that
+identity too, so on anim-load frames the model stores a pointer to the anim
+where the ROM stores its physical address (`anim->values` / `index`). A re-run
+must compare those two words modulo KSEG0 (physical + 0x80000000 = the
+pointer's address) or report them as DIFF.
+
 ## Height-cell write watch (tether 5.4): which code writes Φ's cells?
 
 ```bash

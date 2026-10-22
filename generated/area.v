@@ -2612,12 +2612,8 @@ Definition f_render_game := {|
                   _w1 tuint)
                 (Ecast
                   (Ecast
-                    (Ebinop Osub
-                      (Ecast
-                        (Eaddrof (Evar _D_8032CF00 (Tunion __540 noattr))
-                          (tptr (Tunion __540 noattr))) (tptr tuchar))
-                      (Econst_int (Int.repr (-2147483648)) tuint)
-                      (tptr tuchar)) tuint) tuint))))
+                    (Eaddrof (Evar _D_8032CF00 (Tunion __540 noattr))
+                      (tptr (Tunion __540 noattr))) tuint) tuint))))
           (Ssequence
             (Ssequence
               (Ssequence

@@ -14,16 +14,23 @@
 
 #include "macros.h"
 
-/* VIRTUAL_TO_PHYSICAL: the ROM does (uintptr_t)(addr) & 0x1FFFFFFF.  Bitwise AND
-   on a pointer is undefined in CompCert, so the model had NO execution for any
-   frame that DMA-loads a new Mario animation (set_mario_animation,
-   set_mario_anim_with_accel: 33 of 300 recorded real frames).
-   Same bits: every RDRAM address is KSEG0, x = 0x80000000 + y with
-   0 <= y < 2^29, and 0x80000000 is a multiple of 2^29, so
-   x & 0x1FFFFFFF = y = x - 0x80000000.  Pointer minus integer is defined in
-   CompCert (vendor's own VIRTUAL_TO_PHYSICAL2, macros.h:70, has this form). */
+/* VIRTUAL_TO_PHYSICAL / PHYSICAL_TO_VIRTUAL / VIRTUAL_TO_PHYSICAL2: the
+   decomp's own NO_SEGMENTED_MEMORY bodies (macros.h:73-75, verbatim), the
+   same address model as segmented_to_virtual below.  The ROM bodies
+   ((uintptr_t)p & 0x1FFFFFFF, | 0x80000000, - 0x80000000U) round-trip on
+   the N64 only together with the ROM segmented_to_virtual (segment 0 adds
+   KSEG0 back).  Mixing them with the identity segmented_to_virtual left
+   every read of a relocated Mario animation pointer out of bounds (no
+   execution; FOUND 2026-10-22, TRUST.md 2.2).  NO_SEGMENTED_MEMORY itself
+   is not defined: it also changes memory.c, macro_special_objects.c,
+   level_commands.h and segment_symbols.h, which stay as in the ROM.
+   (2026-09-26 .. 2026-10-22 this was `p - 0x80000000U`, the ROM's bits.) */
 #undef VIRTUAL_TO_PHYSICAL
-#define VIRTUAL_TO_PHYSICAL(addr) ((uintptr_t)((unsigned char *)(addr) - 0x80000000U))
+#undef PHYSICAL_TO_VIRTUAL
+#undef VIRTUAL_TO_PHYSICAL2
+#define VIRTUAL_TO_PHYSICAL(addr)   ((uintptr_t)(addr))
+#define PHYSICAL_TO_VIRTUAL(addr)   ((uintptr_t)(addr))
+#define VIRTUAL_TO_PHYSICAL2(addr)  ((void *)(addr))
 
 /* segmented_to_virtual / virtual_to_segmented (memory.c only: the Makefile
    passes -DPROOF_MEMORY_C=1 to that one recipe).  The ROM bodies shift and
