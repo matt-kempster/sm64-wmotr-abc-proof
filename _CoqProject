@@ -32,6 +32,7 @@ generated/object_helpers.v
 generated/obj_behaviors.v
 generated/obj_behaviors_2.v
 generated/spawn_object.v
+generated/surface_load.v
 generated/object_list_processor.v
 generated/audio_data.v
 generated/graph_node.v
@@ -293,6 +294,8 @@ proofs/WMotRRequiresA/Unwired/GravitySlice.v
 proofs/WMotRRequiresA/FloorList.v
 proofs/WMotRRequiresA/FloorHeight.v
 proofs/WMotRRequiresA/FloorBound.v
+proofs/WMotRRequiresA/TerrainBound.v
+proofs/WMotRRequiresA/TerrainRun.v
 proofs/WMotRRequiresA/FloorExec.v
 proofs/WMotRRequiresA/CeilList.v
 proofs/WMotRRequiresA/CeilExec.v

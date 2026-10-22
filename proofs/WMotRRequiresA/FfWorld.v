@@ -220,7 +220,7 @@ Proof.
     intros b z Hb. apply Hld. intros ->. apply Hb. right. exact Ho. }
   destruct (W4 hd s (floor_head_part _ _ _ Hh0) Hol0) as (b & o & -> & _ & _ & Hr & _).
   apply FD. exists hd, (Vptr b o), xv, zv. split; [exact Hh0 |]. split; [exact Hol0 |].
-  apply (hit_transfer m' m b o xv zv h); [| exact Hhit].
+  apply (hit16_transfer m' m b o xv zv h); [| exact Hhit].
   intros ch z. apply Hld. intros ->. exact (Hr Ho).
 Qed.
 
@@ -356,7 +356,7 @@ Proof using Hnb Hperm Hld.
     intros b z Hb Hv. apply Hld; [exact Hv |]. intros Hr. apply Hb. right. exact Hr. }
   destruct (W4 hd s (floor_head_part _ _ _ Hh0) Hol0) as (b & o & -> & Hpl & _ & Hr & _).
   apply FD. exists hd, (Vptr b o), xv, zv. split; [exact Hh0 |]. split; [exact Hol0 |].
-  apply (hit_transfer m' m b o xv zv h); [| exact Hhit].
+  apply (hit16_transfer m' m b o xv zv h); [| exact Hhit].
   intros ch z. apply Hld; assumption.
 Qed.
 

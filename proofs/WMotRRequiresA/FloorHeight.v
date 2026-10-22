@@ -240,10 +240,24 @@ Proof.
   rewrite (R (8 * 0)) by lia. f_equal. lia.
 Qed.
 
+(* an s16 value: what find_floor's `s16 x = (s16) xPos` holds *)
+Definition s16v (v : val) : Prop := exists i, v = Vint i /\ Int.sign_ext 16 i = i.
+
+(* a hit at an s16 (x, z): find_floor passes its s16 locals x, z
+   (surface_collision.c:353-355) to find_floor_from_list.
+   FOUND 2026-10-22: without the s16 bound this set was FALSE as a model of
+   the game's hits.  For an arbitrary 32-bit x, z the three edge tests
+   (int32, wrapping) pass at points far outside the triangle, where the plane
+   height of any SLOPED floor is huge, so floor_data (|h| <= 16384, a WMotR
+   floor height) held only for partitions whose floor lists hold no sloped
+   surface: never for WMotR's loaded terrain. *)
+Definition ffl_hit16 (m : mem) (s xv zv : val) (h : float32) : Prop :=
+  ffl_hit m s xv zv h /\ s16v xv /\ s16v zv.
+
 (* a height find_floor_from_list stored: a hit on a surface of a FLOOR
-   list (slot 0 of a partition cell) of memory m *)
+   list (slot 0 of a partition cell) of memory m, at an s16 (x, z) *)
 Definition Hit_at (ge : genv) (m : mem) (h : float32) : Prop :=
-  exists hd s xv zv, floor_head ge m hd /\ on_list m hd s /\ ffl_hit m s xv zv h.
+  exists hd s xv zv, floor_head ge m hd /\ on_list m hd s /\ ffl_hit16 m s xv zv h.
 
 (* the s16 cast of yPos, as the body computes it *)
 Definition ycast (v : val) : val :=
@@ -283,6 +297,13 @@ Proof.
   intros M mb b o xv zv h F (bs & os & X & Z & x1 & z1 & x2 & z2 & x3 & z3 & nx & ny & nz & oo & Es & R).
   injection Es as <- <-. cbn [Mem.loadv] in R. rewrite !F in R.
   exists b, o, X, Z, x1, z1, x2, z2, x3, z3, nx, ny, nz, oo. split; [reflexivity |]. exact R.
+Qed.
+
+Lemma hit16_transfer : forall M mb b o xv zv h,
+    (forall ch z, Mem.load ch M b z = Mem.load ch mb b z) ->
+    ffl_hit16 M (Vptr b o) xv zv h -> ffl_hit16 mb (Vptr b o) xv zv h.
+Proof.
+  intros M mb b o xv zv h F (H & S). exact (conj (hit_transfer M mb b o xv zv h F H) S).
 Qed.
 
 (* triples whose abrupt exits see the outcome (the returned value) *)
@@ -394,13 +415,17 @@ Local Notation HP := (HPi (Hit_at ge mb) ys).
 Definition SLp (le : temp_env) : Prop :=
   (forall sl, le ! surface_collision._surfaceList = Some sl -> sl = Vundef \/ floor_head ge mb sl)
   /\ (forall c v, (c = surface_collision._cellX \/ c = surface_collision._cellZ) -> le ! c = Some v ->
-       v = Vundef \/ exists i, v = Vint i /\ (0 <= Int.signed i < 16)%Z).
+       v = Vundef \/ exists i, v = Vint i /\ (0 <= Int.signed i < 16)%Z)
+  /\ (forall c v, (c = surface_collision._x \/ c = surface_collision._z) -> le ! c = Some v ->
+       v = Vundef \/ s16v v).
 
 Lemma SLp_set : forall le x v, SLp le -> x <> surface_collision._surfaceList ->
-    x <> surface_collision._cellX -> x <> surface_collision._cellZ -> SLp (PTree.set x v le).
+    x <> surface_collision._cellX -> x <> surface_collision._cellZ ->
+    x <> surface_collision._x -> x <> surface_collision._z -> SLp (PTree.set x v le).
 Proof.
-  intros le x v (S1 & S2) H1 H2 H3. split.
+  intros le x v (S1 & S2 & S3) H1 H2 H3 H4 H5. split; [| split].
   - intros sl Hl. rewrite PTree.gso in Hl by congruence. eauto.
+  - intros c w Hc Hl. rewrite PTree.gso in Hl by (destruct Hc as [-> | ->]; congruence). eauto.
   - intros c w Hc Hl. rewrite PTree.gso in Hl by (destruct Hc as [-> | ->]; congruence). eauto.
 Qed.
 
@@ -427,9 +452,10 @@ Lemma HH_set_other : forall le M x v, HH le M ->
     ~ In x hts -> x <> surface_collision._y -> x <> surface_collision._yPos ->
     x <> surface_collision._pfloor -> x <> surface_collision._surfaceList ->
     x <> surface_collision._cellX -> x <> surface_collision._cellZ ->
+    x <> surface_collision._x -> x <> surface_collision._z ->
     HH (PTree.set x v le) M.
 Proof.
-  intros le M x v (Y & YP & T & CH & CD & PF & SL & MF) Hx Hy Hyp Hpf Hsl Hcx Hcz.
+  intros le M x v (Y & YP & T & CH & CD & PF & SL & MF) Hx Hy Hyp Hpf Hsl Hcx Hcz Hxx Hzz.
   split; [rewrite PTree.gso by congruence; exact Y |].
   split; [rewrite PTree.gso by congruence; exact YP |].
   split; [intros id h Hin Hl; rewrite PTree.gso in Hl by (intros ->; contradiction); eauto |].
@@ -481,7 +507,65 @@ Proof.
   split; [exact CH | split; [exact CD |]].
   split; [rewrite PTree.gso by idne; exact PF |].
   split; [| exact MF].
-  apply SLp_set; [exact SL | idne | idne | idne].
+  apply SLp_set; [exact SL | idne | idne | idne | idne | idne].
+Qed.
+
+(* s16 x = (s16) xPos; s16 z = (s16) zPos: an s16 value (or no value) *)
+Lemma s16_cast : forall (v1 v : val) p M M',
+    sem_cast p tfloat tshort M = Some v1 -> sem_cast v1 tshort tshort M' = Some v -> s16v v.
+Proof.
+  intros v1 v p M M' H1 H2. pose proof (ycast_ok _ _ _ _ _ H1 H2) as E. subst v.
+  unfold ycast. destruct p; cbn in H1; try discriminate H1.
+  unfold sem_cast in H1. cbn in H1. unfold cast_single_int in H1.
+  destruct (Float32.to_int f) as [i|]; [| discriminate H1].
+  exists (Int.sign_ext 16 (Int.sign_ext 16 i)). split; [reflexivity |].
+  rewrite !Int.sign_ext_idem by (cbn; lia). reflexivity.
+Qed.
+
+Lemma HH_set_xz : forall c p R, (c = surface_collision._x \/ c = surface_collision._z) ->
+  trh ge e HH (Sset c (Ecast (Ecast (Etempvar p tfloat) tshort) tshort)) HH R.
+Proof.
+  intros c p R Hc. apply trh_set. intros le M v (Y & YP & T & CH & CD & PF & (S1 & S2 & S3) & MF) Hev.
+  inv Hev; [| match goal with Hl : eval_lvalue _ _ _ _ (Ecast _ _) _ _ _ |- _ => inv Hl end].
+  match goal with Hk : eval_expr _ _ _ _ (Ecast _ _) _ |- _ =>
+    inv Hk; [| match goal with Hl : eval_lvalue _ _ _ _ (Ecast _ _) _ _ _ |- _ => inv Hl end] end.
+  cbn [typeof] in *.
+  assert (Sv : s16v v)
+    by (match goal with H1 : sem_cast _ tfloat tshort _ = Some ?v1,
+                        H2 : sem_cast ?v1 tshort tshort _ = Some _ |- _ =>
+          exact (s16_cast _ _ _ _ _ H1 H2) end).
+  assert (N : forall x, x = surface_collision._y \/ x = surface_collision._yPos
+                \/ x = surface_collision._pfloor \/ x = surface_collision._surfaceList
+                \/ x = surface_collision._cellX \/ x = surface_collision._cellZ
+                \/ In x hts -> x <> c).
+  { intros x Hx <-. destruct Hc as [-> | ->]; cbv in Hx;
+      repeat (destruct Hx as [Hx | Hx]; [discriminate Hx |]); try discriminate Hx; exact Hx. }
+  split; [rewrite PTree.gso by (apply N; left; reflexivity); exact Y |].
+  split; [destruct YP as (yp & ? & ?); exists yp;
+          rewrite PTree.gso by (apply N; right; left; reflexivity); auto |].
+  split; [intros id h Hin Hl;
+          rewrite PTree.gso in Hl by (apply N; do 6 right; exact Hin); eauto |].
+  split; [exact CH | split; [exact CD |]].
+  split; [rewrite PTree.gso by (apply N; right; right; left; reflexivity); exact PF |].
+  split; [| exact MF]. split; [| split].
+  - intros sl Hl. rewrite PTree.gso in Hl by (apply N; right; right; right; left; reflexivity). eauto.
+  - intros c' w Hc' Hl. rewrite PTree.gso in Hl
+      by (destruct Hc' as [-> | ->]; apply N; do 4 right; [left | right; left]; reflexivity). eauto.
+  - intros c' w Hc' Hl. destruct (peq c' c) as [-> | Hne].
+    + rewrite PTree.gss in Hl. injection Hl as <-. right. exact Sv.
+    + rewrite PTree.gso in Hl by exact Hne. eauto.
+Qed.
+
+(* the x / z argument of a find_floor_from_list call: s16 *)
+Lemma xz_arg_ok : forall c, (c = surface_collision._x \/ c = surface_collision._z) ->
+    forall le M v x, HH le M -> eval_expr ge e le M (Etempvar c tshort) v ->
+    sem_cast v (typeof (Etempvar c tshort)) tint M = Some x -> s16v x.
+Proof.
+  intros c Hc le M v x (_ & _ & _ & _ & _ & _ & (_ & _ & S3) & _) Hev Hcst.
+  inv Hev; [| match goal with Hl : eval_lvalue _ _ _ _ (Etempvar _ _) _ _ _ |- _ => inv Hl end].
+  match goal with Hx : le ! c = Some ?w |- _ => destruct (S3 _ _ Hc Hx) as [-> | (i & -> & Hi)] end.
+  - cbn in Hcst. discriminate Hcst.
+  - cbn in Hcst. injection Hcst as <-. exists i. auto.
 Qed.
 
 Lemma HH_set_ht : forall tk x R, In tk hts ->
@@ -504,7 +588,8 @@ Proof.
     + rewrite PTree.gso in Hl by exact Hne. eauto.
   - split; [rewrite PTree.gso by exact (not_eq_sym Hpf); exact PF |].
     split; [| exact MF].
-    apply SLp_set; [exact SL | exact Hsl | intros ->; revert Hk; nin | intros ->; revert Hk; nin].
+    apply SLp_set; [exact SL | exact Hsl | intros ->; revert Hk; nin | intros ->; revert Hk; nin
+                   | intros ->; revert Hk; nin | intros ->; revert Hk; nin].
 Qed.
 
 (* the cell indices: in [0, 16) by the mask *)
@@ -514,7 +599,7 @@ Lemma HH_set_cell : forall c t R,
 Proof.
   intros c t R Hc. apply trh_set. intros le M v HI Hev.
   destruct (ev_cellidx _ _ _ _ _ _ Hev) as (i & -> & Ri).
-  destruct HI as (Y & YP & T & CH & CD & PF & (S1 & S2) & MF).
+  destruct HI as (Y & YP & T & CH & CD & PF & (S1 & S2 & S3) & MF).
   assert (N : forall x, x = surface_collision._y \/ x = surface_collision._yPos
                 \/ x = surface_collision._pfloor \/ x = surface_collision._surfaceList
                 \/ In x hts -> x <> c).
@@ -527,11 +612,13 @@ Proof.
           eauto |].
   split; [exact CH | split; [exact CD |]].
   split; [rewrite PTree.gso by (apply N; right; right; left; reflexivity); exact PF |].
-  split; [| exact MF]. split.
+  split; [| exact MF]. split; [| split].
   - intros sl Hl. rewrite PTree.gso in Hl by (apply N; right; right; right; left; reflexivity). eauto.
   - intros c' w Hc' Hl. destruct (peq c' c) as [-> | Hne].
     + rewrite PTree.gss in Hl. injection Hl as <-. right. exists i. auto.
     + rewrite PTree.gso in Hl by exact Hne. eauto.
+  - intros c' w Hc' Hl. rewrite PTree.gso in Hl
+      by (destruct Hc as [-> | ->]; destruct Hc' as [-> | ->]; idne). eauto.
 Qed.
 
 Ltac base_id A :=
@@ -548,7 +635,7 @@ Lemma HH_set_sl : forall pid R, In pid part_ids ->
             surface_collision._next (tptr (Tstruct surface_collision._SurfaceNode noattr)))) HH R.
 Proof.
   intros pid R Hin. apply trh_set. intros le M v HI Hev.
-  destruct HI as (Y & YP & T & CH & CD & PF & (S1 & S2) & MF).
+  destruct HI as (Y & YP & T & CH & CD & PF & (S1 & S2 & S3) & MF).
   destruct (deref_field ge e le M (part_e pid) surface_collision._SurfaceNode surface_collision._next
               (tptr (Tstruct surface_collision._SurfaceNode noattr)) v SN_NEXT
               (fun co Hc => proj1 (sn_offsets_ge ge co HC Hc)) eq_refl Hev) as (l & ofs & HA & Hld).
@@ -566,11 +653,12 @@ Proof.
   split; [intros id h Hi Hl; rewrite PTree.gso in Hl by (intros ->; revert Hi; nin); eauto |].
   split; [exact CH | split; [exact CD |]].
   split; [rewrite PTree.gso by idne; exact PF |].
-  split; [| exact MF]. split.
+  split; [| exact MF]. split; [| split].
   - intros sl Hl. rewrite PTree.gss in Hl. injection Hl as <-. right.
     exists pid, l, (Int.signed iz), (Int.signed ix).
     split; [exact Hin | split; [exact Hs | split; [lia | split; [lia |]]]].
     cbn [Mem.loadv] in *. rewrite <- (MF _ _ _ Nw). exact Hld.
+  - intros c w Hc Hl. rewrite PTree.gso in Hl by (destruct Hc as [-> | ->]; idne). eauto.
   - intros c w Hc Hl. rewrite PTree.gso in Hl by (destruct Hc as [-> | ->]; idne). eauto.
 Qed.
 
@@ -743,8 +831,13 @@ Lemma HH_call : forall tk tres cc loc bL a1 a2 a3 R,
     ~ In tk hts -> tk <> surface_collision._y -> tk <> surface_collision._yPos ->
     tk <> surface_collision._pfloor -> tk <> surface_collision._surfaceList ->
     tk <> surface_collision._cellX -> tk <> surface_collision._cellZ ->
+    tk <> surface_collision._x -> tk <> surface_collision._z ->
     (forall le M v y h, HH le M -> eval_expr ge e le M a2 v ->
        sem_cast v (typeof a2) tint M = Some y -> hok y h -> Hit_at ge mb h -> HP h) ->
+    (forall le M v x, HH le M -> eval_expr ge e le M a1 v ->
+       sem_cast v (typeof a1) tint M = Some x -> s16v x) ->
+    (forall le M v x, HH le M -> eval_expr ge e le M a3 v ->
+       sem_cast v (typeof a3) tint M = Some x -> s16v x) ->
     trh ge e HH
       (Scall (Some tk)
          (Evar surface_collision._find_floor_from_list
@@ -755,13 +848,13 @@ Lemma HH_call : forall tk tres cc loc bL a1 a2 a3 R,
           a1; a2; a3; Eaddrof (Evar loc tfloat) (tptr tfloat)])
       HH R.
 Proof.
-  intros tk tres cc loc bL a1 a2 a3 R Hloc Hn1 Hn2 Hn3 Hn4 Hn5 Hn6 Hn7 Ha2.
+  intros tk tres cc loc bL a1 a2 a3 R Hloc Hn1 Hn2 Hn3 Hn4 Hn5 Hn6 Hn7 Hn8 Hn9 Ha2 Ha1 Ha3.
   intros le M t le' M' out HI H.
   assert (Hn : e ! surface_collision._find_floor_from_list = None) by (apply ffe_other; idne).
   destruct (ffl_call _ _ _ _ _ _ _ _ _ _ _ _ _ HC Hpin Hn H)
     as (node & x & y & z & ph & fl0 & Hargs & -> & -> & Hres).
   left; split; [reflexivity |].
-  pose proof (HH_set_other _ _ tk fl0 HI Hn1 Hn2 Hn3 Hn4 Hn5 Hn6 Hn7) as HI'.
+  pose proof (HH_set_other _ _ tk fl0 HI Hn1 Hn2 Hn3 Hn4 Hn5 Hn6 Hn7 Hn8 Hn9) as HI'.
   destruct Hres as [(-> & _) | (Hon & h & Hstv & Hk & Hhit)]; [exact HI' |].
   pose proof HI as (_ & _ & _ & _ & _ & _ & SL & MF).
   repeat match goal with Hl : eval_exprlist _ _ _ _ (_ :: _) _ _ |- _ => inv Hl end.
@@ -777,7 +870,14 @@ Proof.
   pose proof (ol_transfer _ _ _ (Hwf _ PH) M _ (fun b z Nw => MF Mint32 b z Nw) Hon) as OL.
   destruct (Hsurf _ _ PH OL) as (bs & os & -> & Nws).
   pose proof (hit_transfer M mb bs os _ _ _ (fun ch z => MF ch bs z Nws) Hhit) as Hhit'.
-  assert (Ht : Hit_at ge mb h) by (do 4 eexists; split; [exact FH | split; [exact OL | exact Hhit']]).
+  assert (Sx : s16v x)
+    by (match goal with He : eval_expr _ _ _ _ a1 ?v, Hc : sem_cast ?v (typeof a1) tint _ = Some x |- _ =>
+          exact (Ha1 _ _ _ _ HI He Hc) end).
+  assert (Sz : s16v z)
+    by (match goal with He : eval_expr _ _ _ _ a3 ?v, Hc : sem_cast ?v (typeof a3) tint _ = Some z |- _ =>
+          exact (Ha3 _ _ _ _ HI He Hc) end).
+  assert (Ht : Hit_at ge mb h)
+    by (do 4 eexists; split; [exact FH | split; [exact OL | exact (conj Hhit' (conj Sx Sz))]]).
   match goal with He : eval_expr _ _ _ _ a2 ?v, Hc : sem_cast ?v (typeof a2) tint _ = Some ?yy,
                   Hk : hok ?yy h |- _ => pose proof (Ha2 _ _ _ _ _ HI He Hc Hk Ht) as Hh end.
   match goal with Ha : eval_expr _ _ _ _ (Eaddrof _ _) _ |- _ =>
@@ -831,9 +931,12 @@ Ltac solve_trh :=
   | |- trh _ _ _ Sskip _ _ => apply trh_skip
   | |- trh _ _ _ (Sreturn _) _ _ => apply HH_ret; inh
   | |- trh _ _ _ (Scall _ _ _) _ _ =>
-      eapply HH_call; [locok | nin | idne | idne | idne | idne | idne | idne
-                      | first [exact ya_ok | exact yre_ok]]
+      eapply HH_call; [locok | nin | idne | idne | idne | idne | idne | idne | idne | idne
+                      | first [exact ya_ok | exact yre_ok]
+                      | apply xz_arg_ok; left; reflexivity | apply xz_arg_ok; right; reflexivity]
   | |- trh _ _ _ (Sset surface_collision._y _) _ _ => apply HH_set_y
+  | |- trh _ _ _ (Sset surface_collision._x _) _ _ => apply HH_set_xz; left; reflexivity
+  | |- trh _ _ _ (Sset surface_collision._z _) _ _ => apply HH_set_xz; right; reflexivity
   | |- trh _ _ _ (Sset surface_collision._surfaceList (Efield (Ederef ?A _) _ _)) _ _ =>
       let pid := base_id A in apply (HH_set_sl pid); inh
   | |- trh _ _ _ (Sset surface_collision._cellX _) _ _ => apply HH_set_cell; left; reflexivity
@@ -841,7 +944,8 @@ Ltac solve_trh :=
   | |- trh _ _ _ (Sset _ _) _ _ =>
       first [ apply HH_set_ht; [inh | cellok]
             | apply trh_set; let HI := fresh in intros ? ? ? HI _;
-              apply HH_set_other; [exact HI | nin | idne | idne | idne | idne | idne | idne] ]
+              apply HH_set_other; [exact HI | nin | idne | idne | idne | idne | idne | idne
+                                  | idne | idne] ]
   | |- trh _ _ _ (Sassign (Ederef (Etempvar surface_collision._pfloor _) _) _) _ _ =>
       apply HH_assign_other; apply lv_pf
   | |- trh _ _ _ (Sassign (Efield _ _ _) _) _ _ =>
@@ -1016,6 +1120,10 @@ Lemma HHF_call : forall tk tres cc loc bL a1 a2 a3 R,
             (tptr (Tstruct surface_collision._SurfaceNode noattr));
           a1; a2; a3; Eaddrof (Evar loc tfloat) (tptr tfloat)])
       HH TT ->
+    (forall le M v x, HH le M -> eval_expr ge e le M a1 v ->
+       sem_cast v (typeof a1) tint M = Some x -> s16v x) ->
+    (forall le M v x, HH le M -> eval_expr ge e le M a3 v ->
+       sem_cast v (typeof a3) tint M = Some x -> s16v x) ->
     trh ge e HHF
       (Scall (Some tk)
          (Evar surface_collision._find_floor_from_list
@@ -1026,7 +1134,7 @@ Lemma HHF_call : forall tk tres cc loc bL a1 a2 a3 R,
           a1; a2; a3; Eaddrof (Evar loc tfloat) (tptr tfloat)])
       (HHk tk bL) R.
 Proof.
-  intros tk tres cc loc bL a1 a2 a3 R Hloc Hn T le M t le' M' out (HI & (F1 & F2) & P) H.
+  intros tk tres cc loc bL a1 a2 a3 R Hloc Hn T Ha1 Ha3 le M t le' M' out (HI & (F1 & F2) & P) H.
   assert (Hne : e ! surface_collision._find_floor_from_list = None) by (apply ffe_other; idne).
   destruct (T _ _ _ _ _ _ HI H) as [(_ & HQ) | (Hno & _)].
   2:{ destruct (ffl_call _ _ _ _ _ _ _ _ _ _ _ _ _ HC Hpin Hne H) as (? & ? & ? & ? & ? & ? & _ & Ho & _).
@@ -1054,7 +1162,14 @@ Proof.
   pose proof (ol_transfer _ _ _ (Hwf _ PH) M _ (fun b z Nw => MF Mint32 b z Nw) Hon) as OL.
   destruct (Hsurf _ _ PH OL) as (bs & os & -> & Nws).
   pose proof (hit_transfer M mb bs os _ _ _ (fun ch z => MF ch bs z Nws) Hhit) as Hhit'.
-  assert (Ht : Hit_at ge mb h) by (do 4 eexists; split; [exact FH | split; [exact OL | exact Hhit']]).
+  assert (Sx : s16v x)
+    by (match goal with He : eval_expr _ _ _ _ a1 ?v, Hc : sem_cast ?v (typeof a1) tint _ = Some x |- _ =>
+          exact (Ha1 _ _ _ _ HI He Hc) end).
+  assert (Sz : s16v z)
+    by (match goal with He : eval_expr _ _ _ _ a3 ?v, Hc : sem_cast ?v (typeof a3) tint _ = Some z |- _ =>
+          exact (Ha3 _ _ _ _ HI He Hc) end).
+  assert (Ht : Hit_at ge mb h)
+    by (do 4 eexists; split; [exact FH | split; [exact OL | exact (conj Hhit' (conj Sx Sz))]]).
   match goal with Ha : eval_expr _ _ _ _ (Eaddrof _ _) _ |- _ =>
     inv Ha; [| match goal with Hl : eval_lvalue _ _ _ _ (Eaddrof _ _) _ _ _ |- _ => inv Hl end] end.
   match goal with Hl : eval_lvalue _ _ _ _ (Evar _ _) _ _ _ |- _ => inv Hl end;
@@ -1313,11 +1428,15 @@ Ltac solve_F :=
   | |- trh _ _ _ (Ssequence (Sset ?tk (Evar surface_collision._height _)) (Sreturn _)) _ _ =>
       apply (ret_F tk); unfold ret_blk; solve_trh
   | |- trh _ _ _ (Ssequence (Scall (Some _) _ _) (Sset _ _)) _ _ =>
-      eapply trh_seq; [eapply HHF_call; [locok | nin | solve_trh]
+      eapply trh_seq; [eapply HHF_call; [locok | nin | solve_trh
+                                         | apply xz_arg_ok; left; reflexivity
+                                         | apply xz_arg_ok; right; reflexivity]
                       | eapply HHF_take; [locok | solve_trh]]
   | |- trh _ _ _ (Ssequence (Ssequence _ (Scall (Some _) _ _)) (Sset _ _)) _ _ =>
       eapply trh_seq;
-        [eapply trh_seq; [solve_F | eapply HHF_call; [locok | nin | solve_trh]]
+        [eapply trh_seq; [solve_F | eapply HHF_call; [locok | nin | solve_trh
+                                         | apply xz_arg_ok; left; reflexivity
+                                         | apply xz_arg_ok; right; reflexivity]]
         | eapply HHF_take; [locok | solve_trh]]
   | |- trh _ _ _ (Ssequence _ _) _ _ => eapply (trh_seq _ _ _ _ HHF); [solve_F | solve_F]
   | |- trh _ _ _ (Sifthenelse _ _ _) _ _ => eapply trh_ite; [solve_F | solve_F]
@@ -1410,7 +1529,7 @@ Proof.
     pose proof (OLm _ _ P OL) as OL'.
     destruct (Hsm _ _ P OL') as (b & o & -> & Vb & _ & _).
     exists hd, (Vptr b o), x, z. split; [exact F | split; [exact OL' |]].
-    exact (hit_transfer mB m b o x z h (fun ch z' => LU ch b z' Vb) Ht). }
+    exact (hit16_transfer mB m b o x z h (fun ch z' => LU ch b z' Vb) Ht). }
   (* the section's hypotheses, at mb := mB *)
   assert (Hpart : forall id bp, In id part_ids -> Genv.find_symbol ge id = Some bp -> ~ Wr0 bp).
   { intros id bp Hin Hs. destruct (Hpt id bp Hin Hs) as (Vb & Ns & Np).
@@ -1450,7 +1569,7 @@ Proof.
     { intros h Hl. apply (Mem.load_alloc_same _ _ _ _ _ HA2) in Hl. discriminate Hl. }
     split; [reflexivity |].
     split; [split; [intros sl Hl; left; cbv in Hl; injection Hl as <-; reflexivity
-                   | intros c v Hc Hl; left; destruct Hc as [-> | ->]; cbv in Hl;
+                   | split; intros c v Hc Hl; left; destruct Hc as [-> | ->]; cbv in Hl;
                      injection Hl as <-; reflexivity] |].
     intros; reflexivity. }
   match goal with Hb : bind_parameter_temps _ _ _ = Some ?L |- _ =>

@@ -147,6 +147,42 @@ if done:
 PYEOF
 fi
 
+# Level-data completion (TRUST 2.4, 2026-10-22; the same class as the two
+# rules above).  pipeline/tu/wmotr_level_data.c defines WMotR's collision /
+# macro arrays (the vendor .inc.c files verbatim, under leveldata.c's
+# make_const_nonconst.h, so readonly false); data/behavior_data.c declares the
+# two object meshes it loads (`extern const Collision xxx[];`: tarray tshort 0,
+# readonly true).  The DECL side is completed to the definer's
+# (gvar_info, gvar_readonly), N read off generated/wmotr_level_data.v; init
+# stays nil, so the linked program takes the definer's data.  Without this the
+# level data cannot join the link (load_area_terrain needs it in memory).
+LVL_DEF="$(dirname "$0")/../generated/wmotr_level_data.v"
+if [ "$TUNAME" != "wmotr_level_data" ] && [ -f "$LVL_DEF" ]; then
+python3 - "$TMP" "$LVL_DEF" <<'PYEOF'
+import re, sys
+path, lvl = sys.argv[1], sys.argv[2]
+defs = {}
+for m in re.finditer(r'Definition v_(\w+) := \{\|\s*gvar_info := \(tarray tshort (\d+)\);'
+                     r'\s*gvar_init := (.*?);\s*gvar_readonly := false;', open(lvl).read(), re.S):
+    if m.group(3).strip() != 'nil' and int(m.group(2)) > 0:
+        defs[m.group(1)] = int(m.group(2))
+s = open(path).read()
+done = []
+def sub(m):
+    n = m.group(2)
+    if n not in defs:
+        return m.group(0)
+    done.append(n)
+    return (m.group(1) + '(tarray tshort ' + str(defs[n]) + ')' + m.group(3)
+            + 'nil;' + m.group(4) + 'false;')
+s2 = re.sub(r'(Definition v_(\w+) := \{\|\s*gvar_info := )\(tarray tshort 0\)'
+            r'(;\s*gvar_init := )nil;(\s*gvar_readonly := )true;', sub, s)
+if done:
+    open(path, 'w').write(s2)
+    print(f"level-data completion: {', '.join(done)} in {path}")
+PYEOF
+fi
+
 {
   echo "(* ======================================================================"
   echo "   GENERATED FILE -- DO NOT EDIT."

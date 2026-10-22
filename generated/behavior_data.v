@@ -1421,9 +1421,9 @@ Definition v_breakable_box_seg8_collision_08012D70 := {|
 |}.
 
 Definition v_cannon_lid_seg8_collision_08004950 := {|
-  gvar_info := (tarray tshort 0);
+  gvar_info := (tarray tshort 24);
   gvar_init := nil;
-  gvar_readonly := true;
+  gvar_readonly := false;
   gvar_volatile := false
 |}.
 
@@ -1442,9 +1442,9 @@ Definition v_chuckya_seg8_anims_0800C070 := {|
 |}.
 
 Definition v_exclamation_box_outline_seg8_collision_08025F78 := {|
-  gvar_info := (tarray tshort 0);
+  gvar_info := (tarray tshort 66);
   gvar_init := nil;
-  gvar_readonly := true;
+  gvar_readonly := false;
   gvar_volatile := false
 |}.
 

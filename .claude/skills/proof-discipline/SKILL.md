@@ -75,6 +75,8 @@ all in `Unwired/`, and the theorem moved nowhere. See
   MWF does not read keeps MWF (`np_store_pres`), so `gWarpTransition` & co. did not have to join
   `stored_globals`. Still-linked any-argument entries: none (the spawn pair left `cut_ext_ids`).
   Counts: GOAL 1 17; HeightFrame 26 incl. its 3 section rows (2026-10-21, spawn: −2 rows, +Hsss).
+  `surface_load.c` linked 2026-10-22 (32nd TU), then `macro_special_objects.c` + WMotR level data
+  (TUs 33-34): counts unchanged (no row names their functions).
 - **GOAL 2** (WMotR needs A): `WMotRRequiresA/HeightFrame.v`,
   `wmotr_noA_height_bound_linked12`. This is a conditional theorem over ONE WMotR
   visit (frames end with `in_wmotr`), under input with A neither pressed nor held
@@ -91,8 +93,24 @@ all in `Unwired/`, and the theorem moved nowhere. See
   stored by the REAL generated `initiate_warp` + `warp_level` head (`EntryWarp.v`), each store an
   `MWF_real` brick. Still from source: the castle painting node, the level script between them,
   the rest of `warp_level`, and the spawn-type lookup (read off area.v data, and since 2026-10-21 also
-  RUN by `SpawnTypeRun`, but on a built object, not the level script's). Next: `gCurrCourseNum`,
-  surface_load.c (the witness's collision partition is still empty). FOUND FALSE + repaired
+  RUN by `SpawnTypeRun`, but on a built object, not the level script's). Since 2026-10-22
+  `surface_load.c` is linked (32nd TU). FOUND: both collision partitions were size-0 blocks at
+  boot, so at any in-bounds (x, z) `find_floor` / `find_ceil` / `find_wall_collisions` had no
+  execution from boot, and so no nonzero-action frame there did either (no row false: walks are
+  partial correctness). `goal2_start_sat` now concludes `part_ready` (every list head loads,
+  NULL). No capstone row names a surface_load function, so 0 rows discharged.
+  2026-10-22, later: FOUND FALSE + repaired `floor_data` (in `PhiW`): `Hit_at` allowed int32
+  (x, z), the wrapping edge tests pass far away, and a sloped floor's plane height is huge there,
+  so `PhiW` was false on every memory with WMotR's terrain (phantom ∀, hidden by the empty
+  witness partition). Now `ffl_hit16` (s16 x, z, proved from find_floor's casts).
+  `macro_special_objects.c` and WMotR's level data are TUs 33-34. TRUST 3.6 (main pool = one
+  block) was added. `TerrainRun.terrain_runs` RUNS the real `alloc_surface_pools` +
+  `load_area_terrain` (1352 surfaces) and proves `floor_data` + decoder agreement on the result
+  (`TerrainBound.tri_chk_sound`: per-triangle binary32 bound). This is conditional only on
+  `world_ok` (sqrtf = IEEE sqrt, `reset_red_coins_collected` inert) for "this is the loader's
+  output". `main_pool_init` has no CompCert execution (ALIGN16 on a pointer).
+  Next: move that memory into `StartSat`'s `init_mem` witness (keep `MWF_real` across the load);
+  `gCurrCourseNum`; ask about an FPU-floor row for `sqrtf`'s value. FOUND FALSE + repaired
   when linking area.c: any-argument `override_viewport_and_clip` (in `obj_ext_ids`) stores its
   pointer args into `D_8032CE74/78`; those joined `stored_globals`. Linking a TU turns every
   any-argument row naming its functions into a claim about real code: re-audit them.
