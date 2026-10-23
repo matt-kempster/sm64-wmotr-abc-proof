@@ -213,6 +213,9 @@ Proof.
   destruct vs as [| [[| | | | h |]|] [| [yv|] [| o3 r]]]; try contradiction.
   exists h, yv. split; [reflexivity | exact H].
 Qed.
+(* this configuration names no y translation *)
+Lemma ufP_kY_out : forall vs, uf kYp vs -> exists y, vs = [Some (Vint y)] /\ (-1 <= Int.signed y <= 174)%Z.
+Proof. intros vs H. cbn in H. contradiction. Qed.
 
 Let XSI := air_xc_sound_link lp (linked12_LO_surf lp H12) (linked12_LO_math lp H12)
              (linked12_LO_mario lp H12) NBP (R0P G) gtabP (kvP acn G) m0 uf gp
@@ -345,14 +348,14 @@ Proof.
                                  ltac:(rewrite BaM; exact HbM) r vres DR RT) |].
   rewrite <- BM in RC.
   destruct (pole_sound G NBP (R0P G) gtabP (kvP acn G) m0 uf gp GPO RM RO RU kP kC kH kL
-              ufP_kP_out ufP_kC_out ufP_kH_out ufP_kL_out FD E' m' gs MM
+              ufP_kP_out ufP_kC_out ufP_kH_out ufP_kL_out ufP_kY_out FD E' m' gs MM
               ltac:(rewrite BaM; exact HbM) c0 RC IR PO)
     as (c2 & RC2 & RM2 & Hout & Hv & Hk).
   exists c2. rewrite <- BM. split; [exact RC2 |]. split; [exact RM2 |]. split; [exact Hout |].
   split; [exact Hv |].
   intros H3. specialize (Hk H3).
   destruct (pole_keep_sound G NBP (R0P G) gtabP (kvP acn G) m0 uf gp GPO RM RO RU kP kC
-              ufP_kP_out ufP_kC_out E' m' gs MM ltac:(rewrite BaM; exact HbM) Hk) as (U1 & U2 & U3).
+              ufP_kP_out ufP_kC_out ufP_kY_out E' m' gs MM ltac:(rewrite BaM; exact HbM) Hk) as (U1 & U2 & U3).
   unfold addr. rewrite <- BU, <- BaU, <- BO, <- BaO.
   split; [exact U1 |]. split; [exact U2 | exact U3].
 Qed.

@@ -33,10 +33,15 @@ Definition cfin (s : sval) (lo hi : Z) : bool :=
   match s with Sconst (Vsingle k) => fin_in k lo hi | _ => false end.
 Definition is_pz (s : sval) : bool :=
   match s with Sconst (Vsingle k) => Float32.cmp Ceq k Float32.zero | _ => false end.
+Definition tsh : type := Tint I16 Signed noattr.
+(* the consumer key of RytXc.c_ryt's y-translation fact (PoleRun's top-of-
+   pole configuration) *)
+Definition kYp : positive := 10.
 
-(* the two grabs, HOLDING_POLE, and (act_holding_pole's switches, 2026-10-22)
-   CLIMBING_POLE and TOP_OF_POLE_TRANSITION: all pole actions, ground mode *)
-Definition POLE_ACTS3 : list Z := [1049409; 1049410; 135267136; 1049411; 1049412].
+(* the two grabs, HOLDING_POLE, (act_holding_pole's switches, 2026-10-22)
+   CLIMBING_POLE and TOP_OF_POLE_TRANSITION, and (2026-10-23) TOP_OF_POLE:
+   all pole actions, ground mode *)
+Definition POLE_ACTS3 : list Z := [1049409; 1049410; 135267136; 1049411; 1049412; 1049413].
 (* the actions an outcome may end in: those, and set_pole_position's (or
    act_holding_pole's Z / low-health) ACT_IDLE / ACT_FREEFALL / ACT_SOFT_BONK *)
 Definition POLE_OUT : list Z := POLE_ACTS3 ++ [205521409; 16779404; 16910518].
@@ -51,6 +56,17 @@ Local Notation ic := (init_cell kv).
 Definition sP : sval := ic rO POLEPOS_OFF Mfloat32.
 
 Definition hasf (pc : list fact) (f : fact) : bool := existsb (fbeq f) pc.
+
+(* set_pole_position's offsetY: 0.0f, or (the top-of-pole actions,
+   2026-10-23) return_mario_anim_y_translation's s16 result cast to f32,
+   which RytXc.c_ryt names by a fresh value with the fact kYp: an int in
+   [-1, 174] *)
+Definition ryo (pc : list fact) (s : sval) : bool :=
+  match s with
+  | Scast (Sfresh n) t1 t2 => tyeqb t1 tsh && is_tf t2 && hasf pc (Fuser kYp [Sfresh n])
+  | _ => false
+  end.
+Definition kzok (pc : list fact) (s : sval) : bool := is_pz s || ryo pc s.
 
 (* the fact "!(x > k)", k a constant <= 720 *)
 Definition le720 (pc : list fact) (x : sval) : bool :=
@@ -116,14 +132,20 @@ Definition ppt (pc : list fact) (a : sval) : bool :=
      end
   || climb pc a.
 
-(* tight: in [-3757, -2018] *)
+(* tight: in [-3760, -1840] *)
 Definition tb (pc : list fact) (s : sval) : bool :=
-  cfin s (-3757) (-2018)
+  cfin s (-3760) (-1840)
   || match s with
      | Sbinop Oadd (Sbinop Oadd ka t1 a t2) t3 kz t4 =>
-         cfin ka (-2739) (-2739) && ppt pc a && is_pz kz
+         cfin ka (-2739) (-2739) && ppt pc a && kzok pc kz
          && is_tf t1 && is_tf t2 && is_tf t3 && is_tf t4
          && hasf pc (Fuser kP [sP]) && le720 pc a
+     | _ => false
+     end
+  (* polePos clamped to 720: oPosY + 720.0f folded to a constant *)
+  || match s with
+     | Sbinop Oadd kc t1 kz t2 =>
+         cfin kc (-3759) (-2014) && kzok pc kz && is_tf t1 && is_tf t2
      | _ => false
      end.
 

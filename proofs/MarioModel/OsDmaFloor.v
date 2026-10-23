@@ -66,7 +66,7 @@
 
 From Coq Require Import ZArith List String.
 From compcert Require Import Coqlib Maps AST Integers Values Memory Events Globalenvs.
-From SM64.Generated Require memory save_file libultra_osSiCreateAccessQueue
+From SM64.Generated Require memory save_file game_init libultra_osSiCreateAccessQueue
   libultra_osContInit.
 Import ListNotations.
 Local Open Scope Z_scope.
@@ -111,6 +111,27 @@ Definition pi_start_dma_spec : Prop :=
       /\ (forall z, Ptrofs.unsigned od <= z < Ptrofs.unsigned od + Int.unsigned n ->
             is_data (ZMap.get z (Mem.mem_contents m') !! bd))
       /\ Ptrofs.unsigned od + Int.unsigned n <= Ptrofs.modulus.
+
+(* osPiStartDma's CONTENT clause, for Mario's animation data only (TRUST
+   0.8(f), user-approved 2026-10-22): the PI DMA copies the ROM bytes
+   verbatim, and the ROM's gMarioAnims is the clightgen'd initializer's
+   layout.  So a transfer whose device address is inside gMarioAnims (the
+   only source load_patchable_table passes for Mario's list, memory.c:567)
+   leaves in the n destination bytes the bytes gMarioAnims holds there.
+   Stated only for the bytes of gMarioAnims that are readable (its linked
+   storage); no other source is constrained.  The device address is the
+   C's (u32) srcStart, which in CompCert's 32-bit model is the pointer
+   itself. *)
+Definition pi_dma_anim_spec : Prop :=
+  forall sg ge vargs m t vres m' bga,
+    external_functions_sem "osPiStartDma" sg ge vargs m t vres m' ->
+    Senv.find_symbol ge game_init._gMarioAnims = Some bga ->
+    forall mb pri dir os bd od n q,
+      vargs = [mb; pri; dir; Vptr bga os; Vptr bd od; Vint n; q] ->
+      forall i, 0 <= i < Int.unsigned n ->
+        Mem.perm m bga (Ptrofs.unsigned os + i) Cur Readable ->
+        ZMap.get (Ptrofs.unsigned od + i) (Mem.mem_contents m') !! bd
+        = ZMap.get (Ptrofs.unsigned os + i) (Mem.mem_contents m) !! bga.
 
 (* ---- the message queues the walked code waits on / sends to, and what
    else a wait or a send on each one changes in the linked memory: the

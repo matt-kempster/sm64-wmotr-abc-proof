@@ -45,7 +45,8 @@ From Flocq Require Import Binary.
 From compcert Require Import Coqlib Maps AST Integers Floats Values Memory
   Globalenvs Ctypes Clight ClightBigstep Events Linking.
 From SM64.Generated Require mario level_update interaction mario_actions_moving
-  surface_collision memory game_init object_list_processor area surface_load camera audio_external.
+  surface_collision memory game_init object_list_processor area surface_load camera
+  graph_node rendering_graph_node mario_anim_data audio_external.
 From SM64.Proofs Require Import RealFrameLinked ActionValueFrame Taint CensusV2 MWFReal SpawnInit
   LinkedTwelve InitMemSat BootMWF NoAImpliesNoFlyLinked ClosedMem.
 From SM64.Proofs.WMotRRequiresA Require Import HeightInvariant NoAActions WMotRWorld
@@ -53,7 +54,7 @@ From SM64.Proofs.WMotRRequiresA Require Import HeightInvariant NoAActions WMotRW
   EntryWarp WMotRLevel.
 From SM64.Proofs Require Import Interp.ClightInterp Interp.MemBuild Interp.InterpFrame.
 From SM64.Proofs.WMotRRequiresA Require Import FpuFloor FpuValue TerrainRun StartTerrain.
-From SM64.Proofs.WMotRRequiresA Require CourseRun.
+From SM64.Proofs.WMotRRequiresA Require CourseRun AnimData AnimWorld.
 From SM64.Proofs.NoAImpliesNoFly Require BootRun.
 From SM64.Proofs Require AGates.
 Import ListNotations.
@@ -91,6 +92,35 @@ Proof.
   pose proof Hinit as GI. apply Genv.init_mem_characterization_gen in GI.
   specialize (GI b _ Hfd). cbn in GI. destruct GI as (RP & _).
   intros z Hz. apply RP. lia.
+Qed.
+
+(* a linked non-volatile gvar is readable over its initializer *)
+Lemma lo_gvar_readable : forall (q lp : Clight.program) m id b vq,
+    linkorder q lp -> Genv.init_mem lp = Some m ->
+    (prog_defmap q) ! id = Some (Gvar vq) ->
+    gvar_volatile vq = false -> gvar_init vq <> nil ->
+    Genv.find_symbol (Genv.globalenv lp) id = Some b ->
+    Mem.range_perm m b 0 (init_data_list_size (gvar_init vq)) Cur Readable.
+Proof.
+  intros q lp m id b vq LOq Hinit Hdm Hvo Hne Hfs.
+  Local Transparent Linker_program.
+  unfold linkorder, Linker_program, linkorder_program in LOq.
+  destruct LOq as [LOast _].
+  destruct (prog_defmap_linkorder _ _ _ _ LOast Hdm) as (gd' & Hgd' & Hlo).
+  change (prog_defmap (program_of_program lp)) with (prog_defmap lp) in Hgd'.
+  inv Hlo. match goal with H : linkorder _ _ |- _ => inv H end.
+  match goal with H : linkorder i1 i2 |- _ => rename H into Hi end.
+  cbn in Hvo, Hne |- *. subst.
+  assert (Hsz : init_data_list_size i1 <= init_data_list_size i2).
+  { inv Hi; [ lia | contradiction | ]. cbn. pose proof (init_data_list_size_pos i2). lia. }
+  apply Genv.find_def_symbol in Hgd' as (b' & Hfs' & Hfd).
+  change (Genv.globalenv (program_of_program lp)) with (Genv.globalenv lp) in Hfs', Hfd.
+  rewrite Hfs in Hfs'. injection Hfs' as <-.
+  pose proof Hinit as GI. apply Genv.init_mem_characterization_gen in GI.
+  specialize (GI b _ Hfd). cbn in GI. destruct GI as (RP & _).
+  intros z Hz. eapply Mem.perm_implies; [ apply RP; lia | ].
+  unfold Genv.perm_globvar. cbn.
+  repeat match goal with |- context [if ?c then _ else _] => destruct c end; first [ constructor | discriminate ].
 Qed.
 
 (* the global ids whose every TU initializer is all .bss (or absent) *)
@@ -525,11 +555,11 @@ Section Witness.
     Hypothesis FR : frag_ok (lp_ge lp) bpl Lm = true.
 
     Variables (m1 m2 m2b m3 m3a m3b m4 m5 m6 m7 m8 m9 m10 ms m11 : mem) (bt bs bar bd : block).
-    Hypothesis A1 : Mem.alloc Lm 0 24 = (m1, bt).
+    Hypothesis A1 : Mem.alloc Lm 0 16384 = (m1, bt).
     Hypothesis A2 : Mem.alloc m1 0 48 = (m2, bs).
     Hypothesis A3 : Mem.alloc m2 0 60 = (m2b, bar).
     (* the anim DMA table stand-in (setup_game_memory's table is ROM data) *)
-    Hypothesis A4 : Mem.alloc m2b 0 16 = (m3, bd).
+    Hypothesis A4 : Mem.alloc m2b 0 1680 = (m3, bd).
     (* the entry height (WMotREntry): init_mario's pos := startPos and
        gfx.pos := pos, at the airborne warp's y *)
     Hypothesis S1a : Mem.store Mfloat32 m3 bm 64 (Vsingle ENTRY_Y) = Some m3a.
@@ -547,13 +577,14 @@ Section Witness.
        function writes on the boot image: StartTerrain.ifs_ok), the area's
        terrainType (WMotR's TERRAIN_TYPE), the DMA table's count and the
        anim buffer's header *)
-    Variables (bsi bpcs bbs bhud bC : block)
-      (z1 z2 z3 z4 z5 z6 z7 z8 z9 z10 z11 z12 z13 z14 z15 z16 : mem).
+    Variables (bsi bpcs bbs bhud bC bga : block)
+      (z1 z2 z3 z4 z5 z6 z7 z8 z9 z10a z10 z11 z12 z13 z14 z15 z16 : mem).
     Hypothesis Hsi : sym (lp_ge lp) "gPlayerSpawnInfos"%string = Some bsi.
     Hypothesis Hpcs : sym (lp_ge lp) "gPlayerCameraState"%string = Some bpcs.
     Hypothesis Hbbs : sym (lp_ge lp) "gBodyStates"%string = Some bbs.
     Hypothesis Hhud : sym (lp_ge lp) "gHudDisplay"%string = Some bhud.
     Hypothesis HcC : Genv.find_symbol (lp_ge lp) level_update._gCurrCourseNum = Some bC.
+    Hypothesis Hga : Genv.find_symbol (lp_ge lp) game_init._gMarioAnims = Some bga.
     Hypothesis Z1 : Mem.store Mint32 ms bm 140 (Vptr bsi Ptrofs.zero) = Some z1.
     Hypothesis Z2 : Mem.store Mint32 z1 bm 148 (Vptr bpcs Ptrofs.zero) = Some z2.
     Hypothesis Z3 : Mem.store Mint32 z2 bm 152 (Vptr bbs Ptrofs.zero) = Some z3.
@@ -562,8 +593,12 @@ Section Witness.
     Hypothesis Z6 : Mem.store Mint16signed z5 bm 176 (Vint (Int.repr 189)) = Some z6.
     Hypothesis Z7 : Mem.store Mint16signed z6 bhud 6 (Vint (Int.repr 8)) = Some z7.
     Hypothesis Z8 : Mem.store Mint16unsigned z7 bar 2 (Vint (Int.repr TERRAIN_SNOW)) = Some z8.
-    Hypothesis Z9 : Mem.store Mint32 z8 bd 0 (Vint Int.zero) = Some z9.
-    Hypothesis Z10 : Mem.store Mint32 z9 ab 0 (Vptr bd Ptrofs.zero) = Some z10.
+    (* the DMA table: the boot image's gMarioAnims header, srcAddr :=
+       &gMarioAnims (StartTerrain.tab_writes); the list's dmaTable and
+       currentAddr (the animation the first frame sets is the loaded one) *)
+    Hypothesis Z9 : apply_writes z8 (tab_writes m0 bd bga) 0 = inl z9.
+    Hypothesis Z10a : Mem.store Mint32 z9 ab 0 (Vptr bd Ptrofs.zero) = Some z10a.
+    Hypothesis Z10 : Mem.store Mint32 z10a ab 4 (cur_addr m0 bga) = Some z10.
     Hypothesis Z11 : Mem.store Mint32 z10 bt 0 (Vint Int.zero) = Some z11.
     Hypothesis Z12 : Mem.store Mint32 z11 bt 4 (Vint Int.zero) = Some z12.
     Hypothesis Z13 : Mem.store Mint32 z12 bt 8 (Vint Int.zero) = Some z13.
@@ -579,6 +614,8 @@ Section Witness.
     Hypothesis NS : nsurf_ok m11 bn = true.
     Hypothesis IF : ifs_ok (lp_ge lp) m0 bm bc ab bsi bpcs bbs bhud = true.
     Hypothesis FO : frame_ok (lp_ge lp) bm bo m11 = true.
+    Hypothesis TC : tab_chk m11 bd bga = true.
+    Hypothesis GC : ga_chk m11 bga = true.
 
     (* ---- blocks ---- *)
     Lemma nb_e : Mem.nextblock e6 = Mem.nextblock m0.
@@ -632,7 +669,7 @@ Section Witness.
     Ltac znb := rewrite (Mem.nextblock_store _ _ _ _ _ _ Z17), (Mem.nextblock_store _ _ _ _ _ _ Z16), (Mem.nextblock_store _ _ _ _ _ _ Z15),
         (Mem.nextblock_store _ _ _ _ _ _ Z14), (Mem.nextblock_store _ _ _ _ _ _ Z13),
         (Mem.nextblock_store _ _ _ _ _ _ Z12), (Mem.nextblock_store _ _ _ _ _ _ Z11),
-        (Mem.nextblock_store _ _ _ _ _ _ Z10), (Mem.nextblock_store _ _ _ _ _ _ Z9),
+        (Mem.nextblock_store _ _ _ _ _ _ Z10), (Mem.nextblock_store _ _ _ _ _ _ Z10a), (apply_writes_nb _ _ _ _ Z9),
         (Mem.nextblock_store _ _ _ _ _ _ Z8), (Mem.nextblock_store _ _ _ _ _ _ Z7),
         (Mem.nextblock_store _ _ _ _ _ _ Z6), (Mem.nextblock_store _ _ _ _ _ _ Z5),
         (Mem.nextblock_store _ _ _ _ _ _ Z4), (Mem.nextblock_store _ _ _ _ _ _ Z3),
@@ -766,7 +803,7 @@ Section Witness.
     Definition untouched (ch : memory_chunk) (b : block) (z : Z) : Prop :=
       b <> bs
       /\ (b = bm -> forall d, In d cells_bm -> z + size_chunk ch <= d \/ d + 4 <= z)
-      /\ (b = ab -> 4 <= z /\ (z + size_chunk ch <= 8 \/ 12 <= z))
+      /\ (b = ab -> 8 <= z /\ (z + size_chunk ch <= 8 \/ 12 <= z))
       /\ (b = bhud -> z + size_chunk ch <= 6 \/ 8 <= z)
       /\ (b = bo -> z + size_chunk ch <= 36 \/ 40 <= z)
       /\ b <> bw /\ b <> bL /\ inFb (lp_ge lp) b = false /\ b <> bC.
@@ -782,7 +819,9 @@ Section Witness.
       assert (Kz : forall d w, In d cells_bm -> w <= 4 -> b <> bm \/ z + size_chunk ch <= d \/ d + w <= z).
       { intros d w Hd Hw. destruct (peq b bm) as [E | N]; [ right; destruct (Ubm E d Hd); [ left | right ]; lia | left; exact N ]. }
       assert (Kab0 : b <> ab \/ z + size_chunk ch <= 0 \/ 0 + 4 <= z).
-      { destruct (peq b ab) as [E | N]; [ right; right; exact (proj1 (Uab E)) | left; exact N ]. }
+      { destruct (peq b ab) as [E | N]; [ right; right; pose proof (proj1 (Uab E)); lia | left; exact N ]. }
+      assert (Kab4 : b <> ab \/ z + size_chunk ch <= 4 \/ 4 + 4 <= z).
+      { destruct (peq b ab) as [E | N]; [ right; right; pose proof (proj1 (Uab E)); lia | left; exact N ]. }
       assert (Khud : b <> bhud \/ z + size_chunk ch <= 6 \/ 6 + 2 <= z).
       { destruct (peq b bhud) as [E | N]; [ right; destruct (Uhud E); [ left | right ]; lia | left; exact N ]. }
       rewrite (Mem.load_store_other _ _ _ _ _ _ Z17) by (left; exact NbC).
@@ -792,8 +831,10 @@ Section Witness.
       rewrite (Mem.load_store_other _ _ _ _ _ _ Z13) by (left; congruence).
       rewrite (Mem.load_store_other _ _ _ _ _ _ Z12) by (left; congruence).
       rewrite (Mem.load_store_other _ _ _ _ _ _ Z11) by (left; congruence).
-      rewrite (Mem.load_store_other _ _ _ _ _ _ Z10) by exact Kab0.
-      rewrite (Mem.load_store_other _ _ _ _ _ _ Z9) by (left; congruence).
+      rewrite (Mem.load_store_other _ _ _ _ _ _ Z10) by exact Kab4.
+      rewrite (Mem.load_store_other _ _ _ _ _ _ Z10a) by exact Kab0.
+      rewrite (apply_writes_other _ _ _ _ _ _ _ Z9)
+        by (intros w Hw; rewrite (proj1 (proj2 (tab_writes_shape _ _ _ _ Hw))); congruence).
       rewrite (Mem.load_store_other _ _ _ _ _ _ Z8) by (left; congruence).
       rewrite (Mem.load_store_other _ _ _ _ _ _ Z7) by exact Khud.
       rewrite (Mem.load_store_other _ _ _ _ _ _ Z6) by (exact (Kz 176 2 ltac:(cbn; tauto) ltac:(lia))).
@@ -1128,12 +1169,24 @@ Section Witness.
       assert (Mz8 : MWF_real lp bm bc Ptrofs.zero SBw z8).
       { eapply (mwf_real_chase lp) with (mm := z7) (mm' := z8) (bsafe := bar); try eassumption;
           [ left; right; right; left; reflexivity | apply NP ]. }
+      assert (Sga : SBw bga).
+      { right. exists game_init._gMarioAnims. split; [ left; vm_compute; reflexivity | exact Hga ]. }
       assert (Mz9 : MWF_real lp bm bc Ptrofs.zero SBw z9).
-      { eapply (mwf_real_chase lp) with (mm := z8) (mm' := z9) (bsafe := bd); try eassumption;
-          [ left; right; right; right; reflexivity | apply NP ]. }
-      assert (Mz10 : MWF_real lp bm bc Ptrofs.zero SBw z10).
+      { apply (apply_writes_ind (MWF_real lp bm bc Ptrofs.zero SBw) _ _ _ _ Z9); [ | exact Mz8 ].
+        intros w mm mm' Hw Hs Hm.
+        destruct (tab_writes_shape _ _ _ _ Hw) as (_ & Eb & Hv). rewrite Eb in Hs.
+        eapply (mwf_real_chase_ptr lp) with (mm := mm) (mm' := mm') (bsafe := bd); try eassumption;
+          [ left; right; right; right; reflexivity | ].
+        intros bb oo E. destruct Hv as [Hv | Hv]; [ rewrite Hv in E; injection E as <- _; exact Sga
+                                                  | exfalso; exact (Hv _ _ E) ]. }
+      assert (Mz10a : MWF_real lp bm bc Ptrofs.zero SBw z10a).
       { eapply (mwf_anim_tab_store lp bm bc Ptrofs.zero SBw D1) with (mm := z9) (ab := ab); try eassumption.
         intros b o E. injection E as <- _. left. right. right. right. reflexivity. }
+      assert (Mz10 : MWF_real lp bm bc Ptrofs.zero SBw z10).
+      { eapply (mwf_real_anim_cur_store lp) with (mm := z10a) (ab := ab); try eassumption.
+        intros b o E. unfold cur_addr in E.
+        revert E; match goal with |- context [match ?x with _ => _ end] => destruct x as [[]|] end; intro E; try discriminate E.
+        injection E as <- _. exact Sga. }
       assert (Bt : SBw bt) by (left; right; left; reflexivity).
       assert (Mz11 : MWF_real lp bm bc Ptrofs.zero SBw z11)
         by (eapply (mwf_real_chase lp) with (mm := z10) (bsafe := bt); try eassumption; apply NP).
@@ -1251,8 +1304,11 @@ Section Witness.
       | (apply bpl_fresh; fr) | (apply not_eq_sym; apply bpl_fresh; fr) ].
     Ltac peel2 S := rewrite (Mem.load_store_other _ _ _ _ _ _ S)
       by (first [ right; cbn [size_chunk]; lia | left; dz ]).
+    Ltac peelW := rewrite (apply_writes_other _ _ _ _ _ _ _ Z9)
+      by (let w := fresh "w" in let Hw := fresh "Hw" in
+          intros w Hw; rewrite (proj1 (proj2 (tab_writes_shape _ _ _ _ Hw))); dz).
     Ltac peelZ := peel2 Z17; peel2 Z16; peel2 Z15; peel2 Z14; peel2 Z13; peel2 Z12; peel2 Z11; peel2 Z10;
-      peel2 Z9; peel2 Z8; peel2 Z7; peel2 Z6; peel2 Z5; peel2 Z4; peel2 Z3; peel2 Z2; peel2 Z1.
+      peel2 Z10a; peelW; peel2 Z8; peel2 Z7; peel2 Z6; peel2 Z5; peel2 Z4; peel2 Z3; peel2 Z2; peel2 Z1.
 
     Lemma L_act : Mem.load Mint32 m11 bm 12 = Some (Vint ACT_SPAWN_NO_SPIN_AIRBORNE).
     Proof.
@@ -1288,7 +1344,7 @@ Section Witness.
     Lemma L_pcs : Mem.load Mint32 m11 bm 148 = Some (Vptr bpcs Ptrofs.zero).
     Proof.
       peel2 Z17; peel2 Z16; peel2 Z15; peel2 Z14; peel2 Z13; peel2 Z12; peel2 Z11; peel2 Z10;
-      peel2 Z9; peel2 Z8; peel2 Z7; peel2 Z6; peel2 Z5; peel2 Z4; peel2 Z3.
+      peel2 Z10a; peelW; peel2 Z8; peel2 Z7; peel2 Z6; peel2 Z5; peel2 Z4; peel2 Z3.
       rewrite (Mem.load_store_same _ _ _ _ _ _ Z2). reflexivity.
     Qed.
     Lemma L_buf : Mem.load Mint32 m11 ab 8 = Some (Vptr bt Ptrofs.zero).
@@ -1511,8 +1567,19 @@ Section Witness.
       pose proof (Mem.store_inject_neutral _ _ _ _ _ _ _ Z6 W5 Lbm (Val.inject_int _ _)) as W6.
       pose proof (Mem.store_inject_neutral _ _ _ _ _ _ _ Z7 W6 Lhud (Val.inject_int _ _)) as W7.
       pose proof (Mem.store_inject_neutral _ _ _ _ _ _ _ Z8 W7 Lbar (Val.inject_int _ _)) as W8.
-      pose proof (Mem.store_inject_neutral _ _ _ _ _ _ _ Z9 W8 Lbd (Val.inject_int _ _)) as W9.
-      pose proof (Mem.store_inject_neutral _ _ _ _ _ _ _ Z10 W9 Lab (vinj_ptr _ _ Lbd)) as W10.
+      assert (Lga : Plt bga thr) by exact (sym_lt _ _ Hga).
+      assert (W9 : Mem.inject_neutral thr z9).
+      { apply (apply_writes_ind (Mem.inject_neutral thr) _ _ _ _ Z9); [ | exact W8 ].
+        intros w mm mm' Hw Hs Hm.
+        destruct (tab_writes_shape _ _ _ _ Hw) as (_ & Eb & Hv). rewrite Eb in Hs.
+        apply (Mem.store_inject_neutral _ _ _ _ _ _ _ Hs Hm Lbd).
+        destruct Hv as [-> | Hv]; [ exact (vinj_ptr _ _ Lga) | ].
+        destruct (w_val w); try constructor. exfalso. exact (Hv _ _ eq_refl). }
+      pose proof (Mem.store_inject_neutral _ _ _ _ _ _ _ Z10a W9 Lab (vinj_ptr _ _ Lbd)) as W10a.
+      assert (W10 : Mem.inject_neutral thr z10).
+      { apply (Mem.store_inject_neutral _ _ _ _ _ _ _ Z10 W10a Lab).
+        unfold cur_addr. match goal with |- context [match ?x with _ => _ end] => destruct x as [[]|] end; try constructor.
+        exact (vinj_ptr _ _ Lga). }
       pose proof (Mem.store_inject_neutral _ _ _ _ _ _ _ Z11 W10 Lbt (Val.inject_int _ _)) as W11.
       pose proof (Mem.store_inject_neutral _ _ _ _ _ _ _ Z12 W11 Lbt (Val.inject_int _ _)) as W12.
       pose proof (Mem.store_inject_neutral _ _ _ _ _ _ _ Z13 W12 Lbt (Val.inject_int _ _)) as W13.
@@ -1566,7 +1633,8 @@ Section Witness.
       eapply acc_keep_trans; [ exact (store_keep _ _ _ _ _ _ Z6) | ].
       eapply acc_keep_trans; [ exact (store_keep _ _ _ _ _ _ Z7) | ].
       eapply acc_keep_trans; [ exact (store_keep _ _ _ _ _ _ Z8) | ].
-      eapply acc_keep_trans; [ exact (store_keep _ _ _ _ _ _ Z9) | ].
+      eapply acc_keep_trans; [ exact (apply_writes_keep _ _ _ _ Z9) | ].
+      eapply acc_keep_trans; [ exact (store_keep _ _ _ _ _ _ Z10a) | ].
       eapply acc_keep_trans; [ exact (store_keep _ _ _ _ _ _ Z10) | ].
       eapply acc_keep_trans; [ exact (store_keep _ _ _ _ _ _ Z11) | ].
       eapply acc_keep_trans; [ exact (store_keep _ _ _ _ _ _ Z12) | ].
@@ -1688,6 +1756,110 @@ Section Witness.
     Proof. exact (parts_ok_floor_data _ _ _ PO). Qed.
     Lemma static_agree11 : static_agree (lp_ge lp) m11.
     Proof. exact (parts_ok_agree _ _ _ PO). Qed.
+
+
+    (* ---- the animation world (AnimWorld.anim_w) on the witness ---- *)
+    Lemma keep_1_11 : acc_keep m1 m11.
+    Proof.
+      eapply acc_keep_trans; [ exact (alloc_keep _ _ _ _ _ A2) | ].
+      eapply acc_keep_trans; [ exact (alloc_keep _ _ _ _ _ A3) | ].
+      eapply acc_keep_trans; [ exact (alloc_keep _ _ _ _ _ A4) | ].
+      eapply acc_keep_trans; [ exact (store_keep _ _ _ _ _ _ S1a) | ].
+      eapply acc_keep_trans; [ exact (store_keep _ _ _ _ _ _ S1b) | ].
+      eapply acc_keep_trans; [ exact (store_keep _ _ _ _ _ _ S1) | ].
+      eapply acc_keep_trans; [ exact (store_keep _ _ _ _ _ _ S2) | ].
+      eapply acc_keep_trans; [ exact (store_keep _ _ _ _ _ _ S3) | ].
+      eapply acc_keep_trans; [ exact (store_keep _ _ _ _ _ _ S4) | ].
+      eapply acc_keep_trans; [ exact (store_keep _ _ _ _ _ _ S5) | ].
+      eapply acc_keep_trans; [ exact (store_keep _ _ _ _ _ _ S6) | ].
+      eapply acc_keep_trans; [ exact (store_keep _ _ _ _ _ _ S7) | ].
+      eapply acc_keep_trans; [ exact (store_keep _ _ _ _ _ _ S8) | ].
+      eapply acc_keep_trans; [ exact (store_keep _ _ _ _ _ _ Z1) | ].
+      eapply acc_keep_trans; [ exact (store_keep _ _ _ _ _ _ Z2) | ].
+      eapply acc_keep_trans; [ exact (store_keep _ _ _ _ _ _ Z3) | ].
+      eapply acc_keep_trans; [ exact (store_keep _ _ _ _ _ _ Z4) | ].
+      eapply acc_keep_trans; [ exact (store_keep _ _ _ _ _ _ Z5) | ].
+      eapply acc_keep_trans; [ exact (store_keep _ _ _ _ _ _ Z6) | ].
+      eapply acc_keep_trans; [ exact (store_keep _ _ _ _ _ _ Z7) | ].
+      eapply acc_keep_trans; [ exact (store_keep _ _ _ _ _ _ Z8) | ].
+      eapply acc_keep_trans; [ exact (apply_writes_keep _ _ _ _ Z9) | ].
+      eapply acc_keep_trans; [ exact (store_keep _ _ _ _ _ _ Z10a) | ].
+      eapply acc_keep_trans; [ exact (store_keep _ _ _ _ _ _ Z10) | ].
+      eapply acc_keep_trans; [ exact (store_keep _ _ _ _ _ _ Z11) | ].
+      eapply acc_keep_trans; [ exact (store_keep _ _ _ _ _ _ Z12) | ].
+      eapply acc_keep_trans; [ exact (store_keep _ _ _ _ _ _ Z13) | ].
+      eapply acc_keep_trans; [ exact (store_keep _ _ _ _ _ _ Z14) | ].
+      eapply acc_keep_trans; [ exact (store_keep _ _ _ _ _ _ Z15) | ].
+      eapply acc_keep_trans; [ exact (store_keep _ _ _ _ _ _ Z16) | ].
+      exact (store_keep _ _ _ _ _ _ Z17).
+    Qed.
+
+    Lemma L_tab : Mem.load Mint32 m11 ab 0 = Some (Vptr bd Ptrofs.zero).
+    Proof.
+      peel2 Z17; peel2 Z16; peel2 Z15; peel2 Z14; peel2 Z13; peel2 Z12; peel2 Z11; peel2 Z10.
+      rewrite (Mem.load_store_same _ _ _ _ _ _ Z10a). reflexivity.
+    Qed.
+
+    Lemma bt_perm : Mem.range_perm m11 bt 0 16384 Cur Readable.
+    Proof.
+      intros z Hz.
+      assert (P1 : Mem.perm m1 bt z Cur Freeable) by (eapply Mem.perm_alloc_2; [ exact A1 | lia ]).
+      assert (V1 : Plt bt (Mem.nextblock m1)).
+      { rewrite (Mem.nextblock_alloc _ _ _ _ _ A1), (Mem.alloc_result _ _ _ _ _ A1). apply Plt_succ. }
+      apply (proj2 (perm_same m11 m1 bt z Cur Readable (proj2 keep_1_11 bt V1))).
+      eapply Mem.perm_implies; [ exact P1 | constructor ].
+    Qed.
+
+    Lemma dm_ga : (prog_defmap mario_anim_data.prog) ! game_init._gMarioAnims
+                  = Some (Gvar mario_anim_data.v_gMarioAnims).
+    Proof. reflexivity. Qed.
+
+    Lemma ga_perm : Mem.range_perm m11 bga 0 AnimData.GA_SIZE Cur Readable.
+    Proof.
+      intros z Hz. apply pfwd. rewrite <- AnimData.ga_size in Hz.
+      refine (lo_gvar_readable _ _ _ _ _ _ (linked12_LO_mario_anim_data lp H12) Hinit dm_ga
+                eq_refl ltac:(discriminate) Hga z Hz).
+    Qed.
+
+    Lemma anim11 : AnimWorld.anim_w (lp_ge lp) bm m11.
+    Proof.
+      assert (Eau : exists gd, (prog_defmap rendering_graph_node.prog) ! graph_node._gAreaUpdateCounter = Some gd).
+      { destruct ((prog_defmap rendering_graph_node.prog) ! graph_node._gAreaUpdateCounter) as [gd|] eqn:E;
+          [ exists gd; reflexivity | vm_compute in E; discriminate E ]. }
+      destruct Eau as (gd & Egd).
+      destruct (ex_sym _ _ _ (linked12_LO_rendering_graph_node lp H12) Egd) as (bauc & Hau).
+      pose proof (tab_chk_sound _ _ _ TC) as (T0 & T4 & TE).
+      eapply (AnimWorld.anim_w_other (lp_ge lp) bm m11 _ ab bga bauc bd Ptrofs.zero bt Ptrofs.zero bo Ptrofs.zero);
+        [ | exact L_act | ].
+      2:{ intros H. vm_compute in H. repeat (destruct H as [H | H]; [ discriminate H | ]). exact H. }
+      unfold AnimWorld.anim_base. rewrite !Ptrofs.unsigned_zero.
+      split; [ exact Hab | ]. split; [ exact Hga | ]. split; [ exact Hau | ].
+      split; [ exact L_tab | ]. split; [ exact L_buf | ]. split; [ exact L_obj | ].
+      split; [ intros id b Hs; split; [ exact (sym_ne_bd _ _ Hs) | exact (sym_ne_fresh _ _ _ Hs (or_introl eq_refl)) ] | ].
+      split; [ exact (not_eq_sym bt_bd) | ].
+      split; [ exact (not_eq_sym (sym_ne_bd _ _ Hbo)) | ].
+      split; [ exact bt_bo | ].
+      split; [ exact (symne lp _ _ _ _ Hbo Hga eq_refl) | ].
+      split; [ exact (symne lp _ _ _ _ Hbo Hau eq_refl) | ].
+      split; [ unfold AnimWorld.TABSZ, AnimData.ANIM_COUNT; change Ptrofs.modulus with 4294967296; lia | ].
+      split; [ unfold AnimWorld.BUFSZ; change Ptrofs.modulus with 4294967296; lia | ].
+      split; [ reflexivity | ].
+      split; [ exact bt_perm | ].
+      split.
+      { unfold AnimWorld.tab_ok. rewrite Ptrofs.unsigned_zero.
+        split; [ exact T0 | ]. split; [ exact T4 | ].
+        intros j o s' Hj. rewrite !Z.add_0_l. exact (TE j o s' Hj). }
+      split; [ split; [ exact (ga_chk_sound _ _ GC) | exact ga_perm ] | ].
+      split.
+      { intros hd Hp. destruct (walk2_sound WFUEL m11 bpl (fun b => b = bd) hd (wf_head _ Hp) bpl_valid11 bpl_bd)
+          as (Wl & On).
+        split; [ exact Wl | ]. intros b o Ho. destruct (On _ Ho) as (o' & E & _). injection E as -> _.
+        exact bpl_bd. }
+      split; [ | exact Hbm ].
+      intros off b o [-> | ->] Hl.
+      - rewrite L_area in Hl. injection Hl as <- _. exact bar_bd.
+      - rewrite L_ctl in Hl. injection Hl as <- _. exact (sym_ne_bd _ _ Hbc).
+    Qed.
 
     Lemma ffw11 : ffw (lp_ge lp) bm m11.
     Proof.
@@ -1824,7 +1996,7 @@ Section Witness.
         intros v Hl. rewrite L_act in Hl. injection Hl as <-. reflexivity.
       - assert (Hu : used_ok bm m11).
         { apply (used_ok_other bm m11 _ L_act). vm_compute. intuition discriminate. }
-        split; [ exact (conj hinv (conj world11 (conj anim_ok (conj mobj_ok (conj ffw11 Hu))))) | ].
+        split; [ exact (conj hinv (conj world11 (conj anim_ok (conj mobj_ok (conj ffw11 (conj Hu anim11)))))) | ].
         split; [ exact read_c0 | split; [ exact in_wmotr11 | ] ].
         split; [ exact floor_data11 | split; [ exact static_agree11 | split; [ exact nsurf11 | ] ] ].
         destruct entry_runs as (R1 & R2).
@@ -1912,11 +2084,11 @@ End Steps.
     destruct (wchk_sound _ _ (wchk_lp lp H12 m0 Hinit) bm bc ab bo bw bL Hbm Hbc Hab Hbo Hbw HbL)
       as [s1 s2 s3 s4 s5 bcol bn e1 e2 e3 e4 e5 e6 P0 bpl P t1 L1 v1 t2 Lm v2
           m1 bt m2 bs m2b bar m3 bd m3a m3b m4 m5 m6 m7 m8 m9 m10 ms
-          bsi bpcs bbs bhud bC z1 z2 z3 z4 z5 z6 z7 z8 z9 z10 z11 z12 z13 z14 z15 z16 m11
+          bsi bpcs bbs bhud bC bga z1 z2 z3 z4 z5 z6 z7 z8 z9 z10a z10 z11 z12 z13 z14 z15 z16 m11
           E1 E2 E3 E4 E5 E6 Hcol AP PW Hs1 Hs2 Hs3 Hs4 Hs5 RA RT A1 A2 A3 A4
-          S1a S1b S1 S2 S3 S4 S5 S6 S7 S8 Hsi Hpcs Hbbs Hhud HcC
-          Z1 Z2 Z3 Z4 Z5 Z6 Z7 Z8 Z9 Z10 Z11 Z12 Z13 Z14 Z15 Z16 Z17
-          OK FR WP PO NS Hbn IF FO].
+          S1a S1b S1 S2 S3 S4 S5 S6 S7 S8 Hsi Hpcs Hbbs Hhud HcC Hga
+          Z1 Z2 Z3 Z4 Z5 Z6 Z7 Z8 Z9 Z10a Z10 Z11 Z12 Z13 Z14 Z15 Z16 Z17
+          OK FR WP PO NS Hbn IF FO TC GC].
     exists (SBw bpl bt bar bd), m11.
     eapply witness11; eassumption.
   Qed.

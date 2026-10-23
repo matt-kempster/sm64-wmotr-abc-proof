@@ -145,6 +145,39 @@ Proof.
   split; [exact F2 | rewrite A2; lra].
 Qed.
 
+(* the top-of-pole actions' offset: the animation's y translation, an int
+   in [-1, 174] (2026-10-23); the window widens to [-3760, -1840] *)
+Lemma y0_bound_ry : forall ka P z, F32 ka = true -> R2 ka = -2739 -> F32 P = true -> -1016 <= R2 P <= 720 ->
+  F32 z = true -> -1 <= R2 z <= 174 ->
+  F32 (Float32.add (Float32.add ka P) z) = true
+  /\ -3760 <= R2 (Float32.add (Float32.add ka P) z) <= -1840.
+Proof.
+  intros ka P z Fk Rk FP RP Fz Rz.
+  destruct (f32_add_val ka P Fk FP) as (A1 & F1).
+  { rewrite Rk. eapply Rle_trans; [| apply (bpow_le radix2 12 100); lia]. simpl. apply Rabs_le. lra. }
+  rewrite Rk in A1.
+  assert (X1 : -3755 <= R2 (Float32.add ka P) <= -2019).
+  { rewrite A1. split; [apply (rnd_ge_int _ (-3755)) | apply (rnd_le_int _ (-2019))]; (lia || lra). }
+  set (x := Float32.add ka P) in *.
+  destruct (f32_add_val x z F1 Fz) as (A2 & F2).
+  { eapply Rle_trans; [| apply (bpow_le radix2 12 100); lia]. simpl. apply Rabs_le. lra. }
+  split; [exact F2 | rewrite A2].
+  split; [apply (rnd_ge_int _ (-3760)) | apply (rnd_le_int _ (-1840))]; (lia || lra).
+Qed.
+
+(* the clamped polePos case: the walker folds oPosY + 720.0f to a constant
+   (2026-10-23); adding the y translation in [-1, 174] stays in the window *)
+Lemma y0_bound_kc : forall kc z, F32 kc = true -> -3759 <= R2 kc <= -2014 ->
+  F32 z = true -> -1 <= R2 z <= 174 ->
+  F32 (Float32.add kc z) = true /\ -3760 <= R2 (Float32.add kc z) <= -1840.
+Proof.
+  intros kc z Fk Rk Fz Rz.
+  destruct (f32_add_val kc z Fk Fz) as (A & F).
+  { eapply Rle_trans; [| apply (bpow_le radix2 12 100); lia]. simpl. apply Rabs_le. lra. }
+  split; [exact F | rewrite A].
+  split; [apply (rnd_ge_int _ (-3760)) | apply (rnd_le_int _ (-1840))]; (lia || lra).
+Qed.
+
 (* ---- act_holding_pole's slide: oMarioPolePos - (yawVel / 0x100) ---- *)
 Lemma cmp_pinf_fin : forall k, F32 k = true -> Float32.cmp Cgt (Binary.B754_infinity 24 128 false) k = true.
 Proof. intros [s|s|s pl Hpl|s mm e He] H; try discriminate H; destruct s; reflexivity. Qed.

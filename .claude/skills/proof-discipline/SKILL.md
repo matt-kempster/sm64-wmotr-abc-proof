@@ -125,7 +125,7 @@ all in `Unwired/`, and the theorem moved nowhere. See
   - GOAL 2 `Hseg_any`: any-argument `spawn_wind_particles` over phantom `gFreeObjectList`. The
     call is dead in WMotR, so gate it on the wind branch.
   - GOAL 2 `Hauto_rest` at TOP_OF_POLE*: phantom anim buffer, offset up to +8191. FALSE as
-    stated.
+    stated. DISCHARGED 2026-10-23: proved from the real animation data (TRUST (p)).
   - `Hext_action_ns` / `Hmwf_ext_ns`: `print_text_fmt_int`'s `gEffectsMemoryPool` is
     unconstrained.
   - On linking audio: `play_sound` stores `pos` (R7), so gate it first. On linking
@@ -263,33 +263,21 @@ all in `Unwired/`, and the theorem moved nowhere. See
     runs from the witness (before, it had NO frame: statusForCamera / marioBodyState NULL).
     CLIMB_SLOW_1/2 and CLIMB_FAST are PROVED (2026-10-22, TRUST (n)): ffw carries
     statusForCamera = &gPlayerCameraState[0] (region `FfRun.RPC`, a `kvK` known cell), and
-    IN_CANNON and CLIMBING_POLE are PROVED (2026-10-22, TRUST (o), `CannonRow`,
-    `PoleClimb`): `Hauto_rest : CannonRow.aut_case_rest_top` holds 2 (TOP_OF_POLE_TRANSITION,
-    TOP_OF_POLE). `used_ok`'s cannon clause now carries `cannon_pos_ok` (a logged
-    strengthening). Cannon kit: `CannonClass` / `CannonRun` / `CannonWalk`. CLIMBING_POLE
-    needed NO camera fact (the old None was a probe bug: a statement-prefix probe must end
-    in a `Sreturn`); the pole table now has `c_smawa` and `is_anim_past_frame`.
-    Blockers for the remaining pole cases:
-    - TOP_OF_POLE*: need the DMA row (approved, not yet added), gMarioAnims linked (it is a
-      size-0 extern), and animFrame ≥ −1. rendering_graph_node.c is now linked (TU 35) and
-      the render call is a frame segment (`HeightFrame.seg_render_spec`, GOAL-1 carry proved
-      in `RenderFlank.render_mem_ok`; range proved in `render_frame_range`). Still open:
-      carrying animFrame ≥ −1 through Mario's own frame (set_mario_animation /
-      set_anim_to_frame re-set animInfo) and Φ (PhiW) through the render call (needs a
-      render-global apartness clause in the frame world).
-    The FELL_OFF → FREEFALL path sets y := base and does not refresh floorHeight. `fresh`
-    carries only fh <= y_entry + 241, while y_entry may be up to about base + 16, so it is
-    not enough. That path needs a carried pole fact (y = oPosY + polePos, within float
-    slack) together with find_floor's +78 bound.
-    The top-of-pole cases need the handstand anim data linked: a generated-code bound alone
-    (s16 / 4 ≤ 8191) fails `pole_check`, and the loosest POLE_UP that passes is 4343
-    (TRUST (j)). Since 2026-10-22 the data is clightgen'd (`generated/mario_anim_data.v`, data
-    only) and `PoleAnim.pole_up_covers_handstand` proves the 174 / POLE_UP = 160 from it
-    (`kept`, not load-bearing). Still missing for a walk (TRUST 0.8(f), each a NEW trust item):
-    a DMA content spec (ROM bytes), the boot-built dmaTable as a frame-world fact, animFrame
-    ≥ −1 (rendering unlinked). (Segment 0 was the fourth: every real top-of-pole frame had NO
-    execution, V2P subtracting 2^31 that the identity segmented_to_virtual never added back.
-    REPAIRED 2026-10-22: the whole NO_SEGMENTED_MEMORY macro family, `AnimRoundTrip.anim_y_runs`.)
+    IN_CANNON and CLIMBING_POLE are PROVED (2026-10-22, TRUST (o), `CannonRow`).
+    `used_ok`'s cannon clause carries `cannon_pos_ok` (a logged strengthening). Cannon kit:
+    `CannonClass` / `CannonRun` / `CannonWalk`. (A statement-prefix probe must end in a
+    `Sreturn`: CLIMBING_POLE's old "needs a camera fact" was that probe bug.)
+    ALL TWELVE automatic cases are PROVED (2026-10-23, TRUST (p), `PoleCasesT.aut_case_rows_T`):
+    `Hauto_rest` is GONE, replaced by `Hdma_anim : OsDmaFloor.pi_dma_anim_spec` (TRUST
+    0.8(f), approved, now load-bearing; count unchanged by it; 24 after the audio link). The six pole actions are re-walked
+    with the real animation data (`PoleRunT`: set_mario_animation inline, DMA table +
+    gMarioAnims read, `RytXc.c_ryt` per frame), one walk file per start variant
+    (`PoleStartT.avars`; `PoleSlowT` … `PoleTopT2`), row `PoleRowT.pole_rowT`. The frame
+    world carries `AnimWorld.anim_w` (a logged strengthening: every proved row keeps it via
+    `AnimKeep.anim_w_keep`, StartSat establishes it; the flank specs and the open
+    `Hseg_call_na` / `Hseg_any` now claim it). Old `PoleRow.pole_row` and the walks
+    PoleSlow/Fast/Hold/Climb are retired. Walker trap: a clamped polePos folds
+    oPosY + 720.0f to a constant, so `PoleClass.tb` has a constant + offset case.
   - (`wmotr_gap` and `wmotr_poles` are now proved from generated level data, `WMotRLevel.v`)
   - the flank specs (TRUST 0.7)
 

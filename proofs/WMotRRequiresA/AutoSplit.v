@@ -34,6 +34,7 @@ From SM64.Proofs Require Import NoAImpliesNoFlyLinked.
 From SM64.Proofs Require Import HeightInvariant HeightMoveCatalog WMotRLevel WMotRWorld
   NoAActions FrameCalls FrameSplit.
 From SM64.Proofs.WMotRRequiresA Require Import FloorExec FfWorld AirSplit.
+From SM64.Proofs.WMotRRequiresA Require AnimWorld AnimKeep.
 From SM64.Proofs Require Import Generic.ClosedMem.
 Import ListNotations.
 
@@ -461,15 +462,44 @@ Section AutSplitS.
       - intros mb mo Hl i Hi. apply LQb. exact (Hmbm mb mo Hl).
     Qed.
 
+    (* the animation world: the store is in Mario's state, away from its cells *)
+    Lemma qsd_anim_w : ffw ge bm m -> AnimWorld.anim_w ge bm m -> AnimWorld.anim_w ge bm m'.
+    Proof.
+      intros Hf AW. pose proof Hf as (Hgn & EX & FD).
+      destruct (ffw_apart m Hf) as (Ao & _ & _).
+      destruct EX as (gp & bfi & bmiss & bcalls & bsin & ab & biom & bmq & brm & blk & bpc & bsr & bsrc & bsms & bo & oo & bt & ot
+                      & fl & ar & inp & ctl & HC & HS & HM & S1 & S2 & S3 & S4 & S5 & S6 & S7 & S8 & SL & SP & SR & SRC & SMS
+                      & Lo & Soo & La & Lb & Sot & D1 & D2 & D3 & D4 & W & _).
+      pose proof AW as (ab' & bga & bauc & btab & otab & bt' & ot' & mb' & mo' & B & _).
+      pose proof B as (Sab & _ & _ & _ & L8 & _ & Sy & _ & _ & _ & _ & _ & _ & _ & _ & _ & _ & _ & _ & _ & Hbm0).
+      assert (ab' = ab) by congruence. subst ab'.
+      rewrite Lb in L8. injection L8 as <- <-.
+      assert (Nab : ab <> bm) by exact (AnimKeep.symne_ids ge _ _ _ _ S5 Hbm0 eq_refl).
+      apply (AnimKeep.anim_w_keep ge bm m m' gp bfi bmiss bcalls ab biom bmq brm blk bpc bsr bsrc bsms bo oo bt ot
+               S1 S2 S3 S5 S6 S7 S8 SL SP SR SRC SMS Lo Lb W AW).
+      - rewrite (Mem.nextblock_store _ _ _ _ _ _ Hst). apply Ple_refl.
+      - intros b ofs k p _ Hp. exact (Mem.perm_store_1 _ _ _ _ _ _ Hst b ofs k p Hp).
+      - intros ch b z _ Hr. apply LQb. intros ->. apply Hr. exists Ptrofs.zero.
+        unfold ff_rl. cbn. left; reflexivity.
+      - lqm. reflexivity.
+      - apply LQb. exact Nab.
+      - apply LQb. exact Nab.
+      - lqm. reflexivity.
+      - lqm. reflexivity.
+      - right. split; [lqm; reflexivity |]. split; [apply LQb; exact Nab |]. split.
+        + intros o ch _. apply LQb. exact (Ao bo oo Lo).
+        + intros k rel ch v0 _ _. apply LQb. exact (not_eq_sym (proj2 (Sy _ _ Hbm0))).
+    Qed.
+
     Lemma qsd_fworld : fworld lp bm m -> fworld lp bm m'.
     Proof.
-      intros (Ha & Hw & Han & Hmo & Hd & Hf & Hu).
+      intros (Ha & Hw & Han & Hmo & Hd & Hf & Hu & Haw).
       split; [exact (qsd_action_sat _ Ha) |].
       split; [exact (qsd_world Hf Hw) |].
       split; [exact (qsd_anim Hf Han) |].
       split; [exact (qsd_mobj Hf Hmo) |].
       split; [rewrite (qsd_adown Hf); exact Hd |].
-      split; [exact (qsd_ffw Hf) | exact (qsd_used Hf Hu)].
+      split; [exact (qsd_ffw Hf) |]. split; [exact (qsd_used Hf Hu) | exact (qsd_anim_w Hf Haw)].
     Qed.
 
     Lemma qsd_mem_ok : mem_ok m -> mem_ok m'.

@@ -71,8 +71,8 @@ From SM64.Proofs Require SpawnBodies CameraBodies.
 From SM64.Proofs Require Import NoAImpliesNoFlyLinked NoAImpliesNoFlyTwelve.
 From SM64.Proofs Require Import FrameCalls FrameSplit AirSplit AutoSplit.
 From SM64.Proofs.WMotRRequiresA Require Import FfWorld FfRow AhwRow KbRow FpuFloor ExtInert.
-From SM64.Proofs.WMotRRequiresA Require PoleXc PoleRow LedgeRow CannonRow.
-From SM64.Proofs.WMotRRequiresA Require RenderFlank.
+From SM64.Proofs.WMotRRequiresA Require PoleXc PoleCasesT.
+From SM64.Proofs.WMotRRequiresA Require RenderFlank AnimWorld.
 From SM64.Proofs Require OsDmaFloor LptBody.
 From SM64.Proofs Require Import HeightInvariant HeightBudgetArith HeightMoveCatalog WMotRLevel
   WMotRWorld NoAActions.
@@ -516,7 +516,11 @@ Section HeightLinked12.
      cannon base.  Outside those actions it says nothing. *)
   Definition PhiW (m : mem) : Prop :=
     height_invariant bm R_noA m /\ wmotr_world bm m /\ anim_apart lp bm m /\ mobj_apart bm m
-    /\ ffw (lp_ge lp) bm m /\ used_ok bm m.
+    /\ ffw (lp_ge lp) bm m /\ used_ok bm m
+    (* the animation world (AnimWorld, 2026-10-23): the DMA table, gMarioAnims,
+       the buffer, and in a pole action after the grab the animation state --
+       what the real set_mario_animation reads on the pole *)
+    /\ AnimWorld.anim_w (lp_ge lp) bm m.
   Notation Phi := PhiW.
 
   (* LEVEL DATA -- now DEFINED from generated/ and PROVED (WMotRLevel.v):
@@ -621,12 +625,19 @@ Section HeightLinked12.
      cannon, Mario staying seated at y or at the seat oPosY + 350, with
      used_ok's cannon clause placing usedObj (cannon_pos_ok); the real
      act_climbing_pole walked with the pole kit, its climb polePos +
-     stickY / 8.0f made finite by the path's find_ceil cast);
-     2 cases stay assumed, below. *)
-  (* the two cases still assumed: TOP_OF_POLE_TRANSITION and TOP_OF_POLE
-     (the anim frame >= -1 is advanced by the unlinked rendering code:
-     TRUST 0.8(f)(3)) *)
-  Hypothesis Hauto_rest : CannonRow.aut_case_rest_top lp bm MWF.
+     stickY / 8.0f made finite by the path's find_ceil cast).
+     Since 2026-10-23 ALL TWELVE cases are PROVED (PoleCasesT.
+     aut_case_rows_T): the six pole actions are re-walked with Mario's REAL
+     animation data (PoleRunT: set_mario_animation inline, the DMA table and
+     gMarioAnims read, return_mario_anim_y_translation walked per frame), so
+     TOP_OF_POLE_TRANSITION and TOP_OF_POLE -- whose set_pole_position adds
+     the handstand animation's y translation -- are proved too; the frame
+     world carries the animation state (AnimWorld.anim_w, in Phi / fworld)
+     that those walks start from.  The premise this needs is below. *)
+  (* TRUST 0.8(f), APPROVED: the PI DMA copies the ROM bytes of
+     gMarioAnims into the animation buffer (OsDmaFloor.pi_dma_anim_spec;
+     it replaced the hypothesis Hauto_rest, the two top-of-pole cases) *)
+  Hypothesis Hdma_anim : OsDmaFloor.pi_dma_anim_spec.
   (* (find_ceil's height: formerly the open premise Hceil, which was FALSE
      as stated -- it allowed a dangling *pceil; now PROVED,
      CeilHeight.fc_height, from the walker's live-local pceil) *)
@@ -660,13 +671,10 @@ Section HeightLinked12.
   Hypothesis Hsqrtf : sqrtf_spec.
   Hypothesis Hsqrtf_float : sqrtf_float.
 
-  (* the automatic dispatcher's cases: the two grabs and two ledge cases proved, the rest assumed *)
+  (* the automatic dispatcher's cases: all twelve proved *)
   Lemma Hauto_case : aut_case_rows lp bm MWF.
   Proof.
-    exact (PoleRow.aut_case_rows_pole lp H12 Hdma_floor bm Hbm_sym MWF
-             (LedgeRow.aut_case_rest_pole_ledge lp H12 Hdma_floor bm Hbm_sym MWF
-                (LedgeRow.aut_case_rest_ledge_climb lp H12 Hdma_floor bm Hbm_sym MWF
-                   (CannonRow.aut_case_rest_climb_top lp H12 Hdma_floor bm Hbm_sym MWF Hauto_rest)))).
+    exact (PoleCasesT.aut_case_rows_T lp H12 Hdma_floor Hdma_anim bm Hbm_sym MWF).
   Qed.
 
   Lemma Hair_case : air_case_rows lp bm MWF.
@@ -747,9 +755,9 @@ Section HeightLinked12.
     mem_ok_lp bm MWF m -> Phi m -> a_down_real bm m = false ->
     read_cells bm m c -> FS lp bm MWF c m.
   Proof.
-    intros m c Hok ((Ha & _) & Hw & Han & Hmo & Hf & Hu) HD Hc.
+    intros m c Hok ((Ha & _) & Hw & Han & Hmo & Hf & Hu & Haw) HD Hc.
     split; [exact Hok |].
-    split; [exact (conj Ha (conj Hw (conj Han (conj Hmo (conj HD (conj Hf Hu)))))) |].
+    split; [exact (conj Ha (conj Hw (conj Han (conj Hmo (conj HD (conj Hf (conj Hu Haw))))))) |].
     exists c. split; [exact Hc | apply Relation_Operators.rt_refl].
   Qed.
 
@@ -767,12 +775,12 @@ Section HeightLinked12.
     forall m m', mem_ok_lp bm MWF m -> Phi m -> a_down_real bm m = false ->
                  execute_mario_action_step_lp lp m m' ->
                  wmotr_world bm m' /\ anim_apart lp bm m' /\ mobj_apart bm m'
-                 /\ ffw (lp_ge lp) bm m' /\ used_ok bm m'.
+                 /\ ffw (lp_ge lp) bm m' /\ used_ok bm m' /\ AnimWorld.anim_w (lp_ge lp) bm m'.
   Proof.
     intros m m' Hok Hphi HD Hst. pose proof Hphi as ((_ & c & Hc & Hb) & _).
     destruct (frame_FS c m m' Hb (frame_FS_start m c Hok Hphi HD Hc) Hst)
-      as (_ & (_ & Hw & Han & Hmo & _ & Hf & Hu) & _).
-    exact (conj Hw (conj Han (conj Hmo (conj Hf Hu)))).
+      as (_ & (_ & Hw & Han & Hmo & _ & Hf & Hu & Haw) & _).
+    exact (conj Hw (conj Han (conj Hmo (conj Hf (conj Hu Haw))))).
   Qed.
 
   Lemma Hframe_is_move_chain :

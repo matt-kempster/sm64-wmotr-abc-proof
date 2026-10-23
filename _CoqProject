@@ -362,17 +362,33 @@ proofs/WMotRRequiresA/FfWorld.v
 proofs/WMotRRequiresA/FfRow.v
 proofs/WMotRRequiresA/AhwRow.v
 proofs/WMotRRequiresA/KbRow.v
-# GOAL 2 pole cases of the automatic dispatcher (grab_pole_slow / _fast)
+# GOAL 2 pole cases of the automatic dispatcher (the six pole actions, real animation data)
+proofs/WMotRRequiresA/AnimData.v
+proofs/WMotRRequiresA/AnimWorld.v
+proofs/WMotRRequiresA/DmaContent.v
+proofs/WMotRRequiresA/DmaXc.v
+proofs/WMotRRequiresA/RytXc.v
+proofs/WMotRRequiresA/AnimEnd.v
+proofs/WMotRRequiresA/AnimKeep.v
 proofs/WMotRRequiresA/PoleXc.v
 proofs/WMotRRequiresA/PoleFloat.v
 proofs/WMotRRequiresA/PoleClass.v
 proofs/WMotRRequiresA/PoleKeep.v
 proofs/WMotRRequiresA/PoleSound.v
 proofs/WMotRRequiresA/PoleRun.v
-proofs/WMotRRequiresA/PoleSlow.v
-proofs/WMotRRequiresA/PoleFast.v
-proofs/WMotRRequiresA/PoleHold.v
+proofs/WMotRRequiresA/PoleRunT.v
+proofs/WMotRRequiresA/PoleStartT.v
+proofs/WMotRRequiresA/PoleSlowT.v
+proofs/WMotRRequiresA/PoleFastT.v
+proofs/WMotRRequiresA/PoleHoldT.v
+proofs/WMotRRequiresA/PoleClimbT.v
+proofs/WMotRRequiresA/PoleTrT1.v
+proofs/WMotRRequiresA/PoleTrT2.v
+proofs/WMotRRequiresA/PoleTrT3.v
+proofs/WMotRRequiresA/PoleTopT1.v
+proofs/WMotRRequiresA/PoleTopT2.v
 proofs/WMotRRequiresA/PoleRow.v
+proofs/WMotRRequiresA/PoleRowT.v
 proofs/WMotRRequiresA/LedgeClass.v
 proofs/WMotRRequiresA/LedgeRun.v
 proofs/WMotRRequiresA/LedgeGrab.v
@@ -384,8 +400,8 @@ proofs/WMotRRequiresA/LedgeRow.v
 proofs/WMotRRequiresA/CannonClass.v
 proofs/WMotRRequiresA/CannonRun.v
 proofs/WMotRRequiresA/CannonWalk.v
-proofs/WMotRRequiresA/PoleClimb.v
 proofs/WMotRRequiresA/CannonRow.v
+proofs/WMotRRequiresA/PoleCasesT.v
 proofs/Interp/MemBuild.v
 proofs/Interp/InterpFrame.v
 proofs/Interp/InitMemC.v
