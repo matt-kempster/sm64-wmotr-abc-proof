@@ -34,7 +34,7 @@ From SM64.Generated Require mario mario_actions_stationary
   mario_actions_moving mario_actions_airborne mario_actions_submerged
   mario_actions_cutscene mario_actions_automatic mario_actions_object
   interaction behavior_actions level_update mario_step surface_collision
-  math_util camera audio_external sound_init.
+  math_util camera audio_external sound_init print.
 From SM64.Proofs Require Import SymbolicLinking Flying Taint
   ActionValueFrame RealFrameValue RealFrameLinked AGates.
 From SM64.Proofs Require Import CensusV2 EngineV2Consumer.
@@ -68,7 +68,7 @@ Definition lifted_ids : list ident :=
     mario._find_ceil; mario._find_poison_gas_level; mario._find_water_level;
     mario._vec3f_set; mario._vec3f_copy; mario._vec3s_copy; mario._atan2s;
     mario._set_camera_mode; mario._stop_cap_music; mario._fadeout_cap_music;
-    mario._play_sound ].
+    mario._play_sound; mario._print_text_fmt_int ].
 
 Definition exempt_ext_ids : list ident :=
   filter (fun i => negb (mem_id i lifted_ids)) exempt_callees.
@@ -182,6 +182,19 @@ Lemma sinit_defmap_pism :
     = Some (Gfun (Internal sound_init.f_play_infinite_stairs_music)).
 Proof. vm_compute. reflexivity. Qed.
 
+(* THE PRINT LINK (2026-10-23): game/print.c is the 42nd TU, so
+   print_text_fmt_int (mario.c's debug_print_speed_action_normal) leaves the
+   negative pin and is pinned to its real body (LO_print).  Its residual is
+   the gated body_pres_w (CensusV2.T_ptfi: x, y, n not pointers), proved in
+   PrintBodies.v from the real Clight.  The only whitelist id still
+   External is sqrtf, the FPU floor. *)
+Lemma print_defmap_ptfi :
+  (prog_defmap print.prog) ! mario._print_text_fmt_int
+    = Some (Gfun (Internal print.f_print_text_fmt_int)).
+Proof. vm_compute. reflexivity. Qed.
+Lemma print_ptfi_type : type_of_fundef (Internal print.f_print_text_fmt_int) = T_ptfi.
+Proof. reflexivity. Qed.
+
 (* the gate at the two signatures vfc_pres needs *)
 Lemma find_ceil_type : type_of_fundef (Internal surface_collision.f_find_ceil) = T_ffc.
 Proof. reflexivity. Qed.
@@ -269,6 +282,7 @@ Section RestSurface.
   Hypothesis LO_camera : linkorder camera.prog lp.
   Hypothesis LO_audio : linkorder audio_external.prog lp.
   Hypothesis LO_sinit : linkorder sound_init.prog lp.
+  Hypothesis LO_print : linkorder print.prog lp.
 
   (* ---- the negative pin: the whitelisted runtime symbols left (sqrtf and
      print_text_fmt_int since the audio link, 2026-10-23) have NO Internal
@@ -328,7 +342,8 @@ Section RestSurface.
       f = sound_init.f_stop_cap_music \/
       f = sound_init.f_fadeout_cap_music \/
       f = audio_external.f_play_sound \/
-      f = sound_init.f_play_infinite_stairs_music.
+      f = sound_init.f_play_infinite_stairs_music \/
+      f = print.f_print_text_fmt_int.
   Proof.
     intros f (fid & Hmem & Hres).
     destruct Hmem as [Hex | [Hroot | Hmptr]].
@@ -367,6 +382,8 @@ Section RestSurface.
           eapply resolves_pin; [ exact LO_sinit | exact sinit_defmap_fcm | exact Hres ].
         * do 25 right; left.
           eapply resolves_pin; [ exact LO_audio | exact audio_defmap_ps | exact Hres ].
+        * do 27 right.
+          eapply resolves_pin; [ exact LO_print | exact print_defmap_ptfi | exact Hres ].
       + exfalso. exact (Hrest_ext_only fid f Hex' Hres).
     - (* the root's residual callees: 11 pinned bodies (incl. the music helper) *)
       unfold mem_id, root_residual_callees in Hroot.
@@ -394,7 +411,7 @@ Section RestSurface.
       + do 9 right; left.
         eapply resolves_pin; [ exact LO_beh | | exact Hres ]; vm_compute; reflexivity.
       + (* play_infinite_stairs_music: its real sound_init.c body *)
-        do 26 right.
+        do 26 right; left.
         eapply resolves_pin; [ exact LO_sinit | exact sinit_defmap_pism | exact Hres ].
     - (* the two MarioState*-taking externals of mario.prog *)
       unfold mem_id, mptr_external_callees in Hmptr.
@@ -423,15 +440,14 @@ Section RestSurface.
     rewrite Hff in Hff'. discriminate Hff'.
   Qed.
 
-  (* THE EXTERNAL CASE SPLIT (2026-10-23, the audio link): a rest symbol's
-     External resolution is one of the two truly external whitelist ids,
-     sqrtf (the FPU floor) and print_text_fmt_int (print.c, debug text):
-     every other rest id is defined by a linked TU *)
+  (* THE EXTERNAL CASE SPLIT (2026-10-23, the audio link; narrowed by the
+     print link the same day): a rest symbol's External resolution is the
+     one truly external whitelist id, sqrtf (the FPU floor): every other
+     rest id -- print_text_fmt_int included -- is defined by a linked TU *)
   Lemma rest_external_cases :
     forall ef targs tres cc,
       rest_fd lp (External ef targs tres cc) ->
-      resolves_lp lp mario._sqrtf (External ef targs tres cc) \/
-      resolves_lp lp mario._print_text_fmt_int (External ef targs tres cc).
+      resolves_lp lp mario._sqrtf (External ef targs tres cc).
   Proof.
     intros ef targs tres cc (fid & Hmem & Hres).
     destruct Hmem as [Hex | [Hroot | Hmptr]].
@@ -454,11 +470,11 @@ Section RestSurface.
         * exact (resolves_pin_ext _ _ _ _ _ _ _ LO_sinit sinit_defmap_scm Hres).
         * exact (resolves_pin_ext _ _ _ _ _ _ _ LO_sinit sinit_defmap_fcm Hres).
         * exact (resolves_pin_ext _ _ _ _ _ _ _ LO_audio audio_defmap_ps Hres).
-      + assert (Hx : exempt_ext_ids = [mario._sqrtf; mario._print_text_fmt_int])
+        * exact (resolves_pin_ext _ _ _ _ _ _ _ LO_print print_defmap_ptfi Hres).
+      + assert (Hx : exempt_ext_ids = [mario._sqrtf])
           by (vm_compute; reflexivity).
         rewrite Hx in Hex'. unfold mem_id in Hex'. cbn [existsb] in Hex'.
-        apply orb_true_iff in Hex' as [H | Hex']; [ apply Pos.eqb_eq in H; subst fid; left; exact Hres | ].
-        apply orb_true_iff in Hex' as [H | Hex']; [ apply Pos.eqb_eq in H; subst fid; right; exact Hres | ].
+        apply orb_true_iff in Hex' as [H | Hex']; [ apply Pos.eqb_eq in H; subst fid; exact Hres | ].
         discriminate Hex'.
     - exfalso.
       unfold mem_id, root_residual_callees in Hroot.
@@ -614,6 +630,7 @@ Section RestSurface.
       body_pres_w MWF bm SafeB sound_init.f_fadeout_cap_music ->
       body_pres_w MWF bm SafeB audio_external.f_play_sound ->
       body_pres_w MWF bm SafeB sound_init.f_play_infinite_stairs_music ->
+      body_pres_w MWF bm SafeB print.f_print_text_fmt_int ->
       forall m f vargs t m' vres,
         rest_fd lp (Internal f) ->
         (marg_exempt (Internal f) = false -> marg_ok bm vargs) ->
@@ -626,12 +643,12 @@ Section RestSurface.
   Proof.
     intros NoA MWF bm SafeB Hsta Hmov Hair Hsub Hcut Haut Hobj Hflo Hint Hwnd Hwrp Hvfc
            Hffwc Hff Hfc Hfp Hfw Hv3fset Hv3fcopy Hv3scopy Hatan2s Hscm
-           Hstcm Hfcm Hps Hpism
+           Hstcm Hfcm Hps Hpism Hptfi
            m f vargs t m' vres Hrest Hmarg Hsargs Hgate Hevf Hno Hmwf Hv Hsat.
     destruct (rest_internal_cases f Hrest) as
       [-> | [-> | [-> | [-> | [-> | [-> | [-> | [-> | [-> | [-> | [-> | [-> |
        [-> | [-> | [-> | [-> | [-> | [-> | [-> | [-> | [-> | [-> |
-       [-> | [-> | [-> | [-> | ->]]]]]]]]]]]]]]]]]]]]]]]]]].
+       [-> | [-> | [-> | [-> | [-> | ->]]]]]]]]]]]]]]]]]]]]]]]]]]].
     - exact (Hsta m vargs t m' vres Hmarg Hevf Hno Hmwf Hv Hsat).
     - exact (Hmov m vargs t m' vres Hmarg Hevf Hno Hmwf Hv Hsat).
     - exact (Hair m vargs t m' vres Hmarg Hevf Hno Hmwf Hv Hsat).
@@ -660,6 +677,7 @@ Section RestSurface.
     - exact (Hfcm m vargs t m' vres Hgate Hevf Hmwf Hv Hsat).
     - exact (Hps m vargs t m' vres Hgate Hevf Hmwf Hv Hsat).
     - exact (Hpism m vargs t m' vres Hgate Hevf Hmwf Hv Hsat).
+    - exact (Hptfi m vargs t m' vres Hgate Hevf Hmwf Hv Hsat).
   Qed.
 
   (* resolves_pin, fd-general: under a pin, ANY resolution of the symbol

@@ -39,7 +39,7 @@ From compcert Require Import Coqlib Maps AST Integers Values Events Memory
   Globalenvs Ctypes Cop Clightdefs Clight ClightBigstep Linking Errors.
 From SM64.Generated Require surface_collision math_util memory save_file area
   libultra_osSiCreateAccessQueue libultra_osContInit libultra_osEepromWrite
-  audio_external.
+  audio_external print.
 From SM64.Generated Require mario level_update mario_step mario_actions_submerged
   mario_actions_cutscene behavior_actions interaction graph_node spawn_object
   object_helpers.
@@ -1040,9 +1040,22 @@ Definition spawn_bhv_syms : list ident :=
     :: mario_actions_cutscene._bhvEndPeach
     :: mario_actions_cutscene._bhvEndToad :: nil.
 
+(* print.c's text-label storage (linked 2026-10-23): print_text_fmt_int
+   allocates a label from the effects pool (memory.c's gEffectsMemoryPool,
+   through the real mem_pool_alloc, whose free list it rewrites) and stores
+   it into sTextLabels[sTextLabelsCount].  Every store the print tree makes
+   goes through a pointer read out of these globals, so they are SafeB
+   blocks: MWF's load closure R7 then keeps the pool header, its free list
+   and every label in SafeB, which is never Mario's block.  This is the
+   spawn_safe_syms precedent (gFreeObjectList is the object pool's free
+   list).  In the real game the pool lives in the main pool, far from the
+   static gMarioStates; at boot both globals are zero (BSS). *)
+Definition print_safe_syms : list ident :=
+  memory._gEffectsMemoryPool :: print._sTextLabels :: print._sTextLabelsCount :: nil.
+
 Definition safe_ptr_syms : list ident :=
   mario_actions_cutscene._gCurrentObject :: gobj_syms ++ bhv_held_syms
-    ++ spawn_safe_syms ++ spawn_bhv_syms.
+    ++ spawn_safe_syms ++ spawn_bhv_syms ++ print_safe_syms.
 
 (* the two spawn entry points whose rows are argument-gated (2026-10-21,
    SpawnBodies.v): every argument SafeB-if-pointer *)
@@ -1185,6 +1198,20 @@ Definition T_vfc : type :=
 Definition T_scm : type :=
   Tfunction (tptr (Tstruct mario._Camera noattr) :: tshort :: tshort :: nil) tvoid cc_default.
 
+(* print_text_fmt_int(s32 x, s32 y, const char *str, s32 n) (print.c, linked
+   2026-10-23): it stores x and y into the fields of a text label it
+   allocates from gEffectsMemoryPool (a SafeB pool object), and n only feeds
+   digit arithmetic.  On the 32-bit target an s32 parameter can carry a
+   pointer (ptr32 i2i casts pass a Vptr through), and a pointer x stored
+   into a SafeB label breaks MWF's load closure R7, so the body's residual
+   is FALSE for any-argument calls.  Gate: x, y and n are not pointers --
+   true at every real call site (mario.c:1241-1246: constants, a
+   float-to-int cast, m->action & ACT_ID_MASK). *)
+Definition T_ptfi : type :=
+  Tfunction (tint :: tint :: tptr tuchar :: tint :: nil) tvoid cc_default.
+
+Definition nptr (v : val) : Prop := forall b o, v <> Vptr b o.
+
 (* a pointer argument lands n window bytes into Mario's block.  It IS a
    pointer: every accepted argument shape evaluates to one, and a cast to a
    pointer parameter keeps it (sem_cast_vptr_ptr), so the body's out-param
@@ -1210,7 +1237,54 @@ Definition wgate (bm : block) (SafeB : block -> Prop) (ty : type)
   (* osafe at size 0: no window is 0-store-safe, so this says "a SafeB
      block, if a pointer" *)
   else if type_eq ty T_scm then osafe bm SafeB 0 (nth 0 vargs Vundef)
+  else if type_eq ty T_ptfi then
+    nptr (nth 0 vargs Vundef) /\ nptr (nth 1 vargs Vundef) /\ nptr (nth 3 vargs Vundef)
   else True.
+
+(* a call argument whose value, cast to an s32 parameter, is never a
+   pointer: an int constant, an `&` (sem_and), or a float-typed expression
+   (a float-to-int cast is f2i / s2i: Vint or stuck) *)
+Definition np_arg (a : expr) : bool :=
+  match a with
+  | Econst_int _ _ => true
+  | Ebinop Oand _ _ _ => true
+  | _ => match typeof a with Tfloat _ _ => true | _ => false end
+  end.
+
+Lemma np_arg_cases : forall a, np_arg a = true ->
+  (exists i t, a = Econst_int i t) \/ (exists a1 a2 t, a = Ebinop Oand a1 a2 t)
+  \/ (exists fs at0, typeof a = Tfloat fs at0).
+Proof.
+  intros a H.
+  destruct a as [ i t | | | | | | | | | op a1 a2 t | | | | ];
+    try (left; do 2 eexists; reflexivity);
+    try (destruct op; try (right; left; do 3 eexists; reflexivity));
+    right; right; cbn [np_arg typeof] in H |- *;
+    match type of H with
+    | (match ?t with _ => _ end) = true =>
+        destruct t as [ | | | fs at0 | | | | | ]; try discriminate H; do 2 eexists; reflexivity
+    end.
+Qed.
+
+Lemma sem_and_nptr : forall v1 t1 v2 t2 m v,
+    sem_and v1 t1 v2 t2 m = Some v -> nptr v.
+Proof.
+  intros v1 t1 v2 t2 m v H b o ->.
+  unfold sem_and, sem_binarith in H. cbv zeta in H.
+  destruct (sem_cast v1 t1 _ m) as [v1'|]; [ | discriminate H ].
+  destruct (sem_cast v2 t2 _ m) as [v2'|]; [ | discriminate H ].
+  destruct (classify_binarith t1 t2); destruct v1'; destruct v2'; discriminate H.
+Qed.
+
+Lemma sem_cast_float_nptr : forall v fs at0 sz sg at1 m w,
+    sem_cast v (Tfloat fs at0) (Tint sz sg at1) m = Some w -> sz <> IBool -> nptr w.
+Proof.
+  intros v fs at0 sz sg at1 m w H Hb b o ->.
+  unfold sem_cast, classify_cast in H.
+  destruct (intsize_eq sz IBool) as [E | _]; [ exact (Hb E) | ].
+  destruct fs; destruct v; try discriminate H;
+    match goal with H : match ?x with _ => _ end = _ |- _ => destruct x; discriminate H end.
+Qed.
 
 (* m->fld (the lvalue), at its mario.prog field offset *)
 Definition mfield_lv (mptr : ident) (a : expr) : option Z :=
@@ -1270,6 +1344,8 @@ Definition wargs_chk (bc : body_census) (ty : type) (al : list expr) : bool :=
     win_ptr_chk (bc_mptr bc) 6 (arg 0%nat) || safe_ptr_chk bc (arg 0%nat)
   else if type_eq ty T_vfc then win_ptr_chk (bc_mptr bc) 4 (arg 2%nat)
   else if type_eq ty T_scm then safe_ptr_chk bc (arg 0%nat)
+  else if type_eq ty T_ptfi then
+    np_arg (arg 0%nat) && np_arg (arg 1%nat) && np_arg (arg 3%nat)
   else true.
 
 (* the writer signatures, as a decidable test: a call of any OTHER function
@@ -1278,7 +1354,7 @@ Definition is_wty (ty : type) : bool :=
   proj_sumbool (type_eq ty T_ffc) || proj_sumbool (type_eq ty T_f32w)
   || proj_sumbool (type_eq ty T_v3fcopy) || proj_sumbool (type_eq ty T_v3fset)
   || proj_sumbool (type_eq ty T_v3scopy) || proj_sumbool (type_eq ty T_vfc)
-  || proj_sumbool (type_eq ty T_scm).
+  || proj_sumbool (type_eq ty T_scm) || proj_sumbool (type_eq ty T_ptfi).
 
 (* a cast to a pointer type keeps a pointer unchanged (32-bit target) *)
 Lemma sem_cast_vptr_ptr : forall b o ty1 t ta m v,
@@ -1322,6 +1398,7 @@ Proof.
   destruct (type_eq ty T_v3scopy); [ discriminate H | ].
   destruct (type_eq ty T_vfc); [ discriminate H | ].
   destruct (type_eq ty T_scm); [ discriminate H | ].
+  destruct (type_eq ty T_ptfi); [ discriminate H | ].
   exact I.
 Qed.
 
@@ -2233,6 +2310,36 @@ Section CensusLeavesLp.
         exact (Hch t Hs b o0 Hlk).
   Qed.
 
+  (* an np_arg argument of an s32 parameter slot is never a pointer *)
+  Lemma arg_nptr :
+    forall e le m al tyargs vargs k,
+      eval_exprlist (lp_ge lp) e le m al tyargs vargs ->
+      nth_error tyargs k = Some tint ->
+      np_arg (nth k al (Econst_int Int.zero tint)) = true ->
+      nptr (nth k vargs Vundef).
+  Proof.
+    intros e le m al tyargs vargs k Hel Hk Hc.
+    destruct (nth_error al k) as [a |] eqn:Hna.
+    - destruct (exprlist_nth_val2 _ _ _ _ _ _ _ Hel k a Hna)
+        as (v0 & ty0 & Hty0 & Hev & Hcast).
+      rewrite Hk in Hty0. injection Hty0 as <-.
+      rewrite (nth_error_nth _ _ _ Hna) in Hc.
+      destruct (np_arg_cases a Hc) as [ (i & t & ->) | [ (a1 & a2 & t & ->) | (fs & at0 & Ht) ] ].
+      + inv Hev; [ | match goal with H : eval_lvalue _ _ _ _ _ _ _ _ |- _ => inv H end ].
+        intros b o Ev. rewrite Ev in Hcast.
+        exact (sem_cast_vint_nonptr _ _ _ _ _ Hcast b o eq_refl).
+      + inv Hev; [ | match goal with H : eval_lvalue _ _ _ _ _ _ _ _ |- _ => inv H end ].
+        intros b o Ev. rewrite Ev in Hcast.
+        apply sem_cast_vptr_inv in Hcast. subst v0.
+        match goal with Hs : sem_binary_operation _ Oand _ _ _ _ _ = Some _ |- _ =>
+          cbn [sem_binary_operation] in Hs; exact (sem_and_nptr _ _ _ _ _ _ Hs b o eq_refl) end.
+      + rewrite Ht in Hcast. eapply sem_cast_float_nptr; [ exact Hcast | discriminate ].
+    - exfalso.
+      assert (Hlen : length al = length tyargs) by (clear -Hel; induction Hel; cbn; lia).
+      apply nth_error_None in Hna. rewrite Hlen in Hna.
+      apply nth_error_None in Hna. congruence.
+  Qed.
+
   Lemma wargs_chk_sound :
     forall Q bm SafeB bc e le m ty al tyargs tyres cc vargs,
       TI_of Q bm SafeB bc e le ->
@@ -2265,7 +2372,10 @@ Section CensusLeavesLp.
       eapply arg_owin; [ eauto | eauto | apply Hp; intros ty0 E; cbn in E; injection E as <-; exact I | exact Hc ]. }
     destruct (type_eq ty T_scm).
     { eapply arg_osafe; [ eauto | eauto | apply orb_true_iff; right; exact Hc ]. }
-    exact I.
+    destruct (type_eq ty T_ptfi) as [Ety |]; [ | exact I ].
+    rewrite Ety in Hty. unfold T_ptfi in Hty. injection Hty as <- _ _.
+    repeat (apply andb_true_iff in Hc; destruct Hc as [Hc ?]).
+    refine (conj _ (conj _ _)); (eapply arg_nptr; [ eauto | reflexivity | eauto ]).
   Qed.
 
   Lemma chk_call_gate :

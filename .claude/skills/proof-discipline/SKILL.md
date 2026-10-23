@@ -85,8 +85,11 @@ all in `Unwired/`, and the theorem moved nowhere. See
   `sqrtf` (from `Hsq`) and `set_camera_shake_from_hit` left `obj_ext_open2_ids`, `random_float`
   (behavior_script.c, unlinked; the shake's SHAKE_SHOCK arm) joined it. `Hext_action` /
   `Hmwf_ext` are lemmas over `Hext_action_ns` / `Hmwf_ext_ns` (sqrtf excluded, from `Hsq`);
-  since 2026-10-23 those are lemmas too, over `Hext_action_ptfi` / `Hmwf_ext_ptfi`
-  (`print_text_fmt_int` alone, `RestSurface.rest_external_cases`).
+  since 2026-10-23 those are lemmas too, first over `Hext_action_ptfi` / `Hmwf_ext_ptfi`
+  (`print_text_fmt_int` alone, `RestSurface.rest_external_cases`), and since the PRINT LINK
+  (print.c = 42nd TU, `PrintBodies`) over nothing: the ptfi rows are gone, GOAL 1 15 -> 13,
+  HeightFrame 24 -> 22. FOUND FALSE first (any-argument / any-pool body); restated with the
+  `T_ptfi` gate (x, y, n not pointers) and `CensusV2.print_safe_syms` in `safe_ptr_syms`.
   `Hcsp_scm_real` DERIVED from `Hscm_body_real` (cs_gate arg0 = wgate T_scm arm; NoA from MWF):
   GOAL 1 16 -> 15, HeightFrame -1 more.
   Still open camera row `Hscm_body_real`: set_camera_mode calls through the
@@ -126,7 +129,7 @@ all in `Unwired/`, and the theorem moved nowhere. See
     call is dead in WMotR, so gate it on the wind branch.
   - GOAL 2 `Hauto_rest` at TOP_OF_POLE*: phantom anim buffer, offset up to +8191. FALSE as
     stated.
-  - `Hext_action_ns` / `Hmwf_ext_ns`: `print_text_fmt_int`'s `gEffectsMemoryPool` is
+  - RESOLVED 2026-10-23 (print link, FALSE + repaired): `Hext_action_ns` / `Hmwf_ext_ns`: `print_text_fmt_int`'s `gEffectsMemoryPool` was
     unconstrained.
   - On linking audio: `play_sound` stores `pos` (R7), so gate it first. On linking
     `obj_behaviors.c`: `spawn_default_star`'s `bhvStarSpawnCoordinates` is not in `safe_ptr_syms`.

@@ -1135,7 +1135,7 @@ link grows.
 
 | # | Item | Status / notes |
 |---|---|---|
-| 4.1 | Functions outside the 41 linked files (31 game TUs incl. `camera.c`, `ingame_menu.c`, `debug_course.c`, `audio/external.c`, `sound_init.c` + `behavior_data.c` + WMotR's level data + 6 libultra TUs; the audio thread, rendering) behave as the capstone's rows say (`Hocp_*`, `Hpres_*`, `Hext_*`, …) | **ASSUMED, the ~30 project rows.** Shrinks by linking more files until only truly external things remain. Details: [row 4.1 in detail](#row-41-in-detail). |
+| 4.1 | Functions outside the 42 linked files (32 game TUs incl. `camera.c`, `ingame_menu.c`, `debug_course.c`, `audio/external.c`, `sound_init.c`, `print.c` + `behavior_data.c` + WMotR's level data + 6 libultra TUs; the audio thread, rendering) behave as the capstone's rows say (`Hocp_*`, `Hpres_*`, `Hext_*`, …) | **ASSUMED, the ~30 project rows.** Shrinks by linking more files until only truly external things remain. Details: [row 4.1 in detail](#row-41-in-detail). |
 | 4.2 | CompCert's `external_functions_sem` is an abstract Parameter. Anything left external is constrained *only* by our rows | Permanent for whatever stays external. The goal is that nothing game-logic stays external. |
 | 4.3 | Level data (WMotR collision triangles, object placements, the red-coin positions) is what the ROM contains | **Collision and macro data in the link (2026-10-22, TU 34).** `pipeline/tu/wmotr_level_data.c` includes the vendor `levels/wmotr/areas/1/collision.inc.c` / `macro.inc.c` verbatim, under `leveldata.c`'s `make_const_nonconst.h`. So the data is the decomp's, but that the decomp's `.inc.c` matches the ROM bytes is the decomp's build check (2.1), not ours. Object placements beyond collision (`script.c`) and the red-coin positions are not yet in. |
 | 4.4 | The proof's internal vocabulary (`MWF_real`, `SafeB`, `call_pres_ext_*`) appears in the *statement's* hypotheses | Anti-goal: a reader shouldn't have to understand proof internals to know what's assumed. Rows must eventually be about the game, or be gone. |
@@ -1242,9 +1242,20 @@ link grows.
     `play_infinite_stairs_music` left `Hrest_ext_only`; all four are pinned rest cases whose body
     residuals the twelve-TU capstone proves (`Hps_body_real` etc.).
   - **`Hext_action_ns` / `Hmwf_ext_ns` are lemmas.** `RestSurface.rest_external_cases` proves that a
-    reached External resolves `sqrtf` or `print_text_fmt_int` (every other rest id is defined by a
-    linked TU), and sqrtf is the FPU floor. The remaining rows `Hext_action_ptfi` / `Hmwf_ext_ptfi`
-    name print.c's `print_text_fmt_int` alone (out of scope: rendering).
+    reached External resolves `sqrtf` (every other rest id is defined by a linked TU), and sqrtf
+    is the FPU floor.
+  - **THE PRINT LINK (2026-10-23): `Hext_action_ptfi` / `Hmwf_ext_ptfi` are GONE (both
+    capstones).** `game/print.c` is the 42nd TU, so `print_text_fmt_int` is a pinned rest case
+    (`RestSurface.lifted_ids`) whose gated body residual is PROVED from the real body together
+    with `memory.c`'s `mem_pool_alloc` (`PrintBodies.Hptfi_body_proved`, a class walker: every
+    store lands in a SafeB pool block or a fresh stack local). FOUND FALSE first: the rows'
+    any-argument / any-pool form. `label->x = x` stores the argument into the pool label, so a
+    pointer `x` breaks R7, and with the pool globals outside SafeB nothing keeps the free-list chase
+    off Mario's block. RESTATED: the call gate `CensusV2.T_ptfi` (x, y, n not pointers; discharged
+    at mario.c's three call sites by `wargs_chk`) and `gEffectsMemoryPool`, `sTextLabels`,
+    `sTextLabelsCount` joined `safe_ptr_syms` (`CensusV2.print_safe_syms`; `SafeB_boot` already
+    contains them, so the boot witness is unchanged). No new trust row; no BSS completion was needed
+    (`tools/size0_globals.py`: print.c's size-0 HUD externs are class (b), unreached).
   - **New labeled open AUDIO premise `Hls` (both capstones): `load_sequence`** (audio/load.c, not
     linked: the sequence DMA into the audio heap) keeps the carried facts (`call_pres_ext`). The
     music-starting bodies (`play_infinite_stairs_music`, `stop_cap_music`, the cap/shell music
@@ -1888,7 +1899,7 @@ result, the real declaration in every TU; no new trust); `BootRun` / `TerrainRun
 | `Hsss`, `Hpres_sta_ext` | SURVIVED | the C bodies write `audio/external.c` statics only; `stop_sound` compares `pos`, never stores it |
 | `Hpres_obj_ext_open2`, `Hpres_cut_ext_open2`, `Hpres_warp_ext_open` | SURVIVED in the model; SUSPECT on link | `play_sound` stores `pos` into `sSoundRequests[].position`. Once `external.c` is linked, an any-argument `pos` = `&gMarioStates` breaks R7 under `SafeB_boot` (as `spawn_object` did). Gate `pos` before linking audio. The dialog / music / RNG entries have scalar args and own statics |
 | `Hpres_floors_ext` | SUSPECT on link | `spawn_default_star` (`obj_behaviors.c`, generated, unlinked) spawns with `bhvStarSpawnCoordinates` (`spawn_star.inc.c:115`), which is not in `safe_ptr_syms`. For an admissible SafeB without that block, the real body breaks R7 |
-| `Hext_action_ns`, `Hmwf_ext_ns` | SUSPECT (phantom memory) | `print_text_fmt_int` takes its label from `mem_pool_alloc(gEffectsMemoryPool)`. `memory.c` is linked, and MWF says nothing about that pool. If the free list aims at Mario's block, the real body stores `x` into the action cell. Not refutable while `print.c` is opaque; true of the real game. Reached only under `gShowDebugText` |
+| `Hext_action_ns`, `Hmwf_ext_ns` (then `Hext_action_ptfi`, `Hmwf_ext_ptfi`) | **FALSE as stated (against the linked body), REPAIRED 2026-10-23** | `print_text_fmt_int` takes its label from `mem_pool_alloc(gEffectsMemoryPool)` and stores `x`, `y` into it. The External rows were not refutable in Coq (CompCert's `external_functions_sem` is opaque), but the real body (print.c, now linked) falsifies their any-argument / any-pool claim: a pointer `x` breaks R7, and an unconstrained pool chase can reach the action cell. Repaired: gate `T_ptfi` + print globals SafeB; the body is proved (`PrintBodies`), the rows are gone. Reached only under `gShowDebugText` |
 | run oracles `world_ok` x4, `sqrtf_ieee` | **REFUTED, REPAIRED** | R1 |
 | `rrc_inert` | SURVIVED | `Vundef` has every result type |
 | GOAL 2 `Hsqrtf`, `Hsqrtf_float`, `Haudio` | SURVIVED | restrictions; consistent with the repaired oracles |
