@@ -143,7 +143,7 @@ Theorem pole_rowT : forall m t m' vres c0,
   (fworld lp bm m' /\ exists c2, read_cells bm m' c2 /\ MoveChain wmotr_floor wmotr_pole wmotr_cannon c0 c2)
   /\ (vres = Vint Int.zero \/ fresh bm m').
 Proof.
-  intros m t m' vres c0 Vm (Ha & HW & Han & Hmob & Hd & FW & UO & AW) RC Hbud Hact Hfr EV.
+  intros m t m' vres c0 Vm (Ha & HW & Han & Hmob & Hd & FW & UO & AW & LV) RC Hbud Hact Hfr EV.
   pose proof FW as (Hgn & EX & FD).
   destruct EX as (gp & bfi & bmiss & bcalls & bsin & ab & biom & bmq & brm & blk & bpc & bsr & bsrc & bsms & bo & oo & bt & ot & fl & ar & inp & ctl &
                   HC & HS & HM & S1 & S2 & S3 & S4 & S5 & S6 & S7 & S8 & SL & SP & SR & SRC & SMS & Lo & Soo & La & Lb & Sot & D1 & D2 & D3 & D4 &
@@ -157,7 +157,7 @@ Proof.
   destruct (SymbolicLinking.linkorder_resolves_symbol lp AUT.prog _ _ (linked12_LO_aut lp H12) dm_lv)
     as (blv & Slv).
   (* ---- the animation world ---- *)
-  destruct AW as (ab' & bga & bauc & btab & otab & bt' & ot' & mb & mo & AB & ST).
+  pose proof AW as (ab' & bga & bauc & btab & otab & bt' & ot' & mb & mo & AB & ST).
   pose proof AB as (Sab & Sga & Sau & L0 & L8 & Lm & Sy & DA1 & DA2 & DA3 & DA4 & DA5 & Z1 & Z2 & Z3 & Pbt
                     & TOK & GA & TA & AC & _).
   assert (ab' = ab) by congruence. subst ab'.
@@ -235,7 +235,7 @@ Proof.
   pose proof (DS _ _ _ _ Slv S5 eq_refl) as NL5. pose proof (DS _ _ _ _ Slv S6 eq_refl) as NL6.
   pose proof (DS _ _ _ _ Slv S7 eq_refl) as NL7. pose proof (DS _ _ _ _ Slv S8 eq_refl) as NL8.
   assert (Slv' : Genv.find_symbol G mario._gCurrLevelNum = Some blv) by exact Slv.
-  destruct (D4 blv (or_intror (or_intror Slv'))) as (OL & TL).
+  destruct (D4 blv (or_intror (or_intror (or_introl Slv')))) as (OL & TL).
   destruct (D4 bau (or_intror (or_introl S9))) as (O9 & T9).
   pose proof (KbRow.sym_valid lp m _ _ Hgn SL) as VK.
   pose proof (DS _ _ _ _ SL Hbm eq_refl) as NK0. pose proof (DS _ _ _ _ SL S1 eq_refl) as NK1.
@@ -564,11 +564,6 @@ Proof.
     - unfold ast, E; eplT. apply STa. apply (avars_LR acn _ Hv). intros st N; discriminate N. }
   destruct (Hfin v Hv m gp GPO MCg FD E t m' vres c0 EO PC STv EV' ltac:(exact RC) IR0)
     as (E' & gs & X & MM & FK & NR & NTb & RT & AST & c2 & RC2 & RM2 & Hout & Hvy & Hk).
-  split; [| change (e_blk E RM) with bm in RT;
-            exact (fresh_ret_ns bm m m' vres acn Hact
-                     ltac:(destruct Hpa as [E0 | [E0 | [E0 | [E0 | [E0 | [E0 | []]]]]]]; rewrite <- E0; reflexivity)
-                     Hfr RT)].
-  split; [| exists c2; split; [exact RC2 | apply Relation_Operators.rt_step; exact RM2]].
   (* ---- the walk's outcome, in terms of the blocks ---- *)
   assert (XB : forall r, Plt r NBT -> e_blk E' r = e_blk E r /\ e_base E' r = e_base E r)
     by (intros r Hr; destruct (X r Hr) as (A & B & _); exact (conj A B)).
@@ -596,6 +591,12 @@ Proof.
   (* the kept cells *)
   assert (CM : forall o ch, In (RM, o, ch) (fk_same RM RO RLD) -> Mem.load ch m' bm o = Mem.load ch m bm o).
   { intros o ch Hin. pose proof (FC _ _ _ Hin) as H. rewrite EM1, EM2 in H. exact H. }
+  (* the outcome: FALSE, or the floor and the input cells kept *)
+  split; [| change (e_blk E RM) with bm in RT;
+            exact (fresh_ret_ns bm m m' vres acn Hact
+                     ltac:(destruct Hpa as [E0 | [E0 | [E0 | [E0 | [E0 | [E0 | []]]]]]]; rewrite <- E0; reflexivity)
+                     Hfr RT (CM WL_OFF Mint16signed ltac:(mem_tac)) (CM 2 Mint16unsigned ltac:(mem_tac)))].
+  split; [| exists c2; split; [exact RC2 | apply Relation_Operators.rt_step; exact RM2]].
   assert (CO : forall o ch, In (RO, o, ch) (fk_same RM RO RLD) ->
              Mem.load ch m' bo (Ptrofs.unsigned oo + o) = Mem.load ch m bo (Ptrofs.unsigned oo + o)).
   { intros o ch Hin. pose proof (FC _ _ _ Hin) as H. unfold addr in H. rewrite BO1, BO2 in H.
@@ -755,7 +756,12 @@ Proof.
     intros a La2 Ia. change (e_blk E RM) with bm in AST.
     pose proof (AST a La2 Ia) as A2. unfold ast, E in A2; eplT_in A2. exact A2. }
   (* ---- the frame world at m' ---- *)
-  split; [| split; [| split; [| split; [| split; [| split; [| exact (conj UO' AW')]]]]]].
+  (* the level cells (FfWorld.lvl_w): globals' blocks off the regions *)
+  assert (LV' : lvl_w G m')
+    by exact (AnimKeep.lvl_w_keep G bm m m' bfi bmiss bcalls ab biom bmq brm blk bpc bsr bsrc bsms bo oo bt
+                S1 S2 S3 S5 S6 S7 S8 SL SP SR SRC SMS AW (fun b H => D4 b (or_intror (or_intror H)))
+                Hgn OFF LV).
+  split; [| split; [| split; [| split; [| split; [| split; [| exact (conj UO' (conj AW' LV'))]]]]]].
   - (* the action *)
     destruct KA as (a & La' & Ina). intros v' Hl. rewrite La' in Hl. injection Hl as <-. exact Ina.
   - (* W *)

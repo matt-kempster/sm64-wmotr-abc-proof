@@ -83,9 +83,13 @@ Definition LETGO (bm : block) (m0 m' : mem) : Prop :=
 Lemma letgo_fresh : forall bm m m' acn,
   Mem.load Mint32 m bm 12 = Some (Vint (Int.repr acn)) ->
   Int.eq (Int.repr acn) (Int.repr SB_ACT) = false ->
-  fresh bm m -> LETGO bm m m' -> fresh bm m'.
+  fresh bm m -> LETGO bm m m' ->
+  Mem.load Mint16signed m' bm WL_OFF = Mem.load Mint16signed m bm WL_OFF ->
+  Mem.load Mint16unsigned m' bm 2 = Mem.load Mint16unsigned m bm 2 ->
+  fresh bm m'.
 Proof.
-  intros bm m m' acn La N F (y0 & y' & Ly0 & Ly' & Lf & Lsb & Dy).
+  intros bm m m' acn La N (F & I) (y0 & y' & Ly0 & Ly' & Lf & Lsb & Dy) K1 K2.
+  split; [| exact (inputs_ok_keep bm m m' K1 K2 I)].
   intros y fh Ly Lfh. rewrite Ly' in Ly. injection Ly as <-.
   rewrite Lf in Lfh.
   destruct (F y0 fh Ly0 Lfh) as (FRO & [S | [S | S]]).

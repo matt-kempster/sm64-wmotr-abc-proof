@@ -17,7 +17,7 @@
 
 From Coq Require Import ZArith List Bool Lia.
 From compcert Require Import Coqlib Maps AST Integers Values Memory Globalenvs Clight.
-From SM64.Generated Require mario game_init graph_node level_update surface_collision memory camera audio_external.
+From SM64.Generated Require mario game_init graph_node level_update surface_collision memory camera audio_external sound_init.
 From SM64.Proofs.WMotRRequiresA Require Import AnimData AnimWorld FloorList FloorExec FfWorld.
 From SM64.Proofs.WMotRRequiresA Require WMotRWorld.
 Import ListNotations.
@@ -121,5 +121,81 @@ Proof.
   intros a La Ia. destruct HK as [N | (K12 & K4 & Km & Kb)].
   - exfalso. exact (N a La Ia).
   - rewrite K12 in La. exact (anim_st_keep m m' ab bga bt ot bo oo (ST a La Ia) K4 Km Kb).
+Qed.
+
+(* the frame world's level cells (FfWorld.lvl_w) are globals' blocks off
+   the walk's regions, so a walk's frame (unchanged outside the regions)
+   keeps them *)
+Theorem lvl_w_keep : forall m m' bfi bmiss bcalls ab biom bmq brm blk bpc bsr bsrc bsms bo oo bt,
+  Genv.find_symbol ge surface_collision._gFindFloorIncludeSurfaceIntangible = Some bfi ->
+  Genv.find_symbol ge surface_collision._gNumFindFloorMisses = Some bmiss ->
+  Genv.find_symbol ge surface_collision._gNumCalls = Some bcalls ->
+  Genv.find_symbol ge mario._gMarioAnimsBuf = Some ab ->
+  Genv.find_symbol ge memory._gDmaIoMesg = Some biom ->
+  Genv.find_symbol ge memory._gDmaMesgQueue = Some bmq ->
+  Genv.find_symbol ge memory._gMainReceivedMesg = Some brm ->
+  Genv.find_symbol ge camera._gLakituState = Some blk ->
+  Genv.find_symbol ge camera._gPlayerCameraState = Some bpc ->
+  Genv.find_symbol ge audio_external._sSoundRequests = Some bsr ->
+  Genv.find_symbol ge audio_external._sSoundRequestCount = Some bsrc ->
+  Genv.find_symbol ge audio_external._sSoundMovingSpeed = Some bsms ->
+  anim_w ge bm m ->
+  (forall b, Genv.find_symbol ge mario._gCurrLevelNum = Some b
+             \/ Genv.find_symbol ge sound_init._sPlayingInfiniteStairs = Some b -> b <> bo /\ b <> bt) ->
+  Ple (Genv.genv_next ge) (Mem.nextblock m) ->
+  (forall ch b z, Plt b (Mem.nextblock m) ->
+     ~ rblk (ff_rl bm bo oo bfi bmiss bcalls ab bt biom bmq brm blk bpc bsr bsrc bsms) b ->
+     Mem.load ch m' b z = Mem.load ch m b z) ->
+  lvl_w ge m -> lvl_w ge m'.
+Proof.
+  intros m m' bfi bmiss bcalls ab biom bmq brm blk bpc bsr bsrc bsms bo oo bt
+    S1 S2 S3 S5 S6 S7 S8 SL SP SR SRC SMS AW D4 Hgn OFF (LV1 & LV2).
+  destruct AW as (ab' & bga & bauc & btab & otab & bt' & ot' & mb & mo & B & _).
+  pose proof B as (_ & _ & _ & _ & _ & _ & _ & _ & _ & _ & _ & _
+                   & _ & _ & _ & _ & _ & _ & _ & _ & Hbm).
+  assert (K : forall id b, Genv.find_symbol ge id = Some b ->
+            (id = mario._gCurrLevelNum \/ id = sound_init._sPlayingInfiniteStairs) ->
+            forall ch z, Mem.load ch m' b z = Mem.load ch m b z).
+  { intros id b Hs Hid ch z. apply OFF.
+    - exact (Plt_Ple_trans _ _ _ (Genv.genv_symb_range _ _ Hs) Hgn).
+    - assert (Dob : b <> bo /\ b <> bt)
+        by (apply D4; destruct Hid as [-> | ->]; [left | right]; exact Hs).
+      destruct Dob as (Do & Dt).
+      destruct Hid as [-> | ->];
+        apply ff_rl_not; try congruence;
+        first [ exact (symne_ids _ _ _ _ Hbm Hs eq_refl)
+              | exact (symne_ids _ _ _ _ S1 Hs eq_refl) | exact (symne_ids _ _ _ _ S2 Hs eq_refl)
+              | exact (symne_ids _ _ _ _ S3 Hs eq_refl) | exact (symne_ids _ _ _ _ S5 Hs eq_refl)
+              | exact (symne_ids _ _ _ _ S6 Hs eq_refl) | exact (symne_ids _ _ _ _ S7 Hs eq_refl)
+              | exact (symne_ids _ _ _ _ S8 Hs eq_refl) | exact (symne_ids _ _ _ _ SL Hs eq_refl)
+              | exact (symne_ids _ _ _ _ SP Hs eq_refl) | exact (symne_ids _ _ _ _ SR Hs eq_refl)
+              | exact (symne_ids _ _ _ _ SRC Hs eq_refl) | exact (symne_ids _ _ _ _ SMS Hs eq_refl) ]. }
+  split.
+  - intros b Hs. rewrite (K _ b Hs (or_introl eq_refl)). exact (LV1 b Hs).
+  - intros b Hs. rewrite (K _ b Hs (or_intror eq_refl)). exact (LV2 b Hs).
+Qed.
+
+(* ... and any change that leaves the two globals' blocks alone *)
+Lemma lvl_w_keep_ne : forall m m' (P : block -> Prop),
+  (forall b, Genv.find_symbol ge mario._gCurrLevelNum = Some b
+             \/ Genv.find_symbol ge sound_init._sPlayingInfiniteStairs = Some b -> P b) ->
+  (forall ch b z, P b -> Mem.load ch m' b z = Mem.load ch m b z) ->
+  lvl_w ge m -> lvl_w ge m'.
+Proof.
+  intros m m' P HP HL (LV1 & LV2). split.
+  - intros b Hs. rewrite (HL _ b 0 (HP b (or_introl Hs))). exact (LV1 b Hs).
+  - intros b Hs. rewrite (HL _ b 0 (HP b (or_intror Hs))). exact (LV2 b Hs).
+Qed.
+
+(* the two globals are not Mario's state block *)
+Lemma lvl_ne_bm : forall m, anim_w ge bm m -> forall b,
+  Genv.find_symbol ge mario._gCurrLevelNum = Some b
+  \/ Genv.find_symbol ge sound_init._sPlayingInfiniteStairs = Some b -> b <> bm.
+Proof.
+  intros m AW b Hs.
+  destruct AW as (ab' & bga & bauc & btab & otab & bt' & ot' & mb & mo & B & _).
+  pose proof B as (_ & _ & _ & _ & _ & _ & _ & _ & _ & _ & _ & _
+                   & _ & _ & _ & _ & _ & _ & _ & _ & Hbm).
+  destruct Hs as [Hs | Hs]; exact (symne_ids _ _ _ _ Hs Hbm eq_refl).
 Qed.
 End AK.

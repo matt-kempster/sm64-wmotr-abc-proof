@@ -46,7 +46,7 @@ From compcert Require Import Coqlib Maps AST Integers Floats Values Memory
   Globalenvs Ctypes Clight ClightBigstep Events Linking.
 From SM64.Generated Require mario level_update interaction mario_actions_moving
   surface_collision memory game_init object_list_processor area surface_load camera
-  graph_node rendering_graph_node mario_anim_data audio_external.
+  graph_node rendering_graph_node mario_anim_data audio_external sound_init.
 From SM64.Proofs Require Import RealFrameLinked ActionValueFrame Taint CensusV2 MWFReal SpawnInit
   LinkedTwelve InitMemSat BootMWF NoAImpliesNoFlyLinked ClosedMem.
 From SM64.Proofs.WMotRRequiresA Require Import HeightInvariant NoAActions WMotRWorld
@@ -1882,9 +1882,9 @@ Section Witness.
       split; [ exact bo_bm | ].
       split; [ intro E; exact (sym_ne_fresh _ _ _ Hbm (or_introl eq_refl) (eq_sym E)) | ].
       split; [ exact bt_bo | ].
-      split; [ intros b [Hin | [Hin | Hin]];
+      split; [ intros b [Hin | [Hin | [Hin | Hin]]];
                [ cbn [In] in Hin; repeat (destruct Hin as [<- | Hin]; [ split; neq | ]); destruct Hin
-               | split; neq | split; neq ] | ].
+               | split; neq | split; neq | split; neq ] | ].
       split; [ exact wff11 | ].
       split; [ exact L_floor | ].
       split.
@@ -1933,6 +1933,60 @@ Section Witness.
 
     Lemma in_wmotr11 : in_wmotr lp m11.
     Proof. exists bL. split; [ exact HbL | exact L_lvl ]. Qed.
+
+    (* ---- sPlayingInfiniteStairs: the boot image's 0 (sound_init.c's
+       `static u8 sPlayingInfiniteStairs = FALSE`), untouched by the entry ---- *)
+    Lemma dm_spis : (prog_defmap sound_init.prog) ! sound_init._sPlayingInfiniteStairs
+                    = Some (Gvar sound_init.v_sPlayingInfiniteStairs).
+    Proof. vm_compute. reflexivity. Qed.
+
+    Lemma boot_spis : forall b, Genv.find_symbol (lp_ge lp) sound_init._sPlayingInfiniteStairs = Some b ->
+        Mem.load Mint8unsigned m0 b 0 = Some (Vint Int.zero).
+    Proof.
+      intros b Hb.
+      pose proof (linked12_LO_sound_init lp H12) as LOq.
+      Local Transparent Linker_program.
+      unfold linkorder, Linker_program, linkorder_program in LOq.
+      destruct LOq as [LOast _].
+      destruct (prog_defmap_linkorder _ _ _ _ LOast dm_spis) as (gd' & Hgd' & Hlo).
+      change (prog_defmap (program_of_program lp)) with (prog_defmap lp) in Hgd'.
+      inv Hlo. match goal with H : linkorder _ _ |- _ => inv H end.
+      match goal with H : linkorder _ i2 |- _ => inv H end.
+      apply Genv.find_def_symbol in Hgd' as (b' & Hfs' & Hfd).
+      change (Genv.globalenv (program_of_program lp)) with (Genv.globalenv lp) in Hfs', Hfd.
+      change (Genv.find_symbol (Genv.globalenv lp) sound_init._sPlayingInfiniteStairs = Some b) in Hb.
+      rewrite Hb in Hfs'. injection Hfs' as <-.
+      pose proof Hinit as GI. apply Genv.init_mem_characterization_gen in GI.
+      specialize (GI b _ Hfd). cbn in GI. destruct GI as (_ & _ & Hli & _).
+      specialize (Hli eq_refl). cbn in Hli. destruct Hli as [Hl _].
+      rewrite Hl. reflexivity.
+    Qed.
+
+    Lemma L_spis : forall b, Genv.find_symbol (lp_ge lp) sound_init._sPlayingInfiniteStairs = Some b ->
+        Mem.load Mint8unsigned m11 b 0 = Some (Vint Int.zero).
+    Proof.
+      intros bsp Hsp.
+      assert (V0 : Mem.valid_block m0 bsp) by exact (Genv.find_symbol_not_fresh _ _ Hinit Hsp).
+      assert (N1 : bsp <> bm) by exact (symne lp _ _ _ _ Hsp Hbm eq_refl).
+      assert (N2 : bsp <> ab) by exact (symne lp _ _ _ _ Hsp Hab eq_refl).
+      assert (N3 : bsp <> bo) by exact (symne lp _ _ _ _ Hsp Hbo eq_refl).
+      assert (N4 : bsp <> bs) by (intro E; exact (sym_ne_fresh _ _ _ Hsp (or_intror (or_introl eq_refl)) E)).
+      assert (N5 : bsp <> bL) by exact (symne lp _ _ _ _ Hsp HbL eq_refl).
+      assert (N6 : bsp <> bw) by exact (symne lp _ _ _ _ Hsp Hbw eq_refl).
+      peelZ; peel S8; peel S7; peel S6; peel S5; peel S4; peel S3; peel S2; peel S1; peel S1b; peel S1a.
+      rewrite (ld_3e _ _ _ (valid_e_L _ (valid_0_e _ V0))).
+      rewrite (ld_Le _ _ _ (valid_0_e _ V0)
+                 (inFb_sym_false _ _ _ Hsp ltac:(vm_compute; reflexivity))).
+      peel E6; peel E5; peel E4; peel E3; peel E2; peel E1.
+      exact (boot_spis bsp Hsp).
+    Qed.
+
+    Lemma lvl11 : lvl_w (lp_ge lp) m11.
+    Proof.
+      split; [ | exact L_spis ].
+      intros b Hb. change (Genv.find_symbol (lp_ge lp) level_update._gCurrLevelNum = Some b) in Hb.
+      rewrite HbL in Hb. injection Hb as <-. exact L_lvl.
+    Qed.
 
     (* the entry stores ARE the real code's: the generated initiate_warp body
        runs m0 -> e5, and warp_level's head runs e5 -> e6 *)
@@ -1996,7 +2050,7 @@ Section Witness.
         intros v Hl. rewrite L_act in Hl. injection Hl as <-. reflexivity.
       - assert (Hu : used_ok bm m11).
         { apply (used_ok_other bm m11 _ L_act). vm_compute. intuition discriminate. }
-        split; [ exact (conj hinv (conj world11 (conj anim_ok (conj mobj_ok (conj ffw11 (conj Hu anim11)))))) | ].
+        split; [ exact (conj hinv (conj world11 (conj anim_ok (conj mobj_ok (conj ffw11 (conj Hu (conj anim11 lvl11))))))) | ].
         split; [ exact read_c0 | split; [ exact in_wmotr11 | ] ].
         split; [ exact floor_data11 | split; [ exact static_agree11 | split; [ exact nsurf11 | ] ] ].
         destruct entry_runs as (R1 & R2).

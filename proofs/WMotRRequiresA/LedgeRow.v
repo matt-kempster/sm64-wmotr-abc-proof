@@ -155,7 +155,7 @@ Theorem ledge_row : forall m t m' vres c0,
   (fworld lp bm m' /\ exists c2, read_cells bm m' c2 /\ MoveChain wmotr_floor wmotr_pole wmotr_cannon c0 c2)
   /\ (vres = Vint Int.zero \/ fresh bm m').
 Proof.
-  intros m t m' vres c0 Vm (Ha & HW & Han & Hmob & Hd & FW & _ & AW) RC Hbud Hact Hfr EV.
+  intros m t m' vres c0 Vm (Ha & HW & Han & Hmob & Hd & FW & _ & AW & LV) RC Hbud Hact Hfr EV.
   destruct FW as (Hgn & EX & FD).
   destruct EX as (gp & bfi & bmiss & bcalls & bsin & ab & biom & bmq & brm & blk & bpc & bsr & bsrc & bsms & bo & oo & bt & ot & fl & ar & inp & ctl &
                   HC & HS & HM & S1 & S2 & S3 & S4 & S5 & S6 & S7 & S8 & SL & SP & SR & SRC & SMS & Lo & Soo & La & Lb & Sot & D1 & D2 & D3 & D4 &
@@ -357,11 +357,6 @@ Proof.
   { unfold E; cbn [Eff e_blk e_base]; cbn [Pos.eqb RM RO RFI RMISS RCALLS RSIN RLD RBUF RIOM RMQ RRM RAR RLK RPC RSR RSRC RSMS]. rewrite Ptrofs.add_zero. exact EV. }
   destruct (Hfin m gp GPO MCg FD E t m' vres c0 EO PC EV' ltac:(exact RC) Hbud FRO0)
     as (E' & gs & X & MM & FK & RT & c2 & RC2 & MV).
-  split.
-  2:{ change (e_blk E RM) with bm in RT. destruct RT as [RT | LG].
-      - exact (fresh_ret_ns bm m m' vres acn Hact Hns Hfr RT).
-      - right. exact (letgo_fresh bm m m' acn Hact Hns Hfr LG). }
-  split; [| exists c2; exact (conj RC2 MV)].
   (* ---- the walk's outcome, in terms of the blocks ---- *)
   set (RL0 := ff_rl bm bo oo bfi bmiss bcalls ab bt biom bmq brm blk bpc bsr bsrc bsms) in *.
   assert (XB : forall r, Plt r NBF -> e_blk E' r = e_blk E r /\ e_base E' r = e_base E r)
@@ -388,6 +383,12 @@ Proof.
   (* the kept cells *)
   assert (CM : forall o ch, In (RM, o, ch) (fk_same RM RO RLD) -> Mem.load ch m' bm o = Mem.load ch m bm o).
   { intros o ch Hin. pose proof (FC _ _ _ Hin) as H. rewrite EM1, EM2 in H. exact H. }
+  (* the outcome: FALSE, or the floor and the input cells kept *)
+  split.
+  2:{ change (e_blk E RM) with bm in RT. destruct RT as [RT | LG].
+      - exact (fresh_ret_ns bm m m' vres acn Hact Hns Hfr RT (CM WL_OFF Mint16signed ltac:(mem_tac)) (CM 2 Mint16unsigned ltac:(mem_tac))).
+      - right. exact (letgo_fresh bm m m' acn Hact Hns Hfr LG (CM WL_OFF Mint16signed ltac:(mem_tac)) (CM 2 Mint16unsigned ltac:(mem_tac))). }
+  split; [| exists c2; exact (conj RC2 MV)].
   assert (CO : forall o ch, In (RO, o, ch) (fk_same RM RO RLD) ->
              Mem.load ch m' bo (Ptrofs.unsigned oo + o) = Mem.load ch m bo (Ptrofs.unsigned oo + o)).
   { intros o ch Hin. pose proof (FC _ _ _ Hin) as H. unfold addr in H. rewrite BO1, BO2 in H.
@@ -518,7 +519,12 @@ Proof.
              (fun b ofs k p Hp Hq => proj2 (VP b ofs k p Hp) Hq) OFF);
       [ apply CM; mem_tac | apply CL; mem_tac | apply CL; mem_tac | apply CM; mem_tac | apply CM; mem_tac | ].
     left. intros a' La2. rewrite La' in La2. injection La2 as <-. exact (AnimKeep.not_used_not_anim _ Nu). }
-  split; [| split; [| split; [| split; [| split; [| split; [| exact (conj UO AW')]]]]]].
+  (* the level cells (FfWorld.lvl_w): globals' blocks off the regions *)
+  assert (LV' : lvl_w G m')
+    by exact (AnimKeep.lvl_w_keep G bm m m' bfi bmiss bcalls ab biom bmq brm blk bpc bsr bsrc bsms bo oo bt
+                S1 S2 S3 S5 S6 S7 S8 SL SP SR SRC SMS AW (fun b H => D4 b (or_intror (or_intror H)))
+                Hgn OFF LV).
+  split; [| split; [| split; [| split; [| split; [| split; [| exact (conj UO (conj AW' LV'))]]]]]].
   - (* the action *)
     destruct KA as (a & La' & Ina & _). intros v Hl. rewrite La' in Hl. injection Hl as <-. exact Ina.
   - (* W *)
