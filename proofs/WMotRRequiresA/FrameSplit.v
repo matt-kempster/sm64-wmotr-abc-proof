@@ -521,7 +521,11 @@ Section FrameSplit.
     /\ a_down_real bm m = false /\ ffw ge bm m /\ used_ok bm m
     (* the animation world (AnimWorld, 2026-10-23): the DMA table, gMarioAnims,
        the buffer, and in a pole action after the grab the animation state *)
-    /\ AnimWorld.anim_w ge bm m.
+    /\ AnimWorld.anim_w ge bm m
+    (* the level cells (FfWorld.lvl_w, 2026-10-23): gCurrLevelNum = WMotR
+       and sPlayingInfiniteStairs = FALSE, what keeps the real
+       play_infinite_stairs_music out of the audio code (ProRows) *)
+    /\ lvl_w ge m.
 
   Notation MC := (MoveChain wmotr_floor wmotr_pole wmotr_cannon).
 
@@ -1003,7 +1007,7 @@ Section FrameSplit.
 
     Lemma obj_store_fworld : fworld m -> fworld m'.
     Proof.
-      intros (Ha & Hw & Han & Hmob & Hd & Hf & Hu & Haw).
+      intros (Ha & Hw & Han & Hmob & Hd & Hf & Hu & Haw & Hlv).
       split; [intros v1 Hl; unfold action_sat in Ha; rewrite LDbm in Hl; exact (Ha v1 Hl) |].
       split; [exact (obj_store_world Hmob Hw) |].
       split; [exact (obj_store_anim Han) |].
@@ -1011,7 +1015,17 @@ Section FrameSplit.
       split; [rewrite obj_store_adown; exact Hd |].
       split; [exact (obj_store_ffw Hf) |].
       split; [exact (obj_store_used Hu) |].
-      exact (obj_store_anim_w Hf Haw).
+      split; [exact (obj_store_anim_w Hf Haw) |].
+      (* the level cells are globals' blocks, not Mario's object (ffw's D4) *)
+      apply (AnimKeep.lvl_w_keep_ne ge m m' (fun b => b <> mb)); [| intros ch' b z Hb; exact (LD ch' b z (or_introl Hb)) | exact Hlv].
+      intros b Hs.
+      destruct Hf as (_ & EX & _).
+      destruct EX as (gp & bfi & bmiss & bcalls & bsin & ab & biom & bmq & brm & blk & bpc & bsr & bsrc & bsms & bo & oo & bt & ot
+                      & fl & ar & inp & ctl & HC & HS & HM & S1 & S2 & S3 & S4 & S5 & S6 & S7 & S8 & SL & SP & SR & SRC & SMS
+                      & Lo & Soo & La & Lb & Sot & D1 & D2 & D3 & D4 & _).
+      assert (Lo' : Mem.load Mint32 m bm MARIOOBJ_OFF = Some (Vptr bo oo)) by exact Lo.
+      rewrite Hmo in Lo'. injection Lo' as <- <-.
+      exact (proj1 (D4 b (or_intror (or_intror Hs)))).
     Qed.
 
     Lemma obj_store_cells : forall c, read_cells bm m c -> read_cells bm m' c.

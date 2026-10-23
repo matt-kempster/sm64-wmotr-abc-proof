@@ -70,6 +70,7 @@ From SM64.Proofs Require Import LinkedTwelve SpawnInit InitMemSat.
 From SM64.Proofs Require SpawnBodies CameraBodies.
 From SM64.Proofs Require Import NoAImpliesNoFlyLinked NoAImpliesNoFlyTwelve.
 From SM64.Proofs Require Import FrameCalls FrameSplit AirSplit AutoSplit.
+From SM64.Proofs.WMotRRequiresA Require Import ProRows.
 From SM64.Proofs.WMotRRequiresA Require Import FfWorld FfRow AhwRow KbRow FpuFloor ExtInert.
 From SM64.Proofs.WMotRRequiresA Require PoleXc PoleCasesT.
 From SM64.Proofs.WMotRRequiresA Require RenderFlank AnimWorld.
@@ -510,7 +511,11 @@ Section HeightLinked12.
     (* the animation world (AnimWorld, 2026-10-23): the DMA table, gMarioAnims,
        the buffer, and in a pole action after the grab the animation state --
        what the real set_mario_animation reads on the pole *)
-    /\ AnimWorld.anim_w (lp_ge lp) bm m.
+    /\ AnimWorld.anim_w (lp_ge lp) bm m
+    (* the level cells (FfWorld.lvl_w, 2026-10-23): gCurrLevelNum = WMotR
+       and sPlayingInfiniteStairs = 0 -- what play_infinite_stairs_music
+       reads *)
+    /\ lvl_w (lp_ge lp) m.
   Notation Phi := PhiW.
 
   (* LEVEL DATA -- now DEFINED from generated/ and PROVED (WMotRLevel.v):
@@ -574,7 +579,14 @@ Section HeightLinked12.
      one of WMotR's ([5;10;21;55;0]): FrameSplit.guard_mem PROVES them dead
      (memory unchanged), so their four calls (spawn_wind_particles,
      play_sound, twice) carry no row. *)
-  Hypothesis Hseg_any : seg_any_rows lp bm MWF.
+  (* PROVED since 2026-10-23 (ProRows.seg_any_rows_proved): the real
+     play_infinite_stairs_music, linked, only READS memory under lvl_w
+     (gCurrLevelNum = LEVEL_WMOTR is not LEVEL_CASTLE, so shouldPlay = 0,
+     and sPlayingInfiniteStairs = 0 already).  FOUND (phantom forall): the
+     row quantified over every fworld memory, including ones with
+     sPlayingInfiniteStairs = 1 (or the castle level), where the call
+     stores the flag and enters the sequence player -- FALSE as stated.
+     lvl_w is now carried by fworld and PhiW (from boot: StartSat). *)
   (* the airborne dispatcher, split per case (AirSplit, 2026-10-20): its two
      prologue calls, and each no-A action's handler called with the action
      cell = its label (11 cases: freefall, dive, the two air knockbacks, soft
@@ -583,7 +595,16 @@ Section HeightLinked12.
   (* the prologue keeps fresh_at (AirSplit.air_pro_rows); since 2026-10-21
      it also covers the automatic dispatcher's prologue call,
      check_common_automatic_cancels (same shape of claim) *)
-  Hypothesis Hair_pro : air_pro_rows lp bm MWF.
+  (* PROVED since 2026-10-23 (ProRows.air_pro_rows_proved): the real
+     check_common_airborne_cancels / check_common_automatic_cancels (the
+     water-plunge, squish and vertical-wind tests are false; then
+     quicksandDepth = 0) and play_far_fall_sound (it writes only m->flags
+     and play_sound's two queue globals).  FOUND (phantom forall): fresh_at
+     did not pin m->waterLevel or INPUT_SQUISHED, so a memory with the
+     water above Mario sent the cancels to ACT_WATER_PLUNGE (not in R_noA)
+     -- FALSE as stated.  fresh / fresh_at now carry FfWorld.inputs_ok
+     (waterLevel = -11000, no squish bit), which update_mario_inputs leaves
+     and every row keeps. *)
   (* the automatic dispatcher, split per case (AutoSplit, 2026-10-21): each
      no-A action's handler called with the action cell = its label and the
      floor fresh, returning FALSE or leaving the floor fresh.  12 live cases
@@ -713,7 +734,7 @@ Section HeightLinked12.
     exact (seg_call_rows_naF_of_auto lp (linked12_LO_mario lp H12) (linked12_LO_aut lp H12) bm MWF
              (fun m0 HM => mwf_real_ctl lp bm bc oc0 SafeB m0 HM)
              (mwf_window_linked12 lp H12 bm bc oc0 SafeB HSafeB_syms Hbm_sym Hbc_sym Hoc0)
-             auto_leaves Hgms Hseg_call_na Hair_pro Hauto_case).
+             auto_leaves Hgms Hseg_call_na (air_pro_rows_proved lp H12 bm MWF) Hauto_case).
   Qed.
 
   Lemma Hseg_call : seg_call_rows_fr lp bm MWF.
@@ -721,7 +742,7 @@ Section HeightLinked12.
     destruct call_facts as (_ & _ & Hgms & _).
     exact (seg_call_rows_of_air lp (linked12_LO_mario lp H12) (linked12_LO_air lp H12) bm MWF
              (fun m0 HM => mwf_real_ctl lp bm bc oc0 SafeB m0 HM) air_leaves Hgms
-             Hseg_call_naF Hair_pro Hair_case).
+             Hseg_call_naF (air_pro_rows_proved lp H12 bm MWF) Hair_case).
   Qed.
 
   Lemma frame_FS : forall c0 m m',
@@ -735,7 +756,7 @@ Section HeightLinked12.
               Hchase Hstore
               (safeb_of_nonfam_sym lp SafeB HSafeB_syms _ _ Hbm_sym eq_refl)
               (fun ab Hab => safeb_of_nonfam_sym lp SafeB HSafeB_syms _ _ Hab eq_refl)
-              _ c0 m _ t m' res Hseg_call Hseg_any Hb HF Hev).
+              _ c0 m _ t m' res Hseg_call (seg_any_rows_proved lp H12 bm MWF) Hb HF Hev).
     intros m0 bc' oc HM Hl.
     destruct HM as (_ & _ & R2 & _). destruct (R2 _ _ Hl) as [-> _].
     exact (safeb_of_nonfam_sym lp SafeB HSafeB_syms _ _ Hbc_sym eq_refl).
@@ -745,9 +766,9 @@ Section HeightLinked12.
     mem_ok_lp bm MWF m -> Phi m -> a_down_real bm m = false ->
     read_cells bm m c -> FS lp bm MWF c m.
   Proof.
-    intros m c Hok ((Ha & _) & Hw & Han & Hmo & Hf & Hu & Haw) HD Hc.
+    intros m c Hok ((Ha & _) & Hw & Han & Hmo & Hf & Hu & Haw & Hl) HD Hc.
     split; [exact Hok |].
-    split; [exact (conj Ha (conj Hw (conj Han (conj Hmo (conj HD (conj Hf (conj Hu Haw))))))) |].
+    split; [exact (conj Ha (conj Hw (conj Han (conj Hmo (conj HD (conj Hf (conj Hu (conj Haw Hl)))))))) |].
     exists c. split; [exact Hc | apply Relation_Operators.rt_refl].
   Qed.
 
@@ -765,12 +786,13 @@ Section HeightLinked12.
     forall m m', mem_ok_lp bm MWF m -> Phi m -> a_down_real bm m = false ->
                  execute_mario_action_step_lp lp m m' ->
                  wmotr_world bm m' /\ anim_apart lp bm m' /\ mobj_apart bm m'
-                 /\ ffw (lp_ge lp) bm m' /\ used_ok bm m' /\ AnimWorld.anim_w (lp_ge lp) bm m'.
+                 /\ ffw (lp_ge lp) bm m' /\ used_ok bm m' /\ AnimWorld.anim_w (lp_ge lp) bm m'
+                 /\ lvl_w (lp_ge lp) m'.
   Proof.
     intros m m' Hok Hphi HD Hst. pose proof Hphi as ((_ & c & Hc & Hb) & _).
     destruct (frame_FS c m m' Hb (frame_FS_start m c Hok Hphi HD Hc) Hst)
-      as (_ & (_ & Hw & Han & Hmo & _ & Hf & Hu & Haw) & _).
-    exact (conj Hw (conj Han (conj Hmo (conj Hf (conj Hu Haw))))).
+      as (_ & (_ & Hw & Han & Hmo & _ & Hf & Hu & Haw & Hl) & _).
+    exact (conj Hw (conj Han (conj Hmo (conj Hf (conj Hu (conj Haw Hl)))))).
   Qed.
 
   Lemma Hframe_is_move_chain :

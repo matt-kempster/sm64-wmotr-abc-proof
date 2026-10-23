@@ -37,9 +37,11 @@ Mario segment's preservation of GOAL 1's invariant is the proved
   derived from these (`FrameSplit.frame_stage`). `Hseg_any` is path-sensitive since
   2026-10-23 (`FrameSplit.clw`): the two wind blocks (`spawn_wind_particles`, `play_sound`)
   sit under `m->floor->type == 44 / 56`, proved dead from W's floor type (`guard_mem`), so
-  only `play_infinite_stairs_music()` keeps a row (`ema_live_anys`). The airborne dispatcher's row is proved too
-  (`AirSplit.air_seg`): it splits into its two prologue calls and one row per no-A
-  case, with the action cell equal to the case label (`Hair_pro` / `Hair_case`). The value walk discharges them call
+  only `play_infinite_stairs_music()` keeps a row (`ema_live_anys`); that row is
+  **proved** since 2026-10-23 (`ProRows.seg_any_rows_proved`, under `FfWorld.lvl_w`). The airborne dispatcher's row is proved too
+  (`AirSplit.air_seg`): it splits into its prologue calls and one row per no-A
+  case, with the action cell equal to the case label (`Hair_pro` / `Hair_case`); the prologue
+  row `Hair_pro` is **proved** (`ProRows.air_pro_rows_proved`, under `FfWorld.inputs_ok`). The value walk discharges them call
   by call; the airborne dispatcher's freefall case is `Unwired/FfRun.ff_move`.
 - `wmotr_gap`, `wmotr_poles`: WMotR level data, **proved** in `WMotRLevel.v` (`wmotr_gap_proved`, `wmotr_poles_proved`).
 

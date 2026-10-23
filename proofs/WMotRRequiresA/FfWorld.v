@@ -37,7 +37,7 @@
 
 From Coq Require Import ZArith List Lia Reals.
 From compcert Require Import Coqlib Maps AST Integers Floats Values Memory Ctypes Clight Globalenvs.
-From SM64.Generated Require mario surface_collision memory camera audio_external.
+From SM64.Generated Require mario surface_collision memory camera audio_external sound_init.
 From SM64.Proofs Require Import HeightInvariant HeightMoveCatalog WMotRLevel Generic.ClosedMem.
 From SM64.Proofs.WMotRRequiresA Require Import FloorList FloorHeight FloorExec AirMatch AirStart RetOk.
 Import ListNotations.
@@ -110,8 +110,10 @@ Definition ffw (m : mem) : Prop :=
       (* (gAudioRandom too: play_mario_jump_sound reads it, a world cell) *)
       /\ (forall b, In b [bfi; bmiss; bcalls; bsin; ab; biom; bmq; brm; blk; bpc; bsr; bsrc; bsms]
                     \/ Genv.find_symbol G mario._gAudioRandom = Some b
-                    (* gCurrLevelNum: add_tree_leaf_particles reads it (the pole walks) *)
-                    \/ Genv.find_symbol G mario._gCurrLevelNum = Some b -> b <> bo /\ b <> bt)
+                    (* gCurrLevelNum: add_tree_leaf_particles reads it (the pole walks);
+                       sPlayingInfiniteStairs: play_infinite_stairs_music reads it (lvl_w) *)
+                    \/ (Genv.find_symbol G mario._gCurrLevelNum = Some b
+                        \/ Genv.find_symbol G sound_init._sPlayingInfiniteStairs = Some b) -> b <> bo /\ b <> bt)
       (* the collision partition *)
       /\ Wff G m gp SZ_SURFACE (ff_rl bm bo oo bfi bmiss bcalls ab bt biom bmq brm blk bpc bsr bsrc bsms)
       (* m->floor, m->area *)
@@ -393,18 +395,43 @@ End FFW.
 Definition SB_ACT : Z := 16910518.
 Definition FRESH_SLACK : R := 140.
 
-Definition fresh (bm : block) (m : mem) : Prop :=
+Definition fresh_fl (bm : block) (m : mem) : Prop :=
   forall y fh, Mem.load Mfloat32 m bm OFS_POSY = Some (Vsingle y) ->
     Mem.load Mfloat32 m bm OFS_FLOORH = Some (Vsingle fh) ->
     FloorRefreshOK wmotr_floor (R2 y) (R2 fh)
     /\ (Mem.load Mint32 m bm 12 = Some (Vint (Int.repr SB_ACT))
         \/ (R2 fh = -11000)%R \/ (R2 fh <= R2 y + FRESH_SLACK)%R).
 
+(* ... and the two other inputs the dispatchers' prologues read
+   (2026-10-23, AirSplit.air_pro_rows, PROVED in ProRows): m->waterLevel
+   is -11000 and m->input has no INPUT_SQUISHED (0x0040).
+   FOUND (phantom forall): the prologue row's precondition was the floor
+   refresh alone, so a memory with a high waterLevel sent the real
+   check_common_airborne_cancels / _automatic_cancels into
+   set_water_plunge_action (ACT_WATER_PLUNGE), and one with INPUT_SQUISHED
+   into drop_and_set_mario_action(ACT_SQUISHED); neither is in R_noA, so
+   the row was FALSE as stated.  In the game update_mario_inputs (mario.c)
+   sets m->waterLevel = find_water_level(x, z), which is -11000 where the
+   area has no water regions (WMotR has none: its level script loads no
+   water box), and recomputes m->input from 0; INPUT_SQUISHED is set only
+   when the ceiling is under 150 units above Mario's floor
+   (update_mario_geometry_inputs's squish test), and the narrowest WMotR
+   floor/ceiling gap is 276 (tools/goal2_squish_scan.py).  Mario's
+   handlers do not write either cell (FfKeepCheck.fk_same keeps both
+   across every walked case). *)
+Definition WL_OFF : Z := 118.      (* MarioState.waterLevel (s16), pinned in ProRows *)
+
+Definition inputs_ok (bm : block) (m : mem) : Prop :=
+  Mem.load Mint16signed m bm WL_OFF = Some (Vint (Int.repr (-11000)))
+  /\ forall inp, Mem.load Mint16unsigned m bm 2 = Some (Vint inp) -> Int.and inp (Int.repr 64) = Int.zero.
+
+Definition fresh (bm : block) (m : mem) : Prop := fresh_fl bm m /\ inputs_ok bm m.
+
 Lemma fresh_fro : forall bm m y fh, fresh bm m ->
   Mem.load Mfloat32 m bm OFS_POSY = Some (Vsingle y) ->
   Mem.load Mfloat32 m bm OFS_FLOORH = Some (Vsingle fh) ->
   FloorRefreshOK wmotr_floor (R2 y) (R2 fh).
-Proof. intros bm m y fh H Ly Lf. exact (proj1 (H y fh Ly Lf)). Qed.
+Proof. intros bm m y fh H Ly Lf. exact (proj1 (proj1 H y fh Ly Lf)). Qed.
 
 (* ... when the action is an airborne or an automatic one ((action &
    ACT_GROUP_MASK) == ACT_GROUP_AIRBORNE (0x080) or ACT_GROUP_AUTOMATIC
@@ -416,28 +443,51 @@ Proof. intros bm m y fh H Ly Lf. exact (proj1 (H y fh Ly Lf)). Qed.
    owes fresh_at, i.e. a fresh floor, which nothing gave it at the entry of
    a non-airborne action.  In the game the dispatch is entered with the
    floor update_mario_inputs refreshed, and every handler that returns TRUE
-   leaves it fresh. *)
+   leaves it fresh.  The two input cells (inputs_ok) hold in every action
+   (2026-10-23). *)
 Definition fresh_at (bm : block) (m : mem) : Prop :=
-  forall a, Mem.load Mint32 m bm 12 = Some (Vint a) ->
+  (forall a, Mem.load Mint32 m bm 12 = Some (Vint a) ->
     (Int.and a (Int.repr 448) = Int.repr 128 \/ Int.and a (Int.repr 448) = Int.repr 320) ->
-    fresh bm m.
+    fresh_fl bm m)
+  /\ inputs_ok bm m.
 
 Lemma fresh_at_of : forall bm m, fresh bm m -> fresh_at bm m.
-Proof. intros bm m H a _ _. exact H. Qed.
+Proof. intros bm m (H & I). split; [intros a _ _; exact H | exact I]. Qed.
+
+Lemma fresh_at_inputs : forall bm m, fresh_at bm m -> inputs_ok bm m.
+Proof. intros bm m H. exact (proj2 H). Qed.
 
 (* the airborne half *)
 Lemma fresh_at_air : forall bm m a, fresh_at bm m -> Mem.load Mint32 m bm 12 = Some (Vint a) ->
   Int.and a (Int.repr 448) = Int.repr 128 -> fresh bm m.
-Proof. intros bm m a H L E. exact (H a L (or_introl E)). Qed.
+Proof. intros bm m a (H & I) L E. exact (conj (H a L (or_introl E)) I). Qed.
+
+(* the automatic half *)
+Lemma fresh_at_auto : forall bm m a, fresh_at bm m -> Mem.load Mint32 m bm 12 = Some (Vint a) ->
+  Int.and a (Int.repr 448) = Int.repr 320 -> fresh bm m.
+Proof. intros bm m a (H & I) L E. exact (conj (H a L (or_intror E)) I). Qed.
+
+(* the input cells, kept *)
+Lemma inputs_ok_keep : forall bm m m',
+  Mem.load Mint16signed m' bm WL_OFF = Mem.load Mint16signed m bm WL_OFF ->
+  Mem.load Mint16unsigned m' bm 2 = Mem.load Mint16unsigned m bm 2 ->
+  inputs_ok bm m -> inputs_ok bm m'.
+Proof.
+  intros bm m m' E1 E2 (W & I). split; [rewrite E1; exact W |].
+  intros inp L. rewrite E2 in L. exact (I inp L).
+Qed.
 
 (* a handler that returned FALSE or kept the two cells (RetOk.RET), and
-   that returns FALSE when entered in SOFT_BONK *)
+   that returns FALSE when entered in SOFT_BONK; the input cells kept *)
 Lemma fresh_ret : forall bm m0 m' vres, fresh bm m0 -> RET bm m0 m' vres ->
   (Mem.load Mint32 m0 bm 12 = Some (Vint (Int.repr SB_ACT)) -> vres = Vint Int.zero) ->
+  Mem.load Mint16signed m' bm WL_OFF = Mem.load Mint16signed m0 bm WL_OFF ->
+  Mem.load Mint16unsigned m' bm 2 = Mem.load Mint16unsigned m0 bm 2 ->
   vres = Vint Int.zero \/ fresh bm m'.
 Proof.
-  intros bm m0 m' vres F [Z | (Y & H)] S; [left; exact Z |].
+  intros bm m0 m' vres (F & I) [Z | (Y & H)] S K1 K2; [left; exact Z |].
   destruct (Val.eq vres (Vint Int.zero)) as [Z | NZ]; [left; exact Z | right].
+  split; [| exact (inputs_ok_keep bm m0 m' K1 K2 I)].
   intros y fh Ly Lf. rewrite Y in Ly. rewrite H in Lf.
   destruct (F y fh Ly Lf) as (A & [B | B]); [exfalso; exact (NZ (S B)) |].
   split; [exact A | right; exact B].
@@ -447,9 +497,35 @@ Qed.
 Lemma fresh_ret_ns : forall bm m0 m' vres n,
   Mem.load Mint32 m0 bm 12 = Some (Vint (Int.repr n)) ->
   Int.eq (Int.repr n) (Int.repr SB_ACT) = false ->
-  fresh bm m0 -> RET bm m0 m' vres -> vres = Vint Int.zero \/ fresh bm m'.
+  fresh bm m0 -> RET bm m0 m' vres ->
+  Mem.load Mint16signed m' bm WL_OFF = Mem.load Mint16signed m0 bm WL_OFF ->
+  Mem.load Mint16unsigned m' bm 2 = Mem.load Mint16unsigned m0 bm 2 ->
+  vres = Vint Int.zero \/ fresh bm m'.
 Proof.
-  intros bm m0 m' vres n L N F R. apply (fresh_ret bm m0 m' vres F R).
+  intros bm m0 m' vres n L N F R K1 K2. apply (fresh_ret bm m0 m' vres F R); [| exact K1 | exact K2].
   intros L'. rewrite L in L'. assert (E : Int.repr n = Int.repr SB_ACT) by congruence.
   rewrite E, Int.eq_true in N. discriminate N.
 Qed.
+
+(* the frame world's level cells (2026-10-23, ProRows): gCurrLevelNum is
+   LEVEL_WMOTR and sound_init.c's sPlayingInfiniteStairs is FALSE.  What
+   the real play_infinite_stairs_music, which execute_mario_action calls
+   every frame, reads to stay out of the audio code: it plays (or stops)
+   the endless-stairs music only in the castle (LEVEL_CASTLE = 6) or when
+   sPlayingInfiniteStairs differs from its verdict.
+   FOUND (phantom forall): FrameSplit.seg_any_rows asked the real call to
+   keep the frame world from ANY fworld memory; fworld did not constrain
+   gCurrLevelNum, so a castle memory (area 2, under 70 stars, room 6,
+   z < 2540) or one with sPlayingInfiniteStairs = 1 sent it into
+   play_secondary_music / func_80321080 and the sequence player (the
+   unlinked load_sequence: GOAL 1's Hls keeps mem_ok, not the frame
+   world) -- the row was not provable as stated.  In the game the level is
+   WMotR for the whole visit (HeightFrame.in_wmotr), and the flag is FALSE
+   at the visit's entry (the castle's last frame clears it: Mario enters
+   the painting away from the endless stairs) and stays FALSE (the call's
+   verdict outside the castle is FALSE). *)
+Definition lvl_w (G : genv) (m : mem) : Prop :=
+  (forall b, Genv.find_symbol G mario._gCurrLevelNum = Some b ->
+     Mem.load Mint16signed m b 0 = Some (Vint (Int.repr LEVEL_WMOTR)))
+  /\ (forall b, Genv.find_symbol G sound_init._sPlayingInfiniteStairs = Some b ->
+     Mem.load Mint8unsigned m b 0 = Some (Vint Int.zero)).

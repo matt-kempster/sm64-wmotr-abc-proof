@@ -10,7 +10,8 @@
 (*     need usedObj facts the walks do not track);                        *)
 (*   - the cells the frame world reads and the walk must not touch are    *)
 (*     their entry cells: m->input, ceil, heldObj, riddenObj, marioObj,    *)
-(*     area, controller, animList, quicksandDepth; the anim list's buffer *)
+(*     area, controller, animList, quicksandDepth, waterLevel; the anim   *)
+(*     list's buffer                                                      *)
 (*     pointer; Mario's object's interactStatus, numCollidedObjs,         *)
 (*     collidedObjs[4], interactType, oPosY and hitbox fields;            *)
 (*   - m->floor is the entry cell or a find_floor surface (a world fact   *)
@@ -41,7 +42,9 @@ Definition fk_same : list (positive * Z * memory_chunk) :=
    (rO, COLL_OFF, Mint32); (rO, COLL_OFF + 4, Mint32); (rO, COLL_OFF + 8, Mint32);
    (rO, COLL_OFF + 12, Mint32);
    (rO, O_INTERACT_TYPE, Mint32); (rO, O_POSY, Mfloat32); (rO, HITBOX_DOWN_OFF, Mfloat32);
-   (rO, HITBOX_H_OFF, Mfloat32)].
+   (rO, HITBOX_H_OFF, Mfloat32);
+   (* m->waterLevel (FfWorld.WL_OFF, 2026-10-23: FfWorld.inputs_ok) *)
+   (rM, 118, Mint16signed)].
 
 Definition has (pc : list fact) (f : fact) : bool := existsb (fbeq f) pc.
 
