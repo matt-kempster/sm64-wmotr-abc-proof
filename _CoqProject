@@ -376,6 +376,11 @@ proofs/WMotRRequiresA/LedgeClimbSlow1.v
 proofs/WMotRRequiresA/LedgeClimbSlow2.v
 proofs/WMotRRequiresA/LedgeClimbFast.v
 proofs/WMotRRequiresA/LedgeRow.v
+proofs/WMotRRequiresA/CannonClass.v
+proofs/WMotRRequiresA/CannonRun.v
+proofs/WMotRRequiresA/CannonWalk.v
+proofs/WMotRRequiresA/PoleClimb.v
+proofs/WMotRRequiresA/CannonRow.v
 proofs/Interp/MemBuild.v
 proofs/Interp/InterpFrame.v
 proofs/Interp/InitMemC.v

@@ -210,7 +210,9 @@ Definition wmotr_world (bm : block) (m : mem) : Prop :=
        top + POLE_UP (160) <= K), a whole Object away from Mario's object,
        and vel[1] <= 0;
      - in ACT_IN_CANNON, usedObj is a WMotR cannon base (cannon_obj_ok), a
-       whole Object away from Mario's object. ---- *)
+       whole Object away from Mario's object, in his object's block, and the
+       same slot as each collided object or a whole Object away from it
+       (cannon_pos_ok, 2026-10-22). ---- *)
 Definition USED_OFF : Z := 128.
 
 Lemma used_field_offset :
@@ -262,6 +264,19 @@ Definition pole_pos_ok (bm : block) (m : mem) (ub : block) (uo : ptrofs) : Prop 
        ub = mb /\ exists p, Mem.load Mfloat32 m mb (Ptrofs.unsigned mo + POLEPOS_OFF) = Some (Vsingle p)
                     /\ F32 p = true /\ (-1000 <= R2 p)%R.
 
+(* the cannon facts the cannon walk needs (2026-10-22, CannonRow): the
+   cannon lies in Mario's object's block (both are gObjectPool slots) and
+   fits in it, and each object Mario collided with is the cannon itself or a
+   whole Object away from it (gObjectPool slots are disjoint), so the walk's
+   store of usedObj->oInteractStatus keeps every other collided object. *)
+Definition cannon_pos_ok (bm : block) (m : mem) (ub : block) (uo : ptrofs) : Prop :=
+  Ptrofs.unsigned uo + OBJ_SPAN <= Ptrofs.modulus
+  /\ forall mb mo, Mem.load Mint32 m bm MARIOOBJ_OFF = Some (Vptr mb mo) ->
+       ub = mb /\ forall i cb co, 0 <= i < 4 ->
+         Mem.load Mint32 m mb (Ptrofs.unsigned mo + COLL_OFF + 4 * i) = Some (Vptr cb co) ->
+         co = uo \/ Ptrofs.unsigned co + OBJ_SPAN <= Ptrofs.unsigned uo
+         \/ Ptrofs.unsigned uo + OBJ_SPAN <= Ptrofs.unsigned co.
+
 Definition used_ok (bm : block) (m : mem) : Prop :=
   forall a, Mem.load Mint32 m bm 12 = Some (Vint a) ->
     (In (Int.unsigned a) pole_acts ->
@@ -271,7 +286,8 @@ Definition used_ok (bm : block) (m : mem) : Prop :=
          /\ forall v, Mem.load Mfloat32 m bm OFS_VELY = Some (Vsingle v) -> (R2 v <= 0)%R)
     /\ (Int.unsigned a = ACT_IN_CANNON_Z ->
        exists ub uo, Mem.load Mint32 m bm USED_OFF = Some (Vptr ub uo)
-         /\ cannon_obj_ok m ub (Ptrofs.unsigned uo) /\ used_apart bm m ub uo).
+         /\ cannon_obj_ok m ub (Ptrofs.unsigned uo) /\ used_apart bm m ub uo
+         /\ cannon_pos_ok bm m ub uo).
 
 (* outside those actions it says nothing *)
 Lemma used_ok_other : forall bm m a, Mem.load Mint32 m bm 12 = Some (Vint a) ->
@@ -292,9 +308,13 @@ Lemma used_ok_keep : forall bm m m',
   (forall mb mo, Mem.load Mint32 m bm MARIOOBJ_OFF = Some (Vptr mb mo) ->
      Mem.load Mfloat32 m' mb (Ptrofs.unsigned mo + POLEPOS_OFF)
      = Mem.load Mfloat32 m mb (Ptrofs.unsigned mo + POLEPOS_OFF)) ->
+  (forall mb mo, Mem.load Mint32 m bm MARIOOBJ_OFF = Some (Vptr mb mo) ->
+     forall i, 0 <= i < 4 ->
+     Mem.load Mint32 m' mb (Ptrofs.unsigned mo + COLL_OFF + 4 * i)
+     = Mem.load Mint32 m mb (Ptrofs.unsigned mo + COLL_OFF + 4 * i)) ->
   used_ok bm m -> used_ok bm m'.
 Proof.
-  intros bm m m' Hc Hu Hpp U a La.
+  intros bm m m' Hc Hu Hpp Hcl U a La.
   rewrite (Hc 12 Mint32) in La by (cbn; auto).
   destruct (U a La) as (U1 & U2).
   assert (Ap : forall ub uo, used_apart bm m ub uo -> used_apart bm m' ub uo).
@@ -310,8 +330,12 @@ Proof.
       rewrite (Hc MARIOOBJ_OFF Mint32) in Hl by (cbn; auto 6).
       rewrite (Hpp mb mo Hl). exact (PP mb mo Hl).
     + intros v Lv. rewrite (Hc OFS_VELY Mfloat32) in Lv by (cbn; auto 6). exact (V v Lv).
-  - intros Hcn. destruct (U2 Hcn) as (ub & uo & Lu & (y & Hin & P1) & A).
+  - intros Hcn. destruct (U2 Hcn) as (ub & uo & Lu & (y & Hin & P1) & A & (S & CP)).
     exists ub, uo. split; [rewrite (Hc USED_OFF Mint32) by (cbn; auto); exact Lu |].
-    split; [| exact (Ap ub uo A)].
-    exists y. split; [exact Hin |]. rewrite (Hu ub uo Lu A) by auto. exact P1.
+    split; [| split; [exact (Ap ub uo A) |]].
+    + exists y. split; [exact Hin |]. rewrite (Hu ub uo Lu A) by auto. exact P1.
+    + split; [exact S |]. intros mb mo Hl.
+      rewrite (Hc MARIOOBJ_OFF Mint32) in Hl by (cbn; auto 6).
+      destruct (CP mb mo Hl) as (Eu & CC). split; [exact Eu |].
+      intros i cb co Hi Hl2. rewrite (Hcl mb mo Hl i Hi) in Hl2. exact (CC i cb co Hi Hl2).
 Qed.

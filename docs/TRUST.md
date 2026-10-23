@@ -370,6 +370,35 @@ without pressing A".*
     usedObj = Mario's object block (the pole clause's `pole_pos_ok`) nor apartness from the
     collided objects, so the usedObj region cannot be placed among the walk's regions without
     strengthening that claim. The interaction rows still assumed carry it.
+  (o) **IN_CANNON and CLIMBING_POLE proved (2026-10-22, `CannonRow.aut_case_rest_climb_top`).**
+  `Hauto_rest` is now `CannonRow.aut_case_rest_top`: 2 cases (TOP_OF_POLE_TRANSITION,
+  TOP_OF_POLE). Still 28 hypotheses; the new one is strictly narrower. No new trust row.
+  - **Statement strengthened (true in the game, no new trust):** `WMotRWorld.used_ok`'s
+    cannon clause gains `cannon_pos_ok`: usedObj's slot fits, lies in Mario's object's block
+    (both are `gObjectPool` slots), and each object Mario collided with is the cannon itself
+    or a whole Object away from it. Without it the walk's store `usedObj->oInteractStatus`
+    could not be placed among the walk's regions (a phantom usedObj overlapping a collided
+    object's fields met the old clause). Every PROVED place that establishes `used_ok` still
+    does: `used_ok_keep` gains a premise (Mario's object's four `collidedObjs` cells kept),
+    discharged by `FrameSplit.obj_store_used` (the store is at `oInteractStatus`, away from
+    them) and `AutoSplit.qsd_used` (the store is in Mario's block); all other rows use
+    `used_ok_other` or the pole clause. The assumed rows that enter ACT_IN_CANNON
+    (`interact_cannon_base`, inside the open `Hseg_call_na` / `Hseg_any`) now claim this
+    too; it holds in the game.
+  - IN_CANNON: `CannonRun.cannon_walk` runs the real act_in_cannon once per WMotR cannon
+    (`CannonWalk.cannoncheck837` / `cannoncheck2730`; usedObj is region RU with its oPosY a
+    known cell, so the seat folds to a constant). 31 outcomes; the shot needs A and is pruned.
+    Each passes `CannonClass.cannon_ok` (still IN_CANNON; y kept, or the seat
+    oPosY + 350 = the cannon's base height, an `AttachOK` cannon attach; gfx.y = y; the
+    usedObj / cannon cells kept), `PoleKeep.fkp_ok` and `RetOk.ret_ok`.
+  - CLIMBING_POLE: `PoleClimb.climbcheck12` runs the real act_climbing_pole with the pole kit
+    (11988 outcomes). FINDING: no camera frame fact is needed — the earlier "None" was a
+    probe artifact (a prefix with no return); `m->area->camera->yaw` is an opaque load (it
+    only turns Mario). `PoleRun.xcP` gains `set_mario_anim_with_accel` (`SmaXc.c_smawa`)
+    and `is_anim_past_frame` (`PoleXc.past_frame_value_contract`). `PoleClass.ppt` gains the
+    climb `polePos + stickY / 8.0f`, with the path fact `!(stickY < 8.0f)` and the path's
+    find_ceil fact at that height + 80: its s16 cast (`ceil_ok`) makes the height finite, so
+    a NaN stick is ruled out (`PoleFloat.climb_val`, `PoleSound.climb_sound`).
   **Slide kick at state ≠ 0 is proved (2026-10-21; `sk1_row` and `HeightFrame.Hsk1` removed,
   28 → 27 hypotheses).** The same walk (`SkW.skcheck12`) now classifies every outcome at any
   state (`FfClass.sk_ok` is `ff_okE` from the ticked cells; it used to accept the state ≠ 0
