@@ -15,8 +15,8 @@
 (* linked: save_file_get_star_flags, disable_warp_checkpoint, and the    *)
 (* empty nop_change_course of debug_course.c, the 37th TU), so            *)
 (* the run is unconditional, and afterwards gCurrCourseNum = 23            *)
-(* (COURSE_WMOTR, levels/course_defines.h: "(23) Wing Mario over the       *)
-(* Rainbow").  StartSat's witness carries that value (course_tether).      *)
+(* (COURSE_WMOTR, levels/course_defines.h: (23) Wing Mario over the        *)
+(* Rainbow).  StartSat's witness carries that value (course_tether).      *)
 (* ====================================================================== *)
 
 From Coq Require Import String List ZArith.
@@ -40,21 +40,40 @@ Definition FUEL : nat := Z.to_nat 200000.
 
 Definition lscl_args : list val := [Vint Int.zero; Vint (Int.repr LEVEL_WMOTR)].
 
+(* the check, generic in the fuel, the genv and the boot memory *)
+Definition course_chk (fuel : nat) (ge : genv) (m0 : mem) (bC : block) : bool :=
+  match ex_call ge no_world fuel m0
+          (Internal SM64.Generated.level_update.f_lvl_set_current_level) lscl_args with
+  | Done _ (_, m', _) =>
+      match CM.load Mint16signed m' bC 0 with
+      | Some (Vint i) => Int.eq i (Int.repr COURSE_WMOTR)
+      | _ => false
+      end
+  | Stuck _ _ _ _ => false
+  end.
+
+Lemma course_chk_sound : forall fuel ge m0 bC, course_chk fuel ge m0 bC = true ->
+  exists t m' v,
+    eval_funcall function_entry2 ge m0
+      (Internal SM64.Generated.level_update.f_lvl_set_current_level) lscl_args t m' v
+    /\ Mem.load Mint16signed m' bC 0 = Some (Vint (Int.repr COURSE_WMOTR)).
+Proof.
+  intros fuel ge m0 bC H. unfold course_chk in H.
+  destruct (ex_call ge no_world fuel m0 _ _) as [[[t m'] v]| ? ? ?] eqn:R; [ | discriminate ].
+  rewrite CM.load_eq in H.
+  destruct (Mem.load Mint16signed m' bC 0) as [[| i | | | | ]|] eqn:Hl; try discriminate.
+  apply Int.same_if_eq in H. subst i.
+  exists t, m', v. split; [ | exact Hl ].
+  eapply ex_call_sound; [ | exact R ].
+  intros ef args m1 t1 v1 m2 Hw. discriminate Hw.
+Qed.
+
 Definition course_gen (oge : option genv)
     (oast : option (AST.program (Ctypes.fundef function) type)) : bool :=
   match oge, oast with
   | Some ge, Some ast =>
       match init_mem_c ast, Genv.find_symbol ge SM64.Generated.level_update._gCurrCourseNum with
-      | Some m0, Some bC =>
-          match ex_call ge no_world FUEL m0
-                  (Internal SM64.Generated.level_update.f_lvl_set_current_level) lscl_args with
-          | Done _ (_, m', _) =>
-              match CM.load Mint16signed m' bC 0 with
-              | Some (Vint i) => Int.eq i (Int.repr COURSE_WMOTR)
-              | _ => false
-              end
-          | Stuck _ _ _ _ => false
-          end
+      | Some m0, Some bC => course_chk FUEL ge m0 bC
       | _, _ => false
       end
   | _, _ => false
@@ -78,12 +97,7 @@ Proof.
   destruct (init_mem_c (program_of_program lp)) as [m0|] eqn:Hm0; [ | discriminate ].
   destruct (Genv.find_symbol (globalenv lp) SM64.Generated.level_update._gCurrCourseNum)
     as [bC|] eqn:HbC; [ | discriminate ].
-  destruct (ex_call _ no_world FUEL m0 _ lscl_args) as [[[t m'] v]| ? ? ?] eqn:R; [ | discriminate ].
-  rewrite CM.load_eq in W.
-  destruct (Mem.load Mint16signed m' bC 0) as [[| i | | | | ]|] eqn:Hl; try discriminate.
-  apply Int.same_if_eq in W. subst i.
+  destruct (course_chk_sound _ _ _ _ W) as (t & m' & v & Ev & Hl).
   rewrite init_mem_c_eq in Hm0.
-  exists m0, bC, t, m', v. split; [ exact Hm0 | split; [ reflexivity | split; [ | exact Hl ] ] ].
-  eapply ex_call_sound; [ | exact R ].
-  intros ef args m1 t1 v1 m2 Hw. discriminate Hw.
+  exists m0, bC, t, m', v. tauto.
 Qed.
