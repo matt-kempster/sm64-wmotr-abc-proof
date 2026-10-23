@@ -11,9 +11,8 @@
 (* used_ok included.  The walk runs once per WMotR cannon (its oPosY is a  *)
 (* known cell, so the seat is a folded constant).                          *)
 (*                                                                        *)
-(* The file ends with the dispatcher's IN_CANNON and CLIMBING_POLE cases   *)
-(* (the latter is PoleRow.pole_row on PoleClimb.climbcheck12):             *)
-(* aut_case_rest_climb_top leaves only the two top-of-pole cases.          *)
+(* The file ends with the dispatcher's IN_CANNON case:                     *)
+(* aut_case_rest_climb_cannon leaves the pole cases (PoleCasesT).          *)
 (* Premises beyond the link: as KbRow (DMA floor, the labeled open audio   *)
 (* premise).                                                               *)
 (* ====================================================================== *)
@@ -31,6 +30,7 @@ From SM64.Proofs.WMotRRequiresA Require Import FloorList FloorExec AirRun AirSta
   PoleXc PoleClass PoleKeep PoleSound PoleRun CannonClass CannonRun.
 From SM64.Proofs.WMotRRequiresA Require KbRow FloorHeight PoleRow.
 From SM64.Proofs Require Import Generic.ClosedMem Generic.ClightClosed.
+From SM64.Proofs.WMotRRequiresA Require AnimWorld AnimKeep.
 From SM64.Proofs Require Generic.SymbolicLinking.
 Import ListNotations.
 
@@ -78,7 +78,7 @@ Theorem cannon_row : forall m t m' vres c0,
   (fworld lp bm m' /\ exists c2, read_cells bm m' c2 /\ MoveChain wmotr_floor wmotr_pole wmotr_cannon c0 c2)
   /\ (vres = Vint Int.zero \/ fresh bm m').
 Proof.
-  intros m t m' vres c0 Vm (Ha & HW & Han & Hmob & Hd & FW & UO) RC Hbud Hact Hfr EV.
+  intros m t m' vres c0 Vm (Ha & HW & Han & Hmob & Hd & FW & UO & AW) RC Hbud Hact Hfr EV.
   destruct FW as (Hgn & EX & FD).
   destruct EX as (gp & bfi & bmiss & bcalls & bsin & ab & biom & bmq & brm & blk & bpc & bo & oo & bt & ot & fl & ar & inp & ctl &
                   HC & HS & HM & S1 & S2 & S3 & S4 & S5 & S6 & S7 & S8 & SL & SP & Lo & Soo & La & Lb & Sot & D1 & D2 & D3 & D4 &
@@ -467,8 +467,18 @@ Proof.
       + intros mb mo Hl. change MARIOOBJ_OFF with FFW_OBJ in Hl.
         rewrite Lo' in Hl. injection Hl as <- <-. split; [reflexivity |].
         intros i cb co Hi Hl2. rewrite COLL in Hl2 by exact Hi. unfold OBJ_SPAN. exact (CC i cb co Hi Hl2). }
+  (* the animation world: kept (IN_CANNON is no pole action) *)
+  assert (AW' : AnimWorld.anim_w G bm m').
+  { apply (AnimKeep.anim_w_keep G bm m m' gp bfi bmiss bcalls ab biom bmq brm blk bpc bo oo bt ot
+             S1 S2 S3 S5 S6 S7 S8 SL SP Lo Lb W AW NBm
+             (fun b ofs k p Hp Hq => proj2 (VP b ofs k p Hp) Hq) OFF);
+      [ apply CM; mem_tac | apply CL; mem_tac | apply CL; mem_tac | apply CM; mem_tac | apply CM; mem_tac | ].
+    left. destruct RC2 as (A2 & _). change (e_blk E RM) with bm in A2.
+    intros a La'. change OFS_ACTION with 12 in A2. rewrite A2 in La'. injection La' as <-.
+    rewrite Hac2, Int.unsigned_repr by (unfold ACT_IN_CANNON_Z; cbn; lia).
+    vm_compute. intuition discriminate. }
   (* ---- the frame world at m' ---- *)
-  split; [| split; [| split; [| split; [| split; [| split; [| exact UO']]]]]].
+  split; [| split; [| split; [| split; [| split; [| split; [| exact (conj UO' AW')]]]]]].
   - (* the action *)
     destruct KA as (a & La' & Ina). intros v Hl. rewrite La' in Hl. injection Hl as <-. exact Ina.
   - (* W *)
@@ -556,8 +566,8 @@ Proof.
 Qed.
 End CANNONROW.
 
-(* ---- the automatic dispatcher's IN_CANNON and CLIMBING_POLE cases ---- *)
-From SM64.Proofs.WMotRRequiresA Require Import AutoSplit LedgeRow CannonWalk PoleClimb.
+(* ---- the automatic dispatcher's IN_CANNON case (and CLIMBING_POLE's label) ---- *)
+From SM64.Proofs.WMotRRequiresA Require Import AutoSplit LedgeRow CannonWalk.
 
 Lemma dm_ic : (prog_defmap AUT.prog) ! AUT._act_in_cannon = Some (Gfun (Internal AUT.f_act_in_cannon)).
 Proof. vm_compute. reflexivity. Qed.
@@ -599,20 +609,20 @@ Proof.
   - exact (cannon_cfinal lp H12 Hdma Haudio _ _ _ cannoncheck2730 Hy).
 Qed.
 
-(* the automatic cases still assumed: TOP_OF_POLE_TRANSITION and
-   TOP_OF_POLE (LedgeRow's, less IN_CANNON and CLIMBING_POLE) *)
-Definition aut_case_rest_top : Prop :=
+(* LedgeRow's rest, less IN_CANNON: the three pole cases CLIMBING_POLE,
+   TOP_OF_POLE_TRANSITION and TOP_OF_POLE (PoleCasesT.rest_cannon) *)
+Definition aut_case_rest_cannon : Prop :=
   forall n f fd v, In (n, f) aut_case_list ->
     f <> AUT._act_grab_pole_slow -> f <> AUT._act_grab_pole_fast -> f <> AUT._act_holding_pole ->
     f <> AUT._act_ledge_grab -> f <> AUT._act_ledge_climb_down ->
     f <> AUT._act_ledge_climb_slow -> f <> AUT._act_ledge_climb_fast ->
-    f <> AUT._act_in_cannon -> f <> AUT._act_climbing_pole ->
+    f <> AUT._act_in_cannon ->
     resolves lp f fd ->
     seg_okR lp bm MWF fd [v]
       (fun m => v = Vptr bm Ptrofs.zero /\ Mem.load Mint32 m bm 12 = Some (Vint (Int.repr n)) /\ fresh bm m)
       (fun m' vr => vr = Vint Int.zero \/ fresh bm m').
 
-Theorem aut_case_rest_climb_top : aut_case_rest_top -> aut_case_rest_climb lp bm MWF.
+Theorem aut_case_rest_climb_cannon : aut_case_rest_cannon -> aut_case_rest_climb lp bm MWF.
 Proof.
   intros Hrest n f fd v Hin Hne1 Hne2 Hne0 Hne3 Hne4 Hne5 Hne6 Hr.
   destruct (Pos.eq_dec f AUT._act_in_cannon) as [-> | Hne7].
@@ -622,14 +632,6 @@ Proof.
     destruct Hok as (Vm & _).
     exact (KbRow.kb_reshape _ _ _ (cannon_row lp H12 bm Hbm _ cannon_cf
              m t m' vr c Vm Hw Hc Hb Hact Hfr Hev)). }
-  destruct (Pos.eq_dec f AUT._act_climbing_pole) as [-> | Hne8].
-  { pose proof (cp_label n Hin) as ->.
-    pose proof (resolve_pin_fd lp _ _ _ _ (linked12_LO_aut lp H12) dm_cp Hr) as ->.
-    intros m t m' vr c Hok Hw (-> & Hact & Hfr) Hok' Hc Hb Hev.
-    destruct Hok as (Vm & _).
-    exact (KbRow.kb_reshape _ _ _ (PoleRow.pole_row lp H12 bm Hbm _ _
-             (pole_pfinal lp H12 Hdma Haudio _ _ climbcheck12) ltac:(right; right; right; left; reflexivity)
-             m t m' vr c Vm Hw Hc Hb Hact Hfr Hev)). }
-  exact (Hrest n f fd v Hin Hne1 Hne2 Hne0 Hne3 Hne4 Hne5 Hne6 Hne7 Hne8 Hr).
+  exact (Hrest n f fd v Hin Hne1 Hne2 Hne0 Hne3 Hne4 Hne5 Hne6 Hne7 Hr).
 Qed.
 End CANNONCASE.

@@ -26,6 +26,7 @@ From SM64.Proofs.WMotRRequiresA Require Import FloorList FloorExec AirRun AirSta
   LedgeRun LedgeGrab LedgeDown LedgeClimbSlow1 LedgeClimbSlow2 LedgeClimbFast.
 From SM64.Proofs.WMotRRequiresA Require KbRow PoleRow.
 From SM64.Proofs Require Import Generic.ClosedMem Generic.ClightClosed.
+From SM64.Proofs.WMotRRequiresA Require AnimWorld AnimKeep.
 Import ListNotations.
 
 Module AUT := mario_actions_automatic.
@@ -148,7 +149,7 @@ Theorem ledge_row : forall m t m' vres c0,
   (fworld lp bm m' /\ exists c2, read_cells bm m' c2 /\ MoveChain wmotr_floor wmotr_pole wmotr_cannon c0 c2)
   /\ (vres = Vint Int.zero \/ fresh bm m').
 Proof.
-  intros m t m' vres c0 Vm (Ha & HW & Han & Hmob & Hd & FW & _) RC Hbud Hact Hfr EV.
+  intros m t m' vres c0 Vm (Ha & HW & Han & Hmob & Hd & FW & _ & AW) RC Hbud Hact Hfr EV.
   destruct FW as (Hgn & EX & FD).
   destruct EX as (gp & bfi & bmiss & bcalls & bsin & ab & biom & bmq & brm & blk & bpc & bo & oo & bt & ot & fl & ar & inp & ctl &
                   HC & HS & HM & S1 & S2 & S3 & S4 & S5 & S6 & S7 & S8 & SL & SP & Lo & Soo & La & Lb & Sot & D1 & D2 & D3 & D4 &
@@ -479,7 +480,15 @@ Proof.
   (* ---- the frame world at m' ---- *)
   assert (UO : WMotRWorld.used_ok bm m')
     by (destruct KA as (a & La' & _ & Nu); exact (WMotRWorld.used_ok_other bm m' a La' Nu)).
-  split; [| split; [| split; [| split; [| split; [| split; [| exact UO]]]]]].
+  (* the animation world: kept (the action after is no pole action) *)
+  assert (AW' : AnimWorld.anim_w G bm m').
+  { destruct KA as (a & La' & _ & Nu).
+    apply (AnimKeep.anim_w_keep G bm m m' gp bfi bmiss bcalls ab biom bmq brm blk bpc bo oo bt ot
+             S1 S2 S3 S5 S6 S7 S8 SL SP Lo Lb W AW NBm
+             (fun b ofs k p Hp Hq => proj2 (VP b ofs k p Hp) Hq) OFF);
+      [ apply CM; mem_tac | apply CL; mem_tac | apply CL; mem_tac | apply CM; mem_tac | apply CM; mem_tac | ].
+    left. intros a' La2. rewrite La' in La2. injection La2 as <-. exact (AnimKeep.not_used_not_anim _ Nu). }
+  split; [| split; [| split; [| split; [| split; [| split; [| exact (conj UO AW')]]]]]].
   - (* the action *)
     destruct KA as (a & La' & Ina & _). intros v Hl. rewrite La' in Hl. injection Hl as <-. exact Ina.
   - (* W *)

@@ -282,6 +282,7 @@ Definition known_zero (pc : list fact) (t : sval) (k : int) : bool :=
                     end) pc.
 
 Definition is_tint (t : type) : bool := match t with Tint _ _ _ => true | _ => false end.
+Definition is_tptr (t : type) : bool := match t with Tpointer _ _ => true | _ => false end.
 
 Definition fold_ptr_res (r : positive) (res : option val) : option sval :=
   match res with
@@ -306,6 +307,16 @@ Definition fold_bin (pc : list fact) (op : binary_operation) (a1 : sval) (t1 : t
   | Sconst v1, Sptr r o =>
       if non_ptr v1
       then fold_ptr_res r (sem_binary_operation ge op v1 t1 (Vptr dummy_b o) t2 Mem.empty)
+      else None
+  (* two addresses in one region: == / != compare their offsets (when the
+     real comparison is defined at all, it is this one) *)
+  | Sptr r1 o1, Sptr r2 o2 =>
+      if Pos.eqb r1 r2 && is_tptr t1 && is_tptr t2 then
+        match op with
+        | Oeq => Some (Sconst (Val.of_bool (Ptrofs.eq o1 o2)))
+        | One => Some (Sconst (Val.of_bool (negb (Ptrofs.eq o1 o2))))
+        | _ => None
+        end
       else None
   | _, Sconst (Vint k) =>
       match op with
@@ -1960,18 +1971,41 @@ Lemma fold_bin_inv : forall pc op a1 t1 a2 t2 t, fold_bin pc op a1 t1 a2 t2 = So
   \/ (exists c1 r o, a1 = Sconst c1 /\ a2 = Sptr r o /\ non_ptr c1 = true
      /\ fold_ptr_res r (sem_binary_operation ge op c1 t1 (Vptr dummy_b o) t2 Mem.empty) = Some t)
   \/ (exists k, a2 = Sconst (Vint k) /\ op = Oand /\ is_tint t1 = true /\ is_tint t2 = true
-     /\ known_zero pc a1 k = true /\ t = Sconst (Vint Int.zero)).
+     /\ known_zero pc a1 k = true /\ t = Sconst (Vint Int.zero))
+  \/ (exists r o1 o2, a1 = Sptr r o1 /\ a2 = Sptr r o2 /\ is_tptr t1 = true /\ is_tptr t2 = true
+     /\ ((op = Oeq /\ t = Sconst (Val.of_bool (Ptrofs.eq o1 o2)))
+         \/ (op = One /\ t = Sconst (Val.of_bool (negb (Ptrofs.eq o1 o2)))))).
 Proof.
   intros pc op a1 t1 a2 t2 t H. unfold fold_bin in H.
   destruct a1; destruct a2; cbv beta iota in H; try discriminate H.
   all: try (left; eauto 6; fail).
   all: try (destruct (non_ptr _) eqn:N; [ | discriminate H ]; right; left; eauto 7; fail).
   all: try (destruct (non_ptr _) eqn:N; [ | discriminate H ]; right; right; left; eauto 7; fail).
+  all: try (match type of H with context [Pos.eqb ?x ?y] => destruct (Pos.eqb_spec x y) as [<- | _] end;
+            destruct (is_tptr t1) eqn:T1; destruct (is_tptr t2) eqn:T2; cbn in H; try discriminate H;
+            destruct op; try discriminate H; inv H; right; right; right; right; eauto 12; fail).
   all: destruct v; try discriminate H; destruct op; try discriminate H;
        destruct (is_tint t1) eqn:T1; destruct (is_tint t2) eqn:T2;
        destruct (known_zero _ _ _) eqn:K; cbn in H; try discriminate H; inv H;
-       right; right; right; eauto 10.
+       right; right; right; left; eauto 10.
 Qed.
+
+Section PPSAME.
+Local Transparent Archi.ptr64.
+Lemma sem_cmp_pp_same : forall ce op b x y p1 a1 p2 a2 m v, (op = Oeq \/ op = One) ->
+  sem_binary_operation ce op (Vptr b x) (Tpointer p1 a1) (Vptr b y) (Tpointer p2 a2) m = Some v ->
+  v = Val.of_bool (match op with Oeq => Ptrofs.eq x y | _ => negb (Ptrofs.eq x y) end).
+Proof.
+  intros ce op b x y p1 a1 p2 a2 m v Hop H.
+  destruct Hop as [-> | ->]; cbn in H; unfold cmp_ptr, Val.cmpu_bool, option_map in H;
+    cbn in H.
+  all: repeat match type of H with
+    | context [if ?c then _ else _] => let Ec := fresh "Ec" in destruct c eqn:Ec; cbn in H;
+        try discriminate H; try (exfalso; congruence)
+    end.
+  all: inv H; reflexivity.
+Qed.
+End PPSAME.
 
 Lemma sok_dold : forall n a, sok n a -> loc_ptr a = false -> dold a.
 Proof.
@@ -2009,7 +2043,8 @@ Proof.
   destruct (fold_bin (g_pc g) op a1 t1 a2 t2) as [t'|] eqn:F.
   - inv MK. apply fold_bin_inv in F.
     destruct F as [(c1 & c2 & -> & -> & F) | [(r & o & c2 & -> & -> & NP & F)
-                  | [(c1 & r & o & -> & -> & NP & F) | (k & -> & -> & T1 & T2 & K & ->)]]].
+                  | [(c1 & r & o & -> & -> & NP & F) | [(k & -> & -> & T1 & T2 & K & ->)
+                  | (r & o1 & o2 & -> & -> & T1 & T2 & Hop)]]]].
     + apply fold_const_inv in F. destruct F as (w & Hw & -> & U & P).
       cbn [den] in D1, D2. inv D1. inv D2.
       destruct (sem_binary_operation_inj (fun _ => None) Mem.empty m ltac:(empty_side)
@@ -2039,6 +2074,15 @@ Proof.
       rewrite Di in D1. inv D1. cbn [den] in D2. inv D2.
       apply sem_and_tint in H. subst v. rewrite Ai.
       split; [ reflexivity | apply sok_const; reflexivity ].
+    + (* two addresses in one region *)
+      cbn [den] in D1, D2. inv D1. inv D2.
+      destruct t1; try discriminate T1. destruct t2; try discriminate T2.
+      assert (Q : Ptrofs.eq (Ptrofs.add (e_base E r) o1) (Ptrofs.add (e_base E r) o2) = Ptrofs.eq o1 o2).
+      { rewrite (Ptrofs.add_commut _ o1), (Ptrofs.add_commut _ o2). apply Ptrofs.translate_eq. }
+      destruct Hop as [(-> & ->) | (-> & ->)];
+        apply sem_cmp_pp_same in H; try (left; reflexivity); try (right; reflexivity);
+        subst v; rewrite Q; (split; [ reflexivity | apply sok_const ]);
+        first [ destruct (Ptrofs.eq o1 o2); reflexivity ].
   - destruct (loc_ptr a1) eqn:L1; [ discriminate | ].
     destruct (loc_ptr a2) eqn:L2; [ discriminate | ]. inv MK.
     pose proof (sok_old E n a1 v1 MM_env S1 L1 D1) as O1.

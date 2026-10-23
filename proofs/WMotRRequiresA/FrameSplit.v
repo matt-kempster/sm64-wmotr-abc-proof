@@ -39,6 +39,7 @@ From SM64.Proofs Require Import NoAImpliesNoFlyLinked.
 From SM64.Proofs Require Import HeightInvariant HeightMoveCatalog WMotRLevel WMotRWorld
   NoAActions FrameCalls.
 From SM64.Proofs.WMotRRequiresA Require Import FfWorld.
+From SM64.Proofs.WMotRRequiresA Require AnimWorld AnimKeep.
 From SM64.Proofs Require Import Generic.ClosedMem.
 Import ListNotations.
 
@@ -386,7 +387,10 @@ Section FrameSplit.
   (* what holds at every call boundary of the frame, besides GOAL 1's mem_ok *)
   Definition fworld (m : mem) : Prop :=
     action_sat R_noA m bm /\ wmotr_world bm m /\ anim_apart m /\ mobj_apart m
-    /\ a_down_real bm m = false /\ ffw ge bm m /\ used_ok bm m.
+    /\ a_down_real bm m = false /\ ffw ge bm m /\ used_ok bm m
+    (* the animation world (AnimWorld, 2026-10-23): the DMA table, gMarioAnims,
+       the buffer, and in a pole action after the grab the animation state *)
+    /\ AnimWorld.anim_w ge bm m.
 
   Notation MC := (MoveChain wmotr_floor wmotr_pole wmotr_cannon).
 
@@ -831,16 +835,52 @@ Section FrameSplit.
         apply LDk; [cbn; lia | pose proof mo_range; unfold COLL_OFF, O_INTERACT_STATUS, RAW_OFF in *; lia].
     Qed.
 
+    (* the animation world (AnimWorld.anim_w): the store is inside Mario's
+       object, away from its animation cells *)
+    Lemma obj_store_anim_w : ffw ge bm m -> AnimWorld.anim_w ge bm m -> AnimWorld.anim_w ge bm m'.
+    Proof.
+      intros (Hgn & EX & FD) AW.
+      destruct EX as (gp & bfi & bmiss & bcalls & bsin & ab & biom & bmq & brm & blk & bpc & bo & oo & bt & ot
+                      & fl & ar & inp & ctl & HC & HS & HM & S1 & S2 & S3 & S4 & S5 & S6 & S7 & S8 & SL & SP
+                      & Lo & Soo & La & Lb & Sot & D1 & D2 & D3 & D4 & W & _).
+      assert (Lo' : Mem.load Mint32 m bm MARIOOBJ_OFF = Some (Vptr bo oo)) by exact Lo.
+      rewrite Hmo in Lo'. injection Lo' as <- <-.
+      pose proof AW as (ab' & bga & bauc & btab & otab & bt' & ot' & mb' & mo' & B & _).
+      pose proof B as (Sab & _ & _ & _ & L8 & Lm & _ & _ & _ & D3' & _).
+      assert (ab' = ab) by congruence. subst ab'.
+      rewrite Lb in L8. injection L8 as <- <-.
+      assert (Lm' : Mem.load Mint32 m bm MARIOOBJ_OFF = Some (Vptr mb' mo')) by exact Lm.
+      rewrite Hmo in Lm'. injection Lm' as <- <-.
+      assert (Hab0 : ab <> mb) by exact (Hab ab S5).
+      apply (AnimKeep.anim_w_keep ge bm m m' gp bfi bmiss bcalls ab biom bmq brm blk bpc mb mo bt ot
+               S1 S2 S3 S5 S6 S7 S8 SL SP Lo Lb W AW).
+      - rewrite (Mem.nextblock_store _ _ _ _ _ _ Hst). apply Ple_refl.
+      - intros b ofs k p _ Hp. exact (Mem.perm_store_1 _ _ _ _ _ _ Hst b ofs k p Hp).
+      - intros ch' b z _ Hr. apply LD. left. intros ->. apply Hr. exists mo.
+        unfold ff_rl. cbn. right; left; reflexivity.
+      - apply LDbm.
+      - apply LD. left. exact Hab0.
+      - apply LD. left. exact Hab0.
+      - apply LDbm.
+      - apply LDbm.
+      - right. split; [apply LDbm |]. split; [apply LD; left; exact Hab0 |]. split.
+        + intros o ch' Hin. apply LDo; [exact mo_range |].
+          destruct Hin as [E | [E | [E | [E | []]]]]; injection E as <- <-; cbn [size_chunk];
+            unfold O_INTERACT_STATUS, RAW_OFF; left; lia.
+        + intros k rel ch' v' _ _. apply LD. left. exact D3'.
+    Qed.
+
     Lemma obj_store_fworld : fworld m -> fworld m'.
     Proof.
-      intros (Ha & Hw & Han & Hmob & Hd & Hf & Hu).
+      intros (Ha & Hw & Han & Hmob & Hd & Hf & Hu & Haw).
       split; [intros v1 Hl; unfold action_sat in Ha; rewrite LDbm in Hl; exact (Ha v1 Hl) |].
       split; [exact (obj_store_world Hmob Hw) |].
       split; [exact (obj_store_anim Han) |].
       split; [exact (obj_store_mobj Hmob) |].
       split; [rewrite obj_store_adown; exact Hd |].
       split; [exact (obj_store_ffw Hf) |].
-      exact (obj_store_used Hu).
+      split; [exact (obj_store_used Hu) |].
+      exact (obj_store_anim_w Hf Haw).
     Qed.
 
     Lemma obj_store_cells : forall c, read_cells bm m c -> read_cells bm m' c.

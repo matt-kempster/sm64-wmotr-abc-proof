@@ -232,8 +232,8 @@ without pressing A".*
   `WMotRLevel.wmotr_poles_proved` re-proves that every WMotR pole is low by that margin or out of
   reach. The anim data is DMA-loaded ROM data that no linked AST reaches; since 2026-10-22 the
   174 is **proved from the generated anim data** (`PoleAnim.handstand_y_bound`,
-  `pole_up_covers_handstand`; row 0.8(f)) for frames ≥ −1, not yet tied to the DMA buffer. It is not trusted by any proof today, because the top-of-pole cases sit inside the
-  open row, but it is the constant a future proof of those cases must justify.
+  `pole_up_covers_handstand`; row 0.8(f)) for frames ≥ −1. Since 2026-10-23 the top-of-pole walks read the real data through the DMA
+  buffer (audit (p)) and their y offset, in [−1, 174], is checked against `POLE_UP`.
   (g) **Phantom ∀ on `m->usedObj`:** the frame world did not constrain it. A `HOLDING_POLE`
   memory whose usedObj is a high pole (base ≥ 3154) met every premise, and `set_pole_position`
   would put y above YMAX. The same gap held for `IN_CANNON`'s seat (usedObj y + 350). The frame
@@ -399,6 +399,38 @@ without pressing A".*
     climb `polePos + stickY / 8.0f`, with the path fact `!(stickY < 8.0f)` and the path's
     find_ceil fact at that height + 80: its s16 cast (`ceil_ok`) makes the height finite, so
     a NaN stick is ruled out (`PoleFloat.climb_val`, `PoleSound.climb_sound`).
+  (p) **TOP_OF_POLE_TRANSITION and TOP_OF_POLE proved; all twelve automatic cases proved
+  (2026-10-23, `PoleCasesT.aut_case_rows_T`).** `Hauto_rest` is removed and its place is taken
+  by `HeightFrame.Hdma_anim : OsDmaFloor.pi_dma_anim_spec` (row 0.8(f), APPROVED), so the count
+  stays 26. All six pole actions are re-walked (`PoleRunT`) with Mario's real animation data:
+  `set_mario_animation` / `_with_accel` walked inline (`load_patchable_table` reads the DMA
+  table, `dma_read` copies `gMarioAnims` cells into the buffer by `DmaXc.c_dma`, from
+  0.8(f)), and the top-of-pole `set_pole_position(m, return_mario_anim_y_translation(m))`
+  walks `return_mario_anim_y_translation` once per animation frame (`RytXc.c_ryt`, y offset in
+  [−1, 174]). One walk per start variant (`PoleStartT.avars`): TOP_OF_POLE from handstand
+  animation 9 loaded or not; TOP_OF_POLE_TRANSITION from 11 or 12 loaded, or neither;
+  HOLDING / CLIMBING from `anim_st`; the grabs from nothing (`PoleSlowT` … `PoleTopT2`). Each
+  outcome passes `PoleRun.pk_ok`, leaves the table alone (`no_reg RTAB`) and `AnimEnd`'s
+  check (in a pole action after the grab, `anim_st` again). `PoleClass.tb` gains the clamped
+  polePos case (the walker folds oPosY + 720.0f to a constant; `PoleFloat.y0_bound_kc`).
+  Found on the way: TOP_OF_POLE's stick-down exit (stickY < −16 → TOP_OF_POLE_TRANSITION)
+  returns before `set_mario_animation`, so the animation is still the one the walk started
+  from (on the first TOP frame, the transition's 11 / 12); the AR [9] walk passes only because
+  every AL / AR start carries the start's `anim_st` (`PoleRunT.av_st`, `PoleStartT.avars_LR`),
+  which the untouched-cells check then keeps.
+  The old `PoleRow.pole_row` and the walks `PoleSlow` / `PoleFast` / `PoleHold` /
+  `PoleClimb` are retired (they could not keep the animation world).
+  - **Statement strengthened (true in the game, no new trust row):** the frame world
+    (`FrameSplit.fworld`, `HeightFrame.PhiW`) carries `AnimWorld.anim_w`: the DMA table
+    (count, srcAddr = `gMarioAnims`, the pole animations' entries), `bufTarget`,
+    `gMarioAnims` / `gAreaUpdateCounter` storage, and, in a pole action after the grab,
+    `anim_st` (no handstand animation loaded, or handstand animation k loaded with its
+    cells and animFrame within that animation's range). Every PROVED row keeps it
+    (`AnimKeep.anim_w_keep`; the pole rows by `anim_base_keep` and the walk's AnimEnd check)
+    and the boot witness establishes it (`StartSat`). The assumed flank specs
+    (`seg_*_spec`'s `Phi m -> Phi m'`, notably the render call that advances animFrame,
+    which `RenderFlank.render_frame_range` keeps in [−1, loopEnd]) and the open rows
+    `Hseg_call_na` / `Hseg_any` now also claim it; it holds in the game.
   **Slide kick at state ≠ 0 is proved (2026-10-21; `sk1_row` and `HeightFrame.Hsk1` removed,
   28 → 27 hypotheses).** The same walk (`SkW.skcheck12`) now classifies every outcome at any
   state (`FfClass.sk_ok` is `ff_okE` from the ticked cells; it used to accept the state ≠ 0
@@ -563,8 +595,9 @@ without pressing A".*
   2026-10-22** (the 36th TU): as a size-0 extern, every `load_patchable_table` pointer compare had
   no execution (5.1). The game reads it only by DMA from ROM; in the model it is a read-only
   global with the clightgen'd bytes (the approved ROM-content statement: the ROM's `gMarioAnims`
-  is this layout, and `osPiStartDma` copies ROM bytes verbatim; no proof consumes DMA'd bytes yet,
-  so it is not load-bearing). `PoleAnim.handstand_y_bound` proves from it
+  is this layout, and `osPiStartDma` copies ROM bytes verbatim, formalized as
+  `OsDmaFloor.pi_dma_anim_spec`; **LOAD-BEARING since 2026-10-23** as `HeightFrame.Hdma_anim`,
+  consumed by the pole walks' `DmaXc.c_dma`, GOAL-2 audit (p)). `PoleAnim.handstand_y_bound` proves from it
   that for the three anims the top-of-pole handlers pass to `set_mario_animation` (9, 11, 12, read off
   the generated bodies: `top_of_pole_anim_ids`), every y-channel sample a frame ≥ −1 selects (entries →
   header → index pair 1 → values, with `retrieve_animation_index`'s clamp, inside the DMA'd range) is
@@ -573,9 +606,12 @@ without pressing A".*
   move `m->pos[1]`: `set_pole_position(m, return_mario_anim_y_translation(m))`.
   **Trusted:** the decoder mirrors that path (field offsets are checked against CompCert's layout of
   the generated composites, `anim_layout`), and the ROM bytes are the IDO (MIPS, big-endian) layout of
-  the same C, which CompCert's (PPC, big-endian) layout matches for this struct. **Not yet
-  load-bearing** (no proof consumes the bound; the top-of-pole cases are inside `Hauto_case`). Using
-  it in a top-of-pole walk needs, beyond what is on this ledger: (1) a DMA content spec: 3.5 says the
+  the same C, which CompCert's (PPC, big-endian) layout matches for this struct. **2026-10-23: the
+  top-of-pole cases are PROVED (audit (p))**: (1) is `pi_dma_anim_spec` (approved, above), (2) and
+  (3) are carried by the frame world (`AnimWorld.anim_w`: the table, bufTarget, and per pole action
+  the loaded animation with animFrame in [−1, loopEnd]), a logged strengthening, not a trust row
+  (that it holds at real WMotR entry is part of Φ at entry, 0.4; the StartSat witness has it).
+  The history: using it in a top-of-pole walk needed, beyond what is on this ledger: (1) a DMA content spec: 3.5 says the
   DMA'd bytes are "data", not the ROM's bytes, and the ROM is not modelled; (2) the DMA table
   `gMarioAnimsBuf.dmaTable` (count, srcAddr, entries) and `bufTarget` as a frame-world fact: they are
   built by `setup_dma_table_list` at boot, which is not run (the pool hardware row, 4.x boot gap);
@@ -591,7 +627,8 @@ without pressing A".*
   "animFrame ≥ −1" through Mario's own frame (the action step re-sets animInfo through
   `set_mario_animation` / `set_anim_to_frame`, which the frame world does not yet track), so
   TOP_OF_POLE_TRANSITION / TOP_OF_POLE stay in `Hauto_rest`, and the approved DMA-content row for
-  (1) was not added (it would not be load-bearing without the walks); (4) ~~segment 0~~ **repaired 2026-10-22:** the model stored `VIRTUAL_TO_PHYSICAL(p)` = p − 0x80000000 and the identity `segmented_to_virtual` did not add it back, so the sample load was 2^31 bytes out of bounds and every real top-of-pole frame had no CompCert execution. The macro is now the `NO_SEGMENTED_MEMORY` identity (2.2 register), and `AnimRoundTrip.anim_y_runs` runs the real `return_mario_anim_y_translation`. Each of (1)–(3) is a new or changed trust assumption, so none was added. (5) **Finding,
+  (1) was not added (it would not be load-bearing without the walks) -- both done 2026-10-23,
+  audit (p); (4) ~~segment 0~~ **repaired 2026-10-22:** the model stored `VIRTUAL_TO_PHYSICAL(p)` = p − 0x80000000 and the identity `segmented_to_virtual` did not add it back, so the sample load was 2^31 bytes out of bounds and every real top-of-pole frame had no CompCert execution. The macro is now the `NO_SEGMENTED_MEMORY` identity (2.2 register), and `AnimRoundTrip.anim_y_runs` runs the real `return_mario_anim_y_translation`. Each of (1)–(3) is a new or changed trust assumption, so none was added. (5) **Finding,
   repaired 2026-10-22:** in the 34-TU link `gAreaUpdateCounter` was only *declared* (every TU had
   it `extern`), so `init_mem` gave it a size-0 block and `geo_update_animation_frame`'s read of it
   failed: that function, and so `find_mario_anim_flags_and_translation`,
