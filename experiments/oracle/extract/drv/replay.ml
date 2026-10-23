@@ -126,10 +126,11 @@ let sizeof t = zi (Ctypes.sizeof cenv t)
 let blk_int b = pos_to_int b
 
 (* ---------------- initial memory ---------------- *)
-(* ROM_SIZED=1: give ROM-space symbols (gMarioAnims) their ROM extent as block
-   size.  NOT the model: in the link they are size-0 blocks (data not linked), and
-   a pointer comparison on such a block has no CompCert execution.  This switch
-   only lets the rest of an anim-load frame be tested past that finding. *)
+(* ROM_SIZED=1: give ROM-space symbols (gMarioAnims) at least their ROM extent
+   as block size.  Historical: before 2026-10-22 gMarioAnims was a size-0 block
+   (data not linked) and this let anim frames run past that finding.  The anim
+   data is now linked (36th TU), so the model's block already has its real size
+   (580632 bytes of initializer; the ROM extent 0x8DC20 adds alignment). *)
 let rom_sized = Sys.getenv_opt "ROM_SIZED" = Some "1"
 let size_of_extern i =
   match Stdlib.List.find_opt (fun (n, _, _) -> n = name i) !rom_addrs with
@@ -166,8 +167,8 @@ let placed, fun_at, addr_of_blk =
   (Array.of_list (Stdlib.List.sort compare !pl), fa, ab)
 
 (* ROM-space symbols (gMarioAnims, the anim DMA source): the game holds the ROM
-   address as an integer; in the model it is &symbol + offset (a size-0 block,
-   as in the proofs).  Normalization, counted like the others. *)
+   address as an integer; in the model it is &symbol + offset (the linked anim
+   data's block).  Normalization, counted like the others. *)
 let rom_syms =
   Stdlib.List.filter_map (fun (n, a, ext) ->
       match Globalenvs.Genv.find_symbol genv (ident n) with
