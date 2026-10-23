@@ -43,8 +43,9 @@ From Coq Require Import List. Import ListNotations.
 From SM64.Generated Require mario mario_actions_stationary
   mario_actions_moving mario_actions_airborne mario_actions_submerged
   mario_actions_cutscene mario_actions_automatic mario_actions_object
-  interaction behavior_actions level_update mario_step camera audio_external sound_init math_util.
-From SM64.Proofs Require BullyBodies SpawnBodies AudioBodies.
+  interaction behavior_actions level_update mario_step camera audio_external sound_init math_util
+  print.
+From SM64.Proofs Require BullyBodies SpawnBodies AudioBodies PrintBodies.
 From SM64.Proofs Require Import Flying Taint ActionValue ActionValueFrame ReachableRun
   RealFrameValue RealFrameLinked AGates SymbolicLinking FieldNonInterference.
 From SM64.Proofs Require Import CensusV2 EngineV2Consumer.
@@ -578,42 +579,40 @@ Section NoAImpliesNoFlyTwelve.
   (* Hret_unsafe REMOVED (task #99): the v2 engine no longer consumes any
      return-value row (it was dead plumbing / a latent vacuity -- see
      NoAImpliesNoFlyLinked). *)
-  (* 2026-10-23 (the audio link): both engine rows name ONLY print.c's
-     print_text_fmt_int.  RestSurface.rest_external_cases proves that a
-     reached External is a resolution of sqrtf or print_text_fmt_int (every
-     other rest id -- play_sound and the cap-music pair included -- is
-     defined by a linked TU); sqrtf is the FPU floor (sqrtf_spec). *)
-  Hypothesis Hext_action_ptfi : forall ef targs tres cc vargs m t vres m',
-      resolves_lp lp mario._print_text_fmt_int (External ef targs tres cc) ->
-      wgate bm SafeB (type_of_fundef (External ef targs tres cc)) vargs ->
-      external_call ef (lp_ge lp) vargs m t vres m' ->
-      Mem.unchanged_on (action_cell bm) m m'.
-  Hypothesis Hmwf_ext_ptfi : forall ef targs tres cc vargs m t vres m',
-      resolves_lp lp mario._print_text_fmt_int (External ef targs tres cc) ->
-      wgate bm SafeB (type_of_fundef (External ef targs tres cc)) vargs ->
-      external_call ef (lp_ge lp) vargs m t vres m' ->
-      Mem.valid_block m bm -> MWF m -> MWF m'.
-  Lemma reached_ext_ptfi : forall ef targs tres cc,
-      reached_v2 lp (External ef targs tres cc) -> ~ CameraBodies.is_sqrtf_ef ef ->
-      resolves_lp lp mario._print_text_fmt_int (External ef targs tres cc).
+  (* 2026-10-23 (the print link): print.c is linked (the 42nd TU), so
+     print_text_fmt_int resolves to its real body, a pinned rest case whose
+     gated residual is PROVED below (PrintBodies).  The two engine rows it
+     left, Hext_action_ptfi / Hmwf_ext_ptfi, are GONE:
+     RestSurface.rest_external_cases now shows a reached External is a
+     resolution of sqrtf alone, the FPU floor (Hsq). *)
+  Lemma reached_ext_sqrtf : forall ef targs tres cc,
+      reached_v2 lp (External ef targs tres cc) -> CameraBodies.is_sqrtf_ef ef.
   Proof.
-    intros ef targs tres cc Hr Hne.
+    intros ef targs tres cc Hr.
     destruct Hr as [(f & E & _) | [E | Hrest]]; [ discriminate E | discriminate E | ].
-    destruct (rest_external_cases lp
+    pose proof (rest_external_cases lp
                 (linked12_LO_mario lp H12) (linked12_LO_sta lp H12) (linked12_LO_mov lp H12)
                 (linked12_LO_air lp H12) (linked12_LO_sub lp H12) (linked12_LO_cut lp H12)
                 (linked12_LO_aut lp H12) (linked12_LO_obj lp H12) (linked12_LO_int lp H12)
                 (linked12_LO_beh lp H12) (linked12_LO_lvl lp H12) (linked12_LO_stp lp H12)
                 (linked12_LO_surf lp H12) (linked12_LO_math lp H12) (linked12_LO_camera lp H12)
                 (linked12_LO_audio_external lp H12) (linked12_LO_sound_init lp H12)
-                ef targs tres cc Hrest) as [Hs | Hp]; [ | exact Hp ].
-    exfalso. apply Hne. destruct Hs as (b & Hsym & Hff).
+                (linked12_LO_print lp H12)
+                ef targs tres cc Hrest) as Hs.
+    destruct Hs as (b & Hsym & Hff).
     destruct (MtxfBody.xresolve lp math_util.prog math_util._sqrtf [math_util._sqrtf] "sqrtf" b _
                 H12 (linked12_LO_math lp H12) ltac:(vm_compute; reflexivity)
                 MtxfBody.sqrtf_ni MtxfBody.sqrtf_named Hsym Hff)
       as (sg & targs' & tres' & cc' & E).
     injection E as -> _ _ _. exists sg. reflexivity.
   Qed.
+  (* the print_text_fmt_int body, PROVED from print.c + memory.c's
+     mem_pool_alloc (PrintBodies): every store lands in a SafeB pool label /
+     header (through gEffectsMemoryPool / sTextLabels, CensusV2.print_safe_syms)
+     or in a stack local of the print tree *)
+  Lemma Hptfi_body_real :
+    RestSurface.body_pres_w lp MWF bm SafeB print.f_print_text_fmt_int.
+  Proof. exact (PrintBodies.Hptfi_body_proved lp H12 bm bc oc0 SafeB HSafeB_syms Hspawn). Qed.
   Lemma Hext_action_ns : forall ef targs tres cc vargs m t vres m',
       reached_v2 lp (External ef targs tres cc) ->
       ~ CameraBodies.is_sqrtf_ef ef ->
@@ -622,7 +621,7 @@ Section NoAImpliesNoFlyTwelve.
       Mem.unchanged_on (action_cell bm) m m'.
   Proof.
     intros ef targs tres cc vargs m t vres m' Hr Hne.
-    exact (Hext_action_ptfi ef targs tres cc vargs m t vres m' (reached_ext_ptfi _ _ _ _ Hr Hne)).
+    exfalso. exact (Hne (reached_ext_sqrtf _ _ _ _ Hr)).
   Qed.
   Lemma Hmwf_ext_ns : forall ef targs tres cc vargs m t vres m',
       reached_v2 lp (External ef targs tres cc) ->
@@ -632,7 +631,7 @@ Section NoAImpliesNoFlyTwelve.
       Mem.valid_block m bm -> MWF m -> MWF m'.
   Proof.
     intros ef targs tres cc vargs m t vres m' Hr Hne.
-    exact (Hmwf_ext_ptfi ef targs tres cc vargs m t vres m' (reached_ext_ptfi _ _ _ _ Hr Hne)).
+    exfalso. exact (Hne (reached_ext_sqrtf _ _ _ _ Hr)).
   Qed.
   Lemma Hext_action : forall ef targs tres cc vargs m t vres m',
       reached_v2 lp (External ef targs tres cc) ->
@@ -684,6 +683,7 @@ Section NoAImpliesNoFlyTwelve.
              (linked12_ext_pin lp H12) (linked12_LO_camera lp H12) Hscm_body_real
              (linked12_LO_audio_external lp H12) (linked12_LO_sound_init lp H12)
              Hstcm_body_real Hfcm_body_real Hps_body_real Hpism_body_real
+             (linked12_LO_print lp H12) Hptfi_body_real
              Hpres_sta_ext
              Hcp_soawr_real Hpres_obj_ext_open Hpres_cut_ext_open
              Hgeo_real Hocp_rai_real
@@ -718,6 +718,7 @@ Section NoAImpliesNoFlyTwelve.
              (linked12_ext_pin lp H12) (linked12_LO_camera lp H12) Hscm_body_real
              (linked12_LO_audio_external lp H12) (linked12_LO_sound_init lp H12)
              Hstcm_body_real Hfcm_body_real Hps_body_real Hpism_body_real
+             (linked12_LO_print lp H12) Hptfi_body_real
              Hpres_sta_ext
              Hcp_soawr_real Hpres_obj_ext_open Hpres_cut_ext_open
              Hgeo_real Hocp_rai_real
@@ -751,6 +752,7 @@ Section NoAImpliesNoFlyTwelve.
              (linked12_ext_pin lp H12) (linked12_LO_camera lp H12) Hscm_body_real
              (linked12_LO_audio_external lp H12) (linked12_LO_sound_init lp H12)
              Hstcm_body_real Hfcm_body_real Hps_body_real Hpism_body_real
+             (linked12_LO_print lp H12) Hptfi_body_real
              Hpres_sta_ext
              Hcp_soawr_real Hpres_obj_ext_open Hpres_cut_ext_open
              Hgeo_real Hocp_rai_real

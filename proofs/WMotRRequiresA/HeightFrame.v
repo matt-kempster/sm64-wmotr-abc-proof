@@ -466,19 +466,9 @@ Section HeightLinked12.
   (* Hret_unsafe REMOVED (task #99): the v2 engine no longer consumes any
      return-value row (it was dead plumbing / a latent vacuity -- see
      NoAImpliesNoFlyLinked). *)
-  (* 2026-10-23 (the audio link): both engine rows name ONLY print.c's
-     print_text_fmt_int (NoAImpliesNoFlyTwelve.reached_ext_ptfi: every
-     other reached External is sqrtf, the FPU floor) *)
-  Hypothesis Hext_action_ptfi : forall ef targs tres cc vargs m t vres m',
-      resolves_lp lp mario._print_text_fmt_int (External ef targs tres cc) ->
-      wgate bm SafeB (type_of_fundef (External ef targs tres cc)) vargs ->
-      external_call ef (lp_ge lp) vargs m t vres m' ->
-      Mem.unchanged_on (action_cell bm) m m'.
-  Hypothesis Hmwf_ext_ptfi : forall ef targs tres cc vargs m t vres m',
-      resolves_lp lp mario._print_text_fmt_int (External ef targs tres cc) ->
-      wgate bm SafeB (type_of_fundef (External ef targs tres cc)) vargs ->
-      external_call ef (lp_ge lp) vargs m t vres m' ->
-      Mem.valid_block m bm -> MWF m -> MWF m'.
+  (* 2026-10-23 (the print link): the two print_text_fmt_int engine rows
+     (Hext_action_ptfi / Hmwf_ext_ptfi) are GONE: print.c is linked and the
+     body is proved (NoAImpliesNoFlyTwelve.Hptfi_body_real, PrintBodies). *)
 
   (* ---- GOAL 2's own rows.  Phi is CONCRETE (HeightInvariant.v): the height
      budget over real MarioState cells (+ gfx.pos[1]), K = 2424, A = 372.
@@ -694,7 +684,7 @@ Section HeightLinked12.
              Hsqrtf Hscm_body_real Hls Hdma_floor
              Hpres_obj_ext_open2 Hpres_cut_ext_open2
              Hpres_floors_ext_open
-             Hpres_warp_ext_open Hext_action_ptfi Hmwf_ext_ptfi).
+             Hpres_warp_ext_open).
   Qed.
 
   Lemma air_leaves :
