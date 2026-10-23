@@ -227,7 +227,7 @@ Qed.
 (* side conditions of the store's frame: a cell apart from quicksandDepth *)
 Ltac qside := unfold QSD_OFF, OFS_ACTION, OFS_ASTATE, OFS_ATIMER, OFS_POSY, OFS_VELY, OFS_FLOORH,
   OFS_MARIOOBJ, FFW_OBJ, FFW_ANIM, FFW_FLOOR, FFW_AREA, FFW_CTL, FFW_WALL, FFW_CEIL, WALL_OFF,
-  CEIL_OFF, FLOOR_OFF, HELD_OFF, RIDDEN_OFF, MARIOOBJ_OFF, USED_OFF;
+  CEIL_OFF, FLOOR_OFF, HELD_OFF, RIDDEN_OFF, MARIOOBJ_OFF, USED_OFF, WL_OFF;
   try change (size_chunk Mptr) with 4;
   simpl; lia.
 
@@ -312,15 +312,22 @@ Section AutSplitS.
       rewrite LQb; [exact H8 | exact (Ao bo oo H7)].
     Qed.
 
-    Lemma qsd_fresh : fresh bm m -> fresh bm m'.
+    Lemma qsd_fresh_fl : fresh_fl bm m -> fresh_fl bm m'.
     Proof.
       intros H y fh Ly Lf. lqm_in Ly. lqm_in Lf.
       destruct (H y fh Ly Lf) as (A & [B | B]); (split; [exact A |]); [left; lqm; exact B | right; exact B].
     Qed.
 
+    Lemma qsd_inputs : inputs_ok bm m -> inputs_ok bm m'.
+    Proof. apply inputs_ok_keep; lqm; reflexivity. Qed.
+
+    Lemma qsd_fresh : fresh bm m -> fresh bm m'.
+    Proof. intros (F & I). exact (conj (qsd_fresh_fl F) (qsd_inputs I)). Qed.
+
     Lemma qsd_fresh_at : fresh_at bm m -> fresh_at bm m'.
     Proof.
-      intros H a La Hg. lqm_in La. exact (qsd_fresh (H a La Hg)).
+      intros (H & I). split; [| exact (qsd_inputs I)].
+      intros a La Hg. lqm_in La. exact (qsd_fresh_fl (H a La Hg)).
     Qed.
 
     Lemma qsd_nb : Mem.nextblock m' = Mem.nextblock m.
@@ -493,13 +500,16 @@ Section AutSplitS.
 
     Lemma qsd_fworld : fworld lp bm m -> fworld lp bm m'.
     Proof.
-      intros (Ha & Hw & Han & Hmo & Hd & Hf & Hu & Haw).
+      intros (Ha & Hw & Han & Hmo & Hd & Hf & Hu & Haw & Hl).
       split; [exact (qsd_action_sat _ Ha) |].
       split; [exact (qsd_world Hf Hw) |].
       split; [exact (qsd_anim Hf Han) |].
       split; [exact (qsd_mobj Hf Hmo) |].
       split; [rewrite (qsd_adown Hf); exact Hd |].
-      split; [exact (qsd_ffw Hf) |]. split; [exact (qsd_used Hf Hu) | exact (qsd_anim_w Hf Haw)].
+      split; [exact (qsd_ffw Hf) |]. split; [exact (qsd_used Hf Hu) |].
+      split; [exact (qsd_anim_w Hf Haw) |].
+      exact (AnimKeep.lvl_w_keep_ne ge m m' (fun b => b <> bm)
+               (AnimKeep.lvl_ne_bm ge bm m Haw) (fun ch b z H => LQb ch b z H) Hl).
     Qed.
 
     Lemma qsd_mem_ok : mem_ok m -> mem_ok m'.
@@ -648,7 +658,7 @@ Section AutSplitS.
       assert (Hle1 : (PTree.set AUT._t'19 (Vint i) le) ! AUT._m = Some (Vptr bm Ptrofs.zero))
         by (rewrite PTree.gso by (apply Pos.eqb_neq; vm_compute; reflexivity); exact Hle).
       assert (Hfr : fresh bm mF).
-      { apply (HFr i Hld). right. rewrite <- (Int.repr_unsigned i). exact (aut_case_auto _ _ Hin). }
+      { apply (fresh_at_auto bm mF i HFr Hld). rewrite <- (Int.repr_unsigned i). exact (aut_case_auto _ _ Hin). }
       assert (Hrow : forall fd, resolves lp f fd ->
                 seg_okR lp bm MWF fd [Vptr bm Ptrofs.zero]
                   (fun m0 => Vptr bm Ptrofs.zero = Vptr bm Ptrofs.zero

@@ -1933,7 +1933,9 @@ result, the real declaration in every TU; no new trust); `BootRun` / `TerrainRun
 | GOAL 2 `Hsqrtf`, `Hsqrtf_float`, `Haudio` | SURVIVED | restrictions; consistent with the repaired oracles |
 | GOAL 2 `Hseg_any` | SUSPECT (phantom forall) | it asks the linked `spawn_wind_particles` at ANY args from ANY `fworld` memory. `fworld` says nothing of `gFreeObjectList`, and every object lives in `gObjectPool`'s one block. A free list heading into Mario's object or the `usedObj` pole re-initializes it (`geo_obj_init` zeroes `gfx.pos`; behavior becomes `bhvWind`). In WMotR the call is dead (no `SURFACE_HORIZONTAL_WIND`). Repair: gate the obligation on the wind branch, which `wmotr_world` refutes. Needs a path-sensitive `FrameCalls.cl` |
 | GOAL 2 `Hauto_rest` | SUSPECT at TOP_OF_POLE(_TRANSITION); **DISCHARGED 2026-10-23** (proved with the real animation data, (p)) | `set_pole_position` adds the anim Y translation read through `animList->bufTarget`. `fworld` / `ffw` carry no fact about the buffer's contents, and with `currentAddr` matching no DMA runs. A phantom buffer gives up to +8191, far past top + `POLE_UP`, unless a ceiling clamps it. So this row is FALSE as stated, not just unproved (0.8(f)). CLIMBING_POLE / IN_CANNON were read too: a phantom `stickY` is clamped at `poleTop` or makes the f32 to s32 cast undefined (no execution), and the cannon seat is `usedObj`'s, which `used_ok` fixes |
-| GOAL 2 `Hseg_call_na`, `Hair_pro` | not refuted | real bodies over `fworld` memories. No counterexample was built: that needs a modified StartSat witness |
+| GOAL 2 `Hseg_call_na` | not refuted | real bodies over `fworld` memories. No counterexample was built: that needs a modified StartSat witness. Since 2026-10-23 its posts carry `lvl_w` / `inputs_ok` (below) |
+| GOAL 2 `Hair_pro` | **FOUND FALSE (phantom forall), REPAIRED + PROVED 2026-10-23** | below: `fresh_at` did not pin `waterLevel` / `INPUT_SQUISHED` |
+| GOAL 2 `Hseg_any` (narrowed) | **FOUND FALSE (phantom forall), REPAIRED + PROVED 2026-10-23** | below: `fworld` did not pin `sPlayingInfiniteStairs` / `gCurrLevelNum` |
 
 R1's proofs: `Refutations.old_{boot,terrain,flat,pole}_world_ok_refuted`,
 `old_sqrtf_ieee_refuted`. The repaired control oracles answer `None` at the bad signature
@@ -1962,3 +1964,37 @@ R1's proofs: `Refutations.old_{boot,terrain,flat,pole}_world_ok_refuted`,
   The other two calls in the old list (`play_sound` ×2) were inside the same dead blocks. No
   other object-allocating call is in the list. HeightFrame's hypothesis count is unchanged (the
   row is narrowed, not split).
+
+**`Hseg_any` and `Hair_pro` PROVED (2026-10-23, `ProRows`; HeightFrame 24 → 22 hypotheses, no
+new trust).** Both rows were false as stated and are repaired by strengthening the carried
+world, then proved against the generated Clight on the link:
+
+- **FOUND (phantom ∀): `Hseg_any`** (only `play_infinite_stairs_music()` since the narrowing
+  above). The row asked the call to keep `fworld` from ANY `fworld` memory. The real body
+  (`sound_init.c`, linked) computes `shouldPlay` (castle-only) and, when
+  `sPlayingInfiniteStairs ^ shouldPlay`, stores the flag and calls the sequence player. `fworld`
+  said nothing about `sPlayingInfiniteStairs` or `gCurrLevelNum`, so a memory with the flag at 1
+  made the call write memory outside the row's frame -- FALSE as stated (concrete argument).
+  Repair: `FfWorld.lvl_w` (gCurrLevelNum = LEVEL_WMOTR, sPlayingInfiniteStairs = 0) joins
+  `FrameSplit.fworld` and `HeightFrame.PhiW`; every proved row keeps it
+  (`AnimKeep.lvl_w_keep` / `lvl_w_keep_ne`: the two globals' blocks are apart from every
+  written region); StartSat establishes it on the witness (gCurrLevelNum from the real entry
+  code, `L_lvl`; the flag from the boot image's `Init_int8 0`, `StartSat.L_spis`). Under
+  `lvl_w` the real body only reads memory (`ProRows.pism_mem`): `seg_any_rows_proved`.
+- **FOUND (phantom ∀): `Hair_pro`** (the prologue calls `check_common_airborne_cancels`,
+  `play_far_fall_sound`, `check_common_automatic_cancels`). Both cancels test
+  `m->pos[1] < m->waterLevel - 100` (-> ACT_WATER_PLUNGE, not in `R_noA`) and the airborne one
+  `m->input & INPUT_SQUISHED` (-> ACT_SQUISHED). `fresh_at` did not pin `waterLevel` or the
+  input word, so a memory with the water above Mario met every premise and left `R_noA` --
+  FALSE as stated. Repair: `FfWorld.inputs_ok` (waterLevel = -11000, the WMotR value
+  update_mario_inputs leaves -- no water box; INPUT_SQUISHED clear) joins `fresh` / `fresh_at`;
+  update_mario_inputs' row (inside the open `Hseg_call_na`) now claims it, the proved rows keep it
+  (`inputs_ok_keep`). Proofs (`ProRows`): the plunge test is false since `pos[1] >= -11000`
+  (budget's `InRange`); the squish bit is clear; the vertical-wind test is false since the floor
+  type is a WMotR type (`wmotr_surface_types`); then `quicksandDepth = 0` (AutoSplit's QSD
+  lemmas). `play_far_fall_sound` is walked by `lw_body_frame`: it writes only `m->flags`
+  (offset 4, outside every `fworld` / cell field) and, through the real `play_sound`
+  (`SndXc.ps_walk`), only `sSoundRequests` / `sSoundRequestCount`; `ProRows.hole_fworld` proves
+  such a change keeps every `fworld` conjunct, the cells and `fresh_at`.
+- The open rows' posts are strengthened accordingly (`Hseg_call_na` now also claims `lvl_w`
+  in `fworld` and `inputs_ok` in `fresh` / `fresh_at`); both hold in the game.

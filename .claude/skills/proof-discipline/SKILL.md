@@ -191,7 +191,12 @@ all in `Unwired/`, and the theorem moved nowhere. See
   live in WMotR: `play_infinite_stairs_music()`; FOUND (phantom ∀): it used to cover the linked
   `spawn_wind_particles` with any args from any `fworld` memory, false via a phantom
   `gFreeObjectList`; its blocks are proved dead from W's floor type, `FrameSplit.clw` /
-  `guard_mem`, TRUST §7; the two store blocks are proved). What each per-call row
+  `guard_mem`, TRUST §7; the two store blocks are proved). Since 2026-10-23 `Hseg_any` and
+  `Hair_pro` are PROVED (`ProRows`; 24 → 22 hypotheses). Both were FOUND FALSE (phantom ∀) and
+  repaired by strengthening the world: `FfWorld.lvl_w` (gCurrLevelNum = WMotR,
+  sPlayingInfiniteStairs = 0) in `fworld` / `PhiW`, and `FfWorld.inputs_ok` (waterLevel =
+  -11000, no INPUT_SQUISHED) in `fresh` / `fresh_at` (TRUST §7). Lesson: a row's world must pin
+  every cell the real body BRANCHES on, not only the cells it writes. What each per-call row
   carries:
   - `Hframe_stays_noA` (ACT_SQUISHED still needs the dynamic-surface geometry fact in the
     find_floor / find_ceil contracts, docs/goal2-value-walk-plan.md §6)
@@ -269,7 +274,7 @@ all in `Unwired/`, and the theorem moved nowhere. See
     `Sreturn`: CLIMBING_POLE's old "needs a camera fact" was that probe bug.)
     ALL TWELVE automatic cases are PROVED (2026-10-23, TRUST (p), `PoleCasesT.aut_case_rows_T`):
     `Hauto_rest` is GONE, replaced by `Hdma_anim : OsDmaFloor.pi_dma_anim_spec` (TRUST
-    0.8(f), approved, now load-bearing; count unchanged by it; 24 after the audio link). The six pole actions are re-walked
+    0.8(f), approved, now load-bearing; count unchanged by it; 24 after the audio link; 22 after ProRows). The six pole actions are re-walked
     with the real animation data (`PoleRunT`: set_mario_animation inline, DMA table +
     gMarioAnims read, `RytXc.c_ryt` per frame), one walk file per start variant
     (`PoleStartT.avars`; `PoleSlowT` … `PoleTopT2`), row `PoleRowT.pole_rowT`. The frame
