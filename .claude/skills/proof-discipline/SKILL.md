@@ -94,6 +94,25 @@ all in `Unwired/`, and the theorem moved nowhere. See
   2026-10-22: HeightFrame's section has 27 `Hypothesis` lines (28 → 27: `Hcamera` proved away).
   `surface_load.c` linked 2026-10-22 (32nd TU), then `macro_special_objects.c` + WMotR level data
   (TUs 33-34): counts unchanged (no row names their functions).
+- **Refutation sweep 2026-10-22** (`docs/TRUST.md` §7, `MarioModel/Refutations.v`).
+  REFUTED + repaired: every run oracle (`BootRun.world`, `TerrainRun.world`,
+  `PositiveControl.flat_world`, `PoleControl.pole_world`) answered `sqrtf` at ANY signature.
+  CompCert's `ec_well_typed` forbids a single at an int result, so each `world_ok` (and
+  `sqrtf_ieee`) was FALSE. VACUOUS until now: the positive control, the pole runs,
+  `boot_frames_run`, and `goal2_start_sat`'s `terrain_loaded` / `frame_runs` / `ifs_tether`.
+  Control oracles repaired here; BootRun / TerrainRun via `FpuValue` (parallel branch). Lesson: a hypothesis that asserts an external
+  BEHAVIOR EXISTS must respect CompCert's `ec_*` axioms, so never quantify it over `sg`.
+  SUSPECT (argued, not proved), open:
+  - GOAL 2 `Hseg_any`: any-argument `spawn_wind_particles` over phantom `gFreeObjectList`. The
+    call is dead in WMotR, so gate it on the wind branch.
+  - GOAL 2 `Hauto_rest` at TOP_OF_POLE*: phantom anim buffer, offset up to +8191. FALSE as
+    stated.
+  - `Hext_action_ns` / `Hmwf_ext_ns`: `print_text_fmt_int`'s `gEffectsMemoryPool` is
+    unconstrained.
+  - On linking audio: `play_sound` stores `pos` (R7), so gate it first. On linking
+    `obj_behaviors.c`: `spawn_default_star`'s `bhvStarSpawnCoordinates` is not in `safe_ptr_syms`.
+  SURVIVED: `Hscm_body_real` (its only phantom store writes 0, which is harmless), the structural
+  pins, and the restriction-only external specs.
 - **GOAL 2** (WMotR needs A): `WMotRRequiresA/HeightFrame.v`,
   `wmotr_noA_height_bound_linked12`. This is a conditional theorem over ONE WMotR
   visit (frames end with `in_wmotr`), under input with A neither pressed nor held
