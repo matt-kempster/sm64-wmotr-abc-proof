@@ -120,13 +120,15 @@ without pressing A".*
   contracts (open, part of `Hframe_stays_noA`).
 - **Open rows, split per call (2026-10-20):** the three whole-frame rows `Hframe_keeps_world`,
   `Hframe_stays_noA` and `Hframe_is_move_chain` are now **lemmas** (`HeightFrame`), derived by
-  `FrameSplit.frame_split` from the real `execute_mario_action` body (since 2026-10-21 by its
-  staged version `FrameSplit.frame_stage`, below). `FrameCalls.cl` reads the
+  `FrameSplit.frame_stage` from the real `execute_mario_action` body (staged since 2026-10-21,
+  below; the unstaged `frame_split` was removed 2026-10-23 with the old `Hseg_any`). `FrameCalls.cl` reads the
   generated body as 17 `f(gMarioState)` calls, 5 other calls (`spawn_wind_particles` ×2,
   `play_sound` ×2, `play_infinite_stairs_music`) and 2 store blocks; the two stores into Mario's
   object (`gfx.node.flags`, `oInteractStatus = 0`) are **proved** to keep W, the cells and GOAL 1's
   `mem_ok`; GOAL 1's per-call `mem_ok` (`frame_call_ok_linked12`) is proved. What is assumed is one
-  row shape per call, `Hseg_call_na` / `Hseg_any` (`FrameSplit.seg_ok`); the airborne dispatcher's
+  row shape per call, `Hseg_call_na` / `Hseg_any` (`FrameSplit.seg_ok`; since 2026-10-23
+  `Hseg_any` covers only the calls live in WMotR, i.e. `play_infinite_stairs_music()`: the two
+  wind blocks' four calls are proved dead, §7); the airborne dispatcher's
   row is itself proved (`AirSplit.air_seg`) from its two prologue calls and one row per no-A case
   (11 of its 43 cases; the rest are dead under `R_noA`), each handler called with the action cell
   equal to its label (`Hair_pro` / `Hair_case`): the call keeps the frame world (`fworld`: action in
@@ -1859,3 +1861,27 @@ result, the real declaration in every TU; no new trust); `BootRun` / `TerrainRun
 R1's proofs: `Refutations.old_{boot,terrain,flat,pole}_world_ok_refuted`,
 `old_sqrtf_ieee_refuted`. The repaired control oracles answer `None` at the bad signature
 (`flat_world_repaired`, `pole_world_repaired`).
+
+**Repair of the `Hseg_any` SUSPECT (2026-10-23, branch segany):**
+
+- **FOUND (phantom ∀) + REPAIRED 2026-10-23: `HeightFrame.Hseg_any`.** The row asked every
+  non-`gMarioState` call of `execute_mario_action` to keep the frame world from ANY `fworld`
+  memory with ANY arguments — including the LINKED `spawn_wind_particles` (×2). Its real body
+  calls `spawn_object` three times, which pops the head of `gFreeObjectList` and re-initialises
+  that slot, copying Mario's position into it. `fworld` says nothing about `gFreeObjectList`, and
+  every object is a slot of `gObjectPool`'s single block, so a memory in a pole action whose
+  free-list head is `usedObj` (the low pole) meets every premise, and one call rewrites the pole's
+  `oPosY`: `used_ok` (part of `fworld`) fails. The row was FALSE as stated (concrete argument; not
+  replayed in Coq — building a full `mem_ok_lp` witness memory with a phantom free list is not
+  cheap). In the game the call is dead in WMotR: both call sites sit under
+  `if (m->floor->type == SURFACE_HORIZONTAL_WIND (44) / SURFACE_VERTICAL_WIND (56))`, and W's
+  floor clause says `m->floor` is a surface whose type is one of WMotR's collision types,
+  computed from the generated terrain (`[5; 10; 21; 55; 0]`). Repair (no new trust):
+  `FrameSplit.clw` is the call collector with that branch condition read — a block
+  `t1 = gMarioState; t2 = t1->floor; t3 = t2->type; if (t3 == n) …` with `n` not a WMotR surface
+  type contributes no obligation; `FrameSplit.guard_mem` proves such a block leaves memory
+  unchanged under W; `Hseg_any` now ranges over `ema_live` only, whose one non-`gMarioState`
+  call is `play_infinite_stairs_music()` (unlinked, no arguments; `ema_live_anys`, computed).
+  The other two calls in the old list (`play_sound` ×2) were inside the same dead blocks. No
+  other object-allocating call is in the list. HeightFrame's hypothesis count is unchanged (the
+  row is narrowed, not split).

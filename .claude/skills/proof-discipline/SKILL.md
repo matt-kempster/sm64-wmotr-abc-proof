@@ -176,8 +176,11 @@ all in `Unwired/`, and the theorem moved nowhere. See
   `FfWorld.fresh` / `fresh_at` through the body in order and over the real dispatch loop); the
   assumed rows are the per-call `Hseg_call_na` (`seg_call_rows_naF`, with `pre_of` / `post_of`:
   update_mario_inputs leaves the floor fresh, handle_special_floors / process_interactions keep
-  it, each dispatcher returns 0 or leaves fresh_at) / `Hseg_any` (one per call in the real
-  `execute_mario_action` body; the two store blocks are proved). What each per-call row
+  it, each dispatcher returns 0 or leaves fresh_at) / `Hseg_any` (since 2026-10-23 only the calls
+  live in WMotR: `play_infinite_stairs_music()`; FOUND (phantom ∀): it used to cover the linked
+  `spawn_wind_particles` with any args from any `fworld` memory, false via a phantom
+  `gFreeObjectList`; its blocks are proved dead from W's floor type, `FrameSplit.clw` /
+  `guard_mem`, TRUST §7; the two store blocks are proved). What each per-call row
   carries:
   - `Hframe_stays_noA` (ACT_SQUISHED still needs the dynamic-surface geometry fact in the
     find_floor / find_ceil contracts, docs/goal2-value-walk-plan.md §6)
