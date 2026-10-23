@@ -261,10 +261,10 @@ Section AutSplitS.
     /\ (forall bc oc, Mem.load Mint32 m bm FFW_CTL = Some (Vptr bc oc) -> bc <> bm).
   Proof.
     intros m (_ & EX & _).
-    destruct EX as (gp & bfi & bmiss & bcalls & bsin & ab & biom & bmq & brm & blk & bpc & bo & oo & bt & ot & fl & ar & inp & ctl &
-                    HC & HS & HM & S1 & S2 & S3 & S4 & S5 & S6 & S7 & S8 & SL & SP & Lo & Soo & La & Lb & Sot & D1 & D2 & D3 & D4 &
+    destruct EX as (gp & bfi & bmiss & bcalls & bsin & ab & biom & bmq & brm & blk & bpc & bsr & bsrc & bsms & bo & oo & bt & ot & fl & ar & inp & ctl &
+                    HC & HS & HM & S1 & S2 & S3 & S4 & S5 & S6 & S7 & S8 & SL & SP & SR & SRC & SMS & Lo & Soo & La & Lb & Sot & D1 & D2 & D3 & D4 &
                     W & Lf & Wf & Wc0 & Lar & War & Li & Ai & Lc & Wc & Co & LPC).
-    assert (Rb : rblk (ff_rl bm bo oo bfi bmiss bcalls ab bt biom bmq brm blk bpc) bm)
+    assert (Rb : rblk (ff_rl bm bo oo bfi bmiss bcalls ab bt biom bmq brm blk bpc bsr bsrc bsms) bm)
       by (exists Ptrofs.zero; cbn; auto).
     split; [| split].
     - intros bo' oo' Hl. change MARIOOBJ_OFF with FFW_OBJ in Hl. rewrite Lo in Hl.
@@ -328,10 +328,10 @@ Section AutSplitS.
     Lemma qsd_ffw : ffw ge bm m -> ffw ge bm m'.
     Proof.
       intros (Hgn & EX & FD).
-      destruct EX as (gp & bfi & bmiss & bcalls & bsin & ab & biom & bmq & brm & blk & bpc & bo & oo & bt & ot & fl & ar & inp & ctl &
-                      HC & HS & HM & S1 & S2 & S3 & S4 & S5 & S6 & S7 & S8 & SL & SP & Lo & Soo & La & Lb & Sot & D1 & D2 & D3 & D4 &
+      destruct EX as (gp & bfi & bmiss & bcalls & bsin & ab & biom & bmq & brm & blk & bpc & bsr & bsrc & bsms & bo & oo & bt & ot & fl & ar & inp & ctl &
+                      HC & HS & HM & S1 & S2 & S3 & S4 & S5 & S6 & S7 & S8 & SL & SP & SR & SRC & SMS & Lo & Soo & La & Lb & Sot & D1 & D2 & D3 & D4 &
                       W & Lf & Wf & Wc0 & Lar & War & Li & Ai & Lc & Wc & Co & LPC).
-      set (rl := ff_rl bm bo oo bfi bmiss bcalls ab bt biom bmq brm blk bpc) in *.
+      set (rl := ff_rl bm bo oo bfi bmiss bcalls ab bt biom bmq brm blk bpc bsr bsrc bsms) in *.
       assert (Rb : rblk rl bm) by (exists Ptrofs.zero; cbn; auto).
       assert (Hnb : Ple (Mem.nextblock m) (Mem.nextblock m')) by (rewrite qsd_nb; apply Ple_refl).
       assert (Hperm : forall b ofs k p, Plt b (Mem.nextblock m) -> Mem.perm m b ofs k p -> Mem.perm m' b ofs k p)
@@ -343,11 +343,11 @@ Section AutSplitS.
         destruct (closed_flat _ _ _ _ _ HC G0) as (-> & ->). reflexivity. }
       split; [rewrite qsd_nb; exact Hgn |].
       split.
-      - exists gp, bfi, bmiss, bcalls, bsin, ab, biom, bmq, brm, blk, bpc, bo, oo, bt, ot, fl, ar, inp, ctl.
+      - exists gp, bfi, bmiss, bcalls, bsin, ab, biom, bmq, brm, blk, bpc, bsr, bsrc, bsms, bo, oo, bt, ot, fl, ar, inp, ctl.
         split; [refine (store_closed gp m m' Mfloat32 bm QSD_OFF (Vsingle Float32.zero) Hst HC Gbm _);
                 right; intros b' o' E; discriminate E |].
         split; [exact HS |]. split; [exact HM |].
-        do 10 (split; [assumption |]).
+        do 13 (split; [assumption |]).
         split; [lqm; exact Lo |]. split; [exact Soo |]. split; [lqm; exact La |].
         split; [rewrite LQ by (right; left; qside); exact Lb |].
         do 5 (split; [assumption |]).
@@ -381,8 +381,8 @@ Section AutSplitS.
     Proof.
       intros Hf (Hw & Hc & Hfl & Hh & Hr & Hq & Ho).
       pose proof Hf as (_ & EX & _).
-      destruct EX as (gp & bfi & bmiss & bcalls & bsin & ab & biom & bmq & brm & blk & bpc & bo & oo & bt & ot & fl & ar & inp & ctl &
-                      HC & HS & HM & S1 & S2 & S3 & S4 & S5 & S6 & S7 & S8 & SL & SP & Lo & Soo & La & Lb & Sot & D1 & D2 & D3 & D4 &
+      destruct EX as (gp & bfi & bmiss & bcalls & bsin & ab & biom & bmq & brm & blk & bpc & bsr & bsrc & bsms & bo & oo & bt & ot & fl & ar & inp & ctl &
+                      HC & HS & HM & S1 & S2 & S3 & S4 & S5 & S6 & S7 & S8 & SL & SP & SR & SRC & SMS & Lo & Soo & La & Lb & Sot & D1 & D2 & D3 & D4 &
                       W & Lf & Wf & Wc0 & Lar & War & Li & Ai & Lc & Wc & Co & LPC).
       destruct (ffw_apart m Hf) as (Ao & As & _).
       split; [| split; [| split; [| split; [| split; [| split]]]]].

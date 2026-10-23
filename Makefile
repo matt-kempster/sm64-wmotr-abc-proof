@@ -55,6 +55,7 @@ GENERATED := generated/toy.v generated/shadow.v \
   generated/object_helpers.v generated/obj_behaviors.v generated/obj_behaviors_2.v \
   generated/spawn_object.v generated/object_list_processor.v generated/audio_data.v generated/graph_node.v generated/buffers.v generated/save_file.v generated/object_collision.v \
   generated/area.v generated/surface_load.v generated/mario_anim_data.v generated/camera.v generated/rendering_graph_node.v generated/ingame_menu.v generated/debug_course.v \
+  generated/audio_external.v generated/sound_init.v \
   $(ULTRA_GENERATED)
 
 .PHONY: all generated proofs regen clean oracle-extract
@@ -229,6 +230,16 @@ generated/object_list_processor.v: $(SM64)/src/game/object_list_processor.c pipe
 # play_mario_jump_sound reads (mario.c:254); without it the boot image gives it
 # no storage and dive / rollout have no execution that plays a jump sound.
 generated/audio_data.v: $(SM64)/src/audio/data.c pipeline/clightgen.sh pipeline/proof_n64.h
+	$(CLIGHTGEN) $< $@ $(SM64_CGP)
+
+# audio/external.c and game/sound_init.c (2026-10-23): the GAME-THREAD side of
+# audio (play_sound, stop_sound(s), the music queue, the volume fades, the
+# background-noise / cap / shell music wrappers).  The audio THREAD (synthesis,
+# sequence player, RSP) stays out of scope (TRUST 4.1).
+generated/audio_external.v: $(SM64)/src/audio/external.c pipeline/clightgen.sh pipeline/proof_n64.h
+	$(CLIGHTGEN) $< $@ $(SM64_CGP)
+
+generated/sound_init.v: $(SM64)/src/game/sound_init.c pipeline/clightgen.sh pipeline/proof_n64.h
 	$(CLIGHTGEN) $< $@ $(SM64_CGP)
 
 # engine/graph_node.c (2026-10-21): the real bodies of

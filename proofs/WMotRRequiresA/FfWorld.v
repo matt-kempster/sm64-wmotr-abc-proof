@@ -37,7 +37,7 @@
 
 From Coq Require Import ZArith List Lia Reals.
 From compcert Require Import Coqlib Maps AST Integers Floats Values Memory Ctypes Clight Globalenvs.
-From SM64.Generated Require mario surface_collision memory camera.
+From SM64.Generated Require mario surface_collision memory camera audio_external.
 From SM64.Proofs Require Import HeightInvariant HeightMoveCatalog WMotRLevel Generic.ClosedMem.
 From SM64.Proofs.WMotRRequiresA Require Import FloorList FloorHeight FloorExec AirMatch AirStart RetOk.
 Import ListNotations.
@@ -57,16 +57,20 @@ Definition SZ_CTL : Z := 18.        (* up to Controller.buttonDown, a u16 at 16 
 Definition FFW_COLL : Z := 120.     (* Object.collidedObjs[4] *)
 Definition FFW_PCS : Z := 148.      (* statusForCamera *)
 
-(* the walk's twelve regions as pointers, in FfRun.R0F's order (the last
-   two since camera.c is linked: gLakituState, which the real
+(* the walk's fifteen regions as pointers, in FfRun.R0F's order (two since
+   camera.c is linked: gLakituState, which the real
    set_camera_shake_from_hit writes, and gPlayerCameraState, the
-   m->statusForCamera the ledge climbs and the cannon write through) *)
-Definition ff_rl (bm bo : block) (oo : ptrofs) (bfi bmiss bcalls ab bt biom bmq brm blk bpc : block)
+   m->statusForCamera the ledge climbs and the cannon write through; the
+   last three since audio/external.c is linked: sSoundRequests,
+   sSoundRequestCount and sSoundMovingSpeed, which the real play_sound and
+   set_sound_moving_speed write) *)
+Definition ff_rl (bm bo : block) (oo : ptrofs) (bfi bmiss bcalls ab bt biom bmq brm blk bpc bsr bsrc bsms : block)
   : list (option val) :=
   map Some [Vptr bm Ptrofs.zero; Vptr bo oo; Vptr bfi Ptrofs.zero; Vptr bmiss Ptrofs.zero;
             Vptr bcalls Ptrofs.zero; Vptr ab Ptrofs.zero; Vptr bt Ptrofs.zero;
             Vptr biom Ptrofs.zero; Vptr bmq Ptrofs.zero; Vptr brm Ptrofs.zero;
-            Vptr blk Ptrofs.zero; Vptr bpc Ptrofs.zero].
+            Vptr blk Ptrofs.zero; Vptr bpc Ptrofs.zero;
+            Vptr bsr Ptrofs.zero; Vptr bsrc Ptrofs.zero; Vptr bsms Ptrofs.zero].
 
 (* a world object: a valid block that is none of the regions *)
 Definition wblk (m : mem) (rl : list (option val)) (v : val) (n : Z) : Prop :=
@@ -79,7 +83,7 @@ Variable bm : block.
 
 Definition ffw (m : mem) : Prop :=
   Ple (Genv.genv_next G) (Mem.nextblock m)
-  /\ (exists gp bfi bmiss bcalls bsin ab biom bmq brm blk bpc bo oo bt ot fl ar inp ctl,
+  /\ (exists gp bfi bmiss bcalls bsin ab biom bmq brm blk bpc bsr bsrc bsms bo oo bt ot fl ar inp ctl,
       (* closedness *)
       closed_by gp m
       /\ (forall id b, Genv.find_symbol G id = Some b -> gp b <> None) /\ gp bm <> None
@@ -93,6 +97,9 @@ Definition ffw (m : mem) : Prop :=
       /\ Genv.find_symbol G memory._gMainReceivedMesg = Some brm
       /\ Genv.find_symbol G camera._gLakituState = Some blk
       /\ Genv.find_symbol G camera._gPlayerCameraState = Some bpc
+      /\ Genv.find_symbol G audio_external._sSoundRequests = Some bsr
+      /\ Genv.find_symbol G audio_external._sSoundRequestCount = Some bsrc
+      /\ Genv.find_symbol G audio_external._sSoundMovingSpeed = Some bsms
       (* Mario's object; the animation list and its DMA buffer *)
       /\ Mem.load Mint32 m bm FFW_OBJ = Some (Vptr bo oo)
       /\ Ptrofs.unsigned oo + SZ_OBJECT <= Ptrofs.modulus
@@ -101,25 +108,25 @@ Definition ffw (m : mem) : Prop :=
       (* the object and the buffer are blocks of their own *)
       /\ bo <> bm /\ bt <> bm /\ bt <> bo
       (* (gAudioRandom too: play_mario_jump_sound reads it, a world cell) *)
-      /\ (forall b, In b [bfi; bmiss; bcalls; bsin; ab; biom; bmq; brm; blk; bpc]
+      /\ (forall b, In b [bfi; bmiss; bcalls; bsin; ab; biom; bmq; brm; blk; bpc; bsr; bsrc; bsms]
                     \/ Genv.find_symbol G mario._gAudioRandom = Some b
                     (* gCurrLevelNum: add_tree_leaf_particles reads it (the pole walks) *)
                     \/ Genv.find_symbol G mario._gCurrLevelNum = Some b -> b <> bo /\ b <> bt)
       (* the collision partition *)
-      /\ Wff G m gp SZ_SURFACE (ff_rl bm bo oo bfi bmiss bcalls ab bt biom bmq brm blk bpc)
+      /\ Wff G m gp SZ_SURFACE (ff_rl bm bo oo bfi bmiss bcalls ab bt biom bmq brm blk bpc bsr bsrc bsms)
       (* m->floor, m->area *)
       /\ Mem.load Mint32 m bm FFW_FLOOR = Some fl
-      /\ wblk m (ff_rl bm bo oo bfi bmiss bcalls ab bt biom bmq brm blk bpc) fl SZ_SURFACE
+      /\ wblk m (ff_rl bm bo oo bfi bmiss bcalls ab bt biom bmq brm blk bpc bsr bsrc bsms) fl SZ_SURFACE
       (* m->wall, m->ceil *)
       /\ (forall off sb so, off = FFW_WALL \/ off = FFW_CEIL -> Mem.load Mint32 m bm off = Some (Vptr sb so) ->
-            ~ rblk (ff_rl bm bo oo bfi bmiss bcalls ab bt biom bmq brm blk bpc) sb)
+            ~ rblk (ff_rl bm bo oo bfi bmiss bcalls ab bt biom bmq brm blk bpc bsr bsrc bsms) sb)
       /\ Mem.load Mint32 m bm FFW_AREA = Some ar
-      /\ wblk m (ff_rl bm bo oo bfi bmiss bcalls ab bt biom bmq brm blk bpc) ar SZ_AREA
+      /\ wblk m (ff_rl bm bo oo bfi bmiss bcalls ab bt biom bmq brm blk bpc bsr bsrc bsms) ar SZ_AREA
       (* m->input: INPUT_A_PRESSED | INPUT_A_DOWN | INPUT_INTERACT_OBJ_GRABBABLE clear *)
       /\ Mem.load Mint16unsigned m bm 2 = Some (Vint inp) /\ Int.and inp (Int.repr 2178) = Int.zero
       (* m->controller *)
       /\ Mem.load Mint32 m bm FFW_CTL = Some ctl
-      /\ wblk m (ff_rl bm bo oo bfi bmiss bcalls ab bt biom bmq brm blk bpc) ctl SZ_CTL
+      /\ wblk m (ff_rl bm bo oo bfi bmiss bcalls ab bt biom bmq brm blk bpc bsr bsrc bsms) ctl SZ_CTL
       (* the collided objects *)
       /\ (forall i cb co, 0 <= i < 4 ->
             Mem.load Mint32 m bo (Ptrofs.unsigned oo + FFW_COLL + 4 * i) = Some (Vptr cb co) -> cb = bo)
@@ -130,8 +137,8 @@ Definition ffw (m : mem) : Prop :=
 
 (* ---- transfer: a memory that differs from m only inside Mario's object ---- *)
 
-Lemma rl_obj : forall bo oo bfi bmiss bcalls ab bt biom bmq brm blk bpc,
-  rblk (ff_rl bm bo oo bfi bmiss bcalls ab bt biom bmq brm blk bpc) bo.
+Lemma rl_obj : forall bo oo bfi bmiss bcalls ab bt biom bmq brm blk bpc bsr bsrc bsms,
+  rblk (ff_rl bm bo oo bfi bmiss bcalls ab bt biom bmq brm blk bpc bsr bsrc bsms) bo.
 Proof. intros. exists oo. cbn. auto 10. Qed.
 
 (* a store into a mapped block keeps closedness when the value is closed, or
@@ -239,11 +246,11 @@ Theorem ffw_keep :
   ffw m -> ffw m'.
 Proof.
   intros Hmo Hne Hab HC' (Hgn & EX & FD).
-  destruct EX as (gp & bfi & bmiss & bcalls & bsin & ab & biom & bmq & brm & blk & bpc & bo & oo & bt & ot & fl & ar & inp & ctl &
-                  HC & HS & HM & S1 & S2 & S3 & S4 & S5 & S6 & S7 & S8 & SL & SP & Lo & Soo & La & Lb & Sot & D1 & D2 & D3 & D4 &
+  destruct EX as (gp & bfi & bmiss & bcalls & bsin & ab & biom & bmq & brm & blk & bpc & bsr & bsrc & bsms & bo & oo & bt & ot & fl & ar & inp & ctl &
+                  HC & HS & HM & S1 & S2 & S3 & S4 & S5 & S6 & S7 & S8 & SL & SP & SR & SRC & SMS & Lo & Soo & La & Lb & Sot & D1 & D2 & D3 & D4 &
                   W & Lf & Wf & Wc0 & Lar & War & Li & Ai & Lc & Wc & Co & LPC).
   rewrite Hmo in Lo. injection Lo as <- <-.
-  assert (Ho : rblk (ff_rl bm bo0 oo0 bfi bmiss bcalls ab bt biom bmq brm blk bpc) bo0) by apply rl_obj.
+  assert (Ho : rblk (ff_rl bm bo0 oo0 bfi bmiss bcalls ab bt biom bmq brm blk bpc bsr bsrc bsms) bo0) by apply rl_obj.
   pose proof (Hab ab S5) as Hab0.
   assert (Gbo : gp bo0 = Some (bo0, 0)).
   { pose proof (closed_load _ _ _ _ _ _ HC HM Hmo) as P. cbn in P.
@@ -251,7 +258,7 @@ Proof.
     destruct (closed_flat _ _ _ _ _ HC G0) as (-> & ->). reflexivity. }
   split; [rewrite Hnb; exact Hgn |].
   split.
-  - exists gp, bfi, bmiss, bcalls, bsin, ab, biom, bmq, brm, blk, bpc, bo0, oo0, bt, ot, fl, ar, inp, ctl.
+  - exists gp, bfi, bmiss, bcalls, bsin, ab, biom, bmq, brm, blk, bpc, bsr, bsrc, bsms, bo0, oo0, bt, ot, fl, ar, inp, ctl.
     split; [exact (HC' gp HC Gbo) |]. split; [exact HS |]. split; [exact HM |].
     rewrite !Hld by congruence.
     repeat (split; [assumption |]).

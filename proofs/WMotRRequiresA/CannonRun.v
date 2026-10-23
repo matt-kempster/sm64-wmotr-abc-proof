@@ -10,7 +10,7 @@
 (*   - the known cells kvK and usedObj = RU, whose oPosY is one cannon     *)
 (*     base's (WMotRWorld.cannon_obj_ok; walked once per WMotR cannon);    *)
 (*   - the start facts of FfRun plus m->controller (a world object);       *)
-(*   - set_mario_animation (SmaXc) and play_sound (audio).                 *)
+(*   - set_mario_animation (SmaXc) and play_sound (SndXc, real body).      *)
 (* m->input's A bits are clear, so the shot (and its set_mario_action) is  *)
 (* pruned.  Each outcome passes CannonClass.cannon_ok, PoleKeep.fkp_ok and *)
 (* ret_ok.                                                                 *)
@@ -24,7 +24,7 @@ From SM64.Generated Require mario_step mario mario_actions_airborne mario_action
 From SM64.Proofs Require Import Interp.SymExec2 Interp.LinkGenv MarioModel.LinkedTwelve
   MarioModel.OsDmaFloor MarioModel.MathGeomGated HeightInvariant HeightMoveCatalog WMotRLevel WMotRWorld.
 From SM64.Proofs.WMotRRequiresA Require Import FloorHeight FloorExec AirXc AirRun AirMatch SmaXc
-  ExtInert FfClass AirStart FfKeepCheck RetOk FfRun AhwRun KbRun WithGe
+  ExtInert SndXc FfClass AirStart FfKeepCheck RetOk FfRun AhwRun KbRun WithGe
   PoleXc PoleClass PoleKeep PoleSound FfWorld FpWalk PoleRun CannonClass.
 Import ListNotations.
 
@@ -43,7 +43,7 @@ Definition xcC (id : ident) : option xcontract :=
   | Some k => Some k
   | None =>
     if Pos.eqb id mario._set_mario_animation then Some (c_sma NBP (R0P g) gtabP kvC RLD RBUF RIOM RMQ RRM kB) else
-    if Pos.eqb id AUT._play_sound then Some xc_fresh else None
+    if Pos.eqb id AUT._play_sound then Some (c_snd (R0P g) gtabP ps_regs) else None
   end.
 Definition pc0C : list fact :=
   [Fuser kW (wargs (R0P g)); Fbits (Sinit RM 2 Mint16unsigned) (Int.repr 2178);
@@ -77,7 +77,6 @@ Variable lp : Clight.program.
 Hypothesis H12 : linked12 lp.
 Local Notation G := (globalenv lp).
 Hypothesis Hdma : os_dma_floor.
-Hypothesis Haudio : audio_inert.      (* LABELED OPEN PREMISE: audio, deferred *)
 
 Variable acn yc : Z.
 Variable fK : function.
@@ -129,9 +128,10 @@ Proof.
       exact (c_sma_sound lp H12 Hdma NBP (R0P G) gtabP (kvC acn yc G) m0 uf gp GPO MC RLD RBUF RIOM RMQ RRM kB
                (ufP_kB lp m0 gp) args g cps E m vargs t m' vres Hk MM HA EV).
     + destruct (Pos.eqb_spec id AUT._play_sound) as [-> | N3]; [| discriminate Hx].
-      injection Hx as <-. rewrite ps_aut in Hl.
-      exact (ext_fresh_sound lp H12 _ _ ps_named ps_ni (audio_ps Haudio) NBP (R0P G) gtabP (kvC acn yc G) m0 uf gp GPO
-               args g cps fd E m vargs t m' vres Hk Hl MM EV).
+      injection Hx as <-.
+      rewrite (sfun_res _ _ _ _ (res_link lp _ _ _ (linked12_LO_audio_external lp H12) ps_defmap) Hl) in EV.
+      exact (c_ps_sound lp NBP (R0P G) gtabP (kvC acn yc G) m0 uf gp GPO RSR RSRC
+               args g cps E m vargs t m' vres Hk MM EV).
 Qed.
 
 Lemma cannoncheck_lp : exists cs,
@@ -231,9 +231,9 @@ Definition cfinal (lp : Clight.program) (acn yc : Z) (fK : function) : Prop :=
        /\ RangedMove wmotr_floor wmotr_pole wmotr_cannon c0 c2
        /\ c_action c2 = Int.repr ACT_IN_CANNON_Z.
 
-Lemma cannon_cfinal : forall lp, linked12 lp -> os_dma_floor -> audio_inert ->
+Lemma cannon_cfinal : forall lp, linked12 lp -> os_dma_floor ->
   forall acn yc fK, cannon_walk acn yc fK = true -> In yc wmotr_cannon_list -> cfinal lp acn yc fK.
 Proof.
-  intros lp H12 Hdma Ha acn yc fK Hw Hy m0 gp GPO MC FD.
-  exact (cannon_final lp H12 Hdma Ha acn yc fK Hw Hy m0 gp GPO MC).
+  intros lp H12 Hdma acn yc fK Hw Hy m0 gp GPO MC FD.
+  exact (cannon_final lp H12 Hdma acn yc fK Hw Hy m0 gp GPO MC).
 Qed.

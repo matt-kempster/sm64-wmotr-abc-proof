@@ -1,24 +1,20 @@
 (* ====================================================================== *)
-(* ExtInert (unwired, GOAL 2): the externals act_freefall reaches.        *)
+(* ExtInert (GOAL 2): the one external the walks still reach.           *)
 (*                                                                        *)
-(* Three calls under act_freefall leave the linked C: play_sound (audio), *)
-(* set_camera_shake_from_hit (camera) and sqrtf (the FPU).  None of them  *)
-(* has a body in the 15 linked TUs, so CompCert's external_functions_sem  *)
-(* says nothing about them.  What the walk needs is that such a call      *)
-(* changes no block of the modeled memory and returns a non-pointer:      *)
+(* sqrtf (the FPU) has no body in the linked TUs, so CompCert's           *)
+(* external_functions_sem says nothing about it.  What the walk needs is  *)
+(* that the call changes no block of the modeled memory and returns a     *)
+(* non-pointer:                                                           *)
 (*                                                                        *)
 (*   ext_inert name                                                       *)
 (*                                                                        *)
-(* - audio_inert, camera_inert: LABELED OPEN PREMISES (audio and camera   *)
-(*   are deferred, by decision).  audio_inert also covers                 *)
-(*   set_sound_moving_speed (act_holding_pole, 2026-10-22).               *)
-(*   play_sound queues a request in the                                   *)
-(*   audio TUs' own globals and set_camera_shake_from_hit writes camera.c *)
-(*   globals; no linked TU declares those, so they are outside the        *)
-(*   modeled memory.  Both are void.                                      *)
 (* - sqrtf: the FPU floor (FpuFloor.sqrtf_spec, memory unchanged) plus    *)
 (*   sqrtf_float: the sqrt.s instruction writes an FPU register, so the   *)
 (*   result is a float, never a pointer (TRUST 3.5).                      *)
+(* (audio_inert, the labeled open audio premise over play_sound and       *)
+(* set_sound_moving_speed, is gone since 2026-10-23: audio/external.c is  *)
+(* linked and SndXc proves their clobber contracts from the real bodies;  *)
+(* camera_inert went 2026-10-22 when camera.c was linked.)                *)
 (*                                                                        *)
 (* ext_fresh_sound: under its premise, the fresh-value contract describes *)
 (* each of these calls on the real link.                                  *)
@@ -36,18 +32,6 @@ Definition ext_inert (name : string) : Prop :=
     external_functions_sem name sg ge vargs m t vres m' ->
     Mem.unchanged_on (fun b _ => Mem.valid_block m b) m m' /\ (forall b o, vres <> Vptr b o).
 
-(* the labeled open premises.  audio: play_sound and (since 2026-10-22, for
-   act_holding_pole) set_sound_moving_speed, which writes the audio TUs'
-   per-bank moving-speed table; its entry is shaped exactly like
-   play_sound's *)
-Definition audio_inert : Prop := ext_inert "play_sound" /\ ext_inert "set_sound_moving_speed".
-Lemma audio_ps : audio_inert -> ext_inert "play_sound".
-Proof. intros [H _]. exact H. Qed.
-Lemma audio_ssms : audio_inert -> ext_inert "set_sound_moving_speed".
-Proof. intros [_ H]. exact H. Qed.
-(* (camera_inert, the set_camera_shake_from_hit premise, is gone since
-   2026-10-22: camera.c is linked and the walks run its real body.) *)
-
 (* the FPU floor's second half *)
 Definition sqrtf_float : Prop :=
   forall sg ge vargs m t vres m',
@@ -60,11 +44,6 @@ Proof.
 Qed.
 
 Module AIR := mario_actions_airborne.
-
-Lemma ps_named : ext_named ((prog_defmap AIR.prog) ! AIR._play_sound) "play_sound" = true.
-Proof. vm_compute. reflexivity. Qed.
-Lemma ps_ni : no_internal_all [AIR._play_sound] = true.
-Proof. vm_compute. reflexivity. Qed.
 
 Section LP.
 Variable lp : Clight.program.

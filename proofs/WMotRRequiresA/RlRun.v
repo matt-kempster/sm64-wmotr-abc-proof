@@ -50,7 +50,6 @@ Local Notation G := (globalenv lp).
 Hypothesis Hdma : os_dma_floor.
 Hypothesis Hsq : sqrtf_spec.
 Hypothesis Hsqf : sqrtf_float.
-Hypothesis Haudio : audio_inert.      (* LABELED OPEN PREMISE: audio, deferred *)
 
 Variable acn : Z.
 Variable fK : function.
@@ -79,7 +78,7 @@ Proof.
   { constructor; [| constructor].
     split; [reflexivity |]. cbn [sok nlt g0F g_nx]. split; [unfold Plt, Pos.lt; reflexivity | exact Logic.I]. }
   destruct (sx_call_sound G NBF (R0F G) gtabF (kvK acn G) (xcK acn G) jkeys mergeK true m0 (ufF G m0 gp) gp
-              GPO MC (xcK_sound lp H12 Hdma Hsq Hsqf Haudio acn m0 gp GPO MC FD)
+              GPO MC (xcK_sound lp H12 Hdma Hsq Hsqf acn m0 gp GPO MC FD)
               3000 (g0F G) _ argsF cs E m0 _ t m' vres RUN MM0 ARGS EV) as (c & Hin & CMc).
   destruct c as [gs r]. destruct CMc as (E' & X & MM & DR & _).
   pose proof (W _ Hin) as OK. unfold rlk_ok in OK. cbn [fst] in OK.
@@ -104,8 +103,8 @@ Qed.
 End LP.
 
 Lemma rl_kfinal_all : forall lp, linked12 lp -> os_dma_floor -> sqrtf_spec -> sqrtf_float ->
-  audio_inert -> forall acn fK, rl_walk acn fK = true -> kfinal lp acn fK.
+  forall acn fK, rl_walk acn fK = true -> kfinal lp acn fK.
 Proof.
   (* explicit: eassumption would unfold the walk onto the link *)
-  intros lp H12 Hdma Hsq Hsqf Ha acn fK Hw. exact (rl_kfinal lp H12 Hdma Hsq Hsqf Ha acn fK Hw).
+  intros lp H12 Hdma Hsq Hsqf acn fK Hw. exact (rl_kfinal lp H12 Hdma Hsq Hsqf acn fK Hw).
 Qed.

@@ -45,7 +45,7 @@ From Flocq Require Import Binary.
 From compcert Require Import Coqlib Maps AST Integers Floats Values Memory
   Globalenvs Ctypes Clight ClightBigstep Events Linking.
 From SM64.Generated Require mario level_update interaction mario_actions_moving
-  surface_collision memory game_init object_list_processor area surface_load camera.
+  surface_collision memory game_init object_list_processor area surface_load camera audio_external.
 From SM64.Proofs Require Import RealFrameLinked ActionValueFrame Taint CensusV2 MWFReal SpawnInit
   LinkedTwelve InitMemSat BootMWF NoAImpliesNoFlyLinked ClosedMem.
 From SM64.Proofs.WMotRRequiresA Require Import HeightInvariant NoAActions WMotRWorld
@@ -312,11 +312,11 @@ Definition nsurf_is (lp : Clight.program) (m : mem) : Prop :=
 
 (* NON-VACUITY OF THE FRAME (2026-10-22): from m, with A not pressed, one
    real execute_mario_action frame executes (the externals answered as in
-   BootRun: sqrtf by the FPU floor's value clause, the three audio calls by
-   the labeled audio premise BootRun.audio_ret), and Mario
+   BootRun: sqrtf by the FPU floor's value clause; the audio calls run
+   their real linked bodies), and Mario
    is still in ACT_SPAWN_NO_SPIN_AIRBORNE afterwards *)
 Definition frame_runs (lp : Clight.program) (bm : block) (m : mem) : Prop :=
-  sqrtf_value -> BootRun.audio_ret ->
+  sqrtf_value ->
   AGates.a_pressed_real bm m = false
   /\ exists bo t m' v,
        eval_funcall function_entry2 (lp_ge lp) m (Internal mario.f_execute_mario_action)
@@ -328,7 +328,7 @@ Definition frame_runs (lp : Clight.program) (bm : block) (m : mem) : Prop :=
    memory with the same nextblock whose every block holds exactly the bytes
    of the boot image after ifs_writes (the cells the witness stores) *)
 Definition ifs_tether (lp : Clight.program) (m0 : mem) (bm bc : block) : Prop :=
-  sqrtf_value -> BootRun.audio_ret ->
+  sqrtf_value ->
   exists ab bsi bpcs bbs bhud fd t mi v mx,
     Genv.find_symbol (lp_ge lp) mario._gMarioAnimsBuf = Some ab
     /\ sym (lp_ge lp) "gPlayerSpawnInfos"%string = Some bsi
@@ -423,6 +423,16 @@ Section Witness.
   Lemma dm_lak : (prog_defmap camera.prog) ! camera._gLakituState
                 = Some (Gvar camera.v_gLakituState).
   Proof. dm. Qed.
+  (* the audio globals play_sound / set_sound_moving_speed write (walk regions) *)
+  Lemma dm_sr : (prog_defmap audio_external.prog) ! audio_external._sSoundRequests
+                = Some (Gvar audio_external.v_sSoundRequests).
+  Proof. dm. Qed.
+  Lemma dm_src : (prog_defmap audio_external.prog) ! audio_external._sSoundRequestCount
+                = Some (Gvar audio_external.v_sSoundRequestCount).
+  Proof. dm. Qed.
+  Lemma dm_sms : (prog_defmap audio_external.prog) ! audio_external._sSoundMovingSpeed
+                = Some (Gvar audio_external.v_sSoundMovingSpeed).
+  Proof. dm. Qed.
 
   (* the collision partitions' definer, surface_load.c (linked 2026-10-22):
      6144 bytes each (16 x 16 cells x 3 lists x one 8-byte SurfaceNode) *)
@@ -461,7 +471,7 @@ Section Witness.
   (* The construction, as hypotheses: three allocations, eight stores.    *)
   (* ==================================================================== *)
   Section Steps.
-    Variables ab bo bfi bmiss bcalls bsin biom bmq brm blk : block.
+    Variables ab bo bfi bmiss bcalls bsin biom bmq brm blk bsr bsrc bsms : block.
     Hypothesis Hab : Genv.find_symbol (lp_ge lp) mario._gMarioAnimsBuf = Some ab.
     Hypothesis Hbo : Genv.find_symbol (lp_ge lp) object_list_processor._gObjectPool = Some bo.
     Hypothesis Hfi : Genv.find_symbol (lp_ge lp)
@@ -473,6 +483,9 @@ Section Witness.
     Hypothesis Hmq : Genv.find_symbol (lp_ge lp) memory._gDmaMesgQueue = Some bmq.
     Hypothesis Hrm : Genv.find_symbol (lp_ge lp) memory._gMainReceivedMesg = Some brm.
     Hypothesis Hlk : Genv.find_symbol (lp_ge lp) camera._gLakituState = Some blk.
+    Hypothesis Hsr : Genv.find_symbol (lp_ge lp) audio_external._sSoundRequests = Some bsr.
+    Hypothesis Hsrc : Genv.find_symbol (lp_ge lp) audio_external._sSoundRequestCount = Some bsrc.
+    Hypothesis Hsms : Genv.find_symbol (lp_ge lp) audio_external._sSoundMovingSpeed = Some bsms.
     Variables bw bL : block.
     Hypothesis Hbw : Genv.find_symbol (lp_ge lp) level_update._sWarpDest = Some bw.
     Hypothesis HbL : Genv.find_symbol (lp_ge lp) level_update._gCurrLevelNum = Some bL.
@@ -1615,7 +1628,7 @@ Section Witness.
     Lemma Hpcs_fs : Genv.find_symbol (lp_ge lp) camera._gPlayerCameraState = Some bpcs.
     Proof. exact Hpcs. Qed.
 
-    Definition RL : list (option val) := ff_rl bm bo Ptrofs.zero bfi bmiss bcalls ab bt biom bmq brm blk bpcs.
+    Definition RL : list (option val) := ff_rl bm bo Ptrofs.zero bfi bmiss bcalls ab bt biom bmq brm blk bpcs bsr bsrc bsms.
 
     Lemma bpl_not_rl : ~ rblk RL bpl.
     Proof. unfold RL. norl. Qed.
@@ -1683,12 +1696,12 @@ Section Witness.
       split.
       2: exact floor_data11.
       pose proof Hpcs_fs as Hpcs'.
-      exists (Mem.flat_inj thr), bfi, bmiss, bcalls, bsin, ab, biom, bmq, brm, blk, bpcs, bo, Ptrofs.zero,
+      exists (Mem.flat_inj thr), bfi, bmiss, bcalls, bsin, ab, biom, bmq, brm, blk, bpcs, bsr, bsrc, bsms, bo, Ptrofs.zero,
         bt, Ptrofs.zero, (Vptr bs Ptrofs.zero), (Vptr bar Ptrofs.zero), Int.zero, (Vptr bc Ptrofs.zero).
       split; [ exact closed11 | ].
       split; [ intros id b Hfs; exact (flat_some _ (sym_lt _ _ Hfs)) | ].
       split; [ exact (flat_some _ (sym_lt _ _ Hbm)) | ].
-      do 10 (split; [ assumption | ]).
+      do 13 (split; [ assumption | ]).
       split; [ exact L_obj | ].
       split; [ unfold SZ_OBJECT; vm_compute; discriminate | ].
       split; [ exact L_anim | ].
@@ -1819,10 +1832,10 @@ Section Witness.
         split; [ rewrite L_lvl, (Mem.load_store_same _ _ _ _ _ _ E6); reflexivity | ].
         split; [ exact loaded11 | ].
         split; [ | split ].
-        + intros Hv Hau. pose proof (BootRun.world_ok_of (lp_ge lp) Hv Hau) as Wk.
+        + intros Hv. pose proof (BootRun.world_ok_of (lp_ge lp) Hv) as Wk.
           destruct (frame_ok_sound _ _ _ _ Wk FO) as (Ha & t & m' & v & Ev & Hl).
           split; [ exact Ha | exists bo, t, m', v; split; [ exact Ev | exact Hl ] ].
-        + intros Hv Hau. pose proof (BootRun.world_ok_of (lp_ge lp) Hv Hau) as Wk.
+        + intros Hv. pose proof (BootRun.world_ok_of (lp_ge lp) Hv) as Wk.
           destruct (ifs_ok_sound _ _ _ _ _ _ _ _ _ Wk IF)
             as (bi & fi & t & mi & v & mx & Hbi0 & Hfi0 & Ev & Ax & Hn & Hc).
           exists ab, bsi, bpcs, bbs, bhud, fi, t, mi, v, mx.
@@ -1890,6 +1903,9 @@ End Steps.
     destruct (ex_sym _ _ _ (linked12_LO_memory lp H12) dm_mq) as (bmq & Hmq).
     destruct (ex_sym _ _ _ (linked12_LO_memory lp H12) dm_rm) as (brm & Hrm).
     destruct (ex_sym _ _ _ (linked12_LO_camera lp H12) dm_lak) as (blk & Hlk).
+    destruct (ex_sym _ _ _ (linked12_LO_audio_external lp H12) dm_sr) as (bsr & Hsr).
+    destruct (ex_sym _ _ _ (linked12_LO_audio_external lp H12) dm_src) as (bsrc & Hsrc).
+    destruct (ex_sym _ _ _ (linked12_LO_audio_external lp H12) dm_sms) as (bsms & Hsms).
     destruct (ex_sym _ _ _ (linked12_LO_lvl lp H12) dm_wd) as (bw & Hbw).
     destruct (ex_sym _ _ _ (linked12_LO_area lp H12) dm_lvlnum) as (bL & HbL).
     (* the whole chain, computed once over every 34-TU link (StartTerrain) *)

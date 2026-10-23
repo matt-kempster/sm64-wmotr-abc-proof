@@ -38,7 +38,8 @@ From Coq Require Import ZArith List Lia.
 From compcert Require Import Coqlib Maps AST Integers Values Events Memory
   Globalenvs Ctypes Cop Clightdefs Clight ClightBigstep Linking Errors.
 From SM64.Generated Require surface_collision math_util memory save_file area
-  libultra_osSiCreateAccessQueue libultra_osContInit libultra_osEepromWrite.
+  libultra_osSiCreateAccessQueue libultra_osContInit libultra_osEepromWrite
+  audio_external.
 From SM64.Generated Require mario level_update mario_step mario_actions_submerged
   mario_actions_cutscene behavior_actions interaction graph_node spawn_object
   object_helpers.
@@ -964,7 +965,18 @@ Definition stored_globals : list ident :=
   libultra_osSiCreateAccessQueue._gOsSiAccessQueueCreated ::
   libultra_osContInit.___osEepromTimer :: libultra_osContInit.___osEepromTimerQ ::
   libultra_osContInit.___osEepromTimerMsg :: libultra_osContInit.___osContLastCmd ::
-  libultra_osEepromWrite.___osEepPifRam :: nil.
+  libultra_osEepromWrite.___osEepPifRam ::
+  (* the sound-request queue (2026-10-23, audio/external.c linked):
+     play_sound(soundBits, pos) stores its POINTER argument pos into
+     sSoundRequests[sSoundRequestCount].position (external.c:818), and only
+     the audio thread reads it back (process_all_sound_requests, out of
+     scope).  As a SafeB block it would make the any-argument play_sound
+     row FALSE (pos = &gMarioStates breaks MWF's load-closure row R7), the
+     area.c D_8032CE74/78 case again; as a stored global MWF does not
+     constrain its contents, which is what the code needs.  The claim, via
+     SpawnInit.non_safeb_syms, is that nothing in the object graph points
+     into the request queue. *)
+  audio_external._sSoundRequests :: nil.
 
 (* 2026-10-19: the five cutscene OBJECT-POINTER globals.  They left
    stored_globals: MWF does not constrain a stored global's contents, so the
