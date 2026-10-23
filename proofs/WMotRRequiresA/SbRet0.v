@@ -53,7 +53,6 @@ Local Notation G := (globalenv lp).
 Hypothesis Hdma : os_dma_floor.
 Hypothesis Hsq : sqrtf_spec.
 Hypothesis Hsqf : sqrtf_float.
-Hypothesis Haudio : audio_inert.      (* LABELED OPEN PREMISE: audio, deferred *)
 
 Variable acn : Z.
 Variable fK : function.
@@ -76,7 +75,7 @@ Proof.
   { constructor; [| constructor].
     split; [reflexivity |]. cbn [sok nlt g0F g_nx]. split; [unfold Plt, Pos.lt; reflexivity | exact Logic.I]. }
   destruct (sx_call_sound G NBF (R0F G) gtabF (kvK acn G) (xcK acn G) jkeys mergeK true m0 (ufF G m0 gp) gp
-              GPO MC (xcK_sound lp H12 Hdma Hsq Hsqf Haudio acn m0 gp GPO MC FD)
+              GPO MC (xcK_sound lp H12 Hdma Hsq Hsqf acn m0 gp GPO MC FD)
               3000 (g0F G) _ argsF cs E m0 _ t m' vres RUN MM0 ARGS EV) as (c & Hin & CMc).
   destruct c as [gs r]. destruct CMc as (E' & X & MM & DR & _).
   pose proof (W _ Hin) as OK. unfold r0_ok in OK. cbn [snd] in OK.

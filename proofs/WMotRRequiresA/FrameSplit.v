@@ -25,7 +25,7 @@
 (* fresh-when-airborne, returns 0 (inLoop = 0: the loop ends) or leaves it *)
 (* fresh-when-airborne (the loop goes on, with no new refresh).  The loop  *)
 (* invariant J is proved over the real `while (inLoop) switch ...`.        *)
-(* frame_split (the unstaged version) is kept for comparison only.         *)
+(* The other calls are collected path-sensitively (clw, 2026-10-23).     *)
 (* ======================================================================= *)
 
 From Coq Require Import ZArith List Lia Relations.
@@ -334,6 +334,137 @@ Lemma specials_distinct : is_umi mario._mario_handle_special_floors = false
   /\ is_disp mario._mario_handle_special_floors = false
   /\ is_disp mario._mario_process_interactions = false.
 Proof. vm_compute. repeat split; try reflexivity. Qed.
+
+(* ======================================================================= *)
+(* THE PATH-SENSITIVE SUFFIX (2026-10-23).  FOUND (phantom forall): the    *)
+(* old row Hseg_any asked EVERY non-gMarioState call of the body to keep   *)
+(* the frame world from ANY fworld memory with ANY arguments, among them   *)
+(* the linked spawn_wind_particles (twice).  Its real body                 *)
+(* (behavior_actions.c) calls spawn_object three times, which pops the     *)
+(* head of gFreeObjectList and re-initialises that slot (copying Mario's   *)
+(* position into it).  fworld says nothing about gFreeObjectList, and all  *)
+(* objects share gObjectPool's block, so a memory whose free-list head is  *)
+(* usedObj (a pole, in a pole action) met every premise, and one call     *)
+(* rewrites the pole's oPosY: used_ok fails -- the row was FALSE as        *)
+(* stated.  In the game the call is dead in WMotR: both call sites sit     *)
+(* under `if (m->floor->type == SURFACE_HORIZONTAL_WIND (44) /             *)
+(* SURFACE_VERTICAL_WIND (56))`, and fworld's wmotr_world says m->floor    *)
+(* points at a surface whose type is a WMotR collision type, computed from *)
+(* the generated terrain ([5; 10; 21; 55; 0], WMotRWorld).                 *)
+(* clw is cl with that branch condition read: a block                      *)
+(*   t1 = gMarioState; t2 = t1->floor; t3 = t2->type; if (t3 == n) s1      *)
+(* with n not a WMotR surface type contributes NO obligation; guard_mem    *)
+(* proves its run leaves memory unchanged under the frame world.           *)
+(* ======================================================================= *)
+Definition tySurfp : type := tptr (Tstruct mario._Surface noattr).
+
+Definition wind_guard (t1 t2 t3 : ident) (n : int) (s1 : statement) : statement :=
+  Ssequence (Sset t1 (Evar mario._gMarioState tyMSp))
+    (Ssequence (Sset t2 (Efield (Ederef (Etempvar t1 tyMSp) (Tstruct mario._MarioState noattr))
+                          mario._floor tySurfp))
+      (Ssequence (Sset t3 (Efield (Ederef (Etempvar t2 tySurfp) (Tstruct mario._Surface noattr))
+                            mario._type tshort))
+        (Sifthenelse (Ebinop Oeq (Etempvar t3 tshort) (Econst_int n tint) tint) s1 Sskip))).
+
+Definition dead_guard (s : statement) : bool :=
+  match s with
+  | Ssequence (Sset t1 (Evar g ty0))
+      (Ssequence (Sset t2 (Efield (Ederef (Etempvar t1' ty1) sty1) ff fty))
+        (Ssequence (Sset t3 (Efield (Ederef (Etempvar t2' ty2) sty2) ft tty))
+          (Sifthenelse (Ebinop Oeq (Etempvar t3' ty3) (Econst_int n ty4) ty5) _ Sskip))) =>
+      Pos.eqb g mario._gMarioState && type_eq ty0 tyMSp && Pos.eqb t1' t1 && type_eq ty1 tyMSp
+      && type_eq sty1 (Tstruct mario._MarioState noattr) && Pos.eqb ff mario._floor
+      && type_eq fty tySurfp && Pos.eqb t2' t2 && type_eq ty2 tySurfp
+      && type_eq sty2 (Tstruct mario._Surface noattr) && Pos.eqb ft mario._type
+      && type_eq tty tshort && Pos.eqb t3' t3 && type_eq ty3 tshort
+      && type_eq ty4 tint && type_eq ty5 tint
+      && negb (existsb (Z.eqb (Int.signed n)) wmotr_surface_types)
+  | _ => false
+  end.
+
+Lemma dead_guard_spec : forall s, dead_guard s = true ->
+  exists t1 t2 t3 n s1, s = wind_guard t1 t2 t3 n s1 /\ ~ In (Int.signed n) wmotr_surface_types.
+Proof.
+  intros s H. unfold dead_guard in H.
+  repeat match type of H with
+  | context [match ?x with _ => _ end] => destruct x; try discriminate H
+  end.
+  repeat match type of H with
+  | _ && _ = true => apply andb_prop in H as [H ?H]
+  end.
+  repeat match goal with
+  | Hq : Pos.eqb _ _ = true |- _ => apply Pos.eqb_eq in Hq; subst
+  | Hq : proj_sumbool (type_eq ?a ?b) = true |- _ =>
+      destruct (type_eq a b); [subst | discriminate Hq]; clear Hq
+  end.
+  match goal with Hq : negb _ = true |- _ => rename Hq into Hn end.
+  do 5 eexists. split; [reflexivity |].
+  intros Hin. apply negb_true_iff, Bool.not_true_iff_false in Hn. apply Hn.
+  apply existsb_exists. eexists. split; [exact Hin | apply Z.eqb_refl].
+Qed.
+
+(* the guard-aware collector, on a sequence spine *)
+Definition cl_head (s : statement) : bool :=
+  match gms_call mario._gMarioState tyMSp s with
+  | Some _ => true
+  | None => straight s && has_asg s
+  end.
+
+Fixpoint clw (s : statement) : option (list obl) :=
+  match s with
+  | Ssequence a b =>
+      if dead_guard a then clw b
+      else if cl_head (Ssequence a b) then cl mario._gMarioState tyMSp (Ssequence a b)
+      else ocat (cl mario._gMarioState tyMSp a) (clw b)
+  | _ => cl mario._gMarioState tyMSp s
+  end.
+
+Definition obls_ofw (s : statement) : list obl :=
+  match clw s with Some l => l | None => [] end.
+
+Lemma suf_clw : clw (p_suf EP) = Some (obls_ofw (p_suf EP)).
+Proof. vm_compute. reflexivity. Qed.
+
+(* the path-sensitive suffix drops exactly the two wind blocks' four calls
+   (spawn_wind_particles and play_sound, twice) *)
+Lemma suf_obls_w : obls_ofw (p_suf EP) = firstn 6 (obls_of (p_suf EP)) ++ skipn 10 (obls_of (p_suf EP)).
+Proof. vm_compute. reflexivity. Qed.
+
+Lemma suf_dropped : map (fun o => match o with OAny f _ _ => Some f | _ => None end)
+    (firstn 4 (skipn 6 (obls_of (p_suf EP))))
+  = [Some mario._spawn_wind_particles; Some mario._play_sound;
+     Some mario._spawn_wind_particles; Some mario._play_sound].
+Proof. vm_compute. reflexivity. Qed.
+
+Lemma suf_w_nonspecial : forallb nonspecial (obls_ofw (p_suf EP)) = true.
+Proof. vm_compute. reflexivity. Qed.
+
+(* the obligations that stay live in WMotR *)
+Definition ema_live : list obl := obls_of (p_fl EP) ++ obls_of (p_rs EP) ++ obls_ofw (p_suf EP).
+
+(* ... and the one non-gMarioState call among them: the unlinked
+   play_infinite_stairs_music() (no arguments) *)
+Lemma ema_live_anys :
+  flat_map (fun o => match o with OAny f _ _ => [f] | _ => [] end) ema_live
+  = [mario._play_infinite_stairs_music].
+Proof. vm_compute. reflexivity. Qed.
+
+Lemma ema_live_incl : forall o, In o ema_live -> In o ema_obls.
+Proof.
+  intros o Ho. rewrite ema_obls_split. unfold ema_live in Ho.
+  apply in_app_or in Ho as [Ho | Ho]; [apply in_or_app; left; exact Ho |].
+  apply in_or_app; right.
+  apply in_app_or in Ho as [Ho | Ho]; [apply in_or_app; left; exact Ho |].
+  do 3 (apply in_or_app; right).
+  rewrite suf_obls_w in Ho. rewrite <- (firstn_skipn 6 (obls_of (p_suf EP))).
+  apply in_app_or in Ho as [Ho | Ho]; apply in_or_app; [left; exact Ho |].
+  right. rewrite <- (firstn_skipn 4 (skipn 6 (obls_of (p_suf EP)))). apply in_or_app. right.
+  rewrite skipn_skipn. exact Ho.
+Qed.
+
+Lemma guard_offsets : mario_fo mario._MarioState mario._floor = Some (104, Full)
+  /\ mario_fo mario._Surface mario._type = Some (0, Full).
+Proof. vm_compute. split; reflexivity. Qed.
 
 Section FrameSplit.
   Variable lp : Clight.program.
@@ -840,8 +971,8 @@ Section FrameSplit.
     Lemma obj_store_anim_w : ffw ge bm m -> AnimWorld.anim_w ge bm m -> AnimWorld.anim_w ge bm m'.
     Proof.
       intros (Hgn & EX & FD) AW.
-      destruct EX as (gp & bfi & bmiss & bcalls & bsin & ab & biom & bmq & brm & blk & bpc & bo & oo & bt & ot
-                      & fl & ar & inp & ctl & HC & HS & HM & S1 & S2 & S3 & S4 & S5 & S6 & S7 & S8 & SL & SP
+      destruct EX as (gp & bfi & bmiss & bcalls & bsin & ab & biom & bmq & brm & blk & bpc & bsr & bsrc & bsms & bo & oo & bt & ot
+                      & fl & ar & inp & ctl & HC & HS & HM & S1 & S2 & S3 & S4 & S5 & S6 & S7 & S8 & SL & SP & SR & SRC & SMS
                       & Lo & Soo & La & Lb & Sot & D1 & D2 & D3 & D4 & W & _).
       assert (Lo' : Mem.load Mint32 m bm MARIOOBJ_OFF = Some (Vptr bo oo)) by exact Lo.
       rewrite Hmo in Lo'. injection Lo' as <- <-.
@@ -852,8 +983,8 @@ Section FrameSplit.
       assert (Lm' : Mem.load Mint32 m bm MARIOOBJ_OFF = Some (Vptr mb' mo')) by exact Lm.
       rewrite Hmo in Lm'. injection Lm' as <- <-.
       assert (Hab0 : ab <> mb) by exact (Hab ab S5).
-      apply (AnimKeep.anim_w_keep ge bm m m' gp bfi bmiss bcalls ab biom bmq brm blk bpc mb mo bt ot
-               S1 S2 S3 S5 S6 S7 S8 SL SP Lo Lb W AW).
+      apply (AnimKeep.anim_w_keep ge bm m m' gp bfi bmiss bcalls ab biom bmq brm blk bpc bsr bsrc bsms mb mo bt ot
+               S1 S2 S3 S5 S6 S7 S8 SL SP SR SRC SMS Lo Lb W AW).
       - rewrite (Mem.nextblock_store _ _ _ _ _ _ Hst). apply Ple_refl.
       - intros b ofs k p _ Hp. exact (Mem.perm_store_1 _ _ _ _ _ _ Hst b ofs k p Hp).
       - intros ch' b z _ Hr. apply LD. left. intros ->. apply Hr. exists mo.
@@ -1130,33 +1261,85 @@ Section FrameSplit.
   Qed.
 
   (* ======================================================================= *)
-  (* THE SPLIT: one real execute_mario_action keeps the frame state when     *)
-  (* every call in its body does (the two store blocks are proved above).    *)
+  (* THE OTHER CALLS' ROWS, path-sensitive (2026-10-23).  Only the calls     *)
+  (* that stay live in WMotR (ema_live: the wind blocks' calls dropped by    *)
+  (* clw) carry a row; computed, that is play_infinite_stairs_music() alone  *)
+  (* (ema_live_anys).  The old row ranged over ema_obls, including the      *)
+  (* linked spawn_wind_particles with ANY arguments from ANY fworld memory, *)
+  (* and was FALSE as stated (the phantom free list; see clw above).  The   *)
+  (* unstaged frame_split, which used it, is gone.                           *)
   (* ======================================================================= *)
-  Definition seg_call_rows : Prop :=
-    forall f fd v, In (OCall f) ema_obls -> resolves f fd -> seg_ok fd [v] (gms_val v).
-
   Definition seg_any_rows : Prop :=
-    forall f fty al fd vargs, In (OAny f fty al) ema_obls -> resolves f fd ->
+    forall f fty al fd vargs, In (OAny f fty al) ema_live -> resolves f fd ->
       seg_ok fd vargs (fun _ => True).
 
-  Theorem frame_split : forall c0 m vargs t m' vr,
-    seg_call_rows -> seg_any_rows ->
-    budget_ok c0 -> FS c0 m ->
-    eval_funcall function_entry2 ge m (Internal mario.f_execute_mario_action) vargs t m' vr ->
-    FS c0 m'.
+  (* a dead floor-type guard leaves memory as it is, in the frame world:
+     m->floor is a WMotR surface, whose type is not the guard's *)
+  Lemma guard_mem : forall t1 t2 t3 n s1 le m t le' m' out,
+    MWF m -> wmotr_world bm m -> ~ In (Int.signed n) wmotr_surface_types ->
+    exec_stmt function_entry2 ge empty_env le m (wind_guard t1 t2 t3 n s1) t le' m' out -> m' = m.
   Proof.
-    intros c0 m vargs t m' vr Hrc Hra Hb HF Hev.
-    refine (funcall_safe ge mario._gMarioState tyMSp (FS c0) mario.f_execute_mario_action
-              ema_obls vargs m t m' vr eq_refl ema_cl _ HF Hev).
-    apply Forall_forall. intros [f | f fty al | st] Hin.
-    - exact (ocall_ok c0 f Hb Hin (fun fd v Hr => Hrc f fd v Hin Hr)).
-    - exact (oany_ok c0 f fty al Hb Hin (fun fd vargs' Hr => Hra f fty al fd vargs' Hin Hr)).
-    - assert (Hs : In st ema_blks).
-      { unfold ema_blks. apply in_flat_map. exists (OBlk st). split; [exact Hin | left; reflexivity]. }
-      rewrite ema_blks_eq in Hs. destruct Hs as [<- | [<- | []]].
-      + exact (oblk_flags_ok c0 Hb).
-      + exact (oblk_status_ok c0 Hb).
+    intros t1 t2 t3 n s1 le m t le' m' out HM Hw Hn H. unfold wind_guard in H.
+    destruct guard_offsets as (Ofl & Oty).
+    apply seq_set_inv in H as (v1 & E1 & H).
+    apply seq_set_inv in H as (v2 & E2 & H).
+    apply seq_set_inv in H as (v3 & E3 & H).
+    pose proof (eval_gms _ _ _ E1) as (gb & Hg & Hl1).
+    (* v2 = m->floor *)
+    apply eval_expr_Efield_load in E2 as (l2 & o2 & bf2 & L2 & D2).
+    destruct (lv_field _ _ _ _ _ _ _ _ _ _ L2 eq_refl Ofl) as (o0 & B2 & -> & ->).
+    destruct (ex_agg _ _ _ _ _ B2 (or_intror eq_refl) I) as (bf0 & L0).
+    apply eval_lvalue_Ederef_base, eval_expr_Etempvar_val in L0.
+    rewrite PTree.gss in L0. injection L0 as ->.
+    destruct (Hgms m HM gb l2 o0 Hg Hl1) as [-> ->].
+    inv D2; match goal with Hm : access_mode _ = _ |- _ => cbn in Hm; try discriminate Hm end.
+    match goal with Hm : By_value _ = By_value _ |- _ => injection Hm as <- end.
+    match goal with Hl : Mem.loadv _ _ _ = Some v2 |- _ => rename Hl into Hl2 end.
+    change (Ptrofs.add Ptrofs.zero (Ptrofs.repr (fst (104, Full)))) with (Ptrofs.repr 104) in Hl2.
+    cbn [Mem.loadv] in Hl2. change (Ptrofs.unsigned (Ptrofs.repr 104)) with 104 in Hl2.
+    destruct Hw as (_ & _ & Hf & _).
+    destruct (Hf v2 Hl2) as (sb & so & ty & -> & Hty & Hin).
+    (* v3 = floor->type *)
+    apply eval_expr_Efield_load in E3 as (l3 & o3 & bf3 & L3 & D3).
+    destruct (lv_field _ _ _ _ _ _ _ _ _ _ L3 eq_refl Oty) as (o4 & B3 & -> & ->).
+    destruct (ex_agg _ _ _ _ _ B3 (or_intror eq_refl) I) as (bf4 & L4).
+    apply eval_lvalue_Ederef_base, eval_expr_Etempvar_val in L4.
+    rewrite PTree.gss in L4. injection L4 as -> ->.
+    inv D3; match goal with Hm : access_mode _ = _ |- _ => cbn in Hm; try discriminate Hm end.
+    match goal with Hm : By_value _ = By_value _ |- _ => injection Hm as <- end.
+    match goal with Hl : Mem.loadv _ _ _ = Some v3 |- _ => rename Hl into Hl3 end.
+    cbn [fst] in Hl3. rewrite Ptrofs.add_zero in Hl3. cbn [Mem.loadv] in Hl3.
+    rewrite Hty in Hl3. injection Hl3 as <-.
+    (* the test is false *)
+    assert (Hne : Int.eq ty n = false).
+    { destruct (Int.eq ty n) eqn:Eq; [| reflexivity].
+      apply Int.same_if_eq in Eq. subst ty. exfalso. exact (Hn Hin). }
+    inv H.
+    match goal with He : eval_expr _ _ _ _ (Ebinop _ _ _ _) _ |- _ => inv He end;
+      [| match goal with Hl : eval_lvalue _ _ _ _ (Ebinop _ _ _ _) _ _ _ |- _ => inv Hl end].
+    match goal with He : eval_expr _ _ _ _ (Etempvar _ _) _ |- _ => inv He end;
+      [| match goal with Hl : eval_lvalue _ _ _ _ (Etempvar _ _) _ _ _ |- _ => inv Hl end].
+    match goal with He : eval_expr _ _ _ _ (Econst_int _ _) _ |- _ => inv He end;
+      [| match goal with Hl : eval_lvalue _ _ _ _ (Econst_int _ _) _ _ _ |- _ => inv Hl end].
+    match goal with Hg3 : (PTree.set t3 _ _) ! t3 = Some _ |- _ =>
+      rewrite PTree.gss in Hg3; injection Hg3 as <- end.
+    match goal with Hs : sem_binary_operation _ _ _ _ _ _ _ = Some _ |- _ => rename Hs into Hsb end.
+    cbv [sem_binary_operation sem_cmp] in Hsb. unfold sem_binarith in Hsb. cbn in Hsb.
+    unfold sem_cast in Hsb. cbn in Hsb. cbv [Archi.ptr64] in Hsb. cbn in Hsb.
+    rewrite Hne in Hsb. injection Hsb as <-.
+    match goal with Hb : bool_val _ _ _ = Some _ |- _ => cbn in Hb; injection Hb as <- end.
+    match goal with Hx : exec_stmt _ _ _ _ _ (if ?b then _ else _) _ _ _ _ |- _ =>
+      change b with false in Hx; cbv beta iota in Hx; inv Hx end.
+    reflexivity.
+  Qed.
+
+  Lemma guard_hs : forall c0 s, dead_guard s = true -> forall le m t le' m' out,
+    FS c0 m -> exec_stmt function_entry2 ge empty_env le m s t le' m' out -> FS c0 m'.
+  Proof.
+    intros c0 s Hd le m t le' m' out HF H.
+    destruct (dead_guard_spec s Hd) as (t1 & t2 & t3 & n & s1 & -> & Hn).
+    pose proof HF as ((_ & _ & HM) & (_ & Hw & _) & _).
+    rewrite (guard_mem t1 t2 t3 n s1 le m t le' m' out HM Hw Hn H). exact HF.
   Qed.
 
 
@@ -1194,16 +1377,17 @@ Section FrameSplit.
 
   (* the plain calls' obligations *)
   Lemma obl_FS : forall c0 o, seg_call_rows_fr -> seg_any_rows -> budget_ok c0 ->
-    In o ema_obls -> nonspecial o = true ->
+    In o ema_live -> nonspecial o = true ->
     obl_ok ge mario._gMarioState tyMSp (FS c0) o.
   Proof.
-    intros c0 [f | f fty al | st] Hrc Hra Hb Hin Hns.
+    intros c0 o Hrc Hra Hb Hlive Hns. pose proof (ema_live_incl o Hlive) as Hin.
+    destruct o as [f | f fty al | st].
     - apply (ocall_ok c0 f Hb Hin). intros fd v Hr.
       apply (seg_ok_pre fd [v] (pre_of f v)); [| exact (seg_okR_ok _ _ _ _ (Hrc f fd v Hin Hr))].
       intros m Hg. split; [exact Hg |]. unfold xpre. cbn [nonspecial] in Hns.
       apply negb_true_iff in Hns. apply orb_false_iff in Hns as [Hns Hd].
       apply orb_false_iff in Hns as [_ Hf]. rewrite Hf, Hd. exact I.
-    - exact (oany_ok c0 f fty al Hb Hin (fun fd vargs' Hr => Hra f fty al fd vargs' Hin Hr)).
+    - exact (oany_ok c0 f fty al Hb Hin (fun fd vargs' Hr => Hra f fty al fd vargs' Hlive Hr)).
     - assert (Hs : In st ema_blks).
       { unfold ema_blks. apply in_flat_map. exists (OBlk st). split; [exact Hin | left; reflexivity]. }
       rewrite ema_blks_eq in Hs. destruct Hs as [<- | [<- | []]].
@@ -1238,12 +1422,41 @@ Section FrameSplit.
 
   Lemma hs_cl : forall c0 s, seg_call_rows_fr -> seg_any_rows -> budget_ok c0 ->
     cl mario._gMarioState tyMSp s = Some (obls_of s) ->
-    (forall o, In o (obls_of s) -> In o ema_obls) ->
+    (forall o, In o (obls_of s) -> In o ema_live) ->
     forallb nonspecial (obls_of s) = true ->
     hs (FS c0) (FS c0) s.
   Proof.
     intros c0 s Hrc Hra Hb Hcl Hin Hns le m t le' m' out HP H.
     refine (cl_sound ge mario._gMarioState tyMSp (FS c0) s (obls_of s) Hcl _ le m t le' m' out HP H).
+    apply Forall_forall. intros o Ho.
+    rewrite forallb_forall in Hns.
+    exact (obl_FS c0 o Hrc Hra Hb (Hin o Ho) (Hns o Ho)).
+  Qed.
+
+  (* the path-sensitive collector is sound: a dead floor guard keeps FS *)
+  Lemma clw_sound : forall c0 s l, clw s = Some l ->
+    Forall (obl_ok ge mario._gMarioState tyMSp (FS c0)) l -> hs (FS c0) (FS c0) s.
+  Proof.
+    intros c0 s. induction s; intros ol E F; cbn [clw] in E;
+      try exact (cl_sound ge mario._gMarioState tyMSp (FS c0) _ ol E F).
+    destruct (dead_guard s1) eqn:Hd.
+    - apply (hs_seq _ (FS c0)); [exact (guard_hs c0 s1 Hd) | exact (IHs2 ol E F) | intros; assumption].
+    - destruct (cl_head (Ssequence s1 s2)).
+      + exact (cl_sound ge mario._gMarioState tyMSp (FS c0) _ ol E F).
+      + destruct (ocat_some _ _ _ E) as (x & y & Hx & Hy & ->).
+        apply Forall_app in F. destruct F as (Fx & Fy).
+        apply (hs_seq _ (FS c0)); [| exact (IHs2 y Hy Fy) | intros; assumption].
+        exact (cl_sound ge mario._gMarioState tyMSp (FS c0) _ x Hx Fx).
+  Qed.
+
+  Lemma hs_clw : forall c0 s, seg_call_rows_fr -> seg_any_rows -> budget_ok c0 ->
+    clw s = Some (obls_ofw s) ->
+    (forall o, In o (obls_ofw s) -> In o ema_live) ->
+    forallb nonspecial (obls_ofw s) = true ->
+    hs (FS c0) (FS c0) s.
+  Proof.
+    intros c0 s Hrc Hra Hb Hcl Hin Hns.
+    apply (clw_sound c0 s (obls_ofw s) Hcl).
     apply Forall_forall. intros o Ho.
     rewrite forallb_forall in Hns.
     exact (obl_FS c0 o Hrc Hra Hb (Hin o Ho) (Hns o Ho)).
@@ -1547,12 +1760,12 @@ Section FrameSplit.
     destruct pieces_cl as (Lfl & Lrs & Lsuf).
     pose proof pieces_nonspecial as NS. rewrite !forallb_app in NS.
     apply andb_true_iff in NS as [NSfl NS]. apply andb_true_iff in NS as [NSrs NSsuf].
-    assert (Ifl : forall o, In o (obls_of (p_fl EP)) -> In o ema_obls)
-      by (intros o Ho; rewrite ema_obls_split; apply in_or_app; left; exact Ho).
-    assert (Irs : forall o, In o (obls_of (p_rs EP)) -> In o ema_obls)
-      by (intros o Ho; rewrite ema_obls_split; apply in_or_app; right; apply in_or_app; left; exact Ho).
-    assert (Isuf : forall o, In o (obls_of (p_suf EP)) -> In o ema_obls)
-      by (intros o Ho; rewrite ema_obls_split; do 4 (apply in_or_app; right); exact Ho).
+    assert (Ifl : forall o, In o (obls_of (p_fl EP)) -> In o ema_live)
+      by (intros o Ho; unfold ema_live; apply in_or_app; left; exact Ho).
+    assert (Irs : forall o, In o (obls_of (p_rs EP)) -> In o ema_live)
+      by (intros o Ho; unfold ema_live; apply in_or_app; right; apply in_or_app; left; exact Ho).
+    assert (Isuf : forall o, In o (obls_ofw (p_suf EP)) -> In o ema_live)
+      by (intros o Ho; unfold ema_live; do 2 (apply in_or_app; right); exact Ho).
     assert (Iu : In (OCall mario._update_mario_inputs) ema_obls)
       by (rewrite ema_obls_split; apply in_or_app; right; apply in_or_app; right; apply in_or_app; left; left; reflexivity).
     assert (Ih : In (OCall mario._mario_handle_special_floors) ema_obls)
@@ -1563,7 +1776,8 @@ Section FrameSplit.
     (* the stages *)
     assert (Sfl : hs (FS c0) (FS c0) (p_fl EP)) by exact (hs_cl c0 _ Hrc Hra Hb Lfl Ifl NSfl).
     assert (Srs : hs (FS c0) (FS c0) (p_rs EP)) by exact (hs_cl c0 _ Hrc Hra Hb Lrs Irs NSrs).
-    assert (Ssuf : hs (FS c0) (FS c0) (p_suf EP)) by exact (hs_cl c0 _ Hrc Hra Hb Lsuf Isuf NSsuf).
+    assert (Ssuf : hs (FS c0) (FS c0) (p_suf EP))
+      by exact (hs_clw c0 _ Hrc Hra Hb suf_clw Isuf suf_w_nonspecial).
     assert (Su : hs (FS c0) (FSf c0) (p_u EP)).
     { apply (hs_call c0 _ _ _ _ Hb Cu Iu Hrc).
       - intros m0 H0. split; [exact H0 |]. unfold xpre. rewrite D5, D4. exact I.

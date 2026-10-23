@@ -12,7 +12,7 @@
 (* climb) plus:                                                            *)
 (*   - find_floor with the height fact kL (PoleXc.c_ff2: HPi of the       *)
 (*     result, so a missed floor is -11000 or bounded);                    *)
-(*   - is_anim_at_end (memory unchanged, an int) and play_sound (audio).   *)
+(*   - is_anim_at_end (memory unchanged, an int) and play_sound (SndXc). *)
 (* Each outcome passes LedgeClass.ledge_ok, FfKeepCheck.fk_ok and either   *)
 (* RetOk.ret_ok or the let-go shape (LedgeClass.letgo_ok).                 *)
 (* ====================================================================== *)
@@ -25,7 +25,7 @@ From SM64.Generated Require mario_step mario mario_actions_airborne mario_action
 From SM64.Proofs Require Import Interp.SymExec2 Interp.LinkGenv MarioModel.LinkedTwelve
   MarioModel.OsDmaFloor MarioModel.MathGeomGated HeightInvariant HeightMoveCatalog WMotRLevel WMotRWorld.
 From SM64.Proofs.WMotRRequiresA Require Import FloorHeight FloorExec AirXc AirRun AirMatch SmaXc
-  ExtInert FfClass AirStart FfKeepCheck RetOk FfRun AhwRun KbRun WithGe PoleXc PoleRun FfWorld HeightBudgetArith LedgeClass.
+  ExtInert SndXc FfClass AirStart FfKeepCheck RetOk FfRun AhwRun KbRun WithGe PoleXc PoleRun FfWorld HeightBudgetArith LedgeClass.
 Import ListNotations.
 
 Module AUT := mario_actions_automatic.
@@ -41,7 +41,7 @@ Definition xcL (id : ident) : option xcontract :=
   | None =>
     if Pos.eqb id mario._set_mario_animation then Some (c_sma NBF (R0F g) gtabF (kvK acn g) RLD RBUF RIOM RMQ RRM kB) else
     if Pos.eqb id mario._is_anim_at_end then Some xc_fresh else
-    if Pos.eqb id AUT._play_sound then Some xc_fresh else None
+    if Pos.eqb id AUT._play_sound then Some (c_snd (R0F g) gtabF ps_regs) else None
   end.
 
 (* the consumer facts' meaning: FfRun's, and kL *)
@@ -124,7 +124,6 @@ Variable lp : Clight.program.
 Hypothesis H12 : linked12 lp.
 Local Notation G := (globalenv lp).
 Hypothesis Hdma : os_dma_floor.
-Hypothesis Haudio : audio_inert.      (* LABELED OPEN PREMISE: audio, deferred *)
 
 Variable acn : Z.
 Variable fK : function.
@@ -201,9 +200,10 @@ Proof.
         exact (xc_fresh_sound G NBF (R0F G) gtabF (kvK acn G) (fun _ => None) (fun _ => false) m0 uf gp
                  E m g (Vint i) args cps Hk MM I).
       * destruct (Pos.eqb_spec id AUT._play_sound) as [-> | N3]; [| discriminate Hx].
-        injection Hx as <-. rewrite ps_aut in Hl.
-        exact (ext_fresh_sound lp H12 _ _ ps_named ps_ni (audio_ps Haudio) NBF (R0F G) gtabF (kvK acn G) m0 uf gp GPO
-                 args g cps fd E m vargs t m' vres Hk Hl MM EV).
+        injection Hx as <-.
+        rewrite (sfun_res _ _ _ _ (res_link lp _ _ _ (linked12_LO_audio_external lp H12) ps_defmap) Hl) in EV.
+        exact (c_ps_sound lp NBF (R0F G) gtabF (kvK acn G) m0 uf gp GPO RSR RSRC
+                 args g cps E m vargs t m' vres Hk MM EV).
 Qed.
 
 Lemma ledgecheck_lp : exists cs,
@@ -284,11 +284,11 @@ Proof.
 Qed.
 End LP.
 
-Lemma ledge_lfinal : forall lp, linked12 lp -> os_dma_floor -> audio_inert ->
+Lemma ledge_lfinal : forall lp, linked12 lp -> os_dma_floor ->
   forall acn fK, ledge_walk acn fK = true -> In acn LEDGE_IN -> lfinal lp acn fK.
 Proof.
-  intros lp H12 Hdma Ha acn fK Hw Hacn m0 gp GPO MC FD.
-  exact (ledge_final lp H12 Hdma Ha acn fK Hw Hacn m0 gp GPO MC FD).
+  intros lp H12 Hdma acn fK Hw Hacn m0 gp GPO MC FD.
+  exact (ledge_final lp H12 Hdma acn fK Hw Hacn m0 gp GPO MC FD).
 Qed.
 
 Lemma in_ledge_in : forall z, existsb (Z.eqb z) LEDGE_IN = true -> In z LEDGE_IN.

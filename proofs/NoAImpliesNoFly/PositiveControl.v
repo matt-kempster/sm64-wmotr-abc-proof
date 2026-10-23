@@ -44,8 +44,10 @@ Definition ret (v : val) (m : mem) : option (trace * val * mem) := Some (E0, v, 
 Definition flat_world (ef : external_function) (args : list val) (m : mem)
     : option (trace * val * mem) :=
   match ef with
-  | EF_external n _ =>
-      if String.eqb n "sqrtf" then
+  | EF_external n sg =>
+      (* at the real (float) -> float signature only: at every signature this
+         oracle was unsatisfiable (Refutations.v) *)
+      if String.eqb n "sqrtf" && match sig_res sg with Xsingle => true | _ => false end then
         match args with [Vsingle x] => ret (Vsingle (Float32.sqrt x)) m | _ => None end
       else if String.eqb n "play_sound" || String.eqb n "play_infinite_stairs_music"
       then ret Vundef m

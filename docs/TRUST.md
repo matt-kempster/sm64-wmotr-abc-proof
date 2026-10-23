@@ -120,13 +120,15 @@ without pressing A".*
   contracts (open, part of `Hframe_stays_noA`).
 - **Open rows, split per call (2026-10-20):** the three whole-frame rows `Hframe_keeps_world`,
   `Hframe_stays_noA` and `Hframe_is_move_chain` are now **lemmas** (`HeightFrame`), derived by
-  `FrameSplit.frame_split` from the real `execute_mario_action` body (since 2026-10-21 by its
-  staged version `FrameSplit.frame_stage`, below). `FrameCalls.cl` reads the
+  `FrameSplit.frame_stage` from the real `execute_mario_action` body (staged since 2026-10-21,
+  below; the unstaged `frame_split` was removed 2026-10-23 with the old `Hseg_any`). `FrameCalls.cl` reads the
   generated body as 17 `f(gMarioState)` calls, 5 other calls (`spawn_wind_particles` ×2,
   `play_sound` ×2, `play_infinite_stairs_music`) and 2 store blocks; the two stores into Mario's
   object (`gfx.node.flags`, `oInteractStatus = 0`) are **proved** to keep W, the cells and GOAL 1's
   `mem_ok`; GOAL 1's per-call `mem_ok` (`frame_call_ok_linked12`) is proved. What is assumed is one
-  row shape per call, `Hseg_call_na` / `Hseg_any` (`FrameSplit.seg_ok`); the airborne dispatcher's
+  row shape per call, `Hseg_call_na` / `Hseg_any` (`FrameSplit.seg_ok`; since 2026-10-23
+  `Hseg_any` covers only the calls live in WMotR, i.e. `play_infinite_stairs_music()`: the two
+  wind blocks' four calls are proved dead, §7); the airborne dispatcher's
   row is itself proved (`AirSplit.air_seg`) from its two prologue calls and one row per no-A case
   (11 of its 43 cases; the rest are dead under `R_noA`), each handler called with the action cell
   equal to its label (`Hair_pro` / `Hair_case`): the call keeps the frame world (`fworld`: action in
@@ -340,6 +342,8 @@ without pressing A".*
   - **Audio premise widened (labeled, user-approved 2026-10-22):** `ExtInert.audio_inert` now also
     covers `set_sound_moving_speed` (audio/external.c, not linked). Same shape as `play_sound`:
     it changes no modeled block and returns no pointer. The handler calls it every frame.
+    (**Gone 2026-10-23:** audio/external.c is linked; `SndXc.c_ssms_sound` proves the call's
+    clobber contract from the real body. See 4.1, "the audio link".)
   - The frame world's controller fact (`Fworld m->controller`, `FfWorld`) is now also seeded
     into the pole walks (the handler reads `stickMag` / `stickY`).
   (n) **LEDGE_CLIMB_SLOW_1 / _2 and LEDGE_CLIMB_FAST proved (2026-10-22,
@@ -402,7 +406,9 @@ without pressing A".*
   (p) **TOP_OF_POLE_TRANSITION and TOP_OF_POLE proved; all twelve automatic cases proved
   (2026-10-23, `PoleCasesT.aut_case_rows_T`).** `Hauto_rest` is removed and its place is taken
   by `HeightFrame.Hdma_anim : OsDmaFloor.pi_dma_anim_spec` (row 0.8(f), APPROVED), so the count
-  stays 26. All six pole actions are re-walked (`PoleRunT`) with Mario's real animation data:
+  is unchanged by this row (26 before the audio link, 24 after it). Since the audio link the
+  `PoleRunT` walks run play_sound / set_sound_moving_speed as `SndXc` clobbers (regions RSR /
+  RSRC / RSMS), with no audio premise. All six pole actions are re-walked (`PoleRunT`) with Mario's real animation data:
   `set_mario_animation` / `_with_accel` walked inline (`load_patchable_table` reads the DMA
   table, `dma_read` copies `gMarioAnims` cells into the buffer by `DmaXc.c_dma`, from
   0.8(f)), and the top-of-pole `set_pole_position(m, return_mario_anim_y_translation(m))`
@@ -738,9 +744,9 @@ without pressing A".*
   terrain loader on WMotR's collision, `init_mario`, and `set_mario_initial_action(m,
   MARIO_SPAWN_AIRBORNE, 0)`. Then ONE FULL real no-A frame runs in `ACT_SPAWN_NO_SPIN_AIRBORNE`,
   and it leaves `gPlayerCameraState[0].action = 6450`. Conditional only on the FPU value clause
-  (`sqrtf_value`, 3.5) and the labeled audio premise `BootRun.audio_ret` (`play_sound`,
-  `play_infinite_stairs_music`, `set_sound_moving_speed` can return with linked memory unchanged;
-  4.1). `reset_red_coins_collected` runs its real body (`ingame_menu.c` is linked, the 36th TU).
+  (`sqrtf_value`, 3.5). (Until 2026-10-23 also on the labeled audio premise `BootRun.audio_ret`;
+  since the audio link the frame runs the real `play_sound` / `play_infinite_stairs_music` /
+  `set_sound_moving_speed` bodies, 4.1.) `reset_red_coins_collected` runs its real body (`ingame_menu.c` is linked, the 36th TU).
 - **FOUND 2026-10-22, REPAIRED the same day: GOAL 2's `StartSat` witness had no frame execution.**
   It was built from `init_mem` without `init_mario_from_save_file`, so `marioBodyState` /
   `statusForCamera` were NULL; `mario_reset_bodystate`'s first store was stuck (checked by running
@@ -987,7 +993,7 @@ without pressing A".*
 | 2.1 | The decomp C is the game: compiled with IDO 5.3 it reproduces the US ROM byte-for-byte | **Checked** (2026-09-26): `vendor/sm64` @ 9921382 built with `make VERSION=us COMPARE=1` has sha1 `9bef1128…6ce`, which equals the US baserom (`experiments/oracle/README.md`). Covers the *default* preprocessing only; see 2.2. |
 | 2.2 | **We verify a different preprocessing of that C.** The ROM is IDO-compiled vendor C. The proof's C adds `-DNON_MATCHING=1 -DAVOID_UB=1` and force-includes `pipeline/proof_n64.h` (every game TU except `shadow.c`; not the six libultra TUs, whose recipe `ULTRA_CG` is the game's own `lib/src` flag set, 2026-10-21) | **Itemized: every site is in the register below.** `tools/ub_sites.py` preprocesses every generated TU both ways (ROM: `-D__sgi`, as IDO predefines it; proof: our flags) with clightgen's own preprocessor, and diffs them. Its output is committed as `docs/ub-sites.txt`. A new site cannot enter silently: regenerate that file and the diff shows it. |
 | 2.3 | `clightgen` (CompCert's *unverified* front end: parser, elaborator, `-normalize`) translates that C faithfully | ASSUMED, **TETHERED on sampled paths**. 267 real frames over 15 actions run through the generated Clight and reproduce the game's memory byte for byte (§5.1). 2026-10-22, 35-TU link (collision, `math_util`, `memory.c` now run as Clight): 600 of 600 frames match, with `gMarioAnims` sized in the harness (5.1). This is evidence for the translation of the code those frames exercise, not proof. |
-| 2.4 | Our post-processing of the generated `.v` is semantics-preserving: stringlit renaming, anonymous-composite renaming (`canonicalize_anon.py`), completing extern incomplete arrays | ASSUMED. Each is a documented rename or type completion. (2026-10-20: `gDebugInfo` joined the extern-array completion table, `s16 gDebugInfo[][8]` → `[16][8]`, its size in `object_list_processor.c`, the 17th TU; `behavior_actions.v` and `object_helpers.v` regenerated, two-line diffs. 2026-10-21: four more, found linking `save_file.c` and `buffers.c` (TUs 20 and 21): `gDecompressionHeap` 0 → 53248 and `gGfxSPTaskStack` / `gGfxSPTaskYieldBuffer` 0 → 1024 / 3072 (`u8`, sized in `buffers.c`; declared in `memory.c` / `game_init.c`), `gLevelToCourseNumTable` 0 → 38 (`s8[LEVEL_COUNT - 1]`, sized in `save_file.c`; declared in `level_update.c`); `memory.v`, `game_init.v`, `level_update.v` regenerated, diffs exactly those four `gvar_info` lines. 2026-10-21, linking `area.c` (the 23rd TU): `gPlayerSpawnInfos` 0 → 1 (`struct SpawnInfo[1]`, sized in `area.c`; declared in `mario.c` / `level_update.c`); `mario.v`, `level_update.v` regenerated, diffs exactly that `gvar_info` line. 2026-10-21, linking `data/behavior_data.c` (the 30th TU): every `bhv*` behavior-script declaration, by RULE rather than by table (433 declarations of ~170 scripts across 16 generated files): `extern const BehaviorScript bhvXxx[]` is `(tarray tuint 0)`, readonly, while the definition is `(tarray tuint N)`, not readonly (CompCert's elaborator drops the `const` when it sizes the array from its initializer). CompCert's vardef linker needs both fields equal, so the declaration takes the definer's `(gvar_info, gvar_readonly)`, with N read off `generated/behavior_data.v`, i.e. the script's real length in the decomp. The readonly bit is new for this class, but it is the same kind of rewrite: init stays nil and the linked program takes the definer's vardef, so a run sees exactly the definition. Its effect is that the scripts are writable blocks: more executions (a store into a script would succeed rather than be stuck), never fewer. Regenerated files diff only in those `gvar_info` / `gvar_readonly` lines. 2026-10-21, linking `spawn_object.c` (the 31st TU): `gObjectPool` 0 → 240 (`struct Object[OBJECT_POOL_CAPACITY]`, sized in `object_list_processor.c`; declared in `spawn_object.c`); `spawn_object.v` regenerated, diff exactly that `gvar_info` line. 2026-10-22, linking WMotR's level data (`pipeline/tu/wmotr_level_data.c`, the 34th TU): a third rule, the same as the `bhv*` rule for `Collision` arrays. `data/behavior_data.c` declares the two object meshes it loads (`extern const Collision xxx[]`: `(tarray tshort 0)`, readonly), and the declaration takes the definer's `(tarray tshort N)`, not readonly, with N read off `generated/wmotr_level_data.v`. Only `behavior_data.v` changed (4 lines: `cannon_lid_seg8_collision_08004950` 24, `exclamation_box_outline_seg8_collision_08025F78` 66). 2026-10-22, the size-0 sweep (`tools/size0_globals.py`, run by the audit): a fourth table gives 17 globals that linked TUs only declare, with their real definition in an unlinked TU, the definer's storage as a common `Init_space sizeof` (each real definition is BSS or an explicit zero, so the bytes are the same; CompCert merges equal-size commons and would merge one with the real definer). The sweep also found four camera.c globals (`gPlayerCameraState`, `gCamera`, `gCameraMovementFlags`, `gCutsceneFocus`); by decision these are not completed here: `camera.c` is linked instead (the 35th TU). Tethers: `gBodyStates` 80 (`mario_misc.c:73`), `gCurGraphNodeRoot/MasterList/CamFrustum/Camera/Object` and `gAreaUpdateCounter` (`rendering_graph_node.c:120-126`), `gDmaIoMesg`, `gMainReceivedMesg`, `gDmaMesgQueue`, `gSIEventMesgQueue`, `gDebugLevelSelect`, `gShowDebugText` (`main.c:29-59`), `gDialogResponse` (`ingame_menu.c:131`), `gPaintingMarioYEntry` (`moving_texture.c:118`), `gObjParentGraphNode` (`geo_layout.c:47`), `gGlobalSoundSource` (`audio/external.c:344`, `{0,0,0}`). Diffs: only those `gvar_init` lines. The warp pipe mesh `warp_pipe_seg3_collision_03009AC8` (264 shorts, `actors/warp_pipe/collision.inc.c`, verbatim) joined the level-data TU and the existing level-data rule completed its two declarations. 2026-10-22, linking Mario's anim data (`mario_anim_data.v`, the 36th TU): a fifth rule, the anim-data completion. `game_init.c` declares `extern u8 gMarioAnims[]` (`(tarray tuchar 0)`, not readonly); the definer is `const struct MarioAnimsObj gMarioAnims`. The declaration takes the definer's `(gvar_info, gvar_readonly)` read off `generated/mario_anim_data.v`, spelled `Tstruct $"MarioAnimsObj"` (the same ident; `game_init.v` has no `_MarioAnimsObj` constant). The readonly bit goes false → true here, the reverse of the `bhv*` rule: the linked program takes the definer's `const` either way, no linked code stores to `gMarioAnims` (it is only a DMA source), and in the real game it is ROM. `game_init.v` diff: those two lines.) Could be proved (rename = alpha-equivalence) or regenerated and diffed. |
+| 2.4 | Our post-processing of the generated `.v` is semantics-preserving: stringlit renaming, anonymous-composite renaming (`canonicalize_anon.py`), completing extern incomplete arrays | ASSUMED. Each is a documented rename or type completion. (2026-10-20: `gDebugInfo` joined the extern-array completion table, `s16 gDebugInfo[][8]` → `[16][8]`, its size in `object_list_processor.c`, the 17th TU; `behavior_actions.v` and `object_helpers.v` regenerated, two-line diffs. 2026-10-21: four more, found linking `save_file.c` and `buffers.c` (TUs 20 and 21): `gDecompressionHeap` 0 → 53248 and `gGfxSPTaskStack` / `gGfxSPTaskYieldBuffer` 0 → 1024 / 3072 (`u8`, sized in `buffers.c`; declared in `memory.c` / `game_init.c`), `gLevelToCourseNumTable` 0 → 38 (`s8[LEVEL_COUNT - 1]`, sized in `save_file.c`; declared in `level_update.c`); 2026-10-23, linking `audio/external.c` / `sound_init.c` (TUs 40, 41): four BSS completions, `gResetTimer` 1 (main.c), `gSoundMode` 1, `gSequencePlayers` 960 and `gSequenceChannelNone` 192 (audio/load.c), each to its definer's size; `game_init.v` regenerated, diff exactly that `gvar_init` line; `memory.v`, `game_init.v`, `level_update.v` regenerated, diffs exactly those four `gvar_info` lines. 2026-10-21, linking `area.c` (the 23rd TU): `gPlayerSpawnInfos` 0 → 1 (`struct SpawnInfo[1]`, sized in `area.c`; declared in `mario.c` / `level_update.c`); `mario.v`, `level_update.v` regenerated, diffs exactly that `gvar_info` line. 2026-10-21, linking `data/behavior_data.c` (the 30th TU): every `bhv*` behavior-script declaration, by RULE rather than by table (433 declarations of ~170 scripts across 16 generated files): `extern const BehaviorScript bhvXxx[]` is `(tarray tuint 0)`, readonly, while the definition is `(tarray tuint N)`, not readonly (CompCert's elaborator drops the `const` when it sizes the array from its initializer). CompCert's vardef linker needs both fields equal, so the declaration takes the definer's `(gvar_info, gvar_readonly)`, with N read off `generated/behavior_data.v`, i.e. the script's real length in the decomp. The readonly bit is new for this class, but it is the same kind of rewrite: init stays nil and the linked program takes the definer's vardef, so a run sees exactly the definition. Its effect is that the scripts are writable blocks: more executions (a store into a script would succeed rather than be stuck), never fewer. Regenerated files diff only in those `gvar_info` / `gvar_readonly` lines. 2026-10-21, linking `spawn_object.c` (the 31st TU): `gObjectPool` 0 → 240 (`struct Object[OBJECT_POOL_CAPACITY]`, sized in `object_list_processor.c`; declared in `spawn_object.c`); `spawn_object.v` regenerated, diff exactly that `gvar_info` line. 2026-10-22, linking WMotR's level data (`pipeline/tu/wmotr_level_data.c`, the 34th TU): a third rule, the same as the `bhv*` rule for `Collision` arrays. `data/behavior_data.c` declares the two object meshes it loads (`extern const Collision xxx[]`: `(tarray tshort 0)`, readonly), and the declaration takes the definer's `(tarray tshort N)`, not readonly, with N read off `generated/wmotr_level_data.v`. Only `behavior_data.v` changed (4 lines: `cannon_lid_seg8_collision_08004950` 24, `exclamation_box_outline_seg8_collision_08025F78` 66). 2026-10-22, the size-0 sweep (`tools/size0_globals.py`, run by the audit): a fourth table gives 17 globals that linked TUs only declare, with their real definition in an unlinked TU, the definer's storage as a common `Init_space sizeof` (each real definition is BSS or an explicit zero, so the bytes are the same; CompCert merges equal-size commons and would merge one with the real definer). The sweep also found four camera.c globals (`gPlayerCameraState`, `gCamera`, `gCameraMovementFlags`, `gCutsceneFocus`); by decision these are not completed here: `camera.c` is linked instead (the 35th TU). Tethers: `gBodyStates` 80 (`mario_misc.c:73`), `gCurGraphNodeRoot/MasterList/CamFrustum/Camera/Object` and `gAreaUpdateCounter` (`rendering_graph_node.c:120-126`), `gDmaIoMesg`, `gMainReceivedMesg`, `gDmaMesgQueue`, `gSIEventMesgQueue`, `gDebugLevelSelect`, `gShowDebugText` (`main.c:29-59`), `gDialogResponse` (`ingame_menu.c:131`), `gPaintingMarioYEntry` (`moving_texture.c:118`), `gObjParentGraphNode` (`geo_layout.c:47`), `gGlobalSoundSource` (`audio/external.c:344`, `{0,0,0}`). Diffs: only those `gvar_init` lines. The warp pipe mesh `warp_pipe_seg3_collision_03009AC8` (264 shorts, `actors/warp_pipe/collision.inc.c`, verbatim) joined the level-data TU and the existing level-data rule completed its two declarations. 2026-10-22, linking Mario's anim data (`mario_anim_data.v`, the 36th TU): a fifth rule, the anim-data completion. `game_init.c` declares `extern u8 gMarioAnims[]` (`(tarray tuchar 0)`, not readonly); the definer is `const struct MarioAnimsObj gMarioAnims`. The declaration takes the definer's `(gvar_info, gvar_readonly)` read off `generated/mario_anim_data.v`, spelled `Tstruct $"MarioAnimsObj"` (the same ident; `game_init.v` has no `_MarioAnimsObj` constant). The readonly bit goes false → true here, the reverse of the `bhv*` rule: the linked program takes the definer's `const` either way, no linked code stores to `gMarioAnims` (it is only a DMA source), and in the real game it is ROM. `game_init.v` diff: those two lines.) Could be proved (rename = alpha-equivalence) or regenerated and diffed. |
 | 2.6 | `object_helpers.c` is clightgen'd with `-flongdouble` (a `1.0l` literal in a debug function) | Equivalence: IDO's o32 ABI makes `long double` a 64-bit double, as `-flongdouble` does. |
 | 2.5 | The target configuration (ppc32 eabi: 32-bit, big-endian) gives the same struct layout, sizes and alignment as IDO/MIPS | Partly TETHERED: offsets cited in proofs (action@12, controller@156, buttonPressed@18) match the decomp's `/*0x..*/` layout comments. Should be checked for every struct in scope, mechanically, against the built ROM's symbol/debug info. |
 
@@ -1097,13 +1103,13 @@ link grows.
   `sqrtf` leaves memory unchanged (on the N64 it is the VR4300 `sqrt.s` instruction; no claim about
   the value), and `ExtInert.sqrtf_float` (added 2026-10-20), its result is not a pointer (the
   instruction writes an FPU register). The act_freefall walk's external contract
-  (`ExtInert.ext_fresh_sound`) uses both. The same walk takes `play_sound` (and, since
+  (`ExtInert.ext_fresh_sound`) uses both. The same walk took `play_sound` (and, since
   2026-10-22, `set_sound_moving_speed`, called by `act_holding_pole`) and
-  `set_camera_shake_from_hit` as labelled open premises (`ExtInert.audio_inert` / `camera_inert`: no
-  modeled block changes, non-pointer result; their writes go to audio and camera globals that no
-  linked TU declares). Those are deferred audio/camera, not floors; since 2026-10-20 they are
-  labeled premises `Haudio` / `Hcamera` of the GOAL-2 capstone. (2026-10-22: `Hcamera` is gone;
-  camera.c is linked and the walks run `set_camera_shake_from_hit`'s real body, see 4.1.) Used only by the Unwired GOAL-2
+  `set_camera_shake_from_hit` as labelled open premises (`ExtInert.audio_inert` / `camera_inert`),
+  the GOAL-2 capstone's `Haudio` / `Hcamera`. Both are gone: `Hcamera` 2026-10-22 (camera.c
+  linked, the walks run `set_camera_shake_from_hit`'s real body) and `Haudio` 2026-10-23
+  (audio/external.c linked, `SndXc` proves both audio calls' clobber contracts from the real
+  bodies; see 4.1). sqrtf is the walks' only external left. Used only by the Unwired GOAL-2
   footprint walker (`FpWalk.uawt_fp`: `update_air_without_turn` writes only forwardVel, slideVelX/Z,
   vel[0], vel[2], slideYaw, proved from its generated body and `check_horizontal_wind`'s). It is the
   same fact `CoinLink` assumes about `sqrtf`.
@@ -1168,7 +1174,7 @@ link grows.
 
 | # | Item | Status / notes |
 |---|---|---|
-| 4.1 | Functions outside the 37 linked files (29 game TUs incl. `camera.c`, `ingame_menu.c`, `debug_course.c` + `behavior_data.c` + WMotR's level data + 6 libultra TUs; audio, rendering) behave as the capstone's rows say (`Hocp_*`, `Hpres_*`, `Hext_*`, …) | **ASSUMED, the ~30 project rows.** Shrinks by linking more files until only truly external things remain. Details: [row 4.1 in detail](#row-41-in-detail). |
+| 4.1 | Functions outside the 41 linked files (31 game TUs incl. `camera.c`, `ingame_menu.c`, `debug_course.c`, `audio/external.c`, `sound_init.c` + `behavior_data.c` + WMotR's level data + 6 libultra TUs; the audio thread, rendering) behave as the capstone's rows say (`Hocp_*`, `Hpres_*`, `Hext_*`, …) | **ASSUMED, the ~30 project rows.** Shrinks by linking more files until only truly external things remain. Details: [row 4.1 in detail](#row-41-in-detail). |
 | 4.2 | CompCert's `external_functions_sem` is an abstract Parameter. Anything left external is constrained *only* by our rows | Permanent for whatever stays external. The goal is that nothing game-logic stays external. |
 | 4.3 | Level data (WMotR collision triangles, object placements, the red-coin positions) is what the ROM contains | **Collision and macro data in the link (2026-10-22, TU 34).** `pipeline/tu/wmotr_level_data.c` includes the vendor `levels/wmotr/areas/1/collision.inc.c` / `macro.inc.c` verbatim, under `leveldata.c`'s `make_const_nonconst.h`. So the data is the decomp's, but that the decomp's `.inc.c` matches the ROM bytes is the decomp's build check (2.1), not ours. Object placements beyond collision (`script.c`) and the red-coin positions are not yet in. |
 | 4.4 | The proof's internal vocabulary (`MWF_real`, `SafeB`, `call_pres_ext_*`) appears in the *statement's* hypotheses | Anti-goal: a reader shouldn't have to understand proof internals to know what's assumed. Rows must eventually be about the game, or be gone. |
@@ -1257,11 +1263,46 @@ link grows.
 - **`debug_course.c` is linked** (2026-10-22, the 38th TU): its only function is the empty
   `nop_change_course`, which the real `lvl_set_current_level` calls on a course change, so
   `CourseRun` runs that function with no external answered. No row names it.
-- **Labeled open AUDIO premise `BootRun.audio_ret` (2026-10-22).** `play_sound`,
-  `play_infinite_stairs_music` (`sound_init.c`) and `set_sound_moving_speed` (`audio/external.c`)
-  can return `Vundef` with linked memory unchanged; their writes go to audio state no linked TU
-  declares. It replaces the audio half of the old `BootRun.world_ok`. A premise of
-  `boot_frames_run` and of `StartSat`'s `frame_runs` / `ifs_tether`, not of any capstone.
+- **Labeled open AUDIO premise `BootRun.audio_ret` (2026-10-22; GONE 2026-10-23).** It said
+  `play_sound`, `play_infinite_stairs_music` and `set_sound_moving_speed` return `Vundef` with
+  linked memory unchanged. Since the audio link (below) the boot frames run their real bodies, and
+  `BootRun.world` answers no audio external.
+- **The audio link (2026-10-23): `audio/external.c` and `game/sound_init.c` are TUs 40 and 41**
+  (`generated/audio_external.v`, `generated/sound_init.v`). They are the GAME-THREAD side of audio:
+  `play_sound`, `stop_sound(s)`, the music queue, the volume fades and the background-noise / cap /
+  shell music wrappers. The audio THREAD (synthesis, the sequence player, the RSP task) stays out of
+  scope: no new trust row for it.
+  - **GOAL 1, proved from the real bodies (`AudioBodies`):** `Hpres_sta_ext` (now a lemma), `Hsss`
+    (`stop_sounds_from_source`'s row, gone: `SpawnBodies` walks the body), the audio entries of
+    `Hpres_obj_ext_open2`, `Hpres_cut_ext_open2` and `Hpres_warp_ext_open` (each list filtered by
+    `AudioBodies.audio_id`), and `Hpres_floors_ext` (now a lemma over the narrower
+    `Hpres_floors_ext_open`: `spawn_default_star` alone). The rest-surface pins: `play_sound`,
+    `stop_cap_music`, `fadeout_cap_music` left the exempt whitelist (`RestSurface.lifted_ids`), and
+    `play_infinite_stairs_music` left `Hrest_ext_only`; all four are pinned rest cases whose body
+    residuals the twelve-TU capstone proves (`Hps_body_real` etc.).
+  - **`Hext_action_ns` / `Hmwf_ext_ns` are lemmas.** `RestSurface.rest_external_cases` proves that a
+    reached External resolves `sqrtf` or `print_text_fmt_int` (every other rest id is defined by a
+    linked TU), and sqrtf is the FPU floor. The remaining rows `Hext_action_ptfi` / `Hmwf_ext_ptfi`
+    name print.c's `print_text_fmt_int` alone (out of scope: rendering).
+  - **New labeled open AUDIO premise `Hls` (both capstones): `load_sequence`** (audio/load.c, not
+    linked: the sequence DMA into the audio heap) keeps the carried facts (`call_pres_ext`). The
+    music-starting bodies (`play_infinite_stairs_music`, `stop_cap_music`, the cap/shell music
+    wrappers) reach it through `seq_player_play_sequence`. It is narrower than every row it replaces.
+  - **GOAL 2 (`SndXc`):** `play_sound` and `set_sound_moving_speed` store at an index read from
+    memory, so the walks cannot run them store by store. Each call is a CLOBBER contract over the
+    regions of the globals it writes (`FfRun.RSR` / `RSRC` / `RSMS`: `sSoundRequests`,
+    `sSoundRequestCount`, `sSoundMovingSpeed`, each 2^32 bytes at base 0), proved from the
+    generated body: `AudioBodies.fp_body` walks it (every store lands in a named global's block),
+    and the footprint gives `SmaXc.sstores_havoc_cl`'s frame premise. The three blocks are walk
+    regions in every walk and members of `FfWorld.ff_rl` (the frame world proves the world objects
+    are off them; `StartSat` on the witness). `ExtInert.audio_inert` (`Haudio`) is deleted.
+  - **Stored globals.** `play_sound(soundBits, pos)` stores its POINTER argument `pos` into
+    `sSoundRequests[n].position` (external.c:818); only the audio thread reads it back.
+    `sSoundRequests` joined `CensusV2.stored_globals` (the `D_8032CE74` / `D_8032CE78` precedent:
+    a model claim on the existing class, so SafeB avoids its block), rather than gating each call
+    site.
+  - **Extern completions (2.4):** `gResetTimer` 1 (main.c), `gSoundMode` 1, `gSequencePlayers` 960,
+    `gSequenceChannelNone` 192 (audio/load.c). `tools/size0_globals.py`: 0 failing.
 - **`audio/data.c` is linked** (2026-10-20, the 18th TU, `generated/audio_data.v`): it is the only
   definer of `gAudioRandom`, which `play_mario_jump_sound` reads (mario.c:254). Before, it was a
   size-0 extern in the boot image, so every path of dive and the rollouts that plays a jump sound
@@ -1560,7 +1601,8 @@ link grows.
   - **New labeled open audio premise `Hsss : SpawnBodies.sss_inert`** (both capstones; audio is
     deferred): `stop_sounds_from_source` (audio/external.c, not linked; called by
     `unload_object`) changes no valid block and returns no pointer. Same shape as
-    `ExtInert.audio_inert`.
+    `ExtInert.audio_inert`. (**Gone 2026-10-23:** audio/external.c is linked and the real body is
+    walked; see "the audio link" above.)
   - **Non-vacuity.** The gate is met by every real call site (each walker's `vm_compute` acceptance
     re-checks them against the generated code). Since `behavior_data.c` is linked (30th TU), the
     scripts the sites pass are real-length blocks, so `create_object`'s `bhvScript[0]` read has an
@@ -1816,6 +1858,9 @@ false about the game").
   `surface_collision` bodies run over a static partition holding one flat triangle under Mario, and
   the real `math_util` bodies run (vec3*, `approach_*`, `atan2s` over the real `gArctanTable`).
   Should be redone from a *recorded* WMotR state (5.1).
+- **FOUND 2026-10-22: it was VACUOUS until the refutation sweep.** `flat_world` answered `sqrtf`
+  at every signature, so its soundness hypothesis was false (`Refutations.old_flat_world_ok_refuted`).
+  Repaired: the oracle answers only at the real `(float) -> float` signature.
 
 ### Row 5.4 in detail
 
@@ -1851,3 +1896,69 @@ Listing them makes that explicit.
   `globalenv lp`). Runs happen inside `vm_compute`, so the kernel re-checks them.
 - The `vm_compute` checker itself **is** trusted (part of 1.1; the kernel's VM).
 - `discipline_check.sh`, `check_unwired.py`, `tools/clight_pretty.py`: hygiene and display only.
+
+
+## 7. Refutation sweep 2026-10-22
+
+Every remaining row of both capstones, and every hypothesis of the run witnesses, was attacked:
+false outright, false on the real link / witness, phantom forall, or jointly unsatisfiable.
+REFUTED = Coq proof (`proofs/MarioModel/Refutations.v`). SUSPECT = a concrete argument,
+not a proof. SURVIVED = what was tried.
+
+**R1 (REFUTED, REPAIRED): every run oracle was unsatisfiable.** `BootRun.world`,
+`TerrainRun.world`, `PositiveControl.flat_world` and `PoleControl.pole_world` answered `sqrtf`
+with a `Vsingle` at ANY signature. CompCert's axiom `ec_well_typed` forbids that at an int
+result, so each `world_ok` (and `TerrainRun.sqrtf_ieee`) was false for every genv. VACUOUS
+until now: the positive control (5.2), `PoleControl`'s no-A pole runs, `boot_frames_run`,
+`TerrainRun`'s loader tether, and `goal2_start_sat`'s `terrain_loaded` / `frame_runs` /
+`ifs_tether`. No capstone took it as a premise, and the audit's axiom check cannot see a false
+antecedent. Repair: `PositiveControl` / `PoleControl` here (answer `sqrtf` only at an `Xsingle`
+result, the real declaration in every TU; no new trust); `BootRun` / `TerrainRun` /
+`sqrtf_ieee` on the parallel branch (`FpuValue.sqrtf_value`, TRUST 3.5's value clause).
+
+| Row (GOAL 1, and GOAL 2's copy) | Verdict | Evidence |
+|---|---|---|
+| `H12` | SURVIVED | one concrete `link_chain`; inhabited (`Linked12Sat`) |
+| `HSafeB_syms` | SURVIVED | met by `SafeB_boot` (`BootMWF.SafeB_boot_syms_ok`), jointly with the boot memory |
+| `Hbm_sym` `Hbc_sym` `Hoc0` | SURVIVED | symbol pins (`spawn_symbols_resolve`), no forall |
+| `Hsq` (`sqrtf_spec`) | SURVIVED | a restriction: the empty relation meets every `ec_` axiom |
+| `Hscm_body_real` | SURVIVED | phantom memory tried: `sModeTransitions` is writable, so any `(Camera*, f32*, f32*) -> s32` body is reachable. The one store through an unconstrained pointer is `update_boss_fight_camera`'s `sMarioCamState->cameraEvent = 0`. Aimed at Mario's block (offset wrap), it zeroes a 16-bit half. No tainted action has a zero half. Every MWF clause is conditional or zero-safe |
+| `Hdma_floor` | SURVIVED | restrictions; every named function is External in all 35 TUs |
+| `Hsss`, `Hpres_sta_ext` | SURVIVED | the C bodies write `audio/external.c` statics only; `stop_sound` compares `pos`, never stores it |
+| `Hpres_obj_ext_open2`, `Hpres_cut_ext_open2`, `Hpres_warp_ext_open` | SURVIVED in the model; SUSPECT on link | `play_sound` stores `pos` into `sSoundRequests[].position`. Once `external.c` is linked, an any-argument `pos` = `&gMarioStates` breaks R7 under `SafeB_boot` (as `spawn_object` did). Gate `pos` before linking audio. The dialog / music / RNG entries have scalar args and own statics |
+| `Hpres_floors_ext` | SUSPECT on link | `spawn_default_star` (`obj_behaviors.c`, generated, unlinked) spawns with `bhvStarSpawnCoordinates` (`spawn_star.inc.c:115`), which is not in `safe_ptr_syms`. For an admissible SafeB without that block, the real body breaks R7 |
+| `Hext_action_ns`, `Hmwf_ext_ns` | SUSPECT (phantom memory) | `print_text_fmt_int` takes its label from `mem_pool_alloc(gEffectsMemoryPool)`. `memory.c` is linked, and MWF says nothing about that pool. If the free list aims at Mario's block, the real body stores `x` into the action cell. Not refutable while `print.c` is opaque; true of the real game. Reached only under `gShowDebugText` |
+| run oracles `world_ok` x4, `sqrtf_ieee` | **REFUTED, REPAIRED** | R1 |
+| `rrc_inert` | SURVIVED | `Vundef` has every result type |
+| GOAL 2 `Hsqrtf`, `Hsqrtf_float`, `Haudio` | SURVIVED | restrictions; consistent with the repaired oracles |
+| GOAL 2 `Hseg_any` | SUSPECT (phantom forall) | it asks the linked `spawn_wind_particles` at ANY args from ANY `fworld` memory. `fworld` says nothing of `gFreeObjectList`, and every object lives in `gObjectPool`'s one block. A free list heading into Mario's object or the `usedObj` pole re-initializes it (`geo_obj_init` zeroes `gfx.pos`; behavior becomes `bhvWind`). In WMotR the call is dead (no `SURFACE_HORIZONTAL_WIND`). Repair: gate the obligation on the wind branch, which `wmotr_world` refutes. Needs a path-sensitive `FrameCalls.cl` |
+| GOAL 2 `Hauto_rest` | SUSPECT at TOP_OF_POLE(_TRANSITION); **DISCHARGED 2026-10-23** (proved with the real animation data, (p)) | `set_pole_position` adds the anim Y translation read through `animList->bufTarget`. `fworld` / `ffw` carry no fact about the buffer's contents, and with `currentAddr` matching no DMA runs. A phantom buffer gives up to +8191, far past top + `POLE_UP`, unless a ceiling clamps it. So this row is FALSE as stated, not just unproved (0.8(f)). CLIMBING_POLE / IN_CANNON were read too: a phantom `stickY` is clamped at `poleTop` or makes the f32 to s32 cast undefined (no execution), and the cannon seat is `usedObj`'s, which `used_ok` fixes |
+| GOAL 2 `Hseg_call_na`, `Hair_pro` | not refuted | real bodies over `fworld` memories. No counterexample was built: that needs a modified StartSat witness |
+
+R1's proofs: `Refutations.old_{boot,terrain,flat,pole}_world_ok_refuted`,
+`old_sqrtf_ieee_refuted`. The repaired control oracles answer `None` at the bad signature
+(`flat_world_repaired`, `pole_world_repaired`).
+
+**Repair of the `Hseg_any` SUSPECT (2026-10-23, branch segany):**
+
+- **FOUND (phantom ∀) + REPAIRED 2026-10-23: `HeightFrame.Hseg_any`.** The row asked every
+  non-`gMarioState` call of `execute_mario_action` to keep the frame world from ANY `fworld`
+  memory with ANY arguments — including the LINKED `spawn_wind_particles` (×2). Its real body
+  calls `spawn_object` three times, which pops the head of `gFreeObjectList` and re-initialises
+  that slot, copying Mario's position into it. `fworld` says nothing about `gFreeObjectList`, and
+  every object is a slot of `gObjectPool`'s single block, so a memory in a pole action whose
+  free-list head is `usedObj` (the low pole) meets every premise, and one call rewrites the pole's
+  `oPosY`: `used_ok` (part of `fworld`) fails. The row was FALSE as stated (concrete argument; not
+  replayed in Coq — building a full `mem_ok_lp` witness memory with a phantom free list is not
+  cheap). In the game the call is dead in WMotR: both call sites sit under
+  `if (m->floor->type == SURFACE_HORIZONTAL_WIND (44) / SURFACE_VERTICAL_WIND (56))`, and W's
+  floor clause says `m->floor` is a surface whose type is one of WMotR's collision types,
+  computed from the generated terrain (`[5; 10; 21; 55; 0]`). Repair (no new trust):
+  `FrameSplit.clw` is the call collector with that branch condition read — a block
+  `t1 = gMarioState; t2 = t1->floor; t3 = t2->type; if (t3 == n) …` with `n` not a WMotR surface
+  type contributes no obligation; `FrameSplit.guard_mem` proves such a block leaves memory
+  unchanged under W; `Hseg_any` now ranges over `ema_live` only, whose one non-`gMarioState`
+  call is `play_infinite_stairs_music()` (unlinked, no arguments; `ema_live_anys`, computed).
+  The other two calls in the old list (`play_sound` ×2) were inside the same dead blocks. No
+  other object-allocating call is in the list. HeightFrame's hypothesis count is unchanged (the
+  row is narrowed, not split).

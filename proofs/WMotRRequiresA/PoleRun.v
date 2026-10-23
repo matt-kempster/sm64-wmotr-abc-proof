@@ -13,7 +13,9 @@
 (*     and gCurrLevelNum (a world cell);                                   *)
 (*   - find_floor / find_ceil with the height facts kL / kC (PoleXc);      *)
 (*   - the start fact kP: oMarioPolePos finite >= -1000 (pole_pos_ok);    *)
-(*   - is_anim_at_end (memory unchanged, an int) and play_sound (audio).   *)
+(*   - is_anim_at_end (memory unchanged, an int); play_sound and         *)
+(*     set_sound_moving_speed (SndXc: clobbers proved from the real      *)
+(*     audio/external.c bodies, regions RSR / RSRC / RSMS).                *)
 (* Each outcome passes PoleClass.pole_ok, PoleKeep.fkp_ok and ret_ok.      *)
 (* set_pole_position is not merged: a merge keeps only the facts common   *)
 (* to all of its outcomes, and the height facts differ per outcome.       *)
@@ -23,11 +25,11 @@ From Coq Require Import List ZArith Reals.
 From compcert Require Import Coqlib Maps AST Integers Floats Values Memory Events Globalenvs
   Ctypes Clight ClightBigstep.
 From SM64.Generated Require mario_step mario mario_actions_airborne mario_actions_automatic memory
-  surface_collision level_update.
+  surface_collision level_update audio_external.
 From SM64.Proofs Require Import Interp.SymExec2 Interp.LinkGenv MarioModel.LinkedTwelve
   MarioModel.OsDmaFloor MarioModel.MathGeomGated HeightInvariant HeightMoveCatalog WMotRLevel WMotRWorld.
 From SM64.Proofs.WMotRRequiresA Require Import FloorHeight FloorExec AirXc AirRun AirMatch SmaXc
-  ExtInert FfClass AirStart FfKeepCheck RetOk FfRun AhwRun KbRun WithGe
+  ExtInert SndXc FfClass AirStart FfKeepCheck RetOk FfRun AhwRun KbRun WithGe
   PoleXc PoleClass PoleKeep PoleSound FfWorld FpWalk.
 Import ListNotations.
 
@@ -38,6 +40,8 @@ Definition RU : positive := 19.    (* usedObj, the pole *)
 Definition RBT : positive := 20.   (* bhvTree *)
 Definition RGP : positive := 17.   (* bhvGiantPole *)
 Definition RLV : positive := 18.   (* gCurrLevelNum *)
+(* set_sound_moving_speed's clobber (SndXc.c_ssms_sound) *)
+Definition ssms_regs : list (ident * positive) := [(audio_external._sSoundMovingSpeed, RSMS)].
 Definition kC : positive := 6.
 Definition kL : positive := 7.
 Definition kP : positive := 8.
@@ -70,8 +74,8 @@ Definition xcP (id : ident) : option xcontract :=
     (* act_climbing_pole's climb animation and play_climbing_sounds' frame test *)
     if Pos.eqb id mario._set_mario_anim_with_accel then Some (c_smawa NBP R0P gtabP kvP RLD RBUF RIOM RMQ RRM kB) else
     if Pos.eqb id mario._is_anim_past_frame then Some xc_fresh else
-    if Pos.eqb id AUT._play_sound then Some xc_fresh else
-    if Pos.eqb id AUT._set_sound_moving_speed then Some xc_fresh else None
+    if Pos.eqb id AUT._play_sound then Some (c_snd R0P gtabP ps_regs) else
+    if Pos.eqb id AUT._set_sound_moving_speed then Some (c_snd R0P gtabP ssms_regs) else None
   end.
 Definition pc0P : list fact :=
   [Fuser kW (wargs R0P); Fbits (Sinit RM 2 Mint16unsigned) (Int.repr 2178);
@@ -147,17 +151,12 @@ Lemma dm_ipf : (prog_defmap mario.prog) ! mario._is_anim_past_frame
 Proof. vm_compute. reflexivity. Qed.
 Lemma ps_aut : AUT._play_sound = AIR._play_sound.
 Proof. reflexivity. Qed.
-Lemma ssms_named : ext_named ((prog_defmap AUT.prog) ! AUT._set_sound_moving_speed) "set_sound_moving_speed" = true.
-Proof. vm_compute. reflexivity. Qed.
-Lemma ssms_ni : no_internal_all [AUT._set_sound_moving_speed] = true.
-Proof. vm_compute. reflexivity. Qed.
 
 Section LP.
 Variable lp : Clight.program.
 Hypothesis H12 : linked12 lp.
 Local Notation G := (globalenv lp).
 Hypothesis Hdma : os_dma_floor.
-Hypothesis Haudio : audio_inert.      (* LABELED OPEN PREMISE: audio, deferred *)
 
 Variable acn : Z.
 Variable fK : function.
@@ -272,13 +271,15 @@ Proof.
           exact (xc_fresh_sound G NBP (R0P G) gtabP (kvP acn G) (fun _ => None) (fun _ => false) m0 uf gp
                    E m g (Vint i) args cps Hk MM I). }
         destruct (Pos.eqb_spec id AUT._play_sound) as [-> | N3].
-        { injection Hx as <-. rewrite ps_aut in Hl.
-          exact (ext_fresh_sound lp H12 _ _ ps_named ps_ni (audio_ps Haudio) NBP (R0P G) gtabP (kvP acn G) m0 uf gp GPO
-                   args g cps fd E m vargs t m' vres Hk Hl MM EV). }
+        { injection Hx as <-.
+          rewrite (sfun_res _ _ _ _ (res_link lp _ _ _ (linked12_LO_audio_external lp H12) ps_defmap) Hl) in EV.
+          exact (c_ps_sound lp NBP (R0P G) gtabP (kvP acn G) m0 uf gp GPO RSR RSRC
+                   args g cps E m vargs t m' vres Hk MM EV). }
         destruct (Pos.eqb_spec id AUT._set_sound_moving_speed) as [-> | N4]; [| discriminate Hx].
         injection Hx as <-.
-        exact (ext_fresh_sound_q lp H12 AUT.prog (linked12_LO_aut lp H12) _ _ ssms_named ssms_ni (audio_ssms Haudio)
-                 NBP (R0P G) gtabP (kvP acn G) m0 uf gp GPO args g cps fd E m vargs t m' vres Hk Hl MM EV).
+        rewrite (sfun_res _ _ _ _ (res_link lp _ _ _ (linked12_LO_audio_external lp H12) ssms_defmap) Hl) in EV.
+        exact (c_ssms_sound lp NBP (R0P G) gtabP (kvP acn G) m0 uf gp GPO RSMS
+                 args g cps E m vargs t m' vres Hk MM EV).
 Qed.
 
 Lemma polecheck_lp : exists cs,
@@ -391,9 +392,9 @@ Definition pfinal (lp : Clight.program) (acn : Z) (fK : function) : Prop :=
              /\ exists p, Mem.load Mfloat32 m' (e_blk E RO) (addr E RO POLEPOS_OFF) = Some (Vsingle p)
                   /\ F32 p = true /\ (-1000 <= R2 p)%R).
 
-Lemma pole_pfinal : forall lp, linked12 lp -> os_dma_floor -> audio_inert ->
+Lemma pole_pfinal : forall lp, linked12 lp -> os_dma_floor ->
   forall acn fK, pole_walk acn fK = true -> pfinal lp acn fK.
 Proof.
-  intros lp H12 Hdma Ha acn fK Hw m0 gp GPO MC FD.
-  exact (pole_final lp H12 Hdma Ha acn fK Hw m0 gp GPO MC FD).
+  intros lp H12 Hdma acn fK Hw m0 gp GPO MC FD.
+  exact (pole_final lp H12 Hdma acn fK Hw m0 gp GPO MC FD).
 Qed.

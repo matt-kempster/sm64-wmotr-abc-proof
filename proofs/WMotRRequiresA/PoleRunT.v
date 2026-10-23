@@ -24,11 +24,11 @@ From Coq Require Import List ZArith Lia Reals.
 From compcert Require Import Coqlib Maps AST Integers Floats Values Memory Events Globalenvs
   Ctypes Cop Clight ClightBigstep.
 From SM64.Generated Require mario_step mario mario_actions_airborne mario_actions_automatic memory
-  surface_collision level_update game_init graph_node.
+  surface_collision level_update game_init graph_node audio_external.
 From SM64.Proofs Require Import Interp.SymExec2 Interp.LinkGenv MarioModel.LinkedTwelve
   MarioModel.OsDmaFloor MarioModel.MathGeomGated HeightInvariant HeightMoveCatalog WMotRLevel WMotRWorld.
 From SM64.Proofs.WMotRRequiresA Require Import FloorHeight FloorExec AirXc AirRun AirMatch SmaXc
-  ExtInert FfClass AirStart FfKeepCheck RetOk FfRun AhwRun KbRun WithGe
+  ExtInert SndXc FfClass AirStart FfKeepCheck RetOk FfRun AhwRun KbRun WithGe
   PoleXc PoleClass PoleKeep PoleSound FfWorld FpWalk PoleRun AnimData AnimWorld AnimEnd DmaXc RytXc.
 Import ListNotations.
 
@@ -98,8 +98,8 @@ Definition xcT (id : ident) : option xcontract :=
       Some (c_ryt g NBT R0T gtabT kvT jkeys 3000 RO kF kYp) else
     if Pos.eqb id mario._is_anim_at_end then Some xc_fresh else
     if Pos.eqb id mario._is_anim_past_frame then Some xc_fresh else
-    if Pos.eqb id AUT._play_sound then Some xc_fresh else
-    if Pos.eqb id AUT._set_sound_moving_speed then Some xc_fresh else None
+    if Pos.eqb id AUT._play_sound then Some (c_snd R0T gtabT ps_regs) else
+    if Pos.eqb id AUT._set_sound_moving_speed then Some (c_snd R0T gtabT ssms_regs) else None
   end.
 Definition pc0T : list fact :=
   [Fuser kW (wargs R0T); Fbits (Sinit RM 2 Mint16unsigned) (Int.repr 2178);
@@ -189,7 +189,6 @@ Hypothesis H12 : linked12 lp.
 Local Notation G := (globalenv lp).
 Hypothesis Hdma : os_dma_floor.
 Hypothesis Hanim : pi_dma_anim_spec.  (* TRUST 0.8(f): the PI DMA copies the ROM bytes *)
-Hypothesis Haudio : audio_inert.      (* LABELED OPEN PREMISE: audio, deferred *)
 
 Variable acn : Z.
 Variable v : avar.
@@ -317,13 +316,15 @@ Proof.
       exact (xc_fresh_sound G NBT R0 gtabT KV (fun _ => None) (fun _ => false) m0 uf gp
                E m g (Vint i) args cps Hk MM I). }
     destruct (Pos.eqb_spec id AUT._play_sound) as [-> | N3].
-    { injection Hx as <-. rewrite ps_aut in Hl.
-      exact (ext_fresh_sound lp H12 _ _ ps_named ps_ni (audio_ps Haudio) NBT R0 gtabT KV m0 uf gp GPO
-               args g cps fd E m vargs t m' vres Hk Hl MM EV). }
+    { injection Hx as <-.
+      rewrite (sfun_res _ _ _ _ (res_link lp _ _ _ (linked12_LO_audio_external lp H12) ps_defmap) Hl) in EV.
+      exact (c_ps_sound lp NBT R0 gtabT KV m0 uf gp GPO RSR RSRC
+               args g cps E m vargs t m' vres Hk MM EV). }
     destruct (Pos.eqb_spec id AUT._set_sound_moving_speed) as [-> | N4]; [| discriminate Hx].
     injection Hx as <-.
-    exact (ext_fresh_sound_q lp H12 AUT.prog (linked12_LO_aut lp H12) _ _ ssms_named ssms_ni (audio_ssms Haudio)
-             NBT R0 gtabT KV m0 uf gp GPO args g cps fd E m vargs t m' vres Hk Hl MM EV).
+    rewrite (sfun_res _ _ _ _ (res_link lp _ _ _ (linked12_LO_audio_external lp H12) ssms_defmap) Hl) in EV.
+    exact (c_ssms_sound lp NBT R0 gtabT KV m0 uf gp GPO RSMS
+             args g cps E m vargs t m' vres Hk MM EV).
 Qed.
 
 Lemma polecheckT_lp : exists cs,
@@ -449,9 +450,9 @@ Definition pfinalT (lp : Clight.program) (acn : Z) (v : avar) (fK : function) : 
              /\ exists p, Mem.load Mfloat32 m' (e_blk E RO) (addr E RO POLEPOS_OFF) = Some (Vsingle p)
                   /\ F32 p = true /\ (-1000 <= R2 p)%R).
 
-Lemma pole_pfinalT : forall lp, linked12 lp -> os_dma_floor -> pi_dma_anim_spec -> audio_inert ->
+Lemma pole_pfinalT : forall lp, linked12 lp -> os_dma_floor -> pi_dma_anim_spec ->
   forall acn v fK, pole_walkT acn v fK = true -> pfinalT lp acn v fK.
 Proof.
-  intros lp H12 Hdma Han Ha acn v fK Hw m0 gp GPO MC FD.
-  exact (pole_finalT lp H12 Hdma Han Ha acn v fK Hw m0 gp GPO MC FD).
+  intros lp H12 Hdma Han acn v fK Hw m0 gp GPO MC FD.
+  exact (pole_finalT lp H12 Hdma Han acn v fK Hw m0 gp GPO MC FD).
 Qed.

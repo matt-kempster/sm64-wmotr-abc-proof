@@ -59,8 +59,8 @@ all in `Unwired/`, and the theorem moved nowhere. See
   a SafeB pool object, R7), and `spawn_obj_at_mario_rel_yaw`'s. Restated all-argument gated
   (`call_pres_ext_sg`; engine cs class via `spawn_gate_chk`; `call_pres_ext_sob`); every walker
   checks its real sites (`CensusV2.spawn_args_ok`; `gCurrentObject` joined the cutscene gobj seeds,
-  `generate_yellow_sparkles` is a hybrid walk). New labeled open audio premise
-  `Hsss : SpawnBodies.sss_inert` (`stop_sounds_from_source`, via `unload_object`; TRUST 4.1).
+  `generate_yellow_sparkles` is a hybrid walk). (`Hsss`, the labeled audio premise for
+  `stop_sounds_from_source`, is gone since the 2026-10-23 audio link: its real body is walked.)
   The two any-argument list rows shrank on 2026-10-21 (`ObjExtBodies.v`): the seven linked
   save_file.c / `bhv_spawn_star_no_level_exit` entries leave `obj_ext_open2_ids` and the time-stop
   pair leaves `cut_ext_open2_ids` (`Hpres_cut_ext_open2`); their writes needed six more stored
@@ -84,7 +84,9 @@ all in `Unwired/`, and the theorem moved nowhere. See
   `camera_approach_f32_symmetric` / `trigger_cutscene_dialog` left `cut_ext_open2_ids`;
   `sqrtf` (from `Hsq`) and `set_camera_shake_from_hit` left `obj_ext_open2_ids`, `random_float`
   (behavior_script.c, unlinked; the shake's SHAKE_SHOCK arm) joined it. `Hext_action` /
-  `Hmwf_ext` are lemmas over `Hext_action_ns` / `Hmwf_ext_ns` (sqrtf excluded, from `Hsq`).
+  `Hmwf_ext` are lemmas over `Hext_action_ns` / `Hmwf_ext_ns` (sqrtf excluded, from `Hsq`);
+  since 2026-10-23 those are lemmas too, over `Hext_action_ptfi` / `Hmwf_ext_ptfi`
+  (`print_text_fmt_int` alone, `RestSurface.rest_external_cases`).
   `Hcsp_scm_real` DERIVED from `Hscm_body_real` (cs_gate arg0 = wgate T_scm arm; NoA from MWF):
   GOAL 1 16 -> 15, HeightFrame -1 more.
   Still open camera row `Hscm_body_real`: set_camera_mode calls through the
@@ -92,6 +94,15 @@ all in `Unwired/`, and the theorem moved nowhere. See
   ~48 camera.c functions, no pointer-typed store in the tree; needs `sMarioCamState` in
   `safe_ptr_syms` (TRUST 4.1).
   2026-10-22: HeightFrame's section has 27 `Hypothesis` lines (28 → 27: `Hcamera` proved away).
+  2026-10-23 AUDIO LINK (`audio/external.c`, `sound_init.c`: TUs 40, 41; `AudioBodies`, `SndXc`):
+  GOAL 1 `Hypothesis` lines 16 → 15, HeightFrame 26 → 24. Proved: `Hpres_sta_ext`, `Hsss`,
+  the audio entries of the obj/cut/warp open lists and of `Hpres_floors_ext` (now
+  `Hpres_floors_ext_open` = `spawn_default_star`), `Hext_action_ns` / `Hmwf_ext_ns` (now over
+  print_text_fmt_int), GOAL 2's `Haudio` and `BootRun.audio_ret`. New labeled open audio premise
+  `Hls` (`load_sequence`, audio/load.c = the audio thread's sequence loader; both capstones).
+  GOAL 2: play_sound / set_sound_moving_speed are CLOBBER contracts (regions RSR / RSRC / RSMS,
+  2^32 at base 0, in every walk's R0F and in `FfWorld.ff_rl`; NBF = 22). `sSoundRequests`
+  joined `stored_globals` (play_sound stores its `pos` pointer there).
   `surface_load.c` linked 2026-10-22 (32nd TU), then `macro_special_objects.c` + WMotR level data
   (TUs 33-34): counts unchanged (no row names their functions).
   2026-10-22: FOUND (oracle difftest) + REPAIRED: `gMarioAnims` was a size-0 block, so every
@@ -102,6 +113,25 @@ all in `Unwired/`, and the theorem moved nowhere. See
   linked data). `tools/size0_globals.py` also walks the game thread (class (c), `BOOT_KNOWN`):
   `setup_game_memory` has no execution (`gDemoInputs` NULL compare, ROM-symbol subtraction).
   Open: StartSat's anim table is still the count-0 stand-in; DMA content is not modelled.
+- **Refutation sweep 2026-10-22** (`docs/TRUST.md` §7, `MarioModel/Refutations.v`).
+  REFUTED + repaired: every run oracle (`BootRun.world`, `TerrainRun.world`,
+  `PositiveControl.flat_world`, `PoleControl.pole_world`) answered `sqrtf` at ANY signature.
+  CompCert's `ec_well_typed` forbids a single at an int result, so each `world_ok` (and
+  `sqrtf_ieee`) was FALSE. VACUOUS until now: the positive control, the pole runs,
+  `boot_frames_run`, and `goal2_start_sat`'s `terrain_loaded` / `frame_runs` / `ifs_tether`.
+  Control oracles repaired here; BootRun / TerrainRun via `FpuValue` (parallel branch). Lesson: a hypothesis that asserts an external
+  BEHAVIOR EXISTS must respect CompCert's `ec_*` axioms, so never quantify it over `sg`.
+  SUSPECT (argued, not proved), open:
+  - GOAL 2 `Hseg_any`: any-argument `spawn_wind_particles` over phantom `gFreeObjectList`. The
+    call is dead in WMotR, so gate it on the wind branch.
+  - GOAL 2 `Hauto_rest` at TOP_OF_POLE*: phantom anim buffer, offset up to +8191. FALSE as
+    stated. DISCHARGED 2026-10-23: proved from the real animation data (TRUST (p)).
+  - `Hext_action_ns` / `Hmwf_ext_ns`: `print_text_fmt_int`'s `gEffectsMemoryPool` is
+    unconstrained.
+  - On linking audio: `play_sound` stores `pos` (R7), so gate it first. On linking
+    `obj_behaviors.c`: `spawn_default_star`'s `bhvStarSpawnCoordinates` is not in `safe_ptr_syms`.
+  SURVIVED: `Hscm_body_real` (its only phantom store writes 0, which is harmless), the structural
+  pins, and the restriction-only external specs.
 - **GOAL 2** (WMotR needs A): `WMotRRequiresA/HeightFrame.v`,
   `wmotr_noA_height_bound_linked12`. This is a conditional theorem over ONE WMotR
   visit (frames end with `in_wmotr`), under input with A neither pressed nor held
@@ -145,8 +175,8 @@ all in `Unwired/`, and the theorem moved nowhere. See
   `boot_frames_run` were vacuous. Now the FPU floor has a user-approved VALUE clause
   (`FpuValue.sqrtf_value`: decomp signature, +-0 / positive normals, `lib/asm/sqrtf.s`), and the
   terrain tether rests only on it. `ingame_menu.c` linked (36th TU): `reset_red_coins_collected`
-  runs its real body, `rrc_inert` deleted. Frame / ifs runs: `sqrtf_value` + labeled audio
-  premise `BootRun.audio_ret` (3 audio externals). `gCurrCourseNum` = 23 on the witness, tethered
+  runs its real body, `rrc_inert` deleted. Frame / ifs runs: `sqrtf_value` alone (the labeled
+  audio premise `BootRun.audio_ret` is gone since the 2026-10-23 audio link). `gCurrCourseNum` = 23 on the witness, tethered
   by RUNNING the real `lvl_set_current_level(0, 31)` (`CourseRun`, unconditional; `course_set`).
   Next: the `memory.c:120,122` ALIGN16 rewrite (TRUST 3.6). FOUND FALSE + repaired
   when linking area.c: any-argument `override_viewport_and_clip` (in `obj_ext_ids`) stores its
@@ -157,8 +187,11 @@ all in `Unwired/`, and the theorem moved nowhere. See
   `FfWorld.fresh` / `fresh_at` through the body in order and over the real dispatch loop); the
   assumed rows are the per-call `Hseg_call_na` (`seg_call_rows_naF`, with `pre_of` / `post_of`:
   update_mario_inputs leaves the floor fresh, handle_special_floors / process_interactions keep
-  it, each dispatcher returns 0 or leaves fresh_at) / `Hseg_any` (one per call in the real
-  `execute_mario_action` body; the two store blocks are proved). What each per-call row
+  it, each dispatcher returns 0 or leaves fresh_at) / `Hseg_any` (since 2026-10-23 only the calls
+  live in WMotR: `play_infinite_stairs_music()`; FOUND (phantom ∀): it used to cover the linked
+  `spawn_wind_particles` with any args from any `fworld` memory, false via a phantom
+  `gFreeObjectList`; its blocks are proved dead from W's floor type, `FrameSplit.clw` /
+  `guard_mem`, TRUST §7; the two store blocks are proved). What each per-call row
   carries:
   - `Hframe_stays_noA` (ACT_SQUISHED still needs the dynamic-surface geometry fact in the
     find_floor / find_ceil contracts, docs/goal2-value-walk-plan.md §6)
@@ -219,8 +252,8 @@ all in `Unwired/`, and the theorem moved nowhere. See
     PROVED by `CeilHeight.fc_height` and removed. Pole kit: `PoleRun` (usedObj region RU, `pk_ok`), `PoleClass`
     (classifier), `PoleSound`, and `PoleKeep` (`fkp_ok`, `no_reg`, `fkp_frame_except`).
     LEDGE_GRAB / LEDGE_CLIMB_DOWN are PROVED (2026-10-22, `LedgeRow`, TRUST (l));
-    HOLDING_POLE is PROVED (2026-10-22, `PoleHold`, TRUST (m); `Haudio` now also covers
-    `set_sound_moving_speed`). `Hauto_rest : LedgeRow.aut_case_rest_ledge` holds 7. Ledge kit: `LedgeRun` (xcL,
+    HOLDING_POLE is PROVED (2026-10-22, `PoleHold`, TRUST (m); `set_sound_moving_speed` is
+    its real body since 2026-10-23, `SndXc`). `Hauto_rest : LedgeRow.aut_case_rest_ledge` holds 7. Ledge kit: `LedgeRun` (xcL,
     `ufL` with kL), `LedgeClass` (ledge_ok / letgo_ok and their soundness).
     camera.c is LINKED (35th TU, 2026-10-22): `gPlayerCameraState` is real storage, and
     gLakituState is a walk region (`FfRun.RLK`, in ffw / ff_rl), so the REAL
@@ -236,7 +269,7 @@ all in `Unwired/`, and the theorem moved nowhere. See
     `Sreturn`: CLIMBING_POLE's old "needs a camera fact" was that probe bug.)
     ALL TWELVE automatic cases are PROVED (2026-10-23, TRUST (p), `PoleCasesT.aut_case_rows_T`):
     `Hauto_rest` is GONE, replaced by `Hdma_anim : OsDmaFloor.pi_dma_anim_spec` (TRUST
-    0.8(f), approved, now load-bearing; count stays 26). The six pole actions are re-walked
+    0.8(f), approved, now load-bearing; count unchanged by it; 24 after the audio link). The six pole actions are re-walked
     with the real animation data (`PoleRunT`: set_mario_animation inline, DMA table +
     gMarioAnims read, `RytXc.c_ryt` per frame), one walk file per start variant
     (`PoleStartT.avars`; `PoleSlowT` … `PoleTopT2`), row `PoleRowT.pole_rowT`. The frame

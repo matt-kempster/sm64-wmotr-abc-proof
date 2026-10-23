@@ -10,8 +10,8 @@
 (* case list names no other handler, so nothing is left assumed.           *)
 (*                                                                        *)
 (* Premises beyond the link: the DMA floor, the PI DMA copying the ROM     *)
-(* bytes (OsDmaFloor.pi_dma_anim_spec, TRUST 0.8(f)), the labeled open     *)
-(* audio premise.                                                          *)
+(* bytes (OsDmaFloor.pi_dma_anim_spec, TRUST 0.8(f)).  No audio premise:  *)
+(* play_sound is its real body (SndXc).                                   *)
 (* ====================================================================== *)
 
 From Coq Require Import List ZArith.
@@ -70,12 +70,11 @@ Hypothesis H12 : linked12 lp.
 Local Notation G := (globalenv lp).
 Hypothesis Hdma : os_dma_floor.
 Hypothesis Hanim : pi_dma_anim_spec.          (* TRUST 0.8(f): the PI DMA copies the ROM bytes *)
-Hypothesis Haudio : audio_inert.               (* LABELED OPEN PREMISE: audio, deferred *)
 Variable bm : block.
 Hypothesis Hbm : Genv.find_symbol G level_update._gMarioStates = Some bm.
 Variable MWF : mem -> Prop.
 
-Local Notation FIN := (pole_pfinalT lp H12 Hdma Hanim Haudio).
+Local Notation FIN := (pole_pfinalT lp H12 Hdma Hanim).
 
 (* each pole action's walks, one per start variant *)
 Lemma fin_slow : forall v, In v (avars 1049409) -> pfinalT lp 1049409 v AUT.f_act_grab_pole_slow.
@@ -132,9 +131,9 @@ Proof.
   { pole_case gpf_label dm_gpf fin_fast. }
   destruct (Pos.eq_dec f AUT._act_holding_pole) as [-> | Hne3].
   { pole_case hp_label dm_hp fin_hold. }
-  exact (LedgeRow.aut_case_rest_pole_ledge lp H12 Hdma Haudio bm Hbm MWF
-           (LedgeRow.aut_case_rest_ledge_climb lp H12 Hdma Haudio bm Hbm MWF
-              (CannonRow.aut_case_rest_climb_cannon lp H12 Hdma Haudio bm Hbm MWF rest_cannon))
+  exact (LedgeRow.aut_case_rest_pole_ledge lp H12 Hdma bm Hbm MWF
+           (LedgeRow.aut_case_rest_ledge_climb lp H12 Hdma bm Hbm MWF
+              (CannonRow.aut_case_rest_climb_cannon lp H12 Hdma bm Hbm MWF rest_cannon))
            n f fd v Hin Hne1 Hne2 Hne3 Hr).
 Qed.
 End POLECASEST.

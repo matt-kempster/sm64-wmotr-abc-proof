@@ -2,7 +2,7 @@
    AnimWorld.anim_st (PoleStartT.avars), computed once on the link (every
    outcome passes PoleRunT.pk_okT).  The handler may slide Mario down the
    pole, switches to CLIMBING_POLE / TOP_OF_POLE_TRANSITION / SOFT_BONK,
-   and calls set_sound_moving_speed (audio, ExtInert.audio_inert). *)
+   and calls set_sound_moving_speed (its real body, SndXc.c_ssms_sound). *)
 From Coq Require Import ZArith.
 From SM64.Generated Require mario_actions_automatic.
 From SM64.Proofs.WMotRRequiresA Require Import PoleRunT.

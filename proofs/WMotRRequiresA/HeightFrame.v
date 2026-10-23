@@ -58,7 +58,7 @@ From compcert Require Import Coqlib Maps AST Integers Floats Values Events Memor
 From SM64.Generated Require mario mario_actions_stationary
   mario_actions_moving mario_actions_airborne mario_actions_submerged
   mario_actions_cutscene mario_actions_automatic mario_actions_object
-  interaction behavior_actions level_update mario_step camera.
+  interaction behavior_actions level_update mario_step camera audio_external.
 From SM64.Proofs Require Import Flying Taint ActionValue ActionValueFrame ReachableRun
   RealFrameValue RealFrameLinked AGates SymbolicLinking FieldNonInterference.
 From SM64.Proofs Require Import CensusV2 EngineV2Consumer.
@@ -414,6 +414,13 @@ Section HeightLinked12.
      camera, deferred; GOAL 1's Hscm_body_real, docs/TRUST.md 4.1). *)
   Hypothesis Hscm_body_real :
     RestSurface.body_pres_w lp MWF bm SafeB camera.f_set_camera_mode.
+  (* THE ONE OPEN AUDIO PREMISE of GOAL 1's surface (labeled, TRUST 4.1; the
+     audio link, 2026-10-23): load_sequence (audio/load.c, not linked) keeps
+     the carried facts.  GOAL 1's audio rows (Hpres_sta_ext, Hsss, the audio
+     entries of the obj / cut / warp / floors lists) are PROVED from the real
+     audio/external.c and sound_init.c bodies (AudioBodies). *)
+  Hypothesis Hls :
+    call_pres_ext lp bm (NoA_real bm) MWF audio_external._load_sequence.
   (* load_patchable_table: PROVED from its real memory.c body and dma_read's
      (LptBody), down to the libultra DMA calls, whose effect is the
      hardware/OS floor spec (OsDmaFloor, TRUST 3.5). *)
@@ -432,14 +439,7 @@ Section HeightLinked12.
   Qed.
   (* WL_exempt: PROVED 2026-10-22 (was a row, FALSE as stated: GOAL 1's
      WLExempt.wl_exempt_old_refuted); GOAL 1's export no longer takes it. *)
-  Hypothesis Hpres_sta_ext : forall fid,
-      mem_id fid StationaryLeafSurface.sta_ext_ids = true ->
-      call_pres_ext lp bm (NoA_real bm) MWF fid.
-  (* 2026-10-21: the spawn pair's rows are PROVED from the linked
-     spawn_object.c bodies (SpawnBodies; their any-argument forms were
-     FALSE and are restated all-argument gated), resting on the labeled
-     open audio premise for stop_sounds_from_source (TRUST 4.1). *)
-  Hypothesis Hsss : SpawnBodies.sss_inert.
+  (* Hpres_sta_ext and Hsss: PROVED 2026-10-23 (AudioBodies), no longer rows. *)
   (* memory.c's segment converters and the seven linked save_file.c /
      bhv_spawn_star entries are PROVED (NoAImpliesNoFlyTwelve.obj_ext_open_of2) *)
   Hypothesis Hpres_obj_ext_open2 : forall fid,
@@ -452,8 +452,9 @@ Section HeightLinked12.
       call_pres_ext lp bm (NoA_real bm) MWF fid.
   (* Hgeo_real / Hocp_rai_real: PROVED inside NoAImpliesNoFlyTwelve from the
      real graph_node.c bodies (GraphNodeBodies), no longer rows. *)
-  Hypothesis Hpres_floors_ext : forall fid,
-      mem_id fid floors_ext_ids = true ->
+  (* raise_background_noise is PROVED (AudioBodies); spawn_default_star is left *)
+  Hypothesis Hpres_floors_ext_open : forall fid,
+      mem_id fid NoAImpliesNoFlyTwelve.floors_ext_open_ids = true ->
       call_pres_ext lp bm (NoA_real bm) MWF fid.
   (* Hcp_savefile_real: PROVED inside NoAImpliesNoFlyTwelve from the real
      save_file.c body (SaveFileBody), no longer a row. *)
@@ -465,18 +466,16 @@ Section HeightLinked12.
   (* Hret_unsafe REMOVED (task #99): the v2 engine no longer consumes any
      return-value row (it was dead plumbing / a latent vacuity -- see
      NoAImpliesNoFlyLinked). *)
-  (* 2026-10-22: both engine rows exclude sqrtf, whose call is the FPU
-     floor sqrtf_spec (memory unchanged); they now name only the audio /
-     print.c externals of the exempt whitelist *)
-  Hypothesis Hext_action_ns : forall ef targs tres cc vargs m t vres m',
-      reached_v2 lp (External ef targs tres cc) ->
-      ~ CameraBodies.is_sqrtf_ef ef ->
+  (* 2026-10-23 (the audio link): both engine rows name ONLY print.c's
+     print_text_fmt_int (NoAImpliesNoFlyTwelve.reached_ext_ptfi: every
+     other reached External is sqrtf, the FPU floor) *)
+  Hypothesis Hext_action_ptfi : forall ef targs tres cc vargs m t vres m',
+      resolves_lp lp mario._print_text_fmt_int (External ef targs tres cc) ->
       wgate bm SafeB (type_of_fundef (External ef targs tres cc)) vargs ->
       external_call ef (lp_ge lp) vargs m t vres m' ->
       Mem.unchanged_on (action_cell bm) m m'.
-  Hypothesis Hmwf_ext_ns : forall ef targs tres cc vargs m t vres m',
-      reached_v2 lp (External ef targs tres cc) ->
-      ~ CameraBodies.is_sqrtf_ef ef ->
+  Hypothesis Hmwf_ext_ptfi : forall ef targs tres cc vargs m t vres m',
+      resolves_lp lp mario._print_text_fmt_int (External ef targs tres cc) ->
       wgate bm SafeB (type_of_fundef (External ef targs tres cc)) vargs ->
       external_call ef (lp_ge lp) vargs m t vres m' ->
       Mem.valid_block m bm -> MWF m -> MWF m'.
@@ -574,6 +573,17 @@ Section HeightLinked12.
      m->quicksandDepth = 0 (proved to keep mem_ok, the frame world, Phi's
      cells and fresh_at) and the per-case rows Hauto_case below. *)
   Hypothesis Hseg_call_na : seg_call_rows_naFA lp bm MWF.
+  (* the body's other calls, PATH-SENSITIVE since 2026-10-23 (FrameSplit.clw):
+     only play_infinite_stairs_music() (unlinked, no arguments) is left
+     (FrameSplit.ema_live_anys, computed).  FOUND (phantom forall): the row
+     used to cover the linked spawn_wind_particles with ANY arguments from
+     ANY fworld memory; its spawn_object pops gFreeObjectList, which fworld
+     does not constrain, so a free-list head at the pole in usedObj let one
+     call overwrite the pole's oPosY -- FALSE as stated.  Both wind blocks
+     sit under `m->floor->type == 44 / 56` and wmotr_world's floor type is
+     one of WMotR's ([5;10;21;55;0]): FrameSplit.guard_mem PROVES them dead
+     (memory unchanged), so their four calls (spawn_wind_particles,
+     play_sound, twice) carry no row. *)
   Hypothesis Hseg_any : seg_any_rows lp bm MWF.
   (* the airborne dispatcher, split per case (AirSplit, 2026-10-20): its two
      prologue calls, and each no-A action's handler called with the action
@@ -604,8 +614,8 @@ Section HeightLinked12.
      every outcome a RangedMove keeping the frame world, returning FALSE
      with the cells kept or letting go of the ledge into SOFT_BONK with
      the floor still fresh, FfWorld.fresh's slack); HOLDING_POLE is
-     PROVED (PoleHold.holdcheck12, with set_sound_moving_speed in the
-     labeled audio premise Haudio).  Since 2026-10-22 LEDGE_CLIMB_SLOW_1 /
+     PROVED (PoleHold.holdcheck12; set_sound_moving_speed is its real
+     body since 2026-10-23, SndXc).  Since 2026-10-22 LEDGE_CLIMB_SLOW_1 /
      _2 and LEDGE_CLIMB_FAST are PROVED (LedgeRow.aut_case_rest_ledge_climb:
      the real act_ledge_climb_slow / _fast walked on the link; their
      update_ledge_climb_camera stores land in the now-real
@@ -655,21 +665,21 @@ Section HeightLinked12.
      proved case also returns FALSE or leaves y / floorHeight untouched
      (RetOk.ret_ok, checked on each walk), so the floor stays fresh.  No
      other no-A case is left (KbRow.air_case_fns_in, computed). *)
-  (* the walk's floors: the FPU floor (TRUST 3.5) and the labeled open
-     audio / camera premises (deferred; ExtInert) *)
+  (* the walk's floor: the FPU floor (TRUST 3.5).  The audio premise
+     Haudio is gone since 2026-10-23: play_sound and set_sound_moving_speed
+     are the real audio/external.c bodies (SndXc). *)
   Hypothesis Hsqrtf : sqrtf_spec.
   Hypothesis Hsqrtf_float : sqrtf_float.
-  Hypothesis Haudio : audio_inert.      (* LABELED OPEN PREMISE: audio, deferred *)
 
   (* the automatic dispatcher's cases: all twelve proved *)
   Lemma Hauto_case : aut_case_rows lp bm MWF.
   Proof.
-    exact (PoleCasesT.aut_case_rows_T lp H12 Hdma_floor Hdma_anim Haudio bm Hbm_sym MWF).
+    exact (PoleCasesT.aut_case_rows_T lp H12 Hdma_floor Hdma_anim bm Hbm_sym MWF).
   Qed.
 
   Lemma Hair_case : air_case_rows lp bm MWF.
   Proof.
-    exact (air_case_rows_ff8 lp H12 Hdma_floor Hsqrtf Hsqrtf_float Haudio bm Hbm_sym MWF).
+    exact (air_case_rows_ff8 lp H12 Hdma_floor Hsqrtf Hsqrtf_float bm Hbm_sym MWF).
   Qed.
 
   Lemma call_facts :
@@ -681,10 +691,10 @@ Section HeightLinked12.
     /\ chase_safe_stmt bm SafeB MWF /\ store_safe_stmt lp bm SafeB MWF.
   Proof.
     exact (frame_call_ok_linked12 lp H12 bm bc oc0 SafeB HSafeB_syms Hbm_sym Hbc_sym Hoc0
-             Hsqrtf Hscm_body_real Hdma_floor
-             Hpres_sta_ext Hsss Hpres_obj_ext_open2 Hpres_cut_ext_open2
-             Hpres_floors_ext
-             Hpres_warp_ext_open Hext_action_ns Hmwf_ext_ns).
+             Hsqrtf Hscm_body_real Hls Hdma_floor
+             Hpres_obj_ext_open2 Hpres_cut_ext_open2
+             Hpres_floors_ext_open
+             Hpres_warp_ext_open Hext_action_ptfi Hmwf_ext_ptfi).
   Qed.
 
   Lemma air_leaves :
@@ -693,7 +703,7 @@ Section HeightLinked12.
       body_pres lp (NoA_real bm) MWF bm f.
   Proof.
     exact (air_leaves_linked12 lp H12 bm bc oc0 SafeB HSafeB_syms Hbm_sym Hbc_sym Hoc0
-             Hsqrtf Hscm_body_real Hdma_floor Hsss Hpres_obj_ext_open2 Hpres_floors_ext
+             Hsqrtf Hscm_body_real Hls Hdma_floor Hpres_obj_ext_open2 Hpres_floors_ext_open
              Hpres_warp_ext_open).
   Qed.
 
@@ -703,7 +713,7 @@ Section HeightLinked12.
       body_pres lp (NoA_real bm) MWF bm f.
   Proof.
     exact (auto_leaves_linked12 lp H12 bm bc oc0 SafeB HSafeB_syms Hbm_sym Hbc_sym Hoc0
-             Hsqrtf Hscm_body_real Hdma_floor Hsss Hpres_obj_ext_open2).
+             Hsqrtf Hscm_body_real Hls Hdma_floor Hpres_obj_ext_open2).
   Qed.
 
   (* the automatic dispatcher's row, from AutoSplit *)
