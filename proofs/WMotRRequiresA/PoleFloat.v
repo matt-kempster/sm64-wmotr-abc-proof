@@ -275,3 +275,82 @@ Proof.
       apply (rnd_ge_int _ 1); [lia | simpl; lra]. }
     pose proof (cmp_gt_true _ _ FY Sf G). lra.
 Qed.
+
+(* ---- act_climbing_pole's climb: polePos + stickY / 8.0f (2026-10-22) ----
+   A finite sum or quotient has finite operands; when finite it is the
+   rounding of the real one.  With !(stickY < 8.0f) and the sum finite (the
+   path's find_ceil cast), the climb does not lower polePos. *)
+Local Transparent Float32.div Float32.to_int.
+
+Lemma add_fin_l : forall x c, F32 c = true -> F32 (Float32.add x c) = true -> F32 x = true.
+Proof.
+  intros [s|s|s pl Hpl|s m e He] [s'|s'|s' pl' Hpl'|s' m' e' He'] Fc H; try reflexivity; try discriminate Fc;
+    unfold Float32.add in H; cbn in H; try destruct s; try destruct s'; cbn in H; discriminate H.
+Qed.
+
+Lemma add_fin_r : forall x c, F32 c = true -> F32 (Float32.add c x) = true -> F32 x = true.
+Proof.
+  intros [s|s|s pl Hpl|s m e He] [s'|s'|s' pl' Hpl'|s' m' e' He'] Fc H; try reflexivity; try discriminate Fc;
+    unfold Float32.add in H; cbn in H; try destruct s; try destruct s'; cbn in H; discriminate H.
+Qed.
+
+Lemma div_fin_l : forall x c, F32 c = true -> F32 (Float32.div x c) = true -> F32 x = true.
+Proof.
+  intros [s|s|s pl Hpl|s m e He] [s'|s'|s' pl' Hpl'|s' m' e' He'] Fc H; try reflexivity; try discriminate Fc;
+    unfold Float32.div in H; cbn in H; try destruct s; try destruct s'; cbn in H; discriminate H.
+Qed.
+
+Lemma add_fin_val : forall a b, F32 a = true -> F32 b = true -> F32 (Float32.add a b) = true ->
+  R2 (Float32.add a b) = rnd (R2 a + R2 b).
+Proof.
+  intros a b Fa Fb F. unfold Float32.add in *.
+  match type of F with context[Binary.Bplus ?p ?e ?g1 ?g2 ?nan ?md a b] =>
+    pose proof (Binary.Bplus_correct p e g1 g2 nan md a b Fa Fb) as HB end.
+  destruct (Rlt_bool _ _).
+  - destruct HB as (Hv & _). exact Hv.
+  - destruct HB as (Ho & _).
+    match type of F with context[Binary.Bplus ?p0 ?e0 ?g1 ?g2 ?nan ?md a b] =>
+      destruct (Binary.Bplus p0 e0 g1 g2 nan md a b) as [s|s|s pl Hpl|s mm e He] end;
+      cbn in Ho, F; try discriminate F; unfold binary_overflow in Ho;
+      simpl in Ho; discriminate Ho.
+Qed.
+
+Lemma div_fin_val : forall a b, R2 b <> 0 -> F32 (Float32.div a b) = true ->
+  R2 (Float32.div a b) = rnd (R2 a / R2 b).
+Proof.
+  intros a b Hb F. unfold Float32.div in *.
+  match type of F with context[Binary.Bdiv ?p ?e ?g1 ?g2 ?nan ?md a b] =>
+    pose proof (Binary.Bdiv_correct p e g1 g2 nan md a b Hb) as HB end.
+  destruct (Rlt_bool _ _).
+  - destruct HB as (Hv & _). exact Hv.
+  - rename HB into Ho.
+    match type of F with context[Binary.Bdiv ?p0 ?e0 ?g1 ?g2 ?nan ?md a b] =>
+      destruct (Binary.Bdiv p0 e0 g1 g2 nan md a b) as [s|s|s pl Hpl|s mm e He] end;
+      cbn in Ho, F; try discriminate F; unfold binary_overflow in Ho;
+      simpl in Ho; discriminate Ho.
+Qed.
+
+(* a float the s16 cast accepts is finite *)
+Lemma to_int_fin : forall f i, Float32.to_int f = Some i -> F32 f = true.
+Proof. intros [s|s|s pl Hpl|s m e He] i H; try reflexivity; cbn in H; discriminate H. Qed.
+
+Lemma ycast_fin : forall f i, ycast (Vsingle f) = Vint i -> F32 f = true.
+Proof.
+  intros f i H. unfold ycast in H. destruct (Float32.to_int f) eqn:T; [| discriminate H].
+  exact (to_int_fin _ _ T).
+Qed.
+
+Lemma climb_val : forall p s k8, F32 p = true -> F32 k8 = true -> R2 k8 = 8 ->
+  Float32.cmp Clt s k8 = false -> F32 (Float32.add p (Float32.div s k8)) = true ->
+  R2 p <= R2 (Float32.add p (Float32.div s k8)).
+Proof.
+  intros p s k8 Fp Fk Rk L F.
+  pose proof (add_fin_r _ _ Fp F) as Fq.
+  pose proof (div_fin_l _ _ Fk Fq) as Fs.
+  pose proof (cmp_lt_false _ _ Fs Fk L) as Ls. rewrite Rk in Ls.
+  rewrite (add_fin_val _ _ Fp Fq F), (div_fin_val s k8 ltac:(lra) Fq), Rk.
+  rewrite <- (rnd_B2R p) at 1. apply rnd_mono.
+  assert (0 <= rnd (R2 s / 8)).
+  { rewrite <- rnd_0. apply rnd_mono. unfold Rdiv. apply Rmult_le_pos; lra. }
+  lra.
+Qed.

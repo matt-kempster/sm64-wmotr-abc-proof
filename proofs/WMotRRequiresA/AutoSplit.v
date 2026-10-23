@@ -458,6 +458,7 @@ Section AutSplitS.
         destruct Hin as [E | [E | [E | [E | []]]]]; injection E as <- <-; qside.
       - intros ub uo _ A z _. exact (LQb _ _ _ (proj1 A)).
       - intros mb mo Hl. apply LQb. exact (Hmbm mb mo Hl).
+      - intros mb mo Hl i Hi. apply LQb. exact (Hmbm mb mo Hl).
     Qed.
 
     Lemma qsd_fworld : fworld lp bm m -> fworld lp bm m'.

@@ -71,7 +71,7 @@ From SM64.Proofs Require SpawnBodies.
 From SM64.Proofs Require Import NoAImpliesNoFlyLinked NoAImpliesNoFlyTwelve.
 From SM64.Proofs Require Import FrameCalls FrameSplit AirSplit AutoSplit.
 From SM64.Proofs.WMotRRequiresA Require Import FfWorld FfRow AhwRow KbRow FpuFloor ExtInert.
-From SM64.Proofs.WMotRRequiresA Require PoleXc PoleRow LedgeRow.
+From SM64.Proofs.WMotRRequiresA Require PoleXc PoleRow LedgeRow CannonRow.
 From SM64.Proofs Require OsDmaFloor LptBody.
 From SM64.Proofs Require Import HeightInvariant HeightBudgetArith HeightMoveCatalog WMotRLevel
   WMotRWorld NoAActions.
@@ -571,13 +571,18 @@ Section HeightLinked12.
      _2 and LEDGE_CLIMB_FAST are PROVED (LedgeRow.aut_case_rest_ledge_climb:
      the real act_ledge_climb_slow / _fast walked on the link; their
      update_ledge_climb_camera stores land in the now-real
-     gPlayerCameraState, the frame world's statusForCamera conjunct);
-     4 cases stay assumed, below. *)
-  (* the four cases still assumed: CLIMBING_POLE (reads
-     m->area->camera->yaw: no camera frame fact), TOP_OF_POLE_TRANSITION,
-     TOP_OF_POLE (the anim frame >= -1 is advanced by the unlinked
-     rendering code: TRUST 0.8(f)(3)) and IN_CANNON *)
-  Hypothesis Hauto_rest : LedgeRow.aut_case_rest_climb lp bm MWF.
+     gPlayerCameraState, the frame world's statusForCamera conjunct).
+     Since 2026-10-22 IN_CANNON and CLIMBING_POLE are PROVED (CannonRow.
+     aut_case_rest_climb_top: the real act_in_cannon walked once per WMotR
+     cannon, Mario staying seated at y or at the seat oPosY + 350, with
+     used_ok's cannon clause placing usedObj (cannon_pos_ok); the real
+     act_climbing_pole walked with the pole kit, its climb polePos +
+     stickY / 8.0f made finite by the path's find_ceil cast);
+     2 cases stay assumed, below. *)
+  (* the two cases still assumed: TOP_OF_POLE_TRANSITION and TOP_OF_POLE
+     (the anim frame >= -1 is advanced by the unlinked rendering code:
+     TRUST 0.8(f)(3)) *)
+  Hypothesis Hauto_rest : CannonRow.aut_case_rest_top lp bm MWF.
   (* (find_ceil's height: formerly the open premise Hceil, which was FALSE
      as stated -- it allowed a dangling *pceil; now PROVED,
      CeilHeight.fc_height, from the walker's live-local pceil) *)
@@ -616,7 +621,8 @@ Section HeightLinked12.
   Proof.
     exact (PoleRow.aut_case_rows_pole lp H12 Hdma_floor Haudio bm Hbm_sym MWF
              (LedgeRow.aut_case_rest_pole_ledge lp H12 Hdma_floor Haudio bm Hbm_sym MWF
-                (LedgeRow.aut_case_rest_ledge_climb lp H12 Hdma_floor Haudio bm Hbm_sym MWF Hauto_rest))).
+                (LedgeRow.aut_case_rest_ledge_climb lp H12 Hdma_floor Haudio bm Hbm_sym MWF
+                   (CannonRow.aut_case_rest_climb_top lp H12 Hdma_floor Haudio bm Hbm_sym MWF Hauto_rest)))).
   Qed.
 
   Lemma Hair_case : air_case_rows lp bm MWF.

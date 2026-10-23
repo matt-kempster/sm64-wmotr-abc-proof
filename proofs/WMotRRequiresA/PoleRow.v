@@ -84,10 +84,10 @@ Hypothesis Hbm : Genv.find_symbol G level_update._gMarioStates = Some bm.
 Variable acn : Z.
 Variable fK : function.
 Hypothesis Hfin : pfinal lp acn fK.
-Hypothesis Hpa : In acn [1049409; 1049410; 135267136]%Z.
+Hypothesis Hpa : In acn [1049409; 1049410; 135267136; 1049411]%Z.
 
 Lemma acn_pole : In (Int.unsigned (Int.repr acn)) pole_acts.
-Proof. destruct Hpa as [<- | [<- | [<- | []]]]; cbn; auto 7. Qed.
+Proof. destruct Hpa as [<- | [<- | [<- | [<- | []]]]]; cbn; auto 7. Qed.
 
 (* the walk's environment *)
 Definition Epl (bo bfi bmiss bcalls bsin ab bt biom bmq brm bau blk bpc bbt bgp blv : block) (oo uo : ptrofs) : senv :=
@@ -388,7 +388,7 @@ Proof.
   assert (IR0 : InRange c0) by exact (proj1 Hbud).
   destruct (Hfin m gp GPO MCg FD E t m' vres c0 EO PC EV' ltac:(exact RC) IR0)
     as (E' & gs & X & MM & FK & NR & RT & c2 & RC2 & RM2 & Hout & Hv & Hk).
-  split; [| change (e_blk E RM) with bm in RT; exact (fresh_ret_ns bm m m' vres acn Hact ltac:(destruct Hpa as [E0 | [E0 | [E0 | []]]]; rewrite <- E0; reflexivity) Hfr RT)].
+  split; [| change (e_blk E RM) with bm in RT; exact (fresh_ret_ns bm m m' vres acn Hact ltac:(destruct Hpa as [E0 | [E0 | [E0 | [E0 | []]]]]; rewrite <- E0; reflexivity) Hfr RT)].
   split; [| exists c2; split; [exact RC2 | apply Relation_Operators.rt_step; exact RM2]].
   (* ---- the walk's outcome, in terms of the blocks ---- *)
   assert (XB : forall r, Plt r NBP -> e_blk E' r = e_blk E r /\ e_base E' r = e_base E r)
@@ -695,9 +695,9 @@ Variable bm : block.
 Hypothesis Hbm : Genv.find_symbol G level_update._gMarioStates = Some bm.
 Variable MWF : mem -> Prop.
 
-(* the cases still assumed: CLIMBING_POLE (it reads the camera's yaw),
-   TOP_OF_POLE_TRANSITION, TOP_OF_POLE (their walks need Mario's animation
-   data tied to the DMA buffer), the five ledge cases, and IN_CANNON *)
+(* the cases this theorem leaves: CLIMBING_POLE, TOP_OF_POLE_TRANSITION,
+   TOP_OF_POLE, the five ledge cases, and IN_CANNON (LedgeRow and CannonRow
+   prove all but the two top-of-pole cases) *)
 Definition aut_case_rest_pole : Prop :=
   forall n f fd v, In (n, f) aut_case_list ->
     f <> AUT._act_grab_pole_slow -> f <> AUT._act_grab_pole_fast -> f <> AUT._act_holding_pole ->
