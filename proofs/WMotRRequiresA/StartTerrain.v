@@ -13,7 +13,7 @@
 (*      (TRUST 3.6; main_pool_init has no CompCert execution);             *)
 (*   3. the generated alloc_surface_pools, then load_area_terrain(1,       *)
 (*      wmotr_seg7_collision, NULL, NULL), run by the sound interpreter    *)
-(*      (TerrainRun.world answers sqrtf and reset_red_coins_collected);    *)
+(*      (TerrainRun.world answers only sqrtf, by the FPU value floor);     *)
 (*   4. init_mario's cells (StartSat's three fresh blocks, eight stores).  *)
 (* That is the real order: warp_level, then the level script (its          *)
 (* FREE_LEVEL_POOL command calls alloc_surface_pools, LOAD_AREA's load_area *)
@@ -50,6 +50,7 @@ From SM64.Proofs.WMotRRequiresA Require Import FloorList FloorExec FfWorld WMotR
 From SM64.Generated Require mario level_update object_list_processor surface_load
   surface_collision wmotr_script.
 From SM64.Proofs.NoAImpliesNoFly Require BootRun.
+From SM64.Proofs.WMotRRequiresA Require CourseRun.
 From SM64.Proofs Require AGates.
 Import ListNotations.
 Module CM := SM64.Proofs.Interp.CMem.
@@ -296,11 +297,8 @@ Lemma world_keep : forall ef vargs m t v m', world ef vargs m = Some (t, v, m') 
 Proof.
   intros ef vargs m t v m' H. unfold world in H.
   destruct ef; try discriminate H.
-  destruct vargs as [| a [| a2 args]]; try discriminate H.
-  - destruct (String.eqb name _); [ injection H as _ _ <-; apply acc_keep_refl | discriminate H ].
-  - destruct a; try discriminate H.
-    destruct (String.eqb name _); [ injection H as _ _ <-; apply acc_keep_refl | discriminate H ].
-  - destruct a; discriminate H.
+  destruct vargs as [| a [| a2 args]]; try discriminate H; destruct a; try discriminate H.
+  destruct (_ && _ && _); [ injection H as _ _ <-; apply acc_keep_refl | discriminate H ].
 Qed.
 
 (* ---------------------------------------------------------------------- *)
@@ -355,7 +353,7 @@ Lemma wmotr_terrain_type :
   In (Init_int32 (Int.repr (0x31040000 + TERRAIN_SNOW))) (gvar_init wmotr_script.v_level_wmotr_entry).
 Proof. vm_compute. repeat (first [ left; reflexivity | right ]). Qed.
 
-Definition x_chain (bm ab bt bar bd bsi bpcs bbs bhud : block) (ms : mem) : option mem :=
+Definition x_chain (bm ab bt bar bd bsi bpcs bbs bhud bC : block) (ms : mem) : option mem :=
   match CM.store Mint32 ms bm 140 (Vptr bsi Ptrofs.zero) with Some z1 =>
   match CM.store Mint32 z1 bm 148 (Vptr bpcs Ptrofs.zero) with Some z2 =>
   match CM.store Mint32 z2 bm 152 (Vptr bbs Ptrofs.zero) with Some z3 =>
@@ -371,8 +369,12 @@ Definition x_chain (bm ab bt bar bd bsi bpcs bbs bhud : block) (ms : mem) : opti
   match CM.store Mint32 z12 bt 8 (Vint Int.zero) with Some z13 =>
   match CM.store Mint32 z13 bt 12 (Vint Int.zero) with Some z14 =>
   match CM.store Mint32 z14 bt 16 (Vint Int.zero) with Some z15 =>
-  CM.store Mint32 z15 bt 20 (Vint Int.zero)
-  | None => None end | None => None end | None => None end | None => None end | None => None end
+  match CM.store Mint32 z15 bt 20 (Vint Int.zero) with Some z16 =>
+  (* gCurrCourseNum := COURSE_WMOTR, the store the real
+     lvl_set_current_level(0, LEVEL_WMOTR) makes (CourseRun.course_runs; the
+     level load runs it before the terrain, the cell is disjoint) *)
+  CM.store Mint16signed z16 bC 0 (Vint (Int.repr CourseRun.COURSE_WMOTR))
+  | None => None end | None => None end | None => None end | None => None end | None => None end | None => None end
   | None => None end | None => None end | None => None end | None => None end | None => None end
   | None => None end | None => None end | None => None end | None => None end | None => None end.
 
@@ -435,8 +437,9 @@ Definition frame_ok (ge : genv) (bm bo : block) (m : mem) : bool :=
 Definition wchk (ge : genv) (m0 : mem) : bool :=
   match Genv.find_symbol ge level_update._gMarioStates, Genv.find_symbol ge mario._gControllers,
         Genv.find_symbol ge mario._gMarioAnimsBuf, Genv.find_symbol ge object_list_processor._gObjectPool,
-        Genv.find_symbol ge level_update._sWarpDest, Genv.find_symbol ge level_update._gCurrLevelNum with
-  | Some bm, Some bc, Some ab, Some bo, Some bw, Some bL =>
+        Genv.find_symbol ge level_update._sWarpDest, Genv.find_symbol ge level_update._gCurrLevelNum,
+        Genv.find_symbol ge level_update._gCurrCourseNum with
+  | Some bm, Some bc, Some ab, Some bo, Some bw, Some bL, Some bC =>
   match sym ge "gPlayerSpawnInfos", sym ge "gPlayerCameraState", sym ge "gBodyStates",
         sym ge "gHudDisplay" with
   | Some bsi, Some bpcs, Some bbs, Some bhud =>
@@ -459,7 +462,7 @@ Definition wchk (ge : genv) (m0 : mem) : bool :=
           let (m3, bd) := Mem.alloc m2b 0 16 in
           match s_chain bm bo bc ab bt bs bar m3 with
           | Some ms =>
-            match x_chain bm ab bt bar bd bsi bpcs bbs bhud ms with
+            match x_chain bm ab bt bar bd bsi bpcs bbs bhud bC ms with
             | Some m11 =>
               old_ok ge e6 L && frag_ok ge bp L && wff_parts WFUEL ge bp m11
               && parts_ok WFUEL ge m11 && nsurf_ok m11 bn
@@ -480,7 +483,7 @@ Definition wchk (ge : genv) (m0 : mem) : bool :=
   end
   | _, _, _, _ => false
   end
-  | _, _, _, _, _, _ => false
+  | _, _, _, _, _, _, _ => false
   end.
 
 Definition wchk_gen (oge : option genv) (oast : option (AST.program (Ctypes.fundef function) type)) : bool :=
@@ -511,7 +514,7 @@ Qed.
 Inductive wout (ge : genv) (m0 : mem) (bm bc ab bo bw bL : block) : Prop :=
 | WOut : forall s1 s2 s3 s4 s5 bcol bn e1 e2 e3 e4 e5 e6 P0 bp P t1 L1 v1 t2 L v2
                 m1 bt m2 bs m2b bar m3 bd m3a m3b m4 m5 m6 m7 m8 m9 m10 ms
-                bsi bpcs bbs bhud z1 z2 z3 z4 z5 z6 z7 z8 z9 z10 z11 z12 z13 z14 z15 m11,
+                bsi bpcs bbs bhud bC z1 z2 z3 z4 z5 z6 z7 z8 z9 z10 z11 z12 z13 z14 z15 z16 m11,
     Mem.store Mint8unsigned m0 bw 0 (Vint (Int.repr 1)) = Some e1 ->
     Mem.store Mint8unsigned e1 bw 1 (Vint (Int.repr LEVEL_WMOTR)) = Some e2 ->
     Mem.store Mint8unsigned e2 bw 2 (Vint (Int.repr WARP_AREA)) = Some e3 ->
@@ -540,6 +543,7 @@ Inductive wout (ge : genv) (m0 : mem) (bm bc ab bo bw bL : block) : Prop :=
     Mem.store Mint32 m10 ab 8 (Vptr bt Ptrofs.zero) = Some ms ->
     sym ge "gPlayerSpawnInfos" = Some bsi -> sym ge "gPlayerCameraState" = Some bpcs ->
     sym ge "gBodyStates" = Some bbs -> sym ge "gHudDisplay" = Some bhud ->
+    Genv.find_symbol ge level_update._gCurrCourseNum = Some bC ->
     Mem.store Mint32 ms bm 140 (Vptr bsi Ptrofs.zero) = Some z1 ->
     Mem.store Mint32 z1 bm 148 (Vptr bpcs Ptrofs.zero) = Some z2 ->
     Mem.store Mint32 z2 bm 152 (Vptr bbs Ptrofs.zero) = Some z3 ->
@@ -555,7 +559,8 @@ Inductive wout (ge : genv) (m0 : mem) (bm bc ab bo bw bL : block) : Prop :=
     Mem.store Mint32 z12 bt 8 (Vint Int.zero) = Some z13 ->
     Mem.store Mint32 z13 bt 12 (Vint Int.zero) = Some z14 ->
     Mem.store Mint32 z14 bt 16 (Vint Int.zero) = Some z15 ->
-    Mem.store Mint32 z15 bt 20 (Vint Int.zero) = Some m11 ->
+    Mem.store Mint32 z15 bt 20 (Vint Int.zero) = Some z16 ->
+    Mem.store Mint16signed z16 bC 0 (Vint (Int.repr CourseRun.COURSE_WMOTR)) = Some m11 ->
     old_ok ge e6 L = true -> frag_ok ge bp L = true -> wff_parts WFUEL ge bp m11 = true ->
     parts_ok WFUEL ge m11 = true -> nsurf_ok m11 bn = true ->
     sym ge "gSurfacesAllocated" = Some bn ->
@@ -576,6 +581,7 @@ Lemma wchk_sound : forall ge m0, wchk ge m0 = true ->
 Proof.
   intros ge m0 W bm bc ab bo bw bL Hbm Hbc Hab Hbo Hbw HbL.
   unfold wchk in W. rewrite Hbm, Hbc, Hab, Hbo, Hbw, HbL in W.
+  destruct (Genv.find_symbol ge level_update._gCurrCourseNum) as [bC|] eqn:HcC; [ | discriminate ].
   destruct (sym ge "gPlayerSpawnInfos") as [bsi|] eqn:Hsi; [ | discriminate ].
   destruct (sym ge "gPlayerCameraState") as [bpcs|] eqn:Hpcs; [ | discriminate ].
   destruct (sym ge "gBodyStates") as [bbs|] eqn:Hbs; [ | discriminate ].
@@ -604,7 +610,7 @@ Proof.
   destruct (Mem.alloc m2 0 60) as [m2b bar] eqn:A3.
   destruct (Mem.alloc m2b 0 16) as [m3 bd] eqn:A4.
   destruct (s_chain bm bo bc ab bt bs bar m3) as [ms|] eqn:Sc; [ | discriminate ].
-  destruct (x_chain bm ab bt bar bd bsi bpcs bbs bhud ms) as [m11|] eqn:Xc; [ | discriminate ].
+  destruct (x_chain bm ab bt bar bd bsi bpcs bbs bhud bC ms) as [m11|] eqn:Xc; [ | discriminate ].
   unfold s_chain in Sc.
   destruct (CM.store Mfloat32 m3 bm 64 _) as [m3a|] eqn:S1a; [ | discriminate ].
   destruct (CM.store Mfloat32 m3a bo 36 _) as [m3b|] eqn:S1b; [ | discriminate ].
@@ -632,7 +638,8 @@ Proof.
   destruct (CM.store Mint32 z12 bt 8 _) as [z13|] eqn:Z13; [ | discriminate ].
   destruct (CM.store Mint32 z13 bt 12 _) as [z14|] eqn:Z14; [ | discriminate ].
   destruct (CM.store Mint32 z14 bt 16 _) as [z15|] eqn:Z15; [ | discriminate ].
-  rename Xc into Z16.
+  destruct (CM.store Mint32 z15 bt 20 _) as [z16|] eqn:Z16; [ | discriminate ].
+  rename Xc into Z17.
   repeat match goal with H : CM.store _ _ _ _ _ = Some _ |- _ => rewrite CM.store_eq in H end.
   apply andb_prop in W as [W N7]. apply andb_prop in W as [W N6].
   apply andb_prop in W as [W N5]. apply andb_prop in W as [W N4].
@@ -642,9 +649,9 @@ Proof.
     | exact PW | exact Hs1 | exact Hs2 | exact Hs3 | exact Hs4 | exact Hs5 | exact R1 | exact R2
     | exact A1 | exact A2 | exact A3 | exact A4 | exact S1a | exact S1b | exact S1 | exact S2 | exact S3
     | exact S4 | exact S5 | exact S6 | exact S7 | exact S8
-    | exact Hsi | exact Hpcs | exact Hbs | exact Hhud
+    | exact Hsi | exact Hpcs | exact Hbs | exact Hhud | exact HcC
     | exact Z1 | exact Z2 | exact Z3 | exact Z4 | exact Z5 | exact Z6 | exact Z7 | exact Z8
-    | exact Z9 | exact Z10 | exact Z11 | exact Z12 | exact Z13 | exact Z14 | exact Z15 | exact Z16
+    | exact Z9 | exact Z10 | exact Z11 | exact Z12 | exact Z13 | exact Z14 | exact Z15 | exact Z16 | exact Z17
     | exact N1 | exact N2 | exact N3
     | exact N4 | exact N5 | exact Hbn | exact N6 | exact N7 ].
 Qed.
