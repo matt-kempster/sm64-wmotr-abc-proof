@@ -570,6 +570,17 @@ Section HeightLinked12.
      m->quicksandDepth = 0 (proved to keep mem_ok, the frame world, Phi's
      cells and fresh_at) and the per-case rows Hauto_case below. *)
   Hypothesis Hseg_call_na : seg_call_rows_naFA lp bm MWF.
+  (* the body's other calls, PATH-SENSITIVE since 2026-10-23 (FrameSplit.clw):
+     only play_infinite_stairs_music() (unlinked, no arguments) is left
+     (FrameSplit.ema_live_anys, computed).  FOUND (phantom forall): the row
+     used to cover the linked spawn_wind_particles with ANY arguments from
+     ANY fworld memory; its spawn_object pops gFreeObjectList, which fworld
+     does not constrain, so a free-list head at the pole in usedObj let one
+     call overwrite the pole's oPosY -- FALSE as stated.  Both wind blocks
+     sit under `m->floor->type == 44 / 56` and wmotr_world's floor type is
+     one of WMotR's ([5;10;21;55;0]): FrameSplit.guard_mem PROVES them dead
+     (memory unchanged), so their four calls (spawn_wind_particles,
+     play_sound, twice) carry no row. *)
   Hypothesis Hseg_any : seg_any_rows lp bm MWF.
   (* the airborne dispatcher, split per case (AirSplit, 2026-10-20): its two
      prologue calls, and each no-A action's handler called with the action
