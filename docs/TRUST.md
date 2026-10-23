@@ -1779,6 +1779,9 @@ false about the game").
   `surface_collision` bodies run over a static partition holding one flat triangle under Mario, and
   the real `math_util` bodies run (vec3*, `approach_*`, `atan2s` over the real `gArctanTable`).
   Should be redone from a *recorded* WMotR state (5.1).
+- **FOUND 2026-10-22: it was VACUOUS until the refutation sweep.** `flat_world` answered `sqrtf`
+  at every signature, so its soundness hypothesis was false (`Refutations.old_flat_world_ok_refuted`).
+  Repaired: the oracle answers only at the real `(float) -> float` signature.
 
 ### Row 5.4 in detail
 
@@ -1814,3 +1817,45 @@ Listing them makes that explicit.
   `globalenv lp`). Runs happen inside `vm_compute`, so the kernel re-checks them.
 - The `vm_compute` checker itself **is** trusted (part of 1.1; the kernel's VM).
 - `discipline_check.sh`, `check_unwired.py`, `tools/clight_pretty.py`: hygiene and display only.
+
+
+## 7. Refutation sweep 2026-10-22
+
+Every remaining row of both capstones, and every hypothesis of the run witnesses, was attacked:
+false outright, false on the real link / witness, phantom forall, or jointly unsatisfiable.
+REFUTED = Coq proof (`proofs/MarioModel/Refutations.v`). SUSPECT = a concrete argument,
+not a proof. SURVIVED = what was tried.
+
+**R1 (REFUTED, REPAIRED): every run oracle was unsatisfiable.** `BootRun.world`,
+`TerrainRun.world`, `PositiveControl.flat_world` and `PoleControl.pole_world` answered `sqrtf`
+with a `Vsingle` at ANY signature. CompCert's axiom `ec_well_typed` forbids that at an int
+result, so each `world_ok` (and `TerrainRun.sqrtf_ieee`) was false for every genv. VACUOUS
+until now: the positive control (5.2), `PoleControl`'s no-A pole runs, `boot_frames_run`,
+`TerrainRun`'s loader tether, and `goal2_start_sat`'s `terrain_loaded` / `frame_runs` /
+`ifs_tether`. No capstone took it as a premise, and the audit's axiom check cannot see a false
+antecedent. Repair: `PositiveControl` / `PoleControl` here (answer `sqrtf` only at an `Xsingle`
+result, the real declaration in every TU; no new trust); `BootRun` / `TerrainRun` /
+`sqrtf_ieee` on the parallel branch (`FpuValue.sqrtf_value`, TRUST 3.5's value clause).
+
+| Row (GOAL 1, and GOAL 2's copy) | Verdict | Evidence |
+|---|---|---|
+| `H12` | SURVIVED | one concrete `link_chain`; inhabited (`Linked12Sat`) |
+| `HSafeB_syms` | SURVIVED | met by `SafeB_boot` (`BootMWF.SafeB_boot_syms_ok`), jointly with the boot memory |
+| `Hbm_sym` `Hbc_sym` `Hoc0` | SURVIVED | symbol pins (`spawn_symbols_resolve`), no forall |
+| `Hsq` (`sqrtf_spec`) | SURVIVED | a restriction: the empty relation meets every `ec_` axiom |
+| `Hscm_body_real` | SURVIVED | phantom memory tried: `sModeTransitions` is writable, so any `(Camera*, f32*, f32*) -> s32` body is reachable. The one store through an unconstrained pointer is `update_boss_fight_camera`'s `sMarioCamState->cameraEvent = 0`. Aimed at Mario's block (offset wrap), it zeroes a 16-bit half. No tainted action has a zero half. Every MWF clause is conditional or zero-safe |
+| `Hdma_floor` | SURVIVED | restrictions; every named function is External in all 35 TUs |
+| `Hsss`, `Hpres_sta_ext` | SURVIVED | the C bodies write `audio/external.c` statics only; `stop_sound` compares `pos`, never stores it |
+| `Hpres_obj_ext_open2`, `Hpres_cut_ext_open2`, `Hpres_warp_ext_open` | SURVIVED in the model; SUSPECT on link | `play_sound` stores `pos` into `sSoundRequests[].position`. Once `external.c` is linked, an any-argument `pos` = `&gMarioStates` breaks R7 under `SafeB_boot` (as `spawn_object` did). Gate `pos` before linking audio. The dialog / music / RNG entries have scalar args and own statics |
+| `Hpres_floors_ext` | SUSPECT on link | `spawn_default_star` (`obj_behaviors.c`, generated, unlinked) spawns with `bhvStarSpawnCoordinates` (`spawn_star.inc.c:115`), which is not in `safe_ptr_syms`. For an admissible SafeB without that block, the real body breaks R7 |
+| `Hext_action_ns`, `Hmwf_ext_ns` | SUSPECT (phantom memory) | `print_text_fmt_int` takes its label from `mem_pool_alloc(gEffectsMemoryPool)`. `memory.c` is linked, and MWF says nothing about that pool. If the free list aims at Mario's block, the real body stores `x` into the action cell. Not refutable while `print.c` is opaque; true of the real game. Reached only under `gShowDebugText` |
+| run oracles `world_ok` x4, `sqrtf_ieee` | **REFUTED, REPAIRED** | R1 |
+| `rrc_inert` | SURVIVED | `Vundef` has every result type |
+| GOAL 2 `Hsqrtf`, `Hsqrtf_float`, `Haudio` | SURVIVED | restrictions; consistent with the repaired oracles |
+| GOAL 2 `Hseg_any` | SUSPECT (phantom forall) | it asks the linked `spawn_wind_particles` at ANY args from ANY `fworld` memory. `fworld` says nothing of `gFreeObjectList`, and every object lives in `gObjectPool`'s one block. A free list heading into Mario's object or the `usedObj` pole re-initializes it (`geo_obj_init` zeroes `gfx.pos`; behavior becomes `bhvWind`). In WMotR the call is dead (no `SURFACE_HORIZONTAL_WIND`). Repair: gate the obligation on the wind branch, which `wmotr_world` refutes. Needs a path-sensitive `FrameCalls.cl` |
+| GOAL 2 `Hauto_rest` | SUSPECT at TOP_OF_POLE(_TRANSITION) | `set_pole_position` adds the anim Y translation read through `animList->bufTarget`. `fworld` / `ffw` carry no fact about the buffer's contents, and with `currentAddr` matching no DMA runs. A phantom buffer gives up to +8191, far past top + `POLE_UP`, unless a ceiling clamps it. So this row is FALSE as stated, not just unproved (0.8(f)). CLIMBING_POLE / IN_CANNON were read too: a phantom `stickY` is clamped at `poleTop` or makes the f32 to s32 cast undefined (no execution), and the cannon seat is `usedObj`'s, which `used_ok` fixes |
+| GOAL 2 `Hseg_call_na`, `Hair_pro` | not refuted | real bodies over `fworld` memories. No counterexample was built: that needs a modified StartSat witness |
+
+R1's proofs: `Refutations.old_{boot,terrain,flat,pole}_world_ok_refuted`,
+`old_sqrtf_ieee_refuted`. The repaired control oracles answer `None` at the bad signature
+(`flat_world_repaired`, `pole_world_repaired`).
