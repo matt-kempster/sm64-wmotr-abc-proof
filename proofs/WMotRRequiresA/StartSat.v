@@ -1807,10 +1807,10 @@ Section Witness.
         split; [ rewrite L_lvl, (Mem.load_store_same _ _ _ _ _ _ E6); reflexivity | ].
         split; [ exact loaded11 | ].
         split; [ | split ].
-        + intros Hv Hau. pose proof (BootRun.world_ok_of _ Hv Hau) as Wk.
+        + intros Hv Hau. pose proof (BootRun.world_ok_of (lp_ge lp) Hv Hau) as Wk.
           destruct (frame_ok_sound _ _ _ _ Wk FO) as (Ha & t & m' & v & Ev & Hl).
           split; [ exact Ha | exists bo, t, m', v; split; [ exact Ev | exact Hl ] ].
-        + intros Hv Hau. pose proof (BootRun.world_ok_of _ Hv Hau) as Wk.
+        + intros Hv Hau. pose proof (BootRun.world_ok_of (lp_ge lp) Hv Hau) as Wk.
           destruct (ifs_ok_sound _ _ _ _ _ _ _ _ _ Wk IF)
             as (bi & fi & t & mi & v & mx & Hbi0 & Hfi0 & Ev & Ax & Hn & Hc).
           exists ab, bsi, bpcs, bbs, bhud, fi, t, mi, v, mx.
