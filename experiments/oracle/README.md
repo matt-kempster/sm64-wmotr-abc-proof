@@ -129,6 +129,7 @@ The capstones are not false, but for real WMotR states they are silent on about
 `gMarioAnims` is now the real, read-only data block (580632 bytes). Re-run WITHOUT
 `ROM_SIZED`, seed 2: **300/300 MATCH, 0 STUCK**, 0 DIFF, 0 DIVERGE (33 anim-load
 frames write `anim->values` / `anim->index` under the phys normalization, as before).
+Seed 3: **300/300 MATCH, 0 STUCK** (41 anim-load frames, likewise).
 The size-0 sweep now also walks the game thread and tags address uses
 (`tools/size0_globals.py`, class (c)).
 
