@@ -42,7 +42,7 @@ From SM64.Generated Require mario mario_actions_stationary
   mario_actions_moving mario_actions_airborne mario_actions_submerged
   mario_actions_cutscene mario_actions_automatic mario_actions_object
   interaction behavior_actions level_update mario_step surface_collision
-  math_util camera.
+  math_util camera audio_external sound_init.
 From SM64.Proofs Require SurfaceBodies MathBodies.
 From SM64.Proofs Require Import Flying Taint ActionValue ActionValueFrame ReachableRun
   RealFrameValue RealFrameLinked AGates SymbolicLinking FieldNonInterference.
@@ -1044,9 +1044,11 @@ Section NoARealInputMWF.
      exempt_callees-wide pin was REFUTABLE for every twelve-TU link
      (LinkedTwelve.capstone_negative_pin_refuted) and made this capstone
      vacuous. *)
+  (* THE AUDIO LINK (2026-10-23): play_infinite_stairs_music left this pin
+     (it is a sound_init.c body now; the old pin is FALSE of the new link),
+     and so did the three lifted audio whitelist ids. *)
   Hypothesis Hrest_ext_only : forall fid f,
-      mem_id fid exempt_ext_ids = true \/
-      fid = mario._play_infinite_stairs_music ->
+      mem_id fid exempt_ext_ids = true ->
       ~ resolves_lp lp fid (Internal f).
   (* THE CAMERA LINK (2026-10-22): camera.c is linked, so set_camera_mode is
      a PINNED rest case (LO_camera) whose real camera.c body owes the gated
@@ -1058,6 +1060,21 @@ Section NoARealInputMWF.
   Hypothesis LO_camera : linkorder camera.prog lp.
   Hypothesis Hscm_body :
     body_pres_w lp (MWF_real lp bm bc oc0 SafeB) bm SafeB camera.f_set_camera_mode.
+  (* THE AUDIO LINK (2026-10-23): audio/external.c and sound_init.c are
+     linked, so the four audio rest symbols are PINNED rest cases (LO_audio,
+     LO_sinit) owing a body residual over their real bodies each; the
+     twelve-TU capstone proves all four (AudioBodies). *)
+  Hypothesis LO_audio : linkorder audio_external.prog lp.
+  Hypothesis LO_sinit : linkorder sound_init.prog lp.
+  Hypothesis Hstcm_body :
+    body_pres_w lp (MWF_real lp bm bc oc0 SafeB) bm SafeB sound_init.f_stop_cap_music.
+  Hypothesis Hfcm_body :
+    body_pres_w lp (MWF_real lp bm bc oc0 SafeB) bm SafeB sound_init.f_fadeout_cap_music.
+  Hypothesis Hps_body :
+    body_pres_w lp (MWF_real lp bm bc oc0 SafeB) bm SafeB audio_external.f_play_sound.
+  Hypothesis Hpism_body :
+    body_pres_w lp (MWF_real lp bm bc oc0 SafeB) bm SafeB
+      sound_init.f_play_infinite_stairs_music.
   (* the stationary dispatcher is WALKED (StationarySurface.stationary_pres
      over the generic DispatchKit; the particleFlags epilogue store is
      killed by the window census): PROVED from per-leaf-callee residuals
@@ -2910,7 +2927,8 @@ Section NoARealInputMWF.
              (mwf_real_umbi lp bm bc oc0 SafeB Hbc_bm HSafeB_not_bm Hgms_blk Hgtimer_blk Htable_blk Hktab_blk)
              WL_exempt
              (rest_pres_decompose lp LO_mario LO_sta LO_mov LO_air LO_sub LO_cut
-                LO_aut LO_obj LO_int LO_beh LO_lvl LO_stp LO_surf LO_math LO_camera Hrest_ext_only
+                LO_aut LO_obj LO_int LO_beh LO_lvl LO_stp LO_surf LO_math LO_camera LO_audio LO_sinit
+                Hrest_ext_only
                 (NoA_real bm) (MWF_real lp bm bc oc0 SafeB) bm SafeB
                 (stationary_pres lp LO_mario LO_sta LO_stp bm (NoA_real bm)
                    (MWF_real lp bm bc oc0 SafeB)
@@ -3751,7 +3769,8 @@ Section NoARealInputMWF.
                    (mwf_real_free lp bm bc oc0 SafeB Hbc_bm)
                    sb_fc)
                 sb_ffwc sb_ff sb_fc sb_fp sb_fw
-                mb_v3fset mb_v3fcopy mb_v3scopy mb_atan2s Hscm_body)
+                mb_v3fset mb_v3fcopy mb_v3scopy mb_atan2s Hscm_body
+                Hstcm_body Hfcm_body Hps_body Hpism_body)
              Hext_action Hmwf_ext
              (mwf_real_entry lp bm bc oc0 SafeB Hbc_bm)
              (mwf_real_free lp bm bc oc0 SafeB Hbc_bm)

@@ -58,7 +58,8 @@ From SM64.Generated Require mario mario_actions_stationary
   libultra_osEepromLongWrite libultra_osEepromWrite libultra_osSiCreateAccessQueue
   libultra_osCreateMesgQueue libultra_osContInit libultra_osInitialize
   behavior_data spawn_object surface_load macro_special_objects wmotr_level_data
-  camera rendering_graph_node ingame_menu debug_course mario_anim_data.
+  camera rendering_graph_node ingame_menu debug_course mario_anim_data
+  audio_external sound_init.
 From SM64.Proofs Require Import SymbolicLinking CensusV2 RealFrameLinked
   EngineV2Consumer RestSurface.
 
@@ -175,7 +176,14 @@ Fixpoint link_chain (p : Clight.program) (l : list Clight.program)
    As a size-0 block, every load_patchable_table compare
    `addr != list->currentAddr` (memory.c:575) on a valid anim id had no
    CompCert execution (oracle difftest: 523/600 real frames stuck).
-   game_init's declaration is completed to the definer's (TRUST 2.4). *)
+   game_init's declaration is completed to the definer's (TRUST 2.4).
+   audio_external (audio/external.c) and sound_init (game/sound_init.c) are
+   the 40th and 41st (2026-10-23): the GAME-THREAD side of audio.  play_sound,
+   stop_sound(s), the music queue, the volume fades and the background-noise /
+   cap / shell music wrappers the Mario code calls resolve to their real
+   bodies.  The audio thread (synthesis, the sequence player, RSP) stays out
+   of scope; its one entry these bodies reach is load_sequence (audio/load.c,
+   not linked), a labeled open audio premise (TRUST 4.1). *)
 Definition tu_rest : list Clight.program :=
   [ mario_actions_stationary.prog;
     mario_actions_moving.prog;
@@ -214,7 +222,9 @@ Definition tu_rest : list Clight.program :=
     rendering_graph_node.prog;
     ingame_menu.prog;
     debug_course.prog;
-    mario_anim_data.prog ].
+    mario_anim_data.prog;
+    audio_external.prog;
+    sound_init.prog ].
 
 Definition linked12 (lp : Clight.program) : Prop :=
   link_chain mario.prog tu_rest = Some lp.
@@ -390,6 +400,14 @@ Section Linked12LO.
   Proof.
     exact (link_chain_linkorder_in _ _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_eq _ _)))))))))))))))))))))))))))))))))))))) H12).
   Qed.
+  Lemma linked12_LO_audio_external : linkorder audio_external.prog lp.
+  Proof.
+    exact (link_chain_linkorder_in _ _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_eq _ _))))))))))))))))))))))))))))))))))))))) H12).
+  Qed.
+  Lemma linked12_LO_sound_init : linkorder sound_init.prog lp.
+  Proof.
+    exact (link_chain_linkorder_in _ _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_eq _ _)))))))))))))))))))))))))))))))))))))))) H12).
+  Qed.
   Lemma linked12_LO_behavior_data : linkorder behavior_data.prog lp.
   Proof.
     exact (link_chain_linkorder_in _ _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_eq _ _))))))))))))))))))))))))))))) H12).
@@ -554,8 +572,12 @@ Qed.
    non-phantom obligation) is tracked as the top follow-up task; until
    then this file proves the pin for the SIXTEEN genuinely-external ids
    (truly_ext_pin_ids). *)
-Definition truly_ext_pin_ids : list ident :=
-  mario._play_infinite_stairs_music :: exempt_ext_ids.
+(* THE AUDIO LINK (2026-10-23): sound_init.c and audio/external.c are TUs
+   40 and 41, so play_infinite_stairs_music, stop_cap_music,
+   fadeout_cap_music and play_sound have Internal bodies: the music helper
+   left this list and the three whitelist ids were lifted
+   (RestSurface.lifted_ids).  What is left is sqrtf and print_text_fmt_int. *)
+Definition truly_ext_pin_ids : list ident := exempt_ext_ids.
 
 (* the twelve cheap computations (each a per-TU defmap sweep) *)
 Lemma no_internal_mario :
@@ -675,6 +697,12 @@ Proof. vm_compute. reflexivity. Qed.
 Lemma no_internal_mario_anim_data :
   no_internal_ids mario_anim_data.prog truly_ext_pin_ids = true.
 Proof. vm_compute. reflexivity. Qed.
+Lemma no_internal_audio_external :
+  no_internal_ids audio_external.prog truly_ext_pin_ids = true.
+Proof. vm_compute. reflexivity. Qed.
+Lemma no_internal_sound_init :
+  no_internal_ids sound_init.prog truly_ext_pin_ids = true.
+Proof. vm_compute. reflexivity. Qed.
 
 (* resolves_lp -> defmap entry (the genv->defmap bridge, spike-style) *)
 Lemma resolves_defmap :
@@ -696,21 +724,15 @@ Qed.
 Theorem linked12_ext_pin :
   forall lp, linked12 lp ->
   forall (fid : ident) (f : Clight.function),
-    mem_id fid exempt_ext_ids = true \/
-    fid = mario._play_infinite_stairs_music ->
+    mem_id fid exempt_ext_ids = true ->
     ~ resolves_lp lp fid (Internal f).
 Proof.
-  intros lp H12 fid f Hcover Hres.
-  assert (Hmem : mem_id fid truly_ext_pin_ids = true).
-  { unfold truly_ext_pin_ids, mem_id in *. cbn [existsb].
-    destruct Hcover as [Hc | ->].
-    - rewrite Hc. rewrite orb_true_r. reflexivity.
-    - rewrite Pos.eqb_refl. reflexivity. }
+  intros lp H12 fid f Hmem Hres.
   apply resolves_defmap in Hres.
   destruct (link_chain_internal_origin _ _ _ _ _ H12 Hres)
     as [Hbase | (q & Hq & Hqdm)].
   - exact (no_internal_ids_correct _ _ _ _ no_internal_mario Hmem Hbase).
-  - destruct Hq as [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | []]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]].
+  - destruct Hq as [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | []]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]].
     + exact (no_internal_ids_correct _ _ _ _ no_internal_sta Hmem Hqdm).
     + exact (no_internal_ids_correct _ _ _ _ no_internal_mov Hmem Hqdm).
     + exact (no_internal_ids_correct _ _ _ _ no_internal_air Hmem Hqdm).
@@ -749,6 +771,8 @@ Proof.
     + exact (no_internal_ids_correct _ _ _ _ no_internal_ingame_menu Hmem Hqdm).
     + exact (no_internal_ids_correct _ _ _ _ no_internal_debug_course Hmem Hqdm).
     + exact (no_internal_ids_correct _ _ _ _ no_internal_mario_anim_data Hmem Hqdm).
+    + exact (no_internal_ids_correct _ _ _ _ no_internal_audio_external Hmem Hqdm).
+    + exact (no_internal_ids_correct _ _ _ _ no_internal_sound_init Hmem Hqdm).
 Qed.
 
 (* ---------------------------------------------------------------------- *)

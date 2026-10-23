@@ -61,11 +61,11 @@
       6450 after it (update_mario_info_for_cam's store landed in the real
       storage).
    The world outside the link: sqrtf is the FPU floor's value clause
-   (FpuValue.sqrtf_value, TRUST 3.5), and the three AUDIO externals
-   play_sound, play_infinite_stairs_music (sound_init.c) and
-   set_sound_moving_speed (audio/external.c) can return without changing
-   linked memory (audio_ret: a labeled open AUDIO premise, deferred like
-   ExtInert.audio_inert).  reset_red_coins_collected runs its real body:
+   (FpuValue.sqrtf_value, TRUST 3.5) -- and nothing else: the audio calls
+   the runs reach (play_sound, play_infinite_stairs_music,
+   set_sound_moving_speed) run their REAL bodies since audio/external.c
+   and game/sound_init.c were linked (2026-10-23; the audio premise
+   audio_ret is gone).  reset_red_coins_collected runs its real body:
    ingame_menu.c is linked (the 36th TU, 2026-10-22). *)
 
 From Coq Require Import String List ZArith.
@@ -96,9 +96,6 @@ Definition world (ef : external_function) (args : list val) (m : mem)
             then Some (E0, Vsingle (Float32.sqrt x), m) else None
         | _ => None
         end
-      else if String.eqb n "play_sound" || String.eqb n "play_infinite_stairs_music"
-              || String.eqb n "set_sound_moving_speed"
-      then Some (E0, Vundef, m)
       else None
   | _ => None
   end.
@@ -106,25 +103,15 @@ Definition world (ef : external_function) (args : list val) (m : mem)
 Definition world_ok (ge : genv) : Prop :=
   forall ef args m t v m', world ef args m = Some (t, v, m') -> external_call ef ge args m t v m'.
 
-(* the labeled open AUDIO premise: each of the three audio externals the
-   runs reach can return Vundef with linked memory unchanged (their writes
-   go to the audio TUs' state, which no linked TU declares) *)
-Definition audio_names : list string :=
-  [ "play_sound"; "play_infinite_stairs_music"; "set_sound_moving_speed" ].
-
-Definition audio_ret : Prop :=
-  forall n sg (ge : Senv.t) args m, In n audio_names ->
-    external_functions_sem n sg ge args m E0 Vundef m.
-
-(* world_ok = the FPU floor's value clause + the audio premise.  FOUND
+(* world_ok = the FPU floor's value clause.  FOUND
    2026-10-22: the earlier world answered sqrtf at ANY signature, which
    CompCert's own external_functions_properties refutes
    (FpuValue.sqrtf_any_sig_false), so world_ok was false and every
    statement conditional on it (boot_frames_run, StartSat's frame_runs /
    ifs_tether) was vacuous. *)
-Lemma world_ok_of : forall ge, sqrtf_value -> audio_ret -> world_ok ge.
+Lemma world_ok_of : forall ge, sqrtf_value -> world_ok ge.
 Proof.
-  intros ge Hv Ha ef args m t v m' W. unfold world in W.
+  intros ge Hv ef args m t v m' W. unfold world in W.
   destruct ef; try discriminate W.
   destruct (String.eqb name "sqrtf") eqn:E.
   - destruct args as [| a [| a2 args]]; try discriminate W; destruct a; try discriminate W.
@@ -132,12 +119,7 @@ Proof.
     destruct (sqrt_in f) eqn:I; [ | discriminate W ].
     injection W as <- <- <-. apply String.eqb_eq in E. subst name.
     exact (Hv ge f m I).
-  - destruct (String.eqb name "play_sound" || String.eqb name "play_infinite_stairs_music"
-              || String.eqb name "set_sound_moving_speed") eqn:A; [ | discriminate W ].
-    injection W as <- <- <-.
-    apply (Ha name sg ge args m).
-    repeat (apply Bool.orb_true_iff in A as [A | A]);
-      apply String.eqb_eq in A; subst name; cbn; tauto.
+  - discriminate W.
 Qed.
 
 (* ---------------------------------------------------------------------- *)
@@ -439,7 +421,7 @@ Lemma id_ifs : id "init_mario_from_save_file" = mario._init_mario_from_save_file
 Proof. reflexivity. Qed.
 
 (* Over every 39-TU link, given only the FPU floor's value clause for sqrtf
-   and the labeled audio premise for the three audio externals:
+   (the audio calls run their real linked bodies):
    - the from-boot capstone's premises are jointly met with a real step:
      Genv.init_mem lp, the function the link resolves
      init_mario_from_save_file to, run from it, and one execute_mario_action
@@ -450,7 +432,7 @@ Proof. reflexivity. Qed.
      executes, ending with gPlayerCameraState[0].action = 6450: the store
      through m->statusForCamera that had no execution before camera.c was
      linked. *)
-Theorem boot_frames_run : forall lp, linked12 lp -> sqrtf_value -> audio_ret ->
+Theorem boot_frames_run : forall lp, linked12 lp -> sqrtf_value ->
     exists m0 fd t1 m1 v1 bm bpcs,
       Genv.init_mem lp = Some m0
       /\ resolves_lp lp mario._init_mario_from_save_file fd
@@ -460,7 +442,7 @@ Theorem boot_frames_run : forall lp, linked12 lp -> sqrtf_value -> audio_ret ->
       /\ (exists m', execute_mario_action_step_lp lp m1 m')
       /\ entry_ok (globalenv lp) bm bpcs m1.
 Proof.
-  intros lp Hlink Hv Ha. pose proof (world_ok_of (globalenv lp) Hv Ha) as Hw.
+  intros lp Hlink Hv. pose proof (world_ok_of (globalenv lp) Hv) as Hw.
   pose proof witness_ok_true as Wk. unfold witness_ok in Wk.
   rewrite (ge12_ok lp Hlink), (ast12_ok lp Hlink) in Wk. unfold witness_gen in Wk.
   destruct (boot_check_sound (globalenv lp) Hw FUEL (program_of_program lp) Wk)
@@ -491,7 +473,10 @@ Definition completed : list string :=
     "gCurGraphNodeCamera"; "gCurGraphNodeObject"; "gAreaUpdateCounter"; "gDmaIoMesg";
     "gMainReceivedMesg"; "gDmaMesgQueue"; "gSIEventMesgQueue"; "gDebugLevelSelect";
     "gShowDebugText"; "gDialogResponse"; "gPaintingMarioYEntry"; "gObjParentGraphNode";
-    "gGlobalSoundSource" ].
+    "gGlobalSoundSource";
+    (* the audio link (2026-10-23): main.c's gResetTimer, sound_init.c's
+       gSoundMode, audio/load.c's gSequencePlayers / gSequenceChannelNone *)
+    "gResetTimer"; "gSoundMode"; "gSequencePlayers"; "gSequenceChannelNone" ].
 
 Definition sizes_gen (oge : option genv)
     (oast : option (AST.program (Ctypes.fundef function) type)) : bool :=

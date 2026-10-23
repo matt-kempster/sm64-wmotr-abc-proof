@@ -28,6 +28,8 @@ generated/wmotr_level_data.v
 generated/camera.v
 generated/ingame_menu.v
 generated/debug_course.v
+generated/audio_external.v
+generated/sound_init.v
 generated/wmotr_script.v
 generated/macro_special_objects.v
 generated/behavior_data.v
@@ -207,6 +209,7 @@ proofs/MarioModel/MtxfBody.v
 proofs/MarioModel/SaveFileBody.v
 proofs/MarioModel/ObjHelpersBodies.v
 proofs/MarioModel/ObjExtBodies.v
+proofs/MarioModel/AudioBodies.v
 proofs/MarioModel/CameraBodies.v
 proofs/MarioModel/SaveDoSaveBody.v
 proofs/MarioModel/SpawnBodies.v
@@ -328,6 +331,7 @@ proofs/WMotRRequiresA/RetOk.v
 proofs/WMotRRequiresA/AirRun.v
 proofs/WMotRRequiresA/SmaFoot.v
 proofs/WMotRRequiresA/SmaXc.v
+proofs/WMotRRequiresA/SndXc.v
 proofs/WMotRRequiresA/AirMove.v
 proofs/WMotRRequiresA/AirSum.v
 proofs/WMotRRequiresA/ExtInert.v
