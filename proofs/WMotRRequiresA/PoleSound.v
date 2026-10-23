@@ -206,12 +206,67 @@ Proof.
       rewrite Int.signed_repr by (unfold Int.min_signed, Int.max_signed; cbn; lia). exact Q.
 Qed.
 
+(* a float comparison that evaluates has a float on its left *)
+Lemma den_flt_inv : forall a b v, den (Sbinop Olt a tf b tf) = Some v -> exists x, den a = Some (Vsingle x).
+Proof.
+  intros a b v D. cbn [SymExec2.den] in D.
+  destruct (den a) as [va |]; [| discriminate D]. destruct (den b) as [vb |]; [| discriminate D].
+  destruct va; cbn in D; try discriminate D; eauto.
+Qed.
+
+Lemma den_fadd : forall a b x y, den a = Some (Vsingle x) -> den b = Some (Vsingle y) ->
+  den (Sbinop Oadd a tf b tf) = Some (Vsingle (Float32.add x y)).
+Proof. intros a b x y Da Db. cbn [SymExec2.den]. rewrite Da, Db. reflexivity. Qed.
+
+Lemma F32_f8 : F32 f8 = true.  Proof. vm_compute. reflexivity. Qed.
+Lemma B2R_f8 : R2 f8 = 8.
+Proof. unfold f8. vm_compute (Float32.of_bits _). unfold Binary.B2R, F2R. simpl. lra. Qed.
+Lemma F32_f80c : F32 f80c = true.  Proof. vm_compute. reflexivity. Qed.
+
+(* act_climbing_pole's climb polePos + stickY / 8.0f *)
+Lemma climb_sound : forall a p, den sP = Some (Vsingle p) -> F32 p = true -> -1000 <= R2 p ->
+  climb kv rO kC pc a = true -> le720 pc a = true ->
+  exists q, den a = Some (Vsingle q) /\ F32 q = true /\ -1016 <= R2 q <= 720.
+Proof.
+  intros a p Dp Fp Lp H L. unfold climb in H. crush H. norm.
+  match goal with G : ge8 _ _ = true |- _ => unfold ge8 in G; apply existsb_exists in G as (f & I & Hm) end.
+  crush Hm. norm.
+  pose proof (PC _ I) as (v & D & _).
+  match type of D with den (Sbinop Olt ?s _ _ _) = _ =>
+    destruct (den_flt_inv _ _ _ D) as (S & DS) end.
+  pose proof (fbool_cmp _ _ S f8 Olt Clt false I DS eq_refl (or_intror (conj eq_refl eq_refl))) as L8.
+  match goal with |- exists q, den ?A = _ /\ _ =>
+    assert (Da : den A = Some (Vsingle (Float32.add p (Float32.div S f8))))
+      by (cbn [SymExec2.den]; rewrite Dp, DS; reflexivity) end.
+  (* finite: the path's find_ceil cast *)
+  match goal with Fy : finY _ _ _ = true |- _ => unfold finY in Fy; apply existsb_exists in Fy as (f' & I' & Hm') end.
+  crush Hm'. norm.
+  match goal with K : Pos.eqb _ kC = true |- _ => apply Pos.eqb_eq in K; subst end.
+  match goal with Ka : cfin _ _ _ = true |- _ =>
+    destruct (cfin_sound _ (-2739) (-2739) ltac:(lia) ltac:(lia) ltac:(lia) Ka) as (ka & -> & Fka & Rka) end.
+  match goal with Kz : is_pz _ = true |- _ => destruct (is_pz_sound _ Kz) as (z & -> & Fz & Rz) end.
+  pose proof (PC _ I') as U. cbn [fact_holds map] in U.
+  pose proof (den_fadd (Sconst (Vsingle ka)) _ ka _ eq_refl Da) as D1.
+  pose proof (den_fadd _ (Sconst (Vsingle z)) _ z D1 eq_refl) as D2.
+  pose proof (den_fadd _ (Sconst (Vsingle f80c)) _ f80c D2 eq_refl) as D3.
+  rewrite D3 in U.
+  destruct (HUC _ U) as (h & yv & E1 & (yi & Ey & _)). injection E1 as _ <-.
+  pose proof (ycast_fin _ _ Ey) as F1.
+  pose proof (add_fin_l _ _ F32_f80c F1) as F2.
+  pose proof (add_fin_l _ _ Fz F2) as F3.
+  pose proof (add_fin_r _ _ Fka F3) as FA.
+  pose proof (climb_val p S f8 Fp F32_f8 B2R_f8 L8 FA) as Ge.
+  pose proof (le720_sound _ _ Da FA L) as Le.
+  exists (Float32.add p (Float32.div S f8)). split; [exact Da |]. split; [exact FA | lra].
+Qed.
+
 (* oMarioPolePos before set_pole_position: the entry's, or slid *)
-Lemma ppt_sound : forall a, hasf pc (Fuser kP [sP]) = true -> ppt kv rO pc a = true -> le720 pc a = true ->
+Lemma ppt_sound : forall a, hasf pc (Fuser kP [sP]) = true -> ppt kv rO kC pc a = true -> le720 pc a = true ->
   exists p, den a = Some (Vsingle p) /\ F32 p = true /\ -1016 <= R2 p <= 720.
 Proof.
   intros a HP H L. destruct (kP_sound HP) as (p & Dp & Fp & Lp).
-  unfold ppt in H. apply orb_true_iff in H as [E0 | H].
+  unfold ppt in H. apply orb_true_iff in H as [H | CL]; [| exact (climb_sound a p Dp Fp Lp CL L)].
+  apply orb_true_iff in H as [E0 | H].
   - apply sveqb_eq in E0. subst a. exists p. split; [exact Dp |]. split; [exact Fp |].
     pose proof (le720_sound _ p Dp Fp L). lra.
   - destruct a; try discriminate H. destruct op; try discriminate H. band H.
@@ -226,7 +281,7 @@ Proof.
 Qed.
 
 (* tight: oPosY + polePos + 0.0f *)
-Lemma tb_sound : forall s, tb kv rO kP pc s = true ->
+Lemma tb_sound : forall s, tb kv rO kP kC pc s = true ->
   exists y, den s = Some (Vsingle y) /\ F32 y = true /\ -3757 <= R2 y <= -2018.
 Proof.
   intros s H. unfold tb in H. apply orb_true_iff in H as [C | H].
@@ -236,7 +291,7 @@ Proof.
     match goal with Ka : cfin _ _ _ = true |- _ =>
       destruct (cfin_sound _ (-2739) (-2739) ltac:(lia) ltac:(lia) ltac:(lia) Ka) as (ka & -> & Fa & Ra) end.
     match goal with Kz : is_pz _ = true |- _ => destruct (is_pz_sound _ Kz) as (z & -> & Fz & Rz) end.
-    match goal with HP : hasf _ _ = true, PP : ppt _ _ _ _ = true, L7 : le720 _ _ = true |- _ =>
+    match goal with HP : hasf _ _ = true, PP : ppt _ _ _ _ _ = true, L7 : le720 _ _ = true |- _ =>
       destruct (ppt_sound _ HP PP L7) as (p & Dp & Fp & Lp) end.
     destruct (y0_bound ka p z Fa ltac:(lra) Fp ltac:(lra) Fz Rz) as (F & B).
     exists (Float32.add (Float32.add ka p) z). split; [| exact (conj F B)].
@@ -274,7 +329,7 @@ Proof.
   intros Y FY RY.
   assert (F : F32 (Float32.sub c20000 c160) = true) by (vm_compute; reflexivity).
   assert (R : R2 (Float32.sub c20000 c160) = 19840).
-  { unfold c20000, c160. vm_compute (Float32.sub _ _). unfold Binary.B2R, F2R. simpl. lra. }
+  { change (Float32.sub c20000 c160) with ltac:(let x := eval vm_compute in (Float32.sub c20000 c160) in exact x). unfold Binary.B2R, F2R. simpl. lra. }
   destruct (Float32.cmp Cgt Y (Float32.sub c20000 c160)) eqn:G; [| reflexivity].
   pose proof (cmp_gt_true _ _ FY F G). lra.
 Qed.
@@ -286,7 +341,7 @@ Proof.
   intros s H. unfold cb in H. crush H. norm.
   match goal with H : existsb _ _ = true |- _ => apply existsb_exists in H as (f & I & Hm) end.
   crush Hm. norm.
-  match goal with TB : tb _ _ _ _ _ = true |- _ => destruct (tb_sound _ TB) as (Y & DY & FY & RY) end.
+  match goal with TB : tb _ _ _ _ _ _ = true |- _ => destruct (tb_sound _ TB) as (Y & DY & FY & RY) end.
   match goal with HC : hasf _ _ = true |- _ => pose proof (PC _ (hasf_in _ _ HC)) as U end.
   cbn [fact_holds map] in U.
   rewrite (plus80_den _ _ DY) in U.
@@ -302,7 +357,7 @@ Proof.
     pose proof (IZR_le (-3678) (Int.signed yi') ltac:(lia)). lra.
 Qed.
 
-Lemma yb_sound : forall y, tb kv rO kP pc y || cb kv rO kP kC pc y = true ->
+Lemma yb_sound : forall y, tb kv rO kP kC pc y || cb kv rO kP kC pc y = true ->
   exists Y, den y = Some (Vsingle Y) /\ F32 Y = true /\ -3918 <= R2 Y <= -2018.
 Proof.
   intros y H. apply orb_true_iff in H as [H | H];
@@ -327,7 +382,7 @@ Lemma db_sound : forall s, db kv rO kP kC kH kL pc s = true ->
   exists y, den s = Some (Vsingle y) /\ F32 y = true /\ -3918 <= R2 y <= -1938.
 Proof.
   intros s H. unfold db in H. apply existsb_exists in H as (f & I & Hm). crush Hm. norm.
-  match goal with Hy : tb _ _ _ _ _ || cb _ _ _ _ _ _ = true |- _ =>
+  match goal with Hy : tb _ _ _ _ _ _ || cb _ _ _ _ _ _ = true |- _ =>
     destruct (yb_sound _ Hy) as (Y & DY & FY & RY) end.
   match goal with Hl : hasf _ _ || hasf _ _ = true |- _ =>
     destruct (hl_sound _ _ Hl) as (h & yv & Dh & Dyv & P) end.

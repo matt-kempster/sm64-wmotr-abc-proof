@@ -1519,9 +1519,9 @@ Definition v_lll_hexagonal_mesh_seg3_collision_0301CECC := {|
 |}.
 
 Definition v_warp_pipe_seg3_collision_03009AC8 := {|
-  gvar_info := (tarray tshort 0);
+  gvar_info := (tarray tshort 264);
   gvar_init := nil;
-  gvar_readonly := true;
+  gvar_readonly := false;
   gvar_volatile := false
 |}.
 

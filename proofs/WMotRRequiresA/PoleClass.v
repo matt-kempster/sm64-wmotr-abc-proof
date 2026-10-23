@@ -78,14 +78,43 @@ Definition dec_ok (pc : list fact) (d : sval) : bool :=
   | _ => false
   end.
 
-(* oMarioPolePos before set_pole_position: the entry's, or (holding pole)
-   the entry's minus the slide amount *)
+(* act_climbing_pole's climb polePos + stickY / 8.0f (2026-10-22): the
+   path fact !(stickY < 8.0f), and the path's find_ceil fact at
+   (oPosY + that + 0.0f) + 80.0f, whose s16 cast makes it finite *)
+Definition f8 : float32 := Float32.of_bits (Int.repr 1090519040).   (* 8.0f *)
+Definition f80c : float32 := Float32.of_bits (Int.repr 1117782016).  (* 80.0f *)
+
+Definition ge8 (pc : list fact) (s : sval) : bool :=
+  existsb (fun f => match f with
+    | Fbool (Sbinop Olt a t1 k t2) ty false =>
+        sveqb a s && is_tf t1 && is_tf t2 && sveqb k (Sconst (Vsingle f8)) && tyeqb ty ti32
+    | _ => false end) pc.
+
+Definition finY (pc : list fact) (a : sval) : bool :=
+  existsb (fun f => match f with
+    | Fuser k [c; Sbinop Oadd (Sbinop Oadd (Sbinop Oadd ka t1 a' t2) t3 kz t4) t5 k80 t6] =>
+        Pos.eqb k kC && sveqb a' a && cfin ka (-2739) (-2739) && is_pz kz
+        && sveqb k80 (Sconst (Vsingle f80c))
+        && is_tf t1 && is_tf t2 && is_tf t3 && is_tf t4 && is_tf t5 && is_tf t6
+    | _ => false end) pc.
+
+Definition climb (pc : list fact) (a : sval) : bool :=
+  match a with
+  | Sbinop Oadd p t1 (Sbinop Odiv s t2 k t3) t4 =>
+      sveqb p sP && is_tf t1 && is_tf t2 && is_tf t3 && is_tf t4
+      && sveqb k (Sconst (Vsingle f8)) && ge8 pc s && finY pc a
+  | _ => false
+  end.
+
+(* oMarioPolePos before set_pole_position: the entry's, (holding pole)
+   the entry's minus the slide amount, or (climbing) plus the climb *)
 Definition ppt (pc : list fact) (a : sval) : bool :=
   sveqb a sP
   || match a with
      | Sbinop Osub p t1 d t2 => sveqb p sP && is_tf t1 && tyeqb t2 ti32 && dec_ok pc d
      | _ => false
-     end.
+     end
+  || climb pc a.
 
 (* tight: in [-3757, -2018] *)
 Definition tb (pc : list fact) (s : sval) : bool :=

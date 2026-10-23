@@ -36,7 +36,7 @@ Variables (rM rO rLD kS : positive) (clok : list positive).
 Definition fk_same : list (positive * Z * memory_chunk) :=
   [(rM, 2, Mint16unsigned); (rM, 100, Mint32); (rM, 124, Mint32); (rM, 132, Mint32);
    (rM, 136, Mint32); (rM, 144, Mint32); (rM, 156, Mint32); (rM, 160, Mint32);
-   (rM, 192, Mfloat32); (rLD, 8, Mint32);
+   (rM, 192, Mfloat32); (rM, 148, Mint32); (rLD, 8, Mint32);
    (rO, O_INTERACT_STATUS, Mint32); (rO, NUMCOLL_OFF, Mint16signed);
    (rO, COLL_OFF, Mint32); (rO, COLL_OFF + 4, Mint32); (rO, COLL_OFF + 8, Mint32);
    (rO, COLL_OFF + 12, Mint32);

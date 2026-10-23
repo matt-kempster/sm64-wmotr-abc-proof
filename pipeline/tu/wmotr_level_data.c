@@ -22,3 +22,7 @@
    (behavior_data.c: bhvExclamationBox, bhvCannonClosed) */
 #include "actors/exclamation_box_outline/collision.inc.c"
 #include "actors/cannon_lid/collision.inc.c"
+/* the warp pipe's mesh: interact_warp compares o->collisionData against it
+   (interaction.c:881,889); without a definition it is a size-0 block and
+   that compare has no execution (tools/size0_globals.py, 2026-10-22) */
+#include "actors/warp_pipe/collision.inc.c"

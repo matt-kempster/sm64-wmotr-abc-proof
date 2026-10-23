@@ -261,10 +261,10 @@ Section AutSplitS.
     /\ (forall bc oc, Mem.load Mint32 m bm FFW_CTL = Some (Vptr bc oc) -> bc <> bm).
   Proof.
     intros m (_ & EX & _).
-    destruct EX as (gp & bfi & bmiss & bcalls & bsin & ab & biom & bmq & brm & bo & oo & bt & ot & fl & ar & inp & ctl &
-                    HC & HS & HM & S1 & S2 & S3 & S4 & S5 & S6 & S7 & S8 & Lo & Soo & La & Lb & Sot & D1 & D2 & D3 & D4 &
-                    W & Lf & Wf & Wc0 & Lar & War & Li & Ai & Lc & Wc & Co).
-    assert (Rb : rblk (ff_rl bm bo oo bfi bmiss bcalls ab bt biom bmq brm) bm)
+    destruct EX as (gp & bfi & bmiss & bcalls & bsin & ab & biom & bmq & brm & blk & bpc & bo & oo & bt & ot & fl & ar & inp & ctl &
+                    HC & HS & HM & S1 & S2 & S3 & S4 & S5 & S6 & S7 & S8 & SL & SP & Lo & Soo & La & Lb & Sot & D1 & D2 & D3 & D4 &
+                    W & Lf & Wf & Wc0 & Lar & War & Li & Ai & Lc & Wc & Co & LPC).
+    assert (Rb : rblk (ff_rl bm bo oo bfi bmiss bcalls ab bt biom bmq brm blk bpc) bm)
       by (exists Ptrofs.zero; cbn; auto).
     split; [| split].
     - intros bo' oo' Hl. change MARIOOBJ_OFF with FFW_OBJ in Hl. rewrite Lo in Hl.
@@ -328,10 +328,10 @@ Section AutSplitS.
     Lemma qsd_ffw : ffw ge bm m -> ffw ge bm m'.
     Proof.
       intros (Hgn & EX & FD).
-      destruct EX as (gp & bfi & bmiss & bcalls & bsin & ab & biom & bmq & brm & bo & oo & bt & ot & fl & ar & inp & ctl &
-                      HC & HS & HM & S1 & S2 & S3 & S4 & S5 & S6 & S7 & S8 & Lo & Soo & La & Lb & Sot & D1 & D2 & D3 & D4 &
-                      W & Lf & Wf & Wc0 & Lar & War & Li & Ai & Lc & Wc & Co).
-      set (rl := ff_rl bm bo oo bfi bmiss bcalls ab bt biom bmq brm) in *.
+      destruct EX as (gp & bfi & bmiss & bcalls & bsin & ab & biom & bmq & brm & blk & bpc & bo & oo & bt & ot & fl & ar & inp & ctl &
+                      HC & HS & HM & S1 & S2 & S3 & S4 & S5 & S6 & S7 & S8 & SL & SP & Lo & Soo & La & Lb & Sot & D1 & D2 & D3 & D4 &
+                      W & Lf & Wf & Wc0 & Lar & War & Li & Ai & Lc & Wc & Co & LPC).
+      set (rl := ff_rl bm bo oo bfi bmiss bcalls ab bt biom bmq brm blk bpc) in *.
       assert (Rb : rblk rl bm) by (exists Ptrofs.zero; cbn; auto).
       assert (Hnb : Ple (Mem.nextblock m) (Mem.nextblock m')) by (rewrite qsd_nb; apply Ple_refl).
       assert (Hperm : forall b ofs k p, Plt b (Mem.nextblock m) -> Mem.perm m b ofs k p -> Mem.perm m' b ofs k p)
@@ -343,11 +343,11 @@ Section AutSplitS.
         destruct (closed_flat _ _ _ _ _ HC G0) as (-> & ->). reflexivity. }
       split; [rewrite qsd_nb; exact Hgn |].
       split.
-      - exists gp, bfi, bmiss, bcalls, bsin, ab, biom, bmq, brm, bo, oo, bt, ot, fl, ar, inp, ctl.
+      - exists gp, bfi, bmiss, bcalls, bsin, ab, biom, bmq, brm, blk, bpc, bo, oo, bt, ot, fl, ar, inp, ctl.
         split; [refine (store_closed gp m m' Mfloat32 bm QSD_OFF (Vsingle Float32.zero) Hst HC Gbm _);
                 right; intros b' o' E; discriminate E |].
         split; [exact HS |]. split; [exact HM |].
-        do 8 (split; [assumption |]).
+        do 10 (split; [assumption |]).
         split; [lqm; exact Lo |]. split; [exact Soo |]. split; [lqm; exact La |].
         split; [rewrite LQ by (right; left; qside); exact Lb |].
         do 5 (split; [assumption |]).
@@ -360,7 +360,8 @@ Section AutSplitS.
         split; [lqm; exact Lar |]. split; [exact (wblk_keep2 m m' rl Hnb Hperm Hld _ _ _ War) |].
         split; [lqm; exact Li |]. split; [exact Ai |].
         split; [lqm; exact Lc |]. split; [exact (wblk_keep2 m m' rl Hnb Hperm Hld _ _ _ Wc) |].
-        intros i cb co Hi Hl. rewrite LQb in Hl by exact D1. exact (Co i cb co Hi Hl).
+        split; [intros i cb co Hi Hl; rewrite LQb in Hl by exact D1; exact (Co i cb co Hi Hl) |].
+        lqm; exact LPC.
       - exact (floor_data_keep2 ge m m' rl Hnb Hperm Hld gp W FD).
     Qed.
 
@@ -380,9 +381,9 @@ Section AutSplitS.
     Proof.
       intros Hf (Hw & Hc & Hfl & Hh & Hr & Hq & Ho).
       pose proof Hf as (_ & EX & _).
-      destruct EX as (gp & bfi & bmiss & bcalls & bsin & ab & biom & bmq & brm & bo & oo & bt & ot & fl & ar & inp & ctl &
-                      HC & HS & HM & S1 & S2 & S3 & S4 & S5 & S6 & S7 & S8 & Lo & Soo & La & Lb & Sot & D1 & D2 & D3 & D4 &
-                      W & Lf & Wf & Wc0 & Lar & War & Li & Ai & Lc & Wc & Co).
+      destruct EX as (gp & bfi & bmiss & bcalls & bsin & ab & biom & bmq & brm & blk & bpc & bo & oo & bt & ot & fl & ar & inp & ctl &
+                      HC & HS & HM & S1 & S2 & S3 & S4 & S5 & S6 & S7 & S8 & SL & SP & Lo & Soo & La & Lb & Sot & D1 & D2 & D3 & D4 &
+                      W & Lf & Wf & Wc0 & Lar & War & Li & Ai & Lc & Wc & Co & LPC).
       destruct (ffw_apart m Hf) as (Ao & As & _).
       split; [| split; [| split; [| split; [| split; [| split]]]]].
       - intros v Hl. lqm_in Hl. destruct (Hw v Hl) as [-> | (b & o & t & -> & Lt & Hin)]; [left; reflexivity |].
@@ -457,6 +458,7 @@ Section AutSplitS.
         destruct Hin as [E | [E | [E | [E | []]]]]; injection E as <- <-; qside.
       - intros ub uo _ A z _. exact (LQb _ _ _ (proj1 A)).
       - intros mb mo Hl. apply LQb. exact (Hmbm mb mo Hl).
+      - intros mb mo Hl i Hi. apply LQb. exact (Hmbm mb mo Hl).
     Qed.
 
     Lemma qsd_fworld : fworld lp bm m -> fworld lp bm m'.

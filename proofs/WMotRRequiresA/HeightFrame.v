@@ -58,7 +58,7 @@ From compcert Require Import Coqlib Maps AST Integers Floats Values Events Memor
 From SM64.Generated Require mario mario_actions_stationary
   mario_actions_moving mario_actions_airborne mario_actions_submerged
   mario_actions_cutscene mario_actions_automatic mario_actions_object
-  interaction behavior_actions level_update mario_step.
+  interaction behavior_actions level_update mario_step camera.
 From SM64.Proofs Require Import Flying Taint ActionValue ActionValueFrame ReachableRun
   RealFrameValue RealFrameLinked AGates SymbolicLinking FieldNonInterference.
 From SM64.Proofs Require Import CensusV2 EngineV2Consumer.
@@ -67,11 +67,12 @@ From SM64.Proofs Require Import MWFReal RestSurface FloorsSurface
   ObjectLeafSurface CutsceneLeafSurface WindSurface WarpSurface
   FloorsLeafSurface.
 From SM64.Proofs Require Import LinkedTwelve SpawnInit InitMemSat.
-From SM64.Proofs Require SpawnBodies.
+From SM64.Proofs Require SpawnBodies CameraBodies.
 From SM64.Proofs Require Import NoAImpliesNoFlyLinked NoAImpliesNoFlyTwelve.
 From SM64.Proofs Require Import FrameCalls FrameSplit AirSplit AutoSplit.
 From SM64.Proofs.WMotRRequiresA Require Import FfWorld FfRow AhwRow KbRow FpuFloor ExtInert.
-From SM64.Proofs.WMotRRequiresA Require PoleXc PoleRow LedgeRow.
+From SM64.Proofs.WMotRRequiresA Require PoleXc PoleRow LedgeRow CannonRow.
+From SM64.Proofs.WMotRRequiresA Require RenderFlank.
 From SM64.Proofs Require OsDmaFloor LptBody.
 From SM64.Proofs Require Import HeightInvariant HeightBudgetArith HeightMoveCatalog WMotRLevel
   WMotRWorld NoAActions.
@@ -158,6 +159,19 @@ Section HeightFrame.
     /\ (Mem.valid_block m bm -> Mem.valid_block m' bm)
     /\ carries m m'.
 
+  (* seg_render: the render step on Mario's node (2026-10-22,
+     rendering_graph_node.c linked as TU 35).  geo_process_object calls the
+     real geo_set_animation_globals on &marioObj->header.gfx.animInfo
+     (RenderFlank.render_call), which advances Mario's animFrame through
+     graph_node.c's geo_update_animation_frame.  The left disjunct is a frame
+     where Mario's node is not drawn.  GOAL 1's mem_ok carry through it is
+     PROVED from its walked footprint (RenderFlank.render_mem_ok,
+     discharging Hrender_ok below); the Phi carry is assumed like every other
+     flank's (it was inside seg_rest's before). *)
+  Definition seg_render_spec (m m' : mem) : Prop :=
+    (m' = m \/ RenderFlank.render_call lp bm m m')
+    /\ (Phi m -> Phi m').
+
   (* The game is still in WMotR: gCurrLevelNum (level_update.c, set only by
      the warp code from sWarpDest, :477/:502) holds LEVEL_WMOTR (pinned from
      the level's own script, WMotRLevel.level_wmotr_self_warp). *)
@@ -174,13 +188,17 @@ Section HeightFrame.
   (*    grounds at y = 4500), and a new visit starts again at the entry     *)
   (*    warp, with the red coins and the star counter reloaded (TRUST 0.3). *)
   (* ===================================================================== *)
+  (* The non-Mario tail is rest (object updates, then the render walk up
+     to Mario's node) ; Mario's render call ; rest (the remaining walk). *)
   Definition frame_step (i m m' : mem) : Prop :=
-    exists m1 m2 m3,
+    exists m1 m2 m3 m4 m5,
       seg_input_spec m i
       /\ seg_platform_spec i m1
       /\ execute_mario_action_step_lp lp m1 m2
       /\ seg_level_spec m2 m3
-      /\ seg_rest_spec m3 m'
+      /\ seg_rest_spec m3 m4
+      /\ seg_render_spec m4 m5
+      /\ seg_rest_spec m5 m'
       /\ in_wmotr m'.
 
   Variable YMAX : R.
@@ -195,6 +213,11 @@ Section HeightFrame.
      frame_ok_linked12 -- NOT open). *)
   Hypothesis Hframe_action :
     forall m m', mem_ok m -> execute_mario_action_step_lp lp m m' -> mem_ok m'.
+
+  (* the render call carries GOAL 1's mem_ok (discharged in the twelve-TU
+     section below by RenderFlank.render_mem_ok -- NOT open). *)
+  Hypothesis Hrender_ok :
+    forall m m', mem_ok m -> RenderFlank.render_call lp bm m m' -> mem_ok m'.
 
   (* OPEN (T2 + T3, THE CRUX): one real execute_mario_action frame from a
      GOAL-1-well-formed state preserves the height invariant.  The
@@ -241,6 +264,16 @@ Section HeightFrame.
     - exact (Hmwf Hm0).
   Qed.
 
+  (* a seg_rest phase carries mem_ok *)
+  Lemma rest_ok : forall m m', seg_rest_spec m m' -> mem_ok m -> mem_ok m'.
+  Proof.
+    intros m m' (_ & Har & Hvr & Hmr & _) (Hv & Hs & Hm).
+    split; [ exact (Hvr Hv) | split ].
+    - exact (action_sat_load_eq_or_val not_tainted ACT_READING_NPC_DIALOG
+               m m' Har dialog_action_not_tainted Hs).
+    - exact (Hmr Hm).
+  Qed.
+
   (* ===================================================================== *)
   (* 3. ONE FRAME: an A-free frame preserves mem_ok AND Phi.                *)
   (* ===================================================================== *)
@@ -252,7 +285,7 @@ Section HeightFrame.
       mem_ok m' /\ Phi m'.
   Proof.
     intros i m m' HU (Hok & Hphi)
-           (m1 & m2 & m3 & Hin & Hplat & Hact & Hlvl & Hrest & _).
+           (m1 & m2 & m3 & m4 & m5 & Hin & Hplat & Hact & Hlvl & Hrest & Hrnd & Hrest2 & _).
     destruct (a_used_real_false bm i HU) as (HA & HD).
     (* input *)
     destruct Hin as (_ & Hai & Hvi & Hmi & Hpi).
@@ -272,14 +305,18 @@ Section HeightFrame.
       by (eapply Mem.valid_block_unchanged_on; eauto).
     assert (Hs3 : action_sat not_tainted m3 bm)
       by (eapply action_sat_unchanged_on; [ exact Hact3 | exact Hv2 | exact Hs2 ]).
-    (* rest *)
-    destruct Hrest as (_ & Har & Hvr & Hmr & Hpr).
+    pose proof (Hpl Hphi2) as Hphi3.
+    assert (Hok3 : mem_ok m3) by exact (conj Hv3 (conj Hs3 (Hml Hm2))).
+    (* rest, Mario's render call, rest *)
+    pose proof (rest_ok m3 m4 Hrest Hok3) as Hok4.
+    pose proof (proj2 (proj2 (proj2 (proj2 Hrest))) Hphi3) as Hphi4.
+    destruct Hrnd as (Hrc & Hpr).
+    assert (Hok5 : mem_ok m5)
+      by (destruct Hrc as [-> | Hrc]; [ exact Hok4 | exact (Hrender_ok m4 m5 Hok4 Hrc) ]).
+    pose proof (Hpr Hphi4) as Hphi5.
     split.
-    - split; [ exact (Hvr Hv3) | split ].
-      + exact (action_sat_load_eq_or_val not_tainted ACT_READING_NPC_DIALOG
-                 m3 m' Har dialog_action_not_tainted Hs3).
-      + exact (Hmr (Hml Hm2)).
-    - exact (Hpr (Hpl Hphi2)).
+    - exact (rest_ok m5 m' Hrest2 Hok5).
+    - exact (proj2 (proj2 (proj2 (proj2 Hrest2))) Hphi5).
   Qed.
 
   (* ===================================================================== *)
@@ -368,14 +405,15 @@ Section HeightLinked12.
   (* Hcsp_omfd_real / Hcsp_scale_real / Hcsp_osh_real: PROVED inside
      NoAImpliesNoFlyTwelve from the real object_helpers.c bodies
      (ObjHelpersBodies), no longer rows. *)
-  (* set_camera_mode(c, mode, frames) writes c->mode (and, through the mode
-     transition, more of *c) via arg0 (camera.c:2854), so the any-argument
-     obj_ext row was FALSE (found 2026-10-20).  Restated arg0-gated (cs):
-     every real site passes the chase m->area->camera.  The camera stays a
-     labeled deferred premise (docs/TRUST.md 4.1). *)
-  Hypothesis Hcsp_scm_real :
-    call_pres_ext_cs lp bm (NoA_real bm) MWF SafeB
-      interaction._set_camera_mode.
+  (* Hcsp_scm_real (set_camera_mode's arg0-gated call row) is DERIVED in
+     NoAImpliesNoFlyTwelve from Hscm_body_real (2026-10-22): the call
+     resolves to the real camera.c body and cs_gate's arg0 gate is wgate's
+     T_scm arm.  No longer a row here.
+     set_camera_mode reached from mario.c is a pinned rest case owing this
+     gated residual over the real camera.c body (LABELED OPEN PREMISE:
+     camera, deferred; GOAL 1's Hscm_body_real, docs/TRUST.md 4.1). *)
+  Hypothesis Hscm_body_real :
+    RestSurface.body_pres_w lp MWF bm SafeB camera.f_set_camera_mode.
   (* load_patchable_table: PROVED from its real memory.c body and dma_read's
      (LptBody), down to the libultra DMA calls, whose effect is the
      hardware/OS floor spec (OsDmaFloor, TRUST 3.5). *)
@@ -392,11 +430,8 @@ Section HeightLinked12.
     exact (LptBody.smawa_row_linked12 lp bm bc oc0 SafeB H12 HSafeB_syms
              (NoAImpliesNoFlyTwelve.Hspawn lp H12 bm bc oc0 Hbm_sym Hbc_sym Hoc0) Hdma_floor).
   Qed.
-  Hypothesis WL_exempt : forall e le m fid fty vf fd,
-      mem_id fid exempt_callees = true ->
-      eval_expr (lp_ge lp) e le m (Evar fid fty) vf ->
-      Genv.find_funct (lp_ge lp) vf = Some fd ->
-      marg_exempt fd = true.
+  (* WL_exempt: PROVED 2026-10-22 (was a row, FALSE as stated: GOAL 1's
+     WLExempt.wl_exempt_old_refuted); GOAL 1's export no longer takes it. *)
   Hypothesis Hpres_sta_ext : forall fid,
       mem_id fid StationaryLeafSurface.sta_ext_ids = true ->
       call_pres_ext lp bm (NoA_real bm) MWF fid.
@@ -430,13 +465,18 @@ Section HeightLinked12.
   (* Hret_unsafe REMOVED (task #99): the v2 engine no longer consumes any
      return-value row (it was dead plumbing / a latent vacuity -- see
      NoAImpliesNoFlyLinked). *)
-  Hypothesis Hext_action : forall ef targs tres cc vargs m t vres m',
+  (* 2026-10-22: both engine rows exclude sqrtf, whose call is the FPU
+     floor sqrtf_spec (memory unchanged); they now name only the audio /
+     print.c externals of the exempt whitelist *)
+  Hypothesis Hext_action_ns : forall ef targs tres cc vargs m t vres m',
       reached_v2 lp (External ef targs tres cc) ->
+      ~ CameraBodies.is_sqrtf_ef ef ->
       wgate bm SafeB (type_of_fundef (External ef targs tres cc)) vargs ->
       external_call ef (lp_ge lp) vargs m t vres m' ->
       Mem.unchanged_on (action_cell bm) m m'.
-  Hypothesis Hmwf_ext : forall ef targs tres cc vargs m t vres m',
+  Hypothesis Hmwf_ext_ns : forall ef targs tres cc vargs m t vres m',
       reached_v2 lp (External ef targs tres cc) ->
+      ~ CameraBodies.is_sqrtf_ef ef ->
       wgate bm SafeB (type_of_fundef (External ef targs tres cc)) vargs ->
       external_call ef (lp_ge lp) vargs m t vres m' ->
       Mem.valid_block m bm -> MWF m -> MWF m'.
@@ -561,15 +601,22 @@ Section HeightLinked12.
      with the cells kept or letting go of the ledge into SOFT_BONK with
      the floor still fresh, FfWorld.fresh's slack); HOLDING_POLE is
      PROVED (PoleHold.holdcheck12, with set_sound_moving_speed in the
-     labeled audio premise Haudio); 7 cases stay assumed, below. *)
-  (* the seven cases still assumed: CLIMBING_POLE (reads
-     m->area->camera->yaw: no camera frame fact), TOP_OF_POLE_TRANSITION,
-     TOP_OF_POLE (the anim frame >= -1 is advanced by the unlinked
-     rendering code: TRUST 0.8(f)(3)), LEDGE_CLIMB_SLOW_1 / 2 and
-     LEDGE_CLIMB_FAST (update_ledge_climb_camera stores through
-     m->statusForCamera, the size-0 gPlayerCameraState of this link:
-     TRUST audit (l)) and IN_CANNON (the same store in its state 0) *)
-  Hypothesis Hauto_rest : LedgeRow.aut_case_rest_ledge lp bm MWF.
+     labeled audio premise Haudio).  Since 2026-10-22 LEDGE_CLIMB_SLOW_1 /
+     _2 and LEDGE_CLIMB_FAST are PROVED (LedgeRow.aut_case_rest_ledge_climb:
+     the real act_ledge_climb_slow / _fast walked on the link; their
+     update_ledge_climb_camera stores land in the now-real
+     gPlayerCameraState, the frame world's statusForCamera conjunct).
+     Since 2026-10-22 IN_CANNON and CLIMBING_POLE are PROVED (CannonRow.
+     aut_case_rest_climb_top: the real act_in_cannon walked once per WMotR
+     cannon, Mario staying seated at y or at the seat oPosY + 350, with
+     used_ok's cannon clause placing usedObj (cannon_pos_ok); the real
+     act_climbing_pole walked with the pole kit, its climb polePos +
+     stickY / 8.0f made finite by the path's find_ceil cast);
+     2 cases stay assumed, below. *)
+  (* the two cases still assumed: TOP_OF_POLE_TRANSITION and TOP_OF_POLE
+     (the anim frame >= -1 is advanced by the unlinked rendering code:
+     TRUST 0.8(f)(3)) *)
+  Hypothesis Hauto_rest : CannonRow.aut_case_rest_top lp bm MWF.
   (* (find_ceil's height: formerly the open premise Hceil, which was FALSE
      as stated -- it allowed a dangling *pceil; now PROVED,
      CeilHeight.fc_height, from the walker's live-local pceil) *)
@@ -602,18 +649,19 @@ Section HeightLinked12.
   Hypothesis Hsqrtf : sqrtf_spec.
   Hypothesis Hsqrtf_float : sqrtf_float.
   Hypothesis Haudio : audio_inert.      (* LABELED OPEN PREMISE: audio, deferred *)
-  Hypothesis Hcamera : camera_inert.    (* LABELED OPEN PREMISE: camera, deferred *)
 
   (* the automatic dispatcher's cases: the two grabs and two ledge cases proved, the rest assumed *)
   Lemma Hauto_case : aut_case_rows lp bm MWF.
   Proof.
     exact (PoleRow.aut_case_rows_pole lp H12 Hdma_floor Haudio bm Hbm_sym MWF
-             (LedgeRow.aut_case_rest_pole_ledge lp H12 Hdma_floor Haudio bm Hbm_sym MWF Hauto_rest)).
+             (LedgeRow.aut_case_rest_pole_ledge lp H12 Hdma_floor Haudio bm Hbm_sym MWF
+                (LedgeRow.aut_case_rest_ledge_climb lp H12 Hdma_floor Haudio bm Hbm_sym MWF
+                   (CannonRow.aut_case_rest_climb_top lp H12 Hdma_floor Haudio bm Hbm_sym MWF Hauto_rest)))).
   Qed.
 
   Lemma Hair_case : air_case_rows lp bm MWF.
   Proof.
-    exact (air_case_rows_ff8 lp H12 Hdma_floor Hsqrtf Hsqrtf_float Haudio Hcamera bm Hbm_sym MWF).
+    exact (air_case_rows_ff8 lp H12 Hdma_floor Hsqrtf Hsqrtf_float Haudio bm Hbm_sym MWF).
   Qed.
 
   Lemma call_facts :
@@ -625,10 +673,10 @@ Section HeightLinked12.
     /\ chase_safe_stmt bm SafeB MWF /\ store_safe_stmt lp bm SafeB MWF.
   Proof.
     exact (frame_call_ok_linked12 lp H12 bm bc oc0 SafeB HSafeB_syms Hbm_sym Hbc_sym Hoc0
-             Hsqrtf Hcsp_scm_real Hdma_floor WL_exempt
+             Hsqrtf Hscm_body_real Hdma_floor
              Hpres_sta_ext Hsss Hpres_obj_ext_open2 Hpres_cut_ext_open2
              Hpres_floors_ext
-             Hpres_warp_ext_open Hext_action Hmwf_ext).
+             Hpres_warp_ext_open Hext_action_ns Hmwf_ext_ns).
   Qed.
 
   Lemma air_leaves :
@@ -637,7 +685,7 @@ Section HeightLinked12.
       body_pres lp (NoA_real bm) MWF bm f.
   Proof.
     exact (air_leaves_linked12 lp H12 bm bc oc0 SafeB HSafeB_syms Hbm_sym Hbc_sym Hoc0
-             Hcsp_scm_real Hdma_floor Hsss Hpres_obj_ext_open2 Hpres_floors_ext
+             Hsqrtf Hscm_body_real Hdma_floor Hsss Hpres_obj_ext_open2 Hpres_floors_ext
              Hpres_warp_ext_open).
   Qed.
 
@@ -647,7 +695,7 @@ Section HeightLinked12.
       body_pres lp (NoA_real bm) MWF bm f.
   Proof.
     exact (auto_leaves_linked12 lp H12 bm bc oc0 SafeB HSafeB_syms Hbm_sym Hbc_sym Hoc0
-             Hcsp_scm_real Hdma_floor Hsss Hpres_obj_ext_open2).
+             Hsqrtf Hscm_body_real Hdma_floor Hsss Hpres_obj_ext_open2).
   Qed.
 
   (* the automatic dispatcher's row, from AutoSplit *)
@@ -753,6 +801,14 @@ Section HeightLinked12.
                  execute_mario_action_step_lp lp m m' -> mem_ok_lp bm MWF m'.
   Proof. exact (proj1 call_facts). Qed.
 
+  (* the render call carries mem_ok, on the link (RenderFlank) *)
+  Lemma render_ok_linked12 :
+    forall m m', mem_ok_lp bm MWF m ->
+                 RenderFlank.render_call lp bm m m' -> mem_ok_lp bm MWF m'.
+  Proof.
+    exact (RenderFlank.render_mem_ok lp H12 bm bc oc0 SafeB HSafeB_syms Hbm_sym Hbc_sym Hoc0).
+  Qed.
+
   (* ==================================================================== *)
   (* THE GOAL-2 CAPSTONE (height form): over any link of the twelve TUs,  *)
   (* a run of real game frames with A neither pressed nor held after     *)
@@ -769,7 +825,7 @@ Section HeightLinked12.
   Proof.
     intros init is m Hok Hphi HA Hr.
     exact (proj2 (noA_run_height_bound lp bm MWF Phi PHI_YMAX
-                    frame_action_linked12 seg_action_phi Hphi_y
+                    frame_action_linked12 render_ok_linked12 seg_action_phi Hphi_y
                     init is m Hok Hphi HA Hr)).
   Qed.
 

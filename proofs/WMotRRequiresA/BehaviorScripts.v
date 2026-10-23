@@ -139,7 +139,7 @@ From SM64.Generated Require mario mario_step mario_actions_stationary
   mario_actions_cutscene mario_actions_automatic mario_actions_object
   interaction behavior_actions level_update mario_misc surface_collision
   math_util object_helpers obj_behaviors obj_behaviors_2 spawn_object
-  object_list_processor.
+  object_list_processor camera.
 
 (* --- where can a behavior pointer's VALUE go?  (a taint analysis) ------ *)
 (* An expression carries the taint if its value can be the tainted pointer: *)
@@ -184,7 +184,9 @@ Definition all_tus : list (list (ident * globdef fundef type)) :=
     surface_collision.global_definitions; math_util.global_definitions;
     object_helpers.global_definitions; obj_behaviors.global_definitions;
     obj_behaviors_2.global_definitions; spawn_object.global_definitions;
-    object_list_processor.global_definitions ].
+    object_list_processor.global_definitions;
+    (* 2026-10-22: camera.c, linked as the 35th TU *)
+    camera.global_definitions ].
 
 Definition fns : PTree.t (list fn_entry) := fold_left add_fns all_tus (PTree.empty _).
 
@@ -517,19 +519,23 @@ Proof. vm_compute. reflexivity. Qed.
    audio, camera, dialog, save file, graph nodes, RNG, collision loading,
    the debug spawner.  The census is complete only if none of these spawns
    an object or writes oInteractType. *)
+(* 2026-10-22, later: camera.c is in all_tus (linked as the 35th TU), so its
+   functions and globals left the frontier (set_camera_mode,
+   set_camera_shake_from_hit, camera_approach_f32_symmetric, cutscene_object,
+   cutscene_object_with_dialog, trigger_cutscene_dialog, gObjCutsceneDone,
+   gRecentCutscene).  Following their bodies adds no behavior and no
+   interaction type: reached_bhvs and closure_itypes are unchanged. *)
+(* 2026-10-22: the globals given their unlinked definer's zero storage by the
+   2.4 completion in pipeline/clightgen.sh (gCamera, gDialogResponse, ...) now
+   carry an initializer, so they count as defined data, not frontier. *)
 Lemma frontier_value : map string_of_ident frontier = [
-     "gAudioRandom"; "gAreas"; "gObjCutsceneDone"; "gObjParentGraphNode";
-     "gGlobalSoundSource"; "gGlobalTimer"; "gCameraMovementFlags"; "gCamera";
-     "gCutsceneFocus"; "gCurrAreaIndex"; "gCurrCourseNum"; "gCurrCreditsEntry";
+     "gAudioRandom"; "gAreas";  "gGlobalTimer";  "gCurrAreaIndex"; "gCurrCourseNum"; "gCurrCreditsEntry";
      "gCurrSaveFileNum"; "gCurrentArea"; "gCurrDemoInput"; "gCurrLevelNum";
-     "gSaveOptSelectIndex"; "gSavedCourseNum"; "gShowDebugText"; "gSpecialTripleJump";
+     "gSaveOptSelectIndex"; "gSavedCourseNum";  "gSpecialTripleJump";
      "gStaticSurfacePartition"; "geo_obj_init_animation"; "geo_obj_init"; "geo_add_child";
      "geo_update_animation_frame"; "geo_remove_child"; "get_current_background_music";
-     "get_dialog_id"; "gVec3sZero"; "gVec3fZero"; "gRecentCutscene"; "gRedCoinsCollected";
-     "gPaintingMarioYEntry"; "gPlayer1Controller"; "gDynamicSurfacePartition";
-     "gDialogResponse"; "gDebugLevelSelect"; "gLoadedGraphNodes";
+     "get_dialog_id"; "gVec3sZero"; "gVec3fZero"; "gRedCoinsCollected";  "gPlayer1Controller"; "gDynamicSurfacePartition";  "gLoadedGraphNodes";
      "gLastCompletedCourseNum"; "gLastCompletedStarNum"; "override_viewport_and_clip";
-     "camera_approach_f32_symmetric"; "cutscene_object_with_dialog"; "cutscene_object";
      "cur_obj_play_sound_2"; "cur_obj_play_sound_1"; "create_sound_spawner";
      "create_dialog_inverted_box"; "create_dialog_box_with_response";
      "create_dialog_box_with_var"; "create_dialog_box"; "sound_banks_enable";
@@ -537,8 +543,8 @@ Lemma frontier_value : map string_of_ident frontier = [
      "save_file_collect_star_or_key"; "save_file_clear_flags"; "save_file_set_cap_pos";
      "save_file_set_cannon_unlocked"; "save_file_set_flags";
      "save_file_is_cannon_unlocked"; "save_file_do_save"; "sqrtf"; "segmented_to_virtual";
-     "seq_player_unlower_volume"; "seq_player_lower_volume"; "set_camera_shake_from_hit";
-     "set_camera_mode"; "set_cutscene_message"; "set_sound_moving_speed"; "set_menu_mode";
+     "seq_player_unlower_volume"; "seq_player_lower_volume";
+     "set_cutscene_message"; "set_sound_moving_speed"; "set_menu_mode";
      "stop_cap_music"; "stop_sounds_from_source"; "stop_sound"; "stop_shell_music";
      "alloc_display_list"; "area_get_warp_node"; "enable_background_sound";
      "play_course_clear"; "play_cap_music"; "play_cutscene_music"; "play_sound";
@@ -546,8 +552,7 @@ Lemma frontier_value : map string_of_ident frontier = [
      "play_power_star_jingle"; "play_peachs_jingle"; "play_transition";
      "print_text_fmt_int"; "lower_background_noise"; "load_object_collision_model";
      "load_patchable_table"; "disable_background_sound"; "drop_queued_background_music";
-     "try_print_debug_mario_level_info"; "try_do_mario_debug_object_spawn";
-     "trigger_cutscene_dialog"; "raise_background_noise"; "random_u16"; "random_float";
+     "try_print_debug_mario_level_info"; "try_do_mario_debug_object_spawn"; "raise_background_noise"; "random_u16"; "random_float";
      "reset_cutscene_msg_fade"; "retrieve_animation_index"; "fadeout_cap_music";
      "fadeout_music"; "fadeout_level_music"; "virtual_to_segmented" ]%string.
 Proof. vm_compute. reflexivity. Qed.

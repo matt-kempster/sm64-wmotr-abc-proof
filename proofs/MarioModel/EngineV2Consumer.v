@@ -180,11 +180,7 @@ Section V2Consumer.
 
   (* per-symbol: the whitelisted callee symbols resolve to marg-exempt
      definitions (their first param is not MarioState* ) *)
-  Hypothesis WL_exempt : forall e le m fid fty vf fd,
-      mem_id fid exempt_callees = true ->
-      eval_expr (lp_ge lp) e le m (Evar fid fty) vf ->
-      Genv.find_funct (lp_ge lp) vf = Some fd ->
-      marg_exempt fd = true.
+  Hypothesis WL_exempt : wl_exempt_ok lp.
 
   (* per-symbol: the rest surface preserves the carried facts -- but ONLY
      where lp resolves the symbol to an INTERNAL body. A rest symbol that
@@ -816,9 +812,9 @@ Section V2Consumer.
                  Hlv Hev2 Hcast Has HTI HC Hmwf0 Hv0 Hsat0).
       - (* Hcallmarg *)
         intros bc e le m0 optid a al tyargs vargs0 vf fd0
-               [HTI _] HC Hevf Hff Hnex Hargs.
+               [HTI He] HC Hevf Hff Hnex Hargs.
         exact (chk_call_marg lp WL_exempt not_tainted bm SafeB bc e le m0
-                 optid a al tyargs vargs0 vf fd0 HTI HC Hevf Hff Hnex Hargs).
+                 optid a al tyargs vargs0 vf fd0 HTI He HC Hevf Hff Hnex Hargs).
       - (* Hexempt: censused/umbi are non-exempt (compute); rest is the
            residual *)
         intros f vargs0 m0 t0 m0' vres0 Hr Hex Hsargs Hgate Hevf Hno0 Hmwf0 Hv0 Hsat0.

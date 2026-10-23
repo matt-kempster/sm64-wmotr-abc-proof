@@ -54,7 +54,7 @@ GENERATED := generated/toy.v generated/shadow.v \
   generated/macro_special_objects.v generated/behavior_data.v \
   generated/object_helpers.v generated/obj_behaviors.v generated/obj_behaviors_2.v \
   generated/spawn_object.v generated/object_list_processor.v generated/audio_data.v generated/graph_node.v generated/buffers.v generated/save_file.v generated/object_collision.v \
-  generated/area.v generated/surface_load.v generated/mario_anim_data.v \
+  generated/area.v generated/surface_load.v generated/mario_anim_data.v generated/camera.v generated/rendering_graph_node.v generated/ingame_menu.v generated/debug_course.v \
   $(ULTRA_GENERATED)
 
 .PHONY: all generated proofs regen clean oracle-extract
@@ -172,7 +172,11 @@ proofs: $(COQMAKEFILE)
 
 # OCaml extraction of the interpreter + twelve-TU link for the recorded-RAM
 # differential tester (experiments/oracle, TRUST.md 5.1). Not part of `all`.
-oracle-extract: proofs
+# Needs only the interpreter and the link's .vo files, not the whole proof tree.
+ORACLE_VO := proofs/Interp/ClightInterp.vo proofs/Interp/LinkGenv.vo \
+             proofs/Interp/MemBuild.vo proofs/Interp/CMem.vo
+oracle-extract: $(COQMAKEFILE)
+	$(MAKE) -f $(COQMAKEFILE) $(ORACLE_VO)
 	mkdir -p experiments/oracle/extract/ml
 	coqc -R generated SM64.Generated -R proofs SM64.Proofs experiments/oracle/extract/Extract.v
 
@@ -196,7 +200,10 @@ generated/behavior_data.v: $(SM64)/data/behavior_data.c pipeline/clightgen.sh pi
 
 # The behavior-script completion in pipeline/clightgen.sh (TRUST 2.4) reads the
 # script lengths off generated/behavior_data.v, so every other TU depends on it.
-$(filter-out generated/behavior_data.v generated/toy.v $(ULTRA_GENERATED),$(GENERATED)): generated/behavior_data.v
+$(filter-out generated/behavior_data.v generated/wmotr_level_data.v generated/toy.v $(ULTRA_GENERATED),$(GENERATED)): generated/behavior_data.v
+# The level-data completion reads the mesh lengths off generated/wmotr_level_data.v
+# (it holds no bhv* reference, so it is generated first).
+$(filter-out generated/wmotr_level_data.v generated/toy.v $(ULTRA_GENERATED),$(GENERATED)): generated/wmotr_level_data.v
 
 # The object layer around the behaviors (GOAL 2 object census: what WMotR's
 # objects can spawn, BehaviorScripts.v).  object_helpers.c has a `1.0l`
@@ -258,7 +265,46 @@ generated/area.v: $(SM64)/src/game/area.c pipeline/clightgen.sh pipeline/proof_n
 # partitions no bytes, so no find_floor from boot had an execution) and the
 # real level / object collision loaders (alloc_surface_pools,
 # load_area_terrain, clear_dynamic_surfaces, load_object_collision_model).
+# game/camera.c (2026-10-22): the camera is part of the ABC argument (HOLP), and
+# it holds the real storage of gPlayerCameraState, which init_mario_from_save_file
+# points m->statusForCamera at and every nonzero-action frame stores through
+# (a size-0 block without it: no such frame from boot had an execution).
+# game/ingame_menu.c (2026-10-22): the real body of reset_red_coins_collected
+# (load_area_terrain calls it) and the storage of gRedCoinsCollected; also the
+# dialog / menu-mode functions the cutscene actions call.
+# Its menu strings come from BUILD_DIR/include/text_strings.h, which the
+# decomp's own build makes with its own tool (vendor Makefile, "Encode in-game
+# text strings"): tools/textconv over the preprocessed charmap.txt
+# (text_strings.h.in) and charmap_menu.txt (text_menu_strings.h.in).  Same
+# recipe, US flags.
+TEXT_H := $(SM64)/build/us/include/text_strings.h
+$(TEXT_H): $(SM64)/include/text_strings.h.in $(SM64)/include/text_menu_strings.h.in $(SM64)/charmap.txt $(SM64)/charmap_menu.txt
+	$(MAKE) -C $(SM64)/tools textconv
+	mkdir -p $(SM64)/build/us/include
+	cpp -P -Wno-trigraphs -D_LANGUAGE_ASSEMBLY -DVERSION_US=1 -DBUILD_DIR=build/us -o $(SM64)/build/us/charmap.txt $(SM64)/charmap.txt
+	cd $(SM64) && tools/textconv charmap_menu.txt include/text_menu_strings.h.in build/us/include/text_menu_strings.h
+	cd $(SM64) && tools/textconv build/us/charmap.txt include/text_strings.h.in build/us/include/text_strings.h
+
+# game/debug_course.c (2026-10-22): nop_change_course, which the real
+# lvl_set_current_level calls on every course change (CourseRun runs it).
+generated/debug_course.v: $(SM64)/src/game/debug_course.c pipeline/clightgen.sh pipeline/proof_n64.h
+	$(CLIGHTGEN) $< $@ $(SM64_CGP)
+
+generated/ingame_menu.v: $(SM64)/src/game/ingame_menu.c pipeline/clightgen.sh pipeline/proof_n64.h $(TEXT_H)
+	$(CLIGHTGEN) $< $@ $(SM64_CGP)
+
+generated/camera.v: $(SM64)/src/game/camera.c pipeline/clightgen.sh pipeline/proof_n64.h
+	$(CLIGHTGEN) $< $@ $(SM64_CGP)
+
 generated/surface_load.v: $(SM64)/src/engine/surface_load.c pipeline/clightgen.sh pipeline/proof_n64.h
+	$(CLIGHTGEN) $< $@ $(SM64_CGP)
+
+# game/rendering_graph_node.c (2026-10-22): the render step's scene-graph
+# walk, between Mario's frames: geo_process_object -> geo_set_animation_globals
+# advances every animated object's animFrame (Mario's top-of-pole handstand
+# reads it, TRUST 0.8(f)(3)), and the real storage of gAreaUpdateCounter,
+# gCurGraphNode*, gMatStack*, gCurrAnim* (size-0 externs before).
+generated/rendering_graph_node.v: $(SM64)/src/game/rendering_graph_node.c pipeline/clightgen.sh pipeline/proof_n64.h
 	$(CLIGHTGEN) $< $@ $(SM64_CGP)
 
 # Mario's animation data (2026-10-22; TRUST 0.8(f)).  The real build makes
@@ -266,8 +312,12 @@ generated/surface_load.v: $(SM64)/src/engine/surface_load.c pipeline/clightgen.s
 # vendor's own tools/mario_anims_converter.py (vendor/sm64/Makefile:667) and
 # links its .data into the ROM's `assets` segment (sm64.ld:1334), the source
 # of the DMA table gMarioAnims.  We run that same converter, into the same
-# path, and clightgen its output.  Data only: not linked into the program
-# (the game reaches it only by DMA from ROM); PoleAnim.v reads it.
+# path, and clightgen its output.  Data only.  Linked since 2026-10-22 (the
+# 36th TU): game_init.c passes gMarioAnims to setup_dma_table_list, and
+# load_patchable_table compares pointers into it, which has no CompCert
+# execution while it is a size-0 block (oracle difftest: 523/600 real frames
+# stuck).  The anim-data completion in pipeline/clightgen.sh (TRUST 2.4) reads
+# its type off generated/mario_anim_data.v, so game_init.v depends on it.
 ANIM_C := $(SM64)/build/us/assets/mario_anim_data.c
 $(ANIM_C): $(wildcard $(SM64)/assets/anims/*.inc.c)
 	mkdir -p $(dir $@)
@@ -275,6 +325,7 @@ $(ANIM_C): $(wildcard $(SM64)/assets/anims/*.inc.c)
 
 generated/mario_anim_data.v: $(ANIM_C) pipeline/clightgen.sh
 	$(CLIGHTGEN) $< $@ $(SM64_CG)
+generated/game_init.v: generated/mario_anim_data.v
 
 # libultra (2026-10-21): see ULTRA_CG above.
 generated/libultra_osEepromLongWrite.v: $(ULTRA)/osEepromLongWrite.c pipeline/clightgen.sh

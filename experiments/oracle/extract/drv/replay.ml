@@ -69,8 +69,10 @@ let r_v1 c = c.regs.(17)
 let r_f0 c = c.regs.(18)
 
 let addrs = Hashtbl.create 2048
+let rom_addrs = ref []   (* (name, ROM address, extent): link symbols living in ROM *)
 let () = Stdlib.List.iter (fun l -> match words l with
     | [ "A"; n; a; sz ] -> Hashtbl.replace addrs n (int_of_string a, int_of_string sz)
+    | [ "R"; n; a; sz ] -> rom_addrs := (n, int_of_string a, int_of_string sz) :: !rom_addrs
     | _ -> ()) (lines (dir ^ "/addrs.txt"))
 let a0_real = match words (Stdlib.List.hd (lines (dir ^ "/frame.txt"))) with
   | _ :: a0 :: _ -> int_of_string a0 | _ -> failwith "frame.txt"
@@ -78,6 +80,38 @@ let a0_real = match words (Stdlib.List.hd (lines (dir ^ "/frame.txt"))) with
 let u8 b a = Char.code (Bytes.get b (a - ram_base))
 let u32 b a = (u8 b a lsl 24) lor (u8 b (a + 1) lsl 16) lor (u8 b (a + 2) lsl 8) lor u8 b (a + 3)
 let in_ram a = a >= ram_base && a < ram_base + ram_size
+
+(* ---------------- address-model normalization ----------------
+   The model is clightgen'd under pipeline/proof_n64.h (TRUST.md 2.2): the
+   NO_SEGMENTED_MEMORY identity bodies of segmented_to_virtual /
+   virtual_to_segmented and of VIRTUAL_TO_PHYSICAL / PHYSICAL_TO_VIRTUAL.  So
+   where the ROM keeps a SEGMENTED address (0xSSoooooo, resolved through
+   sSegmentTable) or a PHYSICAL address (KSEG0 - 0x80000000, e.g. a relocated
+   anim->values / anim->index), the model keeps a pointer to the object.  A real
+   word R and a model pointer to KSEG0 address W are the same value under that
+   model iff virt(R) = W, where virt is the ROM's own segmented_to_virtual
+   (segment 0 = physical):  0x80000000 | (sSegmentTable[R >> 24] + (R & 0xFFFFFF)).
+   Used (1) to turn such words in pointer-typed slots of the entry RAM into
+   pointers, (2) for external-call arguments, (3) at the final compare.  Every
+   use is counted and printed (NORM lines); nothing else is forgiven. *)
+let seg_table_addr = lazy (Option.map fst (Hashtbl.find_opt addrs "sSegmentTable"))
+let virt img r =
+  let seg = r lsr 24 in
+  if r >= 0x400 && r < ram_size then Some (ram_base + r, "phys")
+  else if seg >= 1 && seg < 32 then
+    match Lazy.force seg_table_addr with
+    | Some t ->
+        let base = (Char.code (Bytes.get img (t + 4 * seg - ram_base)) lsl 24)
+                   lor (Char.code (Bytes.get img (t + 4 * seg + 1 - ram_base)) lsl 16)
+                   lor (Char.code (Bytes.get img (t + 4 * seg + 2 - ram_base)) lsl 8)
+                   lor Char.code (Bytes.get img (t + 4 * seg + 3 - ram_base)) in
+        if base = 0 then None else Some (ram_base lor (base + (r land 0xFFFFFF)), "seg")
+    | None -> None
+  else None
+let norm_entry = ref 0 and norm_entry_seg = ref 0
+(* only while building the entry memory: bytes a replayed call writes (a DMA'd
+   anim header holds raw file offsets) are taken as the game wrote them *)
+let entry_phase = ref true
 
 (* ---------------- program ---------------- *)
 let ge = get LinkGenv.ge12
@@ -92,7 +126,16 @@ let sizeof t = zi (Ctypes.sizeof cenv t)
 let blk_int b = pos_to_int b
 
 (* ---------------- initial memory ---------------- *)
+(* ROM_SIZED=1: give ROM-space symbols (gMarioAnims) at least their ROM extent
+   as block size.  Historical: before 2026-10-22 gMarioAnims was a size-0 block
+   (data not linked) and this let anim frames run past that finding.  The anim
+   data is now linked (36th TU), so the model's block already has its real size
+   (580632 bytes of initializer; the ROM extent 0x8DC20 adds alignment). *)
+let rom_sized = Sys.getenv_opt "ROM_SIZED" = Some "1"
 let size_of_extern i =
+  match Stdlib.List.find_opt (fun (n, _, _) -> n = name i) !rom_addrs with
+  | Some (_, _, ext) when rom_sized -> Some (iz ext)
+  | _ ->
   match Hashtbl.find_opt addrs (name i) with
   | Some (_, hint) -> (
       match Hashtbl.find_opt def_of (name i) with
@@ -122,6 +165,18 @@ let placed, fun_at, addr_of_blk =
                if sz > 0 then pl := (a, sz, b, name i) :: !pl)
       | _ -> ()) defs;
   (Array.of_list (Stdlib.List.sort compare !pl), fa, ab)
+
+(* ROM-space symbols (gMarioAnims, the anim DMA source): the game holds the ROM
+   address as an integer; in the model it is &symbol + offset (the linked anim
+   data's block).  Normalization, counted like the others. *)
+let rom_syms =
+  Stdlib.List.filter_map (fun (n, a, ext) ->
+      match Globalenvs.Genv.find_symbol genv (ident n) with
+      | Some b -> Hashtbl.replace addr_of_blk (blk_int b) a; Some (a, ext, b)
+      | None -> None) !rom_addrs
+let norm_rom = ref 0
+let rom_loc v = Stdlib.List.find_map (fun (a, ext, b) ->
+    if v >= a && v < a + ext then Some (b, v - a) else None) rom_syms
 
 let max_size = Array.fold_left (fun m (_, sz, _, _) -> max m sz) 0 placed
 
@@ -195,11 +250,27 @@ let () =
   tick "globals filled"
 
 (* ---------------- pointers ---------------- *)
-let resolve v =
+let resolve_virt v =
   if v = 0 then None
   else match Hashtbl.find_opt fun_at v with
     | Some b -> Some (b, 0)
-    | None -> loc v
+    | None -> (match loc v with
+        | Some r -> Some r
+        | None when not !entry_phase -> None
+        | None -> (match rom_loc v with Some r -> incr norm_rom; Some r | None -> None))
+
+(* a pointer-typed word: KSEG0 as is; segmented / physical through [virt] (normalization) *)
+let resolve v =
+  match resolve_virt v with
+  | Some r -> Some r
+  | None when not !entry_phase -> None
+  | None -> (
+      match virt img v with
+      | Some (w, cls) -> (
+          match resolve_virt w with
+          | Some r -> incr norm_entry; if cls = "seg" then incr norm_entry_seg; Some r
+          | None -> None)
+      | None -> None)
 
 let n_ptr = ref 0 and n_heur = ref 0
 
@@ -248,6 +319,14 @@ let plausible v = v >= 0x80000400 && in_ram v
 (* heap objects reached by typed pointers (not placed globals): compared too *)
 let heap_regions : (int, int) Hashtbl.t = Hashtbl.create 1024
 
+(* a placed global whose own C type has no pointers (a byte buffer such as
+   gMarioAnimsBuf): typed objects inside it are reached only through pointers *)
+let untyped_buffer v = match find_placed v with
+  | Some (_, _, _, nm) -> (match Hashtbl.find_opt def_of nm with
+      | Some (_, Gvar gv) -> not (has_ptr gv.gvar_info)
+      | _ -> false)
+  | None -> false
+
 let rec walk a t =
   if not (has_ptr t) then ()
   else match t with
@@ -257,10 +336,15 @@ let rec walk a t =
         if v <> 0 && store_ptr a v then begin
           incr n_ptr;
           (match pt, loc v with
-           | (Tstruct _ | Tarray _ | Tpointer _), Some (b, _) when b == rest || find_placed v = None ->
+           | (Tstruct _ | Tarray _ | Tpointer _), Some (b, _) when b == rest || find_placed v = None || untyped_buffer v ->
                let key = (v, pt) in
                (match pt with
-                | Tstruct _ -> Hashtbl.replace heap_regions v (max (sizeof pt) (Option.value ~default:0 (Hashtbl.find_opt heap_regions v)))
+                (* not compared: OSThread register save areas (gGameLoopThread &c.,
+                   reached through message queues): the OS writes them on every
+                   context switch, e.g. while the game thread blocks in osRecvMesg
+                   (TRUST 3.3/3.5); they are not C state of the link *)
+                | Tstruct (sid, _) when name sid = "OSThread_s" -> ()
+                | Tstruct _ when find_placed v = None -> Hashtbl.replace heap_regions v (max (sizeof pt) (Option.value ~default:0 (Hashtbl.find_opt heap_regions v)))
                 | _ -> ());
                if not (Hashtbl.mem visited key) then (Hashtbl.replace visited key (); walk v pt)
            | _ -> ())
@@ -307,13 +391,16 @@ let () =
           | _ -> ())
       | _ -> ()) defs;
   tick "pointers walked";
+  entry_phase := false;
   (match Sys.getenv_opt "BLK" with
    | Some k -> Array.iter (fun (s, sz, b, n) -> if blk_int b = int_of_string k then
        Printf.printf "blk%s = %s @%08x size %d type %s\n" k n s sz
          (match Hashtbl.find def_of n with (_, Gvar v) -> Pp.ty v.gvar_info | _ -> "fun")) placed
    | None -> ());
   Printf.printf "memory: %d globals placed, %d typed pointers, %d union-heuristic pointers\n%!"
-    (Array.length placed) !n_ptr !n_heur
+    (Array.length placed) !n_ptr !n_heur;
+  Printf.printf "entry normalization: %d pointer words were segmented/physical (%d segmented), %d ROM addresses\n%!"
+    !norm_entry !norm_entry_seg !norm_rom
 
 (* PROBE=struct:field,... debugging: follow a pointer chain from a placed global *)
 let () = match Sys.getenv_opt "PROBE" with
@@ -382,7 +469,10 @@ let check_args c targs vargs =
             Hashtbl.replace bindings (blk_int b) (r - zi o, zi o + sz, pt); go (k + 1) afb' ts' vs'
         | _, Some r -> (
             match real_of_val v with
-            | Some mv when mv <> r -> Some (Printf.sprintf "arg %d: model %08x real %08x" k mv r)
+            | Some mv when mv <> r && (match v, virt img r with
+                | Vptr _, Some (w, cls) when w = mv ->
+                    Printf.printf "NORM %s arg %d of call #%d %s: real %08x model %08x\n" cls k !cursor c.cname r mv; false
+                | _ -> true) -> Some (Printf.sprintf "arg %d: model %08x real %08x" k mv r)
             | Some _ -> go (k + 1) afb' ts' vs'
             | None -> Some (Printf.sprintf "arg %d: model value not a word" k))
         | _, None -> go (k + 1) afb' ts' vs')
@@ -411,7 +501,12 @@ let apply_diffs c =
           end) bindings;
       for k = (a - 3) to a + n - 1 do
         match Hashtbl.find_opt slots k with
-        | Some t -> Hashtbl.remove visited (u32 img k, t); walk k t
+        | Some t ->
+            (* the call wrote part of this pointer word: the real store wrote all of it
+               (a byte it left equal is not in the diff, but in the model it may still
+               be a fragment of the old pointer, which would make the word Vundef) *)
+            if k < a || k + 4 > a + n then write_real k (Bytes.sub_string img (k - ram_base) 4);
+            Hashtbl.remove visited (u32 img k, t); walk k t
         | None -> ()
       done) c.diffs
 
@@ -503,6 +598,16 @@ let extcall ef vargs m =
       | _ -> fail "memcpy args")
   | ef -> fail ("unsupported builtin " ^ str (ClightInterp.ef_label ef))
 
+(* DMA destinations (osPiStartDma's vAddr, nbytes: 5th/6th args, on the stack)
+   are compared too: the anim buffer the model relocates after the DMA is reached
+   by a void * (bufTarget), so the typed walk alone may not cover it *)
+let () = Array.iter (fun c ->
+    if c.cname = "osPiStartDma" then begin
+      let d = r_stack 0 c and n = r_stack 1 c in
+      if in_ram d && find_placed d = None then
+        Hashtbl.replace heap_regions d (max n (Option.value ~default:0 (Hashtbl.find_opt heap_regions d)))
+    end) calls
+
 (* ---------------- run ---------------- *)
 let () =
   let fb = get (Globalenvs.Genv.find_symbol genv (ident "execute_mario_action")) in
@@ -531,7 +636,29 @@ let () =
       let bad = ref 0 and undef = ref 0 and total = ref 0 in
       let changed = ref 0 and changed_by_model = ref 0 in
       let reports = ref [] in
+      (* a byte of a model pointer whose real word is the same object under [virt] *)
+      let normed = Hashtbl.create 16 in
+      let norm_byte where x mv =
+        match mv with
+        | Fragment (v, _, n) -> (
+            let x0 = x - (3 - n) in
+            let r = u32 exit_ x0 in
+            match real_of_val v, virt exit_ r with
+            | Some w, Some (w', cls) when w = w' ->
+                if not (Hashtbl.mem normed x0) then Hashtbl.replace normed x0 (where x0, cls, r, w);
+                true
+            | _ -> false)
+        | _ -> false in
+      (* Not compared: the thread stacks (buffers.c, linked since 2026-10-21).
+         gThread5Stack is the game thread's MACHINE stack: IDO's frames, spills
+         and return addresses for the very calls being replayed, which the model
+         keeps in CompCert stack blocks instead; the others belong to other
+         threads (TRUST 3.3).  No C code of the link names them except to start
+         threads. *)
+      let not_compared = [ "gThread3Stack"; "gThread4Stack"; "gThread5Stack";
+                           "gIdleThreadStack"; "gGfxSPTaskStack" ] in
       Array.iter (fun (s, sz, b, nm) ->
+          if not (Stdlib.List.mem nm not_compared) then
           let c = Maps.PMap.get b contents in
           let run = ref None in
           let flush () = match !run with
@@ -544,8 +671,10 @@ let () =
               incr changed;
               if not (Hashtbl.mem replayed_bytes (s + k)) then incr changed_by_model
             end;
-            match byte_of (Maps.ZMap.get (iz k) c) with
+            let mv = Maps.ZMap.get (iz k) c in
+            match byte_of mv with
             | Some v when v = real -> flush ()
+            | Some _ when norm_byte (fun x0 -> Printf.sprintf "%s+0x%x" nm (x0 - s)) (s + k) mv -> flush ()
             | Some _ -> incr bad; (match !run with Some (st, _) -> run := Some (st, s + k + 1) | None -> run := Some (s + k, s + k + 1))
             | None -> incr undef; flush ()
           done;
@@ -562,8 +691,10 @@ let () =
               incr hb;
               let real = u8 exit_ x in
               if real <> u8 entry x then (incr hchanged; if not (Hashtbl.mem replayed_bytes x) then incr hmodel);
-              match byte_of (Maps.ZMap.get (iz (x - ram_base)) rc) with
+              let mv = Maps.ZMap.get (iz (x - ram_base)) rc in
+              match byte_of mv with
               | Some v when v = real -> ()
+              | Some _ when norm_byte (fun x0 -> Printf.sprintf "heap %08x (object @%08x+0x%x)" x0 a (x0 - a)) x mv -> ()
               | Some v ->
                   incr hbad;
                   if !hbad <= 20 then Printf.printf "  HEAP DIFF %08x (object @%08x+0x%x): model %02x real %02x (entry %02x)\n" x a k v real (u8 entry x)
@@ -573,6 +704,12 @@ let () =
       Printf.printf "heap:    %d bytes over %d typed heap objects, %d differ; real frame changed %d, model computed %d of those\n"
         !hb (Hashtbl.length heap_regions) !hbad !hchanged !hmodel;
       if !hbad > 0 then bad := !bad + !hbad;
+      let quiet = ref 0 in
+      Hashtbl.iter (fun x0 (where, cls, r, w) ->
+          if u32 entry x0 <> r || Stdlib.List.exists (fun k -> Hashtbl.mem replayed_bytes (x0 + k)) [0; 1; 2; 3] then
+            Printf.printf "NORM %s final %s: real %08x model %08x (written this frame)\n" cls where r w
+          else incr quiet) normed;
+      Printf.printf "normalized: %d unchanged pointer words (segmented/physical in the ROM's RAM, pointers in the model)\n" !quiet;
       Printf.printf "compare: %d bytes over placed globals, %d differ, %d undefined in model\n" !total !bad !undef;
       Printf.printf "         the real frame changed %d of them; %d of those were computed by the model (not written by a replayed call)\n" !changed !changed_by_model;
       Stdlib.List.iter (fun (nm, o, n) ->

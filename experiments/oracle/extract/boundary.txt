@@ -1,13 +1,23 @@
+var wooden_signpost_seg3_collision_0302DD80 0 init=0
+var wiggler_seg5_anims_0500EC8C 0 init=0
+var wiggler_seg5_anims_0500C874 0 init=0
+fun wipe_main_menu_data
 fun water_level_pillar_undrained
 fun water_level_pillar_drained
-extfun warp_camera void
+fun water_death_move_to_mario_side
+var water_ring_seg6_anims_06013F7C 0 init=0
+fun warp_camera
 fun warp_credits
 fun warp_special
 fun warp_area
-var warp_pipe_seg3_collision_03009AC8 0 init=0
+var warp_pipe_seg3_collision_03009AC8 528 init=528
 fun warp_level
+var wmotr_seg7_collision 12318 init=12318
+var wmotr_seg7_macro_objs 262 init=262
 fun whomp_on_ground_general
 fun whomp_on_ground
+var whomp_seg6_collision_06020A0C 0 init=0
+var whomp_seg6_anims_06020A04 0 init=0
 fun whomp_init
 fun whomp_patrol
 fun whomp_play_sfx_from_pound_animation
@@ -18,107 +28,321 @@ fun whomp_turn
 fun whomp_jump
 var wdw_seg7_collision_070186B4 0 init=0
 var wdw_seg7_collision_07018528 0 init=0
+var wdw_seg7_collision_square_floating_platform 0 init=0
+var wdw_seg7_collision_arrow_lift 0 init=0
+var wdw_seg7_collision_express_elevator_platform 0 init=0
+var wdw_seg7_collision_rect_floating_platform 0 init=0
+fun write_eeprom_data
+var wf_seg7_collision_kickable_board 0 init=0
+var wf_seg7_collision_clocklike_rotation 0 init=0
+var wf_seg7_collision_small_bomp 0 init=0
+var wf_seg7_collision_sliding_brick_platform 0 init=0
+var wf_seg7_collision_platform 0 init=0
+var wf_seg7_collision_large_bomp 0 init=0
+var wf_seg7_collision_tower_door 0 init=0
+var wf_seg7_collision_tower 0 init=0
 var wf_seg7_collision_tumbling_bridge 0 init=0
+var wf_seg7_collision_bullet_bill_cannon 0 init=0
+var wf_seg7_collision_breakable_wall_2 0 init=0
+var wf_seg7_collision_breakable_wall 0 init=0
 var wf_seg7_collision_rotating_platform 0 init=0
-var gMarioAnimsBuf 12 init=0
-var gMarioObject 4 init=0
-var gMarioOnMerryGoRound 2 init=0
-var gMarioCurrentRoom 2 init=0
-var gMarioShotFromCannon 2 init=0
-var gMarioSpawnInfo 4 init=0
+var gMacroObjectDefaultParent 608 init=608
+var gMainMenuDataModified 1 init=1
+var gMainReceivedMesg 4 init=4
+var gMainPoolState 4 init=4
+var gMarioAnimsMemAlloc 4 init=4
+var gMarioAnims 580632 init=580632
+var gMarioAnimsBuf 12 init=12
+var gMarioObject 4 init=4
+var gMarioOnMerryGoRound 2 init=2
+var gMarioCurrentRoom 2 init=2
+var gMarioShotFromCannon 2 init=2
+var gMarioSpawnInfo 4 init=4
 var gMarioStates 200 init=200
 var gMarioState 4 init=4
-var gMenuOptSelectIndex 2 init=0
-var gEnvironmentRegions 4 init=0
-var gEnvironmentLevels 80 init=0
-var gAudioRandom 4 init=0
-var gAreaUpdateCounter 2 init=0
-var gAreas 4 init=0
+var gMenuOptSelectIndex 2 init=2
+var gEepromProbe 1 init=1
+var gEndWavingFocus 72 init=72
+var gEndWavingPos 72 init=72
+var gEnvironmentRegions 4 init=4
+var gEnvironmentLevels 80 init=80
+var gEffectsMemoryPool 4 init=4
+var goomba_seg8_anims_0801DA4C 0 init=0
+var gUnknownWallCount 4 init=4
+var gUnused80226E98 32 init=32
+var gUnused80226E58 64 init=64
+var gUnusedCount80333EE8 1 init=1
+var gAiBuffers 12 init=12
+var gAiBufferLengths 6 init=6
+var gAudioInitPoolSize 4 init=4
+var gAudioGlobalsEndMarker 8 init=8
+var gAudioCosineTable 256 init=256
+var gAudioCmd 4 init=4
+var gAudioCmdBuffers 8 init=8
+var gAudioSessionPresets 504 init=504
+var gAudioFrameCount 4 init=4
+var gAudioRandom 4 init=4
+var gAudioHeapSize 4 init=4
+var gAudioHeap 201216 init=201216
+var gAudioTaskIndex 4 init=4
+var gAudioTasks 160 init=160
+var gAudioTask 4 init=4
+var gAudioLoadLock 4 init=4
+var gArctanTable 2050 init=2050
+var gAreaUpdateCounter 2 init=2
+var gAreas 4 init=4
+var gAreaData 480 init=480
+var gIdleThreadStack 2048 init=2048
+var gIntroLakituStartToPipeOffsetFromCamera 280 init=280
+var gIntroLakituStartToPipeFocus 280 init=280
+var gOsSiMessageQueue 24 init=24
+var gOsSiAccessQueueCreated 4 init=4
 var gOpenableGrills 16 init=16
-var gObjCutsceneDone 4 init=0
-var gGlobalSoundSource 12 init=0
-var gGlobalTimer 4 init=0
+var gObjCutsceneDone 4 init=4
+var gObjectMemoryPool 4 init=4
+var gObjectCounter 4 init=4
+var gObjectPool 145920 init=145920
+var gObjectListArray 1664 init=1664
+var gObjectLists 4 init=4
+var gObjParentGraphNode 20 init=20
+var gGoddardVblankCallback 4 init=4
+var gGotFileCoinHiScore 1 init=1
+var gGameMesgBuf 4 init=4
+var gGameVblankQueue 24 init=24
+var gGameVblankHandler 8 init=8
+var gGlobalSoundSource 12 init=12
+var gGlobalTimer 4 init=4
+var gGfxMesgBuf 4 init=4
+var gGfxSPTaskYieldBuffer 3072 init=3072
+var gGfxSPTaskOutputBuffer 126976 init=0
+var gGfxSPTaskStack 1024 init=1024
+var gGfxSPTask 4 init=4
+var gGfxVblankQueue 24 init=24
+var gGfxPoolEnd 4 init=4
+var gGfxPools 102560 init=102560
+var gGfxPool 4 init=4
 var gWaterSurfacePseudoFloor 48 init=48
-var gWarpTransition 22 init=0
-var gWDWWaterLevelChanging 2 init=0
-var gControllers 84 init=0
-var gCameraMovementFlags 2 init=0
-var gCamera 4 init=0
-var gCCMEnteredSlide 2 init=0
-var gCutsceneFocus 4 init=0
-var gCurGraphNodeObject 4 init=0
-var gCurGraphNodeCamera 4 init=0
+var gWarpCheckpoint 5 init=5
+var gWarpTransition 22 init=22
+var gWarpTransGreen 1 init=1
+var gWarpTransFBSetColor 4 init=4
+var gWarpTransBlue 1 init=1
+var gWarpTransRed 1 init=1
+var gWarpTransDelay 2 init=2
+var gWaveSamples 16 init=16
+var gWDWWaterLevelChanging 2 init=2
+var gControllers 84 init=84
+var gControllerStatuses 16 init=16
+var gControllerBits 1 init=1
+var gControllerPads 24 init=24
+var gCameraMovementFlags 2 init=2
+var gCamera 4 init=4
+var gCameraZoomDist 4 init=4
+var gCCMEnteredSlide 2 init=2
+var gCutsceneObjSpawn 4 init=4
+var gCutsceneFocus 4 init=4
+var gCutsceneTimer 2 init=2
+var gCurGraphNodeMasterList 4 init=4
+var gCurGraphNodeObject 4 init=4
+var gCurGraphNodeCamera 4 init=4
+var gCurGraphNodeCamFrustum 4 init=4
+var gCurGraphNodeRoot 4 init=4
 var gCurGraphNodeHeldObject 4 init=0
-var gCurrActNum 2 init=0
-var gCurrAreaIndex 2 init=0
-var gCurrCourseStarFlags 1 init=0
-var gCurrCourseNum 2 init=0
-var gCurrCreditsEntry 4 init=0
-var gCurrSaveFileNum 2 init=0
-var gCurrentArea 4 init=0
-var gCurrentObject 4 init=0
-var gCurrDemoInput 4 init=0
-var gCurrLevelNum 2 init=0
-var gSineTable 0 init=0
-var gSaveOptSelectIndex 2 init=0
-var gSavedCourseNum 2 init=0
-var gSecondCameraFocus 4 init=0
+var gCurBhvCommand 4 init=4
+var gCurrActNum 2 init=2
+var gCurrAiBufferIndex 4 init=4
+var gCurrAudioFrameDmaCount 4 init=4
+var gCurrAreaIndex 2 init=2
+var gCurrCourseStarFlags 1 init=1
+var gCurrCourseNum 2 init=2
+var gCurrCreditsEntry 4 init=4
+var gCurrSaveFileNum 2 init=2
+var gCurrentArea 4 init=4
+var gCurrentObject 4 init=4
+var gCurrDemoInput 4 init=4
+var gCurrLevelArea 4 init=4
+var gCurrLevelNum 2 init=2
+var gCheckingSurfaceCollisionsForCamera 2 init=2
+var gSIEventMesgQueue 24 init=24
+var gSineTable 20480 init=20480
+var gSaveOptSelectIndex 2 init=2
+var gSaveFileModified 1 init=1
+var gSaveBuffer 512 init=512
+var gSavedCourseNum 2 init=2
+var gSecondCameraFocus 4 init=4
+var gSurfacesAllocated 4 init=4
+var gSurfaceNodesAllocated 4 init=4
 var gShowProfiler 1 init=0
-var gShowDebugText 1 init=0
+var gShowDebugText 1 init=1
 var gShallowWaterWaveDropletParams 36 init=36
 var gShallowWaterSplashDropletParams 36 init=36
-var gSpecialTripleJump 1 init=0
+var gSpecialTripleJump 1 init=1
+var gSplineState 4 init=4
+var gSplineKeyframe 4 init=4
+var gSplineKeyframeFraction 4 init=4
+var gStaticSurfacePartition 6144 init=6144
+var gStereoPanVolume 512 init=512
+fun geo_obj_init_spawninfo
+fun geo_obj_init_animation_accel
+fun geo_obj_init_animation
+fun geo_obj_init
+fun geo_offset_klepto_held_object
+fun geo_offset_klepto_debug
+fun geo_camera_main
+fun geo_camera_fov
+fun geo_call_global_function_nodes_helper
+fun geo_call_global_function_nodes
+fun geo_switch_area
+fun geo_switch_anim_state
 fun geo_switch_peach_eyes
 fun geo_switch_tuxie_mother_eyes
 fun geo_switch_bowser_eyes
 fun geo_scale_bowser_key
+fun geo_add_child
 fun geo_move_mario_part_from_parent
-extfun geo_update_animation_frame int
+fun geo_make_first_child
+fun geo_update_animation_frame
 fun geo_update_held_mario_pos
 fun geo_update_projectile_pos_from_parent_copy
+fun geo_update_projectile_pos_from_parent
+fun geo_update_layer_transparency
 fun geo_update_body_rot_from_parent
+extfun geo_process_root void
 fun geo_bits_bowser_coloring
+fun geo_reset_object_node
+fun geo_remove_child
+fun geo_retreive_animation_translation
+fun geo_find_root
+fun get_object_list_from_behavior
+fun get_coin_score_age
+fun get_cutscene_from_mario_status
+extfun get_current_clock i64
 extfun get_current_background_music int
+extfun get_clock_difference i64
 fun get_credits_str_width
+fun get_segment_base_addr
 fun get_star_collection_dialog
 fun get_additive_y_vel_for_jumps
 fun get_mario_cap_flag
-extfun get_mario_spawn_type int
+fun get_mario_spawn_type
 extfun get_mario_pos void
+fun get_pos_from_transform_mtx
 fun get_painting_warp_node
 fun get_door_save_file_flag
 extfun get_dialog_id int
 fun get_buoyancy
 fun general_star_dance_handler
 fun generate_yellow_sparkles
+extfun guMtxF2L void
+var gNoteFrequencies 512 init=512
+var gNmiResetBarsTimer 1 init=0
 var gNeverEnteredCastle 1 init=1
-var gFreeObjectList 104 init=0
-var gVec3fZero 12 init=0
-var gBodyStates 80 init=0
-var gRecentCutscene 1 init=0
-var gPaintingMarioYEntry 4 init=0
-var gPlayerCameraState 72 init=0
-var gPlayerSpawnInfos 0 init=0
-var gPlayer1Controller 4 init=0
-var gPrevFrameObjectCount 2 init=0
+var gNumCalls 6 init=6
+var gNumStaticSurfaces 4 init=4
+var gNumStaticSurfaceNodes 4 init=4
+var gNumFindFloorMisses 4 init=4
+var gNumRoomedObjectsInMarioRoom 2 init=2
+var gNumRoomedObjectsNotInMarioRoom 2 init=2
+var gFindFloorIncludeSurfaceIntangible 2 init=2
+var gFBSetColor 4 init=4
+var gFramebuffers 460800 init=0
+var gFreeObjectList 104 init=104
+var gVolRampingRhs144 512 init=512
+var gVolRampingRhs128 512 init=512
+var gVolRampingRhs136 512 init=512
+var gVolRampingLhs144 512 init=512
+var gVolRampingLhs128 512 init=512
+var gVolRampingLhs136 512 init=512
+var gVibratoCurve 16 init=16
+var gVec3sOne 6 init=6
+var gVec3sZero 6 init=6
+var gVec3fOne 12 init=12
+var gVec3fZero 12 init=12
+var gBodyStates 80 init=80
+var gRipplingPainting 4 init=0
+var gRecordedDemoInput 4 init=4
+var gRecentCutscene 1 init=1
+var gResetTimer 1 init=0
+var gZBuffer 153600 init=0
+var gPitchBendFrequencyScale 1020 init=1020
+var gPaintingMarioYEntry 4 init=4
+var gPhysicalFramebuffers 12 init=12
+var gPhysicalZBuffer 4 init=4
+var gPlayer2Controller 4 init=4
+var gPlayerCameraState 72 init=72
+var gPlayerSpawnInfos 32 init=32
+var gPlayer1Controller 4 init=4
+var gPlayer3Controller 4 init=4
+var gPrevFrameObjectCount 2 init=2
+var gPrevLevel 4 init=4
+var gHeadsetPanQuantization 20 init=20
+var gHeadsetPanVolume 512 init=512
 var gHudDisplay 14 init=14
 fun grindel_thwomp_act_idle_at_top
 fun grindel_thwomp_act_idle_at_bottom
 fun grindel_thwomp_act_lower
 fun grindel_thwomp_act_land
 fun grindel_thwomp_act_raise
+var grabReleaseState 4 init=4
 fun grand_star_zero_velocity
-var gDoorAdjacentRooms 120 init=0
-var gDialogResponse 4 init=0
-var gDebugInfo 0 init=0
-var gDebugLevelSelect 1 init=0
+var gDoorAdjacentRooms 120 init=120
+var gDynamicSurfacePartition 6144 init=6144
+var gDisplayListHead 4 init=4
+var gDialogResponse 4 init=4
+var gDmaMesgQueue 24 init=24
+var gDmaIoMesg 20 init=20
+var gDecompressionHeap 53248 init=53248
+var gDemoInputsMemAlloc 4 init=4
+var gDemoInputs 0 init=0
+var gDemoInputsBuf 12 init=12
+var gDemoInputListID 2 init=2
+var gDebugInfoOverwrite 256 init=256
+var gDebugInfo 256 init=256
+var gDebugInfoFlags 4 init=4
+var gDebugLevelSelect 1 init=1
+var gDefaultEnvelope 12 init=12
+var gDefaultShortNoteVelocityTable 16 init=16
+var gDefaultShortNoteDurationTable 16 init=16
+var gDefaultPanVolume 512 init=512
 var gDDDPaintingStatus 1 init=0
-var gTimeStopState 4 init=0
-var gTHIWaterDrained 2 init=0
-var gTTCSpeedSetting 2 init=0
-var gLastCompletedCourseNum 1 init=0
-var gLastCompletedStarNum 1 init=0
-var gLevelToCourseNumTable 0 init=0
+var gTimeStopState 4 init=4
+var gTatumsPerBeat 2 init=2
+var gThread4Stack 8192 init=8192
+var gThread5Stack 8192 init=8192
+var gThread3Stack 8192 init=8192
+var gTHIWaterDrained 2 init=2
+var gTTCSpeedSetting 2 init=2
+var gLoadedGraphNodes 4 init=4
+var gLakituState 192 init=192
+var gLastCompletedCourseNum 1 init=1
+var gLastCompletedStarNum 1 init=1
+var gLevelToCourseNumTable 38 init=38
+var gLuigiObject 4 init=4
+extfun osMapTLBRdb void
+fun osEepromWrite
+extfun osEepromProbe int
+fun osEepromLongWrite
+extfun osEepromLongRead int
+var osAppNmiBuffer 64 init=0
+fun osInitialize
+extfun osInvalICache void
+extfun osInvalDCache void
+extfun osGetTime i64
+extfun osWritebackDCacheAll void
+extfun osWritebackDCache void
+fun osContInit
+extfun osContGetReadData void
+extfun osContStartReadData int
+var osClockRate 8 init=8
+fun osCreateMesgQueue
+var osSiMesgBuff 8 init=8
+extfun osSetTimer int
+extfun osSendMesg int
+extfun osViSwapBuffer void
+extfun osRecvMesg int
+var osResetType 4 init=0
+extfun osPiStartDma int
+extfun osPiRawReadIo int
 fun opened_cannon_act_0
 fun opened_cannon_act_4
 fun opened_cannon_act_2
@@ -126,50 +350,72 @@ fun opened_cannon_act_6
 fun opened_cannon_act_1
 fun opened_cannon_act_5
 fun opened_cannon_act_3
+fun open_door_cutscene
+fun object_pos_to_vec3f
 fun object_facing_mario
-extfun obj_copy_graph_y_offset void
-extfun obj_copy_scale void
-extfun obj_copy_pos_and_angle void
-extfun obj_copy_pos void
-extfun obj_copy_behavior_params void
-extfun obj_check_if_collided_with_object int
-extfun obj_scale_xyz void
-extfun obj_scale_random void
-extfun obj_scale void
-extfun obj_set_gfx_pos_at_obj_pos void
-extfun obj_set_gfx_pos_from_pos void
-extfun obj_set_collision_data void
+fun obj_copy_graph_y_offset
+fun obj_copy_scale
+fun obj_copy_angle
+fun obj_copy_pos_and_angle
+fun obj_copy_pos
+fun obj_copy_behavior_params
+fun obj_check_if_collided_with_object
+fun obj_create_transform_from_self
+fun obj_scale_xyz
+fun obj_scale_random
+fun obj_scale
+fun obj_set_gfx_pos_at_obj_pos
+fun obj_set_gfx_pos_from_pos
+fun obj_set_collision_data
 fun obj_set_secondary_camera_focus
-extfun obj_set_angle void
-extfun obj_set_hitbox void
-extfun obj_set_held_state void
-extfun obj_set_pos void
-extfun obj_set_parent_relative_pos void
-extfun obj_set_billboard void
-extfun obj_set_behavior void
+fun obj_set_angle
+fun obj_set_hitbox
+fun obj_set_held_state
+fun obj_set_pos_relative
+fun obj_set_pos
+fun obj_set_parent_relative_pos
+fun obj_set_throw_matrix_from_transform
+fun obj_set_billboard
+fun obj_set_behavior
+fun obj_set_face_angle_to_move_angle
 extfun obj_spit_fire void
-extfun obj_spawn_loot_yellow_coins void
-extfun obj_is_hidden int
-extfun obj_init_animation_with_sound void
-extfun obj_attack_collided_from_other_object int
-extfun obj_angle_to_object int
-extfun obj_mark_for_deletion void
-extfun obj_explode_and_spawn_coins void
-extfun obj_update_pos_from_parent_transformation void
+fun obj_spawn_loot_coins
+fun obj_spawn_loot_yellow_coins
+fun obj_spawn_loot_blue_coins
+fun obj_is_hidden
+fun obj_init_animation_with_sound
+fun obj_init_animation
+fun obj_apply_scale_to_matrix
+fun obj_apply_scale_to_transform
+fun obj_attack_collided_from_other_object
+fun obj_angle_to_object
+fun obj_mark_for_deletion
+fun obj_explode_and_spawn_coins
+fun obj_update_pos_from_parent_transformation
 fun obj_has_attack_type
-extfun obj_has_behavior int
-extfun obj_turn_toward_object int
-extfun obj_translate_xyz_random void
-extfun obj_translate_xz_random void
-extfun obj_translate_local void
-extfun obj_become_tangible void
-extfun obj_build_transform_from_pos_and_angle void
-extfun override_viewport_and_clip void
+fun obj_has_behavior
+fun obj_turn_toward_object
+fun obj_translate_xyz_random
+fun obj_translate_xz_random
+fun obj_translate_local
+fun obj_become_tangible
+fun obj_build_transform_relative_to_parent
+fun obj_build_transform_from_pos_and_angle
+fun obj_build_relative_transform
+fun obj_build_vel_from_transform
+fun obj_rotate_towards_point
+fun offset_yaw_outward_radial
+fun offset_rotated_coords
+fun offset_rotated
+fun override_viewport_and_clip
+var koopa_seg6_anims_06011364 0 init=0
 fun koopa_shell_spawn_water_drop
 fun koopa_shell_spawn_sparkles
+var koopa_flag_seg6_anims_06001028 0 init=0
 fun king_whomp_on_ground
 fun king_whomp_chase
 fun king_whomp_stop_music
+var king_bobomb_seg5_anims_0500FE30 0 init=0
 fun king_bobomb_act_0
 fun king_bobomb_act_8
 fun king_bobomb_act_4
@@ -180,6 +426,7 @@ fun king_bobomb_act_5
 fun king_bobomb_act_3
 fun king_bobomb_act_7
 fun king_bobomb_move
+var klepto_seg5_anims_05008CFC 0 init=0
 fun coin_inside_boo_act_0
 fun coin_inside_boo_act_1
 fun common_water_knockback_step
@@ -194,112 +441,476 @@ fun common_anchor_mario_behavior
 fun common_landing_cancels
 fun common_landing_action
 fun common_death_handler
+fun count_objects_with_behavior
+fun count_unimportant_objects
+fun copy_spline_segment
+fun copy_mario_state_to_object
+fun collide_with_walls
+fun convert_rotation
 var cyan_fish_seg6_anims_0600E264 0 init=0
 fun cage_ukiki_held_loop
-extfun camera_approach_f32_symmetric f32
+var castle_grounds_seg7_collision_cannon_grill 0 init=0
+var castle_grounds_seg7_collision_moat_grills 0 init=0
+var castle_grounds_seg7_anims_flags 0 init=0
+fun camera_course_processing
+fun camera_approach_s16_symmetric_bool
+fun camera_approach_s16_symmetric
+fun camera_approach_f32_symmetric_bool
+fun camera_approach_f32_symmetric
+fun cam_cotmc_exit_waterfall
+fun cam_ccm_enter_slide_shortcut
+fun cam_ccm_leave_slide_shortcut
+fun cam_castle_close_mode
+fun cam_castle_enter_spiral_stairs
+fun cam_castle_enter_lobby_sliding_door
+fun cam_castle_enter_lobby
+fun cam_castle_hmc_start_pool_cutscene
+fun cam_castle_look_upstairs
+fun cam_castle_lobby_entrance
+fun cam_castle_leave_lobby_sliding_door
+fun cam_castle_basement_look_downstairs
+fun cam_ssl_enter_pyramid_top
+fun cam_ssl_pyramid_center
+fun cam_ssl_boss_room
+fun cam_select_alt_mode
+fun cam_sl_snowman_head_8dir
+fun cam_sl_free_roam
+fun cam_hmc_elevator_maze_emergency_exit
+fun cam_hmc_elevator_maze
+fun cam_hmc_elevator_lake
+fun cam_hmc_elevator_black_hole
+fun cam_hmc_enter_maze
+fun cam_thi_move_cam_through_tunnel
+fun cam_thi_look_through_tunnel
+fun cam_bob_default_free_roam
+fun cam_bob_tower
+fun cam_bbh_elevator_room_lower
+fun cam_bbh_elevator
+fun cam_bbh_enter_front_door
+fun cam_bbh_leave_front_door
+fun cam_bbh_room_0_back_entrance
+fun cam_bbh_room_0
+fun cam_bbh_room_8
+fun cam_bbh_room_4
+fun cam_bbh_room_2_lower
+fun cam_bbh_room_2_library_to_trapdoor_transition
+fun cam_bbh_room_2_library
+fun cam_bbh_room_2_trapdoor_transition
+fun cam_bbh_room_2_trapdoor
+fun cam_bbh_room_6
+fun cam_bbh_room_12_upper
+fun cam_bbh_room_1
+fun cam_bbh_room_13_balcony
+fun cam_bbh_room_9_attic_transition
+fun cam_bbh_room_9_attic
+fun cam_bbh_room_9_mr_i_transition
+fun cam_bbh_room_5_hidden_to_library_transition
+fun cam_bbh_room_5_hidden
+fun cam_bbh_room_5_library_to_hidden_transition
+fun cam_bbh_room_5_library
+fun cam_bbh_room_3
+fun cam_bbh_room_7_coffins_to_mr_i_transition
+fun cam_bbh_room_7_mr_i_to_coffins_transition
+fun cam_bbh_room_7_mr_i
+fun cam_bbh_fall_off_roof
+fun cam_bbh_fall_into_pool
+fun cam_rr_exit_building_side
+fun cam_rr_exit_building_top
+fun cam_rr_enter_building_window
+fun cam_rr_enter_building_side
+fun cam_rr_enter_building
+var capswitch_collision_05003448 0 init=0
+var capswitch_collision_050033D0 0 init=0
+fun cap_switch_save
 fun cap_switch_act_0
 fun cap_switch_act_2
 fun cap_switch_act_1
 fun cap_switch_act_3
 fun cap_ukiki_held_loop
-extfun cutscene_object int
+fun calculate_yaw
+fun calculate_angles
+fun calculate_pitch
+fun calc_checksum
+fun calc_y_to_curr_floor
+fun calc_abs_dist
+fun calc_avoid_yaw
+fun calc_hor_dist
+fun cannon_approach_prev
+var cannon_lid_seg8_collision_08004950 48 init=48
+fun cutscene_goto_cvar_pos
+fun cutscene_grand_star_start
+fun cutscene_grand_star_accel_cvar2
+fun cutscene_grand_star_approach_mario
+fun cutscene_grand_star_move_cvar2
+fun cutscene_grand_star_mario_jump
+fun cutscene_grand_star_focus_mario
+fun cutscene_grand_star_fly_start
+fun cutscene_grand_star_fly_app_cvars
+fun cutscene_grand_star_fly_move_to_mario
+fun cutscene_grand_star_fly_mario_offscreen
+fun cutscene_grand_star_fly
+fun cutscene_grand_star_front_of_mario
+fun cutscene_grand_star
+fun cutscene_object_without_dialog
+fun cutscene_object_with_dialog
+fun cutscene_object
+fun cutscene_key_dance_shake_fov
+fun cutscene_key_dance_handheld_shake
+fun cutscene_key_dance_jump_closeup
+fun cutscene_key_dance_jump_cvar
+fun cutscene_key_dance_jump_above
+fun cutscene_key_dance_jump_lower_left
+fun cutscene_key_dance_jump_last
+fun cutscene_key_dance_focus_mario
+fun cutscene_key_dance
+fun cutscene_common_set_dialog_state
+fun cutscene_cap_switch_press_create_dialog
+fun cutscene_cap_switch_press_start
+fun cutscene_cap_switch_press_approach_mario
+fun cutscene_cap_switch_press_pan_left
+fun cutscene_cap_switch_press_lower_cam
+fun cutscene_cap_switch_press_rotate_around_mario
+fun cutscene_cap_switch_press
+fun cutscene_credits_reset_spline
+fun cutscene_credits
+fun cutscene_soften_music
+fun cutscene_set_fov_shake_preset
+fun cutscene_suffocation_stay_above_gas
+fun cutscene_suffocation_rotate
+fun cutscene_suffocation_fly_away
+fun cutscene_suffocation
+fun cutscene_shake_explosion
+fun cutscene_spawn_obj
+fun cutscene_sliding_doors_go_under_doorway
+fun cutscene_sliding_doors_open_set_cvars
+fun cutscene_sliding_doors_open_start
+fun cutscene_sliding_doors_open
+fun cutscene_sliding_doors_follow_mario
+fun cutscene_sliding_doors_fly_back_up
+fun cutscene_stop_dialog
+fun cutscene_star_spawn_store_info
+fun cutscene_star_spawn_end
+fun cutscene_star_spawn_update_boss_fight
+fun cutscene_star_spawn_back
+fun cutscene_star_spawn_focus_star
+fun cutscene_star_spawn_fly_back
+fun cutscene_star_spawn
+fun cutscene_intro_peach_clear_cutscene_status
+fun cutscene_intro_peach_start_letter_music
+fun cutscene_intro_peach_start_to_pipe_spline
+fun cutscene_intro_peach_start_flying_music
+fun cutscene_intro_peach_mario_appears
+fun cutscene_intro_peach_handheld_shake_off
+fun cutscene_intro_peach_play_message_music
+fun cutscene_intro_peach_play_lakitu_flying_music
+fun cutscene_intro_peach_letter
+fun cutscene_intro_peach_dialog
+fun cutscene_intro_peach_zoom_fov
+fun cutscene_intro_peach_reset_spline
+fun cutscene_intro_peach_reset_fov
+fun cutscene_intro_peach_follow_pipe_spline
+fun cutscene_intro_peach_fly_to_pipe
+fun cutscene_quicksand_death_goto_mario
+fun cutscene_quicksand_death_start
+fun cutscene_quicksand_death
+fun cutscene_mario_dialog
+fun cutscene_exit_waterfall_warp
+fun cutscene_exit_waterfall
+fun cutscene_exit_succ_shake_landing
+fun cutscene_exit_succ_start
+fun cutscene_exit_painting_start
+fun cutscene_exit_painting_move_to_mario
+fun cutscene_exit_painting_move_to_floor
+fun cutscene_exit_painting_end
+fun cutscene_exit_painting
+fun cutscene_exit_to_castle_grounds_end
+fun cutscene_exit_to_castle_grounds_focus_mario
+fun cutscene_exit_bowser_key_toss_shake
+fun cutscene_exit_bowser_succ_focus_left
+fun cutscene_exit_bowser_succ
+fun cutscene_exit_bowser_death
+fun cutscene_exit_non_painting_succ_override_cvar
+fun cutscene_exit_non_painting_succ
+fun cutscene_exit_fall_to_castle_grounds_warp
+fun cutscene_exit_fall_to_castle_grounds
+fun cutscene_ending_kiss_closeup
+fun cutscene_ending_kiss_here_we_go
+fun cutscene_ending_kiss
+fun cutscene_ending_cake_for_mario
+fun cutscene_ending_stop
+fun cutscene_ending_stars_free_peach
+fun cutscene_ending_mario_land_closeup
+fun cutscene_ending_mario_land
+fun cutscene_ending_mario_to_peach
+fun cutscene_ending_mario_fall_start
+fun cutscene_ending_mario_fall_focus_mario
+fun cutscene_ending_mario_fall
+fun cutscene_ending_peach_wakeup
+fun cutscene_ending_peach_appears
+fun cutscene_ending_peach_appear_closeup
+fun cutscene_ending_peach_descends_start
+fun cutscene_ending_peach_descends
+fun cutscene_ending_peach_descent_lower_focus
+fun cutscene_ending_peach_descent_back_to_mario
+fun cutscene_ending_look_at_sky
+fun cutscene_ending_look_up_at_castle
+fun cutscene_ending_dialog
+fun cutscene_ending_zoom_fov
+fun cutscene_ending_reset_spline
+fun cutscene_ending_follow_peach_descent
+fun cutscene_ending_fly_up_to_window
+fun cutscene_end_waving_start
+fun cutscene_end_waving
+fun cutscene_enter_cannon_start
+fun cutscene_enter_cannon_end
+fun cutscene_enter_cannon_raise
+fun cutscene_enter_pool_start
+fun cutscene_enter_pool_loop
+fun cutscene_enter_pool
+fun cutscene_enter_pyramid_top_start
+fun cutscene_enter_pyramid_top
+fun cutscene_enter_painting_stub
+fun cutscene_enter_painting
+fun cutscene_event
+fun cutscene_unsoften_music
+fun cutscene_unused_start
+fun cutscene_unused_exit_start
+fun cutscene_unused_exit_focus_mario
+fun cutscene_unused_loop
+fun cutscene_unlock_key_door_start
+fun cutscene_unlock_key_door_stub
+fun cutscene_unlock_key_door_approach_mario
+fun cutscene_unlock_key_door_focus_lock
+fun cutscene_unlock_key_door_fov_shake
+fun cutscene_unlock_key_door_fly_back
+fun cutscene_unlock_key_door
+fun cutscene_pyramid_top_explode_warp_back
+fun cutscene_pyramid_top_explode_warp
+fun cutscene_pyramid_top_explode_cam_shake
+fun cutscene_pyramid_top_explode_closeup
+fun cutscene_pyramid_top_explode_start
+fun cutscene_pyramid_top_explode_end
+fun cutscene_pyramid_top_explode_zoom_in
+fun cutscene_pyramid_top_explode_focus
+fun cutscene_pyramid_top_explode
+fun cutscene_pan_cvar9
 fun cutscene_put_cap_on
+fun cutscene_prepare_cannon_start
+fun cutscene_prepare_cannon_end
+fun cutscene_prepare_cannon_fly_to_cannon
+fun cutscene_prepare_cannon_fly_back
+fun cutscene_prepare_cannon
+fun cutscene_door_start
+fun cutscene_door_mode
+fun cutscene_door_move_behind_mario
+fun cutscene_door_end
+fun cutscene_door_loop
+fun cutscene_door_follow_mario
+fun cutscene_door_fix_cam
+fun cutscene_double_doors_end
+fun cutscene_dialog_create_dialog_box
+fun cutscene_dialog_set_flag
+fun cutscene_dialog_start
+fun cutscene_dialog_move_mario_shoulder
+fun cutscene_dialog_end
+fun cutscene_dialog
+fun cutscene_dance_closeup_shake_fov
+fun cutscene_dance_closeup_start
+fun cutscene_dance_closeup_zoom
+fun cutscene_dance_closeup_focus_mario
+fun cutscene_dance_closeup_fly_closer
+fun cutscene_dance_closeup_fly_above
+fun cutscene_dance_closeup
+fun cutscene_dance_shake_fov
+fun cutscene_dance_move_to_mario
+fun cutscene_dance_default_rotate
+fun cutscene_dance_default_focus_mario
+fun cutscene_dance_rotate_move_towards_mario
+fun cutscene_dance_rotate_move_back
+fun cutscene_dance_rotate_focus_mario
+fun cutscene_dance_rotate
+fun cutscene_dance_fly_away_shake_fov
+fun cutscene_dance_fly_away_start
+fun cutscene_dance_fly_away_approach_mario
+fun cutscene_dance_fly_away_rotate_while_flying
+fun cutscene_dance_fly_away_focus_mario
+fun cutscene_dance_fly_away
+fun cutscene_dance_fly_rotate_around_mario
+fun cutscene_death_stomach_goto_mario
+fun cutscene_death_stomach_start
+fun cutscene_death_stomach
+fun cutscene_death_standing_goto_mario
+fun cutscene_death_standing_start
+fun cutscene_death_standing
 fun cutscene_take_cap_off
-extfun cur_obj_was_attacked_or_ground_pounded int
-extfun cur_obj_wait_then_blink int
-extfun cur_obj_get_dropped void
-extfun cur_obj_get_thrown_or_placed void
-extfun cur_obj_compute_vel_xz void
-extfun cur_obj_call_action_function void
-extfun cur_obj_can_mario_activate_textbox_2 int
-extfun cur_obj_can_mario_activate_textbox int
-extfun cur_obj_change_action void
-extfun cur_obj_check_grabbed_mario int
-extfun cur_obj_check_interacted int
-extfun cur_obj_check_if_near_animation_end int
-extfun cur_obj_check_anim_frame_in_range int
-extfun cur_obj_check_anim_frame int
-extfun cur_obj_clear_interact_status_flag int
-extfun cur_obj_scale_over_time void
-extfun cur_obj_scale void
-extfun cur_obj_set_y_vel_and_animation void
-extfun cur_obj_set_action_table int
-extfun cur_obj_set_model void
-extfun cur_obj_set_hitbox_and_die_if_attacked int
-extfun cur_obj_set_hitbox_radius_and_height void
-extfun cur_obj_set_hurtbox_radius_and_height void
-extfun cur_obj_set_pos_to_home_with_debug void
-extfun cur_obj_set_pos_to_home_and_stop void
-extfun cur_obj_set_pos_to_home void
-extfun cur_obj_set_pos_relative void
-extfun cur_obj_set_pos_via_transform void
-extfun cur_obj_set_behavior void
-extfun cur_obj_set_vel_from_mario_vel void
-extfun cur_obj_shake_screen void
-extfun cur_obj_shake_y void
-extfun cur_obj_spawn_star_at_y_offset void
+fun cutscene_bowser_area_shake_fov
+fun cutscene_bowser_area_start_bowser_walking
+fun cutscene_bowser_arena_set_pos
+fun cutscene_bowser_arena_set_focus
+fun cutscene_bowser_arena_start
+fun cutscene_bowser_arena_adjust_offsets
+fun cutscene_bowser_arena_mario_dialog
+fun cutscene_bowser_arena_end
+fun cutscene_bowser_arena_pan_left
+fun cutscene_bowser_arena_dialog
+fun cutscene_bowser_arena_focus_sine
+fun cutscene_bowser_arena
+fun cutscene_bbh_death_goto_mario
+fun cutscene_bbh_death_start
+fun cutscene_bbh_death
+fun cutscene_reset_spline
+fun cutscene_read_message_set_flag
+fun cutscene_read_message_start
+fun cutscene_read_message_end
+fun cutscene_read_message
+fun cutscene_red_coin_star_warp
+fun cutscene_red_coin_star_set_fov
+fun cutscene_red_coin_star_start
+fun cutscene_red_coin_star_end
+fun cutscene_red_coin_star_look_up_at_star
+fun cutscene_red_coin_star_focus_y
+fun cutscene_red_coin_star_focus_xz
+fun cutscene_red_coin_star
+fun cutscene_non_painting_set_cam_pos
+fun cutscene_non_painting_set_cam_focus
+fun cutscene_non_painting_end
+fun cutscene_non_painting_death_override_offset
+fun cutscene_non_painting_death_start
+fun cutscene_non_painting_death
+fun cur_obj_within_12k_bounds
+fun cur_obj_was_attacked_or_ground_pounded
+fun cur_obj_wait_then_blink
+fun cur_obj_get_dropped
+fun cur_obj_get_thrown_or_placed
+fun cur_obj_outside_home_square
+fun cur_obj_outside_home_rectangle
+fun cur_obj_compute_vel_xz
+fun cur_obj_call_action_function
+fun cur_obj_can_mario_activate_textbox_2
+fun cur_obj_can_mario_activate_textbox
+fun cur_obj_change_action
+fun cur_obj_check_grabbed_mario
+fun cur_obj_check_interacted
+fun cur_obj_check_if_at_animation_end
+fun cur_obj_check_if_near_animation_end
+fun cur_obj_check_anim_frame_in_range
+fun cur_obj_check_anim_frame
+fun cur_obj_check_frame_prior_current_frame
+fun cur_obj_clear_interact_status_flag
+fun cur_obj_scale_over_time
+fun cur_obj_scale
+fun cur_obj_set_y_vel_and_animation
+fun cur_obj_set_action_table
+fun cur_obj_set_model
+fun cur_obj_set_hitbox_and_die_if_attacked
+fun cur_obj_set_hitbox_radius_and_height
+fun cur_obj_set_hurtbox_radius_and_height
+fun cur_obj_set_pos_to_home_with_debug
+fun cur_obj_set_pos_to_home_and_stop
+fun cur_obj_set_pos_to_home
+fun cur_obj_set_pos_relative_to_parent
+fun cur_obj_set_pos_relative
+fun cur_obj_set_pos_via_transform
+fun cur_obj_set_behavior
+fun cur_obj_set_face_angle_to_move_angle
+fun cur_obj_set_vel_from_mario_vel
+fun cur_obj_shake_screen
+fun cur_obj_shake_y_until
+fun cur_obj_shake_y
+fun cur_obj_spawn_star_at_y_offset
 fun cur_obj_spawn_strong_wind_particles
-extfun cur_obj_spawn_particles void
-extfun cur_obj_spawn_loot_coin_at_mario_pos void
-extfun cur_obj_spawn_loot_blue_coin void
-extfun cur_obj_start_cam_event void
-extfun cur_obj_is_mario_ground_pounding_platform int
-extfun cur_obj_is_mario_on_platform int
-extfun cur_obj_init_animation_with_sound void
-extfun cur_obj_init_animation_with_accel_and_sound void
-extfun cur_obj_init_animation_and_check_if_near_end int
-extfun cur_obj_init_animation_and_anim_frame void
-extfun cur_obj_init_animation_and_extend_if_at_end void
-extfun cur_obj_if_hit_wall_bounce_away void
-extfun cur_obj_apply_drag_xz void
-extfun cur_obj_align_gfx_with_floor void
-extfun cur_obj_angle_to_home int
-extfun cur_obj_move_standard void
-extfun cur_obj_move_y void
-extfun cur_obj_move_using_fvel_and_gravity void
-extfun cur_obj_move_using_vel_and_gravity void
-extfun cur_obj_mario_far_away int
-extfun cur_obj_extend_animation_if_at_end void
-extfun cur_obj_enable_rendering void
-extfun cur_obj_update_dialog_with_cutscene int
-extfun cur_obj_update_dialog int
-extfun cur_obj_update_floor_and_walls void
-extfun cur_obj_update_floor_height_and_get_floor ptr
-extfun cur_obj_update_floor_height void
-extfun cur_obj_unhide void
-extfun cur_obj_unrender_set_action_and_anim void
-extfun cur_obj_hide_if_mario_far_away_y int
-extfun cur_obj_hide void
-extfun cur_obj_has_model int
-extfun cur_obj_has_behavior int
-extfun cur_obj_push_mario_away_from_cylinder void
-extfun cur_obj_push_mario_away void
+fun cur_obj_spawn_particles
+fun cur_obj_spawn_loot_coin_at_mario_pos
+fun cur_obj_spawn_loot_blue_coin
+fun cur_obj_start_cam_event
+fun cur_obj_is_mario_ground_pounding_platform
+fun cur_obj_is_mario_on_platform
+fun cur_obj_init_animation_with_sound
+fun cur_obj_init_animation_with_accel_and_sound
+fun cur_obj_init_animation_and_check_if_near_end
+fun cur_obj_init_animation_and_anim_frame
+fun cur_obj_init_animation_and_extend_if_at_end
+fun cur_obj_init_animation
+fun cur_obj_if_hit_wall_bounce_away
+fun cur_obj_apply_drag_xz
+fun cur_obj_align_gfx_with_floor
+fun cur_obj_advance_looping_anim
+fun cur_obj_abs_y_dist_to_home
+fun cur_obj_angle_to_home
+fun cur_obj_move_standard
+fun cur_obj_move_y_with_terminal_vel
+fun cur_obj_move_y_and_get_water_level
+fun cur_obj_move_y
+fun cur_obj_move_after_thrown_or_dropped
+fun cur_obj_move_using_fvel_and_gravity
+fun cur_obj_move_using_vel_and_gravity
+fun cur_obj_move_using_vel
+fun cur_obj_move_update_ground_air_flags
+fun cur_obj_move_update_underwater_flags
+fun cur_obj_move_xz_using_fvel_and_yaw
+fun cur_obj_move_xz
+fun cur_obj_mario_far_away
+fun cur_obj_extend_animation_if_at_end
+fun cur_obj_enable_rendering_2
+fun cur_obj_enable_rendering_if_mario_in_room
+fun cur_obj_enable_rendering_and_become_tangible
+fun cur_obj_enable_rendering
+fun cur_obj_end_dialog
+fun cur_obj_update_dialog_with_cutscene
+fun cur_obj_update_dialog
+fun cur_obj_update_floor_and_walls
+fun cur_obj_update_floor_and_resolve_wall_collisions
+fun cur_obj_update_floor_height_and_get_floor
+fun cur_obj_update_floor_height
+fun cur_obj_update_floor
+extfun cur_obj_update void
+fun cur_obj_unused_init_on_floor
+fun cur_obj_unused_play_footstep_sound
+fun cur_obj_unused_resolve_wall_collisions
+fun cur_obj_unhide
+fun cur_obj_unrender_set_action_and_anim
+fun cur_obj_hide_if_mario_far_away_y
+fun cur_obj_hide
+fun cur_obj_has_model
+fun cur_obj_has_behavior
+fun cur_obj_push_mario_away_from_cylinder
+fun cur_obj_push_mario_away
 extfun cur_obj_play_sound_2 void
 extfun cur_obj_play_sound_1 void
-extfun cur_obj_progress_action_table int
-extfun cur_obj_lateral_dist_to_home f32
-extfun cur_obj_lateral_dist_from_mario_to_home f32
-extfun cur_obj_disable_rendering void
-extfun cur_obj_disable void
-extfun cur_obj_dist_to_nearest_object_with_behavior f32
-extfun cur_obj_become_intangible void
-extfun cur_obj_become_tangible void
-extfun cur_obj_rotate_yaw_toward int
-extfun cur_obj_rotate_face_angle_using_vel void
-extfun cur_obj_resolve_wall_collisions int
-extfun cur_obj_reverse_animation void
-extfun cur_obj_nearest_object_with_behavior ptr
-extfun cur_obj_follow_path int
-extfun cur_obj_forward_vel_approach_upward void
-extfun cur_obj_find_nearest_object_with_behavior ptr
-extfun cur_obj_find_nearby_held_actor ptr
-extfun change_area void
+fun cur_obj_progress_action_table
+fun cur_obj_lateral_dist_to_home
+fun cur_obj_lateral_dist_from_mario_to_home
+fun cur_obj_disable_rendering_and_become_intangible
+fun cur_obj_disable_rendering
+fun cur_obj_disable
+fun cur_obj_dist_to_nearest_object_with_behavior
+fun cur_obj_detect_steep_floor
+fun cur_obj_become_intangible
+fun cur_obj_become_tangible
+fun cur_obj_rotate_yaw_toward
+fun cur_obj_rotate_move_angle_using_vel
+fun cur_obj_rotate_face_angle_using_vel
+fun cur_obj_resolve_wall_collisions
+fun cur_obj_reset_timer_and_subaction
+fun cur_obj_reflect_move_angle_off_wall
+fun cur_obj_reverse_animation
+fun cur_obj_nearest_object_with_behavior
+fun cur_obj_follow_path
+fun cur_obj_forward_vel_approach_upward
+fun cur_obj_find_nearest_object_with_behavior
+fun cur_obj_find_nearby_held_actor
+var chilly_chief_seg6_anims_06003994 0 init=0
+var chair_seg5_anims_05005784 0 init=0
+var chain_chomp_seg6_anims_06025178 0 init=0
+fun chain_segment_init
+fun change_area
 fun checkerboard_plat_act_move_y
 fun checkerboard_plat_act_rotate
+var checkerboard_platform_seg8_collision_0800D710 0 init=0
 fun check_wall_kick
 fun check_water_grab
 fun check_water_jump
-extfun check_warp_checkpoint int
+fun check_warp_checkpoint
 fun check_ground_dive_or_punch
 fun check_object_grab_mario
 fun check_kick_or_punch_wall
@@ -316,7 +927,7 @@ fun check_common_hold_idle_cancels
 fun check_common_hold_action_exits
 fun check_common_landing_cancels
 fun check_instant_warp
-extfun check_if_should_set_warp_checkpoint void
+fun check_if_should_set_warp_checkpoint
 fun check_if_moving_over_floor
 fun check_mario_attacking
 fun check_horizontal_wind
@@ -324,25 +935,45 @@ fun check_lava_boost
 fun check_ledge_grab
 fun check_ledge_climb_down
 fun check_death_barrier
+fun check_blocking_area_processing
 fun check_read_sign
 fun check_npc_talk
 fun check_for_instant_quicksand
 fun check_fall_damage_or_get_stuck
 fun check_fall_damage
+var chuckya_seg8_anims_0800C070 0 init=0
 fun chuckya_act_0
 fun chuckya_act_2
 fun chuckya_act_1
 fun chuckya_act_3
 fun chuckya_move
 fun climb_up_ledge
+var clam_shell_seg5_anims_05001744 0 init=0
+fun clamp_positions_and_find_yaw
+fun clamp_pitch
+fun clear_objects
+fun clear_object_lists
+fun clear_cutscene_vars
+fun clear_spatial_partition
+fun clear_static_surfaces
+fun clear_areas
+fun clear_area_graph_nodes
+fun clear_move_flag
+extfun clear_mario_platform void
 fun clear_particle_flags
-extfun clear_time_stop_flags void
+fun clear_dynamic_surfaces
+fun clear_time_stop_flags
+fun clear_framebuffer
+fun clear_viewport
+fun create_gfx_task_structure
+fun create_object
+fun create_camera
 extfun create_sound_spawner void
 extfun create_dialog_inverted_box void
 extfun create_dialog_box_with_response void
 extfun create_dialog_box_with_var void
 extfun create_dialog_box void
-extfun create_transformation_from_matrices void
+fun create_transformation_from_matrices
 fun create_transform_from_normals
 var credits08 16 init=16
 var credits04 16 init=16
@@ -364,19 +995,36 @@ var credits19 8 init=8
 var credits15 12 init=12
 var credits13 16 init=16
 var credits17 16 init=16
+var swoop_seg6_anims_060070D0 0 init=0
 fun swimming_near_surface
+var sModeInfo 72 init=72
+var sModeOffsetYaw 2 init=2
+var sModeTransitions 72 init=72
+var sModeTransition 36 init=36
 var sMovingSandSpeeds 8 init=8
 var sMistParticles 20 init=20
+var sMacroObjectPresets 2928 init=2928
+var sMarioGeometry 52 init=52
+var sMarioCamState 4 init=4
 var sMarioBlinkOverride 20 init=20
 var sMetalBoxHitbox 16 init=16
 var sMrIActions 16 init=16
 var sMrIParticleActions 8 init=8
 var sMrIHitbox 16 init=16
+var s8DirModeYawOffset 2 init=2
+var s8DirModeBaseYaw 2 init=2
 var sExclamationBoxActions 24 init=24
 var sExclamationBoxContents 128 init=128
 var sExclamationBoxHitbox 16 init=16
 var sElevatorActions 20 init=20
 var sElevatorHeights 42 init=42
+var sEndingMarioToPeachFocus 72 init=72
+var sEndingMarioToPeachPos 72 init=72
+var sEndingFlyToWindowFocus 88 init=88
+var sEndingFlyToWindowPos 80 init=80
+var sEndingPeachDescentCamPos 160 init=160
+var sEndingLookUpAtCastle 64 init=64
+var sEndingLookAtSkyFocus 56 init=56
 var sEndCutsceneVp 16 init=16
 var sEndRightToadObj 4 init=4
 var sEndJumboStarObj 4 init=4
@@ -389,30 +1037,70 @@ extfun sound_banks_disable void
 var sUkikiActions 32 init=32
 var sUkikiCageActions 16 init=16
 var sUkikiSoundStates 104 init=104
+var sUnusedModeBasePosition_4 12 init=12
+var sUnusedModeBasePosition_2 12 init=12
+var sUnusedModeBasePosition_5 12 init=12
+var sUnusedModeBasePosition_3 12 init=12
+var sUnused8033EF8 1 init=1
+var sUnusedGotGlobalCoinHiScore 1 init=1
 var sUnusedChuckyaData 60 init=60
 var sUnusedLevelUpdateBss 2 init=2
+var sAreaYawChange 2 init=2
+var sAreaYaw 2 init=2
+var sAvoidYawVel 2 init=2
+var skeeter_seg6_anims_06007DE0 0 init=0
+fun scale_along_line
 fun scale_bubble_sin
 fun scale_bubble_random
+var scuttlebug_seg6_anims_06015064 0 init=0
 var sInteractionHandlers 248 init=248
 var sIntroWarpPipeObj 4 init=4
+var sIntroStartToPipeFocus 184 init=184
+var sIntroStartToPipePosition 184 init=184
+var sIntroPipeToDialogFocus 112 init=112
+var sIntroPipeToDialogPosition 112 init=112
 var sInvulnerable 2 init=2
+var ssl_seg7_collision_0702808C 0 init=0
+var ssl_seg7_collision_grindel 0 init=0
+var ssl_seg7_collision_spindel 0 init=0
+var ssl_seg7_collision_pyramid_elevator 0 init=0
+var ssl_seg7_collision_pyramid_top 0 init=0
+var ssl_seg7_collision_tox_box 0 init=0
+var sYawSpeed 2 init=2
 var sYellowCoinHitbox 16 init=16
-extfun signum_positive int
+var s2ndRotateFlags 2 init=2
+fun signum_positive
 fun sinking_rectangular_plat_actions
 fun sink_mario_in_quicksand
 var sOpenedCannonActions 28 init=28
-extfun save_file_get_cap_pos int
-extfun save_file_get_star_flags int
-extfun save_file_get_total_star_count int
-extfun save_file_get_flags int
-extfun save_file_collect_star_or_key void
-extfun save_file_clear_flags void
-extfun save_file_set_cap_pos void
-extfun save_file_set_flags void
-extfun save_file_move_cap_to_default_location void
-extfun save_file_exists int
-extfun save_file_do_save void
-extfun save_file_reload void
+var sOldFocus 12 init=12
+var sOldPosition 12 init=12
+var sObjectCutscene 1 init=1
+var sObjectListUpdateOrder 11 init=11
+fun save_main_menu_data
+fun save_file_get_course_coin_score
+fun save_file_get_course_star_count
+fun save_file_get_cap_pos
+fun save_file_get_sound_mode
+fun save_file_get_star_flags
+fun save_file_get_max_coin_score
+fun save_file_get_total_star_count
+fun save_file_get_flags
+fun save_file_copy
+fun save_file_collect_star_or_key
+fun save_file_clear_flags
+fun save_file_set_cap_pos
+fun save_file_set_cannon_unlocked
+fun save_file_set_sound_mode
+fun save_file_set_star_flags
+fun save_file_set_flags
+fun save_file_is_cannon_unlocked
+fun save_file_move_cap_to_default_location
+fun save_file_exists
+fun save_file_erase
+fun save_file_load_all
+fun save_file_do_save
+fun save_file_reload
 var sGlobalMistParticles 20 init=20
 var sGrowingBowserFlameHitbox 16 init=16
 var sGrindelThwompActions 20 init=20
@@ -424,20 +1112,105 @@ var sWaterCurrentSpeeds 8 init=8
 var sWaterSplashDropletParams 36 init=36
 var sWaterDropletFishParams 36 init=36
 var sWarpCheckpointActive 1 init=1
+var sWarpBhvSpawnTable 80 init=80
 var sWarpDest 8 init=8
 var sWhompActions 40 init=40
+var sWFCreditsSplineFocus 40 init=40
+var sWFCreditsSplinePositions 40 init=40
+var sWDWCreditsSplineFocus 32 init=32
+var sWDWCreditsSplinePositions 32 init=32
 var sCoinArrowPositions 32 init=32
 var sCoinInsideBooActions 8 init=8
 var sCourtyardBooTripletPositions 18 init=18
+var sCotMCCreditsSplineFocus 40 init=40
+var sCotMCCreditsSplinePositions 40 init=40
+var sCUpCameraPitch 2 init=2
 var sCageUkikiPath 90 init=90
+var sCastleEntranceOffset 12 init=12
+var sCamCotMC 48 init=48
+var sCamCastle 840 init=840
+var sCamCCM 72 init=72
+var sCamSSL 120 init=120
+var sCamSL 72 init=72
+var sCameraYawAfterDoorCutscene 2 init=2
+var sCameraSoundFlags 2 init=2
+var sCameraStoreCUp 32 init=32
+var sCameraStoreCutscene 32 init=32
+var sCameraTriggers 160 init=160
+var sCamBOB 72 init=72
+var sCamBBH 1464 init=1464
+var sCamRR 168 init=168
+var sCamHMC 168 init=168
+var sCamTHI 72 init=72
 var sCapSwitchActions 16 init=16
 var sCapSwitchText 3 init=3
 var sCapSaveFlags 12 init=12
 var sCapFlickerFrames 8 init=8
+var sCannonYOffset 4 init=4
+var sCCMOutsideCreditsSplineFocus 32 init=32
+var sCCMOutsideCreditsSplinePositions 32 init=32
+var sCCMSlideCreditsSplineFocus 40 init=40
+var sCCMSlideCreditsSplinePositions 40 init=40
+var sCSideButtonYaw 2 init=2
+var sCutsceneExitWaterfall 16 init=16
+var sCutsceneExitSpecialSuccess 16 init=16
+var sCutsceneExitBowserSuccess 16 init=16
+var sCutsceneExitBowserDeath 16 init=16
+var sCutsceneExitPaintingSuccess 16 init=16
+var sCutsceneEnding 96 init=96
+var sCutsceneEndWaving 8 init=8
+var sCutsceneEnterCannon 24 init=24
+var sCutsceneEnterBowserArena 24 init=24
+var sCutsceneEnterPool 16 init=16
+var sCutsceneEnterPyramidTop 16 init=16
+var sCutsceneEnterPainting 8 init=8
+var sCutsceneUnusedExit 24 init=24
+var sCutsceneUnused 16 init=16
+var sCutsceneUnlockKeyDoor 16 init=16
+var sCutsceneQuicksandDeath 8 init=8
+var sCutsceneIntroPeach 40 init=40
+var sCutsceneGrandStar 16 init=16
+var sCutsceneWaterDeath 8 init=8
+var sCutsceneCapSwitchPress 8 init=8
+var sCutsceneCredits 8 init=8
+var sCutsceneSuffocation 8 init=8
+var sCutsceneShot 2 init=2
+var sCutsceneSplineSegment 2 init=2
+var sCutsceneSplineSegmentProgress 4 init=4
+var sCutsceneSlidingDoorsOpen 16 init=16
+var sCutsceneStarSpawn 24 init=24
+var sCutsceneStandingDeath 8 init=8
+var sCutsceneKeyDance 8 init=8
+var sCutsceneNonPaintingDeath 16 init=16
+var sCutsceneFallToCastleGrounds 16 init=16
+var sCutsceneVars 360 init=360
+var sCutsceneReadMessage 24 init=24
+var sCutsceneRedCoinStarSpawn 16 init=16
+var sCutscenePyramidTopExplode 24 init=24
+var sCutscenePrepareCannon 16 init=16
+var sCutsceneDoorWarp 16 init=16
+var sCutsceneDoorPushMode 24 init=24
+var sCutsceneDoorPush 40 init=40
+var sCutsceneDoorPullMode 24 init=24
+var sCutsceneDoorPull 40 init=40
+var sCutsceneDialogID 2 init=2
+var sCutsceneDialog 24 init=24
+var sCutsceneDialogResponse 1 init=1
+var sCutsceneDanceCloseup 8 init=8
+var sCutsceneDanceFlyAway 8 init=8
+var sCutsceneDanceDefaultRotate 8 init=8
+var sCutsceneDeathExit 16 init=16
+var sCutsceneDeathOnBack 8 init=8
+var sCutsceneDeathStomach 8 init=8
+var sCurCreditsSplineFocus 256 init=256
+var sCurCreditsSplinePos 256 init=256
 var sCurrPlayMode 2 init=2
 var sCheepCheepActions 12 init=12
 var sChuckyaActions 16 init=16
+var sCButtonsPressed 2 init=2
 var sCreditsSequence 368 init=368
+var sCreditsPlayer2Yaw 2 init=2
+var sCreditsPlayer2Pitch 2 init=2
 fun small_penguin_act_0
 fun small_penguin_act_4
 fun small_penguin_act_2
@@ -448,44 +1221,89 @@ fun small_penguin_dive_with_mario
 fun small_penguin_free_actions
 var sSwimStrength 2 init=2
 var sSourceWarpNodeId 2 init=2
+var sSACreditsSplineFocus 40 init=40
+var sSACreditsSplinePositions 40 init=40
 var sSkullSlidingBoxHitbox 16 init=16
 var sScuttlebugHitbox 16 init=16
 var sSideFlipLandAction 24 init=24
+var sSineWave 128 init=128
+var sSawtoothWave 128 init=128
 var sSandParticles 20 init=20
 var sSquishScaleOverTime 16 init=16
+var sSquareWave 128 init=128
 var sSmokeMovementParams 8 init=8
 var sSmallPenguinActions 24 init=24
+var sSSLCreditsSplineFocus 48 init=48
+var sSSLCreditsSplinePositions 48 init=48
+var sSegmentTable 128 init=128
+var sSelectionFlags 2 init=2
+var sSurfaceNodePool 4 init=4
+var sSurfacePoolSize 2 init=2
+var sSurfacePool 4 init=4
+var sSpiralStairsYawOffset 2 init=2
 var sSpindriftHitbox 16 init=16
+var sSpawnTypeFromWarpBhv 20 init=20
 var sSparkleGenPhi 4 init=4
 var sSparkleGenTheta 4 init=4
 var sSparkleSpawnStarHitbox 16 init=16
+var sSpecialObjectPresets 664 init=664
+var sStatusFlags 2 init=2
 var sStarsNeededForDialog 6 init=6
 var sStrongWindParticleHitbox 16 init=16
 var sSnowParticles 20 init=20
 var sSLWalkingPenguinErraticSteps 112 init=112
-extfun segmented_to_virtual ptr
+var sSLCreditsSplineFocus 32 init=32
+var sSLCreditsSplinePositions 32 init=32
+fun segmented_to_virtual
+var seaweed_seg6_anims_0600A4D4 0 init=0
 extfun seq_player_unlower_volume void
 extfun seq_player_lower_volume void
 extfun seq_player_fade_out void
-extfun select_mario_cam_mode void
+fun select_gfx_pool
+fun select_mario_cam_mode
+fun select_framebuffer
+fun setup_game_memory
+fun setup_dma_table_list
 fun set_water_plunge_action
-extfun set_object_respawn_info_bits void
+fun set_warp_transition_rgb
+fun set_object_respawn_info_bits
 fun set_obj_anim_with_accel_and_sound
+fun set_or_approach_s16_symmetric
+fun set_or_approach_f32_asymptotic
+fun set_or_approach_vec3f_asymptotic
 fun set_koopa_shell_underwater_hitbox
-extfun set_camera_shake_from_hit void
-extfun set_camera_mode void
+fun set_coin_score_age
+fun set_camera_shake_from_hit
+fun set_camera_shake_from_point
+fun set_camera_yaw_shake
+fun set_camera_mode_8_directions
+fun set_camera_mode_close_cam
+fun set_camera_mode_boss_fight
+fun set_camera_mode_radial
+fun set_camera_mode_fixed
+fun set_camera_mode
+fun set_camera_height
+fun set_camera_pitch_shake
+fun set_camera_roll_shake
+fun set_cam_angle
 extfun set_cutscene_message void
 fun set_swimming_at_surface_particles
+extfun set_sound_mode void
 extfun set_sound_moving_speed void
+fun set_segment_base_addr
 fun set_submerged_cam_preset_and_spawn_bubbles
 fun set_sparkle_spawn_star_hitbox
 fun set_steep_jump_action
 extfun set_yoshi_as_not_dead void
+fun set_yaw_shake_from_point
 fun set_y_home_to_pos
 fun set_anim_to_frame
+fun set_mode_c_up
+fun set_mode_if_not_set_by_surface
 fun set_mario_y_vel_based_on_fspeed
 fun set_mario_initial_cap_powerup
 fun set_mario_initial_action
+fun set_mario_interact_true_if_in_range
 fun set_mario_action_cutscene
 fun set_mario_action_submerged
 fun set_mario_action_airborne
@@ -496,54 +1314,106 @@ fun set_mario_anim_with_accel
 extfun set_mario_pos void
 fun set_mario_npc_dialog
 extfun set_menu_mode void
-extfun set_environmental_camera_shake void
+fun set_environmental_camera_shake
 fun set_home_to_mario
+fun set_handheld_shake
+extfun set_hud_camera_status void
 fun set_pole_position
+fun set_pitch_shake_from_point
 fun set_play_mode
 fun set_door_camera_event
-extfun set_time_stop_flags void
+fun set_time_stop_flags
+extfun set_text_array_x_y void
 fun set_triple_jump_action
 fun set_jumping_action
 fun set_jump_from_landing
 extfun set_background_music void
+fun set_focus_rel_mario
+fun set_fov_45
+fun set_fov_shake_from_point_preset
+fun set_fov_shake_from_point
+fun set_fov_shake
+fun set_fov_29
+fun set_fov_30
+fun set_fov_bbh
+fun set_fov_function
+fun set_fixed_cam_axis_sa_lobby
+fun set_flag_post_door
 fun set_vel_from_yaw
 fun set_vel_from_pitch_and_yaw
+extfun set_vblank_handler void
 var sKoopaShellUnderwaterHitbox 16 init=16
 var sKoopaShellHitbox 16 init=16
 var sKingBobombActions 36 init=36
 var sKingBobombSoundStates 96 init=96
+var sushi_seg5_anims_0500AE54 0 init=0
 fun surface_swim_bob
+fun surface_has_force
+fun surface_list_length
+fun surface_type_modes_thi
+fun surface_type_modes
+fun surf_has_no_cam_collision
 fun should_get_stuck_in_ground
 fun should_strengthen_gravity_for_jump_ascent
 fun should_push_or_pull_door
 fun should_begin_sliding
+fun shake_camera_yaw
+fun shake_camera_handheld
+fun shake_camera_pitch
+fun shake_camera_roll
+fun shake_camera_fov
 var sForwardKnockbackActions 36 init=36
 var sFishActions 12 init=12
 var sFishSpawnerActions 12 init=12
+var sFixedModeBasePosition 12 init=12
+var sFOVState 28 init=28
 var sFallingBowserPlatformActions 12 init=12
 var sFloorAlignMatrix 128 init=128
+var sFloorGeo 32 init=32
 var sFlameFloatingYLimit 12 init=12
+var sFramesSinceCutsceneEnded 1 init=1
+var sFramesPaused 1 init=1
 var sFreefallLandAction 24 init=24
+var spiny_seg5_anims_05016EAC 0 init=0
+var spindrift_seg5_anims_05002D68 0 init=0
 fun spawn_wind_particles
-extfun spawn_water_droplet ptr
+fun spawn_water_droplet
 fun spawn_wf_platform_group
-extfun spawn_object_with_scale ptr
-extfun spawn_object_abs_with_rot ptr
-extfun spawn_object_relative_with_scale ptr
-extfun spawn_object_relative ptr
-extfun spawn_object ptr
+fun spawn_objects_from_info
+fun spawn_object_with_scale
+fun spawn_object_at_origin
+fun spawn_object_abs_with_rot
+fun spawn_object_relative_with_scale
+fun spawn_object_relative
+fun spawn_object_rel_with_rot
+fun spawn_object
+fun spawn_obj_with_transform_flags
 fun spawn_obj_at_mario_rel_yaw
 fun spawn_coin_in_formation
+fun spawn_child_obj_relative
 fun spawn_smoke_with_velocity
 fun spawn_sparkle_particles
+fun spawn_special_objects
+fun spawn_star_with_no_lvl_exit
 fun spawn_and_init_wf_platforms
-extfun spawn_mist_particles_with_sound void
+fun spawn_mist_particles_with_sound
 fun spawn_mist_particles_variable
-extfun spawn_mist_particles void
+fun spawn_mist_particles
 fun spawn_mist_from_global
+fun spawn_macro_objects_hardcoded
+fun spawn_macro_objects
+fun spawn_macro_abs_special
+fun spawn_macro_abs_yrot_2params
+fun spawn_macro_abs_yrot_param1
 fun spawn_mr_i_particle
+fun spawn_particle
 extfun spawn_default_star void
 fun spawn_triangle_break_particles
+fun spawn_base_star_with_no_lvl_exit
+fun spline_get_weights
+var springboard_collision_05001A28 0 init=0
+var sVolcanoCreditsSplineFocus 48 init=48
+var sVolcanoCreditsSplinePositions 48 init=48
 var sBowserActions 80 init=80
 var sBowserSoundStates 216 init=216
 var sBowserShockwaveHitPoints 16 init=16
@@ -567,39 +1437,82 @@ var sBooGivingStarHitbox 16 init=16
 var sBooWithCageActions 16 init=16
 var sBooCageHitbox 16 init=16
 var sBooHitRotations 64 init=64
+var sBoBCreditsSplineFocus 40 init=40
+var sBoBCreditsSplinePositions 40 init=40
 var sBobIncrement 2 init=2
 var sBobHeight 4 init=4
 var sBobTimer 2 init=2
 var sBirdChirpChirpActions 16 init=16
 var sBackwardKnockbackActions 36 init=36
 var sBackflipLandAction 24 init=24
+var sBehindMarioSoundTimer 2 init=2
 var sBetaBooKeyActions 12 init=12
 var sBulletBillActions 20 init=20
+var sBBHCreditsSplineFocus 32 init=32
+var sBBHCreditsSplinePositions 32 init=32
+var sBBHStairJiggleOffsets 4 init=4
+var sBBHLibraryParTrackPath 72 init=72
 var sBreakableBoxHitbox 16 init=16
 fun slow_star_rotation
 fun slide_bonk
 fun sl_walking_penguin_turn
+var sl_seg7_collision_sliding_snow_mound 0 init=0
+var sl_seg7_collision_pound_explodes 0 init=0
 var sRotatingCwFireBarsActions 16 init=16
 var sRotatingPlatformData 24 init=24
+var sRenderingFramebuffer 2 init=2
+var sRenderedFramebuffer 2 init=2
+var sRRCreditsSplineFocus 32 init=32
+var sRRCreditsSplinePositions 32 init=32
 var sJustTeleported 1 init=1
 var sJumpingBoxActions 8 init=8
 var sJumpingBoxHitbox 16 init=16
 var sJumpLandAction 24 init=24
 var sJumboStarKeyframes 216 init=216
+var sJRBCreditsSplineFocus 40 init=40
+var sJRBCreditsSplinePositions 40 init=40
 fun stomach_slide_action
 extfun stop_cap_music void
+fun stop_cutscene_and_retrieve_stored_info
+extfun stop_sounds_in_continuous_banks void
+extfun stop_sounds_from_source void
 extfun stop_sound void
 extfun stop_shell_music void
 fun stop_and_set_height_to_floor
 extfun stop_background_music void
 fun stopping_step
+fun store_info_cannon
+fun store_info_star
+fun store_lakitu_cam_info_for_c_up
 fun stationary_ground_step
 fun stationary_slow_down
 fun star_door_update_pos
+fun star_dance_bound_yaw
+fun start_object_cutscene_without_focus
+fun start_object_cutscene
+fun start_cutscene
 fun stuck_in_ground_handler
+fun stub_obj_helpers_4
+fun stub_obj_helpers_3
+fun stub_obj_list_processor_1
+fun stub_camera_4
+fun stub_camera_2
+fun stub_camera_3
+fun stub_save_file_1
 fun stub_mario_step_2
 fun stub_mario_step_1
 fun stub_level_update_1
+extfun stub_debug_5 void
+extfun stub_behavior_script_2 void
+var sZoomAmount 4 init=4
+var sZoomOutAreaMasks 20 init=20
+var sZeroZoomDist 4 init=4
+var sPowersOfTwo 16 init=16
+var sPoolEnd 4 init=4
+var sPoolStart 4 init=4
+var sPoolFreeSpace 4 init=4
+var sPoolListHeadR 4 init=4
+var sPoolListHeadL 4 init=4
 var sPieceActions08 27 init=27
 var sPieceActions04 27 init=27
 var sPieceActions02 27 init=27
@@ -615,10 +1528,25 @@ var sPieceActions12 27 init=27
 var sPieceActions11 27 init=27
 var sPieceActions13 27 init=27
 var sPiranhaPlantBiteSoundFrames 5 init=5
+var sParticleTypes 304 init=304
+var sParTrackIndex 4 init=4
+var sParTrackPath 4 init=4
+var sParTrackTransOff 32 init=32
+var sPanDistance 4 init=4
 var sPSSSlideStarted 1 init=1
 var sPunchingForwardVelocities 8 init=8
+var sPlayer2FocusOffset 12 init=12
+var sHMCCreditsSplineFocus 40 init=40
+var sHMCCreditsSplinePositions 40 init=40
 var sHoldFreefallLandAction 24 init=24
 var sHoldJumpLandAction 24 init=24
+var sHandheldShakeMag 2 init=2
+var sHandheldShakeInc 4 init=4
+var sHandheldShakeYaw 2 init=2
+var sHandheldShakeSpline 64 init=64
+var sHandheldShakeRoll 2 init=2
+var sHandheldShakePitch 2 init=2
+var sHandheldShakeTimer 4 init=4
 var sHeaveHoActions 16 init=16
 var sDoorActions 40 init=40
 var sDoorOpenSounds 8 init=8
@@ -626,10 +1554,18 @@ var sDoorCloseSounds 8 init=8
 var sDoubleJumpLandAction 24 init=24
 var sDispCreditsEntry 4 init=4
 var sDisplayingDoorText 1 init=1
+var sDanceCutsceneIndexTable 108 init=108
+var sDanceCutsceneTable 10 init=10
 var sDelayInvincTimer 1 init=1
 var sDelayedWarpArg 4 init=4
 var sDelayedWarpOp 2 init=2
 var sDelayedWarpTimer 2 init=2
+var sDDDCreditsSplineFocus 56 init=56
+var sDDDCreditsSplinePositions 56 init=56
+var sDDDSubCreditsSplineFocus 40 init=40
+var sDDDSubCreditsSplinePositions 40 init=40
+var snowman_seg5_anims_0500D118 0 init=0
+fun snap_object_to_floor
 var sTweesterActions 12 init=12
 var sTweesterHitbox 16 init=16
 var sToxBoxActions 32 init=32
@@ -644,31 +1580,87 @@ var sTerrainSounds 42 init=42
 var sTumblingBridgeActions 16 init=16
 var sTumblingBridgeData 48 init=48
 var sTuxiesMotherActions 12 init=12
+var sTHIWigglerCreditsSplineFocus 24 init=24
+var sTHIWigglerCreditsSplinePositions 24 init=24
+var sTHIHugeCreditsSplineFocus 56 init=56
+var sTHIHugeCreditsSplinePositions 56 init=56
 var sTHITopPuffs 20 init=20
+var sTriangleWave 128 init=128
 var sTripleJumpLandAction 24 init=24
 var sTransitionUpdate 4 init=4
 var sTransitionTimer 2 init=2
+var sTTMCreditsSplineFocus 48 init=48
+var sTTMCreditsSplinePositions 48 init=48
+var sTTCCreditsSplineFocus 32 init=32
+var sTTCCreditsSplinePositions 32 init=32
 var sLongJumpLandAction 24 init=24
+var sLakituPitch 2 init=2
+var sLakituDist 2 init=2
+var sLevelsWithRooms 4 init=4
+var sLuigiCamState 4 init=4
+var yoshi_seg5_anims_05024100 0 init=0
+fun is_within_100_units_of_mario
 fun is_cap_ukiki_and_mario_has_normal_cap_on_head
-extfun is_item_in_array int
+fun is_surf_within_bounding_box
+fun is_item_in_array
 fun is_anim_at_end
 fun is_anim_past_end
 fun is_anim_past_frame
-extfun is_mario_moving_fast_or_in_air int
+fun is_mario_moving_fast_or_in_air
+fun is_mario_behind_surface
+fun is_pos_in_bounds
+fun is_behind_surface
+fun is_range_behind_surface
+var identityMtx 32 init=32
 fun idle_ukiki_taunt
-extfun increment_velocity_toward_range f32
+fun increment_shake_offset
+fun increment_velocity_toward_range
+var inside_castle_seg7_collision_water_level_pillar 0 init=0
+var inside_castle_seg7_collision_star_door 0 init=0
 var inside_castle_seg7_collision_ddd_warp_2 0 init=0
 var inside_castle_seg7_collision_ddd_warp 0 init=0
+var inside_castle_seg7_collision_floor_trap 0 init=0
 fun initiate_warp
 fun initiate_painting_warp
 fun initiate_delayed_warp
+fun init_graph_node_generated
+fun init_graph_node_object_parent
+fun init_graph_node_object
+fun init_graph_node_ortho_projection
+fun init_graph_node_camera
+fun init_graph_node_culling_radius
+fun init_graph_node_switch_case
+fun init_graph_node_scale
+fun init_graph_node_shadow
+fun init_graph_node_start
+fun init_graph_node_animated_part
+fun init_graph_node_master_list
+fun init_graph_node_held_object
+fun init_graph_node_perspective
+fun init_graph_node_display_list
+fun init_graph_node_translation_rotation
+fun init_graph_node_translation
+fun init_graph_node_billboard
+fun init_graph_node_background
+fun init_graph_node_root
+fun init_graph_node_rotation
+fun init_graph_node_render_range
 fun init_kickable_board_rock
+fun init_controllers
+fun init_camera
+fun init_scene_graph_node_links
+fun init_spline_point
 fun init_mario_after_warp
 fun init_mario_from_save_file
 fun init_mario
 fun init_level
 fun init_door_warp
+fun init_z_buffer
 fun init_bully_collision_data
+fun init_rcp
+fun init_rsp
+fun init_rdp
+fun init_free_object_list
 fun interact_water_ring
 fun interact_warp_door
 fun interact_warp
@@ -705,6 +1697,12 @@ fun intro_cutscene_lower_pipe
 fun intro_cutscene_land_outside_pipe
 fun intro_cutscene_jump_out_of_pipe
 fun intro_cutscene_raise_pipe
+fun intro_pipe_exit_text
+fun intro_peach_set_pos_and_opacity
+fun intro_peach_move_camera_start_to_pipe
+fun intro_lakitu_set_offset_from_camera
+fun intro_lakitu_set_pos_and_focus
+fun intro_lakitu_set_focus
 fun act_waking_up
 fun act_waiting_for_dialog
 fun act_walking
@@ -930,44 +1928,108 @@ fun act_freefall_land_stop
 fun act_freefall_land
 fun act_freefall
 fun act_vertical_wind
+extfun audio_game_loop_tick void
 fun apply_water_current
 fun apply_gravity
 fun apply_slope_accel
 fun apply_slope_decel
+extfun apply_mario_platform_displacement void
 extfun apply_platform_displacement void
 fun apply_landing_accel
+fun apply_drag_to_value
 fun apply_twirl_gravity
 fun apply_vertical_wind
-extfun approach_s16_symmetric int
-extfun approach_s32 int
+fun approach_camera_height
+fun approach_s16_symmetric
+fun approach_s16_asymptotic_bool
+fun approach_s16_asymptotic
+fun approach_s32
 fun approach_by_increment
 fun approach_forward_vel
-extfun approach_f32_symmetric f32
-extfun approach_f32_signed int
-extfun approach_f32 f32
+fun approach_fov_80
+fun approach_fov_45
+fun approach_fov_20
+fun approach_fov_60
+fun approach_fov_30
+fun approach_f32_symmetric
+fun approach_f32_signed
+fun approach_f32_asymptotic_bool
+fun approach_f32_asymptotic
+fun approach_f32
+fun approach_vec3s_asymptotic
+fun approach_vec3f_asymptotic
 fun align_with_floor
-extfun alloc_display_list ptr
+fun allocate_object
+fun alloc_only_pool_init
+fun alloc_only_pool_alloc
+fun alloc_only_pool_resize
+fun alloc_surface_pools
+fun alloc_surface_node
+fun alloc_surface
+fun alloc_display_list
+fun add_save_block_signature
+fun add_surface_to_cell
+fun add_surface
 fun add_tree_leaf_particles
 fun adjust_sound_for_speed
+fun adjust_analog_stick
 fun advance_cutscene_step
-extfun atan2s int
+fun atan2s
+fun atan2_lookup
+fun atan2f
 fun attack_object
-extfun absi int
-extfun abs_angle_diff int
-extfun absf f32
+fun absi
+fun abs_angle_diff
+fun absf
 fun able_to_grab_object
 fun arc_to_goal_pos
-extfun area_get_warp_node ptr
-extfun area_update_objects void
+fun area_get_warp_node_from_params
+fun area_get_warp_node
+fun area_update_objects
 fun animated_stationary_ground_step
-extfun anim_spline_init void
-extfun anim_spline_poll int
+fun anim_spline_init
+fun anim_spline_poll
 fun anim_and_audio_for_walk
 fun anim_and_audio_for_hold_walk
 fun anim_and_audio_for_heavy_walk
 fun analog_stick_held_back
 fun quicksand_jump_land_action
-extfun mark_obj_for_deletion void
+fun mode_water_surface_camera
+fun mode_8_directions_camera
+fun mode_outward_radial_camera
+fun mode_cannon_camera
+fun mode_c_up_camera
+fun mode_spiral_stairs_camera
+fun mode_slide_camera
+fun mode_mario_camera
+fun mode_parallel_tracking_camera
+fun mode_lakitu_camera
+fun mode_default_camera
+fun mode_boss_fight_camera
+fun mode_behind_mario_camera
+fun mode_behind_mario
+fun mode_radial_camera
+fun mode_fixed_camera
+var moneybag_seg6_anims_06005E5C 0 init=0
+var monty_mole_seg5_anims_05007248 0 init=0
+fun move_camera_through_floor_while_descending
+fun move_segment_table_to_dmem
+fun move_into_c_up
+fun move_mario_head_c_up
+fun move_point_along_spline
+var mips_seg6_anims_06015634 0 init=0
+fun min_3
+fun make_viewport_clip_rect
+fun main_pool_init
+fun main_pool_alloc
+fun main_pool_available
+fun main_pool_pop_state
+fun main_pool_push_state
+fun main_pool_realloc
+fun main_pool_free
+fun max_3
+var mad_piano_seg5_anims_05009B14 0 init=0
+fun mark_obj_for_deletion
 fun mario_get_collided_object
 fun mario_get_terrain_sound_addend
 fun mario_get_floor_class
@@ -976,10 +2038,12 @@ fun mario_obj_angle_to_object
 fun mario_can_talk
 fun mario_check_object_grab
 fun mario_set_forward_vel
+fun mario_set_flag
 fun mario_stop_riding_object
 fun mario_stop_riding_and_holding
-extfun mario_is_in_air_action int
-extfun mario_is_dive_sliding int
+fun mario_is_within_rectangle
+fun mario_is_in_air_action
+fun mario_is_dive_sliding
 fun mario_is_far_below_object
 fun mario_moving_fast_enough_to_make_piranha_plant_bite
 fun mario_execute_object_action
@@ -1009,16 +2073,34 @@ fun mario_facing_downhill
 fun mario_floor_is_slope
 fun mario_floor_is_slippery
 fun mario_floor_is_steep
+var manta_seg5_anims_05008EB4 0 init=0
+fun mem_pool_init
+fun mem_pool_alloc
+fun mem_pool_free
+var metal_box_seg8_collision_08024C28 0 init=0
 fun music_changed_through_warp
-extfun mtxf_align_terrain_triangle void
-extfun mtxf_align_terrain_normal void
-extfun mtxf_rotate_zxy_and_translate void
+fun mtxf_copy
+fun mtxf_scale_vec3f
+fun mtxf_identity
+fun mtxf_align_terrain_triangle
+fun mtxf_align_terrain_normal
+fun mtxf_mul_vec3s
+fun mtxf_mul
+fun mtxf_lookat
+fun mtxf_to_mtx
+fun mtxf_translate
+fun mtxf_billboard
+fun mtxf_rotate_xy
+fun mtxf_rotate_xyz_and_translate
+fun mtxf_rotate_zxy_and_translate
 fun mr_i_act_0
 fun mr_i_act_2
 fun mr_i_act_1
 fun mr_i_act_3
 fun mr_i_piranha_particle_act_0
 fun mr_i_piranha_particle_act_1
+var eyerok_seg5_anims_050116E4 0 init=0
+var exclamation_box_outline_seg8_collision_08025F78 132 init=132
 fun exclamation_box_spawn_contents
 fun exclamation_box_act_0
 fun exclamation_box_act_4
@@ -1026,17 +2108,21 @@ fun exclamation_box_act_2
 fun exclamation_box_act_1
 fun exclamation_box_act_5
 fun exclamation_box_act_3
+fun exit_c_up
 fun execute_mario_action
 extfun exec_anim_sound_state void
+extfun exec_display_list void
 fun elevator_starting_shake
 fun elevator_act_0
 fun elevator_act_4
 fun elevator_act_2
 fun elevator_act_1
 fun elevator_act_3
-extfun enable_time_stop void
+fun enable_time_stop_including_mario
+fun enable_time_stop
 extfun enable_background_sound void
 fun end_obj_set_visual_pos
+fun end_master_display_list
 fun end_peach_cutscene_kiss_from_peach
 fun end_peach_cutscene_summon_jumbo_star
 fun end_peach_cutscene_spawn_peach
@@ -1050,10 +2136,12 @@ fun end_peach_cutscene_descend_peach
 fun end_peach_cutscene_run_to_castle
 fun end_peach_cutscene_run_to_peach
 fun end_peach_cutscene_fade_out
+fun evaluate_cubic_spline
 fun ukiki_cage_act_wait_for_ukiki
 fun ukiki_cage_act_spin
 fun ukiki_cage_act_hide
 fun ukiki_cage_act_fall
+var ukiki_seg5_anims_05015784 0 init=0
 fun ukiki_act_wait_to_respawn
 fun ukiki_act_go_to_cage
 fun ukiki_act_idle
@@ -1063,25 +2151,43 @@ fun ukiki_act_jump
 fun ukiki_act_return_home
 fun ukiki_act_run
 fun ukiki_free_loop
+fun upper_cell_index
 fun update_walking_speed
 fun update_water_pitch
-extfun update_camera void
+fun update_graph_node_camera
+fun update_8_directions_camera
+fun update_outward_radial_camera
+fun update_objects_starting_at
+fun update_objects_in_list
+fun update_objects_during_time_stop
+fun update_objects
+fun update_camera_yaw
+fun update_camera_hud_status
+fun update_camera
+fun update_c_up
 fun update_swimming_speed
 fun update_swimming_yaw
 fun update_swimming_pitch
 fun update_shell_speed
+fun update_spiral_stairs_camera
 fun update_sliding_angle
 fun update_sliding
+fun update_slide_or_0f_camera
+fun update_slide_camera
+fun update_yaw_and_dist_from_c_up
+fun update_in_cannon
 fun update_air_without_turn
 fun update_air_with_turn
 fun update_angle_from_move_flags
 fun update_and_return_cap_flags
 fun update_mario_geometry_inputs
+fun update_mario_camera
 fun update_mario_sound_and_camera
 fun update_mario_inputs
 fun update_mario_info_for_cam
 fun update_mario_health
 fun update_mario_pos_for_anim
+extfun update_mario_platform void
 fun update_mario_joystick_inputs
 fun update_mario_button_inputs
 fun update_metal_water_walking_speed
@@ -1089,20 +2195,100 @@ fun update_metal_water_jump_speed
 fun update_hang_stationary
 fun update_hang_moving
 fun update_hud_values
+fun update_parallel_tracking_camera
+fun update_lakitu
 fun update_lava_boost_or_twirling
 fun update_ledge_climb_camera
 fun update_ledge_climb
 fun update_level
 fun update_decelerating_speed
+fun update_default_camera
+fun update_terrain_objects
+fun update_boss_fight_camera
+fun update_behind_mario_camera
+fun update_radial_camera
+fun update_non_terrain_objects
+fun update_fixed_camera
 fun update_flying_yaw
 fun update_flying_pitch
 fun update_flying
 fun unknown_chuckya_function
+var unagi_seg5_anims_05012824 0 init=0
+var unused8038EEA8 48 init=48
+var unused8038BE90 4 init=4
+var unused8032CFE0 4 init=4
+var unused8032CFE8 4 init=4
+var unused8032CFE4 4 init=4
+var unused8032CFC0 4 init=4
+var unused8032CFC8 4 init=4
+var unused8032CFCC 4 init=4
+var unused8032D008 4 init=4
+var unused8032D0A8 8 init=8
+var unused8032D0B0 8 init=8
 var unused80339F10 4 init=4
 var unused80339F1C 20 init=20
+var unused8033B6E8 2 init=2
+var unused8033B30C 4 init=4
+var unused8033B3E8 2 init=2
+var unused8033B310 4 init=4
+var unused8033B31A 2 init=2
+var unused8033B316 2 init=2
 var unused2 4 init=4
+var unusedSplineYaw 2 init=2
+var unusedSplinePitch 2 init=2
+var unused_8033BEF8 4 init=4
+fun unused_object_angle_to_vec3s
+fun unused_obj_find_floor_height
+fun unused_set_camera_pitch_shake_env
+fun unused_init_free_list
+fun unused_update_mode_5_camera
+fun unused_dialog_cutscene_response
+fun unused_deallocate
+fun unused_try_allocate
+fun unused_resolve_floor_or_ceil_collisions
+fun unused_find_dynamic_floor
 var unused1 2 init=2
-extfun unload_mario_area void
+var unusedFreeRoamWallYaw 2 init=2
+var unusedDanceInfo2 20 init=20
+var unusedDanceInfo1 20 init=20
+var unusedDanceType 4 init=4
+fun unload_objects_from_area
+fun unload_object
+fun unload_area
+fun unload_mario_area
+fun unload_deactivated_objects_in_list
+fun unload_deactivated_objects
+var _osContInitialized 4 init=4
+var _segment2_mio0SegmentRomEnd 0 init=0
+var _segment2_mio0SegmentRomStart 0 init=0
+var _engineSegmentRomEnd 0 init=0
+var _engineSegmentRomStart 0 init=0
+var _entrySegmentRomEnd 0 init=0
+var _entrySegmentRomStart 0 init=0
+var __osMaxControllers 1 init=1
+fun __osEepStatus
+var __osEepPifRam 64 init=64
+var __osEepromTimerMsg 16 init=16
+var __osEepromTimerQ 24 init=24
+var __osEepromTimer 32 init=32
+var __osExceptionPreamble 16 init=0
+extfun __osGetSR int
+fun __osContGetInitData
+var __osContPifRam 64 init=0
+var __osContLastCmd 1 init=1
+fun __osSiGetAccess
+fun __osSiCreateAccessQueue
+extfun __osSiRawWriteIo int
+extfun __osSiRawStartDma int
+extfun __osSiRawReadIo int
+fun __osSiRelAccess
+extfun __osSetSR void
+extfun __osSetFpcCsr void
+var __osShutdown 4 init=4
+var __osFinalrom 4 init=4
+fun __osPackEepWriteData
+fun __osPackRequestData
+var __osThreadTail_fix 24 init=0
 extother __compcert_i64_sar __compcert_i64_sar
 extother __compcert_i64_smod __compcert_i64_smod
 extother __compcert_i64_smulh __compcert_i64_smulh
@@ -1122,6 +2308,19 @@ extother __compcert_va_composite __compcert_va_composite
 extother __compcert_va_int64 __compcert_va_int64
 extother __compcert_va_int32 __compcert_va_int32
 extother __compcert_va_float64 __compcert_va_float64
+var __stringlit_game_init_1 7 init=7
+var __stringlit_object_helpers_1 12 init=12
+var __stringlit_surface_collision_8 10 init=10
+var __stringlit_surface_collision_4 6 init=6
+var __stringlit_surface_collision_2 6 init=6
+var __stringlit_surface_collision_6 10 init=10
+var __stringlit_surface_collision_1 10 init=10
+var __stringlit_surface_collision_5 3 init=3
+var __stringlit_surface_collision_3 6 init=6
+var __stringlit_surface_collision_7 10 init=10
+var __stringlit_area_2 6 init=6
+var __stringlit_area_1 6 init=6
+var __stringlit_area_3 14 init=14
 var __stringlit_mario_2 7 init=7
 var __stringlit_mario_1 7 init=7
 var __stringlit_mario_3 7 init=7
@@ -1271,13 +2470,19 @@ extother __builtin_va_copy __builtin_va_copy
 extother __builtin_va_start __builtin_va_start
 extother __builtin_va_arg __builtin_va_arg
 extother __builtin_va_end __builtin_va_end
+var hoot_seg5_anims_05005768 0 init=0
 fun hidden_wdw_platform_actions
 fun hidden_breakable_box_actions
 fun hit_object_from_below
 fun handle_cap_ukiki_reset
+fun handle_c_button_movement
 fun handle_save_menu
 fun handle_merry_go_round_music
 var hmc_seg7_collision_0702B65C 0 init=0
+var hmc_seg7_collision_controllable_platform_sub 0 init=0
+var hmc_seg7_collision_controllable_platform 0 init=0
+var hmc_seg7_collision_elevator 0 init=0
+var heave_ho_seg5_anims_0501534C 0 init=0
 fun heave_ho_act_0
 fun heave_ho_act_2
 fun heave_ho_act_1
@@ -1285,9 +2490,11 @@ fun heave_ho_act_3
 fun heave_ho_move
 fun hexagonal_ring_spawn_flames
 fun hurt_and_set_mario_action
+var poundable_pole_collision_06002490 0 init=0
 fun pss_end_slide
 fun pss_begin_slide
 fun piranha_plant_check_interactions
+var piranha_plant_seg6_anims_0601C31C 0 init=0
 fun piranha_plant_act_woken_up
 fun piranha_plant_act_wait_to_respawn
 fun piranha_plant_act_shrink_and_die
@@ -1298,6 +2505,11 @@ fun piranha_plant_act_biting
 fun piranha_plant_act_respawn
 fun piranha_plant_attacked
 fun piranha_plant_reset_when_far
+fun parallel_tracking_init
+fun pan_camera
+fun pan_ahead_of_player
+var peach_seg5_anims_0501C41C 0 init=0
+fun peach_letter_text
 fun perform_water_step
 fun perform_water_full_step
 fun perform_ground_step
@@ -1305,18 +2517,34 @@ fun perform_ground_quarter_step
 fun perform_air_step
 fun perform_air_quarter_step
 fun perform_hanging_step
+var penguin_seg5_collision_05008B88 0 init=0
+var penguin_seg5_anims_05008B74 0 init=0
 fun push_or_sidle_wall
 fun push_mario_out_of_object
-extfun player_performed_grab_escape_action int
+var purple_switch_seg8_collision_0800C7A8 0 init=0
+fun player2_rotate_cam
+fun player_performed_grab_escape_action
 fun play_warp_door_open_noise
 fun play_knockback_sound
 extfun play_course_clear void
+fun play_camera_buzz_if_c_sideways
+fun play_camera_buzz_if_cdown
+fun play_camera_buzz_if_cbutton
 extfun play_cap_music void
 extfun play_cutscene_music void
+fun play_cutscene
 fun play_climbing_sounds
 fun play_swimming_noise
+fun play_sound_cbutton_side
+fun play_sound_cbutton_up
+fun play_sound_cbutton_down
+fun play_sound_intro_turn_on_hud
+fun play_sound_if_cam_switched_to_lakitu_or_mario
 fun play_sound_if_no_flag
 fun play_sound_and_spawn_particles
+fun play_sound_peach_reading_letter
+fun play_sound_button_change_blocked
+fun play_sound_rbutton_changed
 extfun play_sound void
 extfun play_secondary_music void
 extfun play_shell_music void
@@ -1344,57 +2572,119 @@ extfun play_peachs_jingle void
 fun play_penguin_walking_sound
 extfun play_puzzle_jingle void
 fun play_door_open_noise
-extfun play_transition_after_delay void
-extfun play_transition void
+fun play_transition_after_delay
+fun play_transition
 fun play_far_fall_sound
 fun play_flip_sounds
+extfun profiler_log_thread5_time void
 extfun print_credits_str_ascii void
-extfun print_intro_text void
+fun print_intro_text
 fun print_displaying_credits_entry
 extfun print_debug_top_down_objectinfo void
+extfun print_debug_top_down_mapinfo void
 extfun print_debug_bottom_up void
+extfun print_text_centered void
 extfun print_text_fmt_int void
 fun pressed_pause
+fun lower_cell_index
 extfun lower_background_noise void
-extfun load_object_collision_model void
-extfun load_area void
-extfun load_mario_area void
-extfun load_patchable_table int
+fun look_down_slopes
+fun load_object_collision_model
+fun load_object_surfaces
+fun load_obj_warp_nodes
+fun load_segment_decompress_heap
+fun load_segment_decompress
+fun load_segment
+fun load_static_surfaces
+fun load_area_terrain
+fun load_area
+fun load_mario_area
+fun load_engine_code_segment
+fun load_environmental_regions
+fun load_patchable_table
 fun load_level_init_text
-extfun linear_mtxf_mul_vec3f void
+fun load_dma_table_address
+fun load_to_fixed_pool_addr
+fun linear_mtxf_mul_vec3f
+fun linear_mtxf_transpose_mul_vec3f
+var lakitu_seg6_anims_060058F8 0 init=0
+var lakitu_enemy_seg5_anims_050144D4 0 init=0
+fun lakitu_zoom
 fun launch_mario_until_land
-extfun lateral_dist_between_objects f32
+fun lateral_dist_between_objects
 fun landing_step
 fun lava_boost_on_wall
 fun let_go_of_ledge
 fun level_control_timer
+extfun level_script_execute ptr
+var level_script_entry 0 init=0
 fun level_set_transition
 fun level_trigger_warp
 fun lll_octagonal_mesh_move
 fun lll_octagonal_mesh_find_y_offset
 var lll_seg7_collision_0701D21C 0 init=0
+var lll_seg7_collision_wood_piece 0 init=0
+var lll_seg7_collision_octagonal_moving_platform 0 init=0
+var lll_seg7_collision_sinking_pyramids 0 init=0
+var lll_seg7_collision_slow_tilting_platform 0 init=0
+var lll_seg7_collision_inverted_pyramid 0 init=0
+var lll_seg7_collision_hexagonal_platform 0 init=0
+var lll_seg7_collision_pitoune 0 init=0
+var lll_seg7_collision_puzzle_piece 0 init=0
+var lll_seg7_collision_drawbridge 0 init=0
+var lll_seg7_collision_rotating_platform 0 init=0
+var lll_seg7_collision_rotating_fire_bars 0 init=0
+var lll_seg7_collision_falling_wall 0 init=0
+var lll_seg7_collision_floating_block 0 init=0
+var lll_hexagonal_mesh_seg3_collision_0301CECC 0 init=0
 fun lvl_set_current_level
 fun lvl_init_or_update
 fun lvl_init_from_save_file
 fun lvl_play_the_end_screen_sound
+var door_seg3_collision_0301CE78 0 init=0
+var door_seg3_anims_030156C0 0 init=0
 fun door_animation_and_reset
 fun does_mario_have_normal_cap_on_head
-extfun disable_warp_checkpoint void
-extfun disable_time_stop void
+extfun do_cutscene_handler void
+var dorrie_seg6_collision_0600F644 0 init=0
+var dorrie_seg6_anims_0600F638 0 init=0
+var dAmpAnimsList 0 init=0
+fun dynamic_dma_read
+fun disable_warp_checkpoint
+fun disable_time_stop_including_mario
+fun disable_time_stop
 extfun disable_background_sound void
-extfun dist_between_objects f32
+fun display_and_vsync
+fun dist_between_objects
+fun dma_read
+extfun decompress void
+fun deallocate_object
+fun death_goto_mario
+extfun detect_object_collisions void
 fun determine_knockback_action
 fun determine_interaction
+fun determine_pushing_or_pulling_door
+fun determine_dance_cutscene
+fun debug_surface_list_info
+extfun debug_unknown_level_select_check void
 fun debug_print_speed_action_normal
 var dBowserFlamesOrientationValues 0 init=0
 extfun dl_rgba16_stop_cutscene_msg_fade void
 extfun dl_rgba16_begin_cutscene_msg_fade void
+var ddd_seg7_collision_submarine 0 init=0
+var ddd_seg7_collision_bowser_sub_door 0 init=0
 fun drop_and_set_mario_action
 extfun drop_queued_background_music void
+fun draw_screen_borders
+extfun draw_profiler void
+fun draw_reset_bars
 fun tweester_scale_and_move
 fun tweester_act_chase
 fun tweester_act_idle
 fun tweester_act_hide
+var toad_seg6_anims_0600FB58 0 init=0
+fun touch_coin_score_age
+fun touch_high_score_ages
 fun tox_box_shake_screen
 fun tox_box_act_idle
 fun tox_box_act_init
@@ -1418,20 +2708,51 @@ fun tumbling_bridge_act_3
 fun tuxies_mother_act_0
 fun tuxies_mother_act_2
 fun tuxies_mother_act_1
-extfun try_to_spawn_object ptr
-extfun trigger_cutscene_dialog int
+var thwomp_seg5_collision_0500B92C 0 init=0
+var thwomp_seg5_collision_0500B7D0 0 init=0
+var thi_seg7_collision_top_trap 0 init=0
+fun thread5_game_loop
+var ttc_seg7_collision_clock_main_rotation 0 init=0
+var ttc_seg7_collision_clock_pendulum 0 init=0
+var ttc_seg7_collision_clock_platform 0 init=0
+var ttc_seg7_collision_sliding_surface 0 init=0
+var ttc_seg7_collision_rotating_clock_platform2 0 init=0
+var ttm_seg7_collision_ukiki_cage 0 init=0
+var ttm_seg7_collision_podium_warp 0 init=0
+var ttm_seg7_collision_pitoune_2 0 init=0
+fun try_allocate_object
+extfun try_print_debug_mario_object_info void
+extfun try_print_debug_mario_level_info void
+extfun try_do_mario_debug_object_spawn void
+fun try_to_spawn_object
+fun trigger_cutscene_dialog
 fun transition_submerged_to_walking
+fun transition_to_camera_mode
+fun transition_next_state
+fun transform_object_vertices
 fun transfer_bully_speed
-extfun jiggle_bbh_stair int
+fun zoom_out_if_paused_and_outside
+fun zoom_fov_30
+var zeroMtx 32 init=32
+fun jiggle_bbh_stair
 fun jumping_box_act_0
 fun jumping_box_act_1
 fun jumping_box_free_update
 fun jumbo_star_cutscene_taking_off
 fun jumbo_star_cutscene_falling
 fun jumbo_star_cutscene_flying
+var jrb_seg7_collision_in_sunken_ship_2 0 init=0
+var jrb_seg7_collision_in_sunken_ship_3 0 init=0
+var jrb_seg7_collision_in_sunken_ship 0 init=0
+var jrb_seg7_collision_pillar_base 0 init=0
+var jrb_seg7_collision_rock_solid 0 init=0
+var jrb_seg7_collision_floating_platform 0 init=0
+var jrb_seg7_collision_floating_box 0 init=0
 fun bowser_open_eye_switch
+var bowser_key_seg3_anims_list 0 init=0
 fun bowser_check_hit_mine
 fun bowser_check_fallen_off_stage
+var bowser_seg6_anims_06057690 0 init=0
 fun bowser_set_goal_invisible
 fun bowser_set_act_big_jump
 fun bowser_set_anim_slow_gait
@@ -1441,6 +2762,7 @@ fun bowser_set_anim_jump
 fun bowser_short_second_hop
 fun bowser_spawn_collectable
 fun bowser_spawn_shockwave
+var bowser_2_seg7_collision_tilting_platform 0 init=0
 fun bowser_init_camera_actions
 fun bowser_act_wait
 fun bowser_act_walk_to_mario
@@ -1492,11 +2814,13 @@ fun bowser_bits_action_list
 fun bowser_bitdw_actions
 fun bowser_bitfs_actions
 fun bowser_reset_fallen_off_stage
+fun bowser_fight_intro_dialog
 fun bowser_fly_back_dead
 fun bowser_flame_should_despawn
 fun bowser_flame_move
 fun bowser_flame_despawn
 fun bowser_free_update
+var bookend_seg5_anims_05002540 0 init=0
 fun boo_with_cage_act_0
 fun boo_with_cage_act_2
 fun boo_with_cage_act_1
@@ -1522,7 +2846,10 @@ fun boo_reset_after_hit
 fun boo_vanish_or_appear
 fun bounce_off_object
 fun bounce_back_from_attack
+var bobomb_seg8_anims_0802396C 0 init=0
 var bob_seg7_collision_gate 0 init=0
+var bob_seg7_collision_chain_chomp_gate 0 init=0
+extfun bcopy void
 fun big_boo_shake_after_hit
 fun big_boo_spawn_ghost_hunt_star
 fun big_boo_spawn_merry_go_round_star
@@ -1533,20 +2860,31 @@ fun big_boo_act_2
 fun big_boo_act_1
 fun big_boo_act_3
 fun big_boo_update_during_nonlethal_hit
-extfun bit_shift_left int
+fun bit_shift_left
+var bitdw_seg7_collision_moving_pyramid 0 init=0
 var bitfs_seg7_collision_07015288 0 init=0
+var bitfs_seg7_collision_sinking_cage_platform 0 init=0
+var bitfs_seg7_collision_sinking_platform 0 init=0
+var bitfs_seg7_collision_squishable_platform 0 init=0
+var bitfs_seg7_collision_inverted_pyramid 0 init=0
+var birds_seg5_anims_050009E8 0 init=0
 fun basic_update
 fun begin_walking_action
 fun begin_braking_action
+extfun beh_yellow_background_menu_init void
+extfun beh_yellow_background_menu_loop void
 fun beta_boo_key_inside_boo_loop
 fun beta_boo_key_drop
 fun beta_boo_key_dropped_loop
 fun bully_knock_back_mario
+var bully_seg5_anims_0500470C 0 init=0
 fun bullet_bill_act_0
 fun bullet_bill_act_4
 fun bullet_bill_act_2
 fun bullet_bill_act_1
 fun bullet_bill_act_3
+var butterfly_seg3_anims_030056B0 0 init=0
+var bub_seg6_anims_06012354 0 init=0
 fun bub_spawner_act_0
 fun bub_spawner_act_2
 fun bub_spawner_act_1
@@ -1555,69 +2893,277 @@ fun bub_act_0
 fun bub_act_2
 fun bub_act_1
 fun bub_move_vertically
-var bhvMetalCap 0 init=0
-var bhvMerryGoRound 0 init=0
-var bhvMerryGoRoundBooManager 0 init=0
-var bhvMerryGoRoundBoo 0 init=0
-var bhvMerryGoRoundBigBoo 0 init=0
-var bhvMrIParticle 0 init=0
-var bhvEndPeach 0 init=0
-var bhvEndToad 0 init=0
-var bhvUkikiCageChild 0 init=0
-var bhvUnused20E0 0 init=0
-var bhvUnlockDoorStar 0 init=0
-var bhvInSunkenShip3 0 init=0
-var bhvYellowCoin 0 init=0
-var bhvYellowBall 0 init=0
-var bhvOpenableCageDoor 0 init=0
-var bhvObjectWaterSplash 0 init=0
-var bhvObjectWaveTrail 0 init=0
-var bhvGoldenCoinSparkles 0 init=0
-var bhvGiantPole 0 init=0
-var bhvGhostHuntBoo 0 init=0
-var bhvGhostHuntBigBoo 0 init=0
-var bhvGrandStar 0 init=0
-var bhvWingCap 0 init=0
-var bhvWind 0 init=0
-var bhvWallTinyStarParticle 0 init=0
-var bhvWaterMist 0 init=0
-var bhvWaterAirBubble 0 init=0
-var bhvWaterDropletSplash 0 init=0
-var bhvWaterDroplet 0 init=0
-var bhvWaterLevelPillar 0 init=0
-var bhvWhitePuffSmoke2 0 init=0
-var bhvWhitePuffSmoke 0 init=0
-var bhvWFElevatorTowerPlatform 0 init=0
-var bhvWFSolidTowerPlatform 0 init=0
-var bhvWFSlidingTowerPlatform 0 init=0
-var bhvWFBreakableWallRight 0 init=0
-var bhvCoinSparkles 0 init=0
-var bhvCoinFormationSpawn 0 init=0
-var bhvCapSwitchBase 0 init=0
-var bhvCarrySomething4 0 init=0
-var bhvCarrySomething5 0 init=0
-var bhvCarrySomething3 0 init=0
-var bhvCelebrationStar 0 init=0
-var bhvCheckerboardPlatformSub 0 init=0
-var bhvClockMinuteHand 0 init=0
-var bhvScuttlebug 0 init=0
-var bhvSingleCoinGetsSpawned 0 init=0
-var bhvSmallParticleSnow 0 init=0
-var bhvSmallParticle 0 init=0
-var bhvSmallParticleBubbles 0 init=0
-var bhvSmallPenguin 0 init=0
-var bhvSpawnedStar 0 init=0
-var bhvSpawnedStarNoLevelExit 0 init=0
-var bhvSparkleSpawn 0 init=0
-var bhvSparkle 0 init=0
-var bhvStaticObject 0 init=0
-var bhvStarKeyCollectionPuffSpawner 0 init=0
-var bhvStarDoor 0 init=0
-var bhvStrongWindParticle 0 init=0
-var bhvSLWalkingPenguin 0 init=0
-var bhvKoopaShellUnderwater 0 init=0
-var bhvKoopaShell 0 init=0
-var bhvKoopaShellFlame 0 init=0
+var bhvMoatGrills 36 init=36
+var bhvMoneybag 52 init=52
+var bhvMoneybagHidden 52 init=52
+var bhvMontyMole 88 init=88
+var bhvMontyMoleRock 56 init=56
+var bhvMontyMoleHole 32 init=32
+var bhvMovingYellowCoin 60 init=60
+var bhvMovingBlueCoin 48 init=48
+var bhvMistCircParticleSpawner 24 init=24
+var bhvMistParticleSpawner 48 init=48
+var bhvMips 60 init=60
+var bhvMacroUkiki 92 init=92
+var bhvMadPiano 72 init=72
+var bhvMario 56 init=56
+var bhvManyBlueFishSpawner 16 init=16
+var bhvMantaRayWaterRing 72 init=72
+var bhvMantaRay 48 init=48
+var bhvMantaRayRingManager 12 init=12
+var bhvMessagePanel 68 init=68
+var bhvMeshElevator 60 init=60
+var bhvMetalCap 32 init=32
+var bhvMerryGoRound 48 init=48
+var bhvMerryGoRoundBooManager 24 init=24
+var bhvMerryGoRoundBoo 16 init=16
+var bhvMerryGoRoundBigBoo 20 init=20
+var bhvMenuButtonManager 36 init=36
+var bhvMenuButton 36 init=36
+var bhvMrI 56 init=56
+var bhvMrIBody 32 init=32
+var bhvMrIParticle 76 init=76
+var bhvMrBlizzardSnowball 68 init=68
+var bhvMrBlizzard 76 init=76
+var bhvEyerokBoss 28 init=28
+var bhvEyerokHand 64 init=64
+var bhvExclamationBox 44 init=44
+var bhvExitPodiumWarp 60 init=60
+var bhvExplosion 72 init=72
+var bhvEnemyLakitu 60 init=60
+var bhvEndBirds2 36 init=36
+var bhvEndBirds1 36 init=36
+var bhvEndPeach 36 init=36
+var bhvEndToad 36 init=36
+var bhvUkikiCageChild 24 init=24
+var bhvUkikiCageStar 28 init=28
+var bhvUkikiCage 84 init=84
+var bhvUkiki 12 init=12
+var bhvUnagiSubobject 24 init=24
+var bhvUnagi 56 init=56
+var bhvUnused05A8 12 init=12
+var bhvUnused0DFC 40 init=40
+var bhvUnused20E0 8 init=8
+var bhvUnused2A10 16 init=16
+var bhvUnused2A54 8 init=8
+var bhvUnused1820 8 init=8
+var bhvUnused1F30 12 init=12
+var bhvUnusedFakeStar 24 init=24
+var bhvUnusedPoundablePlatform 36 init=36
+var bhvUnusedParticleSpawn 56 init=56
+var bhvUnlockDoorStar 32 init=32
+var bhvActivatedBackAndForthPlatform 44 init=44
+var bhvActSelectorStarType 28 init=28
+var bhvActSelector 32 init=32
+var bhvAirborneWarp 4 init=4
+var bhvAirborneStarCollectWarp 4 init=4
+var bhvAirborneDeathWarp 4 init=4
+var bhvAmbientSounds 20 init=20
+var bhvAlphaBooKey 36 init=36
+var bhvArrowLift 52 init=52
+var bhvAnotherElavator 52 init=52
+var bhvAnotherTiltingPlatform 44 init=44
+var bhvAnimatesOnFloorSwitchPress 44 init=44
+var bhvAnimatedTexture 56 init=56
+var bhvIgloo 44 init=44
+var bhvIdleWaterWave 72 init=72
+var bhvInsideCannon 4 init=4
+var bhvInstantActiveWarp 4 init=4
+var bhvInitializeChangingWaterLevel 20 init=20
+var bhvInSunkenShip2 44 init=44
+var bhvInSunkenShip 20 init=20
+var bhvInSunkenShip3 48 init=48
+var bhvIntroScene 24 init=24
+var bhvInvisibleObjectsUnderBridge 16 init=16
+var bhvYoshi 72 init=72
+var bhvYellowCoin 36 init=36
+var bhvYellowBackgroundInMenu 36 init=36
+var bhvYellowBall 16 init=16
+var bhvOctagonalPlatformRotating 40 init=40
+var bhvOpenableGrill 24 init=24
+var bhvOpenableCageDoor 32 init=32
+var bhvObjectWaterWave 76 init=76
+var bhvObjectWaterSplash 40 init=40
+var bhvObjectWaveTrail 16 init=16
+var bhvObjectBubble 64 init=64
+var bhvOrangeNumber 40 init=40
+var bhvOneCoin 16 init=16
+var bhvGoomba 68 init=68
+var bhvGoombaTripletSpawner 28 init=28
+var bhvGoldenCoinSparkles 32 init=32
+var bhvGiantPole 44 init=44
+var bhvGhostHuntBoo 104 init=104
+var bhvGhostHuntBigBoo 64 init=64
+var bhvGrindel 52 init=52
+var bhvGrandStar 48 init=48
+var bhvWoodenPost 76 init=76
+var bhvWigglerBody 56 init=56
+var bhvWigglerHead 72 init=72
+var bhvWingCap 32 init=32
+var bhvWind 24 init=24
+var bhvWallTinyStarParticle 32 init=32
+var bhvWaterMist2 36 init=36
+var bhvWaterMist 44 init=44
+var bhvWaterAirBubble 68 init=68
+var bhvWaterSplash 76 init=76
+var bhvWaterBombCannon 24 init=24
+var bhvWaterBombShadow 28 init=28
+var bhvWaterBombSpawner 28 init=28
+var bhvWaterBomb 44 init=44
+var bhvWaterDropletSplash 52 init=52
+var bhvWaterDroplet 28 init=28
+var bhvWaterfallSoundLoop 20 init=20
+var bhvWaterLevelPillar 48 init=48
+var bhvWaterLevelDiamond 40 init=40
+var bhvWarp 32 init=32
+var bhvWarpPipe 60 init=60
+var bhvWaveTrail 68 init=68
+var bhvWhompKingBoss 20 init=20
+var bhvWhitePuffExplosion 28 init=28
+var bhvWhitePuff2 40 init=40
+var bhvWhitePuffSmoke2 48 init=48
+var bhvWhitePuffSmoke 44 init=44
+var bhvWhitePuff1 36 init=36
+var bhvWhirlpool 32 init=32
+var bhvWFElevatorTowerPlatform 40 init=40
+var bhvWFSolidTowerPlatform 40 init=40
+var bhvWFSlidingPlatform 48 init=48
+var bhvWFSlidingTowerPlatform 40 init=40
+var bhvWFBreakableWallRight 20 init=20
+var bhvWFBreakableWallLeft 52 init=52
+var bhvWFRotatingWoodenPlatform 40 init=40
+var bhvWDWExpressElevator 44 init=44
+var bhvWDWExpressElevatorPlatform 36 init=36
+var bhvWDWSquareFloatingPlatform 48 init=48
+var bhvWDWRectangularFloatingPlatform 48 init=48
+var bhvCoinInsideBoo 72 init=72
+var bhvCoinSparkles 52 init=52
+var bhvCoinFormationSpawn 28 init=28
+var bhvCoinFormation 32 init=32
+var bhvCourtyardBooTriplet 20 init=20
+var bhvControllablePlatformSub 40 init=40
+var bhvControllablePlatform 52 init=52
+var bhvCoffinSpawner 32 init=32
+var bhvCoffin 44 init=44
+var bhvCirclingAmp 52 init=52
+var bhvCastleFloorTrap 32 init=32
+var bhvCastleFlagWaving 36 init=36
+var bhvCameraLakitu 52 init=52
+var bhvCapSwitch 40 init=40
+var bhvCapSwitchBase 32 init=32
+var bhvCarrySomething4 8 init=8
+var bhvCarrySomething2 8 init=8
+var bhvCarrySomething6 8 init=8
+var bhvCarrySomething1 8 init=8
+var bhvCarrySomething5 8 init=8
+var bhvCarrySomething3 8 init=8
+var bhvCannonClosed 52 init=52
+var bhvCannon 60 init=60
+var bhvCannonBaseUnused 40 init=40
+var bhvCannonBarrel 28 init=28
+var bhvCannonBarrelBubbles 24 init=24
+var bhvCCMTouchedStarSpawn 36 init=36
+var bhvCelebrationStarSparkle 40 init=40
+var bhvCelebrationStar 32 init=32
+var bhvCutOutObject 16 init=16
+var bhvChirpChirpUnused 24 init=24
+var bhvChirpChirp 16 init=16
+var bhvChainChompGate 48 init=48
+var bhvChainChompChainPart 56 init=56
+var bhvChainChomp 88 init=88
+var bhvCheckerboardElevatorGroup 24 init=24
+var bhvCheckerboardPlatformSub 44 init=44
+var bhvChuckyaAnchorMario 36 init=36
+var bhvChuckya 92 init=92
+var bhvClockMinuteHand 16 init=16
+var bhvClockHourHand 36 init=36
+var bhvCloud 36 init=36
+var bhvCloudPart 28 init=28
+var bhvClamShell 40 init=40
+var bhvSwoop 68 init=68
+var bhvSwimmingWarp 4 init=4
+var bhvSwingPlatform 52 init=52
+var bhvSoundSpawner 28 init=28
+var bhvSkeeterWave 24 init=24
+var bhvSkeeter 56 init=56
+var bhvScuttlebugSpawn 24 init=24
+var bhvScuttlebug 68 init=68
+var bhvSignOnWall 48 init=48
+var bhvSingleCoinGetsSpawned 60 init=60
+var bhvSandSoundLoop 20 init=20
+var bhvSquishablePlatform 52 init=52
+var bhvSquarishPathMoving 36 init=36
+var bhvSmoke 40 init=40
+var bhvSmallWaterWave 96 init=96
+var bhvSmallWaterWave398 36 init=36
+var bhvSmallWhomp 72 init=72
+var bhvSmallChillBully 56 init=56
+var bhvSmallBomp 48 init=48
+var bhvSmallBully 52 init=52
+var bhvSmallPiranhaFlame 52 init=52
+var bhvSmallParticleSnow 40 init=40
+var bhvSmallParticle 40 init=40
+var bhvSmallParticleBubbles 40 init=40
+var bhvSmallPenguin 84 init=84
+var bhvSSLMovingPyramidWall 48 init=48
+var bhvSeaweed 36 init=36
+var bhvSeaweedBundle 28 init=28
+var bhvSeesawPlatform 40 init=40
+var bhvSushiSharkCollisionChild 28 init=28
+var bhvSushiShark 80 init=80
+var bhvSunkenShipSetRotation 16 init=16
+var bhvSunkenShipPart2 32 init=32
+var bhvSunkenShipPart 32 init=32
+var bhvShipPart3 28 init=28
+var bhvShallowWaterWave 44 init=44
+var bhvShallowWaterSplash 52 init=52
+var bhvSpinAirborneWarp 4 init=4
+var bhvSpinAirborneCircleWarp 4 init=4
+var bhvSpiny 56 init=56
+var bhvSpindel 48 init=48
+var bhvSpindrift 64 init=64
+var bhvSpawnedStar 20 init=20
+var bhvSpawnedStarNoLevelExit 36 init=36
+var bhvSpawnedBlueCoin 88 init=88
+var bhvSparkleSpawn 24 init=24
+var bhvSparkle 32 init=32
+var bhvSparkleParticleSpawner 84 init=84
+var bhvSlidingSnowMound 44 init=44
+var bhvSlidingPlatform2 44 init=44
+var bhvStaticObject 12 init=12
+var bhvStaticCheckeredPlatform 44 init=44
+var bhvStarSpawnCoordinates 40 init=40
+var bhvStarKeyCollectionPuffSpawner 32 init=32
+var bhvStar 40 init=40
+var bhvStarDoor 84 init=84
+var bhvStub 12 init=12
+var bhvStub1D0C 8 init=8
+var bhvStub1D70 8 init=8
+var bhvStrongWindParticle 28 init=28
+var bhvSnowMoundSpawn 20 init=20
+var bhvSnowmansBodyCheckpoint 24 init=24
+var bhvSnowmansBottom 40 init=40
+var bhvSnowmansHead 40 init=40
+var bhvSnowBall 4 init=4
+var bhvSnowParticleSpawner 24 init=24
+var bhvSnufit 60 init=60
+var bhvSnufitBalls 64 init=64
+var bhvSLWalkingPenguin 80 init=80
+var bhvSLSnowmanWind 28 init=28
+var bhvKoopaShellUnderwater 24 init=24
+var bhvKoopaShell 44 init=44
+var bhvKoopaShellFlame 40 init=40
+var bhvKoopa 80 init=80
+var bhvKoopaFlag 60 init=60
+var bhvKoopaRaceEndpoint 40 init=40
+var bhvKickableBoard 56 init=56
+var bhvKingBobomb 96 init=96
+var bhvKlepto 68 init=68
+extfun bhv_wooden_post_update void
+extfun bhv_wiggler_update void
+extfun bhv_wiggler_body_part_update void
+extfun bhv_wing_cap_init void
+extfun bhv_wing_vanish_cap_loop void
 fun bhv_wind_loop
 fun bhv_wall_tiny_star_particle_loop
 fun bhv_water_waves_init
@@ -1632,6 +3178,11 @@ fun bhv_water_level_pillar_loop
 fun bhv_water_level_diamond_loop
 fun bhv_water_droplet_splash_init
 fun bhv_water_droplet_loop
+extfun bhv_water_bomb_cannon_loop void
+extfun bhv_water_bomb_shadow_update void
+extfun bhv_water_bomb_spawner_update void
+extfun bhv_water_bomb_update void
+extfun bhv_waterfall_sound_loop void
 fun bhv_warp_loop
 fun bhv_wave_trail_shrink
 fun bhv_whomp_loop
@@ -1639,26 +3190,46 @@ fun bhv_white_puff_smoke_init
 fun bhv_white_puff_2_loop
 fun bhv_white_puff_exploding_loop
 fun bhv_white_puff_1_loop
+extfun bhv_whirlpool_init void
+extfun bhv_whirlpool_loop void
 fun bhv_wdw_express_elevator_loop
 fun bhv_wf_solid_tower_platform_loop
+extfun bhv_wf_sliding_platform_init void
+extfun bhv_wf_sliding_platform_loop void
 fun bhv_wf_sliding_tower_platform_loop
 fun bhv_wf_elevator_tower_platform_loop
 fun bhv_wf_breakable_wall_loop
 fun bhv_wf_rotating_wooden_platform_loop
+extfun bhv_goomba_init void
+extfun bhv_goomba_update void
+extfun bhv_goomba_triplet_spawner_update void
 fun bhv_golden_coin_sparkles_loop
 fun bhv_giant_pole_loop
+extfun bhv_generic_bowling_ball_spawner_init void
+extfun bhv_generic_bowling_ball_spawner_loop void
 fun bhv_ground_sand_init
 fun bhv_ground_snow_init
 fun bhv_grindel_thwomp_loop
 fun bhv_grand_star_loop
 fun bhv_openable_grill_loop
 fun bhv_openable_cage_door_loop
+extfun bhv_object_water_wave_init void
+extfun bhv_object_water_wave_loop void
+extfun bhv_object_bubble_init void
+extfun bhv_object_bubble_loop void
+extfun bhv_orange_number_init void
+extfun bhv_orange_number_loop void
 fun bhv_koopa_shell_underwater_loop
 fun bhv_koopa_shell_loop
 fun bhv_koopa_shell_flame_spawn
 fun bhv_koopa_shell_flame_loop
+extfun bhv_koopa_init void
+extfun bhv_koopa_update void
+extfun bhv_koopa_race_endpoint_update void
 fun bhv_kickable_board_loop
 fun bhv_king_bobomb_loop
+extfun bhv_klepto_init void
+extfun bhv_klepto_update void
 fun bhv_coin_sparkles_init
 fun bhv_coin_sparkles_loop
 fun bhv_coin_inside_boo_loop
@@ -1666,7 +3237,17 @@ fun bhv_coin_formation_spawn_loop
 fun bhv_coin_formation_init
 fun bhv_coin_formation_loop
 fun bhv_courtyard_boo_triplet_init
+extfun bhv_collect_star_init void
+extfun bhv_collect_star_loop void
+extfun bhv_controllable_platform_sub_loop void
+extfun bhv_controllable_platform_init void
+extfun bhv_controllable_platform_loop void
+extfun bhv_coffin_spawner_loop void
+extfun bhv_coffin_loop void
 fun bhv_ccm_touched_star_spawn_loop
+extfun bhv_circling_amp_init void
+extfun bhv_circling_amp_loop void
+extfun bhv_castle_cannon_grate_init void
 fun bhv_castle_floor_trap_open_detect
 fun bhv_castle_floor_trap_open
 fun bhv_castle_floor_trap_close_detect
@@ -1674,28 +3255,62 @@ fun bhv_castle_floor_trap_close
 fun bhv_castle_floor_trap_init
 fun bhv_castle_floor_trap_loop
 fun bhv_castle_floor_trap_rotate
+extfun bhv_castle_flag_init void
+extfun bhv_camera_lakitu_init void
+extfun bhv_camera_lakitu_update void
 fun bhv_cap_switch_loop
+extfun bhv_cannon_closed_init void
+extfun bhv_cannon_closed_loop void
 fun bhv_cannon_base_unused_loop
 fun bhv_cannon_base_loop
 fun bhv_cannon_barrel_loop
+extfun bhv_celebration_star_sparkle_loop void
+extfun bhv_celebration_star_init void
+extfun bhv_celebration_star_loop void
+extfun bhv_chain_chomp_gate_init void
+extfun bhv_chain_chomp_gate_update void
+extfun bhv_chain_chomp_chain_part_update void
+extfun bhv_chain_chomp_update void
 fun bhv_checkerboard_elevator_group_init
 fun bhv_checkerboard_platform_init
 fun bhv_checkerboard_platform_loop
 fun bhv_chuckya_anchor_mario_loop
 fun bhv_chuckya_loop
+extfun bhv_cloud_update void
+extfun bhv_cloud_part_update void
+extfun bhv_clam_loop void
+extfun bhv_swoop_update void
+extfun bhv_swing_platform_init void
+extfun bhv_swing_platform_update void
 fun bhv_sound_spawner_init
+extfun bhv_skeeter_wave_update void
+extfun bhv_skeeter_update void
 fun bhv_scuttlebug_spawn_loop
 fun bhv_scuttlebug_loop
+extfun bhv_ssl_moving_pyramid_wall_init void
+extfun bhv_ssl_moving_pyramid_wall_loop void
+extfun bhv_sand_sound_loop void
 fun bhv_squishable_platform_loop
 fun bhv_squarish_path_moving_loop
 fun bhv_small_water_wave_loop
+extfun bhv_small_piranha_flame_loop void
 fun bhv_small_penguin_loop
+extfun bhv_small_bomp_init void
+extfun bhv_small_bomp_loop void
+extfun bhv_small_bully_init void
 fun bhv_small_bubbles_loop
+extfun bhv_seaweed_init void
+extfun bhv_seaweed_bundle_init void
+extfun bhv_seesaw_platform_init void
+extfun bhv_seesaw_platform_update void
 fun bhv_sushi_shark_collision_loop
 fun bhv_sushi_shark_loop
 fun bhv_sunken_ship_part_loop
 fun bhv_ship_part_3_loop
 fun bhv_shallow_water_splash_init
+extfun bhv_spiny_update void
+extfun bhv_spindel_init void
+extfun bhv_spindel_loop void
 fun bhv_spindrift_loop
 fun bhv_spawned_coin_init
 fun bhv_spawned_coin_loop
@@ -1703,65 +3318,177 @@ fun bhv_spawned_star_init
 fun bhv_spawned_star_loop
 fun bhv_spawn_star_no_level_exit
 fun bhv_sparkle_spawn_loop
+extfun bhv_sliding_snow_mound_loop void
+extfun bhv_sliding_plat_2_init void
+extfun bhv_sliding_plat_2_loop void
 fun bhv_sl_walking_penguin_loop
 fun bhv_sl_snowman_wind_loop
 fun bhv_static_checkered_platform_loop
+extfun bhv_star_key_collection_puff_spawner_loop void
+extfun bhv_star_spawn_init void
+extfun bhv_star_spawn_loop void
 fun bhv_star_door_loop_2
 fun bhv_star_door_loop
 fun bhv_strong_wind_particle_loop
+extfun bhv_snowmans_head_init void
+extfun bhv_snowmans_head_loop void
+extfun bhv_snowmans_body_checkpoint_loop void
+extfun bhv_snowmans_bottom_init void
+extfun bhv_snowmans_bottom_loop void
+extfun bhv_snow_mound_spawn_loop void
 fun bhv_snow_leaf_particle_spawn_init
+extfun bhv_snufit_loop void
+extfun bhv_snufit_balls_loop void
+extfun bhv_yoshi_init void
+extfun bhv_yoshi_loop void
 fun bhv_yellow_coin_init
 fun bhv_yellow_coin_loop
 fun bhv_idle_water_wave_loop
 fun bhv_init_changing_water_level_loop
-extfun bhv_init_room void
+fun bhv_init_room
+fun bhv_intro_scene_loop
+fun bhv_intro_peach_loop
+fun bhv_intro_lakitu_loop
 fun bhv_invisible_objects_under_bridge_init
+extfun bhv_activated_back_and_forth_platform_init void
+extfun bhv_activated_back_and_forth_platform_update void
+extfun bhv_act_selector_star_type_loop void
+extfun bhv_act_selector_init void
+extfun bhv_act_selector_loop void
+extfun bhv_ambient_sounds_init void
 fun bhv_alpha_boo_key_loop
+extfun bhv_arrow_lift_loop void
+extfun bhv_animates_on_floor_switch_press_init void
+extfun bhv_animates_on_floor_switch_press_loop void
 fun bhv_animated_texture_loop
 fun bhv_moat_grills_loop
+extfun bhv_moneybag_init void
+extfun bhv_moneybag_hidden_loop void
+extfun bhv_moneybag_loop void
+extfun bhv_monty_mole_init void
+extfun bhv_monty_mole_update void
+extfun bhv_monty_mole_hole_update void
+extfun bhv_monty_mole_rock_update void
+extfun bhv_moving_yellow_coin_init void
+extfun bhv_moving_yellow_coin_loop void
+extfun bhv_moving_blue_coin_init void
+extfun bhv_moving_blue_coin_loop void
+extfun bhv_mips_init void
+extfun bhv_mips_loop void
+extfun bhv_mad_piano_update void
+fun bhv_mario_update
+extfun bhv_manta_ray_water_ring_init void
+extfun bhv_manta_ray_water_ring_loop void
+extfun bhv_manta_ray_init void
+extfun bhv_manta_ray_loop void
+extfun bhv_metal_cap_init void
+extfun bhv_metal_cap_loop void
 fun bhv_merry_go_round_loop
 fun bhv_merry_go_round_boo_manager_loop
+extfun bhv_menu_button_init void
+extfun bhv_menu_button_manager_init void
+extfun bhv_menu_button_manager_loop void
+extfun bhv_menu_button_loop void
 fun bhv_mr_i_particle_loop
 fun bhv_mr_i_loop
 fun bhv_mr_i_body_loop
+extfun bhv_mr_blizzard_snowball void
+extfun bhv_mr_blizzard_init void
+extfun bhv_mr_blizzard_update void
+extfun bhv_eyerok_hand_loop void
+extfun bhv_eyerok_boss_loop void
 fun bhv_exclamation_box_loop
+extfun bhv_explosion_init void
+extfun bhv_explosion_loop void
 fun bhv_elevator_init
 fun bhv_elevator_loop
+extfun bhv_enemy_lakitu_update void
 fun bhv_end_peach_loop
 fun bhv_end_toad_loop
+fun bhv_end_birds_2_loop
+fun bhv_end_birds_1_loop
 fun bhv_ukiki_cage_star_loop
 fun bhv_ukiki_cage_loop
 fun bhv_ukiki_init
 fun bhv_ukiki_loop
+extfun bhv_unagi_subobject_loop void
+extfun bhv_unagi_init void
+extfun bhv_unagi_loop void
 fun bhv_unused_poundable_platform
 fun bhv_unused_particle_spawn_loop
+extfun bhv_unlock_door_star_init void
+extfun bhv_unlock_door_star_loop void
+extfun bhv_1up_walking_loop void
+extfun bhv_1up_common_init void
+extfun bhv_1up_sliding_loop void
+extfun bhv_1up_init void
+extfun bhv_1up_hidden_in_pole_spawner_loop void
+extfun bhv_1up_hidden_in_pole_loop void
+extfun bhv_1up_hidden_in_pole_trigger_loop void
+extfun bhv_1up_hidden_loop void
+extfun bhv_1up_hidden_trigger_loop void
+extfun bhv_1up_loop void
+extfun bhv_1up_jump_on_approach_loop void
+extfun bhv_1up_running_away_loop void
+extfun bhv_hoot_init void
+extfun bhv_hoot_loop void
+extfun bhv_homing_amp_init void
+extfun bhv_homing_amp_loop void
+extfun bhv_horizontal_grindel_init void
+extfun bhv_horizontal_grindel_update void
 fun bhv_hidden_object_loop
+extfun bhv_hidden_star_init void
+extfun bhv_hidden_star_loop void
+extfun bhv_hidden_star_trigger_loop void
 fun bhv_hidden_blue_coin_loop
+extfun bhv_hidden_red_coin_star_init void
+extfun bhv_hidden_red_coin_star_loop void
+extfun bhv_haunted_chair_init void
+extfun bhv_haunted_chair_loop void
+extfun bhv_haunted_bookshelf_manager_loop void
 fun bhv_haunted_bookshelf_loop
 fun bhv_heave_ho_loop
 fun bhv_heave_ho_throw_mario_loop
+extfun bhv_pokey_update void
+extfun bhv_pokey_body_part_update void
 fun bhv_pound_white_puffs_init
 fun bhv_pound_tiny_star_particle_init
 fun bhv_pound_tiny_star_particle_loop
 fun bhv_pole_init
 fun bhv_pole_base_loop
+extfun bhv_pyramid_elevator_init void
+extfun bhv_pyramid_elevator_loop void
+extfun bhv_pyramid_elevator_trajectory_marker_ball_loop void
+extfun bhv_pyramid_pillar_touch_detector_loop void
+extfun bhv_pyramid_top_init void
+extfun bhv_pyramid_top_loop void
+extfun bhv_pyramid_top_fragment_init void
+extfun bhv_pyramid_top_fragment_loop void
 fun bhv_piranha_particle_loop
 fun bhv_piranha_plant_waking_bubbles_loop
 fun bhv_piranha_plant_loop
 fun bhv_piranha_plant_bubble_loop
 fun bhv_particle_init
 fun bhv_particle_loop
+extfun bhv_penguin_race_shortcut_check_update void
+extfun bhv_penguin_race_finish_line_update void
 fun bhv_pushable_loop
 fun bhv_purple_switch_loop
 fun bhv_punch_tiny_triangle_init
 fun bhv_punch_tiny_triangle_loop
 fun bhv_play_music_track_when_touched_loop
+extfun bhv_platform_on_track_init void
+extfun bhv_platform_on_track_update void
 fun bhv_platform_normals_init
+extfun bhv_large_bomp_init void
+extfun bhv_large_bomp_loop void
 fun bhv_lll_wood_piece_loop
 fun bhv_lll_sinking_square_platforms_loop
 fun bhv_lll_sinking_rock_block_loop
 fun bhv_lll_sinking_rectangular_platform_loop
 fun bhv_lll_moving_octagonal_mesh_platform_loop
+extfun bhv_lll_drawbridge_spawner_loop void
+extfun bhv_lll_drawbridge_loop void
 fun bhv_lll_bowser_puzzle_spawn_pieces
 fun bhv_lll_bowser_puzzle_spawn_piece
 fun bhv_lll_bowser_puzzle_piece_idle
@@ -1775,18 +3502,29 @@ fun bhv_lll_bowser_puzzle_piece_move
 fun bhv_lll_bowser_puzzle_piece_update
 fun bhv_lll_bowser_puzzle_piece_loop
 fun bhv_lll_bowser_puzzle_loop
+extfun bhv_lll_rolling_log_init void
 fun bhv_lll_rotating_hexagonal_ring_loop
 fun bhv_lll_rotating_hex_flame_loop
 fun bhv_lll_rotating_block_fire_bars_loop
 fun bhv_lll_floating_wood_bridge_loop
 fun bhv_door_init
 fun bhv_door_loop
+extfun bhv_dorrie_update void
+extfun bhv_donut_platform_spawner_update void
+extfun bhv_donut_platform_update void
+extfun bhv_decorative_pendulum_init void
+extfun bhv_decorative_pendulum_loop void
+fun bhv_dust_smoke_loop
 fun bhv_ddd_warp_loop
 fun bhv_ddd_moving_pole_loop
+extfun bhv_ddd_pole_init void
+extfun bhv_ddd_pole_update void
 fun bhv_tweester_sand_particle_loop
 fun bhv_tweester_loop
 fun bhv_tower_platform_group_loop
 fun bhv_tower_door_loop
+extfun bhv_toad_message_init void
+extfun bhv_toad_message_loop void
 fun bhv_tox_box_loop
 fun bhv_tilting_inverted_pyramid_loop
 fun bhv_tiny_star_particles_init
@@ -1797,19 +3535,62 @@ fun bhv_tumbling_bridge_loop
 fun bhv_tuxies_mother_loop
 fun bhv_thi_huge_island_top_loop
 fun bhv_thi_tiny_island_top_loop
+extfun bhv_thi_bowling_ball_spawner_loop void
+extfun bhv_ttc_cog_init void
+extfun bhv_ttc_cog_update void
+extfun bhv_ttc_spinner_update void
+extfun bhv_ttc_2d_rotator_init void
+extfun bhv_ttc_2d_rotator_update void
+extfun bhv_ttc_moving_bar_init void
+extfun bhv_ttc_moving_bar_update void
+extfun bhv_ttc_elevator_init void
+extfun bhv_ttc_elevator_update void
+extfun bhv_ttc_pit_block_init void
+extfun bhv_ttc_pit_block_update void
+extfun bhv_ttc_pendulum_init void
+extfun bhv_ttc_pendulum_update void
+extfun bhv_ttc_treadmill_init void
+extfun bhv_ttc_treadmill_update void
+extfun bhv_ttc_rotating_solid_init void
+extfun bhv_ttc_rotating_solid_update void
+extfun bhv_ttm_rolling_log_init void
+extfun bhv_triplet_butterfly_update void
+extfun bhv_track_ball_update void
+extfun bhv_treasure_chest_ship_init void
+extfun bhv_treasure_chest_ship_loop void
+extfun bhv_treasure_chest_ddd_init void
+extfun bhv_treasure_chest_ddd_loop void
+extfun bhv_treasure_chest_top_loop void
+extfun bhv_treasure_chest_jrb_init void
+extfun bhv_treasure_chest_jrb_loop void
+extfun bhv_treasure_chest_bottom_init void
+extfun bhv_treasure_chest_bottom_loop void
 fun bhv_tree_snow_or_leaf_loop
+extfun bhv_jet_stream_water_ring_init void
+extfun bhv_jet_stream_water_ring_loop void
+extfun bhv_jet_stream_loop void
+extfun bhv_jet_stream_ring_spawner_loop void
 fun bhv_jumping_box_loop
 fun bhv_jrb_sliding_box_loop
+extfun bhv_jrb_floating_box_loop void
 fun bhv_bowsers_sub_loop
 fun bhv_bowser_key_course_exit_loop
 fun bhv_bowser_key_unlock_door_loop
 fun bhv_bowser_key_loop
+extfun bhv_bowser_course_red_coin_star_loop void
 fun bhv_bowser_shock_wave_loop
 fun bhv_bowser_init
 fun bhv_bowser_loop
 fun bhv_bowser_tail_anchor_loop
+extfun bhv_bowser_bomb_smoke_loop void
+extfun bhv_bowser_bomb_explosion_loop void
+extfun bhv_bowser_bomb_loop void
 fun bhv_bowser_body_anchor_loop
 fun bhv_bowser_flame_spawn_loop
+extfun bhv_bowling_ball_init void
+extfun bhv_bowling_ball_loop void
+extfun bhv_bookend_spawn_loop void
+extfun bhv_book_switch_loop void
 fun bhv_boo_with_cage_init
 fun bhv_boo_with_cage_loop
 fun bhv_boo_cage_loop
@@ -1819,47 +3600,103 @@ fun bhv_boo_in_castle_loop
 fun bhv_boo_loop
 fun bhv_bouncing_fireball_loop
 fun bhv_bouncing_fireball_flame_loop
+extfun bhv_bobomb_init void
 fun bhv_bobomb_anchor_mario_loop
+extfun bhv_bobomb_explosion_bubble_init void
+extfun bhv_bobomb_explosion_bubble_loop void
+extfun bhv_bobomb_loop void
+extfun bhv_bobomb_bully_death_smoke_init void
+extfun bhv_bobomb_buddy_init void
+extfun bhv_bobomb_buddy_loop void
+extfun bhv_bobomb_fuse_smoke_init void
+extfun bhv_bob_pit_bowling_ball_init void
+extfun bhv_bob_pit_bowling_ball_loop void
 fun bhv_big_boo_loop
+extfun bhv_big_boulder_generator_loop void
+extfun bhv_big_boulder_init void
+extfun bhv_big_boulder_loop void
+extfun bhv_big_bully_with_minions_init void
+extfun bhv_big_bully_with_minions_loop void
+extfun bhv_big_bully_init void
 fun bhv_bitfs_sinking_cage_platform_loop
 fun bhv_bitfs_sinking_platform_loop
+extfun bhv_birds_sound_loop void
+extfun bhv_bird_update void
 fun bhv_beta_chest_lid_loop
 fun bhv_beta_chest_bottom_init
 fun bhv_beta_chest_bottom_loop
 fun bhv_beta_moving_flames_spawn_loop
 fun bhv_beta_moving_flames_loop
+extfun bhv_beta_holdable_object_init void
+extfun bhv_beta_holdable_object_loop void
 fun bhv_beta_trampoline_spring_loop
 fun bhv_beta_trampoline_top_loop
 fun bhv_beta_bowser_anchor_loop
 fun bhv_beta_boo_key_loop
 fun bhv_beta_fish_splash_spawner_loop
+extfun bhv_bully_loop void
 fun bhv_bullet_bill_init
 fun bhv_bullet_bill_loop
+extfun bhv_butterfly_init void
+extfun bhv_butterfly_loop void
 fun bhv_bub_spawner_loop
 fun bhv_bub_loop
+extfun bhv_bubba_loop void
 fun bhv_bubble_wave_init
+extfun bhv_bubble_cannon_barrel_loop void
 fun bhv_bubble_splash_init
 fun bhv_bubble_maybe_loop
 fun bhv_black_smoke_mario_loop
 fun bhv_black_smoke_upward_loop
 fun bhv_black_smoke_bowser_loop
 fun bhv_blue_coin_switch_loop
+extfun bhv_blue_coin_sliding_loop void
+extfun bhv_blue_coin_sliding_jumping_init void
+extfun bhv_blue_coin_jumping_loop void
 fun bhv_blue_bowser_flame_init
 fun bhv_blue_bowser_flame_loop
 fun bhv_blue_fish_movement_loop
 fun bhv_blue_flames_group_loop
 fun bhv_bbh_tilting_trap_platform_loop
+extfun bhv_breakable_box_small_init void
+extfun bhv_breakable_box_small_loop void
 fun bhv_breakable_box_loop
+extfun bhv_rolling_log_loop void
+extfun bhv_rotating_octagonal_plat_init void
+extfun bhv_rotating_octagonal_plat_loop void
 fun bhv_rotating_clock_arm_loop
 fun bhv_rotating_exclamation_box_loop
 fun bhv_rotating_platform_loop
+extfun bhv_racing_penguin_init void
+extfun bhv_racing_penguin_update void
+extfun bhv_recovery_heart_loop void
+extfun bhv_respawner_loop void
+extfun bhv_red_coin_star_marker_init void
+extfun bhv_red_coin_init void
+extfun bhv_red_coin_loop void
+extfun bhv_rr_cruiser_wing_init void
+extfun bhv_rr_cruiser_wing_loop void
 fun bhv_rr_rotating_bridge_platform_loop
+extfun bhv_normal_cap_init void
+extfun bhv_normal_cap_loop void
 fun bhv_fish_group_loop
 fun bhv_fish_spawner_loop
 fun bhv_fish_loop
+extfun bhv_fire_spitter_update void
+extfun bhv_fire_piranha_plant_init void
+extfun bhv_fire_piranha_plant_update void
+extfun bhv_falling_pillar_init void
+extfun bhv_falling_pillar_hitbox_loop void
+extfun bhv_falling_pillar_loop void
 fun bhv_falling_bowser_platform_loop
 fun bhv_fading_warp_loop
+extfun bhv_ferris_wheel_axle_init void
+extfun bhv_ferris_wheel_platform_update void
 fun bhv_floor_trap_in_castle_loop
+extfun bhv_floating_platform_loop void
+extfun bhv_flying_bookend_loop void
+extfun bhv_fly_guy_update void
+extfun bhv_fly_guy_flame_loop void
 fun bhv_flame_moving_forward_growing_init
 fun bhv_flame_moving_forward_growing_loop
 fun bhv_flame_mario_loop
@@ -1872,88 +3709,346 @@ fun bhv_flame_floating_landing_init
 fun bhv_flame_floating_landing_loop
 fun bhv_flamethrower_loop
 fun bhv_flamethrower_flame_loop
+extfun bhv_free_bowling_ball_init void
+extfun bhv_free_bowling_ball_loop void
+extfun bhv_volcano_sound_loop void
+extfun bhv_volcano_trap_loop void
 fun bhv_volcano_flames_loop
-var bhv1UpWalking 0 init=0
-var bhv1UpRunningAway 0 init=0
-var bhvNormalCap 0 init=0
-var bhvFish 0 init=0
-var bhvFloorSwitchGrills 0 init=0
-var bhvFloorSwitchHiddenObjects 0 init=0
-var bhvFloorTrapInCastle 0 init=0
-var bhvFlameMovingForwardGrowing 0 init=0
-var bhvFlameFloatingLanding 0 init=0
-var bhvFlameBowser 0 init=0
-var bhvFlameBouncing 0 init=0
-var bhvFlamethrowerFlame 0 init=0
-var bhvFlameLargeBurningOut 0 init=0
-var bhvVolcanoFlames 0 init=0
-var bhvVanishCap 0 init=0
-var bhvBowserShockWave 0 init=0
-var bhvBowserKeyUnlockDoor 0 init=0
-var bhvBowserKeyCourseExit 0 init=0
-var bhvBowserKey 0 init=0
-var bhvBowser 0 init=0
-var bhvBowserBomb 0 init=0
-var bhvBooCage 0 init=0
-var bhvBooStaircase 0 init=0
-var bhvBoo 0 init=0
-var bhvBouncingFireballFlame 0 init=0
-var bhvBalconyBigBoo 0 init=0
-var bhvBetaMovingFlames 0 init=0
-var bhvBetaChestLid 0 init=0
-var bhvBetaTrampolineSpring 0 init=0
-var bhvBub 0 init=0
-var bhvBubbleMaybe 0 init=0
-var bhvBlackSmokeMario 0 init=0
-var bhvBlackSmokeUpward 0 init=0
-var bhvBlackSmokeBowser 0 init=0
-var bhvBlueCoinSwitch 0 init=0
-var bhvBlueFish 0 init=0
-var bhvBlueFlamesGroup 0 init=0
-var bhvBlueBowserFlame 0 init=0
-var bhvBreakBoxTriangle 0 init=0
-var bhvRotatingExclamationMark 0 init=0
-var bhvRRElevatorPlatform 0 init=0
-var bhvJumpingBox 0 init=0
-var bhvPoundTinyStarParticle 0 init=0
-var bhvPiranhaPlantWakingBubbles 0 init=0
-var bhvPenguinBaby 0 init=0
-var bhvPurpleParticle 0 init=0
-var bhvPunchTinyTriangle 0 init=0
-var bhvHiddenBlueCoin 0 init=0
-var bhvDoor 0 init=0
-var bhvTweesterSandParticle 0 init=0
-var bhvTiltingBowserLavaPlatform 0 init=0
-var bhvTinyStrongWindParticle 0 init=0
-var bhvTemporaryYellowCoin 0 init=0
-var bhvTenCoinsSpawn 0 init=0
-var bhvTumblingBridgePlatform 0 init=0
-var bhvTuxiesMother 0 init=0
-var bhvThreeCoinsSpawn 0 init=0
-var bhvTreeSnow 0 init=0
-var bhvTree 0 init=0
-var bhvTreeLeaf 0 init=0
-var bhvLLLWoodPiece 0 init=0
-var bhvLLLBowserPuzzlePiece 0 init=0
-var bhvLLLRotatingHexFlame 0 init=0
-var bhvLLLTumblingBridge 0 init=0
+extfun bhv_vanish_cap_init void
+var bhv1UpWalking 52 init=52
+var bhv1UpSliding 56 init=56
+var bhv1Up 56 init=56
+var bhv1UpRunningAway 52 init=52
+var bhv1UpJumpOnApproach 56 init=56
+var bhvNormalCap 36 init=36
+var bhvFishGroup 20 init=20
+var bhvFishSpawner 28 init=28
+var bhvFish 28 init=28
+var bhvFireSpitter 32 init=32
+var bhvFirePiranhaPlant 56 init=56
+var bhvFireParticleSpawner 40 init=40
+var bhvFallingBowserPlatform 44 init=44
+var bhvFallingPillar 36 init=36
+var bhvFallingPillarHitbox 28 init=28
+var bhvFadingWarp 36 init=36
+var bhvFewBlueFishSpawner 16 init=16
+var bhvFerrisWheelAxle 40 init=40
+var bhvFerrisWheelPlatform 32 init=32
+var bhvFloorSwitchAnimatesObject 16 init=16
+var bhvFloorSwitchGrills 12 init=12
+var bhvFloorSwitchHiddenObjects 16 init=16
+var bhvFloorSwitchHardcodedModel 40 init=40
+var bhvFloorTrapInCastle 40 init=40
+var bhvFlyguyFlame 52 init=52
+var bhvFlyingWarp 4 init=4
+var bhvFlyingBookend 72 init=72
+var bhvFlyGuy 80 init=80
+var bhvFlameMovingForwardGrowing 48 init=48
+var bhvFlame 68 init=68
+var bhvFlameFloatingLanding 68 init=68
+var bhvFlameBowser 68 init=68
+var bhvFlameBouncing 68 init=68
+var bhvFlamethrower 28 init=28
+var bhvFlamethrowerFlame 68 init=68
+var bhvFlameLargeBurningOut 68 init=68
+var bhvFreeBowlingBall 40 init=40
+var bhvVolcanoSoundLoop 20 init=20
+var bhvVolcanoFlames 32 init=32
+var bhvVanishCap 32 init=32
+var bhvVertStarParticleSpawner 36 init=36
+var bhvBowsersSub 48 init=48
+var bhvBowserCourseRedCoinStar 24 init=24
+var bhvBowserSubDoor 48 init=48
+var bhvBowserShockWave 28 init=28
+var bhvBowserKeyUnlockDoor 32 init=32
+var bhvBowserKeyCourseExit 32 init=32
+var bhvBowserKey 48 init=48
+var bhvBowser 124 init=124
+var bhvBowserFlameSpawn 28 init=28
+var bhvBowserBombExplosion 36 init=36
+var bhvBowserBombSmoke 40 init=40
+var bhvBowserBomb 48 init=48
+var bhvBowserBodyAnchor 56 init=56
+var bhvBowserTailAnchor 40 init=40
+var bhvBowlingBall 40 init=40
+var bhvBookSwitch 44 init=44
+var bhvBookendSpawn 32 init=32
+var bhvBooInCastle 60 init=60
+var bhvBooWithCage 88 init=88
+var bhvBooCage 48 init=48
+var bhvBooStaircase 52 init=52
+var bhvBoo 16 init=16
+var bhvBouncingFireball 28 init=28
+var bhvBouncingFireballFlame 76 init=76
+var bhvBoBBowlingBallSpawner 36 init=36
+var bhvBobombExplosionBubble 80 init=80
+var bhvBobombExplosionBubble3600 20 init=20
+var bhvBobombAnchorMario 36 init=36
+var bhvBobomb 56 init=56
+var bhvBobombFuseSmoke 48 init=48
+var bhvBobombBullyDeathSmoke 48 init=48
+var bhvBobombBuddyOpensCannon 76 init=76
+var bhvBobombBuddy 76 init=76
+var bhvBigChillBully 56 init=56
+var bhvBigSnowmanWhole 40 init=40
+var bhvBigBoulderGenerator 24 init=24
+var bhvBigBoulder 44 init=44
+var bhvBigBullyWithMinions 52 init=52
+var bhvBigBully 52 init=52
+var bhvBitFSSinkingCagePlatform 56 init=56
+var bhvBitFSSinkingPlatforms 44 init=44
+var bhvBitFSTiltingInvertedPyramid 52 init=52
+var bhvBirdsSoundLoop 20 init=20
+var bhvBird 44 init=44
+var bhvBalconyBigBoo 20 init=20
+var bhvBeginningPeach 36 init=36
+var bhvBeginningLakitu 40 init=40
+var bhvBetaMovingFlamesSpawn 16 init=16
+var bhvBetaMovingFlames 32 init=32
+var bhvBetaChestBottom 36 init=36
+var bhvBetaChestLid 28 init=28
+var bhvBetaFishSplashSpawner 28 init=28
+var bhvBetaBowserAnchor 48 init=48
+var bhvBetaBooKey 52 init=52
+var bhvBetaHoldableObject 52 init=52
+var bhvBetaTrampolineSpring 28 init=28
+var bhvBetaTrampolineTop 44 init=44
+var bhvBulletBillCannon 36 init=36
+var bhvBulletBill 88 init=88
+var bhvButterfly 48 init=48
+var bhvBub 68 init=68
+var bhvBubba 52 init=52
+var bhvBubbleMaybe 84 init=84
+var bhvBubbleSplash 48 init=48
+var bhvBubbleParticleSpawner 44 init=44
+var bhvBBHTiltingTrapPlatform 48 init=48
+var bhvBBHTumblingBridge 32 init=32
+var bhvBlackSmokeMario 64 init=64
+var bhvBlackSmokeUpward 28 init=28
+var bhvBlackSmokeBowser 40 init=40
+var bhvBlueCoinSwitch 32 init=32
+var bhvBlueCoinSliding 48 init=48
+var bhvBlueCoinJumping 48 init=48
+var bhvBlueFish 40 init=40
+var bhvBlueFlamesGroup 36 init=36
+var bhvBlueBowserFlame 68 init=68
+var bhvBreakableBoxSmall 44 init=44
+var bhvBreakableBox 56 init=56
+var bhvBreakBoxTriangle 36 init=36
+var bhvBreathParticleSpawner 28 init=28
+var bhvRockSolid 32 init=32
+var bhvRotatingExclamationMark 32 init=32
+var bhvRotatingCounterClockwise 8 init=8
+var bhvRotatingPlatform 36 init=36
+var bhvRacingPenguin 68 init=68
+var bhvRandomAnimatedTexture 32 init=32
+var bhvRecoveryHeart 24 init=24
+var bhvRespawner 24 init=24
+var bhvRedCoinStarMarker 44 init=44
+var bhvRedCoin 56 init=56
+var bhvRRElevatorPlatform 52 init=52
+var bhvRRCruiserWing 32 init=32
+var bhvRRRotatingBridgePlatform 48 init=48
+var bhvJetStreamWaterRing 72 init=72
+var bhvJetStream 24 init=24
+var bhvJetStreamRingSpawner 24 init=24
+var bhvJumpingBox 44 init=44
+var bhvJRBSlidingBox 44 init=44
+var bhvJRBFloatingBox 44 init=44
+var bhvJRBFloatingPlatform 48 init=48
+var bhvPokey 52 init=52
+var bhvPokeyBodyPart 48 init=48
+var bhvPoundTinyStarParticle 32 init=32
+var bhvPoleGrabbing 48 init=48
+var bhvPyramidElevator 56 init=56
+var bhvPyramidElevatorTrajectoryMarkerBall 28 init=28
+var bhvPyramidPillarTouchDetector 36 init=36
+var bhvPyramidTop 56 init=56
+var bhvPyramidTopFragment 32 init=32
+var bhvPillarBase 32 init=32
+var bhvPitBowlingBall 40 init=40
+var bhvPiranhaPlantWakingBubbles 32 init=32
+var bhvPiranhaPlant 92 init=92
+var bhvPiranhaPlantBubble 28 init=28
+var bhvPaintingStarCollectWarp 4 init=4
+var bhvPaintingDeathWarp 4 init=4
+var bhvPenguinBaby 8 init=8
+var bhvPenguinRaceShortcutCheck 24 init=24
+var bhvPenguinRaceFinishLine 24 init=24
+var bhvPushableMetalBox 48 init=48
+var bhvPurpleSwitchHiddenBoxes 16 init=16
+var bhvPurpleParticle 32 init=32
+var bhvPunchTinyTriangle 28 init=28
+var bhvPlaysMusicTrackWhenTouched 24 init=24
+var bhvPlatformOnTrack 68 init=68
+var bhvPlungeBubble 28 init=28
+var bhvHMCElevatorPlatform 60 init=60
+var bhvHoot 52 init=52
+var bhvHomingAmp 52 init=52
+var bhvHorizontalGrindel 88 init=88
+var bhvHorStarParticleSpawner 36 init=36
+var bhvHiddenAt120Stars 44 init=44
+var bhvHiddenObject 36 init=36
+var bhvHiddenStaircaseStep 44 init=44
+var bhvHiddenStar 32 init=32
+var bhvHiddenStarTrigger 36 init=36
+var bhvHidden1UpInPoleSpawner 24 init=24
+var bhvHidden1UpInPole 56 init=56
+var bhvHidden1UpInPoleTrigger 36 init=36
+var bhvHidden1Up 56 init=56
+var bhvHidden1UpTrigger 36 init=36
+var bhvHiddenBlueCoin 56 init=56
+var bhvHiddenRedCoinStar 32 init=32
+var bhvHauntedChair 80 init=80
+var bhvHauntedBookshelfManager 32 init=32
+var bhvHauntedBookshelf 48 init=48
+var bhvHardAirKnockBackWarp 4 init=4
+var bhvHeaveHo 92 init=92
+var bhvHeaveHoThrowMario 28 init=28
+var bhvDoorWarp 16 init=16
+var bhvDoor 76 init=76
+var bhvDorrie 68 init=68
+var bhvDonutPlatformSpawner 24 init=24
+var bhvDonutPlatform 36 init=36
+var bhvDirtParticleSpawner 28 init=28
+var bhvDecorativePendulum 32 init=32
+var bhvDeathWarp 4 init=4
+var bhvDDDMovingPole 48 init=48
+var bhvDDDWarp 36 init=36
+var bhvDDDPole 68 init=68
+var bhvTweesterSandParticle 28 init=28
+var bhvTweester 52 init=52
+var bhvTower 40 init=40
+var bhvTowerPlatformGroup 36 init=36
+var bhvTowerDoor 52 init=52
+var bhvToadMessage 72 init=72
+var bhvToxBox 44 init=44
+var bhvTiltingBowserLavaPlatform 56 init=56
+var bhvTinyStrongWindParticle 28 init=28
+var bhvTankFishGroup 28 init=28
+var bhvTemporaryYellowCoin 36 init=36
+var bhvTenCoinsSpawn 32 init=32
+var bhvTumblingBridge 28 init=28
+var bhvTumblingBridgePlatform 36 init=36
+var bhvTuxiesMother 80 init=80
+var bhvThwomp2 60 init=60
+var bhvThwomp 60 init=60
+var bhvThreeCoinsSpawn 32 init=32
+var bhvTHIBowlingBallSpawner 24 init=24
+var bhvTHIHugeIslandTop 32 init=32
+var bhvTHITinyIslandTop 24 init=24
+var bhvTriangleParticleSpawner 36 init=36
+var bhvTripletButterfly 68 init=68
+var bhvTrackBall 40 init=40
+var bhvTreasureChestsShip 36 init=36
+var bhvTreasureChestsJRB 36 init=36
+var bhvTreasureChestsDDD 36 init=36
+var bhvTreasureChestBottom 40 init=40
+var bhvTreasureChestTop 28 init=28
+var bhvTreeSnow 28 init=28
+var bhvTree 44 init=44
+var bhvTreeLeaf 24 init=24
+var bhvTTMBowlingBallSpawner 36 init=36
+var bhvTTMRollingLog 56 init=56
+var bhvTTCMovingBar 56 init=56
+var bhvTTCElevator 60 init=60
+var bhvTTC2DRotator 44 init=44
+var bhvTTCCog 44 init=44
+var bhvTTCSpinner 44 init=44
+var bhvTTCRotatingSolid 52 init=52
+var bhvTTCPitBlock 48 init=48
+var bhvTTCPendulum 56 init=56
+var bhvTTCTreadmill 56 init=56
+var bhvLaunchStarCollectWarp 4 init=4
+var bhvLaunchDeathWarp 4 init=4
+var bhvLargeBomp 48 init=48
+var bhvLeafParticleSpawner 24 init=24
+var bhvLLLMovingOctagonalMeshPlatform 44 init=44
+var bhvLLLWoodPiece 44 init=44
+var bhvLLLSinkingSquarePlatforms 52 init=52
+var bhvLLLSinkingRockBlock 48 init=48
+var bhvLLLSinkingRectangularPlatform 48 init=48
+var bhvLLLFloatingWoodBridge 28 init=28
+var bhvLLLVolcanoFallingTrap 44 init=44
+var bhvLLLBowserPuzzle 32 init=32
+var bhvLLLBowserPuzzlePiece 48 init=48
+var bhvLLLRollingLog 56 init=56
+var bhvLLLRotatingBlockWithFireBars 36 init=36
+var bhvLLLRotatingHexagonalRing 40 init=40
+var bhvLLLRotatingHexagonalPlatform 44 init=44
+var bhvLLLRotatingHexFlame 56 init=56
+var bhvLLLHexagonalMesh 32 init=32
+var bhvLLLDrawbridgeSpawner 24 init=24
+var bhvLLLDrawbridge 40 init=40
+var bhvLLLTiltingInvertedPyramid 56 init=56
+var bhvLLLTumblingBridge 32 init=32
+var blue_coin_switch_seg8_collision_08000E98 0 init=0
 var blue_fish_seg3_anims_0301C2B0 0 init=0
+extfun bzero void
 var bbh_seg7_collision_07026B1C 0 init=0
+var bbh_seg7_collision_coffin 0 init=0
+var bbh_seg7_collision_staircase_step 0 init=0
+var bbh_seg7_collision_mesh_elevator 0 init=0
+var bbh_seg7_collision_merry_go_round 0 init=0
+var bbh_seg7_collision_haunted_bookshelf 0 init=0
+var bbh_seg7_collision_tilt_floor_platform 0 init=0
+var breakable_box_seg8_collision_08012D70 0 init=0
 fun breakable_box_init
+fun rom_segmented_to_virtual
+fun rom_virtual_to_segmented
+fun rotate_camera_around_walls
+fun rotate_in_yz
+fun rotate_in_xz
+fun rotate_and_move_vec3f
+var rspF3DStart 0 init=0
+var rspF3DBootEnd 0 init=0
+var rspF3DBootStart 0 init=0
+var rspF3DDataStart 0 init=0
 extfun raise_background_noise void
+fun radial_camera_input_default
+fun radial_camera_input
+fun radial_camera_move
 extfun random_sign int
 extfun random_u16 int
 extfun random_float f32
-extfun random_f32_around_zero f32
+fun random_f32_around_zero
+fun random_vec3s
+fun resolve_geometry_collisions
 fun resolve_and_return_wall_collisions
-extfun reset_camera void
+fun reset_camera
 extfun reset_cutscene_msg_fade void
 fun reset_mario_pitch
+fun reset_pan_distance
 extfun reset_dialog_render_state void
+extfun reset_debug_objectinfo void
 fun reset_bob_variables
+extfun reset_red_coins_collected void
 extfun reset_volume void
+fun restore_save_file_data
+fun restore_main_menu_data
+fun read_controller_inputs
+fun read_surface_data
+fun read_eeprom_data
+fun read_vertex_data
+fun reduce_by_dist_from_camera
 fun return_mario_anim_y_translation
-extfun retrieve_animation_index int
+fun retrieve_info_cannon
+fun retrieve_info_star
+fun retrieve_animation_index
+fun render_game
+extfun render_screen_transition int
+fun render_init
+extfun render_menus_and_dialogs int
+extfun render_hud void
+extfun render_text_labels void
+fun run_demo_inputs
+var rr_seg7_collision_elevator_platform 0 init=0
+var rr_seg7_collision_pendulum 0 init=0
+var rr_seg7_collision_donut_platform 0 init=0
+var rr_seg7_collision_rotating_platform_with_fire 0 init=0
+var D_8032CE78 4 init=4
+var D_8032CE74 4 init=4
+var D_8032CF00 16 init=16
 var D_8032CBE8 1 init=1
 var D_8032CBE4 1 init=1
 var D_8032CBEC 7 init=7
@@ -1962,12 +4057,19 @@ var D_8032F8C8 8 init=8
 var D_8032F894 52 init=52
 var D_8032F460 40 init=40
 var D_8032F754 40 init=40
-var D_8035FEE4 2 init=0
+var D_8035FEE4 2 init=2
+var D_8035FEE2 2 init=2
 var D_8035FF10 2 init=2
+var D_8033A160 1024 init=1024
 var D_80339EE0 2 init=2
 var D_80339ECA 2 init=2
 extfun nop_change_course void
+fun nop_update_water_camera
+fun next_lakitu_state
 var TablePiranhaPlantActions 36 init=36
+fun focus_on_mario
+fun focus_in_front_of_mario
+fun fov_default
 fun fish_spawner_act_spawn
 fun fish_spawner_act_idle
 fun fish_spawner_act_respawn
@@ -1980,14 +4082,24 @@ fun fire_bar_act_0
 fun fire_bar_act_2
 fun fire_bar_act_1
 fun fire_bar_act_3
-extfun find_wall_collisions int
-extfun find_water_level f32
-extfun find_ceil f32
+fun find_wall_collisions_from_list
+fun find_wall_collisions
+fun find_water_level
+fun find_ceil_from_list
+fun find_ceil
+fun find_c_buttons_pressed
+fun find_in_bounds_yaw_wdw_bob_thi
 fun find_mario_anim_flags_and_translation
-extfun find_poison_gas_level f32
+fun find_mario_floor_and_ceil
+fun find_unimportant_object
+fun find_poison_gas_level
 fun find_floor_slope
+fun find_floor_height_and_data
 fun find_floor_height_relative_polar
-extfun find_floor f32
+fun find_floor_height
+fun find_floor_from_list
+fun find_floor
+fun find_vector_perpendicular_to_plane
 fun falling_bowser_plat_act_check
 fun falling_bowser_plat_act_start
 fun falling_bowser_plat_act_fall
@@ -1996,12 +4108,27 @@ extfun fadeout_music void
 extfun fadeout_level_music void
 fun fade_into_special_warp
 extfun func_80321080 void
-extfun f32_find_wall_collision int
-extfun virtual_to_segmented ptr
-extfun vec3s_copy ptr
-extfun vec3s_set ptr
-extfun vec3s_to_vec3f ptr
+var flyguy_seg8_anims_08011A64 0 init=0
+fun f32_find_wall_collision
+fun virtual_to_segmented
+fun vec3s_copy
+fun vec3s_set
+fun vec3s_sum
+fun vec3s_sub
+fun vec3s_add
+fun vec3s_to_vec3f
+fun vec3f_get_dist_and_angle
+fun vec3f_compare
 fun vec3f_copy_2
-extfun vec3f_copy ptr
-extfun vec3f_set ptr
+fun vec3f_copy
+fun vec3f_cross
+fun vec3f_set_dist_and_angle
+fun vec3f_set
+fun vec3f_sum
+fun vec3f_sub
+fun vec3f_add
+fun vec3f_to_object_pos
+fun vec3f_to_vec3s
+fun vec3f_normalize
 fun vec3f_find_ceil
+fun verify_save_block_signature

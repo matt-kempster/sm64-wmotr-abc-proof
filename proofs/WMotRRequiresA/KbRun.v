@@ -28,13 +28,15 @@ Variable acn : Z.
 Variable g : genv.
 
 (* known cells: marioObj, action = the case's constant, heldObj = riddenObj
-   = NULL, animList = &gMarioAnimsBuf *)
+   = NULL, animList = &gMarioAnimsBuf, statusForCamera =
+   &gPlayerCameraState[0] (FfWorld.ffw's last conjunct) *)
 Definition kvK : list (positive * Z * memory_chunk * sval) :=
   [ (RM, AirRun.fo g mario._MarioState mario._marioObj, Mint32, Sptr RO Ptrofs.zero);
     (RM, 12, Mint32, Sconst (Vint (Int.repr acn)));
     (RM, AirRun.fo g mario._MarioState mario._heldObj, Mint32, Sconst (Vint Int.zero));
     (RM, AirRun.fo g mario._MarioState mario._riddenObj, Mint32, Sconst (Vint Int.zero));
-    (RM, AirRun.fo g mario._MarioState mario._animList, Mint32, Sptr RLD Ptrofs.zero) ].
+    (RM, AirRun.fo g mario._MarioState mario._animList, Mint32, Sptr RLD Ptrofs.zero);
+    (RM, 148, Mint32, Sptr RPC Ptrofs.zero) ].
 Definition xcK (id : ident) : option xcontract :=
   match xcI g id with
   | Some k => Some k
@@ -81,7 +83,6 @@ Hypothesis Hdma : os_dma_floor.
 Hypothesis Hsq : sqrtf_spec.
 Hypothesis Hsqf : sqrtf_float.
 Hypothesis Haudio : audio_inert.      (* LABELED OPEN PREMISE: audio, deferred *)
-Hypothesis Hcamera : camera_inert.    (* LABELED OPEN PREMISE: camera, deferred *)
 
 Variable acn : Z.
 Variable fK : function.
@@ -157,13 +158,11 @@ Proof.
         -- destruct (existsb (Pos.eqb id) (ext_ids)) eqn:Ex; [| discriminate Hx].
            injection Hx as <-.
            apply existsb_exists in Ex as (x & Ix & Ex). apply Pos.eqb_eq in Ex. subst x.
-           destruct Ix as [<- | [<- | [<- | []]]].
+           destruct Ix as [<- | [<- | []]].
            ++ exact (ext_fresh_sound lp H12 _ _ ps_named ps_ni (audio_ps Haudio) NBF (R0F G) gtabF (kvK acn G) m0 uf gp GPO
                        args g cps fd E m vargs t m' vres Hk Hl MM EV).
            ++ exact (ext_fresh_sound lp H12 _ _ sqrtf_named_air_h sqrtf_ni (sqrtf_inert Hsq Hsqf)
                        NBF (R0F G) gtabF (kvK acn G) m0 uf gp GPO args g cps fd E m vargs t m' vres Hk Hl MM EV).
-           ++ exact (ext_fresh_sound lp H12 _ _ csh_named csh_ni Hcamera NBF (R0F G) gtabF (kvK acn G) m0 uf gp GPO
-                       args g cps fd E m vargs t m' vres Hk Hl MM EV).
 Qed.
 
 Lemma kbcheck_lp : exists cs,
@@ -261,11 +260,11 @@ Definition kfinal (lp : Clight.program) (acn : Z) (fK : function) : Prop :=
        /\ fro_ff c2.
 
 Lemma kb_kfinal : forall lp, linked12 lp -> os_dma_floor -> sqrtf_spec -> sqrtf_float ->
-  audio_inert -> camera_inert -> forall acn fK, kb_walk acn fK = true -> air_entry (Int.repr acn) = true ->
+  audio_inert -> forall acn fK, kb_walk acn fK = true -> air_entry (Int.repr acn) = true ->
   kfinal lp acn fK.
 Proof.
   (* explicit: eassumption would unify kb_walk with the other hypotheses,
      unfolding the walk onto the whole link (it ran > 10 min) *)
-  intros lp H12 Hdma Hsq Hsqf Ha Hc acn fK Hw Hae m0 gp GPO MC FD.
-  exact (kb_final lp H12 Hdma Hsq Hsqf Ha Hc acn fK Hw Hae m0 gp GPO MC FD).
+  intros lp H12 Hdma Hsq Hsqf Ha acn fK Hw Hae m0 gp GPO MC FD.
+  exact (kb_final lp H12 Hdma Hsq Hsqf Ha acn fK Hw Hae m0 gp GPO MC FD).
 Qed.

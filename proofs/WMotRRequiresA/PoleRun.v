@@ -34,8 +34,8 @@ Import ListNotations.
 Module AUT := mario_actions_automatic.
 
 Definition NBP : positive := 24.
-Definition RU : positive := 14.    (* usedObj, the pole *)
-Definition RBT : positive := 15.   (* bhvTree *)
+Definition RU : positive := 19.    (* usedObj, the pole *)
+Definition RBT : positive := 20.   (* bhvTree *)
 Definition RGP : positive := 17.   (* bhvGiantPole *)
 Definition RLV : positive := 18.   (* gCurrLevelNum *)
 Definition kC : positive := 6.
@@ -67,6 +67,9 @@ Definition xcP (id : ident) : option xcontract :=
   | None =>
     if Pos.eqb id mario._set_mario_animation then Some (c_sma NBP R0P gtabP kvP RLD RBUF RIOM RMQ RRM kB) else
     if Pos.eqb id mario._is_anim_at_end then Some xc_fresh else
+    (* act_climbing_pole's climb animation and play_climbing_sounds' frame test *)
+    if Pos.eqb id mario._set_mario_anim_with_accel then Some (c_smawa NBP R0P gtabP kvP RLD RBUF RIOM RMQ RRM kB) else
+    if Pos.eqb id mario._is_anim_past_frame then Some xc_fresh else
     if Pos.eqb id AUT._play_sound then Some xc_fresh else
     if Pos.eqb id AUT._set_sound_moving_speed then Some xc_fresh else None
   end.
@@ -135,6 +138,12 @@ Definition pole_walk (acn : Z) (f : function) : bool :=
 
 Lemma dm_iae : (prog_defmap mario.prog) ! mario._is_anim_at_end
   = Some (Gfun (Internal mario.f_is_anim_at_end)).
+Proof. vm_compute. reflexivity. Qed.
+Lemma dm_smawa_h : (prog_defmap mario.prog) ! mario._set_mario_anim_with_accel
+  = Some (Gfun (Internal mario.f_set_mario_anim_with_accel)).
+Proof. vm_compute. reflexivity. Qed.
+Lemma dm_ipf : (prog_defmap mario.prog) ! mario._is_anim_past_frame
+  = Some (Gfun (Internal mario.f_is_anim_past_frame)).
 Proof. vm_compute. reflexivity. Qed.
 Lemma ps_aut : AUT._play_sound = AIR._play_sound.
 Proof. reflexivity. Qed.
@@ -248,7 +257,18 @@ Proof.
         destruct (anim_end_value_contract _ _ _ _ _ _ EV) as (-> & i & ->).
         exact (xc_fresh_sound G NBP (R0P G) gtabP (kvP acn G) (fun _ => None) (fun _ => false) m0 uf gp
                  E m g (Vint i) args cps Hk MM I).
-      * destruct (Pos.eqb_spec id AUT._play_sound) as [-> | N3].
+      * destruct (Pos.eqb_spec id mario._set_mario_anim_with_accel) as [-> | N5].
+        { injection Hx as <-.
+          rewrite (sfun_res_h _ _ _ _ (res_link lp _ _ _ (linked12_LO_mario lp H12) dm_smawa_h) Hl) in EV.
+          exact (c_smawa_sound lp H12 Hdma NBP (R0P G) gtabP (kvP acn G) m0 uf gp GPO MC RLD RBUF RIOM RMQ RRM kB
+                   ufP_kB args g cps E m vargs t m' vres Hk MM HA EV). }
+        destruct (Pos.eqb_spec id mario._is_anim_past_frame) as [-> | N6].
+        { injection Hx as <-.
+          rewrite (sfun_res_h _ _ _ _ (res_link lp _ _ _ (linked12_LO_mario lp H12) dm_ipf) Hl) in EV.
+          destruct (past_frame_value_contract _ _ _ _ _ _ EV) as (-> & i & ->).
+          exact (xc_fresh_sound G NBP (R0P G) gtabP (kvP acn G) (fun _ => None) (fun _ => false) m0 uf gp
+                   E m g (Vint i) args cps Hk MM I). }
+        destruct (Pos.eqb_spec id AUT._play_sound) as [-> | N3].
         { injection Hx as <-. rewrite ps_aut in Hl.
           exact (ext_fresh_sound lp H12 _ _ ps_named ps_ni (audio_ps Haudio) NBP (R0P G) gtabP (kvP acn G) m0 uf gp GPO
                    args g cps fd E m vargs t m' vres Hk Hl MM EV). }

@@ -42,7 +42,7 @@ From SM64.Generated Require mario mario_actions_stationary
   mario_actions_moving mario_actions_airborne mario_actions_submerged
   mario_actions_cutscene mario_actions_automatic mario_actions_object
   interaction behavior_actions level_update mario_step surface_collision
-  math_util.
+  math_util camera.
 From SM64.Proofs Require SurfaceBodies MathBodies.
 From SM64.Proofs Require Import Flying Taint ActionValue ActionValueFrame ReachableRun
   RealFrameValue RealFrameLinked AGates SymbolicLinking FieldNonInterference.
@@ -504,11 +504,7 @@ Section NoARealInputV2.
 
   (* per-symbol: the whitelisted callee symbols resolve to marg-exempt
      definitions (their first param is not a MarioState ptr) *)
-  Hypothesis WL_exempt : forall e le m fid fty vf fd,
-      mem_id fid exempt_callees = true ->
-      eval_expr (lp_ge lp) e le m (Evar fid fty) vf ->
-      Genv.find_funct (lp_ge lp) vf = Some fd ->
-      marg_exempt fd = true.
+  Hypothesis WL_exempt : wl_exempt_ok lp.
 
   (* per-symbol: the rest surface preserves the carried facts -- ONLY
      where lp resolves the symbol to an INTERNAL body (a rest symbol lp
@@ -1019,11 +1015,7 @@ Section NoARealInputMWF.
   (* ---- the surviving per-symbol residuals, now stated at the CONCRETE
      invariant MWF_real (same shapes as the v2 section's; see the
      comments there). ---- *)
-  Hypothesis WL_exempt : forall e le m fid fty vf fd,
-      mem_id fid exempt_callees = true ->
-      eval_expr (lp_ge lp) e le m (Evar fid fty) vf ->
-      Genv.find_funct (lp_ge lp) vf = Some fd ->
-      marg_exempt fd = true.
+  Hypothesis WL_exempt : wl_exempt_ok lp.
   (* ---- the rest surface, decomposed PER SYMBOL (RestSurface.v).
      ELEVEN per-TU linkorder pins (LO_mario's class, link-time facts)
      + the negative pin (the exempt whitelist + the music helper stay
@@ -1056,6 +1048,16 @@ Section NoARealInputMWF.
       mem_id fid exempt_ext_ids = true \/
       fid = mario._play_infinite_stairs_music ->
       ~ resolves_lp lp fid (Internal f).
+  (* THE CAMERA LINK (2026-10-22): camera.c is linked, so set_camera_mode is
+     a PINNED rest case (LO_camera) whose real camera.c body owes the gated
+     residual below.  LABELED OPEN PREMISE (camera, deferred; docs/TRUST.md
+     4.1): the real set_camera_mode body, called with a SafeB Camera* (what
+     every real site passes: m->area->camera), keeps Mario's block valid, its
+     action untainted and MWF_real.  It writes the Camera struct and camera.c
+     globals (camera.c:2854 ff.), none of which is Mario's block. *)
+  Hypothesis LO_camera : linkorder camera.prog lp.
+  Hypothesis Hscm_body :
+    body_pres_w lp (MWF_real lp bm bc oc0 SafeB) bm SafeB camera.f_set_camera_mode.
   (* the stationary dispatcher is WALKED (StationarySurface.stationary_pres
      over the generic DispatchKit; the particleFlags epilogue store is
      killed by the window census): PROVED from per-leaf-callee residuals
@@ -2908,7 +2910,7 @@ Section NoARealInputMWF.
              (mwf_real_umbi lp bm bc oc0 SafeB Hbc_bm HSafeB_not_bm Hgms_blk Hgtimer_blk Htable_blk Hktab_blk)
              WL_exempt
              (rest_pres_decompose lp LO_mario LO_sta LO_mov LO_air LO_sub LO_cut
-                LO_aut LO_obj LO_int LO_beh LO_lvl LO_stp LO_surf LO_math Hrest_ext_only
+                LO_aut LO_obj LO_int LO_beh LO_lvl LO_stp LO_surf LO_math LO_camera Hrest_ext_only
                 (NoA_real bm) (MWF_real lp bm bc oc0 SafeB) bm SafeB
                 (stationary_pres lp LO_mario LO_sta LO_stp bm (NoA_real bm)
                    (MWF_real lp bm bc oc0 SafeB)
@@ -3749,7 +3751,7 @@ Section NoARealInputMWF.
                    (mwf_real_free lp bm bc oc0 SafeB Hbc_bm)
                    sb_fc)
                 sb_ffwc sb_ff sb_fc sb_fp sb_fw
-                mb_v3fset mb_v3fcopy mb_v3scopy mb_atan2s)
+                mb_v3fset mb_v3fcopy mb_v3scopy mb_atan2s Hscm_body)
              Hext_action Hmwf_ext
              (mwf_real_entry lp bm bc oc0 SafeB Hbc_bm)
              (mwf_real_free lp bm bc oc0 SafeB Hbc_bm)

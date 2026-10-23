@@ -25,6 +25,9 @@ generated/surface_collision.v
 generated/memory.v
 generated/game_init.v
 generated/wmotr_level_data.v
+generated/camera.v
+generated/ingame_menu.v
+generated/debug_course.v
 generated/wmotr_script.v
 generated/macro_special_objects.v
 generated/behavior_data.v
@@ -41,6 +44,7 @@ generated/buffers.v
 generated/object_collision.v
 generated/area.v
 generated/mario_anim_data.v
+generated/rendering_graph_node.v
 generated/libultra_osEepromLongWrite.v
 generated/libultra_osEepromWrite.v
 generated/libultra_osSiCreateAccessQueue.v
@@ -90,6 +94,7 @@ proofs/MarioModel/RestSurface.v
 #     linking-metatheory inverse direction; consumed by the linked12
 #     capstone corollary) ---
 proofs/MarioModel/LinkedTwelve.v
+proofs/MarioModel/WLExempt.v
 proofs/MarioModel/OsDmaFloor.v
 proofs/MarioModel/LptBody.v
 
@@ -202,6 +207,7 @@ proofs/MarioModel/MtxfBody.v
 proofs/MarioModel/SaveFileBody.v
 proofs/MarioModel/ObjHelpersBodies.v
 proofs/MarioModel/ObjExtBodies.v
+proofs/MarioModel/CameraBodies.v
 proofs/MarioModel/SaveDoSaveBody.v
 proofs/MarioModel/SpawnBodies.v
 
@@ -273,6 +279,9 @@ proofs/WMotRRequiresA/FrameCalls.v
 proofs/WMotRRequiresA/FrameSplit.v
 proofs/WMotRRequiresA/AirSplit.v
 proofs/WMotRRequiresA/AutoSplit.v
+proofs/WMotRRequiresA/RenderAnim.v
+proofs/WMotRRequiresA/RenderSet.v
+proofs/WMotRRequiresA/RenderFlank.v
 proofs/WMotRRequiresA/HeightFrame.v
 proofs/WMotRRequiresA/WMotREntry.v
 proofs/WMotRRequiresA/SpawnTypeRun.v
@@ -310,6 +319,8 @@ proofs/WMotRRequiresA/WallFind.v
 proofs/WMotRRequiresA/WallExec.v
 proofs/WMotRRequiresA/AirXc.v
 proofs/WMotRRequiresA/FpuFloor.v
+proofs/WMotRRequiresA/FpuValue.v
+proofs/WMotRRequiresA/CourseRun.v
 proofs/WMotRRequiresA/FpWalk.v
 proofs/WMotRRequiresA/AirWr.v
 proofs/WMotRRequiresA/AirMatch.v
@@ -361,14 +372,24 @@ proofs/WMotRRequiresA/LedgeClass.v
 proofs/WMotRRequiresA/LedgeRun.v
 proofs/WMotRRequiresA/LedgeGrab.v
 proofs/WMotRRequiresA/LedgeDown.v
+proofs/WMotRRequiresA/LedgeClimbSlow1.v
+proofs/WMotRRequiresA/LedgeClimbSlow2.v
+proofs/WMotRRequiresA/LedgeClimbFast.v
 proofs/WMotRRequiresA/LedgeRow.v
+proofs/WMotRRequiresA/CannonClass.v
+proofs/WMotRRequiresA/CannonRun.v
+proofs/WMotRRequiresA/CannonWalk.v
+proofs/WMotRRequiresA/PoleClimb.v
+proofs/WMotRRequiresA/CannonRow.v
 proofs/Interp/MemBuild.v
 proofs/Interp/InterpFrame.v
 proofs/Interp/InitMemC.v
+proofs/Interp/InitMemEq.v
 
 # --- GOAL 1 positive control: with A pressed, a real frame reaches flying ---
 proofs/NoAImpliesNoFly/PositiveControl.v
 proofs/NoAImpliesNoFly/PoleControl.v
+proofs/NoAImpliesNoFly/BootRun.v
 
 # --- GOAL 1 / the superseded VACUOUS mario_ge capstone (kept for history) ---
 proofs/NoAImpliesNoFly/Unwired/NoAImpliesNoFlyVacuous.v

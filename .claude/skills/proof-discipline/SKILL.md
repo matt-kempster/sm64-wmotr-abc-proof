@@ -76,9 +76,32 @@ all in `Unwired/`, and the theorem moved nowhere. See
   `play_transition` / `area_get_warp_node`). No new claim: a non-pointer store into a global
   MWF does not read keeps MWF (`np_store_pres`), so `gWarpTransition` & co. did not have to join
   `stored_globals`. Still-linked any-argument entries: none (the spawn pair left `cut_ext_ids`).
-  Counts: GOAL 1 17; HeightFrame 26 incl. its 3 section rows (2026-10-21, spawn: −2 rows, +Hsss).
+  Counts: GOAL 1 15 (was 17 before the 2026-10-22 sweep, below); HeightFrame 26 incl. its 3 section rows (2026-10-21, spawn: −2 rows, +Hsss).
+  2026-10-22 GOAL 1 premise sweep: FOUND FALSE `WL_exempt` (forall e: an env binding `sqrtf` to
+  set_mario_action's block refutes it, `WLExempt.wl_exempt_old_refuted`; every capstone that took
+  it was VACUOUS). Restated at empty_env + function-typed Evar (`CensusV2.wl_exempt_ok`) and PROVED
+  for every link (`wl_exempt_linked12`): GOAL 1 17 -> 16 rows, HeightFrame -1. `CameraBodies.v`:
+  `camera_approach_f32_symmetric` / `trigger_cutscene_dialog` left `cut_ext_open2_ids`;
+  `sqrtf` (from `Hsq`) and `set_camera_shake_from_hit` left `obj_ext_open2_ids`, `random_float`
+  (behavior_script.c, unlinked; the shake's SHAKE_SHOCK arm) joined it. `Hext_action` /
+  `Hmwf_ext` are lemmas over `Hext_action_ns` / `Hmwf_ext_ns` (sqrtf excluded, from `Hsq`).
+  `Hcsp_scm_real` DERIVED from `Hscm_body_real` (cs_gate arg0 = wgate T_scm arm; NoA from MWF):
+  GOAL 1 16 -> 15, HeightFrame -1 more.
+  Still open camera row `Hscm_body_real`: set_camera_mode calls through the
+  WRITABLE table `sModeTransitions` (enumerate link functions of type (Camera*, f32*, f32*)->s32),
+  ~48 camera.c functions, no pointer-typed store in the tree; needs `sMarioCamState` in
+  `safe_ptr_syms` (TRUST 4.1).
+  2026-10-22: HeightFrame's section has 27 `Hypothesis` lines (28 → 27: `Hcamera` proved away).
   `surface_load.c` linked 2026-10-22 (32nd TU), then `macro_special_objects.c` + WMotR level data
   (TUs 33-34): counts unchanged (no row names their functions).
+  2026-10-22: FOUND (oracle difftest) + REPAIRED: `gMarioAnims` was a size-0 block, so every
+  `load_patchable_table` compare (`memory.c:575`) had no execution: 523/600 real frames STUCK.
+  `mario_anim_data.v` is now linked (36th TU; 2.4 anim-data completion of game_init's decl).
+  Counts unchanged; no proof broke. Difftest seeds 2+3: 600/600 MATCH, 0 STUCK (no `ROM_SIZED`).
+  `BootRun`'s entry frame now runs that compare on the real block (header copied from the
+  linked data). `tools/size0_globals.py` also walks the game thread (class (c), `BOOT_KNOWN`):
+  `setup_game_memory` has no execution (`gDemoInputs` NULL compare, ROM-symbol subtraction).
+  Open: StartSat's anim table is still the count-0 stand-in; DMA content is not modelled.
 - **GOAL 2** (WMotR needs A): `WMotRRequiresA/HeightFrame.v`,
   `wmotr_noA_height_bound_linked12`. This is a conditional theorem over ONE WMotR
   visit (frames end with `in_wmotr`), under input with A neither pressed nor held
@@ -108,18 +131,24 @@ all in `Unwired/`, and the theorem moved nowhere. See
   `macro_special_objects.c` and WMotR's level data are TUs 33-34. TRUST 3.6 (main pool = one
   block) was added. `TerrainRun.terrain_runs` RUNS the real `alloc_surface_pools` +
   `load_area_terrain` (1352 surfaces) and proves `floor_data` + decoder agreement on the result
-  (`TerrainBound.tri_chk_sound`: per-triangle binary32 bound). This is conditional only on
-  `world_ok` (sqrtf = IEEE sqrt, `reset_red_coins_collected` inert) for "this is the loader's
-  output". `main_pool_init` has no CompCert execution (ALIGN16 on a pointer).
+  (`TerrainBound.tri_chk_sound`: per-triangle binary32 bound). "This is the loader's output" is
+  conditional only on the FPU value clause `sqrtf_value` (since 2026-10-22, see below). `main_pool_init` has no CompCert execution (ALIGN16 on a pointer).
   2026-10-22, later: the GOAL 2 start witness CARRIES that terrain (`StartTerrain`): the loader
   runs on the `init_mem` image (`InitMemC.init_mem_c`, computable init_mem) in the real order
   (warp stores, pool post-state, alloc_surface_pools, load_area_terrain, init_mario cells);
   footprint / pointer / list checks + `InterpFrame.ex_call_keep` re-prove `MWF_real` (SafeB + pool
   block), neutrality and `Wff` across the load; `goal2_start_sat` concludes `floor_data`,
-  `static_agree`, 1352 surfaces and `terrain_loaded` (replaces `part_ready`). `world_ok` split:
-  memory half of sqrtf = `sqrtf_spec`; `sqrtf_ieee` + `rrc_inert` stay labeled antecedents of
-  the tether implication (`gRedCoinsCollected` is not in the link). Next: `gCurrCourseNum`; ask
-  about an FPU value row for `sqrtf` and the `memory.c:120,122` ALIGN16 rewrite (TRUST 3.6). FOUND FALSE + repaired
+  `static_agree`, 1352 surfaces and `terrain_loaded` (replaces `part_ready`).
+  2026-10-22, later: FOUND FALSE + repaired: the `sqrtf` antecedent `sqrtf_ieee` (and so both
+  interpreter `world_ok`s) was refutable from CompCert's `ec_well_typed` (any-signature form,
+  `FpuValue.sqrtf_any_sig_false`): `terrain_loaded` / `frame_runs` / `ifs_tether` /
+  `boot_frames_run` were vacuous. Now the FPU floor has a user-approved VALUE clause
+  (`FpuValue.sqrtf_value`: decomp signature, +-0 / positive normals, `lib/asm/sqrtf.s`), and the
+  terrain tether rests only on it. `ingame_menu.c` linked (36th TU): `reset_red_coins_collected`
+  runs its real body, `rrc_inert` deleted. Frame / ifs runs: `sqrtf_value` + labeled audio
+  premise `BootRun.audio_ret` (3 audio externals). `gCurrCourseNum` = 23 on the witness, tethered
+  by RUNNING the real `lvl_set_current_level(0, 31)` (`CourseRun`, unconditional; `course_set`).
+  Next: the `memory.c:120,122` ALIGN16 rewrite (TRUST 3.6). FOUND FALSE + repaired
   when linking area.c: any-argument `override_viewport_and_clip` (in `obj_ext_ids`) stores its
   pointer args into `D_8032CE74/78`; those joined `stored_globals`. Linking a TU turns every
   any-argument row naming its functions into a claim about real code: re-audit them.
@@ -193,21 +222,28 @@ all in `Unwired/`, and the theorem moved nowhere. See
     HOLDING_POLE is PROVED (2026-10-22, `PoleHold`, TRUST (m); `Haudio` now also covers
     `set_sound_moving_speed`). `Hauto_rest : LedgeRow.aut_case_rest_ledge` holds 7. Ledge kit: `LedgeRun` (xcL,
     `ufL` with kL), `LedgeClass` (ledge_ok / letgo_ok and their soundness).
-    BLOCKED: CLIMB_SLOW_1/2, CLIMB_FAST and IN_CANNON store through `m->statusForCamera`
-    = the size-0 `gPlayerCameraState` (camera.c unlinked). That same store is in every
-    frame's update_mario_info_for_cam, so the frame capstones are VACUOUS for the real game
-    until camera.c's storage is linked (TRUST (l)). Fix that first.
-    Ready contracts: `SmaXc.c_smawa` (set_mario_anim_with_accel)
-    and `PoleXc.past_frame_value_contract` (is_anim_past_frame).
+    camera.c is LINKED (35th TU, 2026-10-22): `gPlayerCameraState` is real storage, and
+    gLakituState is a walk region (`FfRun.RLK`, in ffw / ff_rl), so the REAL
+    set_camera_shake_from_hit body is walked and `Hcamera` is GONE (proved, not restated).
+    The StartSat witness now runs init_mario_from_save_file's stores (tethered to the real
+    body, `ifs_tether`) and `goal2_start_sat` concludes `frame_runs`: one real no-A frame
+    runs from the witness (before, it had NO frame: statusForCamera / marioBodyState NULL).
+    CLIMB_SLOW_1/2 and CLIMB_FAST are PROVED (2026-10-22, TRUST (n)): ffw carries
+    statusForCamera = &gPlayerCameraState[0] (region `FfRun.RPC`, a `kvK` known cell), and
+    IN_CANNON and CLIMBING_POLE are PROVED (2026-10-22, TRUST (o), `CannonRow`,
+    `PoleClimb`): `Hauto_rest : CannonRow.aut_case_rest_top` holds 2 (TOP_OF_POLE_TRANSITION,
+    TOP_OF_POLE). `used_ok`'s cannon clause now carries `cannon_pos_ok` (a logged
+    strengthening). Cannon kit: `CannonClass` / `CannonRun` / `CannonWalk`. CLIMBING_POLE
+    needed NO camera fact (the old None was a probe bug: a statement-prefix probe must end
+    in a `Sreturn`); the pole table now has `c_smawa` and `is_anim_past_frame`.
     Blockers for the remaining pole cases:
-    - CLIMBING_POLE reads `m->area->camera->yaw`. ffw has no camera fact, and the StartSat
-      witness area is a fresh, all-Vundef block. The fix is to carry a `wblk` camera fact in
-      ffw (extend the witness; preserve it in each row), then walk the case with `c_smawa`
-      and `is_anim_past_frame`.
     - TOP_OF_POLE*: need the DMA row (approved, not yet added), gMarioAnims linked (it is a
-      size-0 extern), and animFrame ≥ −1. STOPPED on the last: the frame is advanced by
-      `geo_update_animation_frame` (rendering_graph_node.c, unlinked), so it needs that code
-      linked or a new assumption (ask the user).
+      size-0 extern), and animFrame ≥ −1. rendering_graph_node.c is now linked (TU 35) and
+      the render call is a frame segment (`HeightFrame.seg_render_spec`, GOAL-1 carry proved
+      in `RenderFlank.render_mem_ok`; range proved in `render_frame_range`). Still open:
+      carrying animFrame ≥ −1 through Mario's own frame (set_mario_animation /
+      set_anim_to_frame re-set animInfo) and Φ (PhiW) through the render call (needs a
+      render-global apartness clause in the frame world).
     The FELL_OFF → FREEFALL path sets y := base and does not refresh floorHeight. `fresh`
     carries only fh <= y_entry + 241, while y_entry may be up to about base + 16, so it is
     not enough. That path needs a carried pole fact (y = oPosY + polePos, within float

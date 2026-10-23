@@ -1646,7 +1646,7 @@ Definition v_dorrie_seg6_collision_0600FBB8 := {|
 
 Definition v_gGlobalSoundSource := {|
   gvar_info := (tarray tfloat 3);
-  gvar_init := nil;
+  gvar_init := (Init_space 12 :: nil);
   gvar_readonly := false;
   gvar_volatile := false
 |}.
@@ -2521,7 +2521,7 @@ Definition v_gMarioShotFromCannon := {|
 
 Definition v_gCurGraphNodeObject := {|
   gvar_info := (tptr (Tstruct _GraphNodeObject noattr));
-  gvar_init := nil;
+  gvar_init := (Init_space 4 :: nil);
   gvar_readonly := false;
   gvar_volatile := false
 |}.

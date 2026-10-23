@@ -1561,7 +1561,7 @@ Definition v___stringlit_34 := {|
 
 Definition v_gGlobalSoundSource := {|
   gvar_info := (tarray tfloat 3);
-  gvar_init := nil;
+  gvar_init := (Init_space 12 :: nil);
   gvar_readonly := false;
   gvar_volatile := false
 |}.
@@ -1596,7 +1596,7 @@ Definition v_gGlobalTimer := {|
 
 Definition v_gDebugLevelSelect := {|
   gvar_info := tschar;
-  gvar_init := nil;
+  gvar_init := (Init_space 1 :: nil);
   gvar_readonly := false;
   gvar_volatile := false
 |}.
