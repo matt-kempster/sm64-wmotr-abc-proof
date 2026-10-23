@@ -205,9 +205,12 @@ all in `Unwired/`, and the theorem moved nowhere. See
       ffw (extend the witness; preserve it in each row), then walk the case with `c_smawa`
       and `is_anim_past_frame`.
     - TOP_OF_POLE*: need the DMA row (approved, not yet added), gMarioAnims linked (it is a
-      size-0 extern), and animFrame ≥ −1. STOPPED on the last: the frame is advanced by
-      `geo_update_animation_frame` (rendering_graph_node.c, unlinked), so it needs that code
-      linked or a new assumption (ask the user).
+      size-0 extern), and animFrame ≥ −1. rendering_graph_node.c is now linked (TU 35) and
+      the render call is a frame segment (`HeightFrame.seg_render_spec`, GOAL-1 carry proved
+      in `RenderFlank.render_mem_ok`; range proved in `render_frame_range`). Still open:
+      carrying animFrame ≥ −1 through Mario's own frame (set_mario_animation /
+      set_anim_to_frame re-set animInfo) and Φ (PhiW) through the render call (needs a
+      render-global apartness clause in the frame world).
     The FELL_OFF → FREEFALL path sets y := base and does not refresh floorHeight. `fresh`
     carries only fh <= y_entry + 241, while y_entry may be up to about base + 16, so it is
     not enough. That path needs a carried pole fact (y = oPosY + polePos, within float

@@ -54,7 +54,7 @@ GENERATED := generated/toy.v generated/shadow.v \
   generated/macro_special_objects.v generated/behavior_data.v \
   generated/object_helpers.v generated/obj_behaviors.v generated/obj_behaviors_2.v \
   generated/spawn_object.v generated/object_list_processor.v generated/audio_data.v generated/graph_node.v generated/buffers.v generated/save_file.v generated/object_collision.v \
-  generated/area.v generated/surface_load.v generated/mario_anim_data.v \
+  generated/area.v generated/surface_load.v generated/mario_anim_data.v generated/rendering_graph_node.v \
   $(ULTRA_GENERATED)
 
 .PHONY: all generated proofs regen clean oracle-extract
@@ -259,6 +259,14 @@ generated/area.v: $(SM64)/src/game/area.c pipeline/clightgen.sh pipeline/proof_n
 # real level / object collision loaders (alloc_surface_pools,
 # load_area_terrain, clear_dynamic_surfaces, load_object_collision_model).
 generated/surface_load.v: $(SM64)/src/engine/surface_load.c pipeline/clightgen.sh pipeline/proof_n64.h
+	$(CLIGHTGEN) $< $@ $(SM64_CGP)
+
+# game/rendering_graph_node.c (2026-10-22): the render step's scene-graph
+# walk, between Mario's frames: geo_process_object -> geo_set_animation_globals
+# advances every animated object's animFrame (Mario's top-of-pole handstand
+# reads it, TRUST 0.8(f)(3)), and the real storage of gAreaUpdateCounter,
+# gCurGraphNode*, gMatStack*, gCurrAnim* (size-0 externs before).
+generated/rendering_graph_node.v: $(SM64)/src/game/rendering_graph_node.c pipeline/clightgen.sh pipeline/proof_n64.h
 	$(CLIGHTGEN) $< $@ $(SM64_CGP)
 
 # Mario's animation data (2026-10-22; TRUST 0.8(f)).  The real build makes

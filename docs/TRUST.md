@@ -29,7 +29,7 @@ without pressing A".*
 | 0.8 | GOAL 2's level data: `wmotr_floor` / `wmotr_pole` / `wmotr_cannon` are WMotR's floors, poles and cannon seats | **Defined from generated/, rows proved** (`WMotRLevel.v`). 2026-10-22: `floor_data` (d) and decoder agreement (a) are PROVED on the memory the real `load_area_terrain` builds (`TerrainRun`, 1352 surfaces); since later that day the GOAL 2 start witness carries it (`StartTerrain`: the loader runs on the `init_mem` image in the real boot order, and `goal2_start_sat` concludes `floor_data` + `static_agree`). Details: [row 0.8 in detail](#row-08-in-detail). |
 | 0.9 | GOAL 2's pos[1] writer census is complete (`YWriterCensus.v`) | **Machine-checked list, trusted edges.** Coq scans every function body of the 12 generated Mario TUs and proves: 31 direct `pos[1]` stores and 21 write-escapes (16 whole-vector arg-0 passes to `vec3f_copy`/`vec3f_set`/`vec3s_to_vec3f`, 5 `&pos[1]` passes to `f32_find_wall_collision`), 52 in all; `pos`'s address never reaches a temp, memory, a condition or a return, and no struct copy covers it. Details: [row 0.9 in detail](#row-09-in-detail). |
 | 0.10 | GOAL 2's object census: what objects can exist in WMotR and their interaction types (`BehaviorScripts.v`) | **Machine-checked over generated code, frontier trusted.** `generated/behavior_data.v` (clightgen of `data/behavior_data.c`) gives every behavior script as data; a fail-closed decoder mirrors the command layouts. Details: [row 0.10 in detail](#row-010-in-detail). |
-| 0.7 | GOAL 2's flank segments (`HeightFrame.v`: controller poll, platform displacement, level/warp phase, non-Mario objects) do what their specs say: y / action loads as the censuses found them, and each carries GOAL 1's `MWF_real` and Φ (since 2026-09-29 Φ here is `PhiW`, so each flank also keeps the WMotR world: object updates reload only WMotR's surfaces and never hand Mario an object to hold or ride; collision detection registers only WMotR-kind objects, with poles and cannon bases at their level positions and no star while coin #2 stands (0.3); no object sets a stomp bit on Mario's object) (the poll only when A is not pressed); platform displacement also leaves the held-A reading unchanged (it writes no controller) | **ASSUMED, labeled.** Specs, not proofs: none of that code is linked. Details: [row 0.7 in detail](#row-07-in-detail). |
+| 0.7 | GOAL 2's flank segments (`HeightFrame.v`: controller poll, platform displacement, level/warp phase, non-Mario objects) do what their specs say: y / action loads as the censuses found them, and each carries GOAL 1's `MWF_real` and Φ (since 2026-09-29 Φ here is `PhiW`, so each flank also keeps the WMotR world: object updates reload only WMotR's surfaces and never hand Mario an object to hold or ride; collision detection registers only WMotR-kind objects, with poles and cannon bases at their level positions and no star while coin #2 stands (0.3); no object sets a stomp bit on Mario's object) (the poll only when A is not pressed); platform displacement also leaves the held-A reading unchanged (it writes no controller) | **ASSUMED, labeled.** Specs, not proofs: none of that code is linked, except Mario's render call (2026-10-22, `seg_render_spec`: real call, GOAL-1 carry proved, Φ carry assumed). Details: [row 0.7 in detail](#row-07-in-detail). |
 | 0.4 | The starting states the theorem quantifies over (`mem_ok_lp`: Mario's block valid, his action untainted, `MWF_real`) | **GOAL 1: proved satisfiable by the real boot path** (2026-10-19, `BootMWF.boot_init_ok`, used by `NoAImpliesNoFlyTwelve.noA_never_flying_from_boot`). **GOAL 2: the witness is in WMotR by real code** (2026-10-21: `area.c` linked as the 23rd TU; `gCurrLevelNum = LEVEL_WMOTR` is stored by the generated `initiate_warp` + `warp_level`, `EntryWarp.v`). Details: [row 0.4 in detail](#row-04-in-detail). |
 | 0.5 | The step relation = what one real frame does | GOAL 1: **only `execute_mario_action`**. GOAL 2's `frame_step` composes that real call with four *specified* flanks (0.7): controller poll, platform, level phase, objects. The flanks are specs, not linked code. This is the largest scope gap. Details: [row 0.5 in detail](#row-05-in-detail). |
 
@@ -518,13 +518,25 @@ without pressing A".*
   DMA'd bytes are "data", not the ROM's bytes, and the ROM is not modelled; (2) the DMA table
   `gMarioAnimsBuf.dmaTable` (count, srcAddr, entries) and `bufTarget` as a frame-world fact: they are
   built by `setup_dma_table_list` at boot, which is not run (the pool hardware row, 4.x boot gap);
-  (3) the frame ≥ −1: `animFrame` is advanced by `geo_set_animation_globals` in the unlinked
-  rendering code, so the frame world leaves it free (a phantom ∀ over frames < −1 reads other
-  channels: up to 8191). **2026-10-22: stopped here.** The advance is
-  `geo_update_animation_frame` (rendering_graph_node.c, not linked: a graphics-thread routine), so
-  bounding the frame needs either that code linked and run per frame or a new assumption; neither
-  was added, so TOP_OF_POLE_TRANSITION / TOP_OF_POLE stay in `Hauto_rest`, and the approved
-  DMA-content row for (1) was not added (it would not be load-bearing without the walks); (4) ~~segment 0~~ **repaired 2026-10-22:** the model stored `VIRTUAL_TO_PHYSICAL(p)` = p − 0x80000000 and the identity `segmented_to_virtual` did not add it back, so the sample load was 2^31 bytes out of bounds and every real top-of-pole frame had no CompCert execution. The macro is now the `NO_SEGMENTED_MEMORY` identity (2.2 register), and `AnimRoundTrip.anim_y_runs` runs the real `return_mario_anim_y_translation`. Each of (1)–(3) is a new or changed trust assumption, so none was added.
+  (3) the frame ≥ −1: `animFrame` is advanced by `geo_set_animation_globals`
+  (rendering_graph_node.c) through `geo_update_animation_frame` (graph_node.c), so the frame world
+  leaves it free (a phantom ∀ over frames < −1 reads other channels: up to 8191). **2026-10-22
+  (later): rendering_graph_node.c is linked (TU 35) and the advance is walked.**
+  `RenderSet.gsag_frame` / `RenderFlank.render_frame_range` prove from the generated bodies that
+  with no acceleration and a header with −1 ≤ loopStart < loopEnd ≤ 32766 the render call keeps
+  Mario's animFrame in [−1, loopEnd]; `RenderSet.gsag_footprint` proves it writes only the node's
+  animFrame / animTimer / animFrameAccelAssist and the six `gCurrAnim*` globals. The call is now a
+  frame segment (`HeightFrame.seg_render_spec`, row 0.7). **Still open:** carrying
+  "animFrame ≥ −1" through Mario's own frame (the action step re-sets animInfo through
+  `set_mario_animation` / `set_anim_to_frame`, which the frame world does not yet track), so
+  TOP_OF_POLE_TRANSITION / TOP_OF_POLE stay in `Hauto_rest`, and the approved DMA-content row for
+  (1) was not added (it would not be load-bearing without the walks); (4) ~~segment 0~~ **repaired 2026-10-22:** the model stored `VIRTUAL_TO_PHYSICAL(p)` = p − 0x80000000 and the identity `segmented_to_virtual` did not add it back, so the sample load was 2^31 bytes out of bounds and every real top-of-pole frame had no CompCert execution. The macro is now the `NO_SEGMENTED_MEMORY` identity (2.2 register), and `AnimRoundTrip.anim_y_runs` runs the real `return_mario_anim_y_translation`. Each of (1)–(3) is a new or changed trust assumption, so none was added. (5) **Finding,
+  repaired 2026-10-22:** in the 34-TU link `gAreaUpdateCounter` was only *declared* (every TU had
+  it `extern`), so `init_mem` gave it a size-0 block and `geo_update_animation_frame`'s read of it
+  failed: that function, and so `find_mario_anim_flags_and_translation`,
+  `update_mario_pos_for_anim` and `return_mario_anim_y_translation` (top of pole), had no CompCert
+  execution from the boot image. Linking rendering_graph_node.c gives it the real 2-byte storage,
+  initialised to 0 (`RenderFlank.linked12_gAreaUpdateCounter`).
 
 ### Row 0.9 in detail
 
@@ -574,6 +586,22 @@ without pressing A".*
   `docs/goal2-frame-boundary-scout.md`, `goal2-wmotr-behavior-census.md`,
   `playground/PlatformInert.v`. The carries are stated *inside* the specs because as separate ∀-rows
   over every memory matching the load clauses they would be false.
+- **Render flank (2026-10-22).** The frame now ends rest ; Mario's render call ; rest, where the
+  middle segment `seg_render_spec` is the **real** `geo_set_animation_globals` call on Mario's
+  `&marioObj->header.gfx.animInfo` (`RenderFlank.render_call`, on the linked genv;
+  rendering_graph_node.c is TU 35) or no call (Mario not drawn). Its GOAL-1 carry is **proved**:
+  `RenderFlank.render_mem_ok` (valid bm, the action cell, `MWF_real`) from the walked footprint
+  (`RenderSet.gsag_footprint`: the node's three advance cells and the six `gCurrAnim*` globals, every
+  stored pointer read from Mario's object or its Animation header, both chase-reachable). Only its
+  Φ carry is assumed, as before (it was part of `seg_rest`'s). The rest of the render walk (other
+  nodes, display lists) is still in the `seg_rest` specs. Not proved: Φ (= `PhiW`) through the
+  render call — world surfaces / objects are not yet known apart from the `gCurrAnim*` blocks, which
+  would need a render-apartness clause in every frame-world row. No GFX external needed a floor:
+  none of the unlinked rendering externals (`guPerspective`, `guOrtho`, `guLookAtReflect`,
+  `print_text_fmt_int`, `create_shadow_below_xyz`, geo callbacks) is on this path.
+- **GOAL 1 and rendering.** GOAL 1's step is `execute_mario_action` alone; rendering writes Mario's
+  animInfo cells (object + 64..76) and the `gCurrAnim*` globals, none of which is the action cell,
+  the A-input cell or a cell `MWF_real` reads (proved: `render_mem_ok`).
 
 ### Row 0.4 in detail
 
@@ -706,7 +734,7 @@ without pressing A".*
   - **RUN (2026-10-22, `TerrainRun.terrain_runs`):** with `macro_special_objects.c` (TU 33) and
     WMotR's level data (TU 34) linked, and the main pool as one block (row 3.6), the generated
     `alloc_surface_pools` and then `load_area_terrain(1, wmotr_seg7_collision, NULL, NULL)` run to
-    completion in the sound interpreter over every 34-TU link and allocate 1352 surfaces. On the
+    completion in the sound interpreter over every 35-TU link and allocate 1352 surfaces. On the
     resulting memory, `floor_data` holds and every floor-list surface is, field for field, a floor
     triangle of the decoder's `static_tris` (`static_agree`). Both are proved by a checked walk of
     both partitions (`TerrainBound.tri_chk`, below).
@@ -720,7 +748,7 @@ without pressing A".*
     behavior), and `rrc_inert`. Both stay labeled antecedents of the tether implication in
     `goal2_start_sat` (`terrain_loaded`), not premises of any capstone. `rrc_inert`: the real body
     is `gRedCoinsCollected = 0;` (`ingame_menu.c:2421`); checked on the link, `gRedCoinsCollected`
-    is not in the 34-TU program at all (only the external `reset_red_coins_collected`), so the
+    is not in the 35-TU program at all (only the external `reset_red_coins_collected`), so the
     write lands outside the modelled memory. Proving it from the body needs `ingame_menu.c`
     (3468 lines) linked; not done. A value floor row for `sqrtf` needs user approval; not added.
   - **Not run:** `main_pool_init`. It has no CompCert execution (3.6 detail), so its post-state is
@@ -729,7 +757,7 @@ without pressing A".*
     over a NULL behavior.
   - **On the witness (2026-10-22, `StartTerrain` + `StartSat`):** the loader now runs on the GOAL 2
     witness itself. `InitMemC.init_mem_c` makes `Genv.init_mem` computable (Leibniz-equal memory,
-    permissions included), and one `vm_compute` over every 34-TU link runs, from that boot image:
+    permissions included), and one `vm_compute` over every 35-TU link runs, from that boot image:
     `initiate_warp` / `warp_level`'s stores (`EntryWarp`), the main pool block in
     `main_pool_init`'s post-state (3.6), `alloc_surface_pools`, `load_area_terrain`, then
     `init_mario`'s cells. That is the game's order (warp, then the level script's

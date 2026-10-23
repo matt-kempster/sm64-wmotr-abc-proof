@@ -41,6 +41,7 @@ generated/buffers.v
 generated/object_collision.v
 generated/area.v
 generated/mario_anim_data.v
+generated/rendering_graph_node.v
 generated/libultra_osEepromLongWrite.v
 generated/libultra_osEepromWrite.v
 generated/libultra_osSiCreateAccessQueue.v
@@ -273,6 +274,9 @@ proofs/WMotRRequiresA/FrameCalls.v
 proofs/WMotRRequiresA/FrameSplit.v
 proofs/WMotRRequiresA/AirSplit.v
 proofs/WMotRRequiresA/AutoSplit.v
+proofs/WMotRRequiresA/RenderAnim.v
+proofs/WMotRRequiresA/RenderSet.v
+proofs/WMotRRequiresA/RenderFlank.v
 proofs/WMotRRequiresA/HeightFrame.v
 proofs/WMotRRequiresA/WMotREntry.v
 proofs/WMotRRequiresA/SpawnTypeRun.v
