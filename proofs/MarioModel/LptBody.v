@@ -32,7 +32,7 @@ From SM64.Generated Require mario mario_actions_stationary mario_actions_moving
   libultra_osEepromLongWrite libultra_osEepromWrite libultra_osSiCreateAccessQueue
   libultra_osCreateMesgQueue libultra_osContInit libultra_osInitialize
   behavior_data spawn_object surface_load macro_special_objects wmotr_level_data
-  camera.
+  camera rendering_graph_node.
 From SM64.Proofs Require Import SymbolicLinking ActionValueFrame AGates Taint
   RealFrameLinked RealFrameValue CensusV2 MWFReal OsDmaFloor ActWriterSurface LinkedTwelve.
 From SM64.Proofs Require OutParamSurface RestSurface.
@@ -343,6 +343,8 @@ Lemma os_ni_wmotr_level_data : no_internal_ids wmotr_level_data.prog os_ids = tr
 Proof. vm_compute. reflexivity. Qed.
 Lemma os_ni_camera : no_internal_ids camera.prog os_ids = true.
 Proof. vm_compute. reflexivity. Qed.
+Lemma os_ni_rendering_graph_node : no_internal_ids rendering_graph_node.prog os_ids = true.
+Proof. vm_compute. reflexivity. Qed.
 
 Definition ext_named (o : option (globdef Clight.fundef type)) (n : String.string) : bool :=
   match o with
@@ -551,6 +553,7 @@ Section LptFrame.
         * exact (no_internal_ids_correct _ _ _ _ os_ni_macro_special_objects Hid Hqdm).
         * exact (no_internal_ids_correct _ _ _ _ os_ni_wmotr_level_data Hid Hqdm).
         * exact (no_internal_ids_correct _ _ _ _ os_ni_camera Hid Hqdm).
+        * exact (no_internal_ids_correct _ _ _ _ os_ni_rendering_graph_node Hid Hqdm).
   Qed.
 
   (* the external call a libultra Scall makes *)

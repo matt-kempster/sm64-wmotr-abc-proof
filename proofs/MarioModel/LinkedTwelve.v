@@ -58,7 +58,7 @@ From SM64.Generated Require mario mario_actions_stationary
   libultra_osEepromLongWrite libultra_osEepromWrite libultra_osSiCreateAccessQueue
   libultra_osCreateMesgQueue libultra_osContInit libultra_osInitialize
   behavior_data spawn_object surface_load macro_special_objects wmotr_level_data
-  camera.
+  camera rendering_graph_node.
 From SM64.Proofs Require Import SymbolicLinking CensusV2 RealFrameLinked
   EngineV2Consumer RestSurface.
 
@@ -152,7 +152,16 @@ Fixpoint link_chain (p : Clight.program) (l : list Clight.program)
    interaction.c read and write, had a size-0 block in the boot image while
    no linked TU defined them).  Its functions are now Internal: the camera
    calls the Mario code makes (set_camera_mode, set_camera_shake_from_hit,
-   ...) resolve to the real camera.c bodies. *)
+   ...) resolve to the real camera.c bodies.
+   rendering_graph_node (game/rendering_graph_node.c) is the 36th
+   (2026-10-22): the render step's scene-graph walk (geo_process_object ->
+   geo_set_animation_globals advances every animated object's animFrame,
+   including Mario's) and the real storage of gAreaUpdateCounter, which
+   graph_node.c's geo_update_animation_frame reads: without it that global
+   was a size-0 extern block, so geo_update_animation_frame -- hence
+   find_mario_anim_flags_and_translation, update_mario_pos_for_anim and
+   return_mario_anim_y_translation (top of pole) -- had no execution from the
+   boot image (WMotRRequiresA/RenderFlank.v). *)
 Definition tu_rest : list Clight.program :=
   [ mario_actions_stationary.prog;
     mario_actions_moving.prog;
@@ -187,7 +196,8 @@ Definition tu_rest : list Clight.program :=
     surface_load.prog;
     macro_special_objects.prog;
     wmotr_level_data.prog;
-    camera.prog ].
+    camera.prog;
+    rendering_graph_node.prog ].
 
 Definition linked12 (lp : Clight.program) : Prop :=
   link_chain mario.prog tu_rest = Some lp.
@@ -338,6 +348,10 @@ Section Linked12LO.
   Lemma linked12_LO_macro_special_objects : linkorder macro_special_objects.prog lp.
   Proof.
     exact (link_chain_linkorder_in _ _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_eq _ _)))))))))))))))))))))))))))))))) H12).
+  Qed.
+  Lemma linked12_LO_rendering_graph_node : linkorder rendering_graph_node.prog lp.
+  Proof.
+    exact (link_chain_linkorder_in _ _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_eq _ _))))))))))))))))))))))))))))))))))) H12).
   Qed.
   Lemma linked12_LO_wmotr_level_data : linkorder wmotr_level_data.prog lp.
   Proof.
@@ -620,6 +634,9 @@ Proof. vm_compute. reflexivity. Qed.
 Lemma no_internal_camera :
   no_internal_ids camera.prog truly_ext_pin_ids = true.
 Proof. vm_compute. reflexivity. Qed.
+Lemma no_internal_rendering_graph_node :
+  no_internal_ids rendering_graph_node.prog truly_ext_pin_ids = true.
+Proof. vm_compute. reflexivity. Qed.
 
 (* resolves_lp -> defmap entry (the genv->defmap bridge, spike-style) *)
 Lemma resolves_defmap :
@@ -690,6 +707,7 @@ Proof.
     + exact (no_internal_ids_correct _ _ _ _ no_internal_macro_special_objects Hmem Hqdm).
     + exact (no_internal_ids_correct _ _ _ _ no_internal_wmotr_level_data Hmem Hqdm).
     + exact (no_internal_ids_correct _ _ _ _ no_internal_camera Hmem Hqdm).
+    + exact (no_internal_ids_correct _ _ _ _ no_internal_rendering_graph_node Hmem Hqdm).
 Qed.
 
 (* ---------------------------------------------------------------------- *)

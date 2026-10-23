@@ -72,6 +72,7 @@ From SM64.Proofs Require Import NoAImpliesNoFlyLinked NoAImpliesNoFlyTwelve.
 From SM64.Proofs Require Import FrameCalls FrameSplit AirSplit AutoSplit.
 From SM64.Proofs.WMotRRequiresA Require Import FfWorld FfRow AhwRow KbRow FpuFloor ExtInert.
 From SM64.Proofs.WMotRRequiresA Require PoleXc PoleRow LedgeRow.
+From SM64.Proofs.WMotRRequiresA Require RenderFlank.
 From SM64.Proofs Require OsDmaFloor LptBody.
 From SM64.Proofs Require Import HeightInvariant HeightBudgetArith HeightMoveCatalog WMotRLevel
   WMotRWorld NoAActions.
@@ -158,6 +159,19 @@ Section HeightFrame.
     /\ (Mem.valid_block m bm -> Mem.valid_block m' bm)
     /\ carries m m'.
 
+  (* seg_render: the render step on Mario's node (2026-10-22,
+     rendering_graph_node.c linked as TU 35).  geo_process_object calls the
+     real geo_set_animation_globals on &marioObj->header.gfx.animInfo
+     (RenderFlank.render_call), which advances Mario's animFrame through
+     graph_node.c's geo_update_animation_frame.  The left disjunct is a frame
+     where Mario's node is not drawn.  GOAL 1's mem_ok carry through it is
+     PROVED from its walked footprint (RenderFlank.render_mem_ok,
+     discharging Hrender_ok below); the Phi carry is assumed like every other
+     flank's (it was inside seg_rest's before). *)
+  Definition seg_render_spec (m m' : mem) : Prop :=
+    (m' = m \/ RenderFlank.render_call lp bm m m')
+    /\ (Phi m -> Phi m').
+
   (* The game is still in WMotR: gCurrLevelNum (level_update.c, set only by
      the warp code from sWarpDest, :477/:502) holds LEVEL_WMOTR (pinned from
      the level's own script, WMotRLevel.level_wmotr_self_warp). *)
@@ -174,13 +188,17 @@ Section HeightFrame.
   (*    grounds at y = 4500), and a new visit starts again at the entry     *)
   (*    warp, with the red coins and the star counter reloaded (TRUST 0.3). *)
   (* ===================================================================== *)
+  (* The non-Mario tail is rest (object updates, then the render walk up
+     to Mario's node) ; Mario's render call ; rest (the remaining walk). *)
   Definition frame_step (i m m' : mem) : Prop :=
-    exists m1 m2 m3,
+    exists m1 m2 m3 m4 m5,
       seg_input_spec m i
       /\ seg_platform_spec i m1
       /\ execute_mario_action_step_lp lp m1 m2
       /\ seg_level_spec m2 m3
-      /\ seg_rest_spec m3 m'
+      /\ seg_rest_spec m3 m4
+      /\ seg_render_spec m4 m5
+      /\ seg_rest_spec m5 m'
       /\ in_wmotr m'.
 
   Variable YMAX : R.
@@ -195,6 +213,11 @@ Section HeightFrame.
      frame_ok_linked12 -- NOT open). *)
   Hypothesis Hframe_action :
     forall m m', mem_ok m -> execute_mario_action_step_lp lp m m' -> mem_ok m'.
+
+  (* the render call carries GOAL 1's mem_ok (discharged in the twelve-TU
+     section below by RenderFlank.render_mem_ok -- NOT open). *)
+  Hypothesis Hrender_ok :
+    forall m m', mem_ok m -> RenderFlank.render_call lp bm m m' -> mem_ok m'.
 
   (* OPEN (T2 + T3, THE CRUX): one real execute_mario_action frame from a
      GOAL-1-well-formed state preserves the height invariant.  The
@@ -241,6 +264,16 @@ Section HeightFrame.
     - exact (Hmwf Hm0).
   Qed.
 
+  (* a seg_rest phase carries mem_ok *)
+  Lemma rest_ok : forall m m', seg_rest_spec m m' -> mem_ok m -> mem_ok m'.
+  Proof.
+    intros m m' (_ & Har & Hvr & Hmr & _) (Hv & Hs & Hm).
+    split; [ exact (Hvr Hv) | split ].
+    - exact (action_sat_load_eq_or_val not_tainted ACT_READING_NPC_DIALOG
+               m m' Har dialog_action_not_tainted Hs).
+    - exact (Hmr Hm).
+  Qed.
+
   (* ===================================================================== *)
   (* 3. ONE FRAME: an A-free frame preserves mem_ok AND Phi.                *)
   (* ===================================================================== *)
@@ -252,7 +285,7 @@ Section HeightFrame.
       mem_ok m' /\ Phi m'.
   Proof.
     intros i m m' HU (Hok & Hphi)
-           (m1 & m2 & m3 & Hin & Hplat & Hact & Hlvl & Hrest & _).
+           (m1 & m2 & m3 & m4 & m5 & Hin & Hplat & Hact & Hlvl & Hrest & Hrnd & Hrest2 & _).
     destruct (a_used_real_false bm i HU) as (HA & HD).
     (* input *)
     destruct Hin as (_ & Hai & Hvi & Hmi & Hpi).
@@ -272,14 +305,18 @@ Section HeightFrame.
       by (eapply Mem.valid_block_unchanged_on; eauto).
     assert (Hs3 : action_sat not_tainted m3 bm)
       by (eapply action_sat_unchanged_on; [ exact Hact3 | exact Hv2 | exact Hs2 ]).
-    (* rest *)
-    destruct Hrest as (_ & Har & Hvr & Hmr & Hpr).
+    pose proof (Hpl Hphi2) as Hphi3.
+    assert (Hok3 : mem_ok m3) by exact (conj Hv3 (conj Hs3 (Hml Hm2))).
+    (* rest, Mario's render call, rest *)
+    pose proof (rest_ok m3 m4 Hrest Hok3) as Hok4.
+    pose proof (proj2 (proj2 (proj2 (proj2 Hrest))) Hphi3) as Hphi4.
+    destruct Hrnd as (Hrc & Hpr).
+    assert (Hok5 : mem_ok m5)
+      by (destruct Hrc as [-> | Hrc]; [ exact Hok4 | exact (Hrender_ok m4 m5 Hok4 Hrc) ]).
+    pose proof (Hpr Hphi4) as Hphi5.
     split.
-    - split; [ exact (Hvr Hv3) | split ].
-      + exact (action_sat_load_eq_or_val not_tainted ACT_READING_NPC_DIALOG
-                 m3 m' Har dialog_action_not_tainted Hs3).
-      + exact (Hmr (Hml Hm2)).
-    - exact (Hpr (Hpl Hphi2)).
+    - exact (rest_ok m5 m' Hrest2 Hok5).
+    - exact (proj2 (proj2 (proj2 (proj2 Hrest2))) Hphi5).
   Qed.
 
   (* ===================================================================== *)
@@ -758,6 +795,14 @@ Section HeightLinked12.
                  execute_mario_action_step_lp lp m m' -> mem_ok_lp bm MWF m'.
   Proof. exact (proj1 call_facts). Qed.
 
+  (* the render call carries mem_ok, on the link (RenderFlank) *)
+  Lemma render_ok_linked12 :
+    forall m m', mem_ok_lp bm MWF m ->
+                 RenderFlank.render_call lp bm m m' -> mem_ok_lp bm MWF m'.
+  Proof.
+    exact (RenderFlank.render_mem_ok lp H12 bm bc oc0 SafeB HSafeB_syms Hbm_sym Hbc_sym Hoc0).
+  Qed.
+
   (* ==================================================================== *)
   (* THE GOAL-2 CAPSTONE (height form): over any link of the twelve TUs,  *)
   (* a run of real game frames with A neither pressed nor held after     *)
@@ -774,7 +819,7 @@ Section HeightLinked12.
   Proof.
     intros init is m Hok Hphi HA Hr.
     exact (proj2 (noA_run_height_bound lp bm MWF Phi PHI_YMAX
-                    frame_action_linked12 seg_action_phi Hphi_y
+                    frame_action_linked12 render_ok_linked12 seg_action_phi Hphi_y
                     init is m Hok Hphi HA Hr)).
   Qed.
 
