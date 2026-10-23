@@ -42,7 +42,7 @@ From SM64.Generated Require mario mario_actions_stationary
   mario_actions_moving mario_actions_airborne mario_actions_submerged
   mario_actions_cutscene mario_actions_automatic mario_actions_object
   interaction behavior_actions level_update mario_step surface_collision
-  math_util camera audio_external sound_init.
+  math_util camera audio_external sound_init print.
 From SM64.Proofs Require SurfaceBodies MathBodies.
 From SM64.Proofs Require Import Flying Taint ActionValue ActionValueFrame ReachableRun
   RealFrameValue RealFrameLinked AGates SymbolicLinking FieldNonInterference.
@@ -1075,6 +1075,13 @@ Section NoARealInputMWF.
   Hypothesis Hpism_body :
     body_pres_w lp (MWF_real lp bm bc oc0 SafeB) bm SafeB
       sound_init.f_play_infinite_stairs_music.
+  (* THE PRINT LINK (2026-10-23): game/print.c is linked, so
+     print_text_fmt_int is a pinned rest case (LO_print) owing a gated body
+     residual over its real body; the twelve-TU capstone proves it
+     (PrintBodies). *)
+  Hypothesis LO_print : linkorder print.prog lp.
+  Hypothesis Hptfi_body :
+    body_pres_w lp (MWF_real lp bm bc oc0 SafeB) bm SafeB print.f_print_text_fmt_int.
   (* the stationary dispatcher is WALKED (StationarySurface.stationary_pres
      over the generic DispatchKit; the particleFlags epilogue store is
      killed by the window census): PROVED from per-leaf-callee residuals
@@ -2927,7 +2934,7 @@ Section NoARealInputMWF.
              (mwf_real_umbi lp bm bc oc0 SafeB Hbc_bm HSafeB_not_bm Hgms_blk Hgtimer_blk Htable_blk Hktab_blk)
              WL_exempt
              (rest_pres_decompose lp LO_mario LO_sta LO_mov LO_air LO_sub LO_cut
-                LO_aut LO_obj LO_int LO_beh LO_lvl LO_stp LO_surf LO_math LO_camera LO_audio LO_sinit
+                LO_aut LO_obj LO_int LO_beh LO_lvl LO_stp LO_surf LO_math LO_camera LO_audio LO_sinit LO_print
                 Hrest_ext_only
                 (NoA_real bm) (MWF_real lp bm bc oc0 SafeB) bm SafeB
                 (stationary_pres lp LO_mario LO_sta LO_stp bm (NoA_real bm)
@@ -3770,7 +3777,7 @@ Section NoARealInputMWF.
                    sb_fc)
                 sb_ffwc sb_ff sb_fc sb_fp sb_fw
                 mb_v3fset mb_v3fcopy mb_v3scopy mb_atan2s Hscm_body
-                Hstcm_body Hfcm_body Hps_body Hpism_body)
+                Hstcm_body Hfcm_body Hps_body Hpism_body Hptfi_body)
              Hext_action Hmwf_ext
              (mwf_real_entry lp bm bc oc0 SafeB Hbc_bm)
              (mwf_real_free lp bm bc oc0 SafeB Hbc_bm)
