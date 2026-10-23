@@ -80,6 +80,14 @@ all in `Unwired/`, and the theorem moved nowhere. See
   2026-10-22: HeightFrame's section has 27 `Hypothesis` lines (28 → 27: `Hcamera` proved away).
   `surface_load.c` linked 2026-10-22 (32nd TU), then `macro_special_objects.c` + WMotR level data
   (TUs 33-34): counts unchanged (no row names their functions).
+  2026-10-22: FOUND (oracle difftest) + REPAIRED: `gMarioAnims` was a size-0 block, so every
+  `load_patchable_table` compare (`memory.c:575`) had no execution: 523/600 real frames STUCK.
+  `mario_anim_data.v` is now linked (36th TU; 2.4 anim-data completion of game_init's decl).
+  Counts unchanged; no proof broke. Difftest seed 2: 300/300 MATCH, 0 STUCK (no `ROM_SIZED`).
+  `BootRun`'s entry frame now runs that compare on the real block (header copied from the
+  linked data). `tools/size0_globals.py` also walks the game thread (class (c), `BOOT_KNOWN`):
+  `setup_game_memory` has no execution (`gDemoInputs` NULL compare, ROM-symbol subtraction).
+  Open: StartSat's anim table is still the count-0 stand-in; DMA content is not modelled.
 - **GOAL 2** (WMotR needs A): `WMotRRequiresA/HeightFrame.v`,
   `wmotr_noA_height_bound_linked12`. This is a conditional theorem over ONE WMotR
   visit (frames end with `in_wmotr`), under input with A neither pressed nor held

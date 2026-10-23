@@ -280,8 +280,12 @@ generated/surface_load.v: $(SM64)/src/engine/surface_load.c pipeline/clightgen.s
 # vendor's own tools/mario_anims_converter.py (vendor/sm64/Makefile:667) and
 # links its .data into the ROM's `assets` segment (sm64.ld:1334), the source
 # of the DMA table gMarioAnims.  We run that same converter, into the same
-# path, and clightgen its output.  Data only: not linked into the program
-# (the game reaches it only by DMA from ROM); PoleAnim.v reads it.
+# path, and clightgen its output.  Data only.  Linked since 2026-10-22 (the
+# 36th TU): game_init.c passes gMarioAnims to setup_dma_table_list, and
+# load_patchable_table compares pointers into it, which has no CompCert
+# execution while it is a size-0 block (oracle difftest: 523/600 real frames
+# stuck).  The anim-data completion in pipeline/clightgen.sh (TRUST 2.4) reads
+# its type off generated/mario_anim_data.v, so game_init.v depends on it.
 ANIM_C := $(SM64)/build/us/assets/mario_anim_data.c
 $(ANIM_C): $(wildcard $(SM64)/assets/anims/*.inc.c)
 	mkdir -p $(dir $@)
@@ -289,6 +293,7 @@ $(ANIM_C): $(wildcard $(SM64)/assets/anims/*.inc.c)
 
 generated/mario_anim_data.v: $(ANIM_C) pipeline/clightgen.sh
 	$(CLIGHTGEN) $< $@ $(SM64_CG)
+generated/game_init.v: generated/mario_anim_data.v
 
 # libultra (2026-10-21): see ULTRA_CG above.
 generated/libultra_osEepromLongWrite.v: $(ULTRA)/osEepromLongWrite.c pipeline/clightgen.sh

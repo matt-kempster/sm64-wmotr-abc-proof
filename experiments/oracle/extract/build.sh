@@ -5,6 +5,10 @@ set -euo pipefail
 cd "$(dirname "$0")"
 source ../../../pipeline/env.sh >/dev/null
 ulimit -s unlimited
+# the anim data (36th TU) as a structured constant (see fold_repr.py)
+if grep -q 'Int\.repr' ml/mario_anim_data.ml 2>/dev/null; then
+  python3 fold_repr.py ml/mario_anim_data.ml
+fi
 ORDER=$(cd ml && ocamlfind ocamldep -sort *.ml)
 for f in $ORDER; do
   [ ml/${f%.ml}.cmx -nt ml/$f ] || (cd ml && ocamlfind ocamlopt -w -a -c ${f%.ml}.mli $f)

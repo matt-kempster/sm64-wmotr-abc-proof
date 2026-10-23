@@ -15,9 +15,10 @@ replay driver): a model pointer equals a real segmented / physical / ROM word
 that the ROM's own segmented_to_virtual maps to the same object.  Words the
 frame wrote under a normalization are listed (NORM ... written this frame).
 
-    ROM_SIZED=1 python3 difftest.py SEED    gMarioAnims gets its ROM extent as
-        block size (NOT the model: there it is size 0; see README) so the rest of
-        an anim-load frame can be tested
+    ROM_SIZED=1 python3 difftest.py SEED    historical (2026-10-22): gave the then
+        size-0 gMarioAnims block its ROM extent in the harness only.  Since the
+        anim data is linked (36th TU) the model's block has its real size and
+        contents, so the switch no longer matters (see README)
 """
 import collections
 import os

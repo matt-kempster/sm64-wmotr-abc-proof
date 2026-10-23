@@ -49,12 +49,16 @@ bash experiments/oracle/extract/build.sh introspect && \
 DRV_DEPS=pp bash experiments/oracle/extract/build.sh replay   # the replay driver (~5 min)
 python3 experiments/oracle/record.py 300 2      # 300 real frames, seed 2 (~1 min)
 python3 experiments/oracle/difftest.py 2        # replay every frame through the model (~40 min)
-ROM_SIZED=1 python3 experiments/oracle/difftest.py 2   # same, past the gMarioAnims finding (below)
+# (ROM_SIZED=1 is historical: it sized the then size-0 gMarioAnims; see below)
 ```
 
 `boundary.txt` (the link's externals) must be regenerated, and the frames
 re-recorded, whenever the link changes: the recorder logs only calls to functions
-outside the link. The link is `LinkedTwelve.tu_rest` (35 TUs since 2026-10-22).
+outside the link. The link is `LinkedTwelve.tu_rest` (36 TUs since 2026-10-22: the anim
+data `mario_anim_data.v` joined; it adds no function, so the seed 2 / 3 recordings stand and
+`boundary.txt` changed only in `gMarioAnims`'s size). `extract/build.sh` folds the extracted
+anim module's `Int.repr` literals into constants first (`extract/fold_repr.py`): as calls,
+ocamlopt ran over an hour on them without finishing.
 
 For each recorded frame, `extract/drv/replay.ml` does the following:
 1. **Builds a CompCert memory from the real RAM.** Each global of the link
@@ -119,8 +123,14 @@ has no semantics (also against the boot value `NULL`). The size-0 sweep
 (`tools/size0_globals.py`) misses it because no linked function names
 `gMarioAnims` in a load or store; the only use is `&gMarioAnims` at boot.
 The capstones are not false, but for real WMotR states they are silent on about
-80% of frames. Candidate repair: give `gMarioAnims` storage of its real extent
-(a 2.4-style completion, or link `mario_anim_data.v`).
+80% of frames.
+
+**REPAIRED 2026-10-22: `mario_anim_data.v` is linked (the 36th TU).** The model's
+`gMarioAnims` is now the real, read-only data block (580632 bytes). Re-run WITHOUT
+`ROM_SIZED`, seed 2: **300/300 MATCH, 0 STUCK**, 0 DIFF, 0 DIVERGE (33 anim-load
+frames write `anim->values` / `anim->index` under the phys normalization, as before).
+The size-0 sweep now also walks the game thread and tags address uses
+(`tools/size0_globals.py`, class (c)).
 
 `ROM_SIZED=1` gives the `gMarioAnims` block its ROM extent (0x8DC20 bytes) **in the
 harness only**. With it every frame of both seeds matches. The 33 (seed 3: 41) anim-load frames each
@@ -128,9 +138,8 @@ write two words under the expected normalization, `anim->values` (+0xc) and
 `anim->index` (+0x10) of the relocated anim in the DMA buffer: the ROM stores the
 physical address, the model a pointer to the same byte. This is the same count as the
 33 STUCK frames of 2026-09-26. Completed frames change about 42 bytes of placed
-globals, about 41 of them computed by the model. **STUCK must stay 0** (with
-`ROM_SIZED=1` until the finding is repaired; then without): it is the regression
-gate for UB and size-0 sites.
+globals, about 41 of them computed by the model. **STUCK must stay 0** (without
+`ROM_SIZED`, since the repair): it is the regression gate for UB and size-0 sites.
 
 History: 2026-09-26, 12-TU link, seed 2: 267 MATCH and 33 STUCK
 (`VIRTUAL_TO_PHYSICAL` as `ptr & 0x1FFFFFFF`, undefined on a pointer), then 300 MATCH

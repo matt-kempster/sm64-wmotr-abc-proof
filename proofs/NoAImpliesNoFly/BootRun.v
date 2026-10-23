@@ -1,5 +1,5 @@
 (* spine-root: NON-VACUITY WITNESS from the REAL boot image -- over every
-   35-TU link, Genv.init_mem itself (not a memory built to look like it),
+   36-TU link, Genv.init_mem itself (not a memory built to look like it),
    then the real init_mario_from_save_file, then (i) one execute_mario_action
    frame, and (ii) WMotR's entry: the real terrain loader, the real
    init_mario and set_mario_initial_action, and one FULL real no-A frame
@@ -37,10 +37,21 @@
         - gPlayerSpawnInfos[0].startPos := (-67, 2669, -16), the warp node
           0x0A object's position (init_mario_after_warp, level_update.c:372-374;
           values from the level script, WMotREntry);
-        - Mario's animation DMA list: dmaTable := an empty table (count 0, so
-          load_patchable_table loads nothing) and bufTarget := one animation
-          whose index table points into zero values (setup_dma_table_list and
-          the ROM's anim data are not run; TRUST 0.4).
+        - Mario's animation DMA list (2026-10-22, gMarioAnims linked as the
+          36th TU): dmaTable := a fresh block holding the 1680 header bytes
+          of the LINKED gMarioAnims (count 209 + the offset/size pairs, what
+          load_dma_table_address DMAs from ROM), srcAddr := &gMarioAnims;
+          currentAddr := &gMarioAnims + anim[0x56].offset
+          (MARIO_ANIM_GENERAL_FALL, the entry action's anim, as if loaded);
+          bufTarget := one animation whose index table points into zero
+          values (setup_dma_table_list's pool allocation and the DMA itself
+          are not run: dma_read's libultra calls need an OS queue model;
+          TRUST 0.4 / 3.5).  So the entry frame's load_patchable_table runs
+          its `addr != list->currentAddr` compare on the real gMarioAnims
+          block -- the compare that had no execution while gMarioAnims was
+          a size-0 block (oracle difftest, 523/600 real frames STUCK); with
+          a size-0 gMarioAnims the header copy fails and the witness is
+          false, so this file is that repair's guard too.
       REAL code run: alloc_surface_pools, load_area_terrain(1,
       wmotr_seg7_collision, NULL, NULL) (WMotR's real terrain), init_mario,
       set_mario_initial_action(m, MARIO_SPAWN_AIRBORNE, 0).  Then one full
@@ -118,13 +129,41 @@ Definition P (b : block) : val := Vptr b Ptrofs.zero.
 Definition i32 (z : Z) : val := Vint (Int.repr z).
 
 (* the level-entry cells the unrun code leaves (header, step 2) *)
+
+(* Mario's anim DMA table (2026-10-22, gMarioAnims linked): the bytes
+   setup_dma_table_list -> load_dma_table_address would DMA from the ROM's
+   gMarioAnims header (count + 209 offset/size pairs = 1680 bytes, copied
+   here from the linked gMarioAnims block itself), with srcAddr :=
+   &gMarioAnims, as load_dma_table_address stores it. *)
+Definition ANIM_TBL : Z := 8 + 209 * 8.
+Definition ANIM_FALL : Z := 86.   (* MARIO_ANIM_GENERAL_FALL, 0x56 *)
+
+Definition anim_table (ga : block) (m : mem) : option (mem * block * Z) :=
+  match CM.loadbytes m ga 0 ANIM_TBL, CM.load Mint32 m ga (8 + 8 * ANIM_FALL) with
+  | Some bytes, Some (Vint off) =>
+    match fresh m ANIM_TBL with
+    | Some (m1, bt) =>
+      match CM.storebytes m1 bt 0 bytes with
+      | Some m2 =>
+        match apply_writes m2 [W Mint32 bt 4 (Vptr ga Ptrofs.zero)] 0 with
+        | inl m3 => Some (m3, bt, Int.unsigned off)
+        | inr _ => None
+        end
+      | None => None
+      end
+    | None => None
+    end
+  | _, _ => None
+  end.
+
 Definition entry_mem (ge : genv) (m : mem) : option mem :=
   let o s f := match off ge s f with Some d => d | None => -100000 end in
   match sym ge "gCurrentArea", sym ge "gAreaData", sym ge "gMarioObject",
-        sym ge "gObjectPool", sym ge "gPlayerSpawnInfos", sym ge "gMarioAnimsBuf" with
-  | Some bca, Some bad, Some bmo, Some bop, Some bsi, Some bab =>
-    match fresh m (ssize ge "DmaTable") with
-    | Some (m1, btbl) =>
+        sym ge "gObjectPool", sym ge "gPlayerSpawnInfos", sym ge "gMarioAnimsBuf",
+        sym ge "gMarioAnims" with
+  | Some bca, Some bad, Some bmo, Some bop, Some bsi, Some bab, Some ga =>
+    match anim_table ga m with
+    | Some (m1, btbl, foff) =>
     match fresh m1 (ssize ge "Animation") with
     | Some (m2, banim) =>
     match fresh m2 64 with
@@ -137,6 +176,8 @@ Definition entry_mem (ge : genv) (m : mem) : option mem :=
                   W Mint16signed bsi (o "SpawnInfo" "startPos" + 2) (i32 2669);
                   W Mint16signed bsi (o "SpawnInfo" "startPos" + 4) (i32 (-16));
                   W Mint32 bab (o "DmaHandlerList" "dmaTable") (P btbl);
+                  W Mint32 bab (o "DmaHandlerList" "currentAddr")
+                    (Vptr ga (Ptrofs.repr foff));
                   W Mint32 bab (o "DmaHandlerList" "bufTarget") (P banim);
                   W Mint32 banim (o "Animation" "index") (P bidx);
                   W Mint32 banim (o "Animation" "values") (P bval);
@@ -151,7 +192,7 @@ Definition entry_mem (ge : genv) (m : mem) : option mem :=
     | None => None end
     | None => None end
     | None => None end
-  | _, _, _, _, _, _ => None
+  | _, _, _, _, _, _, _ => None
   end.
 
 (* ---------------------------------------------------------------------- *)
@@ -355,7 +396,7 @@ End Sound.
 Lemma id_ifs : id "init_mario_from_save_file" = mario._init_mario_from_save_file.
 Proof. reflexivity. Qed.
 
-(* Over every 34-TU link, given only what the four audio / menu externals
+(* Over every 36-TU link, given only what the four audio / menu externals
    and sqrtf do (world_ok):
    - the from-boot capstone's premises are jointly met with a real step:
      Genv.init_mem lp, the function the link resolves

@@ -565,9 +565,9 @@ Definition v_rspF3DDataStart := {|
 |}.
 
 Definition v_gMarioAnims := {|
-  gvar_info := (tarray tuchar 0);
+  gvar_info := (Tstruct $"MarioAnimsObj" noattr);
   gvar_init := nil;
-  gvar_readonly := false;
+  gvar_readonly := true;
   gvar_volatile := false
 |}.
 
