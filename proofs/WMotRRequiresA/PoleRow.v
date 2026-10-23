@@ -90,7 +90,7 @@ Lemma acn_pole : In (Int.unsigned (Int.repr acn)) pole_acts.
 Proof. destruct Hpa as [<- | [<- | [<- | [<- | []]]]]; cbn; auto 7. Qed.
 
 (* the walk's environment *)
-Definition Epl (bo bfi bmiss bcalls bsin ab bt biom bmq brm bau blk bpc bbt bgp blv : block) (oo uo : ptrofs) : senv :=
+Definition Epl (bo bfi bmiss bcalls bsin ab bt biom bmq brm bau blk bpc bsr bsrc bsms bbt bgp blv : block) (oo uo : ptrofs) : senv :=
   mke (fun r => if Pos.eqb r RM then bm else if Pos.eqb r RO then bo
                 else if Pos.eqb r RFI then bfi else if Pos.eqb r RMISS then bmiss
                 else if Pos.eqb r RCALLS then bcalls else if Pos.eqb r RSIN then bsin
@@ -98,6 +98,8 @@ Definition Epl (bo bfi bmiss bcalls bsin ab bt biom bmq brm bau blk bpc bbt bgp 
                 else if Pos.eqb r RIOM then biom else if Pos.eqb r RMQ then bmq
                 else if Pos.eqb r RRM then brm else if Pos.eqb r RAR then bau
                 else if Pos.eqb r RLK then blk else if Pos.eqb r RPC then bpc
+                else if Pos.eqb r RSR then bsr else if Pos.eqb r RSRC then bsrc
+                else if Pos.eqb r RSMS then bsms
                 else if Pos.eqb r RU then bo else if Pos.eqb r RBT then bbt
                 else if Pos.eqb r RGP then bgp else if Pos.eqb r RLV then blv else bm)
       (fun r => if Pos.eqb r RO then oo else if Pos.eqb r RU then uo else Ptrofs.zero)
@@ -109,6 +111,8 @@ Lemma r0p_size : forall r sz, r0_size (R0P G) r = Some sz ->
   \/ (r = RLD /\ sz = szs G mario._DmaHandlerList) \/ (r = RBUF /\ sz = Ptrofs.modulus)
   \/ (r = RIOM /\ sz = 20) \/ (r = RMQ /\ sz = 24) \/ (r = RRM /\ sz = 4)
   \/ (r = RLK /\ sz = szs G camera._LakituState) \/ (r = RPC /\ sz = SZ_PCS)
+  \/ (r = RSR /\ sz = Ptrofs.modulus) \/ (r = RSRC /\ sz = Ptrofs.modulus)
+  \/ (r = RSMS /\ sz = Ptrofs.modulus)
   \/ (r = RU /\ sz = szs G mario._Object).
 Proof.
   intros r sz H. unfold r0_size, R0P, R0F in H. cbn [app find fst] in H.
@@ -124,27 +128,31 @@ Proof.
   destruct (Pos.eqb RRM r) eqn:E10; [apply Pos.eqb_eq in E10; injection H as <-; auto 20 |].
   destruct (Pos.eqb RLK r) eqn:E12; [apply Pos.eqb_eq in E12; injection H as <-; auto 22 |].
   destruct (Pos.eqb RPC r) eqn:E13; [apply Pos.eqb_eq in E13; injection H as <-; auto 24 |].
-  destruct (Pos.eqb RU r) eqn:E11; [apply Pos.eqb_eq in E11; injection H as <-; auto 26 | discriminate].
+  destruct (Pos.eqb RSR r) eqn:E14; [apply Pos.eqb_eq in E14; injection H as <-; auto 26 |].
+  destruct (Pos.eqb RSRC r) eqn:E15; [apply Pos.eqb_eq in E15; injection H as <-; auto 28 |].
+  destruct (Pos.eqb RSMS r) eqn:E16; [apply Pos.eqb_eq in E16; injection H as <-; auto 30 |].
+  destruct (Pos.eqb RU r) eqn:E11; [apply Pos.eqb_eq in E11; injection H as <-; auto 32 | discriminate].
 Qed.
 
 Ltac r0p_cases H :=
   destruct (r0p_size _ _ H) as
     [(-> & ?) | [(-> & ?) | [(-> & ?) | [(-> & ?) | [(-> & ?) | [(-> & ?) | [(-> & ?) | [(-> & ?)
-    | [(-> & ?) | [(-> & ?) | [(-> & ?) | [(-> & ?) | (-> & ?)]]]]]]]]]]]].
+    | [(-> & ?) | [(-> & ?) | [(-> & ?) | [(-> & ?) | [(-> & ?) | [(-> & ?) | [(-> & ?)
+    | (-> & ?)]]]]]]]]]]]]]]].
 
 Ltac epl := cbn [Epl e_blk e_base];
-  cbn [Pos.eqb RM RO RFI RMISS RCALLS RSIN RLD RBUF RIOM RMQ RRM RAR RLK RPC RU RBT RGP RLV].
+  cbn [Pos.eqb RM RO RFI RMISS RCALLS RSIN RLD RBUF RIOM RMQ RRM RAR RLK RPC RSR RSRC RSMS RU RBT RGP RLV].
 Ltac epl_in H := cbn [Epl e_blk e_base] in H;
-  cbn [Pos.eqb RM RO RFI RMISS RCALLS RSIN RLD RBUF RIOM RMQ RRM RAR RLK RPC RU RBT RGP RLV] in H.
+  cbn [Pos.eqb RM RO RFI RMISS RCALLS RSIN RLD RBUF RIOM RMQ RRM RAR RLK RPC RSR RSRC RSMS RU RBT RGP RLV] in H.
 
-Lemma pl_sizes : forall bo bfi bmiss bcalls bsin ab bt biom bmq brm bau blk bpc bbt bgp blv oo uo,
+Lemma pl_sizes : forall bo bfi bmiss bcalls bsin ab bt biom bmq brm bau blk bpc bsr bsrc bsms bbt bgp blv oo uo,
   Ptrofs.unsigned oo + SZ_OBJECT <= Ptrofs.modulus -> Ptrofs.unsigned uo + SZ_OBJECT <= Ptrofs.modulus ->
   forall r sz, r0_size (R0P G) r = Some sz ->
     Plt r NBP /\ 0 <= sz
-    /\ Ptrofs.unsigned (e_base (Epl bo bfi bmiss bcalls bsin ab bt biom bmq brm bau blk bpc bbt bgp blv oo uo) r) + sz
+    /\ Ptrofs.unsigned (e_base (Epl bo bfi bmiss bcalls bsin ab bt biom bmq brm bau blk bpc bsr bsrc bsms bbt bgp blv oo uo) r) + sz
        <= Ptrofs.modulus.
 Proof.
-  intros bo bfi bmiss bcalls bsin ab bt biom bmq brm bau blk bpc bbt bgp blv oo uo Soo Suo r sz H.
+  intros bo bfi bmiss bcalls bsin ab bt biom bmq brm bau blk bpc bsr bsrc bsms bbt bgp blv oo uo Soo Suo r sz H.
   destruct (KbRow.ff_layout lp H12) as (_ & _ & _ & _ & _ & _ & ZO & _ & _ & ZM & ZD).
   pose proof (Ptrofs.unsigned_range oo) as Ro.
   assert (Mod : Ptrofs.modulus = 4294967296) by reflexivity.
@@ -173,8 +181,8 @@ Theorem pole_row : forall m t m' vres c0,
 Proof.
   intros m t m' vres c0 Vm (Ha & HW & Han & Hmob & Hd & FW & UO) RC Hbud Hact Hfr EV.
   destruct FW as (Hgn & EX & FD).
-  destruct EX as (gp & bfi & bmiss & bcalls & bsin & ab & biom & bmq & brm & blk & bpc & bo & oo & bt & ot & fl & ar & inp & ctl &
-                  HC & HS & HM & S1 & S2 & S3 & S4 & S5 & S6 & S7 & S8 & SL & SP & Lo & Soo & La & Lb & Sot & D1 & D2 & D3 & D4 &
+  destruct EX as (gp & bfi & bmiss & bcalls & bsin & ab & biom & bmq & brm & blk & bpc & bsr & bsrc & bsms & bo & oo & bt & ot & fl & ar & inp & ctl &
+                  HC & HS & HM & S1 & S2 & S3 & S4 & S5 & S6 & S7 & S8 & SL & SP & SR & SRC & SMS & Lo & Soo & La & Lb & Sot & D1 & D2 & D3 & D4 &
                   W & Lf & Wf & Wc0 & Lar & War & Li & Ai & Lc & Wc & Co & LPC).
   destruct (KbRow.ff_layout lp H12) as (FO & FA & FF & FAr & FH & FR & ZO & ZS & ZA & ZM & ZD).
   destruct (aud_sym lp H12) as (bau & S9).
@@ -194,7 +202,7 @@ Proof.
   destruct LP as (base & top & Hpl & Ht & P1 & P2 & P3).
   destruct (pole_low base top Hpl Ht) as (-> & ->).
   unfold OBJ_SPAN in Suo, Dis.
-  set (E := Epl bo bfi bmiss bcalls bsin ab bt biom bmq brm bau blk bpc bbt bgp blv oo uo).
+  set (E := Epl bo bfi bmiss bcalls bsin ab bt biom bmq brm bau blk bpc bsr bsrc bsms bbt bgp blv oo uo).
   (* validity *)
   assert (GPO : forall b x, gp b = Some x -> Plt b (Mem.nextblock m))
     by (intros b x H; exact (closed_old gp m b x HC H)).
@@ -268,12 +276,40 @@ Proof.
   pose proof (DS _ _ _ _ SP SL eq_refl) as NPK. pose proof (DS _ _ _ _ SP Slv eq_refl) as NPL.
   pose proof (DS _ _ _ _ SP Sbt eq_refl) as NPT. pose proof (DS _ _ _ _ SP Sgp eq_refl) as NPG.
   destruct (D4 bpc ltac:(left; cbn; auto 14)) as (OP & TP).
+  pose proof (DS _ _ _ _ SR Hbm eq_refl) as NsrHbm. pose proof (DS _ _ _ _ SR S1 eq_refl) as NsrS1.
+  pose proof (DS _ _ _ _ SR S2 eq_refl) as NsrS2. pose proof (DS _ _ _ _ SR S3 eq_refl) as NsrS3.
+  pose proof (DS _ _ _ _ SR S4 eq_refl) as NsrS4. pose proof (DS _ _ _ _ SR S5 eq_refl) as NsrS5.
+  pose proof (DS _ _ _ _ SR S6 eq_refl) as NsrS6. pose proof (DS _ _ _ _ SR S7 eq_refl) as NsrS7.
+  pose proof (DS _ _ _ _ SR S8 eq_refl) as NsrS8. pose proof (DS _ _ _ _ SR S9 eq_refl) as NsrS9.
+  pose proof (DS _ _ _ _ SR SL eq_refl) as NsrSL. pose proof (DS _ _ _ _ SR SP eq_refl) as NsrSP.
+  pose proof (DS _ _ _ _ SR Slv eq_refl) as NsrSlv. pose proof (DS _ _ _ _ SR Sbt eq_refl) as NsrSbt.
+  pose proof (DS _ _ _ _ SR Sgp eq_refl) as NsrSgp.
+  pose proof (DS _ _ _ _ SRC Hbm eq_refl) as NsrcHbm. pose proof (DS _ _ _ _ SRC S1 eq_refl) as NsrcS1.
+  pose proof (DS _ _ _ _ SRC S2 eq_refl) as NsrcS2. pose proof (DS _ _ _ _ SRC S3 eq_refl) as NsrcS3.
+  pose proof (DS _ _ _ _ SRC S4 eq_refl) as NsrcS4. pose proof (DS _ _ _ _ SRC S5 eq_refl) as NsrcS5.
+  pose proof (DS _ _ _ _ SRC S6 eq_refl) as NsrcS6. pose proof (DS _ _ _ _ SRC S7 eq_refl) as NsrcS7.
+  pose proof (DS _ _ _ _ SRC S8 eq_refl) as NsrcS8. pose proof (DS _ _ _ _ SRC S9 eq_refl) as NsrcS9.
+  pose proof (DS _ _ _ _ SRC SL eq_refl) as NsrcSL. pose proof (DS _ _ _ _ SRC SP eq_refl) as NsrcSP.
+  pose proof (DS _ _ _ _ SRC Slv eq_refl) as NsrcSlv. pose proof (DS _ _ _ _ SRC Sbt eq_refl) as NsrcSbt.
+  pose proof (DS _ _ _ _ SRC Sgp eq_refl) as NsrcSgp. pose proof (DS _ _ _ _ SRC SR eq_refl) as NsrcSR.
+  pose proof (DS _ _ _ _ SMS Hbm eq_refl) as NsmsHbm. pose proof (DS _ _ _ _ SMS S1 eq_refl) as NsmsS1.
+  pose proof (DS _ _ _ _ SMS S2 eq_refl) as NsmsS2. pose proof (DS _ _ _ _ SMS S3 eq_refl) as NsmsS3.
+  pose proof (DS _ _ _ _ SMS S4 eq_refl) as NsmsS4. pose proof (DS _ _ _ _ SMS S5 eq_refl) as NsmsS5.
+  pose proof (DS _ _ _ _ SMS S6 eq_refl) as NsmsS6. pose proof (DS _ _ _ _ SMS S7 eq_refl) as NsmsS7.
+  pose proof (DS _ _ _ _ SMS S8 eq_refl) as NsmsS8. pose proof (DS _ _ _ _ SMS S9 eq_refl) as NsmsS9.
+  pose proof (DS _ _ _ _ SMS SL eq_refl) as NsmsSL. pose proof (DS _ _ _ _ SMS SP eq_refl) as NsmsSP.
+  pose proof (DS _ _ _ _ SMS Slv eq_refl) as NsmsSlv. pose proof (DS _ _ _ _ SMS Sbt eq_refl) as NsmsSbt.
+  pose proof (DS _ _ _ _ SMS Sgp eq_refl) as NsmsSgp. pose proof (DS _ _ _ _ SMS SR eq_refl) as NsmsSR.
+  pose proof (DS _ _ _ _ SMS SRC eq_refl) as NsmsSRC.
+  destruct (D4 bsr ltac:(left; cbn; auto 20)) as (OSR & TSR).
+  destruct (D4 bsrc ltac:(left; cbn; auto 20)) as (OSRC & TSRC).
+  destruct (D4 bsms ltac:(left; cbn; auto 20)) as (OSMS & TSMS).
   destruct (D4 bfi ltac:(left; cbn; auto 10)) as (O1 & T1). destruct (D4 bmiss ltac:(left; cbn; auto 10)) as (O2 & T2).
   destruct (D4 bcalls ltac:(left; cbn; auto 10)) as (O3 & T3). destruct (D4 bsin ltac:(left; cbn; auto 10)) as (O4 & T4).
   destruct (D4 ab ltac:(left; cbn; auto 10)) as (O5 & T5). destruct (D4 biom ltac:(left; cbn; auto 10)) as (O6 & T6).
   destruct (D4 bmq ltac:(left; cbn; auto 10)) as (O7 & T7). destruct (D4 brm ltac:(left; cbn; auto 10)) as (O8 & T8).
   clear DS.
-  set (RL0 := ff_rl bm bo oo bfi bmiss bcalls ab bt biom bmq brm blk bpc) in *.
+  set (RL0 := ff_rl bm bo oo bfi bmiss bcalls ab bt biom bmq brm blk bpc bsr bsrc bsms) in *.
   assert (Rbo : rblk RL0 bo) by (exists oo; unfold RL0, ff_rl; cbn; auto 12).
   assert (Rbt : rblk RL0 bt) by (exists Ptrofs.zero; unfold RL0, ff_rl; cbn; auto 12).
   (* the region pointer list: ffw's, and the pole *)
@@ -285,7 +321,7 @@ Proof.
   (* each region's block is on the list *)
   assert (INR : forall r sz, r0_size (R0P G) r = Some sz -> rblk RL0 (e_blk E r)).
   { intros r sz H. r0p_cases H; unfold E; epl; unfold RL0, ff_rl.
-    all: first [exact Rbo | eexists; cbn; auto 14]. }
+    all: first [exact Rbo | eexists; cbn; auto 17]. }
   assert (WW : forall p v n, den G m E p = Some v -> wblk m RL0 v n ->
             fact_holds G (R0P G) m (ufP G m gp) E (Fworld p n)).
   { intros p v n D (b & o & -> & Hp & Hn & Ho & Hr). cbn [fact_holds]. exists b, o.
@@ -301,8 +337,9 @@ Proof.
         destruct (Pos.eqb a b) end;
       first [exact HM | exact Gbo | exact Gab | exact Gbt | exact (HS _ _ S1) | exact (HS _ _ S2)
             | exact (HS _ _ S3) | exact (HS _ _ S4) | exact (HS _ _ S6) | exact (HS _ _ S7) | exact (HS _ _ S8)
-            | exact (HS _ _ S9) | exact (HS _ _ Sbt) | exact (HS _ _ Sgp) | exact (HS _ _ Slv) | exact (HS _ _ SL) | exact (HS _ _ SP)].
-    - exact (pl_sizes bo bfi bmiss bcalls bsin ab bt biom bmq brm bau blk bpc bbt bgp blv oo uo Soo
+            | exact (HS _ _ S9) | exact (HS _ _ Sbt) | exact (HS _ _ Sgp) | exact (HS _ _ Slv) | exact (HS _ _ SL) | exact (HS _ _ SP)
+            | exact (HS _ _ SR) | exact (HS _ _ SRC) | exact (HS _ _ SMS)].
+    - exact (pl_sizes bo bfi bmiss bcalls bsin ab bt biom bmq brm bau blk bpc bsr bsrc bsms bbt bgp blv oo uo Soo
                ltac:(unfold SZ_OBJECT; lia)).
     - intros r sz r' sz' H H' N.
       r0p_cases H; r0p_cases H'; subst sz sz'; unfold E; epl;
@@ -427,15 +464,15 @@ Proof.
   (* the frame *)
   assert (OFF : forall ch b z, Plt b (Mem.nextblock m) -> ~ rblk RL0 b -> Mem.load ch m' b z = Mem.load ch m b z).
   { intros ch b z Hp Hr. apply KR; [exact Hp |]. intros r sz Hs. left.
-    destruct (XB r (proj1 (pl_sizes bo bfi bmiss bcalls bsin ab bt biom bmq brm bau blk bpc bbt bgp blv oo uo Soo
+    destruct (XB r (proj1 (pl_sizes bo bfi bmiss bcalls bsin ab bt biom bmq brm bau blk bpc bsr bsrc bsms bbt bgp blv oo uo Soo
                              ltac:(unfold SZ_OBJECT; lia) r sz Hs))) as (B1 & _).
     rewrite B1. intros Eb. apply Hr. rewrite <- Eb. exact (INR r sz Hs). }
   assert (OBJ : forall ch z, z + size_chunk ch <= Ptrofs.unsigned oo \/ Ptrofs.unsigned oo + SZ_OBJECT <= z ->
              Mem.load ch m' bo z = Mem.load ch m bo z).
   { intros ch z Hz. apply KRX; [exact Vo |]. intros r sz Nr Hs.
-    destruct (XB r (proj1 (pl_sizes bo bfi bmiss bcalls bsin ab bt biom bmq brm bau blk bpc bbt bgp blv oo uo Soo
+    destruct (XB r (proj1 (pl_sizes bo bfi bmiss bcalls bsin ab bt biom bmq brm bau blk bpc bsr bsrc bsms bbt bgp blv oo uo Soo
                              ltac:(unfold SZ_OBJECT; lia) r sz Hs))) as (B1 & B2).
-    rewrite B1, B2. clear -Hs Hz D1 D3 O1 O2 O3 O5 O6 O7 O8 OL OK OP ZO Nr.
+    rewrite B1, B2. clear -Hs Hz D1 D3 O1 O2 O3 O5 O6 O7 O8 OL OK OP OSR OSRC OSMS ZO Nr.
     r0p_cases Hs; subst sz; unfold E; epl;
       first [left; congruence | right; rewrite ?ZO; unfold SZ_OBJECT in *; lia | congruence]. }
   (* the region list, through E' *)
@@ -623,9 +660,9 @@ Proof.
       by (intros b ofs k p Hp Hq; exact (proj2 (VP b ofs k p Hp) Hq)).
     split; [exact (Ple_trans _ _ _ Hgn NBm) |].
     split.
-    + exists gp', bfi, bmiss, bcalls, bsin, ab, biom, bmq, brm, blk, bpc, bo, oo, bt, ot, fl', ar, inp, ctl.
+    + exists gp', bfi, bmiss, bcalls, bsin, ab, biom, bmq, brm, blk, bpc, bsr, bsrc, bsms, bo, oo, bt, ot, fl', ar, inp, ctl.
       split; [exact HC' |]. split; [exact HS' |]. split; [exact (Hinc _ HM) |].
-      do 10 (split; [assumption |]).
+      do 13 (split; [assumption |]).
       split; [exact Lo' |]. split; [exact Soo |].
       split; [rewrite CM by mem_tac; exact La |].
       split; [rewrite CL by mem_tac; exact Lb |].
@@ -690,7 +727,6 @@ Variable lp : Clight.program.
 Hypothesis H12 : linked12 lp.
 Local Notation G := (globalenv lp).
 Hypothesis Hdma : os_dma_floor.
-Hypothesis Haudio : audio_inert.               (* LABELED OPEN PREMISE: audio, deferred *)
 Variable bm : block.
 Hypothesis Hbm : Genv.find_symbol G level_update._gMarioStates = Some bm.
 Variable MWF : mem -> Prop.
@@ -715,7 +751,7 @@ Proof.
     intros m t m' vr c Hok Hw (-> & Hact & Hfr) Hok' Hc Hb Hev.
     destruct Hok as (Vm & _).
     exact (KbRow.kb_reshape _ _ _ (pole_row lp H12 bm Hbm _ _
-             (pole_pfinal lp H12 Hdma Haudio _ _ slowcheck12) ltac:(left; reflexivity)
+             (pole_pfinal lp H12 Hdma _ _ slowcheck12) ltac:(left; reflexivity)
              m t m' vr c Vm Hw Hc Hb Hact Hfr Hev)). }
   destruct (Pos.eq_dec f AUT._act_grab_pole_fast) as [-> | Hne2].
   { pose proof (gpf_label n Hin) as ->.
@@ -723,7 +759,7 @@ Proof.
     intros m t m' vr c Hok Hw (-> & Hact & Hfr) Hok' Hc Hb Hev.
     destruct Hok as (Vm & _).
     exact (KbRow.kb_reshape _ _ _ (pole_row lp H12 bm Hbm _ _
-             (pole_pfinal lp H12 Hdma Haudio _ _ fastcheck12) ltac:(right; left; reflexivity)
+             (pole_pfinal lp H12 Hdma _ _ fastcheck12) ltac:(right; left; reflexivity)
              m t m' vr c Vm Hw Hc Hb Hact Hfr Hev)). }
   destruct (Pos.eq_dec f AUT._act_holding_pole) as [-> | Hne3].
   { pose proof (hp_label n Hin) as ->.
@@ -731,7 +767,7 @@ Proof.
     intros m t m' vr c Hok Hw (-> & Hact & Hfr) Hok' Hc Hb Hev.
     destruct Hok as (Vm & _).
     exact (KbRow.kb_reshape _ _ _ (pole_row lp H12 bm Hbm _ _
-             (pole_pfinal lp H12 Hdma Haudio _ _ holdcheck12) ltac:(right; right; left; reflexivity)
+             (pole_pfinal lp H12 Hdma _ _ holdcheck12) ltac:(right; right; left; reflexivity)
              m t m' vr c Vm Hw Hc Hb Hact Hfr Hev)). }
   exact (Hrest n f fd v Hin Hne1 Hne2 Hne3 Hr).
 Qed.

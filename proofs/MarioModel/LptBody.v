@@ -32,7 +32,8 @@ From SM64.Generated Require mario mario_actions_stationary mario_actions_moving
   libultra_osEepromLongWrite libultra_osEepromWrite libultra_osSiCreateAccessQueue
   libultra_osCreateMesgQueue libultra_osContInit libultra_osInitialize
   behavior_data spawn_object surface_load macro_special_objects wmotr_level_data
-  camera rendering_graph_node ingame_menu debug_course mario_anim_data.
+  camera rendering_graph_node ingame_menu debug_course mario_anim_data
+  audio_external sound_init.
 From SM64.Proofs Require Import SymbolicLinking ActionValueFrame AGates Taint
   RealFrameLinked RealFrameValue CensusV2 MWFReal OsDmaFloor ActWriterSurface LinkedTwelve.
 From SM64.Proofs Require OutParamSurface RestSurface.
@@ -351,6 +352,10 @@ Lemma os_ni_debug_course : no_internal_ids debug_course.prog os_ids = true.
 Proof. vm_compute. reflexivity. Qed.
 Lemma os_ni_mario_anim_data : no_internal_ids mario_anim_data.prog os_ids = true.
 Proof. vm_compute. reflexivity. Qed.
+Lemma os_ni_audio_external : no_internal_ids audio_external.prog os_ids = true.
+Proof. vm_compute. reflexivity. Qed.
+Lemma os_ni_sound_init : no_internal_ids sound_init.prog os_ids = true.
+Proof. vm_compute. reflexivity. Qed.
 
 Definition ext_named (o : option (globdef Clight.fundef type)) (n : String.string) : bool :=
   match o with
@@ -524,7 +529,7 @@ Section LptFrame.
       destruct (link_chain_internal_origin _ _ _ _ _ Hlink Hdm')
         as [Hbase | (q & Hq & Hqdm)].
       + exact (no_internal_ids_correct _ _ _ _ os_ni_mario Hid Hbase).
-      + destruct Hq as [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | []]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]].
+      + destruct Hq as [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | []]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]].
         * exact (no_internal_ids_correct _ _ _ _ os_ni_sta Hid Hqdm).
         * exact (no_internal_ids_correct _ _ _ _ os_ni_mov Hid Hqdm).
         * exact (no_internal_ids_correct _ _ _ _ os_ni_air Hid Hqdm).
@@ -563,6 +568,8 @@ Section LptFrame.
         * exact (no_internal_ids_correct _ _ _ _ os_ni_ingame_menu Hid Hqdm).
         * exact (no_internal_ids_correct _ _ _ _ os_ni_debug_course Hid Hqdm).
         * exact (no_internal_ids_correct _ _ _ _ os_ni_mario_anim_data Hid Hqdm).
+        * exact (no_internal_ids_correct _ _ _ _ os_ni_audio_external Hid Hqdm).
+        * exact (no_internal_ids_correct _ _ _ _ os_ni_sound_init Hid Hqdm).
   Qed.
 
   (* the external call a libultra Scall makes *)

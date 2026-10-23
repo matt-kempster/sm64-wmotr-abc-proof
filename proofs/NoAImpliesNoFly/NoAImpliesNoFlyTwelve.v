@@ -43,8 +43,8 @@ From Coq Require Import List. Import ListNotations.
 From SM64.Generated Require mario mario_actions_stationary
   mario_actions_moving mario_actions_airborne mario_actions_submerged
   mario_actions_cutscene mario_actions_automatic mario_actions_object
-  interaction behavior_actions level_update mario_step camera.
-From SM64.Proofs Require BullyBodies SpawnBodies.
+  interaction behavior_actions level_update mario_step camera audio_external sound_init math_util.
+From SM64.Proofs Require BullyBodies SpawnBodies AudioBodies.
 From SM64.Proofs Require Import Flying Taint ActionValue ActionValueFrame ReachableRun
   RealFrameValue RealFrameLinked AGates SymbolicLinking FieldNonInterference.
 From SM64.Proofs Require Import CensusV2 EngineV2Consumer.
@@ -93,9 +93,13 @@ Definition obj_ext_body (i : ident) : bool :=
    RNG instead of the whole shake dispatcher. *)
 Definition obj_ext_cam (i : ident) : bool :=
   Pos.eqb i mario._sqrtf || Pos.eqb i interaction._set_camera_shake_from_hit.
+(* PROVED 2026-10-23 (the audio link, TUs 40 and 41): every audio entry
+   (play_sound, set_sound_moving_speed, stop_shell_music) is walked from its
+   real audio/external.c / sound_init.c body (AudioBodies.audio_rows). *)
 Definition obj_ext_open2_ids : list ident :=
   camera._random_float ::
-  filter (fun i => negb (obj_ext_mem i || obj_ext_body i || obj_ext_cam i))
+  filter (fun i => negb (obj_ext_mem i || obj_ext_body i || obj_ext_cam i
+                         || AudioBodies.audio_id i))
     NoAImpliesNoFlyLinked.obj_ext_open_ids.
 
 Lemma obj_ext_open_of2 : forall lp bm bc oc0 SafeB, linked12 lp ->
@@ -103,19 +107,24 @@ Lemma obj_ext_open_of2 : forall lp bm bc oc0 SafeB, linked12 lp ->
     FpuFloor.sqrtf_spec ->
     call_pres_ext_sg lp bm (NoA_real bm) (MWF_real lp bm bc oc0 SafeB) SafeB
       behavior_actions._spawn_object ->
+    FloorsSurface.call_pres_ext lp bm (NoA_real bm) (MWF_real lp bm bc oc0 SafeB)
+      audio_external._load_sequence ->
     (forall fid, mem_id fid obj_ext_open2_ids = true ->
        FloorsSurface.call_pres_ext lp bm (NoA_real bm) (MWF_real lp bm bc oc0 SafeB) fid) ->
     forall fid, mem_id fid NoAImpliesNoFlyLinked.obj_ext_open_ids = true ->
       FloorsSurface.call_pres_ext lp bm (NoA_real bm) (MWF_real lp bm bc oc0 SafeB) fid.
 Proof.
-  intros lp bm bc oc0 SafeB H12 Hsy Hsp Hsq Hspn Hrow fid H.
+  intros lp bm bc oc0 SafeB H12 Hsy Hsp Hsq Hspn Hls Hrow fid H.
   assert (Hrf : FloorsSurface.call_pres_ext lp bm (NoA_real bm) (MWF_real lp bm bc oc0 SafeB)
                   camera._random_float)
     by (apply Hrow; cbn [obj_ext_open2_ids mem_id existsb]; rewrite Pos.eqb_refl; reflexivity).
   destruct (NoAImpliesNoFlyLinked.mem_id_filter_split
-              (fun i => obj_ext_mem i || obj_ext_body i || obj_ext_cam i) fid _ H) as [Hm | Ho];
+              (fun i => obj_ext_mem i || obj_ext_body i || obj_ext_cam i
+                        || AudioBodies.audio_id i) fid _ H) as [Hm | Ho];
     [ | apply Hrow; cbn [obj_ext_open2_ids mem_id existsb];
         apply orb_true_iff; right; exact Ho ].
+  apply orb_true_iff in Hm as [Hm | Ha];
+    [ | exact (AudioBodies.audio_rows lp H12 bm bc oc0 SafeB Hsy Hsp Hls fid Ha) ].
   apply orb_true_iff in Hm as [Hm | Hc];
     [ | unfold obj_ext_cam in Hc;
         apply orb_true_iff in Hc as [Hc | Hc]; apply Pos.eqb_eq in Hc; subst fid;
@@ -162,20 +171,30 @@ Definition cut_ext_body (i : ident) : bool :=
      statics MWF does not read (CameraBodies) *)
   || Pos.eqb i mario_actions_cutscene._camera_approach_f32_symmetric
   || Pos.eqb i mario_actions_cutscene._trigger_cutscene_dialog.
+(* PROVED 2026-10-23: the eleven audio entries (the music / jingle cues, the
+   background-sound mute pair, sound_banks_enable, the volume duck pair,
+   fadeout_music, play_sound) are walked from their real bodies
+   (AudioBodies.audio_rows). *)
 Definition cut_ext_open2_ids : list ident :=
-  filter (fun i => negb (cut_ext_body i)) NoAImpliesNoFlyLinked.cut_ext_open_ids.
+  filter (fun i => negb (cut_ext_body i || AudioBodies.audio_id i))
+    NoAImpliesNoFlyLinked.cut_ext_open_ids.
 
 Lemma cut_ext_open_of2 : forall lp bm bc oc0 SafeB, linked12 lp ->
     SafeB_syms_ok lp SafeB -> (exists init, spawn_ok lp init bm bc oc0) ->
     OsDmaFloor.os_dma_floor ->
+    FloorsSurface.call_pres_ext lp bm (NoA_real bm) (MWF_real lp bm bc oc0 SafeB)
+      audio_external._load_sequence ->
     (forall fid, mem_id fid cut_ext_open2_ids = true ->
        FloorsSurface.call_pres_ext lp bm (NoA_real bm) (MWF_real lp bm bc oc0 SafeB) fid) ->
     forall fid, mem_id fid NoAImpliesNoFlyLinked.cut_ext_open_ids = true ->
       FloorsSurface.call_pres_ext lp bm (NoA_real bm) (MWF_real lp bm bc oc0 SafeB) fid.
 Proof.
-  intros lp bm bc oc0 SafeB H12 Hsy Hsp Hfl Hrow fid H.
-  destruct (NoAImpliesNoFlyLinked.mem_id_filter_split cut_ext_body fid _ H) as [Hm | Ho];
+  intros lp bm bc oc0 SafeB H12 Hsy Hsp Hfl Hls Hrow fid H.
+  destruct (NoAImpliesNoFlyLinked.mem_id_filter_split
+              (fun i => cut_ext_body i || AudioBodies.audio_id i) fid _ H) as [Hm | Ho];
     [ | exact (Hrow fid Ho) ].
+  apply orb_true_iff in Hm as [Hm | Ha];
+    [ | exact (AudioBodies.audio_rows lp H12 bm bc oc0 SafeB Hsy Hsp Hls fid Ha) ].
   unfold cut_ext_body in Hm.
   repeat (apply orb_true_iff in Hm as [Hm | Hm]); apply Pos.eqb_eq in Hm; subst fid.
   - exact (ObjExtBodies.Hpx_ets lp H12 bm bc oc0 SafeB Hsy Hsp).
@@ -191,24 +210,36 @@ Qed.
    non-pointer stores into globals MWF does not read). *)
 Definition warp_ext_body (i : ident) : bool :=
   Pos.eqb i level_update._area_get_warp_node || Pos.eqb i level_update._play_transition.
+(* PROVED 2026-10-23: fadeout_music, play_sound, get_current_background_music
+   (AudioBodies.audio_rows). *)
 Definition warp_ext_open_ids : list ident :=
-  filter (fun i => negb (warp_ext_body i)) warp_ext_ids.
+  filter (fun i => negb (warp_ext_body i || AudioBodies.audio_id i)) warp_ext_ids.
 
 Lemma warp_ext_of_open : forall lp bm bc oc0 SafeB, linked12 lp ->
     SafeB_syms_ok lp SafeB -> (exists init, spawn_ok lp init bm bc oc0) ->
+    FloorsSurface.call_pres_ext lp bm (NoA_real bm) (MWF_real lp bm bc oc0 SafeB)
+      audio_external._load_sequence ->
     (forall fid, mem_id fid warp_ext_open_ids = true ->
        FloorsSurface.call_pres_ext lp bm (NoA_real bm) (MWF_real lp bm bc oc0 SafeB) fid) ->
     forall fid, mem_id fid warp_ext_ids = true ->
       FloorsSurface.call_pres_ext lp bm (NoA_real bm) (MWF_real lp bm bc oc0 SafeB) fid.
 Proof.
-  intros lp bm bc oc0 SafeB H12 Hsy Hsp Hrow fid H.
-  destruct (NoAImpliesNoFlyLinked.mem_id_filter_split warp_ext_body fid _ H) as [Hm | Ho];
+  intros lp bm bc oc0 SafeB H12 Hsy Hsp Hls Hrow fid H.
+  destruct (NoAImpliesNoFlyLinked.mem_id_filter_split
+              (fun i => warp_ext_body i || AudioBodies.audio_id i) fid _ H) as [Hm | Ho];
     [ | exact (Hrow fid Ho) ].
+  apply orb_true_iff in Hm as [Hm | Ha];
+    [ | exact (AudioBodies.audio_rows lp H12 bm bc oc0 SafeB Hsy Hsp Hls fid Ha) ].
   unfold warp_ext_body in Hm.
   apply orb_true_iff in Hm as [Hm | Hm]; apply Pos.eqb_eq in Hm; subst fid.
   - exact (ObjExtBodies.Hpx_agwn lp H12 bm bc oc0 SafeB Hsy Hsp).
   - exact (ObjExtBodies.Hpx_ptr lp H12 bm bc oc0 SafeB Hsy Hsp).
 Qed.
+
+(* PROVED 2026-10-23: raise_background_noise (AudioBodies.audio_rows); the
+   open floors-external list is spawn_default_star alone. *)
+Definition floors_ext_open_ids : list ident :=
+  filter (fun i => negb (AudioBodies.audio_id i)) floors_ext_ids.
 
 Section NoAImpliesNoFlyTwelve.
   Variable lp : Clight.program.
@@ -366,6 +397,26 @@ Section NoAImpliesNoFlyTwelve.
       as (Hv' & Hs' & HM').
     exact (conj Hv' (conj Hs' (conj HM' (mwf_real_ctl lp bm bc oc0 SafeB _ HM')))).
   Qed.
+  (* THE ONE OPEN AUDIO PREMISE (labeled, TRUST 4.1; the audio link,
+     2026-10-23): load_sequence (audio/load.c, not linked: the sequence DMA
+     into the audio heap) keeps the carried facts.  Every music-starting audio
+     body reaches it through seq_player_play_sequence (AudioBodies). *)
+  Hypothesis Hls : call_pres_ext lp bm (NoA_real bm) MWF audio_external._load_sequence.
+  (* THE AUDIO LINK (2026-10-23): the four audio rest bodies, PROVED from
+     their real Clight (AudioBodies; play_infinite_stairs_music and
+     stop_cap_music reach load_sequence). *)
+  Lemma Hps_body_real :
+    RestSurface.body_pres_w lp MWF bm SafeB audio_external.f_play_sound.
+  Proof. exact (AudioBodies.Hps_body_proved lp H12 bm bc oc0 SafeB HSafeB_syms Hspawn). Qed.
+  Lemma Hstcm_body_real :
+    RestSurface.body_pres_w lp MWF bm SafeB sound_init.f_stop_cap_music.
+  Proof. exact (AudioBodies.Hstcm_body_proved lp H12 bm bc oc0 SafeB HSafeB_syms Hspawn Hls). Qed.
+  Lemma Hfcm_body_real :
+    RestSurface.body_pres_w lp MWF bm SafeB sound_init.f_fadeout_cap_music.
+  Proof. exact (AudioBodies.Hfcm_body_proved lp H12 bm bc oc0 SafeB HSafeB_syms Hspawn). Qed.
+  Lemma Hpism_body_real :
+    RestSurface.body_pres_w lp MWF bm SafeB sound_init.f_play_infinite_stairs_music.
+  Proof. exact (AudioBodies.Hpism_body_proved lp H12 bm bc oc0 SafeB HSafeB_syms Hspawn Hls). Qed.
   (* load_patchable_table: PROVED from its real memory.c body and dma_read's
      (LptBody), down to the libultra DMA calls, whose effect is the
      hardware/OS floor spec (OsDmaFloor, TRUST 3.5). *)
@@ -390,9 +441,18 @@ Section NoAImpliesNoFlyTwelve.
      consumer, CensusV2.chk_call_marg), it is a theorem of the link. *)
   Lemma WL_exempt : wl_exempt_ok lp.
   Proof. exact (WLExempt.wl_exempt_linked12 lp H12). Qed.
-  Hypothesis Hpres_sta_ext : forall fid,
+  (* PROVED 2026-10-23 (was a row): raise_background_noise,
+     lower_background_noise and stop_sound are walked from their real
+     sound_init.c / audio/external.c bodies (AudioBodies.audio_rows). *)
+  Lemma Hpres_sta_ext : forall fid,
       mem_id fid StationaryLeafSurface.sta_ext_ids = true ->
       call_pres_ext lp bm (NoA_real bm) MWF fid.
+  Proof.
+    intros fid H. apply (AudioBodies.audio_rows lp H12 bm bc oc0 SafeB HSafeB_syms Hspawn Hls).
+    unfold StationaryLeafSurface.sta_ext_ids, mem_id in H. cbn [existsb] in H.
+    repeat (apply orb_true_iff in H as [H | H]; [ apply Pos.eqb_eq in H; subst fid; vm_compute; reflexivity | ]).
+    discriminate H.
+  Qed.
   (* PROVED 2026-10-21 (were rows): spawn_object.c is linked (the 31st TU),
      so spawn_object and spawn_object_abs_with_rot are walked from their
      real bodies (SpawnBodies: create_object / allocate_object /
@@ -405,11 +465,10 @@ Section NoAImpliesNoFlyTwelve.
      external, stop_sounds_from_source (unload_object), whose effect is the
      LABELED OPEN AUDIO PREMISE Hsss (audio is deferred; TRUST 4.1): it
      changes no valid block and returns no pointer. *)
-  Hypothesis Hsss : SpawnBodies.sss_inert.
   Lemma Hcp_soawr_real : call_pres_ext_sg lp bm (NoA_real bm) MWF SafeB
       mario_actions_cutscene._spawn_object_abs_with_rot.
   Proof.
-    exact (SpawnBodies.Hcp_soawr_sg lp H12 bm bc oc0 SafeB HSafeB_syms Hspawn Hsss
+    exact (SpawnBodies.Hcp_soawr_sg lp H12 bm bc oc0 SafeB HSafeB_syms Hspawn
              (NoA_real bm)).
   Qed.
   (* the any-argument object externals still unlinked (obj_ext_open2_ids:
@@ -427,7 +486,7 @@ Section NoAImpliesNoFlyTwelve.
       mem_id fid NoAImpliesNoFlyLinked.cut_ext_open_ids = true ->
       call_pres_ext lp bm (NoA_real bm) MWF fid.
   Proof.
-    exact (cut_ext_open_of2 lp bm bc oc0 SafeB H12 HSafeB_syms Hspawn Hdma_floor
+    exact (cut_ext_open_of2 lp bm bc oc0 SafeB H12 HSafeB_syms Hspawn Hdma_floor Hls
              Hpres_cut_ext_open2).
   Qed.
   (* PROVED 2026-10-20 (were rows): graph_node.c is linked (the 19th TU), so
@@ -450,13 +509,22 @@ Section NoAImpliesNoFlyTwelve.
              (spawn_Hbc_bm lp init bm bc oc0 Hs) (linked12_LO_graph_node lp H12)
              (spawn_Hbc_sym lp init bm bc oc0 Hs)).
   Qed.
-  Hypothesis Hpres_floors_ext : forall fid,
+  Hypothesis Hpres_floors_ext_open : forall fid,
+      mem_id fid floors_ext_open_ids = true ->
+      call_pres_ext lp bm (NoA_real bm) MWF fid.
+  Lemma Hpres_floors_ext : forall fid,
       mem_id fid floors_ext_ids = true ->
       call_pres_ext lp bm (NoA_real bm) MWF fid.
+  Proof.
+    intros fid H.
+    destruct (NoAImpliesNoFlyLinked.mem_id_filter_split AudioBodies.audio_id fid _ H)
+      as [Ha | Ho]; [ | exact (Hpres_floors_ext_open fid Ho) ].
+    exact (AudioBodies.audio_rows lp H12 bm bc oc0 SafeB HSafeB_syms Hspawn Hls fid Ha).
+  Qed.
   Lemma Hcp_spawn_real : call_pres_ext_sg lp bm (NoA_real bm) MWF SafeB
       behavior_actions._spawn_object.
   Proof.
-    exact (SpawnBodies.Hcp_spawn_sg lp H12 bm bc oc0 SafeB HSafeB_syms Hspawn Hsss
+    exact (SpawnBodies.Hcp_spawn_sg lp H12 bm bc oc0 SafeB HSafeB_syms Hspawn
              (NoA_real bm)).
   Qed.
   Lemma Hpres_obj_ext_open : forall fid,
@@ -464,7 +532,7 @@ Section NoAImpliesNoFlyTwelve.
       call_pres_ext lp bm (NoA_real bm) MWF fid.
   Proof.
     exact (obj_ext_open_of2 lp bm bc oc0 SafeB H12 HSafeB_syms Hspawn Hsq Hcp_spawn_real
-             Hpres_obj_ext_open2).
+             Hls Hpres_obj_ext_open2).
   Qed.
   (* PROVED 2026-10-21 (was a row): save_file.c and buffers.c are linked
      (TUs 20 and 21).  save_file_set_cap_pos stores capLevel / capArea through
@@ -506,25 +574,66 @@ Section NoAImpliesNoFlyTwelve.
   Lemma Hpres_warp_ext : forall fid,
       mem_id fid warp_ext_ids = true ->
       call_pres_ext lp bm (NoA_real bm) MWF fid.
-  Proof. exact (warp_ext_of_open lp bm bc oc0 SafeB H12 HSafeB_syms Hspawn Hpres_warp_ext_open). Qed.
+  Proof. exact (warp_ext_of_open lp bm bc oc0 SafeB H12 HSafeB_syms Hspawn Hls Hpres_warp_ext_open). Qed.
   (* Hret_unsafe REMOVED (task #99): the v2 engine no longer consumes any
      return-value row (it was dead plumbing / a latent vacuity -- see
      NoAImpliesNoFlyLinked). *)
-  (* 2026-10-22: both engine rows exclude sqrtf, whose call is the FPU
-     floor sqrtf_spec (memory unchanged); they now name only the audio /
-     print.c externals of the exempt whitelist *)
-  Hypothesis Hext_action_ns : forall ef targs tres cc vargs m t vres m',
+  (* 2026-10-23 (the audio link): both engine rows name ONLY print.c's
+     print_text_fmt_int.  RestSurface.rest_external_cases proves that a
+     reached External is a resolution of sqrtf or print_text_fmt_int (every
+     other rest id -- play_sound and the cap-music pair included -- is
+     defined by a linked TU); sqrtf is the FPU floor (sqrtf_spec). *)
+  Hypothesis Hext_action_ptfi : forall ef targs tres cc vargs m t vres m',
+      resolves_lp lp mario._print_text_fmt_int (External ef targs tres cc) ->
+      wgate bm SafeB (type_of_fundef (External ef targs tres cc)) vargs ->
+      external_call ef (lp_ge lp) vargs m t vres m' ->
+      Mem.unchanged_on (action_cell bm) m m'.
+  Hypothesis Hmwf_ext_ptfi : forall ef targs tres cc vargs m t vres m',
+      resolves_lp lp mario._print_text_fmt_int (External ef targs tres cc) ->
+      wgate bm SafeB (type_of_fundef (External ef targs tres cc)) vargs ->
+      external_call ef (lp_ge lp) vargs m t vres m' ->
+      Mem.valid_block m bm -> MWF m -> MWF m'.
+  Lemma reached_ext_ptfi : forall ef targs tres cc,
+      reached_v2 lp (External ef targs tres cc) -> ~ CameraBodies.is_sqrtf_ef ef ->
+      resolves_lp lp mario._print_text_fmt_int (External ef targs tres cc).
+  Proof.
+    intros ef targs tres cc Hr Hne.
+    destruct Hr as [(f & E & _) | [E | Hrest]]; [ discriminate E | discriminate E | ].
+    destruct (rest_external_cases lp
+                (linked12_LO_mario lp H12) (linked12_LO_sta lp H12) (linked12_LO_mov lp H12)
+                (linked12_LO_air lp H12) (linked12_LO_sub lp H12) (linked12_LO_cut lp H12)
+                (linked12_LO_aut lp H12) (linked12_LO_obj lp H12) (linked12_LO_int lp H12)
+                (linked12_LO_beh lp H12) (linked12_LO_lvl lp H12) (linked12_LO_stp lp H12)
+                (linked12_LO_surf lp H12) (linked12_LO_math lp H12) (linked12_LO_camera lp H12)
+                (linked12_LO_audio_external lp H12) (linked12_LO_sound_init lp H12)
+                ef targs tres cc Hrest) as [Hs | Hp]; [ | exact Hp ].
+    exfalso. apply Hne. destruct Hs as (b & Hsym & Hff).
+    destruct (MtxfBody.xresolve lp math_util.prog math_util._sqrtf [math_util._sqrtf] "sqrtf" b _
+                H12 (linked12_LO_math lp H12) ltac:(vm_compute; reflexivity)
+                MtxfBody.sqrtf_ni MtxfBody.sqrtf_named Hsym Hff)
+      as (sg & targs' & tres' & cc' & E).
+    injection E as -> _ _ _. exists sg. reflexivity.
+  Qed.
+  Lemma Hext_action_ns : forall ef targs tres cc vargs m t vres m',
       reached_v2 lp (External ef targs tres cc) ->
       ~ CameraBodies.is_sqrtf_ef ef ->
       wgate bm SafeB (type_of_fundef (External ef targs tres cc)) vargs ->
       external_call ef (lp_ge lp) vargs m t vres m' ->
       Mem.unchanged_on (action_cell bm) m m'.
-  Hypothesis Hmwf_ext_ns : forall ef targs tres cc vargs m t vres m',
+  Proof.
+    intros ef targs tres cc vargs m t vres m' Hr Hne.
+    exact (Hext_action_ptfi ef targs tres cc vargs m t vres m' (reached_ext_ptfi _ _ _ _ Hr Hne)).
+  Qed.
+  Lemma Hmwf_ext_ns : forall ef targs tres cc vargs m t vres m',
       reached_v2 lp (External ef targs tres cc) ->
       ~ CameraBodies.is_sqrtf_ef ef ->
       wgate bm SafeB (type_of_fundef (External ef targs tres cc)) vargs ->
       external_call ef (lp_ge lp) vargs m t vres m' ->
       Mem.valid_block m bm -> MWF m -> MWF m'.
+  Proof.
+    intros ef targs tres cc vargs m t vres m' Hr Hne.
+    exact (Hmwf_ext_ptfi ef targs tres cc vargs m t vres m' (reached_ext_ptfi _ _ _ _ Hr Hne)).
+  Qed.
   Lemma Hext_action : forall ef targs tres cc vargs m t vres m',
       reached_v2 lp (External ef targs tres cc) ->
       wgate bm SafeB (type_of_fundef (External ef targs tres cc)) vargs ->
@@ -573,6 +682,8 @@ Section NoAImpliesNoFlyTwelve.
              (linked12_LO_beh lp H12) (linked12_LO_lvl lp H12)
              (linked12_LO_stp lp H12)
              (linked12_ext_pin lp H12) (linked12_LO_camera lp H12) Hscm_body_real
+             (linked12_LO_audio_external lp H12) (linked12_LO_sound_init lp H12)
+             Hstcm_body_real Hfcm_body_real Hps_body_real Hpism_body_real
              Hpres_sta_ext
              Hcp_soawr_real Hpres_obj_ext_open Hpres_cut_ext_open
              Hgeo_real Hocp_rai_real
@@ -605,6 +716,8 @@ Section NoAImpliesNoFlyTwelve.
              (linked12_LO_beh lp H12) (linked12_LO_lvl lp H12)
              (linked12_LO_stp lp H12)
              (linked12_ext_pin lp H12) (linked12_LO_camera lp H12) Hscm_body_real
+             (linked12_LO_audio_external lp H12) (linked12_LO_sound_init lp H12)
+             Hstcm_body_real Hfcm_body_real Hps_body_real Hpism_body_real
              Hpres_sta_ext
              Hcp_soawr_real Hpres_obj_ext_open Hpres_cut_ext_open
              Hgeo_real Hocp_rai_real
@@ -636,6 +749,8 @@ Section NoAImpliesNoFlyTwelve.
              (linked12_LO_beh lp H12) (linked12_LO_lvl lp H12)
              (linked12_LO_stp lp H12)
              (linked12_ext_pin lp H12) (linked12_LO_camera lp H12) Hscm_body_real
+             (linked12_LO_audio_external lp H12) (linked12_LO_sound_init lp H12)
+             Hstcm_body_real Hfcm_body_real Hps_body_real Hpism_body_real
              Hpres_sta_ext
              Hcp_soawr_real Hpres_obj_ext_open Hpres_cut_ext_open
              Hgeo_real Hocp_rai_real

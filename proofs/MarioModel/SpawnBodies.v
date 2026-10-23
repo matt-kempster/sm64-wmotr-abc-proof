@@ -15,8 +15,10 @@
 (*   math_util.c      : mtxf_identity, vec3f_set, vec3f_copy, vec3s_copy; *)
 (*   memory.c         : segmented_to_virtual (the identity, TRUST 2.2);   *)
 (*   surface_collision.c : find_floor (its frame, SurfaceBodies);         *)
-(*   audio            : stop_sounds_from_source -- NOT linked (audio is   *)
-(*                      deferred): the labeled open premise sss_inert.    *)
+(*   audio/external.c : stop_sounds_from_source (linked 2026-10-23, the   *)
+(*                      41st TU; its walk is AudioBodies.                 *)
+(*                      sp_stop_sounds_from_source -- the labeled open    *)
+(*                      premise sss_inert it replaces is gone).           *)
 (* allocate_object's pool-exhausted branch is `while (TRUE) {}`: it has   *)
 (* no terminating execution, so no big-step derivation reaches past it.   *)
 (*                                                                        *)
@@ -51,13 +53,14 @@ From Coq Require Import ZArith List Lia Bool String.
 From compcert Require Import Coqlib Maps AST Integers Values Events Memory
   Globalenvs Ctypes Cop Clightdefs Clight ClightBigstep Linking.
 From SM64.Generated Require mario memory math_util object_helpers graph_node
-  spawn_object surface_collision behavior_actions interaction mario_actions_cutscene.
+  spawn_object surface_collision behavior_actions interaction mario_actions_cutscene
+  audio_external.
 From SM64.Proofs Require Import SymbolicLinking ActionValueFrame Taint
   RealFrameLinked AGates CensusV2 RestSurface MWFReal SpawnInit MathGeomBodies
   MathGeomGated OutParamSurface MathBodies LinkedTwelve LocalVarsSurface
   SurfaceBodies.
 From SM64.Proofs Require MtxfBody ActWriterSurface RetSurface SaveDoSaveBody
-  ObjHelpersBodies WindSurface.
+  ObjHelpersBodies WindSurface ObjExtBodies AudioBodies.
 
 Import ListNotations.
 Local Open Scope Z_scope.
@@ -467,64 +470,28 @@ Definition sb_chk (gs vt : list ident) (f : Clight.function) : bool :=
   sw_chk (s_set lv gs) (s_store lv gs) (s_call lv gs vt) (s_ret lv gs) (fn_body f).
 
 (* ---------------------------------------------------------------------- *)
-(* 5. The audio boundary: stop_sounds_from_source (audio/external.c, not   *)
-(*    linked).  LABELED OPEN AUDIO PREMISE (audio is deferred): it changes  *)
-(*    no block of the modeled memory and returns no pointer (it is void).  *)
-(*    Same shape as WMotRRequiresA/ExtInert.ext_inert.                     *)
+(* 5. The audio call: stop_sounds_from_source (audio/external.c, linked    *)
+(*    2026-10-23).  Its real body keeps the carried facts                   *)
+(*    (AudioBodies.sp_stop_sounds_from_source) and, being void, returns     *)
+(*    Vundef.  (Until then it was the labeled open audio premise sss_inert.) *)
 (* ---------------------------------------------------------------------- *)
 
-Definition sss_inert : Prop :=
-  forall sg ge vargs m t vres m',
-    external_functions_sem "stop_sounds_from_source" sg ge vargs m t vres m' ->
-    Mem.unchanged_on (fun b _ => Mem.valid_block m b) m m' /\ (forall b o, vres <> Vptr b o).
-
-Definition sss_named (o : option (globdef Clight.fundef type)) : bool :=
-  match o with
-  | Some (Gfun (External (EF_external n _) _ _ _)) => String.eqb n "stop_sounds_from_source"
-  | _ => false
-  end.
-
-Lemma sss_named_so :
-  sss_named ((prog_defmap spawn_object.prog) ! spawn_object._stop_sounds_from_source) = true.
+Lemma dm_sss :
+  (prog_defmap audio_external.prog) ! spawn_object._stop_sounds_from_source
+    = Some (Gfun (Internal audio_external.f_stop_sounds_from_source)).
 Proof. vm_compute. reflexivity. Qed.
 
-(* no linked TU defines it *)
-Lemma sss_no_internal :
-  forallb (fun p => no_internal_ids p [spawn_object._stop_sounds_from_source])
-    (mario.prog :: tu_rest) = true.
-Proof. vm_compute. reflexivity. Qed.
-
-Lemma sss_resolve : forall lp b fd,
-    linked12 lp ->
-    Genv.find_symbol (globalenv lp) spawn_object._stop_sounds_from_source = Some b ->
-    Genv.find_funct (globalenv lp) (Vptr b Ptrofs.zero) = Some fd ->
-    exists sg targs tres cc,
-      fd = External (EF_external "stop_sounds_from_source" sg) targs tres cc.
+Lemma sss_void : forall ge m vargs t m' vres,
+    eval_funcall function_entry2 ge m (Internal audio_external.f_stop_sounds_from_source)
+      vargs t m' vres -> vres = Vundef.
 Proof.
-  intros lp b fd Hlink Hs Hf.
-  pose proof sss_named_so as Hn.
-  destruct ((prog_defmap spawn_object.prog) ! spawn_object._stop_sounds_from_source)
-    as [[[f0 | ef targs tres cc] | v0] |] eqn:Hdm0; try discriminate Hn.
-  destruct ef; try discriminate Hn. cbn in Hn. apply String.eqb_eq in Hn. subst name.
-  assert (Hdm' : (prog_defmap lp) ! spawn_object._stop_sounds_from_source = Some (Gfun fd)).
-  { apply resolves_defmap. exists b. split; assumption. }
-  pose proof (linked12_LO_spawn_object lp Hlink) as LOq.
-  Local Transparent Linker_program.
-  unfold linkorder, Linker_program, linkorder_program in LOq.
-  destruct LOq as [LOast _].
-  destruct (prog_defmap_linkorder _ _ _ _ LOast Hdm0) as (gd' & Hgd' & Hlo).
-  change (prog_defmap (program_of_program lp)) with (prog_defmap lp) in Hgd'.
-  rewrite Hdm' in Hgd'. injection Hgd' as <-.
-  inv Hlo.
-  match goal with H : linkorder _ _ |- _ => inv H end.
-  - do 4 eexists. reflexivity.
-  - exfalso. pose proof sss_no_internal as Hall. rewrite forallb_forall in Hall.
-    assert (Hid : mem_id spawn_object._stop_sounds_from_source
-                    [spawn_object._stop_sounds_from_source] = true)
-      by (vm_compute; reflexivity).
-    destruct (link_chain_internal_origin _ _ _ _ _ Hlink Hdm') as [Hbase | (q' & Hq & Hqdm)].
-    + exact (no_internal_ids_correct _ _ _ _ (Hall _ (or_introl eq_refl)) Hid Hbase).
-    + exact (no_internal_ids_correct _ _ _ _ (Hall _ (or_intror Hq)) Hid Hqdm).
+  intros ge m vargs t m' vres H. inv H.
+  match goal with Ho : outcome_result_value _ _ _ _ |- _ =>
+    cbn [fn_return audio_external.f_stop_sounds_from_source] in Ho; revert Ho end.
+  unfold outcome_result_value.
+  match goal with |- context [match ?o with _ => _ end] => destruct o as [ | | | [[v' t']|] ] end;
+    intros Ho; try exact Ho; try contradiction.
+  destruct Ho as [N _]. exfalso. exact (N eq_refl).
 Qed.
 
 Lemma mu_dm_v3fcopy :
@@ -694,7 +661,6 @@ Section SB.
   Variable SafeB : block -> Prop.
   Hypothesis HSafeB_syms : SafeB_syms_ok lp SafeB.
   Hypothesis Hspawn : exists init, spawn_ok lp init bm bc oc0.
-  Hypothesis Hsss : sss_inert.
 
   (* the spawn globals are SafeB symbols: SafeB_syms_ok (c), since
      CensusV2.spawn_safe_syms (= sb_gs) is part of safe_ptr_syms *)
@@ -1035,15 +1001,20 @@ Section SB.
         end.
         split; [ exact (conj Hv' (conj Hs' HM')) | ].
         apply Htp. intros bb oo Ev. exfalso. exact (Hnp bb oo Ev).
-      - (* stop_sounds_from_source: the labeled audio premise *)
+      - (* stop_sounds_from_source: its real audio/external.c body *)
         apply Pos.eqb_eq in Hsss_. subst fid.
         match goal with Hff : Genv.find_funct _ _ = Some ?fd |- _ =>
-          destruct (sss_resolve lp lf fd H12 Hsy Hff) as (sg & targs' & tres' & cc' & ->) end.
-        match goal with Hfc : eval_funcall _ _ _ (External _ _ _ _) _ _ _ _ |- _ => inv Hfc end.
-        match goal with Hec : external_call _ _ _ _ _ _ _ |- _ =>
-          destruct (Hsss _ _ _ _ _ _ _ Hec) as (UO & NP) end.
-        split; [ exact (sb_unch _ _ Hf UO) | ].
-        apply Htp. intros bb oo Ev. exfalso. exact (NP bb oo Ev).
+          assert (Hres : resolves_lp lp spawn_object._stop_sounds_from_source fd)
+            by (exists lf; split; [ exact Hsy | exact Hff ]);
+          pose proof (resolves_pin_fd lp _ _ _ fd (linked12_LO_audio_external lp H12) dm_sss Hres)
+            as Efd; subst fd;
+          rewrite Genv.find_funct_find_funct_ptr in Hff end.
+        match goal with Hff : Genv.find_funct_ptr _ _ = Some _,
+                        Hfc : eval_funcall _ _ _ (Internal _) _ _ _ ?vr |- _ =>
+          split; [ exact (AudioBodies.sp_stop_sounds_from_source lp H12 bm bc oc0 SafeB
+                            HSafeB_syms Hspawn lf _ Hsy Hff _ _ _ _ _ Hfc Hf) | ];
+          rewrite (sss_void _ _ _ _ _ _ Hfc) end.
+        apply Htp. intros bb oo Ev. discriminate Ev.
     Qed.
   End Fn.
 

@@ -33,7 +33,7 @@
 From Coq Require Import List.
 From compcert Require Import Coqlib Maps AST Integers Values Memory Globalenvs
   Ctypes Clight Linking.
-From SM64.Generated Require mario surface_collision math_util camera.
+From SM64.Generated Require mario surface_collision math_util camera audio_external sound_init.
 From SM64.Proofs Require Import SymbolicLinking ActionValueFrame RealFrameLinked
   CensusV2 EngineV2Consumer RestSurface LinkedTwelve.
 
@@ -93,7 +93,10 @@ Lemma lifted_marg_exempt :
       Internal math_util.f_vec3f_copy;
       Internal math_util.f_vec3s_copy;
       Internal math_util.f_atan2s;
-      Internal camera.f_set_camera_mode ] = true.
+      Internal camera.f_set_camera_mode;
+      Internal sound_init.f_stop_cap_music;
+      Internal sound_init.f_fadeout_cap_music;
+      Internal audio_external.f_play_sound ] = true.
 Proof. vm_compute. reflexivity. Qed.
 
 Theorem wl_exempt_linked12 : forall lp, linked12 lp -> wl_exempt_ok lp.
@@ -131,5 +134,11 @@ Proof.
       assumption.
     + rewrite (resolves_pin_fd lp _ _ _ _ (linked12_LO_camera lp H12) camera_defmap_scm Hres).
       assumption.
-  - exfalso. exact (linked12_ext_pin lp H12 fid f (or_introl Hext) Hres).
+    + rewrite (resolves_pin_fd lp _ _ _ _ (linked12_LO_sound_init lp H12) sinit_defmap_scm Hres).
+      assumption.
+    + rewrite (resolves_pin_fd lp _ _ _ _ (linked12_LO_sound_init lp H12) sinit_defmap_fcm Hres).
+      assumption.
+    + rewrite (resolves_pin_fd lp _ _ _ _ (linked12_LO_audio_external lp H12) audio_defmap_ps Hres).
+      assumption.
+  - exfalso. exact (linked12_ext_pin lp H12 fid f Hext Hres).
 Qed.

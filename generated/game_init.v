@@ -643,7 +643,7 @@ Definition v_gSIEventMesgQueue := {|
 
 Definition v_gResetTimer := {|
   gvar_info := tschar;
-  gvar_init := nil;
+  gvar_init := (Init_space 1 :: nil);
   gvar_readonly := false;
   gvar_volatile := false
 |}.

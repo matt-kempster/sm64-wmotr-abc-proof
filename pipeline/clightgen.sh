@@ -136,6 +136,11 @@ PYEOF
 #   gPaintingMarioYEntry    4  src/game/moving_texture.c:118 = 0.0f
 #   gObjParentGraphNode    20  src/engine/geo_layout.c:47
 #   gGlobalSoundSource     12  src/audio/external.c:344  = { 0.0f, 0.0f, 0.0f }
+#   (2026-10-23, linking audio/external.c + game/sound_init.c, TUs 40 and 41:)
+#   gResetTimer             1  src/game/main.c:53        = 0
+#   gSoundMode              1  src/audio/load.c:93
+#   gSequencePlayers      960  src/audio/load.c:32  [3] x 320
+#   gSequenceChannelNone  192  src/audio/load.c:36
 python3 - "$TMP" <<'PYEOF'
 import re, sys
 path = sys.argv[1]
@@ -149,6 +154,8 @@ BSS = [
     ("gSIEventMesgQueue", 24), ("gDebugLevelSelect", 1), ("gShowDebugText", 1),
     ("gDialogResponse", 4), ("gPaintingMarioYEntry", 4),
     ("gObjParentGraphNode", 20), ("gGlobalSoundSource", 12),
+    ("gResetTimer", 1), ("gSoundMode", 1), ("gSequencePlayers", 960),
+    ("gSequenceChannelNone", 192),
 ]
 done = []
 for name, n in BSS:

@@ -16,7 +16,7 @@ From compcert Require Import Coqlib Maps AST Integers Floats Values Memory Event
 From SM64.Generated Require mario_step mario mario_actions_airborne memory surface_collision level_update.
 From SM64.Proofs Require Import Interp.SymExec2 Interp.LinkGenv MarioModel.LinkedTwelve
   MarioModel.OsDmaFloor MarioModel.MathGeomGated HeightInvariant HeightMoveCatalog WMotRLevel.
-From SM64.Proofs.WMotRRequiresA Require Import FloorHeight FloorExec AirXc AirRun AirWr WallExec AirMatch AirMove SmaXc AirSum FpuFloor FpWalk ExtInert FfClass AirStart FfKeepCheck RetOk FfRun.
+From SM64.Proofs.WMotRRequiresA Require Import FloorHeight FloorExec AirXc AirRun AirWr WallExec AirMatch AirMove SmaXc AirSum FpuFloor FpWalk ExtInert SndXc FfClass AirStart FfKeepCheck RetOk FfRun.
 Import ListNotations.
 
 Module AIR := mario_actions_airborne.
@@ -38,6 +38,7 @@ Definition xcH (id : ident) : option xcontract :=
   | None =>
     if Pos.eqb id mario._set_mario_animation then Some (c_sma NBF (R0F g) gtabF kvH RLD RBUF RIOM RMQ RRM kB) else
     if Pos.eqb id AIR._update_air_without_turn then Some (c_wr NBF (R0F g) (uawt_ws g)) else
+    if Pos.eqb id AIR._play_sound then Some (c_snd (R0F g) gtabF ps_regs) else
     if Pos.eqb id mario_step._perform_air_step then
       Some (c_pas g NBF (R0F g) gtabF kvH (xcI g) (jkI g) mergef 400 (Internal mario_step.f_perform_air_step) RM RO kH kM)
     else if existsb (Pos.eqb id) ext_ids then Some xc_fresh else None
@@ -85,7 +86,6 @@ Local Notation G := (globalenv lp).
 Hypothesis Hdma : os_dma_floor.
 Hypothesis Hsq : sqrtf_spec.
 Hypothesis Hsqf : sqrtf_float.
-Hypothesis Haudio : audio_inert.      (* LABELED OPEN PREMISE: audio, deferred *)
 
 Variables (m0 : mem) (gp : meminj).
 Hypothesis GPO : forall b x, gp b = Some x -> Plt b (Mem.nextblock m0).
@@ -141,7 +141,12 @@ Proof.
         rewrite (sfun_res_h _ _ _ _ (res_link lp _ _ _ (linked12_LO_air lp H12) dm_uawt_h) Hl) in EV.
         exact (c_uawt_sound lp H12 Hsq NBF (R0F G) gtabF (kvH G) m0 uf gp GPO
                  args g cps E m vargs t m' vres Hk MM HA EV).
-      * destruct (Pos.eqb_spec id mario_step._perform_air_step) as [-> | N3].
+      * destruct (Pos.eqb_spec id AIR._play_sound) as [-> | Nps].
+        { injection Hx as <-.
+          rewrite (sfun_res _ _ _ _ (res_link lp _ _ _ (linked12_LO_audio_external lp H12) ps_defmap) Hl) in EV.
+          exact (c_ps_sound lp NBF (R0F G) gtabF (kvH G) m0 uf gp GPO RSR RSRC
+                   args g cps E m vargs t m' vres Hk MM EV). }
+        destruct (Pos.eqb_spec id mario_step._perform_air_step) as [-> | N3].
         -- injection Hx as <-.
            rewrite (sfun_res_h _ _ _ _ (res_link lp _ _ _ (linked12_LO_stp lp H12) dm_pas_h) Hl) in EV.
            exact (c_pas_sound G NBF (R0F G) gtabF (kvH G) (xcI G) (jkI G) mergef 400
@@ -151,10 +156,8 @@ Proof.
         -- destruct (existsb (Pos.eqb id) (ext_ids)) eqn:Ex; [| discriminate Hx].
            injection Hx as <-.
            apply existsb_exists in Ex as (x & Ix & Ex). apply Pos.eqb_eq in Ex. subst x.
-           destruct Ix as [<- | [<- | []]].
-           ++ exact (ext_fresh_sound lp H12 _ _ ps_named ps_ni (audio_ps Haudio) NBF (R0F G) gtabF (kvH G) m0 uf gp GPO
-                       args g cps fd E m vargs t m' vres Hk Hl MM EV).
-           ++ exact (ext_fresh_sound lp H12 _ _ sqrtf_named_air_h sqrtf_ni (sqrtf_inert Hsq Hsqf)
+           destruct Ix as [<- | []].
+           exact (ext_fresh_sound lp H12 _ _ sqrtf_named_air_h sqrtf_ni (sqrtf_inert Hsq Hsqf)
                        NBF (R0F G) gtabF (kvH G) m0 uf gp GPO args g cps fd E m vargs t m' vres Hk Hl MM EV).
 Qed.
 
