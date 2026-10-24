@@ -45,7 +45,7 @@ From SM64.Generated Require mario mario_actions_stationary
   mario_actions_cutscene mario_actions_automatic mario_actions_object
   interaction behavior_actions level_update mario_step camera audio_external sound_init math_util
   print.
-From SM64.Proofs Require BullyBodies SpawnBodies AudioBodies PrintBodies.
+From SM64.Proofs Require BullyBodies SpawnBodies AudioBodies PrintBodies CameraModeBody.
 From SM64.Proofs Require Import Flying Taint ActionValue ActionValueFrame ReachableRun
   RealFrameValue RealFrameLinked AGates SymbolicLinking FieldNonInterference.
 From SM64.Proofs Require Import CensusV2 EngineV2Consumer.
@@ -350,10 +350,13 @@ Section NoAImpliesNoFlyTwelve.
      above now resolves to the REAL camera.c body (the row is about that
      body, not an external).  The rest-surface twin: set_camera_mode reached
      from mario.c is a pinned rest case (RestSurface, LO_camera) owing this
-     gated residual over the same real body.  LABELED OPEN PREMISE (camera,
-     deferred; docs/TRUST.md 4.1). *)
-  Hypothesis Hscm_body_real :
+     gated residual over the same real body.  PROVED (2026-10-23) from the
+     real set_camera_mode body and its callees, 60 bodies (CameraModeBody). *)
+  Lemma Hscm_body_real :
     RestSurface.body_pres_w lp MWF bm SafeB camera.f_set_camera_mode.
+  Proof.
+    exact (CameraModeBody.Hscm_body_proved lp H12 bm bc oc0 SafeB HSafeB_syms Hspawn Hsq).
+  Qed.
   (* Hcsp_scm_real is no longer a row (2026-10-22): the call resolves to
      the real camera.c body (camera_defmap_scm, LO_camera), cs_gate's
      arg0_cond_safe IS wgate's T_scm arm (osafe at size 0), and NoA after
