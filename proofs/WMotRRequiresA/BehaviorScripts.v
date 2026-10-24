@@ -673,8 +673,8 @@ Definition has_body (defs : list (ident * globdef fundef type)) (f : ident) : bo
   existsb (fun p => Pos.eqb (fst p) f
                     && match snd p with Gfun (Internal _) => true | _ => false end) defs.
 
-(* the census TUs that are linked (LinkedTwelve.tu_rest; not mario_misc,
-   obj_behaviors_2) *)
+(* the census TUs that are linked (LinkedTwelve.tu_rest; not mario_misc;
+   obj_behaviors_2 since 2026-10-24, TU 50) *)
 Definition linked_census_tus : list (list (ident * globdef fundef type)) :=
   [ mario.global_definitions; mario_step.global_definitions;
     mario_actions_stationary.global_definitions; mario_actions_moving.global_definitions;
@@ -689,21 +689,34 @@ Definition linked_census_tus : list (list (ident * globdef fundef type)) :=
     save_file.global_definitions; graph_node.global_definitions;
     ingame_menu.global_definitions; audio_external.global_definitions;
     behavior_script.global_definitions; spawn_sound.global_definitions;
-    debug.global_definitions; object_collision.global_definitions ].
+    debug.global_definitions; object_collision.global_definitions;
+    obj_behaviors_2.global_definitions ].
 
-(* Every live native has a real, LINKED body except three.  FOUND for S3:
-   bhv_red_coin_star_marker_init is in obj_behaviors_2.c (via
-   reds_star_marker.inc.c), NOT linked, and it IS live in WMotR
+(* Every live native has a real, LINKED body except two.  Since 2026-10-24
+   obj_behaviors_2.c is linked (TU 50), so bhv_red_coin_star_marker_init
+   (reds_star_marker.inc.c), which IS live in WMotR
    (bhv_hidden_red_coin_star_init spawns bhvRedCoinStarMarker when
-   gCurrCourseNum != COURSE_JRB, spawn_star.inc.c:145).  The two
-   unlock-door-star natives are in mario_misc.c (not linked); their script is
-   spawned only by act_unlocking_key_door (an over-approximation of the
-   census).  The objects walk needs obj_behaviors_2.c linked (its TRUST 2.2
-   picked values then become reachable) or these rows. *)
+   gCurrCourseNum != COURSE_JRB, spawn_star.inc.c:145), has its real body.
+   The two left are the unlock-door-star natives in mario_misc.c (not
+   linked); their script is spawned only by act_unlocking_key_door (an
+   over-approximation of the census). *)
 Definition linked_native (f : ident) : bool :=
   existsb (fun defs => has_body defs f) linked_census_tus.
 Lemma wmotr_live_natives_unlinked :
   map string_of_ident (filter (fun f => negb (linked_native f)) wmotr_live_natives)
-  = [ "bhv_unlock_door_star_init"; "bhv_unlock_door_star_loop";
-      "bhv_red_coin_star_marker_init" ]%string.
+  = [ "bhv_unlock_door_star_init"; "bhv_unlock_door_star_loop" ]%string.
+Proof. vm_compute. reflexivity. Qed.
+
+(* The TRUST 2.2 proof-only rewrites in the two linked object TUs (picked
+   zero-inits, wiggler's oHealth = 4, obj_perform_position_op u32 -> void):
+   none of the functions holding them is in the WMotR closure, so no live
+   WMotR object runs a picked value. *)
+Definition ub22_site_fns : list ident :=
+  [ obj_behaviors._bhv_bowling_ball_roll_loop; obj_behaviors._bhv_bowling_ball_initialize_loop;
+    obj_behaviors._manta_ray_move; obj_behaviors._bhv_mips_act_follow_path;
+    obj_behaviors._snowmans_bottom_act_1;
+    obj_behaviors_2._camera_lakitu_intro_act_show_dialog;
+    obj_behaviors_2._wiggler_init_segments; obj_behaviors_2._obj_perform_position_op ].
+Lemma ub22_sites_not_live :
+  forallb (fun f => negb (existsb (Pos.eqb f) wmotr_closure)) ub22_site_fns = true.
 Proof. vm_compute. reflexivity. Qed.

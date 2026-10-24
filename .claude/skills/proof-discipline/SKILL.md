@@ -111,9 +111,10 @@ all in `Unwired/`, and the theorem moved nowhere. See
   pin is no restriction (param unused, `Generic/UnusedParam`). `BehaviorScripts.all_tus` made
   current; FOUND FALSE: the unconditional grab fact (the debug spawner spawns two grabbable
   objects under its guard). Restated over the closure without that body; the guard is S2's
-  `obj_w`. `wmotr_live_natives` pinned (107); 3 lack a linked body, one live
-  (`bhv_red_coin_star_marker_init`, `obj_behaviors_2.c`: link it in S3). Counts unchanged
-  (GOAL 1 8, HeightFrame 15 `Hypothesis` lines).
+  `obj_w`. `wmotr_live_natives` pinned (107). `obj_behaviors_2.c` is TU 50 (the live
+  `bhv_red_coin_star_marker_init`); only the 2 `mario_misc.c` over-approximations lack a
+  linked body. 2.2 picked values in the object TUs: none in the WMotR closure
+  (`ub22_sites_not_live`). Counts unchanged (GOAL 1 8, HeightFrame 15 `Hypothesis` lines).
   2026-10-22: HeightFrame's section has 27 `Hypothesis` lines (28 → 27: `Hcamera` proved away).
   2026-10-23 AUDIO LINK (`audio/external.c`, `sound_init.c`: TUs 40, 41; `AudioBodies`, `SndXc`):
   GOAL 1 `Hypothesis` lines 16 → 15, HeightFrame 26 → 24. Proved: `Hpres_sta_ext`, `Hsss`,
