@@ -930,7 +930,7 @@ Section PR.
       intros AW Hl.
       apply (AnimKeep.lvl_w_keep_ne ge m m' (fun b => b <> bm /\ b <> bsr /\ b <> bsrc)); [| | exact Hl].
       - intros b Hs. split; [exact (AnimKeep.lvl_ne_bm ge bm m AW b Hs) |].
-        destruct Hs as [Hs | [Hs | [Hs | [Hs | [Hs | [Hs | [Hs | Hs]]]]]]]; split;
+        lvl_cases Hs; split;
           first [ exact (xsym_ne _ _ _ SR0 Hs eq_refl)
                 | exact (xsym_ne _ _ _ SRC0 Hs eq_refl) ].
       - intros ch b z (A & B & C). exact (LHb ch b z A B C).

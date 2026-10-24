@@ -382,8 +382,7 @@ Section RK.
     Qed.
 
     Lemma ffw_ne : ffw G bm m -> forall b,
-      Genv.find_symbol G mario._gMarioAnimsBuf = Some b
-      \/ lvl_syms G b -> b <> mb.
+      Genv.find_symbol G mario._gMarioAnimsBuf = Some b \/ lvl_sym G b -> b <> mb.
     Proof.
       intros (_ & EX & _) b Hb.
       destruct EX as (gp & bfi & bmiss & bcalls & bsin & ab & biom & bmq & brm & blk & bpc & bsr & bsrc & bsms & bbs
@@ -583,11 +582,10 @@ Section RK.
     Proof.
       intros Hf Hl.
       apply (AnimKeep.lvl_w_keep_ne G m m' (fun b => b <> mb /\ b <> bm /\ ~ rgb b)); [| | exact Hl].
-      - intros b Hs. split; [exact (ffw_ne Hf b (or_intror Hs)) |]. split.
-        + destruct Hs as [Hs | [Hs | [Hs | [Hs | [Hs | [Hs | [Hs | Hs]]]]]]];
-            exact (AnimKeep.symne_ids G _ _ _ _ Hs Sbm eq_refl).
-        + destruct Hs as [Hs | [Hs | [Hs | [Hs | [Hs | [Hs | [Hs | Hs]]]]]]];
-            exact (rgb_not _ b Hs ltac:(vm_compute; reflexivity)).
+      - intros b Hs. split; [exact (ffw_ne Hf b (or_intror Hs)) |].
+        lvl_cases Hs; (split;
+          [ exact (AnimKeep.symne_ids G _ _ _ _ Hs Sbm eq_refl)
+          | exact (rgb_not _ b Hs ltac:(vm_compute; reflexivity)) ]).
       - intros ch b z (A & B & C). exact (LHb ch b z A B C).
     Qed.
 

@@ -143,7 +143,7 @@ Theorem lvl_w_keep : forall m m' bfi bmiss bcalls ab biom bmq brm blk bpc bsr bs
   Genv.find_symbol ge audio_external._sSoundMovingSpeed = Some bsms ->
   Genv.find_symbol ge mario._gBodyStates = Some bbs ->
   anim_w ge bm m ->
-  (forall b, lvl_syms ge b -> b <> bo /\ b <> bt) ->
+  (forall b, lvl_sym ge b -> b <> bo /\ b <> bt) ->
   Ple (Genv.genv_next ge) (Mem.nextblock m) ->
   (forall ch b z, Plt b (Mem.nextblock m) ->
      ~ rblk (ff_rl bm bo oo bfi bmiss bcalls ab bt biom bmq brm blk bpc bsr bsrc bsms bbs) b ->
@@ -155,39 +155,38 @@ Proof.
   destruct AW as (ab' & bga & bauc & btab & otab & bt' & ot' & mb & mo & B & _).
   pose proof B as (_ & _ & _ & _ & _ & _ & _ & _ & _ & _ & _ & _
                    & _ & _ & _ & _ & _ & _ & _ & _ & Hbm).
-  apply lvl_w_loads. intros b Hl ch z. apply OFF.
-  - destruct Hl as [Hs | [Hs | [Hs | [Hs | [Hs | [Hs | [Hs | Hs]]]]]]];
-      exact (Plt_Ple_trans _ _ _ (Genv.genv_symb_range _ _ Hs) Hgn).
-  - destruct (D4 b Hl) as (Do & Dt).
-    destruct Hl as [Hs | [Hs | [Hs | [Hs | [Hs | [Hs | [Hs | Hs]]]]]]];
-      apply ff_rl_not; try congruence;
-      first [ exact (symne_ids _ _ _ _ Hbm Hs eq_refl)
-            | exact (symne_ids _ _ _ _ S1 Hs eq_refl) | exact (symne_ids _ _ _ _ S2 Hs eq_refl)
-            | exact (symne_ids _ _ _ _ S3 Hs eq_refl) | exact (symne_ids _ _ _ _ S5 Hs eq_refl)
-            | exact (symne_ids _ _ _ _ S6 Hs eq_refl) | exact (symne_ids _ _ _ _ S7 Hs eq_refl)
-            | exact (symne_ids _ _ _ _ S8 Hs eq_refl) | exact (symne_ids _ _ _ _ SL Hs eq_refl)
-            | exact (symne_ids _ _ _ _ SP Hs eq_refl) | exact (symne_ids _ _ _ _ SR Hs eq_refl)
-            | exact (symne_ids _ _ _ _ SRC Hs eq_refl) | exact (symne_ids _ _ _ _ SMS Hs eq_refl)
-            | exact (symne_ids _ _ _ _ SBS Hs eq_refl) ].
+  apply lvl_w_unch. intros b ch z Hs. apply OFF.
+  - pose proof (lvl_sym_ids _ _ Hs) as (id & _ & Hs').
+    exact (Plt_Ple_trans _ _ _ (Genv.genv_symb_range _ _ Hs') Hgn).
+  - destruct (D4 b Hs) as (Do & Dt).
+    lvl_cases Hs;
+        apply ff_rl_not; try congruence;
+        first [ exact (symne_ids _ _ _ _ Hbm Hs eq_refl)
+              | exact (symne_ids _ _ _ _ S1 Hs eq_refl) | exact (symne_ids _ _ _ _ S2 Hs eq_refl)
+              | exact (symne_ids _ _ _ _ S3 Hs eq_refl) | exact (symne_ids _ _ _ _ S5 Hs eq_refl)
+              | exact (symne_ids _ _ _ _ S6 Hs eq_refl) | exact (symne_ids _ _ _ _ S7 Hs eq_refl)
+              | exact (symne_ids _ _ _ _ S8 Hs eq_refl) | exact (symne_ids _ _ _ _ SL Hs eq_refl)
+              | exact (symne_ids _ _ _ _ SP Hs eq_refl) | exact (symne_ids _ _ _ _ SR Hs eq_refl)
+              | exact (symne_ids _ _ _ _ SRC Hs eq_refl) | exact (symne_ids _ _ _ _ SMS Hs eq_refl)
+              | exact (symne_ids _ _ _ _ SBS Hs eq_refl) ].
 Qed.
 
-(* ... and any change that leaves the level globals' blocks alone *)
+(* ... and any change that leaves the two globals' blocks alone *)
 Lemma lvl_w_keep_ne : forall m m' (P : block -> Prop),
-  (forall b, lvl_syms ge b -> P b) ->
+  (forall b, lvl_sym ge b -> P b) ->
   (forall ch b z, P b -> Mem.load ch m' b z = Mem.load ch m b z) ->
   lvl_w ge m -> lvl_w ge m'.
 Proof.
-  intros m m' P HP HL. apply lvl_w_loads. intros b Hs ch z. exact (HL ch b z (HP b Hs)).
+  intros m m' P HP HL. apply lvl_w_unch. intros b ch z Hs. exact (HL ch b z (HP b Hs)).
 Qed.
 
-(* the level globals are not Mario's state block *)
-Lemma lvl_ne_bm : forall m, anim_w ge bm m -> forall b, lvl_syms ge b -> b <> bm.
+(* the two globals are not Mario's state block *)
+Lemma lvl_ne_bm : forall m, anim_w ge bm m -> forall b, lvl_sym ge b -> b <> bm.
 Proof.
   intros m AW b Hs.
   destruct AW as (ab' & bga & bauc & btab & otab & bt' & ot' & mb & mo & B & _).
   pose proof B as (_ & _ & _ & _ & _ & _ & _ & _ & _ & _ & _ & _
                    & _ & _ & _ & _ & _ & _ & _ & _ & Hbm).
-  destruct Hs as [Hs | [Hs | [Hs | [Hs | [Hs | [Hs | [Hs | Hs]]]]]]];
-    exact (symne_ids _ _ _ _ Hs Hbm eq_refl).
+  lvl_cases Hs; exact (symne_ids _ _ _ _ Hs Hbm eq_refl).
 Qed.
 End AK.

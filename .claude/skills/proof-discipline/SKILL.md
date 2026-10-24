@@ -316,6 +316,16 @@ all in `Unwired/`, and the theorem moved nowhere. See
     they state only narrow premises: `surf_apart` (Mario's surfaces not in a written global's block)
     and `plat_still` (the ridden platform is NULL or has zero angle velocity; FOUND: a rotating
     platform moves pos[1], so the old "y unchanged" platform spec was false of the real body).
+    Since 2026-10-24 `plat_still` is no longer a step premise: it is TRUE in WMotR (only the !
+    boxes and cannon lids own surfaces; `AngleVelCensus` finds no angle-velocity store on them),
+    proved at the boot witness (`StartSat.plat11`), and carried as the last clause of the labeled
+    objects spec `seg_rest_spec`. `frame_step` now also has idle frames (no Mario update:
+    pause, transitions, time stop). The cannon seat list is every home seat + 5k, k = 0..69
+    (the base rises with Mario inside; the exact-home clause was FALSE), and lid floor ranges
+    are widened 15 down (an opening lid sinks). `lvl_w` also carries `FfWorld.warp_w` (no
+    pending same-level warp in NORMAL mode, no demo / credits, delayed-warp source node
+    F0/F1/F3), which the level-phase spec needed (phantom ∀); the witness now ends with the
+    real `sWarpDest.type = NOT_WARPING` store.
     The controller poll is REAL since 2026-10-23
     (`PollFlank.v`, libultra `osContStartReadData.c` linked as TU 46): `seg_input_spec m i m0` is the real
     `osContStartReadData` (or no request) then the real `read_controller_inputs`, walked down to the
@@ -327,9 +337,10 @@ all in `Unwired/`, and the theorem moved nowhere. See
     (audio_game_loop_tick / select_gfx_pool run between) and the Phi carries (the m0 one
     conditional on `ctl_w`). `ctl_w` gained P1 / P3 / demo-NULL / maxctl / controllerData clauses
     (StartSat proves them at the start); `stored_globals` gained gControllerPads, __osContPifRam.
-    HeightFrame `Hypothesis` lines (after the combo21 merge) 19 -> 21: generic-section rows
+    HeightFrame `Hypothesis` lines 19 -> 21 (unchanged by the plat_still merge): generic-section rows
     `Hsrd_ok` / `Hpoll_ok`, both DISCHARGED in HeightLinked12 (`srd_ok_linked12`,
-    `poll_ok_linked12`); the linked section's count is unchanged (11).
+    `poll_ok_linked12`); the linked section has 11. The poll spec also states (labeled) that it
+    keeps `plat_still` (master's spec had it as an assumed conjunct too).
 
   The coin link is also open.
 - `docs/TRUST.md` is the ledger of everything a reader must believe. Read
