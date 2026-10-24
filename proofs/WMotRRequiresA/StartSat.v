@@ -1347,6 +1347,13 @@ Section Witness.
       peel2 Z10a; peelW; peel2 Z8; peel2 Z7; peel2 Z6; peel2 Z5; peel2 Z4; peel2 Z3.
       rewrite (Mem.load_store_same _ _ _ _ _ _ Z2). reflexivity.
     Qed.
+    (* m->marioBodyState = &gBodyStates[0] (init_mario_from_save_file) *)
+    Lemma L_body : Mem.load Mint32 m11 bm 152 = Some (Vptr bbs Ptrofs.zero).
+    Proof.
+      peel2 Z17; peel2 Z16; peel2 Z15; peel2 Z14; peel2 Z13; peel2 Z12; peel2 Z11; peel2 Z10;
+      peel2 Z10a; peelW; peel2 Z8; peel2 Z7; peel2 Z6; peel2 Z5; peel2 Z4.
+      rewrite (Mem.load_store_same _ _ _ _ _ _ Z3). reflexivity.
+    Qed.
     Lemma L_buf : Mem.load Mint32 m11 ab 8 = Some (Vptr bt Ptrofs.zero).
     Proof. peelZ. rewrite (Mem.load_store_same _ _ _ _ _ _ S8). reflexivity. Qed.
     Lemma L_styp : Mem.load Mint16signed m11 bs 0 = Some (Vint Int.zero).
@@ -1695,8 +1702,10 @@ Section Witness.
 
     Lemma Hpcs_fs : Genv.find_symbol (lp_ge lp) camera._gPlayerCameraState = Some bpcs.
     Proof. exact Hpcs. Qed.
+    Lemma Hbbs_fs : Genv.find_symbol (lp_ge lp) mario._gBodyStates = Some bbs.
+    Proof. exact Hbbs. Qed.
 
-    Definition RL : list (option val) := ff_rl bm bo Ptrofs.zero bfi bmiss bcalls ab bt biom bmq brm blk bpcs bsr bsrc bsms.
+    Definition RL : list (option val) := ff_rl bm bo Ptrofs.zero bfi bmiss bcalls ab bt biom bmq brm blk bpcs bsr bsrc bsms bbs.
 
     Lemma bpl_not_rl : ~ rblk RL bpl.
     Proof. unfold RL. norl. Qed.
@@ -1879,13 +1888,13 @@ Section Witness.
       { rewrite genv_next_eq, nb11, nb3. pose proof nb0_NL. unfold Ple, Plt in *. lia. }
       split.
       2: exact floor_data11.
-      pose proof Hpcs_fs as Hpcs'.
-      exists (Mem.flat_inj thr), bfi, bmiss, bcalls, bsin, ab, biom, bmq, brm, blk, bpcs, bsr, bsrc, bsms, bo, Ptrofs.zero,
+      pose proof Hpcs_fs as Hpcs'. pose proof Hbbs_fs as Hbbs'.
+      exists (Mem.flat_inj thr), bfi, bmiss, bcalls, bsin, ab, biom, bmq, brm, blk, bpcs, bsr, bsrc, bsms, bbs, bo, Ptrofs.zero,
         bt, Ptrofs.zero, (Vptr bs Ptrofs.zero), (Vptr bar Ptrofs.zero), Int.zero, (Vptr bc Ptrofs.zero).
       split; [ exact closed11 | ].
       split; [ intros id b Hfs; exact (flat_some _ (sym_lt _ _ Hfs)) | ].
       split; [ exact (flat_some _ (sym_lt _ _ Hbm)) | ].
-      do 13 (split; [ assumption | ]).
+      do 14 (split; [ assumption | ]).
       split; [ exact L_obj | ].
       split; [ unfold SZ_OBJECT; vm_compute; discriminate | ].
       split; [ exact L_anim | ].
@@ -1923,7 +1932,8 @@ Section Witness.
         split; [ unfold SZ_CTL; vm_compute; discriminate | ].
         norl. }
       split; [ intros i cb co Hi Hl; exfalso; exact (coll_noptr _ _ _ Hi Hl) | ].
-      exact L_pcs.
+      split; [ exact L_pcs | ].
+      exact L_body.
     Qed.
 
     (* ---- the level: gCurrLevelNum = LEVEL_WMOTR, by real code ---- *)

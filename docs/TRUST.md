@@ -126,7 +126,8 @@ without pressing A".*
   `play_sound` ×2, `play_infinite_stairs_music`) and 2 store blocks; the two stores into Mario's
   object (`gfx.node.flags`, `oInteractStatus = 0`) are **proved** to keep W, the cells and GOAL 1's
   `mem_ok`; GOAL 1's per-call `mem_ok` (`frame_call_ok_linked12`) is proved. What is assumed is one
-  row shape per call, `Hseg_call_na` / `Hseg_any` (`FrameSplit.seg_ok`; since 2026-10-23
+  row shape per call, `Hseg_call_na` (since 2026-10-23 split into named rows (12; 10 since 2026-10-24) of
+  `Hseg_na_open`, 0.8(q)) / `Hseg_any` (`FrameSplit.seg_ok`; since 2026-10-23
   `Hseg_any` covers only the calls live in WMotR, i.e. `play_infinite_stairs_music()`: the two
   wind blocks' four calls are proved dead, §7); the airborne dispatcher's
   row is itself proved (`AirSplit.air_seg`) from its two prologue calls and one row per no-A case
@@ -437,6 +438,55 @@ without pressing A".*
     (`seg_*_spec`'s `Phi m -> Phi m'`, notably the render call that advances animFrame,
     which `RenderFlank.render_frame_range` keeps in [−1, loopEnd]) and the open rows
     `Hseg_call_na` / `Hseg_any` now also claim it; it holds in the game.
+  (q) **`Hseg_call_na` split per call (2026-10-23, `NaSplit`; 22 → 22 hypotheses, the one
+  left strictly narrower).** HeightFrame's hypothesis is now `Hseg_na_open :
+  NaSplit.na_open_rows`. That was 12 named per-call rows (10 since 2026-10-24) (the list `NaSplit.na_open`).
+  `Hseg_call_na` is a lemma (`NaSplit.naFA_of_open`): it case-splits the 15 calls of
+  `execute_mario_action` that it covers, read from the generated body (`ema_calls_eq`).
+  The three calls below are **proved** from their generated bodies:
+  - `set_submerged_cam_preset_and_spawn_bubbles` (`ssc_row`). Its body is guarded by
+    `(m->action & ACT_GROUP_MASK) == ACT_GROUP_SUBMERGED`. No `R_noA` action is in group
+    0xC0 (`R_noA_not_sub`), so memory is unchanged.
+  - `update_mario_health` (`health_row`). It is walked by `lw_body_frame` and writes only
+    health / hurtCounter / healCounter (offsets 174–179), plus the sound request queue through
+    the real `play_sound` (`pffs_call`). `ProRows`' footprint hole is widened from {4..8} to
+    {4..8, 174..184} (`ProRows.hz`), and `hole_fworld` / `hole_cells` prove that such a change
+    keeps every `fworld` conjunct, the cells and `fresh_at`.
+  - `mario_execute_submerged_action` (`sub_row`). It is vacuous under the new dispatcher
+    gate, described next.
+  - **Statement strengthened (true in the game, no new trust row).** A dispatcher row's
+    precondition (`FrameSplit.xpre`) now also carries `FrameSplit.grp_ok`: the action cell's
+    group (`action & 0x1C0`) equals the dispatcher's switch label (`disp_tab`). This is proved
+    at the real `switch (m->action & ACT_GROUP_MASK)` in `FrameSplit.iter_J`, from the
+    generated block (`lb_full`) and the action load through `gMarioState` (`act_of_tmp`).
+    The proved airborne and automatic rows ignore the new conjunct.
+  - **(2026-10-24) `mario_reset_bodystate` (`reset_row`) and `update_mario_info_for_cam`
+    (`cam_row`)** are proved from their generated bodies (`lw_body_frame`). This repairs
+    their §7 phantom-∀ finding.
+    - **The repair needed more than the pin.** `ffw` now carries `m->marioBodyState =
+      &gBodyStates[0]` (the load at offset 152, `LBS`). That alone does not stop
+      gBodyStates from overlapping a world surface, area or controller. So gBodyStates is
+      also an `ff_rl` walk region (`RBS`, size `Ptrofs.modulus`, like the other symbol
+      regions; `NBF` becomes 23).
+    - Both facts are proved at the boot witness (`StartSat`) and kept by every proved row:
+      the ff / kb / ledge / ahw / pole / cannon / auto walks and `AnimKeep`.
+    - Every store goes to one of three places, so the rows need no new world fact:
+      - Mario's own fields inside `ProRows.hz`;
+      - gBodyStates;
+      - gPlayerCameraState (`m->statusForCamera`, already pinned).
+    - `ProRows`' hole lemmas are now generic over two blocks drawn from `ProRows.XIDS`:
+      the two sound-queue globals, gBodyStates and gPlayerCameraState. `nextblock` may
+      grow (`Ple`).
+    - info_for_cam calls the real `vec3s_copy` / `vec3f_copy`. Each allocates an
+      address-taken `dest` frame and frees it. `BodyFrame.v3_frame` walks both bodies:
+      outside the dest block they change nothing except that freed frame.
+      `BodyFrame.Q2` is the composable relation behind both rows: kept bytes unchanged,
+      old permissions kept, new blocks without permissions.
+  These 10 calls remain open as named rows:
+  - `update_mario_inputs`, `mario_handle_special_floors`, `mario_process_interactions`;
+  - the stationary, moving, cutscene and object dispatchers;
+  - `sink_mario_in_quicksand`, `squish_mario_model`, `mario_update_hitbox_and_cap_model`.
+  The remaining phantom-∀ findings are listed in §7.
   **Slide kick at state ≠ 0 is proved (2026-10-21; `sk1_row` and `HeightFrame.Hsk1` removed,
   28 → 27 hypotheses).** The same walk (`SkW.skcheck12`) now classifies every outcome at any
   state (`FfClass.sk_ok` is `ff_okE` from the ticked cells; it used to accept the state ≠ 0
@@ -2000,7 +2050,13 @@ result, the real declaration in every TU; no new trust); `BootRun` / `TerrainRun
 | GOAL 2 `Hsqrtf`, `Hsqrtf_float`, `Haudio` | SURVIVED | restrictions; consistent with the repaired oracles |
 | GOAL 2 `Hseg_any` | SUSPECT (phantom forall) | it asks the linked `spawn_wind_particles` at ANY args from ANY `fworld` memory. `fworld` says nothing of `gFreeObjectList`, and every object lives in `gObjectPool`'s one block. A free list heading into Mario's object or the `usedObj` pole re-initializes it (`geo_obj_init` zeroes `gfx.pos`; behavior becomes `bhvWind`). In WMotR the call is dead (no `SURFACE_HORIZONTAL_WIND`). Repair: gate the obligation on the wind branch, which `wmotr_world` refutes. Needs a path-sensitive `FrameCalls.cl` |
 | GOAL 2 `Hauto_rest` | SUSPECT at TOP_OF_POLE(_TRANSITION); **DISCHARGED 2026-10-23** (proved with the real animation data, (p)) | `set_pole_position` adds the anim Y translation read through `animList->bufTarget`. `fworld` / `ffw` carry no fact about the buffer's contents, and with `currentAddr` matching no DMA runs. A phantom buffer gives up to +8191, far past top + `POLE_UP`, unless a ceiling clamps it. So this row is FALSE as stated, not just unproved (0.8(f)). CLIMBING_POLE / IN_CANNON were read too: a phantom `stickY` is clamped at `poleTop` or makes the f32 to s32 cast undefined (no execution), and the cannon seat is `usedObj`'s, which `used_ok` fixes |
-| GOAL 2 `Hseg_call_na` | not refuted | real bodies over `fworld` memories. No counterexample was built: that needs a modified StartSat witness. Since 2026-10-23 its posts carry `lvl_w` / `inputs_ok` (below) |
+| GOAL 2 `Hseg_call_na` | not refuted; **split 2026-10-23** (0.8(q)): now the lemma `NaSplit.naFA_of_open` over `Hseg_na_open` (10 named rows since 2026-10-24) | real bodies over `fworld` memories. No counterexample was built: that needs a modified StartSat witness. Since 2026-10-23 its posts carry `lvl_w` / `inputs_ok` (below) |
+| GOAL 2 `Hseg_na_open`: `mario_reset_bodystate`, `update_mario_info_for_cam` | **REPAIRED and proved 2026-10-24** (0.8(q)) | `ffw` now pins `m->marioBodyState = &gBodyStates[0]` and makes gBodyStates an `ff_rl` region (`RBS`). The pin alone was not enough: without the region, gBodyStates could alias a world surface. Both facts are proved at boot (`StartSat`) and kept by every proved row. `NaSplit.reset_row` / `cam_row` walk the real bodies |
+| GOAL 2 `Hseg_na_open`: `mario_update_hitbox_and_cap_model` | open; pin now present | it stores through `m->marioBodyState`, which is now pinned (row above). Not walked: it also calls `stop_cap_music` and reads cap / flags state |
+| GOAL 2 `Hseg_na_open`: `update_mario_inputs` | SUSPECT (phantom forall), not repaired | its post `inputs_ok` (waterLevel = -11000) comes from `find_water_level`, which reads `gEnvironmentRegions`; `fworld` does not pin that table (or `gShowDebugText`, `gCameraMovementFlags`, which it also reads) |
+| GOAL 2 `Hseg_na_open`: `sink_mario_in_quicksand` | SUSPECT (phantom forall), not repaired | it stores through Mario's object's `gfx.throwMatrix`, which `fworld` does not pin |
+| GOAL 2 `Hseg_na_open`: `mario_handle_special_floors` | open | WMotR has floor type 10 (death plane), so the body reaches `check_death_barrier` → `level_trigger_warp`. Not walked |
+| GOAL 2 `Hseg_na_open`: `squish_mario_model` | open | its footprint is `squishTimer` (in `ProRows`' hole) plus Mario's object's `gfx.scale` via `vec3f_set`. That needs an object-side hole; not done |
 | GOAL 2 `Hair_pro` | **FOUND FALSE (phantom forall), REPAIRED + PROVED 2026-10-23** | below: `fresh_at` did not pin `waterLevel` / `INPUT_SQUISHED` |
 | GOAL 2 `Hseg_any` (narrowed) | **FOUND FALSE (phantom forall), REPAIRED + PROVED 2026-10-23** | below: `fworld` did not pin `sPlayingInfiniteStairs` / `gCurrLevelNum` |
 

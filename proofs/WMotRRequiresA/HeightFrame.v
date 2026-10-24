@@ -70,7 +70,7 @@ From SM64.Proofs Require Import LinkedTwelve SpawnInit InitMemSat.
 From SM64.Proofs Require SpawnBodies CameraBodies.
 From SM64.Proofs Require Import NoAImpliesNoFlyLinked NoAImpliesNoFlyTwelve.
 From SM64.Proofs Require Import FrameCalls FrameSplit AirSplit AutoSplit.
-From SM64.Proofs.WMotRRequiresA Require Import ProRows.
+From SM64.Proofs.WMotRRequiresA Require Import ProRows NaSplit.
 From SM64.Proofs.WMotRRequiresA Require Import FfWorld FfRow AhwRow KbRow FpuFloor ExtInert.
 From SM64.Proofs.WMotRRequiresA Require PoleXc PoleCasesT.
 From SM64.Proofs.WMotRRequiresA Require RenderFlank RenderKeep AnimWorld PlatformKeep.
@@ -578,8 +578,17 @@ Section HeightLinked12.
      seg_call_rows_naFA): the automatic dispatcher's row is PROVED
      (AutoSplit.aut_seg) from its prologue (Hair_pro), the store
      m->quicksandDepth = 0 (proved to keep mem_ok, the frame world, Phi's
-     cells and fresh_at) and the per-case rows Hauto_case below. *)
-  Hypothesis Hseg_call_na : seg_call_rows_naFA lp bm MWF.
+     cells and fresh_at) and the per-case rows Hauto_case below.
+     Since 2026-10-23 the row is SPLIT PER CALL (NaSplit.naFA_of_open):
+     NaSplit.ema_calls_eq lists the 15 calls it covered; the ones in
+     NaSplit.na_open stay assumed here, the others are PROVED from the
+     generated bodies (NaSplit: set_submerged_cam_preset_and_spawn_bubbles,
+     memory unchanged under R_noA; mario_execute_submerged_action, vacuous
+     since each dispatcher's row now assumes the action is in its own
+     group, FrameSplit.grp_ok, proved at the real switch; update_mario_health;
+     since 2026-10-24 mario_reset_bodystate and update_mario_info_for_cam,
+     with m->marioBodyState pinned to &gBodyStates[0] in FfWorld.ffw). *)
+  Hypothesis Hseg_na_open : na_open_rows lp bm MWF.
   (* the body's other calls, PATH-SENSITIVE since 2026-10-23 (FrameSplit.clw):
      only play_infinite_stairs_music() (unlinked, no arguments) is left
      (FrameSplit.ema_live_anys, computed).  FOUND (phantom forall): the row
@@ -733,6 +742,13 @@ Section HeightLinked12.
   Proof.
     exact (auto_leaves_linked12 lp H12 bm bc oc0 SafeB HSafeB_syms Hbm_sym Hbc_sym Hoc0
              Hsqrtf Hls Hdma_floor).
+  Qed.
+
+  (* the per-call row, from NaSplit *)
+  Lemma Hseg_call_na : seg_call_rows_naFA lp bm MWF.
+  Proof.
+    destruct call_facts as (_ & _ & Hgms & _).
+    exact (naFA_of_open lp H12 bm MWF Hgms Hseg_na_open).
   Qed.
 
   (* the automatic dispatcher's row, from AutoSplit *)
