@@ -295,7 +295,20 @@ all in `Unwired/`, and the theorem moved nowhere. See
     PoleSlow/Fast/Hold/Climb are retired. Walker trap: a clamped polePos folds
     oPosY + 720.0f to a constant, so `PoleClass.tb` has a constant + offset case.
   - (`wmotr_gap` and `wmotr_poles` are now proved from generated level data, `WMotRLevel.v`)
-  - the flank specs (TRUST 0.7)
+  - the flank specs (TRUST 0.7). The controller poll is REAL since 2026-10-23
+    (`PollFlank.v`, libultra `osContStartReadData.c` linked): `seg_input_spec m i m0` is the real
+    `osContStartReadData` (or no request) then the real `read_controller_inputs`, walked down to the
+    existing OS/SI floor (`si_raw_dma_spec`, `recv_mesg_spec`) and `sqrtf_spec` -- NO new floor row.
+    The capstone's no-A premise is now `PollFlank.pif_a_real` on the PIF reply bytes (TRUST 0.1);
+    `a_used_real` is a proved conclusion (`poll_ok`). FOUND: `__osPackReadData` puts 0xFFFF in the
+    request's button word, so an unplugged port reads "A" -- the premise ignores ports with error
+    bits (`rxLen & 0xC0`), as osContGetReadData does. Open in the spec: the two calls' adjacency
+    (audio_game_loop_tick / select_gfx_pool run between) and the Phi carries (the m0 one
+    conditional on `ctl_w`). `ctl_w` gained P1 / P3 / demo-NULL / maxctl / controllerData clauses
+    (StartSat proves them at the start); `stored_globals` gained gControllerPads, __osContPifRam.
+    HeightFrame `Hypothesis` lines 16 -> 18: generic-section rows `Hsrd_ok` / `Hpoll_ok`, both
+    DISCHARGED in HeightLinked12 (`srd_ok_linked12`, `poll_ok_linked12`); the linked section's
+    count is unchanged (12).
 
   The coin link is also open.
 - `docs/TRUST.md` is the ledger of everything a reader must believe. Read

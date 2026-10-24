@@ -37,7 +37,8 @@
 
 From Coq Require Import ZArith List Lia Reals.
 From compcert Require Import Coqlib Maps AST Integers Floats Values Memory Ctypes Clight Globalenvs.
-From SM64.Generated Require mario surface_collision memory camera audio_external sound_init.
+From SM64.Generated Require mario surface_collision memory camera audio_external sound_init
+  game_init libultra_osContInit.
 From SM64.Proofs Require Import HeightInvariant HeightMoveCatalog WMotRLevel Generic.ClosedMem.
 From SM64.Proofs.WMotRRequiresA Require Import FloorList FloorHeight FloorExec AirMatch AirStart RetOk.
 Import ListNotations.
@@ -71,6 +72,26 @@ Definition ff_rl (bm bo : block) (oo : ptrofs) (bfi bmiss bcalls ab bt biom bmq 
             Vptr biom Ptrofs.zero; Vptr bmq Ptrofs.zero; Vptr brm Ptrofs.zero;
             Vptr blk Ptrofs.zero; Vptr bpc Ptrofs.zero;
             Vptr bsr Ptrofs.zero; Vptr bsrc Ptrofs.zero; Vptr bsms Ptrofs.zero].
+
+(* the globals whose cells the frame world's level / controller facts
+   (lvl_w below) read: gCurrLevelNum, sPlayingInfiniteStairs, and since
+   2026-10-23 (PollFlank, the real controller poll) the controller globals
+   gControllers, gControllerPads, gPlayer1Controller, gPlayer3Controller
+   and gCurrDemoInput.  ffw keeps them off Mario's object and the
+   animation buffer, so every walk that keeps the regions' outside keeps
+   their cells (AnimKeep.lvl_w_keep). *)
+Definition ctl_syms (G : genv) (b : block) : Prop :=
+  Genv.find_symbol G mario._gControllers = Some b
+  \/ Genv.find_symbol G game_init._gControllerPads = Some b
+  \/ Genv.find_symbol G game_init._gPlayer1Controller = Some b
+  \/ Genv.find_symbol G game_init._gPlayer3Controller = Some b
+  \/ Genv.find_symbol G game_init._gCurrDemoInput = Some b
+  \/ Genv.find_symbol G libultra_osContInit.___osMaxControllers = Some b.
+
+Definition lvl_syms (G : genv) (b : block) : Prop :=
+  Genv.find_symbol G mario._gCurrLevelNum = Some b
+  \/ Genv.find_symbol G sound_init._sPlayingInfiniteStairs = Some b
+  \/ ctl_syms G b.
 
 (* a world object: a valid block that is none of the regions *)
 Definition wblk (m : mem) (rl : list (option val)) (v : val) (n : Z) : Prop :=
@@ -111,9 +132,9 @@ Definition ffw (m : mem) : Prop :=
       /\ (forall b, In b [bfi; bmiss; bcalls; bsin; ab; biom; bmq; brm; blk; bpc; bsr; bsrc; bsms]
                     \/ Genv.find_symbol G mario._gAudioRandom = Some b
                     (* gCurrLevelNum: add_tree_leaf_particles reads it (the pole walks);
-                       sPlayingInfiniteStairs: play_infinite_stairs_music reads it (lvl_w) *)
-                    \/ (Genv.find_symbol G mario._gCurrLevelNum = Some b
-                        \/ Genv.find_symbol G sound_init._sPlayingInfiniteStairs = Some b) -> b <> bo /\ b <> bt)
+                       sPlayingInfiniteStairs: play_infinite_stairs_music reads it (lvl_w);
+                       the controller globals: the poll reads them (lvl_w's ctl_w) *)
+                    \/ lvl_syms G b -> b <> bo /\ b <> bt)
       (* the collision partition *)
       /\ Wff G m gp SZ_SURFACE (ff_rl bm bo oo bfi bmiss bcalls ab bt biom bmq brm blk bpc bsr bsrc bsms)
       (* m->floor, m->area *)
@@ -524,8 +545,64 @@ Qed.
    at the visit's entry (the castle's last frame clears it: Mario enters
    the painting away from the endless stairs) and stays FALSE (the call's
    verdict outside the castle is FALSE). *)
+(* the controller cells (2026-10-23, PollFlank): what the real
+   read_controller_inputs (game_init.c) reads to turn the polled pad bytes
+   into Mario's controller.  gControllers[0].controllerData is the pad of
+   the first plugged-in port (init_controllers, game_init.c: one of
+   gControllerPads[0..3]); every pad's button word, when an int, has A
+   clear (the last poll stored it from an A-free PIF record, or left it);
+   gPlayer1Controller / gPlayer3Controller are &gControllers[0] /
+   &gControllers[2] (their static initializers; nothing reassigns them);
+   gCurrDemoInput is NULL (no demo plays in WMotR: only the title screen's
+   demo sets it).  Without these the poll's A-free result is not provable:
+   a demo, a stale A in a pad, or a controller pointer elsewhere each make
+   gControllers[0] report A from an A-free PIF image. *)
+Definition ctl_w (G : genv) (m : mem) : Prop :=
+  forall bc bp, Genv.find_symbol G mario._gControllers = Some bc ->
+    Genv.find_symbol G game_init._gControllerPads = Some bp ->
+    (forall j, j = 0 \/ j = 1 ->
+       Mem.load Mint32 m bc (28 * j + 24) = Some (Vint Int.zero)
+       \/ exists k, 0 <= k < 4 /\ Mem.load Mint32 m bc (28 * j + 24) = Some (Vptr bp (Ptrofs.repr (6 * k))))
+    /\ (forall z, z = 16 \/ z = 18 -> exists v,
+          Mem.load Mint16unsigned m bc z = Some (Vint v) /\ Int.and v (Int.repr 32768) = Int.zero)
+    /\ (forall k n, 0 <= k < 4 -> Mem.load Mint16unsigned m bp (6 * k) = Some (Vint n) ->
+          Int.and n (Int.repr 32768) = Int.zero)
+    /\ (forall b1, Genv.find_symbol G game_init._gPlayer1Controller = Some b1 ->
+          Mem.load Mint32 m b1 0 = Some (Vptr bc Ptrofs.zero))
+    /\ (forall b3, Genv.find_symbol G game_init._gPlayer3Controller = Some b3 ->
+          Mem.load Mint32 m b3 0 = Some (Vptr bc (Ptrofs.repr 56)))
+    /\ (forall bd, Genv.find_symbol G game_init._gCurrDemoInput = Some bd ->
+          Mem.load Mint32 m bd 0 = Some (Vint Int.zero))
+    /\ (forall bx, Genv.find_symbol G libultra_osContInit.___osMaxControllers = Some bx ->
+          forall x, Mem.load Mint8unsigned m bx 0 = Some (Vint x) -> Int.unsigned x <= 4).
+
 Definition lvl_w (G : genv) (m : mem) : Prop :=
   (forall b, Genv.find_symbol G mario._gCurrLevelNum = Some b ->
      Mem.load Mint16signed m b 0 = Some (Vint (Int.repr LEVEL_WMOTR)))
   /\ (forall b, Genv.find_symbol G sound_init._sPlayingInfiniteStairs = Some b ->
-     Mem.load Mint8unsigned m b 0 = Some (Vint Int.zero)).
+     Mem.load Mint8unsigned m b 0 = Some (Vint Int.zero))
+  /\ ctl_w G m.
+
+(* lvl_w reads only the lvl_syms blocks *)
+Lemma lvl_w_loads : forall G m m',
+  (forall b, lvl_syms G b -> forall ch z, Mem.load ch m' b z = Mem.load ch m b z) ->
+  lvl_w G m -> lvl_w G m'.
+Proof.
+  intros G m m' K (LV1 & LV2 & CW).
+  split; [| split].
+  - intros b Hs. rewrite (K b (or_introl Hs)). exact (LV1 b Hs).
+  - intros b Hs. rewrite (K b (or_intror (or_introl Hs))). exact (LV2 b Hs).
+  - intros bc bp Sc Sp.
+    destruct (CW bc bp Sc Sp) as (L24 & B16 & PA & P1 & P3 & DM & MX).
+    assert (Kc : forall ch z, Mem.load ch m' bc z = Mem.load ch m bc z)
+      by exact (K bc (or_intror (or_intror (or_introl Sc)))).
+    assert (Kp : forall ch z, Mem.load ch m' bp z = Mem.load ch m bp z)
+      by exact (K bp (or_intror (or_intror (or_intror (or_introl Sp))))).
+    split; [intros j Hj; rewrite !Kc; exact (L24 j Hj) |].
+    split; [intros z Hz; rewrite Kc; exact (B16 z Hz) |].
+    split; [intros k' n Hk' Hl; rewrite Kp in Hl; exact (PA k' n Hk' Hl) |].
+    split; [intros b1 S1; rewrite (K b1 (or_intror (or_intror (or_intror (or_intror (or_introl S1)))))); exact (P1 b1 S1) |].
+    split; [intros b3 S3; rewrite (K b3 (or_intror (or_intror (or_intror (or_intror (or_intror (or_introl S3))))))); exact (P3 b3 S3) |].
+    split; [intros bd Sd; rewrite (K bd (or_intror (or_intror (or_intror (or_intror (or_intror (or_intror (or_introl Sd)))))))); exact (DM bd Sd) |].
+    intros bx Sx; rewrite (K bx (or_intror (or_intror (or_intror (or_intror (or_intror (or_intror (or_intror Sx)))))))); exact (MX bx Sx).
+Qed.

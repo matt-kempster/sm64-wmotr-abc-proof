@@ -22,16 +22,16 @@ without pressing A".*
 
 | # | Item | Status / notes |
 |---|---|---|
-| 0.1 | The definition of "no A": **A is neither pressed nor held.** GOAL 2's capstone requires, after every controller poll, both `buttonPressed & A_BUTTON` and `buttonDown & A_BUTTON` clear (`AGates.a_used_real`; `buttonDown` @16 pinned against the generated `Controller`). GOAL 1's capstone needs only the pressed bit, so it is the stronger statement. | Needs a reader check. Holding A counts as using it (ABC's "0.5x" press, `game_init.c:544`). The held bit is load-bearing: with A held and never pressed, `act_punching`/`act_move_punching` enter `ACT_JUMP_KICK` (not in the no-A whitelist) and the wing cap flutters (`mario_step.c:566`). Details: [row 0.1 in detail](#row-01-in-detail). |
+| 0.1 | The definition of "no A": **A is neither pressed nor held.** GOAL 2's capstone (since 2026-10-23) states it on **the bytes the controller hardware delivered**: every frame, the PIF reply image `__osContPifRam` after `osContStartReadData` shows `A_BUTTON` (0x8000 of the button word) on no live port, a port whose error bits (`rxLen & 0xC0`) are set being ignored as `osContGetReadData` ignores it (`PollFlank.pif_a_real`). The real poll, walked, turns that into `buttonPressed & A_BUTTON` and `buttonDown & A_BUTTON` clear (`AGates.a_used_real`, now a proved conclusion, `PollFlank.poll_ok`; `buttonDown` @16 pinned against the generated `Controller`). GOAL 1's capstone needs only the pressed bit. | Needs a reader check. Holding A counts as using it (ABC's "0.5x" press, `game_init.c:544`). The held bit is load-bearing: with A held and never pressed, `act_punching`/`act_move_punching` enter `ACT_JUMP_KICK` (not in the no-A whitelist) and the wing cap flutters (`mario_step.c:566`). Details: [row 0.1 in detail](#row-01-in-detail). |
 | 0.2 | The definition of "flying" (`Flying.v`: `ACT_FLYING`, `ACT_FLYING_TRIPLE_JUMP`; the invariant set also has `ACT_SHOT_FROM_CANNON`) | Constants read from the generated AST. |
 | 0.3 | "Collect the star" = the red-coin star spawns and is touched. The GOAL-2 height bound must imply you can't | **Height form stated** (`WMotRRequiresA/HeightFrame.v`, `wmotr_noA_height_bound_linked12`): a no-A run keeps `pos[1] ≤ 2796` (`PHI_YMAX` = K + A, `HeightInvariant.v`; K = H* = 2424, the wing-cap box top 2320 + 2·52 (the box is scaled ×2), with the level facts it needs proved from generated level data in `WMotRLevel.v` (0.8); A = 372 from `tools/goal2_budget.py` plus the binary32 rounding allowance). Details: [row 0.3 in detail](#row-03-in-detail). |
 | 0.6 | GOAL 2's height invariant `Phi` and the Mario-frame rows | **Defined** (`HeightInvariant.height_invariant`, design `docs/goal2-phi.md`): `R_noA` action whitelist ∧ `budget_ok` over the cells action, actionState, actionTimer, pos[1], vel[1], floorHeight and `marioObj->gfx.pos[1]` (what OOB recovery restores). Details: [row 0.6 in detail](#row-06-in-detail). |
 | 0.8 | GOAL 2's level data: `wmotr_floor` / `wmotr_pole` / `wmotr_cannon` are WMotR's floors, poles and cannon seats | **Defined from generated/, rows proved** (`WMotRLevel.v`). 2026-10-22: `floor_data` (d) and decoder agreement (a) are PROVED on the memory the real `load_area_terrain` builds (`TerrainRun`, 1352 surfaces); since later that day the GOAL 2 start witness carries it (`StartTerrain`: the loader runs on the `init_mem` image in the real boot order, and `goal2_start_sat` concludes `floor_data` + `static_agree`). Details: [row 0.8 in detail](#row-08-in-detail). |
 | 0.9 | GOAL 2's pos[1] writer census is complete (`YWriterCensus.v`) | **Machine-checked list, trusted edges.** Coq scans every function body of the 12 generated Mario TUs and proves: 31 direct `pos[1]` stores and 21 write-escapes (16 whole-vector arg-0 passes to `vec3f_copy`/`vec3f_set`/`vec3s_to_vec3f`, 5 `&pos[1]` passes to `f32_find_wall_collision`), 52 in all; `pos`'s address never reaches a temp, memory, a condition or a return, and no struct copy covers it. Details: [row 0.9 in detail](#row-09-in-detail). |
 | 0.10 | GOAL 2's object census: what objects can exist in WMotR and their interaction types (`BehaviorScripts.v`) | **Machine-checked over generated code, frontier trusted.** `generated/behavior_data.v` (clightgen of `data/behavior_data.c`) gives every behavior script as data; a fail-closed decoder mirrors the command layouts. Details: [row 0.10 in detail](#row-010-in-detail). |
-| 0.7 | GOAL 2's flank segments (`HeightFrame.v`: controller poll, platform displacement, level/warp phase, non-Mario objects) do what their specs say: y / action loads as the censuses found them, and each carries GOAL 1's `MWF_real` and Φ (since 2026-09-29 Φ here is `PhiW`, so each flank also keeps the WMotR world: object updates reload only WMotR's surfaces and never hand Mario an object to hold or ride; collision detection registers only WMotR-kind objects, with poles and cannon bases at their level positions and no star while coin #2 stands (0.3); no object sets a stomp bit on Mario's object) (the poll only when A is not pressed); platform displacement also leaves the held-A reading unchanged (it writes no controller) | **ASSUMED, labeled.** Specs, not proofs: none of that code is linked, except Mario's render call (2026-10-22, `seg_render_spec`: real call, GOAL-1 carry proved, Φ carry assumed). Details: [row 0.7 in detail](#row-07-in-detail). |
+| 0.7 | GOAL 2's flank segments (`HeightFrame.v`: controller poll, platform displacement, level/warp phase, non-Mario objects) do what their specs say: y / action loads as the censuses found them, and each carries GOAL 1's `MWF_real` and Φ (since 2026-09-29 Φ here is `PhiW`, so each flank also keeps the WMotR world: object updates reload only WMotR's surfaces and never hand Mario an object to hold or ride; collision detection registers only WMotR-kind objects, with poles and cannon bases at their level positions and no star while coin #2 stands (0.3); no object sets a stomp bit on Mario's object) (the poll only when A is not pressed); platform displacement also leaves the held-A reading unchanged (it writes no controller) | **ASSUMED, labeled.** Specs, not proofs: none of that code is linked, except Mario's render call (2026-10-22, `seg_render_spec`: real call, GOAL-1 carry proved, Φ carry assumed) and **the controller poll (2026-10-23, `seg_input_spec`: the real `osContStartReadData` and `read_controller_inputs`, walked down to the OS / SI floor (3.5); GOAL-1 carry, A-freedom and the controller cells proved; open: the two calls' adjacency and the Φ carries)**. Details: [row 0.7 in detail](#row-07-in-detail). |
 | 0.4 | The starting states the theorem quantifies over (`mem_ok_lp`: Mario's block valid, his action untainted, `MWF_real`) | **GOAL 1: proved satisfiable by the real boot path** (2026-10-19, `BootMWF.boot_init_ok`, used by `NoAImpliesNoFlyTwelve.noA_never_flying_from_boot`). **GOAL 2: the witness is in WMotR by real code** (2026-10-21: `area.c` linked as the 23rd TU; `gCurrLevelNum = LEVEL_WMOTR` is stored by the generated `initiate_warp` + `warp_level`, `EntryWarp.v`; 2026-10-22: one real no-A frame runs from the witness, `frame_runs`, and its `init_mario_from_save_file` cells are tethered to the real body, `ifs_tether`). Details: [row 0.4 in detail](#row-04-in-detail). |
-| 0.5 | The step relation = what one real frame does | GOAL 1: **only `execute_mario_action`**. GOAL 2's `frame_step` composes that real call with four *specified* flanks (0.7): controller poll, platform, level phase, objects. The flanks are specs, not linked code. This is the largest scope gap. Details: [row 0.5 in detail](#row-05-in-detail). |
+| 0.5 | The step relation = what one real frame does | GOAL 1: **only `execute_mario_action`**. GOAL 2's `frame_step` composes that real call with the real controller poll (2026-10-23, 0.7) and three *specified* flanks (0.7): platform, level phase, objects. Those flanks are specs, not linked code. This is the largest scope gap. Details: [row 0.5 in detail](#row-05-in-detail). |
 
 ### Row 0.1 in detail
 
@@ -43,6 +43,19 @@ without pressing A".*
   buttonDown)`, `buttonDown = raw`, so A can only become down on a poll that reports it pressed. The
   premise should then be stated on the raw pad data, since title-screen demos (`run_demo_inputs`)
   inject A.
+- **Stated on the raw data since 2026-10-23 (GOAL 2).** The capstone's premise is now
+  `PollFlank.pif_a_real` on the frame's input memory: the PIF reply bytes, which the OS floor's
+  `__osSiRawStartDma` clause (3.5) lets the SI DMA set to any data. The poll is walked
+  (`osRecvMesg`, `osContGetReadData`, `run_demo_inputs` with `gCurrDemoInput = NULL`,
+  `adjust_analog_stick`, the player-3 copy), so "neither pressed nor held" is proved from it, and
+  in the run `buttonDown` is always the last poll's button word. The demo case is excluded by the
+  frame world (`FfWorld.ctl_w`: `gCurrDemoInput = NULL` in WMotR).
+- **FOUND 2026-10-23 (a premise that would have been false):** `__osPackReadData` writes the
+  read-request template into the PIF image with the button word `0xFFFF` (A set), and on a port
+  with no controller the reply leaves it there with the error bits set. A premise "no port's
+  button word has A" would be false on real hardware with fewer than four controllers plugged in
+  (the capstone vacuous). `pif_a_real` ignores ports whose error bits are set, exactly as
+  `osContGetReadData` does (it copies button / stick only when `(rxLen & 0xC0) == 0`).
 
 ### Row 0.3 in detail
 
@@ -709,6 +722,30 @@ without pressing A".*
   would need a render-apartness clause in every frame-world row. No GFX external needed a floor:
   none of the unlinked rendering externals (`guPerspective`, `guOrtho`, `guLookAtReflect`,
   `print_text_fmt_int`, `create_shadow_below_xyz`, geo callbacks) is on this path.
+- **Poll flank (2026-10-23, `PollFlank.v`; libultra `osContStartReadData.c` linked).** The
+  frame's input segment is now the real code: `seg_input_spec m i m0` = (`i = m` or the real
+  `osContStartReadData(&gSIEventMesgQueue)` from m to i) and the real `read_controller_inputs()`
+  from i to m0. Proved, on the link (`HeightLinked12.srd_ok_linked12` / `poll_ok_linked12`,
+  discharging the HeightFrame rows `Hsrd_ok` / `Hpoll_ok`): `osContStartReadData` carries GOAL 1's
+  facts (`PollFlank.srd_ok`); `read_controller_inputs` from a memory whose PIF reply shows A on no
+  live port carries GOAL 1's facts (valid bm, the action cell, `MWF_real`, by
+  `MWFReal.mwf_real_bc_frame`), leaves `buttonPressed` and `buttonDown` A-free, and re-establishes
+  the controller cells the next poll reads (`FfWorld.ctl_w`) (`PollFlank.poll_ok`). The walk covers
+  `osRecvMesg` (OS floor, 3.5), `osContGetReadData` (loop over `__osMaxControllers` <= 4 ports, the
+  8-byte reply struct copy, the error-bit test), `run_demo_inputs` (with `gCurrDemoInput` NULL),
+  the two-controller loop (`buttonPressed = button & (button ^ buttonDown)`, `buttonDown =
+  button`, `adjust_analog_stick` with `sqrtf`, FpuFloor), and the player-3 copy. Its write set:
+  `gSIEventMesgQueue`, `gMainReceivedMesg`, `gControllerPads`, and `gControllers` outside the
+  `controllerData` words. **Still assumed (labeled, in the spec):** (a) the two calls are
+  adjacent: the game runs `audio_game_loop_tick()` and `select_gfx_pool()` between them
+  (`game_init.c:686-691`), assumed not to touch the PIF image; (b) the Φ carries across the two
+  calls (Φ m -> Φ i; Φ i -> ctl_w m0 -> Φ m0: the second is conditional on the controller cells
+  the poll provably re-establishes). **Strengthened to make it provable:** `FfWorld.ctl_w` (in
+  Φ via `lvl_w`) now also pins `gPlayer1Controller = &gControllers[0]`, `gPlayer3Controller =
+  &gControllers[2]`, `gCurrDemoInput = NULL`, `__osMaxControllers <= 4` and each
+  `gControllers[j].controllerData` to NULL or a pad, all PROVED at the run's start memory
+  (`StartSat`); `stored_globals` (`CensusV2`, so `SafeB_syms_ok`) gained `gControllerPads` and
+  `__osContPifRam` (non-vacuity: `SpawnInit.safeb_wit_sat` still builds).
 - **GOAL 1 and rendering.** GOAL 1's step is `execute_mario_action` alone; rendering writes Mario's
   animInfo cells (object + 64..76) and the `gCurrAnim*` globals, none of which is the action cell,
   the A-input cell or a cell `MWF_real` reads (proved: `render_mem_ok`).
@@ -967,8 +1004,9 @@ without pressing A".*
 
 ### Row 0.5 in detail
 
-- GOAL 1: **only `execute_mario_action`**. GOAL 2's `frame_step` composes that real call with four
-  *specified* flanks (0.7): controller poll, platform, level phase, objects. The flanks are specs,
+- GOAL 1: **only `execute_mario_action`**. GOAL 2's `frame_step` composes that real call with the
+  real controller poll (`osContStartReadData`, `read_controller_inputs`: 2026-10-23, 0.7) and
+  three *specified* flanks (0.7): platform, level phase, objects. Those flanks are specs,
   not linked code. This is the largest scope gap.
 - **GOAL 2's run is one WMotR visit:** a frame is a step only if it ends with `gCurrLevelNum =
   LEVEL_WMOTR` (`HeightFrame.in_wmotr`; 31, pinned from the level's own self-warp node,
@@ -1063,6 +1101,15 @@ link grows.
   is about the modeled memory only. Writes by other threads while the game thread blocks are 3.3
   (among modeled globals, the audio thread's `gAudioRandom`). Consumer: `LptBody` (the GOAL-1
   `load_patchable_table` row).
+- **Consumer since 2026-10-23: the controller poll (`PollFlank`, GOAL 2's `seg_input`). No new
+  floor row.** `osContStartReadData`'s two `__osSiRawStartDma` calls (write the request, read
+  the reply) use the existing SI clause on the 64-byte `__osContPifRam`: the reply bytes are
+  whatever the hardware delivered, as data, and **the no-A premise is a statement about exactly
+  those bytes** (`PollFlank.pif_a_real`, 0.1). Its `osRecvMesg` on `gSIEventMesgQueue` (both in
+  `osContStartReadData` and in `read_controller_inputs`, cell `&gMainReceivedMesg`) uses the
+  existing per-queue clause; `adjust_analog_stick`'s `sqrtf` uses `FpuFloor.sqrtf_spec`. All three
+  are restriction-only (each bounds every execution of the call; none quantifies a behavior over
+  all signatures).
 - **Widened 2026-10-21 for `save_file_do_save`** (consumer `SaveDoSaveBody`, both capstones through
   `cut_ext_open_of2`). The libultra C of the EEPROM write path is now linked (six TUs, 4.1), so the
   floor moved to where that C stops:

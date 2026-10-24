@@ -260,7 +260,7 @@ Section PR.
     eval_funcall function_entry2 ge m (Internal SI.f_play_infinite_stairs_music) vargs t m' vr ->
     m' = m.
   Proof.
-    intros m vargs t m' vr (LV1 & LV2) Hev.
+    intros m vargs t m' vr (LV1 & LV2 & _) Hev.
     destruct (fc_entry ge m SI.f_play_infinite_stairs_music vargs t m' vr eq_refl Hev) as (le0 & le' & t' & out & _ & H).
     unfold SI.f_play_infinite_stairs_music in H. cbn [fn_body] in H.
     apply seq_inv in H as [(t1 & le1 & m1 & t2 & H1 & H2) | (t1 & H1 & Hn)].
@@ -872,7 +872,7 @@ Section PR.
       intros AW Hl.
       apply (AnimKeep.lvl_w_keep_ne ge m m' (fun b => b <> bm /\ b <> bsr /\ b <> bsrc)); [| | exact Hl].
       - intros b Hs. split; [exact (AnimKeep.lvl_ne_bm ge bm m AW b Hs) |].
-        destruct Hs as [Hs | Hs]; split;
+        destruct Hs as [Hs | [Hs | [Hs | [Hs | [Hs | [Hs | [Hs | Hs]]]]]]]; split;
           first [ exact (AnimKeep.symne_ids ge _ _ _ _ Hs SR0 eq_refl)
                 | exact (AnimKeep.symne_ids ge _ _ _ _ Hs SRC0 eq_refl) ].
       - intros ch b z (A & B & C). exact (LHb ch b z A B C).
