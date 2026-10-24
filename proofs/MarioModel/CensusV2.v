@@ -39,7 +39,7 @@ From compcert Require Import Coqlib Maps AST Integers Values Events Memory
   Globalenvs Ctypes Cop Clightdefs Clight ClightBigstep Linking Errors.
 From SM64.Generated Require surface_collision math_util memory save_file area
   libultra_osSiCreateAccessQueue libultra_osContInit libultra_osEepromWrite
-  audio_external print ingame_menu behavior_data game_init.
+  audio_external print ingame_menu behavior_data game_init camera.
 From SM64.Generated Require mario level_update mario_step mario_actions_submerged
   mario_actions_cutscene behavior_actions interaction graph_node spawn_object
   object_helpers.
@@ -1077,9 +1077,31 @@ Definition spawn_bhv_syms : list ident :=
 Definition print_safe_syms : list ident :=
   memory._gEffectsMemoryPool :: print._sTextLabels :: print._sTextLabelsCount :: nil.
 
+(* camera.c's Mario-camera-state pointer (2026-10-23, the set_camera_mode
+   proof, CameraModeBody.v): `struct PlayerCameraState *sMarioCamState =
+   &gPlayerCameraState[0]` (camera.c:439).  update_boss_fight_camera, one of
+   the sModeTransitions targets set_camera_mode calls, STORES through it
+   (sMarioCamState->cameraEvent = 0).  Outside SafeB nothing said where that
+   pointer aims, so a memory with sMarioCamState aimed at Mario's own block
+   was in scope of the row (phantom forall).  As a SafeB block, R7 keeps what
+   it holds SafeB: in the real game it holds &gPlayerCameraState[0] from boot
+   (static data) and no linked code writes it.  gPlayerCameraState is
+   already SafeB at boot (BootMWF.SafeB_boot: every symbol outside
+   non_safeb_syms), and is what mario.c's statusForCamera chase root aims at.
+   The two surface partitions (surface_collision.c): the camera transitions
+   call the real find_floor / find_ceil with the address of a LOCAL out cell
+   (look_down_slopes' `struct Surface *floor`, ...), and those bodies store
+   the surface they found there.  As SafeB blocks, R7 makes every SurfaceNode
+   and Surface pointer chased out of them SafeB, so the local holds a SafeB
+   pointer, never Mario's block.  Both are outside non_safeb_syms, so
+   SafeB_boot contains them. *)
+Definition camera_safe_syms : list ident :=
+  camera._sMarioCamState :: surface_collision._gStaticSurfacePartition
+    :: surface_collision._gDynamicSurfacePartition :: nil.
+
 Definition safe_ptr_syms : list ident :=
   mario_actions_cutscene._gCurrentObject :: gobj_syms ++ bhv_held_syms
-    ++ spawn_safe_syms ++ spawn_bhv_syms ++ print_safe_syms.
+    ++ spawn_safe_syms ++ spawn_bhv_syms ++ print_safe_syms ++ camera_safe_syms.
 
 (* the two spawn entry points whose rows are argument-gated (2026-10-21,
    SpawnBodies.v): every argument SafeB-if-pointer *)

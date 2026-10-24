@@ -99,10 +99,12 @@ all in `Unwired/`, and the theorem moved nowhere. See
   `gDialogVariable`, now a stored global); `engine/behavior_script.c` is TU 43 (`random_float`,
   `MenuBodies.Hpx_rf`) and `game/obj_behaviors.c` TU 44 (`spawn_default_star`, `SpawnStarBody`;
   `bhvStarSpawnCoordinates` joined `spawn_bhv_syms`, `sb_gs` gained `gCurrentObject` + it).
-  Still open camera row `Hscm_body_real`: set_camera_mode calls through the
-  WRITABLE table `sModeTransitions` (enumerate link functions of type (Camera*, f32*, f32*)->s32),
-  ~48 camera.c functions, no pointer-typed store in the tree; needs `sMarioCamState` in
-  `safe_ptr_syms` (TRUST 4.1).
+  `Hscm_body_real` PROVED 2026-10-23 (`CameraModeBody.v`, class walker over 60 real bodies in
+  camera.c / math_util.c / surface_collision.c + play_sound + sqrtf; the WRITABLE
+  `sModeTransitions` indirect call is covered by a per-TU type certificate: only the 14
+  transitions have type (Camera*, f32*, f32*)->s32). Needed `sMarioCamState` and the two surface
+  partitions in `CensusV2.camera_safe_syms` (SafeB_boot meets it). GOAL 1 13 -> 12,
+  HeightFrame 20 -> 19 `Hypothesis` lines (TRUST 4.1).
   2026-10-22: HeightFrame's section has 27 `Hypothesis` lines (28 → 27: `Hcamera` proved away).
   2026-10-23 AUDIO LINK (`audio/external.c`, `sound_init.c`: TUs 40, 41; `AudioBodies`, `SndXc`):
   GOAL 1 `Hypothesis` lines 16 → 15, HeightFrame 26 → 24. Proved: `Hpres_sta_ext`, `Hsss`,
@@ -141,7 +143,7 @@ all in `Unwired/`, and the theorem moved nowhere. See
   - On linking audio: `play_sound` stores `pos` (R7), so gate it first. RESOLVED 2026-10-23
     (obj_behaviors.c linked): `spawn_default_star`'s `bhvStarSpawnCoordinates` was not in
     `safe_ptr_syms`; it joined `spawn_bhv_syms` and the body is walked (`SpawnStarBody`).
-  SURVIVED: `Hscm_body_real` (its only phantom store writes 0, which is harmless), the structural
+  SURVIVED: `Hscm_body_real` (its only phantom store writes 0; PROVED 2026-10-23), the structural
   pins, and the restriction-only external specs.
 - **GOAL 2** (WMotR needs A): `WMotRRequiresA/HeightFrame.v`,
   `wmotr_noA_height_bound_linked12`. This is a conditional theorem over ONE WMotR
@@ -248,7 +250,20 @@ all in `Unwired/`, and the theorem moved nowhere. See
     so INPUT_SQUISHED can join the carried input mask when the dispatcher is walked.
   - The **automatic dispatcher** (`mario_execute_automatic_action`) is SPLIT (2026-10-21,
     `AutoSplit.aut_seg`, TRUST (i)-(j)). `Hseg_call_na` is now `seg_call_rows_naFA`, which
-    excludes both dispatchers. The prologue call is in `Hair_pro`. The
+    excludes both dispatchers. Since 2026-10-23 (`NaSplit`, TRUST 0.8(q)) it is a LEMMA over
+    `HeightFrame.Hseg_na_open : na_open_rows`, which has 10 named per-call rows. Five calls
+    are proved: submerged-cam (dead outside group 0xC0), `update_mario_health` (a walk inside
+    `ProRows`' hole), the submerged dispatcher (vacuous under `grp_ok`), and (2026-10-24)
+    `mario_reset_bodystate` / `update_mario_info_for_cam`. For those two, `ffw` now pins
+    `m->marioBodyState = &gBodyStates[0]`, and gBodyStates is ff_rl region `RBS`; a pin alone
+    is not enough, because the walk regions must exclude it. `ProRows`' hole is generic over
+    `XIDS`, and `BodyFrame.Q2` allows freed callee frames (vec3*_copy, `v3_frame`). Dispatcher pres
+    now carry `FrameSplit.grp_ok`: the action's group equals the case label, proved at the
+    real switch. NEXT: shrink `na_open` one call at a time. hitbox_and_cap also stores through
+    `marioBodyState` but calls `stop_cap_music`. update_mario_inputs needs pins on
+    `gEnvironmentRegions`, `gShowDebugText` and `gCameraMovementFlags`, plus the collision
+    finders. quicksand needs a pin on `gfx.throwMatrix` (and gfx.pos[1] is Phi's cell). squish
+    needs an object-side hole for `gfx.scale` (§7). The prologue call is in `Hair_pro`. The
     `quicksandDepth = 0` store is proved (the `qsd_*` lemmas). What stays assumed is the
     12 handler calls, `HeightFrame.Hauto_case : aut_case_rows` (27 → 28 hypotheses).
     Shrink it per case as walks land, as `air_case_rest*` did. Its audit on 2026-10-21
@@ -295,8 +310,14 @@ all in `Unwired/`, and the theorem moved nowhere. See
     PoleSlow/Fast/Hold/Climb are retired. Walker trap: a clamped polePos folds
     oPosY + 720.0f to a constant, so `PoleClass.tb` has a constant + offset case.
   - (`wmotr_gap` and `wmotr_poles` are now proved from generated level data, `WMotRLevel.v`)
-  - the flank specs (TRUST 0.7). The controller poll is REAL since 2026-10-23
-    (`PollFlank.v`, libultra `osContStartReadData.c` linked): `seg_input_spec m i m0` is the real
+  - the flank specs (TRUST 0.7): level phase, objects. Mario's render call and
+    `apply_mario_platform_displacement` (platform_displacement.c, TU 45) are REAL calls whose
+    GOAL-1 and Φ carries are proved (`RenderKeep.render_keeps_phiw`, `PlatformKeep`, 2026-10-23);
+    they state only narrow premises: `surf_apart` (Mario's surfaces not in a written global's block)
+    and `plat_still` (the ridden platform is NULL or has zero angle velocity; FOUND: a rotating
+    platform moves pos[1], so the old "y unchanged" platform spec was false of the real body).
+    The controller poll is REAL since 2026-10-23
+    (`PollFlank.v`, libultra `osContStartReadData.c` linked as TU 46): `seg_input_spec m i m0` is the real
     `osContStartReadData` (or no request) then the real `read_controller_inputs`, walked down to the
     existing OS/SI floor (`si_raw_dma_spec`, `recv_mesg_spec`) and `sqrtf_spec` -- NO new floor row.
     The capstone's no-A premise is now `PollFlank.pif_a_real` on the PIF reply bytes (TRUST 0.1);
@@ -306,9 +327,9 @@ all in `Unwired/`, and the theorem moved nowhere. See
     (audio_game_loop_tick / select_gfx_pool run between) and the Phi carries (the m0 one
     conditional on `ctl_w`). `ctl_w` gained P1 / P3 / demo-NULL / maxctl / controllerData clauses
     (StartSat proves them at the start); `stored_globals` gained gControllerPads, __osContPifRam.
-    HeightFrame `Hypothesis` lines 16 -> 18: generic-section rows `Hsrd_ok` / `Hpoll_ok`, both
-    DISCHARGED in HeightLinked12 (`srd_ok_linked12`, `poll_ok_linked12`); the linked section's
-    count is unchanged (12).
+    HeightFrame `Hypothesis` lines (after the combo21 merge) 19 -> 21: generic-section rows
+    `Hsrd_ok` / `Hpoll_ok`, both DISCHARGED in HeightLinked12 (`srd_ok_linked12`,
+    `poll_ok_linked12`); the linked section's count is unchanged (11).
 
   The coin link is also open.
 - `docs/TRUST.md` is the ledger of everything a reader must believe. Read

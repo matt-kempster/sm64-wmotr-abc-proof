@@ -32,6 +32,7 @@ generated/audio_external.v
 generated/sound_init.v
 generated/print.v
 generated/behavior_script.v
+generated/platform_displacement.v
 generated/wmotr_script.v
 generated/macro_special_objects.v
 generated/behavior_data.v
@@ -220,6 +221,7 @@ proofs/MarioModel/SpawnStarBody.v
 proofs/MarioModel/SaveDoSaveBody.v
 proofs/MarioModel/SpawnBodies.v
 proofs/MarioModel/PrintBodies.v
+proofs/MarioModel/CameraModeBody.v
 
 # --- GOAL 1 / the perform_air_step surface (SPINE: pas_cp DISCHARGES the
 #     capstone's Hcp_pas_real perform_air_step blocker via a loop-tolerant
@@ -290,10 +292,16 @@ proofs/WMotRRequiresA/FrameSplit.v
 proofs/WMotRRequiresA/AirSplit.v
 proofs/WMotRRequiresA/AutoSplit.v
 proofs/WMotRRequiresA/ProRows.v
+proofs/WMotRRequiresA/BodyFrame.v
+proofs/WMotRRequiresA/NaSplit.v
 proofs/WMotRRequiresA/RenderAnim.v
 proofs/WMotRRequiresA/RenderSet.v
 proofs/WMotRRequiresA/RenderFlank.v
 proofs/WMotRRequiresA/PollFlank.v
+proofs/WMotRRequiresA/PlatformEff.v
+proofs/WMotRRequiresA/RenderKeep.v
+proofs/WMotRRequiresA/PlatformWalk.v
+proofs/WMotRRequiresA/PlatformKeep.v
 proofs/WMotRRequiresA/HeightFrame.v
 proofs/WMotRRequiresA/WMotREntry.v
 proofs/WMotRRequiresA/SpawnTypeRun.v
