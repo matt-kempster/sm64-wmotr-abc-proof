@@ -208,8 +208,15 @@ Ltac le_simp_in H :=
   repeat first [ rewrite PTree.gss in H
                | rewrite PTree.gso in H by (apply Pos.eqb_neq; vm_compute; reflexivity) ].
 
-(* the cells a write at Mario's flags (bytes 4..7) misses *)
-Ltac hside := unfold OFS_ACTION, OFS_ASTATE, OFS_ATIMER, OFS_POSY, OFS_VELY, OFS_FLOORH,
+(* the cells a write in a hole of Mario's state misses.  The hole is
+   m->flags (bytes 4..7) and, since 2026-10-23 (NaSplit), bytes 174..183
+   (health, unkB0, hurtCounter, healCounter, squishTimer, fadeWarpOpacity,
+   capTimer): no conjunct of the frame world reads them *)
+Definition hz (z s : Z) : Prop := z + s <= 4 \/ (8 <= z /\ z + s <= 174) \/ 184 <= z.
+Lemma hz_8 : hz 8 4.
+Proof. unfold hz. right. left. split; [apply Z.le_refl | discriminate]. Qed.
+
+Ltac hside := unfold hz, OFS_ACTION, OFS_ASTATE, OFS_ATIMER, OFS_POSY, OFS_VELY, OFS_FLOORH,
   OFS_MARIOOBJ, FFW_OBJ, FFW_ANIM, FFW_FLOOR, FFW_AREA, FFW_CTL, FFW_WALL, FFW_CEIL, FFW_PCS, WALL_OFF,
   CEIL_OFF, FLOOR_OFF, HELD_OFF, RIDDEN_OFF, MARIOOBJ_OFF, USED_OFF, WL_OFF, QSD_OFF;
   try change (size_chunk Mptr) with 4;
@@ -585,7 +592,7 @@ Section PR.
   (* ==================================================================== *)
 
   Definition PH (bsr bsrc : block) (b : block) (z : Z) : Prop :=
-    b <> bsr /\ b <> bsrc /\ ~ (b = bm /\ 4 <= z < 8).
+    b <> bsr /\ b <> bsrc /\ ~ (b = bm /\ (4 <= z < 8 \/ 174 <= z < 184)).
   Definition Qrel (bsr bsrc : block) (m0 m1 : mem) : Prop :=
     Mem.unchanged_on (PH bsr bsrc) m0 m1 /\ Mem.nextblock m1 = Mem.nextblock m0
     /\ (forall b o k p, Mem.perm m1 b o k p <-> Mem.perm m0 b o k p).
@@ -596,7 +603,7 @@ Section PR.
     Hypothesis SRC0 : Genv.find_symbol ge AX._sSoundRequestCount = Some bsrc.
     Hypothesis NB : Mem.nextblock m' = Mem.nextblock m.
     Hypothesis PM : forall b o k p, Mem.perm m b o k p -> Mem.perm m' b o k p.
-    Hypothesis LD : forall ch b z, b <> bsr -> b <> bsrc -> (b <> bm \/ z + size_chunk ch <= 4 \/ 8 <= z) ->
+    Hypothesis LD : forall ch b z, b <> bsr -> b <> bsrc -> (b <> bm \/ hz z (size_chunk ch)) ->
       Mem.load ch m' b z = Mem.load ch m b z.
     Hypothesis CLK : forall gp, closed_by gp m -> syms_mapped ge gp -> gp bm <> None ->
       exists gp', (forall b, gp b <> None -> gp' b <> None) /\ closed_by gp' m' /\ syms_mapped ge gp'.
@@ -606,7 +613,7 @@ Section PR.
     Lemma LHb : forall ch b z, b <> bm -> b <> bsr -> b <> bsrc -> Mem.load ch m' b z = Mem.load ch m b z.
     Proof. intros ch b z H1 H2 H3. exact (LD ch b z H2 H3 (or_introl H1)). Qed.
 
-    Lemma LHm : forall ch z, z + size_chunk ch <= 4 \/ 8 <= z -> Mem.load ch m' bm z = Mem.load ch m bm z.
+    Lemma LHm : forall ch z, hz z (size_chunk ch) -> Mem.load ch m' bm z = Mem.load ch m bm z.
     Proof. intros ch z H. exact (LD ch bm z NBR NBRC (or_intror H)). Qed.
 
     Ltac hm := rewrite LHm by hside.
@@ -696,7 +703,7 @@ Section PR.
         split; [exact HC' |]. split; [exact HS' |]. split; [exact (Hinc _ HM) |].
         do 13 (split; [assumption |]).
         split; [hm; exact Lo |]. split; [exact Soo |]. split; [hm; exact La |].
-        split; [rewrite (LD Mint32 ab 8 Nab1 Nab2 (or_intror (or_intror (Z.le_refl 8)))); exact Lb |].
+        split; [rewrite (LD Mint32 ab 8 Nab1 Nab2 (or_intror hz_8)); exact Lb |].
         do 5 (split; [assumption |]).
         split; [exact (Wff_keep2 ge m m' rl Hnb Hperm Hld gp gp' Hinc W) |].
         split; [hm; exact Lf |]. split; [exact (wblk_keep2 m m' rl Hnb Hperm Hld _ _ _ Wf) |].
@@ -767,7 +774,7 @@ Section PR.
       destruct (hole_apart Hf) as (Ao & _ & _).
       assert (N1 : ab <> bsr) by exact (AnimKeep.symne_ids ge _ _ _ _ Hs SR0 eq_refl).
       assert (N2 : ab <> bsrc) by exact (AnimKeep.symne_ids ge _ _ _ _ Hs SRC0 eq_refl).
-      rewrite (LD Mptr ab 8 N1 N2 (or_intror (or_intror (Z.le_refl 8)))) in Hl.
+      rewrite (LD Mptr ab 8 N1 N2 (or_intror hz_8)) in Hl.
       destruct (Han ab bt ot Hs Hl) as (A1 & A2). split.
       - intros off sb so Hoff Hl'.
         destruct Hoff as [-> | [-> | ->]]; hm_in Hl';
@@ -921,7 +928,7 @@ Section PR.
       eapply Mem.store_unchanged_on; [exact Hst |].
       intros i Hi (_ & _ & Hn). apply Hn. split; [reflexivity |].
       rewrite ?Ptrofs.add_zero_l in Hi. change (Ptrofs.unsigned (Ptrofs.repr 4)) with 4 in Hi.
-      change (Ptrofs.unsigned (Ptrofs.repr (fst (4, Full)))) with 4 in Hi. cbn [size_chunk] in Hi. lia.
+      change (Ptrofs.unsigned (Ptrofs.repr (fst (4, Full)))) with 4 in Hi. cbn [size_chunk] in Hi. left. lia.
     - rewrite (Mem.nextblock_store _ _ _ _ _ _ Hst). exact N.
     - intros b o k p. rewrite <- P. split.
       + eapply Mem.perm_store_2; eassumption.
@@ -992,13 +999,14 @@ Section PR.
     assert (NB : Mem.nextblock m' = Mem.nextblock m) by exact N.
     assert (PM : forall b o k p, Mem.perm m b o k p -> Mem.perm m' b o k p)
       by (intros b o k p Hp; exact (proj2 (P b o k p) Hp)).
-    assert (LD : forall ch b z, b <> bsr -> b <> bsrc -> (b <> bm \/ z + size_chunk ch <= 4 \/ 8 <= z) ->
+    assert (LD : forall ch b z, b <> bsr -> b <> bsrc -> (b <> bm \/ hz z (size_chunk ch)) ->
                Mem.load ch m' b z = Mem.load ch m b z).
     { intros ch b z N1 N2 Hz.
       destruct (plt b (Mem.nextblock m)) as [V | V].
       - eapply Mem.load_unchanged_on_1; [exact U | exact V |].
         intros i Hi. split; [exact N1 | split; [exact N2 |]].
-        intros (-> & Hi'). destruct Hz as [Hz | Hz]; [exact (Hz eq_refl) | lia].
+        intros (-> & Hi'). destruct Hz as [Hz | Hz]; [exact (Hz eq_refl) |].
+        unfold hz in Hz. clear - Hi Hi' Hz. lia.
       - rewrite (load_invalid m ch b z V). apply load_invalid.
         unfold Mem.valid_block. rewrite N. exact V. }
     assert (CLK : forall gp, closed_by gp m -> syms_mapped ge gp -> gp bm <> None ->

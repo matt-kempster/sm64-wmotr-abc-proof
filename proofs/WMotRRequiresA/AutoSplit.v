@@ -790,7 +790,7 @@ Section AutSplitS.
     pose proof (resolve_pin_fd lp _ _ _ _ LO_aut aut_defmap Hr) as ->.
     destruct aut_is as (Iu & Ik & Id).
     intros m t m' vr c Hok Hw (Hgv & Hx) Hok' Hc Hb Hev.
-    unfold xpre in Hx. rewrite Ik, Id in Hx.
+    unfold xpre in Hx. rewrite Ik, Id in Hx. destruct Hx as (Hx & _).
     assert (Hmarg : marg_ok bm [v]).
     { destruct v; cbn; try exact I. destruct Hgv as (gb & Hg & Hl).
       exact (Hgms m (proj2 (proj2 Hok)) gb b i Hg Hl). }
