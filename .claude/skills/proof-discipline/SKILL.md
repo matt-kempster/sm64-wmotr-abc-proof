@@ -99,10 +99,12 @@ all in `Unwired/`, and the theorem moved nowhere. See
   `gDialogVariable`, now a stored global); `engine/behavior_script.c` is TU 43 (`random_float`,
   `MenuBodies.Hpx_rf`) and `game/obj_behaviors.c` TU 44 (`spawn_default_star`, `SpawnStarBody`;
   `bhvStarSpawnCoordinates` joined `spawn_bhv_syms`, `sb_gs` gained `gCurrentObject` + it).
-  Still open camera row `Hscm_body_real`: set_camera_mode calls through the
-  WRITABLE table `sModeTransitions` (enumerate link functions of type (Camera*, f32*, f32*)->s32),
-  ~48 camera.c functions, no pointer-typed store in the tree; needs `sMarioCamState` in
-  `safe_ptr_syms` (TRUST 4.1).
+  `Hscm_body_real` PROVED 2026-10-23 (`CameraModeBody.v`, class walker over 60 real bodies in
+  camera.c / math_util.c / surface_collision.c + play_sound + sqrtf; the WRITABLE
+  `sModeTransitions` indirect call is covered by a per-TU type certificate: only the 14
+  transitions have type (Camera*, f32*, f32*)->s32). Needed `sMarioCamState` and the two surface
+  partitions in `CensusV2.camera_safe_syms` (SafeB_boot meets it). GOAL 1 13 -> 12,
+  HeightFrame 20 -> 19 `Hypothesis` lines (TRUST 4.1).
   2026-10-22: HeightFrame's section has 27 `Hypothesis` lines (28 → 27: `Hcamera` proved away).
   2026-10-23 AUDIO LINK (`audio/external.c`, `sound_init.c`: TUs 40, 41; `AudioBodies`, `SndXc`):
   GOAL 1 `Hypothesis` lines 16 → 15, HeightFrame 26 → 24. Proved: `Hpres_sta_ext`, `Hsss`,
@@ -141,7 +143,7 @@ all in `Unwired/`, and the theorem moved nowhere. See
   - On linking audio: `play_sound` stores `pos` (R7), so gate it first. RESOLVED 2026-10-23
     (obj_behaviors.c linked): `spawn_default_star`'s `bhvStarSpawnCoordinates` was not in
     `safe_ptr_syms`; it joined `spawn_bhv_syms` and the body is walked (`SpawnStarBody`).
-  SURVIVED: `Hscm_body_real` (its only phantom store writes 0, which is harmless), the structural
+  SURVIVED: `Hscm_body_real` (its only phantom store writes 0; PROVED 2026-10-23), the structural
   pins, and the restriction-only external specs.
 - **GOAL 2** (WMotR needs A): `WMotRRequiresA/HeightFrame.v`,
   `wmotr_noA_height_bound_linked12`. This is a conditional theorem over ONE WMotR

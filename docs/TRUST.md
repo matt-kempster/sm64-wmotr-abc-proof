@@ -1188,24 +1188,27 @@ link grows.
   `gCameraMovementFlags`, `gCutsceneFocus`, which had size-0 blocks before (row 0.4). Every
   camera function the Mario code calls now resolves to its real camera.c body. Rows:
   - `set_camera_mode` reached from mario.c left the negative pin (it would now be false) and is a
-    pinned rest case (`RestSurface`, `LO_camera`). It owes **`Hscm_body_real`** (new, LABELED
-    OPEN, camera): `body_pres_w` over the real `camera.f_set_camera_mode`, gated by `wgate`'s
-    `T_scm` arm (Camera* is a SafeB block; `RestSurface.camera_scm_type` checks the body has that
-    signature).
+    pinned rest case (`RestSurface`, `LO_camera`). It owed `Hscm_body_real`: `body_pres_w` over
+    the real `camera.f_set_camera_mode`, gated by `wgate`'s `T_scm` arm (Camera* is a SafeB
+    block; `RestSurface.camera_scm_type` checks the body has that signature).
+    **PROVED 2026-10-23 (`CameraModeBody.v`), gone from both capstones.** A class walker
+    (never-pointer / SafeB / fresh local / writable-without-pointers) runs the real bodies:
+    set_camera_mode, the 14 `sModeTransitions` targets and their callees, 60 bodies in
+    camera.c, math_util.c and surface_collision.c (`find_floor`, `find_ceil`, their
+    `_from_list` walkers, `find_water_level`), plus `play_sound` (`AudioBodies`) and `sqrtf`
+    (the FPU floor, 3.5, already a premise). The indirect call through the WRITABLE table
+    (camera.c:465) is covered by a per-TU type certificate: across every linked TU only those
+    14 functions have type `(Camera*, f32*, f32*) -> s32`, and a Clight indirect call only
+    runs a function of the call's type. No new trust. It needed three symbols in
+    `CensusV2.camera_safe_syms` (so `SafeB_syms_ok` is stronger; `SafeB_boot` meets it, all
+    three are outside `non_safeb_syms`): `sMarioCamState` (`update_boss_fight_camera` stores
+    through it) and the two surface partitions (find_floor / find_ceil store the surface they
+    found into the caller's local out cell; chased from SafeB partitions it is SafeB).
   - `Hcsp_scm_real` (`call_pres_ext_cs ... set_camera_mode`) is **DERIVED, no longer a row**
     (2026-10-22, `NoAImpliesNoFlyTwelve.Hcsp_scm_real`): the call resolves to the real camera.c
     body (`camera_defmap_scm`, `LO_camera`), `cs_gate`'s `arg0_cond_safe` implies `wgate`'s
     `T_scm` arm (`wgate_scm`), so `Hscm_body_real` gives MWF after the call and NoA follows from
-    MWF (`mwf_real_ctl`). `Hscm_body_real` stays LABELED OPEN (camera). What a proof needs (GOAL 1 premise sweep, 2026-10-22): the body
-    calls `sModeTransitions[newMode](c, end->focus, end->pos)` through a WRITABLE function-pointer
-    table (camera.c:465, entry 0 is NULL) that MWF says nothing about, so the callee is any
-    function of the link with type `(Camera*, f32*, f32*) -> s32` (enumerable per TU); the 14
-    transitions reach ~48 camera.c functions with stack arrays, float out-params into
-    `sModeInfo` / locals, `sMarioCamState->` stores (needs `sMarioCamState` in
-    `CensusV2.safe_ptr_syms`), and math_util / surface_collision callees
-    (`vec3f_get_dist_and_angle`, `vec3f_set_dist_and_angle`, `find_floor` with a local out cell).
-    No store in that tree has a pointer type (scanned from `generated/camera.v`), so a
-    "non-pointer store into a SafeB or local block" walk should close it.
+    MWF (`mwf_real_ctl`).
   - **PROVED 2026-10-22 (`CameraBodies.v`)**: the any-argument entries
     `camera_approach_f32_symmetric` (pure), `trigger_cutscene_dialog` (->
     `start_object_cutscene_without_focus`: byte stores into `sObjectCutscene` /
@@ -1962,7 +1965,7 @@ result, the real declaration in every TU; no new trust); `BootRun` / `TerrainRun
 | `HSafeB_syms` | SURVIVED | met by `SafeB_boot` (`BootMWF.SafeB_boot_syms_ok`), jointly with the boot memory |
 | `Hbm_sym` `Hbc_sym` `Hoc0` | SURVIVED | symbol pins (`spawn_symbols_resolve`), no forall |
 | `Hsq` (`sqrtf_spec`) | SURVIVED | a restriction: the empty relation meets every `ec_` axiom |
-| `Hscm_body_real` | SURVIVED | phantom memory tried: `sModeTransitions` is writable, so any `(Camera*, f32*, f32*) -> s32` body is reachable. The one store through an unconstrained pointer is `update_boss_fight_camera`'s `sMarioCamState->cameraEvent = 0`. Aimed at Mario's block (offset wrap), it zeroes a 16-bit half. No tainted action has a zero half. Every MWF clause is conditional or zero-safe |
+| `Hscm_body_real` | SURVIVED; **PROVED 2026-10-23** (`CameraModeBody`, row 4.1) | phantom memory tried: `sModeTransitions` is writable, so any `(Camera*, f32*, f32*) -> s32` body is reachable. The one store through an unconstrained pointer is `update_boss_fight_camera`'s `sMarioCamState->cameraEvent = 0`. Aimed at Mario's block (offset wrap), it zeroes a 16-bit half. No tainted action has a zero half. Every MWF clause is conditional or zero-safe |
 | `Hdma_floor` | SURVIVED | restrictions; every named function is External in all 35 TUs |
 | `Hsss`, `Hpres_sta_ext` | SURVIVED | the C bodies write `audio/external.c` statics only; `stop_sound` compares `pos`, never stores it |
 | `Hpres_obj_ext_open2`, `Hpres_cut_ext_open2`, `Hpres_warp_ext_open` | **GONE 2026-10-23 (proved; one entry FALSE first)**: every entry walked from its linked body (4.1, list closure); `create_dialog_box_with_var` stored a possible pointer into `gDialogVariable` (now a stored global). Earlier: SURVIVED in the model; SUSPECT on link | `play_sound` stores `pos` into `sSoundRequests[].position`. Once `external.c` is linked, an any-argument `pos` = `&gMarioStates` breaks R7 under `SafeB_boot` (as `spawn_object` did). Gate `pos` before linking audio. The dialog / music / RNG entries have scalar args and own statics |
