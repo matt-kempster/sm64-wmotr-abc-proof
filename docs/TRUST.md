@@ -1174,7 +1174,7 @@ link grows.
 
 | # | Item | Status / notes |
 |---|---|---|
-| 4.1 | Functions outside the 42 linked files (32 game TUs incl. `camera.c`, `ingame_menu.c`, `debug_course.c`, `audio/external.c`, `sound_init.c`, `print.c` + `behavior_data.c` + WMotR's level data + 6 libultra TUs; the audio thread, rendering) behave as the capstone's rows say (`Hocp_*`, `Hpres_*`, `Hext_*`, …) | **ASSUMED, the ~30 project rows.** Shrinks by linking more files until only truly external things remain. Details: [row 4.1 in detail](#row-41-in-detail). |
+| 4.1 | Functions outside the 44 linked files (34 game TUs incl. `camera.c`, `ingame_menu.c`, `debug_course.c`, `audio/external.c`, `sound_init.c`, `print.c`, `engine/behavior_script.c`, `obj_behaviors.c` + `behavior_data.c` + WMotR's level data + 6 libultra TUs; the audio thread, rendering) behave as the capstone's rows say (`Hocp_*`, `Hpres_*`, `Hext_*`, …) | **ASSUMED, the ~30 project rows.** Shrinks by linking more files until only truly external things remain. Details: [row 4.1 in detail](#row-41-in-detail). |
 | 4.2 | CompCert's `external_functions_sem` is an abstract Parameter. Anything left external is constrained *only* by our rows | Permanent for whatever stays external. The goal is that nothing game-logic stays external. |
 | 4.3 | Level data (WMotR collision triangles, object placements, the red-coin positions) is what the ROM contains | **Collision and macro data in the link (2026-10-22, TU 34).** `pipeline/tu/wmotr_level_data.c` includes the vendor `levels/wmotr/areas/1/collision.inc.c` / `macro.inc.c` verbatim, under `leveldata.c`'s `make_const_nonconst.h`. So the data is the decomp's, but that the decomp's `.inc.c` matches the ROM bytes is the decomp's build check (2.1), not ours. Object placements beyond collision (`script.c`) and the red-coin positions are not yet in. |
 | 4.4 | The proof's internal vocabulary (`MWF_real`, `SafeB`, `call_pres_ext_*`) appears in the *statement's* hypotheses | Anti-goal: a reader shouldn't have to understand proof internals to know what's assumed. Rows must eventually be about the game, or be gone. |
@@ -1216,8 +1216,8 @@ link grows.
     SHAKE_SHOCK arm (reached: `act_shocked`, `act_water_shocked`) calls `random_float`
     (engine/behavior_script.c, NOT linked), so `set_camera_shake_from_hit` left
     `obj_ext_open2_ids` and `random_float` joined it: a narrower claim (a void-argument RNG
-    that writes `gRandomSeed16`) in place of the whole dispatcher. Linking behavior_script.c
-    would discharge it. Also the `sqrtf` entry of `obj_ext_open2_ids` is proved from the FPU floor
+    that writes `gRandomSeed16`) in place of the whole dispatcher. **Discharged 2026-10-23:**
+    behavior_script.c is linked (TU 43) and `random_float` is walked (`MenuBodies.Hpx_rf`). Also the `sqrtf` entry of `obj_ext_open2_ids` is proved from the FPU floor
     `sqrtf_spec` (3.5) the capstone already takes.
   - The engine rows `Hext_action` / `Hmwf_ext` range over External resolutions; their `T_scm` arm
     no longer applies to anything (set_camera_mode is Internal). Harmless (fewer obligations).
@@ -1257,9 +1257,38 @@ link grows.
   (`ingame_menu.c:1075-1106, 2156-2164, 2228-2238`): each only loads and stores integers in
   ingame_menu.c globals (SafeB, not Mario's block, not a stored global, no calls), so each row
   (`call_pres_ext`: Mario's block valid and untainted, MWF, NoA kept) is true. They are still assumed
-  (a walk would make them lemmas). The 2.4 common for `gDialogResponse` now merges with its real
+  (a walk would make them lemmas). **CORRECTED 2026-10-23 (the walk, `MenuBodies`):** one of them
+  was FALSE as stated: `create_dialog_box_with_var` stores its s32 ARGUMENT `dialogVar` into the s32
+  `gDialogVariable` (ingame_menu.c:1089), so a pointer argument lands in a block nothing kept out of
+  SafeB (R7). `gDialogVariable` joined `CensusV2.stored_globals`; all eight are lemmas now (below). The 2.4 common for `gDialogResponse` now merges with its real
   definition. New externals it declares (`gu*`, `play_*`, `seq_player_*`, `alloc_display_list` is
   linked) are reached only from its menu / dialog rendering code, which no run or row reaches.
+- **THE EXTERNAL-LIST CLOSURE (2026-10-23): `Hpres_obj_ext_open2`, `Hpres_cut_ext_open2`,
+  `Hpres_floors_ext_open` and `Hpres_warp_ext_open` are GONE from both capstones** (GOAL 1 13 -> 9
+  `Hypothesis` lines, `HeightFrame` 20 -> 16). Each list was "calling fid (any args) keeps the
+  carried facts"; every remaining id now has a linked body that is walked:
+  - `warp_ext_open_ids` was already EMPTY after the audio link (`warp_ext_open_nil`): the row
+    was a vacuous premise.
+  - `cut_ext_open2_ids` (7: the four dialog-box constructors, `get_dialog_id`, `set_menu_mode`,
+    `set_cutscene_message`) and two of `obj_ext_open2_ids` (`reset_cutscene_msg_fade`,
+    audio/external.c's `drop_queued_background_music`): `MenuBodies`, ObjExtBodies' `ast_ok`
+    class (non-pointer stores into globals MWF does not read). FOUND FALSE first:
+    `create_dialog_box_with_var` (above); `gDialogVariable` joined `stored_globals`.
+  - `random_float` (the last obj entry): **`engine/behavior_script.c` is linked (TU 43)**;
+    `random_float` -> `random_u16` is a u16 read-modify-write of `gRandomSeed16`
+    (`MenuBodies.Hpx_rf`). No row was false.
+  - `spawn_default_star` (the floors entry): **`game/obj_behaviors.c` is linked (TU 44)**; its
+    body and `spawn_star`'s are walked (`SpawnStarBody`: `spawn_star` in SpawnBodies' SafeB world
+    over the proved `spawn_object_abs_with_rot`; `spawn_default_star`'s float arguments reach
+    `spawn_star` through a cast to float, so the row holds for ANY arguments). FOUND (the §7
+    SUSPECT, confirmed): the spawned script `bhvStarSpawnCoordinates` is stored into the new pool
+    object and was not a SafeB symbol, so the row rested on nothing (R7). It joined
+    `CensusV2.spawn_bhv_syms` (so `safe_ptr_syms`, the class of every other spawned script;
+    `SafeB_boot` contains it). `SpawnBodies.sb_gs` gained `gCurrentObject` (already a
+    `safe_ptr_syms` member) and the script.
+  Both new TUs pass the pairwise link check; `tools/size0_globals.py`: 44 TUs, 0 failing (no 2.4
+  completion needed). No other capstone row names a function they define (checked by grep over
+  the spine). `CameraBodies.rf_no_internal` (random_float has no body) became false and is deleted.
 - **`debug_course.c` is linked** (2026-10-22, the 38th TU): its only function is the empty
   `nop_change_course`, which the real `lvl_set_current_level` calls on a course change, so
   `CourseRun` runs that function with no external answered. No row names it.
@@ -1936,8 +1965,8 @@ result, the real declaration in every TU; no new trust); `BootRun` / `TerrainRun
 | `Hscm_body_real` | SURVIVED | phantom memory tried: `sModeTransitions` is writable, so any `(Camera*, f32*, f32*) -> s32` body is reachable. The one store through an unconstrained pointer is `update_boss_fight_camera`'s `sMarioCamState->cameraEvent = 0`. Aimed at Mario's block (offset wrap), it zeroes a 16-bit half. No tainted action has a zero half. Every MWF clause is conditional or zero-safe |
 | `Hdma_floor` | SURVIVED | restrictions; every named function is External in all 35 TUs |
 | `Hsss`, `Hpres_sta_ext` | SURVIVED | the C bodies write `audio/external.c` statics only; `stop_sound` compares `pos`, never stores it |
-| `Hpres_obj_ext_open2`, `Hpres_cut_ext_open2`, `Hpres_warp_ext_open` | SURVIVED in the model; SUSPECT on link | `play_sound` stores `pos` into `sSoundRequests[].position`. Once `external.c` is linked, an any-argument `pos` = `&gMarioStates` breaks R7 under `SafeB_boot` (as `spawn_object` did). Gate `pos` before linking audio. The dialog / music / RNG entries have scalar args and own statics |
-| `Hpres_floors_ext` | SUSPECT on link | `spawn_default_star` (`obj_behaviors.c`, generated, unlinked) spawns with `bhvStarSpawnCoordinates` (`spawn_star.inc.c:115`), which is not in `safe_ptr_syms`. For an admissible SafeB without that block, the real body breaks R7 |
+| `Hpres_obj_ext_open2`, `Hpres_cut_ext_open2`, `Hpres_warp_ext_open` | **GONE 2026-10-23 (proved; one entry FALSE first)**: every entry walked from its linked body (4.1, list closure); `create_dialog_box_with_var` stored a possible pointer into `gDialogVariable` (now a stored global). Earlier: SURVIVED in the model; SUSPECT on link | `play_sound` stores `pos` into `sSoundRequests[].position`. Once `external.c` is linked, an any-argument `pos` = `&gMarioStates` breaks R7 under `SafeB_boot` (as `spawn_object` did). Gate `pos` before linking audio. The dialog / music / RNG entries have scalar args and own statics |
+| `Hpres_floors_ext` | **SUSPECT CONFIRMED + REPAIRED 2026-10-23**: obj_behaviors.c linked, `bhvStarSpawnCoordinates` joined `spawn_bhv_syms`, `spawn_default_star` walked (`SpawnStarBody`); the row is gone. Earlier: SUSPECT on link | `spawn_default_star` (`obj_behaviors.c`, generated, unlinked) spawns with `bhvStarSpawnCoordinates` (`spawn_star.inc.c:115`), which is not in `safe_ptr_syms`. For an admissible SafeB without that block, the real body breaks R7 |
 | `Hext_action_ns`, `Hmwf_ext_ns` (then `Hext_action_ptfi`, `Hmwf_ext_ptfi`) | **FALSE as stated (against the linked body), REPAIRED 2026-10-23** | `print_text_fmt_int` takes its label from `mem_pool_alloc(gEffectsMemoryPool)` and stores `x`, `y` into it. The External rows were not refutable in Coq (CompCert's `external_functions_sem` is opaque), but the real body (print.c, now linked) falsifies their any-argument / any-pool claim: a pointer `x` breaks R7, and an unconstrained pool chase can reach the action cell. Repaired: gate `T_ptfi` + print globals SafeB; the body is proved (`PrintBodies`), the rows are gone. Reached only under `gShowDebugText` |
 | run oracles `world_ok` x4, `sqrtf_ieee` | **REFUTED, REPAIRED** | R1 |
 | `rrc_inert` | SURVIVED | `Vundef` has every result type |

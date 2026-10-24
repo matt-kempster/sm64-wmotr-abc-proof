@@ -55,7 +55,7 @@ GENERATED := generated/toy.v generated/shadow.v \
   generated/object_helpers.v generated/obj_behaviors.v generated/obj_behaviors_2.v \
   generated/spawn_object.v generated/object_list_processor.v generated/audio_data.v generated/graph_node.v generated/buffers.v generated/save_file.v generated/object_collision.v \
   generated/area.v generated/surface_load.v generated/mario_anim_data.v generated/camera.v generated/rendering_graph_node.v generated/ingame_menu.v generated/debug_course.v \
-  generated/audio_external.v generated/sound_init.v generated/print.v \
+  generated/audio_external.v generated/sound_init.v generated/print.v generated/behavior_script.v \
   $(ULTRA_GENERATED)
 
 .PHONY: all generated proofs regen clean oracle-extract
@@ -247,6 +247,13 @@ generated/sound_init.v: $(SM64)/src/game/sound_init.c pipeline/clightgen.sh pipe
 # gShowDebugText); its real body allocates from gEffectsMemoryPool
 # (memory.c's mem_pool_alloc) and fills an sTextLabels entry.
 generated/print.v: $(SM64)/src/game/print.c pipeline/clightgen.sh pipeline/proof_n64.h
+	$(CLIGHTGEN) $< $@ $(SM64_CGP)
+
+# engine/behavior_script.c (2026-10-23): the object RNG.  camera.c's
+# set_camera_shake_from_hit (SHAKE_SHOCK arm) calls random_float, whose real
+# body (random_u16: one u16 read-modify-write of gRandomSeed16) is walked in
+# MenuBodies; it was the last any-argument object-external row.
+generated/behavior_script.v: $(SM64)/src/engine/behavior_script.c pipeline/clightgen.sh pipeline/proof_n64.h
 	$(CLIGHTGEN) $< $@ $(SM64_CGP)
 
 # engine/graph_node.c (2026-10-21): the real bodies of

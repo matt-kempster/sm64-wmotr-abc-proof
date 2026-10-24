@@ -31,6 +31,7 @@ generated/debug_course.v
 generated/audio_external.v
 generated/sound_init.v
 generated/print.v
+generated/behavior_script.v
 generated/wmotr_script.v
 generated/macro_special_objects.v
 generated/behavior_data.v
@@ -213,6 +214,8 @@ proofs/MarioModel/ObjHelpersBodies.v
 proofs/MarioModel/ObjExtBodies.v
 proofs/MarioModel/AudioBodies.v
 proofs/MarioModel/CameraBodies.v
+proofs/MarioModel/MenuBodies.v
+proofs/MarioModel/SpawnStarBody.v
 proofs/MarioModel/SaveDoSaveBody.v
 proofs/MarioModel/SpawnBodies.v
 proofs/MarioModel/PrintBodies.v
