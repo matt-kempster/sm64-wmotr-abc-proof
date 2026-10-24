@@ -161,7 +161,7 @@ Proof.
     as (blv & Slv).
   (* ---- the animation world ---- *)
   pose proof AW as (ab' & bga & bauc & btab & otab & bt' & ot' & mb & mo & AB & ST).
-  pose proof AB as (Sab & Sga & Sau & L0 & L8 & Lm & Sy & DA1 & DA2 & DA3 & DA4 & DA5 & Z1 & Z2 & Z3 & Pbt
+  pose proof AB as (Sab & Sga & Sau & L0 & L8 & Lm & Sy & DA1 & DA2 & DA3 & DA4 & (DA5 & _) & Z1 & Z2 & Z3 & Pbt
                     & TOK & GA & TA & AC & _).
   assert (ab' = ab) by congruence. subst ab'.
   rewrite Lb in L8. injection L8 as <- <-.

@@ -29,9 +29,9 @@ without pressing A".*
 | 0.8 | GOAL 2's level data: `wmotr_floor` / `wmotr_pole` / `wmotr_cannon` are WMotR's floors, poles and cannon seats | **Defined from generated/, rows proved** (`WMotRLevel.v`). 2026-10-22: `floor_data` (d) and decoder agreement (a) are PROVED on the memory the real `load_area_terrain` builds (`TerrainRun`, 1352 surfaces); since later that day the GOAL 2 start witness carries it (`StartTerrain`: the loader runs on the `init_mem` image in the real boot order, and `goal2_start_sat` concludes `floor_data` + `static_agree`). Details: [row 0.8 in detail](#row-08-in-detail). |
 | 0.9 | GOAL 2's pos[1] writer census is complete (`YWriterCensus.v`) | **Machine-checked list, trusted edges.** Coq scans every function body of the 12 generated Mario TUs and proves: 31 direct `pos[1]` stores and 21 write-escapes (16 whole-vector arg-0 passes to `vec3f_copy`/`vec3f_set`/`vec3s_to_vec3f`, 5 `&pos[1]` passes to `f32_find_wall_collision`), 52 in all; `pos`'s address never reaches a temp, memory, a condition or a return, and no struct copy covers it. Details: [row 0.9 in detail](#row-09-in-detail). |
 | 0.10 | GOAL 2's object census: what objects can exist in WMotR and their interaction types (`BehaviorScripts.v`) | **Machine-checked over generated code, frontier trusted.** `generated/behavior_data.v` (clightgen of `data/behavior_data.c`) gives every behavior script as data; a fail-closed decoder mirrors the command layouts. Details: [row 0.10 in detail](#row-010-in-detail). |
-| 0.7 | GOAL 2's flank segments (`HeightFrame.v`: controller poll, platform displacement, level/warp phase, non-Mario objects) do what their specs say: y / action loads as the censuses found them, and each carries GOAL 1's `MWF_real` and Φ (since 2026-09-29 Φ here is `PhiW`, so each flank also keeps the WMotR world: object updates reload only WMotR's surfaces and never hand Mario an object to hold or ride; collision detection registers only WMotR-kind objects, with poles and cannon bases at their level positions and no star while coin #2 stands (0.3); no object sets a stomp bit on Mario's object) (the poll only when A is not pressed); platform displacement also leaves the held-A reading unchanged (it writes no controller) | **ASSUMED, labeled.** Specs, not proofs: none of that code is linked, except Mario's render call (2026-10-22, `seg_render_spec`: real call, GOAL-1 carry proved, Φ carry assumed). Details: [row 0.7 in detail](#row-07-in-detail). |
+| 0.7 | GOAL 2's flank segments (`HeightFrame.v`: controller poll, level/warp phase, non-Mario objects) do what their specs say: y / action loads as the censuses found them, and each carries GOAL 1's `MWF_real` and Φ (since 2026-09-29 Φ here is `PhiW`, so each flank also keeps the WMotR world: object updates reload only WMotR's surfaces and never hand Mario an object to hold or ride; collision detection registers only WMotR-kind objects, with poles and cannon bases at their level positions and no star while coin #2 stands (0.3); no object sets a stomp bit on Mario's object) (the poll only when A is not pressed). The two linked segments state only narrow premises: Mario's wall / ceiling / floor surfaces are not in the block of a global the step writes (`RenderKeep.surf_apart`), and the platform Mario rides is NULL or has zero angle velocity (`PlatformKeep.plat_still`) | **ASSUMED, labeled** for the poll, level phase and objects: specs, not linked code. Two segments are **real calls with proved carries**: Mario's render call (`seg_render_spec`, 2026-10-22; GOAL-1 carry `RenderFlank.render_mem_ok`, Φ carry `RenderKeep.render_keeps_phiw` 2026-10-23) and platform displacement (`seg_platform_spec`, 2026-10-23: the real `apply_mario_platform_displacement`, platform_displacement.c linked as TU 45; GOAL-1, held-A and Φ carries `PlatformKeep.plat_mem_ok` / `plat_a_down` / `plat_keeps_phiw`). Details: [row 0.7 in detail](#row-07-in-detail). |
 | 0.4 | The starting states the theorem quantifies over (`mem_ok_lp`: Mario's block valid, his action untainted, `MWF_real`) | **GOAL 1: proved satisfiable by the real boot path** (2026-10-19, `BootMWF.boot_init_ok`, used by `NoAImpliesNoFlyTwelve.noA_never_flying_from_boot`). **GOAL 2: the witness is in WMotR by real code** (2026-10-21: `area.c` linked as the 23rd TU; `gCurrLevelNum = LEVEL_WMOTR` is stored by the generated `initiate_warp` + `warp_level`, `EntryWarp.v`; 2026-10-22: one real no-A frame runs from the witness, `frame_runs`, and its `init_mario_from_save_file` cells are tethered to the real body, `ifs_tether`). Details: [row 0.4 in detail](#row-04-in-detail). |
-| 0.5 | The step relation = what one real frame does | GOAL 1: **only `execute_mario_action`**. GOAL 2's `frame_step` composes that real call with four *specified* flanks (0.7): controller poll, platform, level phase, objects. The flanks are specs, not linked code. This is the largest scope gap. Details: [row 0.5 in detail](#row-05-in-detail). |
+| 0.5 | The step relation = what one real frame does | GOAL 1: **only `execute_mario_action`**. GOAL 2's `frame_step` composes that real call with three *specified* flanks (0.7): controller poll, level phase, objects, and two real linked calls (Mario's render call; `apply_mario_platform_displacement`, since 2026-10-23). The specified flanks are not linked code. This is the largest scope gap. Details: [row 0.5 in detail](#row-05-in-detail). |
 
 ### Row 0.1 in detail
 
@@ -769,7 +769,7 @@ without pressing A".*
 
 ### Row 0.7 in detail
 
-- **ASSUMED, labeled.** Specs, not proofs: none of that code is linked. Since 2026-10-20 Φ here also
+- **ASSUMED, labeled** (poll, level phase, objects). Specs, not proofs: that code is not linked. Since 2026-10-20 Φ here also
   contains `FfWorld.ffw` (0.6), so each flank also keeps memory closed by an injection mapping the
   globals and Mario's state block (a fact of the semantics for any Clight code,
   `ClightClosed.funcall_closed`, so it becomes a lemma when the flank is linked), keeps `m->wall` /
@@ -777,22 +777,45 @@ without pressing A".*
   block, leaves `m->animList` / `bufTarget` / `marioObj` and the collision partition as ffw says
   (object updates reload WMotR's surfaces), keeps m->input's A bits clear, and keeps floorHeight a
   refresh of y (no WMotR flank moves Mario). The censuses behind the load clauses:
-  `docs/goal2-frame-boundary-scout.md`, `goal2-wmotr-behavior-census.md`,
-  `playground/PlatformInert.v`. The carries are stated *inside* the specs because as separate ∀-rows
-  over every memory matching the load clauses they would be false.
+  `docs/goal2-frame-boundary-scout.md`, `goal2-wmotr-behavior-census.md`. The carries are stated
+  *inside* the specs because as separate ∀-rows over every memory matching the load clauses they
+  would be false.
 - **Render flank (2026-10-22).** The frame now ends rest ; Mario's render call ; rest, where the
   middle segment `seg_render_spec` is the **real** `geo_set_animation_globals` call on Mario's
   `&marioObj->header.gfx.animInfo` (`RenderFlank.render_call`, on the linked genv;
   rendering_graph_node.c is TU 35) or no call (Mario not drawn). Its GOAL-1 carry is **proved**:
   `RenderFlank.render_mem_ok` (valid bm, the action cell, `MWF_real`) from the walked footprint
   (`RenderSet.gsag_footprint`: the node's three advance cells and the six `gCurrAnim*` globals, every
-  stored pointer read from Mario's object or its Animation header, both chase-reachable). Only its
-  Φ carry is assumed, as before (it was part of `seg_rest`'s). The rest of the render walk (other
-  nodes, display lists) is still in the `seg_rest` specs. Not proved: Φ (= `PhiW`) through the
-  render call — world surfaces / objects are not yet known apart from the `gCurrAnim*` blocks, which
-  would need a render-apartness clause in every frame-world row. No GFX external needed a floor:
+  stored pointer read from Mario's object or its Animation header, both chase-reachable). **Its Φ
+  carry is proved too (2026-10-23):** `RenderKeep.render_keeps_phiw` keeps every PhiW conjunct
+  from the same footprint; the animFrame it advances stays in [−1, loopEnd] by `gsag_frame`. What
+  the step states instead (narrow, labeled): `RenderKeep.render_surf_apart` — Mario's wall /
+  ceiling / floor surfaces are not in a `gCurrAnim*` global's block (the frame world keeps them off
+  the walk's regions but not off every global; in the game they are surface-pool surfaces). The
+  `gCurrAnim*` blocks are apart from Mario's object and the animation lists by
+  `AnimWorld.rg_apart`, which is proved at boot (`StartSat`). The rest of the render walk (other
+  nodes, display lists) is still in the `seg_rest` specs. No GFX external needed a floor:
   none of the unlinked rendering externals (`guPerspective`, `guOrtho`, `guLookAtReflect`,
   `print_text_fmt_int`, `create_shadow_below_xyz`, geo callbacks) is on this path.
+- **Platform flank (2026-10-23).** `seg_platform_spec` is now ONE real eval_funcall of
+  `apply_mario_platform_displacement` (platform_displacement.c, TU 45; `PlatformKeep.plat_call`).
+  `PlatformWalk` walks it from the generated bodies: the outer function either does not call
+  (memory unchanged) or calls `apply_platform_displacement(1, gMarioPlatform)`, which stores
+  `D_8032FEC0 := 0`, Mario's pos[0] / pos[2] (moved by the platform's velocity) and pos[1]
+  written back with the value `get_mario_pos` just read, inside eight freed locals
+  (`PlatformEff.plat_eff`). From that alone `PlatformKeep` proves the GOAL-1 carry (`MWF_real`,
+  the action cell, bm's validity), that the held-A reading is unchanged, and the Φ carry (the
+  generalized `RenderKeep.k_all` with written globals `[D_8032FEC0]`). The step states two
+  premises (labeled): `plat_still` — gMarioPlatform is NULL or an object whose angle velocity
+  (oAngleVelPitch / Yaw / Roll, rawData.asS32[35..37]) is zero — and `surf_apart` for
+  D_8032FEC0. **FOUND:** the old spec ("y and action loads unchanged; a ridden wing-cap box never
+  moves so its displacement is identity") is false of the real body for a rotating platform:
+  with a nonzero angle velocity, the rotation block moves Mario about the platform's center and
+  changes pos[1]. `plat_still` is that condition made explicit; that every object Mario can ride
+  in WMotR has zero angle velocity is not proved here (open). `D_8032FEC0` joins the flank
+  globals `AnimWorld.flank_gvars` (apart from Mario's object and the animation lists, proved at
+  boot). No new axiom; the TU's other functions (update_mario_platform, clear_mario_platform)
+  are not on this path.
 - **GOAL 1 and rendering.** GOAL 1's step is `execute_mario_action` alone; rendering writes Mario's
   animInfo cells (object + 64..76) and the `gCurrAnim*` globals, none of which is the action cell,
   the A-input cell or a cell `MWF_real` reads (proved: `render_mem_ok`).
@@ -1051,9 +1074,10 @@ without pressing A".*
 
 ### Row 0.5 in detail
 
-- GOAL 1: **only `execute_mario_action`**. GOAL 2's `frame_step` composes that real call with four
-  *specified* flanks (0.7): controller poll, platform, level phase, objects. The flanks are specs,
-  not linked code. This is the largest scope gap.
+- GOAL 1: **only `execute_mario_action`**. GOAL 2's `frame_step` composes that real call with three
+  *specified* flanks (0.7): controller poll, level phase, objects, and two real linked calls:
+  Mario's render call and `apply_mario_platform_displacement` (2026-10-23, `PlatformKeep`). The
+  specified flanks are not linked code. This is the largest scope gap.
 - **GOAL 2's run is one WMotR visit:** a frame is a step only if it ends with `gCurrLevelNum =
   LEVEL_WMOTR` (`HeightFrame.in_wmotr`; 31, pinned from the level's own self-warp node,
   `WMotRLevel.level_wmotr_self_warp`). This is forced by the real game: falling off sends Mario to
@@ -1258,7 +1282,7 @@ link grows.
 
 | # | Item | Status / notes |
 |---|---|---|
-| 4.1 | Functions outside the 44 linked files (34 game TUs incl. `camera.c`, `ingame_menu.c`, `debug_course.c`, `audio/external.c`, `sound_init.c`, `print.c`, `engine/behavior_script.c`, `obj_behaviors.c` + `behavior_data.c` + WMotR's level data + 6 libultra TUs; the audio thread, rendering) behave as the capstone's rows say (`Hocp_*`, `Hpres_*`, `Hext_*`, …) | **ASSUMED, the ~30 project rows.** Shrinks by linking more files until only truly external things remain. Details: [row 4.1 in detail](#row-41-in-detail). |
+| 4.1 | Functions outside the 45 linked files (35 game TUs incl. `platform_displacement.c`, `camera.c`, `ingame_menu.c`, `debug_course.c`, `audio/external.c`, `sound_init.c`, `print.c`, `engine/behavior_script.c`, `obj_behaviors.c` + `behavior_data.c` + WMotR's level data + 6 libultra TUs; the audio thread, rendering) behave as the capstone's rows say (`Hocp_*`, `Hpres_*`, `Hext_*`, …) | **ASSUMED, the ~30 project rows.** Shrinks by linking more files until only truly external things remain. Details: [row 4.1 in detail](#row-41-in-detail). |
 | 4.2 | CompCert's `external_functions_sem` is an abstract Parameter. Anything left external is constrained *only* by our rows | Permanent for whatever stays external. The goal is that nothing game-logic stays external. |
 | 4.3 | Level data (WMotR collision triangles, object placements, the red-coin positions) is what the ROM contains | **Collision and macro data in the link (2026-10-22, TU 34).** `pipeline/tu/wmotr_level_data.c` includes the vendor `levels/wmotr/areas/1/collision.inc.c` / `macro.inc.c` verbatim, under `leveldata.c`'s `make_const_nonconst.h`. So the data is the decomp's, but that the decomp's `.inc.c` matches the ROM bytes is the decomp's build check (2.1), not ours. Object placements beyond collision (`script.c`) and the red-coin positions are not yet in. |
 | 4.4 | The proof's internal vocabulary (`MWF_real`, `SafeB`, `call_pres_ext_*`) appears in the *statement's* hypotheses | Anti-goal: a reader shouldn't have to understand proof internals to know what's assumed. Rows must eventually be about the game, or be gone. |
@@ -1272,24 +1296,27 @@ link grows.
   `gCameraMovementFlags`, `gCutsceneFocus`, which had size-0 blocks before (row 0.4). Every
   camera function the Mario code calls now resolves to its real camera.c body. Rows:
   - `set_camera_mode` reached from mario.c left the negative pin (it would now be false) and is a
-    pinned rest case (`RestSurface`, `LO_camera`). It owes **`Hscm_body_real`** (new, LABELED
-    OPEN, camera): `body_pres_w` over the real `camera.f_set_camera_mode`, gated by `wgate`'s
-    `T_scm` arm (Camera* is a SafeB block; `RestSurface.camera_scm_type` checks the body has that
-    signature).
+    pinned rest case (`RestSurface`, `LO_camera`). It owed `Hscm_body_real`: `body_pres_w` over
+    the real `camera.f_set_camera_mode`, gated by `wgate`'s `T_scm` arm (Camera* is a SafeB
+    block; `RestSurface.camera_scm_type` checks the body has that signature).
+    **PROVED 2026-10-23 (`CameraModeBody.v`), gone from both capstones.** A class walker
+    (never-pointer / SafeB / fresh local / writable-without-pointers) runs the real bodies:
+    set_camera_mode, the 14 `sModeTransitions` targets and their callees, 60 bodies in
+    camera.c, math_util.c and surface_collision.c (`find_floor`, `find_ceil`, their
+    `_from_list` walkers, `find_water_level`), plus `play_sound` (`AudioBodies`) and `sqrtf`
+    (the FPU floor, 3.5, already a premise). The indirect call through the WRITABLE table
+    (camera.c:465) is covered by a per-TU type certificate: across every linked TU only those
+    14 functions have type `(Camera*, f32*, f32*) -> s32`, and a Clight indirect call only
+    runs a function of the call's type. No new trust. It needed three symbols in
+    `CensusV2.camera_safe_syms` (so `SafeB_syms_ok` is stronger; `SafeB_boot` meets it, all
+    three are outside `non_safeb_syms`): `sMarioCamState` (`update_boss_fight_camera` stores
+    through it) and the two surface partitions (find_floor / find_ceil store the surface they
+    found into the caller's local out cell; chased from SafeB partitions it is SafeB).
   - `Hcsp_scm_real` (`call_pres_ext_cs ... set_camera_mode`) is **DERIVED, no longer a row**
     (2026-10-22, `NoAImpliesNoFlyTwelve.Hcsp_scm_real`): the call resolves to the real camera.c
     body (`camera_defmap_scm`, `LO_camera`), `cs_gate`'s `arg0_cond_safe` implies `wgate`'s
     `T_scm` arm (`wgate_scm`), so `Hscm_body_real` gives MWF after the call and NoA follows from
-    MWF (`mwf_real_ctl`). `Hscm_body_real` stays LABELED OPEN (camera). What a proof needs (GOAL 1 premise sweep, 2026-10-22): the body
-    calls `sModeTransitions[newMode](c, end->focus, end->pos)` through a WRITABLE function-pointer
-    table (camera.c:465, entry 0 is NULL) that MWF says nothing about, so the callee is any
-    function of the link with type `(Camera*, f32*, f32*) -> s32` (enumerable per TU); the 14
-    transitions reach ~48 camera.c functions with stack arrays, float out-params into
-    `sModeInfo` / locals, `sMarioCamState->` stores (needs `sMarioCamState` in
-    `CensusV2.safe_ptr_syms`), and math_util / surface_collision callees
-    (`vec3f_get_dist_and_angle`, `vec3f_set_dist_and_angle`, `find_floor` with a local out cell).
-    No store in that tree has a pointer type (scanned from `generated/camera.v`), so a
-    "non-pointer store into a SafeB or local block" walk should close it.
+    MWF (`mwf_real_ctl`).
   - **PROVED 2026-10-22 (`CameraBodies.v`)**: the any-argument entries
     `camera_approach_f32_symmetric` (pure), `trigger_cutscene_dialog` (->
     `start_object_cutscene_without_focus`: byte stores into `sObjectCutscene` /
@@ -2051,7 +2078,7 @@ result, the real declaration in every TU; no new trust); `BootRun` / `TerrainRun
 | `HSafeB_syms` | SURVIVED | met by `SafeB_boot` (`BootMWF.SafeB_boot_syms_ok`), jointly with the boot memory |
 | `Hbm_sym` `Hbc_sym` `Hoc0` | SURVIVED | symbol pins (`spawn_symbols_resolve`), no forall |
 | `Hsq` (`sqrtf_spec`) | SURVIVED | a restriction: the empty relation meets every `ec_` axiom |
-| `Hscm_body_real` | SURVIVED | phantom memory tried: `sModeTransitions` is writable, so any `(Camera*, f32*, f32*) -> s32` body is reachable. The one store through an unconstrained pointer is `update_boss_fight_camera`'s `sMarioCamState->cameraEvent = 0`. Aimed at Mario's block (offset wrap), it zeroes a 16-bit half. No tainted action has a zero half. Every MWF clause is conditional or zero-safe |
+| `Hscm_body_real` | SURVIVED; **PROVED 2026-10-23** (`CameraModeBody`, row 4.1) | phantom memory tried: `sModeTransitions` is writable, so any `(Camera*, f32*, f32*) -> s32` body is reachable. The one store through an unconstrained pointer is `update_boss_fight_camera`'s `sMarioCamState->cameraEvent = 0`. Aimed at Mario's block (offset wrap), it zeroes a 16-bit half. No tainted action has a zero half. Every MWF clause is conditional or zero-safe |
 | `Hdma_floor` | SURVIVED | restrictions; every named function is External in all 35 TUs |
 | `Hsss`, `Hpres_sta_ext` | SURVIVED | the C bodies write `audio/external.c` statics only; `stop_sound` compares `pos`, never stores it |
 | `Hpres_obj_ext_open2`, `Hpres_cut_ext_open2`, `Hpres_warp_ext_open` | **GONE 2026-10-23 (proved; one entry FALSE first)**: every entry walked from its linked body (4.1, list closure); `create_dialog_box_with_var` stored a possible pointer into `gDialogVariable` (now a stored global). Earlier: SURVIVED in the model; SUSPECT on link | `play_sound` stores `pos` into `sSoundRequests[].position`. Once `external.c` is linked, an any-argument `pos` = `&gMarioStates` breaks R7 under `SafeB_boot` (as `spawn_object` did). Gate `pos` before linking audio. The dialog / music / RNG entries have scalar args and own statics |
