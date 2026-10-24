@@ -565,7 +565,9 @@ Section HeightLinked12.
      generated bodies (NaSplit: set_submerged_cam_preset_and_spawn_bubbles,
      memory unchanged under R_noA; mario_execute_submerged_action, vacuous
      since each dispatcher's row now assumes the action is in its own
-     group, FrameSplit.grp_ok, proved at the real switch). *)
+     group, FrameSplit.grp_ok, proved at the real switch; update_mario_health;
+     since 2026-10-24 mario_reset_bodystate and update_mario_info_for_cam,
+     with m->marioBodyState pinned to &gBodyStates[0] in FfWorld.ffw). *)
   Hypothesis Hseg_na_open : na_open_rows lp bm MWF.
   (* the body's other calls, PATH-SENSITIVE since 2026-10-23 (FrameSplit.clw):
      only play_infinite_stairs_music() (unlinked, no arguments) is left

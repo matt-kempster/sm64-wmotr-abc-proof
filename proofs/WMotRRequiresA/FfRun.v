@@ -35,7 +35,7 @@ Import ListNotations.
 
 Module AIR := mario_actions_airborne.
 
-Definition NBF : positive := 22.
+Definition NBF : positive := 23.
 Definition RSIN : positive := 7.
 Definition RLD : positive := 8.
 Definition RBUF : positive := 9.
@@ -54,6 +54,10 @@ Definition SZ_PCS : Z := 36.       (* sizeof(struct PlayerCameraState), gPlayerC
 Definition RSR : positive := 15.   (* sSoundRequests (audio/external.c) *)
 Definition RSRC : positive := 16.  (* sSoundRequestCount *)
 Definition RSMS : positive := 21.  (* sSoundMovingSpeed (set_sound_moving_speed: the pole walks) *)
+(* gBodyStates (2026-10-23): m->marioBodyState's target, a region so that
+   no world object (surface, area, controller) is in its block; no walk
+   reads or writes it.  RBS = 22 sits above every other region, so NBF = 23. *)
+Definition RBS : positive := 22.
 Definition kM : positive := 3.
 Definition kB : positive := 4.
 
@@ -64,7 +68,9 @@ Definition R0F : list (positive * Z) :=
   [(RM, szs g mario._MarioState); (RO, szs g mario._Object); (RFI, 2); (RMISS, 4); (RCALLS, 6);
    (RLD, szs g mario._DmaHandlerList); (RBUF, Ptrofs.modulus); (RIOM, 20); (RMQ, 24); (RRM, 4);
    (RLK, szs g camera._LakituState); (RPC, SZ_PCS);
-   (RSR, Ptrofs.modulus); (RSRC, Ptrofs.modulus); (RSMS, Ptrofs.modulus)].
+   (RSR, Ptrofs.modulus); (RSRC, Ptrofs.modulus); (RSMS, Ptrofs.modulus);
+   (RBS, Ptrofs.modulus)].
+
 Definition gtabF : list (ident * positive) :=
   [(surface_collision._gFindFloorIncludeSurfaceIntangible, RFI);
    (surface_collision._gNumFindFloorMisses, RMISS); (surface_collision._gNumCalls, RCALLS);
