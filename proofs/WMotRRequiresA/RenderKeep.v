@@ -463,8 +463,8 @@ Section RK.
       assert (Hld : forall ch b z, Plt b (Mem.nextblock m) -> ~ rblk (rl ++ rgl) b ->
                 Mem.load ch m' b z = Mem.load ch m b z).
       { intros ch b z _ Nr. apply LHb.
-        - intros ->. apply Nr. apply rblk_app_l. exists mo. unfold rl, ff_rl. cbn. auto 20.
-        - intros ->. apply Nr. apply rblk_app_l. exists Ptrofs.zero. unfold rl, ff_rl. cbn. auto 20.
+        - intros ->. apply Nr. apply rblk_app_l. exists mo. unfold rl, ff_rl. cbn. auto 25.
+        - intros ->. apply Nr. apply rblk_app_l. exists Ptrofs.zero. unfold rl, ff_rl. cbn. auto 25.
         - intros Hr. apply Nr. apply rblk_app_r. exact (rgl_rblk b Hr). }
       assert (W1 : Wff G m gp SZ_SURFACE (rl ++ rgl))
         by (apply Wff_rgl; [intros b Hb; exact (proj2 (RGa b Hb)) | exact W]).
@@ -522,8 +522,8 @@ Section RK.
       assert (Hld : forall ch b z, Plt b (Mem.nextblock m) -> ~ rblk (rl ++ rgl) b ->
                 Mem.load ch m' b z = Mem.load ch m b z).
       { intros ch b z _ Nr. apply LHb.
-        - intros ->. apply Nr. apply rblk_app_l. exists mo. unfold rl, ff_rl. cbn. auto 20.
-        - intros ->. apply Nr. apply rblk_app_l. exists Ptrofs.zero. unfold rl, ff_rl. cbn. auto 20.
+        - intros ->. apply Nr. apply rblk_app_l. exists mo. unfold rl, ff_rl. cbn. auto 25.
+        - intros ->. apply Nr. apply rblk_app_l. exists Ptrofs.zero. unfold rl, ff_rl. cbn. auto 25.
         - intros Hr. apply Nr. apply rblk_app_r. exact (rgl_rblk b Hr). }
       assert (W1 : Wff G m gp SZ_SURFACE (rl ++ rgl))
         by (apply Wff_rgl; [intros b Hb; exact (proj2 (RGa b Hb)) | exact W]).
