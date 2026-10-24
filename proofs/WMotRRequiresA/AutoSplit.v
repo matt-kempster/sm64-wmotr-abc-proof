@@ -262,10 +262,10 @@ Section AutSplitS.
     /\ (forall bc oc, Mem.load Mint32 m bm FFW_CTL = Some (Vptr bc oc) -> bc <> bm).
   Proof.
     intros m (_ & EX & _).
-    destruct EX as (gp & bfi & bmiss & bcalls & bsin & ab & biom & bmq & brm & blk & bpc & bsr & bsrc & bsms & bo & oo & bt & ot & fl & ar & inp & ctl &
-                    HC & HS & HM & S1 & S2 & S3 & S4 & S5 & S6 & S7 & S8 & SL & SP & SR & SRC & SMS & Lo & Soo & La & Lb & Sot & D1 & D2 & D3 & D4 &
-                    W & Lf & Wf & Wc0 & Lar & War & Li & Ai & Lc & Wc & Co & LPC).
-    assert (Rb : rblk (ff_rl bm bo oo bfi bmiss bcalls ab bt biom bmq brm blk bpc bsr bsrc bsms) bm)
+    destruct EX as (gp & bfi & bmiss & bcalls & bsin & ab & biom & bmq & brm & blk & bpc & bsr & bsrc & bsms & bbs & bo & oo & bt & ot & fl & ar & inp & ctl &
+                    HC & HS & HM & S1 & S2 & S3 & S4 & S5 & S6 & S7 & S8 & SL & SP & SR & SRC & SMS & SBS & Lo & Soo & La & Lb & Sot & D1 & D2 & D3 & D4 &
+                    W & Lf & Wf & Wc0 & Lar & War & Li & Ai & Lc & Wc & Co & LPC & LBS).
+    assert (Rb : rblk (ff_rl bm bo oo bfi bmiss bcalls ab bt biom bmq brm blk bpc bsr bsrc bsms bbs) bm)
       by (exists Ptrofs.zero; cbn; auto).
     split; [| split].
     - intros bo' oo' Hl. change MARIOOBJ_OFF with FFW_OBJ in Hl. rewrite Lo in Hl.
@@ -336,10 +336,10 @@ Section AutSplitS.
     Lemma qsd_ffw : ffw ge bm m -> ffw ge bm m'.
     Proof.
       intros (Hgn & EX & FD).
-      destruct EX as (gp & bfi & bmiss & bcalls & bsin & ab & biom & bmq & brm & blk & bpc & bsr & bsrc & bsms & bo & oo & bt & ot & fl & ar & inp & ctl &
-                      HC & HS & HM & S1 & S2 & S3 & S4 & S5 & S6 & S7 & S8 & SL & SP & SR & SRC & SMS & Lo & Soo & La & Lb & Sot & D1 & D2 & D3 & D4 &
-                      W & Lf & Wf & Wc0 & Lar & War & Li & Ai & Lc & Wc & Co & LPC).
-      set (rl := ff_rl bm bo oo bfi bmiss bcalls ab bt biom bmq brm blk bpc bsr bsrc bsms) in *.
+      destruct EX as (gp & bfi & bmiss & bcalls & bsin & ab & biom & bmq & brm & blk & bpc & bsr & bsrc & bsms & bbs & bo & oo & bt & ot & fl & ar & inp & ctl &
+                      HC & HS & HM & S1 & S2 & S3 & S4 & S5 & S6 & S7 & S8 & SL & SP & SR & SRC & SMS & SBS & Lo & Soo & La & Lb & Sot & D1 & D2 & D3 & D4 &
+                      W & Lf & Wf & Wc0 & Lar & War & Li & Ai & Lc & Wc & Co & LPC & LBS).
+      set (rl := ff_rl bm bo oo bfi bmiss bcalls ab bt biom bmq brm blk bpc bsr bsrc bsms bbs) in *.
       assert (Rb : rblk rl bm) by (exists Ptrofs.zero; cbn; auto).
       assert (Hnb : Ple (Mem.nextblock m) (Mem.nextblock m')) by (rewrite qsd_nb; apply Ple_refl).
       assert (Hperm : forall b ofs k p, Plt b (Mem.nextblock m) -> Mem.perm m b ofs k p -> Mem.perm m' b ofs k p)
@@ -351,11 +351,11 @@ Section AutSplitS.
         destruct (closed_flat _ _ _ _ _ HC G0) as (-> & ->). reflexivity. }
       split; [rewrite qsd_nb; exact Hgn |].
       split.
-      - exists gp, bfi, bmiss, bcalls, bsin, ab, biom, bmq, brm, blk, bpc, bsr, bsrc, bsms, bo, oo, bt, ot, fl, ar, inp, ctl.
+      - exists gp, bfi, bmiss, bcalls, bsin, ab, biom, bmq, brm, blk, bpc, bsr, bsrc, bsms, bbs, bo, oo, bt, ot, fl, ar, inp, ctl.
         split; [refine (store_closed gp m m' Mfloat32 bm QSD_OFF (Vsingle Float32.zero) Hst HC Gbm _);
                 right; intros b' o' E; discriminate E |].
         split; [exact HS |]. split; [exact HM |].
-        do 13 (split; [assumption |]).
+        do 14 (split; [assumption |]).
         split; [lqm; exact Lo |]. split; [exact Soo |]. split; [lqm; exact La |].
         split; [rewrite LQ by (right; left; qside); exact Lb |].
         do 5 (split; [assumption |]).
@@ -369,7 +369,7 @@ Section AutSplitS.
         split; [lqm; exact Li |]. split; [exact Ai |].
         split; [lqm; exact Lc |]. split; [exact (wblk_keep2 m m' rl Hnb Hperm Hld _ _ _ Wc) |].
         split; [intros i cb co Hi Hl; rewrite LQb in Hl by exact D1; exact (Co i cb co Hi Hl) |].
-        lqm; exact LPC.
+        split; [lqm; exact LPC |]. lqm; exact LBS.
       - exact (floor_data_keep2 ge m m' rl Hnb Hperm Hld gp W FD).
     Qed.
 
@@ -389,9 +389,9 @@ Section AutSplitS.
     Proof.
       intros Hf (Hw & Hc & Hfl & Hh & Hr & Hq & Ho).
       pose proof Hf as (_ & EX & _).
-      destruct EX as (gp & bfi & bmiss & bcalls & bsin & ab & biom & bmq & brm & blk & bpc & bsr & bsrc & bsms & bo & oo & bt & ot & fl & ar & inp & ctl &
-                      HC & HS & HM & S1 & S2 & S3 & S4 & S5 & S6 & S7 & S8 & SL & SP & SR & SRC & SMS & Lo & Soo & La & Lb & Sot & D1 & D2 & D3 & D4 &
-                      W & Lf & Wf & Wc0 & Lar & War & Li & Ai & Lc & Wc & Co & LPC).
+      destruct EX as (gp & bfi & bmiss & bcalls & bsin & ab & biom & bmq & brm & blk & bpc & bsr & bsrc & bsms & bbs & bo & oo & bt & ot & fl & ar & inp & ctl &
+                      HC & HS & HM & S1 & S2 & S3 & S4 & S5 & S6 & S7 & S8 & SL & SP & SR & SRC & SMS & SBS & Lo & Soo & La & Lb & Sot & D1 & D2 & D3 & D4 &
+                      W & Lf & Wf & Wc0 & Lar & War & Li & Ai & Lc & Wc & Co & LPC & LBS).
       destruct (ffw_apart m Hf) as (Ao & As & _).
       split; [| split; [| split; [| split; [| split; [| split]]]]].
       - intros v Hl. lqm_in Hl. destruct (Hw v Hl) as [-> | (b & o & t & -> & Lt & Hin)]; [left; reflexivity |].
@@ -474,16 +474,16 @@ Section AutSplitS.
     Proof.
       intros Hf AW. pose proof Hf as (Hgn & EX & FD).
       destruct (ffw_apart m Hf) as (Ao & _ & _).
-      destruct EX as (gp & bfi & bmiss & bcalls & bsin & ab & biom & bmq & brm & blk & bpc & bsr & bsrc & bsms & bo & oo & bt & ot
-                      & fl & ar & inp & ctl & HC & HS & HM & S1 & S2 & S3 & S4 & S5 & S6 & S7 & S8 & SL & SP & SR & SRC & SMS
+      destruct EX as (gp & bfi & bmiss & bcalls & bsin & ab & biom & bmq & brm & blk & bpc & bsr & bsrc & bsms & bbs & bo & oo & bt & ot
+                      & fl & ar & inp & ctl & HC & HS & HM & S1 & S2 & S3 & S4 & S5 & S6 & S7 & S8 & SL & SP & SR & SRC & SMS & SBS
                       & Lo & Soo & La & Lb & Sot & D1 & D2 & D3 & D4 & W & _).
       pose proof AW as (ab' & bga & bauc & btab & otab & bt' & ot' & mb' & mo' & B & _).
       pose proof B as (Sab & _ & _ & _ & L8 & _ & Sy & _ & _ & _ & _ & _ & _ & _ & _ & _ & _ & _ & _ & _ & Hbm0).
       assert (ab' = ab) by congruence. subst ab'.
       rewrite Lb in L8. injection L8 as <- <-.
       assert (Nab : ab <> bm) by exact (AnimKeep.symne_ids ge _ _ _ _ S5 Hbm0 eq_refl).
-      apply (AnimKeep.anim_w_keep ge bm m m' gp bfi bmiss bcalls ab biom bmq brm blk bpc bsr bsrc bsms bo oo bt ot
-               S1 S2 S3 S5 S6 S7 S8 SL SP SR SRC SMS Lo Lb W AW).
+      apply (AnimKeep.anim_w_keep ge bm m m' gp bfi bmiss bcalls ab biom bmq brm blk bpc bsr bsrc bsms bbs bo oo bt ot
+               S1 S2 S3 S5 S6 S7 S8 SL SP SR SRC SMS SBS Lo Lb W AW).
       - rewrite (Mem.nextblock_store _ _ _ _ _ _ Hst). apply Ple_refl.
       - intros b ofs k p _ Hp. exact (Mem.perm_store_1 _ _ _ _ _ _ Hst b ofs k p Hp).
       - intros ch b z _ Hr. apply LQb. intros ->. apply Hr. exists Ptrofs.zero.
@@ -790,7 +790,7 @@ Section AutSplitS.
     pose proof (resolve_pin_fd lp _ _ _ _ LO_aut aut_defmap Hr) as ->.
     destruct aut_is as (Iu & Ik & Id).
     intros m t m' vr c Hok Hw (Hgv & Hx) Hok' Hc Hb Hev.
-    unfold xpre in Hx. rewrite Ik, Id in Hx.
+    unfold xpre in Hx. rewrite Ik, Id in Hx. destruct Hx as (Hx & _).
     assert (Hmarg : marg_ok bm [v]).
     { destruct v; cbn; try exact I. destruct Hgv as (gb & Hg & Hl).
       exact (Hgms m (proj2 (proj2 Hok)) gb b i Hg Hl). }

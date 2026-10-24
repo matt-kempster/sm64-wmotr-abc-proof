@@ -44,7 +44,9 @@ Definition fk_same : list (positive * Z * memory_chunk) :=
    (rO, O_INTERACT_TYPE, Mint32); (rO, O_POSY, Mfloat32); (rO, HITBOX_DOWN_OFF, Mfloat32);
    (rO, HITBOX_H_OFF, Mfloat32);
    (* m->waterLevel (FfWorld.WL_OFF, 2026-10-23: FfWorld.inputs_ok) *)
-   (rM, 118, Mint16signed)].
+   (rM, 118, Mint16signed);
+   (* m->marioBodyState (FfWorld.FFW_BODY, 2026-10-23) *)
+   (rM, 152, Mint32)].
 
 Definition has (pc : list fact) (f : fact) : bool := existsb (fbeq f) pc.
 
