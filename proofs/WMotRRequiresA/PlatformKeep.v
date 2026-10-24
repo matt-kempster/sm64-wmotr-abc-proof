@@ -224,9 +224,9 @@ Section Phi.
     pose proof Haw as (ab & bga & bauc & btab & otab & bt & ot & mb & mo & B & _).
     pose proof B as (_ & _ & _ & _ & _ & Lmo & _ & _ & _ & _ & _ & (_ & RG) & _).
     pose proof Hf as (Hgn & EX & _).
-    destruct EX as (gp & bfi & bmiss & bcalls & bsin & ab' & biom & bmq & brm & blk & bpc & bsr & bsrc & bsms
+    destruct EX as (gp & bfi & bmiss & bcalls & bsin & ab' & biom & bmq & brm & blk & bpc & bsr & bsrc & bsms & bbs
                     & bo & oo & bt' & ot' & fl & ar & inp & ctl & HC & HS & HM & _ & _ & _ & _ & _ & _
-                    & _ & _ & _ & _ & _ & _ & _ & Lo & _ & _ & _ & _ & D1 & _).
+                    & _ & _ & _ & _ & _ & _ & _ & _ & Lo & _ & _ & _ & _ & D1 & _).
     change FFW_OBJ with 136 in Lo. rewrite Lmo in Lo. injection Lo as <- <-.
     assert (Bmb : bm <> mb) by (intros E; exact (D1 (eq_sym E))).
     destruct (plat_D_sym lp H12) as (bD & HbD).
