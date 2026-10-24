@@ -143,8 +143,7 @@ Theorem lvl_w_keep : forall m m' bfi bmiss bcalls ab biom bmq brm blk bpc bsr bs
   Genv.find_symbol ge audio_external._sSoundMovingSpeed = Some bsms ->
   Genv.find_symbol ge mario._gBodyStates = Some bbs ->
   anim_w ge bm m ->
-  (forall b, Genv.find_symbol ge mario._gCurrLevelNum = Some b
-             \/ Genv.find_symbol ge sound_init._sPlayingInfiniteStairs = Some b -> b <> bo /\ b <> bt) ->
+  (forall b, lvl_sym ge b -> b <> bo /\ b <> bt) ->
   Ple (Genv.genv_next ge) (Mem.nextblock m) ->
   (forall ch b z, Plt b (Mem.nextblock m) ->
      ~ rblk (ff_rl bm bo oo bfi bmiss bcalls ab bt biom bmq brm blk bpc bsr bsrc bsms bbs) b ->
@@ -152,19 +151,15 @@ Theorem lvl_w_keep : forall m m' bfi bmiss bcalls ab biom bmq brm blk bpc bsr bs
   lvl_w ge m -> lvl_w ge m'.
 Proof.
   intros m m' bfi bmiss bcalls ab biom bmq brm blk bpc bsr bsrc bsms bbs bo oo bt
-    S1 S2 S3 S5 S6 S7 S8 SL SP SR SRC SMS SBS AW D4 Hgn OFF (LV1 & LV2).
+    S1 S2 S3 S5 S6 S7 S8 SL SP SR SRC SMS SBS AW D4 Hgn OFF.
   destruct AW as (ab' & bga & bauc & btab & otab & bt' & ot' & mb & mo & B & _).
   pose proof B as (_ & _ & _ & _ & _ & _ & _ & _ & _ & _ & _ & _
                    & _ & _ & _ & _ & _ & _ & _ & _ & Hbm).
-  assert (K : forall id b, Genv.find_symbol ge id = Some b ->
-            (id = mario._gCurrLevelNum \/ id = sound_init._sPlayingInfiniteStairs) ->
-            forall ch z, Mem.load ch m' b z = Mem.load ch m b z).
-  { intros id b Hs Hid ch z. apply OFF.
-    - exact (Plt_Ple_trans _ _ _ (Genv.genv_symb_range _ _ Hs) Hgn).
-    - assert (Dob : b <> bo /\ b <> bt)
-        by (apply D4; destruct Hid as [-> | ->]; [left | right]; exact Hs).
-      destruct Dob as (Do & Dt).
-      destruct Hid as [-> | ->];
+  apply lvl_w_unch. intros b ch z Hs. apply OFF.
+  - pose proof (lvl_sym_ids _ _ Hs) as (id & _ & Hs').
+    exact (Plt_Ple_trans _ _ _ (Genv.genv_symb_range _ _ Hs') Hgn).
+  - destruct (D4 b Hs) as (Do & Dt).
+    lvl_cases Hs;
         apply ff_rl_not; try congruence;
         first [ exact (symne_ids _ _ _ _ Hbm Hs eq_refl)
               | exact (symne_ids _ _ _ _ S1 Hs eq_refl) | exact (symne_ids _ _ _ _ S2 Hs eq_refl)
@@ -173,34 +168,25 @@ Proof.
               | exact (symne_ids _ _ _ _ S8 Hs eq_refl) | exact (symne_ids _ _ _ _ SL Hs eq_refl)
               | exact (symne_ids _ _ _ _ SP Hs eq_refl) | exact (symne_ids _ _ _ _ SR Hs eq_refl)
               | exact (symne_ids _ _ _ _ SRC Hs eq_refl) | exact (symne_ids _ _ _ _ SMS Hs eq_refl)
-              | exact (symne_ids _ _ _ _ SBS Hs eq_refl) ]. }
-
-  split.
-  - intros b Hs. rewrite (K _ b Hs (or_introl eq_refl)). exact (LV1 b Hs).
-  - intros b Hs. rewrite (K _ b Hs (or_intror eq_refl)). exact (LV2 b Hs).
+              | exact (symne_ids _ _ _ _ SBS Hs eq_refl) ].
 Qed.
 
 (* ... and any change that leaves the two globals' blocks alone *)
 Lemma lvl_w_keep_ne : forall m m' (P : block -> Prop),
-  (forall b, Genv.find_symbol ge mario._gCurrLevelNum = Some b
-             \/ Genv.find_symbol ge sound_init._sPlayingInfiniteStairs = Some b -> P b) ->
+  (forall b, lvl_sym ge b -> P b) ->
   (forall ch b z, P b -> Mem.load ch m' b z = Mem.load ch m b z) ->
   lvl_w ge m -> lvl_w ge m'.
 Proof.
-  intros m m' P HP HL (LV1 & LV2). split.
-  - intros b Hs. rewrite (HL _ b 0 (HP b (or_introl Hs))). exact (LV1 b Hs).
-  - intros b Hs. rewrite (HL _ b 0 (HP b (or_intror Hs))). exact (LV2 b Hs).
+  intros m m' P HP HL. apply lvl_w_unch. intros b ch z Hs. exact (HL ch b z (HP b Hs)).
 Qed.
 
 (* the two globals are not Mario's state block *)
-Lemma lvl_ne_bm : forall m, anim_w ge bm m -> forall b,
-  Genv.find_symbol ge mario._gCurrLevelNum = Some b
-  \/ Genv.find_symbol ge sound_init._sPlayingInfiniteStairs = Some b -> b <> bm.
+Lemma lvl_ne_bm : forall m, anim_w ge bm m -> forall b, lvl_sym ge b -> b <> bm.
 Proof.
   intros m AW b Hs.
   destruct AW as (ab' & bga & bauc & btab & otab & bt' & ot' & mb & mo & B & _).
   pose proof B as (_ & _ & _ & _ & _ & _ & _ & _ & _ & _ & _ & _
                    & _ & _ & _ & _ & _ & _ & _ & _ & Hbm).
-  destruct Hs as [Hs | Hs]; exact (symne_ids _ _ _ _ Hs Hbm eq_refl).
+  lvl_cases Hs; exact (symne_ids _ _ _ _ Hs Hbm eq_refl).
 Qed.
 End AK.

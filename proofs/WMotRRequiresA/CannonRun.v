@@ -72,6 +72,24 @@ Definition cannon_walk (acn yc : Z) (f : function) : bool :=
     | Some cs => forallb (ck_ok acn yc g) cs
     | None => false end).
 
+(* the walk at many seats, sharing one genv (the seats of WMotRLevel's
+   cannon list: each home seat + 5k while the base rises) *)
+Definition cannon_walk_all (acn : Z) (ycs : list Z) (f : function) : bool :=
+  with_ge ge12 false (fun g =>
+    forallb (fun yc =>
+      match sx_call g NBP (R0P g) gtabP (kvC acn yc g) (xcC acn yc g) jkeys mergeP true 3000 (g0C g)
+              (Internal f) argsF with
+      | Some cs => forallb (ck_ok acn yc g) cs
+      | None => false end) ycs).
+
+Lemma cannon_walk_of_all : forall acn ycs f yc,
+  cannon_walk_all acn ycs f = true -> In yc ycs -> cannon_walk acn yc f = true.
+Proof.
+  intros acn ycs f yc H Hin. unfold cannon_walk_all, with_ge in H. unfold cannon_walk, with_ge.
+  destruct ge12 as [g|]; [| discriminate H].
+  exact (proj1 (forallb_forall _ _) H yc Hin).
+Qed.
+
 Section LP.
 Variable lp : Clight.program.
 Hypothesis H12 : linked12 lp.

@@ -37,10 +37,46 @@
 
 From Coq Require Import ZArith List Lia Reals.
 From compcert Require Import Coqlib Maps AST Integers Floats Values Memory Ctypes Clight Globalenvs.
-From SM64.Generated Require mario surface_collision memory camera audio_external sound_init.
+From SM64.Generated Require mario surface_collision memory camera audio_external sound_init level_update.
 From SM64.Proofs Require Import HeightInvariant HeightMoveCatalog WMotRLevel Generic.ClosedMem.
 From SM64.Proofs.WMotRRequiresA Require Import FloorList FloorHeight FloorExec AirMatch AirStart RetOk.
 Import ListNotations.
+
+(* the level-phase globals the frame world pins (lvl_w below): blocks of
+   their own, which no proved row writes.  The first two since 2026-10-23;
+   the warp cells since 2026-10-24. *)
+Definition lvl_ids : list ident :=
+  [mario._gCurrLevelNum; sound_init._sPlayingInfiniteStairs;
+   level_update._sWarpDest; level_update._sCurrPlayMode; level_update._sDelayedWarpOp;
+   level_update._sSourceWarpNodeId; level_update._gCurrDemoInput; level_update._gCurrCreditsEntry].
+
+Definition lvl_sym (G : genv) (b : block) : Prop :=
+  Genv.find_symbol G mario._gCurrLevelNum = Some b
+  \/ Genv.find_symbol G sound_init._sPlayingInfiniteStairs = Some b
+  \/ exists id, In id (skipn 2 lvl_ids) /\ Genv.find_symbol G id = Some b.
+
+Lemma lvl_sym_ids : forall (G : genv) b, lvl_sym G b -> exists id, In id lvl_ids /\ Genv.find_symbol G id = Some b.
+Proof.
+  intros G b [H | [H | (id & Hin & H)]].
+  - exists mario._gCurrLevelNum. split; [left; reflexivity | exact H].
+  - exists sound_init._sPlayingInfiniteStairs. split; [right; left; reflexivity | exact H].
+  - exists id. split; [right; right; exact Hin | exact H].
+Qed.
+
+Lemma lvl_sym_of : forall (G : genv) id b, In id lvl_ids -> Genv.find_symbol G id = Some b -> lvl_sym G b.
+Proof.
+  intros G id b Hin H. destruct Hin as [<- | [<- | Hin]].
+  - left; exact H.
+  - right; left; exact H.
+  - right; right. exists id. split; [exact Hin | exact H].
+Qed.
+
+(* split a lvl_sym hypothesis into one goal per concrete global *)
+Ltac lvl_cases H :=
+  let id := fresh "id" in let Hin := fresh "Hin" in
+  apply lvl_sym_ids in H; destruct H as (id & Hin & H);
+  unfold lvl_ids in Hin; cbn [In] in Hin;
+  repeat (destruct Hin as [<- | Hin]); try contradiction.
 
 (* the MarioState fields and struct sizes the walk reads (generated AST) *)
 Definition FFW_OBJ : Z := 136.      (* marioObj *)
@@ -117,8 +153,7 @@ Definition ffw (m : mem) : Prop :=
                     \/ Genv.find_symbol G mario._gAudioRandom = Some b
                     (* gCurrLevelNum: add_tree_leaf_particles reads it (the pole walks);
                        sPlayingInfiniteStairs: play_infinite_stairs_music reads it (lvl_w) *)
-                    \/ (Genv.find_symbol G mario._gCurrLevelNum = Some b
-                        \/ Genv.find_symbol G sound_init._sPlayingInfiniteStairs = Some b) -> b <> bo /\ b <> bt)
+                    \/ lvl_sym G b -> b <> bo /\ b <> bt)
       (* the collision partition *)
       /\ Wff G m gp SZ_SURFACE (ff_rl bm bo oo bfi bmiss bcalls ab bt biom bmq brm blk bpc bsr bsrc bsms bbs)
       (* m->floor, m->area *)
@@ -538,8 +573,68 @@ Qed.
    at the visit's entry (the castle's last frame clears it: Mario enters
    the painting away from the endless stairs) and stays FALSE (the call's
    verdict outside the castle is FALSE). *)
+(* The warp cells (2026-10-24).  FOUND (phantom forall): the level phase's
+   labeled spec (HeightFrame.seg_level_spec: the action cell unchanged, Phi
+   kept) was claimed from ANY frame-world memory, but the real
+   play_mode_normal rewrites Mario's action and y in ways that memory did
+   not rule out: warp_area runs init_mario_after_warp whenever
+   sWarpDest.type is not WARP_TYPE_NOT_WARPING (level_update.c:463-473,
+   389-390); a demo (gCurrDemoInput non-NULL) or the credits
+   (gCurrCreditsEntry non-NULL) trigger warps; and initiate_delayed_warp
+   follows sSourceWarpNodeId through area_get_warp_node, whose NULL (a node
+   the area does not have) leaves no execution.  In the game, inside WMotR:
+     - in PLAY_MODE_NORMAL (0) sWarpDest.type is NOT_WARPING (0): the level
+       is entered by warp_level, which ends with init_mario_after_warp's
+       sWarpDest.type = NOT_WARPING (:397); every warp WMotR can start goes
+       to another level (its nodes F0 / F1 / F3 lead to the castle,
+       levels/wmotr/script.c), so initiate_warp sets CHANGE_LEVEL and the
+       same play_mode_normal call leaves NORMAL (:993-995);
+     - gCurrDemoInput and gCurrCreditsEntry are NULL (boot values; only the
+       demo / credits flows set them);
+     - a pending delayed warp (sDelayedWarpOp non-zero) came from
+       level_trigger_warp with sSourceWarpNodeId SUCCESS (0xF0), DEATH
+       (0xF1) or WARP_FLOOR (0xF3) (:705-747; WMotR has no warp objects).
+   The instant and painting warps need floor types WMotR does not have,
+   which the frame world already pins (wmotr_world's floor clause).
+   StartSat proves these on the witness (its Z18 is the real :397 store);
+   every proved row keeps them (the blocks are apart from all regions). *)
+Definition warp_w (G : genv) (m : mem) : Prop :=
+  (forall bp bw, Genv.find_symbol G level_update._sCurrPlayMode = Some bp ->
+     Genv.find_symbol G level_update._sWarpDest = Some bw ->
+     Mem.load Mint16signed m bp 0 = Some (Vint Int.zero) ->
+     Mem.load Mint8unsigned m bw 0 = Some (Vint Int.zero))
+  /\ (forall b, Genv.find_symbol G level_update._gCurrDemoInput = Some b ->
+     Mem.load Mint32 m b 0 = Some (Vint Int.zero))
+  /\ (forall b, Genv.find_symbol G level_update._gCurrCreditsEntry = Some b ->
+     Mem.load Mint32 m b 0 = Some (Vint Int.zero))
+  /\ (forall bo bs, Genv.find_symbol G level_update._sDelayedWarpOp = Some bo ->
+     Genv.find_symbol G level_update._sSourceWarpNodeId = Some bs ->
+     Mem.load Mint16signed m bo 0 <> Some (Vint Int.zero) ->
+     exists n, Mem.load Mint16signed m bs 0 = Some (Vint (Int.repr n)) /\ In n [240; 241; 243]).
+
 Definition lvl_w (G : genv) (m : mem) : Prop :=
   (forall b, Genv.find_symbol G mario._gCurrLevelNum = Some b ->
      Mem.load Mint16signed m b 0 = Some (Vint (Int.repr LEVEL_WMOTR)))
   /\ (forall b, Genv.find_symbol G sound_init._sPlayingInfiniteStairs = Some b ->
-     Mem.load Mint8unsigned m b 0 = Some (Vint Int.zero)).
+     Mem.load Mint8unsigned m b 0 = Some (Vint Int.zero))
+  /\ warp_w G m.
+
+(* lvl_w reads only the lvl_ids globals' blocks *)
+Lemma lvl_w_unch : forall (G : genv) m m',
+  (forall b ch z, lvl_sym G b -> Mem.load ch m' b z = Mem.load ch m b z) ->
+  lvl_w G m -> lvl_w G m'.
+Proof.
+  intros G m m' U (L1 & L2 & W1 & W2 & W3 & W4).
+  assert (U' : forall id b, Genv.find_symbol G id = Some b -> In id lvl_ids -> forall ch z,
+             Mem.load ch m' b z = Mem.load ch m b z)
+    by (intros id b Hs Hin ch z; exact (U b ch z (lvl_sym_of G id b Hin Hs))).
+  split; [| split; [| split; [| split; [| split]]]].
+  - intros b Hs. rewrite (U' _ b Hs ltac:(unfold lvl_ids; cbn [In]; auto 12)). exact (L1 b Hs).
+  - intros b Hs. rewrite (U' _ b Hs ltac:(unfold lvl_ids; cbn [In]; auto 12)). exact (L2 b Hs).
+  - intros bp bw Hp Hw. rewrite (U' _ bp Hp ltac:(unfold lvl_ids; cbn [In]; auto 12)), (U' _ bw Hw ltac:(unfold lvl_ids; cbn [In]; auto 12)).
+    exact (W1 bp bw Hp Hw).
+  - intros b Hs. rewrite (U' _ b Hs ltac:(unfold lvl_ids; cbn [In]; auto 12)). exact (W2 b Hs).
+  - intros b Hs. rewrite (U' _ b Hs ltac:(unfold lvl_ids; cbn [In]; auto 12)). exact (W3 b Hs).
+  - intros bo bs Ho Hs. rewrite (U' _ bo Ho ltac:(unfold lvl_ids; cbn [In]; auto 12)), (U' _ bs Hs ltac:(unfold lvl_ids; cbn [In]; auto 12)).
+    exact (W4 bo bs Ho Hs).
+Qed.
