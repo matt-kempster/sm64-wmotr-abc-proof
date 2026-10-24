@@ -96,10 +96,8 @@ Example chk_csh_needs_rf :
   cam_chk (removelast ids_csh) camera.f_set_camera_shake_from_hit = false.
 Proof. vm_compute. reflexivity. Qed.
 
-(* random_float has no body in any linked TU *)
-Lemma rf_no_internal :
-  forallb (fun p => no_internal_ids p [camera._random_float]) (mario.prog :: tu_rest) = true.
-Proof. vm_compute. reflexivity. Qed.
+(* (rf_no_internal is gone: since 2026-10-23 engine/behavior_script.c is
+   the 43rd TU, so random_float has its real body, MenuBodies.Hpx_rf) *)
 
 (* ---------------------------------------------------------------------- *)
 (* 2. The rows, at the concrete MWF_real.                                   *)

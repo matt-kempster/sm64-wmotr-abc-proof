@@ -54,7 +54,7 @@ From compcert Require Import Coqlib Maps AST Integers Values Events Memory
   Globalenvs Ctypes Cop Clightdefs Clight ClightBigstep Linking.
 From SM64.Generated Require mario memory math_util object_helpers graph_node
   spawn_object surface_collision behavior_actions interaction mario_actions_cutscene
-  audio_external.
+  audio_external behavior_data.
 From SM64.Proofs Require Import SymbolicLinking ActionValueFrame Taint
   RealFrameLinked AGates CensusV2 RestSurface MWFReal SpawnInit MathGeomBodies
   MathGeomGated OutParamSurface MathBodies LinkedTwelve LocalVarsSurface
@@ -414,7 +414,11 @@ End SW.
 Definition sb_gs : list ident :=
   graph_node._gObjParentGraphNode :: spawn_object._gFreeObjectList
     :: spawn_object._gObjectLists :: object_helpers._gLoadedGraphNodes
-    :: object_helpers._gVec3fZero :: object_helpers._gVec3sZero :: nil.
+    :: object_helpers._gVec3fZero :: object_helpers._gVec3sZero
+    (* 2026-10-23 (SpawnStarBody): spawn_star reads gCurrentObject and passes
+       bhvStarSpawnCoordinates; both are safe_ptr_syms *)
+    :: mario_actions_cutscene._gCurrentObject
+    :: behavior_data._bhvStarSpawnCoordinates :: nil.
 
 Definition vec_ids : list ident :=
   math_util._vec3f_set :: math_util._vec3f_copy :: math_util._vec3s_copy :: nil.

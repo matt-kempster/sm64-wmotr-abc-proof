@@ -39,7 +39,7 @@ From compcert Require Import Coqlib Maps AST Integers Values Events Memory
   Globalenvs Ctypes Cop Clightdefs Clight ClightBigstep Linking Errors.
 From SM64.Generated Require surface_collision math_util memory save_file area
   libultra_osSiCreateAccessQueue libultra_osContInit libultra_osEepromWrite
-  audio_external print.
+  audio_external print ingame_menu behavior_data.
 From SM64.Generated Require mario level_update mario_step mario_actions_submerged
   mario_actions_cutscene behavior_actions interaction graph_node spawn_object
   object_helpers.
@@ -976,7 +976,16 @@ Definition stored_globals : list ident :=
      constrain its contents, which is what the code needs.  The claim, via
      SpawnInit.non_safeb_syms, is that nothing in the object graph points
      into the request queue. *)
-  audio_external._sSoundRequests :: nil.
+  audio_external._sSoundRequests ::
+  (* the dialog variable (2026-10-23, MenuBodies): create_dialog_box_with_var
+     (dialog, dialogVar) stores its s32 ARGUMENT dialogVar into the s32
+     global gDialogVariable (ingame_menu.c:1089); a 32-bit cast passes a
+     pointer through, so as a SafeB block it would make the any-argument
+     cut_ext row FALSE (dialogVar = &gMarioStates breaks R7), the
+     D_8032CE74/78 and sSoundRequests case again.  Only the dialog renderer
+     reads it back (as an integer).  The claim, via SpawnInit.non_safeb_syms,
+     is that nothing in the object graph points at it. *)
+  ingame_menu._gDialogVariable :: nil.
 
 (* 2026-10-19: the five cutscene OBJECT-POINTER globals.  They left
    stored_globals: MWF does not constrain a stored global's contents, so the
@@ -1038,7 +1047,11 @@ Definition spawn_bhv_syms : list ident :=
     :: mario_actions_cutscene._bhvSparkleSpawn
     :: mario_actions_cutscene._bhvStaticObject
     :: mario_actions_cutscene._bhvEndPeach
-    :: mario_actions_cutscene._bhvEndToad :: nil.
+    :: mario_actions_cutscene._bhvEndToad
+    (* 2026-10-23 (obj_behaviors.c linked, SpawnStarBody): spawn_default_star
+       -> spawn_star passes bhvStarSpawnCoordinates (spawn_star.inc.c:115) to
+       spawn_object_abs_with_rot, which stores it into the new pool object *)
+    :: behavior_data._bhvStarSpawnCoordinates :: nil.
 
 (* print.c's text-label storage (linked 2026-10-23): print_text_fmt_int
    allocates a label from the effects pool (memory.c's gEffectsMemoryPool,

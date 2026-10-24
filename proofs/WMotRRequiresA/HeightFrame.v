@@ -443,27 +443,19 @@ Section HeightLinked12.
   (* Hpres_sta_ext and Hsss: PROVED 2026-10-23 (AudioBodies), no longer rows. *)
   (* memory.c's segment converters and the seven linked save_file.c /
      bhv_spawn_star entries are PROVED (NoAImpliesNoFlyTwelve.obj_ext_open_of2) *)
-  Hypothesis Hpres_obj_ext_open2 : forall fid,
-      mem_id fid NoAImpliesNoFlyTwelve.obj_ext_open2_ids = true ->
-      call_pres_ext lp bm (NoA_real bm) MWF fid.
-  (* enable_time_stop / disable_time_stop are PROVED
-     (NoAImpliesNoFlyTwelve.cut_ext_open_of2) *)
-  Hypothesis Hpres_cut_ext_open2 : forall fid,
-      mem_id fid NoAImpliesNoFlyTwelve.cut_ext_open2_ids = true ->
-      call_pres_ext lp bm (NoA_real bm) MWF fid.
+  (* Hpres_obj_ext_open2: GONE 2026-10-23 (random_float is walked since
+     behavior_script.c joined the link, MenuBodies) *)
+  (* Hpres_cut_ext_open2: GONE 2026-10-23 -- every any-argument cutscene
+     entry is a linked body, walked (NoAImpliesNoFlyTwelve.cut_ext_open_of2;
+     the seven ingame_menu.c entries in MenuBodies) *)
   (* Hgeo_real / Hocp_rai_real: PROVED inside NoAImpliesNoFlyTwelve from the
      real graph_node.c bodies (GraphNodeBodies), no longer rows. *)
-  (* raise_background_noise is PROVED (AudioBodies); spawn_default_star is left *)
-  Hypothesis Hpres_floors_ext_open : forall fid,
-      mem_id fid NoAImpliesNoFlyTwelve.floors_ext_open_ids = true ->
-      call_pres_ext lp bm (NoA_real bm) MWF fid.
+  (* Hpres_floors_ext_open: GONE 2026-10-23 (raise_background_noise by
+     AudioBodies; spawn_default_star by SpawnStarBody, obj_behaviors.c linked) *)
   (* Hcp_savefile_real: PROVED inside NoAImpliesNoFlyTwelve from the real
      save_file.c body (SaveFileBody), no longer a row. *)
-  (* area_get_warp_node / play_transition are PROVED
-     (NoAImpliesNoFlyTwelve.warp_ext_of_open) *)
-  Hypothesis Hpres_warp_ext_open : forall fid,
-      mem_id fid NoAImpliesNoFlyTwelve.warp_ext_open_ids = true ->
-      call_pres_ext lp bm (NoA_real bm) MWF fid.
+  (* Hpres_warp_ext_open: GONE 2026-10-23 -- its list was empty since the
+     audio link (NoAImpliesNoFlyTwelve.warp_ext_open_nil) *)
   (* Hret_unsafe REMOVED (task #99): the v2 engine no longer consumes any
      return-value row (it was dead plumbing / a latent vacuity -- see
      NoAImpliesNoFlyLinked). *)
@@ -702,10 +694,7 @@ Section HeightLinked12.
     /\ chase_safe_stmt bm SafeB MWF /\ store_safe_stmt lp bm SafeB MWF.
   Proof.
     exact (frame_call_ok_linked12 lp H12 bm bc oc0 SafeB HSafeB_syms Hbm_sym Hbc_sym Hoc0
-             Hsqrtf Hscm_body_real Hls Hdma_floor
-             Hpres_obj_ext_open2 Hpres_cut_ext_open2
-             Hpres_floors_ext_open
-             Hpres_warp_ext_open).
+             Hsqrtf Hscm_body_real Hls Hdma_floor).
   Qed.
 
   Lemma air_leaves :
@@ -714,8 +703,7 @@ Section HeightLinked12.
       body_pres lp (NoA_real bm) MWF bm f.
   Proof.
     exact (air_leaves_linked12 lp H12 bm bc oc0 SafeB HSafeB_syms Hbm_sym Hbc_sym Hoc0
-             Hsqrtf Hscm_body_real Hls Hdma_floor Hpres_obj_ext_open2 Hpres_floors_ext_open
-             Hpres_warp_ext_open).
+             Hsqrtf Hscm_body_real Hls Hdma_floor).
   Qed.
 
   Lemma auto_leaves :
@@ -724,7 +712,7 @@ Section HeightLinked12.
       body_pres lp (NoA_real bm) MWF bm f.
   Proof.
     exact (auto_leaves_linked12 lp H12 bm bc oc0 SafeB HSafeB_syms Hbm_sym Hbc_sym Hoc0
-             Hsqrtf Hscm_body_real Hls Hdma_floor Hpres_obj_ext_open2).
+             Hsqrtf Hscm_body_real Hls Hdma_floor).
   Qed.
 
   (* the automatic dispatcher's row, from AutoSplit *)
