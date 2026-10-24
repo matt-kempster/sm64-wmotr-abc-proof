@@ -249,12 +249,15 @@ all in `Unwired/`, and the theorem moved nowhere. See
   - The **automatic dispatcher** (`mario_execute_automatic_action`) is SPLIT (2026-10-21,
     `AutoSplit.aut_seg`, TRUST (i)-(j)). `Hseg_call_na` is now `seg_call_rows_naFA`, which
     excludes both dispatchers. Since 2026-10-23 (`NaSplit`, TRUST 0.8(q)) it is a LEMMA over
-    `HeightFrame.Hseg_na_open : na_open_rows`, which has 9 named per-call rows. Six calls
+    `HeightFrame.Hseg_na_open : na_open_rows`, which has 8 named per-call rows. Seven calls
     are proved: submerged-cam (dead outside group 0xC0), `update_mario_health` (a walk inside
     `ProRows`' hole), the submerged dispatcher (vacuous under `grp_ok`), and (2026-10-24)
     `mario_reset_bodystate` / `update_mario_info_for_cam` and `squish_mario_model` (an
     object-side hole in `ProRows`: Mario's object's gfx.scale, bytes 44..55; `BodyFrame.v3set_frame`
-    walks vec3f_set). For reset / info_for_cam, `ffw` now pins
+    walks vec3f_set), and `sink_mario_in_quicksand` (`qs_row`: `ffw` now pins Mario's
+    `gfx.throwMatrix` to NULL or `sFloorAlignMatrix`, ff_rl region `RFA` -- a phantom-forall
+    repair; the gfx.pos[1] store writes Phi's cell back unchanged since quicksandDepth = +0 and
+    x - 0 = x on finite floats; `ProRows`' object window is generic `ow`/`wl`). For reset / info_for_cam, `ffw` now pins
     `m->marioBodyState = &gBodyStates[0]`, and gBodyStates is ff_rl region `RBS`; a pin alone
     is not enough, because the walk regions must exclude it. `ProRows`' hole is generic over
     `XIDS`, and `BodyFrame.Q2` allows freed callee frames (vec3*_copy, `v3_frame`). Dispatcher pres
@@ -262,7 +265,7 @@ all in `Unwired/`, and the theorem moved nowhere. See
     real switch. NEXT: shrink `na_open` one call at a time. hitbox_and_cap also stores through
     `marioBodyState` but calls `stop_cap_music`. update_mario_inputs needs pins on
     `gEnvironmentRegions`, `gShowDebugText` and `gCameraMovementFlags`, plus the collision
-    finders. quicksand needs a pin on `gfx.throwMatrix` (and gfx.pos[1] is Phi's cell). The prologue call is in `Hair_pro`. The
+    finders. The prologue call is in `Hair_pro`. The
     `quicksandDepth = 0` store is proved (the `qsd_*` lemmas). What stays assumed is the
     12 handler calls, `HeightFrame.Hauto_case : aut_case_rows` (27 → 28 hypotheses).
     Shrink it per case as walks land, as `air_case_rest*` did. Its audit on 2026-10-21

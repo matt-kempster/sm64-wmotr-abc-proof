@@ -28,7 +28,7 @@ From Coq Require Import ZArith List Lia Relations Reals Lra.
 From compcert Require Import Coqlib Maps AST Integers Floats Values Events Memory
   Globalenvs Ctypes Ctypesdefs Cop Clight ClightBigstep Linking.
 From SM64.Generated Require mario mario_actions_airborne mario_actions_automatic
-  audio_external sound_init level_update camera.
+  audio_external sound_init level_update camera mario_actions_moving.
 From SM64.Proofs Require Import Flying Taint ActionValue ActionValueFrame
   RealFrameValue RealFrameLinked AGates SymbolicLinking.
 From SM64.Proofs Require Import CensusV2 EngineV2Consumer RestSurface AirborneSurface.
@@ -602,7 +602,8 @@ Section PR.
      mario_reset_bodystate / update_mario_info_for_cam rows).  All four are
      ffw regions (FfWorld.ff_rl), so no world object lives in them. *)
   Definition XIDS : list ident :=
-    [AX._sSoundRequests; AX._sSoundRequestCount; mario._gBodyStates; camera._gPlayerCameraState].
+    [AX._sSoundRequests; AX._sSoundRequestCount; mario._gBodyStates; camera._gPlayerCameraState;
+     mario_actions_moving._sFloorAlignMatrix].
   Definition xsym (x : block) : Prop := exists id, In id XIDS /\ Genv.find_symbol ge id = Some x.
 
   Lemma xsym_ne : forall x id b, xsym x -> Genv.find_symbol ge id = Some b ->
@@ -615,26 +616,28 @@ Section PR.
     rewrite T in Hn. discriminate Hn.
   Qed.
 
-  Lemma xsym_ffw : forall x bo oo bfi bmiss bcalls bsin ab bt biom bmq brm blk bpc bsr bsrc bsms bbs,
+  Lemma xsym_ffw : forall x bo oo bfi bmiss bcalls bsin ab bt biom bmq brm blk bpc bsr bsrc bsms bbs bfa,
     xsym x ->
     Genv.find_symbol ge camera._gPlayerCameraState = Some bpc ->
     Genv.find_symbol ge audio_external._sSoundRequests = Some bsr ->
     Genv.find_symbol ge audio_external._sSoundRequestCount = Some bsrc ->
     Genv.find_symbol ge mario._gBodyStates = Some bbs ->
-    (forall b, In b [bfi; bmiss; bcalls; bsin; ab; biom; bmq; brm; blk; bpc; bsr; bsrc; bsms; bbs] ->
+    Genv.find_symbol ge mario_actions_moving._sFloorAlignMatrix = Some bfa ->
+    (forall b, In b [bfi; bmiss; bcalls; bsin; ab; biom; bmq; brm; blk; bpc; bsr; bsrc; bsms; bbs; bfa] ->
        b <> bo /\ b <> bt) ->
-    rblk (ff_rl bm bo oo bfi bmiss bcalls ab bt biom bmq brm blk bpc bsr bsrc bsms bbs) x
+    rblk (ff_rl bm bo oo bfi bmiss bcalls ab bt biom bmq brm blk bpc bsr bsrc bsms bbs bfa) x
     /\ x <> bo /\ x <> bt.
   Proof.
-    intros x bo oo bfi bmiss bcalls bsin ab bt biom bmq brm blk bpc bsr bsrc bsms bbs
-      (id & Hin & Hx) SP SR SRC SBS D4.
-    assert (Hx' : x = bsr \/ x = bsrc \/ x = bbs \/ x = bpc).
-    { destruct Hin as [<- | [<- | [<- | [<- | []]]]];
-        [left | right; left | right; right; left | right; right; right]; congruence. }
-    assert (Hl : In x [bfi; bmiss; bcalls; bsin; ab; biom; bmq; brm; blk; bpc; bsr; bsrc; bsms; bbs])
-      by (destruct Hx' as [-> | [-> | [-> | ->]]]; cbn; auto 20).
+    intros x bo oo bfi bmiss bcalls bsin ab bt biom bmq brm blk bpc bsr bsrc bsms bbs bfa
+      (id & Hin & Hx) SP SR SRC SBS SFA D4.
+    assert (Hx' : x = bsr \/ x = bsrc \/ x = bbs \/ x = bpc \/ x = bfa).
+    { destruct Hin as [<- | [<- | [<- | [<- | [<- | []]]]]];
+        [left | right; left | right; right; left | right; right; right; left | right; right; right; right];
+        congruence. }
+    assert (Hl : In x [bfi; bmiss; bcalls; bsin; ab; biom; bmq; brm; blk; bpc; bsr; bsrc; bsms; bbs; bfa])
+      by (destruct Hx' as [-> | [-> | [-> | [-> | ->]]]]; cbn; auto 20).
     destruct (D4 x Hl) as (A & B). split; [| exact (conj A B)].
-    exists Ptrofs.zero. destruct Hx' as [-> | [-> | [-> | ->]]]; unfold ff_rl; cbn; auto 20.
+    exists Ptrofs.zero. destruct Hx' as [-> | [-> | [-> | [-> | ->]]]]; unfold ff_rl; cbn; auto 22.
   Qed.
 
   Section HOLE.
@@ -646,27 +649,31 @@ Section PR.
     Hypothesis SRC0 : xsym bsrc.
     Hypothesis NB : Ple (Mem.nextblock m) (Mem.nextblock m').
     Hypothesis PM : forall b o k p, Mem.perm m b o k p -> Mem.perm m' b o k p.
-    (* 2026-10-24: a third, optional hole, the 12 bytes of Mario's object's
-       gfx.scale (squish_mario_model): ob, oz is that object's block and
-       (absolute) scale offset, or ob = bsr for no third hole *)
-    Variables (ob : block) (oz : Z).
+    (* 2026-10-24: a third, optional hole, a window of Mario's object's
+       GraphNodeObject between bytes 36 and 56: wl bytes at offset ow (the
+       12 bytes of gfx.scale, 44, for squish_mario_model; the 4 bytes of
+       gfx.pos[1], 36, for sink_mario_in_quicksand); ob, oz is that
+       object's block and the window's absolute offset, or ob = bsr for no
+       third hole *)
+    Variables (ob : block) (oz ow wl : Z).
+    Hypothesis OWL : 36 <= ow /\ 0 <= wl /\ ow + wl <= 56.
     Hypothesis OBJ : ob = bsr \/ exists oo', Mem.load Mint32 m bm MARIOOBJ_OFF = Some (Vptr ob oo')
-                                           /\ oz = Ptrofs.unsigned oo' + 44.
+                                           /\ oz = Ptrofs.unsigned oo' + ow.
     Hypothesis NBO : bm <> ob.
     Hypothesis LD : forall ch b z, b <> bsr -> b <> bsrc -> (b <> bm \/ hz z (size_chunk ch)) ->
-      (b <> ob \/ z + size_chunk ch <= oz \/ oz + 12 <= z) ->
+      (b <> ob \/ z + size_chunk ch <= oz \/ oz + wl <= z) ->
       Mem.load ch m' b z = Mem.load ch m b z.
     Hypothesis CLK : forall gp, closed_by gp m -> syms_mapped ge gp -> gp bm <> None ->
       exists gp', (forall b, gp b <> None -> gp' b <> None) /\ closed_by gp' m' /\ syms_mapped ge gp'.
     Hypothesis NBR : bm <> bsr.
     Hypothesis NBRC : bm <> bsrc.
 
-    (* a cell is off the scale hole of Mario's object *)
+    (* a cell is off the window of Mario's object *)
     Definition ozp (b : block) (z s : Z) : Prop :=
       forall mb mo, Mem.load Mint32 m bm MARIOOBJ_OFF = Some (Vptr mb mo) ->
-        b <> mb \/ z + s <= Ptrofs.unsigned mo + 44 \/ Ptrofs.unsigned mo + 56 <= z.
+        b <> mb \/ z + s <= Ptrofs.unsigned mo + ow \/ Ptrofs.unsigned mo + ow + wl <= z.
 
-    Lemma ozp_ob : forall b z s, b <> bsr -> ozp b z s -> b <> ob \/ z + s <= oz \/ oz + 12 <= z.
+    Lemma ozp_ob : forall b z s, b <> bsr -> ozp b z s -> b <> ob \/ z + s <= oz \/ oz + wl <= z.
     Proof.
       intros b z s N H. destruct OBJ as [-> | (oo' & Hl & ->)]; [left; exact N |].
       destruct (H ob oo' Hl) as [A | [A | A]]; [left; exact A | right; left; lia | right; right; lia].
@@ -677,7 +684,7 @@ Section PR.
     Proof. intros b z s H mb mo Hl. left. exact (H mb mo Hl). Qed.
 
     Lemma ozp_k : forall mb mo k s, Mem.load Mint32 m bm MARIOOBJ_OFF = Some (Vptr mb mo) ->
-      k + s <= 44 \/ 56 <= k -> ozp mb (Ptrofs.unsigned mo + k) s.
+      k + s <= 36 \/ 56 <= k -> ozp mb (Ptrofs.unsigned mo + k) s.
     Proof.
       intros mb mo k s Hl Hk mb' mo' Hl'. rewrite Hl in Hl'. injection Hl' as <- <-. right. lia.
     Qed.
@@ -685,7 +692,7 @@ Section PR.
     Lemma ozp_span : forall mb mo cb co k s, Mem.load Mint32 m bm MARIOOBJ_OFF = Some (Vptr mb mo) ->
       cb <> mb \/ co = mo \/ Ptrofs.unsigned co + 608 <= Ptrofs.unsigned mo
         \/ Ptrofs.unsigned mo + 608 <= Ptrofs.unsigned co ->
-      0 <= k -> k + s <= 608 -> k + s <= 44 \/ 56 <= k -> ozp cb (Ptrofs.unsigned co + k) s.
+      0 <= k -> k + s <= 608 -> k + s <= 36 \/ 56 <= k -> ozp cb (Ptrofs.unsigned co + k) s.
     Proof.
       intros mb mo cb co k s Hl Hc K1 K2 K3 mb' mo' Hl'. rewrite Hl in Hl'. injection Hl' as <- <-.
       destruct Hc as [A | [-> | [A | A]]]; [left; exact A | right; lia | right; left; lia | right; right; lia].
@@ -710,14 +717,14 @@ Section PR.
               /\ forall mb mo, Mem.load Mint32 m bm MARIOOBJ_OFF = Some (Vptr mb mo) -> bc <> mb).
     Proof.
       intros (_ & EX & _).
-      destruct EX as (gp & bfi & bmiss & bcalls & bsin & ab & biom & bmq & brm & blk & bpc & bsr' & bsrc' & bsms & bbs & bo & oo & bt & ot & fl & ar & inp & ctl &
-                      HC & HS & HM & S1 & S2 & S3 & S4 & S5 & S6 & S7 & S8 & SL & SP & SR & SRC & SMS & SBS & Lo & Soo & La & Lb & Sot & D1 & D2 & D3 & D4 &
-                      W & Lf & Wf & Wc0 & Lar & War & Li & Ai & Lc & Wc & Co & LPC & LBS).
-      destruct (xsym_ffw bsr bo oo bfi bmiss bcalls bsin ab bt biom bmq brm blk bpc bsr' bsrc' bsms bbs
-                  SR0 SP SR SRC SBS (fun b H => D4 b (or_introl H))) as (R1 & X1o & X1t).
-      destruct (xsym_ffw bsrc bo oo bfi bmiss bcalls bsin ab bt biom bmq brm blk bpc bsr' bsrc' bsms bbs
-                  SRC0 SP SR SRC SBS (fun b H => D4 b (or_introl H))) as (R2 & X2o & X2t).
-      set (rl := ff_rl bm bo oo bfi bmiss bcalls ab bt biom bmq brm blk bpc bsr' bsrc' bsms bbs) in *.
+      destruct EX as (gp & bfi & bmiss & bcalls & bsin & ab & biom & bmq & brm & blk & bpc & bsr' & bsrc' & bsms & bbs & bfa & bo & oo & bt & ot & fl & ar & inp & ctl &
+                      HC & HS & HM & S1 & S2 & S3 & S4 & S5 & S6 & S7 & S8 & SL & SP & SR & SRC & SMS & SBS & SFA & Lo & Soo & La & Lb & Sot & D1 & D2 & D3 & D4 &
+                      W & Lf & Wf & Wc0 & Lar & War & Li & Ai & Lc & Wc & Co & LPC & LBS & LTM).
+      destruct (xsym_ffw bsr bo oo bfi bmiss bcalls bsin ab bt biom bmq brm blk bpc bsr' bsrc' bsms bbs bfa
+                  SR0 SP SR SRC SBS SFA (fun b H => D4 b (or_introl H))) as (R1 & X1o & X1t).
+      destruct (xsym_ffw bsrc bo oo bfi bmiss bcalls bsin ab bt biom bmq brm blk bpc bsr' bsrc' bsms bbs bfa
+                  SRC0 SP SR SRC SBS SFA (fun b H => D4 b (or_introl H))) as (R2 & X2o & X2t).
+      set (rl := ff_rl bm bo oo bfi bmiss bcalls ab bt biom bmq brm blk bpc bsr' bsrc' bsms bbs bfa) in *.
       assert (NR : forall b, ~ rblk rl b -> b <> bm /\ b <> bsr /\ b <> bsrc
                      /\ forall mb mo, Mem.load Mint32 m bm MARIOOBJ_OFF = Some (Vptr mb mo) -> b <> mb).
       { intros b Hn. split; [| split; [| split]]; [intros ->; apply Hn .. |].
@@ -741,22 +748,29 @@ Section PR.
     Lemma hole_obj : ffw ge bm m -> exists bo oo, Mem.load Mint32 m bm MARIOOBJ_OFF = Some (Vptr bo oo).
     Proof.
       intros (_ & EX & _).
-      destruct EX as (gp & bfi & bmiss & bcalls & bsin & ab & biom & bmq & brm & blk & bpc & bsr' & bsrc' & bsms & bbs & bo & oo & bt & ot & fl & ar & inp & ctl &
-                      HC & HS & HM & S1 & S2 & S3 & S4 & S5 & S6 & S7 & S8 & SL & SP & SR & SRC & SMS & SBS & Lo & _).
+      destruct EX as (gp & bfi & bmiss & bcalls & bsin & ab & biom & bmq & brm & blk & bpc & bsr' & bsrc' & bsms & bbs & bfa & bo & oo & bt & ot & fl & ar & inp & ctl &
+                      HC & HS & HM & S1 & S2 & S3 & S4 & S5 & S6 & S7 & S8 & SL & SP & SR & SRC & SMS & SBS & SFA & Lo & _).
       exists bo, oo. exact Lo.
     Qed.
 
-    Lemma hole_cells : forall c, ffw ge bm m -> read_cells bm m c -> read_cells bm m' c.
+    (* Phi's gfx cell (36) is off the window, or kept by the caller *)
+    Lemma hole_cells : forall c,
+      40 <= ow \/ (forall mb mo, Mem.load Mint32 m bm MARIOOBJ_OFF = Some (Vptr mb mo) ->
+                     Mem.load Mfloat32 m' mb (Ptrofs.unsigned mo + OFS_GFXY)
+                     = Mem.load Mfloat32 m mb (Ptrofs.unsigned mo + OFS_GFXY)) ->
+      ffw ge bm m -> read_cells bm m c -> read_cells bm m' c.
     Proof.
-      intros c Hf (H1 & H2 & H3 & H4 & H5 & H6 & bo & oo & H7 & H8).
+      intros c HG Hf (H1 & H2 & H3 & H4 & H5 & H6 & bo & oo & H7 & H8).
       destruct (hole_apart Hf) as (Ao & _).
       split; [hm; exact H1 |]. split; [hm; exact H2 |]. split; [hm; exact H3 |].
       split; [hm; exact H4 |]. split; [hm; exact H5 |]. split; [hm; exact H6 |].
       exists bo, oo. split; [hm; exact H7 |].
       assert (H7' : Mem.load Mint32 m bm MARIOOBJ_OFF = Some (Vptr bo oo)) by exact H7.
       destruct (Ao bo oo H7') as (N1 & N2 & N3).
+      destruct HG as [HG | HG]; [| rewrite (HG bo oo H7'); exact H8].
       rewrite LHz; [exact H8 | assumption | assumption | assumption |].
-      apply ozp_k; [exact H7' | unfold OFS_GFXY; cbn [size_chunk]; lia].
+      intros mb mo Hl. rewrite H7' in Hl. injection Hl as <- <-. right. left.
+      unfold OFS_GFXY. cbn [size_chunk]. lia.
     Qed.
 
     Lemma hole_fresh_at : fresh_at bm m -> fresh_at bm m'.
@@ -771,14 +785,14 @@ Section PR.
     Lemma hole_ffw : ffw ge bm m -> ffw ge bm m'.
     Proof.
       intros (Hgn & EX & FD).
-      destruct EX as (gp & bfi & bmiss & bcalls & bsin & ab & biom & bmq & brm & blk & bpc & bsr' & bsrc' & bsms & bbs & bo & oo & bt & ot & fl & ar & inp & ctl &
-                      HC & HS & HM & S1 & S2 & S3 & S4 & S5 & S6 & S7 & S8 & SL & SP & SR & SRC & SMS & SBS & Lo & Soo & La & Lb & Sot & D1 & D2 & D3 & D4 &
-                      W & Lf & Wf & Wc0 & Lar & War & Li & Ai & Lc & Wc & Co & LPC & LBS).
-      destruct (xsym_ffw bsr bo oo bfi bmiss bcalls bsin ab bt biom bmq brm blk bpc bsr' bsrc' bsms bbs
-                  SR0 SP SR SRC SBS (fun b H => D4 b (or_introl H))) as (R1 & X1o & X1t).
-      destruct (xsym_ffw bsrc bo oo bfi bmiss bcalls bsin ab bt biom bmq brm blk bpc bsr' bsrc' bsms bbs
-                  SRC0 SP SR SRC SBS (fun b H => D4 b (or_introl H))) as (R2 & X2o & X2t).
-      set (rl := ff_rl bm bo oo bfi bmiss bcalls ab bt biom bmq brm blk bpc bsr' bsrc' bsms bbs) in *.
+      destruct EX as (gp & bfi & bmiss & bcalls & bsin & ab & biom & bmq & brm & blk & bpc & bsr' & bsrc' & bsms & bbs & bfa & bo & oo & bt & ot & fl & ar & inp & ctl &
+                      HC & HS & HM & S1 & S2 & S3 & S4 & S5 & S6 & S7 & S8 & SL & SP & SR & SRC & SMS & SBS & SFA & Lo & Soo & La & Lb & Sot & D1 & D2 & D3 & D4 &
+                      W & Lf & Wf & Wc0 & Lar & War & Li & Ai & Lc & Wc & Co & LPC & LBS & LTM).
+      destruct (xsym_ffw bsr bo oo bfi bmiss bcalls bsin ab bt biom bmq brm blk bpc bsr' bsrc' bsms bbs bfa
+                  SR0 SP SR SRC SBS SFA (fun b H => D4 b (or_introl H))) as (R1 & X1o & X1t).
+      destruct (xsym_ffw bsrc bo oo bfi bmiss bcalls bsin ab bt biom bmq brm blk bpc bsr' bsrc' bsms bbs bfa
+                  SRC0 SP SR SRC SBS SFA (fun b H => D4 b (or_introl H))) as (R2 & X2o & X2t).
+      set (rl := ff_rl bm bo oo bfi bmiss bcalls ab bt biom bmq brm blk bpc bsr' bsrc' bsms bbs bfa) in *.
       assert (Lo' : Mem.load Mint32 m bm MARIOOBJ_OFF = Some (Vptr bo oo)) by exact Lo.
       assert (NR : forall b, ~ rblk rl b -> b <> bm /\ b <> bsr /\ b <> bsrc /\ b <> bo).
       { intros b Hn. split; [| split; [| split]]; intros ->; apply Hn;
@@ -800,9 +814,9 @@ Section PR.
       destruct (CLK gp HC HS HM) as (gp' & Hinc & HC' & HS').
       split; [exact (Ple_trans _ _ _ Hgn NB) |].
       split.
-      - exists gp', bfi, bmiss, bcalls, bsin, ab, biom, bmq, brm, blk, bpc, bsr', bsrc', bsms, bbs, bo, oo, bt, ot, fl, ar, inp, ctl.
+      - exists gp', bfi, bmiss, bcalls, bsin, ab, biom, bmq, brm, blk, bpc, bsr', bsrc', bsms, bbs, bfa, bo, oo, bt, ot, fl, ar, inp, ctl.
         split; [exact HC' |]. split; [exact HS' |]. split; [exact (Hinc _ HM) |].
-        do 14 (split; [assumption |]).
+        do 15 (split; [assumption |]).
         split; [hm; exact Lo |]. split; [exact Soo |]. split; [hm; exact La |].
         split; [rewrite (LD Mint32 ab 8 Nab1 Nab2 (or_intror hz_8)
                   (ozp_ob ab 8 _ Nab1 (ozp_ne ab 8 _ (fun mb mo Hl => ltac:(rewrite Lo' in Hl; injection Hl as <- _; exact Nabo)))));
@@ -820,7 +834,10 @@ Section PR.
         split; [intros i cb co Hi Hl; rewrite LHz in Hl;
                 [exact (Co i cb co Hi Hl) | exact O1 | exact O2 | exact O3 |];
                 rewrite <- Z.add_assoc; apply ozp_k; [exact Lo' | unfold FFW_COLL; cbn [size_chunk]; lia] |].
-        split; [hm; exact LPC |]. hm; exact LBS.
+        split; [hm; exact LPC |]. split; [hm; exact LBS |].
+        destruct LTM as [Lt | (ot0 & Lt)]; [left | right; exists ot0];
+          (rewrite LHz; [exact Lt | exact O1 | exact O2 | exact O3 |
+                         apply ozp_k; [exact Lo' | unfold FFW_THROW; cbn [size_chunk]; lia]]).
       - exact (floor_data_keep2 ge m m' rl Hnb Hperm Hld gp W FD).
     Qed.
 
@@ -853,9 +870,9 @@ Section PR.
     Proof.
       intros Hf Hmob (Hw & Hc & Hfl & Hh & Hr & Hq & Ho).
       pose proof Hf as (_ & EX & _).
-      destruct EX as (gp & bfi & bmiss & bcalls & bsin & ab & biom & bmq & brm & blk & bpc & bsr' & bsrc' & bsms & bbs & bo & oo & bt & ot & fl & ar & inp & ctl &
-                      HC & HS & HM & S1 & S2 & S3 & S4 & S5 & S6 & S7 & S8 & SL & SP & SR & SRC & SMS & SBS & Lo & Soo & La & Lb & Sot & D1 & D2 & D3 & D4 &
-                      W & Lf & Wf & Wc0 & Lar & War & Li & Ai & Lc & Wc & Co & LPC & LBS).
+      destruct EX as (gp & bfi & bmiss & bcalls & bsin & ab & biom & bmq & brm & blk & bpc & bsr' & bsrc' & bsms & bbs & bfa & bo & oo & bt & ot & fl & ar & inp & ctl &
+                      HC & HS & HM & S1 & S2 & S3 & S4 & S5 & S6 & S7 & S8 & SL & SP & SR & SRC & SMS & SBS & SFA & Lo & Soo & La & Lb & Sot & D1 & D2 & D3 & D4 &
+                      W & Lf & Wf & Wc0 & Lar & War & Li & Ai & Lc & Wc & Co & LPC & LBS & LTM).
       destruct (hole_apart Hf) as (Ao & As & _).
       split; [| split; [| split; [| split; [| split; [| split]]]]].
       - intros v Hl. hm_in Hl. destruct (Hw v Hl) as [-> | (b & o & t & -> & Lt & Hin)]; [left; reflexivity |].
@@ -899,8 +916,8 @@ Section PR.
     Proof.
       intros Hf Han ab bt ot Hs Hl.
       pose proof Hf as (_ & EX & _).
-      destruct EX as (gp & bfi & bmiss & bcalls & bsin & ab' & biom & bmq & brm & blk & bpc & bsr' & bsrc' & bsms & bbs & bo & oo & bt' & ot' & fl & ar & inp & ctl &
-                      HC & HS & HM & S1 & S2 & S3 & S4 & S5 & S6 & S7 & S8 & SL & SP & SR & SRC & SMS & SBS & Lo & Soo & La & Lb & Sot & D1 & D2 & D3 & D4 & _).
+      destruct EX as (gp & bfi & bmiss & bcalls & bsin & ab' & biom & bmq & brm & blk & bpc & bsr' & bsrc' & bsms & bbs & bfa & bo & oo & bt' & ot' & fl & ar & inp & ctl &
+                      HC & HS & HM & S1 & S2 & S3 & S4 & S5 & S6 & S7 & S8 & SL & SP & SR & SRC & SMS & SBS & SFA & Lo & Soo & La & Lb & Sot & D1 & D2 & D3 & D4 & _).
       assert (Eab : ab' = ab) by congruence. subst ab'.
       assert (Nabo : ab <> bo) by exact (proj1 (D4 ab ltac:(left; cbn; auto 10))).
       assert (Lo' : Mem.load Mint32 m bm MARIOOBJ_OFF = Some (Vptr bo oo)) by exact Lo.
@@ -999,13 +1016,13 @@ Section PR.
     Proof.
       intros Hf AW. pose proof Hf as (Hgn & EX & FD).
       destruct (hole_apart Hf) as (Ao & _ & _).
-      destruct EX as (gp & bfi & bmiss & bcalls & bsin & ab & biom & bmq & brm & blk & bpc & bsr' & bsrc' & bsms & bbs & bo & oo & bt & ot
-                      & fl & ar & inp & ctl & HC & HS & HM & S1 & S2 & S3 & S4 & S5 & S6 & S7 & S8 & SL & SP & SR & SRC & SMS & SBS
+      destruct EX as (gp & bfi & bmiss & bcalls & bsin & ab & biom & bmq & brm & blk & bpc & bsr' & bsrc' & bsms & bbs & bfa & bo & oo & bt & ot
+                      & fl & ar & inp & ctl & HC & HS & HM & S1 & S2 & S3 & S4 & S5 & S6 & S7 & S8 & SL & SP & SR & SRC & SMS & SBS & SFA
                       & Lo & Soo & La & Lb & Sot & D1 & D2 & D3 & D4 & W & _).
-      destruct (xsym_ffw bsr bo oo bfi bmiss bcalls bsin ab bt biom bmq brm blk bpc bsr' bsrc' bsms bbs
-                  SR0 SP SR SRC SBS (fun b H => D4 b (or_introl H))) as (R1 & X1o & X1t).
-      destruct (xsym_ffw bsrc bo oo bfi bmiss bcalls bsin ab bt biom bmq brm blk bpc bsr' bsrc' bsms bbs
-                  SRC0 SP SR SRC SBS (fun b H => D4 b (or_introl H))) as (R2 & X2o & X2t).
+      destruct (xsym_ffw bsr bo oo bfi bmiss bcalls bsin ab bt biom bmq brm blk bpc bsr' bsrc' bsms bbs bfa
+                  SR0 SP SR SRC SBS SFA (fun b H => D4 b (or_introl H))) as (R1 & X1o & X1t).
+      destruct (xsym_ffw bsrc bo oo bfi bmiss bcalls bsin ab bt biom bmq brm blk bpc bsr' bsrc' bsms bbs bfa
+                  SRC0 SP SR SRC SBS SFA (fun b H => D4 b (or_introl H))) as (R2 & X2o & X2t).
       pose proof AW as (ab' & bga & bauc & btab & otab & bt' & ot' & mb' & mo' & B & _).
       pose proof B as (Sab & _ & _ & _ & L8 & _ & Sy & _ & _ & _ & _ & _ & _ & _ & _ & _ & _ & _ & _ & _ & Hbm0).
       assert (ab' = ab) by congruence. subst ab'.
@@ -1020,8 +1037,8 @@ Section PR.
       destruct (Ao bo oo Lo') as (O1 & O2 & O3).
       assert (T1 : bt <> bsr) by exact (not_eq_sym X1t).
       assert (T2 : bt <> bsrc) by exact (not_eq_sym X2t).
-      apply (AnimKeep.anim_w_keep ge bm m m' gp bfi bmiss bcalls ab biom bmq brm blk bpc bsr' bsrc' bsms bbs bo oo bt ot
-               S1 S2 S3 S5 S6 S7 S8 SL SP SR SRC SMS SBS Lo Lb W AW).
+      apply (AnimKeep.anim_w_keep ge bm m m' gp bfi bmiss bcalls ab biom bmq brm blk bpc bsr' bsrc' bsms bbs bfa bo oo bt ot
+               S1 S2 S3 S5 S6 S7 S8 SL SP SR SRC SMS SBS SFA Lo Lb W AW).
       - exact NB.
       - intros b ofs k p _ Hp. exact (PM b ofs k p Hp).
       - intros ch b z _ Hr. apply LHz; [intros ->; apply Hr .. |].
@@ -1048,8 +1065,8 @@ Section PR.
     Proof.
       intros Hf AW Hl.
       pose proof Hf as (_ & EX & _).
-      destruct EX as (gp & bfi & bmiss & bcalls & bsin & ab & biom & bmq & brm & blk & bpc & bsr' & bsrc' & bsms & bbs & bo & oo & bt & ot
-                      & fl & ar & inp & ctl & HC & HS & HM & S1 & S2 & S3 & S4 & S5 & S6 & S7 & S8 & SL & SP & SR & SRC & SMS & SBS
+      destruct EX as (gp & bfi & bmiss & bcalls & bsin & ab & biom & bmq & brm & blk & bpc & bsr' & bsrc' & bsms & bbs & bfa & bo & oo & bt & ot
+                      & fl & ar & inp & ctl & HC & HS & HM & S1 & S2 & S3 & S4 & S5 & S6 & S7 & S8 & SL & SP & SR & SRC & SMS & SBS & SFA
                       & Lo & Soo & La & Lb & Sot & D1 & D2 & D3 & D4 & _).
       assert (Lo' : Mem.load Mint32 m bm MARIOOBJ_OFF = Some (Vptr bo oo)) by exact Lo.
       apply (AnimKeep.lvl_w_keep_ne ge m m' (fun b => (b <> bm /\ b <> bsr /\ b <> bsrc) /\ b <> bo)); [| | exact Hl].
@@ -1091,14 +1108,14 @@ Section PR.
       (b <> bsr \/ z + size_chunk ch <= 0 \/ 0 + 12 <= z) -> Mem.load ch m' b z = Mem.load ch m b z.
     Proof. intros ch b z A B C _. exact (LD ch b z A B C). Qed.
 
-    Ltac h2 := first [eassumption | (left; reflexivity) | exact LD2].
+    Ltac h2 := first [eassumption | (left; reflexivity) | exact LD2 | lia | (left; lia)].
 
     Lemma hole2_fworld : fworld lp bm m -> fworld lp bm m'.
-    Proof. intros Hw. eapply hole_fworld with (m := m) (m' := m') (bsr := bsr) (bsrc := bsrc) (ob := bsr) (oz := 0); h2. Qed.
+    Proof. intros Hw. eapply hole_fworld with (m := m) (m' := m') (bsr := bsr) (bsrc := bsrc) (ob := bsr) (oz := 0) (ow := 44) (wl := 12); h2. Qed.
     Lemma hole2_cells : forall c, ffw ge bm m -> read_cells bm m c -> read_cells bm m' c.
-    Proof. intros c Hf Hc. eapply hole_cells with (m := m) (m' := m') (bsr := bsr) (bsrc := bsrc) (ob := bsr) (oz := 0); h2. Qed.
+    Proof. intros c Hf Hc. eapply hole_cells with (m := m) (m' := m') (bsr := bsr) (bsrc := bsrc) (ob := bsr) (oz := 0) (ow := 44) (wl := 12); h2. Qed.
     Lemma hole2_fresh_at : fresh_at bm m -> fresh_at bm m'.
-    Proof. intros Hfr. eapply hole_fresh_at with (m := m) (m' := m') (bsr := bsr) (bsrc := bsrc) (ob := bsr) (oz := 0); h2. Qed.
+    Proof. intros Hfr. eapply hole_fresh_at with (m := m) (m' := m') (bsr := bsr) (bsrc := bsrc) (ob := bsr) (oz := 0) (ow := 44) (wl := 12); h2. Qed.
   End HOLE2.
 
   (* the walk's store: m->flags *)
@@ -1185,7 +1202,7 @@ Section PR.
     intros v m t m' vr c Hok Hw (Hmarg & Hfr) Hok' Hc Hb Hev.
     pose proof Hw as (_ & _ & _ & _ & _ & Hf & _ & Haw & _).
     pose proof Hf as (Hgn & EX & _).
-    destruct EX as (gp & bfi & bmiss & bcalls & bsin & ab & biom & bmq & brm & blk & bpc & bsr & bsrc & bsms & bbs & bo & oo & bt & ot & fl & ar & inp & ctl &
+    destruct EX as (gp & bfi & bmiss & bcalls & bsin & ab & biom & bmq & brm & blk & bpc & bsr & bsrc & bsms & bbs & bfa & bo & oo & bt & ot & fl & ar & inp & ctl &
                     HC & HS & HM & S1 & S2 & S3 & S4 & S5 & S6 & S7 & S8 & SL & SP & SR & SRC & SMS & _).
     assert (HQ : Qrel bsr bsrc m m').
     { refine (lw_body_frame ge (Qrel bsr bsrc m) AIR.f_play_far_fall_sound (fun le => le ! AIR._m = Some v)
