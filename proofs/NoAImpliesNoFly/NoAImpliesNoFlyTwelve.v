@@ -59,7 +59,7 @@ From SM64.Proofs Require Import InitMemSat.
 From SM64.Proofs Require Import NoAImpliesNoFlyLinked.
 From SM64.Proofs Require WLExempt CameraBodies FpuFloor.
 From SM64.Proofs Require GraphNodeBodies MtxfBody SaveFileBody ObjHelpersBodies FpuFloor OsDmaFloor
-  LptBody BootMWF MathBodies ObjExtBodies SaveDoSaveBody.
+  LptBody BootMWF MathBodies ObjExtBodies SaveDoSaveBody MenuBodies SpawnStarBody.
 
 (* The open any-argument object-external list, minus memory.c's two
    segment converters: those are linked (the 15th TU) and pure, so their
@@ -97,11 +97,23 @@ Definition obj_ext_cam (i : ident) : bool :=
 (* PROVED 2026-10-23 (the audio link, TUs 40 and 41): every audio entry
    (play_sound, set_sound_moving_speed, stop_shell_music) is walked from its
    real audio/external.c / sound_init.c body (AudioBodies.audio_rows). *)
+(* PROVED 2026-10-23 (MenuBodies): ingame_menu.c's reset_cutscene_msg_fade
+   (one u16 store of 0 into gCutsceneMsgFade) and audio/external.c's
+   drop_queued_background_music (one u8 store into sBackgroundMusicQueueSize),
+   both linked bodies, walked: non-pointer stores into globals MWF does not read. *)
+Definition obj_ext_menu (i : ident) : bool :=
+  Pos.eqb i mario_actions_cutscene._reset_cutscene_msg_fade
+  || Pos.eqb i interaction._drop_queued_background_music.
+(* random_float, which set_camera_shake_from_hit's SHAKE_SHOCK arm calls, is
+   PROVED too since 2026-10-23: engine/behavior_script.c is the 43rd TU
+   (MenuBodies.Hpx_rf: random_u16's u16 read-modify-write of gRandomSeed16). *)
 Definition obj_ext_open2_ids : list ident :=
-  camera._random_float ::
   filter (fun i => negb (obj_ext_mem i || obj_ext_body i || obj_ext_cam i
-                         || AudioBodies.audio_id i))
+                         || AudioBodies.audio_id i || obj_ext_menu i))
     NoAImpliesNoFlyLinked.obj_ext_open_ids.
+(* CLOSED 2026-10-23: no any-argument object entry is left *)
+Lemma obj_ext_open2_nil : obj_ext_open2_ids = [].
+Proof. vm_compute. reflexivity. Qed.
 
 Lemma obj_ext_open_of2 : forall lp bm bc oc0 SafeB, linked12 lp ->
     SafeB_syms_ok lp SafeB -> (exists init, spawn_ok lp init bm bc oc0) ->
@@ -110,20 +122,21 @@ Lemma obj_ext_open_of2 : forall lp bm bc oc0 SafeB, linked12 lp ->
       behavior_actions._spawn_object ->
     FloorsSurface.call_pres_ext lp bm (NoA_real bm) (MWF_real lp bm bc oc0 SafeB)
       audio_external._load_sequence ->
-    (forall fid, mem_id fid obj_ext_open2_ids = true ->
-       FloorsSurface.call_pres_ext lp bm (NoA_real bm) (MWF_real lp bm bc oc0 SafeB) fid) ->
     forall fid, mem_id fid NoAImpliesNoFlyLinked.obj_ext_open_ids = true ->
       FloorsSurface.call_pres_ext lp bm (NoA_real bm) (MWF_real lp bm bc oc0 SafeB) fid.
 Proof.
-  intros lp bm bc oc0 SafeB H12 Hsy Hsp Hsq Hspn Hls Hrow fid H.
-  assert (Hrf : FloorsSurface.call_pres_ext lp bm (NoA_real bm) (MWF_real lp bm bc oc0 SafeB)
-                  camera._random_float)
-    by (apply Hrow; cbn [obj_ext_open2_ids mem_id existsb]; rewrite Pos.eqb_refl; reflexivity).
+  intros lp bm bc oc0 SafeB H12 Hsy Hsp Hsq Hspn Hls fid H.
+  pose proof (MenuBodies.Hpx_rf lp H12 bm bc oc0 SafeB Hsy Hsp) as Hrf.
   destruct (NoAImpliesNoFlyLinked.mem_id_filter_split
               (fun i => obj_ext_mem i || obj_ext_body i || obj_ext_cam i
-                        || AudioBodies.audio_id i) fid _ H) as [Hm | Ho];
-    [ | apply Hrow; cbn [obj_ext_open2_ids mem_id existsb];
-        apply orb_true_iff; right; exact Ho ].
+                        || AudioBodies.audio_id i || obj_ext_menu i) fid _ H) as [Hm | Ho];
+    [ | exfalso; fold obj_ext_open2_ids in Ho; rewrite obj_ext_open2_nil in Ho;
+        discriminate Ho ].
+  apply orb_true_iff in Hm as [Hm | Hmn];
+    [ | unfold obj_ext_menu in Hmn;
+        apply orb_true_iff in Hmn as [Hmn | Hmn]; apply Pos.eqb_eq in Hmn; subst fid;
+        [ exact (MenuBodies.Hpx_rcmf lp H12 bm bc oc0 SafeB Hsy Hsp)
+        | exact (MenuBodies.Hpx_dqbm lp H12 bm bc oc0 SafeB Hsy Hsp) ] ].
   apply orb_true_iff in Hm as [Hm | Ha];
     [ | exact (AudioBodies.audio_rows lp H12 bm bc oc0 SafeB Hsy Hsp Hls fid Ha) ].
   apply orb_true_iff in Hm as [Hm | Hc];
@@ -176,24 +189,50 @@ Definition cut_ext_body (i : ident) : bool :=
    background-sound mute pair, sound_banks_enable, the volume duck pair,
    fadeout_music, play_sound) are walked from their real bodies
    (AudioBodies.audio_rows). *)
+(* PROVED 2026-10-23 (MenuBodies): the seven ingame_menu.c entries (the four
+   dialog-box constructors, get_dialog_id, set_menu_mode,
+   set_cutscene_message), walked from their real bodies.  FOUND FALSE first:
+   create_dialog_box_with_var stores its s32 argument into gDialogVariable,
+   which nothing kept out of SafeB (R7); it joined CensusV2.stored_globals. *)
+Definition cut_ext_menu (i : ident) : bool :=
+  Pos.eqb i mario_actions_cutscene._create_dialog_inverted_box
+  || Pos.eqb i mario_actions_cutscene._create_dialog_box
+  || Pos.eqb i mario_actions_cutscene._create_dialog_box_with_var
+  || Pos.eqb i mario_actions_cutscene._get_dialog_id
+  || Pos.eqb i mario_actions_cutscene._create_dialog_box_with_response
+  || Pos.eqb i mario_actions_cutscene._set_menu_mode
+  || Pos.eqb i mario_actions_cutscene._set_cutscene_message.
 Definition cut_ext_open2_ids : list ident :=
-  filter (fun i => negb (cut_ext_body i || AudioBodies.audio_id i))
+  filter (fun i => negb (cut_ext_body i || AudioBodies.audio_id i || cut_ext_menu i))
     NoAImpliesNoFlyLinked.cut_ext_open_ids.
+(* CLOSED 2026-10-23: no any-argument cutscene entry is left *)
+Lemma cut_ext_open2_nil : cut_ext_open2_ids = [].
+Proof. vm_compute. reflexivity. Qed.
 
 Lemma cut_ext_open_of2 : forall lp bm bc oc0 SafeB, linked12 lp ->
     SafeB_syms_ok lp SafeB -> (exists init, spawn_ok lp init bm bc oc0) ->
     OsDmaFloor.os_dma_floor ->
     FloorsSurface.call_pres_ext lp bm (NoA_real bm) (MWF_real lp bm bc oc0 SafeB)
       audio_external._load_sequence ->
-    (forall fid, mem_id fid cut_ext_open2_ids = true ->
-       FloorsSurface.call_pres_ext lp bm (NoA_real bm) (MWF_real lp bm bc oc0 SafeB) fid) ->
     forall fid, mem_id fid NoAImpliesNoFlyLinked.cut_ext_open_ids = true ->
       FloorsSurface.call_pres_ext lp bm (NoA_real bm) (MWF_real lp bm bc oc0 SafeB) fid.
 Proof.
-  intros lp bm bc oc0 SafeB H12 Hsy Hsp Hfl Hls Hrow fid H.
+  intros lp bm bc oc0 SafeB H12 Hsy Hsp Hfl Hls fid H.
   destruct (NoAImpliesNoFlyLinked.mem_id_filter_split
-              (fun i => cut_ext_body i || AudioBodies.audio_id i) fid _ H) as [Hm | Ho];
-    [ | exact (Hrow fid Ho) ].
+              (fun i => cut_ext_body i || AudioBodies.audio_id i || cut_ext_menu i) fid _ H)
+    as [Hm | Ho];
+    [ | exfalso; fold cut_ext_open2_ids in Ho; rewrite cut_ext_open2_nil in Ho;
+        discriminate Ho ].
+  apply orb_true_iff in Hm as [Hm | Hmn];
+    [ | unfold cut_ext_menu in Hmn;
+        repeat (apply orb_true_iff in Hmn as [Hmn | Hmn]); apply Pos.eqb_eq in Hmn; subst fid;
+        [ exact (MenuBodies.Hpx_cdib lp H12 bm bc oc0 SafeB Hsy Hsp)
+        | exact (MenuBodies.Hpx_cdb lp H12 bm bc oc0 SafeB Hsy Hsp)
+        | exact (MenuBodies.Hpx_cdbv lp H12 bm bc oc0 SafeB Hsy Hsp)
+        | exact (MenuBodies.Hpx_gdi lp H12 bm bc oc0 SafeB Hsy Hsp)
+        | exact (MenuBodies.Hpx_cdbr lp H12 bm bc oc0 SafeB Hsy Hsp)
+        | exact (MenuBodies.Hpx_smm lp H12 bm bc oc0 SafeB Hsy Hsp)
+        | exact (MenuBodies.Hpx_scm lp H12 bm bc oc0 SafeB Hsy Hsp) ] ].
   apply orb_true_iff in Hm as [Hm | Ha];
     [ | exact (AudioBodies.audio_rows lp H12 bm bc oc0 SafeB Hsy Hsp Hls fid Ha) ].
   unfold cut_ext_body in Hm.
@@ -215,20 +254,23 @@ Definition warp_ext_body (i : ident) : bool :=
    (AudioBodies.audio_rows). *)
 Definition warp_ext_open_ids : list ident :=
   filter (fun i => negb (warp_ext_body i || AudioBodies.audio_id i)) warp_ext_ids.
+(* CLOSED 2026-10-23: the audio link left nothing in the warp list (its
+   three audio entries are AudioBodies rows) *)
+Lemma warp_ext_open_nil : warp_ext_open_ids = [].
+Proof. vm_compute. reflexivity. Qed.
 
 Lemma warp_ext_of_open : forall lp bm bc oc0 SafeB, linked12 lp ->
     SafeB_syms_ok lp SafeB -> (exists init, spawn_ok lp init bm bc oc0) ->
     FloorsSurface.call_pres_ext lp bm (NoA_real bm) (MWF_real lp bm bc oc0 SafeB)
       audio_external._load_sequence ->
-    (forall fid, mem_id fid warp_ext_open_ids = true ->
-       FloorsSurface.call_pres_ext lp bm (NoA_real bm) (MWF_real lp bm bc oc0 SafeB) fid) ->
     forall fid, mem_id fid warp_ext_ids = true ->
       FloorsSurface.call_pres_ext lp bm (NoA_real bm) (MWF_real lp bm bc oc0 SafeB) fid.
 Proof.
-  intros lp bm bc oc0 SafeB H12 Hsy Hsp Hls Hrow fid H.
+  intros lp bm bc oc0 SafeB H12 Hsy Hsp Hls fid H.
   destruct (NoAImpliesNoFlyLinked.mem_id_filter_split
               (fun i => warp_ext_body i || AudioBodies.audio_id i) fid _ H) as [Hm | Ho];
-    [ | exact (Hrow fid Ho) ].
+    [ | exfalso; fold warp_ext_open_ids in Ho; rewrite warp_ext_open_nil in Ho;
+        discriminate Ho ].
   apply orb_true_iff in Hm as [Hm | Ha];
     [ | exact (AudioBodies.audio_rows lp H12 bm bc oc0 SafeB Hsy Hsp Hls fid Ha) ].
   unfold warp_ext_body in Hm.
@@ -241,6 +283,10 @@ Qed.
    open floors-external list is spawn_default_star alone. *)
 Definition floors_ext_open_ids : list ident :=
   filter (fun i => negb (AudioBodies.audio_id i)) floors_ext_ids.
+(* PROVED 2026-10-23: spawn_default_star (obj_behaviors.c, the 44th TU) is
+   walked from its real body (SpawnStarBody.Hpx_sds) *)
+Lemma floors_ext_open_is : floors_ext_open_ids = [interaction._spawn_default_star].
+Proof. vm_compute. reflexivity. Qed.
 
 Section NoAImpliesNoFlyTwelve.
   Variable lp : Clight.program.
@@ -472,23 +518,19 @@ Section NoAImpliesNoFlyTwelve.
     exact (SpawnBodies.Hcp_soawr_sg lp H12 bm bc oc0 SafeB HSafeB_syms Hspawn
              (NoA_real bm)).
   Qed.
-  (* the any-argument object externals still unlinked (obj_ext_open2_ids:
-     the linked entries are proved, obj_ext_open_of2) *)
-  Hypothesis Hpres_obj_ext_open2 : forall fid,
-      mem_id fid obj_ext_open2_ids = true ->
-      call_pres_ext lp bm (NoA_real bm) MWF fid.
-  (* the any-argument cutscene externals minus the proved entries
-     (cut_ext_open_of2: the time-stop pair, play_transition, and
-     save_file_do_save, the last down to the libultra floor Hdma_floor) *)
-  Hypothesis Hpres_cut_ext_open2 : forall fid,
-      mem_id fid cut_ext_open2_ids = true ->
-      call_pres_ext lp bm (NoA_real bm) MWF fid.
+  (* Hpres_obj_ext_open2: GONE 2026-10-23 -- every any-argument object entry
+     is a linked body, walked (obj_ext_open_of2; random_float since
+     behavior_script.c joined the link, MenuBodies) *)
+  (* PROVED 2026-10-23 (was the row Hpres_cut_ext_open2): every entry of the
+     any-argument cutscene list is a linked body, walked (cut_ext_open_of2:
+     the time-stop pair, play_transition, save_file_do_save down to the
+     libultra floor Hdma_floor, the camera pair, the audio cues, and the
+     seven ingame_menu.c entries, MenuBodies) *)
   Lemma Hpres_cut_ext_open : forall fid,
       mem_id fid NoAImpliesNoFlyLinked.cut_ext_open_ids = true ->
       call_pres_ext lp bm (NoA_real bm) MWF fid.
   Proof.
-    exact (cut_ext_open_of2 lp bm bc oc0 SafeB H12 HSafeB_syms Hspawn Hdma_floor Hls
-             Hpres_cut_ext_open2).
+    exact (cut_ext_open_of2 lp bm bc oc0 SafeB H12 HSafeB_syms Hspawn Hdma_floor Hls).
   Qed.
   (* PROVED 2026-10-20 (were rows): graph_node.c is linked (the 19th TU), so
      both animation externals are real bodies.  geo_update_animation_frame
@@ -510,9 +552,18 @@ Section NoAImpliesNoFlyTwelve.
              (spawn_Hbc_bm lp init bm bc oc0 Hs) (linked12_LO_graph_node lp H12)
              (spawn_Hbc_sym lp init bm bc oc0 Hs)).
   Qed.
-  Hypothesis Hpres_floors_ext_open : forall fid,
+  (* Hpres_floors_ext_open: GONE 2026-10-23 -- spawn_default_star is walked
+     from its real obj_behaviors.c body (SpawnStarBody; FOUND first: its
+     spawned script bhvStarSpawnCoordinates was not a SafeB symbol) *)
+  Lemma Hpres_floors_ext_open : forall fid,
       mem_id fid floors_ext_open_ids = true ->
       call_pres_ext lp bm (NoA_real bm) MWF fid.
+  Proof.
+    intros fid H. rewrite floors_ext_open_is in H. cbn [mem_id existsb] in H.
+    apply orb_true_iff in H as [H | H]; [ | discriminate H ].
+    apply Pos.eqb_eq in H. subst fid.
+    exact (SpawnStarBody.Hpx_sds lp H12 bm bc oc0 SafeB HSafeB_syms Hspawn).
+  Qed.
   Lemma Hpres_floors_ext : forall fid,
       mem_id fid floors_ext_ids = true ->
       call_pres_ext lp bm (NoA_real bm) MWF fid.
@@ -533,7 +584,7 @@ Section NoAImpliesNoFlyTwelve.
       call_pres_ext lp bm (NoA_real bm) MWF fid.
   Proof.
     exact (obj_ext_open_of2 lp bm bc oc0 SafeB H12 HSafeB_syms Hspawn Hsq Hcp_spawn_real
-             Hls Hpres_obj_ext_open2).
+             Hls).
   Qed.
   (* PROVED 2026-10-21 (was a row): save_file.c and buffers.c are linked
      (TUs 20 and 21).  save_file_set_cap_pos stores capLevel / capArea through
@@ -567,15 +618,13 @@ Section NoAImpliesNoFlyTwelve.
              (spawn_Hbc_bm lp init bm bc oc0 Hs) (linked12_LO_stp lp H12)
              (spawn_Hbc_sym lp init bm bc oc0 Hs)).
   Qed.
-  (* the warp-trigger externals minus the two linked area.c entries
-     (warp_ext_of_open) *)
-  Hypothesis Hpres_warp_ext_open : forall fid,
-      mem_id fid warp_ext_open_ids = true ->
-      call_pres_ext lp bm (NoA_real bm) MWF fid.
+  (* PROVED 2026-10-23 (was the row Hpres_warp_ext_open, whose list the
+     audio link had emptied): every warp-trigger external is a linked body
+     (warp_ext_of_open: area.c's pair, AudioBodies' three) *)
   Lemma Hpres_warp_ext : forall fid,
       mem_id fid warp_ext_ids = true ->
       call_pres_ext lp bm (NoA_real bm) MWF fid.
-  Proof. exact (warp_ext_of_open lp bm bc oc0 SafeB H12 HSafeB_syms Hspawn Hls Hpres_warp_ext_open). Qed.
+  Proof. exact (warp_ext_of_open lp bm bc oc0 SafeB H12 HSafeB_syms Hspawn Hls). Qed.
   (* Hret_unsafe REMOVED (task #99): the v2 engine no longer consumes any
      return-value row (it was dead plumbing / a latent vacuity -- see
      NoAImpliesNoFlyLinked). *)

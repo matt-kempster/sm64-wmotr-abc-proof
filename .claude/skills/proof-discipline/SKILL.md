@@ -92,6 +92,13 @@ all in `Unwired/`, and the theorem moved nowhere. See
   `T_ptfi` gate (x, y, n not pointers) and `CensusV2.print_safe_syms` in `safe_ptr_syms`.
   `Hcsp_scm_real` DERIVED from `Hscm_body_real` (cs_gate arg0 = wgate T_scm arm; NoA from MWF):
   GOAL 1 16 -> 15, HeightFrame -1 more.
+  2026-10-23 EXTERNAL-LIST CLOSURE: `Hpres_obj_ext_open2`, `Hpres_cut_ext_open2`,
+  `Hpres_floors_ext_open`, `Hpres_warp_ext_open` are GONE (GOAL 1 13 -> 9, HeightFrame 20 -> 16).
+  The warp list was already empty; the 7 cut + 2 obj ingame_menu / audio entries are walked
+  (`MenuBodies`; FOUND FALSE: `create_dialog_box_with_var` stores its s32 arg into
+  `gDialogVariable`, now a stored global); `engine/behavior_script.c` is TU 43 (`random_float`,
+  `MenuBodies.Hpx_rf`) and `game/obj_behaviors.c` TU 44 (`spawn_default_star`, `SpawnStarBody`;
+  `bhvStarSpawnCoordinates` joined `spawn_bhv_syms`, `sb_gs` gained `gCurrentObject` + it).
   Still open camera row `Hscm_body_real`: set_camera_mode calls through the
   WRITABLE table `sModeTransitions` (enumerate link functions of type (Camera*, f32*, f32*)->s32),
   ~48 camera.c functions, no pointer-typed store in the tree; needs `sMarioCamState` in
@@ -131,8 +138,9 @@ all in `Unwired/`, and the theorem moved nowhere. See
     stated. DISCHARGED 2026-10-23: proved from the real animation data (TRUST (p)).
   - RESOLVED 2026-10-23 (print link, FALSE + repaired): `Hext_action_ns` / `Hmwf_ext_ns`: `print_text_fmt_int`'s `gEffectsMemoryPool` was
     unconstrained.
-  - On linking audio: `play_sound` stores `pos` (R7), so gate it first. On linking
-    `obj_behaviors.c`: `spawn_default_star`'s `bhvStarSpawnCoordinates` is not in `safe_ptr_syms`.
+  - On linking audio: `play_sound` stores `pos` (R7), so gate it first. RESOLVED 2026-10-23
+    (obj_behaviors.c linked): `spawn_default_star`'s `bhvStarSpawnCoordinates` was not in
+    `safe_ptr_syms`; it joined `spawn_bhv_syms` and the body is walked (`SpawnStarBody`).
   SURVIVED: `Hscm_body_real` (its only phantom store writes 0, which is harmless), the structural
   pins, and the restriction-only external specs.
 - **GOAL 2** (WMotR needs A): `WMotRRequiresA/HeightFrame.v`,
