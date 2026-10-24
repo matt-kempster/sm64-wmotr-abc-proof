@@ -1372,7 +1372,7 @@ Section Witness.
     (* m->marioBodyState = &gBodyStates[0] (init_mario_from_save_file) *)
     Lemma L_body : Mem.load Mint32 m11 bm 152 = Some (Vptr bbs Ptrofs.zero).
     Proof.
-      peel2 Z17; peel2 Z16; peel2 Z15; peel2 Z14; peel2 Z13; peel2 Z12; peel2 Z11; peel2 Z10;
+      peel2 Z18; peel2 Z17; peel2 Z16; peel2 Z15; peel2 Z14; peel2 Z13; peel2 Z12; peel2 Z11; peel2 Z10;
       peel2 Z10a; peelW; peel2 Z8; peel2 Z7; peel2 Z6; peel2 Z5; peel2 Z4.
       rewrite (Mem.load_store_same _ _ _ _ _ _ Z3). reflexivity.
     Qed.
