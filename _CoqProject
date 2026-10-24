@@ -32,6 +32,7 @@ generated/audio_external.v
 generated/sound_init.v
 generated/print.v
 generated/behavior_script.v
+generated/platform_displacement.v
 generated/wmotr_script.v
 generated/macro_special_objects.v
 generated/behavior_data.v
@@ -293,6 +294,10 @@ proofs/WMotRRequiresA/ProRows.v
 proofs/WMotRRequiresA/RenderAnim.v
 proofs/WMotRRequiresA/RenderSet.v
 proofs/WMotRRequiresA/RenderFlank.v
+proofs/WMotRRequiresA/PlatformEff.v
+proofs/WMotRRequiresA/RenderKeep.v
+proofs/WMotRRequiresA/PlatformWalk.v
+proofs/WMotRRequiresA/PlatformKeep.v
 proofs/WMotRRequiresA/HeightFrame.v
 proofs/WMotRRequiresA/WMotREntry.v
 proofs/WMotRRequiresA/SpawnTypeRun.v

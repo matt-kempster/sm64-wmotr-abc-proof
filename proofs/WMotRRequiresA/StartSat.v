@@ -1840,7 +1840,19 @@ Section Witness.
       split; [ exact (not_eq_sym (sym_ne_bd _ _ Hbo)) | ].
       split; [ exact bt_bo | ].
       split; [ exact (symne lp _ _ _ _ Hbo Hga eq_refl) | ].
-      split; [ exact (symne lp _ _ _ _ Hbo Hau eq_refl) | ].
+      split; [ split; [ exact (symne lp _ _ _ _ Hbo Hau eq_refl) | ] | ].
+      { (* the flanks' globals (the render globals and the platform step's
+           D_8032FEC0): apart from Mario's object (a gObjectPool slot) and
+           off the partition (its nodes live in the pool block) *)
+        intros id b Hin Hs. split.
+        - unfold AnimWorld.flank_gvars, RenderAnim.render_gvars in Hin. cbn [app] in Hin.
+          repeat (destruct Hin as [<- | Hin]; [ exact (symne lp _ _ _ _ Hs Hbo eq_refl) | ]).
+          destruct Hin.
+        - intros hd Hp.
+          destruct (walk2_sound WFUEL m11 bpl (fun x => x = b) hd (wf_head _ Hp) bpl_valid11
+                      (not_eq_sym (sym_ne_bpl _ _ Hs))) as (Wl & On).
+          split; [ exact Wl | ]. intros b' o Ho. destruct (On _ Ho) as (o' & E & _). injection E as -> _.
+          exact (not_eq_sym (sym_ne_bpl _ _ Hs)). }
       split; [ unfold AnimWorld.TABSZ, AnimData.ANIM_COUNT; change Ptrofs.modulus with 4294967296; lia | ].
       split; [ unfold AnimWorld.BUFSZ; change Ptrofs.modulus with 4294967296; lia | ].
       split; [ reflexivity | ].

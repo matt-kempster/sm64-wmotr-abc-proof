@@ -73,7 +73,7 @@ From SM64.Proofs Require Import FrameCalls FrameSplit AirSplit AutoSplit.
 From SM64.Proofs.WMotRRequiresA Require Import ProRows.
 From SM64.Proofs.WMotRRequiresA Require Import FfWorld FfRow AhwRow KbRow FpuFloor ExtInert.
 From SM64.Proofs.WMotRRequiresA Require PoleXc PoleCasesT.
-From SM64.Proofs.WMotRRequiresA Require RenderFlank AnimWorld.
+From SM64.Proofs.WMotRRequiresA Require RenderFlank RenderKeep AnimWorld PlatformKeep.
 From SM64.Proofs Require OsDmaFloor LptBody.
 From SM64.Proofs Require Import HeightInvariant HeightBudgetArith HeightMoveCatalog WMotRLevel
   WMotRWorld NoAActions.
@@ -131,16 +131,18 @@ Section HeightFrame.
     /\ (a_pressed_real bm m' = false -> MWF m -> MWF m')
     /\ (Phi m -> Phi m').
 
-  (* seg_platform: apply_mario_platform_displacement.  T1's widened spec
-     (playground/PlatformInert.v): the y and action LOADS are unchanged --
-     NULL platform is an early return, a ridden wing-cap box never moves so
-     its displacement is identity. *)
+  (* seg_platform: ONE real eval_funcall of platform_displacement.c's
+     apply_mario_platform_displacement over lp (2026-10-23, the TU linked as
+     the 45th; PlatformKeep.plat_call).  Its carries of mem_ok, Phi and the
+     A-held bit are PROVED from the walked body (PlatformKeep, discharging
+     Hplat_ok / Hplat_phi / Hplat_ad below).  What the step states besides
+     the call (labeled trust): PlatformKeep.plat_still -- gMarioPlatform is
+     NULL or a platform with zero angle velocity (a rotating one moves
+     Mario's y, and is not ruled out here) -- and Mario's surfaces are not in
+     D_8032FEC0's block (RenderKeep.surf_apart, as for the render step). *)
   Definition seg_platform_spec (m m' : mem) : Prop :=
-    Mem.load Mfloat32 m' bm POSY = Mem.load Mfloat32 m bm POSY
-    /\ Mem.load Mint32 m' bm 12 = Mem.load Mint32 m bm 12
-    /\ (Mem.valid_block m bm -> Mem.valid_block m' bm)
-    /\ a_down_real bm m' = a_down_real bm m   (* no controller write *)
-    /\ carries m m'.
+    PlatformKeep.plat_call lp m m' /\ PlatformKeep.plat_still lp m
+    /\ RenderKeep.surf_apart lp bm PlatformKeep.plat_gvars m.
 
   (* seg_level: the warp / level phase.  None of its writers touches
      m->action (scout, docs/goal2-frame-boundary-scout.md).  Its y writes
@@ -167,11 +169,15 @@ Section HeightFrame.
      graph_node.c's geo_update_animation_frame.  The left disjunct is a frame
      where Mario's node is not drawn.  GOAL 1's mem_ok carry through it is
      PROVED from its walked footprint (RenderFlank.render_mem_ok,
-     discharging Hrender_ok below); the Phi carry is assumed like every other
-     flank's (it was inside seg_rest's before). *)
+     discharging Hrender_ok below), and so is the Phi carry (2026-10-23,
+     RenderKeep.render_keeps_phiw, discharging Hrender_phi below).  It is no
+     longer an assumed carry; what the step states instead is narrower
+     (RenderKeep.render_surf_apart, labeled trust): Mario's wall / ceiling /
+     floor surfaces are not in one of the six gCurrAnim* globals' blocks the
+     call writes.  In the game they are surface-pool surfaces; the frame
+     world keeps them off the walk's regions but not off every global. *)
   Definition seg_render_spec (m m' : mem) : Prop :=
-    (m' = m \/ RenderFlank.render_call lp bm m m')
-    /\ (Phi m -> Phi m').
+    m' = m \/ (RenderFlank.render_call lp bm m m' /\ RenderKeep.render_surf_apart lp bm m).
 
   (* The game is still in WMotR: gCurrLevelNum (level_update.c, set only by
      the warp code from sWarpDest, :477/:502) holds LEVEL_WMOTR (pinned from
@@ -219,6 +225,22 @@ Section HeightFrame.
      section below by RenderFlank.render_mem_ok -- NOT open). *)
   Hypothesis Hrender_ok :
     forall m m', mem_ok m -> RenderFlank.render_call lp bm m m' -> mem_ok m'.
+
+  (* the render call carries Phi, given the step's surface premise
+     (discharged in the twelve-TU section below by
+     RenderKeep.render_keeps_phiw -- NOT open). *)
+  Hypothesis Hrender_phi :
+    forall m m', Phi m -> RenderFlank.render_call lp bm m m' ->
+                 RenderKeep.render_surf_apart lp bm m -> Phi m'.
+
+  (* the platform step carries mem_ok, the A-held bit and Phi (discharged
+     in the twelve-TU section below by PlatformKeep -- NOT open). *)
+  Hypothesis Hplat_ok :
+    forall m m', mem_ok m -> seg_platform_spec m m' -> mem_ok m'.
+  Hypothesis Hplat_ad :
+    forall m m', mem_ok m -> seg_platform_spec m m' -> a_down_real bm m' = a_down_real bm m.
+  Hypothesis Hplat_phi :
+    forall m m', Phi m -> seg_platform_spec m m' -> Phi m'.
 
   (* OPEN (T2 + T3, THE CRUX): one real execute_mario_action frame from a
      GOAL-1-well-formed state preserves the height invariant.  The
@@ -293,10 +315,9 @@ Section HeightFrame.
     pose proof (inert_flank m i Hai Hvi (Hmi HA) Hok) as Hok0.
     pose proof (Hpi Hphi) as Hphi0.
     (* platform *)
-    destruct Hplat as (_ & Hap & Hvp & Hdp & Hmp & Hpp).
-    assert (HD1 : a_down_real bm m1 = false) by congruence.
-    pose proof (inert_flank i m1 Hap Hvp Hmp Hok0) as Hok1.
-    pose proof (Hpp Hphi0) as Hphi1.
+    pose proof (Hplat_ok i m1 Hok0 Hplat) as Hok1.
+    assert (HD1 : a_down_real bm m1 = false) by (rewrite (Hplat_ad i m1 Hok0 Hplat); exact HD).
+    pose proof (Hplat_phi i m1 Hphi0 Hplat) as Hphi1.
     (* the Mario action: GOAL 1's frame + the crux *)
     pose proof (Hseg_action_phi m1 m2 Hok1 Hphi1 HD1 Hact) as Hphi2.
     pose proof (Hframe_action m1 m2 Hok1 Hact) as (Hv2 & Hs2 & Hm2).
@@ -311,10 +332,11 @@ Section HeightFrame.
     (* rest, Mario's render call, rest *)
     pose proof (rest_ok m3 m4 Hrest Hok3) as Hok4.
     pose proof (proj2 (proj2 (proj2 (proj2 Hrest))) Hphi3) as Hphi4.
-    destruct Hrnd as (Hrc & Hpr).
-    assert (Hok5 : mem_ok m5)
-      by (destruct Hrc as [-> | Hrc]; [ exact Hok4 | exact (Hrender_ok m4 m5 Hok4 Hrc) ]).
-    pose proof (Hpr Hphi4) as Hphi5.
+    assert (Hok5 : mem_ok m5 /\ Phi m5)
+      by (destruct Hrnd as [-> | (Hrc & Hsa)];
+          [ exact (conj Hok4 Hphi4)
+          | exact (conj (Hrender_ok m4 m5 Hok4 Hrc) (Hrender_phi m4 m5 Hphi4 Hrc Hsa)) ]).
+    destruct Hok5 as (Hok5 & Hphi5).
     split.
     - exact (rest_ok m5 m' Hrest2 Hok5).
     - exact (proj2 (proj2 (proj2 (proj2 Hrest2))) Hphi5).
@@ -825,6 +847,39 @@ Section HeightLinked12.
     exact (RenderFlank.render_mem_ok lp H12 bm bc oc0 SafeB HSafeB_syms Hbm_sym Hbc_sym Hoc0).
   Qed.
 
+  (* the render call carries PhiW, on the link (RenderKeep): its footprint
+     is Mario's animFrame / animTimer / accelAssist and the six render
+     globals, apart from every cell PhiW reads but the animFrame, which the
+     real geo_update_animation_frame keeps in [-1, loopEnd] *)
+  Lemma render_phi_linked12 :
+    forall m m', Phi m -> RenderFlank.render_call lp bm m m' ->
+                 RenderKeep.render_surf_apart lp bm m -> Phi m'.
+  Proof. exact (RenderKeep.render_keeps_phiw lp H12 bm). Qed.
+
+  (* the platform step carries mem_ok, the A-held bit and PhiW, on the link
+     (PlatformKeep): its walked footprint is D_8032FEC0, Mario's pos[0] /
+     pos[2] and pos[1] written back unchanged *)
+  Lemma plat_ok_linked12 :
+    forall m m', mem_ok_lp bm MWF m -> seg_platform_spec lp bm m m' -> mem_ok_lp bm MWF m'.
+  Proof.
+    intros m m' Hok (Hc & Hst & _).
+    exact (PlatformKeep.plat_mem_ok lp H12 bm Hbm_sym bc oc0 SafeB HSafeB_syms Hbc_sym Hoc0 m m' Hok Hc Hst).
+  Qed.
+
+  Lemma plat_ad_linked12 :
+    forall m m', mem_ok_lp bm MWF m -> seg_platform_spec lp bm m m' -> a_down_real bm m' = a_down_real bm m.
+  Proof.
+    intros m m' Hok (Hc & Hst & _).
+    exact (PlatformKeep.plat_a_down lp H12 bm Hbm_sym bc oc0 SafeB Hbc_sym Hoc0 m m' Hok Hc Hst).
+  Qed.
+
+  Lemma plat_phi_linked12 :
+    forall m m', Phi m -> seg_platform_spec lp bm m m' -> Phi m'.
+  Proof.
+    intros m m' Hphi (Hc & Hst & Hsa).
+    exact (PlatformKeep.plat_keeps_phiw lp H12 bm Hbm_sym m m' Hphi Hc Hst Hsa).
+  Qed.
+
   (* ==================================================================== *)
   (* THE GOAL-2 CAPSTONE (height form): over any link of the twelve TUs,  *)
   (* a run of real game frames with A neither pressed nor held after     *)
@@ -841,7 +896,8 @@ Section HeightLinked12.
   Proof.
     intros init is m Hok Hphi HA Hr.
     exact (proj2 (noA_run_height_bound lp bm MWF Phi PHI_YMAX
-                    frame_action_linked12 render_ok_linked12 seg_action_phi Hphi_y
+                    frame_action_linked12 render_ok_linked12 render_phi_linked12
+                    plat_ok_linked12 plat_ad_linked12 plat_phi_linked12 seg_action_phi Hphi_y
                     init is m Hok Hphi HA Hr)).
   Qed.
 

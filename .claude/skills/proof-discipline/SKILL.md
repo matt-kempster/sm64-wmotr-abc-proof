@@ -297,7 +297,12 @@ all in `Unwired/`, and the theorem moved nowhere. See
     PoleSlow/Fast/Hold/Climb are retired. Walker trap: a clamped polePos folds
     oPosY + 720.0f to a constant, so `PoleClass.tb` has a constant + offset case.
   - (`wmotr_gap` and `wmotr_poles` are now proved from generated level data, `WMotRLevel.v`)
-  - the flank specs (TRUST 0.7)
+  - the flank specs (TRUST 0.7): poll, level phase, objects. Mario's render call and
+    `apply_mario_platform_displacement` (platform_displacement.c, TU 45) are REAL calls whose
+    GOAL-1 and Φ carries are proved (`RenderKeep.render_keeps_phiw`, `PlatformKeep`, 2026-10-23);
+    they state only narrow premises: `surf_apart` (Mario's surfaces not in a written global's block)
+    and `plat_still` (the ridden platform is NULL or has zero angle velocity; FOUND: a rotating
+    platform moves pos[1], so the old "y unchanged" platform spec was false of the real body).
 
   The coin link is also open.
 - `docs/TRUST.md` is the ledger of everything a reader must believe. Read

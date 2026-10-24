@@ -34,8 +34,9 @@
 
 From Coq Require Import ZArith List Bool Lia.
 From compcert Require Import Coqlib Maps AST Integers Values Memory Globalenvs Clight.
-From SM64.Generated Require mario game_init graph_node level_update.
+From SM64.Generated Require mario game_init graph_node level_update platform_displacement.
 From SM64.Proofs.WMotRRequiresA Require Import AnimData FloorList FloorExec FfWorld.
+From SM64.Proofs.WMotRRequiresA Require RenderAnim.
 Import ListNotations.
 Local Open Scope Z_scope.
 
@@ -112,6 +113,26 @@ Definition nstate (m : mem) (ab bga : block) (mb : block) (mo : ptrofs) : Prop :
 Definition anim_st (m : mem) (ab bga bt : block) (ot : ptrofs) (mb : block) (mo : ptrofs) : Prop :=
   nstate m ab bga mb mo \/ exists k, In k hs_ids /\ loaded m ab bga bt ot mb mo k.
 
+(* the six render globals (rendering_graph_node.c's gCurrAnimType / Frame /
+   Enabled / Attribute / Data / TranslationMultiplier, which the real
+   geo_set_animation_globals writes for every drawn object) are blocks
+   apart from Mario's object and off the surface partition (2026-10-23, for
+   the render flank's Phi carry, RenderKeep).  In the game they are
+   statically allocated globals, while Mario's object is a gObjectPool slot
+   and the partition's nodes and surfaces are main_pool_alloc'd.  FOUND
+   (phantom forall): without it a frame-world memory could keep a partition
+   node, or Mario's animation cells, in one of those globals' blocks, and
+   one real render call rewrote them.  Since 2026-10-23 the list also
+   names platform_displacement.c's D_8032FEC0, the one global the real
+   apply_mario_platform_displacement writes (PlatformKeep): together, the
+   flanks' globals. *)
+Definition flank_gvars : list ident :=
+  RenderAnim.render_gvars ++ [platform_displacement._D_8032FEC0].
+
+Definition rg_apart (m : mem) (mb : block) : Prop :=
+  forall id b, In id flank_gvars -> Genv.find_symbol ge id = Some b ->
+    b <> mb /\ tab_apart m b.
+
 (* what holds in every action: the list, the table, gMarioAnims' cells,
    the buffer's placement and the blocks apart *)
 Definition anim_base (m : mem) (ab bga bauc btab : block) (otab : ptrofs) (bt : block) (ot : ptrofs)
@@ -123,7 +144,7 @@ Definition anim_base (m : mem) (ab bga bauc btab : block) (otab : ptrofs) (bt : 
   /\ Mem.load Mint32 m ab 8 = Some (Vptr bt ot)
   /\ Mem.load Mint32 m bm 136 = Some (Vptr mb mo)
   /\ (forall id b, Genv.find_symbol ge id = Some b -> b <> btab /\ b <> bt)
-  /\ btab <> bt /\ btab <> mb /\ bt <> mb /\ mb <> bga /\ mb <> bauc
+  /\ btab <> bt /\ btab <> mb /\ bt <> mb /\ mb <> bga /\ (mb <> bauc /\ rg_apart m mb)
   /\ Ptrofs.unsigned otab + TABSZ <= Ptrofs.modulus
   /\ Ptrofs.unsigned ot + BUFSZ < Ptrofs.modulus /\ Z.modulo (Ptrofs.unsigned ot) 4 = 0
   /\ Mem.range_perm m bt (Ptrofs.unsigned ot) (Ptrofs.unsigned ot + BUFSZ) Cur Readable
@@ -208,6 +229,27 @@ Proof.
     subst s' b. exact (proj2 (TA hd Hh) btab o Ho eq_refl).
 Qed.
 
+(* ... by any block off the partition that is not a partition array's *)
+Lemma Wff_blk : forall m gp sz vs bx ox,
+  (forall id bp, In id part_ids -> Genv.find_symbol ge id = Some bp -> bp <> bx) ->
+  tab_apart m bx -> Wff ge m gp sz vs -> Wff ge m gp sz (vs ++ [Some (Vptr bx ox)]).
+Proof.
+  intros m gp sz vs bx ox Sy TA (W1 & W2 & W3 & W4 & W5 & W6 & W7).
+  refine (conj W1 (conj _ (conj _ (conj _ (conj W5 (conj W6 W7)))))).
+  - intros id bp Hin Hs. destruct (W2 id bp Hin Hs) as (A & B & C). split; [exact A |].
+    split; [| exact C]. intros H. destruct (rblk_app _ _ _ _ H) as [H' | ->];
+      [exact (B H') | exact (Sy id bx Hin Hs eq_refl)].
+  - intros hd Hh. destruct (TA hd Hh) as (T1 & _).
+    apply (wf_list_mono m (fun b => (is_static ge b \/ rblk vs b) \/ b = bx)).
+    + intros b [A | A]; [left; left; exact A |].
+      destruct (rblk_app _ _ _ _ A) as [A' | A']; [left; right; exact A' | right; exact A'].
+    + exact (wf_list_or m _ _ hd (W3 hd Hh) T1).
+  - intros hd s' Hh Ho. destruct (W4 hd s' Hh Ho) as (b & o & E1 & A & B & C & D).
+    exists b, o. split; [exact E1 |]. split; [exact A |]. split; [exact B |]. split; [| exact D].
+    intros H. destruct (rblk_app _ _ _ _ H) as [H' | E2]; [exact (C H') |].
+    subst s' b. exact (proj2 (TA hd Hh) bx o Ho eq_refl).
+Qed.
+
 Lemma tab_of_Wff : forall m gp sz vs btab otab,
   Wff ge m gp sz (vs ++ [Some (Vptr btab otab)]) -> tab_apart m btab.
 Proof.
@@ -217,6 +259,36 @@ Proof.
     intros b ->. right. exists otab. apply in_or_app. right. left. reflexivity.
   - intros b o Ho Eb. subst b. destruct (W4 hd _ Hh Ho) as (b' & o' & E1 & _ & _ & C & _).
     injection E1 as <- <-. apply C. exists otab. apply in_or_app. right. left. reflexivity.
+Qed.
+
+(* no partition array is a flank global *)
+Lemma part_not_rg : forall id, In id part_ids -> In id flank_gvars -> False.
+Proof.
+  intros id H1 H2. unfold part_ids in H1.
+  destruct H1 as [<- | [<- | []]]; unfold flank_gvars, RenderAnim.render_gvars in H2; cbn [app] in H2;
+    repeat (destruct H2 as [H2 | H2]; [vm_compute in H2; discriminate H2 |]); exact H2.
+Qed.
+
+(* a block off the partition stays off it through a memory change confined
+   to the blocks rl, over which the frame's world fact holds *)
+Lemma tab_apart_keep : forall m m' gp rl bx,
+  Wff ge m gp SZ_SURFACE rl ->
+  (forall id bp, In id part_ids -> Genv.find_symbol ge id = Some bp -> bp <> bx) ->
+  tab_apart m bx ->
+  Ple (Mem.nextblock m) (Mem.nextblock m') ->
+  (forall b ofs k p, Plt b (Mem.nextblock m) -> Mem.perm m b ofs k p -> Mem.perm m' b ofs k p) ->
+  (forall ch b z, Plt b (Mem.nextblock m) -> ~ rblk rl b -> Mem.load ch m' b z = Mem.load ch m b z) ->
+  tab_apart m' bx.
+Proof.
+  intros m m' gp rl bx W Sy TA Hnb KP Hld.
+  assert (W1 : Wff ge m gp SZ_SURFACE (rl ++ [Some (Vptr bx Ptrofs.zero)]))
+    by exact (Wff_blk m gp SZ_SURFACE rl bx Ptrofs.zero Sy TA W).
+  assert (Hld' : forall ch b z, Plt b (Mem.nextblock m) -> ~ rblk (rl ++ [Some (Vptr bx Ptrofs.zero)]) b ->
+            Mem.load ch m' b z = Mem.load ch m b z).
+  { intros ch b z Hv Hr. apply Hld; [exact Hv |]. intros (o & Ho). apply Hr. exists o.
+    apply in_or_app. left. exact Ho. }
+  exact (tab_of_Wff m' gp SZ_SURFACE rl bx Ptrofs.zero
+           (Wff_keep2 ge m m' _ Hnb KP Hld' gp gp (fun b H => H) W1)).
 Qed.
 
 (* the base survives a memory change confined to the blocks rl, over which
@@ -237,7 +309,7 @@ Lemma anim_base_keep : forall m m' gp rl ab bga bauc btab otab bt ot mb mo,
   anim_base m' ab bga bauc btab otab bt ot mb mo.
 Proof.
   intros m m' gp rl ab bga bauc btab otab bt ot mb mo
-    (S1 & S2 & S3 & L0 & L8 & Lm & Sy & D1 & D2 & D3 & D4 & D5 & Z1 & Z2 & Z3 & P & T & GA & TA & AC & SM)
+    (S1 & S2 & S3 & L0 & L8 & Lm & Sy & D1 & D2 & D3 & D4 & (D5 & RG) & Z1 & Z2 & Z3 & P & T & GA & TA & AC & SM)
     W Ntab Nga Hnb KP Hld K136 K0 K8 K144 K156.
   assert (Vtab : Plt btab (Mem.nextblock m)).
   { destruct T as (T1 & _). eapply Mem.valid_access_valid_block.
@@ -250,10 +322,16 @@ Proof.
   assert (Kg : forall ch o, Mem.load ch m' bga o = Mem.load ch m bga o)
     by (intros ch o; exact (Hld ch bga o Vga Nga)).
   refine (conj S1 (conj S2 (conj S3 (conj _ (conj _ (conj _ (conj Sy (conj D1 (conj D2 (conj D3 (conj D4
-           (conj D5 (conj Z1 (conj Z2 (conj Z3 (conj _ (conj _ (conj _ (conj _ (conj _ SM)))))))))))))))))))).
+           (conj (conj D5 _) (conj Z1 (conj Z2 (conj Z3 (conj _ (conj _ (conj _ (conj _ (conj _ SM)))))))))))))))))))).
   - rewrite K0. exact L0.
   - rewrite K8. exact L8.
   - rewrite K136. exact Lm.
+  - (* the render globals stay off the partition *)
+    intros id b Hin Hs. destruct (RG id b Hin Hs) as (Ne & TAb). split; [exact Ne |].
+    apply (tab_apart_keep m m' gp rl b W); [| exact TAb | exact Hnb | exact KP | exact Hld].
+    intros id' bp Hin' Hs' E. subst bp.
+    assert (Hne : id' <> id) by (intros ->; exact (part_not_rg id Hin' Hin)).
+    exact (Genv.global_addresses_distinct ge Hne Hs' Hs eq_refl).
   - intros i Hi. apply KP; [| exact (P i Hi)].
     apply (Mem.perm_valid_block m bt i Cur Readable). exact (P i Hi).
   - destruct T as (T1 & T2 & T3). unfold tab_ok. rewrite !Kt.
