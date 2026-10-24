@@ -74,7 +74,7 @@ From SM64.Proofs.WMotRRequiresA Require Import ProRows NaSplit.
 From SM64.Proofs.WMotRRequiresA Require Import FfWorld FfRow AhwRow KbRow FpuFloor ExtInert.
 From SM64.Proofs.WMotRRequiresA Require PoleXc PoleCasesT.
 From SM64.Proofs.WMotRRequiresA Require RenderFlank RenderKeep AnimWorld PlatformKeep.
-From SM64.Proofs Require OsDmaFloor LptBody.
+From SM64.Proofs Require OsDmaFloor LptBody ObjExtBodies UpdateCameraBody.
 From SM64.Proofs Require Import HeightInvariant HeightBudgetArith HeightMoveCatalog WMotRLevel
   WMotRWorld NoAActions.
 Import ListNotations.
@@ -789,6 +789,35 @@ Section HeightLinked12.
      are the real audio/external.c bodies (SndXc). *)
   Hypothesis Hsqrtf : sqrtf_spec.
   Hypothesis Hsqrtf_float : sqrtf_float.
+
+  (* ---- update_camera(gCurrentArea->camera) (camera.c:3011), for the
+     level phase's camera call: the REAL call keeps GOAL 1's carried facts
+     (UpdateCameraBody: 506 walked bodies, the CameraEvent / transition
+     tables by type certificate).  Its two premises are used ONLY by
+     update_camera_ok_linked12, not by the capstone below. ---- *)
+  (* LABELED (TRUST 4.1, hud.c not linked): set_hud_camera_status changes
+     no linked memory (its body stores the hud.c static sCameraHUDStatus) *)
+  Hypothesis Hhud_memid : forall b fd m vargs t m' vres,
+      Genv.find_symbol (lp_ge lp) camera._set_hud_camera_status = Some b ->
+      Genv.find_funct (lp_ge lp) (Vptr b Ptrofs.zero) = Some fd ->
+      eval_funcall function_entry2 (lp_ge lp) m fd vargs t m' vres -> m' = m.
+  (* OPEN ROW (linked body, not yet walked): set_mario_npc_dialog
+     (mario_actions_cutscene.c:345), reached from the dialog cutscenes *)
+  Hypothesis Hnpc_pres :
+    ObjExtBodies.sym_pres lp bm bc oc0 SafeB mario_actions_cutscene._set_mario_npc_dialog.
+
+  Lemma update_camera_ok_linked12 : forall b fd m c t m' vres,
+      Genv.find_symbol (lp_ge lp) camera._update_camera = Some b ->
+      Genv.find_funct (lp_ge lp) (Vptr b Ptrofs.zero) = Some fd ->
+      eval_funcall function_entry2 (lp_ge lp) m fd [c] t m' vres ->
+      (forall bb oo, c = Vptr bb oo -> SafeB bb) ->
+      mem_ok_lp bm MWF m -> mem_ok_lp bm MWF m'.
+  Proof.
+    intros b fd m c t m' vres Hs Hff Hev Hc Hok.
+    exact (UpdateCameraBody.update_camera_pres lp H12 bm bc oc0 SafeB HSafeB_syms
+             (NoAImpliesNoFlyTwelve.Hspawn lp H12 bm bc oc0 Hbm_sym Hbc_sym Hoc0)
+             Hsqrtf Hdma_floor Hls Hhud_memid Hnpc_pres b fd m c t m' vres Hs Hff Hev Hc Hok).
+  Qed.
 
   (* the automatic dispatcher's cases: all twelve proved *)
   Lemma Hauto_case : aut_case_rows lp bm MWF.

@@ -221,6 +221,12 @@ proofs/MarioModel/SaveDoSaveBody.v
 proofs/MarioModel/SpawnBodies.v
 proofs/MarioModel/PrintBodies.v
 proofs/MarioModel/CameraModeBody.v
+# update_camera's whole call tree (506 bodies, recursive two-mode class
+# walker + the CameraEvent / CameraTransition type certificates): SPINE via
+# HeightLinked12 (UpdateCameraBody.update_camera_pres)
+proofs/MarioModel/UcKit.v
+proofs/MarioModel/UcTable.v
+proofs/MarioModel/UpdateCameraBody.v
 
 # --- GOAL 1 / the perform_air_step surface (SPINE: pas_cp DISCHARGES the
 #     capstone's Hcp_pas_real perform_air_step blocker via a loop-tolerant

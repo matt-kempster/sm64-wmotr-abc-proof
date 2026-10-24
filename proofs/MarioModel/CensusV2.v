@@ -1083,10 +1083,25 @@ Definition print_safe_syms : list ident :=
    the surface they found there.  As SafeB blocks, R7 makes every SurfaceNode
    and Surface pointer chased out of them SafeB, so the local holds a SafeB
    pointer, never Mario's block.  Both are outside non_safeb_syms, so
-   SafeB_boot contains them. *)
+   SafeB_boot contains them.
+   2026-10-24 (UpdateCameraBody, update_camera's whole call tree): seven
+   more camera.c globals whose pointers the tree stores or chases --
+   gCamera (= the Camera struct), sMarioGeometry (find_floor / find_ceil
+   write the found surfaces into its fields), gLakituState (its u32
+   lastFrameAction takes sMarioCamState->action), sLuigiCamState
+   (&gPlayerCameraState[1]), gSecondCameraFocus (the cutscene object
+   pointer whose oBowserCamAct the Bowser cutscenes write), sParTrackPath
+   and the one path it is set to (sBBHLibraryParTrackPath).  None is in
+   non_safeb_syms, so SafeB_boot and StartSat's SafeB_wit contain them
+   (gobj_not_nonsafe re-checks).  gCutsceneFocus is NOT here: it is a
+   stored global (Mario's end-cutscene code sets it), and the tree only
+   reads through it. *)
 Definition camera_safe_syms : list ident :=
   camera._sMarioCamState :: surface_collision._gStaticSurfacePartition
-    :: surface_collision._gDynamicSurfacePartition :: nil.
+    :: surface_collision._gDynamicSurfacePartition
+    :: camera._gCamera :: camera._sMarioGeometry :: camera._gLakituState
+    :: camera._sLuigiCamState :: camera._gSecondCameraFocus
+    :: camera._sParTrackPath :: camera._sBBHLibraryParTrackPath :: nil.
 
 Definition safe_ptr_syms : list ident :=
   mario_actions_cutscene._gCurrentObject :: gobj_syms ++ bhv_held_syms

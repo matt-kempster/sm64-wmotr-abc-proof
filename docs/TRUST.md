@@ -1354,6 +1354,40 @@ link grows.
     `camera_inert`, `csh_named`, `csh_ni` are deleted; no camera premise is left in the GOAL-2
     capstone (`HeightFrame`), and the rows (`FfRow`, `AhwRow`, `KbRow`, `PoleRow`, `LedgeRow`) and
     `StartSat` provide the new region from the link's symbol table.
+- **`update_camera(gCurrentArea->camera)` (camera.c:3011) keeps GOAL 1's facts (2026-10-24,
+  `UpdateCameraBody.update_camera_pres`; wired as `HeightFrame.update_camera_ok_linked12`).**
+  From any `mem_ok` memory, with a SafeB (or non-pointer) camera argument, the real call returns
+  in a `mem_ok` memory. Proved over the generated Clight: 506 walked bodies (camera.c 467,
+  audio_external 12, math_util 10, surface_collision 9, ingame_menu 3, behavior_script 2,
+  object_helpers 2, save_file 1) by `UcKit`'s recursive two-mode class walker. The writable
+  tables are covered by type certificates: every linked function of type
+  `void (*)(struct Camera *)` is one of the 336 listed (`all_evt_ok`); the 14 transitions as before.
+  Six leaves, outside the walk:
+  - `sqrtf` (3.5), `play_sound` (AudioBodies), `save_file_do_save` (SaveDoSaveBody, 3.5);
+  - `load_sequence`: the existing labeled premise `Hls`;
+  - **NEW LABELED premise `Hhud_memid`** (hud.c not linked): `set_hud_camera_status` changes no
+    linked memory. Its body (hud.c:363) is `sCameraHUDStatus = status;`, a hud.c static.
+  - **NEW OPEN ROW `Hnpc_pres`**: `set_mario_npc_dialog` (mario_actions_cutscene.c:345, linked,
+    not yet walked) keeps the facts. It writes `actionState` / `usedObj` and calls
+    `set_mario_action(.., ACT_READING_NPC_DIALOG, ..)`. Reached from the dialog cutscenes.
+  Both are premises of `update_camera_ok_linked12` only; the GOAL 2 capstone does not take them.
+  SafeB claim widened: `CensusV2.camera_safe_syms` gained `gCamera`, `sMarioGeometry`,
+  `gLakituState`, `sLuigiCamState`, `gSecondCameraFocus`, `sParTrackPath`,
+  `sBBHLibraryParTrackPath` (none in `non_safeb_syms`; `SafeB_boot` contains them).
+  FOUND: `gCutsceneFocus` cannot join it; it is a stored global (Mario's end cutscene sets it).
+  The tree only reads through it, so it is not needed.
+  The vm-pinned store census `uc_census` lists 201 bodies whose stores (or pointer arguments)
+  leave the camera-private class. That class is stack locals, the Camera struct and
+  `cam_store_ids`, the camera.c globals no other file names. Leaving it: `gPlayerCameraState`
+  through `sMarioCamState` (72 bodies) and `sLuigiCamState`; `sCutsceneVars` (82);
+  `gLakituState` (22); `gCutsceneTimer` (23); `gCameraMovementFlags` (21); object writes through
+  `gSecondCameraFocus` (oBowserCamAct); `gCutsceneFocus`, `gCamera`, `gRecentCutscene`,
+  `gObjCutsceneDone`, `gCutsceneObjSpawn`; the surface globals (`gCheckingSurfaceCollisionsForCamera`,
+  `gFindFloorIncludeSurfaceIntangible`, `gNumCalls`, `gNumFindFloorMisses`); `gRandomSeed16`;
+  `gTimeStopState`; `gGlobalSoundSource`; the dialog globals; the audio state
+  (`gSequencePlayers`, the music queue).
+  Plus the dirty leaves: the save buffer / EEPROM and Mario's action (`set_mario_npc_dialog`).
+  A GOAL 2 invariant carried across update_camera can break at any of these.
 - **FOUND FALSE + PROVED (2026-10-22): `WL_exempt`** (every GOAL 1 capstone, and GOAL 2's
   `HeightFrame` section, which copied it). The row said every exempt-whitelist callee evaluates
   to a function whose first parameter is not a MarioState pointer, for ANY environment `e` and
