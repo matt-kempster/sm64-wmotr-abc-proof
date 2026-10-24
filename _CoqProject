@@ -32,6 +32,8 @@ generated/audio_external.v
 generated/sound_init.v
 generated/print.v
 generated/behavior_script.v
+generated/spawn_sound.v
+generated/debug.v
 generated/wmotr_script.v
 generated/macro_special_objects.v
 generated/behavior_data.v
@@ -68,6 +70,7 @@ proofs/Generic/RootedLvalue.v
 proofs/Generic/ClightDeterm.v
 proofs/Generic/ClosedMem.v
 proofs/Generic/ClightClosed.v
+proofs/Generic/UnusedParam.v
 
 # --- shared: Mario action vocabulary + value engine ---
 proofs/MarioModel/Flying.v

@@ -33,6 +33,7 @@ From SM64.Proofs Require Import SymbolicLinking.
    verbatim. The mario_ge-specific wrappers there are NOT used. *)
 From SM64.Proofs Require Import Flying ActionValue FieldNonInterference
   ActionValueFrame RealFrameValue.
+From SM64.Proofs Require UnusedParam.
 
 Section ReRoot.
   (* The linked program -- ABSTRACT. The only thing we know is that mario.prog
@@ -417,6 +418,61 @@ Section ReRoot.
       eval_funcall function_entry2 lp_ge m
         (Internal mario.f_execute_mario_action)
         (Vptr b_o Ptrofs.zero :: nil) t m' res.
+
+  (* ---- THE ARGUMENT IS UNUSED (2026-10-24, OBJECTS phase S1). ----------
+     execute_mario_action(UNUSED struct Object *o) (mario.c:1699): its body
+     never reads the temp _o (a syntactic check over the generated body).
+     So the pin `Vptr b_o Ptrofs.zero` above costs nothing: a call with ANY
+     argument -- in particular the real one, bhv_mario_update's
+     gCurrentObject = &gObjectPool[k] (inside update_objects) -- has a
+     step_lp call with the same trace, final memory and result, and
+     conversely.  This is what lets the objects phase (S3) plug the Mario
+     frame into the hole at execute_mario_action. *)
+  Lemma execute_mario_action_o_unread :
+    UnusedParam.s_reads mario._o (fn_body mario.f_execute_mario_action) = false.
+  Proof. vm_compute. reflexivity. Qed.
+
+  Lemma execute_mario_action_any_arg_lp :
+    forall m v1 v2 t m' res,
+      eval_funcall function_entry2 lp_ge m (Internal mario.f_execute_mario_action)
+        (v1 :: nil) t m' res ->
+      eval_funcall function_entry2 lp_ge m (Internal mario.f_execute_mario_action)
+        (v2 :: nil) t m' res.
+  Proof.
+    intros m v1 v2 t m' res H.
+    exact (UnusedParam.funcall_unused_param mario._o lp_ge m mario.f_execute_mario_action
+             (tptr (Tstruct mario._Object noattr)) v1 v2 t m' res eq_refl
+             execute_mario_action_o_unread H).
+  Qed.
+
+  (* one real Mario update called with argument v *)
+  Definition execute_mario_action_call_lp (v : val) (m m' : mem) : Prop :=
+    exists (t : trace) (res : val),
+      eval_funcall function_entry2 lp_ge m
+        (Internal mario.f_execute_mario_action) (v :: nil) t m' res.
+
+  (* the generalisation: step_lp IS the call at any argument *)
+  Theorem execute_mario_action_step_lp_any :
+    forall v m m', execute_mario_action_step_lp m m' <-> execute_mario_action_call_lp v m m'.
+  Proof.
+    intros v m m'. split.
+    - intros (b_o & t & res & H). exists t, res.
+      exact (execute_mario_action_any_arg_lp _ _ _ _ _ _ H).
+    - intros (t & res & H). exists 1%positive, t, res.
+      exact (execute_mario_action_any_arg_lp _ _ _ _ _ _ H).
+  Qed.
+
+  (* the real caller's form: any pointer, e.g. &gObjectPool[k] *)
+  Corollary execute_mario_action_ptr_step_lp :
+    forall b o m m', execute_mario_action_call_lp (Vptr b o) m m' ->
+                     execute_mario_action_step_lp m m'.
+  Proof. intros b o m m' H. exact (proj2 (execute_mario_action_step_lp_any _ m m') H). Qed.
+
+  (* the old pinned form, as a corollary *)
+  Corollary execute_mario_action_zero_step_lp :
+    forall b m m', execute_mario_action_call_lp (Vptr b Ptrofs.zero) m m' ->
+                   execute_mario_action_step_lp m m'.
+  Proof. intros b. exact (execute_mario_action_ptr_step_lp b Ptrofs.zero). Qed.
 
   (* ================================================================== *)
   (* TOWARD THE _REACHED VARIANT (the one the capstone consumes).         *)

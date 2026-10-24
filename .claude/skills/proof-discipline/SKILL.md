@@ -105,6 +105,15 @@ all in `Unwired/`, and the theorem moved nowhere. See
   transitions have type (Camera*, f32*, f32*)->s32). Needed `sMarioCamState` and the two surface
   partitions in `CensusV2.camera_safe_syms` (SafeB_boot meets it). GOAL 1 13 -> 12,
   HeightFrame 20 -> 19 `Hypothesis` lines (TRUST 4.1).
+  2026-10-24 OBJECTS S1 (groundwork for the real `update_objects`): `spawn_sound.c`,
+  `debug.c`, `object_collision.c` linked as TUs 47-49 (45/46 are on other branches; splice on
+  merge). `RealFrameLinked.execute_mario_action_step_lp_any`: the frame's `Vptr b 0` argument
+  pin is no restriction (param unused, `Generic/UnusedParam`). `BehaviorScripts.all_tus` made
+  current; FOUND FALSE: the unconditional grab fact (the debug spawner spawns two grabbable
+  objects under its guard). Restated over the closure without that body; the guard is S2's
+  `obj_w`. `wmotr_live_natives` pinned (107); 3 lack a linked body, one live
+  (`bhv_red_coin_star_marker_init`, `obj_behaviors_2.c`: link it in S3). Counts unchanged
+  (GOAL 1 8, HeightFrame 15 `Hypothesis` lines).
   2026-10-22: HeightFrame's section has 27 `Hypothesis` lines (28 → 27: `Hcamera` proved away).
   2026-10-23 AUDIO LINK (`audio/external.c`, `sound_init.c`: TUs 40, 41; `AudioBodies`, `SndXc`):
   GOAL 1 `Hypothesis` lines 16 → 15, HeightFrame 26 → 24. Proved: `Hpres_sta_ext`, `Hsss`,
