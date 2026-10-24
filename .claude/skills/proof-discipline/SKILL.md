@@ -263,7 +263,13 @@ all in `Unwired/`, and the theorem moved nowhere. See
     `XIDS`, and `BodyFrame.Q2` allows freed callee frames (vec3*_copy, `v3_frame`). Dispatcher pres
     now carry `FrameSplit.grp_ok`: the action's group equals the case label, proved at the
     real switch. NEXT: shrink `na_open` one call at a time. hitbox_and_cap also stores through
-    `marioBodyState` but calls `stop_cap_music`. update_mario_inputs needs pins on
+    `marioBodyState` but calls `stop_cap_music` / `fadeout_cap_music`. Their audio footprint
+    is proved from the real bodies, down to `load_sequence` (staged:
+    `Unwired/CapAudio.v`, 13 written globals; `ls_contract` is the strengthened `Hls`, with
+    load.c read and confirmed audio-only). Blocker: the world must be framed around those 13
+    globals, but a surface a walk finds is only known to avoid the walk's regions. Either
+    each global becomes an ff_rl region in every walk, or `surf_on` / `Wff` say surfaces are
+    dynamic blocks (`Ple genv_next b`). update_mario_inputs needs pins on
     `gEnvironmentRegions`, `gShowDebugText` and `gCameraMovementFlags`, plus the collision
     finders. The prologue call is in `Hair_pro`. The
     `quicksandDepth = 0` store is proved (the `qsd_*` lemmas). What stays assumed is the

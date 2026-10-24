@@ -1412,6 +1412,11 @@ link grows.
     linked: the sequence DMA into the audio heap) keeps the carried facts (`call_pres_ext`). The
     music-starting bodies (`play_infinite_stairs_music`, `stop_cap_music`, the cap/shell music
     wrappers) reach it through `seq_player_play_sequence`. It is narrower than every row it replaces.
+    **Read 2026-10-24** (US path: load.c, heap.c, seqplayer.c, playback.c, synthesis.c): every store
+    lands in audio state: `gAudioLoadLock`, `gSequencePlayers`, the two loaded pools, `gAudioHeap`
+    (pools, notes, banks), or load.c globals with no block in the model. The DMA / message calls are
+    3.5. A footprint form (`ls_contract`) and the cap-music frames are staged in
+    `Unwired/CapAudio.v`, for GOAL 2's hitbox row.
   - **GOAL 2 (`SndXc`):** `play_sound` and `set_sound_moving_speed` store at an index read from
     memory, so the walks cannot run them store by store. Each call is a CLOBBER contract over the
     regions of the globals it writes (`FfRun.RSR` / `RSRC` / `RSMS`: `sSoundRequests`,
