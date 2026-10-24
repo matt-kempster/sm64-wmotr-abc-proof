@@ -182,13 +182,13 @@ Proof.
       exists (c_posy c0). split; [exact LY |]. split; [exact LG |]. split; [exact FY0 |]. split; [lra |].
       exists (R2 (c_posy c0)). split; [left; split; [exact MG | lra] | lra].
     - assert (Hb : (-16777216 <= yc <= 16777216)%Z).
-      { rewrite cannon_list_value in Hyc. destruct Hyc as [<- | [<- | []]]; lia. }
+      { pose proof (cannon_list_range yc Hyc). lia. }
       destruct (cfin_sound _ yc yc ltac:(lia) ltac:(lia) ltac:(lia) YB) as (k & -> & Fk & Rk).
       cbn [SymExec2.den] in LY, LG.
       exists k. split; [exact LY |]. split; [exact LG |]. split; [exact Fk |].
       split.
-      + rewrite cannon_list_value in Hyc.
-        destruct Hyc as [<- | [<- | []]]; lra.
+      + pose proof (cannon_list_range yc Hyc) as (Hyl & _).
+        apply IZR_le in Hyl. lra.
       + exists (IZR yc). split; [| lra].
         right; right; right; right; left. exists yc. split; [exact Hyc | reflexivity]. }
   destruct MV as (y & LY' & LG' & Fy & Ry & h & AO & Hh).

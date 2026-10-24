@@ -29,7 +29,7 @@ without pressing A".*
 | 0.8 | GOAL 2's level data: `wmotr_floor` / `wmotr_pole` / `wmotr_cannon` are WMotR's floors, poles and cannon seats | **Defined from generated/, rows proved** (`WMotRLevel.v`). 2026-10-22: `floor_data` (d) and decoder agreement (a) are PROVED on the memory the real `load_area_terrain` builds (`TerrainRun`, 1352 surfaces); since later that day the GOAL 2 start witness carries it (`StartTerrain`: the loader runs on the `init_mem` image in the real boot order, and `goal2_start_sat` concludes `floor_data` + `static_agree`). Details: [row 0.8 in detail](#row-08-in-detail). |
 | 0.9 | GOAL 2's pos[1] writer census is complete (`YWriterCensus.v`) | **Machine-checked list, trusted edges.** Coq scans every function body of the 12 generated Mario TUs and proves: 31 direct `pos[1]` stores and 21 write-escapes (16 whole-vector arg-0 passes to `vec3f_copy`/`vec3f_set`/`vec3s_to_vec3f`, 5 `&pos[1]` passes to `f32_find_wall_collision`), 52 in all; `pos`'s address never reaches a temp, memory, a condition or a return, and no struct copy covers it. Details: [row 0.9 in detail](#row-09-in-detail). |
 | 0.10 | GOAL 2's object census: what objects can exist in WMotR and their interaction types (`BehaviorScripts.v`) | **Machine-checked over generated code, frontier trusted.** `generated/behavior_data.v` (clightgen of `data/behavior_data.c`) gives every behavior script as data; a fail-closed decoder mirrors the command layouts. Details: [row 0.10 in detail](#row-010-in-detail). |
-| 0.7 | GOAL 2's flank segments (`HeightFrame.v`: controller poll, level/warp phase, non-Mario objects) do what their specs say: y / action loads as the censuses found them, and each carries GOAL 1's `MWF_real` and Φ (since 2026-09-29 Φ here is `PhiW`, so each flank also keeps the WMotR world: object updates reload only WMotR's surfaces and never hand Mario an object to hold or ride; collision detection registers only WMotR-kind objects, with poles and cannon bases at their level positions and no star while coin #2 stands (0.3); no object sets a stomp bit on Mario's object) (the poll only when A is not pressed). The two linked segments state only narrow premises: Mario's wall / ceiling / floor surfaces are not in the block of a global the step writes (`RenderKeep.surf_apart`), and the platform Mario rides is NULL or has zero angle velocity (`PlatformKeep.plat_still`) | **ASSUMED, labeled** for the poll, level phase and objects: specs, not linked code. Two segments are **real calls with proved carries**: Mario's render call (`seg_render_spec`, 2026-10-22; GOAL-1 carry `RenderFlank.render_mem_ok`, Φ carry `RenderKeep.render_keeps_phiw` 2026-10-23) and platform displacement (`seg_platform_spec`, 2026-10-23: the real `apply_mario_platform_displacement`, platform_displacement.c linked as TU 45; GOAL-1, held-A and Φ carries `PlatformKeep.plat_mem_ok` / `plat_a_down` / `plat_keeps_phiw`). Details: [row 0.7 in detail](#row-07-in-detail). |
+| 0.7 | GOAL 2's flank segments (`HeightFrame.v`: controller poll, level/warp phase, non-Mario objects) do what their specs say: y / action loads as the censuses found them, and each carries GOAL 1's `MWF_real` and Φ (since 2026-09-29 Φ here is `PhiW`, so each flank also keeps the WMotR world: object updates reload only WMotR's surfaces and never hand Mario an object to hold or ride; collision detection registers only WMotR-kind objects, with poles at their level positions, cannon bases at home or risen at most 345 while Mario sits in them (2026-10-24), and no star while coin #2 stands (0.3); no object sets a stomp bit on Mario's object) (the poll only when A is not pressed). Since 2026-10-24 the objects spec also ends with the platform fact: gMarioPlatform is NULL or an object with zero angle velocity (`PlatformKeep.plat_still`; it is the object phase that sets gMarioPlatform). The linked render segment states one narrow premise: Mario's wall / ceiling / floor surfaces are not in the block of a global the step writes (`RenderKeep.surf_apart`) | **ASSUMED, labeled** for the poll, level phase and objects: specs, not linked code. Two segments are **real calls with proved carries**: Mario's render call (`seg_render_spec`, 2026-10-22; GOAL-1 carry `RenderFlank.render_mem_ok`, Φ carry `RenderKeep.render_keeps_phiw` 2026-10-23) and platform displacement (`seg_platform_spec`, 2026-10-23: the real `apply_mario_platform_displacement`, platform_displacement.c linked as TU 45; GOAL-1, held-A and Φ carries `PlatformKeep.plat_mem_ok` / `plat_a_down` / `plat_keeps_phiw`). Details: [row 0.7 in detail](#row-07-in-detail). |
 | 0.4 | The starting states the theorem quantifies over (`mem_ok_lp`: Mario's block valid, his action untainted, `MWF_real`) | **GOAL 1: proved satisfiable by the real boot path** (2026-10-19, `BootMWF.boot_init_ok`, used by `NoAImpliesNoFlyTwelve.noA_never_flying_from_boot`). **GOAL 2: the witness is in WMotR by real code** (2026-10-21: `area.c` linked as the 23rd TU; `gCurrLevelNum = LEVEL_WMOTR` is stored by the generated `initiate_warp` + `warp_level`, `EntryWarp.v`; 2026-10-22: one real no-A frame runs from the witness, `frame_runs`, and its `init_mario_from_save_file` cells are tethered to the real body, `ifs_tether`). Details: [row 0.4 in detail](#row-04-in-detail). |
 | 0.5 | The step relation = what one real frame does | GOAL 1: **only `execute_mario_action`**. GOAL 2's `frame_step` composes that real call with three *specified* flanks (0.7): controller poll, level phase, objects, and two real linked calls (Mario's render call; `apply_mario_platform_displacement`, since 2026-10-23). The specified flanks are not linked code. This is the largest scope gap. Details: [row 0.5 in detail](#row-05-in-detail). |
 
@@ -390,9 +390,10 @@ without pressing A".*
     `used_ok_other` or the pole clause. The assumed rows that enter ACT_IN_CANNON
     (`interact_cannon_base`, inside the open `Hseg_call_na` / `Hseg_any`) now claim this
     too; it holds in the game.
-  - IN_CANNON: `CannonRun.cannon_walk` runs the real act_in_cannon once per WMotR cannon
-    (`CannonWalk.cannoncheck837` / `cannoncheck2730`; usedObj is region RU with its oPosY a
-    known cell, so the seat folds to a constant). 31 outcomes; the shot needs A and is pruned.
+  - IN_CANNON: `CannonRun.cannon_walk` runs the real act_in_cannon once per seat of
+    `wmotr_cannon_list` (since 2026-10-24 each home seat + 5k, k = 0..69: the base rises while
+    Mario is inside; `CannonWalk.cannoncheck837` / `cannoncheck2730` via `cannon_walk_all`;
+    usedObj is region RU with its oPosY a known cell, so the seat folds to a constant). 31 outcomes; the shot needs A and is pruned.
     Each passes `CannonClass.cannon_ok` (still IN_CANNON; y kept, or the seat
     oPosY + 350 = the cannon's base height, an `AttachOK` cannon attach; gfx.y = y; the
     usedObj / cannon cells kept), `PoleKeep.fkp_ok` and `RetOk.ret_ok`.
@@ -599,12 +600,21 @@ without pressing A".*
   as `tools/goal2_ladder.py`; the 6 poles; 26 macro objects); (b) the census that of WMotR's
   behaviors only `bhvExclamationBox` (scale 2, `exclamation_box.inc.c:176`) and `bhvCannonClosed`
   load collision, from `behavior_data.c` (not generated), and that those objects stay at their spawn
-  height with no x/z tilt; (c) pole top = base + 10·bparam2 (`pole.inc.c:20-21`); (c') a cannon
+  height with no x/z tilt, except that an opening cannon lid sinks (FOUND 2026-10-24:
+  `cannon_door_act_opening` moves it down 0.5 for 30 frames, then +4 in x a frame until timer 80,
+  reloading its collision each frame), so a lid's floor range is widened 15 down
+  (`WMotRLevel.obj_drop`; the lids sit far below K, the gap check is unchanged); (c) pole top = base + 10·bparam2 (`pole.inc.c:20-21`); (c') a cannon
   seats Mario at lid y + 10: the cannon base spawns at its lid's home (`cannon_door.inc.c:9-11`,
   un-generated), its script drops it 340 before `SET_HOME` (pinned from `generated/behavior_data.v`,
   `bhvCannon_drop_then_home`), and `act_in_cannon` adds 350; and a cannon has not moved from home
-  when Mario enters it (it moves only after firing, which is A-gated). Seats 837 and −2730, both ≤ K
-  (`wmotr_cannons_proved`); (d) floor heights `find_floor` returns lie within ±1 of a static floor
+  when Mario enters it. FOUND 2026-10-24: the base does move before firing. With Mario inside,
+  `opened_cannon_act_4` (cannon.inc.c:44) adds 5 to oPosY at timers 0..68, and the base stays
+  tangible, so it sits in Mario's collided list up to 345 above home. `cannon_obj_ok` (used by
+  `used_ok` and `coll_obj_ok`) claimed exactly home and was false during the rise. Now
+  `wmotr_cannon_list` is every home seat + 5k, k = 0..69 (140 seats, `cannon_list_length`), all in
+  [−2730, 1182] ≤ K (`cannon_list_range`, `wmotr_cannons_proved`); the cannon walk runs at all 140
+  (`CannonWalk.cannoncheck837` / `cannoncheck2730`, one genv per home). Mario's y is still the
+  home seat in the game (state 0 runs only at home); (d) floor heights `find_floor` returns lie within ±1 of a static floor
   triangle's y-range (binary32 plane evaluation overshoot ≤ 0.001, `tools/goal2_gapfact_check.py`),
   or exactly on an object's flat top. (d) is a claim about the real frame and is part of
   `Hframe_is_move_chain`.
@@ -777,8 +787,34 @@ without pressing A".*
   D_8032FEC0. **FOUND:** the old spec ("y and action loads unchanged; a ridden wing-cap box never
   moves so its displacement is identity") is false of the real body for a rotating platform:
   with a nonzero angle velocity, the rotation block moves Mario about the platform's center and
-  changes pos[1]. `plat_still` is that condition made explicit; that every object Mario can ride
-  in WMotR has zero angle velocity is not proved here (open). `D_8032FEC0` joins the flank
+  changes pos[1]. `plat_still` is that condition made explicit.
+- **`plat_still` for WMotR (2026-10-24): TRUE of the game; now carried, no longer a step
+  premise.** gMarioPlatform is written only by `update_mario_platform` (the last step of
+  `update_objects`: `floor->object` of Mario's floor, or NULL) and `clear_mario_platform`. Of the
+  behaviors WMotR can spawn exactly `bhvExclamationBox` (7 boxes) and `bhvCannonClosed` (2 lids)
+  own surfaces (`WMotRLevel.collision_of`, `BehaviorScripts`). `AngleVelCensus` (spine) pins over
+  the generated code: neither script has a field command on slots 0x23..0x25
+  (`scripts_set_no_angle_vel`); their natives are `bhv_exclamation_box_loop` and
+  `bhv_cannon_closed_init` / `_loop` / `load_object_collision_model` (`plat_natives`); and it
+  lists every rawData store reachable from those natives, `cur_obj_update` and the command
+  table, by base. The only constant-slot angle-velocity store is
+  `spawn_triangle_break_particles`' (through `triangle`, the object `spawn_object` just
+  returned); the variable-slot stores are the script commands' (whose fields are the scripts'
+  own) and `allocate_object`'s zeroing loop. So the box and the lid keep the zero angle velocity
+  allocation gives them. The one way a STALE pointer could reach a rotating object: a box
+  deletes itself only after act 3 (7 frames with no collision loaded), so its surfaces are gone
+  first; a lid deactivates (`bhv_cannon_closed_init` at opening timer 80) in a frame its script
+  still loads its collision, so gMarioPlatform could hold a freed slot that a later spawn
+  (e.g. a triangle particle) reuses. That needs Mario standing on the lid while it opens: it
+  opens during the bob-omb buddy's CUTSCENE_PREPARE_CANNON (170 frames, longer than the lid's
+  142), while Mario is frozen in the buddy's dialog next to the buddy (3684, -2712, 4660), over
+  400 units from the lid's edge (mesh ±112 around (3712, -2740, 5200)). Not machine-checked;
+  stated plainly as part of the labeled objects spec. **How it is carried:**
+  `seg_rest_spec` (objects, labeled 0.7) now ends with `plat_still`; `seg_input_spec` (poll,
+  labeled) keeps it; the start premise is PROVED at the boot witness (`StartSat.plat11`:
+  gMarioPlatform's boot value is `Init_int32 0`, untouched by the entry stores), and
+  `goal2_start_sat` concludes it. `HeightFrame.fb_ok` carries it at frame boundaries.
+  No new axiom, no new row. `D_8032FEC0` joins the flank
   globals `AnimWorld.flank_gvars` (apart from Mario's object and the animation lists, proved at
   boot). No new axiom; the TU's other functions (update_mario_platform, clear_mario_platform)
   are not on this path.
@@ -1044,6 +1080,15 @@ without pressing A".*
   *specified* flanks (0.7): controller poll, level phase, objects, and two real linked calls:
   Mario's render call and `apply_mario_platform_displacement` (2026-10-23, `PlatformKeep`). The
   specified flanks are not linked code. This is the largest scope gap.
+- **Idle frames (2026-10-24, coverage).** FOUND: `frame_step` covered only frames that run
+  Mario's update, but real frames often do not: paused (`play_mode_paused`), change-level /
+  change-area transitions, and time stop when it covers Mario (`TIME_STOP_ACTIVE` also skips
+  platform displacement) update Mario zero times. A run through such a frame had no
+  step, so the capstone said nothing past it. `frame_step` is now `mario_frame_step \/
+  idle_frame_step`: an idle frame is the poll, then either nothing else or the flanks without
+  Mario's update (optionally the real platform call, then level phase, objects, render, rest),
+  ending in WMotR. The capstone is re-proved over both (`HeightFrame.frame_step_ok`); nothing
+  is assumed about idle frames beyond the same labeled flank specs.
 - **GOAL 2's run is one WMotR visit:** a frame is a step only if it ends with `gCurrLevelNum =
   LEVEL_WMOTR` (`HeightFrame.in_wmotr`; 31, pinned from the level's own self-warp node,
   `WMotRLevel.level_wmotr_self_warp`). This is forced by the real game: falling off sends Mario to
@@ -2121,3 +2166,41 @@ world, then proved against the generated Clight on the link:
   such a change keeps every `fworld` conjunct, the cells and `fresh_at`.
 - The open rows' posts are strengthened accordingly (`Hseg_call_na` now also claims `lvl_w`
   in `fworld` and `inputs_ok` in `fresh` / `fresh_at`); both hold in the game.
+
+**Scoping sweep 2026-10-24 (branch plat_still).** Each item makes the capstone cover more real
+runs or claim only true things:
+
+- **FOUND (false clause): cannon bases rise.** `cannon_obj_ok` pinned a collided / used cannon
+  base at home (seat − 350). In ACT_IN_CANNON (reachable without A) `opened_cannon_act_4`
+  raises it 5 a frame for 69 frames while it stays tangible, so `used_ok` and `wmotr_objects`
+  (in Φ) were false during the rise. Repaired: the seat list is every home seat + 5k
+  (0.8 (c')); the walk is re-run at all 140 seats. No new trust.
+- **FOUND (over-claim): cannon lids move.** Row 0.8 (b) said the surface-owning objects stay at
+  their spawn height; an opening lid sinks 15 and slides. `obj_floor_ranges` widens the lids'
+  ranges 15 down. No new trust.
+- **FOUND (coverage): frames without Mario's update had no step.** Paused, transition,
+  time-stop frames: `idle_frame_step` (0.5). The capstone covers runs through them.
+- **FOUND (phantom ∀): the level phase from any frame-world memory.** `seg_level_spec`
+  (action cell unchanged, Φ kept) was claimed from every PhiW memory, but the real
+  `play_mode_normal` rewrites Mario's action and y when `sWarpDest.type` is not NOT_WARPING
+  (`warp_area` → `init_mario_after_warp`, level_update.c:463-473, 389-390), when a demo or the
+  credits run (`gCurrDemoInput` / `gCurrCreditsEntry`), and `initiate_delayed_warp` has no
+  execution when `sSourceWarpNodeId` names a node the area lacks. Repaired: `FfWorld.warp_w`
+  joins `lvl_w` (so `fworld` and PhiW): in PLAY_MODE_NORMAL `sWarpDest.type` = NOT_WARPING;
+  `gCurrDemoInput` = `gCurrCreditsEntry` = NULL; a pending delayed warp has source node 0xF0 /
+  0xF1 / 0xF3. PROVED at the boot witness: the witness chain now ends with the real
+  `sWarpDest.type = WARP_TYPE_NOT_WARPING` of `init_mario_after_warp` (:397, `StartSat.Z18`;
+  before, the witness had the CHANGE_LEVEL left by `initiate_warp`, a state the game is never in
+  at a WMotR frame boundary); the demo / credits pointers and `sDelayedWarpOp` keep their boot
+  zeros (`L_cdi`, `L_cce`, `L_dwo`). KEPT by every proved row (`AnimKeep.lvl_w_keep` /
+  `lvl_w_keep_ne`, generalized to `FfWorld.lvl_sym`: the six blocks are apart from every
+  written region); the labeled flanks (poll, level phase, objects) and the open
+  `Hseg_na_open` rows now claim it (it holds in the game: every warp WMotR can start leaves the
+  level, and `play_mode_normal` leaves NORMAL in the same call). The instant and painting warps
+  are already dead under the carried floor-type clause.
+- **RESOLVED: `PlatformKeep.plat_still`.** TRUE of the game (0.7 details, `AngleVelCensus`);
+  proved at the boot witness, carried by the labeled objects spec, no longer a step premise.
+- **Repaired (merge break, no trust change): the `combo21` merge did not build.** The
+  `gBodyStates` pin added to `ffw` (`bbs` / `SBS` / `LBS`) was missing from the ffw destructs and
+  rebuilds in `RenderKeep` and `PlatformKeep`, which were written against the older `ffw`. These
+  now carry the pin (render and platform keep it: `FFW_BODY` = 152 lies outside their writes).

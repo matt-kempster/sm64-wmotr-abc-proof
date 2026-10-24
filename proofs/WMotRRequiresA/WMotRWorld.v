@@ -159,8 +159,12 @@ Definition pole_obj_ok (m : mem) (b : block) (o : Z) : Prop :=
     /\ Mem.load Mfloat32 m b (o + HITBOX_DOWN_OFF) = Some (Vsingle Float32.zero)
     /\ Mem.load Mfloat32 m b (o + HITBOX_H_OFF) = Some (f32z (top - base)).
 
-(* a collided cannon base sits at its lid's y - 340 (WMotRLevel §5b), so
-   act_in_cannon's seat, oPosY + 350, is in wmotr_cannon_list *)
+(* a collided cannon base sits at its lid's y - 340 (WMotRLevel §5b), or
+   up to 69 steps of 5 above it while it rises with Mario inside
+   (opened_cannon_act_4; FOUND 2026-10-24: the exact-home clause was false
+   during the rise, both for usedObj and for the tangible base in Mario's
+   collided list), so act_in_cannon's seat, oPosY + 350, is in
+   wmotr_cannon_list (all <= 1182 < K) *)
 Definition cannon_obj_ok (m : mem) (b : block) (o : Z) : Prop :=
   exists y, In y wmotr_cannon_list
     /\ Mem.load Mfloat32 m b (o + O_POSY) = Some (f32z (y - CANNON_SEAT)).

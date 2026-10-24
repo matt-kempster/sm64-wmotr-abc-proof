@@ -470,7 +470,7 @@ Proof.
   intros b o; destruct (CM.load Mint32 m0 bga (4 * i)) as [[]|]; discriminate.
 Qed.
 
-Definition x_chain (bm ab bt bar bd bsi bpcs bbs bhud bC : block) (tw : list wr) (cur : val) (ms : mem)
+Definition x_chain (bm ab bt bar bd bsi bpcs bbs bhud bC bw : block) (tw : list wr) (cur : val) (ms : mem)
   : option mem :=
   match CM.store Mint32 ms bm 140 (Vptr bsi Ptrofs.zero) with Some z1 =>
   match CM.store Mint32 z1 bm 148 (Vptr bpcs Ptrofs.zero) with Some z2 =>
@@ -492,7 +492,12 @@ Definition x_chain (bm ab bt bar bd bsi bpcs bbs bhud bC : block) (tw : list wr)
   (* gCurrCourseNum := COURSE_WMOTR, the store the real
      lvl_set_current_level(0, LEVEL_WMOTR) makes (CourseRun.course_runs; the
      level load runs it before the terrain, the cell is disjoint) *)
-  CM.store Mint16signed z16 bC 0 (Vint (Int.repr CourseRun.COURSE_WMOTR))
+  match CM.store Mint16signed z16 bC 0 (Vint (Int.repr CourseRun.COURSE_WMOTR)) with Some z17 =>
+  (* sWarpDest.type := WARP_TYPE_NOT_WARPING, init_mario_after_warp's last
+     store (level_update.c:397): warp_level ends with it, so the level is
+     entered not warping (2026-10-24, FfWorld.warp_w) *)
+  CM.store Mint8unsigned z17 bw 0 (Vint Int.zero)
+  | None => None end
   | None => None end | None => None end | None => None end | None => None end | None => None end | None => None end
   | None => None end | None => None end | inr _ => None end | None => None end | None => None end | None => None end
   | None => None end | None => None end | None => None end | None => None end | None => None end.
@@ -581,7 +586,7 @@ Definition wchk (ge : genv) (m0 : mem) : bool :=
           let (m3, bd) := Mem.alloc m2b 0 1680 in
           match s_chain bm bo bc ab bt bs bar m3 with
           | Some ms =>
-            match x_chain bm ab bt bar bd bsi bpcs bbs bhud bC (tab_writes m0 bd bga) (cur_addr m0 bga) ms with
+            match x_chain bm ab bt bar bd bsi bpcs bbs bhud bC bw (tab_writes m0 bd bga) (cur_addr m0 bga) ms with
             | Some m11 =>
               old_ok ge e6 L && frag_ok ge bp L && wff_parts WFUEL ge bp m11
               && parts_ok WFUEL ge m11 && nsurf_ok m11 bn
@@ -634,7 +639,7 @@ Qed.
 Inductive wout (ge : genv) (m0 : mem) (bm bc ab bo bw bL : block) : Prop :=
 | WOut : forall s1 s2 s3 s4 s5 bcol bn e1 e2 e3 e4 e5 e6 P0 bp P t1 L1 v1 t2 L v2
                 m1 bt m2 bs m2b bar m3 bd m3a m3b m4 m5 m6 m7 m8 m9 m10 ms
-                bsi bpcs bbs bhud bC bga z1 z2 z3 z4 z5 z6 z7 z8 z9 z10a z10 z11 z12 z13 z14 z15 z16 m11,
+                bsi bpcs bbs bhud bC bga z1 z2 z3 z4 z5 z6 z7 z8 z9 z10a z10 z11 z12 z13 z14 z15 z16 z17 m11,
     Mem.store Mint8unsigned m0 bw 0 (Vint (Int.repr 1)) = Some e1 ->
     Mem.store Mint8unsigned e1 bw 1 (Vint (Int.repr LEVEL_WMOTR)) = Some e2 ->
     Mem.store Mint8unsigned e2 bw 2 (Vint (Int.repr WARP_AREA)) = Some e3 ->
@@ -682,7 +687,8 @@ Inductive wout (ge : genv) (m0 : mem) (bm bc ab bo bw bL : block) : Prop :=
     Mem.store Mint32 z13 bt 12 (Vint Int.zero) = Some z14 ->
     Mem.store Mint32 z14 bt 16 (Vint Int.zero) = Some z15 ->
     Mem.store Mint32 z15 bt 20 (Vint Int.zero) = Some z16 ->
-    Mem.store Mint16signed z16 bC 0 (Vint (Int.repr CourseRun.COURSE_WMOTR)) = Some m11 ->
+    Mem.store Mint16signed z16 bC 0 (Vint (Int.repr CourseRun.COURSE_WMOTR)) = Some z17 ->
+    Mem.store Mint8unsigned z17 bw 0 (Vint Int.zero) = Some m11 ->
     old_ok ge e6 L = true -> frag_ok ge bp L = true -> wff_parts WFUEL ge bp m11 = true ->
     parts_ok WFUEL ge m11 = true -> nsurf_ok m11 bn = true ->
     sym ge "gSurfacesAllocated" = Some bn ->
@@ -734,7 +740,7 @@ Proof.
   destruct (Mem.alloc m2 0 60) as [m2b bar] eqn:A3.
   destruct (Mem.alloc m2b 0 1680) as [m3 bd] eqn:A4.
   destruct (s_chain bm bo bc ab bt bs bar m3) as [ms|] eqn:Sc; [ | discriminate ].
-  destruct (x_chain bm ab bt bar bd bsi bpcs bbs bhud bC _ _ ms) as [m11|] eqn:Xc; [ | discriminate ].
+  destruct (x_chain bm ab bt bar bd bsi bpcs bbs bhud bC bw _ _ ms) as [m11|] eqn:Xc; [ | discriminate ].
   unfold s_chain in Sc.
   destruct (CM.store Mfloat32 m3 bm 64 _) as [m3a|] eqn:S1a; [ | discriminate ].
   destruct (CM.store Mfloat32 m3a bo 36 _) as [m3b|] eqn:S1b; [ | discriminate ].
@@ -764,7 +770,8 @@ Proof.
   destruct (CM.store Mint32 z13 bt 12 _) as [z14|] eqn:Z14; [ | discriminate ].
   destruct (CM.store Mint32 z14 bt 16 _) as [z15|] eqn:Z15; [ | discriminate ].
   destruct (CM.store Mint32 z15 bt 20 _) as [z16|] eqn:Z16; [ | discriminate ].
-  rename Xc into Z17.
+  destruct (CM.store Mint16signed z16 bC 0 _) as [z17|] eqn:Z17; [ | discriminate ].
+  rename Xc into Z18.
   repeat match goal with H : CM.store _ _ _ _ _ = Some _ |- _ => rewrite CM.store_eq in H end.
   apply andb_prop in W as [W N9]. apply andb_prop in W as [W N8].
   apply andb_prop in W as [W N7]. apply andb_prop in W as [W N6].
@@ -777,7 +784,7 @@ Proof.
     | exact S4 | exact S5 | exact S6 | exact S7 | exact S8
     | exact Hsi | exact Hpcs | exact Hbs | exact Hhud | exact HcC | exact Hga
     | exact Z1 | exact Z2 | exact Z3 | exact Z4 | exact Z5 | exact Z6 | exact Z7 | exact Z8
-    | exact Z9 | exact Z10a | exact Z10 | exact Z11 | exact Z12 | exact Z13 | exact Z14 | exact Z15 | exact Z16 | exact Z17
+    | exact Z9 | exact Z10a | exact Z10 | exact Z11 | exact Z12 | exact Z13 | exact Z14 | exact Z15 | exact Z16 | exact Z17 | exact Z18
     | exact N1 | exact N2 | exact N3
     | exact N4 | exact N5 | exact Hbn | exact N6 | exact N7 | exact N8 | exact N9 ].
 Qed.
