@@ -267,7 +267,7 @@ Section PR.
     eval_funcall function_entry2 ge m (Internal SI.f_play_infinite_stairs_music) vargs t m' vr ->
     m' = m.
   Proof.
-    intros m vargs t m' vr (LV1 & LV2) Hev.
+    intros m vargs t m' vr (LV1 & LV2 & _) Hev.
     destruct (fc_entry ge m SI.f_play_infinite_stairs_music vargs t m' vr eq_refl Hev) as (le0 & le' & t' & out & _ & H).
     unfold SI.f_play_infinite_stairs_music in H. cbn [fn_body] in H.
     apply seq_inv in H as [(t1 & le1 & m1 & t2 & H1 & H2) | (t1 & H1 & Hn)].
@@ -1071,7 +1071,7 @@ Section PR.
       assert (Lo' : Mem.load Mint32 m bm MARIOOBJ_OFF = Some (Vptr bo oo)) by exact Lo.
       apply (AnimKeep.lvl_w_keep_ne ge m m' (fun b => (b <> bm /\ b <> bsr /\ b <> bsrc) /\ b <> bo)); [| | exact Hl].
       - intros b Hs. split; [split; [exact (AnimKeep.lvl_ne_bm ge bm m AW b Hs) |] |].
-        + destruct Hs as [Hs | Hs]; split;
+        + lvl_cases Hs; split;
             first [ exact (xsym_ne _ _ _ SR0 Hs eq_refl)
                   | exact (xsym_ne _ _ _ SRC0 Hs eq_refl) ].
         + exact (proj1 (D4 b (or_intror (or_intror Hs)))).

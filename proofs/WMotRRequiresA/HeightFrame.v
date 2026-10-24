@@ -123,44 +123,70 @@ Section HeightFrame.
      writes the controller structs only -- never Mario's y or action.
      MWF_real's controller conjunct IS the A-clear fact, so the MWF carry is
      conditional on the player not pressing A: this is where the no-A
-     premise enters the frame. *)
+     premise enters the frame.  It writes no object and not gMarioPlatform,
+     so it keeps PlatformKeep.plat_still (2026-10-24). *)
   Definition seg_input_spec (m m' : mem) : Prop :=
     Mem.load Mfloat32 m' bm POSY = Mem.load Mfloat32 m bm POSY
     /\ Mem.load Mint32 m' bm 12 = Mem.load Mint32 m bm 12
     /\ (Mem.valid_block m bm -> Mem.valid_block m' bm)
     /\ (a_pressed_real bm m' = false -> MWF m -> MWF m')
-    /\ (Phi m -> Phi m').
+    /\ (Phi m -> Phi m')
+    /\ (PlatformKeep.plat_still lp m -> PlatformKeep.plat_still lp m').
 
   (* seg_platform: ONE real eval_funcall of platform_displacement.c's
      apply_mario_platform_displacement over lp (2026-10-23, the TU linked as
      the 45th; PlatformKeep.plat_call).  Its carries of mem_ok, Phi and the
      A-held bit are PROVED from the walked body (PlatformKeep, discharging
      Hplat_ok / Hplat_phi / Hplat_ad below).  What the step states besides
-     the call (labeled trust): PlatformKeep.plat_still -- gMarioPlatform is
-     NULL or a platform with zero angle velocity (a rotating one moves
-     Mario's y, and is not ruled out here) -- and Mario's surfaces are not in
-     D_8032FEC0's block (RenderKeep.surf_apart, as for the render step). *)
+     the call (labeled trust): Mario's surfaces are not in D_8032FEC0's
+     block (RenderKeep.surf_apart, as for the render step).
+     The carries need PlatformKeep.plat_still at the call: gMarioPlatform is
+     NULL or an object with zero angle velocity (a rotating platform moves
+     Mario's y).  Since 2026-10-24 that is no longer a premise of this step.
+     The run carries it at frame boundaries (frame_step_ok): it holds at the
+     boot witness (StartSat, proved: gMarioPlatform boots NULL), the object
+     phase re-establishes it (seg_rest_spec, part of the labeled objects
+     spec), and the poll keeps it (seg_input_spec). *)
   Definition seg_platform_spec (m m' : mem) : Prop :=
-    PlatformKeep.plat_call lp m m' /\ PlatformKeep.plat_still lp m
+    PlatformKeep.plat_call lp m m'
     /\ RenderKeep.surf_apart lp bm PlatformKeep.plat_gvars m.
 
   (* seg_level: the warp / level phase.  None of its writers touches
      m->action (scout, docs/goal2-frame-boundary-scout.md).  Its y writes
      are the censused teleports (T4: expected EMPTY in WMotR), which the
-     Phi carry covers. *)
+     Phi carry covers.  The spec is claimed only from memories where the
+     warp code cannot fire (2026-10-24, FOUND phantom forall): Phi's lvl_w
+     now carries FfWorld.warp_w (in PLAY_MODE_NORMAL sWarpDest.type is
+     NOT_WARPING, so warp_area's init_mario_after_warp does not run; no
+     demo, no credits; a pending delayed warp has source node F0 / F1 /
+     F3), proved at the boot witness and kept by every proved row.  The
+     instant and painting warps need floor types WMotR does not have. *)
   Definition seg_level_spec (m m' : mem) : Prop :=
     Mem.unchanged_on (action_cell bm) m m'
     /\ carries m m'.
 
   (* seg_rest: the non-Mario phase.  The WMotR object census found three
      object-side Mario writers (pole push: pos[0]/pos[2]; 1-up: numLives;
-     bob-omb buddy: action := ACT_READING_NPC_DIALOG); none writes y. *)
+     bob-omb buddy: action := ACT_READING_NPC_DIALOG); none writes y.
+     It ends with the platform fact (2026-10-24, part of this labeled
+     objects spec): gMarioPlatform is NULL or an object with zero angle
+     velocity (PlatformKeep.plat_still).  In the game update_mario_platform
+     (the last step of update_objects) sets it to NULL or to the object of
+     Mario's floor.  WMotR's only objects with surfaces are the ! boxes and
+     the cannon lids (WMotRLevel.collision_of, TRUST 0.8).  Their scripts
+     set no angle velocity and no function they run writes one
+     (AngleVelCensus); rawData is zeroed at allocation.  The one stale-slot
+     path (a lid deactivates in the frame it last loads its surfaces) needs
+     Mario on the lid while it opens, and he is then frozen in the buddy's
+     dialog, over 400 units away (TRUST 0.7 details).  The render tail writes
+     no object field and not gMarioPlatform. *)
   Definition seg_rest_spec (m m' : mem) : Prop :=
     Mem.load Mfloat32 m' bm POSY = Mem.load Mfloat32 m bm POSY
     /\ (Mem.load Mint32 m' bm 12 = Mem.load Mint32 m bm 12
         \/ Mem.load Mint32 m' bm 12 = Some (Vint ACT_READING_NPC_DIALOG))
     /\ (Mem.valid_block m bm -> Mem.valid_block m' bm)
-    /\ carries m m'.
+    /\ carries m m'
+    /\ PlatformKeep.plat_still lp m'.
 
   (* seg_render: the render step on Mario's node (2026-10-22,
      rendering_graph_node.c linked as TU 35).  geo_process_object calls the
@@ -197,7 +223,7 @@ Section HeightFrame.
   (* ===================================================================== *)
   (* The non-Mario tail is rest (object updates, then the render walk up
      to Mario's node) ; Mario's render call ; rest (the remaining walk). *)
-  Definition frame_step (i m m' : mem) : Prop :=
+  Definition mario_frame_step (i m m' : mem) : Prop :=
     exists m1 m2 m3 m4 m5,
       seg_input_spec m i
       /\ seg_platform_spec i m1
@@ -207,6 +233,29 @@ Section HeightFrame.
       /\ seg_render_spec m4 m5
       /\ seg_rest_spec m5 m'
       /\ in_wmotr m'.
+
+  (* A frame that updates Mario ZERO times (2026-10-24): a paused frame
+     (play_mode_paused: no object update), a change-level frame, a frame in
+     time stop with TIME_STOP_MARIO_AND_DOORS (update_objects skips Mario;
+     apply_mario_platform_displacement returns early while time stop is
+     active, but may still be called).  The poll runs; then either nothing
+     else changes memory, or the flanks run (an optional platform call, the
+     level phase, the object / render tail) with no execute_mario_action.
+     Before this, a real no-A run that paused was not a frame_step run, so
+     the capstone said nothing about it. *)
+  Definition idle_frame_step (i m m' : mem) : Prop :=
+    seg_input_spec m i
+    /\ (m' = i
+        \/ exists m1 m3 m4 m5,
+             (m1 = i \/ seg_platform_spec i m1)
+             /\ seg_level_spec m1 m3
+             /\ seg_rest_spec m3 m4
+             /\ seg_render_spec m4 m5
+             /\ seg_rest_spec m5 m'
+             /\ in_wmotr m').
+
+  Definition frame_step (i m m' : mem) : Prop :=
+    mario_frame_step i m m' \/ idle_frame_step i m m'.
 
   Variable YMAX : R.
 
@@ -236,11 +285,12 @@ Section HeightFrame.
   (* the platform step carries mem_ok, the A-held bit and Phi (discharged
      in the twelve-TU section below by PlatformKeep -- NOT open). *)
   Hypothesis Hplat_ok :
-    forall m m', mem_ok m -> seg_platform_spec m m' -> mem_ok m'.
+    forall m m', mem_ok m -> PlatformKeep.plat_still lp m -> seg_platform_spec m m' -> mem_ok m'.
   Hypothesis Hplat_ad :
-    forall m m', mem_ok m -> seg_platform_spec m m' -> a_down_real bm m' = a_down_real bm m.
+    forall m m', mem_ok m -> PlatformKeep.plat_still lp m -> seg_platform_spec m m' ->
+                 a_down_real bm m' = a_down_real bm m.
   Hypothesis Hplat_phi :
-    forall m m', Phi m -> seg_platform_spec m m' -> Phi m'.
+    forall m m', Phi m -> PlatformKeep.plat_still lp m -> seg_platform_spec m m' -> Phi m'.
 
   (* OPEN (T2 + T3, THE CRUX): one real execute_mario_action frame from a
      GOAL-1-well-formed state preserves the height invariant.  The
@@ -290,7 +340,7 @@ Section HeightFrame.
   (* a seg_rest phase carries mem_ok *)
   Lemma rest_ok : forall m m', seg_rest_spec m m' -> mem_ok m -> mem_ok m'.
   Proof.
-    intros m m' (_ & Har & Hvr & Hmr & _) (Hv & Hs & Hm).
+    intros m m' (_ & Har & Hvr & (Hmr & _) & _) (Hv & Hs & Hm).
     split; [ exact (Hvr Hv) | split ].
     - exact (action_sat_load_eq_or_val not_tainted ACT_READING_NPC_DIALOG
                m m' Har dialog_action_not_tainted Hs).
@@ -298,30 +348,40 @@ Section HeightFrame.
   Qed.
 
   (* ===================================================================== *)
-  (* 3. ONE FRAME: an A-free frame preserves mem_ok AND Phi.                *)
+  (* 3. ONE FRAME: an A-free frame preserves mem_ok AND Phi (and, at the    *)
+  (*    frame boundary, the platform fact PlatformKeep.plat_still).          *)
   (* ===================================================================== *)
-  Theorem frame_step_ok :
-    forall i m m',
-      a_used_real bm i = false ->
-      mem_ok m /\ Phi m ->
-      frame_step i m m' ->
-      mem_ok m' /\ Phi m'.
+  Definition fb_ok (m : mem) : Prop :=
+    mem_ok m /\ Phi m /\ PlatformKeep.plat_still lp m.
+
+  (* the poll: an A-free poll keeps the boundary facts, and A is not held *)
+  Lemma input_ok : forall i m,
+      a_used_real bm i = false -> fb_ok m -> seg_input_spec m i ->
+      fb_ok i /\ a_down_real bm i = false.
   Proof.
-    intros i m m' HU (Hok & Hphi)
-           (m1 & m2 & m3 & m4 & m5 & Hin & Hplat & Hact & Hlvl & Hrest & Hrnd & Hrest2 & _).
+    intros i m HU (Hok & Hphi & Hst) (_ & Hai & Hvi & Hmi & Hpi & Hsti).
     destruct (a_used_real_false bm i HU) as (HA & HD).
-    (* input *)
-    destruct Hin as (_ & Hai & Hvi & Hmi & Hpi).
-    pose proof (inert_flank m i Hai Hvi (Hmi HA) Hok) as Hok0.
-    pose proof (Hpi Hphi) as Hphi0.
-    (* platform *)
-    pose proof (Hplat_ok i m1 Hok0 Hplat) as Hok1.
-    assert (HD1 : a_down_real bm m1 = false) by (rewrite (Hplat_ad i m1 Hok0 Hplat); exact HD).
-    pose proof (Hplat_phi i m1 Hphi0 Hplat) as Hphi1.
-    (* the Mario action: GOAL 1's frame + the crux *)
-    pose proof (Hseg_action_phi m1 m2 Hok1 Hphi1 HD1 Hact) as Hphi2.
-    pose proof (Hframe_action m1 m2 Hok1 Hact) as (Hv2 & Hs2 & Hm2).
-    (* level *)
+    exact (conj (conj (inert_flank m i Hai Hvi (Hmi HA) Hok) (conj (Hpi Hphi) (Hsti Hst))) HD).
+  Qed.
+
+  (* the platform call *)
+  Lemma platform_ok : forall i m1,
+      fb_ok i -> a_down_real bm i = false -> seg_platform_spec i m1 ->
+      mem_ok m1 /\ Phi m1 /\ a_down_real bm m1 = false.
+  Proof.
+    intros i m1 (Hok0 & Hphi0 & Hst0) HD Hplat.
+    split; [ exact (Hplat_ok i m1 Hok0 Hst0 Hplat) | split ].
+    - exact (Hplat_phi i m1 Hphi0 Hst0 Hplat).
+    - rewrite (Hplat_ad i m1 Hok0 Hst0 Hplat). exact HD.
+  Qed.
+
+  (* the tail: level phase, rest, Mario's render call, rest *)
+  Lemma tail_ok : forall m2 m3 m4 m5 m',
+      mem_ok m2 -> Phi m2 ->
+      seg_level_spec m2 m3 -> seg_rest_spec m3 m4 -> seg_render_spec m4 m5 ->
+      seg_rest_spec m5 m' -> fb_ok m'.
+  Proof.
+    intros m2 m3 m4 m5 m' (Hv2 & Hs2 & Hm2) Hphi2 Hlvl Hrest Hrnd Hrest2.
     destruct Hlvl as (Hact3 & Hml & Hpl).
     assert (Hv3 : Mem.valid_block m3 bm)
       by (eapply Mem.valid_block_unchanged_on; eauto).
@@ -331,15 +391,43 @@ Section HeightFrame.
     assert (Hok3 : mem_ok m3) by exact (conj Hv3 (conj Hs3 (Hml Hm2))).
     (* rest, Mario's render call, rest *)
     pose proof (rest_ok m3 m4 Hrest Hok3) as Hok4.
-    pose proof (proj2 (proj2 (proj2 (proj2 Hrest))) Hphi3) as Hphi4.
+    pose proof (proj2 (proj1 (proj2 (proj2 (proj2 Hrest)))) Hphi3) as Hphi4.
     assert (Hok5 : mem_ok m5 /\ Phi m5)
       by (destruct Hrnd as [-> | (Hrc & Hsa)];
           [ exact (conj Hok4 Hphi4)
           | exact (conj (Hrender_ok m4 m5 Hok4 Hrc) (Hrender_phi m4 m5 Hphi4 Hrc Hsa)) ]).
     destruct Hok5 as (Hok5 & Hphi5).
-    split.
+    split; [ | split ].
     - exact (rest_ok m5 m' Hrest2 Hok5).
-    - exact (proj2 (proj2 (proj2 (proj2 Hrest2))) Hphi5).
+    - exact (proj2 (proj1 (proj2 (proj2 (proj2 Hrest2)))) Hphi5).
+    - exact (proj2 (proj2 (proj2 (proj2 Hrest2)))).
+  Qed.
+
+  Theorem frame_step_ok :
+    forall i m m',
+      a_used_real bm i = false ->
+      fb_ok m ->
+      frame_step i m m' ->
+      fb_ok m'.
+  Proof.
+    intros i m m' HU Hfb [ (m1 & m2 & m3 & m4 & m5 & Hin & Hplat & Hact & Hlvl & Hrest & Hrnd & Hrest2 & _)
+                         | (Hin & [ -> | (m1 & m3 & m4 & m5 & Hpl & Hlvl & Hrest & Hrnd & Hrest2 & _) ]) ].
+    - (* a frame with Mario's update *)
+      destruct (input_ok i m HU Hfb Hin) as (Hfi & HD).
+      destruct (platform_ok i m1 Hfi HD Hplat) as (Hok1 & Hphi1 & HD1).
+      (* the Mario action: GOAL 1's frame + the crux *)
+      pose proof (Hseg_action_phi m1 m2 Hok1 Hphi1 HD1 Hact) as Hphi2.
+      pose proof (Hframe_action m1 m2 Hok1 Hact) as Hok2.
+      exact (tail_ok m2 m3 m4 m5 m' Hok2 Hphi2 Hlvl Hrest Hrnd Hrest2).
+    - (* an idle frame: only the poll *)
+      exact (proj1 (input_ok i m HU Hfb Hin)).
+    - (* an idle frame: the flanks, no Mario update *)
+      destruct (input_ok i m HU Hfb Hin) as (Hfi & HD).
+      assert (H1 : mem_ok m1 /\ Phi m1).
+      { destruct Hpl as [ <- | Hplat ].
+        - exact (conj (proj1 Hfi) (proj1 (proj2 Hfi))).
+        - destruct (platform_ok i m1 Hfi HD Hplat) as (A & B & _). exact (conj A B). }
+      exact (tail_ok m1 m3 m4 m5 m' (proj1 H1) (proj2 H1) Hlvl Hrest Hrnd Hrest2).
   Qed.
 
   (* ===================================================================== *)
@@ -347,16 +435,15 @@ Section HeightFrame.
   (* ===================================================================== *)
   Theorem noA_run_height_bound :
     forall (init : mem) (is : list mem) (m : mem),
-      mem_ok init -> Phi init ->
+      mem_ok init -> Phi init -> PlatformKeep.plat_still lp init ->
       Forall (fun i => a_used_real bm i = false) is ->
       reachable mem mem frame_step init is m ->
       mem_ok m /\ y_le m.
   Proof.
-    intros init is m Hok Hphi HA Hr.
-    destruct (reachable_preserves_Phi mem mem (a_used_real bm) frame_step
-                (fun s => mem_ok s /\ Phi s)
+    intros init is m Hok Hphi Hst HA Hr.
+    destruct (reachable_preserves_Phi mem mem (a_used_real bm) frame_step fb_ok
                 (fun i s s' Ha Hs Hst => frame_step_ok i s s' Ha Hs Hst)
-                init is m Hr (conj Hok Hphi) HA) as (Hok' & Hphi').
+                init is m Hr (conj Hok (conj Hphi Hst)) HA) as (Hok' & Hphi' & _).
     exact (conj Hok' (Hphi_y m Hphi')).
   Qed.
 
@@ -879,23 +966,25 @@ Section HeightLinked12.
      (PlatformKeep): its walked footprint is D_8032FEC0, Mario's pos[0] /
      pos[2] and pos[1] written back unchanged *)
   Lemma plat_ok_linked12 :
-    forall m m', mem_ok_lp bm MWF m -> seg_platform_spec lp bm m m' -> mem_ok_lp bm MWF m'.
+    forall m m', mem_ok_lp bm MWF m -> PlatformKeep.plat_still lp m ->
+                 seg_platform_spec lp bm m m' -> mem_ok_lp bm MWF m'.
   Proof.
-    intros m m' Hok (Hc & Hst & _).
+    intros m m' Hok Hst (Hc & _).
     exact (PlatformKeep.plat_mem_ok lp H12 bm Hbm_sym bc oc0 SafeB HSafeB_syms Hbc_sym Hoc0 m m' Hok Hc Hst).
   Qed.
 
   Lemma plat_ad_linked12 :
-    forall m m', mem_ok_lp bm MWF m -> seg_platform_spec lp bm m m' -> a_down_real bm m' = a_down_real bm m.
+    forall m m', mem_ok_lp bm MWF m -> PlatformKeep.plat_still lp m ->
+                 seg_platform_spec lp bm m m' -> a_down_real bm m' = a_down_real bm m.
   Proof.
-    intros m m' Hok (Hc & Hst & _).
+    intros m m' Hok Hst (Hc & _).
     exact (PlatformKeep.plat_a_down lp H12 bm Hbm_sym bc oc0 SafeB Hbc_sym Hoc0 m m' Hok Hc Hst).
   Qed.
 
   Lemma plat_phi_linked12 :
-    forall m m', Phi m -> seg_platform_spec lp bm m m' -> Phi m'.
+    forall m m', Phi m -> PlatformKeep.plat_still lp m -> seg_platform_spec lp bm m m' -> Phi m'.
   Proof.
-    intros m m' Hphi (Hc & Hst & Hsa).
+    intros m m' Hphi Hst (Hc & Hsa).
     exact (PlatformKeep.plat_keeps_phiw lp H12 bm Hbm_sym m m' Hphi Hc Hst Hsa).
   Qed.
 
@@ -903,21 +992,23 @@ Section HeightLinked12.
   (* THE GOAL-2 CAPSTONE (height form): over any link of the twelve TUs,  *)
   (* a run of real game frames with A neither pressed nor held after     *)
   (* every poll,                                                          *)
-  (* started GOAL-1-well-formed and in the height invariant Phi, keeps    *)
-  (* Mario's height <= PHI_YMAX = 2796 (coin #2 needs >= 2980).           *)
+  (* started GOAL-1-well-formed, in the height invariant Phi and with      *)
+  (* gMarioPlatform NULL or still (StartSat: all three hold at the boot    *)
+  (* witness), keeps Mario's height <= PHI_YMAX = 2796 (coin #2 needs     *)
+  (* >= 2980).                                                            *)
   (* ==================================================================== *)
   Theorem wmotr_noA_height_bound_linked12 :
     forall (init : mem) (is : list mem) (m : mem),
-      mem_ok_lp bm MWF init -> Phi init ->
+      mem_ok_lp bm MWF init -> Phi init -> PlatformKeep.plat_still lp init ->
       Forall (fun i => a_used_real bm i = false) is ->
       reachable mem mem (frame_step lp bm MWF Phi) init is m ->
       y_le bm PHI_YMAX m.
   Proof.
-    intros init is m Hok Hphi HA Hr.
+    intros init is m Hok Hphi Hst HA Hr.
     exact (proj2 (noA_run_height_bound lp bm MWF Phi PHI_YMAX
                     frame_action_linked12 render_ok_linked12 render_phi_linked12
                     plat_ok_linked12 plat_ad_linked12 plat_phi_linked12 seg_action_phi Hphi_y
-                    init is m Hok Hphi HA Hr)).
+                    init is m Hok Hphi Hst HA Hr)).
   Qed.
 
 End HeightLinked12.

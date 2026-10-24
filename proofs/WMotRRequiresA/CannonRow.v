@@ -675,10 +675,7 @@ Variable MWF : mem -> Prop.
 
 Lemma cannon_cf : forall yc, In yc wmotr_cannon_list -> cfinal lp ACT_IN_CANNON_Z yc AUT.f_act_in_cannon.
 Proof.
-  intros yc Hy. pose proof Hy as Hy'. rewrite cannon_list_value in Hy'.
-  destruct Hy' as [<- | [<- | []]].
-  - exact (cannon_cfinal lp H12 Hdma _ _ _ cannoncheck837 Hy).
-  - exact (cannon_cfinal lp H12 Hdma _ _ _ cannoncheck2730 Hy).
+  intros yc Hy. exact (cannon_cfinal lp H12 Hdma _ _ _ (cannoncheck_all yc Hy) Hy).
 Qed.
 
 (* LedgeRow's rest, less IN_CANNON: the three pole cases CLIMBING_POLE,
