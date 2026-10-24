@@ -410,11 +410,9 @@ Section HeightLinked12.
      NoAImpliesNoFlyTwelve from Hscm_body_real (2026-10-22): the call
      resolves to the real camera.c body and cs_gate's arg0 gate is wgate's
      T_scm arm.  No longer a row here.
-     set_camera_mode reached from mario.c is a pinned rest case owing this
-     gated residual over the real camera.c body (LABELED OPEN PREMISE:
-     camera, deferred; GOAL 1's Hscm_body_real, docs/TRUST.md 4.1). *)
-  Hypothesis Hscm_body_real :
-    RestSurface.body_pres_w lp MWF bm SafeB camera.f_set_camera_mode.
+     set_camera_mode reached from mario.c is a pinned rest case; its gated
+     body row Hscm_body_real is PROVED in NoAImpliesNoFlyTwelve from the
+     real camera.c body (CameraModeBody, 2026-10-23).  No longer a row. *)
   (* THE ONE OPEN AUDIO PREMISE of GOAL 1's surface (labeled, TRUST 4.1; the
      audio link, 2026-10-23): load_sequence (audio/load.c, not linked) keeps
      the carried facts.  GOAL 1's audio rows (Hpres_sta_ext, Hsss, the audio
@@ -694,7 +692,7 @@ Section HeightLinked12.
     /\ chase_safe_stmt bm SafeB MWF /\ store_safe_stmt lp bm SafeB MWF.
   Proof.
     exact (frame_call_ok_linked12 lp H12 bm bc oc0 SafeB HSafeB_syms Hbm_sym Hbc_sym Hoc0
-             Hsqrtf Hscm_body_real Hls Hdma_floor).
+             Hsqrtf Hls Hdma_floor).
   Qed.
 
   Lemma air_leaves :
@@ -703,7 +701,7 @@ Section HeightLinked12.
       body_pres lp (NoA_real bm) MWF bm f.
   Proof.
     exact (air_leaves_linked12 lp H12 bm bc oc0 SafeB HSafeB_syms Hbm_sym Hbc_sym Hoc0
-             Hsqrtf Hscm_body_real Hls Hdma_floor).
+             Hsqrtf Hls Hdma_floor).
   Qed.
 
   Lemma auto_leaves :
@@ -712,7 +710,7 @@ Section HeightLinked12.
       body_pres lp (NoA_real bm) MWF bm f.
   Proof.
     exact (auto_leaves_linked12 lp H12 bm bc oc0 SafeB HSafeB_syms Hbm_sym Hbc_sym Hoc0
-             Hsqrtf Hscm_body_real Hls Hdma_floor).
+             Hsqrtf Hls Hdma_floor).
   Qed.
 
   (* the automatic dispatcher's row, from AutoSplit *)
