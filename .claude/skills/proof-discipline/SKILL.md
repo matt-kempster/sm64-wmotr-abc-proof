@@ -248,7 +248,14 @@ all in `Unwired/`, and the theorem moved nowhere. See
     so INPUT_SQUISHED can join the carried input mask when the dispatcher is walked.
   - The **automatic dispatcher** (`mario_execute_automatic_action`) is SPLIT (2026-10-21,
     `AutoSplit.aut_seg`, TRUST (i)-(j)). `Hseg_call_na` is now `seg_call_rows_naFA`, which
-    excludes both dispatchers. The prologue call is in `Hair_pro`. The
+    excludes both dispatchers. Since 2026-10-23 (`NaSplit`, TRUST 0.8(q)) it is a LEMMA over
+    `HeightFrame.Hseg_na_open : na_open_rows`, which has 12 named per-call rows. Three calls
+    are proved: submerged-cam (dead outside group 0xC0), `update_mario_health` (a walk inside
+    `ProRows`' hole), and the submerged dispatcher (vacuous under `grp_ok`). Dispatcher pres
+    now carry `FrameSplit.grp_ok`: the action's group equals the case label, proved at the
+    real switch. NEXT: shrink `na_open` one call at a time. First repair the phantom ∀ on
+    `m->marioBodyState` (reset_bodystate, info_for_cam and hitbox_and_cap store through it;
+    §7). squish needs an object-side hole for `gfx.scale`. The prologue call is in `Hair_pro`. The
     `quicksandDepth = 0` store is proved (the `qsd_*` lemmas). What stays assumed is the
     12 handler calls, `HeightFrame.Hauto_case : aut_case_rows` (27 → 28 hypotheses).
     Shrink it per case as walks land, as `air_case_rest*` did. Its audit on 2026-10-21
