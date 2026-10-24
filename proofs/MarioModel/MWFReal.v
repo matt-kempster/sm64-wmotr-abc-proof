@@ -589,14 +589,15 @@ Section MWFReal.
     \/ (120 <= ofs /\ ofs + sz <= 140)
     \/ (144 <= ofs /\ ofs + sz <= 164).
 
-  (* the core: the six pinned rows transfer; the list block's R12/R13 are
-     re-established by the caller (load_patchable_table STORES into it) *)
-  Lemma MWF_real_transfer_core : forall m m',
+  (* the core, general form (2026-10-23, the controller poll): the controller
+     block's R3 is re-established by the caller (read_controller_inputs
+     STORES buttonPressed); the other pinned rows transfer *)
+  Lemma MWF_real_transfer_core_gen : forall m m',
       (forall b, Mem.valid_block m b -> Mem.valid_block m' b) ->
       input_a_clear m' bm ->
       (forall ch b ofs v,
           (b = bm /\ bm_row_cell ofs (size_chunk ch))
-          \/ b = bc
+          \/ False
           \/ Genv.find_symbol (lp_ge lp) mario._gMarioState = Some b
           \/ Genv.find_symbol (lp_ge lp) interaction._gGlobalTimer = Some b
           \/ Genv.find_symbol (lp_ge lp) interaction._sInteractionHandlers
@@ -604,6 +605,10 @@ Section MWFReal.
           \/ (exists gid, mem_id gid knockback_table_ids = true
                 /\ Genv.find_symbol (lp_ge lp) gid = Some b) ->
           Mem.load ch m' b ofs = Some v -> Mem.load ch m b ofs = Some v) ->
+      (forall v,
+          Mem.load Mint16unsigned m' bc
+            (Ptrofs.unsigned (Ptrofs.add oc0 (Ptrofs.repr 18))) = Some (Vint v) ->
+          Int.and v (Int.repr 32768) = Int.zero) ->
       (forall b ofs b' o', SafeB b ->
           Mem.loadv Mptr m' (Vptr b ofs) = Some (Vptr b' o') -> SafeB b') ->
       (forall ab (ofs : Z) b' o',
@@ -615,7 +620,7 @@ Section MWFReal.
           Mem.load Mptr m' bm 136 = Some (Vptr mb mo) -> bt <> mb) ->
       MWF_real m -> MWF_real m'.
   Proof.
-    intros m m' Hval Hinp' Htr Hsafe' R12' R13'
+    intros m m' Hval Hinp' Htr R3' Hsafe' R12' R13'
            ((Vbm & Vbc & Vgms & Vsafe & Vgt & Vtb & Vkt & Hnb)
             & _ & R2 & R3 & R4 & R5 & R6 & R7 & R8 & R9 & R10
             & R11 & R12 & R13 & R14).
@@ -639,9 +644,8 @@ Section MWFReal.
       apply (Htr Mptr bm 156 (Vptr b' o')); [ | exact Hld ].
       left. split; [ reflexivity | ]. right. right.
       change (size_chunk Mptr) with 4. lia.
-    - (* R3 *)
-      intros v Hld. apply R3.
-      apply (Htr _ bc _ (Vint v)); [ right; left; reflexivity | exact Hld ].
+    - (* R3: re-established by the caller *)
+      exact R3'.
     - (* R4 *)
       intros av Hld. apply R4.
       apply (Htr Mint32 bm 12 av); [ | exact Hld ].
@@ -768,6 +772,42 @@ Section MWFReal.
       exact (conj A1 (conj A2 (conj A3 (Hval _ A4)))).
   Qed.
 
+  (* the core: the six pinned rows transfer; the list block's R12/R13 are
+     re-established by the caller (load_patchable_table STORES into it) *)
+  Lemma MWF_real_transfer_core : forall m m',
+      (forall b, Mem.valid_block m b -> Mem.valid_block m' b) ->
+      input_a_clear m' bm ->
+      (forall ch b ofs v,
+          (b = bm /\ bm_row_cell ofs (size_chunk ch))
+          \/ b = bc
+          \/ Genv.find_symbol (lp_ge lp) mario._gMarioState = Some b
+          \/ Genv.find_symbol (lp_ge lp) interaction._gGlobalTimer = Some b
+          \/ Genv.find_symbol (lp_ge lp) interaction._sInteractionHandlers
+             = Some b
+          \/ (exists gid, mem_id gid knockback_table_ids = true
+                /\ Genv.find_symbol (lp_ge lp) gid = Some b) ->
+          Mem.load ch m' b ofs = Some v -> Mem.load ch m b ofs = Some v) ->
+      (forall b ofs b' o', SafeB b ->
+          Mem.loadv Mptr m' (Vptr b ofs) = Some (Vptr b' o') -> SafeB b') ->
+      (forall ab (ofs : Z) b' o',
+          Genv.find_symbol (lp_ge lp) mario._gMarioAnimsBuf = Some ab ->
+          Mem.load Mptr m' ab ofs = Some (Vptr b' o') -> SafeB b') ->
+      (forall ab bt ot mb mo,
+          Genv.find_symbol (lp_ge lp) mario._gMarioAnimsBuf = Some ab ->
+          Mem.load Mptr m' ab 8 = Some (Vptr bt ot) ->
+          Mem.load Mptr m' bm 136 = Some (Vptr mb mo) -> bt <> mb) ->
+      MWF_real m -> MWF_real m'.
+  Proof.
+    intros m m' Hval Hinp' Htr Hsafe' R12' R13' M.
+    pose proof M as (_ & _ & _ & R3 & _).
+    apply (MWF_real_transfer_core_gen m m' Hval Hinp');
+      [ | | exact Hsafe' | exact R12' | exact R13' | exact M ].
+    - intros ch b ofs v Hrow. apply Htr.
+      destruct Hrow as [ H | [ [] | H ] ]; [ left; exact H | right; right; exact H ].
+    - intros v Hld. apply R3.
+      apply (Htr _ bc _ (Vint v)); [ right; left; reflexivity | exact Hld ].
+  Qed.
+
   Lemma MWF_real_transfer : forall m m',
       (forall b, Mem.valid_block m b -> Mem.valid_block m' b) ->
       input_a_clear m' bm ->
@@ -802,6 +842,108 @@ Section MWFReal.
       + apply (Htr Mptr bm 136 (Vptr mb mo)); [ | exact H2 ].
         left. split; [ reflexivity | ]. right. left.
         change (size_chunk Mptr) with 4. lia.
+  Qed.
+
+  (* MWF_real_transfer with the controller block written (2026-10-23,
+     PollFlank): every row but R3 transfers; the caller supplies R3 *)
+  Lemma MWF_real_transfer_r3 : forall m m',
+      (forall b, Mem.valid_block m b -> Mem.valid_block m' b) ->
+      input_a_clear m' bm ->
+      (forall ch b ofs v,
+          (b = bm /\ bm_row_cell ofs (size_chunk ch))
+          \/ Genv.find_symbol (lp_ge lp) mario._gMarioState = Some b
+          \/ Genv.find_symbol (lp_ge lp) interaction._gGlobalTimer = Some b
+          \/ Genv.find_symbol (lp_ge lp) interaction._sInteractionHandlers
+             = Some b
+          \/ (exists gid, mem_id gid knockback_table_ids = true
+                /\ Genv.find_symbol (lp_ge lp) gid = Some b)
+          \/ Genv.find_symbol (lp_ge lp) mario._gMarioAnimsBuf = Some b ->
+          Mem.load ch m' b ofs = Some v -> Mem.load ch m b ofs = Some v) ->
+      (forall v,
+          Mem.load Mint16unsigned m' bc
+            (Ptrofs.unsigned (Ptrofs.add oc0 (Ptrofs.repr 18))) = Some (Vint v) ->
+          Int.and v (Int.repr 32768) = Int.zero) ->
+      (forall b ofs b' o', SafeB b ->
+          Mem.loadv Mptr m' (Vptr b ofs) = Some (Vptr b' o') -> SafeB b') ->
+      MWF_real m -> MWF_real m'.
+  Proof.
+    intros m m' Hval Hinp' Htr R3' Hsafe' M.
+    pose proof M as (_ & _ & _ & _ & _ & _ & _ & _ & _ & _ & _ & _ & R12 & R13 & _).
+    apply (MWF_real_transfer_core_gen m m' Hval Hinp'); [ | exact R3' | exact Hsafe' | | | exact M ].
+    - intros ch b ofs v Hrow. apply Htr.
+      destruct Hrow as [ H | [ [] | [ H | [ H | [ H | H ] ] ] ] ];
+        [ left | right; left | do 2 right; left | do 3 right; left | do 4 right; left ]; exact H.
+    - intros ab ofs b' o' Hfs Hld. apply (R12 ab ofs b' o' Hfs).
+      apply (Htr Mptr ab ofs (Vptr b' o')); [ | exact Hld ].
+      do 5 right. exact Hfs.
+    - intros ab bt ot mb mo Hfs H1 H2. apply (R13 ab bt ot mb mo Hfs).
+      + apply (Htr Mptr ab 8 (Vptr bt ot)); [ | exact H1 ].
+        do 5 right. exact Hfs.
+      + apply (Htr Mptr bm 136 (Vptr mb mo)); [ | exact H2 ].
+        left. split; [ reflexivity | ]. right. left.
+        change (size_chunk Mptr) with 4. lia.
+  Qed.
+
+  (* a change confined to the controller block (2026-10-23, PollFlank: the
+     real read_controller_inputs stores into gControllers): every old block
+     but bc reads the same, and the caller re-establishes R3 *)
+  Lemma mwf_real_bc_frame : forall (Ch : block -> Prop) m m',
+      MWF_real m ->
+      (forall b, Ch b -> b <> bm /\ ~ SafeB b
+         /\ ~ Genv.find_symbol (lp_ge lp) mario._gMarioState = Some b
+         /\ ~ Genv.find_symbol (lp_ge lp) interaction._gGlobalTimer = Some b
+         /\ ~ Genv.find_symbol (lp_ge lp) interaction._sInteractionHandlers = Some b
+         /\ ~ (exists gid, mem_id gid knockback_table_ids = true
+                          /\ Genv.find_symbol (lp_ge lp) gid = Some b)
+         /\ ~ Genv.find_symbol (lp_ge lp) mario._gMarioAnimsBuf = Some b) ->
+      (forall b, Mem.valid_block m b -> Mem.valid_block m' b) ->
+      (forall ch b z, b <> bc -> ~ Ch b -> Mem.valid_block m b ->
+          Mem.load ch m' b z = Mem.load ch m b z) ->
+      (forall v,
+          Mem.load Mint16unsigned m' bc
+            (Ptrofs.unsigned (Ptrofs.add oc0 (Ptrofs.repr 18))) = Some (Vint v) ->
+          Int.and v (Int.repr 32768) = Int.zero) ->
+      MWF_real m'.
+  Proof.
+    intros Ch m m' M HCh Hval HL R3'.
+    pose proof M as ((Vbm & Vbc & Vgms & Vsafe & Vgt & Vtb & Vkt & _) & R1 & _ & _ & _ & _ & _ & R7 & _).
+    assert (NCbm : ~ Ch bm) by (intros C; exact (proj1 (HCh _ C) eq_refl)).
+    apply (MWF_real_transfer_r3 m m' Hval); [ | | exact R3' | | exact M ].
+    - intros v Hld. apply R1. rewrite <- Hld. symmetry.
+      exact (HL _ _ _ (not_eq_sym Hbc_bm) NCbm Vbm).
+    - intros ch b ofs v Hrow Hld. rewrite <- Hld. symmetry.
+      destruct Hrow as [ [Eb _] | [ Hfs2 | [ Hfs2 | [ Hfs2 | [ (gid & Hg & Hfs2) | Hab ] ] ] ] ].
+      + subst b. exact (HL _ _ _ (not_eq_sym Hbc_bm) NCbm Vbm).
+      + apply HL; [ exact (proj1 (proj2 (Hgms_blk _ Hfs2))) | | exact (Vgms _ Hfs2) ].
+        intros C. exact (proj1 (proj2 (proj2 (HCh _ C))) Hfs2).
+      + apply HL; [ exact (proj1 (proj2 (Hgtimer_blk _ Hfs2))) | | exact (Vgt _ Hfs2) ].
+        intros C. exact (proj1 (proj2 (proj2 (proj2 (HCh _ C)))) Hfs2).
+      + apply HL; [ exact (proj1 (proj2 (Htable_blk _ Hfs2))) | | exact (Vtb _ Hfs2) ].
+        intros C. exact (proj1 (proj2 (proj2 (proj2 (proj2 (HCh _ C))))) Hfs2).
+      + apply HL; [ exact (proj1 (proj2 (Hktab_blk _ _ Hg Hfs2))) | | exact (Vkt _ _ Hg Hfs2) ].
+        intros C. apply (proj1 (proj2 (proj2 (proj2 (proj2 (proj2 (HCh _ C))))))).
+        exists gid. split; [ exact Hg | exact Hfs2 ].
+      + destruct (mwf_real_anim_blk m b M Hab) as (_ & Nc & _ & Va).
+        apply HL; [ exact Nc | | exact Va ].
+        intros C. exact (proj2 (proj2 (proj2 (proj2 (proj2 (proj2 (HCh _ C)))))) Hab).
+    - intros b ofs b' o' Hs Hld. apply (R7 b ofs b' o' Hs).
+      cbn in Hld |- *. rewrite <- Hld. symmetry.
+      apply HL; [ intro E; subst b; exact (HSafeB_not_bc Hs)
+                | intros C; exact (proj1 (proj2 (HCh _ C)) Hs) | exact (Vsafe _ Hs) ].
+  Qed.
+
+  Lemma mwf_real_bc_store : forall mm ch (d : Z) vv mm',
+      MWF_real mm -> Mem.store ch mm bc d vv = Some mm' ->
+      (forall v,
+          Mem.load Mint16unsigned mm' bc
+            (Ptrofs.unsigned (Ptrofs.add oc0 (Ptrofs.repr 18))) = Some (Vint v) ->
+          Int.and v (Int.repr 32768) = Int.zero) ->
+      MWF_real mm'.
+  Proof.
+    intros mm ch d vv mm' M Hst R3'.
+    apply (mwf_real_bc_frame (fun _ => False) mm mm' M); [ intros b [] | | | exact R3' ].
+    - intros b Hv. eapply Mem.store_valid_block_1; eauto.
+    - intros ch1 b z Hne _ _. eapply Mem.load_store_other; [ exact Hst | left; exact Hne ].
   Qed.
 
   (* ---------------- the anim-list currentAddr store ----------------

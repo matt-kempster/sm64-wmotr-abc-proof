@@ -39,7 +39,7 @@ From compcert Require Import Coqlib Maps AST Integers Values Events Memory
   Globalenvs Ctypes Cop Clightdefs Clight ClightBigstep Linking Errors.
 From SM64.Generated Require surface_collision math_util memory save_file area
   libultra_osSiCreateAccessQueue libultra_osContInit libultra_osEepromWrite
-  audio_external print ingame_menu behavior_data camera.
+  audio_external print ingame_menu behavior_data game_init camera.
 From SM64.Generated Require mario level_update mario_step mario_actions_submerged
   mario_actions_cutscene behavior_actions interaction graph_node spawn_object
   object_helpers.
@@ -985,7 +985,18 @@ Definition stored_globals : list ident :=
      D_8032CE74/78 and sSoundRequests case again.  Only the dialog renderer
      reads it back (as an integer).  The claim, via SpawnInit.non_safeb_syms,
      is that nothing in the object graph points at it. *)
-  ingame_menu._gDialogVariable :: nil.
+  ingame_menu._gDialogVariable ::
+  (* the controller poll (2026-10-23, PollFlank; libultra osContStartReadData.c
+     linked): osContStartReadData fills the PIF RAM image __osContPifRam
+     (__osPackReadData's request, the 0xFF fill, then the SI read: the OS
+     floor's __osSiRawStartDma), and osContGetReadData / run_demo_inputs
+     store pad bytes into gControllerPads.  Only libultra, the SI floor and
+     read_controller_inputs touch them; the only pointer at a pad is
+     gControllers[i].controllerData (gControllers is not SafeB), and nothing
+     points into the PIF image.  As stored globals MWF does not constrain
+     their contents; what the poll needs of the pads is carried by the frame
+     world (FfWorld.ctl_w). *)
+  game_init._gControllerPads :: libultra_osContInit.___osContPifRam :: nil.
 
 (* 2026-10-19: the five cutscene OBJECT-POINTER globals.  They left
    stored_globals: MWF does not constrain a stored global's contents, so the

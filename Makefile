@@ -39,7 +39,8 @@ ULTRA   := $(SM64)/lib/src
 # EEPROM timer / queue / message buffer; osInitialize.c: osClockRate).
 ULTRA_GENERATED := generated/libultra_osEepromLongWrite.v generated/libultra_osEepromWrite.v \
   generated/libultra_osSiCreateAccessQueue.v generated/libultra_osCreateMesgQueue.v \
-  generated/libultra_osContInit.v generated/libultra_osInitialize.v
+  generated/libultra_osContInit.v generated/libultra_osInitialize.v \
+  generated/libultra_osContStartReadData.v
 
 GENERATED := generated/toy.v generated/shadow.v \
   generated/mario.v generated/mario_actions_airborne.v \
@@ -375,4 +376,12 @@ generated/libultra_osContInit.v: $(ULTRA)/osContInit.c pipeline/clightgen.sh
 	$(CLIGHTGEN) $< $@ $(ULTRA_CG)
 
 generated/libultra_osInitialize.v: $(ULTRA)/osInitialize.c pipeline/clightgen.sh
+	$(CLIGHTGEN) $< $@ $(ULTRA_CG)
+
+# The controller poll (2026-10-23, TRUST 0.7 / 3.5): osContStartReadData,
+# osContGetReadData and __osPackReadData, and the real storage of the PIF RAM
+# image __osContPifRam that the SI DMA fills.  game_loop calls
+# osContStartReadData(&gSIEventMesgQueue) and read_controller_inputs (linked,
+# game_init.c) calls osContGetReadData(&gControllerPads[0]).
+generated/libultra_osContStartReadData.v: $(ULTRA)/osContStartReadData.c pipeline/clightgen.sh
 	$(CLIGHTGEN) $< $@ $(ULTRA_CG)
