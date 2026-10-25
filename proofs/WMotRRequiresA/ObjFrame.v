@@ -24,9 +24,9 @@
 (*    stops at, each named:                                               *)
 (*      Hlsc (TRUST 4.1, ls_contract)   load_sequence (audio): GOAL 1's   *)
 (*                                      row + its footprint (LsContract)  *)
-(*      Hnpc_fr                         set_mario_npc_dialog's frame: its *)
-(*                                      Mario writes (smact_pres) must lie *)
-(*                                      in MC                             *)
+(*      HMCn                            MC holds NpcFrame.npc_cells: the  *)
+(*                                      Mario cells set_mario_npc_dialog  *)
+(*                                      writes (its frame: NpcFrame)      *)
 (*      Hopen2                          cur_obj_call_action_function      *)
 (*                                      (writable action table)           *)
 (* ====================================================================== *)
@@ -41,7 +41,7 @@ From SM64.Proofs Require Import SymbolicLinking ActionValueFrame Taint
   UcKit FpuFloor.
 From SM64.Proofs Require MtxfBody AudioBodies ObjExtBodies FloorsSurface
   NpcDialogBody UpdateCameraBody SaveFileBody SpawnBodies CameraModeBody.
-From SM64.Proofs.WMotRRequiresA Require Import ObjTable ObjKit ObjWalk BodyFrame LsContract.
+From SM64.Proofs.WMotRRequiresA Require Import ObjTable ObjKit ObjWalk BodyFrame LsContract NpcFrame.
 From SM64.Proofs Require EngineV2Consumer.
 From SM64.Proofs.WMotRRequiresA Require BehaviorScripts.
 
@@ -554,14 +554,10 @@ Section FRAME.
     (* the Mario cells the frame allows: at least the walked bodies' *)
     Variable MC : Z -> Prop.
     Hypothesis HMC : forall ofs, in_mcells mcells ofs -> MC ofs.
-    (* OPEN: the frame of set_mario_npc_dialog, proved only for mem_ok (its
-       Mario writes, through set_mario_action, are GOAL 1's smact_pres row:
-       MC must hold them) *)
-    Hypothesis Hnpc_fr : forall b fd,
-        Genv.find_symbol ge mario_actions_cutscene._set_mario_npc_dialog = Some b ->
-        Genv.find_funct ge (Vptr b Ptrofs.zero) = Some fd ->
-        forall m vargs t m' vres, eval_funcall function_entry2 ge m fd vargs t m' vres ->
-        ow_facts bm MWF m -> FR lp bm SafeB (Mem.nextblock m) MC m m'.
+    (* set_mario_npc_dialog's Mario writes (NpcFrame.npc_cells, through
+       set_mario_action): MC must hold them *)
+    Hypothesis HMCn : forall ofs, in_mcells npc_cells ofs -> MC ofs.
+    Let Hnpc_fr := npc_dialog_frame lp H12 bm bc oc0 SafeB HSafeB_syms Hspawn MC HMCn.
 
     Lemma Hfr_open : forall fid b fd,
         (fid = audio_external._load_sequence \/ fid = mario_actions_cutscene._set_mario_npc_dialog) ->

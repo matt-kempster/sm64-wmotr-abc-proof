@@ -1,4 +1,4 @@
-(* spine-root: OBJECTS S3 -- the frame of set_mario_npc_dialog, walked over the
+(* spine (via ObjFrame): OBJECTS S3 -- the frame of set_mario_npc_dialog, walked over the
    real generated bodies of its whole call tree (ObjFrame's Hnpc_fr). *)
 (* ====================================================================== *)
 (* NpcFrame.v -- what set_mario_npc_dialog may write.                     *)

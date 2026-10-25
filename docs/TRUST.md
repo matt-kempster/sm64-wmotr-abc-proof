@@ -852,9 +852,12 @@ without pressing A".*
   (cur_obj_update_floor, cur_obj_call_action_function). `obj_body_frame`: every walked
   nullary body keeps mem_ok AND the frame, for any MC containing the listed cells, under
   the labeled audio premise in its footprint form `ls_contract` (4.1, `LsContract.v`; its
-  `ls_ids` are non-MWF globals, so `ls_FR` turns it into the frame) and named OPEN premises:
-  `Hnpc_fr` (the frame of set_mario_npc_dialog, proved so far for mem_ok only; its Mario
-  writes, via set_mario_action, are the smact_pres row and must lie in MC) and `Hopen2` (the
+  `ls_ids` are non-MWF globals, so `ls_FR` turns it into the frame), `HMCn` (MC holds
+  `NpcFrame.npc_cells`: set_mario_npc_dialog's frame is PROVED in `NpcFrame.v`,
+  `npc_dialog_frame`, by walking the real bodies of its whole call tree -- set_mario_action
+  and its four sub-setters, the pure leaves -- memory changes only in SafeB blocks and
+  Mario's flags/action/prevAction/actionArg/actionState/actionTimer/forwardVel/slideVel/vel/
+  faceAngle/wallKickTimer/peakHeight/usedObj cells) and the named OPEN premise `Hopen2` (the
   open leaf call_action_function, with frame). S-locals (2026-10-25): a pointer local whose
   cell holds only SafeB pointers (`sl_of`; checked by `SLI`, a new `XS` conjunct "blocks in
   [nl, nb0) gain only SafeB pointers", calls from such a body must restart at a kfree clean
