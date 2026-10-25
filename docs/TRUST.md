@@ -851,9 +851,19 @@ without pressing A".*
   `obj_body_pres2`: ObjKit's mem_ok theorem with `Hopen` cut from five leaves to two
   (cur_obj_update_floor, cur_obj_call_action_function). `obj_body_frame`: every walked
   nullary body keeps mem_ok AND the frame, for any MC containing the listed cells, under
-  named OPEN premises: `Hfr_open` (the frames of load_sequence and set_mario_npc_dialog,
-  proved so far for mem_ok only; npc_dialog's Mario writes, via set_mario_action, are the
-  smact_pres row and must lie in MC) and `Hopen2` (the two open leaves, with frame). The
+  the labeled audio premise in its footprint form `ls_contract` (4.1, `LsContract.v`; its
+  `ls_ids` are non-MWF globals, so `ls_FR` turns it into the frame), `HMCn` (MC holds
+  `NpcFrame.npc_cells`: set_mario_npc_dialog's frame is PROVED in `NpcFrame.v`,
+  `npc_dialog_frame`, by walking the real bodies of its whole call tree -- set_mario_action
+  and its four sub-setters, the pure leaves -- memory changes only in SafeB blocks and
+  Mario's flags/action/prevAction/actionArg/actionState/actionTimer/forwardVel/slideVel/vel/
+  faceAngle/wallKickTimer/peakHeight/usedObj cells) and the named OPEN premise `Hopen2` (the
+  open leaf call_action_function, with frame). S-locals (2026-10-25): a pointer local whose
+  cell holds only SafeB pointers (`sl_of`; checked by `SLI`, a new `XS` conjunct "blocks in
+  [nl, nb0) gain only SafeB pointers", calls from such a body must restart at a kfree clean
+  callee) types `cur_obj_update_floor_height_and_get_floor`'s `floor` out-cell, so the getter
+  returns kS and `cur_obj_update_floor` is walked (392 table entries; `updfloor_xspec`
+  replaces its PRES leaf too: `Hopen2`/`Hopen2u` are call_action_function only). The
   frame is per-block, not yet per-object (a kSelf class: "only the running slot's object"
   is still open); SafeB covers every object slot. Not wired into a capstone, so no row
   moved; no new trust.
@@ -1655,8 +1665,10 @@ link grows.
     **Read 2026-10-24** (US path: load.c, heap.c, seqplayer.c, playback.c, synthesis.c): every store
     lands in audio state: `gAudioLoadLock`, `gSequencePlayers`, the two loaded pools, `gAudioHeap`
     (pools, notes, banks), or load.c globals with no block in the model. The DMA / message calls are
-    3.5. A footprint form (`ls_contract`) and the cap-music frames are staged in
-    `Unwired/CapAudio.v`, for GOAL 2's hitbox row.
+    3.5. The footprint form (`ls_contract` = `call_pres_ext` + `ls_frame`, the blocks of
+    `ls_ids`) is `WMotRRequiresA/LsContract.v` (spine via `ObjFrame`, whose whole-walk frame
+    takes it in place of `Hls`); the cap-music frames are staged in `Unwired/CapAudio.v`, for
+    GOAL 2's hitbox row.
   - **GOAL 2 (`SndXc`):** `play_sound` and `set_sound_moving_speed` store at an index read from
     memory, so the walks cannot run them store by store. Each call is a CLOBBER contract over the
     regions of the globals it writes (`FfRun.RSR` / `RSRC` / `RSMS`: `sSoundRequests`,

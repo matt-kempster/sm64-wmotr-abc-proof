@@ -138,6 +138,13 @@ all in `Unwired/`, and the theorem moved nowhere. See
   call_action_function). Open next: those four leaves' frames (update_floor needs find_floor's
   out cell to hold kS), a kSelf class (own object vs other slots), cur_obj_update /
   call_native (script-pointer row), then wire into S2's obj_w / PhiW.
+  2026-10-25 `LsContract.v` (spine via ObjFrame): `ls_contract` / `ls_frame` moved out of
+  `Unwired/CapAudio`; `obj_body_frame` takes `ls_contract` (4.1) and `ls_FR` derives
+  load_sequence's frame from it (`Hfr_open` -> `Hnpc_fr`, npc_dialog only).
+  2026-10-25 ObjWalk S-locals + `XS`: `cur_obj_update_floor` walked (getter's `floor` cell is
+  an S-local, getter returns kS); `Hopen2` = call_action_function only.
+  2026-10-25 `NpcFrame.v` (spine via ObjFrame): `npc_dialog_frame` walks set_mario_npc_dialog's
+  real call tree; `Hnpc_fr` discharged (ObjFrame now asks only `HMCn`: MC holds npc_cells).
   2026-10-24 `UpdateCameraBody.update_camera_pres`: the REAL `update_camera(c)` (SafeB c) keeps
   `mem_ok`. 507 bodies (the whole recursive tree: `UcKit` two-mode class walker, `UcTable`
   signatures re-checked by vm), the 336 CameraEvent functions by type certificate. Wired as
