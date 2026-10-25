@@ -38,18 +38,24 @@
 From Coq Require Import ZArith List Lia Reals.
 From compcert Require Import Coqlib Maps AST Integers Floats Values Memory Ctypes Clight Globalenvs.
 From SM64.Generated Require mario surface_collision memory camera audio_external sound_init
-  mario_actions_moving level_update.
+  mario_actions_moving level_update game_init libultra_osContInit.
 From SM64.Proofs Require Import HeightInvariant HeightMoveCatalog WMotRLevel Generic.ClosedMem.
 From SM64.Proofs.WMotRRequiresA Require Import FloorList FloorHeight FloorExec AirMatch AirStart RetOk.
 Import ListNotations.
 
 (* the level-phase globals the frame world pins (lvl_w below): blocks of
    their own, which no proved row writes.  The first two since 2026-10-23;
-   the warp cells since 2026-10-24. *)
+   the warp cells since 2026-10-24; the controller globals since
+   2026-10-23 (ctl_w; the poll, PollFlank, writes only gControllers'
+   button cells and the pads, which ctl_w re-establishes). *)
 Definition lvl_ids : list ident :=
   [mario._gCurrLevelNum; sound_init._sPlayingInfiniteStairs;
    level_update._sWarpDest; level_update._sCurrPlayMode; level_update._sDelayedWarpOp;
-   level_update._sSourceWarpNodeId; level_update._gCurrDemoInput; level_update._gCurrCreditsEntry].
+   level_update._sSourceWarpNodeId; level_update._gCurrDemoInput; level_update._gCurrCreditsEntry;
+   (* the controller globals (ctl_w, 2026-10-23, PollFlank: the real
+      controller poll reads them; gCurrDemoInput is above) *)
+   mario._gControllers; game_init._gControllerPads; game_init._gPlayer1Controller;
+   game_init._gPlayer3Controller; libultra_osContInit.___osMaxControllers].
 
 Definition lvl_sym (G : genv) (b : block) : Prop :=
   Genv.find_symbol G mario._gCurrLevelNum = Some b
@@ -157,7 +163,8 @@ Definition ffw (m : mem) : Prop :=
       /\ (forall b, In b [bfi; bmiss; bcalls; bsin; ab; biom; bmq; brm; blk; bpc; bsr; bsrc; bsms; bbs; bfa]
                     \/ Genv.find_symbol G mario._gAudioRandom = Some b
                     (* gCurrLevelNum: add_tree_leaf_particles reads it (the pole walks);
-                       sPlayingInfiniteStairs: play_infinite_stairs_music reads it (lvl_w) *)
+                       sPlayingInfiniteStairs: play_infinite_stairs_music reads it (lvl_w);
+                       the warp and controller globals (lvl_w's warp_w / ctl_w) *)
                     \/ lvl_sym G b -> b <> bo /\ b <> bt)
       (* the collision partition *)
       /\ Wff G m gp SZ_SURFACE (ff_rl bm bo oo bfi bmiss bcalls ab bt biom bmq brm blk bpc bsr bsrc bsms bbs bfa)
@@ -593,6 +600,37 @@ Qed.
    at the visit's entry (the castle's last frame clears it: Mario enters
    the painting away from the endless stairs) and stays FALSE (the call's
    verdict outside the castle is FALSE). *)
+(* the controller cells (2026-10-23, PollFlank): what the real
+   read_controller_inputs (game_init.c) reads to turn the polled pad bytes
+   into Mario's controller.  gControllers[0].controllerData is the pad of
+   the first plugged-in port (init_controllers, game_init.c: one of
+   gControllerPads[0..3]); every pad's button word, when an int, has A
+   clear (the last poll stored it from an A-free PIF record, or left it);
+   gPlayer1Controller / gPlayer3Controller are &gControllers[0] /
+   &gControllers[2] (their static initializers; nothing reassigns them);
+   gCurrDemoInput is NULL (no demo plays in WMotR: only the title screen's
+   demo sets it).  Without these the poll's A-free result is not provable:
+   a demo, a stale A in a pad, or a controller pointer elsewhere each make
+   gControllers[0] report A from an A-free PIF image. *)
+Definition ctl_w (G : genv) (m : mem) : Prop :=
+  forall bc bp, Genv.find_symbol G mario._gControllers = Some bc ->
+    Genv.find_symbol G game_init._gControllerPads = Some bp ->
+    (forall j, j = 0 \/ j = 1 ->
+       Mem.load Mint32 m bc (28 * j + 24) = Some (Vint Int.zero)
+       \/ exists k, 0 <= k < 4 /\ Mem.load Mint32 m bc (28 * j + 24) = Some (Vptr bp (Ptrofs.repr (6 * k))))
+    /\ (forall z, z = 16 \/ z = 18 -> exists v,
+          Mem.load Mint16unsigned m bc z = Some (Vint v) /\ Int.and v (Int.repr 32768) = Int.zero)
+    /\ (forall k n, 0 <= k < 4 -> Mem.load Mint16unsigned m bp (6 * k) = Some (Vint n) ->
+          Int.and n (Int.repr 32768) = Int.zero)
+    /\ (forall b1, Genv.find_symbol G game_init._gPlayer1Controller = Some b1 ->
+          Mem.load Mint32 m b1 0 = Some (Vptr bc Ptrofs.zero))
+    /\ (forall b3, Genv.find_symbol G game_init._gPlayer3Controller = Some b3 ->
+          Mem.load Mint32 m b3 0 = Some (Vptr bc (Ptrofs.repr 56)))
+    /\ (forall bd, Genv.find_symbol G game_init._gCurrDemoInput = Some bd ->
+          Mem.load Mint32 m bd 0 = Some (Vint Int.zero))
+    /\ (forall bx, Genv.find_symbol G libultra_osContInit.___osMaxControllers = Some bx ->
+          forall x, Mem.load Mint8unsigned m bx 0 = Some (Vint x) -> Int.unsigned x <= 4).
+
 (* The warp cells (2026-10-24).  FOUND (phantom forall): the level phase's
    labeled spec (HeightFrame.seg_level_spec: the action cell unchanged, Phi
    kept) was claimed from ANY frame-world memory, but the real
@@ -637,24 +675,37 @@ Definition lvl_w (G : genv) (m : mem) : Prop :=
      Mem.load Mint16signed m b 0 = Some (Vint (Int.repr LEVEL_WMOTR)))
   /\ (forall b, Genv.find_symbol G sound_init._sPlayingInfiniteStairs = Some b ->
      Mem.load Mint8unsigned m b 0 = Some (Vint Int.zero))
-  /\ warp_w G m.
+  /\ warp_w G m
+  /\ ctl_w G m.
 
 (* lvl_w reads only the lvl_ids globals' blocks *)
 Lemma lvl_w_unch : forall (G : genv) m m',
   (forall b ch z, lvl_sym G b -> Mem.load ch m' b z = Mem.load ch m b z) ->
   lvl_w G m -> lvl_w G m'.
 Proof.
-  intros G m m' U (L1 & L2 & W1 & W2 & W3 & W4).
+  intros G m m' U (L1 & L2 & (W1 & W2 & W3 & W4) & CW).
   assert (U' : forall id b, Genv.find_symbol G id = Some b -> In id lvl_ids -> forall ch z,
              Mem.load ch m' b z = Mem.load ch m b z)
     by (intros id b Hs Hin ch z; exact (U b ch z (lvl_sym_of G id b Hin Hs))).
-  split; [| split; [| split; [| split; [| split]]]].
-  - intros b Hs. rewrite (U' _ b Hs ltac:(unfold lvl_ids; cbn [In]; auto 12)). exact (L1 b Hs).
-  - intros b Hs. rewrite (U' _ b Hs ltac:(unfold lvl_ids; cbn [In]; auto 12)). exact (L2 b Hs).
-  - intros bp bw Hp Hw. rewrite (U' _ bp Hp ltac:(unfold lvl_ids; cbn [In]; auto 12)), (U' _ bw Hw ltac:(unfold lvl_ids; cbn [In]; auto 12)).
-    exact (W1 bp bw Hp Hw).
-  - intros b Hs. rewrite (U' _ b Hs ltac:(unfold lvl_ids; cbn [In]; auto 12)). exact (W2 b Hs).
-  - intros b Hs. rewrite (U' _ b Hs ltac:(unfold lvl_ids; cbn [In]; auto 12)). exact (W3 b Hs).
-  - intros bo bs Ho Hs. rewrite (U' _ bo Ho ltac:(unfold lvl_ids; cbn [In]; auto 12)), (U' _ bs Hs ltac:(unfold lvl_ids; cbn [In]; auto 12)).
-    exact (W4 bo bs Ho Hs).
+  split; [| split; [| split]].
+  - intros b Hs. rewrite (U' _ b Hs ltac:(unfold lvl_ids; cbn [In]; auto 20)). exact (L1 b Hs).
+  - intros b Hs. rewrite (U' _ b Hs ltac:(unfold lvl_ids; cbn [In]; auto 20)). exact (L2 b Hs).
+  - split; [| split; [| split]].
+    + intros bp bw Hp Hw. rewrite (U' _ bp Hp ltac:(unfold lvl_ids; cbn [In]; auto 20)), (U' _ bw Hw ltac:(unfold lvl_ids; cbn [In]; auto 20)).
+      exact (W1 bp bw Hp Hw).
+    + intros b Hs. rewrite (U' _ b Hs ltac:(unfold lvl_ids; cbn [In]; auto 20)). exact (W2 b Hs).
+    + intros b Hs. rewrite (U' _ b Hs ltac:(unfold lvl_ids; cbn [In]; auto 20)). exact (W3 b Hs).
+    + intros bo bs Ho Hs. rewrite (U' _ bo Ho ltac:(unfold lvl_ids; cbn [In]; auto 20)), (U' _ bs Hs ltac:(unfold lvl_ids; cbn [In]; auto 20)).
+      exact (W4 bo bs Ho Hs).
+  - intros bc bp Sc Sp.
+    destruct (CW bc bp Sc Sp) as (L24 & B16 & PA & P1 & P3 & DM & MX).
+    pose proof (U' _ bc Sc ltac:(unfold lvl_ids; cbn [In]; auto 20)) as Kc.
+    pose proof (U' _ bp Sp ltac:(unfold lvl_ids; cbn [In]; auto 20)) as Kp.
+    split; [intros j Hj; rewrite !Kc; exact (L24 j Hj) |].
+    split; [intros z Hz; rewrite Kc; exact (B16 z Hz) |].
+    split; [intros k' n Hk' Hl; rewrite Kp in Hl; exact (PA k' n Hk' Hl) |].
+    split; [intros b1 S1; rewrite (U' _ b1 S1 ltac:(unfold lvl_ids; cbn [In]; auto 20)); exact (P1 b1 S1) |].
+    split; [intros b3 S3; rewrite (U' _ b3 S3 ltac:(unfold lvl_ids; cbn [In]; auto 20)); exact (P3 b3 S3) |].
+    split; [intros bd Sd; rewrite (U' _ bd Sd ltac:(unfold lvl_ids; cbn [In]; auto 20)); exact (DM bd Sd) |].
+    intros bx Sx; rewrite (U' _ bx Sx ltac:(unfold lvl_ids; cbn [In]; auto 20)); exact (MX bx Sx).
 Qed.

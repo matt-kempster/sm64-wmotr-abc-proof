@@ -56,6 +56,7 @@ generated/libultra_osSiCreateAccessQueue.v
 generated/libultra_osCreateMesgQueue.v
 generated/libultra_osContInit.v
 generated/libultra_osInitialize.v
+generated/libultra_osContStartReadData.v
 
 # --- shared infrastructure (used by GOAL 1; reusable) ---
 proofs/Generic/Frame.v
@@ -297,6 +298,7 @@ proofs/WMotRRequiresA/NaSplit.v
 proofs/WMotRRequiresA/RenderAnim.v
 proofs/WMotRRequiresA/RenderSet.v
 proofs/WMotRRequiresA/RenderFlank.v
+proofs/WMotRRequiresA/PollFlank.v
 proofs/WMotRRequiresA/PlatformEff.v
 proofs/WMotRRequiresA/RenderKeep.v
 proofs/WMotRRequiresA/PlatformWalk.v
