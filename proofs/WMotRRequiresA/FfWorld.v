@@ -37,8 +37,8 @@
 
 From Coq Require Import ZArith List Lia Reals.
 From compcert Require Import Coqlib Maps AST Integers Floats Values Memory Ctypes Clight Globalenvs.
-From SM64.Generated Require mario surface_collision memory camera audio_external sound_init level_update
-  game_init libultra_osContInit.
+From SM64.Generated Require mario surface_collision memory camera audio_external sound_init
+  mario_actions_moving level_update game_init libultra_osContInit.
 From SM64.Proofs Require Import HeightInvariant HeightMoveCatalog WMotRLevel Generic.ClosedMem.
 From SM64.Proofs.WMotRRequiresA Require Import FloorList FloorHeight FloorExec AirMatch AirStart RetOk.
 Import ListNotations.
@@ -100,6 +100,7 @@ Definition SZ_CTL : Z := 18.        (* up to Controller.buttonDown, a u16 at 16 
 Definition FFW_COLL : Z := 120.     (* Object.collidedObjs[4] *)
 Definition FFW_PCS : Z := 148.      (* statusForCamera *)
 Definition FFW_BODY : Z := 152.     (* marioBodyState *)
+Definition FFW_THROW : Z := 80.     (* Object.header.gfx.throwMatrix *)
 
 (* the walk's fifteen regions as pointers, in FfRun.R0F's order (two since
    camera.c is linked: gLakituState, which the real
@@ -109,15 +110,17 @@ Definition FFW_BODY : Z := 152.     (* marioBodyState *)
    sSoundRequestCount and sSoundMovingSpeed, which the real play_sound and
    set_sound_moving_speed write; the sixteenth, 2026-10-23: gBodyStates,
    m->marioBodyState's target, which mario_reset_bodystate and
-   update_mario_info_for_cam write through) *)
-Definition ff_rl (bm bo : block) (oo : ptrofs) (bfi bmiss bcalls ab bt biom bmq brm blk bpc bsr bsrc bsms bbs : block)
+   update_mario_info_for_cam write through; the seventeenth, 2026-10-24:
+   sFloorAlignMatrix, Mario's gfx.throwMatrix target, which
+   sink_mario_in_quicksand writes through) *)
+Definition ff_rl (bm bo : block) (oo : ptrofs) (bfi bmiss bcalls ab bt biom bmq brm blk bpc bsr bsrc bsms bbs bfa : block)
   : list (option val) :=
   map Some [Vptr bm Ptrofs.zero; Vptr bo oo; Vptr bfi Ptrofs.zero; Vptr bmiss Ptrofs.zero;
             Vptr bcalls Ptrofs.zero; Vptr ab Ptrofs.zero; Vptr bt Ptrofs.zero;
             Vptr biom Ptrofs.zero; Vptr bmq Ptrofs.zero; Vptr brm Ptrofs.zero;
             Vptr blk Ptrofs.zero; Vptr bpc Ptrofs.zero;
             Vptr bsr Ptrofs.zero; Vptr bsrc Ptrofs.zero; Vptr bsms Ptrofs.zero;
-            Vptr bbs Ptrofs.zero].
+            Vptr bbs Ptrofs.zero; Vptr bfa Ptrofs.zero].
 
 (* a world object: a valid block that is none of the regions *)
 Definition wblk (m : mem) (rl : list (option val)) (v : val) (n : Z) : Prop :=
@@ -130,7 +133,7 @@ Variable bm : block.
 
 Definition ffw (m : mem) : Prop :=
   Ple (Genv.genv_next G) (Mem.nextblock m)
-  /\ (exists gp bfi bmiss bcalls bsin ab biom bmq brm blk bpc bsr bsrc bsms bbs bo oo bt ot fl ar inp ctl,
+  /\ (exists gp bfi bmiss bcalls bsin ab biom bmq brm blk bpc bsr bsrc bsms bbs bfa bo oo bt ot fl ar inp ctl,
       (* closedness *)
       closed_by gp m
       /\ (forall id b, Genv.find_symbol G id = Some b -> gp b <> None) /\ gp bm <> None
@@ -148,6 +151,7 @@ Definition ffw (m : mem) : Prop :=
       /\ Genv.find_symbol G audio_external._sSoundRequestCount = Some bsrc
       /\ Genv.find_symbol G audio_external._sSoundMovingSpeed = Some bsms
       /\ Genv.find_symbol G mario._gBodyStates = Some bbs
+      /\ Genv.find_symbol G mario_actions_moving._sFloorAlignMatrix = Some bfa
       (* Mario's object; the animation list and its DMA buffer *)
       /\ Mem.load Mint32 m bm FFW_OBJ = Some (Vptr bo oo)
       /\ Ptrofs.unsigned oo + SZ_OBJECT <= Ptrofs.modulus
@@ -156,27 +160,27 @@ Definition ffw (m : mem) : Prop :=
       (* the object and the buffer are blocks of their own *)
       /\ bo <> bm /\ bt <> bm /\ bt <> bo
       (* (gAudioRandom too: play_mario_jump_sound reads it, a world cell) *)
-      /\ (forall b, In b [bfi; bmiss; bcalls; bsin; ab; biom; bmq; brm; blk; bpc; bsr; bsrc; bsms; bbs]
+      /\ (forall b, In b [bfi; bmiss; bcalls; bsin; ab; biom; bmq; brm; blk; bpc; bsr; bsrc; bsms; bbs; bfa]
                     \/ Genv.find_symbol G mario._gAudioRandom = Some b
                     (* gCurrLevelNum: add_tree_leaf_particles reads it (the pole walks);
                        sPlayingInfiniteStairs: play_infinite_stairs_music reads it (lvl_w);
                        the warp and controller globals (lvl_w's warp_w / ctl_w) *)
                     \/ lvl_sym G b -> b <> bo /\ b <> bt)
       (* the collision partition *)
-      /\ Wff G m gp SZ_SURFACE (ff_rl bm bo oo bfi bmiss bcalls ab bt biom bmq brm blk bpc bsr bsrc bsms bbs)
+      /\ Wff G m gp SZ_SURFACE (ff_rl bm bo oo bfi bmiss bcalls ab bt biom bmq brm blk bpc bsr bsrc bsms bbs bfa)
       (* m->floor, m->area *)
       /\ Mem.load Mint32 m bm FFW_FLOOR = Some fl
-      /\ wblk m (ff_rl bm bo oo bfi bmiss bcalls ab bt biom bmq brm blk bpc bsr bsrc bsms bbs) fl SZ_SURFACE
+      /\ wblk m (ff_rl bm bo oo bfi bmiss bcalls ab bt biom bmq brm blk bpc bsr bsrc bsms bbs bfa) fl SZ_SURFACE
       (* m->wall, m->ceil *)
       /\ (forall off sb so, off = FFW_WALL \/ off = FFW_CEIL -> Mem.load Mint32 m bm off = Some (Vptr sb so) ->
-            ~ rblk (ff_rl bm bo oo bfi bmiss bcalls ab bt biom bmq brm blk bpc bsr bsrc bsms bbs) sb)
+            ~ rblk (ff_rl bm bo oo bfi bmiss bcalls ab bt biom bmq brm blk bpc bsr bsrc bsms bbs bfa) sb)
       /\ Mem.load Mint32 m bm FFW_AREA = Some ar
-      /\ wblk m (ff_rl bm bo oo bfi bmiss bcalls ab bt biom bmq brm blk bpc bsr bsrc bsms bbs) ar SZ_AREA
+      /\ wblk m (ff_rl bm bo oo bfi bmiss bcalls ab bt biom bmq brm blk bpc bsr bsrc bsms bbs bfa) ar SZ_AREA
       (* m->input: INPUT_A_PRESSED | INPUT_A_DOWN | INPUT_INTERACT_OBJ_GRABBABLE clear *)
       /\ Mem.load Mint16unsigned m bm 2 = Some (Vint inp) /\ Int.and inp (Int.repr 2178) = Int.zero
       (* m->controller *)
       /\ Mem.load Mint32 m bm FFW_CTL = Some ctl
-      /\ wblk m (ff_rl bm bo oo bfi bmiss bcalls ab bt biom bmq brm blk bpc bsr bsrc bsms bbs) ctl SZ_CTL
+      /\ wblk m (ff_rl bm bo oo bfi bmiss bcalls ab bt biom bmq brm blk bpc bsr bsrc bsms bbs bfa) ctl SZ_CTL
       (* the collided objects *)
       /\ (forall i cb co, 0 <= i < 4 ->
             Mem.load Mint32 m bo (Ptrofs.unsigned oo + FFW_COLL + 4 * i) = Some (Vptr cb co) -> cb = bo)
@@ -189,13 +193,24 @@ Definition ffw (m : mem) : Prop :=
          of mario_reset_bodystate / update_mario_info_for_cam ranged over
          memories whose marioBodyState pointed into Mario's own state or a
          surface, which the real stores through it then break *)
-      /\ Mem.load Mint32 m bm FFW_BODY = Some (Vptr bbs Ptrofs.zero))
+      /\ Mem.load Mint32 m bm FFW_BODY = Some (Vptr bbs Ptrofs.zero)
+      (* Mario's object's gfx.throwMatrix is NULL or points into
+         sFloorAlignMatrix (2026-10-24).  In the game spawn_object /
+         geo_obj_init set it to NULL, align_with_floor (crawling, the
+         slides) to &sFloorAlignMatrix[m->unk00], and the renderer
+         (geo_process_object) back to NULL; no other code writes Mario's.
+         FOUND (phantom forall): without it the row of
+         sink_mario_in_quicksand ranged over memories whose throwMatrix
+         pointed into Mario's state or a surface, which its store
+         ( *throwMatrix )[3][1] -= quicksandDepth then writes *)
+      /\ (Mem.load Mint32 m bo (Ptrofs.unsigned oo + FFW_THROW) = Some (Vint Int.zero)
+          \/ exists o, Mem.load Mint32 m bo (Ptrofs.unsigned oo + FFW_THROW) = Some (Vptr bfa o)))
   /\ floor_data G m.
 
 (* ---- transfer: a memory that differs from m only inside Mario's object ---- *)
 
-Lemma rl_obj : forall bo oo bfi bmiss bcalls ab bt biom bmq brm blk bpc bsr bsrc bsms bbs,
-  rblk (ff_rl bm bo oo bfi bmiss bcalls ab bt biom bmq brm blk bpc bsr bsrc bsms bbs) bo.
+Lemma rl_obj : forall bo oo bfi bmiss bcalls ab bt biom bmq brm blk bpc bsr bsrc bsms bbs bfa,
+  rblk (ff_rl bm bo oo bfi bmiss bcalls ab bt biom bmq brm blk bpc bsr bsrc bsms bbs bfa) bo.
 Proof. intros. exists oo. cbn. auto 10. Qed.
 
 (* a store into a mapped block keeps closedness when the value is closed, or
@@ -220,6 +235,9 @@ Hypothesis Hnb : Mem.nextblock m' = Mem.nextblock m.
 Hypothesis Hperm : forall b ofs k p, Mem.perm m b ofs k p -> Mem.perm m' b ofs k p.
 Hypothesis Hld : forall ch b z, b <> bo0 -> Mem.load ch m' b z = Mem.load ch m b z.
 (* the collided-object cells of Mario's object *)
+(* the throwMatrix cell of Mario's object *)
+Hypothesis Hldt : Mem.load Mint32 m' bo0 (Ptrofs.unsigned oo0 + FFW_THROW)
+  = Mem.load Mint32 m bo0 (Ptrofs.unsigned oo0 + FFW_THROW).
 Hypothesis Hldc : forall i, 0 <= i < 4 ->
   Mem.load Mint32 m' bo0 (Ptrofs.unsigned oo0 + FFW_COLL + 4 * i)
   = Mem.load Mint32 m bo0 (Ptrofs.unsigned oo0 + FFW_COLL + 4 * i).
@@ -303,11 +321,11 @@ Theorem ffw_keep :
   ffw m -> ffw m'.
 Proof.
   intros Hmo Hne Hab HC' (Hgn & EX & FD).
-  destruct EX as (gp & bfi & bmiss & bcalls & bsin & ab & biom & bmq & brm & blk & bpc & bsr & bsrc & bsms & bbs & bo & oo & bt & ot & fl & ar & inp & ctl &
-                  HC & HS & HM & S1 & S2 & S3 & S4 & S5 & S6 & S7 & S8 & SL & SP & SR & SRC & SMS & SBS & Lo & Soo & La & Lb & Sot & D1 & D2 & D3 & D4 &
-                  W & Lf & Wf & Wc0 & Lar & War & Li & Ai & Lc & Wc & Co & LPC & LBS).
+  destruct EX as (gp & bfi & bmiss & bcalls & bsin & ab & biom & bmq & brm & blk & bpc & bsr & bsrc & bsms & bbs & bfa & bo & oo & bt & ot & fl & ar & inp & ctl &
+                  HC & HS & HM & S1 & S2 & S3 & S4 & S5 & S6 & S7 & S8 & SL & SP & SR & SRC & SMS & SBS & SFA & Lo & Soo & La & Lb & Sot & D1 & D2 & D3 & D4 &
+                  W & Lf & Wf & Wc0 & Lar & War & Li & Ai & Lc & Wc & Co & LPC & LBS & LTM).
   rewrite Hmo in Lo. injection Lo as <- <-.
-  assert (Ho : rblk (ff_rl bm bo0 oo0 bfi bmiss bcalls ab bt biom bmq brm blk bpc bsr bsrc bsms bbs) bo0) by apply rl_obj.
+  assert (Ho : rblk (ff_rl bm bo0 oo0 bfi bmiss bcalls ab bt biom bmq brm blk bpc bsr bsrc bsms bbs bfa) bo0) by apply rl_obj.
   pose proof (Hab ab S5) as Hab0.
   assert (Gbo : gp bo0 = Some (bo0, 0)).
   { pose proof (closed_load _ _ _ _ _ _ HC HM Hmo) as P. cbn in P.
@@ -315,7 +333,7 @@ Proof.
     destruct (closed_flat _ _ _ _ _ HC G0) as (-> & ->). reflexivity. }
   split; [rewrite Hnb; exact Hgn |].
   split.
-  - exists gp, bfi, bmiss, bcalls, bsin, ab, biom, bmq, brm, blk, bpc, bsr, bsrc, bsms, bbs, bo0, oo0, bt, ot, fl, ar, inp, ctl.
+  - exists gp, bfi, bmiss, bcalls, bsin, ab, biom, bmq, brm, blk, bpc, bsr, bsrc, bsms, bbs, bfa, bo0, oo0, bt, ot, fl, ar, inp, ctl.
     split; [exact (HC' gp HC Gbo) |]. split; [exact HS |]. split; [exact HM |].
     rewrite !Hld by congruence.
     repeat (split; [assumption |]).
@@ -327,7 +345,8 @@ Proof.
     split; [exact Lc |]. split; [exact (wblk_keep _ _ _ Wc) |].
     split; [intros i cb co Hi Hl; rewrite Hldc in Hl by exact Hi; exact (Co i cb co Hi Hl) |].
     split; [first [exact LPC | rewrite Hld by congruence; exact LPC] |].
-    first [exact LBS | rewrite Hld by congruence; exact LBS].
+    split; [first [exact LBS | rewrite Hld by congruence; exact LBS] |].
+    rewrite Hldt. exact LTM.
 
   - exact (floor_data_keep _ _ Ho W FD).
 Qed.

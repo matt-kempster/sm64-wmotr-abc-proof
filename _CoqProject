@@ -301,6 +301,7 @@ proofs/WMotRRequiresA/AirSplit.v
 proofs/WMotRRequiresA/AutoSplit.v
 proofs/WMotRRequiresA/ProRows.v
 proofs/WMotRRequiresA/BodyFrame.v
+proofs/WMotRRequiresA/Unwired/CapAudio.v
 proofs/WMotRRequiresA/NaSplit.v
 proofs/WMotRRequiresA/RenderAnim.v
 proofs/WMotRRequiresA/RenderSet.v

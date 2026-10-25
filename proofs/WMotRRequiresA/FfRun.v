@@ -35,7 +35,7 @@ Import ListNotations.
 
 Module AIR := mario_actions_airborne.
 
-Definition NBF : positive := 23.
+Definition NBF : positive := 24.
 Definition RSIN : positive := 7.
 Definition RLD : positive := 8.
 Definition RBUF : positive := 9.
@@ -58,6 +58,12 @@ Definition RSMS : positive := 21.  (* sSoundMovingSpeed (set_sound_moving_speed:
    no world object (surface, area, controller) is in its block; no walk
    reads or writes it.  RBS = 22 sits above every other region, so NBF = 23. *)
 Definition RBS : positive := 22.
+(* sFloorAlignMatrix (2026-10-24, mario_actions_moving.c): the target of
+   Mario's gfx.throwMatrix once align_with_floor has run, which
+   sink_mario_in_quicksand writes through; a region so that no world
+   object is in its block; no walk reads or writes it.  RFA = 23, so
+   NBF = 24. *)
+Definition RFA : positive := 23.
 Definition kM : positive := 3.
 Definition kB : positive := 4.
 
@@ -69,7 +75,7 @@ Definition R0F : list (positive * Z) :=
    (RLD, szs g mario._DmaHandlerList); (RBUF, Ptrofs.modulus); (RIOM, 20); (RMQ, 24); (RRM, 4);
    (RLK, szs g camera._LakituState); (RPC, SZ_PCS);
    (RSR, Ptrofs.modulus); (RSRC, Ptrofs.modulus); (RSMS, Ptrofs.modulus);
-   (RBS, Ptrofs.modulus)].
+   (RBS, Ptrofs.modulus); (RFA, Ptrofs.modulus)].
 
 Definition gtabF : list (ident * positive) :=
   [(surface_collision._gFindFloorIncludeSurfaceIntangible, RFI);

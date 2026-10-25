@@ -17,18 +17,19 @@
 
 From Coq Require Import ZArith List Bool Lia.
 From compcert Require Import Coqlib Maps AST Integers Values Memory Globalenvs Clight.
-From SM64.Generated Require mario game_init graph_node level_update surface_collision memory camera audio_external sound_init.
+From SM64.Generated Require mario game_init graph_node level_update surface_collision memory camera audio_external sound_init
+  mario_actions_moving.
 From SM64.Proofs.WMotRRequiresA Require Import AnimData AnimWorld FloorList FloorExec FfWorld.
 From SM64.Proofs.WMotRRequiresA Require WMotRWorld.
 Import ListNotations.
 Local Open Scope Z_scope.
 
-Lemma ff_rl_not : forall bm bo oo bfi bmiss bcalls ab bt biom bmq brm blk bpc bsr bsrc bsms bbs x,
+Lemma ff_rl_not : forall bm bo oo bfi bmiss bcalls ab bt biom bmq brm blk bpc bsr bsrc bsms bbs bfa x,
   bm <> x -> bo <> x -> bfi <> x -> bmiss <> x -> bcalls <> x -> ab <> x -> bt <> x ->
-  biom <> x -> bmq <> x -> brm <> x -> blk <> x -> bpc <> x -> bsr <> x -> bsrc <> x -> bsms <> x -> bbs <> x ->
-  ~ rblk (ff_rl bm bo oo bfi bmiss bcalls ab bt biom bmq brm blk bpc bsr bsrc bsms bbs) x.
+  biom <> x -> bmq <> x -> brm <> x -> blk <> x -> bpc <> x -> bsr <> x -> bsrc <> x -> bsms <> x -> bbs <> x -> bfa <> x ->
+  ~ rblk (ff_rl bm bo oo bfi bmiss bcalls ab bt biom bmq brm blk bpc bsr bsrc bsms bbs bfa) x.
 Proof.
-  intros bm bo oo bfi bmiss bcalls ab bt biom bmq brm blk bpc bsr bsrc bsms bbs x N1 N2 N3 N4 N5 N6 N7 N8 N9 N10 N11 N12 N13 N14 N15 N16
+  intros bm bo oo bfi bmiss bcalls ab bt biom bmq brm blk bpc bsr bsrc bsms bbs bfa x N1 N2 N3 N4 N5 N6 N7 N8 N9 N10 N11 N12 N13 N14 N15 N16 N17
     (o & Hin).
   unfold ff_rl in Hin. cbn in Hin.
   repeat (destruct Hin as [Hin | Hin]; [injection Hin as Hin _; congruence |]). exact Hin.
@@ -60,7 +61,7 @@ Definition anim_cells_kept (m m' : mem) (ab bo : block) (oo : ptrofs) (bt : bloc
   /\ (forall k rel ch v, In k hs_ids -> In (rel, ch, v) (buf_cells k) ->
         Mem.load ch m' bt (Ptrofs.unsigned ot + rel) = Mem.load ch m bt (Ptrofs.unsigned ot + rel)).
 
-Theorem anim_w_keep : forall m m' gp bfi bmiss bcalls ab biom bmq brm blk bpc bsr bsrc bsms bbs bo oo bt ot,
+Theorem anim_w_keep : forall m m' gp bfi bmiss bcalls ab biom bmq brm blk bpc bsr bsrc bsms bbs bfa bo oo bt ot,
   Genv.find_symbol ge surface_collision._gFindFloorIncludeSurfaceIntangible = Some bfi ->
   Genv.find_symbol ge surface_collision._gNumFindFloorMisses = Some bmiss ->
   Genv.find_symbol ge surface_collision._gNumCalls = Some bcalls ->
@@ -74,14 +75,15 @@ Theorem anim_w_keep : forall m m' gp bfi bmiss bcalls ab biom bmq brm blk bpc bs
   Genv.find_symbol ge audio_external._sSoundRequestCount = Some bsrc ->
   Genv.find_symbol ge audio_external._sSoundMovingSpeed = Some bsms ->
   Genv.find_symbol ge mario._gBodyStates = Some bbs ->
+  Genv.find_symbol ge mario_actions_moving._sFloorAlignMatrix = Some bfa ->
   Mem.load Mint32 m bm FFW_OBJ = Some (Vptr bo oo) ->
   Mem.load Mint32 m ab 8 = Some (Vptr bt ot) ->
-  Wff ge m gp SZ_SURFACE (ff_rl bm bo oo bfi bmiss bcalls ab bt biom bmq brm blk bpc bsr bsrc bsms bbs) ->
+  Wff ge m gp SZ_SURFACE (ff_rl bm bo oo bfi bmiss bcalls ab bt biom bmq brm blk bpc bsr bsrc bsms bbs bfa) ->
   anim_w ge bm m ->
   Ple (Mem.nextblock m) (Mem.nextblock m') ->
   (forall b ofs k p, Plt b (Mem.nextblock m) -> Mem.perm m b ofs k p -> Mem.perm m' b ofs k p) ->
   (forall ch b z, Plt b (Mem.nextblock m) ->
-     ~ rblk (ff_rl bm bo oo bfi bmiss bcalls ab bt biom bmq brm blk bpc bsr bsrc bsms bbs) b ->
+     ~ rblk (ff_rl bm bo oo bfi bmiss bcalls ab bt biom bmq brm blk bpc bsr bsrc bsms bbs bfa) b ->
      Mem.load ch m' b z = Mem.load ch m b z) ->
   Mem.load Mint32 m' bm 136 = Mem.load Mint32 m bm 136 ->
   Mem.load Mint32 m' ab 0 = Mem.load Mint32 m ab 0 ->
@@ -92,8 +94,8 @@ Theorem anim_w_keep : forall m m' gp bfi bmiss bcalls ab biom bmq brm blk bpc bs
    \/ (Mem.load Mint32 m' bm 12 = Mem.load Mint32 m bm 12 /\ anim_cells_kept m m' ab bo oo bt ot)) ->
   anim_w ge bm m'.
 Proof.
-  intros m m' gp bfi bmiss bcalls ab biom bmq brm blk bpc bsr bsrc bsms bbs bo oo bt ot
-    S1 S2 S3 S5 S6 S7 S8 SL SP SR SRC SMS SBS Lo Lb W AW Hnb KP OFF K136 K0 K8 K144 K156 HK.
+  intros m m' gp bfi bmiss bcalls ab biom bmq brm blk bpc bsr bsrc bsms bbs bfa bo oo bt ot
+    S1 S2 S3 S5 S6 S7 S8 SL SP SR SRC SMS SBS SFA Lo Lb W AW Hnb KP OFF K136 K0 K8 K144 K156 HK.
   destruct AW as (ab' & bga & bauc & btab & otab & bt' & ot' & mb & mo & B & ST).
   pose proof B as (Sab & Sga & Sau & L0 & L8 & Lm & Sy & D1 & D2 & D3 & D4 & D5
                    & _ & _ & _ & _ & _ & _ & _ & _ & Hbm).
@@ -102,11 +104,11 @@ Proof.
   change FFW_OBJ with 136 in Lo. rewrite Lo in Lm. injection Lm as <- <-.
   assert (NT : forall id b, Genv.find_symbol ge id = Some b -> b <> btab)
     by (intros id b H; exact (proj1 (Sy id b H))).
-  assert (Ntab : ~ rblk (ff_rl bm bo oo bfi bmiss bcalls ab bt biom bmq brm blk bpc bsr bsrc bsms bbs) btab).
+  assert (Ntab : ~ rblk (ff_rl bm bo oo bfi bmiss bcalls ab bt biom bmq brm blk bpc bsr bsrc bsms bbs bfa) btab).
   { apply ff_rl_not; first [exact (NT _ _ Hbm) | exact (NT _ _ S1) | exact (NT _ _ S2) | exact (NT _ _ S3)
       | exact (NT _ _ S5) | exact (NT _ _ S6) | exact (NT _ _ S7) | exact (NT _ _ S8) | exact (NT _ _ SL)
-      | exact (NT _ _ SP) | exact (NT _ _ SR) | exact (NT _ _ SRC) | exact (NT _ _ SMS) | exact (NT _ _ SBS) | congruence]. }
-  assert (Nga : ~ rblk (ff_rl bm bo oo bfi bmiss bcalls ab bt biom bmq brm blk bpc bsr bsrc bsms bbs) bga).
+      | exact (NT _ _ SP) | exact (NT _ _ SR) | exact (NT _ _ SRC) | exact (NT _ _ SMS) | exact (NT _ _ SBS) | exact (NT _ _ SFA) | congruence]. }
+  assert (Nga : ~ rblk (ff_rl bm bo oo bfi bmiss bcalls ab bt biom bmq brm blk bpc bsr bsrc bsms bbs bfa) bga).
   { pose proof (proj2 (Sy _ _ Sga)) as Gbt.
     apply ff_rl_not; first [ congruence
       | exact (symne_ids _ _ _ _ Hbm Sga eq_refl) | exact (symne_ids _ _ _ _ S1 Sga eq_refl)
@@ -115,7 +117,8 @@ Proof.
       | exact (symne_ids _ _ _ _ S7 Sga eq_refl) | exact (symne_ids _ _ _ _ S8 Sga eq_refl)
       | exact (symne_ids _ _ _ _ SL Sga eq_refl) | exact (symne_ids _ _ _ _ SP Sga eq_refl)
       | exact (symne_ids _ _ _ _ SR Sga eq_refl) | exact (symne_ids _ _ _ _ SRC Sga eq_refl)
-      | exact (symne_ids _ _ _ _ SMS Sga eq_refl) | exact (symne_ids _ _ _ _ SBS Sga eq_refl) ]. }
+      | exact (symne_ids _ _ _ _ SMS Sga eq_refl) | exact (symne_ids _ _ _ _ SBS Sga eq_refl)
+      | exact (symne_ids _ _ _ _ SFA Sga eq_refl) ]. }
 
   pose proof (anim_base_keep ge bm m m' gp _ ab bga bauc btab otab bt ot bo oo B W Ntab Nga Hnb KP OFF
                 K136 K0 K8 K144 K156) as B'.
@@ -128,7 +131,7 @@ Qed.
 (* the frame world's level cells (FfWorld.lvl_w) are globals' blocks off
    the walk's regions, so a walk's frame (unchanged outside the regions)
    keeps them *)
-Theorem lvl_w_keep : forall m m' bfi bmiss bcalls ab biom bmq brm blk bpc bsr bsrc bsms bbs bo oo bt,
+Theorem lvl_w_keep : forall m m' bfi bmiss bcalls ab biom bmq brm blk bpc bsr bsrc bsms bbs bfa bo oo bt,
   Genv.find_symbol ge surface_collision._gFindFloorIncludeSurfaceIntangible = Some bfi ->
   Genv.find_symbol ge surface_collision._gNumFindFloorMisses = Some bmiss ->
   Genv.find_symbol ge surface_collision._gNumCalls = Some bcalls ->
@@ -142,16 +145,17 @@ Theorem lvl_w_keep : forall m m' bfi bmiss bcalls ab biom bmq brm blk bpc bsr bs
   Genv.find_symbol ge audio_external._sSoundRequestCount = Some bsrc ->
   Genv.find_symbol ge audio_external._sSoundMovingSpeed = Some bsms ->
   Genv.find_symbol ge mario._gBodyStates = Some bbs ->
+  Genv.find_symbol ge mario_actions_moving._sFloorAlignMatrix = Some bfa ->
   anim_w ge bm m ->
   (forall b, lvl_sym ge b -> b <> bo /\ b <> bt) ->
   Ple (Genv.genv_next ge) (Mem.nextblock m) ->
   (forall ch b z, Plt b (Mem.nextblock m) ->
-     ~ rblk (ff_rl bm bo oo bfi bmiss bcalls ab bt biom bmq brm blk bpc bsr bsrc bsms bbs) b ->
+     ~ rblk (ff_rl bm bo oo bfi bmiss bcalls ab bt biom bmq brm blk bpc bsr bsrc bsms bbs bfa) b ->
      Mem.load ch m' b z = Mem.load ch m b z) ->
   lvl_w ge m -> lvl_w ge m'.
 Proof.
-  intros m m' bfi bmiss bcalls ab biom bmq brm blk bpc bsr bsrc bsms bbs bo oo bt
-    S1 S2 S3 S5 S6 S7 S8 SL SP SR SRC SMS SBS AW D4 Hgn OFF.
+  intros m m' bfi bmiss bcalls ab biom bmq brm blk bpc bsr bsrc bsms bbs bfa bo oo bt
+    S1 S2 S3 S5 S6 S7 S8 SL SP SR SRC SMS SBS SFA AW D4 Hgn OFF.
   destruct AW as (ab' & bga & bauc & btab & otab & bt' & ot' & mb & mo & B & _).
   pose proof B as (_ & _ & _ & _ & _ & _ & _ & _ & _ & _ & _ & _
                    & _ & _ & _ & _ & _ & _ & _ & _ & Hbm).
@@ -168,7 +172,7 @@ Proof.
               | exact (symne_ids _ _ _ _ S8 Hs eq_refl) | exact (symne_ids _ _ _ _ SL Hs eq_refl)
               | exact (symne_ids _ _ _ _ SP Hs eq_refl) | exact (symne_ids _ _ _ _ SR Hs eq_refl)
               | exact (symne_ids _ _ _ _ SRC Hs eq_refl) | exact (symne_ids _ _ _ _ SMS Hs eq_refl)
-              | exact (symne_ids _ _ _ _ SBS Hs eq_refl) ].
+              | exact (symne_ids _ _ _ _ SBS Hs eq_refl) | exact (symne_ids _ _ _ _ SFA Hs eq_refl) ].
 Qed.
 
 (* ... and any change that leaves the two globals' blocks alone *)

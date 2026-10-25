@@ -46,12 +46,32 @@
 (*     vec3s_copy / vec3f_copy are walked too (BodyFrame.v3_frame): they   *)
 (*     change only the dest block, plus their own freed `dest` frame       *)
 (*     (BodyFrame.Q2 lets memory grow by permission-less blocks).          *)
+(*   - squish_mario_model (2026-10-24): a walk of the real body whose      *)
+(*     stores are m->squishTimer (in the hole) or                          *)
+(*     m->marioObj->header.gfx.scale[i], i < 3, and whose calls are the    *)
+(*     real vec3f_set(m->marioObj->header.gfx.scale, ...) (BodyFrame.      *)
+(*     v3set_frame, walked).  The Object* temps are loaded from            *)
+(*     m->marioObj, which ffw pins to Mario's object (offset 136, Object   *)
+(*     in bounds), so every write lands in bytes 44..55 of that object:    *)
+(*     ProRows' third, optional hole (ob, oz).  No world conjunct, Phi     *)
+(*     cell (gfx.pos[1] is at 36) or floor refresh reads those bytes.      *)
+(*   - sink_mario_in_quicksand (2026-10-24): a walk of the real body       *)
+(*     (qs_row).  Since 2026-10-24 ffw pins Mario's object's               *)
+(*     gfx.throwMatrix (offset 80) to NULL or a pointer into               *)
+(*     sFloorAlignMatrix, which is ff_rl region RFA, so the store          *)
+(*     ( *throwMatrix )[3][1] -= quicksandDepth lands in a hole global      *)
+(*     (ProRows.XIDS).  The other store writes gfx.pos[1] (Phi's gfx cell, *)
+(*     offset 36) := pos[1] - quicksandDepth; wmotr_world pins             *)
+(*     quicksandDepth to +0 and budget_ok makes the cell finite, so it     *)
+(*     writes back its own value (f32_sub_zero_r).  ProRows' object window *)
+(*     is generic (ow, wl): here bytes 36..39, with hole_cells told that   *)
+(*     the gfx cell kept its value.                                        *)
 (* ======================================================================= *)
 
 From Coq Require Import ZArith List Lia Relations.
 From compcert Require Import Coqlib Maps AST Integers Floats Values Events Memory
   Globalenvs Ctypes Ctypesdefs Cop Clight ClightBigstep Linking.
-From SM64.Generated Require mario math_util camera.
+From SM64.Generated Require mario math_util camera mario_actions_moving.
 From SM64.Proofs Require Import Flying Taint ActionValue ActionValueFrame
   RealFrameValue RealFrameLinked AGates SymbolicLinking.
 From SM64.Proofs Require Import CensusV2 EngineV2Consumer RestSurface AirborneSurface.
@@ -86,7 +106,6 @@ Definition na_open : list ident :=
    mario._mario_handle_special_floors; mario._mario_process_interactions;
    mario._mario_execute_stationary_action; mario._mario_execute_moving_action;
    mario._mario_execute_cutscene_action; mario._mario_execute_object_action;
-   mario._sink_mario_in_quicksand; mario._squish_mario_model;
    mario._mario_update_hitbox_and_cap_model].
 
 (* ---------------------------------------------------------------------- *)
@@ -283,6 +302,224 @@ Proof.
   exact (cut_undef _ _ _ Hx).
 Qed.
 
+(* ---------------------------------------------------------------------- *)
+(* 5. squish_mario_model: every store is m->squishTimer (in the hole) or  *)
+(*    m->marioObj->header.gfx.scale[i], i < 3; the calls are the real     *)
+(*    vec3f_set(m->marioObj->header.gfx.scale, ...) (BodyFrame.           *)
+(*    v3set_frame).  The temps that hold an Object* are loaded from       *)
+(*    m->marioObj (ffw: &Mario's object, offset 136).                     *)
+(* ---------------------------------------------------------------------- *)
+Definition OT : list ident :=
+  [mario._t'16; mario._t'12; mario._t'9; mario._t'7; mario._t'6; mario._t'4].
+
+Lemma m_notin_OT : ~ In mario._m OT.
+Proof. intros H. vm_compute in H. repeat (destruct H as [H | H]; [discriminate H |]). exact H. Qed.
+
+(* m->marioObj *)
+Definition mo_src (a : expr) : bool :=
+  match a with
+  | Efield (Ederef (Etempvar x (Tpointer (Tstruct s1 (mk_attr false None)) (mk_attr false None)))
+                   (Tstruct s2 (mk_attr false None))) f (Tpointer _ _) =>
+      Pos.eqb x mario._m && Pos.eqb s1 mario._MarioState && Pos.eqb s2 mario._MarioState
+      && Pos.eqb f mario._marioObj
+  | _ => false
+  end.
+
+Definition sq_set_ok (id : ident) (a : expr) : bool :=
+  negb (Pos.eqb id mario._m) && (negb (existsb (Pos.eqb id) OT) || mo_src a).
+
+(* t->header.gfx.scale, t one of OT *)
+Definition sc_lv (a : expr) : bool :=
+  match a with
+  | Efield (Efield (Efield (Ederef (Etempvar x _) (Tstruct s1 (mk_attr false None))) f1
+                           (Tstruct s2 (mk_attr false None))) f2
+                   (Tstruct s3 (mk_attr false None))) f3 (Tarray (Tfloat Ctypes.F32 _) _ _) =>
+      existsb (Pos.eqb x) OT && Pos.eqb s1 mario._Object && Pos.eqb f1 mario._header
+      && Pos.eqb s2 mario._ObjectNode && Pos.eqb f2 mario._gfx
+      && Pos.eqb s3 mario._GraphNodeObject && Pos.eqb f3 mario._scale
+  | _ => false
+  end.
+
+(* t->header.gfx.scale[i] = ..., i < 3 *)
+Definition sc_store_ok (lv : expr) : bool :=
+  match lv with
+  | Ederef (Ebinop Oadd a (Econst_int i (Tint _ _ _)) _) (Tfloat Ctypes.F32 _) =>
+      sc_lv a && (Int.unsigned i <? 3)
+  | _ => false
+  end.
+
+Definition sq_store_ok (lv rhs : expr) : bool := fld_store_ok mario._m lv rhs || sc_store_ok lv.
+
+Definition sc_call (optid : option ident) (a : expr) (al : list expr) : bool :=
+  match optid, a, al with
+  | None, Evar f (Tfunction (Tpointer _ _ :: _) _ _), a1 :: _ =>
+      Pos.eqb f mario._vec3f_set && sc_lv a1
+  | _, _, _ => false
+  end.
+
+Lemma sq_chk : lw_chk sq_set_ok sq_store_ok sc_call (fn_body mario.f_squish_mario_model) = true.
+Proof. vm_compute. reflexivity. Qed.
+
+Lemma mobj_fo : mario_fo mario._MarioState mario._marioObj = Some (136, Full).
+Proof. vm_compute. reflexivity. Qed.
+Lemma hdr_fo : mario_fo mario._Object mario._header = Some (0, Full).
+Proof. vm_compute. reflexivity. Qed.
+Lemma gfx_fo : mario_fo mario._ObjectNode mario._gfx = Some (0, Full).
+Proof. vm_compute. reflexivity. Qed.
+Lemma scale_fo : mario_fo mario._GraphNodeObject mario._scale = Some (44, Full).
+Proof. vm_compute. reflexivity. Qed.
+
+Lemma dm_squish : (prog_defmap mario.prog) ! mario._squish_mario_model
+  = Some (Gfun (Internal mario.f_squish_mario_model)).
+Proof. vm_compute. reflexivity. Qed.
+Lemma dm_v3set : (prog_defmap math_util.prog) ! mario._vec3f_set
+  = Some (Gfun (Internal math_util.f_vec3f_set)).
+Proof. vm_compute. reflexivity. Qed.
+
+Lemma squish_is : is_umi mario._squish_mario_model = false
+  /\ is_fk mario._squish_mario_model = false
+  /\ is_disp mario._squish_mario_model = false.
+Proof. vm_compute. repeat split; reflexivity. Qed.
+
+Definition ot_ok (bo : block) (oo : ptrofs) (le : temp_env) : Prop :=
+  forall x p, In x OT -> le ! x = Some p -> p = Vptr bo oo \/ p = Vundef.
+
+Lemma ot_init : forall v f bo oo le1,
+  fn_params f = [(mario._m, tyMSp)] ->
+  bind_parameter_temps (fn_params f) [v] (create_undef_temps (fn_temps f)) = Some le1 ->
+  le1 ! mario._m = Some v /\ ot_ok bo oo le1.
+Proof.
+  intros v f bo oo le1 Hp Hb. rewrite Hp in Hb. cbn [bind_parameter_temps] in Hb. injection Hb as <-.
+  split; [apply PTree.gss |].
+  intros x p Hin Hx. right.
+  rewrite PTree.gso in Hx by (intros ->; exact (m_notin_OT Hin)).
+  exact (cut_undef _ _ _ Hx).
+Qed.
+
+(* ---------------------------------------------------------------------- *)
+(* 6. sink_mario_in_quicksand: its stores are                             *)
+(*    ( *throwMatrix )[3][1] (into sFloorAlignMatrix: ffw pins Mario's      *)
+(*    throwMatrix to NULL or that block) and o->header.gfx.pos[1] :=      *)
+(*    pos[1] - m->quicksandDepth, which rewrites Phi's gfx cell with its  *)
+(*    own value (quicksandDepth is +0 in WMotR, wmotr_world, and x - 0 =  *)
+(*    x on a finite binary32).                                            *)
+(* ---------------------------------------------------------------------- *)
+Definition QT : list ident := [mario._t'3; mario._t'4; mario._t'5].
+
+(* o->header.gfx.<f> with a type matched by the caller *)
+Definition og_fld (a : expr) : bool :=
+  match a with
+  | Efield (Efield (Ederef (Etempvar x _) (Tstruct s1 (mk_attr false None))) f1
+                   (Tstruct s2 (mk_attr false None))) f2
+           (Tstruct s3 (mk_attr false None)) =>
+      Pos.eqb x mario._o && Pos.eqb s1 mario._Object && Pos.eqb f1 mario._header
+      && Pos.eqb s2 mario._ObjectNode && Pos.eqb f2 mario._gfx
+      && Pos.eqb s3 mario._GraphNodeObject
+  | _ => false
+  end.
+
+(* o->header.gfx.throwMatrix *)
+Definition tm_src (a : expr) : bool :=
+  match a with
+  | Efield g f (Tpointer _ _) => Pos.eqb f mario._throwMatrix && og_fld g
+  | _ => false
+  end.
+
+(* &o->header.gfx.pos[1], and its cell *)
+Definition gy_x (a : expr) : bool :=
+  match a with
+  | Ebinop Oadd (Efield g f (Tarray (Tfloat Ctypes.F32 _) _ _)) (Econst_int i (Tint _ _ _)) _ =>
+      Pos.eqb f mario._pos && og_fld g && Int.eq i Int.one
+  | _ => false
+  end.
+Definition gy_lv (a : expr) : bool :=
+  match a with
+  | Ederef x (Tfloat Ctypes.F32 _) => gy_x x
+  | _ => false
+  end.
+
+(* m->quicksandDepth *)
+Definition qd_src (a : expr) : bool :=
+  match a with
+  | Efield (Ederef (Etempvar x (Tpointer (Tstruct s1 (mk_attr false None)) (mk_attr false None)))
+                   (Tstruct s2 (mk_attr false None))) f (Tfloat Ctypes.F32 _) =>
+      Pos.eqb x mario._m && Pos.eqb s1 mario._MarioState && Pos.eqb s2 mario._MarioState
+      && Pos.eqb f mario._quicksandDepth
+  | _ => false
+  end.
+
+Definition qs_set_ok (id : ident) (a : expr) : bool :=
+  negb (Pos.eqb id mario._m) &&
+  (if Pos.eqb id mario._o then mo_src a
+   else if existsb (Pos.eqb id) QT then tm_src a
+   else if Pos.eqb id mario._t'1 then gy_lv a
+   else if Pos.eqb id mario._t'2 then qd_src a
+   else true).
+
+(* ( *t )[i][j], t one of QT *)
+Definition tm_store (lv : expr) : bool :=
+  match lv with
+  | Ederef (Ebinop Oadd (Ederef (Ebinop Oadd (Ederef (Etempvar x _) (Tarray _ _ _))
+                                        (Econst_int _ (Tint _ _ _)) _) (Tarray _ _ _))
+                  (Econst_int _ (Tint _ _ _)) _) (Tfloat Ctypes.F32 _) =>
+      existsb (Pos.eqb x) QT
+  | _ => false
+  end.
+
+(* pos[1] = t'1 - t'2 *)
+Definition gy_store (lv rhs : expr) : bool :=
+  gy_lv lv &&
+  match rhs with
+  | Ebinop Osub (Etempvar x1 (Tfloat Ctypes.F32 _)) (Etempvar x2 (Tfloat Ctypes.F32 _)) (Tfloat Ctypes.F32 _) =>
+      Pos.eqb x1 mario._t'1 && Pos.eqb x2 mario._t'2
+  | _ => false
+  end.
+
+Definition qs_store_ok (lv rhs : expr) : bool := tm_store lv || gy_store lv rhs.
+
+Definition qs_call (optid : option ident) (a : expr) (al : list expr) : bool := false.
+
+Lemma qs_chk : lw_chk qs_set_ok qs_store_ok qs_call (fn_body mario.f_sink_mario_in_quicksand) = true.
+Proof. vm_compute. reflexivity. Qed.
+
+Lemma throw_fo : mario_fo mario._GraphNodeObject mario._throwMatrix = Some (80, Full).
+Proof. vm_compute. reflexivity. Qed.
+Lemma pos_fo : mario_fo mario._GraphNodeObject mario._pos = Some (32, Full).
+Proof. vm_compute. reflexivity. Qed.
+Lemma qsd_fo : mario_fo mario._MarioState mario._quicksandDepth = Some (192, Full).
+Proof. vm_compute. reflexivity. Qed.
+
+Lemma dm_qs : (prog_defmap mario.prog) ! mario._sink_mario_in_quicksand
+  = Some (Gfun (Internal mario.f_sink_mario_in_quicksand)).
+Proof. vm_compute. reflexivity. Qed.
+
+Lemma qs_is : is_umi mario._sink_mario_in_quicksand = false
+  /\ is_fk mario._sink_mario_in_quicksand = false
+  /\ is_disp mario._sink_mario_in_quicksand = false.
+Proof. vm_compute. repeat split; reflexivity. Qed.
+
+(* x - (+0) = x on a finite binary32 *)
+Lemma f32_sub_zero_r : forall x, F32 x = true -> Float32.sub x Float32.zero = x.
+Proof.
+  intros [s | s | s pl Hpl | s mx ex Hx] Fx; try discriminate Fx; [destruct s |]; reflexivity.
+Qed.
+
+(* pointer + int keeps the block *)
+Lemma add_blk : forall (ce : composite_env) b o t k a1 n sz sg a' mm v,
+  sem_binary_operation ce Oadd (Vptr b o) (Tarray t k a1) (Vint n) (Tint sz sg a') mm = Some v ->
+  exists o', v = Vptr b o'.
+Proof. intros. destruct sz; cbn in H; injection H as <-; eexists; reflexivity. Qed.
+
+Definition qt_ok (bfa : block) (le : temp_env) : Prop :=
+  forall x p, In x QT -> le ! x = Some p -> p = Vint Int.zero \/ (exists o, p = Vptr bfa o) \/ p = Vundef.
+
+Definition qs_P (v : val) (bo : block) (oo : ptrofs) (bfa : block) (gy : float32) (le : temp_env) : Prop :=
+  le ! mario._m = Some v
+  /\ (forall p, le ! mario._o = Some p -> p = Vptr bo oo \/ p = Vundef)
+  /\ qt_ok bfa le
+  /\ (forall p, le ! mario._t'1 = Some p -> p = Vsingle gy \/ p = Vundef)
+  /\ (forall p, le ! mario._t'2 = Some p -> p = Vsingle Float32.zero \/ p = Vundef).
+
 Section NA.
   Variable lp : Clight.program.
   Hypothesis H12 : linked12 lp.
@@ -422,7 +659,7 @@ Section NA.
     pose proof (marg_of_gms v m Hok Hgv) as Hmarg.
     pose proof Hw as (_ & _ & _ & _ & _ & Hf & _ & Haw & _).
     pose proof Hf as (Hgn & EX & _).
-    destruct EX as (gp & bfi & bmiss & bcalls & bsin & ab & biom & bmq & brm & blk & bpc & bsr & bsrc & bsms & bbs & bo & oo & bt & ot & fl & ar & inp & ctl &
+    destruct EX as (gp & bfi & bmiss & bcalls & bsin & ab & biom & bmq & brm & blk & bpc & bsr & bsrc & bsms & bbs & bfa & bo & oo & bt & ot & fl & ar & inp & ctl &
                     HC & HS & HM & S1 & S2 & S3 & S4 & S5 & S6 & S7 & S8 & SL & SP & SR & SRC & SMS & _).
     assert (HQ : Qrel bm bsr bsrc m m').
     { refine (lw_body_frame ge (Qrel bm bsr bsrc m) mario.f_update_mario_health
@@ -471,8 +708,8 @@ Section NA.
     assert (XR : xsym lp bsr) by (exists AX._sSoundRequests; split; [left; reflexivity | exact SR]).
     assert (XRC : xsym lp bsrc) by (exists AX._sSoundRequestCount; split; [right; left; reflexivity | exact SRC]).
     assert (NBle : Ple (Mem.nextblock m) (Mem.nextblock m')) by (rewrite NB; apply Ple_refl).
-    split; [eapply hole_fworld with (bsr := bsr) (bsrc := bsrc); eassumption |].
-    split; [exists c; split; [eapply hole_cells with (bsr := bsr) (bsrc := bsrc); eassumption | apply rt_refl] |].
+    split; [eapply hole2_fworld with (bsr := bsr) (bsrc := bsrc); eassumption |].
+    split; [exists c; split; [eapply hole2_cells with (bsr := bsr) (bsrc := bsrc); eassumption | apply rt_refl] |].
     destruct health_is as (Iu & Ik & Id).
     unfold post_of. rewrite Iu, Ik, Id. exact I.
   Qed.
@@ -665,17 +902,17 @@ Section NA.
       by (exists mario._gBodyStates; split; [right; right; left; reflexivity | exact SBS]).
     assert (XP : xsym lp bpc)
       by (exists camera._gPlayerCameraState; split; [right; right; right; left; reflexivity | exact SP]).
-    split; [eapply hole_fworld with (bsr := bbs) (bsrc := bpc); eassumption |].
-    eapply hole_cells with (bsr := bbs) (bsrc := bpc); eassumption.
+    split; [eapply hole2_fworld with (bsr := bbs) (bsrc := bpc); eassumption |].
+    eapply hole2_cells with (bsr := bbs) (bsrc := bpc); eassumption.
   Qed.
 
   Ltac ffw_open Hw :=
     let Hf := fresh "Hf" in let Haw := fresh "Haw" in
     pose proof Hw as (_ & _ & _ & _ & _ & Hf & _ & Haw & _);
     pose proof Hf as (Hgn & EX & _);
-    destruct EX as (gp & bfi & bmiss & bcalls & bsin & ab & biom & bmq & brm & blk & bpc & bsr & bsrc & bsms & bbs & bo & oo & bt & ot & fl & ar & inp & ctl &
-                    HC & HS & HM & S1 & S2 & S3 & S4 & S5 & S6 & S7 & S8 & SL & SP & SR & SRC & SMS & SBS & Lo & Soo & La & Lb & Sot & D1 & D2 & D3 & D4 &
-                    W & Lf & Wf & Wc0 & Lar & War & Li & Ai & Lc & Wc & Co & LPC & LBS);
+    destruct EX as (gp & bfi & bmiss & bcalls & bsin & ab & biom & bmq & brm & blk & bpc & bsr & bsrc & bsms & bbs & bfa & bo & oo & bt & ot & fl & ar & inp & ctl &
+                    HC & HS & HM & S1 & S2 & S3 & S4 & S5 & S6 & S7 & S8 & SL & SP & SR & SRC & SMS & SBS & SFA & Lo & Soo & La & Lb & Sot & D1 & D2 & D3 & D4 &
+                    W & Lf & Wf & Wc0 & Lar & War & Li & Ai & Lc & Wc & Co & LPC & LBS & LTM);
     pose proof Haw as (ab' & bga & bauc & btab & otab & bt' & ot' & mb' & mo' & B & _);
     pose proof B as (_ & _ & _ & _ & _ & _ & _ & _ & _ & _ & _ & _
                      & _ & _ & _ & _ & _ & _ & _ & _ & Hbm0).
@@ -753,6 +990,632 @@ Section NA.
   Qed.
 
   (* ==================================================================== *)
+  (* squish_mario_model: Q2 over the hole and Mario's object's gfx.scale. *)
+  (* ==================================================================== *)
+  Lemma sc_addr : forall le m1 a v bo oo,
+    sc_lv a = true -> ot_ok bo oo le -> Ptrofs.unsigned oo + 56 <= Ptrofs.modulus ->
+    eval_expr ge empty_env le m1 a v ->
+    exists o', v = Vptr bo o' /\ Ptrofs.unsigned o' = Ptrofs.unsigned oo + 44.
+  Proof.
+    intros le m1 a v bo oo Hs Ht Hb Ea.
+    unfold sc_lv in Hs.
+    repeat match type of Hs with
+    | match ?x with _ => _ end = true => destruct x; try discriminate Hs
+    end.
+    repeat match goal with H : _ && _ = true |- _ => apply andb_true_iff in H as (? & ?) end.
+    repeat match goal with H : Pos.eqb _ _ = true |- _ => apply Pos.eqb_eq in H; subst end.
+    match goal with H : existsb _ OT = true |- _ =>
+      apply existsb_exists in H as (x' & Hin & Ex); apply Pos.eqb_eq in Ex; subst x' end.
+    destruct (ev_arr ge _ _ _ _ _ _ _ _ _ Ea) as (loc & ofs & bf & L3 & ->).
+    destruct (lv_field lp (linked12_LO_mario lp H12) _ _ _ _ _ _ _ _ _ _ L3 eq_refl scale_fo)
+      as (o0 & E0 & -> & _).
+    destruct (ex_agg lp _ _ _ _ _ E0 (or_intror eq_refl) I) as (bf0 & L2).
+    destruct (lv_field lp (linked12_LO_mario lp H12) _ _ _ _ _ _ _ _ _ _ L2 eq_refl gfx_fo)
+      as (o1 & E1 & -> & _).
+    destruct (ex_agg lp _ _ _ _ _ E1 (or_intror eq_refl) I) as (bf1 & L1).
+    destruct (lv_field lp (linked12_LO_mario lp H12) _ _ _ _ _ _ _ _ _ _ L1 eq_refl hdr_fo)
+      as (o2 & E2 & -> & _).
+    destruct (ex_agg lp _ _ _ _ _ E2 (or_intror eq_refl) I) as (bf2 & L0).
+    apply eval_lvalue_Ederef_base, eval_expr_Etempvar_val in L0.
+    destruct (Ht _ _ Hin L0) as [E | E]; [injection E as -> -> | discriminate E].
+    eexists; split; [reflexivity |]. cbn [fst].
+    change (Ptrofs.repr 0) with Ptrofs.zero. rewrite !Ptrofs.add_zero.
+    pose proof (Ptrofs.unsigned_range oo) as Ro.
+    rewrite Ptrofs.add_unsigned, (Ptrofs.unsigned_repr 44) by (change Ptrofs.max_unsigned with 4294967295; lia).
+    apply Ptrofs.unsigned_repr. unfold Ptrofs.max_unsigned. lia.
+  Qed.
+
+  Definition PHo (bo : block) (oo : ptrofs) (b : block) (z : Z) : Prop :=
+    ~ (b = bo /\ Ptrofs.unsigned oo + 44 <= z < Ptrofs.unsigned oo + 56).
+
+  Lemma sc_step : forall bo oo lv rhs le m1 t le' m2 out,
+    sc_store_ok lv = true -> ot_ok bo oo le -> Ptrofs.unsigned oo + 56 <= Ptrofs.modulus ->
+    exec_stmt function_entry2 ge empty_env le m1 (Sassign lv rhs) t le' m2 out ->
+    Q2 (PHo bo oo) m1 m2.
+  Proof.
+    intros bo oo lv rhs le m1 t le' m2 out Hs Ht Hb Hx.
+    unfold sc_store_ok in Hs.
+    repeat match type of Hs with
+    | match ?x with _ => _ end = true => destruct x; try discriminate Hs
+    end.
+    apply andb_true_iff in Hs as (Hs & Hi). apply Z.ltb_lt in Hi.
+    inv Hx.
+    match goal with Ha : assign_loc _ _ _ _ _ _ _ _ |- _ => rename Ha into Hal end.
+    match goal with L : eval_lvalue _ _ _ _ (Ederef _ _) _ _ ?bf |- _ =>
+      assert (Ebf : bf = Full) by (inv L; reflexivity); subst bf;
+      apply eval_lvalue_Ederef_base in L; apply eval_expr_Ebinop_inv in L as (w1 & w2 & E1 & E2 & Sb) end.
+    apply eval_expr_Econst_int_val in E2. subst w2.
+    destruct (sc_addr _ _ _ _ _ _ Hs Ht Hb E1) as (o' & -> & Eo').
+    cbn [typeof] in Sb.
+    match type of Sb with sem_binary_operation _ _ _ ?t1 _ _ _ = _ =>
+      let T := fresh "T" in
+      assert (T : exists a k a1, t1 = Tarray (Tfloat Ctypes.F32 a) k a1)
+        by (unfold sc_lv in Hs;
+            repeat match type of Hs with
+            | match ?x with _ => _ end = true => destruct x; try discriminate Hs
+            end; cbn [typeof]; eauto);
+      destruct T as (aa0 & kk0 & aa1 & ET); rewrite ET in Sb end.
+    destruct (add_af _ _ _ _ _ _ _ _ _ _ _ _ _ Sb Hi ltac:(lia)) as (-> & Eo).
+    inv Hal;
+      match goal with Hm : access_mode _ = _ |- _ => cbn in Hm; try discriminate Hm end.
+    match goal with Hm : By_value _ = By_value _, Hs : Mem.storev _ _ _ _ = Some _ |- _ =>
+      injection Hm as <-; cbn [Mem.storev] in Hs; rename Hs into Hst end.
+    apply (st_q2 _ _ _ _ _ _ _ Hst).
+    intros z Hz Hn. apply Hn. rewrite Eo, Eo' in Hz. cbn [size_chunk] in Hz.
+    pose proof (Int.unsigned_range i). split; [reflexivity | lia].
+  Qed.
+
+  Lemma sc_callstep : forall bo oo optid a al le m1 t le' m2 out,
+    sc_call optid a al = true -> ot_ok bo oo le -> Ptrofs.unsigned oo + 56 <= Ptrofs.modulus ->
+    Plt bo (Mem.nextblock m1) ->
+    exec_stmt function_entry2 ge empty_env le m1 (Scall optid a al) t le' m2 out ->
+    Q2 (PHo bo oo) m1 m2 /\ le' = le.
+  Proof.
+    intros bo oo optid a al le m1 t le' m2 out Hok Ht Hb Vb Hx.
+    unfold sc_call in Hok.
+    repeat match type of Hok with
+    | match ?x with _ => _ end = true => destruct x; try discriminate Hok
+    end.
+    apply andb_true_iff in Hok as (Hf & Hs). apply Pos.eqb_eq in Hf. subst.
+    inv Hx.
+    match goal with Hc : classify_fun _ = fun_case_f _ _ _ |- _ =>
+      cbn in Hc; injection Hc as <- <- <- end.
+    match goal with He : eval_expr _ _ _ _ (Evar _ _) _ |- _ =>
+      destruct (ev_fun _ _ _ _ _ _ _ _ He) as (b & Hsy & ->) end.
+    match goal with Hl : eval_exprlist _ _ _ _ _ _ _ |- _ => inv Hl end.
+    match goal with Hc : sem_cast _ (typeof ?a1) _ _ = Some _ |- _ => rename Hc into Hca end.
+    match goal with Ea : eval_expr _ _ _ _ ?a1 _, Hc : sem_cast _ (typeof ?a1) _ _ = Some _ |- _ =>
+      rename Ea into Ea1 end.
+    destruct (sc_addr _ _ _ _ _ _ Hs Ht Hb Ea1) as (o' & -> & Eo').
+    match type of Hca with sem_cast _ (typeof ?a1) _ _ = _ =>
+      assert (T : exists tt0 nn0 at0, typeof a1 = Tarray tt0 nn0 at0)
+        by (unfold sc_lv in Hs;
+            repeat match type of Hs with
+            | match ?x with _ => _ end = true => destruct x; try discriminate Hs
+            end; cbn; eauto) end.
+    destruct T as (tt0 & nn0 & at0 & ET). rewrite ET in Hca. apply cast_ap in Hca. subst.
+    match goal with Hff : Genv.find_funct _ _ = Some ?fd, Hev : eval_funcall _ _ _ ?fd _ _ _ _ |- _ =>
+      rename Hev into Hcall; rename Hff into Hff0 end.
+    pose proof (resolve_pin_fd lp _ _ _ _ (linked12_LO_math lp H12) dm_v3set (ex_intro _ b (conj Hsy Hff0))) as Efd.
+    rewrite Efd in Hcall.
+    split; [| reflexivity].
+    refine (Q2_mono _ _ _ _ _ (v3set_frame ge _ _ _ _ _ _ _ Hcall Vb ltac:(lia))).
+    intros b' z H (E & R). apply H. split; [exact E | lia].
+  Qed.
+
+  Lemma sq_set : forall (Kx : block -> Z -> Prop) v bo oo m0 id a le m1 v1,
+    sq_set_ok id a = true -> le ! mario._m = Some v /\ ot_ok bo oo le ->
+    Q2 Kx m0 m1 -> (forall z, 136 <= z < 140 -> Kx bm z) -> marg_ok bm [v] ->
+    Mem.load Mint32 m0 bm 136 = Some (Vptr bo oo) ->
+    eval_expr ge empty_env le m1 a v1 ->
+    (PTree.set id v1 le) ! mario._m = Some v /\ ot_ok bo oo (PTree.set id v1 le).
+  Proof.
+    intros Kx v bo oo m0 id a le m1 v1 Hs (Hm & Htp) HQ Hk Hmarg LO Ea.
+    unfold sq_set_ok in Hs. apply andb_true_iff in Hs as (Hs1 & Hs2).
+    apply negb_true_iff, Pos.eqb_neq in Hs1.
+    split; [rewrite PTree.gso by congruence; exact Hm |].
+    intros x p Hin Hx.
+    destruct (peq x id) as [-> | Nx].
+    2: { rewrite PTree.gso in Hx by exact Nx. exact (Htp x p Hin Hx). }
+    rewrite PTree.gss in Hx. injection Hx as <-.
+    assert (T : existsb (Pos.eqb id) OT = true)
+      by (apply existsb_exists; exists id; split; [exact Hin | apply Pos.eqb_refl]).
+    rewrite T in Hs2. cbn [negb orb] in Hs2.
+    unfold mo_src in Hs2.
+    repeat match type of Hs2 with
+    | match ?x with _ => _ end = true => destruct x; try discriminate Hs2
+    end.
+    repeat rewrite andb_true_iff in Hs2. destruct Hs2 as (((E1 & E2) & E3) & E4).
+    apply Pos.eqb_eq in E1, E2, E3, E4. subst.
+    match type of Ea with eval_expr _ _ _ _ (Efield _ _ ?ty) _ =>
+      destruct (ev_fld lp H12 bm mario._m le m1 v mario._marioObj ty Mint32 136 v1 Hm Hmarg
+                  mobj_fo ltac:(lia) eq_refl Ea) as (_ & L1) end.
+    rewrite (Q2_load _ _ _ HQ) in L1.
+    - rewrite LO in L1. injection L1 as <-. left. reflexivity.
+    - intros z Hi. cbn [size_chunk] in Hi. apply Hk. lia.
+  Qed.
+
+  Lemma squish_row : forall fd v,
+    resolves lp mario._squish_mario_model fd ->
+    seg_okR lp bm MWF fd [v] (pre_of lp bm mario._squish_mario_model v)
+      (post_of bm mario._squish_mario_model).
+  Proof.
+    intros fd v Hr.
+    pose proof (resolve_pin_fd lp _ _ _ _ (linked12_LO_mario lp H12) dm_squish Hr) as ->.
+    intros m t m' vr c Hok Hw (Hgv & _) Hok' Hc Hb Hev.
+    pose proof (marg_of_gms v m Hok Hgv) as Hmarg.
+    ffw_open Hw.
+    assert (NB1 : bm <> bbs) by exact (AnimKeep.symne_ids ge _ _ _ _ Hbm0 SBS eq_refl).
+    assert (NB2 : bm <> bpc) by exact (AnimKeep.symne_ids ge _ _ _ _ Hbm0 SP eq_refl).
+    assert (NBO : bm <> bo) by exact (not_eq_sym D1).
+    assert (LO : Mem.load Mint32 m bm 136 = Some (Vptr bo oo)) by exact Lo.
+    assert (Hb56 : Ptrofs.unsigned oo + 56 <= Ptrofs.modulus) by (unfold SZ_OBJECT in Soo; lia).
+    assert (Vbo : Plt bo (Mem.nextblock m)).
+    { destruct Hc as (_ & _ & _ & _ & _ & _ & bo' & oo' & H7 & H8).
+      assert (H7' : Mem.load Mint32 m bm 136 = Some (Vptr bo' oo')) by exact H7.
+      rewrite LO in H7'. injection H7' as <- <-.
+      exact (Mem.valid_access_valid_block _ _ _ _
+               (Mem.valid_access_implies _ _ _ _ _ _ (Mem.load_valid_access _ _ _ _ _ H8) (perm_any_N _))). }
+    set (K := fun b z => PH bm bbs bpc b z /\ PHo bo oo b z).
+    assert (HQ : Q2 K m m').
+    { refine (lw_body_frame ge (Q2 K m) mario.f_squish_mario_model
+                (fun le => le ! mario._m = Some v /\ ot_ok bo oo le)
+                sq_set_ok sq_store_ok sc_call eq_refl sq_chk
+                _ _ _ m [v] t m' vr Hev _ (Q2_refl _ m)).
+      - intros id a le m1 v1 Hs Hp HQ1 Ea.
+        refine (sq_set K v bo oo m id a le m1 v1 Hs Hp HQ1 _ Hmarg LO Ea).
+        intros z Hz. split.
+        + split; [exact NB1 | split; [exact NB2 |]]. intros (_ & H). lia.
+        + intros (E & _). exact (NBO E).
+      - intros lv rhs le m1 t1 le1 m2 out Hs (Hp & Ht) Hx HQ1.
+        apply (Q2_trans _ _ _ _ HQ1).
+        apply orb_true_iff in Hs as [Hs | Hs].
+        + apply (Q2_mono (PH bm bbs bpc)); [intros b z (KA & _); exact KA |].
+          exact (fld_step v lv rhs le m1 t1 le1 m2 out bbs bpc Hs Hp Hmarg Hx).
+        + apply (Q2_mono (PHo bo oo)); [intros b z (_ & KB); exact KB |].
+          exact (sc_step bo oo lv rhs le m1 t1 le1 m2 out Hs Ht Hb56 Hx).
+      - intros optid a al le m1 t1 le1 m2 out Hs (Hp & Ht) Hx HQ1.
+        assert (Nle : Ple (Mem.nextblock m) (Mem.nextblock m1)) by exact (proj1 (proj2 HQ1)).
+        destruct (sc_callstep bo oo optid a al le m1 t1 le1 m2 out Hs Ht Hb56
+                    (Plt_Ple_trans _ _ _ Vbo Nle) Hx) as (HQ2 & ->).
+        split; [| exact (conj Hp Ht)].
+        apply (Q2_trans _ _ _ _ HQ1).
+        apply (Q2_mono (PHo bo oo)); [intros b z (_ & KB); exact KB | exact HQ2].
+      - intros le1 Hb1. exact (ot_init v mario.f_squish_mario_model bo oo le1 eq_refl Hb1). }
+    assert (LD : forall ch b z, b <> bbs -> b <> bpc -> (b <> bm \/ hz z (size_chunk ch)) ->
+               (b <> bo \/ z + size_chunk ch <= Ptrofs.unsigned oo + 44 \/ Ptrofs.unsigned oo + 44 + 12 <= z) ->
+               Mem.load ch m' b z = Mem.load ch m b z).
+    { intros ch b z N1 N2 Hz Ho. apply (Q2_load _ _ _ HQ). intros j Hi.
+      split; [split; [exact N1 | split; [exact N2 |]] |].
+      - intros (-> & Hi'). destruct Hz as [Hz | Hz]; [exact (Hz eq_refl) |].
+        unfold hz in Hz. clear - Hi Hi' Hz. lia.
+      - intros (-> & Hj). destruct Ho as [Ho | Ho]; [exact (Ho eq_refl) | clear - Hi Hj Ho; lia]. }
+    assert (PM : forall b o k p, Mem.perm m b o k p -> Mem.perm m' b o k p) by exact (Q2_perm _ _ _ HQ).
+    assert (NBle : Ple (Mem.nextblock m) (Mem.nextblock m')) by exact (proj1 (proj2 HQ)).
+    assert (CLK : forall gp, closed_by gp m -> syms_mapped ge gp -> gp bm <> None ->
+      exists gp', (forall b, gp b <> None -> gp' b <> None) /\ closed_by gp' m' /\ syms_mapped ge gp').
+    { intros gp0 HC0 HS0 HM0.
+      assert (Hvok : Forall (vok gp0) [v]).
+      { constructor; [| constructor].
+        destruct v; try (constructor; fail).
+        destruct Hmarg as [-> ->]. apply vok_mk_ptr. exact (closed_mapped_flat _ _ _ HC0 HM0). }
+      destruct (funcall_closed ge m _ _ t m' vr gp0 Hev HC0 HS0 Hvok) as (gp' & I & HC' & HS' & _).
+      exists gp'. split; [| exact (conj HC' HS')].
+      intros b Hb'. destruct (gp0 b) as [[b1 d]|] eqn:E0; [| congruence].
+      rewrite (I _ _ _ E0). discriminate. }
+    assert (XB : xsym lp bbs)
+      by (exists mario._gBodyStates; split; [right; right; left; reflexivity | exact SBS]).
+    assert (XP : xsym lp bpc)
+      by (exists camera._gPlayerCameraState; split; [right; right; right; left; reflexivity | exact SP]).
+    assert (OBJ : bo = bbs \/ exists oo', Mem.load Mint32 m bm MARIOOBJ_OFF = Some (Vptr bo oo')
+                                          /\ Ptrofs.unsigned oo + 44 = Ptrofs.unsigned oo' + 44)
+      by (right; exists oo; split; [exact LO | reflexivity]).
+    assert (OWL : 36 <= 44 /\ 0 <= 12 /\ 44 + 12 <= 56) by lia.
+    assert (HG40 : 40 <= 44) by lia.
+    split; [eapply hole_fworld with (m := m) (m' := m') (bsr := bbs) (bsrc := bpc) (ob := bo)
+                                    (oz := Ptrofs.unsigned oo + 44) (ow := 44) (wl := 12); eassumption |].
+    split; [exists c; split; [eapply hole_cells with (m := m) (m' := m') (bsr := bbs) (bsrc := bpc) (ob := bo)
+                                    (oz := Ptrofs.unsigned oo + 44) (ow := 44) (wl := 12);
+                              first [exact (or_introl HG40) | eassumption] | apply rt_refl] |].
+    destruct squish_is as (Iu & Ik & Id).
+    unfold post_of. rewrite Iu, Ik, Id. exact I.
+  Qed.
+
+
+  (* ==================================================================== *)
+  (* sink_mario_in_quicksand: Q2 over sFloorAlignMatrix and Phi's gfx     *)
+  (* cell, which the body rewrites with its own value.                    *)
+  (* ==================================================================== *)
+  Ltac nid := let E := fresh "E" in intro E; cbv in E; discriminate E.
+
+  Lemma add_u : forall oo d, 0 <= d -> Ptrofs.unsigned oo + d <= Ptrofs.max_unsigned ->
+    Ptrofs.unsigned (Ptrofs.add oo (Ptrofs.repr d)) = Ptrofs.unsigned oo + d.
+  Proof.
+    intros oo d H0 H1. pose proof (Ptrofs.unsigned_range oo) as Ro.
+    unfold Ptrofs.add. rewrite (Ptrofs.unsigned_repr d) by lia. apply Ptrofs.unsigned_repr. lia.
+  Qed.
+
+  Lemma ev_pfld : forall le m a f t a1 v,
+    eval_expr ge empty_env le m (Efield a f (Tpointer t a1)) v ->
+    exists loc ofs, eval_lvalue ge empty_env le m (Efield a f (Tpointer t a1)) loc ofs Full
+      /\ Mem.load Mint32 m loc (Ptrofs.unsigned ofs) = Some v.
+  Proof.
+    intros le m a f t a1 v H. inv H.
+    match goal with Hd : deref_loc _ _ _ _ _ _ |- _ => inv Hd end;
+      try match goal with Ha : access_mode _ = _ |- _ => cbn in Ha; discriminate Ha end;
+      try match goal with Hb : load_bitfield _ _ _ _ _ _ _ _ |- _ => inv Hb end.
+    match goal with Ha : access_mode _ = By_value _ |- _ => cbn in Ha; injection Ha as <- end.
+    do 2 eexists. split; [eassumption | assumption].
+  Qed.
+
+  Lemma ev_fderef : forall le m a a1 v,
+    eval_expr ge empty_env le m (Ederef a (Tfloat Ctypes.F32 a1)) v ->
+    exists loc ofs, eval_expr ge empty_env le m a (Vptr loc ofs)
+      /\ Mem.load Mfloat32 m loc (Ptrofs.unsigned ofs) = Some v.
+  Proof.
+    intros le m a a1 v H. inv H.
+    match goal with Hd : deref_loc _ _ _ _ _ _ |- _ => inv Hd end;
+      try match goal with Ha : access_mode _ = _ |- _ => cbn in Ha; discriminate Ha end;
+      try match goal with Hb : load_bitfield _ _ _ _ _ _ _ _ |- _ => inv Hb end.
+    match goal with Ha : access_mode _ = By_value _ |- _ => cbn in Ha; injection Ha as <- end.
+    match goal with Hl : eval_lvalue _ _ _ _ (Ederef _ _) _ _ _ |- _ =>
+      apply eval_lvalue_Ederef_base in Hl end.
+    do 2 eexists. split; [eassumption | assumption].
+  Qed.
+
+  Lemma ev_aderef : forall le m a t n a1 v,
+    eval_expr ge empty_env le m (Ederef a (Tarray t n a1)) v ->
+    exists loc ofs, eval_expr ge empty_env le m a (Vptr loc ofs) /\ v = Vptr loc ofs.
+  Proof.
+    intros le m a t n a1 v H. inv H.
+    match goal with Hd : deref_loc _ _ _ _ _ _ |- _ => inv Hd end;
+      try match goal with Ha : access_mode _ = _ |- _ => cbn in Ha; discriminate Ha end;
+      try match goal with Hb : load_bitfield _ _ _ _ _ _ _ _ |- _ => inv Hb end.
+    match goal with Hl : eval_lvalue _ _ _ _ (Ederef _ _) _ _ _ |- _ =>
+      apply eval_lvalue_Ederef_base in Hl end.
+    do 2 eexists. split; [eassumption | reflexivity].
+  Qed.
+
+  (* o->header.gfx.<f>, o = Mario's object *)
+  Lemma og_addr : forall le m g f ty loc ofs bf dz dbf bo oo,
+    og_fld g = true -> (forall p, le ! mario._o = Some p -> p = Vptr bo oo \/ p = Vundef) ->
+    mario_fo mario._GraphNodeObject f = Some (dz, dbf) ->
+    eval_lvalue ge empty_env le m (Efield g f ty) loc ofs bf ->
+    loc = bo /\ ofs = Ptrofs.add oo (Ptrofs.repr dz) /\ bf = dbf.
+  Proof.
+    intros le m g f ty loc ofs bf dz dbf bo oo Hg Ho Hd L3.
+    unfold og_fld in Hg.
+    repeat match type of Hg with
+    | match ?x with _ => _ end = true => destruct x; try discriminate Hg
+    end.
+    repeat match goal with H : _ && _ = true |- _ => apply andb_true_iff in H as (? & ?) end.
+    repeat match goal with H : Pos.eqb _ _ = true |- _ => apply Pos.eqb_eq in H; subst end.
+    destruct (lv_field lp (linked12_LO_mario lp H12) _ _ _ _ _ _ _ _ _ _ L3 eq_refl Hd)
+      as (o0 & E0 & -> & ->).
+    destruct (ex_agg lp _ _ _ _ _ E0 (or_intror eq_refl) I) as (bf0 & L2).
+    destruct (lv_field lp (linked12_LO_mario lp H12) _ _ _ _ _ _ _ _ _ _ L2 eq_refl gfx_fo)
+      as (o1 & E1 & -> & _).
+    destruct (ex_agg lp _ _ _ _ _ E1 (or_intror eq_refl) I) as (bf1 & L1).
+    destruct (lv_field lp (linked12_LO_mario lp H12) _ _ _ _ _ _ _ _ _ _ L1 eq_refl hdr_fo)
+      as (o2 & E2 & -> & _).
+    destruct (ex_agg lp _ _ _ _ _ E2 (or_intror eq_refl) I) as (bf2 & L0).
+    apply eval_lvalue_Ederef_base, eval_expr_Etempvar_val in L0.
+    destruct (Ho _ L0) as [E | E]; [injection E as -> -> | discriminate E].
+    split; [reflexivity |]. split; [| reflexivity]. cbn [fst].
+    change (Ptrofs.repr 0) with Ptrofs.zero. rewrite !Ptrofs.add_zero. reflexivity.
+  Qed.
+
+  (* o->header.gfx.throwMatrix's value is Mario's object's cell 80 *)
+  Lemma tm_val : forall le m a v bo oo,
+    tm_src a = true -> (forall p, le ! mario._o = Some p -> p = Vptr bo oo \/ p = Vundef) ->
+    Ptrofs.unsigned oo + 84 <= Ptrofs.modulus ->
+    eval_expr ge empty_env le m a v -> Mem.load Mint32 m bo (Ptrofs.unsigned oo + 80) = Some v.
+  Proof.
+    intros le m a v bo oo Hs Ho Hb Ea.
+    unfold tm_src in Hs. destruct a; try discriminate Hs. destruct t; try discriminate Hs.
+    apply andb_true_iff in Hs as (Hf & Hg). apply Pos.eqb_eq in Hf. subst.
+    destruct (ev_pfld _ _ _ _ _ _ _ Ea) as (loc & ofs & L & Hl).
+    destruct (og_addr _ _ _ _ _ _ _ _ _ _ _ _ Hg Ho throw_fo L) as (-> & -> & _).
+    rewrite add_u in Hl by (try lia; change Ptrofs.max_unsigned with 4294967295; change Ptrofs.modulus with 4294967296 in Hb; lia).
+    exact Hl.
+  Qed.
+
+  Lemma gy_shape : forall lv, gy_lv lv = true -> exists X a, lv = Ederef X (Tfloat Ctypes.F32 a) /\ gy_x X = true.
+  Proof.
+    intros lv H. unfold gy_lv in H.
+    repeat match type of H with
+    | match ?x with _ => _ end = true => destruct x; try discriminate H
+    end.
+    eauto.
+  Qed.
+
+  (* &o->header.gfx.pos[1] is Mario's object's cell 36 (OFS_GFXY) *)
+  Lemma gy_addr : forall le m X loc ofs bo oo,
+    gy_x X = true -> (forall p, le ! mario._o = Some p -> p = Vptr bo oo \/ p = Vundef) ->
+    Ptrofs.unsigned oo + 44 <= Ptrofs.modulus ->
+    eval_expr ge empty_env le m X (Vptr loc ofs) ->
+    loc = bo /\ Ptrofs.unsigned ofs = Ptrofs.unsigned oo + 36.
+  Proof.
+    intros le m X loc ofs bo oo Hs Ho Hb HX.
+    unfold gy_x in Hs.
+    repeat match type of Hs with
+    | match ?x with _ => _ end = true => destruct x; try discriminate Hs
+    end.
+    repeat match goal with H : _ && _ = true |- _ => apply andb_true_iff in H as (? & ?) end.
+    match goal with H : Pos.eqb _ mario._pos = true |- _ => apply Pos.eqb_eq in H; subst end.
+    match goal with H : Int.eq _ _ = true |- _ => apply Int.same_if_eq in H; subst end.
+    apply eval_expr_Ebinop_inv in HX as (w1 & w2 & E1 & E2 & Sb).
+    apply eval_expr_Econst_int_val in E2. subst w2.
+    destruct (ev_arr ge _ _ _ _ _ _ _ _ _ E1) as (l1 & o1 & bf1 & L3 & ->).
+    match goal with Hg : og_fld _ = true |- _ =>
+      destruct (og_addr _ _ _ _ _ _ _ _ _ _ _ _ Hg Ho pos_fo L3) as (-> & -> & _) end.
+    cbn [typeof] in Sb.
+    assert (U : Ptrofs.unsigned (Ptrofs.add oo (Ptrofs.repr 32)) = Ptrofs.unsigned oo + 32)
+      by (apply add_u; [lia | change Ptrofs.max_unsigned with 4294967295;
+                              change Ptrofs.modulus with 4294967296 in Hb; lia]).
+    destruct (add_af _ _ _ _ _ _ _ _ _ _ _ _ _ Sb ltac:(vm_compute; reflexivity) ltac:(rewrite U; lia)) as (-> & Eo).
+    split; [reflexivity |]. rewrite Eo, U, Int.unsigned_one. lia.
+  Qed.
+
+  (* ( *t )[i][j], t one of QT: an address in sFloorAlignMatrix *)
+  Lemma tm_shape : forall lv, tm_store lv = true -> exists X a, lv = Ederef X (Tfloat Ctypes.F32 a).
+  Proof.
+    intros lv H. unfold tm_store in H.
+    repeat match type of H with
+    | match ?x with _ => _ end = true => destruct x; try discriminate H
+    end.
+    eauto.
+  Qed.
+
+  Lemma tm_blk : forall le m lv loc ofs bf bfa,
+    tm_store lv = true -> qt_ok bfa le -> eval_lvalue ge empty_env le m lv loc ofs bf -> loc = bfa.
+  Proof.
+    intros le m lv loc ofs bf bfa Hs Hq L.
+    unfold tm_store in Hs.
+    repeat match type of Hs with
+    | match ?x with _ => _ end = true => destruct x; try discriminate Hs
+    end.
+    apply eval_lvalue_Ederef_base, eval_expr_Ebinop_inv in L as (w1 & w2 & E1 & E2 & Sb).
+    apply eval_expr_Econst_int_val in E2. subst w2.
+    destruct (ev_aderef _ _ _ _ _ _ _ E1) as (l1 & o1 & E1' & ->).
+    cbn [typeof] in Sb. destruct (add_blk _ _ _ _ _ _ _ _ _ _ _ _ Sb) as (o' & E).
+    injection E; intros; subst.
+    apply eval_expr_Ebinop_inv in E1' as (u1 & u2 & F1 & F2 & Sb2).
+    apply eval_expr_Econst_int_val in F2. subst u2.
+    destruct (ev_aderef _ _ _ _ _ _ _ F1) as (l2 & o2 & F1' & ->).
+    cbn [typeof] in Sb2. destruct (add_blk _ _ _ _ _ _ _ _ _ _ _ _ Sb2) as (o'' & E').
+    injection E'; intros; subst.
+    apply eval_expr_Etempvar_val in F1'.
+    apply existsb_exists in Hs as (x' & Hin & Ex). apply Pos.eqb_eq in Ex. subst x'.
+    destruct (Hq _ _ Hin F1') as [E2 | [(o3 & E2) | E2]]; try discriminate E2.
+    injection E2; intros; subst. reflexivity.
+  Qed.
+
+  Lemma qs_set : forall (K : block -> Z -> Prop) v bo oo bfa gy m0 id a le m1 v1,
+    qs_set_ok id a = true -> qs_P v bo oo bfa gy le ->
+    Q2 K m0 m1 -> Mem.load Mfloat32 m1 bo (Ptrofs.unsigned oo + 36) = Some (Vsingle gy) ->
+    (forall z, (136 <= z < 140 \/ 192 <= z < 196) -> K bm z) ->
+    (forall z, Ptrofs.unsigned oo + 80 <= z < Ptrofs.unsigned oo + 84 -> K bo z) ->
+    marg_ok bm [v] ->
+    Mem.load Mint32 m0 bm 136 = Some (Vptr bo oo) ->
+    Mem.load Mfloat32 m0 bm 192 = Some (Vsingle Float32.zero) ->
+    (Mem.load Mint32 m0 bo (Ptrofs.unsigned oo + 80) = Some (Vint Int.zero)
+      \/ exists o, Mem.load Mint32 m0 bo (Ptrofs.unsigned oo + 80) = Some (Vptr bfa o)) ->
+    Ptrofs.unsigned oo + 84 <= Ptrofs.modulus ->
+    eval_expr ge empty_env le m1 a v1 ->
+    qs_P v bo oo bfa gy (PTree.set id v1 le).
+  Proof.
+    intros K v bo oo bfa gy m0 id a le m1 v1 Hs (Hm & Ho & Hq & H1 & H2) HQ Hgy Kbm Kbo Hmarg LO LQ LT Hb Ea.
+    unfold qs_set_ok in Hs. apply andb_true_iff in Hs as (Hs1 & Hs2).
+    apply negb_true_iff, Pos.eqb_neq in Hs1.
+    split; [rewrite PTree.gso by congruence; exact Hm |].
+    split; [| split; [| split]].
+    - intros p Hp. destruct (peq id mario._o) as [-> | N].
+      2: { rewrite PTree.gso in Hp by congruence. exact (Ho p Hp). }
+      rewrite PTree.gss in Hp. injection Hp as <-. change (mo_src a = true) in Hs2.
+      unfold mo_src in Hs2.
+      repeat match type of Hs2 with
+      | match ?x with _ => _ end = true => destruct x; try discriminate Hs2
+      end.
+      repeat rewrite andb_true_iff in Hs2. destruct Hs2 as (((E1 & E2) & E3) & E4).
+      apply Pos.eqb_eq in E1, E2, E3, E4. subst.
+      match type of Ea with eval_expr _ _ _ _ (Efield _ _ ?ty) _ =>
+        destruct (ev_fld lp H12 bm mario._m le m1 v mario._marioObj ty Mint32 136 v1 Hm Hmarg
+                    mobj_fo ltac:(lia) eq_refl Ea) as (_ & L1) end.
+      rewrite (Q2_load _ _ _ HQ) in L1 by (intros z Hz; apply Kbm; cbn [size_chunk] in Hz; lia).
+      rewrite LO in L1. injection L1 as <-. left. reflexivity.
+    - intros x p Hin Hx. destruct (peq id x) as [<- | N].
+      2: { rewrite PTree.gso in Hx by congruence. exact (Hq x p Hin Hx). }
+      rewrite PTree.gss in Hx. injection Hx as <-.
+      assert (T : existsb (Pos.eqb id) QT = true)
+        by (apply existsb_exists; exists id; split; [exact Hin | apply Pos.eqb_refl]).
+      assert (No : Pos.eqb id mario._o = false)
+        by (destruct Hin as [<- | [<- | [<- | []]]]; reflexivity).
+      rewrite No, T in Hs2. change (tm_src a = true) in Hs2.
+      pose proof (tm_val _ _ _ _ _ _ Hs2 Ho Hb Ea) as L1.
+      rewrite (Q2_load _ _ _ HQ) in L1 by (intros z Hz; apply Kbo; cbn [size_chunk] in Hz; lia).
+      destruct LT as [L | (o & L)]; rewrite L in L1; injection L1 as <-; [left; reflexivity | right; left; eauto].
+    - intros p Hp. destruct (peq id mario._t'1) as [-> | N].
+      2: { rewrite PTree.gso in Hp by congruence. exact (H1 p Hp). }
+      rewrite PTree.gss in Hp. injection Hp as <-.
+      change (gy_lv a = true) in Hs2.
+      destruct (gy_shape _ Hs2) as (X & a1 & -> & Hx).
+      destruct (ev_fderef _ _ _ _ _ Ea) as (loc & ofs & EX & L1).
+      destruct (gy_addr _ _ _ _ _ _ _ Hx Ho ltac:(lia) EX) as (-> & Eo).
+      rewrite Eo, Hgy in L1. injection L1 as <-. left. reflexivity.
+    - intros p Hp. destruct (peq id mario._t'2) as [-> | N].
+      2: { rewrite PTree.gso in Hp by congruence. exact (H2 p Hp). }
+      rewrite PTree.gss in Hp. injection Hp as <-.
+      change (qd_src a = true) in Hs2.
+      unfold qd_src in Hs2.
+      repeat match type of Hs2 with
+      | match ?x with _ => _ end = true => destruct x; try discriminate Hs2
+      end.
+      repeat rewrite andb_true_iff in Hs2. destruct Hs2 as (((E1 & E2) & E3) & E4).
+      apply Pos.eqb_eq in E1, E2, E3, E4. subst.
+      match type of Ea with eval_expr _ _ _ _ (Efield _ _ ?ty) _ =>
+        destruct (ev_fld lp H12 bm mario._m le m1 v mario._quicksandDepth ty Mfloat32 192 v1 Hm Hmarg
+                    qsd_fo ltac:(lia) eq_refl Ea) as (_ & L1) end.
+      rewrite (Q2_load _ _ _ HQ) in L1 by (intros z Hz; apply Kbm; cbn [size_chunk] in Hz; lia).
+      rewrite LQ in L1. injection L1 as <-. left. reflexivity.
+  Qed.
+
+  Lemma qs_store : forall (K : block -> Z -> Prop) v bo oo bfa gy m0 lv rhs le m1 t le' m2 out,
+    qs_store_ok lv rhs = true -> qs_P v bo oo bfa gy le ->
+    (forall b z, K b z -> b <> bfa /\ ~ (b = bo /\ Ptrofs.unsigned oo + 36 <= z < Ptrofs.unsigned oo + 40)) ->
+    bo <> bfa -> F32 gy = true -> Ptrofs.unsigned oo + 44 <= Ptrofs.modulus ->
+    exec_stmt function_entry2 ge empty_env le m1 (Sassign lv rhs) t le' m2 out ->
+    Q2 K m0 m1 -> Mem.load Mfloat32 m1 bo (Ptrofs.unsigned oo + 36) = Some (Vsingle gy) ->
+    Q2 K m0 m2 /\ Mem.load Mfloat32 m2 bo (Ptrofs.unsigned oo + 36) = Some (Vsingle gy).
+  Proof.
+    intros K v bo oo bfa gy m0 lv rhs le m1 t le' m2 out Hs (Hm & Ho & Hq & H1 & H2) HK Nbo Fg Hb Hx HQ Hgy.
+    apply orb_true_iff in Hs as [Hs | Hs].
+    - destruct (tm_shape _ Hs) as (X & a & ->).
+      inv Hx.
+      match goal with Ha : assign_loc _ _ _ _ _ _ _ _ |- _ => rename Ha into Hal end.
+      match goal with L : eval_lvalue _ _ _ _ (Ederef _ _) _ _ ?bf |- _ =>
+        assert (Ebf : bf = Full) by (inv L; reflexivity); subst bf;
+        pose proof (tm_blk _ _ _ _ _ _ _ Hs Hq L) as -> end.
+      inv Hal;
+        match goal with Hm : access_mode _ = _ |- _ => cbn in Hm; try discriminate Hm end.
+      match goal with Hm : By_value _ = By_value _, Hs : Mem.storev _ _ _ _ = Some _ |- _ =>
+        injection Hm as <-; cbn [Mem.storev] in Hs; rename Hs into Hst end.
+      split.
+      + apply (Q2_trans _ _ _ _ HQ). apply (st_q2 _ _ _ _ _ _ _ Hst).
+        intros i _ Hk. exact (proj1 (HK _ _ Hk) eq_refl).
+      + rewrite (Mem.load_store_other _ _ _ _ _ _ Hst) by (left; exact Nbo). exact Hgy.
+    - unfold gy_store in Hs. apply andb_true_iff in Hs as (Hl & Hr).
+      destruct (gy_shape _ Hl) as (X & a & -> & Hx').
+      repeat match type of Hr with
+      | match ?x with _ => _ end = true => destruct x; try discriminate Hr
+      end.
+      apply andb_true_iff in Hr as (R1 & R2). apply Pos.eqb_eq in R1, R2. subst.
+      inv Hx.
+      match goal with Ha : assign_loc _ _ _ _ _ _ _ _ |- _ => rename Ha into Hal end.
+      match goal with Hc : sem_cast _ _ _ _ = Some _ |- _ => rename Hc into Hca end.
+      match goal with L : eval_lvalue _ _ _ _ (Ederef _ _) _ _ ?bf |- _ =>
+        assert (Ebf : bf = Full) by (inv L; reflexivity); subst bf;
+        apply eval_lvalue_Ederef_base in L;
+        destruct (gy_addr _ _ _ _ _ _ _ Hx' Ho Hb L) as (-> & Eo) end.
+      match goal with Er : eval_expr _ _ _ _ (Ebinop Osub _ _ _) _ |- _ =>
+        apply eval_expr_Ebinop_inv in Er as (w1 & w2 & E1 & E2 & Sb) end.
+      apply eval_expr_Etempvar_val in E1, E2.
+      destruct (H1 _ E1) as [-> | ->]; [| cbn in Sb; discriminate Sb].
+      destruct (H2 _ E2) as [-> | ->]; [| cbn in Sb; discriminate Sb].
+      cbn -[Float32.sub] in Sb. injection Sb as <-.
+      rewrite (f32_sub_zero_r gy Fg) in Hca.
+      cbn in Hca. injection Hca as <-.
+      inv Hal;
+        match goal with Hm : access_mode _ = _ |- _ => cbn in Hm; try discriminate Hm end.
+      match goal with Hm : By_value _ = By_value _, Hs : Mem.storev _ _ _ _ = Some _ |- _ =>
+        injection Hm as <-; cbn [Mem.storev] in Hs; rename Hs into Hst end.
+      rewrite Eo in Hst.
+      split.
+      + apply (Q2_trans _ _ _ _ HQ). apply (st_q2 _ _ _ _ _ _ _ Hst).
+        intros i Hi Hk. apply (proj2 (HK _ _ Hk)). cbn [size_chunk] in Hi. split; [reflexivity | lia].
+      + rewrite (Mem.load_store_same _ _ _ _ _ _ Hst). reflexivity.
+  Qed.
+
+  Lemma qs_init : forall v bo oo bfa gy le1,
+    bind_parameter_temps (fn_params mario.f_sink_mario_in_quicksand) [v]
+      (create_undef_temps (fn_temps mario.f_sink_mario_in_quicksand)) = Some le1 ->
+    qs_P v bo oo bfa gy le1.
+  Proof.
+    intros v bo oo bfa gy le1 Hb. cbn [fn_params mario.f_sink_mario_in_quicksand bind_parameter_temps] in Hb.
+    injection Hb as <-.
+    split; [apply PTree.gss |].
+    split; [| split; [| split]].
+    - intros p Hp. rewrite PTree.gso in Hp by nid. right. exact (cut_undef (fn_temps mario.f_sink_mario_in_quicksand) _ _ Hp).
+    - intros x p Hin Hx. right. right.
+      rewrite PTree.gso in Hx by (destruct Hin as [<- | [<- | [<- | []]]]; nid).
+      exact (cut_undef (fn_temps mario.f_sink_mario_in_quicksand) _ _ Hx).
+    - intros p Hp. rewrite PTree.gso in Hp by nid. right. exact (cut_undef (fn_temps mario.f_sink_mario_in_quicksand) _ _ Hp).
+    - intros p Hp. rewrite PTree.gso in Hp by nid. right. exact (cut_undef (fn_temps mario.f_sink_mario_in_quicksand) _ _ Hp).
+  Qed.
+
+  Lemma qs_row : forall fd v,
+    resolves lp mario._sink_mario_in_quicksand fd ->
+    seg_okR lp bm MWF fd [v] (pre_of lp bm mario._sink_mario_in_quicksand v)
+      (post_of bm mario._sink_mario_in_quicksand).
+  Proof.
+    intros fd v Hr.
+    pose proof (resolve_pin_fd lp _ _ _ _ (linked12_LO_mario lp H12) dm_qs Hr) as ->.
+    intros m t m' vr c Hok Hw (Hgv & _) Hok' Hc Hb Hev.
+    pose proof (marg_of_gms v m Hok Hgv) as Hmarg.
+    ffw_open Hw.
+    pose proof Hw as (_ & (_ & _ & _ & _ & _ & LQ & _) & _).
+    assert (NBO : bm <> bo) by exact (not_eq_sym D1).
+    assert (NFA : bm <> bfa) by exact (AnimKeep.symne_ids ge _ _ _ _ Hbm0 SFA eq_refl).
+    assert (OFA : bo <> bfa)
+      by (destruct (D4 bfa ltac:(left; cbn; auto 20)) as (Of & _); exact (not_eq_sym Of)).
+    assert (LO : Mem.load Mint32 m bm 136 = Some (Vptr bo oo)) by exact Lo.
+    assert (Hb84 : Ptrofs.unsigned oo + 84 <= Ptrofs.modulus) by (unfold SZ_OBJECT in Soo; lia).
+    assert (Hb44 : Ptrofs.unsigned oo + 44 <= Ptrofs.modulus) by lia.
+    assert (LT : Mem.load Mint32 m bo (Ptrofs.unsigned oo + 80) = Some (Vint Int.zero)
+                 \/ exists o, Mem.load Mint32 m bo (Ptrofs.unsigned oo + 80) = Some (Vptr bfa o))
+      by exact LTM.
+    pose proof Hc as (_ & _ & _ & _ & _ & _ & bo' & oo' & H7 & H8).
+    assert (H7' : Mem.load Mint32 m bm 136 = Some (Vptr bo' oo')) by exact H7.
+    rewrite LO in H7'. injection H7' as <- <-.
+    assert (H8' : Mem.load Mfloat32 m bo (Ptrofs.unsigned oo + 36) = Some (Vsingle (c_gfxy c))) by exact H8.
+    destruct Hb as ((_ & _ & Fg & _) & _).
+    set (K := fun b z => b <> bfa /\ ~ (b = bo /\ Ptrofs.unsigned oo + 36 <= z < Ptrofs.unsigned oo + 40)).
+    assert (HQ : Q2 K m m' /\ Mem.load Mfloat32 m' bo (Ptrofs.unsigned oo + 36) = Some (Vsingle (c_gfxy c))).
+    { refine (lw_body_frame ge
+                (fun m1 => Q2 K m m1 /\ Mem.load Mfloat32 m1 bo (Ptrofs.unsigned oo + 36) = Some (Vsingle (c_gfxy c)))
+                mario.f_sink_mario_in_quicksand (qs_P v bo oo bfa (c_gfxy c))
+                qs_set_ok qs_store_ok qs_call eq_refl qs_chk
+                _ _ _ m [v] t m' vr Hev _ (conj (Q2_refl _ m) H8')).
+      - intros id a le m1 v1 Hs Hp (HQ1 & Hg1) Ea.
+        refine (qs_set K v bo oo bfa (c_gfxy c) m id a le m1 v1 Hs Hp HQ1 Hg1 _ _ Hmarg LO LQ LT Hb84 Ea).
+        + intros z Hz. split; [exact NFA |]. intros (E & _). exact (NBO E).
+        + intros z Hz. split; [exact OFA |]. intros (_ & Hz'). lia.
+      - intros lv rhs le m1 t1 le1 m2 out Hs Hp Hx (HQ1 & Hg1).
+        refine (qs_store K v bo oo bfa (c_gfxy c) m lv rhs le m1 t1 le1 m2 out Hs Hp _ OFA Fg Hb44 Hx HQ1 Hg1).
+        intros b z Hk. exact Hk.
+      - intros optid a al le m1 t1 le1 m2 out Hs. discriminate Hs.
+      - intros le1 Hb1. exact (qs_init v bo oo bfa (c_gfxy c) le1 Hb1). }
+    destruct HQ as (HQ & Hg').
+    assert (LD : forall ch b z, b <> bfa -> b <> bfa -> (b <> bm \/ hz z (size_chunk ch)) ->
+               (b <> bo \/ z + size_chunk ch <= Ptrofs.unsigned oo + 36 \/ Ptrofs.unsigned oo + 36 + 4 <= z) ->
+               Mem.load ch m' b z = Mem.load ch m b z).
+    { intros ch b z N1 _ _ Ho. apply (Q2_load _ _ _ HQ). intros j Hi.
+      split; [exact N1 |].
+      intros (-> & Hj). destruct Ho as [Ho | Ho]; [exact (Ho eq_refl) | clear - Hi Hj Ho; lia]. }
+    assert (PM : forall b o k p, Mem.perm m b o k p -> Mem.perm m' b o k p) by exact (Q2_perm _ _ _ HQ).
+    assert (NBle : Ple (Mem.nextblock m) (Mem.nextblock m')) by exact (proj1 (proj2 HQ)).
+    assert (CLK : forall gp, closed_by gp m -> syms_mapped ge gp -> gp bm <> None ->
+      exists gp', (forall b, gp b <> None -> gp' b <> None) /\ closed_by gp' m' /\ syms_mapped ge gp').
+    { intros gp0 HC0 HS0 HM0.
+      assert (Hvok : Forall (vok gp0) [v]).
+      { constructor; [| constructor].
+        destruct v; try (constructor; fail).
+        destruct Hmarg as [-> ->]. apply vok_mk_ptr. exact (closed_mapped_flat _ _ _ HC0 HM0). }
+      destruct (funcall_closed ge m _ _ t m' vr gp0 Hev HC0 HS0 Hvok) as (gp' & I & HC' & HS' & _).
+      exists gp'. split; [| exact (conj HC' HS')].
+      intros b Hb'. destruct (gp0 b) as [[b1 d]|] eqn:E0; [| congruence].
+      rewrite (I _ _ _ E0). discriminate. }
+    assert (XF : xsym lp bfa)
+      by (exists mario_actions_moving._sFloorAlignMatrix;
+          split; [right; right; right; right; left; reflexivity | exact SFA]).
+    assert (OBJ : bo = bfa \/ exists oo', Mem.load Mint32 m bm MARIOOBJ_OFF = Some (Vptr bo oo')
+                                          /\ Ptrofs.unsigned oo + 36 = Ptrofs.unsigned oo' + 36)
+      by (right; exists oo; split; [exact LO | reflexivity]).
+    assert (OWL : 36 <= 36 /\ 0 <= 4 /\ 36 + 4 <= 56) by lia.
+    assert (HG : 40 <= 36 \/ forall mb mo, Mem.load Mint32 m bm MARIOOBJ_OFF = Some (Vptr mb mo) ->
+               Mem.load Mfloat32 m' mb (Ptrofs.unsigned mo + OFS_GFXY)
+               = Mem.load Mfloat32 m mb (Ptrofs.unsigned mo + OFS_GFXY)).
+    { right. intros mb mo Hl. change MARIOOBJ_OFF with 136 in Hl. rewrite LO in Hl.
+      injection Hl as <- <-. change OFS_GFXY with 36. rewrite Hg', H8'. reflexivity. }
+    split; [eapply hole_fworld with (m := m) (m' := m') (bsr := bfa) (bsrc := bfa) (ob := bo)
+                                    (oz := Ptrofs.unsigned oo + 36) (ow := 36) (wl := 4); eassumption |].
+    split; [exists c; split; [eapply hole_cells with (m := m) (m' := m') (bsr := bfa) (bsrc := bfa) (ob := bo)
+                                    (oz := Ptrofs.unsigned oo + 36) (ow := 36) (wl := 4); eassumption | apply rt_refl] |].
+    destruct qs_is as (Iu & Ik & Id).
+    unfold post_of. rewrite Iu, Ik, Id. exact I.
+  Qed.
+
+  (* ==================================================================== *)
   (* THE SPLIT                                                             *)
   (* ==================================================================== *)
   Ltac in_lit := solve [repeat (first [left; reflexivity | right])].
@@ -776,6 +1639,8 @@ Section NA.
       | exact (health_row fd v Hr)
       | exact (reset_row fd v Hr)
       | exact (cam_row fd v Hr)
+      | exact (squish_row fd v Hr)
+      | exact (qs_row fd v Hr)
       | exact (sub_row fd v)
       | (apply (Hop _ fd v); [unfold na_open; in_lit | exact Hr]) ].
   Qed.

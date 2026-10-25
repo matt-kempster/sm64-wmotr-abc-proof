@@ -385,9 +385,9 @@ Section RK.
       Genv.find_symbol G mario._gMarioAnimsBuf = Some b \/ lvl_sym G b -> b <> mb.
     Proof.
       intros (_ & EX & _) b Hb.
-      destruct EX as (gp & bfi & bmiss & bcalls & bsin & ab & biom & bmq & brm & blk & bpc & bsr & bsrc & bsms & bbs
+      destruct EX as (gp & bfi & bmiss & bcalls & bsin & ab & biom & bmq & brm & blk & bpc & bsr & bsrc & bsms & bbs & bfa
                       & bo & oo & bt & ot & fl & ar & inp & ctl & HC & HS & HM & S1 & S2 & S3 & S4 & S5 & S6
-                      & S7 & S8 & SL & SP & SR & SRC & SMS & SBS & Lo & Soo & La & Lb & Sot & D1 & D2 & D3 & D4 & _).
+                      & S7 & S8 & SL & SP & SR & SRC & SMS & SBS & SFA & Lo & Soo & La & Lb & Sot & D1 & D2 & D3 & D4 & _).
       destruct (obj_eq bo oo Lo) as (-> & ->).
       destruct Hb as [Hb | Hb].
       - assert (b = ab) by congruence. subst b.
@@ -447,12 +447,12 @@ Section RK.
     Lemma k_ffw : ffw G bm m -> ffw G bm m'.
     Proof.
       intros (Hgn & EX & FD).
-      destruct EX as (gp & bfi & bmiss & bcalls & bsin & ab & biom & bmq & brm & blk & bpc & bsr & bsrc & bsms & bbs
+      destruct EX as (gp & bfi & bmiss & bcalls & bsin & ab & biom & bmq & brm & blk & bpc & bsr & bsrc & bsms & bbs & bfa
                       & bo & oo & bt & ot & fl & ar & inp & ctl & HC & HS & HM & S1 & S2 & S3 & S4 & S5 & S6
-                      & S7 & S8 & SL & SP & SR & SRC & SMS & SBS & Lo & Soo & La & Lb & Sot & D1 & D2 & D3 & D4
-                      & W & Lf & Wf & Wc0 & Lar & War & Li & Ai & Lc & Wc & Co & LPC & LBS).
+                      & S7 & S8 & SL & SP & SR & SRC & SMS & SBS & SFA & Lo & Soo & La & Lb & Sot & D1 & D2 & D3 & D4
+                      & W & Lf & Wf & Wc0 & Lar & War & Li & Ai & Lc & Wc & Co & LPC & LBS & LTM).
       destruct (obj_eq bo oo Lo) as (-> & ->).
-      set (rl := ff_rl bm mb mo bfi bmiss bcalls ab bt biom bmq brm blk bpc bsr bsrc bsms bbs) in *.
+      set (rl := ff_rl bm mb mo bfi bmiss bcalls ab bt biom bmq brm blk bpc bsr bsrc bsms bbs bfa) in *.
       assert (Gmb : gp mb <> None) by exact (closed_load gp m Mint32 bm 136 _ HC HM Lmo).
       assert (Nab : ab <> mb)
         by (refine (proj1 (D4 ab (or_introl _))); cbn [In]; auto 10).
@@ -473,11 +473,11 @@ Section RK.
         by exact (Wff_keep2 G m m' (rl ++ rgl) Hnb Hperm Hld gp gp' Hg W1).
       split; [exact (Ple_trans _ _ _ Hgn NB) |].
       split.
-      - exists gp', bfi, bmiss, bcalls, bsin, ab, biom, bmq, brm, blk, bpc, bsr, bsrc, bsms, bbs, mb, mo, bt, ot,
+      - exists gp', bfi, bmiss, bcalls, bsin, ab, biom, bmq, brm, blk, bpc, bsr, bsrc, bsms, bbs, bfa, mb, mo, bt, ot,
           fl, ar, inp, ctl.
         split; [exact HC' |]. split; [exact (fun id b Hs => Hg b (HS id b Hs)) |].
         split; [exact (Hg bm HM) |].
-        do 14 (split; [assumption |]).
+        do 15 (split; [assumption |]).
         split; [rewrite LHm by bmw_t; exact Lo |]. split; [exact Soo |]. split; [rewrite LHm by bmw_t; exact La |].
         split; [rewrite (LHb Mint32 ab 8 Nab (ab_bm ab S5) Rab); exact Lb |].
         do 5 (split; [assumption |]).
@@ -493,7 +493,9 @@ Section RK.
         split; [intros i cb co Hi Hl; rewrite LHo in Hl by (unfold FFW_COLL; cbn [size_chunk]; lia);
                 exact (Co i cb co Hi Hl) |].
         split; [rewrite LHm by bmw_t; exact LPC |].
-        rewrite LHm by bmw_t. exact LBS.
+        split; [rewrite LHm by bmw_t; exact LBS |].
+        (* throwMatrix (+80) lies outside the render footprint (+64..72) *)
+        rewrite !(LHo Mint32) by (unfold FFW_THROW; cbn [size_chunk]; lia). exact LTM.
       - exact (floor_data_keep2 G m m' (rl ++ rgl) Hnb Hperm Hld gp W1 FD).
     Qed.
 
@@ -501,9 +503,9 @@ Section RK.
     Lemma k_anim_w : ffw G bm m -> AnimWorld.anim_w G bm m -> AnimWorld.anim_w G bm m'.
     Proof.
       intros (Hgn & EX & FD) AW.
-      destruct EX as (gp & bfi & bmiss & bcalls & bsin & ab & biom & bmq & brm & blk & bpc & bsr & bsrc & bsms & bbs
+      destruct EX as (gp & bfi & bmiss & bcalls & bsin & ab & biom & bmq & brm & blk & bpc & bsr & bsrc & bsms & bbs & bfa
                       & bo & oo & bt & ot & fl & ar & inp & ctl & HC & HS & HM & S1 & S2 & S3 & S4 & S5 & S6
-                      & S7 & S8 & SL & SP & SR & SRC & SMS & SBS & Lo & Soo & La & Lb & Sot & D1 & D2 & D3 & D4
+                      & S7 & S8 & SL & SP & SR & SRC & SMS & SBS & SFA & Lo & Soo & La & Lb & Sot & D1 & D2 & D3 & D4
                       & W & _).
       destruct (obj_eq bo oo Lo) as (-> & ->).
       destruct AW as (ab' & bga & bauc & btab & otab & bt' & ot' & mb' & mo' & B & ST).
@@ -512,7 +514,7 @@ Section RK.
       assert (ab' = ab) by congruence. subst ab'.
       rewrite Lb in L8. injection L8 as <- <-.
       destruct (obj_eq mb' mo' Lm) as (-> & ->).
-      set (rl := ff_rl bm mb mo bfi bmiss bcalls ab bt biom bmq brm blk bpc bsr bsrc bsms bbs) in *.
+      set (rl := ff_rl bm mb mo bfi bmiss bcalls ab bt biom bmq brm blk bpc bsr bsrc bsms bbs bfa) in *.
       assert (Nab : ab <> mb)
         by (refine (proj1 (D4 ab (or_introl _))); cbn [In]; auto 10).
       assert (Rab : ~ rgb ab) by exact (rgb_not _ ab S5 ltac:(vm_compute; reflexivity)).
@@ -534,7 +536,7 @@ Section RK.
         - revert Hr1. unfold rl.
           apply AnimKeep.ff_rl_not; first [exact (NT _ _ Hbm) | exact (NT _ _ S1) | exact (NT _ _ S2)
             | exact (NT _ _ S3) | exact (NT _ _ S5) | exact (NT _ _ S6) | exact (NT _ _ S7) | exact (NT _ _ S8)
-            | exact (NT _ _ SL) | exact (NT _ _ SP) | exact (NT _ _ SR) | exact (NT _ _ SRC) | exact (NT _ _ SMS) | exact (NT _ _ SBS)
+            | exact (NT _ _ SL) | exact (NT _ _ SP) | exact (NT _ _ SR) | exact (NT _ _ SRC) | exact (NT _ _ SMS) | exact (NT _ _ SBS) | exact (NT _ _ SFA)
             | congruence].
         - destruct (rblk_rgl _ Hr1) as (id & _ & Hs). exact (NT id btab Hs eq_refl). }
       assert (Nga : ~ rblk (rl ++ rgl) bga).
@@ -555,7 +557,8 @@ Section RK.
             | exact (AnimKeep.symne_ids G _ _ _ _ SR Sga eq_refl)
             | exact (AnimKeep.symne_ids G _ _ _ _ SRC Sga eq_refl)
             | exact (AnimKeep.symne_ids G _ _ _ _ SMS Sga eq_refl)
-            | exact (AnimKeep.symne_ids G _ _ _ _ SBS Sga eq_refl) ].
+            | exact (AnimKeep.symne_ids G _ _ _ _ SBS Sga eq_refl)
+            | exact (AnimKeep.symne_ids G _ _ _ _ SFA Sga eq_refl) ].
         - exact (rgb_not _ bga Sga ltac:(vm_compute; reflexivity) (rblk_rgl _ Hr1)). }
       pose proof (anim_base_keep G bm m m' gp (rl ++ rgl) ab bga bauc btab otab bt ot mb mo B W1 Ntab Nga
                     Hnb Hperm Hld (LHm Mint32 136 ltac:(bmw_t)) (LHb Mint32 ab 0 Nab (ab_bm ab S5) Rab)
@@ -595,18 +598,18 @@ Section RK.
       assert (Co : forall i cb co, 0 <= i < 4 ->
                 Mem.load Mint32 m mb (u mo + FFW_COLL + 4 * i) = Some (Vptr cb co) -> cb = mb).
       { destruct Hf as (_ & EX & _).
-        destruct EX as (gp & bfi & bmiss & bcalls & bsin & ab & biom & bmq & brm & blk & bpc & bsr & bsrc & bsms & bbs
+        destruct EX as (gp & bfi & bmiss & bcalls & bsin & ab & biom & bmq & brm & blk & bpc & bsr & bsrc & bsms & bbs & bfa
                         & bo & oo & bt & ot & fl & ar & inp & ctl & HC & HS & HM & S1 & S2 & S3 & S4 & S5 & S6
-                        & S7 & S8 & SL & SP & SR & SRC & SMS & SBS & Lo & Soo & La & Lb & Sot & D1 & D2 & D3 & D4
-                        & W & Lf & Wf & Wc0 & Lar & War & Li & Ai & Lc & Wc & Co & LPC & LBS).
+                        & S7 & S8 & SL & SP & SR & SRC & SMS & SBS & SFA & Lo & Soo & La & Lb & Sot & D1 & D2 & D3 & D4
+                        & W & Lf & Wf & Wc0 & Lar & War & Li & Ai & Lc & Wc & Co & LPC & LBS & LTM).
         destruct (obj_eq bo oo Lo) as (-> & ->). exact Co. }
       (* Mario's surfaces are not in his own block (the ffw partition) *)
       assert (SNB : forall off sb so, (off = WALL_OFF \/ off = CEIL_OFF \/ off = FLOOR_OFF) ->
                 Mem.load Mint32 m bm off = Some (Vptr sb so) -> sb <> bm).
       { destruct Hf as (_ & EX & _).
-        destruct EX as (gp & bfi & bmiss & bcalls & bsin & ab & biom & bmq & brm & blk & bpc & bsr & bsrc & bsms & bbs
+        destruct EX as (gp & bfi & bmiss & bcalls & bsin & ab & biom & bmq & brm & blk & bpc & bsr & bsrc & bsms & bbs & bfa
                         & bo & oo & bt & ot & fl & ar & inp & ctl & HC & HS & HM & S1 & S2 & S3 & S4 & S5 & S6
-                        & S7 & S8 & SL & SP & SR & SRC & SMS & SBS & Lo & Soo & La & Lb & Sot & D1 & D2 & D3 & D4
+                        & S7 & S8 & SL & SP & SR & SRC & SMS & SBS & SFA & Lo & Soo & La & Lb & Sot & D1 & D2 & D3 & D4
                         & W & Lf & Wf & Wc0 & _).
         intros off sb so Hoff Hl0 Esb. subst sb.
         destruct Hoff as [-> | [-> | ->]].
@@ -643,9 +646,9 @@ Section RK.
     assert (Nbm : ~ rgb render_gvars bm)
       by exact (rgb_not render_gvars HXR _ bm Hbm ltac:(vm_compute; reflexivity)).
     pose proof Hf as (_ & EX & _).
-    destruct EX as (gp & bfi & bmiss & bcalls & bsin & ab' & biom & bmq & brm & blk & bpc & bsr & bsrc & bsms & bbs
+    destruct EX as (gp & bfi & bmiss & bcalls & bsin & ab' & biom & bmq & brm & blk & bpc & bsr & bsrc & bsms & bbs & bfa
                     & bo & oo & bt' & ot' & fl & ar & inp & ctl & HC & HS & HM & _ & _ & _ & _ & _ & _
-                    & _ & _ & _ & _ & _ & _ & _ & _ & Lo & _ & _ & _ & _ & D1 & _).
+                    & _ & _ & _ & _ & _ & _ & _ & _ & _ & Lo & _ & _ & _ & _ & D1 & _).
     change FFW_OBJ with 136 in Lo. rewrite Lmo in Lo. injection Lo as <- <-.
     assert (Bmb : bm <> mb) by (intros E; exact (D1 (eq_sym E))).
     assert (Gmb : gp mb <> None) by exact (closed_load gp m Mint32 bm 136 _ HC HM Lmo).

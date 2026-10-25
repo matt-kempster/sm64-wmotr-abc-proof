@@ -77,7 +77,7 @@ Variable bm : block.
 Hypothesis Hbm : Genv.find_symbol G level_update._gMarioStates = Some bm.
 
 (* the walk's environment *)
-Definition Epl (bo bfi bmiss bcalls bsin ab bt biom bmq brm bau blk bpc bsr bsrc bsms bbs bbt bgp blv : block) (oo uo : ptrofs) : senv :=
+Definition Epl (bo bfi bmiss bcalls bsin ab bt biom bmq brm bau blk bpc bsr bsrc bsms bbs bfa bbt bgp blv : block) (oo uo : ptrofs) : senv :=
   mke (fun r => if Pos.eqb r RM then bm else if Pos.eqb r RO then bo
                 else if Pos.eqb r RFI then bfi else if Pos.eqb r RMISS then bmiss
                 else if Pos.eqb r RCALLS then bcalls else if Pos.eqb r RSIN then bsin
@@ -86,7 +86,7 @@ Definition Epl (bo bfi bmiss bcalls bsin ab bt biom bmq brm bau blk bpc bsr bsrc
                 else if Pos.eqb r RRM then brm else if Pos.eqb r RAR then bau
                 else if Pos.eqb r RLK then blk else if Pos.eqb r RPC then bpc
                 else if Pos.eqb r RSR then bsr else if Pos.eqb r RSRC then bsrc
-                else if Pos.eqb r RSMS then bsms else if Pos.eqb r RBS then bbs
+                else if Pos.eqb r RSMS then bsms else if Pos.eqb r RBS then bbs else if Pos.eqb r RFA then bfa
                 else if Pos.eqb r RU then bo else if Pos.eqb r RBT then bbt
                 else if Pos.eqb r RGP then bgp else if Pos.eqb r RLV then blv else bm)
       (fun r => if Pos.eqb r RO then oo else if Pos.eqb r RU then uo else Ptrofs.zero)
@@ -100,6 +100,7 @@ Lemma r0p_size : forall r sz, r0_size (R0P G) r = Some sz ->
   \/ (r = RLK /\ sz = szs G camera._LakituState) \/ (r = RPC /\ sz = SZ_PCS)
   \/ (r = RSR /\ sz = Ptrofs.modulus) \/ (r = RSRC /\ sz = Ptrofs.modulus)
   \/ (r = RSMS /\ sz = Ptrofs.modulus) \/ (r = RBS /\ sz = Ptrofs.modulus)
+  \/ (r = RFA /\ sz = Ptrofs.modulus)
   \/ (r = RU /\ sz = szs G mario._Object).
 Proof.
   intros r sz H. unfold r0_size, R0P, R0F in H. cbn [app find fst] in H.
@@ -119,30 +120,31 @@ Proof.
   destruct (Pos.eqb RSRC r) eqn:E15; [apply Pos.eqb_eq in E15; injection H as <-; auto 28 |].
   destruct (Pos.eqb RSMS r) eqn:E16; [apply Pos.eqb_eq in E16; injection H as <-; auto 30 |].
   destruct (Pos.eqb RBS r) eqn:E17; [apply Pos.eqb_eq in E17; injection H as <-; auto 32 |].
-  destruct (Pos.eqb RU r) eqn:E11; [apply Pos.eqb_eq in E11; injection H as <-; auto 34 | discriminate].
+  destruct (Pos.eqb RFA r) eqn:E18; [apply Pos.eqb_eq in E18; injection H as <-; auto 34 |].
+  destruct (Pos.eqb RU r) eqn:E11; [apply Pos.eqb_eq in E11; injection H as <-; auto 36 | discriminate].
 Qed.
 
 Ltac r0p_cases H :=
   destruct (r0p_size _ _ H) as
     [(-> & ?) | [(-> & ?) | [(-> & ?) | [(-> & ?) | [(-> & ?) | [(-> & ?) | [(-> & ?) | [(-> & ?)
     | [(-> & ?) | [(-> & ?) | [(-> & ?) | [(-> & ?) | [(-> & ?) | [(-> & ?) | [(-> & ?)
-    | [(-> & ?) | (-> & ?)]]]]]]]]]]]]]]]].
+    | [(-> & ?) | [(-> & ?) | (-> & ?)]]]]]]]]]]]]]]]]].
 
 Ltac epl := cbn [Epl e_blk e_base];
-  cbn [Pos.eqb RM RO RFI RMISS RCALLS RSIN RLD RBUF RIOM RMQ RRM RAR RLK RPC RSR RSRC RSMS RBS RU RBT RGP RLV]
+  cbn [Pos.eqb RM RO RFI RMISS RCALLS RSIN RLD RBUF RIOM RMQ RRM RAR RLK RPC RSR RSRC RSMS RBS RFA RU RBT RGP RLV]
 .
 Ltac epl_in H := cbn [Epl e_blk e_base] in H;
-  cbn [Pos.eqb RM RO RFI RMISS RCALLS RSIN RLD RBUF RIOM RMQ RRM RAR RLK RPC RSR RSRC RSMS RBS RU RBT RGP RLV]
+  cbn [Pos.eqb RM RO RFI RMISS RCALLS RSIN RLD RBUF RIOM RMQ RRM RAR RLK RPC RSR RSRC RSMS RBS RFA RU RBT RGP RLV]
  in H.
 
-Lemma pl_sizes : forall bo bfi bmiss bcalls bsin ab bt biom bmq brm bau blk bpc bsr bsrc bsms bbs bbt bgp blv oo uo,
+Lemma pl_sizes : forall bo bfi bmiss bcalls bsin ab bt biom bmq brm bau blk bpc bsr bsrc bsms bbs bfa bbt bgp blv oo uo,
   Ptrofs.unsigned oo + SZ_OBJECT <= Ptrofs.modulus -> Ptrofs.unsigned uo + SZ_OBJECT <= Ptrofs.modulus ->
   forall r sz, r0_size (R0P G) r = Some sz ->
     Plt r NBP /\ 0 <= sz
-    /\ Ptrofs.unsigned (e_base (Epl bo bfi bmiss bcalls bsin ab bt biom bmq brm bau blk bpc bsr bsrc bsms bbs bbt bgp blv oo uo) r) + sz
+    /\ Ptrofs.unsigned (e_base (Epl bo bfi bmiss bcalls bsin ab bt biom bmq brm bau blk bpc bsr bsrc bsms bbs bfa bbt bgp blv oo uo) r) + sz
        <= Ptrofs.modulus.
 Proof.
-  intros bo bfi bmiss bcalls bsin ab bt biom bmq brm bau blk bpc bsr bsrc bsms bbs bbt bgp blv oo uo Soo Suo r sz H.
+  intros bo bfi bmiss bcalls bsin ab bt biom bmq brm bau blk bpc bsr bsrc bsms bbs bfa bbt bgp blv oo uo Soo Suo r sz H.
   destruct (KbRow.ff_layout lp H12) as (_ & _ & _ & _ & _ & _ & ZO & _ & _ & ZM & ZD).
   pose proof (Ptrofs.unsigned_range oo) as Ro.
   assert (Mod : Ptrofs.modulus = 4294967296) by reflexivity.

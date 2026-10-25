@@ -2474,7 +2474,7 @@ Section POLL.
       Ple (Genv.genv_next G) (Mem.nextblock m)
       /\ exists b o, Mem.load Mint32 m bm FFW_CTL = Some (Vptr b o).
   Proof.
-    intros m (Hp & (gp & bfi & bmiss & bcalls & bsin & ab & biom & bmq & brm & blk & bpc & bsr & bsrc & bsms & bbs
+    intros m (Hp & (gp & bfi & bmiss & bcalls & bsin & ab & biom & bmq & brm & blk & bpc & bsr & bsrc & bsms & bbs & bfa
                     & bo & oo & bt & ot & fl & ar & inp & ctl & H) & _).
     split; [ exact Hp | ].
     repeat match goal with Hc : _ /\ _ |- _ => destruct Hc end.
