@@ -115,6 +115,29 @@ all in `Unwired/`, and the theorem moved nowhere. See
   `bhv_red_coin_star_marker_init`); only the 2 `mario_misc.c` over-approximations lack a
   linked body. 2.2 picked values in the object TUs: none in the WMotR closure
   (`ub22_sites_not_live`). Counts unchanged (GOAL 1 8, HeightFrame 15 `Hypothesis` lines).
+  2026-10-25 OBJECTS S3 groundwork: `WMotRRequiresA/ObjStoreCensus.v` (spine-root, new file)
+  pins by vm every store / pointer argument of the 432 bodies a non-Mario slot runs whose
+  root is not the running object, a stack local or a parameter (TRUST "Object store
+  census"). FOUND: object code writes Mario (`gMarioStates`, via `gMarioState` /
+  `gMarioObject`, `set_mario_action` through `set_mario_npc_dialog`), so the S3 kW walker
+  needs per-entry contracts. `gcur_not_stored`: "o" is fixed for the update. Next: an
+  `ObjKit` class walker (UcKit-style, a kSelf class) consuming this census.
+  2026-10-25 `ObjKit.v` / `ObjTable.v` (spine-root): UcKit's walker over 387 object bodies,
+  `obj_body_pres` (mem_ok kept by every walked nullary body: 104/107 live natives + the VM
+  commands). Open: `Hopen`'s 5 leaves (push_mario_away, 1up_interact, start_object_cutscene,
+  cur_obj_update_floor, cur_obj_call_action_function), then cur_obj_update / call_native
+  (need the script-pointer row), then the frame (writes only SafeB / fresh / non-MWF
+  globals / listed Mario cells). Regenerate ObjTable from the scratch probe (sig inference
+  to a fixpoint, then `uchk`), never by hand.
+  2026-10-25 `ObjWalk.v` (extended walker: Mario-temp / Mario-array / stored-global store
+  arms + a frame conjunct, generic over the table and a Mario cell list) and `ObjFrame.v`
+  (spine-root): 390 bodies re-checked by vm; sub-contracts `push_mario_away_contract`
+  (pos[0]/pos[2]), `one_up_contract` (numLives), `object_cutscene_contract` (no Mario cell);
+  `obj_body_pres2` (Hopen 5 -> 2); `obj_body_frame` (mem_ok + frame; open premises
+  `Hfr_open` = load_sequence / npc_dialog frames, `Hopen2` = update_floor /
+  call_action_function). Open next: those four leaves' frames (update_floor needs find_floor's
+  out cell to hold kS), a kSelf class (own object vs other slots), cur_obj_update /
+  call_native (script-pointer row), then wire into S2's obj_w / PhiW.
   2026-10-24 `UpdateCameraBody.update_camera_pres`: the REAL `update_camera(c)` (SafeB c) keeps
   `mem_ok`. 507 bodies (the whole recursive tree: `UcKit` two-mode class walker, `UcTable`
   signatures re-checked by vm), the 336 CameraEvent functions by type certificate. Wired as
