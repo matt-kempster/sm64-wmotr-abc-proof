@@ -51,7 +51,7 @@ From SM64.Proofs Require Import SymbolicLinking ActionValueFrame Taint
   FloorsSurface MathBodies BullyBodies LinkedTwelve MtxfBody SaveFileBody
   ObjHelpersBodies ObjExtBodies AudioBodies.
 From SM64.Proofs Require EngineV2Consumer.
-From SM64.Proofs.WMotRRequiresA Require Import BodyFrame.
+From SM64.Proofs.WMotRRequiresA Require Import BodyFrame LsContract.
 
 Import ListNotations.
 
@@ -62,25 +62,8 @@ Module SI := sound_init.
 (* 1. The contract.                                                       *)
 (* ---------------------------------------------------------------------- *)
 
-(* the blocks of a list of globals *)
-Definition gblk (G : genv) (ids : list ident) (b : block) : Prop :=
-  exists g, In g ids /\ Genv.find_symbol G g = Some b.
-
-(* load_sequence's written globals with a block in the model (see above) *)
-Definition ls_ids : list ident :=
-  [AX._gAudioLoadLock; AX._gSequencePlayers; AX._gSeqLoadedPool; AX._gBankLoadedPool;
-   buffers._gAudioHeap].
-
-Definition ls_frame (lp : Clight.program) : Prop :=
-  forall fd m vargs t m' vres,
-    eval_funcall function_entry2 (lp_ge lp) m fd vargs t m' vres ->
-    EngineV2Consumer.resolves_lp lp AX._load_sequence fd ->
-    Q2 (fun b _ => ~ gblk (lp_ge lp) ls_ids b) m m'.
-
-(* THE LABELED AUDIO PREMISE (TRUST 4.1): GOAL 1's row and the footprint
-   (HeightFrame takes NoA := NoA_real bm) *)
-Definition ls_contract (lp : Clight.program) (bm : block) (NoA MWF : mem -> Prop) : Prop :=
-  call_pres_ext lp bm NoA MWF AX._load_sequence /\ ls_frame lp.
+(* gblk, ls_ids, ls_frame, ls_contract: moved to WMotRRequiresA/LsContract.v
+   (the spine names the contract there) *)
 
 (* every global the cap music path writes (the frame lemmas' footprint) *)
 Definition cap_ids : list ident :=

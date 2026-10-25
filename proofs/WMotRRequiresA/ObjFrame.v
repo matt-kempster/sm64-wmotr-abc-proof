@@ -20,7 +20,8 @@
 (*    during the call, globals MWF does not read, and the Mario cells MC  *)
 (*    (any MC containing mcells).  Its premises are the leaves the walk   *)
 (*    stops at, each named:                                               *)
-(*      Hls (TRUST 4.1) + Hls_fr        load_sequence (audio)             *)
+(*      Hlsc (TRUST 4.1, ls_contract)   load_sequence (audio): GOAL 1's   *)
+(*                                      row + its footprint (LsContract)  *)
 (*      Hnpc_fr                         set_mario_npc_dialog's frame: its *)
 (*                                      Mario writes (smact_pres) must lie *)
 (*                                      in MC                             *)
@@ -40,7 +41,8 @@ From SM64.Proofs Require Import SymbolicLinking ActionValueFrame Taint
   UcKit FpuFloor.
 From SM64.Proofs Require MtxfBody AudioBodies ObjExtBodies FloorsSurface
   NpcDialogBody UpdateCameraBody SaveFileBody SpawnBodies CameraModeBody.
-From SM64.Proofs.WMotRRequiresA Require Import ObjTable ObjKit ObjWalk.
+From SM64.Proofs.WMotRRequiresA Require Import ObjTable ObjKit ObjWalk BodyFrame LsContract.
+From SM64.Proofs Require EngineV2Consumer.
 From SM64.Proofs.WMotRRequiresA Require BehaviorScripts.
 
 Import ListNotations.
@@ -475,22 +477,50 @@ Section FRAME.
   (* ==================================================================== *)
   (* THE WHOLE-WALK FRAME                                                  *)
   (* ==================================================================== *)
+  (* load_sequence's footprint (LsContract.ls_frame) is a frame: its blocks
+     are non-MWF globals *)
+  Lemma ls_FR : forall MC, ls_frame lp ->
+      forall b fd, Genv.find_symbol ge audio_external._load_sequence = Some b ->
+      Genv.find_funct ge (Vptr b Ptrofs.zero) = Some fd ->
+      forall m vargs t m' vres, eval_funcall function_entry2 ge m fd vargs t m' vres ->
+      FR lp bm SafeB (Mem.nextblock m) MC m m'.
+  Proof.
+    intros MC Hlf b fd Hs Hff m vargs t m' vres Hevf.
+    assert (Hres : EngineV2Consumer.resolves_lp lp audio_external._load_sequence fd)
+      by (exists b; split; [ exact Hs | exact Hff ]).
+    destruct (Hlf fd m vargs t m' vres Hevf Hres) as (HU & _).
+    unfold FR. eapply Mem.unchanged_on_implies; [ exact HU | ].
+    intros b0 ofs Hn _ (g & Hg & Hgb). apply Hn. right; right; left.
+    exists g. split; [ exact Hgb | exact (ls_ids_nm g Hg) ].
+  Qed.
+
   Section WHOLE.
-    (* the labeled audio premise (TRUST 4.1), as GOAL 1 carries it *)
-    Hypothesis Hls : FloorsSurface.call_pres_ext lp bm (fun m => AGates.ctl_a_clear m bm) MWF
-                       audio_external._load_sequence.
+    (* THE LABELED AUDIO PREMISE (TRUST 4.1): GOAL 1's row and load_sequence's
+       footprint (LsContract) *)
+    Hypothesis Hlsc : ls_contract lp bm (fun m => AGates.ctl_a_clear m bm) MWF.
+    Let Hls := proj1 Hlsc.
     (* the Mario cells the frame allows: at least the walked bodies' *)
     Variable MC : Z -> Prop.
     Hypothesis HMC : forall ofs, in_mcells mcells ofs -> MC ofs.
-    (* OPEN: the frames of the two leaves proved only for mem_ok:
-       load_sequence (audio) and set_mario_npc_dialog (whose Mario writes,
-       through set_mario_action, are GOAL 1's smact_pres row: MC must hold
-       them) *)
-    Hypothesis Hfr_open : forall fid b fd,
+    (* OPEN: the frame of set_mario_npc_dialog, proved only for mem_ok (its
+       Mario writes, through set_mario_action, are GOAL 1's smact_pres row:
+       MC must hold them) *)
+    Hypothesis Hnpc_fr : forall b fd,
+        Genv.find_symbol ge mario_actions_cutscene._set_mario_npc_dialog = Some b ->
+        Genv.find_funct ge (Vptr b Ptrofs.zero) = Some fd ->
+        forall m vargs t m' vres, eval_funcall function_entry2 ge m fd vargs t m' vres ->
+        ow_facts bm MWF m -> FR lp bm SafeB (Mem.nextblock m) MC m m'.
+
+    Lemma Hfr_open : forall fid b fd,
         (fid = audio_external._load_sequence \/ fid = mario_actions_cutscene._set_mario_npc_dialog) ->
         Genv.find_symbol ge fid = Some b -> Genv.find_funct ge (Vptr b Ptrofs.zero) = Some fd ->
         forall m vargs t m' vres, eval_funcall function_entry2 ge m fd vargs t m' vres ->
         ow_facts bm MWF m -> FR lp bm SafeB (Mem.nextblock m) MC m m'.
+    Proof.
+      intros fid b fd [-> | ->] Hs Hff m vargs t m' vres Hevf Hof.
+      - exact (ls_FR MC (proj2 Hlsc) b fd Hs Hff m vargs t m' vres Hevf).
+      - exact (Hnpc_fr b fd Hs Hff m vargs t m' vres Hevf Hof).
+    Qed.
     (* OPEN: cur_obj_update_floor and cur_obj_call_action_function *)
     Hypothesis Hopen2 : forall nl, HnB lp bm SafeB nl ->
         forall fid s b fd, ut_find fid open2 = Some s ->
