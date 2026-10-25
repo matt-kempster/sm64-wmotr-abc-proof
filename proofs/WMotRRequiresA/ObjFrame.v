@@ -6,8 +6,10 @@
 (* ObjFrame.v                                                             *)
 (*                                                                        *)
 (* 1. THE WALK: ObjTable's 387 bodies plus start_object_cutscene,         *)
-(*    bhv_1up_interact and cur_obj_push_mario_away, re-checked with       *)
-(*    ObjWalk.xchk at the Mario cells mcells (one vm sweep).             *)
+(*    bhv_1up_interact, cur_obj_push_mario_away and cur_obj_update_floor  *)
+(*    (its getter's out-cell is an ObjWalk S-local, so it returns kS),    *)
+(*    re-checked with ObjWalk.xchk at the Mario cells mcells (one vm      *)
+(*    sweep).                                                             *)
 (* 2. THE NAMED SUB-CONTRACTS (premise-free beyond the FPU floor and the  *)
 (*    walk's SafeB globals), each a walk of the real body with its own    *)
 (*    cell list:                                                           *)
@@ -25,9 +27,7 @@
 (*      Hnpc_fr                         set_mario_npc_dialog's frame: its *)
 (*                                      Mario writes (smact_pres) must lie *)
 (*                                      in MC                             *)
-(*      Hopen2                          cur_obj_update_floor (a floor     *)
-(*                                      pointer read back from a local)   *)
-(*                                      and cur_obj_call_action_function  *)
+(*      Hopen2                          cur_obj_call_action_function      *)
 (*                                      (writable action table)           *)
 (* ====================================================================== *)
 
@@ -73,7 +73,15 @@ Definition x_push : ident * nat * usig := (object_helpers._cur_obj_push_mario_aw
 Definition x_coll : ident * nat * usig :=
   (object_helpers._obj_check_if_collided_with_object, 21%nat, ([kS; kS], kN, false)).
 
-Definition xotab : list (ident * nat * usig) := otab ++ [x_cutscene; x_1up; x_push].
+(* cur_obj_update_floor, walked: its getter's out-cell `floor` is an S-local
+   (ObjWalk.sl_of), find_floor is a restarting call, so the getter returns kS
+   (UcKit's table, without S-locals, says only kW) *)
+Definition x_getfloor : ident * nat * usig :=
+  (object_helpers._cur_obj_update_floor_height_and_get_floor, 21%nat, ([], kS, false)).
+Definition x_updfloor : ident * nat * usig := (object_helpers._cur_obj_update_floor, 21%nat, ([], kA, false)).
+
+Definition xotab : list (ident * nat * usig) :=
+  [x_getfloor; x_updfloor] ++ otab ++ [x_cutscene; x_1up; x_push].
 
 Definition sq_leaf : ident * usig := (math_util._sqrtf, ([kN], kA, false)).
 Definition ps_leaf : ident * usig := (audio_external._play_sound, ([kA; kA], kA, false)).
@@ -83,7 +91,6 @@ Definition xleaf : utab := [
   sq_leaf; ps_leaf;
   (audio_external._load_sequence, ([kN; kN; kN], kA, true));
   (mario_actions_cutscene._set_mario_npc_dialog, ([kN], kA, true));
-  (object_helpers._cur_obj_update_floor, ([], kA, false));
   (object_helpers._cur_obj_call_action_function, ([kS], kA, true)) ].
 
 Definition xout : utab := tab_ut xotab ++ xleaf.
@@ -101,6 +108,14 @@ Lemma one_up_walk_ok :
 Proof. vm_compute. reflexivity. Qed.
 
 Lemma cutscene_walk_ok : forallb (xt_ent_ok [] obj_gs (tab_ut [x_cutscene] ++ [])) [x_cutscene] = true.
+Proof. vm_compute. reflexivity. Qed.
+
+(* cur_obj_update_floor's closure: writes no Mario cell *)
+Definition x_ff : ident * nat * usig := (surface_collision._find_floor, 12%nat, ([kN; kN; kN; kT], kN, false)).
+Definition x_ffl : ident * nat * usig :=
+  (surface_collision._find_floor_from_list, 12%nat, ([kS; kN; kN; kN; kL], kS, false)).
+Definition uf_tab : list (ident * nat * usig) := [x_updfloor; x_getfloor; x_ff; x_ffl].
+Lemma updfloor_walk_ok : forallb (xt_ent_ok [] obj_gs (tab_ut uf_tab ++ [])) uf_tab = true.
 Proof. vm_compute. reflexivity. Qed.
 
 (* play_sound's stores are all rooted at globals MWF does not read *)
@@ -197,7 +212,6 @@ End INST.
 (* ---------------------------------------------------------------------- *)
 
 Definition open2 : utab := [
-  (object_helpers._cur_obj_update_floor, ([], kA, false));
   (object_helpers._cur_obj_call_action_function, ([kS], kA, true)) ].
 
 Section FRAME.
@@ -228,7 +242,22 @@ Section FRAME.
     Proof.
       intros MC b fd Hs Hff nb0 HN m vargs t m' vres Hevf _ Hi.
       rewrite (MtxfBody.sqrtf_memid lp H12 Hsq b fd m vargs t m' vres Hs Hff Hevf).
-      split; [ exact Hi | split; [ intros bb oo _; exact I | exact (Mem.unchanged_on_refl _ _) ] ].
+      split; [ exact Hi | split; [ intros bb oo _; exact I | ] ].
+      split; [ exact (Mem.unchanged_on_refl _ _) | apply XS_refl ].
+    Qed.
+
+    (* a frame at nextblock m fixes the blocks in [nl, nb0) *)
+    Lemma FR_XS : forall MC nb0 m m', Ple nb0 (Mem.nextblock m) ->
+        FR lp bm SafeB (Mem.nextblock m) MC m m' -> XS SafeB nl nb0 m m'.
+    Proof.
+      intros MC nb0 m m' Hnb HF. apply (XS_unch SafeB nl nb0 m m' Hnb).
+      unfold FR in HF. eapply Mem.unchanged_on_implies; [ exact HF | ].
+      intros b ofs (Hl & Hlt) _ Hfp. pose proof HNL as (Hbm & Hsf & Hgl).
+      destruct Hfp as [Hs | [Hp | [(g & Hg & _) | (-> & _)]]].
+      - exact (Plt_strict _ (Plt_Ple_trans _ _ _ (Hsf _ Hs) Hl)).
+      - exact (Plt_strict _ (Plt_Ple_trans _ _ _ (Plt_Ple_trans _ _ _ Hlt Hnb) Hp)).
+      - exact (Plt_strict _ (Plt_Ple_trans _ _ _ (Hgl _ _ Hg) Hl)).
+      - exact (Plt_strict _ (Plt_Ple_trans _ _ _ Hbm Hl)).
     Qed.
 
     Lemma xleaf_play_sound : forall MC b fd,
@@ -240,6 +269,14 @@ Section FRAME.
       destruct (UpdateCameraBody.leaf_play_sound lp H12 bm bc oc0 SafeB HSafeB_syms Hspawn nl HNL
                   b fd Hsy Hff nb0 HN m vargs t m' vres Hevf Hva Hi) as (Hi' & Hr).
       split; [ exact Hi' | split; [ exact Hr | ] ].
+      cut (Mem.unchanged_on (fun b _ => ~ GBu lp b) m m').
+      { intros HG. split.
+        - unfold FR. eapply Mem.unchanged_on_implies; [ exact HG | ].
+          intros b0 ofs Hn0 _ Hg0. apply Hn0. right; right; left. exact Hg0.
+        - apply (XS_unch SafeB nl nb0 m m' (proj1 (proj2 Hi))).
+          eapply Mem.unchanged_on_implies; [ exact HG | ].
+          intros b0 ofs (Hl & _) _ (g & Hg & _). pose proof HNL as (_ & _ & Hgl).
+          exact (Plt_strict _ (Plt_Ple_trans _ _ _ (Hgl _ _ Hg) Hl)). }
       destruct (linkorder_resolves_funct lp _ _ _ (linked12_LO_audio_external lp H12)
                   CameraModeBody.dm_ps) as (b' & Hs' & Hff').
       change camera._play_sound with audio_external._play_sound in Hs'.
@@ -257,7 +294,7 @@ Section FRAME.
       cbn [Mem.free_list] in Hfree. injection Hfree as <-.
       lazymatch goal with Hb : exec_stmt _ _ ?E ?LE ?M1 _ _ _ ?M2 _ |- _ =>
         refine (proj1 (SpawnBodies.sw_walk (lp_ge lp) E
-                    (fun mm => FR lp bm SafeB nl MC M1 mm)
+                    (fun mm => Mem.unchanged_on (fun b _ => ~ GBu lp b) M1 mm)
                     (fun _ => True) (fun _ => True)
                     (fun _ _ => true)
                     (fun l _ => match SaveFileBody.groot_l l with
@@ -279,9 +316,9 @@ Section FRAME.
       match goal with Hl : eval_lvalue _ _ _ _ _ _ _ _ |- _ =>
         pose proof (SaveFileBody.groot_l_blk _ _ _ _ _ _ _ _ Hg Hl) as Hgs' end.
       match goal with Ha : assign_loc _ _ _ _ _ _ _ _ |- _ => rename Ha into Hal end.
-      unfold FR in *. eapply Mem.unchanged_on_trans; [ exact HF0 | ].
+      eapply Mem.unchanged_on_trans; [ exact HF0 | ].
       apply (assign_loc_unch _ _ _ _ _ _ _ _ _ Hal).
-      intros i Hn'. apply Hn'. right; right; left. exists g. split; [ exact Hgs' | exact Hok ].
+      intros i Hn'. apply Hn'. exists g. split; [ exact Hgs' | exact Hok ].
     Qed.
 
     (* Mario's block is not SafeB, not fresh, not a non-MWF global: the
@@ -353,6 +390,21 @@ Section FRAME.
                (in_mcells []) [] (fun o H => H) [x_cutscene] [] cutscene_walk_ok Hlf
                camera._start_object_cutscene _ b fd eq_refl Hs Hff).
     Qed.
+
+    Lemma updfloor_xspec : forall b fd,
+        Genv.find_symbol ge object_helpers._cur_obj_update_floor = Some b ->
+        Genv.find_funct ge (Vptr b Ptrofs.zero) = Some fd ->
+        xspec lp bm bc oc0 SafeB nl (in_mcells []) fd ([], kA, false).
+    Proof.
+      intros b fd Hs Hff.
+      assert (Hlf : forall fid s b0 fd0, ut_find fid [] = Some s ->
+                 Genv.find_symbol ge fid = Some b0 -> Genv.find_funct ge (Vptr b0 Ptrofs.zero) = Some fd0 ->
+                 xspec lp bm bc oc0 SafeB nl (in_mcells []) fd0 s).
+      { intros fid s b0 fd0 Hf. discriminate Hf. }
+      exact (tab_xspec lp H12 bm bc oc0 SafeB HSafeB_syms Hspawn Hgs nl HNL
+               (in_mcells []) [] (fun o H => H) uf_tab [] updfloor_walk_ok Hlf
+               object_helpers._cur_obj_update_floor _ b fd eq_refl Hs Hff).
+    Qed.
   End NL.
 
   Lemma x2u : forall nl MC fd s, xspec lp bm bc oc0 SafeB nl MC fd s -> uspec lp bm bc oc0 SafeB nl fd s.
@@ -389,7 +441,7 @@ Section FRAME.
     assert (Hva : Forall2 (uvok lp SafeB (Mem.nextblock m) (Mem.nextblock m)) [kN] [v]).
     { constructor; [ | constructor ]. intros bb oo E. exact (Hv bb oo E). }
     destruct (push_xspec _ HNL b fd Hs Hff _ (Ple_refl _) m [v] t m' vres Hevf Hva (ui0 m false Hof))
-      as ((Hof' & _) & _ & HF).
+      as ((Hof' & _) & _ & HF & _).
     exact (conj Hof' (conj HF (FR_mario _ HNL _ m m' HF))).
   Qed.
 
@@ -407,7 +459,7 @@ Section FRAME.
     intros b fd m t m' vres Hs Hff Hevf Hof.
     pose proof (UpdateCameraBody.uc_HnB lp bm bc oc0 SafeB m Hof) as HNL.
     destruct (one_up_xspec _ HNL b fd Hs Hff _ (Ple_refl _) m [] t m' vres Hevf (Forall2_nil _)
-                (ui0 m false Hof)) as ((Hof' & _) & _ & HF).
+                (ui0 m false Hof)) as ((Hof' & _) & _ & HF & _).
     exact (conj Hof' (conj HF (FR_mario _ HNL _ m m' HF))).
   Qed.
 
@@ -430,7 +482,7 @@ Section FRAME.
     { constructor; [ intros bb oo E; exact (Hv1 bb oo E) | constructor; [ | constructor ] ].
       intros bb oo E. exact (Hv2 bb oo E). }
     destruct (cutscene_xspec _ HNL b fd Hs Hff _ (Ple_refl _) m [v1; v2] t m' vres Hevf Hva
-                (ui0 m false Hof)) as ((Hof' & _) & _ & HF).
+                (ui0 m false Hof)) as ((Hof' & _) & _ & HF & _).
     split; [ exact Hof' | split; [ exact HF | ] ].
     eapply Mem.unchanged_on_implies; [ exact (FR_mario _ HNL _ m m' HF) | ].
     intros b0 ofs E _. split; [ exact E | intros (c & Hin & _); destruct Hin ].
@@ -460,7 +512,7 @@ Section FRAME.
         exact (x2u _ _ _ _ (cutscene_xspec nl HNL b fd Hs Hff)). }
       destruct (Pos.eqb object_helpers._cur_obj_update_floor fid) eqn:E2.
       { apply Pos.eqb_eq in E2. subst fid. cbv beta iota in Hf; injection Hf as <-.
-        apply (Hopen2u nl HNL object_helpers._cur_obj_update_floor _ b fd); [ reflexivity | exact Hs | exact Hff ]. }
+        exact (x2u _ _ _ _ (updfloor_xspec nl HNL b fd Hs Hff)). }
       destruct (Pos.eqb object_helpers._cur_obj_call_action_function fid) eqn:E3.
       { apply Pos.eqb_eq in E3. subst fid. cbv beta iota in Hf; injection Hf as <-.
         apply (Hopen2u nl HNL object_helpers._cur_obj_call_action_function _ b fd); [ reflexivity | exact Hs | exact Hff ]. }
@@ -521,7 +573,7 @@ Section FRAME.
       - exact (ls_FR MC (proj2 Hlsc) b fd Hs Hff m vargs t m' vres Hevf).
       - exact (Hnpc_fr b fd Hs Hff m vargs t m' vres Hevf Hof).
     Qed.
-    (* OPEN: cur_obj_update_floor and cur_obj_call_action_function *)
+    (* OPEN: cur_obj_call_action_function (its table is a writable global) *)
     Hypothesis Hopen2 : forall nl, HnB lp bm SafeB nl ->
         forall fid s b fd, ut_find fid open2 = Some s ->
         Genv.find_symbol ge fid = Some b -> Genv.find_funct ge (Vptr b Ptrofs.zero) = Some fd ->
@@ -542,8 +594,10 @@ Section FRAME.
                     nb0 HN m vargs t m' vres Hevf Hva Hi) as (Hi' & Hr).
         split; [ exact Hi' | split; [ exact Hr | ] ].
         destruct Hi as (Hof & Hnb & _).
+        pose proof (Hfr_open fid b fd Hid Hs Hff m vargs t m' vres Hevf Hof) as HF.
+        split; [ | exact (FR_XS nl HNL MC nb0 m m' Hnb HF) ].
         apply (FR_mono lp bm SafeB MC nl (Mem.nextblock m)); [ exact (Ple_trans _ _ _ HN Hnb) | ].
-        exact (Hfr_open fid b fd Hid Hs Hff m vargs t m' vres Hevf Hof).
+        exact HF.
       Qed.
 
       Lemma xleaf_ok : forall fid s b fd, ut_find fid xleaf = Some s ->
@@ -593,7 +647,7 @@ Section FRAME.
                     xotab xleaf xt_walk_ok (xleaf_ok nl HNL) fid _ b fd Hf Hs Hff) as Hsp.
       assert (Hi : UInv lp bm bc oc0 SafeB nl dm nl m)
         by (split; [ exact Hof | split; [ apply Ple_refl | intros _; exact (rl_fresh lp SafeB nl nl m eq_refl) ] ]).
-      destruct (Hsp nl (Ple_refl _) m nil t m' vres Hevf (Forall2_nil _) Hi) as ((Hof' & _) & _ & HF).
+      destruct (Hsp nl (Ple_refl _) m nil t m' vres Hevf (Forall2_nil _) Hi) as ((Hof' & _) & _ & HF & _).
       exact (conj Hof' (conj HF (FR_mario nl HNL MC m m' HF))).
     Qed.
   End WHOLE.
@@ -611,5 +665,6 @@ Lemma frame_natives_count :
   List.length (filter xnullary BehaviorScripts.wmotr_live_natives) = 104%nat.
 Proof. vm_compute. reflexivity. Qed.
 
-Lemma xotab_count : List.length xotab = 390%nat.
+(* 392 entries, 391 bodies: the getter is walked twice (kS here, kW in otab) *)
+Lemma xotab_count : List.length xotab = 392%nat.
 Proof. reflexivity. Qed.

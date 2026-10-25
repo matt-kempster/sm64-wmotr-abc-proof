@@ -855,7 +855,12 @@ without pressing A".*
   `ls_ids` are non-MWF globals, so `ls_FR` turns it into the frame) and named OPEN premises:
   `Hnpc_fr` (the frame of set_mario_npc_dialog, proved so far for mem_ok only; its Mario
   writes, via set_mario_action, are the smact_pres row and must lie in MC) and `Hopen2` (the
-  two open leaves, with frame). The
+  open leaf call_action_function, with frame). S-locals (2026-10-25): a pointer local whose
+  cell holds only SafeB pointers (`sl_of`; checked by `SLI`, a new `XS` conjunct "blocks in
+  [nl, nb0) gain only SafeB pointers", calls from such a body must restart at a kfree clean
+  callee) types `cur_obj_update_floor_height_and_get_floor`'s `floor` out-cell, so the getter
+  returns kS and `cur_obj_update_floor` is walked (392 table entries; `updfloor_xspec`
+  replaces its PRES leaf too: `Hopen2`/`Hopen2u` are call_action_function only). The
   frame is per-block, not yet per-object (a kSelf class: "only the running slot's object"
   is still open); SafeB covers every object slot. Not wired into a capstone, so no row
   moved; no new trust.
