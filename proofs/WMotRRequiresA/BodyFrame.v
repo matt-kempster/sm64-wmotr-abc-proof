@@ -425,3 +425,256 @@ Proof.
         exact (Mem.perm_free_2 _ _ _ _ _ Hfr o k p R Hp).
       * apply V. exact (Mem.perm_valid_block _ _ _ _ _ (Mem.perm_alloc_4 _ _ _ _ _ HA _ _ _ _ Hp2 Nbb)).
 Qed.
+
+(* ---------------------------------------------------------------------- *)
+(* 5. vec3f_set (2026-10-24, squish_mario_model): byte-precise.  A call   *)
+(*    with dest = (l, ofs) changes only the 12 bytes [ofs, ofs + 12) of   *)
+(*    l, plus its own freed `dest` frame.                                 *)
+(* ---------------------------------------------------------------------- *)
+Definition V3S : list ident := [math_util._t'3; math_util._t'2; math_util._t'1].
+
+Definition v3s_set_ok (id : ident) (a : expr) : bool :=
+  negb (Pos.eqb id math_util._dest)
+  && (negb (existsb (Pos.eqb id) V3S)
+      || match a with Evar x (Tpointer _ _) => Pos.eqb x math_util._dest | _ => false end).
+
+Definition v3s_store_ok (lv rhs : expr) : bool :=
+  match lv with
+  | Evar x (Tpointer _ _) =>
+      Pos.eqb x math_util._dest
+      && match rhs with Etempvar y (Tpointer _ _) => Pos.eqb y math_util._dest | _ => false end
+  | Ederef (Ebinop Oadd (Etempvar x (Tpointer (Tfloat F32 _) _)) (Econst_int i (Tint _ _ _))
+                   (Tpointer (Tfloat F32 _) _)) (Tfloat F32 _) =>
+      existsb (Pos.eqb x) V3S && (Int.unsigned i <? 3)
+  | _ => false
+  end.
+
+Lemma v3set_chk : lw_chk v3s_set_ok v3s_store_ok no_call (fn_body math_util.f_vec3f_set) = true.
+Proof. vm_compute. reflexivity. Qed.
+
+(* p + i for a float pointer p, 0 <= i < 3, inside the address space *)
+Lemma add_pf : forall (ce : composite_env) l o a a1 n sz sg a' mm loc o',
+  sem_binary_operation ce Oadd (Vptr l o) (Tpointer (Tfloat F32 a) a1) (Vint n) (Tint sz sg a') mm
+    = Some (Vptr loc o') ->
+  Int.unsigned n < 3 -> Ptrofs.unsigned o + 12 <= Ptrofs.modulus ->
+  loc = l /\ Ptrofs.unsigned o' = Ptrofs.unsigned o + 4 * Int.unsigned n.
+Proof.
+  intros ce l o a a1 n sz sg a' mm loc o' H Hn Ho.
+  assert (Hs : Int.signed n = Int.unsigned n)
+    by (apply Int.signed_eq_unsigned; change Int.max_signed with 2147483647; lia).
+  destruct sz; cbn -[Ptrofs.add Ptrofs.mul Ptrofs.repr] in H; injection H as <- <-; split; try reflexivity;
+    unfold ptrofs_of_int in *; try destruct sg; unfold Ptrofs.of_ints, Ptrofs.of_intu, Ptrofs.of_int in *; rewrite ?Hs;
+    pose proof (Int.unsigned_range n) as Rn; pose proof (Ptrofs.unsigned_range o) as Ro;
+    unfold Ptrofs.add, Ptrofs.mul;
+    assert (Mx : 11 <= Ptrofs.max_unsigned) by (unfold Ptrofs.max_unsigned; lia);
+    rewrite (Ptrofs.unsigned_repr 4) by lia;
+    rewrite ?(Ptrofs.unsigned_repr (Int.unsigned n)) by lia;
+    rewrite (Ptrofs.unsigned_repr (4 * Int.unsigned n)) by lia;
+    rewrite Ptrofs.unsigned_repr by (unfold Ptrofs.max_unsigned; lia); reflexivity.
+Qed.
+
+(* the same for a float array decayed to a pointer (a[i], squish_mario_model) *)
+Lemma add_af : forall (ce : composite_env) l o a k a1 n sz sg a' mm loc o',
+  sem_binary_operation ce Oadd (Vptr l o) (Tarray (Tfloat F32 a) k a1) (Vint n) (Tint sz sg a') mm
+    = Some (Vptr loc o') ->
+  Int.unsigned n < 3 -> Ptrofs.unsigned o + 12 <= Ptrofs.modulus ->
+  loc = l /\ Ptrofs.unsigned o' = Ptrofs.unsigned o + 4 * Int.unsigned n.
+Proof.
+  intros ce l o a k a1 n sz sg a' mm loc o' H Hn Ho.
+  assert (Hs : Int.signed n = Int.unsigned n)
+    by (apply Int.signed_eq_unsigned; change Int.max_signed with 2147483647; lia).
+  destruct sz; cbn -[Ptrofs.add Ptrofs.mul Ptrofs.repr] in H; injection H as <- <-; split; try reflexivity;
+    unfold ptrofs_of_int in *; try destruct sg; unfold Ptrofs.of_ints, Ptrofs.of_intu, Ptrofs.of_int in *; rewrite ?Hs;
+    pose proof (Int.unsigned_range n) as Rn; pose proof (Ptrofs.unsigned_range o) as Ro;
+    unfold Ptrofs.add, Ptrofs.mul;
+    assert (Mx : 11 <= Ptrofs.max_unsigned) by (unfold Ptrofs.max_unsigned; lia);
+    rewrite (Ptrofs.unsigned_repr 4) by lia;
+    rewrite ?(Ptrofs.unsigned_repr (Int.unsigned n)) by lia;
+    rewrite (Ptrofs.unsigned_repr (4 * Int.unsigned n)) by lia;
+    rewrite Ptrofs.unsigned_repr by (unfold Ptrofs.max_unsigned; lia); reflexivity.
+Qed.
+
+Section V3SET.
+  Variable ge : genv.
+  Variables (m me : mem) (l bb : block) (ofs : ptrofs).
+  Let lo := Ptrofs.unsigned ofs.
+
+  Definition v3sQ (mm : mem) : Prop :=
+    Mem.unchanged_on (fun b z => ~ (b = l /\ lo <= z < lo + 12) /\ Plt b (Mem.nextblock m)) me mm
+    /\ Mem.nextblock mm = Mem.nextblock me
+    /\ (forall b o k p, Mem.perm mm b o k p <-> Mem.perm me b o k p)
+    /\ (Mem.load Mint32 mm bb 0 = Some Vundef \/ Mem.load Mint32 mm bb 0 = Some (Vptr l ofs)).
+
+  Definition v3sP (le : temp_env) : Prop :=
+    le ! math_util._dest = Some (Vptr l ofs)
+    /\ (forall x p, In x V3S -> le ! x = Some p -> p = Vundef \/ p = Vptr l ofs).
+
+  Variable e : env.
+  Variable ty0 : type.
+  Hypothesis He : e ! math_util._dest = Some (bb, ty0).
+  Hypothesis Nlb : l <> bb.
+  Hypothesis Fbb : ~ Plt bb (Mem.nextblock m).
+  Hypothesis Vbb : Plt bb (Mem.nextblock me).
+  Hypothesis Hlo : lo + 12 <= Ptrofs.modulus.
+
+  Lemma v3s_set : forall id a le mm v,
+    v3s_set_ok id a = true -> v3sP le -> v3sQ mm ->
+    eval_expr ge e le mm a v -> v3sP (PTree.set id v le).
+  Proof.
+    intros id a le mm v Hs (Hd & Ht) (_ & _ & _ & Hbb) Ea.
+    unfold v3s_set_ok in Hs. apply andb_true_iff in Hs as (Hs1 & Hs2).
+    apply negb_true_iff, Pos.eqb_neq in Hs1.
+    split; [rewrite PTree.gso by congruence; exact Hd |].
+    intros x p Hin Hx.
+    destruct (peq x id) as [-> | Nx].
+    - rewrite PTree.gss in Hx. injection Hx as <-.
+      assert (T : existsb (Pos.eqb id) V3S = true)
+        by (apply existsb_exists; exists id; split; [exact Hin | apply Pos.eqb_refl]).
+      rewrite T in Hs2. cbn [negb orb] in Hs2.
+      repeat match type of Hs2 with
+      | match ?x with _ => _ end = true => destruct x; try discriminate Hs2
+      end.
+      apply Pos.eqb_eq in Hs2. subst.
+      rewrite (ev_evar_ptr ge _ _ _ _ _ _ _ _ _ He Ea) in Hbb.
+      destruct Hbb as [E | E]; injection E as ->; [left | right]; reflexivity.
+    - rewrite PTree.gso in Hx by exact Nx. exact (Ht x p Hin Hx).
+  Qed.
+
+  Lemma v3s_store : forall lv rhs le mm t le' mm' out,
+    v3s_store_ok lv rhs = true -> v3sP le ->
+    exec_stmt function_entry2 ge e le mm (Sassign lv rhs) t le' mm' out ->
+    v3sQ mm -> v3sQ mm'.
+  Proof.
+    intros lv rhs le mm t le' mm' out Hs (Hd & Ht) Hx (U & N & P & Hbb).
+    assert (Vbb' : Mem.valid_block mm bb) by (unfold Mem.valid_block; rewrite N; exact Vbb).
+    inv Hx.
+    match goal with Ha : assign_loc _ _ _ _ _ _ _ _ |- _ => rename Ha into Hal end.
+    unfold v3s_store_ok in Hs.
+    repeat match type of Hs with
+    | match ?x with _ => _ end = true => destruct x; try discriminate Hs
+    end.
+    - (* dest's own copy: dest := (the parameter) *)
+      apply andb_true_iff in Hs as (Hs1 & Hs2).
+      repeat match type of Hs2 with
+      | match ?x with _ => _ end = true => destruct x; try discriminate Hs2
+      end.
+      apply Pos.eqb_eq in Hs1, Hs2. subst.
+      match goal with L : eval_lvalue _ _ _ _ (Evar _ _) _ _ _ |- _ =>
+        destruct (ev_lv_evar ge _ _ _ _ _ _ _ _ _ _ He L) as (-> & -> & ->) end.
+      match goal with Ev : eval_expr _ _ _ _ (Etempvar _ _) _ |- _ =>
+        apply eval_expr_Etempvar_val in Ev; rewrite Hd in Ev; injection Ev as <- end.
+      match goal with Hc : sem_cast _ _ _ _ = Some _ |- _ => apply cast_pp in Hc; subst end.
+      inv Hal;
+        match goal with Hm : access_mode _ = _ |- _ => vm_compute in Hm; try discriminate Hm end.
+      match goal with Hm : By_value _ = By_value _, Hs : Mem.storev _ _ _ _ = Some _ |- _ =>
+        injection Hm as <-; cbn [Mem.storev] in Hs; rename Hs into Hst end.
+      destruct (st_gen _ _ _ _ _ _ Hst) as (N2 & P2).
+      split; [| split; [| split]].
+      + eapply Mem.unchanged_on_trans; [exact U |].
+        eapply Mem.store_unchanged_on; [exact Hst |]. intros i _ (_ & V). exact (Fbb V).
+      + rewrite N2. exact N.
+      + intros b o k p. rewrite P2. exact (P b o k p).
+      + right. rewrite Ptrofs.unsigned_zero in Hst. rewrite (Mem.load_store_same _ _ _ _ _ _ Hst). reflexivity.
+    - (* *(t + i) = ... with t one of V3S, i < 3: a store into [lo, lo + 12) of l *)
+      apply andb_true_iff in Hs as (Hs & Hi). apply Z.ltb_lt in Hi.
+      apply existsb_exists in Hs as (x' & Hin & Ex). apply Pos.eqb_eq in Ex. subst x'.
+      match goal with L : eval_lvalue _ _ _ _ (Ederef _ _) _ _ ?bf |- _ =>
+        assert (Ebf : bf = Full) by (inv L; reflexivity); subst bf;
+        apply eval_lvalue_Ederef_base in L; apply eval_expr_Ebinop_inv in L as (w1 & w2 & E1 & E2 & Sb) end.
+      apply eval_expr_Etempvar_val in E1. apply eval_expr_Econst_int_val in E2. subst w2.
+      cbn [typeof] in Sb.
+      destruct (Ht _ _ Hin E1) as [E | E]; [subst w1; match type of Sb with sem_binary_operation _ _ _ _ _ (Tint ?s _ _) _ = _ => destruct s; cbn in Sb; discriminate Sb end |].
+      subst w1.
+      destruct (add_pf _ _ _ _ _ _ _ _ _ _ _ _ Sb Hi Hlo) as (-> & Eo).
+      inv Hal;
+        match goal with Hm : access_mode _ = _ |- _ => cbn in Hm; try discriminate Hm end.
+      match goal with Hm : By_value _ = By_value _, Hs : Mem.storev _ _ _ _ = Some _ |- _ =>
+        injection Hm as <-; cbn [Mem.storev] in Hs; rename Hs into Hst end.
+      destruct (st_gen _ _ _ _ _ _ Hst) as (N2 & P2).
+      split; [| split; [| split]].
+      + eapply Mem.unchanged_on_trans; [exact U |].
+        eapply Mem.store_unchanged_on; [exact Hst |]. intros z Hz (A & _). apply A.
+        rewrite Eo in Hz. cbn [size_chunk] in Hz. unfold lo. match type of Eo with _ = _ + 4 * Int.unsigned ?n => pose proof (Int.unsigned_range n) end. split; [reflexivity | lia].
+      + rewrite N2. exact N.
+      + intros b o k p. rewrite P2. exact (P b o k p).
+      + erewrite Mem.load_store_other; [exact Hbb | exact Hst |]. left. exact (not_eq_sym Nlb).
+  Qed.
+End V3SET.
+
+Lemma v3set_frame : forall (ge : genv) m l ofs vs t m' vr,
+  eval_funcall function_entry2 ge m (Internal math_util.f_vec3f_set) (Vptr l ofs :: vs) t m' vr ->
+  Mem.valid_block m l -> Ptrofs.unsigned ofs + 12 <= Ptrofs.modulus ->
+  Q2 (fun b z => ~ (b = l /\ Ptrofs.unsigned ofs <= z < Ptrofs.unsigned ofs + 12)) m m'.
+Proof.
+  intros ge m l ofs vs t m' vr Hev Vl Hlo.
+  inv Hev.
+  match goal with He : function_entry2 _ _ _ _ _ _ _ |- _ => rename He into Hentry end.
+  match goal with Hx : exec_stmt _ _ _ _ _ _ _ _ _ _ |- _ => rename Hx into Hbody end.
+  match goal with Hfr : Mem.free_list _ _ = Some _ |- _ => rename Hfr into Hfree end.
+  inv Hentry.
+  match goal with Ha : alloc_variables _ _ _ _ _ _ |- _ => cbn [fn_vars math_util.f_vec3f_set] in Ha; inv Ha end.
+  match goal with Ha : alloc_variables _ _ _ nil _ _ |- _ => inv Ha end.
+  match goal with Halc : Mem.alloc m 0 _ = (?m1, ?b1) |- _ =>
+    rename Halc into HA; rename m1 into me; rename b1 into bb end.
+  match goal with Hb : bind_parameter_temps _ _ _ = Some ?LE |- _ =>
+    rename Hb into Hbp; rename LE into le0 end.
+  assert (Fbb : ~ Plt bb (Mem.nextblock m)) by exact (Mem.fresh_block_alloc _ _ _ _ _ HA).
+  assert (Nlb : l <> bb) by (intros ->; exact (Fbb Vl)).
+  assert (Vbb : Plt bb (Mem.nextblock me)) by exact (Mem.valid_new_block _ _ _ _ _ HA).
+  assert (He : (PTree.set math_util._dest (bb, tptr tfloat) empty_env) ! math_util._dest = Some (bb, tptr tfloat))
+    by apply PTree.gss.
+  assert (HP0 : v3sP l ofs le0).
+  { split.
+    - eapply MarioModel.MathGeomBodies.bind_parameter_temps_head; [| exact Hbp].
+      cbn. intros [E | [E | [E | []]]]; discriminate E.
+    - intros x p Hin Hx.
+      cbn [bind_parameter_temps fn_params math_util.f_vec3f_set] in Hbp.
+      destruct vs as [| v2 [| v3 [| v4 [| v5 vs]]]]; try discriminate Hbp.
+      injection Hbp as <-.
+      do 4 (rewrite PTree.gso in Hx by (intros ->; destruct Hin as [E | [E | [E | []]]]; discriminate E)).
+      left; exact (cut_undef (fn_temps math_util.f_vec3f_set) _ _ Hx). }
+  assert (HQ0 : v3sQ m me l bb ofs me).
+  { split; [apply Mem.unchanged_on_refl |]. split; [reflexivity |]. split; [tauto |].
+    left. eapply Mem.load_alloc_same'; [exact HA | lia | cbn; destruct Archi.ptr64; lia | apply Z.divide_0_r]. }
+  destruct (lw_walk ge (PTree.set math_util._dest (bb, tptr tfloat) empty_env)
+              (v3sQ m me l bb ofs) (v3sP l ofs) v3s_set_ok v3s_store_ok no_call
+              ltac:(intros; eapply v3s_set; eassumption)
+              ltac:(intros; eapply v3s_store; eassumption)
+              ltac:(intros; discriminate)
+              _ _ _ _ _ _ _ _ Hbody eq_refl v3set_chk HP0 HQ0) as ((U & N & P & _) & _).
+  try (match type of U with Mem.unchanged_on _ _ ?mm => rename mm into m2 end).
+  rewrite MarioModel.MathGeomBodies.blocks_of_env_mu_dest in Hfree.
+  cbn [Mem.free_list] in Hfree.
+  match type of Hfree with
+  | match Mem.free ?mm ?b ?lo ?hi with _ => _ end = Some _ =>
+      destruct (Mem.free mm b lo hi) as [m3 |] eqn:Hfr; [| discriminate Hfree]
+  end.
+  injection Hfree as <-.
+  set (K := fun b z => ~ (b = l /\ Ptrofs.unsigned ofs <= z < Ptrofs.unsigned ofs + 12)).
+  assert (U1 : Mem.unchanged_on (fun b z => K b z /\ Plt b (Mem.nextblock m)) m me)
+    by exact (Mem.alloc_unchanged_on _ _ _ _ _ _ HA).
+  assert (U3 : Mem.unchanged_on (fun b z => K b z /\ Plt b (Mem.nextblock m)) m2 m3).
+  { eapply Mem.free_unchanged_on; [exact Hfr |]. intros i _ (_ & V). exact (Fbb V). }
+  assert (NA : Mem.nextblock me = Pos.succ (Mem.nextblock m)) by exact (Mem.nextblock_alloc _ _ _ _ _ HA).
+  assert (NF : Mem.nextblock m3 = Mem.nextblock m2) by exact (Mem.nextblock_free _ _ _ _ _ Hfr).
+  split.
+  - eapply Mem.unchanged_on_implies.
+    + exact (Mem.unchanged_on_trans _ _ _ _ (Mem.unchanged_on_trans _ _ _ _ U1 U) U3).
+    + intros b z Nb Vb. exact (conj Nb Vb).
+  - split; [rewrite NF, N, NA; apply Ple_succ |].
+    split.
+    + intros b o k p V.
+      assert (Nbb : b <> bb) by (intros ->; exact (Fbb V)).
+      split.
+      * intros Hp. apply (Mem.perm_free_3 _ _ _ _ _ Hfr) in Hp. apply P in Hp.
+        exact (Mem.perm_alloc_4 _ _ _ _ _ HA _ _ _ _ Hp Nbb).
+      * intros Hp. apply (Mem.perm_free_1 _ _ _ _ _ Hfr); [left; exact Nbb |].
+        apply P. exact (Mem.perm_alloc_1 _ _ _ _ _ HA _ _ _ _ Hp).
+    + intros b o k p V Hp.
+      pose proof (Mem.perm_free_3 _ _ _ _ _ Hfr _ _ _ _ Hp) as Hp2.
+      apply P in Hp2.
+      destruct (peq b bb) as [-> | Nbb].
+      * pose proof (Mem.perm_alloc_3 _ _ _ _ _ HA _ _ _ Hp2) as R.
+        exact (Mem.perm_free_2 _ _ _ _ _ Hfr o k p R Hp).
+      * apply V. exact (Mem.perm_valid_block _ _ _ _ _ (Mem.perm_alloc_4 _ _ _ _ _ HA _ _ _ _ Hp2 Nbb)).
+Qed.

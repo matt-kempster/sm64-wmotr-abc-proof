@@ -59,13 +59,13 @@ Hypothesis Hbm : Genv.find_symbol G level_update._gMarioStates = Some bm.
 Variable fK : function.
 Hypothesis Hfin : forall yc, In yc wmotr_cannon_list -> cfinal lp ACT_IN_CANNON_Z yc fK.
 
-Local Ltac epl := cbn [PoleRow.Epl e_blk e_base]; cbn [Pos.eqb RM RO RFI RMISS RCALLS RSIN RLD RBUF RIOM RMQ RRM RAR RLK RPC RSR RSRC RSMS RBS RU RBT RGP RLV].
-Local Ltac epl_in H := cbn [PoleRow.Epl e_blk e_base] in H; cbn [Pos.eqb RM RO RFI RMISS RCALLS RSIN RLD RBUF RIOM RMQ RRM RAR RLK RPC RSR RSRC RSMS RBS RU RBT RGP RLV] in H.
+Local Ltac epl := cbn [PoleRow.Epl e_blk e_base]; cbn [Pos.eqb RM RO RFI RMISS RCALLS RSIN RLD RBUF RIOM RMQ RRM RAR RLK RPC RSR RSRC RSMS RBS RFA RU RBT RGP RLV].
+Local Ltac epl_in H := cbn [PoleRow.Epl e_blk e_base] in H; cbn [Pos.eqb RM RO RFI RMISS RCALLS RSIN RLD RBUF RIOM RMQ RRM RAR RLK RPC RSR RSRC RSMS RBS RFA RU RBT RGP RLV] in H.
 Local Ltac r0p_cases H :=
   destruct (PoleRow.r0p_size lp _ _ H) as
     [(-> & ?) | [(-> & ?) | [(-> & ?) | [(-> & ?) | [(-> & ?) | [(-> & ?) | [(-> & ?) | [(-> & ?)
     | [(-> & ?) | [(-> & ?) | [(-> & ?) | [(-> & ?) | [(-> & ?) | [(-> & ?) | [(-> & ?)
-    | [(-> & ?) | (-> & ?)]]]]]]]]]]]]]]]].
+    | [(-> & ?) | [(-> & ?) | (-> & ?)]]]]]]]]]]]]]]]]].
 Ltac mem_tac := unfold fk_same; repeat (first [left; reflexivity | right]).
 
 (* THE CANNON ROW: from the frame world and a fresh floor, the real
@@ -81,9 +81,7 @@ Theorem cannon_row : forall m t m' vres c0,
 Proof.
   intros m t m' vres c0 Vm (Ha & HW & Han & Hmob & Hd & FW & UO & AW & LV) RC Hbud Hact Hfr EV.
   destruct FW as (Hgn & EX & FD).
-  destruct EX as (gp & bfi & bmiss & bcalls & bsin & ab & biom & bmq & brm & blk & bpc & bsr & bsrc & bsms & bbs & bo & oo & bt & ot & fl & ar & inp & ctl &
-                  HC & HS & HM & S1 & S2 & S3 & S4 & S5 & S6 & S7 & S8 & SL & SP & SR & SRC & SMS & SBS & Lo & Soo & La & Lb & Sot & D1 & D2 & D3 & D4 &
-                  W & Lf & Wf & Wc0 & Lar & War & Li & Ai & Lc & Wc & Co & LPC & LBS).
+  ffw_unpack EX.
   destruct (KbRow.ff_layout lp H12) as (FO & FA & FF & FAr & FH & FR & ZO & ZS & ZA & ZM & ZD).
   destruct (aud_sym lp H12) as (bau & S9).
   destruct (SymbolicLinking.linkorder_resolves_symbol lp AUT.prog _ _ (linked12_LO_aut lp H12) PoleRow.dm_bt)
@@ -101,7 +99,7 @@ Proof.
   destruct UA as (Ubm & UAm).
   destruct (UAm bo oo Lo0) as [N | Dis]; [congruence |].
   unfold OBJ_SPAN in Suo, Dis, CC.
-  set (E := PoleRow.Epl bm bo bfi bmiss bcalls bsin ab bt biom bmq brm bau blk bpc bsr bsrc bsms bbs bbt bgp blv oo uo).
+  set (E := PoleRow.Epl bm bo bfi bmiss bcalls bsin ab bt biom bmq brm bau blk bpc bsr bsrc bsms bbs bfa bbt bgp blv oo uo).
   (* validity *)
   assert (GPO : forall b x, gp b = Some x -> Plt b (Mem.nextblock m))
     by (intros b x H; exact (closed_old gp m b x HC H)).
@@ -155,7 +153,7 @@ Proof.
   pose proof (DS _ _ _ _ Slv S5 eq_refl) as NL5. pose proof (DS _ _ _ _ Slv S6 eq_refl) as NL6.
   pose proof (DS _ _ _ _ Slv S7 eq_refl) as NL7. pose proof (DS _ _ _ _ Slv S8 eq_refl) as NL8.
   assert (Slv' : Genv.find_symbol G mario._gCurrLevelNum = Some blv) by exact Slv.
-  destruct (D4 blv (or_intror (or_intror (or_introl Slv')))) as (OL & TL).
+  destruct (D4 blv (or_intror (or_intror (lvl_sym_of _ _ blv (or_introl eq_refl) Slv')))) as (OL & TL).
   destruct (D4 bau (or_intror (or_introl S9))) as (O9 & T9).
   pose proof (KbRow.sym_valid lp m _ _ Hgn SL) as VK.
   pose proof (DS _ _ _ _ SL Hbm eq_refl) as NK0. pose proof (DS _ _ _ _ SL S1 eq_refl) as NK1.
@@ -219,13 +217,30 @@ Proof.
   try (pose proof (DS _ _ _ _ SR SBS eq_refl) as NBS_SR).
   try (pose proof (DS _ _ _ _ SRC SBS eq_refl) as NBS_SRC).
   try (pose proof (DS _ _ _ _ SMS SBS eq_refl) as NBS_SMS).
+  try (pose proof (DS _ _ _ _ Hbm SFA eq_refl) as NFA_Hbm).
+  try (pose proof (DS _ _ _ _ S1 SFA eq_refl) as NFA_S1).
+  try (pose proof (DS _ _ _ _ S2 SFA eq_refl) as NFA_S2).
+  try (pose proof (DS _ _ _ _ S3 SFA eq_refl) as NFA_S3).
+  try (pose proof (DS _ _ _ _ S4 SFA eq_refl) as NFA_S4).
+  try (pose proof (DS _ _ _ _ S5 SFA eq_refl) as NFA_S5).
+  try (pose proof (DS _ _ _ _ S6 SFA eq_refl) as NFA_S6).
+  try (pose proof (DS _ _ _ _ S7 SFA eq_refl) as NFA_S7).
+  try (pose proof (DS _ _ _ _ S8 SFA eq_refl) as NFA_S8).
+  try (pose proof (DS _ _ _ _ S9 SFA eq_refl) as NFA_S9).
+  try (pose proof (DS _ _ _ _ SL SFA eq_refl) as NFA_SL).
+  try (pose proof (DS _ _ _ _ SP SFA eq_refl) as NFA_SP).
+  try (pose proof (DS _ _ _ _ SR SFA eq_refl) as NFA_SR).
+  try (pose proof (DS _ _ _ _ SRC SFA eq_refl) as NFA_SRC).
+  try (pose proof (DS _ _ _ _ SMS SFA eq_refl) as NFA_SMS).
+  try (pose proof (DS _ _ _ _ SBS SFA eq_refl) as NFA_SBS).
   destruct (D4 bbs ltac:(left; cbn; auto 20)) as (OBS & TBS).
+  destruct (D4 bfa ltac:(left; cbn; auto 22)) as (OFA & TFA).
   destruct (D4 bfi ltac:(left; cbn; auto 10)) as (O1 & T1). destruct (D4 bmiss ltac:(left; cbn; auto 10)) as (O2 & T2).
   destruct (D4 bcalls ltac:(left; cbn; auto 10)) as (O3 & T3). destruct (D4 bsin ltac:(left; cbn; auto 10)) as (O4 & T4).
   destruct (D4 ab ltac:(left; cbn; auto 10)) as (O5 & T5). destruct (D4 biom ltac:(left; cbn; auto 10)) as (O6 & T6).
   destruct (D4 bmq ltac:(left; cbn; auto 10)) as (O7 & T7). destruct (D4 brm ltac:(left; cbn; auto 10)) as (O8 & T8).
   clear DS.
-  set (RL0 := ff_rl bm bo oo bfi bmiss bcalls ab bt biom bmq brm blk bpc bsr bsrc bsms bbs) in *.
+  set (RL0 := ff_rl bm bo oo bfi bmiss bcalls ab bt biom bmq brm blk bpc bsr bsrc bsms bbs bfa) in *.
   assert (Rbo : rblk RL0 bo) by (exists oo; unfold RL0, ff_rl; cbn; auto 12).
   assert (Rbt : rblk RL0 bt) by (exists Ptrofs.zero; unfold RL0, ff_rl; cbn; auto 12).
   (* the region pointer list: ffw's, and the cannon *)
@@ -237,7 +252,7 @@ Proof.
   (* each region's block is on the list *)
   assert (INR : forall r sz, r0_size (R0P G) r = Some sz -> rblk RL0 (e_blk E r)).
   { intros r sz H. r0p_cases H; unfold E; epl; unfold RL0, ff_rl.
-    all: first [exact Rbo | eexists; cbn; auto 19]. }
+    all: first [exact Rbo | eexists; cbn; auto 21]. }
   assert (WW : forall p v n, den G m E p = Some v -> wblk m RL0 v n ->
             fact_holds G (R0P G) m (ufP G m gp) E (Fworld p n)).
   { intros p v n D (b & o & -> & Hp & Hn & Ho & Hr). cbn [fact_holds]. exists b, o.
@@ -254,8 +269,8 @@ Proof.
       first [exact HM | exact Gbo | exact Gab | exact Gbt | exact (HS _ _ S1) | exact (HS _ _ S2)
             | exact (HS _ _ S3) | exact (HS _ _ S4) | exact (HS _ _ S6) | exact (HS _ _ S7) | exact (HS _ _ S8)
             | exact (HS _ _ S9) | exact (HS _ _ Sbt) | exact (HS _ _ Sgp) | exact (HS _ _ Slv) | exact (HS _ _ SL) | exact (HS _ _ SP)
-            | exact (HS _ _ SR) | exact (HS _ _ SRC) | exact (HS _ _ SMS) | exact (HS _ _ SBS)].
-    - exact (PoleRow.pl_sizes lp H12 bm bo bfi bmiss bcalls bsin ab bt biom bmq brm bau blk bpc bsr bsrc bsms bbs bbt bgp blv oo uo Soo
+            | exact (HS _ _ SR) | exact (HS _ _ SRC) | exact (HS _ _ SMS) | exact (HS _ _ SBS) | exact (HS _ _ SFA)].
+    - exact (PoleRow.pl_sizes lp H12 bm bo bfi bmiss bcalls bsin ab bt biom bmq brm bau blk bpc bsr bsrc bsms bbs bfa bbt bgp blv oo uo Soo
                ltac:(unfold SZ_OBJECT; lia)).
     - intros r sz r' sz' H H' N.
       r0p_cases H; r0p_cases H'; subst sz sz'; unfold E; epl;
@@ -377,7 +392,7 @@ Proof.
   (* the frame *)
   assert (OFF : forall ch b z, Plt b (Mem.nextblock m) -> ~ rblk RL0 b -> Mem.load ch m' b z = Mem.load ch m b z).
   { intros ch b z Hp Hr. apply KR; [exact Hp |]. intros r sz Hs. left.
-    destruct (XB r (proj1 (PoleRow.pl_sizes lp H12 bm bo bfi bmiss bcalls bsin ab bt biom bmq brm bau blk bpc bsr bsrc bsms bbs bbt bgp blv oo uo Soo
+    destruct (XB r (proj1 (PoleRow.pl_sizes lp H12 bm bo bfi bmiss bcalls bsin ab bt biom bmq brm bau blk bpc bsr bsrc bsms bbs bfa bbt bgp blv oo uo Soo
                              ltac:(unfold SZ_OBJECT; lia) r sz Hs))) as (B1 & _).
     rewrite B1. intros Eb. apply Hr. rewrite <- Eb. exact (INR r sz Hs). }
   (* the object block, away from Mario's object and the cannon *)
@@ -385,9 +400,9 @@ Proof.
              z + size_chunk ch <= Ptrofs.unsigned uo \/ Ptrofs.unsigned uo + SZ_OBJECT <= z ->
              Mem.load ch m' bo z = Mem.load ch m bo z).
   { intros ch z Hz Hzu. apply KR; [exact Vo |]. intros r sz Hs.
-    destruct (XB r (proj1 (PoleRow.pl_sizes lp H12 bm bo bfi bmiss bcalls bsin ab bt biom bmq brm bau blk bpc bsr bsrc bsms bbs bbt bgp blv oo uo Soo
+    destruct (XB r (proj1 (PoleRow.pl_sizes lp H12 bm bo bfi bmiss bcalls bsin ab bt biom bmq brm bau blk bpc bsr bsrc bsms bbs bfa bbt bgp blv oo uo Soo
                              ltac:(unfold SZ_OBJECT; lia) r sz Hs))) as (B1 & B2).
-    rewrite B1, B2. clear -Hs Hz Hzu D1 D3 O1 O2 O3 O5 O6 O7 O8 OL OK OP OSR OSRC OSMS OBS ZO.
+    rewrite B1, B2. clear -Hs Hz Hzu D1 D3 O1 O2 O3 O5 O6 O7 O8 OL OK OP OSR OSRC OSMS OBS OFA ZO.
     r0p_cases Hs; subst sz; unfold E; epl;
       first [left; congruence | right; rewrite ?ZO; unfold SZ_OBJECT in *; lia]. }
   (* the region list, through E' *)
@@ -517,8 +532,7 @@ Proof.
         intros i cb co Hi Hl2. rewrite COLL in Hl2 by exact Hi. unfold OBJ_SPAN. exact (CC i cb co Hi Hl2). }
   (* the animation world: kept (IN_CANNON is no pole action) *)
   assert (AW' : AnimWorld.anim_w G bm m').
-  { apply (AnimKeep.anim_w_keep G bm m m' gp bfi bmiss bcalls ab biom bmq brm blk bpc bsr bsrc bsms bbs bo oo bt ot
-             S1 S2 S3 S5 S6 S7 S8 SL SP SR SRC SMS SBS Lo Lb W AW NBm
+  { apply (AnimKeep.anim_w_keep G bm m m' _ FWF AW NBm
              (fun b ofs k p Hp Hq => proj2 (VP b ofs k p Hp) Hq) OFF);
       [ apply CM; mem_tac | apply CL; mem_tac | apply CL; mem_tac | apply CM; mem_tac | apply CM; mem_tac | ].
     left. destruct RC2 as (A2 & _). change (e_blk E RM) with bm in A2.
@@ -528,9 +542,7 @@ Proof.
   (* ---- the frame world at m' ---- *)
   (* the level cells (FfWorld.lvl_w): globals' blocks off the regions *)
   assert (LV' : lvl_w G m')
-    by exact (AnimKeep.lvl_w_keep G bm m m' bfi bmiss bcalls ab biom bmq brm blk bpc bsr bsrc bsms bbs bo oo bt
-                S1 S2 S3 S5 S6 S7 S8 SL SP SR SRC SMS SBS AW (fun b H => D4 b (or_intror (or_intror H)))
-                Hgn OFF LV).
+    by exact (AnimKeep.lvl_w_keep G bm m m' _ FWF AW Hgn OFF LV).
   split; [| split; [| split; [| split; [| split; [| split; [| exact (conj UO' (conj AW' LV'))]]]]]].
   - (* the action *)
     destruct KA as (a & La' & Ina). intros v Hl. rewrite La' in Hl. injection Hl as <-. exact Ina.
@@ -591,32 +603,15 @@ Proof.
       rewrite (I _ _ _ E0). discriminate. }
     assert (Hperm : forall b ofs k p, Plt b (Mem.nextblock m) -> Mem.perm m b ofs k p -> Mem.perm m' b ofs k p)
       by (intros b ofs k p Hp Hq; exact (proj2 (VP b ofs k p Hp) Hq)).
-    split; [exact (Ple_trans _ _ _ Hgn NBm) |].
-    split.
-    + exists gp', bfi, bmiss, bcalls, bsin, ab, biom, bmq, brm, blk, bpc, bsr, bsrc, bsms, bbs, bo, oo, bt, ot, fl', ar, inp, ctl.
-      split; [exact HC' |]. split; [exact HS' |]. split; [exact (Hinc _ HM) |].
-      do 14 (split; [assumption |]).
-      split; [exact Lo' |]. split; [exact Soo |].
-      split; [rewrite CM by mem_tac; exact La |].
-      split; [rewrite CL by mem_tac; exact Lb |].
-      do 5 (split; [assumption |]).
-      split; [exact (Wff_keep2 G m m' RL0 NBm Hperm OFF gp gp' Hinc W) |].
-      split; [exact Lf' |].
-      split; [exact (wblk_keep2 m m' RL0 NBm Hperm OFF RL0 fl' SZ_SURFACE Wf') |].
-      split.
-      { intros off sb so Hoff Hl2.
-        destruct (SB off sb so ltac:(destruct Hoff as [-> | ->]; auto) Hl2) as [H | Hr]; [| exact Hr].
-        exact (Wc0 off sb so Hoff H). }
-      split; [rewrite CM by mem_tac; exact Lar |].
-      split; [exact (wblk_keep2 m m' RL0 NBm Hperm OFF RL0 ar SZ_AREA War) |].
-      split; [rewrite CM by mem_tac; exact Li |]. split; [exact Ai |].
-      split; [rewrite CM by mem_tac; exact Lc |].
-      split; [exact (wblk_keep2 m m' RL0 NBm Hperm OFF RL0 ctl SZ_CTL Wc) |].
-      split; [intros i cb co Hi Hl2; change FFW_COLL with COLL_OFF in Hl2; rewrite COLL in Hl2 by exact Hi;
-              exact (Co i cb co Hi Hl2) |].
-      split; [rewrite CM by mem_tac; exact LPC |].
-      rewrite CM by mem_tac; exact LBS.
-    + exact (floor_data_keep2 G m m' RL0 NBm Hperm OFF gp W FD).
+    apply (ffw_rebuild_off G bm m m' _ gp' Hgn FWF FD NBm Hperm OFF Hinc HC').
+    + intros ch b z Hr. ffw_read_split Hr;
+        first [ solve [apply CM; mem_tac] | solve [apply CL; mem_tac]
+              | solve [change FFW_COLL with COLL_OFF; apply COLL; assumption]
+              | solve [apply CO; mem_tac] ].
+    + split; [exists fl'; split; [exact Lf' | exact Wf'] |].
+      intros off sb so Hoff Hl2.
+      destruct (SB off sb so ltac:(destruct Hoff as [-> | ->]; auto) Hl2) as [H | Hr]; [| exact Hr].
+      exact (Wc0 off sb so Hoff H).
 Qed.
 End CANNONROW.
 

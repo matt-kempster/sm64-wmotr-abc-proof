@@ -281,19 +281,29 @@ all in `Unwired/`, and the theorem moved nowhere. See
   - The **automatic dispatcher** (`mario_execute_automatic_action`) is SPLIT (2026-10-21,
     `AutoSplit.aut_seg`, TRUST (i)-(j)). `Hseg_call_na` is now `seg_call_rows_naFA`, which
     excludes both dispatchers. Since 2026-10-23 (`NaSplit`, TRUST 0.8(q)) it is a LEMMA over
-    `HeightFrame.Hseg_na_open : na_open_rows`, which has 10 named per-call rows. Five calls
+    `HeightFrame.Hseg_na_open : na_open_rows`, which has 8 named per-call rows. Seven calls
     are proved: submerged-cam (dead outside group 0xC0), `update_mario_health` (a walk inside
     `ProRows`' hole), the submerged dispatcher (vacuous under `grp_ok`), and (2026-10-24)
-    `mario_reset_bodystate` / `update_mario_info_for_cam`. For those two, `ffw` now pins
+    `mario_reset_bodystate` / `update_mario_info_for_cam` and `squish_mario_model` (an
+    object-side hole in `ProRows`: Mario's object's gfx.scale, bytes 44..55; `BodyFrame.v3set_frame`
+    walks vec3f_set), and `sink_mario_in_quicksand` (`qs_row`: `ffw` now pins Mario's
+    `gfx.throwMatrix` to NULL or `sFloorAlignMatrix`, ff_rl region `RFA` -- a phantom-forall
+    repair; the gfx.pos[1] store writes Phi's cell back unchanged since quicksandDepth = +0 and
+    x - 0 = x on finite floats; `ProRows`' object window is generic `ow`/`wl`). For reset / info_for_cam, `ffw` now pins
     `m->marioBodyState = &gBodyStates[0]`, and gBodyStates is ff_rl region `RBS`; a pin alone
     is not enough, because the walk regions must exclude it. `ProRows`' hole is generic over
     `XIDS`, and `BodyFrame.Q2` allows freed callee frames (vec3*_copy, `v3_frame`). Dispatcher pres
     now carry `FrameSplit.grp_ok`: the action's group equals the case label, proved at the
     real switch. NEXT: shrink `na_open` one call at a time. hitbox_and_cap also stores through
-    `marioBodyState` but calls `stop_cap_music`. update_mario_inputs needs pins on
+    `marioBodyState` but calls `stop_cap_music` / `fadeout_cap_music`. Their audio footprint
+    is proved from the real bodies, down to `load_sequence` (staged:
+    `Unwired/CapAudio.v`, 13 written globals; `ls_contract` is the strengthened `Hls`, with
+    load.c read and confirmed audio-only). Blocker: the world must be framed around those 13
+    globals, but a surface a walk finds is only known to avoid the walk's regions. Either
+    each global becomes an ff_rl region in every walk, or `surf_on` / `Wff` say surfaces are
+    dynamic blocks (`Ple genv_next b`). update_mario_inputs needs pins on
     `gEnvironmentRegions`, `gShowDebugText` and `gCameraMovementFlags`, plus the collision
-    finders. quicksand needs a pin on `gfx.throwMatrix` (and gfx.pos[1] is Phi's cell). squish
-    needs an object-side hole for `gfx.scale` (§7). The prologue call is in `Hair_pro`. The
+    finders. The prologue call is in `Hair_pro`. The
     `quicksandDepth = 0` store is proved (the `qsd_*` lemmas). What stays assumed is the
     12 handler calls, `HeightFrame.Hauto_case : aut_case_rows` (27 → 28 hypotheses).
     Shrink it per case as walks land, as `air_case_rest*` did. Its audit on 2026-10-21
@@ -426,6 +436,43 @@ them by hand. Numbers the proof depends on (budgets, level data) come from tools
 the vendor source, such as `tools/goal2_ladder.py` and `tools/goal2_budget.py`, not from
 prose. Check prose against code before building on it.
 
+## How to add an `ffw` fact (GOAL 2's frame-world invariant)
+
+`FfWorld.ffw` is `Ple .. /\ (exists d, ffw_facts G bm m d) /\ floor_data G m`. Here
+`d : ffw_wit` is a record of witnesses (`fw_bo`, `fw_ab`, ...) and `ffw_facts` is a record of
+named Prop fields (`ff_Lo`, `ff_D4`, `ff_LBS`, ...). Consumers never destruct it by position.
+`ffw_unpack EX` names everything and keeps `FWF : ffw_facts ..`. Rebuilds go through
+`ffw_rebuild` / `ffw_rebuild_off` / `ffw_keep_off`, whose premises are about the read set
+(`ffw_read` / `ffw_read_s` / `ffw_surf_ok`), not about the list of conjuncts. To add a fact:
+
+1. Add a field to `ffw_facts`, plus its hypothesis name in `ffw_unpack` (the `fresh`, the
+   `pose proof .. as [..]` and the `ffw_simpl_in`). A new witness instead goes in
+   `ffw_wit`, in `ffw_simpl`'s projection list, in `ffw_unpack`'s `destruct d` and in
+   `ffw_rebuild`'s `mk_ffw_wit`.
+2. If the fact is memory-free, `ffw_rebuild`'s closer already handles it (`assumption`).
+   If it reads a cell of Mario's state, add the cell to `ffw_bm_cells`. If it reads a cell
+   elsewhere, add a disjunct to `ffw_read` and to `ffw_read_split` (and one closer case in
+   `ffw_rebuild`). Every keep proof then gets one more "cell unchanged" goal, closed by
+   adding one alternative to its closer list.
+3. Establish the fact at boot: add one bullet to `StartSat.ffw11`.
+4. A new region also goes in `ff_rl` / `ff_rl_of` and `ffw_reg_ids`, and its symbol fact
+   goes in the region lemmas' rewrite lists (`ffw_rl_cases` and the next two). The walk
+   machinery's own region list (`FfRun.R0F`, each row's `Eff` / `ff_sizes`) is separate.
+   That is the walk's region set, not ffw.
+
+Measured 2026-10-24: a dummy `ff_DUMMY : True` field took 3 lines in `FfWorld.v` (the field
+and two names in `ffw_unpack`) and 1 bullet in `StartSat.ffw11`, and no other file changed.
+The throwMatrix pin (a witness `bfa`, a region, a symbol fact `ff_SFA` and a read of Mario's
+object `ff_LTM`) needed the following outside FfWorld/StartSat:
+- one closer alternative per keep proof: the rows' `apply CO`, RenderKeep's `LHo`,
+  ProRows' `LHz`/`ozp_k`, FrameSplit's extra `ffw_keep` premise;
+- the walk-side region plumbing.
+
+There were no destruct or rebuild edits.
+`lvl_w` is the same: `lvl_sym` is `exists id, In id lvl_ids /\ ..`, so a new level cell is
+an entry in `lvl_ids` plus its `lvl_w` conjunct. `lvl_w_keep_rl` / `lvl_w_unch` re-prove
+generically.
+
 ## The audit (the floor)
 
 ```bash
@@ -437,6 +484,32 @@ firewall/orphan check. It also prints the residual surface. Run it before commit
 changes. To audit a specific capstone:
 `discipline_check.sh SM64.Proofs.<Path>.<Module> <theorem> ...`.
 Always build via `pipeline/*.sh`, never bare `coqc`: a bare `coqc` can report a false green.
+
+### Fast iteration and the shared .vo cache (opt-in; the audit uses neither)
+
+- `bash pipeline/build.sh --quick -j2 [X.vo ...]` builds `.vos` files (`coqc -vos`), which
+  skips the BODY of every `Qed`/`Admitted` proof. Use it to check that statements and their
+  consumers line up after an edit. It proves nothing. Never commit on it alone. Use it
+  AFTER a full (or cached) build. A file's `.vos` is then empty and its consumers load the
+  `.vo`, so an edited walk file re-checks in seconds (measured: TerrainRun 843 s full vs.
+  14 s, BootRun 715 vs. 13, PoleControl 640 vs. 4). From scratch it is no shortcut: the
+  whole tree took 65 min at -j2, because these are NOT skipped:
+  - `Definition`s and `Defined` terms, and `Eval vm_compute` inside a `Definition`
+    (`mario_anim_data` alone takes 9 min);
+  - any proof inside a `Section` that has no `Proof using` (coqc -vos cannot skip it; checked
+    on a toy). The `*Row.v` files, for example, still cost 5 min each;
+  - PositiveControl (25 min, 10.8 GB, cause unknown).
+
+  A `vm_compute` inside `Lemma … Qed` outside a Section IS skipped. `--vok X.vo` then checks
+  X's proofs against its deps' `.vos` files.
+- `SM64_VO_CACHE=$HOME/.cache/sm64-vo bash pipeline/build.sh -j2 proofs` shares compiled
+  outputs between worktrees. When a file's source, coqc flags, toolchain and dependency `.vo`
+  bytes all match an earlier successful compile, its `.vo`/`.glob` are copied in
+  (`[vo-cache] HIT`) instead of being rebuilt. Two worktrees compiling the same key at the same
+  time compile it once (`WAIT`). Use `--no-cache` to bypass it, and
+  `bash pipeline/vo_cache_gc.sh [GB]` to trim it (default 10 GB).
+- `discipline_check.sh` ignores `SM64_VO_CACHE` unless `DISC_USE_VO_CACHE=1` is set. It never
+  reads `.vos` files.
 
 ## Before claiming progress, answer
 

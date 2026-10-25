@@ -1037,9 +1037,11 @@ Section FrameSplit.
         rewrite (Mem.load_store_same _ _ _ _ _ _ Hst) in Hs'. cbn in Hs'. discriminate Hs'. }
       refine (ffw_keep ge bm m m' mb mo (Mem.nextblock_store _ _ _ _ _ _ Hst)
                 (fun b ofs k p => Mem.perm_store_1 _ _ _ _ _ _ Hst b ofs k p)
-                (fun ch' b z Hb => LD ch' b z (or_introl Hb)) _ Hmo Hmb Hab HC' Hf).
-      intros i Hi. apply LDk; [cbn; lia |].
-      pose proof mo_range. unfold FFW_COLL, O_INTERACT_STATUS, RAW_OFF. lia.
+                (fun ch' b z Hb => LD ch' b z (or_introl Hb)) _ _ Hmo Hmb Hab HC' Hf).
+      - apply LDk; [cbn; lia |].
+        pose proof mo_range. unfold FFW_THROW, O_INTERACT_STATUS, RAW_OFF. lia.
+      - intros i Hi. apply LDk; [cbn; lia |].
+        pose proof mo_range. unfold FFW_COLL, O_INTERACT_STATUS, RAW_OFF. lia.
     Qed.
 
     (* the used object (WMotRWorld.used_ok) lies apart from Mario's object *)
@@ -1066,9 +1068,7 @@ Section FrameSplit.
     Lemma obj_store_anim_w : ffw ge bm m -> AnimWorld.anim_w ge bm m -> AnimWorld.anim_w ge bm m'.
     Proof.
       intros (Hgn & EX & FD) AW.
-      destruct EX as (gp & bfi & bmiss & bcalls & bsin & ab & biom & bmq & brm & blk & bpc & bsr & bsrc & bsms & bbs & bo & oo & bt & ot
-                      & fl & ar & inp & ctl & HC & HS & HM & S1 & S2 & S3 & S4 & S5 & S6 & S7 & S8 & SL & SP & SR & SRC & SMS & SBS
-                      & Lo & Soo & La & Lb & Sot & D1 & D2 & D3 & D4 & W & _).
+      ffw_unpack EX.
       assert (Lo' : Mem.load Mint32 m bm MARIOOBJ_OFF = Some (Vptr bo oo)) by exact Lo.
       rewrite Hmo in Lo'. injection Lo' as <- <-.
       pose proof AW as (ab' & bga & bauc & btab & otab & bt' & ot' & mb' & mo' & B & _).
@@ -1078,12 +1078,10 @@ Section FrameSplit.
       assert (Lm' : Mem.load Mint32 m bm MARIOOBJ_OFF = Some (Vptr mb' mo')) by exact Lm.
       rewrite Hmo in Lm'. injection Lm' as <- <-.
       assert (Hab0 : ab <> mb) by exact (Hab ab S5).
-      apply (AnimKeep.anim_w_keep ge bm m m' gp bfi bmiss bcalls ab biom bmq brm blk bpc bsr bsrc bsms bbs mb mo bt ot
-               S1 S2 S3 S5 S6 S7 S8 SL SP SR SRC SMS SBS Lo Lb W AW).
+      apply (AnimKeep.anim_w_keep ge bm m m' _ FWF AW); cbn [fw_ab fw_bo fw_oo fw_bt fw_ot].
       - rewrite (Mem.nextblock_store _ _ _ _ _ _ Hst). apply Ple_refl.
       - intros b ofs k p _ Hp. exact (Mem.perm_store_1 _ _ _ _ _ _ Hst b ofs k p Hp).
-      - intros ch' b z _ Hr. apply LD. left. intros ->. apply Hr. exists mo.
-        unfold ff_rl. cbn. right; left; reflexivity.
+      - intros ch' b z _ Hr. apply LD. left. intros ->. apply Hr. exact (ffw_rl_bo bm _).
       - apply LDbm.
       - apply LD. left. exact Hab0.
       - apply LD. left. exact Hab0.
@@ -1111,9 +1109,7 @@ Section FrameSplit.
       apply (AnimKeep.lvl_w_keep_ne ge m m' (fun b => b <> mb)); [| intros ch' b z Hb; exact (LD ch' b z (or_introl Hb)) | exact Hlv].
       intros b Hs.
       destruct Hf as (_ & EX & _).
-      destruct EX as (gp & bfi & bmiss & bcalls & bsin & ab & biom & bmq & brm & blk & bpc & bsr & bsrc & bsms & bbs & bo & oo & bt & ot
-                      & fl & ar & inp & ctl & HC & HS & HM & S1 & S2 & S3 & S4 & S5 & S6 & S7 & S8 & SL & SP & SR & SRC & SMS & SBS
-                      & Lo & Soo & La & Lb & Sot & D1 & D2 & D3 & D4 & _).
+      ffw_unpack EX.
       assert (Lo' : Mem.load Mint32 m bm MARIOOBJ_OFF = Some (Vptr bo oo)) by exact Lo.
       rewrite Hmo in Lo'. injection Lo' as <- <-.
       exact (proj1 (D4 b (or_intror (or_intror Hs)))).

@@ -38,6 +38,10 @@ if [ -z "${DISC_CAPPED:-}" ] && systemd-run --user --scope --quiet true >/dev/nu
 fi
 # shellcheck disable=SC1091
 source pipeline/env.sh >/dev/null 2>&1 || true
+# The audit's build does NOT go through the shared .vo cache (pipeline/coqc_cache.py)
+# even when SM64_VO_CACHE is exported, unless DISC_USE_VO_CACHE=1 is set too.
+# (.vos files from `build.sh --quick` are never read: every step below loads .vo.)
+if [ "${DISC_USE_VO_CACHE:-0}" != 1 ]; then unset SM64_VO_CACHE; fi
 
 # default capstone(s): "Module.Logical.Path theorem" -- the abstract lp capstone,
 # its grounded instantiation (concrete no-A input model; AGates/Taint), the
