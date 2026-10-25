@@ -129,6 +129,15 @@ all in `Unwired/`, and the theorem moved nowhere. See
   (need the script-pointer row), then the frame (writes only SafeB / fresh / non-MWF
   globals / listed Mario cells). Regenerate ObjTable from the scratch probe (sig inference
   to a fixpoint, then `uchk`), never by hand.
+  2026-10-25 `ObjWalk.v` (extended walker: Mario-temp / Mario-array / stored-global store
+  arms + a frame conjunct, generic over the table and a Mario cell list) and `ObjFrame.v`
+  (spine-root): 390 bodies re-checked by vm; sub-contracts `push_mario_away_contract`
+  (pos[0]/pos[2]), `one_up_contract` (numLives), `object_cutscene_contract` (no Mario cell);
+  `obj_body_pres2` (Hopen 5 -> 2); `obj_body_frame` (mem_ok + frame; open premises
+  `Hfr_open` = load_sequence / npc_dialog frames, `Hopen2` = update_floor /
+  call_action_function). Open next: those four leaves' frames (update_floor needs find_floor's
+  out cell to hold kS), a kSelf class (own object vs other slots), cur_obj_update /
+  call_native (script-pointer row), then wire into S2's obj_w / PhiW.
   2026-10-24 `UpdateCameraBody.update_camera_pres`: the REAL `update_camera(c)` (SafeB c) keeps
   `mem_ok`. 507 bodies (the whole recursive tree: `UcKit` two-mode class walker, `UcTable`
   signatures re-checked by vm), the 336 CameraEvent functions by type certificate. Wired as

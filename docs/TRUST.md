@@ -837,6 +837,26 @@ without pressing A".*
   (dispatch through the writable `BehaviorCmdTable`) and `bhv_cmd_call_native` (through
   the script pointer): they need S2's script-pointer row. Not wired into a capstone yet,
   so no row moved; no new trust.
+- **ObjWalk / ObjFrame (2026-10-25, OBJECTS S3, `ObjWalk.v` + `ObjFrame.v`):** UcKit's
+  mutual induction re-proved with a FRAME conjunct and three more store arms (a Mario temp
+  `t = gMarioState` pinned to (bm,0) by MWF, `t->fld := v`; `gMarioStates[0].fld[k] := v`;
+  a stored global `g := v`, any value), every Mario store checked against MWF's protected
+  windows and a listed cell set. `FR m m'`: memory changes only in SafeB blocks, blocks
+  allocated during the call, globals outside `mwf_syms`, and Mario cells in MC; `FR_mario`
+  turns it into "Mario's block changes only in MC". One vm sweep (`xt_walk_ok`) re-checks
+  390 bodies (ObjKit's 387 + the three Mario writers). Named sub-contracts, premises only
+  the FPU floor (3.5), `Hgs`, SafeB_syms / spawn_ok: `push_mario_away_contract` (Mario
+  changes only at pos[0], pos[2]), `one_up_contract` (only numLives),
+  `object_cutscene_contract` (no Mario cell; gCutsceneFocus is a stored global).
+  `obj_body_pres2`: ObjKit's mem_ok theorem with `Hopen` cut from five leaves to two
+  (cur_obj_update_floor, cur_obj_call_action_function). `obj_body_frame`: every walked
+  nullary body keeps mem_ok AND the frame, for any MC containing the listed cells, under
+  named OPEN premises: `Hfr_open` (the frames of load_sequence and set_mario_npc_dialog,
+  proved so far for mem_ok only; npc_dialog's Mario writes, via set_mario_action, are the
+  smact_pres row and must lie in MC) and `Hopen2` (the two open leaves, with frame). The
+  frame is per-block, not yet per-object (a kSelf class: "only the running slot's object"
+  is still open); SafeB covers every object slot. Not wired into a capstone, so no row
+  moved; no new trust.
 
 ### Row 0.7 in detail
 

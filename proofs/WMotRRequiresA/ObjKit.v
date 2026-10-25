@@ -29,6 +29,8 @@
 (*                               (the class walk sees a kW local pointer)   *)
 (*     cur_obj_call_action_function  the indirect call through a writable  *)
 (*                               action table (o->oAction indexes it)       *)
+(*   (ObjFrame.obj_body_pres2 discharges the first three with ObjWalk's    *)
+(*    extended walker; only the last two stay open there.)                 *)
 (* NOT walked: cur_obj_update itself (its command dispatch is an indirect  *)
 (* call through the writable BehaviorCmdTable) and bhv_cmd_call_native (an *)
 (* indirect call through the script pointer): both need a content row on   *)
