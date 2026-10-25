@@ -38,7 +38,7 @@
 From Coq Require Import ZArith List Lia Reals.
 From compcert Require Import Coqlib Maps AST Integers Floats Values Memory Ctypes Clight Globalenvs.
 From SM64.Generated Require mario surface_collision memory camera audio_external sound_init level_update
-  game_init libultra_osContInit.
+  game_init libultra_osContInit mario_actions_moving.
 From SM64.Proofs Require Import HeightInvariant HeightMoveCatalog WMotRLevel Generic.ClosedMem.
 From SM64.Proofs.WMotRRequiresA Require Import FloorList FloorHeight FloorExec AirMatch AirStart RetOk.
 Import ListNotations.
@@ -88,6 +88,7 @@ Definition SZ_CTL : Z := 18.        (* up to Controller.buttonDown, a u16 at 16 
 Definition FFW_COLL : Z := 120.     (* Object.collidedObjs[4] *)
 Definition FFW_PCS : Z := 148.      (* statusForCamera *)
 Definition FFW_BODY : Z := 152.     (* marioBodyState *)
+Definition FFW_THROW : Z := 80.     (* Object.header.gfx.throwMatrix *)
 
 (* the walk's fifteen regions as pointers, in FfRun.R0F's order (two since
    camera.c is linked: gLakituState, which the real
@@ -97,15 +98,17 @@ Definition FFW_BODY : Z := 152.     (* marioBodyState *)
    sSoundRequestCount and sSoundMovingSpeed, which the real play_sound and
    set_sound_moving_speed write; the sixteenth, 2026-10-23: gBodyStates,
    m->marioBodyState's target, which mario_reset_bodystate and
-   update_mario_info_for_cam write through) *)
-Definition ff_rl (bm bo : block) (oo : ptrofs) (bfi bmiss bcalls ab bt biom bmq brm blk bpc bsr bsrc bsms bbs : block)
+   update_mario_info_for_cam write through; the seventeenth, 2026-10-24:
+   sFloorAlignMatrix, Mario's gfx.throwMatrix target, which
+   sink_mario_in_quicksand writes through) *)
+Definition ff_rl (bm bo : block) (oo : ptrofs) (bfi bmiss bcalls ab bt biom bmq brm blk bpc bsr bsrc bsms bbs bfa : block)
   : list (option val) :=
   map Some [Vptr bm Ptrofs.zero; Vptr bo oo; Vptr bfi Ptrofs.zero; Vptr bmiss Ptrofs.zero;
             Vptr bcalls Ptrofs.zero; Vptr ab Ptrofs.zero; Vptr bt Ptrofs.zero;
             Vptr biom Ptrofs.zero; Vptr bmq Ptrofs.zero; Vptr brm Ptrofs.zero;
             Vptr blk Ptrofs.zero; Vptr bpc Ptrofs.zero;
             Vptr bsr Ptrofs.zero; Vptr bsrc Ptrofs.zero; Vptr bsms Ptrofs.zero;
-            Vptr bbs Ptrofs.zero].
+            Vptr bbs Ptrofs.zero; Vptr bfa Ptrofs.zero].
 
 (* a world object: a valid block that is none of the regions *)
 Definition wblk (m : mem) (rl : list (option val)) (v : val) (n : Z) : Prop :=
@@ -115,10 +118,12 @@ Definition wblk (m : mem) (rl : list (option val)) (v : val) (n : Z) : Prop :=
 (* ---- the frame world's witnesses, as one record (2026-10-24) ----------- *)
 (* HOW TO ADD AN ffw FACT (see also .claude/skills/proof-discipline):
      1. a new witness (a block, a value): a field of `ffw_wit` below, plus
-        its name in `ffw_unpack`'s destruct of d (end of this file's FFW
-        part) and in `ffw_rebuild`'s `mk_ffw_wit` (it copies d's fields);
+        its fw_ projection in `ffw_simpl`'s list, its name in `ffw_unpack`'s
+        destruct of d, and `(fw_X d)` in `ffw_rebuild`'s `mk_ffw_wit`; a
+        new region also goes in `ff_rl` / `ff_rl_of` / `ffw_reg_ids` (and
+        its symbol fact in the region lemmas' rewrite lists);
      2. a new fact: a field of `ffw_facts`, plus its hypothesis name in
-        `ffw_unpack` (pose proof ... as [...] and the cbn list); a
+        `ffw_unpack` (the fresh, the pose proof and the ffw_simpl_in); a
         memory-free fact needs nothing else (`ffw_rebuild`'s closer takes it
         from F by `assumption`);
      3. if the fact READS memory: the cell goes in `ffw_bm_cells` (a cell of
@@ -127,7 +132,7 @@ Definition wblk (m : mem) (rl : list (option val)) (v : val) (n : Z) : Prop :=
         one more goal "this cell is unchanged", closed by its own closer;
      4. StartSat.ffw11 establishes the new fact at the start.
    Consumers never destruct ffw positionally: `ffw_unpack EX` names every
-   witness and fact (gp, bfi, ..., HC, S1, ..., LBS) and keeps the record
+   witness and fact (gp, bfi, ..., HC, S1, ..., LTM) and keeps the record
    hypothesis FWF; they rebuild ffw with `ffw_rebuild` / `ffw_rebuild_off` /
    `ffw_keep_off`, whose premises are about the read set, not the list of
    conjuncts. *)
@@ -135,14 +140,15 @@ Record ffw_wit : Type := mk_ffw_wit {
   fw_gp : meminj;
   fw_bfi : block; fw_bmiss : block; fw_bcalls : block; fw_bsin : block; fw_ab : block;
   fw_biom : block; fw_bmq : block; fw_brm : block; fw_blk : block; fw_bpc : block;
-  fw_bsr : block; fw_bsrc : block; fw_bsms : block; fw_bbs : block;
+  fw_bsr : block; fw_bsrc : block; fw_bsms : block; fw_bbs : block; fw_bfa : block;
   fw_bo : block; fw_oo : ptrofs; fw_bt : block; fw_ot : ptrofs;
   fw_fl : val; fw_ar : val; fw_inp : int; fw_ctl : val }.
 
 (* the walk's region list, of a witness record *)
 Definition ff_rl_of (bm : block) (d : ffw_wit) : list (option val) :=
   ff_rl bm (fw_bo d) (fw_oo d) (fw_bfi d) (fw_bmiss d) (fw_bcalls d) (fw_ab d) (fw_bt d)
-    (fw_biom d) (fw_bmq d) (fw_brm d) (fw_blk d) (fw_bpc d) (fw_bsr d) (fw_bsrc d) (fw_bsms d) (fw_bbs d).
+    (fw_biom d) (fw_bmq d) (fw_brm d) (fw_blk d) (fw_bpc d) (fw_bsr d) (fw_bsrc d) (fw_bsms d) (fw_bbs d)
+    (fw_bfa d).
 
 (* the globals among the regions (all but Mario's state, his object and
    the animation buffer) *)
@@ -151,7 +157,7 @@ Definition ffw_reg_ids : list ident :=
    surface_collision._gNumCalls; mario._gMarioAnimsBuf; memory._gDmaIoMesg; memory._gDmaMesgQueue;
    memory._gMainReceivedMesg; camera._gLakituState; camera._gPlayerCameraState;
    audio_external._sSoundRequests; audio_external._sSoundRequestCount; audio_external._sSoundMovingSpeed;
-   mario._gBodyStates].
+   mario._gBodyStates; mario_actions_moving._sFloorAlignMatrix].
 
 (* the cells of Mario's state block ffw reads (besides the surface cells
    floor / wall / ceil, ffw_surf_cells) *)
@@ -160,6 +166,13 @@ Definition ffw_bm_cells : list (Z * memory_chunk) :=
    (FFW_CTL, Mint32); (FFW_PCS, Mint32); (FFW_BODY, Mint32)].
 Definition ffw_surf_cells : list (Z * memory_chunk) :=
   [(FFW_FLOOR, Mint32); (FFW_WALL, Mint32); (FFW_CEIL, Mint32)].
+
+(* reduce the record's projections (and ff_rl_of) in a hypothesis / the goal
+   (the one list of projections: a new witness adds its fw_ here) *)
+Ltac ffw_simpl_in H :=
+  cbn [ff_rl_of fw_gp fw_bfi fw_bmiss fw_bcalls fw_bsin fw_ab fw_biom fw_bmq fw_brm fw_blk fw_bpc fw_bsr fw_bsrc fw_bsms fw_bbs fw_bfa fw_bo fw_oo fw_bt fw_ot fw_fl fw_ar fw_inp fw_ctl] in H.
+Ltac ffw_simpl :=
+  cbn [ff_rl_of fw_gp fw_bfi fw_bmiss fw_bcalls fw_bsin fw_ab fw_biom fw_bmq fw_brm fw_blk fw_bpc fw_bsr fw_bsrc fw_bsms fw_bbs fw_bfa fw_bo fw_oo fw_bt fw_ot fw_fl fw_ar fw_inp fw_ctl].
 
 Section FFW.
 Variable G : genv.
@@ -184,6 +197,7 @@ Record ffw_facts (m : mem) (d : ffw_wit) : Prop := mk_ffw_facts {
   ff_SRC : Genv.find_symbol G audio_external._sSoundRequestCount = Some (fw_bsrc d);
   ff_SMS : Genv.find_symbol G audio_external._sSoundMovingSpeed = Some (fw_bsms d);
   ff_SBS : Genv.find_symbol G mario._gBodyStates = Some (fw_bbs d);
+  ff_SFA : Genv.find_symbol G mario_actions_moving._sFloorAlignMatrix = Some (fw_bfa d);
   (* Mario's object; the animation list and its DMA buffer *)
   ff_Lo : Mem.load Mint32 m bm FFW_OBJ = Some (Vptr (fw_bo d) (fw_oo d));
   ff_Soo : Ptrofs.unsigned (fw_oo d) + SZ_OBJECT <= Ptrofs.modulus;
@@ -196,7 +210,8 @@ Record ffw_facts (m : mem) (d : ffw_wit) : Prop := mk_ffw_facts {
   ff_D3 : fw_bt d <> fw_bo d;
   (* (gAudioRandom too: play_mario_jump_sound reads it, a world cell) *)
   ff_D4 : forall b, In b [fw_bfi d; fw_bmiss d; fw_bcalls d; fw_bsin d; fw_ab d; fw_biom d; fw_bmq d;
-                          fw_brm d; fw_blk d; fw_bpc d; fw_bsr d; fw_bsrc d; fw_bsms d; fw_bbs d]
+                          fw_brm d; fw_blk d; fw_bpc d; fw_bsr d; fw_bsrc d; fw_bsms d; fw_bbs d;
+                          fw_bfa d]
                 \/ Genv.find_symbol G mario._gAudioRandom = Some b
                 (* gCurrLevelNum: add_tree_leaf_particles reads it (the pole walks);
                    sPlayingInfiniteStairs: play_infinite_stairs_music reads it (lvl_w);
@@ -231,7 +246,19 @@ Record ffw_facts (m : mem) (d : ffw_wit) : Prop := mk_ffw_facts {
      of mario_reset_bodystate / update_mario_info_for_cam ranged over
      memories whose marioBodyState pointed into Mario's own state or a
      surface, which the real stores through it then break *)
-  ff_LBS : Mem.load Mint32 m bm FFW_BODY = Some (Vptr (fw_bbs d) Ptrofs.zero) }.
+  ff_LBS : Mem.load Mint32 m bm FFW_BODY = Some (Vptr (fw_bbs d) Ptrofs.zero);
+  (* Mario's object's gfx.throwMatrix is NULL or points into
+     sFloorAlignMatrix (2026-10-24).  In the game spawn_object /
+     geo_obj_init set it to NULL, align_with_floor (crawling, the
+     slides) to &sFloorAlignMatrix[m->unk00], and the renderer
+     (geo_process_object) back to NULL; no other code writes Mario's.
+     FOUND (phantom forall): without it the row of
+     sink_mario_in_quicksand ranged over memories whose throwMatrix
+     pointed into Mario's state or a surface, which its store
+     ( *throwMatrix )[3][1] -= quicksandDepth then writes *)
+  ff_LTM : Mem.load Mint32 m (fw_bo d) (Ptrofs.unsigned (fw_oo d) + FFW_THROW) = Some (Vint Int.zero)
+           \/ exists o, Mem.load Mint32 m (fw_bo d) (Ptrofs.unsigned (fw_oo d) + FFW_THROW)
+                        = Some (Vptr (fw_bfa d) o) }.
 
 Definition ffw (m : mem) : Prop :=
   Ple (Genv.genv_next G) (Mem.nextblock m)
@@ -269,7 +296,7 @@ Proof.
   pose proof (ff_S1 _ _ F). pose proof (ff_S2 _ _ F). pose proof (ff_S3 _ _ F). pose proof (ff_S5 _ _ F).
   pose proof (ff_S6 _ _ F). pose proof (ff_S7 _ _ F). pose proof (ff_S8 _ _ F). pose proof (ff_SL _ _ F).
   pose proof (ff_SP _ _ F). pose proof (ff_SR _ _ F). pose proof (ff_SRC _ _ F). pose proof (ff_SMS _ _ F).
-  pose proof (ff_SBS _ _ F).
+  pose proof (ff_SBS _ _ F). pose proof (ff_SFA _ _ F).
   unfold ff_rl_of, ff_rl in Hin. cbn [map In] in Hin.
   repeat (destruct Hin as [E | Hin];
           [ injection E as E _; subst x;
@@ -288,13 +315,13 @@ Proof.
   pose proof (ff_S5 _ _ F) as S5. pose proof (ff_S6 _ _ F) as S6. pose proof (ff_S7 _ _ F) as S7.
   pose proof (ff_S8 _ _ F) as S8. pose proof (ff_SL _ _ F) as SL. pose proof (ff_SP _ _ F) as SP.
   pose proof (ff_SR _ _ F) as SR. pose proof (ff_SRC _ _ F) as SRC. pose proof (ff_SMS _ _ F) as SMS.
-  pose proof (ff_SBS _ _ F) as SBS.
+  pose proof (ff_SBS _ _ F) as SBS. pose proof (ff_SFA _ _ F) as SFA.
   unfold ffw_reg_ids in Hin. cbn [In] in Hin.
   repeat (destruct Hin as [<- | Hin];
           [ first [ rewrite S1 in Hs | rewrite S2 in Hs | rewrite S3 in Hs | rewrite S5 in Hs
                   | rewrite S6 in Hs | rewrite S7 in Hs | rewrite S8 in Hs | rewrite SL in Hs
                   | rewrite SP in Hs | rewrite SR in Hs | rewrite SRC in Hs | rewrite SMS in Hs
-                  | rewrite SBS in Hs ];
+                  | rewrite SBS in Hs | rewrite SFA in Hs ];
             injection Hs as <-; unfold ff_rl_of, ff_rl; cbn [map In]; auto 20
           | ]).
   destruct Hin.
@@ -309,13 +336,13 @@ Proof.
   pose proof (ff_S5 _ _ F) as S5. pose proof (ff_S6 _ _ F) as S6. pose proof (ff_S7 _ _ F) as S7.
   pose proof (ff_S8 _ _ F) as S8. pose proof (ff_SL _ _ F) as SL. pose proof (ff_SP _ _ F) as SP.
   pose proof (ff_SR _ _ F) as SR. pose proof (ff_SRC _ _ F) as SRC. pose proof (ff_SMS _ _ F) as SMS.
-  pose proof (ff_SBS _ _ F) as SBS.
+  pose proof (ff_SBS _ _ F) as SBS. pose proof (ff_SFA _ _ F) as SFA.
   unfold ffw_reg_ids in Hin. cbn [In] in Hin.
   repeat (destruct Hin as [<- | Hin];
           [ first [ rewrite S1 in Hs | rewrite S2 in Hs | rewrite S3 in Hs | rewrite S5 in Hs
                   | rewrite S6 in Hs | rewrite S7 in Hs | rewrite S8 in Hs | rewrite SL in Hs
                   | rewrite SP in Hs | rewrite SR in Hs | rewrite SRC in Hs | rewrite SMS in Hs
-                  | rewrite SBS in Hs ];
+                  | rewrite SBS in Hs | rewrite SFA in Hs ];
             injection Hs as <-; cbn [In]; auto 20
           | ]).
   destruct Hin.
@@ -346,12 +373,13 @@ Qed.
 (* ---- rebuilding ffw at a later memory ---------------------------------- *)
 (* the cells ffw reads inside the regions (besides the surface cells):
    Mario's state (ffw_bm_cells), the animation list's dmaTable cell, and
-   his object's collided-object cells *)
+   his object's collided-object cells and its throwMatrix cell *)
 Definition ffw_read (d : ffw_wit) (ch : memory_chunk) (b : block) (z : Z) : Prop :=
   (b = bm /\ In (z, ch) ffw_bm_cells)
   \/ (b = fw_ab d /\ z = 8 /\ ch = Mint32)
   \/ (b = fw_bo d /\ ch = Mint32
-      /\ exists i, 0 <= i < 4 /\ z = Ptrofs.unsigned (fw_oo d) + FFW_COLL + 4 * i).
+      /\ exists i, 0 <= i < 4 /\ z = Ptrofs.unsigned (fw_oo d) + FFW_COLL + 4 * i)
+  \/ (b = fw_bo d /\ z = Ptrofs.unsigned (fw_oo d) + FFW_THROW /\ ch = Mint32).
 
 (* ... and with the surface cells *)
 Definition ffw_read_s (d : ffw_wit) (ch : memory_chunk) (b : block) (z : Z) : Prop :=
@@ -407,13 +435,11 @@ Proof.
   split; [exact Hgn |]. split; [| exact FD'].
   exists (mk_ffw_wit gp' (fw_bfi d) (fw_bmiss d) (fw_bcalls d) (fw_bsin d) (fw_ab d) (fw_biom d)
             (fw_bmq d) (fw_brm d) (fw_blk d) (fw_bpc d) (fw_bsr d) (fw_bsrc d) (fw_bsms d) (fw_bbs d)
-            (fw_bo d) (fw_oo d) (fw_bt d) (fw_ot d) fl' (fw_ar d) (fw_inp d) (fw_ctl d)).
+            (fw_bfa d) (fw_bo d) (fw_oo d) (fw_bt d) (fw_ot d) fl' (fw_ar d) (fw_inp d) (fw_ctl d)).
   (* every field: unchanged (memory-free), a kept cell, or the new value;
      the closer below does not depend on the field order *)
   pose proof F as F0. destruct F0.
-  eapply mk_ffw_facts;
-    cbn [fw_gp fw_bfi fw_bmiss fw_bcalls fw_bsin fw_ab fw_biom fw_bmq fw_brm fw_blk fw_bpc
-         fw_bsr fw_bsrc fw_bsms fw_bbs fw_bo fw_oo fw_bt fw_ot fw_fl fw_ar fw_inp fw_ctl];
+  eapply mk_ffw_facts; ffw_simpl;
     first [ assumption | exact HC' | exact W' | exact Lf' | exact WC'
           | exact (wblk_mono _ _ _ _ _ Hnb Wf')
           | apply (wblk_mono _ _ _ _ _ Hnb); assumption
@@ -422,12 +448,13 @@ Proof.
             intros id b Hs; exact (Hinc b (ff_HS _ _ F id b Hs))
           | rewrite KM by (unfold ffw_bm_cells; cbn [In]; auto 10); assumption
           | rewrite K by (right; left; auto); assumption
+          | rewrite K by (right; right; right; auto); assumption
           | let i := fresh "i" in let cb := fresh "cb" in let co := fresh "co" in
             let Hi := fresh "Hi" in let Hl := fresh "Hl" in
             intros i cb co Hi Hl; rewrite K in Hl;
             [ match goal with H : forall i' cb' co', 0 <= i' < 4 -> _ -> cb' = _ |- _ =>
                 exact (H i cb co Hi Hl) end
-            | right; right; split; [reflexivity |]; split; [reflexivity |]; exists i; auto ] ].
+            | right; right; left; split; [reflexivity |]; split; [reflexivity |]; exists i; auto ] ].
 Qed.
 
 (* ---- transfer: a memory that differs from m only inside Mario's object ---- *)
@@ -454,6 +481,9 @@ Hypothesis Hnb : Mem.nextblock m' = Mem.nextblock m.
 Hypothesis Hperm : forall b ofs k p, Mem.perm m b ofs k p -> Mem.perm m' b ofs k p.
 Hypothesis Hld : forall ch b z, b <> bo0 -> Mem.load ch m' b z = Mem.load ch m b z.
 (* the collided-object cells of Mario's object *)
+(* ... and its throwMatrix cell *)
+Hypothesis Hldt : Mem.load Mint32 m' bo0 (Ptrofs.unsigned oo0 + FFW_THROW)
+  = Mem.load Mint32 m bo0 (Ptrofs.unsigned oo0 + FFW_THROW).
 Hypothesis Hldc : forall i, 0 <= i < 4 ->
   Mem.load Mint32 m' bo0 (Ptrofs.unsigned oo0 + FFW_COLL + 4 * i)
   = Mem.load Mint32 m bo0 (Ptrofs.unsigned oo0 + FFW_COLL + 4 * i).
@@ -551,10 +581,11 @@ Proof.
   - exact (HC' _ (ff_HC _ _ F) Gbo).
   - exact (Wff_keep _ _ Ho (ff_W _ _ F)).
   - exact (floor_data_keep _ _ Ho (ff_W _ _ F) FD).
-  - intros ch b z [(-> & _) | [(-> & -> & ->) | (-> & -> & i & Hi & ->)]].
+  - intros ch b z [(-> & _) | [(-> & -> & ->) | [(-> & -> & i & Hi & ->) | (-> & -> & ->)]]].
     + apply Hld. congruence.
     + apply Hld. exact Hab0.
     + rewrite <- Ebo, <- Eoo. exact (Hldc i Hi).
+    + rewrite <- Ebo, <- Eoo. exact Hldt.
   - apply (ffw_surf_ok_kept m m' d F). intros z ch _. apply Hld. congruence.
 Qed.
 End KEEP.
@@ -703,39 +734,27 @@ End FFW.
 Ltac ffw_unpack EX :=
   let d := fresh "d" in let FWF := fresh "FWF" in
   destruct EX as [d FWF];
-  let gp := fresh "gp" in let bfi := fresh "bfi" in let bmiss := fresh "bmiss" in
-  let bcalls := fresh "bcalls" in let bsin := fresh "bsin" in let ab := fresh "ab" in
-  let biom := fresh "biom" in let bmq := fresh "bmq" in let brm := fresh "brm" in
-  let blk := fresh "blk" in let bpc := fresh "bpc" in let bsr := fresh "bsr" in
-  let bsrc := fresh "bsrc" in let bsms := fresh "bsms" in let bbs := fresh "bbs" in
-  let bo := fresh "bo" in let oo := fresh "oo" in let bt := fresh "bt" in let ot := fresh "ot" in
-  let fl := fresh "fl" in let ar := fresh "ar" in let inp := fresh "inp" in let ctl := fresh "ctl" in
-  destruct d as [gp bfi bmiss bcalls bsin ab biom bmq brm blk bpc bsr bsrc bsms bbs bo oo bt ot fl ar inp ctl];
-  let HC := fresh "HC" in let HS := fresh "HS" in let HM := fresh "HM" in
-  let S1 := fresh "S1" in let S2 := fresh "S2" in let S3 := fresh "S3" in let S4 := fresh "S4" in
-  let S5 := fresh "S5" in let S6 := fresh "S6" in let S7 := fresh "S7" in let S8 := fresh "S8" in
-  let SL := fresh "SL" in let SP := fresh "SP" in let SR := fresh "SR" in let SRC := fresh "SRC" in
-  let SMS := fresh "SMS" in let SBS := fresh "SBS" in
-  let Lo := fresh "Lo" in let Soo := fresh "Soo" in let La := fresh "La" in let Lb := fresh "Lb" in
-  let Sot := fresh "Sot" in let D1 := fresh "D1" in let D2 := fresh "D2" in let D3 := fresh "D3" in
-  let D4 := fresh "D4" in let W := fresh "W" in let Lf := fresh "Lf" in let Wf := fresh "Wf" in
-  let Wc0 := fresh "Wc0" in let Lar := fresh "Lar" in let War := fresh "War" in let Li := fresh "Li" in
-  let Ai := fresh "Ai" in let Lc := fresh "Lc" in let Wc := fresh "Wc" in let Co := fresh "Co" in
-  let LPC := fresh "LPC" in let LBS := fresh "LBS" in
-  pose proof FWF as [HC HS HM S1 S2 S3 S4 S5 S6 S7 S8 SL SP SR SRC SMS SBS Lo Soo La Lb Sot D1 D2 D3 D4
-                     W Lf Wf Wc0 Lar War Li Ai Lc Wc Co LPC LBS];
-  (cbn [ff_rl_of fw_gp fw_bfi fw_bmiss fw_bcalls fw_bsin fw_ab fw_biom fw_bmq fw_brm fw_blk fw_bpc
-        fw_bsr fw_bsrc fw_bsms fw_bbs fw_bo fw_oo fw_bt fw_ot fw_fl fw_ar fw_inp fw_ctl]
-     in HC, HS, HM, S1, S2, S3, S4, S5, S6, S7, S8, SL, SP, SR, SRC, SMS, SBS, Lo, Soo, La, Lb, Sot,
-        D1, D2, D3, D4, W, Lf, Wf, Wc0, Lar, War, Li, Ai, Lc, Wc, Co, LPC, LBS).
-
-(* reduce the record's projections (and ff_rl_of) in a hypothesis / the goal *)
-Ltac ffw_simpl_in H :=
-  cbn [ff_rl_of fw_gp fw_bfi fw_bmiss fw_bcalls fw_bsin fw_ab fw_biom fw_bmq fw_brm fw_blk fw_bpc
-       fw_bsr fw_bsrc fw_bsms fw_bbs fw_bo fw_oo fw_bt fw_ot fw_fl fw_ar fw_inp fw_ctl] in H.
-Ltac ffw_simpl :=
-  cbn [ff_rl_of fw_gp fw_bfi fw_bmiss fw_bcalls fw_bsin fw_ab fw_biom fw_bmq fw_brm fw_blk fw_bpc
-       fw_bsr fw_bsrc fw_bsms fw_bbs fw_bo fw_oo fw_bt fw_ot fw_fl fw_ar fw_inp fw_ctl].
+  let gp := fresh "gp" in let bfi := fresh "bfi" in let bmiss := fresh "bmiss" in let bcalls := fresh "bcalls" in let bsin := fresh "bsin" in let ab := fresh "ab" in
+  let biom := fresh "biom" in let bmq := fresh "bmq" in let brm := fresh "brm" in let blk := fresh "blk" in let bpc := fresh "bpc" in let bsr := fresh "bsr" in
+  let bsrc := fresh "bsrc" in let bsms := fresh "bsms" in let bbs := fresh "bbs" in let bfa := fresh "bfa" in let bo := fresh "bo" in let oo := fresh "oo" in
+  let bt := fresh "bt" in let ot := fresh "ot" in let fl := fresh "fl" in let ar := fresh "ar" in let inp := fresh "inp" in let ctl := fresh "ctl" in
+  destruct d as [gp bfi bmiss bcalls bsin ab biom bmq brm blk bpc bsr bsrc bsms bbs bfa bo oo bt ot fl ar inp ctl];
+  let HC := fresh "HC" in let HS := fresh "HS" in let HM := fresh "HM" in let S1 := fresh "S1" in let S2 := fresh "S2" in let S3 := fresh "S3" in
+  let S4 := fresh "S4" in let S5 := fresh "S5" in let S6 := fresh "S6" in let S7 := fresh "S7" in let S8 := fresh "S8" in let SL := fresh "SL" in
+  let SP := fresh "SP" in let SR := fresh "SR" in let SRC := fresh "SRC" in let SMS := fresh "SMS" in let SBS := fresh "SBS" in let SFA := fresh "SFA" in
+  let Lo := fresh "Lo" in let Soo := fresh "Soo" in let La := fresh "La" in let Lb := fresh "Lb" in let Sot := fresh "Sot" in let D1 := fresh "D1" in
+  let D2 := fresh "D2" in let D3 := fresh "D3" in let D4 := fresh "D4" in let W := fresh "W" in let Lf := fresh "Lf" in let Wf := fresh "Wf" in
+  let Wc0 := fresh "Wc0" in let Lar := fresh "Lar" in let War := fresh "War" in let Li := fresh "Li" in let Ai := fresh "Ai" in let Lc := fresh "Lc" in
+  let Wc := fresh "Wc" in let Co := fresh "Co" in let LPC := fresh "LPC" in let LBS := fresh "LBS" in let LTM := fresh "LTM" in
+  pose proof FWF as [HC HS HM S1 S2 S3 S4 S5 S6 S7 S8 SL SP SR
+                     SRC SMS SBS SFA Lo Soo La Lb Sot D1 D2 D3 D4 W
+                     Lf Wf Wc0 Lar War Li Ai Lc Wc Co LPC LBS LTM];
+  ffw_simpl_in HC; ffw_simpl_in HS; ffw_simpl_in HM; ffw_simpl_in S1; ffw_simpl_in S2; ffw_simpl_in S3; ffw_simpl_in S4; ffw_simpl_in S5;
+  ffw_simpl_in S6; ffw_simpl_in S7; ffw_simpl_in S8; ffw_simpl_in SL; ffw_simpl_in SP; ffw_simpl_in SR; ffw_simpl_in SRC; ffw_simpl_in SMS;
+  ffw_simpl_in SBS; ffw_simpl_in SFA; ffw_simpl_in Lo; ffw_simpl_in Soo; ffw_simpl_in La; ffw_simpl_in Lb; ffw_simpl_in Sot; ffw_simpl_in D1;
+  ffw_simpl_in D2; ffw_simpl_in D3; ffw_simpl_in D4; ffw_simpl_in W; ffw_simpl_in Lf; ffw_simpl_in Wf; ffw_simpl_in Wc0; ffw_simpl_in Lar;
+  ffw_simpl_in War; ffw_simpl_in Li; ffw_simpl_in Ai; ffw_simpl_in Lc; ffw_simpl_in Wc; ffw_simpl_in Co; ffw_simpl_in LPC; ffw_simpl_in LBS;
+  ffw_simpl_in LTM.
 
 (* ... from ffw itself: Hgn, the facts as above, FD *)
 Ltac ffw_unpack_all Hf :=
@@ -744,7 +763,8 @@ Ltac ffw_unpack_all Hf :=
 
 (* split a hypothesis H : ffw_read d ch b z (or ffw_read_s) into one goal
    per cell; each goal is "Mem.load ch m' b z = Mem.load ch m b z" at a
-   concrete cell (the collided-object goal keeps its index i, 0 <= i < 4) *)
+   concrete cell (the collided-object goal keeps its index i, 0 <= i < 4;
+   the last goal is the throwMatrix cell) *)
 Ltac ffw_in_split Hin :=
   cbn [In] in Hin;
   repeat (let E := fresh "E" in destruct Hin as [E | Hin]; [injection E as <- <- | ]);
@@ -752,9 +772,9 @@ Ltac ffw_in_split Hin :=
 
 Ltac ffw_read_split H :=
   let Hin := fresh "Hin" in let i := fresh "i" in let Hi := fresh "Hi" in
-  destruct H as [(-> & Hin) | [(-> & -> & ->) | (-> & -> & i & Hi & ->)]];
-  [ unfold ffw_bm_cells in Hin; ffw_in_split Hin | | ];
-  cbn [fw_gp fw_ab fw_bo fw_oo].
+  destruct H as [(-> & Hin) | [(-> & -> & ->) | [(-> & -> & i & Hi & ->) | (-> & -> & ->)]]];
+  [ unfold ffw_bm_cells in Hin; ffw_in_split Hin | | | ];
+  ffw_simpl.
 
 Ltac ffw_read_s_split H :=
   let H1 := fresh "H1" in let Hin := fresh "Hin" in

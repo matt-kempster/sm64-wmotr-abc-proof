@@ -471,7 +471,9 @@ Section RK.
       - exact (floor_data_keep2 G m m' (rl ++ rgl) Hnb Hperm Hld gp W1 FD).
       - intros ch b z Hr. ffw_read_split Hr;
           first [ solve [apply LHm; bmw_t] | solve [exact (LHb Mint32 ab 8 Nab (ab_bm ab S5) Rab)]
-                | solve [apply LHo; unfold FFW_COLL; cbn [size_chunk]; lia] ].
+                | solve [apply LHo; unfold FFW_COLL; cbn [size_chunk]; lia]
+                  (* throwMatrix (+80) lies outside the render footprint (+64..72) *)
+                | solve [apply LHo; unfold FFW_THROW; cbn [size_chunk]; lia] ].
       - split.
         + exists fl. split; [rewrite LHm by bmw_t; exact Lf | exact Wf].
         + intros off sb so Hoff Hl. rewrite LHm in Hl by bmw_t. exact (Wc0 off sb so Hoff Hl).

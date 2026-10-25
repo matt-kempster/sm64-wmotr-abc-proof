@@ -699,7 +699,10 @@ Section HeightLinked12.
      since each dispatcher's row now assumes the action is in its own
      group, FrameSplit.grp_ok, proved at the real switch; update_mario_health;
      since 2026-10-24 mario_reset_bodystate and update_mario_info_for_cam,
-     with m->marioBodyState pinned to &gBodyStates[0] in FfWorld.ffw). *)
+     with m->marioBodyState pinned to &gBodyStates[0] in FfWorld.ffw, and
+     squish_mario_model, inside an object-side hole: Mario's object's
+     gfx.scale, and sink_mario_in_quicksand, with Mario's gfx.throwMatrix
+     pinned to NULL or sFloorAlignMatrix (ffw, region RFA). *)
   Hypothesis Hseg_na_open : na_open_rows lp bm MWF.
   (* the body's other calls, PATH-SENSITIVE since 2026-10-23 (FrameSplit.clw):
      only play_infinite_stairs_music() (unlinked, no arguments) is left

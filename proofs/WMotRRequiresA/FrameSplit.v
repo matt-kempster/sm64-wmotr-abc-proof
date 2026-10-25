@@ -1037,9 +1037,11 @@ Section FrameSplit.
         rewrite (Mem.load_store_same _ _ _ _ _ _ Hst) in Hs'. cbn in Hs'. discriminate Hs'. }
       refine (ffw_keep ge bm m m' mb mo (Mem.nextblock_store _ _ _ _ _ _ Hst)
                 (fun b ofs k p => Mem.perm_store_1 _ _ _ _ _ _ Hst b ofs k p)
-                (fun ch' b z Hb => LD ch' b z (or_introl Hb)) _ Hmo Hmb Hab HC' Hf).
-      intros i Hi. apply LDk; [cbn; lia |].
-      pose proof mo_range. unfold FFW_COLL, O_INTERACT_STATUS, RAW_OFF. lia.
+                (fun ch' b z Hb => LD ch' b z (or_introl Hb)) _ _ Hmo Hmb Hab HC' Hf).
+      - apply LDk; [cbn; lia |].
+        pose proof mo_range. unfold FFW_THROW, O_INTERACT_STATUS, RAW_OFF. lia.
+      - intros i Hi. apply LDk; [cbn; lia |].
+        pose proof mo_range. unfold FFW_COLL, O_INTERACT_STATUS, RAW_OFF. lia.
     Qed.
 
     (* the used object (WMotRWorld.used_ok) lies apart from Mario's object *)

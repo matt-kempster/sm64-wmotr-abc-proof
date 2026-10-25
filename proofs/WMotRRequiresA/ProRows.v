@@ -28,7 +28,7 @@ From Coq Require Import ZArith List Lia Relations Reals Lra.
 From compcert Require Import Coqlib Maps AST Integers Floats Values Events Memory
   Globalenvs Ctypes Ctypesdefs Cop Clight ClightBigstep Linking.
 From SM64.Generated Require mario mario_actions_airborne mario_actions_automatic
-  audio_external sound_init level_update camera.
+  audio_external sound_init level_update camera mario_actions_moving.
 From SM64.Proofs Require Import Flying Taint ActionValue ActionValueFrame
   RealFrameValue RealFrameLinked AGates SymbolicLinking.
 From SM64.Proofs Require Import CensusV2 EngineV2Consumer RestSurface AirborneSurface.
@@ -602,7 +602,8 @@ Section PR.
      mario_reset_bodystate / update_mario_info_for_cam rows).  All four are
      ffw regions (FfWorld.ff_rl), so no world object lives in them. *)
   Definition XIDS : list ident :=
-    [AX._sSoundRequests; AX._sSoundRequestCount; mario._gBodyStates; camera._gPlayerCameraState].
+    [AX._sSoundRequests; AX._sSoundRequestCount; mario._gBodyStates; camera._gPlayerCameraState;
+     mario_actions_moving._sFloorAlignMatrix].
   Definition xsym (x : block) : Prop := exists id, In id XIDS /\ Genv.find_symbol ge id = Some x.
 
   Lemma xsym_ne : forall x id b, xsym x -> Genv.find_symbol ge id = Some b ->
@@ -621,7 +622,7 @@ Section PR.
     intros x m d (id & Hin & Hx) F.
     assert (Hr : In id ffw_reg_ids).
     { unfold XIDS in Hin. cbn [In] in Hin. unfold ffw_reg_ids. cbn [In].
-      destruct Hin as [<- | [<- | [<- | [<- | []]]]]; auto 20. }
+      repeat (destruct Hin as [<- | Hin]; [auto 30 |]). destruct Hin. }
     split; [exact (ffw_rl_sym ge bm m d id x F Hr Hx) |].
     exact (ffw_reg_apart ge bm m d id x F Hr Hx).
   Qed.
@@ -635,18 +636,61 @@ Section PR.
     Hypothesis SRC0 : xsym bsrc.
     Hypothesis NB : Ple (Mem.nextblock m) (Mem.nextblock m').
     Hypothesis PM : forall b o k p, Mem.perm m b o k p -> Mem.perm m' b o k p.
+    (* 2026-10-24: a third, optional hole, a window of Mario's object's
+       GraphNodeObject between bytes 36 and 56: wl bytes at offset ow (the
+       12 bytes of gfx.scale, 44, for squish_mario_model; the 4 bytes of
+       gfx.pos[1], 36, for sink_mario_in_quicksand); ob, oz is that
+       object's block and the window's absolute offset, or ob = bsr for no
+       third hole *)
+    Variables (ob : block) (oz ow wl : Z).
+    Hypothesis OWL : 36 <= ow /\ 0 <= wl /\ ow + wl <= 56.
+    Hypothesis OBJ : ob = bsr \/ exists oo', Mem.load Mint32 m bm MARIOOBJ_OFF = Some (Vptr ob oo')
+                                           /\ oz = Ptrofs.unsigned oo' + ow.
+    Hypothesis NBO : bm <> ob.
     Hypothesis LD : forall ch b z, b <> bsr -> b <> bsrc -> (b <> bm \/ hz z (size_chunk ch)) ->
+      (b <> ob \/ z + size_chunk ch <= oz \/ oz + wl <= z) ->
       Mem.load ch m' b z = Mem.load ch m b z.
     Hypothesis CLK : forall gp, closed_by gp m -> syms_mapped ge gp -> gp bm <> None ->
       exists gp', (forall b, gp b <> None -> gp' b <> None) /\ closed_by gp' m' /\ syms_mapped ge gp'.
     Hypothesis NBR : bm <> bsr.
     Hypothesis NBRC : bm <> bsrc.
 
-    Lemma LHb : forall ch b z, b <> bm -> b <> bsr -> b <> bsrc -> Mem.load ch m' b z = Mem.load ch m b z.
-    Proof. intros ch b z H1 H2 H3. exact (LD ch b z H2 H3 (or_introl H1)). Qed.
+    (* a cell is off the window of Mario's object *)
+    Definition ozp (b : block) (z s : Z) : Prop :=
+      forall mb mo, Mem.load Mint32 m bm MARIOOBJ_OFF = Some (Vptr mb mo) ->
+        b <> mb \/ z + s <= Ptrofs.unsigned mo + ow \/ Ptrofs.unsigned mo + ow + wl <= z.
+
+    Lemma ozp_ob : forall b z s, b <> bsr -> ozp b z s -> b <> ob \/ z + s <= oz \/ oz + wl <= z.
+    Proof.
+      intros b z s N H. destruct OBJ as [-> | (oo' & Hl & ->)]; [left; exact N |].
+      destruct (H ob oo' Hl) as [A | [A | A]]; [left; exact A | right; left; lia | right; right; lia].
+    Qed.
+
+    Lemma ozp_ne : forall b z s, (forall mb mo, Mem.load Mint32 m bm MARIOOBJ_OFF = Some (Vptr mb mo) -> b <> mb) ->
+      ozp b z s.
+    Proof. intros b z s H mb mo Hl. left. exact (H mb mo Hl). Qed.
+
+    Lemma ozp_k : forall mb mo k s, Mem.load Mint32 m bm MARIOOBJ_OFF = Some (Vptr mb mo) ->
+      k + s <= 36 \/ 56 <= k -> ozp mb (Ptrofs.unsigned mo + k) s.
+    Proof.
+      intros mb mo k s Hl Hk mb' mo' Hl'. rewrite Hl in Hl'. injection Hl' as <- <-. right. lia.
+    Qed.
+
+    Lemma ozp_span : forall mb mo cb co k s, Mem.load Mint32 m bm MARIOOBJ_OFF = Some (Vptr mb mo) ->
+      cb <> mb \/ co = mo \/ Ptrofs.unsigned co + 608 <= Ptrofs.unsigned mo
+        \/ Ptrofs.unsigned mo + 608 <= Ptrofs.unsigned co ->
+      0 <= k -> k + s <= 608 -> k + s <= 36 \/ 56 <= k -> ozp cb (Ptrofs.unsigned co + k) s.
+    Proof.
+      intros mb mo cb co k s Hl Hc K1 K2 K3 mb' mo' Hl'. rewrite Hl in Hl'. injection Hl' as <- <-.
+      destruct Hc as [A | [-> | [A | A]]]; [left; exact A | right; lia | right; left; lia | right; right; lia].
+    Qed.
+
+    Lemma LHz : forall ch b z, b <> bm -> b <> bsr -> b <> bsrc -> ozp b z (size_chunk ch) ->
+      Mem.load ch m' b z = Mem.load ch m b z.
+    Proof. intros ch b z H1 H2 H3 H4. exact (LD ch b z H2 H3 (or_introl H1) (ozp_ob b z _ H2 H4)). Qed.
 
     Lemma LHm : forall ch z, hz z (size_chunk ch) -> Mem.load ch m' bm z = Mem.load ch m bm z.
-    Proof. intros ch z H. exact (LD ch bm z NBR NBRC (or_intror H)). Qed.
+    Proof. intros ch z H. exact (LD ch bm z NBR NBRC (or_intror H) (or_introl NBO)). Qed.
 
     Ltac hm := rewrite LHm by hside.
     Ltac hm_in H := rewrite LHm in H by hside.
@@ -654,17 +698,24 @@ Section PR.
     Lemma hole_apart : ffw ge bm m ->
       (forall bo oo, Mem.load Mint32 m bm MARIOOBJ_OFF = Some (Vptr bo oo) -> bo <> bm /\ bo <> bsr /\ bo <> bsrc)
       /\ (forall off sb so, off = WALL_OFF \/ off = CEIL_OFF \/ off = FLOOR_OFF ->
-            Mem.load Mint32 m bm off = Some (Vptr sb so) -> sb <> bm /\ sb <> bsr /\ sb <> bsrc)
-      /\ (forall bc oc, Mem.load Mint32 m bm FFW_CTL = Some (Vptr bc oc) -> bc <> bm /\ bc <> bsr /\ bc <> bsrc).
+            Mem.load Mint32 m bm off = Some (Vptr sb so) -> sb <> bm /\ sb <> bsr /\ sb <> bsrc
+              /\ forall mb mo, Mem.load Mint32 m bm MARIOOBJ_OFF = Some (Vptr mb mo) -> sb <> mb)
+      /\ (forall bc oc, Mem.load Mint32 m bm FFW_CTL = Some (Vptr bc oc) -> bc <> bm /\ bc <> bsr /\ bc <> bsrc
+              /\ forall mb mo, Mem.load Mint32 m bm MARIOOBJ_OFF = Some (Vptr mb mo) -> bc <> mb).
     Proof.
-      intros (_ & EX & _). ffw_unpack EX.
-      destruct (xsym_ffw bsr _ _ SR0 FWF) as (R1 & X1o & X1t).
-      destruct (xsym_ffw bsrc _ _ SRC0 FWF) as (R2 & X2o & X2t).
-      ffw_simpl_in R1. ffw_simpl_in R2. ffw_simpl_in X1o. ffw_simpl_in X2o.
+      intros (_ & EX & _).
+      ffw_unpack EX.
+      destruct (xsym_ffw bsr _ _ SR0 FWF) as (R1 & X1o & X1t). ffw_simpl_in R1. ffw_simpl_in X1o. ffw_simpl_in X1t.
+      destruct (xsym_ffw bsrc _ _ SRC0 FWF) as (R2 & X2o & X2t). ffw_simpl_in R2. ffw_simpl_in X2o. ffw_simpl_in X2t.
       match type of W with Wff _ _ _ _ ?rl0 => set (rl := rl0) in * end.
-      assert (NR : forall b, ~ rblk rl b -> b <> bm /\ b <> bsr /\ b <> bsrc).
-      { pose proof (ffw_rlF_bm _ _ _ _ FWF) as Rb. ffw_simpl_in Rb.
-        intros b Hn. split; [| split]; intros ->; apply Hn; [exact Rb | exact R1 | exact R2]. }
+      assert (NR : forall b, ~ rblk rl b -> b <> bm /\ b <> bsr /\ b <> bsrc
+                     /\ forall mb mo, Mem.load Mint32 m bm MARIOOBJ_OFF = Some (Vptr mb mo) -> b <> mb).
+      { intros b Hn. split; [| split; [| split]]; [intros ->; apply Hn .. |].
+        - exists Ptrofs.zero; unfold rl, ff_rl; cbn; auto 20.
+        - exact R1.
+        - exact R2.
+        - intros mb mo Hl ->. change MARIOOBJ_OFF with FFW_OBJ in Hl. rewrite Lo in Hl.
+          injection Hl as <- <-. apply Hn. exists oo. unfold rl, ff_rl. cbn. auto 20. }
       split; [| split].
       - intros bo' oo' Hl. change MARIOOBJ_OFF with FFW_OBJ in Hl. rewrite Lo in Hl. injection Hl as <- _.
         split; [exact D1 | split; [exact (not_eq_sym X1o) | exact (not_eq_sym X2o)]].
@@ -679,17 +730,29 @@ Section PR.
 
     Lemma hole_obj : ffw ge bm m -> exists bo oo, Mem.load Mint32 m bm MARIOOBJ_OFF = Some (Vptr bo oo).
     Proof.
-      intros (_ & (d & F) & _). exists (fw_bo d), (fw_oo d). exact (ff_Lo _ _ _ _ F).
+      intros (_ & EX & _).
+      ffw_unpack EX.
+      exists bo, oo. exact Lo.
     Qed.
 
-    Lemma hole_cells : forall c, ffw ge bm m -> read_cells bm m c -> read_cells bm m' c.
+    (* Phi's gfx cell (36) is off the window, or kept by the caller *)
+    Lemma hole_cells : forall c,
+      40 <= ow \/ (forall mb mo, Mem.load Mint32 m bm MARIOOBJ_OFF = Some (Vptr mb mo) ->
+                     Mem.load Mfloat32 m' mb (Ptrofs.unsigned mo + OFS_GFXY)
+                     = Mem.load Mfloat32 m mb (Ptrofs.unsigned mo + OFS_GFXY)) ->
+      ffw ge bm m -> read_cells bm m c -> read_cells bm m' c.
     Proof.
-      intros c Hf (H1 & H2 & H3 & H4 & H5 & H6 & bo & oo & H7 & H8).
+      intros c HG Hf (H1 & H2 & H3 & H4 & H5 & H6 & bo & oo & H7 & H8).
       destruct (hole_apart Hf) as (Ao & _).
       split; [hm; exact H1 |]. split; [hm; exact H2 |]. split; [hm; exact H3 |].
       split; [hm; exact H4 |]. split; [hm; exact H5 |]. split; [hm; exact H6 |].
       exists bo, oo. split; [hm; exact H7 |].
-      destruct (Ao bo oo H7) as (N1 & N2 & N3). rewrite LHb by assumption. exact H8.
+      assert (H7' : Mem.load Mint32 m bm MARIOOBJ_OFF = Some (Vptr bo oo)) by exact H7.
+      destruct (Ao bo oo H7') as (N1 & N2 & N3).
+      destruct HG as [HG | HG]; [| rewrite (HG bo oo H7'); exact H8].
+      rewrite LHz; [exact H8 | assumption | assumption | assumption |].
+      intros mb mo Hl. rewrite H7' in Hl. injection Hl as <- <-. right. left.
+      unfold OFS_GFXY. cbn [size_chunk]. lia.
     Qed.
 
     Lemma hole_fresh_at : fresh_at bm m -> fresh_at bm m'.
@@ -703,79 +766,124 @@ Section PR.
 
     Lemma hole_ffw : ffw ge bm m -> ffw ge bm m'.
     Proof.
-      intros (Hgn & (d & F) & FD).
-      destruct (xsym_ffw bsr m d SR0 F) as (R1 & X1o & X1t).
-      destruct (xsym_ffw bsrc m d SRC0 F) as (R2 & X2o & X2t).
-      assert (NR : forall b, ~ rblk (ff_rl_of bm d) b -> b <> bm /\ b <> bsr /\ b <> bsrc).
-      { intros b Hn. split; [| split]; intros ->; apply Hn; [exact (ffw_rl_bm bm d) | exact R1 | exact R2]. }
-      pose proof (ff_D1 _ _ _ _ F) as O1.
-      assert (Nab1 : fw_ab d <> bsr) by exact (xsym_ne _ _ _ SR0 (ff_S5 _ _ _ _ F) eq_refl).
-      assert (Nab2 : fw_ab d <> bsrc) by exact (xsym_ne _ _ _ SRC0 (ff_S5 _ _ _ _ F) eq_refl).
-      destruct (CLK _ (ff_HC _ _ _ _ F) (ff_HS _ _ _ _ F) (ff_HM _ _ _ _ F)) as (gp' & Hinc & HC' & _).
-      apply (ffw_keep_off ge bm m m' d gp' Hgn F FD NB).
-      - intros b ofs k p _ Hp. exact (PM b ofs k p Hp).
-      - intros ch b z _ Nr. destruct (NR b Nr) as (A & B & C). exact (LHb ch b z A B C).
-      - exact Hinc.
-      - exact HC'.
-      - intros ch b z Hr. ffw_read_s_split Hr;
-          first [ solve [hm; reflexivity] | solve [exact (LD Mint32 _ 8 Nab1 Nab2 (or_intror hz_8))]
-                | solve [apply LHb; [exact O1 | exact (not_eq_sym X1o) | exact (not_eq_sym X2o)]] ].
+      intros (Hgn & EX & FD).
+      ffw_unpack EX.
+      destruct (xsym_ffw bsr _ _ SR0 FWF) as (R1 & X1o & X1t). ffw_simpl_in R1. ffw_simpl_in X1o. ffw_simpl_in X1t.
+      destruct (xsym_ffw bsrc _ _ SRC0 FWF) as (R2 & X2o & X2t). ffw_simpl_in R2. ffw_simpl_in X2o. ffw_simpl_in X2t.
+      match type of W with Wff _ _ _ _ ?rl0 => set (rl := rl0) in * end.
+      assert (Lo' : Mem.load Mint32 m bm MARIOOBJ_OFF = Some (Vptr bo oo)) by exact Lo.
+      assert (NR : forall b, ~ rblk rl b -> b <> bm /\ b <> bsr /\ b <> bsrc /\ b <> bo).
+      { intros b Hn. split; [| split; [| split]]; intros ->; apply Hn;
+          [exists Ptrofs.zero; unfold rl, ff_rl; cbn; auto 20 | exact R1 | exact R2
+          | exists oo; unfold rl, ff_rl; cbn; auto 20]. }
+      assert (NBo : bo <> bm /\ bo <> bsr /\ bo <> bsrc).
+      { split; [exact D1 | split; [exact (not_eq_sym X1o) | exact (not_eq_sym X2o)]]. }
+      destruct NBo as (O1 & O2 & O3).
+      assert (Nab1 : ab <> bsr) by exact (xsym_ne _ _ _ SR0 S5 eq_refl).
+      assert (Nab2 : ab <> bsrc) by exact (xsym_ne _ _ _ SRC0 S5 eq_refl).
+      assert (Nabo : ab <> bo) by exact (proj1 (D4 ab ltac:(left; cbn; auto 10))).
+      assert (Hnb : Ple (Mem.nextblock m) (Mem.nextblock m')) by exact NB.
+      assert (Hperm : forall b ofs k p, Plt b (Mem.nextblock m) -> Mem.perm m b ofs k p -> Mem.perm m' b ofs k p)
+        by (intros b ofs k p _ Hp; exact (PM b ofs k p Hp)).
+      assert (Hld : forall ch b z, Plt b (Mem.nextblock m) -> ~ rblk rl b -> Mem.load ch m' b z = Mem.load ch m b z).
+      { intros ch b z _ Nr. destruct (NR b Nr) as (A & B & C & E).
+        apply LHz; [exact A | exact B | exact C |]. apply ozp_ne. intros mb mo Hl.
+        rewrite Lo' in Hl. injection Hl as <- _. exact E. }
+      destruct (CLK gp HC HS HM) as (gp' & Hinc & HC' & HS').
+      apply (ffw_keep_off ge bm m m' _ gp' Hgn FWF FD Hnb Hperm Hld Hinc HC').
+      intros ch b z Hr. ffw_read_s_split Hr;
+        first [ solve [hm; reflexivity]
+              | solve [exact (LD Mint32 ab 8 Nab1 Nab2 (or_intror hz_8)
+                  (ozp_ob ab 8 _ Nab1 (ozp_ne ab 8 _ (fun mb mo Hl => ltac:(rewrite Lo' in Hl; injection Hl as <- _; exact Nabo)))))]
+              | solve [apply LHz; [exact O1 | exact O2 | exact O3 |];
+                       rewrite <- Z.add_assoc; apply ozp_k; [exact Lo' | unfold FFW_COLL; cbn [size_chunk]; lia]]
+              | solve [apply LHz; [exact O1 | exact O2 | exact O3 |];
+                       apply ozp_k; [exact Lo' | unfold FFW_THROW; cbn [size_chunk]; lia]] ].
     Qed.
 
-    Lemma hole_coll : forall v, (forall b o, v = Vptr b o -> b <> bm /\ b <> bsr /\ b <> bsrc) ->
+    Lemma hole_coll : forall v,
+      (forall b o, v = Vptr b o -> b <> bm /\ b <> bsr /\ b <> bsrc
+         /\ forall mb mo, Mem.load Mint32 m bm MARIOOBJ_OFF = Some (Vptr mb mo) ->
+              b <> mb \/ o = mo \/ Ptrofs.unsigned o + 608 <= Ptrofs.unsigned mo
+              \/ Ptrofs.unsigned mo + 608 <= Ptrofs.unsigned o) ->
       coll_obj_ok m v -> coll_obj_ok m' v.
     Proof.
       intros v Hb (b & o & t & -> & Lt & Hin & Hp & Hc).
-      destruct (Hb b o eq_refl) as (N1 & N2 & N3).
-      exists b, o, t. split; [reflexivity |]. split; [rewrite LHb by assumption; exact Lt |].
+      destruct (Hb b o eq_refl) as (N1 & N2 & N3 & Sp).
+      assert (K : forall ch k, size_chunk ch = 4 ->
+                  k = O_POSY \/ k = O_INTERACT_TYPE \/ k = HITBOX_H_OFF \/ k = HITBOX_DOWN_OFF ->
+                  Mem.load ch m' b (Ptrofs.unsigned o + k) = Mem.load ch m b (Ptrofs.unsigned o + k)).
+      { intros ch k Hs Hk. apply LHz; [exact N1 | exact N2 | exact N3 |].
+        intros mb mo Hl. rewrite Hs.
+        unfold O_POSY, O_INTERACT_TYPE, HITBOX_H_OFF, HITBOX_DOWN_OFF, RAW_OFF in Hk.
+        destruct (Sp mb mo Hl) as [A | [-> | [A | A]]]; [left; exact A | right; right; lia | right; left; lia | right; right; lia]. }
+      exists b, o, t. split; [reflexivity |].
+      split; [rewrite K; [exact Lt | reflexivity | right; left; reflexivity] |].
       split; [exact Hin |]. split.
       - intros Ht. destruct (Hp Ht) as (base & top & Hi & P1 & P2 & P3).
-        exists base, top. split; [exact Hi |]. rewrite !LHb by assumption. tauto.
+        exists base, top. split; [exact Hi |]. rewrite !K by (reflexivity || tauto). tauto.
       - intros Ht. destruct (Hc Ht) as (y & Hi & P1).
-        exists y. split; [exact Hi |]. rewrite LHb by assumption. exact P1.
+        exists y. split; [exact Hi |]. rewrite K by (reflexivity || tauto). exact P1.
     Qed.
 
-    Lemma hole_world : ffw ge bm m -> wmotr_world bm m -> wmotr_world bm m'.
+    Lemma hole_world : ffw ge bm m -> mobj_apart bm m -> wmotr_world bm m -> wmotr_world bm m'.
     Proof.
-      intros Hf (Hw & Hc & Hfl & Hh & Hr & Hq & Ho).
+      intros Hf Hmob (Hw & Hc & Hfl & Hh & Hr & Hq & Ho).
       pose proof Hf as (_ & EX & _).
       ffw_unpack EX.
       destruct (hole_apart Hf) as (Ao & As & _).
       split; [| split; [| split; [| split; [| split; [| split]]]]].
       - intros v Hl. hm_in Hl. destruct (Hw v Hl) as [-> | (b & o & t & -> & Lt & Hin)]; [left; reflexivity |].
         right. exists b, o, t. split; [reflexivity |]. split; [| exact Hin].
-        destruct (As WALL_OFF b o (or_introl eq_refl) Hl) as (N1 & N2 & N3).
-        rewrite LHb by assumption. exact Lt.
+        destruct (As WALL_OFF b o (or_introl eq_refl) Hl) as (N1 & N2 & N3 & N4).
+        rewrite LHz by (first [assumption | apply ozp_ne; exact N4]). exact Lt.
       - intros v Hl. hm_in Hl. destruct (Hc v Hl) as [-> | (b & o & t & -> & Lt & Hin)]; [left; reflexivity |].
         right. exists b, o, t. split; [reflexivity |]. split; [| exact Hin].
-        destruct (As CEIL_OFF b o (or_intror (or_introl eq_refl)) Hl) as (N1 & N2 & N3).
-        rewrite LHb by assumption. exact Lt.
+        destruct (As CEIL_OFF b o (or_intror (or_introl eq_refl)) Hl) as (N1 & N2 & N3 & N4).
+        rewrite LHz by (first [assumption | apply ozp_ne; exact N4]). exact Lt.
       - intros v Hl. hm_in Hl. destruct (Hfl v Hl) as (b & o & t & -> & Lt & Hin).
         exists b, o, t. split; [reflexivity |]. split; [| exact Hin].
-        destruct (As FLOOR_OFF b o (or_intror (or_intror eq_refl)) Hl) as (N1 & N2 & N3).
-        rewrite LHb by assumption. exact Lt.
+        destruct (As FLOOR_OFF b o (or_intror (or_intror eq_refl)) Hl) as (N1 & N2 & N3 & N4).
+        rewrite LHz by (first [assumption | apply ozp_ne; exact N4]). exact Lt.
       - hm. exact Hh.
       - hm. exact Hr.
       - hm. exact Hq.
       - destruct Ho as (mb & mo & s & n & Hl & Ls & Hs & Ln & Hn & Hall).
         destruct (Ao mb mo Hl) as (N1 & N2 & N3).
+        destruct (Hmob mb mo Hl) as (_ & _ & P3).
         exists mb, mo, s, n. split; [hm; exact Hl |].
-        split; [rewrite LHb by assumption; exact Ls |]. split; [exact Hs |].
-        split; [rewrite LHb by assumption; exact Ln |]. split; [exact Hn |].
-        intros i v Hi Hl2. rewrite LHb in Hl2 by assumption.
+        split; [rewrite LHz; [exact Ls | exact N1 | exact N2 | exact N3 |];
+                apply ozp_k; [exact Hl | unfold O_INTERACT_STATUS, RAW_OFF; cbn [size_chunk]; lia] |].
+        split; [exact Hs |].
+        split; [rewrite LHz; [exact Ln | exact N1 | exact N2 | exact N3 |];
+                apply ozp_k; [exact Hl | unfold NUMCOLL_OFF; cbn [size_chunk]; lia] |].
+        split; [exact Hn |].
+        intros i v Hi Hl2. rewrite LHz in Hl2;
+          [| exact N1 | exact N2 | exact N3 |
+           rewrite <- Z.add_assoc; apply ozp_k; [exact Hl | unfold COLL_OFF; cbn [size_chunk]; lia]].
         apply hole_coll; [| exact (Hall i v Hi Hl2)].
         intros cb co ->. change MARIOOBJ_OFF with FFW_OBJ in Hl. rewrite Lo in Hl.
         injection Hl as <- <-.
-        rewrite (Co i cb co ltac:(lia) Hl2). exact (conj N1 (conj N2 N3)).
+        rewrite (Co i cb co ltac:(lia) Hl2). split; [exact N1 | split; [exact N2 | split; [exact N3 |]]].
+        intros mb' mo' Hl'. assert (Lo' : Mem.load Mint32 m bm MARIOOBJ_OFF = Some (Vptr bo oo)) by exact Lo.
+        rewrite Lo' in Hl'. injection Hl' as <- <-.
+        pose proof (P3 i cb co ltac:(lia) Hl2) as Q. unfold OBJ_SIZE in Q. rewrite (Co i cb co ltac:(lia) Hl2) in Q. exact Q.
     Qed.
 
     Lemma hole_anim : ffw ge bm m -> anim_apart lp bm m -> anim_apart lp bm m'.
     Proof.
       intros Hf Han ab bt ot Hs Hl.
+      pose proof Hf as (_ & EX & _).
+      ffw_unpack EX.
+      assert (Eab : ab0 = ab) by congruence. subst ab0.
+      assert (Nabo : ab <> bo) by exact (proj1 (D4 ab ltac:(left; cbn; auto 10))).
+      assert (Lo' : Mem.load Mint32 m bm MARIOOBJ_OFF = Some (Vptr bo oo)) by exact Lo.
       destruct (hole_apart Hf) as (Ao & _ & _).
       assert (N1 : ab <> bsr) by exact (xsym_ne _ _ _ SR0 Hs eq_refl).
       assert (N2 : ab <> bsrc) by exact (xsym_ne _ _ _ SRC0 Hs eq_refl).
-      rewrite (LD Mptr ab 8 N1 N2 (or_intror hz_8)) in Hl.
+      rewrite (LD Mptr ab 8 N1 N2 (or_intror hz_8)
+                 (ozp_ob ab 8 _ N1 (ozp_ne ab 8 _ (fun mb mo Hl => ltac:(rewrite Lo' in Hl; injection Hl as <- _; exact Nabo)))))
+        in Hl.
       destruct (Han ab bt ot Hs Hl) as (A1 & A2). split.
       - intros off sb so Hoff Hl'.
         destruct Hoff as [-> | [-> | ->]]; hm_in Hl';
@@ -784,7 +892,9 @@ Section PR.
           | exact (A1 FLOOR_OFF sb so (or_intror (or_intror eq_refl)) Hl')].
       - intros mb mo i cb co Hl' Hi Hl2. hm_in Hl'.
         destruct (Ao mb mo Hl') as (M1 & M2 & M3).
-        rewrite LHb in Hl2 by assumption.
+        rewrite LHz in Hl2;
+          [| exact M1 | exact M2 | exact M3 |
+           rewrite <- Z.add_assoc; apply ozp_k; [exact Hl' | unfold COLL_OFF; cbn [size_chunk]; lia]].
         exact (A2 mb mo i cb co Hl' Hi Hl2).
     Qed.
 
@@ -801,7 +911,10 @@ Section PR.
           [exact (P2 WALL_OFF sb so (or_introl eq_refl) Hl')
           | exact (P2 CEIL_OFF sb so (or_intror (or_introl eq_refl)) Hl')
           | exact (P2 FLOOR_OFF sb so (or_intror (or_intror eq_refl)) Hl')].
-      - intros i cb co Hi Hl'. rewrite LHb in Hl' by assumption.
+      - intros i cb co Hi Hl'.
+        rewrite LHz in Hl';
+          [| exact M1 | exact M2 | exact M3 |
+           rewrite <- Z.add_assoc; apply ozp_k; [exact Hl | unfold COLL_OFF; cbn [size_chunk]; lia]].
         exact (P3 i cb co Hi Hl').
     Qed.
 
@@ -810,7 +923,8 @@ Section PR.
       intros Hf. destruct (hole_apart Hf) as (_ & _ & Ac).
       unfold a_down_real. hm.
       destruct (Mem.load Mptr m bm 156) as [[] |] eqn:E; try reflexivity.
-      destruct (Ac _ _ E) as (N1 & N2 & N3). rewrite LHb by assumption. reflexivity.
+      destruct (Ac _ _ E) as (N1 & N2 & N3 & N4).
+      rewrite LHz by (first [assumption | apply ozp_ne; exact N4]). reflexivity.
     Qed.
 
     Lemma hole_used : ffw ge bm m -> used_ok bm m -> used_ok bm m'.
@@ -822,80 +936,137 @@ Section PR.
       assert (K136 : Mem.load Mint32 m' bm MARIOOBJ_OFF = Mem.load Mint32 m bm MARIOOBJ_OFF) by (hm; reflexivity).
       assert (Ap : forall ub uo, used_apart bm m ub uo -> used_apart bm m' ub uo).
       { intros ub uo A. split; [exact (proj1 A) |]. intros mb mo Hl. rewrite K136 in Hl. exact (proj2 A mb mo Hl). }
+      (* a field of the used object, a whole Object away from Mario's *)
+      assert (KU : forall uo ch k, used_apart bm m bo uo -> 0 <= k -> k + size_chunk ch <= 608 ->
+                 Mem.load ch m' bo (Ptrofs.unsigned uo + k) = Mem.load ch m bo (Ptrofs.unsigned uo + k)).
+      { intros uo ch k A K1 K2. apply LHz; [exact N1 | exact N2 | exact N3 |].
+        intros mb mo Hl. rewrite Lo in Hl. injection Hl as <- <-.
+        destruct (proj2 A bo oo Lo) as [E | [E | E]]; [exfalso; exact (E eq_refl) | |];
+          unfold OBJ_SPAN in E; right; [left | right]; lia. }
       split.
       - intros Hp. destruct (U1 Hp) as (ub & uo & Lu & (base & top & Hin & Ht & P1 & P2 & P3) & A & (S & PP) & V).
         destruct (PP bo oo Lo) as (Eu & p & Lp & Fp & Rp). subst ub.
         exists bo, uo. split; [hm; exact Lu |].
         split; [| split; [exact (Ap _ _ A) | split]].
         + exists base, top. split; [exact Hin |]. split; [exact Ht |].
-          rewrite !LHb by assumption. auto.
+          rewrite !KU by (first [exact A | unfold O_POSY, HITBOX_DOWN_OFF, HITBOX_H_OFF, RAW_OFF; cbn [size_chunk]; lia]).
+          auto.
         + split; [exact S |]. intros mb mo Hl. rewrite K136, Lo in Hl. injection Hl as <- <-.
-          split; [reflexivity |]. exists p. rewrite LHb by assumption. exact (conj Lp (conj Fp Rp)).
+          split; [reflexivity |]. exists p.
+          rewrite LHz; [exact (conj Lp (conj Fp Rp)) | exact N1 | exact N2 | exact N3 |].
+          apply ozp_k; [exact Lo | unfold POLEPOS_OFF, RAW_OFF; cbn [size_chunk]; lia].
         + intros w Lv. hm_in Lv. exact (V w Lv).
       - intros Hcn. destruct (U2 Hcn) as (ub & uo & Lu & (y & Hin & P1) & A & (S & CP)).
         destruct (CP bo oo Lo) as (Eu & CC). subst ub.
         exists bo, uo. split; [hm; exact Lu |]. split; [| split; [exact (Ap _ _ A) |]].
-        + exists y. split; [exact Hin |]. rewrite LHb by assumption. exact P1.
+        + exists y. split; [exact Hin |].
+          rewrite KU by (first [exact A | unfold O_POSY, RAW_OFF; cbn [size_chunk]; lia]). exact P1.
         + split; [exact S |]. intros mb mo Hl. rewrite K136, Lo in Hl. injection Hl as <- <-.
-          split; [reflexivity |]. intros i cb co Hi Hl2. rewrite LHb in Hl2 by assumption.
+          split; [reflexivity |]. intros i cb co Hi Hl2.
+          rewrite LHz in Hl2;
+            [| exact N1 | exact N2 | exact N3 |
+             rewrite <- Z.add_assoc; apply ozp_k; [exact Lo | unfold COLL_OFF; cbn [size_chunk]; lia]].
           exact (CC i cb co Hi Hl2).
     Qed.
 
     Lemma hole_anim_w : ffw ge bm m -> AnimWorld.anim_w ge bm m -> AnimWorld.anim_w ge bm m'.
     Proof.
-      intros Hf AW. pose proof Hf as (Hgn & (d & F) & FD).
+      intros Hf AW. pose proof Hf as (Hgn & EX & FD).
       destruct (hole_apart Hf) as (Ao & _ & _).
-      destruct (xsym_ffw bsr m d SR0 F) as (R1 & X1o & X1t).
-      destruct (xsym_ffw bsrc m d SRC0 F) as (R2 & X2o & X2t).
-      pose proof (ff_S5 _ _ _ _ F) as S5. pose proof (ff_Lo _ _ _ _ F) as Lo.
-      pose proof (ff_Lb _ _ _ _ F) as Lb. pose proof (ff_D2 _ _ _ _ F) as D2.
+      ffw_unpack EX.
+      destruct (xsym_ffw bsr _ _ SR0 FWF) as (R1 & X1o & X1t). ffw_simpl_in R1. ffw_simpl_in X1o. ffw_simpl_in X1t.
+      destruct (xsym_ffw bsrc _ _ SRC0 FWF) as (R2 & X2o & X2t). ffw_simpl_in R2. ffw_simpl_in X2o. ffw_simpl_in X2t.
       pose proof AW as (ab' & bga & bauc & btab & otab & bt' & ot' & mb' & mo' & B & _).
       pose proof B as (Sab & _ & _ & _ & L8 & _ & Sy & _ & _ & _ & _ & _ & _ & _ & _ & _ & _ & _ & _ & _ & Hbm0).
-      assert (ab' = fw_ab d) by congruence. subst ab'.
+      assert (ab' = ab) by congruence. subst ab'.
       rewrite Lb in L8. injection L8 as <- <-.
-      assert (Nab : fw_ab d <> bm) by exact (AnimKeep.symne_ids ge _ _ _ _ S5 Hbm0 eq_refl).
-      assert (N1 : fw_ab d <> bsr) by exact (xsym_ne _ _ _ SR0 S5 eq_refl).
-      assert (N2 : fw_ab d <> bsrc) by exact (xsym_ne _ _ _ SRC0 S5 eq_refl).
-      destruct (Ao (fw_bo d) (fw_oo d) Lo) as (O1 & O2 & O3).
-      assert (T1 : fw_bt d <> bsr) by exact (not_eq_sym X1t).
-      assert (T2 : fw_bt d <> bsrc) by exact (not_eq_sym X2t).
-      apply (AnimKeep.anim_w_keep ge bm m m' d F AW).
+      assert (Lo' : Mem.load Mint32 m bm MARIOOBJ_OFF = Some (Vptr bo oo)) by exact Lo.
+      assert (Nab : ab <> bm) by exact (AnimKeep.symne_ids ge _ _ _ _ S5 Hbm0 eq_refl).
+      assert (N1 : ab <> bsr) by exact (xsym_ne _ _ _ SR0 S5 eq_refl).
+      assert (N2 : ab <> bsrc) by exact (xsym_ne _ _ _ SRC0 S5 eq_refl).
+      assert (Nabo : ab <> bo) by exact (proj1 (D4 ab ltac:(left; cbn; auto 10))).
+      assert (Zab : forall z s, ozp ab z s)
+        by (intros z s; apply ozp_ne; intros mb mo Hl; rewrite Lo' in Hl; injection Hl as <- _; exact Nabo).
+      destruct (Ao bo oo Lo') as (O1 & O2 & O3).
+      assert (T1 : bt <> bsr) by exact (not_eq_sym X1t).
+      assert (T2 : bt <> bsrc) by exact (not_eq_sym X2t).
+      apply (AnimKeep.anim_w_keep ge bm m m' _ FWF AW); ffw_simpl.
       - exact NB.
       - intros b ofs k p _ Hp. exact (PM b ofs k p Hp).
-      - intros ch b z _ Hr. apply LHb; intros ->; apply Hr;
-          first [exact R1 | exact R2 | exact (ffw_rl_bm bm d)].
+      - intros ch b z _ Hr. apply LHz; [intros ->; apply Hr .. |].
+        + exists Ptrofs.zero; unfold ff_rl; cbn; auto 20.
+        + exact R1.
+        + exact R2.
+        + apply ozp_ne. intros mb mo Hl ->. rewrite Lo' in Hl. injection Hl as <- <-.
+          apply Hr. exists oo. unfold ff_rl. cbn. auto 20.
       - hm. reflexivity.
-      - rewrite (LD Mint32 _ 0 N1 N2 (or_introl Nab)). reflexivity.
-      - rewrite (LD Mint32 _ 8 N1 N2 (or_introl Nab)). reflexivity.
+      - rewrite (LD Mint32 ab 0 N1 N2 (or_introl Nab) (ozp_ob ab 0 _ N1 (Zab _ _))). reflexivity.
+      - rewrite (LD Mint32 ab 8 N1 N2 (or_introl Nab) (ozp_ob ab 8 _ N1 (Zab _ _))). reflexivity.
       - hm. reflexivity.
       - hm. reflexivity.
       - right. split; [hm; reflexivity |].
-        split; [rewrite (LD Mint32 _ 4 N1 N2 (or_introl Nab)); reflexivity |]. split.
-        + intros o ch _. apply LHb; assumption.
-        + intros k rel ch v0 _ _. apply LHb; assumption.
+        split; [rewrite (LD Mint32 ab 4 N1 N2 (or_introl Nab) (ozp_ob ab 4 _ N1 (Zab _ _))); reflexivity |]. split.
+        + intros o ch Hin. apply LHz; [exact O1 | exact O2 | exact O3 |].
+          apply ozp_k; [exact Lo' |].
+          destruct Hin as [E | [E | [E | [E | []]]]]; injection E as <- <-; cbn [size_chunk]; lia.
+        + intros k rel ch v0 _ _. apply LHz; [exact D2 | exact T1 | exact T2 |].
+          apply ozp_ne. intros mb mo Hl. rewrite Lo' in Hl. injection Hl as <- _. exact D3.
     Qed.
 
-    Lemma hole_lvl : AnimWorld.anim_w ge bm m -> lvl_w ge m -> lvl_w ge m'.
+    Lemma hole_lvl : ffw ge bm m -> AnimWorld.anim_w ge bm m -> lvl_w ge m -> lvl_w ge m'.
     Proof.
-      intros AW Hl.
-      apply (AnimKeep.lvl_w_keep_ne ge m m' (fun b => b <> bm /\ b <> bsr /\ b <> bsrc)); [| | exact Hl].
-      - intros b Hs. split; [exact (AnimKeep.lvl_ne_bm ge bm m AW b Hs) |].
-        lvl_cases Hs; split;
-          first [ exact (xsym_ne _ _ _ SR0 Hs eq_refl)
-                | exact (xsym_ne _ _ _ SRC0 Hs eq_refl) ].
-      - intros ch b z (A & B & C). exact (LHb ch b z A B C).
+      intros Hf AW Hl.
+      pose proof Hf as (_ & EX & _).
+      ffw_unpack EX.
+      assert (Lo' : Mem.load Mint32 m bm MARIOOBJ_OFF = Some (Vptr bo oo)) by exact Lo.
+      apply (AnimKeep.lvl_w_keep_ne ge m m' (fun b => (b <> bm /\ b <> bsr /\ b <> bsrc) /\ b <> bo)); [| | exact Hl].
+      - intros b Hs. split; [split; [exact (AnimKeep.lvl_ne_bm ge bm m AW b Hs) |] |].
+        + lvl_cases Hs; split;
+            first [ exact (xsym_ne _ _ _ SR0 Hs eq_refl)
+                  | exact (xsym_ne _ _ _ SRC0 Hs eq_refl) ].
+        + exact (proj1 (D4 b (or_intror (or_intror Hs)))).
+      - intros ch b z ((A & B & C) & E). apply LHz; [exact A | exact B | exact C |].
+        apply ozp_ne. intros mb mo Hl0. rewrite Lo' in Hl0. injection Hl0 as <- _. exact E.
     Qed.
 
     Lemma hole_fworld : fworld lp bm m -> fworld lp bm m'.
     Proof.
       intros (Ha & Hw & Han & Hmo & Hd & Hf & Hu & Haw & Hl).
       split; [intros v Hl'; apply Ha; hm_in Hl'; exact Hl' |].
-      split; [exact (hole_world Hf Hw) |]. split; [exact (hole_anim Hf Han) |].
+      split; [exact (hole_world Hf Hmo Hw) |]. split; [exact (hole_anim Hf Han) |].
       split; [exact (hole_mobj Hf Hmo) |]. split; [rewrite (hole_adown Hf); exact Hd |].
       split; [exact (hole_ffw Hf) |]. split; [exact (hole_used Hf Hu) |].
-      split; [exact (hole_anim_w Hf Haw) |]. exact (hole_lvl Haw Hl).
+      split; [exact (hole_anim_w Hf Haw) |]. exact (hole_lvl Hf Haw Hl).
     Qed.
   End HOLE.
+
+  (* the two-block hole (no object hole): ob := bsr *)
+  Section HOLE2.
+    Variables (m m' : mem) (bsr bsrc : block).
+    Hypothesis SR0 : xsym bsr.
+    Hypothesis SRC0 : xsym bsrc.
+    Hypothesis NB : Ple (Mem.nextblock m) (Mem.nextblock m').
+    Hypothesis PM : forall b o k p, Mem.perm m b o k p -> Mem.perm m' b o k p.
+    Hypothesis LD : forall ch b z, b <> bsr -> b <> bsrc -> (b <> bm \/ hz z (size_chunk ch)) ->
+      Mem.load ch m' b z = Mem.load ch m b z.
+    Hypothesis CLK : forall gp, closed_by gp m -> syms_mapped ge gp -> gp bm <> None ->
+      exists gp', (forall b, gp b <> None -> gp' b <> None) /\ closed_by gp' m' /\ syms_mapped ge gp'.
+    Hypothesis NBR : bm <> bsr.
+    Hypothesis NBRC : bm <> bsrc.
+
+    Lemma LD2 : forall ch b z, b <> bsr -> b <> bsrc -> (b <> bm \/ hz z (size_chunk ch)) ->
+      (b <> bsr \/ z + size_chunk ch <= 0 \/ 0 + 12 <= z) -> Mem.load ch m' b z = Mem.load ch m b z.
+    Proof. intros ch b z A B C _. exact (LD ch b z A B C). Qed.
+
+    Ltac h2 := first [eassumption | (left; reflexivity) | exact LD2 | lia | (left; lia)].
+
+    Lemma hole2_fworld : fworld lp bm m -> fworld lp bm m'.
+    Proof. intros Hw. eapply hole_fworld with (m := m) (m' := m') (bsr := bsr) (bsrc := bsrc) (ob := bsr) (oz := 0) (ow := 44) (wl := 12); h2. Qed.
+    Lemma hole2_cells : forall c, ffw ge bm m -> read_cells bm m c -> read_cells bm m' c.
+    Proof. intros c Hf Hc. eapply hole_cells with (m := m) (m' := m') (bsr := bsr) (bsrc := bsrc) (ob := bsr) (oz := 0) (ow := 44) (wl := 12); h2. Qed.
+    Lemma hole2_fresh_at : fresh_at bm m -> fresh_at bm m'.
+    Proof. intros Hfr. eapply hole_fresh_at with (m := m) (m' := m') (bsr := bsr) (bsrc := bsrc) (ob := bsr) (oz := 0) (ow := 44) (wl := 12); h2. Qed.
+  End HOLE2.
 
   (* the walk's store: m->flags *)
   Lemma pffs_store : forall v lv rhs le m0 m1 t le' m2 out bsr bsrc,
@@ -1028,9 +1199,9 @@ Section PR.
     assert (XR : xsym bsr) by (exists AX._sSoundRequests; split; [left; reflexivity | exact SR]).
     assert (XRC : xsym bsrc) by (exists AX._sSoundRequestCount; split; [right; left; reflexivity | exact SRC]).
     assert (NBle : Ple (Mem.nextblock m) (Mem.nextblock m')) by (rewrite NB; apply Ple_refl).
-    split; [eapply hole_fworld with (bsr := bsr) (bsrc := bsrc); eassumption |].
-    split; [exists c; split; [eapply hole_cells with (bsr := bsr) (bsrc := bsrc); eassumption | apply rt_refl] |].
-    eapply hole_fresh_at with (bsr := bsr) (bsrc := bsrc); eassumption.
+    split; [eapply hole2_fworld with (bsr := bsr) (bsrc := bsrc); eassumption |].
+    split; [exists c; split; [eapply hole2_cells with (bsr := bsr) (bsrc := bsrc); eassumption | apply rt_refl] |].
+    eapply hole2_fresh_at with (bsr := bsr) (bsrc := bsrc); eassumption.
   Qed.
 
   (* ==================================================================== *)

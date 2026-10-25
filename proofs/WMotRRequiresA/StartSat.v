@@ -469,6 +469,11 @@ Section Witness.
   Lemma dm_sms : (prog_defmap audio_external.prog) ! audio_external._sSoundMovingSpeed
                 = Some (Gvar audio_external.v_sSoundMovingSpeed).
   Proof. dm. Qed.
+  (* sFloorAlignMatrix (mario_actions_moving.c): the only non-NULL target
+     of Mario's gfx.throwMatrix (FfWorld.ffw's last conjunct) *)
+  Lemma dm_fam : (prog_defmap mario_actions_moving.prog) ! mario_actions_moving._sFloorAlignMatrix
+                = Some (Gvar mario_actions_moving.v_sFloorAlignMatrix).
+  Proof. dm. Qed.
 
   (* the collision partitions' definer, surface_load.c (linked 2026-10-22):
      6144 bytes each (16 x 16 cells x 3 lists x one 8-byte SurfaceNode) *)
@@ -507,7 +512,7 @@ Section Witness.
   (* The construction, as hypotheses: three allocations, eight stores.    *)
   (* ==================================================================== *)
   Section Steps.
-    Variables ab bo bfi bmiss bcalls bsin biom bmq brm blk bsr bsrc bsms : block.
+    Variables ab bo bfi bmiss bcalls bsin biom bmq brm blk bsr bsrc bsms bfa : block.
     Hypothesis Hab : Genv.find_symbol (lp_ge lp) mario._gMarioAnimsBuf = Some ab.
     Hypothesis Hbo : Genv.find_symbol (lp_ge lp) object_list_processor._gObjectPool = Some bo.
     Hypothesis Hfi : Genv.find_symbol (lp_ge lp)
@@ -522,6 +527,7 @@ Section Witness.
     Hypothesis Hsr : Genv.find_symbol (lp_ge lp) audio_external._sSoundRequests = Some bsr.
     Hypothesis Hsrc : Genv.find_symbol (lp_ge lp) audio_external._sSoundRequestCount = Some bsrc.
     Hypothesis Hsms : Genv.find_symbol (lp_ge lp) audio_external._sSoundMovingSpeed = Some bsms.
+    Hypothesis Hfa : Genv.find_symbol (lp_ge lp) mario_actions_moving._sFloorAlignMatrix = Some bfa.
     Variables bw bL : block.
     Hypothesis Hbw : Genv.find_symbol (lp_ge lp) level_update._sWarpDest = Some bw.
     Hypothesis HbL : Genv.find_symbol (lp_ge lp) level_update._gCurrLevelNum = Some bL.
@@ -1741,7 +1747,7 @@ Section Witness.
     Lemma Hbbs_fs : Genv.find_symbol (lp_ge lp) mario._gBodyStates = Some bbs.
     Proof. exact Hbbs. Qed.
 
-    Definition RL : list (option val) := ff_rl bm bo Ptrofs.zero bfi bmiss bcalls ab bt biom bmq brm blk bpcs bsr bsrc bsms bbs.
+    Definition RL : list (option val) := ff_rl bm bo Ptrofs.zero bfi bmiss bcalls ab bt biom bmq brm blk bpcs bsr bsrc bsms bbs bfa.
 
     Lemma bpl_not_rl : ~ rblk RL bpl.
     Proof. unfold RL. norl. Qed.
@@ -1929,7 +1935,7 @@ Section Witness.
       pose proof Hpcs_fs as Hpcs'. pose proof Hbbs_fs as Hbbs'.
       exists {| fw_gp := Mem.flat_inj thr; fw_bfi := bfi; fw_bmiss := bmiss; fw_bcalls := bcalls;
                 fw_bsin := bsin; fw_ab := ab; fw_biom := biom; fw_bmq := bmq; fw_brm := brm; fw_blk := blk;
-                fw_bpc := bpcs; fw_bsr := bsr; fw_bsrc := bsrc; fw_bsms := bsms; fw_bbs := bbs;
+                fw_bpc := bpcs; fw_bsr := bsr; fw_bsrc := bsrc; fw_bsms := bsms; fw_bbs := bbs; fw_bfa := bfa;
                 fw_bo := bo; fw_oo := Ptrofs.zero; fw_bt := bt; fw_ot := Ptrofs.zero;
                 fw_fl := Vptr bs Ptrofs.zero; fw_ar := Vptr bar Ptrofs.zero; fw_inp := Int.zero;
                 fw_ctl := Vptr bc Ptrofs.zero |}.
@@ -1938,6 +1944,7 @@ Section Witness.
       - exact closed11.
       - intros id b Hfs; exact (flat_some _ (sym_lt _ _ Hfs)).
       - exact (flat_some _ (sym_lt _ _ Hbm)).
+      - assumption.
       - assumption.
       - assumption.
       - assumption.
@@ -1988,6 +1995,9 @@ Section Witness.
       - intros i cb co Hi Hl; exfalso; exact (coll_noptr _ _ _ Hi Hl).
       - exact L_pcs.
       - exact L_body.
+      - (* Mario's gfx.throwMatrix: the zero-filled pool's NULL *)
+        left. change (Ptrofs.unsigned Ptrofs.zero + FFW_THROW) with 80.
+        rewrite (z_bo Mint32 80) by (cbn [size_chunk align_chunk]; try lia; try al); reflexivity.
     Qed.
 
     (* ---- the level: gCurrLevelNum = LEVEL_WMOTR, by real code ---- *)
@@ -2597,6 +2607,7 @@ End Steps.
     destruct (ex_sym _ _ _ (linked12_LO_audio_external lp H12) dm_sr) as (bsr & Hsr).
     destruct (ex_sym _ _ _ (linked12_LO_audio_external lp H12) dm_src) as (bsrc & Hsrc).
     destruct (ex_sym _ _ _ (linked12_LO_audio_external lp H12) dm_sms) as (bsms & Hsms).
+    destruct (ex_sym _ _ _ (linked12_LO_mov lp H12) dm_fam) as (bfa & Hfa).
     destruct (ex_sym _ _ _ (linked12_LO_lvl lp H12) dm_wd) as (bw & Hbw).
     destruct (ex_sym _ _ _ (linked12_LO_area lp H12) dm_lvlnum) as (bL & HbL).
     (* the whole chain, computed once over every 34-TU link (StartTerrain) *)
