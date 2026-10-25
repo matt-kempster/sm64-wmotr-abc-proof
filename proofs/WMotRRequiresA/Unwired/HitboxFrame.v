@@ -16,9 +16,15 @@
 (*    gBodyStates (the bodyState stores: modelState, handState, capState) *)
 (*    and two cells of Mario's object: gfx.node.flags (bytes 2..3, the    *)
 (*    GRAPH_RENDER_INVISIBLE blink) and hitboxHeight (bytes 508..511).    *)
+(* 3. hitbox_hh: and after the body Mario's hitboxHeight is 100.0f or     *)
+(*    160.0f (the store is on every path; the tail only writes            *)
+(*    gBodyStates).  HH_coin restates it as CoinLink.MARIO_COIN2's Lha /  *)
+(*    Fha / Hmario_height for Mario's object.                             *)
 (* ====================================================================== *)
 
-From Coq Require Import ZArith List Lia Bool.
+From Coq Require Import ZArith List Lia Bool Lra.
+From Coq Require Import Rdefinitions.
+From Flocq Require Defs Binary.
 From compcert Require Import Coqlib Maps AST Integers Floats Values Events Memory
   Globalenvs Ctypes Cop Clightdefs Clight ClightBigstep Linking.
 From SM64.Generated Require mario sound_init.
@@ -296,6 +302,55 @@ Qed.
 Definition pt_is (b : block) (o : ptrofs) (p : val) : Prop :=
   forall b' o', p = Vptr b' o' -> b' = b /\ o' = o.
 
+(* statements with no break / continue / return / loop / switch end normally *)
+Fixpoint nb (s : statement) : bool :=
+  match s with
+  | Sskip | Sassign _ _ | Sset _ _ | Scall _ _ _ | Sbuiltin _ _ _ _ => true
+  | Ssequence a b => nb a && nb b
+  | Sifthenelse _ a b => nb a && nb b
+  | _ => false
+  end.
+
+Lemma nb_normal : forall ge e le m s t le' m' out,
+  exec_stmt function_entry2 ge e le m s t le' m' out -> nb s = true -> out = Out_normal.
+Proof.
+  intros ge e le m s t le' m' out H. induction H; intros Hn; cbn [nb] in Hn;
+    try discriminate Hn; try reflexivity.
+  - apply andb_prop in Hn as [_ B2]. exact (IHexec_stmt2 B2).
+  - apply andb_prop in Hn as [B1 _]. exfalso. exact (H0 (IHexec_stmt B1)).
+  - apply andb_prop in Hn as [B1 B2]. apply IHexec_stmt. destruct b; assumption.
+Qed.
+
+Lemma seq_split : forall ge e le m s1 s2 t le' m' out, nb s1 = true ->
+  exec_stmt function_entry2 ge e le m (Ssequence s1 s2) t le' m' out ->
+  exists t1 le1 m1 t2, exec_stmt function_entry2 ge e le m s1 t1 le1 m1 Out_normal
+    /\ exec_stmt function_entry2 ge e le1 m1 s2 t2 le' m' out.
+Proof.
+  intros ge e le m s1 s2 t le' m' out Hn H. inv H.
+  - do 4 eexists. split; eassumption.
+  - match goal with H1 : exec_stmt _ _ _ _ _ s1 _ _ _ ?o, Hne : ?o <> Out_normal |- _ =>
+      exfalso; exact (Hne (nb_normal _ _ _ _ _ _ _ _ _ H1 Hn)) end.
+Qed.
+
+Lemma seq_split2 : forall ge e le m s1 s2 t le' m' out,
+  exec_stmt function_entry2 ge e le m (Ssequence s1 s2) t le' m' out -> nb s1 = true ->
+  exists t1 le1 m1 t2, exec_stmt function_entry2 ge e le m s1 t1 le1 m1 Out_normal
+    /\ exec_stmt function_entry2 ge e le1 m1 s2 t2 le' m' out.
+Proof. intros. eapply seq_split; eassumption. Qed.
+
+(* the two values the body writes into Mario's hitboxHeight *)
+Definition f100 : float32 := Float32.of_bits (Int.repr 1120403456).   (* 0x42C80000 *)
+Definition f160 : float32 := Float32.of_bits (Int.repr 1126170624).   (* 0x43200000 *)
+
+Lemma f100_val : Binary.B2R 24 128 f100 = 100%R.
+Proof. unfold f100. vm_compute (Float32.of_bits _). unfold Binary.B2R, Defs.F2R. simpl. lra. Qed.
+Lemma f160_val : Binary.B2R 24 128 f160 = 160%R.
+Proof. unfold f160. vm_compute (Float32.of_bits _). unfold Binary.B2R, Defs.F2R. simpl. lra. Qed.
+Lemma f100_fin : Binary.is_finite 24 128 f100 = true.
+Proof. vm_compute. reflexivity. Qed.
+Lemma f160_fin : Binary.is_finite 24 128 f160 = true.
+Proof. vm_compute. reflexivity. Qed.
+
 Section HF.
   Variable lp : Clight.program.
   Hypothesis H12 : linked12 lp.
@@ -318,6 +373,7 @@ Section HF.
   Hypothesis Ngb : bg <> bbs.
   Hypothesis Ngo : bg <> bo.
   Hypothesis Hoo : Ptrofs.unsigned oo + 512 <= Ptrofs.modulus.
+  Hypothesis Nbo : bbs <> bo.
 
   (* the cells the hitbox body may change, besides K1's *)
   Definition K2 (b : block) (z : Z) : Prop :=
@@ -406,9 +462,10 @@ Section HF.
       intros b o ->. exact (HLB _ _ Hl).
   Qed.
 
-  Lemma bs_step : forall lv rhs le m1 t le' m2 out,
+  Lemma bs_step0 : forall lv rhs le m1 t le' m2 out,
     bs_st lv = true -> hb_P le ->
-    exec_stmt function_entry2 ge empty_env le m1 (Sassign lv rhs) t le' m2 out -> Q2 K2 m1 m2.
+    exec_stmt function_entry2 ge empty_env le m1 (Sassign lv rhs) t le' m2 out ->
+    Q2 (fun b _ => b <> bbs) m1 m2.
   Proof.
     intros lv rhs le m1 t le' m2 out Hok HP Hx.
     unfold bs_st in Hok.
@@ -427,7 +484,16 @@ Section HF.
     pose proof (HP _ _ L0) as Hi. rewrite cls_bs in Hi. cbn [hb_inv] in Hi.
     pose proof (Hi _ _ eq_refl) as ->.
     match goal with Ha : assign_loc _ _ _ _ _ _ _ _ |- _ => apply (al_q2 _ _ _ _ _ _ _ _ _ Ha) end.
-    intros j (_ & H & _). exact (H eq_refl).
+    intros j H. exact (H eq_refl).
+  Qed.
+
+  Lemma bs_step : forall lv rhs le m1 t le' m2 out,
+    bs_st lv = true -> hb_P le ->
+    exec_stmt function_entry2 ge empty_env le m1 (Sassign lv rhs) t le' m2 out -> Q2 K2 m1 m2.
+  Proof.
+    intros lv rhs le m1 t le' m2 out Hok HP Hx.
+    apply (Q2_mono (fun b _ => b <> bbs)); [intros b z (_ & H & _); exact H |].
+    exact (bs_step0 lv rhs le m1 t le' m2 out Hok HP Hx).
   Qed.
 
   Lemma hh_step : forall lv rhs le m1 t le' m2 out,
@@ -576,5 +642,164 @@ Section HF.
         rewrite (cut_undef (fn_temps mario.f_mario_update_hitbox_and_cap_model) x p Hx).
         destruct (cls x) as [| [| [| [| k]]]]; cbn [hb_inv pt_is]; try exact I;
           intros b o E; discriminate E.
+  Qed.
+
+  (* 3. Mario's hitboxHeight after the body: 100.0f or 160.0f *)
+  Definition HH (m : mem) : Prop :=
+    exists x, Mem.load Mfloat32 m bo (Ptrofs.unsigned oo + 508) = Some (Vsingle x)
+      /\ (x = f100 \/ x = f160).
+
+  Lemma hb_init : forall v le1, marg_ok bm [v] ->
+    bind_parameter_temps (fn_params mario.f_mario_update_hitbox_and_cap_model) [v]
+      (create_undef_temps (fn_temps mario.f_mario_update_hitbox_and_cap_model)) = Some le1 ->
+    hb_P le1.
+  Proof.
+    intros v le1 Hmarg Hb.
+    change (Some (PTree.set mario._m v (create_undef_temps (fn_temps mario.f_mario_update_hitbox_and_cap_model))) = Some le1) in Hb.
+    injection Hb as <-.
+    intros x p Hx. destruct (peq x mario._m) as [-> | Nx].
+    - rewrite PTree.gss in Hx. injection Hx as <-. rewrite cls_m. intros b o ->. exact Hmarg.
+    - rewrite PTree.gso in Hx by exact Nx.
+      rewrite (cut_undef (fn_temps mario.f_mario_update_hitbox_and_cap_model) x p Hx).
+      destruct (cls x) as [| [| [| [| k]]]]; cbn [hb_inv pt_is]; try exact I;
+        intros b o E; discriminate E.
+  Qed.
+
+  Lemma hb_walk : forall le m s t le' m' out,
+    exec_stmt function_entry2 ge empty_env le m s t le' m' out ->
+    lw_chk hb_set_ok hb_store_ok hb_call_ok s = true -> hb_P le -> Q2 K2 m0 m ->
+    Q2 K2 m0 m' /\ hb_P le'.
+  Proof.
+    intros le m s t le' m' out Hx Hc HP HQ.
+    refine (lw_walk ge empty_env (Q2 K2 m0) hb_P hb_set_ok hb_store_ok hb_call_ok _ _ _
+              empty_env le m s t le' m' out Hx eq_refl Hc HP HQ).
+    - intros id a le1 m1 v1 Hs Hp HQ1 Ea. exact (hb_set id a le1 m1 v1 Hs Hp HQ1 Ea).
+    - intros lv rhs le1 m1 t1 le2 m2 out1 Hs Hp Hx1 HQ1.
+      exact (Q2_trans _ _ _ _ HQ1 (hb_store lv rhs le1 m1 t1 le2 m2 out1 Hs Hp Hx1)).
+    - intros optid a al le1 m1 t1 le2 m2 out1 Hs Hp Hx1 HQ1.
+      destruct (hb_callstep optid a al le1 m1 t1 le2 m2 out1 Hs Hp Hx1) as (Hq & Hp').
+      exact (conj (Q2_trans _ _ _ _ HQ1 Hq) Hp').
+  Qed.
+
+  Lemma hb_peel : forall le m s1 s2 t le' m' out,
+    exec_stmt function_entry2 ge empty_env le m (Ssequence s1 s2) t le' m' out ->
+    nb s1 = true -> lw_chk hb_set_ok hb_store_ok hb_call_ok s1 = true -> hb_P le -> Q2 K2 m0 m ->
+    exists le1 m1 t2, hb_P le1 /\ Q2 K2 m0 m1
+      /\ exec_stmt function_entry2 ge empty_env le1 m1 s2 t2 le' m' out.
+  Proof.
+    intros le m s1 s2 t le' m' out Hx Hn Hc HP HQ.
+    destruct (seq_split _ _ _ _ _ _ _ _ _ _ Hn Hx) as (t1 & le1 & m1 & t2 & Hx1 & Hx2).
+    destruct (hb_walk _ _ _ _ _ _ _ Hx1 Hc HP HQ) as (HQ1 & HP1).
+    exists le1, m1, t2. exact (conj HP1 (conj HQ1 Hx2)).
+  Qed.
+
+  (* o->hitboxHeight = c *)
+  Lemma hh_set_val : forall lv f le m1 t le' m2 out,
+    exec_stmt function_entry2 ge empty_env le m1 (Sassign lv (Econst_single f tfloat)) t le' m2 out ->
+    hh_st lv = true -> hb_P le ->
+    Q2 K2 m1 m2 /\ le' = le
+    /\ Mem.load Mfloat32 m2 bo (Ptrofs.unsigned oo + 508) = Some (Vsingle f).
+  Proof.
+    intros lv f le m1 t le' m2 out Hx Hok HP.
+    split; [exact (hh_step _ _ _ _ _ _ _ _ Hok HP Hx) |].
+    unfold hh_st in Hok.
+    repeat match type of Hok with
+    | match ?x with _ => _ end = true => destruct x; try discriminate Hok
+    end.
+    repeat rewrite andb_true_iff in Hok. destruct Hok as ((E1 & E2) & E3).
+    apply Nat.eqb_eq in E1. apply Pos.eqb_eq in E2, E3. subst.
+    inv Hx. split; [reflexivity |].
+    match goal with L : eval_lvalue _ _ _ _ (Efield _ _ _) _ _ _ |- _ => rename L into L1 end.
+    destruct (lv_field lp (linked12_LO_mario lp H12) _ _ _ _ _ _ _ _ _ _ L1 eq_refl hh_fo)
+      as (o0 & E0 & -> & Hbf).
+    cbn [fst snd] in Hbf. subst.
+    destruct (ex_agg lp _ _ _ _ _ E0 (or_intror eq_refl) I) as (bf0 & L0).
+    apply eval_lvalue_Ederef_base, eval_expr_Etempvar_val in L0.
+    pose proof (HP _ _ L0) as Hi. rewrite E1 in Hi. cbn [hb_inv] in Hi.
+    destruct (Hi _ _ eq_refl) as (-> & ->).
+    match goal with Ec : eval_expr _ _ _ _ (Econst_single _ _) _ |- _ => inv Ec end;
+      [| match goal with Hl : eval_lvalue _ _ _ _ (Econst_single _ _) _ _ _ |- _ => inv Hl end].
+    match goal with Hc : sem_cast _ _ _ _ = Some _ |- _ => cbn in Hc; injection Hc as <- end.
+    match goal with Ha : assign_loc _ _ _ _ _ _ _ _ |- _ => inv Ha end;
+      match goal with Hm : access_mode _ = _ |- _ => cbn in Hm; try discriminate Hm end.
+    match goal with Hm : By_value _ = By_value _ |- _ => injection Hm as <- end.
+    match goal with Hs : Mem.storev _ _ _ _ = Some _ |- _ => rename Hs into Hst end.
+    cbn [fst Mem.storev] in Hst.
+    rewrite hb_add_u in Hst by (try unfold Ptrofs.max_unsigned; lia).
+    rewrite (Mem.load_store_same _ _ _ _ _ _ Hst). reflexivity.
+  Qed.
+
+  (* the tail after the hitbox store only writes gBodyStates *)
+  Lemma tail_walk : forall le m s t le' m' out,
+    exec_stmt function_entry2 ge empty_env le m s t le' m' out ->
+    lw_chk hb_set_ok (fun lv _ => bs_st lv) (fun _ _ _ => false) s = true ->
+    hb_P le -> Q2 K2 m0 m /\ HH m -> Q2 K2 m0 m' /\ HH m'.
+  Proof.
+    intros le m s t le' m' out Hx Hc HP HQ.
+    refine (proj1 (lw_walk ge empty_env (fun m => Q2 K2 m0 m /\ HH m) hb_P hb_set_ok
+              (fun lv _ => bs_st lv) (fun _ _ _ => false) _ _ _
+              empty_env le m s t le' m' out Hx eq_refl Hc HP HQ)).
+    - intros id a le1 m1 v1 Hs Hp (HQ1 & _) Ea. exact (hb_set id a le1 m1 v1 Hs Hp HQ1 Ea).
+    - intros lv rhs le1 m1 t1 le2 m2 out1 Hs Hp Hx1 (HQ1 & x & Hl & Hx').
+      pose proof (bs_step0 lv rhs le1 m1 t1 le2 m2 out1 Hs Hp Hx1) as Hq.
+      split.
+      + apply (Q2_trans _ _ _ _ HQ1).
+        apply (Q2_mono (fun b _ => b <> bbs)); [intros b z (_ & H & _); exact H | exact Hq].
+      + exists x. split; [| exact Hx'].
+        rewrite (Q2_load _ _ _ Hq); [exact Hl |].
+        intros i _ E. exact (Nbo (eq_sym E)).
+    - intros optid a al le1 m1 t1 le2 m2 out1 Hs. discriminate Hs.
+  Qed.
+
+  Ltac peel :=
+    match goal with
+    | HP : hb_P ?le, HQ : Q2 K2 m0 ?m,
+      Hx : exec_stmt _ _ _ ?le ?m (Ssequence _ _) _ _ _ _ |- _ =>
+        let le1 := fresh "le" in let m1 := fresh "m" in let t2 := fresh "t" in
+        let HP1 := fresh "HP" in let HQ1 := fresh "HQ" in let Hx1 := fresh "Hx" in
+        destruct (hb_peel _ _ _ _ _ _ _ _ Hx ltac:(reflexivity) ltac:(vm_compute; reflexivity) HP HQ)
+          as (le1 & m1 & t2 & HP1 & HQ1 & Hx1);
+        clear HP HQ Hx
+    end.
+
+  (* the hitbox body's frame, and Mario's hitboxHeight after it *)
+  Theorem hitbox_hh : forall v t m' vr, marg_ok bm [v] ->
+    eval_funcall function_entry2 ge m0 (Internal mario.f_mario_update_hitbox_and_cap_model) [v] t m' vr ->
+    Q2 K2 m0 m' /\ HH m'.
+  Proof.
+    intros v t m' vr Hmarg Hev.
+    destruct (ProRows.fc_entry ge m0 mario.f_mario_update_hitbox_and_cap_model [v] t m' vr eq_refl Hev) as (le & le' & t' & out & Hb & Hx).
+    pose proof (hb_init v le Hmarg Hb) as HP. pose proof (Q2_refl K2 m0) as HQ.
+    clear Hb Hev.
+    cbn [fn_body mario.f_mario_update_hitbox_and_cap_model] in Hx.
+    do 8 peel.
+    match goal with Hx : exec_stmt _ _ _ _ _ (Ssequence _ _) _ _ _ _ |- _ =>
+      destruct (seq_split2 _ _ _ _ _ _ _ _ _ _ Hx ltac:(reflexivity)) as (tA & leA & mA & tB & Hh & Ht);
+      clear Hx end.
+    (* the hitbox statement: _t'9 := m->action; then one of the two stores *)
+    peel.
+    match goal with Hx : exec_stmt _ _ _ _ _ (Sifthenelse _ _ _) _ _ _ _ |- _ => inv Hx end.
+    match goal with Hx : exec_stmt _ _ _ _ _ (if ?b then _ else _) _ _ _ _ |- _ =>
+      destruct b; cbv iota in Hx end;
+      peel;
+      match goal with HP : hb_P ?l, Hx : exec_stmt _ _ _ ?l _ (Sassign _ _) _ _ _ _ |- _ =>
+        destruct (hh_set_val _ _ _ _ _ _ _ _ Hx ltac:(vm_compute; reflexivity) HP) as (Hq & -> & Hl) end;
+      match goal with HQ : Q2 K2 m0 ?mm, Hq : Q2 K2 ?mm _, Ht : exec_stmt _ _ _ _ _ _ _ _ _ _ |- _ =>
+        refine (tail_walk _ _ _ _ _ _ _ Ht ltac:(vm_compute; reflexivity) _ (conj (Q2_trans _ _ _ _ HQ Hq) _));
+        [assumption | eexists; split; [exact Hl | unfold f100, f160; tauto]] end.
+  Qed.
+
+  (* HH in CoinLink.MARIO_COIN2's shape: Lha (ld at OFF_HEIGHT = 508), Fha
+     and Hmario_height (0 <= R2 ha <= 160) for the object (bo, oo) *)
+  Lemma HH_coin : forall m, HH m ->
+    exists ha, Mem.loadv Mfloat32 m (Vptr bo (Ptrofs.add oo (Ptrofs.repr 508))) = Some (Vsingle ha)
+      /\ Binary.is_finite 24 128 ha = true /\ (0 <= Binary.B2R 24 128 ha <= 160)%R.
+  Proof.
+    intros m (x & Hl & Hx). exists x. cbn [Mem.loadv].
+    rewrite hb_add_u by (try unfold Ptrofs.max_unsigned; lia).
+    split; [exact Hl |].
+    destruct Hx as [-> | ->].
+    - split; [exact f100_fin |]. rewrite f100_val. lra.
+    - split; [exact f160_fin |]. rewrite f160_val. lra.
   Qed.
 End HF.

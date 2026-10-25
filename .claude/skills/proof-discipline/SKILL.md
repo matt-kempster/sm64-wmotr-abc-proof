@@ -276,8 +276,11 @@ all in `Unwired/`, and the theorem moved nowhere. See
     pointer premises the ffw will discharge. Wiring needs ProRows' hole over a set of global
     blocks plus those two object windows. hitboxHeight readers: `coll_obj_ok` (pole case) reads
     it, and `hole_coll` allows a collided object at Mario's own object (o = mo), a phantom
-    case the row must exclude. CoinLink needs Mario's hitboxHeight <= 160, which the body
-    sets (100 or 160) but nothing carries yet. Blocker: the world must be framed around those 13
+    case the row must exclude. CoinLink needs Mario's hitboxHeight <= 160: `hitbox_hh` /
+    `HH_coin` prove the body leaves it 100.0f or 160.0f in CoinLink's Lha/Fha/Hmario_height
+    shape. The remaining gap is a carried world clause (Mario's object's hitboxHeight is
+    100f or 160f), set at spawn and kept by everything between the hitbox call and the next
+    frame's detect_object_collisions; Hmario_down (hitboxDownOffset = 0) needs another such clause. Blocker: the world must be framed around those 13
     globals, but a surface a walk finds is only known to avoid the walk's regions. Either
     each global becomes an ff_rl region in every walk, or `surf_on` / `Wff` say surfaces are
     dynamic blocks (`Ple genv_next b`). Design B chosen; steps 1-3 landed 2026-10-25:
