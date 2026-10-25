@@ -79,7 +79,7 @@ From SM64.Proofs Require Import NoAImpliesNoFlyLinked.
 From SM64.Proofs Require Import HeightInvariant HeightMoveCatalog WMotRLevel WMotRWorld
   NoAActions FrameCalls FrameSplit.
 From SM64.Proofs.WMotRRequiresA Require Import FfWorld AirSplit AutoSplit ProRows BodyFrame.
-From SM64.Proofs.WMotRRequiresA Require AnimWorld AnimKeep.
+From SM64.Proofs.WMotRRequiresA Require AnimWorld AnimKeep CapAudio HitboxFrame HoleX.
 From SM64.Proofs Require Import MarioModel.AudioBodies MarioModel.LinkedTwelve.
 From SM64.Proofs Require Import Generic.ClosedMem Generic.ClightClosed.
 Import ListNotations.
@@ -105,8 +105,7 @@ Definition na_open : list ident :=
   [mario._update_mario_inputs;
    mario._mario_handle_special_floors; mario._mario_process_interactions;
    mario._mario_execute_stationary_action; mario._mario_execute_moving_action;
-   mario._mario_execute_cutscene_action; mario._mario_execute_object_action;
-   mario._mario_update_hitbox_and_cap_model].
+   mario._mario_execute_cutscene_action; mario._mario_execute_object_action].
 
 (* ---------------------------------------------------------------------- *)
 (* 2. No R_noA action is submerged.                                       *)
@@ -376,6 +375,15 @@ Lemma dm_v3set : (prog_defmap math_util.prog) ! mario._vec3f_set
   = Some (Gfun (Internal math_util.f_vec3f_set)).
 Proof. vm_compute. reflexivity. Qed.
 
+Lemma dm_hitbox : (prog_defmap mario.prog) ! mario._mario_update_hitbox_and_cap_model
+  = Some (Gfun (Internal mario.f_mario_update_hitbox_and_cap_model)).
+Proof. vm_compute. reflexivity. Qed.
+
+Lemma hitbox_is : is_umi mario._mario_update_hitbox_and_cap_model = false
+  /\ is_fk mario._mario_update_hitbox_and_cap_model = false
+  /\ is_disp mario._mario_update_hitbox_and_cap_model = false.
+Proof. vm_compute. repeat split; reflexivity. Qed.
+
 Lemma squish_is : is_umi mario._squish_mario_model = false
   /\ is_fk mario._squish_mario_model = false
   /\ is_disp mario._squish_mario_model = false.
@@ -526,6 +534,9 @@ Section NA.
   Variable bm : block.
   Variable MWF : mem -> Prop.
   Hypothesis Hgms : forall m, MWF m -> gms_cond_lp lp m bm.
+  (* load_sequence's footprint (CapAudio.ls_frame, part of the labeled
+     audio premise, TRUST 4.1): the hitbox row's cap music path *)
+  Hypothesis Hlsf : CapAudio.ls_frame lp.
 
   Notation ge := (lp_ge lp).
 
@@ -1613,6 +1624,89 @@ Section NA.
   Qed.
 
   (* ==================================================================== *)
+  (* mario_update_hitbox_and_cap_model (2026-10-25): HitboxFrame's frame  *)
+  (* (the cap music globals CapAudio.cap_ids, gBodyStates, Mario's hole,  *)
+  (* gfx.node.flags and hitboxHeight of his object; load_sequence through *)
+  (* its labeled footprint CapAudio.ls_frame, TRUST 4.1), and HoleX keeps *)
+  (* the frame world and the cells around it.                             *)
+  (* ==================================================================== *)
+  Lemma not_in_ids : forall id ids, existsb (Pos.eqb id) ids = false -> ~ In id ids.
+  Proof.
+    intros id ids N Hin.
+    assert (T : existsb (Pos.eqb id) ids = true)
+      by (apply existsb_exists; exists id; split; [exact Hin | apply Pos.eqb_refl]).
+    rewrite T in N. discriminate N.
+  Qed.
+
+  Lemma hitbox_row : forall fd v,
+    resolves lp mario._mario_update_hitbox_and_cap_model fd ->
+    seg_okR lp bm MWF fd [v] (pre_of lp bm mario._mario_update_hitbox_and_cap_model v)
+      (post_of bm mario._mario_update_hitbox_and_cap_model).
+  Proof.
+    intros fd v Hr.
+    pose proof (resolve_pin_fd lp _ _ _ _ (linked12_LO_mario lp H12) dm_hitbox Hr) as ->.
+    intros m t m' vr c Hok Hw (Hgv & _) Hok' Hc Hb Hev.
+    pose proof (marg_of_gms v m Hok Hgv) as Hmarg.
+    ffw_open Hw.
+    destruct Hgv as (bg & Hbg & _).
+    assert (HLG : forall b o, Mem.load Mint32 m bg 0 = Some (Vptr b o) -> b = bm /\ o = Ptrofs.zero)
+      by (intros b o Hl; exact (Hgms m (proj2 (proj2 Hok)) bg b o Hbg Hl)).
+    assert (HLO : forall b o, Mem.load Mint32 m bm 136 = Some (Vptr b o) -> b = bo /\ o = oo).
+    { intros b o Hl. change 136 with FFW_OBJ in Hl. rewrite Lo in Hl. injection Hl as <- <-. split; reflexivity. }
+    assert (HLB : forall b o, Mem.load Mint32 m bm 152 = Some (Vptr b o) -> b = bbs).
+    { intros b o Hl. change 152 with FFW_BODY in Hl. rewrite LBS in Hl. injection Hl as <- _. reflexivity. }
+    assert (NGm : ~ CapAudio.gblk ge CapAudio.cap_ids bm).
+    { intros (g & Hin & Hg).
+      assert (g = level_update._gMarioStates) by (eapply Genv.genv_vars_inj; [exact Hg | exact Hbm0]).
+      subst g. refine (not_in_ids level_update._gMarioStates CapAudio.cap_ids _ Hin). vm_compute. reflexivity. }
+    assert (Nmb : bm <> bbs) by exact (AnimKeep.symne_ids ge _ _ _ _ Hbm0 SBS eq_refl).
+    assert (Nmo : bm <> bo) by exact (not_eq_sym D1).
+    assert (Ngb : bg <> bbs) by exact (AnimKeep.symne_ids ge _ _ _ _ Hbg SBS eq_refl).
+    assert (Ngo : bg <> bo) by exact (AnimKeep.symne_ids ge _ _ _ _ Hbg Spool eq_refl).
+    assert (Hoo : Ptrofs.unsigned oo + 512 <= Ptrofs.modulus) by (unfold SZ_OBJECT in Soo; lia).
+    assert (Nbo : bbs <> bo) by exact (proj1 (D4 bbs ltac:(left; cbn; auto 20))).
+    assert (HQ : Q2 (HitboxFrame.K2 lp bm bbs bo oo) m m')
+      by (eapply HitboxFrame.hitbox_frame; eassumption).
+    assert (XB : xsym lp bbs)
+      by (exists mario._gBodyStates; split; [right; right; left; reflexivity | exact SBS]).
+    assert (LD : forall ch b z, ~ HoleX.chg lp CapAudio.cap_ids b -> (b <> bm \/ hz z (size_chunk ch)) ->
+               HoleX.ozx bo oo 56 0 b z (size_chunk ch) -> Mem.load ch m' b z = Mem.load ch m b z).
+    { intros ch b z Hcg Hz Ho. apply (Q2_load _ _ _ HQ). intros j Hj.
+      unfold HitboxFrame.K2, HitboxFrame.K1.
+      split; [split |]; [| | split].
+      - intros G. apply Hcg. right. exact G.
+      - intros (-> & Hm). destruct Hz as [N | Hz]; [exact (N eq_refl) |].
+        unfold hz in Hz. unfold HitboxFrame.mhole in Hm. clear - Hj Hz Hm. lia.
+      - intros ->. apply Hcg. left. exact XB.
+      - intros (-> & Hm). destruct Ho as [N | Ho]; [exact (N eq_refl) |].
+        unfold HoleX.ohz in Ho. clear - Hj Ho Hm. lia. }
+    assert (PM : forall b o k p, Mem.perm m b o k p -> Mem.perm m' b o k p) by exact (Q2_perm _ _ _ HQ).
+    assert (NBle : Ple (Mem.nextblock m) (Mem.nextblock m')) by exact (proj1 (proj2 HQ)).
+    assert (CLK : forall gp, closed_by gp m -> syms_mapped ge gp -> gp bm <> None ->
+      exists gp', (forall b, gp b <> None -> gp' b <> None) /\ closed_by gp' m' /\ syms_mapped ge gp').
+    { intros gp0 HC0 HS0 HM0.
+      assert (Hvok : Forall (vok gp0) [v]).
+      { constructor; [| constructor].
+        destruct v; try (constructor; fail).
+        destruct Hmarg as [-> ->]. apply vok_mk_ptr. exact (closed_mapped_flat _ _ _ HC0 HM0). }
+      destruct (funcall_closed ge m _ _ t m' vr gp0 Hev HC0 HS0 Hvok) as (gp' & I & HC' & HS' & _).
+      exists gp'. split; [| exact (conj HC' HS')].
+      intros b Hb'. destruct (gp0 b) as [[b1 d]|] eqn:E0; [| congruence].
+      rewrite (I _ _ _ E0). discriminate. }
+    assert (XGok : forallb (fun id => negb (existsb (Pos.eqb id) HoleX.safe_ids)) CapAudio.cap_ids = true)
+      by (vm_compute; reflexivity).
+    assert (LO : Mem.load Mint32 m bm MARIOOBJ_OFF = Some (Vptr bo oo)) by exact Lo.
+    assert (OWL : 36 <= 56 /\ 0 <= 0 /\ 56 + 0 <= 56) by lia.
+    assert (HG : 40 <= 56 \/ 56 + 0 <= 36) by lia.
+    split; [eapply HoleX.hx_fworld with (XG := CapAudio.cap_ids) (m := m) (m' := m') (ob := bo) (oo0 := oo)
+                                       (ow := 56) (wl := 0); eassumption |].
+    split; [exists c; split; [eapply HoleX.hx_cells with (XG := CapAudio.cap_ids) (m := m) (m' := m') (ob := bo)
+                                (oo0 := oo) (ow := 56) (wl := 0); eassumption | apply rt_refl] |].
+    destruct hitbox_is as (Iu & Ik & Id).
+    unfold post_of. rewrite Iu, Ik, Id. exact I.
+  Qed.
+
+  (* ==================================================================== *)
   (* THE SPLIT                                                             *)
   (* ==================================================================== *)
   Ltac in_lit := solve [repeat (first [left; reflexivity | right])].
@@ -1638,6 +1732,7 @@ Section NA.
       | exact (cam_row fd v Hr)
       | exact (squish_row fd v Hr)
       | exact (qs_row fd v Hr)
+      | exact (hitbox_row fd v Hr)
       | exact (sub_row fd v)
       | (apply (Hop _ fd v); [unfold na_open; in_lit | exact Hr]) ].
   Qed.

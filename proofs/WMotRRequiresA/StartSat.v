@@ -2002,6 +2002,19 @@ Section Witness.
       - (* Mario's gfx.throwMatrix: the zero-filled pool's NULL *)
         left. change (Ptrofs.unsigned Ptrofs.zero + FFW_THROW) with 80.
         rewrite (z_bo Mint32 80) by (cbn [size_chunk align_chunk]; try lia; try al); reflexivity.
+      - (* the surface pointers: the wall / ceil cells hold none, the floor is
+           the fresh entry surface *)
+        intros off sb so [Hoff | [Hoff | Hoff]] Hl.
+        + exfalso; exact (wc_noptr off sb so (or_introl Hoff) Hl).
+        + exfalso; exact (wc_noptr off sb so (or_intror Hoff) Hl).
+        + subst off. rewrite L_floor in Hl. injection Hl as <- _.
+          rewrite genv_next_eq. exact (fresh_ge _ (or_intror (or_introl eq_refl))).
+      - exact Hbo.
+      - intros b o E. injection E as <- _. left.
+        rewrite genv_next_eq. exact (fresh_ge _ (or_intror (or_intror eq_refl))).
+      - rewrite genv_next_eq. exact (fresh_ge _ (or_introl eq_refl)).
+      - intros b o E. injection E as <- _. exact Hbc.
+      - intros i cb co Hi Hl; exfalso; exact (coll_noptr _ _ _ Hi Hl).
     Qed.
 
     (* ---- the level: gCurrLevelNum = LEVEL_WMOTR, by real code ---- *)

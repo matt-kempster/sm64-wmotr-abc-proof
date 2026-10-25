@@ -117,10 +117,12 @@ Definition rblk (vs : list (option val)) (b : block) : Prop :=
 (* THE SURFACE FACT Fuser kS (p :: the consumer's regions): p is a WMotR
    surface of m0 (styp) in a block that is none of the regions -- what a
    caller needs to keep a stored surface pointer (m->floor, m->wall) a
-   WMotR surface after the call *)
-Definition surf_on (m0 : mem) (vs : list (option val)) : Prop :=
+   WMotR surface after the call; the block is dynamic (a surface-pool
+   block, past every global), which keeps it off any changed global *)
+Definition surf_on (ge : genv) (m0 : mem) (vs : list (option val)) : Prop :=
   match vs with
   | Some v :: rl => exists b o, v = Vptr b o /\ styp m0 b o /\ ~ rblk rl b
+                      /\ Ple (Genv.genv_next ge) b
   | _ => False
   end.
 
@@ -253,7 +255,7 @@ Hypothesis HgMS : gfind gtab surface_collision._gNumFindFloorMisses = Some rMS.
 Hypothesis HgCL : gfind gtab surface_collision._gNumCalls = Some rCL.
 Hypothesis HU : forall vs, uf kW vs -> Wff ge m0 gp szS vs.
 (* the surface fact's meaning *)
-Hypothesis HUS : forall vs, surf_on m0 vs -> uf kS vs.
+Hypothesis HUS : forall vs, surf_on ge m0 vs -> uf kS vs.
 (* the height fact's meaning *)
 Hypothesis HUH : forall h yv, HPi (Hit_at ge m0) (ycast yv) h -> Hit_at ge m0 h ->
   uf kH [Some (Vsingle h); Some yv].
@@ -497,6 +499,10 @@ Proof.
   { intros bs os ->. destruct Hfl as [Hn | (hd & PH & OL)]; [discriminate |].
     pose proof (part_head_to_m0 E m g MMh hd HW PH) as PH0.
     exact (WTy hd bs os PH0 (on_list_to_m0 E m g MMh hd _ (WL hd PH0) OL)). }
+  assert (FPle : forall bs os, fl = Vptr bs os -> Ple (Genv.genv_next ge) bs).
+  { intros bs os ->. destruct Hfl as [Hn | (hd & PH & OL)]; [discriminate |].
+    pose proof (part_head_to_m0 E m g MMh hd HW PH) as PH0.
+    exact (proj2 (WNS hd PH0) bs os (on_list_to_m0 E m g MMh hd _ (WL hd PH0) OL)). }
   assert (Ofl : val_old gp fl) by (destruct FLc as [-> | (bs & os & -> & Hb & _ & _ & G)]; cbn; auto).
   assert (LRfl : Val.load_result Mint32 fl = fl)
     by (destruct FLc as [-> | (bs & os & -> & _)]; reflexivity).
@@ -768,7 +774,7 @@ Proof.
         { unfold vs, wargs. rewrite !map_map. apply map_ext. intros [r z]. cbn [fst SymExec2.den].
           rewrite (proj1 RX), (proj1 (proj2 RX)). reflexivity. }
         cbn [surf_on]. rewrite WA. exists bs, os. split; [reflexivity |].
-        split; [exact (FTy bs os Efl) | exact NRbs]. }
+        split; [exact (FTy bs os Efl) |]. split; [exact NRbs | exact (FPle bs os Efl)]. }
     apply FIN; [| cbn; rewrite Y5; apply LCg; reflexivity | cbn; rewrite X5; exact NXg4].
     eapply (TAIL (Sfresh n4) gS); [exact S5S | exact D5 | exact MA4 | reflexivity | cbn; exact Y5].
 Qed.

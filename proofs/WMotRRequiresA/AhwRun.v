@@ -106,7 +106,7 @@ Proof.
   destruct vs as [| [[| | | | h |]|] [| [yv|] [| o3 r]]]; try contradiction.
   exists h, yv. split; [reflexivity | exact H].
 Qed.
-Lemma uf_kS_h : forall vs, surf_on m0 vs -> uf kS vs.
+Lemma uf_kS_h : forall vs, surf_on G m0 vs -> uf kS vs.
 Proof. intros vs H. exact H. Qed.
 Lemma uf_kM_h : forall vs, MV vs -> uf kM vs.
 Proof. intros vs H. exact H. Qed.

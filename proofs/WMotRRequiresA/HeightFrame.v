@@ -73,7 +73,7 @@ From SM64.Proofs Require Import NoAImpliesNoFlyLinked NoAImpliesNoFlyTwelve.
 From SM64.Proofs Require Import FrameCalls FrameSplit AirSplit AutoSplit.
 From SM64.Proofs.WMotRRequiresA Require Import ProRows NaSplit.
 From SM64.Proofs.WMotRRequiresA Require Import FfWorld FfRow AhwRow KbRow FpuFloor ExtInert.
-From SM64.Proofs.WMotRRequiresA Require PoleXc PoleCasesT.
+From SM64.Proofs.WMotRRequiresA Require PoleXc PoleCasesT CapAudio.
 From SM64.Proofs.WMotRRequiresA Require RenderFlank RenderKeep AnimWorld PlatformKeep PollFlank.
 From SM64.Proofs Require OsDmaFloor LptBody ObjExtBodies UpdateCameraBody.
 From SM64.Proofs Require Import HeightInvariant HeightBudgetArith HeightMoveCatalog WMotRLevel
@@ -552,8 +552,7 @@ Section HeightLinked12.
      the carried facts.  GOAL 1's audio rows (Hpres_sta_ext, Hsss, the audio
      entries of the obj / cut / warp / floors lists) are PROVED from the real
      audio/external.c and sound_init.c bodies (AudioBodies). *)
-  Hypothesis Hls :
-    call_pres_ext lp bm (NoA_real bm) MWF audio_external._load_sequence.
+  Hypothesis Hls : CapAudio.ls_contract lp bm (NoA_real bm) MWF.
   (* load_patchable_table: PROVED from its real memory.c body and dma_read's
      (LptBody), down to the libultra DMA calls, whose effect is the
      hardware/OS floor spec (OsDmaFloor, TRUST 3.5). *)
@@ -836,7 +835,7 @@ Section HeightLinked12.
     intros b fd m c t m' vres Hs Hff Hev Hc Hok.
     exact (UpdateCameraBody.update_camera_pres lp H12 bm bc oc0 SafeB HSafeB_syms
              (NoAImpliesNoFlyTwelve.Hspawn lp H12 bm bc oc0 Hbm_sym Hbc_sym Hoc0)
-             Hsqrtf Hdma_floor Hls b fd m c t m' vres Hs Hff Hev Hc Hok).
+             Hsqrtf Hdma_floor (proj1 Hls) b fd m c t m' vres Hs Hff Hev Hc Hok).
   Qed.
 
   (* the automatic dispatcher's cases: all twelve proved *)
@@ -859,7 +858,7 @@ Section HeightLinked12.
     /\ chase_safe_stmt bm SafeB MWF /\ store_safe_stmt lp bm SafeB MWF.
   Proof.
     exact (frame_call_ok_linked12 lp H12 bm bc oc0 SafeB HSafeB_syms Hbm_sym Hbc_sym Hoc0
-             Hsqrtf Hls Hdma_floor).
+             Hsqrtf (proj1 Hls) Hdma_floor).
   Qed.
 
   Lemma air_leaves :
@@ -868,7 +867,7 @@ Section HeightLinked12.
       body_pres lp (NoA_real bm) MWF bm f.
   Proof.
     exact (air_leaves_linked12 lp H12 bm bc oc0 SafeB HSafeB_syms Hbm_sym Hbc_sym Hoc0
-             Hsqrtf Hls Hdma_floor).
+             Hsqrtf (proj1 Hls) Hdma_floor).
   Qed.
 
   Lemma auto_leaves :
@@ -877,14 +876,14 @@ Section HeightLinked12.
       body_pres lp (NoA_real bm) MWF bm f.
   Proof.
     exact (auto_leaves_linked12 lp H12 bm bc oc0 SafeB HSafeB_syms Hbm_sym Hbc_sym Hoc0
-             Hsqrtf Hls Hdma_floor).
+             Hsqrtf (proj1 Hls) Hdma_floor).
   Qed.
 
   (* the per-call row, from NaSplit *)
   Lemma Hseg_call_na : seg_call_rows_naFA lp bm MWF.
   Proof.
     destruct call_facts as (_ & _ & Hgms & _).
-    exact (naFA_of_open lp H12 bm MWF Hgms Hseg_na_open).
+    exact (naFA_of_open lp H12 bm MWF Hgms (proj2 Hls) Hseg_na_open).
   Qed.
 
   (* the automatic dispatcher's row, from AutoSplit *)

@@ -96,7 +96,7 @@ Definition g0P : gst := mkg nil pc0P NBP nil nil.
 Definition ufP (m0 : mem) (gp : meminj) : positive -> list (option val) -> Prop :=
   fun k vs =>
     if Pos.eqb k kW then Wff g m0 gp (szs g mario._Surface) vs
-    else if Pos.eqb k kS then surf_on m0 vs
+    else if Pos.eqb k kS then surf_on g m0 vs
     else if Pos.eqb k kH then
       match vs with
       | [Some (Vsingle h); Some yv] => HPi (Hit_at g m0) (ycast yv) h /\ Hit_at g m0 h
@@ -174,9 +174,9 @@ Proof. intros vs H. exact H. Qed.
 Lemma ufP_kH_in : forall h yv, HPi (Hit_at G m0) (ycast yv) h -> Hit_at G m0 h ->
   uf kH [Some (Vsingle h); Some yv].
 Proof. intros h yv A B. cbn. split; assumption. Qed.
-Lemma ufP_kS : forall vs, surf_on m0 vs -> uf kS vs.
+Lemma ufP_kS : forall vs, surf_on G m0 vs -> uf kS vs.
 Proof. intros vs H. exact H. Qed.
-Lemma ufP_kS_out : forall vs, uf kS vs -> surf_on m0 vs.
+Lemma ufP_kS_out : forall vs, uf kS vs -> surf_on G m0 vs.
 Proof. intros vs H. exact H. Qed.
 Lemma ufP_kB : forall vs, uf kB vs ->
   exists b o o2, vs = [Some (Vptr b o); Some (Vptr b o2)] /\ Ptrofs.unsigned o + 24 <= Ptrofs.modulus.

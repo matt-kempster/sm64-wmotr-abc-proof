@@ -332,7 +332,7 @@ Hypothesis Hpin : wfl_pinned ge.
 Hypothesis HgCL : gfind gtab surface_collision._gNumCalls = Some rCL.
 Hypothesis HU : forall vs, uf kW vs -> Wff ge m0 gp szS vs.
 Variable kS : positive.
-Hypothesis HUS : forall vs, surf_on m0 vs -> uf kS vs.
+Hypothesis HUS : forall vs, surf_on ge m0 vs -> uf kS vs.
 
 (* THE SOUNDNESS of c_fwc against the real find_wall_collisions *)
 Theorem c_fwc_sound : forall args g cps E m vargs t m' vres,
@@ -371,7 +371,7 @@ Proof.
   (* the world fact *)
   destruct (PC _ IW) as (_ & HW). cbn [fact_holds] in HW. apply HU in HW.
   set (vs := map (den E) (wargs R0)) in *.
-  pose proof HW as (WS & WP & WL & WSurf & WTy & _ & Wsz).
+  pose proof HW as (WS & WP & WL & WSurf & WTy & WNS & Wsz).
   (* the static block *)
   destruct EO as (_ & _ & _ & EG & _ & _).
   destruct (EG _ _ HgCL) as (_ & BCL & SCL).
@@ -427,15 +427,17 @@ Proof.
             (Z.of_nat i < Z.min c 4 ->
                Mem.load Mint32 m' bpf (Ptrofs.unsigned op + 24 + 4 * Z.of_nat i) = Some w
                /\ exists bs os, w = Vptr bs os /\ Plt bs nb0
-                    /\ Ptrofs.unsigned os + szS <= Ptrofs.modulus /\ ~ rblk vs bs /\ styp m0 bs os)).
+                    /\ Ptrofs.unsigned os + szS <= Ptrofs.modulus /\ ~ rblk vs bs /\ styp m0 bs os
+                    /\ Ple (Genv.genv_next ge) bs)).
   { intros i. destruct (Z_lt_dec (Z.of_nat i) (Z.min c 4)) as [Lt | Ge].
     - destruct (HW1 (Z.of_nat i) ltac:(lia)) as (s & Ls & (hd & PH & OL)).
       pose proof (part_head_to_m0 ge nbase R0 gtab kv m0 uf gp szS E m g MMh hd HW PH) as PH0.
       destruct (WSurf hd s PH0 (on_list_to_m0 ge nbase R0 gtab kv m0 uf gp E m g MMh hd s (WL hd PH0) OL))
         as (bs & os & -> & Ob & Ro & NR & G).
       pose proof (WTy hd bs os PH0 (on_list_to_m0 ge nbase R0 gtab kv m0 uf gp E m g MMh hd _ (WL hd PH0) OL)) as Ty.
+      pose proof (proj2 (WNS hd PH0) bs os (on_list_to_m0 ge nbase R0 gtab kv m0 uf gp E m g MMh hd _ (WL hd PH0) OL)) as Pl.
       exists (Vptr bs os). split; [exact G |]. intros _. split; [exact Ls |].
-      exists bs, os. auto.
+      exists bs, os. auto 7.
     - exists Vundef. split; [exact I | intros; lia]. }
   destruct (PICK 0%nat) as (w0 & Ow0 & Pw0). destruct (PICK 1%nat) as (w1 & Ow1 & Pw1).
   destruct (PICK 2%nat) as (w2 & Ow2 & Pw2). destruct (PICK 3%nat) as (w3 & Ow3 & Pw3).
@@ -470,7 +472,8 @@ Proof.
               (Z.of_nat i < Z.min c 4 ->
                  Mem.load Mint32 m' bpf (Ptrofs.unsigned op + 24 + 4 * Z.of_nat i) = Some w
                  /\ exists bs os, w = Vptr bs os /\ Plt bs nb0
-                      /\ Ptrofs.unsigned os + szS <= Ptrofs.modulus /\ ~ rblk vs bs /\ styp m0 bs os)).
+                      /\ Ptrofs.unsigned os + szS <= Ptrofs.modulus /\ ~ rblk vs bs /\ styp m0 bs os
+                    /\ Ple (Genv.genv_next ge) bs)).
   { intros i Hi. destruct i as [| [| [| [| i]]]]; [| | | | lia].
     - exists w0. split; [(unfold E8; cbn [SymExec2.den nm Nat.add g_nx gfresh]; repeat (first [rewrite upd_same | rewrite upd_other by lia]); reflexivity) | exact Pw0].
     - exists w1. split; [(unfold E8; cbn [SymExec2.den nm Nat.add g_nx gfresh]; repeat (first [rewrite upd_same | rewrite upd_other by lia]); reflexivity) | exact Pw1].
@@ -558,7 +561,7 @@ Proof.
     apply MMg_addfs; [exact MS |].
     intros f If. unfold wfacts in If. apply in_flat_map in If. destruct If as (i & Ii & If). apply in_seq in Ii.
     destruct (DW i ltac:(lia)) as (w & Dw & Pw).
-    destruct (Pw ltac:(lia)) as (_ & bs & os & -> & Ob & Ro & NR & Ty).
+    destruct (Pw ltac:(lia)) as (_ & bs & os & -> & Ob & Ro & NR & Ty & Pl).
     assert (NLi : Plt (nm (g_nx g) (3 + i)) (g_nx gS)).
     { rewrite NXS, NX8. destruct i as [|[|[|[|i]]]]; [| | | | lia]; cbn [nm Nat.add]; unfold Plt; lia. }
     destruct If as [<- | [<- | If]].
@@ -572,7 +575,7 @@ Proof.
           assert (WA : map (den E8) (wargs R0) = vs).
           { unfold vs, wargs. rewrite !map_map. apply map_ext. intros [r z]. cbn [fst SymExec2.den].
             rewrite (proj1 RX8), (proj1 (proj2 RX8)). reflexivity. }
-          cbn [surf_on]. rewrite WA. exists bs, os. split; [reflexivity | split; [exact Ty | exact NR]]. }
+          cbn [surf_on]. rewrite WA. exists bs, os. split; [reflexivity | split; [exact Ty | split; [exact NR | exact Pl]]]. }
     2:{ destruct If as [<- | [<- | []]];
         (split; [cbn [fact_nlt fty nlt]; split; [exact NLi | exact Logic.I] |
                  apply (fty_holds _ _ _ _ _ _ bs os); [exact Dw | exact Ty | auto]]). }

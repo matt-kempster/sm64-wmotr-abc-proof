@@ -85,7 +85,7 @@ Definition ok_c (c : cpath) : bool :=
 Definition ufW (m0 : mem) (gp : meminj) : positive -> list (option val) -> Prop :=
   fun k vs =>
     if Pos.eqb k kW then Wff g m0 gp (szs mario._Surface) vs
-    else if Pos.eqb k kS then surf_on m0 vs
+    else if Pos.eqb k kS then surf_on g m0 vs
     else match vs with
          | [Some (Vsingle h); Some yv] => HPi (Hit_at g m0) (ycast yv) h /\ Hit_at g m0 h
          | _ => False

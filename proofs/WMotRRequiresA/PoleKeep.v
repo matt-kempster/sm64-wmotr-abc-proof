@@ -54,7 +54,7 @@ Variables (ge : genv) (nbase : positive) (R0 : list (positive * Z)) (gtab : list
 Hypothesis gp_old : forall b x, gp b = Some x -> Plt b (Mem.nextblock m0).
 Variables (E : senv) (m : mem) (g : gst) (rM rO rLD kS : positive) (clok : list positive).
 Hypothesis MM : MMg ge nbase R0 gtab kv m0 uf gp E m g.
-Hypothesis HUS : forall vs, uf kS vs -> surf_on m0 vs.
+Hypothesis HUS : forall vs, uf kS vs -> surf_on ge m0 vs.
 Hypothesis OK : fkp_ok nbase R0 kv rM rO rLD kS clok g = true.
 
 Local Notation LD := (sload nbase R0 kv g).
@@ -130,9 +130,9 @@ Lemma fkp_surf_of : forall p v, den p = Some v ->
   fk_surf ge R0 m0 uf E p v.
 Proof.
   intros p v D H1 H2. pose proof (fkp_has _ H2) as U. cbn [fact_holds map] in U.
-  rewrite D in U. destruct (HUS _ U) as (b & o & -> & St & Nr).
+  rewrite D in U. destruct (HUS _ U) as (b & o & -> & St & Nr & Pl).
   exists b, o. split; [reflexivity |]. split; [exact D |].
-  split; [exact (fkp_has _ H1) |]. split; [exact St | exact Nr].
+  split; [exact (fkp_has _ H1) |]. split; [exact St | split; [exact Nr | exact Pl]].
 Qed.
 
 Theorem fkp_floor :

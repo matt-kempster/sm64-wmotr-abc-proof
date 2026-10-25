@@ -25,7 +25,7 @@ Variables (ge : genv) (nbase : positive) (R0 : list (positive * Z)) (gtab : list
 Hypothesis gp_old : forall b x, gp b = Some x -> Plt b (Mem.nextblock m0).
 Variables (E : senv) (m : mem) (g : gst) (rM rO rLD kS : positive) (clok : list positive).
 Hypothesis MM : MMg ge nbase R0 gtab kv m0 uf gp E m g.
-Hypothesis HUS : forall vs, uf kS vs -> surf_on m0 vs.
+Hypothesis HUS : forall vs, uf kS vs -> surf_on ge m0 vs.
 Hypothesis OK : fk_ok nbase R0 kv rM rO rLD kS clok g = true.
 
 Local Notation LD := (sload nbase R0 kv g).
@@ -108,16 +108,16 @@ Qed.
 Definition fk_surf (p : sval) (v : val) : Prop :=
   exists b o, v = Vptr b o /\ den p = Some v
     /\ fact_holds ge R0 m0 uf E (Fworld p SZ_SURF)
-    /\ styp m0 b o /\ ~ rblk (map den (wargs R0)) b.
+    /\ styp m0 b o /\ ~ rblk (map den (wargs R0)) b /\ Ple (Genv.genv_next ge) b.
 
 Lemma fk_surf_of : forall p v, den p = Some v ->
   has (g_pc g) (Fworld p SZ_SURF) = true -> has (g_pc g) (Fuser kS (p :: wargs R0)) = true ->
   fk_surf p v.
 Proof.
   intros p v D H1 H2. pose proof (fk_has _ H2) as U. cbn [fact_holds map] in U.
-  rewrite D in U. destruct (HUS _ U) as (b & o & -> & St & Nr).
+  rewrite D in U. destruct (HUS _ U) as (b & o & -> & St & Nr & Pl).
   exists b, o. split; [reflexivity |]. split; [exact D |].
-  split; [exact (fk_has _ H1) |]. split; [exact St | exact Nr].
+  split; [exact (fk_has _ H1) |]. split; [exact St | split; [exact Nr | exact Pl]].
 Qed.
 
 Theorem fk_floor :

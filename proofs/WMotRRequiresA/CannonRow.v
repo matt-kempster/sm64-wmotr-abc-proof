@@ -241,6 +241,12 @@ Proof.
   destruct (D4 bmq ltac:(left; cbn; auto 10)) as (O7 & T7). destruct (D4 brm ltac:(left; cbn; auto 10)) as (O8 & T8).
   clear DS.
   set (RL0 := ff_rl bm bo oo bfi bmiss bcalls ab bt biom bmq brm blk bpc bsr bsrc bsms bbs bfa) in *.
+  assert (SPg : forall off sb so, off = FFW_WALL \/ off = FFW_CEIL \/ off = FFW_FLOOR ->
+             Mem.load Mint32 m' bm off = Some (Vptr sb so) -> Ple (Genv.genv_next G) sb).
+  { intros off sb so Hoff Hl. destruct (SV off _ Hoff Hl) as [H | [H | (b & o & E0 & _ & _ & _ & _ & Pl)]].
+    - exact (Spl off sb so Hoff H).
+    - discriminate H.
+    - injection E0 as -> _. exact Pl. }
   assert (Rbo : rblk RL0 bo) by (exists oo; unfold RL0, ff_rl; cbn; auto 12).
   assert (Rbt : rblk RL0 bt) by (exists Ptrofs.zero; unfold RL0, ff_rl; cbn; auto 12).
   (* the region pointer list: ffw's, and the cannon *)
@@ -333,7 +339,7 @@ Proof.
     - cbn [fact_holds map]. unfold ufP. cbn [Pos.eqb kB kW kH kS kL kC kP].
       rewrite RL, DI, FF, Lf. exists fb, fo'. split; [reflexivity |]. split; [exists ft; split; assumption |].
       destruct Wf as (b & o & E1 & _ & _ & _ & Hr). injection E1 as <- <-.
-      intros H. exact (Hr (RLe _ H)).
+      split; [intros H; exact (Hr (RLe _ H)) | exact (Spl _ _ _ (or_intror (or_intror eq_refl)) Lf)].
     - (* m->controller *)
       apply (WW _ ctl); [rewrite DI; exact Lc | exact Wc].
     - refine (fty_holds G (R0P G) m (ufP G m gp) E (Sinit RM (AirRun.fo G mario._MarioState mario._floor) Mint32) fb fo' 56 _ _ _);
@@ -413,11 +419,11 @@ Proof.
   (* a stored surface the walk found *)
   assert (NEW : forall p v, fk_surf G (R0P G) m (ufP G m gp) E' p v ->
              exists b o, v = Vptr b o /\ Plt b (Mem.nextblock m) /\ Ptrofs.unsigned o + SZ_SURFACE <= Ptrofs.modulus
-               /\ styp m b o /\ ~ rblk RL0 b).
-  { intros p v (b & o & -> & D & FWd & St & Nr). cbn [fact_holds] in FWd.
+               /\ styp m b o /\ ~ rblk RL0 b /\ Ple (Genv.genv_next G) b).
+  { intros p v (b & o & -> & D & FWd & St & Nr & Pl). cbn [fact_holds] in FWd.
     destruct FWd as (b' & o' & D' & Pb & _ & Ho & _). rewrite D in D'. injection D' as <- <-.
     rewrite RL' in Nr. exists b, o. split; [reflexivity |]. split; [exact Pb |]. split; [exact Ho |].
-    split; [exact St |]. intros H. apply Nr. destruct H as (o2 & H). exists o2. apply in_or_app. left. exact H. }
+    split; [exact St |]. split; [| exact Pl]. intros H. apply Nr. destruct H as (o2 & H). exists o2. apply in_or_app. left. exact H. }
   assert (VB : forall ch b z v, Mem.load ch m b z = Some v -> Plt b (Mem.nextblock m)).
   { intros ch b z v Hl. eapply Mem.valid_access_valid_block.
     eapply Mem.valid_access_implies; [eapply Mem.load_valid_access; exact Hl | constructor]. }
@@ -439,7 +445,7 @@ Proof.
              Mem.load Mint32 m' bm off = Some v ->
              Mem.load Mint32 m bm off = Some v \/ v = Vint Int.zero
              \/ exists b o, v = Vptr b o /\ Plt b (Mem.nextblock m)
-                  /\ Ptrofs.unsigned o + SZ_SURFACE <= Ptrofs.modulus /\ styp m b o /\ ~ rblk RL0 b).
+                  /\ Ptrofs.unsigned o + SZ_SURFACE <= Ptrofs.modulus /\ styp m b o /\ ~ rblk RL0 b /\ Ple (Genv.genv_next G) b).
   { intros off v [-> | [-> | ->]] Hl.
     - change FFW_WALL with 96 in Hl |- *. destruct FWl as [E0 | [E0 | (p & v' & E0 & Hs)]]; rewrite Hl in E0.
       + left. symmetry. exact E0.
@@ -452,7 +458,7 @@ Proof.
   assert (SB : forall off sb so, off = FFW_WALL \/ off = FFW_CEIL \/ off = FFW_FLOOR ->
              Mem.load Mint32 m' bm off = Some (Vptr sb so) ->
              Mem.load Mint32 m bm off = Some (Vptr sb so) \/ ~ rblk RL0 sb).
-  { intros off sb so Hoff Hl. destruct (SV off _ Hoff Hl) as [H | [H | (b & o & E0 & _ & _ & _ & Hr)]].
+  { intros off sb so Hoff Hl. destruct (SV off _ Hoff Hl) as [H | [H | (b & o & E0 & _ & _ & _ & Hr & _)]].
     - left. exact H.
     - discriminate H.
     - right. injection E0 as -> _. exact Hr. }
@@ -509,7 +515,7 @@ Proof.
     - exists fl. change FFW_FLOOR with 104. rewrite E0. split; [exact Lf |]. split; [exact Wf |].
       destruct HW as (_ & _ & Hf & _). apply SNN; [| exact (Hf fl Lf)].
       destruct Wf as (b & o & -> & _ & _ & _ & Hr). intros sb so E1. injection E1 as <- _. exact Hr.
-    - destruct (NEW p v Hs) as (b & o & -> & Pb & Hsz & St & Hr). exists (Vptr b o).
+    - destruct (NEW p v Hs) as (b & o & -> & Pb & Hsz & St & Hr & _). exists (Vptr b o).
       split; [exact E0 |]. split; [| exact (STY b o Pb Hr St)].
       exists b, o. split; [reflexivity |]. split; [exact Pb |]. split; [clear; unfold SZ_SURFACE; lia |].
       split; [exact Hsz | exact Hr]. }
@@ -549,7 +555,7 @@ Proof.
   - (* W *)
     destruct HW as (Hw & Hc & Hf & Hh & Hr & Hq & Ho).
     split; [| split; [| split; [| split; [| split; [| split]]]]].
-    + intros v Hl. destruct (SV FFW_WALL v (or_introl eq_refl) Hl) as [Hl0 | [-> | (b & o & -> & Pb & _ & St & Nr)]].
+    + intros v Hl. destruct (SV FFW_WALL v (or_introl eq_refl) Hl) as [Hl0 | [-> | (b & o & -> & Pb & _ & St & Nr & _)]].
       * apply SOK; [| exact (Hw v Hl0)]. intros sb so ->. exact (Wc0 FFW_WALL sb so (or_introl eq_refl) Hl0).
       * left. reflexivity.
       * right. destruct (STY b o Pb Nr St) as (b' & o' & ty & E1 & L1 & I1). exists b', o', ty. auto.
@@ -608,7 +614,7 @@ Proof.
         first [ solve [apply CM; mem_tac] | solve [apply CL; mem_tac]
               | solve [change FFW_COLL with COLL_OFF; apply COLL; assumption]
               | solve [apply CO; mem_tac] ].
-    + split; [exists fl'; split; [exact Lf' | exact Wf'] |].
+    + split; [exists fl'; split; [exact Lf' | exact Wf'] |]. split; [| exact SPg].
       intros off sb so Hoff Hl2.
       destruct (SB off sb so ltac:(destruct Hoff as [-> | ->]; auto) Hl2) as [H | Hr]; [| exact Hr].
       exact (Wc0 off sb so Hoff H).

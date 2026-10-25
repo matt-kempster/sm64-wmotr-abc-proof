@@ -476,7 +476,9 @@ Section RK.
                 | solve [apply LHo; unfold FFW_THROW; cbn [size_chunk]; lia] ].
       - split.
         + exists fl. split; [rewrite LHm by bmw_t; exact Lf | exact Wf].
-        + intros off sb so Hoff Hl. rewrite LHm in Hl by bmw_t. exact (Wc0 off sb so Hoff Hl).
+        + split.
+          * intros off sb so Hoff Hl. rewrite LHm in Hl by bmw_t. exact (Wc0 off sb so Hoff Hl).
+          * intros off sb so Hoff Hl. rewrite LHm in Hl by bmw_t. exact (Spl off sb so Hoff Hl).
     Qed.
 
     (* ---- the animation world ---- *)

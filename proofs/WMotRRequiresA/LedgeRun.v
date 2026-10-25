@@ -146,7 +146,7 @@ Proof. intros vs H. exact H. Qed.
 Lemma ufL_kH_in : forall h yv, HPi (Hit_at G m0) (ycast yv) h -> Hit_at G m0 h ->
   uf kH [Some (Vsingle h); Some yv].
 Proof. intros h yv A B. cbn. split; assumption. Qed.
-Lemma ufL_kS : forall vs, surf_on m0 vs -> uf kS vs.
+Lemma ufL_kS : forall vs, surf_on G m0 vs -> uf kS vs.
 Proof. intros vs H. exact H. Qed.
 Lemma ufL_kB : forall vs, uf kB vs ->
   exists b o o2, vs = [Some (Vptr b o); Some (Vptr b o2)] /\ Ptrofs.unsigned o + 24 <= Ptrofs.modulus.

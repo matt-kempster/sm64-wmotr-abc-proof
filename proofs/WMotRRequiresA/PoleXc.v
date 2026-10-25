@@ -274,7 +274,7 @@ Hypothesis HgFI : gfind gtab surface_collision._gFindFloorIncludeSurfaceIntangib
 Hypothesis HgMS : gfind gtab surface_collision._gNumFindFloorMisses = Some rMS.
 Hypothesis HgCL : gfind gtab surface_collision._gNumCalls = Some rCL.
 Hypothesis HU : forall vs, uf kW vs -> Wff ge m0 gp szS vs.
-Hypothesis HUS : forall vs, surf_on m0 vs -> uf kS vs.
+Hypothesis HUS : forall vs, surf_on ge m0 vs -> uf kS vs.
 Hypothesis HUH : forall h yv, HPi (Hit_at ge m0) (ycast yv) h -> Hit_at ge m0 h ->
   uf kH [Some (Vsingle h); Some yv].
 (* the two new consumer facts' meaning *)

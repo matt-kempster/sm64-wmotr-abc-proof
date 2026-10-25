@@ -2,11 +2,10 @@
 (* HitboxFrame (GOAL 2, 2026-10-25): the body half of NaSplit's row for   *)
 (* mario_update_hitbox_and_cap_model, from the real mario.c bodies.       *)
 (*                                                                        *)
-(* STAGED (Unwired): the world half needs ffw facts the frame does not    *)
-(* carry yet (m->floor / wall / ceil, m->area, m->controller and Mario's  *)
-(* object are not cap-music globals) and ProRows' hole generalised to a   *)
-(* set of global blocks plus two more windows of Mario's object.  Promote *)
-(* with that row.                                                         *)
+(* ON THE SPINE: NaSplit's hitbox_row reads hitbox_frame; the world half *)
+(* is HoleX.hx_fworld (ProRows' hole generalised to a set of global      *)
+(* blocks plus two windows of Mario's object), fed by the ffw pins       *)
+(* ff_Spl / ff_Spool / ff_Sar / ff_Sctl / ff_Cd.                          *)
 (*                                                                        *)
 (* 1. ucf_hole: update_and_return_cap_flags(m), m = &gMarioStates[0],     *)
 (*    changes only m->flags / m->capTimer (bytes 4..7 and 182..183 of     *)
@@ -30,7 +29,7 @@ From compcert Require Import Coqlib Maps AST Integers Floats Values Events Memor
 From SM64.Generated Require mario sound_init.
 From SM64.Proofs Require Import SymbolicLinking ActionValueFrame RealFrameValue RealFrameLinked
   CensusV2 MtxfBody ObjExtBodies AudioBodies LinkedTwelve.
-From SM64.Proofs.WMotRRequiresA Require Import BodyFrame FrameSplit Unwired.CapAudio.
+From SM64.Proofs.WMotRRequiresA Require Import BodyFrame FrameSplit CapAudio.
 From SM64.Proofs Require AirborneSurface.
 From SM64.Proofs.WMotRRequiresA Require ProRows.
 

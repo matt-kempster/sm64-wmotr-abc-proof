@@ -74,7 +74,7 @@ Hypothesis HU : forall vs, uf kW vs -> Wff ge m0 gp szS vs.
 Hypothesis HUH : forall h yv, HPi (Hit_at ge m0) (ycast yv) h -> Hit_at ge m0 h ->
   uf kH [Some (Vsingle h); Some yv].
 (* the surface fact's meaning *)
-Hypothesis HUS : forall vs, surf_on m0 vs -> uf kS vs.
+Hypothesis HUS : forall vs, surf_on ge m0 vs -> uf kS vs.
 
 Lemma lookup_res : forall id f fd, resolves_to ge id f -> sfun_lookup ge id = Some fd -> fd = Internal f.
 Proof.
@@ -188,7 +188,7 @@ Theorem air_xc_sound_link : forall nbase R0 gtab kv m0 uf gp rFI rMS rCL kW kH k
   (forall vs, uf kW vs -> Wff (globalenv lp) m0 gp szS vs) ->
   (forall h yv, HPi (Hit_at (globalenv lp) m0) (ycast yv) h -> Hit_at (globalenv lp) m0 h ->
      uf kH [Some (Vsingle h); Some yv]) ->
-  (forall vs, surf_on m0 vs -> uf kS vs) ->
+  (forall vs, surf_on (globalenv lp) m0 vs -> uf kS vs) ->
   forall id k args g cps fd E m vargs t m' vres,
   air_xc nbase R0 rFI rMS rCL kW kH kS szS id = Some k -> k args g = Some cps ->
   sfun_lookup (globalenv lp) id = Some fd ->
