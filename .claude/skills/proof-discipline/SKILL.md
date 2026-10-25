@@ -268,7 +268,8 @@ all in `Unwired/`, and the theorem moved nowhere. See
     `marioBodyState` but calls `stop_cap_music` / `fadeout_cap_music`. Their audio footprint
     is proved from the real bodies, down to `load_sequence` (staged:
     `Unwired/CapAudio.v`, 13 written globals; `ls_contract` is the strengthened `Hls`, with
-    load.c read and confirmed audio-only). Blocker: the world must be framed around those 13
+    load.c read and confirmed audio-only; `ucf_frame` (2026-10-25) frames the whole
+    update_and_return_cap_flags call: only bm and those globals change). Blocker: the world must be framed around those 13
     globals, but a surface a walk finds is only known to avoid the walk's regions. Either
     each global becomes an ff_rl region in every walk, or `surf_on` / `Wff` say surfaces are
     dynamic blocks (`Ple genv_next b`). update_mario_inputs needs pins on
