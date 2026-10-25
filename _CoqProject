@@ -331,6 +331,7 @@ proofs/WMotRRequiresA/ObjKit.v
 proofs/WMotRRequiresA/ObjWalk.v
 proofs/WMotRRequiresA/NpcFrame.v
 proofs/WMotRRequiresA/ObjFrame.v
+proofs/WMotRRequiresA/RoCensus.v
 proofs/WMotRRequiresA/CoinLink.v
 
 # --- executable Clight: interpreter (sound vs ClightBigstep), vm-computable

@@ -822,6 +822,34 @@ without pressing A".*
   `opened_cannon_act_1` (`gMarioShotFromCannon`), and several bodies through
   `gMarioObject`. The kW walker (S3) must therefore carry a per-entry contract, not a
   blanket frame. A census, not a proof: no row or premise moved.
+- **Read-only census (2026-10-25, OBJECTS S3 groundwork, `RoCensus.v`):** scopes the RO
+  class that open items (c) call_action_function and (e) the script pointer need. Candidates,
+  derived mechanically: the 35 action tables (every global passed to
+  `cur_obj_call_action_function` in any TU) and the 533 behavior scripts (behavior_data's
+  defined variables); none is const (`ro_none_readonly`), and 51 writable globals hold their
+  addresses in their initializers (`init_refs_*`: macro / special / warp spawn tables,
+  particle and droplet parameters, exclamation-box contents, 41 scripts naming other
+  scripts). A flow analysis over EVERY function of the 51 linked TUs, to a fixpoint: a value
+  is tracked if it may be a candidate's address (pointer / 32-bit-int types only, through
+  temps, add/sub, casts, returns, callee parameters, and loads from every holder a tracked
+  value is stored into). Pinned by vm:
+  - BY FIELD NAME (`ro_name_census`, `ro_name_holders`, `ro_name_pairs`): no store anywhere
+    targets a candidate, not even through a pointer read back from a holder; no address goes
+    to an unknown location, an indirect call or a builtin. The addresses reach only
+    `gCurBhvCommand`, the object fields `curBhvCommand` / `behavior` / `bhvStack`,
+    `rawData.asConstVoidPtr` (create_respawner), and 36 (callee, parameter) pairs, none of
+    which stores through its parameter.
+  - BY UNION CELL (sound against reading a pointer back through another view of the same
+    rawData cell): **ONE cell breaks the cheap invariant.** `create_respawner` stores the
+    script into rawData byte 116 (slot 29, `oRespawnerBehaviorToRespawn`), a slot other
+    behaviors read as an int; tracked as a cell it floods the run (6366 spurious store
+    sites). With that cell charged to a per-behavior slot fact, the union-precise run is
+    clean (`ro_union_census`, `ro_union_only_respawner`), and so is a deep run that also
+    tracks pointers read through a candidate (`ro_deep_no_store`).
+    `respawner_not_in_wmotr_closure`: create_respawner is outside ObjTable's WMotR closure.
+  Consequence: the RO invariant is cheap. It needs a per-symbol "never a store target" fact,
+  boot equality to the initializer, and one slot-29 fact (or the respawner shown not live).
+  A census, not a proof: no row moved, no new trust.
 - **ObjKit (2026-10-25, OBJECTS S3, `ObjKit.v` + generated `ObjTable.v`):** UcKit's class
   walker run over the object slot's code: 387 bodies (the VM command functions, 104 of the
   107 live natives, their direct callees across 19 TUs), each re-checked against the

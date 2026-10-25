@@ -145,6 +145,11 @@ all in `Unwired/`, and the theorem moved nowhere. See
   an S-local, getter returns kS); `Hopen2` = call_action_function only.
   2026-10-25 `NpcFrame.v` (spine via ObjFrame): `npc_dialog_frame` walks set_mario_npc_dialog's
   real call tree; `Hnpc_fr` discharged (ObjFrame now asks only `HMCn`: MC holds npc_cells).
+  2026-10-25 `RoCensus.v` (spine-root census): which code in the whole link can store into
+  the 35 action tables / 533 behavior scripts? None (by field name, and by union cell once
+  create_respawner's rawData slot 29 is charged to a per-behavior fact); addresses flow only
+  to gCurBhvCommand / curBhvCommand / behavior / bhvStack (+ the respawner cell). The RO class
+  is cheap: never-a-store-target + boot equality to the initializer + the slot-29 fact.
   2026-10-24 `UpdateCameraBody.update_camera_pres`: the REAL `update_camera(c)` (SafeB c) keeps
   `mem_ok`. 507 bodies (the whole recursive tree: `UcKit` two-mode class walker, `UcTable`
   signatures re-checked by vm), the 336 CameraEvent functions by type certificate. Wired as
