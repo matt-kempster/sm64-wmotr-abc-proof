@@ -106,8 +106,8 @@ all in `Unwired/`, and the theorem moved nowhere. See
   partitions in `CensusV2.camera_safe_syms` (SafeB_boot meets it). GOAL 1 13 -> 12,
   HeightFrame 20 -> 19 `Hypothesis` lines (TRUST 4.1).
   2026-10-24 OBJECTS S1 (groundwork for the real `update_objects`): `spawn_sound.c`,
-  `debug.c`, `object_collision.c` linked as TUs 47-49 (45/46 from master spliced in; 51 reserved
-  for hud.c). `RealFrameLinked.execute_mario_action_step_lp_any`: the frame's `Vptr b 0` argument
+  `debug.c`, `object_collision.c` linked as TUs 47-49 (45/46 and hud.c's 51 from master
+  spliced in). `RealFrameLinked.execute_mario_action_step_lp_any`: the frame's `Vptr b 0` argument
   pin is no restriction (param unused, `Generic/UnusedParam`). `BehaviorScripts.all_tus` made
   current; FOUND FALSE: the unconditional grab fact (the debug spawner spawns two grabbable
   objects under its guard). Restated over the closure without that body; the guard is S2's
@@ -115,6 +115,19 @@ all in `Unwired/`, and the theorem moved nowhere. See
   `bhv_red_coin_star_marker_init`); only the 2 `mario_misc.c` over-approximations lack a
   linked body. 2.2 picked values in the object TUs: none in the WMotR closure
   (`ub22_sites_not_live`). Counts unchanged (GOAL 1 8, HeightFrame 15 `Hypothesis` lines).
+  2026-10-24 `UpdateCameraBody.update_camera_pres`: the REAL `update_camera(c)` (SafeB c) keeps
+  `mem_ok`. 507 bodies (the whole recursive tree: `UcKit` two-mode class walker, `UcTable`
+  signatures re-checked by vm), the 336 CameraEvent functions by type certificate. Wired as
+  `HeightFrame.update_camera_ok_linked12`, for the level phase's camera call. No new
+  premises: hud.c linked as TU 51 (`set_hud_camera_status` walked), `set_mario_npc_dialog`
+  proved from its body (`NpcDialogBody`, GOAL 1's `smact_pres`). HeightFrame stays at 19
+  `Hypothesis` lines. `camera_safe_syms` +7 camera globals. FOUND:
+  `gCutsceneFocus` is a stored global, so it cannot be SafeB (the tree only reads it).
+  `uc_census` (vm-pinned): 202 bodies store or pass pointers outside the camera-private class.
+  The main ones: `gPlayerCameraState` via `sMarioCamState` (72), `sCutsceneVars` (82),
+  `gLakituState`, `gCutsceneTimer`, `gCameraMovementFlags`, `gSecondCameraFocus` objects, the
+  surface / RNG / time-stop / dialog / audio globals, plus Mario's action via the npc-dialog
+  leaf. That is where a GOAL 2 Phi carry across update_camera can be false.
   2026-10-22: HeightFrame's section has 27 `Hypothesis` lines (28 → 27: `Hcamera` proved away).
   2026-10-23 AUDIO LINK (`audio/external.c`, `sound_init.c`: TUs 40, 41; `AudioBodies`, `SndXc`):
   GOAL 1 `Hypothesis` lines 16 → 15, HeightFrame 26 → 24. Proved: `Hpres_sta_ext`, `Hsss`,
