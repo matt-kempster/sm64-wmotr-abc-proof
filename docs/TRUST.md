@@ -1340,7 +1340,7 @@ link grows.
 
 | # | Item | Status / notes |
 |---|---|---|
-| 4.1 | Functions outside the 45 linked files (35 game TUs incl. `platform_displacement.c`, `camera.c`, `ingame_menu.c`, `debug_course.c`, `audio/external.c`, `sound_init.c`, `print.c`, `engine/behavior_script.c`, `obj_behaviors.c` + `behavior_data.c` + WMotR's level data + 6 libultra TUs; the audio thread, rendering) behave as the capstone's rows say (`Hocp_*`, `Hpres_*`, `Hext_*`, …) | **ASSUMED, the ~30 project rows.** Shrinks by linking more files until only truly external things remain. Details: [row 4.1 in detail](#row-41-in-detail). |
+| 4.1 | Functions outside the 48 linked files (game TUs incl. `platform_displacement.c`, `camera.c`, `hud.c` (TU 51), `ingame_menu.c`, `debug_course.c`, `audio/external.c`, `sound_init.c`, `print.c`, `engine/behavior_script.c`, `obj_behaviors.c` + `behavior_data.c` + WMotR's level data + 7 libultra TUs; the audio thread, rendering) behave as the capstone's rows say (`Hocp_*`, `Hpres_*`, `Hext_*`, …) | **ASSUMED, the ~30 project rows.** Shrinks by linking more files until only truly external things remain. Details: [row 4.1 in detail](#row-41-in-detail). |
 | 4.2 | CompCert's `external_functions_sem` is an abstract Parameter. Anything left external is constrained *only* by our rows | Permanent for whatever stays external. The goal is that nothing game-logic stays external. |
 | 4.3 | Level data (WMotR collision triangles, object placements, the red-coin positions) is what the ROM contains | **Collision and macro data in the link (2026-10-22, TU 34).** `pipeline/tu/wmotr_level_data.c` includes the vendor `levels/wmotr/areas/1/collision.inc.c` / `macro.inc.c` verbatim, under `leveldata.c`'s `make_const_nonconst.h`. So the data is the decomp's, but that the decomp's `.inc.c` matches the ROM bytes is the decomp's build check (2.1), not ours. Object placements beyond collision (`script.c`) and the red-coin positions are not yet in. |
 | 4.4 | The proof's internal vocabulary (`MWF_real`, `SafeB`, `call_pres_ext_*`) appears in the *statement's* hypotheses | Anti-goal: a reader shouldn't have to understand proof internals to know what's assumed. Rows must eventually be about the game, or be gone. |
@@ -1404,26 +1404,26 @@ link grows.
 - **`update_camera(gCurrentArea->camera)` (camera.c:3011) keeps GOAL 1's facts (2026-10-24,
   `UpdateCameraBody.update_camera_pres`; wired as `HeightFrame.update_camera_ok_linked12`).**
   From any `mem_ok` memory, with a SafeB (or non-pointer) camera argument, the real call returns
-  in a `mem_ok` memory. Proved over the generated Clight: 506 walked bodies (camera.c 467,
+  in a `mem_ok` memory. Proved over the generated Clight: 507 walked bodies (camera.c 467,
   audio_external 12, math_util 10, surface_collision 9, ingame_menu 3, behavior_script 2,
-  object_helpers 2, save_file 1) by `UcKit`'s recursive two-mode class walker. The writable
+  object_helpers 2, save_file 1, hud 1) by `UcKit`'s recursive two-mode class walker. The writable
   tables are covered by type certificates: every linked function of type
   `void (*)(struct Camera *)` is one of the 336 listed (`all_evt_ok`); the 14 transitions as before.
-  Six leaves, outside the walk:
+  Five leaves, outside the walk:
   - `sqrtf` (3.5), `play_sound` (AudioBodies), `save_file_do_save` (SaveDoSaveBody, 3.5);
   - `load_sequence`: the existing labeled premise `Hls`;
-  - **NEW LABELED premise `Hhud_memid`** (hud.c not linked): `set_hud_camera_status` changes no
-    linked memory. Its body (hud.c:363) is `sCameraHUDStatus = status;`, a hud.c static.
-  - **NEW OPEN ROW `Hnpc_pres`**: `set_mario_npc_dialog` (mario_actions_cutscene.c:345, linked,
-    not yet walked) keeps the facts. It writes `actionState` / `usedObj` and calls
-    `set_mario_action(.., ACT_READING_NPC_DIALOG, ..)`. Reached from the dialog cutscenes.
-  Both are premises of `update_camera_ok_linked12` only; the GOAL 2 capstone does not take them.
+  - `set_mario_npc_dialog` (mario_actions_cutscene.c:345): PROVED from its body
+    (`NpcDialogBody.sp_npc_dialog`). Window store to `actionState`, SafeB `usedObj` store,
+    store-free `mario_ready_to_speak`, and GOAL 1's `smact_pres` row for `set_mario_action`.
+  `set_hud_camera_status` is walked: hud.c is linked as TU 51 (2.x unchanged: no new UB sites
+  or size-0 globals). No new premises: `update_camera_ok_linked12` uses only `Hsqrtf`,
+  `Hdma_floor` and `Hls`, all already in the section.
   SafeB claim widened: `CensusV2.camera_safe_syms` gained `gCamera`, `sMarioGeometry`,
   `gLakituState`, `sLuigiCamState`, `gSecondCameraFocus`, `sParTrackPath`,
   `sBBHLibraryParTrackPath` (none in `non_safeb_syms`; `SafeB_boot` contains them).
   FOUND: `gCutsceneFocus` cannot join it; it is a stored global (Mario's end cutscene sets it).
   The tree only reads through it, so it is not needed.
-  The vm-pinned store census `uc_census` lists 201 bodies whose stores (or pointer arguments)
+  The vm-pinned store census `uc_census` lists 202 bodies whose stores (or pointer arguments)
   leave the camera-private class. That class is stack locals, the Camera struct and
   `cam_store_ids`, the camera.c globals no other file names. Leaving it: `gPlayerCameraState`
   through `sMarioCamState` (72 bodies) and `sLuigiCamState`; `sCutsceneVars` (82);
@@ -1432,7 +1432,7 @@ link grows.
   `gObjCutsceneDone`, `gCutsceneObjSpawn`; the surface globals (`gCheckingSurfaceCollisionsForCamera`,
   `gFindFloorIncludeSurfaceIntangible`, `gNumCalls`, `gNumFindFloorMisses`); `gRandomSeed16`;
   `gTimeStopState`; `gGlobalSoundSource`; the dialog globals; the audio state
-  (`gSequencePlayers`, the music queue).
+  (`gSequencePlayers`, the music queue); hud.c's `sCameraHUDStatus`.
   Plus the dirty leaves: the save buffer / EEPROM and Mario's action (`set_mario_npc_dialog`).
   A GOAL 2 invariant carried across update_camera can break at any of these.
 - **FOUND FALSE + PROVED (2026-10-22): `WL_exempt`** (every GOAL 1 capstone, and GOAL 2's

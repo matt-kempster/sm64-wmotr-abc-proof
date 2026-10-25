@@ -57,6 +57,7 @@ generated/libultra_osCreateMesgQueue.v
 generated/libultra_osContInit.v
 generated/libultra_osInitialize.v
 generated/libultra_osContStartReadData.v
+generated/hud.v
 
 # --- shared infrastructure (used by GOAL 1; reusable) ---
 proofs/Generic/Frame.v
@@ -222,10 +223,11 @@ proofs/MarioModel/SaveDoSaveBody.v
 proofs/MarioModel/SpawnBodies.v
 proofs/MarioModel/PrintBodies.v
 proofs/MarioModel/CameraModeBody.v
-# update_camera's whole call tree (506 bodies, recursive two-mode class
+# update_camera's whole call tree (507 bodies, recursive two-mode class
 # walker + the CameraEvent / CameraTransition type certificates): SPINE via
 # HeightLinked12 (UpdateCameraBody.update_camera_pres)
 proofs/MarioModel/UcKit.v
+proofs/MarioModel/NpcDialogBody.v
 proofs/MarioModel/UcTable.v
 proofs/MarioModel/UpdateCameraBody.v
 

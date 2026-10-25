@@ -2,9 +2,11 @@
 (* UpdateCameraBody.v -- update_camera(gCurrentArea->camera) keeps GOAL   *)
 (* 1's carried facts, proved from the REAL camera.c and its callees.      *)
 (*                                                                        *)
-(* The call tree (camera.c:3011 and down): 506 walked bodies -- camera.c  *)
+(* The call tree (camera.c:3011 and down): 507 walked bodies -- camera.c  *)
 (* 467, audio_external 12, math_util 10, surface_collision 9, ingame_menu *)
-(* 3, behavior_script 2, object_helpers 2, save_file 1 -- including every *)
+(* 3, behavior_script 2, object_helpers 2, save_file 1, hud 1 (TU 51:    *)
+(* set_hud_camera_status stores the hud.c static sCameraHUDStatus, a     *)
+(* global MWF does not read: class kW) -- including every                 *)
 (* member of the two writable function-pointer tables' types:             *)
 (*   CameraEvent      void ( * )(struct Camera * )   336 functions        *)
 (*     (sCutsceneShots / the area trigger tables / play_cutscene; it      *)
@@ -16,17 +18,15 @@
 (* CameraModeBody.all_trans_ok, one vm sweep over every linked TU).       *)
 (*                                                                        *)
 (* The walk is UcKit's recursive two-mode class walker; the signatures   *)
-(* are UcTable's (generated, re-checked here by uc_walk_ok).  Six leaves  *)
+(* are UcTable's (generated, re-checked here by uc_walk_ok).  Five leaves *)
 (* are proved outside the walk (section 3):                               *)
 (*   sqrtf                  the FPU floor sqrtf_spec (TRUST 3.5)          *)
 (*   play_sound             AudioBodies + its global-only stores          *)
 (*   save_file_do_save      SaveDoSaveBody, on the OS / DMA floor         *)
 (*   load_sequence          the labeled audio premise Hls (TRUST 4.1)     *)
-(*   set_hud_camera_status  hud.c is not linked: LABELED premise Hhud     *)
-(*   set_mario_npc_dialog   OPEN ROW Hnpc (mario_actions_cutscene.c is    *)
-(*                          linked; its body writes Mario's state and    *)
-(*                          calls set_mario_action -- a GOAL-1-engine     *)
-(*                          walk, not done here)                          *)
+(*   set_mario_npc_dialog   NpcDialogBody, from its real body (its        *)
+(*                          gMarioState stores + GOAL 1's set_mario_action *)
+(*                          keystone row)                                 *)
 (*                                                                        *)
 (* Section 5 is the vm-pinned STORE CENSUS: which stores of the walked    *)
 (* bodies land outside the camera-private class (cam_store_ids + the     *)
@@ -38,12 +38,12 @@ From Coq Require Import ZArith List Lia Bool String.
 From compcert Require Import Coqlib Maps AST Integers Values Events Memory
   Globalenvs Ctypes Cop Clightdefs Clight ClightBigstep Linking.
 From SM64.Generated Require mario camera math_util surface_collision audio_external
-  behavior_script ingame_menu object_helpers save_file mario_actions_cutscene.
+  behavior_script ingame_menu object_helpers save_file mario_actions_cutscene hud.
 From SM64.Proofs Require Import SymbolicLinking ActionValueFrame Taint
   RealFrameLinked AGates CensusV2 RestSurface MWFReal SpawnInit MathBodies
   LinkedTwelve LocalVarsSurface SpawnBodies MathGeomGated FpuFloor UcKit UcTable.
 From SM64.Proofs Require CameraModeBody MtxfBody SaveDoSaveBody AudioBodies
-  ObjExtBodies PrintBodies InitMemSat OsDmaFloor SaveFileBody FloorsSurface.
+  ObjExtBodies PrintBodies InitMemSat OsDmaFloor SaveFileBody FloorsSurface NpcDialogBody.
 
 Import ListNotations.
 Local Open Scope Z_scope.
@@ -106,7 +106,7 @@ Example cutscene_shots_cover :
 Proof. vm_compute. reflexivity. Qed.
 
 (* ---------------------------------------------------------------------- *)
-(* 2. THE WALK: every one of the 506 bodies passes its class check against *)
+(* 2. THE WALK: every one of the 507 bodies passes its class check against *)
 (*    the one table (the whole recursive tree, the caller itself          *)
 (*    included), and every table member fits its indirect signature.      *)
 (* ---------------------------------------------------------------------- *)
@@ -241,22 +241,6 @@ Section UC.
   (* the labeled audio premise (TRUST 4.1), as GOAL 1 carries it *)
   Hypothesis Hls : FloorsSurface.call_pres_ext lp bm (fun m => AGates.ctl_a_clear m bm) MWF
                      audio_external._load_sequence.
-  (* LABELED PREMISE (TRUST 4.1, hud.c not linked): set_hud_camera_status
-     (hud.c:363) is `sCameraHUDStatus = status;` -- a store to a static of
-     the unlinked hud.c, none of the linked memory: on the link the call
-     changes no memory. *)
-  Hypothesis Hhud : forall b fd m vargs t m' vres,
-      Genv.find_symbol ge camera._set_hud_camera_status = Some b ->
-      Genv.find_funct ge (Vptr b Ptrofs.zero) = Some fd ->
-      eval_funcall function_entry2 ge m fd vargs t m' vres -> m' = m.
-  (* OPEN ROW (a real linked body, not proved here): set_mario_npc_dialog
-     (mario_actions_cutscene.c:345), reached from the dialog cutscenes'
-     cutscene_common_set_dialog_state, keeps GOAL 1's carried facts.  It
-     writes gMarioState->actionState / ->usedObj and calls
-     set_mario_action(gMarioState, ACT_READING_NPC_DIALOG, arg) (not
-     tainted: HeightFrame.dialog_action_not_tainted). *)
-  Hypothesis Hnpc : ObjExtBodies.sym_pres lp bm bc oc0 SafeB
-                      mario_actions_cutscene._set_mario_npc_dialog.
 
   (* the walk's SafeB globals *)
   Lemma uc_gs_safe : forall x b, mem_id x uc_gs = true ->
@@ -377,16 +361,14 @@ Section UC.
       destruct (Pos.eqb audio_external._play_sound fid) eqn:E2.
       { apply Pos.eqb_eq in E2. subst fid. cbv beta iota in Hf; injection Hf as <-.
         exact (leaf_play_sound b fd Hs Hff). }
-      destruct (Pos.eqb camera._set_hud_camera_status fid) eqn:E3.
-      { apply Pos.eqb_eq in E3. subst fid. cbv beta iota in Hf; injection Hf as <-.
-        apply leaf_memid. intros m vargs t m' vres Hevf. exact (Hhud b fd m vargs t m' vres Hs Hff Hevf). }
       destruct (Pos.eqb save_file._save_file_do_save fid) eqn:E4.
       { apply Pos.eqb_eq in E4. subst fid. cbv beta iota in Hf; injection Hf as <-.
         exact (leaf_dirty _ b fd _ (SaveDoSaveBody.sp_sds lp H12 bm bc oc0 SafeB HSafeB_syms Hspawn Hfloor)
                  Hs Hff). }
       destruct (Pos.eqb mario_actions_cutscene._set_mario_npc_dialog fid) eqn:E5.
       { apply Pos.eqb_eq in E5. subst fid. cbv beta iota in Hf; injection Hf as <-.
-        exact (leaf_dirty _ b fd _ Hnpc Hs Hff). }
+        exact (leaf_dirty _ b fd _
+                 (NpcDialogBody.sp_npc_dialog lp H12 bm bc oc0 SafeB HSafeB_syms Hspawn) Hs Hff). }
       destruct (Pos.eqb audio_external._load_sequence fid) eqn:E6.
       { apply Pos.eqb_eq in E6. subst fid. cbv beta iota in Hf; injection Hf as <-.
         exact (leaf_dirty _ b fd _ (AudioBodies.sp_ls lp bm bc oc0 SafeB Hls) Hs Hff). }
@@ -406,6 +388,7 @@ Section UC.
     - exact (linked12_LO_behavior_script lp H12).
     - exact (linked12_LO_object_helpers lp H12).
     - exact (linked12_LO_save lp H12).
+    - exact (linked12_LO_hud lp H12).
   Qed.
 
   Lemma uc_tab_good : TabGood lp uc_gs uc_ut uc_it uLeaf.
@@ -493,7 +476,7 @@ End UC.
 (*    definitions; RPtr / RUnk are roots it could not resolve (pointers     *)
 (*    loaded from memory or returned by calls).  Stores through a          *)
 (*    non-Camera parameter are charged to the callers' arguments.  The     *)
-(*    six leaves' effects are listed in UcTable.uc_leaf's comment and the  *)
+(*    five leaves' effects are listed in UcTable.uc_leaf's comment and the  *)
 (*    section-3 premises.  This is a census, not a proof obligation: the   *)
 (*    theorem above holds whatever it says; the census says where a GOAL-2 *)
 (*    invariant carried across update_camera can be broken.                *)
@@ -637,7 +620,7 @@ Definition census_of (e : ident * utu * usig) : list (ident * list sroot) :=
   | _ => nil
   end.
 
-(* THE CENSUS, pinned: the 201 walked bodies with a store or pointer argument
+(* THE CENSUS, pinned: the 202 walked bodies with a store or pointer argument
    outside the camera-private class, each with those roots (the order is the
    body's, deduplicated).  RGlob g: the global g itself (or a field / an
    array cell of it, or its address passed on); RVia g: a block reached
@@ -844,7 +827,8 @@ Definition uc_census : list (ident * list sroot) := [
   (camera._is_within_100_units_of_mario, [RVia camera._sMarioCamState]);
   (camera._find_mario_floor_and_ceil, [RGlob camera._gCheckingSurfaceCollisionsForCamera]);
   (camera._reset_camera, [RGlob camera._gCamera; RGlob camera._gCutsceneTimer; RGlob camera._gCutsceneObjSpawn; RGlob camera._gObjCutsceneDone; RGlob camera._gCutsceneFocus; RGlob camera._gSecondCameraFocus; RGlob camera._gCameraMovementFlags; RVia camera._sMarioCamState; RVia camera._sLuigiCamState; RGlob camera._sMarioCamState; RVia camera._gLakituState; RGlob camera._gLakituState; RGlob camera._gRecentCutscene]);
-  (camera._set_camera_mode_radial, [RVia camera._sMarioCamState]) ].
+  (camera._set_camera_mode_radial, [RVia camera._sMarioCamState]);
+  (hud._set_hud_camera_status, [RGlob hud._sCameraHUDStatus]) ].
 
 Lemma uc_census_ok : flat_map census_of uc_walk = uc_census.
 Proof. vm_compute. reflexivity. Qed.

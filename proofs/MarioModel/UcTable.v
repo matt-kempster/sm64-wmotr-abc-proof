@@ -7,14 +7,14 @@
 From Coq Require Import List.
 From compcert Require Import Coqlib Maps AST Ctypes Clight Clightdefs.
 From SM64.Generated Require camera math_util surface_collision audio_external
-  behavior_script ingame_menu object_helpers save_file mario_actions_cutscene.
+  behavior_script ingame_menu object_helpers save_file mario_actions_cutscene hud.
 From SM64.Proofs Require Import UcKit.
 From SM64.Proofs Require CameraModeBody.
 Import ListNotations.
 
-(* the eight translation units the walked bodies come from *)
+(* the nine translation units the walked bodies come from *)
 Inductive utu : Type :=
-  U_cam | U_audio | U_math | U_surf | U_menu | U_bscript | U_ohelp | U_save.
+  U_cam | U_audio | U_math | U_surf | U_menu | U_bscript | U_ohelp | U_save | U_hud.
 
 Definition uprog (t : utu) : Clight.program :=
   match t with
@@ -26,6 +26,7 @@ Definition uprog (t : utu) : Clight.program :=
   | U_bscript => behavior_script.prog
   | U_ohelp => object_helpers.prog
   | U_save => save_file.prog
+  | U_hud => hud.prog
   end.
 
 (* CameraEvent = void ( * )(struct Camera * ): the cutscene / trigger tables *)
@@ -372,7 +373,7 @@ Definition evt_ids : list ident := [
   camera._update_yaw_and_dist_from_c_up;
   camera._water_death_move_to_mario_side ].
 
-(* the 506 walked bodies: (function, TU, (param classes, return class, dirty)) *)
+(* the 507 walked bodies: (function, TU, (param classes, return class, dirty)) *)
 Definition uc_walk : list (ident * utu * usig) := [
   (camera._update_camera, U_cam, ([kS], kN, true));
   (camera._update_lakitu, U_cam, ([kS], kN, false));
@@ -879,13 +880,13 @@ Definition uc_walk : list (ident * utu * usig) := [
   (camera._check_blocking_area_processing, U_cam, ([kS], kN, false));
   (camera._find_c_buttons_pressed, U_cam, ([kN; kN; kN], kN, false));
   (camera._play_sound_if_cam_switched_to_lakitu_or_mario, U_cam, ([], kN, false));
-  (camera._update_camera_hud_status, U_cam, ([kS], kN, false)) ].
+  (camera._update_camera_hud_status, U_cam, ([kS], kN, false));
+  (hud._set_hud_camera_status, U_hud, ([kA], kA, false)) ].
 
 (* the leaves, proved outside the walk (UpdateCameraBody, section 3) *)
 Definition uc_leaf : utab :=
   [ (math_util._sqrtf, ([kA], kA, false));
     (audio_external._play_sound, ([kA; kA], kA, false));
-    (camera._set_hud_camera_status, ([kA], kA, false));
     (save_file._save_file_do_save, ([kA], kA, true));
     (mario_actions_cutscene._set_mario_npc_dialog, ([kA], kA, true));
     (audio_external._load_sequence, ([kA; kA; kA], kA, true)) ].
