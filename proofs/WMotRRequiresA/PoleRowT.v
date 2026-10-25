@@ -146,9 +146,7 @@ Theorem pole_rowT : forall m t m' vres c0,
 Proof.
   intros m t m' vres c0 Vm (Ha & HW & Han & Hmob & Hd & FW & UO & AW & LV) RC Hbud Hact Hfr EV.
   pose proof FW as (Hgn & EX & FD).
-  destruct EX as (gp & bfi & bmiss & bcalls & bsin & ab & biom & bmq & brm & blk & bpc & bsr & bsrc & bsms & bbs & bo & oo & bt & ot & fl & ar & inp & ctl &
-                  HC & HS & HM & S1 & S2 & S3 & S4 & S5 & S6 & S7 & S8 & SL & SP & SR & SRC & SMS & SBS & Lo & Soo & La & Lb & Sot & D1 & D2 & D3 & D4 &
-                  W & Lf & Wf & Wc0 & Lar & War & Li & Ai & Lc & Wc & Co & LPC & LBS).
+  ffw_unpack EX.
   destruct (KbRow.ff_layout lp H12) as (FO & FA & FF & FAr & FH & FR & ZO & ZS & ZA & ZM & ZD).
   destruct (aud_sym lp H12) as (bau & S9).
   destruct (SymbolicLinking.linkorder_resolves_symbol lp AUT.prog _ _ (linked12_LO_aut lp H12) dm_bt)
@@ -236,7 +234,7 @@ Proof.
   pose proof (DS _ _ _ _ Slv S5 eq_refl) as NL5. pose proof (DS _ _ _ _ Slv S6 eq_refl) as NL6.
   pose proof (DS _ _ _ _ Slv S7 eq_refl) as NL7. pose proof (DS _ _ _ _ Slv S8 eq_refl) as NL8.
   assert (Slv' : Genv.find_symbol G mario._gCurrLevelNum = Some blv) by exact Slv.
-  destruct (D4 blv (or_intror (or_intror (or_introl Slv')))) as (OL & TL).
+  destruct (D4 blv (or_intror (or_intror (lvl_sym_of _ _ blv (or_introl eq_refl) Slv')))) as (OL & TL).
   destruct (D4 bau (or_intror (or_introl S9))) as (O9 & T9).
   pose proof (KbRow.sym_valid lp m _ _ Hgn SL) as VK.
   pose proof (DS _ _ _ _ SL Hbm eq_refl) as NK0. pose proof (DS _ _ _ _ SL S1 eq_refl) as NK1.
@@ -781,9 +779,7 @@ Proof.
   (* ---- the frame world at m' ---- *)
   (* the level cells (FfWorld.lvl_w): globals' blocks off the regions *)
   assert (LV' : lvl_w G m')
-    by exact (AnimKeep.lvl_w_keep G bm m m' bfi bmiss bcalls ab biom bmq brm blk bpc bsr bsrc bsms bbs bo oo bt
-                S1 S2 S3 S5 S6 S7 S8 SL SP SR SRC SMS SBS AW (fun b H => D4 b (or_intror (or_intror H)))
-                Hgn OFF LV).
+    by exact (AnimKeep.lvl_w_keep G bm m m' _ FWF AW Hgn OFF LV).
   split; [| split; [| split; [| split; [| split; [| split; [| exact (conj UO' (conj AW' LV'))]]]]]].
   - (* the action *)
     destruct KA as (a & La' & Ina). intros v' Hl. rewrite La' in Hl. injection Hl as <-. exact Ina.
@@ -844,31 +840,13 @@ Proof.
       rewrite (I _ _ _ E0). discriminate. }
     assert (Hperm : forall b ofs k p, Plt b (Mem.nextblock m) -> Mem.perm m b ofs k p -> Mem.perm m' b ofs k p)
       by (intros b ofs k p Hp Hq; exact (proj2 (VP b ofs k p Hp) Hq)).
-    split; [exact (Ple_trans _ _ _ Hgn NBm) |].
-    split.
-    + exists gp', bfi, bmiss, bcalls, bsin, ab, biom, bmq, brm, blk, bpc, bsr, bsrc, bsms, bbs, bo, oo, bt, ot, fl', ar, inp, ctl.
-      split; [exact HC' |]. split; [exact HS' |]. split; [exact (Hinc _ HM) |].
-      do 14 (split; [assumption |]).
-      split; [exact Lo' |]. split; [exact Soo |].
-      split; [rewrite CM by mem_tac; exact La |].
-      split; [rewrite CL by mem_tac; exact Lb |].
-      do 5 (split; [assumption |]).
-      split; [exact (Wff_keep2 G m m' RL0 NBm Hperm OFF gp gp' Hinc W) |].
-      split; [exact Lf' |].
-      split; [exact (wblk_keep2 m m' RL0 NBm Hperm OFF RL0 fl' SZ_SURFACE Wf') |].
-      split.
-      { intros off sb so Hoff Hl2.
-        destruct (SB off sb so ltac:(destruct Hoff as [-> | ->]; auto) Hl2) as [H | Hr]; [| exact Hr].
-        exact (Wc0 off sb so Hoff H). }
-      split; [rewrite CM by mem_tac; exact Lar |].
-      split; [exact (wblk_keep2 m m' RL0 NBm Hperm OFF RL0 ar SZ_AREA War) |].
-      split; [rewrite CM by mem_tac; exact Li |]. split; [exact Ai |].
-      split; [rewrite CM by mem_tac; exact Lc |].
-      split; [exact (wblk_keep2 m m' RL0 NBm Hperm OFF RL0 ctl SZ_CTL Wc) |].
-      split; [intros i cb co Hi Hl2; change FFW_COLL with COLL_OFF in Hl2; rewrite COLL in Hl2 by exact Hi;
-              exact (Co i cb co Hi Hl2) |].
-      split; [rewrite CM by mem_tac; exact LPC |].
-      rewrite CM by mem_tac; exact LBS.
-    + exact (floor_data_keep2 G m m' RL0 NBm Hperm OFF gp W FD).
+    apply (ffw_rebuild_off G bm m m' _ gp' Hgn FWF FD NBm Hperm OFF Hinc HC').
+    + intros ch b z Hr. ffw_read_split Hr;
+        first [ solve [apply CM; mem_tac] | solve [apply CL; mem_tac]
+              | solve [change FFW_COLL with COLL_OFF; apply COLL; assumption] ].
+    + split; [exists fl'; split; [exact Lf' | exact Wf'] |].
+      intros off sb so Hoff Hl2.
+      destruct (SB off sb so ltac:(destruct Hoff as [-> | ->]; auto) Hl2) as [H | Hr]; [| exact Hr].
+      exact (Wc0 off sb so Hoff H).
 Qed.
 End POLEROWT.

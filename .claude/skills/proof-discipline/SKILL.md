@@ -396,6 +396,32 @@ them by hand. Numbers the proof depends on (budgets, level data) come from tools
 the vendor source, such as `tools/goal2_ladder.py` and `tools/goal2_budget.py`, not from
 prose. Check prose against code before building on it.
 
+## How to add an `ffw` fact (GOAL 2's frame-world invariant)
+
+`FfWorld.ffw` is `Ple .. /\ (exists d, ffw_facts G bm m d) /\ floor_data G m`. Here
+`d : ffw_wit` is a record of witnesses (`fw_bo`, `fw_ab`, ...) and `ffw_facts` is a record of
+named Prop fields (`ff_Lo`, `ff_D4`, `ff_LBS`, ...). Consumers never destruct it by position.
+`ffw_unpack EX` names everything and keeps `FWF : ffw_facts ..`. Rebuilds go through
+`ffw_rebuild` / `ffw_rebuild_off` / `ffw_keep_off`, whose premises are about the read set
+(`ffw_read` / `ffw_read_s` / `ffw_surf_ok`), not about the list of conjuncts. To add a fact:
+
+1. Add a field to `ffw_facts`, plus its hypothesis name in `ffw_unpack` (the `fresh`, the
+   `pose proof .. as [..]` and the `cbn .. in` list). A new witness instead goes in
+   `ffw_wit`, `ffw_unpack`'s `destruct d` and `ffw_rebuild`'s `mk_ffw_wit`.
+2. If the fact is memory-free, `ffw_rebuild`'s closer already handles it (`assumption`).
+   If it reads a cell of Mario's state, add the cell to `ffw_bm_cells`. If it reads a cell
+   elsewhere, add a disjunct to `ffw_read` and to `ffw_read_split`. Every keep proof then
+   gets one more "cell unchanged" goal, which its existing closer list usually solves.
+3. Establish the fact at boot: add one bullet to `StartSat.ffw11`.
+4. A new region also goes in `ff_rl` / `ff_rl_of`, in `ffw_reg_ids` and in
+   `ffw_rl_cases`.
+
+Measured 2026-10-24: a dummy `ff_DUMMY : True` field took 3 lines in `FfWorld.v` (the field
+and two names in `ffw_unpack`) and 1 bullet in `StartSat.ffw11`, and no other file changed.
+`lvl_w` is the same: `lvl_sym` is `exists id, In id lvl_ids /\ ..`, so a new level cell is
+an entry in `lvl_ids` plus its `lvl_w` conjunct. `lvl_w_keep_rl` / `lvl_w_unch` re-prove
+generically.
+
 ## The audit (the floor)
 
 ```bash

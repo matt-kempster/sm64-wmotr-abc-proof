@@ -1927,51 +1927,67 @@ Section Witness.
       split.
       2: exact floor_data11.
       pose proof Hpcs_fs as Hpcs'. pose proof Hbbs_fs as Hbbs'.
-      exists (Mem.flat_inj thr), bfi, bmiss, bcalls, bsin, ab, biom, bmq, brm, blk, bpcs, bsr, bsrc, bsms, bbs, bo, Ptrofs.zero,
-        bt, Ptrofs.zero, (Vptr bs Ptrofs.zero), (Vptr bar Ptrofs.zero), Int.zero, (Vptr bc Ptrofs.zero).
-      split; [ exact closed11 | ].
-      split; [ intros id b Hfs; exact (flat_some _ (sym_lt _ _ Hfs)) | ].
-      split; [ exact (flat_some _ (sym_lt _ _ Hbm)) | ].
-      do 14 (split; [ assumption | ]).
-      split; [ exact L_obj | ].
-      split; [ unfold SZ_OBJECT; vm_compute; discriminate | ].
-      split; [ exact L_anim | ].
-      split; [ exact L_buf | ].
-      split; [ vm_compute; discriminate | ].
-      split; [ exact bo_bm | ].
-      split; [ intro E; exact (sym_ne_fresh _ _ _ Hbm (or_introl eq_refl) (eq_sym E)) | ].
-      split; [ exact bt_bo | ].
-      split; [ intros b [Hin | [Hin | Hin]];
+      exists {| fw_gp := Mem.flat_inj thr; fw_bfi := bfi; fw_bmiss := bmiss; fw_bcalls := bcalls;
+                fw_bsin := bsin; fw_ab := ab; fw_biom := biom; fw_bmq := bmq; fw_brm := brm; fw_blk := blk;
+                fw_bpc := bpcs; fw_bsr := bsr; fw_bsrc := bsrc; fw_bsms := bsms; fw_bbs := bbs;
+                fw_bo := bo; fw_oo := Ptrofs.zero; fw_bt := bt; fw_ot := Ptrofs.zero;
+                fw_fl := Vptr bs Ptrofs.zero; fw_ar := Vptr bar Ptrofs.zero; fw_inp := Int.zero;
+                fw_ctl := Vptr bc Ptrofs.zero |}.
+      (* one goal per ffw_facts field, in declaration order *)
+      apply mk_ffw_facts; ffw_simpl.
+      - exact closed11.
+      - intros id b Hfs; exact (flat_some _ (sym_lt _ _ Hfs)).
+      - exact (flat_some _ (sym_lt _ _ Hbm)).
+      - assumption.
+      - assumption.
+      - assumption.
+      - assumption.
+      - assumption.
+      - assumption.
+      - assumption.
+      - assumption.
+      - assumption.
+      - assumption.
+      - assumption.
+      - assumption.
+      - assumption.
+      - assumption.
+      - exact L_obj.
+      - unfold SZ_OBJECT; vm_compute; discriminate.
+      - exact L_anim.
+      - exact L_buf.
+      - vm_compute; discriminate.
+      - exact bo_bm.
+      - intro E; exact (sym_ne_fresh _ _ _ Hbm (or_introl eq_refl) (eq_sym E)).
+      - exact bt_bo.
+      - intros b [Hin | [Hin | Hin]];
                [ cbn [In] in Hin; repeat (destruct Hin as [<- | Hin]; [ split; neq | ]); destruct Hin
-               | split; neq | lvl_cases Hin; split; neq ] | ].
-      split; [ exact wff11 | ].
-      split; [ exact L_floor | ].
-      split.
-      { exists bs, Ptrofs.zero. split; [ reflexivity | ].
+               | split; neq | lvl_cases Hin; split; neq ].
+      - exact wff11.
+      - exact L_floor.
+      - exists bs, Ptrofs.zero. split; [ reflexivity | ].
         split; [ exact (fresh_lt _ (or_intror (or_introl eq_refl))) | ].
         split; [ unfold SZ_SURFACE; lia | ].
         split; [ unfold SZ_SURFACE; vm_compute; discriminate | ].
-        fold RL. unfold RL. norl. }
-      split; [ intros off sb so Hoff Hl; exfalso; exact (wc_noptr off sb so Hoff Hl) | ].
-      split; [ exact L_area | ].
-      split.
-      { exists bar, Ptrofs.zero. split; [ reflexivity | ].
+        fold RL. unfold RL. norl.
+      - intros off sb so Hoff Hl; exfalso; exact (wc_noptr off sb so Hoff Hl).
+      - exact L_area.
+      - exists bar, Ptrofs.zero. split; [ reflexivity | ].
         split; [ exact (fresh_lt _ (or_intror (or_intror eq_refl))) | ].
         split; [ unfold SZ_AREA; lia | ].
         split; [ unfold SZ_AREA; vm_compute; discriminate | ].
-        norl. }
-      split; [ rewrite (z_bm Mint16unsigned 2) by (cbn [size_chunk align_chunk]; try lia; try al; cells); reflexivity | ].
-      split; [ reflexivity | ].
-      split; [ exact L_ctl | ].
-      split.
-      { exists bc, Ptrofs.zero. split; [ reflexivity | ].
+        norl.
+      - rewrite (z_bm Mint16unsigned 2) by (cbn [size_chunk align_chunk]; try lia; try al; cells); reflexivity.
+      - reflexivity.
+      - exact L_ctl.
+      - exists bc, Ptrofs.zero. split; [ reflexivity | ].
         split; [ exact (sym_lt _ _ Hbc) | ].
         split; [ unfold SZ_CTL; lia | ].
         split; [ unfold SZ_CTL; vm_compute; discriminate | ].
-        norl. }
-      split; [ intros i cb co Hi Hl; exfalso; exact (coll_noptr _ _ _ Hi Hl) | ].
-      split; [ exact L_pcs | ].
-      exact L_body.
+        norl.
+      - intros i cb co Hi Hl; exfalso; exact (coll_noptr _ _ _ Hi Hl).
+      - exact L_pcs.
+      - exact L_body.
     Qed.
 
     (* ---- the level: gCurrLevelNum = LEVEL_WMOTR, by real code ---- *)
