@@ -104,6 +104,34 @@ it); this is the interim/brute-force discharge.
 
 Run locally: `python3 pipeline/check_unwired.py`.
 
+## Fast iteration (`--quick`) and the shared `.vo` cache
+
+Both are opt-in. The plain `bash pipeline/build.sh proofs`, the audit, and CI are unchanged.
+
+```sh
+bash pipeline/build.sh --quick -j2                 # every file to .vos (statements only)
+bash pipeline/build.sh --quick -j2 proofs/X/Y.vo   # just Y and its deps, as .vos
+bash pipeline/build.sh --vok -j2 proofs/X/Y.vo     # check Y's Qed bodies against .vos deps
+SM64_VO_CACHE=$HOME/.cache/sm64-vo bash pipeline/build.sh -j2 proofs   # shared cache
+SM64_VO_CACHE=$HOME/.cache/sm64-vo bash pipeline/build.sh --no-cache -j2 proofs
+bash pipeline/vo_cache_gc.sh 10                    # keep the 10 most recently used GB
+```
+
+`--quick` skips the bodies of opaque (`Qed`) proofs only. Transparent definitions,
+`Eval vm_compute` inside a `Definition`, and proofs inside a `Section` without
+`Proof using` are still computed. Use it to re-check edited files after a full or cached
+build: an edited walk file takes seconds instead of minutes. From scratch, the whole tree
+still takes about an hour. `.vos` never stands in for a `.vo`: assumptions probes and the
+audit load `.vo` files.
+
+The cache (`pipeline/coqc_cache.py`) keys each compile on sha256 of: the toolchain (coqc
+version, config, and a listing of the stdlib and CompCert files), the coqc flags with paths
+relative to the repo root, the source bytes, and the bytes of each direct dependency's
+`.vo`. A `.vo` records the digests of the libraries it was built against, so direct deps
+fix the whole closure. Worktrees at different absolute paths share entries, because `.vo`
+and `.glob` files hold no physical paths. On a hit, the outputs are copied in after a
+sha256 check, using tmp-file + rename. Entries are stored only after coqc exits 0.
+
 ## Recomputing any spine / Unwired split
 
 A spine is `closure(<capstone>)` over the proof-only `Require` edges:

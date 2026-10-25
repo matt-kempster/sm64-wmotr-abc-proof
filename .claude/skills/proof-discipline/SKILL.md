@@ -408,6 +408,32 @@ changes. To audit a specific capstone:
 `discipline_check.sh SM64.Proofs.<Path>.<Module> <theorem> ...`.
 Always build via `pipeline/*.sh`, never bare `coqc`: a bare `coqc` can report a false green.
 
+### Fast iteration and the shared .vo cache (opt-in; the audit uses neither)
+
+- `bash pipeline/build.sh --quick -j2 [X.vo ...]` builds `.vos` files (`coqc -vos`), which
+  skips the BODY of every `Qed`/`Admitted` proof. Use it to check that statements and their
+  consumers line up after an edit. It proves nothing. Never commit on it alone. Use it
+  AFTER a full (or cached) build. A file's `.vos` is then empty and its consumers load the
+  `.vo`, so an edited walk file re-checks in seconds (measured: TerrainRun 843 s full vs.
+  14 s, BootRun 715 vs. 13, PoleControl 640 vs. 4). From scratch it is no shortcut: the
+  whole tree took 65 min at -j2, because these are NOT skipped:
+  - `Definition`s and `Defined` terms, and `Eval vm_compute` inside a `Definition`
+    (`mario_anim_data` alone takes 9 min);
+  - any proof inside a `Section` that has no `Proof using` (coqc -vos cannot skip it; checked
+    on a toy). The `*Row.v` files, for example, still cost 5 min each;
+  - PositiveControl (25 min, 10.8 GB, cause unknown).
+
+  A `vm_compute` inside `Lemma … Qed` outside a Section IS skipped. `--vok X.vo` then checks
+  X's proofs against its deps' `.vos` files.
+- `SM64_VO_CACHE=$HOME/.cache/sm64-vo bash pipeline/build.sh -j2 proofs` shares compiled
+  outputs between worktrees. When a file's source, coqc flags, toolchain and dependency `.vo`
+  bytes all match an earlier successful compile, its `.vo`/`.glob` are copied in
+  (`[vo-cache] HIT`) instead of being rebuilt. Two worktrees compiling the same key at the same
+  time compile it once (`WAIT`). Use `--no-cache` to bypass it, and
+  `bash pipeline/vo_cache_gc.sh [GB]` to trim it (default 10 GB).
+- `discipline_check.sh` ignores `SM64_VO_CACHE` unless `DISC_USE_VO_CACHE=1` is set. It never
+  reads `.vos` files.
+
 ## Before claiming progress, answer
 
 - **What got more real?** Name the placeholder that became a generated-AST object, or the
