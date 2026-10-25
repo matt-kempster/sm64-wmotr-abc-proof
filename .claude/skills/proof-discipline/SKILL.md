@@ -115,6 +115,13 @@ all in `Unwired/`, and the theorem moved nowhere. See
   `bhv_red_coin_star_marker_init`); only the 2 `mario_misc.c` over-approximations lack a
   linked body. 2.2 picked values in the object TUs: none in the WMotR closure
   (`ub22_sites_not_live`). Counts unchanged (GOAL 1 8, HeightFrame 15 `Hypothesis` lines).
+  2026-10-25 OBJECTS S3 groundwork: `WMotRRequiresA/ObjStoreCensus.v` (spine-root, new file)
+  pins by vm every store / pointer argument of the 432 bodies a non-Mario slot runs whose
+  root is not the running object, a stack local or a parameter (TRUST "Object store
+  census"). FOUND: object code writes Mario (`gMarioStates`, via `gMarioState` /
+  `gMarioObject`, `set_mario_action` through `set_mario_npc_dialog`), so the S3 kW walker
+  needs per-entry contracts. `gcur_not_stored`: "o" is fixed for the update. Next: an
+  `ObjKit` class walker (UcKit-style, a kSelf class) consuming this census.
   2026-10-24 `UpdateCameraBody.update_camera_pres`: the REAL `update_camera(c)` (SafeB c) keeps
   `mem_ok`. 507 bodies (the whole recursive tree: `UcKit` two-mode class walker, `UcTable`
   signatures re-checked by vm), the 336 CameraEvent functions by type certificate. Wired as

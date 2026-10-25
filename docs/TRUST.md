@@ -773,6 +773,21 @@ without pressing A".*
   (`wmotr_live_natives_unlinked`): the unlock-door-star natives (`mario_misc.c`), census
   over-approximation. `bhv_red_coin_star_marker_init` (live in WMotR,
   `spawn_star.inc.c:145`) got its body when `obj_behaviors_2.c` was linked (TU 50).
+- **Object store census (2026-10-25, OBJECTS S3 groundwork, `ObjStoreCensus.v`):** the
+  code a non-Mario slot runs (`close2` of `cur_obj_update` and the live natives minus
+  `bhv_mario_update`; 432 bodies) is scanned for every store target and pointer call
+  argument, each resolved to a root block through the body's temps (union over all
+  definitions, least fixed point). Pinned by vm: `obj_census_value` (stores),
+  `obj_arg_census_value` (pointer arguments), `obj_store_roots_value`,
+  `obj_ptr_store_fns_value` (14 bodies that store through a pointer loaded from memory),
+  `gcur_not_stored` (no body stores `gCurrentObject`, so "o" is fixed for the whole update).
+  **FOUND: "a slot's script writes only its own object" is false as stated.** Besides the
+  allocator / spawn / surface-pool / audio / save / cutscene globals, object code writes
+  MARIO: `cur_obj_push_mario_away` (`gMarioStates`), `bhv_1up_interact` and
+  `set_mario_npc_dialog` (through `gMarioState`; the latter calls `set_mario_action`),
+  `opened_cannon_act_1` (`gMarioShotFromCannon`), and several bodies through
+  `gMarioObject`. The kW walker (S3) must therefore carry a per-entry contract, not a
+  blanket frame. A census, not a proof: no row or premise moved.
 
 ### Row 0.7 in detail
 
