@@ -75,6 +75,9 @@ python3 "$(dirname "$0")/canonicalize_anon.py" "$TMP"
 #   gPlayerSpawnInfos      0 -> 1      (definer: area.c, struct SpawnInfo[1];
 #                                       declared in mario.c, level_update.c;
 #                                       found when linking area.c, 2026-10-21)
+#   gDebugInfoOverwrite    0 -> 16     (definer: object_list_processor.c, s16[16][8];
+#                                       declared in debug.c; found when linking
+#                                       it, 2026-10-24)
 #   gObjectPool            0 -> 240    (definer: object_list_processor.c,
 #                                       struct Object[OBJECT_POOL_CAPACITY];
 #                                       declared in spawn_object.c; found when
@@ -87,6 +90,7 @@ TABLE = [
     ("gMarioStates", r"\(Tstruct _MarioState noattr\)", 1),
     ("gSineTable", r"tfloat", 5120),
     ("gDebugInfo", r"\(tarray tshort 8\)", 16),
+    ("gDebugInfoOverwrite", r"\(tarray tshort 8\)", 16),
     ("gDecompressionHeap", r"tuchar", 53248),
     ("gGfxSPTaskStack", r"tuchar", 1024),
     ("gGfxSPTaskYieldBuffer", r"tuchar", 3072),

@@ -105,6 +105,16 @@ all in `Unwired/`, and the theorem moved nowhere. See
   transitions have type (Camera*, f32*, f32*)->s32). Needed `sMarioCamState` and the two surface
   partitions in `CensusV2.camera_safe_syms` (SafeB_boot meets it). GOAL 1 13 -> 12,
   HeightFrame 20 -> 19 `Hypothesis` lines (TRUST 4.1).
+  2026-10-24 OBJECTS S1 (groundwork for the real `update_objects`): `spawn_sound.c`,
+  `debug.c`, `object_collision.c` linked as TUs 47-49 (45/46 and hud.c's 51 from master
+  spliced in). `RealFrameLinked.execute_mario_action_step_lp_any`: the frame's `Vptr b 0` argument
+  pin is no restriction (param unused, `Generic/UnusedParam`). `BehaviorScripts.all_tus` made
+  current; FOUND FALSE: the unconditional grab fact (the debug spawner spawns two grabbable
+  objects under its guard). Restated over the closure without that body; the guard is S2's
+  `obj_w`. `wmotr_live_natives` pinned (107). `obj_behaviors_2.c` is TU 50 (the live
+  `bhv_red_coin_star_marker_init`); only the 2 `mario_misc.c` over-approximations lack a
+  linked body. 2.2 picked values in the object TUs: none in the WMotR closure
+  (`ub22_sites_not_live`). Counts unchanged (GOAL 1 8, HeightFrame 15 `Hypothesis` lines).
   2026-10-24 `UpdateCameraBody.update_camera_pres`: the REAL `update_camera(c)` (SafeB c) keeps
   `mem_ok`. 507 bodies (the whole recursive tree: `UcKit` two-mode class walker, `UcTable`
   signatures re-checked by vm), the 336 CameraEvent functions by type certificate. Wired as

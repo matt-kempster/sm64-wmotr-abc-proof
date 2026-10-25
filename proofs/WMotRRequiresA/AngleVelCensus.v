@@ -128,10 +128,10 @@ Fixpoint scan (s : statement) : list ev :=
 with scan_ls (ls : labeled_statements) : list ev :=
   match ls with LSnil => nil | LScons _ a r => scan a ++ scan_ls r end.
 
-(* ---- the TUs: BehaviorScripts' object TUs plus the behavior interpreter
-   (behavior_script.c) and the collision loader (surface_load.c) ---- *)
-Definition tus2 : list (list (ident * globdef fundef type)) :=
-  all_tus ++ [behavior_script.global_definitions; surface_load.global_definitions].
+(* ---- the TUs: BehaviorScripts' object TUs, which since 2026-10-24 include
+   the behavior interpreter (behavior_script.c) and the collision loader
+   (surface_load.c); appending them again would count their bodies twice ---- *)
+Definition tus2 : list (list (ident * globdef fundef type)) := all_tus.
 
 Definition fns2 : PTree.t (list fn_entry) := fold_left add_fns tus2 (PTree.empty _).
 

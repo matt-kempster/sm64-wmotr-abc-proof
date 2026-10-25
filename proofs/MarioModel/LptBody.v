@@ -34,7 +34,8 @@ From SM64.Generated Require mario mario_actions_stationary mario_actions_moving
   behavior_data spawn_object surface_load macro_special_objects wmotr_level_data
   camera rendering_graph_node ingame_menu debug_course mario_anim_data
   audio_external sound_init print behavior_script obj_behaviors
-  platform_displacement libultra_osContStartReadData hud.
+  platform_displacement libultra_osContStartReadData
+  spawn_sound debug object_collision obj_behaviors_2 hud.
 From SM64.Proofs Require Import SymbolicLinking ActionValueFrame AGates Taint
   RealFrameLinked RealFrameValue CensusV2 MWFReal OsDmaFloor ActWriterSurface LinkedTwelve.
 From SM64.Proofs Require OutParamSurface RestSurface.
@@ -368,6 +369,14 @@ Proof. vm_compute. reflexivity. Qed.
 Lemma os_ni_libultra_osContStartReadData :
   no_internal_ids libultra_osContStartReadData.prog os_ids = true.
 Proof. vm_compute. reflexivity. Qed.
+Lemma os_ni_spawn_sound : no_internal_ids spawn_sound.prog os_ids = true.
+Proof. vm_compute. reflexivity. Qed.
+Lemma os_ni_debug : no_internal_ids debug.prog os_ids = true.
+Proof. vm_compute. reflexivity. Qed.
+Lemma os_ni_object_collision : no_internal_ids object_collision.prog os_ids = true.
+Proof. vm_compute. reflexivity. Qed.
+Lemma os_ni_obj_behaviors_2 : no_internal_ids obj_behaviors_2.prog os_ids = true.
+Proof. vm_compute. reflexivity. Qed.
 Lemma os_ni_hud : no_internal_ids hud.prog os_ids = true.
 Proof. vm_compute. reflexivity. Qed.
 
@@ -543,7 +552,7 @@ Section LptFrame.
       destruct (link_chain_internal_origin _ _ _ _ _ Hlink Hdm')
         as [Hbase | (q & Hq & Hqdm)].
       + exact (no_internal_ids_correct _ _ _ _ os_ni_mario Hid Hbase).
-      + destruct Hq as [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | []]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]].
+      + destruct Hq as [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | []]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]].
         * exact (no_internal_ids_correct _ _ _ _ os_ni_sta Hid Hqdm).
         * exact (no_internal_ids_correct _ _ _ _ os_ni_mov Hid Hqdm).
         * exact (no_internal_ids_correct _ _ _ _ os_ni_air Hid Hqdm).
@@ -589,6 +598,10 @@ Section LptFrame.
         * exact (no_internal_ids_correct _ _ _ _ os_ni_obj_behaviors Hid Hqdm).
         * exact (no_internal_ids_correct _ _ _ _ os_ni_platform_displacement Hid Hqdm).
         * exact (no_internal_ids_correct _ _ _ _ os_ni_libultra_osContStartReadData Hid Hqdm).
+        * exact (no_internal_ids_correct _ _ _ _ os_ni_spawn_sound Hid Hqdm).
+        * exact (no_internal_ids_correct _ _ _ _ os_ni_debug Hid Hqdm).
+        * exact (no_internal_ids_correct _ _ _ _ os_ni_object_collision Hid Hqdm).
+        * exact (no_internal_ids_correct _ _ _ _ os_ni_obj_behaviors_2 Hid Hqdm).
         * exact (no_internal_ids_correct _ _ _ _ os_ni_hud Hid Hqdm).
   Qed.
 
