@@ -822,6 +822,21 @@ without pressing A".*
   `opened_cannon_act_1` (`gMarioShotFromCannon`), and several bodies through
   `gMarioObject`. The kW walker (S3) must therefore carry a per-entry contract, not a
   blanket frame. A census, not a proof: no row or premise moved.
+- **ObjKit (2026-10-25, OBJECTS S3, `ObjKit.v` + generated `ObjTable.v`):** UcKit's class
+  walker run over the object slot's code: 387 bodies (the VM command functions, 104 of the
+  107 live natives, their direct callees across 19 TUs), each re-checked against the
+  generated AST by one vm sweep (`ot_walk_ok`). `obj_body_pres`: every walked nullary body
+  keeps `ow_facts` (mem_ok). Premises: the FPU floor (3.5) and the audio premise `Hls`
+  (4.1) as GOAL 1 carries them; `Hgs` (every linked variable outside `non_safeb_syms` is
+  SafeB; met by any `SafeB_wit`-shaped SafeB, `obj_gs_safe_wit`); and `Hopen`, five OPEN
+  leaves to discharge, each a named sub-contract: `cur_obj_push_mario_away` (Mario pos[0]/
+  pos[2]), `bhv_1up_interact` (numLives via gMarioState), `start_object_cutscene`
+  (gCutsceneFocus := the object), `cur_obj_update_floor` (a floor pointer read back out of
+  a local out cell, which the class walk sees as kW), `cur_obj_call_action_function`
+  (indirect call through a writable action table). Not yet walked: `cur_obj_update`
+  (dispatch through the writable `BehaviorCmdTable`) and `bhv_cmd_call_native` (through
+  the script pointer): they need S2's script-pointer row. Not wired into a capstone yet,
+  so no row moved; no new trust.
 
 ### Row 0.7 in detail
 

@@ -122,6 +122,13 @@ all in `Unwired/`, and the theorem moved nowhere. See
   `gMarioObject`, `set_mario_action` through `set_mario_npc_dialog`), so the S3 kW walker
   needs per-entry contracts. `gcur_not_stored`: "o" is fixed for the update. Next: an
   `ObjKit` class walker (UcKit-style, a kSelf class) consuming this census.
+  2026-10-25 `ObjKit.v` / `ObjTable.v` (spine-root): UcKit's walker over 387 object bodies,
+  `obj_body_pres` (mem_ok kept by every walked nullary body: 104/107 live natives + the VM
+  commands). Open: `Hopen`'s 5 leaves (push_mario_away, 1up_interact, start_object_cutscene,
+  cur_obj_update_floor, cur_obj_call_action_function), then cur_obj_update / call_native
+  (need the script-pointer row), then the frame (writes only SafeB / fresh / non-MWF
+  globals / listed Mario cells). Regenerate ObjTable from the scratch probe (sig inference
+  to a fixpoint, then `uchk`), never by hand.
   2026-10-24 `UpdateCameraBody.update_camera_pres`: the REAL `update_camera(c)` (SafeB c) keeps
   `mem_ok`. 507 bodies (the whole recursive tree: `UcKit` two-mode class walker, `UcTable`
   signatures re-checked by vm), the 336 CameraEvent functions by type certificate. Wired as
