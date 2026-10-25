@@ -329,6 +329,7 @@ proofs/WMotRRequiresA/ObjStoreCensus.v
 proofs/WMotRRequiresA/ObjTable.v
 proofs/WMotRRequiresA/ObjKit.v
 proofs/WMotRRequiresA/ObjWalk.v
+proofs/WMotRRequiresA/NpcFrame.v
 proofs/WMotRRequiresA/ObjFrame.v
 proofs/WMotRRequiresA/CoinLink.v
 
