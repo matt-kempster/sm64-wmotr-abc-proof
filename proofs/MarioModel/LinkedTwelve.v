@@ -60,6 +60,7 @@ From SM64.Generated Require mario mario_actions_stationary
   behavior_data spawn_object surface_load macro_special_objects wmotr_level_data
   camera rendering_graph_node ingame_menu debug_course mario_anim_data
   audio_external sound_init print behavior_script obj_behaviors
+  platform_displacement libultra_osContStartReadData
   spawn_sound debug object_collision obj_behaviors_2.
 From SM64.Proofs Require Import SymbolicLinking CensusV2 RealFrameLinked
   EngineV2Consumer RestSurface.
@@ -194,18 +195,25 @@ Fixpoint link_chain (p : Clight.program) (l : list Clight.program)
    calls random_float, and interaction.c's pss_end_slide calls
    spawn_default_star; both now resolve to their real bodies (MenuBodies,
    SpawnStarBody).
+   platform_displacement (game/platform_displacement.c) is the 45th
+   (2026-10-23): HeightFrame's seg_platform is the real
+   apply_mario_platform_displacement (PlatformKeep).
+   libultra_osContStartReadData (libultra osContStartReadData.c) is the 46th
+   (2026-10-23): the controller poll.  game_init.c's read_controller_inputs
+   calls osContGetReadData, and the game loop osContStartReadData; both now
+   resolve to their real bodies (PollFlank), and the TU defines the real
+   storage of the PIF RAM image __osContPifRam that the SI DMA fills.
+
    spawn_sound (game/spawn_sound.c), debug (game/debug.c) and
    object_collision (game/object_collision.c) are TUs 47, 48, 49
    (2026-10-24, OBJECTS phase S1): the object sound helpers, the debug-info
    storage (sDebugPage, ...) and helpers, and detect_object_collisions --
-   what update_objects and the live WMotR natives call.  NUMBERING: TUs 45
-   (platform_displacement.c) and 46 (libultra osContStartReadData) are
-   linked on other branches; on merge they are spliced in right after
-   obj_behaviors (here the list jumps 44 -> 47).
+   what update_objects and the live WMotR natives call.
    obj_behaviors_2 (game/obj_behaviors_2.c) is TU 50 (2026-10-24): the
    live WMotR native bhv_red_coin_star_marker_init (reds_star_marker.inc.c;
    bhv_hidden_red_coin_star_init spawns bhvRedCoinStarMarker) and the
-   obj_behaviors_2 helpers the object natives share. *)
+   obj_behaviors_2 helpers the object natives share.
+   (TU 51 is reserved for hud.c, another branch.) *)
 Definition tu_rest : list Clight.program :=
   [ mario_actions_stationary.prog;
     mario_actions_moving.prog;
@@ -250,7 +258,8 @@ Definition tu_rest : list Clight.program :=
     print.prog;
     behavior_script.prog;
     obj_behaviors.prog;
-    (* TUs 45, 46 go here on merge (see above) *)
+    platform_displacement.prog;
+    libultra_osContStartReadData.prog;
     spawn_sound.prog;
     debug.prog;
     object_collision.prog;
@@ -450,21 +459,29 @@ Section Linked12LO.
   Proof.
     exact (link_chain_linkorder_in _ _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_eq _ _))))))))))))))))))))))))))))))))))))))))))) H12).
   Qed.
-  Lemma linked12_LO_spawn_sound : linkorder spawn_sound.prog lp.
+  Lemma linked12_LO_platform_displacement : linkorder platform_displacement.prog lp.
   Proof.
     exact (link_chain_linkorder_in _ _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_eq _ _)))))))))))))))))))))))))))))))))))))))))))) H12).
   Qed.
-  Lemma linked12_LO_debug : linkorder debug.prog lp.
+  Lemma linked12_LO_libultra_osContStartReadData : linkorder libultra_osContStartReadData.prog lp.
   Proof.
     exact (link_chain_linkorder_in _ _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_eq _ _))))))))))))))))))))))))))))))))))))))))))))) H12).
   Qed.
-  Lemma linked12_LO_object_collision : linkorder object_collision.prog lp.
+  Lemma linked12_LO_spawn_sound : linkorder spawn_sound.prog lp.
   Proof.
     exact (link_chain_linkorder_in _ _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_eq _ _)))))))))))))))))))))))))))))))))))))))))))))) H12).
   Qed.
-  Lemma linked12_LO_obj_behaviors_2 : linkorder obj_behaviors_2.prog lp.
+  Lemma linked12_LO_debug : linkorder debug.prog lp.
   Proof.
     exact (link_chain_linkorder_in _ _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_eq _ _))))))))))))))))))))))))))))))))))))))))))))))) H12).
+  Qed.
+  Lemma linked12_LO_object_collision : linkorder object_collision.prog lp.
+  Proof.
+    exact (link_chain_linkorder_in _ _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_eq _ _)))))))))))))))))))))))))))))))))))))))))))))))) H12).
+  Qed.
+  Lemma linked12_LO_obj_behaviors_2 : linkorder obj_behaviors_2.prog lp.
+  Proof.
+    exact (link_chain_linkorder_in _ _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_eq _ _))))))))))))))))))))))))))))))))))))))))))))))))) H12).
   Qed.
   Lemma linked12_LO_behavior_data : linkorder behavior_data.prog lp.
   Proof.
@@ -770,6 +787,12 @@ Proof. vm_compute. reflexivity. Qed.
 Lemma no_internal_obj_behaviors :
   no_internal_ids obj_behaviors.prog truly_ext_pin_ids = true.
 Proof. vm_compute. reflexivity. Qed.
+Lemma no_internal_platform_displacement :
+  no_internal_ids platform_displacement.prog truly_ext_pin_ids = true.
+Proof. vm_compute. reflexivity. Qed.
+Lemma no_internal_libultra_osContStartReadData :
+  no_internal_ids libultra_osContStartReadData.prog truly_ext_pin_ids = true.
+Proof. vm_compute. reflexivity. Qed.
 Lemma no_internal_spawn_sound :
   no_internal_ids spawn_sound.prog truly_ext_pin_ids = true.
 Proof. vm_compute. reflexivity. Qed.
@@ -811,7 +834,7 @@ Proof.
   destruct (link_chain_internal_origin _ _ _ _ _ H12 Hres)
     as [Hbase | (q & Hq & Hqdm)].
   - exact (no_internal_ids_correct _ _ _ _ no_internal_mario Hmem Hbase).
-  - destruct Hq as [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | []]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]].
+  - destruct Hq as [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | []]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]].
     + exact (no_internal_ids_correct _ _ _ _ no_internal_sta Hmem Hqdm).
     + exact (no_internal_ids_correct _ _ _ _ no_internal_mov Hmem Hqdm).
     + exact (no_internal_ids_correct _ _ _ _ no_internal_air Hmem Hqdm).
@@ -855,6 +878,8 @@ Proof.
     + exact (no_internal_ids_correct _ _ _ _ no_internal_print Hmem Hqdm).
     + exact (no_internal_ids_correct _ _ _ _ no_internal_behavior_script Hmem Hqdm).
     + exact (no_internal_ids_correct _ _ _ _ no_internal_obj_behaviors Hmem Hqdm).
+    + exact (no_internal_ids_correct _ _ _ _ no_internal_platform_displacement Hmem Hqdm).
+    + exact (no_internal_ids_correct _ _ _ _ no_internal_libultra_osContStartReadData Hmem Hqdm).
     + exact (no_internal_ids_correct _ _ _ _ no_internal_spawn_sound Hmem Hqdm).
     + exact (no_internal_ids_correct _ _ _ _ no_internal_debug Hmem Hqdm).
     + exact (no_internal_ids_correct _ _ _ _ no_internal_object_collision Hmem Hqdm).

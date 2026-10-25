@@ -57,7 +57,8 @@ GEN = os.path.join(ROOT, 'generated')
 ROOTS = ['execute_mario_action', 'init_mario_from_save_file', 'init_mario',
          'set_mario_initial_action', 'initiate_warp', 'warp_level',
          'get_mario_spawn_type', 'alloc_surface_pools', 'load_area_terrain',
-         'clear_dynamic_surfaces', 'load_object_collision_model']
+         'clear_dynamic_surfaces', 'load_object_collision_model',
+         'apply_mario_platform_displacement']
 
 # the game thread (game_init.c:643): setup_game_memory (the anim / demo DMA
 # tables), init_controllers, and the per-frame loop (render, controller poll)

@@ -106,8 +106,8 @@ all in `Unwired/`, and the theorem moved nowhere. See
   partitions in `CensusV2.camera_safe_syms` (SafeB_boot meets it). GOAL 1 13 -> 12,
   HeightFrame 20 -> 19 `Hypothesis` lines (TRUST 4.1).
   2026-10-24 OBJECTS S1 (groundwork for the real `update_objects`): `spawn_sound.c`,
-  `debug.c`, `object_collision.c` linked as TUs 47-49 (45/46 are on other branches; splice on
-  merge). `RealFrameLinked.execute_mario_action_step_lp_any`: the frame's `Vptr b 0` argument
+  `debug.c`, `object_collision.c` linked as TUs 47-49 (45/46 from master spliced in; 51 reserved
+  for hud.c). `RealFrameLinked.execute_mario_action_step_lp_any`: the frame's `Vptr b 0` argument
   pin is no restriction (param unused, `Generic/UnusedParam`). `BehaviorScripts.all_tus` made
   current; FOUND FALSE: the unconditional grab fact (the debug spawner spawns two grabbable
   objects under its guard). Restated over the closure without that body; the guard is S2's
@@ -260,7 +260,20 @@ all in `Unwired/`, and the theorem moved nowhere. See
     so INPUT_SQUISHED can join the carried input mask when the dispatcher is walked.
   - The **automatic dispatcher** (`mario_execute_automatic_action`) is SPLIT (2026-10-21,
     `AutoSplit.aut_seg`, TRUST (i)-(j)). `Hseg_call_na` is now `seg_call_rows_naFA`, which
-    excludes both dispatchers. The prologue call is in `Hair_pro`. The
+    excludes both dispatchers. Since 2026-10-23 (`NaSplit`, TRUST 0.8(q)) it is a LEMMA over
+    `HeightFrame.Hseg_na_open : na_open_rows`, which has 10 named per-call rows. Five calls
+    are proved: submerged-cam (dead outside group 0xC0), `update_mario_health` (a walk inside
+    `ProRows`' hole), the submerged dispatcher (vacuous under `grp_ok`), and (2026-10-24)
+    `mario_reset_bodystate` / `update_mario_info_for_cam`. For those two, `ffw` now pins
+    `m->marioBodyState = &gBodyStates[0]`, and gBodyStates is ff_rl region `RBS`; a pin alone
+    is not enough, because the walk regions must exclude it. `ProRows`' hole is generic over
+    `XIDS`, and `BodyFrame.Q2` allows freed callee frames (vec3*_copy, `v3_frame`). Dispatcher pres
+    now carry `FrameSplit.grp_ok`: the action's group equals the case label, proved at the
+    real switch. NEXT: shrink `na_open` one call at a time. hitbox_and_cap also stores through
+    `marioBodyState` but calls `stop_cap_music`. update_mario_inputs needs pins on
+    `gEnvironmentRegions`, `gShowDebugText` and `gCameraMovementFlags`, plus the collision
+    finders. quicksand needs a pin on `gfx.throwMatrix` (and gfx.pos[1] is Phi's cell). squish
+    needs an object-side hole for `gfx.scale` (§7). The prologue call is in `Hair_pro`. The
     `quicksandDepth = 0` store is proved (the `qsd_*` lemmas). What stays assumed is the
     12 handler calls, `HeightFrame.Hauto_case : aut_case_rows` (27 → 28 hypotheses).
     Shrink it per case as walks land, as `air_case_rest*` did. Its audit on 2026-10-21
@@ -307,7 +320,37 @@ all in `Unwired/`, and the theorem moved nowhere. See
     PoleSlow/Fast/Hold/Climb are retired. Walker trap: a clamped polePos folds
     oPosY + 720.0f to a constant, so `PoleClass.tb` has a constant + offset case.
   - (`wmotr_gap` and `wmotr_poles` are now proved from generated level data, `WMotRLevel.v`)
-  - the flank specs (TRUST 0.7)
+  - the flank specs (TRUST 0.7): level phase, objects. Mario's render call and
+    `apply_mario_platform_displacement` (platform_displacement.c, TU 45) are REAL calls whose
+    GOAL-1 and Φ carries are proved (`RenderKeep.render_keeps_phiw`, `PlatformKeep`, 2026-10-23);
+    they state only narrow premises: `surf_apart` (Mario's surfaces not in a written global's block)
+    and `plat_still` (the ridden platform is NULL or has zero angle velocity; FOUND: a rotating
+    platform moves pos[1], so the old "y unchanged" platform spec was false of the real body).
+    Since 2026-10-24 `plat_still` is no longer a step premise: it is TRUE in WMotR (only the !
+    boxes and cannon lids own surfaces; `AngleVelCensus` finds no angle-velocity store on them),
+    proved at the boot witness (`StartSat.plat11`), and carried as the last clause of the labeled
+    objects spec `seg_rest_spec`. `frame_step` now also has idle frames (no Mario update:
+    pause, transitions, time stop). The cannon seat list is every home seat + 5k, k = 0..69
+    (the base rises with Mario inside; the exact-home clause was FALSE), and lid floor ranges
+    are widened 15 down (an opening lid sinks). `lvl_w` also carries `FfWorld.warp_w` (no
+    pending same-level warp in NORMAL mode, no demo / credits, delayed-warp source node
+    F0/F1/F3), which the level-phase spec needed (phantom ∀); the witness now ends with the
+    real `sWarpDest.type = NOT_WARPING` store.
+    The controller poll is REAL since 2026-10-23
+    (`PollFlank.v`, libultra `osContStartReadData.c` linked as TU 46): `seg_input_spec m i m0` is the real
+    `osContStartReadData` (or no request) then the real `read_controller_inputs`, walked down to the
+    existing OS/SI floor (`si_raw_dma_spec`, `recv_mesg_spec`) and `sqrtf_spec` -- NO new floor row.
+    The capstone's no-A premise is now `PollFlank.pif_a_real` on the PIF reply bytes (TRUST 0.1);
+    `a_used_real` is a proved conclusion (`poll_ok`). FOUND: `__osPackReadData` puts 0xFFFF in the
+    request's button word, so an unplugged port reads "A" -- the premise ignores ports with error
+    bits (`rxLen & 0xC0`), as osContGetReadData does. Open in the spec: the two calls' adjacency
+    (audio_game_loop_tick / select_gfx_pool run between) and the Phi carries (the m0 one
+    conditional on `ctl_w`). `ctl_w` gained P1 / P3 / demo-NULL / maxctl / controllerData clauses
+    (StartSat proves them at the start); `stored_globals` gained gControllerPads, __osContPifRam.
+    HeightFrame `Hypothesis` lines 19 -> 21 (unchanged by the plat_still merge): generic-section rows
+    `Hsrd_ok` / `Hpoll_ok`, both DISCHARGED in HeightLinked12 (`srd_ok_linked12`,
+    `poll_ok_linked12`); the linked section has 11. The poll spec also states (labeled) that it
+    keeps `plat_still` (master's spec had it as an assumed conjunct too).
 
   The coin link is also open.
 - `docs/TRUST.md` is the ledger of everything a reader must believe. Read

@@ -45,8 +45,8 @@ From Flocq Require Import Binary.
 From compcert Require Import Coqlib Maps AST Integers Floats Values Memory
   Globalenvs Ctypes Clight ClightBigstep Events Linking.
 From SM64.Generated Require mario level_update interaction mario_actions_moving
-  surface_collision memory game_init object_list_processor area surface_load camera
-  graph_node rendering_graph_node mario_anim_data audio_external sound_init.
+  surface_collision memory game_init object_list_processor area surface_load camera platform_displacement
+  graph_node rendering_graph_node mario_anim_data audio_external sound_init libultra_osContInit.
 From SM64.Proofs Require Import RealFrameLinked ActionValueFrame Taint CensusV2 MWFReal SpawnInit
   LinkedTwelve InitMemSat BootMWF NoAImpliesNoFlyLinked ClosedMem.
 From SM64.Proofs.WMotRRequiresA Require Import HeightInvariant NoAActions WMotRWorld
@@ -54,9 +54,9 @@ From SM64.Proofs.WMotRRequiresA Require Import HeightInvariant NoAActions WMotRW
   EntryWarp WMotRLevel.
 From SM64.Proofs Require Import Interp.ClightInterp Interp.MemBuild Interp.InterpFrame.
 From SM64.Proofs.WMotRRequiresA Require Import FpuFloor FpuValue TerrainRun StartTerrain.
-From SM64.Proofs.WMotRRequiresA Require CourseRun AnimData AnimWorld.
+From SM64.Proofs.WMotRRequiresA Require CourseRun AnimData AnimWorld PlatformKeep.
 From SM64.Proofs.NoAImpliesNoFly Require BootRun.
-From SM64.Proofs Require AGates.
+From SM64.Proofs Require AGates LinkedTwelve InitMemSat.
 Import ListNotations.
 Arguments Done {A}.
 Arguments Stuck {A}.
@@ -127,7 +127,13 @@ Qed.
 Definition zero_ids : list ident :=
   [ level_update._gMarioStates; object_list_processor._gObjectPool;
     surface_collision._gStaticSurfacePartition;
-    surface_collision._gDynamicSurfacePartition ].
+    surface_collision._gDynamicSurfacePartition;
+    (* the controller pads (game_init.c; PollFlank's ctl_w at the start) *)
+    game_init._gControllerPads;
+    (* osContInit.c's __osMaxControllers: 0 at boot (osContInit sets 4) *)
+    libultra_osContInit.___osMaxControllers;
+    (* gControllers (game_init.c): .bss *)
+    mario._gControllers ].
 
 Definition tu_zero_ok (q : Clight.program) : bool :=
   forallb (fun id => match (prog_defmap q) ! id with
@@ -577,14 +583,15 @@ Section Witness.
        function writes on the boot image: StartTerrain.ifs_ok), the area's
        terrainType (WMotR's TERRAIN_TYPE), the DMA table's count and the
        anim buffer's header *)
-    Variables (bsi bpcs bbs bhud bC bga : block)
-      (z1 z2 z3 z4 z5 z6 z7 z8 z9 z10a z10 z11 z12 z13 z14 z15 z16 : mem).
+    Variables (bsi bpcs bbs bhud bC bga bpads : block)
+      (z1 z2 z3 z4 z5 z6 z7 z8 z9 z10a z10 z11 z12 z13 z14 z15 z16 z17 z18 : mem).
     Hypothesis Hsi : sym (lp_ge lp) "gPlayerSpawnInfos"%string = Some bsi.
     Hypothesis Hpcs : sym (lp_ge lp) "gPlayerCameraState"%string = Some bpcs.
     Hypothesis Hbbs : sym (lp_ge lp) "gBodyStates"%string = Some bbs.
     Hypothesis Hhud : sym (lp_ge lp) "gHudDisplay"%string = Some bhud.
     Hypothesis HcC : Genv.find_symbol (lp_ge lp) level_update._gCurrCourseNum = Some bC.
     Hypothesis Hga : Genv.find_symbol (lp_ge lp) game_init._gMarioAnims = Some bga.
+    Hypothesis Hpads : Genv.find_symbol (lp_ge lp) game_init._gControllerPads = Some bpads.
     Hypothesis Z1 : Mem.store Mint32 ms bm 140 (Vptr bsi Ptrofs.zero) = Some z1.
     Hypothesis Z2 : Mem.store Mint32 z1 bm 148 (Vptr bpcs Ptrofs.zero) = Some z2.
     Hypothesis Z3 : Mem.store Mint32 z2 bm 152 (Vptr bbs Ptrofs.zero) = Some z3.
@@ -607,7 +614,13 @@ Section Witness.
     Hypothesis Z16 : Mem.store Mint32 z15 bt 20 (Vint Int.zero) = Some z16.
     (* gCurrCourseNum := COURSE_WMOTR (course_set: the real
        lvl_set_current_level stores exactly this) *)
-    Hypothesis Z17 : Mem.store Mint16signed z16 bC 0 (Vint (Int.repr CourseRun.COURSE_WMOTR)) = Some m11.
+    Hypothesis Z17 : Mem.store Mint16signed z16 bC 0 (Vint (Int.repr CourseRun.COURSE_WMOTR)) = Some z17.
+    (* gControllers[0].controllerData := &gControllerPads[0] (the real
+       init_controllers' store at boot, port 0 plugged in) *)
+    Hypothesis ZC : Mem.store Mint32 z17 bc 24 (Vptr bpads Ptrofs.zero) = Some z18.
+    (* sWarpDest.type := WARP_TYPE_NOT_WARPING: init_mario_after_warp's last
+       store (level_update.c:397), which ends warp_level (2026-10-24) *)
+    Hypothesis Z18 : Mem.store Mint8unsigned z18 bw 0 (Vint Int.zero) = Some m11.
     (* the list checks on the witness itself *)
     Hypothesis WP : wff_parts WFUEL (lp_ge lp) bpl m11 = true.
     Hypothesis PO : parts_ok WFUEL (lp_ge lp) m11 = true.
@@ -666,7 +679,7 @@ Section Witness.
         (Mem.nextblock_alloc _ _ _ _ _ A3), (Mem.nextblock_alloc _ _ _ _ _ A2),
         (Mem.nextblock_alloc _ _ _ _ _ A1). reflexivity.
     Qed.
-    Ltac znb := rewrite (Mem.nextblock_store _ _ _ _ _ _ Z17), (Mem.nextblock_store _ _ _ _ _ _ Z16), (Mem.nextblock_store _ _ _ _ _ _ Z15),
+    Ltac znb := rewrite (Mem.nextblock_store _ _ _ _ _ _ Z18), (Mem.nextblock_store _ _ _ _ _ _ ZC), (Mem.nextblock_store _ _ _ _ _ _ Z17), (Mem.nextblock_store _ _ _ _ _ _ Z16), (Mem.nextblock_store _ _ _ _ _ _ Z15),
         (Mem.nextblock_store _ _ _ _ _ _ Z14), (Mem.nextblock_store _ _ _ _ _ _ Z13),
         (Mem.nextblock_store _ _ _ _ _ _ Z12), (Mem.nextblock_store _ _ _ _ _ _ Z11),
         (Mem.nextblock_store _ _ _ _ _ _ Z10), (Mem.nextblock_store _ _ _ _ _ _ Z10a), (apply_writes_nb _ _ _ _ Z9),
@@ -806,13 +819,14 @@ Section Witness.
       /\ (b = ab -> 8 <= z /\ (z + size_chunk ch <= 8 \/ 12 <= z))
       /\ (b = bhud -> z + size_chunk ch <= 6 \/ 8 <= z)
       /\ (b = bo -> z + size_chunk ch <= 36 \/ 40 <= z)
-      /\ b <> bw /\ b <> bL /\ inFb (lp_ge lp) b = false /\ b <> bC.
+      /\ b <> bw /\ b <> bL /\ inFb (lp_ge lp) b = false /\ b <> bC
+      /\ (b = bc -> z + size_chunk ch <= 24 \/ 28 <= z).
 
     Lemma ld_back : forall ch b z, Mem.valid_block m0 b -> untouched ch b z ->
         Mem.load ch m11 b z = Mem.load ch m0 b z.
     Proof.
       intros ch b z Hv U.
-      destruct U as (Nbs & Ubm & Uab & Uhud & Ubo & Nbw & NbL & Nf & NbC).
+      destruct U as (Nbs & Ubm & Uab & Uhud & Ubo & Nbw & NbL & Nf & NbC & Nbc).
       assert (Nbt : b <> bt) by (intro E; subst b; exact (Plt_strict _ (Plt_Ple_trans _ _ _ Hv (fresh_ge _ (or_introl eq_refl))))).
       assert (Nbar : b <> bar) by (intro E; subst b; exact (Plt_strict _ (Plt_Ple_trans _ _ _ Hv (fresh_ge _ (or_intror (or_intror eq_refl)))))).
       assert (Nbd : b <> bd) by (intro E; subst b; exact (Plt_strict _ (Plt_Ple_trans _ _ _ Hv bd_ge))).
@@ -824,6 +838,10 @@ Section Witness.
       { destruct (peq b ab) as [E | N]; [ right; right; pose proof (proj1 (Uab E)); lia | left; exact N ]. }
       assert (Khud : b <> bhud \/ z + size_chunk ch <= 6 \/ 6 + 2 <= z).
       { destruct (peq b bhud) as [E | N]; [ right; destruct (Uhud E); [ left | right ]; lia | left; exact N ]. }
+      rewrite (Mem.load_store_other _ _ _ _ _ _ Z18) by (left; exact Nbw).
+      rewrite (Mem.load_store_other _ _ _ _ _ _ ZC)
+        by (destruct (peq b bc) as [E | N];
+            [ right; cbn [size_chunk]; destruct (Nbc E); [ left | right ]; lia | left; exact N ]).
       rewrite (Mem.load_store_other _ _ _ _ _ _ Z17) by (left; exact NbC).
       rewrite (Mem.load_store_other _ _ _ _ _ _ Z16) by (left; congruence).
       rewrite (Mem.load_store_other _ _ _ _ _ _ Z15) by (left; congruence).
@@ -1202,7 +1220,19 @@ Section Witness.
         by (eapply (mwf_real_chase lp) with (mm := z15) (bsafe := bt); try eassumption; apply NP).
       assert (SC : SBw bC).
       { right. exists level_update._gCurrCourseNum. split; [ left; vm_compute; reflexivity | exact HcC ]. }
-      eapply (mwf_real_chase lp) with (mm := z16) (bsafe := bC); try eassumption; apply NP.
+      assert (Mz17 : MWF_real lp bm bc Ptrofs.zero SBw z17)
+        by (eapply (mwf_real_chase lp) with (mm := z16) (bsafe := bC); try eassumption; apply NP).
+      (* gControllers[0].controllerData: the controller block, off
+         buttonPressed (18) *)
+      assert (Mz18 : MWF_real lp bm bc Ptrofs.zero SBw z18).
+      { eapply (mwf_real_bc_store lp) with (mm := z17) (mm' := z18); try eassumption.
+      intros v Hl. pose proof Mz17 as (_ & _ & _ & R3 & _). apply R3.
+      rewrite <- Hl. symmetry. apply (Mem.load_store_other _ _ _ _ _ _ ZC). right. left.
+      change (Ptrofs.unsigned (Ptrofs.add Ptrofs.zero (Ptrofs.repr 18))) with 18.
+      cbn [size_chunk]. lia. }
+      assert (SW : SBw bw).
+      { right. exists level_update._sWarpDest. split; [ left; vm_compute; reflexivity | exact Hbw ]. }
+      eapply (mwf_real_chase lp) with (mm := z18) (bsafe := bw); try eassumption; apply NP.
     Qed.
 
     (* ---- the facts PhiW reads ---- *)
@@ -1229,7 +1259,7 @@ Section Witness.
       split; [ exact (symne lp _ _ _ _ Hbm Hbw eq_refl) | ].
       split; [ exact (symne lp _ _ _ _ Hbm HbL eq_refl) | ].
       split; [ exact (inFb_sym_false _ _ _ Hbm ltac:(vm_compute; reflexivity)) | ].
-      exact (symne lp _ _ _ _ Hbm HcC eq_refl).
+      split; [ exact (symne lp _ _ _ _ Hbm HcC eq_refl) | intros E; exfalso; exact (symne lp _ _ _ _ Hbm Hbc eq_refl E) ].
     Qed.
     Lemma bs_bo : bs <> bo.
     Proof. intro E. exact (sym_ne_fresh _ _ _ Hbo (or_intror (or_introl eq_refl)) (eq_sym E)). Qed.
@@ -1244,7 +1274,7 @@ Section Witness.
       split; [ exact (symne lp _ _ _ _ Hbo Hbw eq_refl) | ].
       split; [ exact (symne lp _ _ _ _ Hbo HbL eq_refl) | ].
       split; [ exact (inFb_sym_false _ _ _ Hbo ltac:(vm_compute; reflexivity)) | ].
-      exact (symne lp _ _ _ _ Hbo HcC eq_refl).
+      split; [ exact (symne lp _ _ _ _ Hbo HcC eq_refl) | intros E; exfalso; exact (symne lp _ _ _ _ Hbo Hbc eq_refl E) ].
     Qed.
 
     Ltac cells := intros d Hd; cbn [cells_bm In] in Hd;
@@ -1307,7 +1337,7 @@ Section Witness.
     Ltac peelW := rewrite (apply_writes_other _ _ _ _ _ _ _ Z9)
       by (let w := fresh "w" in let Hw := fresh "Hw" in
           intros w Hw; rewrite (proj1 (proj2 (tab_writes_shape _ _ _ _ Hw))); dz).
-    Ltac peelZ := peel2 Z17; peel2 Z16; peel2 Z15; peel2 Z14; peel2 Z13; peel2 Z12; peel2 Z11; peel2 Z10;
+    Ltac peelZ := peel2 Z18; peel2 ZC; peel2 Z17; peel2 Z16; peel2 Z15; peel2 Z14; peel2 Z13; peel2 Z12; peel2 Z11; peel2 Z10;
       peel2 Z10a; peelW; peel2 Z8; peel2 Z7; peel2 Z6; peel2 Z5; peel2 Z4; peel2 Z3; peel2 Z2; peel2 Z1.
 
     Lemma L_act : Mem.load Mint32 m11 bm 12 = Some (Vint ACT_SPAWN_NO_SPIN_AIRBORNE).
@@ -1343,9 +1373,16 @@ Section Witness.
     (* m->statusForCamera = &gPlayerCameraState[0] (init_mario_from_save_file) *)
     Lemma L_pcs : Mem.load Mint32 m11 bm 148 = Some (Vptr bpcs Ptrofs.zero).
     Proof.
-      peel2 Z17; peel2 Z16; peel2 Z15; peel2 Z14; peel2 Z13; peel2 Z12; peel2 Z11; peel2 Z10;
+      peel2 Z18; peel2 ZC; peel2 Z17; peel2 Z16; peel2 Z15; peel2 Z14; peel2 Z13; peel2 Z12; peel2 Z11; peel2 Z10;
       peel2 Z10a; peelW; peel2 Z8; peel2 Z7; peel2 Z6; peel2 Z5; peel2 Z4; peel2 Z3.
       rewrite (Mem.load_store_same _ _ _ _ _ _ Z2). reflexivity.
+    Qed.
+    (* m->marioBodyState = &gBodyStates[0] (init_mario_from_save_file) *)
+    Lemma L_body : Mem.load Mint32 m11 bm 152 = Some (Vptr bbs Ptrofs.zero).
+    Proof.
+      peel2 Z18; peel2 ZC; peel2 Z17; peel2 Z16; peel2 Z15; peel2 Z14; peel2 Z13; peel2 Z12; peel2 Z11; peel2 Z10;
+      peel2 Z10a; peelW; peel2 Z8; peel2 Z7; peel2 Z6; peel2 Z5; peel2 Z4.
+      rewrite (Mem.load_store_same _ _ _ _ _ _ Z3). reflexivity.
     Qed.
     Lemma L_buf : Mem.load Mint32 m11 ab 8 = Some (Vptr bt Ptrofs.zero).
     Proof. peelZ. rewrite (Mem.load_store_same _ _ _ _ _ _ S8). reflexivity. Qed.
@@ -1587,7 +1624,11 @@ Section Witness.
       pose proof (Mem.store_inject_neutral _ _ _ _ _ _ _ Z15 W14 Lbt (Val.inject_int _ _)) as W15.
       pose proof (Mem.store_inject_neutral _ _ _ _ _ _ _ Z16 W15 Lbt (Val.inject_int _ _)) as W16.
       assert (LbC : Plt bC thr) by exact (sym_lt _ _ HcC).
-      exact (Mem.store_inject_neutral _ _ _ _ _ _ _ Z17 W16 LbC (Val.inject_int _ _)).
+      pose proof (Mem.store_inject_neutral _ _ _ _ _ _ _ Z17 W16 LbC (Val.inject_int _ _)) as W17.
+      assert (Lpads : Plt bpads thr) by exact (sym_lt _ _ Hpads).
+      pose proof (Mem.store_inject_neutral _ _ _ _ _ _ _ ZC W17 Lbc (vinj_ptr _ _ Lpads)) as W18.
+      assert (Lbw17 : Plt bw thr) by exact (sym_lt _ _ Hbw).
+      exact (Mem.store_inject_neutral _ _ _ _ _ _ _ Z18 W18 Lbw17 (Val.inject_int _ _)).
     Qed.
 
     Lemma closed11 : closed_by (Mem.flat_inj thr) m11.
@@ -1642,7 +1683,9 @@ Section Witness.
       eapply acc_keep_trans; [ exact (store_keep _ _ _ _ _ _ Z14) | ].
       eapply acc_keep_trans; [ exact (store_keep _ _ _ _ _ _ Z15) | ].
       eapply acc_keep_trans; [ exact (store_keep _ _ _ _ _ _ Z16) | ].
-      exact (store_keep _ _ _ _ _ _ Z17).
+      eapply acc_keep_trans; [ exact (store_keep _ _ _ _ _ _ Z17) | ].
+      eapply acc_keep_trans; [ exact (store_keep _ _ _ _ _ _ ZC) | ].
+      exact (store_keep _ _ _ _ _ _ Z18).
     Qed.
 
     Lemma perm_0_11 : forall b z k p, Plt b (Mem.nextblock m0) ->
@@ -1695,8 +1738,10 @@ Section Witness.
 
     Lemma Hpcs_fs : Genv.find_symbol (lp_ge lp) camera._gPlayerCameraState = Some bpcs.
     Proof. exact Hpcs. Qed.
+    Lemma Hbbs_fs : Genv.find_symbol (lp_ge lp) mario._gBodyStates = Some bbs.
+    Proof. exact Hbbs. Qed.
 
-    Definition RL : list (option val) := ff_rl bm bo Ptrofs.zero bfi bmiss bcalls ab bt biom bmq brm blk bpcs bsr bsrc bsms.
+    Definition RL : list (option val) := ff_rl bm bo Ptrofs.zero bfi bmiss bcalls ab bt biom bmq brm blk bpcs bsr bsrc bsms bbs.
 
     Lemma bpl_not_rl : ~ rblk RL bpl.
     Proof. unfold RL. norl. Qed.
@@ -1791,12 +1836,14 @@ Section Witness.
       eapply acc_keep_trans; [ exact (store_keep _ _ _ _ _ _ Z14) | ].
       eapply acc_keep_trans; [ exact (store_keep _ _ _ _ _ _ Z15) | ].
       eapply acc_keep_trans; [ exact (store_keep _ _ _ _ _ _ Z16) | ].
-      exact (store_keep _ _ _ _ _ _ Z17).
+      eapply acc_keep_trans; [ exact (store_keep _ _ _ _ _ _ Z17) | ].
+      eapply acc_keep_trans; [ exact (store_keep _ _ _ _ _ _ ZC) | ].
+      exact (store_keep _ _ _ _ _ _ Z18).
     Qed.
 
     Lemma L_tab : Mem.load Mint32 m11 ab 0 = Some (Vptr bd Ptrofs.zero).
     Proof.
-      peel2 Z17; peel2 Z16; peel2 Z15; peel2 Z14; peel2 Z13; peel2 Z12; peel2 Z11; peel2 Z10.
+      peel2 Z18; peel2 ZC; peel2 Z17; peel2 Z16; peel2 Z15; peel2 Z14; peel2 Z13; peel2 Z12; peel2 Z11; peel2 Z10.
       rewrite (Mem.load_store_same _ _ _ _ _ _ Z10a). reflexivity.
     Qed.
 
@@ -1840,7 +1887,19 @@ Section Witness.
       split; [ exact (not_eq_sym (sym_ne_bd _ _ Hbo)) | ].
       split; [ exact bt_bo | ].
       split; [ exact (symne lp _ _ _ _ Hbo Hga eq_refl) | ].
-      split; [ exact (symne lp _ _ _ _ Hbo Hau eq_refl) | ].
+      split; [ split; [ exact (symne lp _ _ _ _ Hbo Hau eq_refl) | ] | ].
+      { (* the flanks' globals (the render globals and the platform step's
+           D_8032FEC0): apart from Mario's object (a gObjectPool slot) and
+           off the partition (its nodes live in the pool block) *)
+        intros id b Hin Hs. split.
+        - unfold AnimWorld.flank_gvars, RenderAnim.render_gvars in Hin. cbn [app] in Hin.
+          repeat (destruct Hin as [<- | Hin]; [ exact (symne lp _ _ _ _ Hs Hbo eq_refl) | ]).
+          destruct Hin.
+        - intros hd Hp.
+          destruct (walk2_sound WFUEL m11 bpl (fun x => x = b) hd (wf_head _ Hp) bpl_valid11
+                      (not_eq_sym (sym_ne_bpl _ _ Hs))) as (Wl & On).
+          split; [ exact Wl | ]. intros b' o Ho. destruct (On _ Ho) as (o' & E & _). injection E as -> _.
+          exact (not_eq_sym (sym_ne_bpl _ _ Hs)). }
       split; [ unfold AnimWorld.TABSZ, AnimData.ANIM_COUNT; change Ptrofs.modulus with 4294967296; lia | ].
       split; [ unfold AnimWorld.BUFSZ; change Ptrofs.modulus with 4294967296; lia | ].
       split; [ reflexivity | ].
@@ -1867,13 +1926,13 @@ Section Witness.
       { rewrite genv_next_eq, nb11, nb3. pose proof nb0_NL. unfold Ple, Plt in *. lia. }
       split.
       2: exact floor_data11.
-      pose proof Hpcs_fs as Hpcs'.
-      exists (Mem.flat_inj thr), bfi, bmiss, bcalls, bsin, ab, biom, bmq, brm, blk, bpcs, bsr, bsrc, bsms, bo, Ptrofs.zero,
+      pose proof Hpcs_fs as Hpcs'. pose proof Hbbs_fs as Hbbs'.
+      exists (Mem.flat_inj thr), bfi, bmiss, bcalls, bsin, ab, biom, bmq, brm, blk, bpcs, bsr, bsrc, bsms, bbs, bo, Ptrofs.zero,
         bt, Ptrofs.zero, (Vptr bs Ptrofs.zero), (Vptr bar Ptrofs.zero), Int.zero, (Vptr bc Ptrofs.zero).
       split; [ exact closed11 | ].
       split; [ intros id b Hfs; exact (flat_some _ (sym_lt _ _ Hfs)) | ].
       split; [ exact (flat_some _ (sym_lt _ _ Hbm)) | ].
-      do 13 (split; [ assumption | ]).
+      do 14 (split; [ assumption | ]).
       split; [ exact L_obj | ].
       split; [ unfold SZ_OBJECT; vm_compute; discriminate | ].
       split; [ exact L_anim | ].
@@ -1882,9 +1941,9 @@ Section Witness.
       split; [ exact bo_bm | ].
       split; [ intro E; exact (sym_ne_fresh _ _ _ Hbm (or_introl eq_refl) (eq_sym E)) | ].
       split; [ exact bt_bo | ].
-      split; [ intros b [Hin | [Hin | [Hin | Hin]]];
+      split; [ intros b [Hin | [Hin | Hin]];
                [ cbn [In] in Hin; repeat (destruct Hin as [<- | Hin]; [ split; neq | ]); destruct Hin
-               | split; neq | split; neq | split; neq ] | ].
+               | split; neq | lvl_cases Hin; split; neq ] | ].
       split; [ exact wff11 | ].
       split; [ exact L_floor | ].
       split.
@@ -1911,7 +1970,8 @@ Section Witness.
         split; [ unfold SZ_CTL; vm_compute; discriminate | ].
         norl. }
       split; [ intros i cb co Hi Hl; exfalso; exact (coll_noptr _ _ _ Hi Hl) | ].
-      exact L_pcs.
+      split; [ exact L_pcs | ].
+      exact L_body.
     Qed.
 
     (* ---- the level: gCurrLevelNum = LEVEL_WMOTR, by real code ---- *)
@@ -1981,11 +2041,394 @@ Section Witness.
       exact (boot_spis bsp Hsp).
     Qed.
 
+    (* ---- the controller cells (FfWorld.ctl_w, PollFlank): the boot
+       image's static initializers (gPlayer1Controller = &gControllers[0],
+       gPlayer3Controller = &gControllers[2], gCurrDemoInput = NULL), the
+       .bss pads, and init_controllers' controllerData store (Z18) ---- *)
+    Lemma dm_p1 : (prog_defmap game_init.prog) ! game_init._gPlayer1Controller
+                  = Some (Gvar game_init.v_gPlayer1Controller).
+    Proof. vm_compute. reflexivity. Qed.
+    Lemma dm_p3 : (prog_defmap game_init.prog) ! game_init._gPlayer3Controller
+                  = Some (Gvar game_init.v_gPlayer3Controller).
+    Proof. vm_compute. reflexivity. Qed.
+    Lemma dm_demo : (prog_defmap game_init.prog) ! game_init._gCurrDemoInput
+                  = Some (Gvar game_init.v_gCurrDemoInput).
+    Proof. vm_compute. reflexivity. Qed.
+
+    Ltac boot_lsid LOq dmx Hb :=
+      unfold linkorder, Linker_program, linkorder_program in LOq;
+      let LOast := fresh "LOast" in
+      destruct LOq as [LOast _];
+      let gd' := fresh "gd'" in let Hgd' := fresh "Hgd'" in let Hlo := fresh "Hlo" in
+      destruct (prog_defmap_linkorder _ _ _ _ LOast dmx) as (gd' & Hgd' & Hlo);
+      change (prog_defmap (program_of_program lp)) with (prog_defmap lp) in Hgd';
+      inv Hlo; match goal with H : linkorder _ _ |- _ => inv H end;
+      match goal with H : linkorder _ ?i2 |- _ => inv H end;
+      let b' := fresh "b'" in let Hfs' := fresh "Hfs'" in let Hfd := fresh "Hfd" in
+      apply Genv.find_def_symbol in Hgd' as (b' & Hfs' & Hfd);
+      change (Genv.globalenv (program_of_program lp)) with (Genv.globalenv lp) in Hfs', Hfd;
+      rewrite Hb in Hfs'; injection Hfs' as <-;
+      let GI := fresh "GI" in
+      pose proof Hinit as GI; apply Genv.init_mem_characterization_gen in GI;
+      specialize (GI _ _ Hfd); cbn in GI;
+      let Hli := fresh "Hli" in
+      destruct GI as (_ & _ & Hli & _); specialize (Hli eq_refl); cbn in Hli.
+
+    Lemma boot_p1 : forall b, Genv.find_symbol (lp_ge lp) game_init._gPlayer1Controller = Some b ->
+        Mem.load Mint32 m0 b 0 = Some (Vptr bc Ptrofs.zero).
+    Proof.
+      intros b Hb. change (Genv.find_symbol (Genv.globalenv lp) game_init._gPlayer1Controller = Some b) in Hb.
+      Local Transparent Linker_program.
+      pose proof LO_gi as LOq.
+      boot_lsid LOq dm_p1 Hb.
+      destruct Hli as ((bx & Hx & Hl) & _).
+      change (Genv.find_symbol (lp_ge lp) mario._gControllers = Some bx) in Hx.
+      rewrite Hbc in Hx. injection Hx as <-. exact Hl.
+    Qed.
+    Lemma boot_p3 : forall b, Genv.find_symbol (lp_ge lp) game_init._gPlayer3Controller = Some b ->
+        Mem.load Mint32 m0 b 0 = Some (Vptr bc (Ptrofs.repr 56)).
+    Proof.
+      intros b Hb. change (Genv.find_symbol (Genv.globalenv lp) game_init._gPlayer3Controller = Some b) in Hb.
+      Local Transparent Linker_program.
+      pose proof LO_gi as LOq.
+      boot_lsid LOq dm_p3 Hb.
+      destruct Hli as ((bx & Hx & Hl) & _).
+      change (Genv.find_symbol (lp_ge lp) mario._gControllers = Some bx) in Hx.
+      rewrite Hbc in Hx. injection Hx as <-. exact Hl.
+    Qed.
+    Lemma boot_demo : forall b, Genv.find_symbol (lp_ge lp) game_init._gCurrDemoInput = Some b ->
+        Mem.load Mint32 m0 b 0 = Some (Vint Int.zero).
+    Proof.
+      intros b Hb. change (Genv.find_symbol (Genv.globalenv lp) game_init._gCurrDemoInput = Some b) in Hb.
+      Local Transparent Linker_program.
+      pose proof LO_gi as LOq.
+      boot_lsid LOq dm_demo Hb.
+      destruct Hli as (Hl & _). exact Hl.
+    Qed.
+
+    (* a symbol block none of the witness stores touch *)
+    Ltac unt_tac Hs :=
+      split; [ let E := fresh "E" in intro E; exact (sym_ne_fresh _ _ _ Hs (or_intror (or_introl eq_refl)) E) | ];
+      split; [ let E := fresh "E" in intro E; exfalso; exact (symne lp _ _ _ _ Hs Hbm eq_refl E) | ];
+      split; [ let E := fresh "E" in intro E; exfalso; exact (symne lp _ _ _ _ Hs Hab eq_refl E) | ];
+      split; [ let E := fresh "E" in intro E; exfalso; exact (symne lp _ _ _ _ Hs Hhud_fs eq_refl E) | ];
+      split; [ let E := fresh "E" in intro E; exfalso; exact (symne lp _ _ _ _ Hs Hbo eq_refl E) | ];
+      split; [ exact (symne lp _ _ _ _ Hs Hbw eq_refl) | ];
+      split; [ exact (symne lp _ _ _ _ Hs HbL eq_refl) | ];
+      split; [ exact (inFb_sym_false _ _ _ Hs ltac:(vm_compute; reflexivity)) | ];
+      split; [ exact (symne lp _ _ _ _ Hs HcC eq_refl) | let E := fresh "E" in intros E; exfalso; exact (symne lp _ _ _ _ Hs Hbc eq_refl E) ].
+
+    Lemma dm_ctl : (prog_defmap game_init.prog) ! mario._gControllers
+                   = Some (Gvar game_init.v_gControllers).
+    Proof. reflexivity. Qed.
+
+    Lemma ctl11 : ctl_w (lp_ge lp) m11.
+    Proof.
+      assert (Nbcw : bc <> bw) by exact (symne lp _ _ _ _ Hbc Hbw eq_refl).
+      intros bc' bp Sc Sp.
+      rewrite Hbc in Sc. injection Sc as <-.
+      rewrite Hpads in Sp. injection Sp as <-.
+      assert (Vc : Mem.valid_block m0 bc) by exact (Genv.find_symbol_not_fresh _ _ Hinit Hbc).
+      assert (Uc : forall ch z, z + size_chunk ch <= 24 \/ 28 <= z -> untouched ch bc z).
+      { intros ch z Hz.
+        split; [ intro E; exact (sym_ne_fresh _ _ _ Hbc (or_intror (or_introl eq_refl)) E) | ].
+        split; [ intro E; exfalso; exact (symne lp _ _ _ _ Hbc Hbm eq_refl E) | ].
+        split; [ intro E; exfalso; exact (symne lp _ _ _ _ Hbc Hab eq_refl E) | ].
+        split; [ intro E; exfalso; exact (symne lp _ _ _ _ Hbc Hhud_fs eq_refl E) | ].
+        split; [ intro E; exfalso; exact (symne lp _ _ _ _ Hbc Hbo eq_refl E) | ].
+        split; [ exact (symne lp _ _ _ _ Hbc Hbw eq_refl) | ].
+        split; [ exact (symne lp _ _ _ _ Hbc HbL eq_refl) | ].
+        split; [ exact (inFb_sym_false _ _ _ Hbc ltac:(vm_compute; reflexivity)) | ].
+        split; [ exact (symne lp _ _ _ _ Hbc HcC eq_refl) | intros _; exact Hz ]. }
+      assert (RPc : Mem.range_perm m0 bc 0 84 Cur Writable)
+        by exact (wr_sym _ _ _ bc LO_gi dm_ctl eq_refl eq_refl ltac:(cbn; discriminate) Hbc).
+      assert (Zc : forall ch z, z + size_chunk ch <= 24 \/ 28 <= z -> 0 <= z -> z + size_chunk ch <= 84 ->
+                (align_chunk ch | z) -> Mem.load ch m11 bc z = Some (zeros ch)).
+      { intros ch z Hz H0 H84 Ha.
+        destruct (valid_ex ch bc z 0 84 RPc H0 H84 Ha) as (v & Hl).
+        rewrite (ld_back ch bc z Vc (Uc ch z Hz)), Hl.
+        rewrite (boot_zero lp m0 _ bc _ _ _ H12 Hinit
+                   (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_eq _ _)))))))
+                   Hbc Hl).
+        reflexivity. }
+      split.
+      { intros j [-> | ->].
+        - right. exists 0. split; [ lia | ].
+          change (28 * 0 + 24) with 24. rewrite (Mem.load_store_other _ _ _ _ _ _ Z18) by (left; exact Nbcw).
+          rewrite (Mem.load_store_same _ _ _ _ _ _ ZC). reflexivity.
+        - left. change (28 * 1 + 24) with 52.
+          rewrite (Zc Mint32 52 ltac:(right; lia) ltac:(lia) ltac:(cbn; lia)
+                     ltac:(apply Z.mod_divide; [ cbn; discriminate | reflexivity ])).
+          reflexivity. }
+      split.
+      { intros z [-> | ->]; exists Int.zero; split; try reflexivity;
+          match goal with |- Mem.load _ _ _ ?zz = _ =>
+            rewrite (Zc Mint16unsigned zz ltac:(cbn; left; lia) ltac:(lia) ltac:(cbn; lia)
+                       ltac:(apply Z.mod_divide; [ cbn; discriminate | reflexivity ])) end;
+          reflexivity. }
+      split.
+      { intros k n Hk Hl.
+        assert (V0 : Mem.valid_block m0 bpads) by exact (Genv.find_symbol_not_fresh _ _ Hinit Hpads).
+        rewrite (ld_back Mint16unsigned bpads (6 * k) V0) in Hl by (unt_tac Hpads).
+        pose proof (boot_zero lp m0 _ bpads _ _ _ H12 Hinit
+                      (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_eq _ _)))))
+                      Hpads Hl) as E.
+        assert (Zr : zeros Mint16unsigned = Vint Int.zero) by reflexivity.
+        rewrite Zr in E. injection E as ->. reflexivity. }
+      split.
+      { intros b1 Sy1.
+        assert (V0 : Mem.valid_block m0 b1) by exact (Genv.find_symbol_not_fresh _ _ Hinit Sy1).
+        rewrite (ld_back Mint32 b1 0 V0) by (unt_tac Sy1). exact (boot_p1 b1 Sy1). }
+      split.
+      { intros b3 Sy3.
+        assert (V0 : Mem.valid_block m0 b3) by exact (Genv.find_symbol_not_fresh _ _ Hinit Sy3).
+        rewrite (ld_back Mint32 b3 0 V0) by (unt_tac Sy3). exact (boot_p3 b3 Sy3). }
+      split.
+      { intros bd' Syd.
+        assert (V0 : Mem.valid_block m0 bd') by exact (Genv.find_symbol_not_fresh _ _ Hinit Syd).
+        rewrite (ld_back Mint32 bd' 0 V0) by (unt_tac Syd). exact (boot_demo bd' Syd). }
+      intros bx Syx x Hl.
+      assert (V0 : Mem.valid_block m0 bx) by exact (Genv.find_symbol_not_fresh _ _ Hinit Syx).
+      rewrite (ld_back Mint8unsigned bx 0 V0) in Hl by (unt_tac Syx).
+      pose proof (boot_zero lp m0 _ bx _ _ _ H12 Hinit
+                    (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_eq _ _))))))
+                    Syx Hl) as E.
+      assert (Zr : zeros Mint8unsigned = Vint Int.zero) by reflexivity.
+      rewrite Zr in E. injection E as Ex. subst x. rewrite Int.unsigned_zero. lia.
+    Qed.
+
+    (* ---- the warp cells (FfWorld.warp_w, 2026-10-24): sWarpDest.type is
+       NOT_WARPING by Z18 (init_mario_after_warp's last store); the demo and
+       credits pointers and the delayed-warp op keep their boot zeros ---- *)
+    Lemma dm_cdi : (prog_defmap game_init.prog) ! game_init._gCurrDemoInput = Some (Gvar game_init.v_gCurrDemoInput).
+    Proof. vm_compute. reflexivity. Qed.
+
+    Lemma boot_cdi : forall b, Genv.find_symbol (lp_ge lp) level_update._gCurrDemoInput = Some b ->
+        Mem.load Mint32 m0 b 0 = Some (Vint Int.zero).
+    Proof.
+      intros b Hb.
+      pose proof (LO_gi) as LOq.
+      Local Transparent Linker_program.
+      unfold linkorder, Linker_program, linkorder_program in LOq.
+      destruct LOq as [LOast _].
+      destruct (prog_defmap_linkorder _ _ _ _ LOast dm_cdi) as (gd' & Hgd' & Hlo).
+      change (prog_defmap (program_of_program lp)) with (prog_defmap lp) in Hgd'.
+      inv Hlo. match goal with H : linkorder _ _ |- _ => inv H end.
+      match goal with H : linkorder _ i2 |- _ => inv H end.
+      apply Genv.find_def_symbol in Hgd' as (b' & Hfs' & Hfd).
+      change (Genv.globalenv (program_of_program lp)) with (Genv.globalenv lp) in Hfs', Hfd.
+      change (Genv.find_symbol (Genv.globalenv lp) game_init._gCurrDemoInput = Some b) in Hb.
+      rewrite Hb in Hfs'. injection Hfs' as <-.
+      pose proof Hinit as GI. apply Genv.init_mem_characterization_gen in GI.
+      specialize (GI b _ Hfd). cbn in GI. destruct GI as (_ & _ & Hli & _).
+      specialize (Hli eq_refl). cbn in Hli. destruct Hli as [Hl _].
+      rewrite Hl. reflexivity.
+    Qed.
+
+    Lemma L_cdi : forall b, Genv.find_symbol (lp_ge lp) level_update._gCurrDemoInput = Some b ->
+        Mem.load Mint32 m11 b 0 = Some (Vint Int.zero).
+    Proof.
+      intros bsp Hsp.
+      assert (V0 : Mem.valid_block m0 bsp) by exact (Genv.find_symbol_not_fresh _ _ Hinit Hsp).
+      assert (N1 : bsp <> bm) by exact (symne lp _ _ _ _ Hsp Hbm eq_refl).
+      assert (N2 : bsp <> ab) by exact (symne lp _ _ _ _ Hsp Hab eq_refl).
+      assert (N3 : bsp <> bo) by exact (symne lp _ _ _ _ Hsp Hbo eq_refl).
+      assert (N4 : bsp <> bs) by (intro E; exact (sym_ne_fresh _ _ _ Hsp (or_intror (or_introl eq_refl)) E)).
+      assert (N5 : bsp <> bL) by exact (symne lp _ _ _ _ Hsp HbL eq_refl).
+      assert (N6 : bsp <> bw) by exact (symne lp _ _ _ _ Hsp Hbw eq_refl).
+      peelZ; peel S8; peel S7; peel S6; peel S5; peel S4; peel S3; peel S2; peel S1; peel S1b; peel S1a.
+      rewrite (ld_3e _ _ _ (valid_e_L _ (valid_0_e _ V0))).
+      rewrite (ld_Le _ _ _ (valid_0_e _ V0)
+                 (inFb_sym_false _ _ _ Hsp ltac:(vm_compute; reflexivity))).
+      peel E6; peel E5; peel E4; peel E3; peel E2; peel E1.
+      exact (boot_cdi bsp Hsp).
+    Qed.
+
+    Lemma dm_cce : (prog_defmap area.prog) ! area._gCurrCreditsEntry = Some (Gvar area.v_gCurrCreditsEntry).
+    Proof. vm_compute. reflexivity. Qed.
+
+    Lemma boot_cce : forall b, Genv.find_symbol (lp_ge lp) level_update._gCurrCreditsEntry = Some b ->
+        Mem.load Mint32 m0 b 0 = Some (Vint Int.zero).
+    Proof.
+      intros b Hb.
+      pose proof (linked12_LO_area lp H12) as LOq.
+      Local Transparent Linker_program.
+      unfold linkorder, Linker_program, linkorder_program in LOq.
+      destruct LOq as [LOast _].
+      destruct (prog_defmap_linkorder _ _ _ _ LOast dm_cce) as (gd' & Hgd' & Hlo).
+      change (prog_defmap (program_of_program lp)) with (prog_defmap lp) in Hgd'.
+      inv Hlo. match goal with H : linkorder _ _ |- _ => inv H end.
+      match goal with H : linkorder _ i2 |- _ => inv H end.
+      apply Genv.find_def_symbol in Hgd' as (b' & Hfs' & Hfd).
+      change (Genv.globalenv (program_of_program lp)) with (Genv.globalenv lp) in Hfs', Hfd.
+      change (Genv.find_symbol (Genv.globalenv lp) area._gCurrCreditsEntry = Some b) in Hb.
+      rewrite Hb in Hfs'. injection Hfs' as <-.
+      pose proof Hinit as GI. apply Genv.init_mem_characterization_gen in GI.
+      specialize (GI b _ Hfd). cbn in GI. destruct GI as (_ & _ & Hli & _).
+      specialize (Hli eq_refl). cbn in Hli. destruct Hli as [Hl _].
+      rewrite Hl. reflexivity.
+    Qed.
+
+    Lemma L_cce : forall b, Genv.find_symbol (lp_ge lp) level_update._gCurrCreditsEntry = Some b ->
+        Mem.load Mint32 m11 b 0 = Some (Vint Int.zero).
+    Proof.
+      intros bsp Hsp.
+      assert (V0 : Mem.valid_block m0 bsp) by exact (Genv.find_symbol_not_fresh _ _ Hinit Hsp).
+      assert (N1 : bsp <> bm) by exact (symne lp _ _ _ _ Hsp Hbm eq_refl).
+      assert (N2 : bsp <> ab) by exact (symne lp _ _ _ _ Hsp Hab eq_refl).
+      assert (N3 : bsp <> bo) by exact (symne lp _ _ _ _ Hsp Hbo eq_refl).
+      assert (N4 : bsp <> bs) by (intro E; exact (sym_ne_fresh _ _ _ Hsp (or_intror (or_introl eq_refl)) E)).
+      assert (N5 : bsp <> bL) by exact (symne lp _ _ _ _ Hsp HbL eq_refl).
+      assert (N6 : bsp <> bw) by exact (symne lp _ _ _ _ Hsp Hbw eq_refl).
+      peelZ; peel S8; peel S7; peel S6; peel S5; peel S4; peel S3; peel S2; peel S1; peel S1b; peel S1a.
+      rewrite (ld_3e _ _ _ (valid_e_L _ (valid_0_e _ V0))).
+      rewrite (ld_Le _ _ _ (valid_0_e _ V0)
+                 (inFb_sym_false _ _ _ Hsp ltac:(vm_compute; reflexivity))).
+      peel E6; peel E5; peel E4; peel E3; peel E2; peel E1.
+      exact (boot_cce bsp Hsp).
+    Qed.
+
+    Lemma dm_dwo : (prog_defmap level_update.prog) ! level_update._sDelayedWarpOp = Some (Gvar level_update.v_sDelayedWarpOp).
+    Proof. vm_compute. reflexivity. Qed.
+
+    Definition dwo_tu_ok (q : Clight.program) : bool :=
+      match (prog_defmap q) ! level_update._sDelayedWarpOp with
+      | Some (Gvar v) => match gvar_init v with [Init_space z] => Z.eqb z 2 | _ => false end
+      | Some (Gfun _) => false
+      | None => true
+      end.
+
+    Lemma dwo_tus : forallb dwo_tu_ok (mario.prog :: LinkedTwelve.tu_rest) = true.
+    Proof. vm_compute. reflexivity. Qed.
+
+    Lemma boot_dwo : forall b, Genv.find_symbol (lp_ge lp) level_update._sDelayedWarpOp = Some b ->
+        Mem.load Mint16signed m0 b 0 = Some (Vint Int.zero).
+    Proof.
+      intros b Hb.
+      pose proof (linked12_LO_lvl lp H12) as LOq.
+      Local Transparent Linker_program.
+      unfold linkorder, Linker_program, linkorder_program in LOq.
+      destruct LOq as [LOast _].
+      destruct (prog_defmap_linkorder _ _ _ _ LOast dm_dwo) as (gd' & Hgd' & Hlo).
+      change (prog_defmap (program_of_program lp)) with (prog_defmap lp) in Hgd'.
+      inv Hlo. match goal with H : linkorder _ _ |- _ => inv H end.
+      (* sDelayedWarpOp is a tentative definition (Init_space 2, a "common"
+         initializer), so linkorder alone lets the link carry any 2-byte
+         initializer.  It is static to level_update.c and no other TU defines
+         it (dwo_tus), so the link's initializer is level_update's own. *)
+      match goal with H : linkorder _ ?i2 |- _ =>
+        assert (Iv : i2 = [Init_space 2]); [ | subst i2; clear H ] end.
+      { pose proof dwo_tus as T. cbn [forallb] in T. apply andb_true_iff in T as [T0 T1].
+        destruct (InitMemSat.link_chain_gvar_origin _ _ _ _ _
+                    (H12 : link_chain mario.prog LinkedTwelve.tu_rest = Some lp) Hgd')
+          as [Hq | (q & Hin & Hq)].
+        - unfold dwo_tu_ok in T0. rewrite Hq in T0. cbn in T0. clear -T0.
+          match type of T0 with (match ?l with _ => _ end) = true => destruct l as [| d [| d' l]] end;
+            try discriminate; destruct d; try discriminate. apply Z.eqb_eq in T0. subst. reflexivity.
+        - rewrite forallb_forall in T1. specialize (T1 q Hin).
+          unfold dwo_tu_ok in T1. rewrite Hq in T1. cbn in T1. clear -T1.
+          match type of T1 with (match ?l with _ => _ end) = true => destruct l as [| d [| d' l]] end;
+            try discriminate; destruct d; try discriminate. apply Z.eqb_eq in T1. subst. reflexivity. }
+      apply Genv.find_def_symbol in Hgd' as (b' & Hfs' & Hfd).
+      change (Genv.globalenv (program_of_program lp)) with (Genv.globalenv lp) in Hfs', Hfd.
+      change (Genv.find_symbol (Genv.globalenv lp) level_update._sDelayedWarpOp = Some b) in Hb.
+      rewrite Hb in Hfs'. injection Hfs' as <-.
+      pose proof Hinit as GI. apply Genv.init_mem_characterization_gen in GI.
+      specialize (GI b _ Hfd). cbn in GI. destruct GI as (_ & _ & Hli & _).
+      specialize (Hli eq_refl). cbn in Hli. destruct Hli as [Hl _].
+      apply (Hl Mint16signed 0).
+      - lia.
+      - cbn. lia.
+      - apply Z.divide_0_r.
+    Qed.
+
+    Lemma L_dwo : forall b, Genv.find_symbol (lp_ge lp) level_update._sDelayedWarpOp = Some b ->
+        Mem.load Mint16signed m11 b 0 = Some (Vint Int.zero).
+    Proof.
+      intros bsp Hsp.
+      assert (V0 : Mem.valid_block m0 bsp) by exact (Genv.find_symbol_not_fresh _ _ Hinit Hsp).
+      assert (N1 : bsp <> bm) by exact (symne lp _ _ _ _ Hsp Hbm eq_refl).
+      assert (N2 : bsp <> ab) by exact (symne lp _ _ _ _ Hsp Hab eq_refl).
+      assert (N3 : bsp <> bo) by exact (symne lp _ _ _ _ Hsp Hbo eq_refl).
+      assert (N4 : bsp <> bs) by (intro E; exact (sym_ne_fresh _ _ _ Hsp (or_intror (or_introl eq_refl)) E)).
+      assert (N5 : bsp <> bL) by exact (symne lp _ _ _ _ Hsp HbL eq_refl).
+      assert (N6 : bsp <> bw) by exact (symne lp _ _ _ _ Hsp Hbw eq_refl).
+      peelZ; peel S8; peel S7; peel S6; peel S5; peel S4; peel S3; peel S2; peel S1; peel S1b; peel S1a.
+      rewrite (ld_3e _ _ _ (valid_e_L _ (valid_0_e _ V0))).
+      rewrite (ld_Le _ _ _ (valid_0_e _ V0)
+                 (inFb_sym_false _ _ _ Hsp ltac:(vm_compute; reflexivity))).
+      peel E6; peel E5; peel E4; peel E3; peel E2; peel E1.
+      exact (boot_dwo bsp Hsp).
+    Qed.
+
+    Lemma L_wtype : Mem.load Mint8unsigned m11 bw 0 = Some (Vint Int.zero).
+    Proof. rewrite (Mem.load_store_same _ _ _ _ _ _ Z18). reflexivity. Qed.
+
+    Lemma warp11 : warp_w (lp_ge lp) m11.
+    Proof.
+      split; [ | split; [ exact L_cdi | split; [ exact L_cce | ] ] ].
+      - intros bp bw' _ Hw _. rewrite Hbw in Hw. injection Hw as <-. exact L_wtype.
+      - intros bo' bs' Ho _ Hn. exfalso. exact (Hn (L_dwo bo' Ho)).
+    Qed.
+
     Lemma lvl11 : lvl_w (lp_ge lp) m11.
     Proof.
-      split; [ | exact L_spis ].
+      split; [ | split; [ exact L_spis | split; [ exact warp11 | exact ctl11 ] ] ].
       intros b Hb. change (Genv.find_symbol (lp_ge lp) level_update._gCurrLevelNum = Some b) in Hb.
       rewrite HbL in Hb. injection Hb as <-. exact L_lvl.
+    Qed.
+
+    (* ---- gMarioPlatform: the boot image's NULL (platform_displacement.c's
+       `struct Object *gMarioPlatform = NULL`), untouched by the entry, so
+       the run's platform fact (PlatformKeep.plat_still) holds (2026-10-24) ---- *)
+    Lemma dm_gmp : (prog_defmap platform_displacement.prog) ! platform_displacement._gMarioPlatform
+                    = Some (Gvar platform_displacement.v_gMarioPlatform).
+    Proof. vm_compute. reflexivity. Qed.
+
+    Lemma boot_gmp : forall b, Genv.find_symbol (lp_ge lp) platform_displacement._gMarioPlatform = Some b ->
+        Mem.load Mint32 m0 b 0 = Some (Vint Int.zero).
+    Proof.
+      intros b Hb.
+      pose proof (linked12_LO_platform_displacement lp H12) as LOq.
+      Local Transparent Linker_program.
+      unfold linkorder, Linker_program, linkorder_program in LOq.
+      destruct LOq as [LOast _].
+      destruct (prog_defmap_linkorder _ _ _ _ LOast dm_gmp) as (gd' & Hgd' & Hlo).
+      change (prog_defmap (program_of_program lp)) with (prog_defmap lp) in Hgd'.
+      inv Hlo. match goal with H : linkorder _ _ |- _ => inv H end.
+      match goal with H : linkorder _ i2 |- _ => inv H end.
+      apply Genv.find_def_symbol in Hgd' as (b' & Hfs' & Hfd).
+      change (Genv.globalenv (program_of_program lp)) with (Genv.globalenv lp) in Hfs', Hfd.
+      change (Genv.find_symbol (Genv.globalenv lp) platform_displacement._gMarioPlatform = Some b) in Hb.
+      rewrite Hb in Hfs'. injection Hfs' as <-.
+      pose proof Hinit as GI. apply Genv.init_mem_characterization_gen in GI.
+      specialize (GI b _ Hfd). cbn in GI. destruct GI as (_ & _ & Hli & _).
+      specialize (Hli eq_refl). cbn in Hli. destruct Hli as [Hl _].
+      rewrite Hl. reflexivity.
+    Qed.
+
+    Lemma L_gmp : forall b, Genv.find_symbol (lp_ge lp) platform_displacement._gMarioPlatform = Some b ->
+        Mem.load Mint32 m11 b 0 = Some (Vint Int.zero).
+    Proof.
+      intros bsp Hsp.
+      assert (V0 : Mem.valid_block m0 bsp) by exact (Genv.find_symbol_not_fresh _ _ Hinit Hsp).
+      assert (N1 : bsp <> bm) by exact (symne lp _ _ _ _ Hsp Hbm eq_refl).
+      assert (N2 : bsp <> ab) by exact (symne lp _ _ _ _ Hsp Hab eq_refl).
+      assert (N3 : bsp <> bo) by exact (symne lp _ _ _ _ Hsp Hbo eq_refl).
+      assert (N4 : bsp <> bs) by (intro E; exact (sym_ne_fresh _ _ _ Hsp (or_intror (or_introl eq_refl)) E)).
+      assert (N5 : bsp <> bL) by exact (symne lp _ _ _ _ Hsp HbL eq_refl).
+      assert (N6 : bsp <> bw) by exact (symne lp _ _ _ _ Hsp Hbw eq_refl).
+      peelZ; peel S8; peel S7; peel S6; peel S5; peel S4; peel S3; peel S2; peel S1; peel S1b; peel S1a.
+      rewrite (ld_3e _ _ _ (valid_e_L _ (valid_0_e _ V0))).
+      rewrite (ld_Le _ _ _ (valid_0_e _ V0)
+                 (inFb_sym_false _ _ _ Hsp ltac:(vm_compute; reflexivity))).
+      peel E6; peel E5; peel E4; peel E3; peel E2; peel E1.
+      exact (boot_gmp bsp Hsp).
+    Qed.
+
+    Lemma plat11 : PlatformKeep.plat_still lp m11.
+    Proof.
+      intros bp v Hb Hl. left. rewrite (L_gmp bp Hb) in Hl. injection Hl as <-. reflexivity.
     Qed.
 
     (* the entry stores ARE the real code's: the generated initiate_warp body
@@ -2029,7 +2472,7 @@ Section Witness.
     Theorem witness11 :
       SafeB_syms_ok lp SBw
       /\ mem_ok_lp bm (MWF_real lp bm bc Ptrofs.zero SBw) m11
-      /\ PhiW lp bm m11
+      /\ PhiW lp bm m11 /\ PlatformKeep.plat_still lp m11
       /\ read_cells bm m11 (entry_cells Float32.zero)
       /\ in_wmotr lp m11
       /\ floor_data (lp_ge lp) m11 /\ static_agree (lp_ge lp) m11 /\ nsurf_is lp m11
@@ -2051,6 +2494,7 @@ Section Witness.
       - assert (Hu : used_ok bm m11).
         { apply (used_ok_other bm m11 _ L_act). vm_compute. intuition discriminate. }
         split; [ exact (conj hinv (conj world11 (conj anim_ok (conj mobj_ok (conj ffw11 (conj Hu (conj anim11 lvl11))))))) | ].
+        split; [ exact plat11 | ].
         split; [ exact read_c0 | split; [ exact in_wmotr11 | ] ].
         split; [ exact floor_data11 | split; [ exact static_agree11 | split; [ exact nsurf11 | ] ] ].
         destruct entry_runs as (R1 & R2).
@@ -2074,7 +2518,11 @@ Section Witness.
           change (Genv.find_symbol (lp_ge lp) level_update._gCurrCourseNum = Some bC') in HC'.
           rewrite HcC in HC'. injection HC' as <-.
           exists bC, t, m', v.
-          split; [ exact HcC | split; [ exact (Mem.load_store_same _ _ _ _ _ _ Z17) | ] ].
+          split; [ exact HcC | split; [ | ] ].
+          { assert (NCw : bC <> bw) by exact (symne lp _ _ _ _ HcC Hbw eq_refl).
+            rewrite (Mem.load_store_other _ _ _ _ _ _ Z18) by (left; exact NCw).
+            rewrite (Mem.load_store_other _ _ _ _ _ _ ZC) by (left; exact (symne lp _ _ _ _ HcC Hbc eq_refl)).
+            exact (Mem.load_store_same _ _ _ _ _ _ Z17). }
           split; [ exact Ev | exact Hl ].
     Qed.
 End Steps.
@@ -2097,6 +2545,7 @@ End Steps.
   Theorem start_sat_lp :
     exists SafeB m, SafeB_syms_ok lp SafeB
       /\ mem_ok_lp bm (MWF_real lp bm bc Ptrofs.zero SafeB) m /\ PhiW lp bm m
+      /\ PlatformKeep.plat_still lp m
       /\ read_cells bm m (entry_cells Float32.zero)
       /\ in_wmotr lp m
       /\ floor_data (lp_ge lp) m /\ static_agree (lp_ge lp) m /\ nsurf_is lp m
@@ -2138,10 +2587,10 @@ End Steps.
     destruct (wchk_sound _ _ (wchk_lp lp H12 m0 Hinit) bm bc ab bo bw bL Hbm Hbc Hab Hbo Hbw HbL)
       as [s1 s2 s3 s4 s5 bcol bn e1 e2 e3 e4 e5 e6 P0 bpl P t1 L1 v1 t2 Lm v2
           m1 bt m2 bs m2b bar m3 bd m3a m3b m4 m5 m6 m7 m8 m9 m10 ms
-          bsi bpcs bbs bhud bC bga z1 z2 z3 z4 z5 z6 z7 z8 z9 z10a z10 z11 z12 z13 z14 z15 z16 m11
+          bsi bpcs bbs bhud bC bga bpads z1 z2 z3 z4 z5 z6 z7 z8 z9 z10a z10 z11 z12 z13 z14 z15 z16 z17 z18 m11
           E1 E2 E3 E4 E5 E6 Hcol AP PW Hs1 Hs2 Hs3 Hs4 Hs5 RA RT A1 A2 A3 A4
-          S1a S1b S1 S2 S3 S4 S5 S6 S7 S8 Hsi Hpcs Hbbs Hhud HcC Hga
-          Z1 Z2 Z3 Z4 Z5 Z6 Z7 Z8 Z9 Z10a Z10 Z11 Z12 Z13 Z14 Z15 Z16 Z17
+          S1a S1b S1 S2 S3 S4 S5 S6 S7 S8 Hsi Hpcs Hbbs Hhud HcC Hga Hpads
+          Z1 Z2 Z3 Z4 Z5 Z6 Z7 Z8 Z9 Z10a Z10 Z11 Z12 Z13 Z14 Z15 Z16 Z17 ZC Z18
           OK FR WP PO NS Hbn IF FO TC GC].
     exists (SBw bpl bt bar bd), m11.
     eapply witness11; eassumption.
@@ -2160,6 +2609,9 @@ Theorem goal2_start_sat : forall lp, linked12 lp ->
     /\ SafeB_syms_ok lp SafeB
     /\ mem_ok_lp bm (MWF_real lp bm bc Ptrofs.zero SafeB) m
     /\ PhiW lp bm m
+    (* gMarioPlatform is NULL (its boot value), so the capstone's platform
+       premise PlatformKeep.plat_still holds (2026-10-24) *)
+    /\ PlatformKeep.plat_still lp m
     /\ read_cells bm m (entry_cells Float32.zero)
     (* the game is in WMotR, and that cell is what the real entry code
        stored: initiate_warp(LEVEL_WMOTR, 1, 0x0A, 0) from the boot image,
@@ -2191,11 +2643,11 @@ Proof.
   destruct (linked12_init_mem lp H12) as (m0 & Hinit).
   destruct (spawn_symbols_resolve lp H12) as (bm & bc & Hbm & Hbc).
   destruct (start_sat_lp lp H12 m0 Hinit bm bc Hbm Hbc)
-    as (SafeB & m & Hs & Hok & Hphi & Hrc & Hw & Hfd & Hsa & Hns
+    as (SafeB & m & Hs & Hok & Hphi & Hpl & Hrc & Hw & Hfd & Hsa & Hns
         & (bL & m_iw & m_ent & le' & HbL & Hiw & Hwl & Hld & Htl & Hfr & Hif & Hcs)).
   exists m, bm, bc, SafeB.
-  refine (conj Hbm (conj Hbc (conj Hs (conj Hok (conj Hphi (conj Hrc (conj Hw
-            (conj Hfd (conj Hsa (conj Hns _)))))))))).
+  refine (conj Hbm (conj Hbc (conj Hs (conj Hok (conj Hphi (conj Hpl (conj Hrc (conj Hw
+            (conj Hfd (conj Hsa (conj Hns _))))))))))).
   exists m0, bL, m_iw, m_ent, le'.
   exact (conj Hinit (conj HbL (conj Hiw (conj Hwl (conj Hld (conj Htl (conj Hfr (conj Hif Hcs)))))))).
 Qed.

@@ -28,7 +28,7 @@ From Coq Require Import ZArith List Lia Relations Reals Lra.
 From compcert Require Import Coqlib Maps AST Integers Floats Values Events Memory
   Globalenvs Ctypes Ctypesdefs Cop Clight ClightBigstep Linking.
 From SM64.Generated Require mario mario_actions_airborne mario_actions_automatic
-  audio_external sound_init level_update.
+  audio_external sound_init level_update camera.
 From SM64.Proofs Require Import Flying Taint ActionValue ActionValueFrame
   RealFrameValue RealFrameLinked AGates SymbolicLinking.
 From SM64.Proofs Require Import CensusV2 EngineV2Consumer RestSurface AirborneSurface.
@@ -208,9 +208,16 @@ Ltac le_simp_in H :=
   repeat first [ rewrite PTree.gss in H
                | rewrite PTree.gso in H by (apply Pos.eqb_neq; vm_compute; reflexivity) ].
 
-(* the cells a write at Mario's flags (bytes 4..7) misses *)
-Ltac hside := unfold OFS_ACTION, OFS_ASTATE, OFS_ATIMER, OFS_POSY, OFS_VELY, OFS_FLOORH,
-  OFS_MARIOOBJ, FFW_OBJ, FFW_ANIM, FFW_FLOOR, FFW_AREA, FFW_CTL, FFW_WALL, FFW_CEIL, FFW_PCS, WALL_OFF,
+(* the cells a write in a hole of Mario's state misses.  The hole is
+   m->flags (bytes 4..7) and, since 2026-10-23 (NaSplit), bytes 174..183
+   (health, unkB0, hurtCounter, healCounter, squishTimer, fadeWarpOpacity,
+   capTimer): no conjunct of the frame world reads them *)
+Definition hz (z s : Z) : Prop := z + s <= 4 \/ (8 <= z /\ z + s <= 174) \/ 184 <= z.
+Lemma hz_8 : hz 8 4.
+Proof. unfold hz. right. left. split; [apply Z.le_refl | discriminate]. Qed.
+
+Ltac hside := unfold hz, OFS_ACTION, OFS_ASTATE, OFS_ATIMER, OFS_POSY, OFS_VELY, OFS_FLOORH,
+  OFS_MARIOOBJ, FFW_OBJ, FFW_ANIM, FFW_FLOOR, FFW_AREA, FFW_CTL, FFW_WALL, FFW_CEIL, FFW_PCS, FFW_BODY, WALL_OFF,
   CEIL_OFF, FLOOR_OFF, HELD_OFF, RIDDEN_OFF, MARIOOBJ_OFF, USED_OFF, WL_OFF, QSD_OFF;
   try change (size_chunk Mptr) with 4;
   simpl; lia.
@@ -260,7 +267,7 @@ Section PR.
     eval_funcall function_entry2 ge m (Internal SI.f_play_infinite_stairs_music) vargs t m' vr ->
     m' = m.
   Proof.
-    intros m vargs t m' vr (LV1 & LV2) Hev.
+    intros m vargs t m' vr (LV1 & LV2 & _) Hev.
     destruct (fc_entry ge m SI.f_play_infinite_stairs_music vargs t m' vr eq_refl Hev) as (le0 & le' & t' & out & _ & H).
     unfold SI.f_play_infinite_stairs_music in H. cbn [fn_body] in H.
     apply seq_inv in H as [(t1 & le1 & m1 & t2 & H1 & H2) | (t1 & H1 & Hn)].
@@ -585,18 +592,61 @@ Section PR.
   (* ==================================================================== *)
 
   Definition PH (bsr bsrc : block) (b : block) (z : Z) : Prop :=
-    b <> bsr /\ b <> bsrc /\ ~ (b = bm /\ 4 <= z < 8).
+    b <> bsr /\ b <> bsrc /\ ~ (b = bm /\ (4 <= z < 8 \/ 174 <= z < 184)).
   Definition Qrel (bsr bsrc : block) (m0 m1 : mem) : Prop :=
     Mem.unchanged_on (PH bsr bsrc) m0 m1 /\ Mem.nextblock m1 = Mem.nextblock m0
     /\ (forall b o k p, Mem.perm m1 b o k p <-> Mem.perm m0 b o k p).
 
+  (* the blocks a hole row may change wholesale: play_sound's two queue
+     globals, gBodyStates and gPlayerCameraState (2026-10-23: the
+     mario_reset_bodystate / update_mario_info_for_cam rows).  All four are
+     ffw regions (FfWorld.ff_rl), so no world object lives in them. *)
+  Definition XIDS : list ident :=
+    [AX._sSoundRequests; AX._sSoundRequestCount; mario._gBodyStates; camera._gPlayerCameraState].
+  Definition xsym (x : block) : Prop := exists id, In id XIDS /\ Genv.find_symbol ge id = Some x.
+
+  Lemma xsym_ne : forall x id b, xsym x -> Genv.find_symbol ge id = Some b ->
+    existsb (Pos.eqb id) XIDS = false -> b <> x.
+  Proof.
+    intros x id b (id' & Hin & Hx) Hb Hn E. subst b.
+    assert (E : id = id') by (eapply Genv.genv_vars_inj; [exact Hb | exact Hx]). subst id'.
+    assert (T : existsb (Pos.eqb id) XIDS = true)
+      by (apply existsb_exists; exists id; split; [exact Hin | apply Pos.eqb_refl]).
+    rewrite T in Hn. discriminate Hn.
+  Qed.
+
+  Lemma xsym_ffw : forall x bo oo bfi bmiss bcalls bsin ab bt biom bmq brm blk bpc bsr bsrc bsms bbs,
+    xsym x ->
+    Genv.find_symbol ge camera._gPlayerCameraState = Some bpc ->
+    Genv.find_symbol ge audio_external._sSoundRequests = Some bsr ->
+    Genv.find_symbol ge audio_external._sSoundRequestCount = Some bsrc ->
+    Genv.find_symbol ge mario._gBodyStates = Some bbs ->
+    (forall b, In b [bfi; bmiss; bcalls; bsin; ab; biom; bmq; brm; blk; bpc; bsr; bsrc; bsms; bbs] ->
+       b <> bo /\ b <> bt) ->
+    rblk (ff_rl bm bo oo bfi bmiss bcalls ab bt biom bmq brm blk bpc bsr bsrc bsms bbs) x
+    /\ x <> bo /\ x <> bt.
+  Proof.
+    intros x bo oo bfi bmiss bcalls bsin ab bt biom bmq brm blk bpc bsr bsrc bsms bbs
+      (id & Hin & Hx) SP SR SRC SBS D4.
+    assert (Hx' : x = bsr \/ x = bsrc \/ x = bbs \/ x = bpc).
+    { destruct Hin as [<- | [<- | [<- | [<- | []]]]];
+        [left | right; left | right; right; left | right; right; right]; congruence. }
+    assert (Hl : In x [bfi; bmiss; bcalls; bsin; ab; biom; bmq; brm; blk; bpc; bsr; bsrc; bsms; bbs])
+      by (destruct Hx' as [-> | [-> | [-> | ->]]]; cbn; auto 20).
+    destruct (D4 x Hl) as (A & B). split; [| exact (conj A B)].
+    exists Ptrofs.zero. destruct Hx' as [-> | [-> | [-> | ->]]]; unfold ff_rl; cbn; auto 20.
+  Qed.
+
   Section HOLE.
     Variables (m m' : mem) (bsr bsrc : block).
-    Hypothesis SR0 : Genv.find_symbol ge AX._sSoundRequests = Some bsr.
-    Hypothesis SRC0 : Genv.find_symbol ge AX._sSoundRequestCount = Some bsrc.
-    Hypothesis NB : Mem.nextblock m' = Mem.nextblock m.
+    (* 2026-10-23: the two changed blocks are any of XIDS' (play_sound's
+       queue, gBodyStates, gPlayerCameraState), and memory may grow (a
+       callee's frame, allocated and freed) *)
+    Hypothesis SR0 : xsym bsr.
+    Hypothesis SRC0 : xsym bsrc.
+    Hypothesis NB : Ple (Mem.nextblock m) (Mem.nextblock m').
     Hypothesis PM : forall b o k p, Mem.perm m b o k p -> Mem.perm m' b o k p.
-    Hypothesis LD : forall ch b z, b <> bsr -> b <> bsrc -> (b <> bm \/ z + size_chunk ch <= 4 \/ 8 <= z) ->
+    Hypothesis LD : forall ch b z, b <> bsr -> b <> bsrc -> (b <> bm \/ hz z (size_chunk ch)) ->
       Mem.load ch m' b z = Mem.load ch m b z.
     Hypothesis CLK : forall gp, closed_by gp m -> syms_mapped ge gp -> gp bm <> None ->
       exists gp', (forall b, gp b <> None -> gp' b <> None) /\ closed_by gp' m' /\ syms_mapped ge gp'.
@@ -606,7 +656,7 @@ Section PR.
     Lemma LHb : forall ch b z, b <> bm -> b <> bsr -> b <> bsrc -> Mem.load ch m' b z = Mem.load ch m b z.
     Proof. intros ch b z H1 H2 H3. exact (LD ch b z H2 H3 (or_introl H1)). Qed.
 
-    Lemma LHm : forall ch z, z + size_chunk ch <= 4 \/ 8 <= z -> Mem.load ch m' bm z = Mem.load ch m bm z.
+    Lemma LHm : forall ch z, hz z (size_chunk ch) -> Mem.load ch m' bm z = Mem.load ch m bm z.
     Proof. intros ch z H. exact (LD ch bm z NBR NBRC (or_intror H)). Qed.
 
     Ltac hm := rewrite LHm by hside.
@@ -619,18 +669,20 @@ Section PR.
       /\ (forall bc oc, Mem.load Mint32 m bm FFW_CTL = Some (Vptr bc oc) -> bc <> bm /\ bc <> bsr /\ bc <> bsrc).
     Proof.
       intros (_ & EX & _).
-      destruct EX as (gp & bfi & bmiss & bcalls & bsin & ab & biom & bmq & brm & blk & bpc & bsr' & bsrc' & bsms & bo & oo & bt & ot & fl & ar & inp & ctl &
-                      HC & HS & HM & S1 & S2 & S3 & S4 & S5 & S6 & S7 & S8 & SL & SP & SR & SRC & SMS & Lo & Soo & La & Lb & Sot & D1 & D2 & D3 & D4 &
-                      W & Lf & Wf & Wc0 & Lar & War & Li & Ai & Lc & Wc & Co & LPC).
-      assert (bsr' = bsr) by congruence. assert (bsrc' = bsrc) by congruence. subst bsr' bsrc'.
-      set (rl := ff_rl bm bo oo bfi bmiss bcalls ab bt biom bmq brm blk bpc bsr bsrc bsms) in *.
+      destruct EX as (gp & bfi & bmiss & bcalls & bsin & ab & biom & bmq & brm & blk & bpc & bsr' & bsrc' & bsms & bbs & bo & oo & bt & ot & fl & ar & inp & ctl &
+                      HC & HS & HM & S1 & S2 & S3 & S4 & S5 & S6 & S7 & S8 & SL & SP & SR & SRC & SMS & SBS & Lo & Soo & La & Lb & Sot & D1 & D2 & D3 & D4 &
+                      W & Lf & Wf & Wc0 & Lar & War & Li & Ai & Lc & Wc & Co & LPC & LBS).
+      destruct (xsym_ffw bsr bo oo bfi bmiss bcalls bsin ab bt biom bmq brm blk bpc bsr' bsrc' bsms bbs
+                  SR0 SP SR SRC SBS (fun b H => D4 b (or_introl H))) as (R1 & X1o & X1t).
+      destruct (xsym_ffw bsrc bo oo bfi bmiss bcalls bsin ab bt biom bmq brm blk bpc bsr' bsrc' bsms bbs
+                  SRC0 SP SR SRC SBS (fun b H => D4 b (or_introl H))) as (R2 & X2o & X2t).
+      set (rl := ff_rl bm bo oo bfi bmiss bcalls ab bt biom bmq brm blk bpc bsr' bsrc' bsms bbs) in *.
       assert (NR : forall b, ~ rblk rl b -> b <> bm /\ b <> bsr /\ b <> bsrc).
-      { intros b Hn. split; [| split]; intros ->; apply Hn; exists Ptrofs.zero; unfold rl, ff_rl; cbn; auto 20. }
+      { intros b Hn. split; [| split]; intros ->; apply Hn;
+          [exists Ptrofs.zero; unfold rl, ff_rl; cbn; auto 20 | exact R1 | exact R2]. }
       split; [| split].
       - intros bo' oo' Hl. change MARIOOBJ_OFF with FFW_OBJ in Hl. rewrite Lo in Hl. injection Hl as <- _.
-        destruct (D4 bsr (or_introl (ltac:(cbn; repeat (first [left; reflexivity | right])) : In bsr [bfi; bmiss; bcalls; bsin; ab; biom; bmq; brm; blk; bpc; bsr; bsrc; bsms]))) as (A & _).
-        destruct (D4 bsrc (or_introl (ltac:(cbn; repeat (first [left; reflexivity | right])) : In bsrc [bfi; bmiss; bcalls; bsin; ab; biom; bmq; brm; blk; bpc; bsr; bsrc; bsms]))) as (B & _).
-        split; [exact D1 | split; congruence].
+        split; [exact D1 | split; [exact (not_eq_sym X1o) | exact (not_eq_sym X2o)]].
       - intros off sb so Hoff Hl. apply NR. destruct Hoff as [-> | [-> | ->]].
         + exact (Wc0 FFW_WALL sb so (or_introl eq_refl) Hl).
         + exact (Wc0 FFW_CEIL sb so (or_intror eq_refl) Hl).
@@ -643,8 +695,8 @@ Section PR.
     Lemma hole_obj : ffw ge bm m -> exists bo oo, Mem.load Mint32 m bm MARIOOBJ_OFF = Some (Vptr bo oo).
     Proof.
       intros (_ & EX & _).
-      destruct EX as (gp & bfi & bmiss & bcalls & bsin & ab & biom & bmq & brm & blk & bpc & bsr' & bsrc' & bsms & bo & oo & bt & ot & fl & ar & inp & ctl &
-                      HC & HS & HM & S1 & S2 & S3 & S4 & S5 & S6 & S7 & S8 & SL & SP & SR & SRC & SMS & Lo & _).
+      destruct EX as (gp & bfi & bmiss & bcalls & bsin & ab & biom & bmq & brm & blk & bpc & bsr' & bsrc' & bsms & bbs & bo & oo & bt & ot & fl & ar & inp & ctl &
+                      HC & HS & HM & S1 & S2 & S3 & S4 & S5 & S6 & S7 & S8 & SL & SP & SR & SRC & SMS & SBS & Lo & _).
       exists bo, oo. exact Lo.
     Qed.
 
@@ -670,33 +722,35 @@ Section PR.
     Lemma hole_ffw : ffw ge bm m -> ffw ge bm m'.
     Proof.
       intros (Hgn & EX & FD).
-      destruct EX as (gp & bfi & bmiss & bcalls & bsin & ab & biom & bmq & brm & blk & bpc & bsr' & bsrc' & bsms & bo & oo & bt & ot & fl & ar & inp & ctl &
-                      HC & HS & HM & S1 & S2 & S3 & S4 & S5 & S6 & S7 & S8 & SL & SP & SR & SRC & SMS & Lo & Soo & La & Lb & Sot & D1 & D2 & D3 & D4 &
-                      W & Lf & Wf & Wc0 & Lar & War & Li & Ai & Lc & Wc & Co & LPC).
-      assert (bsr' = bsr) by congruence. assert (bsrc' = bsrc) by congruence. subst bsr' bsrc'.
-      set (rl := ff_rl bm bo oo bfi bmiss bcalls ab bt biom bmq brm blk bpc bsr bsrc bsms) in *.
+      destruct EX as (gp & bfi & bmiss & bcalls & bsin & ab & biom & bmq & brm & blk & bpc & bsr' & bsrc' & bsms & bbs & bo & oo & bt & ot & fl & ar & inp & ctl &
+                      HC & HS & HM & S1 & S2 & S3 & S4 & S5 & S6 & S7 & S8 & SL & SP & SR & SRC & SMS & SBS & Lo & Soo & La & Lb & Sot & D1 & D2 & D3 & D4 &
+                      W & Lf & Wf & Wc0 & Lar & War & Li & Ai & Lc & Wc & Co & LPC & LBS).
+      destruct (xsym_ffw bsr bo oo bfi bmiss bcalls bsin ab bt biom bmq brm blk bpc bsr' bsrc' bsms bbs
+                  SR0 SP SR SRC SBS (fun b H => D4 b (or_introl H))) as (R1 & X1o & X1t).
+      destruct (xsym_ffw bsrc bo oo bfi bmiss bcalls bsin ab bt biom bmq brm blk bpc bsr' bsrc' bsms bbs
+                  SRC0 SP SR SRC SBS (fun b H => D4 b (or_introl H))) as (R2 & X2o & X2t).
+      set (rl := ff_rl bm bo oo bfi bmiss bcalls ab bt biom bmq brm blk bpc bsr' bsrc' bsms bbs) in *.
       assert (NR : forall b, ~ rblk rl b -> b <> bm /\ b <> bsr /\ b <> bsrc).
-      { intros b Hn. split; [| split]; intros ->; apply Hn; exists Ptrofs.zero; unfold rl, ff_rl; cbn; auto 20. }
+      { intros b Hn. split; [| split]; intros ->; apply Hn;
+          [exists Ptrofs.zero; unfold rl, ff_rl; cbn; auto 20 | exact R1 | exact R2]. }
       assert (NBo : bo <> bm /\ bo <> bsr /\ bo <> bsrc).
-      { destruct (D4 bsr (or_introl (ltac:(cbn; repeat (first [left; reflexivity | right])) : In bsr [bfi; bmiss; bcalls; bsin; ab; biom; bmq; brm; blk; bpc; bsr; bsrc; bsms]))) as (A & _).
-        destruct (D4 bsrc (or_introl (ltac:(cbn; repeat (first [left; reflexivity | right])) : In bsrc [bfi; bmiss; bcalls; bsin; ab; biom; bmq; brm; blk; bpc; bsr; bsrc; bsms]))) as (B & _).
-        split; [exact D1 | split; congruence]. }
+      { split; [exact D1 | split; [exact (not_eq_sym X1o) | exact (not_eq_sym X2o)]]. }
       destruct NBo as (O1 & O2 & O3).
-      assert (Nab1 : ab <> bsr) by exact (AnimKeep.symne_ids ge _ _ _ _ S5 SR eq_refl).
-      assert (Nab2 : ab <> bsrc) by exact (AnimKeep.symne_ids ge _ _ _ _ S5 SRC eq_refl).
-      assert (Hnb : Ple (Mem.nextblock m) (Mem.nextblock m')) by (rewrite NB; apply Ple_refl).
+      assert (Nab1 : ab <> bsr) by exact (xsym_ne _ _ _ SR0 S5 eq_refl).
+      assert (Nab2 : ab <> bsrc) by exact (xsym_ne _ _ _ SRC0 S5 eq_refl).
+      assert (Hnb : Ple (Mem.nextblock m) (Mem.nextblock m')) by exact NB.
       assert (Hperm : forall b ofs k p, Plt b (Mem.nextblock m) -> Mem.perm m b ofs k p -> Mem.perm m' b ofs k p)
         by (intros b ofs k p _ Hp; exact (PM b ofs k p Hp)).
       assert (Hld : forall ch b z, Plt b (Mem.nextblock m) -> ~ rblk rl b -> Mem.load ch m' b z = Mem.load ch m b z)
         by (intros ch b z _ Nr; destruct (NR b Nr) as (A & B & C); exact (LHb ch b z A B C)).
       destruct (CLK gp HC HS HM) as (gp' & Hinc & HC' & HS').
-      split; [rewrite NB; exact Hgn |].
+      split; [exact (Ple_trans _ _ _ Hgn NB) |].
       split.
-      - exists gp', bfi, bmiss, bcalls, bsin, ab, biom, bmq, brm, blk, bpc, bsr, bsrc, bsms, bo, oo, bt, ot, fl, ar, inp, ctl.
+      - exists gp', bfi, bmiss, bcalls, bsin, ab, biom, bmq, brm, blk, bpc, bsr', bsrc', bsms, bbs, bo, oo, bt, ot, fl, ar, inp, ctl.
         split; [exact HC' |]. split; [exact HS' |]. split; [exact (Hinc _ HM) |].
-        do 13 (split; [assumption |]).
+        do 14 (split; [assumption |]).
         split; [hm; exact Lo |]. split; [exact Soo |]. split; [hm; exact La |].
-        split; [rewrite (LD Mint32 ab 8 Nab1 Nab2 (or_intror (or_intror (Z.le_refl 8)))); exact Lb |].
+        split; [rewrite (LD Mint32 ab 8 Nab1 Nab2 (or_intror hz_8)); exact Lb |].
         do 5 (split; [assumption |]).
         split; [exact (Wff_keep2 ge m m' rl Hnb Hperm Hld gp gp' Hinc W) |].
         split; [hm; exact Lf |]. split; [exact (wblk_keep2 m m' rl Hnb Hperm Hld _ _ _ Wf) |].
@@ -708,7 +762,7 @@ Section PR.
         split; [hm; exact Li |]. split; [exact Ai |].
         split; [hm; exact Lc |]. split; [exact (wblk_keep2 m m' rl Hnb Hperm Hld _ _ _ Wc) |].
         split; [intros i cb co Hi Hl; rewrite LHb in Hl by assumption; exact (Co i cb co Hi Hl) |].
-        hm; exact LPC.
+        split; [hm; exact LPC |]. hm; exact LBS.
       - exact (floor_data_keep2 ge m m' rl Hnb Hperm Hld gp W FD).
     Qed.
 
@@ -729,9 +783,9 @@ Section PR.
     Proof.
       intros Hf (Hw & Hc & Hfl & Hh & Hr & Hq & Ho).
       pose proof Hf as (_ & EX & _).
-      destruct EX as (gp & bfi & bmiss & bcalls & bsin & ab & biom & bmq & brm & blk & bpc & bsr' & bsrc' & bsms & bo & oo & bt & ot & fl & ar & inp & ctl &
-                      HC & HS & HM & S1 & S2 & S3 & S4 & S5 & S6 & S7 & S8 & SL & SP & SR & SRC & SMS & Lo & Soo & La & Lb & Sot & D1 & D2 & D3 & D4 &
-                      W & Lf & Wf & Wc0 & Lar & War & Li & Ai & Lc & Wc & Co & LPC).
+      destruct EX as (gp & bfi & bmiss & bcalls & bsin & ab & biom & bmq & brm & blk & bpc & bsr' & bsrc' & bsms & bbs & bo & oo & bt & ot & fl & ar & inp & ctl &
+                      HC & HS & HM & S1 & S2 & S3 & S4 & S5 & S6 & S7 & S8 & SL & SP & SR & SRC & SMS & SBS & Lo & Soo & La & Lb & Sot & D1 & D2 & D3 & D4 &
+                      W & Lf & Wf & Wc0 & Lar & War & Li & Ai & Lc & Wc & Co & LPC & LBS).
       destruct (hole_apart Hf) as (Ao & As & _).
       split; [| split; [| split; [| split; [| split; [| split]]]]].
       - intros v Hl. hm_in Hl. destruct (Hw v Hl) as [-> | (b & o & t & -> & Lt & Hin)]; [left; reflexivity |].
@@ -765,9 +819,9 @@ Section PR.
     Proof.
       intros Hf Han ab bt ot Hs Hl.
       destruct (hole_apart Hf) as (Ao & _ & _).
-      assert (N1 : ab <> bsr) by exact (AnimKeep.symne_ids ge _ _ _ _ Hs SR0 eq_refl).
-      assert (N2 : ab <> bsrc) by exact (AnimKeep.symne_ids ge _ _ _ _ Hs SRC0 eq_refl).
-      rewrite (LD Mptr ab 8 N1 N2 (or_intror (or_intror (Z.le_refl 8)))) in Hl.
+      assert (N1 : ab <> bsr) by exact (xsym_ne _ _ _ SR0 Hs eq_refl).
+      assert (N2 : ab <> bsrc) by exact (xsym_ne _ _ _ SRC0 Hs eq_refl).
+      rewrite (LD Mptr ab 8 N1 N2 (or_intror hz_8)) in Hl.
       destruct (Han ab bt ot Hs Hl) as (A1 & A2). split.
       - intros off sb so Hoff Hl'.
         destruct Hoff as [-> | [-> | ->]]; hm_in Hl';
@@ -837,25 +891,29 @@ Section PR.
     Proof.
       intros Hf AW. pose proof Hf as (Hgn & EX & FD).
       destruct (hole_apart Hf) as (Ao & _ & _).
-      destruct EX as (gp & bfi & bmiss & bcalls & bsin & ab & biom & bmq & brm & blk & bpc & bsr' & bsrc' & bsms & bo & oo & bt & ot
-                      & fl & ar & inp & ctl & HC & HS & HM & S1 & S2 & S3 & S4 & S5 & S6 & S7 & S8 & SL & SP & SR & SRC & SMS
+      destruct EX as (gp & bfi & bmiss & bcalls & bsin & ab & biom & bmq & brm & blk & bpc & bsr' & bsrc' & bsms & bbs & bo & oo & bt & ot
+                      & fl & ar & inp & ctl & HC & HS & HM & S1 & S2 & S3 & S4 & S5 & S6 & S7 & S8 & SL & SP & SR & SRC & SMS & SBS
                       & Lo & Soo & La & Lb & Sot & D1 & D2 & D3 & D4 & W & _).
-      assert (bsr' = bsr) by congruence. assert (bsrc' = bsrc) by congruence. subst bsr' bsrc'.
+      destruct (xsym_ffw bsr bo oo bfi bmiss bcalls bsin ab bt biom bmq brm blk bpc bsr' bsrc' bsms bbs
+                  SR0 SP SR SRC SBS (fun b H => D4 b (or_introl H))) as (R1 & X1o & X1t).
+      destruct (xsym_ffw bsrc bo oo bfi bmiss bcalls bsin ab bt biom bmq brm blk bpc bsr' bsrc' bsms bbs
+                  SRC0 SP SR SRC SBS (fun b H => D4 b (or_introl H))) as (R2 & X2o & X2t).
       pose proof AW as (ab' & bga & bauc & btab & otab & bt' & ot' & mb' & mo' & B & _).
       pose proof B as (Sab & _ & _ & _ & L8 & _ & Sy & _ & _ & _ & _ & _ & _ & _ & _ & _ & _ & _ & _ & _ & Hbm0).
       assert (ab' = ab) by congruence. subst ab'.
       rewrite Lb in L8. injection L8 as <- <-.
       assert (Nab : ab <> bm) by exact (AnimKeep.symne_ids ge _ _ _ _ S5 Hbm0 eq_refl).
-      assert (N1 : ab <> bsr) by exact (AnimKeep.symne_ids ge _ _ _ _ S5 SR eq_refl).
-      assert (N2 : ab <> bsrc) by exact (AnimKeep.symne_ids ge _ _ _ _ S5 SRC eq_refl).
+      assert (N1 : ab <> bsr) by exact (xsym_ne _ _ _ SR0 S5 eq_refl).
+      assert (N2 : ab <> bsrc) by exact (xsym_ne _ _ _ SRC0 S5 eq_refl).
       destruct (Ao bo oo Lo) as (O1 & O2 & O3).
-      assert (T1 : bt <> bsr) by exact (not_eq_sym (proj2 (Sy _ _ SR))).
-      assert (T2 : bt <> bsrc) by exact (not_eq_sym (proj2 (Sy _ _ SRC))).
-      apply (AnimKeep.anim_w_keep ge bm m m' gp bfi bmiss bcalls ab biom bmq brm blk bpc bsr bsrc bsms bo oo bt ot
-               S1 S2 S3 S5 S6 S7 S8 SL SP SR SRC SMS Lo Lb W AW).
-      - rewrite NB. apply Ple_refl.
+      assert (T1 : bt <> bsr) by exact (not_eq_sym X1t).
+      assert (T2 : bt <> bsrc) by exact (not_eq_sym X2t).
+      apply (AnimKeep.anim_w_keep ge bm m m' gp bfi bmiss bcalls ab biom bmq brm blk bpc bsr' bsrc' bsms bbs bo oo bt ot
+               S1 S2 S3 S5 S6 S7 S8 SL SP SR SRC SMS SBS Lo Lb W AW).
+      - exact NB.
       - intros b ofs k p _ Hp. exact (PM b ofs k p Hp).
-      - intros ch b z _ Hr. apply LHb; intros ->; apply Hr; exists Ptrofs.zero; unfold ff_rl; cbn; auto 20.
+      - intros ch b z _ Hr. apply LHb; intros ->; apply Hr;
+          first [exact R1 | exact R2 | exists Ptrofs.zero; unfold ff_rl; cbn; auto 20].
       - hm. reflexivity.
       - rewrite (LD Mint32 ab 0 N1 N2 (or_introl Nab)). reflexivity.
       - rewrite (LD Mint32 ab 8 N1 N2 (or_introl Nab)). reflexivity.
@@ -872,9 +930,9 @@ Section PR.
       intros AW Hl.
       apply (AnimKeep.lvl_w_keep_ne ge m m' (fun b => b <> bm /\ b <> bsr /\ b <> bsrc)); [| | exact Hl].
       - intros b Hs. split; [exact (AnimKeep.lvl_ne_bm ge bm m AW b Hs) |].
-        destruct Hs as [Hs | Hs]; split;
-          first [ exact (AnimKeep.symne_ids ge _ _ _ _ Hs SR0 eq_refl)
-                | exact (AnimKeep.symne_ids ge _ _ _ _ Hs SRC0 eq_refl) ].
+        lvl_cases Hs; split;
+          first [ exact (xsym_ne _ _ _ SR0 Hs eq_refl)
+                | exact (xsym_ne _ _ _ SRC0 Hs eq_refl) ].
       - intros ch b z (A & B & C). exact (LHb ch b z A B C).
     Qed.
 
@@ -921,7 +979,7 @@ Section PR.
       eapply Mem.store_unchanged_on; [exact Hst |].
       intros i Hi (_ & _ & Hn). apply Hn. split; [reflexivity |].
       rewrite ?Ptrofs.add_zero_l in Hi. change (Ptrofs.unsigned (Ptrofs.repr 4)) with 4 in Hi.
-      change (Ptrofs.unsigned (Ptrofs.repr (fst (4, Full)))) with 4 in Hi. cbn [size_chunk] in Hi. lia.
+      change (Ptrofs.unsigned (Ptrofs.repr (fst (4, Full)))) with 4 in Hi. cbn [size_chunk] in Hi. left. lia.
     - rewrite (Mem.nextblock_store _ _ _ _ _ _ Hst). exact N.
     - intros b o k p. rewrite <- P. split.
       + eapply Mem.perm_store_2; eassumption.
@@ -973,7 +1031,7 @@ Section PR.
     intros v m t m' vr c Hok Hw (Hmarg & Hfr) Hok' Hc Hb Hev.
     pose proof Hw as (_ & _ & _ & _ & _ & Hf & _ & Haw & _).
     pose proof Hf as (Hgn & EX & _).
-    destruct EX as (gp & bfi & bmiss & bcalls & bsin & ab & biom & bmq & brm & blk & bpc & bsr & bsrc & bsms & bo & oo & bt & ot & fl & ar & inp & ctl &
+    destruct EX as (gp & bfi & bmiss & bcalls & bsin & ab & biom & bmq & brm & blk & bpc & bsr & bsrc & bsms & bbs & bo & oo & bt & ot & fl & ar & inp & ctl &
                     HC & HS & HM & S1 & S2 & S3 & S4 & S5 & S6 & S7 & S8 & SL & SP & SR & SRC & SMS & _).
     assert (HQ : Qrel bsr bsrc m m').
     { refine (lw_body_frame ge (Qrel bsr bsrc m) AIR.f_play_far_fall_sound (fun le => le ! AIR._m = Some v)
@@ -992,13 +1050,14 @@ Section PR.
     assert (NB : Mem.nextblock m' = Mem.nextblock m) by exact N.
     assert (PM : forall b o k p, Mem.perm m b o k p -> Mem.perm m' b o k p)
       by (intros b o k p Hp; exact (proj2 (P b o k p) Hp)).
-    assert (LD : forall ch b z, b <> bsr -> b <> bsrc -> (b <> bm \/ z + size_chunk ch <= 4 \/ 8 <= z) ->
+    assert (LD : forall ch b z, b <> bsr -> b <> bsrc -> (b <> bm \/ hz z (size_chunk ch)) ->
                Mem.load ch m' b z = Mem.load ch m b z).
     { intros ch b z N1 N2 Hz.
       destruct (plt b (Mem.nextblock m)) as [V | V].
       - eapply Mem.load_unchanged_on_1; [exact U | exact V |].
         intros i Hi. split; [exact N1 | split; [exact N2 |]].
-        intros (-> & Hi'). destruct Hz as [Hz | Hz]; [exact (Hz eq_refl) | lia].
+        intros (-> & Hi'). destruct Hz as [Hz | Hz]; [exact (Hz eq_refl) |].
+        unfold hz in Hz. clear - Hi Hi' Hz. lia.
       - rewrite (load_invalid m ch b z V). apply load_invalid.
         unfold Mem.valid_block. rewrite N. exact V. }
     assert (CLK : forall gp, closed_by gp m -> syms_mapped ge gp -> gp bm <> None ->
@@ -1017,9 +1076,12 @@ Section PR.
                      & _ & _ & _ & _ & _ & _ & _ & _ & Hbm0).
     assert (NBR : bm <> bsr) by exact (AnimKeep.symne_ids ge _ _ _ _ Hbm0 SR eq_refl).
     assert (NBRC : bm <> bsrc) by exact (AnimKeep.symne_ids ge _ _ _ _ Hbm0 SRC eq_refl).
-    split; [eapply hole_fworld; eassumption |].
-    split; [exists c; split; [eapply hole_cells; eassumption | apply rt_refl] |].
-    eapply hole_fresh_at; eassumption.
+    assert (XR : xsym bsr) by (exists AX._sSoundRequests; split; [left; reflexivity | exact SR]).
+    assert (XRC : xsym bsrc) by (exists AX._sSoundRequestCount; split; [right; left; reflexivity | exact SRC]).
+    assert (NBle : Ple (Mem.nextblock m) (Mem.nextblock m')) by (rewrite NB; apply Ple_refl).
+    split; [eapply hole_fworld with (bsr := bsr) (bsrc := bsrc); eassumption |].
+    split; [exists c; split; [eapply hole_cells with (bsr := bsr) (bsrc := bsrc); eassumption | apply rt_refl] |].
+    eapply hole_fresh_at with (bsr := bsr) (bsrc := bsrc); eassumption.
   Qed.
 
   (* ==================================================================== *)

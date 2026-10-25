@@ -14,8 +14,9 @@
 (*   seg_level    the warp / level phase,                                   *)
 (*   seg_rest     the rest of update_objects + gfx (non-Mario).             *)
 (* For a height invariant Phi that implies pos[1] <= YMAX: a run that       *)
-(* starts GOAL-1-well-formed and in Phi, with A neither pressed nor held    *)
-(* after every poll (a_used_real: holding A counts as using it), keeps      *)
+(* starts GOAL-1-well-formed and in Phi, in which the controller hardware's *)
+(* reply shows A on no live port every frame (PollFlank.pif_a_real; the     *)
+(* real poll, walked, turns that into A neither pressed nor held), keeps    *)
 (* Mario's height <= YMAX forever.                                          *)
 (*                                                                          *)
 (* WHAT IS PROVED.  seg_action preserving GOAL 1's invariant is NOT         *)
@@ -70,10 +71,10 @@ From SM64.Proofs Require Import LinkedTwelve SpawnInit InitMemSat.
 From SM64.Proofs Require SpawnBodies CameraBodies.
 From SM64.Proofs Require Import NoAImpliesNoFlyLinked NoAImpliesNoFlyTwelve.
 From SM64.Proofs Require Import FrameCalls FrameSplit AirSplit AutoSplit.
-From SM64.Proofs.WMotRRequiresA Require Import ProRows.
+From SM64.Proofs.WMotRRequiresA Require Import ProRows NaSplit.
 From SM64.Proofs.WMotRRequiresA Require Import FfWorld FfRow AhwRow KbRow FpuFloor ExtInert.
 From SM64.Proofs.WMotRRequiresA Require PoleXc PoleCasesT.
-From SM64.Proofs.WMotRRequiresA Require RenderFlank AnimWorld.
+From SM64.Proofs.WMotRRequiresA Require RenderFlank RenderKeep AnimWorld PlatformKeep PollFlank.
 From SM64.Proofs Require OsDmaFloor LptBody.
 From SM64.Proofs Require Import HeightInvariant HeightBudgetArith HeightMoveCatalog WMotRLevel
   WMotRWorld NoAActions.
@@ -119,46 +120,81 @@ Section HeightFrame.
   (*    which is what makes GOAL 1 transfer through the composition.        *)
   (* ===================================================================== *)
 
-  (* seg_input: the controller poll (read_controller_inputs, game_init.c)
-     writes the controller structs only -- never Mario's y or action.
-     MWF_real's controller conjunct IS the A-clear fact, so the MWF carry is
-     conditional on the player not pressing A: this is where the no-A
-     premise enters the frame. *)
-  Definition seg_input_spec (m m' : mem) : Prop :=
-    Mem.load Mfloat32 m' bm POSY = Mem.load Mfloat32 m bm POSY
-    /\ Mem.load Mint32 m' bm 12 = Mem.load Mint32 m bm 12
-    /\ (Mem.valid_block m bm -> Mem.valid_block m' bm)
-    /\ (a_pressed_real bm m' = false -> MWF m -> MWF m')
-    /\ (Phi m -> Phi m').
+  (* seg_input: the controller poll, the REAL code (2026-10-23, PollFlank):
+     game_init.c's loop runs osContStartReadData(&gSIEventMesgQueue) when a
+     controller is plugged in (left disjunct: it is not), then
+     read_controller_inputs().  i is the memory after the SI request: its
+     PIF image holds the reply bytes the HARDWARE delivered
+     (OsDmaFloor.si_raw_dma_spec), which is what the no-A premise reads
+     (PollFlank.pif_a_real); m0 is the post-poll memory.  Both calls are
+     walked (Hsrd_ok / Hpoll_ok below, discharged on the link).
+     LABELED (TRUST 0.7): the two calls are adjacent (the game runs
+     audio_game_loop_tick and select_gfx_pool in between, assumed not to
+     touch the PIF image), and the Phi carries, the poll's conditional on
+     the controller cells it PROVABLY re-establishes (ctl_w), and the
+     platform fact PlatformKeep.plat_still (2026-10-24: the poll writes no
+     object and not gMarioPlatform). *)
+  Definition seg_input_spec (m i m0 : mem) : Prop :=
+    (i = m \/ PollFlank.srd_call lp m i)
+    /\ (Phi m -> Phi i)
+    /\ PollFlank.rci_call lp i m0
+    /\ (Phi i -> ctl_w (lp_ge lp) m0 -> Phi m0)
+    /\ (PlatformKeep.plat_still lp m -> PlatformKeep.plat_still lp m0).
 
-  (* seg_platform: apply_mario_platform_displacement.  T1's widened spec
-     (playground/PlatformInert.v): the y and action LOADS are unchanged --
-     NULL platform is an early return, a ridden wing-cap box never moves so
-     its displacement is identity. *)
+  (* seg_platform: ONE real eval_funcall of platform_displacement.c's
+     apply_mario_platform_displacement over lp (2026-10-23, the TU linked as
+     the 45th; PlatformKeep.plat_call).  Its carries of mem_ok, Phi and the
+     A-held bit are PROVED from the walked body (PlatformKeep, discharging
+     Hplat_ok / Hplat_phi / Hplat_ad below).  What the step states besides
+     the call (labeled trust): Mario's surfaces are not in D_8032FEC0's
+     block (RenderKeep.surf_apart, as for the render step).
+     The carries need PlatformKeep.plat_still at the call: gMarioPlatform is
+     NULL or an object with zero angle velocity (a rotating platform moves
+     Mario's y).  Since 2026-10-24 that is no longer a premise of this step.
+     The run carries it at frame boundaries (frame_step_ok): it holds at the
+     boot witness (StartSat, proved: gMarioPlatform boots NULL), the object
+     phase re-establishes it (seg_rest_spec, part of the labeled objects
+     spec), and the poll keeps it (seg_input_spec). *)
   Definition seg_platform_spec (m m' : mem) : Prop :=
-    Mem.load Mfloat32 m' bm POSY = Mem.load Mfloat32 m bm POSY
-    /\ Mem.load Mint32 m' bm 12 = Mem.load Mint32 m bm 12
-    /\ (Mem.valid_block m bm -> Mem.valid_block m' bm)
-    /\ a_down_real bm m' = a_down_real bm m   (* no controller write *)
-    /\ carries m m'.
+    PlatformKeep.plat_call lp m m'
+    /\ RenderKeep.surf_apart lp bm PlatformKeep.plat_gvars m.
 
   (* seg_level: the warp / level phase.  None of its writers touches
      m->action (scout, docs/goal2-frame-boundary-scout.md).  Its y writes
      are the censused teleports (T4: expected EMPTY in WMotR), which the
-     Phi carry covers. *)
+     Phi carry covers.  The spec is claimed only from memories where the
+     warp code cannot fire (2026-10-24, FOUND phantom forall): Phi's lvl_w
+     now carries FfWorld.warp_w (in PLAY_MODE_NORMAL sWarpDest.type is
+     NOT_WARPING, so warp_area's init_mario_after_warp does not run; no
+     demo, no credits; a pending delayed warp has source node F0 / F1 /
+     F3), proved at the boot witness and kept by every proved row.  The
+     instant and painting warps need floor types WMotR does not have. *)
   Definition seg_level_spec (m m' : mem) : Prop :=
     Mem.unchanged_on (action_cell bm) m m'
     /\ carries m m'.
 
   (* seg_rest: the non-Mario phase.  The WMotR object census found three
      object-side Mario writers (pole push: pos[0]/pos[2]; 1-up: numLives;
-     bob-omb buddy: action := ACT_READING_NPC_DIALOG); none writes y. *)
+     bob-omb buddy: action := ACT_READING_NPC_DIALOG); none writes y.
+     It ends with the platform fact (2026-10-24, part of this labeled
+     objects spec): gMarioPlatform is NULL or an object with zero angle
+     velocity (PlatformKeep.plat_still).  In the game update_mario_platform
+     (the last step of update_objects) sets it to NULL or to the object of
+     Mario's floor.  WMotR's only objects with surfaces are the ! boxes and
+     the cannon lids (WMotRLevel.collision_of, TRUST 0.8).  Their scripts
+     set no angle velocity and no function they run writes one
+     (AngleVelCensus); rawData is zeroed at allocation.  The one stale-slot
+     path (a lid deactivates in the frame it last loads its surfaces) needs
+     Mario on the lid while it opens, and he is then frozen in the buddy's
+     dialog, over 400 units away (TRUST 0.7 details).  The render tail writes
+     no object field and not gMarioPlatform. *)
   Definition seg_rest_spec (m m' : mem) : Prop :=
     Mem.load Mfloat32 m' bm POSY = Mem.load Mfloat32 m bm POSY
     /\ (Mem.load Mint32 m' bm 12 = Mem.load Mint32 m bm 12
         \/ Mem.load Mint32 m' bm 12 = Some (Vint ACT_READING_NPC_DIALOG))
     /\ (Mem.valid_block m bm -> Mem.valid_block m' bm)
-    /\ carries m m'.
+    /\ carries m m'
+    /\ PlatformKeep.plat_still lp m'.
 
   (* seg_render: the render step on Mario's node (2026-10-22,
      rendering_graph_node.c linked as TU 35).  geo_process_object calls the
@@ -167,11 +203,15 @@ Section HeightFrame.
      graph_node.c's geo_update_animation_frame.  The left disjunct is a frame
      where Mario's node is not drawn.  GOAL 1's mem_ok carry through it is
      PROVED from its walked footprint (RenderFlank.render_mem_ok,
-     discharging Hrender_ok below); the Phi carry is assumed like every other
-     flank's (it was inside seg_rest's before). *)
+     discharging Hrender_ok below), and so is the Phi carry (2026-10-23,
+     RenderKeep.render_keeps_phiw, discharging Hrender_phi below).  It is no
+     longer an assumed carry; what the step states instead is narrower
+     (RenderKeep.render_surf_apart, labeled trust): Mario's wall / ceiling /
+     floor surfaces are not in one of the six gCurrAnim* globals' blocks the
+     call writes.  In the game they are surface-pool surfaces; the frame
+     world keeps them off the walk's regions but not off every global. *)
   Definition seg_render_spec (m m' : mem) : Prop :=
-    (m' = m \/ RenderFlank.render_call lp bm m m')
-    /\ (Phi m -> Phi m').
+    m' = m \/ (RenderFlank.render_call lp bm m m' /\ RenderKeep.render_surf_apart lp bm m).
 
   (* The game is still in WMotR: gCurrLevelNum (level_update.c, set only by
      the warp code from sWarpDest, :477/:502) holds LEVEL_WMOTR (pinned from
@@ -181,7 +221,8 @@ Section HeightFrame.
               /\ Mem.load Mint16signed m b 0 = Some (Vint (Int.repr LEVEL_WMOTR)).
 
   (* ===================================================================== *)
-  (* 2. THE FRAME.  The per-frame input i is the post-poll memory (GOAL 1's *)
+  (* 2. THE FRAME.  The per-frame input i is the memory after the SI       *)
+  (*    request, whose PIF image holds the hardware's reply (GOAL 1's      *)
   (*    convention: the input IS the memory the frame reads it from).       *)
   (*    A frame that ends in another level is not a step: the run is ONE    *)
   (*    WMotR visit.  Leaving re-inits Mario elsewhere (the real game,      *)
@@ -191,16 +232,39 @@ Section HeightFrame.
   (* ===================================================================== *)
   (* The non-Mario tail is rest (object updates, then the render walk up
      to Mario's node) ; Mario's render call ; rest (the remaining walk). *)
-  Definition frame_step (i m m' : mem) : Prop :=
-    exists m1 m2 m3 m4 m5,
-      seg_input_spec m i
-      /\ seg_platform_spec i m1
+  Definition mario_frame_step (i m m' : mem) : Prop :=
+    exists m0 m1 m2 m3 m4 m5,
+      seg_input_spec m i m0
+      /\ seg_platform_spec m0 m1
       /\ execute_mario_action_step_lp lp m1 m2
       /\ seg_level_spec m2 m3
       /\ seg_rest_spec m3 m4
       /\ seg_render_spec m4 m5
       /\ seg_rest_spec m5 m'
       /\ in_wmotr m'.
+
+  (* A frame that updates Mario ZERO times (2026-10-24): a paused frame
+     (play_mode_paused: no object update), a change-level frame, a frame in
+     time stop with TIME_STOP_MARIO_AND_DOORS (update_objects skips Mario;
+     apply_mario_platform_displacement returns early while time stop is
+     active, but may still be called).  The poll runs; then either nothing
+     else changes memory, or the flanks run (an optional platform call, the
+     level phase, the object / render tail) with no execute_mario_action.
+     Before this, a real no-A run that paused was not a frame_step run, so
+     the capstone said nothing about it. *)
+  Definition idle_frame_step (i m m' : mem) : Prop :=
+    exists m0, seg_input_spec m i m0
+    /\ (m' = m0
+        \/ exists m1 m3 m4 m5,
+             (m1 = m0 \/ seg_platform_spec m0 m1)
+             /\ seg_level_spec m1 m3
+             /\ seg_rest_spec m3 m4
+             /\ seg_render_spec m4 m5
+             /\ seg_rest_spec m5 m'
+             /\ in_wmotr m').
+
+  Definition frame_step (i m m' : mem) : Prop :=
+    mario_frame_step i m m' \/ idle_frame_step i m m'.
 
   Variable YMAX : R.
 
@@ -220,6 +284,23 @@ Section HeightFrame.
   Hypothesis Hrender_ok :
     forall m m', mem_ok m -> RenderFlank.render_call lp bm m m' -> mem_ok m'.
 
+  (* the render call carries Phi, given the step's surface premise
+     (discharged in the twelve-TU section below by
+     RenderKeep.render_keeps_phiw -- NOT open). *)
+  Hypothesis Hrender_phi :
+    forall m m', Phi m -> RenderFlank.render_call lp bm m m' ->
+                 RenderKeep.render_surf_apart lp bm m -> Phi m'.
+
+  (* the platform step carries mem_ok, the A-held bit and Phi (discharged
+     in the twelve-TU section below by PlatformKeep -- NOT open). *)
+  Hypothesis Hplat_ok :
+    forall m m', mem_ok m -> PlatformKeep.plat_still lp m -> seg_platform_spec m m' -> mem_ok m'.
+  Hypothesis Hplat_ad :
+    forall m m', mem_ok m -> PlatformKeep.plat_still lp m -> seg_platform_spec m m' ->
+                 a_down_real bm m' = a_down_real bm m.
+  Hypothesis Hplat_phi :
+    forall m m', Phi m -> PlatformKeep.plat_still lp m -> seg_platform_spec m m' -> Phi m'.
+
   (* OPEN (T2 + T3, THE CRUX): one real execute_mario_action frame from a
      GOAL-1-well-formed state preserves the height invariant.  The
      ballistic value walk (paqs `pos[1] += vel[1]/4`, bounded by the Flocq
@@ -231,6 +312,17 @@ Section HeightFrame.
 
   (* OPEN (immediate once Phi is defined): the invariant bounds the height. *)
   Hypothesis Hphi_y : forall m, Phi m -> y_le m.
+
+  (* the controller poll's two real calls carry GOAL 1's mem_ok, and the
+     poll leaves Mario's controller A-free when the hardware's reply shows A
+     on no live port (discharged in the twelve-TU section below by
+     PollFlank.srd_ok / PollFlank.poll_ok -- NOT open). *)
+  Hypothesis Hsrd_ok :
+    forall m i, mem_ok m -> PollFlank.srd_call lp m i -> mem_ok i.
+  Hypothesis Hpoll_ok :
+    forall i m0, mem_ok i -> Phi i -> PollFlank.pif_a_real (lp_ge lp) i = false ->
+      PollFlank.rci_call lp i m0 ->
+      mem_ok m0 /\ a_used_real bm m0 = false /\ ctl_w (lp_ge lp) m0.
 
   (* ---- proved glue ------------------------------------------------------ *)
 
@@ -268,7 +360,7 @@ Section HeightFrame.
   (* a seg_rest phase carries mem_ok *)
   Lemma rest_ok : forall m m', seg_rest_spec m m' -> mem_ok m -> mem_ok m'.
   Proof.
-    intros m m' (_ & Har & Hvr & Hmr & _) (Hv & Hs & Hm).
+    intros m m' (_ & Har & Hvr & (Hmr & _) & _) (Hv & Hs & Hm).
     split; [ exact (Hvr Hv) | split ].
     - exact (action_sat_load_eq_or_val not_tainted ACT_READING_NPC_DIALOG
                m m' Har dialog_action_not_tainted Hs).
@@ -276,31 +368,45 @@ Section HeightFrame.
   Qed.
 
   (* ===================================================================== *)
-  (* 3. ONE FRAME: an A-free frame preserves mem_ok AND Phi.                *)
+  (* 3. ONE FRAME: an A-free frame preserves mem_ok AND Phi (and, at the    *)
+  (*    frame boundary, the platform fact PlatformKeep.plat_still).          *)
   (* ===================================================================== *)
-  Theorem frame_step_ok :
-    forall i m m',
-      a_used_real bm i = false ->
-      mem_ok m /\ Phi m ->
-      frame_step i m m' ->
-      mem_ok m' /\ Phi m'.
+  Definition fb_ok (m : mem) : Prop :=
+    mem_ok m /\ Phi m /\ PlatformKeep.plat_still lp m.
+
+  (* the poll: when the hardware's reply shows A on no live port, the real
+     poll keeps the boundary facts, and A is not held after it *)
+  Lemma input_ok : forall i m m0,
+      PollFlank.pif_a_real (lp_ge lp) i = false -> fb_ok m -> seg_input_spec m i m0 ->
+      fb_ok m0 /\ a_down_real bm m0 = false.
   Proof.
-    intros i m m' HU (Hok & Hphi)
-           (m1 & m2 & m3 & m4 & m5 & Hin & Hplat & Hact & Hlvl & Hrest & Hrnd & Hrest2 & _).
-    destruct (a_used_real_false bm i HU) as (HA & HD).
-    (* input *)
-    destruct Hin as (_ & Hai & Hvi & Hmi & Hpi).
-    pose proof (inert_flank m i Hai Hvi (Hmi HA) Hok) as Hok0.
-    pose proof (Hpi Hphi) as Hphi0.
-    (* platform *)
-    destruct Hplat as (_ & Hap & Hvp & Hdp & Hmp & Hpp).
-    assert (HD1 : a_down_real bm m1 = false) by congruence.
-    pose proof (inert_flank i m1 Hap Hvp Hmp Hok0) as Hok1.
-    pose proof (Hpp Hphi0) as Hphi1.
-    (* the Mario action: GOAL 1's frame + the crux *)
-    pose proof (Hseg_action_phi m1 m2 Hok1 Hphi1 HD1 Hact) as Hphi2.
-    pose proof (Hframe_action m1 m2 Hok1 Hact) as (Hv2 & Hs2 & Hm2).
-    (* level *)
+    intros i m m0 HP (Hok & Hphi & Hst) (Hsrd & Hpi & Hrci & Hp0 & Hsti).
+    assert (Hoki : mem_ok i)
+      by (destruct Hsrd as [-> | Hsrd]; [ exact Hok | exact (Hsrd_ok m i Hok Hsrd) ]).
+    pose proof (Hpi Hphi) as Hphii.
+    destruct (Hpoll_ok i m0 Hoki Hphii HP Hrci) as (Hok0 & HU & Hcw).
+    destruct (a_used_real_false bm m0 HU) as (_ & HD).
+    exact (conj (conj Hok0 (conj (Hp0 Hphii Hcw) (Hsti Hst))) HD).
+  Qed.
+
+  (* the platform call *)
+  Lemma platform_ok : forall i m1,
+      fb_ok i -> a_down_real bm i = false -> seg_platform_spec i m1 ->
+      mem_ok m1 /\ Phi m1 /\ a_down_real bm m1 = false.
+  Proof.
+    intros i m1 (Hok0 & Hphi0 & Hst0) HD Hplat.
+    split; [ exact (Hplat_ok i m1 Hok0 Hst0 Hplat) | split ].
+    - exact (Hplat_phi i m1 Hphi0 Hst0 Hplat).
+    - rewrite (Hplat_ad i m1 Hok0 Hst0 Hplat). exact HD.
+  Qed.
+
+  (* the tail: level phase, rest, Mario's render call, rest *)
+  Lemma tail_ok : forall m2 m3 m4 m5 m',
+      mem_ok m2 -> Phi m2 ->
+      seg_level_spec m2 m3 -> seg_rest_spec m3 m4 -> seg_render_spec m4 m5 ->
+      seg_rest_spec m5 m' -> fb_ok m'.
+  Proof.
+    intros m2 m3 m4 m5 m' (Hv2 & Hs2 & Hm2) Hphi2 Hlvl Hrest Hrnd Hrest2.
     destruct Hlvl as (Hact3 & Hml & Hpl).
     assert (Hv3 : Mem.valid_block m3 bm)
       by (eapply Mem.valid_block_unchanged_on; eauto).
@@ -310,14 +416,43 @@ Section HeightFrame.
     assert (Hok3 : mem_ok m3) by exact (conj Hv3 (conj Hs3 (Hml Hm2))).
     (* rest, Mario's render call, rest *)
     pose proof (rest_ok m3 m4 Hrest Hok3) as Hok4.
-    pose proof (proj2 (proj2 (proj2 (proj2 Hrest))) Hphi3) as Hphi4.
-    destruct Hrnd as (Hrc & Hpr).
-    assert (Hok5 : mem_ok m5)
-      by (destruct Hrc as [-> | Hrc]; [ exact Hok4 | exact (Hrender_ok m4 m5 Hok4 Hrc) ]).
-    pose proof (Hpr Hphi4) as Hphi5.
-    split.
+    pose proof (proj2 (proj1 (proj2 (proj2 (proj2 Hrest)))) Hphi3) as Hphi4.
+    assert (Hok5 : mem_ok m5 /\ Phi m5)
+      by (destruct Hrnd as [-> | (Hrc & Hsa)];
+          [ exact (conj Hok4 Hphi4)
+          | exact (conj (Hrender_ok m4 m5 Hok4 Hrc) (Hrender_phi m4 m5 Hphi4 Hrc Hsa)) ]).
+    destruct Hok5 as (Hok5 & Hphi5).
+    split; [ | split ].
     - exact (rest_ok m5 m' Hrest2 Hok5).
-    - exact (proj2 (proj2 (proj2 (proj2 Hrest2))) Hphi5).
+    - exact (proj2 (proj1 (proj2 (proj2 (proj2 Hrest2)))) Hphi5).
+    - exact (proj2 (proj2 (proj2 (proj2 Hrest2)))).
+  Qed.
+
+  Theorem frame_step_ok :
+    forall i m m',
+      PollFlank.pif_a_real (lp_ge lp) i = false ->
+      fb_ok m ->
+      frame_step i m m' ->
+      fb_ok m'.
+  Proof.
+    intros i m m' HU Hfb [ (m0 & m1 & m2 & m3 & m4 & m5 & Hin & Hplat & Hact & Hlvl & Hrest & Hrnd & Hrest2 & _)
+                         | (m0 & Hin & [ -> | (m1 & m3 & m4 & m5 & Hpl & Hlvl & Hrest & Hrnd & Hrest2 & _) ]) ].
+    - (* a frame with Mario's update *)
+      destruct (input_ok i m m0 HU Hfb Hin) as (Hfi & HD).
+      destruct (platform_ok m0 m1 Hfi HD Hplat) as (Hok1 & Hphi1 & HD1).
+      (* the Mario action: GOAL 1's frame + the crux *)
+      pose proof (Hseg_action_phi m1 m2 Hok1 Hphi1 HD1 Hact) as Hphi2.
+      pose proof (Hframe_action m1 m2 Hok1 Hact) as Hok2.
+      exact (tail_ok m2 m3 m4 m5 m' Hok2 Hphi2 Hlvl Hrest Hrnd Hrest2).
+    - (* an idle frame: only the poll *)
+      exact (proj1 (input_ok i m m0 HU Hfb Hin)).
+    - (* an idle frame: the flanks, no Mario update *)
+      destruct (input_ok i m m0 HU Hfb Hin) as (Hfi & HD).
+      assert (H1 : mem_ok m1 /\ Phi m1).
+      { destruct Hpl as [ <- | Hplat ].
+        - exact (conj (proj1 Hfi) (proj1 (proj2 Hfi))).
+        - destruct (platform_ok m0 m1 Hfi HD Hplat) as (A & B & _). exact (conj A B). }
+      exact (tail_ok m1 m3 m4 m5 m' (proj1 H1) (proj2 H1) Hlvl Hrest Hrnd Hrest2).
   Qed.
 
   (* ===================================================================== *)
@@ -325,16 +460,15 @@ Section HeightFrame.
   (* ===================================================================== *)
   Theorem noA_run_height_bound :
     forall (init : mem) (is : list mem) (m : mem),
-      mem_ok init -> Phi init ->
-      Forall (fun i => a_used_real bm i = false) is ->
+      mem_ok init -> Phi init -> PlatformKeep.plat_still lp init ->
+      Forall (fun i => PollFlank.pif_a_real (lp_ge lp) i = false) is ->
       reachable mem mem frame_step init is m ->
       mem_ok m /\ y_le m.
   Proof.
-    intros init is m Hok Hphi HA Hr.
-    destruct (reachable_preserves_Phi mem mem (a_used_real bm) frame_step
-                (fun s => mem_ok s /\ Phi s)
+    intros init is m Hok Hphi Hst HA Hr.
+    destruct (reachable_preserves_Phi mem mem (PollFlank.pif_a_real (lp_ge lp)) frame_step fb_ok
                 (fun i s s' Ha Hs Hst => frame_step_ok i s s' Ha Hs Hst)
-                init is m Hr (conj Hok Hphi) HA) as (Hok' & Hphi').
+                init is m Hr (conj Hok (conj Hphi Hst)) HA) as (Hok' & Hphi' & _).
     exact (conj Hok' (Hphi_y m Hphi')).
   Qed.
 
@@ -556,8 +690,17 @@ Section HeightLinked12.
      seg_call_rows_naFA): the automatic dispatcher's row is PROVED
      (AutoSplit.aut_seg) from its prologue (Hair_pro), the store
      m->quicksandDepth = 0 (proved to keep mem_ok, the frame world, Phi's
-     cells and fresh_at) and the per-case rows Hauto_case below. *)
-  Hypothesis Hseg_call_na : seg_call_rows_naFA lp bm MWF.
+     cells and fresh_at) and the per-case rows Hauto_case below.
+     Since 2026-10-23 the row is SPLIT PER CALL (NaSplit.naFA_of_open):
+     NaSplit.ema_calls_eq lists the 15 calls it covered; the ones in
+     NaSplit.na_open stay assumed here, the others are PROVED from the
+     generated bodies (NaSplit: set_submerged_cam_preset_and_spawn_bubbles,
+     memory unchanged under R_noA; mario_execute_submerged_action, vacuous
+     since each dispatcher's row now assumes the action is in its own
+     group, FrameSplit.grp_ok, proved at the real switch; update_mario_health;
+     since 2026-10-24 mario_reset_bodystate and update_mario_info_for_cam,
+     with m->marioBodyState pinned to &gBodyStates[0] in FfWorld.ffw). *)
+  Hypothesis Hseg_na_open : na_open_rows lp bm MWF.
   (* the body's other calls, PATH-SENSITIVE since 2026-10-23 (FrameSplit.clw):
      only play_infinite_stairs_music() (unlinked, no arguments) is left
      (FrameSplit.ema_live_anys, computed).  FOUND (phantom forall): the row
@@ -713,6 +856,13 @@ Section HeightLinked12.
              Hsqrtf Hls Hdma_floor).
   Qed.
 
+  (* the per-call row, from NaSplit *)
+  Lemma Hseg_call_na : seg_call_rows_naFA lp bm MWF.
+  Proof.
+    destruct call_facts as (_ & _ & Hgms & _).
+    exact (naFA_of_open lp H12 bm MWF Hgms Hseg_na_open).
+  Qed.
+
   (* the automatic dispatcher's row, from AutoSplit *)
   Lemma Hseg_call_naF : seg_call_rows_naF lp bm MWF.
   Proof.
@@ -825,24 +975,88 @@ Section HeightLinked12.
     exact (RenderFlank.render_mem_ok lp H12 bm bc oc0 SafeB HSafeB_syms Hbm_sym Hbc_sym Hoc0).
   Qed.
 
+  (* the controller poll, on the link (PollFlank): the real
+     osContStartReadData and read_controller_inputs (osRecvMesg,
+     osContGetReadData, run_demo_inputs, adjust_analog_stick), walked down to
+     the SI / message-queue floor (OsDmaFloor, TRUST 3.5) and sqrtf
+     (FpuFloor) *)
+  Lemma srd_ok_linked12 :
+    forall m i, mem_ok_lp bm MWF m -> PollFlank.srd_call lp m i -> mem_ok_lp bm MWF i.
+  Proof.
+    intros m i Hm Hs.
+    pose proof (NoAImpliesNoFlyTwelve.Hspawn lp H12 bm bc oc0 Hbm_sym Hbc_sym Hoc0) as Hsp.
+    exact (PollFlank.srd_ok lp H12 bm bc oc0 SafeB HSafeB_syms Hsp Hdma_floor m i Hm Hs).
+  Qed.
+
+  Lemma poll_ok_linked12 :
+    forall i m0, mem_ok_lp bm MWF i -> Phi i -> PollFlank.pif_a_real (lp_ge lp) i = false ->
+      PollFlank.rci_call lp i m0 ->
+      mem_ok_lp bm MWF m0 /\ a_used_real bm m0 = false /\ ctl_w (lp_ge lp) m0.
+  Proof.
+    intros i m0 Hm (_ & _ & _ & _ & Hf & _ & _ & (_ & _ & _ & Hcw)) HP Hr.
+    pose proof (NoAImpliesNoFlyTwelve.Hspawn lp H12 bm bc oc0 Hbm_sym Hbc_sym Hoc0) as Hsp.
+    exact (PollFlank.poll_ok lp H12 Hdma_floor Hsqrtf bm bc oc0 SafeB HSafeB_syms Hsp i m0 Hm Hf Hcw HP Hr).
+  Qed.
+
+  (* the render call carries PhiW, on the link (RenderKeep): its footprint
+     is Mario's animFrame / animTimer / accelAssist and the six render
+     globals, apart from every cell PhiW reads but the animFrame, which the
+     real geo_update_animation_frame keeps in [-1, loopEnd] *)
+  Lemma render_phi_linked12 :
+    forall m m', Phi m -> RenderFlank.render_call lp bm m m' ->
+                 RenderKeep.render_surf_apart lp bm m -> Phi m'.
+  Proof. exact (RenderKeep.render_keeps_phiw lp H12 bm). Qed.
+
+  (* the platform step carries mem_ok, the A-held bit and PhiW, on the link
+     (PlatformKeep): its walked footprint is D_8032FEC0, Mario's pos[0] /
+     pos[2] and pos[1] written back unchanged *)
+  Lemma plat_ok_linked12 :
+    forall m m', mem_ok_lp bm MWF m -> PlatformKeep.plat_still lp m ->
+                 seg_platform_spec lp bm m m' -> mem_ok_lp bm MWF m'.
+  Proof.
+    intros m m' Hok Hst (Hc & _).
+    exact (PlatformKeep.plat_mem_ok lp H12 bm Hbm_sym bc oc0 SafeB HSafeB_syms Hbc_sym Hoc0 m m' Hok Hc Hst).
+  Qed.
+
+  Lemma plat_ad_linked12 :
+    forall m m', mem_ok_lp bm MWF m -> PlatformKeep.plat_still lp m ->
+                 seg_platform_spec lp bm m m' -> a_down_real bm m' = a_down_real bm m.
+  Proof.
+    intros m m' Hok Hst (Hc & _).
+    exact (PlatformKeep.plat_a_down lp H12 bm Hbm_sym bc oc0 SafeB Hbc_sym Hoc0 m m' Hok Hc Hst).
+  Qed.
+
+  Lemma plat_phi_linked12 :
+    forall m m', Phi m -> PlatformKeep.plat_still lp m -> seg_platform_spec lp bm m m' -> Phi m'.
+  Proof.
+    intros m m' Hphi Hst (Hc & Hsa).
+    exact (PlatformKeep.plat_keeps_phiw lp H12 bm Hbm_sym m m' Hphi Hc Hst Hsa).
+  Qed.
+
   (* ==================================================================== *)
   (* THE GOAL-2 CAPSTONE (height form): over any link of the twelve TUs,  *)
-  (* a run of real game frames with A neither pressed nor held after     *)
-  (* every poll,                                                          *)
-  (* started GOAL-1-well-formed and in the height invariant Phi, keeps    *)
-  (* Mario's height <= PHI_YMAX = 2796 (coin #2 needs >= 2980).           *)
+  (* a run of real game frames in which the controller hardware's reply  *)
+  (* shows A on no live port, every frame (PollFlank.pif_a_real: the PIF *)
+  (* reply bytes; the real poll turns them into A neither pressed nor    *)
+  (* held),                                                               *)
+  (* started GOAL-1-well-formed, in the height invariant Phi and with      *)
+  (* gMarioPlatform NULL or still (StartSat: all three hold at the boot    *)
+  (* witness), keeps Mario's height <= PHI_YMAX = 2796 (coin #2 needs     *)
+  (* >= 2980).                                                            *)
   (* ==================================================================== *)
   Theorem wmotr_noA_height_bound_linked12 :
     forall (init : mem) (is : list mem) (m : mem),
-      mem_ok_lp bm MWF init -> Phi init ->
-      Forall (fun i => a_used_real bm i = false) is ->
+      mem_ok_lp bm MWF init -> Phi init -> PlatformKeep.plat_still lp init ->
+      Forall (fun i => PollFlank.pif_a_real (lp_ge lp) i = false) is ->
       reachable mem mem (frame_step lp bm MWF Phi) init is m ->
       y_le bm PHI_YMAX m.
   Proof.
-    intros init is m Hok Hphi HA Hr.
+    intros init is m Hok Hphi Hst HA Hr.
     exact (proj2 (noA_run_height_bound lp bm MWF Phi PHI_YMAX
-                    frame_action_linked12 render_ok_linked12 seg_action_phi Hphi_y
-                    init is m Hok Hphi HA Hr)).
+                    frame_action_linked12 render_ok_linked12 render_phi_linked12
+                    plat_ok_linked12 plat_ad_linked12 plat_phi_linked12 seg_action_phi Hphi_y
+                    srd_ok_linked12 poll_ok_linked12
+                    init is m Hok Hphi Hst HA Hr)).
   Qed.
 
 End HeightLinked12.

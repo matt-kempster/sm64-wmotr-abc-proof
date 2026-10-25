@@ -210,11 +210,19 @@ Definition collision_of (b : ident) : option (list Z * Z) :=
   else if Pos.eqb b macro_special_objects._bhvCannonClosed then Some (shorts lid_init, 1)
   else None.
 
-(* an object's floor triangles, heights already placed: (lo, hi) *)
+(* how far an object's surfaces can sink below its spawn height: a cannon
+   lid, once opened (cannon_door.inc.c cannon_door_act_opening), moves down
+   0.5 for 30 frames (15 in all) and then sideways 4 a frame until timer 80,
+   reloading its collision each frame; the box never moves vertically *)
+Definition obj_drop (b : ident) : Z :=
+  if Pos.eqb b macro_special_objects._bhvCannonClosed then 15 else 0.
+
+(* an object's floor triangles, heights already placed, widened down by the
+   drop: (lo, hi) *)
 Definition obj_floor_ranges (o : mobj) : list (Z * Z) :=
   match collision_of (bhv_of o) with
   | Some (mesh, s) =>
-      map (fun t => (m_y o + s * tri_ylo t, m_y o + s * tri_yhi t))
+      map (fun t => (m_y o + s * tri_ylo t - obj_drop (bhv_of o), m_y o + s * tri_yhi t))
           (filter is_floor (parse mesh))
   | None => nil
   end.
@@ -279,12 +287,45 @@ Proof.
   vm_compute. reflexivity.
 Qed.
 
-Definition wmotr_cannon_list : list Z :=
+(* the seats of the cannons at home: lid y - 340 + 350 *)
+Definition wmotr_cannon_homes : list Z :=
   map (fun o => m_y o - CANNON_DROP + CANNON_SEAT)
       (filter (fun o => Pos.eqb (bhv_of o) macro_special_objects._bhvCannonClosed)
               wmotr_macro_objs).
 
-Lemma cannon_list_value : wmotr_cannon_list = [837; -2730].
+Lemma cannon_homes_value : wmotr_cannon_homes = [837; -2730].
+Proof. vm_compute. reflexivity. Qed.
+
+(* FOUND 2026-10-24: a cannon base does not stay at home.  Once Mario is in
+   it, opened_cannon_act_4 (cannon.inc.c:44) adds 5.0f to oPosY at timers
+   0..68 (69 times; at timer 68 it moves to act 6), and nothing lowers it
+   again until act_0's timer-0 reset, after the (A-gated) shot.  The base
+   stays tangible meanwhile, so it sits in Mario's collided list away from
+   home.  So a cannon's oPosY is home + 5k, 0 <= k <= 69 (exact in binary32:
+   small integers), and the seat oPosY + 350 any act_in_cannon state 0 could
+   read is a home seat + 5k.  The list below is all of them (140 seats); in
+   the game state 0 runs only at home (k = 0), but the wider list keeps the
+   carried world true while the base rises. *)
+Definition CANNON_RISE_STEPS : nat := 70.
+Definition CANNON_RISE : Z := 5.
+
+Definition wmotr_cannon_list : list Z :=
+  flat_map (fun y => map (fun k => y + CANNON_RISE * Z.of_nat k) (seq 0 CANNON_RISE_STEPS))
+           wmotr_cannon_homes.
+
+Definition cannon_range_check (C : list Z) : bool :=
+  forallb (fun y => (-2730 <=? y)%Z && (y <=? 1182)%Z) C.
+
+Lemma cannon_range_checks : cannon_range_check wmotr_cannon_list = true.
+Proof. vm_compute. reflexivity. Qed.
+
+Lemma cannon_list_range : forall y, In y wmotr_cannon_list -> (-2730 <= y <= 1182)%Z.
+Proof.
+  intros y Hy. pose proof (proj1 (forallb_forall _ _) cannon_range_checks y Hy) as H.
+  apply andb_true_iff in H as [H1 H2]. apply Z.leb_le in H1. apply Z.leb_le in H2. lia.
+Qed.
+
+Lemma cannon_list_length : length wmotr_cannon_list = 140%nat.
 Proof. vm_compute. reflexivity. Qed.
 
 (* the level really loads these arrays: level_wmotr_entry's TERRAIN,

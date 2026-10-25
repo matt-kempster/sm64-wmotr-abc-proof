@@ -32,6 +32,7 @@ generated/audio_external.v
 generated/sound_init.v
 generated/print.v
 generated/behavior_script.v
+generated/platform_displacement.v
 generated/spawn_sound.v
 generated/debug.v
 generated/wmotr_script.v
@@ -57,6 +58,7 @@ generated/libultra_osSiCreateAccessQueue.v
 generated/libultra_osCreateMesgQueue.v
 generated/libultra_osContInit.v
 generated/libultra_osInitialize.v
+generated/libultra_osContStartReadData.v
 
 # --- shared infrastructure (used by GOAL 1; reusable) ---
 proofs/Generic/Frame.v
@@ -293,9 +295,16 @@ proofs/WMotRRequiresA/FrameSplit.v
 proofs/WMotRRequiresA/AirSplit.v
 proofs/WMotRRequiresA/AutoSplit.v
 proofs/WMotRRequiresA/ProRows.v
+proofs/WMotRRequiresA/BodyFrame.v
+proofs/WMotRRequiresA/NaSplit.v
 proofs/WMotRRequiresA/RenderAnim.v
 proofs/WMotRRequiresA/RenderSet.v
 proofs/WMotRRequiresA/RenderFlank.v
+proofs/WMotRRequiresA/PollFlank.v
+proofs/WMotRRequiresA/PlatformEff.v
+proofs/WMotRRequiresA/RenderKeep.v
+proofs/WMotRRequiresA/PlatformWalk.v
+proofs/WMotRRequiresA/PlatformKeep.v
 proofs/WMotRRequiresA/HeightFrame.v
 proofs/WMotRRequiresA/WMotREntry.v
 proofs/WMotRRequiresA/SpawnTypeRun.v
@@ -305,6 +314,7 @@ proofs/WMotRRequiresA/StartSat.v
 proofs/WMotRRequiresA/YWriterCensus.v
 proofs/WMotRRequiresA/HeldObjCensus.v
 proofs/WMotRRequiresA/BehaviorScripts.v
+proofs/WMotRRequiresA/AngleVelCensus.v
 proofs/WMotRRequiresA/CoinLink.v
 
 # --- executable Clight: interpreter (sound vs ClightBigstep), vm-computable

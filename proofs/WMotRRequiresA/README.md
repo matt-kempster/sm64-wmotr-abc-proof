@@ -23,6 +23,10 @@ One game frame = controller poll ∘ platform displacement ∘ **one real
 `execute_mario_action` over any twelve-TU link** ∘ level phase ∘ objects. The
 Mario segment's preservation of GOAL 1's invariant is the proved
 `NoAImpliesNoFlyTwelve.frame_ok_linked12`, not an assumption. The composition is proved.
+The controller poll is the real code since 2026-10-23 (`PollFlank.v`: `osContStartReadData`
+then `read_controller_inputs`, walked down to the OS / SI floor), and the capstone's no-A
+premise is a statement about the PIF reply bytes the hardware delivered
+(`PollFlank.pif_a_real`, TRUST 0.1).
 
 ## What is still open
 

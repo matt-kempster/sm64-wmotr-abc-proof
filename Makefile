@@ -39,7 +39,8 @@ ULTRA   := $(SM64)/lib/src
 # EEPROM timer / queue / message buffer; osInitialize.c: osClockRate).
 ULTRA_GENERATED := generated/libultra_osEepromLongWrite.v generated/libultra_osEepromWrite.v \
   generated/libultra_osSiCreateAccessQueue.v generated/libultra_osCreateMesgQueue.v \
-  generated/libultra_osContInit.v generated/libultra_osInitialize.v
+  generated/libultra_osContInit.v generated/libultra_osInitialize.v \
+  generated/libultra_osContStartReadData.v
 
 GENERATED := generated/toy.v generated/shadow.v \
   generated/mario.v generated/mario_actions_airborne.v \
@@ -55,7 +56,8 @@ GENERATED := generated/toy.v generated/shadow.v \
   generated/object_helpers.v generated/obj_behaviors.v generated/obj_behaviors_2.v \
   generated/spawn_object.v generated/object_list_processor.v generated/audio_data.v generated/graph_node.v generated/buffers.v generated/save_file.v generated/object_collision.v \
   generated/area.v generated/surface_load.v generated/mario_anim_data.v generated/camera.v generated/rendering_graph_node.v generated/ingame_menu.v generated/debug_course.v \
-  generated/audio_external.v generated/sound_init.v generated/print.v generated/behavior_script.v generated/spawn_sound.v generated/debug.v \
+  generated/audio_external.v generated/sound_init.v generated/print.v generated/behavior_script.v generated/platform_displacement.v \
+  generated/spawn_sound.v generated/debug.v \
   $(ULTRA_GENERATED)
 
 .PHONY: all generated proofs regen clean oracle-extract
@@ -256,6 +258,12 @@ generated/print.v: $(SM64)/src/game/print.c pipeline/clightgen.sh pipeline/proof
 generated/behavior_script.v: $(SM64)/src/engine/behavior_script.c pipeline/clightgen.sh pipeline/proof_n64.h
 	$(CLIGHTGEN) $< $@ $(SM64_CGP)
 
+# game/platform_displacement.c (2026-10-23): the real
+# apply_mario_platform_displacement (HeightFrame's seg_platform), walked in
+# WMotRRequiresA/PlatformKeep.
+generated/platform_displacement.v: $(SM64)/src/game/platform_displacement.c pipeline/clightgen.sh pipeline/proof_n64.h
+	$(CLIGHTGEN) $< $@ $(SM64_CGP)
+
 # game/spawn_sound.c and game/debug.c (2026-10-24, OBJECTS phase S1): the
 # object sound helpers (cur_obj_play_sound_1/2, create_sound_spawner,
 # exec_anim_sound_state) and the debug-info globals / helpers (sDebugPage,
@@ -381,4 +389,12 @@ generated/libultra_osContInit.v: $(ULTRA)/osContInit.c pipeline/clightgen.sh
 	$(CLIGHTGEN) $< $@ $(ULTRA_CG)
 
 generated/libultra_osInitialize.v: $(ULTRA)/osInitialize.c pipeline/clightgen.sh
+	$(CLIGHTGEN) $< $@ $(ULTRA_CG)
+
+# The controller poll (2026-10-23, TRUST 0.7 / 3.5): osContStartReadData,
+# osContGetReadData and __osPackReadData, and the real storage of the PIF RAM
+# image __osContPifRam that the SI DMA fills.  game_loop calls
+# osContStartReadData(&gSIEventMesgQueue) and read_controller_inputs (linked,
+# game_init.c) calls osContGetReadData(&gControllerPads[0]).
+generated/libultra_osContStartReadData.v: $(ULTRA)/osContStartReadData.c pipeline/clightgen.sh
 	$(CLIGHTGEN) $< $@ $(ULTRA_CG)
