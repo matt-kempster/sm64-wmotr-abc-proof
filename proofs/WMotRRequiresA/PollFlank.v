@@ -2474,12 +2474,10 @@ Section POLL.
       Ple (Genv.genv_next G) (Mem.nextblock m)
       /\ exists b o, Mem.load Mint32 m bm FFW_CTL = Some (Vptr b o).
   Proof.
-    intros m (Hp & (gp & bfi & bmiss & bcalls & bsin & ab & biom & bmq & brm & blk & bpc & bsr & bsrc & bsms & bbs & bfa
-                    & bo & oo & bt & ot & fl & ar & inp & ctl & H) & _).
+    intros m (Hp & (d & F) & _).
     split; [ exact Hp | ].
-    repeat match goal with Hc : _ /\ _ |- _ => destruct Hc end.
-    match goal with Hl : Mem.load Mint32 m bm FFW_CTL = Some ctl, Hw : wblk _ _ ctl _ |- _ =>
-      destruct Hw as (b & o & E & _); subst ctl; exists b, o; exact Hl end.
+    destruct (ff_Wc _ _ _ _ F) as (b & o & E & _).
+    pose proof (ff_Lc _ _ _ _ F) as Lc. rewrite E in Lc. exists b, o. exact Lc.
   Qed.
 
   (* a stored global the poll writes is apart from everything MWF_real reads *)

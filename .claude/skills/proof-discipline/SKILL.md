@@ -429,6 +429,43 @@ them by hand. Numbers the proof depends on (budgets, level data) come from tools
 the vendor source, such as `tools/goal2_ladder.py` and `tools/goal2_budget.py`, not from
 prose. Check prose against code before building on it.
 
+## How to add an `ffw` fact (GOAL 2's frame-world invariant)
+
+`FfWorld.ffw` is `Ple .. /\ (exists d, ffw_facts G bm m d) /\ floor_data G m`. Here
+`d : ffw_wit` is a record of witnesses (`fw_bo`, `fw_ab`, ...) and `ffw_facts` is a record of
+named Prop fields (`ff_Lo`, `ff_D4`, `ff_LBS`, ...). Consumers never destruct it by position.
+`ffw_unpack EX` names everything and keeps `FWF : ffw_facts ..`. Rebuilds go through
+`ffw_rebuild` / `ffw_rebuild_off` / `ffw_keep_off`, whose premises are about the read set
+(`ffw_read` / `ffw_read_s` / `ffw_surf_ok`), not about the list of conjuncts. To add a fact:
+
+1. Add a field to `ffw_facts`, plus its hypothesis name in `ffw_unpack` (the `fresh`, the
+   `pose proof .. as [..]` and the `ffw_simpl_in`). A new witness instead goes in
+   `ffw_wit`, in `ffw_simpl`'s projection list, in `ffw_unpack`'s `destruct d` and in
+   `ffw_rebuild`'s `mk_ffw_wit`.
+2. If the fact is memory-free, `ffw_rebuild`'s closer already handles it (`assumption`).
+   If it reads a cell of Mario's state, add the cell to `ffw_bm_cells`. If it reads a cell
+   elsewhere, add a disjunct to `ffw_read` and to `ffw_read_split` (and one closer case in
+   `ffw_rebuild`). Every keep proof then gets one more "cell unchanged" goal, closed by
+   adding one alternative to its closer list.
+3. Establish the fact at boot: add one bullet to `StartSat.ffw11`.
+4. A new region also goes in `ff_rl` / `ff_rl_of` and `ffw_reg_ids`, and its symbol fact
+   goes in the region lemmas' rewrite lists (`ffw_rl_cases` and the next two). The walk
+   machinery's own region list (`FfRun.R0F`, each row's `Eff` / `ff_sizes`) is separate.
+   That is the walk's region set, not ffw.
+
+Measured 2026-10-24: a dummy `ff_DUMMY : True` field took 3 lines in `FfWorld.v` (the field
+and two names in `ffw_unpack`) and 1 bullet in `StartSat.ffw11`, and no other file changed.
+The throwMatrix pin (a witness `bfa`, a region, a symbol fact `ff_SFA` and a read of Mario's
+object `ff_LTM`) needed the following outside FfWorld/StartSat:
+- one closer alternative per keep proof: the rows' `apply CO`, RenderKeep's `LHo`,
+  ProRows' `LHz`/`ozp_k`, FrameSplit's extra `ffw_keep` premise;
+- the walk-side region plumbing.
+
+There were no destruct or rebuild edits.
+`lvl_w` is the same: `lvl_sym` is `exists id, In id lvl_ids /\ ..`, so a new level cell is
+an entry in `lvl_ids` plus its `lvl_w` conjunct. `lvl_w_keep_rl` / `lvl_w_unch` re-prove
+generically.
+
 ## The audit (the floor)
 
 ```bash

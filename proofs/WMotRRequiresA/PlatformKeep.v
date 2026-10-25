@@ -224,10 +224,12 @@ Section Phi.
     pose proof Haw as (ab & bga & bauc & btab & otab & bt & ot & mb & mo & B & _).
     pose proof B as (_ & _ & _ & _ & _ & Lmo & _ & _ & _ & _ & _ & (_ & RG) & _).
     pose proof Hf as (Hgn & EX & _).
-    destruct EX as (gp & bfi & bmiss & bcalls & bsin & ab' & biom & bmq & brm & blk & bpc & bsr & bsrc & bsms & bbs & bfa
-                    & bo & oo & bt' & ot' & fl & ar & inp & ctl & HC & HS & HM & _ & _ & _ & _ & _ & _
-                    & _ & _ & _ & _ & _ & _ & _ & _ & _ & Lo & _ & _ & _ & _ & D1 & _).
-    change FFW_OBJ with 136 in Lo. rewrite Lmo in Lo. injection Lo as <- <-.
+    destruct EX as (dw & FWF).
+    pose proof (ff_HC _ _ _ _ FWF) as HC. pose proof (ff_HS _ _ _ _ FWF) as HS. pose proof (ff_HM _ _ _ _ FWF) as HM.
+    pose proof (ff_Lo _ _ _ _ FWF) as Lo. pose proof (ff_D1 _ _ _ _ FWF) as D1.
+    set (gp := fw_gp dw) in *.
+    change FFW_OBJ with 136 in Lo. rewrite Lmo in Lo.
+    assert (Eb : mb = fw_bo dw) by congruence. rewrite <- Eb in D1. clear Lo Eb.
     assert (Bmb : bm <> mb) by (intros E; exact (D1 (eq_sym E))).
     destruct (plat_D_sym lp H12) as (bD & HbD).
     destruct (plat_step_eff lp H12 bm Hbm_sym bD m m' HbD Hgn Hc Hst) as (NB & PM & _ & LD0 & LM & _).
