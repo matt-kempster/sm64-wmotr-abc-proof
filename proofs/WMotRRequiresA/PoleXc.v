@@ -346,7 +346,7 @@ Proof.
                     pose proof (on_list_to_m0 E m g MMh hd s (WL hd PH0) OL) as OL0;
                     destruct (WSurf hd s PH0 OL0) as (bs & os & -> & Ob & _ & _ & _);
                     exists bs, os; split; [reflexivity | split; [exact (Vm _ Ob) |]];
-                    split; [exact (WNS hd bs os PH0 OL0) | intros E'; apply Hnew; rewrite <- E'; exact Ob])
+                    split; [exact (dyn_not_static ge bs (proj2 (WNS hd PH0) bs os OL0)) | intros E'; apply Hnew; rewrite <- E'; exact Ob])
               ltac:(intros id b Hin Hs ->; exact (Hnew (statics_old _ _ HW (ex_intro _ id (conj Hin Hs)))))
               Hev)
     as (h & -> & HP & _).

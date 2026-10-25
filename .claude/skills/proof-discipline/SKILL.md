@@ -272,7 +272,12 @@ all in `Unwired/`, and the theorem moved nowhere. See
     update_and_return_cap_flags call: only bm and those globals change). Blocker: the world must be framed around those 13
     globals, but a surface a walk finds is only known to avoid the walk's regions. Either
     each global becomes an ff_rl region in every walk, or `surf_on` / `Wff` say surfaces are
-    dynamic blocks (`Ple genv_next b`). update_mario_inputs needs pins on
+    dynamic blocks (`Ple genv_next b`). Design B chosen; steps 1-3 landed 2026-10-25:
+    `Wff`'s W6 is `FloorExec.dyn_list` (list nodes and surfaces are post-init blocks,
+    proved at boot from the pool's allocation, kept by `Wff_keep`/`Wff_keep2`), and
+    `AnimWorld.Wff_global` extends the world fact over any non-partition global. Still
+    pending: `surf_on` carrying the Ple (needs the ffw entry-surface field, after the
+    ffw record refactor). update_mario_inputs needs pins on
     `gEnvironmentRegions`, `gShowDebugText` and `gCameraMovementFlags`, plus the collision
     finders. The prologue call is in `Hair_pro`. The
     `quicksandDepth = 0` store is proved (the `qsd_*` lemmas). What stays assumed is the

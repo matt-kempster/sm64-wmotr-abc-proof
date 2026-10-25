@@ -124,6 +124,35 @@ Definition surf_on (m0 : mem) (vs : list (option val)) : Prop :=
   | _ => False
   end.
 
+Lemma wf_list_or : forall m A1 A2 hd, wf_list m A1 hd -> wf_list m A2 hd ->
+  wf_list m (fun b => A1 b \/ A2 b) hd.
+Proof.
+  intros m A1 A2 hd W1. induction W1 as [| bn on nx Hv Ha Hl W IH]; intros W2; [constructor |].
+  inversion W2 as [| bn' on' nx' Hv' Ha' Hl' W2']; subst.
+  rewrite Hl in Hl'. injection Hl' as <-.
+  apply wf_cons with nx; [exact Hv | intros [A | A]; [exact (Ha A) | exact (Ha' A)] | exact Hl | exact (IH W2')].
+Qed.
+
+Lemma wf_list_mono : forall m (A1 A2 : block -> Prop) hd, (forall b, A2 b -> A1 b) ->
+  wf_list m A1 hd -> wf_list m A2 hd.
+Proof.
+  intros m A1 A2 hd H W. induction W as [| bn on nx Hv Ha Hl W IH]; [constructor |].
+  apply wf_cons with nx; [exact Hv | intros A; exact (Ha (H _ A)) | exact Hl | exact IH].
+Qed.
+
+(* every list node and every surface on a partition list is a dynamic
+   block: alloc_surface_pools takes the node and surface pools from
+   main_pool_alloc, never a global's storage (design B, 2026-10-25) *)
+Definition dyn_list (ge : genv) (m0 : mem) (hd : val) : Prop :=
+  wf_list m0 (fun b => Plt b (Genv.genv_next ge)) hd
+  /\ forall b o, on_list m0 hd (Vptr b o) -> Ple (Genv.genv_next ge) b.
+
+Lemma dyn_not_static : forall (ge : genv) b, Ple (Genv.genv_next ge) b -> ~ is_static ge b.
+Proof.
+  intros ge b H (id & _ & Hs). pose proof (Genv.genv_symb_range _ _ Hs) as L.
+  unfold Plt, Ple in *. lia.
+Qed.
+
 (* THE WORLD FACT's meaning (about the frame's entry memory m0) *)
 Definition Wff (ge : genv) (m0 : mem) (gp : meminj) (szS : Z) (vs : list (option val)) : Prop :=
   (forall id sz, In (id, sz) w_cells ->
@@ -135,7 +164,7 @@ Definition Wff (ge : genv) (m0 : mem) (gp : meminj) (szS : Z) (vs : list (option
         exists b o, s = Vptr b o /\ Plt b (Mem.nextblock m0)
           /\ Ptrofs.unsigned o + szS <= Ptrofs.modulus /\ ~ rblk vs b /\ gp b <> None)
   /\ (forall hd b o, part_head ge m0 hd -> on_list m0 hd (Vptr b o) -> styp m0 b o)
-  /\ (forall hd b o, part_head ge m0 hd -> on_list m0 hd (Vptr b o) -> ~ is_static ge b)
+  /\ (forall hd, part_head ge m0 hd -> dyn_list ge m0 hd)
   /\ 0 <= szS.
 
 (* ---- small facts ---- *)
@@ -429,7 +458,7 @@ Proof.
                       pose proof (on_list_to_m0 E m g MMh hd s (WL hd PH0) OL) as OL0;
                       destruct (WSurf hd s PH0 OL0) as (bs & os & -> & Ob & _ & _ & _);
                       exists bs, os; split; [reflexivity | split; [exact (Vm _ Ob) |]];
-                      split; [exact (WNS hd bs os PH0 OL0) | intros E'; apply Hnew; rewrite <- E'; exact Ob])
+                      split; [exact (dyn_not_static ge bs (proj2 (WNS hd PH0) bs os OL0)) | intros E'; apply Hnew; rewrite <- E'; exact Ob])
                 ltac:(intros id b Hin Hs ->; exact (Hnew (statics_old _ _ HW (ex_intro _ id (conj Hin Hs)))))
                 Hev')
       as (h' & Eh & HP & HN).

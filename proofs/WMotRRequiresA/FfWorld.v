@@ -290,7 +290,12 @@ Proof.
     destruct (W5 hd b o Hh0 Ho0) as (t & Hl & Hin). exists t. split; [| exact Hin].
     rewrite Hld; [exact Hl |]. intros ->.
     destruct (W4 hd _ Hh0 Ho0) as (b' & o' & E & _ & _ & Hr & _). injection E as <- _. exact (Hr Ho).
-  - intros hd b o Hh Ho'. destruct (OL hd _ Hh Ho') as (Hh0 & Ho0). exact (W6 hd b o Hh0 Ho0).
+  - intros hd Hh. pose proof (part_back rl hd Hp Ho Hh) as Hh0. split.
+    + apply (wf_list_mono m' (fun b => (is_static G b \/ rblk rl b) \/ Plt b (Genv.genv_next G))).
+      * intros b H. right. exact H.
+      * apply (wf_fwd _ hd); [ intros b Hb; apply HA; intros H; apply Hb; left; exact H | ].
+        exact (wf_list_or m _ _ hd (W3 hd Hh0) (proj1 (W6 hd Hh0))).
+    + intros b o Ho'. destruct (OL hd _ Hh Ho') as (_ & Ho0). exact (proj2 (W6 hd Hh0) b o Ho0).
   - exact W7.
 Qed.
 
@@ -427,7 +432,12 @@ Proof using Hnb Hperm Hld.
     destruct (W5 hd b o Hh0 Ho0) as (t & Hl & Hin). exists t. split; [| exact Hin].
     destruct (W4 hd _ Hh0 Ho0) as (b' & o' & E & Hpl & _ & Hr & _). injection E as <- <-.
     rewrite Hld by assumption. exact Hl.
-  - intros hd b o Hh Ho'. destruct (OL hd _ Hh Ho') as (Hh0 & Ho0). exact (W6 hd b o Hh0 Ho0).
+  - intros hd Hh. pose proof (part_back2 hd Hp Hh) as Hh0. split.
+    + apply (wf_list_mono m' (fun b => (is_static G b \/ rblk rl b) \/ Plt b (Genv.genv_next G))).
+      * intros b H. right. exact H.
+      * apply (wf_fwd2 _ hd); [ intros b Hb Hr; apply Hb; left; right; exact Hr | ].
+        exact (wf_list_or m _ _ hd (W3 hd Hh0) (proj1 (W6 hd Hh0))).
+    + intros b o Ho'. destruct (OL hd _ Hh Ho') as (_ & Ho0). exact (proj2 (W6 hd Hh0) b o Ho0).
   - exact W7.
 Qed.
 

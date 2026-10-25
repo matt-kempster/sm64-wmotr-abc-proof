@@ -1797,8 +1797,12 @@ Section Witness.
       { intros hd b o Hp Ho. destruct (proj2 (part_lists _ Hp) _ Ho) as (o' & E & _ & St).
         injection E as -> ->. exact St. }
       split.
-      { intros hd b o Hp Ho. destruct (proj2 (part_lists _ Hp) _ Ho) as (o' & E & _ & _).
-        injection E as -> _. exact bpl_not_static. }
+      { (* the pool block is allocated after init_mem: dynamic *)
+        intros hd Hp. split.
+        - refine (proj1 (walk2_sound WFUEL m11 bpl _ hd (wf_head _ Hp) bpl_valid11 _)).
+          rewrite genv_next_eq. intros H. cbv beta in H. pose proof bpl_ge as G. unfold Plt, Ple in *. lia.
+        - intros b o Ho. destruct (proj2 (part_lists _ Hp) _ Ho) as (o' & E & _ & _).
+          injection E as -> _. rewrite genv_next_eq. exact bpl_ge. }
       unfold SZ_SURFACE. lia.
     Qed.
 
