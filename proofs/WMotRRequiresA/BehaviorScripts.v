@@ -139,7 +139,9 @@ From SM64.Generated Require mario mario_step mario_actions_stationary
   mario_actions_cutscene mario_actions_automatic mario_actions_object
   interaction behavior_actions level_update mario_misc surface_collision
   math_util object_helpers obj_behaviors obj_behaviors_2 spawn_object
-  object_list_processor camera.
+  object_list_processor camera
+  surface_load save_file graph_node ingame_menu audio_external behavior_script
+  spawn_sound debug object_collision.
 
 (* --- where can a behavior pointer's VALUE go?  (a taint analysis) ------ *)
 (* An expression carries the taint if its value can be the tainted pointer: *)
@@ -186,7 +188,17 @@ Definition all_tus : list (list (ident * globdef fundef type)) :=
     obj_behaviors_2.global_definitions; spawn_object.global_definitions;
     object_list_processor.global_definitions;
     (* 2026-10-22: camera.c, linked as the 35th TU *)
-    camera.global_definitions ].
+    camera.global_definitions;
+    (* 2026-10-24 (staleness fix, OBJECTS phase S1): TUs linked since the
+       census was written -- surface_load (32), save_file (20), graph_node
+       (19), ingame_menu (37), audio/external (40), engine/behavior_script
+       (43) -- and the three linked now: spawn_sound (47), debug (48),
+       object_collision (49). *)
+    surface_load.global_definitions; save_file.global_definitions;
+    graph_node.global_definitions; ingame_menu.global_definitions;
+    audio_external.global_definitions; behavior_script.global_definitions;
+    spawn_sound.global_definitions; debug.global_definitions;
+    object_collision.global_definitions ].
 
 Definition fns : PTree.t (list fn_entry) := fold_left add_fns all_tus (PTree.empty _).
 
@@ -371,6 +383,30 @@ Definition frontier : list ident :=
                    && match PTree.get x gvar_defs with Some _ => false | None => true end
                    && negb (memb x all_locals)) wmotr_closure.
 
+(* The closure WITHOUT following the debug spawner's body.  debug.c (linked
+   2026-10-24) makes try_do_mario_debug_object_spawn analyzable: under its
+   guard (sDebugPage == DEBUG_PAGE_STAGEINFO && gDebugInfo[ENEMYINFO][7] == 1,
+   debug.c:476) a D-pad press spawns bhvKoopaShell, bhvJumpingBox or
+   bhvKoopaShellUnderwater, and the last two are INTERACT_GRABBABLE.  The
+   guard is a state fact (OBJECTS phase S2 carries it in obj_w); this
+   closure is what WMotR can spawn while it holds. *)
+Definition debug_gated (x : ident) : bool :=
+  Pos.eqb x debug._try_do_mario_debug_object_spawn.
+Fixpoint close_g (fuel : nat) (work : list ident) (seen : PTree.t unit) : PTree.t unit :=
+  match fuel with
+  | O => seen
+  | S fuel =>
+      match work with
+      | nil => seen
+      | x :: w =>
+          if memb x seen then close_g fuel w seen
+          else close_g fuel ((if debug_gated x then nil else refs_of x) ++ w)
+                 (PTree.set x tt seen)
+      end
+  end.
+Definition wmotr_closure_g : list ident :=
+  map fst (PTree.elements (close_g 1000000 placed (PTree.empty _))).
+
 (* ----------------------------------------------------------------------- *)
 (* Interaction types.  oInteractType is rawData.asU32[0x2A]                 *)
 (* (object_fields.h:98).  It is set by a script (SET_INT / OR_INT on field  *)
@@ -432,14 +468,17 @@ Definition hitbox_itype (x : ident) : list (option Z) :=
   | None => nil
   end.
 
-Definition closure_itypes : list (ident * option Z) :=
+Definition itypes_of (cl : list ident) : list (ident * option Z) :=
   flat_map (fun x =>
     map (fun v => (x, v))
       (if is_bhv_sym x then script_itypes x
        else match PTree.get x fns with
             | Some es => flat_map (fun e => itype_stores (snd e)) es
             | None => hitbox_itype x
-            end)) wmotr_closure.
+            end)) cl.
+Definition closure_itypes : list (ident * option Z) := itypes_of wmotr_closure.
+Definition closure_itypes_g : list (ident * option Z) := itypes_of wmotr_closure_g.
+
 
 
 (* ----------------------------------------------------------------------- *)
@@ -473,18 +512,18 @@ Lemma reached_bhvs_value : map string_of_ident reached_bhvs = [
      "bhvWhitePuff1"; "bhvCoinSparkles"; "bhvCoinFormationSpawn"; "bhvCoinFormation";
      "bhvCarrySomething4"; "bhvCarrySomething5"; "bhvCarrySomething3"; "bhvCannonClosed";
      "bhvCannon"; "bhvCannonBarrel"; "bhvCelebrationStarSparkle"; "bhvCelebrationStar";
-     "bhvSingleCoinGetsSpawned"; "bhvSmallWaterWave"; "bhvSmallWaterWave398";
+     "bhvSoundSpawner"; "bhvSingleCoinGetsSpawned"; "bhvSmallWaterWave"; "bhvSmallWaterWave398";
      "bhvSmallParticle"; "bhvShallowWaterWave"; "bhvShallowWaterSplash"; "bhvSpawnedStar";
      "bhvSpawnedStarNoLevelExit"; "bhvSparkleSpawn"; "bhvSparkle";
      "bhvSparkleParticleSpawner"; "bhvStaticObject"; "bhvStarSpawnCoordinates";
      "bhvStarKeyCollectionPuffSpawner"; "bhvStar"; "bhvSnowParticleSpawner";
-     "bhvKoopaShell"; "bhvKoopaShellFlame"; "bhv1UpWalking"; "bhv1Up"; "bhv1UpRunningAway";
+     "bhvKoopaShellUnderwater"; "bhvKoopaShell"; "bhvKoopaShellFlame"; "bhv1UpWalking"; "bhv1Up"; "bhv1UpRunningAway";
      "bhvNormalCap"; "bhvFireParticleSpawner"; "bhvVanishCap";
      "bhvVertStarParticleSpawner"; "bhvBowserKeyUnlockDoor"; "bhvBowserKeyCourseExit";
      "bhvBobombBuddyOpensCannon"; "bhvBubbleSplash"; "bhvBubbleParticleSpawner";
-     "bhvBlackSmokeMario"; "bhvBreakBoxTriangle"; "bhvBreathParticleSpawner";
+     "bhvBlackSmokeMario"; "bhvBlueCoinJumping"; "bhvBreakBoxTriangle"; "bhvBreathParticleSpawner";
      "bhvRotatingExclamationMark"; "bhvRedCoinStarMarker"; "bhvRedCoin";
-     "bhvPoundTinyStarParticle"; "bhvPoleGrabbing"; "bhvPunchTinyTriangle";
+     "bhvJumpingBox"; "bhvPoundTinyStarParticle"; "bhvPoleGrabbing"; "bhvPunchTinyTriangle";
      "bhvPlungeBubble"; "bhvHorStarParticleSpawner"; "bhvHidden1UpInPoleSpawner";
      "bhvHidden1UpInPole"; "bhvHidden1UpInPoleTrigger"; "bhvHiddenRedCoinStar";
      "bhvDirtParticleSpawner"; "bhvTenCoinsSpawn"; "bhvThreeCoinsSpawn";
@@ -498,21 +537,45 @@ Proof. vm_compute. reflexivity. Qed.
    store is obj_set_hitbox copying hitbox->interactType, whose tables are
    the ObjectHitbox rows listed. *)
 Definition INTERACT_GRABBABLE : Z := 2.
+(* FOUND 2026-10-24 (debug.c linked): over the FULL closure two grabbable
+   types appear, sJumpingBoxHitbox and sKoopaShellUnderwaterHitbox (both 2 =
+   INTERACT_GRABBABLE), reached only through try_do_mario_debug_object_spawn.
+   The old unconditional grab fact rested on the frontier trusting that
+   function (TRUST 0.10 (b)); it is false as stated. *)
 Lemma closure_itypes_value :
   map (fun p => (string_of_ident (fst p), snd p)) closure_itypes = [
-     ("obj_set_hitbox", None); ("sExclamationBoxHitbox", Some 512);
+     ("obj_set_hitbox", None); ("sMovingBlueCoinHitbox", Some 16);
+     ("sExclamationBoxHitbox", Some 512);
      ("sYellowCoinHitbox", Some 16); ("sCollectStarHitbox", Some 4096);
      ("sCapHitbox", Some 32); ("sSparkleSpawnStarHitbox", Some 4096);
+     ("sKoopaShellUnderwaterHitbox", Some 2);
      ("sKoopaShellHitbox", Some 524288); ("sRedCoinHitbox", Some 16);
-     ("bhvCannon", Some 16384); ("bhvKoopaShellFlame", Some 262144);
+     ("sJumpingBoxHitbox", Some 2);
+     ("bhvCannon", Some 16384);
+     ("bhvKoopaShellFlame", Some 262144);
      ("bhvBobombBuddyOpensCannon", Some 8388608); ("bhvPoleGrabbing", Some 64) ]%string.
 Proof. vm_compute. reflexivity. Qed.
 
-Lemma no_grabbable_in_wmotr :
+Definition no_grab (l : list (ident * option Z)) : bool :=
   forallb (fun p => match snd p with
                     | Some v => Z.land v INTERACT_GRABBABLE =? 0
                     | None => Pos.eqb (fst p) behavior_actions._obj_set_hitbox
-                    end) closure_itypes = true.
+                    end) l.
+
+(* the refutation of the old form *)
+Lemma grabbable_in_full_closure : no_grab closure_itypes = false.
+Proof. vm_compute. reflexivity. Qed.
+
+(* THE GRAB FACT, restated: with the debug spawner's body not followed
+   (its guard false: S2's obj_w), no object of the closure can carry
+   INTERACT_GRABBABLE. *)
+Lemma no_grabbable_in_wmotr : no_grab closure_itypes_g = true.
+Proof. vm_compute. reflexivity. Qed.
+
+(* and the debug spawner is the only difference *)
+Lemma debug_spawner_bhvs :
+  map string_of_ident (filter is_bhv_sym (refs_of debug._try_do_mario_debug_object_spawn))
+  = [ "bhvKoopaShell"; "bhvJumpingBox"; "bhvKoopaShellUnderwater" ]%string.
 Proof. vm_compute. reflexivity. Qed.
 
 (* what the closure calls or reads that is NOT generated (TRUST.md 0.10):
@@ -528,31 +591,132 @@ Proof. vm_compute. reflexivity. Qed.
 (* 2026-10-22: the globals given their unlinked definer's zero storage by the
    2.4 completion in pipeline/clightgen.sh (gCamera, gDialogResponse, ...) now
    carry an initializer, so they count as defined data, not frontier. *)
+(* 2026-10-24: all_tus gained surface_load, save_file, graph_node,
+   ingame_menu, audio/external, behavior_script (linked earlier) and
+   spawn_sound, debug, object_collision (linked now).  The frontier is now
+   the unlinked audio / area / input / OS / render code. *)
 Lemma frontier_value : map string_of_ident frontier = [
-     "gAudioRandom"; "gAreas";  "gGlobalTimer";  "gCurrAreaIndex"; "gCurrCourseNum"; "gCurrCreditsEntry";
-     "gCurrSaveFileNum"; "gCurrentArea"; "gCurrDemoInput"; "gCurrLevelNum";
-     "gSaveOptSelectIndex"; "gSavedCourseNum";  "gSpecialTripleJump";
-     "gStaticSurfacePartition"; "geo_obj_init_animation"; "geo_obj_init"; "geo_add_child";
-     "geo_update_animation_frame"; "geo_remove_child"; "get_current_background_music";
-     "get_dialog_id"; "gVec3sZero"; "gVec3fZero"; "gRedCoinsCollected";  "gPlayer1Controller"; "gDynamicSurfacePartition";  "gLoadedGraphNodes";
-     "gLastCompletedCourseNum"; "gLastCompletedStarNum"; "override_viewport_and_clip";
-     "cur_obj_play_sound_2"; "cur_obj_play_sound_1"; "create_sound_spawner";
-     "create_dialog_inverted_box"; "create_dialog_box_with_response";
-     "create_dialog_box_with_var"; "create_dialog_box"; "sound_banks_enable";
-     "save_file_get_star_flags"; "save_file_get_total_star_count"; "save_file_get_flags";
-     "save_file_collect_star_or_key"; "save_file_clear_flags"; "save_file_set_cap_pos";
-     "save_file_set_cannon_unlocked"; "save_file_set_flags";
-     "save_file_is_cannon_unlocked"; "save_file_do_save"; "sqrtf"; "segmented_to_virtual";
-     "seq_player_unlower_volume"; "seq_player_lower_volume";
-     "set_cutscene_message"; "set_sound_moving_speed"; "set_menu_mode";
-     "stop_cap_music"; "stop_sounds_from_source"; "stop_sound"; "stop_shell_music";
-     "alloc_display_list"; "area_get_warp_node"; "enable_background_sound";
-     "play_course_clear"; "play_cap_music"; "play_cutscene_music"; "play_sound";
-     "play_shell_music"; "play_infinite_stairs_music"; "play_music";
-     "play_power_star_jingle"; "play_peachs_jingle"; "play_transition";
-     "print_text_fmt_int"; "lower_background_noise"; "load_object_collision_model";
-     "load_patchable_table"; "disable_background_sound"; "drop_queued_background_music";
-     "try_print_debug_mario_level_info"; "try_do_mario_debug_object_spawn"; "raise_background_noise"; "random_u16"; "random_float";
-     "reset_cutscene_msg_fade"; "retrieve_animation_index"; "fadeout_cap_music";
-     "fadeout_music"; "fadeout_level_music"; "virtual_to_segmented" ]%string.
+     "gEepromProbe"; "gAudioRandom"; "gAreas"; "gGlobalTimer"; "gCurrAreaIndex";
+     "gCurrCourseNum"; "gCurrCreditsEntry"; "gCurrSaveFileNum"; "gCurrentArea";
+     "gCurrDemoInput"; "gCurrLevelNum"; "gSaveOptSelectIndex"; "gSaveBuffer";
+     "gSavedCourseNum"; "gPlayer1Controller"; "gLoadedGraphNodes"; "osEepromLongWrite";
+     "override_viewport_and_clip"; "sqrtf"; "segmented_to_virtual"; "stop_cap_music";
+     "stop_shell_music"; "alloc_display_list"; "area_get_warp_node";
+     "enable_background_sound"; "play_cap_music"; "play_cutscene_music";
+     "play_shell_music"; "play_infinite_stairs_music"; "play_transition";
+     "print_text_fmt_int"; "print_text"; "lower_background_noise"; "load_sequence";
+     "load_patchable_table"; "disable_background_sound"; "bcopy";
+     "raise_background_noise"; "fadeout_cap_music"; "fadeout_music";
+     "fadeout_level_music"; "virtual_to_segmented" ]%string.
+Proof. vm_compute. reflexivity. Qed.
+
+(* ----------------------------------------------------------------------- *)
+(* The live natives (OBJECTS phase S1, 2026-10-24): every C function a       *)
+(* CALL_NATIVE of a reached script names -- what update_objects can run for  *)
+(* a WMotR object (an over-approximation: reached_bhvs is).  Pinned by name, *)
+(* and each has a real body in a census TU that is IN the link (all_tus     *)
+(* minus mario_misc / obj_behaviors_2).  Bool checks over the census data   *)
+(* only; the linked program is never computed.                              *)
+(* ----------------------------------------------------------------------- *)
+Definition script_natives (b : ident) : list ident :=
+  match script_of b with
+  | Some cs => flat_map (fun c => match c with CNative f => [f] | _ => nil end) cs
+  | None => nil
+  end.
+Definition wmotr_live_natives : list ident := dedup (flat_map script_natives reached_bhvs).
+
+Lemma wmotr_live_natives_value : map string_of_ident wmotr_live_natives = [
+     "bhv_pound_white_puffs_init"; "try_print_debug_mario_level_info"; "bhv_mario_update";
+     "try_do_mario_debug_object_spawn"; "bhv_metal_cap_init"; "bhv_metal_cap_loop";
+     "bhv_exclamation_box_loop"; "bhv_end_peach_loop"; "bhv_end_toad_loop";
+     "bhv_unlock_door_star_init"; "bhv_unlock_door_star_loop"; "bhv_idle_water_wave_loop";
+     "bhv_yellow_coin_init"; "bhv_yellow_coin_loop"; "bhv_object_water_wave_init";
+     "bhv_object_water_wave_loop"; "bhv_object_bubble_init"; "bhv_object_bubble_loop";
+     "bhv_orange_number_init"; "bhv_orange_number_loop"; "bhv_golden_coin_sparkles_loop";
+     "bhv_wing_cap_init"; "bhv_wind_loop"; "bhv_wall_tiny_star_particle_loop";
+     "bhv_water_mist_loop"; "bhv_water_splash_spawn_droplets";
+     "bhv_water_droplet_splash_init"; "bhv_water_droplet_loop"; "bhv_wave_trail_shrink";
+     "bhv_white_puff_exploding_loop"; "bhv_white_puff_2_loop"; "bhv_white_puff_1_loop";
+     "bhv_coin_sparkles_loop"; "bhv_coin_formation_spawn_loop"; "bhv_coin_formation_init";
+     "bhv_coin_formation_loop"; "bhv_cannon_closed_init"; "bhv_cannon_closed_loop";
+     "load_object_collision_model"; "bhv_cannon_base_loop"; "bhv_cannon_barrel_loop";
+     "bhv_celebration_star_sparkle_loop"; "bhv_celebration_star_init";
+     "bhv_celebration_star_loop"; "bhv_sound_spawner_init"; "bhv_spawned_coin_init";
+     "bhv_spawned_coin_loop"; "bhv_bubble_wave_init"; "bhv_small_water_wave_loop";
+     "bhv_particle_init"; "bhv_particle_loop"; "bhv_shallow_water_splash_init";
+     "bhv_spawned_star_init"; "bhv_spawned_star_loop"; "bhv_sparkle_spawn_loop";
+     "bhv_star_spawn_init"; "bhv_star_spawn_loop";
+     "bhv_star_key_collection_puff_spawner_loop"; "bhv_collect_star_init";
+     "bhv_collect_star_loop"; "bhv_ground_snow_init"; "bhv_koopa_shell_underwater_loop";
+     "bhv_koopa_shell_loop"; "bhv_koopa_shell_flame_loop"; "bhv_1up_walking_loop";
+     "bhv_1up_init"; "bhv_1up_loop"; "bhv_1up_running_away_loop"; "bhv_normal_cap_init";
+     "bhv_normal_cap_loop"; "bhv_flame_mario_loop"; "bhv_vanish_cap_init";
+     "bhv_wing_vanish_cap_loop"; "bhv_tiny_star_particles_init";
+     "bhv_bowser_key_unlock_door_loop"; "bhv_bowser_key_course_exit_loop";
+     "bhv_bobomb_buddy_init"; "bhv_bobomb_buddy_loop"; "bhv_bubble_splash_init";
+     "bhv_black_smoke_mario_loop"; "bhv_blue_coin_sliding_jumping_init";
+     "bhv_blue_coin_jumping_loop"; "cur_obj_rotate_face_angle_using_vel";
+     "cur_obj_move_using_fvel_and_gravity"; "bhv_water_mist_spawn_loop";
+     "bhv_rotating_exclamation_box_loop"; "bhv_red_coin_star_marker_init"; "bhv_init_room";
+     "bhv_red_coin_init"; "bhv_red_coin_loop"; "bhv_jumping_box_loop";
+     "bhv_pound_tiny_star_particle_loop"; "bhv_pole_init"; "bhv_pole_base_loop";
+     "bhv_punch_tiny_triangle_loop"; "bhv_water_waves_init";
+     "bhv_pound_tiny_star_particle_init"; "bhv_1up_hidden_in_pole_spawner_loop";
+     "bhv_1up_common_init"; "bhv_1up_hidden_in_pole_loop";
+     "bhv_1up_hidden_in_pole_trigger_loop"; "bhv_hidden_red_coin_star_init";
+     "bhv_hidden_red_coin_star_loop"; "bhv_ground_sand_init";
+     "bhv_punch_tiny_triangle_init"; "bhv_tree_snow_or_leaf_loop";
+     "bhv_snow_leaf_particle_spawn_init" ]%string.
+Proof. vm_compute. reflexivity. Qed.
+
+Definition has_body (defs : list (ident * globdef fundef type)) (f : ident) : bool :=
+  existsb (fun p => Pos.eqb (fst p) f
+                    && match snd p with Gfun (Internal _) => true | _ => false end) defs.
+
+(* the census TUs that are linked (LinkedTwelve.tu_rest; not mario_misc;
+   obj_behaviors_2 since 2026-10-24, TU 50) *)
+Definition linked_census_tus : list (list (ident * globdef fundef type)) :=
+  [ mario.global_definitions; mario_step.global_definitions;
+    mario_actions_stationary.global_definitions; mario_actions_moving.global_definitions;
+    mario_actions_airborne.global_definitions; mario_actions_submerged.global_definitions;
+    mario_actions_cutscene.global_definitions; mario_actions_automatic.global_definitions;
+    mario_actions_object.global_definitions; interaction.global_definitions;
+    behavior_actions.global_definitions; level_update.global_definitions;
+    surface_collision.global_definitions; math_util.global_definitions;
+    object_helpers.global_definitions; obj_behaviors.global_definitions;
+    spawn_object.global_definitions; object_list_processor.global_definitions;
+    camera.global_definitions; surface_load.global_definitions;
+    save_file.global_definitions; graph_node.global_definitions;
+    ingame_menu.global_definitions; audio_external.global_definitions;
+    behavior_script.global_definitions; spawn_sound.global_definitions;
+    debug.global_definitions; object_collision.global_definitions;
+    obj_behaviors_2.global_definitions ].
+
+(* Every live native has a real, LINKED body except two.  Since 2026-10-24
+   obj_behaviors_2.c is linked (TU 50), so bhv_red_coin_star_marker_init
+   (reds_star_marker.inc.c), which IS live in WMotR
+   (bhv_hidden_red_coin_star_init spawns bhvRedCoinStarMarker when
+   gCurrCourseNum != COURSE_JRB, spawn_star.inc.c:145), has its real body.
+   The two left are the unlock-door-star natives in mario_misc.c (not
+   linked); their script is spawned only by act_unlocking_key_door (an
+   over-approximation of the census). *)
+Definition linked_native (f : ident) : bool :=
+  existsb (fun defs => has_body defs f) linked_census_tus.
+Lemma wmotr_live_natives_unlinked :
+  map string_of_ident (filter (fun f => negb (linked_native f)) wmotr_live_natives)
+  = [ "bhv_unlock_door_star_init"; "bhv_unlock_door_star_loop" ]%string.
+Proof. vm_compute. reflexivity. Qed.
+
+(* The TRUST 2.2 proof-only rewrites in the two linked object TUs (picked
+   zero-inits, wiggler's oHealth = 4, obj_perform_position_op u32 -> void):
+   none of the functions holding them is in the WMotR closure, so no live
+   WMotR object runs a picked value. *)
+Definition ub22_site_fns : list ident :=
+  [ obj_behaviors._bhv_bowling_ball_roll_loop; obj_behaviors._bhv_bowling_ball_initialize_loop;
+    obj_behaviors._manta_ray_move; obj_behaviors._bhv_mips_act_follow_path;
+    obj_behaviors._snowmans_bottom_act_1;
+    obj_behaviors_2._camera_lakitu_intro_act_show_dialog;
+    obj_behaviors_2._wiggler_init_segments; obj_behaviors_2._obj_perform_position_op ].
+Lemma ub22_sites_not_live :
+  forallb (fun f => negb (existsb (Pos.eqb f) wmotr_closure)) ub22_site_fns = true.
 Proof. vm_compute. reflexivity. Qed.

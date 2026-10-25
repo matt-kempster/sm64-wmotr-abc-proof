@@ -57,6 +57,7 @@ GENERATED := generated/toy.v generated/shadow.v \
   generated/spawn_object.v generated/object_list_processor.v generated/audio_data.v generated/graph_node.v generated/buffers.v generated/save_file.v generated/object_collision.v \
   generated/area.v generated/surface_load.v generated/mario_anim_data.v generated/camera.v generated/rendering_graph_node.v generated/ingame_menu.v generated/debug_course.v \
   generated/audio_external.v generated/sound_init.v generated/print.v generated/behavior_script.v generated/platform_displacement.v \
+  generated/spawn_sound.v generated/debug.v generated/hud.v \
   $(ULTRA_GENERATED)
 
 .PHONY: all generated proofs regen clean oracle-extract
@@ -263,6 +264,18 @@ generated/behavior_script.v: $(SM64)/src/engine/behavior_script.c pipeline/cligh
 generated/platform_displacement.v: $(SM64)/src/game/platform_displacement.c pipeline/clightgen.sh pipeline/proof_n64.h
 	$(CLIGHTGEN) $< $@ $(SM64_CGP)
 
+# game/spawn_sound.c and game/debug.c (2026-10-24, OBJECTS phase S1): the
+# object sound helpers (cur_obj_play_sound_1/2, create_sound_spawner,
+# exec_anim_sound_state) and the debug-info globals / helpers (sDebugPage,
+# the gDebugInfo readers, try_do_mario_debug_object_spawn) that the live
+# WMotR object natives call.  Linked as TUs 47 and 48 (object_collision.c is
+# TU 49) so update_objects' native calls resolve to real bodies.
+generated/spawn_sound.v: $(SM64)/src/game/spawn_sound.c pipeline/clightgen.sh pipeline/proof_n64.h
+	$(CLIGHTGEN) $< $@ $(SM64_CGP)
+
+generated/debug.v: $(SM64)/src/game/debug.c pipeline/clightgen.sh pipeline/proof_n64.h
+	$(CLIGHTGEN) $< $@ $(SM64_CGP)
+
 # engine/graph_node.c (2026-10-21): the real bodies of
 # geo_update_animation_frame and retrieve_animation_index, which GOAL 1's
 # capstone took as rows (Hgeo_real, Hocp_rai_real).
@@ -326,6 +339,12 @@ generated/ingame_menu.v: $(SM64)/src/game/ingame_menu.c pipeline/clightgen.sh pi
 	$(CLIGHTGEN) $< $@ $(SM64_CGP)
 
 generated/camera.v: $(SM64)/src/game/camera.c pipeline/clightgen.sh pipeline/proof_n64.h
+	$(CLIGHTGEN) $< $@ $(SM64_CGP)
+
+# game/hud.c (2026-10-24, linked as TU 51): update_camera's call tree calls
+# set_hud_camera_status, whose real body stores the hud.c static
+# sCameraHUDStatus (UpdateCameraBody).  The HUD renderers are not reached.
+generated/hud.v: $(SM64)/src/game/hud.c pipeline/clightgen.sh pipeline/proof_n64.h
 	$(CLIGHTGEN) $< $@ $(SM64_CGP)
 
 generated/surface_load.v: $(SM64)/src/engine/surface_load.c pipeline/clightgen.sh pipeline/proof_n64.h

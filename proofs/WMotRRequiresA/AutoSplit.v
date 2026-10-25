@@ -262,11 +262,8 @@ Section AutSplitS.
     /\ (forall bc oc, Mem.load Mint32 m bm FFW_CTL = Some (Vptr bc oc) -> bc <> bm).
   Proof.
     intros m (_ & EX & _).
-    destruct EX as (gp & bfi & bmiss & bcalls & bsin & ab & biom & bmq & brm & blk & bpc & bsr & bsrc & bsms & bbs & bfa & bo & oo & bt & ot & fl & ar & inp & ctl &
-                    HC & HS & HM & S1 & S2 & S3 & S4 & S5 & S6 & S7 & S8 & SL & SP & SR & SRC & SMS & SBS & SFA & Lo & Soo & La & Lb & Sot & D1 & D2 & D3 & D4 &
-                    W & Lf & Wf & Wc0 & Lar & War & Li & Ai & Lc & Wc & Co & LPC & LBS & LTM).
-    assert (Rb : rblk (ff_rl bm bo oo bfi bmiss bcalls ab bt biom bmq brm blk bpc bsr bsrc bsms bbs bfa) bm)
-      by (exists Ptrofs.zero; cbn; auto).
+    ffw_unpack EX.
+    pose proof (ffw_rlF_bm _ _ _ _ FWF) as Rb. ffw_simpl_in Rb.
     split; [| split].
     - intros bo' oo' Hl. change MARIOOBJ_OFF with FFW_OBJ in Hl. rewrite Lo in Hl.
       injection Hl as <- _. exact D1.
@@ -335,44 +332,20 @@ Section AutSplitS.
 
     Lemma qsd_ffw : ffw ge bm m -> ffw ge bm m'.
     Proof.
-      intros (Hgn & EX & FD).
-      destruct EX as (gp & bfi & bmiss & bcalls & bsin & ab & biom & bmq & brm & blk & bpc & bsr & bsrc & bsms & bbs & bfa & bo & oo & bt & ot & fl & ar & inp & ctl &
-                      HC & HS & HM & S1 & S2 & S3 & S4 & S5 & S6 & S7 & S8 & SL & SP & SR & SRC & SMS & SBS & SFA & Lo & Soo & La & Lb & Sot & D1 & D2 & D3 & D4 &
-                      W & Lf & Wf & Wc0 & Lar & War & Li & Ai & Lc & Wc & Co & LPC & LBS & LTM).
-      set (rl := ff_rl bm bo oo bfi bmiss bcalls ab bt biom bmq brm blk bpc bsr bsrc bsms bbs bfa) in *.
-      assert (Rb : rblk rl bm) by (exists Ptrofs.zero; cbn; auto).
-      assert (Hnb : Ple (Mem.nextblock m) (Mem.nextblock m')) by (rewrite qsd_nb; apply Ple_refl).
-      assert (Hperm : forall b ofs k p, Plt b (Mem.nextblock m) -> Mem.perm m b ofs k p -> Mem.perm m' b ofs k p)
-        by (intros b ofs k p _ Hp; exact (Mem.perm_store_1 _ _ _ _ _ _ Hst b ofs k p Hp)).
-      assert (Hld : forall ch b z, Plt b (Mem.nextblock m) -> ~ rblk rl b -> Mem.load ch m' b z = Mem.load ch m b z)
-        by (intros ch b z _ Nr; apply LQb; intros ->; exact (Nr Rb)).
-      assert (Gbm : gp bm = Some (bm, 0)).
-      { destruct (gp bm) as [[b' d]|] eqn:G0; [| congruence].
-        destruct (closed_flat _ _ _ _ _ HC G0) as (-> & ->). reflexivity. }
-      split; [rewrite qsd_nb; exact Hgn |].
-      split.
-      - exists gp, bfi, bmiss, bcalls, bsin, ab, biom, bmq, brm, blk, bpc, bsr, bsrc, bsms, bbs, bfa, bo, oo, bt, ot, fl, ar, inp, ctl.
-        split; [refine (store_closed gp m m' Mfloat32 bm QSD_OFF (Vsingle Float32.zero) Hst HC Gbm _);
-                right; intros b' o' E; discriminate E |].
-        split; [exact HS |]. split; [exact HM |].
-        do 15 (split; [assumption |]).
-        split; [lqm; exact Lo |]. split; [exact Soo |]. split; [lqm; exact La |].
-        split; [rewrite LQ by (right; left; qside); exact Lb |].
-        do 5 (split; [assumption |]).
-        split; [exact (Wff_keep2 ge m m' rl Hnb Hperm Hld gp gp (fun b h => h) W) |].
-        split; [lqm; exact Lf |]. split; [exact (wblk_keep2 m m' rl Hnb Hperm Hld _ _ _ Wf) |].
-        split; [intros off sb so Hoff Hl;
-                destruct Hoff as [-> | ->]; lqm_in Hl;
-                [exact (Wc0 FFW_WALL sb so (or_introl eq_refl) Hl)
-                | exact (Wc0 FFW_CEIL sb so (or_intror eq_refl) Hl)] |].
-        split; [lqm; exact Lar |]. split; [exact (wblk_keep2 m m' rl Hnb Hperm Hld _ _ _ War) |].
-        split; [lqm; exact Li |]. split; [exact Ai |].
-        split; [lqm; exact Lc |]. split; [exact (wblk_keep2 m m' rl Hnb Hperm Hld _ _ _ Wc) |].
-        split; [intros i cb co Hi Hl; rewrite LQb in Hl by exact D1; exact (Co i cb co Hi Hl) |].
-        split; [lqm; exact LPC |]. split; [lqm; exact LBS |].
-        destruct LTM as [Lt | (ot0 & Lt)]; [left | right; exists ot0];
-          rewrite LQb by exact D1; exact Lt.
-      - exact (floor_data_keep2 ge m m' rl Hnb Hperm Hld gp W FD).
+      intros (Hgn & (d & F) & FD).
+      assert (Gbm : fw_gp d bm = Some (bm, 0)).
+      { destruct (fw_gp d bm) as [[b' dl]|] eqn:G0; [| exact (False_ind _ (ff_HM _ _ _ _ F G0))].
+        destruct (closed_flat _ _ _ _ _ (ff_HC _ _ _ _ F) G0) as (-> & ->). reflexivity. }
+      apply (ffw_keep_off ge bm m m' d (fw_gp d) Hgn F FD).
+      - rewrite qsd_nb. apply Ple_refl.
+      - intros b ofs k p _ Hp. exact (Mem.perm_store_1 _ _ _ _ _ _ Hst b ofs k p Hp).
+      - intros ch b z _ Nr. apply LQb. intros ->. exact (Nr (ffw_rl_bm bm d)).
+      - exact (fun b h => h).
+      - refine (store_closed _ m m' Mfloat32 bm QSD_OFF (Vsingle Float32.zero) Hst (ff_HC _ _ _ _ F) Gbm _).
+        right. intros b' o' E. discriminate E.
+      - intros ch b z Hr. ffw_read_s_split Hr;
+          first [ solve [lqm; reflexivity] | solve [apply LQ; right; left; qside]
+                | solve [apply LQb; exact (ff_D1 _ _ _ _ F)] ].
     Qed.
 
     Lemma qsd_coll : forall v, (forall b o, v = Vptr b o -> b <> bm) -> coll_obj_ok m v -> coll_obj_ok m' v.
@@ -391,9 +364,7 @@ Section AutSplitS.
     Proof.
       intros Hf (Hw & Hc & Hfl & Hh & Hr & Hq & Ho).
       pose proof Hf as (_ & EX & _).
-      destruct EX as (gp & bfi & bmiss & bcalls & bsin & ab & biom & bmq & brm & blk & bpc & bsr & bsrc & bsms & bbs & bfa & bo & oo & bt & ot & fl & ar & inp & ctl &
-                      HC & HS & HM & S1 & S2 & S3 & S4 & S5 & S6 & S7 & S8 & SL & SP & SR & SRC & SMS & SBS & SFA & Lo & Soo & La & Lb & Sot & D1 & D2 & D3 & D4 &
-                      W & Lf & Wf & Wc0 & Lar & War & Li & Ai & Lc & Wc & Co & LPC & LBS & LTM).
+      ffw_unpack EX.
       destruct (ffw_apart m Hf) as (Ao & As & _).
       split; [| split; [| split; [| split; [| split; [| split]]]]].
       - intros v Hl. lqm_in Hl. destruct (Hw v Hl) as [-> | (b & o & t & -> & Lt & Hin)]; [left; reflexivity |].
@@ -476,20 +447,16 @@ Section AutSplitS.
     Proof.
       intros Hf AW. pose proof Hf as (Hgn & EX & FD).
       destruct (ffw_apart m Hf) as (Ao & _ & _).
-      destruct EX as (gp & bfi & bmiss & bcalls & bsin & ab & biom & bmq & brm & blk & bpc & bsr & bsrc & bsms & bbs & bfa & bo & oo & bt & ot
-                      & fl & ar & inp & ctl & HC & HS & HM & S1 & S2 & S3 & S4 & S5 & S6 & S7 & S8 & SL & SP & SR & SRC & SMS & SBS & SFA
-                      & Lo & Soo & La & Lb & Sot & D1 & D2 & D3 & D4 & W & _).
+      ffw_unpack EX.
       pose proof AW as (ab' & bga & bauc & btab & otab & bt' & ot' & mb' & mo' & B & _).
       pose proof B as (Sab & _ & _ & _ & L8 & _ & Sy & _ & _ & _ & _ & _ & _ & _ & _ & _ & _ & _ & _ & _ & Hbm0).
       assert (ab' = ab) by congruence. subst ab'.
       rewrite Lb in L8. injection L8 as <- <-.
       assert (Nab : ab <> bm) by exact (AnimKeep.symne_ids ge _ _ _ _ S5 Hbm0 eq_refl).
-      apply (AnimKeep.anim_w_keep ge bm m m' gp bfi bmiss bcalls ab biom bmq brm blk bpc bsr bsrc bsms bbs bfa bo oo bt ot
-               S1 S2 S3 S5 S6 S7 S8 SL SP SR SRC SMS SBS SFA Lo Lb W AW).
+      apply (AnimKeep.anim_w_keep ge bm m m' _ FWF AW); ffw_simpl.
       - rewrite (Mem.nextblock_store _ _ _ _ _ _ Hst). apply Ple_refl.
       - intros b ofs k p _ Hp. exact (Mem.perm_store_1 _ _ _ _ _ _ Hst b ofs k p Hp).
-      - intros ch b z _ Hr. apply LQb. intros ->. apply Hr. exists Ptrofs.zero.
-        unfold ff_rl. cbn. left; reflexivity.
+      - intros ch b z _ Hr. apply LQb. intros ->. exact (Hr (ffw_rlF_bm _ _ _ _ FWF)).
       - lqm. reflexivity.
       - apply LQb. exact Nab.
       - apply LQb. exact Nab.

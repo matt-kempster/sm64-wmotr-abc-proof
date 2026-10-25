@@ -659,8 +659,7 @@ Section NA.
     pose proof (marg_of_gms v m Hok Hgv) as Hmarg.
     pose proof Hw as (_ & _ & _ & _ & _ & Hf & _ & Haw & _).
     pose proof Hf as (Hgn & EX & _).
-    destruct EX as (gp & bfi & bmiss & bcalls & bsin & ab & biom & bmq & brm & blk & bpc & bsr & bsrc & bsms & bbs & bfa & bo & oo & bt & ot & fl & ar & inp & ctl &
-                    HC & HS & HM & S1 & S2 & S3 & S4 & S5 & S6 & S7 & S8 & SL & SP & SR & SRC & SMS & _).
+    ffw_unpack EX.
     assert (HQ : Qrel bm bsr bsrc m m').
     { refine (lw_body_frame ge (Qrel bm bsr bsrc m) mario.f_update_mario_health
                 (fun le => le ! mario._m = Some v)
@@ -910,9 +909,7 @@ Section NA.
     let Hf := fresh "Hf" in let Haw := fresh "Haw" in
     pose proof Hw as (_ & _ & _ & _ & _ & Hf & _ & Haw & _);
     pose proof Hf as (Hgn & EX & _);
-    destruct EX as (gp & bfi & bmiss & bcalls & bsin & ab & biom & bmq & brm & blk & bpc & bsr & bsrc & bsms & bbs & bfa & bo & oo & bt & ot & fl & ar & inp & ctl &
-                    HC & HS & HM & S1 & S2 & S3 & S4 & S5 & S6 & S7 & S8 & SL & SP & SR & SRC & SMS & SBS & SFA & Lo & Soo & La & Lb & Sot & D1 & D2 & D3 & D4 &
-                    W & Lf & Wf & Wc0 & Lar & War & Li & Ai & Lc & Wc & Co & LPC & LBS & LTM);
+    ffw_unpack EX;
     pose proof Haw as (ab' & bga & bauc & btab & otab & bt' & ot' & mb' & mo' & B & _);
     pose proof B as (_ & _ & _ & _ & _ & _ & _ & _ & _ & _ & _ & _
                      & _ & _ & _ & _ & _ & _ & _ & _ & Hbm0).

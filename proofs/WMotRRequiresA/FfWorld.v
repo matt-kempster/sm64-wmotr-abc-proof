@@ -37,8 +37,8 @@
 
 From Coq Require Import ZArith List Lia Reals.
 From compcert Require Import Coqlib Maps AST Integers Floats Values Memory Ctypes Clight Globalenvs.
-From SM64.Generated Require mario surface_collision memory camera audio_external sound_init
-  mario_actions_moving level_update game_init libultra_osContInit.
+From SM64.Generated Require mario surface_collision memory camera audio_external sound_init level_update
+  game_init libultra_osContInit mario_actions_moving.
 From SM64.Proofs Require Import HeightInvariant HeightMoveCatalog WMotRLevel Generic.ClosedMem.
 From SM64.Proofs.WMotRRequiresA Require Import FloorList FloorHeight FloorExec AirMatch AirStart RetOk.
 Import ListNotations.
@@ -58,25 +58,13 @@ Definition lvl_ids : list ident :=
    game_init._gPlayer3Controller; libultra_osContInit.___osMaxControllers].
 
 Definition lvl_sym (G : genv) (b : block) : Prop :=
-  Genv.find_symbol G mario._gCurrLevelNum = Some b
-  \/ Genv.find_symbol G sound_init._sPlayingInfiniteStairs = Some b
-  \/ exists id, In id (skipn 2 lvl_ids) /\ Genv.find_symbol G id = Some b.
+  exists id, In id lvl_ids /\ Genv.find_symbol G id = Some b.
 
 Lemma lvl_sym_ids : forall (G : genv) b, lvl_sym G b -> exists id, In id lvl_ids /\ Genv.find_symbol G id = Some b.
-Proof.
-  intros G b [H | [H | (id & Hin & H)]].
-  - exists mario._gCurrLevelNum. split; [left; reflexivity | exact H].
-  - exists sound_init._sPlayingInfiniteStairs. split; [right; left; reflexivity | exact H].
-  - exists id. split; [right; right; exact Hin | exact H].
-Qed.
+Proof. intros G b H. exact H. Qed.
 
 Lemma lvl_sym_of : forall (G : genv) id b, In id lvl_ids -> Genv.find_symbol G id = Some b -> lvl_sym G b.
-Proof.
-  intros G id b Hin H. destruct Hin as [<- | [<- | Hin]].
-  - left; exact H.
-  - right; left; exact H.
-  - right; right. exists id. split; [exact Hin | exact H].
-Qed.
+Proof. intros G id b Hin H. exists id. split; [exact Hin | exact H]. Qed.
 
 (* split a lvl_sym hypothesis into one goal per concrete global *)
 Ltac lvl_cases H :=
@@ -127,91 +115,349 @@ Definition wblk (m : mem) (rl : list (option val)) (v : val) (n : Z) : Prop :=
   exists b o, v = Vptr b o /\ Plt b (Mem.nextblock m) /\ 0 <= n
     /\ Ptrofs.unsigned o + n <= Ptrofs.modulus /\ ~ rblk rl b.
 
+(* ---- the frame world's witnesses, as one record (2026-10-24) ----------- *)
+(* HOW TO ADD AN ffw FACT (see also .claude/skills/proof-discipline):
+     1. a new witness (a block, a value): a field of `ffw_wit` below, plus
+        its fw_ projection in `ffw_simpl`'s list, its name in `ffw_unpack`'s
+        destruct of d, and `(fw_X d)` in `ffw_rebuild`'s `mk_ffw_wit`; a
+        new region also goes in `ff_rl` / `ff_rl_of` / `ffw_reg_ids` (and
+        its symbol fact in the region lemmas' rewrite lists);
+     2. a new fact: a field of `ffw_facts`, plus its hypothesis name in
+        `ffw_unpack` (the fresh, the pose proof and the ffw_simpl_in); a
+        memory-free fact needs nothing else (`ffw_rebuild`'s closer takes it
+        from F by `assumption`);
+     3. if the fact READS memory: the cell goes in `ffw_bm_cells` (a cell of
+        Mario's state block) or a new disjunct of `ffw_read` (a cell
+        elsewhere: then also `ffw_read_split`); every keep proof then gets
+        one more goal "this cell is unchanged", closed by its own closer;
+     4. StartSat.ffw11 establishes the new fact at the start.
+   Consumers never destruct ffw positionally: `ffw_unpack EX` names every
+   witness and fact (gp, bfi, ..., HC, S1, ..., LTM) and keeps the record
+   hypothesis FWF; they rebuild ffw with `ffw_rebuild` / `ffw_rebuild_off` /
+   `ffw_keep_off`, whose premises are about the read set, not the list of
+   conjuncts. *)
+Record ffw_wit : Type := mk_ffw_wit {
+  fw_gp : meminj;
+  fw_bfi : block; fw_bmiss : block; fw_bcalls : block; fw_bsin : block; fw_ab : block;
+  fw_biom : block; fw_bmq : block; fw_brm : block; fw_blk : block; fw_bpc : block;
+  fw_bsr : block; fw_bsrc : block; fw_bsms : block; fw_bbs : block; fw_bfa : block;
+  fw_bo : block; fw_oo : ptrofs; fw_bt : block; fw_ot : ptrofs;
+  fw_fl : val; fw_ar : val; fw_inp : int; fw_ctl : val }.
+
+(* the walk's region list, of a witness record *)
+Definition ff_rl_of (bm : block) (d : ffw_wit) : list (option val) :=
+  ff_rl bm (fw_bo d) (fw_oo d) (fw_bfi d) (fw_bmiss d) (fw_bcalls d) (fw_ab d) (fw_bt d)
+    (fw_biom d) (fw_bmq d) (fw_brm d) (fw_blk d) (fw_bpc d) (fw_bsr d) (fw_bsrc d) (fw_bsms d) (fw_bbs d)
+    (fw_bfa d).
+
+(* the globals among the regions (all but Mario's state, his object and
+   the animation buffer) *)
+Definition ffw_reg_ids : list ident :=
+  [surface_collision._gFindFloorIncludeSurfaceIntangible; surface_collision._gNumFindFloorMisses;
+   surface_collision._gNumCalls; mario._gMarioAnimsBuf; memory._gDmaIoMesg; memory._gDmaMesgQueue;
+   memory._gMainReceivedMesg; camera._gLakituState; camera._gPlayerCameraState;
+   audio_external._sSoundRequests; audio_external._sSoundRequestCount; audio_external._sSoundMovingSpeed;
+   mario._gBodyStates; mario_actions_moving._sFloorAlignMatrix].
+
+(* the cells of Mario's state block ffw reads (besides the surface cells
+   floor / wall / ceil, ffw_surf_cells) *)
+Definition ffw_bm_cells : list (Z * memory_chunk) :=
+  [(FFW_OBJ, Mint32); (FFW_ANIM, Mint32); (FFW_AREA, Mint32); (2, Mint16unsigned);
+   (FFW_CTL, Mint32); (FFW_PCS, Mint32); (FFW_BODY, Mint32)].
+Definition ffw_surf_cells : list (Z * memory_chunk) :=
+  [(FFW_FLOOR, Mint32); (FFW_WALL, Mint32); (FFW_CEIL, Mint32)].
+
+(* reduce the record's projections (and ff_rl_of) in a hypothesis / the goal
+   (the one list of projections: a new witness adds its fw_ here) *)
+Ltac ffw_simpl_in H :=
+  cbn [ff_rl_of fw_gp fw_bfi fw_bmiss fw_bcalls fw_bsin fw_ab fw_biom fw_bmq fw_brm fw_blk fw_bpc fw_bsr fw_bsrc fw_bsms fw_bbs fw_bfa fw_bo fw_oo fw_bt fw_ot fw_fl fw_ar fw_inp fw_ctl] in H.
+Ltac ffw_simpl :=
+  cbn [ff_rl_of fw_gp fw_bfi fw_bmiss fw_bcalls fw_bsin fw_ab fw_biom fw_bmq fw_brm fw_blk fw_bpc fw_bsr fw_bsrc fw_bsms fw_bbs fw_bfa fw_bo fw_oo fw_bt fw_ot fw_fl fw_ar fw_inp fw_ctl].
+
 Section FFW.
 Variable G : genv.
 Variable bm : block.
 
+Record ffw_facts (m : mem) (d : ffw_wit) : Prop := mk_ffw_facts {
+  (* closedness *)
+  ff_HC : closed_by (fw_gp d) m;
+  ff_HS : forall id b, Genv.find_symbol G id = Some b -> fw_gp d b <> None;
+  ff_HM : fw_gp d bm <> None;
+  ff_S1 : Genv.find_symbol G surface_collision._gFindFloorIncludeSurfaceIntangible = Some (fw_bfi d);
+  ff_S2 : Genv.find_symbol G surface_collision._gNumFindFloorMisses = Some (fw_bmiss d);
+  ff_S3 : Genv.find_symbol G surface_collision._gNumCalls = Some (fw_bcalls d);
+  ff_S4 : Genv.find_symbol G mario._gSineTable = Some (fw_bsin d);
+  ff_S5 : Genv.find_symbol G mario._gMarioAnimsBuf = Some (fw_ab d);
+  ff_S6 : Genv.find_symbol G memory._gDmaIoMesg = Some (fw_biom d);
+  ff_S7 : Genv.find_symbol G memory._gDmaMesgQueue = Some (fw_bmq d);
+  ff_S8 : Genv.find_symbol G memory._gMainReceivedMesg = Some (fw_brm d);
+  ff_SL : Genv.find_symbol G camera._gLakituState = Some (fw_blk d);
+  ff_SP : Genv.find_symbol G camera._gPlayerCameraState = Some (fw_bpc d);
+  ff_SR : Genv.find_symbol G audio_external._sSoundRequests = Some (fw_bsr d);
+  ff_SRC : Genv.find_symbol G audio_external._sSoundRequestCount = Some (fw_bsrc d);
+  ff_SMS : Genv.find_symbol G audio_external._sSoundMovingSpeed = Some (fw_bsms d);
+  ff_SBS : Genv.find_symbol G mario._gBodyStates = Some (fw_bbs d);
+  ff_SFA : Genv.find_symbol G mario_actions_moving._sFloorAlignMatrix = Some (fw_bfa d);
+  (* Mario's object; the animation list and its DMA buffer *)
+  ff_Lo : Mem.load Mint32 m bm FFW_OBJ = Some (Vptr (fw_bo d) (fw_oo d));
+  ff_Soo : Ptrofs.unsigned (fw_oo d) + SZ_OBJECT <= Ptrofs.modulus;
+  ff_La : Mem.load Mint32 m bm FFW_ANIM = Some (Vptr (fw_ab d) Ptrofs.zero);
+  ff_Lb : Mem.load Mint32 m (fw_ab d) 8 = Some (Vptr (fw_bt d) (fw_ot d));
+  ff_Sot : Ptrofs.unsigned (fw_ot d) + 24 <= Ptrofs.modulus;
+  (* the object and the buffer are blocks of their own *)
+  ff_D1 : fw_bo d <> bm;
+  ff_D2 : fw_bt d <> bm;
+  ff_D3 : fw_bt d <> fw_bo d;
+  (* (gAudioRandom too: play_mario_jump_sound reads it, a world cell) *)
+  ff_D4 : forall b, In b [fw_bfi d; fw_bmiss d; fw_bcalls d; fw_bsin d; fw_ab d; fw_biom d; fw_bmq d;
+                          fw_brm d; fw_blk d; fw_bpc d; fw_bsr d; fw_bsrc d; fw_bsms d; fw_bbs d;
+                          fw_bfa d]
+                \/ Genv.find_symbol G mario._gAudioRandom = Some b
+                (* gCurrLevelNum: add_tree_leaf_particles reads it (the pole walks);
+                   sPlayingInfiniteStairs: play_infinite_stairs_music reads it (lvl_w);
+                   the warp and controller globals (lvl_w's warp_w / ctl_w) *)
+                \/ lvl_sym G b -> b <> fw_bo d /\ b <> fw_bt d;
+  (* the collision partition *)
+  ff_W : Wff G m (fw_gp d) SZ_SURFACE (ff_rl_of bm d);
+  (* m->floor, m->area *)
+  ff_Lf : Mem.load Mint32 m bm FFW_FLOOR = Some (fw_fl d);
+  ff_Wf : wblk m (ff_rl_of bm d) (fw_fl d) SZ_SURFACE;
+  (* m->wall, m->ceil *)
+  ff_Wc0 : forall off sb so, off = FFW_WALL \/ off = FFW_CEIL -> Mem.load Mint32 m bm off = Some (Vptr sb so) ->
+             ~ rblk (ff_rl_of bm d) sb;
+  ff_Lar : Mem.load Mint32 m bm FFW_AREA = Some (fw_ar d);
+  ff_War : wblk m (ff_rl_of bm d) (fw_ar d) SZ_AREA;
+  (* m->input: INPUT_A_PRESSED | INPUT_A_DOWN | INPUT_INTERACT_OBJ_GRABBABLE clear *)
+  ff_Li : Mem.load Mint16unsigned m bm 2 = Some (Vint (fw_inp d));
+  ff_Ai : Int.and (fw_inp d) (Int.repr 2178) = Int.zero;
+  (* m->controller *)
+  ff_Lc : Mem.load Mint32 m bm FFW_CTL = Some (fw_ctl d);
+  ff_Wc : wblk m (ff_rl_of bm d) (fw_ctl d) SZ_CTL;
+  (* the collided objects *)
+  ff_Co : forall i cb co, 0 <= i < 4 ->
+            Mem.load Mint32 m (fw_bo d) (Ptrofs.unsigned (fw_oo d) + FFW_COLL + 4 * i) = Some (Vptr cb co) ->
+            cb = fw_bo d;
+  (* m->statusForCamera = &gPlayerCameraState[0] (init_mario_from_save_file,
+     mario.c; nothing else writes the cell) *)
+  ff_LPC : Mem.load Mint32 m bm FFW_PCS = Some (Vptr (fw_bpc d) Ptrofs.zero);
+  (* m->marioBodyState = &gBodyStates[0] (init_mario_from_save_file,
+     mario.c; nothing else writes the cell).  2026-10-23: FOUND (phantom
+     forall) -- without it (and gBodyStates as a region) the per-call rows
+     of mario_reset_bodystate / update_mario_info_for_cam ranged over
+     memories whose marioBodyState pointed into Mario's own state or a
+     surface, which the real stores through it then break *)
+  ff_LBS : Mem.load Mint32 m bm FFW_BODY = Some (Vptr (fw_bbs d) Ptrofs.zero);
+  (* Mario's object's gfx.throwMatrix is NULL or points into
+     sFloorAlignMatrix (2026-10-24).  In the game spawn_object /
+     geo_obj_init set it to NULL, align_with_floor (crawling, the
+     slides) to &sFloorAlignMatrix[m->unk00], and the renderer
+     (geo_process_object) back to NULL; no other code writes Mario's.
+     FOUND (phantom forall): without it the row of
+     sink_mario_in_quicksand ranged over memories whose throwMatrix
+     pointed into Mario's state or a surface, which its store
+     ( *throwMatrix )[3][1] -= quicksandDepth then writes *)
+  ff_LTM : Mem.load Mint32 m (fw_bo d) (Ptrofs.unsigned (fw_oo d) + FFW_THROW) = Some (Vint Int.zero)
+           \/ exists o, Mem.load Mint32 m (fw_bo d) (Ptrofs.unsigned (fw_oo d) + FFW_THROW)
+                        = Some (Vptr (fw_bfa d) o) }.
+
 Definition ffw (m : mem) : Prop :=
   Ple (Genv.genv_next G) (Mem.nextblock m)
-  /\ (exists gp bfi bmiss bcalls bsin ab biom bmq brm blk bpc bsr bsrc bsms bbs bfa bo oo bt ot fl ar inp ctl,
-      (* closedness *)
-      closed_by gp m
-      /\ (forall id b, Genv.find_symbol G id = Some b -> gp b <> None) /\ gp bm <> None
-      /\ Genv.find_symbol G surface_collision._gFindFloorIncludeSurfaceIntangible = Some bfi
-      /\ Genv.find_symbol G surface_collision._gNumFindFloorMisses = Some bmiss
-      /\ Genv.find_symbol G surface_collision._gNumCalls = Some bcalls
-      /\ Genv.find_symbol G mario._gSineTable = Some bsin
-      /\ Genv.find_symbol G mario._gMarioAnimsBuf = Some ab
-      /\ Genv.find_symbol G memory._gDmaIoMesg = Some biom
-      /\ Genv.find_symbol G memory._gDmaMesgQueue = Some bmq
-      /\ Genv.find_symbol G memory._gMainReceivedMesg = Some brm
-      /\ Genv.find_symbol G camera._gLakituState = Some blk
-      /\ Genv.find_symbol G camera._gPlayerCameraState = Some bpc
-      /\ Genv.find_symbol G audio_external._sSoundRequests = Some bsr
-      /\ Genv.find_symbol G audio_external._sSoundRequestCount = Some bsrc
-      /\ Genv.find_symbol G audio_external._sSoundMovingSpeed = Some bsms
-      /\ Genv.find_symbol G mario._gBodyStates = Some bbs
-      /\ Genv.find_symbol G mario_actions_moving._sFloorAlignMatrix = Some bfa
-      (* Mario's object; the animation list and its DMA buffer *)
-      /\ Mem.load Mint32 m bm FFW_OBJ = Some (Vptr bo oo)
-      /\ Ptrofs.unsigned oo + SZ_OBJECT <= Ptrofs.modulus
-      /\ Mem.load Mint32 m bm FFW_ANIM = Some (Vptr ab Ptrofs.zero)
-      /\ Mem.load Mint32 m ab 8 = Some (Vptr bt ot) /\ Ptrofs.unsigned ot + 24 <= Ptrofs.modulus
-      (* the object and the buffer are blocks of their own *)
-      /\ bo <> bm /\ bt <> bm /\ bt <> bo
-      (* (gAudioRandom too: play_mario_jump_sound reads it, a world cell) *)
-      /\ (forall b, In b [bfi; bmiss; bcalls; bsin; ab; biom; bmq; brm; blk; bpc; bsr; bsrc; bsms; bbs; bfa]
-                    \/ Genv.find_symbol G mario._gAudioRandom = Some b
-                    (* gCurrLevelNum: add_tree_leaf_particles reads it (the pole walks);
-                       sPlayingInfiniteStairs: play_infinite_stairs_music reads it (lvl_w);
-                       the warp and controller globals (lvl_w's warp_w / ctl_w) *)
-                    \/ lvl_sym G b -> b <> bo /\ b <> bt)
-      (* the collision partition *)
-      /\ Wff G m gp SZ_SURFACE (ff_rl bm bo oo bfi bmiss bcalls ab bt biom bmq brm blk bpc bsr bsrc bsms bbs bfa)
-      (* m->floor, m->area *)
-      /\ Mem.load Mint32 m bm FFW_FLOOR = Some fl
-      /\ wblk m (ff_rl bm bo oo bfi bmiss bcalls ab bt biom bmq brm blk bpc bsr bsrc bsms bbs bfa) fl SZ_SURFACE
-      (* m->wall, m->ceil *)
-      /\ (forall off sb so, off = FFW_WALL \/ off = FFW_CEIL -> Mem.load Mint32 m bm off = Some (Vptr sb so) ->
-            ~ rblk (ff_rl bm bo oo bfi bmiss bcalls ab bt biom bmq brm blk bpc bsr bsrc bsms bbs bfa) sb)
-      /\ Mem.load Mint32 m bm FFW_AREA = Some ar
-      /\ wblk m (ff_rl bm bo oo bfi bmiss bcalls ab bt biom bmq brm blk bpc bsr bsrc bsms bbs bfa) ar SZ_AREA
-      (* m->input: INPUT_A_PRESSED | INPUT_A_DOWN | INPUT_INTERACT_OBJ_GRABBABLE clear *)
-      /\ Mem.load Mint16unsigned m bm 2 = Some (Vint inp) /\ Int.and inp (Int.repr 2178) = Int.zero
-      (* m->controller *)
-      /\ Mem.load Mint32 m bm FFW_CTL = Some ctl
-      /\ wblk m (ff_rl bm bo oo bfi bmiss bcalls ab bt biom bmq brm blk bpc bsr bsrc bsms bbs bfa) ctl SZ_CTL
-      (* the collided objects *)
-      /\ (forall i cb co, 0 <= i < 4 ->
-            Mem.load Mint32 m bo (Ptrofs.unsigned oo + FFW_COLL + 4 * i) = Some (Vptr cb co) -> cb = bo)
-      (* m->statusForCamera = &gPlayerCameraState[0] (init_mario_from_save_file,
-         mario.c; nothing else writes the cell) *)
-      /\ Mem.load Mint32 m bm FFW_PCS = Some (Vptr bpc Ptrofs.zero)
-      (* m->marioBodyState = &gBodyStates[0] (init_mario_from_save_file,
-         mario.c; nothing else writes the cell).  2026-10-23: FOUND (phantom
-         forall) -- without it (and gBodyStates as a region) the per-call rows
-         of mario_reset_bodystate / update_mario_info_for_cam ranged over
-         memories whose marioBodyState pointed into Mario's own state or a
-         surface, which the real stores through it then break *)
-      /\ Mem.load Mint32 m bm FFW_BODY = Some (Vptr bbs Ptrofs.zero)
-      (* Mario's object's gfx.throwMatrix is NULL or points into
-         sFloorAlignMatrix (2026-10-24).  In the game spawn_object /
-         geo_obj_init set it to NULL, align_with_floor (crawling, the
-         slides) to &sFloorAlignMatrix[m->unk00], and the renderer
-         (geo_process_object) back to NULL; no other code writes Mario's.
-         FOUND (phantom forall): without it the row of
-         sink_mario_in_quicksand ranged over memories whose throwMatrix
-         pointed into Mario's state or a surface, which its store
-         ( *throwMatrix )[3][1] -= quicksandDepth then writes *)
-      /\ (Mem.load Mint32 m bo (Ptrofs.unsigned oo + FFW_THROW) = Some (Vint Int.zero)
-          \/ exists o, Mem.load Mint32 m bo (Ptrofs.unsigned oo + FFW_THROW) = Some (Vptr bfa o)))
+  /\ (exists d, ffw_facts m d)
   /\ floor_data G m.
 
-(* ---- transfer: a memory that differs from m only inside Mario's object ---- *)
+(* ---- the regions, of a witness record ---- *)
 
-Lemma rl_obj : forall bo oo bfi bmiss bcalls ab bt biom bmq brm blk bpc bsr bsrc bsms bbs bfa,
-  rblk (ff_rl bm bo oo bfi bmiss bcalls ab bt biom bmq brm blk bpc bsr bsrc bsms bbs bfa) bo.
-Proof. intros. exists oo. cbn. auto 10. Qed.
+Lemma ffw_rl_bm : forall d, rblk (ff_rl_of bm d) bm.
+Proof. intros d. exists Ptrofs.zero. cbn. auto. Qed.
+
+Lemma ffw_rl_bo : forall d, rblk (ff_rl_of bm d) (fw_bo d).
+Proof. intros d. exists (fw_oo d). cbn. auto. Qed.
+
+Lemma ffw_rl_bt : forall d, rblk (ff_rl_of bm d) (fw_bt d).
+Proof. intros d. exists Ptrofs.zero. cbn. auto 10. Qed.
+
+(* ... keyed on the facts (so the record need not be named) *)
+Lemma ffw_rlF_bm : forall m d, ffw_facts m d -> rblk (ff_rl_of bm d) bm.
+Proof. intros m d _. apply ffw_rl_bm. Qed.
+
+Lemma ffw_rlF_bo : forall m d, ffw_facts m d -> rblk (ff_rl_of bm d) (fw_bo d).
+Proof. intros m d _. apply ffw_rl_bo. Qed.
+
+Lemma ffw_rlF_bt : forall m d, ffw_facts m d -> rblk (ff_rl_of bm d) (fw_bt d).
+Proof. intros m d _. apply ffw_rl_bt. Qed.
+
+(* every region is Mario's state, his object, the buffer, or a global of
+   ffw_reg_ids *)
+Lemma ffw_rl_cases : forall m d x, ffw_facts m d -> rblk (ff_rl_of bm d) x ->
+  x = bm \/ x = fw_bo d \/ x = fw_bt d
+  \/ exists id, In id ffw_reg_ids /\ Genv.find_symbol G id = Some x.
+Proof.
+  intros m d x F (o & Hin).
+  pose proof (ff_S1 _ _ F). pose proof (ff_S2 _ _ F). pose proof (ff_S3 _ _ F). pose proof (ff_S5 _ _ F).
+  pose proof (ff_S6 _ _ F). pose proof (ff_S7 _ _ F). pose proof (ff_S8 _ _ F). pose proof (ff_SL _ _ F).
+  pose proof (ff_SP _ _ F). pose proof (ff_SR _ _ F). pose proof (ff_SRC _ _ F). pose proof (ff_SMS _ _ F).
+  pose proof (ff_SBS _ _ F). pose proof (ff_SFA _ _ F).
+  unfold ff_rl_of, ff_rl in Hin. cbn [map In] in Hin.
+  repeat (destruct Hin as [E | Hin];
+          [ injection E as E _; subst x;
+            first [ left; reflexivity | right; left; reflexivity | right; right; left; reflexivity
+                  | right; right; right; eexists; split; [| eassumption]; unfold ffw_reg_ids; cbn [In]; auto 20 ]
+          | ]).
+  destruct Hin.
+Qed.
+
+(* a global of ffw_reg_ids is a region *)
+Lemma ffw_rl_sym : forall m d id b, ffw_facts m d -> In id ffw_reg_ids ->
+  Genv.find_symbol G id = Some b -> rblk (ff_rl_of bm d) b.
+Proof.
+  intros m d id b F Hin Hs. exists Ptrofs.zero.
+  pose proof (ff_S1 _ _ F) as S1. pose proof (ff_S2 _ _ F) as S2. pose proof (ff_S3 _ _ F) as S3.
+  pose proof (ff_S5 _ _ F) as S5. pose proof (ff_S6 _ _ F) as S6. pose proof (ff_S7 _ _ F) as S7.
+  pose proof (ff_S8 _ _ F) as S8. pose proof (ff_SL _ _ F) as SL. pose proof (ff_SP _ _ F) as SP.
+  pose proof (ff_SR _ _ F) as SR. pose proof (ff_SRC _ _ F) as SRC. pose proof (ff_SMS _ _ F) as SMS.
+  pose proof (ff_SBS _ _ F) as SBS. pose proof (ff_SFA _ _ F) as SFA.
+  unfold ffw_reg_ids in Hin. cbn [In] in Hin.
+  repeat (destruct Hin as [<- | Hin];
+          [ first [ rewrite S1 in Hs | rewrite S2 in Hs | rewrite S3 in Hs | rewrite S5 in Hs
+                  | rewrite S6 in Hs | rewrite S7 in Hs | rewrite S8 in Hs | rewrite SL in Hs
+                  | rewrite SP in Hs | rewrite SR in Hs | rewrite SRC in Hs | rewrite SMS in Hs
+                  | rewrite SBS in Hs | rewrite SFA in Hs ];
+            injection Hs as <-; unfold ff_rl_of, ff_rl; cbn [map In]; auto 20
+          | ]).
+  destruct Hin.
+Qed.
+
+(* ... and is not Mario's object or the buffer (ffw's D4) *)
+Lemma ffw_reg_apart : forall m d id b, ffw_facts m d -> In id ffw_reg_ids ->
+  Genv.find_symbol G id = Some b -> b <> fw_bo d /\ b <> fw_bt d.
+Proof.
+  intros m d id b F Hin Hs. apply (ff_D4 _ _ F). left.
+  pose proof (ff_S1 _ _ F) as S1. pose proof (ff_S2 _ _ F) as S2. pose proof (ff_S3 _ _ F) as S3.
+  pose proof (ff_S5 _ _ F) as S5. pose proof (ff_S6 _ _ F) as S6. pose proof (ff_S7 _ _ F) as S7.
+  pose proof (ff_S8 _ _ F) as S8. pose proof (ff_SL _ _ F) as SL. pose proof (ff_SP _ _ F) as SP.
+  pose proof (ff_SR _ _ F) as SR. pose proof (ff_SRC _ _ F) as SRC. pose proof (ff_SMS _ _ F) as SMS.
+  pose proof (ff_SBS _ _ F) as SBS. pose proof (ff_SFA _ _ F) as SFA.
+  unfold ffw_reg_ids in Hin. cbn [In] in Hin.
+  repeat (destruct Hin as [<- | Hin];
+          [ first [ rewrite S1 in Hs | rewrite S2 in Hs | rewrite S3 in Hs | rewrite S5 in Hs
+                  | rewrite S6 in Hs | rewrite S7 in Hs | rewrite S8 in Hs | rewrite SL in Hs
+                  | rewrite SP in Hs | rewrite SR in Hs | rewrite SRC in Hs | rewrite SMS in Hs
+                  | rewrite SBS in Hs | rewrite SFA in Hs ];
+            injection Hs as <-; cbn [In]; auto 20
+          | ]).
+  destruct Hin.
+Qed.
+
+(* a block that is none of the regions *)
+Lemma ffw_rl_not : forall m d x, ffw_facts m d -> x <> bm -> x <> fw_bo d -> x <> fw_bt d ->
+  (forall id, In id ffw_reg_ids -> Genv.find_symbol G id <> Some x) -> ~ rblk (ff_rl_of bm d) x.
+Proof.
+  intros m d x F N1 N2 N3 N4 R.
+  destruct (ffw_rl_cases m d x F R) as [E | [E | [E | (id & Hin & Hs)]]];
+    [exact (N1 E) | exact (N2 E) | exact (N3 E) | exact (N4 id Hin Hs)].
+Qed.
+
+(* ... a global outside ffw_reg_ids *)
+Lemma ffw_rl_not_sym : forall m d id x, ffw_facts m d -> Genv.find_symbol G id = Some x ->
+  existsb (Pos.eqb id) ffw_reg_ids = false -> x <> bm -> x <> fw_bo d -> x <> fw_bt d ->
+  ~ rblk (ff_rl_of bm d) x.
+Proof.
+  intros m d id x F Hs Hn N1 N2 N3. apply (ffw_rl_not m d x F N1 N2 N3).
+  intros id' Hin Hs'.
+  assert (E : id' = id) by (eapply Genv.genv_vars_inj; [exact Hs' | exact Hs]). subst id'.
+  assert (T : existsb (Pos.eqb id) ffw_reg_ids = true)
+    by (apply existsb_exists; exists id; split; [exact Hin | apply Pos.eqb_refl]).
+  rewrite T in Hn. discriminate Hn.
+Qed.
+
+(* ---- rebuilding ffw at a later memory ---------------------------------- *)
+(* the cells ffw reads inside the regions (besides the surface cells):
+   Mario's state (ffw_bm_cells), the animation list's dmaTable cell, and
+   his object's collided-object cells and its throwMatrix cell *)
+Definition ffw_read (d : ffw_wit) (ch : memory_chunk) (b : block) (z : Z) : Prop :=
+  (b = bm /\ In (z, ch) ffw_bm_cells)
+  \/ (b = fw_ab d /\ z = 8 /\ ch = Mint32)
+  \/ (b = fw_bo d /\ ch = Mint32
+      /\ exists i, 0 <= i < 4 /\ z = Ptrofs.unsigned (fw_oo d) + FFW_COLL + 4 * i)
+  \/ (b = fw_bo d /\ z = Ptrofs.unsigned (fw_oo d) + FFW_THROW /\ ch = Mint32).
+
+(* ... and with the surface cells *)
+Definition ffw_read_s (d : ffw_wit) (ch : memory_chunk) (b : block) (z : Z) : Prop :=
+  ffw_read d ch b z \/ (b = bm /\ In (z, ch) ffw_surf_cells).
+
+Definition ffw_kept (d : ffw_wit) (m m' : mem) : Prop :=
+  forall ch b z, ffw_read d ch b z -> Mem.load ch m' b z = Mem.load ch m b z.
+
+Definition ffw_kept_s (d : ffw_wit) (m m' : mem) : Prop :=
+  forall ch b z, ffw_read_s d ch b z -> Mem.load ch m' b z = Mem.load ch m b z.
+
+(* the surface cells after: the floor a world surface (of the old memory),
+   the wall and the ceiling, when pointers, off the regions *)
+Definition ffw_surf_ok (d : ffw_wit) (m m' : mem) : Prop :=
+  (exists fl', Mem.load Mint32 m' bm FFW_FLOOR = Some fl' /\ wblk m (ff_rl_of bm d) fl' SZ_SURFACE)
+  /\ (forall off sb so, off = FFW_WALL \/ off = FFW_CEIL ->
+        Mem.load Mint32 m' bm off = Some (Vptr sb so) -> ~ rblk (ff_rl_of bm d) sb).
+
+Lemma wblk_mono : forall m m' rl v n, Ple (Mem.nextblock m) (Mem.nextblock m') ->
+  wblk m rl v n -> wblk m' rl v n.
+Proof.
+  intros m m' rl v n H (b & o & -> & P & R). exists b, o.
+  split; [reflexivity |]. split; [exact (Plt_Ple_trans _ _ _ P H) | exact R].
+Qed.
+
+Lemma ffw_surf_ok_kept : forall m m' d, ffw_facts m d ->
+  (forall z ch, In (z, ch) ffw_surf_cells -> Mem.load ch m' bm z = Mem.load ch m bm z) ->
+  ffw_surf_ok d m m'.
+Proof.
+  intros m m' d F K. split.
+  - exists (fw_fl d). split; [| exact (ff_Wf _ _ F)].
+    rewrite K by (unfold ffw_surf_cells; cbn [In]; auto). exact (ff_Lf _ _ F).
+  - intros off sb so Hoff Hl. rewrite K in Hl.
+    + exact ((ff_Wc0 _ _ F) off sb so Hoff Hl).
+    + unfold ffw_surf_cells. cbn [In]. destruct Hoff as [-> | ->]; auto.
+Qed.
+
+(* THE REBUILD: ffw holds at m' when m' keeps the read set, the world facts
+   (Wff, floor_data) hold there, memory only grew, and the closing
+   injection grew *)
+Theorem ffw_rebuild : forall m m' d gp',
+  ffw_facts m d ->
+  Ple (Genv.genv_next G) (Mem.nextblock m') ->
+  Ple (Mem.nextblock m) (Mem.nextblock m') ->
+  (forall b, fw_gp d b <> None -> gp' b <> None) -> closed_by gp' m' ->
+  Wff G m' gp' SZ_SURFACE (ff_rl_of bm d) -> floor_data G m' ->
+  ffw_kept d m m' -> ffw_surf_ok d m m' ->
+  ffw m'.
+Proof.
+  intros m m' d gp' F Hgn Hnb Hinc HC' W' FD' K ((fl' & Lf' & Wf') & WC').
+  assert (KM : forall z ch, In (z, ch) ffw_bm_cells -> Mem.load ch m' bm z = Mem.load ch m bm z)
+    by (intros z ch H; apply K; left; split; [reflexivity | exact H]).
+  split; [exact Hgn |]. split; [| exact FD'].
+  exists (mk_ffw_wit gp' (fw_bfi d) (fw_bmiss d) (fw_bcalls d) (fw_bsin d) (fw_ab d) (fw_biom d)
+            (fw_bmq d) (fw_brm d) (fw_blk d) (fw_bpc d) (fw_bsr d) (fw_bsrc d) (fw_bsms d) (fw_bbs d)
+            (fw_bfa d) (fw_bo d) (fw_oo d) (fw_bt d) (fw_ot d) fl' (fw_ar d) (fw_inp d) (fw_ctl d)).
+  (* every field: unchanged (memory-free), a kept cell, or the new value;
+     the closer below does not depend on the field order *)
+  pose proof F as F0. destruct F0.
+  eapply mk_ffw_facts; ffw_simpl;
+    first [ assumption | exact HC' | exact W' | exact Lf' | exact WC'
+          | exact (wblk_mono _ _ _ _ _ Hnb Wf')
+          | apply (wblk_mono _ _ _ _ _ Hnb); assumption
+          | apply Hinc; assumption
+          | let id := fresh "id" in let b := fresh "b" in let Hs := fresh "Hs" in
+            intros id b Hs; exact (Hinc b (ff_HS _ _ F id b Hs))
+          | rewrite KM by (unfold ffw_bm_cells; cbn [In]; auto 10); assumption
+          | rewrite K by (right; left; auto); assumption
+          | rewrite K by (right; right; right; auto); assumption
+          | let i := fresh "i" in let cb := fresh "cb" in let co := fresh "co" in
+            let Hi := fresh "Hi" in let Hl := fresh "Hl" in
+            intros i cb co Hi Hl; rewrite K in Hl;
+            [ match goal with H : forall i' cb' co', 0 <= i' < 4 -> _ -> cb' = _ |- _ =>
+                exact (H i cb co Hi Hl) end
+            | right; right; left; split; [reflexivity |]; split; [reflexivity |]; exists i; auto ] ].
+Qed.
+
+(* ---- transfer: a memory that differs from m only inside Mario's object ---- *)
 
 (* a store into a mapped block keeps closedness when the value is closed, or
    is stored as a 16-bit integer (a pointer's bytes then are Undef) *)
@@ -235,7 +481,7 @@ Hypothesis Hnb : Mem.nextblock m' = Mem.nextblock m.
 Hypothesis Hperm : forall b ofs k p, Mem.perm m b ofs k p -> Mem.perm m' b ofs k p.
 Hypothesis Hld : forall ch b z, b <> bo0 -> Mem.load ch m' b z = Mem.load ch m b z.
 (* the collided-object cells of Mario's object *)
-(* the throwMatrix cell of Mario's object *)
+(* ... and its throwMatrix cell *)
 Hypothesis Hldt : Mem.load Mint32 m' bo0 (Ptrofs.unsigned oo0 + FFW_THROW)
   = Mem.load Mint32 m bo0 (Ptrofs.unsigned oo0 + FFW_THROW).
 Hypothesis Hldc : forall i, 0 <= i < 4 ->
@@ -325,35 +571,27 @@ Theorem ffw_keep :
   (forall gp, closed_by gp m -> gp bo0 = Some (bo0, 0) -> closed_by gp m') ->
   ffw m -> ffw m'.
 Proof.
-  intros Hmo Hne Hab HC' (Hgn & EX & FD).
-  destruct EX as (gp & bfi & bmiss & bcalls & bsin & ab & biom & bmq & brm & blk & bpc & bsr & bsrc & bsms & bbs & bfa & bo & oo & bt & ot & fl & ar & inp & ctl &
-                  HC & HS & HM & S1 & S2 & S3 & S4 & S5 & S6 & S7 & S8 & SL & SP & SR & SRC & SMS & SBS & SFA & Lo & Soo & La & Lb & Sot & D1 & D2 & D3 & D4 &
-                  W & Lf & Wf & Wc0 & Lar & War & Li & Ai & Lc & Wc & Co & LPC & LBS & LTM).
-  rewrite Hmo in Lo. injection Lo as <- <-.
-  assert (Ho : rblk (ff_rl bm bo0 oo0 bfi bmiss bcalls ab bt biom bmq brm blk bpc bsr bsrc bsms bbs bfa) bo0) by apply rl_obj.
-  pose proof (Hab ab S5) as Hab0.
-  assert (Gbo : gp bo0 = Some (bo0, 0)).
-  { pose proof (closed_load _ _ _ _ _ _ HC HM Hmo) as P. cbn in P.
-    destruct (gp bo0) as [[b' d]|] eqn:G0; [| congruence].
-    destruct (closed_flat _ _ _ _ _ HC G0) as (-> & ->). reflexivity. }
-  split; [rewrite Hnb; exact Hgn |].
-  split.
-  - exists gp, bfi, bmiss, bcalls, bsin, ab, biom, bmq, brm, blk, bpc, bsr, bsrc, bsms, bbs, bfa, bo0, oo0, bt, ot, fl, ar, inp, ctl.
-    split; [exact (HC' gp HC Gbo) |]. split; [exact HS |]. split; [exact HM |].
-    rewrite !Hld by congruence.
-    repeat (split; [assumption |]).
-    split; [exact (Wff_keep _ _ Ho W) |].
-    split; [exact Lf |]. split; [exact (wblk_keep _ _ _ Wf) |].
-    split; [intros off sb so Hoff Hl; rewrite Hld in Hl by congruence; exact (Wc0 off sb so Hoff Hl) |].
-    split; [exact Lar |]. split; [exact (wblk_keep _ _ _ War) |].
-    split; [exact Li |]. split; [exact Ai |].
-    split; [exact Lc |]. split; [exact (wblk_keep _ _ _ Wc) |].
-    split; [intros i cb co Hi Hl; rewrite Hldc in Hl by exact Hi; exact (Co i cb co Hi Hl) |].
-    split; [first [exact LPC | rewrite Hld by congruence; exact LPC] |].
-    split; [first [exact LBS | rewrite Hld by congruence; exact LBS] |].
-    rewrite Hldt. exact LTM.
-
-  - exact (floor_data_keep _ _ Ho W FD).
+  intros Hmo Hne Hab HC' (Hgn & (d & F) & FD).
+  pose proof (ff_Lo _ _ F) as Lo. rewrite Hmo in Lo. injection Lo as Ebo Eoo.
+  assert (Ho : rblk (ff_rl_of bm d) bo0) by (rewrite Ebo; apply ffw_rl_bo).
+  assert (Gbo : fw_gp d bo0 = Some (bo0, 0)).
+  { pose proof (closed_load _ _ _ _ _ _ (ff_HC _ _ F) (ff_HM _ _ F) Hmo) as P. cbn in P.
+    destruct (fw_gp d bo0) as [[b' dl]|] eqn:G0; [| congruence].
+    destruct (closed_flat _ _ _ _ _ (ff_HC _ _ F) G0) as (-> & ->). reflexivity. }
+  pose proof (Hab _ (ff_S5 _ _ F)) as Hab0.
+  apply (ffw_rebuild m m' d (fw_gp d) F).
+  - rewrite Hnb. exact Hgn.
+  - rewrite Hnb. apply Ple_refl.
+  - exact (fun b H => H).
+  - exact (HC' _ (ff_HC _ _ F) Gbo).
+  - exact (Wff_keep _ _ Ho (ff_W _ _ F)).
+  - exact (floor_data_keep _ _ Ho (ff_W _ _ F) FD).
+  - intros ch b z [(-> & _) | [(-> & -> & ->) | [(-> & -> & i & Hi & ->) | (-> & -> & ->)]]].
+    + apply Hld. congruence.
+    + apply Hld. exact Hab0.
+    + rewrite <- Ebo, <- Eoo. exact (Hldc i Hi).
+    + rewrite <- Ebo, <- Eoo. exact Hldt.
+  - apply (ffw_surf_ok_kept m m' d F). intros z ch _. apply Hld. congruence.
 Qed.
 End KEEP.
 
@@ -461,7 +699,98 @@ Qed.
 Lemma wblk_keep2 : forall rl' v n, wblk m rl' v n -> wblk m' rl' v n.
 Proof using Hnb Hperm Hld. intros rl' v n (b & o & -> & P & H). exists b, o. split; [reflexivity |]. split; [exact (plt_fwd _ P) | exact H]. Qed.
 End KEEP2.
+
+(* THE REBUILD over a frame: m' agrees with m off the regions (what a walk
+   over ff_rl leaves), keeps the read set and only grew *)
+Theorem ffw_rebuild_off : forall m m' d gp',
+  Ple (Genv.genv_next G) (Mem.nextblock m) -> ffw_facts m d -> floor_data G m ->
+  Ple (Mem.nextblock m) (Mem.nextblock m') ->
+  (forall b ofs k p, Plt b (Mem.nextblock m) -> Mem.perm m b ofs k p -> Mem.perm m' b ofs k p) ->
+  (forall ch b z, Plt b (Mem.nextblock m) -> ~ rblk (ff_rl_of bm d) b ->
+     Mem.load ch m' b z = Mem.load ch m b z) ->
+  (forall b, fw_gp d b <> None -> gp' b <> None) -> closed_by gp' m' ->
+  ffw_kept d m m' -> ffw_surf_ok d m m' ->
+  ffw m'.
+Proof.
+  intros m m' d gp' Hgn F FD Hnb Hperm Hld Hinc HC' K S.
+  apply (ffw_rebuild m m' d gp' F (Ple_trans _ _ _ Hgn Hnb) Hnb Hinc HC'); [| | exact K | exact S].
+  - exact (Wff_keep2 m m' _ Hnb Hperm Hld _ _ Hinc (ff_W _ _ F)).
+  - exact (floor_data_keep2 m m' _ Hnb Hperm Hld _ (ff_W _ _ F) FD).
+Qed.
+
+(* ... and the surface cells kept too *)
+Theorem ffw_keep_off : forall m m' d gp',
+  Ple (Genv.genv_next G) (Mem.nextblock m) -> ffw_facts m d -> floor_data G m ->
+  Ple (Mem.nextblock m) (Mem.nextblock m') ->
+  (forall b ofs k p, Plt b (Mem.nextblock m) -> Mem.perm m b ofs k p -> Mem.perm m' b ofs k p) ->
+  (forall ch b z, Plt b (Mem.nextblock m) -> ~ rblk (ff_rl_of bm d) b ->
+     Mem.load ch m' b z = Mem.load ch m b z) ->
+  (forall b, fw_gp d b <> None -> gp' b <> None) -> closed_by gp' m' ->
+  ffw_kept_s d m m' ->
+  ffw m'.
+Proof.
+  intros m m' d gp' Hgn F FD Hnb Hperm Hld Hinc HC' K.
+  apply (ffw_rebuild_off m m' d gp' Hgn F FD Hnb Hperm Hld Hinc HC').
+  - intros ch b z H. apply K. left. exact H.
+  - apply (ffw_surf_ok_kept m m' d F). intros z ch H. apply K. right. split; [reflexivity | exact H].
+Qed.
 End FFW.
+
+(* ---- consumer tactics -------------------------------------------------- *)
+(* ffw_unpack EX, for EX : exists d, ffw_facts G bm m d: names every witness
+   and fact (fresh names, so a name taken in the context gets a suffix) and
+   keeps the record hypothesis FWF : ffw_facts G bm m {| ... |}, which the
+   rebuild lemmas take.  Adding a field touches only this tactic. *)
+Ltac ffw_unpack EX :=
+  let d := fresh "d" in let FWF := fresh "FWF" in
+  destruct EX as [d FWF];
+  let gp := fresh "gp" in let bfi := fresh "bfi" in let bmiss := fresh "bmiss" in let bcalls := fresh "bcalls" in let bsin := fresh "bsin" in let ab := fresh "ab" in
+  let biom := fresh "biom" in let bmq := fresh "bmq" in let brm := fresh "brm" in let blk := fresh "blk" in let bpc := fresh "bpc" in let bsr := fresh "bsr" in
+  let bsrc := fresh "bsrc" in let bsms := fresh "bsms" in let bbs := fresh "bbs" in let bfa := fresh "bfa" in let bo := fresh "bo" in let oo := fresh "oo" in
+  let bt := fresh "bt" in let ot := fresh "ot" in let fl := fresh "fl" in let ar := fresh "ar" in let inp := fresh "inp" in let ctl := fresh "ctl" in
+  destruct d as [gp bfi bmiss bcalls bsin ab biom bmq brm blk bpc bsr bsrc bsms bbs bfa bo oo bt ot fl ar inp ctl];
+  let HC := fresh "HC" in let HS := fresh "HS" in let HM := fresh "HM" in let S1 := fresh "S1" in let S2 := fresh "S2" in let S3 := fresh "S3" in
+  let S4 := fresh "S4" in let S5 := fresh "S5" in let S6 := fresh "S6" in let S7 := fresh "S7" in let S8 := fresh "S8" in let SL := fresh "SL" in
+  let SP := fresh "SP" in let SR := fresh "SR" in let SRC := fresh "SRC" in let SMS := fresh "SMS" in let SBS := fresh "SBS" in let SFA := fresh "SFA" in
+  let Lo := fresh "Lo" in let Soo := fresh "Soo" in let La := fresh "La" in let Lb := fresh "Lb" in let Sot := fresh "Sot" in let D1 := fresh "D1" in
+  let D2 := fresh "D2" in let D3 := fresh "D3" in let D4 := fresh "D4" in let W := fresh "W" in let Lf := fresh "Lf" in let Wf := fresh "Wf" in
+  let Wc0 := fresh "Wc0" in let Lar := fresh "Lar" in let War := fresh "War" in let Li := fresh "Li" in let Ai := fresh "Ai" in let Lc := fresh "Lc" in
+  let Wc := fresh "Wc" in let Co := fresh "Co" in let LPC := fresh "LPC" in let LBS := fresh "LBS" in let LTM := fresh "LTM" in
+  pose proof FWF as [HC HS HM S1 S2 S3 S4 S5 S6 S7 S8 SL SP SR
+                     SRC SMS SBS SFA Lo Soo La Lb Sot D1 D2 D3 D4 W
+                     Lf Wf Wc0 Lar War Li Ai Lc Wc Co LPC LBS LTM];
+  ffw_simpl_in HC; ffw_simpl_in HS; ffw_simpl_in HM; ffw_simpl_in S1; ffw_simpl_in S2; ffw_simpl_in S3; ffw_simpl_in S4; ffw_simpl_in S5;
+  ffw_simpl_in S6; ffw_simpl_in S7; ffw_simpl_in S8; ffw_simpl_in SL; ffw_simpl_in SP; ffw_simpl_in SR; ffw_simpl_in SRC; ffw_simpl_in SMS;
+  ffw_simpl_in SBS; ffw_simpl_in SFA; ffw_simpl_in Lo; ffw_simpl_in Soo; ffw_simpl_in La; ffw_simpl_in Lb; ffw_simpl_in Sot; ffw_simpl_in D1;
+  ffw_simpl_in D2; ffw_simpl_in D3; ffw_simpl_in D4; ffw_simpl_in W; ffw_simpl_in Lf; ffw_simpl_in Wf; ffw_simpl_in Wc0; ffw_simpl_in Lar;
+  ffw_simpl_in War; ffw_simpl_in Li; ffw_simpl_in Ai; ffw_simpl_in Lc; ffw_simpl_in Wc; ffw_simpl_in Co; ffw_simpl_in LPC; ffw_simpl_in LBS;
+  ffw_simpl_in LTM.
+
+(* ... from ffw itself: Hgn, the facts as above, FD *)
+Ltac ffw_unpack_all Hf :=
+  let Hgn := fresh "Hgn" in let EX := fresh "EX" in let FD := fresh "FD" in
+  destruct Hf as (Hgn & EX & FD); ffw_unpack EX.
+
+(* split a hypothesis H : ffw_read d ch b z (or ffw_read_s) into one goal
+   per cell; each goal is "Mem.load ch m' b z = Mem.load ch m b z" at a
+   concrete cell (the collided-object goal keeps its index i, 0 <= i < 4;
+   the last goal is the throwMatrix cell) *)
+Ltac ffw_in_split Hin :=
+  cbn [In] in Hin;
+  repeat (let E := fresh "E" in destruct Hin as [E | Hin]; [injection E as <- <- | ]);
+  try contradiction.
+
+Ltac ffw_read_split H :=
+  let Hin := fresh "Hin" in let i := fresh "i" in let Hi := fresh "Hi" in
+  destruct H as [(-> & Hin) | [(-> & -> & ->) | [(-> & -> & i & Hi & ->) | (-> & -> & ->)]]];
+  [ unfold ffw_bm_cells in Hin; ffw_in_split Hin | | | ];
+  ffw_simpl.
+
+Ltac ffw_read_s_split H :=
+  let H1 := fresh "H1" in let Hin := fresh "Hin" in
+  destruct H as [H1 | (-> & Hin)];
+  [ ffw_read_split H1 | unfold ffw_surf_cells in Hin; ffw_in_split Hin ].
+
 
 (* ---- the dispatch's floor refresh (FrameStage) ------------------------- *)
 (* Mario's floorHeight is a floor refresh of his height: what
@@ -718,4 +1047,32 @@ Proof.
     split; [intros b3 S3; rewrite (U' _ b3 S3 ltac:(unfold lvl_ids; cbn [In]; auto 20)); exact (P3 b3 S3) |].
     split; [intros bd Sd; rewrite (U' _ bd Sd ltac:(unfold lvl_ids; cbn [In]; auto 20)); exact (DM bd Sd) |].
     intros bx Sx; rewrite (U' _ bx Sx ltac:(unfold lvl_ids; cbn [In]; auto 20)); exact (MX bx Sx).
+Qed.
+
+(* ---- the level cells and the frame world's regions ---- *)
+(* the lvl_ids globals are none of ffw's regions (given they are not
+   Mario's state block: AnimKeep.lvl_ne_bm) *)
+Lemma ffw_lvl_not_rl : forall (G : genv) bm m d b, ffw_facts G bm m d ->
+  (forall b', lvl_sym G b' -> b' <> bm) -> lvl_sym G b -> ~ rblk (ff_rl_of bm d) b.
+Proof.
+  intros G bm m d b F Hne Hs.
+  pose proof (ff_D4 _ _ _ _ F b (or_intror (or_intror Hs))) as (No & Nt).
+  pose proof (lvl_sym_ids G b Hs) as (id & Hin & Hb).
+  apply (ffw_rl_not_sym G bm m d id b F Hb); [| exact (Hne b Hs) | exact No | exact Nt].
+  unfold lvl_ids in Hin. cbn [In] in Hin.
+  repeat (destruct Hin as [<- | Hin]; [reflexivity |]). destruct Hin.
+Qed.
+
+(* a frame that keeps every block off ffw's regions keeps lvl_w *)
+Theorem lvl_w_keep_rl : forall (G : genv) bm m m' d, ffw_facts G bm m d ->
+  (forall b, lvl_sym G b -> b <> bm) ->
+  Ple (Genv.genv_next G) (Mem.nextblock m) ->
+  (forall ch b z, Plt b (Mem.nextblock m) -> ~ rblk (ff_rl_of bm d) b ->
+     Mem.load ch m' b z = Mem.load ch m b z) ->
+  lvl_w G m -> lvl_w G m'.
+Proof.
+  intros G bm m m' d F Hne Hgn OFF. apply lvl_w_unch. intros b ch z Hs. apply OFF.
+  - pose proof (lvl_sym_ids _ _ Hs) as (id & _ & Hs').
+    exact (Plt_Ple_trans _ _ _ (Genv.genv_symb_range _ _ Hs') Hgn).
+  - exact (ffw_lvl_not_rl G bm m d b F Hne Hs).
 Qed.

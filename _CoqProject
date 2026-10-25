@@ -33,6 +33,8 @@ generated/sound_init.v
 generated/print.v
 generated/behavior_script.v
 generated/platform_displacement.v
+generated/spawn_sound.v
+generated/debug.v
 generated/wmotr_script.v
 generated/macro_special_objects.v
 generated/behavior_data.v
@@ -57,6 +59,7 @@ generated/libultra_osCreateMesgQueue.v
 generated/libultra_osContInit.v
 generated/libultra_osInitialize.v
 generated/libultra_osContStartReadData.v
+generated/hud.v
 
 # --- shared infrastructure (used by GOAL 1; reusable) ---
 proofs/Generic/Frame.v
@@ -70,6 +73,7 @@ proofs/Generic/RootedLvalue.v
 proofs/Generic/ClightDeterm.v
 proofs/Generic/ClosedMem.v
 proofs/Generic/ClightClosed.v
+proofs/Generic/UnusedParam.v
 
 # --- shared: Mario action vocabulary + value engine ---
 proofs/MarioModel/Flying.v
@@ -222,6 +226,13 @@ proofs/MarioModel/SaveDoSaveBody.v
 proofs/MarioModel/SpawnBodies.v
 proofs/MarioModel/PrintBodies.v
 proofs/MarioModel/CameraModeBody.v
+# update_camera's whole call tree (507 bodies, recursive two-mode class
+# walker + the CameraEvent / CameraTransition type certificates): SPINE via
+# HeightLinked12 (UpdateCameraBody.update_camera_pres)
+proofs/MarioModel/UcKit.v
+proofs/MarioModel/NpcDialogBody.v
+proofs/MarioModel/UcTable.v
+proofs/MarioModel/UpdateCameraBody.v
 
 # --- GOAL 1 / the perform_air_step surface (SPINE: pas_cp DISCHARGES the
 #     capstone's Hcp_pas_real perform_air_step blocker via a loop-tolerant
