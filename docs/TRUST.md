@@ -1015,6 +1015,26 @@ without pressing A".*
   ORDER (`sObjectListUpdateOrder` holds its initializer, checked at the boot witness by
   `ow_chk`), so the walk does not quantify over order tables the game never has.
 
+- **B3a, the census behind "leaves the node in its ring" (2026-10-26, `ObjCensus.v`).**
+  FOUND: `spawn_object.c`'s comment "I don't know of any unimportant objects that spawn
+  other objects" is FALSE over the WMotR closure. Five list-12 (unimportant) behaviors reach
+  `allocate_object` (`unimp_allocators_value`): bhvObjectBubble, bhvWaterDroplet,
+  bhvSmallWaterWave, bhvSmallParticle, bhvSparkleSpawn. With the pool full,
+  `allocate_object` frees the first node of list 12, which may be the object being updated,
+  and the slot goes to the spawned object's list. SmallParticle and SparkleSpawn spawn only
+  list-12 objects, so the node returns to list 12. The WATER behaviors spawn into list 8
+  (`offlist_value`): Bubble -> BubbleSplash, WaterDroplet -> WaterDropletSplash, and
+  SmallWaterWave -> SmallWaterWave398 (over-approximated: a script CALL target). A node
+  moved to list 8 is not a clean hang: the walk runs on to list 8's head, calls
+  `cur_obj_update` on it as an Object and reads past `gObjectListArray` (Clight-stuck / UB).
+  So the ring part of the step rows cannot be weakened to "or it moved". It must be shown
+  that this case does not happen; WMotR has no water (`FfWorld.env_w`). Also certified
+  (syntactically, within the closure): only `allocate_object` calls `unload_object`, only
+  `create_object` calls `allocate_object`, and only `try_allocate_object` /
+  `deallocate_object` assign an ObjectNode's `next` / `prev` by field name. No trust moves:
+  the census is a vm-checked certificate, and the rows it informs stay rows until B3 steps
+  them.
+
 - **Level phase (2026-10-24): real code.** `seg_level_pre_spec` / `seg_level_post_spec` are
   `exec_stmt` of the generated `play_mode_normal` body's slices before / after its
   `area_update_objects` call (`LevelFlank.level_pre_call` / `level_post_call`; frame order now

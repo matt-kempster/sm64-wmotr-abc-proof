@@ -503,6 +503,11 @@ all in `Unwired/`, and the theorem moved nowhere. See
     the per-object rows Hobj_step_terrain / Hobj_step_nonterrain (given the hole; the real
     loop body up to cur_obj_update() keeps Pobj and leaves the node in its ring) and Hobj_ctr.
     Next, B3: discharge the per-object rows by stepping cur_obj_update.
+    B3a (ObjCensus.v, 2026-10-26): FOUND FALSE the C comment "no unimportant objects spawn":
+    5 list-12 allocators in WMotR's closure; the 3 water ones (Bubble, WaterDroplet,
+    SmallWaterWave) can move the walked node into list 8, which is UB (the walk reads list
+    8's head as an Object), not a hang. So the ring rows must exclude it via no-water
+    (FfWorld.env_w), not weaken to "or moved".
     The object world `ObjWorld.obj_w` is in `fb_ok` (no phantom ∀ over object lists) and is
     PROVED at the boot witness, which now runs the real init_graph_node_start + clear_objects
     and Mario's spawn_objects_from_info; one real area_update_objects runs from it
