@@ -418,7 +418,10 @@ all in `Unwired/`, and the theorem moved nowhere. See
     `mario_coin2_no_contact`. update_mario_inputs: `FfWorld.env_w` (in `lvl_w`;
     proved at boot, `StartSat.L_env` / `L_dbg`) pins gEnvironmentRegions = NULL and
     gShowDebugText = FALSE; gCameraMovementFlags needs no pin; the row still needs the
-    collision finders, the double-miss NULL floor (carry "find_floor hits under Mario") and
+    collision finders, the double-miss NULL floor (carry "find_floor hits under Mario"; the
+    find_floor half is PROVED, `FfComplete.ff_complete` from `Wff_dp` (death plane on every
+    static floor cell, boot `StartTerrain.dp_chk`); open: the in-bounds pos fact in `ffw` and
+    `c_ff` dropping its NULL outcome) and
     INPUT_SQUISHED (a labeled sub-row tied to obj_w). The prologue call is in `Hair_pro`. The
     `quicksandDepth = 0` store is proved (the `qsd_*` lemmas). What stays assumed is the
     12 handler calls, `HeightFrame.Hauto_case : aut_case_rows` (27 → 28 hypotheses).

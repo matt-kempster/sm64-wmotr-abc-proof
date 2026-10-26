@@ -41,6 +41,7 @@ From SM64.Generated Require mario surface_collision memory camera audio_external
   game_init libultra_osContInit mario_actions_moving object_list_processor area.
 From SM64.Proofs Require Import HeightInvariant HeightMoveCatalog WMotRLevel Generic.ClosedMem.
 From SM64.Proofs.WMotRRequiresA Require Import FloorList FloorHeight FloorExec AirMatch AirStart RetOk.
+From SM64.Proofs.WMotRRequiresA Require FfComplete.
 Import ListNotations.
 
 (* the level-phase globals the frame world pins (lvl_w below): blocks of
@@ -643,7 +644,15 @@ Proof.
       * apply (wf_fwd _ hd); [ intros b Hb; apply HA; intros H; apply Hb; left; exact H | ].
         exact (wf_list_or m _ _ hd (W3 hd Hh0) (proj1 (W6 hd Hh0))).
     + intros b o Ho'. destruct (OL hd _ Hh Ho') as (_ & Ho0). exact (proj2 (W6 hd Hh0) b o Ho0).
-  - exact W7.
+  - destruct W7 as (Wsz & Wdp). split; [exact Wsz |].
+    (* the death plane: every list cell is off Mario's object *)
+    apply (FfComplete.dp_lists_keep G m m' (fun b => b = bo0)); [| | | | exact Wdp].
+    + intros ch b z _ Hb. exact (Hld ch b z Hb).
+    + intros bp Hs ->. exact (proj1 (proj2 (W2 _ _ (or_introl eq_refl) Hs)) Ho).
+    + intros hd Hh. apply (wf_list_mono m (fun b => is_static G b \/ rblk rl b)); [| exact (W3 hd Hh)].
+      intros b ->. right. exact Ho.
+    + intros hd b o Hh Hol ->.
+      destruct (W4 hd _ Hh Hol) as (b' & o' & E & _ & _ & Hr & _). injection E as <- _. exact (Hr Ho).
 Qed.
 
 Lemma floor_data_keep : forall gp rl, rblk rl bo0 -> Wff G m gp SZ_SURFACE rl ->
@@ -779,7 +788,15 @@ Proof using Hnb Hperm Hld.
       * apply (wf_fwd2 _ hd); [ intros b Hb Hr; apply Hb; left; right; exact Hr | ].
         exact (wf_list_or m _ _ hd (W3 hd Hh0) (proj1 (W6 hd Hh0))).
     + intros b o Ho'. destruct (OL hd _ Hh Ho') as (_ & Ho0). exact (proj2 (W6 hd Hh0) b o Ho0).
-  - exact W7.
+  - destruct W7 as (Wsz & Wdp). split; [exact Wsz |].
+    (* the death plane: the step keeps every block off rl *)
+    apply (FfComplete.dp_lists_keep G m m' (rblk rl)); [| | | | exact Wdp].
+    + intros ch b z Hv Hb. exact (Hld ch b z Hv Hb).
+    + intros bp Hs. exact (proj1 (proj2 (W2 _ _ (or_introl eq_refl) Hs))).
+    + intros hd Hh. apply (wf_list_mono m (fun b => is_static G b \/ rblk rl b)); [| exact (W3 hd Hh)].
+      intros b Hr. right. exact Hr.
+    + intros hd b o Hh Hol.
+      destruct (W4 hd _ Hh Hol) as (b' & o' & E & _ & _ & Hr & _). injection E as <- _. exact Hr.
 Qed.
 
 Lemma floor_data_keep2 : forall gp, Wff G m gp SZ_SURFACE rl ->

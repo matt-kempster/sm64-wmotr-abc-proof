@@ -705,6 +705,20 @@ without pressing A".*
     locals `x = (s16) xPos`, `z = (s16) zPos`, and `ff_height` now proves it (`HH_set_xz`,
     `xz_arg_ok`). At |x|, |z| ≤ 32768 with WMotR's vertices the edge tests cannot overflow, so a
     hit is a point of the closed triangle. No consumer changed: they all read `floor_data`.
+- **find_floor never misses in bounds (2026-10-26, PROVED, no trust added):**
+  `FfComplete.ff_complete` walks the real `find_floor` body (both bounds tests, the dynamic and
+  static list calls, the SURFACE_INTANGIBLE re-search branch, the miss counter, the
+  dynamicHeight > height choice, the `*pfloor` stores) and proves `*pfloor` comes back non-NULL
+  whenever the s16 casts of xPos / zPos lie in (−8192, 8192), (s16) yPos ≥ −8269, and every static
+  FLOOR cell list holds both triangles of WMotR's SURFACE_DEATH_PLANE (y = −8191 spanning
+  ±8192, `FfComplete.dp_lists`; the two triangles pass all three edge tests at every in-bounds
+  s16 (x, z) by exhaustive check, `dp_pass_A` / `dp_pass_B`, and their plane height −8191 is
+  ≤ y + 78, the find_floor_from_list cut). `dp_lists` is now a conjunct of the floor world fact
+  `FloorExec.Wff` (accessor `Wff_dp`), kept by every step that keeps `Wff`
+  (`FfWorld.Wff_keep` / `Wff_keep2` via `FfComplete.dp_lists_keep`) and PROVED at boot from the
+  real loaded terrain (`StartTerrain.dp_chk`, checked on m11 in `wchk`, `dp_chk_sound`;
+  `StartSat.wff11`). Not yet consumed: `c_ff` still offers the NULL outcome; dropping it needs the
+  position bounds carried in `ffw` (next chunk).
 - **Checked on the real loaded terrain (2026-10-22, `TerrainRun` + `TerrainBound`):** the
   repaired `floor_data` holds on the memory that the generated `load_area_terrain` builds from
   WMotR's collision data (1352 surfaces, conditional only on `world_ok`, see 0.4). Each floor-list
