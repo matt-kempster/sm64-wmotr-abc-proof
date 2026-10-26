@@ -57,6 +57,20 @@ Definition phiw (lp : Clight.program) (bm : block) (m : mem) : Prop :=
   height_invariant bm R_noA m /\ wmotr_world bm m /\ anim_apart lp bm m /\ mobj_apart bm m
   /\ ffw (lp_ge lp) bm m /\ used_ok bm m /\ AnimWorld.anim_w (lp_ge lp) bm m /\ lvl_w (lp_ge lp) m.
 
+(* surf_apart is a THEOREM of the frame world (2026-10-26): since design B
+   (FfWorld.ff_Spl) Mario's wall / ceiling / floor, when pointers, are
+   surface-pool blocks past every global, so no global's block, whatever
+   the list Xs *)
+Lemma surf_apart_ffw : forall lp bm Xs m, ffw (lp_ge lp) bm m -> surf_apart lp bm Xs m.
+Proof.
+  intros lp bm Xs m (_ & (d & FWF) & _) id b off sb so _ Hs Hoff Hl E. subst sb.
+  pose proof (ff_Spl _ _ _ _ FWF off b so Hoff Hl) as Hp.
+  pose proof (Genv.genv_symb_range _ _ Hs) as Hr. unfold Plt, Ple in *. lia.
+Qed.
+
+Lemma phiw_surf_apart : forall lp bm Xs m, phiw lp bm m -> surf_apart lp bm Xs m.
+Proof. intros lp bm Xs m (_ & _ & _ & _ & Hf & _). exact (surf_apart_ffw lp bm Xs m Hf). Qed.
+
 Lemma nin_rg : forall id, existsb (Pos.eqb id) flank_gvars = false -> ~ In id flank_gvars.
 Proof.
   intros id H Hin. assert (E : existsb (Pos.eqb id) flank_gvars = true)

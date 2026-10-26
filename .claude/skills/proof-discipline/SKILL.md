@@ -472,7 +472,8 @@ all in `Unwired/`, and the theorem moved nowhere. See
     `post_keeps`); update_camera's mem_ok via `update_camera_ok_linked12`. ONE labeled row:
     `Hcam_phi` (`LevelKeep.cam_phi_row`, the camera statement keeps PhiW / Mario's surface
     cells; a clobber spec cannot, the Camera shares the surface pool's block; writes to cover =
-    `UpdateCameraBody.uc_census`). Stated by the steps: `surf_apart` (gCurrentArea's
+    `UpdateCameraBody.uc_census`). `surf_apart` is PROVED from Φ since 2026-10-26
+    (`RenderKeep.surf_apart_ffw`, design B's `ff_Spl`; no step states it). (gCurrentArea's
     target is CARRIED since 2026-10-25, `FfWorld.area_w`, proved at boot). `warp_w` at the
     POST end is PROVED since 2026-10-26 (`LevelWarp.tail_warp_w`: initiate_delayed_warp and
     the play-mode switch walked; `warp_w` gained a fifth clause, the pending op is no
@@ -493,8 +494,8 @@ all in `Unwired/`, and the theorem moved nowhere. See
     Mario's render call and
     `apply_mario_platform_displacement` (platform_displacement.c, TU 45) are REAL calls whose
     GOAL-1 and Φ carries are proved (`RenderKeep.render_keeps_phiw`, `PlatformKeep`, 2026-10-23);
-    they state only narrow premises: `surf_apart` (Mario's surfaces not in a written global's block)
-    and `plat_still` (the ridden platform is NULL or has zero angle velocity; FOUND: a rotating
+    their narrow premise `surf_apart` (Mario's surfaces not in a written global's block) is PROVED
+    from Φ since 2026-10-26 (`RenderKeep.surf_apart_ffw`); and `plat_still` (the ridden platform is NULL or has zero angle velocity; FOUND: a rotating
     platform moves pos[1], so the old "y unchanged" platform spec was false of the real body).
     Since 2026-10-24 `plat_still` is no longer a step premise: it is TRUE in WMotR (only the !
     boxes and cannon lids own surfaces; `AngleVelCensus` finds no angle-velocity store on them),
