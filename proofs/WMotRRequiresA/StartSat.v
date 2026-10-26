@@ -943,21 +943,22 @@ Section Witness.
     Proof.
       pose proof (SafeB_boot_syms_ok lp) as Sy. dfacts Sy.
       pose proof (boot_mwf lp H12 m0 Hinit bm bc Hbm Hbc) as M0.
-      assert (Sw : SafeB_boot lp bw).
-      { right. exists level_update._sWarpDest. split; [ left; vm_compute; reflexivity | exact Hbw ]. }
+      (* sWarpDest is a stored global (CensusV2, 2026-10-24): not SafeB *)
+      pose proof (proj2 (mwf_real_glob lp bm bc Ptrofs.zero (SafeB_boot lp) D1 D7
+                    level_update._sWarpDest ltac:(vm_compute; reflexivity) bw Hbw)) as Gw.
       assert (SL : SafeB_boot lp bL).
       { right. exists level_update._gCurrLevelNum. split; [ left; vm_compute; reflexivity | exact HbL ]. }
       assert (NP : forall i bb oo, Vint i <> Vptr bb oo) by (intros i bb oo E; discriminate E).
       assert (M1 : MWF_real lp bm bc Ptrofs.zero (SafeB_boot lp) e1)
-        by (eapply (mwf_real_chase lp) with (mm := m0) (bsafe := bw); try eassumption; apply NP).
+        by (eapply Gw; [ exact M0 | eassumption ]).
       assert (M2 : MWF_real lp bm bc Ptrofs.zero (SafeB_boot lp) e2)
-        by (eapply (mwf_real_chase lp) with (mm := e1) (bsafe := bw); try eassumption; apply NP).
+        by (eapply Gw; [ exact M1 | eassumption ]).
       assert (M3 : MWF_real lp bm bc Ptrofs.zero (SafeB_boot lp) e3)
-        by (eapply (mwf_real_chase lp) with (mm := e2) (bsafe := bw); try eassumption; apply NP).
+        by (eapply Gw; [ exact M2 | eassumption ]).
       assert (M4 : MWF_real lp bm bc Ptrofs.zero (SafeB_boot lp) e4)
-        by (eapply (mwf_real_chase lp) with (mm := e3) (bsafe := bw); try eassumption; apply NP).
+        by (eapply Gw; [ exact M3 | eassumption ]).
       assert (M5 : MWF_real lp bm bc Ptrofs.zero (SafeB_boot lp) e5)
-        by (eapply (mwf_real_chase lp) with (mm := e4) (bsafe := bw); try eassumption; apply NP).
+        by (eapply Gw; [ exact M4 | eassumption ]).
       eapply (mwf_real_chase lp) with (mm := e5) (bsafe := bL); try eassumption; apply NP.
     Qed.
 
@@ -1236,9 +1237,9 @@ Section Witness.
       rewrite <- Hl. symmetry. apply (Mem.load_store_other _ _ _ _ _ _ ZC). right. left.
       change (Ptrofs.unsigned (Ptrofs.add Ptrofs.zero (Ptrofs.repr 18))) with 18.
       cbn [size_chunk]. lia. }
-      assert (SW : SBw bw).
-      { right. exists level_update._sWarpDest. split; [ left; vm_compute; reflexivity | exact Hbw ]. }
-      eapply (mwf_real_chase lp) with (mm := z18) (bsafe := bw); try eassumption; apply NP.
+      (* sWarpDest is a stored global (CensusV2, 2026-10-24): not SafeB *)
+      eapply (proj2 (mwf_real_glob lp bm bc Ptrofs.zero SBw D1 D7
+                level_update._sWarpDest ltac:(vm_compute; reflexivity) bw Hbw)); [ exact Mz18 | eassumption ].
     Qed.
 
     (* ---- the facts PhiW reads ---- *)
@@ -1898,7 +1899,7 @@ Section Witness.
            D_8032FEC0): apart from Mario's object (a gObjectPool slot) and
            off the partition (its nodes live in the pool block) *)
         intros id b Hin Hs. split.
-        - unfold AnimWorld.flank_gvars, RenderAnim.render_gvars in Hin. cbn [app] in Hin.
+        - unfold AnimWorld.flank_gvars, RenderAnim.render_gvars, LevelGvars.level_gvars, LevelGvars.lvl_safe_gvars, LevelGvars.warp_gvars in Hin. cbn [app] in Hin.
           repeat (destruct Hin as [<- | Hin]; [ exact (symne lp _ _ _ _ Hs Hbo eq_refl) | ]).
           destruct Hin.
         - intros hd Hp.
