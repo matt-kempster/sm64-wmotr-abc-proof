@@ -35,7 +35,7 @@
 
 From Coq Require Import ZArith List Bool String.
 From compcert Require Import Coqlib Integers AST Ctypes Cop Clight Maps Ctypesdefs Clightdefs.
-From SM64.Generated Require behavior_actions behavior_script behavior_data.
+From SM64.Generated Require behavior_actions behavior_script behavior_data object_list_processor.
 From SM64.Proofs.WMotRRequiresA Require Import BehaviorScripts AngleVelCensus.
 Import ListNotations.
 
@@ -688,3 +688,137 @@ Proof. vm_compute. reflexivity. Qed.
 Lemma gcur_not_stored : existsb (sroot_beq (RGlob GCUR)) obj_store_roots = false.
 Proof. vm_compute. reflexivity. Qed.
 
+
+(* ======================================================================= *)
+(* STALE OBJECT POINTERS ("spiny adoption") -- the audit, 2026-10-25.       *)
+(*                                                                          *)
+(* The bug class: an object keeps a pointer to another object (parentObj,   *)
+(* an oFoo pointer field, a search result); the target unloads; a spawn     *)
+(* reuses the freed slot; the holder then writes into the NEW occupant.     *)
+(* (Lakitu keeps its Spiny; the Spiny dies; something spawns into the slot; *)
+(* Lakitu writes it.)  RULE: a write through a stored object pointer is     *)
+(* NEVER assumed to hit its intended object.  Every row that consumes these *)
+(* sites must either prove the target is still that object, or prove the   *)
+(* write cannot hit a protected slot (pole, cannon, Mario's object).        *)
+(*                                                                          *)
+(* Every store through an object pointer other than the running object, in *)
+(* the census above (obj_ptr_store_fns and the "via" / "call" roots), with  *)
+(* its verdict.  "Argued" = a reading of the C, NOT a proof: each one is an *)
+(* obligation of the S2 row.                                                *)
+(*                                                                          *)
+(*  PARENT_BIT_CLEAR (bhv_cmd_parent_bit_clear, op 0x33) is in 12 live      *)
+(*  scripts (parent_clear_value).  10 are referenced only by sParticleTypes *)
+(*  (Mario's particle table), which only bhv_mario_update reads             *)
+(*  (spawn_particle with gCurrentObject = Mario's object), so the parent is *)
+(*  Mario's object: NOT STALE while Mario's object lives (S2: Mario's slot  *)
+(*  is never freed in the level).  bhvWaveTrail is also reached from        *)
+(*  bhvObjectWaveTrail (a koopa-shell child), whose GOTO enters past the    *)
+(*  PARENT_BIT_CLEAR (GOTO(bhvWaveTrail + 1 + 1 + 2)): argued.              *)
+(*  bhvWhitePuff1's parent is bhvMistParticleSpawner (its only referrer, by *)
+(*  SPAWN_CHILD), which DEACTIVATEs one frame later.  The puff runs the     *)
+(*  write once, in its first update, which falls in the same list pass that *)
+(*  spawned it (same list OBJ_LIST_DEFAULT, appended before the sentinel,   *)
+(*  same time-stop freeze), while the spawner is still alive.  NOT STALE,   *)
+(*  argued.                                                                 *)
+(*  clear_particle_flags (o->parentObj) and bhv_flame_mario_loop            *)
+(*  (o->parentObj, gMarioObject->prevObj) are run by the MistCirc / Snow /  *)
+(*  Dirt / Breath / Fire particle spawners, which only sParticleTypes       *)
+(*  references: the parent is Mario's object.  NOT STALE (as above).        *)
+(*  via gMarioObject (snow_leaf_particle_spawn_init, idle_water_wave_loop,  *)
+(*  flame_mario_loop) and via gMarioState (1up_interact,                    *)
+(*  set_mario_npc_dialog, set_mario_action_airborne / _moving): Mario's     *)
+(*  state / object.  NOT STALE.                                             *)
+(*  bhv_coin_formation_spawn_loop (o->parentObj->oCoinCollectedFlags): the  *)
+(*  parent is the bhvCoinFormation that spawned it (bhvCoinFormationSpawn's *)
+(*  only referrer is spawn_coin_in_formation).  The formation's script has  *)
+(*  no DEACTIVATE (op 0x1D), its natives never clear their own activeFlags, *)
+(*  and no live code deactivates another object (the census has no such    *)
+(*  store).  NOT STALE, argued (needs: no eviction of a non-unimportant     *)
+(*  object, no area unload mid-level).                                      *)
+(*  bhv_red_coin_loop (o->parentObj->oHiddenStarTriggerCounter++): the      *)
+(*  parent is the nearest bhvHiddenRedCoinStar at the coin's init, or NULL. *)
+(*  The marker deactivates only when its counter reaches 8 (every counted   *)
+(*  red coin collected and deleted), or at its own init when no red coin is *)
+(*  loaded.  NOT STALE, argued (needs: every red coin is loaded when the    *)
+(*  marker inits; one area load spawns them all).                           *)
+(*  bhv_1up_hidden_in_pole_trigger_loop: a fresh nearest-object search,     *)
+(*  which skips deactivated objects.  NOT STALE.                            *)
+(*  exclamation_box_spawn_contents and every "call spawn_*" root write the  *)
+(*  object just spawned.  NOT STALE (Hspawn_fr / the spawn frame).          *)
+(*  set_object_respawn_info_bits: respawnInfo points into level spawn data, *)
+(*  not the pool.  add_surface_to_cell: the surface pools.                  *)
+(*  geo_add_child / geo_remove_child / try_allocate_object /                *)
+(*  deallocate_object: the list and graph links (Hspawn_fr's link cells).   *)
+(*                                                                          *)
+(* Pointer ARGUMENTS through parentObj ("ptr" in obj_arg_census:            *)
+(* cannon_barrel_loop, cur_obj_set_pos_relative_to_parent,                  *)
+(* obj_build_transform_relative_to_parent, spawn_object_at_origin's         *)
+(* parent): the callee only READS the target.  A stale read changes only    *)
+(* the reader's own slot.                                                   *)
+(*                                                                          *)
+(* OUTSIDE this census (the Mario phase, GOAL-1's walker): Mario code       *)
+(* writes through m->usedObj / interactObj / riddenObj / heldObj            *)
+(* (act_in_cannon: usedObj->oAction / oInteractStatus;                      *)
+(* mario_stop_riding_object; the door / hoot / crazy-box / shell actions).  *)
+(* That is the same class, and the GOAL-2 protected-slot argument must      *)
+(* audit it too (OPEN, SKILL).                                              *)
+(* ======================================================================= *)
+
+Definition has_op (op : Z) (b : ident) : bool :=
+  match script_of b with
+  | Some cs => existsb (fun c => match c with CPlain o => Z.eqb o op | _ => false end) cs
+  | None => false
+  end.
+Definition referrers (x : ident) : list ident := filter (fun y => mem_i x (refs_of y)) wmotr_closure.
+
+(* the user's example: neither enemy Lakitu nor the Spiny is in WMotR *)
+Lemma lakitu_spiny_not_live :
+  mem_i behavior_data._bhvEnemyLakitu wmotr_closure = false
+  /\ mem_i behavior_data._bhvSpiny reached_bhvs = false
+  /\ mem_i behavior_data._bhv_enemy_lakitu_update wmotr_live_natives = false
+  /\ mem_i behavior_data._bhv_spiny_update wmotr_live_natives = false.
+Proof. vm_compute. repeat split. Qed.
+
+(* every live script with PARENT_BIT_CLEAR, and who references it *)
+Lemma parent_clear_value :
+  map (fun b => (string_of_ident b, map string_of_ident (referrers b))) (filter (has_op 51) reached_bhvs) =
+    [("bhvMistParticleSpawner", ["sParticleTypes"]);
+     ("bhvWaterSplash", ["sParticleTypes"]);
+     ("bhvWaveTrail", ["sParticleTypes"; "bhvObjectWaveTrail"]);
+     ("bhvWhitePuff1", ["bhvMistParticleSpawner"]);
+     ("bhvShallowWaterWave", ["sParticleTypes"]);
+     ("bhvShallowWaterSplash", ["sParticleTypes"]);
+     ("bhvSparkleParticleSpawner", ["sParticleTypes"]);
+     ("bhvVertStarParticleSpawner", ["sParticleTypes"]);
+     ("bhvBubbleParticleSpawner", ["sParticleTypes"]);
+     ("bhvPlungeBubble", ["sParticleTypes"]);
+     ("bhvHorStarParticleSpawner", ["sParticleTypes"]);
+     ("bhvTriangleParticleSpawner", ["sParticleTypes"])]%string.
+Proof. vm_compute. reflexivity. Qed.
+
+(* the behaviors whose natives write o->parentObj / gMarioObject, the
+   formation's coins, and who spawns or references them *)
+Lemma parent_writer_referrers :
+  map (fun b => (string_of_ident b, map string_of_ident (referrers b)))
+    [behavior_data._bhvFireParticleSpawner; behavior_data._bhvMistCircParticleSpawner;
+     behavior_data._bhvSnowParticleSpawner; behavior_data._bhvDirtParticleSpawner;
+     behavior_data._bhvBreathParticleSpawner; behavior_data._bhvLeafParticleSpawner;
+     behavior_data._bhvIdleWaterWave; behavior_data._bhvCoinFormationSpawn;
+     object_list_processor._sParticleTypes; object_list_processor._spawn_particle] =
+    [("bhvFireParticleSpawner", ["sParticleTypes"]);
+     ("bhvMistCircParticleSpawner", ["sParticleTypes"]);
+     ("bhvSnowParticleSpawner", ["sParticleTypes"]);
+     ("bhvDirtParticleSpawner", ["sParticleTypes"]);
+     ("bhvBreathParticleSpawner", ["sParticleTypes"]);
+     ("bhvLeafParticleSpawner", ["sParticleTypes"]);
+     ("bhvIdleWaterWave", ["sParticleTypes"]);
+     ("bhvCoinFormationSpawn", ["spawn_coin_in_formation"]);
+     ("sParticleTypes", ["bhv_mario_update"]);
+     ("spawn_particle", ["bhv_mario_update"])]%string.
+Proof. vm_compute. reflexivity. Qed.
+
+(* the two parent holders never DEACTIVATE themselves from their scripts *)
+Lemma holders_no_deactivate :
+  has_op 29 behavior_data._bhvCoinFormation = false
+  /\ has_op 29 behavior_data._bhvHiddenRedCoinStar = false.
+Proof. vm_compute. split; reflexivity. Qed.

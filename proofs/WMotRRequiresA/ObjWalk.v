@@ -229,9 +229,57 @@ Definition xp_set dm lv gs tc (mt sl : list ident) (id : ident) (a : expr) : boo
 Definition xp_store (cl : list (Z * Z)) dm lv gs tc (mt sl : list ident) (l r : expr) : bool :=
   (kp_stored dm lv gs tc l r && (nil_sl sl || kle (klvd dm lv gs tc l) kS))
   || (MtxfBody.is_byval (typeof l) && (ms_store1 cl mt l || ms_store2 cl lv l || sg_store lv l)).
+(* an argument cast (at the call) to a narrow scalar parameter type is never
+   a pointer, whatever its class: a short / char / float / long parameter
+   (2026-10-25, for the action bodies' `(s16) o->oFoo` arguments) *)
+Definition narrow_ty (ty : type) : bool :=
+  match ty with
+  | Tint I8 _ _ | Tint I16 _ _ | Tfloat _ _ | Tlong _ _ => true
+  | _ => false
+  end.
+
+Lemma narrow_cast_nonptr : forall v1 ty1 ty2 m b o, narrow_ty ty2 = true ->
+    sem_cast v1 ty1 ty2 m = Some (Vptr b o) -> False.
+Proof.
+  intros v1 ty1 ty2 m b o Hn H.
+  destruct ty2 as [| [ | | | ] ? ? | | [ | ] ? | | | | |]; try discriminate Hn;
+  unfold sem_cast in H;
+  destruct ty1 as [| [ | | | ] ? ? | | [ | ] ? | | | | |]; cbn in H;
+  destruct v1; try discriminate H;
+    repeat match type of H with
+           | (if ?c then _ else _) = _ => destruct c; try discriminate H
+           | (match ?x with _ => _ end) = _ => destruct x; try discriminate H
+           end.
+Qed.
+
+Definition call_targs (a : expr) : list type :=
+  match classify_fun (typeof a) with fun_case_f tl _ _ => tl | _ => nil end.
+
+Fixpoint kargs_okx dm lv gs tc (al : list expr) (pcs : list kcls) (tl : list type) : bool :=
+  match al, pcs with
+  | nil, nil => true
+  | a :: al', c :: pcs' =>
+      match tl with
+      | ty :: tl' => (kle (kxd dm lv gs tc a) c || narrow_ty ty) && kargs_okx dm lv gs tc al' pcs' tl'
+      | nil => kle (kxd dm lv gs tc a) c && kargs_okx dm lv gs tc al' pcs' nil
+      end
+  | _, _ => false
+  end.
+
+(* UcKit's kp_calld, with the narrow-parameter argument rule *)
+Definition kp_calldx dm lv gs tc (ut : utab) (it : uitab)
+    (optid : option ident) (a : expr) (al : list expr) : bool :=
+  match direct_fid a with Some fid => negb (mem_id fid lv) | None => true end &&
+  match u_call_sig ut it a with
+  | Some (pcs, rc, dme) =>
+      kargs_okx dm lv gs tc al pcs (call_targs a) && mode_ok dm dme pcs &&
+      match optid with None => true | Some id => kle rc (tc id) end
+  | None => false
+  end.
+
 Definition xp_call dm lv gs tc ut it (mt sl : list ident) (optid : option ident) (a : expr)
     (al : list expr) : bool :=
-  kp_calld dm lv gs tc ut it optid a al
+  kp_calldx dm lv gs tc ut it optid a al
   && match optid with Some id => negb (mem_id id mt) | None => true end
   && (nil_sl sl || call_restart ut it a).
 
@@ -972,6 +1020,25 @@ Section XW.
       exact (kpc_mono _ _ _ _ _ _ _ Hle (H1 b ofs b' o' Hb1 Hld)).
   Qed.
 
+  Lemma kargsx_sound : forall dm nb0 lv tc e le m al tyl vl,
+      KEILu nb0 lv e -> KTP nb0 tc le -> UI dm nb0 m ->
+      eval_exprlist ge e le m al tyl vl ->
+      forall pcs, kargs_okx dm lv gs tc al pcs tyl = true -> Forall2 (VOK nb0) pcs vl.
+  Proof.
+    intros dm nb0 lv tc e le m al tyl vl HEI HP Hi Hel.
+    induction Hel as [| a1 bl ty tyl v1 v2 vl Hx Hc Hel' IHel]; intros pcs Hok;
+      destruct pcs as [| c pcs]; cbn [kargs_okx] in Hok; try discriminate Hok; [ constructor | ].
+    apply andb_prop in Hok as [H1 H2]. constructor; [ | exact (IHel _ H2) ].
+    apply orb_true_iff in H1 as [H1 | H1].
+    - assert (Hl1 : eval_exprlist ge e le m [a1] [ty] [v2])
+        by (econstructor; [ exact Hx | exact Hc | constructor ]).
+      assert (Hk1 : kargs_okd dm lv gs tc [a1] [c] = true) by (cbn; rewrite H1; reflexivity).
+      pose proof (kargsd_sound ge e le m SafeB nl nb0 dm lv gs tc HP (proj1 HEI) (proj2 HEI) Hgs
+                    (u_R7 lp bm bc oc0 SafeB m (proj1 Hi)) (proj2 (proj2 Hi)) _ _ _ Hl1 _ Hk1) as Hs.
+      inv Hs. assumption.
+    - intros bb oo E. subst v2. exact (False_ind _ (narrow_cast_nonptr _ _ _ _ _ _ H1 Hc)).
+  Qed.
+
   Lemma xb_call_ih : forall dm nb0 lv tc e mt sl optid a al le m targs tres cc vf vargs fd t m' vres,
       Hn nl nb0 -> KEILu nb0 lv e ->
       xp_call dm lv gs tc ut it mt sl optid a al = true -> KTP nb0 tc le -> MP mt le -> UI dm nb0 m ->
@@ -986,7 +1053,7 @@ Section XW.
     intros dm nb0 lv tc e mt sl optid a al le m targs tres cc vf vargs fd t m' vres
       HN HEI Hok0 HP HM Hi HS Hcf Hev Hel Hff Hty (_ & IH).
     unfold xp_call in Hok0. apply andb_prop in Hok0 as [Hok0 Hrs]. apply andb_prop in Hok0 as [Hok Hnm].
-    unfold kp_calld in Hok. apply andb_prop in Hok as [Hnl Hok].
+    unfold kp_calldx in Hok. apply andb_prop in Hok as [Hnl Hok].
     unfold call_restart in Hrs.
     destruct (u_call_sig ut it a) as [[[pcs rc] dme]|] eqn:Hsig; [ | discriminate Hok ].
     apply andb_prop in Hok as [Hok Hopt]. apply andb_prop in Hok as [Hal Hmode].
@@ -996,8 +1063,9 @@ Section XW.
     apply andb_prop in Hfit as [Hfit Hfm]. apply andb_prop in Hfit as [Hpl Hrc].
     apply kcls_leq_eq in Hpl. subst pcs'.
     pose proof (IH _ Hgood) as IH'. cbv beta iota in IH'.
-    pose proof (kargsd_sound ge e le m SafeB nl nb0 dm lv gs tc HP (proj1 HEI) (proj2 HEI) Hgs
-                  (u_R7 lp bm bc oc0 SafeB m (proj1 Hi)) (proj2 (proj2 Hi)) _ _ _ Hel _ Hal) as Hargs.
+    assert (Htl : call_targs a = targs) by (unfold call_targs; rewrite Hcf; reflexivity).
+    rewrite Htl in Hal.
+    pose proof (kargsx_sound dm nb0 lv tc e le m _ _ _ HEI HP Hi Hel _ Hal) as Hargs.
     assert (Hnil : nil_sl sl = true -> SLI sl e m').
     { intros Hn0. destruct sl; [ exact (SLI_nil e m') | discriminate Hn0 ]. }
     unfold mode_ok in Hmode.

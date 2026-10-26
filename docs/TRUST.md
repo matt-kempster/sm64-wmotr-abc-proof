@@ -916,6 +916,38 @@ without pressing A".*
   Koopa: only the koopa_shell_* bodies are in the object closure (no koopa race code), and
   no beta/alpha boo_key or respawner body is (`self_census_names`). Not wired into a
   capstone, so no row moved; no new trust.
+- **Protected-slot frame with spawns (2026-10-25, OBJECTS S3, `ObjSpawn.v`, `ObjSelf` sec.
+  GEN):** `ObjSelf.s_fun_frame3` generalizes kSelf to protected pool cells Pc and a KFresh
+  kind (running slot or a slot with no Pc byte); `obj_body_spawn_frame` covers 244 entries
+  (`spawn_walk_ok`, vm), 62/107 live natives. Pc P = the bytes of slots in P outside the
+  list / graph link cells (`link_offsets`, vm against the composite env). Premise
+  `Hspawn_fr` (spawn_object_at_origin's per-call frame) is a named OPEN proof obligation
+  (spec in SKILL), not a trust assumption: nothing consumes this frame yet. A store through a
+  STORED object pointer is never assumed to hit its intended object (it is KAny, so such
+  bodies are not walked); stale-pointer verdicts in `ObjStoreCensus` (no FOUND). Not wired
+  into a capstone, so no row moved; no new trust.
+- **call_action_function's frame (2026-10-25, OBJECTS S3, `ObjAct.v`):** sizes pinned by vm
+  (`act_size`): of the 35 action tables only 3 are passed from an xotab body
+  (sJumpingBoxActions, sOpenedCannonActions, sExclamationBoxActions); their 15 entries are
+  none of xotab's bodies; the entries' call closure is 90 functions, 21 outside xotab, no
+  indirect call, no nested action call. `act_walk_ok`: the 15 + 4 helpers + the 69
+  closure bodies walked by ObjWalk WITHOUT call_action_function as a leaf. ObjWalk gained
+  one rule (`kargs_okx`): an argument cast at the call to a short / char / float / long
+  parameter is never a pointer (`narrow_cast_nonptr`, proved from CompCert's sem_cast), so
+  its class is free -- needed for `(s16) o->oFoo` arguments. `RO_tab ge m` (named premise):
+  a pointer loaded from a live table's block is one of its initializer's Init_addrof
+  targets; `ro_tab_boot` proves it in the real `Genv.init_mem` of the link (via
+  BootMWF.init_mem_load_ptr and the link's initializer = the TU's). `caf_frame`:
+  cur_obj_call_action_function(&tbl), tbl live, from UInv + RO_tab, keeps UInv and has
+  ObjWalk's frame (FR, XS). UB-COVERAGE POINT (row 3.2): caf_frame has no action-index
+  premise because an out-of-bounds table load has no Clight execution -- that EXCLUDES those
+  runs, it does not prove they never happen (on the N64 the read returns adjacent memory).
+  Open: `act_in_range` (oAction < table length for the 3 live kinds) as an S2 obj_w clause,
+  carried from `act_stores_census` (the 14 oAction stores in the 15 bodies are constants
+  inside their own table) plus the spawn / init writes, so the progress argument covers it. OPEN: RO_tab is
+  not yet carried across the run (the tables are SafeB globals, so the existing frames
+  allow writes there; RoCensus finds none) -- the spine-wide step. Respawner not live
+  (`respawner_not_live`). Not wired into a capstone; no new trust.
 
 ### Row 0.7 in detail
 
@@ -1409,6 +1441,13 @@ link grows.
   execution. §5.1 did not see it: its 300/300 dates from 2026-09-26, when `segmented_to_virtual`
   was outside the link and replayed from the game. `VIRTUAL_TO_PHYSICAL` is now the
   `NO_SEGMENTED_MEMORY` identity (2.2 register).
+- **Rule: a stuck Clight run never discharges a premise.** When a lemma needs no premise only
+  because the violating case has no Clight execution, the capstone has excluded those runs. It
+  has not proved they never occur. Each such site is a UB-coverage point, listed here until a
+  carried invariant shows the case cannot happen. Open (2026-10-25):
+  `cur_obj_call_action_function` (`ObjAct.caf_frame`) loads `tbl[o->oAction]` with no bounds
+  check. On the N64 an out-of-range index reads adjacent memory. Planned: `act_in_range` as an S2
+  `obj_w` clause, carried from `act_stores_census` plus the spawn / init writes.
 
 ### Row 3.5 in detail
 
