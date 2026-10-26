@@ -1014,8 +1014,19 @@ without pressing A".*
   unobservable), `Hobj_stores` / `Hobj_counter`, `Hobj_debug`, `Hobj_surfaces`,
   `Hobj_collisions`, `Hobj_unload`, `Hobj_mplat` (`Hobj_terrain` / `Hobj_nonterrain` are
   PROVED since B2, below, from `Hobj_step_terrain` / `Hobj_step_nonterrain` / `Hobj_ctr`);
-  `Hlvl_ow` / `Hrender_ow` (the level slices and the render walk keep the object
-  world). **PROVED 2026-10-26** (was the row `Hplat_keep`): the platform call keeps
+  `Hcam_ow` (narrower than the old `Hlvl_ow`: the `update_camera` statement, the camera row's
+  step `LevelFlank.cam_step`, keeps the object world between mem_ok states in Φ; the real
+  update_camera is walked only for mem_ok, over SafeB, which includes the object pool, so no
+  footprint excludes the pool). **PROVED 2026-10-26** (was the row `Hlvl_ow`): the level slices
+  keep the object world (`HeightLinked12.lvl_ow_linked12`): the PRE slice's footprint is
+  `lvl_safe_gvars` (`LevelKeep.pre_eff`), the POST slice is the hud statement, the camera
+  statement (`Hcam_ow`) and the painting call + tail with footprint `level_gvars`
+  (`LevelKeep.post_split`), and neither list names an `obj_w` global (`PollKeep.fx_obj_w`).
+  **PROVED 2026-10-26** (was the row `Hrender_ow`): Mario's render call keeps the object world
+  (`HeightLinked12.render_ow_linked12`): by `RenderKeep.render_eff` it changes loads only in
+  the six render globals and the bytes [64, 72) of Mario's object, and every `obj_w` clause
+  reads the pool only at a slot's fields from offset 96 on (`PollKeep.obj_w_slots`).
+  **PROVED 2026-10-26** (was the row `Hplat_keep`): the platform call keeps
   `plat_still` and the object world (`HeightLinked12.plat_keep_linked12`, from
   `PlatformKeep.plat_keeps_still` / `plat_loads`: by `plat_step_eff` the call changes loads only
   in D_8032FEC0's block and Mario's pos cells, apart from gMarioPlatform, the pool and every

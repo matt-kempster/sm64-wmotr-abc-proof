@@ -520,7 +520,9 @@ all in `Unwired/`, and the theorem moved nowhere. See
     hole (`HeightFrame.mario_hole`, filled by Hframe_action + seg_action_phi). Open, labeled
     rows over the real stages: Hobj_blind / Hobj_fresh / Hobj_noref, Hobj_stores /
     Hobj_counter, Hobj_debug, Hobj_surfaces, Hobj_collisions, Hobj_unload, Hobj_mplat;
-    Hlvl_ow, Hrender_ow (Hplat_keep PROVED 2026-10-26: plat_keep_linked12). Proved: the walk of update_objects' body, the clock
+    Hcam_ow (the camera statement keeps obj_w; narrower than Hlvl_ow). PROVED 2026-10-26:
+    Hplat_keep (plat_keep_linked12), Hlvl_ow (lvl_ow_linked12: pre_eff / post_split footprints
+    + Hcam_ow), Hrender_ow (render_ow_linked12: render_eff + PollKeep.obj_w_slots). Proved: the walk of update_objects' body, the clock
     calls, objects_keep, the platform call inside. B2 DONE (ObjLoop.v): update_terrain_objects
     and update_non_terrain_objects are PROVED (update_objects_in_list, both per-list loops over
     obj_w's rings, the list heads, sObjectListUpdateOrder -- now an obj_w clause, ORDER) from

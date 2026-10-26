@@ -384,7 +384,7 @@ Section HeightFrame.
      object pointers) *)
   Hypothesis Hlvl_ow : forall m m', mem_ok m -> Phi m -> OW m ->
     (seg_level_pre_spec m m' \/ seg_level_post_spec m m') -> OW m'.
-  Hypothesis Hrender_ow : forall m m', OW m -> RenderFlank.render_call lp bm m m' -> OW m'.
+  Hypothesis Hrender_ow : forall m m', Phi m -> OW m -> RenderFlank.render_call lp bm m m' -> OW m'.
 
   (* the level slices carry mem_ok, Phi (and the PRE slice the A-held bit
      and the platform fact) (discharged in the twelve-TU section below by
@@ -557,7 +557,7 @@ Section HeightFrame.
       by (destruct Hrnd as [-> | Hrc];
           [ exact (conj Hok5 (conj Hphi5 How5))
           | exact (conj (Hrender_ok m5 m6 Hok5 Hrc)
-                     (conj (Hrender_phi m5 m6 Hphi5 Hrc (Hphi_sa _ m5 Hphi5)) (Hrender_ow m5 m6 How5 Hrc))) ]).
+                     (conj (Hrender_phi m5 m6 Hphi5 Hrc (Hphi_sa _ m5 Hphi5)) (Hrender_ow m5 m6 Hphi5 How5 Hrc))) ]).
     destruct Hok6 as (Hok6 & Hphi6 & How6).
     split; [ | split; [ | split ] ].
     - exact (rest_ok m6 m' Hrest2 Hok6).
@@ -1353,10 +1353,90 @@ Section HeightLinked12.
         repeat (destruct Hin as [E | Hin]; [ vm_compute in E; discriminate E | ]). exact Hin.
     - intros z Hz. apply LM. right. left. unfold MARIOOBJ_OFF in Hz. cbn [In] in Hz. lia.
   Qed.
-  (* OPEN, the object world through the level slices and the render call *)
-  Hypothesis Hlvl_ow : forall m m', mem_ok_lp bm MWF m -> Phi m -> OWl m ->
+  (* OPEN, narrower than the level row (2026-10-26): update_camera's
+     statement (LevelFlank.cam_step, the camera row's step), between mem_ok
+     states in Phi, keeps the object world.  The real update_camera is
+     walked only for mem_ok (UcKit, over SafeB, which includes the object
+     pool), so no footprint excludes the pool here *)
+  Hypothesis Hcam_ow : forall m m', LevelFlank.cam_step lp m m' ->
+    mem_ok_lp bm MWF m -> Phi m -> OWl m -> OWl m'.
+
+  (* PROVED (2026-10-26): the level slices keep the object world.  The PRE
+     slice's footprint is lvl_safe_gvars (LevelKeep.pre_eff); the POST slice
+     is the hud statement (lvl_safe_gvars), the camera statement (Hcam_ow),
+     then the painting call and the tail (level_gvars) (LevelKeep.post_split);
+     neither list names an obj_w global or gMarioStates (PollKeep.fx_obj_w) *)
+  Lemma lvl_ow_linked12 : forall m m', mem_ok_lp bm MWF m -> Phi m -> OWl m ->
     (seg_level_pre_spec lp m m' \/ seg_level_post_spec lp m m') -> OWl m'.
-  Hypothesis Hrender_ow : forall m m', OWl m -> RenderFlank.render_call lp bm m m' -> OWl m'.
+  Proof.
+    intros m m' Hok Hphi How [Hc | Hc].
+    - destruct (LevelKeep.pre_eff lp H12 bm bc oc0 SafeB HSafeB_syms Hbm_sym Hbc_sym Hoc0 Hdma_floor
+                  m m' Hc Hphi Hok) as (_ & Hfx & _).
+      exact (PollKeep.fx_obj_w lp bm Hbm_sym LevelGvars.lvl_safe_gvars m m'
+               (RenderKeep.avoid_of PollKeep.ow_ids LevelGvars.lvl_safe_gvars ltac:(vm_compute; reflexivity))
+               ltac:(vm_compute; reflexivity) Hfx How).
+    - pose proof (RenderKeep.phiw_surf_apart lp bm LevelGvars.level_gvars m Hphi) as Hsa.
+      destruct (LevelKeep.post_split lp H12 bm bc oc0 SafeB HSafeB_syms Hbm_sym Hbc_sym Hoc0 Hdma_floor
+                  m m' update_camera_ok_linked12 Hcam_phi Hc Hsa Hok Hphi)
+        as (_ & _ & m1 & m2 & F1 & Cs & Ok1 & Ph1 & F2).
+      apply (PollKeep.fx_obj_w lp bm Hbm_sym LevelGvars.level_gvars m2 m'
+               (RenderKeep.avoid_of PollKeep.ow_ids LevelGvars.level_gvars ltac:(vm_compute; reflexivity))
+               ltac:(vm_compute; reflexivity) F2).
+      apply (Hcam_ow m1 m2 Cs Ok1 Ph1).
+      exact (PollKeep.fx_obj_w lp bm Hbm_sym LevelGvars.lvl_safe_gvars m m1
+               (RenderKeep.avoid_of PollKeep.ow_ids LevelGvars.lvl_safe_gvars ltac:(vm_compute; reflexivity))
+               ltac:(vm_compute; reflexivity) F1 How).
+  Qed.
+  Notation Hlvl_ow := lvl_ow_linked12.
+  (* PROVED (2026-10-26): Mario's render call keeps the object world.  By
+     RenderKeep.render_eff it changes loads only in the six render globals
+     and in the bytes [64, 72) of Mario's object (its animFrame / animTimer /
+     accelAssist header), and every obj_w clause reads the pool only at a
+     slot's fields from offset 96 on (PollKeep.obj_w_slots) *)
+  Lemma render_sym_apart : forall id b, Genv.find_symbol (lp_ge lp) id = Some b ->
+    existsb (Pos.eqb id) RenderAnim.render_gvars = false -> ~ RenderKeep.rgb lp RenderAnim.render_gvars b.
+  Proof.
+    intros id b Hs Hn (id' & Hin & Hs').
+    assert (E : id = id') by (eapply Genv.genv_vars_inj; [ exact Hs | exact Hs' ]). subst id'.
+    assert (Ht : existsb (Pos.eqb id) RenderAnim.render_gvars = true)
+      by (apply existsb_exists; exists id; split; [ exact Hin | apply Pos.eqb_refl ]).
+    congruence.
+  Qed.
+
+  Lemma render_ow_linked12 : forall m m', Phi m -> OWl m -> RenderFlank.render_call lp bm m m' -> OWl m'.
+  Proof.
+    intros m m' Hphi How Hc.
+    destruct (RenderKeep.render_eff lp H12 bm m m' Hphi Hc) as (mb & mo & Lmo & LD).
+    pose proof How as (pool & la & fl & gol & gmo & sdp & gdi & rs & fs & S1 & S2 & S3 & S4 & S5 & S6 & S7 & C).
+    destruct C as [_ Cr _ _ _ Cm _ _ _ _ _ _ _ _ _].
+    destruct Cm as (k & Hk & _ & Lb & _).
+    assert (Lb' : Mem.load Mint32 m bm 136 = Some (ObjWorld.slot_v pool k)) by exact Lb.
+    rewrite Lmo in Lb'. unfold ObjWorld.slot_v in Lb'. injection Lb' as Eb Emo. subst mb mo.
+    assert (H0 : (0 < ObjWorld.NLIST)%nat) by (unfold ObjWorld.NLIST; lia).
+    destruct (ObjLoop.ring_i_spec _ _ _ _ _ (ObjLoop.rings_nth _ _ _ _ Cr 0 H0)) as (_ & Hall).
+    destruct (Hall k Hk) as (Rk & _).
+    assert (Uo : Ptrofs.unsigned (Ptrofs.repr (k * ObjWorld.OSZ)) = k * ObjWorld.OSZ).
+    { apply Ptrofs.unsigned_repr. unfold ObjWorld.OSZ, ObjWorld.NSLOT in *.
+      change Ptrofs.max_unsigned with 4294967295. lia. }
+    rewrite Uo in LD.
+    apply (PollKeep.obj_w_slots m m' (lp_ge lp) bm); [ | | | exact How ].
+    - intros id b Hin Hne Hs ch z. apply LD.
+      + apply (render_sym_apart id b Hs). unfold PollKeep.ow_ids in Hin. cbn [In] in Hin.
+        repeat (destruct Hin as [<- | Hin]; [ vm_compute; reflexivity | ]). destruct Hin.
+      + left. intro E. subst b. apply Hne. eapply Genv.genv_vars_inj; [ exact Hs | exact S1 ].
+    - intros pool' Hs'. rewrite S1 in Hs'. injection Hs' as <-.
+      intros ch k' off H1 H2. apply LD.
+      + exact (render_sym_apart _ _ S1 ltac:(vm_compute; reflexivity)).
+      + right. unfold ObjWorld.OSZ in *.
+        destruct (Z_lt_le_dec k' k); [ left; nia | right; nia ].
+    - intros z Hz. apply LD.
+      + exact (render_sym_apart _ _ Hbm_sym ltac:(vm_compute; reflexivity)).
+      + left. intro E.
+        assert (Ei : level_update._gMarioStates = object_list_processor._gObjectPool)
+          by (eapply Genv.genv_vars_inj; [ exact Hbm_sym | rewrite E; exact S1 ]).
+        vm_compute in Ei. discriminate Ei.
+  Qed.
+  Notation Hrender_ow := render_ow_linked12.
 
   Lemma dm_apmd : (prog_defmap platform_displacement.prog) ! object_list_processor._apply_mario_platform_displacement
     = Some (Gfun (Internal platform_displacement.f_apply_mario_platform_displacement)).

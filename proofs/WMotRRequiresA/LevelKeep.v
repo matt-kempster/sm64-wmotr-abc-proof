@@ -522,11 +522,16 @@ Section Link.
     exact (mwf_real_chase_step lp bm bc _ SafeB m a ofs _ _ HM Sa Hld).
   Qed.
 
-  Theorem post_keeps : forall m m',
+  (* the POST slice, split: the hud statement (footprint lvl_safe_gvars),
+     the camera statement, then the painting call and the tail (footprint
+     level_gvars) -- for later carries (PollKeep's object world) *)
+  Theorem post_split : forall m m',
     uc_keeps lp bm MWF SafeB -> cam_phi_row lp bm MWF ->
     level_post_call lp m m' -> surf_apart lp bm level_gvars m ->
     mem_ok_lp bm MWF m -> phiw lp bm m ->
-    mem_ok_lp bm MWF m' /\ phiw lp bm m'.
+    mem_ok_lp bm MWF m' /\ phiw lp bm m'
+    /\ exists m1 m2, fx lp bm lvl_safe_gvars m m1 /\ cam_step lp m1 m2
+         /\ mem_ok_lp bm MWF m1 /\ phiw lp bm m1 /\ fx lp bm level_gvars m2 m'.
   Proof.
     intros m m' UC Hcam (le & t & le' & out & Hx) RSA Hok Hphi.
     pose proof (proj2 (proj2 (proj2 (proj2 (proj2 (proj2 (proj2 Hphi))))))) as LW0.
@@ -593,10 +598,21 @@ Section Link.
     destruct (lu_sym LU._sDelayedWarpOp ltac:(let E := fresh in intro E; vm_compute in E; discriminate E)) as (bo & Hbo).
     pose proof (LevelWarp.tail_warp_w lp H12 bm bc oc0 SafeB HSafeB_syms Hspawn Hfloor Hbm_sym
                   bp bw bt bcr bd bo Hbp Hbw Hbt Hbcr Hbd Hbo _ _ _ _ _ _ Hx Hok3 Hw3 Hfx') as Hwend.
-    split; [ exact Hok' | ].
-    refine (lvl_keeps_gen level_gvars level_gvars_flank ltac:(nb) m2 m' Hphi2 Hfx4
-              (cl_trans G _ _ _ Hcl3 Hcl') RSA2 _).
-    exact (lvl_w_tail m2 m' LW2 Hfx4 Hwend).
+    split; [ exact Hok' | split ].
+    - refine (lvl_keeps_gen level_gvars level_gvars_flank ltac:(nb) m2 m' Hphi2 Hfx4
+                (cl_trans G _ _ _ Hcl3 Hcl') RSA2 _).
+      exact (lvl_w_tail m2 m' LW2 Hfx4 Hwend).
+    - exists m1, m2. exact (conj Hfx1 (conj Hcs (conj Hok1 (conj Hphi1 Hfx4)))).
+  Qed.
+
+  Theorem post_keeps : forall m m',
+    uc_keeps lp bm MWF SafeB -> cam_phi_row lp bm MWF ->
+    level_post_call lp m m' -> surf_apart lp bm level_gvars m ->
+    mem_ok_lp bm MWF m -> phiw lp bm m ->
+    mem_ok_lp bm MWF m' /\ phiw lp bm m'.
+  Proof.
+    intros m m' UC Hcam Hc RSA Hok Hphi.
+    destruct (post_split m m' UC Hcam Hc RSA Hok Hphi) as (A & B & _). exact (conj A B).
   Qed.
   (* ===================================================================== *)
   (* 4. For any written list off the frame's core (2026-10-26, the         *)
