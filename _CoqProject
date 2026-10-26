@@ -330,6 +330,7 @@ proofs/WMotRRequiresA/ObjTable.v
 proofs/WMotRRequiresA/ObjKit.v
 proofs/WMotRRequiresA/ObjWalk.v
 proofs/WMotRRequiresA/NpcFrame.v
+proofs/WMotRRequiresA/ObjSelf.v
 proofs/WMotRRequiresA/ObjFrame.v
 proofs/WMotRRequiresA/RoCensus.v
 proofs/WMotRRequiresA/CoinLink.v

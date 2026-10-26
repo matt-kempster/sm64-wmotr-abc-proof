@@ -892,9 +892,30 @@ without pressing A".*
   callee) types `cur_obj_update_floor_height_and_get_floor`'s `floor` out-cell, so the getter
   returns kS and `cur_obj_update_floor` is walked (392 table entries; `updfloor_xspec`
   replaces its PRES leaf too: `Hopen2`/`Hopen2u` are call_action_function only). The
-  frame is per-block, not yet per-object (a kSelf class: "only the running slot's object"
-  is still open); SafeB covers every object slot. Not wired into a capstone, so no row
-  moved; no new trust.
+  frame is per-block, not per-object; SafeB covers every object slot. Not wired into a
+  capstone, so no row moved; no new trust.
+- **kSelf, the own-slot frame (2026-10-25, OBJECTS S3, `ObjSelf.v` + `ObjFrame` sec. 5-6):**
+  all object slots share ONE block (gObjectPool), so "own object" is the byte range
+  [oc, oc + 608) (608 = sizeof(struct Object), `OSZ_sizeof`, vm) where gCurrentObject holds
+  &pool[oc]. `ObjSelf.s_fun_frame` (generic, no SafeB/MWF premise): a self-clean body --
+  every store is through a SELF temp (all its definitions are the gCurrentObject load) by
+  fields / constant indices inside [0, 608), or NP-rooted (block is neither the pool nor
+  gCurrentObject's), every call a direct call of a checked table entry whose arg kinds
+  (KSelf / KNp / KAny) hold -- changes the pool only in [oc, oc+608) and never
+  gCurrentObject's cell (`SFR`). `ObjFrame.self_tab`: the greatest self-clean subset of
+  xotab plus play_sound (walked as a body), 200 entries, re-checked by one vm sweep
+  (`self_walk_ok`); leaf sqrtf (FPU floor 3.5, memory identity). `obj_body_self_frame`:
+  premises only `Hoc` (the slot fits in ptrofs), the entry pointer `SI`, and the args'
+  kinds. Census: 46 of the 107 WMotR live natives are self-clean; the other 61
+  (`cross_live`, pinned by name) write OTHER slots or need a stronger class: spawn /
+  allocate targets (spawn_object*, try_to_spawn_object, create_object, then stores through
+  the new object), loaded object pointers (parentObj, gMarioObject, a hidden 1-up),
+  cur_obj_call_action_function, script-indexed fields, and helpers taking interior self
+  pointers (vec3f_* on &o->pos: object_step, cur_obj_move_standard, animation init), and
+  bhv_mario_update (Mario's own body).
+  Koopa: only the koopa_shell_* bodies are in the object closure (no koopa race code), and
+  no beta/alpha boo_key or respawner body is (`self_census_names`). Not wired into a
+  capstone, so no row moved; no new trust.
 
 ### Row 0.7 in detail
 

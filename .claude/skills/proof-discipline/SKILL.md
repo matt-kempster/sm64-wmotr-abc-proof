@@ -150,6 +150,13 @@ all in `Unwired/`, and the theorem moved nowhere. See
   create_respawner's rawData slot 29 is charged to a per-behavior fact); addresses flow only
   to gCurBhvCommand / curBhvCommand / behavior / bhvStack (+ the respawner cell). The RO class
   is cheap: never-a-store-target + boot equality to the initializer + the slot-29 fact.
+  2026-10-25 `ObjSelf.v` (spine via ObjFrame) + ObjFrame sec. 5-6: kSelf = the byte range
+  [oc, oc+608) of gObjectPool; `obj_body_self_frame` (no SafeB/MWF premise) for the 200
+  self-clean entries (`self_walk_ok`, vm); 46/107 live natives self-clean, the other 61 named
+  in `cross_live` (spawn targets, loaded object pointers, call_action_function, interior
+  self pointers into vec3f_* helpers). Koopa race / boo_key / respawner not in the closure.
+  Open next: an interior-self-pointer kind (KSelfAt d) for vec3f_* / object_step, then
+  per-call frames for spawns (the new slot is not the running one).
   2026-10-24 `UpdateCameraBody.update_camera_pres`: the REAL `update_camera(c)` (SafeB c) keeps
   `mem_ok`. 507 bodies (the whole recursive tree: `UcKit` two-mode class walker, `UcTable`
   signatures re-checked by vm), the 336 CameraEvent functions by type certificate. Wired as
