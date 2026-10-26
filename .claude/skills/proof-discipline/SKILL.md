@@ -421,7 +421,11 @@ all in `Unwired/`, and the theorem moved nowhere. See
     collision finders, the double-miss NULL floor (carry "find_floor hits under Mario"; the
     find_floor half is PROVED, `FfComplete.ff_complete` from `Wff_dp` (death plane on every
     static floor cell, boot `StartTerrain.dp_chk`); open: the in-bounds pos fact in `ffw` and
-    `c_ff` dropping its NULL outcome) and
+    `c_ff` dropping its NULL outcome; FOUND D, TRUST 0.8: the row's "fresh" claim is false on
+    the double miss until then), the DEATH warp it then fires (its contract is PROVED and
+    staged, `LtwFrame.ltw_frame` (writes only ltw_ws + Mario's invincTimer), `ltw_cells`
+    (op ∈ {18,19,20}, node ∈ {241,243} or untouched), `ltw_warp_w` (warp_w kept, incl. op ∉
+    {0x17,0x18}); also for handle_special_floors' WARP_FLOOR) and
     INPUT_SQUISHED (a labeled sub-row tied to obj_w). The prologue call is in `Hair_pro`. The
     `quicksandDepth = 0` store is proved (the `qsd_*` lemmas). What stays assumed is the
     12 handler calls, `HeightFrame.Hauto_case : aut_case_rows` (27 → 28 hypotheses).

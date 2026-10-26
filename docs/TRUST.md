@@ -719,6 +719,27 @@ without pressing A".*
   real loaded terrain (`StartTerrain.dp_chk`, checked on m11 in `wchk`, `dp_chk_sound`;
   `StartSat.wff11`). Not yet consumed: `c_ff` still offers the NULL outcome; dropping it needs the
   position bounds carried in `ffw` (next chunk).
+- **FOUND D (2026-10-26, phantom ∀ in an open row, not yet repaired):** the open
+  `update_mario_inputs` row (`NaSplit.na_open`, through `HeightFrame.Hseg_na_open`) claims
+  `FfWorld.fresh` afterwards from any frame-world memory. Its `update_mario_geometry_inputs`
+  (mario.c:1314-1368) searches the floor under `pos`; on a miss it copies `gfx.pos` into `pos` and
+  searches again; on a second miss it leaves `m->floor = NULL` and calls
+  `level_trigger_warp(m, WARP_OP_DEATH)`. That path breaks `ff_Wf` (the floor cell must hold a
+  WMotR surface), and the frame world does not rule it out: nothing it carries keeps `pos` or
+  `gfx.pos` over the death plane, so the row is FALSE as stated. Repair (agreed plan): carry the
+  box for `gfx.pos` x/z in Φ and for `pos` x/z in `fresh` (chunk B-xz), tighten y to −8192
+  (chunk B-y); with `ff_complete` the second search then always hits and the DEATH call is dead
+  code on every frame-world memory. Until then the row stays open, labeled with this finding.
+- **level_trigger_warp's contract (2026-10-26, PROVED, no trust added, `LtwFrame`):** for the
+  two Mario-side ops that reach it in WMotR (DEATH from the double miss above, WARP_FLOOR from
+  `check_death_barrier`), proved from the real body and its callees' real bodies
+  (play_transition, play_sound, fadeout_music → func_803210D4, area_get_warp_node,
+  music_changed_through_warp): the call changes only the five warp statics, the transition /
+  sound-queue / music globals (`ltw_ws`) and Mario's `invincTimer` (`ltw_frame`, any op); with
+  a warp already pending memory is unchanged, else the op becomes DEATH / WARP_FLOOR / GAME_OVER
+  and the source node 0xF1 / 0xF3 (`ltw_cells`); so `FfWorld.warp_w` is kept, including its
+  "no credits op" clause (`ltw_warp_w`). Staged for the two open rows that call it
+  (`update_mario_inputs`, `mario_handle_special_floors`); not yet consumed.
 - **Checked on the real loaded terrain (2026-10-22, `TerrainRun` + `TerrainBound`):** the
   repaired `floor_data` holds on the memory that the generated `load_area_terrain` builds from
   WMotR's collision data (1352 surfaces, conditional only on `world_ok`, see 0.4). Each floor-list
