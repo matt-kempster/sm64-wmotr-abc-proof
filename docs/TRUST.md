@@ -75,14 +75,7 @@ without pressing A".*
   verbatim (dischargeable by `SymbolicLinking.linkorder_comp_env_extends`); and Clight expression
   evaluation is deterministic (`Generic/ClightDeterm.v`, proved). Still missing: composing it into
   the capstone (Mario's hitbox fields at collision time, coin #2's field values, and "no contact
-  registered ⇒ coin not collected ⇒ no star"). **2026-10-26: Mario's hitbox fields are carried
-  by the frame world**: `ffw` fields `ff_HH` (hitboxHeight 100.0f or 160.0f, what
-  `mario_update_hitbox_and_cap_model` stores) and `ff_HD` (hitboxDownOffset 0.0f), proved at
-  boot (the witness runs the real `spawn_objects_from_info`, whose `allocate_object` stores both;
-  `StartTerrain.bo_chk` reads them off m11, no stand-in store) and kept by every proved row and flank (the hitbox row
-  re-proves `ff_HH` from its body). `HitboxFrame.ffw_coin` restates them in `MARIO_COIN2`'s
-  form (Lha / Fha / Hmario_height / Lda / Fda / Hmario_down). Left: the objects phase keeping
-  them up to `detect_object_collisions`, and the composition itself. That step also silently assumes **coin #2 never
+  registered ⇒ coin not collected ⇒ no star"). That step also silently assumes **coin #2 never
   moves**. The one way Mario code moves another object is dropping or throwing a held object
   (`mario_drop_held_object` sets `heldObj->oPosY = m->pos[1]`, `interaction.c:307`; this is how
   cloning works).
@@ -1054,13 +1047,9 @@ without pressing A".*
     The instant / painting warps are not pinned: Mario's floor type (`wmotr_world`) rules them
     out (`LevelFlank.floor_safe`; `get_painting_warp_node` walked to NULL).
   - `update_camera(gCurrentArea->camera)` keeps mem_ok: PROVED (`LevelKeep.cam_mem_ok`, by
-    `update_camera_ok_linked12`, the real camera.c). Its argument is SafeB because gCurrentArea
-    points into `gAreaData` (`FfWorld.area_w`, part of PhiW's `lvl_w`, 2026-10-25: proved at boot
-    from load_area's store `gCurrentArea = &gAreaData[1]` in the witness chain, and kept by every
-    phase, since no frame code writes gCurrentArea). `gAreaData` is a SafeB symbol
-    (`CensusV2.camera_safe_syms`) and gCurrentArea a stored global (`stored_globals`, the
-    `Hglob_blk` class: nothing in the object graph points at it), so MWF's chase step gives the
-    rest. The former stated premise `cam_area_mario` is gone.
+    `update_camera_ok_linked12`, the real camera.c). Its argument is SafeB because
+    `LevelKeep.cam_area_mario` holds at the POST start (stated: gCurrentArea = gMarioState->area,
+    as init_mario sets it). m->area is a chase root, so MWF's chase step gives the rest.
   - `Hcam_phi` (`LevelKeep.cam_phi_row`): the `update_camera` statement, between mem_ok states,
     keeps PhiW and Mario's wall / ceiling / floor cells. Not a clobber spec: the main-pool Camera
     struct shares its block with the surface pool, and `RenderKeep.k_all` keeps whole blocks. The
@@ -1068,10 +1057,9 @@ without pressing A".*
     sCutsceneVars, gCameraMovementFlags, gSecondCameraFocus's object, Mario's action
     (set_mario_npc_dialog), and the audio / dialog / sCameraHUDStatus / gRandomSeed16 /
     find_floor-counter globals.
-  - `surf_apart` over `level_gvars`, as for render / platform. (The PRE premise `plat_apart`
-    is gone: `PlatformKeep.plat_still` now carries that gMarioPlatform's object is in
-    `gObjectPool`'s block, which is true in the game: every object is a pool slot. So it is
-    apart from the level globals and Mario's block by symbol.)
+  - `surf_apart` over `level_gvars`, as for render / platform; `LevelKeep.plat_apart` (PRE):
+    gMarioPlatform's object is not in a level global's block nor Mario's (for the `plat_still`
+    carry; in the game it is a `gObjectPool` object).
   - `warp_w` at the POST's end (`seg_level_post_spec`): the tail writes `sWarpDest` /
     `sCurrPlayMode` / `gCurrCreditsEntry`. FOUND: a ∀-row re-establishing it is false
     (`warp_w` does not pin `sDelayedWarpOp`; a credits op would set a credits entry). In WMotR
