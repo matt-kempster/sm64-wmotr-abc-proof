@@ -751,7 +751,7 @@ Section SELF.
 
   Lemma s_leaf_ok : forall fd ks, sLeafS fd ks ->
       forall m vargs t m' vres, eval_funcall function_entry2 ge m fd vargs t m' vres ->
-      Forall2 (karg pool gB oc) ks vargs -> SI pool gB oc m -> GV pool gB m ->
+      Forall2 (karg pool gB oc OSZ) ks vargs -> SI pool gB oc m -> GV pool gB m ->
       SFR pool gB oc OSZ m m'.
   Proof.
     intros fd ks (b & Hs & Hff & _) m vargs t m' vres Hev _ _ _.
@@ -798,7 +798,7 @@ Section SELF.
       In (fid, i, ks) self_tab ->
       Genv.find_symbol ge fid = Some b -> Genv.find_funct ge (Vptr b Ptrofs.zero) = Some fd ->
       eval_funcall function_entry2 ge m fd vargs t m' vres ->
-      Forall2 (karg pool gB oc) ks vargs -> SI pool gB oc m -> GV pool gB m ->
+      Forall2 (karg pool gB oc OSZ) ks vargs -> SI pool gB oc m -> GV pool gB m ->
       SFR pool gB oc OSZ m m'.
   Proof.
     intros fid i ks b fd m vargs t m' vres Hin Hs Hff Hev Hva Hsi Hgv.

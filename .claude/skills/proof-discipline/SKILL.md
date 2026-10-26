@@ -157,6 +157,18 @@ all in `Unwired/`, and the theorem moved nowhere. See
   self pointers into vec3f_* helpers). Koopa race / boo_key / respawner not in the closure.
   Open next: an interior-self-pointer kind (KSelfAt d) for vec3f_* / object_step, then
   per-call frames for spawns (the new slot is not the running one).
+  2026-10-25 (2) SHELVED after a checker-only probe (scratch, no proofs). The class was: a
+  pointer is non-pool, or pool at window offset d with reach R, with field and index shifts
+  and a per-parameter reach. It covers 50/107 live natives, a strict superset of kSelf's 46:
+  +end_peach, white_puff_exploding, bowser_key_unlock_door and bowser_key_course_exit, all
+  via geo_obj_init_animation(&o->header.gfx, ..). The table grows to 213. Of the 57 still
+  uncovered: 46 reach create_object (spawn_object -> spawn_object_at_origin; spawns are the
+  binding constraint); 4 store across objects (1up_loop via 1up_interact -> numLives,
+  end_toad, idle_water_wave, 1up_hidden_in_pole_trigger; clear_particle_flags -> gMarioObject
+  is a callee of spawners); 2 are
+  call_action_function bodies (exclamation_box, cannon_base; see caf_frame); 2 are
+  unlock_door_star (indirect call); the singles are load_object_collision_model,
+  normal_cap_init (save_file_set_cap_pos) and a debug print. Worth +4; redo after (3).
   2026-10-25 `ObjAct.v` (spine-root): `caf_frame` = call_action_function's frame for the 3
   live tables under the named premise `RO_tab` (boot: `ro_tab_boot`, real init_mem); 15
   action bodies + 4 helpers walked (`act_walk_ok`); sizes pinned (`act_size`); oAction
@@ -169,6 +181,41 @@ all in `Unwired/`, and the theorem moved nowhere. See
   out-of-range `tbl[oAction]` is stuck in Clight -- excluded, not proved absent (N64 reads
   adjacent memory). S2: `act_in_range` as an obj_w clause from `act_stores_census` + spawn /
   init. Rule everywhere: never treat "Clight gets stuck" as discharging a premise.
+  2026-10-25 (3) `ObjSpawn.v` (spine-root, option B): ObjSelf's walk generalized (section
+  GEN, `s_fun_frame3`): the frame is parametric in protected pool cells Pc, and a 4th kind
+  KFresh = the running slot or a slot with no Pc byte (FVv); fresh temps come only from
+  fresh/self values or calls of fresh-returning functions (`spawn_rft`: spawn_object*,
+  spawn_star, spawn_water_droplet, try_to_spawn_object). Pc P = bytes of a slot in P outside
+  the link cells [4,20) (graph prev/next/parent/children) and [96,104) (list next/prev),
+  offsets pinned by `link_offsets` (vm). `obj_body_spawn_frame`: 244 entries
+  (`spawn_walk_ok`, vm), 62/107 live natives (kSelf 46 + 16), 45 uncovered
+  (`spawn_uncovered`). Remaining blockers: spawn_object_relative (obj_build_relative_transform
+  / obj_translate_local store at a VARIABLE rawData index), physics movers (object_step,
+  coin_step, cur_obj_move_standard), the 4 cross-object stores, unlock_door_star,
+  load_object_collision_model, call_action_function bodies, debug printers, singles.
+  OPEN ROW `Hspawn_fr` (`ObjSpawn.spawn_fr`, per-call, not a TRUST row): every call of
+  spawn_object_at_origin changes pool cells only in the running slot, in slots not in P and
+  in link cells, keeps gCurrentObject's cell, and returns the running slot or a slot with no
+  protected byte. SPEC FOR ITS DISCHARGE (option A, after S2) -- the reachability facts it
+  hides, as an obj_w invariant: (a) the chain from gFreeObjectList.next via header.next is
+  acyclic, ends at NULL, and every member is inactive (activeFlags = 0), hence not in P;
+  (b) when the free list is empty, the unimportant list's head (gObjectLists[UNIMPORTANT]
+  .next) and its next carry ACTIVE_FLAG_UNIMPORTANT, hence are not in P; (c) every slot's
+  link cells hold a pool-slot pointer or a sentinel (gObjectLists, gFreeObjectList,
+  gObjParentGraphNode), and a live slot's graph parent is gObjParentGraphNode; (d) census:
+  only object_list_processor / graph-node list code stores link fields, sets activeFlags
+  active, or stores the list globals.
+  STALE POINTERS ("spiny adoption", `ObjStoreCensus` sec. STALE): Hspawn_fr covers the
+  spawn only. A write through a STORED object pointer (parentObj, prevObj, heldObj, usedObj,
+  interactObj, riddenObj, oFoo pointer fields, gMarioObject, ...) is NEVER assumed to hit its
+  intended object: the walk gives such a pointer KAny, so no body storing through it is in
+  spawn_tab. S2's uncovered-natives row must, per write, EITHER prove the target is still
+  that object (the holder outlives it / is cleared with it) OR prove the write cannot hit a
+  protected slot (pole, cannon, Mario's object). `lakitu_spiny_not_live` (vm): enemy Lakitu
+  and Spiny are not live. Object phase: no FOUND. OPEN: Mario-phase writes through usedObj /
+  interactObj / riddenObj / heldObj (act_in_cannon writes usedObj->oAction and
+  oInteractStatus; mario_stop_riding_object; door / hoot / shell actions) need the same
+  either/or in S2.
   2026-10-24 `UpdateCameraBody.update_camera_pres`: the REAL `update_camera(c)` (SafeB c) keeps
   `mem_ok`. 507 bodies (the whole recursive tree: `UcKit` two-mode class walker, `UcTable`
   signatures re-checked by vm), the 336 CameraEvent functions by type certificate. Wired as

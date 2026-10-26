@@ -916,6 +916,16 @@ without pressing A".*
   Koopa: only the koopa_shell_* bodies are in the object closure (no koopa race code), and
   no beta/alpha boo_key or respawner body is (`self_census_names`). Not wired into a
   capstone, so no row moved; no new trust.
+- **Protected-slot frame with spawns (2026-10-25, OBJECTS S3, `ObjSpawn.v`, `ObjSelf` sec.
+  GEN):** `ObjSelf.s_fun_frame3` generalizes kSelf to protected pool cells Pc and a KFresh
+  kind (running slot or a slot with no Pc byte); `obj_body_spawn_frame` covers 244 entries
+  (`spawn_walk_ok`, vm), 62/107 live natives. Pc P = the bytes of slots in P outside the
+  list / graph link cells (`link_offsets`, vm against the composite env). Premise
+  `Hspawn_fr` (spawn_object_at_origin's per-call frame) is a named OPEN proof obligation
+  (spec in SKILL), not a trust assumption: nothing consumes this frame yet. A store through a
+  STORED object pointer is never assumed to hit its intended object (it is KAny, so such
+  bodies are not walked); stale-pointer verdicts in `ObjStoreCensus` (no FOUND). Not wired
+  into a capstone, so no row moved; no new trust.
 - **call_action_function's frame (2026-10-25, OBJECTS S3, `ObjAct.v`):** sizes pinned by vm
   (`act_size`): of the 35 action tables only 3 are passed from an xotab body
   (sJumpingBoxActions, sOpenedCannonActions, sExclamationBoxActions); their 15 entries are

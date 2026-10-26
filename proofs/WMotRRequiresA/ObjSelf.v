@@ -28,6 +28,15 @@
 (* body NOT self-clean -- those are the cross-slot writes, named by the   *)
 (* census (ObjFrame).                                                     *)
 (*                                                                        *)
+(* GENERAL WALK (section GEN, s_fun3 / s_fun_frame3): the frame is      *)
+(* parametric in the PROTECTED pool cells Pc (PFR: pool cells outside    *)
+(* the running slot with Pc, plus gCurrentObject's cell, unchanged), with *)
+(* a fourth kind KFresh: a pointer to the running slot or to a slot with  *)
+(* no Pc byte (FVv).  FRESH temps are defined only from FRESH / SELF      *)
+(* values or results of fresh-returning calls (rft), and a store through *)
+(* one lands in such a slot.  The kSelf frame above is Pc := True, no     *)
+(* fresh returns; ObjSpawn instantiates Pc with the protected slots.      *)
+(*                                                                        *)
 (* No premise on SafeB or MWF: the walk needs only the symbols, the       *)
 (* pointer gCurrentObject holds, and that the slot fits in ptrofs.        *)
 (* ====================================================================== *)
@@ -46,7 +55,7 @@ Local Open Scope Z_scope.
 Definition POOL : ident := object_list_processor._gObjectPool.
 Definition GCO : ident := object_list_processor._gCurrentObject.
 
-Inductive skind := KSelf | KNp | KAny.
+Inductive skind := KSelf | KNp | KAny | KFresh.
 Definition stab := list (ident * list skind).
 Definition st_find (f : ident) (t : stab) : option (list skind) :=
   match find (fun p => Pos.eqb (fst p) f) t with Some (_, ks) => Some ks | None => None end.
@@ -220,13 +229,13 @@ Definition selfdef (ss lv : list ident) (a : expr) : bool :=
   | _ => selfv ss a
   end.
 
-Definition karg_ok (ss sn : list ident) (k : skind) (a : expr) : bool :=
-  match k with KSelf => selfv ss a | KNp => npv sn a | KAny => true end.
+Definition karg_ok (ss sn sf : list ident) (k : skind) (a : expr) : bool :=
+  match k with KSelf => selfv ss a | KNp => npv sn a | KAny => true | KFresh => selfv sf a || selfv ss a end.
 
-Fixpoint args_ok (ss sn : list ident) (ks : list skind) (al : list expr) : bool :=
+Fixpoint args_ok (ss sn sf : list ident) (ks : list skind) (al : list expr) : bool :=
   match ks, al with
   | [], [] => true
-  | k :: ks', a :: al' => karg_ok ss sn k a && args_ok ss sn ks' al'
+  | k :: ks', a :: al' => karg_ok ss sn sf k a && args_ok ss sn sf ks' al'
   | _, _ => false
   end.
 
@@ -236,32 +245,38 @@ Definition self_store (ce : composite_env) (ss : list ident) (SZ : Z) (l : expr)
   | _, _ => false
   end.
 
-Definition st_set (ss sn lv : list ident) (id : ident) (a : expr) : bool :=
-  (negb (mem_i id ss) || selfdef ss lv a) && (negb (mem_i id sn) || npv sn a).
-Definition st_store (ce : composite_env) (ss sn : list ident) (SZ : Z) (l r : expr) : bool :=
-  MtxfBody.is_byval (typeof l) && (npl sn l || self_store ce ss SZ l).
-Definition st_call (ss sn lv : list ident) (tab : stab) (optid : option ident) (a : expr)
-    (al : list expr) : bool :=
+(* sf: FRESH temps -- a pointer to a slot the frame does not protect (a
+   just-spawned object: the result of a fresh-returning callee, rft) *)
+Definition st_set (ss sn sf lv : list ident) (id : ident) (a : expr) : bool :=
+  (negb (mem_i id ss) || selfdef ss lv a) && (negb (mem_i id sn) || npv sn a)
+  && (negb (mem_i id sf) || selfv sf a || selfv ss a).
+Definition st_store (ce : composite_env) (ss sn sf : list ident) (SZ : Z) (l r : expr) : bool :=
+  MtxfBody.is_byval (typeof l) && (npl sn l || self_store ce ss SZ l || self_store ce sf SZ l).
+Definition st_call (ss sn sf lv : list ident) (tab : stab) (rft : list ident)
+    (optid : option ident) (a : expr) (al : list expr) : bool :=
   match a with
   | Evar f (Tfunction _ _ _) =>
       negb (mem_i f lv) &&
-      match st_find f tab with Some ks => args_ok ss sn ks al | None => false end
+      match st_find f tab with Some ks => args_ok ss sn sf ks al | None => false end
+      && match optid with Some t => negb (mem_i t sf) || mem_i f rft | None => true end
   | _ => false
   end
   && match optid with Some t => negb (mem_i t ss) && negb (mem_i t sn) | None => true end.
 
-Definition s_chk (ce : composite_env) (SZ : Z) (tab : stab) (ss sn lv : list ident)
-    (s : statement) : bool :=
-  SpawnBodies.sw_chk (st_set ss sn lv) (st_store ce ss sn SZ) (st_call ss sn lv tab)
-    (fun _ => true) s.
+(* rf: the body must return a fresh pointer *)
+Definition s_chk3 (ce : composite_env) (SZ : Z) (tab : stab) (rft : list ident) (rf : bool)
+    (ss sn sf lv : list ident) (s : statement) : bool :=
+  SpawnBodies.sw_chk (st_set ss sn sf lv) (st_store ce ss sn sf SZ) (st_call ss sn sf lv tab rft)
+    (fun a => negb rf || selfv sf a || selfv ss a) s.
 
-Fixpoint params_ok (ss sn : list ident) (ps : list ident) (ks : list skind) : bool :=
+Fixpoint params_ok (ss sn sf : list ident) (ps : list ident) (ks : list skind) : bool :=
   match ps, ks with
   | [], [] => true
   | p :: ps', k :: ks' =>
       (negb (mem_i p ss) || match k with KSelf => true | _ => false end)
       && (negb (mem_i p sn) || match k with KNp => true | _ => false end)
-      && params_ok ss sn ps' ks'
+      && (negb (mem_i p sf) || match k with KFresh => true | _ => false end)
+      && params_ok ss sn sf ps' ks'
   | _, _ => false
   end.
 
@@ -294,7 +309,7 @@ Fixpoint iter_sets (n : nat) (lv : list ident) (ds : list (ident * option expr))
   end.
 
 Definition kind_params (k : skind) (ps : list ident) (ks : list skind) : list ident :=
-  map fst (filter (fun p => match snd p, k with KSelf, KSelf | KNp, KNp => true | _, _ => false end)
+  map fst (filter (fun p => match snd p, k with KSelf, KSelf | KNp, KNp | KFresh, KFresh => true | _, _ => false end)
              (combine ps ks)).
 
 Definition sets_of (ks : list skind) (f : Clight.function) : list ident * list ident :=
@@ -305,11 +320,47 @@ Definition sets_of (ks : list skind) (f : Clight.function) : list ident * list i
   iter_sets (S (List.length ts + List.length ps)) lv ds
     (kind_params KSelf ps ks ++ ts) (kind_params KNp ps ks ++ ts).
 
+(* the fresh temps: every expression definition copies a fresh temp, every
+   call definition calls a fresh-returning function (re-checked by st_set /
+   st_call; this computation is untrusted) *)
+Fixpoint t_calls (s : statement) : list (ident * ident) :=
+  match s with
+  | Scall (Some t) (Evar f _) _ => [(t, f)]
+  | Ssequence s1 s2 | Sifthenelse _ s1 s2 | Sloop s1 s2 => t_calls s1 ++ t_calls s2
+  | Slabel _ s1 => t_calls s1
+  | Sswitch _ sl => t_calls_ls sl
+  | _ => []
+  end
+with t_calls_ls (sl : labeled_statements) : list (ident * ident) :=
+  match sl with LSnil => [] | LScons _ s sl' => t_calls s ++ t_calls_ls sl' end.
+
+Definition keep_fresh (rft ss : list ident) (ds : list (ident * option expr))
+    (cs : list (ident * ident)) (sf : list ident) :=
+  filter (fun t => forallb (fun d => negb (Pos.eqb (fst d) t) ||
+                     match snd d with Some a => selfv sf a || selfv ss a | None => true end) ds
+                && forallb (fun c => negb (Pos.eqb (fst c) t) || mem_i (snd c) rft) cs) sf.
+
+Fixpoint iter_fresh (n : nat) (rft ss : list ident) (ds : list (ident * option expr))
+    (cs : list (ident * ident)) (sf : list ident) : list ident :=
+  match n with O => sf | S n' => iter_fresh n' rft ss ds cs (keep_fresh rft ss ds cs sf) end.
+
+Definition fresh_of (rft ss : list ident) (ks : list skind) (f : Clight.function) : list ident :=
+  let ps := map fst (fn_params f) in
+  let ts := map fst (fn_temps f) in
+  iter_fresh (S (List.length ts + List.length ps)) rft ss (t_defs (fn_body f)) (t_calls (fn_body f))
+    (kind_params KFresh ps ks ++ ts).
+
+Definition s_fun3 (ce : composite_env) (SZ : Z) (tab : stab) (rft : list ident) (rf : bool)
+    (ks : list skind) (f : Clight.function) : bool :=
+  let '(ss, sn) := sets_of ks f in
+  let sf := fresh_of rft ss ks f in
+  s_chk3 ce SZ tab rft rf ss sn sf (map fst (fn_vars f)) (fn_body f)
+  && params_ok ss sn sf (map fst (fn_params f)) ks.
+
+(* the own-slot check: no fresh-returning callee, no fresh result *)
 Definition s_fun (ce : composite_env) (SZ : Z) (tab : stab) (ks : list skind)
     (f : Clight.function) : bool :=
-  let '(ss, sn) := sets_of ks f in
-  s_chk ce SZ tab ss sn (map fst (fn_vars f)) (fn_body f)
-  && params_ok ss sn (map fst (fn_params f)) ks.
+  s_fun3 ce SZ tab [] false ks f.
 
 (* ---------------------------------------------------------------------- *)
 (* 2. Value bricks.                                                         *)
@@ -659,24 +710,524 @@ Section SW.
       - match goal with Ha : access_mode ty = By_copy |- _ => rewrite Ha in Hm; discriminate Hm end.
     Qed.
 
-    Lemma args_sound : forall al tys vargs ks,
-        eval_exprlist ge e le m al tys vargs -> args_ok ss sn ks al = true ->
-        Forall2 (fun k v => match k with KSelf => SVv v | KNp => NPv v | KAny => True end) ks vargs.
+    (* a base-pointer class over temps ts: every ts temp holds a pool pointer
+       whose offset satisfies BS; pad / lad then name a pool address at a
+       BS base plus the constant offset *)
+    Section PADG.
+      Variable ts : list ident.
+      Variable BS : ptrofs -> Prop.
+      Hypothesis HTb : forall t v, le ! t = Some v -> mem_i t ts = true ->
+          forall b o, v = Vptr b o -> b = pool /\ BS o.
+
+      Lemma pad_gen :
+        (forall a v, eval_expr ge e le m a v ->
+           forall d, pad ce ts a = Some d -> forall b o, v = Vptr b o ->
+             b = pool /\ exists o0, BS o0 /\ o = Ptrofs.add o0 (Ptrofs.repr d))
+        /\ (forall a b o bf, eval_lvalue ge e le m a b o bf ->
+           forall d, lad ce ts a = Some d ->
+             b = pool /\ (exists o0, BS o0 /\ o = Ptrofs.add o0 (Ptrofs.repr d)) /\ bf = Full).
+      Proof.
+        apply eval_expr_lvalue_ind.
+        - intros i ty d Hd. discriminate Hd.
+        - intros f ty d Hd. discriminate Hd.
+        - intros f ty d Hd. discriminate Hd.
+        - intros i ty d Hd. discriminate Hd.
+        - (* temp *)
+          intros id ty v Hg d Hd b o E. cbn in Hd. destruct (mem_i id ts) eqn:Em; [ | discriminate Hd ].
+          injection Hd as <-. destruct (HTb id v Hg Em b o E) as (-> & Hb).
+          split; [ reflexivity | exists o; split; [ exact Hb | rewrite Ptrofs.add_zero; reflexivity ] ].
+        - (* addrof *)
+          intros a ty loc ofs Hl IH d Hd b o E. injection E as <- <-.
+          assert (Hla : lad ce ts a = Some d)
+            by (destruct a; cbn in Hd |- *; try discriminate Hd; exact Hd).
+          destruct (IH d Hla) as (-> & Ho & _). split; [ reflexivity | exact Ho ].
+        - (* unop *)
+          intros op a ty v1 v _ _ _ d Hd. discriminate Hd.
+        - (* binop *)
+          intros op a1 a2 ty v1 v2 v Hev1 IH1 Hev2 _ Hs d Hd b o E. subst v.
+          destruct op; try discriminate Hd.
+          cbn [pad] in Hd. destruct (cint a2) as [k|] eqn:Eci; [ | discriminate Hd ].
+          rewrite (proj2 (proj2 (proj1 s_eval a2 v2 Hev2)) k Eci) in Hs.
+          destruct (classify_add (typeof a1) (typeof a2)) eqn:Ecl; try discriminate Hd.
+          destruct (complete_type ce ty0) eqn:Ect; [ | discriminate Hd ].
+          destruct (pad ce ts a1) as [d0|] eqn:Ep; [ | discriminate Hd ]. injection Hd as <-.
+          cbn in Hs. unfold sem_add in Hs. rewrite Ecl in Hs. unfold sem_add_ptr_int in Hs.
+          destruct v1; try discriminate Hs; try (destruct Archi.ptr64; discriminate Hs).
+          injection Hs as Eb Eo. subst b o.
+          destruct (IH1 d0 eq_refl _ _ eq_refl) as (-> & o0 & Hb0 & ->).
+          split; [ reflexivity | exists o0; split; [ exact Hb0 | ] ].
+          rewrite (sizeof_stable ce ge Hce ty0 Ect), ptrofs_of_int_zk, ptrofs_mul_repr.
+          apply add_oc.
+        - (* cast *)
+          intros a ty v1 v _ IH Hc d Hd b o E. subst v.
+          exact (IH d Hd b o (CensusV2.sem_cast_vptr_inv _ _ _ _ _ _ Hc)).
+        - intros ty1 ty d Hd. discriminate Hd.
+        - intros ty1 ty d Hd. discriminate Hd.
+        - (* lvalue read *)
+          intros a loc ofs bf v Hl IH Hdr d Hp b o E. subst v.
+          destruct a; try (inversion Hl; fail); cbn [pad] in Hp.
+          + discriminate Hp.
+          + destruct (access_mode t) eqn:Ea; try discriminate Hp.
+            * destruct (IH d Hp) as (-> & Ho & ->). inv Hdr; [ cbn [typeof] in *; congruence | | ];
+                (split; [ reflexivity | exact Ho ]).
+            * destruct (IH d Hp) as (-> & Ho & ->). inv Hdr; [ cbn [typeof] in *; congruence | | ];
+                (split; [ reflexivity | exact Ho ]).
+          + destruct (access_mode t) eqn:Ea; try discriminate Hp.
+            * destruct (IH d Hp) as (-> & Ho & ->). inv Hdr; [ cbn [typeof] in *; congruence | | ];
+                (split; [ reflexivity | exact Ho ]).
+            * destruct (IH d Hp) as (-> & Ho & ->). inv Hdr; [ cbn [typeof] in *; congruence | | ];
+                (split; [ reflexivity | exact Ho ]).
+        - (* local *)
+          intros id l ty He d Hd. discriminate Hd.
+        - (* global *)
+          intros id l ty He Hs d Hd. discriminate Hd.
+        - (* deref *)
+          intros a ty l ofs _ IH d Hd.
+          destruct (IH d Hd l ofs eq_refl) as (-> & Ho). auto.
+        - (* field struct *)
+          intros a i ty l ofs id co att delta bf _ IH Ht Hc Hfo d Hd. cbn [lad] in Hd.
+          destruct (pad ce ts a) as [d0|] eqn:Ep; [ | discriminate Hd ].
+          destruct (fld_off_sound a i d0 d id co att delta bf Hd (or_introl (conj Ht (conj Hc Hfo))))
+            as (-> & ->).
+          destruct (IH d0 eq_refl l ofs eq_refl) as (-> & o0 & Hb0 & ->).
+          split; [ reflexivity | split; [ exists o0; split; [ exact Hb0 | apply add_oc ] | reflexivity ] ].
+        - (* field union *)
+          intros a i ty l ofs id co att delta bf _ IH Ht Hc Hfo d Hd. cbn [lad] in Hd.
+          destruct (pad ce ts a) as [d0|] eqn:Ep; [ | discriminate Hd ].
+          destruct (fld_off_sound a i d0 d id co att delta bf Hd (or_intror (conj Ht (conj Hc Hfo))))
+            as (-> & ->).
+          destruct (IH d0 eq_refl l ofs eq_refl) as (-> & o0 & Hb0 & ->).
+          split; [ reflexivity | split; [ exists o0; split; [ exact Hb0 | apply add_oc ] | reflexivity ] ].
+      Qed.
+    End PADG.
+  End EXPR.
+
+  Lemma selfv_gen : forall (R : block -> ptrofs -> Prop) e le m ts,
+      (forall t v, le ! t = Some v -> mem_i t ts = true -> forall b o, v = Vptr b o -> R b o) ->
+      forall a v, eval_expr ge e le m a v -> selfv ts a = true -> forall b o, v = Vptr b o -> R b o.
+  Proof.
+    intros R e le m ts HT. induction a; intros v Hev Hs; cbn in Hs; try discriminate Hs.
+    - inv Hev; [ | match goal with Hl : eval_lvalue _ _ _ _ (Etempvar _ _) _ _ _ |- _ => inv Hl end ].
+      match goal with Hg : le ! _ = Some _ |- _ => exact (HT _ _ Hg Hs) end.
+    - inv Hev; [ | match goal with Hl : eval_lvalue _ _ _ _ (Ecast _ _) _ _ _ |- _ => inv Hl end ].
+      intros b o E. subst v.
+      match goal with Hc : sem_cast _ _ _ _ = Some _, He : eval_expr _ _ _ _ a _ |- _ =>
+        rewrite (CensusV2.sem_cast_vptr_inv _ _ _ _ _ _ Hc) in He;
+        exact (IHa _ He Hs b o eq_refl) end.
+  Qed.
+
+  Lemma ptr_off : forall o d, Ptrofs.unsigned o + SZ <= Ptrofs.max_unsigned -> 0 <= d <= SZ ->
+      Ptrofs.unsigned (Ptrofs.add o (Ptrofs.repr d)) = Ptrofs.unsigned o + d.
+  Proof.
+    intros o d Ho Hd. rewrite Ptrofs.add_unsigned.
+    pose proof (Ptrofs.unsigned_range_2 o) as Hr.
+    rewrite (Ptrofs.unsigned_repr d) by lia.
+    apply Ptrofs.unsigned_repr. lia.
+  Qed.
+
+  (* ------------------------------------------------------------------ *)
+  (* THE GENERAL WALK: the frame protects the pool cells Pc (outside the *)
+  (* running slot) and gCurrentObject's cell; a FRESH pointer is a pool   *)
+  (* slot none of whose SZ bytes is protected.                            *)
+  (* ------------------------------------------------------------------ *)
+  Section GEN.
+    Variable Pc : Z -> Prop.
+
+    Definition PFP (b : block) (ofs : Z) : Prop := b = gB \/ (b = pool /\ ~ own ofs /\ Pc ofs).
+    Definition PFR (m m' : mem) : Prop := Mem.unchanged_on PFP m m'.
+    Definition FO (o : ptrofs) : Prop :=
+      Ptrofs.unsigned o + SZ <= Ptrofs.max_unsigned
+      /\ forall d, 0 <= d < SZ -> ~ Pc (Ptrofs.unsigned o + d).
+    (* a WRITABLE slot pointer: the running slot, or a slot with no protected byte *)
+    Definition FVv (v : val) : Prop := forall b o, v = Vptr b o -> b = pool /\ (o = oc \/ FO o).
+    Definition karg3 (k : skind) (v : val) : Prop :=
+      match k with KSelf => SVv v | KNp => NPv v | KAny => True | KFresh => FVv v end.
+    Definition TIF (sf : list ident) (le : temp_env) : Prop :=
+      forall t v, le ! t = Some v -> mem_i t sf = true -> FVv v.
+
+    Lemma PFR_refl : forall m, PFR m m.
+    Proof. intros m. apply Mem.unchanged_on_refl. Qed.
+    Lemma PFR_trans : forall m1 m2 m3, PFR m1 m2 -> PFR m2 m3 -> PFR m1 m3.
+    Proof. intros m1 m2 m3 H1 H2. exact (Mem.unchanged_on_trans _ _ _ _ H1 H2). Qed.
+    Lemma SFR_PFR : forall m m', SFR m m' -> PFR m m'.
     Proof.
-      intros al tys vargs ks H. revert ks. induction H as [| a bl ty tyl v1 v2 vl Hev Hc Hl IH];
+      intros m m' H. apply (Mem.unchanged_on_implies _ _ _ _ H).
+      intros b ofs [E | (E & Hn & _)] _; [ right; exact E | left; split; [ exact E | exact Hn ] ].
+    Qed.
+    Lemma GV_PFR : forall m m', GV m -> PFR m m' -> GV m'.
+    Proof.
+      intros m m' (H1 & H2) HU. pose proof (Mem.unchanged_on_nextblock _ _ _ HU) as Hn.
+      split; eapply Plt_Ple_trans; eassumption.
+    Qed.
+    Lemma SI_PFR : forall m m', SI m -> GV m -> PFR m m' -> SI m'.
+    Proof.
+      intros m m' Hs (_ & Hg) HU. unfold SI.
+      rewrite (Mem.load_unchanged_on_1 _ _ _ Mint32 gB 0 HU Hg (fun i _ => or_introl eq_refl)).
+      exact Hs.
+    Qed.
+
+    Lemma TI_set_out : forall ss sn le t v, mem_i t ss = false -> mem_i t sn = false ->
+        TI ss sn le -> TI ss sn (PTree.set t v le).
+    Proof.
+      intros ss sn le t v H1 H2 HT t' v' Hg. destruct (peq t' t) as [-> | Hne].
+      - split; intros H; congruence.
+      - rewrite PTree.gso in Hg by exact Hne. exact (HT t' v' Hg).
+    Qed.
+
+    Lemma TIF_set_out : forall sf le t v, mem_i t sf = false -> TIF sf le -> TIF sf (PTree.set t v le).
+    Proof.
+      intros sf le t v H HT t' v' Hg Hm. destruct (peq t' t) as [-> | Hne].
+      - congruence.
+      - rewrite PTree.gso in Hg by exact Hne. exact (HT t' v' Hg Hm).
+    Qed.
+
+    Lemma TIF_fresh : forall e le m ss sn sf a v, TI ss sn le -> TIF sf le -> eval_expr ge e le m a v ->
+        selfv sf a || selfv ss a = true -> FVv v.
+    Proof.
+      intros e le m ss sn sf a v HT HF Hev Hs. apply orb_true_iff in Hs as [Hs | Hs].
+      - exact (selfv_gen (fun b o => b = pool /\ (o = oc \/ FO o)) e le m sf
+                 (fun t v0 Hg Hm => HF t v0 Hg Hm) a v Hev Hs).
+      - intros b o E. destruct (selfv_sound ss sn e le m HT a v Hev Hs b o E) as (-> & ->).
+        split; [ reflexivity | left; reflexivity ].
+    Qed.
+
+    Variable rft : list ident.
+    Variable sLeaf3 : Clight.fundef -> list skind -> bool -> Prop.
+
+    Definition sGood3 (fd : Clight.fundef) (ks : list skind) (rf : bool) : Prop :=
+      (exists f ce, fd = Internal f /\ cext ce /\ s_fun3 ce SZ tab rft rf ks f = true)
+      \/ sLeaf3 fd ks rf.
+
+    Hypothesis HLeaf3 : forall fd ks rf, sLeaf3 fd ks rf ->
+        forall m vargs t m' vres, eval_funcall function_entry2 ge m fd vargs t m' vres ->
+        Forall2 karg3 ks vargs -> SI m -> GV m -> PFR m m' /\ (rf = true -> FVv vres).
+    Hypothesis HTab3 : forall f ks, st_find f tab = Some ks ->
+        forall b fd, Genv.find_symbol ge f = Some b ->
+        Genv.find_funct ge (Vptr b Ptrofs.zero) = Some fd -> sGood3 fd ks (mem_i f rft).
+
+    Definition sPstmt3 (e : env) (le : temp_env) (m : mem) (s : statement) (t : trace)
+        (le' : temp_env) (m' : mem) (out : outcome) : Prop :=
+      exec_stmt function_entry2 ge e le m s t le' m' out /\
+      forall ce ss sn sf lv rf, cext ce -> s_chk3 ce SZ tab rft rf ss sn sf lv s = true ->
+        TI ss sn le -> TIF sf le -> EI lv e -> SI m -> GV m ->
+        PFR m m' /\ TI ss sn le' /\ TIF sf le'
+        /\ (forall v ty, out = Out_return (Some (v, ty)) -> rf = true -> FVv v).
+
+    Definition sPfun3 (m : mem) (fd : Clight.fundef) (vargs : list val) (t : trace)
+        (m' : mem) (vres : val) : Prop :=
+      eval_funcall function_entry2 ge m fd vargs t m' vres /\
+      forall ks rf, sGood3 fd ks rf -> Forall2 karg3 ks vargs -> SI m -> GV m ->
+        PFR m m' /\ (rf = true -> FVv vres).
+
+    Lemma args_sound3 : forall ce e le m ss sn sf lv al tys vargs ks,
+        cext ce -> TI ss sn le -> TIF sf le -> EI lv e ->
+        eval_exprlist ge e le m al tys vargs -> args_ok ss sn sf ks al = true ->
+        Forall2 karg3 ks vargs.
+    Proof.
+      intros ce e le m ss sn sf lv al tys vargs ks Hce HT HF HE H. revert ks.
+      induction H as [| a bl ty tyl v1 v2 vl Hev Hc Hl IH];
         intros ks Hok; destruct ks as [| k ks]; cbn in Hok; try discriminate Hok; [ constructor | ].
       apply andb_prop in Hok as [Hk Hr]. constructor; [ | exact (IH ks Hr) ].
       destruct k; cbn in Hk.
       - intros b o E. subst v2. rewrite (CensusV2.sem_cast_vptr_inv _ _ _ _ _ _ Hc) in Hev.
-        exact (selfv_sound _ _ Hev Hk b o eq_refl).
+        exact (selfv_sound ss sn e le m HT _ _ Hev Hk b o eq_refl).
       - intros b o E. subst v2. rewrite (CensusV2.sem_cast_vptr_inv _ _ _ _ _ _ Hc) in Hev.
-        exact (proj1 (proj1 s_eval _ _ Hev) Hk b o eq_refl).
+        exact (proj1 (proj1 (s_eval ce Hce ss sn e le m HT lv HE) _ _ Hev) Hk b o eq_refl).
       - exact I.
+      - intros b o E. subst v2. rewrite (CensusV2.sem_cast_vptr_inv _ _ _ _ _ _ Hc) in Hev.
+        exact (TIF_fresh e le m ss sn sf a _ HT HF Hev Hk b o eq_refl).
     Qed.
-  End EXPR.
 
-  Definition karg (k : skind) (v : val) : Prop :=
-    match k with KSelf => SVv v | KNp => NPv v | KAny => True end.
+    Lemma s_store3 : forall ce ss sn sf lv e le m l r t le' m' out,
+        cext ce -> TI ss sn le -> TIF sf le -> EI lv e ->
+        st_store ce ss sn sf SZ l r = true ->
+        exec_stmt function_entry2 ge e le m (Sassign l r) t le' m' out -> PFR m m'.
+    Proof.
+      intros ce ss sn sf lv e le m l r t le' m' out Hce HT HF HE Hok Hx.
+      unfold st_store in Hok. apply andb_prop in Hok as [Hbv Hok].
+      inv Hx.
+      match goal with Hl : eval_lvalue _ _ _ _ _ _ _ _ |- _ => rename Hl into Hlv end.
+      match goal with Ha : assign_loc _ _ _ _ _ _ _ _ |- _ => rename Ha into Hal end.
+      apply orb_true_iff in Hok as [Hok | Hfr]; [ apply orb_true_iff in Hok as [Hnp | Hself] | ].
+      - pose proof (s_eval ce Hce ss sn e _ m HT lv HE) as Hse.
+        destruct Hse as (_ & Hse).
+        destruct (Hse _ _ _ _ Hlv) as (Hn & _ & _).
+        destruct (Hn Hnp) as (Hq1 & Hq2).
+        apply (ObjWalk.assign_loc_unch _ _ _ _ _ _ _ _ _ Hal).
+        intros i [E | (E & _)]; congruence.
+      - pose proof (s_eval ce Hce ss sn e _ m HT lv HE) as Hse.
+        destruct Hse as (_ & Hse).
+        destruct (Hse _ _ _ _ Hlv) as (_ & Hp & _).
+        unfold self_store in Hself.
+        destruct (access_mode (typeof l)) eqn:Ea; try discriminate Hself.
+        destruct (lad ce ss l) as [d|] eqn:Ed; [ | discriminate Hself ].
+        apply andb_prop in Hself as [H0 Hsz]. apply Z.leb_le in H0. apply Z.leb_le in Hsz.
+        destruct (Hp d eq_refl) as (-> & -> & ->).
+        pose proof (size_chunk_pos m0) as Hpos.
+        inv Hal.
+        + match goal with Ha : access_mode _ = By_value _ |- _ => rewrite Ea in Ha; injection Ha as <- end.
+          match goal with Hs : Mem.storev _ _ _ _ = Some _ |- _ => unfold Mem.storev in Hs end.
+          eapply Mem.store_unchanged_on; [ eassumption | ].
+          rewrite own_off by lia.
+          intros i Hi [E | (_ & Hno & _)].
+          * exact (pool_ne_gB E).
+          * apply Hno. unfold own. lia.
+        + match goal with Ha : access_mode _ = By_copy |- _ => rewrite Ea in Ha; discriminate Ha end.
+      - unfold self_store in Hfr.
+        destruct (access_mode (typeof l)) eqn:Ea; try discriminate Hfr.
+        destruct (lad ce sf l) as [d|] eqn:Ed; [ | discriminate Hfr ].
+        apply andb_prop in Hfr as [H0 Hsz]. apply Z.leb_le in H0. apply Z.leb_le in Hsz.
+        destruct (proj2 (pad_gen ce Hce ss sn e _ m HT lv HE sf (fun o => o = oc \/ FO o) HF) _ _ _ _ Hlv d Ed)
+          as (-> & (o0 & Ho0 & ->) & ->).
+        pose proof (size_chunk_pos m0) as Hpos.
+        inv Hal.
+        + match goal with Ha : access_mode _ = By_value _ |- _ => rewrite Ea in Ha; injection Ha as <- end.
+          match goal with Hs : Mem.storev _ _ _ _ = Some _ |- _ => unfold Mem.storev in Hs end.
+          eapply Mem.store_unchanged_on; [ eassumption | ].
+          destruct Ho0 as [-> | (Hmax & Hfo)].
+          * rewrite own_off by lia.
+            intros i Hi [E | (_ & Hno & _)]; [ exact (pool_ne_gB E) | apply Hno; unfold own; lia ].
+          * rewrite ptr_off by lia.
+            intros i Hi [E | (_ & _ & Hpc)].
+            -- exact (pool_ne_gB E).
+            -- apply (Hfo (i - Ptrofs.unsigned o0)); [ lia | ].
+               replace (Ptrofs.unsigned o0 + (i - Ptrofs.unsigned o0)) with i by lia. exact Hpc.
+        + match goal with Ha : access_mode _ = By_copy |- _ => rewrite Ea in Ha; discriminate Ha end.
+    Qed.
+
+    Lemma s_mutual3 :
+      (forall e le m s t le' m' out,
+          exec_stmt function_entry2 ge e le m s t le' m' out -> sPstmt3 e le m s t le' m' out) /\
+      (forall m fd vargs t m' vres,
+          eval_funcall function_entry2 ge m fd vargs t m' vres -> sPfun3 m fd vargs t m' vres).
+    Proof.
+      apply (exec_stmt_funcall_ind function_entry2 ge sPstmt3 sPfun3); unfold sPstmt3, sPfun3.
+      - (* Sskip *)
+        intros e le m. split; [ constructor | ].
+        intros ce ss sn sf lv rf _ _ HT HF _ _ _.
+        refine (conj (PFR_refl m) (conj HT (conj HF _))). intros v ty E; discriminate E.
+      - (* Sassign *)
+        intros e le m a1 a2 loc ofs bf v2 v m' Hl Hr Hc Ha.
+        assert (Hx : exec_stmt function_entry2 ge e le m (Sassign a1 a2) E0 le m' Out_normal)
+          by (eapply exec_Sassign; eassumption).
+        split; [ exact Hx | ].
+        intros ce ss sn sf lv rf Hce Hchk HT HF HE _ _. unfold s_chk3 in Hchk. cbn [SpawnBodies.sw_chk] in Hchk.
+        refine (conj (s_store3 ce ss sn sf lv e le m a1 a2 _ _ _ _ Hce HT HF HE Hchk Hx)
+                  (conj HT (conj HF _))).
+        intros v0 ty E; discriminate E.
+      - (* Sset *)
+        intros e le m id a v Hev.
+        split; [ exact (exec_Sset _ _ _ _ _ _ _ _ Hev) | ].
+        intros ce ss sn sf lv rf Hce Hchk HT HF HE Hsi _. unfold s_chk3 in Hchk. cbn [SpawnBodies.sw_chk] in Hchk.
+        split; [ apply PFR_refl | ].
+        unfold st_set in Hchk. apply andb_prop in Hchk as [Hsn Hf]. apply andb_prop in Hsn as [Hs Hn].
+        split; [ | split; [ | intros v0 ty E; discriminate E ] ].
+        + intros t v' Hg. destruct (peq t id) as [-> | Hne].
+          * rewrite PTree.gss in Hg. injection Hg as <-. split.
+            -- intros Hm. rewrite Hm in Hs. cbn in Hs.
+               destruct a; cbn [selfdef] in Hs;
+                 try (eapply (selfv_sound ss sn e le m HT); [ exact Hev | exact Hs ]).
+               apply andb_prop in Hs as [Hs Hty]. apply andb_prop in Hs as [Hx Hlv].
+               apply Pos.eqb_eq in Hx. subst i. apply negb_true_iff in Hlv.
+               assert (Ev : v = Vptr pool oc) by (eapply gco_load; eassumption). rewrite Ev.
+               intros b o E. injection E as <- <-. auto.
+            -- intros Hm. rewrite Hm in Hn. cbn in Hn.
+               exact (proj1 (proj1 (s_eval ce Hce ss sn e le m HT lv HE) _ _ Hev) Hn).
+          * rewrite PTree.gso in Hg by exact Hne. exact (HT t v' Hg).
+        + intros t v' Hg Hm. destruct (peq t id) as [-> | Hne].
+          * rewrite PTree.gss in Hg. injection Hg as <-. rewrite Hm in Hf. cbn in Hf.
+            exact (TIF_fresh e le m ss sn sf a v HT HF Hev Hf).
+          * rewrite PTree.gso in Hg by exact Hne. exact (HF t v' Hg Hm).
+      - (* Scall *)
+        intros e le m optid a al targs tres cc vf vargs fd t m' vres Hcf Hev Hel Hff Hty _ IHf.
+        split; [ exact (exec_Scall _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ Hcf Hev Hel Hff Hty (proj1 IHf)) | ].
+        intros ce ss sn sf lv rf Hce Hchk HT HF HE Hsi Hgv. unfold s_chk3 in Hchk. cbn [SpawnBodies.sw_chk] in Hchk.
+        unfold st_call in Hchk. apply andb_prop in Hchk as [Hc Ho].
+        destruct a; try discriminate Hc. destruct t0; try discriminate Hc.
+        apply andb_prop in Hc as [Hc Hof]. apply andb_prop in Hc as [Hlv Hk]. apply negb_true_iff in Hlv.
+        destruct (st_find i tab) as [ks|] eqn:Ef; [ | discriminate Hk ].
+        assert (Hn : e ! i = None).
+        { destruct (e ! i) as [[b0 tq]|] eqn:E; [ | reflexivity ].
+          destruct (HE _ _ _ E) as (_ & _ & H). congruence. }
+        destruct (MathGeomGated.evar_fun_val _ _ _ _ _ _ _ _ _ Hev Hn) as (b & Hs & ->).
+        pose proof (HTab3 i ks Ef b fd Hs Hff) as Hg.
+        assert (Hva : Forall2 karg3 ks vargs) by (eapply args_sound3; eassumption).
+        destruct (proj2 IHf ks (mem_i i rft) Hg Hva Hsi Hgv) as (HFr & Hres).
+        split; [ exact HFr | ].
+        destruct optid as [tid|]; cbn; [ | refine (conj HT (conj HF _)); intros v0 ty0 E; discriminate E ].
+        apply andb_prop in Ho as [H1 H2]. apply negb_true_iff in H1. apply negb_true_iff in H2.
+        split; [ exact (TI_set_out ss sn le tid vres H1 H2 HT) | split; [ | intros v0 ty0 E; discriminate E ] ].
+        intros tq v0 Hg0 Hm0. destruct (peq tq tid) as [-> | Hne].
+        + rewrite PTree.gss in Hg0. injection Hg0 as <-. rewrite Hm0 in Hof. cbn in Hof.
+          exact (Hres Hof).
+        + rewrite PTree.gso in Hg0 by exact Hne. exact (HF tq v0 Hg0 Hm0).
+      - (* Sbuiltin *)
+        intros e le m optid ef al targs vargs t m' vres Hel Hext.
+        split; [ exact (exec_Sbuiltin _ _ _ _ _ _ _ _ _ _ _ _ _ Hel Hext) | ].
+        intros ce ss sn sf lv rf _ Hchk. unfold s_chk3 in Hchk. cbn [SpawnBodies.sw_chk] in Hchk. discriminate Hchk.
+      - (* Sseq_1 *)
+        intros e le m s1 s2 t1 le1 m1 t2 le2 m2 out D1 (_ & IH1) D2 (_ & IH2).
+        split; [ exact (exec_Sseq_1 _ _ _ _ _ _ _ _ _ _ _ _ _ _ D1 D2) | ].
+        intros ce ss sn sf lv rf Hce Hchk HT HF HE Hsi Hgv. unfold s_chk3 in Hchk. cbn [SpawnBodies.sw_chk] in Hchk.
+        apply andb_prop in Hchk as [H1 H2].
+        destruct (IH1 ce ss sn sf lv rf Hce H1 HT HF HE Hsi Hgv) as (HF1 & HT1 & HF1' & _).
+        destruct (IH2 ce ss sn sf lv rf Hce H2 HT1 HF1' HE (SI_PFR _ _ Hsi Hgv HF1) (GV_PFR _ _ Hgv HF1))
+          as (HF2 & HT2 & HF2' & Hr2).
+        exact (conj (PFR_trans _ _ _ HF1 HF2) (conj HT2 (conj HF2' Hr2))).
+      - (* Sseq_2 *)
+        intros e le m s1 s2 t1 le1 m1 out D1 (_ & IH1) Hne.
+        split; [ exact (exec_Sseq_2 _ _ _ _ _ _ _ _ _ _ _ D1 Hne) | ].
+        intros ce ss sn sf lv rf Hce Hchk HT HF HE Hsi Hgv. unfold s_chk3 in Hchk. cbn [SpawnBodies.sw_chk] in Hchk.
+        apply andb_prop in Hchk as [H1 _]. exact (IH1 ce ss sn sf lv rf Hce H1 HT HF HE Hsi Hgv).
+      - (* Sifthenelse *)
+        intros e le m a s1 s2 v1 b t le' m' out Hev Hbv D (_ & IH).
+        split; [ exact (exec_Sifthenelse _ _ _ _ _ _ _ _ _ _ _ _ _ _ Hev Hbv D) | ].
+        intros ce ss sn sf lv rf Hce Hchk HT HF HE Hsi Hgv. unfold s_chk3 in Hchk. cbn [SpawnBodies.sw_chk] in Hchk.
+        apply andb_prop in Hchk as [H1 H2].
+        apply (IH ce ss sn sf lv rf Hce); [ destruct b; assumption | exact HT | exact HF | exact HE | exact Hsi | exact Hgv ].
+      - (* Sreturn None *)
+        intros e le m. split; [ constructor | ].
+        intros ce ss sn sf lv rf _ _ HT HF _ _ _.
+        refine (conj (PFR_refl m) (conj HT (conj HF _))). intros v ty E; discriminate E.
+      - (* Sreturn Some *)
+        intros e le m a v Hev. split; [ exact (exec_Sreturn_some _ _ _ _ _ _ _ Hev) | ].
+        intros ce ss sn sf lv rf _ Hchk HT HF _ _ _. unfold s_chk3 in Hchk. cbn [SpawnBodies.sw_chk] in Hchk.
+        refine (conj (PFR_refl m) (conj HT (conj HF _))).
+        intros v0 ty E Hrf. injection E as <- _. rewrite Hrf in Hchk. cbn in Hchk.
+        exact (TIF_fresh e le m ss sn sf a v HT HF Hev Hchk).
+      - (* Sbreak *)
+        intros e le m. split; [ constructor | ].
+        intros ce ss sn sf lv rf _ _ HT HF _ _ _.
+        refine (conj (PFR_refl m) (conj HT (conj HF _))). intros v ty E; discriminate E.
+      - (* Scontinue *)
+        intros e le m. split; [ constructor | ].
+        intros ce ss sn sf lv rf _ _ HT HF _ _ _.
+        refine (conj (PFR_refl m) (conj HT (conj HF _))). intros v ty E; discriminate E.
+      - (* Sloop_stop1 *)
+        intros e le m s1 s2 t le' m' out' out D (_ & IH) Hbr.
+        split; [ exact (exec_Sloop_stop1 _ _ _ _ _ _ _ _ _ _ _ _ D Hbr) | ].
+        intros ce ss sn sf lv rf Hce Hchk HT HF HE Hsi Hgv. unfold s_chk3 in Hchk. cbn [SpawnBodies.sw_chk] in Hchk.
+        apply andb_prop in Hchk as [H1 _].
+        destruct (IH ce ss sn sf lv rf Hce H1 HT HF HE Hsi Hgv) as (HF1 & HT1 & HF1' & Hr1).
+        refine (conj HF1 (conj HT1 (conj HF1' _))).
+        intros v ty E. subst out. inv Hbr. exact (Hr1 v ty eq_refl).
+      - (* Sloop_stop2 *)
+        intros e le m s1 s2 t1 le1 m1 out1 t2 le2 m2 out2 out D1 (_ & IH1) Hnc D2 (_ & IH2) Hbr.
+        split; [ eapply exec_Sloop_stop2; [ exact D1 | exact Hnc | exact D2 | exact Hbr ] | ].
+        intros ce ss sn sf lv rf Hce Hchk HT HF HE Hsi Hgv. unfold s_chk3 in Hchk. cbn [SpawnBodies.sw_chk] in Hchk.
+        apply andb_prop in Hchk as [H1 H2].
+        destruct (IH1 ce ss sn sf lv rf Hce H1 HT HF HE Hsi Hgv) as (HF1 & HT1 & HF1' & _).
+        destruct (IH2 ce ss sn sf lv rf Hce H2 HT1 HF1' HE (SI_PFR _ _ Hsi Hgv HF1) (GV_PFR _ _ Hgv HF1))
+          as (HF2 & HT2 & HF2' & Hr2).
+        refine (conj (PFR_trans _ _ _ HF1 HF2) (conj HT2 (conj HF2' _))).
+        intros v ty E. subst out. inv Hbr. exact (Hr2 v ty eq_refl).
+      - (* Sloop_loop *)
+        intros e le m s1 s2 t1 le1 m1 out1 t2 le2 m2 t3 le3 m3 out D1 (_ & IH1) Hnc D2 (_ & IH2) D3 (_ & IH3).
+        split; [ eapply exec_Sloop_loop; [ exact D1 | exact Hnc | exact D2 | exact D3 ] | ].
+        intros ce ss sn sf lv rf Hce Hchk HT HF HE Hsi Hgv.
+        pose proof Hchk as Hchk'. unfold s_chk3 in Hchk. cbn [SpawnBodies.sw_chk] in Hchk.
+        apply andb_prop in Hchk as [H1 H2].
+        destruct (IH1 ce ss sn sf lv rf Hce H1 HT HF HE Hsi Hgv) as (HF1 & HT1 & HF1' & _).
+        pose proof (SI_PFR _ _ Hsi Hgv HF1) as Hsi1. pose proof (GV_PFR _ _ Hgv HF1) as Hgv1.
+        destruct (IH2 ce ss sn sf lv rf Hce H2 HT1 HF1' HE Hsi1 Hgv1) as (HF2 & HT2 & HF2' & _).
+        destruct (IH3 ce ss sn sf lv rf Hce Hchk' HT2 HF2' HE (SI_PFR _ _ Hsi1 Hgv1 HF2) (GV_PFR _ _ Hgv1 HF2))
+          as (HF3 & HT3 & HF3' & Hr3).
+        exact (conj (PFR_trans _ _ _ (PFR_trans _ _ _ HF1 HF2) HF3) (conj HT3 (conj HF3' Hr3))).
+      - (* Sswitch *)
+        intros e le m a t v n sl0 le1 m1 out Hev Hsw D (_ & IH).
+        split; [ eapply exec_Sswitch; [ exact Hev | exact Hsw | exact D ] | ].
+        intros ce ss sn sf lv rf Hce Hchk HT HF HE Hsi Hgv. unfold s_chk3 in Hchk. cbn [SpawnBodies.sw_chk] in Hchk.
+        destruct (IH ce ss sn sf lv rf Hce (SpawnBodies.sw_chk_select _ _ _ _ _ _ Hchk) HT HF HE Hsi Hgv)
+          as (HF1 & HT1 & HF1' & Hr1).
+        refine (conj HF1 (conj HT1 (conj HF1' _))).
+        intros v0 ty E. destruct out; cbn in E; try discriminate E. exact (Hr1 v0 ty E).
+      - (* funcall internal *)
+        intros m f vargs t e le1 le2 m1 m2 out vres m3 Hentry _ IHb Hor Hfree.
+        assert (D : eval_funcall function_entry2 ge m (Internal f) vargs t m3 vres)
+          by (eapply eval_funcall_internal; [ exact Hentry | exact (proj1 IHb) | exact Hor | exact Hfree ]).
+        split; [ exact D | ].
+        intros ks rf Hg Hva Hsi Hgv.
+        destruct Hg as [(f' & ce & Ef & Hce & Hchk) | Hlf]; [ | exact (HLeaf3 _ _ _ Hlf _ _ _ _ _ D Hva Hsi Hgv) ].
+        injection Ef as <-.
+        unfold s_fun3 in Hchk. destruct (sets_of ks f) as [ss sn].
+        set (sf := fresh_of rft ss ks f) in Hchk. clearbody sf.
+        apply andb_prop in Hchk as [Hb Hpar].
+        inv Hentry.
+        match goal with H : alloc_variables _ _ _ _ _ _ |- _ => rename H into Hav end.
+        match goal with H : bind_parameter_temps _ _ _ = Some _ |- _ => rename H into Hbp end.
+        assert (HF1 : PFR m m1) by exact (ObjWalk.av_unch _ _ _ _ _ _ _ Hav).
+        assert (HE : EI (map fst (fn_vars f)) e).
+        { intros x b ty Hx.
+          destruct (alloc_vars_fresh _ _ _ _ _ _ Hav x b ty Hx) as [Hq0 | (Hp & Hin)];
+            [ rewrite PTree.gempty in Hq0; discriminate Hq0 | ].
+          destruct Hgv as (G1 & G2).
+          split; [ intros E; subst b; exact (Plt_strict _ (Plt_Ple_trans _ _ _ G1 Hp)) | ].
+          split; [ intros E; subst b; exact (Plt_strict _ (Plt_Ple_trans _ _ _ G2 Hp)) | ].
+          exact (mem_i_in _ _ Hin). }
+        assert (HTF : TI ss sn le1 /\ TIF sf le1).
+        { assert (Hpt : forall t0 v, le1 ! t0 = Some v ->
+                    (mem_i t0 ss = true -> SVv v) /\ (mem_i t0 sn = true -> NPv v)
+                    /\ (mem_i t0 sf = true -> FVv v)).
+          { intros t0 v Hgt.
+            destruct (ObjHelpersBodies.bind_get _ _ _ _ _ _ Hbp Hgt) as [Hu | (i & Hi & Hvi)].
+            - apply MtxfBody.create_undef_temps_get in Hu. subst v.
+              split; [ intros _ b o E; discriminate E | split; intros _ b o E; discriminate E ].
+            - destruct (PrintBodies.forall2_nth_l _ _ _ _ _ Hva Hvi) as (k & Hk).
+              pose proof (PrintBodies.forall2_nth _ _ _ _ _ _ Hva Hk Hvi) as Hkv.
+              clear -Hpar Hi Hk Hkv.
+              revert i ks Hpar Hi Hk.
+              induction (map fst (fn_params f)) as [| p ps IH]; intros i ks Hpar Hi Hk;
+                [ destruct i; discriminate Hi | ].
+              destruct ks as [| k0 ks]; cbn in Hpar; [ discriminate Hpar | ].
+              apply andb_prop in Hpar as [Hpk Hr]. apply andb_prop in Hpk as [Hpk Hp3].
+              apply andb_prop in Hpk as [Hp1 Hp2].
+              destruct i as [| i]; cbn in Hi, Hk.
+              + injection Hi as <-. injection Hk as <-.
+                split; [ | split ]; intros Hm.
+                * rewrite Hm in Hp1. destruct k0; try discriminate Hp1. exact Hkv.
+                * rewrite Hm in Hp2. destruct k0; try discriminate Hp2. exact Hkv.
+                * rewrite Hm in Hp3. destruct k0; try discriminate Hp3. exact Hkv.
+              + exact (IH i ks Hr Hi Hk). }
+          split.
+          - intros t0 v Hgt. destruct (Hpt t0 v Hgt) as (Hq1 & Hq2 & _). exact (conj Hq1 Hq2).
+          - intros t0 v Hgt Hm. exact (proj2 (proj2 (Hpt t0 v Hgt)) Hm). }
+        destruct HTF as (HT & HTf).
+        destruct (proj2 IHb ce ss sn sf (map fst (fn_vars f)) rf Hce Hb HT HTf HE
+                    (SI_PFR _ _ Hsi Hgv HF1) (GV_PFR _ _ Hgv HF1)) as (HF2 & _ & _ & Hr2).
+        split.
+        + apply PFR_trans with m2; [ exact (PFR_trans _ _ _ HF1 HF2) | ].
+          apply (ObjWalk.fl_unch _ _ _ _ Hfree). intros b lo hi Hin i _ Hp.
+          destruct (ObjWalk.boe_in _ _ _ _ _ Hin) as (x & ty & Hx).
+          destruct (HE _ _ _ Hx) as (Hq1 & Hq2 & _).
+          destruct Hp as [E | (E & _)]; congruence.
+        + intros Hrf b o E. subst vres.
+          destruct out as [ | | | [[v' t']|] ]; cbn in Hor;
+            try (destruct (fn_return f); try contradiction; discriminate Hor).
+          * destruct Hor as (_ & Hc).
+            pose proof (CensusV2.sem_cast_vptr_inv _ _ _ _ _ _ Hc) as ->.
+            exact (Hr2 _ _ eq_refl Hrf b o eq_refl).
+      - (* funcall external *)
+        intros m ef targs tres cc vargs t vres m' Hext.
+        assert (D : eval_funcall function_entry2 ge m (External ef targs tres cc) vargs t m' vres)
+          by (eapply eval_funcall_external; exact Hext).
+        split; [ exact D | ].
+        intros ks rf Hg Hva Hsi Hgv.
+        destruct Hg as [(f' & ce & Ef & _) | Hlf]; [ discriminate Ef | ].
+        exact (HLeaf3 _ _ _ Hlf _ _ _ _ _ D Hva Hsi Hgv).
+    Qed.
+
+    (* THE GENERAL RESULT *)
+    Theorem s_fun_frame3 : forall ks rf fd m vargs t m' vres,
+        sGood3 fd ks rf -> eval_funcall function_entry2 ge m fd vargs t m' vres ->
+        Forall2 karg3 ks vargs -> SI m -> GV m -> PFR m m' /\ (rf = true -> FVv vres).
+    Proof.
+      intros ks rf fd m vargs t m' vres Hg Hev Hva Hsi Hgv.
+      exact (proj2 (proj2 s_mutual3 _ _ _ _ _ _ Hev) ks rf Hg Hva Hsi Hgv).
+    Qed.
+  End GEN.
+
+  (* ---- the own-slot instance (every pool cell outside the slot protected) ---- *)
+  Definition karg : skind -> val -> Prop := karg3 (fun _ => True).
 
   Variable sLeaf : Clight.fundef -> list skind -> Prop.
 
@@ -690,238 +1241,6 @@ Section SW.
       forall b fd, Genv.find_symbol ge f = Some b ->
       Genv.find_funct ge (Vptr b Ptrofs.zero) = Some fd -> sGood fd ks.
 
-  Definition sPstmt (e : env) (le : temp_env) (m : mem) (s : statement) (t : trace)
-      (le' : temp_env) (m' : mem) (out : outcome) : Prop :=
-    exec_stmt function_entry2 ge e le m s t le' m' out /\
-    forall ce ss sn lv, cext ce -> s_chk ce SZ tab ss sn lv s = true ->
-      TI ss sn le -> EI lv e -> SI m -> GV m -> SFR m m' /\ TI ss sn le'.
-
-  Definition sPfun (m : mem) (fd : Clight.fundef) (vargs : list val) (t : trace)
-      (m' : mem) (vres : val) : Prop :=
-    eval_funcall function_entry2 ge m fd vargs t m' vres /\
-    forall ks, sGood fd ks -> Forall2 karg ks vargs -> SI m -> GV m -> SFR m m'.
-
-  Lemma TI_set_out : forall ss sn le t v, mem_i t ss = false -> mem_i t sn = false ->
-      TI ss sn le -> TI ss sn (PTree.set t v le).
-  Proof.
-    intros ss sn le t v H1 H2 HT t' v' Hg. destruct (peq t' t) as [-> | Hne].
-    - split; intros H; congruence.
-    - rewrite PTree.gso in Hg by exact Hne. exact (HT t' v' Hg).
-  Qed.
-
-  Lemma s_store : forall ce ss sn lv e le m l r t le' m' out,
-      cext ce -> TI ss sn le -> EI lv e ->
-      st_store ce ss sn SZ l r = true ->
-      exec_stmt function_entry2 ge e le m (Sassign l r) t le' m' out -> SFR m m'.
-  Proof.
-    intros ce ss sn lv e le m l r t le' m' out Hce HT HE Hok Hx.
-    unfold st_store in Hok. apply andb_prop in Hok as [Hbv Hok].
-    inv Hx.
-    match goal with Hl : eval_lvalue _ _ _ _ _ _ _ _ |- _ => rename Hl into Hlv end.
-    pose proof (s_eval ce Hce ss sn e _ m HT lv HE) as Hse.
-    destruct Hse as (_ & Hse).
-    destruct (Hse _ _ _ _ Hlv) as (Hn & Hp & _).
-    match goal with Ha : assign_loc _ _ _ _ _ _ _ _ |- _ => rename Ha into Hal end.
-    apply orb_true_iff in Hok as [Hnp | Hself].
-    - destruct (Hn Hnp) as (Hq1 & Hq2).
-      apply (ObjWalk.assign_loc_unch _ _ _ _ _ _ _ _ _ Hal).
-      intros i [(E & _) | E]; congruence.
-    - unfold self_store in Hself.
-      destruct (access_mode (typeof l)) eqn:Ea; try discriminate Hself.
-      destruct (lad ce ss l) as [d|] eqn:Ed; [ | discriminate Hself ].
-      apply andb_prop in Hself as [H0 Hsz]. apply Z.leb_le in H0. apply Z.leb_le in Hsz.
-      destruct (Hp d eq_refl) as (-> & -> & ->).
-      pose proof (size_chunk_pos m0) as Hpos.
-      inv Hal.
-      + match goal with Ha : access_mode _ = By_value _ |- _ => rewrite Ea in Ha; injection Ha as <- end.
-        match goal with Hs : Mem.storev _ _ _ _ = Some _ |- _ => unfold Mem.storev in Hs end.
-        eapply Mem.store_unchanged_on; [ eassumption | ].
-        rewrite own_off by lia.
-        intros i Hi [(_ & Hno) | E].
-        * apply Hno. unfold own. lia.
-        * exact (pool_ne_gB E).
-      + match goal with Ha : access_mode _ = By_copy |- _ => rewrite Ea in Ha; discriminate Ha end.
-  Qed.
-
-  Lemma s_mutual :
-    (forall e le m s t le' m' out,
-        exec_stmt function_entry2 ge e le m s t le' m' out -> sPstmt e le m s t le' m' out) /\
-    (forall m fd vargs t m' vres,
-        eval_funcall function_entry2 ge m fd vargs t m' vres -> sPfun m fd vargs t m' vres).
-  Proof.
-    apply (exec_stmt_funcall_ind function_entry2 ge sPstmt sPfun); unfold sPstmt, sPfun.
-    - (* Sskip *)
-      intros e le m. split; [ constructor | ].
-      intros ce ss sn lv _ _ HT _ _ _. exact (conj (SFR_refl m) HT).
-    - (* Sassign *)
-      intros e le m a1 a2 loc ofs bf v2 v m' Hl Hr Hc Ha.
-      assert (Hx : exec_stmt function_entry2 ge e le m (Sassign a1 a2) E0 le m' Out_normal)
-        by (eapply exec_Sassign; eassumption).
-      split; [ exact Hx | ].
-      intros ce ss sn lv Hce Hchk HT HE _ _. unfold s_chk in Hchk. cbn [SpawnBodies.sw_chk] in Hchk.
-      exact (conj (s_store ce ss sn lv e le m a1 a2 _ _ _ _ Hce HT HE Hchk Hx) HT).
-    - (* Sset *)
-      intros e le m id a v Hev.
-      split; [ exact (exec_Sset _ _ _ _ _ _ _ _ Hev) | ].
-      intros ce ss sn lv Hce Hchk HT HE Hsi _. unfold s_chk in Hchk. cbn [SpawnBodies.sw_chk] in Hchk.
-      split; [ apply SFR_refl | ].
-      unfold st_set in Hchk. apply andb_prop in Hchk as [Hs Hn].
-      intros t v' Hg. destruct (peq t id) as [-> | Hne].
-      + rewrite PTree.gss in Hg. injection Hg as <-. split.
-        * intros Hm. rewrite Hm in Hs. cbn in Hs.
-          destruct a; cbn [selfdef] in Hs;
-            try (eapply selfv_sound; [ exact HT | exact Hev | exact Hs ]).
-          apply andb_prop in Hs as [Hs Hty]. apply andb_prop in Hs as [Hx Hlv].
-          apply Pos.eqb_eq in Hx. subst i. apply negb_true_iff in Hlv.
-          assert (Ev : v = Vptr pool oc) by (eapply gco_load; eassumption). rewrite Ev.
-          intros b o E. injection E as <- <-. auto.
-        * intros Hm. rewrite Hm in Hn. cbn in Hn.
-          exact (proj1 (proj1 (s_eval ce Hce ss sn e le m HT lv HE) _ _ Hev) Hn).
-      + rewrite PTree.gso in Hg by exact Hne. exact (HT t v' Hg).
-    - (* Scall *)
-      intros e le m optid a al targs tres cc vf vargs fd t m' vres Hcf Hev Hel Hff Hty _ IHf.
-      split; [ exact (exec_Scall _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ Hcf Hev Hel Hff Hty (proj1 IHf)) | ].
-      intros ce ss sn lv Hce Hchk HT HE Hsi Hgv. unfold s_chk in Hchk. cbn [SpawnBodies.sw_chk] in Hchk.
-      unfold st_call in Hchk. apply andb_prop in Hchk as [Hc Ho].
-      destruct a; try discriminate Hc. destruct t0; try discriminate Hc.
-      apply andb_prop in Hc as [Hlv Hk]. apply negb_true_iff in Hlv.
-      destruct (st_find i tab) as [ks|] eqn:Ef; [ | discriminate Hk ].
-      assert (Hn : e ! i = None).
-      { destruct (e ! i) as [[b0 tq]|] eqn:E; [ | reflexivity ].
-        destruct (HE _ _ _ E) as (_ & _ & H). congruence. }
-      destruct (MathGeomGated.evar_fun_val _ _ _ _ _ _ _ _ _ Hev Hn) as (b & Hs & ->).
-      pose proof (HTab i ks Ef b fd Hs Hff) as Hg.
-      assert (Hva : Forall2 karg ks vargs) by (eapply args_sound; eassumption).
-      pose proof (proj2 IHf ks Hg Hva Hsi Hgv) as HF.
-      split; [ exact HF | ].
-      destruct optid as [tid|]; cbn; [ | exact HT ].
-      apply andb_prop in Ho as [H1 H2]. apply negb_true_iff in H1. apply negb_true_iff in H2.
-      exact (TI_set_out ss sn le tid vres H1 H2 HT).
-    - (* Sbuiltin *)
-      intros e le m optid ef al targs vargs t m' vres Hel Hext.
-      split; [ exact (exec_Sbuiltin _ _ _ _ _ _ _ _ _ _ _ _ _ Hel Hext) | ].
-      intros ce ss sn lv _ Hchk. unfold s_chk in Hchk. cbn [SpawnBodies.sw_chk] in Hchk. discriminate Hchk.
-    - (* Sseq_1 *)
-      intros e le m s1 s2 t1 le1 m1 t2 le2 m2 out D1 (_ & IH1) D2 (_ & IH2).
-      split; [ exact (exec_Sseq_1 _ _ _ _ _ _ _ _ _ _ _ _ _ _ D1 D2) | ].
-      intros ce ss sn lv Hce Hchk HT HE Hsi Hgv. unfold s_chk in Hchk. cbn [SpawnBodies.sw_chk] in Hchk.
-      apply andb_prop in Hchk as [H1 H2].
-      destruct (IH1 ce ss sn lv Hce H1 HT HE Hsi Hgv) as (HF1 & HT1).
-      destruct (IH2 ce ss sn lv Hce H2 HT1 HE (SI_SFR _ _ Hsi Hgv HF1) (GV_SFR _ _ Hgv HF1))
-        as (HF2 & HT2).
-      exact (conj (SFR_trans _ _ _ HF1 HF2) HT2).
-    - (* Sseq_2 *)
-      intros e le m s1 s2 t1 le1 m1 out D1 (_ & IH1) Hne.
-      split; [ exact (exec_Sseq_2 _ _ _ _ _ _ _ _ _ _ _ D1 Hne) | ].
-      intros ce ss sn lv Hce Hchk HT HE Hsi Hgv. unfold s_chk in Hchk. cbn [SpawnBodies.sw_chk] in Hchk.
-      apply andb_prop in Hchk as [H1 _]. exact (IH1 ce ss sn lv Hce H1 HT HE Hsi Hgv).
-    - (* Sifthenelse *)
-      intros e le m a s1 s2 v1 b t le' m' out Hev Hbv D (_ & IH).
-      split; [ exact (exec_Sifthenelse _ _ _ _ _ _ _ _ _ _ _ _ _ _ Hev Hbv D) | ].
-      intros ce ss sn lv Hce Hchk HT HE Hsi Hgv. unfold s_chk in Hchk. cbn [SpawnBodies.sw_chk] in Hchk.
-      apply andb_prop in Hchk as [H1 H2].
-      apply (IH ce ss sn lv Hce); [ destruct b; assumption | exact HT | exact HE | exact Hsi | exact Hgv ].
-    - (* Sreturn None *)
-      intros e le m. split; [ constructor | ].
-      intros ce ss sn lv _ _ HT _ _ _. exact (conj (SFR_refl m) HT).
-    - (* Sreturn Some *)
-      intros e le m a v Hev. split; [ exact (exec_Sreturn_some _ _ _ _ _ _ _ Hev) | ].
-      intros ce ss sn lv _ _ HT _ _ _. exact (conj (SFR_refl m) HT).
-    - (* Sbreak *)
-      intros e le m. split; [ constructor | ].
-      intros ce ss sn lv _ _ HT _ _ _. exact (conj (SFR_refl m) HT).
-    - (* Scontinue *)
-      intros e le m. split; [ constructor | ].
-      intros ce ss sn lv _ _ HT _ _ _. exact (conj (SFR_refl m) HT).
-    - (* Sloop_stop1 *)
-      intros e le m s1 s2 t le' m' out' out D (_ & IH) Hbr.
-      split; [ exact (exec_Sloop_stop1 _ _ _ _ _ _ _ _ _ _ _ _ D Hbr) | ].
-      intros ce ss sn lv Hce Hchk HT HE Hsi Hgv. unfold s_chk in Hchk. cbn [SpawnBodies.sw_chk] in Hchk.
-      apply andb_prop in Hchk as [H1 _]. exact (IH ce ss sn lv Hce H1 HT HE Hsi Hgv).
-    - (* Sloop_stop2 *)
-      intros e le m s1 s2 t1 le1 m1 out1 t2 le2 m2 out2 out D1 (_ & IH1) Hnc D2 (_ & IH2) Hbr.
-      split; [ eapply exec_Sloop_stop2; [ exact D1 | exact Hnc | exact D2 | exact Hbr ] | ].
-      intros ce ss sn lv Hce Hchk HT HE Hsi Hgv. unfold s_chk in Hchk. cbn [SpawnBodies.sw_chk] in Hchk.
-      apply andb_prop in Hchk as [H1 H2].
-      destruct (IH1 ce ss sn lv Hce H1 HT HE Hsi Hgv) as (HF1 & HT1).
-      destruct (IH2 ce ss sn lv Hce H2 HT1 HE (SI_SFR _ _ Hsi Hgv HF1) (GV_SFR _ _ Hgv HF1))
-        as (HF2 & HT2).
-      exact (conj (SFR_trans _ _ _ HF1 HF2) HT2).
-    - (* Sloop_loop *)
-      intros e le m s1 s2 t1 le1 m1 out1 t2 le2 m2 t3 le3 m3 out D1 (_ & IH1) Hnc D2 (_ & IH2) D3 (_ & IH3).
-      split; [ eapply exec_Sloop_loop; [ exact D1 | exact Hnc | exact D2 | exact D3 ] | ].
-      intros ce ss sn lv Hce Hchk HT HE Hsi Hgv.
-      pose proof Hchk as Hchk'. unfold s_chk in Hchk. cbn [SpawnBodies.sw_chk] in Hchk.
-      apply andb_prop in Hchk as [H1 H2].
-      destruct (IH1 ce ss sn lv Hce H1 HT HE Hsi Hgv) as (HF1 & HT1).
-      pose proof (SI_SFR _ _ Hsi Hgv HF1) as Hsi1. pose proof (GV_SFR _ _ Hgv HF1) as Hgv1.
-      destruct (IH2 ce ss sn lv Hce H2 HT1 HE Hsi1 Hgv1) as (HF2 & HT2).
-      destruct (IH3 ce ss sn lv Hce Hchk' HT2 HE (SI_SFR _ _ Hsi1 Hgv1 HF2) (GV_SFR _ _ Hgv1 HF2))
-        as (HF3 & HT3).
-      exact (conj (SFR_trans _ _ _ (SFR_trans _ _ _ HF1 HF2) HF3) HT3).
-    - (* Sswitch *)
-      intros e le m a t v n sl0 le1 m1 out Hev Hsw D (_ & IH).
-      split; [ eapply exec_Sswitch; [ exact Hev | exact Hsw | exact D ] | ].
-      intros ce ss sn lv Hce Hchk HT HE Hsi Hgv. unfold s_chk in Hchk. cbn [SpawnBodies.sw_chk] in Hchk.
-      exact (IH ce ss sn lv Hce (SpawnBodies.sw_chk_select _ _ _ _ _ _ Hchk) HT HE Hsi Hgv).
-    - (* funcall internal *)
-      intros m f vargs t e le1 le2 m1 m2 out vres m3 Hentry _ IHb Hor Hfree.
-      assert (D : eval_funcall function_entry2 ge m (Internal f) vargs t m3 vres)
-        by (eapply eval_funcall_internal; [ exact Hentry | exact (proj1 IHb) | exact Hor | exact Hfree ]).
-      split; [ exact D | ].
-      intros ks Hg Hva Hsi Hgv.
-      destruct Hg as [(f' & ce & Ef & Hce & Hchk) | Hlf]; [ | exact (HLeaf _ _ Hlf _ _ _ _ _ D Hva Hsi Hgv) ].
-      injection Ef as <-.
-      unfold s_fun in Hchk. destruct (sets_of ks f) as [ss sn].
-      apply andb_prop in Hchk as [Hb Hpar].
-      inv Hentry.
-      match goal with H : alloc_variables _ _ _ _ _ _ |- _ => rename H into Hav end.
-      match goal with H : bind_parameter_temps _ _ _ = Some _ |- _ => rename H into Hbp end.
-      assert (HF1 : SFR m m1) by exact (ObjWalk.av_unch _ _ _ _ _ _ _ Hav).
-      assert (HE : EI (map fst (fn_vars f)) e).
-      { intros x b ty Hx.
-        destruct (alloc_vars_fresh _ _ _ _ _ _ Hav x b ty Hx) as [Hq0 | (Hp & Hin)];
-          [ rewrite PTree.gempty in Hq0; discriminate Hq0 | ].
-        destruct Hgv as (G1 & G2).
-        split; [ intros E; subst b; exact (Plt_strict _ (Plt_Ple_trans _ _ _ G1 Hp)) | ].
-        split; [ intros E; subst b; exact (Plt_strict _ (Plt_Ple_trans _ _ _ G2 Hp)) | ].
-        exact (mem_i_in _ _ Hin). }
-      assert (HT : TI ss sn le1).
-      { intros t0 v Hgt.
-        destruct (ObjHelpersBodies.bind_get _ _ _ _ _ _ Hbp Hgt) as [Hu | (i & Hi & Hvi)].
-        - apply MtxfBody.create_undef_temps_get in Hu. subst v.
-          split; intros _ b o E; discriminate E.
-        - destruct (PrintBodies.forall2_nth_l _ _ _ _ _ Hva Hvi) as (k & Hk).
-          pose proof (PrintBodies.forall2_nth _ _ _ _ _ _ Hva Hk Hvi) as Hkv.
-          clear -Hpar Hi Hk Hkv.
-          revert i ks Hpar Hi Hk.
-          induction (map fst (fn_params f)) as [| p ps IH]; intros i ks Hpar Hi Hk;
-            [ destruct i; discriminate Hi | ].
-          destruct ks as [| k0 ks]; cbn in Hpar; [ discriminate Hpar | ].
-          apply andb_prop in Hpar as [Hpk Hr]. apply andb_prop in Hpk as [Hp1 Hp2].
-          destruct i as [| i]; cbn in Hi, Hk.
-          + injection Hi as <-. injection Hk as <-.
-            split; intros Hm.
-            * rewrite Hm in Hp1. destruct k0; try discriminate Hp1. exact Hkv.
-            * rewrite Hm in Hp2. destruct k0; try discriminate Hp2. exact Hkv.
-          + exact (IH i ks Hr Hi Hk). }
-      destruct (proj2 IHb ce ss sn (map fst (fn_vars f)) Hce Hb HT HE
-                  (SI_SFR _ _ Hsi Hgv HF1) (GV_SFR _ _ Hgv HF1)) as (HF2 & _).
-      apply SFR_trans with m2; [ exact (SFR_trans _ _ _ HF1 HF2) | ].
-      apply (ObjWalk.fl_unch _ _ _ _ Hfree). intros b lo hi Hin i _ Hp.
-      destruct (ObjWalk.boe_in _ _ _ _ _ Hin) as (x & ty & Hx).
-      destruct (HE _ _ _ Hx) as (Hq1 & Hq2 & _).
-      destruct Hp as [(E & _) | E]; congruence.
-    - (* funcall external *)
-      intros m ef targs tres cc vargs t vres m' Hext.
-      assert (D : eval_funcall function_entry2 ge m (External ef targs tres cc) vargs t m' vres)
-        by (eapply eval_funcall_external; exact Hext).
-      split; [ exact D | ].
-      intros ks Hg Hva Hsi Hgv.
-      destruct Hg as [(f' & ce & Ef & _) | Hlf]; [ discriminate Ef | ].
-      exact (HLeaf _ _ Hlf _ _ _ _ _ D Hva Hsi Hgv).
-  Qed.
-
   (* THE RESULT: a self-clean body changes the pool only inside the running
      slot and leaves gCurrentObject's cell alone *)
   Theorem s_fun_frame : forall ks fd m vargs t m' vres,
@@ -929,7 +1248,24 @@ Section SW.
       Forall2 karg ks vargs -> SI m -> GV m -> SFR m m'.
   Proof.
     intros ks fd m vargs t m' vres Hg Hev Hva Hsi Hgv.
-    exact (proj2 (proj2 s_mutual _ _ _ _ _ _ Hev) ks Hg Hva Hsi Hgv).
+    assert (HL3 : forall fd ks rf, (sLeaf fd ks /\ rf = false) ->
+        forall m vargs t m' vres, eval_funcall function_entry2 ge m fd vargs t m' vres ->
+        Forall2 (karg3 (fun _ => True)) ks vargs -> SI m -> GV m ->
+        PFR (fun _ => True) m m' /\ (rf = true -> FVv (fun _ => True) vres)).
+    { intros fd0 ks0 rf (Hl & ->) m0 va0 t0 m0' vr0 Hev0 Hva0 Hsi0 Hgv0.
+      split; [ exact (SFR_PFR _ _ _ (HLeaf fd0 ks0 Hl m0 va0 t0 m0' vr0 Hev0 Hva0 Hsi0 Hgv0)) | discriminate ]. }
+    assert (HT3 : forall f ks, st_find f tab = Some ks ->
+        forall b fd, Genv.find_symbol ge f = Some b ->
+        Genv.find_funct ge (Vptr b Ptrofs.zero) = Some fd ->
+        sGood3 [] (fun fd ks rf => sLeaf fd ks /\ rf = false) fd ks (mem_i f [])).
+    { intros f ks0 Hf b fd0 Hs Hff. cbn [mem_i existsb].
+      destruct (HTab f ks0 Hf b fd0 Hs Hff) as [Hi | Hl]; [ left; exact Hi | right; exact (conj Hl eq_refl) ]. }
+    assert (Hg3 : sGood3 [] (fun fd ks rf => sLeaf fd ks /\ rf = false) fd ks false)
+      by (destruct Hg as [Hi | Hl]; [ left; exact Hi | right; exact (conj Hl eq_refl) ]).
+    destruct (s_fun_frame3 (fun _ => True) [] (fun fd ks rf => sLeaf fd ks /\ rf = false) HL3 HT3
+                ks false fd m vargs t m' vres Hg3 Hev Hva Hsi Hgv) as (HP & _).
+    apply (Mem.unchanged_on_implies _ _ _ _ HP).
+    intros b ofs [(E & Hn) | E] _; [ right; exact (conj E (conj Hn I)) | left; exact E ].
   Qed.
 End SW.
 
