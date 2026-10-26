@@ -415,9 +415,11 @@ all in `Unwired/`, and the theorem moved nowhere. See
     CoinLink's Lha / Fha / Hmario_height / Lda / Fda / Hmario_down for m->marioObj from any ffw
     memory. Open: the objects phase must keep bytes 508..511 / 520..523 of Mario's object up to
     detect_object_collisions (it writes only collision fields), and composing `ffw_coin` with
-    `mario_coin2_no_contact`. update_mario_inputs needs pins on
-    `gEnvironmentRegions`, `gShowDebugText` and `gCameraMovementFlags`, plus the collision
-    finders. The prologue call is in `Hair_pro`. The
+    `mario_coin2_no_contact`. update_mario_inputs: `FfWorld.env_w` (in `lvl_w`;
+    proved at boot, `StartSat.L_env` / `L_dbg`) pins gEnvironmentRegions = NULL and
+    gShowDebugText = FALSE; gCameraMovementFlags needs no pin; the row still needs the
+    collision finders, the double-miss NULL floor (carry "find_floor hits under Mario") and
+    INPUT_SQUISHED (a labeled sub-row tied to obj_w). The prologue call is in `Hair_pro`. The
     `quicksandDepth = 0` store is proved (the `qsd_*` lemmas). What stays assumed is the
     12 handler calls, `HeightFrame.Hauto_case : aut_case_rows` (27 → 28 hypotheses).
     Shrink it per case as walks land, as `air_case_rest*` did. Its audit on 2026-10-21
@@ -473,7 +475,16 @@ all in `Unwired/`, and the theorem moved nowhere. See
     `UpdateCameraBody.uc_census`). Stated by the steps: `surf_apart`
     and `warp_w` at the POST end (gCurrentArea's target is CARRIED since 2026-10-25,
     `FfWorld.area_w`, proved at boot) (FOUND: a ∀-row for it is false). Next:
-    discharge `Hcam_phi` from the census (per-write PhiW keep).
+    discharge `Hcam_phi` from the census (per-write PhiW keep). Since 2026-10-26 the witness
+    has a REAL Camera in gAreaData[1].camera (`StartTerrain.cam_chain`: the generated
+    alloc_only_pool_init / init_graph_node_camera / create_camera / reset_camera; FOUND:
+    alloc_only_pool_resize has no CompCert execution, pointer minus pointer in main_pool_free,
+    so the level pool is made at its resized size, TRUST 3.6), and `StartSat.frame_runs` runs
+    area_update_objects and then update_camera on it. Hcam_phi gates (TRUST 0.7 detail):
+    set_mario_npc_dialog is reached only from the SSL_PYRAMID_EXPLODE / ENTER_BOWSER_ARENA cutscene
+    shots (boot tables), so an honest discharge needs a camera-world carry. That carry pins the
+    Camera's cutscene and keeps the cutscene tables, and it is tied to what objects can start.
+    Left labeled.
     Mario's render call and
     `apply_mario_platform_displacement` (platform_displacement.c, TU 45) are REAL calls whose
     GOAL-1 and Φ carries are proved (`RenderKeep.render_keeps_phiw`, `PlatformKeep`, 2026-10-23);
