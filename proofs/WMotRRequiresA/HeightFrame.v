@@ -53,7 +53,7 @@
 (* top (2320 + 2 * 52, the box's x2 scale), from WMotRLevel's data.         *)
 (* ======================================================================= *)
 
-From Coq Require Import ZArith List Reals.
+From Coq Require Import ZArith List Reals Lia.
 From Flocq Require Import Binary.
 From compcert Require Import Coqlib Maps AST Integers Floats Values Events Memory
   Globalenvs Ctypes Clight ClightBigstep Linking.
@@ -374,7 +374,7 @@ Section HeightFrame.
   Hypothesis Hobj_unload : ObjPhase.call_keeps (lp_ge lp) Pobj object_list_processor._unload_deactivated_objects.
   Hypothesis Hobj_mplat : ObjPhase.call_keeps (lp_ge lp) Pobj object_list_processor._update_mario_platform.
   (* the platform callee keeps Pobj (discharged in HeightLinked12 from the
-     PROVED PlatformKeep carries and the narrower row Hplat_keep there) *)
+     PROVED PlatformKeep carries and plat_keep_linked12 there) *)
   Hypothesis Hobj_platform :
     ObjPhase.call_keeps (lp_ge lp) Pobj object_list_processor._apply_mario_platform_displacement.
 
@@ -1270,7 +1270,7 @@ Section HeightLinked12.
      the rows below.  The two link facts are PROVED (ObjPhase.clock_keeps:
      debug.c's clock stubs touch no memory; ObjPhase.auo_fun).  The
      platform callee's row is PROVED from PlatformKeep's walked carries and
-     ONE narrower open row, Hplat_keep. ---- *)
+     its narrower row plat_keep_linked12 (PROVED 2026-10-26). ---- *)
   Lemma obj_clock_linked12 : forall Q,
     ObjPhase.call_keeps (lp_ge lp) Q object_list_processor._get_current_clock
     /\ ObjPhase.call_keeps (lp_ge lp) Q object_list_processor._get_clock_difference.
@@ -1333,12 +1333,26 @@ Section HeightLinked12.
     Mem.store Mint32 m b 0 (Vint c) = Some m' -> Pobjl m'.
   Hypothesis Hobj_unload : ObjPhase.call_keeps (lp_ge lp) Pobjl object_list_processor._unload_deactivated_objects.
   Hypothesis Hobj_mplat : ObjPhase.call_keeps (lp_ge lp) Pobjl object_list_processor._update_mario_platform.
-  (* OPEN, narrower than the platform row: the platform call (whose
-     footprint is D_8032FEC0 and Mario's pos, PlatformKeep.plat_step_eff)
-     keeps gMarioPlatform's fact and the object world (the surface premise
-     follows from Phi since 2026-10-26, Hphi_sa_linked12) *)
-  Hypothesis Hplat_keep : forall m m', Pobjl m -> PlatformKeep.plat_call lp m m' ->
+  (* PROVED (2026-10-26): the platform call (whose footprint is
+     D_8032FEC0 and Mario's pos, PlatformKeep.plat_step_eff) keeps
+     gMarioPlatform's fact (PlatformKeep.plat_keeps_still: neither
+     gMarioPlatform nor the pool is written) and the object world (none of
+     its blocks, and not Mario's object-pointer cells); the surface premise
+     follows from Phi (Hphi_sa_linked12) *)
+  Lemma plat_keep_linked12 : forall m m', Pobjl m -> PlatformKeep.plat_call lp m m' ->
     PlatformKeep.plat_still lp m' /\ OWl m'.
+  Proof.
+    intros m m' (Hok & _ & _ & Hst & _ & How) Hc.
+    split; [ exact (PlatformKeep.plat_keeps_still lp H12 bm Hbm_sym bc oc0 SafeB m m' Hok Hc Hst) | ].
+    destruct (PlatformKeep.plat_loads lp H12 bm Hbm_sym bc oc0 SafeB m m' Hok Hc Hst) as (LG & LM).
+    apply (PollKeep.obj_w_unch m m' (lp_ge lp) bm); [ | | exact How ].
+    - intros id b Hin Hs ch z. apply (LG id b Hs).
+      + intro E. subst id. unfold PollKeep.ow_ids in Hin. cbn [In] in Hin.
+        repeat (destruct Hin as [E | Hin]; [ vm_compute in E; discriminate E | ]). exact Hin.
+      + intro E. subst id. unfold PollKeep.ow_ids in Hin. cbn [In] in Hin.
+        repeat (destruct Hin as [E | Hin]; [ vm_compute in E; discriminate E | ]). exact Hin.
+    - intros z Hz. apply LM. right. left. unfold MARIOOBJ_OFF in Hz. cbn [In] in Hz. lia.
+  Qed.
   (* OPEN, the object world through the level slices and the render call *)
   Hypothesis Hlvl_ow : forall m m', mem_ok_lp bm MWF m -> Phi m -> OWl m ->
     (seg_level_pre_spec lp m m' \/ seg_level_post_spec lp m m') -> OWl m'.
@@ -1350,7 +1364,7 @@ Section HeightLinked12.
   Lemma apmd_params : fn_params platform_displacement.f_apply_mario_platform_displacement = [].
   Proof. reflexivity. Qed.
 
-  (* the platform callee, PROVED from PlatformKeep + Hplat_keep *)
+  (* the platform callee, PROVED from PlatformKeep + plat_keep_linked12 *)
   Lemma obj_platform_linked12 :
     ObjPhase.call_keeps (lp_ge lp) Pobjl object_list_processor._apply_mario_platform_displacement.
   Proof.
@@ -1364,7 +1378,7 @@ Section HeightLinked12.
     subst vargs.
     assert (Hc : PlatformKeep.plat_call lp m m') by (exists t, vr; exact Hev).
     destruct HP as (Hok & Hphi & HD & Hst & Hsa & How).
-    destruct (Hplat_keep m m' (conj Hok (conj Hphi (conj HD (conj Hst (conj Hsa How))))) Hc)
+    destruct (plat_keep_linked12 m m' (conj Hok (conj Hphi (conj HD (conj Hst (conj Hsa How))))) Hc)
       as (Hst' & How').
     split; [ exact (plat_ok_linked12 m m' Hok Hst Hc) | ].
     pose proof (plat_phi_linked12 m m' Hphi Hst Hc) as Hphi'.

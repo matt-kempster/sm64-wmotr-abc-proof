@@ -203,6 +203,47 @@ Section Link.
                                   ltac:(vm_compute; discriminate))) Hbc_bm).
     reflexivity.
   Qed.
+  (* the platform step keeps the platform fact: gMarioPlatform's block and
+     the pool are neither D_8032FEC0 nor Mario's *)
+  Theorem plat_keeps_still : forall m m',
+    mem_ok_lp bm MWF m -> plat_call lp m m' -> plat_still lp m -> plat_still lp m'.
+  Proof.
+    intros m m' (_ & _ & HM) Hc Hst.
+    pose proof HM as ((_ & _ & _ & _ & _ & _ & _ & Hgn) & _).
+    destruct plat_D_sym as (bD & HbD).
+    destruct (plat_step_eff bD m m' HbD Hgn Hc Hst) as (_ & _ & _ & LD & _ & _).
+    intros bp v Hbp Hl.
+    assert (Nd : bp <> bD)
+      by (intro E; subst bp; refine (Genv.global_addresses_distinct G _ Hbp HbD eq_refl); vm_compute; discriminate).
+    assert (Nm : bp <> bm)
+      by (intro E; subst bp; refine (Genv.global_addresses_distinct G _ Hbp Hbm_sym eq_refl); vm_compute; discriminate).
+    rewrite (LD _ _ _ Nd Nm) in Hl.
+    destruct (Hst bp v Hbp Hl) as [Hz | (pb & po & -> & Hpb & Hk)]; [ left; exact Hz | right ].
+    exists pb, po. split; [ reflexivity | split; [ exact Hpb | ] ].
+    assert (Pd : pb <> bD)
+      by (intro E; subst pb; refine (Genv.global_addresses_distinct G _ Hpb HbD eq_refl); vm_compute; discriminate).
+    assert (Pm : pb <> bm)
+      by (intro E; subst pb; refine (Genv.global_addresses_distinct G _ Hpb Hbm_sym eq_refl); vm_compute; discriminate).
+    intros k Hk'. specialize (Hk k Hk'). cbn [Mem.loadv] in *.
+    rewrite (LD _ _ _ Pd Pm). exact Hk.
+  Qed.
+
+  (* ... and every load outside D_8032FEC0 and Mario's pos *)
+  Theorem plat_loads : forall m m',
+    mem_ok_lp bm MWF m -> plat_call lp m m' -> plat_still lp m ->
+    (forall id b, Genv.find_symbol G id = Some b -> id <> PD._D_8032FEC0 -> id <> level_update._gMarioStates ->
+       forall ch z, Mem.load ch m' b z = Mem.load ch m b z)
+    /\ (forall ch z, PlatformEff.bmw ch z -> Mem.load ch m' bm z = Mem.load ch m bm z).
+  Proof.
+    intros m m' (_ & _ & HM) Hc Hst.
+    pose proof HM as ((_ & _ & _ & _ & _ & _ & _ & Hgn) & _).
+    destruct plat_D_sym as (bD & HbD).
+    destruct (plat_step_eff bD m m' HbD Hgn Hc Hst) as (_ & _ & _ & LD & LM & _).
+    split; [ | exact LM ].
+    intros id b Hs N1 N2 ch z. apply LD.
+    - intro E; subst b. exact (Genv.global_addresses_distinct G N1 Hs HbD eq_refl).
+    - intro E; subst b. exact (Genv.global_addresses_distinct G N2 Hs Hbm_sym eq_refl).
+  Qed.
 End Link.
 
 (* ===================================================================== *)

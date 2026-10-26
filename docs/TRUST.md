@@ -1014,9 +1014,13 @@ without pressing A".*
   unobservable), `Hobj_stores` / `Hobj_counter`, `Hobj_debug`, `Hobj_surfaces`,
   `Hobj_collisions`, `Hobj_unload`, `Hobj_mplat` (`Hobj_terrain` / `Hobj_nonterrain` are
   PROVED since B2, below, from `Hobj_step_terrain` / `Hobj_step_nonterrain` / `Hobj_ctr`);
-  `Hplat_keep` (the platform call also keeps `plat_still` and the object
-  world; `surf_apart` follows from Φ since 2026-10-26), `Hlvl_ow` / `Hrender_ow` (the level slices and the render walk keep the object
-  world). The phase invariant is mem_ok ∧ Φ ∧ A up ∧ `plat_still` ∧ `surf_apart` ∧
+  `Hlvl_ow` / `Hrender_ow` (the level slices and the render walk keep the object
+  world). **PROVED 2026-10-26** (was the row `Hplat_keep`): the platform call keeps
+  `plat_still` and the object world (`HeightLinked12.plat_keep_linked12`, from
+  `PlatformKeep.plat_keeps_still` / `plat_loads`: by `plat_step_eff` the call changes loads only
+  in D_8032FEC0's block and Mario's pos cells, apart from gMarioPlatform, the pool and every
+  `obj_w` block; in particular it writes no gfx field of Mario's object); `surf_apart` follows
+  from Φ. The phase invariant is mem_ok ∧ Φ ∧ A up ∧ `plat_still` ∧ `surf_apart` ∧
   `ObjWorld.obj_w`; `obj_w` is part of `fb_ok` and is a new start premise of the capstone,
   PROVED at the boot witness: the witness now runs the real `init_graph_node_start(NULL,
   &gObjParentGraphNode)` and `clear_objects()` (LEVEL_INIT) before the terrain and
