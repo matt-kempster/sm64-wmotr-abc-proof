@@ -77,6 +77,8 @@ From SM64.Proofs.WMotRRequiresA Require Import FfWorld FfRow AhwRow KbRow FpuFlo
 From SM64.Proofs.WMotRRequiresA Require PoleXc PoleCasesT LsContract.
 From SM64.Proofs.WMotRRequiresA Require RenderFlank RenderKeep AnimWorld PlatformKeep PollFlank.
 From SM64.Proofs.WMotRRequiresA Require LevelGvars LevelFlank LevelKeep.
+From SM64.Proofs.WMotRRequiresA Require ObjPhase ObjWorld.
+From SM64.Generated Require object_list_processor area platform_displacement.
 From SM64.Proofs Require OsDmaFloor LptBody ObjExtBodies UpdateCameraBody.
 From SM64.Proofs Require Import HeightInvariant HeightBudgetArith HeightMoveCatalog WMotRLevel
   WMotRWorld NoAActions.
@@ -109,6 +111,7 @@ Section HeightFrame.
   Variable bm : block.           (* Mario's MarioState block *)
   Variable MWF : mem -> Prop.    (* GOAL 1's carried invariant *)
   Variable Phi : mem -> Prop.    (* the height invariant (T3 defines it) *)
+  Variable OW : mem -> Prop.     (* the object world (ObjWorld.obj_w on the link) *)
 
   Notation mem_ok := (mem_ok_lp bm MWF).
 
@@ -135,30 +138,44 @@ Section HeightFrame.
      touch the PIF image), and the Phi carries, the poll's conditional on
      the controller cells it PROVABLY re-establishes (ctl_w), and the
      platform fact PlatformKeep.plat_still (2026-10-24: the poll writes no
-     object and not gMarioPlatform). *)
+     object and not gMarioPlatform), and the object world OW (2026-10-26:
+     no object, no list head, no debug cell, none of Mario's object
+     pointers). *)
   Definition seg_input_spec (m i m0 : mem) : Prop :=
     (i = m \/ PollFlank.srd_call lp m i)
     /\ (Phi m -> Phi i)
     /\ PollFlank.rci_call lp i m0
     /\ (Phi i -> ctl_w (lp_ge lp) m0 -> Phi m0)
-    /\ (PlatformKeep.plat_still lp m -> PlatformKeep.plat_still lp m0).
+    /\ (PlatformKeep.plat_still lp m -> PlatformKeep.plat_still lp m0)
+    /\ (OW m -> OW m0).
 
-  (* seg_platform: ONE real eval_funcall of platform_displacement.c's
-     apply_mario_platform_displacement over lp (2026-10-23, the TU linked as
-     the 45th; PlatformKeep.plat_call).  Its carries of mem_ok, Phi and the
-     A-held bit are PROVED from the walked body (PlatformKeep, discharging
-     Hplat_ok / Hplat_phi / Hplat_ad below).  What the step states besides
-     the call (labeled trust): Mario's surfaces are not in D_8032FEC0's
-     block (RenderKeep.surf_apart, as for the render step).
-     The carries need PlatformKeep.plat_still at the call: gMarioPlatform is
-     NULL or an object with zero angle velocity (a rotating platform moves
-     Mario's y).  Since 2026-10-24 that is no longer a premise of this step.
-     The run carries it at frame boundaries (frame_step_ok): it holds at the
-     boot witness (StartSat, proved: gMarioPlatform boots NULL), the object
-     phase re-establishes it (seg_rest_spec, part of the labeled objects
-     spec), and the poll keeps it (seg_input_spec). *)
+  (* apply_mario_platform_displacement (platform_displacement.c, linked as
+     the 45th TU): the call, plus the labeled premise its proved carries
+     take (Mario's surfaces are not in D_8032FEC0's block).  Since
+     2026-10-26 it is NOT a frame segment: it runs INSIDE the objects call
+     below, as the real update_objects runs it, and its carries of mem_ok,
+     Phi and the A-held bit are PROVED from the walked body (PlatformKeep,
+     in HeightLinked12's discharge of the objects-phase platform row). *)
   Definition seg_platform_spec (m m' : mem) : Prop :=
     PlatformKeep.plat_call lp m m'
+    /\ RenderKeep.surf_apart lp bm PlatformKeep.plat_gvars m.
+
+  (* seg_objects: the OBJECTS phase, ONE real eval_funcall of area.c's
+     area_update_objects (ObjPhase.objects_call, 2026-10-26) -- the call
+     play_mode_normal makes between its two level slices.  Inside it the
+     real update_objects runs clear_dynamic_surfaces, update_terrain_objects,
+     apply_mario_platform_displacement, detect_object_collisions,
+     update_non_terrain_objects (Mario's object's script reaches
+     execute_mario_action there: GOAL 1's frame plus the crux fill that
+     HOLE, mario_hole below), unload_deactivated_objects and
+     update_mario_platform.  It replaces the old platform / action /
+     seg_rest_spec trio: the spine now has the real frame order, and what
+     the phase does is ONE ROW PER REAL CALLEE (the Hobj_* rows below).
+     What the step states besides the call (labeled, as the old platform
+     step did): at its start Mario's surfaces are not in D_8032FEC0's
+     block. *)
+  Definition seg_objects_spec (m m' : mem) : Prop :=
+    ObjPhase.objects_call lp m m'
     /\ RenderKeep.surf_apart lp bm PlatformKeep.plat_gvars m.
 
   (* seg_level_pre / seg_level_post: the level phase, as the real
@@ -186,28 +203,23 @@ Section HeightFrame.
     /\ RenderKeep.surf_apart lp bm LevelGvars.level_gvars m
     /\ FfWorld.warp_w (lp_ge lp) m'.
 
-  (* seg_rest: the non-Mario phase.  The WMotR object census found three
-     object-side Mario writers (pole push: pos[0]/pos[2]; 1-up: numLives;
-     bob-omb buddy: action := ACT_READING_NPC_DIALOG); none writes y.
-     It ends with the platform fact (2026-10-24, part of this labeled
-     objects spec): gMarioPlatform is NULL or an object with zero angle
-     velocity (PlatformKeep.plat_still).  In the game update_mario_platform
-     (the last step of update_objects) sets it to NULL or to the object of
-     Mario's floor.  WMotR's only objects with surfaces are the ! boxes and
-     the cannon lids (WMotRLevel.collision_of, TRUST 0.8).  Their scripts
-     set no angle velocity and no function they run writes one
-     (AngleVelCensus); rawData is zeroed at allocation.  The one stale-slot
-     path (a lid deactivates in the frame it last loads its surfaces) needs
-     Mario on the lid while it opens, and he is then frozen in the buddy's
-     dialog, over 400 units away (TRUST 0.7 details).  The render tail writes
-     no object field and not gMarioPlatform. *)
+  (* seg_rest: the render walk outside Mario's node (geo_process_root over
+     the area's graph, before and after Mario's render call).  Since
+     2026-10-26 the objects phase is no longer a seg_rest: it is the real
+     area_update_objects call (seg_objects_spec).  The walk writes no
+     MarioState cell but (in the left disjunct's sense) leaves y and the
+     action alone, carries MWF and Phi, keeps gMarioPlatform's fact
+     (PlatformKeep.plat_still; the render tail writes no object field and
+     not gMarioPlatform) and the object world OW (it writes graph-node
+     render fields, none of which obj_w reads).  Labeled (TRUST 0.7). *)
   Definition seg_rest_spec (m m' : mem) : Prop :=
     Mem.load Mfloat32 m' bm POSY = Mem.load Mfloat32 m bm POSY
     /\ (Mem.load Mint32 m' bm 12 = Mem.load Mint32 m bm 12
         \/ Mem.load Mint32 m' bm 12 = Some (Vint ACT_READING_NPC_DIALOG))
     /\ (Mem.valid_block m bm -> Mem.valid_block m' bm)
     /\ carries m m'
-    /\ PlatformKeep.plat_still lp m'.
+    /\ PlatformKeep.plat_still lp m'
+    /\ (OW m -> OW m').
 
   (* seg_render: the render step on Mario's node (2026-10-22,
      rendering_graph_node.c linked as TU 35).  geo_process_object calls the
@@ -244,50 +256,32 @@ Section HeightFrame.
   (*    warp, with the red coins and the star counter reloaded (TRUST 0.3). *)
   (* ===================================================================== *)
   (* play_mode_normal's order: the level PRE slice; area_update_objects
-     (Mario's platform step and action, then rest = the other objects);
-     the level POST slice; then the render: rest (the walk up to Mario's
-     node) ; Mario's render call ; rest (the remaining walk). *)
-  Definition mario_frame_step (i m m' : mem) : Prop :=
-    exists m0 ma m1 m2 m3 m4 m5 m6,
+     (ONE real call: the objects phase, Mario's platform step and action
+     inside it); the level POST slice; then the render: rest (the walk up
+     to Mario's node) ; Mario's render call ; rest (the remaining walk).
+     Since 2026-10-26 this is every PLAY_MODE_NORMAL frame, including
+     frames in time stop (update_objects skips Mario's object there, and
+     the objects call covers that: the hole is used zero times). *)
+  Definition play_frame_step (i m m' : mem) : Prop :=
+    exists m0 ma m3 m4 m5 m6,
       seg_input_spec m i m0
       /\ seg_level_pre_spec m0 ma
-      /\ seg_platform_spec ma m1
-      /\ execute_mario_action_step_lp lp m1 m2
-      /\ seg_rest_spec m2 m3
+      /\ seg_objects_spec ma m3
       /\ seg_level_post_spec m3 m4
       /\ seg_rest_spec m4 m5
       /\ seg_render_spec m5 m6
       /\ seg_rest_spec m6 m'
       /\ in_wmotr m'.
 
-  (* A frame that updates Mario ZERO times (2026-10-24): a paused frame
-     (play_mode_paused: no object update), a change-level frame, a frame in
-     time stop with TIME_STOP_MARIO_AND_DOORS (update_objects skips Mario;
-     apply_mario_platform_displacement returns early while time stop is
-     active, but may still be called).  The poll runs; then either nothing
-     else changes memory, or the flanks run (the level PRE slice, an
-     optional platform call, the objects, the level POST slice, the render
-     tail) with no execute_mario_action.  (2026-10-24: with the real level
-     slices a frame outside PLAY_MODE_NORMAL other than the first disjunct,
-     e.g. the change-level frame after a warp out, is not a step: the run
-     ends there.)
-     Before this, a real no-A run that paused was not a frame_step run, so
-     the capstone said nothing about it. *)
+  (* A frame where only the poll changes memory: a paused frame
+     (play_mode_paused: no object update).  A frame outside
+     PLAY_MODE_NORMAL other than this, e.g. the change-level frame after a
+     warp out, is not a step: the run ends there. *)
   Definition idle_frame_step (i m m' : mem) : Prop :=
-    exists m0, seg_input_spec m i m0
-    /\ (m' = m0
-        \/ exists ma m1 m2 m3 m4 m5,
-             seg_level_pre_spec m0 ma
-             /\ (m1 = ma \/ seg_platform_spec ma m1)
-             /\ seg_rest_spec m1 m2
-             /\ seg_level_post_spec m2 m3
-             /\ seg_rest_spec m3 m4
-             /\ seg_render_spec m4 m5
-             /\ seg_rest_spec m5 m'
-             /\ in_wmotr m').
+    exists m0, seg_input_spec m i m0 /\ m' = m0.
 
   Definition frame_step (i m m' : mem) : Prop :=
-    mario_frame_step i m m' \/ idle_frame_step i m m'.
+    play_frame_step i m m' \/ idle_frame_step i m m'.
 
   Variable YMAX : R.
 
@@ -314,15 +308,96 @@ Section HeightFrame.
     forall m m', Phi m -> RenderFlank.render_call lp bm m m' ->
                  RenderKeep.render_surf_apart lp bm m -> Phi m'.
 
-  (* the platform step carries mem_ok, the A-held bit and Phi (discharged
-     in the twelve-TU section below by PlatformKeep -- NOT open). *)
-  Hypothesis Hplat_ok :
-    forall m m', mem_ok m -> PlatformKeep.plat_still lp m -> seg_platform_spec m m' -> mem_ok m'.
-  Hypothesis Hplat_ad :
-    forall m m', mem_ok m -> PlatformKeep.plat_still lp m -> seg_platform_spec m m' ->
-                 a_down_real bm m' = a_down_real bm m.
-  Hypothesis Hplat_phi :
-    forall m m', Phi m -> PlatformKeep.plat_still lp m -> seg_platform_spec m m' -> Phi m'.
+  (* ---- THE OBJECTS PHASE (2026-10-26, ObjPhase).  The real
+     area_update_objects call keeps Pobj, PROVED (ObjPhase.objects_keep)
+     from ONE ROW PER REAL CALLEE of update_objects (the callee list is
+     computed from the generated body, ObjPhase.uo_callees_eq) and the
+     body's own stores.  Pobj is what the frame carries into the phase:
+     GOAL 1's mem_ok, Phi, A not held, gMarioPlatform's fact, the platform
+     call's surface premise, and the object world.  Without the object
+     world a stage row would quantify over phantom object lists. ---- *)
+  Definition Pobj (m : mem) : Prop :=
+    mem_ok m /\ Phi m /\ a_down_real bm m = false /\ PlatformKeep.plat_still lp m
+    /\ RenderKeep.surf_apart lp bm PlatformKeep.plat_gvars m /\ OW m.
+
+  (* THE HOLE: what the objects phase may assume of each real
+     execute_mario_action it reaches (bhv_mario_update, from Mario's
+     object's script).  Filled below by GOAL 1's frame (Hframe_action) and
+     the crux (Hseg_action_phi): mario_hole_filled. *)
+  Definition mario_hole : Prop :=
+    forall m m', mem_ok m -> Phi m -> a_down_real bm m = false ->
+      execute_mario_action_step_lp lp m m' -> mem_ok m' /\ Phi m'.
+
+  (* the link facts ObjPhase.objects_keep reads (PROVED in HeightLinked12:
+     ObjPhase.clock_keeps, ObjPhase.auo_fun) *)
+  Hypothesis Hobj_clock : forall Q,
+    ObjPhase.call_keeps (lp_ge lp) Q object_list_processor._get_current_clock
+    /\ ObjPhase.call_keeps (lp_ge lp) Q object_list_processor._get_clock_difference.
+  Hypothesis Hobj_auo : forall bf fd,
+    Genv.find_symbol (lp_ge lp) area._update_objects = Some bf ->
+    Genv.find_funct (lp_ge lp) (Vptr bf Ptrofs.zero) = Some fd ->
+    fd = Internal object_list_processor.f_update_objects.
+
+  (* OPEN, the frame block (update_objects' stack array cycleCounts[30]):
+     Pobj does not read a non-symbol block no stored pointer names; the
+     frame block allocated from a Pobj memory is one; no callee stores a
+     pointer to it (none is passed one). *)
+  Hypothesis Hobj_blind : forall b m m', Ple (Genv.genv_next (lp_ge lp)) b -> Pobj m ->
+    ObjPhase.noref b m -> Mem.unchanged_on (fun b' _ => b' <> b) m m' -> Pobj m'.
+  Hypothesis Hobj_fresh : forall m m1 b, Pobj m -> Mem.alloc m 0 240 = (m1, b) ->
+    Ple (Genv.genv_next (lp_ge lp)) b /\ ObjPhase.noref b m1.
+  Hypothesis Hobj_noref : forall b f, In f ObjPhase.uo_callees -> Ple (Genv.genv_next (lp_ge lp)) b ->
+    ObjPhase.call_keeps (lp_ge lp) (ObjPhase.noref b) f.
+  (* OPEN, the phase's own stores: update_objects' (cycleCounts[i],
+     gTimeStopState, gNumRoomedObjects*, gCheckingSurfaceCollisionsForCamera,
+     gObjectLists, gPrevFrameObjectCount) and area_update_objects'
+     gAreaUpdateCounter++ *)
+  Hypothesis Hobj_stores : forall b s, In (OBlk s) ObjPhase.uo_list ->
+    Ple (Genv.genv_next (lp_ge lp)) b ->
+    ObjPhase.safeE (lp_ge lp) (fun m => Pobj m /\ ObjPhase.noref b m) (ObjPhase.uo_env b) s.
+  Hypothesis Hobj_counter : forall le m t le' m' out, Pobj m ->
+    exec_stmt function_entry2 (lp_ge lp) empty_env le m ObjPhase.auo_counter t le' m' out -> Pobj m'.
+  (* OPEN, THE STAGE ROWS: each real callee of update_objects keeps Pobj.
+     debug: debug.c's reset_debug_objectinfo / stub_debug_5 and
+       try_print_debug_mario_object_info (sDebugPage boots 0: the print is
+       off);
+     surfaces: clear_dynamic_surfaces (the pools drop back to the static
+       counts);
+     terrain: update_terrain_objects, the list loop over the spawner and
+       surface lists (the interpreter step per object, the ! boxes' and
+       cannon lids' dynamic surfaces);
+     collisions: detect_object_collisions;
+     nonterrain: update_non_terrain_objects, the list loop over the other
+       lists in sObjectListUpdateOrder (the interpreter step per object,
+       the natives its scripts call -- the 45 natives ObjSpawn's walk does
+       not cover, ObjSpawn.spawn_uncovered_count -- and Mario's object,
+       where the HOLE is used);
+     unload: unload_deactivated_objects;
+     mplat: update_mario_platform (gMarioPlatform := the object of Mario's
+       floor, or NULL: plat_still is its claim). *)
+  Hypothesis Hobj_debug :
+    ObjPhase.call_keeps (lp_ge lp) Pobj object_list_processor._reset_debug_objectinfo
+    /\ ObjPhase.call_keeps (lp_ge lp) Pobj object_list_processor._stub_debug_5
+    /\ ObjPhase.call_keeps (lp_ge lp) Pobj object_list_processor._try_print_debug_mario_object_info.
+  Hypothesis Hobj_surfaces : ObjPhase.call_keeps (lp_ge lp) Pobj object_list_processor._clear_dynamic_surfaces.
+  Hypothesis Hobj_terrain : ObjPhase.call_keeps (lp_ge lp) Pobj object_list_processor._update_terrain_objects.
+  Hypothesis Hobj_collisions : ObjPhase.call_keeps (lp_ge lp) Pobj object_list_processor._detect_object_collisions.
+  Hypothesis Hobj_nonterrain :
+    mario_hole -> ObjPhase.call_keeps (lp_ge lp) Pobj object_list_processor._update_non_terrain_objects.
+  Hypothesis Hobj_unload : ObjPhase.call_keeps (lp_ge lp) Pobj object_list_processor._unload_deactivated_objects.
+  Hypothesis Hobj_mplat : ObjPhase.call_keeps (lp_ge lp) Pobj object_list_processor._update_mario_platform.
+  (* the platform callee keeps Pobj (discharged in HeightLinked12 from the
+     PROVED PlatformKeep carries and the narrower row Hplat_keep there) *)
+  Hypothesis Hobj_platform :
+    ObjPhase.call_keeps (lp_ge lp) Pobj object_list_processor._apply_mario_platform_displacement.
+
+  (* OPEN, the object world through the other phases: the level slices and
+     Mario's render call keep OW (they write no object list, no script /
+     action / kind field, no red-coin or debug cell, and none of Mario's
+     object pointers) *)
+  Hypothesis Hlvl_ow : forall m m', mem_ok m -> Phi m -> OW m ->
+    (seg_level_pre_spec m m' \/ seg_level_post_spec m m') -> OW m'.
+  Hypothesis Hrender_ow : forall m m', OW m -> RenderFlank.render_call lp bm m m' -> OW m'.
 
   (* the level slices carry mem_ok, Phi (and the PRE slice the A-held bit
      and the platform fact) (discharged in the twelve-TU section below by
@@ -405,7 +480,7 @@ Section HeightFrame.
   (*    frame boundary, the platform fact PlatformKeep.plat_still).          *)
   (* ===================================================================== *)
   Definition fb_ok (m : mem) : Prop :=
-    mem_ok m /\ Phi m /\ PlatformKeep.plat_still lp m.
+    mem_ok m /\ Phi m /\ PlatformKeep.plat_still lp m /\ OW m.
 
   (* the poll: when the hardware's reply shows A on no live port, the real
      poll keeps the boundary facts, and A is not held after it *)
@@ -413,24 +488,13 @@ Section HeightFrame.
       PollFlank.pif_a_real (lp_ge lp) i = false -> fb_ok m -> seg_input_spec m i m0 ->
       fb_ok m0 /\ a_down_real bm m0 = false.
   Proof.
-    intros i m m0 HP (Hok & Hphi & Hst) (Hsrd & Hpi & Hrci & Hp0 & Hsti).
+    intros i m m0 HP (Hok & Hphi & Hst & How) (Hsrd & Hpi & Hrci & Hp0 & Hsti & Howi).
     assert (Hoki : mem_ok i)
       by (destruct Hsrd as [-> | Hsrd]; [ exact Hok | exact (Hsrd_ok m i Hok Hsrd) ]).
     pose proof (Hpi Hphi) as Hphii.
     destruct (Hpoll_ok i m0 Hoki Hphii HP Hrci) as (Hok0 & HU & Hcw).
     destruct (a_used_real_false bm m0 HU) as (_ & HD).
-    exact (conj (conj Hok0 (conj (Hp0 Hphii Hcw) (Hsti Hst))) HD).
-  Qed.
-
-  (* the platform call *)
-  Lemma platform_ok : forall i m1,
-      fb_ok i -> a_down_real bm i = false -> seg_platform_spec i m1 ->
-      mem_ok m1 /\ Phi m1 /\ a_down_real bm m1 = false.
-  Proof.
-    intros i m1 (Hok0 & Hphi0 & Hst0) HD Hplat.
-    split; [ exact (Hplat_ok i m1 Hok0 Hst0 Hplat) | split ].
-    - exact (Hplat_phi i m1 Hphi0 Hst0 Hplat).
-    - rewrite (Hplat_ad i m1 Hok0 Hst0 Hplat). exact HD.
+    exact (conj (conj Hok0 (conj (Hp0 Hphii Hcw) (conj (Hsti Hst) (Howi How)))) HD).
   Qed.
 
   (* the level PRE slice *)
@@ -438,34 +502,58 @@ Section HeightFrame.
       fb_ok m0 -> a_down_real bm m0 = false -> seg_level_pre_spec m0 ma ->
       fb_ok ma /\ a_down_real bm ma = false.
   Proof.
-    intros m0 ma (Hok & Hphi & Hst) HD Hpre.
+    intros m0 ma (Hok & Hphi & Hst & How) HD Hpre.
     destruct (Hlvl_pre m0 ma Hok Hphi Hpre) as (Hok' & Hphi' & HD' & Hst').
-    rewrite HD in HD'. exact (conj (conj Hok' (conj Hphi' (Hst' Hst))) HD').
+    pose proof (Hlvl_ow m0 ma Hok Hphi How (or_introl Hpre)) as How'.
+    rewrite HD in HD'. exact (conj (conj Hok' (conj Hphi' (conj (Hst' Hst) How'))) HD').
   Qed.
 
-  (* the tail: the objects, the level POST slice, rest, Mario's render
-     call, rest *)
-  Lemma tail_ok : forall m2 m3 m4 m5 m6 m',
-      mem_ok m2 -> Phi m2 ->
-      seg_rest_spec m2 m3 -> seg_level_post_spec m3 m4 -> seg_rest_spec m4 m5 ->
+  (* THE HOLE, filled: GOAL 1's frame and the crux *)
+  Lemma mario_hole_filled : mario_hole.
+  Proof.
+    intros m m' Hok Hphi HD Hst.
+    exact (conj (Hframe_action m m' Hok Hst) (Hseg_action_phi m m' Hok Hphi HD Hst)).
+  Qed.
+
+  (* the objects phase: the real area_update_objects call *)
+  Lemma objects_ok : forall ma m3,
+      fb_ok ma -> a_down_real bm ma = false -> seg_objects_spec ma m3 ->
+      mem_ok m3 /\ Phi m3 /\ PlatformKeep.plat_still lp m3 /\ OW m3.
+  Proof.
+    intros ma m3 (Hok & Hphi & Hst & How) HD (Hc & Hsa).
+    destruct (ObjPhase.objects_keep lp Hobj_clock Hobj_auo Pobj
+                Hobj_blind Hobj_fresh Hobj_noref Hobj_stores Hobj_counter
+                Hobj_debug Hobj_surfaces Hobj_terrain Hobj_platform Hobj_collisions
+                (Hobj_nonterrain mario_hole_filled) Hobj_unload Hobj_mplat
+                ma m3 (conj Hok (conj Hphi (conj HD (conj Hst (conj Hsa How))))) Hc)
+      as (Hok' & Hphi' & _ & Hst' & _ & How').
+    exact (conj Hok' (conj Hphi' (conj Hst' How'))).
+  Qed.
+
+  (* the tail: the level POST slice, rest, Mario's render call, rest *)
+  Lemma tail_ok : forall m3 m4 m5 m6 m',
+      mem_ok m3 -> Phi m3 -> OW m3 ->
+      seg_level_post_spec m3 m4 -> seg_rest_spec m4 m5 ->
       seg_render_spec m5 m6 -> seg_rest_spec m6 m' -> fb_ok m'.
   Proof.
-    intros m2 m3' m3 m4 m5 m' Hok2 Hphi2 Hobj Hpost Hrest Hrnd Hrest2.
-    pose proof (rest_ok m2 m3' Hobj Hok2) as Hok3'.
-    pose proof (proj2 (proj1 (proj2 (proj2 (proj2 Hobj)))) Hphi2) as Hphi3'.
-    destruct (Hlvl_post m3' m3 Hok3' Hphi3' Hpost) as (Hok3 & Hphi3).
+    intros m3 m4 m5 m6 m' Hok3 Hphi3 How3 Hpost Hrest Hrnd Hrest2.
+    destruct (Hlvl_post m3 m4 Hok3 Hphi3 Hpost) as (Hok4 & Hphi4).
+    pose proof (Hlvl_ow m3 m4 Hok3 Hphi3 How3 (or_intror Hpost)) as How4.
     (* rest, Mario's render call, rest *)
-    pose proof (rest_ok m3 m4 Hrest Hok3) as Hok4.
-    pose proof (proj2 (proj1 (proj2 (proj2 (proj2 Hrest)))) Hphi3) as Hphi4.
-    assert (Hok5 : mem_ok m5 /\ Phi m5)
+    pose proof (rest_ok m4 m5 Hrest Hok4) as Hok5.
+    pose proof (proj2 (proj1 (proj2 (proj2 (proj2 Hrest)))) Hphi4) as Hphi5.
+    pose proof (proj2 (proj2 (proj2 (proj2 (proj2 Hrest)))) How4) as How5.
+    assert (Hok6 : mem_ok m6 /\ Phi m6 /\ OW m6)
       by (destruct Hrnd as [-> | (Hrc & Hsa)];
-          [ exact (conj Hok4 Hphi4)
-          | exact (conj (Hrender_ok m4 m5 Hok4 Hrc) (Hrender_phi m4 m5 Hphi4 Hrc Hsa)) ]).
-    destruct Hok5 as (Hok5 & Hphi5).
-    split; [ | split ].
-    - exact (rest_ok m5 m' Hrest2 Hok5).
-    - exact (proj2 (proj1 (proj2 (proj2 (proj2 Hrest2)))) Hphi5).
-    - exact (proj2 (proj2 (proj2 (proj2 Hrest2)))).
+          [ exact (conj Hok5 (conj Hphi5 How5))
+          | exact (conj (Hrender_ok m5 m6 Hok5 Hrc)
+                     (conj (Hrender_phi m5 m6 Hphi5 Hrc Hsa) (Hrender_ow m5 m6 How5 Hrc))) ]).
+    destruct Hok6 as (Hok6 & Hphi6 & How6).
+    split; [ | split; [ | split ] ].
+    - exact (rest_ok m6 m' Hrest2 Hok6).
+    - exact (proj2 (proj1 (proj2 (proj2 (proj2 Hrest2)))) Hphi6).
+    - exact (proj1 (proj2 (proj2 (proj2 (proj2 Hrest2))))).
+    - exact (proj2 (proj2 (proj2 (proj2 (proj2 Hrest2)))) How6).
   Qed.
 
   Theorem frame_step_ok :
@@ -476,28 +564,15 @@ Section HeightFrame.
       fb_ok m'.
   Proof.
     intros i m m' HU Hfb
-      [ (m0 & ma & m1 & m2 & m3 & m4 & m5 & m6 & Hin & Hpre & Hplat & Hact & Hobj & Hpost
-         & Hrest & Hrnd & Hrest2 & _)
-      | (m0 & Hin & [ -> | (ma & m1 & m2 & m3 & m4 & m5 & Hpre & Hpl & Hobj & Hpost
-                            & Hrest & Hrnd & Hrest2 & _) ]) ].
-    - (* a frame with Mario's update *)
+      [ (m0 & ma & m3 & m4 & m5 & m6 & Hin & Hpre & Hobj & Hpost & Hrest & Hrnd & Hrest2 & _)
+      | (m0 & Hin & ->) ].
+    - (* a PLAY_MODE_NORMAL frame: poll, PRE, objects (Mario inside), POST, render *)
       destruct (input_ok i m m0 HU Hfb Hin) as (Hfi & HD).
       destruct (pre_ok m0 ma Hfi HD Hpre) as (Hfa & HDa).
-      destruct (platform_ok ma m1 Hfa HDa Hplat) as (Hok1 & Hphi1 & HD1).
-      (* the Mario action: GOAL 1's frame + the crux *)
-      pose proof (Hseg_action_phi m1 m2 Hok1 Hphi1 HD1 Hact) as Hphi2.
-      pose proof (Hframe_action m1 m2 Hok1 Hact) as Hok2.
-      exact (tail_ok m2 m3 m4 m5 m6 m' Hok2 Hphi2 Hobj Hpost Hrest Hrnd Hrest2).
+      destruct (objects_ok ma m3 Hfa HDa Hobj) as (Hok3 & Hphi3 & _ & How3).
+      exact (tail_ok m3 m4 m5 m6 m' Hok3 Hphi3 How3 Hpost Hrest Hrnd Hrest2).
     - (* an idle frame: only the poll *)
       exact (proj1 (input_ok i m m0 HU Hfb Hin)).
-    - (* an idle frame: the flanks, no Mario update *)
-      destruct (input_ok i m m0 HU Hfb Hin) as (Hfi & HD).
-      destruct (pre_ok m0 ma Hfi HD Hpre) as (Hfa & HDa).
-      assert (H1 : mem_ok m1 /\ Phi m1).
-      { destruct Hpl as [ <- | Hplat ].
-        - exact (conj (proj1 Hfa) (proj1 (proj2 Hfa))).
-        - destruct (platform_ok ma m1 Hfa HDa Hplat) as (A & B & _). exact (conj A B). }
-      exact (tail_ok m1 m2 m3 m4 m5 m' (proj1 H1) (proj2 H1) Hobj Hpost Hrest Hrnd Hrest2).
   Qed.
 
   (* ===================================================================== *)
@@ -505,15 +580,15 @@ Section HeightFrame.
   (* ===================================================================== *)
   Theorem noA_run_height_bound :
     forall (init : mem) (is : list mem) (m : mem),
-      mem_ok init -> Phi init -> PlatformKeep.plat_still lp init ->
+      mem_ok init -> Phi init -> PlatformKeep.plat_still lp init -> OW init ->
       Forall (fun i => PollFlank.pif_a_real (lp_ge lp) i = false) is ->
       reachable mem mem frame_step init is m ->
       mem_ok m /\ y_le m.
   Proof.
-    intros init is m Hok Hphi Hst HA Hr.
+    intros init is m Hok Hphi Hst How HA Hr.
     destruct (reachable_preserves_Phi mem mem (PollFlank.pif_a_real (lp_ge lp)) frame_step fb_ok
                 (fun i s s' Ha Hs Hst => frame_step_ok i s s' Ha Hs Hst)
-                init is m Hr (conj Hok (conj Hphi Hst)) HA) as (Hok' & Hphi' & _).
+                init is m Hr (conj Hok (conj Hphi (conj Hst How))) HA) as (Hok' & Hphi' & _).
     exact (conj Hok' (Hphi_y m Hphi')).
   Qed.
 
@@ -685,6 +760,15 @@ Section HeightLinked12.
        reads *)
     /\ lvl_w (lp_ge lp) m.
   Notation Phi := PhiW.
+
+  (* the object world the run carries (ObjWorld.obj_w, 2026-10-26): the
+     object lists are rings over the pool, Mario's object is in the player
+     list and never freed, every listed object runs a live behavior at a
+     script command inside it, with its action in its table's range, the
+     red-coin and debug facts, and Mario's object pointers point at slots.
+     Proved at the boot witness (StartSat). *)
+  Notation OWl := (ObjWorld.obj_w (lp_ge lp) bm).
+  Notation Pobjl := (Pobj lp bm MWF Phi OWl).
 
   (* LEVEL DATA -- now DEFINED from generated/ and PROVED (WMotRLevel.v):
      wmotr_floor / wmotr_pole / wmotr_cannon are read off WMotR's
@@ -1142,20 +1226,103 @@ Section HeightLinked12.
              m m' update_camera_ok_linked12 Hcam_phi Hc Hsa Hw Hok Hphi).
   Qed.
 
+  (* ---- THE OBJECTS PHASE ON THE LINK (2026-10-26).  The real
+     area_update_objects call is the frame's objects segment
+     (seg_objects_spec); ObjPhase.objects_keep proves it keeps Pobj from
+     the rows below.  The two link facts are PROVED (ObjPhase.clock_keeps:
+     debug.c's clock stubs touch no memory; ObjPhase.auo_fun).  The
+     platform callee's row is PROVED from PlatformKeep's walked carries and
+     ONE narrower open row, Hplat_keep. ---- *)
+  Lemma obj_clock_linked12 : forall Q,
+    ObjPhase.call_keeps (lp_ge lp) Q object_list_processor._get_current_clock
+    /\ ObjPhase.call_keeps (lp_ge lp) Q object_list_processor._get_clock_difference.
+  Proof. exact (ObjPhase.clock_keeps lp H12). Qed.
+  Lemma obj_auo_linked12 : forall bf fd,
+    Genv.find_symbol (lp_ge lp) area._update_objects = Some bf ->
+    Genv.find_funct (lp_ge lp) (Vptr bf Ptrofs.zero) = Some fd ->
+    fd = Internal object_list_processor.f_update_objects.
+  Proof. exact (ObjPhase.auo_fun lp H12). Qed.
+
+  (* OPEN, the frame block (update_objects' cycleCounts[30]) *)
+  Hypothesis Hobj_blind : forall b m m', Ple (Genv.genv_next (lp_ge lp)) b -> Pobjl m ->
+    ObjPhase.noref b m -> Mem.unchanged_on (fun b' _ => b' <> b) m m' -> Pobjl m'.
+  Hypothesis Hobj_fresh : forall m m1 b, Pobjl m -> Mem.alloc m 0 240 = (m1, b) ->
+    Ple (Genv.genv_next (lp_ge lp)) b /\ ObjPhase.noref b m1.
+  Hypothesis Hobj_noref : forall b f, In f ObjPhase.uo_callees -> Ple (Genv.genv_next (lp_ge lp)) b ->
+    ObjPhase.call_keeps (lp_ge lp) (ObjPhase.noref b) f.
+  (* OPEN, the phase's own stores *)
+  Hypothesis Hobj_stores : forall b s, In (FrameCalls.OBlk s) ObjPhase.uo_list ->
+    Ple (Genv.genv_next (lp_ge lp)) b ->
+    ObjPhase.safeE (lp_ge lp) (fun m => Pobjl m /\ ObjPhase.noref b m) (ObjPhase.uo_env b) s.
+  Hypothesis Hobj_counter : forall le m t le' m' out, Pobjl m ->
+    exec_stmt function_entry2 (lp_ge lp) empty_env le m ObjPhase.auo_counter t le' m' out -> Pobjl m'.
+  (* OPEN, the stage rows (see the HeightFrame section for each) *)
+  Hypothesis Hobj_debug :
+    ObjPhase.call_keeps (lp_ge lp) Pobjl object_list_processor._reset_debug_objectinfo
+    /\ ObjPhase.call_keeps (lp_ge lp) Pobjl object_list_processor._stub_debug_5
+    /\ ObjPhase.call_keeps (lp_ge lp) Pobjl object_list_processor._try_print_debug_mario_object_info.
+  Hypothesis Hobj_surfaces : ObjPhase.call_keeps (lp_ge lp) Pobjl object_list_processor._clear_dynamic_surfaces.
+  Hypothesis Hobj_terrain : ObjPhase.call_keeps (lp_ge lp) Pobjl object_list_processor._update_terrain_objects.
+  Hypothesis Hobj_collisions : ObjPhase.call_keeps (lp_ge lp) Pobjl object_list_processor._detect_object_collisions.
+  Hypothesis Hobj_nonterrain : mario_hole lp bm MWF Phi ->
+    ObjPhase.call_keeps (lp_ge lp) Pobjl object_list_processor._update_non_terrain_objects.
+  Hypothesis Hobj_unload : ObjPhase.call_keeps (lp_ge lp) Pobjl object_list_processor._unload_deactivated_objects.
+  Hypothesis Hobj_mplat : ObjPhase.call_keeps (lp_ge lp) Pobjl object_list_processor._update_mario_platform.
+  (* OPEN, narrower than the platform row: the platform call (whose
+     footprint is D_8032FEC0 and Mario's pos, PlatformKeep.plat_step_eff)
+     keeps gMarioPlatform's fact, the surface premise and the object world *)
+  Hypothesis Hplat_keep : forall m m', Pobjl m -> PlatformKeep.plat_call lp m m' ->
+    PlatformKeep.plat_still lp m' /\ RenderKeep.surf_apart lp bm PlatformKeep.plat_gvars m' /\ OWl m'.
+  (* OPEN, the object world through the level slices and the render call *)
+  Hypothesis Hlvl_ow : forall m m', mem_ok_lp bm MWF m -> Phi m -> OWl m ->
+    (seg_level_pre_spec lp bm m m' \/ seg_level_post_spec lp bm m m') -> OWl m'.
+  Hypothesis Hrender_ow : forall m m', OWl m -> RenderFlank.render_call lp bm m m' -> OWl m'.
+
+  Lemma dm_apmd : (prog_defmap platform_displacement.prog) ! object_list_processor._apply_mario_platform_displacement
+    = Some (Gfun (Internal platform_displacement.f_apply_mario_platform_displacement)).
+  Proof. vm_compute. reflexivity. Qed.
+  Lemma apmd_params : fn_params platform_displacement.f_apply_mario_platform_displacement = [].
+  Proof. reflexivity. Qed.
+
+  (* the platform callee, PROVED from PlatformKeep + Hplat_keep *)
+  Lemma obj_platform_linked12 :
+    ObjPhase.call_keeps (lp_ge lp) Pobjl object_list_processor._apply_mario_platform_displacement.
+  Proof.
+    intros bf fd m vargs t m' vr Hs Hf HP Hev.
+    rewrite (ObjPhase.fun_of lp _ _ _ (linked12_LO_platform_displacement lp H12) dm_apmd bf fd Hs Hf) in Hev.
+    assert (Hv : vargs = []).
+    { inversion Hev; subst.
+      match goal with Hfe : function_entry2 _ _ _ _ _ _ _ |- _ => inversion Hfe; subst end.
+      match goal with Hb : bind_parameter_temps _ _ _ = Some _ |- _ =>
+        rewrite apmd_params in Hb; destruct vargs; [ reflexivity | discriminate Hb ] end. }
+    subst vargs.
+    assert (Hc : PlatformKeep.plat_call lp m m') by (exists t, vr; exact Hev).
+    destruct HP as (Hok & Hphi & HD & Hst & Hsa & How).
+    destruct (Hplat_keep m m' (conj Hok (conj Hphi (conj HD (conj Hst (conj Hsa How))))) Hc)
+      as (Hst' & Hsa' & How').
+    split; [ exact (plat_ok_linked12 m m' Hok Hst (conj Hc Hsa)) | ].
+    split; [ exact (plat_phi_linked12 m m' Hphi Hst (conj Hc Hsa)) | ].
+    split; [ rewrite (plat_ad_linked12 m m' Hok Hst (conj Hc Hsa)); exact HD | ].
+    exact (conj Hst' (conj Hsa' How')).
+  Qed.
+
   Theorem wmotr_noA_height_bound_linked12 :
     forall (init : mem) (is : list mem) (m : mem),
-      mem_ok_lp bm MWF init -> Phi init -> PlatformKeep.plat_still lp init ->
+      mem_ok_lp bm MWF init -> Phi init -> PlatformKeep.plat_still lp init -> OWl init ->
       Forall (fun i => PollFlank.pif_a_real (lp_ge lp) i = false) is ->
-      reachable mem mem (frame_step lp bm MWF Phi) init is m ->
+      reachable mem mem (frame_step lp bm MWF Phi OWl) init is m ->
       y_le bm PHI_YMAX m.
   Proof.
-    intros init is m Hok Hphi Hst HA Hr.
-    exact (proj2 (noA_run_height_bound lp bm MWF Phi PHI_YMAX
+    intros init is m Hok Hphi Hst How HA Hr.
+    exact (proj2 (noA_run_height_bound lp bm MWF Phi OWl PHI_YMAX
                     frame_action_linked12 render_ok_linked12 render_phi_linked12
-                    plat_ok_linked12 plat_ad_linked12 plat_phi_linked12
+                    obj_clock_linked12 obj_auo_linked12
+                    Hobj_blind Hobj_fresh Hobj_noref Hobj_stores Hobj_counter
+                    Hobj_debug Hobj_surfaces Hobj_terrain Hobj_collisions Hobj_nonterrain
+                    Hobj_unload Hobj_mplat obj_platform_linked12 Hlvl_ow Hrender_ow
                     lvl_pre_linked12 lvl_post_linked12 seg_action_phi Hphi_y
                     srd_ok_linked12 poll_ok_linked12
-                    init is m Hok Hphi Hst HA Hr)).
+                    init is m Hok Hphi Hst How HA Hr)).
   Qed.
 
 End HeightLinked12.
