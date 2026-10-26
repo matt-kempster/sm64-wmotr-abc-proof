@@ -157,6 +157,14 @@ all in `Unwired/`, and the theorem moved nowhere. See
   self pointers into vec3f_* helpers). Koopa race / boo_key / respawner not in the closure.
   Open next: an interior-self-pointer kind (KSelfAt d) for vec3f_* / object_step, then
   per-call frames for spawns (the new slot is not the running one).
+  2026-10-25 `ObjAct.v` (spine-root): `caf_frame` = call_action_function's frame for the 3
+  live tables under the named premise `RO_tab` (boot: `ro_tab_boot`, real init_mem); 15
+  action bodies + 4 helpers walked (`act_walk_ok`); sizes pinned (`act_size`); oAction
+  stores constant + in range (`act_stores_census`); respawner not live. ObjWalk: narrow-
+  parameter argument rule (`kargs_okx`). OPEN (spine-wide): carry RO_tab across the run --
+  the 3 tables are SafeB globals, so FR allows writes; needs a non-SafeB/MWF-style class
+  for them (cf. knockback_table_ids, ~20 files) -- then Hopen2 is discharged at the 3 call
+  sites.
   2026-10-24 `UpdateCameraBody.update_camera_pres`: the REAL `update_camera(c)` (SafeB c) keeps
   `mem_ok`. 507 bodies (the whole recursive tree: `UcKit` two-mode class walker, `UcTable`
   signatures re-checked by vm), the 336 CameraEvent functions by type certificate. Wired as

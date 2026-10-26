@@ -916,6 +916,26 @@ without pressing A".*
   Koopa: only the koopa_shell_* bodies are in the object closure (no koopa race code), and
   no beta/alpha boo_key or respawner body is (`self_census_names`). Not wired into a
   capstone, so no row moved; no new trust.
+- **call_action_function's frame (2026-10-25, OBJECTS S3, `ObjAct.v`):** sizes pinned by vm
+  (`act_size`): of the 35 action tables only 3 are passed from an xotab body
+  (sJumpingBoxActions, sOpenedCannonActions, sExclamationBoxActions); their 15 entries are
+  none of xotab's bodies; the entries' call closure is 90 functions, 21 outside xotab, no
+  indirect call, no nested action call. `act_walk_ok`: the 15 + 4 helpers + the 69
+  closure bodies walked by ObjWalk WITHOUT call_action_function as a leaf. ObjWalk gained
+  one rule (`kargs_okx`): an argument cast at the call to a short / char / float / long
+  parameter is never a pointer (`narrow_cast_nonptr`, proved from CompCert's sem_cast), so
+  its class is free -- needed for `(s16) o->oFoo` arguments. `RO_tab ge m` (named premise):
+  a pointer loaded from a live table's block is one of its initializer's Init_addrof
+  targets; `ro_tab_boot` proves it in the real `Genv.init_mem` of the link (via
+  BootMWF.init_mem_load_ptr and the link's initializer = the TU's). `caf_frame`:
+  cur_obj_call_action_function(&tbl), tbl live, from UInv + RO_tab, keeps UInv and has
+  ObjWalk's frame (FR, XS). No action-index premise is needed in the Clight semantics: an
+  in-bounds load reads an entry, an out-of-bounds one is stuck (the theorem is about
+  Clight executions; an N64 out-of-range read is outside it). `act_stores_census`: the 14
+  oAction stores in the 15 bodies are constants inside their own table. OPEN: RO_tab is
+  not yet carried across the run (the tables are SafeB globals, so the existing frames
+  allow writes there; RoCensus finds none) -- the spine-wide step. Respawner not live
+  (`respawner_not_live`). Not wired into a capstone; no new trust.
 
 ### Row 0.7 in detail
 
