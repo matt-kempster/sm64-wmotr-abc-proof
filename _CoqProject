@@ -316,6 +316,7 @@ proofs/WMotRRequiresA/RenderFlank.v
 proofs/WMotRRequiresA/PollFlank.v
 proofs/WMotRRequiresA/FootWalk.v
 proofs/WMotRRequiresA/PollKeep.v
+proofs/WMotRRequiresA/MidKeep.v
 proofs/WMotRRequiresA/PlatformEff.v
 proofs/WMotRRequiresA/RenderKeep.v
 proofs/WMotRRequiresA/PlatformWalk.v

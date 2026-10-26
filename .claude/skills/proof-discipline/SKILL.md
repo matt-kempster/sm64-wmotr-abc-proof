@@ -551,8 +551,10 @@ all in `Unwired/`, and the theorem moved nowhere. See
     The capstone's no-A premise is now `PollFlank.pif_a_real` on the PIF reply bytes (TRUST 0.1);
     `a_used_real` is a proved conclusion (`poll_ok`). FOUND: `__osPackReadData` puts 0xFFFF in the
     request's button word, so an unplugged port reads "A" -- the premise ignores ports with error
-    bits (`rxLen & 0xC0`), as osContGetReadData does. Open in the spec: only the two calls' adjacency
-    (audio_game_loop_tick / select_gfx_pool run between). The Phi / plat_still / OW carries are
+    bits (`rxLen & 0xC0`), as osContGetReadData does. NO labeled premise left in the poll segment (2026-10-26):
+    audio_game_loop_tick / select_gfx_pool, which run between the two calls, are real walked code
+    in the segment (`MidKeep.mid_keeps`, row `Hmid_keep` discharged as `mid_keep_linked12`; the pool
+    pointers + gGfxPools joined `safe_ptr_syms` as `CensusV2.gfx_safe_syms`; GOAL 1's facts by UcKit). The Phi / plat_still / OW carries are
     PROVED (2026-10-26, `PollKeep.srd_keeps` / `rci_keeps`, via `FootWalk` (generic footprint
     walker) and `Generic/PermWalk` (permission-preservation body check)); HeightFrame row
     `Hsrd_keep` (new) and the strengthened `Hpoll_ok` are both discharged on the link. `ctl_w` gained P1 / P3 / demo-NULL / maxctl / controllerData clauses
