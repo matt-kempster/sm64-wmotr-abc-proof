@@ -356,7 +356,11 @@ Definition s_chain (bm bo bc ab bt bs bar : block) (m3 : mem) : option mem :=
   | Some m3a =>
   match CM.store Mfloat32 m3a bo 36 (Vsingle ENTRY_Y) with
   | Some m3b =>
-  match CM.store Mint16signed m3b bs 0 (Vint Int.zero) with
+  (* allocate_object's obj->hitboxHeight = 100.0f for Mario's object
+     (spawn_object.c; FfWorld.ff_HH, 2026-10-26) *)
+  match CM.store Mfloat32 m3b bo 508 (Vsingle FFW_F100) with
+  | Some m3c =>
+  match CM.store Mint16signed m3c bs 0 (Vint Int.zero) with
   | Some m4 =>
   match CM.store Mint32 m4 bm 12 (Vint ACT_SPAWN_NO_SPIN_AIRBORNE) with
   | Some m5 =>
@@ -371,7 +375,7 @@ Definition s_chain (bm bo bc ab bt bs bar : block) (m3 : mem) : option mem :=
   match CM.store Mint32 m9 bm 136 (Vptr bo Ptrofs.zero) with
   | Some m10 => CM.store Mint32 m10 ab 8 (Vptr bt Ptrofs.zero)
   | None => None end | None => None end | None => None end | None => None end | None => None end
-  | None => None end | None => None end | None => None end | None => None end.
+  | None => None end | None => None end | None => None end | None => None end | None => None end.
 
 (* init_mario_from_save_file's cells (mario.c:1871-1894) that are not
    zero in the boot image, and the stand-ins the frame reads: the area's
@@ -644,7 +648,7 @@ Qed.
 (* ---------------------------------------------------------------------- *)
 Inductive wout (ge : genv) (m0 : mem) (bm bc ab bo bw bL : block) : Prop :=
 | WOut : forall s1 s2 s3 s4 s5 bcol bn e1 e2 e3 e4 e5 e6 P0 bp P t1 L1 v1 t2 L v2
-                m1 bt m2 bs m2b bar m3 bd m3a m3b m4 m5 m6 m7 m8 m9 m10 ms
+                m1 bt m2 bs m2b bar m3 bd m3a m3b m3c m4 m5 m6 m7 m8 m9 m10 ms
                 bsi bpcs bbs bhud bC bga bpads z1 z2 z3 z4 z5 z6 z7 z8 z9 z10a z10 z11 z12 z13 z14 z15 z16 z17 z18 m11,
     Mem.store Mint8unsigned m0 bw 0 (Vint (Int.repr 1)) = Some e1 ->
     Mem.store Mint8unsigned e1 bw 1 (Vint (Int.repr LEVEL_WMOTR)) = Some e2 ->
@@ -664,7 +668,8 @@ Inductive wout (ge : genv) (m0 : mem) (bm bc ab bo bw bL : block) : Prop :=
     Mem.alloc m2b 0 1680 = (m3, bd) ->
     Mem.store Mfloat32 m3 bm 64 (Vsingle ENTRY_Y) = Some m3a ->
     Mem.store Mfloat32 m3a bo 36 (Vsingle ENTRY_Y) = Some m3b ->
-    Mem.store Mint16signed m3b bs 0 (Vint Int.zero) = Some m4 ->
+    Mem.store Mfloat32 m3b bo 508 (Vsingle FFW_F100) = Some m3c ->
+    Mem.store Mint16signed m3c bs 0 (Vint Int.zero) = Some m4 ->
     Mem.store Mint32 m4 bm 12 (Vint ACT_SPAWN_NO_SPIN_AIRBORNE) = Some m5 ->
     Mem.store Mint32 m5 bm 104 (Vptr bs Ptrofs.zero) = Some m6 ->
     Mem.store Mint32 m6 bm 144 (Vptr bar Ptrofs.zero) = Some m7 ->
@@ -753,7 +758,8 @@ Proof.
   unfold s_chain in Sc.
   destruct (CM.store Mfloat32 m3 bm 64 _) as [m3a|] eqn:S1a; [ | discriminate ].
   destruct (CM.store Mfloat32 m3a bo 36 _) as [m3b|] eqn:S1b; [ | discriminate ].
-  destruct (CM.store Mint16signed m3b bs 0 _) as [m4|] eqn:S1; [ | discriminate ].
+  destruct (CM.store Mfloat32 m3b bo 508 _) as [m3c|] eqn:S1c; [ | discriminate ].
+  destruct (CM.store Mint16signed m3c bs 0 _) as [m4|] eqn:S1; [ | discriminate ].
   destruct (CM.store Mint32 m4 bm 12 _) as [m5|] eqn:S2; [ | discriminate ].
   destruct (CM.store Mint32 m5 bm 104 _) as [m6|] eqn:S3; [ | discriminate ].
   destruct (CM.store Mint32 m6 bm 144 _) as [m7|] eqn:S4; [ | discriminate ].
@@ -790,7 +796,7 @@ Proof.
   eapply WOut;
     [ exact E1 | exact E2 | exact E3 | exact E4 | exact E5 | exact E6 | exact Hcol | exact AP
     | exact PW | exact Hs1 | exact Hs2 | exact Hs3 | exact Hs4 | exact Hs5 | exact R1 | exact R2
-    | exact A1 | exact A2 | exact A3 | exact A4 | exact S1a | exact S1b | exact S1 | exact S2 | exact S3
+    | exact A1 | exact A2 | exact A3 | exact A4 | exact S1a | exact S1b | exact S1c | exact S1 | exact S2 | exact S3
     | exact S4 | exact S5 | exact S6 | exact S7 | exact S8
     | exact Hsi | exact Hpcs | exact Hbs | exact Hhud | exact HcC | exact Hga | exact Hpads
     | exact Z1 | exact Z2 | exact Z3 | exact Z4 | exact Z5 | exact Z6 | exact Z7 | exact Z8

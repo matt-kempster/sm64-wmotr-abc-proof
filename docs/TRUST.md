@@ -75,7 +75,14 @@ without pressing A".*
   verbatim (dischargeable by `SymbolicLinking.linkorder_comp_env_extends`); and Clight expression
   evaluation is deterministic (`Generic/ClightDeterm.v`, proved). Still missing: composing it into
   the capstone (Mario's hitbox fields at collision time, coin #2's field values, and "no contact
-  registered ⇒ coin not collected ⇒ no star"). That step also silently assumes **coin #2 never
+  registered ⇒ coin not collected ⇒ no star"). **2026-10-26: Mario's hitbox fields are carried
+  by the frame world**: `ffw` fields `ff_HH` (hitboxHeight 100.0f or 160.0f, what
+  `mario_update_hitbox_and_cap_model` stores) and `ff_HD` (hitboxDownOffset 0.0f), proved at
+  boot (the StartSat witness stores `allocate_object`'s 100.0f, read off `spawn_object.c`; one
+  more entry store, no new trust) and kept by every proved row and flank (the hitbox row
+  re-proves `ff_HH` from its body). `HitboxFrame.ffw_coin` restates them in `MARIO_COIN2`'s
+  form (Lha / Fha / Hmario_height / Lda / Fda / Hmario_down). Left: the objects phase keeping
+  them up to `detect_object_collisions`, and the composition itself. That step also silently assumes **coin #2 never
   moves**. The one way Mario code moves another object is dropping or throwing a held object
   (`mario_drop_held_object` sets `heldObj->oPosY = m->pos[1]`, `interaction.c:307`; this is how
   cloning works).

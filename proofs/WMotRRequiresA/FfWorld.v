@@ -89,6 +89,13 @@ Definition FFW_COLL : Z := 120.     (* Object.collidedObjs[4] *)
 Definition FFW_PCS : Z := 148.      (* statusForCamera *)
 Definition FFW_BODY : Z := 152.     (* marioBodyState *)
 Definition FFW_THROW : Z := 80.     (* Object.header.gfx.throwMatrix *)
+Definition FFW_HH : Z := 508.       (* Object.hitboxHeight *)
+Definition FFW_HD : Z := 520.       (* Object.hitboxDownOffset *)
+(* the two hitbox heights mario_update_hitbox_and_cap_model stores (and
+   allocate_object's default 100.0f), and allocate_object's 0.0f *)
+Definition FFW_F100 : float32 := Float32.of_bits (Int.repr 1120403456).   (* 0x42C80000 *)
+Definition FFW_F160 : float32 := Float32.of_bits (Int.repr 1126170624).   (* 0x43200000 *)
+Definition FFW_F0 : float32 := Float32.zero.
 
 (* the walk's fifteen regions as pointers, in FfRun.R0F's order (two since
    camera.c is linked: gLakituState, which the real
@@ -288,7 +295,15 @@ Record ffw_facts (m : mem) (d : ffw_wit) : Prop := mk_ffw_facts {
   ff_Cd : forall i cb co, 0 <= i < 4 ->
             Mem.load Mint32 m (fw_bo d) (Ptrofs.unsigned (fw_oo d) + FFW_COLL + 4 * i) = Some (Vptr cb co) ->
             Ptrofs.unsigned co + SZ_OBJECT <= Ptrofs.unsigned (fw_oo d)
-            \/ Ptrofs.unsigned (fw_oo d) + SZ_OBJECT <= Ptrofs.unsigned co }.
+            \/ Ptrofs.unsigned (fw_oo d) + SZ_OBJECT <= Ptrofs.unsigned co;
+  (* MARIO'S HITBOX (2026-10-26, toward CoinLink.MARIO_COIN2's Hmario_height
+     / Hmario_down): his object's hitboxHeight is 100.0f or 160.0f (the
+     values mario_update_hitbox_and_cap_model stores every frame;
+     allocate_object's default is 100.0f) and its hitboxDownOffset is 0.0f
+     (allocate_object's; nothing on Mario's path writes it) *)
+  ff_HH : exists h, Mem.load Mfloat32 m (fw_bo d) (Ptrofs.unsigned (fw_oo d) + FFW_HH) = Some (Vsingle h)
+            /\ (h = FFW_F100 \/ h = FFW_F160);
+  ff_HD : Mem.load Mfloat32 m (fw_bo d) (Ptrofs.unsigned (fw_oo d) + FFW_HD) = Some (Vsingle FFW_F0) }.
 
 Definition ffw (m : mem) : Prop :=
   Ple (Genv.genv_next G) (Mem.nextblock m)
@@ -409,7 +424,9 @@ Definition ffw_read (d : ffw_wit) (ch : memory_chunk) (b : block) (z : Z) : Prop
   \/ (b = fw_ab d /\ z = 8 /\ ch = Mint32)
   \/ (b = fw_bo d /\ ch = Mint32
       /\ exists i, 0 <= i < 4 /\ z = Ptrofs.unsigned (fw_oo d) + FFW_COLL + 4 * i)
-  \/ (b = fw_bo d /\ z = Ptrofs.unsigned (fw_oo d) + FFW_THROW /\ ch = Mint32).
+  \/ (b = fw_bo d /\ z = Ptrofs.unsigned (fw_oo d) + FFW_THROW /\ ch = Mint32)
+  \/ (b = fw_bo d /\ z = Ptrofs.unsigned (fw_oo d) + FFW_HH /\ ch = Mfloat32)
+  \/ (b = fw_bo d /\ z = Ptrofs.unsigned (fw_oo d) + FFW_HD /\ ch = Mfloat32).
 
 (* ... and with the surface cells *)
 Definition ffw_read_s (d : ffw_wit) (ch : memory_chunk) (b : block) (z : Z) : Prop :=
@@ -456,6 +473,66 @@ Qed.
 (* THE REBUILD: ffw holds at m' when m' keeps the read set, the world facts
    (Wff, floor_data) hold there, memory only grew, and the closing
    injection grew *)
+(* Mario's hitboxHeight cell, and the ffw_hh fact about it *)
+Definition ffw_hh_cell (d : ffw_wit) (ch : memory_chunk) (b : block) (z : Z) : Prop :=
+  b = fw_bo d /\ z = Ptrofs.unsigned (fw_oo d) + FFW_HH /\ ch = Mfloat32.
+
+Definition ffw_hh (m : mem) (bo : block) (oo : ptrofs) : Prop :=
+  exists h, Mem.load Mfloat32 m bo (Ptrofs.unsigned oo + FFW_HH) = Some (Vsingle h)
+    /\ (h = FFW_F100 \/ h = FFW_F160).
+
+(* THE REBUILD, for a call that may write Mario's hitboxHeight
+   (mario_update_hitbox_and_cap_model): the read set kept except that
+   cell, which holds 100.0f or 160.0f after *)
+Theorem ffw_rebuild_hh : forall m m' d gp',
+  ffw_facts m d ->
+  Ple (Genv.genv_next G) (Mem.nextblock m') ->
+  Ple (Mem.nextblock m) (Mem.nextblock m') ->
+  (forall b, fw_gp d b <> None -> gp' b <> None) -> closed_by gp' m' ->
+  Wff G m' gp' SZ_SURFACE (ff_rl_of bm d) -> floor_data G m' ->
+  (forall ch b z, ffw_read d ch b z -> ~ ffw_hh_cell d ch b z -> Mem.load ch m' b z = Mem.load ch m b z) ->
+  ffw_hh m' (fw_bo d) (fw_oo d) -> ffw_surf_ok d m m' ->
+  ffw m'.
+Proof.
+  intros m m' d gp' F Hgn Hnb Hinc HC' W' FD' K HH' ((fl' & Lf' & Wf') & WC' & SP').
+  assert (KM : forall z ch, In (z, ch) ffw_bm_cells -> Mem.load ch m' bm z = Mem.load ch m bm z).
+  { intros z ch H; apply K; [left; split; [reflexivity | exact H] |].
+    intros (E & _). exact (ff_D1 _ _ F (eq_sym E)). }
+  split; [exact Hgn |]. split; [| exact FD'].
+  exists (mk_ffw_wit gp' (fw_bfi d) (fw_bmiss d) (fw_bcalls d) (fw_bsin d) (fw_ab d) (fw_biom d)
+            (fw_bmq d) (fw_brm d) (fw_blk d) (fw_bpc d) (fw_bsr d) (fw_bsrc d) (fw_bsms d) (fw_bbs d)
+            (fw_bfa d) (fw_bo d) (fw_oo d) (fw_bt d) (fw_ot d) fl' (fw_ar d) (fw_inp d) (fw_ctl d)).
+  (* every field: unchanged (memory-free), a kept cell, or the new value;
+     the closer below does not depend on the field order *)
+  pose proof F as F0. destruct F0.
+  unfold ffw_hh in HH'.
+  eapply mk_ffw_facts; ffw_simpl;
+    first [ assumption | exact HC' | exact W' | exact Lf' | exact WC' | exact SP'
+          | exact (wblk_mono _ _ _ _ _ Hnb Wf')
+          | apply (wblk_mono _ _ _ _ _ Hnb); assumption
+          | apply Hinc; assumption
+          | let id := fresh "id" in let b := fresh "b" in let Hs := fresh "Hs" in
+            intros id b Hs; exact (Hinc b (ff_HS _ _ F id b Hs))
+          | rewrite KM by (unfold ffw_bm_cells; cbn [In]; auto 10); assumption
+          | rewrite K by (first [ solve [right; left; auto]
+                                | solve [let E := fresh "E" in intros (_ & _ & E); discriminate E] ]);
+            assumption
+          | rewrite K by (first [ solve [right; right; right; left; auto]
+                                | solve [let E := fresh "E" in intros (_ & _ & E); discriminate E] ]);
+            assumption
+          | rewrite K by (first [ solve [right; right; right; right; right; auto]
+                                | solve [let E := fresh "E" in intros (_ & E & _);
+                                         unfold FFW_HD, FFW_HH in E; lia] ]);
+            assumption
+          | let i := fresh "i" in let cb := fresh "cb" in let co := fresh "co" in
+            let Hi := fresh "Hi" in let Hl := fresh "Hl" in
+            intros i cb co Hi Hl; rewrite K in Hl;
+            [ match goal with H : forall i' cb' co', 0 <= i' < 4 -> _ -> _ |- _ =>
+                exact (H i cb co Hi Hl) end
+            | right; right; left; split; [reflexivity |]; split; [reflexivity |]; exists i; auto
+            | let E := fresh "E" in intros (_ & _ & E); discriminate E ] ].
+Qed.
+
 Theorem ffw_rebuild : forall m m' d gp',
   ffw_facts m d ->
   Ple (Genv.genv_next G) (Mem.nextblock m') ->
@@ -465,32 +542,11 @@ Theorem ffw_rebuild : forall m m' d gp',
   ffw_kept d m m' -> ffw_surf_ok d m m' ->
   ffw m'.
 Proof.
-  intros m m' d gp' F Hgn Hnb Hinc HC' W' FD' K ((fl' & Lf' & Wf') & WC' & SP').
-  assert (KM : forall z ch, In (z, ch) ffw_bm_cells -> Mem.load ch m' bm z = Mem.load ch m bm z)
-    by (intros z ch H; apply K; left; split; [reflexivity | exact H]).
-  split; [exact Hgn |]. split; [| exact FD'].
-  exists (mk_ffw_wit gp' (fw_bfi d) (fw_bmiss d) (fw_bcalls d) (fw_bsin d) (fw_ab d) (fw_biom d)
-            (fw_bmq d) (fw_brm d) (fw_blk d) (fw_bpc d) (fw_bsr d) (fw_bsrc d) (fw_bsms d) (fw_bbs d)
-            (fw_bfa d) (fw_bo d) (fw_oo d) (fw_bt d) (fw_ot d) fl' (fw_ar d) (fw_inp d) (fw_ctl d)).
-  (* every field: unchanged (memory-free), a kept cell, or the new value;
-     the closer below does not depend on the field order *)
-  pose proof F as F0. destruct F0.
-  eapply mk_ffw_facts; ffw_simpl;
-    first [ assumption | exact HC' | exact W' | exact Lf' | exact WC' | exact SP'
-          | exact (wblk_mono _ _ _ _ _ Hnb Wf')
-          | apply (wblk_mono _ _ _ _ _ Hnb); assumption
-          | apply Hinc; assumption
-          | let id := fresh "id" in let b := fresh "b" in let Hs := fresh "Hs" in
-            intros id b Hs; exact (Hinc b (ff_HS _ _ F id b Hs))
-          | rewrite KM by (unfold ffw_bm_cells; cbn [In]; auto 10); assumption
-          | rewrite K by (right; left; auto); assumption
-          | rewrite K by (right; right; right; auto); assumption
-          | let i := fresh "i" in let cb := fresh "cb" in let co := fresh "co" in
-            let Hi := fresh "Hi" in let Hl := fresh "Hl" in
-            intros i cb co Hi Hl; rewrite K in Hl;
-            [ match goal with H : forall i' cb' co', 0 <= i' < 4 -> _ -> _ |- _ =>
-                exact (H i cb co Hi Hl) end
-            | right; right; left; split; [reflexivity |]; split; [reflexivity |]; exists i; auto ] ].
+  intros m m' d gp' F Hgn Hnb Hinc HC' W' FD' K S.
+  apply (ffw_rebuild_hh m m' d gp' F Hgn Hnb Hinc HC' W' FD'); [| | exact S].
+  - intros ch b z H _. exact (K ch b z H).
+  - destruct (ff_HH _ _ F) as (h & Lh & Eh). exists h. split; [| exact Eh].
+    rewrite K; [exact Lh |]. right; right; right; right; left; auto.
 Qed.
 
 (* ---- transfer: a memory that differs from m only inside Mario's object ---- *)
@@ -523,6 +579,9 @@ Hypothesis Hldt : Mem.load Mint32 m' bo0 (Ptrofs.unsigned oo0 + FFW_THROW)
 Hypothesis Hldc : forall i, 0 <= i < 4 ->
   Mem.load Mint32 m' bo0 (Ptrofs.unsigned oo0 + FFW_COLL + 4 * i)
   = Mem.load Mint32 m bo0 (Ptrofs.unsigned oo0 + FFW_COLL + 4 * i).
+(* ... and its hitbox cells *)
+Hypothesis Hldh : forall z, z = FFW_HH \/ z = FFW_HD ->
+  Mem.load Mfloat32 m' bo0 (Ptrofs.unsigned oo0 + z) = Mem.load Mfloat32 m bo0 (Ptrofs.unsigned oo0 + z).
 
 Lemma wf_fwd : forall (A : block -> Prop) hd, (forall b, ~ A b -> b <> bo0) ->
   wf_list m A hd -> wf_list m' A hd.
@@ -622,11 +681,13 @@ Proof.
   - exact (HC' _ (ff_HC _ _ F) Gbo).
   - exact (Wff_keep _ _ Ho (ff_W _ _ F)).
   - exact (floor_data_keep _ _ Ho (ff_W _ _ F) FD).
-  - intros ch b z [(-> & _) | [(-> & -> & ->) | [(-> & -> & i & Hi & ->) | (-> & -> & ->)]]].
+  - intros ch b z [(-> & _) | [(-> & -> & ->) | [(-> & -> & i & Hi & ->) | [(-> & -> & ->) | [(-> & -> & ->) | (-> & -> & ->)]]]]].
     + apply Hld. congruence.
     + apply Hld. exact Hab0.
     + rewrite <- Ebo, <- Eoo. exact (Hldc i Hi).
     + rewrite <- Ebo, <- Eoo. exact Hldt.
+    + rewrite <- Ebo, <- Eoo. exact (Hldh _ (or_introl eq_refl)).
+    + rewrite <- Ebo, <- Eoo. exact (Hldh _ (or_intror eq_refl)).
   - apply (ffw_surf_ok_kept m m' d F). intros z ch _. apply Hld. congruence.
 Qed.
 End KEEP.
@@ -793,11 +854,11 @@ Ltac ffw_unpack EX :=
   let Wc0 := fresh "Wc0" in let Lar := fresh "Lar" in let War := fresh "War" in let Li := fresh "Li" in let Ai := fresh "Ai" in let Lc := fresh "Lc" in
   let Wc := fresh "Wc" in let Co := fresh "Co" in let LPC := fresh "LPC" in let LBS := fresh "LBS" in let LTM := fresh "LTM" in
   let Spl := fresh "Spl" in let Spool := fresh "Spool" in let Sar := fresh "Sar" in let Dbt := fresh "Dbt" in
-  let Sctl := fresh "Sctl" in let Cd := fresh "Cd" in
+  let Sctl := fresh "Sctl" in let Cd := fresh "Cd" in let HHt := fresh "HHt" in let HDo := fresh "HDo" in
   pose proof FWF as [HC HS HM S1 S2 S3 S4 S5 S6 S7 S8 SL SP SR
                      SRC SMS SBS SFA Lo Soo La Lb Sot D1 D2 D3 D4 W
                      Lf Wf Wc0 Lar War Li Ai Lc Wc Co LPC LBS LTM
-                     Spl Spool Sar Dbt Sctl Cd];
+                     Spl Spool Sar Dbt Sctl Cd HHt HDo];
   ffw_simpl_in HC; ffw_simpl_in HS; ffw_simpl_in HM; ffw_simpl_in S1; ffw_simpl_in S2; ffw_simpl_in S3; ffw_simpl_in S4; ffw_simpl_in S5;
   ffw_simpl_in S6; ffw_simpl_in S7; ffw_simpl_in S8; ffw_simpl_in SL; ffw_simpl_in SP; ffw_simpl_in SR; ffw_simpl_in SRC; ffw_simpl_in SMS;
   ffw_simpl_in SBS; ffw_simpl_in SFA; ffw_simpl_in Lo; ffw_simpl_in Soo; ffw_simpl_in La; ffw_simpl_in Lb; ffw_simpl_in Sot; ffw_simpl_in D1;
@@ -822,8 +883,8 @@ Ltac ffw_in_split Hin :=
 
 Ltac ffw_read_split H :=
   let Hin := fresh "Hin" in let i := fresh "i" in let Hi := fresh "Hi" in
-  destruct H as [(-> & Hin) | [(-> & -> & ->) | [(-> & -> & i & Hi & ->) | (-> & -> & ->)]]];
-  [ unfold ffw_bm_cells in Hin; ffw_in_split Hin | | | ];
+  destruct H as [(-> & Hin) | [(-> & -> & ->) | [(-> & -> & i & Hi & ->) | [(-> & -> & ->) | [(-> & -> & ->) | (-> & -> & ->)]]]]];
+  [ unfold ffw_bm_cells in Hin; ffw_in_split Hin | | | | | ];
   ffw_simpl.
 
 Ltac ffw_read_s_split H :=
