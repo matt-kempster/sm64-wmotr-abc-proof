@@ -44,7 +44,7 @@
 From Coq Require Import ZArith List Lia Bool String.
 From compcert Require Import Coqlib Maps AST Integers Floats Values Memory Ctypesdefs
   Globalenvs Ctypes Clight Errors.
-From SM64.Generated Require object_list_processor behavior_data object_helpers debug.
+From SM64.Generated Require object_list_processor behavior_data behavior_script object_helpers debug.
 From SM64.Proofs Require Interp.CMem.
 From SM64.Proofs Require Import CensusV2.
 From SM64.Proofs.WMotRRequiresA Require Import WMotRWorld.
@@ -241,6 +241,16 @@ Definition order_ok (ge : genv) (m : mem) : Prop :=
     /\ forall j, (j < 11)%nat ->
          Mem.load Mint8signed m b (Z.of_nat j) = Some (Vint (Int.repr (nth j upd_order 0))).
 
+(* CMDTAB (B3 i): behavior_script.c's static BehaviorCmdTable holds its
+   initializer: cell j points to the j-th handler (ObjCensus.cmd_handlers).
+   Only cur_obj_update reads it and nothing writes it
+   (ObjCensus.cmdtab_read_only / cmdtab_users_value / cmdtab_not_in_inits). *)
+Definition cmdtab_ok (ge : genv) (m : mem) : Prop :=
+  exists b, Genv.find_symbol ge behavior_script._BehaviorCmdTable = Some b
+    /\ forall j id, nth_error ObjCensus.cmd_handlers j = Some id ->
+         exists hb, Genv.find_symbol ge id = Some hb
+           /\ Mem.load Mint32 m b (4 * Z.of_nat j) = Some (Vptr hb Ptrofs.zero).
+
 (* ---------------------------------------------------------------------- *)
 (* 4. obj_w.                                                                *)
 (* ---------------------------------------------------------------------- *)
@@ -263,7 +273,8 @@ Record ow_core (ge : genv) (pool la fl gol gmo sdp gdi bm : block) (m : mem)
   ow_stale : forall z, In z [120; 124; 128; 132] ->
                exists v, Mem.load Mint32 m bm z = Some v /\ slot_ptr pool v;
   ow_order : order_ok ge m;
-  ow_dry12 : forall k, In k (nth 12%nat rs []) -> script12_ok ge pool m k
+  ow_dry12 : forall k, In k (nth 12%nat rs []) -> script12_ok ge pool m k;
+  ow_cmdtab : cmdtab_ok ge m
 }.
 
 Definition obj_w (ge : genv) (bm : block) (m : mem) : Prop :=
@@ -436,6 +447,56 @@ Proof.
   apply Int.same_if_eq in Hz. subst i. reflexivity.
 Qed.
 
+Section CMDTAB.
+  Variable ge : genv.
+  Variable m : mem.
+  Variable b : block.
+
+  Definition cell_b (j : nat) (id : ident) : bool :=
+    match Genv.find_symbol ge id, CM.load Mint32 m b (4 * Z.of_nat j) with
+    | Some hb, Some (Vptr hb' o) => Pos.eqb hb hb' && Ptrofs.eq o Ptrofs.zero
+    | _, _ => false
+    end.
+
+  Fixpoint cells_from (j : nat) (l : list ident) : bool :=
+    match l with [] => true | id :: r => cell_b j id && cells_from (S j) r end.
+
+  Lemma cells_from_sound : forall l j n id, cells_from j l = true -> nth_error l n = Some id ->
+      cell_b (j + n) id = true.
+  Proof.
+    induction l as [| x r IH]; intros j n id H E; [ destruct n; discriminate E | ].
+    cbn in H. apply andb_prop in H as [H1 H2]. destruct n as [| n].
+    - cbn in E. injection E as <-. rewrite Nat.add_0_r. exact H1.
+    - cbn in E. rewrite <- Nat.add_succ_comm. exact (IH (S j) n id H2 E).
+  Qed.
+
+  Lemma cell_b_sound : forall j id, cell_b j id = true ->
+      exists hb, Genv.find_symbol ge id = Some hb
+        /\ Mem.load Mint32 m b (4 * Z.of_nat j) = Some (Vptr hb Ptrofs.zero).
+  Proof.
+    intros j id H. unfold cell_b in H. rewrite CM.load_eq in H.
+    destruct (Genv.find_symbol ge id) as [hb|]; [ | discriminate H ].
+    destruct (Mem.load Mint32 m b (4 * Z.of_nat j)) as [[| | | | | hb' o]|]; try discriminate H.
+    apply andb_prop in H as [H1 H2]. apply Pos.eqb_eq in H1. subst hb'.
+    pose proof (Ptrofs.eq_spec o Ptrofs.zero) as E. rewrite H2 in E. subst o.
+    exists hb. split; reflexivity.
+  Qed.
+End CMDTAB.
+
+Definition cmdtab_b (ge : genv) (m : mem) : bool :=
+  match Genv.find_symbol ge behavior_script._BehaviorCmdTable with
+  | Some b => cells_from ge m b 0 ObjCensus.cmd_handlers
+  | None => false
+  end.
+
+Lemma cmdtab_b_sound : forall ge m, cmdtab_b ge m = true -> cmdtab_ok ge m.
+Proof.
+  intros ge m H. unfold cmdtab_b in H.
+  destruct (Genv.find_symbol ge behavior_script._BehaviorCmdTable) as [b|] eqn:Hs; [ | discriminate H ].
+  exists b. split; [ exact Hs | ]. intros j id E.
+  exact (cell_b_sound ge m b j id (cells_from_sound ge m b _ 0 j id H E)).
+Qed.
+
 Definition ow_chk_core (ge : genv) (pool la fl gol gmo sdp gdi bm : block) (m : mem) : bool :=
   match rings m pool la, free_list m pool fl, ld32 m gmo 0 with
   | Some rs, Some fs, Some (Vptr pb po) =>
@@ -455,6 +516,7 @@ Definition ow_chk_core (ge : genv) (pool la fl gol gmo sdp gdi bm : block) (m : 
            [120; 124; 128; 132]
       && order_b ge m
       && forallb (script12_b ge pool m) (nth 12%nat rs [])
+      && cmdtab_b ge m
       | None => false
       end
   | _, _, _ => false
@@ -486,6 +548,7 @@ Proof.
   destruct (ld32 m gmo 0) as [[| | | | | pb po]|] eqn:Hg;
     [ discriminate H .. | | discriminate H ].
   destruct (slot_of (Ptrofs.unsigned po)) as [k|] eqn:Hk; [ | discriminate H ].
+  apply andb_prop in H as [H Hcmd].
   apply andb_prop in H as [H Hd12].
   apply andb_prop in H as [H Hord].
   apply andb_prop in H as [H Hst]. apply andb_prop in H as [H Hdb].
@@ -522,6 +585,7 @@ Proof.
     exists v. split; [ reflexivity | exact (slot_ptr_b_sound _ _ Hy) ].
   - exact (order_b_sound _ _ Hord).
   - intros j Hj. exact (script12_b_sound _ _ _ _ (proj1 (forallb_forall _ _) Hd12 j Hj)).
+  - exact (cmdtab_b_sound _ _ Hcmd).
 Qed.
 
 Definition ow_chk (ge : genv) (bm : block) (m : mem) : bool :=

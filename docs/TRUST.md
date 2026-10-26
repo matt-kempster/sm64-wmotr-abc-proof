@@ -1045,6 +1045,14 @@ without pressing A".*
   means no water mover is spawned, which is gated in WMotR by no water (`FfWorld.env_w`,
   `find_water_level` = -11000), the wing-cap boxes' contents and the object y bound. These
   are the next B3 families.
+  **CMDTAB (2026-10-26, B3 i): `obj_w` gained `ow_cmdtab`.** The 56 cells of
+  behavior_script.c's static `BehaviorCmdTable`, the table `cur_obj_update` dispatches
+  through, hold their initializer, the handlers `ObjCensus.cmd_handlers`. `ow_chk` checks
+  this, so it is PROVED at the boot witness. Why nothing changes the cells (a certificate,
+  `ObjCensus`): over the whole link, only `cur_obj_update` mentions the table
+  (`cmdtab_users_value`); every mention is a read `*(T + i)` (`cmdtab_read_only`); and no
+  initializer takes its address (`cmdtab_not_in_inits`). Carrying the clause frame to frame
+  is part of the per-object rows, like ORDER.
 
 - **Level phase (2026-10-24): real code.** `seg_level_pre_spec` / `seg_level_post_spec` are
   `exec_stmt` of the generated `play_mode_normal` body's slices before / after its

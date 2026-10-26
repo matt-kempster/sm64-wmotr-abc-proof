@@ -514,6 +514,10 @@ all in `Unwired/`, and the theorem moved nowhere. See
     - object_step's obj_splash: find_water_level = -11000 and object y >= -11050;
     - Mario's water particles (sParticleTypes): env_w;
     - koopa shell: the wing-cap boxes' behParams.
+    B3 (i) CMDTAB: obj_w `ow_cmdtab` (BehaviorCmdTable = its initializer; ObjCensus certifies
+    it is read only in cur_obj_update, never written, address never taken); proved at boot.
+    Next (ii) CMDPOS (BhvVM.v: the script VM's 741 reachable states; obj_w `ow_vm`), then
+    (iii) the cur_obj_update stepper.
     The object world `ObjWorld.obj_w` is in `fb_ok` (no phantom ∀ over object lists) and is
     PROVED at the boot witness, which now runs the real init_graph_node_start + clear_objects
     and Mario's spawn_objects_from_info; one real area_update_objects runs from it
