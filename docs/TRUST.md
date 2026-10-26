@@ -1045,6 +1045,32 @@ without pressing A".*
   means no water mover is spawned, which is gated in WMotR by no water (`FfWorld.env_w`,
   `find_water_level` = -11000), the wing-cap boxes' contents and the object y bound. These
   are the next B3 families.
+  **CMDTAB (2026-10-26, B3 i): `obj_w` gained `ow_cmdtab`.** The 56 cells of
+  behavior_script.c's static `BehaviorCmdTable`, the table `cur_obj_update` dispatches
+  through, hold their initializer, the handlers `ObjCensus.cmd_handlers`. `ow_chk` checks
+  this, so it is PROVED at the boot witness. Why nothing changes the cells (a certificate,
+  `ObjCensus`): over the whole link, only `cur_obj_update` mentions the table
+  (`cmdtab_users_value`); every mention is a read `*(T + i)` (`cmdtab_read_only`); and no
+  initializer takes its address (`cmdtab_not_in_inits`). Carrying the clause frame to frame
+  is part of the per-object rows, like ORDER.
+  **CMDPOS (2026-10-26, B3 ii): `obj_w` gained `ow_vm`.** This is a FOUND and sharpening.
+  The old `script_ok` said only that a slot's command pointer lies in a live script's block,
+  at any offset. So the opcode byte that `cur_obj_update` uses to index the 56-cell table
+  could be anything from 0 to 255, and an out-of-table index would mean a Clight-stuck
+  dispatch.
+  Now every live slot's `curBhvCommand`, `bhvStackIndex` and `bhvStack` cells must form a
+  REACHABLE STATE of the behavior-script VM, `BhvVM.vm_tab`:
+  - The table is computed from behavior_data's generated words. It holds 741 states,
+    explored from the 94 entry scripts (word 0, plus word 1 after a BEGIN).
+  - The excluded symbols are pinned (`entry_excluded`): collision / animation data, and one
+    CALL fragment, bhvSmallWaterWave398.
+  - The table is fail-closed: every state decodes to an opcode below 56, the command fits,
+    every pop finds its frame kind, and the stack depth stays at most 3 of bhvStack's 8 cells.
+  - The table is closed under the VM step (`vm_tab_closed`).
+  `ow_chk` checks the clause, so it is PROVED at the boot witness. The command lengths and
+  jumps are the macro layouts (`BehaviorScripts.cmd_len`). B3 (iii), the stepper, ties each
+  one to its handler's generated body. Until then they are only the census's model, and no
+  row depends on them.
 
 - **Level phase (2026-10-24): real code.** `seg_level_pre_spec` / `seg_level_post_spec` are
   `exec_stmt` of the generated `play_mode_normal` body's slices before / after its
