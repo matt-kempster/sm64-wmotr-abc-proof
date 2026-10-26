@@ -383,7 +383,10 @@ Section Link.
       split; [intros b3 S3; rewrite (U' _ b3 S3 ltac:(nb) ltac:(ne)); exact (P3 b3 S3) |].
       split; [intros bd Sd; rewrite (U' _ bd Sd ltac:(nb) ltac:(ne)); exact (DM bd Sd) |].
       intros bx Sx; rewrite (U' _ bx Sx ltac:(nb) ltac:(ne)); exact (MX bx Sx).
-    - intros ga Sa. rewrite (U' _ ga Sa ltac:(nb) ltac:(ne)). exact (AW ga Sa).
+    - split; [ | split ].
+      + intros ga Sa. rewrite (U' _ ga Sa ltac:(nb) ltac:(ne)). exact (proj1 AW ga Sa).
+      + intros be Se. rewrite (U' _ be Se ltac:(nb) ltac:(ne)). exact (proj1 (proj2 AW) be Se).
+      + intros be Se. rewrite (U' _ be Se ltac:(nb) ltac:(ne)). exact (proj2 (proj2 AW) be Se).
   Qed.
 
   Lemma safe_flank : incl lvl_safe_gvars flank_gvars.
@@ -527,7 +530,7 @@ Section Link.
   Proof.
     intros m m' UC Hcam (le & t & le' & out & Hx) RSA Hwend Hok Hphi.
     pose proof (proj2 (proj2 (proj2 (proj2 (proj2 (proj2 (proj2 Hphi))))))) as LW0.
-    pose proof (area_safe_of_w m (proj2 (proj2 (proj2 (proj2 LW0))))) as Hca.
+    pose proof (area_safe_of_w m (proj1 (proj2 (proj2 (proj2 (proj2 LW0)))))) as Hca.
     pose proof lv_plain as Hpl. repeat (apply andb_prop in Hpl as [Hpl ?]).
     rewrite post_eq in Hx.
     (* update_hud_values *)
