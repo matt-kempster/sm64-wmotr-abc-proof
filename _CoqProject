@@ -307,6 +307,7 @@ proofs/WMotRRequiresA/ProRows.v
 proofs/WMotRRequiresA/BodyFrame.v
 proofs/WMotRRequiresA/LsContract.v
 proofs/WMotRRequiresA/CapAudio.v
+proofs/WMotRRequiresA/LtwFrame.v
 proofs/WMotRRequiresA/HitboxFrame.v
 proofs/WMotRRequiresA/HoleX.v
 proofs/WMotRRequiresA/NaSplit.v
@@ -364,6 +365,8 @@ proofs/Interp/SymExec2.v
 proofs/WMotRRequiresA/Unwired/GravitySlice.v
 proofs/WMotRRequiresA/FloorList.v
 proofs/WMotRRequiresA/FloorHeight.v
+proofs/WMotRRequiresA/FloorComplete.v
+proofs/WMotRRequiresA/FfComplete.v
 proofs/WMotRRequiresA/FloorBound.v
 proofs/WMotRRequiresA/TerrainBound.v
 proofs/WMotRRequiresA/TerrainRun.v

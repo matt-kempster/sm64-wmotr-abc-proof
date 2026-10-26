@@ -50,6 +50,7 @@ From SM64.Proofs.WMotRRequiresA Require Import FloorList FloorExec FfWorld WMotR
 From SM64.Generated Require mario level_update object_list_processor surface_load
   surface_collision wmotr_script graph_node area memory camera interaction.
 From SM64.Proofs.WMotRRequiresA Require ObjWorld.
+From SM64.Proofs.WMotRRequiresA Require FfComplete.
 From SM64.Proofs.NoAImpliesNoFly Require BootRun.
 From SM64.Proofs.WMotRRequiresA Require CourseRun AnimData.
 From SM64.Generated Require game_init area.
@@ -607,6 +608,128 @@ Proof.
   rewrite <- (Float32.of_to_bits h), <- (Float32.of_to_bits f), E. reflexivity.
 Qed.
 
+(* ---------------------------------------------------------------------- *)
+(* The death plane on every static floor cell (FfComplete.dp_lists): each *)
+(* of the 256 FLOOR lists of gStaticSurfacePartition holds both of         *)
+(* SURFACE_DEATH_PLANE's triangles, read off the loaded memory.            *)
+(* ---------------------------------------------------------------------- *)
+Definition i16_is (m : mem) (b : block) (z : Z) (ch : memory_chunk) (k : Z) : bool :=
+  match CM.load ch m b z with Some (Vint i) => Int.eq i (Int.repr k) | _ => false end.
+
+Lemma i16_is_ok : forall m b z ch k, i16_is m b z ch k = true ->
+    Mem.load ch m b z = Some (Vint (Int.repr k)).
+Proof.
+  intros m b z ch k H. unfold i16_is in H. rewrite CM.load_eq in H.
+  destruct (Mem.load ch m b z) as [[| i | | | |]|]; try discriminate H.
+  apply Int.same_if_eq in H. subst i. reflexivity.
+Qed.
+
+Definition dp_tri_b (m : mem) (s : val) (x1 z1 x2 z2 x3 z3 : Z) : bool :=
+  match s with
+  | Vptr bs os =>
+      match CM.load Mint16signed m bs (Ptrofs.unsigned (Ptrofs.add os (Ptrofs.repr 0))),
+            CM.load Mint8signed m bs (Ptrofs.unsigned (Ptrofs.add os (Ptrofs.repr 4))) with
+      | Some (Vint ty), Some (Vint fl) =>
+          negb (Int.eq ty (Int.repr 114)) && Int.eq (Int.and fl (Int.repr 2)) Int.zero
+          && i16_is m bs (Ptrofs.unsigned (Ptrofs.add os (Ptrofs.repr 10))) Mint16signed x1
+          && i16_is m bs (Ptrofs.unsigned (Ptrofs.add os (Ptrofs.repr 14))) Mint16signed z1
+          && i16_is m bs (Ptrofs.unsigned (Ptrofs.add os (Ptrofs.repr 16))) Mint16signed x2
+          && i16_is m bs (Ptrofs.unsigned (Ptrofs.add os (Ptrofs.repr 20))) Mint16signed z2
+          && i16_is m bs (Ptrofs.unsigned (Ptrofs.add os (Ptrofs.repr 22))) Mint16signed x3
+          && i16_is m bs (Ptrofs.unsigned (Ptrofs.add os (Ptrofs.repr 26))) Mint16signed z3
+          && f32_is m bs (Ptrofs.unsigned (Ptrofs.add os (Ptrofs.repr 28))) Float32.zero
+          && f32_is m bs (Ptrofs.unsigned (Ptrofs.add os (Ptrofs.repr 32))) FfComplete.DP_NY
+          && f32_is m bs (Ptrofs.unsigned (Ptrofs.add os (Ptrofs.repr 36))) Float32.zero
+          && f32_is m bs (Ptrofs.unsigned (Ptrofs.add os (Ptrofs.repr 40))) FfComplete.DP_OO
+      | _, _ => false
+      end
+  | _ => false
+  end.
+
+Lemma dp_tri_b_sound : forall m s x1 z1 x2 z2 x3 z3,
+    dp_tri_b m s x1 z1 x2 z2 x3 z3 = true -> FfComplete.dp_tri m s x1 z1 x2 z2 x3 z3.
+Proof.
+  intros m s x1 z1 x2 z2 x3 z3 H. destruct s as [| | | | | bs os]; try discriminate H.
+  unfold dp_tri_b in H. rewrite !CM.load_eq in H.
+  destruct (Mem.load Mint16signed m bs (Ptrofs.unsigned (Ptrofs.add os (Ptrofs.repr 0)))) as [[| ty | | | |]|] eqn:Lt; try discriminate H.
+  destruct (Mem.load Mint8signed m bs (Ptrofs.unsigned (Ptrofs.add os (Ptrofs.repr 4)))) as [[| fl | | | |]|] eqn:Lf; try discriminate H.
+  repeat match goal with Hc : _ && _ = true |- _ => apply andb_prop in Hc as [Hc ?] end.
+  exists bs, os, ty, fl. cbn [Mem.loadv].
+  split; [reflexivity |]. split; [exact Lt |]. split; [apply negb_true_iff; assumption |].
+  split; [exact Lf |]. split; [assumption |].
+  do 6 (split; [apply i16_is_ok; assumption |]).
+  do 3 (split; [apply f32_is_sound; assumption |]).
+  apply f32_is_sound; assumption.
+Qed.
+
+Fixpoint find_b (fuel : nat) (m : mem) (p : val -> bool) (v : val) : bool :=
+  match v with
+  | Vptr bn on =>
+      match fuel with
+      | O => false
+      | S f =>
+          match CM.load Mint32 m bn (Ptrofs.unsigned (Ptrofs.add on (Ptrofs.repr SN_SURF))) with
+          | Some s => p s
+          | None => false
+          end
+          || match CM.load Mint32 m bn (Ptrofs.unsigned (Ptrofs.add on (Ptrofs.repr SN_NEXT))) with
+             | Some nx => find_b f m p nx
+             | None => false
+             end
+      end
+  | _ => false
+  end.
+
+Lemma find_b_sound : forall fuel m p v, find_b fuel m p v = true ->
+    exists s, on_list m v s /\ p s = true.
+Proof.
+  induction fuel as [| f IH]; intros m p v H; destruct v as [| | | | | bn on]; cbn in H;
+    try discriminate H.
+  rewrite !CM.load_eq in H.
+  apply orb_prop in H as [H | H].
+  - destruct (Mem.load Mint32 m bn (Ptrofs.unsigned (Ptrofs.add on (Ptrofs.repr SN_SURF))))
+      as [s|] eqn:L; [| discriminate H].
+    exists s. split; [apply ol_here; cbn [Mem.loadv]; exact L | exact H].
+  - destruct (Mem.load Mint32 m bn (Ptrofs.unsigned (Ptrofs.add on (Ptrofs.repr SN_NEXT))))
+      as [nx|] eqn:L; [| discriminate H].
+    destruct (IH m p nx H) as (s & OL & Hp). exists s.
+    split; [eapply ol_next; [cbn [Mem.loadv]; exact L | exact OL] | exact Hp].
+Qed.
+
+Definition dp_cell (fuel : nat) (m : mem) (pb : block) (k : Z) : bool :=
+  match CM.load Mint32 m pb k with
+  | Some hd => find_b fuel m (fun s => dp_tri_b m s 8192 (-8191) (-8191) (-8191) (-8191) 8192) hd
+               && find_b fuel m (fun s => dp_tri_b m s 8192 (-8191) (-8191) 8192 8192 8192) hd
+  | None => false
+  end.
+
+Definition dp_chk (fuel : nat) (ge : genv) (m : mem) : bool :=
+  match Genv.find_symbol ge surface_collision._gStaticSurfacePartition with
+  | Some pb => forallb (fun cz => forallb (fun cx => dp_cell fuel m pb (384 * cz + 24 * cx))
+                                    (zlist 16)) (zlist 16)
+  | None => false
+  end.
+
+Lemma dp_chk_sound : forall fuel ge m, dp_chk fuel ge m = true -> FfComplete.dp_lists ge m.
+Proof.
+  intros fuel ge m H cz cx Hz Hx. unfold dp_chk in H.
+  destruct (Genv.find_symbol ge surface_collision._gStaticSurfacePartition) as [pb|] eqn:Hs;
+    [| discriminate H].
+  rewrite forallb_forall in H. specialize (H cz (in_zlist 16 cz ltac:(lia))).
+  rewrite forallb_forall in H. specialize (H cx (in_zlist 16 cx ltac:(lia))).
+  unfold dp_cell in H. rewrite CM.load_eq in H.
+  destruct (Mem.load Mint32 m pb (384 * cz + 24 * cx)) as [hd|] eqn:L; [| discriminate H].
+  apply andb_prop in H as [HA HB].
+  destruct (find_b_sound _ _ _ _ HA) as (sA & OA & PA).
+  destruct (find_b_sound _ _ _ _ HB) as (sB & OB & PB).
+  exists pb, hd. split; [first [exact Hs | reflexivity] |].
+  split.
+  { cbn [Mem.loadv]. rewrite Ptrofs.unsigned_repr; [exact L |].
+    change Ptrofs.max_unsigned with 4294967295. lia. }
+  split; [exists sA; split; [exact OA | exact (dp_tri_b_sound _ _ _ _ _ _ _ _ PA)] |].
+  exists sB; split; [exact OB | exact (dp_tri_b_sound _ _ _ _ _ _ _ _ PB)].
+Qed.
+
 Lemma bo_chk_hh : forall m bo, bo_chk m bo = true ->
     Mem.load Mfloat32 m bo 508 = Some (Vsingle FFW_F100)
     /\ Mem.load Mfloat32 m bo 520 = Some (Vsingle FFW_F0).
@@ -797,6 +920,7 @@ Definition wchk (ge : genv) (m0 : mem) : bool :=
               && ObjWorld.ow_chk ge bm m11 && bo_chk m11 bo
               && done_b (ex_call ge BootRun.world FUEL m11 (Internal area.f_area_update_objects) [])
               && cam_frame_ok ge bgad cam m11
+              && dp_chk WFUEL ge m11
             | None => false
             end
           | None => false
@@ -927,6 +1051,7 @@ Inductive wout (ge : genv) (m0 : mem) (bm bc ab bo bw bL : block) : Prop :=
     ObjWorld.ow_chk ge bm m11 = true -> bo_chk m11 bo = true ->
     done_b (ex_call ge BootRun.world FUEL m11 (Internal area.f_area_update_objects) []) = true ->
     cam_frame_ok ge bgad cam m11 = true ->
+    dp_chk WFUEL ge m11 = true ->
     wout ge m0 bm bc ab bo bw bL.
 
 Ltac st_eq H := rewrite CM.store_eq in H.
@@ -1023,6 +1148,7 @@ Proof.
   destruct (CM.store Mint32 z18 bca 0 _) as [z19|] eqn:ZA; [ | discriminate ].
   rename Xc into Z18.
   repeat match goal with H : CM.store _ _ _ _ _ = Some _ |- _ => rewrite CM.store_eq in H end.
+  apply andb_prop in W as [W N14].
   apply andb_prop in W as [W N13].
   apply andb_prop in W as [W N12]. apply andb_prop in W as [W N11].
   apply andb_prop in W as [W N10].
@@ -1042,7 +1168,7 @@ Proof.
     | exact Z9 | exact Z10a | exact Z10 | exact Z11 | exact Z12 | exact Z13 | exact Z14 | exact Z15 | exact Z16 | exact Z17 | exact ZC | exact ZA | exact Z18
     | exact N1 | exact N2 | exact N3
     | exact N4 | exact N5 | exact Hbn | exact N6 | exact N7 | exact N8 | exact N9
-    | exact N10 | exact N11 | exact N12 | exact N13 ].
+    | exact N10 | exact N11 | exact N12 | exact N13 | exact N14 ].
 Qed.
 
 (* ifs_ok, in the semantics: the run of the function the link resolves

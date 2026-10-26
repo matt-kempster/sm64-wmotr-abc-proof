@@ -29,6 +29,7 @@ From SM64.Generated Require surface_collision.
 From SM64.Proofs Require Import Interp.SymExec2 WMotRRequiresA.FloorList
   WMotRRequiresA.FloorHeight.
 From SM64.Proofs.WMotRRequiresA Require Import WMotRWorld.
+From SM64.Proofs.WMotRRequiresA Require FfComplete.
 Import ListNotations.
 
 (* the consumer's region addresses, in R0's order *)
@@ -167,7 +168,18 @@ Definition Wff (ge : genv) (m0 : mem) (gp : meminj) (szS : Z) (vs : list (option
           /\ Ptrofs.unsigned o + szS <= Ptrofs.modulus /\ ~ rblk vs b /\ gp b <> None)
   /\ (forall hd b o, part_head ge m0 hd -> on_list m0 hd (Vptr b o) -> styp m0 b o)
   /\ (forall hd, part_head ge m0 hd -> dyn_list ge m0 hd)
-  /\ 0 <= szS.
+  /\ 0 <= szS
+  (* the death plane (SURFACE_DEATH_PLANE, y = -8191 over the whole level)
+     on every static floor cell: what makes find_floor never miss
+     (FfComplete.ff_complete) *)
+  /\ FfComplete.dp_lists ge m0.
+
+(* accessors (destruct Wff through these, not positionally) *)
+Lemma Wff_sz : forall ge m0 gp szS vs, Wff ge m0 gp szS vs -> 0 <= szS.
+Proof. intros ge m0 gp szS vs W. exact (proj1 (proj2 (proj2 (proj2 (proj2 (proj2 (proj2 W))))))). Qed.
+
+Lemma Wff_dp : forall ge m0 gp szS vs, Wff ge m0 gp szS vs -> FfComplete.dp_lists ge m0.
+Proof. intros ge m0 gp szS vs W. exact (proj2 (proj2 (proj2 (proj2 (proj2 (proj2 (proj2 W))))))). Qed.
 
 (* ---- small facts ---- *)
 
@@ -730,7 +742,7 @@ Proof.
     assert (MA : MM E6 m5 (add_fact gS (Fworld (Sfresh n4) szS))).
     { apply MMg_add_fact; [exact M5' | cbn; rewrite X5, NXg4; unfold Plt, n5; lia |].
       cbn [fact_holds]. exists bs, os. split; [rewrite D5, Efl; reflexivity |].
-      split; [exact Obs | split; [exact Wsz | split; [exact Ros |]]].
+      split; [exact Obs | split; [exact (Wff_sz _ _ _ _ _ HW) | split; [exact Ros |]]].
       intros r sz Hsz. left. rewrite BK. intros Eb. apply NRbs. rewrite <- Eb.
       exact (r0_rblk E r sz Hsz). }
     assert (DF : den E6 (Sfresh n4) = Some (Vptr bs os)) by (rewrite D5, Efl; reflexivity).

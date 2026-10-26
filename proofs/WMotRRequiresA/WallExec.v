@@ -583,7 +583,7 @@ Proof.
     - change (Plt (nm (g_nx g) (3 + i)) (g_nx gS)). rewrite NXS, NX8.
       destruct i as [|[|[|[|i]]]]; [| | | | lia]; cbn [nm Nat.add]; unfold Plt; lia.
     - cbn [fact_holds]. exists bs, os. split; [exact Dw |].
-      split; [exact Ob | split; [exact Wsz | split; [exact Ro |]]].
+      split; [exact Ob | split; [exact (Wff_sz _ _ _ _ _ HW) | split; [exact Ro |]]].
       intros r sz Hsz. left. rewrite BK. intros Eb. apply NR. rewrite <- Eb.
       exact (r0_rblk ge R0 m0 E r sz Hsz). }
   (* each outcome is the right one when min(count, 4) is its n *)

@@ -301,7 +301,7 @@ Proof.
     assert (MA : MM E3 m5 (add_fact gS (Fworld (Sfresh n1) szS))).
     { apply MMg_add_fact; [exact M5' | cbn; rewrite X5, NXg1; unfold Plt, n2, n1; lia |].
       cbn [fact_holds]. exists bs, os. split; [rewrite D2, Efl; reflexivity |].
-      split; [exact Obs | split; [exact Wsz | split; [exact Ros |]]].
+      split; [exact Obs | split; [exact (Wff_sz _ _ _ _ _ HW) | split; [exact Ros |]]].
       intros r sz Hsz. left. rewrite BK. intros Eb. apply NRbs. rewrite <- Eb.
       exact (r0_rblk ge R0 m0 E r sz Hsz). }
     apply FIN; [| cbn; rewrite Y5; apply LCg; reflexivity | cbn; rewrite X5; exact NXg1].
