@@ -29,7 +29,7 @@ without pressing A".*
 | 0.8 | GOAL 2's level data: `wmotr_floor` / `wmotr_pole` / `wmotr_cannon` are WMotR's floors, poles and cannon seats | **Defined from generated/, rows proved** (`WMotRLevel.v`). 2026-10-22: `floor_data` (d) and decoder agreement (a) are PROVED on the memory the real `load_area_terrain` builds (`TerrainRun`, 1352 surfaces); since later that day the GOAL 2 start witness carries it (`StartTerrain`: the loader runs on the `init_mem` image in the real boot order, and `goal2_start_sat` concludes `floor_data` + `static_agree`). Details: [row 0.8 in detail](#row-08-in-detail). |
 | 0.9 | GOAL 2's pos[1] writer census is complete (`YWriterCensus.v`) | **Machine-checked list, trusted edges.** Coq scans every function body of the 12 generated Mario TUs and proves: 31 direct `pos[1]` stores and 21 write-escapes (16 whole-vector arg-0 passes to `vec3f_copy`/`vec3f_set`/`vec3s_to_vec3f`, 5 `&pos[1]` passes to `f32_find_wall_collision`), 52 in all; `pos`'s address never reaches a temp, memory, a condition or a return, and no struct copy covers it. Details: [row 0.9 in detail](#row-09-in-detail). |
 | 0.10 | GOAL 2's object census: what objects can exist in WMotR and their interaction types (`BehaviorScripts.v`) | **Machine-checked over generated code, frontier trusted.** `generated/behavior_data.v` (clightgen of `data/behavior_data.c`) gives every behavior script as data; a fail-closed decoder mirrors the command layouts. Details: [row 0.10 in detail](#row-010-in-detail). |
-| 0.7 | GOAL 2's flank segments (`HeightFrame.v`: level/warp phase, non-Mario objects) do what their specs say: y / action loads as the censuses found them, and each carries GOAL 1's `MWF_real` and Φ (since 2026-09-29 Φ here is `PhiW`, so each flank also keeps the WMotR world: object updates reload only WMotR's surfaces and never hand Mario an object to hold or ride; collision detection registers only WMotR-kind objects, with poles at their level positions, cannon bases at home or risen at most 345 while Mario sits in them (2026-10-24), and no star while coin #2 stands (0.3); no object sets a stomp bit on Mario's object). Since 2026-10-24 the objects spec also ends with the platform fact: gMarioPlatform is NULL or an object with zero angle velocity (`PlatformKeep.plat_still`; it is the object phase that sets gMarioPlatform). The linked segments state only narrow premises: Mario's wall / ceiling / floor surfaces are not in the block of a global the step writes (`RenderKeep.surf_apart`), and for the controller poll the adjacency of its two calls, its Φ carries and its keeping of `plat_still` (it writes no object and not gMarioPlatform) | **Objects: ONE real call, labeled rows over its stages** (2026-10-26, `ObjPhase.v`): the objects segment is the generated `area_update_objects` (gAreaUpdateCounter++; `update_objects(0)`) run as one `eval_funcall` (`ObjPhase.objects_call`); Mario's own frame is not a separate segment any more but the hole in it (`execute_mario_action`, reached through `update_non_terrain_objects`, filled by the proved Mario-frame carries `Hframe_action` + `seg_action_phi`). The body of `update_objects` is walked (its 18 calls, its stack array `cycleCounts`); the clock calls are proved; the stages are **named, labeled rows** over the real callees (`Hobj_debug`, `Hobj_surfaces` = clear_dynamic_surfaces, `Hobj_terrain`, `Hobj_collisions`, `Hobj_nonterrain` (given the Mario hole), `Hobj_unload`, `Hobj_mplat`, plus the frame rows `Hobj_blind` / `Hobj_fresh` / `Hobj_noref` and store rows `Hobj_stores` / `Hobj_counter`); `apply_mario_platform_displacement` inside it keeps its proved carry. The invariant through the phase includes the object world `ObjWorld.obj_w` (carried at frame boundaries; PROVED at the boot witness from the real `clear_objects` and Mario's `spawn_objects_from_info`, and one real `area_update_objects` runs there: `StartSat.objects_runs`), so the rows do not quantify over object lists the game never builds. **The level phase is real code** (2026-10-24: `play_mode_normal`'s slices around `area_update_objects`, walked, carries proved in `LevelKeep`; `update_camera` keeps mem_ok by the real camera.c; stated: its PhiW carry `cam_phi_row` and `warp_w` at the slice's end; gCurrentArea's target is carried, `FfWorld.area_w`, 2026-10-25; the Camera it updates is a real one on the witness, and `update_camera` runs there, `StartSat.frame_runs`, 2026-10-26). Three segments are **real calls with proved carries**: Mario's render call (`seg_render_spec`, 2026-10-22; GOAL-1 carry `RenderFlank.render_mem_ok`, Φ carry `RenderKeep.render_keeps_phiw` 2026-10-23), platform displacement (`seg_platform_spec`, 2026-10-23: the real `apply_mario_platform_displacement`, platform_displacement.c linked as TU 45; GOAL-1, held-A and Φ carries `PlatformKeep.plat_mem_ok` / `plat_a_down` / `plat_keeps_phiw`), and **the controller poll** (`seg_input_spec`, 2026-10-23: the real `osContStartReadData` and `read_controller_inputs`, osContStartReadData.c linked as TU 46, walked down to the OS / SI floor (3.5); GOAL-1 carry, A-freedom and the controller cells proved, `PollFlank.srd_ok` / `poll_ok`; open: the two calls' adjacency, the Φ carries across them and the `plat_still` carry). Details: [row 0.7 in detail](#row-07-in-detail). |
+| 0.7 | GOAL 2's flank segments (`HeightFrame.v`: level/warp phase, non-Mario objects) do what their specs say: y / action loads as the censuses found them, and each carries GOAL 1's `MWF_real` and Φ (since 2026-09-29 Φ here is `PhiW`, so each flank also keeps the WMotR world: object updates reload only WMotR's surfaces and never hand Mario an object to hold or ride; collision detection registers only WMotR-kind objects, with poles at their level positions, cannon bases at home or risen at most 345 while Mario sits in them (2026-10-24), and no star while coin #2 stands (0.3); no object sets a stomp bit on Mario's object). Since 2026-10-24 the objects spec also ends with the platform fact: gMarioPlatform is NULL or an object with zero angle velocity (`PlatformKeep.plat_still`; it is the object phase that sets gMarioPlatform). The linked segments state only narrow premises: Mario's wall / ceiling / floor surfaces are not in the block of a global the step writes (`RenderKeep.surf_apart`), and for the controller poll the adjacency of its two calls, its Φ carries and its keeping of `plat_still` (it writes no object and not gMarioPlatform) | **Objects: ONE real call, labeled rows over its stages** (2026-10-26, `ObjPhase.v`): the objects segment is the generated `area_update_objects` (gAreaUpdateCounter++; `update_objects(0)`) run as one `eval_funcall` (`ObjPhase.objects_call`); Mario's own frame is not a separate segment any more but the hole in it (`execute_mario_action`, reached through `update_non_terrain_objects`, filled by the proved Mario-frame carries `Hframe_action` + `seg_action_phi`). The body of `update_objects` is walked (its 18 calls, its stack array `cycleCounts`); the clock calls are proved; the stages are **named, labeled rows** over the real callees (`Hobj_debug`, `Hobj_surfaces` = clear_dynamic_surfaces, `Hobj_collisions`, `Hobj_unload`, `Hobj_mplat`, plus the frame rows `Hobj_blind` / `Hobj_fresh` / `Hobj_noref` and store rows `Hobj_stores` / `Hobj_counter`); the two list walks `update_terrain_objects` / `update_non_terrain_objects` are **PROVED** (B2, `ObjLoop.v`: the real `update_objects_in_list`, both per-list loops over the rings of `obj_w`, the list heads, the order table) from narrower per-object rows `Hobj_step_terrain` / `Hobj_step_nonterrain` (given the Mario hole: the real loop body up to `cur_obj_update()` keeps the invariant and leaves the node in its ring) and `Hobj_ctr`; `apply_mario_platform_displacement` inside it keeps its proved carry. The invariant through the phase includes the object world `ObjWorld.obj_w` (carried at frame boundaries; PROVED at the boot witness from the real `clear_objects` and Mario's `spawn_objects_from_info`, and one real `area_update_objects` runs there: `StartSat.objects_runs`), so the rows do not quantify over object lists the game never builds. **The level phase is real code** (2026-10-24: `play_mode_normal`'s slices around `area_update_objects`, walked, carries proved in `LevelKeep`; `update_camera` keeps mem_ok by the real camera.c; stated: its PhiW carry `cam_phi_row` and `warp_w` at the slice's end; gCurrentArea's target is carried, `FfWorld.area_w`, 2026-10-25; the Camera it updates is a real one on the witness, and `update_camera` runs there, `StartSat.frame_runs`, 2026-10-26). Three segments are **real calls with proved carries**: Mario's render call (`seg_render_spec`, 2026-10-22; GOAL-1 carry `RenderFlank.render_mem_ok`, Φ carry `RenderKeep.render_keeps_phiw` 2026-10-23), platform displacement (`seg_platform_spec`, 2026-10-23: the real `apply_mario_platform_displacement`, platform_displacement.c linked as TU 45; GOAL-1, held-A and Φ carries `PlatformKeep.plat_mem_ok` / `plat_a_down` / `plat_keeps_phiw`), and **the controller poll** (`seg_input_spec`, 2026-10-23: the real `osContStartReadData` and `read_controller_inputs`, osContStartReadData.c linked as TU 46, walked down to the OS / SI floor (3.5); GOAL-1 carry, A-freedom and the controller cells proved, `PollFlank.srd_ok` / `poll_ok`; open: the two calls' adjacency, the Φ carries across them and the `plat_still` carry). Details: [row 0.7 in detail](#row-07-in-detail). |
 | 0.4 | The starting states the theorem quantifies over (`mem_ok_lp`: Mario's block valid, his action untainted, `MWF_real`) | **GOAL 1: proved satisfiable by the real boot path** (2026-10-19, `BootMWF.boot_init_ok`, used by `NoAImpliesNoFlyTwelve.noA_never_flying_from_boot`). **GOAL 2: the witness is in WMotR by real code** (2026-10-21: `area.c` linked as the 23rd TU; `gCurrLevelNum = LEVEL_WMOTR` is stored by the generated `initiate_warp` + `warp_level`, `EntryWarp.v`; 2026-10-22: one real no-A frame runs from the witness, `frame_runs`, and its `init_mario_from_save_file` cells are tethered to the real body, `ifs_tether`; 2026-10-26: the witness's area has a real Camera, built by the generated `init_graph_node_camera` / `create_camera` in a level pool and stored in `gAreaData[1].camera` (`StartTerrain.cam_chain`; deviations in [row 3.6 in detail](#row-36-in-detail)), and a full frame runs through it: `area_update_objects`, then `update_camera` on that Camera, `frame_runs`). Details: [row 0.4 in detail](#row-04-in-detail). |
 | 0.5 | The step relation = what one real frame does | GOAL 1: **only `execute_mario_action`**. GOAL 2's `frame_step` composes the real `area_update_objects` call (which contains Mario's `execute_mario_action`; its stages are labeled rows, 0.7, since 2026-10-26), the level phase as real `play_mode_normal` slices (2026-10-24; `update_camera`'s PhiW carry a labeled row), and three real linked calls (the controller poll `osContStartReadData` + `read_controller_inputs`; Mario's render call; `apply_mario_platform_displacement`, the latter two and the poll since 2026-10-23). The specified flanks are not linked code. This is the largest scope gap. Details: [row 0.5 in detail](#row-05-in-detail). |
 
@@ -75,14 +75,7 @@ without pressing A".*
   verbatim (dischargeable by `SymbolicLinking.linkorder_comp_env_extends`); and Clight expression
   evaluation is deterministic (`Generic/ClightDeterm.v`, proved). Still missing: composing it into
   the capstone (Mario's hitbox fields at collision time, coin #2's field values, and "no contact
-  registered ⇒ coin not collected ⇒ no star"). **2026-10-26: Mario's hitbox fields are carried
-  by the frame world**: `ffw` fields `ff_HH` (hitboxHeight 100.0f or 160.0f, what
-  `mario_update_hitbox_and_cap_model` stores) and `ff_HD` (hitboxDownOffset 0.0f), proved at
-  boot (the witness runs the real `spawn_objects_from_info`, whose `allocate_object` stores both;
-  `StartTerrain.bo_chk` reads them off m11, no stand-in store) and kept by every proved row and flank (the hitbox row
-  re-proves `ff_HH` from its body). `HitboxFrame.ffw_coin` restates them in `MARIO_COIN2`'s
-  form (Lha / Fha / Hmario_height / Lda / Fda / Hmario_down). Left: the objects phase keeping
-  them up to `detect_object_collisions`, and the composition itself. That step also silently assumes **coin #2 never
+  registered ⇒ coin not collected ⇒ no star"). That step also silently assumes **coin #2 never
   moves**. The one way Mario code moves another object is dropping or throwing a held object
   (`mario_drop_held_object` sets `heldObj->oPosY = m->pos[1]`, `interaction.c:307`; this is how
   cloning works).
@@ -979,12 +972,13 @@ without pressing A".*
   the generated `area_update_objects` as one `eval_funcall`. The old `seg_platform` / action /
   `seg_rest` objects spec is gone. Mario's frame is the hole (`HeightFrame.mario_hole`:
   `execute_mario_action` keeps mem_ok and Φ with A up), filled by `Hframe_action` +
-  `seg_action_phi`; `Hobj_nonterrain` is stated given the hole. Proved in `ObjPhase`: the walk
+  `seg_action_phi`; the non-terrain rows are stated given the hole. Proved in `ObjPhase`: the walk
   of `update_objects`' body (an env-carrying checker, for `cycleCounts[30]`), the clock calls,
   the counter, and `objects_keep` (P through the call from one `call_keeps` per callee).
   Labeled rows (open): `Hobj_blind` / `Hobj_fresh` / `Hobj_noref` (the stack array is
   unobservable), `Hobj_stores` / `Hobj_counter`, `Hobj_debug`, `Hobj_surfaces`,
-  `Hobj_terrain`, `Hobj_collisions`, `Hobj_nonterrain`, `Hobj_unload`, `Hobj_mplat`;
+  `Hobj_collisions`, `Hobj_unload`, `Hobj_mplat` (`Hobj_terrain` / `Hobj_nonterrain` are
+  PROVED since B2, below, from `Hobj_step_terrain` / `Hobj_step_nonterrain` / `Hobj_ctr`);
   `Hplat_keep` (the platform call also keeps `plat_still`, `surf_apart` and the object
   world), `Hlvl_ow` / `Hrender_ow` (the level slices and the render walk keep the object
   world). The phase invariant is mem_ok ∧ Φ ∧ A up ∧ `plat_still` ∧ `surf_apart` ∧
@@ -999,6 +993,58 @@ without pressing A".*
   level_script.c is not linked; Mario's object cells the world reads (interact status,
   collided objects, throwMatrix) are checked on the result, no longer derived from the
   zeroed pool.
+- **B2, the list walks (2026-10-26, `ObjLoop.v`).** `Hobj_terrain` and `Hobj_nonterrain`
+  are no longer rows: `ObjLoop.terrain_keeps` / `nonterrain_keeps` PROVE them on the real
+  `update_terrain_objects` (lists 11 and 9) and `update_non_terrain_objects` (the lists in
+  `sObjectListUpdateOrder[2..]` until its -1: 10, 0, 5, 4, 2, 6, 8, 12), through the real
+  `update_objects_in_list` and both real per-list loops (`update_objects_starting_at`,
+  `update_objects_during_time_stop`, whichever the time-stop flag picks). Proved there: the
+  list heads (`gObjectLists + i` = `&gObjectListArray[i]`, the node size 104 and `next` @ 96
+  read from the composite env), each loop walks a ring of `obj_w` from `head->next` back to
+  the head (each node it visits is a slot of that ring), the counts are ints, the order
+  table's cells, and the frame block `filler[4]` of `update_non_terrain_objects`. New
+  narrower rows: `Hobj_step_terrain` / `Hobj_step_nonterrain` (the real loop body up to the
+  cursor advance, `ObjLoop.loop_pre`: `gCurrentObject = obj`, the gfx flag, and
+  `cur_obj_update()` (in time stop: the freeze test first), run on a node of a walked ring,
+  keeps Pobj and leaves that node in its ring; for the non-terrain lists under the Mario
+  hole, and also keeping a non-symbol block's `noref`); `Hobj_ctr` (the store of an int to
+  `gObjectCounter` keeps Pobj). "Leaves the node in its ring" is a real claim:
+  `try_allocate_object` can unload an unimportant object when the pool is full, and the row
+  must then show the current node is not that one. `Hobj_fresh` is now stated for any frame
+  size (the 4-byte filler as well as the 240-byte `cycleCounts`). `obj_w` gained the clause
+  ORDER (`sObjectListUpdateOrder` holds its initializer, checked at the boot witness by
+  `ow_chk`), so the walk does not quantify over order tables the game never has.
+
+- **B3a, the census behind "leaves the node in its ring" (2026-10-26, `ObjCensus.v`).**
+  FOUND: `spawn_object.c`'s comment "I don't know of any unimportant objects that spawn
+  other objects" is FALSE over the WMotR closure. Five list-12 (unimportant) behaviors reach
+  `allocate_object` (`unimp_allocators_value`): bhvObjectBubble, bhvWaterDroplet,
+  bhvSmallWaterWave, bhvSmallParticle, bhvSparkleSpawn. With the pool full,
+  `allocate_object` frees the first node of list 12, which may be the object being updated,
+  and the slot goes to the spawned object's list. SmallParticle and SparkleSpawn spawn only
+  list-12 objects, so the node returns to list 12. The WATER behaviors spawn into list 8
+  (`offlist_value`): Bubble -> BubbleSplash, WaterDroplet -> WaterDropletSplash, and
+  SmallWaterWave -> SmallWaterWave398 (over-approximated: a script CALL target). A node
+  moved to list 8 is not a clean hang: the walk runs on to list 8's head, calls
+  `cur_obj_update` on it as an Object and reads past `gObjectListArray` (Clight-stuck / UB).
+  So the ring part of the step rows cannot be weakened to "or it moved". It must be shown
+  that this case does not happen; WMotR has no water (`FfWorld.env_w`). Also certified
+  (syntactically, within the closure): only `allocate_object` calls `unload_object`, only
+  `create_object` calls `allocate_object`, and only `try_allocate_object` /
+  `deallocate_object` assign an ObjectNode's `next` / `prev` by field name. No trust moves:
+  the census is a vm-checked certificate, and the rows it informs stay rows until B3 steps
+  them.
+  **DRY12 (2026-10-26, B3a-2): `obj_w` gained the clause `ow_dry12`.** A slot of ring 12
+  runs (its command pointer lies in) a script of `ObjCensus.live12`, which holds the 20
+  list-12 scripts minus the water movers. Each of them is DRY (`live12_dry`): it reaches no
+  `allocate_object`, or spawns only list-12 objects. `ow_chk` checks the clause at the boot
+  witness, so it is PROVED there. Before this clause, the per-object rows `Hobj_step_*`
+  ("leaves the node in its ring") quantified over states with a water mover at the head of
+  a full list 12. That is a phantom state: the row is false on it. With the clause in
+  `Pobj`, the rows no longer range over that state, and they must now also CARRY DRY12. That
+  means no water mover is spawned, which is gated in WMotR by no water (`FfWorld.env_w`,
+  `find_water_level` = -11000), the wing-cap boxes' contents and the object y bound. These
+  are the next B3 families.
 
 - **Level phase (2026-10-24): real code.** `seg_level_pre_spec` / `seg_level_post_spec` are
   `exec_stmt` of the generated `play_mode_normal` body's slices before / after its
@@ -1012,13 +1058,9 @@ without pressing A".*
     The instant / painting warps are not pinned: Mario's floor type (`wmotr_world`) rules them
     out (`LevelFlank.floor_safe`; `get_painting_warp_node` walked to NULL).
   - `update_camera(gCurrentArea->camera)` keeps mem_ok: PROVED (`LevelKeep.cam_mem_ok`, by
-    `update_camera_ok_linked12`, the real camera.c). Its argument is SafeB because gCurrentArea
-    points into `gAreaData` (`FfWorld.area_w`, part of PhiW's `lvl_w`, 2026-10-25: proved at boot
-    from load_area's store `gCurrentArea = &gAreaData[1]` in the witness chain, and kept by every
-    phase, since no frame code writes gCurrentArea). `gAreaData` is a SafeB symbol
-    (`CensusV2.camera_safe_syms`) and gCurrentArea a stored global (`stored_globals`, the
-    `Hglob_blk` class: nothing in the object graph points at it), so MWF's chase step gives the
-    rest. The former stated premise `cam_area_mario` is gone.
+    `update_camera_ok_linked12`, the real camera.c). Its argument is SafeB because
+    `LevelKeep.cam_area_mario` holds at the POST start (stated: gCurrentArea = gMarioState->area,
+    as init_mario sets it). m->area is a chase root, so MWF's chase step gives the rest.
   - `Hcam_phi` (`LevelKeep.cam_phi_row`): the `update_camera` statement, between mem_ok states,
     keeps PhiW and Mario's wall / ceiling / floor cells. Not a clobber spec: the main-pool Camera
     struct shares its block with the surface pool, and `RenderKeep.k_all` keeps whole blocks. The
@@ -1026,10 +1068,9 @@ without pressing A".*
     sCutsceneVars, gCameraMovementFlags, gSecondCameraFocus's object, Mario's action
     (set_mario_npc_dialog), and the audio / dialog / sCameraHUDStatus / gRandomSeed16 /
     find_floor-counter globals.
-  - `surf_apart` over `level_gvars`, as for render / platform. (The PRE premise `plat_apart`
-    is gone: `PlatformKeep.plat_still` now carries that gMarioPlatform's object is in
-    `gObjectPool`'s block, which is true in the game: every object is a pool slot. So it is
-    apart from the level globals and Mario's block by symbol.)
+  - `surf_apart` over `level_gvars`, as for render / platform; `LevelKeep.plat_apart` (PRE):
+    gMarioPlatform's object is not in a level global's block nor Mario's (for the `plat_still`
+    carry; in the game it is a `gObjectPool` object).
   - `warp_w` at the POST's end (`seg_level_post_spec`): the tail writes `sWarpDest` /
     `sCurrPlayMode` / `gCurrCreditsEntry`. FOUND: a ∀-row re-establishing it is false
     (`warp_w` does not pin `sDelayedWarpOp`; a credits op would set a credits entry). In WMotR
@@ -2520,7 +2561,7 @@ result, the real declaration in every TU; no new trust); `BootRun` / `TerrainRun
 | GOAL 2 `Hseg_call_na` | not refuted; **split 2026-10-23** (0.8(q)): now the lemma `NaSplit.naFA_of_open` over `Hseg_na_open` (7 named rows since 2026-10-25) | real bodies over `fworld` memories. No counterexample was built: that needs a modified StartSat witness. Since 2026-10-23 its posts carry `lvl_w` / `inputs_ok` (below) |
 | GOAL 2 `Hseg_na_open`: `mario_reset_bodystate`, `update_mario_info_for_cam` | **REPAIRED and proved 2026-10-24** (0.8(q)) | `ffw` now pins `m->marioBodyState = &gBodyStates[0]` and makes gBodyStates an `ff_rl` region (`RBS`). The pin alone was not enough: without the region, gBodyStates could alias a world surface. Both facts are proved at boot (`StartSat`) and kept by every proved row. `NaSplit.reset_row` / `cam_row` walk the real bodies |
 | GOAL 2 `Hseg_na_open`: `mario_update_hitbox_and_cap_model` | **PROVED 2026-10-25** (`NaSplit.hitbox_row`) | walked from the real body (`HitboxFrame`), the cap music path framed (`CapAudio`, load_sequence by the labeled `ls_frame`), the world kept by `HoleX`. FOUND on the way (phantom ∀): a collided object could be Mario's own object (`ff_Cd` repairs it in `ffw`) |
-| GOAL 2 `Hseg_na_open`: `update_mario_inputs` | SUSPECT (phantom forall), not repaired | its post `inputs_ok` (waterLevel = -11000) comes from `find_water_level`, which reads `gEnvironmentRegions`; `fworld` does not pin that table (or `gShowDebugText`, `gCameraMovementFlags`, which it also reads) |
+| GOAL 2 `Hseg_na_open`: `update_mario_inputs` | SUSPECT (phantom forall); **the globals part REPAIRED 2026-10-26** (the row itself is still open) | its post `inputs_ok` (waterLevel = -11000) comes from `find_water_level`, which reads `gEnvironmentRegions`; `fworld` did not pin that table (or `gShowDebugText`, which it also reads). Repaired: `FfWorld.env_w` (in `lvl_w`, so in `fworld` and PhiW, kept by every row and flank through `lvl_ids`) says gEnvironmentRegions is NULL and gShowDebugText is FALSE, PROVED at boot (`StartSat.L_env` / `L_dbg`): the real `load_area_terrain` stores NULL over the .bss zero (WMotR's collision has no TERRAIN_LOAD_ENVIRONMENT block), gShowDebugText is main.c's FALSE and no linked code stores either (only surface_load.c stores gEnvironmentRegions). `gCameraMovementFlags` needs no pin: update_mario_inputs either sets INPUT_FIRST_PERSON or clears the flag, neither touching `inputs_ok`. Still open for the row: the double-miss NULL floor (`ff_Wf`; FOUND below) and INPUT_SQUISHED (dynamic surfaces) |
 | GOAL 2 `Hseg_na_open`: `sink_mario_in_quicksand` | **REPAIRED and proved 2026-10-24** (0.8(q)) | FOUND (phantom ∀): the row stored through Mario's object's `gfx.throwMatrix`, which `fworld` did not pin, so it ranged over memories whose throwMatrix pointed into Mario's state or a surface. `ffw` now pins it to NULL or `sFloorAlignMatrix` (ff_rl region `RFA`), proved at boot and kept by every row; `NaSplit.qs_row` walks the body (the gfx.pos[1] store writes Phi's cell back unchanged) |
 | GOAL 2 `Hseg_na_open`: `mario_handle_special_floors` | open | WMotR has floor type 10 (death plane), so the body reaches `check_death_barrier` → `level_trigger_warp`. Not walked |
 | GOAL 2 `Hseg_na_open`: `squish_mario_model` | **proved 2026-10-24** (0.8(q)) | not a phantom ∀: `ffw` already pinned `m->marioObj`. Its footprint is `squishTimer` (in `ProRows`' hole) plus bytes 44..55 of Mario's object (`gfx.scale`, directly and via the real `vec3f_set`). `ProRows`' hole lemmas now take that object-side hole; `NaSplit.squish_row` walks the body |

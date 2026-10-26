@@ -58,7 +58,10 @@ Definition lvl_ids : list ident :=
    game_init._gPlayer3Controller; libultra_osContInit.___osMaxControllers;
    (* gCurrentArea (area_w, 2026-10-25: the level phase's
       update_camera(gCurrentArea->camera) reads it) *)
-   level_update._gCurrentArea].
+   level_update._gCurrentArea;
+   (* gEnvironmentRegions and gShowDebugText (env_w, 2026-10-26:
+      update_mario_inputs' find_water_level and debug print read them) *)
+   object_list_processor._gEnvironmentRegions; mario._gShowDebugText].
 
 Definition lvl_sym (G : genv) (b : block) : Prop :=
   exists id, In id lvl_ids /\ Genv.find_symbol G id = Some b.
@@ -1124,6 +1127,25 @@ Definition area_w (G : genv) (m : mem) : Prop :=
     exists bad o, Genv.find_symbol G area._gAreaData = Some bad
       /\ Mem.load Mint32 m ga 0 = Some (Vptr bad o).
 
+(* gEnvironmentRegions is NULL (2026-10-26).  In the game
+   load_area_terrain (surface_load.c) stores gEnvironmentRegions = NULL,
+   and only load_environmental_regions, run for a TERRAIN_LOAD_ENVIRONMENT
+   block of the area's collision, points it at a table; WMotR's collision
+   has no such block (no water).  StartSat proves it on the witness: the
+   real load_area_terrain run leaves the boot image's zero.  The only
+   generated stores to it are surface_load.c's (water-level behaviors write
+   through it, not to it).  update_mario_inputs' find_water_level then
+   returns FLOOR_LOWER_LIMIT (-11000), the waterLevel inputs_ok asks for.
+   gShowDebugText is FALSE (2026-10-26): main.c's `s8 gShowDebugText =
+   FALSE`, which only main.c's debug key sequence sets (main.c is not
+   linked; no linked code stores it), so update_mario_inputs'
+   debug_print_speed_action_normal prints nothing. *)
+Definition env_w (G : genv) (m : mem) : Prop :=
+  (forall b, Genv.find_symbol G object_list_processor._gEnvironmentRegions = Some b ->
+    Mem.load Mint32 m b 0 = Some (Vint Int.zero))
+  /\ (forall b, Genv.find_symbol G mario._gShowDebugText = Some b ->
+    Mem.load Mint8signed m b 0 = Some (Vint Int.zero)).
+
 Definition lvl_w (G : genv) (m : mem) : Prop :=
   (forall b, Genv.find_symbol G mario._gCurrLevelNum = Some b ->
      Mem.load Mint16signed m b 0 = Some (Vint (Int.repr LEVEL_WMOTR)))
@@ -1131,7 +1153,7 @@ Definition lvl_w (G : genv) (m : mem) : Prop :=
      Mem.load Mint8unsigned m b 0 = Some (Vint Int.zero))
   /\ warp_w G m
   /\ ctl_w G m
-  /\ area_w G m.
+  /\ area_w G m /\ env_w G m.
 
 (* lvl_w reads only the lvl_ids globals' blocks *)
 Lemma lvl_w_unch : forall (G : genv) m m',
@@ -1163,7 +1185,10 @@ Proof.
     split; [intros b3 S3; rewrite (U' _ b3 S3 ltac:(unfold lvl_ids; cbn [In]; auto 20)); exact (P3 b3 S3) |].
     split; [intros bd Sd; rewrite (U' _ bd Sd ltac:(unfold lvl_ids; cbn [In]; auto 20)); exact (DM bd Sd) |].
     intros bx Sx; rewrite (U' _ bx Sx ltac:(unfold lvl_ids; cbn [In]; auto 20)); exact (MX bx Sx).
-  - intros ga Sa. rewrite (U' _ ga Sa ltac:(unfold lvl_ids; cbn [In]; auto 20)). exact (AW ga Sa).
+  - split; [ | split ].
+    + intros ga Sa. rewrite (U' _ ga Sa ltac:(unfold lvl_ids; cbn [In]; auto 20)). exact (proj1 AW ga Sa).
+    + intros be Se. rewrite (U' _ be Se ltac:(unfold lvl_ids; cbn [In]; auto 20)). exact (proj1 (proj2 AW) be Se).
+    + intros be Se. rewrite (U' _ be Se ltac:(unfold lvl_ids; cbn [In]; auto 20)). exact (proj2 (proj2 AW) be Se).
 Qed.
 
 (* ---- the level cells and the frame world's regions ---- *)
