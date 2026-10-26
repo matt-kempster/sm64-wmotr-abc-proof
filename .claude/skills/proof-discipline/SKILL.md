@@ -463,8 +463,9 @@ all in `Unwired/`, and the theorem moved nowhere. See
     `post_keeps`); update_camera's mem_ok via `update_camera_ok_linked12`. ONE labeled row:
     `Hcam_phi` (`LevelKeep.cam_phi_row`, the camera statement keeps PhiW / Mario's surface
     cells; a clobber spec cannot, the Camera shares the surface pool's block; writes to cover =
-    `UpdateCameraBody.uc_census`). Stated by the steps: `surf_apart`, `plat_apart`,
-    `cam_area_mario`, and `warp_w` at the POST end (FOUND: a ∀-row for it is false). Next:
+    `UpdateCameraBody.uc_census`). Stated by the steps: `surf_apart`
+    and `warp_w` at the POST end (gCurrentArea's target is CARRIED since 2026-10-25,
+    `FfWorld.area_w`, proved at boot) (FOUND: a ∀-row for it is false). Next:
     discharge `Hcam_phi` from the census (per-write PhiW keep).
     Mario's render call and
     `apply_mario_platform_displacement` (platform_displacement.c, TU 45) are REAL calls whose

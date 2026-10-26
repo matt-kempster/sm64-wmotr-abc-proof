@@ -55,7 +55,10 @@ Definition lvl_ids : list ident :=
    (* the controller globals (ctl_w, 2026-10-23, PollFlank: the real
       controller poll reads them; gCurrDemoInput is above) *)
    mario._gControllers; game_init._gControllerPads; game_init._gPlayer1Controller;
-   game_init._gPlayer3Controller; libultra_osContInit.___osMaxControllers].
+   game_init._gPlayer3Controller; libultra_osContInit.___osMaxControllers;
+   (* gCurrentArea (area_w, 2026-10-25: the level phase's
+      update_camera(gCurrentArea->camera) reads it) *)
+   level_update._gCurrentArea].
 
 Definition lvl_sym (G : genv) (b : block) : Prop :=
   exists id, In id lvl_ids /\ Genv.find_symbol G id = Some b.
@@ -1049,24 +1052,36 @@ Definition warp_w (G : genv) (m : mem) : Prop :=
      Mem.load Mint16signed m bo 0 <> Some (Vint Int.zero) ->
      exists n, Mem.load Mint16signed m bs 0 = Some (Vint (Int.repr n)) /\ In n [240; 241; 243]).
 
+(* gCurrentArea points into gAreaData (2026-10-25).  In the game
+   load_area sets gCurrentArea = &gAreas[index] and gAreas = gAreaData
+   (area.c), and no frame code changes it while the level runs.  The level
+   phase's update_camera(gCurrentArea->camera) needs it: gAreaData is a
+   SafeB symbol (CensusV2.camera_safe_syms), so the camera pointer is SafeB
+   by MWF's chase step. *)
+Definition area_w (G : genv) (m : mem) : Prop :=
+  forall ga, Genv.find_symbol G level_update._gCurrentArea = Some ga ->
+    exists bad o, Genv.find_symbol G area._gAreaData = Some bad
+      /\ Mem.load Mint32 m ga 0 = Some (Vptr bad o).
+
 Definition lvl_w (G : genv) (m : mem) : Prop :=
   (forall b, Genv.find_symbol G mario._gCurrLevelNum = Some b ->
      Mem.load Mint16signed m b 0 = Some (Vint (Int.repr LEVEL_WMOTR)))
   /\ (forall b, Genv.find_symbol G sound_init._sPlayingInfiniteStairs = Some b ->
      Mem.load Mint8unsigned m b 0 = Some (Vint Int.zero))
   /\ warp_w G m
-  /\ ctl_w G m.
+  /\ ctl_w G m
+  /\ area_w G m.
 
 (* lvl_w reads only the lvl_ids globals' blocks *)
 Lemma lvl_w_unch : forall (G : genv) m m',
   (forall b ch z, lvl_sym G b -> Mem.load ch m' b z = Mem.load ch m b z) ->
   lvl_w G m -> lvl_w G m'.
 Proof.
-  intros G m m' U (L1 & L2 & (W1 & W2 & W3 & W4) & CW).
+  intros G m m' U (L1 & L2 & (W1 & W2 & W3 & W4) & CW & AW).
   assert (U' : forall id b, Genv.find_symbol G id = Some b -> In id lvl_ids -> forall ch z,
              Mem.load ch m' b z = Mem.load ch m b z)
     by (intros id b Hs Hin ch z; exact (U b ch z (lvl_sym_of G id b Hin Hs))).
-  split; [| split; [| split]].
+  split; [| split; [| split; [| split]]].
   - intros b Hs. rewrite (U' _ b Hs ltac:(unfold lvl_ids; cbn [In]; auto 20)). exact (L1 b Hs).
   - intros b Hs. rewrite (U' _ b Hs ltac:(unfold lvl_ids; cbn [In]; auto 20)). exact (L2 b Hs).
   - split; [| split; [| split]].
@@ -1087,6 +1102,7 @@ Proof.
     split; [intros b3 S3; rewrite (U' _ b3 S3 ltac:(unfold lvl_ids; cbn [In]; auto 20)); exact (P3 b3 S3) |].
     split; [intros bd Sd; rewrite (U' _ bd Sd ltac:(unfold lvl_ids; cbn [In]; auto 20)); exact (DM bd Sd) |].
     intros bx Sx; rewrite (U' _ bx Sx ltac:(unfold lvl_ids; cbn [In]; auto 20)); exact (MX bx Sx).
+  - intros ga Sa. rewrite (U' _ ga Sa ltac:(unfold lvl_ids; cbn [In]; auto 20)). exact (AW ga Sa).
 Qed.
 
 (* ---- the level cells and the frame world's regions ---- *)
