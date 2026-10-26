@@ -798,7 +798,9 @@ Section PR.
               | solve [apply LHz; [exact O1 | exact O2 | exact O3 |];
                        rewrite <- Z.add_assoc; apply ozp_k; [exact Lo' | unfold FFW_COLL; cbn [size_chunk]; lia]]
               | solve [apply LHz; [exact O1 | exact O2 | exact O3 |];
-                       apply ozp_k; [exact Lo' | unfold FFW_THROW; cbn [size_chunk]; lia]] ].
+                       apply ozp_k; [exact Lo' | unfold FFW_THROW; cbn [size_chunk]; lia]]
+              | solve [apply LHz; [exact O1 | exact O2 | exact O3 |];
+                       apply ozp_k; [exact Lo' | unfold FFW_HH, FFW_HD; cbn [size_chunk]; lia]] ].
     Qed.
 
     Lemma hole_coll : forall v,

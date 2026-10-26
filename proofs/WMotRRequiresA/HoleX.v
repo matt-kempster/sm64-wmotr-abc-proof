@@ -179,6 +179,9 @@ Section HX.
       ozx b z (size_chunk ch) -> Mem.load ch m' b z = Mem.load ch m b z.
     Hypothesis CLK : forall gp, closed_by gp m -> syms_mapped ge gp -> gp bm <> None ->
       exists gp', (forall b, gp b <> None -> gp' b <> None) /\ closed_by gp' m' /\ syms_mapped ge gp'.
+    (* Mario's hitboxHeight (bytes 508..511, inside the hole) after: 100.0f
+       or 160.0f (FfWorld.ff_HH) *)
+    Hypothesis HHX : ffw_hh m' ob oo0.
 
     Lemma NCbm : ~ chg bm.
     Proof.
@@ -207,7 +210,7 @@ Section HX.
     Ltac hxm := rewrite LXm by hside.
     Ltac hxm_in H := rewrite LXm in H by hside.
     Ltac ok_t := unfold ohz, O_INTERACT_STATUS, NUMCOLL_OFF, COLL_OFF, RAW_OFF, POLEPOS_OFF,
-                   FFW_COLL, FFW_THROW, OFS_GFXY, RAW_OFF; cbn [size_chunk]; pose proof OWL; lia.
+                   FFW_COLL, FFW_THROW, FFW_HD, OFS_GFXY, RAW_OFF; cbn [size_chunk]; pose proof OWL; lia.
 
     (* the world's pointers are off the changes *)
     Lemma hx_facts : ffw ge bm m ->
@@ -300,14 +303,16 @@ Section HX.
       assert (Nab : ab <> bm) by exact (AnimKeep.symne_ids ge _ _ _ _ S5 Hbm eq_refl).
       assert (Cab : ~ chg ab) by (apply (nchg_safe _ _ S5); vm_compute; reflexivity).
       assert (Nabo : ab <> ob) by exact (proj1 (D4 ab ltac:(left; cbn; auto 10))).
-      apply (ffw_rebuild ge bm m m' _ gp' FWF (Ple_trans _ _ _ Hgn NB) NB Hinc HC').
+      apply (ffw_rebuild_hh ge bm m m' _ gp' FWF (Ple_trans _ _ _ Hgn NB) NB Hinc HC').
       - exact (AnimWorld.Wff_mono ge m' gp' SZ_SURFACE (rl ++ xgl) rl (fun b H => hx_app_l _ _ b H) W2).
       - exact (floor_data_keep2 ge m m' (rl ++ xgl) NB Hperm Hld gp W1 FD).
-      - intros ch b z Hr. ffw_read_split Hr;
+      - intros ch b z Hr Nh. ffw_read_split Hr;
           first [ solve [apply LXm; hside]
                 | solve [exact (LXz Mint32 ab 8 Nab Cab (ozx_ne _ _ _ Nabo))]
                 | solve [rewrite <- Z.add_assoc; apply LXz; [exact O1 | exact O2 |]; apply ozx_k; ok_t]
-                | solve [apply LXz; [exact O1 | exact O2 |]; apply ozx_k; ok_t] ].
+                | solve [apply LXz; [exact O1 | exact O2 |]; apply ozx_k; ok_t]
+                | solve [exfalso; apply Nh; split; [reflexivity |]; split; reflexivity] ].
+      - exact HHX.
       - apply (ffw_surf_ok_kept ge bm m m' _ FWF). intros z ch Hin. apply LXm.
         unfold ffw_surf_cells in Hin. cbn [In] in Hin.
         destruct Hin as [E | [E | [E | []]]]; injection E as <- <-; hside.
