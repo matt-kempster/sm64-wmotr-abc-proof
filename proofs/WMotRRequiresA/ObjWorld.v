@@ -30,6 +30,7 @@
 (*           star), and a listed bhvHiddenRedCoinStar's counter is < 8.   *)
 (*   DEBUG   the debug spawner's guard is false (sDebugPage is not        *)
 (*           STAGEINFO or gDebugInfo[ENEMYINFO][7] is not 1).            *)
+(*   ORDER   sObjectListUpdateOrder holds its initializer.               *)
 (*   STALE   Mario's interactObj / heldObj / usedObj / riddenObj are NULL *)
 (*           or a slot-aligned pool pointer.  NOT claimed: that the slot  *)
 (*           still holds the object the pointer was stored for (it may   *)
@@ -224,6 +225,16 @@ Section CLAUSES.
     v = Vnullptr \/ exists k, 0 <= k < NSLOT /\ v = slot_v pool k.
 End CLAUSES.
 
+(* ORDER: update_non_terrain_objects / unload_deactivated_objects walk the
+   lists in the order of the writable table sObjectListUpdateOrder; its 11
+   cells hold their initializer (nothing in the game stores to it). *)
+Definition upd_order : list Z := [11; 9; 10; 0; 5; 4; 2; 6; 8; 12; -1].
+
+Definition order_ok (ge : genv) (m : mem) : Prop :=
+  exists b, Genv.find_symbol ge object_list_processor._sObjectListUpdateOrder = Some b
+    /\ forall j, (j < 11)%nat ->
+         Mem.load Mint8signed m b (Z.of_nat j) = Some (Vint (Int.repr (nth j upd_order 0))).
+
 (* ---------------------------------------------------------------------- *)
 (* 4. obj_w.                                                                *)
 (* ---------------------------------------------------------------------- *)
@@ -244,7 +255,8 @@ Record ow_core (ge : genv) (pool la fl gol gmo sdp gdi bm : block) (m : mem)
   ow_debug : Mem.load Mint8signed m sdp 0 <> Some (Vint (Int.repr 3))
              \/ Mem.load Mint16signed m gdi DBG_ENEMY7 <> Some (Vint Int.one);
   ow_stale : forall z, In z [120; 124; 128; 132] ->
-               exists v, Mem.load Mint32 m bm z = Some v /\ slot_ptr pool v
+               exists v, Mem.load Mint32 m bm z = Some v /\ slot_ptr pool v;
+  ow_order : order_ok ge m
 }.
 
 Definition obj_w (ge : genv) (bm : block) (m : mem) : Prop :=
@@ -380,6 +392,25 @@ End CHK.
 Definition vint_is (ov : option val) (z : Z) : bool :=
   match ov with Some (Vint i) => Z.eqb (Int.unsigned i) z | _ => false end.
 
+Definition order_b (ge : genv) (m : mem) : bool :=
+  match Genv.find_symbol ge object_list_processor._sObjectListUpdateOrder with
+  | Some b => forallb (fun j => match CM.load Mint8signed m b (Z.of_nat j) with
+                                | Some (Vint i) => Int.eq i (Int.repr (nth j upd_order 0))
+                                | _ => false end) (seq 0 11)
+  | None => false
+  end.
+
+Lemma order_b_sound : forall ge m, order_b ge m = true -> order_ok ge m.
+Proof.
+  intros ge m H. unfold order_b in H.
+  destruct (Genv.find_symbol ge object_list_processor._sObjectListUpdateOrder) as [b|] eqn:Hs; [ | discriminate H ].
+  exists b. split; [ exact Hs | ]. intros j Hj.
+  pose proof (proj1 (forallb_forall _ _) H j (proj2 (in_seq 11 0 j) (conj (Nat.le_0_l j) Hj))) as Hz.
+  cbn beta in Hz. rewrite CM.load_eq in Hz.
+  destruct (Mem.load Mint8signed m b (Z.of_nat j)) as [[| i | | | |]|]; try discriminate Hz.
+  apply Int.same_if_eq in Hz. subst i. reflexivity.
+Qed.
+
 Definition ow_chk_core (ge : genv) (pool la fl gol gmo sdp gdi bm : block) (m : mem) : bool :=
   match rings m pool la, free_list m pool fl, ld32 m gmo 0 with
   | Some rs, Some fs, Some (Vptr pb po) =>
@@ -397,6 +428,7 @@ Definition ow_chk_core (ge : genv) (pool la fl gol gmo sdp gdi bm : block) (m : 
       && (negb (vint_is (CM.load Mint8signed m sdp 0) 3) || negb (vint_is (CM.load Mint16signed m gdi DBG_ENEMY7) 1))
       && forallb (fun z => match ld32 m bm z with Some v => slot_ptr_b pool v | None => false end)
            [120; 124; 128; 132]
+      && order_b ge m
       | None => false
       end
   | _, _, _ => false
@@ -428,6 +460,7 @@ Proof.
   destruct (ld32 m gmo 0) as [[| | | | | pb po]|] eqn:Hg;
     [ discriminate H .. | | discriminate H ].
   destruct (slot_of (Ptrofs.unsigned po)) as [k|] eqn:Hk; [ | discriminate H ].
+  apply andb_prop in H as [H Hord].
   apply andb_prop in H as [H Hst]. apply andb_prop in H as [H Hdb].
   apply andb_prop in H as [H Hsar]. apply andb_prop in H as [H Hkd].
   apply andb_prop in H as [H Hpo]. apply andb_prop in H as [H Hbm].
@@ -460,6 +493,7 @@ Proof.
     cbn beta in Hy. unfold ld32 in Hy. rewrite CM.load_eq in Hy.
     destruct (Mem.load Mint32 m bm z) as [v|]; [ | discriminate Hy ].
     exists v. split; [ reflexivity | exact (slot_ptr_b_sound _ _ Hy) ].
+  - exact (order_b_sound _ _ Hord).
 Qed.
 
 Definition ow_chk (ge : genv) (bm : block) (m : mem) : bool :=

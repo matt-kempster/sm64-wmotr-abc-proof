@@ -495,13 +495,18 @@ all in `Unwired/`, and the theorem moved nowhere. See
     `area_update_objects` call (`ObjPhase.objects_call`), with `execute_mario_action` as the
     hole (`HeightFrame.mario_hole`, filled by Hframe_action + seg_action_phi). Open, labeled
     rows over the real stages: Hobj_blind / Hobj_fresh / Hobj_noref, Hobj_stores /
-    Hobj_counter, Hobj_debug, Hobj_surfaces, Hobj_terrain, Hobj_collisions, Hobj_nonterrain
-    (given the hole), Hobj_unload, Hobj_mplat; Hplat_keep, Hlvl_ow, Hrender_ow. Proved: the
-    walk of update_objects' body, the clock calls, objects_keep, the platform call inside.
+    Hobj_counter, Hobj_debug, Hobj_surfaces, Hobj_collisions, Hobj_unload, Hobj_mplat;
+    Hplat_keep, Hlvl_ow, Hrender_ow. Proved: the walk of update_objects' body, the clock
+    calls, objects_keep, the platform call inside. B2 DONE (ObjLoop.v): update_terrain_objects
+    and update_non_terrain_objects are PROVED (update_objects_in_list, both per-list loops over
+    obj_w's rings, the list heads, sObjectListUpdateOrder -- now an obj_w clause, ORDER) from
+    the per-object rows Hobj_step_terrain / Hobj_step_nonterrain (given the hole; the real
+    loop body up to cur_obj_update() keeps Pobj and leaves the node in its ring) and Hobj_ctr.
+    Next, B3: discharge the per-object rows by stepping cur_obj_update.
     The object world `ObjWorld.obj_w` is in `fb_ok` (no phantom ∀ over object lists) and is
     PROVED at the boot witness, which now runs the real init_graph_node_start + clear_objects
     and Mario's spawn_objects_from_info; one real area_update_objects runs from it
-    (`StartSat.objects_runs`). Discharge order: B2 -> B3 -> B4/B5/B6.
+    (`StartSat.objects_runs`). Discharge order: B2 (done) -> B3 -> B4/B5/B6.
     The controller poll is REAL since 2026-10-23
     (`PollFlank.v`, libultra `osContStartReadData.c` linked as TU 46): `seg_input_spec m i m0` is the real
     `osContStartReadData` (or no request) then the real `read_controller_inputs`, walked down to the
