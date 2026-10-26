@@ -1034,6 +1034,17 @@ without pressing A".*
   `deallocate_object` assign an ObjectNode's `next` / `prev` by field name. No trust moves:
   the census is a vm-checked certificate, and the rows it informs stay rows until B3 steps
   them.
+  **DRY12 (2026-10-26, B3a-2): `obj_w` gained the clause `ow_dry12`.** A slot of ring 12
+  runs (its command pointer lies in) a script of `ObjCensus.live12`, which holds the 20
+  list-12 scripts minus the water movers. Each of them is DRY (`live12_dry`): it reaches no
+  `allocate_object`, or spawns only list-12 objects. `ow_chk` checks the clause at the boot
+  witness, so it is PROVED there. Before this clause, the per-object rows `Hobj_step_*`
+  ("leaves the node in its ring") quantified over states with a water mover at the head of
+  a full list 12. That is a phantom state: the row is false on it. With the clause in
+  `Pobj`, the rows no longer range over that state, and they must now also CARRY DRY12. That
+  means no water mover is spawned, which is gated in WMotR by no water (`FfWorld.env_w`,
+  `find_water_level` = -11000), the wing-cap boxes' contents and the object y bound. These
+  are the next B3 families.
 
 - **Level phase (2026-10-24): real code.** `seg_level_pre_spec` / `seg_level_post_spec` are
   `exec_stmt` of the generated `play_mode_normal` body's slices before / after its

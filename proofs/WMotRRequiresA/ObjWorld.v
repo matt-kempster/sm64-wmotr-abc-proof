@@ -48,7 +48,7 @@ From SM64.Generated Require object_list_processor behavior_data object_helpers d
 From SM64.Proofs Require Interp.CMem.
 From SM64.Proofs Require Import CensusV2.
 From SM64.Proofs.WMotRRequiresA Require Import WMotRWorld.
-From SM64.Proofs.WMotRRequiresA Require BehaviorScripts ObjAct.
+From SM64.Proofs.WMotRRequiresA Require BehaviorScripts ObjAct ObjCensus.
 
 Import ListNotations.
 Local Open Scope string_scope.
@@ -205,6 +205,12 @@ Section CLAUSES.
     exists id b o, In id live_bhvs /\ Genv.find_symbol ge id = Some b
                    /\ Mem.load Mint32 m pool (k * OSZ + O_CMD) = Some (Vptr b o).
 
+  (* DRY12 (B3a): a slot of ring 12 (OBJ_LIST_UNIMPORTANT) runs a list-12
+     script that is not a water mover (ObjCensus.live12, each DRY). *)
+  Definition script12_ok (k : Z) : Prop :=
+    exists id b o, In id ObjCensus.live12 /\ Genv.find_symbol ge id = Some b
+                   /\ Mem.load Mint32 m pool (k * OSZ + O_CMD) = Some (Vptr b o).
+
   Definition act_ok (k : Z) : Prop :=
     forall bh t, In (bh, t) act_pairs -> is_bhv k bh ->
       exists a, Mem.load Mint32 m pool (k * OSZ + O_ACTION) = Some (Vint a)
@@ -256,7 +262,8 @@ Record ow_core (ge : genv) (pool la fl gol gmo sdp gdi bm : block) (m : mem)
              \/ Mem.load Mint16signed m gdi DBG_ENEMY7 <> Some (Vint Int.one);
   ow_stale : forall z, In z [120; 124; 128; 132] ->
                exists v, Mem.load Mint32 m bm z = Some v /\ slot_ptr pool v;
-  ow_order : order_ok ge m
+  ow_order : order_ok ge m;
+  ow_dry12 : forall k, In k (nth 12%nat rs []) -> script12_ok ge pool m k
 }.
 
 Definition obj_w (ge : genv) (bm : block) (m : mem) : Prop :=
@@ -311,6 +318,24 @@ Section CHK.
           live_bhvs
     | _ => false
     end.
+
+  Definition script12_b (k : Z) : bool :=
+    match ld32 m pool (k * OSZ + O_CMD) with
+    | Some (Vptr b _) =>
+        existsb (fun id => match Genv.find_symbol ge id with Some b' => Pos.eqb b b' | None => false end)
+          ObjCensus.live12
+    | _ => false
+    end.
+
+  Lemma script12_b_sound : forall k, script12_b k = true -> script12_ok ge pool m k.
+  Proof.
+    intros k H. unfold script12_b, ld32 in H. rewrite CM.load_eq in H.
+    destruct (Mem.load Mint32 m pool (k * OSZ + O_CMD)) as [[| | | | | b o]|] eqn:Hl;
+      [ discriminate H .. | | discriminate H ].
+    apply existsb_exists in H as (id & Hin & Hb).
+    destruct (Genv.find_symbol ge id) as [b'|] eqn:Hs; [ | discriminate Hb ].
+    apply Pos.eqb_eq in Hb. subst b'. exists id, b, o. exact (conj Hin (conj Hs Hl)).
+  Qed.
 
   Lemma script_b_sound : forall k, script_b k = true -> script_ok ge pool m k.
   Proof.
@@ -429,6 +454,7 @@ Definition ow_chk_core (ge : genv) (pool la fl gol gmo sdp gdi bm : block) (m : 
       && forallb (fun z => match ld32 m bm z with Some v => slot_ptr_b pool v | None => false end)
            [120; 124; 128; 132]
       && order_b ge m
+      && forallb (script12_b ge pool m) (nth 12%nat rs [])
       | None => false
       end
   | _, _, _ => false
@@ -460,6 +486,7 @@ Proof.
   destruct (ld32 m gmo 0) as [[| | | | | pb po]|] eqn:Hg;
     [ discriminate H .. | | discriminate H ].
   destruct (slot_of (Ptrofs.unsigned po)) as [k|] eqn:Hk; [ | discriminate H ].
+  apply andb_prop in H as [H Hd12].
   apply andb_prop in H as [H Hord].
   apply andb_prop in H as [H Hst]. apply andb_prop in H as [H Hdb].
   apply andb_prop in H as [H Hsar]. apply andb_prop in H as [H Hkd].
@@ -494,6 +521,7 @@ Proof.
     destruct (Mem.load Mint32 m bm z) as [v|]; [ | discriminate Hy ].
     exists v. split; [ reflexivity | exact (slot_ptr_b_sound _ _ Hy) ].
   - exact (order_b_sound _ _ Hord).
+  - intros j Hj. exact (script12_b_sound _ _ _ _ (proj1 (forallb_forall _ _) Hd12 j Hj)).
 Qed.
 
 Definition ow_chk (ge : genv) (bm : block) (m : mem) : bool :=

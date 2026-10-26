@@ -508,6 +508,12 @@ all in `Unwired/`, and the theorem moved nowhere. See
     SmallWaterWave) can move the walked node into list 8, which is UB (the walk reads list
     8's head as an Object), not a hang. So the ring rows must exclude it via no-water
     (FfWorld.env_w), not weaken to "or moved".
+    B3a-2: obj_w clause DRY12 (`ow_dry12`, accessor = the record projection): ring-12 slots
+    run ObjCensus.live12 scripts (list-12 minus water movers, all DRY); proved at boot by
+    ow_chk. Next: carry DRY12 through the step. Gate the spawners of the water movers:
+    - object_step's obj_splash: find_water_level = -11000 and object y >= -11050;
+    - Mario's water particles (sParticleTypes): env_w;
+    - koopa shell: the wing-cap boxes' behParams.
     The object world `ObjWorld.obj_w` is in `fb_ok` (no phantom ∀ over object lists) and is
     PROVED at the boot witness, which now runs the real init_graph_node_start + clear_objects
     and Mario's spawn_objects_from_info; one real area_update_objects runs from it

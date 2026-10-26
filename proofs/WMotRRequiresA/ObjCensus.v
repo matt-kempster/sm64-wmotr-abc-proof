@@ -11,8 +11,8 @@
 (* With the pool full, allocate_object frees find_unimportant_object(),    *)
 (* the FIRST node of OBJ_LIST_UNIMPORTANT (12), and hands that slot to the *)
 (* new object.  If that node is the object being updated, it leaves its    *)
-(* list for the spawned object's list.  spawn_object.c says "I don't know  *)
-(* of any unimportant objects that spawn other objects".                   *)
+(* list for the spawned object's list.  spawn_object.c says: I don't know  *)
+(* of any unimportant objects that spawn other objects.                    *)
 (*                                                                         *)
 (* FOUND 2026-10-26: over the WMotR closure that comment is FALSE.  Five   *)
 (* list-12 behaviors reach allocate_object (unimp_allocators_value); three *)
@@ -130,4 +130,23 @@ Definition link_writers : list ident :=
 
 Lemma link_writers_value : map string_of_ident link_writers =
   [ "deallocate_object"; "try_allocate_object" ]%string.
+Proof. vm_compute. reflexivity. Qed.
+
+(* ---------------------------------------------------------------------- *)
+(* The scripts a ring-12 slot may run: the list-12 scripts minus the water *)
+(* movers (obj_w's clause DRY12, ObjWorld.script12_ok).  Each is DRY: it   *)
+(* reaches no allocate_object, or spawns only list-12 objects, so a        *)
+(* pool-full spawn by it re-appends the freed node to list 12.             *)
+(* ---------------------------------------------------------------------- *)
+Definition dry (b : ident) : bool :=
+  negb (allocs b) || match offlist b with [] => true | _ => false end.
+
+Definition live12 : list ident :=
+  filter (fun b => (list_of b =? OBJ_LIST_UNIMPORTANT) && negb (existsb (Pos.eqb b) water_movers))
+    reached_bhvs.
+
+Lemma live12_dry : forallb dry live12 = true.
+Proof. vm_compute. reflexivity. Qed.
+
+Lemma live12_list : forallb (fun b => list_of b =? OBJ_LIST_UNIMPORTANT) live12 = true.
 Proof. vm_compute. reflexivity. Qed.
