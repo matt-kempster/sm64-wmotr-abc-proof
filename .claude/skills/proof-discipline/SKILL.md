@@ -385,7 +385,16 @@ all in `Unwired/`, and the theorem moved nowhere. See
     PoleSlow/Fast/Hold/Climb are retired. Walker trap: a clamped polePos folds
     oPosY + 720.0f to a constant, so `PoleClass.tb` has a constant + offset case.
   - (`wmotr_gap` and `wmotr_poles` are now proved from generated level data, `WMotRLevel.v`)
-  - the flank specs (TRUST 0.7): level phase, objects. Mario's render call and
+  - the flank spec (TRUST 0.7): objects. The LEVEL PHASE is real code since 2026-10-24:
+    `play_mode_normal`'s slices before / after `area_update_objects` (`LevelFlank`), walked
+    (`LevelWalk`, footprint `LevelGvars.level_gvars`), carries proved (`LevelKeep.pre_keeps` /
+    `post_keeps`); update_camera's mem_ok via `update_camera_ok_linked12`. ONE labeled row:
+    `Hcam_phi` (`LevelKeep.cam_phi_row`, the camera statement keeps PhiW / Mario's surface
+    cells; a clobber spec cannot, the Camera shares the surface pool's block; writes to cover =
+    `UpdateCameraBody.uc_census`). Stated by the steps: `surf_apart`, `plat_apart`,
+    `cam_area_mario`, and `warp_w` at the POST end (FOUND: a ∀-row for it is false). Next:
+    discharge `Hcam_phi` from the census (per-write PhiW keep).
+    Mario's render call and
     `apply_mario_platform_displacement` (platform_displacement.c, TU 45) are REAL calls whose
     GOAL-1 and Φ carries are proved (`RenderKeep.render_keeps_phiw`, `PlatformKeep`, 2026-10-23);
     they state only narrow premises: `surf_apart` (Mario's surfaces not in a written global's block)
