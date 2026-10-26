@@ -497,13 +497,29 @@ all in `Unwired/`, and the theorem moved nowhere. See
     `area_update_objects` call (`ObjPhase.objects_call`), with `execute_mario_action` as the
     hole (`HeightFrame.mario_hole`, filled by Hframe_action + seg_action_phi). Open, labeled
     rows over the real stages: Hobj_blind / Hobj_fresh / Hobj_noref, Hobj_stores /
-    Hobj_counter, Hobj_debug, Hobj_surfaces, Hobj_terrain, Hobj_collisions, Hobj_nonterrain
-    (given the hole), Hobj_unload, Hobj_mplat; Hplat_keep, Hlvl_ow, Hrender_ow. Proved: the
-    walk of update_objects' body, the clock calls, objects_keep, the platform call inside.
+    Hobj_counter, Hobj_debug, Hobj_surfaces, Hobj_collisions, Hobj_unload, Hobj_mplat;
+    Hplat_keep, Hlvl_ow, Hrender_ow. Proved: the walk of update_objects' body, the clock
+    calls, objects_keep, the platform call inside. B2 DONE (ObjLoop.v): update_terrain_objects
+    and update_non_terrain_objects are PROVED (update_objects_in_list, both per-list loops over
+    obj_w's rings, the list heads, sObjectListUpdateOrder -- now an obj_w clause, ORDER) from
+    the per-object rows Hobj_step_terrain / Hobj_step_nonterrain (given the hole; the real
+    loop body up to cur_obj_update() keeps Pobj and leaves the node in its ring) and Hobj_ctr.
+    Next, B3: discharge the per-object rows by stepping cur_obj_update.
+    B3a (ObjCensus.v, 2026-10-26): FOUND FALSE the C comment "no unimportant objects spawn":
+    5 list-12 allocators in WMotR's closure; the 3 water ones (Bubble, WaterDroplet,
+    SmallWaterWave) can move the walked node into list 8, which is UB (the walk reads list
+    8's head as an Object), not a hang. So the ring rows must exclude it via no-water
+    (FfWorld.env_w), not weaken to "or moved".
+    B3a-2: obj_w clause DRY12 (`ow_dry12`, accessor = the record projection): ring-12 slots
+    run ObjCensus.live12 scripts (list-12 minus water movers, all DRY); proved at boot by
+    ow_chk. Next: carry DRY12 through the step. Gate the spawners of the water movers:
+    - object_step's obj_splash: find_water_level = -11000 and object y >= -11050;
+    - Mario's water particles (sParticleTypes): env_w;
+    - koopa shell: the wing-cap boxes' behParams.
     The object world `ObjWorld.obj_w` is in `fb_ok` (no phantom ∀ over object lists) and is
     PROVED at the boot witness, which now runs the real init_graph_node_start + clear_objects
     and Mario's spawn_objects_from_info; one real area_update_objects runs from it
-    (`StartSat.objects_runs`). Discharge order: B2 -> B3 -> B4/B5/B6.
+    (`StartSat.objects_runs`). Discharge order: B2 (done) -> B3 -> B4/B5/B6.
     The controller poll is REAL since 2026-10-23
     (`PollFlank.v`, libultra `osContStartReadData.c` linked as TU 46): `seg_input_spec m i m0` is the real
     `osContStartReadData` (or no request) then the real `read_controller_inputs`, walked down to the
