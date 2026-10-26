@@ -77,7 +77,7 @@ From SM64.Proofs.WMotRRequiresA Require Import FfWorld FfRow AhwRow KbRow FpuFlo
 From SM64.Proofs.WMotRRequiresA Require PoleXc PoleCasesT LsContract.
 From SM64.Proofs.WMotRRequiresA Require RenderFlank RenderKeep AnimWorld PlatformKeep PollFlank.
 From SM64.Proofs.WMotRRequiresA Require LevelGvars LevelFlank LevelKeep.
-From SM64.Proofs.WMotRRequiresA Require ObjPhase ObjWorld.
+From SM64.Proofs.WMotRRequiresA Require ObjPhase ObjWorld ObjLoop.
 From SM64.Generated Require object_list_processor area platform_displacement.
 From SM64.Proofs Require OsDmaFloor LptBody ObjExtBodies UpdateCameraBody.
 From SM64.Proofs Require Import HeightInvariant HeightBudgetArith HeightMoveCatalog WMotRLevel
@@ -1250,7 +1250,7 @@ Section HeightLinked12.
   (* OPEN, the frame block (update_objects' cycleCounts[30]) *)
   Hypothesis Hobj_blind : forall b m m', Ple (Genv.genv_next (lp_ge lp)) b -> Pobjl m ->
     ObjPhase.noref b m -> Mem.unchanged_on (fun b' _ => b' <> b) m m' -> Pobjl m'.
-  Hypothesis Hobj_fresh : forall m m1 b, Pobjl m -> Mem.alloc m 0 240 = (m1, b) ->
+  Hypothesis Hobj_fresh : forall sz m m1 b, Pobjl m -> Mem.alloc m 0 sz = (m1, b) ->
     Ple (Genv.genv_next (lp_ge lp)) b /\ ObjPhase.noref b m1.
   Hypothesis Hobj_noref : forall b f, In f ObjPhase.uo_callees -> Ple (Genv.genv_next (lp_ge lp)) b ->
     ObjPhase.call_keeps (lp_ge lp) (ObjPhase.noref b) f.
@@ -1266,10 +1266,37 @@ Section HeightLinked12.
     /\ ObjPhase.call_keeps (lp_ge lp) Pobjl object_list_processor._stub_debug_5
     /\ ObjPhase.call_keeps (lp_ge lp) Pobjl object_list_processor._try_print_debug_mario_object_info.
   Hypothesis Hobj_surfaces : ObjPhase.call_keeps (lp_ge lp) Pobjl object_list_processor._clear_dynamic_surfaces.
-  Hypothesis Hobj_terrain : ObjPhase.call_keeps (lp_ge lp) Pobjl object_list_processor._update_terrain_objects.
   Hypothesis Hobj_collisions : ObjPhase.call_keeps (lp_ge lp) Pobjl object_list_processor._detect_object_collisions.
-  Hypothesis Hobj_nonterrain : mario_hole lp bm MWF Phi ->
-    ObjPhase.call_keeps (lp_ge lp) Pobjl object_list_processor._update_non_terrain_objects.
+  (* OPEN, B2 (2026-10-26): the two list walks update_terrain_objects /
+     update_non_terrain_objects are PROVED (ObjLoop.terrain_keeps /
+     nonterrain_keeps: the real update_objects_in_list, the two real
+     per-list loops, the list heads gObjectLists + i, the order table
+     sObjectListUpdateOrder, the frame block filler[4]) from these rows.
+     THE PER-OBJECT ROWS: the loop body of update_objects_starting_at /
+     update_objects_during_time_stop up to the cursor advance (the real
+     statements, ObjLoop.loop_pre: gCurrentObject = obj; the gfx flag;
+     cur_obj_update()), run on a node of a walked ring, keeps Pobj and
+     leaves the node in its ring.  Terrain lists (11, 9): no Mario hole.
+     The other lists (order[2..9], Mario's among them): under the hole,
+     and keeping any non-symbol block's noref (the caller's filler). *)
+  Hypothesis Hobj_step_terrain :
+    ObjLoop.step_row (lp_ge lp) Pobjl (ObjLoop.in_ring_l (lp_ge lp) bm ObjLoop.ter_ls)
+      object_list_processor.f_update_objects_starting_at
+    /\ ObjLoop.step_row (lp_ge lp) Pobjl (ObjLoop.in_ring_l (lp_ge lp) bm ObjLoop.ter_ls)
+      object_list_processor.f_update_objects_during_time_stop.
+  Hypothesis Hobj_step_nonterrain : mario_hole lp bm MWF Phi ->
+    ObjLoop.step_row (lp_ge lp) Pobjl (ObjLoop.in_ring_l (lp_ge lp) bm ObjLoop.nt_ls)
+      object_list_processor.f_update_objects_starting_at
+    /\ ObjLoop.step_row (lp_ge lp) Pobjl (ObjLoop.in_ring_l (lp_ge lp) bm ObjLoop.nt_ls)
+      object_list_processor.f_update_objects_during_time_stop
+    /\ ObjLoop.step_nr_row (lp_ge lp) Pobjl (ObjLoop.in_ring_l (lp_ge lp) bm ObjLoop.nt_ls)
+      object_list_processor.f_update_objects_starting_at
+    /\ ObjLoop.step_nr_row (lp_ge lp) Pobjl (ObjLoop.in_ring_l (lp_ge lp) bm ObjLoop.nt_ls)
+      object_list_processor.f_update_objects_during_time_stop.
+  (* the walks' own store: gObjectCounter = <an int> *)
+  Hypothesis Hobj_ctr : forall m b c m', Pobjl m ->
+    Genv.find_symbol (lp_ge lp) object_list_processor._gObjectCounter = Some b ->
+    Mem.store Mint32 m b 0 (Vint c) = Some m' -> Pobjl m'.
   Hypothesis Hobj_unload : ObjPhase.call_keeps (lp_ge lp) Pobjl object_list_processor._unload_deactivated_objects.
   Hypothesis Hobj_mplat : ObjPhase.call_keeps (lp_ge lp) Pobjl object_list_processor._update_mario_platform.
   (* OPEN, narrower than the platform row: the platform call (whose
@@ -1310,6 +1337,26 @@ Section HeightLinked12.
     exact (conj Hst' (conj Hsa' How')).
   Qed.
 
+  Lemma pobj_ow : forall m, Pobjl m -> OWl m.
+  Proof. intros m (_ & _ & _ & _ & _ & H). exact H. Qed.
+
+  (* the terrain walk, PROVED (ObjLoop) from the rows above *)
+  Lemma obj_terrain_linked12 :
+    ObjPhase.call_keeps (lp_ge lp) Pobjl object_list_processor._update_terrain_objects.
+  Proof.
+    exact (ObjLoop.terrain_keeps lp H12 bm Pobjl pobj_ow
+             (proj1 Hobj_step_terrain) (proj2 Hobj_step_terrain) Hobj_ctr).
+  Qed.
+
+  (* the non-terrain walk, PROVED (ObjLoop) from the rows above *)
+  Lemma obj_nonterrain_linked12 : mario_hole lp bm MWF Phi ->
+    ObjPhase.call_keeps (lp_ge lp) Pobjl object_list_processor._update_non_terrain_objects.
+  Proof.
+    intros Hm. destruct (Hobj_step_nonterrain Hm) as (Hsa & Hts & Hsa_nr & Hts_nr).
+    exact (ObjLoop.nonterrain_keeps lp H12 bm Pobjl pobj_ow Hsa Hts Hsa_nr Hts_nr Hobj_ctr
+             Hobj_blind (Hobj_fresh 4)).
+  Qed.
+
   Theorem wmotr_noA_height_bound_linked12 :
     forall (init : mem) (is : list mem) (m : mem),
       mem_ok_lp bm MWF init -> Phi init -> PlatformKeep.plat_still lp init -> OWl init ->
@@ -1321,8 +1368,8 @@ Section HeightLinked12.
     exact (proj2 (noA_run_height_bound lp bm MWF Phi OWl PHI_YMAX
                     frame_action_linked12 render_ok_linked12 render_phi_linked12
                     obj_clock_linked12 obj_auo_linked12
-                    Hobj_blind Hobj_fresh Hobj_noref Hobj_stores Hobj_counter
-                    Hobj_debug Hobj_surfaces Hobj_terrain Hobj_collisions Hobj_nonterrain
+                    Hobj_blind (Hobj_fresh 240) Hobj_noref Hobj_stores Hobj_counter
+                    Hobj_debug Hobj_surfaces obj_terrain_linked12 Hobj_collisions obj_nonterrain_linked12
                     Hobj_unload Hobj_mplat obj_platform_linked12 Hlvl_ow Hrender_ow
                     lvl_pre_linked12 lvl_post_linked12 seg_action_phi Hphi_y
                     srd_ok_linked12 poll_ok_linked12
