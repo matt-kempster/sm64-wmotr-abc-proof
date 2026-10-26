@@ -343,6 +343,7 @@ proofs/WMotRRequiresA/ObjWorld.v
 proofs/WMotRRequiresA/ObjPhase.v
 proofs/WMotRRequiresA/ObjLoop.v
 proofs/WMotRRequiresA/ObjCensus.v
+proofs/WMotRRequiresA/BhvVM.v
 proofs/WMotRRequiresA/RoCensus.v
 proofs/WMotRRequiresA/CoinLink.v
 

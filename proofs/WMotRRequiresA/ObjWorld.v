@@ -48,12 +48,15 @@ From SM64.Generated Require object_list_processor behavior_data behavior_script 
 From SM64.Proofs Require Interp.CMem.
 From SM64.Proofs Require Import CensusV2.
 From SM64.Proofs.WMotRRequiresA Require Import WMotRWorld.
-From SM64.Proofs.WMotRRequiresA Require BehaviorScripts ObjAct ObjCensus.
+From SM64.Proofs.WMotRRequiresA Require BehaviorScripts ObjAct ObjCensus BhvVM.
 
 Import ListNotations.
 Local Open Scope string_scope.
 Module CM := SM64.Proofs.Interp.CMem.
 Local Open Scope Z_scope.
+(* the VM's reachable states: tactics must never reduce them (that runs the
+   VM by conversion); vm_compute ignores this *)
+Local Opaque BhvVM.vm_tab.
 
 (* ---------------------------------------------------------------------- *)
 (* 1. Layout, pinned.                                                       *)
@@ -67,6 +70,8 @@ Definition O_PREV : Z := 100.  (* header.prev *)
 Definition O_FLAGS : Z := 116. (* activeFlags (s16) *)
 Definition O_CMD : Z := 460.   (* curBhvCommand *)
 Definition O_BHV : Z := 524.   (* behavior *)
+Definition O_SIDX : Z := 464.  (* bhvStackIndex (u32) *)
+Definition O_STK : Z := 468.   (* bhvStack[8] (uintptr_t) *)
 Definition O_ACTION : Z := RAW_OFF + 4 * 49.   (* oAction, 0x14C *)
 Definition O_HSCOUNT : Z := RAW_OFF + 4 * 27.  (* oHiddenStarTriggerCounter, 0xF4 *)
 Definition DBG_ENEMY7 : Z := 2 * (5 * 8 + 7).  (* gDebugInfo[5][7], s16 *)
@@ -88,6 +93,11 @@ Lemma layout_pinned :
    fo object_helpers._Object object_helpers._behavior,
    fo object_helpers._Object object_helpers._rawData)
   = (Some OSZ, Some NODESZ, Some O_NEXT, Some O_PREV, Some O_FLAGS, Some O_CMD, Some O_BHV, Some RAW_OFF).
+Proof. vm_compute. reflexivity. Qed.
+
+Lemma stack_pinned :
+  (fo object_helpers._Object object_helpers._bhvStackIndex,
+   fo object_helpers._Object object_helpers._bhvStack) = (Some O_SIDX, Some O_STK).
 Proof. vm_compute. reflexivity. Qed.
 
 (* ---------------------------------------------------------------------- *)
@@ -211,6 +221,30 @@ Section CLAUSES.
     exists id b o, In id ObjCensus.live12 /\ Genv.find_symbol ge id = Some b
                    /\ Mem.load Mint32 m pool (k * OSZ + O_CMD) = Some (Vptr b o).
 
+  (* CMDPOS (B3 ii): the slot's script pointer and behavior stack are a
+     reachable state of the script VM (BhvVM.vm_tab): the pointer is at a
+     command boundary (so the opcode indexes BehaviorCmdTable in bounds),
+     bhvStackIndex is the stack depth (<= 8) and each pushed cell is the
+     frame the VM expects (a command address, or an int repeat count). *)
+  Definition frame_ok (f : BhvVM.frame) (ov : option val) : Prop :=
+    match f with
+    | BhvVM.FAddr s i => exists b, Genv.find_symbol ge s = Some b
+                           /\ ov = Some (Vptr b (Ptrofs.repr (4 * Z.of_nat i)))
+    | BhvVM.FCount => exists c, ov = Some (Vint c)
+    end.
+
+  Definition stk_cell (k : Z) (d n : nat) : Z := k * OSZ + O_STK + 4 * (Z.of_nat d - 1 - Z.of_nat n).
+
+  Definition vm_ok (k : Z) : Prop :=
+    exists st, In st BhvVM.vm_tab
+      /\ (exists b, Genv.find_symbol ge (BhvVM.v_s st) = Some b
+           /\ Mem.load Mint32 m pool (k * OSZ + O_CMD)
+                = Some (Vptr b (Ptrofs.repr (4 * Z.of_nat (BhvVM.v_i st)))))
+      /\ Mem.load Mint32 m pool (k * OSZ + O_SIDX)
+           = Some (Vint (Int.repr (Z.of_nat (List.length (BhvVM.v_k st)))))
+      /\ (forall n f, nth_error (BhvVM.v_k st) n = Some f ->
+           frame_ok f (Mem.load Mint32 m pool (stk_cell k (List.length (BhvVM.v_k st)) n))).
+
   Definition act_ok (k : Z) : Prop :=
     forall bh t, In (bh, t) act_pairs -> is_bhv k bh ->
       exists a, Mem.load Mint32 m pool (k * OSZ + O_ACTION) = Some (Vint a)
@@ -274,7 +308,8 @@ Record ow_core (ge : genv) (pool la fl gol gmo sdp gdi bm : block) (m : mem)
                exists v, Mem.load Mint32 m bm z = Some v /\ slot_ptr pool v;
   ow_order : order_ok ge m;
   ow_dry12 : forall k, In k (nth 12%nat rs []) -> script12_ok ge pool m k;
-  ow_cmdtab : cmdtab_ok ge m
+  ow_cmdtab : cmdtab_ok ge m;
+  ow_vm : forall k, In k (concat rs) -> vm_ok ge pool m k
 }.
 
 Definition obj_w (ge : genv) (bm : block) (m : mem) : Prop :=
@@ -302,6 +337,15 @@ Proof.
   cbn in H. apply andb_prop in H as [H1 H2]. constructor; [ | exact (IH H2) ].
   intro Hin. apply negb_true_iff in H1. apply (proj2 (not_true_iff_false _) H1).
   apply existsb_exists. exists x. split; [ exact Hin | apply Z.eqb_refl ].
+Qed.
+
+Definition vint_eqb (ov : option val) (z : Z) : bool :=
+  match ov with Some (Vint i) => Int.eq i (Int.repr z) | _ => false end.
+
+Lemma vint_eqb_sound : forall ov z, vint_eqb ov z = true -> ov = Some (Vint (Int.repr z)).
+Proof.
+  intros ov z H. destruct ov as [[| i | | | |]|]; try discriminate H.
+  cbn in H. apply Int.same_if_eq in H. subst i. reflexivity.
 Qed.
 
 Section CHK.
@@ -357,6 +401,79 @@ Section CHK.
     destruct (Genv.find_symbol ge id) as [b'|] eqn:Hs; [ | discriminate Hb ].
     apply Pos.eqb_eq in Hb. subst b'. exists id, b, o. exact (conj Hin (conj Hs Hl)).
   Qed.
+
+  Definition sym_ptr_b (s : ident) (i : nat) (ov : option val) : bool :=
+    match Genv.find_symbol ge s, ov with
+    | Some b, Some (Vptr b' o) => Pos.eqb b b' && Ptrofs.eq o (Ptrofs.repr (4 * Z.of_nat i))
+    | _, _ => false
+    end.
+
+  Lemma sym_ptr_b_sound : forall s i ov, sym_ptr_b s i ov = true ->
+      exists b, Genv.find_symbol ge s = Some b /\ ov = Some (Vptr b (Ptrofs.repr (4 * Z.of_nat i))).
+  Proof.
+    intros s i ov H. unfold sym_ptr_b in H.
+    destruct (Genv.find_symbol ge s) as [b|]; [ | discriminate H ].
+    destruct ov as [[| | | | | b' o]|]; try discriminate H.
+    apply andb_prop in H as [H1 H2]. apply Pos.eqb_eq in H1. subst b'.
+    pose proof (Ptrofs.eq_spec o (Ptrofs.repr (4 * Z.of_nat i))) as E. rewrite H2 in E. subst o.
+    exists b. split; reflexivity.
+  Qed.
+
+  Definition frame_b (f : BhvVM.frame) (ov : option val) : bool :=
+    match f with
+    | BhvVM.FAddr s i => sym_ptr_b s i ov
+    | BhvVM.FCount => match ov with Some (Vint _) => true | _ => false end
+    end.
+
+  Lemma frame_b_sound : forall f ov, frame_b f ov = true -> frame_ok ge f ov.
+  Proof.
+    intros [s i |] ov H; cbn in H |- *.
+    - exact (sym_ptr_b_sound s i ov H).
+    - destruct ov as [[| c | | | |]|]; try discriminate H. exists c. reflexivity.
+  Qed.
+
+  Fixpoint frames_b (k : Z) (d n : nat) (l : list BhvVM.frame) : bool :=
+    match l with
+    | [] => true
+    | f :: r => frame_b f (CM.load Mint32 m pool (stk_cell k d n)) && frames_b k d (S n) r
+    end.
+
+  Lemma frames_b_sound : forall k d l n0 n f, frames_b k d n0 l = true -> nth_error l n = Some f ->
+      frame_ok ge f (Mem.load Mint32 m pool (stk_cell k d (n0 + n))).
+  Proof.
+    intros k d l. induction l as [| x r IH]; intros n0 n f H E; [ destruct n; discriminate E | ].
+    cbn in H. apply andb_prop in H as [H1 H2]. destruct n as [| n].
+    - cbn in E. injection E as <-. rewrite Nat.add_0_r. rewrite CM.load_eq in H1.
+      exact (frame_b_sound _ _ H1).
+    - cbn in E. rewrite <- Nat.add_succ_comm. exact (IH (S n0) n f H2 E).
+  Qed.
+
+  Definition st_b (k : Z) (st : BhvVM.vst) : bool :=
+    sym_ptr_b (BhvVM.v_s st) (BhvVM.v_i st) (CM.load Mint32 m pool (k * OSZ + O_CMD))
+    && vint_eqb (CM.load Mint32 m pool (k * OSZ + O_SIDX)) (Z.of_nat (List.length (BhvVM.v_k st)))
+    && frames_b k (List.length (BhvVM.v_k st)) 0 (BhvVM.v_k st).
+
+  (* stated over ANY state list, so no step can reduce BhvVM.vm_tab (it
+     would run the VM) *)
+  Lemma vm_b_sound_gen : forall k (l : list BhvVM.vst), existsb (st_b k) l = true ->
+    exists st, In st l
+      /\ (exists b, Genv.find_symbol ge (BhvVM.v_s st) = Some b
+           /\ Mem.load Mint32 m pool (k * OSZ + O_CMD)
+                = Some (Vptr b (Ptrofs.repr (4 * Z.of_nat (BhvVM.v_i st)))))
+      /\ Mem.load Mint32 m pool (k * OSZ + O_SIDX)
+           = Some (Vint (Int.repr (Z.of_nat (List.length (BhvVM.v_k st)))))
+      /\ (forall n f, nth_error (BhvVM.v_k st) n = Some f ->
+           frame_ok ge f (Mem.load Mint32 m pool (stk_cell k (List.length (BhvVM.v_k st)) n))).
+  Proof.
+    intros k l H. apply existsb_exists in H as (st & Hin & H).
+    unfold st_b in H. apply andb_prop in H as [H H3]. apply andb_prop in H as [H1 H2].
+    rewrite CM.load_eq in H1, H2.
+    exists st. split; [ exact Hin | split; [ | split ] ].
+    - exact (sym_ptr_b_sound _ _ _ H1).
+    - exact (vint_eqb_sound _ _ H2).
+    - intros n f E. exact (frames_b_sound k _ _ 0 n f H3 E).
+  Qed.
+
 
   Definition act_b (k : Z) : bool := forallb (fun p => not_bhv_b k (fst p)) act_pairs.
 
@@ -517,6 +634,7 @@ Definition ow_chk_core (ge : genv) (pool la fl gol gmo sdp gdi bm : block) (m : 
       && order_b ge m
       && forallb (script12_b ge pool m) (nth 12%nat rs [])
       && cmdtab_b ge m
+      && forallb (fun k => existsb (st_b ge pool m k) BhvVM.vm_tab) (concat rs)
       | None => false
       end
   | _, _, _ => false
@@ -548,6 +666,7 @@ Proof.
   destruct (ld32 m gmo 0) as [[| | | | | pb po]|] eqn:Hg;
     [ discriminate H .. | | discriminate H ].
   destruct (slot_of (Ptrofs.unsigned po)) as [k|] eqn:Hk; [ | discriminate H ].
+  apply andb_prop in H as [H Hvm].
   apply andb_prop in H as [H Hcmd].
   apply andb_prop in H as [H Hd12].
   apply andb_prop in H as [H Hord].
@@ -586,6 +705,9 @@ Proof.
   - exact (order_b_sound _ _ Hord).
   - intros j Hj. exact (script12_b_sound _ _ _ _ (proj1 (forallb_forall _ _) Hd12 j Hj)).
   - exact (cmdtab_b_sound _ _ Hcmd).
+  - (* no conversion may unfold BhvVM.vm_tab: the checker names it directly *)
+    intros j Hj. pose proof (proj1 (forallb_forall _ _) Hvm j Hj) as Hj'. cbv beta in Hj'.
+    unfold vm_ok. exact (vm_b_sound_gen _ _ _ j BhvVM.vm_tab Hj').
 Qed.
 
 Definition ow_chk (ge : genv) (bm : block) (m : mem) : bool :=
