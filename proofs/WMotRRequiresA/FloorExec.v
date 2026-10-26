@@ -117,12 +117,43 @@ Definition rblk (vs : list (option val)) (b : block) : Prop :=
 (* THE SURFACE FACT Fuser kS (p :: the consumer's regions): p is a WMotR
    surface of m0 (styp) in a block that is none of the regions -- what a
    caller needs to keep a stored surface pointer (m->floor, m->wall) a
-   WMotR surface after the call *)
-Definition surf_on (m0 : mem) (vs : list (option val)) : Prop :=
+   WMotR surface after the call; the block is dynamic (a surface-pool
+   block, past every global), which keeps it off any changed global *)
+Definition surf_on (ge : genv) (m0 : mem) (vs : list (option val)) : Prop :=
   match vs with
   | Some v :: rl => exists b o, v = Vptr b o /\ styp m0 b o /\ ~ rblk rl b
+                      /\ Ple (Genv.genv_next ge) b
   | _ => False
   end.
+
+Lemma wf_list_or : forall m A1 A2 hd, wf_list m A1 hd -> wf_list m A2 hd ->
+  wf_list m (fun b => A1 b \/ A2 b) hd.
+Proof.
+  intros m A1 A2 hd W1. induction W1 as [| bn on nx Hv Ha Hl W IH]; intros W2; [constructor |].
+  inversion W2 as [| bn' on' nx' Hv' Ha' Hl' W2']; subst.
+  rewrite Hl in Hl'. injection Hl' as <-.
+  apply wf_cons with nx; [exact Hv | intros [A | A]; [exact (Ha A) | exact (Ha' A)] | exact Hl | exact (IH W2')].
+Qed.
+
+Lemma wf_list_mono : forall m (A1 A2 : block -> Prop) hd, (forall b, A2 b -> A1 b) ->
+  wf_list m A1 hd -> wf_list m A2 hd.
+Proof.
+  intros m A1 A2 hd H W. induction W as [| bn on nx Hv Ha Hl W IH]; [constructor |].
+  apply wf_cons with nx; [exact Hv | intros A; exact (Ha (H _ A)) | exact Hl | exact IH].
+Qed.
+
+(* every list node and every surface on a partition list is a dynamic
+   block: alloc_surface_pools takes the node and surface pools from
+   main_pool_alloc, never a global's storage (design B, 2026-10-25) *)
+Definition dyn_list (ge : genv) (m0 : mem) (hd : val) : Prop :=
+  wf_list m0 (fun b => Plt b (Genv.genv_next ge)) hd
+  /\ forall b o, on_list m0 hd (Vptr b o) -> Ple (Genv.genv_next ge) b.
+
+Lemma dyn_not_static : forall (ge : genv) b, Ple (Genv.genv_next ge) b -> ~ is_static ge b.
+Proof.
+  intros ge b H (id & _ & Hs). pose proof (Genv.genv_symb_range _ _ Hs) as L.
+  unfold Plt, Ple in *. lia.
+Qed.
 
 (* THE WORLD FACT's meaning (about the frame's entry memory m0) *)
 Definition Wff (ge : genv) (m0 : mem) (gp : meminj) (szS : Z) (vs : list (option val)) : Prop :=
@@ -135,7 +166,7 @@ Definition Wff (ge : genv) (m0 : mem) (gp : meminj) (szS : Z) (vs : list (option
         exists b o, s = Vptr b o /\ Plt b (Mem.nextblock m0)
           /\ Ptrofs.unsigned o + szS <= Ptrofs.modulus /\ ~ rblk vs b /\ gp b <> None)
   /\ (forall hd b o, part_head ge m0 hd -> on_list m0 hd (Vptr b o) -> styp m0 b o)
-  /\ (forall hd b o, part_head ge m0 hd -> on_list m0 hd (Vptr b o) -> ~ is_static ge b)
+  /\ (forall hd, part_head ge m0 hd -> dyn_list ge m0 hd)
   /\ 0 <= szS.
 
 (* ---- small facts ---- *)
@@ -224,7 +255,7 @@ Hypothesis HgMS : gfind gtab surface_collision._gNumFindFloorMisses = Some rMS.
 Hypothesis HgCL : gfind gtab surface_collision._gNumCalls = Some rCL.
 Hypothesis HU : forall vs, uf kW vs -> Wff ge m0 gp szS vs.
 (* the surface fact's meaning *)
-Hypothesis HUS : forall vs, surf_on m0 vs -> uf kS vs.
+Hypothesis HUS : forall vs, surf_on ge m0 vs -> uf kS vs.
 (* the height fact's meaning *)
 Hypothesis HUH : forall h yv, HPi (Hit_at ge m0) (ycast yv) h -> Hit_at ge m0 h ->
   uf kH [Some (Vsingle h); Some yv].
@@ -429,7 +460,7 @@ Proof.
                       pose proof (on_list_to_m0 E m g MMh hd s (WL hd PH0) OL) as OL0;
                       destruct (WSurf hd s PH0 OL0) as (bs & os & -> & Ob & _ & _ & _);
                       exists bs, os; split; [reflexivity | split; [exact (Vm _ Ob) |]];
-                      split; [exact (WNS hd bs os PH0 OL0) | intros E'; apply Hnew; rewrite <- E'; exact Ob])
+                      split; [exact (dyn_not_static ge bs (proj2 (WNS hd PH0) bs os OL0)) | intros E'; apply Hnew; rewrite <- E'; exact Ob])
                 ltac:(intros id b Hin Hs ->; exact (Hnew (statics_old _ _ HW (ex_intro _ id (conj Hin Hs)))))
                 Hev')
       as (h' & Eh & HP & HN).
@@ -468,6 +499,10 @@ Proof.
   { intros bs os ->. destruct Hfl as [Hn | (hd & PH & OL)]; [discriminate |].
     pose proof (part_head_to_m0 E m g MMh hd HW PH) as PH0.
     exact (WTy hd bs os PH0 (on_list_to_m0 E m g MMh hd _ (WL hd PH0) OL)). }
+  assert (FPle : forall bs os, fl = Vptr bs os -> Ple (Genv.genv_next ge) bs).
+  { intros bs os ->. destruct Hfl as [Hn | (hd & PH & OL)]; [discriminate |].
+    pose proof (part_head_to_m0 E m g MMh hd HW PH) as PH0.
+    exact (proj2 (WNS hd PH0) bs os (on_list_to_m0 E m g MMh hd _ (WL hd PH0) OL)). }
   assert (Ofl : val_old gp fl) by (destruct FLc as [-> | (bs & os & -> & Hb & _ & _ & G)]; cbn; auto).
   assert (LRfl : Val.load_result Mint32 fl = fl)
     by (destruct FLc as [-> | (bs & os & -> & _)]; reflexivity).
@@ -739,7 +774,7 @@ Proof.
         { unfold vs, wargs. rewrite !map_map. apply map_ext. intros [r z]. cbn [fst SymExec2.den].
           rewrite (proj1 RX), (proj1 (proj2 RX)). reflexivity. }
         cbn [surf_on]. rewrite WA. exists bs, os. split; [reflexivity |].
-        split; [exact (FTy bs os Efl) | exact NRbs]. }
+        split; [exact (FTy bs os Efl) |]. split; [exact NRbs | exact (FPle bs os Efl)]. }
     apply FIN; [| cbn; rewrite Y5; apply LCg; reflexivity | cbn; rewrite X5; exact NXg4].
     eapply (TAIL (Sfresh n4) gS); [exact S5S | exact D5 | exact MA4 | reflexivity | cbn; exact Y5].
 Qed.

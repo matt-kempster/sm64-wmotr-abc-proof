@@ -174,22 +174,6 @@ Proof.
 Qed.
 
 (* ---- the world fact over more blocks ---- *)
-Lemma wf_list_or : forall m A1 A2 hd, wf_list m A1 hd -> wf_list m A2 hd ->
-  wf_list m (fun b => A1 b \/ A2 b) hd.
-Proof.
-  intros m A1 A2 hd W1. induction W1 as [| bn on nx Hv Ha Hl W IH]; intros W2; [constructor |].
-  inversion W2 as [| bn' on' nx' Hv' Ha' Hl' W2']; subst.
-  rewrite Hl in Hl'. injection Hl' as <-.
-  apply wf_cons with nx; [exact Hv | intros [A | A]; [exact (Ha A) | exact (Ha' A)] | exact Hl | exact (IH W2')].
-Qed.
-
-Lemma wf_list_mono : forall m (A1 A2 : block -> Prop) hd, (forall b, A2 b -> A1 b) ->
-  wf_list m A1 hd -> wf_list m A2 hd.
-Proof.
-  intros m A1 A2 hd H W. induction W as [| bn on nx Hv Ha Hl W IH]; [constructor |].
-  apply wf_cons with nx; [exact Hv | intros A; exact (Ha (H _ A)) | exact Hl | exact IH].
-Qed.
-
 Lemma Wff_mono : forall m gp sz vs vs', (forall b, rblk vs' b -> rblk vs b) ->
   Wff ge m gp sz vs -> Wff ge m gp sz vs'.
 Proof.
@@ -261,6 +245,31 @@ Proof.
     intros b ->. right. exists otab. apply in_or_app. right. left. reflexivity.
   - intros b o Ho Eb. subst b. destruct (W4 hd _ Hh Ho) as (b' & o' & E1 & _ & _ & C & _).
     injection E1 as <- <-. apply C. exists otab. apply in_or_app. right. left. reflexivity.
+Qed.
+
+(* design B (2026-10-25): a global's block is off every partition list,
+   since Wff's lists are dynamic blocks (FloorExec.dyn_list) *)
+Lemma tab_apart_global : forall m gp sz vs bx,
+  Plt bx (Genv.genv_next ge) -> Wff ge m gp sz vs -> tab_apart m bx.
+Proof.
+  intros m gp sz vs bx Hx (_ & _ & _ & _ & _ & W6 & _) hd Hh.
+  destruct (W6 hd Hh) as (D1 & D2). split.
+  - apply (wf_list_mono m (fun b => Plt b (Genv.genv_next ge)) _ hd); [| exact D1].
+    intros b ->. exact Hx.
+  - intros b o Ho ->. pose proof (D2 bx o Ho) as L. unfold Plt, Ple in *. lia.
+Qed.
+
+(* ... so the world fact extends over any global that is not a partition
+   array (no flank-specific apartness fact needed) *)
+Lemma Wff_global : forall m gp sz vs id bx ox,
+  Genv.find_symbol ge id = Some bx -> ~ In id part_ids ->
+  Wff ge m gp sz vs -> Wff ge m gp sz (vs ++ [Some (Vptr bx ox)]).
+Proof.
+  intros m gp sz vs id bx ox Hs Hn W.
+  apply Wff_blk; [| exact (tab_apart_global m gp sz vs bx (Genv.genv_symb_range _ _ Hs) W) | exact W].
+  intros id' bp Hin Hs' E. subst bp.
+  assert (id' = id) by (eapply Genv.genv_vars_inj; [ exact Hs' | exact Hs ]). subst id'.
+  exact (Hn Hin).
 Qed.
 
 (* no partition array is a flank global *)

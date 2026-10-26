@@ -531,10 +531,26 @@ without pressing A".*
       40 <= ow or the caller's proof that the gfx cell kept its value.
     - The assumed flank specs (camera, render) now also have to keep this pin. They do in
       the game: the renderer writes Mario's `throwMatrix` back to NULL.
-  These 8 calls remain open as named rows:
+  - **2026-10-25: `mario_update_hitbox_and_cap_model` PROVED** (`NaSplit.hitbox_row`). The body
+    walk (`HitboxFrame.hitbox_frame`) changes only Mario's hole, gBodyStates, Mario's object's
+    `gfx.node.flags` (bytes 2..3) and `hitboxHeight` (508..511), and the 13 globals of the cap
+    music path (`CapAudio.cap_ids`: sound_init / external.c statics and load_sequence's
+    `ls_ids`), the last through the labeled footprint `LsContract.ls_frame` (row 4.1). The world is
+    kept by `HoleX` (ProRows' hole over a list of globals none of which a world fact reads, plus
+    the two windows). For that, `ffw` gained six fields, each what the game does and proved at
+    boot (`StartSat.ffw11`): the wall / ceil / floor pointers are surface-pool blocks
+    (`ff_Spl`; `FloorExec.surf_on` and `FfKeep.fk_surf` now carry it from `Wff`'s `dyn_list`),
+    Mario's object is a gObjectPool slot (`ff_Spool`), `m->area` is a dynamic block or
+    `gAreaData` (`ff_Sar`), the DMA buffer is dynamic (`ff_Dbt`), `m->controller` is
+    `gControllers` (`ff_Sctl`), and each collided object is a slot apart from Mario's
+    (`ff_Cd`). FOUND (phantom ∀): `ff_Co`, `FrameSplit.mobj_apart` and `ProRows.hole_coll`
+    allowed a collided object AT Mario's own object, whose hitboxHeight this call writes; the
+    collision code never records an object colliding with itself (`check_collision_in_list`
+    starts after the player object). `ff_Cd` excludes it (`mobj_apart` still allows it; no row
+    relies on that case).
+  These 7 calls remain open as named rows:
   - `update_mario_inputs`, `mario_handle_special_floors`, `mario_process_interactions`;
-  - the stationary, moving, cutscene and object dispatchers;
-  - `mario_update_hitbox_and_cap_model`.
+  - the stationary, moving, cutscene and object dispatchers.
   The remaining phantom-∀ findings are listed in §7.
   **Slide kick at state ≠ 0 is proved (2026-10-21; `sk1_row` and `HeightFrame.Hsk1` removed,
   28 → 27 hypotheses).** The same walk (`SkW.skcheck12`) now classifies every outcome at any
@@ -1792,9 +1808,13 @@ link grows.
     lands in audio state: `gAudioLoadLock`, `gSequencePlayers`, the two loaded pools, `gAudioHeap`
     (pools, notes, banks), or load.c globals with no block in the model. The DMA / message calls are
     3.5. The footprint form (`ls_contract` = `call_pres_ext` + `ls_frame`, the blocks of
-    `ls_ids`) is `WMotRRequiresA/LsContract.v` (spine via `ObjFrame`, whose whole-walk frame
-    takes it in place of `Hls`); the cap-music frames are staged in `Unwired/CapAudio.v`, for
-    GOAL 2's hitbox row.
+    `ls_ids`: `gAudioLoadLock`, `gSequencePlayers`, the two loaded pools, `gAudioHeap`; memory
+    may grow, the new blocks freed) is `WMotRRequiresA/LsContract.v`. `ObjFrame`'s whole-walk
+    frame takes it, and **since 2026-10-25 GOAL 2's `Hls` is `LsContract.ls_contract`** (its
+    first half is the old `Hls`), consumed by NaSplit's hitbox row through the cap-music frames
+    of `CapAudio.v` (on the spine). This is the one trust the hitbox row adds (it is what the US
+    load.c read above says); discharge path: link load.c / heap.c / seqplayer.c / playback.c
+    and walk them.
   - **GOAL 2 (`SndXc`):** `play_sound` and `set_sound_moving_speed` store at an index read from
     memory, so the walks cannot run them store by store. Each call is a CLOBBER contract over the
     regions of the globals it writes (`FfRun.RSR` / `RSRC` / `RSMS`: `sSoundRequests`,
@@ -2440,9 +2460,9 @@ result, the real declaration in every TU; no new trust); `BootRun` / `TerrainRun
 | GOAL 2 `Hsqrtf`, `Hsqrtf_float`, `Haudio` | SURVIVED | restrictions; consistent with the repaired oracles |
 | GOAL 2 `Hseg_any` | SUSPECT (phantom forall) | it asks the linked `spawn_wind_particles` at ANY args from ANY `fworld` memory. `fworld` says nothing of `gFreeObjectList`, and every object lives in `gObjectPool`'s one block. A free list heading into Mario's object or the `usedObj` pole re-initializes it (`geo_obj_init` zeroes `gfx.pos`; behavior becomes `bhvWind`). In WMotR the call is dead (no `SURFACE_HORIZONTAL_WIND`). Repair: gate the obligation on the wind branch, which `wmotr_world` refutes. Needs a path-sensitive `FrameCalls.cl` |
 | GOAL 2 `Hauto_rest` | SUSPECT at TOP_OF_POLE(_TRANSITION); **DISCHARGED 2026-10-23** (proved with the real animation data, (p)) | `set_pole_position` adds the anim Y translation read through `animList->bufTarget`. `fworld` / `ffw` carry no fact about the buffer's contents, and with `currentAddr` matching no DMA runs. A phantom buffer gives up to +8191, far past top + `POLE_UP`, unless a ceiling clamps it. So this row is FALSE as stated, not just unproved (0.8(f)). CLIMBING_POLE / IN_CANNON were read too: a phantom `stickY` is clamped at `poleTop` or makes the f32 to s32 cast undefined (no execution), and the cannon seat is `usedObj`'s, which `used_ok` fixes |
-| GOAL 2 `Hseg_call_na` | not refuted; **split 2026-10-23** (0.8(q)): now the lemma `NaSplit.naFA_of_open` over `Hseg_na_open` (8 named rows since 2026-10-24) | real bodies over `fworld` memories. No counterexample was built: that needs a modified StartSat witness. Since 2026-10-23 its posts carry `lvl_w` / `inputs_ok` (below) |
+| GOAL 2 `Hseg_call_na` | not refuted; **split 2026-10-23** (0.8(q)): now the lemma `NaSplit.naFA_of_open` over `Hseg_na_open` (7 named rows since 2026-10-25) | real bodies over `fworld` memories. No counterexample was built: that needs a modified StartSat witness. Since 2026-10-23 its posts carry `lvl_w` / `inputs_ok` (below) |
 | GOAL 2 `Hseg_na_open`: `mario_reset_bodystate`, `update_mario_info_for_cam` | **REPAIRED and proved 2026-10-24** (0.8(q)) | `ffw` now pins `m->marioBodyState = &gBodyStates[0]` and makes gBodyStates an `ff_rl` region (`RBS`). The pin alone was not enough: without the region, gBodyStates could alias a world surface. Both facts are proved at boot (`StartSat`) and kept by every proved row. `NaSplit.reset_row` / `cam_row` walk the real bodies |
-| GOAL 2 `Hseg_na_open`: `mario_update_hitbox_and_cap_model` | open; pin now present | it stores through `m->marioBodyState`, which is now pinned (row above). Not walked: it also calls `stop_cap_music` and reads cap / flags state |
+| GOAL 2 `Hseg_na_open`: `mario_update_hitbox_and_cap_model` | **PROVED 2026-10-25** (`NaSplit.hitbox_row`) | walked from the real body (`HitboxFrame`), the cap music path framed (`CapAudio`, load_sequence by the labeled `ls_frame`), the world kept by `HoleX`. FOUND on the way (phantom ∀): a collided object could be Mario's own object (`ff_Cd` repairs it in `ffw`) |
 | GOAL 2 `Hseg_na_open`: `update_mario_inputs` | SUSPECT (phantom forall), not repaired | its post `inputs_ok` (waterLevel = -11000) comes from `find_water_level`, which reads `gEnvironmentRegions`; `fworld` does not pin that table (or `gShowDebugText`, `gCameraMovementFlags`, which it also reads) |
 | GOAL 2 `Hseg_na_open`: `sink_mario_in_quicksand` | **REPAIRED and proved 2026-10-24** (0.8(q)) | FOUND (phantom ∀): the row stored through Mario's object's `gfx.throwMatrix`, which `fworld` did not pin, so it ranged over memories whose throwMatrix pointed into Mario's state or a surface. `ffw` now pins it to NULL or `sFloorAlignMatrix` (ff_rl region `RFA`), proved at boot and kept by every row; `NaSplit.qs_row` walks the body (the gfx.pos[1] store writes Phi's cell back unchanged) |
 | GOAL 2 `Hseg_na_open`: `mario_handle_special_floors` | open | WMotR has floor type 10 (death plane), so the body reaches `check_death_barrier` → `level_trigger_warp`. Not walked |

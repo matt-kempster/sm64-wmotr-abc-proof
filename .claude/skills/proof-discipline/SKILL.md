@@ -388,14 +388,27 @@ all in `Unwired/`, and the theorem moved nowhere. See
     is not enough, because the walk regions must exclude it. `ProRows`' hole is generic over
     `XIDS`, and `BodyFrame.Q2` allows freed callee frames (vec3*_copy, `v3_frame`). Dispatcher pres
     now carry `FrameSplit.grp_ok`: the action's group equals the case label, proved at the
-    real switch. NEXT: shrink `na_open` one call at a time. hitbox_and_cap also stores through
-    `marioBodyState` but calls `stop_cap_music` / `fadeout_cap_music`. Their audio footprint
-    is proved from the real bodies, down to `load_sequence` (staged:
-    `Unwired/CapAudio.v`, 13 written globals; `ls_contract` is the strengthened `Hls`, with
-    load.c read and confirmed audio-only). Blocker: the world must be framed around those 13
-    globals, but a surface a walk finds is only known to avoid the walk's regions. Either
-    each global becomes an ff_rl region in every walk, or `surf_on` / `Wff` say surfaces are
-    dynamic blocks (`Ple genv_next b`). update_mario_inputs needs pins on
+    real switch. NEXT: shrink `na_open` one call at a time. **hitbox_and_cap PROVED
+    2026-10-25** (`NaSplit.hitbox_row`, 7 named rows left): `HitboxFrame.hitbox_frame` (the
+    body changes only bm's hole, the 13 cap-music globals `CapAudio.cap_ids`, gBodyStates and
+    Mario's object bytes 2..3 / 508..511; load_sequence through `LsContract.ls_frame`) and
+    `HoleX.hx_fworld` / `hx_cells` (ProRows' hole generalised: region globals plus any list
+    of globals none of which is in `HoleX.safe_ids`, plus the two object windows; the world
+    fact extends over the changed globals by `Wff_global`). `HeightFrame.Hls` is now
+    `LsContract.ls_contract` (GOAL 1's row + load_sequence's footprint, TRUST 4.1).
+    Design B done: `FloorExec.surf_on` carries `Ple genv_next b` (proved from `dyn_list`),
+    `FfKeep.fk_surf` and the six walk rows carry it, and `ffw` has six new fields
+    (`ff_Spl` surface pointers dynamic, `ff_Spool` Mario's object in gObjectPool, `ff_Sar`
+    m->area dynamic or gAreaData, `ff_Dbt` the DMA buffer dynamic, `ff_Sctl` m->controller =
+    gControllers, `ff_Cd` collided objects apart from Mario's; `ffw_surf_ok` has the Ple
+    conjunct). FOUND: `ff_Co` / `mobj_apart` / `hole_coll` allowed a collided object at Mario's
+    own object (phantom; `ff_Cd` excludes it); "ff_D4 over every global" is false (Mario's
+    object block IS a global, gObjectPool); "m->area is dynamic" is false in the game
+    (&gAreaData[i]; only the start witness allocates it). CoinLink needs Mario's
+    hitboxHeight <= 160: `HitboxFrame.hitbox_hh` / `HH_coin` give 100.0f or 160.0f after the
+    body; the remaining gap is a carried world clause (Mario's hitboxHeight is 100f or 160f)
+    kept to the next frame's detect_object_collisions; Hmario_down (hitboxDownOffset = 0)
+    needs another. update_mario_inputs needs pins on
     `gEnvironmentRegions`, `gShowDebugText` and `gCameraMovementFlags`, plus the collision
     finders. The prologue call is in `Hair_pro`. The
     `quicksandDepth = 0` store is proved (the `qsd_*` lemmas). What stays assumed is the

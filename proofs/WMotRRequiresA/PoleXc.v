@@ -274,7 +274,7 @@ Hypothesis HgFI : gfind gtab surface_collision._gFindFloorIncludeSurfaceIntangib
 Hypothesis HgMS : gfind gtab surface_collision._gNumFindFloorMisses = Some rMS.
 Hypothesis HgCL : gfind gtab surface_collision._gNumCalls = Some rCL.
 Hypothesis HU : forall vs, uf kW vs -> Wff ge m0 gp szS vs.
-Hypothesis HUS : forall vs, surf_on m0 vs -> uf kS vs.
+Hypothesis HUS : forall vs, surf_on ge m0 vs -> uf kS vs.
 Hypothesis HUH : forall h yv, HPi (Hit_at ge m0) (ycast yv) h -> Hit_at ge m0 h ->
   uf kH [Some (Vsingle h); Some yv].
 (* the two new consumer facts' meaning *)
@@ -346,7 +346,7 @@ Proof.
                     pose proof (on_list_to_m0 E m g MMh hd s (WL hd PH0) OL) as OL0;
                     destruct (WSurf hd s PH0 OL0) as (bs & os & -> & Ob & _ & _ & _);
                     exists bs, os; split; [reflexivity | split; [exact (Vm _ Ob) |]];
-                    split; [exact (WNS hd bs os PH0 OL0) | intros E'; apply Hnew; rewrite <- E'; exact Ob])
+                    split; [exact (dyn_not_static ge bs (proj2 (WNS hd PH0) bs os OL0)) | intros E'; apply Hnew; rewrite <- E'; exact Ob])
               ltac:(intros id b Hin Hs ->; exact (Hnew (statics_old _ _ HW (ex_intro _ id (conj Hin Hs)))))
               Hev)
     as (h & -> & HP & _).

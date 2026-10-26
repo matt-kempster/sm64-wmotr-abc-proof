@@ -38,7 +38,7 @@
 From Coq Require Import ZArith List Lia Reals.
 From compcert Require Import Coqlib Maps AST Integers Floats Values Memory Ctypes Clight Globalenvs.
 From SM64.Generated Require mario surface_collision memory camera audio_external sound_init level_update
-  game_init libultra_osContInit mario_actions_moving.
+  game_init libultra_osContInit mario_actions_moving object_list_processor area.
 From SM64.Proofs Require Import HeightInvariant HeightMoveCatalog WMotRLevel Generic.ClosedMem.
 From SM64.Proofs.WMotRRequiresA Require Import FloorList FloorHeight FloorExec AirMatch AirStart RetOk.
 Import ListNotations.
@@ -258,7 +258,37 @@ Record ffw_facts (m : mem) (d : ffw_wit) : Prop := mk_ffw_facts {
      ( *throwMatrix )[3][1] -= quicksandDepth then writes *)
   ff_LTM : Mem.load Mint32 m (fw_bo d) (Ptrofs.unsigned (fw_oo d) + FFW_THROW) = Some (Vint Int.zero)
            \/ exists o, Mem.load Mint32 m (fw_bo d) (Ptrofs.unsigned (fw_oo d) + FFW_THROW)
-                        = Some (Vptr (fw_bfa d) o) }.
+                        = Some (Vptr (fw_bfa d) o);
+  (* WHERE THE WORLD LIVES (2026-10-25, design B): which blocks the world's
+     pointers name, so a call that changes only some globals (a hole of
+     named global blocks, ProRows) keeps the world.  Each is what the game
+     does, not a choice of the start witness:
+     - m->wall / m->ceil / m->floor, when pointers, are surface-pool blocks
+       (alloc_surface_pools takes the pool from main_pool_alloc), past
+       every global *)
+  ff_Spl : forall off sb so, off = FFW_WALL \/ off = FFW_CEIL \/ off = FFW_FLOOR ->
+             Mem.load Mint32 m bm off = Some (Vptr sb so) -> Ple (Genv.genv_next G) sb;
+  (* - Mario's object is a gObjectPool slot (spawn_object allocates from
+       the pool; gMarioObject := &gObjectPool[0] at level entry) *)
+  ff_Spool : Genv.find_symbol G object_list_processor._gObjectPool = Some (fw_bo d);
+  (* - m->area is gCurrentArea: in the game &gAreaData[i] (area.c); the GOAL 2
+       start witness uses a fresh block (TRUST 3.x stand-in), so either *)
+  ff_Sar : forall b o, fw_ar d = Vptr b o ->
+             Ple (Genv.genv_next G) b \/ Genv.find_symbol G area._gAreaData = Some b;
+  (* - the animation DMA buffer is a main_pool_alloc block *)
+  ff_Dbt : Ple (Genv.genv_next G) (fw_bt d);
+  (* - m->controller is &gControllers[0] (init_mario_from_save_file) *)
+  ff_Sctl : forall b o, fw_ctl d = Vptr b o -> Genv.find_symbol G mario._gControllers = Some b;
+  (* - a collided object is ANOTHER object: a pool slot apart from Mario's
+       (check_collision_in_list starts after the player object; the
+       collision code never records an object as colliding with itself).
+       2026-10-25: FOUND (phantom forall) -- ff_Co and FrameSplit.mobj_apart
+       both allowed Mario's own object as a collided object, whose hitbox
+       cells the frame's own update_hitbox_and_cap_model then writes *)
+  ff_Cd : forall i cb co, 0 <= i < 4 ->
+            Mem.load Mint32 m (fw_bo d) (Ptrofs.unsigned (fw_oo d) + FFW_COLL + 4 * i) = Some (Vptr cb co) ->
+            Ptrofs.unsigned co + SZ_OBJECT <= Ptrofs.unsigned (fw_oo d)
+            \/ Ptrofs.unsigned (fw_oo d) + SZ_OBJECT <= Ptrofs.unsigned co }.
 
 Definition ffw (m : mem) : Prop :=
   Ple (Genv.genv_next G) (Mem.nextblock m)
@@ -396,7 +426,9 @@ Definition ffw_kept_s (d : ffw_wit) (m m' : mem) : Prop :=
 Definition ffw_surf_ok (d : ffw_wit) (m m' : mem) : Prop :=
   (exists fl', Mem.load Mint32 m' bm FFW_FLOOR = Some fl' /\ wblk m (ff_rl_of bm d) fl' SZ_SURFACE)
   /\ (forall off sb so, off = FFW_WALL \/ off = FFW_CEIL ->
-        Mem.load Mint32 m' bm off = Some (Vptr sb so) -> ~ rblk (ff_rl_of bm d) sb).
+        Mem.load Mint32 m' bm off = Some (Vptr sb so) -> ~ rblk (ff_rl_of bm d) sb)
+  /\ (forall off sb so, off = FFW_WALL \/ off = FFW_CEIL \/ off = FFW_FLOOR ->
+        Mem.load Mint32 m' bm off = Some (Vptr sb so) -> Ple (Genv.genv_next G) sb).
 
 Lemma wblk_mono : forall m m' rl v n, Ple (Mem.nextblock m) (Mem.nextblock m') ->
   wblk m rl v n -> wblk m' rl v n.
@@ -412,9 +444,13 @@ Proof.
   intros m m' d F K. split.
   - exists (fw_fl d). split; [| exact (ff_Wf _ _ F)].
     rewrite K by (unfold ffw_surf_cells; cbn [In]; auto). exact (ff_Lf _ _ F).
-  - intros off sb so Hoff Hl. rewrite K in Hl.
-    + exact ((ff_Wc0 _ _ F) off sb so Hoff Hl).
-    + unfold ffw_surf_cells. cbn [In]. destruct Hoff as [-> | ->]; auto.
+  - split.
+    + intros off sb so Hoff Hl. rewrite K in Hl.
+      * exact ((ff_Wc0 _ _ F) off sb so Hoff Hl).
+      * unfold ffw_surf_cells. cbn [In]. destruct Hoff as [-> | ->]; auto.
+    + intros off sb so Hoff Hl. rewrite K in Hl.
+      * exact ((ff_Spl _ _ F) off sb so Hoff Hl).
+      * unfold ffw_surf_cells. cbn [In]. destruct Hoff as [-> | [-> | ->]]; auto.
 Qed.
 
 (* THE REBUILD: ffw holds at m' when m' keeps the read set, the world facts
@@ -429,7 +465,7 @@ Theorem ffw_rebuild : forall m m' d gp',
   ffw_kept d m m' -> ffw_surf_ok d m m' ->
   ffw m'.
 Proof.
-  intros m m' d gp' F Hgn Hnb Hinc HC' W' FD' K ((fl' & Lf' & Wf') & WC').
+  intros m m' d gp' F Hgn Hnb Hinc HC' W' FD' K ((fl' & Lf' & Wf') & WC' & SP').
   assert (KM : forall z ch, In (z, ch) ffw_bm_cells -> Mem.load ch m' bm z = Mem.load ch m bm z)
     by (intros z ch H; apply K; left; split; [reflexivity | exact H]).
   split; [exact Hgn |]. split; [| exact FD'].
@@ -440,7 +476,7 @@ Proof.
      the closer below does not depend on the field order *)
   pose proof F as F0. destruct F0.
   eapply mk_ffw_facts; ffw_simpl;
-    first [ assumption | exact HC' | exact W' | exact Lf' | exact WC'
+    first [ assumption | exact HC' | exact W' | exact Lf' | exact WC' | exact SP'
           | exact (wblk_mono _ _ _ _ _ Hnb Wf')
           | apply (wblk_mono _ _ _ _ _ Hnb); assumption
           | apply Hinc; assumption
@@ -452,7 +488,7 @@ Proof.
           | let i := fresh "i" in let cb := fresh "cb" in let co := fresh "co" in
             let Hi := fresh "Hi" in let Hl := fresh "Hl" in
             intros i cb co Hi Hl; rewrite K in Hl;
-            [ match goal with H : forall i' cb' co', 0 <= i' < 4 -> _ -> cb' = _ |- _ =>
+            [ match goal with H : forall i' cb' co', 0 <= i' < 4 -> _ -> _ |- _ =>
                 exact (H i cb co Hi Hl) end
             | right; right; left; split; [reflexivity |]; split; [reflexivity |]; exists i; auto ] ].
 Qed.
@@ -536,7 +572,12 @@ Proof.
     destruct (W5 hd b o Hh0 Ho0) as (t & Hl & Hin). exists t. split; [| exact Hin].
     rewrite Hld; [exact Hl |]. intros ->.
     destruct (W4 hd _ Hh0 Ho0) as (b' & o' & E & _ & _ & Hr & _). injection E as <- _. exact (Hr Ho).
-  - intros hd b o Hh Ho'. destruct (OL hd _ Hh Ho') as (Hh0 & Ho0). exact (W6 hd b o Hh0 Ho0).
+  - intros hd Hh. pose proof (part_back rl hd Hp Ho Hh) as Hh0. split.
+    + apply (wf_list_mono m' (fun b => (is_static G b \/ rblk rl b) \/ Plt b (Genv.genv_next G))).
+      * intros b H. right. exact H.
+      * apply (wf_fwd _ hd); [ intros b Hb; apply HA; intros H; apply Hb; left; exact H | ].
+        exact (wf_list_or m _ _ hd (W3 hd Hh0) (proj1 (W6 hd Hh0))).
+    + intros b o Ho'. destruct (OL hd _ Hh Ho') as (_ & Ho0). exact (proj2 (W6 hd Hh0) b o Ho0).
   - exact W7.
 Qed.
 
@@ -665,7 +706,12 @@ Proof using Hnb Hperm Hld.
     destruct (W5 hd b o Hh0 Ho0) as (t & Hl & Hin). exists t. split; [| exact Hin].
     destruct (W4 hd _ Hh0 Ho0) as (b' & o' & E & Hpl & _ & Hr & _). injection E as <- <-.
     rewrite Hld by assumption. exact Hl.
-  - intros hd b o Hh Ho'. destruct (OL hd _ Hh Ho') as (Hh0 & Ho0). exact (W6 hd b o Hh0 Ho0).
+  - intros hd Hh. pose proof (part_back2 hd Hp Hh) as Hh0. split.
+    + apply (wf_list_mono m' (fun b => (is_static G b \/ rblk rl b) \/ Plt b (Genv.genv_next G))).
+      * intros b H. right. exact H.
+      * apply (wf_fwd2 _ hd); [ intros b Hb Hr; apply Hb; left; right; exact Hr | ].
+        exact (wf_list_or m _ _ hd (W3 hd Hh0) (proj1 (W6 hd Hh0))).
+    + intros b o Ho'. destruct (OL hd _ Hh Ho') as (_ & Ho0). exact (proj2 (W6 hd Hh0) b o Ho0).
   - exact W7.
 Qed.
 
@@ -746,15 +792,19 @@ Ltac ffw_unpack EX :=
   let D2 := fresh "D2" in let D3 := fresh "D3" in let D4 := fresh "D4" in let W := fresh "W" in let Lf := fresh "Lf" in let Wf := fresh "Wf" in
   let Wc0 := fresh "Wc0" in let Lar := fresh "Lar" in let War := fresh "War" in let Li := fresh "Li" in let Ai := fresh "Ai" in let Lc := fresh "Lc" in
   let Wc := fresh "Wc" in let Co := fresh "Co" in let LPC := fresh "LPC" in let LBS := fresh "LBS" in let LTM := fresh "LTM" in
+  let Spl := fresh "Spl" in let Spool := fresh "Spool" in let Sar := fresh "Sar" in let Dbt := fresh "Dbt" in
+  let Sctl := fresh "Sctl" in let Cd := fresh "Cd" in
   pose proof FWF as [HC HS HM S1 S2 S3 S4 S5 S6 S7 S8 SL SP SR
                      SRC SMS SBS SFA Lo Soo La Lb Sot D1 D2 D3 D4 W
-                     Lf Wf Wc0 Lar War Li Ai Lc Wc Co LPC LBS LTM];
+                     Lf Wf Wc0 Lar War Li Ai Lc Wc Co LPC LBS LTM
+                     Spl Spool Sar Dbt Sctl Cd];
   ffw_simpl_in HC; ffw_simpl_in HS; ffw_simpl_in HM; ffw_simpl_in S1; ffw_simpl_in S2; ffw_simpl_in S3; ffw_simpl_in S4; ffw_simpl_in S5;
   ffw_simpl_in S6; ffw_simpl_in S7; ffw_simpl_in S8; ffw_simpl_in SL; ffw_simpl_in SP; ffw_simpl_in SR; ffw_simpl_in SRC; ffw_simpl_in SMS;
   ffw_simpl_in SBS; ffw_simpl_in SFA; ffw_simpl_in Lo; ffw_simpl_in Soo; ffw_simpl_in La; ffw_simpl_in Lb; ffw_simpl_in Sot; ffw_simpl_in D1;
   ffw_simpl_in D2; ffw_simpl_in D3; ffw_simpl_in D4; ffw_simpl_in W; ffw_simpl_in Lf; ffw_simpl_in Wf; ffw_simpl_in Wc0; ffw_simpl_in Lar;
   ffw_simpl_in War; ffw_simpl_in Li; ffw_simpl_in Ai; ffw_simpl_in Lc; ffw_simpl_in Wc; ffw_simpl_in Co; ffw_simpl_in LPC; ffw_simpl_in LBS;
-  ffw_simpl_in LTM.
+  ffw_simpl_in LTM; ffw_simpl_in Spl; ffw_simpl_in Spool; ffw_simpl_in Sar; ffw_simpl_in Dbt;
+  ffw_simpl_in Sctl; ffw_simpl_in Cd.
 
 (* ... from ffw itself: Hgn, the facts as above, FD *)
 Ltac ffw_unpack_all Hf :=

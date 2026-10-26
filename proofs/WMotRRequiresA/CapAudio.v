@@ -2,11 +2,8 @@
 (* CapAudio (GOAL 2, 2026-10-24): the audio-only footprint of the cap     *)
 (* music path, proved from the real external.c / sound_init.c bodies.    *)
 (*                                                                        *)
-(* STAGED (Unwired): its consumer, NaSplit's row for                      *)
-(* mario_update_hitbox_and_cap_model, needs the written globals to be     *)
-(* holes ProRows can frame the world around, i.e. blocks no world object  *)
-(* (surface, area, controller) can live in.  Promote together with that   *)
-(* row and with HeightFrame's Hls strengthened to ls_contract (TRUST 4.1). *)
+(* ON THE SPINE: NaSplit's hitbox_row consumes it, and HeightFrame's    *)
+(* Hls is ls_contract (TRUST 4.1).                                        *)
 (*                                                                        *)
 (* mario_update_hitbox_and_cap_model -> update_and_return_cap_flags calls *)
 (* stop_cap_music (capTimer reaches 0) and fadeout_cap_music (capTimer is *)
@@ -39,12 +36,18 @@
 (*    only the blocks of cap_ids, by the same lw_chk walk as AudioBodies  *)
 (*    (every store's root is a cap_ids global, every call is to a         *)
 (*    function already framed), with Q2 as the carried relation.          *)
+(*                                                                        *)
+(* 3. THE CAP FLAGS CALL (ucf_frame, 2026-10-25): update_and_return_cap_  *)
+(*    flags itself, the hitbox body's call, changes only Mario's block    *)
+(*    (m->capTimer, m->flags, stored through its MarioState parameter)    *)
+(*    and the cap_ids blocks: the walk of 2 extended by stores whose     *)
+(*    chain root is the never-reassigned parameter (the afm_ lemmas).     *)
 (* ====================================================================== *)
 
 From Coq Require Import ZArith List Lia Bool.
 From compcert Require Import Coqlib Maps AST Integers Values Events Memory
   Globalenvs Ctypes Cop Clightdefs Clight ClightBigstep Linking.
-From SM64.Generated Require audio_external sound_init buffers.
+From SM64.Generated Require audio_external sound_init buffers mario.
 From SM64.Proofs Require Import SymbolicLinking ActionValueFrame Taint
   RealFrameLinked RealFrameValue AGates CensusV2 RestSurface MWFReal SpawnInit
   MathGeomBodies MathGeomGated SurfaceBodies OutParamSurface LocalVarsSurface
@@ -288,3 +291,150 @@ Section Cap.
       [AX._fadeout_background_music].
   Qed.
 End Cap.
+
+(* ---------------------------------------------------------------------- *)
+(* 4. Frames with Mario's block: a body that also stores through its      *)
+(*    MarioState parameter (mt, holding &gMarioStates[0] = bm, never      *)
+(*    reassigned) changes only bm and the blocks of ws.                   *)
+(* ---------------------------------------------------------------------- *)
+
+Section AFM.
+  Variable lp : Clight.program.
+  Variable ws : list ident.
+  Variable bm : block.
+  Variable mt : ident.
+
+  Definition akm (b : block) (z : Z) : Prop := ~ gblk (lp_ge lp) ws b /\ b <> bm.
+
+  Definition afm_P (gt : list (ident * ident)) (le : temp_env) : Prop :=
+    au_P lp gt le /\ forall b o, le ! mt = Some (Vptr b o) -> b = bm.
+
+  Definition afm_set_ok (gt : list (ident * ident)) (id : ident) (a : expr) : bool :=
+    negb (Pos.eqb id mt) && au_set_ok gt id a.
+
+  Definition afm_store_ok (gt : list (ident * ident)) (lv rhs : expr) : bool :=
+    af_store_ok ws gt lv rhs
+    || match chain_root_l lv with Some t => Pos.eqb t mt | None => false end.
+
+  Definition afm_call_ok (gt : list (ident * ident)) (ids : list ident)
+      (optid : option ident) (a : expr) (al : list expr) : bool :=
+    au_call_ok gt ids optid a al
+    && match optid with Some t => negb (Pos.eqb t mt) | None => true end.
+
+  Definition afm_chk (gt : list (ident * ident)) (ids : list ident) (f : Clight.function) : bool :=
+    match fn_vars f with nil => true | _ => false end
+    && au_params_ok gt f
+    && lw_chk (afm_set_ok gt) (afm_store_ok gt) (afm_call_ok gt ids) (fn_body f).
+
+  Lemma akm_ak : forall b z, akm b z -> ak lp ws b z.
+  Proof. intros b z (H & _). exact H. Qed.
+
+  Lemma afm_set : forall gt id a le m v,
+      afm_set_ok gt id a = true -> afm_P gt le ->
+      eval_expr (lp_ge lp) empty_env le m a v -> afm_P gt (PTree.set id v le).
+  Proof.
+    intros gt id a le m v Hok (HP & Hm) Hev. unfold afm_set_ok in Hok.
+    apply andb_prop in Hok as [Hn Hok]. split.
+    - eapply af_set; eassumption.
+    - intros b o Hl. destruct (peq mt id) as [E | Hne].
+      + rewrite E, Pos.eqb_refl in Hn. discriminate Hn.
+      + rewrite PTree.gso in Hl by exact Hne. exact (Hm b o Hl).
+  Qed.
+
+  Lemma afm_store : forall gt lv rhs le m t le' m' out,
+      afm_store_ok gt lv rhs = true -> afm_P gt le ->
+      exec_stmt function_entry2 (lp_ge lp) empty_env le m (Sassign lv rhs) t le' m' out ->
+      Q2 akm m m'.
+  Proof.
+    intros gt lv rhs le m t le' m' out Hok (HP & Hm) Hx.
+    unfold afm_store_ok in Hok. apply orb_true_iff in Hok as [Ha | Hc].
+    - exact (Q2_mono _ _ m m' akm_ak (af_store lp ws gt lv rhs le m t le' m' out Ha HP Hx)).
+    - destruct (chain_root_l lv) as [t0|] eqn:Hr; [| discriminate Hc].
+      apply Pos.eqb_eq in Hc. subst t0.
+      inv Hx.
+      match goal with Hl : eval_lvalue _ _ _ _ lv ?loc _ _ |- _ =>
+        destruct (chain_root_l_block _ _ _ _ _ _ _ _ _ Hr Hl) as (o0 & Hle) end.
+      pose proof (Hm _ _ Hle) as Eb. subst.
+      match goal with Ha : assign_loc _ _ _ _ _ _ _ _ |- _ =>
+        refine (al_q2 akm _ _ _ _ _ _ _ _ Ha _) end.
+      intros i (_ & N). exact (N eq_refl).
+  Qed.
+
+  Lemma afm_call : forall gt ids,
+      (forall g, mem_id g ids = true -> af_pres lp ws g) ->
+      forall optid a al le m t le' m' out,
+        afm_call_ok gt ids optid a al = true -> afm_P gt le ->
+        exec_stmt function_entry2 (lp_ge lp) empty_env le m (Scall optid a al) t le' m' out ->
+        Q2 akm m m' /\ afm_P gt le'.
+  Proof.
+    intros gt ids Hids optid a al le m t le' m' out Hok (HP & Hm) Hx.
+    unfold afm_call_ok in Hok. apply andb_prop in Hok as [Hok Ho].
+    destruct (af_call lp ws gt ids Hids optid a al le m t le' m' out Hok HP Hx) as (Hq & HP').
+    split; [ exact (Q2_mono _ _ m m' akm_ak Hq) | split; [ exact HP' | ] ].
+    inv Hx. destruct optid as [ti|]; cbn [set_opttemp]; [ | exact Hm ].
+    intros b o Hl. destruct (peq mt ti) as [E | Hne].
+    - rewrite E, Pos.eqb_refl in Ho. discriminate Ho.
+    - rewrite PTree.gso in Hl by exact Hne. exact (Hm b o Hl).
+  Qed.
+
+  Lemma afm_body : forall gt ids f,
+      afm_chk gt ids f = true ->
+      (forall g, mem_id g ids = true -> af_pres lp ws g) ->
+      forall m vargs t m' vres,
+        eval_funcall function_entry2 (lp_ge lp) m (Internal f) vargs t m' vres ->
+        (forall le1, bind_parameter_temps (fn_params f) vargs (create_undef_temps (fn_temps f)) = Some le1 ->
+           forall b o, le1 ! mt = Some (Vptr b o) -> b = bm) ->
+        Q2 akm m m'.
+  Proof.
+    intros gt ids f Hchk Hids m vargs t m' vres Hevf Hm0.
+    unfold afm_chk in Hchk.
+    apply andb_prop in Hchk as [Hchk Hw]. apply andb_prop in Hchk as [Hv Hpar].
+    assert (Hvars : fn_vars f = nil) by (destruct (fn_vars f); [ reflexivity | discriminate Hv ]).
+    refine (lw_body_frame (lp_ge lp) (Q2 akm m) f (afm_P gt) (afm_set_ok gt) (afm_store_ok gt)
+              (afm_call_ok gt ids) Hvars Hw _ _ _ _ _ _ _ _ Hevf _ (Q2_refl akm m)).
+    - intros id a le m1 v Hok HP _ Hev. exact (afm_set gt id a le m1 v Hok HP Hev).
+    - intros lv rhs le m1 t0 le' m2 out Hok HP Hx Hq.
+      exact (Q2_trans akm _ _ _ Hq (afm_store gt lv rhs le m1 t0 le' m2 out Hok HP Hx)).
+    - intros optid a al le m1 t0 le' m2 out Hok HP Hx Hq.
+      destruct (afm_call gt ids Hids optid a al le m1 t0 le' m2 out Hok HP Hx) as (Hq' & HP').
+      exact (conj (Q2_trans akm _ _ _ Hq Hq') HP').
+    - intros le1 Hb. split; [ | exact (Hm0 le1 Hb) ].
+      intros t0 g b o Ht Hle.
+      rewrite (bind_notin _ _ _ _ _ Hb (au_params_notin _ _ _ _ Hpar Ht)) in Hle.
+      apply MtxfBody.create_undef_temps_get in Hle. discriminate Hle.
+  Qed.
+End AFM.
+
+(* ---------------------------------------------------------------------- *)
+(* 5. update_and_return_cap_flags (mario.c), the call                     *)
+(*    mario_update_hitbox_and_cap_model makes: it writes m->capTimer and  *)
+(*    m->flags (Mario's block), reads sCapFlickerFrames, and calls        *)
+(*    stop_cap_music / fadeout_cap_music (section 3).  Its frame: only bm *)
+(*    and the cap music path's globals change.                            *)
+(* ---------------------------------------------------------------------- *)
+
+Section CapFlags.
+  Variable lp : Clight.program.
+  Hypothesis H12 : linked12 lp.
+  Hypothesis Hlsf : ls_frame lp.
+  Variable bm : block.
+
+  Theorem ucf_frame : forall m o t m' vres,
+      eval_funcall function_entry2 (lp_ge lp) m (Internal mario.f_update_and_return_cap_flags)
+        [Vptr bm o] t m' vres ->
+      Q2 (akm lp cap_ids bm) m m'.
+  Proof.
+    intros m o t m' vres Hev.
+    pose proof (af_stop_cap_music lp H12 Hlsf) as A1.
+    pose proof (af_fadeout_cap_music lp H12) as A2.
+    refine (afm_body lp cap_ids bm mario._m nil [SI._stop_cap_music; SI._fadeout_cap_music]
+              mario.f_update_and_return_cap_flags _ _ m _ t m' vres Hev _).
+    - vm_compute. reflexivity.
+    - intros g Hg. cbn [mem_id existsb] in Hg.
+      repeat (apply orb_true_iff in Hg as [Hg | Hg];
+              [ apply Pos.eqb_eq in Hg; subst g; assumption | ]).
+      discriminate Hg.
+    - intros le1 Hb b o' Hl. cbn in Hb. injection Hb as <-.
+      rewrite PTree.gss in Hl. congruence.
+  Qed.
+End CapFlags.

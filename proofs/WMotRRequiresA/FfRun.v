@@ -131,7 +131,7 @@ Definition argsF : list sval := [Sptr RM Ptrofs.zero].
 Definition ufF (m0 : mem) (gp : meminj) : positive -> list (option val) -> Prop :=
   fun k vs =>
     if Pos.eqb k kW then Wff g m0 gp (szs g mario._Surface) vs
-    else if Pos.eqb k kS then surf_on m0 vs
+    else if Pos.eqb k kS then surf_on g m0 vs
     else if Pos.eqb k kH then
       match vs with
       | [Some (Vsingle h); Some yv] => HPi (Hit_at g m0) (ycast yv) h /\ Hit_at g m0 h
@@ -263,7 +263,7 @@ Proof.
   destruct vs as [| [[| | | | h |]|] [| [yv|] [| o3 r]]]; try contradiction.
   exists h, yv. split; [reflexivity | exact H].
 Qed.
-Lemma uf_kS : forall vs, surf_on m0 vs -> uf kS vs.
+Lemma uf_kS : forall vs, surf_on G m0 vs -> uf kS vs.
 Proof. intros vs H. exact H. Qed.
 Lemma uf_kM : forall vs, MV vs -> uf kM vs.
 Proof. intros vs H. exact H. Qed.

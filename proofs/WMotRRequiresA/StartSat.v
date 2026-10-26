@@ -1798,8 +1798,12 @@ Section Witness.
       { intros hd b o Hp Ho. destruct (proj2 (part_lists _ Hp) _ Ho) as (o' & E & _ & St).
         injection E as -> ->. exact St. }
       split.
-      { intros hd b o Hp Ho. destruct (proj2 (part_lists _ Hp) _ Ho) as (o' & E & _ & _).
-        injection E as -> _. exact bpl_not_static. }
+      { (* the pool block is allocated after init_mem: dynamic *)
+        intros hd Hp. split.
+        - refine (proj1 (walk2_sound WFUEL m11 bpl _ hd (wf_head _ Hp) bpl_valid11 _)).
+          rewrite genv_next_eq. intros H. cbv beta in H. pose proof bpl_ge as G. unfold Plt, Ple in *. lia.
+        - intros b o Ho. destruct (proj2 (part_lists _ Hp) _ Ho) as (o' & E & _ & _).
+          injection E as -> _. rewrite genv_next_eq. exact bpl_ge. }
       unfold SZ_SURFACE. lia.
     Qed.
 
@@ -1999,6 +2003,19 @@ Section Witness.
       - (* Mario's gfx.throwMatrix: the zero-filled pool's NULL *)
         left. change (Ptrofs.unsigned Ptrofs.zero + FFW_THROW) with 80.
         rewrite (z_bo Mint32 80) by (cbn [size_chunk align_chunk]; try lia; try al); reflexivity.
+      - (* the surface pointers: the wall / ceil cells hold none, the floor is
+           the fresh entry surface *)
+        intros off sb so [Hoff | [Hoff | Hoff]] Hl.
+        + exfalso; exact (wc_noptr off sb so (or_introl Hoff) Hl).
+        + exfalso; exact (wc_noptr off sb so (or_intror Hoff) Hl).
+        + subst off. change FFW_FLOOR with 104 in Hl. rewrite L_floor in Hl. injection Hl as <- _.
+          rewrite genv_next_eq. exact (fresh_ge _ (or_intror (or_introl eq_refl))).
+      - exact Hbo.
+      - intros b o E. injection E as <- _. left.
+        rewrite genv_next_eq. exact (fresh_ge _ (or_intror (or_intror eq_refl))).
+      - rewrite genv_next_eq. exact (fresh_ge _ (or_introl eq_refl)).
+      - intros b o E. injection E as <- _. exact Hbc.
+      - intros i cb co Hi Hl; exfalso; exact (coll_noptr _ _ _ Hi Hl).
     Qed.
 
     (* ---- the level: gCurrLevelNum = LEVEL_WMOTR, by real code ---- *)

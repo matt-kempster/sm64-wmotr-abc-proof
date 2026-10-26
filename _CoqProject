@@ -305,7 +305,9 @@ proofs/WMotRRequiresA/AutoSplit.v
 proofs/WMotRRequiresA/ProRows.v
 proofs/WMotRRequiresA/BodyFrame.v
 proofs/WMotRRequiresA/LsContract.v
-proofs/WMotRRequiresA/Unwired/CapAudio.v
+proofs/WMotRRequiresA/CapAudio.v
+proofs/WMotRRequiresA/HitboxFrame.v
+proofs/WMotRRequiresA/HoleX.v
 proofs/WMotRRequiresA/NaSplit.v
 proofs/WMotRRequiresA/RenderAnim.v
 proofs/WMotRRequiresA/RenderSet.v
