@@ -929,10 +929,12 @@ without pressing A".*
   targets; `ro_tab_boot` proves it in the real `Genv.init_mem` of the link (via
   BootMWF.init_mem_load_ptr and the link's initializer = the TU's). `caf_frame`:
   cur_obj_call_action_function(&tbl), tbl live, from UInv + RO_tab, keeps UInv and has
-  ObjWalk's frame (FR, XS). No action-index premise is needed in the Clight semantics: an
-  in-bounds load reads an entry, an out-of-bounds one is stuck (the theorem is about
-  Clight executions; an N64 out-of-range read is outside it). `act_stores_census`: the 14
-  oAction stores in the 15 bodies are constants inside their own table. OPEN: RO_tab is
+  ObjWalk's frame (FR, XS). UB-COVERAGE POINT (row 3.2): caf_frame has no action-index
+  premise because an out-of-bounds table load has no Clight execution -- that EXCLUDES those
+  runs, it does not prove they never happen (on the N64 the read returns adjacent memory).
+  Open: `act_in_range` (oAction < table length for the 3 live kinds) as an S2 obj_w clause,
+  carried from `act_stores_census` (the 14 oAction stores in the 15 bodies are constants
+  inside their own table) plus the spawn / init writes, so the progress argument covers it. OPEN: RO_tab is
   not yet carried across the run (the tables are SafeB globals, so the existing frames
   allow writes there; RoCensus finds none) -- the spine-wide step. Respawner not live
   (`respawner_not_live`). Not wired into a capstone; no new trust.
@@ -1391,6 +1393,13 @@ link grows.
   execution. §5.1 did not see it: its 300/300 dates from 2026-09-26, when `segmented_to_virtual`
   was outside the link and replayed from the game. `VIRTUAL_TO_PHYSICAL` is now the
   `NO_SEGMENTED_MEMORY` identity (2.2 register).
+- **Rule: a stuck Clight run never discharges a premise.** When a lemma needs no premise only
+  because the violating case has no Clight execution, the capstone has excluded those runs. It
+  has not proved they never occur. Each such site is a UB-coverage point, listed here until a
+  carried invariant shows the case cannot happen. Open (2026-10-25):
+  `cur_obj_call_action_function` (`ObjAct.caf_frame`) loads `tbl[o->oAction]` with no bounds
+  check. On the N64 an out-of-range index reads adjacent memory. Planned: `act_in_range` as an S2
+  `obj_w` clause, carried from `act_stores_census` plus the spawn / init writes.
 
 ### Row 3.5 in detail
 

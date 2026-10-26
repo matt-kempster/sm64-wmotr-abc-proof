@@ -165,6 +165,10 @@ all in `Unwired/`, and the theorem moved nowhere. See
   the 3 tables are SafeB globals, so FR allows writes; needs a non-SafeB/MWF-style class
   for them (cf. knockback_table_ids, ~20 files) -- then Hopen2 is discharged at the 3 call
   sites.
+  OPEN (UB coverage, TRUST 3.2): caf_frame's index has no premise only because an
+  out-of-range `tbl[oAction]` is stuck in Clight -- excluded, not proved absent (N64 reads
+  adjacent memory). S2: `act_in_range` as an obj_w clause from `act_stores_census` + spawn /
+  init. Rule everywhere: never treat "Clight gets stuck" as discharging a premise.
   2026-10-24 `UpdateCameraBody.update_camera_pres`: the REAL `update_camera(c)` (SafeB c) keeps
   `mem_ok`. 507 bodies (the whole recursive tree: `UcKit` two-mode class walker, `UcTable`
   signatures re-checked by vm), the 336 CameraEvent functions by type certificate. Wired as

@@ -20,10 +20,13 @@
 (*    real Genv.init_mem of the link.                                     *)
 (* 4. caf_frame: cur_obj_call_action_function(&tbl), tbl one of the 3,    *)
 (*    from a memory with RO_tab, keeps UInv and has the frame (FR, XS).   *)
-(*    The action index needs no premise in Clight: any in-bounds load     *)
-(*    from the table reads an entry (RO_tab), an out-of-bounds one        *)
-(*    gets stuck.  act_stores_census pins the oAction stores of the 15    *)
-(*    bodies anyway (constants, in range of their own table).            *)
+(*    UB-COVERAGE POINT (TRUST row 3.2): there is no action-index         *)
+(*    premise only because an out-of-bounds table load has no Clight      *)
+(*    execution.  That EXCLUDES such runs; it does not prove they never   *)
+(*    happen (on the N64 the read returns adjacent memory).  Open (S2):   *)
+(*    act_in_range as an obj_w clause, carried from act_stores_census     *)
+(*    (the oAction stores of the 15 bodies are constants in range of      *)
+(*    their own table) plus the spawn / init writes.                      *)
 (* ====================================================================== *)
 
 From Coq Require Import ZArith List Lia Bool String.
