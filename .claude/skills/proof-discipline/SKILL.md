@@ -473,7 +473,12 @@ all in `Unwired/`, and the theorem moved nowhere. See
     `UpdateCameraBody.uc_census`). Stated by the steps: `surf_apart`
     and `warp_w` at the POST end (gCurrentArea's target is CARRIED since 2026-10-25,
     `FfWorld.area_w`, proved at boot) (FOUND: a ∀-row for it is false). Next:
-    discharge `Hcam_phi` from the census (per-write PhiW keep).
+    discharge `Hcam_phi` from the census (per-write PhiW keep). Since 2026-10-26 the witness
+    has a REAL Camera in gAreaData[1].camera (`StartTerrain.cam_chain`: the generated
+    alloc_only_pool_init / init_graph_node_camera / create_camera / reset_camera; FOUND:
+    alloc_only_pool_resize has no CompCert execution, pointer minus pointer in main_pool_free,
+    so the level pool is made at its resized size, TRUST 3.6), and `StartSat.frame_runs` runs
+    area_update_objects and then update_camera on it.
     Mario's render call and
     `apply_mario_platform_displacement` (platform_displacement.c, TU 45) are REAL calls whose
     GOAL-1 and Φ carries are proved (`RenderKeep.render_keeps_phiw`, `PlatformKeep`, 2026-10-23);
