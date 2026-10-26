@@ -314,6 +314,9 @@ proofs/WMotRRequiresA/PlatformEff.v
 proofs/WMotRRequiresA/RenderKeep.v
 proofs/WMotRRequiresA/PlatformWalk.v
 proofs/WMotRRequiresA/PlatformKeep.v
+proofs/WMotRRequiresA/LevelFlank.v
+proofs/WMotRRequiresA/LevelWalk.v
+proofs/WMotRRequiresA/LevelKeep.v
 proofs/WMotRRequiresA/HeightFrame.v
 proofs/WMotRRequiresA/WMotREntry.v
 proofs/WMotRRequiresA/SpawnTypeRun.v
@@ -393,6 +396,7 @@ proofs/WMotRRequiresA/AhwRow.v
 proofs/WMotRRequiresA/KbRow.v
 # GOAL 2 pole cases of the automatic dispatcher (the six pole actions, real animation data)
 proofs/WMotRRequiresA/AnimData.v
+proofs/WMotRRequiresA/LevelGvars.v
 proofs/WMotRRequiresA/AnimWorld.v
 proofs/WMotRRequiresA/DmaContent.v
 proofs/WMotRRequiresA/DmaXc.v

@@ -986,6 +986,18 @@ Definition stored_globals : list ident :=
      reads it back (as an integer).  The claim, via SpawnInit.non_safeb_syms,
      is that nothing in the object graph points at it. *)
   ingame_menu._gDialogVariable ::
+  (* the warp destination and the credits cursor (2026-10-24, GOAL 2's level
+     phase, WMotRRequiresA/LevelWalk): initiate_delayed_warp passes the
+     stored global sDelayedWarpArg (unconstrained by MWF) to initiate_warp,
+     whose u32 store sWarpDest.arg = arg passes a pointer through, and its
+     CREDITS_START arm stores &sCreditsSequence[0] into gCurrCreditsEntry.
+     FOUND (phantom forall): as SafeB blocks either store broke MWF's
+     load-closure row R7, so "the level phase keeps MWF" was FALSE of the
+     real bodies; as stored globals MWF does not constrain their contents.
+     Only the level code reads them back.  The claim, via
+     SpawnInit.non_safeb_syms, is that nothing in the object graph points
+     at them. *)
+  level_update._sWarpDest :: level_update._gCurrCreditsEntry ::
   (* the controller poll (2026-10-23, PollFlank; libultra osContStartReadData.c
      linked): osContStartReadData fills the PIF RAM image __osContPifRam
      (__osPackReadData's request, the 0xFF fill, then the SI read: the OS
