@@ -48,7 +48,8 @@ From SM64.Proofs Require Import CensusV2 SpawnInit LinkedTwelve.
 From SM64.Proofs.WMotRRequiresA Require Import FloorList FloorExec FfWorld WMotRWorld
   HeightInvariant WMotRLevel WMotREntry EntryWarp TerrainRun.
 From SM64.Generated Require mario level_update object_list_processor surface_load
-  surface_collision wmotr_script.
+  surface_collision wmotr_script graph_node area.
+From SM64.Proofs.WMotRRequiresA Require ObjWorld.
 From SM64.Proofs.NoAImpliesNoFly Require BootRun.
 From SM64.Proofs.WMotRRequiresA Require CourseRun AnimData.
 From SM64.Generated Require game_init.
@@ -71,7 +72,12 @@ Definition f_ids : list ident :=
     id "sSurfaceNodePool"; id "sSurfacePool"; id "sSurfacePoolSize";
     id "gSurfacesAllocated"; id "gSurfaceNodesAllocated";
     id "gNumStaticSurfaces"; id "gNumStaticSurfaceNodes";
-    id "gStaticSurfacePartition"; id "gMacroObjectDefaultParent" ].
+    id "gStaticSurfacePartition"; id "gMacroObjectDefaultParent";
+    (* 2026-10-26: the object init (clear_objects, after
+       init_graph_node_start) and Mario's spawn (spawn_objects_from_info) *)
+    id "gMarioObject"; id "gObjectMemoryPool"; id "gObjectPool"; id "gObjectListArray";
+    id "gObjectLists"; id "gObjParentGraphNode"; id "gFreeObjectList";
+    id "gPlayerSpawnInfos"; id "sDebugLvSelectCheckFlag" ].
 
 Definition inFb (ge : genv) (b : block) : bool :=
   existsb (fun i => match Genv.find_symbol ge i with Some b' => Pos.eqb b b' | None => false end) f_ids.
@@ -554,6 +560,34 @@ Definition ifs_ok (ge : genv) (m0 : mem) (bm bc ab bsi bpcs bbs bhud : block) : 
   | None => false
   end.
 
+(* Mario's object (pool slot 0, the slot spawn_objects_from_info gave it):
+   oInteractStatus, numCollidedObjs, gfx.throwMatrix and collidedObjs[0..3]
+   are zero on the witness (what the frame world reads of it) *)
+Definition bo_cells : list (memory_chunk * Z) :=
+  [(Mint32, 308); (Mint16signed, 118); (Mint32, 80);
+   (Mint32, 120); (Mint32, 124); (Mint32, 128); (Mint32, 132)].
+Definition bo_chk (m : mem) (bo : block) : bool :=
+  forallb (fun c => let '(ch, z) := c in
+             match CM.load ch m bo z with Some (Vint i) => Int.eq i Int.zero | _ => false end)
+          bo_cells.
+
+Lemma bo_chk_sound : forall m bo, bo_chk m bo = true ->
+    forall ch z, In (ch, z) bo_cells -> Mem.load ch m bo z = Some (Vint Int.zero).
+Proof.
+  intros m bo H ch z Hin. unfold bo_chk in H. rewrite forallb_forall in H.
+  specialize (H _ Hin). cbv beta iota in H. rewrite CM.load_eq in H.
+  destruct (Mem.load ch m bo z) as [[| i | | | |]|]; try discriminate H.
+  pose proof (Int.eq_spec i Int.zero) as E. rewrite H in E. subst i. reflexivity.
+Qed.
+
+(* the objects phase runs from the witness: one real area_update_objects
+   (update_objects over the spawned objects) is not stuck.  Stated inline
+   as [done_b (ex_call ...)] in wchk: behind a wrapper Definition the
+   kernel's conversion at Qed unfolded the wrapper's inner match first and
+   ran the interpreter on FUEL (a 54-minute hang, 2026-10-26) *)
+Definition done_b {A} (r : res A) : bool :=
+  match r with Done _ => true | Stuck _ _ _ => false end.
+
 (* one frame runs from the witness, A not pressed, and keeps the action *)
 Definition frame_ok (ge : genv) (bm bo : block) (m : mem) : bool :=
   negb (BootRun.a_pressed_b bm m)
@@ -577,14 +611,35 @@ Definition wchk (ge : genv) (m0 : mem) : bool :=
         sym ge "sPoolListHeadL", sym ge "sPoolListHeadR",
         sym ge "wmotr_seg7_collision", sym ge "gSurfacesAllocated" with
   | Some s1, Some s2, Some s3, Some s4, Some s5, Some bcol, Some bn =>
+  match sym ge "gObjParentGraphNode", sym ge "bhvMario",
+        off ge "SpawnInfo" "behaviorArg", off ge "SpawnInfo" "behaviorScript" with
+  | Some bpg, Some bmb, Some oba, Some obs =>
   match e_chain bw bL m0 with
   | Some e6 =>
     let (P0, bp) := Mem.alloc e6 0 POOL in
     match apply_writes P0 (pool_writes s1 s2 s3 s4 s5 bp) 0 with
     | inl P =>
-      match ex_call ge world FUEL P (Internal surface_load.f_alloc_surface_pools) [] with
+      (* level_cmd_init_level: init_graph_node_start(NULL,
+         &gObjParentGraphNode); clear_objects() *)
+      match ex_call ge world FUEL P (Internal graph_node.f_init_graph_node_start)
+              [Vint Int.zero; Vptr bpg Ptrofs.zero] with
+      | Done (_, PG, _) =>
+      match ex_call ge world FUEL PG (Internal object_list_processor.f_clear_objects) [] with
+      | Done (_, PO, _) =>
+      match ex_call ge world FUEL PO (Internal surface_load.f_alloc_surface_pools) [] with
       | Done (_, L1, _) =>
         match ex_call ge world FUEL L1 (Internal surface_load.f_load_area_terrain) (terr_args bcol) with
+        | Done (_, L0, _) =>
+        (* load_mario_area: spawn_objects_from_info(0, gMarioSpawnInfo);
+           the two SpawnInfo cells level_cmd_init_mario sets (behaviorArg 1,
+           behaviorScript bhvMario) are stores (level_script.c is not
+           linked, TRUST) *)
+        match CM.store Mint32 L0 bsi oba (Vint (Int.repr 1)) with
+        | Some La =>
+        match CM.store Mint32 La bsi obs (Vptr bmb Ptrofs.zero) with
+        | Some Lb =>
+        match ex_call ge world FUEL Lb (Internal object_list_processor.f_spawn_objects_from_info)
+                [Vint Int.zero; Vptr bsi Ptrofs.zero] with
         | Done (_, L, _) =>
           let (m1, bt) := Mem.alloc L 0 16384 in
           let (m2, bs) := Mem.alloc m1 0 48 in
@@ -598,17 +653,27 @@ Definition wchk (ge : genv) (m0 : mem) : bool :=
               && parts_ok WFUEL ge m11 && nsurf_ok m11 bn
               && ifs_ok ge m0 bm bc ab bsi bpcs bbs bhud && frame_ok ge bm bo m11
               && tab_chk m11 bd bga && ga_chk m11 bga
+              && ObjWorld.ow_chk ge bm m11 && bo_chk m11 bo
+              && done_b (ex_call ge BootRun.world FUEL m11 (Internal area.f_area_update_objects) [])
             | None => false
             end
           | None => false
           end
         | Stuck _ _ _ => false
         end
+        | None => false end
+        | None => false end
+        | Stuck _ _ _ => false
+        end
       | Stuck _ _ _ => false
       end
+      | Stuck _ _ _ => false end
+      | Stuck _ _ _ => false end
     | inr _ => false
     end
   | None => false
+  end
+  | _, _, _, _ => false
   end
   | _, _, _, _, _, _, _ => false
   end
@@ -643,7 +708,8 @@ Qed.
 (* The chain, unpacked into memory equations.                              *)
 (* ---------------------------------------------------------------------- *)
 Inductive wout (ge : genv) (m0 : mem) (bm bc ab bo bw bL : block) : Prop :=
-| WOut : forall s1 s2 s3 s4 s5 bcol bn e1 e2 e3 e4 e5 e6 P0 bp P t1 L1 v1 t2 L v2
+| WOut : forall s1 s2 s3 s4 s5 bcol bn bpg bmb oba obs e1 e2 e3 e4 e5 e6 P0 bp P tg PG vg tc PO vc
+                t1 L1 v1 t2 L0 v2 La Lb t3 L v3
                 m1 bt m2 bs m2b bar m3 bd m3a m3b m4 m5 m6 m7 m8 m9 m10 ms
                 bsi bpcs bbs bhud bC bga bpads z1 z2 z3 z4 z5 z6 z7 z8 z9 z10a z10 z11 z12 z13 z14 z15 z16 z17 z18 m11,
     Mem.store Mint8unsigned m0 bw 0 (Vint (Int.repr 1)) = Some e1 ->
@@ -657,9 +723,18 @@ Inductive wout (ge : genv) (m0 : mem) (bm bc ab bo bw bL : block) : Prop :=
     apply_writes P0 (pool_writes s1 s2 s3 s4 s5 bp) 0 = inl P ->
     sym ge "sPoolStart" = Some s1 -> sym ge "sPoolEnd" = Some s2 -> sym ge "sPoolFreeSpace" = Some s3 ->
     sym ge "sPoolListHeadL" = Some s4 -> sym ge "sPoolListHeadR" = Some s5 ->
-    ex_call ge world FUEL P (Internal surface_load.f_alloc_surface_pools) [] = Done (t1, L1, v1) ->
+    sym ge "gObjParentGraphNode" = Some bpg -> sym ge "bhvMario" = Some bmb ->
+    off ge "SpawnInfo" "behaviorArg" = Some oba -> off ge "SpawnInfo" "behaviorScript" = Some obs ->
+    ex_call ge world FUEL P (Internal graph_node.f_init_graph_node_start)
+      [Vint Int.zero; Vptr bpg Ptrofs.zero] = Done (tg, PG, vg) ->
+    ex_call ge world FUEL PG (Internal object_list_processor.f_clear_objects) [] = Done (tc, PO, vc) ->
+    ex_call ge world FUEL PO (Internal surface_load.f_alloc_surface_pools) [] = Done (t1, L1, v1) ->
     ex_call ge world FUEL L1 (Internal surface_load.f_load_area_terrain) (terr_args bcol)
-      = Done (t2, L, v2) ->
+      = Done (t2, L0, v2) ->
+    Mem.store Mint32 L0 bsi oba (Vint (Int.repr 1)) = Some La ->
+    Mem.store Mint32 La bsi obs (Vptr bmb Ptrofs.zero) = Some Lb ->
+    ex_call ge world FUEL Lb (Internal object_list_processor.f_spawn_objects_from_info)
+      [Vint Int.zero; Vptr bsi Ptrofs.zero] = Done (t3, L, v3) ->
     Mem.alloc L 0 16384 = (m1, bt) -> Mem.alloc m1 0 48 = (m2, bs) -> Mem.alloc m2 0 60 = (m2b, bar) ->
     Mem.alloc m2b 0 1680 = (m3, bd) ->
     Mem.store Mfloat32 m3 bm 64 (Vsingle ENTRY_Y) = Some m3a ->
@@ -702,6 +777,8 @@ Inductive wout (ge : genv) (m0 : mem) (bm bc ab bo bw bL : block) : Prop :=
     sym ge "gSurfacesAllocated" = Some bn ->
     ifs_ok ge m0 bm bc ab bsi bpcs bbs bhud = true -> frame_ok ge bm bo m11 = true ->
     tab_chk m11 bd bga = true -> ga_chk m11 bga = true ->
+    ObjWorld.ow_chk ge bm m11 = true -> bo_chk m11 bo = true ->
+    done_b (ex_call ge BootRun.world FUEL m11 (Internal area.f_area_update_objects) []) = true ->
     wout ge m0 bm bc ab bo bw bL.
 
 Ltac st_eq H := rewrite CM.store_eq in H.
@@ -732,6 +809,10 @@ Proof.
   destruct (sym ge "sPoolListHeadR") as [s5|] eqn:Hs5; [ | discriminate ].
   destruct (sym ge "wmotr_seg7_collision") as [bcol|] eqn:Hcol; [ | discriminate ].
   destruct (sym ge "gSurfacesAllocated") as [bn|] eqn:Hbn; [ | discriminate ].
+  destruct (sym ge "gObjParentGraphNode") as [bpg|] eqn:Hpg; [ | discriminate ].
+  destruct (sym ge "bhvMario") as [bmb|] eqn:Hmb; [ | discriminate ].
+  destruct (off ge "SpawnInfo" "behaviorArg") as [oba|] eqn:Hoba; [ | discriminate ].
+  destruct (off ge "SpawnInfo" "behaviorScript") as [obs|] eqn:Hobs; [ | discriminate ].
   destruct (e_chain bw bL m0) as [e6|] eqn:Ec; [ | discriminate ].
   unfold e_chain in Ec.
   destruct (CM.store Mint8unsigned m0 bw 0 _) as [e1|] eqn:E1; [ | discriminate ].
@@ -742,8 +823,15 @@ Proof.
   rename Ec into E6.
   destruct (Mem.alloc e6 0 POOL) as [P0 bp] eqn:AP.
   destruct (apply_writes P0 _ 0) as [P|] eqn:PW; [ | discriminate ].
-  destruct (ex_call ge world FUEL P _ []) as [[[t1 L1] v1]| ? ? ?] eqn:R1; [ | discriminate ].
-  destruct (ex_call ge world FUEL L1 _ _) as [[[t2 L] v2]| ? ? ?] eqn:R2; [ | discriminate ].
+  destruct (ex_call ge world FUEL P (Internal graph_node.f_init_graph_node_start) _)
+    as [[[tg PG] vg]| ? ? ?] eqn:RG; [ | discriminate ].
+  destruct (ex_call ge world FUEL PG (Internal object_list_processor.f_clear_objects) [])
+    as [[[tc PO] vc]| ? ? ?] eqn:RC; [ | discriminate ].
+  destruct (ex_call ge world FUEL PO _ []) as [[[t1 L1] v1]| ? ? ?] eqn:R1; [ | discriminate ].
+  destruct (ex_call ge world FUEL L1 _ _) as [[[t2 L0] v2]| ? ? ?] eqn:R2; [ | discriminate ].
+  destruct (CM.store Mint32 L0 bsi oba _) as [La|] eqn:SPa; [ | discriminate ].
+  destruct (CM.store Mint32 La bsi obs _) as [Lb|] eqn:SPb; [ | discriminate ].
+  destruct (ex_call ge world FUEL Lb _ _) as [[[t3 L] v3]| ? ? ?] eqn:R3; [ | discriminate ].
   destruct (Mem.alloc L 0 16384) as [m1 bt] eqn:A1.
   destruct (Mem.alloc m1 0 48) as [m2 bs] eqn:A2.
   destruct (Mem.alloc m2 0 60) as [m2b bar] eqn:A3.
@@ -783,20 +871,25 @@ Proof.
   destruct (CM.store Mint32 z17 bc 24 _) as [z18|] eqn:ZC; [ | discriminate ].
   rename Xc into Z18.
   repeat match goal with H : CM.store _ _ _ _ _ = Some _ |- _ => rewrite CM.store_eq in H end.
+  apply andb_prop in W as [W N12]. apply andb_prop in W as [W N11].
+  apply andb_prop in W as [W N10].
   apply andb_prop in W as [W N9]. apply andb_prop in W as [W N8].
   apply andb_prop in W as [W N7]. apply andb_prop in W as [W N6].
   apply andb_prop in W as [W N5]. apply andb_prop in W as [W N4].
   apply andb_prop in W as [W N3]. apply andb_prop in W as [N1 N2].
   eapply WOut;
     [ exact E1 | exact E2 | exact E3 | exact E4 | exact E5 | exact E6 | exact Hcol | exact AP
-    | exact PW | exact Hs1 | exact Hs2 | exact Hs3 | exact Hs4 | exact Hs5 | exact R1 | exact R2
+    | exact PW | exact Hs1 | exact Hs2 | exact Hs3 | exact Hs4 | exact Hs5
+    | exact Hpg | exact Hmb | exact Hoba | exact Hobs | exact RG | exact RC | exact R1 | exact R2
+    | exact SPa | exact SPb | exact R3
     | exact A1 | exact A2 | exact A3 | exact A4 | exact S1a | exact S1b | exact S1 | exact S2 | exact S3
     | exact S4 | exact S5 | exact S6 | exact S7 | exact S8
     | exact Hsi | exact Hpcs | exact Hbs | exact Hhud | exact HcC | exact Hga | exact Hpads
     | exact Z1 | exact Z2 | exact Z3 | exact Z4 | exact Z5 | exact Z6 | exact Z7 | exact Z8
     | exact Z9 | exact Z10a | exact Z10 | exact Z11 | exact Z12 | exact Z13 | exact Z14 | exact Z15 | exact Z16 | exact Z17 | exact ZC | exact Z18
     | exact N1 | exact N2 | exact N3
-    | exact N4 | exact N5 | exact Hbn | exact N6 | exact N7 | exact N8 | exact N9 ].
+    | exact N4 | exact N5 | exact Hbn | exact N6 | exact N7 | exact N8 | exact N9
+    | exact N10 | exact N11 | exact N12 ].
 Qed.
 
 (* ifs_ok, in the semantics: the run of the function the link resolves
@@ -853,6 +946,16 @@ Proof.
   destruct (ex_call ge BootRun.world FUEL m _ _) as [[[t m'] v]| ? ? ?] eqn:R; [ | discriminate ].
   exists t, m', v. split; [ exact (ex_call_sound ge BootRun.world Wk _ _ _ _ _ _ _ R) | ].
   exact (BootRun.ld32_is_sound _ _ _ _ H).
+Qed.
+
+(* done_b, in the semantics *)
+Lemma ex_done_sound : forall ge f args m, BootRun.world_ok ge ->
+    done_b (ex_call ge BootRun.world FUEL m f args) = true ->
+    exists t m' v, eval_funcall function_entry2 ge m f args t m' v.
+Proof.
+  intros ge f args m Wk H.
+  destruct (ex_call ge BootRun.world FUEL m f args) as [[[t m'] v]| ? ? ?] eqn:R; [ | discriminate H ].
+  exists t, m', v. exact (ex_call_sound ge BootRun.world Wk _ _ _ _ _ _ _ R).
 Qed.
 
 Lemma nsurf_ok_sound : forall m bn, nsurf_ok m bn = true ->

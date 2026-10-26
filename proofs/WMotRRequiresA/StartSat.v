@@ -54,7 +54,8 @@ From SM64.Proofs.WMotRRequiresA Require Import HeightInvariant NoAActions WMotRW
   EntryWarp WMotRLevel.
 From SM64.Proofs Require Import Interp.ClightInterp Interp.MemBuild Interp.InterpFrame.
 From SM64.Proofs.WMotRRequiresA Require Import FpuFloor FpuValue TerrainRun StartTerrain.
-From SM64.Proofs.WMotRRequiresA Require CourseRun AnimData AnimWorld PlatformKeep.
+From SM64.Proofs.WMotRRequiresA Require CourseRun AnimData AnimWorld PlatformKeep ObjWorld ObjPhase.
+From SM64.Generated Require graph_node area.
 From SM64.Proofs.NoAImpliesNoFly Require BootRun.
 From SM64.Proofs Require AGates LinkedTwelve InitMemSat.
 Import ListNotations.
@@ -320,9 +321,16 @@ Qed.
    alloc_surface_pools and load_area_terrain(1, wmotr_seg7_collision, NULL,
    NULL) -- an execution of both under the FPU floor's value clause
    (FpuValue.sqrtf_value, TRUST 3.5).  reset_red_coins_collected runs its
-   real body (ingame_menu.c linked, 2026-10-22). *)
+   real body (ingame_menu.c linked, 2026-10-22).
+   2026-10-26: the object init and Mario's spawn are in the chain too, in
+   the level script's order: init_graph_node_start(NULL,
+   &gObjParentGraphNode) and clear_objects() (LEVEL_INIT) before the
+   terrain, then load_mario_area's spawn_objects_from_info(0,
+   &gPlayerSpawnInfos[0]) after it, on the two SpawnInfo cells
+   level_cmd_init_mario sets (behaviorArg 1, behaviorScript bhvMario;
+   stores, since level_script.c is not linked: TRUST 0.7). *)
 Definition terrain_loaded (lp : Clight.program) (m_ent m : mem) : Prop :=
-  exists P0 bpl P bcol L1 Lm,
+  exists P0 bpl P bcol PG PO L1 L0 Lb Lm,
     Mem.alloc m_ent 0 POOL = (P0, bpl)
     /\ (exists s1 s2 s3 s4 s5,
           sym (lp_ge lp) "sPoolStart"%string = Some s1 /\ sym (lp_ge lp) "sPoolEnd"%string = Some s2
@@ -331,12 +339,28 @@ Definition terrain_loaded (lp : Clight.program) (m_ent m : mem) : Prop :=
           /\ sym (lp_ge lp) "sPoolListHeadR"%string = Some s5
           /\ apply_writes P0 (pool_writes s1 s2 s3 s4 s5 bpl) 0 = inl P)
     /\ sym (lp_ge lp) "wmotr_seg7_collision"%string = Some bcol
-    /\ (sqrtf_value ->
-          exists t1 v1 t2 v2,
-            eval_funcall function_entry2 (lp_ge lp) P
-              (Internal surface_load.f_alloc_surface_pools) [] t1 L1 v1
-            /\ eval_funcall function_entry2 (lp_ge lp) L1
-                 (Internal surface_load.f_load_area_terrain) (terr_args bcol) t2 Lm v2)
+    /\ (exists bsi bpg bmb oba obs La,
+          sym (lp_ge lp) "gPlayerSpawnInfos"%string = Some bsi
+          /\ sym (lp_ge lp) "gObjParentGraphNode"%string = Some bpg
+          /\ sym (lp_ge lp) "bhvMario"%string = Some bmb
+          /\ off (lp_ge lp) "SpawnInfo"%string "behaviorArg"%string = Some oba
+          /\ off (lp_ge lp) "SpawnInfo"%string "behaviorScript"%string = Some obs
+          /\ Mem.store Mint32 L0 bsi oba (Vint (Int.repr 1)) = Some La
+          /\ Mem.store Mint32 La bsi obs (Vptr bmb Ptrofs.zero) = Some Lb
+          /\ (sqrtf_value ->
+                exists tg vg tc vc t1 v1 t2 v2 t3 v3,
+                  eval_funcall function_entry2 (lp_ge lp) P
+                    (Internal graph_node.f_init_graph_node_start)
+                    [Vint Int.zero; Vptr bpg Ptrofs.zero] tg PG vg
+                  /\ eval_funcall function_entry2 (lp_ge lp) PG
+                       (Internal object_list_processor.f_clear_objects) [] tc PO vc
+                  /\ eval_funcall function_entry2 (lp_ge lp) PO
+                       (Internal surface_load.f_alloc_surface_pools) [] t1 L1 v1
+                  /\ eval_funcall function_entry2 (lp_ge lp) L1
+                       (Internal surface_load.f_load_area_terrain) (terr_args bcol) t2 L0 v2
+                  /\ eval_funcall function_entry2 (lp_ge lp) Lb
+                       (Internal object_list_processor.f_spawn_objects_from_info)
+                       [Vint Int.zero; Vptr bsi Ptrofs.zero] t3 Lm v3))
     /\ (forall ch b z,
           (b = bpl \/ exists pid, In pid part_ids /\ Genv.find_symbol (lp_ge lp) pid = Some b) ->
           Mem.load ch m b z = Mem.load ch Lm b z).
@@ -351,6 +375,12 @@ Definition nsurf_is (lp : Clight.program) (m : mem) : Prop :=
    BootRun: sqrtf by the FPU floor's value clause; the audio calls run
    their real linked bodies), and Mario
    is still in ACT_SPAWN_NO_SPIN_AIRBORNE afterwards *)
+(* NON-VACUITY OF THE OBJECTS PHASE (2026-10-26): from m, one real
+   area_update_objects (gAreaUpdateCounter++; update_objects(0), over the
+   object lists clear_objects and Mario's spawn built) executes *)
+Definition objects_runs (lp : Clight.program) (m : mem) : Prop :=
+  sqrtf_value -> exists m', ObjPhase.objects_call lp m m'.
+
 Definition frame_runs (lp : Clight.program) (bm : block) (m : mem) : Prop :=
   sqrtf_value ->
   AGates.a_pressed_real bm m = false
@@ -548,8 +578,8 @@ Section Witness.
        generated alloc_surface_pools and load_area_terrain(1,
        wmotr_seg7_collision, NULL, NULL), run by the sound interpreter;
        old_ok / frag_ok are the footprint and pointer checks on the result *)
-    Variables (P0 P L1 Lm : mem) (bpl s1 s2 s3 s4 s5 bcol bn : block)
-      (t1 t2 : trace) (v1 v2 : val).
+    Variables (P0 P PG POm L1 L0 La Lb Lm : mem) (bpl s1 s2 s3 s4 s5 bcol bn bpg bmb : block)
+      (oba obs : Z) (tg tc t1 t2 t3 : trace) (vg vc v1 v2 v3 : val).
     Hypothesis AP : Mem.alloc e6 0 POOL = (P0, bpl).
     Hypothesis PW : apply_writes P0 (pool_writes s1 s2 s3 s4 s5 bpl) 0 = inl P.
     Hypothesis Hs1 : sym (lp_ge lp) "sPoolStart"%string = Some s1.
@@ -559,10 +589,30 @@ Section Witness.
     Hypothesis Hs5 : sym (lp_ge lp) "sPoolListHeadR"%string = Some s5.
     Hypothesis Hcol : sym (lp_ge lp) "wmotr_seg7_collision"%string = Some bcol.
     Hypothesis Hbn : sym (lp_ge lp) "gSurfacesAllocated"%string = Some bn.
-    Hypothesis RA : ex_call (lp_ge lp) TerrainRun.world FUEL P
+    Hypothesis Hpg : sym (lp_ge lp) "gObjParentGraphNode"%string = Some bpg.
+    Hypothesis Hmb : sym (lp_ge lp) "bhvMario"%string = Some bmb.
+    Hypothesis Hoba : off (lp_ge lp) "SpawnInfo"%string "behaviorArg"%string = Some oba.
+    Hypothesis Hobs : off (lp_ge lp) "SpawnInfo"%string "behaviorScript"%string = Some obs.
+    (* LEVEL_INIT: init_graph_node_start(NULL, &gObjParentGraphNode);
+       clear_objects() *)
+    Hypothesis RG : ex_call (lp_ge lp) TerrainRun.world FUEL P
+                      (Internal graph_node.f_init_graph_node_start)
+                      [Vint Int.zero; Vptr bpg Ptrofs.zero] = Done (tg, PG, vg).
+    Hypothesis RC : ex_call (lp_ge lp) TerrainRun.world FUEL PG
+                      (Internal object_list_processor.f_clear_objects) [] = Done (tc, POm, vc).
+    Hypothesis RA : ex_call (lp_ge lp) TerrainRun.world FUEL POm
                       (Internal surface_load.f_alloc_surface_pools) [] = Done (t1, L1, v1).
     Hypothesis RT : ex_call (lp_ge lp) TerrainRun.world FUEL L1
-                      (Internal surface_load.f_load_area_terrain) (terr_args bcol) = Done (t2, Lm, v2).
+                      (Internal surface_load.f_load_area_terrain) (terr_args bcol) = Done (t2, L0, v2).
+    (* load_mario_area: Mario's spawn from gPlayerSpawnInfos[0] (the two
+       cells level_cmd_init_mario sets are stores, TRUST 0.7) *)
+    Variable bsi0 : block.
+    Hypothesis Hsi0 : sym (lp_ge lp) "gPlayerSpawnInfos"%string = Some bsi0.
+    Hypothesis SPa : Mem.store Mint32 L0 bsi0 oba (Vint (Int.repr 1)) = Some La.
+    Hypothesis SPb : Mem.store Mint32 La bsi0 obs (Vptr bmb Ptrofs.zero) = Some Lb.
+    Hypothesis RS : ex_call (lp_ge lp) TerrainRun.world FUEL Lb
+                      (Internal object_list_processor.f_spawn_objects_from_info)
+                      [Vint Int.zero; Vptr bsi0 Ptrofs.zero] = Done (t3, Lm, v3).
     Hypothesis OK : old_ok (lp_ge lp) e6 Lm = true.
     Hypothesis FR : frag_ok (lp_ge lp) bpl Lm = true.
 
@@ -635,6 +685,12 @@ Section Witness.
     Hypothesis FO : frame_ok (lp_ge lp) bm bo m11 = true.
     Hypothesis TC : tab_chk m11 bd bga = true.
     Hypothesis GC : ga_chk m11 bga = true.
+    (* the object world on the witness, Mario's object's read cells, and
+       the objects phase runs (2026-10-26) *)
+    Hypothesis OWc : ObjWorld.ow_chk (lp_ge lp) bm m11 = true.
+    Hypothesis BC : bo_chk m11 bo = true.
+    Hypothesis OO : done_b (ex_call (lp_ge lp) BootRun.world FUEL m11
+                              (Internal area.f_area_update_objects) []) = true.
 
     (* ---- blocks ---- *)
     Lemma nb_e : Mem.nextblock e6 = Mem.nextblock m0.
@@ -650,8 +706,13 @@ Section Witness.
     Lemma keep_PL : acc_keep P0 Lm.
     Proof.
       refine (acc_keep_trans _ _ _ (apply_writes_keep _ _ _ _ PW) _).
+      refine (acc_keep_trans _ _ _ (ex_call_keep _ _ world_keep _ _ _ _ _ _ _ RG) _).
+      refine (acc_keep_trans _ _ _ (ex_call_keep _ _ world_keep _ _ _ _ _ _ _ RC) _).
       refine (acc_keep_trans _ _ _ (ex_call_keep _ _ world_keep _ _ _ _ _ _ _ RA) _).
-      exact (ex_call_keep _ _ world_keep _ _ _ _ _ _ _ RT).
+      refine (acc_keep_trans _ _ _ (ex_call_keep _ _ world_keep _ _ _ _ _ _ _ RT) _).
+      refine (acc_keep_trans _ _ _ (cm_store_keep _ _ _ _ _ _ (eq_trans (CM.store_eq _ _ _ _ _) SPa)) _).
+      refine (acc_keep_trans _ _ _ (cm_store_keep _ _ _ _ _ _ (eq_trans (CM.store_eq _ _ _ _ _) SPb)) _).
+      exact (ex_call_keep _ _ world_keep _ _ _ _ _ _ _ RS).
     Qed.
     Lemma keep_eL : acc_keep e6 Lm.
     Proof. exact (acc_keep_trans _ _ _ (alloc_keep _ _ _ _ _ AP) keep_PL). Qed.
@@ -1270,20 +1331,6 @@ Section Witness.
     Qed.
     Lemma bs_bo : bs <> bo.
     Proof. intro E. exact (sym_ne_fresh _ _ _ Hbo (or_intror (or_introl eq_refl)) (eq_sym E)). Qed.
-    (* Mario's object, off gfx.pos[1] (offset 36) *)
-    Lemma unt_bo : forall ch z, z + size_chunk ch <= 36 \/ 40 <= z -> untouched ch bo z.
-    Proof.
-      intros ch z Hz. split; [ intro E; exact (bs_bo (eq_sym E)) | ].
-      split; [ intros E; exfalso; exact (bo_bm E) | ].
-      split; [ intros E; exfalso; exact (bo_ab E) | ].
-      split; [ intros E; exfalso; exact (symne lp _ _ _ _ Hbo Hhud eq_refl E) | ].
-      split; [ intros _; exact Hz | ].
-      split; [ exact (symne lp _ _ _ _ Hbo Hbw eq_refl) | ].
-      split; [ exact (symne lp _ _ _ _ Hbo HbL eq_refl) | ].
-      split; [ exact (inFb_sym_false _ _ _ Hbo ltac:(vm_compute; reflexivity)) | ].
-      split; [ exact (symne lp _ _ _ _ Hbo HcC eq_refl) | intros E; exfalso; exact (symne lp _ _ _ _ Hbo Hbc eq_refl E) ].
-    Qed.
-
     Ltac cells := intros d Hd; cbn [cells_bm In] in Hd;
       repeat (destruct Hd as [<- | Hd]; [ cbn [size_chunk]; lia | ]); destruct Hd.
 
@@ -1304,20 +1351,11 @@ Section Witness.
       rewrite (ld_back ch bm z (Genv.find_symbol_not_fresh _ _ Hinit Hbm) (unt_bm ch z Hc)) in Hl.
       exact (boot_zero lp m0 _ bm ch z v H12 Hinit (or_introl eq_refl) Hbm Hl).
     Qed.
-    Lemma z_bo : forall ch z, 40 <= z -> z + size_chunk ch <= 145920 -> (align_chunk ch | z) ->
-        Mem.load ch m11 bo z = Some (zeros ch).
-    Proof.
-      intros ch z H0 H1 Ha.
-      rewrite (ld_back ch bo z (Genv.find_symbol_not_fresh _ _ Hinit Hbo) (unt_bo ch z (or_intror H0))).
-      destruct (valid_ex ch bo z 0 145920 rp_pool ltac:(lia) H1 Ha) as (v & Hv). rewrite Hv. f_equal.
-      exact (boot_zero lp m0 _ bo ch z v H12 Hinit (or_intror (or_introl eq_refl)) Hbo Hv).
-    Qed.
-    Lemma z_bo_any : forall ch z v, 40 <= z -> Mem.load ch m11 bo z = Some v -> v = zeros ch.
-    Proof.
-      intros ch z v Hz Hl.
-      rewrite (ld_back ch bo z (Genv.find_symbol_not_fresh _ _ Hinit Hbo) (unt_bo ch z (or_intror Hz))) in Hl.
-      exact (boot_zero lp m0 _ bo ch z v H12 Hinit (or_intror (or_introl eq_refl)) Hbo Hl).
-    Qed.
+    (* Mario's object (pool slot 0): the cells the frame world reads are
+       zero on the witness -- checked on m11 itself (StartTerrain.bo_chk),
+       after clear_objects and spawn_objects_from_info wrote the slot *)
+    Lemma bo_z : forall ch z, In (ch, z) bo_cells -> Mem.load ch m11 bo z = Some (Vint Int.zero).
+    Proof. exact (bo_chk_sound _ _ BC). Qed.
     Ltac peel S := rewrite (Mem.load_store_other _ _ _ _ _ _ S)
       by (first [ left; congruence | right; cbn [size_chunk]; lia ]).
 
@@ -1483,10 +1521,10 @@ Section Witness.
       exists bo, Ptrofs.zero, Int.zero, Int.zero.
       split; [ exact L_obj | ].
       split; [ change (Ptrofs.unsigned Ptrofs.zero + O_INTERACT_STATUS) with 308;
-               rewrite (z_bo Mint32 308) by (cbn [size_chunk align_chunk]; try lia; try al); reflexivity | ].
+               rewrite (bo_z Mint32 308) by (repeat (first [ left; reflexivity | right ])); reflexivity | ].
       split; [ reflexivity | ].
       split; [ change (Ptrofs.unsigned Ptrofs.zero + NUMCOLL_OFF) with 118;
-               rewrite (z_bo Mint16signed 118) by (cbn [size_chunk align_chunk]; try lia; try al); reflexivity | ].
+               rewrite (bo_z Mint16signed 118) by (repeat (first [ left; reflexivity | right ])); reflexivity | ].
       split; [ rewrite Int.signed_zero; lia | ].
       intros i v Hi. exfalso. rewrite Int.signed_zero in Hi. lia.
     Qed.
@@ -1498,9 +1536,10 @@ Section Witness.
                                        = Some (Vptr cb co) -> False.
     Proof.
       intros i cb co Hi Hl.
-      assert (Hz : 40 <= Ptrofs.unsigned Ptrofs.zero + COLL_OFF + 4 * i)
-        by (change (Ptrofs.unsigned Ptrofs.zero) with 0; unfold COLL_OFF; lia).
-      exact (not_ptr0 _ _ _ (eq_sym (z_bo_any _ _ _ Hz Hl))).
+      change (Ptrofs.unsigned Ptrofs.zero) with 0 in Hl. unfold COLL_OFF in Hl.
+      assert (Hc : i = 0 \/ i = 1 \/ i = 2 \/ i = 3) by lia.
+      destruct Hc as [-> | [-> | [-> | ->]]];
+        rewrite bo_z in Hl by (repeat (first [ left; reflexivity | right ])); discriminate Hl.
     Qed.
 
     Lemma wc_noptr : forall off sb so, off = WALL_OFF \/ off = CEIL_OFF ->
@@ -2002,7 +2041,7 @@ Section Witness.
       - exact L_body.
       - (* Mario's gfx.throwMatrix: the zero-filled pool's NULL *)
         left. change (Ptrofs.unsigned Ptrofs.zero + FFW_THROW) with 80.
-        rewrite (z_bo Mint32 80) by (cbn [size_chunk align_chunk]; try lia; try al); reflexivity.
+        rewrite (bo_z Mint32 80) by (repeat (first [ left; reflexivity | right ])); reflexivity.
       - (* the surface pointers: the wall / ceil cells hold none, the floor is
            the fresh entry surface *)
         intros off sb so [Hoff | [Hoff | Hoff]] Hl.
@@ -2497,15 +2536,27 @@ Section Witness.
     (* ---- the witness ---- *)
     Lemma loaded11 : terrain_loaded lp e6 m11.
     Proof.
-      exists P0, bpl, P, bcol, L1, Lm.
+      exists P0, bpl, P, bcol, PG, POm, L1, L0, Lb, Lm.
       split; [ exact AP | ].
       split; [ exists s1, s2, s3, s4, s5; tauto | ].
       split; [ exact Hcol | ].
       split; [ | exact ld_loader ].
+      exists bsi0, bpg, bmb, oba, obs, La.
+      do 7 (split; [ assumption | ]).
       intros Hv. pose proof (world_ok_of (lp_ge lp) Hv) as Wk.
-      exists t1, v1, t2, v2. split.
-      - exact (ex_call_sound _ _ Wk _ _ _ _ _ _ _ RA).
-      - exact (ex_call_sound _ _ Wk _ _ _ _ _ _ _ RT).
+      exists tg, vg, tc, vc, t1, v1, t2, v2, t3, v3.
+      split; [ exact (ex_call_sound _ _ Wk _ _ _ _ _ _ _ RG) | ].
+      split; [ exact (ex_call_sound _ _ Wk _ _ _ _ _ _ _ RC) | ].
+      split; [ exact (ex_call_sound _ _ Wk _ _ _ _ _ _ _ RA) | ].
+      split; [ exact (ex_call_sound _ _ Wk _ _ _ _ _ _ _ RT) | ].
+      exact (ex_call_sound _ _ Wk _ _ _ _ _ _ _ RS).
+    Qed.
+
+    Lemma objs11 : objects_runs lp m11.
+    Proof.
+      intros Hv. pose proof (BootRun.world_ok_of (lp_ge lp) Hv) as Wk.
+      destruct (ex_done_sound _ _ _ _ Wk OO) as (t & m' & v & Ev).
+      exists m', t, v. exact Ev.
     Qed.
 
     Lemma nsurf11 : nsurf_is lp m11.
@@ -2520,6 +2571,7 @@ Section Witness.
       /\ read_cells bm m11 (entry_cells Float32.zero)
       /\ in_wmotr lp m11
       /\ floor_data (lp_ge lp) m11 /\ static_agree (lp_ge lp) m11 /\ nsurf_is lp m11
+      /\ ObjWorld.obj_w (lp_ge lp) bm m11 /\ objects_runs lp m11
       /\ exists bL' m_iw m_ent le',
            Genv.find_symbol (lp_ge lp) level_update._gCurrLevelNum = Some bL'
            /\ eval_funcall function_entry2 (lp_ge lp) m0
@@ -2541,6 +2593,7 @@ Section Witness.
         split; [ exact plat11 | ].
         split; [ exact read_c0 | split; [ exact in_wmotr11 | ] ].
         split; [ exact floor_data11 | split; [ exact static_agree11 | split; [ exact nsurf11 | ] ] ].
+        split; [ exact (ObjWorld.ow_chk_sound _ _ _ OWc) | split; [ exact objs11 | ] ].
         destruct entry_runs as (R1 & R2).
         exists bL, e5, e6, (PTree.set level_update._t'2 (Vint (Int.repr LEVEL_WMOTR)) (PTree.empty val)). split; [ exact HbL | split; [ exact R1 | split; [ exact (R2 _) | ] ] ].
         split; [ rewrite L_lvl, (Mem.load_store_same _ _ _ _ _ _ E6); reflexivity | ].
@@ -2593,6 +2646,7 @@ End Steps.
       /\ read_cells bm m (entry_cells Float32.zero)
       /\ in_wmotr lp m
       /\ floor_data (lp_ge lp) m /\ static_agree (lp_ge lp) m /\ nsurf_is lp m
+      /\ ObjWorld.obj_w (lp_ge lp) bm m /\ objects_runs lp m
       /\ exists bL m_iw m_ent le',
            Genv.find_symbol (lp_ge lp) level_update._gCurrLevelNum = Some bL
            /\ eval_funcall function_entry2 (lp_ge lp) m0
@@ -2630,13 +2684,15 @@ End Steps.
     destruct (ex_sym _ _ _ (linked12_LO_area lp H12) dm_lvlnum) as (bL & HbL).
     (* the whole chain, computed once over every 34-TU link (StartTerrain) *)
     destruct (wchk_sound _ _ (wchk_lp lp H12 m0 Hinit) bm bc ab bo bw bL Hbm Hbc Hab Hbo Hbw HbL)
-      as [s1 s2 s3 s4 s5 bcol bn e1 e2 e3 e4 e5 e6 P0 bpl P t1 L1 v1 t2 Lm v2
+      as [s1 s2 s3 s4 s5 bcol bn bpg bmb oba obs e1 e2 e3 e4 e5 e6 P0 bpl P tg PG vg tc POm vc
+          t1 L1 v1 t2 L0 v2 La Lb t3 Lm v3
           m1 bt m2 bs m2b bar m3 bd m3a m3b m4 m5 m6 m7 m8 m9 m10 ms
           bsi bpcs bbs bhud bC bga bpads z1 z2 z3 z4 z5 z6 z7 z8 z9 z10a z10 z11 z12 z13 z14 z15 z16 z17 z18 m11
-          E1 E2 E3 E4 E5 E6 Hcol AP PW Hs1 Hs2 Hs3 Hs4 Hs5 RA RT A1 A2 A3 A4
+          E1 E2 E3 E4 E5 E6 Hcol AP PW Hs1 Hs2 Hs3 Hs4 Hs5 Hpg Hmb Hoba Hobs RG RC RA RT
+          SPa SPb RS A1 A2 A3 A4
           S1a S1b S1 S2 S3 S4 S5 S6 S7 S8 Hsi Hpcs Hbbs Hhud HcC Hga Hpads
           Z1 Z2 Z3 Z4 Z5 Z6 Z7 Z8 Z9 Z10a Z10 Z11 Z12 Z13 Z14 Z15 Z16 Z17 ZC Z18
-          OK FR WP PO NS Hbn IF FO TC GC].
+          OK FR WP PO NS Hbn IF FO TC GC OWc BC OO].
     exists (SBw bpl bt bar bd), m11.
     eapply witness11; eassumption.
   Qed.
@@ -2665,6 +2721,11 @@ Theorem goal2_start_sat : forall lp, linked12 lp ->
     (* WMotR's REAL terrain is loaded: GOAL 2's floor premise (TRUST 0.8)
        and the decoder agreement hold on m, with 1352 surfaces allocated *)
     /\ floor_data (lp_ge lp) m /\ static_agree (lp_ge lp) m /\ nsurf_is lp m
+    (* the object world holds on m (ObjWorld.obj_w: the lists clear_objects
+       and Mario's spawn built), and the memory is not a dead end for the
+       objects phase: one real area_update_objects runs from it
+       (2026-10-26) *)
+    /\ ObjWorld.obj_w (lp_ge lp) bm m /\ objects_runs lp m
     /\ exists m_boot bL m_iw m_ent le',
          Genv.init_mem lp = Some m_boot
          /\ Genv.find_symbol (lp_ge lp) level_update._gCurrLevelNum = Some bL
@@ -2688,11 +2749,11 @@ Proof.
   destruct (linked12_init_mem lp H12) as (m0 & Hinit).
   destruct (spawn_symbols_resolve lp H12) as (bm & bc & Hbm & Hbc).
   destruct (start_sat_lp lp H12 m0 Hinit bm bc Hbm Hbc)
-    as (SafeB & m & Hs & Hok & Hphi & Hpl & Hrc & Hw & Hfd & Hsa & Hns
+    as (SafeB & m & Hs & Hok & Hphi & Hpl & Hrc & Hw & Hfd & Hsa & Hns & How & Hor
         & (bL & m_iw & m_ent & le' & HbL & Hiw & Hwl & Hld & Htl & Hfr & Hif & Hcs)).
   exists m, bm, bc, SafeB.
   refine (conj Hbm (conj Hbc (conj Hs (conj Hok (conj Hphi (conj Hpl (conj Hrc (conj Hw
-            (conj Hfd (conj Hsa (conj Hns _))))))))))).
+            (conj Hfd (conj Hsa (conj Hns (conj How (conj Hor _))))))))))))).
   exists m0, bL, m_iw, m_ent, le'.
   exact (conj Hinit (conj HbL (conj Hiw (conj Hwl (conj Hld (conj Htl (conj Hfr (conj Hif Hcs)))))))).
 Qed.
