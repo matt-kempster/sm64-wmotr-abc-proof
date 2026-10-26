@@ -265,9 +265,11 @@ Proof. vm_compute. reflexivity. Qed.
 
 (* ANIMATE (0x28) indexes the object's oAnimations table.  The reachable
    ANIMATE states and the tables their scripts load (LOAD_ANIMATIONS,
-   0x27).  FOUND 2026-10-26: these tables are only DECLARED in the link
-   (behavior_data's extern, size 0) -- the actor animation data is not
-   linked -- and bhvBobombBuddyOpensCannon is PLACED in WMotR. *)
+   0x27).  FOUND 2026-10-26: these tables were only DECLARED in the link
+   (behavior_data's extern, size 0) -- the actor animation data was not
+   linked -- and bhvBobombBuddyOpensCannon is PLACED in WMotR.  REPAIRED
+   the same day: pipeline/tu/wmotr_level_data.c links the vendor anim
+   .inc.c files (closure_data_linked / vm_data_args_linked below). *)
 Definition ptr_at (st : vst) (k : nat) : option ident :=
   match nth_error (words (v_s st)) (v_i st + k)%nat with Some (Init_addrof t _) => Some t | _ => None end.
 
@@ -286,14 +288,40 @@ Lemma vm_anim_tables :
     ("bhvEndPeach", Some "peach_seg5_anims_0501C41C") ]%string.
 Proof. vm_compute. reflexivity. Qed.
 
-(* no TU of the link defines any of them (every Gvar of that name is an
-   extern declaration: no initializer) *)
-Definition declared_only (t : ident) : bool :=
-  forallb (fun p => forallb (fun '(id, g) =>
-     negb (Pos.eqb id t) || match g with Gvar v => match gvar_init v with [] => true | _ => false end
-                                       | _ => false end) (prog_defs p)) ObjTable.lprogs.
+(* ----------------------------------------------------------------------- *)
+(* Linked-data census (2026-10-26, systematic; replaces the one-off        *)
+(* vm_anim_tables_unlinked).  A global that is only DECLARED in every TU  *)
+(* of the link is a size-0 block, so any load from it has no Clight       *)
+(* execution, and a theorem over runs that reach such a load is vacuous   *)
+(* there.  Two fail-closed checks over the real link (ObjTable.lprogs):   *)
+(*  (a) every global VARIABLE in the WMotR closure (BehaviorScripts: the  *)
+(*      placed behaviors, every script / function / table they reach, all *)
+(*      the anim tables, collision meshes, model / geo pointers, dialog,  *)
+(*      trajectories and hitboxes the closure's bodies and scripts name)  *)
+(*      has a definer in the link with a non-empty initializer;           *)
+(*  (b) every data argument of a reachable script command                 *)
+(*      (LOAD_ANIMATIONS 0x27, LOAD_COLLISION_DATA 0x2A,                  *)
+(*      SPAWN_WATER_DROPLET 0x37 word 1) is such a symbol.                *)
+(* ----------------------------------------------------------------------- *)
+Definition defined_nonempty (t : ident) : bool :=
+  existsb (fun p => existsb (fun '(id, g) =>
+     Pos.eqb id t && match g with Gvar v => 0 <? init_data_list_size (gvar_init v)
+                                 | _ => false end) (prog_defs p)) ObjTable.lprogs.
 
-Lemma vm_anim_tables_unlinked :
-  forallb (fun st => match ptr_at st 1 with Some t => declared_only t | None => false end)
-    (filter (fun st => opc st =? 39) vm_tab) = true.
+Definition is_gvar_in_link (t : ident) : bool :=
+  existsb (fun p => existsb (fun '(id, g) =>
+     Pos.eqb id t && match g with Gvar _ => true | _ => false end) (prog_defs p)) ObjTable.lprogs.
+
+Lemma closure_data_linked :
+  forallb (fun t => negb (is_gvar_in_link t) || defined_nonempty t) wmotr_closure = true.
+Proof. vm_compute. reflexivity. Qed.
+
+Definition data_args (st : vst) : list ident :=
+  if (opc st =? 39) || (opc st =? 42) || (opc st =? 55) then
+    match ptr_at st 1 with Some t => [t] | None => [] end else [].
+
+Lemma vm_data_args_linked :
+  forallb (fun st => implb ((opc st =? 39) || (opc st =? 42) || (opc st =? 55))
+                     (match ptr_at st 1 with Some _ => true | None => false end
+                      && forallb defined_nonempty (data_args st))) vm_tab = true.
 Proof. vm_compute. reflexivity. Qed.

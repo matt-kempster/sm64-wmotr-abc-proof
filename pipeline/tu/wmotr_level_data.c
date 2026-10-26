@@ -26,3 +26,22 @@
    (interaction.c:881,889); without a definition it is a size-0 block and
    that compare has no execution (tools/size0_globals.py, 2026-10-22) */
 #include "actors/warp_pipe/collision.inc.c"
+/* the animation tables of the WMotR closure's animated objects (2026-10-26,
+   B3 iii-b; FOUND by the BhvVM census, now BhvVM.closure_data_linked /
+   vm_data_args_linked): behavior_data.c's
+   LOAD_ANIMATIONS / the natives' cur_obj_init_animation read them through
+   o->oAnimations, and while only declared they were size-0 blocks, so the
+   placed bob-omb buddy's first ANIMATE had no execution.  The real build
+   puts them in the actor group files (actors/common0.c: bobomb;
+   group3 / group10 / group15 / common1: the rest); these are the same
+   vendor .inc.c files, verbatim. */
+#include "actors/bobomb/anims/data.inc.c"
+#include "actors/bobomb/anims/table.inc.c"
+#include "actors/blue_fish/anims/data.inc.c"
+#include "actors/blue_fish/anims/table.inc.c"
+#include "actors/bowser_key/anims/data.inc.c"
+#include "actors/bowser_key/anims/table.inc.c"
+#include "actors/peach/anims/data.inc.c"
+#include "actors/peach/anims/table.inc.c"
+#include "actors/toad/anims/data.inc.c"
+#include "actors/toad/anims/table.inc.c"

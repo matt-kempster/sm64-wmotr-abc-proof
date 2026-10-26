@@ -2059,9 +2059,9 @@ Definition v___stringlit_3 := {|
 |}.
 
 Definition v_blue_fish_seg3_anims_0301C2B0 := {|
-  gvar_info := (tarray (tptr (Tstruct _Animation noattr)) 0);
+  gvar_info := (tarray (tptr (Tstruct _Animation noattr)) 2);
   gvar_init := nil;
-  gvar_readonly := true;
+  gvar_readonly := false;
   gvar_volatile := false
 |}.
 
