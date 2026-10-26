@@ -73,6 +73,7 @@ proofs/Generic/RootedLvalue.v
 proofs/Generic/ClightDeterm.v
 proofs/Generic/ClosedMem.v
 proofs/Generic/ClightClosed.v
+proofs/Generic/PermWalk.v
 proofs/Generic/UnusedParam.v
 
 # --- shared: Mario action vocabulary + value engine ---
@@ -313,12 +314,15 @@ proofs/WMotRRequiresA/RenderAnim.v
 proofs/WMotRRequiresA/RenderSet.v
 proofs/WMotRRequiresA/RenderFlank.v
 proofs/WMotRRequiresA/PollFlank.v
+proofs/WMotRRequiresA/FootWalk.v
+proofs/WMotRRequiresA/PollKeep.v
 proofs/WMotRRequiresA/PlatformEff.v
 proofs/WMotRRequiresA/RenderKeep.v
 proofs/WMotRRequiresA/PlatformWalk.v
 proofs/WMotRRequiresA/PlatformKeep.v
 proofs/WMotRRequiresA/LevelFlank.v
 proofs/WMotRRequiresA/LevelWalk.v
+proofs/WMotRRequiresA/LevelWarp.v
 proofs/WMotRRequiresA/LevelKeep.v
 proofs/WMotRRequiresA/HeightFrame.v
 proofs/WMotRRequiresA/WMotREntry.v

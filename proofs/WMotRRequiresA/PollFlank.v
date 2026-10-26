@@ -2500,9 +2500,18 @@ Section POLL.
     intro F; apply W; right; right; right; right; exact F.
   Qed.
 
-  Theorem poll_ok : forall i m0,
+  (* the globals read_controller_inputs writes (its footprint, from the
+     walk: poll_core's Uc) *)
+  Definition rci_gvars : list ident :=
+    [save_file._gSIEventMesgQueue; memory._gMainReceivedMesg; game_init._gControllerPads; mario._gControllers].
+
+  Definition rci_blk (b : block) : Prop :=
+    exists id, In id rci_gvars /\ Genv.find_symbol G id = Some b.
+
+  Theorem poll_ok_foot : forall i m0,
       ow_facts bm MWF i -> ffw G bm i -> ctl_w G i -> pif_a_real G i = false -> rci_call lp i m0 ->
-      ow_facts bm MWF m0 /\ a_used_real bm m0 = false /\ ctl_w G m0.
+      (ow_facts bm MWF m0 /\ a_used_real bm m0 = false /\ ctl_w G m0)
+      /\ Mem.unchanged_on (fun b _ => ~ rci_blk b) i m0.
   Proof.
     intros i m0 (Vi & Ai & Mi) Fi CWi PA (t & vres & Hev).
     pose proof Hspawn as (init & Hsp).
@@ -2536,6 +2545,14 @@ Section POLL.
     eapply poll_core in Hev; try eassumption.
     destruct Hev as (U & B & CW0).
     unfold Uc, Fr in U.
+    assert (Hfoot : Mem.unchanged_on (fun b _ => ~ rci_blk b) i m0).
+    { eapply Mem.unchanged_on_implies; [ exact U | ].
+      intros b z Nr V. split; [ exact V | ].
+      split; [ intros ->; apply Nr; exists save_file._gSIEventMesgQueue; split; [ unfold rci_gvars; cbn [In]; auto 6 | exact Hq ] | ].
+      split; [ intros ->; apply Nr; exists memory._gMainReceivedMesg; split; [ unfold rci_gvars; cbn [In]; auto 6 | exact Hrm ] | ].
+      split; [ intros ->; apply Nr; exists game_init._gControllerPads; split; [ unfold rci_gvars; cbn [In]; auto 6 | exact Hpads ] | ].
+      left. intros ->. apply Nr. exists mario._gControllers. split; [ unfold rci_gvars; cbn [In]; auto 6 | exact Sbc ]. }
+    split; [ | exact Hfoot ].
     assert (Lfar : forall ch b z, b <> bq -> b <> brm -> b <> bpads -> b <> bc -> Mem.valid_block i b ->
                    Mem.load ch m0 b z = Mem.load ch i b z).
     { intros ch b z N1 N2 N3 N4 V. eapply Mem.load_unchanged_on_1; [ exact U | exact V | ].
@@ -2580,5 +2597,12 @@ Section POLL.
       change (Ptrofs.unsigned (Ptrofs.add Ptrofs.zero (Ptrofs.repr 16))) with 16.
       rewrite L18, L16. cbv beta iota. unfold Aclr in A18, A16. rewrite A18, A16. reflexivity.
     - exact CW0.
+  Qed.
+
+  Theorem poll_ok : forall i m0,
+      ow_facts bm MWF i -> ffw G bm i -> ctl_w G i -> pif_a_real G i = false -> rci_call lp i m0 ->
+      ow_facts bm MWF m0 /\ a_used_real bm m0 = false /\ ctl_w G m0.
+  Proof.
+    intros i m0 Hof Hf Hcw HP Hr. exact (proj1 (poll_ok_foot i m0 Hof Hf Hcw HP Hr)).
   Qed.
 End POLL.

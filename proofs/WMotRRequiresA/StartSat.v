@@ -2500,7 +2500,10 @@ Section Witness.
     Proof.
       split; [ | split; [ exact L_cdi | split; [ exact L_cce | ] ] ].
       - intros bp bw' _ Hw _. rewrite Hbw in Hw. injection Hw as <-. exact L_wtype.
-      - intros bo' bs' Ho _ Hn. exfalso. exact (Hn (L_dwo bo' Ho)).
+      - split.
+        + intros bo' bs' Ho _ Hn. exfalso. exact (Hn (L_dwo bo' Ho)).
+        + intros bo' Ho n Hn. rewrite (L_dwo bo' Ho) in Hn. injection Hn as <-.
+          split; intro E; vm_compute in E; discriminate E.
     Qed.
 
     (* gCurrentArea = &gAreaData[1] (the ZA store) *)
