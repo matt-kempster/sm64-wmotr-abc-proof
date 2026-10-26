@@ -124,3 +124,9 @@
    PROOF return waterLevel;
 
 249 changed sites: cosine-alias 206, no-segmented-memory macros (proof_n64.h) 6, unclassified 37
+
+semantic UB-coverage worklist (TRUST.md 3.2), 2 open:
+  - object_helpers.c cur_obj_call_action_function: tbl[o->oAction] loaded with no bounds check (ObjAct.caf_frame)
+      discharge: act_in_range as an obj_w clause, from act_stores_census + the spawn / init writes
+  - indirect calls in the objects + camera closure (ActWriterCensus): the census follows an indirect call only to address-taken functions of exactly the call site's type; a mismatched call is C UB (CompCert: stuck; N64: runs the target)
+      discharge: check that every function-pointer store / initializer in the closure holds a function of the type its holder is read at

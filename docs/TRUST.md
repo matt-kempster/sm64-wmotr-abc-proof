@@ -1590,8 +1590,9 @@ without pressing A".*
   Mario's own `act_in_cannon` behind `INPUT_A_PRESSED` (inside the hole). No falsifier found.
   **Machine-checked (2026-10-26, `WMotRRequiresA/ActWriterCensus.v`):** the closure of
   `area_update_objects` and `update_camera` over the whole link (execute_mario_action cut;
-  an indirect call reaches only address-taken functions of exactly its function type, which
-  Clight's `exec_Scall` enforces; 2217 functions) has exactly two action events
+  an indirect call is followed only to address-taken functions of exactly its function type,
+  a UB-coverage point, 3.2: a mismatched call is C UB that the N64 would run; 2217 functions)
+  has exactly two action events
   (`census_value`): `set_mario_action`'s own store and `set_mario_npc_dialog`'s
   `set_mario_action(.., ACT_READING_NPC_DIALOG, ..)`, not in T. There is no `&action` escape and
   no MarioState copy, and no setter is reached indirectly (`setters_not_indirect`).
@@ -1712,6 +1713,11 @@ link grows.
   `cur_obj_call_action_function` (`ObjAct.caf_frame`) loads `tbl[o->oAction]` with no bounds
   check. On the N64 an out-of-range index reads adjacent memory. Planned: `act_in_range` as an S2
   `obj_w` clause, carried from `act_stores_census` plus the spawn / init writes.
+  Open (2026-10-26): `ActWriterCensus` follows an indirect call only to address-taken functions
+  of exactly the call site's type. A mismatched call is C UB: CompCert gives it no execution,
+  but the N64 runs the target. Discharge path: check that every function-pointer store and
+  initializer in the closure holds a function of the type it is read at. Both points are in
+  `tools/ub_sites.py`'s `UB_WORKLIST`.
 
 ### Row 3.5 in detail
 

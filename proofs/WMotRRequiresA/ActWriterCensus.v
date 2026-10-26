@@ -17,10 +17,13 @@
 (*    CUT (Mario's frame: the hole, covered by GOAL 1's frame proof).      *)
 (*    Edges: the direct calls, and for an INDIRECT call every address-    *)
 (*    taken function (an initializer's Init_addrof, or a function value   *)
-(*    in a body) whose type is exactly the call site's function type:    *)
-(*    Clight's exec_Scall requires classify_fun (typeof a) = fun_case_f   *)
-(*    tyargs tyres cc and type_of_fundef f = Tfunction tyargs tyres cc,   *)
-(*    so a call to a function of another type is stuck.  2217 functions;  *)
+(*    in a body) whose type is exactly the call site's function type.     *)
+(*    This is a UB-COVERAGE POINT, not a soundness argument (TRUST 3.2):  *)
+(*    a call through a pointer of another type is C UB; Clight gives it   *)
+(*    no execution (exec_Scall: type_of_fundef f = Tfunction tyargs tyres *)
+(*    cc), but the N64 would run the target.  Discharge path: check that  *)
+(*    every function-pointer store / initializer in the closure holds a   *)
+(*    function of the type it is read at.  2217 functions;                *)
 (*    the externals reached (osSetTimer, __osSiRawStartDma, osRecvMesg,   *)
 (*    osSendMesg, bcopy, load_sequence, sqrtf) are GOAL 1's model-        *)
 (*    boundary rows.                                                       *)
@@ -279,7 +282,8 @@ Definition ACT_READING_NPC_DIALOG_Z : Z := 536875782.   (* 0x20001306 *)
 Lemma clos_size : List.length clos = 2217%nat.
 Proof. vm_compute. reflexivity. Qed.
 
-(* THE CENSUS: two action events in the whole objects + camera closure *)
+(* THE CENSUS: two action events in the whole objects + camera closure
+   (its indirect edges are type-exact: a UB-coverage point, TRUST 3.2) *)
 Lemma census_value :
   census = [(mario._set_mario_action, AStore None);
             (mario_actions_cutscene._set_mario_npc_dialog,
