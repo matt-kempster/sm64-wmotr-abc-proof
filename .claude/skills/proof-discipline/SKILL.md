@@ -23,8 +23,10 @@ all in `Unwired/`, and the theorem moved nowhere. See
   `noA_never_flying_frame_linked12`: the step is GOAL 2's real `frame_step`; open rows = GOAL 2's
   capstone rows (shared invariant: the level slices' mem_ok carries read PhiW). The header lists
   what GOAL 1 needs from each row; the key one is `Hobj_step_*` (no object sets Mario's action
-  into T; objects reach it only via `set_mario_npc_dialog`). TRUST 0.5. Next: a GOAL-1 world
-  invariant without the height budget, so the Mario-frame rows split.
+  into T; objects reach it only via `set_mario_npc_dialog`, MACHINE-CHECKED by
+  `ActWriterCensus.census_value` over the objects + camera closure). TRUST 0.5. Next: split
+  "keeps action ∉ T" from `Hobj_step_*` (census + the step's footprint); then a GOAL-1 world
+  invariant without the height budget (after Hseg's B-xz chunk).
 - **GOAL 1** (no-A ⇒ no-fly): `NoAImpliesNoFly/NoAImpliesNoFlyTwelve.v`,
   `noA_no_spawn_never_flying_linked12`. The step is one real `execute_mario_action` over
   any link of the 14 TUs (the 12 Mario TUs + `surface_collision` + `math_util`, since

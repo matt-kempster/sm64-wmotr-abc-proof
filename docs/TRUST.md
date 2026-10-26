@@ -1588,6 +1588,18 @@ without pressing A".*
   objects and the camera reach Mario's action only via `set_mario_npc_dialog`
   (ACT_READING_NPC_DIALOG), `mario_set_flag` has no caller, and the cannon shot is set by
   Mario's own `act_in_cannon` behind `INPUT_A_PRESSED` (inside the hole). No falsifier found.
+  **Machine-checked (2026-10-26, `WMotRRequiresA/ActWriterCensus.v`):** the closure of
+  `area_update_objects` and `update_camera` over the whole link (execute_mario_action cut;
+  an indirect call reaches only address-taken functions of exactly its function type, which
+  Clight's `exec_Scall` enforces; 2217 functions) has exactly two action events
+  (`census_value`): `set_mario_action`'s own store and `set_mario_npc_dialog`'s
+  `set_mario_action(.., ACT_READING_NPC_DIALOG, ..)`, not in T. There is no `&action` escape and
+  no MarioState copy, and no setter is reached indirectly (`setters_not_indirect`).
+  `mario_set_flag` is uncalled and never address-taken, and `act_in_cannon` is outside the
+  closure (`cannon_out`). Not covered: a store into the action cell through a pointer of another
+  type (the object step's footprint must exclude it) and `set_mario_action`'s semantics on that
+  constant; both belong to the narrow semantic row "keeps action ∉ T", not yet split from
+  `Hobj_step_*`.
   Mario's height budget is NOT what GOAL 1 needs, but `Hseg_na_open` carries it jointly with the
   world facts GOAL 1 does need.
 - GOAL 1's twelve-TU capstone: **only `execute_mario_action`**. GOAL 2's `frame_step` composes that real call with one
