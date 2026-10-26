@@ -534,6 +534,10 @@ all in `Unwired/`, and the theorem moved nowhere. See
     kernel conversion (it runs the VM). `Local Opaque` it, and state the soundness lemmas
     over an arbitrary list, as in ObjWorld.vm_b_sound_gen. Never `Eval vm_compute` it into a
     Definition: the readback takes 200 s.
+    B3 (iii-a) census: field bytes < 0x50, model ids < 256 at every reachable state.
+    FOUND (vacuity): bobomb_seg8_anims_0802396C is unlinked (size-0 extern), and the PLACED
+    bob-omb buddy ANIMATEs from it, so the object phase is Clight-stuck while the buddy lives.
+    OPEN: link the actor anim data.
     The object world `ObjWorld.obj_w` is in `fb_ok` (no phantom ∀ over object lists) and is
     PROVED at the boot witness, which now runs the real init_graph_node_start + clear_objects
     and Mario's spawn_objects_from_info; one real area_update_objects runs from it

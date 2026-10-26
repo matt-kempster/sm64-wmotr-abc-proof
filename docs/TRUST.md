@@ -1071,6 +1071,27 @@ without pressing A".*
   jumps are the macro layouts (`BehaviorScripts.cmd_len`). B3 (iii), the stepper, ties each
   one to its handler's generated body. Until then they are only the census's model, and no
   row depends on them.
+  **Indexed handler arguments (2026-10-26, B3 iii-a, `BhvVM`).** These are vm-checked at
+  every reachable state:
+  - The field commands index `o->rawData.asU32[0x50]` (`vm_fields_in_rawdata`): every field
+    byte is < 0x50. That covers SUM_FLOAT / SUM_INT's three fields and PARENT_BIT_CLEAR.
+  - The SET_MODEL / SPAWN_* model ids index `gLoadedGraphNodes` = `D_8033A160[0x100]`
+    (`vm_models_in_table`): every id is in [0, 256).
+  **FOUND (vacuity): the bob-omb buddy's animation table is not linked.** WMotR places
+  `bhvBobombBuddyOpensCannon`. Its script loads `bobomb_seg8_anims_0802396C` into
+  oAnimations and runs ANIMATE(0). `geo_obj_init_animation` then loads `animations[0]`. In
+  the link that table is only behavior_data's size-0 extern: no TU defines it
+  (`vm_anim_tables_unlinked`). So a frame in which the buddy updates has no Clight derivation
+  in our link, and a frame statement over the real object set is vacuous there. The same
+  class of gap was the earlier `gMarioAnims` one. OPEN: link the actor animation data. The
+  toad, peach and bowser-key tables are the other ANIMATE / LOAD_ANIMATIONS users in the
+  closure, and none of them is placed in WMotR.
+  **FOUND (non-vacuity guard too weak): the boot witness holds only Mario.** The witness's
+  object world (`StartSat.objects_runs`) comes from `clear_objects` plus Mario's spawn. None
+  of the objects WMotR places (the bob-omb buddy, the cannon, the wing-cap boxes, the poles)
+  is spawned there. So the one real `area_update_objects` run at the witness exercises Mario
+  alone, which is how the unlinked anim table went unnoticed. OPEN: run the area's real
+  macro/special-object spawns in the witness once their data is linked.
 
 - **Level phase (2026-10-24): real code.** `seg_level_pre_spec` / `seg_level_post_spec` are
   `exec_stmt` of the generated `play_mode_normal` body's slices before / after its
