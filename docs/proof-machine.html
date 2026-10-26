@@ -202,7 +202,7 @@ footer{margin-top:64px; padding-top:16px; border-top:1px solid var(--rule); font
       <li><span><b>So Mario never gets above 2796,</b> and there is no floor between 2424 and 3046 to climb onto next.</span></li>
       <li><span><b>Coin #2 needs 2980.</b> It floats at 3140, and Mario’s body is 160 tall. That leaves 184 units to spare.</span></li>
     </ol>
-    <div class="meta"><span>Updated 2026-09-27</span><span>commit a1b1f6c</span><span>Rocq 8.19 · CompCert 3.15</span></div>
+    <div class="meta"><span>Updated 2026-10-26</span><span>master b8048955</span><span>Rocq 8.19 · CompCert 3.15</span><span>51 real C files linked</span></div>
   </div>
 
   <figure class="gauge-card" aria-labelledby="gauge-cap" style="margin:0">
@@ -235,9 +235,10 @@ footer{margin-top:64px; padding-top:16px; border-top:1px solid var(--rule); font
     <div><h3>Snaps land on real floors</h3><p>Every <b>snap</b> writes a floor, ledge or pole height taken from the level. The level data
       proves no floor exists between 2424 and 3046, and a snap only reaches a floor within 241 of where Mario already is. So no snap
       carries him across the gap.</p></div>
-    <div><h3>What the proof still has to show</h3><p>The list of sites is machine-checked. What each site <i>does</i> is not
-      yet: that is the open part <code>Hframe_is_move_chain</code>, which walks the real code and shows each write is the move its bin says.
-      The machine-checked census found 12 sites that the hand-written census had merged together.</p></div>
+    <div><h3>What each site does is now proved too</h3><p>The list of sites is machine-checked, and so is what the sites
+      in reach <i>do</i>: all 11 no-A airborne actions (freefall, dive, knockbacks, ground pound, slide kick …) are walked through their
+      real handlers, and the pole, ledge and cannon rows likewise. What is left in Mario’s own update is 7 named per-call rows
+      (below). The machine-checked census found 12 sites that the hand-written census had merged together.</p></div>
   </div>
 </section>
 
@@ -245,91 +246,89 @@ footer{margin-top:64px; padding-top:16px; border-top:1px solid var(--rule); font
   <div class="section-head">
     <span class="eyebrow">How the proof works</span>
     <h2>One frame goes in. The machine stamps it “still below 2796”.</h2>
-    <p>The theorem runs a frame through five stations, in the same order as the real game loop. If Mario’s height budget
-      holds going in, it holds coming out, and the loop repeats every frame. Tap a part to see what it says and what holds it up.</p>
+    <p>The theorem runs a frame through the same phases, in the same order, as the real game loop. If Mario’s height budget
+      holds going in, it holds coming out, and the loop repeats every frame. Paused, transition and time-stop frames take a
+      shorter path through the same phases. Tap a part to see what it says and what holds it up.</p>
   </div>
 
-  <div class="io"><span class="io-arrow">IN</span><span>A game state that respects the height budget Φ, with the A button not pressed this frame</span></div>
+  <div class="io"><span class="io-arrow">IN</span><span>A game state that respects the height budget Φ, and controller bytes from the hardware showing no A on any live port</span></div>
 
   <div class="machine">
     <div class="loop" aria-hidden="true"><span class="loop-label">repeat every frame · proved</span></div>
 
     <div class="stage">
       <span class="dot-node" aria-hidden="true"></span>
-      <span class="stage-tag">Station 1 · read the controller</span>
+      <span class="stage-tag">Phase 1 · read the controller</span>
       <details class="part">
-        <summary><span class="part-title"><span class="name">Controller poll</span><span class="coq">seg_input_spec</span></span><span class="lamp l-spec">spec</span></summary>
+        <summary><span class="part-title"><span class="name">Controller poll</span><span class="coq">PollFlank.poll_ok</span></span><span class="lamp l-proved">real code</span></summary>
         <div class="part-body"><dl>
-          <dt>Says</dt><dd>Reading the controller doesn’t move Mario. It keeps GOAL 1’s memory invariant only when A is not pressed.</dd>
-          <dt>Held up by</dt><dd>A labeled spec. The poll code is not in the linked C yet (TRUST 0.7).</dd>
+          <dt>Says</dt><dd>The real libultra <code>osContStartReadData</code> and the game’s <code>read_controller_inputs</code> run, and Mario’s button words come out with A neither pressed nor held.</dd>
+          <dt>Held up by</dt><dd>The no-A premise is on the raw reply bytes from the controller chip (the PIF), not on Mario’s decoded buttons. Walked down to the serial-interface and FPU hardware floors.</dd>
+          <dt>Caught</dt><dd>An unplugged port reads as “A pressed”, so the premise skips error-flagged ports, exactly as the game does.</dd>
         </dl></div>
       </details>
     </div>
 
     <div class="stage">
       <span class="dot-node" aria-hidden="true"></span>
-      <span class="stage-tag">Station 2 · moving platforms</span>
+      <span class="stage-tag">Phase 2 · level script, before objects</span>
       <details class="part">
-        <summary><span class="part-title"><span class="name">Platform displacement</span><span class="coq">seg_platform_spec</span></span><span class="lamp l-spec">spec</span></summary>
+        <summary><span class="part-title"><span class="name">Level phase (pre)</span><span class="coq">LevelKeep.pre_keeps</span></span><span class="lamp l-proved">real code</span></summary>
         <div class="part-body"><dl>
-          <dt>Says</dt><dd>Platforms don’t lift Mario in WMotR. The only surfaces that can carry him are absent or boxes that don’t move.</dd>
-          <dt>Held up by</dt><dd>The platform census (<code>playground/PlatformInert.v</code>). Discharged for real once <code>platform_displacement.c</code> is generated.</dd>
+          <dt>Says</dt><dd>The real <code>play_mode_normal</code> up to the object update (demo check, warp checks, timer) keeps the budget and the world facts.</dd>
+          <dt>Still stated per run</dt><dd>Three conditions the level steps assume (platform object apart, <code>gCurrentArea</code> is Mario’s area, the warp facts). Being turned into proved, carried facts now.</dd>
         </dl></div>
       </details>
     </div>
 
     <div class="stage">
       <span class="dot-node" aria-hidden="true"></span>
-      <span class="stage-tag">Station 3 · Mario’s own code</span>
+      <span class="stage-tag">Phase 3 · objects, with Mario inside</span>
       <div class="station">
         <div class="station-head"><h3>The real <code>execute_mario_action</code></h3><span class="lamp l-proved">derived, not assumed</span></div>
-        <p style="font-size:.93rem;color:var(--muted)">One real call of the game’s compiled C per frame, run over any link of the twelve Mario translation units plus the collision code.
-          “The frame keeps the budget” used to be a single assumption. It is now a lemma (<code>seg_action_phi</code>) built from these parts.</p>
+        <p style="font-size:.93rem;color:var(--muted)">Mario’s update runs inside the object update (he is an object). One real call of the game’s compiled C per frame. “The frame keeps the budget” is a lemma built from these parts.</p>
         <div class="parts-grid">
           <details class="part">
-            <summary><span class="part-title"><span class="name">Never flies (GOAL 1)</span><span class="coq">frame_ok_linked12</span></span><span class="lamp l-proved">proved</span></summary>
+            <summary><span class="part-title"><span class="name">Stays in no-A actions</span><span class="coq">Hframe_stays_noA</span></span><span class="lamp l-proved">proved</span></summary>
             <div class="part-body"><dl>
-              <dt>Says</dt><dd>Without A, one real frame never enters a flying action, and the memory stays well-formed.</dd>
-              <dt>Held up by</dt><dd>31 named assumptions about code outside the link (math helpers, audio, objects). <code>surface_collision</code> joined the link on 2026-10-17, and five assumptions became theorems. <code>math_util</code> is next, but two of the assumptions turned out to be false for it: they let its vector writers write through any pointer. Those have to be restated first.</dd>
-              <dt>Control</dt><dd>With A pressed, the same machinery runs one real frame into <code>ACT_FLYING_TRIPLE_JUMP</code>, so it is the missing A that does the work.</dd>
+              <dt>Says</dt><dd>The frame keeps Mario inside the actions reachable without A. Flying is not on that list, so no flying code ever runs.</dd>
+              <dt>How</dt><dd>GOAL 1’s engine, re-run with the no-A whitelist instead of “not flying”.</dd>
             </dl></div>
           </details>
           <details class="part">
-            <summary><span class="part-title"><span class="name">Stays in no-A actions</span><span class="coq">Hframe_stays_noA</span></span><span class="lamp l-open">open</span></summary>
+            <summary><span class="part-title"><span class="name">The frame is a chain of known moves</span><span class="coq">Hframe_is_move_chain</span></span><span class="lamp l-proved">proved, 7 rows open</span></summary>
             <div class="part-body"><dl>
-              <dt>Says</dt><dd>The frame keeps Mario inside the 73 actions reachable without A (12 of them airborne).</dd>
-              <dt>Discharge</dt><dd>Re-run GOAL 1’s engine with this action set instead of “not flying”. The engine is hard-wired to its current set across about 90k lines, so this is a large refactor, and it is scheduled last.</dd>
-            </dl></div>
-          </details>
-          <details class="part">
-            <summary><span class="part-title"><span class="name">The frame is a chain of known moves</span><span class="coq">Hframe_is_move_chain</span></span><span class="lamp l-open">open · next</span></summary>
-            <div class="part-body"><dl>
-              <dt>Says</dt><dd>Whatever the real code does to Mario’s height, speed and action is a sequence of moves from the catalog, each staying in range. It includes the claim that the floor heights the game finds come from this level’s surfaces.</dd>
-              <dt>Discharge</dt><dd>This is the <a href="#crawl">writer crawl</a> made formal: walk the generated C value by value and show each of the 52 writes is the move its bin says, starting at <code>perform_air_step</code>. This is the main remaining work.</dd>
-              <dt>Progress</dt><dd>The tool is built: a symbolic executor for the generated Clight (<code>SymExec2.v</code>), proved to cover every real run, with joins that keep relations both paths share. It runs the whole real <code>perform_air_step</code> in 22 s (225 outcome classes) with stand-in contracts. Next: real contracts for <code>find_floor</code> and the wall check, then wire it into this row.</dd>
-              <dt>Fails if</dt><dd>An unmodelled move fires: hanging (needs A), water, wind, shells, or objects that grab or throw. WMotR has none of these.</dd>
+              <dt>Says</dt><dd>Whatever the real code does to Mario’s height, speed and action is a sequence of catalogued moves.</dd>
+              <dt>Progress</dt><dd>All 11 no-A air cases (freefall included, with <code>perform_air_step</code> and <code>set_mario_animation</code>) and the pole, ledge and cannon rows are walked from real code. The rest of Mario’s per-frame calls are proved too, except 7 named rows: input update, special floors, interactions and four action-group dispatchers. The hitbox row is proved and landing.</dd>
             </dl></div>
           </details>
           <details class="part">
             <summary><span class="part-title"><span class="name">Every move keeps the budget</span><span class="coq">chain_keeps_budget</span></span><span class="lamp l-proved">proved</span></summary>
             <div class="part-body"><dl>
-              <dt>Says</dt><dd>Air steps, ceiling bonks, the slide-kick bounce, ground-pound windup, action switches, landing, ledge and pole grabs, floor refresh and out-of-bounds recovery: none of them push height + remaining climb past 2796.</dd>
-              <dt>How</dt><dd>Exact 32-bit float arithmetic (Flocq), including rounding on every quarter step. <code>HeightMoveCatalog.v</code>, <code>HeightFloatSteps.v</code>.</dd>
+              <dt>Says</dt><dd>Air steps, ceiling bonks, the slide-kick bounce, ground-pound windup, landings, ledge and pole grabs, the cannon seat, floor refresh and out-of-bounds recovery: none push height + remaining climb past 2796.</dd>
+              <dt>How</dt><dd>Exact 32-bit float arithmetic (Flocq), including rounding on every quarter step.</dd>
+            </dl></div>
+          </details>
+          <details class="part">
+            <summary><span class="part-title"><span class="name">Moving platforms</span><span class="coq">PlatformKeep · plat_still</span></span><span class="lamp l-proved">real code</span></summary>
+            <div class="part-body"><dl>
+              <dt>Says</dt><dd>The real <code>apply_mario_platform_displacement</code> never lifts Mario out of budget. Nothing Mario can ride in WMotR rotates under him.</dd>
+              <dt>Caught</dt><dd>The old spec said platforms never move Mario’s height; a rotating platform does. Restated from the real code, then the WMotR fact proved.</dd>
+            </dl></div>
+          </details>
+          <details class="part">
+            <summary><span class="part-title"><span class="name">Every other object</span><span class="coq">seg_rest_spec</span></span><span class="lamp l-spec">spec · last one</span></summary>
+            <div class="part-body"><dl>
+              <dt>Says</dt><dd>The other objects keep the budget and Mario’s world facts.</dd>
+              <dt>Progress</dt><dd>390 object functions have proved write footprints; 200 are proved to touch only their own slot; nothing in the game writes the action tables; no stale-pointer (“spiny adoption”) write found in WMotR. Next: spawns as one labeled row, then replace this spec with the real per-function frames.</dd>
+              <dt>Caught</dt><dd>“Objects only touch themselves” is false: pushes move Mario’s x/z, 1-ups change lives, NPC dialog sets his action, the cannon flags him. Each gets its own contract.</dd>
             </dl></div>
           </details>
           <details class="part">
             <summary><span class="part-title"><span class="name">WMotR’s floors and poles</span><span class="coq">wmotr_gap_proved · wmotr_poles_proved</span></span><span class="lamp l-proved">proved</span></summary>
             <div class="part-body"><dl>
-              <dt>Says</dt><dd>No floor lies between 2424 and 3046. Every pole is either low or starts its grab window above 2796.</dd>
-              <dt>How</dt><dd>The level’s terrain, object list and script are clightgen’d like the game code, and Coq decodes them (1352 triangles, 778 floors, 26 objects, 6 poles) and checks both facts itself.</dd>
-              <dt>Still trusted</dt><dd>That the decoders read the data the way the game’s loaders do, and that only exclamation boxes and cannon lids carry collision (TRUST 0.8).</dd>
-            </dl></div>
-          </details>
-          <details class="part">
-            <summary><span class="part-title"><span class="name">The height budget itself</span><span class="coq">height_invariant · budget_ok</span></span><span class="lamp l-proved">defined</span></summary>
-            <div class="part-body"><dl>
-              <dt>Says</dt><dd>Mario’s height plus the most his current action could still climb is at most 2424 + 372. It reads real <code>MarioState</code> fields at offsets checked against the generated code, plus the display height that out-of-bounds recovery copies back.</dd>
-              <dt>Tether</dt><dd>It holds on all 620 recorded real game states (<code>experiments/oracle/phi_check.py</code>).</dd>
+              <dt>Says</dt><dd>No floor lies between 2424 and 3046. Every pole is either low or starts its grab window above 2796. Cannon bases rise and lids sink; both are tracked.</dd>
+              <dt>How</dt><dd>The level’s terrain, object list and script are clightgen’d like the game code and decoded in Coq.</dd>
             </dl></div>
           </details>
         </div>
@@ -338,24 +337,23 @@ footer{margin-top:64px; padding-top:16px; border-top:1px solid var(--rule); font
 
     <div class="stage">
       <span class="dot-node" aria-hidden="true"></span>
-      <span class="stage-tag">Station 4 · level script and warps</span>
+      <span class="stage-tag">Phase 4 · level script, after objects</span>
       <details class="part">
-        <summary><span class="part-title"><span class="name">Level phase</span><span class="coq">seg_level_spec</span></span><span class="lamp l-spec">spec</span></summary>
+        <summary><span class="part-title"><span class="name">Level phase (post) and camera</span><span class="coq">LevelKeep.post_keeps · Hcam_phi</span></span><span class="lamp l-proved">real code · camera row open</span></summary>
         <div class="part-body"><dl>
-          <dt>Says</dt><dd>The level update and warps don’t change Mario’s action or lift him.</dd>
-          <dt>Discharge</dt><dd>Walk it against code that is already linked (ladder rung 2).</dd>
+          <dt>Says</dt><dd>HUD, delayed warps and the play-mode switch are walked from real code. <code>update_camera</code> is proved memory-safe over its 507 real functions.</dd>
+          <dt>Open</dt><dd>The camera’s effect on the height budget is one labeled row (<code>Hcam_phi</code>), allowed as a camera premise; its store census is done.</dd>
         </dl></div>
       </details>
     </div>
 
     <div class="stage">
       <span class="dot-node" aria-hidden="true"></span>
-      <span class="stage-tag">Station 5 · every other object</span>
+      <span class="stage-tag">Phase 5 · render</span>
       <details class="part">
-        <summary><span class="part-title"><span class="name">Object interactions</span><span class="coq">seg_rest_spec</span></span><span class="lamp l-spec">spec</span></summary>
+        <summary><span class="part-title"><span class="name">Mario’s render call</span><span class="coq">RenderKeep</span></span><span class="lamp l-proved">real code</span></summary>
         <div class="part-body"><dl>
-          <dt>Says</dt><dd>Objects don’t write Mario’s height. At most they switch him to reading a sign, which is grounded. The census found 3 writers in WMotR.</dd>
-          <dt>Discharge</dt><dd>Walk the ~10 WMotR behavior scripts (ladder rung 5).</dd>
+          <dt>Says</dt><dd>Drawing Mario writes only his display fields and render globals, so the budget is untouched.</dd>
         </dl></div>
       </details>
     </div>
@@ -388,6 +386,19 @@ footer{margin-top:64px; padding-top:16px; border-top:1px solid var(--rule); font
     <p>A proof that only ever confirms is suspicious. These are claims that looked right until the proof, or tethering it to the real game, said otherwise.</p>
   </div>
   <div class="catches">
+    <div class="catch"><span class="date">2026-10-25</span><p><b>Objects write Mario’s state.</b> The plan assumed each object only touches itself. A census of the real code found
+      pushes moving Mario’s x and z, 1-ups changing his lives, NPC dialog setting his action, and the cannon flagging him. Each now has its own contract proved from the real code.</p></div>
+    <div class="catch"><span class="date">2026-10-25</span><p><b>Several world facts were false or quantified over impossible states.</b> Mario’s area pointer is
+      <code>&amp;gAreaData[i]</code>, not a fresh block; a collided object was allowed to be Mario himself; <code>throwMatrix</code>, <code>sWarpDest</code> and the credits pointer were never pinned. All fixed and re-proved from the real boot state.</p></div>
+    <div class="catch"><span class="date">2026-10-25</span><p><b>“The run gets stuck there” is not a proof.</b> An unchecked action-table index makes Clight stop, which
+      silently drops those runs instead of covering them. The rule is now: carry the in-range fact as an invariant, and log the site as an undefined-behaviour coverage point.</p></div>
+    <div class="catch"><span class="date">2026-10-24</span><p><b>Rotating platforms move Mario’s height, and cannon bases rise.</b> Two specs said otherwise. Both were restated from the real code
+      (140 cannon seats walked one by one), and “nothing Mario rides in WMotR rotates” was proved from a census of every rotation-speed store.</p></div>
+    <div class="catch"><span class="date">2026-10-23</span><p><b>An unplugged controller reads as “A pressed”.</b> A no-A premise over every port would have been false
+      with fewer than four controllers, making the theorem vacuous. The premise now ignores error-flagged ports, as the game does.</p></div>
+    
+    <div class="catch"><span class="date">2026-10-18</span><p><b>Both capstones were vacuous for a day.</b> The memory invariant only allowed one global to hold Mario’s
+      pointers, but the real init stores three more. No real memory satisfied it. Widened, and now proved true of the memory right after the real boot and init.</p></div>
     <div class="catch"><span class="date">2026-09-27</span><p><b>The collision check has no return value when objects miss sideways.</b> In the ROM,
       <code>detect_object_hitbox_overlap</code> falls off its end, so it returns whatever is in the register. Our C returns 0 there.
       The coin theorem was restated so the returned value doesn’t matter: it proves only that the check returns without touching memory.</p></div>
@@ -412,9 +423,9 @@ footer{margin-top:64px; padding-top:16px; border-top:1px solid var(--rule); font
     <h2>Where the work goes from here</h2>
   </div>
   <div class="next">
-    <div><h3>Walk the air step</h3><p>Start proving the frame is a chain of moves by stepping through the generated <code>perform_air_step</code>.</p></div>
-    <div><h3>Finish the coin link</h3><p>The real collision check is proved to miss coin #2 below 2980. Next: compose it into the capstone (Mario’s hitbox fields at collision time, coin #2’s fields), then “not collected ⇒ no star”.</p></div>
-    <div><h3>Widen GOAL 1’s engine</h3><p>Re-run it with the 73 no-A actions to discharge <code>Hframe_stays_noA</code>.</p></div>
+    <div><h3>Make objects real code</h3><p>Spawns as one labeled row, then replace the last spec with the proved per-function object frames. Then prove the object-list bookkeeping that closes the spawn row.</p></div>
+    <div><h3>Restate GOAL 1 over the whole frame</h3><p>Today GOAL 1 covers only Mario’s own update. Once objects land, state “no A ⇒ no flying” over the full real frame, so object-driven action changes (the cannon) are covered.</p></div>
+    <div><h3>Cover undefined behaviour</h3><p>Prove the frame never gets stuck from any invariant state, so runs that would hit UB are ruled out, not just skipped. Model any real UB site from the N64 memory layout.</p></div>
   </div>
 </section>
 
@@ -612,25 +623,26 @@ footer{margin-top:64px; padding-top:16px; border-top:1px solid var(--rule); font
   const S = {proved:['l-proved','proved'], trusted:['l-trusted','trusted'], open:['l-open','open'], spec:['l-spec','spec']};
   const rows = [
     ['GOAL 1 · no A means no flying'],
-    ['Never-flying frame, over any link of 13 TUs', 'proved', 'Nothing; this is done. <code>noA_no_spawn_never_flying_linked12</code>'],
-    ['The 13 TUs really link', 'proved', '<code>linked12_inhabited</code>'],
-    ['Math and collision helpers (≈17 rows)', 'trusted', 'Link <code>math_util</code> and <code>surface_collision</code>; their bodies are already proved'],
-    ['Per-family external callees (7 rows)', 'trusted', 'Shrinks with the same link growth'],
-    ['Run layout, object pool, gated externals (9 rows)', 'spec', 'By design: code outside the verified units'],
-    ['CompCert’s external-call model (2 rows)', 'spec', 'Permanent edge of verifying one program'],
+    ['Never-flying, over any link of the real code, from the real boot state', 'proved', 'Done for Mario’s own update. <code>noA_never_flying_from_boot</code>'],
+    ['The memory invariant holds right after the real boot and init', 'proved', '<code>BootMWF</code>; widened after it was found false of every real memory'],
+    ['Its step covers only <code>execute_mario_action</code>', 'open', 'Restate over GOAL 2’s full real frame once objects land (TRUST 0.5)'],
+    ['Link, symbol facts and hardware/audio floors (8 rows)', 'trusted', 'The link exists, where Mario’s globals live, FPU sqrt, DMA and audio load; the floors stay as labeled trust rows by design'],
     ['GOAL 2 · no A means not high enough'],
-    ['Height budget Φ over real MarioState fields', 'proved', '<code>height_invariant</code>; holds on 620 real states'],
+    ['Height budget Φ over real MarioState fields', 'proved', '<code>height_invariant</code>; held on about 94.8k real no-A frames'],
     ['Budget ⇒ height ≤ 2796', 'proved', '<code>height_invariant_y</code>'],
     ['Every move keeps the budget (binary32)', 'proved', '<code>chain_keeps_budget</code>'],
     ['Floor gap and poles from real level data', 'proved', '<code>wmotr_gap_proved</code>, <code>wmotr_poles_proved</code>'],
-    ['Level-data decoders and collision census', 'trusted', 'Walk <code>surface_load.c</code> once it is generated (TRUST 0.8)'],
-    ['The frame is a chain of known moves', 'open', 'Value walk from <code>perform_air_step</code>'],
-    ['The frame stays in no-A actions', 'open', 'GOAL 1’s engine at the 73-action set'],
-    ['Poll, platform, level and object stations', 'spec', 'Generate and walk each phase (ladder rungs 2–5)'],
-    ['Below 2980 ⇒ the real collision check never registers coin #2', 'proved', '<code>mario_coin2_no_contact</code>, over the generated <code>detect_object_hitbox_overlap</code>'],
-    ['Coin #2 never moves (no cloning)', 'trusted', 'heldObj, pickup-entry and object censuses are machine-checked; copies of action values and level-phase code remain (TRUST 0.3, 0.10)'],
-    ['No contact ⇒ coin not collected ⇒ no star, inside the capstone', 'open', 'Compose with the height capstone: Mario’s hitbox fields, oPosY sync, star counter'],
-    ['The starting state is a real WMotR spawn', 'trusted', 'Check against recorded real states (TRUST 0.4)'],
+    ['The frame stays in no-A actions', 'proved', '<code>Hframe_stays_noA</code>'],
+    ['All 11 no-A air cases, poles, ledges, cannon', 'proved', 'Walked from the real handlers'],
+    ['Mario’s remaining per-frame calls (7 rows)', 'open', 'Input update, special floors, interactions, four action-group dispatchers'],
+    ['Controller poll, platform, level phase, render', 'proved', 'Real code; three level conditions still stated per run'],
+    ['Camera’s effect on the budget', 'spec', 'One labeled camera row, <code>Hcam_phi</code>'],
+    ['Other objects', 'spec', 'Last frame phase still a spec; walker groundwork landed'],
+    ['Audio load and DMA', 'trusted', 'Labeled hardware/audio floors (TRUST 3.5, 4.1)'],
+    ['Below 2980 ⇒ the real collision check never registers coin #2', 'proved', '<code>mario_coin2_no_contact</code>'],
+    ['Coin #2 never moves (no cloning)', 'trusted', 'Censuses machine-checked; level-phase copies remain (TRUST 0.3, 0.10)'],
+    ['No contact ⇒ coin not collected ⇒ no star, inside the capstone', 'open', 'Carry Mario’s hitbox height and offset to collision time, then compose'],
+    ['Runs that hit undefined behaviour', 'open', 'Today they are not covered; needs a “never gets stuck” proof'],
   ];
   const tb = document.getElementById('parts'); const count = {proved:0, trusted:0, open:0, spec:0};
   for (const r of rows) {
