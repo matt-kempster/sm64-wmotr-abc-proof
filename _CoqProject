@@ -327,6 +327,7 @@ proofs/WMotRRequiresA/LevelWalk.v
 proofs/WMotRRequiresA/LevelWarp.v
 proofs/WMotRRequiresA/LevelKeep.v
 proofs/WMotRRequiresA/HeightFrame.v
+proofs/NoAImpliesNoFly/NoAImpliesNoFlyFrame.v
 proofs/WMotRRequiresA/WMotREntry.v
 proofs/WMotRRequiresA/SpawnTypeRun.v
 proofs/WMotRRequiresA/AnimRoundTrip.v

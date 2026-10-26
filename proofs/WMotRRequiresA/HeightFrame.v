@@ -1506,4 +1506,26 @@ Section HeightLinked12.
                     init is m Hok Hphi Hst How HA Hr)).
   Qed.
 
+  (* the run invariant the capstone above reads y from: GOAL 1's mem_ok
+     holds at every frame boundary of a no-A run too (read by GOAL 1's
+     whole-frame capstone, NoAImpliesNoFlyFrame) *)
+  Theorem wmotr_noA_run_ok_linked12 :
+    forall (init : mem) (is : list mem) (m : mem),
+      mem_ok_lp bm MWF init -> Phi init -> PlatformKeep.plat_still lp init -> OWl init ->
+      Forall (fun i => PollFlank.pif_a_real (lp_ge lp) i = false) is ->
+      reachable mem mem (frame_step lp bm MWF Phi OWl) init is m ->
+      mem_ok_lp bm MWF m /\ y_le bm PHI_YMAX m.
+  Proof.
+    intros init is m Hok Hphi Hst How HA Hr.
+    exact ((noA_run_height_bound lp bm MWF Phi OWl PHI_YMAX
+                    frame_action_linked12 render_ok_linked12 render_phi_linked12
+                    obj_clock_linked12 obj_auo_linked12
+                    Hobj_blind (Hobj_fresh 240) Hobj_noref Hobj_stores Hobj_counter
+                    Hobj_debug Hobj_surfaces obj_terrain_linked12 Hobj_collisions obj_nonterrain_linked12
+                    Hobj_unload Hobj_mplat obj_platform_linked12 Hlvl_ow Hrender_ow
+                    lvl_pre_linked12 lvl_post_linked12 seg_action_phi Hphi_y Hphi_sa_linked12
+                    srd_ok_linked12 srd_keep_linked12 mid_keep_linked12 poll_ok_linked12
+                    init is m Hok Hphi Hst How HA Hr)).
+  Qed.
+
 End HeightLinked12.
