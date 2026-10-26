@@ -263,6 +263,41 @@ Lemma pole_list_value :
                      (3154, 4404); (4048, 4408); (3636, 4406)].
 Proof. vm_compute. reflexivity. Qed.
 
+(* x / z of the same OBJECT commands (2026-10-26, the Phi x/z work): the
+   x|y word's high half is x, the z|rx word's high half is z.  (x, z, base,
+   top); its (base, top) projection is wmotr_pole_list. *)
+Fixpoint script_poles_xz (l : list init_data) : list (Z * Z * Z * Z) :=
+  match l with
+  | Init_int32 _ :: Init_int32 xy :: Init_int32 zr :: Init_int32 _ :: Init_int32 bp
+      :: Init_addrof b _ :: r =>
+      if Pos.eqb b wmotr_script._bhvPoleGrabbing
+      then (s16_lo (Z.shiftr (Int.unsigned xy) 16), s16_lo (Z.shiftr (Int.unsigned zr) 16),
+            s16_lo (Int.unsigned xy), Z.land (Z.shiftr (Int.unsigned bp) 16) 255) :: script_poles_xz r
+      else script_poles_xz r
+  | _ :: r => script_poles_xz r
+  | nil => nil
+  end.
+
+Definition wmotr_pole_xz_list : list (Z * Z * Z * Z) :=
+  map (fun '(x, z, y, b2) => (x, z, y, y + 10 * b2))
+      (script_poles_xz (gvar_init wmotr_script.v_script_func_local_1)).
+
+Lemma pole_xz_list_proj :
+  map (fun '(x, z, b, t) => (b, t)) wmotr_pole_xz_list = wmotr_pole_list.
+Proof. vm_compute. reflexivity. Qed.
+
+Lemma pole_xz_list_value :
+  wmotr_pole_xz_list = [(3996, 5477, -2739, -1919); (-2911, -3967, 3564, 4404);
+                        (-3258, -3946, 3359, 4409); (-2639, -4369, 3154, 4404);
+                        (-2980, -4248, 4048, 4408); (-3290, -4477, 3636, 4406)].
+Proof. vm_compute. reflexivity. Qed.
+
+Lemma pole_xz_in_list : forall x z b t, In (x, z, b, t) wmotr_pole_xz_list -> In (b, t) wmotr_pole_list.
+Proof.
+  intros x z b t H. rewrite <- pole_xz_list_proj.
+  exact (in_map (fun '(x, z, b, t) => (b, t)) _ _ H).
+Qed.
+
 (* ----------------------------------------------------------------------- *)
 (* 5b. Cannons.  act_in_cannon state 0 puts Mario at usedObj.y + 350        *)
 (*     (mario_actions_automatic.c), with NO input gate: the cannon is       *)
@@ -327,6 +362,57 @@ Qed.
 
 Lemma cannon_list_length : length wmotr_cannon_list = 140%nat.
 Proof. vm_compute. reflexivity. Qed.
+
+(* x / z of the cannon bases (2026-10-26, the Phi x/z work): a base spawns
+   at its lid's macro x / z (cannon_door.inc.c: spawn_object copies the
+   lid's position); (x, z, seat y) for each of its seats.  That the base
+   never moves in x / z is a carry fact of obj_w (the B3 stepper). *)
+Definition wmotr_cannon_xzy : list (Z * Z * Z) :=
+  flat_map (fun o => map (fun k => (m_x o, m_z o, m_y o - CANNON_DROP + CANNON_SEAT + CANNON_RISE * Z.of_nat k))
+                         (seq 0 CANNON_RISE_STEPS))
+           (filter (fun o => Pos.eqb (bhv_of o) macro_special_objects._bhvCannonClosed) wmotr_macro_objs).
+
+Lemma cannon_xzy_proj : map (fun '(x, z, y) => y) wmotr_cannon_xzy = wmotr_cannon_list.
+Proof. vm_compute. reflexivity. Qed.
+
+Lemma cannon_xzy_in_list : forall x z y, In (x, z, y) wmotr_cannon_xzy -> In y wmotr_cannon_list.
+Proof.
+  intros x z y H. rewrite <- cannon_xzy_proj.
+  exact (in_map (fun '(x, z, y) => y) _ _ H).
+Qed.
+
+(* the two cannons' x / z: (-4456, 191) and (3712, 5200) *)
+Lemma cannon_xzy_xz :
+  forallb (fun '(x, z, _) => ((x =? -4456) && (z =? 191)) || ((x =? 3712) && (z =? 5200)))
+          wmotr_cannon_xzy = true.
+Proof. vm_compute. reflexivity. Qed.
+
+(* every pole / cannon x and z is strictly inside the s16 box (-8192, 8192) *)
+Definition in_box (v : Z) : bool := (-8192 <? v) && (v <? 8192).
+
+Lemma pole_xz_box_b : forallb (fun '(x, z, _, _) => in_box x && in_box z) wmotr_pole_xz_list = true.
+Proof. vm_compute. reflexivity. Qed.
+
+Lemma cannon_xz_box_b : forallb (fun '(x, z, _) => in_box x && in_box z) wmotr_cannon_xzy = true.
+Proof. vm_compute. reflexivity. Qed.
+
+Lemma pole_xz_box : forall x z b t, In (x, z, b, t) wmotr_pole_xz_list ->
+    (-8192 < x < 8192 /\ -8192 < z < 8192)%Z.
+Proof.
+  intros x z b t H. pose proof (proj1 (forallb_forall _ _) pole_xz_box_b _ H) as E.
+  cbv beta iota in E. unfold in_box in E.
+  apply andb_prop in E as [E1 E2]. apply andb_prop in E1 as [A B]. apply andb_prop in E2 as [C D].
+  apply Z.ltb_lt in A, B, C, D. lia.
+Qed.
+
+Lemma cannon_xz_box : forall x z y, In (x, z, y) wmotr_cannon_xzy ->
+    (-8192 < x < 8192 /\ -8192 < z < 8192)%Z.
+Proof.
+  intros x z y H. pose proof (proj1 (forallb_forall _ _) cannon_xz_box_b _ H) as E.
+  cbv beta iota in E. unfold in_box in E.
+  apply andb_prop in E as [E1 E2]. apply andb_prop in E1 as [A B]. apply andb_prop in E2 as [C D].
+  apply Z.ltb_lt in A, B, C, D. lia.
+Qed.
 
 (* the level really loads these arrays: level_wmotr_entry's TERRAIN,
    MACRO_OBJECTS and JUMP_LINK commands point at them (script.c:57-60) *)

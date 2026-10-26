@@ -317,13 +317,7 @@ Section OWK.
     Qed.
 
     Lemma kind_eq : forall k, OW.kind_ok pool m k -> OW.kind_ok pool m' k.
-    Proof.
-      intros k (t & Lt & Hin & Hp & Hc). exists t.
-      split; [ rewrite Kp; exact Lt | split; [ exact Hin | split ] ].
-      - intros E. destruct (Hp E) as (base & top & Hb & L1 & L2 & L3).
-        exists base, top. rewrite !Kp. exact (conj Hb (conj L1 (conj L2 L3))).
-      - intros E. destruct (Hc E) as (y & Hy & L). exists y. rewrite Kp. exact (conj Hy L).
-    Qed.
+    Proof. exact (OW.kind_ok_eq pool m m' Kp). Qed.
 
     Lemma red_eq : forall k, OW.red_ok ge pool m k -> OW.red_ok ge pool m' k.
     Proof.

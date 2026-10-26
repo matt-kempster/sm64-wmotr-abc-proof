@@ -254,7 +254,11 @@ Section CLAUSES.
     exists t, Mem.load Mint32 m pool (k * OSZ + O_INTERACT_TYPE) = Some (Vint t)
       /\ In (Int.unsigned t) wmotr_interact_types
       /\ (Int.unsigned t = INTERACT_POLE -> pole_obj_ok m pool (k * OSZ))
-      /\ (Int.unsigned t = INTERACT_CANNON_BASE -> cannon_obj_ok m pool (k * OSZ)).
+      /\ (Int.unsigned t = INTERACT_CANNON_BASE -> cannon_obj_ok m pool (k * OSZ))
+      (* 2026-10-26, the x/z pins (WMotRWorld.pole_xz_ok / cannon_xz_ok:
+         x, y, z of the same level-data entry) *)
+      /\ (Int.unsigned t = INTERACT_POLE -> pole_xz_ok m pool (k * OSZ))
+      /\ (Int.unsigned t = INTERACT_CANNON_BASE -> cannon_xz_ok m pool (k * OSZ)).
 
   Definition red_ok (k : Z) : Prop :=
     ~ is_bhv k behavior_data._bhvStarSpawnCoordinates
@@ -264,6 +268,20 @@ Section CLAUSES.
   Definition slot_ptr (v : val) : Prop :=
     v = Vnullptr \/ exists k, 0 <= k < NSLOT /\ v = slot_v pool k.
 End CLAUSES.
+
+(* kind_ok depends on the pool block's loads only (frames call this rather
+   than destructing the clause) *)
+Lemma kind_ok_eq : forall pool m m', (forall ch z, Mem.load ch m' pool z = Mem.load ch m pool z) ->
+  forall k, kind_ok pool m k -> kind_ok pool m' k.
+Proof.
+  intros pool m m' Kp k (t & Lt & Hin & Hp & Hc & Hpx & Hcx). exists t.
+  split; [ rewrite Kp; exact Lt | split; [ exact Hin | split; [ | split; [ | split ] ] ] ].
+  - intros E. destruct (Hp E) as (base & top & Hb & L1 & L2 & L3).
+    exists base, top. rewrite !Kp. exact (conj Hb (conj L1 (conj L2 L3))).
+  - intros E. destruct (Hc E) as (y & Hy & L). exists y. rewrite Kp. exact (conj Hy L).
+  - intros E. exact (pole_xz_ok_eq _ _ _ _ Kp (Hpx E)).
+  - intros E. exact (cannon_xz_ok_eq _ _ _ _ Kp (Hcx E)).
+Qed.
 
 (* ORDER: update_non_terrain_objects / unload_deactivated_objects walk the
    lists in the order of the writable table sObjectListUpdateOrder; its 11
@@ -498,7 +516,8 @@ Section CHK.
     apply andb_prop in H as [H Hc]. apply andb_prop in H as [Hi Hp].
     apply existsb_exists in Hi as (z & Hz & E). apply Z.eqb_eq in E. subst z.
     apply negb_true_iff, Z.eqb_neq in Hp. apply negb_true_iff, Z.eqb_neq in Hc.
-    exists t. split; [ exact Hl | split; [ exact Hz | split; intro E; contradiction ] ].
+    exists t. split; [ exact Hl | split; [ exact Hz | ] ].
+    repeat split; intro E; contradiction.
   Qed.
 
   Definition red_b (k : Z) : bool :=
