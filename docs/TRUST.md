@@ -822,6 +822,34 @@ without pressing A".*
   `opened_cannon_act_1` (`gMarioShotFromCannon`), and several bodies through
   `gMarioObject`. The kW walker (S3) must therefore carry a per-entry contract, not a
   blanket frame. A census, not a proof: no row or premise moved.
+- **Read-only census (2026-10-25, OBJECTS S3 groundwork, `RoCensus.v`):** scopes the RO
+  class that open items (c) call_action_function and (e) the script pointer need. Candidates,
+  derived mechanically: the 35 action tables (every global passed to
+  `cur_obj_call_action_function` in any TU) and the 533 behavior scripts (behavior_data's
+  defined variables); none is const (`ro_none_readonly`), and 51 writable globals hold their
+  addresses in their initializers (`init_refs_*`: macro / special / warp spawn tables,
+  particle and droplet parameters, exclamation-box contents, 41 scripts naming other
+  scripts). A flow analysis over EVERY function of the 51 linked TUs, to a fixpoint: a value
+  is tracked if it may be a candidate's address (pointer / 32-bit-int types only, through
+  temps, add/sub, casts, returns, callee parameters, and loads from every holder a tracked
+  value is stored into). Pinned by vm:
+  - BY FIELD NAME (`ro_name_census`, `ro_name_holders`, `ro_name_pairs`): no store anywhere
+    targets a candidate, not even through a pointer read back from a holder; no address goes
+    to an unknown location, an indirect call or a builtin. The addresses reach only
+    `gCurBhvCommand`, the object fields `curBhvCommand` / `behavior` / `bhvStack`,
+    `rawData.asConstVoidPtr` (create_respawner), and 36 (callee, parameter) pairs, none of
+    which stores through its parameter.
+  - BY UNION CELL (sound against reading a pointer back through another view of the same
+    rawData cell): **ONE cell breaks the cheap invariant.** `create_respawner` stores the
+    script into rawData byte 116 (slot 29, `oRespawnerBehaviorToRespawn`), a slot other
+    behaviors read as an int; tracked as a cell it floods the run (6366 spurious store
+    sites). With that cell charged to a per-behavior slot fact, the union-precise run is
+    clean (`ro_union_census`, `ro_union_only_respawner`), and so is a deep run that also
+    tracks pointers read through a candidate (`ro_deep_no_store`).
+    `respawner_not_in_wmotr_closure`: create_respawner is outside ObjTable's WMotR closure.
+  Consequence: the RO invariant is cheap. It needs a per-symbol "never a store target" fact,
+  boot equality to the initializer, and one slot-29 fact (or the respawner shown not live).
+  A census, not a proof: no row moved, no new trust.
 - **ObjKit (2026-10-25, OBJECTS S3, `ObjKit.v` + generated `ObjTable.v`):** UcKit's class
   walker run over the object slot's code: 387 bodies (the VM command functions, 104 of the
   107 live natives, their direct callees across 19 TUs), each re-checked against the
@@ -864,9 +892,30 @@ without pressing A".*
   callee) types `cur_obj_update_floor_height_and_get_floor`'s `floor` out-cell, so the getter
   returns kS and `cur_obj_update_floor` is walked (392 table entries; `updfloor_xspec`
   replaces its PRES leaf too: `Hopen2`/`Hopen2u` are call_action_function only). The
-  frame is per-block, not yet per-object (a kSelf class: "only the running slot's object"
-  is still open); SafeB covers every object slot. Not wired into a capstone, so no row
-  moved; no new trust.
+  frame is per-block, not per-object; SafeB covers every object slot. Not wired into a
+  capstone, so no row moved; no new trust.
+- **kSelf, the own-slot frame (2026-10-25, OBJECTS S3, `ObjSelf.v` + `ObjFrame` sec. 5-6):**
+  all object slots share ONE block (gObjectPool), so "own object" is the byte range
+  [oc, oc + 608) (608 = sizeof(struct Object), `OSZ_sizeof`, vm) where gCurrentObject holds
+  &pool[oc]. `ObjSelf.s_fun_frame` (generic, no SafeB/MWF premise): a self-clean body --
+  every store is through a SELF temp (all its definitions are the gCurrentObject load) by
+  fields / constant indices inside [0, 608), or NP-rooted (block is neither the pool nor
+  gCurrentObject's), every call a direct call of a checked table entry whose arg kinds
+  (KSelf / KNp / KAny) hold -- changes the pool only in [oc, oc+608) and never
+  gCurrentObject's cell (`SFR`). `ObjFrame.self_tab`: the greatest self-clean subset of
+  xotab plus play_sound (walked as a body), 200 entries, re-checked by one vm sweep
+  (`self_walk_ok`); leaf sqrtf (FPU floor 3.5, memory identity). `obj_body_self_frame`:
+  premises only `Hoc` (the slot fits in ptrofs), the entry pointer `SI`, and the args'
+  kinds. Census: 46 of the 107 WMotR live natives are self-clean; the other 61
+  (`cross_live`, pinned by name) write OTHER slots or need a stronger class: spawn /
+  allocate targets (spawn_object*, try_to_spawn_object, create_object, then stores through
+  the new object), loaded object pointers (parentObj, gMarioObject, a hidden 1-up),
+  cur_obj_call_action_function, script-indexed fields, and helpers taking interior self
+  pointers (vec3f_* on &o->pos: object_step, cur_obj_move_standard, animation init), and
+  bhv_mario_update (Mario's own body).
+  Koopa: only the koopa_shell_* bodies are in the object closure (no koopa race code), and
+  no beta/alpha boo_key or respawner body is (`self_census_names`). Not wired into a
+  capstone, so no row moved; no new trust.
 
 ### Row 0.7 in detail
 

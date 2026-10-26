@@ -41,7 +41,8 @@ From SM64.Proofs Require Import SymbolicLinking ActionValueFrame Taint
   UcKit FpuFloor.
 From SM64.Proofs Require MtxfBody AudioBodies ObjExtBodies FloorsSurface
   NpcDialogBody UpdateCameraBody SaveFileBody SpawnBodies CameraModeBody.
-From SM64.Proofs.WMotRRequiresA Require Import ObjTable ObjKit ObjWalk BodyFrame LsContract NpcFrame.
+From SM64.Proofs.WMotRRequiresA Require Import ObjTable ObjKit ObjWalk BodyFrame LsContract NpcFrame
+  ObjSelf.
 From SM64.Proofs Require EngineV2Consumer.
 From SM64.Proofs.WMotRRequiresA Require BehaviorScripts.
 
@@ -664,3 +665,233 @@ Proof. vm_compute. reflexivity. Qed.
 (* 392 entries, 391 bodies: the getter is walked twice (kS here, kW in otab) *)
 Lemma xotab_count : List.length xotab = 392%nat.
 Proof. reflexivity. Qed.
+
+(* ---------------------------------------------------------------------- *)
+(* 5. kSelf: THE OWN-SLOT FRAME (ObjSelf), over the same bodies.            *)
+(*    A self-clean body changes gObjectPool only inside the running slot  *)
+(*    [oc, oc + sizeof(struct Object)) and never gCurrentObject's cell.   *)
+(*    The table is the greatest self-clean subset of xotab (+ play_sound, *)
+(*    walked as a body), reached by iterating ObjSelf.s_fun from "all    *)
+(*    entries" with guessed kinds; self_walk_ok re-checks every entry     *)
+(*    against the final table, so the guess is untrusted.                 *)
+(* ---------------------------------------------------------------------- *)
+
+Definition OSZ : Z := 608.
+
+(* the slot size is sizeof(struct Object) in the object TUs' composite env *)
+Lemma OSZ_sizeof :
+  match (prog_comp_env object_helpers.prog) ! object_helpers._Object with
+  | Some co => co_sizeof co | None => 0 end = OSZ.
+Proof. vm_compute. reflexivity. Qed.
+
+Definition s_body (fid : ident) (i : nat) : option (composite_env * Clight.function) :=
+  match nth_error lprogs i with
+  | Some p => match (prog_defmap p) ! fid with
+              | Some (Gfun (Internal f)) => Some (prog_comp_env p, f)
+              | _ => None
+              end
+  | None => None
+  end.
+
+Definition s_cand : Type := (ident * nat * list skind)%type.
+Definition s_leaves : stab := [(math_util._sqrtf, [KAny])].
+Definition s_tab_of (l : list s_cand) : stab :=
+  map (fun c => let '(g, _, ks) := c in (g, ks)) l ++ s_leaves.
+
+(* over an ABSTRACT list: never let the kernel unfold self_tab *)
+Lemma s_tab_of_split : forall l f ks, st_find f (s_tab_of l) = Some ks ->
+    (exists i, In (f, i, ks) l) \/ st_find f s_leaves = Some ks.
+Proof. intros l f ks H. exact (st_find_split l s_leaves f ks H). Qed.
+
+Definition s_ent_ok (tab : stab) (c : s_cand) : bool :=
+  let '(fid, i, ks) := c in
+  match s_body fid i with Some (ce, f) => s_fun ce OSZ tab ks f | None => false end.
+
+Definition s_round (st : list s_cand) : list s_cand :=
+  let tab := s_tab_of st in
+  flat_map (fun c => let '(fid, i, _) := c in
+    match s_body fid i with
+    | Some (ce, f) =>
+        let k1 := smart_kinds object_helpers._Object tab f in
+        let k2 := typed_kinds object_helpers._Object f in
+        if s_fun ce OSZ tab k1 f then [(fid, i, k1)]
+        else if s_fun ce OSZ tab k2 f then [(fid, i, k2)] else []
+    | None => []
+    end) st.
+
+Fixpoint s_rounds (n : nat) (st : list s_cand) : list s_cand :=
+  match n with O => st | S n' => s_rounds n' (s_round st) end.
+
+Definition s_ps : ident * nat := (audio_external._play_sound, 39%nat).
+Definition s_start : list s_cand :=
+  flat_map (fun e => let '(fid, i) := e in
+    match s_body fid i with Some (_, f) => [(fid, i, any_kinds f)] | None => [] end)
+    (map (fun e => let '(fid, i, _) := e in (fid, i)) xotab ++ [s_ps]).
+
+Definition self_tab : list s_cand := s_rounds 40 s_start.
+
+(* THE WALK: every entry is self-clean against the final table *)
+Lemma self_walk_ok : forallb (s_ent_ok (s_tab_of self_tab)) self_tab = true.
+Proof. vm_compute. reflexivity. Qed.
+
+Section SELF.
+  Variable lp : Clight.program.
+  Hypothesis H12 : linked12 lp.
+  Let ge := lp_ge lp.
+  Hypothesis Hsq : sqrtf_spec.
+  Variables pool gB : block.
+  Variable oc : ptrofs.
+  Hypothesis Hpool : Genv.find_symbol ge POOL = Some pool.
+  Hypothesis HgB : Genv.find_symbol ge GCO = Some gB.
+  Hypothesis Hoc : Ptrofs.unsigned oc + OSZ <= Ptrofs.max_unsigned.
+
+  Definition sLeafS (fd : Clight.fundef) (ks : list skind) : Prop :=
+    exists b, Genv.find_symbol ge math_util._sqrtf = Some b /\
+              Genv.find_funct ge (Vptr b Ptrofs.zero) = Some fd /\ ks = [KAny].
+
+  Lemma s_leaf_ok : forall fd ks, sLeafS fd ks ->
+      forall m vargs t m' vres, eval_funcall function_entry2 ge m fd vargs t m' vres ->
+      Forall2 (karg pool gB oc) ks vargs -> SI pool gB oc m -> GV pool gB m ->
+      SFR pool gB oc OSZ m m'.
+  Proof.
+    intros fd ks (b & Hs & Hff & _) m vargs t m' vres Hev _ _ _.
+    rewrite (MtxfBody.sqrtf_memid lp H12 Hsq b fd m vargs t m' vres Hs Hff Hev).
+    apply Mem.unchanged_on_refl.
+  Qed.
+
+  Lemma s_in_good : forall f i ks, In (f, i, ks) self_tab ->
+      forall b fd, Genv.find_symbol ge f = Some b ->
+      Genv.find_funct ge (Vptr b Ptrofs.zero) = Some fd ->
+      sGood ge OSZ (s_tab_of self_tab) sLeafS fd ks.
+  Proof.
+    intros f i ks Hin b fd Hs Hff.
+    pose proof (proj1 (forallb_forall _ _) self_walk_ok _ Hin) as Hc.
+    unfold s_ent_ok, s_body in Hc.
+    destruct (nth_error lprogs i) as [p|] eqn:Hn; [ | discriminate Hc ].
+    destruct ((prog_defmap p) ! f) as [[[fn|ef]|v]|] eqn:Edm; try discriminate Hc.
+    left. exists fn, (prog_comp_env p). split; [ | split; [ | exact Hc ] ].
+    - destruct (linkorder_resolves_funct lp _ _ _ (oLO lp H12 i p Hn) Edm) as (b' & Hs' & Hff').
+      unfold ge, lp_ge in Hs, Hff. rewrite Hs in Hs'. injection Hs' as <-.
+      rewrite Hff' in Hff. injection Hff as <-. reflexivity.
+    - intros id co Hco. exact (linkorder_comp_env_extends lp p id co (oLO lp H12 i p Hn) Hco).
+  Qed.
+
+  Lemma s_tab_good : forall f ks, st_find f (s_tab_of self_tab) = Some ks ->
+      forall b fd, Genv.find_symbol ge f = Some b ->
+      Genv.find_funct ge (Vptr b Ptrofs.zero) = Some fd ->
+      sGood ge OSZ (s_tab_of self_tab) sLeafS fd ks.
+  Proof.
+    intros f ks Hf b fd Hs Hff.
+    destruct (s_tab_of_split self_tab f ks Hf) as [(i & Hin) | Hl].
+    - exact (s_in_good f i ks Hin b fd Hs Hff).
+    - right. unfold st_find, s_leaves in Hl. cbn in Hl.
+      destruct (Pos.eqb math_util._sqrtf f) eqn:E; [ | discriminate Hl ].
+      apply Pos.eqb_eq in E. subst f. injection Hl as <-.
+      exists b. split; [ exact Hs | split; [ exact Hff | reflexivity ] ].
+  Qed.
+
+  (* THE OWN-SLOT FRAME: a self-clean table body, entered with
+     gCurrentObject = &pool[oc] and arguments of its kinds, changes the pool
+     only inside [oc, oc + sizeof(struct Object)) and leaves
+     gCurrentObject's cell alone *)
+  Theorem obj_body_self_frame : forall fid i ks b fd m vargs t m' vres,
+      In (fid, i, ks) self_tab ->
+      Genv.find_symbol ge fid = Some b -> Genv.find_funct ge (Vptr b Ptrofs.zero) = Some fd ->
+      eval_funcall function_entry2 ge m fd vargs t m' vres ->
+      Forall2 (karg pool gB oc) ks vargs -> SI pool gB oc m -> GV pool gB m ->
+      SFR pool gB oc OSZ m m'.
+  Proof.
+    intros fid i ks b fd m vargs t m' vres Hin Hs Hff Hev Hva Hsi Hgv.
+    exact (s_fun_frame ge pool gB oc OSZ Hpool HgB Hoc (s_tab_of self_tab) sLeafS
+             s_leaf_ok s_tab_good ks fd m vargs t m' vres
+             (s_in_good fid i ks Hin b fd Hs Hff) Hev Hva Hsi Hgv).
+  Qed.
+End SELF.
+
+(* ---------------------------------------------------------------------- *)
+(* 6. THE kSelf CENSUS.                                                     *)
+(* ---------------------------------------------------------------------- *)
+
+Definition self_names : list ident := map (fun c => let '(f, _, _) := c in f) self_tab.
+
+(* 199 of xotab's 392 entries are self-clean, plus play_sound *)
+Lemma self_tab_count : List.length self_tab = 200%nat.
+Proof. vm_compute. reflexivity. Qed.
+
+Definition self_live : list ident :=
+  filter (fun x => mem_id x self_names) BehaviorScripts.wmotr_live_natives.
+Definition cross_live : list ident :=
+  filter (fun x => negb (mem_id x self_names)) BehaviorScripts.wmotr_live_natives.
+
+Lemma self_live_count : List.length self_live = 46%nat.
+Proof. vm_compute. reflexivity. Qed.
+
+
+(* the coordinator's koopa / beta_boo_key check, and RoCensus's respawner:
+   the object closure (xotab) holds only the koopa SHELL bodies -- no koopa
+   race code -- and no boo_key or respawner body at all *)
+Local Open Scope string_scope.
+Definition s_has (sub s : string) : bool :=
+  match String.index 0 sub s with Some _ => true | None => false end.
+Definition xnames : list string := map (fun e => let '(f, _, _) := e in string_of_ident f) xotab.
+
+Lemma self_census_names :
+  filter (s_has "koopa") xnames =
+    ["koopa_shell_spawn_water_drop"; "koopa_shell_spawn_sparkles";
+     "set_koopa_shell_underwater_hitbox"; "bhv_koopa_shell_underwater_loop";
+     "bhv_koopa_shell_loop"; "bhv_koopa_shell_flame_spawn"; "bhv_koopa_shell_flame_loop"]
+  /\ filter (s_has "boo_key") xnames = []
+  /\ filter (s_has "respawner") xnames = [].
+Proof. vm_compute. repeat split; reflexivity. Qed.
+
+(* the 61 live natives that are NOT self-clean: they write another slot (a
+   spawned / allocated object, a loaded object pointer: parentObj,
+   gMarioObject, a hidden 1-up), call cur_obj_call_action_function, index a
+   field by a script byte, pass an interior self pointer (&o->pos) to a
+   vec3f_* helper, or are Mario's own (bhv_mario_update) *)
+Lemma cross_live_value : map string_of_ident cross_live =
+  ["bhv_pound_white_puffs_init";
+    "try_print_debug_mario_level_info"; "bhv_mario_update";
+    "try_do_mario_debug_object_spawn";
+    "bhv_metal_cap_loop"; "bhv_exclamation_box_loop";
+    "bhv_end_peach_loop"; "bhv_end_toad_loop";
+    "bhv_unlock_door_star_init";
+    "bhv_unlock_door_star_loop";
+    "bhv_idle_water_wave_loop"; "bhv_yellow_coin_loop";
+    "bhv_object_bubble_loop"; "bhv_orange_number_loop";
+    "bhv_golden_coin_sparkles_loop";
+    "bhv_water_splash_spawn_droplets";
+    "bhv_water_droplet_loop";
+    "bhv_white_puff_exploding_loop";
+    "bhv_coin_formation_spawn_loop";
+    "bhv_coin_formation_loop"; "bhv_cannon_closed_init";
+    "bhv_cannon_closed_loop";
+    "load_object_collision_model"; "bhv_cannon_base_loop";
+    "bhv_celebration_star_loop"; "bhv_spawned_coin_loop";
+    "bhv_small_water_wave_loop"; "bhv_particle_loop";
+    "bhv_shallow_water_splash_init";
+    "bhv_spawned_star_loop"; "bhv_sparkle_spawn_loop";
+    "bhv_star_spawn_loop";
+    "bhv_star_key_collection_puff_spawner_loop";
+    "bhv_ground_snow_init";
+    "bhv_koopa_shell_underwater_loop";
+    "bhv_koopa_shell_loop"; "bhv_1up_walking_loop";
+    "bhv_1up_loop"; "bhv_1up_running_away_loop";
+    "bhv_normal_cap_init"; "bhv_normal_cap_loop";
+    "bhv_flame_mario_loop"; "bhv_wing_vanish_cap_loop";
+    "bhv_tiny_star_particles_init";
+    "bhv_bowser_key_unlock_door_loop";
+    "bhv_bowser_key_course_exit_loop";
+    "bhv_bobomb_buddy_loop"; "bhv_blue_coin_jumping_loop";
+    "bhv_water_mist_spawn_loop"; "bhv_red_coin_loop";
+    "bhv_jumping_box_loop"; "bhv_water_waves_init";
+    "bhv_pound_tiny_star_particle_init";
+    "bhv_1up_hidden_in_pole_spawner_loop";
+    "bhv_1up_hidden_in_pole_loop";
+    "bhv_1up_hidden_in_pole_trigger_loop";
+    "bhv_hidden_red_coin_star_init";
+    "bhv_hidden_red_coin_star_loop";
+    "bhv_ground_sand_init"; "bhv_punch_tiny_triangle_init";
+    "bhv_snow_leaf_particle_spawn_init"]
+.
+Proof. vm_compute. reflexivity. Qed.
