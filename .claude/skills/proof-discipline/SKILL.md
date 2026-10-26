@@ -475,13 +475,25 @@ all in `Unwired/`, and the theorem moved nowhere. See
     Since 2026-10-24 `plat_still` is no longer a step premise: it is TRUE in WMotR (only the !
     boxes and cannon lids own surfaces; `AngleVelCensus` finds no angle-velocity store on them),
     proved at the boot witness (`StartSat.plat11`), and carried as the last clause of the labeled
-    objects spec `seg_rest_spec`. `frame_step` now also has idle frames (no Mario update:
+    objects spec `seg_rest_spec` (2026-10-26: that spec is GONE, see the objects bullet below).
+    `frame_step` now also has idle frames (no Mario update:
     pause, transitions, time stop). The cannon seat list is every home seat + 5k, k = 0..69
     (the base rises with Mario inside; the exact-home clause was FALSE), and lid floor ranges
     are widened 15 down (an opening lid sinks). `lvl_w` also carries `FfWorld.warp_w` (no
     pending same-level warp in NORMAL mode, no demo / credits, delayed-warp source node
     F0/F1/F3), which the level-phase spec needed (phantom ∀); the witness now ends with the
     real `sWarpDest.type = NOT_WARPING` store.
+    OBJECTS (2026-10-26, `ObjPhase.v` / `ObjWorld.v`): the objects segment is ONE real
+    `area_update_objects` call (`ObjPhase.objects_call`), with `execute_mario_action` as the
+    hole (`HeightFrame.mario_hole`, filled by Hframe_action + seg_action_phi). Open, labeled
+    rows over the real stages: Hobj_blind / Hobj_fresh / Hobj_noref, Hobj_stores /
+    Hobj_counter, Hobj_debug, Hobj_surfaces, Hobj_terrain, Hobj_collisions, Hobj_nonterrain
+    (given the hole), Hobj_unload, Hobj_mplat; Hplat_keep, Hlvl_ow, Hrender_ow. Proved: the
+    walk of update_objects' body, the clock calls, objects_keep, the platform call inside.
+    The object world `ObjWorld.obj_w` is in `fb_ok` (no phantom ∀ over object lists) and is
+    PROVED at the boot witness, which now runs the real init_graph_node_start + clear_objects
+    and Mario's spawn_objects_from_info; one real area_update_objects runs from it
+    (`StartSat.objects_runs`). Discharge order: B2 -> B3 -> B4/B5/B6.
     The controller poll is REAL since 2026-10-23
     (`PollFlank.v`, libultra `osContStartReadData.c` linked as TU 46): `seg_input_spec m i m0` is the real
     `osContStartReadData` (or no request) then the real `read_controller_inputs`, walked down to the
