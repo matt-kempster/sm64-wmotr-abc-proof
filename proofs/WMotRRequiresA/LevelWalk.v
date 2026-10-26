@@ -149,6 +149,11 @@ Section FX.
   Qed.
 End FX.
 
+(* the POST tail's narrower footprints (2026-10-26, LevelWarp): the safe
+   list plus ONE warp cell *)
+Definition PMX : list ident := LU._sCurrPlayMode :: lvl_safe_gvars.
+Definition WDX : list ident := LU._sWarpDest :: lvl_safe_gvars.
+
 (* ---------------------------------------------------------------------- *)
 (* 2. The recognizers.                                                     *)
 (* ---------------------------------------------------------------------- *)
@@ -687,6 +692,100 @@ Section LW.
     pose proof lf_pressed_pause. pose proof lf_lower_bgn.
     ids_lfun.
   Qed.
+  (* ---- 2026-10-26: the POST tail's callees within narrower footprints
+     (LevelWarp's value walk of initiate_delayed_warp and the mode
+     switch): the safe ones write no warp cell, warp_special /
+     set_play_mode only sCurrPlayMode of them, initiate_warp only
+     sWarpDest ---- *)
+  Ltac lv_safe q LO f gt gms ids := lv_symX lvl_safe_gvars sb_safe q LO f gt gms ids.
+
+  Lemma lfs_set_audio_muted : lfun lvl_safe_gvars AX._set_audio_muted.
+  Proof. lv_safe AX.prog LOx AX.f_set_audio_muted NOGT NOID NOID. Qed.
+  Lemma lfs_fade_pct : lfun lvl_safe_gvars AX._seq_player_fade_to_percentage_of_volume.
+  Proof. lv_safe AX.prog LOx AX.f_seq_player_fade_to_percentage_of_volume gt_sp NOID NOID. Qed.
+  Lemma lfs_fade_normal : lfun lvl_safe_gvars AX._seq_player_fade_to_normal_volume.
+  Proof. lv_safe AX.prog LOx AX.f_seq_player_fade_to_normal_volume gt_sp NOID NOID. Qed.
+  Lemma lfs_fade_target : lfun lvl_safe_gvars AX._seq_player_fade_to_target_volume.
+  Proof. lv_safe AX.prog LOx AX.f_seq_player_fade_to_target_volume gt_sp NOID NOID. Qed.
+  Lemma lfs_banks_enable : lfun lvl_safe_gvars AX._sound_banks_enable.
+  Proof. lv_safe AX.prog LOx AX.f_sound_banks_enable NOGT NOID NOID. Qed.
+  Lemma lfs_bbmf : lfun lvl_safe_gvars AX._begin_background_music_fade.
+  Proof.
+    pose proof lfs_fade_normal. pose proof lfs_fade_target.
+    lv_safe AX.prog LOx AX.f_begin_background_music_fade NOGT NOID
+      [AX._seq_player_fade_to_normal_volume; AX._seq_player_fade_to_target_volume].
+  Qed.
+  Lemma lfs_lower_volume : lfun lvl_safe_gvars AX._seq_player_lower_volume.
+  Proof.
+    pose proof lfs_bbmf. pose proof lfs_fade_pct.
+    lv_safe AX.prog LOx AX.f_seq_player_lower_volume NOGT NOID
+      [AX._begin_background_music_fade; AX._seq_player_fade_to_percentage_of_volume].
+  Qed.
+  Lemma lfs_lower_bgn : lfun lvl_safe_gvars SI._lower_background_noise.
+  Proof.
+    pose proof lfs_lower_volume. pose proof lfs_set_audio_muted.
+    lv_safe SI.prog LOs SI.f_lower_background_noise NOGT NOID
+      [AX._seq_player_lower_volume; AX._set_audio_muted].
+  Qed.
+  Lemma lfs_socwf : lfun lvl_safe_gvars CAL._start_object_cutscene_without_focus.
+  Proof. lv_safe CAL.prog LOc CAL.f_start_object_cutscene_without_focus NOGT NOID NOID. Qed.
+  Lemma lfs_tcd : lfun lvl_safe_gvars CAL._trigger_cutscene_dialog.
+  Proof.
+    pose proof lfs_socwf.
+    lv_safe CAL.prog LOc CAL.f_trigger_cutscene_dialog NOGT NOID
+      [CAL._start_object_cutscene_without_focus].
+  Qed.
+  Lemma lfs_get_dialog_id : lfun lvl_safe_gvars IML._get_dialog_id.
+  Proof. lv_safe IML.prog LOi IML.f_get_dialog_id NOGT NOID NOID. Qed.
+  Lemma lfs_lst : lfun lvl_safe_gvars LU._level_set_transition.
+  Proof. lv_safe LU.prog LOl LU.f_level_set_transition NOGT NOID NOID. Qed.
+  Lemma lfs_pressed_pause : lfun lvl_safe_gvars LU._pressed_pause.
+  Proof.
+    pose proof lfs_get_dialog_id.
+    lv_safe LU.prog LOl LU.f_pressed_pause NOGT NOID [IML._get_dialog_id].
+  Qed.
+  Lemma lfs_rdrs : lfun lvl_safe_gvars IML._reset_dialog_render_state.
+  Proof.
+    pose proof lfs_lst. pose proof lfs_tcd.
+    lv_safe IML.prog LOi IML.f_reset_dialog_render_state NOGT NOID
+      [LU._level_set_transition; CAL._trigger_cutscene_dialog].
+  Qed.
+  Lemma lfs_cisswc : lfun lvl_safe_gvars SFL._check_if_should_set_warp_checkpoint.
+  Proof. lv_safe SFL.prog LOf SFL.f_check_if_should_set_warp_checkpoint NOGT NOID NOID. Qed.
+  Lemma lfs_sfr : lfun lvl_safe_gvars SFL._save_file_reload.
+  Proof. lv_safe SFL.prog LOf SFL.f_save_file_reload NOGT NOID NOID. Qed.
+  Lemma lfs_agwn : lfun lvl_safe_gvars ARL._area_get_warp_node.
+  Proof. lv_safe ARL.prog LOa ARL.f_area_get_warp_node NOGT NOID NOID. Qed.
+
+  Lemma sb_pm : In SFL._gSaveBuffer PMX.
+  Proof. right. exact sb_safe. Qed.
+  Lemma sb_wd : In SFL._gSaveBuffer WDX.
+  Proof. right. exact sb_safe. Qed.
+
+  Lemma lfp_set_play_mode : lfun PMX LU._set_play_mode.
+  Proof. lv_symX PMX sb_pm LU.prog LOl LU.f_set_play_mode NOGT NOID NOID. Qed.
+  Lemma lfp_warp_special : lfun PMX LU._warp_special.
+  Proof. lv_symX PMX sb_pm LU.prog LOl LU.f_warp_special NOGT NOID NOID. Qed.
+  Lemma lfw_initiate_warp : lfun WDX LU._initiate_warp.
+  Proof. lv_symX WDX sb_wd LU.prog LOl LU.f_initiate_warp NOGT NOID NOID. Qed.
+
+  Definition safe_ids : list ident :=
+    [IML._reset_dialog_render_state; SFL._save_file_reload; AX._sound_banks_enable;
+     ARL._area_get_warp_node; SFL._check_if_should_set_warp_checkpoint;
+     LU._level_set_transition; LU._pressed_pause; SI._lower_background_noise].
+  Definition pm_ids : list ident := [LU._warp_special; LU._set_play_mode].
+  Definition wd_ids : list ident := [LU._initiate_warp].
+
+  Lemma safe_ids_lfun : forall g, mem_id g safe_ids = true -> lfun lvl_safe_gvars g.
+  Proof.
+    pose proof lfs_rdrs. pose proof lfs_sfr. pose proof lfs_banks_enable. pose proof lfs_agwn.
+    pose proof lfs_cisswc. pose proof lfs_lst. pose proof lfs_pressed_pause. pose proof lfs_lower_bgn.
+    ids_lfun.
+  Qed.
+  Lemma pm_ids_lfun : forall g, mem_id g pm_ids = true -> lfun PMX g.
+  Proof. pose proof lfp_set_play_mode. pose proof lfp_warp_special. ids_lfun. Qed.
+  Lemma wd_ids_lfun : forall g, mem_id g wd_ids = true -> lfun WDX g.
+  Proof. pose proof lfw_initiate_warp. ids_lfun. Qed.
 End LW.
 
 (* ---------------------------------------------------------------------- *)

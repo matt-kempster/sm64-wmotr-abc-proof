@@ -319,6 +319,7 @@ proofs/WMotRRequiresA/PlatformWalk.v
 proofs/WMotRRequiresA/PlatformKeep.v
 proofs/WMotRRequiresA/LevelFlank.v
 proofs/WMotRRequiresA/LevelWalk.v
+proofs/WMotRRequiresA/LevelWarp.v
 proofs/WMotRRequiresA/LevelKeep.v
 proofs/WMotRRequiresA/HeightFrame.v
 proofs/WMotRRequiresA/WMotREntry.v

@@ -19,15 +19,13 @@
 (* and closedness.  RenderKeep.k_all_lvl then carries PhiW: the PRE and  *)
 (* update_hud_values write no lvl_w cell (footprint lvl_safe_gvars), the *)
 (* tail writes the warp cells sWarpDest / sCurrPlayMode /                *)
-(* gCurrCreditsEntry and the step states FfWorld.warp_w at its end.      *)
+(* gCurrCreditsEntry, and FfWorld.warp_w at its end is PROVED from the   *)
+(* real tail (LevelWarp.tail_warp_w, 2026-10-26).                        *)
 (*                                                                        *)
 (* What the steps still STATE (labeled trust, docs/TRUST.md 0.5 / 0.7):   *)
 (*   surf_apart  Mario's wall / ceiling / floor surfaces are not in a     *)
 (*               level global's block (as for the render / platform       *)
 (*               steps);                                                  *)
-(*   warp_w at the POST end (HeightFrame.seg_level_post_spec): the warp   *)
-(*               the tail may start leaves NORMAL play mode (WMotR's      *)
-(*               warp nodes lead to other levels) and no credits run;     *)
 (*   cam_phi_row update_camera's statement, from a mem_ok state to a      *)
 (*               mem_ok state, keeps PhiW and Mario's three surface       *)
 (*               cells.  A clobber-form contract (camera-private writes   *)
@@ -52,6 +50,7 @@ From SM64.Proofs.WMotRRequiresA Require PlatformKeep.
 From SM64.Proofs Require Import HeightInvariant WMotRWorld.
 From SM64.Proofs.WMotRRequiresA Require Import FfWorld AnimData AnimWorld RenderAnim RenderKeep
   LevelGvars LevelFlank LevelWalk.
+From SM64.Proofs.WMotRRequiresA Require LevelWarp.
 From SM64.Proofs Require Import Generic.ClosedMem Generic.ClightClosed.
 Import ListNotations.
 
@@ -358,8 +357,9 @@ Section Link.
       | refine (Genv.global_addresses_distinct G _ Hs Hbm_sym eq_refl); ne ]).
   Qed.
 
-  (* the POST tail writes three warp cells; with warp_w at its end, lvl_w
-     holds there (the other lvl_ids globals are not written) *)
+  (* the POST tail writes three warp cells; with warp_w at its end
+     (LevelWarp.tail_warp_w), lvl_w holds there (the other lvl_ids globals
+     are not written) *)
   Lemma lvl_w_tail : forall m m', lvl_w G m -> fx lp bm level_gvars m m' -> warp_w G m' -> lvl_w G m'.
   Proof.
     intros m m' (L1 & L2 & _ & CW & AW) Hfx Hw.
@@ -524,11 +524,11 @@ Section Link.
 
   Theorem post_keeps : forall m m',
     uc_keeps lp bm MWF SafeB -> cam_phi_row lp bm MWF ->
-    level_post_call lp m m' -> surf_apart lp bm level_gvars m -> warp_w G m' ->
+    level_post_call lp m m' -> surf_apart lp bm level_gvars m ->
     mem_ok_lp bm MWF m -> phiw lp bm m ->
     mem_ok_lp bm MWF m' /\ phiw lp bm m'.
   Proof.
-    intros m m' UC Hcam (le & t & le' & out & Hx) RSA Hwend Hok Hphi.
+    intros m m' UC Hcam (le & t & le' & out & Hx) RSA Hok Hphi.
     pose proof (proj2 (proj2 (proj2 (proj2 (proj2 (proj2 (proj2 Hphi))))))) as LW0.
     pose proof (area_safe_of_w m (proj1 (proj2 (proj2 (proj2 (proj2 LW0)))))) as Hca.
     pose proof lv_plain as Hpl. repeat (apply andb_prop in Hpl as [Hpl ?]).
@@ -580,9 +580,22 @@ Section Link.
                 _ _ _ _ _ _ Hx Hok3) as (Hok' & Hfx').
     pose proof (cl_stmt G lv_tail T2 _ _ _ _ _ _ Hx) as Hcl'.
     pose proof (fx_trans lp bm level_gvars _ _ _ Hfx3 Hfx') as Hfx4.
+    (* warp_w at the tail's start (the painting call only allocates and
+       frees its local), and at its end from the walked tail *)
+    pose proof (proj2 (proj2 (proj2 (proj2 (proj2 (proj2 (proj2 Hphi2))))))) as LW2.
+    pose proof (proj1 (proj2 (proj2 (lvl_w_safe m2 m3 LW2
+                  (fx_alloc_free lp bm lvl_safe_gvars _ _ _ _ _ _ Hal Hfr))))) as Hw3.
+    destruct (lu_sym LU._sCurrPlayMode ltac:(let E := fresh in intro E; vm_compute in E; discriminate E)) as (bp & Hbp).
+    destruct (lu_sym LU._sWarpDest ltac:(let E := fresh in intro E; vm_compute in E; discriminate E)) as (bw & Hbw).
+    destruct (lu_sym LU._sTransitionTimer ltac:(let E := fresh in intro E; vm_compute in E; discriminate E)) as (bt & Hbt).
+    destruct (lu_sym LU._gCurrCreditsEntry ltac:(let E := fresh in intro E; vm_compute in E; discriminate E)) as (bcr & Hbcr).
+    destruct (lu_sym LU._gCurrDemoInput ltac:(let E := fresh in intro E; vm_compute in E; discriminate E)) as (bd & Hbd).
+    destruct (lu_sym LU._sDelayedWarpOp ltac:(let E := fresh in intro E; vm_compute in E; discriminate E)) as (bo & Hbo).
+    pose proof (LevelWarp.tail_warp_w lp H12 bm bc oc0 SafeB HSafeB_syms Hspawn Hfloor Hbm_sym
+                  bp bw bt bcr bd bo Hbp Hbw Hbt Hbcr Hbd Hbo _ _ _ _ _ _ Hx Hok3 Hw3 Hfx') as Hwend.
     split; [ exact Hok' | ].
     refine (lvl_keeps_gen level_gvars level_gvars_flank ltac:(nb) m2 m' Hphi2 Hfx4
               (cl_trans G _ _ _ Hcl3 Hcl') RSA2 _).
-    exact (lvl_w_tail m2 m' (proj2 (proj2 (proj2 (proj2 (proj2 (proj2 (proj2 Hphi2))))))) Hfx4 Hwend).
+    exact (lvl_w_tail m2 m' LW2 Hfx4 Hwend).
   Qed.
 End Link.

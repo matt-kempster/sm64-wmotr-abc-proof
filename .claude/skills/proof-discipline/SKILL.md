@@ -472,9 +472,14 @@ all in `Unwired/`, and the theorem moved nowhere. See
     `post_keeps`); update_camera's mem_ok via `update_camera_ok_linked12`. ONE labeled row:
     `Hcam_phi` (`LevelKeep.cam_phi_row`, the camera statement keeps PhiW / Mario's surface
     cells; a clobber spec cannot, the Camera shares the surface pool's block; writes to cover =
-    `UpdateCameraBody.uc_census`). Stated by the steps: `surf_apart`
-    and `warp_w` at the POST end (gCurrentArea's target is CARRIED since 2026-10-25,
-    `FfWorld.area_w`, proved at boot) (FOUND: a ∀-row for it is false). Next:
+    `UpdateCameraBody.uc_census`). Stated by the steps: `surf_apart` (gCurrentArea's
+    target is CARRIED since 2026-10-25, `FfWorld.area_w`, proved at boot). `warp_w` at the
+    POST end is PROVED since 2026-10-26 (`LevelWarp.tail_warp_w`: initiate_delayed_warp and
+    the play-mode switch walked; `warp_w` gained a fifth clause, the pending op is no
+    credits op, which repairs the FOUND false ∀-row; its only writer is level_trigger_warp,
+    called only from Mario code, and the reachable calls all sit in `Hseg_na_open`, so
+    whoever discharges those rows must show op ∉ {0x17,0x18}; TRUST 0.7 lists who carries
+    it per stage). Next:
     discharge `Hcam_phi` from the census (per-write PhiW keep). Since 2026-10-26 the witness
     has a REAL Camera in gAreaData[1].camera (`StartTerrain.cam_chain`: the generated
     alloc_only_pool_init / init_graph_node_camera / create_camera / reset_camera; FOUND:

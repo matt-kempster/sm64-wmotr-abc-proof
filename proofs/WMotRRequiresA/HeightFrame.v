@@ -191,17 +191,16 @@ Section HeightFrame.
      rules out the instant and painting warps.  What the steps state besides
      the slice (labeled, TRUST 0.7): Mario's surfaces are not in a level
      global's block (RenderKeep.surf_apart, as for the render / platform
-     steps); and the POST ends in FfWorld.warp_w:
-     the warp initiate_delayed_warp may start leaves NORMAL play mode and
-     starts no credits (WMotR's warp nodes lead to other levels; FOUND
-     2026-10-24: warp_w does not pin the op, so a forall-row is false). *)
+     steps).  The POST's end state FfWorld.warp_w is PROVED (2026-10-26,
+     LevelWarp.tail_warp_w: initiate_delayed_warp and the play-mode switch
+     walked from the real code, from warp_w at the tail's start, whose
+     fifth clause excludes the credits ops). *)
   Definition seg_level_pre_spec (m m' : mem) : Prop :=
     LevelFlank.level_pre_call lp m m'
     /\ RenderKeep.surf_apart lp bm LevelGvars.level_gvars m.
   Definition seg_level_post_spec (m m' : mem) : Prop :=
     LevelFlank.level_post_call lp m m'
-    /\ RenderKeep.surf_apart lp bm LevelGvars.level_gvars m
-    /\ FfWorld.warp_w (lp_ge lp) m'.
+    /\ RenderKeep.surf_apart lp bm LevelGvars.level_gvars m.
 
   (* seg_rest: the render walk outside Mario's node (geo_process_root over
      the area's graph, before and after Mario's render call).  Since
@@ -1221,9 +1220,9 @@ Section HeightLinked12.
     forall m m', mem_ok_lp bm MWF m -> Phi m -> seg_level_post_spec lp bm m m' ->
                  mem_ok_lp bm MWF m' /\ Phi m'.
   Proof.
-    intros m m' Hok Hphi (Hc & Hsa & Hw).
+    intros m m' Hok Hphi (Hc & Hsa).
     exact (LevelKeep.post_keeps lp H12 bm bc oc0 SafeB HSafeB_syms Hbm_sym Hbc_sym Hoc0 Hdma_floor
-             m m' update_camera_ok_linked12 Hcam_phi Hc Hsa Hw Hok Hphi).
+             m m' update_camera_ok_linked12 Hcam_phi Hc Hsa Hok Hphi).
   Qed.
 
   (* ---- THE OBJECTS PHASE ON THE LINK (2026-10-26).  The real
