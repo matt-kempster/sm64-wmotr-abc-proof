@@ -721,6 +721,8 @@ Section Witness.
                               (Internal area.f_area_update_objects) []) = true.
     (* ... and a full frame through update_camera on that Camera *)
     Hypothesis CF : cam_frame_ok (lp_ge lp) bgad camv m11 = true.
+    (* the death plane on every static floor cell (2026-10-26) *)
+    Hypothesis DPc : dp_chk WFUEL (lp_ge lp) m11 = true.
 
     (* ---- blocks ---- *)
     Lemma nb_e : Mem.nextblock e6 = Mem.nextblock m0.
@@ -1883,7 +1885,7 @@ Section Witness.
           rewrite genv_next_eq. intros H. cbv beta in H. pose proof bpl_ge as G. unfold Plt, Ple in *. lia.
         - intros b o Ho. destruct (proj2 (part_lists _ Hp) _ Ho) as (o' & E & _ & _).
           injection E as -> _. rewrite genv_next_eq. exact bpl_ge. }
-      unfold SZ_SURFACE. lia.
+      split; [ unfold SZ_SURFACE; lia | exact (dp_chk_sound _ _ _ DPc) ].
     Qed.
 
     (* GOAL 2's floor premise and the decoder agreement, on the witness *)
@@ -2822,7 +2824,7 @@ End Steps.
           SPa SPb RS A1 A2 A3 A4
           S1a S1b S1 S2 S3 S4 S5 S6 S7 S8 Hsi Hpcs Hbbs Hhud HcC Hga Hpads Hca Hgad
           Z1 Z2 Z3 Z4 Z5 Z6 Z7 Z8 Z9 Z10a Z10 Z11 Z12 Z13 Z14 Z15 Z16 Z17 ZC ZA Z18
-          OK FR WP PO NS Hbn IF FO TC GC OWc BC OO CF].
+          OK FR WP PO NS Hbn IF FO TC GC OWc BC OO CF DPc].
     exists (SBw bpl bt bar bd), m11.
     eapply witness11; eassumption.
   Qed.
