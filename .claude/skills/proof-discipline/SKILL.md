@@ -145,6 +145,18 @@ all in `Unwired/`, and the theorem moved nowhere. See
   an S-local, getter returns kS); `Hopen2` = call_action_function only.
   2026-10-25 `NpcFrame.v` (spine via ObjFrame): `npc_dialog_frame` walks set_mario_npc_dialog's
   real call tree; `Hnpc_fr` discharged (ObjFrame now asks only `HMCn`: MC holds npc_cells).
+  2026-10-25 `RoCensus.v` (spine-root census): which code in the whole link can store into
+  the 35 action tables / 533 behavior scripts? None (by field name, and by union cell once
+  create_respawner's rawData slot 29 is charged to a per-behavior fact); addresses flow only
+  to gCurBhvCommand / curBhvCommand / behavior / bhvStack (+ the respawner cell). The RO class
+  is cheap: never-a-store-target + boot equality to the initializer + the slot-29 fact.
+  2026-10-25 `ObjSelf.v` (spine via ObjFrame) + ObjFrame sec. 5-6: kSelf = the byte range
+  [oc, oc+608) of gObjectPool; `obj_body_self_frame` (no SafeB/MWF premise) for the 200
+  self-clean entries (`self_walk_ok`, vm); 46/107 live natives self-clean, the other 61 named
+  in `cross_live` (spawn targets, loaded object pointers, call_action_function, interior
+  self pointers into vec3f_* helpers). Koopa race / boo_key / respawner not in the closure.
+  Open next: an interior-self-pointer kind (KSelfAt d) for vec3f_* / object_step, then
+  per-call frames for spawns (the new slot is not the running one).
   2026-10-24 `UpdateCameraBody.update_camera_pres`: the REAL `update_camera(c)` (SafeB c) keeps
   `mem_ok`. 507 bodies (the whole recursive tree: `UcKit` two-mode class walker, `UcTable`
   signatures re-checked by vm), the 336 CameraEvent functions by type certificate. Wired as
@@ -386,7 +398,16 @@ all in `Unwired/`, and the theorem moved nowhere. See
     PoleSlow/Fast/Hold/Climb are retired. Walker trap: a clamped polePos folds
     oPosY + 720.0f to a constant, so `PoleClass.tb` has a constant + offset case.
   - (`wmotr_gap` and `wmotr_poles` are now proved from generated level data, `WMotRLevel.v`)
-  - the flank specs (TRUST 0.7): level phase, objects. Mario's render call and
+  - the flank spec (TRUST 0.7): objects. The LEVEL PHASE is real code since 2026-10-24:
+    `play_mode_normal`'s slices before / after `area_update_objects` (`LevelFlank`), walked
+    (`LevelWalk`, footprint `LevelGvars.level_gvars`), carries proved (`LevelKeep.pre_keeps` /
+    `post_keeps`); update_camera's mem_ok via `update_camera_ok_linked12`. ONE labeled row:
+    `Hcam_phi` (`LevelKeep.cam_phi_row`, the camera statement keeps PhiW / Mario's surface
+    cells; a clobber spec cannot, the Camera shares the surface pool's block; writes to cover =
+    `UpdateCameraBody.uc_census`). Stated by the steps: `surf_apart`, `plat_apart`,
+    `cam_area_mario`, and `warp_w` at the POST end (FOUND: a ∀-row for it is false). Next:
+    discharge `Hcam_phi` from the census (per-write PhiW keep).
+    Mario's render call and
     `apply_mario_platform_displacement` (platform_displacement.c, TU 45) are REAL calls whose
     GOAL-1 and Φ carries are proved (`RenderKeep.render_keeps_phiw`, `PlatformKeep`, 2026-10-23);
     they state only narrow premises: `surf_apart` (Mario's surfaces not in a written global's block)

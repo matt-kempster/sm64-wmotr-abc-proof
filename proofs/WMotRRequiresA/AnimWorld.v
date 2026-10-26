@@ -36,7 +36,7 @@ From Coq Require Import ZArith List Bool Lia.
 From compcert Require Import Coqlib Maps AST Integers Values Memory Globalenvs Clight.
 From SM64.Generated Require mario game_init graph_node level_update platform_displacement.
 From SM64.Proofs.WMotRRequiresA Require Import AnimData FloorList FloorExec FfWorld.
-From SM64.Proofs.WMotRRequiresA Require RenderAnim.
+From SM64.Proofs.WMotRRequiresA Require RenderAnim LevelGvars.
 Import ListNotations.
 Local Open Scope Z_scope.
 
@@ -125,9 +125,11 @@ Definition anim_st (m : mem) (ab bga bt : block) (ot : ptrofs) (mb : block) (mo 
    one real render call rewrote them.  Since 2026-10-23 the list also
    names platform_displacement.c's D_8032FEC0, the one global the real
    apply_mario_platform_displacement writes (PlatformKeep): together, the
-   flanks' globals. *)
+   flanks' globals.  Since 2026-10-24 also the level phase's
+   (LevelGvars.level_gvars: the warp / HUD / dialog / sound / save statics
+   the real play_mode_normal slices write, LevelKeep). *)
 Definition flank_gvars : list ident :=
-  RenderAnim.render_gvars ++ [platform_displacement._D_8032FEC0].
+  RenderAnim.render_gvars ++ [platform_displacement._D_8032FEC0] ++ LevelGvars.level_gvars.
 
 Definition rg_apart (m : mem) (mb : block) : Prop :=
   forall id b, In id flank_gvars -> Genv.find_symbol ge id = Some b ->
@@ -274,7 +276,7 @@ Qed.
 Lemma part_not_rg : forall id, In id part_ids -> In id flank_gvars -> False.
 Proof.
   intros id H1 H2. unfold part_ids in H1.
-  destruct H1 as [<- | [<- | []]]; unfold flank_gvars, RenderAnim.render_gvars in H2; cbn [app] in H2;
+  destruct H1 as [<- | [<- | []]]; unfold flank_gvars, RenderAnim.render_gvars, LevelGvars.level_gvars, LevelGvars.lvl_safe_gvars, LevelGvars.warp_gvars in H2; cbn [app] in H2;
     repeat (destruct H2 as [H2 | H2]; [vm_compute in H2; discriminate H2 |]); exact H2.
 Qed.
 
