@@ -53,7 +53,7 @@
 (* top (2320 + 2 * 52, the box's x2 scale), from WMotRLevel's data.         *)
 (* ======================================================================= *)
 
-From Coq Require Import ZArith List Reals.
+From Coq Require Import ZArith List Reals Lia.
 From Flocq Require Import Binary.
 From compcert Require Import Coqlib Maps AST Integers Floats Values Events Memory
   Globalenvs Ctypes Clight ClightBigstep Linking.
@@ -76,7 +76,7 @@ From SM64.Proofs.WMotRRequiresA Require Import ProRows NaSplit.
 From SM64.Proofs.WMotRRequiresA Require Import FfWorld FfRow AhwRow KbRow FpuFloor ExtInert.
 From SM64.Proofs.WMotRRequiresA Require PoleXc PoleCasesT LsContract.
 From SM64.Proofs.WMotRRequiresA Require RenderFlank RenderKeep AnimWorld PlatformKeep PollFlank.
-From SM64.Proofs.WMotRRequiresA Require LevelGvars LevelFlank LevelKeep PollKeep.
+From SM64.Proofs.WMotRRequiresA Require LevelGvars LevelFlank LevelKeep PollKeep MidKeep.
 From SM64.Proofs.WMotRRequiresA Require ObjPhase ObjWorld ObjLoop.
 From SM64.Generated Require object_list_processor area platform_displacement.
 From SM64.Proofs Require OsDmaFloor LptBody ObjExtBodies UpdateCameraBody.
@@ -128,18 +128,17 @@ Section HeightFrame.
   (* seg_input: the controller poll, the REAL code (2026-10-23, PollFlank):
      game_init.c's loop runs osContStartReadData(&gSIEventMesgQueue) when a
      controller is plugged in (left disjunct: it is not), then
-     read_controller_inputs().  i is the memory after the SI request: its
-     PIF image holds the reply bytes the HARDWARE delivered
-     (OsDmaFloor.si_raw_dma_spec), which is what the no-A premise reads
-     (PollFlank.pif_a_real); m0 is the post-poll memory.  Both calls are
-     walked (Hsrd_ok / Hsrd_keep / Hpoll_ok below, discharged on the
-     link: GOAL 1's facts, A-freedom, and since 2026-10-26 the Phi, plat_still
-     and OW carries, PollKeep, from the two calls' walked footprints).
-     LABELED (TRUST 0.7): the two calls are adjacent (the game runs
-     audio_game_loop_tick and select_gfx_pool in between, assumed not to
-     touch the PIF image). *)
+     audio_game_loop_tick() and select_gfx_pool() (MidKeep.mid_call, the
+     real calls, 2026-10-26), then read_controller_inputs().  i is the memory
+     read_controller_inputs starts from: its PIF image holds the reply bytes
+     the HARDWARE delivered (OsDmaFloor.si_raw_dma_spec), which is what the
+     no-A premise reads (PollFlank.pif_a_real); m0 is the post-poll memory.
+     Every call is walked (Hsrd_ok / Hsrd_keep / Hmid_keep / Hpoll_ok below,
+     all discharged on the link: GOAL 1's facts, A-freedom, and the Phi,
+     plat_still and OW carries, PollKeep / MidKeep, from the calls' walked
+     footprints).  No labeled premise. *)
   Definition seg_input_spec (m i m0 : mem) : Prop :=
-    (i = m \/ PollFlank.srd_call lp m i)
+    (exists i0, (i0 = m \/ PollFlank.srd_call lp m i0) /\ MidKeep.mid_call lp i0 i)
     /\ PollFlank.rci_call lp i m0.
 
   (* apply_mario_platform_displacement (platform_displacement.c, linked as
@@ -375,7 +374,7 @@ Section HeightFrame.
   Hypothesis Hobj_unload : ObjPhase.call_keeps (lp_ge lp) Pobj object_list_processor._unload_deactivated_objects.
   Hypothesis Hobj_mplat : ObjPhase.call_keeps (lp_ge lp) Pobj object_list_processor._update_mario_platform.
   (* the platform callee keeps Pobj (discharged in HeightLinked12 from the
-     PROVED PlatformKeep carries and the narrower row Hplat_keep there) *)
+     PROVED PlatformKeep carries and plat_keep_linked12 there) *)
   Hypothesis Hobj_platform :
     ObjPhase.call_keeps (lp_ge lp) Pobj object_list_processor._apply_mario_platform_displacement.
 
@@ -385,7 +384,7 @@ Section HeightFrame.
      object pointers) *)
   Hypothesis Hlvl_ow : forall m m', mem_ok m -> Phi m -> OW m ->
     (seg_level_pre_spec m m' \/ seg_level_post_spec m m') -> OW m'.
-  Hypothesis Hrender_ow : forall m m', OW m -> RenderFlank.render_call lp bm m m' -> OW m'.
+  Hypothesis Hrender_ow : forall m m', Phi m -> OW m -> RenderFlank.render_call lp bm m m' -> OW m'.
 
   (* the level slices carry mem_ok, Phi (and the PRE slice the A-held bit
      and the platform fact) (discharged in the twelve-TU section below by
@@ -426,6 +425,12 @@ Section HeightFrame.
   Hypothesis Hsrd_keep :
     forall m i, PollFlank.srd_call lp m i -> Phi m ->
       Phi i /\ (PlatformKeep.plat_still lp m -> PlatformKeep.plat_still lp i) /\ (OW m -> OW i).
+  (* audio_game_loop_tick ; select_gfx_pool (discharged below by
+     MidKeep.mid_keeps -- NOT open) *)
+  Hypothesis Hmid_keep :
+    forall m i, MidKeep.mid_call lp m i -> mem_ok m -> Phi m ->
+      (mem_ok i /\ Phi i) /\ (PlatformKeep.plat_still lp m -> PlatformKeep.plat_still lp i)
+      /\ (OW m -> OW i).
   Hypothesis Hpoll_ok :
     forall i m0, mem_ok i -> Phi i -> PollFlank.pif_a_real (lp_ge lp) i = false ->
       PollFlank.rci_call lp i m0 ->
@@ -488,12 +493,14 @@ Section HeightFrame.
       PollFlank.pif_a_real (lp_ge lp) i = false -> fb_ok m -> seg_input_spec m i m0 ->
       fb_ok m0 /\ a_down_real bm m0 = false.
   Proof.
-    intros i m m0 HP (Hok & Hphi & Hst & How) (Hsrd & Hrci).
-    assert (Hi : mem_ok i /\ Phi i /\ PlatformKeep.plat_still lp i /\ OW i).
+    intros i m m0 HP (Hok & Hphi & Hst & How) ((i0 & Hsrd & Hmid) & Hrci).
+    assert (Hi0 : mem_ok i0 /\ Phi i0 /\ PlatformKeep.plat_still lp i0 /\ OW i0).
     { destruct Hsrd as [-> | Hsrd]; [ exact (conj Hok (conj Hphi (conj Hst How))) | ].
-      destruct (Hsrd_keep m i Hsrd Hphi) as (Hphii & Hsti & Howi).
-      exact (conj (Hsrd_ok m i Hok Hsrd) (conj Hphii (conj (Hsti Hst) (Howi How)))). }
-    destruct Hi as (Hoki & Hphii & Hsti & Howi).
+      destruct (Hsrd_keep m i0 Hsrd Hphi) as (Hphii & Hsti & Howi).
+      exact (conj (Hsrd_ok m i0 Hok Hsrd) (conj Hphii (conj (Hsti Hst) (Howi How)))). }
+    destruct Hi0 as (Hok0' & Hphi0' & Hst0' & How0').
+    destruct (Hmid_keep i0 i Hmid Hok0' Hphi0') as ((Hoki & Hphii) & Hsti' & Howi').
+    pose proof (Hsti' Hst0') as Hsti. pose proof (Howi' How0') as Howi.
     destruct (Hpoll_ok i m0 Hoki Hphii HP Hrci) as ((Hok0 & HU & Hphi0) & Hst0 & How0).
     destruct (a_used_real_false bm m0 HU) as (_ & HD).
     exact (conj (conj Hok0 (conj Hphi0 (conj (Hst0 Hsti) (How0 Howi)))) HD).
@@ -550,7 +557,7 @@ Section HeightFrame.
       by (destruct Hrnd as [-> | Hrc];
           [ exact (conj Hok5 (conj Hphi5 How5))
           | exact (conj (Hrender_ok m5 m6 Hok5 Hrc)
-                     (conj (Hrender_phi m5 m6 Hphi5 Hrc (Hphi_sa _ m5 Hphi5)) (Hrender_ow m5 m6 How5 Hrc))) ]).
+                     (conj (Hrender_phi m5 m6 Hphi5 Hrc (Hphi_sa _ m5 Hphi5)) (Hrender_ow m5 m6 Hphi5 How5 Hrc))) ]).
     destruct Hok6 as (Hok6 & Hphi6 & How6).
     split; [ | split; [ | split ] ].
     - exact (rest_ok m6 m' Hrest2 Hok6).
@@ -1160,6 +1167,15 @@ Section HeightLinked12.
     exact (PollKeep.srd_keeps lp H12 Hdma_floor bm Hbm_sym).
   Qed.
 
+  Lemma mid_keep_linked12 :
+    forall m i, MidKeep.mid_call lp m i -> mem_ok_lp bm MWF m -> Phi m ->
+      (mem_ok_lp bm MWF i /\ Phi i) /\ (PlatformKeep.plat_still lp m -> PlatformKeep.plat_still lp i)
+      /\ (OWl m -> OWl i).
+  Proof.
+    intros m i Hc Hm Hp.
+    exact (MidKeep.mid_keeps lp H12 Hdma_floor bm bc oc0 SafeB HSafeB_syms Hbm_sym Hbc_sym Hoc0 m i Hc Hm Hp).
+  Qed.
+
   Lemma poll_ok_linked12 :
     forall i m0, mem_ok_lp bm MWF i -> Phi i -> PollFlank.pif_a_real (lp_ge lp) i = false ->
       PollFlank.rci_call lp i m0 ->
@@ -1254,7 +1270,7 @@ Section HeightLinked12.
      the rows below.  The two link facts are PROVED (ObjPhase.clock_keeps:
      debug.c's clock stubs touch no memory; ObjPhase.auo_fun).  The
      platform callee's row is PROVED from PlatformKeep's walked carries and
-     ONE narrower open row, Hplat_keep. ---- *)
+     its narrower row plat_keep_linked12 (PROVED 2026-10-26). ---- *)
   Lemma obj_clock_linked12 : forall Q,
     ObjPhase.call_keeps (lp_ge lp) Q object_list_processor._get_current_clock
     /\ ObjPhase.call_keeps (lp_ge lp) Q object_list_processor._get_clock_difference.
@@ -1317,16 +1333,110 @@ Section HeightLinked12.
     Mem.store Mint32 m b 0 (Vint c) = Some m' -> Pobjl m'.
   Hypothesis Hobj_unload : ObjPhase.call_keeps (lp_ge lp) Pobjl object_list_processor._unload_deactivated_objects.
   Hypothesis Hobj_mplat : ObjPhase.call_keeps (lp_ge lp) Pobjl object_list_processor._update_mario_platform.
-  (* OPEN, narrower than the platform row: the platform call (whose
-     footprint is D_8032FEC0 and Mario's pos, PlatformKeep.plat_step_eff)
-     keeps gMarioPlatform's fact and the object world (the surface premise
-     follows from Phi since 2026-10-26, Hphi_sa_linked12) *)
-  Hypothesis Hplat_keep : forall m m', Pobjl m -> PlatformKeep.plat_call lp m m' ->
+  (* PROVED (2026-10-26): the platform call (whose footprint is
+     D_8032FEC0 and Mario's pos, PlatformKeep.plat_step_eff) keeps
+     gMarioPlatform's fact (PlatformKeep.plat_keeps_still: neither
+     gMarioPlatform nor the pool is written) and the object world (none of
+     its blocks, and not Mario's object-pointer cells); the surface premise
+     follows from Phi (Hphi_sa_linked12) *)
+  Lemma plat_keep_linked12 : forall m m', Pobjl m -> PlatformKeep.plat_call lp m m' ->
     PlatformKeep.plat_still lp m' /\ OWl m'.
-  (* OPEN, the object world through the level slices and the render call *)
-  Hypothesis Hlvl_ow : forall m m', mem_ok_lp bm MWF m -> Phi m -> OWl m ->
+  Proof.
+    intros m m' (Hok & _ & _ & Hst & _ & How) Hc.
+    split; [ exact (PlatformKeep.plat_keeps_still lp H12 bm Hbm_sym bc oc0 SafeB m m' Hok Hc Hst) | ].
+    destruct (PlatformKeep.plat_loads lp H12 bm Hbm_sym bc oc0 SafeB m m' Hok Hc Hst) as (LG & LM).
+    apply (PollKeep.obj_w_unch m m' (lp_ge lp) bm); [ | | exact How ].
+    - intros id b Hin Hs ch z. apply (LG id b Hs).
+      + intro E. subst id. unfold PollKeep.ow_ids in Hin. cbn [In] in Hin.
+        repeat (destruct Hin as [E | Hin]; [ vm_compute in E; discriminate E | ]). exact Hin.
+      + intro E. subst id. unfold PollKeep.ow_ids in Hin. cbn [In] in Hin.
+        repeat (destruct Hin as [E | Hin]; [ vm_compute in E; discriminate E | ]). exact Hin.
+    - intros z Hz. apply LM. right. left. unfold MARIOOBJ_OFF in Hz. cbn [In] in Hz. lia.
+  Qed.
+  (* OPEN, narrower than the level row (2026-10-26): update_camera's
+     statement (LevelFlank.cam_step, the camera row's step), between mem_ok
+     states in Phi, keeps the object world.  The real update_camera is
+     walked only for mem_ok (UcKit, over SafeB, which includes the object
+     pool), so no footprint excludes the pool here *)
+  Hypothesis Hcam_ow : forall m m', LevelFlank.cam_step lp m m' ->
+    mem_ok_lp bm MWF m -> Phi m -> OWl m -> OWl m'.
+
+  (* PROVED (2026-10-26): the level slices keep the object world.  The PRE
+     slice's footprint is lvl_safe_gvars (LevelKeep.pre_eff); the POST slice
+     is the hud statement (lvl_safe_gvars), the camera statement (Hcam_ow),
+     then the painting call and the tail (level_gvars) (LevelKeep.post_split);
+     neither list names an obj_w global or gMarioStates (PollKeep.fx_obj_w) *)
+  Lemma lvl_ow_linked12 : forall m m', mem_ok_lp bm MWF m -> Phi m -> OWl m ->
     (seg_level_pre_spec lp m m' \/ seg_level_post_spec lp m m') -> OWl m'.
-  Hypothesis Hrender_ow : forall m m', OWl m -> RenderFlank.render_call lp bm m m' -> OWl m'.
+  Proof.
+    intros m m' Hok Hphi How [Hc | Hc].
+    - destruct (LevelKeep.pre_eff lp H12 bm bc oc0 SafeB HSafeB_syms Hbm_sym Hbc_sym Hoc0 Hdma_floor
+                  m m' Hc Hphi Hok) as (_ & Hfx & _).
+      exact (PollKeep.fx_obj_w lp bm Hbm_sym LevelGvars.lvl_safe_gvars m m'
+               (RenderKeep.avoid_of PollKeep.ow_ids LevelGvars.lvl_safe_gvars ltac:(vm_compute; reflexivity))
+               ltac:(vm_compute; reflexivity) Hfx How).
+    - pose proof (RenderKeep.phiw_surf_apart lp bm LevelGvars.level_gvars m Hphi) as Hsa.
+      destruct (LevelKeep.post_split lp H12 bm bc oc0 SafeB HSafeB_syms Hbm_sym Hbc_sym Hoc0 Hdma_floor
+                  m m' update_camera_ok_linked12 Hcam_phi Hc Hsa Hok Hphi)
+        as (_ & _ & m1 & m2 & F1 & Cs & Ok1 & Ph1 & F2).
+      apply (PollKeep.fx_obj_w lp bm Hbm_sym LevelGvars.level_gvars m2 m'
+               (RenderKeep.avoid_of PollKeep.ow_ids LevelGvars.level_gvars ltac:(vm_compute; reflexivity))
+               ltac:(vm_compute; reflexivity) F2).
+      apply (Hcam_ow m1 m2 Cs Ok1 Ph1).
+      exact (PollKeep.fx_obj_w lp bm Hbm_sym LevelGvars.lvl_safe_gvars m m1
+               (RenderKeep.avoid_of PollKeep.ow_ids LevelGvars.lvl_safe_gvars ltac:(vm_compute; reflexivity))
+               ltac:(vm_compute; reflexivity) F1 How).
+  Qed.
+  Notation Hlvl_ow := lvl_ow_linked12.
+  (* PROVED (2026-10-26): Mario's render call keeps the object world.  By
+     RenderKeep.render_eff it changes loads only in the six render globals
+     and in the bytes [64, 72) of Mario's object (its animFrame / animTimer /
+     accelAssist header), and every obj_w clause reads the pool only at a
+     slot's fields from offset 96 on (PollKeep.obj_w_slots) *)
+  Lemma render_sym_apart : forall id b, Genv.find_symbol (lp_ge lp) id = Some b ->
+    existsb (Pos.eqb id) RenderAnim.render_gvars = false -> ~ RenderKeep.rgb lp RenderAnim.render_gvars b.
+  Proof.
+    intros id b Hs Hn (id' & Hin & Hs').
+    assert (E : id = id') by (eapply Genv.genv_vars_inj; [ exact Hs | exact Hs' ]). subst id'.
+    assert (Ht : existsb (Pos.eqb id) RenderAnim.render_gvars = true)
+      by (apply existsb_exists; exists id; split; [ exact Hin | apply Pos.eqb_refl ]).
+    congruence.
+  Qed.
+
+  Lemma render_ow_linked12 : forall m m', Phi m -> OWl m -> RenderFlank.render_call lp bm m m' -> OWl m'.
+  Proof.
+    intros m m' Hphi How Hc.
+    destruct (RenderKeep.render_eff lp H12 bm m m' Hphi Hc) as (mb & mo & Lmo & LD).
+    pose proof How as (pool & la & fl & gol & gmo & sdp & gdi & rs & fs & S1 & S2 & S3 & S4 & S5 & S6 & S7 & C).
+    destruct C as [_ Cr _ _ _ Cm _ _ _ _ _ _ _ _ _].
+    destruct Cm as (k & Hk & _ & Lb & _).
+    assert (Lb' : Mem.load Mint32 m bm 136 = Some (ObjWorld.slot_v pool k)) by exact Lb.
+    rewrite Lmo in Lb'. unfold ObjWorld.slot_v in Lb'. injection Lb' as Eb Emo. subst mb mo.
+    assert (H0 : (0 < ObjWorld.NLIST)%nat) by (unfold ObjWorld.NLIST; lia).
+    destruct (ObjLoop.ring_i_spec _ _ _ _ _ (ObjLoop.rings_nth _ _ _ _ Cr 0 H0)) as (_ & Hall).
+    destruct (Hall k Hk) as (Rk & _).
+    assert (Uo : Ptrofs.unsigned (Ptrofs.repr (k * ObjWorld.OSZ)) = k * ObjWorld.OSZ).
+    { apply Ptrofs.unsigned_repr. unfold ObjWorld.OSZ, ObjWorld.NSLOT in *.
+      change Ptrofs.max_unsigned with 4294967295. lia. }
+    rewrite Uo in LD.
+    apply (PollKeep.obj_w_slots m m' (lp_ge lp) bm); [ | | | exact How ].
+    - intros id b Hin Hne Hs ch z. apply LD.
+      + apply (render_sym_apart id b Hs). unfold PollKeep.ow_ids in Hin. cbn [In] in Hin.
+        repeat (destruct Hin as [<- | Hin]; [ vm_compute; reflexivity | ]). destruct Hin.
+      + left. intro E. subst b. apply Hne. eapply Genv.genv_vars_inj; [ exact Hs | exact S1 ].
+    - intros pool' Hs'. rewrite S1 in Hs'. injection Hs' as <-.
+      intros ch k' off H1 H2. apply LD.
+      + exact (render_sym_apart _ _ S1 ltac:(vm_compute; reflexivity)).
+      + right. unfold ObjWorld.OSZ in *.
+        destruct (Z_lt_le_dec k' k); [ left; nia | right; nia ].
+    - intros z Hz. apply LD.
+      + exact (render_sym_apart _ _ Hbm_sym ltac:(vm_compute; reflexivity)).
+      + left. intro E.
+        assert (Ei : level_update._gMarioStates = object_list_processor._gObjectPool)
+          by (eapply Genv.genv_vars_inj; [ exact Hbm_sym | rewrite E; exact S1 ]).
+        vm_compute in Ei. discriminate Ei.
+  Qed.
+  Notation Hrender_ow := render_ow_linked12.
 
   Lemma dm_apmd : (prog_defmap platform_displacement.prog) ! object_list_processor._apply_mario_platform_displacement
     = Some (Gfun (Internal platform_displacement.f_apply_mario_platform_displacement)).
@@ -1334,7 +1444,7 @@ Section HeightLinked12.
   Lemma apmd_params : fn_params platform_displacement.f_apply_mario_platform_displacement = [].
   Proof. reflexivity. Qed.
 
-  (* the platform callee, PROVED from PlatformKeep + Hplat_keep *)
+  (* the platform callee, PROVED from PlatformKeep + plat_keep_linked12 *)
   Lemma obj_platform_linked12 :
     ObjPhase.call_keeps (lp_ge lp) Pobjl object_list_processor._apply_mario_platform_displacement.
   Proof.
@@ -1348,7 +1458,7 @@ Section HeightLinked12.
     subst vargs.
     assert (Hc : PlatformKeep.plat_call lp m m') by (exists t, vr; exact Hev).
     destruct HP as (Hok & Hphi & HD & Hst & Hsa & How).
-    destruct (Hplat_keep m m' (conj Hok (conj Hphi (conj HD (conj Hst (conj Hsa How))))) Hc)
+    destruct (plat_keep_linked12 m m' (conj Hok (conj Hphi (conj HD (conj Hst (conj Hsa How))))) Hc)
       as (Hst' & How').
     split; [ exact (plat_ok_linked12 m m' Hok Hst Hc) | ].
     pose proof (plat_phi_linked12 m m' Hphi Hst Hc) as Hphi'.
@@ -1392,7 +1502,29 @@ Section HeightLinked12.
                     Hobj_debug Hobj_surfaces obj_terrain_linked12 Hobj_collisions obj_nonterrain_linked12
                     Hobj_unload Hobj_mplat obj_platform_linked12 Hlvl_ow Hrender_ow
                     lvl_pre_linked12 lvl_post_linked12 seg_action_phi Hphi_y Hphi_sa_linked12
-                    srd_ok_linked12 srd_keep_linked12 poll_ok_linked12
+                    srd_ok_linked12 srd_keep_linked12 mid_keep_linked12 poll_ok_linked12
+                    init is m Hok Hphi Hst How HA Hr)).
+  Qed.
+
+  (* the run invariant the capstone above reads y from: GOAL 1's mem_ok
+     holds at every frame boundary of a no-A run too (read by GOAL 1's
+     whole-frame capstone, NoAImpliesNoFlyFrame) *)
+  Theorem wmotr_noA_run_ok_linked12 :
+    forall (init : mem) (is : list mem) (m : mem),
+      mem_ok_lp bm MWF init -> Phi init -> PlatformKeep.plat_still lp init -> OWl init ->
+      Forall (fun i => PollFlank.pif_a_real (lp_ge lp) i = false) is ->
+      reachable mem mem (frame_step lp bm MWF Phi OWl) init is m ->
+      mem_ok_lp bm MWF m /\ y_le bm PHI_YMAX m.
+  Proof.
+    intros init is m Hok Hphi Hst How HA Hr.
+    exact ((noA_run_height_bound lp bm MWF Phi OWl PHI_YMAX
+                    frame_action_linked12 render_ok_linked12 render_phi_linked12
+                    obj_clock_linked12 obj_auo_linked12
+                    Hobj_blind (Hobj_fresh 240) Hobj_noref Hobj_stores Hobj_counter
+                    Hobj_debug Hobj_surfaces obj_terrain_linked12 Hobj_collisions obj_nonterrain_linked12
+                    Hobj_unload Hobj_mplat obj_platform_linked12 Hlvl_ow Hrender_ow
+                    lvl_pre_linked12 lvl_post_linked12 seg_action_phi Hphi_y Hphi_sa_linked12
+                    srd_ok_linked12 srd_keep_linked12 mid_keep_linked12 poll_ok_linked12
                     init is m Hok Hphi Hst How HA Hr)).
   Qed.
 

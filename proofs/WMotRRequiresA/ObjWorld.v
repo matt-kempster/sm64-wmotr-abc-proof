@@ -269,18 +269,27 @@ Section CLAUSES.
     v = Vnullptr \/ exists k, 0 <= k < NSLOT /\ v = slot_v pool k.
 End CLAUSES.
 
-(* kind_ok depends on the pool block's loads only (frames call this rather
-   than destructing the clause) *)
-Lemma kind_ok_eq : forall pool m m', (forall ch z, Mem.load ch m' pool z = Mem.load ch m pool z) ->
+(* kind_ok depends only on each slot's cells at offsets >= 96 of the pool
+   block (frames call this rather than destructing the clause) *)
+Local Ltac ko := unfold OSZ, O_INTERACT_TYPE, O_POSX, O_POSY, O_POSZ, HITBOX_DOWN_OFF, HITBOX_H_OFF,
+                   RAW_OFF; cbn [size_chunk]; lia.
+Lemma kind_ok_eq : forall pool m m',
+  (forall ch k off, 96 <= off -> off + size_chunk ch <= OSZ ->
+     Mem.load ch m' pool (k * OSZ + off) = Mem.load ch m pool (k * OSZ + off)) ->
   forall k, kind_ok pool m k -> kind_ok pool m' k.
 Proof.
-  intros pool m m' Kp k (t & Lt & Hin & Hp & Hc & Hpx & Hcx). exists t.
-  split; [ rewrite Kp; exact Lt | split; [ exact Hin | split; [ | split; [ | split ] ] ] ].
+  intros pool m m' Kp k (t & Lt & Hin & Hp & Hc & Hpx & Hcx).
+  assert (S : forall ch off, 96 <= off -> off + size_chunk ch <= OSZ ->
+            Mem.load ch m' pool (k * OSZ + off) = Mem.load ch m pool (k * OSZ + off)) by (intros; apply Kp; assumption).
+  exists t.
+  split; [ rewrite S by ko; exact Lt | split; [ exact Hin | split; [ | split; [ | split ] ] ] ].
   - intros E. destruct (Hp E) as (base & top & Hb & L1 & L2 & L3).
-    exists base, top. rewrite !Kp. exact (conj Hb (conj L1 (conj L2 L3))).
-  - intros E. destruct (Hc E) as (y & Hy & L). exists y. rewrite Kp. exact (conj Hy L).
-  - intros E. exact (pole_xz_ok_eq _ _ _ _ Kp (Hpx E)).
-  - intros E. exact (cannon_xz_ok_eq _ _ _ _ Kp (Hcx E)).
+    exists base, top. rewrite !S by ko. exact (conj Hb (conj L1 (conj L2 L3))).
+  - intros E. destruct (Hc E) as (y & Hy & L). exists y. rewrite S by ko. exact (conj Hy L).
+  - intros E. destruct (Hpx E) as (x & z & base & top & Hb & L1 & L2 & L3).
+    exists x, z, base, top. rewrite !S by ko. exact (conj Hb (conj L1 (conj L2 L3))).
+  - intros E. destruct (Hcx E) as (x & z & y & Hy & L1 & L2 & L3).
+    exists x, z, y. rewrite !S by ko. exact (conj Hy (conj L1 (conj L2 L3))).
 Qed.
 
 (* ORDER: update_non_terrain_objects / unload_deactivated_objects walk the

@@ -317,6 +317,7 @@ proofs/WMotRRequiresA/RenderFlank.v
 proofs/WMotRRequiresA/PollFlank.v
 proofs/WMotRRequiresA/FootWalk.v
 proofs/WMotRRequiresA/PollKeep.v
+proofs/WMotRRequiresA/MidKeep.v
 proofs/WMotRRequiresA/PlatformEff.v
 proofs/WMotRRequiresA/RenderKeep.v
 proofs/WMotRRequiresA/PlatformWalk.v
@@ -326,6 +327,7 @@ proofs/WMotRRequiresA/LevelWalk.v
 proofs/WMotRRequiresA/LevelWarp.v
 proofs/WMotRRequiresA/LevelKeep.v
 proofs/WMotRRequiresA/HeightFrame.v
+proofs/NoAImpliesNoFly/NoAImpliesNoFlyFrame.v
 proofs/WMotRRequiresA/WMotREntry.v
 proofs/WMotRRequiresA/SpawnTypeRun.v
 proofs/WMotRRequiresA/AnimRoundTrip.v
@@ -350,6 +352,7 @@ proofs/WMotRRequiresA/ObjLoop.v
 proofs/WMotRRequiresA/ObjCensus.v
 proofs/WMotRRequiresA/BhvVM.v
 proofs/WMotRRequiresA/RoCensus.v
+proofs/WMotRRequiresA/ActWriterCensus.v
 proofs/WMotRRequiresA/CoinLink.v
 
 # --- executable Clight: interpreter (sound vs ClightBigstep), vm-computable

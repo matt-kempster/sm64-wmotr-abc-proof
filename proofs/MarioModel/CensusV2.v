@@ -39,7 +39,7 @@ From compcert Require Import Coqlib Maps AST Integers Values Events Memory
   Globalenvs Ctypes Cop Clightdefs Clight ClightBigstep Linking Errors.
 From SM64.Generated Require surface_collision math_util memory save_file area
   libultra_osSiCreateAccessQueue libultra_osContInit libultra_osEepromWrite
-  audio_external print ingame_menu behavior_data game_init camera.
+  audio_external print ingame_menu behavior_data game_init camera buffers.
 From SM64.Generated Require mario level_update mario_step mario_actions_submerged
   mario_actions_cutscene behavior_actions interaction graph_node spawn_object
   object_helpers.
@@ -1135,9 +1135,20 @@ Definition camera_safe_syms : list ident :=
        phase passes gCurrentArea->camera to update_camera (FfWorld.area_w) *)
     :: area._gAreaData :: nil.
 
+(* the frame's graphics-pool pointers (2026-10-26, WMotRRequiresA/MidKeep):
+   select_gfx_pool (game_init.c:348), run every frame between the poll's
+   two calls, stores &gGfxPools[gGlobalTimer % 2] into gGfxPool and pointers
+   into that pool into gGfxSPTask / gDisplayListHead / gGfxPoolEnd.  As
+   SafeB blocks (with the pool itself), R7 keeps what they hold SafeB; the
+   objects walk already classes every linked variable outside
+   non_safeb_syms this way (ObjTable.obj_gs). *)
+Definition gfx_safe_syms : list ident :=
+  game_init._gGfxPool :: game_init._gGfxSPTask :: game_init._gDisplayListHead
+    :: game_init._gGfxPoolEnd :: buffers._gGfxPools :: nil.
+
 Definition safe_ptr_syms : list ident :=
   mario_actions_cutscene._gCurrentObject :: gobj_syms ++ bhv_held_syms
-    ++ spawn_safe_syms ++ spawn_bhv_syms ++ print_safe_syms ++ camera_safe_syms.
+    ++ spawn_safe_syms ++ spawn_bhv_syms ++ gfx_safe_syms ++ print_safe_syms ++ camera_safe_syms.
 
 (* the two spawn entry points whose rows are argument-gated (2026-10-21,
    SpawnBodies.v): every argument SafeB-if-pointer *)
