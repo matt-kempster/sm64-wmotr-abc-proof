@@ -32,6 +32,7 @@ From SM64.Proofs Require Import SymbolicLinking ActionValueFrame RealFrameValue 
 From SM64.Proofs.WMotRRequiresA Require Import BodyFrame FrameSplit LsContract CapAudio.
 From SM64.Proofs Require AirborneSurface.
 From SM64.Proofs.WMotRRequiresA Require ProRows.
+From SM64.Proofs.WMotRRequiresA Require FfWorld.
 
 Import ListNotations.
 
@@ -802,3 +803,33 @@ Section HF.
     - split; [exact f160_fin |]. rewrite f160_val. lra.
   Qed.
 End HF.
+
+(* ---------------------------------------------------------------------- *)
+(* THE COIN-LINK PREMISES FROM THE FRAME WORLD (2026-10-26): ffw's ff_HH /  *)
+(* ff_HD give, for Mario's object (m->marioObj), CoinLink.MARIO_COIN2's     *)
+(* Lha / Fha / Hmario_height and Lda / Fda / Hmario_down (its ld is this    *)
+(* Mem.loadv at Ptrofs.add o (Ptrofs.repr off), OFF_HEIGHT = 508,           *)
+(* OFF_DOWN = 520).                                                         *)
+(* ---------------------------------------------------------------------- *)
+Lemma ffw_coin : forall (G : genv) bm m, FfWorld.ffw G bm m ->
+  exists bo oo ha da,
+    Mem.load Mint32 m bm FfWorld.FFW_OBJ = Some (Vptr bo oo)
+    /\ Mem.loadv Mfloat32 m (Vptr bo (Ptrofs.add oo (Ptrofs.repr 508))) = Some (Vsingle ha)
+    /\ Binary.is_finite 24 128 ha = true /\ (0 <= Binary.B2R 24 128 ha <= 160)%R
+    /\ Mem.loadv Mfloat32 m (Vptr bo (Ptrofs.add oo (Ptrofs.repr 520))) = Some (Vsingle da)
+    /\ Binary.is_finite 24 128 da = true /\ Binary.B2R 24 128 da = 0%R.
+Proof.
+  intros G bm m (_ & (d & F) & _).
+  pose proof (FfWorld.ff_Soo _ _ _ _ F) as Soo. unfold FfWorld.SZ_OBJECT in Soo.
+  destruct (FfWorld.ff_HH _ _ _ _ F) as (h & Lh & Eh).
+  pose proof (FfWorld.ff_HD _ _ _ _ F) as Ld.
+  exists (FfWorld.fw_bo d), (FfWorld.fw_oo d), h, FfWorld.FFW_F0.
+  split; [exact (FfWorld.ff_Lo _ _ _ _ F) |].
+  cbn [Mem.loadv].
+  rewrite !hb_add_u by (try unfold Ptrofs.max_unsigned; lia).
+  split; [exact Lh |].
+  split; [destruct Eh as [-> | ->]; [exact f100_fin | exact f160_fin] |].
+  split; [destruct Eh as [-> | ->]; [rewrite (f100_val : Binary.B2R 24 128 FfWorld.FFW_F100 = 100%R) | rewrite (f160_val : Binary.B2R 24 128 FfWorld.FFW_F160 = 160%R)]; lra |].
+  split; [exact Ld |].
+  split; [vm_compute; reflexivity | reflexivity].
+Qed.

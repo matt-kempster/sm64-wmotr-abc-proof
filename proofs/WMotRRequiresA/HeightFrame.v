@@ -191,20 +191,16 @@ Section HeightFrame.
      rules out the instant and painting warps.  What the steps state besides
      the slice (labeled, TRUST 0.7): Mario's surfaces are not in a level
      global's block (RenderKeep.surf_apart, as for the render / platform
-     steps); gMarioPlatform's object is not in one either, nor in Mario's
-     block (LevelKeep.plat_apart); gCurrentArea = gMarioState->area at the
-     POST start (LevelKeep.cam_area_mario); and the POST ends in FfWorld.warp_w:
+     steps); and the POST ends in FfWorld.warp_w:
      the warp initiate_delayed_warp may start leaves NORMAL play mode and
      starts no credits (WMotR's warp nodes lead to other levels; FOUND
      2026-10-24: warp_w does not pin the op, so a forall-row is false). *)
   Definition seg_level_pre_spec (m m' : mem) : Prop :=
     LevelFlank.level_pre_call lp m m'
-    /\ RenderKeep.surf_apart lp bm LevelGvars.level_gvars m
-    /\ LevelKeep.plat_apart lp bm LevelGvars.lvl_safe_gvars m.
+    /\ RenderKeep.surf_apart lp bm LevelGvars.level_gvars m.
   Definition seg_level_post_spec (m m' : mem) : Prop :=
     LevelFlank.level_post_call lp m m'
     /\ RenderKeep.surf_apart lp bm LevelGvars.level_gvars m
-    /\ LevelKeep.cam_area_mario lp bm m
     /\ FfWorld.warp_w (lp_ge lp) m'.
 
   (* seg_rest: the render walk outside Mario's node (geo_process_root over
@@ -1149,7 +1145,7 @@ Section HeightLinked12.
       PollFlank.rci_call lp i m0 ->
       mem_ok_lp bm MWF m0 /\ a_used_real bm m0 = false /\ ctl_w (lp_ge lp) m0.
   Proof.
-    intros i m0 Hm (_ & _ & _ & _ & Hf & _ & _ & (_ & _ & _ & Hcw)) HP Hr.
+    intros i m0 Hm (_ & _ & _ & _ & Hf & _ & _ & (_ & _ & _ & Hcw & _)) HP Hr.
     pose proof (NoAImpliesNoFlyTwelve.Hspawn lp H12 bm bc oc0 Hbm_sym Hbc_sym Hoc0) as Hsp.
     exact (PollFlank.poll_ok lp H12 Hdma_floor Hsqrtf bm bc oc0 SafeB HSafeB_syms Hsp i m0 Hm Hf Hcw HP Hr).
   Qed.
@@ -1216,18 +1212,18 @@ Section HeightLinked12.
       mem_ok_lp bm MWF m' /\ Phi m' /\ a_down_real bm m' = a_down_real bm m
       /\ (PlatformKeep.plat_still lp m -> PlatformKeep.plat_still lp m').
   Proof.
-    intros m m' Hok Hphi (Hc & Hsa & Hpa).
+    intros m m' Hok Hphi (Hc & Hsa).
     exact (LevelKeep.pre_keeps lp H12 bm bc oc0 SafeB HSafeB_syms Hbm_sym Hbc_sym Hoc0 Hdma_floor
-             m m' Hc Hsa Hpa Hok Hphi).
+             m m' Hc Hsa Hok Hphi).
   Qed.
 
   Lemma lvl_post_linked12 :
     forall m m', mem_ok_lp bm MWF m -> Phi m -> seg_level_post_spec lp bm m m' ->
                  mem_ok_lp bm MWF m' /\ Phi m'.
   Proof.
-    intros m m' Hok Hphi (Hc & Hsa & Hcm & Hw).
+    intros m m' Hok Hphi (Hc & Hsa & Hw).
     exact (LevelKeep.post_keeps lp H12 bm bc oc0 SafeB HSafeB_syms Hbm_sym Hbc_sym Hoc0 Hdma_floor
-             m m' update_camera_ok_linked12 Hcam_phi Hc Hsa Hcm Hw Hok Hphi).
+             m m' update_camera_ok_linked12 Hcam_phi Hc Hsa Hw Hok Hphi).
   Qed.
 
   (* ---- THE OBJECTS PHASE ON THE LINK (2026-10-26).  The real

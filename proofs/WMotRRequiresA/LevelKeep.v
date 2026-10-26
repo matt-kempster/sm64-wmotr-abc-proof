@@ -28,9 +28,6 @@
 (*   warp_w at the POST end (HeightFrame.seg_level_post_spec): the warp   *)
 (*               the tail may start leaves NORMAL play mode (WMotR's      *)
 (*               warp nodes lead to other levels) and no credits run;     *)
-(*   cam_area_mario  at the POST start, gCurrentArea = gMarioState->area  *)
-(*               (init_mario sets it; then m->area is a SafeB chase root  *)
-(*               and the camera pointer SafeB by MWF's chase step);       *)
 (*   cam_phi_row update_camera's statement, from a mem_ok state to a      *)
 (*               mem_ok state, keeps PhiW and Mario's three surface       *)
 (*               cells.  A clobber-form contract (camera-private writes   *)
@@ -46,7 +43,7 @@
 From Coq Require Import ZArith Lia List Bool.
 From compcert Require Import Coqlib Integers Values AST Ctypes Clight ClightBigstep
   Memory Maps Globalenvs Linking Events Errors.
-From SM64.Generated Require mario level_update platform_displacement.
+From SM64.Generated Require mario level_update platform_displacement object_list_processor area.
 From SM64.Proofs Require Import SymbolicLinking RealFrameLinked CensusV2 MWFReal SpawnInit
   LinkedTwelve ActionValueFrame Taint NoAImpliesNoFlyLinked AGates MathBodies MathGeomGated
   OsDmaFloor.
@@ -92,11 +89,6 @@ Definition uc_keeps (lp : Clight.program) (bm : block) (MWF : mem -> Prop) (Safe
     (forall bb oo, c = Vptr bb oo -> SafeB bb) ->
     mem_ok_lp bm MWF m -> mem_ok_lp bm MWF m'.
 
-(* gCurrentArea holds gMarioState->area (the POST step's statement) *)
-Definition cam_area_mario (lp : Clight.program) (bm : block) (m : mem) : Prop :=
-  forall ga v, Genv.find_symbol (lp_ge lp) LU._gCurrentArea = Some ga ->
-    Mem.load Mint32 m ga 0 = Some v -> Mem.load Mint32 m bm 144 = Some v.
-
 (* gCurrentArea points into a SafeB block *)
 Definition cam_area_safe (lp : Clight.program) (SafeB : block -> Prop) (m : mem) : Prop :=
   forall ga a o, Genv.find_symbol (lp_ge lp) LU._gCurrentArea = Some ga ->
@@ -136,12 +128,6 @@ Proof.
   intros id Hin. unfold flank_gvars. apply in_or_app. right. apply in_or_app. right. exact Hin.
 Qed.
 
-(* gMarioPlatform's object is not in a level global's block nor Mario's
-   (the PRE step's statement, like surf_apart: in the game it is an object
-   of gObjectPool) *)
-Definition plat_apart (lp : Clight.program) (bm : block) (Xs : list ident) (m : mem) : Prop :=
-  forall bp pb po, Genv.find_symbol (lp_ge lp) platform_displacement._gMarioPlatform = Some bp ->
-    Mem.load Mint32 m bp 0 = Some (Vptr pb po) -> ~ lvl_blk lp Xs pb /\ pb <> bm.
 
 Section Link.
   Variable lp : Clight.program.
@@ -376,14 +362,14 @@ Section Link.
      holds there (the other lvl_ids globals are not written) *)
   Lemma lvl_w_tail : forall m m', lvl_w G m -> fx lp bm level_gvars m m' -> warp_w G m' -> lvl_w G m'.
   Proof.
-    intros m m' (L1 & L2 & _ & CW) Hfx Hw.
+    intros m m' (L1 & L2 & _ & CW & AW) Hfx Hw.
     assert (U' : forall id b, Genv.find_symbol G id = Some b ->
                existsb (Pos.eqb id) level_gvars = false -> id <> level_update._gMarioStates ->
                forall ch z, Mem.load ch m' b z = Mem.load ch m b z).
     { intros id b Hs Hn Hne ch z. apply (fx_load lp bm level_gvars m m' ch b z Hfx).
       intros i _ [Hb | (-> & _)];
         [ exact (not_lvl level_gvars _ _ Hs Hn Hb) | exact (Genv.global_addresses_distinct G Hne Hs Hbm_sym eq_refl) ]. }
-    split; [| split; [| split; [ exact Hw | ]]].
+    split; [| split; [| split; [ exact Hw | split ]]].
     - intros b Hs. rewrite (U' _ b Hs ltac:(nb) ltac:(ne)). exact (L1 b Hs).
     - intros b Hs. rewrite (U' _ b Hs ltac:(nb) ltac:(ne)). exact (L2 b Hs).
     - intros bc' bp Sc Sp.
@@ -397,6 +383,7 @@ Section Link.
       split; [intros b3 S3; rewrite (U' _ b3 S3 ltac:(nb) ltac:(ne)); exact (P3 b3 S3) |].
       split; [intros bd Sd; rewrite (U' _ bd Sd ltac:(nb) ltac:(ne)); exact (DM bd Sd) |].
       intros bx Sx; rewrite (U' _ bx Sx ltac:(nb) ltac:(ne)); exact (MX bx Sx).
+    - intros ga Sa. rewrite (U' _ ga Sa ltac:(nb) ltac:(ne)). exact (AW ga Sa).
   Qed.
 
   Lemma safe_flank : incl lvl_safe_gvars flank_gvars.
@@ -441,20 +428,24 @@ Section Link.
     unfold WALL_OFF, CEIL_OFF, FLOOR_OFF in Hoff. cbn in Hi. lia.
   Qed.
 
-  (* the platform fact through a footprint that misses gMarioPlatform *)
+  (* the platform fact through a footprint that misses gMarioPlatform and
+     gObjectPool (the platform object's block, PlatformKeep.plat_still) *)
   Lemma fx_plat_still : forall Xs m m',
     existsb (Pos.eqb platform_displacement._gMarioPlatform) Xs = false ->
-    fx lp bm Xs m m' -> plat_apart lp bm Xs m ->
+    existsb (Pos.eqb object_list_processor._gObjectPool) Xs = false ->
+    fx lp bm Xs m m' ->
     PlatformKeep.plat_still lp m -> PlatformKeep.plat_still lp m'.
   Proof.
-    intros Xs m m' Hn Hfx Hpa Hst bp v Hbp Hl.
+    intros Xs m m' Hn Hnp Hfx Hst bp v Hbp Hl.
     assert (Nbp : bp <> bm)
       by (refine (Genv.global_addresses_distinct G _ Hbp Hbm_sym); ne).
     rewrite (fx_load lp bm Xs m m' Mint32 bp 0 Hfx) in Hl
       by (intros i _ [Hb | (Hb & _)]; [ exact (not_lvl Xs _ _ Hbp Hn Hb) | exact (Nbp Hb) ]).
-    destruct (Hst bp v Hbp Hl) as [Hz | (pb & po & -> & Hk)]; [ left; exact Hz | right ].
-    destruct (Hpa bp pb po Hbp Hl) as (Np & Npm).
-    exists pb, po. split; [ reflexivity | ].
+    destruct (Hst bp v Hbp Hl) as [Hz | (pb & po & -> & Hpool & Hk)]; [ left; exact Hz | right ].
+    assert (Np : ~ lvl_blk lp Xs pb) by exact (not_lvl Xs _ _ Hpool Hnp).
+    assert (Npm : pb <> bm)
+      by (refine (Genv.global_addresses_distinct G _ Hpool Hbm_sym); ne).
+    exists pb, po. split; [ reflexivity | split; [ exact Hpool | ] ].
     intros k Hk'. specialize (Hk k Hk'). cbn [Mem.loadv] in *.
     rewrite (fx_load lp bm Xs m m' Mint32 pb _ Hfx)
       by (intros i _ [Hb | (Hb & _)]; [ exact (Np Hb) | exact (Npm Hb) ]).
@@ -465,28 +456,27 @@ Section Link.
   (* 3. The two steps' carries.                                            *)
   (* ===================================================================== *)
   Theorem pre_keeps : forall m m',
-    level_pre_call lp m m' -> surf_apart lp bm level_gvars m -> plat_apart lp bm lvl_safe_gvars m ->
+    level_pre_call lp m m' -> surf_apart lp bm level_gvars m ->
     mem_ok_lp bm MWF m -> phiw lp bm m ->
     mem_ok_lp bm MWF m' /\ phiw lp bm m' /\ a_down_real bm m' = a_down_real bm m
     /\ (PlatformKeep.plat_still lp m -> PlatformKeep.plat_still lp m').
   Proof.
-    intros m m' Hc RSA Hpa Hok Hphi.
+    intros m m' Hc RSA Hok Hphi.
     destruct (pre_eff m m' Hc Hphi Hok) as (Hok' & Hfx & Hcl).
     split; [ exact Hok' | split; [ | split ] ].
     - exact (safe_keeps_phiw m m' Hphi Hfx Hcl (surf_apart_incl _ _ m safe_incl RSA)).
     - exact (fx_a_down lvl_safe_gvars m m' ltac:(nb) ltac:(nb) Hok Hfx).
-    - exact (fx_plat_still lvl_safe_gvars m m' ltac:(nb) Hfx Hpa).
+    - exact (fx_plat_still lvl_safe_gvars m m' ltac:(nb) ltac:(nb) Hfx).
   Qed.
 
-  Lemma area_safe_of_mario : forall m, OF m -> cam_area_mario lp bm m -> cam_area_safe lp SafeB m.
+  (* gCurrentArea points into gAreaData (the carried FfWorld.area_w), a
+     SafeB symbol (CensusV2.camera_safe_syms) *)
+  Lemma area_safe_of_w : forall m, area_w G m -> cam_area_safe lp SafeB m.
   Proof.
-    intros m (_ & _ & HM) Hcm ga a o Hga Hl.
-    pose proof (Hcm ga _ Hga Hl) as Hm.
-    refine (mwf_real_chase_root lp bm bc oc0 SafeB mario._area 144 m a o
-              ltac:(vm_compute; reflexivity) ltac:(vm_compute; reflexivity) HM _).
-    cbn [Mem.loadv]. change Mptr with Mint32.
-    replace (Ptrofs.unsigned (Ptrofs.add Ptrofs.zero (Ptrofs.repr 144))) with 144 by reflexivity.
-    exact Hm.
+    intros m AW ga a o Hga Hl.
+    destruct (AW ga Hga) as (bad & o' & Hgad & Hl').
+    rewrite Hl in Hl'. injection Hl' as <- _.
+    exact (proj2 (proj2 HSafeB_syms) area._gAreaData a ltac:(vm_compute; reflexivity) Hgad).
   Qed.
 
   (* the camera statement keeps mem_ok: walked to the call, the real
@@ -531,12 +521,13 @@ Section Link.
 
   Theorem post_keeps : forall m m',
     uc_keeps lp bm MWF SafeB -> cam_phi_row lp bm MWF ->
-    level_post_call lp m m' -> surf_apart lp bm level_gvars m -> cam_area_mario lp bm m -> warp_w G m' ->
+    level_post_call lp m m' -> surf_apart lp bm level_gvars m -> warp_w G m' ->
     mem_ok_lp bm MWF m -> phiw lp bm m ->
     mem_ok_lp bm MWF m' /\ phiw lp bm m'.
   Proof.
-    intros m m' UC Hcam (le & t & le' & out & Hx) RSA Hcm Hwend Hok Hphi.
-    pose proof (area_safe_of_mario m Hok Hcm) as Hca.
+    intros m m' UC Hcam (le & t & le' & out & Hx) RSA Hwend Hok Hphi.
+    pose proof (proj2 (proj2 (proj2 (proj2 (proj2 (proj2 (proj2 Hphi))))))) as LW0.
+    pose proof (area_safe_of_w m (proj2 (proj2 (proj2 (proj2 LW0))))) as Hca.
     pose proof lv_plain as Hpl. repeat (apply andb_prop in Hpl as [Hpl ?]).
     rewrite post_eq in Hx.
     (* update_hud_values *)

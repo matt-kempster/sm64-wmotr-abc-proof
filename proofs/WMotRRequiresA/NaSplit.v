@@ -1665,8 +1665,11 @@ Section NA.
     assert (Ngo : bg <> bo) by exact (AnimKeep.symne_ids ge _ _ _ _ Hbg Spool eq_refl).
     assert (Hoo : Ptrofs.unsigned oo + 512 <= Ptrofs.modulus) by (unfold SZ_OBJECT in Soo; lia).
     assert (Nbo : bbs <> bo) by exact (proj1 (D4 bbs ltac:(left; cbn; auto 20))).
-    assert (HQ : Q2 (HitboxFrame.K2 lp bm bbs bo oo) m m')
-      by (eapply HitboxFrame.hitbox_frame; eassumption).
+    assert (HQH : Q2 (HitboxFrame.K2 lp bm bbs bo oo) m m' /\ HitboxFrame.HH bo oo m')
+      by (eapply HitboxFrame.hitbox_hh; eassumption).
+    destruct HQH as (HQ & HH0).
+    (* the body leaves Mario's hitboxHeight 100.0f or 160.0f: ffw's ff_HH *)
+    assert (HHX : ffw_hh m' bo oo) by exact HH0.
     assert (XB : xsym lp bbs)
       by (exists mario._gBodyStates; split; [right; right; left; reflexivity | exact SBS]).
     assert (LD : forall ch b z, ~ HoleX.chg lp CapAudio.cap_ids b -> (b <> bm \/ hz z (size_chunk ch)) ->

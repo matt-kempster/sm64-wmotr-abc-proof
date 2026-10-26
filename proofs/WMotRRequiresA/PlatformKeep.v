@@ -14,7 +14,8 @@
 (*     [D_8032FEC0]).                                                    *)
 (* What the step still STATES, besides the call (labeled trust,          *)
 (* docs/TRUST.md 0.5):                                                   *)
-(*   plat_still  gMarioPlatform is NULL or an object whose angle         *)
+(*   plat_still  gMarioPlatform is NULL or an object of gObjectPool's    *)
+(*               block whose angle                                       *)
 (*               velocity (oAngleVelPitch / Yaw / Roll, rawData.asS32    *)
 (*               [35..37]) is zero.  With a nonzero one the real body     *)
 (*               rotates Mario about the platform and changes his y; the  *)
@@ -26,7 +27,7 @@
 From Coq Require Import ZArith Lia List.
 From compcert Require Import Coqlib Integers Values AST Ctypes Clight ClightBigstep
   Memory Maps Globalenvs Linking Events Errors.
-From SM64.Generated Require platform_displacement mario level_update interaction.
+From SM64.Generated Require platform_displacement mario level_update interaction object_list_processor.
 From SM64.Proofs Require Import SymbolicLinking RealFrameLinked CensusV2 MWFReal SpawnInit
   LinkedTwelve ActionValueFrame Taint NoAImpliesNoFlyLinked AGates.
 From SM64.Proofs Require NoAImpliesNoFlyTwelve.
@@ -48,7 +49,11 @@ Definition plat_still (lp : Clight.program) (m : mem) : Prop :=
   forall bp v, Genv.find_symbol (lp_ge lp) PD._gMarioPlatform = Some bp ->
     Mem.load Mint32 m bp 0 = Some v ->
     v = Vint Int.zero
-    \/ exists pb po, v = Vptr pb po /\ forall k, In k [35; 36; 37] ->
+    \/ exists pb po, v = Vptr pb po
+         (* an object of gObjectPool (update_mario_platform takes it from a
+            floor's object; every object is a gObjectPool slot) *)
+         /\ Genv.find_symbol (lp_ge lp) object_list_processor._gObjectPool = Some pb
+         /\ forall k, In k [35; 36; 37] ->
          Mem.loadv Mint32 m (Vptr pb (Ptrofs.add po (Ptrofs.repr (136 + 4 * k)))) = Some (Vint Int.zero).
 
 (* the global the step writes *)
@@ -115,7 +120,8 @@ Section Link.
     - exact (Plt_Ple_trans _ _ _ (Genv.genv_symb_range _ _ Hbm_sym) Hgn).
     - exact (Plt_Ple_trans _ _ _ (Genv.genv_symb_range _ _ HbD) Hgn).
     - exact (bm_bD bD HbD).
-    - intros v Hl. exact (Hst bp v Hbp Hl).
+    - intros v Hl. destruct (Hst bp v Hbp Hl) as [Hz | (pb & po & -> & _ & Hk)]; [ left; exact Hz | right ].
+      exists pb, po. split; [ reflexivity | exact Hk ].
     - exact Hev.
   Qed.
 

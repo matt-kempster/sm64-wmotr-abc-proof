@@ -202,7 +202,7 @@ footer{margin-top:64px; padding-top:16px; border-top:1px solid var(--rule); font
       <li><span><b>So Mario never gets above 2796,</b> and there is no floor between 2424 and 3046 to climb onto next.</span></li>
       <li><span><b>Coin #2 needs 2980.</b> It floats at 3140, and Mario’s body is 160 tall. That leaves 184 units to spare.</span></li>
     </ol>
-    <div class="meta"><span>Updated 2026-10-26</span><span>master b8048955</span><span>Rocq 8.19 · CompCert 3.15</span><span>51 real C files linked</span></div>
+    <div class="meta"><span>Updated 2026-10-26</span><span>master 61c6cf88</span><span>Rocq 8.19 · CompCert 3.15</span><span>51 real C files linked</span></div>
   </div>
 
   <figure class="gauge-card" aria-labelledby="gauge-cap" style="margin:0">
@@ -317,11 +317,11 @@ footer{margin-top:64px; padding-top:16px; border-top:1px solid var(--rule); font
             </dl></div>
           </details>
           <details class="part">
-            <summary><span class="part-title"><span class="name">Every other object</span><span class="coq">seg_rest_spec</span></span><span class="lamp l-spec">spec · last one</span></summary>
+            <summary><span class="part-title"><span class="name">Every other object</span><span class="coq">ObjPhase.objects_call</span></span><span class="lamp l-open">real call · stages open</span></summary>
             <div class="part-body"><dl>
-              <dt>Says</dt><dd>The other objects keep the budget and Mario’s world facts.</dd>
-              <dt>Progress</dt><dd>390 object functions have proved write footprints; 200 are proved to touch only their own slot; nothing in the game writes the action tables; no stale-pointer (“spiny adoption”) write found in WMotR. Next: spawns as one labeled row, then replace this spec with the real per-function frames.</dd>
-              <dt>Caught</dt><dd>“Objects only touch themselves” is false: pushes move Mario’s x/z, 1-ups change lives, NPC dialog sets his action, the cannon flags him. Each gets its own contract.</dd>
+              <dt>Says</dt><dd>The frame makes one real <code>area_update_objects</code> call (Mario’s own update runs inside it). Each stage inside it (list loops, behaviours, collisions, surface reset, unloading) is a named, labeled premise (<code>Hobj_*</code>) saying it keeps the budget and the object-world facts.</dd>
+              <dt>Progress</dt><dd>390 object functions have proved write footprints; 200 are proved to touch only their own slot; nothing in the game writes the action tables; no stale-pointer (“spiny adoption”) write found in WMotR. The boot witness runs the real <code>clear_objects</code> and <code>spawn_objects_from_info</code>, and one real object update is proved to run from it. Next: discharge the stage rows, starting with the list loops.</dd>
+              <dt>Caught</dt><dd>The boot state had an empty object pool, so the real update would get stuck (vacuous); fixed by spawning the real objects. Also, “objects only touch themselves” is false: pushes move Mario’s x/z, 1-ups change lives, NPC dialog sets his action, the cannon flags him. Each gets its own contract.</dd>
             </dl></div>
           </details>
           <details class="part">
@@ -423,7 +423,7 @@ footer{margin-top:64px; padding-top:16px; border-top:1px solid var(--rule); font
     <h2>Where the work goes from here</h2>
   </div>
   <div class="next">
-    <div><h3>Make objects real code</h3><p>Spawns as one labeled row, then replace the last spec with the proved per-function object frames. Then prove the object-list bookkeeping that closes the spawn row.</p></div>
+    <div><h3>Discharge the object stages</h3><p>The real object update is in the frame; now prove its stage rows: the list loops, the behaviour interpreter, collisions, the surface reset and unloading.</p></div>
     <div><h3>Restate GOAL 1 over the whole frame</h3><p>Today GOAL 1 covers only Mario’s own update. Once objects land, state “no A ⇒ no flying” over the full real frame, so object-driven action changes (the cannon) are covered.</p></div>
     <div><h3>Cover undefined behaviour</h3><p>Prove the frame never gets stuck from any invariant state, so runs that would hit UB are ruled out, not just skipped. Model any real UB site from the N64 memory layout.</p></div>
   </div>
@@ -637,7 +637,7 @@ footer{margin-top:64px; padding-top:16px; border-top:1px solid var(--rule); font
     ['Mario’s remaining per-frame calls (7 rows)', 'open', 'Input update, special floors, interactions, four action-group dispatchers'],
     ['Controller poll, platform, level phase, render', 'proved', 'Real code; three level conditions still stated per run'],
     ['Camera’s effect on the budget', 'spec', 'One labeled camera row, <code>Hcam_phi</code>'],
-    ['Other objects', 'spec', 'Last frame phase still a spec; walker groundwork landed'],
+    ['Other objects', 'open', 'One real area_update_objects call; stage rows Hobj_* open'],
     ['Audio load and DMA', 'trusted', 'Labeled hardware/audio floors (TRUST 3.5, 4.1)'],
     ['Below 2980 ⇒ the real collision check never registers coin #2', 'proved', '<code>mario_coin2_no_contact</code>'],
     ['Coin #2 never moves (no cloning)', 'trusted', 'Censuses machine-checked; level-phase copies remain (TRUST 0.3, 0.10)'],

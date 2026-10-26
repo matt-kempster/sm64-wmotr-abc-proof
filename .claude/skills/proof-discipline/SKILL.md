@@ -406,9 +406,16 @@ all in `Unwired/`, and the theorem moved nowhere. See
     object block IS a global, gObjectPool); "m->area is dynamic" is false in the game
     (&gAreaData[i]; only the start witness allocates it). CoinLink needs Mario's
     hitboxHeight <= 160: `HitboxFrame.hitbox_hh` / `HH_coin` give 100.0f or 160.0f after the
-    body; the remaining gap is a carried world clause (Mario's hitboxHeight is 100f or 160f)
-    kept to the next frame's detect_object_collisions; Hmario_down (hitboxDownOffset = 0)
-    needs another. update_mario_inputs needs pins on
+    body. **Carried since 2026-10-26**: `ffw` fields `ff_HH` (hitboxHeight is 100.0f or
+    160.0f) and `ff_HD` (hitboxDownOffset is 0.0f), both cells in `ffw_read`, so every row and
+    flank that rebuilds `ffw` keeps them (walk rows via `fk_same`, which already listed both
+    cells); the hitbox row re-proves `ff_HH` through `ffw_rebuild_hh` (`HoleX`'s `HHX`, from
+    `hitbox_hh`); boot: the real spawn_objects_from_info (allocate_object) stores both on the
+    witness, checked on m11 by `StartTerrain.bo_chk` (`bo_chk_hh`). `HitboxFrame.ffw_coin` gives
+    CoinLink's Lha / Fha / Hmario_height / Lda / Fda / Hmario_down for m->marioObj from any ffw
+    memory. Open: the objects phase must keep bytes 508..511 / 520..523 of Mario's object up to
+    detect_object_collisions (it writes only collision fields), and composing `ffw_coin` with
+    `mario_coin2_no_contact`. update_mario_inputs needs pins on
     `gEnvironmentRegions`, `gShowDebugText` and `gCameraMovementFlags`, plus the collision
     finders. The prologue call is in `Hair_pro`. The
     `quicksandDepth = 0` store is proved (the `qsd_*` lemmas). What stays assumed is the
@@ -463,8 +470,9 @@ all in `Unwired/`, and the theorem moved nowhere. See
     `post_keeps`); update_camera's mem_ok via `update_camera_ok_linked12`. ONE labeled row:
     `Hcam_phi` (`LevelKeep.cam_phi_row`, the camera statement keeps PhiW / Mario's surface
     cells; a clobber spec cannot, the Camera shares the surface pool's block; writes to cover =
-    `UpdateCameraBody.uc_census`). Stated by the steps: `surf_apart`, `plat_apart`,
-    `cam_area_mario`, and `warp_w` at the POST end (FOUND: a ∀-row for it is false). Next:
+    `UpdateCameraBody.uc_census`). Stated by the steps: `surf_apart`
+    and `warp_w` at the POST end (gCurrentArea's target is CARRIED since 2026-10-25,
+    `FfWorld.area_w`, proved at boot) (FOUND: a ∀-row for it is false). Next:
     discharge `Hcam_phi` from the census (per-write PhiW keep).
     Mario's render call and
     `apply_mario_platform_displacement` (platform_displacement.c, TU 45) are REAL calls whose
