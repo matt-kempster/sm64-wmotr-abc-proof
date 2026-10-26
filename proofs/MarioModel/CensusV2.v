@@ -998,6 +998,12 @@ Definition stored_globals : list ident :=
      SpawnInit.non_safeb_syms, is that nothing in the object graph points
      at them. *)
   level_update._sWarpDest :: level_update._gCurrCreditsEntry ::
+  (* gCurrentArea (2026-10-25, FfWorld.area_w): load_area stores
+     &gAreas[index] into it; the level phase reads it for
+     update_camera(gCurrentArea->camera).  What the level needs of it (it
+     points into gAreaData, a SafeB symbol) is carried by the frame world;
+     nothing in the object graph points at it. *)
+  level_update._gCurrentArea ::
   (* the controller poll (2026-10-23, PollFlank; libultra osContStartReadData.c
      linked): osContStartReadData fills the PIF RAM image __osContPifRam
      (__osPackReadData's request, the 0xFF fill, then the SI read: the OS
@@ -1124,7 +1130,10 @@ Definition camera_safe_syms : list ident :=
     :: surface_collision._gDynamicSurfacePartition
     :: camera._gCamera :: camera._sMarioGeometry :: camera._gLakituState
     :: camera._sLuigiCamState :: camera._gSecondCameraFocus
-    :: camera._sParTrackPath :: camera._sBBHLibraryParTrackPath :: nil.
+    :: camera._sParTrackPath :: camera._sBBHLibraryParTrackPath
+    (* 2026-10-25: gAreaData, the areas gCurrentArea points into; the level
+       phase passes gCurrentArea->camera to update_camera (FfWorld.area_w) *)
+    :: area._gAreaData :: nil.
 
 Definition safe_ptr_syms : list ident :=
   mario_actions_cutscene._gCurrentObject :: gobj_syms ++ bhv_held_syms
