@@ -71,6 +71,36 @@ Qed.
 Lemma phiw_surf_apart : forall lp bm Xs m, phiw lp bm m -> surf_apart lp bm Xs m.
 Proof. intros lp bm Xs m (_ & _ & _ & _ & Hf & _). exact (surf_apart_ffw lp bm Xs m Hf). Qed.
 
+(* the globals the PhiW carry needs a written list Xs to avoid
+   (2026-10-26; before, Xs had to be part of AnimWorld.flank_gvars): the
+   partition arrays, gMarioAnimsBuf, gMarioAnims and gMarioStates.  Every
+   other global is off the frame's regions by FfWorld's design B
+   (AnimWorld.tab_apart_global). *)
+Definition core_ids : list ident :=
+  part_ids ++ [mario._gMarioAnimsBuf; game_init._gMarioAnims; level_update._gMarioStates].
+
+(* a list avoids another, decided *)
+Lemma avoid_of : forall (Xs ys : list ident),
+  forallb (fun id => negb (existsb (Pos.eqb id) ys)) Xs = true ->
+  forall id, In id Xs -> existsb (Pos.eqb id) ys = false.
+Proof.
+  intros Xs ys H id Hin. rewrite forallb_forall in H. specialize (H id Hin).
+  apply negb_true_iff in H. exact H.
+Qed.
+
+Lemma part_core : forall id, In id part_ids -> existsb (Pos.eqb id) core_ids = true.
+Proof.
+  intros id Hin. unfold core_ids. rewrite existsb_app. apply orb_true_iff. left.
+  apply existsb_exists. exists id. split; [ exact Hin | apply Pos.eqb_refl ].
+Qed.
+
+Lemma flank_core_b : forallb (fun id => negb (existsb (Pos.eqb id) core_ids)) flank_gvars = true.
+Proof. vm_compute. reflexivity. Qed.
+
+Lemma flank_core_incl : forall Xs, incl Xs flank_gvars ->
+  forall id, In id Xs -> existsb (Pos.eqb id) core_ids = false.
+Proof. intros Xs I id Hin. exact (avoid_of _ _ flank_core_b id (I id Hin)). Qed.
+
 Lemma nin_rg : forall id, existsb (Pos.eqb id) flank_gvars = false -> ~ In id flank_gvars.
 Proof.
   intros id H Hin. assert (E : existsb (Pos.eqb id) flank_gvars = true)
@@ -130,27 +160,27 @@ Section RK.
   (* ===================================================================== *)
   Section XG.
   Variable Xs : list ident.
-  Hypothesis HXs : incl Xs flank_gvars.
-  (* a step that keeps lvl_w by k_all writes no warp cell (the level POST
-     tail writes them and uses k_all_lvl) *)
-  Hypothesis HXw : forall id, In id Xs -> ~ In id LevelGvars.warp_gvars.
+  Hypothesis HXs : forall id, In id Xs -> existsb (Pos.eqb id) core_ids = false.
+  (* a step that keeps lvl_w by k_all writes no lvl_w global (the level
+     POST tail and the controller poll write some and use k_all_lvl) *)
+  Hypothesis HXl : forall id, In id Xs -> existsb (Pos.eqb id) lvl_ids = false.
 
   (* a written global's block *)
   Definition rgb (b : block) : Prop := exists id, In id Xs /\ Genv.find_symbol G id = Some b.
 
   Lemma rgb_not : forall id b, Genv.find_symbol G id = Some b ->
-    existsb (Pos.eqb id) flank_gvars = false -> ~ rgb b.
+    existsb (Pos.eqb id) core_ids = true -> ~ rgb b.
   Proof.
     intros id b Hs Hn (id' & Hin & Hs').
-    assert (Ne : id <> id') by (intros <-; exact (nin_rg id Hn (HXs id Hin))).
+    assert (Ne : id <> id') by (intros <-; rewrite (HXs id Hin) in Hn; discriminate Hn).
     exact (Genv.global_addresses_distinct G Ne Hs Hs' eq_refl).
   Qed.
 
-  Lemma rgb_not_w : forall id b, Genv.find_symbol G id = Some b ->
-    In id LevelGvars.warp_gvars -> ~ rgb b.
+  Lemma rgb_not_l : forall id b, Genv.find_symbol G id = Some b ->
+    existsb (Pos.eqb id) lvl_ids = true -> ~ rgb b.
   Proof.
-    intros id b Hs Hw (id' & Hin & Hs').
-    destruct (peq id id') as [<- | Ne]; [ exact (HXw id Hin Hw) | ].
+    intros id b Hs Hn (id' & Hin & Hs').
+    assert (Ne : id <> id') by (intros <-; rewrite (HXl id Hin) in Hn; discriminate Hn).
     exact (Genv.global_addresses_distinct G Ne Hs Hs' eq_refl).
   Qed.
 
@@ -206,7 +236,7 @@ Section RK.
       destruct (HB b (or_introl eq_refl)) as ((id & Hin & Hs) & TA).
       apply (Wff_blk G m gp SZ_SURFACE vs b Ptrofs.zero); [| exact TA | exact W].
       intros id' bp Hin' Hs' E. subst bp.
-      assert (Hne : id' <> id) by (intros ->; exact (part_not_rg id Hin' (HXs id Hin))).
+      assert (Hne : id' <> id) by (intros ->; pose proof (part_core _ Hin') as Pc; rewrite (HXs _ Hin) in Pc; discriminate Pc).
       exact (Genv.global_addresses_distinct G Hne Hs' Hs eq_refl).
   Qed.
 
@@ -607,13 +637,12 @@ Section RK.
       - intros b Hs. split; [exact (ffw_ne Hf b (or_intror Hs)) |].
         lvl_cases Hs; (split;
           [ exact (AnimKeep.symne_ids G _ _ _ _ Hs Sbm eq_refl)
-          | first [ exact (rgb_not _ b Hs ltac:(vm_compute; reflexivity))
-                  | exact (rgb_not_w _ b Hs ltac:(unfold LevelGvars.warp_gvars; simpl; auto 6)) ] ]).
+          | exact (rgb_not_l _ b Hs ltac:(vm_compute; reflexivity)) ]).
       - intros ch b z (A & B & C). exact (LHb ch b z A B C).
     Qed.
 
     Lemma k_all : phiw lp bm m -> surf_apart lp bm Xs m -> phiw lp bm m'.
-    Proof using HXs HXw Lmo NB PM LD LM Sbm Nbm Bmb RGa CL FR.
+    Proof using HXs HXl Lmo NB PM LD LM Sbm Nbm Bmb RGa CL FR.
       intros (Hh & Hw & Han & Hmo & Hf & Hu & Haw & Hl) RSA.
       assert (Co : forall i cb co, 0 <= i < 4 ->
                 Mem.load Mint32 m mb (u mo + FFW_COLL + 4 * i) = Some (Vptr cb co) -> cb = mb).
@@ -688,7 +717,7 @@ Section RK.
     assert (RGa : forall b, rgb render_gvars b -> b <> mb /\ tab_apart G m b)
       by (intros b (id & Hin & Hs); exact (RG id b (in_or_app _ _ _ (or_introl Hin)) Hs)).
     assert (Nbm : ~ rgb render_gvars bm)
-      by exact (rgb_not render_gvars HXR _ bm Hbm ltac:(vm_compute; reflexivity)).
+      by exact (rgb_not render_gvars (flank_core_incl _ HXR) _ bm Hbm ltac:(vm_compute; reflexivity)).
     pose proof Hf as (_ & EX & _).
     destruct EX as (dw & FWF).
     pose proof (ff_HC _ _ _ _ FWF) as HC. pose proof (ff_HS _ _ _ _ FWF) as HS. pose proof (ff_HM _ _ _ _ FWF) as HM.
@@ -769,6 +798,7 @@ Section RK.
       - rewrite signed_small in Rr by lia. exact Rr.
       - rewrite Int.repr_signed. cbn [Mem.loadv] in Lr. rewrite U8 in Lr. exact Lr. }
     clear Fp Hev.
-    exact (k_all render_gvars HXR ltac:(intros id Hi Hw; unfold render_gvars in Hi; simpl in Hi; repeat (destruct Hi as [<- | Hi]; [ vm_compute in Hw; intuition discriminate | ]); destruct Hi) m m' mb mo Lmo NB' PM' LD LM Hbm Nbm Bmb RGa CL FR Hphi RSA).
+    exact (k_all render_gvars (flank_core_incl _ HXR) (avoid_of render_gvars lvl_ids ltac:(vm_compute; reflexivity))
+             m m' mb mo Lmo NB' PM' LD LM Hbm Nbm Bmb RGa CL FR Hphi RSA).
   Qed.
 End RK.

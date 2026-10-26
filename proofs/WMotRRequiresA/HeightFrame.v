@@ -76,7 +76,7 @@ From SM64.Proofs.WMotRRequiresA Require Import ProRows NaSplit.
 From SM64.Proofs.WMotRRequiresA Require Import FfWorld FfRow AhwRow KbRow FpuFloor ExtInert.
 From SM64.Proofs.WMotRRequiresA Require PoleXc PoleCasesT LsContract.
 From SM64.Proofs.WMotRRequiresA Require RenderFlank RenderKeep AnimWorld PlatformKeep PollFlank.
-From SM64.Proofs.WMotRRequiresA Require LevelGvars LevelFlank LevelKeep.
+From SM64.Proofs.WMotRRequiresA Require LevelGvars LevelFlank LevelKeep PollKeep.
 From SM64.Proofs.WMotRRequiresA Require ObjPhase ObjWorld ObjLoop.
 From SM64.Generated Require object_list_processor area platform_displacement.
 From SM64.Proofs Require OsDmaFloor LptBody ObjExtBodies UpdateCameraBody.
@@ -132,22 +132,15 @@ Section HeightFrame.
      PIF image holds the reply bytes the HARDWARE delivered
      (OsDmaFloor.si_raw_dma_spec), which is what the no-A premise reads
      (PollFlank.pif_a_real); m0 is the post-poll memory.  Both calls are
-     walked (Hsrd_ok / Hpoll_ok below, discharged on the link).
+     walked (Hsrd_ok / Hsrd_keep / Hpoll_ok below, discharged on the
+     link: GOAL 1's facts, A-freedom, and since 2026-10-26 the Phi, plat_still
+     and OW carries, PollKeep, from the two calls' walked footprints).
      LABELED (TRUST 0.7): the two calls are adjacent (the game runs
      audio_game_loop_tick and select_gfx_pool in between, assumed not to
-     touch the PIF image), and the Phi carries, the poll's conditional on
-     the controller cells it PROVABLY re-establishes (ctl_w), and the
-     platform fact PlatformKeep.plat_still (2026-10-24: the poll writes no
-     object and not gMarioPlatform), and the object world OW (2026-10-26:
-     no object, no list head, no debug cell, none of Mario's object
-     pointers). *)
+     touch the PIF image). *)
   Definition seg_input_spec (m i m0 : mem) : Prop :=
     (i = m \/ PollFlank.srd_call lp m i)
-    /\ (Phi m -> Phi i)
-    /\ PollFlank.rci_call lp i m0
-    /\ (Phi i -> ctl_w (lp_ge lp) m0 -> Phi m0)
-    /\ (PlatformKeep.plat_still lp m -> PlatformKeep.plat_still lp m0)
-    /\ (OW m -> OW m0).
+    /\ PollFlank.rci_call lp i m0.
 
   (* apply_mario_platform_displacement (platform_displacement.c, linked as
      the 45th TU): the call, plus the labeled premise its proved carries
@@ -428,10 +421,16 @@ Section HeightFrame.
      PollFlank.srd_ok / PollFlank.poll_ok -- NOT open). *)
   Hypothesis Hsrd_ok :
     forall m i, mem_ok m -> PollFlank.srd_call lp m i -> mem_ok i.
+  (* ... and carry the frame boundary's Phi, platform fact and object world
+     (discharged below by PollKeep.srd_keeps / rci_keeps -- NOT open) *)
+  Hypothesis Hsrd_keep :
+    forall m i, PollFlank.srd_call lp m i -> Phi m ->
+      Phi i /\ (PlatformKeep.plat_still lp m -> PlatformKeep.plat_still lp i) /\ (OW m -> OW i).
   Hypothesis Hpoll_ok :
     forall i m0, mem_ok i -> Phi i -> PollFlank.pif_a_real (lp_ge lp) i = false ->
       PollFlank.rci_call lp i m0 ->
-      mem_ok m0 /\ a_used_real bm m0 = false /\ ctl_w (lp_ge lp) m0.
+      (mem_ok m0 /\ a_used_real bm m0 = false /\ Phi m0)
+      /\ (PlatformKeep.plat_still lp i -> PlatformKeep.plat_still lp m0) /\ (OW i -> OW m0).
 
   (* ---- proved glue ------------------------------------------------------ *)
 
@@ -489,13 +488,15 @@ Section HeightFrame.
       PollFlank.pif_a_real (lp_ge lp) i = false -> fb_ok m -> seg_input_spec m i m0 ->
       fb_ok m0 /\ a_down_real bm m0 = false.
   Proof.
-    intros i m m0 HP (Hok & Hphi & Hst & How) (Hsrd & Hpi & Hrci & Hp0 & Hsti & Howi).
-    assert (Hoki : mem_ok i)
-      by (destruct Hsrd as [-> | Hsrd]; [ exact Hok | exact (Hsrd_ok m i Hok Hsrd) ]).
-    pose proof (Hpi Hphi) as Hphii.
-    destruct (Hpoll_ok i m0 Hoki Hphii HP Hrci) as (Hok0 & HU & Hcw).
+    intros i m m0 HP (Hok & Hphi & Hst & How) (Hsrd & Hrci).
+    assert (Hi : mem_ok i /\ Phi i /\ PlatformKeep.plat_still lp i /\ OW i).
+    { destruct Hsrd as [-> | Hsrd]; [ exact (conj Hok (conj Hphi (conj Hst How))) | ].
+      destruct (Hsrd_keep m i Hsrd Hphi) as (Hphii & Hsti & Howi).
+      exact (conj (Hsrd_ok m i Hok Hsrd) (conj Hphii (conj (Hsti Hst) (Howi How)))). }
+    destruct Hi as (Hoki & Hphii & Hsti & Howi).
+    destruct (Hpoll_ok i m0 Hoki Hphii HP Hrci) as ((Hok0 & HU & Hphi0) & Hst0 & How0).
     destruct (a_used_real_false bm m0 HU) as (_ & HD).
-    exact (conj (conj Hok0 (conj (Hp0 Hphii Hcw) (conj (Hsti Hst) (Howi How)))) HD).
+    exact (conj (conj Hok0 (conj Hphi0 (conj (Hst0 Hsti) (How0 Howi)))) HD).
   Qed.
 
   (* the level PRE slice *)
@@ -1147,14 +1148,25 @@ Section HeightLinked12.
     exact (PollFlank.srd_ok lp H12 bm bc oc0 SafeB HSafeB_syms Hsp Hdma_floor m i Hm Hs).
   Qed.
 
+  (* the poll's carries of PhiW, the platform fact and the object world,
+     on the link (PollKeep): each call changes memory only in a listed set
+     of globals' blocks (FootWalk / PollFlank's walk) and keeps every
+     permission (PermWalk); PhiW then by RenderKeep.k_all_lvl, its
+     controller clause re-established by the real read_controller_inputs *)
+  Lemma srd_keep_linked12 :
+    forall m i, PollFlank.srd_call lp m i -> Phi m ->
+      Phi i /\ (PlatformKeep.plat_still lp m -> PlatformKeep.plat_still lp i) /\ (OWl m -> OWl i).
+  Proof.
+    exact (PollKeep.srd_keeps lp H12 Hdma_floor bm Hbm_sym).
+  Qed.
+
   Lemma poll_ok_linked12 :
     forall i m0, mem_ok_lp bm MWF i -> Phi i -> PollFlank.pif_a_real (lp_ge lp) i = false ->
       PollFlank.rci_call lp i m0 ->
-      mem_ok_lp bm MWF m0 /\ a_used_real bm m0 = false /\ ctl_w (lp_ge lp) m0.
+      (mem_ok_lp bm MWF m0 /\ a_used_real bm m0 = false /\ Phi m0)
+      /\ (PlatformKeep.plat_still lp i -> PlatformKeep.plat_still lp m0) /\ (OWl i -> OWl m0).
   Proof.
-    intros i m0 Hm (_ & _ & _ & _ & Hf & _ & _ & (_ & _ & _ & Hcw & _)) HP Hr.
-    pose proof (NoAImpliesNoFlyTwelve.Hspawn lp H12 bm bc oc0 Hbm_sym Hbc_sym Hoc0) as Hsp.
-    exact (PollFlank.poll_ok lp H12 Hdma_floor Hsqrtf bm bc oc0 SafeB HSafeB_syms Hsp i m0 Hm Hf Hcw HP Hr).
+    exact (PollKeep.rci_keeps lp H12 Hdma_floor Hsqrtf bm bc oc0 SafeB HSafeB_syms Hbm_sym Hbc_sym Hoc0).
   Qed.
 
   (* the render call carries PhiW, on the link (RenderKeep): its footprint
@@ -1380,7 +1392,7 @@ Section HeightLinked12.
                     Hobj_debug Hobj_surfaces obj_terrain_linked12 Hobj_collisions obj_nonterrain_linked12
                     Hobj_unload Hobj_mplat obj_platform_linked12 Hlvl_ow Hrender_ow
                     lvl_pre_linked12 lvl_post_linked12 seg_action_phi Hphi_y Hphi_sa_linked12
-                    srd_ok_linked12 poll_ok_linked12
+                    srd_ok_linked12 srd_keep_linked12 poll_ok_linked12
                     init is m Hok Hphi Hst How HA Hr)).
   Qed.
 

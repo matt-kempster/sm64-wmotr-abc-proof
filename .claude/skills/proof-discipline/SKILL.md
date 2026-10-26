@@ -551,14 +551,15 @@ all in `Unwired/`, and the theorem moved nowhere. See
     The capstone's no-A premise is now `PollFlank.pif_a_real` on the PIF reply bytes (TRUST 0.1);
     `a_used_real` is a proved conclusion (`poll_ok`). FOUND: `__osPackReadData` puts 0xFFFF in the
     request's button word, so an unplugged port reads "A" -- the premise ignores ports with error
-    bits (`rxLen & 0xC0`), as osContGetReadData does. Open in the spec: the two calls' adjacency
-    (audio_game_loop_tick / select_gfx_pool run between) and the Phi carries (the m0 one
-    conditional on `ctl_w`). `ctl_w` gained P1 / P3 / demo-NULL / maxctl / controllerData clauses
+    bits (`rxLen & 0xC0`), as osContGetReadData does. Open in the spec: only the two calls' adjacency
+    (audio_game_loop_tick / select_gfx_pool run between). The Phi / plat_still / OW carries are
+    PROVED (2026-10-26, `PollKeep.srd_keeps` / `rci_keeps`, via `FootWalk` (generic footprint
+    walker) and `Generic/PermWalk` (permission-preservation body check)); HeightFrame row
+    `Hsrd_keep` (new) and the strengthened `Hpoll_ok` are both discharged on the link. `ctl_w` gained P1 / P3 / demo-NULL / maxctl / controllerData clauses
     (StartSat proves them at the start); `stored_globals` gained gControllerPads, __osContPifRam.
     HeightFrame `Hypothesis` lines 19 -> 21 (unchanged by the plat_still merge): generic-section rows
     `Hsrd_ok` / `Hpoll_ok`, both DISCHARGED in HeightLinked12 (`srd_ok_linked12`,
-    `poll_ok_linked12`); the linked section has 11. The poll spec also states (labeled) that it
-    keeps `plat_still` (master's spec had it as an assumed conjunct too).
+    `poll_ok_linked12`); the linked section has 11. The poll's `plat_still` carry is proved (PollKeep).
 
   The coin link is also open.
 - `docs/TRUST.md` is the ledger of everything a reader must believe. Read
