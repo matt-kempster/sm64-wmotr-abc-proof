@@ -1131,7 +1131,14 @@ Definition warp_w (G : genv) (m : mem) : Prop :=
   /\ (forall bo bs, Genv.find_symbol G level_update._sDelayedWarpOp = Some bo ->
      Genv.find_symbol G level_update._sSourceWarpNodeId = Some bs ->
      Mem.load Mint16signed m bo 0 <> Some (Vint Int.zero) ->
-     exists n, Mem.load Mint16signed m bs 0 = Some (Vint (Int.repr n)) /\ In n [240; 241; 243]).
+     exists n, Mem.load Mint16signed m bs 0 = Some (Vint (Int.repr n)) /\ In n [240; 241; 243])
+  (* 2026-10-26: the pending op is no credits op (WARP_OP_CREDITS_START
+     0x17 / CREDITS_NEXT 0x18: only the ending's Peach / credits actions
+     trigger them).  With it, the POST tail's initiate_delayed_warp
+     re-establishes warp_w (LevelWarp.tail_warp_w) *)
+  /\ (forall bo, Genv.find_symbol G level_update._sDelayedWarpOp = Some bo ->
+     forall n, Mem.load Mint16signed m bo 0 = Some (Vint n) ->
+     n <> Int.repr 23 /\ n <> Int.repr 24).
 
 (* gCurrentArea points into gAreaData (2026-10-25).  In the game
    load_area sets gCurrentArea = &gAreas[index] and gAreas = gAreaData
@@ -1177,20 +1184,21 @@ Lemma lvl_w_unch : forall (G : genv) m m',
   (forall b ch z, lvl_sym G b -> Mem.load ch m' b z = Mem.load ch m b z) ->
   lvl_w G m -> lvl_w G m'.
 Proof.
-  intros G m m' U (L1 & L2 & (W1 & W2 & W3 & W4) & CW & AW).
+  intros G m m' U (L1 & L2 & (W1 & W2 & W3 & W4 & W5) & CW & AW).
   assert (U' : forall id b, Genv.find_symbol G id = Some b -> In id lvl_ids -> forall ch z,
              Mem.load ch m' b z = Mem.load ch m b z)
     by (intros id b Hs Hin ch z; exact (U b ch z (lvl_sym_of G id b Hin Hs))).
   split; [| split; [| split; [| split]]].
   - intros b Hs. rewrite (U' _ b Hs ltac:(unfold lvl_ids; cbn [In]; auto 20)). exact (L1 b Hs).
   - intros b Hs. rewrite (U' _ b Hs ltac:(unfold lvl_ids; cbn [In]; auto 20)). exact (L2 b Hs).
-  - split; [| split; [| split]].
+  - split; [| split; [| split; [| split]]].
     + intros bp bw Hp Hw. rewrite (U' _ bp Hp ltac:(unfold lvl_ids; cbn [In]; auto 20)), (U' _ bw Hw ltac:(unfold lvl_ids; cbn [In]; auto 20)).
       exact (W1 bp bw Hp Hw).
     + intros b Hs. rewrite (U' _ b Hs ltac:(unfold lvl_ids; cbn [In]; auto 20)). exact (W2 b Hs).
     + intros b Hs. rewrite (U' _ b Hs ltac:(unfold lvl_ids; cbn [In]; auto 20)). exact (W3 b Hs).
     + intros bo bs Ho Hs. rewrite (U' _ bo Ho ltac:(unfold lvl_ids; cbn [In]; auto 20)), (U' _ bs Hs ltac:(unfold lvl_ids; cbn [In]; auto 20)).
       exact (W4 bo bs Ho Hs).
+    + intros bo Ho. rewrite (U' _ bo Ho ltac:(unfold lvl_ids; cbn [In]; auto 20)). exact (W5 bo Ho).
   - intros bc bp Sc Sp.
     destruct (CW bc bp Sc Sp) as (L24 & B16 & PA & P1 & P3 & DM & MX).
     pose proof (U' _ bc Sc ltac:(unfold lvl_ids; cbn [In]; auto 20)) as Kc.

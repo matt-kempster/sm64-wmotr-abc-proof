@@ -270,8 +270,8 @@ Section Phi.
                 /\ Mem.load Mint16signed m' mb (Ptrofs.unsigned mo + 64) = Some (Vint (Int.repr f))).
     { intros bt0 ot0 k _ _ _ (f & Rf & L64) _ _. exists f. split; [ exact Rf |].
       rewrite (LD0 _ _ _ Nmb (not_eq_sym Bmb)). exact L64. }
-    exact (k_all lp bm plat_gvars plat_gvars_flank
-             ltac:(intros id Hi Hw; unfold plat_gvars in Hi; simpl in Hi; repeat (destruct Hi as [<- | Hi]; [ vm_compute in Hw; intuition discriminate | ]); destruct Hi) m m' mb mo Lmo NB PM LD
+    exact (k_all lp bm plat_gvars (flank_core_incl _ plat_gvars_flank) (avoid_of plat_gvars lvl_ids ltac:(vm_compute; reflexivity))
+             m m' mb mo Lmo NB PM LD
              (fun ch z H => LM ch z (bmk_bmw ch z H)) Hbm_sym Nbm Bmb RGa CL FR Hphi RSA).
   Qed.
 End Phi.

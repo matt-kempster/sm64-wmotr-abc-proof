@@ -19,15 +19,13 @@
 (* and closedness.  RenderKeep.k_all_lvl then carries PhiW: the PRE and  *)
 (* update_hud_values write no lvl_w cell (footprint lvl_safe_gvars), the *)
 (* tail writes the warp cells sWarpDest / sCurrPlayMode /                *)
-(* gCurrCreditsEntry and the step states FfWorld.warp_w at its end.      *)
+(* gCurrCreditsEntry, and FfWorld.warp_w at its end is PROVED from the   *)
+(* real tail (LevelWarp.tail_warp_w, 2026-10-26).                        *)
 (*                                                                        *)
 (* What the steps still STATE (labeled trust, docs/TRUST.md 0.5 / 0.7):   *)
 (*   surf_apart  Mario's wall / ceiling / floor surfaces are not in a     *)
 (*               level global's block (as for the render / platform       *)
 (*               steps);                                                  *)
-(*   warp_w at the POST end (HeightFrame.seg_level_post_spec): the warp   *)
-(*               the tail may start leaves NORMAL play mode (WMotR's      *)
-(*               warp nodes lead to other levels) and no credits run;     *)
 (*   cam_phi_row update_camera's statement, from a mem_ok state to a      *)
 (*               mem_ok state, keeps PhiW and Mario's three surface       *)
 (*               cells.  A clobber-form contract (camera-private writes   *)
@@ -52,6 +50,7 @@ From SM64.Proofs.WMotRRequiresA Require PlatformKeep.
 From SM64.Proofs Require Import HeightInvariant WMotRWorld.
 From SM64.Proofs.WMotRRequiresA Require Import FfWorld AnimData AnimWorld RenderAnim RenderKeep
   LevelGvars LevelFlank LevelWalk.
+From SM64.Proofs.WMotRRequiresA Require LevelWarp.
 From SM64.Proofs Require Import Generic.ClosedMem Generic.ClightClosed.
 Import ListNotations.
 
@@ -342,7 +341,7 @@ Section Link.
     { intros btx otx k _ _ _ (f & Rf & L64) _ _. exists f. split; [ exact Rf |].
       rewrite (fx_load lp bm Xs m m' Mint16signed mb _ Hfx). exact L64.
       intros i _ [Hb | (Hb & _)]; [ exact (Nmbl Hb) | exact (Bmb (eq_sym Hb)) ]. }
-    exact (k_all_lvl lp bm Xs HXs m m' mb mo Lmo NB PM LD LM Hbm_sym Nbm Bmb RGa CL FR Hphi RSA Hlw).
+    exact (k_all_lvl lp bm Xs (flank_core_incl _ HXs) m m' mb mo Lmo NB PM LD LM Hbm_sym Nbm Bmb RGa CL FR Hphi RSA Hlw).
   Qed.
 
   Ltac ne := let E := fresh in intro E; vm_compute in E; discriminate E.
@@ -358,8 +357,9 @@ Section Link.
       | refine (Genv.global_addresses_distinct G _ Hs Hbm_sym eq_refl); ne ]).
   Qed.
 
-  (* the POST tail writes three warp cells; with warp_w at its end, lvl_w
-     holds there (the other lvl_ids globals are not written) *)
+  (* the POST tail writes three warp cells; with warp_w at its end
+     (LevelWarp.tail_warp_w), lvl_w holds there (the other lvl_ids globals
+     are not written) *)
   Lemma lvl_w_tail : forall m m', lvl_w G m -> fx lp bm level_gvars m m' -> warp_w G m' -> lvl_w G m'.
   Proof.
     intros m m' (L1 & L2 & _ & CW & AW) Hfx Hw.
@@ -524,11 +524,11 @@ Section Link.
 
   Theorem post_keeps : forall m m',
     uc_keeps lp bm MWF SafeB -> cam_phi_row lp bm MWF ->
-    level_post_call lp m m' -> surf_apart lp bm level_gvars m -> warp_w G m' ->
+    level_post_call lp m m' -> surf_apart lp bm level_gvars m ->
     mem_ok_lp bm MWF m -> phiw lp bm m ->
     mem_ok_lp bm MWF m' /\ phiw lp bm m'.
   Proof.
-    intros m m' UC Hcam (le & t & le' & out & Hx) RSA Hwend Hok Hphi.
+    intros m m' UC Hcam (le & t & le' & out & Hx) RSA Hok Hphi.
     pose proof (proj2 (proj2 (proj2 (proj2 (proj2 (proj2 (proj2 Hphi))))))) as LW0.
     pose proof (area_safe_of_w m (proj1 (proj2 (proj2 (proj2 (proj2 LW0)))))) as Hca.
     pose proof lv_plain as Hpl. repeat (apply andb_prop in Hpl as [Hpl ?]).
@@ -580,9 +580,138 @@ Section Link.
                 _ _ _ _ _ _ Hx Hok3) as (Hok' & Hfx').
     pose proof (cl_stmt G lv_tail T2 _ _ _ _ _ _ Hx) as Hcl'.
     pose proof (fx_trans lp bm level_gvars _ _ _ Hfx3 Hfx') as Hfx4.
+    (* warp_w at the tail's start (the painting call only allocates and
+       frees its local), and at its end from the walked tail *)
+    pose proof (proj2 (proj2 (proj2 (proj2 (proj2 (proj2 (proj2 Hphi2))))))) as LW2.
+    pose proof (proj1 (proj2 (proj2 (lvl_w_safe m2 m3 LW2
+                  (fx_alloc_free lp bm lvl_safe_gvars _ _ _ _ _ _ Hal Hfr))))) as Hw3.
+    destruct (lu_sym LU._sCurrPlayMode ltac:(let E := fresh in intro E; vm_compute in E; discriminate E)) as (bp & Hbp).
+    destruct (lu_sym LU._sWarpDest ltac:(let E := fresh in intro E; vm_compute in E; discriminate E)) as (bw & Hbw).
+    destruct (lu_sym LU._sTransitionTimer ltac:(let E := fresh in intro E; vm_compute in E; discriminate E)) as (bt & Hbt).
+    destruct (lu_sym LU._gCurrCreditsEntry ltac:(let E := fresh in intro E; vm_compute in E; discriminate E)) as (bcr & Hbcr).
+    destruct (lu_sym LU._gCurrDemoInput ltac:(let E := fresh in intro E; vm_compute in E; discriminate E)) as (bd & Hbd).
+    destruct (lu_sym LU._sDelayedWarpOp ltac:(let E := fresh in intro E; vm_compute in E; discriminate E)) as (bo & Hbo).
+    pose proof (LevelWarp.tail_warp_w lp H12 bm bc oc0 SafeB HSafeB_syms Hspawn Hfloor Hbm_sym
+                  bp bw bt bcr bd bo Hbp Hbw Hbt Hbcr Hbd Hbo _ _ _ _ _ _ Hx Hok3 Hw3 Hfx') as Hwend.
     split; [ exact Hok' | ].
     refine (lvl_keeps_gen level_gvars level_gvars_flank ltac:(nb) m2 m' Hphi2 Hfx4
               (cl_trans G _ _ _ Hcl3 Hcl') RSA2 _).
-    exact (lvl_w_tail m2 m' (proj2 (proj2 (proj2 (proj2 (proj2 (proj2 (proj2 Hphi2))))))) Hfx4 Hwend).
+    exact (lvl_w_tail m2 m' LW2 Hfx4 Hwend).
+  Qed.
+  (* ===================================================================== *)
+  (* 4. For any written list off the frame's core (2026-10-26, the         *)
+  (*    controller poll, PollKeep): RenderKeep.k_all_lvl's apartness       *)
+  (*    premise RGa from design B instead of AnimWorld.flank_gvars: a      *)
+  (*    written global is not Mario's object block (that is gObjectPool's, *)
+  (*    FfWorld.ff_Spool) and is off the partition (AnimWorld.             *)
+  (*    tab_apart_global, from the frame's world fact).                    *)
+  (* ===================================================================== *)
+  Theorem lvl_keeps_core : forall Xs,
+    (forall id, In id Xs -> existsb (Pos.eqb id) core_ids = false) ->
+    existsb (Pos.eqb object_list_processor._gObjectPool) Xs = false -> forall m m',
+    phiw lp bm m -> fx lp bm Xs m m' -> cl_rel G m m' -> surf_apart lp bm Xs m ->
+    lvl_w G m' -> phiw lp bm m'.
+  Proof.
+    intros Xs HXs HNp m m' Hphi Hfx Hcl RSA Hlw.
+    pose proof Hphi as (_ & _ & _ & _ & Hf & _ & Haw & _).
+    pose proof Haw as (ab & bga & bauc & btab & otab & bt & ot & mb & mo & B & _).
+    pose proof B as (_ & _ & _ & _ & _ & Lmo & _).
+    pose proof Hf as (Hgn & (dw & FWF) & _).
+    pose proof (ff_Lo _ _ _ _ FWF) as Lo. pose proof (ff_D1 _ _ _ _ FWF) as D1.
+    pose proof (ff_Spool _ _ _ _ FWF) as Sp. pose proof (ff_W _ _ _ _ FWF) as W.
+    change FFW_OBJ with 136 in Lo. rewrite Lmo in Lo. injection Lo as Eb Eo.
+    rewrite <- Eb in D1, Sp.
+    assert (Bmb : bm <> mb) by (intros E; exact (D1 (eq_sym E))).
+    assert (RGa : forall b, rgb lp Xs b -> b <> mb /\ AnimWorld.tab_apart G m b).
+    { intros b (id & Hin & Hs). split.
+      - intros ->.
+        assert (Ei : id = object_list_processor._gObjectPool) by (eapply Genv.genv_vars_inj; [ exact Hs | exact Sp ]).
+        subst id.
+        assert (E : existsb (Pos.eqb object_list_processor._gObjectPool) Xs = true)
+          by (apply existsb_exists; exists object_list_processor._gObjectPool; split; [ exact Hin | apply Pos.eqb_refl ]).
+        congruence.
+      - exact (AnimWorld.tab_apart_global G m _ _ _ b (Genv.genv_symb_range _ _ Hs) W). }
+    assert (Nbm : ~ rgb lp Xs bm) by exact (rgb_not lp Xs HXs _ bm Hbm_sym ltac:(vm_compute; reflexivity)).
+    pose proof Hfx as (U & P & F).
+    assert (NB : Ple (Mem.nextblock m) (Mem.nextblock m')) by exact (Mem.unchanged_on_nextblock _ _ _ U).
+    assert (PM : forall b o k p, Plt b (Mem.nextblock m) -> Mem.perm m b o k p -> Mem.perm m' b o k p)
+      by (intros b o k p Hv Hp; exact (proj1 (P b o k p Hv) Hp)).
+    assert (LD : forall ch b z, ~ rgb lp Xs b -> b <> bm ->
+              (b <> mb \/ z + size_chunk ch <= Ptrofs.unsigned mo + 64 \/ Ptrofs.unsigned mo + 72 <= z) ->
+              Mem.load ch m' b z = Mem.load ch m b z).
+    { intros ch b z Nr Nb _. apply (fx_load lp bm Xs m m' ch b z Hfx).
+      intros i _ [Hb | (Hb & _)]; [ exact (Nr Hb) | exact (Nb Hb) ]. }
+    assert (LM : forall ch z, bmk ch z -> Mem.load ch m' bm z = Mem.load ch m bm z).
+    { intros ch z Hk. apply (fx_load lp bm Xs m m' ch bm z Hfx).
+      intros i Hi [Hb | (_ & Hc)]; [ exact (Nbm Hb) | ].
+      destruct Hk as (_ & K1 & K2). lia. }
+    assert (CL : forall gp0, closed_by gp0 m -> gp0 mb <> None ->
+              (forall id b, Genv.find_symbol G id = Some b -> gp0 b <> None) ->
+              exists gp', (forall b, gp0 b <> None -> gp' b <> None) /\ closed_by gp' m').
+    { intros gp0 HC0 _ HS0.
+      destruct (Hcl gp0 HC0 HS0) as (gp' & I & HC' & _).
+      exists gp'. split; [ | exact HC' ].
+      intros b Hb'. destruct (gp0 b) as [[b1 d]|] eqn:E0; [| congruence ].
+      rewrite (I _ _ _ E0). discriminate. }
+    assert (Nmbl : ~ rgb lp Xs mb) by (intros Hb; exact (proj1 (RGa mb Hb) eq_refl)).
+    assert (FR : forall bt0 ot0 k, In k hs_ids ->
+              Mem.load Mint32 m mb (Ptrofs.unsigned mo + 60) = Some (Vptr bt0 ot0) ->
+              Mem.load Mint32 m mb (Ptrofs.unsigned mo + 72) = Some (Vint Int.zero) ->
+              (exists f, -1 <= f <= hs_le k
+                 /\ Mem.load Mint16signed m mb (Ptrofs.unsigned mo + 64) = Some (Vint (Int.repr f))) ->
+              buf_ok m bt0 ot0 k -> Ptrofs.unsigned ot0 + BUFSZ < Ptrofs.modulus ->
+              exists f, -1 <= f <= hs_le k
+                /\ Mem.load Mint16signed m' mb (Ptrofs.unsigned mo + 64) = Some (Vint (Int.repr f))).
+    { intros btx otx k _ _ _ (f & Rf & L64) _ _. exists f. split; [ exact Rf |].
+      rewrite (fx_load lp bm Xs m m' Mint16signed mb _ Hfx). exact L64.
+      intros i _ [Hb | (Hb & _)]; [ exact (Nmbl Hb) | exact (Bmb (eq_sym Hb)) ]. }
+    exact (k_all_lvl lp bm Xs HXs m m' mb mo Lmo NB PM LD LM Hbm_sym Nbm Bmb RGa CL FR Hphi RSA Hlw).
+  Qed.
+
+  (* lvl_w through a footprint whose only lvl_ids globals are the two
+     controller globals, given the controller clause at the end (the
+     controller poll: PollFlank.poll_ok re-establishes ctl_w) *)
+  Lemma lvl_w_ctl : forall Xs m m',
+    (forall id, In id lvl_ids -> existsb (Pos.eqb id) Xs = true ->
+       id = mario._gControllers \/ id = game_init._gControllerPads) ->
+    lvl_w G m -> fx lp bm Xs m m' -> ctl_w G m' -> lvl_w G m'.
+  Proof.
+    intros Xs m m' HX (L1 & L2 & (W1 & W2 & W3 & W4 & W5) & _ & AW) Hfx Hcw.
+    assert (U' : forall id b, Genv.find_symbol G id = Some b -> In id lvl_ids ->
+               id <> mario._gControllers -> id <> game_init._gControllerPads ->
+               id <> level_update._gMarioStates ->
+               forall ch z, Mem.load ch m' b z = Mem.load ch m b z).
+    { intros id b Hs Hin N1 N2 Ne ch z. apply (fx_load lp bm Xs m m' ch b z Hfx).
+      destruct (existsb (Pos.eqb id) Xs) eqn:E;
+        [ destruct (HX id Hin E) as [E1 | E1]; contradiction | ].
+      intros i _ [Hb | (-> & _)];
+        [ exact (not_lvl Xs _ _ Hs E Hb) | exact (Genv.global_addresses_distinct G Ne Hs Hbm_sym eq_refl) ]. }
+    split; [| split; [| split; [| split; [ exact Hcw | ]]]].
+    - intros b Hs. rewrite (U' _ b Hs ltac:(unfold lvl_ids; cbn [In]; auto 20) ltac:(ne) ltac:(ne) ltac:(ne)).
+      exact (L1 b Hs).
+    - intros b Hs. rewrite (U' _ b Hs ltac:(unfold lvl_ids; cbn [In]; auto 20) ltac:(ne) ltac:(ne) ltac:(ne)).
+      exact (L2 b Hs).
+    - split; [| split; [| split; [| split]]].
+      + intros bp bw Hp Hw.
+        rewrite (U' _ bp Hp ltac:(unfold lvl_ids; cbn [In]; auto 20) ltac:(ne) ltac:(ne) ltac:(ne)),
+                (U' _ bw Hw ltac:(unfold lvl_ids; cbn [In]; auto 20) ltac:(ne) ltac:(ne) ltac:(ne)).
+        exact (W1 bp bw Hp Hw).
+      + intros b Hs. rewrite (U' _ b Hs ltac:(unfold lvl_ids; cbn [In]; auto 20) ltac:(ne) ltac:(ne) ltac:(ne)).
+        exact (W2 b Hs).
+      + intros b Hs. rewrite (U' _ b Hs ltac:(unfold lvl_ids; cbn [In]; auto 20) ltac:(ne) ltac:(ne) ltac:(ne)).
+        exact (W3 b Hs).
+      + intros bo bs Ho Hs.
+        rewrite (U' _ bo Ho ltac:(unfold lvl_ids; cbn [In]; auto 20) ltac:(ne) ltac:(ne) ltac:(ne)),
+                (U' _ bs Hs ltac:(unfold lvl_ids; cbn [In]; auto 20) ltac:(ne) ltac:(ne) ltac:(ne)).
+        exact (W4 bo bs Ho Hs).
+      + intros bo Ho. rewrite (U' _ bo Ho ltac:(unfold lvl_ids; cbn [In]; auto 20) ltac:(ne) ltac:(ne) ltac:(ne)).
+        exact (W5 bo Ho).
+    - split; [ | split ].
+      + intros ga Sa. rewrite (U' _ ga Sa ltac:(unfold lvl_ids; cbn [In]; auto 20) ltac:(ne) ltac:(ne) ltac:(ne)).
+        exact (proj1 AW ga Sa).
+      + intros be Se. rewrite (U' _ be Se ltac:(unfold lvl_ids; cbn [In]; auto 20) ltac:(ne) ltac:(ne) ltac:(ne)).
+        exact (proj1 (proj2 AW) be Se).
+      + intros be Se. rewrite (U' _ be Se ltac:(unfold lvl_ids; cbn [In]; auto 20) ltac:(ne) ltac:(ne) ltac:(ne)).
+        exact (proj2 (proj2 AW) be Se).
   Qed.
 End Link.

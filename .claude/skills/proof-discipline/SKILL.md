@@ -475,15 +475,30 @@ all in `Unwired/`, and the theorem moved nowhere. See
     `post_keeps`); update_camera's mem_ok via `update_camera_ok_linked12`. ONE labeled row:
     `Hcam_phi` (`LevelKeep.cam_phi_row`, the camera statement keeps PhiW / Mario's surface
     cells; a clobber spec cannot, the Camera shares the surface pool's block; writes to cover =
-    `UpdateCameraBody.uc_census`). Stated by the steps: `surf_apart`
-    and `warp_w` at the POST end (gCurrentArea's target is CARRIED since 2026-10-25,
-    `FfWorld.area_w`, proved at boot) (FOUND: a ∀-row for it is false). Next:
-    discharge `Hcam_phi` from the census (per-write PhiW keep).
+    `UpdateCameraBody.uc_census`). `surf_apart` is PROVED from Φ since 2026-10-26
+    (`RenderKeep.surf_apart_ffw`, design B's `ff_Spl`; no step states it). (gCurrentArea's
+    target is CARRIED since 2026-10-25, `FfWorld.area_w`, proved at boot). `warp_w` at the
+    POST end is PROVED since 2026-10-26 (`LevelWarp.tail_warp_w`: initiate_delayed_warp and
+    the play-mode switch walked; `warp_w` gained a fifth clause, the pending op is no
+    credits op, which repairs the FOUND false ∀-row; its only writer is level_trigger_warp,
+    called only from Mario code, and the reachable calls all sit in `Hseg_na_open`, so
+    whoever discharges those rows must show op ∉ {0x17,0x18}; TRUST 0.7 lists who carries
+    it per stage). Next:
+    discharge `Hcam_phi` from the census (per-write PhiW keep). Since 2026-10-26 the witness
+    has a REAL Camera in gAreaData[1].camera (`StartTerrain.cam_chain`: the generated
+    alloc_only_pool_init / init_graph_node_camera / create_camera / reset_camera; FOUND:
+    alloc_only_pool_resize has no CompCert execution, pointer minus pointer in main_pool_free,
+    so the level pool is made at its resized size, TRUST 3.6), and `StartSat.frame_runs` runs
+    area_update_objects and then update_camera on it. Hcam_phi gates (TRUST 0.7 detail):
+    set_mario_npc_dialog is reached only from the SSL_PYRAMID_EXPLODE / ENTER_BOWSER_ARENA cutscene
+    shots (boot tables), so an honest discharge needs a camera-world carry. That carry pins the
+    Camera's cutscene and keeps the cutscene tables, and it is tied to what objects can start.
+    Left labeled.
     Mario's render call and
     `apply_mario_platform_displacement` (platform_displacement.c, TU 45) are REAL calls whose
     GOAL-1 and Φ carries are proved (`RenderKeep.render_keeps_phiw`, `PlatformKeep`, 2026-10-23);
-    they state only narrow premises: `surf_apart` (Mario's surfaces not in a written global's block)
-    and `plat_still` (the ridden platform is NULL or has zero angle velocity; FOUND: a rotating
+    their narrow premise `surf_apart` (Mario's surfaces not in a written global's block) is PROVED
+    from Φ since 2026-10-26 (`RenderKeep.surf_apart_ffw`); and `plat_still` (the ridden platform is NULL or has zero angle velocity; FOUND: a rotating
     platform moves pos[1], so the old "y unchanged" platform spec was false of the real body).
     Since 2026-10-24 `plat_still` is no longer a step premise: it is TRUE in WMotR (only the !
     boxes and cannon lids own surfaces; `AngleVelCensus` finds no angle-velocity store on them),
@@ -519,6 +534,15 @@ all in `Unwired/`, and the theorem moved nowhere. See
     - object_step's obj_splash: find_water_level = -11000 and object y >= -11050;
     - Mario's water particles (sParticleTypes): env_w;
     - koopa shell: the wing-cap boxes' behParams.
+    B3 (i) CMDTAB: obj_w `ow_cmdtab` (BehaviorCmdTable = its initializer; ObjCensus certifies
+    it is read only in cur_obj_update, never written, address never taken); proved at boot.
+    Next (ii) CMDPOS (BhvVM.v: the script VM's 741 reachable states; obj_w `ow_vm`), then
+    (iii) the cur_obj_update stepper.
+    B3 (ii) CMDPOS DONE: obj_w `ow_vm` (slot = a reachable BhvVM state; FOUND: script_ok
+    allowed opcode >= 56). PERF TRAP: BhvVM.vm_tab must never be reduced by tactics or by
+    kernel conversion (it runs the VM). `Local Opaque` it, and state the soundness lemmas
+    over an arbitrary list, as in ObjWorld.vm_b_sound_gen. Never `Eval vm_compute` it into a
+    Definition: the readback takes 200 s.
     The object world `ObjWorld.obj_w` is in `fb_ok` (no phantom ∀ over object lists) and is
     PROVED at the boot witness, which now runs the real init_graph_node_start + clear_objects
     and Mario's spawn_objects_from_info; one real area_update_objects runs from it
@@ -530,14 +554,15 @@ all in `Unwired/`, and the theorem moved nowhere. See
     The capstone's no-A premise is now `PollFlank.pif_a_real` on the PIF reply bytes (TRUST 0.1);
     `a_used_real` is a proved conclusion (`poll_ok`). FOUND: `__osPackReadData` puts 0xFFFF in the
     request's button word, so an unplugged port reads "A" -- the premise ignores ports with error
-    bits (`rxLen & 0xC0`), as osContGetReadData does. Open in the spec: the two calls' adjacency
-    (audio_game_loop_tick / select_gfx_pool run between) and the Phi carries (the m0 one
-    conditional on `ctl_w`). `ctl_w` gained P1 / P3 / demo-NULL / maxctl / controllerData clauses
+    bits (`rxLen & 0xC0`), as osContGetReadData does. Open in the spec: only the two calls' adjacency
+    (audio_game_loop_tick / select_gfx_pool run between). The Phi / plat_still / OW carries are
+    PROVED (2026-10-26, `PollKeep.srd_keeps` / `rci_keeps`, via `FootWalk` (generic footprint
+    walker) and `Generic/PermWalk` (permission-preservation body check)); HeightFrame row
+    `Hsrd_keep` (new) and the strengthened `Hpoll_ok` are both discharged on the link. `ctl_w` gained P1 / P3 / demo-NULL / maxctl / controllerData clauses
     (StartSat proves them at the start); `stored_globals` gained gControllerPads, __osContPifRam.
     HeightFrame `Hypothesis` lines 19 -> 21 (unchanged by the plat_still merge): generic-section rows
     `Hsrd_ok` / `Hpoll_ok`, both DISCHARGED in HeightLinked12 (`srd_ok_linked12`,
-    `poll_ok_linked12`); the linked section has 11. The poll spec also states (labeled) that it
-    keeps `plat_still` (master's spec had it as an assumed conjunct too).
+    `poll_ok_linked12`); the linked section has 11. The poll's `plat_still` carry is proved (PollKeep).
 
   The coin link is also open.
 - `docs/TRUST.md` is the ledger of everything a reader must believe. Read

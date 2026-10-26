@@ -76,7 +76,7 @@ From SM64.Proofs.WMotRRequiresA Require Import ProRows NaSplit.
 From SM64.Proofs.WMotRRequiresA Require Import FfWorld FfRow AhwRow KbRow FpuFloor ExtInert.
 From SM64.Proofs.WMotRRequiresA Require PoleXc PoleCasesT LsContract.
 From SM64.Proofs.WMotRRequiresA Require RenderFlank RenderKeep AnimWorld PlatformKeep PollFlank.
-From SM64.Proofs.WMotRRequiresA Require LevelGvars LevelFlank LevelKeep.
+From SM64.Proofs.WMotRRequiresA Require LevelGvars LevelFlank LevelKeep PollKeep.
 From SM64.Proofs.WMotRRequiresA Require ObjPhase ObjWorld ObjLoop.
 From SM64.Generated Require object_list_processor area platform_displacement.
 From SM64.Proofs Require OsDmaFloor LptBody ObjExtBodies UpdateCameraBody.
@@ -132,22 +132,15 @@ Section HeightFrame.
      PIF image holds the reply bytes the HARDWARE delivered
      (OsDmaFloor.si_raw_dma_spec), which is what the no-A premise reads
      (PollFlank.pif_a_real); m0 is the post-poll memory.  Both calls are
-     walked (Hsrd_ok / Hpoll_ok below, discharged on the link).
+     walked (Hsrd_ok / Hsrd_keep / Hpoll_ok below, discharged on the
+     link: GOAL 1's facts, A-freedom, and since 2026-10-26 the Phi, plat_still
+     and OW carries, PollKeep, from the two calls' walked footprints).
      LABELED (TRUST 0.7): the two calls are adjacent (the game runs
      audio_game_loop_tick and select_gfx_pool in between, assumed not to
-     touch the PIF image), and the Phi carries, the poll's conditional on
-     the controller cells it PROVABLY re-establishes (ctl_w), and the
-     platform fact PlatformKeep.plat_still (2026-10-24: the poll writes no
-     object and not gMarioPlatform), and the object world OW (2026-10-26:
-     no object, no list head, no debug cell, none of Mario's object
-     pointers). *)
+     touch the PIF image). *)
   Definition seg_input_spec (m i m0 : mem) : Prop :=
     (i = m \/ PollFlank.srd_call lp m i)
-    /\ (Phi m -> Phi i)
-    /\ PollFlank.rci_call lp i m0
-    /\ (Phi i -> ctl_w (lp_ge lp) m0 -> Phi m0)
-    /\ (PlatformKeep.plat_still lp m -> PlatformKeep.plat_still lp m0)
-    /\ (OW m -> OW m0).
+    /\ PollFlank.rci_call lp i m0.
 
   (* apply_mario_platform_displacement (platform_displacement.c, linked as
      the 45th TU): the call, plus the labeled premise its proved carries
@@ -157,8 +150,7 @@ Section HeightFrame.
      Phi and the A-held bit are PROVED from the walked body (PlatformKeep,
      in HeightLinked12's discharge of the objects-phase platform row). *)
   Definition seg_platform_spec (m m' : mem) : Prop :=
-    PlatformKeep.plat_call lp m m'
-    /\ RenderKeep.surf_apart lp bm PlatformKeep.plat_gvars m.
+    PlatformKeep.plat_call lp m m'.
 
   (* seg_objects: the OBJECTS phase, ONE real eval_funcall of area.c's
      area_update_objects (ObjPhase.objects_call, 2026-10-26) -- the call
@@ -175,8 +167,7 @@ Section HeightFrame.
      step did): at its start Mario's surfaces are not in D_8032FEC0's
      block. *)
   Definition seg_objects_spec (m m' : mem) : Prop :=
-    ObjPhase.objects_call lp m m'
-    /\ RenderKeep.surf_apart lp bm PlatformKeep.plat_gvars m.
+    ObjPhase.objects_call lp m m'.
 
   (* seg_level_pre / seg_level_post: the level phase, as the real
      play_mode_normal (level_update.c) cut at its area_update_objects call
@@ -191,17 +182,14 @@ Section HeightFrame.
      rules out the instant and painting warps.  What the steps state besides
      the slice (labeled, TRUST 0.7): Mario's surfaces are not in a level
      global's block (RenderKeep.surf_apart, as for the render / platform
-     steps); and the POST ends in FfWorld.warp_w:
-     the warp initiate_delayed_warp may start leaves NORMAL play mode and
-     starts no credits (WMotR's warp nodes lead to other levels; FOUND
-     2026-10-24: warp_w does not pin the op, so a forall-row is false). *)
+     steps).  The POST's end state FfWorld.warp_w is PROVED (2026-10-26,
+     LevelWarp.tail_warp_w: initiate_delayed_warp and the play-mode switch
+     walked from the real code, from warp_w at the tail's start, whose
+     fifth clause excludes the credits ops). *)
   Definition seg_level_pre_spec (m m' : mem) : Prop :=
-    LevelFlank.level_pre_call lp m m'
-    /\ RenderKeep.surf_apart lp bm LevelGvars.level_gvars m.
+    LevelFlank.level_pre_call lp m m'.
   Definition seg_level_post_spec (m m' : mem) : Prop :=
-    LevelFlank.level_post_call lp m m'
-    /\ RenderKeep.surf_apart lp bm LevelGvars.level_gvars m
-    /\ FfWorld.warp_w (lp_ge lp) m'.
+    LevelFlank.level_post_call lp m m'.
 
   (* seg_rest: the render walk outside Mario's node (geo_process_root over
      the area's graph, before and after Mario's render call).  Since
@@ -236,7 +224,7 @@ Section HeightFrame.
      call writes.  In the game they are surface-pool surfaces; the frame
      world keeps them off the walk's regions but not off every global. *)
   Definition seg_render_spec (m m' : mem) : Prop :=
-    m' = m \/ (RenderFlank.render_call lp bm m m' /\ RenderKeep.render_surf_apart lp bm m).
+    m' = m \/ RenderFlank.render_call lp bm m m'.
 
   (* The game is still in WMotR: gCurrLevelNum (level_update.c, set only by
      the warp code from sWarpDest, :477/:502) holds LEVEL_WMOTR (pinned from
@@ -421,16 +409,28 @@ Section HeightFrame.
   (* OPEN (immediate once Phi is defined): the invariant bounds the height. *)
   Hypothesis Hphi_y : forall m, Phi m -> y_le m.
 
+  (* the surface premise of the flank keeps, from the invariant (discharged
+     in the twelve-TU section below by RenderKeep.phiw_surf_apart: design
+     B's FfWorld.ff_Spl puts Mario's surfaces past every global -- NOT
+     open) *)
+  Hypothesis Hphi_sa : forall Xs m, Phi m -> RenderKeep.surf_apart lp bm Xs m.
+
   (* the controller poll's two real calls carry GOAL 1's mem_ok, and the
      poll leaves Mario's controller A-free when the hardware's reply shows A
      on no live port (discharged in the twelve-TU section below by
      PollFlank.srd_ok / PollFlank.poll_ok -- NOT open). *)
   Hypothesis Hsrd_ok :
     forall m i, mem_ok m -> PollFlank.srd_call lp m i -> mem_ok i.
+  (* ... and carry the frame boundary's Phi, platform fact and object world
+     (discharged below by PollKeep.srd_keeps / rci_keeps -- NOT open) *)
+  Hypothesis Hsrd_keep :
+    forall m i, PollFlank.srd_call lp m i -> Phi m ->
+      Phi i /\ (PlatformKeep.plat_still lp m -> PlatformKeep.plat_still lp i) /\ (OW m -> OW i).
   Hypothesis Hpoll_ok :
     forall i m0, mem_ok i -> Phi i -> PollFlank.pif_a_real (lp_ge lp) i = false ->
       PollFlank.rci_call lp i m0 ->
-      mem_ok m0 /\ a_used_real bm m0 = false /\ ctl_w (lp_ge lp) m0.
+      (mem_ok m0 /\ a_used_real bm m0 = false /\ Phi m0)
+      /\ (PlatformKeep.plat_still lp i -> PlatformKeep.plat_still lp m0) /\ (OW i -> OW m0).
 
   (* ---- proved glue ------------------------------------------------------ *)
 
@@ -488,13 +488,15 @@ Section HeightFrame.
       PollFlank.pif_a_real (lp_ge lp) i = false -> fb_ok m -> seg_input_spec m i m0 ->
       fb_ok m0 /\ a_down_real bm m0 = false.
   Proof.
-    intros i m m0 HP (Hok & Hphi & Hst & How) (Hsrd & Hpi & Hrci & Hp0 & Hsti & Howi).
-    assert (Hoki : mem_ok i)
-      by (destruct Hsrd as [-> | Hsrd]; [ exact Hok | exact (Hsrd_ok m i Hok Hsrd) ]).
-    pose proof (Hpi Hphi) as Hphii.
-    destruct (Hpoll_ok i m0 Hoki Hphii HP Hrci) as (Hok0 & HU & Hcw).
+    intros i m m0 HP (Hok & Hphi & Hst & How) (Hsrd & Hrci).
+    assert (Hi : mem_ok i /\ Phi i /\ PlatformKeep.plat_still lp i /\ OW i).
+    { destruct Hsrd as [-> | Hsrd]; [ exact (conj Hok (conj Hphi (conj Hst How))) | ].
+      destruct (Hsrd_keep m i Hsrd Hphi) as (Hphii & Hsti & Howi).
+      exact (conj (Hsrd_ok m i Hok Hsrd) (conj Hphii (conj (Hsti Hst) (Howi How)))). }
+    destruct Hi as (Hoki & Hphii & Hsti & Howi).
+    destruct (Hpoll_ok i m0 Hoki Hphii HP Hrci) as ((Hok0 & HU & Hphi0) & Hst0 & How0).
     destruct (a_used_real_false bm m0 HU) as (_ & HD).
-    exact (conj (conj Hok0 (conj (Hp0 Hphii Hcw) (conj (Hsti Hst) (Howi How)))) HD).
+    exact (conj (conj Hok0 (conj Hphi0 (conj (Hst0 Hsti) (How0 Howi)))) HD).
   Qed.
 
   (* the level PRE slice *)
@@ -520,7 +522,8 @@ Section HeightFrame.
       fb_ok ma -> a_down_real bm ma = false -> seg_objects_spec ma m3 ->
       mem_ok m3 /\ Phi m3 /\ PlatformKeep.plat_still lp m3 /\ OW m3.
   Proof.
-    intros ma m3 (Hok & Hphi & Hst & How) HD (Hc & Hsa).
+    intros ma m3 (Hok & Hphi & Hst & How) HD Hc.
+    pose proof (Hphi_sa PlatformKeep.plat_gvars ma Hphi) as Hsa.
     destruct (ObjPhase.objects_keep lp Hobj_clock Hobj_auo Pobj
                 Hobj_blind Hobj_fresh Hobj_noref Hobj_stores Hobj_counter
                 Hobj_debug Hobj_surfaces Hobj_terrain Hobj_platform Hobj_collisions
@@ -544,10 +547,10 @@ Section HeightFrame.
     pose proof (proj2 (proj1 (proj2 (proj2 (proj2 Hrest)))) Hphi4) as Hphi5.
     pose proof (proj2 (proj2 (proj2 (proj2 (proj2 Hrest)))) How4) as How5.
     assert (Hok6 : mem_ok m6 /\ Phi m6 /\ OW m6)
-      by (destruct Hrnd as [-> | (Hrc & Hsa)];
+      by (destruct Hrnd as [-> | Hrc];
           [ exact (conj Hok5 (conj Hphi5 How5))
           | exact (conj (Hrender_ok m5 m6 Hok5 Hrc)
-                     (conj (Hrender_phi m5 m6 Hphi5 Hrc Hsa) (Hrender_ow m5 m6 How5 Hrc))) ]).
+                     (conj (Hrender_phi m5 m6 Hphi5 Hrc (Hphi_sa _ m5 Hphi5)) (Hrender_ow m5 m6 How5 Hrc))) ]).
     destruct Hok6 as (Hok6 & Hphi6 & How6).
     split; [ | split; [ | split ] ].
     - exact (rest_ok m6 m' Hrest2 Hok6).
@@ -1113,6 +1116,11 @@ Section HeightLinked12.
   Lemma Hphi_y : forall m, Phi m -> y_le bm PHI_YMAX m.
   Proof. intros m Hphi v Hl. exact (height_invariant_y bm R_noA m (proj1 Hphi) v Hl). Qed.
 
+  (* the flanks' surface premise is a THEOREM (2026-10-26): ff_Spl puts
+     Mario's surfaces past every global (RenderKeep.surf_apart_ffw) *)
+  Lemma Hphi_sa_linked12 : forall Xs m, Phi m -> RenderKeep.surf_apart lp bm Xs m.
+  Proof. intros Xs m Hphi. exact (RenderKeep.phiw_surf_apart lp bm Xs m Hphi). Qed.
+
   (* GOAL 1's proved frame, at this section's surface *)
   Lemma frame_action_linked12 :
     forall m m', mem_ok_lp bm MWF m ->
@@ -1140,14 +1148,25 @@ Section HeightLinked12.
     exact (PollFlank.srd_ok lp H12 bm bc oc0 SafeB HSafeB_syms Hsp Hdma_floor m i Hm Hs).
   Qed.
 
+  (* the poll's carries of PhiW, the platform fact and the object world,
+     on the link (PollKeep): each call changes memory only in a listed set
+     of globals' blocks (FootWalk / PollFlank's walk) and keeps every
+     permission (PermWalk); PhiW then by RenderKeep.k_all_lvl, its
+     controller clause re-established by the real read_controller_inputs *)
+  Lemma srd_keep_linked12 :
+    forall m i, PollFlank.srd_call lp m i -> Phi m ->
+      Phi i /\ (PlatformKeep.plat_still lp m -> PlatformKeep.plat_still lp i) /\ (OWl m -> OWl i).
+  Proof.
+    exact (PollKeep.srd_keeps lp H12 Hdma_floor bm Hbm_sym).
+  Qed.
+
   Lemma poll_ok_linked12 :
     forall i m0, mem_ok_lp bm MWF i -> Phi i -> PollFlank.pif_a_real (lp_ge lp) i = false ->
       PollFlank.rci_call lp i m0 ->
-      mem_ok_lp bm MWF m0 /\ a_used_real bm m0 = false /\ ctl_w (lp_ge lp) m0.
+      (mem_ok_lp bm MWF m0 /\ a_used_real bm m0 = false /\ Phi m0)
+      /\ (PlatformKeep.plat_still lp i -> PlatformKeep.plat_still lp m0) /\ (OWl i -> OWl m0).
   Proof.
-    intros i m0 Hm (_ & _ & _ & _ & Hf & _ & _ & (_ & _ & _ & Hcw & _)) HP Hr.
-    pose proof (NoAImpliesNoFlyTwelve.Hspawn lp H12 bm bc oc0 Hbm_sym Hbc_sym Hoc0) as Hsp.
-    exact (PollFlank.poll_ok lp H12 Hdma_floor Hsqrtf bm bc oc0 SafeB HSafeB_syms Hsp i m0 Hm Hf Hcw HP Hr).
+    exact (PollKeep.rci_keeps lp H12 Hdma_floor Hsqrtf bm bc oc0 SafeB HSafeB_syms Hbm_sym Hbc_sym Hoc0).
   Qed.
 
   (* the render call carries PhiW, on the link (RenderKeep): its footprint
@@ -1164,25 +1183,26 @@ Section HeightLinked12.
      pos[2] and pos[1] written back unchanged *)
   Lemma plat_ok_linked12 :
     forall m m', mem_ok_lp bm MWF m -> PlatformKeep.plat_still lp m ->
-                 seg_platform_spec lp bm m m' -> mem_ok_lp bm MWF m'.
+                 seg_platform_spec lp m m' -> mem_ok_lp bm MWF m'.
   Proof.
-    intros m m' Hok Hst (Hc & _).
+    intros m m' Hok Hst Hc.
     exact (PlatformKeep.plat_mem_ok lp H12 bm Hbm_sym bc oc0 SafeB HSafeB_syms Hbc_sym Hoc0 m m' Hok Hc Hst).
   Qed.
 
   Lemma plat_ad_linked12 :
     forall m m', mem_ok_lp bm MWF m -> PlatformKeep.plat_still lp m ->
-                 seg_platform_spec lp bm m m' -> a_down_real bm m' = a_down_real bm m.
+                 seg_platform_spec lp m m' -> a_down_real bm m' = a_down_real bm m.
   Proof.
-    intros m m' Hok Hst (Hc & _).
+    intros m m' Hok Hst Hc.
     exact (PlatformKeep.plat_a_down lp H12 bm Hbm_sym bc oc0 SafeB Hbc_sym Hoc0 m m' Hok Hc Hst).
   Qed.
 
   Lemma plat_phi_linked12 :
-    forall m m', Phi m -> PlatformKeep.plat_still lp m -> seg_platform_spec lp bm m m' -> Phi m'.
+    forall m m', Phi m -> PlatformKeep.plat_still lp m -> seg_platform_spec lp m m' -> Phi m'.
   Proof.
-    intros m m' Hphi Hst (Hc & Hsa).
-    exact (PlatformKeep.plat_keeps_phiw lp H12 bm Hbm_sym m m' Hphi Hc Hst Hsa).
+    intros m m' Hphi Hst Hc.
+    exact (PlatformKeep.plat_keeps_phiw lp H12 bm Hbm_sym m m' Hphi Hc Hst
+             (RenderKeep.phiw_surf_apart lp bm _ m Hphi)).
   Qed.
 
   (* ==================================================================== *)
@@ -1208,22 +1228,24 @@ Section HeightLinked12.
   Hypothesis Hcam_phi : LevelKeep.cam_phi_row lp bm MWF.
 
   Lemma lvl_pre_linked12 :
-    forall m m', mem_ok_lp bm MWF m -> Phi m -> seg_level_pre_spec lp bm m m' ->
+    forall m m', mem_ok_lp bm MWF m -> Phi m -> seg_level_pre_spec lp m m' ->
       mem_ok_lp bm MWF m' /\ Phi m' /\ a_down_real bm m' = a_down_real bm m
       /\ (PlatformKeep.plat_still lp m -> PlatformKeep.plat_still lp m').
   Proof.
-    intros m m' Hok Hphi (Hc & Hsa).
+    intros m m' Hok Hphi Hc.
+    pose proof (RenderKeep.phiw_surf_apart lp bm LevelGvars.level_gvars m Hphi) as Hsa.
     exact (LevelKeep.pre_keeps lp H12 bm bc oc0 SafeB HSafeB_syms Hbm_sym Hbc_sym Hoc0 Hdma_floor
              m m' Hc Hsa Hok Hphi).
   Qed.
 
   Lemma lvl_post_linked12 :
-    forall m m', mem_ok_lp bm MWF m -> Phi m -> seg_level_post_spec lp bm m m' ->
+    forall m m', mem_ok_lp bm MWF m -> Phi m -> seg_level_post_spec lp m m' ->
                  mem_ok_lp bm MWF m' /\ Phi m'.
   Proof.
-    intros m m' Hok Hphi (Hc & Hsa & Hw).
+    intros m m' Hok Hphi Hc.
+    pose proof (RenderKeep.phiw_surf_apart lp bm LevelGvars.level_gvars m Hphi) as Hsa.
     exact (LevelKeep.post_keeps lp H12 bm bc oc0 SafeB HSafeB_syms Hbm_sym Hbc_sym Hoc0 Hdma_floor
-             m m' update_camera_ok_linked12 Hcam_phi Hc Hsa Hw Hok Hphi).
+             m m' update_camera_ok_linked12 Hcam_phi Hc Hsa Hok Hphi).
   Qed.
 
   (* ---- THE OBJECTS PHASE ON THE LINK (2026-10-26).  The real
@@ -1297,12 +1319,13 @@ Section HeightLinked12.
   Hypothesis Hobj_mplat : ObjPhase.call_keeps (lp_ge lp) Pobjl object_list_processor._update_mario_platform.
   (* OPEN, narrower than the platform row: the platform call (whose
      footprint is D_8032FEC0 and Mario's pos, PlatformKeep.plat_step_eff)
-     keeps gMarioPlatform's fact, the surface premise and the object world *)
+     keeps gMarioPlatform's fact and the object world (the surface premise
+     follows from Phi since 2026-10-26, Hphi_sa_linked12) *)
   Hypothesis Hplat_keep : forall m m', Pobjl m -> PlatformKeep.plat_call lp m m' ->
-    PlatformKeep.plat_still lp m' /\ RenderKeep.surf_apart lp bm PlatformKeep.plat_gvars m' /\ OWl m'.
+    PlatformKeep.plat_still lp m' /\ OWl m'.
   (* OPEN, the object world through the level slices and the render call *)
   Hypothesis Hlvl_ow : forall m m', mem_ok_lp bm MWF m -> Phi m -> OWl m ->
-    (seg_level_pre_spec lp bm m m' \/ seg_level_post_spec lp bm m m') -> OWl m'.
+    (seg_level_pre_spec lp m m' \/ seg_level_post_spec lp m m') -> OWl m'.
   Hypothesis Hrender_ow : forall m m', OWl m -> RenderFlank.render_call lp bm m m' -> OWl m'.
 
   Lemma dm_apmd : (prog_defmap platform_displacement.prog) ! object_list_processor._apply_mario_platform_displacement
@@ -1326,11 +1349,12 @@ Section HeightLinked12.
     assert (Hc : PlatformKeep.plat_call lp m m') by (exists t, vr; exact Hev).
     destruct HP as (Hok & Hphi & HD & Hst & Hsa & How).
     destruct (Hplat_keep m m' (conj Hok (conj Hphi (conj HD (conj Hst (conj Hsa How))))) Hc)
-      as (Hst' & Hsa' & How').
-    split; [ exact (plat_ok_linked12 m m' Hok Hst (conj Hc Hsa)) | ].
-    split; [ exact (plat_phi_linked12 m m' Hphi Hst (conj Hc Hsa)) | ].
-    split; [ rewrite (plat_ad_linked12 m m' Hok Hst (conj Hc Hsa)); exact HD | ].
-    exact (conj Hst' (conj Hsa' How')).
+      as (Hst' & How').
+    split; [ exact (plat_ok_linked12 m m' Hok Hst Hc) | ].
+    pose proof (plat_phi_linked12 m m' Hphi Hst Hc) as Hphi'.
+    split; [ exact Hphi' | ].
+    split; [ rewrite (plat_ad_linked12 m m' Hok Hst Hc); exact HD | ].
+    exact (conj Hst' (conj (Hphi_sa_linked12 _ m' Hphi') How')).
   Qed.
 
   Lemma pobj_ow : forall m, Pobjl m -> OWl m.
@@ -1367,8 +1391,8 @@ Section HeightLinked12.
                     Hobj_blind (Hobj_fresh 240) Hobj_noref Hobj_stores Hobj_counter
                     Hobj_debug Hobj_surfaces obj_terrain_linked12 Hobj_collisions obj_nonterrain_linked12
                     Hobj_unload Hobj_mplat obj_platform_linked12 Hlvl_ow Hrender_ow
-                    lvl_pre_linked12 lvl_post_linked12 seg_action_phi Hphi_y
-                    srd_ok_linked12 poll_ok_linked12
+                    lvl_pre_linked12 lvl_post_linked12 seg_action_phi Hphi_y Hphi_sa_linked12
+                    srd_ok_linked12 srd_keep_linked12 poll_ok_linked12
                     init is m Hok Hphi Hst How HA Hr)).
   Qed.
 
