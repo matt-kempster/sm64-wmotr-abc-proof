@@ -48,12 +48,12 @@ From SM64.Proofs Require Import CensusV2 SpawnInit LinkedTwelve.
 From SM64.Proofs.WMotRRequiresA Require Import FloorList FloorExec FfWorld WMotRWorld
   HeightInvariant WMotRLevel WMotREntry EntryWarp TerrainRun.
 From SM64.Generated Require mario level_update object_list_processor surface_load
-  surface_collision wmotr_script graph_node area.
+  surface_collision wmotr_script graph_node area memory camera interaction.
 From SM64.Proofs.WMotRRequiresA Require ObjWorld.
 From SM64.Proofs.NoAImpliesNoFly Require BootRun.
 From SM64.Proofs.WMotRRequiresA Require CourseRun AnimData.
 From SM64.Generated Require game_init area.
-From SM64.Proofs Require AGates.
+From SM64.Proofs Require AGates MWFReal.
 Import ListNotations.
 Module CM := SM64.Proofs.Interp.CMem.
 Arguments Done {A}.
@@ -77,7 +77,11 @@ Definition f_ids : list ident :=
        init_graph_node_start) and Mario's spawn (spawn_objects_from_info) *)
     id "gMarioObject"; id "gObjectMemoryPool"; id "gObjectPool"; id "gObjectListArray";
     id "gObjectLists"; id "gObjParentGraphNode"; id "gFreeObjectList";
-    id "gPlayerSpawnInfos"; id "sDebugLvSelectCheckFlag" ].
+    id "gPlayerSpawnInfos"; id "sDebugLvSelectCheckFlag";
+    (* 2026-10-26: the area's Camera (cam_chain: create_camera,
+       gAreas[1].camera, reset_camera) *)
+    id "gAreaData"; id "gCameraMovementFlags"; id "gCamera"; id "sFOVState";
+    id "unused8032CFC8"; id "unused8032CFCC" ].
 
 Definition inFb (ge : genv) (b : block) : bool :=
   existsb (fun i => match Genv.find_symbol ge i with Some b' => Pos.eqb b b' | None => false end) f_ids.
@@ -628,6 +632,108 @@ Definition frame_ok (ge : genv) (bm bo : block) (m : mem) : bool :=
      | Stuck _ _ _ => false
      end.
 
+(* ---------------------------------------------------------------------- *)
+(* The area's Camera (2026-10-26).                                         *)
+(* ---------------------------------------------------------------------- *)
+(* The real path: LOAD_AREA's level_cmd_begin_area runs process_geo_layout
+   on WMotR's geo (levels/wmotr/areas/1/geo.inc.c:16, GEO_CAMERA(16, 0,
+   2000, 6000, 0, 0, 0, geo_camera_main)).  geo_layout_cmd_node_camera
+   reads pos/focus into stack Vec3fs and calls init_graph_node_camera(pool,
+   NULL, pos, focus, func, mode) (graph_node.c:189), whose func call
+   geo_camera_main(GEO_CONTEXT_CREATE) runs create_camera(gc, pool)
+   (camera.c:3494: alloc_only_pool_alloc(pool, sizeof(struct Camera)),
+   gc->config.camera = c); then level_script.c:361 stores
+   gAreas[areaIndex].camera = node->config.camera, and
+   init_mario_after_warp's reset_camera(gCurrentArea->camera)
+   (level_update.c) sets CAM_MOVE_INIT_CAMERA, so the first update_camera
+   runs init_camera.  cam_chain runs that path on the generated Clight,
+   with four deviations (TRUST 3.6):
+   (1) the level pool is created at its resized size: the real
+       alloc_only_pool_init(main_pool_available() - 16, LEFT) followed by
+       FREE_LEVEL_POOL's alloc_only_pool_resize has NO CompCert execution
+       (FOUND: main_pool_free's sPoolFreeSpace += (uintptr_t) oldListHead
+       - (uintptr_t) sPoolListHeadL subtracts two pointers as integers;
+       the interpreter sticks at main_pool_realloc -> main_pool_free);
+   (2) only the camera node is built (the area's other geo nodes are not);
+   (3) the node's func is NULL and create_camera is called directly
+       (geo_camera_main's GEO_CONTEXT_CREATE case is exactly that call);
+   (4) reset_camera runs here, before the terrain load and Mario's spawn:
+       it reads only the Camera, gPlayerCameraState[0] and camera.c
+       statics, which those steps do not write. *)
+Definition cf32 (z : Z) : val := Vsingle (Float32.of_int (Int.repr z)).
+(* the GEO_CAMERA command's pos (0, 2000, 6000) and focus (0, 0, 0) *)
+Definition sc_writes (sc : block) : list wr :=
+  [W Mfloat32 sc 0 (cf32 0); W Mfloat32 sc 4 (cf32 2000); W Mfloat32 sc 8 (cf32 6000);
+   W Mfloat32 sc 12 (cf32 0); W Mfloat32 sc 16 (cf32 0); W Mfloat32 sc 20 (cf32 0)].
+Definition cam_pool_size (ge : genv) : Z := ssize ge "GraphNodeCamera" + ssize ge "Camera".
+
+(* gAreaData[1].camera is at 60 + 36.  The chain is stated over an
+   abstract runner [run] (ex_call ge world FUEL in cam_chain): its proofs
+   then never make the kernel reduce a concrete interpreter call. *)
+Definition runT : Type := mem -> fundef -> list val -> res (trace * mem * val).
+
+Definition cam_chain_g (run : runT) (csz : Z) (bgad : block) (P : mem) : option (mem * val) :=
+  match run P (Internal memory.f_alloc_only_pool_init) [Vint (Int.repr csz); Vint Int.zero] with
+  | Done (_, P2, pool) =>
+    let (P3, sc) := Mem.alloc P2 0 24 in
+    match apply_writes P3 (sc_writes sc) 0 with
+    | inl P4 =>
+      match run P4 (Internal graph_node.f_init_graph_node_camera)
+              [pool; Vint Int.zero; Vptr sc Ptrofs.zero; Vptr sc (Ptrofs.repr 12); Vint Int.zero;
+               Vint (Int.repr 16)] with
+      | Done (_, Q1, gc) =>
+        match run Q1 (Internal camera.f_create_camera) [gc; pool] with
+        | Done (_, Q2, _) =>
+          match CM.free_list Q2 [(sc, 0, 24)] with
+          | Some Q4 =>
+            match CM.loadv Mint32 Q4 (Val.offset_ptr gc (Ptrofs.repr 24)) with
+            | Some cam =>
+              match CM.store Mint32 Q4 bgad 96 cam with
+              | Some Q5 =>
+                match run Q5 (Internal camera.f_reset_camera) [cam] with
+                | Done (_, Q6, _) => Some (Q6, cam)
+                | Stuck _ _ _ => None
+                end
+              | None => None
+              end
+            | None => None
+            end
+          | None => None
+          end
+        | Stuck _ _ _ => None
+        end
+      | Stuck _ _ _ => None
+      end
+    | inr _ => None
+    end
+  | Stuck _ _ _ => None
+  end.
+
+(* a notation, not a definition: a constant here would make the kernel
+   unfold cam_chain_g and run the interpreter symbolically at Qed *)
+Notation cam_chain ge := (cam_chain_g (ex_call ge world FUEL) (cam_pool_size ge)).
+
+(* one full frame through the camera: gAreaData[1].camera still holds the
+   created Camera, and from the witness the objects phase
+   (area_update_objects) and then update_camera on that Camera (the
+   render's geo_camera_main(GEO_CONTEXT_RENDER) call) both run *)
+Definition cam_frame_g (run : runT) (bgad : block) (cam : val) (m : mem) : bool :=
+  match CM.load Mint32 m bgad 96 with
+  | Some v =>
+      (if Val.eq v cam then true else false)
+      && match run m (Internal area.f_area_update_objects) [] with
+         | Done (_, m', _) =>
+             match run m' (Internal camera.f_update_camera) [cam] with
+             | Done _ => true
+             | Stuck _ _ _ => false
+             end
+         | Stuck _ _ _ => false
+         end
+  | None => false
+  end.
+
+Notation cam_frame_ok ge := (cam_frame_g (ex_call ge BootRun.world FUEL)).
+
 Definition wchk (ge : genv) (m0 : mem) : bool :=
   match Genv.find_symbol ge level_update._gMarioStates, Genv.find_symbol ge mario._gControllers,
         Genv.find_symbol ge mario._gMarioAnimsBuf, Genv.find_symbol ge object_list_processor._gObjectPool,
@@ -658,7 +764,10 @@ Definition wchk (ge : genv) (m0 : mem) : bool :=
       | Done (_, PG, _) =>
       match ex_call ge world FUEL PG (Internal object_list_processor.f_clear_objects) [] with
       | Done (_, PO, _) =>
-      match ex_call ge world FUEL PO (Internal surface_load.f_alloc_surface_pools) [] with
+      (* LOAD_AREA's geo: the area's Camera (cam_chain) *)
+      match cam_chain ge bgad PO with
+      | Some (Pc, cam) =>
+      match ex_call ge world FUEL Pc (Internal surface_load.f_alloc_surface_pools) [] with
       | Done (_, L1, _) =>
         match ex_call ge world FUEL L1 (Internal surface_load.f_load_area_terrain) (terr_args bcol) with
         | Done (_, L0, _) =>
@@ -687,6 +796,7 @@ Definition wchk (ge : genv) (m0 : mem) : bool :=
               && tab_chk m11 bd bga && ga_chk m11 bga
               && ObjWorld.ow_chk ge bm m11 && bo_chk m11 bo
               && done_b (ex_call ge BootRun.world FUEL m11 (Internal area.f_area_update_objects) [])
+              && cam_frame_ok ge bgad cam m11
             | None => false
             end
           | None => false
@@ -699,6 +809,7 @@ Definition wchk (ge : genv) (m0 : mem) : bool :=
         end
       | Stuck _ _ _ => false
       end
+      | None => false end
       | Stuck _ _ _ => false end
       | Stuck _ _ _ => false end
     | inr _ => false
@@ -740,7 +851,7 @@ Qed.
 (* The chain, unpacked into memory equations.                              *)
 (* ---------------------------------------------------------------------- *)
 Inductive wout (ge : genv) (m0 : mem) (bm bc ab bo bw bL : block) : Prop :=
-| WOut : forall s1 s2 s3 s4 s5 bcol bn bpg bmb oba obs e1 e2 e3 e4 e5 e6 P0 bp P tg PG vg tc PO vc
+| WOut : forall s1 s2 s3 s4 s5 bcol bn bpg bmb oba obs e1 e2 e3 e4 e5 e6 P0 bp P tg PG vg tc PO vc Pc cam
                 t1 L1 v1 t2 L0 v2 La Lb t3 L v3
                 m1 bt m2 bs m2b bar m3 bd m3a m3b m4 m5 m6 m7 m8 m9 m10 ms
                 bsi bpcs bbs bhud bC bga bpads bca bgad z1 z2 z3 z4 z5 z6 z7 z8 z9 z10a z10 z11 z12 z13 z14 z15 z16 z17 z18 z19 m11,
@@ -760,7 +871,8 @@ Inductive wout (ge : genv) (m0 : mem) (bm bc ab bo bw bL : block) : Prop :=
     ex_call ge world FUEL P (Internal graph_node.f_init_graph_node_start)
       [Vint Int.zero; Vptr bpg Ptrofs.zero] = Done (tg, PG, vg) ->
     ex_call ge world FUEL PG (Internal object_list_processor.f_clear_objects) [] = Done (tc, PO, vc) ->
-    ex_call ge world FUEL PO (Internal surface_load.f_alloc_surface_pools) [] = Done (t1, L1, v1) ->
+    cam_chain ge bgad PO = Some (Pc, cam) ->
+    ex_call ge world FUEL Pc (Internal surface_load.f_alloc_surface_pools) [] = Done (t1, L1, v1) ->
     ex_call ge world FUEL L1 (Internal surface_load.f_load_area_terrain) (terr_args bcol)
       = Done (t2, L0, v2) ->
     Mem.store Mint32 L0 bsi oba (Vint (Int.repr 1)) = Some La ->
@@ -814,6 +926,7 @@ Inductive wout (ge : genv) (m0 : mem) (bm bc ab bo bw bL : block) : Prop :=
     tab_chk m11 bd bga = true -> ga_chk m11 bga = true ->
     ObjWorld.ow_chk ge bm m11 = true -> bo_chk m11 bo = true ->
     done_b (ex_call ge BootRun.world FUEL m11 (Internal area.f_area_update_objects) []) = true ->
+    cam_frame_ok ge bgad cam m11 = true ->
     wout ge m0 bm bc ab bo bw bL.
 
 Ltac st_eq H := rewrite CM.store_eq in H.
@@ -864,7 +977,8 @@ Proof.
     as [[[tg PG] vg]| ? ? ?] eqn:RG; [ | discriminate ].
   destruct (ex_call ge world FUEL PG (Internal object_list_processor.f_clear_objects) [])
     as [[[tc PO] vc]| ? ? ?] eqn:RC; [ | discriminate ].
-  destruct (ex_call ge world FUEL PO _ []) as [[[t1 L1] v1]| ? ? ?] eqn:R1; [ | discriminate ].
+  destruct (cam_chain ge bgad PO) as [[Pc cam]|] eqn:CC; [ | discriminate ].
+  destruct (ex_call ge world FUEL Pc _ []) as [[[t1 L1] v1]| ? ? ?] eqn:R1; [ | discriminate ].
   destruct (ex_call ge world FUEL L1 _ _) as [[[t2 L0] v2]| ? ? ?] eqn:R2; [ | discriminate ].
   destruct (CM.store Mint32 L0 bsi oba _) as [La|] eqn:SPa; [ | discriminate ].
   destruct (CM.store Mint32 La bsi obs _) as [Lb|] eqn:SPb; [ | discriminate ].
@@ -909,6 +1023,7 @@ Proof.
   destruct (CM.store Mint32 z18 bca 0 _) as [z19|] eqn:ZA; [ | discriminate ].
   rename Xc into Z18.
   repeat match goal with H : CM.store _ _ _ _ _ = Some _ |- _ => rewrite CM.store_eq in H end.
+  apply andb_prop in W as [W N13].
   apply andb_prop in W as [W N12]. apply andb_prop in W as [W N11].
   apply andb_prop in W as [W N10].
   apply andb_prop in W as [W N9]. apply andb_prop in W as [W N8].
@@ -918,7 +1033,7 @@ Proof.
   eapply WOut;
     [ exact E1 | exact E2 | exact E3 | exact E4 | exact E5 | exact E6 | exact Hcol | exact AP
     | exact PW | exact Hs1 | exact Hs2 | exact Hs3 | exact Hs4 | exact Hs5
-    | exact Hpg | exact Hmb | exact Hoba | exact Hobs | exact RG | exact RC | exact R1 | exact R2
+    | exact Hpg | exact Hmb | exact Hoba | exact Hobs | exact RG | exact RC | exact CC | exact R1 | exact R2
     | exact SPa | exact SPb | exact R3
     | exact A1 | exact A2 | exact A3 | exact A4 | exact S1a | exact S1b | exact S1 | exact S2 | exact S3
     | exact S4 | exact S5 | exact S6 | exact S7 | exact S8
@@ -927,7 +1042,7 @@ Proof.
     | exact Z9 | exact Z10a | exact Z10 | exact Z11 | exact Z12 | exact Z13 | exact Z14 | exact Z15 | exact Z16 | exact Z17 | exact ZC | exact ZA | exact Z18
     | exact N1 | exact N2 | exact N3
     | exact N4 | exact N5 | exact Hbn | exact N6 | exact N7 | exact N8 | exact N9
-    | exact N10 | exact N11 | exact N12 ].
+    | exact N10 | exact N11 | exact N12 | exact N13 ].
 Qed.
 
 (* ifs_ok, in the semantics: the run of the function the link resolves
@@ -996,6 +1111,116 @@ Proof.
   exists t, m', v. exact (ex_call_sound ge BootRun.world Wk _ _ _ _ _ _ _ R).
 Qed.
 
+(* ---------------------------------------------------------------------- *)
+(* The camera chain, in the semantics.                                     *)
+(* ---------------------------------------------------------------------- *)
+Definition cam_made (ge : genv) (bgad : block) (P Pc : mem) (cam : val) : Prop :=
+  exists t0 P2 pool P3 sc P4 tg Q1 gc tc Q2 vc Q4 Q5 tr vr,
+    eval_funcall function_entry2 ge P (Internal memory.f_alloc_only_pool_init)
+      [Vint (Int.repr (cam_pool_size ge)); Vint Int.zero] t0 P2 pool
+    /\ Mem.alloc P2 0 24 = (P3, sc)
+    /\ apply_writes P3 (sc_writes sc) 0 = inl P4
+    /\ eval_funcall function_entry2 ge P4 (Internal graph_node.f_init_graph_node_camera)
+         [pool; Vint Int.zero; Vptr sc Ptrofs.zero; Vptr sc (Ptrofs.repr 12); Vint Int.zero;
+          Vint (Int.repr 16)] tg Q1 gc
+    /\ eval_funcall function_entry2 ge Q1 (Internal camera.f_create_camera) [gc; pool] tc Q2 vc
+    /\ Mem.free_list Q2 [(sc, 0, 24)] = Some Q4
+    /\ Mem.loadv Mint32 Q4 (Val.offset_ptr gc (Ptrofs.repr 24)) = Some cam
+    /\ Mem.store Mint32 Q4 bgad 96 cam = Some Q5
+    /\ eval_funcall function_entry2 ge Q5 (Internal camera.f_reset_camera) [cam] tr Pc vr.
+
+Ltac cam_destr H run P :=
+  unfold cam_chain_g in H;
+  destruct (run P _ _) as [[[t0 P2] pool]| ? ? ?] eqn:R0; [ | discriminate ];
+  destruct (Mem.alloc P2 0 24) as [P3 sc] eqn:AS;
+  destruct (apply_writes P3 _ 0) as [P4|] eqn:SW; [ | discriminate ];
+  destruct (run P4 _ _) as [[[tg Q1] gc]| ? ? ?] eqn:R1; [ | discriminate ];
+  destruct (run Q1 _ _) as [[[tc Q2] vc]| ? ? ?] eqn:R2; [ | discriminate ];
+  destruct (CM.free_list Q2 _) as [Q4|] eqn:F; [ | discriminate ];
+  destruct (CM.loadv Mint32 Q4 _) as [cam'|] eqn:LC; [ | discriminate ];
+  destruct (CM.store Mint32 Q4 _ 96 cam') as [Q5|] eqn:SA; [ | discriminate ];
+  destruct (run Q5 _ _) as [[[tr Q6] vr]| ? ? ?] eqn:R3; [ | discriminate ];
+  injection H as <- <-.
+
+Lemma cam_chain_g_keep : forall (run : runT) csz bgad P Pc cam,
+    (forall m f a t m' v, run m f a = Done (t, m', v) -> acc_keep m m') ->
+    cam_chain_g run csz bgad P = Some (Pc, cam) -> acc_keep P Pc.
+Proof.
+  intros run csz bgad P Pc cam Rk H. cam_destr H run P.
+  pose proof (Rk _ _ _ _ _ _ R0) as K0.
+  pose proof (alloc_keep _ _ _ _ _ AS) as K1.
+  pose proof (alloc_keep_new _ _ _ _ _ AS) as Esc.
+  pose proof (apply_writes_keep _ _ _ _ SW) as K2.
+  pose proof (Rk _ _ _ _ _ _ R1) as K3.
+  pose proof (Rk _ _ _ _ _ _ R2) as K4.
+  pose proof (acc_keep_trans _ _ _ K0 (acc_keep_trans _ _ _ K1 (acc_keep_trans _ _ _ K2
+                (acc_keep_trans _ _ _ K3 K4)))) as K14.
+  destruct (cm_free_list_keep [(sc, 0, 24)] Q2 Q4 sc F) as (Nb & Fa).
+  { intros b lo hi [E | []]. injection E as <- _ _. apply Ple_refl. }
+  assert (K5 : acc_keep P Q4).
+  { destruct K14 as (Np & Ap). split; [ rewrite Nb; exact Np | ].
+    intros b Hb. rewrite Fa; [ exact (Ap b Hb) | ].
+    rewrite Esc. exact (Plt_Ple_trans _ _ _ Hb (proj1 K0)). }
+  exact (acc_keep_trans _ _ _ K5 (acc_keep_trans _ _ _ (cm_store_keep _ _ _ _ _ _ SA) (Rk _ _ _ _ _ _ R3))).
+Qed.
+
+Lemma cam_chain_keep : forall ge bgad P Pc cam, cam_chain ge bgad P = Some (Pc, cam) -> acc_keep P Pc.
+Proof.
+  intros ge bgad P Pc cam H.
+  exact (cam_chain_g_keep (ex_call ge world FUEL) (cam_pool_size ge) bgad P Pc cam (fun m f a t m' v R => ex_call_keep _ _ world_keep _ _ _ _ _ _ _ R) H).
+Qed.
+
+Lemma cam_chain_g_sound : forall (ge : genv) (run : runT) bgad P Pc cam,
+    (forall m f a t m' v, run m f a = Done (t, m', v) -> eval_funcall function_entry2 ge m f a t m' v) ->
+    cam_chain_g run (cam_pool_size ge) bgad P = Some (Pc, cam) -> cam_made ge bgad P Pc cam.
+Proof.
+  intros ge run bgad P Pc cam Rs H. cam_destr H run P.
+  rewrite CM.free_list_eq in F. rewrite CM.loadv_eq in LC. rewrite CM.store_eq in SA.
+  exists t0, P2, pool, P3, sc, P4, tg, Q1, gc, tc, Q2, vc, Q4, Q5, tr, vr.
+  split; [ exact (Rs _ _ _ _ _ _ R0) | ].
+  split; [ exact AS | ]. split; [ exact SW | ].
+  split; [ exact (Rs _ _ _ _ _ _ R1) | ].
+  split; [ exact (Rs _ _ _ _ _ _ R2) | ].
+  split; [ exact F | ]. split; [ exact LC | ]. split; [ exact SA | ].
+  exact (Rs _ _ _ _ _ _ R3).
+Qed.
+
+Lemma cam_chain_sound : forall ge bgad P Pc cam, world_ok ge ->
+    cam_chain ge bgad P = Some (Pc, cam) -> cam_made ge bgad P Pc cam.
+Proof.
+  intros ge bgad P Pc cam Wk H.
+  exact (cam_chain_g_sound ge (ex_call ge world FUEL) bgad P Pc cam (fun m f a t m' v R => ex_call_sound ge world Wk _ _ _ _ _ _ _ R) H).
+Qed.
+
+Lemma cam_frame_g_sound : forall (ge : genv) (run : runT) bgad cam m,
+    (forall m f a t m' v, run m f a = Done (t, m', v) -> eval_funcall function_entry2 ge m f a t m' v) ->
+    cam_frame_g run bgad cam m = true ->
+    Mem.load Mint32 m bgad 96 = Some cam
+    /\ exists t m' v, eval_funcall function_entry2 ge m (Internal area.f_area_update_objects) [] t m' v
+       /\ exists t2 m2 v2, eval_funcall function_entry2 ge m' (Internal camera.f_update_camera) [cam] t2 m2 v2.
+Proof.
+  intros ge run bgad cam m Rs H. unfold cam_frame_g in H. rewrite CM.load_eq in H.
+  destruct (Mem.load Mint32 m bgad 96) as [v0|]; [ | discriminate ].
+  apply andb_prop in H as [He H].
+  destruct (Val.eq v0 cam) as [<- | _]; [ | discriminate ].
+  split; [ reflexivity | ].
+  destruct (run m _ _) as [[[t m'] v]| ? ? ?] eqn:R; [ | discriminate ].
+  destruct (run m' _ _) as [[[t2 m2] v2]| ? ? ?] eqn:R2; [ | discriminate ].
+  exists t, m', v. split; [ exact (Rs _ _ _ _ _ _ R) | ].
+  exists t2, m2, v2. exact (Rs _ _ _ _ _ _ R2).
+Qed.
+
+(* cam_frame_ok, in the semantics *)
+Lemma cam_frame_ok_sound : forall ge bgad cam m, BootRun.world_ok ge ->
+    cam_frame_ok ge bgad cam m = true ->
+    Mem.load Mint32 m bgad 96 = Some cam
+    /\ exists t m' v, eval_funcall function_entry2 ge m (Internal area.f_area_update_objects) [] t m' v
+       /\ exists t2 m2 v2, eval_funcall function_entry2 ge m' (Internal camera.f_update_camera) [cam] t2 m2 v2.
+Proof.
+  intros ge bgad cam m Wk H.
+  exact (cam_frame_g_sound ge (ex_call ge BootRun.world FUEL) bgad cam m (fun m f a t m' v R => ex_call_sound ge BootRun.world Wk _ _ _ _ _ _ _ R) H).
+Qed.
+
 Lemma nsurf_ok_sound : forall m bn, nsurf_ok m bn = true ->
     exists n, Mem.load Mint32 m bn 0 = Some (Vint n) /\ Int.signed n = NSURF.
 Proof.
@@ -1058,10 +1283,19 @@ Lemma Mptr32 : Mptr = Mint32.
 Proof. reflexivity. Qed.
 End TR_PTR64.
 
-Lemma nonsafe_F : forallb (fun i => negb (mem_id i non_safeb_syms)) f_ids = true.
+(* the globals MWF_real's rows read (MWFReal.MWF_real_transfer's list):
+   none is written by the pool init, the loader or the camera chain.
+   (gCameraMovementFlags, a stored global, IS written: reset_camera; MWF
+   reads no row of it.) *)
+Definition mwf_row_ids : list ident :=
+  [ level_update._gMarioStates; mario._gControllers; mario._gMarioState;
+    interaction._gGlobalTimer; interaction._sInteractionHandlers; mario._gMarioAnimsBuf ]
+  ++ MWFReal.knockback_table_ids.
+
+Lemma nonsafe_F : forallb (fun i => negb (mem_id i mwf_row_ids)) f_ids = true.
 Proof. vm_compute. reflexivity. Qed.
 
-Lemma nonsafe_notF : forall gid, mem_id gid non_safeb_syms = true -> mem_id gid f_ids = false.
+Lemma nonsafe_notF : forall gid, mem_id gid mwf_row_ids = true -> mem_id gid f_ids = false.
 Proof.
   intros gid H. apply not_true_iff_false. intro E.
   unfold mem_id in E. apply existsb_exists in E as (i & Hin & Hi). apply Pos.eqb_eq in Hi. subst i.
