@@ -1068,6 +1068,23 @@ without pressing A".*
     sCutsceneVars, gCameraMovementFlags, gSecondCameraFocus's object, Mario's action
     (set_mario_npc_dialog), and the audio / dialog / sCameraHUDStatus / gRandomSeed16 /
     find_floor-counter globals.
+    Gates, read from camera.c (2026-10-26). With the boot cutscene tables, set_mario_npc_dialog is
+    reached only through `cutscene_common_set_dialog_state`, which is called from shots of exactly
+    two cutscenes:
+    - CUTSCENE_SSL_PYRAMID_EXPLODE: `cutscene_mario_dialog` in sCutscenePyramidTopExplode, and
+      `cutscene_stop_dialog` in its end shot; and
+    - CUTSCENE_ENTER_BOWSER_ARENA: `cutscene_bowser_arena_mario_dialog` and `cutscene_stop_dialog`.
+    The `unused_*` variants are referenced by no table. So the row is honest only on states whose
+    Camera is not in one of those two cutscenes AND whose writable cutscene / trigger tables still
+    hold their boot contents. The type certificate covers ANY CameraEvent in an arbitrary table.
+    PhiW pins neither fact today, so `Hcam_phi` as a ∀ over mem_ok + PhiW states quantifies over
+    camera states the game never produces in WMotR (phantom ∀). Discharging it needs a
+    camera-world carry, proved at boot. That carry has to cover three things:
+    - the Camera's `cutscene` is not one of the two;
+    - the tables are unchanged; and
+    - no WMotR object, and no area / Mario-status trigger inside update_camera, starts either
+      cutscene.
+    This is tied to the objects phase. It stays a labeled open row.
   - `surf_apart` over `level_gvars`, as for render / platform; `LevelKeep.plat_apart` (PRE):
     gMarioPlatform's object is not in a level global's block nor Mario's (for the `plat_still`
     carry; in the game it is a `gObjectPool` object).

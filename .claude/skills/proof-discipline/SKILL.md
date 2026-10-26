@@ -480,7 +480,11 @@ all in `Unwired/`, and the theorem moved nowhere. See
     alloc_only_pool_init / init_graph_node_camera / create_camera / reset_camera; FOUND:
     alloc_only_pool_resize has no CompCert execution, pointer minus pointer in main_pool_free,
     so the level pool is made at its resized size, TRUST 3.6), and `StartSat.frame_runs` runs
-    area_update_objects and then update_camera on it.
+    area_update_objects and then update_camera on it. Hcam_phi gates (TRUST 0.7 detail):
+    set_mario_npc_dialog is reached only from the SSL_PYRAMID_EXPLODE / ENTER_BOWSER_ARENA cutscene
+    shots (boot tables), so an honest discharge needs a camera-world carry. That carry pins the
+    Camera's cutscene and keeps the cutscene tables, and it is tied to what objects can start.
+    Left labeled.
     Mario's render call and
     `apply_mario_platform_displacement` (platform_displacement.c, TU 45) are REAL calls whose
     GOAL-1 and Φ carries are proved (`RenderKeep.render_keeps_phiw`, `PlatformKeep`, 2026-10-23);
