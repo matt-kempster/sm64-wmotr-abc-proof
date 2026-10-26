@@ -29,7 +29,7 @@ From compcert Require Import Coqlib Maps AST Integers Floats Values Events Memor
 From SM64.Generated Require mario sound_init.
 From SM64.Proofs Require Import SymbolicLinking ActionValueFrame RealFrameValue RealFrameLinked
   CensusV2 MtxfBody ObjExtBodies AudioBodies LinkedTwelve.
-From SM64.Proofs.WMotRRequiresA Require Import BodyFrame FrameSplit CapAudio.
+From SM64.Proofs.WMotRRequiresA Require Import BodyFrame FrameSplit LsContract CapAudio.
 From SM64.Proofs Require AirborneSurface.
 From SM64.Proofs.WMotRRequiresA Require ProRows.
 

@@ -115,6 +115,36 @@ all in `Unwired/`, and the theorem moved nowhere. See
   `bhv_red_coin_star_marker_init`); only the 2 `mario_misc.c` over-approximations lack a
   linked body. 2.2 picked values in the object TUs: none in the WMotR closure
   (`ub22_sites_not_live`). Counts unchanged (GOAL 1 8, HeightFrame 15 `Hypothesis` lines).
+  2026-10-25 OBJECTS S3 groundwork: `WMotRRequiresA/ObjStoreCensus.v` (spine-root, new file)
+  pins by vm every store / pointer argument of the 432 bodies a non-Mario slot runs whose
+  root is not the running object, a stack local or a parameter (TRUST "Object store
+  census"). FOUND: object code writes Mario (`gMarioStates`, via `gMarioState` /
+  `gMarioObject`, `set_mario_action` through `set_mario_npc_dialog`), so the S3 kW walker
+  needs per-entry contracts. `gcur_not_stored`: "o" is fixed for the update. Next: an
+  `ObjKit` class walker (UcKit-style, a kSelf class) consuming this census.
+  2026-10-25 `ObjKit.v` / `ObjTable.v` (spine-root): UcKit's walker over 387 object bodies,
+  `obj_body_pres` (mem_ok kept by every walked nullary body: 104/107 live natives + the VM
+  commands). Open: `Hopen`'s 5 leaves (push_mario_away, 1up_interact, start_object_cutscene,
+  cur_obj_update_floor, cur_obj_call_action_function), then cur_obj_update / call_native
+  (need the script-pointer row), then the frame (writes only SafeB / fresh / non-MWF
+  globals / listed Mario cells). Regenerate ObjTable from the scratch probe (sig inference
+  to a fixpoint, then `uchk`), never by hand.
+  2026-10-25 `ObjWalk.v` (extended walker: Mario-temp / Mario-array / stored-global store
+  arms + a frame conjunct, generic over the table and a Mario cell list) and `ObjFrame.v`
+  (spine-root): 390 bodies re-checked by vm; sub-contracts `push_mario_away_contract`
+  (pos[0]/pos[2]), `one_up_contract` (numLives), `object_cutscene_contract` (no Mario cell);
+  `obj_body_pres2` (Hopen 5 -> 2); `obj_body_frame` (mem_ok + frame; open premises
+  `Hfr_open` = load_sequence / npc_dialog frames, `Hopen2` = update_floor /
+  call_action_function). Open next: those four leaves' frames (update_floor needs find_floor's
+  out cell to hold kS), a kSelf class (own object vs other slots), cur_obj_update /
+  call_native (script-pointer row), then wire into S2's obj_w / PhiW.
+  2026-10-25 `LsContract.v` (spine via ObjFrame): `ls_contract` / `ls_frame` moved out of
+  `Unwired/CapAudio`; `obj_body_frame` takes `ls_contract` (4.1) and `ls_FR` derives
+  load_sequence's frame from it (`Hfr_open` -> `Hnpc_fr`, npc_dialog only).
+  2026-10-25 ObjWalk S-locals + `XS`: `cur_obj_update_floor` walked (getter's `floor` cell is
+  an S-local, getter returns kS); `Hopen2` = call_action_function only.
+  2026-10-25 `NpcFrame.v` (spine via ObjFrame): `npc_dialog_frame` walks set_mario_npc_dialog's
+  real call tree; `Hnpc_fr` discharged (ObjFrame now asks only `HMCn`: MC holds npc_cells).
   2026-10-24 `UpdateCameraBody.update_camera_pres`: the REAL `update_camera(c)` (SafeB c) keeps
   `mem_ok`. 507 bodies (the whole recursive tree: `UcKit` two-mode class walker, `UcTable`
   signatures re-checked by vm), the 336 CameraEvent functions by type certificate. Wired as
@@ -290,11 +320,11 @@ all in `Unwired/`, and the theorem moved nowhere. See
     real switch. NEXT: shrink `na_open` one call at a time. **hitbox_and_cap PROVED
     2026-10-25** (`NaSplit.hitbox_row`, 7 named rows left): `HitboxFrame.hitbox_frame` (the
     body changes only bm's hole, the 13 cap-music globals `CapAudio.cap_ids`, gBodyStates and
-    Mario's object bytes 2..3 / 508..511; load_sequence through `CapAudio.ls_frame`) and
+    Mario's object bytes 2..3 / 508..511; load_sequence through `LsContract.ls_frame`) and
     `HoleX.hx_fworld` / `hx_cells` (ProRows' hole generalised: region globals plus any list
     of globals none of which is in `HoleX.safe_ids`, plus the two object windows; the world
     fact extends over the changed globals by `Wff_global`). `HeightFrame.Hls` is now
-    `CapAudio.ls_contract` (GOAL 1's row + load_sequence's footprint, TRUST 4.1).
+    `LsContract.ls_contract` (GOAL 1's row + load_sequence's footprint, TRUST 4.1).
     Design B done: `FloorExec.surf_on` carries `Ple genv_next b` (proved from `dyn_list`),
     `FfKeep.fk_surf` and the six walk rows carry it, and `ffw` has six new fields
     (`ff_Spl` surface pointers dynamic, `ff_Spool` Mario's object in gObjectPool, `ff_Sar`

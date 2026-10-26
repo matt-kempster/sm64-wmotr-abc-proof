@@ -79,7 +79,7 @@ From SM64.Proofs Require Import NoAImpliesNoFlyLinked.
 From SM64.Proofs Require Import HeightInvariant HeightMoveCatalog WMotRLevel WMotRWorld
   NoAActions FrameCalls FrameSplit.
 From SM64.Proofs.WMotRRequiresA Require Import FfWorld AirSplit AutoSplit ProRows BodyFrame.
-From SM64.Proofs.WMotRRequiresA Require AnimWorld AnimKeep CapAudio HitboxFrame HoleX.
+From SM64.Proofs.WMotRRequiresA Require AnimWorld AnimKeep LsContract CapAudio HitboxFrame HoleX.
 From SM64.Proofs Require Import MarioModel.AudioBodies MarioModel.LinkedTwelve.
 From SM64.Proofs Require Import Generic.ClosedMem Generic.ClightClosed.
 Import ListNotations.
@@ -534,9 +534,9 @@ Section NA.
   Variable bm : block.
   Variable MWF : mem -> Prop.
   Hypothesis Hgms : forall m, MWF m -> gms_cond_lp lp m bm.
-  (* load_sequence's footprint (CapAudio.ls_frame, part of the labeled
+  (* load_sequence's footprint (LsContract.ls_frame, part of the labeled
      audio premise, TRUST 4.1): the hitbox row's cap music path *)
-  Hypothesis Hlsf : CapAudio.ls_frame lp.
+  Hypothesis Hlsf : LsContract.ls_frame lp.
 
   Notation ge := (lp_ge lp).
 
@@ -1627,7 +1627,7 @@ Section NA.
   (* mario_update_hitbox_and_cap_model (2026-10-25): HitboxFrame's frame  *)
   (* (the cap music globals CapAudio.cap_ids, gBodyStates, Mario's hole,  *)
   (* gfx.node.flags and hitboxHeight of his object; load_sequence through *)
-  (* its labeled footprint CapAudio.ls_frame, TRUST 4.1), and HoleX keeps *)
+  (* its labeled footprint LsContract.ls_frame, TRUST 4.1), and HoleX keeps *)
   (* the frame world and the cells around it.                             *)
   (* ==================================================================== *)
   Lemma not_in_ids : forall id ids, existsb (Pos.eqb id) ids = false -> ~ In id ids.
@@ -1655,7 +1655,7 @@ Section NA.
     { intros b o Hl. change 136 with FFW_OBJ in Hl. rewrite Lo in Hl. injection Hl as <- <-. split; reflexivity. }
     assert (HLB : forall b o, Mem.load Mint32 m bm 152 = Some (Vptr b o) -> b = bbs).
     { intros b o Hl. change 152 with FFW_BODY in Hl. rewrite LBS in Hl. injection Hl as <- _. reflexivity. }
-    assert (NGm : ~ CapAudio.gblk ge CapAudio.cap_ids bm).
+    assert (NGm : ~ LsContract.gblk ge CapAudio.cap_ids bm).
     { intros (g & Hin & Hg).
       assert (g = level_update._gMarioStates) by (eapply Genv.genv_vars_inj; [exact Hg | exact Hbm0]).
       subst g. refine (not_in_ids level_update._gMarioStates CapAudio.cap_ids _ Hin). vm_compute. reflexivity. }

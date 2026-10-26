@@ -73,7 +73,7 @@ From SM64.Proofs Require Import NoAImpliesNoFlyLinked NoAImpliesNoFlyTwelve.
 From SM64.Proofs Require Import FrameCalls FrameSplit AirSplit AutoSplit.
 From SM64.Proofs.WMotRRequiresA Require Import ProRows NaSplit.
 From SM64.Proofs.WMotRRequiresA Require Import FfWorld FfRow AhwRow KbRow FpuFloor ExtInert.
-From SM64.Proofs.WMotRRequiresA Require PoleXc PoleCasesT CapAudio.
+From SM64.Proofs.WMotRRequiresA Require PoleXc PoleCasesT LsContract.
 From SM64.Proofs.WMotRRequiresA Require RenderFlank RenderKeep AnimWorld PlatformKeep PollFlank.
 From SM64.Proofs Require OsDmaFloor LptBody ObjExtBodies UpdateCameraBody.
 From SM64.Proofs Require Import HeightInvariant HeightBudgetArith HeightMoveCatalog WMotRLevel
@@ -552,7 +552,7 @@ Section HeightLinked12.
      the carried facts.  GOAL 1's audio rows (Hpres_sta_ext, Hsss, the audio
      entries of the obj / cut / warp / floors lists) are PROVED from the real
      audio/external.c and sound_init.c bodies (AudioBodies). *)
-  Hypothesis Hls : CapAudio.ls_contract lp bm (NoA_real bm) MWF.
+  Hypothesis Hls : LsContract.ls_contract lp bm (NoA_real bm) MWF.
   (* load_patchable_table: PROVED from its real memory.c body and dma_read's
      (LptBody), down to the libultra DMA calls, whose effect is the
      hardware/OS floor spec (OsDmaFloor, TRUST 3.5). *)

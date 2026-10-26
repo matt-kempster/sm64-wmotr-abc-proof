@@ -365,12 +365,6 @@ Proof.
   destruct (D4 bmq ltac:(left; cbn; auto 10)) as (O7 & T7). destruct (D4 brm ltac:(left; cbn; auto 10)) as (O8 & T8).
   clear DS.
   set (RL0 := ff_rl bm bo oo bfi bmiss bcalls ab bt biom bmq brm blk bpc bsr bsrc bsms bbs bfa) in *.
-  assert (SPg : forall off sb so, off = FFW_WALL \/ off = FFW_CEIL \/ off = FFW_FLOOR ->
-             Mem.load Mint32 m' bm off = Some (Vptr sb so) -> Ple (Genv.genv_next G) sb).
-  { intros off sb so Hoff Hl. destruct (SV off _ Hoff Hl) as [H | [H | (b & o & E0 & _ & _ & _ & _ & Pl)]].
-    - exact (Spl off sb so Hoff H).
-    - discriminate H.
-    - injection E0 as -> _. exact Pl. }
   assert (Rbo : rblk RL0 bo) by (exists oo; unfold RL0, ff_rl; cbn; auto 12).
   assert (Rbt : rblk RL0 bt) by (exists Ptrofs.zero; unfold RL0, ff_rl; cbn; auto 12).
   assert (Ntab : ~ rblk RL0 btab).
@@ -719,6 +713,12 @@ Proof.
     - change FFW_FLOOR with 104 in Hl |- *. destruct KF as [E0 | (p & v'' & E0 & Hs)]; rewrite Hl in E0.
       + left. symmetry. exact E0.
       + right; right. injection E0 as <-. exact (NEW p v' Hs). }
+  assert (SPg : forall off sb so, off = FFW_WALL \/ off = FFW_CEIL \/ off = FFW_FLOOR ->
+             Mem.load Mint32 m' bm off = Some (Vptr sb so) -> Ple (Genv.genv_next G) sb).
+  { intros off sb so Hoff Hl. destruct (SV off _ Hoff Hl) as [H | [H | (b & o & E0 & _ & _ & _ & _ & Pl)]].
+    - exact (Spl off sb so Hoff H).
+    - discriminate H.
+    - injection E0 as -> _. exact Pl. }
   assert (SB : forall off sb so, off = FFW_WALL \/ off = FFW_CEIL \/ off = FFW_FLOOR ->
              Mem.load Mint32 m' bm off = Some (Vptr sb so) ->
              Mem.load Mint32 m bm off = Some (Vptr sb so) \/ ~ rblk RL0 sb).
@@ -819,7 +819,7 @@ Proof.
     + intros v' Hl. destruct (SV FFW_WALL v' (or_introl eq_refl) Hl) as [Hl0 | [-> | (b & o & -> & Pb & _ & St & Nr & _)]].
       * apply SOK; [| exact (Hw v' Hl0)]. intros sb so ->. exact (Wc0 FFW_WALL sb so (or_introl eq_refl) Hl0).
       * left. reflexivity.
-      * right. destruct (STY b o Pb Nr St) as (b' & o' & ty & E1 & L1 & I1). exists b', o', ty. auto.
+      * right. destruct (STY b o Pb Nr St) as (b' & o' & ty & E1 & L1 & I1). exists b', o', ty. exact (conj E1 (conj L1 I1)).
     + intros v' Hl. rewrite CM in Hl by mem_tac. apply SOK; [| exact (Hc v' Hl)].
       intros sb so ->. exact (Wc0 FFW_CEIL sb so (or_intror eq_refl) Hl).
     + intros v' Hl. change FLOOR_OFF with FFW_FLOOR in Hl. rewrite Lf' in Hl. injection Hl as <-. exact Sf'.

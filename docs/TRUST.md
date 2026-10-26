@@ -535,7 +535,7 @@ without pressing A".*
     walk (`HitboxFrame.hitbox_frame`) changes only Mario's hole, gBodyStates, Mario's object's
     `gfx.node.flags` (bytes 2..3) and `hitboxHeight` (508..511), and the 13 globals of the cap
     music path (`CapAudio.cap_ids`: sound_init / external.c statics and load_sequence's
-    `ls_ids`), the last through the labeled footprint `CapAudio.ls_frame` (row 4.1). The world is
+    `ls_ids`), the last through the labeled footprint `LsContract.ls_frame` (row 4.1). The world is
     kept by `HoleX` (ProRows' hole over a list of globals none of which a world fact reads, plus
     the two windows). For that, `ffw` gained six fields, each what the game does and proved at
     boot (`StartSat.ffw11`): the wall / ceil / floor pointers are surface-pool blocks
@@ -823,6 +823,66 @@ without pressing A".*
   (`wmotr_live_natives_unlinked`): the unlock-door-star natives (`mario_misc.c`), census
   over-approximation. `bhv_red_coin_star_marker_init` (live in WMotR,
   `spawn_star.inc.c:145`) got its body when `obj_behaviors_2.c` was linked (TU 50).
+- **Object store census (2026-10-25, OBJECTS S3 groundwork, `ObjStoreCensus.v`):** the
+  code a non-Mario slot runs (`close2` of `cur_obj_update` and the live natives minus
+  `bhv_mario_update`; 432 bodies) is scanned for every store target and pointer call
+  argument, each resolved to a root block through the body's temps (union over all
+  definitions, least fixed point). Pinned by vm: `obj_census_value` (stores),
+  `obj_arg_census_value` (pointer arguments), `obj_store_roots_value`,
+  `obj_ptr_store_fns_value` (14 bodies that store through a pointer loaded from memory),
+  `gcur_not_stored` (no body stores `gCurrentObject`, so "o" is fixed for the whole update).
+  **FOUND: "a slot's script writes only its own object" is false as stated.** Besides the
+  allocator / spawn / surface-pool / audio / save / cutscene globals, object code writes
+  MARIO: `cur_obj_push_mario_away` (`gMarioStates`), `bhv_1up_interact` and
+  `set_mario_npc_dialog` (through `gMarioState`; the latter calls `set_mario_action`),
+  `opened_cannon_act_1` (`gMarioShotFromCannon`), and several bodies through
+  `gMarioObject`. The kW walker (S3) must therefore carry a per-entry contract, not a
+  blanket frame. A census, not a proof: no row or premise moved.
+- **ObjKit (2026-10-25, OBJECTS S3, `ObjKit.v` + generated `ObjTable.v`):** UcKit's class
+  walker run over the object slot's code: 387 bodies (the VM command functions, 104 of the
+  107 live natives, their direct callees across 19 TUs), each re-checked against the
+  generated AST by one vm sweep (`ot_walk_ok`). `obj_body_pres`: every walked nullary body
+  keeps `ow_facts` (mem_ok). Premises: the FPU floor (3.5) and the audio premise `Hls`
+  (4.1) as GOAL 1 carries them; `Hgs` (every linked variable outside `non_safeb_syms` is
+  SafeB; met by any `SafeB_wit`-shaped SafeB, `obj_gs_safe_wit`); and `Hopen`, five OPEN
+  leaves to discharge, each a named sub-contract: `cur_obj_push_mario_away` (Mario pos[0]/
+  pos[2]), `bhv_1up_interact` (numLives via gMarioState), `start_object_cutscene`
+  (gCutsceneFocus := the object), `cur_obj_update_floor` (a floor pointer read back out of
+  a local out cell, which the class walk sees as kW), `cur_obj_call_action_function`
+  (indirect call through a writable action table). Not yet walked: `cur_obj_update`
+  (dispatch through the writable `BehaviorCmdTable`) and `bhv_cmd_call_native` (through
+  the script pointer): they need S2's script-pointer row. Not wired into a capstone yet,
+  so no row moved; no new trust.
+- **ObjWalk / ObjFrame (2026-10-25, OBJECTS S3, `ObjWalk.v` + `ObjFrame.v`):** UcKit's
+  mutual induction re-proved with a FRAME conjunct and three more store arms (a Mario temp
+  `t = gMarioState` pinned to (bm,0) by MWF, `t->fld := v`; `gMarioStates[0].fld[k] := v`;
+  a stored global `g := v`, any value), every Mario store checked against MWF's protected
+  windows and a listed cell set. `FR m m'`: memory changes only in SafeB blocks, blocks
+  allocated during the call, globals outside `mwf_syms`, and Mario cells in MC; `FR_mario`
+  turns it into "Mario's block changes only in MC". One vm sweep (`xt_walk_ok`) re-checks
+  390 bodies (ObjKit's 387 + the three Mario writers). Named sub-contracts, premises only
+  the FPU floor (3.5), `Hgs`, SafeB_syms / spawn_ok: `push_mario_away_contract` (Mario
+  changes only at pos[0], pos[2]), `one_up_contract` (only numLives),
+  `object_cutscene_contract` (no Mario cell; gCutsceneFocus is a stored global).
+  `obj_body_pres2`: ObjKit's mem_ok theorem with `Hopen` cut from five leaves to two
+  (cur_obj_update_floor, cur_obj_call_action_function). `obj_body_frame`: every walked
+  nullary body keeps mem_ok AND the frame, for any MC containing the listed cells, under
+  the labeled audio premise in its footprint form `ls_contract` (4.1, `LsContract.v`; its
+  `ls_ids` are non-MWF globals, so `ls_FR` turns it into the frame), `HMCn` (MC holds
+  `NpcFrame.npc_cells`: set_mario_npc_dialog's frame is PROVED in `NpcFrame.v`,
+  `npc_dialog_frame`, by walking the real bodies of its whole call tree -- set_mario_action
+  and its four sub-setters, the pure leaves -- memory changes only in SafeB blocks and
+  Mario's flags/action/prevAction/actionArg/actionState/actionTimer/forwardVel/slideVel/vel/
+  faceAngle/wallKickTimer/peakHeight/usedObj cells) and the named OPEN premise `Hopen2` (the
+  open leaf call_action_function, with frame). S-locals (2026-10-25): a pointer local whose
+  cell holds only SafeB pointers (`sl_of`; checked by `SLI`, a new `XS` conjunct "blocks in
+  [nl, nb0) gain only SafeB pointers", calls from such a body must restart at a kfree clean
+  callee) types `cur_obj_update_floor_height_and_get_floor`'s `floor` out-cell, so the getter
+  returns kS and `cur_obj_update_floor` is walked (392 table entries; `updfloor_xspec`
+  replaces its PRES leaf too: `Hopen2`/`Hopen2u` are call_action_function only). The
+  frame is per-block, not yet per-object (a kSelf class: "only the running slot's object"
+  is still open); SafeB covers every object slot. Not wired into a capstone, so no row
+  moved; no new trust.
 
 ### Row 0.7 in detail
 
@@ -1621,12 +1681,14 @@ link grows.
     **Read 2026-10-24** (US path: load.c, heap.c, seqplayer.c, playback.c, synthesis.c): every store
     lands in audio state: `gAudioLoadLock`, `gSequencePlayers`, the two loaded pools, `gAudioHeap`
     (pools, notes, banks), or load.c globals with no block in the model. The DMA / message calls are
-    3.5. **2026-10-25: GOAL 2's `Hls` is the footprint form `CapAudio.ls_contract`**: GOAL 1's
-    row plus `ls_frame`, that the call changes only the blocks of `ls_ids` (`gAudioLoadLock`,
-    `gSequencePlayers`, the two loaded pools, `gAudioHeap`); memory may grow, the new blocks
-    freed. This is the one trust the hitbox row adds (it is what the US load.c read above
-    says); discharge path: link load.c / heap.c / seqplayer.c / playback.c and walk them.
-    `CapAudio.v` (the cap-music frames) is on the spine.
+    3.5. The footprint form (`ls_contract` = `call_pres_ext` + `ls_frame`, the blocks of
+    `ls_ids`: `gAudioLoadLock`, `gSequencePlayers`, the two loaded pools, `gAudioHeap`; memory
+    may grow, the new blocks freed) is `WMotRRequiresA/LsContract.v`. `ObjFrame`'s whole-walk
+    frame takes it, and **since 2026-10-25 GOAL 2's `Hls` is `LsContract.ls_contract`** (its
+    first half is the old `Hls`), consumed by NaSplit's hitbox row through the cap-music frames
+    of `CapAudio.v` (on the spine). This is the one trust the hitbox row adds (it is what the US
+    load.c read above says); discharge path: link load.c / heap.c / seqplayer.c / playback.c
+    and walk them.
   - **GOAL 2 (`SndXc`):** `play_sound` and `set_sound_moving_speed` store at an index read from
     memory, so the walks cannot run them store by store. Each call is a CLOBBER contract over the
     regions of the globals it writes (`FfRun.RSR` / `RSRC` / `RSMS`: `sSoundRequests`,

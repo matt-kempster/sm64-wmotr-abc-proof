@@ -2007,7 +2007,7 @@ Section Witness.
         intros off sb so [Hoff | [Hoff | Hoff]] Hl.
         + exfalso; exact (wc_noptr off sb so (or_introl Hoff) Hl).
         + exfalso; exact (wc_noptr off sb so (or_intror Hoff) Hl).
-        + subst off. rewrite L_floor in Hl. injection Hl as <- _.
+        + subst off. change FFW_FLOOR with 104 in Hl. rewrite L_floor in Hl. injection Hl as <- _.
           rewrite genv_next_eq. exact (fresh_ge _ (or_intror (or_introl eq_refl))).
       - exact Hbo.
       - intros b o E. injection E as <- _. left.
