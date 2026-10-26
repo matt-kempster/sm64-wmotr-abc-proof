@@ -36,10 +36,11 @@
 (* ======================================================================= *)
 
 From Coq Require Import ZArith List Bool String.
-From compcert Require Import Coqlib Integers AST Ctypes Maps Ctypesdefs Clight.
-From SM64.Generated Require behavior_data spawn_object object_list_processor.
+From compcert Require Import Coqlib Integers AST Ctypes Cop Maps Ctypesdefs Clight.
+From SM64.Generated Require behavior_data behavior_script spawn_object object_list_processor.
 From SM64.Proofs Require Import CensusV2.
 From SM64.Proofs.WMotRRequiresA Require Import BehaviorScripts.
+From SM64.Proofs.WMotRRequiresA Require RoCensus ObjTable.
 Import ListNotations.
 Local Open Scope Z_scope.
 
@@ -150,3 +151,94 @@ Proof. vm_compute. reflexivity. Qed.
 
 Lemma live12_list : forallb (fun b => list_of b =? OBJ_LIST_UNIMPORTANT) live12 = true.
 Proof. vm_compute. reflexivity. Qed.
+
+(* ---------------------------------------------------------------------- *)
+(* CMDTAB (B3 i): behavior_script.c's static BehaviorCmdTable[56] -- the  *)
+(* table cur_obj_update dispatches through -- is only ever READ, by        *)
+(* indexing, and only in cur_obj_update, over the whole link              *)
+(* (RoCensus.all_fns); no initializer takes its address.  obj_w carries   *)
+(* its 56 cells (ObjWorld.cmdtab_ok, checked at boot); this certificate   *)
+(* is why no code path of the game changes them.                          *)
+(* ---------------------------------------------------------------------- *)
+Fixpoint emen (x : ident) (a : expr) : bool :=
+  match a with
+  | Evar y _ => Pos.eqb x y
+  | Ederef a1 _ | Efield a1 _ _ | Eaddrof a1 _ | Eunop _ a1 _ | Ecast a1 _ => emen x a1
+  | Ebinop _ a1 a2 _ => emen x a1 || emen x a2
+  | _ => false
+  end.
+
+(* every mention of x is a read of a cell: *(x + i), i not mentioning x *)
+Fixpoint ero (x : ident) (a : expr) : bool :=
+  match a with
+  | Ederef (Ebinop Oadd (Evar y _) i _) _ =>
+      if Pos.eqb x y then negb (emen x i) else ero x i
+  | Evar y _ => negb (Pos.eqb x y)
+  | Ederef a1 _ | Efield a1 _ _ | Eaddrof a1 _ | Eunop _ a1 _ | Ecast a1 _ => ero x a1
+  | Ebinop _ a1 a2 _ => ero x a1 && ero x a2
+  | _ => true
+  end.
+
+Fixpoint sro (x : ident) (s : statement) : bool :=
+  match s with
+  | Sassign l r => negb (emen x l) && ero x r
+  | Sset _ e => ero x e
+  | Scall _ f al => ero x f && forallb (ero x) al
+  | Sbuiltin _ _ _ al => forallb (fun a => negb (emen x a)) al
+  | Ssequence s1 s2 | Sloop s1 s2 => sro x s1 && sro x s2
+  | Sifthenelse e s1 s2 => ero x e && sro x s1 && sro x s2
+  | Sswitch e sl => ero x e && sro_ls x sl
+  | Slabel _ s1 => sro x s1
+  | Sreturn (Some e) => ero x e
+  | _ => true
+  end
+with sro_ls (x : ident) (sl : labeled_statements) : bool :=
+  match sl with LSnil => true | LScons _ s r => sro x s && sro_ls x r end.
+
+Fixpoint smen (x : ident) (s : statement) : bool :=
+  match s with
+  | Sassign l r => emen x l || emen x r
+  | Sset _ e => emen x e
+  | Scall _ f al => emen x f || existsb (emen x) al
+  | Sbuiltin _ _ _ al => existsb (emen x) al
+  | Ssequence s1 s2 | Sloop s1 s2 => smen x s1 || smen x s2
+  | Sifthenelse e s1 s2 => emen x e || smen x s1 || smen x s2
+  | Sswitch e sl => emen x e || smen_ls x sl
+  | Slabel _ s1 => smen x s1
+  | Sreturn (Some e) => emen x e
+  | _ => false
+  end
+with smen_ls (x : ident) (sl : labeled_statements) : bool :=
+  match sl with LSnil => false | LScons _ s r => smen x s || smen_ls x r end.
+
+Definition cmdtab_users : list ident :=
+  map (fun '(_, id, _) => id)
+    (filter (fun '(_, _, f) => smen behavior_script._BehaviorCmdTable (fn_body f)) RoCensus.all_fns).
+
+Lemma cmdtab_users_value : map string_of_ident cmdtab_users = [ "cur_obj_update" ]%string.
+Proof. vm_compute. reflexivity. Qed.
+
+Lemma cmdtab_read_only :
+  forallb (fun '(_, _, f) => sro behavior_script._BehaviorCmdTable (fn_body f)) RoCensus.all_fns = true.
+Proof. vm_compute. reflexivity. Qed.
+
+Definition init_takes (x : ident) (l : list init_data) : bool :=
+  existsb (fun d => match d with Init_addrof y _ => Pos.eqb x y | _ => false end) l.
+
+Lemma cmdtab_not_in_inits :
+  forallb (fun p => forallb (fun '(_, g) =>
+             match g with
+             | Gvar v => negb (init_takes behavior_script._BehaviorCmdTable (gvar_init v))
+             | _ => true
+             end) (prog_defs p)) ObjTable.lprogs = true.
+Proof. vm_compute. reflexivity. Qed.
+
+(* the 56 handlers, read off the generated initializer *)
+Definition cmd_handlers : list ident :=
+  flat_map (fun d => match d with Init_addrof y _ => [y] | _ => nil end)
+    (gvar_init behavior_script.v_BehaviorCmdTable).
+
+Lemma cmd_handlers_full :
+  List.length cmd_handlers = 56%nat
+  /\ List.length (gvar_init behavior_script.v_BehaviorCmdTable) = 56%nat.
+Proof. vm_compute. split; reflexivity. Qed.
