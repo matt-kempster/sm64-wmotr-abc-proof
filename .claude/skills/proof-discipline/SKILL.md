@@ -415,9 +415,11 @@ all in `Unwired/`, and the theorem moved nowhere. See
     CoinLink's Lha / Fha / Hmario_height / Lda / Fda / Hmario_down for m->marioObj from any ffw
     memory. Open: the objects phase must keep bytes 508..511 / 520..523 of Mario's object up to
     detect_object_collisions (it writes only collision fields), and composing `ffw_coin` with
-    `mario_coin2_no_contact`. update_mario_inputs needs pins on
-    `gEnvironmentRegions`, `gShowDebugText` and `gCameraMovementFlags`, plus the collision
-    finders. The prologue call is in `Hair_pro`. The
+    `mario_coin2_no_contact`. update_mario_inputs: `FfWorld.env_w` (in `lvl_w`;
+    proved at boot, `StartSat.L_env` / `L_dbg`) pins gEnvironmentRegions = NULL and
+    gShowDebugText = FALSE; gCameraMovementFlags needs no pin; the row still needs the
+    collision finders, the double-miss NULL floor (carry "find_floor hits under Mario") and
+    INPUT_SQUISHED (a labeled sub-row tied to obj_w). The prologue call is in `Hair_pro`. The
     `quicksandDepth = 0` store is proved (the `qsd_*` lemmas). What stays assumed is the
     12 handler calls, `HeightFrame.Hauto_case : aut_case_rows` (27 → 28 hypotheses).
     Shrink it per case as walks land, as `air_case_rest*` did. Its audit on 2026-10-21

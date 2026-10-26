@@ -134,7 +134,12 @@ Definition zero_ids : list ident :=
     (* osContInit.c's __osMaxControllers: 0 at boot (osContInit sets 4) *)
     libultra_osContInit.___osMaxControllers;
     (* gControllers (game_init.c): .bss *)
-    mario._gControllers ].
+    mario._gControllers;
+    (* gEnvironmentRegions (object_list_processor.c): .bss; the real
+       load_area_terrain stores NULL into it (FfWorld.env_w) *)
+    object_list_processor._gEnvironmentRegions;
+    (* gShowDebugText (main.c, FALSE): a common .bss byte in the linked TUs *)
+    mario._gShowDebugText ].
 
 Definition tu_zero_ok (q : Clight.program) : bool :=
   forallb (fun id => match (prog_defmap q) ! id with
@@ -2485,9 +2490,71 @@ Section Witness.
       exact (Mem.load_store_same _ _ _ _ _ _ ZA).
     Qed.
 
+    (* ---- gEnvironmentRegions (FfWorld.env_w, 2026-10-26): the real
+       load_area_terrain run (StartTerrain) stores NULL into it
+       (surface_load.c), over the boot image's .bss zero, and WMotR's
+       collision has no TERRAIN_LOAD_ENVIRONMENT block, so no table is
+       loaded: the footprint check old_ok sees the same bytes (it is not an
+       f_ids global), and the entry and init_mario do not touch it ---- *)
+    Lemma dm_env : (prog_defmap object_list_processor.prog) ! object_list_processor._gEnvironmentRegions
+                    = Some (Gvar object_list_processor.v_gEnvironmentRegions).
+    Proof. vm_compute. reflexivity. Qed.
+
+    Lemma L_env : forall b, Genv.find_symbol (lp_ge lp) object_list_processor._gEnvironmentRegions = Some b ->
+        Mem.load Mint32 m11 b 0 = Some (Vint Int.zero).
+    Proof.
+      intros bsp Hsp.
+      assert (V0 : Mem.valid_block m0 bsp) by exact (Genv.find_symbol_not_fresh _ _ Hinit Hsp).
+      assert (RP : Mem.range_perm m0 bsp 0 4 Cur Writable)
+        by exact (wr_sym _ _ _ bsp LO_olp dm_env eq_refl eq_refl ltac:(cbn; discriminate) Hsp).
+      destruct (valid_ex Mint32 bsp 0 0 4 RP ltac:(lia) ltac:(cbn; lia) ltac:(apply Z.divide_0_r)) as (v & Hv).
+      pose proof (boot_zero lp m0 object_list_processor._gEnvironmentRegions bsp _ _ _ H12 Hinit ltac:(unfold zero_ids; cbn [In]; auto 12) Hsp Hv) as Ez.
+      assert (N1 : bsp <> bm) by exact (symne lp _ _ _ _ Hsp Hbm eq_refl).
+      assert (N2 : bsp <> ab) by exact (symne lp _ _ _ _ Hsp Hab eq_refl).
+      assert (N3 : bsp <> bo) by exact (symne lp _ _ _ _ Hsp Hbo eq_refl).
+      assert (N4 : bsp <> bs) by (intro E; exact (sym_ne_fresh _ _ _ Hsp (or_intror (or_introl eq_refl)) E)).
+      assert (N5 : bsp <> bL) by exact (symne lp _ _ _ _ Hsp HbL eq_refl).
+      assert (N6 : bsp <> bw) by exact (symne lp _ _ _ _ Hsp Hbw eq_refl).
+      peelZ; peel S8; peel S7; peel S6; peel S5; peel S4; peel S3; peel S2; peel S1; peel S1b; peel S1a.
+      rewrite (ld_3e _ _ _ (valid_e_L _ (valid_0_e _ V0))).
+      rewrite (ld_Le _ _ _ (valid_0_e _ V0)
+                 (inFb_sym_false _ _ _ Hsp ltac:(vm_compute; reflexivity))).
+      peel E6; peel E5; peel E4; peel E3; peel E2; peel E1.
+      rewrite Hv, Ez. reflexivity.
+    Qed.
+
+    (* ---- gShowDebugText (FfWorld.env_w): main.c's FALSE, the boot zero,
+       which nothing in the witness chain stores ---- *)
+    Lemma dm_dbg : (prog_defmap mario.prog) ! mario._gShowDebugText
+                    = Some (Gvar mario.v_gShowDebugText).
+    Proof. vm_compute. reflexivity. Qed.
+
+    Lemma L_dbg : forall b, Genv.find_symbol (lp_ge lp) mario._gShowDebugText = Some b ->
+        Mem.load Mint8signed m11 b 0 = Some (Vint Int.zero).
+    Proof.
+      intros bsp Hsp.
+      assert (V0 : Mem.valid_block m0 bsp) by exact (Genv.find_symbol_not_fresh _ _ Hinit Hsp).
+      assert (RP : Mem.range_perm m0 bsp 0 1 Cur Writable)
+        by exact (wr_sym _ _ _ bsp (linked12_LO_mario lp H12) dm_dbg eq_refl eq_refl ltac:(cbn; discriminate) Hsp).
+      destruct (valid_ex Mint8signed bsp 0 0 1 RP ltac:(lia) ltac:(cbn; lia) ltac:(apply Z.divide_0_r)) as (v & Hv).
+      pose proof (boot_zero lp m0 mario._gShowDebugText bsp _ _ _ H12 Hinit ltac:(unfold zero_ids; cbn [In]; auto 12) Hsp Hv) as Ez.
+      assert (N1 : bsp <> bm) by exact (symne lp _ _ _ _ Hsp Hbm eq_refl).
+      assert (N2 : bsp <> ab) by exact (symne lp _ _ _ _ Hsp Hab eq_refl).
+      assert (N3 : bsp <> bo) by exact (symne lp _ _ _ _ Hsp Hbo eq_refl).
+      assert (N4 : bsp <> bs) by (intro E; exact (sym_ne_fresh _ _ _ Hsp (or_intror (or_introl eq_refl)) E)).
+      assert (N5 : bsp <> bL) by exact (symne lp _ _ _ _ Hsp HbL eq_refl).
+      assert (N6 : bsp <> bw) by exact (symne lp _ _ _ _ Hsp Hbw eq_refl).
+      peelZ; peel S8; peel S7; peel S6; peel S5; peel S4; peel S3; peel S2; peel S1; peel S1b; peel S1a.
+      rewrite (ld_3e _ _ _ (valid_e_L _ (valid_0_e _ V0))).
+      rewrite (ld_Le _ _ _ (valid_0_e _ V0)
+                 (inFb_sym_false _ _ _ Hsp ltac:(vm_compute; reflexivity))).
+      peel E6; peel E5; peel E4; peel E3; peel E2; peel E1.
+      rewrite Hv, Ez. reflexivity.
+    Qed.
+
     Lemma lvl11 : lvl_w (lp_ge lp) m11.
     Proof.
-      split; [ | split; [ exact L_spis | split; [ exact warp11 | split; [ exact ctl11 | exact area11 ] ] ] ].
+      split; [ | split; [ exact L_spis | split; [ exact warp11 | split; [ exact ctl11 | exact (conj area11 (conj L_env L_dbg)) ] ] ] ].
       intros b Hb. change (Genv.find_symbol (lp_ge lp) level_update._gCurrLevelNum = Some b) in Hb.
       rewrite HbL in Hb. injection Hb as <-. exact L_lvl.
     Qed.
