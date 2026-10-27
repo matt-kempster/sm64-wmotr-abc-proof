@@ -1591,7 +1591,7 @@ without pressing A".*
   **Machine-checked (2026-10-26, `WMotRRequiresA/ActWriterCensus.v`):** the closure of
   `area_update_objects` and `update_camera` over the whole link (execute_mario_action cut;
   an indirect call is followed only to address-taken functions of exactly its function type,
-  a UB-coverage point, 3.2: a mismatched call is C UB that the N64 would run; 2217 functions)
+  which `FnPtrCensus` shows are the only ones it can reach, see 3.2; 2217 functions)
   has exactly two action events
   (`census_value`): `set_mario_action`'s own store and `set_mario_npc_dialog`'s
   `set_mario_action(.., ACT_READING_NPC_DIALOG, ..)`, not in T. There is no `&action` escape and
@@ -1719,10 +1719,23 @@ link grows.
   `cur_obj_call_action_function` (`ObjAct.caf_frame`) loads `tbl[o->oAction]` with no bounds
   check. On the N64 an out-of-range index reads adjacent memory. Planned: `act_in_range` as an S2
   `obj_w` clause, carried from `act_stores_census` plus the spawn / init writes.
-  Open (2026-10-26): `ActWriterCensus` follows an indirect call only to address-taken functions
-  of exactly the call site's type. A mismatched call is C UB: CompCert gives it no execution,
-  but the N64 runs the target. Discharge path: check that every function-pointer store and
-  initializer in the closure holds a function of the type it is read at. Both points are in
+  **REPAIRED (2026-10-26, `WMotRRequiresA/FnPtrCensus.v`):** `ActWriterCensus` follows an
+  indirect call only to address-taken functions of exactly the call site's type (a mismatched
+  call is C UB: no CompCert execution, but the N64 runs the target). Machine-checked over every
+  TU, initializer and body of the link: every function address enters at exactly its own type
+  (`init_census`: 507 type-exact initializer slots, BehaviorCmdTable / the oAction tables /
+  `sModeTransitions` / the cutscene and camera-trigger structs among them, and 751 CALL_NATIVE
+  words of behavior scripts, all `void(void)`; `body_census`: 187 designators in bodies, all
+  exact, so every function-pointer field / global store is exact); the only conversion into a
+  function-pointer type from another type is `bhv_cmd_call_native`'s script word
+  (`reentry_census`); no function pointer is converted to another type (`exit_census`); the
+  only pointer punning around function-pointer memory is the render code's graph-node
+  downcasts, outside the closure, reaching only `GraphNodeFunc`, a type no call site of the
+  closure has, and no union holds a function pointer (`pun_census`); temps and globals are read
+  at their declared type (`read_census`, one unrelated exception). What stays open is
+  the narrower point of an out-of-bounds table read at an indirect call
+  (`BehaviorCmdTable[cmd >> 24]`, `sModeTransitions[mode]`, the cutscene / camera-trigger
+  arrays), which would read a neighbour of another type. Both open points are in
   `tools/ub_sites.py`'s `UB_WORKLIST`.
 
 ### Row 3.5 in detail

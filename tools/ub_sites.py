@@ -91,11 +91,12 @@ UB_WORKLIST = [
     ("object_helpers.c cur_obj_call_action_function",
      "tbl[o->oAction] loaded with no bounds check (ObjAct.caf_frame)",
      "act_in_range as an obj_w clause, from act_stores_census + the spawn / init writes"),
-    ("indirect calls in the objects + camera closure (ActWriterCensus)",
-     "the census follows an indirect call only to address-taken functions of exactly the call "
-     "site's type; a mismatched call is C UB (CompCert: stuck; N64: runs the target)",
-     "check that every function-pointer store / initializer in the closure holds a function "
-     "of the type its holder is read at"),
+    ("indirect-call table indices in the objects + camera closure",
+     "BehaviorCmdTable[cmd >> 24], sModeTransitions[mode], the cutscene / camera-trigger "
+     "arrays: an out-of-range index reads a neighbour of another type (the function-pointer "
+     "TYPING is REPAIRED, FnPtrCensus)",
+     "bounds from the RO behavior-script census (command bytes < the table size) and the "
+     "camera mode / cutscene / trigger index invariants"),
 ]
 
 

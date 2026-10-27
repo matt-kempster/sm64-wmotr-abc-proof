@@ -24,7 +24,9 @@ all in `Unwired/`, and the theorem moved nowhere. See
   capstone rows (shared invariant: the level slices' mem_ok carries read PhiW). The header lists
   what GOAL 1 needs from each row; the key one is `Hobj_step_*` (no object sets Mario's action
   into T; objects reach it only via `set_mario_npc_dialog`, MACHINE-CHECKED by
-  `ActWriterCensus.census_value` over the objects + camera closure). TRUST 0.5. The split
+  `ActWriterCensus.census_value` over the objects + camera closure; its indirect edges are the
+  real ones by `FnPtrCensus`, every function address of the link enters at exactly its type,
+  TRUST 3.2 REPAIRED up to out-of-bounds table reads). TRUST 0.5. The split
   is DONE (2026-10-26, `ObjStepSplit`: `Hobj_step_act_*` = "keeps action ∉ T", the rest rows
   assume it); prove the act rows from the census + the step's footprint; then a GOAL-1 world
   invariant without the height budget (after Hseg's B-xz chunk).
