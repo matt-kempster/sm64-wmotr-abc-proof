@@ -225,26 +225,35 @@ fi
 # (gvar_info, gvar_readonly), N read off generated/wmotr_level_data.v; init
 # stays nil, so the linked program takes the definer's data.  Without this the
 # level data cannot join the link (load_area_terrain needs it in memory).
+# 2026-10-26: the same rule completes the actor ANIMATION TABLES the WMotR
+# closure loads (`extern const struct Animation *const xxx[];` in
+# behavior_data.c / behavior_actions.c: tarray (tptr (Tstruct _Animation
+# noattr)) 0, readonly true), which the TU now defines from the vendor
+# actors/*/anims/*.inc.c (FOUND: the placed bob-omb buddy's ANIMATE read a
+# size-0 block; census BhvVM.closure_data_linked).
 LVL_DEF="$(dirname "$0")/../generated/wmotr_level_data.v"
 if [ "$TUNAME" != "wmotr_level_data" ] && [ -f "$LVL_DEF" ]; then
 python3 - "$TMP" "$LVL_DEF" <<'PYEOF'
 import re, sys
 path, lvl = sys.argv[1], sys.argv[2]
+# element types: collision meshes (tshort) and, since 2026-10-26, actor
+# animation tables (const struct Animation *const x[], BhvVM census)
+ELT = r'(tshort|\(tptr \(Tstruct _Animation noattr\)\))'
 defs = {}
-for m in re.finditer(r'Definition v_(\w+) := \{\|\s*gvar_info := \(tarray tshort (\d+)\);'
+for m in re.finditer(r'Definition v_(\w+) := \{\|\s*gvar_info := \(tarray ' + ELT + r' (\d+)\);'
                      r'\s*gvar_init := (.*?);\s*gvar_readonly := false;', open(lvl).read(), re.S):
-    if m.group(3).strip() != 'nil' and int(m.group(2)) > 0:
-        defs[m.group(1)] = int(m.group(2))
+    if m.group(4).strip() != 'nil' and int(m.group(3)) > 0:
+        defs[m.group(1)] = (m.group(2), int(m.group(3)))
 s = open(path).read()
 done = []
 def sub(m):
-    n = m.group(2)
-    if n not in defs:
+    n, elt = m.group(2), m.group(3)
+    if n not in defs or defs[n][0] != elt:
         return m.group(0)
     done.append(n)
-    return (m.group(1) + '(tarray tshort ' + str(defs[n]) + ')' + m.group(3)
-            + 'nil;' + m.group(4) + 'false;')
-s2 = re.sub(r'(Definition v_(\w+) := \{\|\s*gvar_info := )\(tarray tshort 0\)'
+    return (m.group(1) + '(tarray ' + elt + ' ' + str(defs[n][1]) + ')' + m.group(4)
+            + 'nil;' + m.group(5) + 'false;')
+s2 = re.sub(r'(Definition v_(\w+) := \{\|\s*gvar_info := )\(tarray ' + ELT + r' 0\)'
             r'(;\s*gvar_init := )nil;(\s*gvar_readonly := )true;', sub, s)
 if done:
     open(path, 'w').write(s2)
