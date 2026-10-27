@@ -515,7 +515,26 @@ all in `Unwired/`, and the theorem moved nowhere. See
     stores cutscene 144 or 168 (`cut_census_wmotr`), and the tables are read-only
     (`tables_read_only`). Still open, narrowed to two pieces:
     - (a) carry `Camera.cutscene / sObjectCutscene ∉ {144,168}` across the frame. The census
-      says nothing breaks it; no row states it.
+      says nothing breaks it; no row states it. **Until a cam_w clause lands, Hcam_phi
+      (and Hcam_ow) are PHANTOM ∀**: they quantify over memories whose Camera.cutscene or
+      sObjectCutscene is 144 / 168, where the real update_camera runs the Bowser-arena /
+      pyramid cutscenes, so the row as stated is false there. HANDOFF (2026-10-26, paused,
+      nothing written yet): planned shape is a `cam_w` conjunct appended to `FfWorld.lvl_w`
+      (then Hcam_phi assumes / claims it via PhiW, no HeightFrame text edit). Draft:
+      sObjectCutscene byte ∉ {144,168}; for gCurrentArea = (bad,o), the cell
+      bad+o+36 = Vptr cb co with `Ple genv_next cb`, cb ≠ the anim buffer block
+      (gMarioAnimsBuf+8), and byte cb+co+48 (Camera.cutscene) ∉ {144,168}. Snags found:
+      (1) the Camera is in the main-pool block, not a global, so `lvl_w_unch` must take a
+      wider premise `lvl_blk` (lvl_sym ∨ {sObjectCutscene, gAreaData} ∨ the Camera block) plus
+      "gMarioAnimsBuf cell 8 unchanged"; (2) the Mario rows' `AnimKeep.lvl_w_keep` cannot show
+      cb ≠ fw_bt d at m' without that cell, so its 6 call sites (Cannon/Ahw/Ff/PoleT/Kb/Ledge
+      rows) need an extra argument from their `CL 8 Mint32`; (3) the `lvl_w_keep_ne` sites
+      (AutoSplit, FrameSplit, HoleX, ProRows hole_lvl, RenderKeep) and LevelKeep's
+      lvl_w_safe / lvl_w_tail / lvl_w_ctl and PollKeep.lvl_w_fx0 must prove P / footprint
+      avoidance for the new blocks; (4) boot: add the two byte checks to
+      `StartTerrain.cam_frame_g` (vm-checked on m11, where gAreaData+96 is the camera) and
+      read them back in `StartSat.lvl11`. Positional destructs of lvl_w's tail (area ∧ env)
+      shift when cam_w is appended.
     - (b) a footprint walk of that closure, giving camera / audio / dialog globals plus the
       Camera's block, no ow_ids block. UcKit's type-certificate walk cannot prune.
     Left labeled.
