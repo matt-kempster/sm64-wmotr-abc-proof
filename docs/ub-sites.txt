@@ -127,6 +127,6 @@
 
 semantic UB-coverage worklist (TRUST.md 3.2), 2 open:
   - object_helpers.c cur_obj_call_action_function: tbl[o->oAction] loaded with no bounds check (ObjAct.caf_frame)
-      discharge: act_in_range as an obj_w clause, from act_stores_census + the spawn / init writes
-  - indirect-call table indices in the objects + camera closure: BehaviorCmdTable[cmd >> 24], sModeTransitions[mode], the cutscene / camera-trigger arrays: an out-of-range index reads a neighbour of another type (the function-pointer TYPING is REPAIRED, FnPtrCensus)
-      discharge: bounds from the RO behavior-script census (command bytes < the table size) and the camera mode / cutscene / trigger index invariants
+      discharge: carry obj_w's ow_act (ObjWorld.act_ok) through the object loop rows; every oAction write is census-checked in range (ActIdxCensus)
+  - camera indirect-call table indices (camera.c): sModeTransitions[mode], cutscene[sCutsceneShot], sCameraTriggers[level][b]: an out-of-range index reads a neighbour (BehaviorCmdTable: discharged by ow_vm / CMDPOS; function-pointer typing REPAIRED, FnPtrCensus)
+      discharge: CamIdxCensus pins every index store; left: the GEO_CAMERA mode (level geo data, WMotR 16), two path guards, and carrying c->cutscene = 0 -> sCutsceneShot = 0

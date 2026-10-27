@@ -26,7 +26,10 @@ all in `Unwired/`, and the theorem moved nowhere. See
   into T; objects reach it only via `set_mario_npc_dialog`, MACHINE-CHECKED by
   `ActWriterCensus.census_value` over the objects + camera closure; its indirect edges are the
   real ones by `FnPtrCensus`, every function address of the link enters at exactly its type,
-  TRUST 3.2 REPAIRED up to out-of-bounds table reads). TRUST 0.5. The split
+  TRUST 3.2 REPAIRED up to out-of-bounds table reads; those are census-checked by
+  `ActIdxCensus` (every oAction write in range: ow_act's carry certificate) and `CamIdxCensus`
+  (camera mode / trigger / cutscene indices; left: GEO_CAMERA mode, the cutscene-switch
+  carry); BehaviorCmdTable by ow_vm). TRUST 0.5. The split
   is DONE (2026-10-26, `ObjStepSplit`: `Hobj_step_act_*` = "keeps action ∉ T", the rest rows
   assume it); prove the act rows from the census + the step's footprint; then a GOAL-1 world
   invariant without the height budget (after Hseg's B-xz chunk).

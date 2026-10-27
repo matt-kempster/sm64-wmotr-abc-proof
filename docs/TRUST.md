@@ -1717,8 +1717,18 @@ link grows.
   has not proved they never occur. Each such site is a UB-coverage point, listed here until a
   carried invariant shows the case cannot happen. Open (2026-10-25):
   `cur_obj_call_action_function` (`ObjAct.caf_frame`) loads `tbl[o->oAction]` with no bounds
-  check. On the N64 an out-of-range index reads adjacent memory. Planned: `act_in_range` as an S2
-  `obj_w` clause, carried from `act_stores_census` plus the spawn / init writes.
+  check. On the N64 an out-of-range index reads adjacent memory. The clause exists
+  (`ObjWorld.act_ok`, `ow_act`: a slot of the 3 action-table behaviors has 0 <= oAction < its
+  table's length). **Census 2026-10-26 (`WMotRRequiresA/ActIdxCensus.v`), no FOUND:** every
+  write of oAction in the link, machine-checked. Each behavior's own closure (its reachable
+  script natives, BhvVM, under direct calls and its own table) stores only constants in range
+  or a helper parameter every call passes in range (`own_stores_ok`, 3 + 6 + 8 stores); the
+  generic object step stores none (`gen_census`; allocate_object zeroes it); no reachable
+  script state writes field 49 (`script_census`); the only store through another object
+  pointer in the WMotR closure is `act_in_cannon`'s `m->usedObj->oAction = 2` (behind
+  INPUT_A_PRESSED, in range of the cannon's 7) (`other_stores_value`); computed indices never
+  hit 49 and &rawData never escapes. What remains is the CARRY of `ow_act` through the object
+  loop rows (objects agent), with the tie "a slot whose behavior is B runs B's script states".
   **REPAIRED (2026-10-26, `WMotRRequiresA/FnPtrCensus.v`):** `ActWriterCensus` follows an
   indirect call only to address-taken functions of exactly the call site's type (a mismatched
   call is C UB: no CompCert execution, but the N64 runs the target). Machine-checked over every
@@ -1732,11 +1742,23 @@ link grows.
   only pointer punning around function-pointer memory is the render code's graph-node
   downcasts, outside the closure, reaching only `GraphNodeFunc`, a type no call site of the
   closure has, and no union holds a function pointer (`pun_census`); temps and globals are read
-  at their declared type (`read_census`, one unrelated exception). What stays open is
-  the narrower point of an out-of-bounds table read at an indirect call
-  (`BehaviorCmdTable[cmd >> 24]`, `sModeTransitions[mode]`, the cutscene / camera-trigger
-  arrays), which would read a neighbour of another type. Both open points are in
-  `tools/ub_sites.py`'s `UB_WORKLIST`.
+  at their declared type (`read_census`, one unrelated exception). What stayed open was
+  the narrower point of an out-of-bounds table read at an indirect call, which would read a
+  neighbour of another type. `BehaviorCmdTable[cmd >> 24]` is discharged on master by obj_w's
+  CMDPOS clause (`ObjWorld.ow_vm`: every live slot's command is a reachable `BhvVM` state,
+  opcode < 56, `BhvVM.vm_tab_closed`), proved at boot and carried. **The camera tables
+  (census 2026-10-26, `WMotRRequiresA/CamIdxCensus.v`, no FOUND):** a value-source census of
+  every store into the index cells. `sModeTransitions` (18 entries, NULL at 0): every stored
+  mode is a constant in 1..17 or a mode cell except four pinned leaves: two path-guarded
+  (`set_camera_mode`'s `mode != -1`, `set_mode_if_not_set_by_surface`'s `mode != 0`) and
+  `create_camera`'s `gc->config.mode`, the level's GEO_CAMERA node, geo DATA outside the link
+  (WMotR's is 16). Camera triggers: WMotR's `sCameraTriggers` entry is NULL (no trigger runs);
+  every array is NULL-terminated (decomp note: the `LEVEL_COUNT + 1` clamp allows index 40 of
+  a 40-entry array, unreachable in WMotR). Cutscenes: within a cutscene the shot index stays in
+  bounds (`cut_census`: the 8 CUTSCENE_LOOP setters sit only in non-last shots, last
+  durations are 0 / LOOP); open: carrying `c->cutscene = 0 -> sCutsceneShot = 0` across a
+  cutscene switch (`cut_end_census` pins the zeroing sites, each paired with CUTSCENE_STOP or a
+  last duration-0 shot). Both open points are in `tools/ub_sites.py`'s `UB_WORKLIST`.
 
 ### Row 3.5 in detail
 

@@ -355,6 +355,8 @@ proofs/WMotRRequiresA/BhvVM.v
 proofs/WMotRRequiresA/RoCensus.v
 proofs/WMotRRequiresA/ActWriterCensus.v
 proofs/WMotRRequiresA/FnPtrCensus.v
+proofs/WMotRRequiresA/ActIdxCensus.v
+proofs/WMotRRequiresA/CamIdxCensus.v
 proofs/WMotRRequiresA/CoinLink.v
 
 # --- executable Clight: interpreter (sound vs ClightBigstep), vm-computable
