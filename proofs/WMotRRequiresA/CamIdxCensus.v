@@ -50,6 +50,9 @@
 (*    status returns the running cutscene); carrying  c->cutscene = 0 ->   *)
 (*    sCutsceneShot = 0  is the remaining semantic step.                  *)
 (* No store found that can exceed its bound.                               *)
+(* CamCutCensus refines this with path guards, WMotR-dead level arms and  *)
+(* call results: the two guarded mode leaves go, and the cutscene-switch  *)
+(* carry is closed for WMotR.                                             *)
 (* ====================================================================== *)
 
 From Coq Require Import ZArith List Bool String Ascii.

@@ -92,12 +92,13 @@ UB_WORKLIST = [
      "tbl[o->oAction] loaded with no bounds check (ObjAct.caf_frame)",
      "carry obj_w's ow_act (ObjWorld.act_ok) through the object loop rows; every oAction "
      "write is census-checked in range (ActIdxCensus)"),
-    ("camera indirect-call table indices (camera.c)",
-     "sModeTransitions[mode], cutscene[sCutsceneShot], sCameraTriggers[level][b]: an "
-     "out-of-range index reads a neighbour (BehaviorCmdTable: discharged by ow_vm / CMDPOS; "
-     "function-pointer typing REPAIRED, FnPtrCensus)",
-     "CamIdxCensus pins every index store; left: the GEO_CAMERA mode (level geo data, WMotR 16), "
-     "two path guards, and carrying c->cutscene = 0 -> sCutsceneShot = 0"),
+    ("camera.c play_cutscene (CUTSCENE_WATER_DEATH)",
+     "cutscene 159 (get_cutscene_from_mario_status on ACT_WATER_DEATH) has no case in the "
+     "switch, so cutsceneDuration is read uninitialized (CamCutCensus.no_case_values); the "
+     "camera table indices themselves are closed for WMotR (CamIdxCensus + CamCutCensus; "
+     "GEO_CAMERA mode 16 is a TRUST 3.2 line)",
+     "carry Mario's action != ACT_WATER_DEATH (set only by mario_actions_submerged.c; WMotR "
+     "has no water, env_w: gEnvironmentRegions NULL)"),
 ]
 
 

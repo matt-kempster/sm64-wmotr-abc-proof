@@ -1017,7 +1017,9 @@ without pressing A".*
   `Hcam_ow` (narrower than the old `Hlvl_ow`: the `update_camera` statement, the camera row's
   step `LevelFlank.cam_step`, keeps the object world between mem_ok states in Φ; the real
   update_camera is walked only for mem_ok, over SafeB, which includes the object pool, so no
-  footprint excludes the pool). **PROVED 2026-10-26** (was the row `Hlvl_ow`): the level slices
+  footprint excludes the pool; its gates are machine-checked since 2026-10-26, `CamCutCensus`,
+  and what is left is the carry (a) and the footprint walk (b) under `Hcam_phi` below).
+  **PROVED 2026-10-26** (was the row `Hlvl_ow`): the level slices
   keep the object world (`HeightLinked12.lvl_ow_linked12`): the PRE slice's footprint is
   `lvl_safe_gvars` (`LevelKeep.pre_eff`), the POST slice is the hud statement, the camera
   statement (`Hcam_ow`) and the painting call + tail with footprint `level_gvars`
@@ -1144,23 +1146,27 @@ without pressing A".*
     sCutsceneVars, gCameraMovementFlags, gSecondCameraFocus's object, Mario's action
     (set_mario_npc_dialog), and the audio / dialog / sCameraHUDStatus / gRandomSeed16 /
     find_floor-counter globals.
-    Gates, read from camera.c (2026-10-26). With the boot cutscene tables, set_mario_npc_dialog is
-    reached only through `cutscene_common_set_dialog_state`, which is called from shots of exactly
-    two cutscenes:
-    - CUTSCENE_SSL_PYRAMID_EXPLODE: `cutscene_mario_dialog` in sCutscenePyramidTopExplode, and
-      `cutscene_stop_dialog` in its end shot; and
-    - CUTSCENE_ENTER_BOWSER_ARENA: `cutscene_bowser_arena_mario_dialog` and `cutscene_stop_dialog`.
-    The `unused_*` variants are referenced by no table. So the row is honest only on states whose
-    Camera is not in one of those two cutscenes AND whose writable cutscene / trigger tables still
-    hold their boot contents. The type certificate covers ANY CameraEvent in an arbitrary table.
-    PhiW pins neither fact today, so `Hcam_phi` as a ∀ over mem_ok + PhiW states quantifies over
-    camera states the game never produces in WMotR (phantom ∀). Discharging it needs a
-    camera-world carry, proved at boot. That carry has to cover three things:
-    - the Camera's `cutscene` is not one of the two;
-    - the tables are unchanged; and
-    - no WMotR object, and no area / Mario-status trigger inside update_camera, starts either
-      cutscene.
-    This is tied to the objects phase. It stays a labeled open row.
+    Gates, MACHINE-CHECKED since 2026-10-26 (`WMotRRequiresA/CamCutCensus.v`, no FOUND):
+    - `uc_wmotr`: update_camera's closure, with sCutsceneEnterBowserArena,
+      sCutscenePyramidTopExplode and sCameraTriggers cut off, has 428 functions. It contains no
+      `set_mario_npc_dialog`, and its only store through gSecondCameraFocus (an object) is
+      init_camera's LEVEL_BOWSER_1 arm, dead in WMotR. Uncut (530 functions) it has both.
+      WMotR's trigger entry is NULL (`CamIdxCensus.trig_census`).
+    - `cut_census_wmotr`: link-wide, no live code stores 144 or 168 into `Camera.cutscene` /
+      `sObjectCutscene`. Every source is a constant, a cutscene cell, or the dance table, whose
+      nibbles pick the five dance cutscenes (`dance_tables`). 168 is never stored; 144 is stored
+      only by init_camera's three Bowser-level arms (`cut_raw`), dead under `lvl_w`.
+    - `tables_read_only`: the cutscene arrays, the trigger, dance and mode tables are only read.
+    So no WMotR object, Mario-status or area trigger starts either cutscene, and the tables keep
+    their boot contents. **What stays open, narrowed:**
+    - (a) CARRY `Camera.cutscene, sObjectCutscene ∉ {144, 168}` across the frame. The census
+      says no live store breaks it, but no segment row states it, so `Hcam_phi` is still a
+      phantom ∀ over camera states.
+    - (b) a FOOTPRINT walk of update_camera's 428-function WMotR closure. UcKit walks all 507
+      bodies for mem_ok, through type certificates, so it cannot prune (a)'s cutscenes. The
+      footprint for `Hcam_ow` is the camera, audio, dialog and hud globals of `uc_census`, plus
+      the Camera's pool block; none of these is a `PollKeep.ow_ids` block or gMarioStates. For
+      `Hcam_phi`, add Camera bytes disjoint from the frame's surface regions.
   - `surf_apart` over `level_gvars`: PROVED from Φ since 2026-10-26 (`RenderKeep.phiw_surf_apart`).
   - `warp_w` at the POST's end: PROVED (2026-10-26, `LevelWarp.tail_warp_w`; no longer in
     `seg_level_post_spec`). The tail writes `sWarpDest` / `sCurrPlayMode` /
@@ -1756,9 +1762,27 @@ link grows.
   every array is NULL-terminated (decomp note: the `LEVEL_COUNT + 1` clamp allows index 40 of
   a 40-entry array, unreachable in WMotR). Cutscenes: within a cutscene the shot index stays in
   bounds (`cut_census`: the 8 CUTSCENE_LOOP setters sit only in non-last shots, last
-  durations are 0 / LOOP); open: carrying `c->cutscene = 0 -> sCutsceneShot = 0` across a
-  cutscene switch (`cut_end_census` pins the zeroing sites, each paired with CUTSCENE_STOP or a
-  last duration-0 shot). Both open points are in `tools/ub_sites.py`'s `UB_WORKLIST`.
+  durations are 0 / LOOP). **Closed for WMotR (2026-10-26, `WMotRRequiresA/CamCutCensus.v`):**
+  the census made path- and level-aware. A guarded constant is dropped when every use that
+  carries the parameter on sits under a `p != k` test (`mode_guards`, with a negative control).
+  A call in a `gCurrLevelNum` switch case that no LEVEL_WMOTR / default label reaches is dead
+  (gCurrLevelNum = 31 is carried, `FfWorld.lvl_w`). A call's result is followed into the
+  callee's returns. Mode: only `create_camera`'s leaf is left (`mode_census_guarded`).
+  The cutscene-switch carry `c->cutscene = 0 -> sCutsceneShot = 0` is closed:
+  - the zeroing functions and everything that can call or name them lie in the shots' closure,
+    held only by cutscene arrays (`zero_only_in_shots`);
+  - every shot reaching one is a last duration-0 shot, or STOP-paired on every zeroing path
+    with only STOP timer stores in its closure (`shots_reset`, `stop_paired`), so play_cutscene
+    resets the shot;
+  - only `reset_camera` sets CAM_MOVE_INIT_CAMERA (`init_after_reset`);
+  - a cutscene starts only from 0 (`starts_from_zero`: `get_cutscene_from_mario_status`
+    returns a running cutscene unchanged; the pool start is held only by castle / HMC triggers).
+  **One trust line, the GEO_CAMERA mode:** geo layouts are not linked, so the area Camera's mode
+  is WMotR's `GEO_CAMERA(16, ...)` (`levels/wmotr/areas/1/geo.inc.c:16`), transcribed as the
+  literal 16 the boot witness passes to `init_graph_node_camera` (`StartTerrain.cam_chain`).
+  It is in range 1..17. New worklist point (decomp UB, `no_case_values`):
+  CUTSCENE_WATER_DEATH (159, from ACT_WATER_DEATH) has no case in play_cutscene's switch, so
+  `cutsceneDuration` is read uninitialized. In `tools/ub_sites.py`'s `UB_WORKLIST`.
 
 ### Row 3.5 in detail
 
