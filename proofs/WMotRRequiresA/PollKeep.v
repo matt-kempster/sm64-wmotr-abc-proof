@@ -34,7 +34,7 @@ From SM64.Generated Require save_file mario level_update platform_displacement.
 From SM64.Proofs Require Import ActionValueFrame MWFReal SpawnInit MathBodies AGates.
 From SM64.Proofs Require NoAImpliesNoFlyTwelve.
 From SM64.Proofs.WMotRRequiresA Require Import FpuFloor WMotRWorld FfWorld RenderKeep LevelWalk.
-From SM64.Proofs.WMotRRequiresA Require PollFlank ObjWorld FootWalk LevelKeep PlatformKeep.
+From SM64.Proofs.WMotRRequiresA Require PollFlank ObjWorld FootWalk LevelKeep PlatformKeep BhvVM.
 Import ListNotations.
 Local Open Scope Z_scope.
 
@@ -235,6 +235,28 @@ Definition ow_ids : list ident :=
    object_list_processor._gMarioObject; debug._sDebugPage; debug._gDebugInfo;
    object_list_processor._sObjectListUpdateOrder; behavior_script._BehaviorCmdTable].
 
+(* a slot offset is a slot index times the object size *)
+Lemma slot_of_eq : forall o k, OW.slot_of o = Some k -> o = k * OW.OSZ /\ 0 <= k < OW.NSLOT.
+Proof.
+  intros o k H. unfold OW.slot_of in H.
+  destruct ((0 <=? o) && (o <? OW.NSLOT * OW.OSZ) && (o mod OW.OSZ =? 0)) eqn:E; [ | discriminate H ].
+  injection H as <-. apply andb_prop in E as [E E3]. apply andb_prop in E as [E1 E2].
+  apply Z.eqb_eq in E3. apply Z.leb_le in E1. apply Z.ltb_lt in E2.
+  pose proof (Z.div_mod o OW.OSZ ltac:(unfold OW.OSZ; lia)) as D. rewrite E3 in D.
+  unfold OW.OSZ, OW.NSLOT in *. split; [ lia | ].
+  split; [ apply Z.div_pos; lia | apply Z.div_lt_upper_bound; lia ].
+Qed.
+
+(* the stack depth of every reachable VM state is at most 8 *)
+Lemma vm_tab_depth : forallb (fun st => (List.length (BhvVM.v_k st) <=? 8)%nat) BhvVM.vm_tab = true.
+Proof. vm_compute. reflexivity. Qed.
+
+Lemma vm_depth : forall st, In st BhvVM.vm_tab -> (List.length (BhvVM.v_k st) <= 8)%nat.
+Proof.
+  intros st Hin. pose proof (proj1 (forallb_forall _ _) vm_tab_depth st Hin) as H.
+  apply Nat.leb_le in H. exact H.
+Qed.
+
 Section OWK.
   Variables (m m' : mem).
 
@@ -242,27 +264,45 @@ Section OWK.
     forall z, OW.ld32 m' b z = OW.ld32 m b z.
   Proof. intros b K z. unfold OW.ld32. rewrite !CM.load_eq. apply K. Qed.
 
-  Lemma ring_from_eq : forall pool hb,
-    (forall z, OW.ld32 m' pool z = OW.ld32 m pool z) -> (forall z, OW.ld32 m' hb z = OW.ld32 m hb z) ->
+  (* the pool unchanged at every slot's fields from offset 96 on (the list
+     node, the flags, the script VM, rawData, the hitbox, the behavior):
+     what every obj_w clause reads of it *)
+  Definition SKp (pool : block) : Prop :=
+    forall ch k off, 96 <= off -> off + size_chunk ch <= OW.OSZ ->
+      Mem.load ch m' pool (k * OW.OSZ + off) = Mem.load ch m pool (k * OW.OSZ + off).
+
+  Lemma SKp_full : forall pool, (forall ch z, Mem.load ch m' pool z = Mem.load ch m pool z) -> SKp pool.
+  Proof. intros pool K ch k off _ _. apply K. Qed.
+
+  Ltac sk_side := unfold OW.O_BHV, OW.O_CMD, OW.O_SIDX, OW.O_STK, OW.O_ACTION, OW.O_HSCOUNT,
+    OW.O_FLAGS, OW.O_NEXT, OW.O_PREV, OW.OSZ, O_INTERACT_TYPE, O_POSY, HITBOX_DOWN_OFF,
+    HITBOX_H_OFF, RAW_OFF in *; cbn [size_chunk]; lia.
+
+  Lemma ld32_sk : forall pool, SKp pool -> forall k off, 96 <= off -> off + 4 <= OW.OSZ ->
+    OW.ld32 m' pool (k * OW.OSZ + off) = OW.ld32 m pool (k * OW.OSZ + off).
+  Proof. intros pool SK k off H1 H2. unfold OW.ld32. rewrite !CM.load_eq. apply SK; [ exact H1 | exact H2 ]. Qed.
+
+  Lemma ring_from_eq : forall pool hb, SKp pool ->
+    (forall z, OW.ld32 m' hb z = OW.ld32 m hb z) ->
     forall n ho prev cur, OW.ring_from m' pool hb ho prev cur n = OW.ring_from m pool hb ho prev cur n.
   Proof.
-    intros pool hb Kp Kh n. induction n as [| n IH]; intros ho prev cur; cbn [OW.ring_from]; [ reflexivity | ].
+    intros pool hb SK Kh n. induction n as [| n IH]; intros ho prev cur; cbn [OW.ring_from]; [ reflexivity | ].
     destruct cur; try reflexivity.
     destruct (eq_block b hb && Z.eqb (Ptrofs.unsigned i) ho); [ rewrite Kh; reflexivity | ].
     destruct (eq_block b pool); [ | reflexivity ].
-    destruct (OW.slot_of (Ptrofs.unsigned i)); [ | reflexivity ].
-    rewrite !Kp.
-    destruct (OW.ld32 m pool (Ptrofs.unsigned i + OW.O_PREV)); [ | reflexivity ].
-    destruct (OW.ld32 m pool (Ptrofs.unsigned i + OW.O_NEXT)); [ | reflexivity ].
+    destruct (OW.slot_of (Ptrofs.unsigned i)) eqn:E; [ | reflexivity ].
+    destruct (slot_of_eq _ _ E) as (Eo & _). rewrite Eo.
+    rewrite !(ld32_sk pool SK) by sk_side.
+    destruct (OW.ld32 m pool (z * OW.OSZ + OW.O_PREV)); [ | reflexivity ].
+    destruct (OW.ld32 m pool (z * OW.OSZ + OW.O_NEXT)); [ | reflexivity ].
     destruct (OW.veqb v prev); [ | reflexivity ].
     rewrite IH. reflexivity.
   Qed.
 
-  Lemma rings_eq : forall pool la,
-    (forall z, OW.ld32 m' pool z = OW.ld32 m pool z) -> (forall z, OW.ld32 m' la z = OW.ld32 m la z) ->
+  Lemma rings_eq : forall pool la, SKp pool -> (forall z, OW.ld32 m' la z = OW.ld32 m la z) ->
     OW.rings m' pool la = OW.rings m pool la.
   Proof.
-    intros pool la Kp Kl. unfold OW.rings.
+    intros pool la SK Kl. unfold OW.rings.
     assert (E : map (OW.ring_i m' pool la) (seq 0 OW.NLIST) = map (OW.ring_i m pool la) (seq 0 OW.NLIST)).
     { apply map_ext. intros i. unfold OW.ring_i. rewrite Kl.
       destruct (OW.ld32 m la (Z.of_nat i * OW.NODESZ + OW.O_NEXT)); [ | reflexivity ].
@@ -270,97 +310,105 @@ Section OWK.
     rewrite E. reflexivity.
   Qed.
 
-  Lemma free_from_eq : forall pool, (forall z, OW.ld32 m' pool z = OW.ld32 m pool z) ->
+  Lemma free_from_eq : forall pool, SKp pool ->
     forall n cur, OW.free_from m' pool cur n = OW.free_from m pool cur n.
   Proof.
-    intros pool Kp n. induction n as [| n IH]; intros cur; cbn [OW.free_from]; [ reflexivity | ].
+    intros pool SK n. induction n as [| n IH]; intros cur; cbn [OW.free_from]; [ reflexivity | ].
     destruct (OW.veqb cur Vnullptr); [ reflexivity | ].
     destruct cur; try reflexivity.
     destruct (eq_block b pool); [ | reflexivity ].
-    rewrite Kp. destruct (OW.slot_of (Ptrofs.unsigned i)); [ | reflexivity ].
-    destruct (OW.ld32 m pool (Ptrofs.unsigned i + OW.O_NEXT)); [ | reflexivity ].
+    destruct (OW.slot_of (Ptrofs.unsigned i)) eqn:E; [ | reflexivity ].
+    destruct (slot_of_eq _ _ E) as (Eo & _). rewrite Eo.
+    rewrite (ld32_sk pool SK) by sk_side.
+    destruct (OW.ld32 m pool (z * OW.OSZ + OW.O_NEXT)); [ | reflexivity ].
     rewrite IH. reflexivity.
   Qed.
 
   Section POOL.
     Variables (ge : genv) (pool : block).
-    Hypothesis Kp : forall ch z, Mem.load ch m' pool z = Mem.load ch m pool z.
+    Hypothesis Kp : SKp pool.
 
     Lemma is_bhv_eq : forall k id, OW.is_bhv ge pool m k id -> OW.is_bhv ge pool m' k id.
-    Proof. intros k id (b & Hs & L). exists b. rewrite Kp. exact (conj Hs L). Qed.
+    Proof. intros k id (b & Hs & L). exists b. rewrite Kp by sk_side. exact (conj Hs L). Qed.
 
     Lemma is_bhv_eq' : forall k id, OW.is_bhv ge pool m' k id -> OW.is_bhv ge pool m k id.
-    Proof. intros k id (b & Hs & L). exists b. rewrite Kp in L. exact (conj Hs L). Qed.
+    Proof. intros k id (b & Hs & L). exists b. rewrite Kp in L by sk_side. exact (conj Hs L). Qed.
 
     Lemma script_eq : forall k, OW.script_ok ge pool m k -> OW.script_ok ge pool m' k.
     Proof.
-      intros k (id & b & o & Hin & Hs & L). exists id, b, o. rewrite Kp. exact (conj Hin (conj Hs L)).
+      intros k (id & b & o & Hin & Hs & L). exists id, b, o. rewrite Kp by sk_side. exact (conj Hin (conj Hs L)).
     Qed.
 
     Lemma script12_eq : forall k, OW.script12_ok ge pool m k -> OW.script12_ok ge pool m' k.
     Proof.
-      intros k (id & b & o & Hin & Hs & L). exists id, b, o. rewrite Kp. exact (conj Hin (conj Hs L)).
+      intros k (id & b & o & Hin & Hs & L). exists id, b, o. rewrite Kp by sk_side. exact (conj Hin (conj Hs L)).
     Qed.
 
     Lemma vm_eq : forall k, OW.vm_ok ge pool m k -> OW.vm_ok ge pool m' k.
     Proof.
       intros k (st & Hin & (b & Hs & L1) & L2 & F). exists st.
-      split; [ exact Hin | split; [ exists b; rewrite Kp; exact (conj Hs L1) | split ] ].
-      - rewrite Kp. exact L2.
-      - intros n f Hn. rewrite Kp. exact (F n f Hn).
+      pose proof (vm_depth st Hin) as Dp.
+      split; [ exact Hin | split; [ exists b; rewrite Kp by sk_side; exact (conj Hs L1) | split ] ].
+      - rewrite Kp by sk_side. exact L2.
+      - intros n f Hn. pose proof (F n f Hn) as Fn.
+        assert (Hlt : (n < List.length (BhvVM.v_k st))%nat) by (apply nth_error_Some; congruence).
+        unfold OW.stk_cell in *. rewrite <- Z.add_assoc in *.
+        rewrite Kp by sk_side. exact Fn.
     Qed.
 
     Lemma act_eq : forall k, OW.act_ok ge pool m k -> OW.act_ok ge pool m' k.
     Proof.
       intros k H bh t Hin Hb. destruct (H bh t Hin (is_bhv_eq' k bh Hb)) as (a & La & R).
-      exists a. rewrite Kp. exact (conj La R).
+      exists a. rewrite Kp by sk_side. exact (conj La R).
     Qed.
 
     Lemma kind_eq : forall k, OW.kind_ok pool m k -> OW.kind_ok pool m' k.
     Proof.
       intros k (t & Lt & Hin & Hp & Hc). exists t.
-      split; [ rewrite Kp; exact Lt | split; [ exact Hin | split ] ].
+      split; [ rewrite Kp by sk_side; exact Lt | split; [ exact Hin | split ] ].
       - intros E. destruct (Hp E) as (base & top & Hb & L1 & L2 & L3).
-        exists base, top. rewrite !Kp. exact (conj Hb (conj L1 (conj L2 L3))).
-      - intros E. destruct (Hc E) as (y & Hy & L). exists y. rewrite Kp. exact (conj Hy L).
+        exists base, top. rewrite !Kp by sk_side. exact (conj Hb (conj L1 (conj L2 L3))).
+      - intros E. destruct (Hc E) as (y & Hy & L). exists y. rewrite Kp by sk_side. exact (conj Hy L).
     Qed.
 
     Lemma red_eq : forall k, OW.red_ok ge pool m k -> OW.red_ok ge pool m' k.
     Proof.
       intros k (N & R). split.
       - intros Hb. exact (N (is_bhv_eq' k _ Hb)).
-      - intros Hb. destruct (R (is_bhv_eq' k _ Hb)) as (c & Lc & Rc). exists c. rewrite Kp. exact (conj Lc Rc).
+      - intros Hb. destruct (R (is_bhv_eq' k _ Hb)) as (c & Lc & Rc). exists c. rewrite Kp by sk_side. exact (conj Lc Rc).
     Qed.
   End POOL.
 
-  (* THE LEMMA: obj_w survives any change off its globals' blocks and off
+  (* THE LEMMA, slot-field form: obj_w survives any change off its globals'
+     blocks (the pool: off every slot's fields from offset 96 on) and off
      Mario's five object-pointer cells *)
-  Theorem obj_w_unch : forall (ge : genv) bm,
-    (forall id b, In id ow_ids -> Genv.find_symbol ge id = Some b ->
+  Theorem obj_w_slots : forall (ge : genv) bm,
+    (forall id b, In id ow_ids -> id <> object_list_processor._gObjectPool -> Genv.find_symbol ge id = Some b ->
        forall ch z, Mem.load ch m' b z = Mem.load ch m b z) ->
+    (forall pool, Genv.find_symbol ge object_list_processor._gObjectPool = Some pool -> SKp pool) ->
     (forall z, z = MARIOOBJ_OFF \/ In z [120; 124; 128; 132] ->
        Mem.load Mint32 m' bm z = Mem.load Mint32 m bm z) ->
     OW.obj_w ge bm m -> OW.obj_w ge bm m'.
   Proof.
-    intros ge bm K Kbm (pool & la & fl & gol & gmo & sdp & gdi & rs & fs & S1 & S2 & S3 & S4 & S5 & S6 & S7 & C).
-    assert (Kp := K object_list_processor._gObjectPool pool ltac:(unfold ow_ids; cbn [In]; auto 10) S1).
-    assert (Kl := K object_list_processor._gObjectListArray la ltac:(unfold ow_ids; cbn [In]; auto 10) S2).
-    assert (Kf := K object_list_processor._gFreeObjectList fl ltac:(unfold ow_ids; cbn [In]; auto 10) S3).
-    assert (Kg := K object_list_processor._gObjectLists gol ltac:(unfold ow_ids; cbn [In]; auto 10) S4).
-    assert (Km := K object_list_processor._gMarioObject gmo ltac:(unfold ow_ids; cbn [In]; auto 10) S5).
-    assert (Ks := K debug._sDebugPage sdp ltac:(unfold ow_ids; cbn [In]; auto 10) S6).
-    assert (Kd := K debug._gDebugInfo gdi ltac:(unfold ow_ids; cbn [In]; auto 10) S7).
+    intros ge bm K KP Kbm (pool & la & fl & gol & gmo & sdp & gdi & rs & fs & S1 & S2 & S3 & S4 & S5 & S6 & S7 & C).
+    assert (Kp := KP pool S1).
+    assert (Kl := K object_list_processor._gObjectListArray la ltac:(unfold ow_ids; cbn [In]; auto 10) ltac:(vm_compute; discriminate) S2).
+    assert (Kf := K object_list_processor._gFreeObjectList fl ltac:(unfold ow_ids; cbn [In]; auto 10) ltac:(vm_compute; discriminate) S3).
+    assert (Kg := K object_list_processor._gObjectLists gol ltac:(unfold ow_ids; cbn [In]; auto 10) ltac:(vm_compute; discriminate) S4).
+    assert (Km := K object_list_processor._gMarioObject gmo ltac:(unfold ow_ids; cbn [In]; auto 10) ltac:(vm_compute; discriminate) S5).
+    assert (Ks := K debug._sDebugPage sdp ltac:(unfold ow_ids; cbn [In]; auto 10) ltac:(vm_compute; discriminate) S6).
+    assert (Kd := K debug._gDebugInfo gdi ltac:(unfold ow_ids; cbn [In]; auto 10) ltac:(vm_compute; discriminate) S7).
     exists pool, la, fl, gol, gmo, sdp, gdi, rs, fs.
     refine (conj S1 (conj S2 (conj S3 (conj S4 (conj S5 (conj S6 (conj S7 _))))))).
     destruct C as [Cg Cr Cf Cp Cfo Cm Cs Ca Crd Cdb Cst Co Cd12 Cct Cvm].
     constructor.
     - rewrite Kg. exact Cg.
-    - rewrite (rings_eq pool la (ld32_eq pool Kp) (ld32_eq la Kl)). exact Cr.
+    - rewrite (rings_eq pool la Kp (ld32_eq la Kl)). exact Cr.
     - unfold OW.free_list in *. rewrite (ld32_eq fl Kf).
       destruct (OW.ld32 m fl OW.O_NEXT); [ | discriminate Cf ].
-      rewrite (free_from_eq pool (ld32_eq pool Kp)). exact Cf.
+      rewrite (free_from_eq pool Kp). exact Cf.
     - exact Cp.
-    - intros k Hk. rewrite Kp. exact (Cfo k Hk).
+    - intros k Hk. rewrite Kp by sk_side. exact (Cfo k Hk).
     - destruct Cm as (k & Hk & Lg & Lb & Kd').
       exists k. split; [ exact Hk | split; [ rewrite Km; exact Lg | split ] ].
       + rewrite (Kbm _ (or_introl eq_refl)). exact Lb.
@@ -371,11 +419,25 @@ Section OWK.
     - rewrite Ks, Kd. exact Cdb.
     - intros z Hz. rewrite (Kbm z (or_intror Hz)). exact (Cst z Hz).
     - destruct Co as (b & Sb & L). exists b. split; [ exact Sb | ].
-      intros j Hj. rewrite (K object_list_processor._sObjectListUpdateOrder b ltac:(unfold ow_ids; cbn [In]; auto 10) Sb). exact (L j Hj).
+      intros j Hj. rewrite (K object_list_processor._sObjectListUpdateOrder b ltac:(unfold ow_ids; cbn [In]; auto 10) ltac:(vm_compute; discriminate) Sb). exact (L j Hj).
     - intros k Hk. exact (script12_eq ge pool Kp k (Cd12 k Hk)).
     - destruct Cct as (b & Sb & L). exists b. split; [ exact Sb | ].
-      intros j id Hj. rewrite (K behavior_script._BehaviorCmdTable b ltac:(unfold ow_ids; cbn [In]; auto 10) Sb). exact (L j id Hj).
+      intros j id Hj. rewrite (K behavior_script._BehaviorCmdTable b ltac:(unfold ow_ids; cbn [In]; auto 10) ltac:(vm_compute; discriminate) Sb). exact (L j id Hj).
     - intros k Hk. exact (vm_eq ge pool Kp k (Cvm k Hk)).
+  Qed.
+
+  (* THE LEMMA: obj_w survives any change off its globals' blocks and off
+     Mario's five object-pointer cells *)
+  Theorem obj_w_unch : forall (ge : genv) bm,
+    (forall id b, In id ow_ids -> Genv.find_symbol ge id = Some b ->
+       forall ch z, Mem.load ch m' b z = Mem.load ch m b z) ->
+    (forall z, z = MARIOOBJ_OFF \/ In z [120; 124; 128; 132] ->
+       Mem.load Mint32 m' bm z = Mem.load Mint32 m bm z) ->
+    OW.obj_w ge bm m -> OW.obj_w ge bm m'.
+  Proof.
+    intros ge bm K Kbm. apply obj_w_slots; [ | | exact Kbm ].
+    - intros id b Hin _ Hs. exact (K id b Hin Hs).
+    - intros pool Hs. apply SKp_full. apply (K object_list_processor._gObjectPool pool); [ unfold ow_ids; cbn [In]; auto 10 | exact Hs ].
   Qed.
 End OWK.
 

@@ -84,6 +84,27 @@ CLASSES = [
 ]
 
 
+# Semantic UB-coverage points (TRUST.md 3.2): not preprocessing hunks, but places where a
+# lemma or census holds only because CompCert gives the UB case no execution.  On the N64
+# the case runs.  Each stays here until a carried invariant / census closes it.
+UB_WORKLIST = [
+    ("object_helpers.c cur_obj_call_action_function",
+     "tbl[o->oAction] loaded with no bounds check (ObjAct.caf_frame)",
+     "act_in_range as an obj_w clause, from act_stores_census + the spawn / init writes"),
+    ("indirect calls in the objects + camera closure (ActWriterCensus)",
+     "the census follows an indirect call only to address-taken functions of exactly the call "
+     "site's type; a mismatched call is C UB (CompCert: stuck; N64: runs the target)",
+     "check that every function-pointer store / initializer in the closure holds a function "
+     "of the type its holder is read at"),
+    ("mario.c:427 mario_get_floor_class",
+     "m->floor->normal.y read with no NULL check when m->action == ACT_CRAWLING; reached in a "
+     "NULL-floor frame from mario_process_interactions (knockback / bully -> set_mario_action_moving), "
+     "before execute_mario_action's OOB guard (CompCert: stuck; N64: read near 0, TLB-miss crash)",
+     "show Mario is never ACT_CRAWLING with a NULL floor at the interaction phase "
+     "(e.g. carry the x/z box so umi's second find_floor always hits)"),
+]
+
+
 def classify(rom, prf):
     for name, f in CLASSES:
         if [f(x) for x in rom] == prf:
@@ -113,6 +134,9 @@ def main():
         for x in prf[:6]:
             print(f"   PROOF {x[:150]}")
     print(f"\n{len(by_site)} changed sites: " + ", ".join(f"{k} {v}" for k, v in sorted(counts.items())))
+    print(f"\nsemantic UB-coverage worklist (TRUST.md 3.2), {len(UB_WORKLIST)} open:")
+    for site, what, path in UB_WORKLIST:
+        print(f"  - {site}: {what}\n      discharge: {path}")
 
 
 if __name__ == "__main__":

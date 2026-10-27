@@ -19,6 +19,14 @@ all in `Unwired/`, and the theorem moved nowhere. See
 
 ## Where the bottom line is (keep this current)
 
+- **GOAL 1 over the whole frame** (2026-10-26, skeleton): `NoAImpliesNoFly/NoAImpliesNoFlyFrame.v`,
+  `noA_never_flying_frame_linked12`: the step is GOAL 2's real `frame_step`; open rows = GOAL 2's
+  capstone rows (shared invariant: the level slices' mem_ok carries read PhiW). The header lists
+  what GOAL 1 needs from each row; the key one is `Hobj_step_*` (no object sets Mario's action
+  into T; objects reach it only via `set_mario_npc_dialog`, MACHINE-CHECKED by
+  `ActWriterCensus.census_value` over the objects + camera closure). TRUST 0.5. Next: split
+  "keeps action ∉ T" from `Hobj_step_*` (census + the step's footprint); then a GOAL-1 world
+  invariant without the height budget (after Hseg's B-xz chunk).
 - **GOAL 1** (no-A ⇒ no-fly): `NoAImpliesNoFly/NoAImpliesNoFlyTwelve.v`,
   `noA_no_spawn_never_flying_linked12`. The step is one real `execute_mario_action` over
   any link of the 14 TUs (the 12 Mario TUs + `surface_collision` + `math_util`, since
@@ -474,6 +482,32 @@ all in `Unwired/`, and the theorem moved nowhere. See
     `Hseg_call_na` / `Hseg_any` now claim it). Old `PoleRow.pole_row` and the walks
     PoleSlow/Fast/Hold/Climb are retired. Walker trap: a clamped polePos folds
     oPosY + 720.0f to a constant, so `PoleClass.tb` has a constant + offset case.
+  - **HANDOFF, GOAL 2 chunk 2 (B-xz, design B'', 2026-10-26; branch
+    worktree-agent-ae1f447b83997067c, paused for usage).**
+    - Design:
+      - The real OOB guard (`if (gMarioState->floor == NULL) return 0;`) is proved:
+        `FrameSplit.pieces_fc`, `fc_null_returns`, `hs_fc`. So a NULL-floor frame runs no
+        dispatch, and Mario is frozen until the DEATH warp.
+      - `ff_Wf` is `wfl` (a world surface or NULL).
+      - `fresh` / `fresh_at` carry `floor_nn`.
+      - umi / special floors / interactions post `floor_null \/ fresh`.
+      - The rows rebind the world floor via `ffw_floor_w` + `fresh_floor_nn` and re-prove it with
+        `floor_nn_of`.
+      - Conditional box: `BoxCheck.xboxo` (in the s16 box or `~ebox`). ff / ahw / kb rows conclude
+        `pos_box m -> pos_box m'`. Pole / cannon / ledge rows make no box claim (phantom walls).
+    - NULL-floor audit (TRUST 3.2): every reader is guarded except **mario.c:427**
+      (`mario_get_floor_class`, ACT_CRAWLING + `m->floor->normal.y`, reached from interactions via
+      knockback / bully, before the guard). That one is UB coverage, in `tools/ub_sites.py`
+      `UB_WORKLIST`.
+    - Done: the above; HeightFrame + StartSat built pre-merge.
+    - Merging master 4cb9575a: the TRUST conflict is resolved, but the full build was not finished.
+    - Next:
+      - finish the merge build plus the audit;
+      - chunk 2 rest: the box is not yet consumed by FrameSplit. It needs a ghost / flag, e.g. an
+        FS clause `act_boxed m -> pos_box m` with pole / cannon / ledge exempt, re-established on
+        the exits from those groups;
+      - chunk 3: y bound = -8192 minus the computed one-frame overshoot, as a constant;
+      - `walls_ok` is an optional tightening (lets pole / cannon / ledge keep the box).
   - (`wmotr_gap` and `wmotr_poles` are now proved from generated level data, `WMotRLevel.v`)
   - the flank spec (TRUST 0.7): objects. The LEVEL PHASE is real code since 2026-10-24:
     `play_mode_normal`'s slices before / after `area_update_objects` (`LevelFlank`), walked
@@ -522,7 +556,9 @@ all in `Unwired/`, and the theorem moved nowhere. See
     hole (`HeightFrame.mario_hole`, filled by Hframe_action + seg_action_phi). Open, labeled
     rows over the real stages: Hobj_blind / Hobj_fresh / Hobj_noref, Hobj_stores /
     Hobj_counter, Hobj_debug, Hobj_surfaces, Hobj_collisions, Hobj_unload, Hobj_mplat;
-    Hplat_keep, Hlvl_ow, Hrender_ow. Proved: the walk of update_objects' body, the clock
+    Hcam_ow (the camera statement keeps obj_w; narrower than Hlvl_ow). PROVED 2026-10-26:
+    Hplat_keep (plat_keep_linked12), Hlvl_ow (lvl_ow_linked12: pre_eff / post_split footprints
+    + Hcam_ow), Hrender_ow (render_ow_linked12: render_eff + PollKeep.obj_w_slots). Proved: the walk of update_objects' body, the clock
     calls, objects_keep, the platform call inside. B2 DONE (ObjLoop.v): update_terrain_objects
     and update_non_terrain_objects are PROVED (update_objects_in_list, both per-list loops over
     obj_w's rings, the list heads, sObjectListUpdateOrder -- now an obj_w clause, ORDER) from
@@ -560,8 +596,10 @@ all in `Unwired/`, and the theorem moved nowhere. See
     The capstone's no-A premise is now `PollFlank.pif_a_real` on the PIF reply bytes (TRUST 0.1);
     `a_used_real` is a proved conclusion (`poll_ok`). FOUND: `__osPackReadData` puts 0xFFFF in the
     request's button word, so an unplugged port reads "A" -- the premise ignores ports with error
-    bits (`rxLen & 0xC0`), as osContGetReadData does. Open in the spec: only the two calls' adjacency
-    (audio_game_loop_tick / select_gfx_pool run between). The Phi / plat_still / OW carries are
+    bits (`rxLen & 0xC0`), as osContGetReadData does. NO labeled premise left in the poll segment (2026-10-26):
+    audio_game_loop_tick / select_gfx_pool, which run between the two calls, are real walked code
+    in the segment (`MidKeep.mid_keeps`, row `Hmid_keep` discharged as `mid_keep_linked12`; the pool
+    pointers + gGfxPools joined `safe_ptr_syms` as `CensusV2.gfx_safe_syms`; GOAL 1's facts by UcKit). The Phi / plat_still / OW carries are
     PROVED (2026-10-26, `PollKeep.srd_keeps` / `rci_keeps`, via `FootWalk` (generic footprint
     walker) and `Generic/PermWalk` (permission-preservation body check)); HeightFrame row
     `Hsrd_keep` (new) and the strengthened `Hpoll_ok` are both discharged on the link. `ctl_w` gained P1 / P3 / demo-NULL / maxctl / controllerData clauses

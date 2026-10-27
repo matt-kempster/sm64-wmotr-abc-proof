@@ -801,4 +801,45 @@ Section RK.
     exact (k_all render_gvars (flank_core_incl _ HXR) (avoid_of render_gvars lvl_ids ltac:(vm_compute; reflexivity))
              m m' mb mo Lmo NB' PM' LD LM Hbm Nbm Bmb RGa CL FR Hphi RSA).
   Qed.
+  (* the render call's effect, for later carries: only the render globals
+     and the bytes [u mo + 64, u mo + 72) of Mario's object change *)
+  Theorem render_eff : forall m m',
+    phiw lp bm m -> RenderFlank.render_call lp bm m m' ->
+    exists mb mo, Mem.load Mint32 m bm 136 = Some (Vptr mb mo)
+      /\ forall ch b z, ~ rgb render_gvars b ->
+           (b <> mb \/ z + size_chunk ch <= u mo + 64 \/ u mo + 72 <= z) ->
+           Mem.load ch m' b z = Mem.load ch m b z.
+  Proof.
+    intros m m' Hphi (mb & mo & vh & t & vres & Lmo & Hev).
+    pose proof Hphi as (_ & _ & _ & Hmo & Hf & _ & Haw & _).
+    destruct (Hmo mb mo Lmo) as (Smo & _ & _). unfold OBJ_SIZE in Smo.
+    pose proof Haw as (ab & bga & bauc & btab & otab & bt & ot & mb' & mo' & B & _).
+    pose proof B as (_ & _ & _ & _ & _ & Lm & _ & _ & _ & _ & _ & (_ & RG) & _ & _ & _ & _ & _ & _ & _ & _ & Hbm).
+    rewrite Lmo in Lm. injection Lm as <- <-.
+    assert (HXR : incl render_gvars flank_gvars) by exact (incl_appl _ (incl_refl _)).
+    assert (RGa : forall b, rgb render_gvars b -> b <> mb /\ tab_apart G m b)
+      by (intros b (id & Hin & Hs); exact (RG id b (in_or_app _ _ _ (or_introl Hin)) Hs)).
+    assert (Nbm : ~ rgb render_gvars bm)
+      by exact (rgb_not render_gvars (flank_core_incl _ HXR) _ bm Hbm ltac:(vm_compute; reflexivity)).
+    pose proof Hf as (_ & EX & _).
+    destruct EX as (dw & FWF).
+    pose proof (ff_HC _ _ _ _ FWF) as HC. pose proof (ff_HS _ _ _ _ FWF) as HS. pose proof (ff_HM _ _ _ _ FWF) as HM.
+    pose proof (ff_Lo _ _ _ _ FWF) as Lo. pose proof (ff_D1 _ _ _ _ FWF) as D1.
+    set (gp := fw_gp dw) in *.
+    change FFW_OBJ with 136 in Lo. rewrite Lmo in Lo.
+    assert (Eb : mb = fw_bo dw) by congruence. rewrite <- Eb in D1. clear Lo Eb.
+    assert (Bmb : bm <> mb) by (intros E; exact (D1 (eq_sym E))).
+    assert (Gmb : gp mb <> None) by exact (closed_load gp m Mint32 bm 136 _ HC HM Lmo).
+    pose proof max_mod as Hmax.
+    set (oi := Ptrofs.add mo (Ptrofs.repr RENDER_ANIM_OFF)) in *.
+    assert (Uoi : u oi = u mo + 56) by (unfold oi, RENDER_ANIM_OFF; apply uadd; lia).
+    assert (Hoi : u oi + 16 <= Ptrofs.max_unsigned) by lia.
+    pose proof (gsag_footprint G (render_cenv lp H12) (render_guaf lp H12) (render_stv lp H12)
+                  m mb oi vh t m' vres Hev) as Fp.
+    destruct (rstore_eff render_gvars mb oi m gp Hoi HC Gmb HS (incl_refl _) m m' Fp HC)
+      as (NB & PM & LD0 & _).
+    exists mb, mo. split; [ exact Lmo | ].
+    intros ch b z Nr Hz. apply LD0; [ exact Nr | ].
+    destruct Hz as [Hz | Hz]; [ left; exact Hz | right; lia ].
+  Qed.
 End RK.
