@@ -1407,9 +1407,9 @@ Definition v_blue_coin_switch_seg8_collision_08000E98 := {|
 |}.
 
 Definition v_bobomb_seg8_anims_0802396C := {|
-  gvar_info := (tarray (tptr (Tstruct _Animation noattr)) 0);
+  gvar_info := (tarray (tptr (Tstruct _Animation noattr)) 3);
   gvar_init := nil;
-  gvar_readonly := true;
+  gvar_readonly := false;
   gvar_volatile := false
 |}.
 
@@ -1477,16 +1477,16 @@ Definition v_purple_switch_seg8_collision_0800C7A8 := {|
 |}.
 
 Definition v_blue_fish_seg3_anims_0301C2B0 := {|
-  gvar_info := (tarray (tptr (Tstruct _Animation noattr)) 0);
+  gvar_info := (tarray (tptr (Tstruct _Animation noattr)) 2);
   gvar_init := nil;
-  gvar_readonly := true;
+  gvar_readonly := false;
   gvar_volatile := false
 |}.
 
 Definition v_bowser_key_seg3_anims_list := {|
-  gvar_info := (tarray (tptr (Tstruct _Animation noattr)) 0);
+  gvar_info := (tarray (tptr (Tstruct _Animation noattr)) 2);
   gvar_init := nil;
-  gvar_readonly := true;
+  gvar_readonly := false;
   gvar_volatile := false
 |}.
 
@@ -1708,9 +1708,9 @@ Definition v_birds_seg5_anims_050009E8 := {|
 |}.
 
 Definition v_peach_seg5_anims_0501C41C := {|
-  gvar_info := (tarray (tptr (Tstruct _Animation noattr)) 0);
+  gvar_info := (tarray (tptr (Tstruct _Animation noattr)) 13);
   gvar_init := nil;
-  gvar_readonly := true;
+  gvar_readonly := false;
   gvar_volatile := false
 |}.
 
@@ -1848,9 +1848,9 @@ Definition v_mips_seg6_anims_06015634 := {|
 |}.
 
 Definition v_toad_seg6_anims_0600FB58 := {|
-  gvar_info := (tarray (tptr (Tstruct _Animation noattr)) 0);
+  gvar_info := (tarray (tptr (Tstruct _Animation noattr)) 8);
   gvar_init := nil;
-  gvar_readonly := true;
+  gvar_readonly := false;
   gvar_volatile := false
 |}.
 
